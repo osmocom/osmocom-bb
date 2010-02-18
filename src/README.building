@@ -1,0 +1,27 @@
+== How to build OsmocomBB? ==
+
+=== Prerequisites ===
+
+We assume you are building on a GNU/Linux host system such as Debian GNU/Linux.
+Windows builds have been reported successfully using the Cygwin environment, but
+we do not officially support this.
+
+ # Get a GNU toolchain (gcc/binutils) for ARM (e.g. from http://gnuarm.com/)
+ # Set your path to include the arm-elf-* executables of your toolchain
+
+=== Building the actual GSM firmware ===
+
+ # cd osmocom-bb/src/target/firmware
+ # make
+
+=== Building the osmocon terminal program and multiplexer ===
+
+ # cd osmocom-bb/src/host/osmocon
+ # make
+
+=== Building the layer2 binary on the host PC ===
+
+ # cd osmocom-bb/src/host/layer2
+ # autoreconf -i
+ # ./confiugre
+ # make
