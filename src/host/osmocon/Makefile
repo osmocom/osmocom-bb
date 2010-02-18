@@ -3,8 +3,8 @@ all: osmocon
 OSMOCOM_SRC=../libosmocom/src/select.c ../libosmocom/src/timer.c \
 	    ../libosmocom/src/msgb.c ../libosmocom/src/talloc.c  \
 	    ../libosmocom/src/debug.c
-SERCOMM_SRC=../../target/hello_world/comm/sercomm.c
-INCLUDES=-I../libosmocom/include -I../../target/hello_world/include/comm
+SERCOMM_SRC=../../target/firmware/comm/sercomm.c
+INCLUDES=-I../libosmocom/include -I../../target/firmware/include/comm
 
 .PHONY: version.h
 version.h:
