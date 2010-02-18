@@ -1,0 +1,14 @@
+Makefile
+Makefile.in
+aclocal.m4
+configure
+missing
+*.o
+depcomp
+config.*
+*.sw?
+*.deps
+layer2
+install-sh
+autom4te.cache
+*.a

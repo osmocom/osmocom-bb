@@ -1,0 +1,2 @@
+GSM burst duration: 577uS
+RITA synthesizer retuning max: 170uS

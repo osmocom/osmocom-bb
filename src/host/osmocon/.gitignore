@@ -1,0 +1,9 @@
+*.o
+osmocon
+*.id*
+*.nam
+*.til
+*.dump
+*.bin
+*.log
+version.h

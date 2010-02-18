@@ -1,0 +1,7 @@
+*.o
+*.a
+*.lst
+*.bin
+*.elf
+*.size
+*~
