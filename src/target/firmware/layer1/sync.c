@@ -155,8 +155,9 @@ static void l1ddsp_meas_read(uint8_t nbmeas, uint16_t *pm)
 
 /* Convert an angle in fx1.15 notatinon into Hz */
 #define BITFREQ_DIV_2PI		43104	/* 270kHz / 2 * pi */
+#define BITFREQ_DIV_PI		86208	/* 270kHz / pi */
 #define ANG2FREQ_SCALING	(2<<15)	/* 2^15 scaling factor for fx1.15 */
-#define ANGLE_TO_FREQ(angle)	((int16_t)angle * BITFREQ_DIV_2PI / ANG2FREQ_SCALING)
+#define ANGLE_TO_FREQ(angle)	((int16_t)angle * BITFREQ_DIV_PI / ANG2FREQ_SCALING)
 
 #define AFC_MAX_ANGLE		328	/* 0.01 radian in fx1.15 */
 #define AFC_SNR_THRESHOLD	2560	/* 2.5 dB in fx6.10 */
