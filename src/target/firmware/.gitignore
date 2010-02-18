@@ -3,5 +3,6 @@
 *.lst
 *.bin
 *.elf
+*.map
 *.size
 *~
