@@ -22,6 +22,8 @@
 #define GSMTAP_BURST_ACCESS		0x08
 #define GSMTAP_BURST_NONE		0x09
 
+#define GSMTAP_UDP_PORT                 4729
+
 struct gsmtap_hdr {
 	u_int8_t version;		/* version, set to 0x01 currently */
 	u_int8_t hdr_len;		/* length in number of 32bit words */
