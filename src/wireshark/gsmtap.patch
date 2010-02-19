@@ -2,11 +2,11 @@ Index: epan/dissectors/packet-gsmtap.c
 ===================================================================
 --- /dev/null
 +++ epan/dissectors/packet-gsmtap.c
-@@ -0,0 +1,257 @@
+@@ -0,0 +1,242 @@
 +/* packet-gsmtap.c
 + * Routines for GSMTAP captures
 + *
-+ * (C) 2008 by Harald Welte <laforge@gnumonks.org>
++ * (C) 2008-2010 by Harald Welte <laforge@gnumonks.org>
 + *
 + * Wireshark - Network traffic analyzer
 + * By Gerald Combs <gerald@wireshark.org>
@@ -27,6 +27,15 @@ Index: epan/dissectors/packet-gsmtap.c
 + * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 + * 02111-1307, USA.
 + *
++ */
++
++/* GSMTAP is a generic header format for GSM protocol captures,
++ * it uses the IANA-assigned UDP port number 4729 and carries
++ * payload in various formats of GSM interfaces such as Um MAC
++ * blocks or Um bursts.
++ *
++ * Example programs generating GSMTAP data are airprobe
++ * (http://airprobe.org/) or OsmocomBB (http://bb.osmocom.org/)
 + */
 +
 +#ifdef HAVE_CONFIG_H
@@ -127,8 +136,6 @@ Index: epan/dissectors/packet-gsmtap.c
 +
 +	len = tvb_length(tvb);
 +
-+	//pinfo->ptype = PT_I2C;
-+
 +	version = tvb_get_guint8(tvb, offset + 0);
 +	hdr_len = tvb_get_guint8(tvb, offset + 1) <<2;
 +	type = tvb_get_guint8(tvb, offset + 2);
@@ -145,27 +152,6 @@ Index: epan/dissectors/packet-gsmtap.c
 +
 +	payload_tvb = tvb_new_subset(tvb, hdr_len, len-hdr_len, len-hdr_len);
 +
-+#if 0
-+	if (check_col(pinfo->cinfo, COL_PROTOCOL)) {
-+		if (is_event)
-+			col_add_fstr(pinfo->cinfo, COL_PROTOCOL, "I2C Event");
-+		else
-+			col_add_fstr(pinfo->cinfo, COL_PROTOCOL, "I2C %s",
-+					(flags & I2C_FLAG_RD) ? "Read" : "Write");
-+	}
-+
-+	if (check_col(pinfo->cinfo, COL_DEF_SRC)) {
-+		col_add_fstr(pinfo->cinfo, COL_DEF_SRC, "I2C-%d", bus);
-+	}
-+
-+	if (check_col(pinfo->cinfo, COL_DEF_DST)) {
-+		if (is_event)
-+			col_add_fstr(pinfo->cinfo, COL_DEF_DST, "----");
-+		else
-+			col_add_fstr(pinfo->cinfo, COL_DEF_DST, "0x%02x", addr);
-+	}
-+
-+#endif
 +	if (check_col(pinfo->cinfo, COL_INFO)) {
 +		col_add_fstr(pinfo->cinfo, COL_INFO, "GSM TAP, %d bytes", len);
 +	}
@@ -257,18 +243,26 @@ Index: epan/dissectors/packet-gsmtap.c
 +	sub_handles[SUB_UM] = find_dissector("gsm_a_ccch");
 +	sub_handles[SUB_ABIS] = find_dissector("gsm_a_dtap");
 +	gsmtap_handle = create_dissector_handle(dissect_gsmtap, proto_gsmtap);
-+	//dissector_add("wtap_encap", WTAP_ENCAP_GSMTAP_UM, gsmtap_handle);
 +	dissector_add("udp.port", GSMTAP_UDP_PORT, gsmtap_handle);
 +}
 Index: epan/dissectors/packet-gsmtap.h
 ===================================================================
 --- /dev/null
 +++ epan/dissectors/packet-gsmtap.h
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,53 @@
 +#ifndef _GSMTAP_H
 +#define _GSMTAP_H
 +
-+/* gsmtap header, pseudo-header in front of the actua GSM payload*/
++/* gsmtap header, pseudo-header in front of the actua GSM payload */
++
++/* GSMTAP is a generic header format for GSM protocol captures,
++ * it uses the IANA-assigned UDP port number 4729 and carries
++ * payload in various formats of GSM interfaces such as Um MAC
++ * blocks or Um bursts.
++ *
++ * Example programs generating GSMTAP data are airprobe
++ * (http://airprobe.org/) or OsmocomBB (http://bb.osmocom.org/)
++ */
 +
 +#include <sys/types.h>
 +
