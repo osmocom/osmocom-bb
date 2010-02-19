@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <netinet/in.h>
 
-int gsmtap_init(struct sockaddr_in *sin);
+int gsmtap_init(void);
 
 /* receive a message from L1/L2 and put it in GSMTAP */
 int gsmtap_sendmsg(uint8_t ts, uint16_t arfcn, uint32_t fn,

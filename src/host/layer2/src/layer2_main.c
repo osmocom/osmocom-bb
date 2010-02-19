@@ -38,6 +38,8 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#include "gsmtap_util.h"
+
 #define GSM_L2_LENGTH 256
 
 static void *l2_ctx = NULL;
@@ -157,6 +159,7 @@ int main(int argc, char **argv)
 {
 	int rc;
 	struct sockaddr_un local;
+	struct sockaddr_in gsmtap;
 
 	l2_ctx = talloc_named_const(NULL, 1, "layer2 context");
 
@@ -193,6 +196,12 @@ int main(int argc, char **argv)
 
 	if (bsc_register_fd(&ms->bfd) != 0) {
 		fprintf(stderr, "Failed to register fd.\n");
+		exit(1);
+	}
+
+	rc = gsmtap_init();
+	if (rc < 0) {
+		fprintf(stderr, "Failed during gsmtap_init()\n");
 		exit(1);
 	}
 

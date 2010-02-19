@@ -58,11 +58,11 @@ int gsmtap_sendmsg(uint8_t ts, uint16_t arfcn, uint32_t fn,
 	gh->hdr_len = sizeof(*gh)/4;
 	gh->type = GSMTAP_TYPE_UM;
 	gh->timeslot = ts;
-	gh->arfcn = arfcn;
+	gh->arfcn = htons(arfcn);
 	gh->noise_db = 0;
 	gh->signal_db = 0;
-	gh->frame_number = fn;
-	gh->burst_type = 0;
+	gh->frame_number = htonl(fn);
+	gh->burst_type = GSMTAP_BURST_NORMAL;
 	gh->antenna_nr = 0;
 
 	dst = msgb_put(msg, len);
@@ -105,10 +105,29 @@ static int gsmtap_fd_cb(struct bsc_fd *fd, unsigned int flags)
 	return 0;
 }
 
-int gsmtap_init(struct sockaddr_in *sin)
+int gsmtap_init(void)
 {
+	int rc;
+	struct sockaddr_in sin;
+
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(GSMTAP_UDP_PORT);
+	inet_aton("127.0.0.1", &sin.sin_addr);
+
 	/* FIXME: create socket */
-	//gsmtap_bfd.fd = 
+	rc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (rc < 0) {
+		perror("creating UDP socket");
+		return rc;
+	}
+	gsmtap_bfd.fd = rc;
+	rc = connect(rc, (struct sockaddr *)&sin, sizeof(sin));
+	if (rc < 0) {
+		perror("connecting UDP socket");
+		close(gsmtap_bfd.fd);
+		gsmtap_bfd.fd = 0;
+		return rc;
+	}
 
 	gsmtap_bfd.when = BSC_FD_WRITE;
 	gsmtap_bfd.cb = gsmtap_fd_cb;

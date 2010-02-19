@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <l1a_l23_interface.h>
 
+#include "gsmtap_util.h"
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {
@@ -174,6 +175,9 @@ static int osmo_l2_ccch_data(struct osmocom_ms *ms, struct msgb *msg)
 	       hexdump(ccch->data, sizeof(ccch->data)), ccch->data[2]);
 
 	dump_bcch(dl->time.tc, ccch->data);
+	/* send CCCH data via GSMTAP */
+	gsmtap_sendmsg(0, dl->band_arfcn, dl->time.fn, ccch->data,
+			sizeof(ccch->data));
 	return 0;
 }
 
