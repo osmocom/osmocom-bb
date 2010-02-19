@@ -204,6 +204,17 @@ static void la1_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 
 		sync_req = (struct l1_sync_new_ccch_req *) (&msg->data[0] + sizeof(*ul));
 		printf("Asked to tune to frequency: %u\n", sync_req->band_arfcn);
+
+		/* reset scheduler and hardware */
+		tdma_sched_reset();
+		l1s_dsp_abort();
+
+		/* tune to specified frequency */
+		trf6151_rx_window(0, sync_req->band_arfcn, 40, 0);
+		tpu_end_scenario();
+
+		puts("Starting FCCH Recognition\n");
+		l1s_fb_test(1, 0);
 		break;
 	case DEDIC_MODE_EST_REQ:
 		break;
