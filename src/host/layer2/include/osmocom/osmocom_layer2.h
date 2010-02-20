@@ -1,7 +1,7 @@
 #ifndef osmocom_layer2_h
 #define osmocom_layer2_h
 
-#include <osmocom/msgb.h>
+#include <osmocore/msgb.h>
 
 struct osmocom_ms;
 

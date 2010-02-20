@@ -23,8 +23,9 @@
 #include <osmocom/osmocom_data.h>
 
 #include <osmocom/debug.h>
-#include <osmocom/msgb.h>
-#include <osmocom/talloc.h>
+#include <osmocore/msgb.h>
+#include <osmocore/talloc.h>
+#include <osmocore/select.h>
 
 #include <arpa/inet.h>
 

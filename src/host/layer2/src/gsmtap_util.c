@@ -23,9 +23,9 @@
 #include <osmocom/osmocom_layer2.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/debug.h>
-#include <osmocom/gsm_04_08.h>
-#include <osmocom/gsmtap.h>
-#include <osmocom/msgb.h>
+#include <osmocore/protocol/gsm_04_08.h>
+#include <osmocore/gsmtap.h>
+#include <osmocore/msgb.h>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>

@@ -1,1 +1,0 @@
-../../../libosmocom/include/osmocom/gsm_04_08.h

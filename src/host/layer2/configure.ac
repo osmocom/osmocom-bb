@@ -12,6 +12,9 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 
+dnl checks for libraries
+PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore)
+
 dnl checks for header files
 AC_HEADER_STDC
 

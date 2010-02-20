@@ -1,1 +1,0 @@
-../../../libosmocom/include/osmocom/linuxlist.h

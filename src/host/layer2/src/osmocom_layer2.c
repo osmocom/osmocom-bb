@@ -23,7 +23,7 @@
 #include <osmocom/osmocom_layer2.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/debug.h>
-#include <osmocom/gsm_04_08.h>
+#include <osmocore/protocol/gsm_04_08.h>
 
 #include <stdio.h>
 #include <stdint.h>
