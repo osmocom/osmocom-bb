@@ -23,7 +23,7 @@
 #include <osmocore/timer.h>
 #include <osmocore/select.h>
 
-#include "../config.h"
+#include "../../config.h"
 
 static void timer_fired(unsigned long data);
 
