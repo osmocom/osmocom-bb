@@ -1,11 +1,10 @@
 Makefile
+Makefile.in
 .deps
 .libs
 *.o
 *.lo
 *.la
-*.in
-*.am
 *.pc
 aclocal.m4
 autom4te.cache
