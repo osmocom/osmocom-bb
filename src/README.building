@@ -8,20 +8,13 @@ we do not officially support this.
 
  # Get a GNU toolchain (gcc/binutils) for ARM (e.g. from http://gnuarm.com/)
  # Set your path to include the arm-elf-* executables of your toolchain
+ # call 'make' in this (the src) subdirectory
 
-=== Building the actual GSM firmware ===
+=== Details ===
 
- # cd osmocom-bb/src/target/firmware
- # make
+The master Makefile will build
 
-=== Building the osmocon terminal program and multiplexer ===
-
- # cd osmocom-bb/src/host/osmocon
- # make
-
-=== Building the layer2 binary on the host PC ===
-
- # cd osmocom-bb/src/host/layer2
- # autoreconf -i
- # ./configure
- # make
+ * libosmocore for the host (x86 or whatever you use)
+ * libosmocore for the target (ARM)
+ * osmocon and layer2 executalbes for the host (linking libosmocore)
+ * the actual target firmware images
