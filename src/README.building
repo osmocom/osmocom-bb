@@ -23,5 +23,5 @@ we do not officially support this.
 
  # cd osmocom-bb/src/host/layer2
  # autoreconf -i
- # ./confiugre
+ # ./configure
  # make
