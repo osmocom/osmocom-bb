@@ -28,7 +28,7 @@
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 #endif
-#include <osmocom/msgb.h>
+#include <osmocore/msgb.h>
 #include <sercomm.h>
 
 #else

@@ -1,10 +1,13 @@
 all: osmocon
 
-OSMOCOM_SRC=../libosmocom/src/select.c ../libosmocom/src/timer.c \
-	    ../libosmocom/src/msgb.c ../libosmocom/src/talloc.c  \
+OSMOCORE=../../shared/libosmocore
+CFLAGS+=-DHAVE_SYS_SELECT_H
+
+OSMOCOM_SRC=$(OSMOCORE)/src/select.c $(OSMOCORE)/src/timer.c \
+	    $(OSMOCORE)/src/msgb.c $(OSMOCORE)/src/talloc.c  \
 	    ../libosmocom/src/debug.c
 SERCOMM_SRC=../../target/firmware/comm/sercomm.c
-INCLUDES=-I../libosmocom/include -I../../target/firmware/include/comm
+INCLUDES=-I$(OSMOCORE)/include -I../libosmocom/include -I../../target/firmware/include/comm
 
 .PHONY: version.h
 version.h:

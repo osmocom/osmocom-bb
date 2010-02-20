@@ -14,9 +14,9 @@
 
 #include <sercomm.h>
 
-#include <osmocom/linuxlist.h>
-#include <osmocom/select.h>
-#include <osmocom/talloc.h>
+#include <osmocore/linuxlist.h>
+#include <osmocore/select.h>
+#include <osmocore/talloc.h>
 
 #include "version.h"
 

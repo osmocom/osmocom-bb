@@ -4,7 +4,7 @@
 /* SERCOMM layer on UART1 (modem UART) */
 
 #ifdef HOST_BUILD
-#include <osmocom/msgb.h>
+#include <osmocore/msgb.h>
 #else
 #include <comm/msgb.h>
 #define SERCOMM_UART_NR	1
