@@ -23,6 +23,8 @@
 #include <osmocore/linuxlist.h>
 #include <osmocore/timer.h>
 
+#include "../config.h"
+
 #ifdef HAVE_SYS_SELECT_H
 
 static int maxfd = 0;
