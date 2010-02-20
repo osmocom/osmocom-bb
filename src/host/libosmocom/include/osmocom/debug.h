@@ -2,7 +2,7 @@
 #define _DEBUG_H
 
 #include <stdio.h>
-#include "linuxlist.h"
+#include <osmocore/linuxlist.h>
 
 #define DEBUG
 

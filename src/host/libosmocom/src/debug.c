@@ -28,7 +28,7 @@
 #include <errno.h>
 
 #include <osmocom/debug.h>
-#include <osmocom/talloc.h>
+#include <osmocore/talloc.h>
 
 struct value_string {
         unsigned int value;
