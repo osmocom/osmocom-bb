@@ -18,7 +18,7 @@
 #include <osmocore/select.h>
 #include <osmocore/talloc.h>
 
-#include "version.h"
+//#include "version.h"
 
 #define MODEM_BAUDRATE 	B115200
 #define MAX_DNLOAD_SIZE	0xFFFF
@@ -471,7 +471,7 @@ static int usage(const char *name)
 
 static int version(const char *name)
 {
-	printf("\n%s version %s\n", name, VERSION);
+	//printf("\n%s version %s\n", name, VERSION);
 	exit(2);
 }
 
