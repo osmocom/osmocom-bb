@@ -333,7 +333,7 @@ static void _dsp_dump_range(uint32_t addr, uint32_t size, int mode)
 
 		while (bs--) {
 			if ((addr&15)==0)
-				printf("%05ux : ", addr);
+				printf("%05lx : ", addr);
 			printf("%04hx%c", *api++, ((addr&15)==15)?'\n':' ');
 			addr++;
 		}
@@ -383,7 +383,7 @@ void dsp_dump(void)
 
 	/* Dump each range */
 	for (i=0; dr[i].name; i++) {
-		printf("DSP dump: %s [%05ux-%05ux]\n", dr[i].name,
+		printf("DSP dump: %s [%05lx-%05lx]\n", dr[i].name,
 			dr[i].addr, dr[i].addr+dr[i].size-1);
 		_dsp_dump_range(dr[i].addr, dr[i].size, dr[i].mode);
 	}
