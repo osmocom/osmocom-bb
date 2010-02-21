@@ -20,6 +20,7 @@
  *
  */
 
+#include <debug.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <memory.h>
@@ -397,7 +398,7 @@ void flash_dump_info(cfi_flash_t *flash) {
 }
 
 void flash_init(cfi_flash_t *flash, void *base_addr) {
-	printf("Initializing CFI flash at 0x%p\n", base_addr);
+	printd("Initializing CFI flash at 0x%p\n", base_addr);
 
 	flash->f_base = base_addr;
 
