@@ -32,6 +32,8 @@
 #include <calypso/dsp_api.h>
 #include <calypso/tpu.h>
 
+#include <abb/twl3025.h>
+
 #define REG_API_CONTROL		0xfffe0000
 #define APIC_R_SMODE_HOM	(1 << 1)	/* API is configured in HOM mode */
 #define APIC_R_HINT		(1 << 3)	/* Host processor interrupt (DSP->MCU) */
@@ -195,9 +197,48 @@ void dsp_api_memset(uint16_t *ptr, int octets)
 		*ptr++ = 0;
 }
 
+/* How an ABB register + value is expressed in the API RAM */
+#define ABB_VAL(reg, val) ( (((reg) & 0x1F) << 1) | (((val) & 0x3FF) << 6) )
+
+/* How an ABB register + value | TRUE is expressed in the API RAM */
+#define ABB_VAL_T(reg, val)	(ABB_VAL(reg, val) | 1)
+
+/* How a RAMP value is encoded */
+#define RAMP_VAL(up, down)	( ((down & 0x1F) << 5) | (up & 0x1F) )
+
 static void dsp_ndb_init(void)
 {
 	T_NDB_MCU_DSP *ndb = dsp_api.ndb;
+	uint8_t i;
+
+	#define APCDEL_DOWN     (2+0)   // minimum value: 2
+	#define APCDEL_UP       (6+3+1) // minimum value: 6
+
+	/* load APC ramp: set to "no ramp" so that there will be no output if
+	 * not properly initialised at some other place. */
+	for (i = 0; i < 16; i++)
+		dsp_api.ndb->a_ramp[i] = ABB_VAL(APCRAM, RAMP_VAL(0, 0));
+
+	/* Iota registers values will be programmed at 1st DSP communication interrupt */
+
+	/* Enable f_tx delay of 400000 cyc DEBUG */
+	ndb->d_debug1 	= ABB_VAL_T(0, 0x000);
+	ndb->d_afcctladd= ABB_VAL_T(AFCCTLADD, 0x000);  // Value at reset
+	ndb->d_vbuctrl	= ABB_VAL_T(VBUCTRL, 0x0C9);	// Uplink gain amp 0dB, Sidetone gain to mute
+	ndb->d_vbdctrl	= ABB_VAL_T(VBDCTRL, 0x006);	// Downlink gain amp 0dB, Volume control 0 dB
+	ndb->d_bbctrl	= ABB_VAL_T(BBCTRL,  0x2C1);	// value at reset
+	ndb->d_bulgcal	= ABB_VAL_T(BULGCAL, 0x000);	// value at reset
+	ndb->d_apcoff	= ABB_VAL_T(APCOFF,  0x040);	// value at reset
+	ndb->d_bulioff	= ABB_VAL_T(BULIOFF, 0x0FF);	// value at reset
+	ndb->d_bulqoff	= ABB_VAL_T(BULQOFF, 0x0FF);	// value at reset
+	ndb->d_dai_onoff= ABB_VAL_T(APCOFF,  0x000);	// value at reset
+	ndb->d_auxdac	= ABB_VAL_T(AUXDAC,  0x000);	// value at reset
+	ndb->d_vbctrl1  = ABB_VAL_T(VBCTRL1, 0x00B); 	// VULSWITCH=0, VDLAUX=1, VDLEAR=1.
+	ndb->d_vbctrl2	= ABB_VAL_T(VBCTRL2, 0x000); 	// MICBIASEL=0, VDLHSO=0, MICAUX=0
+
+	/* APCDEL will be initialized on rach only */
+	ndb->d_apcdel1	= ABB_VAL_T(APCDEL1, ((APCDEL_DOWN-2) << 5) | (APCDEL_UP-6));
+	ndb->d_apcdel2	= ABB_VAL_T(APCDEL2, 0x000);
 
 	ndb->d_fb_mode	= 1;		/* mode 1 FCCH burst detection */
 	ndb->d_fb_det	= 0;		/* we have not yet detected a FB */
@@ -214,8 +255,12 @@ static void dsp_ndb_init(void)
 	ndb->a_fd[2]	= 0xffff;
 	ndb->d_a5mode	= 0;
 	ndb->d_tch_mode	= 0x0800;
-	/* FIXME: set guard bits */
+
+	#define GUARD_BITS 8 // 11 or 9 for TSM30, 7 for Freerunner
+	ndb->d_tch_mode |= (((GUARD_BITS - 4) & 0x000F) << 7); //Bit 7..10: guard bits
+
 	ndb->a_sch26[0]	= (1<<B_SCH_CRC);
+
 	/* Interrupt RIF transmit if FIFO <= threshold with threshold == 0 */
 	/* MCM = 1, XRST = 0, CLKX_AUTO=1, TXM=1, NCLK_EN=1, NCLK13_EN=1,
 	 * THRESHOLD = 0, DIV_CLK = 0 (13MHz) */
@@ -232,6 +277,9 @@ static void dsp_db_init(void)
 
 void dsp_power_on(void)
 {
+	/* proabaly a good idea to initialize the whole API area to a know value */
+	dsp_api_memset(BASE_API_RAM, API_SIZE * 2); // size is in words
+
 	dsp_set_params((int16_t *)&dsp_params, sizeof(dsp_params)/2);
 	dsp_ndb_init();
 	dsp_db_init();
@@ -275,6 +323,41 @@ void dsp_load_tx_task(uint16_t task, uint8_t burst_id, uint8_t tsc)
 	dsp_api.db_w->d_task_u = task;
 	dsp_api.db_w->d_burst_u = burst_id;
 	dsp_api.db_w->d_ctrl_system |= tsc & 0x7;
+}
+
+/* no AMR, no ciphering yet, fn does not work this way */
+void dsp_load_tch_param(uint16_t fn, uint8_t chan_mode, uint8_t chan_type,
+			uint8_t subchannel, uint8_t tch_loop, uint8_t sync_tch)
+{
+	uint16_t  d_ctrl_tch;
+
+	/* d_ctrl_tch
+	   ----------
+	    bit [0..3]   -> b_chan_mode
+	    bit [4..7]   -> b_chan_type
+	    bit [8]      -> b_sync_tch_ul
+	    bit [9]      -> b_sync_tch_dl
+	    bit [10]     -> b_stop_tch_ul
+	    bit [11]     -> b_stop_tch_dl
+	    bit [12..14] -> b_tch_loop
+	    bit [15]     -> b_subchannel */
+	d_ctrl_tch = (chan_mode  << B_CHAN_MODE) |
+		     (chan_type  << B_CHAN_TYPE)  |
+		     (subchannel << B_SUBCHANNEL) |
+		     (sync_tch   << B_SYNC_TCH_UL) |
+		     (sync_tch   << B_SYNC_TCH_DL) |
+		     (tch_loop   << B_TCH_LOOP);
+
+	/* TODO (used for ciphering and TCH traffic) */
+
+	/* d_fn
+	   ----
+	     bit [0..7]  -> b_fn_report
+	     bit [8..15] -> b_fn_sid */
+	dsp_api.db_w->d_fn         = fn;     /* write both Fn_sid, Fn_report. */
+	dsp_api.db_w->a_a5fn[0]    = 0;      /* cyphering FN part 1 (TODO) */
+	dsp_api.db_w->a_a5fn[1]    = 0;      /* cyphering FN part 2 (TODO) */
+	dsp_api.db_w->d_ctrl_tch   = d_ctrl_tch;   /* Channel config. */
 }
 
 #define SC_CHKSUM_VER     (BASE_API_W_PAGE_0 + (2 * (0x08DB - 0x800)))
