@@ -31,6 +31,7 @@ void rffe_mode(enum gsm_band band, int tx)
 		tspact &= ~TRENA;
 		if (band == GSM_900)
 			tspact &= ~GSM_TXEN;
+		tspact |= PA_ENABLE;	/* Dieter: TODO */
 	}
 
 	tsp_act_update(tspact);
