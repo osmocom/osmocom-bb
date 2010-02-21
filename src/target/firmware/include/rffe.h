@@ -1,7 +1,7 @@
 #ifndef _RFFE_H
 #define _RFFE_H
 
-#include "gsm.h"
+#include <gsm.h>
 
 /* initialize RF Frontend */
 void rffe_init(void);
