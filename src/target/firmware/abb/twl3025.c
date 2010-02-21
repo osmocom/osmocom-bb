@@ -265,7 +265,7 @@ void twl3025_uplink(int on, int16_t at)
 		tpu_enq_at(bul_ena);
 		twl3025_tsp_write(BULON);
 		tpu_enq_wait(35);	/* minimum time required to bring the ramp down (needed!) */
-		twp3025_tsp_write(0);
+		twl3025_tsp_write(0);
 	}
 }
 
