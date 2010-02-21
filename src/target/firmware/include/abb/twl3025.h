@@ -110,6 +110,8 @@ enum twl3025_tsp_bits {
 	STARTADC	= 0x02,
 };
 
+extern const uint16_t twl3025_default_ramp[16];
+
 /* Enqueue a TSP signal change via the TPU */
 void twl3025_tsp_write(uint8_t data);
 

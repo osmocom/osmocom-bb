@@ -39,6 +39,26 @@
 #define TWL3025_DEV_IDX		0	/* On the SPI bus */
 #define TWL3025_TSP_DEV_IDX	0	/* On the TSP bus */
 
+/* values encountered on a GTA-02 for GSM900 (the same for GSM1800!?) */
+const uint16_t twl3025_default_ramp[16] = {
+	ABB_RAMP_VAL( 0,  0),
+	ABB_RAMP_VAL( 0, 11),
+	ABB_RAMP_VAL( 0, 31),
+	ABB_RAMP_VAL( 0, 31),
+	ABB_RAMP_VAL( 0, 31),
+	ABB_RAMP_VAL( 0, 24),
+	ABB_RAMP_VAL( 0,  0),
+	ABB_RAMP_VAL( 0,  0),
+	ABB_RAMP_VAL( 9,  0),
+	ABB_RAMP_VAL(18,  0),
+	ABB_RAMP_VAL(25,  0),
+	ABB_RAMP_VAL(31,  0),
+	ABB_RAMP_VAL(30,  0),
+	ABB_RAMP_VAL(15,  0),
+	ABB_RAMP_VAL( 0,  0),
+	ABB_RAMP_VAL( 0,  0),
+};
+
 struct twl3025 {
 	uint8_t page;
 };
