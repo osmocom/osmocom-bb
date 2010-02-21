@@ -51,7 +51,7 @@ int sercomm_drv_rx_char(uint8_t ch);
 
 static inline struct msgb *sercomm_alloc_msgb(unsigned int len)
 {
-	return msgb_alloc_headroom(len, 4, "sercomm_tx");
+	return msgb_alloc_headroom(len+4, 4, "sercomm_tx");
 }
 
 #endif /* _SERCOMM_H */
