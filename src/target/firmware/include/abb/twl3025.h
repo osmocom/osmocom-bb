@@ -113,6 +113,9 @@ void twl3025_tsp_write(uint8_t data);
 /* Enqueue a series of TSP commands in the TPU to (de)activate the downlink path */
 void twl3025_downlink(int on, int16_t at);
 
+/* Enqueue a series of TSP commands in the TPU to (de)activate the uplink path */
+void twl3025_uplink(int on, int16_t at);
+
 /* Update the AFC DAC value */
 void twl3025_afc_set(int16_t val);
 
