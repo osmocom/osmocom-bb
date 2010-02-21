@@ -171,6 +171,48 @@ static uint16_t trf6151_pll_rx(uint32_t freq_khz)
 	return PLL_VAL(a, b);
 }
 
+/* Compute TRF6151 PLL TX values for GSM900 and GSM1800 only! */
+static uint16_t trf6151_pll_tx(uint32_t freq_khz)
+{
+	uint32_t freq_100khz = freq_khz / SCALE_100KHZ;	/* Scale from *1000 (k) to *100000 (0.1M) */
+	uint32_t fb_100khz;	/* frequency of B alone, without A (units of 100kHz) */
+	uint32_t l, r, m;
+	uint32_t b10;	/* B value expanded by a factor of 10 */
+	uint32_t a, b;	/* The PLL multipliers we want to compute */
+
+	/* L = 4 for low band, 2 for high band */
+	if (freq_khz < 1000000) {
+		r = 35;
+		l = 4;
+		m = 52;
+	} else {
+		r = 70;
+		l = 2;
+		m = 26;
+	}
+
+	/* To compute B, we assume A is zero */
+	b = (freq_100khz * r * l * m) / (64 * 26 * 10 * (m + l));
+
+	if ((l == 4 && (b <  68 || b >  71)) ||
+	    (l == 2 && (b < 133 || b > 149)))
+		printf("Frequency %u kHz is out of spec\n", freq_khz);
+
+	/* Compute PLL frequency assuming A == 0 */
+	fb_100khz = (b * 64 * 26 * 10 * (m + l)) / (r * l * m);
+
+	/* Compute how many 100kHz units A needs to add */
+	a = freq_100khz - fb_100khz;
+
+	a = a / 2;
+
+	/* since all frequencies are expanded a factor of 10, we don't need to multiply A */
+	printd("Freq %u kHz => A = %u, B = %u\n", freq_khz, a, b);
+
+	/* return value in trf6151 register layout form */
+	return PLL_VAL(a, b);
+}
+
 enum trf6151_pwr_unit {
 	TRF1651_PACTLR_APC,
 	TRF6151_PACTRL_APCEN,
@@ -240,7 +282,11 @@ void trf6151_set_mode(enum trf6151_mode mode)
 		pwr |= (PWR_SYNTHE_RX_ON | PWR_RX_MODE);
 		break;
 	case TRF6151_TX:
+#if 0
 		pwr |= (PWR_SYNTHE_TX_ON | PWR_TX_MODE);
+#else // Dieter: we should turn power control on (for TPU: check timing and order !)
+		pwr |= (PWR_SYNTHE_TX_ON | PWR_TX_MODE | PWR_PACTRL_APC | PWR_PACTRL_APCEN); // Dieter: TODO
+#endif
 		break;
 	}
 	trf6151_reg_write(REG_PWR, pwr);
@@ -289,8 +335,13 @@ void trf6151_set_arfcn(uint16_t arfcn, int uplink)
 
 	if (uplink == 0)
 		trf6151_reg_write(REG_PLL, trf6151_pll_rx(freq_khz));
-	else
-		printf("We don't support uplink tuning yet!\n");
+	else {
+		if (rf_band != GSM900 && rf_band != GSM1800) {
+			printf("TX only supports GSM900/1800\n");
+			return;
+		}
+		trf6151_reg_write(REG_PLL, trf6151_pll_tx(freq_khz));
+	}
 
 	rf_arfcn = arfcn; // TODO: arfcn is referenced at other places
 }
@@ -350,6 +401,19 @@ void trf6151_test(uint16_t arfcn)
 	/* Use DC offset calibration after RX mode has been switched on
 	 * (might not be needed) */
 	trf6151_calib_dc_offs();
+
+	tpu_enq_sleep();
+	tpu_enable(1);
+	tpu_wait_idle();
+}
+
+void trf6151_tx_test(uint16_t arfcn)
+{
+	/* Select ARFCN uplink */
+	trf6151_set_arfcn(arfcn, 1);
+
+	trf6151_set_mode(TRF6151_TX);
+	tpu_enq_wait(TRF6151_RX_PLL_DELAY);
 
 	tpu_enq_sleep();
 	tpu_enable(1);
