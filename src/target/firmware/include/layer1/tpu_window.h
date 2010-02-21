@@ -9,8 +9,14 @@ enum l1_rxwin_type {
 	_NUM_L1_RXWIN
 };
 
+enum l1_txwin_type {
+	L1_TXWIN_NB,	/* Normal burst sending */
+	L1_TXWIN_AB,	/* RACH burst sending */
+	_NUM_L1_TXWIN
+};
 
 void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype);
+void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr);
 
 void tpu_end_scenario(void);
 
