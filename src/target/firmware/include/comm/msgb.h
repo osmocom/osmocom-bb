@@ -82,7 +82,7 @@ static inline unsigned char *msgb_pull(struct msgb *msgb, unsigned int len)
 }
 static inline int msgb_tailroom(const struct msgb *msgb)
 {
-	return (msgb->data + msgb->data_len) - msgb->tail;
+	return (msgb->head + msgb->data_len) - msgb->tail;
 }
 
 /* increase the headroom of an empty msgb, reducing the tailroom */
