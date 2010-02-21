@@ -59,15 +59,14 @@ void main(void)
 	int i;
 	uint16_t twl_reg;
 
+	/* Initialize basic board support */
+	board_init();
+
 	puts("\n\nCompal DSP data dumper\n");
 	puts(hr);
 
 	/* Dump device identification */
 	dump_dev_id();
-	puts(hr);
-
-	/* Initialize basic board support */
-	board_init();
 	puts(hr);
 
 	/* Dump DSP content */
