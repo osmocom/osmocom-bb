@@ -1551,4 +1551,10 @@ enum dsp_error {
 	DSP_ERR_STACK_OV	= 0x0800,
 };
 
+/* How an ABB register + value is expressed in the API RAM */
+#define ABB_VAL(reg, val) ( (((reg) & 0x1F) << 1) | (((val) & 0x3FF) << 6) )
+
+/* How an ABB register + value | TRUE is expressed in the API RAM */
+#define ABB_VAL_T(reg, val)	(ABB_VAL(reg, val) | 1)
+
 #endif /* _CAL_DSP_API_H */

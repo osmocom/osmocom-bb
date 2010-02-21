@@ -79,6 +79,9 @@ enum togbr2_bits {
 	TOGBR2_IAPCPTR	= (1 << 6),	/* Initialize pointer of APC RAM */
 };
 
+/* How a RAMP value is encoded */
+#define ABB_RAMP_VAL(up, down)	( ((down & 0x1F) << 5) | (up & 0x1F) )
+
 enum twl3025_unit {
 	TWL3025_UNIT_AFC,
 	TWL3025_UNIT_MAD,

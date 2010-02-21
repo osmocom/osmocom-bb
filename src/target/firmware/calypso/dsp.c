@@ -197,15 +197,6 @@ void dsp_api_memset(uint16_t *ptr, int octets)
 		*ptr++ = 0;
 }
 
-/* How an ABB register + value is expressed in the API RAM */
-#define ABB_VAL(reg, val) ( (((reg) & 0x1F) << 1) | (((val) & 0x3FF) << 6) )
-
-/* How an ABB register + value | TRUE is expressed in the API RAM */
-#define ABB_VAL_T(reg, val)	(ABB_VAL(reg, val) | 1)
-
-/* How a RAMP value is encoded */
-#define RAMP_VAL(up, down)	( ((down & 0x1F) << 5) | (up & 0x1F) )
-
 static void dsp_ndb_init(void)
 {
 	T_NDB_MCU_DSP *ndb = dsp_api.ndb;
@@ -217,7 +208,7 @@ static void dsp_ndb_init(void)
 	/* load APC ramp: set to "no ramp" so that there will be no output if
 	 * not properly initialised at some other place. */
 	for (i = 0; i < 16; i++)
-		dsp_api.ndb->a_ramp[i] = ABB_VAL(APCRAM, RAMP_VAL(0, 0));
+		dsp_api.ndb->a_ramp[i] = ABB_VAL(APCRAM, ABB_RAMP_VAL(0, 0));
 
 	/* Iota registers values will be programmed at 1st DSP communication interrupt */
 
