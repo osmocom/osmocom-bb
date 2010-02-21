@@ -91,8 +91,11 @@ int sercomm_puts(const char *s)
 		{
 			unsigned int i;
 			for (i = 0; i < write_num; i++) {
-				/* flush buffer at end of line */
-				if (*s == '\n')
+				/* flush buffer at end of line, but skip
+				 * flushing if we have a backlog in order to
+				 * increase efficiency of msgb filling */
+				if (*s == '\n' &&
+				    sercomm_tx_queue_depth(SC_DLCI_CONSOLE) < 4)
 					flush = 1;
 				*data++ = *s++;
 			}
