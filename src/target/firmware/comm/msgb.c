@@ -48,20 +48,21 @@ static void *_talloc_zero(void *ctx, unsigned int size, const char *name)
 	unsigned int i;
 	if (size > sizeof(struct msgb) + MSGB_DATA_SIZE)
 		goto panic;
-	for (i = 0; i < ARRAY_SIZE(msgs); i++) {
-		if (!msgs[i].allocated) {
-			msgs[i].allocated = 1;
-			memset(&msgs[i].msg, 0, sizeof(&msgs[i].msg));
-			memset(&msgs[i].buf, 0, sizeof(&msgs[i].buf));
-			return &msgs[i].msg;
-		}
-	}
 
-panic:
 	while (1) {
+		for (i = 0; i < ARRAY_SIZE(msgs); i++) {
+			if (!msgs[i].allocated) {
+				msgs[i].allocated = 1;
+				memset(&msgs[i].msg, 0, sizeof(&msgs[i].msg));
+				memset(&msgs[i].buf, 0, sizeof(&msgs[i].buf));
+				return &msgs[i].msg;
+			}
+		}
+		cons_puts("unable to allocate msgb\n");
 		bl_level(++i % 50);
 		delay_ms(50);
 	}
+panic:
 	return NULL;
 }
 static void talloc_free(void *msg)
@@ -78,7 +79,6 @@ struct msgb *msgb_alloc(uint16_t size, const char *name)
 	msg = _talloc_zero(tall_msgb_ctx, sizeof(*msg) + size, name);
 
 	if (!msg) {
-		cons_puts("unable to allocate msgb\n");
 		return NULL;
 	}
 
