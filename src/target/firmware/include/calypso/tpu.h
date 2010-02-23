@@ -112,6 +112,6 @@ static inline void tpu_enq_dsp_irq(void)
 }
 
 /* add two numbers, modulo 5000, and ensure the result is positive */
-uint16_t add_mod5000(uint16_t a, uint16_t b);
+uint16_t add_mod5000(int16_t a, int16_t b);
 
 #endif /* _CALYPSO_TPU_H */

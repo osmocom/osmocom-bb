@@ -274,9 +274,9 @@ uint16_t tpu_get_synchro(void)
 }
 
 /* add two numbers, modulo 5000, and ensure the result is positive */
-uint16_t add_mod5000(uint16_t a, uint16_t b)
+uint16_t add_mod5000(int16_t a, int16_t b)
 {
-	int32_t sum = (uint32_t)a + (uint32_t)b;
+	int32_t sum = (int32_t)a + (int32_t)b;
 
 	sum %= 5000;
 
