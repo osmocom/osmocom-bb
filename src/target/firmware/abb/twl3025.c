@@ -245,6 +245,9 @@ void twl3025_downlink(int on, int16_t at)
 	}
 }
 
+/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION - TSP_DELAY - BULON_TO_BULCAL - TSP_DELAY */
+#define UPLINK_DELAY (3 * TSP_DELAY + BULCAL_DURATION + BULON_TO_BULCAL + 35)
+
 void twl3025_uplink(int on, int16_t at)
 {
 	int16_t bul_ena = at - TSP_DELAY - 6;
@@ -252,12 +255,19 @@ void twl3025_uplink(int on, int16_t at)
 	if (bul_ena < 0)
 		printf("BULENA time negative (%d)\n", bul_ena);
 	if (on) {
-		/* FIXME: calibration should  be done just before BULENA */
+		/* calibration should  be done just before BULENA */
+		tpu_enq_at(bul_ena - UPLINK_DELAY);
+		/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION - TSP_DELAY - BULON_TO_BULCAL - TSP_DELAY */
 		twl3025_tsp_write(BULON);
+		/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION - TSP_DELAY - BULON_TO_BULCAL */
 		tpu_enq_wait(BULON_TO_BULCAL - TSP_DELAY);
+		/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION - TSP_DELAY */
 		twl3025_tsp_write(BULON | BULCAL);
+		/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION */
 		tpu_enq_wait(BULCAL_DURATION - TSP_DELAY);
+		/* bdl_ena - 35 - TSP_DELAY */
 		twl3025_tsp_write(BULON);
+		/* bdl_ena - 35 */
 		tpu_enq_wait(35);	/* minimum time required to bring the ramp up (really needed?) */
 		tpu_enq_at(bul_ena);
 		twl3025_tsp_write(BULON | BULENA);
