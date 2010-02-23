@@ -442,3 +442,18 @@ void trf6151_rx_window(int16_t start_qbits, uint16_t arfcn, uint8_t vga_dbm, int
 
 	/* FIXME: power down at the right time again */
 }
+
+/* prepare a Tx window with the TRF6151 finished at time 'start' (in qbits) */
+void trf6151_tx_window(int16_t start_qbits, uint16_t arfcn)
+{
+	int16_t start_pll_qbits;
+
+	/* power up at the right time _before_ the 'start_qbits' point in time */
+	start_pll_qbits = add_mod5000(start_qbits,  -(TRF6151_TX_PLL_DELAY + TRF6151_RX_TPU_DELAY));
+	tpu_enq_at(start_pll_qbits);
+
+	trf6151_set_arfcn(arfcn, 1);
+	trf6151_set_mode(TRF6151_TX);
+
+	/* FIXME: power down at the right time again */
+}

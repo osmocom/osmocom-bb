@@ -33,4 +33,6 @@ void trf6151_tx_test(uint16_t arfcn);
 /* prepare a Rx window with the TRF6151 finished at time 'start' (in qbits) */
 void trf6151_rx_window(int16_t start_qbits, uint16_t arfcn, uint8_t vga_dbm, int rf_gain_high);
 
+/* prepare a Tx window with the TRF6151 finished at time 'start' (in qbits) */
+void trf6151_tx_window(int16_t start_qbits, uint16_t arfcn);
 #endif /* TRF6151_H */
