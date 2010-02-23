@@ -190,7 +190,7 @@ void tpu_rewind(void)
 
 void tpu_enqueue(uint16_t instr)
 {
-	printd("tpu_enqueue(tpu_ptr=%p, instr=0x%04x\n", tpu_ptr, instr);
+	printd("tpu_enqueue(tpu_ptr=%p, instr=0x%04x)\n", tpu_ptr, instr);
 	*tpu_ptr++ = instr;
 	if (tpu_ptr > (uint16_t *) TPU_RAM_END)
 		puts("TPU enqueue beyond end of TPU memory\n");
@@ -198,9 +198,17 @@ void tpu_enqueue(uint16_t instr)
 
 void tpu_init(void)
 {
-	/* Get TPU out of reset */
+	uint16_t *ptr;
+
+	/* Put TPU into Reset and enable clock */
 	tpu_reset(1);
 	tpu_clk_enable(1);
+
+	/* set all TPU RAM to zero */
+	for (ptr = (uint16_t *) BASE_ADDR_TPU_RAM; ptr < (uint16_t *) TPU_RAM_END; ptr++)
+		*ptr = 0x0000;
+
+	/* Get TPU out of reset */
 	tpu_reset(0);
 	/* Disable all interrupts */
 	writeb(0x7, TPU_REG(INT_CTRL));
