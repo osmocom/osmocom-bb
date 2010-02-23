@@ -88,7 +88,7 @@ enum trf6151_reg {
 /* All values in qbits unless otherwise speciifed */
 #define TRF6151_LDO_DELAY_TS	6	/* six TDMA frames (at least 25ms) */
 #define TRF6151_RX_PLL_DELAY	184	/* 170 us */
-#define TRF6151_TX_PLL_DELAY	260	/* 170 us */
+#define TRF6151_TX_PLL_DELAY	260	/* 240 us */
 
 uint16_t rf_arfcn = 871;	/* TODO: this needs to be private */
 static uint16_t rf_band;
