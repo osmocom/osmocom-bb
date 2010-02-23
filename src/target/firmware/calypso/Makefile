@@ -1,4 +1,4 @@
-INCLUDES=-I../include/
+INCLUDES=-I../include/ -I../../../../include
 -include ../Makefile.inc
 
 OBJS=arm.o clock.o dma.o dsp.o du.o i2c.o irq.o rtc.o spi.o tpu.o tsp.o keypad.o misc.o timer.o backlight.o uart.o

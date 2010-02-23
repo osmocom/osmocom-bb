@@ -29,6 +29,10 @@
 #include <calypso/tpu.h>
 #include <calypso/tsp.h>
 
+/* Using TPU_DEBUG you will send special HLDC messages to the host PC
+ * containing the full TPU RAM content at the time you call tpu_enable() */
+//#define TPU_DEBUG
+
 #define BASE_ADDR_TPU	0xffff1000
 #define TPU_REG(x)	(BASE_ADDR_TPU+(x))
 
@@ -65,6 +69,51 @@ enum tpu_int_ctrl_bits {
 	ICTRL_DSP_FRAME		= (1 << 2),
 	ICTRL_DSP_FRAME_FORCE	= (1 << 3),
 };
+
+static uint16_t *tpu_ptr = (uint16_t *)BASE_ADDR_TPU_RAM;
+
+#ifdef TPU_DEBUG
+#include <comm/sercomm.h>
+#include <layer1/sync.h>
+static void tpu_ram_read_en(int enable)
+{
+	uint16_t reg;
+
+	reg = readw(TPU_REG(TPU_CTRL));
+	if (enable)
+		reg |= TPU_CTRL_MCU_RAM_ACC;
+	else
+		reg &= ~TPU_CTRL_MCU_RAM_ACC;
+	writew(reg, TPU_REG(TPU_CTRL));
+}
+
+static void tpu_debug(void)
+{
+	uint16_t *tpu_base = (uint16_t *)BASE_ADDR_TPU_RAM;
+	unsigned int tpu_size = tpu_ptr - tpu_base;
+	struct msgb *msg = sercomm_alloc_msgb(tpu_size*2);
+	uint16_t *data;
+	uint32_t *fn;
+	uint16_t reg;
+	int i;
+
+	/* prepend tpu memory dump with frame number */
+	fn = (uint32_t *) msgb_put(msg, sizeof(fn));
+	*fn = l1s.current_time.fn;
+
+	tpu_ram_read_en(1);
+
+	data = (uint16_t *) msgb_put(msg, tpu_size*2);
+	for (i = 0; i < tpu_size; i ++)
+		data[i] = tpu_base[i];
+
+	tpu_ram_read_en(0);
+
+	sercomm_sendmsg(SC_DLCI_DEBUG, msg);
+}
+#else
+static void tpu_debug(void) { }
+#endif
 
 #define BIT_SET	1
 #define BIT_CLEAR 0
@@ -117,6 +166,9 @@ void tpu_enable(int active)
 	uint16_t reg = readw(TPU_REG(TPU_CTRL));
 
 	printd("tpu_enable(%u)\n", active);
+
+	tpu_debug();
+
 	if (active)
 		reg |= TPU_CTRL_EN;
 	else
@@ -179,8 +231,6 @@ int tpu_dsp_fameirq_pending(void)
 
 	return 0;
 }
-
-static uint16_t *tpu_ptr;
 
 void tpu_rewind(void)
 {
