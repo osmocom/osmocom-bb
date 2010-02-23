@@ -585,6 +585,8 @@ static int register_af_unix(const char *un_path)
 	return 0;
 }
 
+extern void hdlc_tpudbg_cb(uint8_t dlci, struct msgb *msg);
+
 int main(int argc, char **argv)
 {
 	int opt, flags;
@@ -650,6 +652,7 @@ int main(int argc, char **argv)
 	/* initialize the HDLC layer */
 	sercomm_init();
 	sercomm_register_rx_cb(SC_DLCI_CONSOLE, hdlc_console_cb);
+	sercomm_register_rx_cb(SC_DLCI_DEBUG, hdlc_tpudbg_cb);
 	sercomm_register_rx_cb(SC_DLCI_L1A_L23, hdlc_l1a_cb);
 	while (1)
 		bsc_select_main(0);
