@@ -367,13 +367,13 @@ void trf6151_rx_window(int16_t start_qbits, uint16_t arfcn, uint8_t vga_dbm, int
 {
 	int16_t start_pll_qbits;
 
-	/* Set the AGC and PLL registers right now, not time critical */
-	trf6151_set_gain(vga_dbm, rf_gain_high);
-	trf6151_set_arfcn(arfcn, 0);
-
 	/* power up at the right time _before_ the 'start_qbits' point in time */
 	start_pll_qbits = add_mod5000(start_qbits,  -(TRF6151_RX_PLL_DELAY + TRF6151_RX_TPU_DELAY));
 	tpu_enq_at(start_pll_qbits);
+
+	/* Set the AGC and PLL registers */
+	trf6151_set_arfcn(arfcn, 0);
+	trf6151_set_gain(vga_dbm, rf_gain_high);
 	trf6151_set_mode(TRF6151_RX);
 
 	/* FIXME: power down at the right time again */
