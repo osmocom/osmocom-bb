@@ -84,7 +84,8 @@ void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype)
 	/* Window close for ABB */
 	twl3025_downlink(0, stop);
 
-	/* FIXME: window close for TRF6151 */
+	/* window close for TRF6151 */
+	trf6151_set_mode(TRF6151_IDLE);
 }
 
 void tpu_end_scenario(void)
