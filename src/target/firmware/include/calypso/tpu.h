@@ -45,7 +45,7 @@ enum tpu_reg_int {
 	TPUI_TSP_CTRL2	= 0x01,
 	TPUI_TX_1	= 0x04,
 	TPUI_TX_2	= 0x03,
-	TPUI_TX_3	= 0x03,
+	TPUI_TX_3	= 0x02,
 	TPUI_TX_4	= 0x05,
 	TPUI_TSP_ACT_L	= 0x06,
 	TPUI_TSP_ACT_U	= 0x07,
