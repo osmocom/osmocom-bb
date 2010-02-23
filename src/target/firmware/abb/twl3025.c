@@ -189,6 +189,9 @@ void twl3025_clk13m(int enable)
 #define BDLON_TO_BDLENA	7
 #define BULON_TO_BULENA	16
 
+/* bdl_ena - TSP_DELAY - BDLCAL_DURATION - TSP_DELAY - BDLON_TO_BDLCAL - TSP_DELAY */
+#define DOWNLINK_DELAY	(3 * TSP_DELAY + BDLCAL_DURATION + BDLON_TO_BDLCAL)
+
 /* Enqueue a series of TSP commands in the TPU to (de)activate the downlink path */
 void twl3025_downlink(int on, int16_t at)
 {
@@ -197,11 +200,17 @@ void twl3025_downlink(int on, int16_t at)
 	if (on) {
 		if (bdl_ena < 0)
 			printf("BDLENA time negative (%d)\n", bdl_ena);
-		/* FIXME: calibration should be done just before BDLENA */
+		/* calibration should be done just before BDLENA */
+		tpu_enq_at(bdl_ena - DOWNLINK_DELAY);
+		/* bdl_ena - TSP_DELAY - BDLCAL_DURATION - TSP_DELAY - BDLON_TO_BDLCAL - TSP_DELAY */
 		twl3025_tsp_write(BDLON);
+		/* bdl_ena - TSP_DELAY - BDLCAL_DURATION - TSP_DELAY - BDLON_TO_BDLCAL */
 		tpu_enq_wait(BDLON_TO_BDLCAL - TSP_DELAY);
+		/* bdl_ena - TSP_DELAY - BDLCAL_DURATION - TSP_DELAY */
 		twl3025_tsp_write(BDLON | BDLCAL);
+		/* bdl_ena - TSP_DELAY - BDLCAL_DURATION */
 		tpu_enq_wait(BDLCAL_DURATION - TSP_DELAY);
+		/* bdl_ena - TSP_DELAY */
 		twl3025_tsp_write(BDLON);
 		//tpu_enq_wait(BDLCAL_TO_BDLENA)	this is only 3.7us == 4 qbits, i.e. less than the TSP_DELAY
 		tpu_enq_at(bdl_ena);
