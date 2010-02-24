@@ -104,12 +104,12 @@ void board_init(void)
 	irq_init();
 
 	/* initialize MODEM UART to be used for sercomm*/
-	uart_init(SERCOMM_UART_NR);
+	uart_init(SERCOMM_UART_NR, 1);
 	uart_baudrate(SERCOMM_UART_NR, UART_115200);
 
 	/* initialize IRDA UART to be used for old-school console code.
 	 * note: IRDA uart only accessible on C115 and C117 PCB */
-	uart_init(CONS_UART_NR);
+	uart_init(CONS_UART_NR, 1);
 	uart_baudrate(CONS_UART_NR, UART_115200);
 
 	hwtimer_init();

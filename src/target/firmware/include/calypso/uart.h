@@ -13,7 +13,7 @@ enum uart_baudrate {
 	UART_921600,
 };
 
-void uart_init(uint8_t uart);
+void uart_init(uint8_t uart, uint8_t interrupts);
 void uart_putchar_wait(uint8_t uart, int c);
 int uart_putchar_nb(uint8_t uart, int c);
 int uart_getchar_nb(uint8_t uart, uint8_t *ch);
@@ -26,5 +26,7 @@ enum uart_irq {
 };
 
 void uart_irq_enable(uint8_t uart, enum uart_irq irq, int on);
+
+void uart_poll(uint8_t uart);
 
 #endif /* _CAL_UART_H */
