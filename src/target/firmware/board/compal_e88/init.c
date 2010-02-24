@@ -122,7 +122,8 @@ void board_init(void)
 	/* Initialize LCD driver (uses I2C) */
 	st7558_init();
 
-	keypad_init();
+	/* Initialize keypad driver */
+	keypad_init(1);
 
 	/* Initialize ABB driver (uses SPI) */
 	twl3025_init();

@@ -113,18 +113,20 @@ void dispatch_buttons(uint32_t buttons)
 
 static void keypad_irq(enum irq_nr nr)
 {
-	keypad_scan();
+	keypad_poll();
 }
 
-void keypad_init()
+void keypad_init(uint8_t interrupts)
 {
 	lastbuttons = 0;
 	writew(0, KBD_GPIO_MASKIT);
 	writew(0, KBC_REG);
 
-	irq_register_handler(IRQ_KEYPAD_GPIO, &keypad_irq);
-	irq_config(IRQ_KEYPAD_GPIO, 0, 0, 0);
-	irq_enable(IRQ_KEYPAD_GPIO);
+	if(interrupts) {
+		irq_register_handler(IRQ_KEYPAD_GPIO, &keypad_irq);
+		irq_config(IRQ_KEYPAD_GPIO, 0, 0, 0);
+		irq_enable(IRQ_KEYPAD_GPIO);
+	}
 }
 
 void keypad_set_handler(key_handler_t handler)
@@ -132,7 +134,7 @@ void keypad_set_handler(key_handler_t handler)
 	key_handler = handler;
 }
 
-void keypad_scan()
+void keypad_poll()
 {
 	uint16_t reg;
 	uint16_t col;

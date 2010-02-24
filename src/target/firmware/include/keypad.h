@@ -55,9 +55,9 @@ enum key_states {
 	RELEASED,
 };
 
-void keypad_init();
+void keypad_init(uint8_t interrupts);
 
-void keypad_scan();
+void keypad_poll();
 
 typedef void (*key_handler_t)(enum key_codes code, enum key_states state);
 
