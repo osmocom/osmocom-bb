@@ -25,7 +25,7 @@
 
 #include "../../config.h"
 
-static void timer_fired(unsigned long data);
+static void timer_fired(void *data);
 
 static struct timer_list timer_one = {
     .cb = timer_fired,
@@ -42,8 +42,9 @@ static struct timer_list timer_three = {
     .data = (void*)3,
 };
 
-static void timer_fired(unsigned long data)
+static void timer_fired(void *_data)
 {
+    unsigned long data = (unsigned long) _data;
     printf("Fired timer: %lu\n", data);
 
     if (data == 1) {
