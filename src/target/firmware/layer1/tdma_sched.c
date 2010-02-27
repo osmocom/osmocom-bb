@@ -32,6 +32,12 @@
 
 #include <calypso/dsp.h>
 
+/* dummy function to mark end of set */
+void tdma_end_set(uint16_t p1, uint16_t p2)
+{
+
+}
+
 static uint8_t wrap_bucket(uint8_t offset)
 {
 	uint16_t bucket;
@@ -65,16 +71,20 @@ int tdma_schedule(uint8_t frame_offset, tdma_sched_cb *cb, uint16_t p1, uint16_t
 }
 
 /* Schedule a set of items starting from 'frame_offset' TDMA frames in the future */
-int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_set,
-		      uint8_t num_items)
+int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_set)
 {
 	struct tdma_scheduler *sched = &l1s.tdma_sched;
 	uint8_t bucket_nr = wrap_bucket(frame_offset);
-	int i;
+	int i = 0;
 
-	for (i = 0; i < num_items; i++) {
+	for (i = 0; 1; i++) {
 		const struct tdma_sched_item *sched_item = &item_set[i];
 		struct tdma_sched_bucket *bucket = &sched->bucket[bucket_nr];
+
+		if (sched_item->cb == &tdma_end_set) {
+			/* end of scheduler set, return */
+			break;
+		}
 
 		if (sched_item->cb == NULL) {
 			/* advance to next bucket (== TDMA frame) */
@@ -90,7 +100,7 @@ int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_s
 		memcpy(&bucket->item[bucket->num_items++], sched_item, sizeof(*sched_item));
 	}
 
-	return num_items;
+	return i;
 }
 
 /* Execute pre-scheduled events for current frame */

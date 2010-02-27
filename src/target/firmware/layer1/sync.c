@@ -539,9 +539,6 @@ static int l1s_fbdet_resp(uint16_t p1, uint16_t attempt)
 	return 0;
 }
 
-#define SCHED_ITEM(x, y, z)		{ .cb = x, .p1 = y, .p2 = z }
-#define SCHED_END_FRAME()		{ .cb = NULL, .p1 = 0, .p2 = 0 }
-
 /* we don't really use this because we need to configure the fb_mode! */
 static const struct tdma_sched_item fb_sched_set[] = {
 	SCHED_ITEM(l1s_fbdet_cmd, 0, 0),	SCHED_END_FRAME(),
@@ -558,6 +555,7 @@ static const struct tdma_sched_item fb_sched_set[] = {
 	SCHED_ITEM(l1s_fbdet_resp, 0, 10),	SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_fbdet_resp, 0, 11),	SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_fbdet_resp, 0, 12),	SCHED_END_FRAME(),
+	SCHED_END_SET()
 };
 
 void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode)
@@ -575,7 +573,7 @@ void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode)
 #else
 	/* use the new scheduler 'set' and simply schedule the whole set */
 	/* WARNING: we cannot set FB_MODE_1 this way !!! */
-	tdma_schedule_set(base_fn, fb_sched_set, ARRAY_SIZE(fb_sched_set));
+	tdma_schedule_set(base_fn, fb_sched_set);
 #endif
 }
 
@@ -882,12 +880,13 @@ static const struct tdma_sched_item nb_sched_set[] = {
 	SCHED_ITEM(l1s_nb_resp, 0, 1), SCHED_ITEM(l1s_nb_cmd, 0, 3),	SCHED_END_FRAME(),
 				       SCHED_ITEM(l1s_nb_resp, 0, 2),	SCHED_END_FRAME(),
 				       SCHED_ITEM(l1s_nb_resp, 0, 3),	SCHED_END_FRAME(),
+	SCHED_END_SET()
 };
 
 void l1s_nb_test(uint8_t base_fn)
 {
 	puts("Starting NB\n");
-	tdma_schedule_set(base_fn, nb_sched_set, ARRAY_SIZE(nb_sched_set));
+	tdma_schedule_set(base_fn, nb_sched_set);
 }
 
 /* Interrupt handler */
