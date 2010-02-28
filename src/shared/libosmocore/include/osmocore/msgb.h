@@ -98,6 +98,47 @@ static inline unsigned char *msgb_put(struct msgb *msgb, unsigned int len)
 	msgb->len += len;
 	return tmp;
 }
+static inline void msgb_put_u8(struct msgb *msgb, uint8_t word)
+{
+	uint8_t *space = msgb_put(msgb, 1);
+	space[0] = word & 0xFF;
+}
+static inline void msgb_put_u16(struct msgb *msgb, uint16_t word)
+{
+	uint8_t *space = msgb_put(msgb, 2);
+	space[0] = word >> 8 & 0xFF;
+	space[1] = word & 0xFF;
+}
+static inline void msgb_put_u32(struct msgb *msgb, uint32_t word)
+{
+	uint8_t *space = msgb_put(msgb, 4);
+	space[0] = word >> 24 & 0xFF;
+	space[1] = word >> 16 & 0xFF;
+	space[2] = word >> 8 & 0xFF;
+	space[3] = word & 0xFF;
+}
+static inline unsigned char *msgb_get(struct msgb *msgb, unsigned int len)
+{
+	unsigned char *tmp = msgb->data;
+	msgb->data += len;
+	msgb->len -= len;
+	return tmp;
+}
+static inline uint8_t msgb_get_u8(struct msgb *msgb)
+{
+	uint8_t *space = msgb_get(msgb, 1);
+	return space[0];
+}
+static inline uint16_t msgb_get_u16(struct msgb *msgb)
+{
+	uint8_t *space = msgb_get(msgb, 2);
+	return space[0] << 8 | space[1];
+}
+static inline uint32_t msgb_get_u32(struct msgb *msgb)
+{
+	uint8_t *space = msgb_get(msgb, 4);
+	return space[0] << 24 | space[1] << 16 | space[2] << 8 | space[3];
+}
 static inline unsigned char *msgb_push(struct msgb *msgb, unsigned int len)
 {
 	msgb->data -= len;
