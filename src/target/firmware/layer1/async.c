@@ -64,7 +64,7 @@ void l1a_rach_req(uint8_t fn51, uint8_t ra)
 	/* TODO: can we wrap here? I don't think so */
 	fn_sched = l1s.current_time.fn - l1s.current_time.t3;
 	fn_sched += fn51;
-	sched_gsmtime(rach_sched_set_ul, fn_sched);
+	sched_gsmtime(rach_sched_set_ul, fn_sched, 0);
 	l1a_unlock_sync();
 }
 

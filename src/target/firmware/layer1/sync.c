@@ -400,7 +400,7 @@ static void l1_sync(void)
 
 /* ABORT command ********************************************************/
 
-static int l1s_abort_cmd(uint16_t p1, uint16_t p2)
+static int l1s_abort_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 {
 	putchart('A');
 
@@ -427,13 +427,13 @@ static int l1s_abort_cmd(uint16_t p1, uint16_t p2)
 void l1s_dsp_abort(void)
 {
 	/* abort right now */
-	tdma_schedule(0, &l1s_abort_cmd, 0, 0);
+	tdma_schedule(0, &l1s_abort_cmd, 0, 0, 0);
 }
 
 /* FCCH Burst *****************************************************************/
 
 /* scheduler callback to issue a FB detection task to the DSP */
-static int l1s_fbdet_cmd(uint16_t p1, uint16_t fb_mode)
+static int l1s_fbdet_cmd(uint8_t p1, uint8_t fb_mode, uint16_t p3)
 {
 	if (fb_mode == 0) {
 		putchart('F');
@@ -456,7 +456,7 @@ static int l1s_fbdet_cmd(uint16_t p1, uint16_t fb_mode)
 
 
 /* scheduler callback to check for a FB detection response */
-static int l1s_fbdet_resp(uint16_t p1, uint16_t attempt)
+static int l1s_fbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
 {
 	int ntdma, qbits, fn_offset;
 
@@ -575,17 +575,17 @@ void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode)
 #if 1
 	int i;
 	/* schedule the FB detection command */
-	tdma_schedule(base_fn, &l1s_fbdet_cmd, 0, fb_mode);
+	tdma_schedule(base_fn, &l1s_fbdet_cmd, 0, fb_mode, 0);
 
 	/* schedule 12 attempts to read the result */
 	for (i = 1; i <= 12; i++) {
 		uint8_t fn = base_fn + 1 + i;
-		tdma_schedule(fn, &l1s_fbdet_resp, 0, i);
+		tdma_schedule(fn, &l1s_fbdet_resp, 0, i, 0);
 	}
 #else
 	/* use the new scheduler 'set' and simply schedule the whole set */
 	/* WARNING: we cannot set FB_MODE_1 this way !!! */
-	tdma_schedule_set(base_fn, fb_sched_set);
+	tdma_schedule_set(base_fn, fb_sched_set, 0);
 #endif
 }
 
@@ -601,7 +601,7 @@ static uint8_t sb_cnt;
 
 extern const struct tdma_sched_item rach_sched_set_ul[];
 
-static int l1s_sbdet_resp(uint16_t p1, uint16_t attempt)
+static int l1s_sbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
 {
 	uint32_t sb;
 	uint8_t bsic;
@@ -713,7 +713,7 @@ static int l1s_sbdet_resp(uint16_t p1, uint16_t attempt)
 	return 0;
 }
 
-static int l1s_sbdet_cmd(uint16_t p1, uint16_t p2)
+static int l1s_sbdet_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 {
 	putchart('S');
 
@@ -734,21 +734,21 @@ void l1s_sb_test(uint8_t base_fn)
 {
 #if 1
 	/* This is how it is done by the TSM30 */
-	tdma_schedule(base_fn, &l1s_sbdet_cmd, 0, 1);
-	tdma_schedule(base_fn + 1, &l1s_sbdet_cmd, 0, 2);
-	tdma_schedule(base_fn + 3, &l1s_sbdet_resp, 0, 1);
-	tdma_schedule(base_fn + 4, &l1s_sbdet_resp, 0, 2);
+	tdma_schedule(base_fn, &l1s_sbdet_cmd, 0, 1, 0);
+	tdma_schedule(base_fn + 1, &l1s_sbdet_cmd, 0, 2, 0);
+	tdma_schedule(base_fn + 3, &l1s_sbdet_resp, 0, 1, 0);
+	tdma_schedule(base_fn + 4, &l1s_sbdet_resp, 0, 2, 0);
 #else
-	tdma_schedule(base_fn, &l1s_sbdet_cmd, 0, 1);
-	tdma_schedule(base_fn + 1, &l1s_sbdet_resp, 0, 1);
-	tdma_schedule(base_fn + 2, &l1s_sbdet_resp, 0, 2);
+	tdma_schedule(base_fn, &l1s_sbdet_cmd, 0, 1, 0);
+	tdma_schedule(base_fn + 1, &l1s_sbdet_resp, 0, 1, 0);
+	tdma_schedule(base_fn + 2, &l1s_sbdet_resp, 0, 2, 0);
 #endif
 }
 
 /* Power Measurement **********************************************************/
 
 /* scheduler callback to issue a power measurement task to the DSP */
-static int l1s_pm_cmd(uint16_t p1, uint16_t arfcn)
+static int l1s_pm_cmd(uint8_t p1, uint8_t p2, uint16_t arfcn)
 {
 	putchart('P');
 
@@ -766,7 +766,7 @@ static int l1s_pm_cmd(uint16_t p1, uint16_t arfcn)
 }
 
 /* scheduler callback to read power measurement resposnse from the DSP */
-static int l1s_pm_resp(uint16_t p1, uint16_t p2)
+static int l1s_pm_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 {
 	uint16_t pm_level[2];
 	struct l1_signal sig;
@@ -793,13 +793,13 @@ static int l1s_pm_resp(uint16_t p1, uint16_t p2)
 
 void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 {
-	tdma_schedule(base_fn, &l1s_pm_cmd, 0, arfcn);
-	tdma_schedule(base_fn + 2, &l1s_pm_resp, 0, 0);
+	tdma_schedule(base_fn, &l1s_pm_cmd, 0, 0, arfcn);
+	tdma_schedule(base_fn + 2, &l1s_pm_resp, 0, 0, 0);
 }
 
 /* Normal Burst ***************************************************************/
 
-static int l1s_nb_resp(uint16_t p1, uint16_t burst_id)
+static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	static struct l1_signal _nb_sig, *sig = &_nb_sig;
 	struct msgb *msg;
@@ -872,7 +872,7 @@ static int l1s_nb_resp(uint16_t p1, uint16_t burst_id)
 	return 0;
 }
 
-static int l1s_nb_cmd(uint16_t p1, uint16_t burst_id)
+static int l1s_nb_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	uint8_t tsc = l1s.serving_cell.bsic & 0x7;
 
@@ -902,7 +902,7 @@ const struct tdma_sched_item nb_sched_set[] = {
 const uint8_t ubUui[23]     = { 0x01, 0x03, 0x01, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
 
 /* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
-static int l1s_tx_resp(uint16_t p1, uint16_t burst_id)
+static int l1s_tx_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	putchart('t');
 
@@ -933,7 +933,7 @@ static int l1s_tx_resp(uint16_t p1, uint16_t burst_id)
 static uint8_t loc_cnt = 0;
 
 /* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
-static int l1s_tx_cmd(uint16_t p1, uint16_t burst_id)
+static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	int i;
 	uint8_t tsc;
@@ -1035,20 +1035,20 @@ void l1s_tx_test(uint8_t base_fn, uint8_t type)
 	printf("Starting TX %d\n", type);
 
 	if (type == 0) {// one normal burst
-		tdma_schedule(base_fn, &l1s_tx_cmd, 0, 0);
-		tdma_schedule(base_fn + 2, &l1s_tx_resp, 0, 0);
+		tdma_schedule(base_fn, &l1s_tx_cmd, 0, 0, 0);
+		tdma_schedule(base_fn + 2, &l1s_tx_resp, 0, 0, 0);
 	} else if (type == 1) { // one RACH burst
-		tdma_schedule(base_fn, &l1s_tx_cmd, 1, 0);
-		tdma_schedule(base_fn + 2, &l1s_tx_resp, 1, 0);
+		tdma_schedule(base_fn, &l1s_tx_cmd, 1, 0, 0);
+		tdma_schedule(base_fn + 2, &l1s_tx_resp, 1, 0, 0);
 	} else if (type == 2) { // four normal burst
-		tdma_schedule(base_fn, &l1s_tx_cmd, 2, 0);
-		tdma_schedule(base_fn + 1, &l1s_tx_cmd, 2, 1);
-		tdma_schedule(base_fn + 2, &l1s_tx_resp, 2, 0);
-		tdma_schedule(base_fn + 2, &l1s_tx_cmd, 2, 2);
-		tdma_schedule(base_fn + 3, &l1s_tx_resp, 2, 1);
-		tdma_schedule(base_fn + 3, &l1s_tx_cmd, 2, 3);
-		tdma_schedule(base_fn + 4, &l1s_tx_resp, 2, 2);
-		tdma_schedule(base_fn + 5, &l1s_tx_resp, 2, 3);
+		tdma_schedule(base_fn, &l1s_tx_cmd, 2, 0, 0);
+		tdma_schedule(base_fn + 1, &l1s_tx_cmd, 2, 1, 0);
+		tdma_schedule(base_fn + 2, &l1s_tx_resp, 2, 0, 0);
+		tdma_schedule(base_fn + 2, &l1s_tx_cmd, 2, 2, 0);
+		tdma_schedule(base_fn + 3, &l1s_tx_resp, 2, 1, 0);
+		tdma_schedule(base_fn + 3, &l1s_tx_cmd, 2, 3, 0);
+		tdma_schedule(base_fn + 4, &l1s_tx_resp, 2, 2, 0);
+		tdma_schedule(base_fn + 5, &l1s_tx_resp, 2, 3, 0);
 	}
 }
 

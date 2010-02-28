@@ -34,7 +34,7 @@ static LLIST_HEAD(active_evts);
 static LLIST_HEAD(inactive_evts);
 
 /* Scheduling of a tdma_sched_item list one-shot at a givnen GSM time */
-int sched_gsmtime(struct tdma_sched_item *si, uint32_t fn)
+int sched_gsmtime(struct tdma_sched_item *si, uint32_t fn, uint16_t p3)
 {
 	struct llist_head *lh;
 	struct sched_gsmtime_event *evt, *cur;
@@ -50,6 +50,7 @@ int sched_gsmtime(struct tdma_sched_item *si, uint32_t fn)
 
 	evt->fn = fn;
 	evt->si = si;
+	evt->p3 = p3;
 
 	/* do a sorted insert into the list, i.e. insert the new
 	 * event _before_ the first entry that has a higher fn */
@@ -82,7 +83,8 @@ int sched_gsmtime_execute(uint32_t fn)
 	llist_for_each_entry_safe(evt, evt2, &active_evts, list) {
 		if (evt->fn == fn + SCHEDULE_AHEAD) {
 			printd("sched_gsmtime_execute(time=%u): fn=%u si=%p\n", fn, evt->fn, evt->si);
-			tdma_schedule_set(SCHEDULE_AHEAD-SCHEDULE_LATENCY, evt->si);
+			tdma_schedule_set(SCHEDULE_AHEAD-SCHEDULE_LATENCY,
+					  evt->si, evt->p3);
 			llist_del(&evt->list);
 			/* put event back in list of inactive (free) events */
 			llist_add(&evt->list, &inactive_evts);

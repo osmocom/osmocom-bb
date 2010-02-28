@@ -45,7 +45,7 @@ struct mframe_sched_item {
 	/* At which number inside the modulo shall we be scheduled */
 	uint16_t frame_nr;
 	/* bit-mask of flags */
-	uint32_t flags;
+	uint16_t flags;
 };
 
 /* FIXME: properly clean this up */
@@ -246,7 +246,8 @@ static void mframe_schedule_set(const struct mframe_sched_item *set)
 		unsigned int current = (l1s.current_time.fn + SCHEDULE_AHEAD) % si->modulo;
 		if (current == trigger) {
 			/* FIXME: what to do with SACCH Flag etc? */
-			tdma_schedule_set(SCHEDULE_AHEAD-SCHEDULE_LATENCY, si->sched_set);
+			tdma_schedule_set(SCHEDULE_AHEAD-SCHEDULE_LATENCY,
+					  si->sched_set, si->flags);
 		}
 	}
 }
