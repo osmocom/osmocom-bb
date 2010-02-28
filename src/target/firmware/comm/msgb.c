@@ -35,7 +35,7 @@ void *tall_msgb_ctx;
 
 #ifdef NO_TALLOC
 /* This is a poor mans static allocator for msgb objects */
-#define MSGB_DATA_SIZE	256
+#define MSGB_DATA_SIZE	256+4
 #define MSGB_NUM	16
 struct supermsg {
 	uint8_t allocated;
