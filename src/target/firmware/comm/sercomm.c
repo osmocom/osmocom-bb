@@ -30,10 +30,14 @@
 #endif
 #include <osmocore/msgb.h>
 #include <sercomm.h>
+#define local_irq_save(x)
+#define local_fiq_disable()
+#define local_irq_restore(x)
 
 #else
 #include <debug.h>
 #include <linuxlist.h>
+#include <asm/system.h>
 
 #include <comm/msgb.h>
 #include <comm/sercomm.h>
@@ -89,13 +93,20 @@ int sercomm_initialized(void)
 /* user interface for transmitting messages for a given DLCI */
 void sercomm_sendmsg(uint8_t dlci, struct msgb *msg)
 {
+	unsigned long flags;
 	uint8_t *hdr;
 
 	/* prepend address + control octet */
 	hdr = msgb_push(msg, 2);
 	hdr[0] = dlci;
 	hdr[1] = HDLC_C_UI;
+
+	/* This functiion can be called from any context: FIQ, IRQ
+	 * and supervisor context.  Proper locking is important! */
+	local_irq_save(flags);
+	local_fiq_disable();
 	msgb_enqueue(&sercomm.tx.dlci_queues[dlci], msg);
+	local_irq_restore(flags);
 
 #ifndef HOST_BUILD
 	/* tell UART that we have something to send */
@@ -119,6 +130,9 @@ unsigned int sercomm_tx_queue_depth(uint8_t dlci)
 /* fetch one octet of to-be-transmitted serial data */
 int sercomm_drv_pull(uint8_t *ch)
 {
+	/* we are always called from interrupt context in this function,
+	 * which means that any data structures we use need to be for
+	 * our exclusive access */
 	if (!sercomm.tx.msg) {
 		unsigned int i;
 		/* dequeue a new message from the queues */
@@ -187,10 +201,14 @@ int sercomm_drv_rx_char(uint8_t ch)
 {
 	uint8_t *ptr;
 
+	/* we are always called from interrupt context in this function,
+	 * which means that any data structures we use need to be for
+	 * our exclusive access */
 	if (!sercomm.rx.msg)
 		sercomm.rx.msg = sercomm_alloc_msgb(SERCOMM_RX_MSG_SIZE);
 
 	if (msgb_tailroom(sercomm.rx.msg) == 0) {
+		cons_puts("sercomm_drv_rx_char() overflow!\n");
 		msgb_free(sercomm.rx.msg);
 		sercomm.rx.msg = sercomm_alloc_msgb(SERCOMM_RX_MSG_SIZE);
 		sercomm.rx.state = RX_ST_WAIT_START;
@@ -200,7 +218,7 @@ int sercomm_drv_rx_char(uint8_t ch)
 	switch (sercomm.rx.state) {
 	case RX_ST_WAIT_START:
 		if (ch != HDLC_FLAG)
-			return 0;
+			break;
 		sercomm.rx.state = RX_ST_ADDR;
 		break;
 	case RX_ST_ADDR:
@@ -240,5 +258,6 @@ int sercomm_drv_rx_char(uint8_t ch)
 		sercomm.rx.state = RX_ST_DATA;
 		break;
 	}
+
 	return 1;
 }

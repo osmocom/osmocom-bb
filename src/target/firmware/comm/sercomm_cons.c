@@ -24,6 +24,8 @@
 #include <errno.h>
 #include <string.h>
 
+#include <asm/system.h>
+
 #include <calypso/uart.h>
 
 #include <console.h>
@@ -50,6 +52,7 @@ static void raw_puts(const char *s)
 
 int sercomm_puts(const char *s)
 {
+	unsigned long flags;
 	const int len = strlen(s) + 1;
 	unsigned int bytes_left = len;
 
@@ -58,6 +61,12 @@ int sercomm_puts(const char *s)
 		raw_puts(s);
 		return len - 1;
 	}
+
+	/* This function is called from any context: Supervisor, IRQ, FIQ, ...
+	 * as such, we need to ensure re-entrant calls are either supported or
+	 * avoided. */
+	local_irq_save(flags);
+	local_fiq_disable();
 
 	while (bytes_left > 0) {
 		unsigned int write_num, space_left, flush;
@@ -109,6 +118,8 @@ int sercomm_puts(const char *s)
 			scons.cur_msg = NULL;
 		}
 	}
+
+	local_irq_restore(flags);
 
 	return len - 1;
 }
