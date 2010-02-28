@@ -2,7 +2,8 @@ INCLUDES=-I../include/ -I../../../../include
 -include ../Makefile.inc
 
 LIBNAME=layer1
-OBJS=avg.o agc.o afc.o sync.o gsm.o tdma_sched.o tpu_window.o init.o l23_api.o mframe_sched.o
+OBJS=avg.o agc.o afc.o sync.o gsm.o tdma_sched.o tpu_window.o init.o l23_api.o \
+	mframe_sched.o sched_gsmtime.o
 
 LST=$(OBJS:.o=.lst)
 
