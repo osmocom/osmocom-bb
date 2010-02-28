@@ -13,8 +13,7 @@ BOARD_C123_OBJS=board/common/rffe_compal_dualband.o board/compal_e88/init.o
 START=board/common/compal_ramload_start.S
 LDS=board/common/compal_ramload.lds
 
-# The objects that we want to link with every application
-APPLICATIONS=hello_world l1test compal_dump compal_dsp_dump layer1
+APPLICATIONS=hello_world l1test compal_dump compal_dsp_dump layer1 loader
 
 # Things that go in all applications
 ANY_APP_OBJS+=$(START:.S=.o) $(ABB_OBJS) $(RF_OBJS) $(DISPLAY_OBJS) $(FLASH_OBJS) $(BOARD_C123_OBJS)
