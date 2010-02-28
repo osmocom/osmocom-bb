@@ -41,6 +41,7 @@
 #include <layer1/afc.h>
 #include <layer1/agc.h>
 #include <layer1/tdma_sched.h>
+#include <layer1/mframe_sched.h>
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
 
@@ -384,6 +385,9 @@ static void l1_sync(void)
 	}
 
 	//dsp_end_scenario();
+
+	/* schedule new / upcoming TDMA items */
+	mframe_schedule(l1s.mf_tasks);
 
 	tdma_sched_advance();
 }
@@ -875,7 +879,7 @@ static int l1s_nb_cmd(uint16_t p1, uint16_t burst_id)
 	return 0;
 }
 
-static const struct tdma_sched_item nb_sched_set[] = {
+const struct tdma_sched_item nb_sched_set[] = {
 	SCHED_ITEM(l1s_nb_cmd, 0, 0),					SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_nb_cmd, 0, 1),					SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_nb_resp, 0, 0), SCHED_ITEM(l1s_nb_cmd, 0, 2),	SCHED_END_FRAME(),
@@ -890,6 +894,12 @@ void l1s_nb_test(uint8_t base_fn)
 	puts("Starting NB\n");
 	tdma_schedule_set(base_fn, nb_sched_set);
 }
+
+/* dummy sched set for uplink */
+const struct tdma_sched_item nb_sched_set_ul[] = {
+	SCHED_END_SET()
+};
+
 
 /* Interrupt handler */
 static void frame_irq(enum irq_nr nr)

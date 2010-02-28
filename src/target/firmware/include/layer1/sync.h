@@ -22,6 +22,9 @@ struct l1s_state {
 	uint32_t	tpu_offset;
 
 	int		task;
+
+	/* bit-mask of multi-frame tasks that are currently active */
+	uint32_t	mf_tasks;
 };
 
 extern struct l1s_state l1s;

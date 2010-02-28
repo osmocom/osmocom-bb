@@ -1,0 +1,256 @@
+/* GSM Multiframe Scheduler Implementation (on top of TDMA sched) */
+
+/* (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ *
+ * All Rights Reserved
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ */
+
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#include <debug.h>
+#include <gsm.h>
+
+#include <layer1/sync.h>
+#include <layer1/tdma_sched.h>
+#include <layer1/mframe_sched.h>
+
+enum mf_sched_item_flag {
+	MF_F_SACCH,
+	//MF_F_UL_OFFS_15,	/* uplink 15 frames after downlink */
+};
+
+/* A multiframe operation which can be scheduled for a multiframe */
+struct mframe_sched_item {
+	/* The TDMA scheduler item that shall be scheduled */
+	const struct tdma_sched_item *sched_set;
+	/* Which modulo shall be used on the frame number */
+	uint16_t modulo;
+	/* At which number inside the modulo shall we be scheduled */
+	uint16_t frame_nr;
+	/* bit-mask of flags */
+	uint32_t flags;
+};
+
+/* FIXME: properly clean this up */
+extern const struct tdma_sched_item nb_sched_set[];
+extern const struct tdma_sched_item nb_sched_set_ul[];
+#define NB_QUAD_DL	nb_sched_set
+#define NB_QUAD_FH_DL	NB_QUAD_DL
+#define NB_QUAD_UL	nb_sched_set_ul
+#define NB_QUAD_FH_UL	NB_QUAD_UL
+
+/* BCCH Normal */
+static const struct mframe_sched_item mf_bcch_norm[] = {
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 2 },
+	{ .sched_set = NULL }
+};
+
+/* BCCH Extended */
+static const struct mframe_sched_item mf_bcch_ext[] = {
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 6 },
+	{ .sched_set = NULL }
+};
+
+/* Full CCCH in a pure BCCH + CCCH C0T0 */
+static const struct mframe_sched_item mf_ccch[] = {
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 6 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 12 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 16 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 22 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 26 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 32 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 36 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 42 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 46 },
+	{ .sched_set = NULL }
+};
+
+/* Full CCCH in a combined CCCH on C0T0 */
+static const struct mframe_sched_item mf_ccch_comb[] = {
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 6 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 12 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 16 },
+	{ .sched_set = NULL }
+};
+
+/* SDCCH/4 in a combined CCCH on C0T0, cannot be FH */
+static const struct mframe_sched_item mf_sdcch4_0[] = {
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 22 },
+	{ .sched_set = NB_QUAD_UL, .modulo = 51, .frame_nr = 22+15 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 2*51, .frame_nr = 42,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_UL, .modulo = 2*51, .frame_nr = 42+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch4_1[] = {
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 26 },
+	{ .sched_set = NB_QUAD_UL, .modulo = 51, .frame_nr = 26+15 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 2*51, .frame_nr = 46,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_UL, .modulo = 2*51, .frame_nr = 46+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch4_2[] = {
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 32 },
+	{ .sched_set = NB_QUAD_UL, .modulo = 51, .frame_nr = 32+15 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 2*51, .frame_nr = 51+42,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_UL, .modulo = 2*51, .frame_nr = 51+42+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch4_3[] = {
+	{ .sched_set = NB_QUAD_DL, .modulo = 51, .frame_nr = 36 },
+	{ .sched_set = NB_QUAD_UL, .modulo = 51, .frame_nr = 36+15 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 2*51, .frame_nr = 51+46,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_UL, .modulo = 2*51, .frame_nr = 51+46+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+
+/* SDCCH/8, can be frequency hopping (FH) */
+static const struct mframe_sched_item mf_sdcch8_0[] = {
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 51, .frame_nr = 0 },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 51, .frame_nr = 0+15 },
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 2*51, .frame_nr = 32,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 2*51, .frame_nr = 32+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch8_1[] = {
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 51, .frame_nr = 4 },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 51, .frame_nr = 4+15 },
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 2*51, .frame_nr = 36,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 2*51, .frame_nr = 36+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch8_2[] = {
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 51, .frame_nr = 8 },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 51, .frame_nr = 8+15 },
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 2*51, .frame_nr = 40,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 2*51, .frame_nr = 40+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch8_3[] = {
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 51, .frame_nr = 12 },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 51, .frame_nr = 12+15 },
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 2*51, .frame_nr = 44,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 2*51, .frame_nr = 44+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch8_4[] = {
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 51, .frame_nr = 16 },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 51, .frame_nr = 16+15 },
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 2*51, .frame_nr = 51+32,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 2*51, .frame_nr = 51+32+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch8_5[] = {
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 51, .frame_nr = 20 },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 51, .frame_nr = 20+15 },
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 2*51, .frame_nr = 51+36,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 2*51, .frame_nr = 51+36+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch8_6[] = {
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 51, .frame_nr = 24 },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 51, .frame_nr = 24+15 },
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 2*51, .frame_nr = 51+40,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 2*51, .frame_nr = 51+40+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_sdcch8_7[] = {
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 51, .frame_nr = 28 },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 51, .frame_nr = 28+15 },
+	{ .sched_set = NB_QUAD_FH_DL, .modulo = 2*51, .frame_nr = 51+44,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 2*51, .frame_nr = 51+44+15,
+	  .flags = MF_F_SACCH },
+	{ .sched_set = NULL }
+};
+
+static const struct mframe_sched_item *sched_set_for_task[32] = {
+	[MF_TASK_BCCH_NORM] = mf_bcch_norm,
+	[MF_TASK_BCCH_EXT] = mf_bcch_ext,
+	[MF_TASK_CCCH] = mf_ccch,
+	[MF_TASK_CCCH_COMB] = mf_ccch_comb,
+
+	[MF_TASK_SDCCH4_0] = mf_sdcch4_0,
+	[MF_TASK_SDCCH4_1] = mf_sdcch4_1,
+	[MF_TASK_SDCCH4_2] = mf_sdcch4_2,
+	[MF_TASK_SDCCH4_3] = mf_sdcch4_3,
+
+	[MF_TASK_SDCCH8_0] = mf_sdcch8_0,
+	[MF_TASK_SDCCH8_1] = mf_sdcch8_1,
+	[MF_TASK_SDCCH8_2] = mf_sdcch8_2,
+	[MF_TASK_SDCCH8_3] = mf_sdcch8_3,
+	[MF_TASK_SDCCH8_4] = mf_sdcch8_4,
+	[MF_TASK_SDCCH8_5] = mf_sdcch8_5,
+	[MF_TASK_SDCCH8_6] = mf_sdcch8_6,
+	[MF_TASK_SDCCH8_7] = mf_sdcch8_7,
+};
+
+/* how many TDMA frame ticks should we schedule events ahead? */
+#define SCHEDULE_AHEAD	2
+
+/* how long do we need to tell the DSP in advance what we want to do? */
+#define SCHEDULE_LATENCY	1
+
+/* (test and) schedule one particular sched_item_set by means of the TDMA scheduler */
+static void mframe_schedule_set(const struct mframe_sched_item *set)
+{
+	const struct mframe_sched_item *si;
+
+	for (si = set; si->sched_set != NULL; si++) {
+		unsigned int trigger = si->frame_nr % si->modulo;
+		unsigned int current = (l1s.current_time.fn + SCHEDULE_AHEAD) % si->modulo;
+		if (current == trigger) {
+			/* FIXME: what to do with SACCH Flag etc? */
+			tdma_schedule_set(SCHEDULE_AHEAD-SCHEDULE_LATENCY, si->sched_set);
+		}
+	}
+}
+
+/* Schedule mframe_sched_items according to current MF TASK list */
+void mframe_schedule(uint32_t tasks_enabled)
+{
+	unsigned int i;
+
+	for (i = 0; i < 32; i++) {
+		if (tasks_enabled & (1 << i))
+			mframe_schedule_set(sched_set_for_task[i]);
+	}
+}
