@@ -33,12 +33,15 @@
 #include <calypso/irq.h>
 
 #include <layer1/sync.h>
+#include <layer1/async.h>
 #include <layer1/l23_api.h>
 
 void layer1_init(void)
 {
 	struct msgb *msg;
 
+	/* initialize asynchronous part of L1 */
+	l1a_init();
 	/* initialize TDMA Frame IRQ driven synchronous L1 */
 	l1s_init();
 	/* power up the DSP */

@@ -27,6 +27,8 @@
 #include <comm/sercomm.h>
 
 #include <layer1/sync.h>
+#include <layer1/async.h>
+
 #include <l1a_l23_interface.h>
 
 /* the size we will allocate struct msgb* for HDLC */
@@ -60,4 +62,58 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr)
 	dl->snr[0] = snr;
 
 	return msg;
+}
+
+/* callbakc from SERCOMM when L2 sends a message to L1 */
+static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
+{
+	struct l1_info_ul *ul = msg->data;
+	struct l1_sync_new_ccch_req *sync_req;
+	struct l1_rach_req *rach_req;
+	struct l1_dedic_mode_est_req *est_req;
+
+	if (sizeof(*ul) > msg->len) {
+		printf("la1_l23_cb: Short message. %u\n", msg->len);
+		goto exit;
+	}
+
+	switch (ul->msg_type) {
+	case SYNC_NEW_CCCH_REQ:
+		if (sizeof(*ul) + sizeof(*sync_req) > msg->len) {
+			printf("Short sync msg. %u\n", msg->len);
+			break;
+		}
+
+		sync_req = (struct l1_sync_new_ccch_req *) (&msg->data[0] + sizeof(*ul));
+		printf("Asked to tune to frequency: %u\n", sync_req->band_arfcn);
+
+		/* reset scheduler and hardware */
+		tdma_sched_reset();
+		l1s_dsp_abort();
+
+		/* tune to specified frequency */
+		trf6151_rx_window(0, sync_req->band_arfcn, 40, 0);
+		tpu_end_scenario();
+
+		puts("Starting FCCH Recognition\n");
+		l1s_fb_test(1, 0);
+		break;
+	case DEDIC_MODE_EST_REQ:
+		est_req = (struct l1_dedic_mode_est_req *) ul->payload;
+		/* FIXME: ARFCN! */
+		/* figure out which MF tasks to enable, depending on channel number */
+		break;
+	case CCCH_RACH_REQ:
+		rach_req = (struct l1_rach_req *) ul->payload;
+		l1a_rach_req(27, rach_req->ra);
+		break;
+	}
+
+exit:
+	msgb_free(msg);
+}
+
+void l1a_l23api_init(void)
+{
+	sercomm_register_rx_cb(SC_DLCI_L1A_L23, l1a_l23_rx_cb);
 }

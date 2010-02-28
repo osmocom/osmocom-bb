@@ -80,6 +80,7 @@ struct l1_info_ul {
 	uint8_t tx_power;
 	uint8_t channel_number;
 	uint32_t tdma_frame;
+	uint8_t payload[0];
 } __attribute__((packed));
 
 /*

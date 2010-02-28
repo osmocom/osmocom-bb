@@ -36,6 +36,10 @@ struct l1s_state {
 
 	/* bit-mask of multi-frame tasks that are currently active */
 	uint32_t	mf_tasks;
+
+	struct {
+		uint8_t		ra;
+	} rach;
 };
 
 extern struct l1s_state l1s;
