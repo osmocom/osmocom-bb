@@ -903,6 +903,11 @@ static void frame_irq(enum irq_nr nr)
 
 void l1s_init(void)
 {
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(l1s.tx_queue); i++)
+		INIT_LLIST_HEAD(&l1s.tx_queue[i]);
+
 	/* register FRAME interrupt as FIQ so it can interrupt normal IRQs */
 	irq_register_handler(IRQ_TPU_FRAME, &frame_irq);
 	irq_config(IRQ_TPU_FRAME, 1, 1, 0);
