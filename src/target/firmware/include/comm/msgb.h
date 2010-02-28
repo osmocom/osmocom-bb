@@ -68,9 +68,17 @@ static inline unsigned int msgb_headlen(const struct msgb *msgb)
 {
 	return msgb->len - msgb->data_len;
 }
+static inline int msgb_tailroom(const struct msgb *msgb)
+{
+	return (msgb->head + msgb->data_len) - msgb->tail;
+}
 static inline unsigned char *msgb_put(struct msgb *msgb, unsigned int len)
 {
 	unsigned char *tmp = msgb->tail;
+
+	if (msgb_tailroom(msgb) < len)
+		cons_puts("msgb_tailroom insufficient!\n");
+
 	msgb->tail += len;
 	msgb->len += len;
 	return tmp;
@@ -85,10 +93,6 @@ static inline unsigned char *msgb_pull(struct msgb *msgb, unsigned int len)
 {
 	msgb->len -= len;
 	return msgb->data += len;
-}
-static inline int msgb_tailroom(const struct msgb *msgb)
-{
-	return (msgb->head + msgb->data_len) - msgb->tail;
 }
 
 /* increase the headroom of an empty msgb, reducing the tailroom */
