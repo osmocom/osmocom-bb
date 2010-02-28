@@ -45,6 +45,7 @@
 #include <layer1/agc.h>
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
+#include <layer1/sched_gsmtime.h>
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
 
@@ -391,6 +392,8 @@ static void l1_sync(void)
 
 	/* schedule new / upcoming TDMA items */
 	mframe_schedule(l1s.mf_tasks);
+	/* schedule new / upcoming one-shot events */
+	sched_gsmtime_execute(l1s.current_time.fn);
 
 	tdma_sched_advance();
 }
@@ -595,6 +598,8 @@ static uint8_t sb_cnt;
 /* Note: When we get the SB response, it is 2 TDMA frames after the SB
  * actually happened, as it is a "C W W R" task */
 #define SB2_LATENCY	2
+
+extern const struct tdma_sched_item rach_sched_set_ul[];
 
 static int l1s_sbdet_resp(uint16_t p1, uint16_t attempt)
 {
@@ -1077,6 +1082,8 @@ void l1s_init(void)
 
 	for (i = 0; i < ARRAY_SIZE(l1s.tx_queue); i++)
 		INIT_LLIST_HEAD(&l1s.tx_queue[i]);
+
+	sched_gsmtime_init();
 
 	/* register FRAME interrupt as FIQ so it can interrupt normal IRQs */
 	irq_register_handler(IRQ_TPU_FRAME, &frame_irq);
