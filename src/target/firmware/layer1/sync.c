@@ -384,6 +384,8 @@ static void l1_sync(void)
 	}
 
 	//dsp_end_scenario();
+
+	tdma_sched_advance();
 }
 
 /* ABORT command ********************************************************/

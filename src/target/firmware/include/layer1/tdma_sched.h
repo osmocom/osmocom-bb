@@ -43,6 +43,9 @@ int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_s
 /* Execute pre-scheduled events for current frame */
 int tdma_sched_execute(void);
 
+/* Advance TDMA scheduler to the next bucket */
+void tdma_sched_advance(void);
+
 /* reset the scheduler; erase all scheduled items */
 void tdma_sched_reset(void);
 

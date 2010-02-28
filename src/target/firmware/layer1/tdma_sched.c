@@ -75,7 +75,7 @@ int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_s
 {
 	struct tdma_scheduler *sched = &l1s.tdma_sched;
 	uint8_t bucket_nr = wrap_bucket(frame_offset);
-	int i = 0;
+	int i;
 
 	for (i = 0; 1; i++) {
 		const struct tdma_sched_item *sched_item = &item_set[i];
@@ -103,12 +103,22 @@ int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_s
 	return i;
 }
 
+/* Advance TDMA scheduler to the next bucket */
+void tdma_sched_advance(void)
+{
+	struct tdma_scheduler *sched = &l1s.tdma_sched;
+	uint8_t next_bucket;
+
+	/* advance to the next bucket */
+	next_bucket = wrap_bucket(1);
+	sched->cur_bucket = next_bucket;
+}
+
 /* Execute pre-scheduled events for current frame */
 int tdma_sched_execute(void)
 {
 	struct tdma_scheduler *sched = &l1s.tdma_sched;
 	struct tdma_sched_bucket *bucket;
-	uint8_t next_bucket;
 	int i, num_events = 0;
 
 	/* determine current bucket */
@@ -134,10 +144,6 @@ int tdma_sched_execute(void)
 
 	/* clear/reset the bucket */
 	bucket->num_items = 0;
-
-	/* advance to the next bucket */
-	next_bucket = wrap_bucket(1);
-	sched->cur_bucket = next_bucket;
 
 	/* return number of items that we called */
 	return num_events;
