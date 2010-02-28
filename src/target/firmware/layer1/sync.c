@@ -693,8 +693,9 @@ static int l1s_sbdet_resp(uint16_t p1, uint16_t attempt)
 #endif
 	if (sb_cnt > 10 && sb_time.t3 == 41) {
 		l1s_reset_hw();
-		/* current t3 == 43, need to start NB detection in t3 = 1, difference is 9 */
-		l1s_nb_test(9);
+		/* enable the MF Task for BCCH reading */
+		l1s.mf_tasks |= (1 << MF_TASK_BCCH_NORM);
+		l1s.mf_tasks |= (1 << MF_TASK_CCCH_COMB);
 	} else {
 		/* We have just seen a SCH burst, we know the next one is not in
 		 * less than 7 TDMA frames from now */
@@ -805,7 +806,7 @@ static int l1s_nb_resp(uint16_t p1, uint16_t burst_id)
 
 	/* DSP burst ID needs to corespond with what we expect */
 	if (dsp_api.db_r->d_burst_d != burst_id) {
-		puts("BURST ID\n");
+		printf("BURST ID %u!=%u\n", dsp_api.db_r->d_burst_d, burst_id);
 		return 0;
 	}
 
@@ -855,8 +856,6 @@ static int l1s_nb_resp(uint16_t p1, uint16_t burst_id)
 
 		/* clear downlink task */
 		l1s.task = dsp_api.db_w->d_task_d = 0;
-
-		l1s_sb_test(4);
 	}
 
 	/* mark READ page as being used */
@@ -889,11 +888,6 @@ const struct tdma_sched_item nb_sched_set[] = {
 	SCHED_END_SET()
 };
 
-void l1s_nb_test(uint8_t base_fn)
-{
-	puts("Starting NB\n");
-	tdma_schedule_set(base_fn, nb_sched_set);
-}
 
 /* dummy sched set for uplink */
 const struct tdma_sched_item nb_sched_set_ul[] = {
