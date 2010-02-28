@@ -202,6 +202,11 @@ static const struct mframe_sched_item mf_sdcch8_7[] = {
 	{ .sched_set = NULL }
 };
 
+static const struct mframe_sched_item mf_tx_all_nb[] = {
+	{ .sched_set = NB_QUAD_FH_UL, .modulo = 4, .frame_nr = 0 },
+	{ .sched_set = NULL }
+};
+
 static const struct mframe_sched_item *sched_set_for_task[32] = {
 	[MF_TASK_BCCH_NORM] = mf_bcch_norm,
 	[MF_TASK_BCCH_EXT] = mf_bcch_ext,
@@ -221,6 +226,8 @@ static const struct mframe_sched_item *sched_set_for_task[32] = {
 	[MF_TASK_SDCCH8_5] = mf_sdcch8_5,
 	[MF_TASK_SDCCH8_6] = mf_sdcch8_6,
 	[MF_TASK_SDCCH8_7] = mf_sdcch8_7,
+
+	[MF_TASK_UL_ALL_NB] = mf_tx_all_nb,
 };
 
 /* how many TDMA frame ticks should we schedule events ahead? */
