@@ -18,6 +18,8 @@
 #include <osmocore/select.h>
 #include <osmocore/talloc.h>
 
+#include <arpa/inet.h>
+
 //#include "version.h"
 
 #define MODEM_BAUDRATE 	B115200
@@ -479,7 +481,7 @@ static int un_layer2_read(struct bsc_fd *fd, unsigned int flags)
 {
 	int rc;
 	u_int16_t length = 0xffff;
-	char buf[4096];
+	u_int8_t buf[4096];
 	struct layer2_connection *con;
 
 
