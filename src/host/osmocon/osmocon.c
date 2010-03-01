@@ -145,7 +145,7 @@ int read_file(const char *filename)
 {
 	int fd, rc, i;
 	struct stat st;
-	const uint8_t *hdr;
+	const uint8_t *hdr = NULL;
 	int hdr_len = 0;
 	uint8_t *file_data;
 	uint16_t tot_len;
@@ -446,6 +446,7 @@ static int serial_read(struct bsc_fd *fd, unsigned int flags)
 		if (rc == 1)
 			dnload.state = WAITING_PROMPT1;
 	}
+	return 0;
 }
 
 static int parse_mode(const char *arg)
@@ -542,6 +543,7 @@ static int un_layer2_accept(struct bsc_fd *fd, unsigned int flags)
 	}
 
 	llist_add(&con->entry, &connections);
+	return 0;
 }
 
 /*
