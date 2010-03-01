@@ -50,10 +50,16 @@ struct gsm_time {
  * downlink info ... down from the BTS..
  */
 struct l1_info_dl {
+	/* common header, should be its own struct */
 	uint8_t msg_type;
 	uint8_t padding;
-	/* the ARFCN and the band. */
+
+	/* the ARFCN and the band. FIXME: what about MAIO? */
 	uint16_t band_arfcn;
+	/* GSM 08.58 channel number (9.3.1) */
+	uint8_t chan_nr;
+	/* GSM 08.58 link identifier (9.3.2) */
+	uint8_t link_id;
 
 	struct gsm_time time;
 	uint8_t rx_level;

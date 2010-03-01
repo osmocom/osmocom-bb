@@ -31,11 +31,6 @@
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
 
-enum mf_sched_item_flag {
-	MF_F_SACCH,
-	//MF_F_UL_OFFS_15,	/* uplink 15 frames after downlink */
-};
-
 /* A multiframe operation which can be scheduled for a multiframe */
 struct mframe_sched_item {
 	/* The TDMA scheduler item that shall be scheduled */
@@ -230,6 +225,61 @@ static const struct mframe_sched_item *sched_set_for_task[32] = {
 	[MF_TASK_UL_ALL_NB] = mf_tx_all_nb,
 };
 
+/* encodes a channel number according to 08.58 Chapter 9.3.1 */
+uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts)
+{
+	uint8_t cbits;
+
+	switch (mft) {
+	case MF_TASK_BCCH_NORM:
+	case MF_TASK_BCCH_EXT:
+		cbits = 0x10;
+		break;
+	case MF_TASK_CCCH:
+	case MF_TASK_CCCH_COMB:
+		cbits = 0x12;
+		break;
+	case MF_TASK_SDCCH4_0:
+		cbits = 0x04 + 0;
+		break;
+	case MF_TASK_SDCCH4_1:
+		cbits = 0x04 + 1;
+		break;
+	case MF_TASK_SDCCH4_2:
+		cbits = 0x04 + 2;
+		break;
+	case MF_TASK_SDCCH4_3:
+		cbits = 0x04 + 3;
+		break;
+	case MF_TASK_SDCCH8_0:
+		cbits = 0x08 + 0;
+		break;
+	case MF_TASK_SDCCH8_1:
+		cbits = 0x08 + 1;
+		break;
+	case MF_TASK_SDCCH8_2:
+		cbits = 0x08 + 2;
+		break;
+	case MF_TASK_SDCCH8_3:
+		cbits = 0x08 + 3;
+		break;
+	case MF_TASK_SDCCH8_4:
+		cbits = 0x08 + 4;
+		break;
+	case MF_TASK_SDCCH8_5:
+		cbits = 0x08 + 5;
+		break;
+	case MF_TASK_SDCCH8_6:
+		cbits = 0x08 + 6;
+		break;
+	case MF_TASK_SDCCH8_7:
+		cbits = 0x08 + 7;
+		break;
+	}
+
+	return (cbits << 3) | (ts & 0x7);
+}
+
 /* how many TDMA frame ticks should we schedule events ahead? */
 #define SCHEDULE_AHEAD	2
 
@@ -237,8 +287,9 @@ static const struct mframe_sched_item *sched_set_for_task[32] = {
 #define SCHEDULE_LATENCY	1
 
 /* (test and) schedule one particular sched_item_set by means of the TDMA scheduler */
-static void mframe_schedule_set(const struct mframe_sched_item *set)
+static void mframe_schedule_set(enum mframe_task task_id)
 {
+	const struct mframe_sched_item *set = sched_set_for_task[task_id];
 	const struct mframe_sched_item *si;
 
 	for (si = set; si->sched_set != NULL; si++) {
@@ -247,7 +298,7 @@ static void mframe_schedule_set(const struct mframe_sched_item *set)
 		if (current == trigger) {
 			/* FIXME: what to do with SACCH Flag etc? */
 			tdma_schedule_set(SCHEDULE_AHEAD-SCHEDULE_LATENCY,
-					  si->sched_set, si->flags);
+					  si->sched_set, task_id | (si->flags<<8));
 		}
 	}
 }
@@ -259,6 +310,6 @@ void mframe_schedule(uint32_t tasks_enabled)
 
 	for (i = 0; i < 32; i++) {
 		if (tasks_enabled & (1 << i))
-			mframe_schedule_set(sched_set_for_task[i]);
+			mframe_schedule_set(i);
 	}
 }

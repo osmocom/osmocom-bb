@@ -802,6 +802,8 @@ void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	static struct l1_signal _nb_sig, *sig = &_nb_sig;
+	uint8_t mf_task_id = p3 & 0xff;
+	uint8_t mf_task_flags = p3 >> 8;
 	struct msgb *msg;
 
 	putchart('n');
@@ -854,6 +856,15 @@ static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 		msg = l1_create_l2_msg(CCCH_INFO_IND, l1s.current_time.fn-4, last_fb->snr);
 		dl = (struct l1_info_dl *) msg->data;
 		l1 = (struct l1_ccch_info_ind *) msgb_put(msg, sizeof(*l1));
+
+		/* Set Channel Number depending on MFrame Task ID */
+		dl->chan_nr = mframe_task2chan_nr(mf_task_id, 0); /* FIXME: TS */
+
+		/* Set SACCH indication in Link IDentifier */
+		if (mf_task_flags & MF_F_SACCH)
+			dl->link_id = 0x40;
+		else
+			dl->link_id = 0x00;
 
 		/* copy the snr and data */
 		for (i = 0; i < 3; ++i)
@@ -937,6 +948,8 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	int i;
 	uint8_t tsc;
+	uint8_t mf_task_id = p3 & 0xff;
+	uint8_t mf_task_flags = p3 >> 8;
 
 	putchart('T');
 
@@ -968,12 +981,18 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 	if (burst_id == 0) {
 	        if (p1 == 0 || p1 == 2) { // DUL_DSP_TASK
 			uint16_t *info_ptr = dsp_api.ndb->a_cu;
+			struct llist_head *tx_queue;
 			struct msgb *msg;
 			uint8_t *data;
 			uint8_t j;
 
-			/* FIXME: distinguish between DCCH and ACCH */
-			msg = msgb_dequeue(&l1s.tx_queue[0]);
+			/* distinguish between DCCH and ACCH */
+			if (mf_task_flags & MF_F_SACCH)
+				tx_queue = &l1s.tx_queue[0];
+			else
+				tx_queue = &l1s.tx_queue[1];
+
+			msg = msgb_dequeue(tx_queue);
 
 			/* If the TX queue is empty, send idle pattern */
 			if (!msg)

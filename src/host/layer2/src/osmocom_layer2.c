@@ -53,6 +53,7 @@ static int osmo_make_band_arfcn(struct osmocom_ms *ms)
 	return ms->arfcn;
 }
 
+static int l1_rach_req(struct osmocom_ms *ms);
 static int osmo_l2_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1_info_dl *dl;
@@ -68,6 +69,7 @@ static int osmo_l2_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
 
 	printf("Found sync burst: SNR: %u TDMA: (%.4u/%.2u/%.2u) bsic: %d\n",
 		dl->snr[0], dl->time.t1, dl->time.t2, dl->time.t3, sb->bsic);
+
 	return 0;
 }
 
@@ -158,26 +160,55 @@ static void dump_bcch(u_int8_t tc, const uint8_t *data)
 	fprintf(stderr, "\n");
 }
 
+char *chan_nr2string(uint8_t chan_nr)
+{
+	static char str[20];
+	uint8_t cbits = chan_nr >> 3;
+
+	str[0] = '\0';
+
+	if (cbits == 0x01)
+		sprintf(str, "TCH/F");
+	else if ((cbits & 0x1e) == 0x02)
+		sprintf(str, "TCH/H(%u)", cbits & 0x01);
+	else if ((cbits & 0x1c) == 0x04)
+		sprintf(str, "SDCCH/4(%u)", cbits & 0x03);
+	else if ((cbits & 0x18) == 0x08)
+		sprintf(str, "SDCCH/8(%u)", cbits & 0x07);
+	else if (cbits == 0x10)
+		sprintf(str, "BCCH");
+	else if (cbits == 0x11)
+		sprintf(str, "RACH");
+	else if (cbits == 0x12)
+		sprintf(str, "PCH/AGCH");
+	else
+		sprintf(str, "UNKNOWN");
+
+	return str;
+}
+
 static int osmo_l2_ccch_data(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1_info_dl *dl;
 	struct l1_ccch_info_ind *ccch;
 
 	if (msgb_l3len(msg) < sizeof(*ccch)) {
-		fprintf(stderr, "MSG too short CCCH Data Ind: %u\n", msgb_l3len(msg));
+		fprintf(stderr, "MSG too short DCCH Data Ind: %u\n", msgb_l3len(msg));
 		return -1;
 	}
 
 	dl = (struct l1_info_dl *) msg->l2h;
 	ccch = (struct l1_ccch_info_ind *) msg->l3h;
-	printf("Found CCCH burst(s): TDMA: (%.4u/%.2u/%.2u) tc:%d %s si: 0x%x\n",
-	       dl->time.t1, dl->time.t2, dl->time.t3, dl->time.tc,
-	       hexdump(ccch->data, sizeof(ccch->data)), ccch->data[2]);
+	printf("Found %s burst(s): TDMA: (%.4u/%.2u/%.2u) tc:%d %s si: 0x%x\n",
+		chan_nr2string(dl->chan_nr), dl->time.t1, dl->time.t2,
+		dl->time.t3, dl->time.tc, hexdump(ccch->data, sizeof(ccch->data)),
+		ccch->data[2]);
 
 	dump_bcch(dl->time.tc, ccch->data);
 	/* send CCCH data via GSMTAP */
-	gsmtap_sendmsg(0, dl->band_arfcn, dl->time.fn, ccch->data,
+	gsmtap_sendmsg(dl->chan_nr & 0x07, dl->band_arfcn, dl->time.fn, ccch->data,
 			sizeof(ccch->data));
+	//l1_rach_req(ms);
 	return 0;
 }
 
@@ -193,6 +224,23 @@ static int osmo_l1_reset(struct osmocom_ms *ms)
 	printf("Layer1 Reset.\n");
 	req = (struct l1_sync_new_ccch_req *) msgb_put(msg, sizeof(*req));
 	req->band_arfcn = osmo_make_band_arfcn(ms);
+
+	return osmo_send_l1(ms, msg);
+}
+
+static int l1_rach_req(struct osmocom_ms *ms)
+{
+	struct msgb *msg;
+	struct l1_rach_req *req;
+	static uint8_t i = 0;
+
+	msg = osmo_l1_alloc(CCCH_RACH_REQ);
+	if (!msg)
+		return -1;
+
+	printf("RACH Req.\n");
+	req = (struct l1_rach_req *) msgb_put(msg, sizeof(*req));
+	req->ra = i++;
 
 	return osmo_send_l1(ms, msg);
 }
