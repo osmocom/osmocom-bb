@@ -35,9 +35,22 @@ struct msgb {
 	struct gsm_bts_trx *trx;
 	struct gsm_lchan *lchan;
 
+	/* the Layer1 header (if any) */
+	unsigned char *l1h;
+	/* the A-bis layer 2 header: OML, RSL(RLL), NS */
 	unsigned char *l2h;
+	/* the layer 3 header. For OML: FOM; RSL: 04.08; GPRS: BSSGP */
 	unsigned char *l3h;
-	unsigned char *smsh;
+
+	/* the layer 4 header */
+	union {
+		unsigned char *smsh;
+		unsigned char *llch;
+	};
+
+	/* the layer 5 header, GPRS: GMM header */
+	unsigned char *gmmh;
+	uint32_t tlli;
 
 	uint16_t data_len;
 	uint16_t len;
@@ -92,7 +105,7 @@ static inline unsigned char *msgb_pull(struct msgb *msgb, unsigned int len)
 }
 static inline int msgb_tailroom(const struct msgb *msgb)
 {
-	return (msgb->data + msgb->data_len) - msgb->tail;
+	return (msgb->head + msgb->data_len) - msgb->tail;
 }
 
 /* increase the headroom of an empty msgb, reducing the tailroom */

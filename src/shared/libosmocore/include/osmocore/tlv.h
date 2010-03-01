@@ -190,6 +190,13 @@ static inline uint8_t *msgb_tv16_push(struct msgb *msg, uint8_t tag, uint16_t va
 	return tv16_put(buf, tag, val);
 }
 
+static inline uint8_t *msgb_tvlv_push(struct msgb *msg, uint8_t tag, uint16_t len,
+				      const uint8_t *val)
+{
+	uint8_t *buf = msgb_push(msg, TVLV_GROSS_LEN(len));
+	return tvlv_put(buf, tag, len, val);
+}
+
 /* TLV parsing */
 
 struct tlv_p_entry {

@@ -44,12 +44,8 @@ struct msgb *msgb_alloc(uint16_t size, const char *name)
 	msg->data_len = size;
 	msg->len = 0;
 	msg->data = msg->_data;
-
-	msg->head = msg->data;
-	msg->data = msg->data;
-	/* reset tail pointer */
-	msg->tail = msg->data;
-	//msg->end = msg->tail + size;
+	msg->head = msg->_data;
+	msg->tail = msg->_data;
 
 	return msg;
 }
@@ -80,15 +76,10 @@ struct msgb *msgb_dequeue(struct llist_head *queue)
 void msgb_reset(struct msgb *msg)
 {
 	msg->len = 0;
-	msg->len = 0;
 	msg->data = msg->_data;
+	msg->head = msg->_data;
+	msg->tail = msg->_data;
 
-	msg->head = msg->data;
-	msg->data = msg->data;
-	/* reset tail pointer */
-	msg->tail = msg->data;
-
-	/* reset pointers */
 	msg->bts_link = NULL;
 	msg->trx = NULL;
 	msg->lchan = NULL;
