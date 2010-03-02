@@ -78,7 +78,6 @@ static void l1s_signal_cb(struct l1_signal *sig)
 }
 
 static void key_handler(enum key_codes code, enum key_states state);
-static void la1_l23_rx_cb(uint8_t dlci, struct msgb *msg);
 
 int main(void)
 {
@@ -98,8 +97,6 @@ int main(void)
 
 	st7558_set_attr(DISP_ATTR_INVERT);
 	st7558_puts("layer1.bin");
-
-	sercomm_register_rx_cb(SC_DLCI_L1A_L23, la1_l23_rx_cb);
 
 	layer1_init();
 	l1s_set_handler(&l1s_signal_cb);
@@ -185,41 +182,4 @@ static void key_handler(enum key_codes code, enum key_states state)
 	}
 }
 
-static void la1_l23_rx_cb(uint8_t dlci, struct msgb *msg)
-{
-	struct l1_info_ul *ul = msg->data;
-	struct l1_sync_new_ccch_req *sync_req;
 
-	if (sizeof(*ul) > msg->len) {
-		printf("la1_l23_cb: Short message. %u\n", msg->len);
-		goto exit;
-	}
-
-	switch (ul->msg_type) {
-	case SYNC_NEW_CCCH_REQ:
-		if (sizeof(*ul) + sizeof(*sync_req) > msg->len) {
-			printf("Short sync msg. %u\n", msg->len);
-			break;
-		}
-
-		sync_req = (struct l1_sync_new_ccch_req *) (&msg->data[0] + sizeof(*ul));
-		printf("Asked to tune to frequency: %u\n", sync_req->band_arfcn);
-
-		/* reset scheduler and hardware */
-		tdma_sched_reset();
-		l1s_dsp_abort();
-
-		/* tune to specified frequency */
-		trf6151_rx_window(0, sync_req->band_arfcn, 40, 0);
-		tpu_end_scenario();
-
-		puts("Starting FCCH Recognition\n");
-		l1s_fb_test(1, 0);
-		break;
-	case DEDIC_MODE_EST_REQ:
-		break;
-	}
-
-exit:
-	msgb_free(msg);
-}

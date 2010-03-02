@@ -79,6 +79,9 @@ enum togbr2_bits {
 	TOGBR2_IAPCPTR	= (1 << 6),	/* Initialize pointer of APC RAM */
 };
 
+/* How a RAMP value is encoded */
+#define ABB_RAMP_VAL(up, down)	( ((down & 0x1F) << 5) | (up & 0x1F) )
+
 enum twl3025_unit {
 	TWL3025_UNIT_AFC,
 	TWL3025_UNIT_MAD,
@@ -107,11 +110,16 @@ enum twl3025_tsp_bits {
 	STARTADC	= 0x02,
 };
 
+extern const uint16_t twl3025_default_ramp[16];
+
 /* Enqueue a TSP signal change via the TPU */
 void twl3025_tsp_write(uint8_t data);
 
 /* Enqueue a series of TSP commands in the TPU to (de)activate the downlink path */
 void twl3025_downlink(int on, int16_t at);
+
+/* Enqueue a series of TSP commands in the TPU to (de)activate the uplink path */
+void twl3025_uplink(int on, int16_t at);
 
 /* Update the AFC DAC value */
 void twl3025_afc_set(int16_t val);

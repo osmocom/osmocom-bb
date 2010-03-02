@@ -1,6 +1,7 @@
 #ifndef _L1_SYNC_H
 #define _L1_SYNC_H
 
+#include <linuxlist.h>
 #include <layer1/tdma_sched.h>
 #include <l1a_l23_interface.h>
 
@@ -10,6 +11,13 @@ struct l1_cell_info {
 	uint32_t	fn_offset;
 	uint32_t	time_alignment;
 };
+
+enum l1s_chan {
+	L1S_CHAN_MAIN,
+	L1S_CHAN_SACCH,
+	_NUM_L1S_CHAN
+};
+
 
 struct l1s_state {
 	struct gsm_time	current_time;	/* current time */
@@ -23,8 +31,15 @@ struct l1s_state {
 
 	int		task;
 
+	/* Transmit queues of pending packets for main DCCH and ACCH */
+	struct llist_head tx_queue[_NUM_L1S_CHAN];
+
 	/* bit-mask of multi-frame tasks that are currently active */
 	uint32_t	mf_tasks;
+
+	struct {
+		uint8_t		ra;
+	} rach;
 };
 
 extern struct l1s_state l1s;

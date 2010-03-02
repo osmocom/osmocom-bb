@@ -56,6 +56,14 @@ static const uint16_t rx_burst_duration[_NUM_L1_RXWIN] = {
 	[L1_RXWIN_NB]	= L1_NB_DURATION_Q,
 };
 
+#define L1_TX_NB_DURATION_Q	626
+#define L1_TX_AB_DURATION_Q	386
+
+static const uint16_t tx_burst_duration[_NUM_L1_TXWIN] = {
+	[L1_TXWIN_NB]	= L1_TX_NB_DURATION_Q,
+	[L1_TXWIN_AB]	= L1_TX_AB_DURATION_Q,
+};
+
 void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype)
 {
 	int16_t start = DSP_SETUP_TIME;
@@ -85,6 +93,25 @@ void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype)
 	twl3025_downlink(0, stop);
 
 	/* window close for TRF6151 */
+	trf6151_set_mode(TRF6151_IDLE);
+}
+
+void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr)
+{
+	/* uplink is three TS after downlink ( "+ 32" gives a TA of 1) */
+	uint16_t offset = (L1_BURST_LENGTH_Q * 3) + 28;
+
+	/* window open for TRF6151 and RFFE */
+	rffe_mode(gsm_arfcn2band(arfcn), 1);
+	trf6151_tx_window(offset, arfcn);
+
+	/* Window open for ABB */
+	twl3025_uplink(1, offset);
+
+	/* Window close for ABB */
+	twl3025_uplink(0, tx_burst_duration[wtype] + offset + 2); // TODO: "+ 2"
+
+	/* window close for TRF6151 and RFFE */
 	trf6151_set_mode(TRF6151_IDLE);
 }
 

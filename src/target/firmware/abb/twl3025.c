@@ -39,6 +39,26 @@
 #define TWL3025_DEV_IDX		0	/* On the SPI bus */
 #define TWL3025_TSP_DEV_IDX	0	/* On the TSP bus */
 
+/* values encountered on a GTA-02 for GSM900 (the same for GSM1800!?) */
+const uint16_t twl3025_default_ramp[16] = {
+	ABB_RAMP_VAL( 0,  0),
+	ABB_RAMP_VAL( 0, 11),
+	ABB_RAMP_VAL( 0, 31),
+	ABB_RAMP_VAL( 0, 31),
+	ABB_RAMP_VAL( 0, 31),
+	ABB_RAMP_VAL( 0, 24),
+	ABB_RAMP_VAL( 0,  0),
+	ABB_RAMP_VAL( 0,  0),
+	ABB_RAMP_VAL( 9,  0),
+	ABB_RAMP_VAL(18,  0),
+	ABB_RAMP_VAL(25,  0),
+	ABB_RAMP_VAL(31,  0),
+	ABB_RAMP_VAL(30,  0),
+	ABB_RAMP_VAL(15,  0),
+	ABB_RAMP_VAL( 0,  0),
+	ABB_RAMP_VAL( 0,  0),
+};
+
 struct twl3025 {
 	uint8_t page;
 };
@@ -188,6 +208,8 @@ void twl3025_clk13m(int enable)
 #define BDLCAL_DURATION	66
 #define BDLON_TO_BDLENA	7
 #define BULON_TO_BULENA	16
+#define BULON_TO_BULCAL	17
+#define BULCAL_DURATION	143	/* really that long? */
 
 /* bdl_ena - TSP_DELAY - BDLCAL_DURATION - TSP_DELAY - BDLON_TO_BDLCAL - TSP_DELAY */
 #define DOWNLINK_DELAY	(3 * TSP_DELAY + BDLCAL_DURATION + BDLON_TO_BDLCAL)
@@ -219,6 +241,40 @@ void twl3025_downlink(int on, int16_t at)
 		tpu_enq_at(bdl_ena);
 		twl3025_tsp_write(BDLON);
 		//tpu_enq_wait(nBDLENA_TO_nBDLON)	this is only 3.7us == 4 qbits, i.e. less than the TSP_DELAY
+		twl3025_tsp_write(0);
+	}
+}
+
+/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION - TSP_DELAY - BULON_TO_BULCAL - TSP_DELAY */
+#define UPLINK_DELAY (3 * TSP_DELAY + BULCAL_DURATION + BULON_TO_BULCAL + 35)
+
+void twl3025_uplink(int on, int16_t at)
+{
+	int16_t bul_ena = at - TSP_DELAY - 6;
+
+	if (bul_ena < 0)
+		printf("BULENA time negative (%d)\n", bul_ena);
+	if (on) {
+		/* calibration should  be done just before BULENA */
+		tpu_enq_at(bul_ena - UPLINK_DELAY);
+		/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION - TSP_DELAY - BULON_TO_BULCAL - TSP_DELAY */
+		twl3025_tsp_write(BULON);
+		/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION - TSP_DELAY - BULON_TO_BULCAL */
+		tpu_enq_wait(BULON_TO_BULCAL - TSP_DELAY);
+		/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION - TSP_DELAY */
+		twl3025_tsp_write(BULON | BULCAL);
+		/* bdl_ena - 35 - TSP_DELAY - BULCAL_DURATION */
+		tpu_enq_wait(BULCAL_DURATION - TSP_DELAY);
+		/* bdl_ena - 35 - TSP_DELAY */
+		twl3025_tsp_write(BULON);
+		/* bdl_ena - 35 */
+		tpu_enq_wait(35);	/* minimum time required to bring the ramp up (really needed?) */
+		tpu_enq_at(bul_ena);
+		twl3025_tsp_write(BULON | BULENA);
+	} else {
+		tpu_enq_at(bul_ena);
+		twl3025_tsp_write(BULON);
+		tpu_enq_wait(35);	/* minimum time required to bring the ramp down (needed!) */
 		twl3025_tsp_write(0);
 	}
 }

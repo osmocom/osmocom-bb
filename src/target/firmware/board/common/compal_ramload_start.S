@@ -192,6 +192,10 @@ handle_abort:
 		bl	putchar_asm
 		mov	r0, #'T'
 		bl	putchar_asm
+
+		@ disable IRQ and FIQ
+		msr	CPSR_c, #I_BIT | F_BIT
+
 0:					@ dead
 		b	0b
 

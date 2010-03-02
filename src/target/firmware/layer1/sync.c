@@ -36,12 +36,16 @@
 #include <calypso/dsp.h>
 #include <calypso/timer.h>
 #include <comm/sercomm.h>
+#include <comm/msgb.h>
+
+#include <abb/twl3025.h>
 
 #include <layer1/sync.h>
 #include <layer1/afc.h>
 #include <layer1/agc.h>
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
+#include <layer1/sched_gsmtime.h>
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
 
@@ -388,13 +392,15 @@ static void l1_sync(void)
 
 	/* schedule new / upcoming TDMA items */
 	mframe_schedule(l1s.mf_tasks);
+	/* schedule new / upcoming one-shot events */
+	sched_gsmtime_execute(l1s.current_time.fn);
 
 	tdma_sched_advance();
 }
 
 /* ABORT command ********************************************************/
 
-static int l1s_abort_cmd(uint16_t p1, uint16_t p2)
+static int l1s_abort_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 {
 	putchart('A');
 
@@ -421,13 +427,13 @@ static int l1s_abort_cmd(uint16_t p1, uint16_t p2)
 void l1s_dsp_abort(void)
 {
 	/* abort right now */
-	tdma_schedule(0, &l1s_abort_cmd, 0, 0);
+	tdma_schedule(0, &l1s_abort_cmd, 0, 0, 0);
 }
 
 /* FCCH Burst *****************************************************************/
 
 /* scheduler callback to issue a FB detection task to the DSP */
-static int l1s_fbdet_cmd(uint16_t p1, uint16_t fb_mode)
+static int l1s_fbdet_cmd(uint8_t p1, uint8_t fb_mode, uint16_t p3)
 {
 	if (fb_mode == 0) {
 		putchart('F');
@@ -450,7 +456,7 @@ static int l1s_fbdet_cmd(uint16_t p1, uint16_t fb_mode)
 
 
 /* scheduler callback to check for a FB detection response */
-static int l1s_fbdet_resp(uint16_t p1, uint16_t attempt)
+static int l1s_fbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
 {
 	int ntdma, qbits, fn_offset;
 
@@ -569,17 +575,17 @@ void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode)
 #if 1
 	int i;
 	/* schedule the FB detection command */
-	tdma_schedule(base_fn, &l1s_fbdet_cmd, 0, fb_mode);
+	tdma_schedule(base_fn, &l1s_fbdet_cmd, 0, fb_mode, 0);
 
 	/* schedule 12 attempts to read the result */
 	for (i = 1; i <= 12; i++) {
 		uint8_t fn = base_fn + 1 + i;
-		tdma_schedule(fn, &l1s_fbdet_resp, 0, i);
+		tdma_schedule(fn, &l1s_fbdet_resp, 0, i, 0);
 	}
 #else
 	/* use the new scheduler 'set' and simply schedule the whole set */
 	/* WARNING: we cannot set FB_MODE_1 this way !!! */
-	tdma_schedule_set(base_fn, fb_sched_set);
+	tdma_schedule_set(base_fn, fb_sched_set, 0);
 #endif
 }
 
@@ -593,7 +599,9 @@ static uint8_t sb_cnt;
  * actually happened, as it is a "C W W R" task */
 #define SB2_LATENCY	2
 
-static int l1s_sbdet_resp(uint16_t p1, uint16_t attempt)
+extern const struct tdma_sched_item rach_sched_set_ul[];
+
+static int l1s_sbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
 {
 	uint32_t sb;
 	uint8_t bsic;
@@ -667,7 +675,7 @@ static int l1s_sbdet_resp(uint16_t p1, uint16_t attempt)
 	l1s_time_inc(&l1s.next_time, 1);
 
 	/* place it in the queue for the layer2 */
-	msg = l1_create_l2_msg(SYNC_NEW_CCCH_RESP, sb_time.fn, last_fb->snr);
+	msg = l1_create_l2_msg(L1CTL_NEW_CCCH_RESP, sb_time.fn, last_fb->snr);
 	l1 = (struct l1_sync_new_ccch_resp *) msgb_put(msg, sizeof(*l1));
 	l1->bsic = bsic;
 	l1_queue_for_l2(msg);
@@ -705,7 +713,7 @@ static int l1s_sbdet_resp(uint16_t p1, uint16_t attempt)
 	return 0;
 }
 
-static int l1s_sbdet_cmd(uint16_t p1, uint16_t p2)
+static int l1s_sbdet_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 {
 	putchart('S');
 
@@ -726,21 +734,21 @@ void l1s_sb_test(uint8_t base_fn)
 {
 #if 1
 	/* This is how it is done by the TSM30 */
-	tdma_schedule(base_fn, &l1s_sbdet_cmd, 0, 1);
-	tdma_schedule(base_fn + 1, &l1s_sbdet_cmd, 0, 2);
-	tdma_schedule(base_fn + 3, &l1s_sbdet_resp, 0, 1);
-	tdma_schedule(base_fn + 4, &l1s_sbdet_resp, 0, 2);
+	tdma_schedule(base_fn, &l1s_sbdet_cmd, 0, 1, 0);
+	tdma_schedule(base_fn + 1, &l1s_sbdet_cmd, 0, 2, 0);
+	tdma_schedule(base_fn + 3, &l1s_sbdet_resp, 0, 1, 0);
+	tdma_schedule(base_fn + 4, &l1s_sbdet_resp, 0, 2, 0);
 #else
-	tdma_schedule(base_fn, &l1s_sbdet_cmd, 0, 1);
-	tdma_schedule(base_fn + 1, &l1s_sbdet_resp, 0, 1);
-	tdma_schedule(base_fn + 2, &l1s_sbdet_resp, 0, 2);
+	tdma_schedule(base_fn, &l1s_sbdet_cmd, 0, 1, 0);
+	tdma_schedule(base_fn + 1, &l1s_sbdet_resp, 0, 1, 0);
+	tdma_schedule(base_fn + 2, &l1s_sbdet_resp, 0, 2, 0);
 #endif
 }
 
 /* Power Measurement **********************************************************/
 
 /* scheduler callback to issue a power measurement task to the DSP */
-static int l1s_pm_cmd(uint16_t p1, uint16_t arfcn)
+static int l1s_pm_cmd(uint8_t p1, uint8_t p2, uint16_t arfcn)
 {
 	putchart('P');
 
@@ -758,7 +766,7 @@ static int l1s_pm_cmd(uint16_t p1, uint16_t arfcn)
 }
 
 /* scheduler callback to read power measurement resposnse from the DSP */
-static int l1s_pm_resp(uint16_t p1, uint16_t p2)
+static int l1s_pm_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 {
 	uint16_t pm_level[2];
 	struct l1_signal sig;
@@ -785,15 +793,17 @@ static int l1s_pm_resp(uint16_t p1, uint16_t p2)
 
 void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 {
-	tdma_schedule(base_fn, &l1s_pm_cmd, 0, arfcn);
-	tdma_schedule(base_fn + 2, &l1s_pm_resp, 0, 0);
+	tdma_schedule(base_fn, &l1s_pm_cmd, 0, 0, arfcn);
+	tdma_schedule(base_fn + 2, &l1s_pm_resp, 0, 0, 0);
 }
 
 /* Normal Burst ***************************************************************/
 
-static int l1s_nb_resp(uint16_t p1, uint16_t burst_id)
+static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	static struct l1_signal _nb_sig, *sig = &_nb_sig;
+	uint8_t mf_task_id = p3 & 0xff;
+	uint8_t mf_task_flags = p3 >> 8;
 	struct msgb *msg;
 
 	putchart('n');
@@ -824,7 +834,7 @@ static int l1s_nb_resp(uint16_t p1, uint16_t burst_id)
 	/* 4th burst, get frame data */
 	if (dsp_api.db_r->d_burst_d == 3) {
 		struct l1_info_dl *dl;
-		struct l1_ccch_info_ind *l1;
+		struct l1_data_ind *l1;
 		uint8_t i, j;
 
 		sig->signum = L1_SIG_NB;
@@ -843,9 +853,18 @@ static int l1s_nb_resp(uint16_t p1, uint16_t burst_id)
 			l1s_cb(sig);
 
 		/* place it in the queue for the layer2 */
-		msg = l1_create_l2_msg(CCCH_INFO_IND, l1s.current_time.fn-4, last_fb->snr);
+		msg = l1_create_l2_msg(L1CTL_DATA_IND, l1s.current_time.fn-4, last_fb->snr);
 		dl = (struct l1_info_dl *) msg->data;
-		l1 = (struct l1_ccch_info_ind *) msgb_put(msg, sizeof(*l1));
+		l1 = (struct l1_data_ind *) msgb_put(msg, sizeof(*l1));
+
+		/* Set Channel Number depending on MFrame Task ID */
+		dl->chan_nr = mframe_task2chan_nr(mf_task_id, 0); /* FIXME: TS */
+
+		/* Set SACCH indication in Link IDentifier */
+		if (mf_task_flags & MF_F_SACCH)
+			dl->link_id = 0x40;
+		else
+			dl->link_id = 0x00;
 
 		/* copy the snr and data */
 		for (i = 0; i < 3; ++i)
@@ -864,7 +883,7 @@ static int l1s_nb_resp(uint16_t p1, uint16_t burst_id)
 	return 0;
 }
 
-static int l1s_nb_cmd(uint16_t p1, uint16_t burst_id)
+static int l1s_nb_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	uint8_t tsc = l1s.serving_cell.bsic & 0x7;
 
@@ -889,8 +908,186 @@ const struct tdma_sched_item nb_sched_set[] = {
 };
 
 
-/* dummy sched set for uplink */
+/* Transmit Burst *************************************************************/
+
+const uint8_t ubUui[23]     = { 0x01, 0x03, 0x01, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
+
+/* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
+static int l1s_tx_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
+{
+	putchart('t');
+
+	dsp_api.r_page_used = 1;
+
+	return 0;
+}
+
+/* Channel type definitions for DEDICATED mode */
+#define INVALID_CHANNEL    0
+#define TCH_F              1
+#define TCH_H              2
+#define SDCCH_4            3
+#define SDCCH_8            4
+
+/* Channel mode definitions for DEDICATED mode */
+#define SIG_ONLY_MODE      0    // signalling only
+#define TCH_FS_MODE        1    // speech full rate
+#define TCH_HS_MODE        2    // speech half rate
+#define TCH_96_MODE        3    // data 9,6 kb/s
+#define TCH_48F_MODE       4    // data 4,8 kb/s full rate
+#define TCH_48H_MODE       5    // data 4,8 kb/s half rate
+#define TCH_24F_MODE       6    // data 2,4 kb/s full rate
+#define TCH_24H_MODE       7    // data 2,4 kb/s half rate
+#define TCH_EFR_MODE       8    // enhanced full rate
+#define TCH_144_MODE       9    // data 14,4 kb/s half rate
+
+static uint8_t loc_cnt = 0;
+
+/* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
+static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
+{
+	int i;
+	uint8_t tsc;
+	uint8_t mf_task_id = p3 & 0xff;
+	uint8_t mf_task_flags = p3 >> 8;
+
+	putchart('T');
+
+	/* Load the ApcOffset into the DSP */
+	#define  MY_OFFSET	4
+	dsp_api.ndb->d_apcoff = ABB_VAL(APCOFF, (1 << 6) | MY_OFFSET) | 1; /* 2x slope for the GTA-02 ramp */
+
+	/* Load the TX Power into the DSP */
+	/*
+	   If the power is too low (below 0 dBm) the ramp is not OK,
+	   especially for GSM-1800. However an MS does not send below
+	   0dBm anyway.
+	*/
+	dsp_api.db_w->d_power_ctl = ABB_VAL(AUXAPC, 0xC0); /* 2 dBm pulse with offset 4 (GSM-1800) */
+
+	/* Update the ramp according to the PCL */
+	for (i = 0; i < 16; i++)
+		dsp_api.ndb->a_ramp[i] = ABB_VAL(APCRAM, twl3025_default_ramp[i]);
+
+	/* The Ramp Table is sent to ABB only once after RF init routine called */
+	dsp_api.db_w->d_ctrl_abb |= (1 << B_RAMP) | (1 << B_BULRAMPDEL);
+
+	if (p1 == 0) /* DUL_DSP_TASK, one normal burst */
+		dsp_load_tch_param(0, SIG_ONLY_MODE, INVALID_CHANNEL, 0, 0, 0);
+	else if (p1 == 2) /* DUL_DSP_TASK, four normal bursts */
+		dsp_load_tch_param(0, SIG_ONLY_MODE, SDCCH_4, 0, 0, 0);
+
+	/* before sending first of the four bursts, copy data to API ram */
+	if (burst_id == 0) {
+	        if (p1 == 0 || p1 == 2) { // DUL_DSP_TASK
+			uint16_t *info_ptr = dsp_api.ndb->a_cu;
+			struct llist_head *tx_queue;
+			struct msgb *msg;
+			uint8_t *data;
+			uint8_t j;
+
+			/* distinguish between DCCH and ACCH */
+			if (mf_task_flags & MF_F_SACCH)
+				tx_queue = &l1s.tx_queue[0];
+			else
+				tx_queue = &l1s.tx_queue[1];
+
+			msg = msgb_dequeue(tx_queue);
+
+			/* If the TX queue is empty, send idle pattern */
+			if (!msg) {
+				puts("TX idle pattern\n");
+				data = ubUui;
+			} else {
+				puts("TX uplink msg\n");
+				data = msg->l3h;
+			}
+
+			/* Fill data block Header */
+			info_ptr[0] = (1 << B_BLUD);     // 1st word: Set B_BLU bit.
+			info_ptr[1] = 0;                 // 2nd word: cleared.
+			info_ptr[2] = 0;                 // 3rd word: cleared.
+
+			/* Copy first 22 bytes in the first 11 words after header. */
+			for (i=0, j=(3+0); j<(3+11); j++) {
+				info_ptr[j] = ((uint16_t)(data[i])) | ((uint16_t)(data[i+1]) << 8);
+				i += 2;
+			}
+			/* Copy last UWORD8 (23rd) in the 12th word after header. */
+			info_ptr[14] = data[22];
+
+			if (msg)
+				msgb_free(msg);
+		} else if (p1 == 1) { // RACH_DSP_TASK
+			uint16_t  *info_ptr;
+			uint8_t data[2];
+
+			data[0] = l1s.serving_cell.bsic << 2;
+			data[1] = 0x00 + loc_cnt; // channel request, location update, loc_cnt as random reference
+			loc_cnt++;
+			if (loc_cnt > 16)
+				loc_cnt = 0;
+
+			info_ptr = &dsp_api.ndb->d_rach;
+			info_ptr[0] = ((uint16_t)(data[0])) | ((uint16_t)(data[1])<<8);
+		}
+	}
+
+	if (p1 == 0 || p1 == 2) {
+		tsc = 7; // !!!!! nanoBTS configuration for SDCCH 0 !!!!!!!!
+
+		dsp_load_tx_task(DUL_DSP_TASK, burst_id, tsc);
+		dsp_end_scenario();
+
+		l1s_tx_win_ctrl(rf_arfcn, L1_TXWIN_NB, 0);
+		tpu_end_scenario();
+	} else if (p1 == 1) {
+		dsp_api.db_w->d_task_ra = RACH_DSP_TASK;
+		dsp_end_scenario();
+
+		l1s_tx_win_ctrl(rf_arfcn, L1_TXWIN_AB, 0);
+		tpu_end_scenario();
+	}
+
+	return 0;
+}
+
+void l1s_tx_test(uint8_t base_fn, uint8_t type)
+{
+	printf("Starting TX %d\n", type);
+
+	if (type == 0) {// one normal burst
+		tdma_schedule(base_fn, &l1s_tx_cmd, 0, 0, 0);
+		tdma_schedule(base_fn + 2, &l1s_tx_resp, 0, 0, 0);
+	} else if (type == 1) { // one RACH burst
+		tdma_schedule(base_fn, &l1s_tx_cmd, 1, 0, 0);
+		tdma_schedule(base_fn + 2, &l1s_tx_resp, 1, 0, 0);
+	} else if (type == 2) { // four normal burst
+		tdma_schedule(base_fn, &l1s_tx_cmd, 2, 0, 0);
+		tdma_schedule(base_fn + 1, &l1s_tx_cmd, 2, 1, 0);
+		tdma_schedule(base_fn + 2, &l1s_tx_resp, 2, 0, 0);
+		tdma_schedule(base_fn + 2, &l1s_tx_cmd, 2, 2, 0);
+		tdma_schedule(base_fn + 3, &l1s_tx_resp, 2, 1, 0);
+		tdma_schedule(base_fn + 3, &l1s_tx_cmd, 2, 3, 0);
+		tdma_schedule(base_fn + 4, &l1s_tx_resp, 2, 2, 0);
+		tdma_schedule(base_fn + 5, &l1s_tx_resp, 2, 3, 0);
+	}
+}
+
+/* sched sets for uplink */
+const struct tdma_sched_item rach_sched_set_ul[] = {
+	SCHED_ITEM(l1s_tx_cmd, 1, 0),					SCHED_END_FRAME(),
+									SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_resp, 1, 0),					SCHED_END_FRAME(),
+	SCHED_END_SET()
+};
 const struct tdma_sched_item nb_sched_set_ul[] = {
+	SCHED_ITEM(l1s_tx_cmd, 2, 0),					SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_cmd, 2, 1),					SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_resp, 2, 0), SCHED_ITEM(l1s_tx_cmd, 2, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_resp, 2, 1), SCHED_ITEM(l1s_tx_cmd, 2, 3),	SCHED_END_FRAME(),
+				       SCHED_ITEM(l1s_tx_resp, 2, 2),	SCHED_END_FRAME(),
+				       SCHED_ITEM(l1s_tx_resp, 2, 3),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
 
@@ -903,6 +1100,13 @@ static void frame_irq(enum irq_nr nr)
 
 void l1s_init(void)
 {
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(l1s.tx_queue); i++)
+		INIT_LLIST_HEAD(&l1s.tx_queue[i]);
+
+	sched_gsmtime_init();
+
 	/* register FRAME interrupt as FIQ so it can interrupt normal IRQs */
 	irq_register_handler(IRQ_TPU_FRAME, &frame_irq);
 	irq_config(IRQ_TPU_FRAME, 1, 1, 0);
