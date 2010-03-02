@@ -101,9 +101,11 @@ void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr)
 	/* uplink is three TS after downlink ( "+ 32" gives a TA of 1) */
 	uint16_t offset = (L1_BURST_LENGTH_Q * 3) + 28;
 
+#ifdef CONFIG_TX_ENABLE
 	/* window open for TRF6151 and RFFE */
 	rffe_mode(gsm_arfcn2band(arfcn), 1);
 	trf6151_tx_window(offset, arfcn);
+#endif
 
 	/* Window open for ABB */
 	twl3025_uplink(1, offset);

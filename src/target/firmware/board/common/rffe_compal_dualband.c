@@ -26,6 +26,7 @@ void rffe_mode(enum gsm_band band, int tx)
 	tspact &= ~PA_ENABLE;
 	tspact |= TRENA | GSM_TXEN;	/* low-active */
 
+#ifdef CONFIG_TX_ENABLE
 	/* Then we selectively set the bits on, if required */
 	if (tx) {
 		tspact &= ~TRENA;
@@ -33,6 +34,7 @@ void rffe_mode(enum gsm_band band, int tx)
 			tspact &= ~GSM_TXEN;
 		tspact |= PA_ENABLE;	/* Dieter: TODO */
 	}
+#endif /* TRANSMIT_SUPPORT */
 
 	tsp_act_update(tspact);
 }

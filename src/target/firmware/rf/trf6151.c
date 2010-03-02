@@ -446,6 +446,7 @@ void trf6151_rx_window(int16_t start_qbits, uint16_t arfcn, uint8_t vga_dbm, int
 /* prepare a Tx window with the TRF6151 finished at time 'start' (in qbits) */
 void trf6151_tx_window(int16_t start_qbits, uint16_t arfcn)
 {
+#ifdef CONFIG_TX_ENABLE
 	int16_t start_pll_qbits;
 
 	/* power up at the right time _before_ the 'start_qbits' point in time */
@@ -456,4 +457,5 @@ void trf6151_tx_window(int16_t start_qbits, uint16_t arfcn)
 	trf6151_set_mode(TRF6151_TX);
 
 	/* FIXME: power down at the right time again */
+#endif
 }

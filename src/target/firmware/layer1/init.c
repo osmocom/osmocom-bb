@@ -40,6 +40,10 @@ void layer1_init(void)
 {
 	struct msgb *msg;
 
+#ifndef CONFIG_TX_ENABLE
+	printf("\n\nTHIS FIRMWARE WAS COMPILED WITHOUT TX SUPPORT!!!\n\n");
+#endif
+
 	/* initialize asynchronous part of L1 */
 	l1a_init();
 	/* initialize TDMA Frame IRQ driven synchronous L1 */
