@@ -7,7 +7,10 @@
 #include <osmocore/rsl.h>
 #include <osmocore/tlv.h>
 #include <osmocore/protocol/gsm_04_08.h>
+
 #include <osmocom/lapdm.h>
+#include <osmocom/rslms.h>
+#include <osmocom/layer3.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/osmocom_layer2.h>
 
@@ -35,58 +38,24 @@ int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *tim
 	return 0;
 }
 
-
-static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
+/* Send a 'simple' RLL request to L2 */
+int rslms_tx_rll_req(struct osmocom_ms *ms, uint8_t msg_type,
+		     uint8_t chan_nr, uint8_t link_id)
 {
-	struct gsm48_imm_ass *ia = msgb_l3(msg);
-	uint8_t ch_type, ch_subch, ch_ts;
-	uint16_t arfcn;
+	struct msgb *msg;
 
-	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
-	arfcn = ia->chan_desc.h0.arfcn_low | (ia->chan_desc.h0.arfcn_high << 8);
+	msg = rsl_rll_simple(msg_type, chan_nr, link_id);
 
-	printf("GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u) ",
-		ia->req_ref.ra, ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
-		ia->chan_desc.h0.tsc);
-
-	/* FIXME: compare RA and GSM time with when we sent RACH req */
-
-	/* check if we can support this type of channel at the moment */
-	if (ch_type != RSL_CHAN_SDCCH4_ACCH || ch_ts != 0 ||
-	    ia->chan_desc.h0.h == 1) {
-		printf("UNSUPPORTED!\n");
-		return 0;
-	}
-
-	/* FIXME: request L1 to go to dedicated mode on assigned channel */
-	return tx_ph_dm_est_req(ms, arfcn, ia->chan_desc.chan_nr);
-
-	return 0;
+	return rslms_recvmsg(msg, ms);
 }
 
-static int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
+/* Send a RLL request (including L3 info) to L2 */
+int rslms_tx_rll_req_l3(struct osmocom_ms *ms, uint8_t msg_type,
+			uint8_t chan_nr, uint8_t link_id, struct msgb *msg)
 {
-	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
-	int rc = 0;
+	rsl_rll_push_l3(msg, msg_type, chan_nr, link_id);
 
-	if (sih->rr_protocol_discriminator != GSM48_PDISC_RR)
-		printf("PCH pdisc != RR\n");
-	
-	switch (sih->system_information) {
-	case GSM48_MT_RR_PAG_REQ_1:
-	case GSM48_MT_RR_PAG_REQ_2:
-	case GSM48_MT_RR_PAG_REQ_3:
-		/* FIXME: implement decoding of paging request */
-		break;
-	case GSM48_MT_RR_IMM_ASS:
-		rc = gsm48_rx_imm_ass(msg, ms);
-		break;
-	default:
-		printf("unknown PCH/AGCH type 0x%02x\n", sih->system_information);
-		rc = -EINVAL;
-	}
-
-	return rc;
+	return rslms_recvmsg(msg, ms);
 }
 
 static int rach_count = 0;

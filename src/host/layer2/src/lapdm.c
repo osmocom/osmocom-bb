@@ -176,24 +176,8 @@ static inline unsigned char *msgb_pull_l2h(struct msgb *msg)
 static int send_rslms_rll_l3(uint8_t msg_type, struct lapdm_msg_ctx *mctx,
 			     struct msgb *msg)
 {
-	uint8_t l3_len = msg->tail - (uint8_t *)msgb_l3(msg);
-	struct abis_rsl_rll_hdr *rh;
-
-	/* construct a RSLms RLL message (DATA INDICATION, UNIT DATA
-	 * INDICATION) and send it off via RSLms */
-
-	/* Push the L3 IE tag and lengh */
-	msgb_tv16_push(msg, RSL_IE_L3_INFO, l3_len);
-
-	/* Then push the RSL header */
-	rh = (struct abis_rsl_rll_hdr *) msgb_push(msg, sizeof(*rh));
-	rsl_init_rll_hdr(rh, msg_type);
-	rh->c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
-	rh->chan_nr = mctx->chan_nr;
-	rh->link_id = mctx->link_id;
-
-	/* set the l2 header pointer */
-	msg->l2h = (uint8_t *)rh;
+	/* Add the L3 header */
+	rsl_rll_push_l3(msg, msg_type, mctx->chan_nr, mctx->link_id);
 
 	/* send off the RSLms message to L3 */
 	return rslms_sendmsg(msg, mctx->dl->entity->ms);
@@ -201,18 +185,9 @@ static int send_rslms_rll_l3(uint8_t msg_type, struct lapdm_msg_ctx *mctx,
 
 static int send_rslms_rll_simple(uint8_t msg_type, struct lapdm_msg_ctx *mctx)
 {
-	struct abis_rsl_rll_hdr *rh;
-	struct msgb *msg = msgb_alloc(sizeof(*rh), "rslms_rll_simple");
+	struct msgb *msg;
 
-	/* put the RSL header */
-	rh = (struct abis_rsl_rll_hdr *) msgb_put(msg, sizeof(*rh));
-	rsl_init_rll_hdr(rh, msg_type);
-	rh->c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
-	rh->chan_nr = mctx->chan_nr;
-	rh->link_id = mctx->link_id;
-
-	/* set the l2 header pointer */
-	msg->l2h = (uint8_t *)rh;
+	msg = rsl_rll_simple(msg_type, mctx->chan_nr, mctx->link_id);
 
 	/* send off the RSLms message to L3 */
 	return rslms_sendmsg(msg, mctx->dl->entity->ms);
