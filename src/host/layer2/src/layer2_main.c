@@ -21,7 +21,7 @@
  */
 
 #include <osmocom/osmocom_data.h>
-#include <osmocom/osmocom_layer2.h>
+#include <osmocom/layer2.h>
 #include <osmocom/lapdm.h>
 
 #include <osmocom/debug.h>

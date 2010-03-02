@@ -12,7 +12,7 @@
 #include <osmocom/rslms.h>
 #include <osmocom/layer3.h>
 #include <osmocom/osmocom_data.h>
-#include <osmocom/osmocom_layer2.h>
+#include <osmocom/layer2.h>
 
 int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *timeslot)
 {
