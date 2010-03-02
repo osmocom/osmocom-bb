@@ -21,4 +21,11 @@ const char *rsl_err_name(uint8_t err);
 /* Section 3.3.2.3 TS 05.02. I think this looks like a table */
 int rsl_ccch_conf_to_bs_cc_chans(int ccch_conf);
 
+/* Push a RSL RLL header with L3_INFO IE */
+int rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type,
+		    uint8_t chan_nr, uint8_t link_id);
+
+/* Allocate msgb and fill with simple RSL RLL header */
+struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
+			    uint8_t link_id);
 #endif /* _OSMOCORE_RSL_H */

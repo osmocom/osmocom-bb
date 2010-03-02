@@ -237,3 +237,51 @@ int rsl_ccch_conf_to_bs_ccch_sdcch_comb(int ccch_conf)
 		return -1;
 	}
 }
+
+/* Push a RSL RLL header with L3_INFO IE */
+int rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type,
+		    uint8_t chan_nr, uint8_t link_id)
+{
+	uint8_t l3_len = msg->tail - (uint8_t *)msgb_l3(msg);
+	struct abis_rsl_rll_hdr *rh;
+
+	/* construct a RSLms RLL message (DATA INDICATION, UNIT DATA
+	 * INDICATION) and send it off via RSLms */
+
+	/* Push the L3 IE tag and lengh */
+	msgb_tv16_push(msg, RSL_IE_L3_INFO, l3_len);
+
+	/* Then push the RSL header */
+	rh = (struct abis_rsl_rll_hdr *) msgb_push(msg, sizeof(*rh));
+	rsl_init_rll_hdr(rh, msg_type);
+	rh->c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
+	rh->chan_nr = chan_nr;
+	rh->link_id = link_id;
+
+	/* set the l2 header pointer */
+	msg->l2h = (uint8_t *)rh;
+
+	return 0;
+}
+
+struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
+			    uint8_t link_id)
+{
+	struct abis_rsl_rll_hdr *rh;
+	struct msgb *msg = msgb_alloc(sizeof(*rh), "rsl_rll_simple");
+
+	if (!msg)
+		return NULL;
+
+	/* put the RSL header */
+	rh = (struct abis_rsl_rll_hdr *) msgb_put(msg, sizeof(*rh));
+	rsl_init_rll_hdr(rh, msg_type);
+	rh->c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
+	rh->chan_nr = chan_nr;
+	rh->link_id = link_id;
+
+	/* set the l2 header pointer */
+	msg->l2h = (uint8_t *)rh;
+
+	return msg;
+}
