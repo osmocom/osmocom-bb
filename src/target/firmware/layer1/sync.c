@@ -49,6 +49,8 @@
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
 
+#include <l1a_l23_interface.h>
+
 //#define DEBUG_EVERY_TDMA
 
 /* A debug macro to print every TDMA frame */
@@ -609,7 +611,7 @@ static int l1s_sbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
 	int qbits, fn_offset;
 	struct l1_cell_info *cinfo = &l1s.serving_cell;
 	int fnr_delta, bits_delta;
-	struct l1_sync_new_ccch_resp *l1;
+	struct l1ctl_sync_new_ccch_resp *l1;
 	struct msgb *msg;
 
 	putchart('s');
@@ -676,7 +678,7 @@ static int l1s_sbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
 
 	/* place it in the queue for the layer2 */
 	msg = l1_create_l2_msg(L1CTL_NEW_CCCH_RESP, sb_time.fn, last_fb->snr);
-	l1 = (struct l1_sync_new_ccch_resp *) msgb_put(msg, sizeof(*l1));
+	l1 = (struct l1ctl_sync_new_ccch_resp *) msgb_put(msg, sizeof(*l1));
 	l1->bsic = bsic;
 	l1_queue_for_l2(msg);
 
@@ -833,8 +835,8 @@ static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 	/* 4th burst, get frame data */
 	if (dsp_api.db_r->d_burst_d == 3) {
-		struct l1_info_dl *dl;
-		struct l1_data_ind *l1;
+		struct l1ctl_info_dl *dl;
+		struct l1ctl_data_ind *l1;
 		uint8_t i, j;
 
 		sig->signum = L1_SIG_NB;
@@ -854,8 +856,8 @@ static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 		/* place it in the queue for the layer2 */
 		msg = l1_create_l2_msg(L1CTL_DATA_IND, l1s.current_time.fn-4, last_fb->snr);
-		dl = (struct l1_info_dl *) msg->data;
-		l1 = (struct l1_data_ind *) msgb_put(msg, sizeof(*l1));
+		dl = (struct l1ctl_info_dl *) msg->data;
+		l1 = (struct l1ctl_data_ind *) msgb_put(msg, sizeof(*l1));
 
 		/* Set Channel Number depending on MFrame Task ID */
 		dl->chan_nr = mframe_task2chan_nr(mf_task_id, 0); /* FIXME: TS */

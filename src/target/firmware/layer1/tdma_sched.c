@@ -33,9 +33,9 @@
 #include <calypso/dsp.h>
 
 /* dummy function to mark end of set */
-void tdma_end_set(uint8_t p1, uint8_t p2, uint16_t p3)
+int tdma_end_set(uint8_t p1, uint8_t p2, uint16_t p3)
 {
-
+	return 0;
 }
 
 static uint8_t wrap_bucket(uint8_t offset)

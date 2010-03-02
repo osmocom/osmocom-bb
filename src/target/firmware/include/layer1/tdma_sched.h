@@ -54,7 +54,7 @@ void tdma_sched_reset(void);
 void tdma_sched_dump(void);
 
 
-extern void tdma_end_set(uint8_t p1, uint8_t p2, uint16_t p3);
+extern int tdma_end_set(uint8_t p1, uint8_t p2, uint16_t p3);
 #define SCHED_ITEM(x, y, z)		{ .cb = x, .p1 = y, .p2 = z }
 #define SCHED_END_FRAME()		{ .cb = NULL, .p1 = 0, .p2 = 0 }
 #define SCHED_END_SET()			{ .cb = &tdma_end_set, .p1 = 0, .p2 = 0 }
