@@ -24,14 +24,13 @@
 #ifndef l1a_l23_interface_h
 #define l1a_l23_interface_h
 
-#define SYNC_NEW_CCCH_REQ	1
-#define SYNC_NEW_CCCH_RESP	2
-#define CCCH_INFO_IND		3
-#define CCCH_RACH_REQ		4
-#define DEDIC_MODE_EST_REQ	5
-#define DEDIC_MODE_DATA_IND	6
-#define DEDIC_MODE_DATA_REQ	7
-#define LAYER1_RESET		8
+#define L1CTL_NEW_CCCH_REQ	1
+#define L1CTL_NEW_CCCH_RESP	2
+#define L1CTL_DATA_IND		3
+#define L1CTL_RACH_REQ		4
+#define L1CTL_DM_EST_REQ	5
+#define L1CTL_DATA_REQ		7
+#define L1CTL_RESET		8
 
 /*
  * NOTE: struct size. We do add manual padding out of the believe
@@ -49,17 +48,18 @@ struct gsm_time {
 /*
  * downlink info ... down from the BTS..
  */
-struct l1_info_dl {
+struct l1ctl_info_dl {
 	/* common header, should be its own struct */
 	uint8_t msg_type;
 	uint8_t padding;
 
-	/* the ARFCN and the band. FIXME: what about MAIO? */
-	uint16_t band_arfcn;
 	/* GSM 08.58 channel number (9.3.1) */
 	uint8_t chan_nr;
 	/* GSM 08.58 link identifier (9.3.2) */
 	uint8_t link_id;
+
+	/* the ARFCN and the band. FIXME: what about MAIO? */
+	uint16_t band_arfcn;
 
 	struct gsm_time time;
 	uint8_t rx_level;
@@ -67,25 +67,32 @@ struct l1_info_dl {
 } __attribute__((packed));
 
 /* new CCCH was found. This is following the header */
-struct l1_sync_new_ccch_resp {
+struct l1ctl_sync_new_ccch_resp {
 	uint8_t bsic;
 	uint8_t padding[3];
 } __attribute__((packed));
 
 /* data on the CCCH was found. This is following the header */
-struct l1_ccch_info_ind {
+struct l1ctl_data_ind {
 	uint8_t data[23];
 } __attribute__((packed));
 
 /*
  * uplink info
  */
-struct l1_info_ul {
+struct l1ctl_info_ul {
+	/* common header, should be its own struct */
 	uint8_t msg_type;
 	uint8_t padding;
+
+	/* GSM 08.58 channel number (9.3.1) */
+	uint8_t chan_nr;
+	/* GSM 08.58 link identifier (9.3.2) */
+	uint8_t link_id;
+
 	uint8_t tx_power;
-	uint8_t channel_number;
-	uint32_t tdma_frame;
+	uint8_t padding2;
+
 	uint8_t payload[0];
 } __attribute__((packed));
 
@@ -93,19 +100,18 @@ struct l1_info_ul {
  * msg for SYNC_NEW_CCCH_REQ
  * the l1_info_ul header is in front
  */
-struct l1_sync_new_ccch_req {
+struct l1ctl_sync_new_ccch_req {
 	uint16_t band_arfcn;
 } __attribute__((packed));
 
 
 /* the l1_info_ul header is in front */
-struct l1_rach_req {
+struct l1ctl_rach_req {
 	uint8_t ra;
 	uint8_t padding[3];
 } __attribute__((packed));
 
-struct l1_dedic_mode_est_req {
-	struct l1_info_ul header;
+struct l1ctl_dm_est_req {
 	uint16_t band_arfcn;
 	union {
 		struct {
@@ -124,18 +130,5 @@ struct l1_dedic_mode_est_req {
 		} h0;
 	};
 } __attribute__((packed));
-
-/* it is like the ccch ind... unite it? */
-
-/* the l1_info_dl header is in front */
-struct l1_dedic_mode_data_ind {
-	uint8_t data[23];
-} __attribute__((packed));
-
-/* the l1_info_ul header is in front */
-struct l1_dedic_mode_data_req {
-	uint8_t data[23];
-} __attribute__((packed));
-
 
 #endif

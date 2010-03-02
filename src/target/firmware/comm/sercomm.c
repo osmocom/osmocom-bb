@@ -208,7 +208,7 @@ int sercomm_drv_rx_char(uint8_t ch)
 		sercomm.rx.msg = sercomm_alloc_msgb(SERCOMM_RX_MSG_SIZE);
 
 	if (msgb_tailroom(sercomm.rx.msg) == 0) {
-		cons_puts("sercomm_drv_rx_char() overflow!\n");
+		//cons_puts("sercomm_drv_rx_char() overflow!\n");
 		msgb_free(sercomm.rx.msg);
 		sercomm.rx.msg = sercomm_alloc_msgb(SERCOMM_RX_MSG_SIZE);
 		sercomm.rx.state = RX_ST_WAIT_START;

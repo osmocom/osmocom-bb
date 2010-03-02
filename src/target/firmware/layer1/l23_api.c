@@ -28,11 +28,12 @@
 
 #include <layer1/sync.h>
 #include <layer1/async.h>
+#include <layer1/mframe_sched.h>
 
 #include <l1a_l23_interface.h>
 
 /* the size we will allocate struct msgb* for HDLC */
-#define L3_MSG_SIZE (sizeof(struct l1_ccch_info_ind) + 4)
+#define L3_MSG_SIZE (sizeof(struct l1ctl_data_ind) + 4)
 #define L3_MSG_HEAD 4
 
 void l1_queue_for_l2(struct msgb *msg)
@@ -43,7 +44,7 @@ void l1_queue_for_l2(struct msgb *msg)
 
 struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr)
 {
-	struct l1_info_dl *dl;
+	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 
 	msg = msgb_alloc_headroom(L3_MSG_SIZE, L3_MSG_HEAD, "l1_burst");
@@ -55,7 +56,7 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr)
 		return NULL;
 	}
 
-	dl = (struct l1_info_dl *) msgb_put(msg, sizeof(*dl));
+	dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
 	dl->msg_type = msg_type;
 	/* FIXME: we may want to compute T1/T2/T3 in L23 */
 	gsm_fn2gsmtime(&dl->time, fn);
@@ -67,24 +68,26 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr)
 /* callbakc from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
-	struct l1_info_ul *ul = msg->data;
-	struct l1_sync_new_ccch_req *sync_req;
-	struct l1_rach_req *rach_req;
-	struct l1_dedic_mode_est_req *est_req;
+	struct l1ctl_info_ul *ul = msg->data;
+	struct l1ctl_sync_new_ccch_req *sync_req;
+	struct l1ctl_rach_req *rach_req;
+	struct l1ctl_dedic_mode_est_req *est_req;
+	struct l1ctl_data_ind *data_ind;
+	struct llist_head *tx_queue;
 
 	if (sizeof(*ul) > msg->len) {
-		printf("la1_l23_cb: Short message. %u\n", msg->len);
+		printf("l1a_l23_cb: Short message. %u\n", msg->len);
 		goto exit;
 	}
 
 	switch (ul->msg_type) {
-	case SYNC_NEW_CCCH_REQ:
+	case L1CTL_NEW_CCCH_REQ:
 		if (sizeof(*ul) + sizeof(*sync_req) > msg->len) {
 			printf("Short sync msg. %u\n", msg->len);
 			break;
 		}
 
-		sync_req = (struct l1_sync_new_ccch_req *) (&msg->data[0] + sizeof(*ul));
+		sync_req = (struct l1ctl_sync_new_ccch_req *) (&msg->data[0] + sizeof(*ul));
 		printf("Asked to tune to frequency: %u\n", sync_req->band_arfcn);
 
 		/* reset scheduler and hardware */
@@ -98,14 +101,27 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		puts("Starting FCCH Recognition\n");
 		l1s_fb_test(1, 0);
 		break;
-	case DEDIC_MODE_EST_REQ:
-		est_req = (struct l1_dedic_mode_est_req *) ul->payload;
-		/* FIXME: ARFCN! */
+	case L1CTL_DM_EST_REQ:
+		est_req = (struct l1ctl_dm_est_req *) ul->payload;
+		/* FIXME: ARFCN */
+		/* FIXME: Timeslot */
 		/* figure out which MF tasks to enable, depending on channel number */
+		l1s.mf_tasks = (1 << MF_TASK_SDCCH4_0);
 		break;
-	case CCCH_RACH_REQ:
-		rach_req = (struct l1_rach_req *) ul->payload;
+	case L1CTL_RACH_REQ:
+		puts("CCCH_RACH_REQ\n");
+		rach_req = (struct l1ctl_rach_req *) ul->payload;
 		l1a_rach_req(27, rach_req->ra);
+		break;
+	case L1CTL_DATA_REQ:
+		puts("DEDIC_MODE_DATA_REQ\n");
+		data_ind = (struct l1ctl_data_ind *) ul->payload;
+		if (ul->link_id & 0x40)
+			tx_queue = &l1s.tx_queue[L1S_CHAN_SACCH];
+		else
+			tx_queue = &l1s.tx_queue[L1S_CHAN_MAIN];
+		msg->l3h = data_ind->data;
+		l1a_txq_msgb_enq(tx_queue, msg);
 		break;
 	}
 

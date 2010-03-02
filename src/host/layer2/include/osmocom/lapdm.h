@@ -49,7 +49,7 @@ struct lapdm_entity {
 void lapdm_init(struct lapdm_entity *le, struct osmocom_ms *ms);
 
 /* input into layer2 (from layer 1) */
-int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1_info_dl *l1i);
+int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_dl *l1i);
 
 /* input into layer2 (from layer 3) */
 int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms);

@@ -298,6 +298,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 
 	switch (LAPDm_CTRL_U_BITS(mctx->ctrl)) {
 	case LAPDm_U_SABM:
+		printf("SABM ");
 		/* Must be Format B */
 		rc = check_length_ind(msg->l2h[2]);
 		if (rc < 0)
@@ -310,14 +311,12 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			} else {
 				/* FIXME: check for contention resoultion */
 				printf("SABM command, multiple frame established state\n");
-				msgb_free(msg);
 				return 0;
 			}
 		}
 		if (length == 0) {
 			/* 5.4.1.2 Normal establishment procedures */
 			rc = send_rslms_rll_simple(RSL_MT_EST_IND, mctx);
-			msgb_free(msg);
 		} else {
 			/* 5.4.1.4 Contention resolution establishment */
 			msg->l3h = msg->l2h + 3;
@@ -328,28 +327,26 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			dl->state = LAPDm_STATE_SABM_SENT;
 		break;
 	case LAPDm_U_DM:
+		printf("DM ");
 		if (!LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 			/* 5.4.1.2 DM responses with the F bit set to "0" shall be ignored. */
-			msgb_free(msg);
 			return 0;
 		}
 		switch (dl->state) {
 		case LAPDm_STATE_IDLE:
 			/* 5.4.5 all other frame types shall be discarded */
-			msgb_free(msg);
+			printf("state=IDLE (discarding) ");
 			return 0;
 		case LAPDm_STATE_MF_EST:
 			if (LAPDm_CTRL_PF_BIT(mctx->ctrl) == 1)
-				printf("unsolicited DM resposne\n");
+				printf("unsolicited DM resposne ");
 			else
-				printf("unsolicited DM resposne, multiple frame established state\n");
-			msgb_free(msg);
+				printf("unsolicited DM resposne, multiple frame established state ");
 			return 0;
 		case LAPDm_STATE_TIMER_RECOV:
 			/* DM is normal in case PF = 1 */
 			if (LAPDm_CTRL_PF_BIT(mctx->ctrl) == 0) {
-				printf("unsolicited DM resposne, multiple frame established state\n");
-				msgb_free(msg);
+				printf("unsolicited DM resposne, multiple frame established state ");
 				return 0;
 			}
 			break;
@@ -357,9 +354,9 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* reset T200 */
 		bsc_del_timer(&dl->t200);
 		rc = send_rslms_rll_simple(RSL_MT_REL_IND, mctx);
-		msgb_free(msg);
 		break;
 	case LAPDm_U_UI:
+		printf("UI ");
 		if (mctx->lapdm_fmt == LAPDm_FMT_B4) {
 			length = N201_B4;
 			msg->l3h = msg->l2h + 2;
@@ -373,7 +370,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* do some length checks */
 		if (length == 0) {
 			/* 5.3.3 UI frames received with the length indicator set to "0" shall be ignored */
-			msgb_free(msg);
+			printf("length=0 (discarding) ");
 			return 0;
 		}
 		/* FIXME: G.4.5 check */
@@ -383,19 +380,21 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			break;
 		default:
 			/* 5.3.3 UI frames with invalid SAPI values shall be discarded */
-			msgb_free(msg);
+			printf("sapi=%u (discarding) ", LAPDm_ADDR_SAPI(mctx->ctrl));
 			return 0;
 		}
 		msgb_pull_l2h(msg);
 		rc = send_rslms_rll_l3(RSL_MT_UNIT_DATA_IND, mctx, msg);
 		break;
 	case LAPDm_U_DISC:
+		printf("DISC ");
 		length = msg->l2h[2] >> 2;
 		if (length > 0 || msg->l2h[2] & 0x02) {
 			/* G.4.4 If a DISC or DM frame is received with L>0 or
 			 * with the M bit set to "1", an MDL-ERROR-INDICATION
 			 * primitive with cause "U frame with incorrect
 			 * parameters" is sent to the mobile management entity. */
+			printf("U frame iwth incorrect parameters ");
 			return -EIO;
 		}
 		switch (dl->state) {
@@ -408,10 +407,11 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		}
 		break;
 	case LAPDm_U_UA:
+		printf("UA ");
 		/* FIXME: G.4.5 check */
 		if (!LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 			/* 5.4.1.2 A UA response with the F bit set to "0" shall be ignored. */
-			msgb_free(msg);
+			printf("F=0 (discarding) ");
 			return 0;
 		}
 		switch (dl->state) {
@@ -420,8 +420,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		case LAPDm_STATE_IDLE:
 			/* 5.4.5 all other frame types shall be discarded */
 		default:
-			printf("unsolicited UA response!\n");
-			msgb_free(msg);
+			printf("unsolicited UA response! (discarding) ");
 			return 0;
 		}
 		/* reset Timer T200 */
@@ -432,7 +431,6 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		dl->state = LAPDm_STATE_MF_EST;
 		/* send notification to L3 */
 		rc = send_rslms_rll_simple(RSL_MT_EST_CONF, mctx);
-		msgb_free(msg);
 		break;
 	}
 	return rc;
@@ -511,7 +509,7 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		msgb_pull_l2h(msg);
 		rc = send_rslms_rll_l3(RSL_MT_DATA_IND, mctx, msg);
 	} else {
-		printf("N(s) sequence error: Ns=%u, V_recv=%u\n", ns, dl->V_recv);
+		printf("N(s) sequence error: Ns=%u, V_recv=%u ", ns, dl->V_recv);
 		/* FIXME: 5.7.1: N(s) sequence error */
 		/* discard data */
 		return -EIO;
@@ -569,20 +567,21 @@ static int lapdm_ph_data_ind(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 	else if (LAPDm_CTRL_is_I(mctx->ctrl))
 		rc = lapdm_rx_i(msg, mctx);
 	else {
-		printf("unknown LAPDm format\n");
+		printf("unknown LAPDm format ");
 		rc = -EINVAL;
 	}
 	return rc;
 }
 
 /* input into layer2 (from layer 1) */
-int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1_info_dl *l1i)
+int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_dl *l1i)
 {
 	uint8_t cbits = l1i->chan_nr >> 3;
 	uint8_t sapi = l1i->link_id & 7;
 	struct lapdm_msg_ctx mctx;
 	int rc;
 
+	printf("l2_ph_data_ind() ");
 	/* when we reach here, we have a msgb with l2h pointing to the raw
 	 * 23byte mac block. The l1h has already been purged. */
 
@@ -595,13 +594,20 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1_info_dl 
 	if (cbits == 0x10 || cbits == 0x12) {
 		/* Format Bbis is used on BCCH and CCCH(PCH, NCH and AGCH) */
 		mctx.lapdm_fmt = LAPDm_FMT_Bbis;
+		printf("fmt=Bbis ");
 	} else {
 		if (mctx.link_id & 0x40) {
 			/* It was received from network on SACCH, thus
 			 * lapdm_fmt must be B4 */
 			mctx.lapdm_fmt = LAPDm_FMT_B4;
-		} else
+			printf("fmt=B4 ");
+			/* SACCH frames have a two-byte L1 header that OsmocomBB L1 doesn't
+			 * strip */
+			msg->l2h += 2;
+		} else {
 			mctx.lapdm_fmt = LAPDm_FMT_B;
+			printf("fmt=B ");
+		}
 	}
 
 	switch (mctx.lapdm_fmt) {
@@ -610,7 +616,7 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1_info_dl 
 	case LAPDm_FMT_B4:
 		mctx.addr = msg->l2h[0];
 		if (!(mctx.addr & 0x01)) {
-			printf("we don't support multibyte addresses\n");
+			printf("we don't support multibyte addresses (discarding)\n");
 			return -EINVAL;
 		}
 		mctx.ctrl = msg->l2h[1];
@@ -622,16 +628,19 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1_info_dl 
 		/* FIXME */
 		break;
 	case LAPDm_FMT_Bbis:
+		/* directly pass up to layer3 */
+		printf("UI ");
 		msg->l3h = msg->l2h;
 		msgb_pull_l2h(msg);
 		rc = send_rslms_rll_l3(RSL_MT_UNIT_DATA_IND, &mctx, msg);
 		break;
 	}
+	printf("\n");
 
 	return rc;
 }
 
-/* L3 -> L2 */
+/* L3 -> L2 / RSLMS -> LAPDm */
 
 /* L3 requests establishment of data link */
 static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)

@@ -1,5 +1,6 @@
 /* Main method of the layer2 stack */
 /* (C) 2010 by Holger Hans Peter Freyther
+ * (C) 2010 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -19,8 +20,9 @@
  *
  */
 
-#include <osmocom/osmocom_layer2.h>
 #include <osmocom/osmocom_data.h>
+#include <osmocom/osmocom_layer2.h>
+#include <osmocom/lapdm.h>
 
 #include <osmocom/debug.h>
 #include <osmocore/msgb.h>
@@ -65,18 +67,19 @@ static int layer2_read(struct bsc_fd *fd, unsigned int flags)
 		exit(2);
 	}
 
-	if (ntohs(len) > GSM_L2_LENGTH) {
-		fprintf(stderr, "Length is too big: %u\n", ntohs(len));
+	len = ntohs(len);
+	if (len > GSM_L2_LENGTH) {
+		fprintf(stderr, "Length is too big: %u\n", len);
 		msgb_free(msg);
 		return -1;
 	}
 
 
 	/* blocking read for the poor... we can starve in here... */
-	msg->l2h = msgb_put(msg, ntohs(len));
-	rc = read(fd->fd, msg->l2h, msgb_l2len(msg));
-	if (rc != msgb_l2len(msg)) {
-		fprintf(stderr, "Can not read data: rc: %d errno: %d\n", rc, errno);
+	msg->l1h = msgb_put(msg, len);
+	rc = read(fd->fd, msg->l1h, msgb_l1len(msg));
+	if (rc != msgb_l1len(msg)) {
+		fprintf(stderr, "Can not read data: len=%d rc=%d errno=%d\n", len, rc, errno);
 		msgb_free(msg);
 		return -1;
 	}
@@ -194,6 +197,9 @@ int main(int argc, char **argv)
 	ms->bfd.when = BSC_FD_READ;
 	ms->bfd.cb = layer2_read;
 	ms->bfd.data = ms;
+
+	lapdm_init(&ms->lapdm_dcch, ms);
+	lapdm_init(&ms->lapdm_acch, ms);
 
 	if (bsc_register_fd(&ms->bfd) != 0) {
 		fprintf(stderr, "Failed to register fd.\n");

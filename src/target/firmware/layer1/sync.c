@@ -675,7 +675,7 @@ static int l1s_sbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
 	l1s_time_inc(&l1s.next_time, 1);
 
 	/* place it in the queue for the layer2 */
-	msg = l1_create_l2_msg(SYNC_NEW_CCCH_RESP, sb_time.fn, last_fb->snr);
+	msg = l1_create_l2_msg(L1CTL_NEW_CCCH_RESP, sb_time.fn, last_fb->snr);
 	l1 = (struct l1_sync_new_ccch_resp *) msgb_put(msg, sizeof(*l1));
 	l1->bsic = bsic;
 	l1_queue_for_l2(msg);
@@ -834,7 +834,7 @@ static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 	/* 4th burst, get frame data */
 	if (dsp_api.db_r->d_burst_d == 3) {
 		struct l1_info_dl *dl;
-		struct l1_ccch_info_ind *l1;
+		struct l1_data_ind *l1;
 		uint8_t i, j;
 
 		sig->signum = L1_SIG_NB;
@@ -853,9 +853,9 @@ static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 			l1s_cb(sig);
 
 		/* place it in the queue for the layer2 */
-		msg = l1_create_l2_msg(CCCH_INFO_IND, l1s.current_time.fn-4, last_fb->snr);
+		msg = l1_create_l2_msg(L1CTL_DATA_IND, l1s.current_time.fn-4, last_fb->snr);
 		dl = (struct l1_info_dl *) msg->data;
-		l1 = (struct l1_ccch_info_ind *) msgb_put(msg, sizeof(*l1));
+		l1 = (struct l1_data_ind *) msgb_put(msg, sizeof(*l1));
 
 		/* Set Channel Number depending on MFrame Task ID */
 		dl->chan_nr = mframe_task2chan_nr(mf_task_id, 0); /* FIXME: TS */
@@ -995,10 +995,13 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 			msg = msgb_dequeue(tx_queue);
 
 			/* If the TX queue is empty, send idle pattern */
-			if (!msg)
+			if (!msg) {
+				puts("TX idle pattern\n");
 				data = ubUui;
-			else
-				data = msg->data;
+			} else {
+				puts("TX uplink msg\n");
+				data = msg->l3h;
+			}
 
 			/* Fill data block Header */
 			info_ptr[0] = (1 << B_BLUD);     // 1st word: Set B_BLU bit.

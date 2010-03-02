@@ -40,11 +40,13 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_imm_ass *ia = msgb_l3(msg);
 	uint8_t ch_type, ch_subch, ch_ts;
+	uint16_t arfcn;
 
 	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	arfcn = ia->chan_desc.h0.arfcn_low | (ia->chan_desc.h0.arfcn_high << 8);
 
-	printf("GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, TS=%u, SS=%u, TSC=%u) ",
-		ia->req_ref.ra, ia->chan_desc.chan_nr, ch_ts, ch_subch,
+	printf("GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u) ",
+		ia->req_ref.ra, ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
 		ia->chan_desc.h0.tsc);
 
 	/* FIXME: compare RA and GSM time with when we sent RACH req */
@@ -57,6 +59,7 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	}
 
 	/* FIXME: request L1 to go to dedicated mode on assigned channel */
+	return tx_ph_dm_est_req(ms, arfcn, ia->chan_desc.chan_nr);
 
 	return 0;
 }
@@ -151,7 +154,7 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 	return rc;
 }
 
-/* sending messages up from L2 to L3 */
+/* input function that L2 calls when sending messages up to L3 */
 int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
