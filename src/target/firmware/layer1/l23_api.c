@@ -42,6 +42,35 @@ void l1_queue_for_l2(struct msgb *msg)
 	sercomm_sendmsg(SC_DLCI_L1A_L23, msg);
 }
 
+static enum mframe_task chan_nr2mf_task(uint8_t chan_nr)
+{
+	uint8_t cbits = chan_nr >> 3;
+	uint8_t lch_idx;
+
+	if (cbits == 0x01) {
+		lch_idx = 0;
+		/* FIXME: TCH/F */
+	} else if ((cbits & 0x1e) == 0x02) {
+		lch_idx = cbits & 0x1;
+		/* FIXME: TCH/H */
+	} else if ((cbits & 0x1c) == 0x04) {
+		lch_idx = cbits & 0x3;
+		return MF_TASK_SDCCH4_0 + lch_idx;
+	} else if ((cbits & 0x18) == 0x08) {
+		lch_idx = cbits & 0x7;
+		return MF_TASK_SDCCH8_0 + lch_idx;
+#if 0
+	} else if (cbits == 0x10) {
+		/* FIXME: when to do extended BCCH? */
+		return MF_TASK_BCCH_NORM;
+	} else if (cbits == 0x11 || cbits == 0x12) {
+		/* FIXME: how to decide CCCH norm/extd? */
+		return MF_TASK_BCCH_CCCH;
+#endif
+	}
+	return 0;
+}
+
 struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr)
 {
 	struct l1ctl_info_dl *dl;
@@ -71,7 +100,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 	struct l1ctl_info_ul *ul = msg->data;
 	struct l1ctl_sync_new_ccch_req *sync_req;
 	struct l1ctl_rach_req *rach_req;
-	struct l1ctl_dedic_mode_est_req *est_req;
+	struct l1ctl_dm_est_req *est_req;
 	struct l1ctl_data_ind *data_ind;
 	struct llist_head *tx_queue;
 
@@ -103,10 +132,23 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		break;
 	case L1CTL_DM_EST_REQ:
 		est_req = (struct l1ctl_dm_est_req *) ul->payload;
-		/* FIXME: ARFCN */
-		/* FIXME: Timeslot */
-		/* figure out which MF tasks to enable, depending on channel number */
-		l1s.mf_tasks = (1 << MF_TASK_SDCCH4_0);
+		if (est_req->band_arfcn != l1s.serving_cell.arfcn) {
+			/* FIXME: ARFCN */
+			puts("We don't support ARFCN switches yet\n");
+			break;
+		}
+		if (ul->chan_nr & 0x7) {
+			/* FIXME: Timeslot */
+			puts("We don't support non-0 TS yet\n");
+			break;
+		}
+		if (est_req->h0.h) {
+			puts("We don't support frequency hopping yet\n");
+			break;
+		}
+		/* FIXME: set TSC of ded chan according to est_req.h0.tsc */
+		/* figure out which MF tasks to enable */
+		l1s.mf_tasks = (1 << chan_nr2mf_task(ul->chan_nr));
 		break;
 	case L1CTL_RACH_REQ:
 		puts("CCCH_RACH_REQ\n");
