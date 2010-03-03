@@ -1,6 +1,6 @@
-/* Layer2 handling code... LAPD and stuff
- *
- * (C) 2010 by Holger Hans Peter Freyther <zecke@selfish.org>
+/* Layer1 control code, talking L1CTL protocol with L1 on the phone */
+
+/* (C) 2010 by Holger Hans Peter Freyther <zecke@selfish.org>
  * (C) 2010 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
@@ -33,7 +33,7 @@
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/protocol/gsm_08_58.h>
 
-#include <osmocom/layer2.h>
+#include <osmocom/l1ctl.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/debug.h>
@@ -110,7 +110,7 @@ char *chan_nr2string(uint8_t chan_nr)
 	return str;
 }
 
-/* Data Indication from L1 */
+/* Receive L1CTL_DATA_IND (Data Indication from L1) */
 static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_info_dl *dl, dl_cpy;
@@ -150,6 +150,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* Transmit L1CTL_DATA_REQ */
 int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 		   uint8_t chan_nr, uint8_t link_id)
 {
@@ -180,6 +181,7 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	return osmo_send_l1(ms, msg);
 }
 
+/* Receive L1CTL_RESET */
 static int rx_l1_reset(struct osmocom_ms *ms)
 {
 	struct msgb *msg;
@@ -196,6 +198,7 @@ static int rx_l1_reset(struct osmocom_ms *ms)
 	return osmo_send_l1(ms, msg);
 }
 
+/* Transmit L1CTL_RACH_REQ */
 int tx_ph_rach_req(struct osmocom_ms *ms)
 {
 	struct msgb *msg;
@@ -213,6 +216,7 @@ int tx_ph_rach_req(struct osmocom_ms *ms)
 	return osmo_send_l1(ms, msg);
 }
 
+/* Transmit L1CTL_DM_EST_REQ */
 int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr)
 {
 	struct msgb *msg;
@@ -236,7 +240,8 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 
 }
 
-int osmo_recv(struct osmocom_ms *ms, struct msgb *msg)
+/* Receive incoming data from L1 using L1CTL format */
+int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {
 	int rc = 0;
 	struct l1ctl_info_dl *dl;

@@ -34,7 +34,7 @@
 
 #include <osmocom/debug.h>
 #include <osmocom/osmocom_data.h>
-#include <osmocom/layer2.h>
+#include <osmocom/l1ctl.h>
 #include <osmocom/lapdm.h>
 
 #include <l1a_l23_interface.h>

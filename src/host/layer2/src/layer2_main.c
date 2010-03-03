@@ -1,4 +1,5 @@
-/* Main method of the layer2 stack */
+/* Main method of the layer2/3 stack */
+
 /* (C) 2010 by Holger Hans Peter Freyther
  * (C) 2010 by Harald Welte <laforge@gnumonks.org>
  *
@@ -21,7 +22,7 @@
  */
 
 #include <osmocom/osmocom_data.h>
-#include <osmocom/layer2.h>
+#include <osmocom/l1ctl.h>
 #include <osmocom/lapdm.h>
 
 #include <osmocom/debug.h>
@@ -84,7 +85,7 @@ static int layer2_read(struct bsc_fd *fd, unsigned int flags)
 		return -1;
 	}
 
-	osmo_recv((struct osmocom_ms *) fd->data, msg);
+	l1ctl_recv((struct osmocom_ms *) fd->data, msg);
 	msgb_free(msg);
 	return 0;
 }

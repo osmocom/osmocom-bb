@@ -20,7 +20,6 @@
  *
  */
 
-#include <osmocom/layer2.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/debug.h>
 #include <osmocore/protocol/gsm_04_08.h>

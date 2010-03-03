@@ -11,7 +11,7 @@
 #include <osmocom/rslms.h>
 #include <osmocom/layer3.h>
 #include <osmocom/osmocom_data.h>
-#include <osmocom/layer2.h>
+#include <osmocom/l1ctl.h>
 
 static void dump_bcch(uint8_t tc, const uint8_t *data)
 {
