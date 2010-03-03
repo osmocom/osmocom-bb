@@ -13,6 +13,118 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/layer2.h>
 
+static void dump_bcch(uint8_t tc, const uint8_t *data)
+{
+	struct gsm48_system_information_type_header *si_hdr;
+	si_hdr = (struct gsm48_system_information_type_header *) data;;
+
+	/* GSM 05.02 §6.3.1.3 Mapping of BCCH data */
+	switch (si_hdr->system_information) {
+	case GSM48_MT_RR_SYSINFO_1:
+		fprintf(stderr, "\tSI1");
+#ifdef BCCH_TC_CHECK
+		if (tc != 0)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_2:
+		fprintf(stderr, "\tSI2");
+#ifdef BCCH_TC_CHECK
+		if (tc != 1)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_3:
+		fprintf(stderr, "\tSI3");
+#ifdef BCCH_TC_CHECK
+		if (tc != 2 && tc != 6)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_4:
+		fprintf(stderr, "\tSI4");
+#ifdef BCCH_TC_CHECK
+		if (tc != 3 && tc != 7)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_5:
+		fprintf(stderr, "\tSI5");
+		break;
+	case GSM48_MT_RR_SYSINFO_6:
+		fprintf(stderr, "\tSI6");
+		break;
+	case GSM48_MT_RR_SYSINFO_7:
+		fprintf(stderr, "\tSI7");
+#ifdef BCCH_TC_CHECK
+		if (tc != 7)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_8:
+		fprintf(stderr, "\tSI8");
+#ifdef BCCH_TC_CHECK
+		if (tc != 3)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_9:
+		fprintf(stderr, "\tSI9");
+#ifdef BCCH_TC_CHECK
+		if (tc != 4)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_13:
+		fprintf(stderr, "\tSI13");
+#ifdef BCCH_TC_CHECK
+		if (tc != 4 && tc != 0)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_16:
+		fprintf(stderr, "\tSI16");
+#ifdef BCCH_TC_CHECK
+		if (tc != 6)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_17:
+		fprintf(stderr, "\tSI17");
+#ifdef BCCH_TC_CHECK
+		if (tc != 2)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_2bis:
+		fprintf(stderr, "\tSI2bis");
+#ifdef BCCH_TC_CHECK
+		if (tc != 5)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_2ter:
+		fprintf(stderr, "\tSI2ter");
+#ifdef BCCH_TC_CHECK
+		if (tc != 5 && tc != 4)
+			fprintf(stderr, " on wrong TC");
+#endif
+		break;
+	case GSM48_MT_RR_SYSINFO_5bis:
+		fprintf(stderr, "\tSI5bis");
+		break;
+	case GSM48_MT_RR_SYSINFO_5ter:
+		fprintf(stderr, "\tSI5ter");
+		break;
+	default:
+		fprintf(stderr, "\tUnknown SI");
+		break;
+	};
+
+	fprintf(stderr, "\n");
+}
+
+
 /* send location updating request * (as part of RSLms EST IND /
    LAPDm SABME) */
 static int gsm48_tx_loc_upd_req(struct osmocom_ms *ms, uint8_t chan_nr)
@@ -93,7 +205,12 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 	return rc;
 }
 
-int gsm48_rx_dcch(struct msgb *msg, struct osmocom_ms *ms)
+int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 {
-	return -EINVAL;
+	/* FIXME: we have lost the gsm frame time until here, need to store it
+	 * in some msgb context */
+	//dump_bcch(dl->time.tc, ccch->data);
+	dump_bcch(0, msg->l3h);
+
+	return 0;
 }

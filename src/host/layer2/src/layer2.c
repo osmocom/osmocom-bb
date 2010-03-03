@@ -83,93 +83,6 @@ static int rx_l1_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-static void dump_bcch(u_int8_t tc, const uint8_t *data)
-{
-	struct gsm48_system_information_type_header *si_hdr;
-	si_hdr = (struct gsm48_system_information_type_header *) data;;
-
-	/* GSM 05.02 §6.3.1.3 Mapping of BCCH data */
-	switch (si_hdr->system_information) {
-	case GSM48_MT_RR_SYSINFO_1:
-		fprintf(stderr, "\tSI1");
-		if (tc != 0)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_2:
-		fprintf(stderr, "\tSI2");
-		if (tc != 1)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_3:
-		fprintf(stderr, "\tSI3");
-		if (tc != 2 && tc != 6)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_4:
-		fprintf(stderr, "\tSI4");
-		if (tc != 3 && tc != 7)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_5:
-		fprintf(stderr, "\tSI5");
-		break;
-	case GSM48_MT_RR_SYSINFO_6:
-		fprintf(stderr, "\tSI6");
-		break;
-	case GSM48_MT_RR_SYSINFO_7:
-		fprintf(stderr, "\tSI7");
-		if (tc != 7)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_8:
-		fprintf(stderr, "\tSI8");
-		if (tc != 3)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_9:
-		fprintf(stderr, "\tSI9");
-		if (tc != 4)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_13:
-		fprintf(stderr, "\tSI13");
-		if (tc != 4 && tc != 0)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_16:
-		fprintf(stderr, "\tSI16");
-		if (tc != 6)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_17:
-		fprintf(stderr, "\tSI17");
-		if (tc != 2)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_2bis:
-		fprintf(stderr, "\tSI2bis");
-		if (tc != 5)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_2ter:
-		fprintf(stderr, "\tSI2ter");
-		if (tc != 5 && tc != 4)
-			fprintf(stderr, " on wrong TC");
-		break;
-	case GSM48_MT_RR_SYSINFO_5bis:
-		fprintf(stderr, "\tSI5bis");
-		break;
-	case GSM48_MT_RR_SYSINFO_5ter:
-		fprintf(stderr, "\tSI5ter");
-		break;
-	default:
-		fprintf(stderr, "\tUnknown SI");
-		break;
-	};
-
-	fprintf(stderr, "\n");
-}
-
 char *chan_nr2string(uint8_t chan_nr)
 {
 	static char str[20];
@@ -215,7 +128,6 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		chan_nr2string(dl->chan_nr), dl->time.t1, dl->time.t2,
 		dl->time.t3, hexdump(ccch->data, sizeof(ccch->data)));
 
-	dump_bcch(dl->time.tc, ccch->data);
 	/* send CCCH data via GSMTAP */
 	gsmtap_sendmsg(dl->chan_nr & 0x07, dl->band_arfcn, dl->time.fn, ccch->data,
 			sizeof(ccch->data));
