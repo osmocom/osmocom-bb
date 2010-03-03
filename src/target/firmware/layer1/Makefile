@@ -2,15 +2,23 @@ INCLUDES=-I../include/ -I../../../../include
 -include ../Makefile.inc
 
 LIBNAME=layer1
-OBJS=avg.o agc.o afc.o sync.o gsm.o tdma_sched.o tpu_window.o init.o l23_api.o \
-	mframe_sched.o sched_gsmtime.o async.o
+CSRCS=avg.c agc.c afc.c sync.c gsm.c tdma_sched.c tpu_window.c init.c l23_api.c \
+	mframe_sched.c sched_gsmtime.c async.c
+SSRCS=
+
+COBJS=$(CSRCS:.c=.o)
+SOBJS=$(SSRCS:.S=.o)
+OBJS=$(COBJS) $(SOBJS)
 
 LST=$(OBJS:.o=.lst)
 
 all:	lib$(LIBNAME).a
 
-%.o: %.c
+$(COBJS): %.o : %.c
 	$(CROSS_COMPILE)$(CC) $(CFLAGS) -c -o $@ $^
+
+$(SOBJS): %.o : %.S
+	$(CROSS_COMPILE)$(CC) $(ASFLAGS) -c -o $@ $^
 
 lib$(LIBNAME).a: $(OBJS)
 	$(CROSS_COMPILE)$(AR) cru $@ $^
