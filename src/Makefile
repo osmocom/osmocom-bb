@@ -10,7 +10,7 @@ TOPDIR=$(shell pwd)
 OSMOCORE_CONFIGURE_ENV= LIBOSMOCORE_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/.libs/libosmocore.a \
 	 	    	LIBOSMOCORE_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
 
-all: libosmocore-host libosmocore-target layer2 osmocon firmware
+all: libosmocore-host libosmocore-target layer23 osmocon firmware
 
 libosmocore-host: shared/libosmocore/build-host/src/.libs/libosmocore.la
 
@@ -52,17 +52,17 @@ host/osmocon/osmocon: host/osmocon/Makefile libosmocore-host
 	make -C host/osmocon
 
 
-.PHONY: layer2
-layer2: host/layer2/layer2
+.PHONY: layer23
+layer23: host/layer23/layer23
 
-host/layer2/configure: host/layer2/configure.ac
-	cd host/layer2 && autoreconf -i
+host/layer23/configure: host/layer23/configure.ac
+	cd host/layer23 && autoreconf -i
 
-host/layer2/Makefile: host/layer2/configure
-	cd host/layer2 && $(OSMOCORE_CONFIGURE_ENV) ./configure
+host/layer23/Makefile: host/layer23/configure
+	cd host/layer23 && $(OSMOCORE_CONFIGURE_ENV) ./configure
 
-host/layer2/layer2: host/layer2/Makefile libosmocore-host
-	make -C host/layer2
+host/layer23/layer23: host/layer23/Makefile libosmocore-host
+	make -C host/layer23
 
 
 .PHONY: firmware
@@ -73,13 +73,13 @@ firmware: libosmocore-target
 clean:
 	make -C shared/libosmocore/build-host $@
 	make -C shared/libosmocore/build-target $@
-	make -C host/layer2 $@
+	make -C host/layer23 $@
 	make -C host/osmocon $@
 	make -C target/firmware $@
 
 distclean:
 	rm -rf shared/libosmocore/build-host
 	rm -rf shared/libosmocore/build-target
-	make -C host/layer2 $@
+	make -C host/layer23 $@
 	make -C host/osmocon $@
 	make -C target/firmware $@
