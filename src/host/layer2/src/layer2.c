@@ -211,10 +211,9 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 	ccch = (struct l1ctl_data_ind *) msg->l2h;
-	printf("Found %s burst(s): TDMA: (%.4u/%.2u/%.2u) tc:%d %s si: 0x%x\n",
+	printf("%s (%.4u/%.2u/%.2u) %s\n",
 		chan_nr2string(dl->chan_nr), dl->time.t1, dl->time.t2,
-		dl->time.t3, dl->time.tc, hexdump(ccch->data, sizeof(ccch->data)),
-		ccch->data[2]);
+		dl->time.t3, hexdump(ccch->data, sizeof(ccch->data)));
 
 	dump_bcch(dl->time.tc, ccch->data);
 	/* send CCCH data via GSMTAP */
@@ -244,8 +243,19 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 {
 	struct l1ctl_info_ul *l1i_ul;
 
+	printf("tx_ph_data_req(%s)\n", hexdump(msg->l2h, msgb_l2len(msg)));
+
+	if (msgb_l2len(msg) > 23) {
+		printf("L1 cannot handle message length > 23 (%u)\n", msgb_l2len(msg));
+		msgb_free(msg);
+		return -EINVAL;
+	} else if (msgb_l2len(msg) < 23)
+		printf("L1 message length < 23 (%u) doesn't seem right!\n", msgb_l2len(msg));
+
 	/* prepend uplink info header */
-	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));
+	printf("sizeof(struct l1ctl_info_ul)=%lu\n", sizeof(*l1i_ul));
+	msg->l1h = msgb_push(msg, sizeof(*l1i_ul));
+	l1i_ul = (struct l1ctl_info_ul *) msg->l1h;
 
 	l1i_ul->msg_type = L1CTL_DATA_REQ;
 
@@ -296,7 +306,6 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
 	struct l1ctl_dm_est_req *req;
-	static uint8_t i = 0;
 
 	msg = osmo_l1_alloc(L1CTL_DM_EST_REQ);
 	if (!msg)
@@ -304,7 +313,7 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 
 	printf("Tx Dedic.Mode Est Req (arfcn=%u, chan_nr=0x%02x)\n",
 		band_arfcn, chan_nr);
-	ul = (struct l1ct_info_ul *) msg->l1h;
+	ul = (struct l1ctl_info_ul *) msg->l1h;
 	ul->chan_nr = chan_nr;
 	ul->link_id = 0;
 	ul->tx_power = 0; /* FIXME: initial TX power */
