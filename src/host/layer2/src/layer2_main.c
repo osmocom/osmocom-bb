@@ -94,9 +94,12 @@ int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg)
 	int rc;
 	uint16_t *len;
 
-	LOGP(DMUX, LOGL_INFO, "Sending: '%s'\n", hexdump(msg->data, msg->len));
+	printf("Sending: '%s'\n", hexdump(msg->data, msg->len));
 
+	if (msg->l1h != msg->data)
+		printf("Message L1 header != Message Data\n");
 	
+	/* prepend 16bit length before sending */
 	len = (uint16_t *) msgb_push(msg, sizeof(*len));
 	*len = htons(msg->len - sizeof(*len));
 
