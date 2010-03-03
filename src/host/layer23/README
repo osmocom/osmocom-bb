@@ -1,0 +1,42 @@
+= OsmocomBB layer23 architecture =
+
+layer23 is an (incomplete) MS-side implementation of the L2 and L3 GSM
+protocols as described in GSM TS 04.06, 04.08 and others.
+
+== Interfaces ==
+
+L1 (on the phone) uses the L1CTL protocol to talk with layer23 (on the PC).
+
+L2 (inside layer23) uses the RSLms protocol to talk with the L3 (inside layer23)
+
+
+=== RSLms ===
+
+RSLms is modeled after the GSM TS 08.58 Radio Subsystem Link protocol.  Despite
+being designed for the network side, RSL seems a good match for the L2/L3
+interface inside a MS, too.
+
+At least the RLL (Radio Link Layer) part of RSL is 100% as applicable to the MS
+side as it is for the ntwork side.
+
+==== Lower interface (L2 to RSLms) ====
+
+Layer2 calls rslms_sendmsg() with a msgb that has the msgb->l2h pointing to a
+RSL header (struct abis_rsl_common_hdr).
+
+==== Upper interface (L3 to RSLms) ====
+
+Layer3 calls rslms_recvmsg() with a msgb that has the msgb->l2h pointing to a
+RSL header (struct abis_rsl_common_hdr).
+
+There are utility functions like rslms_tx_rll_req() and rslms_tx_rsll_req_l3()
+for creating msgb's with the apropriate RSL/RLL headers.
+
+
+=== LAPDm ===
+
+LAPDm is the GSM TS 04.06 protocol
+
+The lower interface (to L1) is using L1CTL
+
+The upper interface (to L3) is using RSLms
