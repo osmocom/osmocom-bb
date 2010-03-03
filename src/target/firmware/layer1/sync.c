@@ -985,15 +985,17 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 			uint16_t *info_ptr = dsp_api.ndb->a_cu;
 			struct llist_head *tx_queue;
 			struct msgb *msg;
-			uint8_t *data;
+			const uint8_t *data;
 			uint8_t j;
 
 			/* distinguish between DCCH and ACCH */
-			if (mf_task_flags & MF_F_SACCH)
-				tx_queue = &l1s.tx_queue[0];
-			else
-				tx_queue = &l1s.tx_queue[1];
-
+			if (mf_task_flags & MF_F_SACCH) {
+				puts("SACCH queue ");
+				tx_queue = &l1s.tx_queue[L1S_CHAN_SACCH];
+			} else {
+				puts("SDCCH queue ");
+				tx_queue = &l1s.tx_queue[L1S_CHAN_MAIN];
+			}
 			msg = msgb_dequeue(tx_queue);
 
 			/* If the TX queue is empty, send idle pattern */
@@ -1013,10 +1015,12 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 			/* Copy first 22 bytes in the first 11 words after header. */
 			for (i=0, j=(3+0); j<(3+11); j++) {
 				info_ptr[j] = ((uint16_t)(data[i])) | ((uint16_t)(data[i+1]) << 8);
+				printf("%02x %02x ", data[i], data[i+1]);
 				i += 2;
 			}
 			/* Copy last UWORD8 (23rd) in the 12th word after header. */
 			info_ptr[14] = data[22];
+			printf("%02x\n", data[22]);
 
 			if (msg)
 				msgb_free(msg);
@@ -1102,7 +1106,7 @@ static void frame_irq(enum irq_nr nr)
 
 void l1s_init(void)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(l1s.tx_queue); i++)
 		INIT_LLIST_HEAD(&l1s.tx_queue[i]);

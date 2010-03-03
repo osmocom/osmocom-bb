@@ -20,8 +20,11 @@
  *
  */
 
+#define DEBUG
+
 #include <stdint.h>
 #include <stdio.h>
+#include <debug.h>
 
 #include <comm/msgb.h>
 #include <comm/sercomm.h>
@@ -29,6 +32,9 @@
 #include <layer1/sync.h>
 #include <layer1/async.h>
 #include <layer1/mframe_sched.h>
+#include <layer1/tpu_window.h>
+
+#include <rf/trf6151.h>
 
 #include <l1a_l23_interface.h>
 
@@ -97,16 +103,24 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr)
 /* callbakc from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
-	struct l1ctl_info_ul *ul = msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) msg->data;
 	struct l1ctl_sync_new_ccch_req *sync_req;
 	struct l1ctl_rach_req *rach_req;
 	struct l1ctl_dm_est_req *est_req;
 	struct l1ctl_data_ind *data_ind;
 	struct llist_head *tx_queue;
 
+	{
+		int i;
+		puts("l1a_l23_rx_cb: ");
+		for (i = 0; i < msg->len; i++)
+			printf("%02x ", msg->data[i]);
+		puts("\n");
+	}
+
 	if (sizeof(*ul) > msg->len) {
 		printf("l1a_l23_cb: Short message. %u\n", msg->len);
-		goto exit;
+		goto exit_msgbfree;
 	}
 
 	switch (ul->msg_type) {
@@ -117,7 +131,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		}
 
 		sync_req = (struct l1ctl_sync_new_ccch_req *) (&msg->data[0] + sizeof(*ul));
-		printf("Asked to tune to frequency: %u\n", sync_req->band_arfcn);
+		printd("L1CTL_DM_EST_REQ (arfcn=%u)\n", sync_req->band_arfcn);
 
 		/* reset scheduler and hardware */
 		tdma_sched_reset();
@@ -127,11 +141,13 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		trf6151_rx_window(0, sync_req->band_arfcn, 40, 0);
 		tpu_end_scenario();
 
-		puts("Starting FCCH Recognition\n");
+		printd("Starting FCCH Recognition\n");
 		l1s_fb_test(1, 0);
 		break;
 	case L1CTL_DM_EST_REQ:
 		est_req = (struct l1ctl_dm_est_req *) ul->payload;
+		printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x)\n",
+			est_req->band_arfcn, ul->chan_nr);
 		if (est_req->band_arfcn != l1s.serving_cell.arfcn) {
 			/* FIXME: ARFCN */
 			puts("We don't support ARFCN switches yet\n");
@@ -151,24 +167,30 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		l1s.mf_tasks = (1 << chan_nr2mf_task(ul->chan_nr));
 		break;
 	case L1CTL_RACH_REQ:
-		puts("CCCH_RACH_REQ\n");
 		rach_req = (struct l1ctl_rach_req *) ul->payload;
+		printd("L1CTL_RACH_REQ (ra=0x%02x)\n", rach_req->ra);
 		l1a_rach_req(27, rach_req->ra);
 		break;
 	case L1CTL_DATA_REQ:
-		puts("DEDIC_MODE_DATA_REQ\n");
 		data_ind = (struct l1ctl_data_ind *) ul->payload;
+		printd("L1CTL_DATA_REQ (link_id=0x%02x)\n", ul->link_id);
+		printd("sizeof(struct l1ctl_info_ul)=%u\n", sizeof(struct l1ctl_info_ul));
 		if (ul->link_id & 0x40)
 			tx_queue = &l1s.tx_queue[L1S_CHAN_SACCH];
 		else
 			tx_queue = &l1s.tx_queue[L1S_CHAN_MAIN];
 		msg->l3h = data_ind->data;
+		printd("ul=%p, ul->payload=%p, data_ind=%p, data_ind->data=%p l3h=%p\n",
+			ul, ul->payload, data_ind, data_ind->data, msg->l3h);
 		l1a_txq_msgb_enq(tx_queue, msg);
-		break;
+		/* we have to keep the msgb, not free it! */
+		goto exit_nofree;
 	}
 
-exit:
+exit_msgbfree:
 	msgb_free(msg);
+exit_nofree:
+	return;
 }
 
 void l1a_l23api_init(void)
