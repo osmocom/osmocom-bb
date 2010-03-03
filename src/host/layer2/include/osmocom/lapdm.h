@@ -9,12 +9,12 @@
 #include <l1a_l23_interface.h>
 
 enum lapdm_state {
-	LAPDm_STATE_NULL,
 	LAPDm_STATE_IDLE,
 	LAPDm_STATE_SABM_SENT,
 	LAPDm_STATE_MF_EST,
 	LAPDm_STATE_TIMER_RECOV,
 	LAPDm_STATE_OWN_RCVR_BUSY,
+	LAPDm_STATE_NULL,
 };
 
 struct lapdm_entity;
