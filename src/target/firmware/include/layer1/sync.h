@@ -80,6 +80,8 @@ void l1s_set_handler(l1s_cb_t handler);
 int16_t l1s_snr_int(uint16_t snr);
 uint16_t l1s_snr_fract(uint16_t snr);
 
+void l1s_dsp_abort(void);
+
 void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode);
 void l1s_sb_test(uint8_t base_fn);
 void l1s_pm_test(uint8_t base_fn, uint16_t arfcn);
