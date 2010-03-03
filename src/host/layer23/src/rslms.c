@@ -118,21 +118,26 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 	switch (rllh->c.msg_type) {
 	case RSL_MT_DATA_IND:
 		printf("RSLms DATA IND\n");
+		/* FIXME: implement this */
 		break;
 	case RSL_MT_UNIT_DATA_IND:
 		rc = rslms_rx_udata_ind(msg, ms);
 		break;
 	case RSL_MT_EST_IND:
 		printf("RSLms EST IND\n");
+		/* FIXME: implement this */
 		break;
 	case RSL_MT_EST_CONF:
 		printf("RSLms EST CONF\n");
+		/* FIXME: implement this */
 		break;
 	case RSL_MT_REL_CONF:
 		printf("RSLms REL CONF\n");
+		/* FIXME: implement this */
 		break;
 	case RSL_MT_ERROR_IND:
 		printf("RSLms ERR IND\n");
+		/* FIXME: implement this */
 		break;
 	default:
 		printf("unknown RSLms message type 0x%02x\n", rllh->c.msg_type);
@@ -153,6 +158,7 @@ int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms)
 		rc = rslms_rx_rll(msg, ms);
 		break;
 	default:
+		/* FIXME: implement this */
 		printf("unknown RSLms msg_discr 0x%02x\n", rslh->msg_discr);
 		rc = -EINVAL;
 		break;
