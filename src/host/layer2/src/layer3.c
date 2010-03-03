@@ -21,7 +21,10 @@ static int gsm48_tx_loc_upd_req(struct osmocom_ms *ms, uint8_t chan_nr)
 	struct gsm48_hdr *gh;
 	struct gsm48_loc_upd_req *lu_r;
 
-	gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	printf("gsm48_tx_loc_upd_req()\n");
+
+	msg->l3h = msgb_put(msg, sizeof(*gh));
+	gh = (struct gsm48_hdr *) msg->l3h;
 	gh->proto_discr = GSM48_PDISC_MM;
 	gh->msg_type = GSM48_MT_MM_LOC_UPD_REQUEST;
 	lu_r = (struct gsm48_loc_upd_req *) msgb_put(msg, sizeof(*lu_r));
