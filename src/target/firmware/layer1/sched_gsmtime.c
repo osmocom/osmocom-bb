@@ -34,7 +34,7 @@ static LLIST_HEAD(active_evts);
 static LLIST_HEAD(inactive_evts);
 
 /* Scheduling of a tdma_sched_item list one-shot at a givnen GSM time */
-int sched_gsmtime(struct tdma_sched_item *si, uint32_t fn, uint16_t p3)
+int sched_gsmtime(const struct tdma_sched_item *si, uint32_t fn, uint16_t p3)
 {
 	struct llist_head *lh;
 	struct sched_gsmtime_event *evt, *cur;
