@@ -51,13 +51,13 @@
 /* TS 04.06 Table 3 / Section 3.4.3 */
 #define LAPDm_CTRL_I(nr, ns, p)	(((nr & 0x7) << 5) | ((p & 0x1) << 4) | ((ns & 0x7) << 1))
 #define LAPDm_CTRL_S(nr, s, p)	(((nr & 0x7) << 5) | ((p & 0x1) << 4) | ((s & 0x3) << 2) | 0x1)
-#define LAPDm_CTRL_U(u, p)	(((u & 0x1c) << 5) | ((p & 0x1) << 4) | ((u & 0x3) << 2) | 0x3)
+#define LAPDm_CTRL_U(u, p)	(((u & 0x1c) << (5-2)) | ((p & 0x1) << 4) | ((u & 0x3) << 2) | 0x3)
 
 #define LAPDm_CTRL_is_I(ctrl)	((ctrl & 0x1) == 0)
 #define LAPDm_CTRL_is_S(ctrl)	((ctrl & 0x3) == 1)
 #define LAPDm_CTRL_is_U(ctrl)	((ctrl & 0x3) == 3)
 
-#define LAPDm_CTRL_U_BITS(ctrl)	(((ctrl & 0xC) >> 2) | (ctrl & 0xE) >> 3)
+#define LAPDm_CTRL_U_BITS(ctrl)	(((ctrl & 0xC) >> 2) | (ctrl & 0xE0) >> 3)
 #define LAPDm_CTRL_PF_BIT(ctrl)	((ctrl >> 4) & 0x1)
 
 #define LAPDm_CTRL_S_BITS(ctrl)	((ctrl & 0xC) >> 2)
@@ -172,11 +172,33 @@ static inline unsigned char *msgb_pull_l2h(struct msgb *msg)
 	return ret;
 }
 
+/* Append padding (if required) */
+static void lapdm_pad_msgb(struct msgb *msg)
+{
+	int pad_len = 23 - msgb_l2len(msg);
+	uint8_t *data;
+
+	if (pad_len < 0) {
+		printf("cannot pad message that is already too big!\n");
+		return;
+	}
+
+	data = msgb_put(msg, pad_len);
+	memset(data, 0x2B, pad_len);
+}
+
+static int tx_ph_data_req_pad(struct osmocom_ms *ms, struct msgb *msg,
+				uint8_t chan_nr, uint8_t link_id)
+{
+	lapdm_pad_msgb(msg);
+	return tx_ph_data_req(ms, msg, chan_nr, link_id);
+}
+
 /* Take a Bbis format message from L1 and create RSLms UNIT DATA IND */
 static int send_rslms_rll_l3(uint8_t msg_type, struct lapdm_msg_ctx *mctx,
 			     struct msgb *msg)
 {
-	/* Add the L3 header */
+	/* Add the RSL + RLL header */
 	rsl_rll_push_l3(msg, msg_type, mctx->chan_nr, mctx->link_id);
 
 	/* send off the RSLms message to L3 */
@@ -214,6 +236,8 @@ static void lapdm_t200_cb(void *data)
 {
 	struct lapdm_datalink *dl = data;
 
+	printf("lapdm_t200_cb(%p) state=%u\n", dl, dl->state);
+
 	switch (dl->state) {
 	case LAPDm_STATE_SABM_SENT:
 		/* 5.4.1.3 */
@@ -223,7 +247,7 @@ static void lapdm_t200_cb(void *data)
 			dl->state = LAPDm_STATE_IDLE;
 		}
 		/* FIXME: retransmit SABM command */
-
+		//rslms_rx_rll_est_req(msg, dl);
 		/* increment re-transmission counter */
 		dl->retrans_ctr++;
 		/* restart T200 (PH-READY-TO-SEND) */
@@ -245,21 +269,21 @@ static void lapdm_t200_cb(void *data)
 		}
 		break;
 	default:
-		printf("T200 expired in dl->state %u\n", dl->state);
+		printf("T200 expired in unexpected dl->state %u\n", dl->state);
 	}
 }
 
 static int lapdm_send_rr(struct lapdm_msg_ctx *mctx, uint8_t f_bit)
 {
 	uint8_t sapi = mctx->link_id & 7;
-	struct msgb *msg = msgb_alloc(24, "LAPDm RR");
-	uint8_t *data = msgb_put(msg, 3);
+	struct msgb *msg = msgb_alloc_headroom(23+10, 10, "LAPDm RR");
+	msg->l2h = msgb_put(msg, 3);
 
-	data[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_RESP);
-	data[1] = LAPDm_CTRL_S(mctx->dl->V_recv, LAPDm_S_RR, f_bit);
-	data[2] = LAPDm_LEN(0);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_RESP);
+	msg->l2h[1] = LAPDm_CTRL_S(mctx->dl->V_recv, LAPDm_S_RR, f_bit);
+	msg->l2h[2] = LAPDm_LEN(0);
 
-	return tx_ph_data_req(mctx->dl->entity->ms, msg, mctx->chan_nr, mctx->link_id);
+	return tx_ph_data_req_pad(mctx->dl->entity->ms, msg, mctx->chan_nr, mctx->link_id);
 }
 
 /* L1 -> L2 */
@@ -298,8 +322,10 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			msgb_pull_l2h(msg);
 			rc = send_rslms_rll_l3(RSL_MT_EST_IND, mctx, msg);
 		}
+#if 0
 		if (rc == 0)
 			dl->state = LAPDm_STATE_SABM_SENT;
+#endif
 		break;
 	case LAPDm_U_DM:
 		printf("DM ");
@@ -626,7 +652,8 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	uint8_t sapi = rllh->link_id & 7;
 	struct tlv_parsed tv;
 	uint8_t len;
-	uint8_t *lapdh;
+
+	printf("RSL_MT_EST_REQ ");
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 	if (TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
@@ -635,12 +662,14 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 			/* 5.4.1.4: The data link layer shall, however, ignore any such
 			 * service request if it is not in the idle state when the
 			 * request is received. */
+			printf("DL state != IDLE (discarding)\n");
 			msgb_free(msg);
 			return 0;
 		}
 		if (sapi != 0) {
 			/* According to clause 6, the contention resolution
 			 * procedure is only permitted with SAPI value 0 */
+			printf("SAPI != 0 but contention resolution (discarding)\n");
 			msgb_free(msg);
 			return -EINVAL;
 		}
@@ -658,14 +687,15 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msgb_pull_l2h(msg);
 
 	/* Push LAPDm header on msgb */
-	lapdh = msgb_push(msg, 3);
-	lapdh[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
-	lapdh[1] = LAPDm_CTRL_U(LAPDm_U_SABM, 1);
-	lapdh[2] = len;
+	msg->l2h = msgb_push(msg, 3);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
+	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_SABM, 1);
+	msg->l2h[2] = len;
 
 	/* Tramsmit and start T200 */
+	dl->state = LAPDm_STATE_SABM_SENT;
 	bsc_schedule_timer(&dl->t200, T200);
-	return tx_ph_data_req(dl->entity->ms, msg, chan_nr, link_id);
+	return tx_ph_data_req_pad(dl->entity->ms, msg, chan_nr, link_id);
 }
 
 /* L3 requests transfer of unnumbered information */
@@ -676,7 +706,6 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	uint8_t link_id = rllh->link_id;
 	uint8_t sapi = link_id & 7;
 	struct tlv_parsed tv;
-	uint8_t *lapdh;
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 
@@ -684,14 +713,14 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msgb_pull_l2h(msg);
 
 	/* Push LAPDm header on msgb */
-	lapdh = msgb_push(msg, 3);
-	lapdh[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
-	lapdh[1] = LAPDm_CTRL_U(LAPDm_U_SABM, 1);
-	lapdh[2] = LAPDm_LEN(TLVP_LEN(&tv, RSL_IE_L3_INFO));
+	msg->l2h = msgb_push(msg, 3);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
+	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_SABM, 1);
+	msg->l2h[2] = LAPDm_LEN(TLVP_LEN(&tv, RSL_IE_L3_INFO));
 
 	/* Tramsmit and start T200 */
 	bsc_schedule_timer(&dl->t200, T200);
-	return tx_ph_data_req(dl->entity->ms, msg, chan_nr, link_id);
+	return tx_ph_data_req_pad(dl->entity->ms, msg, chan_nr, link_id);
 }
 
 /* L3 requests transfer of acknowledged information */
@@ -702,7 +731,6 @@ static int rslms_rx_rll_data_req(struct msgb *msg, struct lapdm_datalink *dl)
 	uint8_t link_id = rllh->link_id;
 	uint8_t sapi = rllh->link_id & 7;
 	struct tlv_parsed tv;
-	uint8_t *lapdh;
 
 	switch (dl->state) {
 	case LAPDm_STATE_MF_EST:
@@ -721,10 +749,10 @@ static int rslms_rx_rll_data_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msgb_pull_l2h(msg);
 
 	/* Push the LAPDm header */
-	lapdh = msgb_put(msg, 3);
-	lapdh[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
-	lapdh[1] = LAPDm_CTRL_I(dl->V_recv, dl->V_send, 0);
-	lapdh[2] = LAPDm_LEN(TLVP_LEN(&tv, RSL_IE_L3_INFO));
+	msg->l2h = msgb_put(msg, 3);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
+	msg->l2h[1] = LAPDm_CTRL_I(dl->V_recv, dl->V_send, 0);
+	msg->l2h[2] = LAPDm_LEN(TLVP_LEN(&tv, RSL_IE_L3_INFO));
 
 	/* The value of the send state variable V(S) shall be incremented by 1
 	 * at the end of the transmission of the I frame */
@@ -743,7 +771,7 @@ static int rslms_rx_rll_data_req(struct msgb *msg, struct lapdm_datalink *dl)
 	 * of the error recovery procedures as described in subclauses 5.5.4 and
 	 * 5.5.7. */
 
-	return tx_ph_data_req(dl->entity->ms, msg, chan_nr, link_id);
+	return tx_ph_data_req_pad(dl->entity->ms, msg, chan_nr, link_id);
 }
 
 /* incoming RSLms RLL message from L3 */
@@ -793,6 +821,7 @@ int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms)
 
 	switch (rslh->msg_discr & 0xfe) {
 	case ABIS_RSL_MDISC_RLL:
+		printf("rslms_recvmsg(ABIS_RSL_MDISC_RLL)\n");
 		rc = rslms_rx_rll(msg, ms);
 		break;
 	default:
