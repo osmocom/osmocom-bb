@@ -677,7 +677,7 @@ static int l1s_sbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
 	l1s_time_inc(&l1s.next_time, 1);
 
 	/* place it in the queue for the layer2 */
-	msg = l1_create_l2_msg(L1CTL_NEW_CCCH_RESP, sb_time.fn, last_fb->snr);
+	msg = l1_create_l2_msg(L1CTL_NEW_CCCH_RESP, sb_time.fn, last_fb->snr, rf_arfcn);
 	l1 = (struct l1ctl_sync_new_ccch_resp *) msgb_put(msg, sizeof(*l1));
 	l1->bsic = bsic;
 	l1_queue_for_l2(msg);
@@ -855,7 +855,7 @@ static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 			l1s_cb(sig);
 
 		/* place it in the queue for the layer2 */
-		msg = l1_create_l2_msg(L1CTL_DATA_IND, l1s.current_time.fn-4, last_fb->snr);
+		msg = l1_create_l2_msg(L1CTL_DATA_IND, l1s.current_time.fn-4, last_fb->snr, rf_arfcn);
 		dl = (struct l1ctl_info_dl *) msg->data;
 		l1 = (struct l1ctl_data_ind *) msgb_put(msg, sizeof(*l1));
 

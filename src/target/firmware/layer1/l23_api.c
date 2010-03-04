@@ -77,7 +77,8 @@ static enum mframe_task chan_nr2mf_task(uint8_t chan_nr)
 	return 0;
 }
 
-struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr)
+struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
+			      uint16_t arfcn)
 {
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
@@ -96,6 +97,7 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr)
 	/* FIXME: we may want to compute T1/T2/T3 in L23 */
 	gsm_fn2gsmtime(&dl->time, fn);
 	dl->snr[0] = snr;
+	dl->band_arfcn = arfcn;
 
 	return msg;
 }
