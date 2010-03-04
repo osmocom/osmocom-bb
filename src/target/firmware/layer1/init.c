@@ -72,6 +72,6 @@ void layer1_init(void)
 	irq_disable(IRQ_RTC_TIMER);
 
 	/* inform l2 and upwards that we are ready for orders */
-	msg = l1_create_l2_msg(L1CTL_RESET, 0, 0);
+	msg = l1_create_l2_msg(L1CTL_RESET, 0, 0, 0);
 	l1_queue_for_l2(msg);
 }
