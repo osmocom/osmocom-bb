@@ -30,3 +30,17 @@ int get_string_value(const struct value_string *vs, const char *str)
 	}
 	return -EINVAL;
 }
+
+char bcd2char(uint8_t bcd)
+{
+	if (bcd < 0xa)
+		return '0' + bcd;
+	else
+		return 'A' + (bcd - 0xa);
+}
+
+/* only works for numbers in ascci */
+uint8_t char2bcd(char c)
+{
+	return c - 0x30;
+}
