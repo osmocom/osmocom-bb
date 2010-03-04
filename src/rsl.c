@@ -124,7 +124,7 @@ uint8_t rsl_enc_chan_nr(uint8_t type, uint8_t subch, uint8_t timeslot)
 		subch &= 0x01;
 		break;
 	case RSL_CHAN_SDCCH4_ACCH:
-		subch &= 0x07;
+		subch &= 0x03;
 		break;
 	case RSL_CHAN_SDCCH8_ACCH:
 		subch &= 0x07;
