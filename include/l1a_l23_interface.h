@@ -43,7 +43,7 @@ struct gsm_time {
 	uint8_t		t2;	/* FN modulo 26 */
 	uint8_t		t3;	/* FN modulo 51 */
 	uint8_t		tc;
-};
+} __attribute__((packed));
 
 /*
  * downlink info ... down from the BTS..
