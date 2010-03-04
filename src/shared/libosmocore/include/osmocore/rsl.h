@@ -22,10 +22,10 @@ const char *rsl_err_name(uint8_t err);
 int rsl_ccch_conf_to_bs_cc_chans(int ccch_conf);
 
 /* Push a RSL RLL header with L3_INFO IE */
-int rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type,
-		    uint8_t chan_nr, uint8_t link_id);
+void rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type, uint8_t chan_nr,
+		     uint8_t link_id, int transparent);
 
 /* Allocate msgb and fill with simple RSL RLL header */
 struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
-			    uint8_t link_id);
+			    uint8_t link_id, int transparent);
 #endif /* _OSMOCORE_RSL_H */

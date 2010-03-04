@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "../config.h"
 
@@ -191,6 +192,60 @@ uint8_t dbm2rxlev(int dbm)
 
 	return rxlev;
 }
+
+char *gsm_band_name(enum gsm_band band)
+{
+	switch (band) {
+	case GSM_BAND_450:
+		return "GSM450";
+	case GSM_BAND_480:
+		return "GSM450";
+	case GSM_BAND_750:
+		return "GSM750";
+	case GSM_BAND_810:
+		return "GSM810";
+	case GSM_BAND_850:
+		return "GSM850";
+	case GSM_BAND_900:
+		return "GSM900";
+	case GSM_BAND_1800:
+		return "DCS1800";
+	case GSM_BAND_1900:
+		return "PCS1900";
+	}
+	return "invalid";
+}
+
+enum gsm_band gsm_band_parse(const char* mhz)
+{
+	while (*mhz && !isdigit(*mhz))
+		mhz++;
+
+	if (*mhz == '\0')
+		return -EINVAL;
+
+	switch (atoi(mhz)) {
+	case 450:
+		return GSM_BAND_450;
+	case 480:
+		return GSM_BAND_480;
+	case 750:
+		return GSM_BAND_750;
+	case 810:
+		return GSM_BAND_810;
+	case 850:
+		return GSM_BAND_850;
+	case 900:
+		return GSM_BAND_900;
+	case 1800:
+		return GSM_BAND_1800;
+	case 1900:
+		return GSM_BAND_1900;
+	default:
+		return -EINVAL;
+	}
+}
+
 
 #ifdef HAVE_EXECINFO_H
 #include <execinfo.h>

@@ -2,7 +2,7 @@
 /*
  * (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
  * (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
- * (C) 2009 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -37,6 +37,9 @@ enum gsm_band {
 	GSM_BAND_750	= 0x40,
 	GSM_BAND_810	= 0x80,
 };
+
+char *gsm_band_name(enum gsm_band band);
+enum gsm_band gsm_band_parse(const char *mhz);
 
 int gsm_7bit_decode(char *decoded, const uint8_t *user_data, uint8_t length);
 int gsm_7bit_encode(uint8_t *result, const char *data);

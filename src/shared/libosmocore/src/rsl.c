@@ -1,7 +1,7 @@
 /* GSM Radio Signalling Link messages on the A-bis interface 
  * 3GPP TS 08.58 version 8.6.0 Release 1999 / ETSI TS 100 596 V8.6.0 */
 
-/* (C) 2008-2009 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2008-2010 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -23,6 +23,9 @@
 
 #include <osmocore/tlv.h>
 #include <osmocore/rsl.h>
+
+#define RSL_ALLOC_SIZE		200
+#define RSL_ALLOC_HEADROOM	56
 
 void rsl_init_rll_hdr(struct abis_rsl_rll_hdr *dh, uint8_t msg_type)
 {
@@ -124,7 +127,7 @@ uint8_t rsl_enc_chan_nr(uint8_t type, uint8_t subch, uint8_t timeslot)
 		subch &= 0x01;
 		break;
 	case RSL_CHAN_SDCCH4_ACCH:
-		subch &= 0x07;
+		subch &= 0x03;
 		break;
 	case RSL_CHAN_SDCCH8_ACCH:
 		subch &= 0x07;
@@ -239,8 +242,8 @@ int rsl_ccch_conf_to_bs_ccch_sdcch_comb(int ccch_conf)
 }
 
 /* Push a RSL RLL header with L3_INFO IE */
-int rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type,
-		    uint8_t chan_nr, uint8_t link_id)
+void rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type, uint8_t chan_nr,
+		     uint8_t link_id, int transparent)
 {
 	uint8_t l3_len = msg->tail - (uint8_t *)msgb_l3(msg);
 	struct abis_rsl_rll_hdr *rh;
@@ -254,21 +257,23 @@ int rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type,
 	/* Then push the RSL header */
 	rh = (struct abis_rsl_rll_hdr *) msgb_push(msg, sizeof(*rh));
 	rsl_init_rll_hdr(rh, msg_type);
-	rh->c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
+	if (transparent)
+		rh->c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
 	rh->chan_nr = chan_nr;
 	rh->link_id = link_id;
 
 	/* set the l2 header pointer */
 	msg->l2h = (uint8_t *)rh;
-
-	return 0;
 }
 
 struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
-			    uint8_t link_id)
+			    uint8_t link_id, int transparent)
 {
 	struct abis_rsl_rll_hdr *rh;
-	struct msgb *msg = msgb_alloc(sizeof(*rh), "rsl_rll_simple");
+	struct msgb *msg;
+
+	msg = msgb_alloc_headroom(RSL_ALLOC_SIZE+RSL_ALLOC_HEADROOM,
+				  RSL_ALLOC_HEADROOM, "rsl_rll_simple");
 
 	if (!msg)
 		return NULL;
@@ -276,7 +281,8 @@ struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
 	/* put the RSL header */
 	rh = (struct abis_rsl_rll_hdr *) msgb_put(msg, sizeof(*rh));
 	rsl_init_rll_hdr(rh, msg_type);
-	rh->c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
+	if (transparent)
+		rh->c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
 	rh->chan_nr = chan_nr;
 	rh->link_id = link_id;
 
