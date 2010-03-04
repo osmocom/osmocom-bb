@@ -199,7 +199,7 @@ static int send_rslms_rll_l3(uint8_t msg_type, struct lapdm_msg_ctx *mctx,
 			     struct msgb *msg)
 {
 	/* Add the RSL + RLL header */
-	rsl_rll_push_l3(msg, msg_type, mctx->chan_nr, mctx->link_id);
+	rsl_rll_push_l3(msg, msg_type, mctx->chan_nr, mctx->link_id, 1);
 
 	/* send off the RSLms message to L3 */
 	return rslms_sendmsg(msg, mctx->dl->entity->ms);
@@ -209,7 +209,7 @@ static int send_rslms_rll_simple(uint8_t msg_type, struct lapdm_msg_ctx *mctx)
 {
 	struct msgb *msg;
 
-	msg = rsl_rll_simple(msg_type, mctx->chan_nr, mctx->link_id);
+	msg = rsl_rll_simple(msg_type, mctx->chan_nr, mctx->link_id, 1);
 
 	/* send off the RSLms message to L3 */
 	return rslms_sendmsg(msg, mctx->dl->entity->ms);

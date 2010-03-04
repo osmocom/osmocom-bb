@@ -65,7 +65,7 @@ int rslms_tx_rll_req(struct osmocom_ms *ms, uint8_t msg_type,
 {
 	struct msgb *msg;
 
-	msg = rsl_rll_simple(msg_type, chan_nr, link_id);
+	msg = rsl_rll_simple(msg_type, chan_nr, link_id, 1);
 
 	return rslms_recvmsg(msg, ms);
 }
@@ -74,7 +74,7 @@ int rslms_tx_rll_req(struct osmocom_ms *ms, uint8_t msg_type,
 int rslms_tx_rll_req_l3(struct osmocom_ms *ms, uint8_t msg_type,
 			uint8_t chan_nr, uint8_t link_id, struct msgb *msg)
 {
-	rsl_rll_push_l3(msg, msg_type, chan_nr, link_id);
+	rsl_rll_push_l3(msg, msg_type, chan_nr, link_id, 1);
 
 	return rslms_recvmsg(msg, ms);
 }
