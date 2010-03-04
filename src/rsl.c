@@ -161,13 +161,13 @@ int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *tim
 	} else if ((chan_nr & 0xc0) == RSL_CHAN_SDCCH8_ACCH) {
 		*type = RSL_CHAN_SDCCH8_ACCH;
 		*subch = (chan_nr >> 3) & 0x7;
-	} else if (chan_nr == 0x10) {
+	} else if ((chan_nr & 0xf8) == RSL_CHAN_BCCH) {
 		*type = RSL_CHAN_BCCH;
 		*subch = 0;
-	} else if (chan_nr == 0x11) {
+	} else if ((chan_nr & 0xf8) == RSL_CHAN_RACH) {
 		*type = RSL_CHAN_RACH;
 		*subch = 0;
-	} else if (chan_nr == 0x12) {
+	} else if ((chan_nr & 0xf8) == RSL_CHAN_PCH_AGCH) {
 		*type = RSL_CHAN_PCH_AGCH;
 		*subch = 0;
 	} else
