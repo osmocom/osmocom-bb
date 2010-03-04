@@ -2,7 +2,7 @@ Index: epan/dissectors/packet-gsmtap.c
 ===================================================================
 --- /dev/null
 +++ epan/dissectors/packet-gsmtap.c
-@@ -0,0 +1,242 @@
+@@ -0,0 +1,277 @@
 +/* packet-gsmtap.c
 + * Routines for GSMTAP captures
 + *
@@ -54,11 +54,13 @@ Index: epan/dissectors/packet-gsmtap.c
 +static int hf_gsmtap_hdrlen = -1;
 +static int hf_gsmtap_type = -1;
 +static int hf_gsmtap_timeslot = -1;
++static int hf_gsmtap_subslot = -1;
 +static int hf_gsmtap_arfcn = -1;
-+static int hf_gsmtap_noise_db = -1;
-+static int hf_gsmtap_signal_db = -1;
++static int hf_gsmtap_noise_dbm = -1;
++static int hf_gsmtap_signal_dbm = -1;
 +static int hf_gsmtap_frame_nr = -1;
 +static int hf_gsmtap_burst_type = -1;
++static int hf_gsmtap_channel_type = -1;
 +static int hf_gsmtap_antenna = -1;
 +
 +static gint ett_gsmtap = -1;
@@ -66,6 +68,7 @@ Index: epan/dissectors/packet-gsmtap.c
 +enum {
 +	SUB_DATA = 0,
 +	SUB_UM,
++	SUB_UM_LAPDM,
 +	SUB_ABIS,
 +
 +	SUB_MAX
@@ -75,51 +78,50 @@ Index: epan/dissectors/packet-gsmtap.c
 +
 +static dissector_handle_t sub_handles[SUB_MAX];
 +
-+static const char *gsmtap_bursts[] = {
-+	[GSMTAP_BURST_UNKNOWN]		= "UNKNOWN",
-+	[GSMTAP_BURST_FCCH]		= "FCCH",
-+	[GSMTAP_BURST_PARTIAL_SCH]	= "PARTIAL_SCH",
-+	[GSMTAP_BURST_SCH]		= "SCH",
-+	[GSMTAP_BURST_CTS_SCH]		= "CTS_SCH",
-+	[GSMTAP_BURST_COMPACT_SCH]	= "COMPACT_SCH",
-+	[GSMTAP_BURST_NORMAL]		= "NORMAL",
-+	[GSMTAP_BURST_DUMMY]		= "DUMMY",
-+	[GSMTAP_BURST_ACCESS]		= "ACCESS",
++static const value_string gsmtap_bursts[] = {
++	{ GSMTAP_BURST_UNKNOWN,		"UNKNOWN" },
++	{ GSMTAP_BURST_FCCH,		"FCCH" },
++	{ GSMTAP_BURST_PARTIAL_SCH,	"PARTIAL SCH" },
++	{ GSMTAP_BURST_SCH,		"SCH" },
++	{ GSMTAP_BURST_CTS_SCH,		"CTS SCH" },
++	{ GSMTAP_BURST_COMPACT_SCH,	"COMPACT SCH" },
++	{ GSMTAP_BURST_NORMAL,		"NORMAL" },
++	{ GSMTAP_BURST_DUMMY,		"DUMMY" },
++	{ GSMTAP_BURST_ACCESS,		"RACH" },
++	{ 0,				NULL },
 +};
 +
-+static const char *gsmtap_get_burst(unsigned int burst_type)
-+{
-+	const char *desc = "UNSUPPORTED";
++static const value_string gsmtap_channels[] = {
++	{ GSMTAP_CHANNEL_UNKNOWN,	"UNKNOWN" },
++	{ GSMTAP_CHANNEL_BCCH,		"BCCH" },
++	{ GSMTAP_CHANNEL_CCCH,		"CCCH" },
++	{ GSMTAP_CHANNEL_RACH,		"RACH" },
++	{ GSMTAP_CHANNEL_AGCH,		"AGCH" },
++	{ GSMTAP_CHANNEL_PCH,		"PCH" },
++	{ GSMTAP_CHANNEL_SDCCH,		"SDCCH" },
++	{ GSMTAP_CHANNEL_SDCCH4,	"SDCCH/4" },
++	{ GSMTAP_CHANNEL_SDCCH8,	"SDCCH/8" },
++	{ GSMTAP_CHANNEL_TCH_F,		"FACCH/F" },
++	{ GSMTAP_CHANNEL_TCH_H,		"FACCH/H" },
++	{ GSMTAP_CHANNEL_ACCH|
++	  GSMTAP_CHANNEL_SDCCH,		"SACCH" },
++	{ GSMTAP_CHANNEL_ACCH|
++	  GSMTAP_CHANNEL_SDCCH4,	"SACCH/4" },
++	{ GSMTAP_CHANNEL_ACCH|
++	  GSMTAP_CHANNEL_SDCCH8,	"SACCH/8" },
++	{ GSMTAP_CHANNEL_ACCH|
++	  GSMTAP_CHANNEL_TCH_F,		"SACCH/F" },
++	{ GSMTAP_CHANNEL_ACCH|
++	  GSMTAP_CHANNEL_TCH_F,		"SACCH/H" },
++	{ 0,				NULL },
++};
 +
-+	if (burst_type >= sizeof(gsmtap_bursts)/sizeof(const char *))
-+		return desc;
-+	if (gsmtap_bursts[burst_type] == NULL)
-+		return desc;
-+
-+	return gsmtap_bursts[burst_type];
-+}
-+
-+static const char *gsmtap_get_type(int type)
-+{
-+	const char *desc;
-+
-+	switch (type) {
-+		case GSMTAP_TYPE_UM:
-+			desc = "GSM Um (MS<->BTS)";
-+			break;
-+		case GSMTAP_TYPE_ABIS:
-+			desc = "GSM Abis (BTS<->BSC)";
-+			break;
-+		case GSMTAP_TYPE_UM_BURST:
-+			desc = "GSM Um burst (BTS<->BSC)";
-+			break;
-+		default:
-+			desc = "<unknown type>";
-+			break;
-+	}
-+
-+	return desc;
-+}
++static const value_string gsmtap_types[] = {
++	{ GSMTAP_TYPE_UM,	"GSM Um (MS<->BTS)" },
++	{ GSMTAP_TYPE_ABIS,	"GSM Abis (BTS<->BSC)" },
++	{ GSMTAP_TYPE_UM_BURST,	"GSM Um burst (MS<->BTS)" },
++	{ 0,			NULL },
++};
 +
 +static void
 +dissect_gsmtap(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
@@ -128,32 +130,40 @@ Index: epan/dissectors/packet-gsmtap.c
 +	proto_item *ti;
 +	proto_tree *gsmtap_tree = NULL;
 +	tvbuff_t *payload_tvb;
-+
-+	u_int8_t version, hdr_len, type, ts, noise_db, signal_db;
-+	u_int8_t burst_type, antenna;
-+	u_int16_t arfcn;
-+	u_int32_t frame_nr;
++	guint8 hdr_len, type, sub_type;
++	guint16 arfcn;
 +
 +	len = tvb_length(tvb);
 +
-+	version = tvb_get_guint8(tvb, offset + 0);
 +	hdr_len = tvb_get_guint8(tvb, offset + 1) <<2;
 +	type = tvb_get_guint8(tvb, offset + 2);
-+	ts = tvb_get_guint8(tvb, offset + 3);
-+
++	sub_type = tvb_get_guint8(tvb, offset + 12);
 +	arfcn = tvb_get_ntohs(tvb, offset + 4);
-+	noise_db = tvb_get_guint8(tvb, offset + 6);
-+	signal_db = tvb_get_guint8(tvb, offset + 7);
-+
-+	frame_nr = tvb_get_ntohl(tvb, offset + 8);
-+
-+	burst_type = tvb_get_guint8(tvb, offset + 12);
-+	antenna = tvb_get_guint8(tvb, offset + 13);
 +
 +	payload_tvb = tvb_new_subset(tvb, hdr_len, len-hdr_len, len-hdr_len);
 +
-+	if (check_col(pinfo->cinfo, COL_INFO)) {
-+		col_add_fstr(pinfo->cinfo, COL_INFO, "GSM TAP, %d bytes", len);
++	col_add_fstr(pinfo->cinfo, COL_INFO, "GSM TAP, %d bytes", len);
++
++	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
++		col_set_str(pinfo->cinfo, COL_RES_DL_SRC, "MS");
++		col_set_str(pinfo->cinfo, COL_RES_DL_DST, "BTS");
++		/* p2p_dir is used by the LAPDm dissector */
++		pinfo->p2p_dir = P2P_DIR_SENT;
++	} else {
++		col_set_str(pinfo->cinfo, COL_RES_DL_SRC, "BTS");
++		switch (sub_type & ~GSMTAP_CHANNEL_ACCH) {
++		case GSMTAP_CHANNEL_BCCH:
++		case GSMTAP_CHANNEL_CCCH:
++		case GSMTAP_CHANNEL_PCH:
++		case GSMTAP_CHANNEL_AGCH:
++			col_set_str(pinfo->cinfo, COL_RES_DL_DST, "Broadcast");
++			break;
++		default:
++			col_set_str(pinfo->cinfo, COL_RES_DL_DST, "MS");
++			break;
++		}
++		/* p2p_dir is used by the LAPDm dissector */
++		pinfo->p2p_dir = P2P_DIR_RECV;
 +	}
 +
 +	if (tree) {
@@ -166,37 +176,47 @@ Index: epan/dissectors/packet-gsmtap.c
 +		proto_tree_add_uint_format(gsmtap_tree, hf_gsmtap_hdrlen,
 +				    tvb, offset+1, 1, hdr_len,
 +				    "Header length: %u bytes", hdr_len);
-+		proto_tree_add_uint_format(gsmtap_tree, hf_gsmtap_type,
-+					   tvb, offset+2, 1, type,
-+					   "Type: %s (0x%02x)",
-+					   gsmtap_get_type(type), type);
-+		proto_tree_add_uint_format(gsmtap_tree, hf_gsmtap_burst_type,
-+					   tvb, offset+12, 1, burst_type,
-+					   "Burst: %s",
-+					   gsmtap_get_burst(burst_type));
-+		proto_tree_add_uint_format(gsmtap_tree, hf_gsmtap_arfcn,
-+					   tvb, offset+4, 2, arfcn,
-+					   "ARFCN: %u", arfcn);
++		proto_tree_add_item(gsmtap_tree, hf_gsmtap_type,
++				    tvb, offset+2, 1, FALSE);
++		if (type == GSMTAP_TYPE_UM_BURST)
++			proto_tree_add_item(gsmtap_tree, hf_gsmtap_burst_type,
++					    tvb, offset+12, 1, FALSE);
++		else if (type == GSMTAP_TYPE_UM)
++			proto_tree_add_item(gsmtap_tree, hf_gsmtap_channel_type,
++					    tvb, offset+12, 1, FALSE);
++		proto_tree_add_item(gsmtap_tree, hf_gsmtap_arfcn,
++				    tvb, offset+4, 2, FALSE);
 +		proto_tree_add_item(gsmtap_tree, hf_gsmtap_timeslot,
 +				    tvb, offset+3, 1, FALSE);
++		proto_tree_add_item(gsmtap_tree, hf_gsmtap_subslot,
++				    tvb, offset+14, 1, FALSE);
 +		proto_tree_add_item(gsmtap_tree, hf_gsmtap_antenna,
 +				    tvb, offset+13, 1, FALSE);
-+		proto_tree_add_uint_format(gsmtap_tree, hf_gsmtap_noise_db,
-+					   tvb, offset+6, 1, noise_db,
-+					   "Noise level: %u dB", noise_db);
-+		proto_tree_add_uint_format(gsmtap_tree, hf_gsmtap_signal_db,
-+					   tvb, offset+7, 1, signal_db,
-+					   "Signal level: %u dB", signal_db);
-+		proto_tree_add_uint_format(gsmtap_tree, hf_gsmtap_frame_nr,
-+					   tvb, offset+8, 4, frame_nr,
-+					   "Frame Number: %u", frame_nr);
++		proto_tree_add_item(gsmtap_tree, hf_gsmtap_noise_dbm,
++				    tvb, offset+6, 1, FALSE);
++		proto_tree_add_item(gsmtap_tree, hf_gsmtap_signal_dbm,
++				    tvb, offset+7, 1, FALSE);
++		proto_tree_add_item(gsmtap_tree, hf_gsmtap_frame_nr,
++				    tvb, offset+8, 4, FALSE);
 +	}
 +	switch (type) {
 +	case GSMTAP_TYPE_UM:
-+		switch (burst_type) {
-+		case GSMTAP_BURST_NORMAL:
++		switch (sub_type & ~GSMTAP_CHANNEL_ACCH) {
++		case GSMTAP_CHANNEL_BCCH:
++		case GSMTAP_CHANNEL_CCCH:
++		case GSMTAP_CHANNEL_PCH:
++		case GSMTAP_CHANNEL_AGCH:
++			/* FIXME: we might want to skip idle frames */
 +			sub_handle = SUB_UM;
 +			break;
++		case GSMTAP_CHANNEL_SDCCH:
++		case GSMTAP_CHANNEL_SDCCH4:
++		case GSMTAP_CHANNEL_SDCCH8:
++		case GSMTAP_CHANNEL_TCH_F:
++		case GSMTAP_CHANNEL_TCH_H:
++			sub_handle = SUB_UM_LAPDM;
++			break;
++		case GSMTAP_CHANNEL_RACH:
 +		default:
 +			sub_handle = SUB_DATA;
 +			break;
@@ -214,16 +234,30 @@ Index: epan/dissectors/packet-gsmtap.c
 +proto_register_gsmtap(void)
 +{
 +	static hf_register_info hf[] = {
-+		{ &hf_gsmtap_version, { "Version", "gsmtap.version", FT_UINT8, BASE_DEC, NULL, 0, "", HFILL }},
-+		{ &hf_gsmtap_hdrlen, { "Header Length", "gsmtap.hdr_len", FT_UINT8, BASE_DEC, NULL, 0, "", HFILL }},
-+		{ &hf_gsmtap_type, { "Type", "gsmtap.type", FT_UINT8, BASE_DEC, NULL, 0, "", HFILL }},
-+		{ &hf_gsmtap_timeslot, { "Time Slot", "gsmtap.ts", FT_UINT8, BASE_DEC, NULL, 0, "", HFILL }},
-+		{ &hf_gsmtap_arfcn, { "ARFCN", "gsmtap.arfcn", FT_UINT16, BASE_DEC, NULL, 0, "", HFILL }},
-+		{ &hf_gsmtap_noise_db, { "Noise dB", "gsmtap.noise_db", FT_UINT8, BASE_DEC, NULL, 0, "", HFILL }},
-+		{ &hf_gsmtap_signal_db, { "Signal dB", "gsmtap.signal_db", FT_UINT8, BASE_DEC, NULL, 0, "", HFILL }},
-+		{ &hf_gsmtap_frame_nr, { "Frame Number", "gsmtap.frame_nr", FT_UINT32, BASE_DEC, NULL, 0, "", HFILL }},
-+		{ &hf_gsmtap_burst_type, { "Burst Type", "gsmtap.burst_type", FT_UINT8, BASE_DEC, NULL, 0, "", HFILL }},
-+		{ &hf_gsmtap_antenna, { "Antenna Number", "gsmtap.antenna", FT_UINT8, BASE_DEC, NULL, 0, "", HFILL }},
++		{ &hf_gsmtap_version, { "Version", "gsmtap.version",
++		  FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL } },
++		{ &hf_gsmtap_hdrlen, { "Header Length", "gsmtap.hdr_len",
++		  FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL } },
++		{ &hf_gsmtap_type, { "Type", "gsmtap.type",
++		  FT_UINT8, BASE_DEC, VALS(gsmtap_types), 0, NULL, HFILL } },
++		{ &hf_gsmtap_timeslot, { "Time Slot", "gsmtap.ts",
++		  FT_UINT8, BASE_DEC, NULL, GSMTAP_ARFCN_MASK, NULL, HFILL } },
++		{ &hf_gsmtap_arfcn, { "ARFCN", "gsmtap.arfcn",
++		  FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL } },
++		{ &hf_gsmtap_noise_dbm, { "Noise dBm", "gsmtap.noise_dbm",
++		  FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL } },
++		{ &hf_gsmtap_signal_dbm, { "Signal dBm", "gsmtap.signal_dbm",
++		  FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL } },
++		{ &hf_gsmtap_frame_nr, { "Frame Number", "gsmtap.frame_nr",
++		  FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL } },
++		{ &hf_gsmtap_burst_type, { "Burst Type", "gsmtap.burst_type",
++		  FT_UINT8, BASE_DEC, VALS(gsmtap_bursts), 0, NULL, HFILL }},
++		{ &hf_gsmtap_channel_type, { "Channel Type", "gsmtap.chan_type",
++		  FT_UINT8, BASE_DEC, VALS(gsmtap_channels), 0, NULL, HFILL }},
++		{ &hf_gsmtap_antenna, { "Antenna Number", "gsmtap.antenna",
++		  FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL } },
++		{ &hf_gsmtap_subslot, { "Sub-Slot", "gsmtap.sub_slot",
++		  FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL } },
 +	};
 +	static gint *ett[] = {
 +		&ett_gsmtap
@@ -241,6 +275,7 @@ Index: epan/dissectors/packet-gsmtap.c
 +
 +	sub_handles[SUB_DATA] = find_dissector("data");
 +	sub_handles[SUB_UM] = find_dissector("gsm_a_ccch");
++	sub_handles[SUB_UM_LAPDM] = find_dissector("lapdm");
 +	sub_handles[SUB_ABIS] = find_dissector("gsm_a_dtap");
 +	gsmtap_handle = create_dissector_handle(dissect_gsmtap, proto_gsmtap);
 +	dissector_add("udp.port", GSMTAP_UDP_PORT, gsmtap_handle);
@@ -249,7 +284,7 @@ Index: epan/dissectors/packet-gsmtap.h
 ===================================================================
 --- /dev/null
 +++ epan/dissectors/packet-gsmtap.h
-@@ -0,0 +1,53 @@
+@@ -0,0 +1,71 @@
 +#ifndef _GSMTAP_H
 +#define _GSMTAP_H
 +
@@ -266,7 +301,7 @@ Index: epan/dissectors/packet-gsmtap.h
 +
 +#include <sys/types.h>
 +
-+#define GSMTAP_VERSION		0x01
++#define GSMTAP_VERSION		0x02
 +
 +#define GSMTAP_TYPE_UM		0x01
 +#define GSMTAP_TYPE_ABIS	0x02
@@ -283,23 +318,41 @@ Index: epan/dissectors/packet-gsmtap.h
 +#define GSMTAP_BURST_ACCESS		0x08
 +#define GSMTAP_BURST_NONE		0x09
 +
++#define GSMTAP_CHANNEL_UNKNOWN	0x00
++#define GSMTAP_CHANNEL_BCCH	0x01
++#define GSMTAP_CHANNEL_CCCH	0x02
++#define GSMTAP_CHANNEL_RACH	0x03
++#define GSMTAP_CHANNEL_AGCH	0x04
++#define GSMTAP_CHANNEL_PCH	0x05
++#define GSMTAP_CHANNEL_SDCCH	0x06
++#define GSMTAP_CHANNEL_SDCCH4	0x07
++#define GSMTAP_CHANNEL_SDCCH8	0x08
++#define GSMTAP_CHANNEL_TCH_F	0x09
++#define GSMTAP_CHANNEL_TCH_H	0x0a
++#define GSMTAP_CHANNEL_ACCH	0x80
++
++#define GSMTAP_ARFCN_F_PCS	0x8000
++#define GSMTAP_ARFCN_F_UPLINK	0x4000
++#define GSMTAP_ARFCN_MASK	0x3fff
++
 +#define GSMTAP_UDP_PORT			4729
 +
 +struct gsmtap_hdr {
-+	u_int8_t version;		/* version, set to 0x01 currently */
-+	u_int8_t hdr_len;		/* length in number of 32bit words */
-+	u_int8_t type;			/* see GSMTAP_TYPE_* */
-+	u_int8_t timeslot;		/* timeslot (0..7 on Um) */
++	guint8 version;		/* version, set to 0x01 currently */
++	guint8 hdr_len;		/* length in number of 32bit words */
++	guint8 type;		/* see GSMTAP_TYPE_* */
++	guint8 timeslot;	/* timeslot (0..7 on Um) */
 +
-+	u_int16_t arfcn;		/* ARFCN (frequency) */
-+	u_int8_t noise_db;		/* noise figure in dB */
-+	u_int8_t signal_db;		/* signal level in dB */
++	guint16 arfcn;		/* ARFCN (frequency) */
++	gint8 signal_dbm;	/* signal level in dBm */
++	gint8 snr_db;		/* signal/noise ratio in dB */
 +
-+	u_int32_t frame_number;		/* GSM Frame Number (FN) */
++	guint32 frame_number;	/* GSM Frame Number (FN) */
 +
-+	u_int8_t burst_type;		/* Type of burst, see above */
-+	u_int8_t antenna_nr;		/* Antenna Number */
-+	u_int16_t res;			/* reserved for future use (RFU) */
++	guint8 sub_type;	/* Type of burst/channel, see above */
++	guint8 antenna_nr;	/* Antenna Number */
++	guint8 sub_slot;	/* sub-slot within timeslot */
++	guint8 res;		/* reserved for future use (RFU) */
 +
 +} __attribute__((packed));
 +#endif /* _GSMTAP_H */
