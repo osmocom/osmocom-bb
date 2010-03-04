@@ -22,9 +22,11 @@
 
 #include <osmocom/osmocom_data.h>
 #include <osmocom/debug.h>
+#include <osmocom/gsmtap_util.h>
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/gsmtap.h>
 #include <osmocore/msgb.h>
+#include <osmocore/rsl.h>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -36,16 +38,55 @@
 #include <string.h>
 #include <errno.h>
 
-static struct bsc_fd gsmtap_bfd;
+static struct bsc_fd gsmtap_bfd = { .fd = -1 };
 static LLIST_HEAD(gsmtap_txqueue);
 
+uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
+{
+	uint8_t ret = GSMTAP_CHANNEL_UNKNOWN;
+
+	switch (rsl_chantype) {
+	case RSL_CHAN_Bm_ACCHs:
+		ret = GSMTAP_CHANNEL_TCH_F;
+		break;
+	case RSL_CHAN_Lm_ACCHs:
+		ret = GSMTAP_CHANNEL_TCH_H;
+		break;
+	case RSL_CHAN_SDCCH4_ACCH:
+		ret = GSMTAP_CHANNEL_SDCCH4;
+		break;
+	case RSL_CHAN_SDCCH8_ACCH:
+		ret = GSMTAP_CHANNEL_SDCCH8;
+		break;
+	case RSL_CHAN_BCCH:
+		ret = GSMTAP_CHANNEL_BCCH;
+		break;
+	case RSL_CHAN_RACH:
+		ret = GSMTAP_CHANNEL_RACH;
+		break;
+	case RSL_CHAN_PCH_AGCH:
+		/* it could also be AGCH... */
+		ret = GSMTAP_CHANNEL_PCH;
+		break;
+	}
+
+	if (link_id & 0x40)
+		ret |= GSMTAP_CHANNEL_ACCH;
+
+	return ret;
+}
+
 /* receive a message from L1/L2 and put it in GSMTAP */
-int gsmtap_sendmsg(uint8_t ts, uint16_t arfcn, uint32_t fn,
-		   const uint8_t *data, unsigned int len)
+int gsmtap_sendmsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss,
+		   uint32_t fn, const uint8_t *data, unsigned int len)
 {
 	struct msgb *msg;
 	struct gsmtap_hdr *gh;
 	uint8_t *dst;
+
+	/* gsmtap was never initialized, so don't try to send anything */
+	if (gsmtap_bfd.fd == -1)
+		return 0;
 
 	msg = msgb_alloc(sizeof(*gh) + len, "gsmtap_tx");
 	if (!msg)
@@ -57,11 +98,12 @@ int gsmtap_sendmsg(uint8_t ts, uint16_t arfcn, uint32_t fn,
 	gh->hdr_len = sizeof(*gh)/4;
 	gh->type = GSMTAP_TYPE_UM;
 	gh->timeslot = ts;
+	gh->sub_slot = ss;
 	gh->arfcn = htons(arfcn);
-	gh->noise_db = 0;
-	gh->signal_db = 0;
+	gh->snr_db = 0;
+	gh->signal_dbm = 0;
 	gh->frame_number = htonl(fn);
-	gh->burst_type = GSMTAP_BURST_NORMAL;
+	gh->sub_type = chan_type;
 	gh->antenna_nr = 0;
 
 	dst = msgb_put(msg, len);
@@ -104,14 +146,14 @@ static int gsmtap_fd_cb(struct bsc_fd *fd, unsigned int flags)
 	return 0;
 }
 
-int gsmtap_init(void)
+int gsmtap_init(uint32_t dst_ip)
 {
 	int rc;
 	struct sockaddr_in sin;
 
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(GSMTAP_UDP_PORT);
-	inet_aton("127.0.0.1", &sin.sin_addr);
+	sin.sin_addr.s_addr = htonl(dst_ip);
 
 	/* FIXME: create socket */
 	rc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);

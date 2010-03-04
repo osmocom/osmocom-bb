@@ -32,13 +32,13 @@
 #include <osmocore/tlv.h>
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/protocol/gsm_08_58.h>
+#include <osmocore/rsl.h>
 
 #include <osmocom/l1ctl.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/debug.h>
-
-#include "gsmtap_util.h"
+#include <osmocom/gsmtap_util.h>
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {
@@ -116,6 +116,8 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct l1ctl_info_dl *dl, dl_cpy;
 	struct l1ctl_data_ind *ccch;
 	struct lapdm_entity *le;
+	uint8_t chan_type, chan_ts, chan_ss;
+	uint8_t gsmtap_chan_type;
 
 	if (msgb_l3len(msg) < sizeof(*ccch)) {
 		fprintf(stderr, "MSG too short Data Ind: %u\n", msgb_l3len(msg));
@@ -124,13 +126,16 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 	ccch = (struct l1ctl_data_ind *) msg->l2h;
+
+	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
 	printf("%s (%.4u/%.2u/%.2u) %s\n",
 		chan_nr2string(dl->chan_nr), dl->time.t1, dl->time.t2,
 		dl->time.t3, hexdump(ccch->data, sizeof(ccch->data)));
 
 	/* send CCCH data via GSMTAP */
-	gsmtap_sendmsg(dl->chan_nr & 0x07, dl->band_arfcn, dl->time.fn, ccch->data,
-			sizeof(ccch->data));
+	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
+	gsmtap_sendmsg(dl->band_arfcn, chan_ts, gsmtap_chan_type, chan_ss,
+			dl->time.fn, ccch->data, sizeof(ccch->data));
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
@@ -155,6 +160,8 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 		   uint8_t chan_nr, uint8_t link_id)
 {
 	struct l1ctl_info_ul *l1i_ul;
+	uint8_t chan_type, chan_ts, chan_ss;
+	uint8_t gsmtap_chan_type;
 
 	printf("tx_ph_data_req(%s)\n", hexdump(msg->l2h, msgb_l2len(msg)));
 
@@ -164,6 +171,12 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 		return -EINVAL;
 	} else if (msgb_l2len(msg) < 23)
 		printf("L1 message length < 23 (%u) doesn't seem right!\n", msgb_l2len(msg));
+
+	/* send copy via GSMTAP */
+	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
+	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, link_id);
+	gsmtap_sendmsg(0|0x4000, chan_ts, gsmtap_chan_type, chan_ss,
+			0, msg->l2h, msgb_l2len(msg));
 
 	/* prepend uplink info header */
 	printf("sizeof(struct l1ctl_info_ul)=%lu\n", sizeof(*l1i_ul));

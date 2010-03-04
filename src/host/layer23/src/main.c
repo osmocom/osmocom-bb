@@ -24,6 +24,7 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/l1ctl.h>
 #include <osmocom/lapdm.h>
+#include <osmocom/gsmtap_util.h>
 
 #include <osmocom/debug.h>
 #include <osmocore/msgb.h>
@@ -42,13 +43,13 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include "gsmtap_util.h"
 
 #define GSM_L2_LENGTH 256
 
 static void *l2_ctx = NULL;
 static char *socket_path = "/tmp/osmocom_l2";
 static struct osmocom_ms *ms = NULL;
+static uint32_t gsmtap_ip = 0;
 
 static int layer2_read(struct bsc_fd *fd, unsigned int flags)
 {
@@ -124,23 +125,26 @@ static void print_usage()
 static void print_help()
 {
 	printf(" Some help...\n");
-	printf("  -h --help this text\n");
-	printf("  -s --socket /tmp/osmocom_l2. Path to the unix domain socket\n");
-	printf("  -a --arfcn NR. The ARFCN to be used for layer2.\n");
+	printf("  -h --help		this text\n");
+	printf("  -s --socket		/tmp/osmocom_l2. Path to the unix domain socket\n");
+	printf("  -a --arfcn NR		The ARFCN to be used for layer2.\n");
+	printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
 }
 
 static void handle_options(int argc, char **argv)
 {
+	struct sockaddr_in gsmtap;
 	while (1) {
 		int option_index = 0, c;
 		static struct option long_options[] = {
 			{"help", 0, 0, 'h'},
 			{"socket", 1, 0, 's'},
 			{"arfcn", 1, 0, 'a'},
+			{"gsmtap-ip", 1, 0, 'i'},
 			{0, 0, 0, 0},
 		};
 
-		c = getopt_long(argc, argv, "hs:a:",
+		c = getopt_long(argc, argv, "hs:a:i:",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -157,6 +161,13 @@ static void handle_options(int argc, char **argv)
 		case 'a':
 			ms->arfcn = atoi(optarg);
 			break;
+		case 'i':
+			if (!inet_aton(optarg, &gsmtap.sin_addr)) {
+				perror("inet_aton");
+				exit(2);
+			}
+			gsmtap_ip = gsmtap.sin_addr.s_addr;
+			break;
 		default:
 			break;
 		}
@@ -167,7 +178,6 @@ int main(int argc, char **argv)
 {
 	int rc;
 	struct sockaddr_un local;
-	struct sockaddr_in gsmtap;
 
 	l2_ctx = talloc_named_const(NULL, 1, "layer2 context");
 
@@ -210,10 +220,12 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	rc = gsmtap_init();
-	if (rc < 0) {
-		fprintf(stderr, "Failed during gsmtap_init()\n");
-		exit(1);
+	if (gsmtap_ip) {
+		rc = gsmtap_init(gsmtap_ip);
+		if (rc < 0) {
+			fprintf(stderr, "Failed during gsmtap_init()\n");
+			exit(1);
+		}
 	}
 
 	while (1) {
