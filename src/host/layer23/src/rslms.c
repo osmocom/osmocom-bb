@@ -35,30 +35,6 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/l1ctl.h>
 
-int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *timeslot)
-{
-	*timeslot = chan_nr & 0x7;
-
-	if ((chan_nr & 0xf8) == RSL_CHAN_Bm_ACCHs) {
-		*type = RSL_CHAN_Bm_ACCHs;
-		*subch = 0;
-	} else if ((chan_nr & 0xf0) == RSL_CHAN_Lm_ACCHs) {
-		*type = RSL_CHAN_Lm_ACCHs;
-		*subch = (chan_nr >> 3) & 0x1;
-	} else if ((chan_nr & 0xe0) == RSL_CHAN_SDCCH4_ACCH) {
-		*type = RSL_CHAN_SDCCH4_ACCH;
-		*subch = (chan_nr >> 3) & 0x3;
-	} else if ((chan_nr & 0xc0) == RSL_CHAN_SDCCH8_ACCH) {
-		*type = RSL_CHAN_SDCCH8_ACCH;
-		*subch = (chan_nr >> 3) & 0x7;
-	} else {
-		printf("unable to decode chan_nr\n");
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 /* Send a 'simple' RLL request to L2 */
 int rslms_tx_rll_req(struct osmocom_ms *ms, uint8_t msg_type,
 		     uint8_t chan_nr, uint8_t link_id)
