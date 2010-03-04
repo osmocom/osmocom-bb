@@ -21,6 +21,9 @@
  *
  */
 
+#include <stdint.h>
+#include <errno.h>
+
 #include <osmocore/tlv.h>
 #include <osmocore/rsl.h>
 
@@ -140,6 +143,37 @@ uint8_t rsl_enc_chan_nr(uint8_t type, uint8_t subch, uint8_t timeslot)
 	ret |= (subch << 3);
 
 	return ret;
+}
+
+int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *timeslot)
+{
+	*timeslot = chan_nr & 0x7;
+
+	if ((chan_nr & 0xf8) == RSL_CHAN_Bm_ACCHs) {
+		*type = RSL_CHAN_Bm_ACCHs;
+		*subch = 0;
+	} else if ((chan_nr & 0xf0) == RSL_CHAN_Lm_ACCHs) {
+		*type = RSL_CHAN_Lm_ACCHs;
+		*subch = (chan_nr >> 3) & 0x1;
+	} else if ((chan_nr & 0xe0) == RSL_CHAN_SDCCH4_ACCH) {
+		*type = RSL_CHAN_SDCCH4_ACCH;
+		*subch = (chan_nr >> 3) & 0x3;
+	} else if ((chan_nr & 0xc0) == RSL_CHAN_SDCCH8_ACCH) {
+		*type = RSL_CHAN_SDCCH8_ACCH;
+		*subch = (chan_nr >> 3) & 0x7;
+	} else if ((chan_nr & 0xf8) == RSL_CHAN_BCCH) {
+		*type = RSL_CHAN_BCCH;
+		*subch = 0;
+	} else if ((chan_nr & 0xf8) == RSL_CHAN_RACH) {
+		*type = RSL_CHAN_RACH;
+		*subch = 0;
+	} else if ((chan_nr & 0xf8) == RSL_CHAN_PCH_AGCH) {
+		*type = RSL_CHAN_PCH_AGCH;
+		*subch = 0;
+	} else
+		return -EINVAL;
+
+	return 0;
 }
 
 /* FIXME: convert to value_string */
