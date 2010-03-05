@@ -15,6 +15,7 @@ enum gsm_band {
 };
 
 #define	ARFCN_PCS	0x8000
+#define	ARFCN_UPLINK	0x4000
 
 enum gsm_band gsm_arfcn2band(uint16_t arfcn);
 
