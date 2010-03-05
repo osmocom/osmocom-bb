@@ -166,7 +166,7 @@ static void handle_options(int argc, char **argv)
 				perror("inet_aton");
 				exit(2);
 			}
-			gsmtap_ip = gsmtap.sin_addr.s_addr;
+			gsmtap_ip = ntohl(gsmtap.sin_addr.s_addr);
 			break;
 		default:
 			break;
