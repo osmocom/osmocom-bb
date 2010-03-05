@@ -116,8 +116,6 @@ enum l1test_state {
 	STATE_FB,
 };
 
-static enum l1test_state l1test_state;
-
 static void l1test_state_change(enum l1test_state new_state)
 {
 	switch (new_state) {

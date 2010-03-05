@@ -24,6 +24,7 @@
 #include <sys/types.h>
 
 #include <debug.h>
+#include <delay.h>
 
 #include <osmocore/msgb.h>
 

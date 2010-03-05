@@ -21,6 +21,7 @@
  */
 
 #include <osmocore/linuxlist.h>
+#include <console.h>
 
 struct msgb {
 	struct llist_head list;

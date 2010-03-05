@@ -103,7 +103,7 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 	return msg;
 }
 
-/* callbakc from SERCOMM when L2 sends a message to L1 */
+/* callback from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) msg->data;
