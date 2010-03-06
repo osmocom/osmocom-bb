@@ -114,31 +114,19 @@ int cons_rb_flush(void)
 	return __rb_flush();
 }
 
-static void cons_memcpy(char *pos, const char *data, int len)
-{
-#if 0
-	/* Somehow our memcpy is broken !?! */
-	memcpy(pos, data, len);
-#else
-	int i;
-	for (i = 0; i < len; i++)
-		*pos++ = *data++;
-#endif
-}
-
 /* Append bytes to ring buffer, not more than we have left! */
 static void __cons_rb_append(const char *data, int len)
 {
 	if (cons.next_inbyte + len >= &cons.buf[0]+sizeof(cons.buf)) {
 		int before_tail = (&cons.buf[0]+sizeof(cons.buf)) - cons.next_inbyte;
 		/* copy the first part before we wrap */
-		cons_memcpy(cons.next_inbyte, data, before_tail);
+		memcpy(cons.next_inbyte, data, before_tail);
 		data += before_tail;
 		len -= before_tail;
 		/* reset the buffer */
 		cons.next_inbyte = &cons.buf[0];
 	}
-	cons_memcpy(cons.next_inbyte, data, len);
+	memcpy(cons.next_inbyte, data, len);
 	cons.next_inbyte += len;
 }
 
