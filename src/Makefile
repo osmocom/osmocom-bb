@@ -67,7 +67,7 @@ host/layer23/layer23: host/layer23/Makefile libosmocore-host
 
 .PHONY: firmware
 firmware: libosmocore-target
-	make -C target/firmware
+	make -C target/firmware CROSS_COMPILE=$(CROSS_INST_PREFIX)/$(CROSS_TOOL_PREFIX)
 
 
 clean:
