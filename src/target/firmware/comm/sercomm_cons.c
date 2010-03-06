@@ -53,7 +53,7 @@ static void raw_puts(const char *s)
 int sercomm_puts(const char *s)
 {
 	unsigned long flags;
-	const int len = strlen(s) + 1;
+	const int len = strlen(s);
 	unsigned int bytes_left = len;
 
 	if (!sercomm_initialized()) {
