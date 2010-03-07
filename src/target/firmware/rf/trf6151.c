@@ -139,7 +139,6 @@ static uint16_t trf6151_pll_rx(uint32_t freq_khz)
 	uint32_t freq_100khz = freq_khz / SCALE_100KHZ;	/* Scale from *1000 (k) to *100000 (0.1M) */
 	uint32_t fb_100khz;	/* frequency of B alone, without A (units of 100kHz) */
 	uint32_t l;
-	uint32_t b10;	/* B value expanded by a factor of 10 */
 	uint32_t a, b;	/* The PLL multipliers we want to compute */
 
 	/* L = 4 for low band, 2 for high band */
@@ -177,7 +176,6 @@ static uint16_t trf6151_pll_tx(uint32_t freq_khz)
 	uint32_t freq_100khz = freq_khz / SCALE_100KHZ;	/* Scale from *1000 (k) to *100000 (0.1M) */
 	uint32_t fb_100khz;	/* frequency of B alone, without A (units of 100kHz) */
 	uint32_t l, r, m;
-	uint32_t b10;	/* B value expanded by a factor of 10 */
 	uint32_t a, b;	/* The PLL multipliers we want to compute */
 
 	/* L = 4 for low band, 2 for high band */
