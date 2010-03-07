@@ -24,7 +24,9 @@
 
 #include <stdint.h>
 #include <stdio.h>
+
 #include <debug.h>
+#include <byteorder.h>
 
 #include <osmocore/msgb.h>
 #include <comm/sercomm.h>
@@ -94,7 +96,7 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 
 	dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
 	dl->msg_type = msg_type;
-	dl->frame_nr = fn;
+	dl->frame_nr = htonl(fn);
 	dl->snr = snr;
 	dl->band_arfcn = arfcn;
 
