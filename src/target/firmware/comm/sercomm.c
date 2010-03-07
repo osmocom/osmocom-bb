@@ -190,10 +190,12 @@ int sercomm_register_rx_cb(uint8_t dlci, dlci_cb_t cb)
 /* dispatch an incomnig message once it is completely received */
 static void dispatch_rx_msg(uint8_t dlci, struct msgb *msg)
 {
-	if (sercomm.rx.dlci_handler[dlci])
-		sercomm.rx.dlci_handler[dlci](dlci, msg);
-	else
+	if (dlci >= ARRAY_SIZE(sercomm.rx.dlci_handler) ||
+	    !sercomm.rx.dlci_handler[dlci]) {
 		msgb_free(msg);
+		return;
+	}
+	sercomm.rx.dlci_handler[dlci](dlci, msg);
 }
 
 /* the driver has received one byte, pass it into sercomm layer */
