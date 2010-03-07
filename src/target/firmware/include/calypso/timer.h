@@ -16,6 +16,9 @@ uint16_t hwtimer_read(int num);
 /* Enable or disable the watchdog */
 void wdog_enable(int on);
 
+/* Reset cpu using watchdog */
+void wdog_reset(void);
+
 /* power up the timers */
 void hwtimer_init(void);
 
