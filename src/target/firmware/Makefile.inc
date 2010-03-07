@@ -69,13 +69,13 @@ ALL_OBJS+=$(ANY_APP_OBJS)
 ALL_DEPS+=$(ANY_APP_OBJS:.o=.p)
 
 # template for application rules
-define APPLICATION_BOARD_template
+define APPLICATION_BOARD_ENVIRONMENT_template
 
-board/$(2)/$(1).elf board/$(2)/$(1).map board/$(2)/$(1).size: apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS) board/$(2)/board.o
-	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $(LDS) -Bstatic -Map board/$(2)/$(1).map  -o board/$(2)/$(1).elf --start-group $$^ --end-group
-	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).elf | tee board/$(2)/$(1).size
+board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map board/$(2)/$(1).$(3).size: apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS) board/$(2)/board.o
+	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic -Map board/$(2)/$(1).$(3).map  -o board/$(2)/$(1).$(3).elf --start-group $$^ --end-group
+	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
 
-ALL_APPS+=board/$(2)/$(1).elf
+ALL_APPS+=board/$(2)/$(1).$(3).elf
 
 endef
 
@@ -100,7 +100,7 @@ ALL_DEPS+=$$($(1)_OBJS:.o=.p) apps/$(1)/main.p
 endef
 
 # define rules for all defined applications
-$(foreach app,$(APPLICATIONS),$(foreach board,$(BOARDS),$(eval $(call APPLICATION_BOARD_template,$(app),$(board)))))
+$(foreach app,$(APPLICATIONS),$(foreach brd,$(BOARDS),$(foreach env,$(ENVIRONMENTS),$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
 $(foreach board,$(BOARDS),$(eval $(call BOARD_template,$(board))))
 $(foreach app,$(APPLICATIONS),$(eval $(call APPLICATION_template,$(app))))
 
