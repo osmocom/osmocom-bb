@@ -42,9 +42,9 @@ ALL_APP_TARGETS=$(ALL_APPS) $(ALL_APPS:.elf=.bin) $(ALL_APPS:.elf=.map) $(ALL_AP
 
 #### LIBRARY DATA ####
 
-ALL_LIB_ARS=
+ALL_LIBS=
 
-ALL_LIB_TARGETS=$(ALL_LIB_ARS)
+ALL_LIB_TARGETS=$(ALL_LIBS)
 
 
 #### DEFAULT RULE ####
@@ -92,7 +92,7 @@ $(1)_OBJS:=$$($(1)_OBJS:.S=.o)
 $$($(1)_DIR)/lib$(1).a: $$($(1)_OBJS)
 	$(AR) cru $$($(1)_DIR)/lib$(1).a $$($(1)_OBJS)
 
-ALL_LIB_ARS+=$$($(1)_DIR)/lib$(1).a
+ALL_LIBS+=$$($(1)_DIR)/lib$(1).a
 
 ALL_OBJS+=$$($(1)_OBJS)
 ALL_DEPS+=$$($(1)_OBJS:.o=.P)
