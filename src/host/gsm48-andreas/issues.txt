@@ -1,0 +1,21 @@
+
+must be expanded:
+
+struct osmocom_ms:
+- struct rrlayer *
+- struct mmlayer *
+- transaction list
+- struct phone_options
+- struct system_infos (collected system infos)
+
+DL_RANDOM_ACCESS_REQ requires a delay of RACH slots.
+DL_RANDOM_ACCESS_FLU used to flush pending RACH requests
+
+must random value in chan_request change on every resend or only on every RR
+establishment? (currently it changes on every RR establishment only.)
+
+send und receive name concept:
+- sending to other layer
+- receiving from other layer
+- de-queue when sending to upper layer
+
