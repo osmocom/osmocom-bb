@@ -142,6 +142,9 @@ loader_handle_reply(struct msgb *msg) {
 	void *data;
 
 	switch(cmd) {
+	case LOADER_INIT:
+		printf("Loader has been started\n");
+		break;
 	case LOADER_PING:
 	case LOADER_RESET:
 	case LOADER_POWEROFF:
@@ -161,7 +164,7 @@ loader_handle_reply(struct msgb *msg) {
 		printf("Received unknown reply %d:\n", cmd);
 		hexdump(msg->data, msg->len);
 		osmoload.quit = 1;
-		break;
+		return;
 	}
 
 	switch(osmoload.operation) {
