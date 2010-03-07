@@ -52,7 +52,7 @@ SECTIONS
 	/* read-only data */
 	. = ALIGN(4);
 	.rodata : {
-		*(.rodata) 
+		*(.rodata*) 
 	} > LRAM
 
 	/* initialized data */
