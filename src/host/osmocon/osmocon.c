@@ -26,6 +26,27 @@
 #define MAX_DNLOAD_SIZE	0xFFFF
 #define MAX_HDR_SIZE	128
 
+struct tool_server *tool_server_for_dlci[256];
+
+/**
+ * a connection from some other tool
+ */
+struct tool_connection {
+	struct tool_server *server;
+	struct llist_head entry;
+	struct bsc_fd fd;
+};
+
+/**
+ * server for a tool
+ */
+struct tool_server {
+	struct bsc_fd bfd;
+	uint8_t dlci;
+	struct llist_head connections;
+};
+
+
 enum dnload_state {
 	WAITING_PROMPT1,
 	WAITING_PROMPT2,
@@ -52,19 +73,11 @@ struct dnload {
 
 	uint8_t *write_ptr;
 
-	/* sockaddr in */
-	struct bsc_fd socket;
+	struct tool_server layer2_server;
+	struct tool_server loader_server;
 };
 
-/**
- * a connection from some other tool
- */
-struct tool_connection {
-	struct llist_head entry;
-	struct bsc_fd fd;
-};
 
-static LLIST_HEAD(connections);
 static struct dnload dnload;
 
 static const uint8_t phone_prompt1[] = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x01, 0x40 };
@@ -357,18 +370,22 @@ static void hdlc_console_cb(uint8_t dlci, struct msgb *msg)
 	msgb_free(msg);
 }
 
-static void hdlc_l1a_cb(uint8_t dlci, struct msgb *msg)
+static void hdlc_tool_cb(uint8_t dlci, struct msgb *msg)
 {
-	struct tool_connection *con;
-	u_int16_t *len;
+	struct tool_server *srv = tool_server_for_dlci[dlci];
 
-	len = (u_int16_t *) msgb_push(msg, 2);
-	*len = htons(msg->len - sizeof(*len));
+	if(srv) {
+		struct tool_connection *con;
+		u_int16_t *len;
 
-	llist_for_each_entry(con, &connections, entry) {
-		if (write(con->fd.fd, msg->data, msg->len) != msg->len) {
-			fprintf(stderr, "Failed to write msg to the socket..\n");
-			continue;
+		len = (u_int16_t *) msgb_push(msg, 2);
+		*len = htons(msg->len - sizeof(*len));
+
+		llist_for_each_entry(con, &srv->connections, entry) {
+			if (write(con->fd.fd, msg->data, msg->len) != msg->len) {
+				fprintf(stderr, "Failed to write msg to the socket..\n");
+				continue;
+			}
 		}
 	}
 
@@ -484,7 +501,7 @@ static int parse_mode(const char *arg)
 
 static int usage(const char *name)
 {
-	printf("\nUsage: %s [ -v | -h ] [ -p /dev/ttyXXXX ] [ -s /tmp/osmocom_l2 ] ][ -m {c123,c123xor,c155} ] file.bin\n", name);
+	printf("\nUsage: %s [ -v | -h ] [ -p /dev/ttyXXXX ] [ -s /tmp/osmocom_l2 ] [ -l /tmp/osmocom_loader ] [ -m {c123,c123xor,c155} ] file.bin\n", name);
 	printf("\t* Open serial port /dev/ttyXXXX (connected to your phone)\n"
 		"\t* Perform handshaking with the ramloader in the phone\n"
 		"\t* Download file.bin to the attached phone (base address 0x00800100)\n");
@@ -497,16 +514,20 @@ static int version(const char *name)
 	exit(2);
 }
 
-static int un_layer2_read(struct bsc_fd *fd, unsigned int flags)
+static int un_tool_read(struct bsc_fd *fd, unsigned int flags)
 {
 	int rc;
 	u_int16_t length = 0xffff;
 	u_int8_t buf[4096];
-	struct tool_connection *con;
+	struct tool_connection *con = (struct tool_connection *)fd->data;
 
 
 	rc = read(fd->fd, &length, sizeof(length));
-	if (rc <= 0 || ntohs(length) > 512) {
+	if (rc == 0) {
+		// client disconnected
+		goto close;
+	}
+	if (rc < 0 || ntohs(length) > 512) {
 		fprintf(stderr, "Unexpected result from socket. rc: %d len: %d\n",
 			rc, ntohs(length));
 		goto close;
@@ -518,11 +539,10 @@ static int un_layer2_read(struct bsc_fd *fd, unsigned int flags)
 		goto close;
 	}
 
-	hdlc_send_to_phone(SC_DLCI_L1A_L23, buf, ntohs(length));
+	hdlc_send_to_phone(con->server->dlci, buf, ntohs(length));
 
 	return 0;
 close:
-	con = (struct tool_connection *) fd->data;
 
 	close(fd->fd);
 	bsc_unregister_fd(fd);
@@ -532,8 +552,9 @@ close:
 }
 
 /* accept a new connection */
-static int un_layer2_accept(struct bsc_fd *fd, unsigned int flags)
+static int tool_accept(struct bsc_fd *fd, unsigned int flags)
 {
+	struct tool_server *srv = (struct tool_server *)fd->data;
 	struct tool_connection *con;
 	struct sockaddr_un un_addr;
 	socklen_t len;
@@ -548,43 +569,48 @@ static int un_layer2_accept(struct bsc_fd *fd, unsigned int flags)
 
 	con = talloc_zero(NULL, struct tool_connection);
 	if (!con) {
-		fprintf(stderr, "Failed to create layer2 connection.\n");
+		fprintf(stderr, "Failed to create tool connection.\n");
 		return -1;
 	}
 
+	con->server = srv;
+
 	con->fd.fd = rc;
 	con->fd.when = BSC_FD_READ;
-	con->fd.cb = un_layer2_read;
+	con->fd.cb = un_tool_read;
 	con->fd.data = con;
 	if (bsc_register_fd(&con->fd) != 0) {
 		fprintf(stderr, "Failed to register the fd.\n");
 		return -1;
 	}
 
-	llist_add(&con->entry, &connections);
+	llist_add(&con->entry, &srv->connections);
 	return 0;
 }
 
 /*
- * Create a server socket for the layer2 stack
+ * Register and start a tool server
  */
-static int register_af_unix(const char *un_path)
+static int register_tool_server(struct tool_server *ts,
+								const char *path,
+								uint8_t dlci)
 {
+	struct bsc_fd *bfd = &ts->bfd;
 	struct sockaddr_un local;
 	int rc;
 
-	dnload.socket.fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	bfd->fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
-	if (dnload.socket.fd < 0) {
+	if (bfd->fd < 0) {
 		fprintf(stderr, "Failed to create Unix Domain Socket.\n");
 		return -1;
 	}
 
 	local.sun_family = AF_UNIX;
-	strncpy(local.sun_path, un_path, sizeof(local.sun_path));
+	strncpy(local.sun_path, path, sizeof(local.sun_path));
 	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
 	unlink(local.sun_path);
-	rc = bind(dnload.socket.fd, (struct sockaddr *) &local,
+	rc = bind(bfd->fd, (struct sockaddr *) &local,
 		  sizeof(local.sun_family) + strlen(local.sun_path));
 	if (rc != 0) {
 		fprintf(stderr, "Failed to bind the unix domain socket. '%s'\n",
@@ -592,15 +618,23 @@ static int register_af_unix(const char *un_path)
 		return -1;
 	}
 
-	if (listen(dnload.socket.fd, 0) != 0) {
+	if (listen(bfd->fd, 0) != 0) {
 		fprintf(stderr, "Failed to listen.\n");
 		return -1;
 	}
 
-	dnload.socket.when = BSC_FD_READ;
-	dnload.socket.cb = un_layer2_accept;
+	bfd->when = BSC_FD_READ;
+	bfd->cb = tool_accept;
+	bfd->data = ts;
 
-	if (bsc_register_fd(&dnload.socket) != 0) {
+	ts->dlci = dlci;
+	INIT_LLIST_HEAD(&ts->connections);
+
+	tool_server_for_dlci[dlci] = ts;
+
+	sercomm_register_rx_cb(dlci, hdlc_tool_cb);
+
+	if (bsc_register_fd(bfd) != 0) {
 		fprintf(stderr, "Failed to register the bfd.\n");
 		return -1;
 	}
@@ -614,11 +648,12 @@ int main(int argc, char **argv)
 {
 	int opt, flags;
 	char *serial_dev = "/dev/ttyUSB1";
-	char *un_path = "/tmp/osmocom_l2";
+	char *layer2_un_path = "/tmp/osmocom_l2";
+	char *loader_un_path = "/tmp/osmocom_loader";
 
 	dnload.mode = MODE_C123;
 
-	while ((opt = getopt(argc, argv, "hp:m:s:v")) != -1) {
+	while ((opt = getopt(argc, argv, "hl:p:m:s:v")) != -1) {
 		switch (opt) {
 		case 'p':
 			serial_dev = optarg;
@@ -629,7 +664,10 @@ int main(int argc, char **argv)
 				usage(argv[0]);
 			break;
 		case 's':
-			un_path = optarg;
+			layer2_un_path = optarg;
+			break;
+		case 'l':
+			loader_un_path = optarg;
 			break;
 		case 'v':
 			version(argv[0]);
@@ -667,16 +705,19 @@ int main(int argc, char **argv)
 	dnload.serial_fd.when = BSC_FD_READ;
 	dnload.serial_fd.cb = serial_read;
 
-	/* unix domain socket handling */
-	if (register_af_unix(un_path) != 0)
-		exit(1);
-
-
 	/* initialize the HDLC layer */
 	sercomm_init();
 	sercomm_register_rx_cb(SC_DLCI_CONSOLE, hdlc_console_cb);
 	sercomm_register_rx_cb(SC_DLCI_DEBUG, hdlc_tpudbg_cb);
-	sercomm_register_rx_cb(SC_DLCI_L1A_L23, hdlc_l1a_cb);
+
+	/* unix domain socket handling */
+	if (register_tool_server(&dnload.layer2_server, layer2_un_path, SC_DLCI_L1A_L23) != 0) {
+		exit(1);
+	}
+	if (register_tool_server(&dnload.loader_server, loader_un_path, SC_DLCI_LOADER) != 0) {
+		exit(1);
+	}
+
 	while (1)
 		bsc_select_main(0);
 
