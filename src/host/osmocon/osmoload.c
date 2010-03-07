@@ -43,13 +43,40 @@
 
 static struct bsc_fd connection;
 
+enum {
+	OPERATION_QUERY,
+	OPERATION_MEMDUMP,
+	OPERATION_MEMLOAD,
+};
+
 static struct {
+	unsigned char print_requests;
+	unsigned char print_replies;
+
 	unsigned char quit;
+	int operation;
+	uint8_t command;
+
+	FILE *binfile;
+
+	uint32_t req_length;
+	uint32_t req_address;
+
+	uint32_t cur_length;
+	uint32_t cur_address;
 } osmoload;
 
 static int usage(const char *name)
 {
-	printf("\nUsage: %s [ -v | -h ] [ -m {c123,c155} ] [ -l /tmp/osmocom_loader ] COMMAND\n", name);
+	printf("\nUsage: %s [ -v | -h ] [ -d tr ] [ -m {c123,c155} ] [ -l /tmp/osmocom_loader ] COMMAND\n", name);
+	puts("  memread <hex-length> <hex-address>");
+	puts("  memdump <hex-length> <hex-address> <file>");
+	puts("  flashloader");
+	puts("  romloader");
+	puts("  ping");
+	puts("  reset");
+	puts("  off");
+
 	exit(2);
 }
 
@@ -74,8 +101,10 @@ loader_send_request(struct msgb *msg) {
 	int rc;
 	u_int16_t len = htons(msg->len);
 
-	printf("Sending %d bytes ", msg->len);
-	hexdump(msg->data, msg->len);
+	if(osmoload.print_requests) {
+		printf("Sending %d bytes:\n", msg->len);
+		hexdump(msg->data, msg->len);
+	}
 
 	rc = write(connection.fd, &len, sizeof(len));
 	if(rc != sizeof(len)) {
@@ -90,51 +119,89 @@ loader_send_request(struct msgb *msg) {
 	}
 }
 
+static void loader_do_memdump();
+
 static void
 loader_handle_reply(struct msgb *msg) {
+	int rc;
+
+	if(osmoload.print_replies) {
+		printf("Received %d bytes:\n", msg->len);
+		hexdump(msg->data, msg->len);
+	}
+
 	uint8_t cmd = msgb_get_u8(msg);
 
 	uint8_t length;
 	uint32_t address;
 
+	void *data;
+
 	switch(cmd) {
 	case LOADER_PING:
-		printf("Received pong.\n");
-		osmoload.quit = 1;
-		break;
 	case LOADER_RESET:
-		printf("Reset confirmed.\n");
-		osmoload.quit = 1;
-		break;
 	case LOADER_POWEROFF:
-		printf("Poweroff confirmed.\n");
-		osmoload.quit = 1;
-		break;
 	case LOADER_ENTER_ROM_LOADER:
-		printf("Jump to ROM loader confirmed.\n");
-		osmoload.quit = 1;
-		break;
 	case LOADER_ENTER_FLASH_LOADER:
-		printf("Jump to flash loader confirmed.\n");
-		osmoload.quit = 1;
 		break;
 	case LOADER_MEM_READ:
 		length = msgb_get_u8(msg);
 		address = msgb_get_u32(msg);
-		printf("Received memory dump of %d bytes at 0x%x:\n", length, address);
-		hexdump(msgb_get(msg, length), length);
-		osmoload.quit = 1;
+		data = msgb_get(msg, length);
 		break;
 	case LOADER_MEM_WRITE:
 		length = msgb_get_u8(msg);
 		address = msgb_get_u32(msg);
-		printf("Confirmed memory write of %d bytes at 0x%x.\n", length, address);
-		osmoload.quit = 1;
 		break;
 	default:
-		printf("Received unknown reply for command %d:\n");
+		printf("Received unknown reply %d:\n", cmd);
 		hexdump(msg->data, msg->len);
 		osmoload.quit = 1;
+		break;
+	}
+
+	switch(osmoload.operation) {
+	case OPERATION_QUERY:
+		switch(cmd) {
+		case LOADER_PING:
+			printf("Received pong.\n");
+			break;
+		case LOADER_RESET:
+			printf("Reset confirmed.\n");
+			break;
+		case LOADER_POWEROFF:
+			printf("Poweroff confirmed.\n");
+			break;
+		case LOADER_ENTER_ROM_LOADER:
+			printf("Jump to ROM loader confirmed.\n");
+			break;
+		case LOADER_ENTER_FLASH_LOADER:
+			printf("Jump to flash loader confirmed.\n");
+			break;
+		case LOADER_MEM_READ:
+			printf("Received memory dump of %d bytes at 0x%x:\n", length, address);
+			hexdump(data, length);
+			break;
+		case LOADER_MEM_WRITE:
+			printf("Confirmed memory write of %d bytes at 0x%x.\n", length, address);
+			break;
+		default:
+			break;
+		}
+		if(osmoload.command == cmd) {
+			osmoload.quit = 1;
+		}
+		break;
+	case OPERATION_MEMDUMP:
+		if(cmd == LOADER_MEM_READ) {
+			rc = fwrite(data, 1, length, osmoload.binfile);
+			if(ferror(osmoload.binfile)) {
+				printf("Error writing to dump file: %s\n", strerror(errno));
+			}
+			loader_do_memdump();
+		}
+		break;
+	default:
 		break;
 	}
 }
@@ -213,21 +280,27 @@ loader_connect(const char *socket_path) {
 }
 
 static void
-loader_send_simple(uint8_t command) {
+loader_send_query(uint8_t command) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, command);
 	loader_send_request(msg);
 	msgb_free(msg);
+
+	osmoload.operation = OPERATION_QUERY;
+	osmoload.command = command;
 }
 
 static void
 loader_send_memread(uint8_t length, uint32_t address) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, LOADER_MEM_READ);
-	msgb_put_u8(msg, 128);
-	msgb_put_u32(msg, 0x00810000);
+	msgb_put_u8(msg, length);
+	msgb_put_u32(msg, address);
 	loader_send_request(msg);
 	msgb_free(msg);
+
+	osmoload.operation = OPERATION_QUERY;
+	osmoload.command = LOADER_MEM_READ;
 }
 
 static void
@@ -236,9 +309,54 @@ loader_send_memwrite(uint8_t length, uint32_t address, void *data) {
 	msgb_put_u8(msg, LOADER_MEM_WRITE);
 	msgb_put_u8(msg, length);
 	msgb_put_u32(msg, address);
-	memcpy(msgb_put(msg, 128), data, length);
+	memcpy(msgb_put(msg, length), data, length);
 	loader_send_request(msg);
 	msgb_free(msg);
+
+	osmoload.operation = OPERATION_QUERY;
+	osmoload.command = LOADER_MEM_WRITE;
+}
+
+static void
+loader_do_memdump() {
+	uint32_t rembytes = osmoload.req_length - osmoload.cur_length;
+
+	if(!rembytes) {
+		osmoload.quit = 1;
+		return;
+	}
+
+#define MEM_READ_MAX (MSGB_MAX - 16)
+
+	uint8_t reqbytes = (rembytes < MEM_READ_MAX) ? rembytes : MEM_READ_MAX;
+
+	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
+
+	msgb_put_u8(msg, LOADER_MEM_READ);
+	msgb_put_u8(msg, reqbytes);
+	msgb_put_u32(msg, osmoload.cur_address);
+	loader_send_request(msg);
+	msgb_free(msg);
+
+	osmoload.cur_address += reqbytes;
+	osmoload.cur_length  += reqbytes;
+}
+
+static void
+loader_start_memdump(uint32_t length, uint32_t address, char *file) {
+	osmoload.operation = OPERATION_MEMDUMP;
+	osmoload.binfile = fopen(file, "wb");
+	if(!osmoload.binfile) {
+		printf("Could not open %s: %s\n", file, strerror(errno));
+		exit(1);
+	}
+	osmoload.req_length = length;
+	osmoload.req_address = address;
+
+	osmoload.cur_length = 0;
+	osmoload.cur_address = address;
+
+	loader_do_memdump();
 }
 
 static void
@@ -247,31 +365,67 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		usage(name);
 	}
 
-	struct msgb *msg;
 	char *cmd = cmdv[0];
 
 	char buf[256];
 	memset(buf, 23, sizeof(buf));
 
-	printf("Command %s\n", cmd);
-
 	if(!strcmp(cmd, "ping")) {
-		loader_send_simple(LOADER_PING);
+		loader_send_query(LOADER_PING);
 	} else if(!strcmp(cmd, "memread")) {
-		loader_send_memread(128, 0x810000);
+		uint8_t length;
+		uint32_t address;
+
+		if(cmdc < 3) {
+			usage(name);
+		}
+
+		length = strtoul(cmdv[1], NULL, 16);
+		address = strtoul(cmdv[2], NULL, 16);
+
+		loader_send_memread(length, address);
+	} else if(!strcmp(cmd, "memdump")) {
+		uint32_t length;
+		uint32_t address;
+
+		if(cmdc < 4) {
+			usage(name);
+		}
+
+		length = strtoul(cmdv[1], NULL, 16);
+		address = strtoul(cmdv[2], NULL, 16);
+
+		loader_start_memdump(length, address, cmdv[3]);
 	} else if(!strcmp(cmd, "memwrite")) {
 		loader_send_memwrite(128, 0x810000, buf);
 	} else if(!strcmp(cmd, "off")) {
-		loader_send_simple(LOADER_POWEROFF);
+		loader_send_query(LOADER_POWEROFF);
 	} else if(!strcmp(cmd, "reset")) {
-		loader_send_simple(LOADER_RESET);
+		loader_send_query(LOADER_RESET);
 	} else if(!strcmp(cmd, "romload")) {
-		loader_send_simple(LOADER_ENTER_ROM_LOADER);
+		loader_send_query(LOADER_ENTER_ROM_LOADER);
 	} else if(!strcmp(cmd, "flashload")) {
-		loader_send_simple(LOADER_ENTER_FLASH_LOADER);
+		loader_send_query(LOADER_ENTER_FLASH_LOADER);
+	} else if(!strcmp(cmd, "help")) {
+		usage(name);
 	} else {
 		printf("Unknown command '%s'\n", cmd);
 		usage(name);
+	}
+}
+
+void
+setdebug(const char *name, char c) {
+	switch(c) {
+	case 't':
+		osmoload.print_requests = 1;
+		break;
+	case 'r':
+		osmoload.print_replies = 1;
+		break;
+	default:
+		usage(name);
+		break;
 	}
 }
 
@@ -279,9 +433,17 @@ int
 main(int argc, char **argv) {
 	int opt;
 	char *loader_un_path = "/tmp/osmocom_loader";
+	const char *debugopt;
 
-	while((opt = getopt(argc, argv, "hl:m:v")) != -1) {
+	while((opt = getopt(argc, argv, "d:hl:m:v")) != -1) {
 		switch(opt) {
+		case 'd':
+			debugopt = optarg;
+			while(*debugopt) {
+				setdebug(argv[0], *debugopt);
+				debugopt++;
+			}
+			break;
 		case 'l':
 			loader_un_path = optarg;
 			break;
@@ -307,6 +469,10 @@ main(int argc, char **argv) {
 
 	while(!osmoload.quit) {
 		bsc_select_main(0);
+	}
+
+	if(osmoload.binfile) {
+		fclose(osmoload.binfile);
 	}
 
 	return 0;
