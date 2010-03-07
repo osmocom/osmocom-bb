@@ -33,7 +33,8 @@ shared/libosmocore/build-target:
 	mkdir $@
 
 shared/libosmocore/build-target/Makefile: shared/libosmocore/configure shared/libosmocore/build-target
-	cd shared/libosmocore/build-target && ../configure --host=arm-elf-linux --disable-shared
+	cd shared/libosmocore/build-target && ../configure --host=arm-elf-linux --disable-shared \
+		CFLAGS="-Os -ffunction-sections"
 
 shared/libosmocore/build-target/src/.libs/libosmocore.a: shared/libosmocore/build-target/Makefile
 	cd shared/libosmocore/build-target && make
