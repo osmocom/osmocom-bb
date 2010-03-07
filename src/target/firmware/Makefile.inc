@@ -66,8 +66,8 @@ $(1)_OBJS:=$$($(1)_SRCS_REL:.c=.o)
 $(1)_OBJS:=$$($(1)_OBJS:.S=.o)
 
 $(1).elf $(1).map $(1).size: apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS)
-	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $(LDS) -Bstatic -Map $$(@:.elf=.map)  -o $$@ --start-group $$^ --end-group
-	$(CROSS_COMPILE)$(SIZE) $$@ | tee $(1).size
+	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $(LDS) -Bstatic -Map $(1).map  -o $(1).elf --start-group $$^ --end-group
+	$(CROSS_COMPILE)$(SIZE) $(1).elf | tee $(1).size
 
 ALL_APPS+=$(1).elf
 
@@ -115,20 +115,18 @@ depend: $(ALL_DEPS)
 #### COMPILATION RULES ####
 
 %.P: %.c
-	@$(CROSS_COMPILE)$(CC) $(CFLAGS) -M -o $(*).d $(<)
-	@sed 's|\($*)\)\.o[ :]*|\1.o $@ : |g' < $*.d > $@; \
-		rm -f $*.d; [ -s $@ ] || rm -f $@
+	$(CROSS_COMPILE)$(CC) $(CFLAGS) -M -o $(*).d $(<)
+	sed 's|.*\.o:|$(@:.P=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
 
 %.P: %.S
 	@$(CROSS_COMPILE)$(CC) $(ASFLAGS) -M -o $(*).d $(<)
-	@sed 's|\($*)\)\.o[ :]*|\1.o $@ : |g' < $*.d > $@; \
-		rm -f $*.d; [ -s $@ ] || rm -f $@
+	sed 's|.*\.o:|$(@:.P=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
 
 %.o: %.c
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) -c -o $@ $^
+	$(CROSS_COMPILE)$(CC) $(CFLAGS) -c -o $@ $<
 
 %.o: %.S
-	$(CROSS_COMPILE)$(CC) $(ASFLAGS) -c -o $@ $^
+	$(CROSS_COMPILE)$(CC) $(ASFLAGS) -c -o $@ $<
 
 
 %.bin: %.elf
