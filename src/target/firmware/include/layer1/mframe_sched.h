@@ -1,3 +1,5 @@
+#ifndef _L1_MFRAME_SCHED_H
+#define _L1_MFRAME_SCHED_H
 
 #include <stdint.h>
 
@@ -33,3 +35,5 @@ uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts);
 
 /* Schedule mframe_sched_items according to current MF TASK list */
 void mframe_schedule(uint32_t task_bitmask);
+
+#endif /* _MFRAME_SCHED_H */

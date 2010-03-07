@@ -61,7 +61,7 @@ const char *hr = "==============================================================
 
 void key_handler(enum key_codes code, enum key_states state);
 
-static void *console_rx_cb(uint8_t dlci, struct msgb *msg)
+static void console_rx_cb(uint8_t dlci, struct msgb *msg)
 {
 	if (dlci != SC_DLCI_CONSOLE) {
 		printf("Message for unknown DLCI %u\n", dlci);
@@ -69,7 +69,7 @@ static void *console_rx_cb(uint8_t dlci, struct msgb *msg)
 	}
 
 	printf("Message on console DLCI: '%s'\n", msg->data);
-	st7558_puts(msg->data);
+	st7558_puts((char *) msg->data);
 	msgb_free(msg);
 }
 

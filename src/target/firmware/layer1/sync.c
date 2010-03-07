@@ -30,6 +30,7 @@
 #include <defines.h>
 #include <debug.h>
 #include <memory.h>
+#include <gsm.h>
 #include <calypso/dsp_api.h>
 #include <calypso/irq.h>
 #include <calypso/tpu.h>

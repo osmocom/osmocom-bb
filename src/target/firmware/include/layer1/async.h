@@ -1,6 +1,8 @@
 #ifndef _L1_ASYNC_H
 #define _L1_ASYNC_H
 
+#include <layer1/mframe_sched.h>
+
 /* safely enable a message into the L1S TX queue */
 void l1a_txq_msgb_enq(struct llist_head *queue, struct msgb *msg);
 
