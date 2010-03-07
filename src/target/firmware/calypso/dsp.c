@@ -260,16 +260,16 @@ static void dsp_ndb_init(void)
 
 static void dsp_db_init(void)
 {
-	dsp_api_memset((void *)BASE_API_W_PAGE_0, sizeof(T_DB_MCU_TO_DSP));
-	dsp_api_memset((void *)BASE_API_W_PAGE_1, sizeof(T_DB_MCU_TO_DSP));
-	dsp_api_memset((void *)BASE_API_R_PAGE_0, sizeof(T_DB_DSP_TO_MCU));
-	dsp_api_memset((void *)BASE_API_R_PAGE_1, sizeof(T_DB_DSP_TO_MCU));
+	dsp_api_memset((uint16_t *)BASE_API_W_PAGE_0, sizeof(T_DB_MCU_TO_DSP));
+	dsp_api_memset((uint16_t *)BASE_API_W_PAGE_1, sizeof(T_DB_MCU_TO_DSP));
+	dsp_api_memset((uint16_t *)BASE_API_R_PAGE_0, sizeof(T_DB_DSP_TO_MCU));
+	dsp_api_memset((uint16_t *)BASE_API_R_PAGE_1, sizeof(T_DB_DSP_TO_MCU));
 }
 
 void dsp_power_on(void)
 {
 	/* proabaly a good idea to initialize the whole API area to a know value */
-	dsp_api_memset(BASE_API_RAM, API_SIZE * 2); // size is in words
+	dsp_api_memset((uint16_t *)BASE_API_RAM, API_SIZE * 2); // size is in words
 
 	dsp_set_params((int16_t *)&dsp_params, sizeof(dsp_params)/2);
 	dsp_ndb_init();
@@ -407,7 +407,7 @@ static void _dsp_dump_range(uint32_t addr, uint32_t size, int mode)
 
 		while (bs--) {
 			if ((addr&15)==0)
-				printf("%05lx : ", addr);
+				printf("%05x : ", addr);
 			printf("%04hx%c", *api++, ((addr&15)==15)?'\n':' ');
 			addr++;
 		}
@@ -457,7 +457,7 @@ void dsp_dump(void)
 
 	/* Dump each range */
 	for (i=0; dr[i].name; i++) {
-		printf("DSP dump: %s [%05lx-%05lx]\n", dr[i].name,
+		printf("DSP dump: %s [%05x-%05x]\n", dr[i].name,
 			dr[i].addr, dr[i].addr+dr[i].size-1);
 		_dsp_dump_range(dr[i].addr, dr[i].size, dr[i].mode);
 	}
