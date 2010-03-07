@@ -224,7 +224,7 @@ enum gsm_band gsm_band_parse(const char* mhz)
 	if (*mhz == '\0')
 		return -EINVAL;
 
-	switch (atoi(mhz)) {
+	switch (strtol(mhz, NULL, 10)) {
 	case 450:
 		return GSM_BAND_450;
 	case 480:
