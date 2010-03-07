@@ -1,6 +1,6 @@
 
 # Global include path
-INCLUDES=-Iinclude/ -I../../../include
+INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/build-target/include
 
 # Various objects that are currently linked into all applications
 FLASH_OBJS=flash/cfi_flash.o
@@ -20,7 +20,7 @@ APPLICATIONS=hello_world l1test compal_dump compal_dsp_dump layer1 loader
 
 # Things that go in all applications
 ANY_APP_OBJS+=$(START:.S=.o) $(ABB_OBJS) $(RF_OBJS) $(DISPLAY_OBJS) $(FLASH_OBJS)
-ANY_APP_LIBS+=calypso/libcalypso.a layer1/liblayer1.a lib/libmini.a comm/libcomm.a
+ANY_APP_LIBS+=calypso/libcalypso.a layer1/liblayer1.a lib/libmini.a comm/libcomm.a ../../shared/libosmocore/build-target/src/.libs/libosmocore.a
 
 # Libraries are defined in subdirectories
 -include calypso/Makefile
