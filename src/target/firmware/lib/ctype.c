@@ -4,7 +4,7 @@
  *  Copyright (C) 1991, 1992  Linus Torvalds
  */
 
-#include <asm/ctype.h>
+#include <ctype.h>
 
 unsigned char _ctype[] = {
 _C,_C,_C,_C,_C,_C,_C,_C,			/* 0-7 */

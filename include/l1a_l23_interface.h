@@ -37,14 +37,6 @@
  * that it will avoid some unaligned access.
  */
 
-struct gsm_time {
-	uint32_t	fn;	/* FN count */
-	uint16_t	t1;	/* FN div (26*51) */
-	uint8_t		t2;	/* FN modulo 26 */
-	uint8_t		t3;	/* FN modulo 51 */
-	uint8_t		tc;
-} __attribute__((packed));
-
 /*
  * downlink info ... down from the BTS..
  */
@@ -58,12 +50,13 @@ struct l1ctl_info_dl {
 	/* GSM 08.58 link identifier (9.3.2) */
 	uint8_t link_id;
 
+	uint32_t frame_nr;
+
 	/* the ARFCN and the band. FIXME: what about MAIO? */
 	uint16_t band_arfcn;
 
-	struct gsm_time time;
-	uint8_t rx_level;
-	uint16_t snr[4];
+	uint8_t rx_level;	/* 0 .. 63 in typical GSM notation (dBm+110) */
+	uint8_t snr;		/* Signal/Noise Ration (dB) */
 } __attribute__((packed));
 
 /* new CCCH was found. This is following the header */

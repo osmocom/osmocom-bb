@@ -24,7 +24,7 @@
 #include <stdio.h>
 
 #include <debug.h>
-#include <gsm.h>
+#include <osmocore/gsm_utils.h>
 
 #include <layer1/afc.h>
 #include <layer1/avg.h>
@@ -82,8 +82,8 @@ void afc_correct(int16_t freq_error, uint16_t arfcn)
 	int16_t delta;
 
 	switch (gsm_arfcn2band(arfcn)) {
-	case GSM_900:
-	case GSM_850:
+	case GSM_BAND_900:
+	case GSM_BAND_850:
 		afc_norm_factor = AFC_NORM_FACTOR_GSM;
 		break;
 	default:

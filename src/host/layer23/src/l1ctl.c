@@ -30,6 +30,7 @@
 #include <osmocore/timer.h>
 #include <osmocore/msgb.h>
 #include <osmocore/tlv.h>
+#include <osmocore/gsm_utils.h>
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/protocol/gsm_08_58.h>
 #include <osmocore/rsl.h>
@@ -68,6 +69,7 @@ static int rx_l1_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_info_dl *dl;
 	struct l1ctl_sync_new_ccch_resp *sb;
+	struct gsm_time tm;
 
 	if (msgb_l3len(msg) < sizeof(*sb)) {
 		fprintf(stderr, "MSG too short for CCCH RESP: %u\n", msgb_l3len(msg));
@@ -77,8 +79,9 @@ static int rx_l1_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 	sb = (struct l1ctl_sync_new_ccch_resp *) msg->l2h;
 
+	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	printf("SCH: SNR: %u TDMA: (%.4u/%.2u/%.2u) bsic: %d\n",
-		dl->snr[0], dl->time.t1, dl->time.t2, dl->time.t3, sb->bsic);
+		dl->snr, tm.t1, tm.t2, tm.t3, sb->bsic);
 
 	return 0;
 }
@@ -118,6 +121,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct lapdm_entity *le;
 	uint8_t chan_type, chan_ts, chan_ss;
 	uint8_t gsmtap_chan_type;
+	struct gsm_time tm;
 
 	if (msgb_l3len(msg) < sizeof(*ccch)) {
 		fprintf(stderr, "MSG too short Data Ind: %u\n", msgb_l3len(msg));
@@ -127,15 +131,16 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 	ccch = (struct l1ctl_data_ind *) msg->l2h;
 
+	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
 	printf("%s (%.4u/%.2u/%.2u) %s\n",
-		chan_nr2string(dl->chan_nr), dl->time.t1, dl->time.t2,
-		dl->time.t3, hexdump(ccch->data, sizeof(ccch->data)));
+		chan_nr2string(dl->chan_nr), tm.t1, tm.t2, tm.t3,
+		hexdump(ccch->data, sizeof(ccch->data)));
 
 	/* send CCCH data via GSMTAP */
 	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
 	gsmtap_sendmsg(dl->band_arfcn, chan_ts, gsmtap_chan_type, chan_ss,
-			dl->time.fn, ccch->data, sizeof(ccch->data));
+			tm.fn, ccch->data, sizeof(ccch->data));
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)

@@ -21,7 +21,7 @@
 
 #include <sys/types.h>
 #include <string.h>
-#include <asm/ctype.h>
+#include <ctype.h>
 
 
 #ifndef __HAVE_ARCH_STRNLEN

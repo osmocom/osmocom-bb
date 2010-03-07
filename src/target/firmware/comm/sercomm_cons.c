@@ -29,7 +29,7 @@
 #include <calypso/uart.h>
 
 #include <console.h>
-#include <comm/msgb.h>
+#include <osmocore/msgb.h>
 #include <comm/sercomm.h>
 #include <comm/sercomm_cons.h>
 

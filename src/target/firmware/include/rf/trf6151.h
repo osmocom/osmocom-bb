@@ -1,7 +1,7 @@
 #ifndef _TRF6151_H
 #define _TRF6151_H
 
-#include <gsm.h>
+#include <osmocore/gsm_utils.h>
 
 /* initialize (reset + power up) */
 void trf6151_init(void);

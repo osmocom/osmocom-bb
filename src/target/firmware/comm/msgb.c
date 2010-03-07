@@ -25,7 +25,7 @@
 
 #include <debug.h>
 
-#include <comm/msgb.h>
+#include <osmocore/msgb.h>
 
 #include <calypso/backlight.h>
 
@@ -43,7 +43,7 @@ struct supermsg {
 	uint8_t buf[MSGB_DATA_SIZE];
 };
 static struct supermsg msgs[MSGB_NUM];
-static void *_talloc_zero(void *ctx, unsigned int size, const char *name)
+void *_talloc_zero(void *ctx, unsigned int size, const char *name)
 {
 	unsigned int i;
 	if (size > sizeof(struct msgb) + MSGB_DATA_SIZE)
@@ -65,64 +65,9 @@ static void *_talloc_zero(void *ctx, unsigned int size, const char *name)
 panic:
 	return NULL;
 }
-static void talloc_free(void *msg)
+void talloc_free(void *msg)
 {
 	struct supermsg *smsg = container_of(msg, struct supermsg, msg);
 	smsg->allocated = 0;
 }
 #endif
-
-struct msgb *msgb_alloc(uint16_t size, const char *name)
-{
-	struct msgb *msg;
-
-	msg = _talloc_zero(tall_msgb_ctx, sizeof(*msg) + size, name);
-
-	if (!msg) {
-		return NULL;
-	}
-
-	msg->data_len = size;
-	msg->len = 0;
-
-	msg->data = msg->_data;
-	msg->head = msg->_data;
-	msg->tail = msg->_data;
-
-	return msg;
-}
-
-void msgb_free(struct msgb *m)
-{
-	talloc_free(m);
-}
-
-void msgb_enqueue(struct llist_head *queue, struct msgb *msg)
-{
-	llist_add_tail(&msg->list, queue);
-}
-
-struct msgb *msgb_dequeue(struct llist_head *queue)
-{
-	struct llist_head *lh;
-
-	if (llist_empty(queue))
-		return NULL;
-
-	lh = queue->next;
-	llist_del(lh);
-	
-	return llist_entry(lh, struct msgb, list);
-}
-
-void msgb_reset(struct msgb *msg)
-{
-	msg->len = 0;
-
-	msg->data = msg->_data;
-	msg->head = msg->_data;
-	msg->tail = msg->_data;
-
-	msg->l2h = NULL;
-	msg->l3h = NULL;
-}

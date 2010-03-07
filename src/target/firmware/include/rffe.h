@@ -1,7 +1,7 @@
 #ifndef _RFFE_H
 #define _RFFE_H
 
-#include <gsm.h>
+#include <osmocore/gsm_utils.h>
 
 /* initialize RF Frontend */
 void rffe_init(void);

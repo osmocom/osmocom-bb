@@ -23,7 +23,7 @@
 
 #include <sys/time.h>
 
-#include <linuxlist.h>
+#include <osmocore/linuxlist.h>
 
 /**
  * Timer management:

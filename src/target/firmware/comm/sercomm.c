@@ -24,11 +24,12 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include <osmocore/msgb.h>
+
 #ifdef HOST_BUILD
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 #endif
-#include <osmocore/msgb.h>
 #include <sercomm.h>
 #define local_irq_save(x)
 #define local_fiq_disable()
@@ -36,10 +37,9 @@
 
 #else
 #include <debug.h>
-#include <linuxlist.h>
+#include <osmocore/linuxlist.h>
 #include <asm/system.h>
 
-#include <comm/msgb.h>
 #include <comm/sercomm.h>
 #include <calypso/uart.h>
 #endif

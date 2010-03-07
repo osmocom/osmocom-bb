@@ -1,6 +1,6 @@
 
 # Global include path
-INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/build-target/include
+INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
 
 # Various objects that are currently linked into all applications
 FLASH_OBJS=flash/cfi_flash.o

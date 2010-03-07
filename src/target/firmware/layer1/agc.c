@@ -23,8 +23,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <osmocore/gsm_utils.h>
 #include <debug.h>
-#include <gsm.h>
 #include <rffe.h>
 
 #include <layer1/agc.h>

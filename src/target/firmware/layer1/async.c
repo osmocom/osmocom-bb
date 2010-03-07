@@ -25,7 +25,7 @@
 #include <debug.h>
 #include <arm.h>
 
-#include <comm/msgb.h>
+#include <osmocore/msgb.h>
 
 #include <layer1/sync.h>
 #include <layer1/mframe_sched.h>

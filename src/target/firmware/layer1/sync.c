@@ -30,7 +30,8 @@
 #include <defines.h>
 #include <debug.h>
 #include <memory.h>
-#include <gsm.h>
+#include <osmocore/gsm_utils.h>
+#include <osmocore/msgb.h>
 #include <calypso/dsp_api.h>
 #include <calypso/irq.h>
 #include <calypso/tpu.h>
@@ -38,7 +39,6 @@
 #include <calypso/dsp.h>
 #include <calypso/timer.h>
 #include <comm/sercomm.h>
-#include <comm/msgb.h>
 
 #include <abb/twl3025.h>
 
@@ -846,6 +846,8 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 	if (dsp_api.db_r->d_burst_d == 3) {
 		struct l1ctl_info_dl *dl;
 		struct l1ctl_data_ind *l1;
+		uint32_t avg_snr = 0;
+		int32_t avg_dbm8 = 0;
 		uint8_t i, j;
 
 		sig->signum = L1_SIG_NB;
@@ -877,9 +879,15 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 		else
 			dl->link_id = 0x00;
 
-		/* copy the snr and data */
-		for (i = 0; i < 3; ++i)
-			dl->snr[i] = sig->nb.meas[i].snr;
+		/* compute average snr and rx level */
+		for (i = 0; i < 4; ++i) {
+			avg_snr += sig->nb.meas[i].snr;
+			avg_dbm8 += sig->nb.meas[i].pm_dbm8;
+		}
+		dl->snr = avg_snr / 4;
+		dl->rx_level = (avg_dbm8 / (8*4)) + 110;
+
+		/* copy the actual payload data */
 		for (i = 0; i < 23; ++i)
 			l1->data[i] = sig->nb.frame[i];
 		l1_queue_for_l2(msg);

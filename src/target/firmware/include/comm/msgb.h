@@ -20,7 +20,7 @@
  *
  */
 
-#include <linuxlist.h>
+#include <osmocore/linuxlist.h>
 
 struct msgb {
 	struct llist_head list;

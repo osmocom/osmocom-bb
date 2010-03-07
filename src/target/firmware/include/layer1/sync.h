@@ -1,7 +1,8 @@
 #ifndef _L1_SYNC_H
 #define _L1_SYNC_H
 
-#include <linuxlist.h>
+#include <osmocore/linuxlist.h>
+#include <osmocore/gsm_utils.h>
 #include <layer1/tdma_sched.h>
 #include <l1a_l23_interface.h>
 

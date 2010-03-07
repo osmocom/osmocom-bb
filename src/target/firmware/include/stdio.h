@@ -41,6 +41,11 @@ int puts(const char *s);
 #define ARCH_HAS_CONSOLE
 #endif
 
+struct __file {
+};
+
+typedef struct __file FILE;
+
 /* non-standard */
 extern void phex(unsigned int c, unsigned int len);
 

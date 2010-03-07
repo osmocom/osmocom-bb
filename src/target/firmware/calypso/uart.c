@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <defines.h>
 #include <console.h>
 #include <comm/sercomm.h>
 

@@ -24,7 +24,7 @@
 #include <errno.h>
 
 #include <debug.h>
-#include <linuxlist.h>
+#include <osmocore/linuxlist.h>
 
 #include <layer1/tdma_sched.h>
 #include <layer1/sched_gsmtime.h>

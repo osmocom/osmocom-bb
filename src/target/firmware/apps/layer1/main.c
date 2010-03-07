@@ -23,7 +23,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <gsm.h>
 #include <debug.h>
 #include <memory.h>
 #include <rffe.h>

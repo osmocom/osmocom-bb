@@ -24,7 +24,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <gsm.h>
 #include <debug.h>
 #include <memory.h>
 #include <rffe.h>

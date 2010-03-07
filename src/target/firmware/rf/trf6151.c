@@ -26,7 +26,7 @@
 #include <debug.h>
 #include <memory.h>
 #include <keypad.h>
-#include <gsm.h>
+#include <osmocore/gsm_utils.h>
 
 #include <calypso/tpu.h>
 #include <calypso/tsp.h>
@@ -306,22 +306,22 @@ void trf6151_set_arfcn(uint16_t arfcn, int uplink)
 	uint32_t freq_khz;
 
 	switch (gsm_arfcn2band(arfcn)) {
-	case GSM_850:
+	case GSM_BAND_850:
 		rf_band = GSM850_LOW;	/* FIXME: what about HIGH */
 		break;
-	case GSM_900:
+	case GSM_BAND_900:
 		rf_band = GSM900;
 		break;
-	case GSM_1800:
+	case GSM_BAND_1800:
 		rf_band = GSM1800;
 		break;
-	case GSM_1900:
+	case GSM_BAND_1900:
 		rf_band = GSM1900;
 		break;
-	case GSM_450:
-	case GSM_480:
-	case GSM_750:
-	case GSM_810:
+	case GSM_BAND_450:
+	case GSM_BAND_480:
+	case GSM_BAND_750:
+	case GSM_BAND_810:
 		printf("Unsupported rf_band.\n");
 		break;
 	}

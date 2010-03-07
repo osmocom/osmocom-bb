@@ -24,8 +24,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <defines.h>
 #include <debug.h>
-#include <gsm.h>
+#include <osmocore/gsm_utils.h>
 
 #include <layer1/tdma_sched.h>
 #include <layer1/sync.h>

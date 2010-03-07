@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <debug.h>
 
-#include <comm/msgb.h>
+#include <osmocore/msgb.h>
 #include <comm/sercomm.h>
 
 #include <layer1/sync.h>
@@ -94,9 +94,8 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 
 	dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
 	dl->msg_type = msg_type;
-	/* FIXME: we may want to compute T1/T2/T3 in L23 */
-	gsm_fn2gsmtime(&dl->time, fn);
-	dl->snr[0] = snr;
+	dl->frame_nr = fn;
+	dl->snr = snr;
 	dl->band_arfcn = arfcn;
 
 	return msg;

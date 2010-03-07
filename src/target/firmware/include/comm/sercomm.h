@@ -3,12 +3,9 @@
 
 /* SERCOMM layer on UART1 (modem UART) */
 
-#ifdef HOST_BUILD
 #include <osmocore/msgb.h>
-#else
-#include <comm/msgb.h>
+
 #define SERCOMM_UART_NR	1
-#endif
 
 #define HDLC_FLAG	0x7E
 #define HDLC_ESCAPE	0x7D
