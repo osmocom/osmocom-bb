@@ -2,12 +2,13 @@
 #define _LINUX_LLIST_H
 
 #include <stddef.h>
+#include <defines.h>
 
 #ifndef inline
 #define inline __inline__
 #endif
 
-static inline void prefetch(const void *x) {;}
+static inline void prefetch(__unused const void *x) {;}
 
 /**
  * container_of - cast a member of a structure out to the containing structure
