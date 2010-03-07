@@ -71,7 +71,7 @@ ALL_DEPS+=$(ANY_APP_OBJS:.o=.p)
 # template for application rules
 define APPLICATION_BOARD_ENVIRONMENT_template
 
-board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map board/$(2)/$(1).$(3).size: apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS) board/$(2)/board.o
+board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map board/$(2)/$(1).$(3).size: apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS) board/$(2)/manifest.$(3).o
 	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic -Map board/$(2)/$(1).$(3).map  -o board/$(2)/$(1).$(3).elf --start-group $$^ --end-group
 	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
 
@@ -79,12 +79,18 @@ ALL_APPS+=board/$(2)/$(1).$(3).elf
 
 endef
 
+define BOARD_ENVIRONMENT_template
+
+board/$(1)/manifest.$(2).o: board/manifest.c
+	$(CROSS_COMPILE)$(CC) $(CFLAGS) -DBOARD=\"$(1)\" -DENVIRONMENT=\"$(2)\" -c -o $$@ $$<
+
+ALL_OBJS+=board/$(1)/manifest.$(2).o
+
+endef
+
 define BOARD_template
 
-board/$(1)/board.o: board/board.c
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) -DBOARD=\"$(1)\" -c -o $$@ $$<
-
-ALL_OBJS+=board/$(1)/board.o $$($(1)_OBJS)
+ALL_OBJS+=$$($(1)_OBJS)
 
 endef
 
@@ -101,7 +107,8 @@ endef
 
 # define rules for all defined applications
 $(foreach app,$(APPLICATIONS),$(foreach brd,$(BOARDS),$(foreach env,$(ENVIRONMENTS),$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
-$(foreach board,$(BOARDS),$(eval $(call BOARD_template,$(board))))
+$(foreach brd,$(BOARDS),$(foreach env,$(ENVIRONMENTS),$(eval $(call BOARD_ENVIRONMENT_template,$(brd),$(env)))))
+$(foreach brd,$(BOARDS),$(eval $(call BOARD_template,$(brd))))
 $(foreach app,$(APPLICATIONS),$(eval $(call APPLICATION_template,$(app))))
 
 
