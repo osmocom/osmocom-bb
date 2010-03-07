@@ -2,6 +2,7 @@
 
 #include <osmocore/tlv.h>
 #include <osmocore/protocol/gsm_04_08.h>
+#include <osmocore/gsm48_ie.h>
 
 extern const struct tlv_definition gsm48_att_tlvdef;
 extern const char *cc_state_names[32];
