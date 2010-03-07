@@ -4,7 +4,7 @@ INCLUDES=-Iinclude/ -I../../../include
 
 # Various objects that are currently linked into all applications
 FLASH_OBJS=flash/cfi_flash.o
-DISPLAY_OBJS=display/font_r8x8.o display/st7558.o
+DISPLAY_OBJS=display/font_r8x8.o display/font_r8x8_horiz.o display/st7558.o display/ssd1783.o
 ABB_OBJS=abb/twl3025.o
 RF_OBJS=rf/trf6151.o
 BOARD_C123_OBJS=board/common/rffe_compal_dualband.o board/compal_e88/init.o
