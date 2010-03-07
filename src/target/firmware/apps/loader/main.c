@@ -57,37 +57,6 @@ struct loader_mem_read {
 	uint8_t  data[0];
 } __attribute__((__packed__));
 
-uint32_t htonl(uint32_t hostlong) {
-#if BYTE_ORDER==LITTLE_ENDIAN
-  return (hostlong>>24) | ((hostlong&0xff0000)>>8) |
-          ((hostlong&0xff00)<<8) | (hostlong<<24);
-#else
-  return hostlong;
-#endif
-}
-
-uint32_t ntohl(uint32_t hostlong) __attribute__((weak,alias("htonl")));
-
-uint16_t htons(uint16_t hostshort) {
-#if BYTE_ORDER==LITTLE_ENDIAN
-  return ((hostshort>>8)&0xff) | (hostshort<<8);
-#else
-  return hostshort;
-#endif
-}
-
-uint16_t ntohs(uint16_t hostshort) __attribute__((weak,alias("htons")));
-
-#define SCAN
-
-#ifdef SCAN
-/* if scanning is enabled, scan from 0 ... 124 */
-#define BASE_ARFCN	0
-#else
-/* fixed ARFCN in GSM1800 at which Harald has his GSM test license */
-#define BASE_ARFCN	871
-#endif
-
 /* Main Program */
 const char *hr = "======================================================================\n";
 
@@ -96,13 +65,43 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg);
 
 int flag = 0;
 
-void poweroff(void) {
+static void flush_uart(void) {
 	unsigned i;
-	for(i = 0; i < 10; i++) {
+	for(i = 0; i < 500; i++) {
 		uart_poll(SERCOMM_UART_NR);
-		delay_ms(10);
+		delay_ms(1);
 	}
+}
+
+static void device_poweroff(void) {
+	flush_uart();
 	twl3025_power_off();
+}
+
+static void device_reset(void) {
+	flush_uart();
+	wdog_reset();
+}
+
+static void device_enter_loader(unsigned char bootrom) {
+	flush_uart();
+	puts("XXX: loader entry is broken\n");
+	return;
+
+	/* XXX: this is not working (with or without bootrom) */
+	calypso_bootrom(bootrom);
+	void (*entry)( void ) = (void (*)(void))0;
+	entry();
+}
+
+static void
+loader_send_simple(uint8_t dlci, uint8_t command) {
+	struct msgb *msg = sercomm_alloc_msgb(1);
+	if(!msg) {
+		puts("Failed to allocate message buffer!\n");
+	}
+	msgb_put_u8(msg, command);
+	sercomm_sendmsg(dlci, msg);
 }
 
 int main(void)
@@ -121,7 +120,7 @@ int main(void)
 	sercomm_init();
 
 	/* Say hi */
-	puts("\n\nOSMOCOM Calypso loader\n");
+	puts("\n\nOSMOCOM Calypso loader (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Set up a key handler for powering off */
@@ -129,6 +128,9 @@ int main(void)
 
 	/* Set up loader communications */
 	sercomm_register_rx_cb(SC_DLCI_LOADER, &cmd_handler);
+
+	/* Notify any running osmoload about our startup */
+	loader_send_simple(SC_DLCI_LOADER, LOADER_INIT);
 
 	/* Wait for events */
 	while (1) {
@@ -146,13 +148,9 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 		return;
 	}
 
-	uint8_t command = 0; //= msgb_get_u8(msg);
+	uint8_t command = msgb_get_u8(msg);
 
-	printf("command %u\n", command);
-
-	msgb_free(msg);
-
-	return;
+	printf("command %u: ", command);
 
 	uint8_t  nbytes;
 	uint32_t address;
@@ -162,12 +160,32 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 	switch(command) {
 
 	case LOADER_PING:
+		puts("ping\n");
+		loader_send_simple(dlci, LOADER_PING);
+		break;
 
-		printf("ping\n");
+	case LOADER_RESET:
+		puts("reset\n");
+		loader_send_simple(dlci, LOADER_RESET);
+		device_reset();
+		break;
 
-		//sercomm_sendmsg(dlci, msg);
-		//msg = NULL;
+	case LOADER_POWEROFF:
+		puts("poweroff\n");
+		loader_send_simple(dlci, LOADER_POWEROFF);
+		device_poweroff();
+		break;
 
+	case LOADER_ENTER_ROM_LOADER:
+		puts("jump to rom loader\n");
+		loader_send_simple(dlci, LOADER_ENTER_ROM_LOADER);
+		device_enter_loader(1);
+		break;
+
+	case LOADER_ENTER_FLASH_LOADER:
+		puts("jump to flash loader\n");
+		loader_send_simple(dlci, LOADER_ENTER_FLASH_LOADER);
+		device_enter_loader(0);
 		break;
 
 	case LOADER_MEM_READ:
@@ -179,6 +197,10 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		reply = sercomm_alloc_msgb(6 + nbytes);
 
+		if(!reply) {
+			printf("Failed to allocate reply buffer!\n");
+		}
+
 		msgb_put_u8(reply, LOADER_MEM_READ);
 		msgb_put_u8(reply, nbytes);
 		msgb_put_u32(reply, address);
@@ -189,11 +211,32 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		break;
 
+	case LOADER_MEM_WRITE:
+
+		nbytes = msgb_get_u8(msg);
+		address = msgb_get_u32(msg);
+
+		printf("mem write %u @ %p\n", nbytes, (void*)address);
+
+		memcpy((void*)address, msgb_get(msg, nbytes), nbytes);
+
+		reply = sercomm_alloc_msgb(6);
+
+		if(!reply) {
+			printf("Failed to allocate reply buffer!\n");
+		}
+
+		msgb_put_u8(reply, LOADER_MEM_WRITE);
+		msgb_put_u8(reply, nbytes);
+		msgb_put_u32(reply, address);
+
+		sercomm_sendmsg(dlci, reply);
+
+		break;
+
 	}
 
-	if(msg) {
-		msgb_free(msg);
-	}
+	msgb_free(msg);
 }
 
 static void key_handler(enum key_codes code, enum key_states state)
@@ -203,7 +246,12 @@ static void key_handler(enum key_codes code, enum key_states state)
 
 	switch (code) {
 	case KEY_POWER:
-		poweroff();
+		puts("Powering off due to keypress.\n");
+		device_poweroff();
+		break;
+	case KEY_OK:
+		puts("Resetting due to keypress.\n");
+		device_reset();
 		break;
 	default:
 		break;
