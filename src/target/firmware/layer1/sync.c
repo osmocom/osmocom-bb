@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <defines.h>
 #include <debug.h>
 #include <memory.h>
 #include <calypso/dsp_api.h>
@@ -402,7 +403,8 @@ static void l1_sync(void)
 
 /* ABORT command ********************************************************/
 
-static int l1s_abort_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
+static int l1s_abort_cmd(__unused uint8_t p1, __unused uint8_t p2,
+			 __unused uint16_t p3)
 {
 	putchart('A');
 
@@ -435,7 +437,8 @@ void l1s_dsp_abort(void)
 /* FCCH Burst *****************************************************************/
 
 /* scheduler callback to issue a FB detection task to the DSP */
-static int l1s_fbdet_cmd(uint8_t p1, uint8_t fb_mode, uint16_t p3)
+static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t fb_mode,
+			 __unused uint16_t p3)
 {
 	if (fb_mode == 0) {
 		putchart('F');
@@ -458,7 +461,8 @@ static int l1s_fbdet_cmd(uint8_t p1, uint8_t fb_mode, uint16_t p3)
 
 
 /* scheduler callback to check for a FB detection response */
-static int l1s_fbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
+static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
+			  __unused uint16_t p3)
 {
 	int ntdma, qbits, fn_offset;
 
@@ -603,7 +607,8 @@ static uint8_t sb_cnt;
 
 extern const struct tdma_sched_item rach_sched_set_ul[];
 
-static int l1s_sbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
+static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
+			  __unused uint16_t p3)
 {
 	uint32_t sb;
 	uint8_t bsic;
@@ -715,7 +720,8 @@ static int l1s_sbdet_resp(uint8_t p1, uint8_t attempt, uint16_t p3)
 	return 0;
 }
 
-static int l1s_sbdet_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
+static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
+			 __unused uint16_t p3)
 {
 	putchart('S');
 
@@ -750,7 +756,8 @@ void l1s_sb_test(uint8_t base_fn)
 /* Power Measurement **********************************************************/
 
 /* scheduler callback to issue a power measurement task to the DSP */
-static int l1s_pm_cmd(uint8_t p1, uint8_t p2, uint16_t arfcn)
+static int l1s_pm_cmd(__unused uint8_t p1,
+		      __unused uint8_t p2, uint16_t arfcn)
 {
 	putchart('P');
 
@@ -768,7 +775,8 @@ static int l1s_pm_cmd(uint8_t p1, uint8_t p2, uint16_t arfcn)
 }
 
 /* scheduler callback to read power measurement resposnse from the DSP */
-static int l1s_pm_resp(uint8_t p1, uint8_t p2, uint16_t p3)
+static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
+		       __unused uint16_t p3)
 {
 	uint16_t pm_level[2];
 	struct l1_signal sig;
@@ -801,7 +809,7 @@ void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 
 /* Normal Burst ***************************************************************/
 
-static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
+static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	static struct l1_signal _nb_sig, *sig = &_nb_sig;
 	uint8_t mf_task_id = p3 & 0xff;
@@ -885,7 +893,8 @@ static int l1s_nb_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
 	return 0;
 }
 
-static int l1s_nb_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
+static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
+		      __unused uint16_t p3)
 {
 	uint8_t tsc = l1s.serving_cell.bsic & 0x7;
 
@@ -915,7 +924,8 @@ const struct tdma_sched_item nb_sched_set[] = {
 const uint8_t ubUui[23]     = { 0x01, 0x03, 0x01, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
 
 /* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
-static int l1s_tx_resp(uint8_t p1, uint8_t burst_id, uint16_t p3)
+static int l1s_tx_resp(__unused uint8_t p1, __unused uint8_t burst_id,
+		       __unused uint16_t p3)
 {
 	putchart('t');
 
