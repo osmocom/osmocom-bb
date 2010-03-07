@@ -9,4 +9,4 @@ lib_LTLIBRARIES = libosmocore.la
 
 libosmocore_la_SOURCES = msgb.c timer.c talloc.c select.c signal.c \
 			 tlv_parser.c bitvec.c comp128.c gsm_utils.c statistics.c \
-			 write_queue.c utils.c rsl.c gsm48.c
+			 write_queue.c utils.c rsl.c gsm48.c rxlev_stat.c

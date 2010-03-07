@@ -44,6 +44,10 @@
 #define GSMTAP_CHANNEL_TCH_H	0x0a
 #define GSMTAP_CHANNEL_ACCH	0x80
 
+#define GSMTAP_ARFCN_F_PCS	0x8000
+#define GSMTAP_ARFCN_F_UPLINK	0x4000
+#define GSMTAP_ARFCN_MASK	0x3fff
+
 #define GSMTAP_UDP_PORT			4729
 
 struct gsmtap_hdr {
