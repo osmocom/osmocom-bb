@@ -5,7 +5,7 @@ MEMORY
 {
 	/* area that can be initialized by the loader (plus some reserved stuff) */
 	LRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00010000
-	/* data/bss for osmoload */
+	/* bss for osmoload */
 	DRAM (rw) : ORIGIN = 0x00810000, LENGTH = 0x00010000
 	/* remainder of internal ram, can be used for bss and the like */
 	IRAM (rw) : ORIGIN = 0x00820000, LENGTH = 0x00020000
@@ -44,12 +44,12 @@ SECTIONS
 	/* read-only data */
 	. = ALIGN(4);
 	.rodata : {
-		*(.rodata) 
+		*(.rodata*)
 	} > IRAM
 
 	/* initialized data */
 	. = ALIGN(4);
-		.data : {
+	.data : {
 		*(.data)
 	} > IRAM
 
