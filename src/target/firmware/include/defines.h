@@ -3,8 +3,9 @@
 #define _DEFINES_H
 
 /* type properties */
-#define __packed     __attribute__((packed))
-#define __aligned(alignment) __attribute__((aligned(alignment)))
+#define __packed		__attribute__((packed))
+#define __aligned(alignment)	__attribute__((aligned(alignment)))
+#define __unused		__attribute__((unused))
 
 /* linkage */
 #define __section(name) __attribute__((section(name)))
