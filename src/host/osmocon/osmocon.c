@@ -262,7 +262,7 @@ static void hexdump(const uint8_t *data, unsigned int len)
 
 #define WRITE_BLOCK	4096
 
-static int handle_write(void)
+static int handle_write_dnload(void)
 {
 	int bytes_left, write_len, rc;
 
@@ -301,6 +301,24 @@ static int handle_write(void)
 	return 0;
 }
 
+static int handle_write(void)
+{
+	uint8_t c;
+
+	switch (dnload.state) {
+	case DOWNLOADING:
+		return handle_write_dnload();
+	default:
+		if (sercomm_drv_pull(&c) != 0) {
+			if (write(dnload.serial_fd.fd, &c, 1) != 1)
+				perror("short write");
+		} else
+			dnload.serial_fd.when &= ~BSC_FD_WRITE;
+	}
+
+	return 0;
+}
+
 static uint8_t buffer[sizeof(phone_prompt1)];
 static uint8_t *bufptr = buffer;
 
@@ -308,6 +326,9 @@ static void hdlc_send_to_phone(uint8_t dlci, uint8_t *data, int len)
 {
 	struct msgb *msg;
 	uint8_t c, *dest;
+
+	printf("hdlc_send_to_phone(dlci=%u): ", dlci);
+	hexdump(data, len);
 
 	if (len > 512) {
 		fprintf(stderr, "Too much data to send. %u\n", len);
@@ -327,10 +348,7 @@ static void hdlc_send_to_phone(uint8_t dlci, uint8_t *data, int len)
 
 	sercomm_sendmsg(dlci, msg);
 
-	/* drain the queue: TODO: do this through the select */
-	while (sercomm_drv_pull(&c) != 0)
-		if (write(dnload.serial_fd.fd, &c, 1) != 1)
-			perror("short write");
+	dnload.serial_fd.when |= BSC_FD_WRITE;
 }
 
 static void hdlc_console_cb(uint8_t dlci, struct msgb *msg)
