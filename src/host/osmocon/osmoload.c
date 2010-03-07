@@ -29,6 +29,8 @@
 
 #include <arpa/inet.h>
 
+#include <sys/stat.h>
+
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -68,9 +70,10 @@ static struct {
 
 static int usage(const char *name)
 {
-	printf("\nUsage: %s [ -v | -h ] [ -d tr ] [ -m {c123,c155} ] [ -l /tmp/osmocom_loader ] COMMAND\n", name);
+	printf("\nUsage: %s [ -v | -h ] [ -d tr ] [ -m {c123,c155} ] [ -l /tmp/osmocom_loader ] COMMAND ...\n", name);
 	puts("  memread <hex-length> <hex-address>");
 	puts("  memdump <hex-length> <hex-address> <file>");
+	puts("  memload <hex-address> <file>");
 	puts("  flashloader");
 	puts("  romloader");
 	puts("  ping");
@@ -120,6 +123,7 @@ loader_send_request(struct msgb *msg) {
 }
 
 static void loader_do_memdump();
+static void loader_do_memload();
 
 static void
 loader_handle_reply(struct msgb *msg) {
@@ -194,11 +198,20 @@ loader_handle_reply(struct msgb *msg) {
 		break;
 	case OPERATION_MEMDUMP:
 		if(cmd == LOADER_MEM_READ) {
+			putchar('.');
+			fflush(stdout);
 			rc = fwrite(data, 1, length, osmoload.binfile);
 			if(ferror(osmoload.binfile)) {
 				printf("Error writing to dump file: %s\n", strerror(errno));
 			}
 			loader_do_memdump();
+		}
+		break;
+	case OPERATION_MEMLOAD:
+		if(cmd == LOADER_MEM_WRITE) {
+			putchar('.');
+			fflush(stdout);
+			loader_do_memload();
 		}
 		break;
 	default:
@@ -317,18 +330,19 @@ loader_send_memwrite(uint8_t length, uint32_t address, void *data) {
 	osmoload.command = LOADER_MEM_WRITE;
 }
 
+#define MEM_MSG_MAX (MSGB_MAX - 16)
+
 static void
 loader_do_memdump() {
 	uint32_t rembytes = osmoload.req_length - osmoload.cur_length;
 
 	if(!rembytes) {
+		puts("done.");
 		osmoload.quit = 1;
 		return;
 	}
 
-#define MEM_READ_MAX (MSGB_MAX - 16)
-
-	uint8_t reqbytes = (rembytes < MEM_READ_MAX) ? rembytes : MEM_READ_MAX;
+	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
 
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 
@@ -343,13 +357,54 @@ loader_do_memdump() {
 }
 
 static void
+loader_do_memload() {
+	uint32_t rembytes = osmoload.req_length - osmoload.cur_length;
+
+	if(!rembytes) {
+		puts("done.");
+		osmoload.quit = 1;
+		return;
+	}
+
+	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
+
+	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
+
+	msgb_put_u8(msg, LOADER_MEM_WRITE);
+	msgb_put_u8(msg, reqbytes);
+	msgb_put_u32(msg, osmoload.cur_address);
+
+	unsigned c = 0;
+	unsigned char *p = msgb_put(msg, reqbytes);
+	while(c < reqbytes) {
+		int rc = fread(p, 1, reqbytes, osmoload.binfile);
+		if(ferror(osmoload.binfile)) {
+			printf("Could not read from file: %s\n", strerror(errno));
+		}
+		c -= rc;
+		p += rc;
+	}
+
+	loader_send_request(msg);
+
+	msgb_free(msg);
+
+	osmoload.cur_address += reqbytes;
+	osmoload.cur_length  += reqbytes;
+}
+
+static void
 loader_start_memdump(uint32_t length, uint32_t address, char *file) {
+	printf("Dumping %u bytes of memory at 0x%u to file %s\n", length, address, file);
+
 	osmoload.operation = OPERATION_MEMDUMP;
+
 	osmoload.binfile = fopen(file, "wb");
 	if(!osmoload.binfile) {
 		printf("Could not open %s: %s\n", file, strerror(errno));
 		exit(1);
 	}
+
 	osmoload.req_length = length;
 	osmoload.req_address = address;
 
@@ -357,6 +412,38 @@ loader_start_memdump(uint32_t length, uint32_t address, char *file) {
 	osmoload.cur_address = address;
 
 	loader_do_memdump();
+}
+
+static void
+loader_start_memload(uint32_t address, char *file) {
+	int rc;
+	struct stat st;
+
+	rc = stat(file, &st);
+	if(rc < 0) {
+		printf("Could not stat %s: %s\n", file, strerror(errno));
+		exit(1);
+	}
+
+	uint32_t length = st.st_size;
+
+	printf("Loading %u bytes of memory at 0x%u to file %s\n", length, address, file);
+
+	osmoload.operation = OPERATION_MEMLOAD;
+
+	osmoload.binfile = fopen(file, "rb");
+	if(!osmoload.binfile) {
+		printf("Could not open %s: %s\n", file, strerror(errno));
+		exit(1);
+	}
+
+	osmoload.req_length = length;
+	osmoload.req_address = address;
+
+	osmoload.cur_length = 0;
+	osmoload.cur_address = address;
+
+	loader_do_memload();
 }
 
 static void
@@ -396,6 +483,17 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		address = strtoul(cmdv[2], NULL, 16);
 
 		loader_start_memdump(length, address, cmdv[3]);
+	} else if(!strcmp(cmd, "memload")) {
+		uint32_t length;
+		uint32_t address;
+
+		if(cmdc < 3) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+
+		loader_start_memload(address, cmdv[2]);
 	} else if(!strcmp(cmd, "memwrite")) {
 		loader_send_memwrite(128, 0x810000, buf);
 	} else if(!strcmp(cmd, "off")) {
