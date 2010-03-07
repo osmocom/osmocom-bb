@@ -74,6 +74,7 @@ static int usage(const char *name)
 	puts("  memread <hex-length> <hex-address>");
 	puts("  memdump <hex-length> <hex-address> <file>");
 	puts("  memload <hex-address> <file>");
+	puts("  jump <hex-address");
 	puts("  flashloader");
 	puts("  romloader");
 	puts("  ping");
@@ -160,6 +161,9 @@ loader_handle_reply(struct msgb *msg) {
 		length = msgb_get_u8(msg);
 		address = msgb_get_u32(msg);
 		break;
+	case LOADER_JUMP:
+		address = msgb_get_u32(msg);
+		break;
 	default:
 		printf("Received unknown reply %d:\n", cmd);
 		hexdump(msg->data, msg->len);
@@ -191,6 +195,9 @@ loader_handle_reply(struct msgb *msg) {
 			break;
 		case LOADER_MEM_WRITE:
 			printf("Confirmed memory write of %d bytes at 0x%x.\n", length, address);
+			break;
+		case LOADER_JUMP:
+			printf("Confirmed jump to 0x%x.\n", address);
 			break;
 		default:
 			break;
@@ -332,6 +339,19 @@ loader_send_memwrite(uint8_t length, uint32_t address, void *data) {
 	osmoload.operation = OPERATION_QUERY;
 	osmoload.command = LOADER_MEM_WRITE;
 }
+
+static void
+loader_send_jump(uint32_t address) {
+	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
+	msgb_put_u8(msg, LOADER_JUMP);
+	msgb_put_u32(msg, address);
+	loader_send_request(msg);
+	msgb_free(msg);
+
+	osmoload.operation = OPERATION_QUERY;
+	osmoload.command = LOADER_JUMP;
+}
+
 
 #define MEM_MSG_MAX (MSGB_MAX - 16)
 
@@ -497,6 +517,16 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		address = strtoul(cmdv[1], NULL, 16);
 
 		loader_start_memload(address, cmdv[2]);
+	} else if(!strcmp(cmd, "jump")) {
+		uint32_t address;
+
+		if(cmdc < 2) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+
+		loader_send_jump(address);
 	} else if(!strcmp(cmd, "memwrite")) {
 		loader_send_memwrite(128, 0x810000, buf);
 	} else if(!strcmp(cmd, "off")) {

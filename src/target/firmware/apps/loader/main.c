@@ -31,6 +31,7 @@
 #include <keypad.h>
 #include <board.h>
 #include <console.h>
+#include <manifest.h>
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
@@ -94,6 +95,13 @@ static void device_enter_loader(unsigned char bootrom) {
 	entry();
 }
 
+static void device_jump(void *entry) {
+	flush_uart();
+
+	void (*f)( void ) = (void (*)(void))entry;
+	f();
+}
+
 static void
 loader_send_simple(uint8_t dlci, uint8_t command) {
 	struct msgb *msg = sercomm_alloc_msgb(1);
@@ -122,6 +130,9 @@ int main(void)
 	/* Say hi */
 	puts("\n\nOSMOCOM Calypso loader (revision " GIT_REVISION ")\n");
 	puts(hr);
+
+	/* Identify environment */
+	printf("Running on %s in environment %s\n", target_board, target_environment);
 
 	/* Set up a key handler for powering off */
 	keypad_set_handler(&key_handler);
@@ -232,6 +243,31 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		sercomm_sendmsg(dlci, reply);
 
+		break;
+
+	case LOADER_JUMP:
+
+		address = msgb_get_u32(msg);
+
+		printf("jump to 0x%x\n", address);
+
+		reply = sercomm_alloc_msgb(5);
+
+		if(!reply) {
+			printf("Failed to allocate reply buffer!\n");
+		}
+
+		msgb_put_u8(reply, LOADER_JUMP);
+		msgb_put_u32(reply, address);
+
+		sercomm_sendmsg(dlci, reply);
+
+		device_jump((void*)address);
+
+		break;
+
+	default:
+		printf("unknown command\n", command);
 		break;
 
 	}
