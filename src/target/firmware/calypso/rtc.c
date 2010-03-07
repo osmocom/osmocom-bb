@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <defines.h>
 #include <debug.h>
 #include <memory.h>
 #include <calypso/irq.h>
@@ -58,7 +59,7 @@ enum rtc_reg {
 
 static int tick_ctr;
 
-static void rtc_irq_tick(enum irq_nr nr)
+static void rtc_irq_tick(__unused enum irq_nr nr)
 {
 	if (tick_ctr & 1)
 		st7558_set_attr(DISP_ATTR_INVERT);

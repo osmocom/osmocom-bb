@@ -33,7 +33,8 @@
 #include <calypso/dsp.h>
 
 /* dummy function to mark end of set */
-int tdma_end_set(uint8_t p1, uint8_t p2, uint16_t p3)
+int tdma_end_set(__unused uint8_t p1, __unused uint8_t p2,
+		 __unused uint16_t p3)
 {
 	return 0;
 }

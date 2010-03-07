@@ -275,6 +275,10 @@ uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts)
 	case MF_TASK_SDCCH8_7:
 		cbits = 0x08 + 7;
 		break;
+	case MF_TASK_UL_ALL_NB:
+		/* ERROR: cannot express as channel number */
+		cbits = 0;
+		break;
 	}
 
 	return (cbits << 3) | (ts & 0x7);

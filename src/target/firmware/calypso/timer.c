@@ -24,6 +24,8 @@
 #include <memory.h>
 #include <stdint.h>
 
+#include <defines.h>
+
 #include <calypso/timer.h>
 #include <calypso/irq.h>
 
@@ -107,7 +109,7 @@ enum wdog_reg {
 	WD_MODE		= 0x04,
 };
 
-static void wdog_irq(enum irq_nr nr)
+static void wdog_irq(__unused enum irq_nr nr)
 {
 	puts("=> WATCHDOG\n");
 }

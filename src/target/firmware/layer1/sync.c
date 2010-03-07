@@ -1110,7 +1110,7 @@ const struct tdma_sched_item nb_sched_set_ul[] = {
 
 
 /* Interrupt handler */
-static void frame_irq(enum irq_nr nr)
+static void frame_irq(__unused enum irq_nr nr)
 {
 	l1_sync();
 }

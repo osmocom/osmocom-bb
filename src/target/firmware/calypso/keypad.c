@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <defines.h>
 #include <debug.h>
 #include <delay.h>
 #include <memory.h>
@@ -111,7 +112,7 @@ void dispatch_buttons(uint32_t buttons)
 	lastbuttons = buttons;
 }
 
-static void keypad_irq(enum irq_nr nr)
+static void keypad_irq(__unused enum irq_nr nr)
 {
 	keypad_poll();
 }

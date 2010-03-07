@@ -190,7 +190,7 @@ static uint8_t uart_reg_read(int uart, enum uart_reg reg)
 	return ret;
 }
 
-static void uart_irq_handler_cons(enum irq_nr irq)
+static void uart_irq_handler_cons(__unused enum irq_nr irqnr)
 {
 	const uint8_t uart = CONS_UART_NR;
 	uint8_t iir;
@@ -223,7 +223,7 @@ static void uart_irq_handler_cons(enum irq_nr irq)
 	}
 }
 
-static void uart_irq_handler_sercomm(enum irq_nr irq)
+static void uart_irq_handler_sercomm(__unused enum irq_nr irqnr)
 {
 	const uint8_t uart = SERCOMM_UART_NR;
 	uint8_t iir, ch;

@@ -234,15 +234,15 @@ static void set_default_priorities(void)
 
 static uint32_t irq_nest_mask;
 /* mask off all interrupts that have a lower priority than irq_nr */
-static void mask_all_lower_prio_irqs(enum irq_nr irq)
+static void mask_all_lower_prio_irqs(enum irq_nr irqnr)
 {
-	uint8_t our_prio = readb(IRQ_REG(ILR_IRQ(irq))) >> 2;
+	uint8_t our_prio = readb(IRQ_REG(ILR_IRQ(irqnr))) >> 2;
 	int i;
 
 	for (i = 0; i < _NR_IRQ; i++) {
 		uint8_t prio;
 
-		if (i == irq)
+		if (i == irqnr)
 			continue;
 
 		prio = readb(IRQ_REG(ILR_IRQ(i))) >> 2;
