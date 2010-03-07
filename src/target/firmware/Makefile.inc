@@ -42,6 +42,8 @@ CFLAGS += -DGIT_REVISION=\"$(GIT_REVISION)\"
 ALL_OBJS=
 ALL_DEPS=
 
+ALL_LSTS=$(ALL_OBJS:.o=.lst)
+
 #### APPLICATION DATA ####
 
 ALL_APPS=
@@ -145,7 +147,7 @@ depend: $(ALL_DEPS)
 
 .PHONY: clean
 clean:
-	rm -f $(ALL_APP_TARGETS) $(ALL_LIB_TARGETS) $(ALL_OBJS) $(ALL_DEPS)
+	rm -f $(ALL_APP_TARGETS) $(ALL_LIB_TARGETS) $(ALL_OBJS) $(ALL_DEPS) $(ALL_LSTS)
 
 .PHONY: distclean
 distclean: clean
