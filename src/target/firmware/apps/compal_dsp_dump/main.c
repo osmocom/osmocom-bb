@@ -35,6 +35,7 @@
 #include <calypso/tsp.h>
 #include <calypso/dsp.h>
 #include <calypso/irq.h>
+#include <calypso/misc.h>
 #include <comm/timer.h>
 
 /* FIXME: We need proper calibrated delay loops at some point! */
@@ -55,11 +56,8 @@ void delay_ms(unsigned int ms)
 /* Main Program */
 const char *hr = "======================================================================\n";
 
-void main(void)
+int main(void)
 {
-	int i;
-	uint16_t twl_reg;
-
 	/* Initialize basic board support */
 	board_init();
 

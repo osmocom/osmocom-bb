@@ -68,8 +68,6 @@ const char *hr = "==============================================================
 /* completion call-back for the L1 Sync Pwer Measurement */
 static void l1s_signal_cb(struct l1_signal *sig)
 {
-	uint16_t i, next_arfcn;
-
 	switch (sig->signum) {
 	case L1_SIG_PM:
 		break;

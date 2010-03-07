@@ -79,7 +79,7 @@ int main(void)
 	puts(hr);
 
 	/* Dump flash contents */
-	printf("Dump %d kbytes of external flash\n", f.f_size/1024);
+	printf("Dump %lu kbytes of external flash\n", f.f_size/1024);
 	memdump_range((void *)0x00000000, f.f_size);
 	puts(hr);
 
