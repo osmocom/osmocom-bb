@@ -69,17 +69,30 @@ ALL_OBJS+=$(ANY_APP_OBJS)
 ALL_DEPS+=$(ANY_APP_OBJS:.o=.P)
 
 # template for application rules
+define APPLICATION_BOARD_template
+
+board/$(2)/$(1).elf board/$(2)/$(1).map board/$(2)/$(1).size: apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS) board/$(2)/board.o
+	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $(LDS) -Bstatic -Map board/$(2)/$(1).map  -o board/$(2)/$(1).elf --start-group $$^ --end-group
+	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).elf | tee board/$(2)/$(1).size
+
+ALL_APPS+=board/$(2)/$(1).elf
+
+endef
+
+define BOARD_template
+
+board/$(1)/board.o: board/board.c
+	$(CROSS_COMPILE)$(CC) $(CFLAGS) -DBOARD=\"$(1)\" -c -o $$@ $$<
+
+ALL_OBJS+=board/$(1)/board.o $$($(1)_OBJS)
+
+endef
+
 define APPLICATION_template
 
 $(1)_SRCS_REL=$$(patsubst %,$$($(1)_DIR)/%,$$($(1)_SRCS))
 $(1)_OBJS:=$$($(1)_SRCS_REL:.c=.o)
 $(1)_OBJS:=$$($(1)_OBJS:.S=.o)
-
-$(1).elf $(1).map $(1).size: apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS)
-	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $(LDS) -Bstatic -Map $(1).map  -o $(1).elf --start-group $$^ --end-group
-	$(CROSS_COMPILE)$(SIZE) $(1).elf | tee $(1).size
-
-ALL_APPS+=$(1).elf
 
 ALL_OBJS+=$$($(1)_OBJS) apps/$(1)/main.o
 ALL_DEPS+=$$($(1)_OBJS:.o=.P) apps/$(1)/main.P
@@ -87,6 +100,8 @@ ALL_DEPS+=$$($(1)_OBJS:.o=.P) apps/$(1)/main.P
 endef
 
 # define rules for all defined applications
+$(foreach app,$(APPLICATIONS),$(foreach board,$(BOARDS),$(eval $(call APPLICATION_BOARD_template,$(app),$(board)))))
+$(foreach board,$(BOARDS),$(eval $(call BOARD_template,$(board))))
 $(foreach app,$(APPLICATIONS),$(eval $(call APPLICATION_template,$(app))))
 
 
