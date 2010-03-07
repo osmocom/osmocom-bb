@@ -66,7 +66,7 @@ default: all
 #### APPLICATION RULES ####
 
 ALL_OBJS+=$(ANY_APP_OBJS)
-ALL_DEPS+=$(ANY_APP_OBJS:.o=.P)
+ALL_DEPS+=$(ANY_APP_OBJS:.o=.p)
 
 # template for application rules
 define APPLICATION_BOARD_template
@@ -95,7 +95,7 @@ $(1)_OBJS:=$$($(1)_SRCS_REL:.c=.o)
 $(1)_OBJS:=$$($(1)_OBJS:.S=.o)
 
 ALL_OBJS+=$$($(1)_OBJS) apps/$(1)/main.o
-ALL_DEPS+=$$($(1)_OBJS:.o=.P) apps/$(1)/main.P
+ALL_DEPS+=$$($(1)_OBJS:.o=.p) apps/$(1)/main.p
 
 endef
 
@@ -120,7 +120,7 @@ $$($(1)_DIR)/lib$(1).a: $$($(1)_OBJS)
 ALL_LIBS+=$$($(1)_DIR)/lib$(1).a
 
 ALL_OBJS+=$$($(1)_OBJS)
-ALL_DEPS+=$$($(1)_OBJS:.o=.P)
+ALL_DEPS+=$$($(1)_OBJS:.o=.p)
 
 endef
 
@@ -139,13 +139,13 @@ depend: $(ALL_DEPS)
 
 #### COMPILATION RULES ####
 
-%.P: %.c
+%.p: %.c
 	@$(CROSS_COMPILE)$(CC) $(CFLAGS) -M -o $(*).d $(<)
-	@sed 's|.*\.o:|$(@:.P=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
+	@sed 's|.*\.o:|$(@:.p=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
 
-%.P: %.S
+%.p: %.S
 	@$(CROSS_COMPILE)$(CC) $(ASFLAGS) -M -o $(*).d $(<)
-	@sed 's|.*\.o:|$(@:.P=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
+	@sed 's|.*\.o:|$(@:.p=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
 
 %.o: %.c
 	$(CROSS_COMPILE)$(CC) $(CFLAGS) -c -o $@ $<
