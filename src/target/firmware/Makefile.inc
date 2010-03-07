@@ -137,8 +137,12 @@ depend: $(ALL_DEPS)
 
 #### CLEANUP RULES ####
 
+.PHONY: clean
 clean:
 	rm -f $(ALL_APP_TARGETS) $(ALL_LIB_TARGETS) $(ALL_OBJS) $(ALL_DEPS)
+
+.PHONY: distclean
+distclean: clean
 
 
 #### DEPENDENCY LOAD ####
