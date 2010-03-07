@@ -27,6 +27,14 @@
 
 #include <stdint.h>
 
+struct gsm_time {
+	uint32_t	fn;	/* FN count */
+	uint16_t	t1;	/* FN div (26*51) */
+	uint8_t		t2;	/* FN modulo 26 */
+	uint8_t		t3;	/* FN modulo 51 */
+	uint8_t		tc;
+};
+
 enum gsm_band {
 	GSM_BAND_850	= 1,
 	GSM_BAND_900	= 2,
@@ -57,6 +65,20 @@ static inline int rach_max_trans_raw2val(int raw) {
 	const int tbl[4] = { 1, 2, 4, 7 };
 	return tbl[raw & 3];
 }
+
+#define	ARFCN_PCS	0x8000
+#define	ARFCN_UPLINK	0x4000
+
+enum gsm_band gsm_arfcn2band(uint16_t arfcn);
+
+/* Convert an ARFCN to the frequency in MHz * 10 */
+uint16_t gsm_arfcn2freq10(uint16_t arfcn, int uplink);
+
+/* Convert from frame number to GSM time */
+void gsm_fn2gsmtime(struct gsm_time *time, uint32_t fn);
+
+/* Convert from GSM time to frame number */
+uint32_t gsm_gsmtime2fn(struct gsm_time *time);
 
 void generate_backtrace();
 #endif
