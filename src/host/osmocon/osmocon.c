@@ -57,9 +57,9 @@ struct dnload {
 };
 
 /**
- * a connection of the layer2
+ * a connection from some other tool
  */
-struct layer2_connection {
+struct tool_connection {
 	struct llist_head entry;
 	struct bsc_fd fd;
 };
@@ -359,7 +359,7 @@ static void hdlc_console_cb(uint8_t dlci, struct msgb *msg)
 
 static void hdlc_l1a_cb(uint8_t dlci, struct msgb *msg)
 {
-	struct layer2_connection *con;
+	struct tool_connection *con;
 	u_int16_t *len;
 
 	len = (u_int16_t *) msgb_push(msg, 2);
@@ -502,7 +502,7 @@ static int un_layer2_read(struct bsc_fd *fd, unsigned int flags)
 	int rc;
 	u_int16_t length = 0xffff;
 	u_int8_t buf[4096];
-	struct layer2_connection *con;
+	struct tool_connection *con;
 
 
 	rc = read(fd->fd, &length, sizeof(length));
@@ -522,7 +522,7 @@ static int un_layer2_read(struct bsc_fd *fd, unsigned int flags)
 
 	return 0;
 close:
-	con = (struct layer2_connection *) fd->data;
+	con = (struct tool_connection *) fd->data;
 
 	close(fd->fd);
 	bsc_unregister_fd(fd);
@@ -534,7 +534,7 @@ close:
 /* accept a new connection */
 static int un_layer2_accept(struct bsc_fd *fd, unsigned int flags)
 {
-	struct layer2_connection *con;
+	struct tool_connection *con;
 	struct sockaddr_un un_addr;
 	socklen_t len;
 	int rc;
@@ -546,7 +546,7 @@ static int un_layer2_accept(struct bsc_fd *fd, unsigned int flags)
 		return -1;
 	}
 
-	con = talloc_zero(NULL, struct layer2_connection);
+	con = talloc_zero(NULL, struct tool_connection);
 	if (!con) {
 		fprintf(stderr, "Failed to create layer2 connection.\n");
 		return -1;
