@@ -64,10 +64,10 @@ uint8_t rffe_get_gain(void)
  * dBm8, configure the RF Frontend with the respective gain */
 void rffe_set_gain(int16_t exp_inp, int16_t target_bb)
 {
-
+	/* FIXME */
 }
 
 void rffe_rx_win_ctrl(int16_t exp_inp, int16_t target_bb)
 {
-
+	/* FIXME */
 }
