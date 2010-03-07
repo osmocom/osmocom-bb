@@ -529,7 +529,10 @@ static int un_tool_read(struct bsc_fd *fd, unsigned int flags)
 			goto close;
 		}
 		if(rc < 0) {
-			fprintf(stderr, "Err from socket: \n", strerror(errno));
+			if(errno == EAGAIN) {
+				continue;
+			}
+			fprintf(stderr, "Err from socket: %s\n", strerror(errno));
 			goto close;
 		}
 		c += rc;
@@ -545,7 +548,10 @@ static int un_tool_read(struct bsc_fd *fd, unsigned int flags)
 			goto close;
 		}
 		if(rc < 0) {
-			fprintf(stderr, "Err from socket: \n", strerror(errno));
+			if(errno == EAGAIN) {
+				continue;
+			}
+			fprintf(stderr, "Err from socket: %s\n", strerror(errno));
 			goto close;
 		}
 		c += rc;
