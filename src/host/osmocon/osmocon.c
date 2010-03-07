@@ -516,30 +516,42 @@ static int version(const char *name)
 
 static int un_tool_read(struct bsc_fd *fd, unsigned int flags)
 {
-	int rc;
+	int rc, c;
 	u_int16_t length = 0xffff;
 	u_int8_t buf[4096];
 	struct tool_connection *con = (struct tool_connection *)fd->data;
 
-
-	rc = read(fd->fd, &length, sizeof(length));
-	if (rc == 0) {
-		// client disconnected
-		goto close;
-	}
-	if (rc < 0 || ntohs(length) > 512) {
-		fprintf(stderr, "Unexpected result from socket. rc: %d len: %d\n",
-			rc, ntohs(length));
-		goto close;
-	}
-
-	rc = read(fd->fd, buf, ntohs(length));
-	if (rc != ntohs(length)) {
-		fprintf(stderr, "Could not read data.\n");
-		goto close;
+	c = 0;
+	while(c < 2) {
+		rc = read(fd->fd, &buf + c, 2 - c);
+		if(rc == 0) {
+			// disconnect
+			goto close;
+		}
+		if(rc < 0) {
+			fprintf(stderr, "Err from socket: \n", strerror(errno));
+			goto close;
+		}
+		c += rc;
 	}
 
-	hdlc_send_to_phone(con->server->dlci, buf, ntohs(length));
+	length = ntohs(*(u_int16_t*)buf);
+
+	c = 0;
+	while(c < length) {
+		rc = read(fd->fd, &buf + c, length - c);
+		if(rc == 0) {
+			// disconnect
+			goto close;
+		}
+		if(rc < 0) {
+			fprintf(stderr, "Err from socket: \n", strerror(errno));
+			goto close;
+		}
+		c += rc;
+	}
+
+	hdlc_send_to_phone(con->server->dlci, buf, length);
 
 	return 0;
 close:
