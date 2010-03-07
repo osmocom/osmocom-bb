@@ -1,6 +1,10 @@
-osmocore_HEADERS = signal.h linuxlist.h timer.h talloc.h msgb.h select.h \
+osmocore_HEADERS = signal.h linuxlist.h timer.h select.h msgb.h \
 		   tlv.h bitvec.h comp128.h statistics.h gsm_utils.h utils.h \
 		   gsmtap.h write_queue.h rsl.h gsm48.h rxlev_stat.h
+
+if ENABLE_TALLOC
+osmocore_HEADERS += talloc.h
+endif
 
 osmocoredir = $(includedir)/osmocore
 

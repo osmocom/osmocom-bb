@@ -7,6 +7,10 @@ AM_CFLAGS = -fPIC -Wall
 
 lib_LTLIBRARIES = libosmocore.la
 
-libosmocore_la_SOURCES = msgb.c timer.c talloc.c select.c signal.c \
+libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c \
 			 tlv_parser.c bitvec.c comp128.c gsm_utils.c statistics.c \
 			 write_queue.c utils.c rsl.c gsm48.c rxlev_stat.c
+
+if ENABLE_TALLOC
+libosmocore_la_SOURCES += talloc.c
+endif
