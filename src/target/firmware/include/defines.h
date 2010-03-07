@@ -2,6 +2,8 @@
 #ifndef _DEFINES_H
 #define _DEFINES_H
 
+#define __attribute_const__	__attribute__((__const__))
+
 /* type properties */
 #define __packed		__attribute__((packed))
 #define __aligned(alignment)	__attribute__((aligned(alignment)))
