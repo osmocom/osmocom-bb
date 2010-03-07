@@ -115,12 +115,12 @@ depend: $(ALL_DEPS)
 #### COMPILATION RULES ####
 
 %.P: %.c
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) -M -o $(*).d $(<)
-	sed 's|.*\.o:|$(@:.P=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
+	@$(CROSS_COMPILE)$(CC) $(CFLAGS) -M -o $(*).d $(<)
+	@sed 's|.*\.o:|$(@:.P=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
 
 %.P: %.S
 	@$(CROSS_COMPILE)$(CC) $(ASFLAGS) -M -o $(*).d $(<)
-	sed 's|.*\.o:|$(@:.P=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
+	@sed 's|.*\.o:|$(@:.P=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
 
 %.o: %.c
 	$(CROSS_COMPILE)$(CC) $(CFLAGS) -c -o $@ $<
