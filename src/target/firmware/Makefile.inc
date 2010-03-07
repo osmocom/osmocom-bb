@@ -28,6 +28,14 @@ ASFLAGS=-Wa,-adhlns=$(<:.S=.lst) $(INCLUDES) -D__ASSEMBLY__
 
 LDFLAGS = -nostartfiles -nostdlib -nodefaultlibs --gc-sections #-Wl,-Map=$(TARGET).map,--cref
 
+#### GIT VERSION ####
+
+GIT_COMMIT:=$(shell git describe --always)
+GIT_MODIFIED:=$(shell (git status | grep "modified:\|added:\|deleted:" -q) && echo "-modified")
+
+GIT_REVISION:=$(GIT_COMMIT)$(GIT_MODIFIED)
+
+CFLAGS += -DGIT_REVISION=\"$(GIT_REVISION)\"
 
 #### GLOBAL DATA ####
 
