@@ -35,6 +35,7 @@
 #include <calypso/tsp.h>
 #include <calypso/dsp.h>
 #include <calypso/irq.h>
+#include <comm/timer.h>
 
 /* FIXME: We need proper calibrated delay loops at some point! */
 void delay_us(unsigned int us)
@@ -72,6 +73,8 @@ void main(void)
 	/* Dump DSP content */
 	dsp_dump();
 
-	while (1) {}
+	while (1) {
+		update_timers();
+	}
 }
 

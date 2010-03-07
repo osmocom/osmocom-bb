@@ -35,6 +35,7 @@
 #include <rf/trf6151.h>
 
 #include <comm/sercomm.h>
+#include <comm/timer.h>
 
 #include <calypso/clock.h>
 #include <calypso/tpu.h>
@@ -209,7 +210,9 @@ int main(void)
 #endif
 	tpu_frame_irq_en(1, 1);
 
-	while (1) {}
+	while (1) {
+		update_timers();
+	}
 
 	/* NOT REACHED */
 

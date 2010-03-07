@@ -38,6 +38,7 @@
 #include <calypso/uart.h>
 
 #include <comm/sercomm.h>
+#include <comm/timer.h>
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
@@ -115,6 +116,8 @@ void board_init(void)
 
 	dma_init();
 	rtc_init();
+
+	timer_init();
 
 	/* Initialize LCD driver (uses I2C) */
 	st7558_init();

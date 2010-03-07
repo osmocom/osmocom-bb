@@ -28,6 +28,7 @@
 #include <calypso/clock.h>
 #include <calypso/timer.h>
 #include <calypso/misc.h>
+#include <comm/timer.h>
 
 /* FIXME: We need proper calibrated delay loops at some point! */
 void delay_us(unsigned int us)
@@ -85,6 +86,8 @@ int main(void)
 	/* Power down */
 	twl3025_power_off();
 
-	while (1) {}
+	while (1) {
+		update_timers();
+	}
 }
 

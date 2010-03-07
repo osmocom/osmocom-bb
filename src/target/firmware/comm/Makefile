@@ -2,7 +2,7 @@ INCLUDES=-I../include/
 -include ../Makefile.inc
 
 LIBNAME=comm
-CSRCS=msgb.c sercomm.c sercomm_cons.c
+CSRCS=msgb.c sercomm.c sercomm_cons.c timer.c
 SSRCS=
 
 COBJS=$(CSRCS:.c=.o)

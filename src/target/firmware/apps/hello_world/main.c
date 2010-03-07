@@ -39,6 +39,7 @@
 #include <calypso/irq.h>
 #include <calypso/misc.h>
 #include <comm/sercomm.h>
+#include <comm/timer.h>
 
 /* FIXME: We need proper calibrated delay loops at some point! */
 void delay_us(unsigned int us)
@@ -107,6 +108,7 @@ int main(void)
 	/* beyond this point we only react to interrupts */
 	puts("entering interrupt loop\n");
 	while (1) {
+		update_timers();
 	}
 
 	twl3025_power_off();
