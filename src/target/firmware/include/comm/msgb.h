@@ -78,6 +78,9 @@ static inline unsigned char *msgb_put(struct msgb *msgb, unsigned int len)
 {
 	unsigned char *tmp = msgb->tail;
 
+	/* we intentionally call cons_puts() here to display an allocation
+	 * failure on the _other_ serial port (i.e. the one that doesn't
+	 * have the HDLC layer on it */
 	if (msgb_tailroom(msgb) < len)
 		cons_puts("msgb_tailroom insufficient!\n");
 
