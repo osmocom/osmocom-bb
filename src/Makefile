@@ -1,7 +1,7 @@
 
 # this is not really used as we don't do 'make install'. You can still specify
 # it in case you _want_ to manually 'make install' the target libosmocore.
-CROSS_INST_PREFIX=/usr/local/gnuarm-4.0.2/arm-elf
+CROSS_INST_PREFIX=/usr/local/stow/osmocom-bb/arm-elf
 
 # this is the prefix of your cross-toolchain programs
 CROSS_TOOL_PREFIX=arm-elf-
@@ -67,7 +67,7 @@ host/layer23/layer23: host/layer23/Makefile libosmocore-host
 
 .PHONY: firmware
 firmware: libosmocore-target
-	make -C target/firmware CROSS_COMPILE=$(CROSS_INST_PREFIX)/$(CROSS_TOOL_PREFIX)
+	make -C target/firmware CROSS_COMPILE=$(CROSS_TOOL_PREFIX)
 
 
 clean:
