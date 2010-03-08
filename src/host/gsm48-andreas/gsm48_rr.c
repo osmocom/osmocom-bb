@@ -25,9 +25,13 @@ stop timers on abort
 debugging. (wenn dies todo erledigt ist, bitte in den anderen code moven)
 wird beim abbruch immer der gepufferte cm-service-request entfernt, auch beim verschicken?:
 measurement reports
-todo rr_sync_ind
+todo rr_sync_ind when receiving ciph, re ass, channel mode modify
 
 todo change procedures, release procedure
+
+during procedures, like "channel assignment" or "handover", rr requests must be queued
+they must be dequeued when complete
+they queue must be flushed when rr fails
 
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/msgb.h>
@@ -400,13 +404,13 @@ static struct rrdownstate {
 	int		(*rout) (struct osmocom_ms *ms, struct gsm_dl *rrmsg);
 } rrdownstatelist[] = {
 	{SBIT(GSM_RRSTATE_IDLE), /* 3.3.1.1 */
-	RR_EST_REQ, gsm_rr_est_req},
+	 RR_EST_REQ, gsm_rr_est_req},
 	{SBIT(GSM_RRSTATE_DEDICATED), /* 3.4.2 */
-	RR_DATA_REQ, gsm_rr_data_req},
+	 RR_DATA_REQ, gsm_rr_data_req},
 	{SBIT(GSM_RRSTATE_CONN_PEND) | SBIT(GSM_RRSTATE_DEDICATED),
-	RR_ABORT_REQ, gsm_rr_abort_req},
+	 RR_ABORT_REQ, gsm_rr_abort_req},
 	{SBIT(GSM_RRSTATE_DEDICATED),
-	RR_ACT_REQ, gsm_rr_act_req},
+	 RR_ACT_REQ, gsm_rr_act_req},
 };
 
 #define RRDOWNSLLEN \
@@ -724,33 +728,67 @@ static int gsm_rr_rx_imm_ass_rej(struct osmocom_ms *ms, struct gsm_msgb *msg)
 	return 0;
 }
 
-static int gsm_rr_unit_data_ind(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
+static int gsm_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
-	struct gsm48_hdr *gh = msgb_l3(dlmsg->msg);
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
+
+	parsing
+
+	if (no CA)
+		send assignment failure (ms, RR_CAUSE_NO_CELL_ALL_AVAIL);
+	
+	if (not supported)
+		send assignment failure (ms, RR_CAUSE_CHAN_MODE_UNACCEPT);
+
+	if (freq not supported)
+		send assignment failure (ms, RR_CAUSE_FREQ_NOT_IMPLEMENTED);
+
+	send dl suspend req
+
+	change into special suspension state
+	 - queue messages during this state
+	 - flush/send when leaving this state
+}
+
+static int gsm_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_hdr *gh = msgb_l3(msg);
 
 	switch (gh->msg_type) {
-		case GSM48_MT_RR_PAG_REQ_1:
+	case GSM48_MT_RR_PAG_REQ_1:
 		return gsm_rr_rx_pag_req_1(ms, dlmsg->msg);
-		case GSM48_MT_RR_PAG_REQ_2:
+	case GSM48_MT_RR_PAG_REQ_2:
 		return gsm_rr_rx_pag_req_2(ms, dlmsg->msg);
-		case GSM48_MT_RR_PAG_REQ_3:
+	case GSM48_MT_RR_PAG_REQ_3:
 		return gsm_rr_rx_pag_req_3(ms, dlmsg->msg);
-		case GSM48_MT_RR_IMM_ASS:
+	case GSM48_MT_RR_IMM_ASS:
 		return gsm_rr_rx_imm_ass(ms, dlmsg->msg);
-		case GSM48_MT_RR_IMM_ASS_EXT:
+	case GSM48_MT_RR_IMM_ASS_EXT:
 		return gsm_rr_rx_imm_ass_ext(ms, dlmsg->msg);
-		case GSM48_MT_RR_IMM_ASS_REJ:
+	case GSM48_MT_RR_IMM_ASS_REJ:
 		return gsm_rr_rx_imm_ass_rej(ms, dlmsg->msg);
 	default:
-		DEBUGP(DRR, "Message type %d unknown.\n", gh->msg_type);
+		DEBUGP(DRR, "Message type 0x%02x unknown.\n", gh->msg_type);
 		return -EINVAL;
 	}
 }
 
-static int gsm_rr_data_ind(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
+static int gsm_rr_data_ind(struct osmocom_ms *ms, struct msbg *msg)
 {
-	struct gsm_rr rrmsg;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	u_int8_t pdisc = gh->proto_discr & 0x0f;
+
+	if (pdisc == GSM48_PDISC_RR) {
+		switch(gh->msg_type) {
+		case GSM48_MT_RR_ASS_CMD:
+			return gsm_rr_rx_ass_cmd(ms, msg);
+		default:
+			DEBUGP(DRR, "Message type 0x%02x unknown.\n", gh->msg_type);
+			return -EINVAL;
+		}
+	}
 
 	/* 3.4.2 */
 	memset(&rrmsg, 0, sizeof(rrmsg));
@@ -776,12 +814,19 @@ static int gsm_rr_estab_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 	return rr_recvmsg(ms, (rr->rr_est_req) ? RR_EST_CNF : RR_EST_IND, rrmsg);
 }
 
-static int gsm_rr_suspend_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
+static int gsm_rr_estab_cnf_dedicated(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 {
-}
+	if (special "channel assignment" state) {
+		if (resume to last channel flag is NOT set) {
+			send assignment complete message
+			flush queued radio ressource messages
 
-static int gsm_rr_suspend_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
-{
+			return 0;
+		} else {
+			send assignment failure (msn, RR_CAUSE_PROTO_ERR_UNSPEC);
+			return 0;
+		}
+	}
 }
 
 static int gsm_rr_connect_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
@@ -794,6 +839,19 @@ static int gsm_rr_rel_ind(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 
 static int gsm_rr_rel_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 {
+	/* do nothing, because we aleady IDLE
+	 * or we received the rel cnf of the last connection
+	 * while already requesting a new one (CONN PEND)
+	 */
+}
+
+static int gsm_rr_rel_cnf_dedicated(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
+{
+	if (special "channel assignment" state) {
+		send DL EST REQ
+
+		return 0;
+	}
 }
 
 static int gsm_rr_rand_acc_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
@@ -850,6 +908,15 @@ static int gsm_rr_rand_acc_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 
 static int gsm_rr_mdl_error_ind(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 {
+	if (special "channel assignment" state) {
+		if (resume to last channel flag is NOT set) {
+			send estb req with last channel
+
+			return 0;
+		}
+	}
+
+	send abort ind to upper layer
 }
 
 /* state trasitions for link layer messages (lower layer) */
@@ -859,25 +926,25 @@ static struct dldatastate {
 	int		(*rout) (struct osmocom_ms *ms, struct gsm_dl *dlmsg);
 } dldatastatelist[] = {
 	{SBIT(GSM_RRSTATE_IDLE) | SBIT(GSM_RRSTATE_CONN_PEND),
-	DL_UNIT_DATA_IND, gsm_rr_unit_data_ind},
+	 DL_UNIT_DATA_IND, gsm_rr_unit_data_ind},
 	{SBIT(GSM_RRSTATE_DEDICATED), /* 3.4.2 */
-	DL_DATA_IND, gsm_rr_data_ind},
+	 DL_DATA_IND, gsm_rr_data_ind},
 	{SBIT(GSM_RRSTATE_IDLE) | SBIT(GSM_RRSTATE_CONN_PEND),
-	DL_ESTABLISH_CNF, gsm_rr_estab_cnf},
+	 DL_ESTABLISH_CNF, gsm_rr_estab_cnf},
+	{SBIT(GSM_RRSTATE_DEDICATED),
+	 DL_ESTABLISH_CNF, gsm_rr_estab_cnf_dedicated},
 	{SBIT(GSM_RRSTATE),
-	DL_SUSPEND_CNF, gsm_rr_suspend_cnf},
+	 DL_CONNECT_CNF, gsm_rr_connect_cnf},
 	{SBIT(GSM_RRSTATE),
-	DL_RESUME_CNF, gsm_rr_suspend_cnf},
-	{SBIT(GSM_RRSTATE),
-	DL_CONNECT_CNF, gsm_rr_connect_cnf},
-	{SBIT(GSM_RRSTATE),
-	DL_RELEASE_IND, gsm_rr_rel_ind},
-	{SBIT(GSM_RRSTATE),
-	DL_RELEASE_CNF, gsm_rr_rel_cnf},
+	 DL_RELEASE_IND, gsm_rr_rel_ind},
+	{SBIT(GSM_RRSTATE_IDLE) | SBIT(GSM_RRSTATE_CONN_PENDING),
+	 DL_RELEASE_CNF, gsm_rr_rel_cnf},
+	{SBIT(GSM_RRSTATE_DEDICATED),
+	 DL_RELEASE_CNF, gsm_rr_rel_cnf_dedicated},
 	{SBIT(GSM_RRSTATE_CONN_PEND), /* 3.3.1.1.2 */
-	DL_RANDOM_ACCESS_CNF, gsm_rr_rand_acc_cnf},
+	 DL_RANDOM_ACCESS_CNF, gsm_rr_rand_acc_cnf},
 	{SBIT(GSM_RRSTATE),
-	MDL_ERROR_IND, gsm_rr_mdl_error_ind},
+	 MDL_ERROR_IND, gsm_rr_mdl_error_ind},
 };
 
 #define DLDATASLLEN \
