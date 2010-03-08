@@ -29,6 +29,10 @@ todo rr_sync_ind
 
 todo change procedures, release procedure
 
+#include <osmocore/protocol/gsm_04_08.h>
+#include <osmocore/msgb.h>
+#include <osmocore/gsm48.h>
+
 static int gsm_rr_chan2cause[4] = {
 	RR_EST_CAUSE_ANS_PAG_ANY,
 	RR_EST_CAUSE_ANS_PAG_SDCCH,
