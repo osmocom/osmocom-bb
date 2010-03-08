@@ -51,7 +51,7 @@ static char *socket_path = "/tmp/osmocom_l2";
 static struct osmocom_ms *ms = NULL;
 static uint32_t gsmtap_ip = 0;
 
-static int layer2_read(struct bsc_fd *fd, unsigned int flags)
+static int layer2_read(struct bsc_fd *fd)
 {
 	struct msgb *msg;
 	u_int16_t len;
@@ -90,9 +90,22 @@ static int layer2_read(struct bsc_fd *fd, unsigned int flags)
 	return 0;
 }
 
-int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg)
+static int layer2_write(struct bsc_fd *fd, struct msgb *msg)
 {
 	int rc;
+
+	rc = write(fd->fd, msg->data, msg->len);
+	if (rc != msg->len) {
+		fprintf(stderr, "Failed to write data: rc: %d\n", rc);
+		return -1;
+	}
+
+	return 0;
+}
+
+
+int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg)
+{
 	uint16_t *len;
 
 	printf("Sending: '%s'\n", hexdump(msg->data, msg->len));
@@ -104,15 +117,12 @@ int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg)
 	len = (uint16_t *) msgb_push(msg, sizeof(*len));
 	*len = htons(msg->len - sizeof(*len));
 
-	/* TODO: just enqueue the message and wait for ready write.. */
-	rc = write(ms->bfd.fd, msg->data, msg->len);
-	if (rc != msg->len) {
-		fprintf(stderr, "Failed to write data: rc: %d\n", rc);
+	if (write_queue_enqueue(&ms->wq, msg) != 0) {
+		fprintf(stderr, "Faile to enqueue msg.\n");
 		msgb_free(msg);
 		return -1;
 	}
 
-	msgb_free(msg);
 	return 0;
 }
 
@@ -190,8 +200,8 @@ int main(int argc, char **argv)
 
 	handle_options(argc, argv);
 
-	ms->bfd.fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (ms->bfd.fd < 0) {
+	ms->wq.bfd.fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (ms->wq.bfd.fd < 0) {
 		fprintf(stderr, "Failed to create unix domain socket.\n");
 		exit(1);
 	}
@@ -200,21 +210,23 @@ int main(int argc, char **argv)
 	strncpy(local.sun_path, socket_path, sizeof(local.sun_path));
 	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
 
-	rc = connect(ms->bfd.fd, (struct sockaddr *) &local,
+	rc = connect(ms->wq.bfd.fd, (struct sockaddr *) &local,
 		     sizeof(local.sun_family) + strlen(local.sun_path));
 	if (rc < 0) {
 		fprintf(stderr, "Failed to connect to '%s'.\n", local.sun_path);
 		exit(1);
 	}
 
-	ms->bfd.when = BSC_FD_READ;
-	ms->bfd.cb = layer2_read;
-	ms->bfd.data = ms;
+	write_queue_init(&ms->wq, 100);
+	ms->wq.bfd.data = ms;
+	ms->wq.bfd.when = BSC_FD_READ;
+	ms->wq.read_cb = layer2_read;
+	ms->wq.write_cb = layer2_write;
 
 	lapdm_init(&ms->lapdm_dcch, ms);
 	lapdm_init(&ms->lapdm_acch, ms);
 
-	if (bsc_register_fd(&ms->bfd) != 0) {
+	if (bsc_register_fd(&ms->wq.bfd) != 0) {
 		fprintf(stderr, "Failed to register fd.\n");
 		exit(1);
 	}
