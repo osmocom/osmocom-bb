@@ -2,9 +2,9 @@
 
 === Prerequisites ===
 
-We assume you are building on a GNU/Linux host system such as Debian GNU/Linux.
-Windows builds have been reported successfully using the Cygwin environment, but
-we do not officially support this.
+We assume you are building on a GNU/Linux host system such as Debian
+GNU/Linux.  Windows builds have been reported successfully using the
+Cygwin environment, but we do not officially support this.
 
  # Get a GNU toolchain (gcc/binutils) for ARM (e.g. from http://gnuarm.com/)
  # Set your path to include the arm-elf-* executables of your toolchain
@@ -16,5 +16,5 @@ The master Makefile will build
 
  * libosmocore for the host (x86 or whatever you use)
  * libosmocore for the target (ARM)
- * osmocon and layer2 executalbes for the host (linking libosmocore)
- * the actual target firmware images
+ * osmocon and layer23 executables for the host (linking libosmocore)
+ * the actual target firmware images (in src/target/firmware/board/*/*.bin)

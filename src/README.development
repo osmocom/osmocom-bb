@@ -1,0 +1,57 @@
+= Contributing to OsmocomBB development =
+
+Feel free to help us by extending the code.  Always make sure to
+send back all your patches to the baseband-devel@lists.osmocom.org
+mailing list - Free Software is all about sharing.
+
+== src/shared/libosmocore ==
+
+is a library of various utility routines, including linked lists,
+message buffers, bit-vectors, memory allocator, signals, select loop
+handling, timers - as well as some more specifically GSM related things
+like a TLV parser, a Comp128V1 implementation and utility functions for
+RSL (TS 08.58) and CC/MM/RR (TS 04.08).
+
+libosmocore is maintained in git://git.osmocom.org/libosmocore.git, so
+
+	DO NOT DIRECTLY COMMIT TO libosmocore IN THIS REPOSITORY!
+
+We simply maintain a copy (synchronized by git-subtree) in this
+repository for the ease of building and to make sure everyone is using
+the proper/compatible version of libosmocore
+
+Please note, whatever you add to libosmocore will need to build as a
+Linux userspace program (using glibc) just as well as on the OsmocomBB
+embedded target without OS.  So please refrain from using fancy
+functions.
+
+
+== src/target/firmware ==
+
+The firmware is what we build for the actual target (phone).  It was
+written with some idea of modularity in mind, i.e. we have
+
+ * Ti Calypso specific code in calypso/
+ * Analog Baseband code in abb/
+ * RF Mixer code in rf/
+ * Layer1 code in layer1/
+ * NOR flash handling in flash/
+ * LCD display handlin in display/
+ * minimal C-Library code in lib/
+ * communications utility routines in comm/
+ * Board (phone model/family) specific code in board/
+   * board/compal_e88 is the Motorola C115-C124 family
+   * board/compal_e99 is the Motorola C155 family
+ * Applications (each app builds one firmware image) in apps/
+
+
+== src/target_dsp/calypso ==
+
+This is where we keep some (assembly) code that we wrote for
+the DSP that is part of the Caylypso DBB.
+
+== host/layer23 ==
+
+The Layer2 (LAPDm / TS 04.06) and Layer3 (CC/MM/RR / 04.08)
+implementations, as they are growing.
+
