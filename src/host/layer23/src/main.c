@@ -77,7 +77,6 @@ static int layer2_read(struct bsc_fd *fd, unsigned int flags)
 	}
 
 
-	/* blocking read for the poor... we can starve in here... */
 	msg->l1h = msgb_put(msg, len);
 	rc = read(fd->fd, msg->l1h, msgb_l1len(msg));
 	if (rc != msgb_l1len(msg)) {
