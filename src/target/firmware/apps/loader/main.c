@@ -86,10 +86,7 @@ static void device_reset(void) {
 
 static void device_enter_loader(unsigned char bootrom) {
 	flush_uart();
-	puts("XXX: loader entry is broken\n");
-	return;
 
-	/* XXX: this is not working (with or without bootrom) */
 	calypso_bootrom(bootrom);
 	void (*entry)( void ) = (void (*)(void))0;
 	entry();
