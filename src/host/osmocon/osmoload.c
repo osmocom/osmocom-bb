@@ -22,6 +22,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -36,34 +37,47 @@
 
 #include <osmocore/msgb.h>
 #include <osmocore/select.h>
+#include <osmocore/timer.h>
 
 #include <loader/protocol.h>
 
 #define MSGB_MAX 256
+
+#define MEM_MSG_MAX (MSGB_MAX - 16)
 
 #define DEFAULT_SOCKET "/tmp/osmocom_loader"
 
 static struct bsc_fd connection;
 
 enum {
-	OPERATION_QUERY,
-	OPERATION_MEMDUMP,
-	OPERATION_MEMLOAD,
+	STATE_INIT,
+	STATE_QUERY_PENDING,
+	STATE_DUMP_IN_PROGRESS,
+	STATE_LOAD_IN_PROGRESS,
+
 };
 
 static struct {
+	/* debug flags */
 	unsigned char print_requests;
 	unsigned char print_replies;
 
+	/* quit flag for main loop */
 	unsigned char quit;
-	int operation;
-	uint8_t command;
 
+	/* state machine */
+	int state;
+
+	/* pending query command */
+	uint8_t command;
+	struct timer_list timeout;
+
+	/* binary i/o for firmware images */
 	FILE *binfile;
 
+	/* memory operation state */
 	uint32_t req_length;
 	uint32_t req_address;
-
 	uint32_t cur_length;
 	uint32_t cur_address;
 } osmoload;
@@ -71,15 +85,16 @@ static struct {
 static int usage(const char *name)
 {
 	printf("\nUsage: %s [ -v | -h ] [ -d tr ] [ -m {c123,c155} ] [ -l /tmp/osmocom_loader ] COMMAND ...\n", name);
-	puts("  memread <hex-length> <hex-address>");
-	puts("  memdump <hex-length> <hex-address> <file>");
-	puts("  memload <hex-address> <file>");
-	puts("  jump <hex-address");
-	puts("  flashloader");
-	puts("  romloader");
-	puts("  ping");
-	puts("  reset");
-	puts("  off");
+	puts("  memget <hex-address> <hex-length>        - Peek at memory");
+	puts("  memput <hex-address> <hex-bytes>         - Poke at memory");
+	puts("  memdump <hex-address> <hex-length> <file>- Dump memory to file");
+	puts("  memload <hex-address> <file>             - Load file into memory");
+	puts("  jump <hex-address>                       - Jump to address");
+	puts("  jumpflash                                - Jump to flash loader");
+	puts("  jumprom                                  - Jump to rom loader");
+	puts("  ping                                     - Ping the loader");
+	puts("  reset                                    - Reset device");
+	puts("  off                                      - Power off device");
 
 	exit(2);
 }
@@ -93,11 +108,38 @@ static int version(const char *name)
 static void hexdump(const uint8_t *data, unsigned int len)
 {
 	const uint8_t *bufptr = data;
-	int n;
+	const uint8_t const *endptr = bufptr + len;
+	int n, m, i, hexchr;
 
-	for (n=0; n < len; n++, bufptr++)
-		printf("%02x ", *bufptr);
-	printf("\n");
+	for (n=0; n < len; n+=32, bufptr += 32) {
+		hexchr = 0;
+		for(m = 0; m < 32 && bufptr < endptr; m++, bufptr++) {
+			if((m) && !(m%4)) {
+				putchar(' ');
+				hexchr++;
+			}
+			printf("%02x", *bufptr);
+			hexchr+=2;
+		}
+		bufptr -= m;
+		int n = 71 - hexchr;
+		for(i = 0; i < n; i++) {
+			putchar(' ');
+		}
+
+		putchar(' ');
+
+		for(m = 0; m < 32 && bufptr < endptr; m++, bufptr++) {
+			if(isgraph(*bufptr)) {
+				putchar(*bufptr);
+			} else {
+				putchar('.');
+			}
+		}
+		bufptr -= m;
+
+		putchar('\n');
+	}
 }
 
 static void
@@ -123,13 +165,17 @@ loader_send_request(struct msgb *msg) {
 	}
 }
 
-static void loader_do_memdump();
+static void loader_do_memdump(void *address, size_t length);
 static void loader_do_memload();
 
 static void
-loader_handle_reply(struct msgb *msg) {
-	int rc;
+mem_progress() {
+	putchar('.');
+	fflush(stdout);
+}
 
+static void
+loader_handle_reply(struct msgb *msg) {
 	if(osmoload.print_replies) {
 		printf("Received %d bytes:\n", msg->len);
 		hexdump(msg->data, msg->len);
@@ -171,8 +217,8 @@ loader_handle_reply(struct msgb *msg) {
 		return;
 	}
 
-	switch(osmoload.operation) {
-	case OPERATION_QUERY:
+	switch(osmoload.state) {
+	case STATE_QUERY_PENDING:
 		switch(cmd) {
 		case LOADER_PING:
 			printf("Received pong.\n");
@@ -206,21 +252,15 @@ loader_handle_reply(struct msgb *msg) {
 			osmoload.quit = 1;
 		}
 		break;
-	case OPERATION_MEMDUMP:
+	case STATE_DUMP_IN_PROGRESS:
 		if(cmd == LOADER_MEM_READ) {
-			putchar('.');
-			fflush(stdout);
-			rc = fwrite(data, 1, length, osmoload.binfile);
-			if(ferror(osmoload.binfile)) {
-				printf("Error writing to dump file: %s\n", strerror(errno));
-			}
-			loader_do_memdump();
+			mem_progress();
+			loader_do_memdump(data, length);
 		}
 		break;
-	case OPERATION_MEMLOAD:
+	case STATE_LOAD_IN_PROGRESS:
 		if(cmd == LOADER_MEM_WRITE) {
-			putchar('.');
-			fflush(stdout);
+			mem_progress();
 			loader_do_memload();
 		}
 		break;
@@ -309,12 +349,12 @@ loader_send_query(uint8_t command) {
 	loader_send_request(msg);
 	msgb_free(msg);
 
-	osmoload.operation = OPERATION_QUERY;
+	osmoload.state = STATE_QUERY_PENDING;
 	osmoload.command = command;
 }
 
 static void
-loader_send_memread(uint8_t length, uint32_t address) {
+loader_send_memget(uint8_t length, uint32_t address) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, LOADER_MEM_READ);
 	msgb_put_u8(msg, length);
@@ -322,12 +362,12 @@ loader_send_memread(uint8_t length, uint32_t address) {
 	loader_send_request(msg);
 	msgb_free(msg);
 
-	osmoload.operation = OPERATION_QUERY;
+	osmoload.state = STATE_QUERY_PENDING;
 	osmoload.command = LOADER_MEM_READ;
 }
 
 static void
-loader_send_memwrite(uint8_t length, uint32_t address, void *data) {
+loader_send_memput(uint8_t length, uint32_t address, void *data) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, LOADER_MEM_WRITE);
 	msgb_put_u8(msg, length);
@@ -336,7 +376,7 @@ loader_send_memwrite(uint8_t length, uint32_t address, void *data) {
 	loader_send_request(msg);
 	msgb_free(msg);
 
-	osmoload.operation = OPERATION_QUERY;
+	osmoload.state = STATE_QUERY_PENDING;
 	osmoload.command = LOADER_MEM_WRITE;
 }
 
@@ -348,15 +388,22 @@ loader_send_jump(uint32_t address) {
 	loader_send_request(msg);
 	msgb_free(msg);
 
-	osmoload.operation = OPERATION_QUERY;
+	osmoload.state = STATE_QUERY_PENDING;
 	osmoload.command = LOADER_JUMP;
 }
 
 
-#define MEM_MSG_MAX (MSGB_MAX - 16)
-
 static void
-loader_do_memdump() {
+loader_do_memdump(void *data, size_t length) {
+	int rc;
+
+	if(data && length) {
+		rc = fwrite(data, 1, length, osmoload.binfile);
+		if(ferror(osmoload.binfile)) {
+			printf("Error writing to dump file: %s\n", strerror(errno));
+		}
+	}
+
 	uint32_t rembytes = osmoload.req_length - osmoload.cur_length;
 
 	if(!rembytes) {
@@ -375,12 +422,15 @@ loader_do_memdump() {
 	loader_send_request(msg);
 	msgb_free(msg);
 
+
 	osmoload.cur_address += reqbytes;
 	osmoload.cur_length  += reqbytes;
 }
 
 static void
 loader_do_memload() {
+	int rc;
+
 	uint32_t rembytes = osmoload.req_length - osmoload.cur_length;
 
 	if(!rembytes) {
@@ -400,7 +450,7 @@ loader_do_memload() {
 	unsigned c = 0;
 	unsigned char *p = msgb_put(msg, reqbytes);
 	while(c < reqbytes) {
-		int rc = fread(p, 1, reqbytes, osmoload.binfile);
+		rc = fread(p, 1, reqbytes, osmoload.binfile);
 		if(ferror(osmoload.binfile)) {
 			printf("Could not read from file: %s\n", strerror(errno));
 		}
@@ -420,8 +470,6 @@ static void
 loader_start_memdump(uint32_t length, uint32_t address, char *file) {
 	printf("Dumping %u bytes of memory at 0x%u to file %s\n", length, address, file);
 
-	osmoload.operation = OPERATION_MEMDUMP;
-
 	osmoload.binfile = fopen(file, "wb");
 	if(!osmoload.binfile) {
 		printf("Could not open %s: %s\n", file, strerror(errno));
@@ -434,7 +482,7 @@ loader_start_memdump(uint32_t length, uint32_t address, char *file) {
 	osmoload.cur_length = 0;
 	osmoload.cur_address = address;
 
-	loader_do_memdump();
+	loader_do_memdump(NULL, 0);
 }
 
 static void
@@ -452,8 +500,6 @@ loader_start_memload(uint32_t address, char *file) {
 
 	printf("Loading %u bytes of memory at 0x%u to file %s\n", length, address, file);
 
-	osmoload.operation = OPERATION_MEMLOAD;
-
 	osmoload.binfile = fopen(file, "rb");
 	if(!osmoload.binfile) {
 		printf("Could not open %s: %s\n", file, strerror(errno));
@@ -470,6 +516,12 @@ loader_start_memload(uint32_t address, char *file) {
 }
 
 static void
+query_timeout(void *dummy) {
+	puts("Query timed out.");
+	exit(2);
+}
+
+static void
 loader_command(char *name, int cmdc, char **cmdv) {
 	if(!cmdc) {
 		usage(name);
@@ -477,37 +529,21 @@ loader_command(char *name, int cmdc, char **cmdv) {
 
 	char *cmd = cmdv[0];
 
-	char buf[256];
+	char buf[MEM_MSG_MAX];
 	memset(buf, 23, sizeof(buf));
 
 	if(!strcmp(cmd, "ping")) {
 		loader_send_query(LOADER_PING);
-	} else if(!strcmp(cmd, "memread")) {
-		uint8_t length;
-		uint32_t address;
-
-		if(cmdc < 3) {
-			usage(name);
-		}
-
-		length = strtoul(cmdv[1], NULL, 16);
-		address = strtoul(cmdv[2], NULL, 16);
-
-		loader_send_memread(length, address);
-	} else if(!strcmp(cmd, "memdump")) {
-		uint32_t length;
-		uint32_t address;
-
-		if(cmdc < 4) {
-			usage(name);
-		}
-
-		length = strtoul(cmdv[1], NULL, 16);
-		address = strtoul(cmdv[2], NULL, 16);
-
-		loader_start_memdump(length, address, cmdv[3]);
-	} else if(!strcmp(cmd, "memload")) {
-		uint32_t length;
+	} else if(!strcmp(cmd, "off")) {
+		loader_send_query(LOADER_POWEROFF);
+	} else if(!strcmp(cmd, "reset")) {
+		loader_send_query(LOADER_RESET);
+	} else if(!strcmp(cmd, "jumprom")) {
+		loader_send_query(LOADER_ENTER_ROM_LOADER);
+	} else if(!strcmp(cmd, "jumpflash")) {
+		loader_send_query(LOADER_ENTER_FLASH_LOADER);
+	} else if(!strcmp(cmd, "memput")) {
+		// XXX implement command line parsing
 		uint32_t address;
 
 		if(cmdc < 3) {
@@ -516,7 +552,44 @@ loader_command(char *name, int cmdc, char **cmdv) {
 
 		address = strtoul(cmdv[1], NULL, 16);
 
-		loader_start_memload(address, cmdv[2]);
+		unsigned int i;
+		char *hex = cmdv[2];
+		if(strlen(hex)&1) {
+			puts("Invalid hex string.");
+			exit(2);
+		}
+		for(i = 0; i <= sizeof(buf) && i < strlen(hex)/2; i++) {
+			if(i >= sizeof(buf)) {
+				puts("Value too long for single message");
+				exit(2);
+			}
+			unsigned int byte;
+			int count = sscanf(hex + i * 2, "%02x", &byte);
+			if(count != 1) {
+				puts("Invalid hex string.");
+				exit(2);
+			}
+			buf[i] = byte & 0xFF;
+		}
+
+		loader_send_memput(i & 0xFF, address, buf);
+	} else if(!strcmp(cmd, "memget")) {
+		uint32_t address;
+		uint8_t length;
+
+		if(cmdc < 3) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+		length = strtoul(cmdv[2], NULL, 16);
+
+		if(length > MEM_MSG_MAX) {
+			puts("Too many bytes");
+			exit(2);
+		}
+
+		loader_send_memget(length, address);
 	} else if(!strcmp(cmd, "jump")) {
 		uint32_t address;
 
@@ -527,21 +600,42 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		address = strtoul(cmdv[1], NULL, 16);
 
 		loader_send_jump(address);
-	} else if(!strcmp(cmd, "memwrite")) {
-		loader_send_memwrite(128, 0x810000, buf);
-	} else if(!strcmp(cmd, "off")) {
-		loader_send_query(LOADER_POWEROFF);
-	} else if(!strcmp(cmd, "reset")) {
-		loader_send_query(LOADER_RESET);
-	} else if(!strcmp(cmd, "romload")) {
-		loader_send_query(LOADER_ENTER_ROM_LOADER);
-	} else if(!strcmp(cmd, "flashload")) {
-		loader_send_query(LOADER_ENTER_FLASH_LOADER);
+	} else if(!strcmp(cmd, "memdump")) {
+		uint32_t address;
+		uint32_t length;
+
+		if(cmdc < 4) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+		length = strtoul(cmdv[2], NULL, 16);
+
+		osmoload.state = STATE_DUMP_IN_PROGRESS;
+
+		loader_start_memdump(length, address, cmdv[3]);
+	} else if(!strcmp(cmd, "memload")) {
+		uint32_t address;
+
+		if(cmdc < 3) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+
+		osmoload.state = STATE_LOAD_IN_PROGRESS;
+
+		loader_start_memload(address, cmdv[2]);
 	} else if(!strcmp(cmd, "help")) {
 		usage(name);
 	} else {
 		printf("Unknown command '%s'\n", cmd);
 		usage(name);
+	}
+
+	if(osmoload.state == STATE_QUERY_PENDING) {
+		osmoload.timeout.cb = &query_timeout;
+		bsc_schedule_timer(&osmoload.timeout, 0, 500000);
 	}
 }
 
