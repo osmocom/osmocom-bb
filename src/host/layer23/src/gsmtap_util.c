@@ -78,7 +78,8 @@ uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
 
 /* receive a message from L1/L2 and put it in GSMTAP */
 int gsmtap_sendmsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss,
-		   uint32_t fn, const uint8_t *data, unsigned int len)
+		   uint32_t fn, int8_t signal_dbm, uint8_t snr,
+		   const uint8_t *data, unsigned int len)
 {
 	struct msgb *msg;
 	struct gsmtap_hdr *gh;
@@ -100,8 +101,8 @@ int gsmtap_sendmsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss,
 	gh->timeslot = ts;
 	gh->sub_slot = ss;
 	gh->arfcn = htons(arfcn);
-	gh->snr_db = 0;
-	gh->signal_dbm = 0;
+	gh->snr_db = snr;
+	gh->signal_dbm = signal_dbm;
 	gh->frame_number = htonl(fn);
 	gh->sub_type = chan_type;
 	gh->antenna_nr = 0;

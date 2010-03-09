@@ -140,7 +140,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	/* send CCCH data via GSMTAP */
 	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
 	gsmtap_sendmsg(dl->band_arfcn, chan_ts, gsmtap_chan_type, chan_ss,
-			tm.fn, ccch->data, sizeof(ccch->data));
+			tm.fn, dl->rx_level-110, dl->snr, ccch->data, sizeof(ccch->data));
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
@@ -181,7 +181,7 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
 	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, link_id);
 	gsmtap_sendmsg(0|0x4000, chan_ts, gsmtap_chan_type, chan_ss,
-			0, msg->l2h, msgb_l2len(msg));
+			0, 127, 255, msg->l2h, msgb_l2len(msg));
 
 	/* prepend uplink info header */
 	printf("sizeof(struct l1ctl_info_ul)=%lu\n", sizeof(*l1i_ul));
