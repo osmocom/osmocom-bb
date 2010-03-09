@@ -747,7 +747,22 @@ static int gsm_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 
 	send dl suspend req
 
-	change into special suspension state
+	change into special assignment suspension state
+	 - queue messages during this state
+	 - flush/send when leaving this state
+}
+
+static int gsm_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm_rrlayer *rr = ms->rrlayer;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
+
+	parsing
+
+	send dl suspend req
+
+	change into special handover suspension state
 	 - queue messages during this state
 	 - flush/send when leaving this state
 }
@@ -784,6 +799,8 @@ static int gsm_rr_data_ind(struct osmocom_ms *ms, struct msbg *msg)
 		switch(gh->msg_type) {
 		case GSM48_MT_RR_ASS_CMD:
 			return gsm_rr_rx_ass_cmd(ms, msg);
+		case GSM48_MT_RR_HANDO_CMD:
+			return gsm_rr_rx_hando_cmd(ms, msg);
 		default:
 			DEBUGP(DRR, "Message type 0x%02x unknown.\n", gh->msg_type);
 			return -EINVAL;
@@ -847,11 +864,16 @@ static int gsm_rr_rel_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 
 static int gsm_rr_rel_cnf_dedicated(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 {
-	if (special "channel assignment" state) {
+	if (special assignment suspension state
+	 || special handover suspension state) {
 		send DL EST REQ
 
-		return 0;
 	}
+	if (special handover suspension state) {
+		send HANDOVER ACCESS via DL_RANDOM_ACCESS_REQ
+		rr->hando_acc_left = 3;
+	}
+	return 0;
 }
 
 static int gsm_rr_rand_acc_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
@@ -906,11 +928,82 @@ static int gsm_rr_rand_acc_cnf(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 
 }
 
+static int gsm_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
+{
+	struct gsm_rrlayer *rr = ms->rrlayer;
+	int s;
+
+	if (!special handover suspension state) {
+		debug
+		return 0;
+	}
+
+	/* send up to four handover access bursts */
+	if (rr->hando_acc_left) {
+		rr->hando_acc_left--;
+		send HANDOVER ACCESS via DL_RANDOM_ACCESS_REQ;
+		return;
+	}
+
+	if (!timer 3124 running) {
+		if (allocated channel is SDCCH)
+			start_rr_t3126(rr, GSM_T3124_675);
+		else
+			start_rr_t3126(rr, GSM_T3124_320);
+	if (!rr->n_chan_req) {
+		start_rr_t3126(rr, GSM_T3126_MS);
+		return 0;
+	}
+	rr->n_chan_req--;
+
+	switch(ms->si.tx_integer) {
+	case 3: case 8: case 14: case 50:
+		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
+			s = 55;
+		else
+			s = 41;
+	case 4: case 9: case 16:
+		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
+			s = 76;
+		else
+			s = 52;
+	case 5: case 10: case 20:
+		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
+			s = 109;
+		else
+			s = 58;
+	case 6: case 11: case 25:
+		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
+			s = 163;
+		else
+			s = 86;
+	default:
+		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
+			s = 217;
+		else
+			s = 115;
+
+	/* resend chan_req */
+	memset(&dlmsg, 0, sizeof(dlmsg));
+	dlmsg->msg = msgb_alloc(1, "CHAN_REQ");
+	if (!dlmsg->msg)
+		return -ENOMEM;
+	*msgb_put(dlmsg->msg, 1) = rr->chan_req;
+	dlmsg->delay = (random() % ms->si.tx_integer) + s;
+	rr->cr_hist[3] = rr->cr_hist[2];
+	rr->cr_hist[2] = rr->cr_hist[1];
+	rr->cr_hist[1] = chan_req;
+	return gsm_send_dl(ms, DL_RANDOM_ACCESS_REQ, dlmsg);
+
+}
+
 static int gsm_rr_mdl_error_ind(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 {
-	if (special "channel assignment" state) {
+	if (special assignment suspension state
+	 || special handover suspension state) {
 		if (resume to last channel flag is NOT set) {
-			send estb req with last channel
+			set resume to the last channel flag;
+			send reconnect req with last channel;
 
 			return 0;
 		}
@@ -943,6 +1036,8 @@ static struct dldatastate {
 	 DL_RELEASE_CNF, gsm_rr_rel_cnf_dedicated},
 	{SBIT(GSM_RRSTATE_CONN_PEND), /* 3.3.1.1.2 */
 	 DL_RANDOM_ACCESS_CNF, gsm_rr_rand_acc_cnf},
+	{SBIT(GSM_RRSTATE_DEDICATED),
+	 DL_RANDOM_ACCESS_CNF, gsm_rr_rand_acc_cnf_dedicated},
 	{SBIT(GSM_RRSTATE),
 	 MDL_ERROR_IND, gsm_rr_mdl_error_ind},
 };
