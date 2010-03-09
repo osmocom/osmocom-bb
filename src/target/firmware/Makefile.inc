@@ -71,8 +71,10 @@ ALL_DEPS+=$(ANY_APP_OBJS:.o=.p)
 # template for application rules
 define APPLICATION_BOARD_ENVIRONMENT_template
 
-board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map board/$(2)/$(1).$(3).size: apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS) board/$(2)/manifest.$(3).o
-	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic -Map board/$(2)/$(1).$(3).map  -o board/$(2)/$(1).$(3).elf --start-group $$^ --end-group
+$(1)_$(2)_$(3)_OBJS := apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS) board/$(2)/manifest.$(3).o
+
+board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map board/$(2)/$(1).$(3).size: $$($(1)_$(2)_$(3)_OBJS) $$($(3)_LDS)
+	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic -Map board/$(2)/$(1).$(3).map  -o board/$(2)/$(1).$(3).elf --start-group $$($(1)_$(2)_$(3)_OBJS) --end-group
 	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
 
 ALL_APPS+=board/$(2)/$(1).$(3).elf
