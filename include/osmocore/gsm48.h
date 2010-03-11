@@ -6,7 +6,7 @@
 
 extern const struct tlv_definition gsm48_att_tlvdef;
 extern const char *cc_state_names[32];
-const char *gsm48_cc_msg_names[0x40];
+extern const char *gsm48_cc_msg_names[0x40];
 const char *rr_cause_name(uint8_t cause);
 
 void gsm48_generate_lai(struct gsm48_loc_area_id *lai48, uint16_t mcc,
