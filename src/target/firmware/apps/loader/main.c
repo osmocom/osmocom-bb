@@ -48,8 +48,6 @@
 #include <layer1/sync.h>
 #include <layer1/tpu_window.h>
 
-#include <machine/endian.h>
-
 #include "protocol.h"
 
 struct loader_mem_read {
