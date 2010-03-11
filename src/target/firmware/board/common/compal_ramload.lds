@@ -14,20 +14,15 @@ SECTIONS
 {
 	. = 0x800000;
 
-	/* reserved (what is in here?) */
-	.compal.reserved1 (NOLOAD) : { . = 0x100; } > LRAM
+	/* romloader data section, contains passthru interrupt vectors */
+	.compal.loader (NOLOAD) : { . = 0x100; } > LRAM
 
-	/* XXX: leftovers from exception vector trickery development? */
-	/* .compal.reserved1 (NOLOAD) : { . = 0x1C; } > LRAM */
-	/* .compal.reserved2 (NOLOAD) : { . = 0xC8; } > LRAM */
-
-	/* image signature (prepended by compal_dnload according to phone type) */
+	/* image signature (prepended by osmocon according to phone type) */
 	.compal.header (NOLOAD) : { . = 4; } > LRAM
 
-	/* code */
+	/* initialization code */
 	. = ALIGN(4);
 	.text_start : {
-		/* initialization code */
 		PROVIDE(_start = .);
 		KEEP(*(.init))
 		*(.text._start)
@@ -41,7 +36,7 @@ SECTIONS
 		. = ALIGN(4);
 	} > LRAM
 
-	/* code */
+	/* normal code */
 	. = ALIGN(4);
 	.text (LOADADDR(.text.exceptions) + SIZEOF(.text.exceptions)) :
 	      AT (LOADADDR(.text.exceptions) + SIZEOF(.text.exceptions)) {
@@ -57,7 +52,7 @@ SECTIONS
 
 	/* initialized data */
 	. = ALIGN(4);
-		.data : {
+	.data : {
 		*(.data)
 	} > LRAM
 
