@@ -42,7 +42,7 @@
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
-#include <display/st7558.h>
+#include <display.h>
 
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define ARMIO_CNTL_REG	0xfffe4804
@@ -120,7 +120,8 @@ void board_init(void)
 	timer_init();
 
 	/* Initialize LCD driver (uses I2C) */
-	st7558_init();
+	display = &st7558_display;
+	display_init();
 
 	/* Initialize keypad driver */
 	keypad_init(1);

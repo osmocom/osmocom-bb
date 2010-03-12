@@ -27,7 +27,7 @@
 #include <delay.h>
 #include <memory.h>
 #include <i2c.h>
-#include <display/st7558.h>
+#include <display.h>
 #include <calypso/clock.h>
 
 #define MORE_CONTROL	0x80
@@ -53,7 +53,22 @@ static int st7558_write(const uint8_t *data, int len)
 	return rc;
 }
 
-void st7558_init(void)
+static const uint8_t zero16[] = { CONTROL_RS_RAM,
+			0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0 };
+static void st7558_clrscr(void)
+{
+	int i;
+
+	st7558_write(home, sizeof(home));
+
+	for (i = 0; i < 102*9; i += 16)
+		st7558_write(zero16, sizeof(zero16));
+
+	st7558_write(home, sizeof(home));
+}
+
+static void st7558_init(void)
 {
 	/* Release nRESET */
 	calypso_reset_set(RESET_EXT, 0);
@@ -65,31 +80,16 @@ void st7558_init(void)
 	st7558_clrscr();
 }
 
-void st7558_set_attr(unsigned long attr)
+static void st7558_set_attr(unsigned long attr)
 {
 	if (attr & DISP_ATTR_INVERT)
 		st7558_write(invert, sizeof(invert));
 }
 
-void st7558_unset_attr(unsigned long attr)
+static void st7558_unset_attr(unsigned long attr)
 {
 	if (attr & DISP_ATTR_INVERT)
 		st7558_write(normal, sizeof(normal));
-}
-
-static const uint8_t zero16[] = { CONTROL_RS_RAM,
-			0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 0 };
-void st7558_clrscr(void)
-{
-	int i;
-
-	st7558_write(home, sizeof(home));
-
-	for (i = 0; i < 102*9; i += 16)
-		st7558_write(zero16, sizeof(zero16));
-
-	st7558_write(home, sizeof(home));
 }
 
 /* FIXME: we need a mini-libc */
@@ -103,7 +103,7 @@ static void *mcpy(uint8_t *dst, const uint8_t *src, int len)
 
 extern const unsigned char fontdata_r8x8[];
 
-void st7558_putchar(unsigned char c)
+static void st7558_putc(unsigned char c)
 {
 	uint8_t putc_buf[16];
 	uint8_t bytes_per_char = 8;
@@ -113,10 +113,11 @@ void st7558_putchar(unsigned char c)
 	st7558_write(putc_buf, 1+bytes_per_char);
 }
 
-void st7558_puts(const char *str)
-{
-	char c;
-
-	while ((c = *str++))
-		st7558_putchar(c);
-}
+const struct display_driver st7558_display = {
+	.name = "st7558",
+	.init = &st7558_init,
+	.clrscr = &st7558_clrscr,
+	.set_attr = &st7558_set_attr,
+	.unset_attr = &st7558_unset_attr,
+	.putc = &st7558_putc,
+};

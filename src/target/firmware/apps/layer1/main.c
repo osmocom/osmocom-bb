@@ -30,7 +30,7 @@
 #include <board.h>
 
 #include <abb/twl3025.h>
-#include <display/st7558.h>
+#include <display.h>
 #include <rf/trf6151.h>
 
 #include <comm/sercomm.h>
@@ -93,8 +93,8 @@ int main(void)
 	calypso_clk_dump();
 	puts(hr);
 
-	st7558_set_attr(DISP_ATTR_INVERT);
-	st7558_puts("layer1.bin");
+	display_set_attr(DISP_ATTR_INVERT);
+	display_puts("layer1.bin");
 
 	layer1_init();
 	l1s_set_handler(&l1s_signal_cb);

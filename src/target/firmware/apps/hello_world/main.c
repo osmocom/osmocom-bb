@@ -30,7 +30,7 @@
 #include <keypad.h>
 #include <board.h>
 #include <abb/twl3025.h>
-#include <display/st7558.h>
+#include <display.h>
 #include <rf/trf6151.h>
 #include <calypso/clock.h>
 #include <calypso/tpu.h>
@@ -69,7 +69,7 @@ static void console_rx_cb(uint8_t dlci, struct msgb *msg)
 	}
 
 	printf("Message on console DLCI: '%s'\n", msg->data);
-	st7558_puts((char *) msg->data);
+	display_puts((char *) msg->data);
 	msgb_free(msg);
 }
 
@@ -100,8 +100,8 @@ int main(void)
 	puts(hr);
 #endif
 
-	st7558_set_attr(DISP_ATTR_INVERT);
-	st7558_puts("Hello World");
+	display_set_attr(DISP_ATTR_INVERT);
+	display_puts("Hello World");
 
 	sercomm_register_rx_cb(SC_DLCI_CONSOLE, console_rx_cb);
 

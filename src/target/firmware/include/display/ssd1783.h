@@ -1,13 +1,6 @@
 #ifndef _SSD1783_H
 #define _SSD1783_H
 
-void ssd1783_cmd_write(const uint8_t cmd);
-void ssd1783_data_write(const uint8_t data);
-void ssd1783_init(void);
-void ssd1783_clrscr(void);
-void ssd1783_putchar(unsigned char c, int xpos, int ypos, int fColor, int bColor);
-void ssd1783_puts(const char *str, int txtline, int fColor, int bColor);
-
 /* Some basic colors */
 #define RED		0x0f00
 #define GREEN		0x00f0

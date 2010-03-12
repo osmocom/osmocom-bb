@@ -32,7 +32,6 @@
 #include <console.h>
 
 #include <abb/twl3025.h>
-#include <display/st7558.h>
 #include <rf/trf6151.h>
 
 #include <comm/sercomm.h>
