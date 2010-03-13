@@ -475,7 +475,7 @@ loader_do_memload() {
 
 static void
 loader_start_memdump(uint32_t length, uint32_t address, char *file) {
-	printf("Dumping %u bytes of memory at 0x%u to file %s\n", length, address, file);
+	printf("Dumping %u bytes of memory at 0x%x to file %s\n", length, address, file);
 
 	osmoload.binfile = fopen(file, "wb");
 	if(!osmoload.binfile) {
@@ -505,7 +505,7 @@ loader_start_memload(uint32_t address, char *file) {
 
 	uint32_t length = st.st_size;
 
-	printf("Loading %u bytes of memory at 0x%u to file %s\n", length, address, file);
+	printf("Loading %u bytes of memory at 0x%x to file %s\n", length, address, file);
 
 	osmoload.binfile = fopen(file, "rb");
 	if(!osmoload.binfile) {
