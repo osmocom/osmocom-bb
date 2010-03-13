@@ -13,8 +13,9 @@ START=board/common/compal_ramload_start.S
 
 # List of all supported boards
 BOARDS=compal_e88 compal_e99
-compal_e88_OBJS=board/common/rffe_compal_dualband.o board/compal_e88/init.o
-compal_e99_OBJS=board/common/rffe_compal_dualband.o board/compal_e99/init.o
+compal_COMMON_OBJS=board/common/rffe_compal_dualband.o board/common/calypso_uart.o board/common/calypso_pwl.o
+compal_e88_OBJS=$(compal_COMMON_OBJS) board/compal_e88/init.o
+compal_e99_OBJS=$(compal_COMMON_OBJS) board/compal_e99/init.o
 
 # List of all supported execution environments
 ENVIRONMENTS=ramload osmoload

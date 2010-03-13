@@ -3,12 +3,10 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 MEMORY
 {
-	/* area that can be initialized by the loader (plus some reserved stuff) */
+	/* compal-loaded binary: our text, initialized data */
 	LRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00010000
-	/* remainder of internal ram, can be used for bss and the like */
-	IRAM (rw) : ORIGIN = 0x00810000, LENGTH = 0x00030000
-	/* external ram on a C123 */
-	ERAM (rw) : ORIGIN = 0x01000000, LENGTH = 0x00040000
+	/* compal-loaded binary: our unitialized data, stacks, heap */
+	IRAM (rw) : ORIGIN = 0x00810000, LENGTH = 0x00010000
 }
 SECTIONS
 {
@@ -22,32 +20,34 @@ SECTIONS
 
 	/* initialization code */
 	. = ALIGN(4);
-	.text_start : {
+	.text.start : {
 		PROVIDE(_start = .);
-		KEEP(*(.init))
-		*(.text._start)
+		KEEP(*(.text.start))
+		*(.text.start)
 		_exceptions = .;
 	} > LRAM
 
 	/* exception vectors from 0x80001c to 0x800034 */
-	.text.exceptions 0x80001c: AT (LOADADDR(.text_start) + SIZEOF(.text_start)) {
+	.text.exceptions 0x80001c : AT (LOADADDR(.text.start) + SIZEOF(.text.start)) {
 		KEEP(*(.text.exceptions))
 		* (.text.exceptions)
 		. = ALIGN(4);
 	} > LRAM
 
-	/* normal code */
+	/* code */
 	. = ALIGN(4);
 	.text (LOADADDR(.text.exceptions) + SIZEOF(.text.exceptions)) :
 	      AT (LOADADDR(.text.exceptions) + SIZEOF(.text.exceptions)) {
 		/* regular code */
 		*(.text*)
+		/* gcc voodoo */
+		*(.glue_7t) *(.glue_7) *(.vfp11_veneer) *(.v4_bx)
 	} > LRAM
 
 	/* read-only data */
 	. = ALIGN(4);
 	.rodata : {
-		*(.rodata*) 
+		*(.rodata*)
 	} > LRAM
 
 	/* initialized data */
@@ -59,14 +59,15 @@ SECTIONS
 	/* pic offset tables */
 	. = ALIGN(4);
 	.got : {
-		*(.got) 
+		*(.got)
+		*(.got.plt) *(.igot.plt) *(.got) *(.igot)
 	} > LRAM
 
 	/* uninitialized data */
 	.bss (NOLOAD) : {
 		. = ALIGN(4);
 		__bss_start = .;
-		*(.bss) 
+		*(.bss)
 	} > IRAM
 	. = ALIGN(4);
 	__bss_end = .;

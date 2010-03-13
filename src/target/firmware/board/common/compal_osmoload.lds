@@ -3,35 +3,32 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 MEMORY
 {
-	/* area that can be initialized by the loader (plus some reserved stuff) */
+	/* compal-loaded binary: text, initialized data */
 	LRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00010000
-	/* bss for osmoload */
+	/* compal-loaded binary: unitialized data, stacks, heap */
 	DRAM (rw) : ORIGIN = 0x00810000, LENGTH = 0x00010000
-	/* remainder of internal ram, can be used for bss and the like */
+	/* remainder of internal ram: this is where we are linking to */
 	IRAM (rw) : ORIGIN = 0x00820000, LENGTH = 0x00020000
-	/* external ram on a C123 */
-	ERAM (rw) : ORIGIN = 0x01000000, LENGTH = 0x00040000
 }
 SECTIONS
 {
 	. = 0x820000;
 
-	/* code */
+	/* initialization code */
 	. = ALIGN(4);
-	.text_start : {
-		/* initialization code */
+	.text.start : {
 		PROVIDE(_start = .);
-		KEEP(*(.init))
-		*(.text._start)
+		KEEP(*(.text.start))
+		*(.text.start)
 		_exceptions = .;
 	} > IRAM
 
 	/* exception vectors from 0x80001c to 0x800034 */
-	.text.exceptions 0x82001c: AT (LOADADDR(.text_start) + SIZEOF(.text_start)) {
+	.text.exceptions 0x80001c : AT (LOADADDR(.text.start) + SIZEOF(.text.start)) {
 		KEEP(*(.text.exceptions))
 		* (.text.exceptions)
 		. = ALIGN(4);
-	} > IRAM
+	} > LRAM
 
 	/* code */
 	. = ALIGN(4);
@@ -39,6 +36,8 @@ SECTIONS
 	      AT (LOADADDR(.text.exceptions) + SIZEOF(.text.exceptions)) {
 		/* regular code */
 		*(.text*)
+		/* gcc voodoo */
+		*(.glue_7t) *(.glue_7) *(.vfp11_veneer) *(.v4_bx)
 	} > IRAM
 
 	/* read-only data */
@@ -56,14 +55,15 @@ SECTIONS
 	/* pic offset tables */
 	. = ALIGN(4);
 	.got : {
-		*(.got) 
+		*(.got)
+		*(.got.plt) *(.igot.plt) *(.got) *(.igot)
 	} > IRAM
 
 	/* uninitialized data */
 	.bss (NOLOAD) : {
 		. = ALIGN(4);
 		__bss_start = .;
-		*(.bss) 
+		*(.bss)
 	} > IRAM
 	. = ALIGN(4);
 	__bss_end = .;
