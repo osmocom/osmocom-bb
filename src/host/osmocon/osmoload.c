@@ -54,7 +54,7 @@ enum {
 	STATE_QUERY_PENDING,
 	STATE_DUMP_IN_PROGRESS,
 	STATE_LOAD_IN_PROGRESS,
-
+	STATE_DUMPING,
 };
 
 static struct {
@@ -95,6 +95,7 @@ static int usage(const char *name)
 	puts("  ping                                     - Ping the loader");
 	puts("  reset                                    - Reset device");
 	puts("  off                                      - Power off device");
+	puts("  dump                                     - Dump loader traffic to console");
 
 	exit(2);
 }
@@ -185,12 +186,15 @@ loader_handle_reply(struct msgb *msg) {
 
 	uint8_t length;
 	uint32_t address;
+	uint32_t entrypoint;
 
 	void *data;
 
 	switch(cmd) {
 	case LOADER_INIT:
-		printf("Loader has been started\n");
+		address = msgb_get_u32(msg);
+		entrypoint = msgb_get_u32(msg);
+		printf("Loader at entry %x has been started, requesting load to %x\n", entrypoint, address);
 		break;
 	case LOADER_PING:
 	case LOADER_RESET:
@@ -219,6 +223,7 @@ loader_handle_reply(struct msgb *msg) {
 
 	switch(osmoload.state) {
 	case STATE_QUERY_PENDING:
+	case STATE_DUMPING:
 		switch(cmd) {
 		case LOADER_PING:
 			printf("Received pong.\n");
@@ -248,8 +253,10 @@ loader_handle_reply(struct msgb *msg) {
 		default:
 			break;
 		}
-		if(osmoload.command == cmd) {
-			osmoload.quit = 1;
+		if(osmoload.state == STATE_QUERY_PENDING) {
+			if(osmoload.command == cmd) {
+				osmoload.quit = 1;
+			}
 		}
 		break;
 	case STATE_DUMP_IN_PROGRESS:
@@ -532,7 +539,9 @@ loader_command(char *name, int cmdc, char **cmdv) {
 	char buf[MEM_MSG_MAX];
 	memset(buf, 23, sizeof(buf));
 
-	if(!strcmp(cmd, "ping")) {
+	if(!strcmp(cmd, "dump")) {
+		osmoload.state = STATE_DUMPING;
+	} else if(!strcmp(cmd, "ping")) {
 		loader_send_query(LOADER_PING);
 	} else if(!strcmp(cmd, "off")) {
 		loader_send_query(LOADER_POWEROFF);

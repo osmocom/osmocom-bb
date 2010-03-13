@@ -109,6 +109,20 @@ loader_send_simple(uint8_t dlci, uint8_t command) {
 	sercomm_sendmsg(dlci, msg);
 }
 
+extern unsigned char _start;
+
+static void
+loader_send_init(uint8_t dlci) {
+	struct msgb *msg = sercomm_alloc_msgb(1);
+	if(!msg) {
+		puts("Failed to allocate message buffer!\n");
+	}
+	msgb_put_u8(msg, LOADER_INIT);
+	msgb_put_u32(msg, 0);
+	msgb_put_u32(msg, &_start);
+	sercomm_sendmsg(dlci, msg);
+}
+
 int main(void)
 {
 	/* Always disable wdt (some platforms enable it on boot) */
@@ -138,7 +152,7 @@ int main(void)
 	sercomm_register_rx_cb(SC_DLCI_LOADER, &cmd_handler);
 
 	/* Notify any running osmoload about our startup */
-	loader_send_simple(SC_DLCI_LOADER, LOADER_INIT);
+	loader_send_init(SC_DLCI_LOADER);
 
 	/* Wait for events */
 	while (1) {
