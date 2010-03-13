@@ -24,7 +24,6 @@ SECTIONS
 		PROVIDE(_start = .);
 		KEEP(*(.text.start))
 		*(.text.start)
-		_exceptions = .;
 	} > LRAM
 
 	/* exception vectors from 0x80001c to 0x800034 */
@@ -33,6 +32,7 @@ SECTIONS
 		* (.text.exceptions)
 		. = ALIGN(4);
 	} > LRAM
+	PROVIDE(_exceptions = LOADADDR(.text.exceptions));
 
 	/* code */
 	. = ALIGN(4);
@@ -42,19 +42,26 @@ SECTIONS
 		*(.text*)
 		/* gcc voodoo */
 		*(.glue_7t) *(.glue_7) *(.vfp11_veneer) *(.v4_bx)
+		. = ALIGN(4);
 	} > LRAM
+	PROVIDE(_text_start = LOADADDR(.text));
+	PROVIDE(_text_end = LOADADDR(.text) + SIZEOF(.text));
 
 	/* read-only data */
 	. = ALIGN(4);
 	.rodata : {
 		*(.rodata*)
 	} > LRAM
+	PROVIDE(_rodata_start = LOADADDR(.rodata));
+	PROVIDE(_rodata_end = LOADADDR(.rodata) + SIZEOF(.rodata));
 
 	/* initialized data */
 	. = ALIGN(4);
 	.data : {
 		*(.data)
 	} > LRAM
+	PROVIDE(_data_start = LOADADDR(.data));
+	PROVIDE(_data_end = LOADADDR(.data) + SIZEOF(.data));
 
 	/* pic offset tables */
 	. = ALIGN(4);
@@ -62,6 +69,8 @@ SECTIONS
 		*(.got)
 		*(.got.plt) *(.igot.plt) *(.got) *(.igot)
 	} > LRAM
+	PROVIDE(_got_start = LOADADDR(.got));
+	PROVIDE(_got_end = LOADADDR(.got) + SIZEOF(.got));
 
 	/* uninitialized data */
 	.bss (NOLOAD) : {
@@ -71,6 +80,8 @@ SECTIONS
 	} > IRAM
 	. = ALIGN(4);
 	__bss_end = .;
+	PROVIDE(_bss_start = __bss_start);
+	PROVIDE(_bss_end = __bss_end);
 
 	/* end of image */
 	. = ALIGN(4);
