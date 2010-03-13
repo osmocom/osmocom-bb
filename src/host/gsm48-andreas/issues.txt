@@ -8,6 +8,8 @@ struct osmocom_ms:
 - struct phone_options
 - struct system_infos (collected system infos)
 
+random acces via RSL?
+
 DL_RANDOM_ACCESS_REQ requires a delay of RACH slots.
 DL_RANDOM_ACCESS_FLU used to flush pending RACH requests
 
@@ -18,4 +20,7 @@ send und receive name concept:
 - sending to other layer
 - receiving from other layer
 - de-queue when sending to upper layer
+
+OpenBSC: if tx-msg fails during process, the msg must be freed to avoid memory leak.
+
 

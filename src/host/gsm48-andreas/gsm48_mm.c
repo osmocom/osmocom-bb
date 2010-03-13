@@ -505,6 +505,13 @@ static int gsm48_mm_paging(struct osmocom_ms *ms, void *arg)
 	gsm48_sendrr(sm, abort, RR_ABORT_REQ);
 }
 
+/* abort RR connection */
+static int gsm48_mm_classm_chg(struct osmocom_ms *ms, void *arg)
+{
+	if (rr->state == in the dedicated without transitions)
+	gsm_rr_tx_cm_change(sm, abort, RR_ABORT_REQ);
+}
+
 /* state trasitions for mobile managemnt messages (upper layer / events) */
 static struct eventstate {
 	u_int32_t	states;
@@ -610,6 +617,8 @@ static struct eventstate {
 	 MMEVENT_IMSI_DETACH, gsm48_mm_tx_imsi_detach_ind},
 	{ALL_STATES, ALL_STATES,
 	 MMEVENT_IMSI_DETACH, gsm48_mm_imsi_detach_no_rr},
+	{ALL_STATES, ALL_STATES,
+	 MMEVENT_CLASSMARK_CHG, gsm48_mm_classm_chg},
 todo all other states (sim removed)
 
 	{SBIT(GSM_MMSTATE_MM_IDLE), ALL_STATES,

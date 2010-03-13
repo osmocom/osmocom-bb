@@ -261,11 +261,12 @@ struct gsm_rrlayer {
 	int			t3126_value;
 	int			rr_est_req;
 	struct gsm_msgb		*rr_est_msg;
+
 	u_int8_t		chan_req;
 	/* cr_hist must be signed and greater 8 bit */
 	int			cr_hist[3];
-	u_int8_t	        channel_request[3];
-	u_int8_t       		mobile_alloc_lv[9];
+
+	uint8_t			sc, alg_id;
 
 };
 
