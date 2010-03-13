@@ -32,7 +32,6 @@
 #include <console.h>
 
 #include <abb/twl3025.h>
-#include <display/st7558.h>
 #include <rf/trf6151.h>
 
 #include <comm/sercomm.h>
@@ -47,8 +46,6 @@
 
 #include <layer1/sync.h>
 #include <layer1/tpu_window.h>
-
-#include <machine/endian.h>
 
 #include "protocol.h"
 

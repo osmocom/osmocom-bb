@@ -42,7 +42,7 @@
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
-#include <display/ssd1783.h>
+#include <display.h>
 
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define ARMIO_CNTL_REG	0xfffe4804
@@ -119,7 +119,8 @@ void board_init(void)
 	rtc_init();
 
 	/* Initialize LCD driver (uses UWire) */
-	ssd1783_init();
+	display = &ssd1783_display;
+	display_init();
 
 	keypad_init(1);
 

@@ -94,6 +94,10 @@ int uwire_xfer(int cs, int bitlen, const void *dout, void *din)
 
 	printd("uwire_xfer(dev_idx=%u, bitlen=%u\n", cs, bitlen);
 
+	/* select the chip */
+	writew(UWIRE_CSR_IDX(0) | UWIRE_CSR_CS_CMD, UWIRE_REG(REG_CSR));
+	_uwire_wait(UWIRE_CSR_CSRB, 0);
+
 	if (dout) {
 		if (bitlen <= 8)
 			tmp = *(uint8_t *)dout;
@@ -122,6 +126,9 @@ int uwire_xfer(int cs, int bitlen, const void *dout, void *din)
 		else if (bitlen <= 16)
 			*(uint16_t *)din = tmp & 0xffff;
 	}
+	/* unselect the chip */
+	writew(UWIRE_CSR_IDX(0) | 0, UWIRE_REG(REG_CSR));
+	_uwire_wait(UWIRE_CSR_CSRB, 0);
 
 	printd(")\n");
 

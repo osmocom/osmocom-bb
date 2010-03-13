@@ -1,6 +1,7 @@
 /* Solomon SSD1783 LCD Driver (Epson S1D15G10D08B000 clone) */
 
 /* (C) 2010 by Steve Markgraf <steve@steve-m.de>
+ * (C) 2010 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -26,6 +27,7 @@
 #include <debug.h>
 #include <delay.h>
 #include <uwire.h>
+#include <display.h>
 #include <display/ssd1783.h>
 #include <calypso/clock.h>
 
@@ -62,19 +64,39 @@ static const uint8_t rgb8_palette[] ={
 	0x0f,	//P20	Intermediate blue tone 11
 };
 
-void ssd1783_cmd_write(const uint8_t cmd)
+static void ssd1783_cmd_write(const uint8_t cmd)
 {
 	uint16_t cmd_out = cmd;
 	uwire_xfer(SSD1783_DEV_ID, SSD1783_UWIRE_BITLEN, &cmd_out, NULL);
 }
 
-void ssd1783_data_write(const uint8_t data)
+static void ssd1783_data_write(const uint8_t data)
 {
 	uint16_t data_out = ((0x01 << 8) + data);
 	uwire_xfer(SSD1783_DEV_ID, SSD1783_UWIRE_BITLEN, &data_out, NULL);
 }
 
-void ssd1783_init(void)
+static void ssd1783_clrscr(void)
+{
+	uint16_t i;
+
+	/* Select the whole display area for clearing */
+	ssd1783_cmd_write(CMD_PASET);		/* Page address set [2] */
+	ssd1783_data_write(0x00);		/* Start page: 0x00 */
+	ssd1783_data_write(LCD_ROWS-1);		/* End page */
+	ssd1783_cmd_write(CMD_CASET);		/* Column address set [2] */
+	ssd1783_data_write(0x00);		/* Start column: 0x00 */
+	ssd1783_data_write((LCD_COLUMNS/2)-1);	/* End column (2 pixels per column) */
+	ssd1783_cmd_write(CMD_RAMWR);		/* Write to memory */
+
+	/* Fill the display with white */
+	for(i=0; i < (LCD_ROWS * (LCD_COLUMNS/2) * PIXEL_BYTES); i++){
+		ssd1783_data_write(0xff);
+	}
+	ssd1783_cmd_write(CMD_NOP);		/* Terminate RAMWR with NOP */
+}
+
+static void ssd1783_init(void)
 {
 	unsigned int i;
 
@@ -133,26 +155,6 @@ void ssd1783_init(void)
 	ssd1783_clrscr();			/* Clear the display */
 }
 
-void ssd1783_clrscr(void)
-{
-	uint16_t i;
-
-	/* Select the whole display area for clearing */
-	ssd1783_cmd_write(CMD_PASET);		/* Page address set [2] */
-	ssd1783_data_write(0x00);		/* Start page: 0x00 */
-	ssd1783_data_write(LCD_ROWS-1);		/* End page */
-	ssd1783_cmd_write(CMD_CASET);		/* Column address set [2] */
-	ssd1783_data_write(0x00);		/* Start column: 0x00 */
-	ssd1783_data_write((LCD_COLUMNS/2)-1);	/* End column (2 pixels per column) */
-	ssd1783_cmd_write(CMD_RAMWR);		/* Write to memory */
-
-	/* Fill the display with white */
-	for(i=0; i < (LCD_ROWS * (LCD_COLUMNS/2) * PIXEL_BYTES); i++){
-		ssd1783_data_write(0xff);
-	}
-	ssd1783_cmd_write(CMD_NOP);		/* Terminate RAMWR with NOP */
-}
-
 extern const unsigned char fontdata_r8x8_horiz[];
 
 /*
@@ -162,7 +164,20 @@ extern const unsigned char fontdata_r8x8_horiz[];
  * D7, D6, D5, D4, D3, D2, D1, D0: GGGGBBBB (8 bits) 3rd write
 */
 
-void ssd1783_putchar(unsigned char c, int xpos, int ypos, int fColor, int bColor)
+static void ssd1783_goto_xy(int xpos, int ypos)
+{
+	ssd1783_cmd_write(CMD_PASET);
+	ssd1783_data_write(xpos);
+	ssd1783_data_write(xpos + (FONT_HEIGHT-1));
+
+	ssd1783_cmd_write(CMD_CASET);
+	ssd1783_data_write(ypos);
+	ssd1783_data_write(ypos + ((FONT_WIDTH/2)-1));
+
+	ssd1783_cmd_write(CMD_NOP);
+}
+
+static int ssd1783_putc_col(unsigned char c, int fColor, int bColor)
 {
 	int i, j;
 	uint8_t cols = FONT_WIDTH;
@@ -171,14 +186,6 @@ void ssd1783_putchar(unsigned char c, int xpos, int ypos, int fColor, int bColor
 	uint8_t rowmask;
 	uint16_t pixel0;	/* left pixel */
 	uint16_t pixel1;	/* right pixel */
-
-	ssd1783_cmd_write(CMD_PASET);
-	ssd1783_data_write(xpos);
-	ssd1783_data_write(xpos + (FONT_HEIGHT-1));
-
-	ssd1783_cmd_write(CMD_CASET);
-	ssd1783_data_write(ypos);
-	ssd1783_data_write(ypos + ((FONT_WIDTH/2)-1));
 
 	ssd1783_cmd_write(CMD_RAMWR);
 
@@ -204,12 +211,46 @@ void ssd1783_putchar(unsigned char c, int xpos, int ypos, int fColor, int bColor
 		}
 	}
 	ssd1783_cmd_write(CMD_NOP);
+
+	return c;
 }
 
-void ssd1783_puts(const char *str, int txtline, int fColor, int bColor)
+static int ssd1783_puts_col(const char *str, int txtline, int fColor, int bColor)
 {
 	int i;
 	for (i = 0; *str != 0x00; i += (FONT_WIDTH/2)) {
-		ssd1783_putchar(*str++, ((txtline*FONT_HEIGHT)+LCD_TOP_FREE_ROWS), (i + LCD_LEFT_FREE_COLS), fColor, bColor);
+		ssd1783_goto_xy(((txtline*FONT_HEIGHT)+LCD_TOP_FREE_ROWS),
+				(i + LCD_LEFT_FREE_COLS));
+		ssd1783_putc_col(*str++, fColor, bColor);
 	}
+
+	return 0;
 }
+
+/* interface to display driver core */
+
+static void ssd1783_set_attr(unsigned long attr)
+{
+	/* FIXME */
+}
+
+static int ssd1783_putc(unsigned int c)
+{
+	return ssd1783_putc_col(c, BLACK, WHITE);
+}
+
+static int ssd1783_puts(const char *str)
+{
+	return ssd1783_puts_col(str, 0, BLACK, WHITE);
+}
+
+const struct display_driver ssd1783_display = {
+	.name = "ssd1783",
+	.init = &ssd1783_init,
+	.set_attr = &ssd1783_set_attr,
+	.unset_attr = &ssd1783_set_attr,
+	.clrscr = &ssd1783_clrscr,
+	.goto_xy = &ssd1783_goto_xy,
+	.putc = &ssd1783_putc,
+	.puts = &ssd1783_puts,
+};

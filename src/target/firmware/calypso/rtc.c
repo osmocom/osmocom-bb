@@ -26,8 +26,8 @@
 #include <defines.h>
 #include <debug.h>
 #include <memory.h>
+#include <display.h>
 #include <calypso/irq.h>
-#include <display/st7558.h>
 
 #define BASE_ADDR_RTC	0xfffe1800
 #define RTC_REG(x)	((void *)BASE_ADDR_RTC + (x))
@@ -62,9 +62,9 @@ static int tick_ctr;
 static void rtc_irq_tick(__unused enum irq_nr nr)
 {
 	if (tick_ctr & 1)
-		st7558_set_attr(DISP_ATTR_INVERT);
+		display_set_attr(DISP_ATTR_INVERT);
 	else
-		st7558_unset_attr(DISP_ATTR_INVERT);
+		display_unset_attr(DISP_ATTR_INVERT);
 	tick_ctr++;
 }
 

@@ -28,7 +28,6 @@
 #include <keypad.h>
 #include <board.h>
 #include <abb/twl3025.h>
-#include <display/st7558.h>
 #include <rf/trf6151.h>
 #include <calypso/clock.h>
 #include <calypso/tpu.h>
