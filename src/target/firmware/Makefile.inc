@@ -115,7 +115,7 @@ $(1)_OBJS:=$$($(1)_SRCS_REL:.c=.o)
 $(1)_OBJS:=$$($(1)_OBJS:.S=.o)
 
 $$($(1)_DIR)/lib$(1).a: $$($(1)_OBJS)
-	$(AR) cru $$($(1)_DIR)/lib$(1).a $$($(1)_OBJS)
+	$(CROSS_COMPILE)$(AR) cru $$($(1)_DIR)/lib$(1).a $$($(1)_OBJS)
 
 ALL_LIBS+=$$($(1)_DIR)/lib$(1).a
 
