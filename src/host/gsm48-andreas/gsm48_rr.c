@@ -206,152 +206,115 @@ static int gsm_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
  * classmark
  */
 
-/* encode classmark 3 */
-#define ADD_BIT(a) \
-{ \
-	if (bit-- == 0) { \
-		bit = 7; \
-		buf[byte] = 0; \
-	} \
-	buf[byte] |= ((a) << bit); \
-	if (bit == 0) \
-		byte++; \
-}
+/* Encode  "Classmark 3" (10.5.2.20) */
 static int gsm_rr_enc_cm3(struct osmocom_sm *ms, uint8_t *buf, uint8_t *len)
 {
 	struct gsm_support *sup = ms->support;
-	uint8_t bit = 0, byte = 0;
+	struct bitvec bv;
+
+	memset(&bv, 0, sizeof(bv));
+	bv.data = data;
+	bv.data_len = 12;
 
 	/* spare bit */
-	ADD_BIT(0)
+	bitvec_set_bit(&bv, 0);
 	/* band 3 supported */
 	if (sup->dcs_1800)
-		ADD_BIT(1)
+		bitvec_set_bit(&bv, ONE);
 	else
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	/* band 2 supported */
 	if (sup->e_gsm || sup->r_gsm)
-		ADD_BIT(1)
+		bitvec_set_bit(&bv, ONE);
 	else
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	/* band 1 supported */
 	if (sup->p_gsm && !(sup->e_gsm || sup->r_gsm))
-		ADD_BIT(1)
+		bitvec_set_bit(&bv, ONE);
 	else
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	/* a5 bits */
 	if (sup->a5_7)
-		ADD_BIT(1)
+		bitvec_set_bit(&bv, ONE);
 	else
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	if (sup->a5_6)
-		ADD_BIT(1)
+		bitvec_set_bit(&bv, ONE);
 	else
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	if (sup->a5_5)
-		ADD_BIT(1)
+		bitvec_set_bit(&bv, ONE);
 	else
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	if (sup->a5_4)
-		ADD_BIT(1)
+		bitvec_set_bit(&bv, ONE);
 	else
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	/* radio capability */
 	if (sup->dcs_1800 && !sup->p_gsm && !(sup->e_gsm || sup->r_gsm)) {
 		/* dcs only */
-		ADD_BIT(0)
-		ADD_BIT(0)
-		ADD_BIT(0)
-		ADD_BIT(0)
-		ADD_BIT((sup->dcs_capa >> 3) & 1)
-		ADD_BIT((sup->dcs_capa >> 2) & 1)
-		ADD_BIT((sup->dcs_capa >> 1) & 1)
-		ADD_BIT(sup->dcs_capa & 1)
+		bitvec_set_uint(&bv, 0, 4);
+		bitvec_set_uint(&bv, sup->dcs_capa, 4);
 	} else
 	if (sup->dcs_1800 && (sup->p_gsm || (sup->e_gsm || sup->r_gsm))) {
 		/* dcs */
-		ADD_BIT((sup->dcs_capa >> 3) & 1)
-		ADD_BIT((sup->dcs_capa >> 2) & 1)
-		ADD_BIT((sup->dcs_capa >> 1) & 1)
-		ADD_BIT(sup->dcs_capa & 1)
+		bitvec_set_uint(&bv, sup->dcs_capa, 4);
 		/* low band */
-		ADD_BIT((sup->low_capa >> 3) & 1)
-		ADD_BIT((sup->low_capa >> 2) & 1)
-		ADD_BIT((sup->low_capa >> 1) & 1)
-		ADD_BIT(sup->low_capa & 1)
+		bitvec_set_uint(&bv, sup->low_capa, 4);
 	} else {
 		/* low band only */
-		ADD_BIT(0)
-		ADD_BIT(0)
-		ADD_BIT(0)
-		ADD_BIT(0)
-		ADD_BIT((sup->low_capa >> 3) & 1)
-		ADD_BIT((sup->low_capa >> 2) & 1)
-		ADD_BIT((sup->low_capa >> 1) & 1)
-		ADD_BIT(sup->low_capa & 1)
+		bitvec_set_uint(&bv, 0, 4);
+		bitvec_set_uint(&bv, sup->low_capa, 4);
 	}
 	/* r support */
 	if (sup->r_gsm) {
-		ADD_BIT(1)
-		ADD_BIT((sup->r_capa >> 2) & 1)
-		ADD_BIT((sup->r_capa >> 1) & 1)
-		ADD_BIT(sup->r_capa & 1)
+		bitvec_set_bit(&bv, ONE);
+		bitvec_set_uint(&bv, sup->r_capa, 3);
 	} else {
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	}
 	/* multi slot support */
 	if (sup->ms_sup) {
-		ADD_BIT(1)
-		ADD_BIT((sup->ms_capa >> 4) & 1)
-		ADD_BIT((sup->ms_capa >> 3) & 1)
-		ADD_BIT((sup->ms_capa >> 2) & 1)
-		ADD_BIT((sup->ms_capa >> 1) & 1)
-		ADD_BIT(sup->ms_capa & 1)
+		bitvec_set_bit(&bv, ONE);
+		bitvec_set_uint(&bv, sup->ms_capa, 5);
 	} else {
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	}
 	/* ucs2 treatment */
 	if (sup->ucs2_treat) {
-		ADD_BIT(1)
+		bitvec_set_bit(&bv, ONE);
 	} else {
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	}
 	/* support extended measurements */
 	if (sup->ext_meas) {
-		ADD_BIT(1)
+		bitvec_set_bit(&bv, ONE);
 	} else {
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	}
 	/* support measurement capability */
 	if (sup->meas_cap) {
-		ADD_BIT(1)
-		ADD_BIT((sup->sms_val >> 3) & 1)
-		ADD_BIT((sup->sms_val >> 2) & 1)
-		ADD_BIT((sup->sms_val >> 1) & 1)
-		ADD_BIT(sup->sms_val & 1)
-		ADD_BIT((sup->sm_val >> 3) & 1)
-		ADD_BIT((sup->sm_val >> 2) & 1)
-		ADD_BIT((sup->sm_val >> 1) & 1)
-		ADD_BIT(sup->sm_val & 1)
+		bitvec_set_bit(&bv, ONE);
+		bitvec_set_uint(&bv, sup->sms_val, 4);
+		bitvec_set_uint(&bv, sup->sm_val, 4);
 	} else {
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	}
 	/* positioning method capability */
 	if (sup->loc_serv) {
-		ADD_BIT(1)
-		ADD_BIT(sup->e_otd_ass == 1)
-		ADD_BIT(sup->e_otd_based == 1)
-		ADD_BIT(sup->gps_ass == 1)
-		ADD_BIT(sup->gps_based == 1)
-		ADD_BIT(sup->gps_conv == 1)
+		bitvec_set_bit(&bv, ONE);
+		bitvec_set_bit(&bv, sup->e_otd_ass == 1);
+		bitvec_set_bit(&bv, sup->e_otd_based == 1);
+		bitvec_set_bit(&bv, sup->gps_ass == 1);
+		bitvec_set_bit(&bv, sup->gps_based == 1);
+		bitvec_set_bit(&bv, sup->gps_conv == 1);
 	} else {
-		ADD_BIT(0)
+		bitvec_set_bit(&bv, ZERO);
 	}
 
 	/* partitial bytes will be completed */
-	if (bit)
-		byte++;
-	*len = byte;
+	*len = (bv.cur_bit + 7) >> 3;
+	bitvec_spare_padding(&bv, (*len * 8) - 1);
 
 	return 0;
 }
@@ -410,7 +373,7 @@ static int gsm_rr_tx_cm_change(struct osmocom_ms *ms)
 	 || sup->loc_serv) {
 		cm->cm2.cm3 = 1;
 		buf[0] = GSM48_IE_CLASSMARK2;
-		gsm_rr_enc_cm3(ms, buf + 1, &buf[0]);
+		gsm_rr_enc_cm3(ms, buf + 2, &buf[1]);
 	}
 
 	return rslms_data_req(ms, msg, 0);
