@@ -252,21 +252,44 @@ struct gsm_mmlayer {
 /* GSM 04.08 RR timers */
 #define GSM_T3126_MS	5, 0
 
+struct gsm_rr_chan_desc {
+	struct gsm48_chan_desc	chan_desc;
+	uint8_t			power_command;
+	uint8_t			frq_list_before[131];
+	uint8_t			frq_list_after[131];
+	uint8_t			cell_chan_desc[16];
+	uint8_t			...
+	uint8_t
+	uint8_t
+};
+
 /* RR sublayer instance */
 struct gsm_rrlayer {
 	struct osmocom_ms	*ms;
 	int			state;
 
+	struct timer_list	t3122;
+	struct timer_list	t3124;
 	struct timer_list	t3126;
 	int			t3126_value;
-	int			rr_est_req;
-	struct gsm_msgb		*rr_est_msg;
 
+	/* states if RR-EST-REQ was used */
+	int			rr_est_req;
+	struct msgb		*rr_est_msg;
+
+	/* channel request states */
 	u_int8_t		chan_req;
 	/* cr_hist must be signed and greater 8 bit */
 	int			cr_hist[3];
 
-	uint8_t			sc, alg_id;
+	/* collection of all channel descriptions */
+	struct gsm_rr_chan_desc	chan_desc;
+
+	/* special states when changing channel */
+	int			hando_susp_state;
+	int			assign_susp_state;
+	int			resume_last_state;
+	struct gsm_rr_chan_desc	chan_last;
 
 };
 

@@ -33,6 +33,170 @@ struct gsm48_classmark2 {
 		 cm3:1;
 } __attribute__ ((packed));
 
+/* 10.5.2.1b.3 */
+struct gsm48_range_1024 {
+	uint8_t	w1_hi:2,
+		 f0:1,
+		 form_id:5;
+	uint8_t	w1_lo;
+	uint8_t	w2_hi;
+	uint8_t	w3_hi:7,
+		 w2_lo:1;
+	uint8_t	w4_hi:6,
+		 w3_lo:2;
+	uint8_t	w5_hi:6,
+		 w4_lo:2;
+	uint8_t	w6_hi:6,
+		 w5_lo:2;
+	uint8_t	w7_hi:6,
+		 w6_lo:2;
+	uint8_t	w8_hi:6,
+		 w7_lo:2;
+	uint8_t	w9:7,
+		 w8_lo:1;
+	uint8_t	w11_hi:1,
+		 w10:7;
+	uint8_t	w12_hi:2,
+		 w11_lo:6;
+	uint8_t	w13_hi:3,
+		 w12_lo:5;
+	uint8_t	w14_hi:4,
+		 w13_lo:4;
+	uint8_t	w15_hi:5,
+		 w14_lo:3;
+	uint8_t	w16:6,
+		 w15_lo:2;
+} __attribute__ ((packed));
+
+/* 10.5.2.1b.4 */
+struct gsm48_range_512 {
+	uint8_t	orig_arfcn_hi:1,
+		 form_id:7;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	w1_hi:7,
+		 orig_arfcn_lo:1;
+	uint8_t	w2_hi:6,
+		 w1_lo:2;
+	uint8_t	w3_hi:6,
+		 w2_lo:2;
+	uint8_t	w4_hi:6,
+		 w3_lo:2;
+	uint8_t	w5:7,
+		 w4_lo:1;
+	uint8_t	w7_hi:1,
+		 w6:7;
+	uint8_t	w8_hi:2,
+		 w7_lo:6;
+	uint8_t	w9_hi:4,
+		 w8_lo:4;
+	uint8_t	w10:6,
+		 w9_lo:2;
+	uint8_t	w12_hi:2,
+		 w11:6;
+	uint8_t	w13_hi:4,
+		 w12_lo:4;
+	uint8_t	w14:6,
+		 w13_lo:2;
+	uint8_t	w16_hi:2,
+		 w15:6;
+	uint8_t	w17:5,
+		 w16_lo:3;
+} __attribute__ ((packed));
+
+/* 10.5.2.1b.5 */
+struct gsm48_range_256 {
+	uint8_t	orig_arfcn_hi:1,
+		 form_id:7;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	w1_hi:7,
+		 orig_arfcn_lo:1;
+	uint8_t	w2:7,
+		 w1_lo:1;
+	uint8_t	w4_hi:1,
+		 w3:7;
+	uint8_t	w5_hi:3,
+		 w4_lo:5;
+	uint8_t	w6_hi:5,
+		 w5_lo:3;
+	uint8_t	w8_hi:1,
+		 w7:6,
+		 w6_lo:1;
+	uint8_t	w9_hi:4,
+		 w8_lo:4;
+	uint8_t	w11_hi:2,
+		 w10:5;
+		 w9_lo:1;
+	uint8_t	w12:5,
+		 w11_lo:3;
+	uint8_t	w14_hi:3,
+		 w13:5;
+	uint8_t	w16_hi:1,
+		 w15:5,
+		 w14_lo:2;
+	uint8_t	w18_hi:1,
+		 w17:4,
+		 w16_lo:3;
+	uint8_t	w20_hi:1,
+		 w19:4,
+		 w18_lo:3;
+	uint8_t	spare:1,
+		 w21:4,
+		 w20_lo:3;
+} __attribute__ ((packed));
+
+/* 10.5.2.1b.6 */
+struct gsm48_range_128 {
+	uint8_t	orig_arfcn_hi:1,
+		 form_id:7;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	w1:7,
+		 orig_arfcn_lo:1;
+	uint8_t	w3_hi:2,
+		 w2:6;
+	uint8_t	w4_hi:4,
+		 w3_lo:4;
+	uint8_t	w6_hi:2,
+		 w5:5,
+		 w4_lo:1;
+	uint8_t	w7:5,
+		 w6_lo:3;
+	uint8_t	w9:4,
+		 w8:4;
+	uint8_t	w11:4,
+		 w10:4;
+	uint8_t	w13:4,
+		 w12:4;
+	uint8_t	w15:4,
+		 w14:4;
+	uint8_t	w18_hi:2,
+		 w17:3,
+		 w16:3;
+	uint8_t	w21_hi:1,
+		 w20:3,
+		 w19:3,
+		 w18_lo:1;
+	uint8_t	w23:3,
+		 w22:3,
+		 w21_lo:2;
+	uint8_t	w26_hi:2,
+		 w25:3,
+		 w24:3;
+	uint8_t	spare:1,
+		 w28:3,
+		 w27:3,
+		 w26_lo:1;
+} __attribute__ ((packed));
+
+/* 10.5.2.1b.7 */
+struct gsm48_var_bit {
+	uint8_t	orig_arfcn_hi:1,
+		 form_id:7;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	rrfcn1_7:7,
+		 orig_arfcn_lo:1;
+	uint8_t rrfcn8_111[13];
+} __attribute__ ((packed));
+
 /* 10.5.2.20 */
 struct gsm48_meas_res {
 	uint8_t	rxlev_full:6,
@@ -74,6 +238,15 @@ struct gsm48_meas_res {
 		 rxlev_nc6_lo:5;
 	uint8_t	bsic_nc6:6,
 		 bcch_f_nc6_lo:2;
+} __attribute__ ((packed));
+
+/* 10.5.2.29 */
+struct gsm48_rach_ctl {
+	uint8_t re:1,
+		 cell_barr:1,
+		 tx_int:4,
+		 max_retr:2;
+	uint8_t ac[2];
 } __attribute__((packed));
 
 /* Chapter 9.1.1 */
@@ -216,6 +389,23 @@ struct gsm48_rr_pag_rsp {
 struct gsm48_rr_status {
 	uint8_t rr_cause;
 } __attribute__((packed));
+
+/* Section 9.1.33 System information Type 2bis */
+struct gsm48_system_information_type_2bis {
+	struct gsm48_system_information_type_header header;
+	uint8_t bcch_frequency_list[16];
+	struct gsm48_rach_control rach_control;
+	uint8_t rest_octets[0];
+} __attribute__ ((packed));
+
+/* Section 9.1.34 System information Type 2ter */
+struct gsm48_system_information_type_2ter {
+	struct gsm48_system_information_type_header header;
+	uint8_t ext_bcch_frequency_list[16];
+	uint8_t rest_octets[0];
+} __attribute__ ((packed));
+
+
 
 rsl.h:
 

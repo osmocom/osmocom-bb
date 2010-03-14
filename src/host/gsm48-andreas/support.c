@@ -23,7 +23,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 {
 	struct gsm_support *s = &ms->support;
 
-	memset(&ms->support, 0, sizeof(ms->support));
+	memset(s, 0, sizeof(*s));
 
 	/* rf power capability */
 	s->pwr_lev = 3; /* handheld */
@@ -44,9 +44,9 @@ void gsm_support_init(struct osmocom_ms *ms)
 	/* CM service prompt */
 	s->cmsp = 0; /* no */
 	/* solsa support */
-	s->solsa; /* no */
+	s->solsa = 0; /* no */
 	/* location service support */
-	s->lcsva; /* no */
+	s->lcsva = 0; /* no */
 	s->loc_serv = 0; /* no */
 	/* codec supprot */
 	s->a5_1 = 0; /* currently not */
