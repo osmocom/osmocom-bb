@@ -169,11 +169,10 @@ void calypso_bootrom(int enable)
 
 	conf &= ~(3 << 8);
 
-	// XXX: this can't be correct
 	if (enable)
 		conf |= (1 << 8);
 	else
-		conf |= (1 << 8);
+		conf &= ~(1 << 8);
 	writew(conf, MEMIF_REG(EXTRA_CONF));
 }
 

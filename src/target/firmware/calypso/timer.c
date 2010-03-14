@@ -109,6 +109,19 @@ enum wdog_reg {
 	WD_MODE		= 0x04,
 };
 
+enum wdog_ctl {
+	WD_CTL_START = (1 << 7),
+	WD_CTL_AUTO_RELOAD = (1 << 8)
+};
+
+enum wdog_mode {
+	WD_MODE_DIS_ARM = 0xF5,
+	WD_MODE_DIS_CONFIRM = 0xA0,
+	WD_MODE_ENABLE = (1 << 15)
+};
+
+#define WD_CTL_PRESCALE(value) (((value)&0x07) << 9)
+
 static void wdog_irq(__unused enum irq_nr nr)
 {
 	puts("=> WATCHDOG\n");
@@ -120,10 +133,24 @@ void wdog_enable(int on)
 		irq_config(IRQ_WATCHDOG, 0, 0, 0);
 		irq_register_handler(IRQ_WATCHDOG, &wdog_irq);
 		irq_enable(IRQ_WATCHDOG);
-		writew(0x8000, WDOG_REG(WD_MODE));
+		writew(WD_MODE_ENABLE, WDOG_REG(WD_MODE));
 	} else {
-		writew(0xF5, WDOG_REG(WD_MODE));
-		writew(0xA0, WDOG_REG(WD_MODE));
+		writew(WD_MODE_DIS_ARM, WDOG_REG(WD_MODE));
+		writew(WD_MODE_DIS_CONFIRM, WDOG_REG(WD_MODE));
 	}
 }
 
+void wdog_reset(void)
+{
+#if 0
+	// XXX: this is supposed to reset immediately but does not seem to
+	writew(0xF5, WDOG_REG(WD_MODE));
+	writew(0xFF, WDOG_REG(WD_MODE));
+#else
+	// enable watchdog
+	writew(WD_MODE_ENABLE, WDOG_REG(WD_MODE));
+	// force expiration
+	writew(0x0000, WDOG_REG(WD_LOAD_TIMER));
+	writew(0x0000, WDOG_REG(WD_LOAD_TIMER));
+#endif
+}
