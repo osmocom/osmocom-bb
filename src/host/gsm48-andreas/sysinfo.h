@@ -21,17 +21,24 @@
 
 /* collection of system information of the current cell */
 
+/* frequency mask flags of frequency type */
+#define	FREQ_TYPE_SERV	(1 << 0)
+#define	FREQ_TYPE_NCELL	(1 << 1)
+
+/* structure of one frequency */
 struct gsm_sysinfo_freq {
 	/* if the frequency included in the sysinfo */
-	uint8_t	used;
+	uint8_t	mask;
 	/* the power measured as real value */
-	int8_t	power;
+	int8_t	rxlev;
 	...
 };
 
+/* structure of all received system informations */
 struct gsm_sysinfo {
-	/* serving cell */
 	struct	gsm_sysinfo_freq	freq[1024];
+
+	/* serving cell */
 	uint8_t				max_retrans; /* decoded */
 	uint8_t				tx_integer; /* decoded */
 	uint8_t				reest_denied; /* 1 = denied */
@@ -39,7 +46,6 @@ struct gsm_sysinfo {
 	uint8_t				class_barr[16]; /* 10 is emergency */
 
 	/* neighbor cell */
-	struct  gsm_sysinfo_freq        nb_freq[1024];
 	uint8_t				nb_ext_ind;
 	uint8_t				nb_ba_ind;
 	uint8_t				nb_multi_rep; /* see GSM 05.08 8.4.3 */
