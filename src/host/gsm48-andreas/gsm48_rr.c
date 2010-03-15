@@ -1821,6 +1821,10 @@ static int gsm48_decode_mobile_alloc(struct gsm48_sysinfo *s, uint8_t *ma, uint8
 	int i, j = 0;
 	uint16_t f[len << 3];
 
+	/* not more than 64 hopping indexes allowed in IE */
+	if (len > 8)
+		return -EINVAL;
+
 	/* tabula rasa */
 	s->hopp_len = 0;
 
@@ -1903,6 +1907,11 @@ static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si, uint8_t l
 {
 }
 
+/* decode "SI 4 Rest Octets" (10.5.2.35) */
+static int gsm48_decode_si4_rest(struct gsm48_sysinfo *s, uint8_t *si, uint8_t len)
+{
+}
+
 
 todo: add to unit data ind switch-case state
 /* receive "SYSTEM INFORMATION 1" message (9.1.31) */
@@ -1943,9 +1952,9 @@ static int gsm_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 	}
 	/* Neighbor Cell Description */
 	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL);
+		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2);
 	/* NCC Permitted */
-	s->ncc_permitted = si->ncc_permitted;
+	s->nb_ncc_permitted = si->ncc_permitted;
 	/* RACH Control Parameter */
 	gsm48_decode_rach_ctl_neigh(s, si->rach_control);
 
@@ -1965,10 +1974,10 @@ static int gsm_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 	/* Neighbor Cell Description */
-	s->ext_ind = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->ba_ind = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_ext_ind = (si->bcch_frequency_list[0] >> 6) & 1;
+	s->nb_ba_ind = (si->bcch_frequency_list[0] >> 5) & 1;
 	gsm48_decode_freq_list(s->freq, si->ext_bcch_frequency_list,
-		sizeof(si->ext_bcch_frequency_list), 0x8e, FREQ_TYPE_NCELL);
+		sizeof(si->ext_bcch_frequency_list), 0x8e, FREQ_TYPE_NCELL_2bis);
 	/* RACH Control Parameter */
 	gsm48_decode_rach_ctl_neigh(s, si->rach_control);
 
@@ -1989,9 +1998,9 @@ static int gsm_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 	/* Neighbor Cell Description 2 */
-	s->multi_rep = (si->bcch_frequency_list[0] >> 6) & 3;
+	s->nb_multi_rep = (si->bcch_frequency_list[0] >> 6) & 3;
 	gsm48_decode_freq_list(s->freq, si->ext_bcch_frequency_list,
-		sizeof(si->ext_bcch_frequency_list), 0x8e, FREQ_TYPE_NCELL);
+		sizeof(si->ext_bcch_frequency_list), 0x8e, FREQ_TYPE_NCELL_2ter);
 
 	return 0;
 }
@@ -2020,7 +2029,7 @@ static int gsm_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 	gsm48_decode_cell_sel_param(s, si->cell_sel_par);
 	/* RACH Control Parameter */
 	gsm48_decode_rach_ctl_param(s, si->rach_control);
-	/* SI 1 Rest Octets */
+	/* SI 3 Rest Octets */
 	if (payload_len >= 4)
 		gsm48_decode_si3_rest(si->rest_octets, payload_len);
 
@@ -2056,14 +2065,73 @@ static int gsm_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 	}
 	/* Cell Options (BCCH) */
 	gsm48_decode_cellopt(s, si->control_channel_desc);
-	/* SI 1 Rest Octets */
-	if (payload_len >= 4)
-		gsm48_decode_si3_rest(si->rest_octets, payload_len);
+	/* SI 4 Rest Octets */
+	if (payload_len >= 4 + 1 + si->data[5])
+		gsm48_decode_si3_rest(si->rest_octets,
+			payload_len - 4 - 1 - si->data[5]);
 
 	return 0;
 }
 
-today: decode mobile alloc 1-8 binary masks
+todo: frequency list and extension processing: may we delete all frequencies in this category, or just the ones from this special system information?:
+
+todo: add to unit data ind switch-case state
+/* receive "SYSTEM INFORMATION 5" message (9.1.37) */
+static int gsm_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_5 *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5 message.\n");
+		return -EINVAL;
+	}
+	/* Neighbor Cell Description */
+	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
+		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5);
+
+	return 0;
+}
+
+todo: add to unit data ind switch-case state
+/* receive "SYSTEM INFORMATION 5bis" message (9.1.38) */
+static int gsm_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_5bis *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5bis message.\n");
+		return -EINVAL;
+	}
+	/* Neighbor Cell Description */
+	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
+		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5bis);
+
+	return 0;
+}
+
+todo: add to unit data ind switch-case state
+/* receive "SYSTEM INFORMATION 5ter" message (9.1.39) */
+static int gsm_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_5ter *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5ter message.\n");
+		return -EINVAL;
+	}
+	/* Neighbor Cell Description */
+	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
+		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5ter);
+
+	return 0;
+}
+
 
 
 

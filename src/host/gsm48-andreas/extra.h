@@ -405,6 +405,21 @@ struct gsm48_system_information_type_2ter {
 	uint8_t rest_octets[0];
 } __attribute__ ((packed));
 
+/* Section 9.1.38 System information Type 5bis */
+struct gsm48_system_information_type_5bis {
+        uint8_t rr_protocol_discriminator :4,
+		 skip_indicator:4;
+	uint8_t system_information;
+	uint8_t bcch_frequency_list[16];
+} __attribute__ ((packed));
+
+/* Section 9.1.39 System information Type 5ter */
+struct gsm48_system_information_type_5ter {
+        uint8_t rr_protocol_discriminator :4,
+		 skip_indicator:4;
+	uint8_t system_information;
+	uint8_t bcch_frequency_list[16];
+} __attribute__ ((packed));
 
 
 rsl.h:

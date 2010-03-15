@@ -22,8 +22,16 @@
 /* collection of system information of the current cell */
 
 /* frequency mask flags of frequency type */
-#define	FREQ_TYPE_SERV	(1 << 0)
-#define	FREQ_TYPE_NCELL	(1 << 1)
+#define	FREQ_TYPE_SERV		0x01 /* frequency of the serving cell */
+#define	FREQ_TYPE_RESERVED	0x02 /* reserved for channel hopping */
+#define	FREQ_TYPE_NCELL		0x1c /* frequency of the neighbor cell */
+#define	FREQ_TYPE_NCELL_2	0x04 /* sub channel of SI 2 */
+#define	FREQ_TYPE_NCELL_2bis	0x08 /* sub channel of SI 2bis */
+#define	FREQ_TYPE_NCELL_2ter	0x10 /* sub channel of SI 2ter */
+#define	FREQ_TYPE_REP		0xe0 /* frequency to be reported */
+#define	FREQ_TYPE_REP_5		0x20 /* sub channel of SI 5 */
+#define	FREQ_TYPE_REP_5bis	0x40 /* sub channel of SI 5bis */
+#define	FREQ_TYPE_REP_5ter	0x80 /* sub channel of SI 5ter */
 
 /* structure of one frequency */
 struct gsm_sysinfo_freq {
