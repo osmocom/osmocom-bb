@@ -37,6 +37,8 @@ struct gsm_sysinfo_freq {
 /* structure of all received system informations */
 struct gsm_sysinfo {
 	struct	gsm_sysinfo_freq	freq[1024];
+	uint16_t			hopping[64];
+	uint8_t				hopp_len;
 
 	/* serving cell */
 	uint8_t				max_retrans; /* decoded */

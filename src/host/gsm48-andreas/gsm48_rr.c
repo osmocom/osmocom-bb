@@ -1815,6 +1815,42 @@ static int gsm48_decode_ccd(struct gsm48_sysinfo *s, struct gsm48_control_channe
 	s->t3212 = cc->t3212 * 360; /* convert deci-hours to seconds */
 }
 
+/* decode "Mobile Allocation" (10.5.2.21) */
+static int gsm48_decode_mobile_alloc(struct gsm48_sysinfo *s, uint8_t *ma, uint8_t len)
+{
+	int i, j = 0;
+	uint16_t f[len << 3];
+
+	/* tabula rasa */
+	s->hopp_len = 0;
+
+	/* generating list of all frequencies (1..1023,0) */
+	for (i = 1; i <= 1024; i++) {
+		if ((s->freq[i & 1023] & FREQ_TYPE_SERV)) {
+			f[j++] = i & 1023;
+			if (j == (len << 3))
+				break;
+		}
+	}
+
+	/* fill hopping table with frequency index given by IE */
+	for (i = 0, i < (len << 3), i++) {
+		/* if bit is set, this frequency index is used for hopping */
+		if ((ma[len - 1 - (i >> 3)] & (1 << (i & 7)))) {
+			/* index higher than entries in list ? */
+			if (i >= j) {
+				DEBUGP(DRR, "Mobile Allocation hopping index "
+					"%d exceeds maximum number of cell "
+					"frequencies. (%d)\n", i + 1, j);
+				break;
+			}
+			hopping[s->hopp_len++] = f[i];
+		}
+	}
+
+	return 0;
+}
+
 /* Rach Control decode tables */
 static uint8_t gsm48_max_retrans[4] = {
 	1, 2, 4, 7
@@ -1916,7 +1952,6 @@ static int gsm_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-todo: tabula rasa?:
 todo: add to unit data ind switch-case state
 /* receive "SYSTEM INFORMATION 2bis" message (9.1.33) */
 static int gsm_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
@@ -2014,9 +2049,9 @@ static int gsm_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 	if (payload_len >= 4 && si->data[0] == GSM48_IE_CBCH_CHAN_DES) {
 		memcpy(&s->chan_desc, si->data + 1, sizeof(s->chan_desc));
 		/* CBCH Mobile Allocation */
-		if (payload_len >= 6 && si->data[4] == GSM48_IE_CBCH_MOB_ALLOC)
+		if (payload_len >= 6 && si->data[4] == GSM48_IE_CBCH_MOB_ALLOC
 			&& payload_len >= 6 + si->data[5])
-			gsm48_decode_mobile_alloc(&ma, si->data + 5);
+			gsm48_decode_mobile_alloc(&s, si->data + 6, si->data + 5);
 		}
 	}
 	/* Cell Options (BCCH) */
