@@ -23,7 +23,7 @@
 
 /* frequency mask flags of frequency type */
 #define	FREQ_TYPE_SERV		0x01 /* frequency of the serving cell */
-#define	FREQ_TYPE_RESERVED	0x02 /* reserved for channel hopping */
+#define	FREQ_TYPE_HOPP		0x02 /* frequency used for channel hopping */
 #define	FREQ_TYPE_NCELL		0x1c /* frequency of the neighbor cell */
 #define	FREQ_TYPE_NCELL_2	0x04 /* sub channel of SI 2 */
 #define	FREQ_TYPE_NCELL_2bis	0x08 /* sub channel of SI 2bis */
@@ -44,8 +44,8 @@ struct gsm_sysinfo_freq {
 
 /* structure of all received system informations */
 struct gsm_sysinfo {
-	struct	gsm_sysinfo_freq	freq[1024];
-	uint16_t			hopping[64];
+	struct	gsm_sysinfo_freq	freq[1024]; /* all frequencies */
+	uint16_t			hopping[64]; /* hopping arfcn */
 	uint8_t				hopp_len;
 
 	/* serving cell */

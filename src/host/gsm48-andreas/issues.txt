@@ -23,4 +23,5 @@ send und receive name concept:
 
 OpenBSC: if tx-msg fails during process, the msg must be freed to avoid memory leak.
 
+system information structures have different headers. why?
 

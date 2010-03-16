@@ -584,6 +584,833 @@ static int gsm_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /*
+ * system information
+ */
+
+/* decode "Cell Channel Description" (10.5.2.1b) and other frequency lists */
+static int gsm48_decode_freq_list(struct gsm_sysinfo_freq *f, uint8_t *cd, uint8_t len, uint8_t mask, uint8_t frqt)
+{
+	int i;
+
+	/* NOTES:
+	 *
+	 * The Range format uses "SMOD" computation.
+	 * e.g. "n SMOD m" equals "((n - 1) % m) + 1"
+	 * A cascade of multiple SMOD computations is simpified:
+	 * "(n SMOD m) SMOD o" equals "(((n - 1) % m) % o) + 1"
+	 *
+	 * The Range format uses 16 octets of data in SYSTEM INFORMATION.
+	 * When used in dedicated messages, the length can be less.
+	 * In this case the ranges are decoded for all frequencies that
+	 * fit in the block of given length.
+	 */
+
+	/* tabula rasa */
+	for (i = 0; i < 1024; i++)
+		f[i].mask &= ~frqt;
+
+	/* 00..XXX. */
+	if ((cd[0] & 0xc0 & mask) == 0x00) {
+		/* Bit map 0 format */
+		if (len < 16)
+			return -EINVAL;
+		for (i = 1; i <= 124; i++)
+			if ((cd[15 - ((i-1) >> 3)] & (1 << ((i-1) & 7))))
+				f[i].mask |= frqt;
+
+		return 0;
+	}
+
+	/* only Bit map 0 format for P-GSM */
+	if (ms->support.p_gsm && !ms->support.e_gsm
+	 && !ms->support.r_gsm && !ms->support.dcs_1800)
+	 	return 0;
+
+	/* 10..0XX. */
+	if ((cd[0] & 0xc8 & mask) == 0x80) {
+		/* Range 1024 format */
+		uint16_t w[17]; /* 1..16 */
+		struct gsm_range_1024 *r = (struct gsm_range_1024 *)cd;
+
+		if (len < 2)
+			return -EINVAL;
+		memset(w, 0, sizeof(w));
+		if (r->f0)
+			f[0].mask |= frqt;
+		w[1] = (r->w1_hi << 8) | r->w1_lo;
+		if (len >= 4)
+			w[2] = (r->w2_hi << 1) | r->w2_lo;
+		if (len >= 5)
+			w[3] = (r->w3_hi << 2) | r->w3_lo;
+		if (len >= 6)
+			w[4] = (r->w4_hi << 2) | r->w4_lo;
+		if (len >= 7)
+			w[5] = (r->w5_hi << 2) | r->w5_lo;
+		if (len >= 8)
+			w[6] = (r->w6_hi << 2) | r->w6_lo;
+		if (len >= 9)
+			w[7] = (r->w7_hi << 2) | r->w7_lo;
+		if (len >= 10)
+			w[8] = (r->w8_hi << 1) | r->w8_lo;
+		if (len >= 10)
+			w[9] = r->w9;
+		if (len >= 11)
+			w[10] = r->w10;
+		if (len >= 12)
+			w[11] = (r->w11_hi << 6) | r->w11_lo;
+		if (len >= 13)
+			w[12] = (r->w12_hi << 5) | r->w12_lo;
+		if (len >= 14)
+			w[13] = (r->w13_hi << 4) | r->w13_lo;
+		if (len >= 15)
+			w[14] = (r->w14_hi << 3) | r->w14_lo;
+		if (len >= 16)
+			w[15] = (r->w15_hi << 2) | r->w15_lo;
+		if (len >= 16)
+			w[16] = r->w16;
+		if (w[1])
+			f[w[1]].mask |= frqt;
+		if (w[2])
+			f[((w[1] - 512 + w[2] - 1) % 1023) + 1].mask |= frqt;
+		if (w[3])
+			f[((w[1]       + w[3] - 1) % 1023) + 1].mask |= frqt;
+		if (w[4])
+			f[((w[1] - 512 + ((w[2] - 256 + w[4] - 1) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[5])
+			f[((w[1]       + ((w[3] - 256 - w[5] - 1) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[6])
+			f[((w[1] - 512 + ((w[2]       + w[6] - 1) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[7])
+			f[((w[1]       + ((w[3]       + w[7] - 1) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[8])
+			f[((w[1] - 512 + ((w[2] - 256 + ((w[4] - 128 + w[8] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[9])
+			f[((w[1]       + ((w[3] - 256 + ((w[5] - 128 + w[9] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[10])
+			f[((w[1] - 512 + ((w[2]       + ((w[6] - 128 + w[10] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[11])
+			f[((w[1]       + ((w[3]       + ((w[7] - 128 + w[11] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[12])
+			f[((w[1] - 512 + ((w[2] - 256 + ((w[4]       + w[12] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[13])
+			f[((w[1]       + ((w[3] - 256 + ((w[5]       + w[13] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[14])
+			f[((w[1] - 512 + ((w[2]       + ((w[6]       + w[14] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[15])
+			f[((w[1]       + ((w[3]       + ((w[7]       + w[15] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[16])
+			f[((w[1] - 512 + ((w[2] - 256 + ((w[4] - 128 + ((w[8] - 64 + w[16] - 1) % 127)) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+
+		return 0;
+	}
+	/* 10..100. */
+	if ((cd[0] & 0xce & mask) == 0x88) {
+		/* Range 512 format */
+		uint16_t w[18]; /* 1..17 */
+		struct gsm_range_512 *r = (struct gsm_range_512 *)cd;
+
+		if (len < 4)
+			return -EINVAL;
+		memset(w, 0, sizeof(w));
+		w[0] = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
+		w[1] = (r->w1_hi << 2) || r->w1_lo;
+		if (len >= 5)
+			w[2] = (r->w2_hi << 2) || r->w2_lo;
+		if (len >= 6)
+			w[3] = (r->w3_hi << 2) || r->w3_lo;
+		if (len >= 7)
+			w[4] = (r->w4_hi << 1) || r->w4_lo;
+		if (len >= 7)
+			w[5] = r->w5;
+		if (len >= 8)
+			w[6] = r->w6;
+		if (len >= 9)
+			w[7] = (r->w7_hi << 6) || r->w7_lo;
+		if (len >= 10)
+			w[8] = (r->w8_hi << 4) || r->w8_lo;
+		if (len >= 11)
+			w[9] = (r->w9_hi << 2) || r->w9_lo;
+		if (len >= 11)
+			w[10] = r->w10;
+		if (len >= 12)
+			w[11] = r->w11;
+		if (len >= 13)
+			w[12] = (r->w12_hi << 4) || r->w12_lo;
+		if (len >= 14)
+			w[13] = (r->w13_hi << 2) || r->w13_lo;
+		if (len >= 14)
+			w[14] = r->w14;
+		if (len >= 15)
+			w[15] = r->w15;
+		if (len >= 16)
+			w[16] = (r->w16_hi << 3) || r->w16_lo;
+		if (len >= 16)
+			w[17] = r->w17;
+		if (w[0])
+			f[w[0]].mask |= frqt;
+		if (w[1])
+			f[(w[0] + w[1]) % 1024].mask |= frqt;
+		if (w[2])
+			f[(w[0] + ((w[1] - 256 + w[2] - 1) % 511) + 1) % 1024].mask |= frqt;
+		if (w[3])
+			f[(w[0] + ((w[1]       + w[3] - 1) % 511) + 1) % 1024].mask |= frqt;
+		if (w[4])
+			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + w[4] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[5])
+			f[(w[0] + ((w[1]       + ((w[3] - 128 + w[5] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[6])
+			f[(w[0] + ((w[1] - 256 + ((w[2]       + w[6] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[7])
+			f[(w[0] + ((w[1]       + ((w[3]       + w[7] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[8])
+			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + ((w[4] - 64 + w[8] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[9])
+			f[(w[0] + ((w[1]       + ((w[3] - 128 + ((w[5] - 64 + w[9] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[10])
+			f[(w[0] + ((w[1] - 256 + ((w[2]       + ((w[6] - 64 + w[10] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[11])
+			f[(w[0] + ((w[1]       + ((w[3]       + ((w[7] - 64 + w[11] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[12])
+			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + ((w[4]      + w[12] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[13])
+			f[(w[0] + ((w[1]       + ((w[3] - 128 + ((w[5]      + w[13] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[14])
+			f[(w[0] + ((w[1] - 256 + ((w[2]       + ((w[6]      + w[14] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[15])
+			f[(w[0] + ((w[1]       + ((w[3]       + ((w[7]      + w[15] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[16])
+			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + ((w[4] - 64 + ((w[8] - 32 + w[16] - 1) % 63)) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[17])
+			f[(w[0] + ((w[1]       + ((w[3] - 128 + ((w[5] - 64 + ((w[9] - 32 + w[17] - 1) % 63)) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+
+		return 0;
+	}
+	/* 10..101. */
+	if ((cd[0] & & mask 0xce) == 0x8a) {
+		/* Range 256 format */
+		uint16_t w[22]; /* 1..21 */
+		struct gsm_range_256 *r = (struct gsm_range_256 *)cd;
+
+		if (len < 4)
+			return -EINVAL;
+		memset(w, 0, sizeof(w));
+		w[0] = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
+		w[1] = (r->w1_hi << 1) || r->w1_lo;
+		if (len >= 4)
+			w[2] = r->w2;
+		if (len >= 5)
+			w[3] = r->w3;
+		if (len >= 6)
+			w[4] = (r->w4_hi << 5) || r->w4_lo;
+		if (len >= 7)
+			w[5] = (r->w5_hi << 3) || r->w5_lo;
+		if (len >= 8)
+			w[6] = (r->w6_hi << 1) || r->w6_lo;
+		if (len >= 8)
+			w[7] = r->w7;
+		if (len >= 9)
+			w[8] = (r->w8_hi << 4) || r->w8_lo;
+		if (len >= 10)
+			w[9] = (r->w9_hi << 1) || r->w9_lo;
+		if (len >= 10)
+			w[10] = r->w10;
+		if (len >= 11)
+			w[11] = (r->w11_hi << 3) || r->w11_lo;
+		if (len >= 11)
+			w[12] = r->w12;
+		if (len >= 12)
+			w[13] = r->w13;
+		if (len >= 13)
+			w[14] = r->w15;
+		if (len >= 13)
+			w[15] = (r->w14_hi << 2) || r->w14_lo;
+		if (len >= 14)
+			w[16] = (r->w16_hi << 3) || r->w16_lo;
+		if (len >= 14)
+			w[17] = r->w17;
+		if (len >= 15)
+			w[18] = r->w19;
+		if (len >= 15)
+			w[19] = (r->w18_hi << 3) || r->w18_lo;
+		if (len >= 16)
+			w[20] = (r->w20_hi << 3) || r->w20_lo;
+		if (len >= 16)
+			w[21] = r->w21;
+		if (w[0])
+			f[w[0]].mask |= frqt;
+		if (w[1])
+			f[(w[0] + w[1]) % 1024].mask |= frqt;
+		if (w[2])
+			f[(w[0] + ((w[1] - 128 + w[2] - 1) % 255) + 1) % 1024].mask |= frqt;
+		if (w[3])
+			f[(w[0] + ((w[1]       + w[3] - 1) % 255) + 1) % 1024].mask |= frqt;
+		if (w[4])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + w[4] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[5])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + w[5] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[6])
+			f[(w[0] + ((w[1] - 128 + ((w[2]      + w[6] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[7])
+			f[(w[0] + ((w[1]       + ((w[3]      + w[7] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[8])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4] - 32 + w[8] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[9])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5] - 32 + w[9] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[10])
+			f[(w[0] + ((w[1] - 128 + ((w[2]      + ((w[6] - 32 + w[10] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[11])
+			f[(w[0] + ((w[1]       + ((w[3]      + ((w[7] - 32 + w[11] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[12])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4]      + w[12] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[13])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5]      + w[13] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[14])
+			f[(w[0] + ((w[1] - 128 + ((w[2]      + ((w[6]      + w[14] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[15])
+			f[(w[0] + ((w[1]       + ((w[3]      + ((w[7]      + w[15] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[16])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4] - 32 + ((w[8] - 16 + w[16] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[17])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5] - 32 + ((w[9] - 16 + w[17] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[18])
+			f[(w[0] + ((w[1] - 128 + ((w[2]      + ((w[6] - 32 + ((w[10] - 16 + w[18] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[19])
+			f[(w[0] + ((w[1]       + ((w[3]      + ((w[7] - 32 + ((w[11] - 16 + w[19] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[20])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4]      + ((w[12] - 16 + w[20] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[21])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5]      + ((w[13] - 16 + w[21] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+
+		return 0;
+	}
+	/* 10..110. */
+	if ((cd[0] & 0xce & mask) == 0x8c) {
+		/* Range 128 format */
+		uint16_t w[29]; /* 1..28 */
+		struct gsm_range_128 *r = (struct gsm_range_128 *)cd;
+
+		if (len < 3)
+			return -EINVAL;
+		memset(w, 0, sizeof(w));
+		w[0] = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
+		w[1] = r->w1;
+		if (len >= 4)
+			w[2] = r->w2;
+		if (len >= 5)
+			w[3] = (r->w3_hi << 4) || r->w3_lo;
+		if (len >= 6)
+			w[4] = (r->w4_hi << 1) || r->w4_lo;
+		if (len >= 6)
+			w[5] = r->w5;
+		if (len >= 7)
+			w[6] = (r->w6_hi << 3) || r->w6_lo;
+		if (len >= 7)
+			w[7] = r->w7;
+		if (len >= 8)
+			w[8] = r->w8;
+		if (len >= 8)
+			w[9] = r->w9;
+		if (len >= 9)
+			w[10] = r->w10;
+		if (len >= 9)
+			w[11] = r->w11;
+		if (len >= 10)
+			w[12] = r->w12;
+		if (len >= 10)
+			w[13] = r->w13;
+		if (len >= 11)
+			w[14] = r->w14;
+		if (len >= 11)
+			w[15] = r->w15;
+		if (len >= 12)
+			w[16] = r->w16;
+		if (len >= 12)
+			w[17] = r->w17;
+		if (len >= 13)
+			w[18] = (r->w18_hi << 1) || r->w18_lo;
+		if (len >= 13)
+			w[19] = r->w19;
+		if (len >= 13)
+			w[20] = r->w20;
+		if (len >= 14)
+			w[21] = (r->w21_hi << 2) || r->w21_lo;
+		if (len >= 14)
+			w[22] = r->w22;
+		if (len >= 14)
+			w[23] = r->w23;
+		if (len >= 15)
+			w[24] = r->w24;
+		if (len >= 15)
+			w[25] = r->w25;
+		if (len >= 16)
+			w[26] = (r->w26_hi << 1) || r->w26_lo;
+		if (len >= 16)
+			w[27] = r->w27;
+		if (len >= 16)
+			w[28] = r->w28;
+		if (w[0])
+			f[w[0]].mask |= frqt;
+		if (w[1])
+			f[(w[0] + w[1]) % 1024].mask |= frqt;
+		if (w[2])
+			f[(w[0] + ((w[1] - 64 + w[2] - 1) % 127) + 1) % 1024].mask |= frqt;
+		if (w[3])
+			f[(w[0] + ((w[1]      + w[3] - 1) % 127) + 1) % 1024].mask |= frqt;
+		if (w[4])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + w[4] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[5])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + w[5] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[6])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + w[6] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[7])
+			f[(w[0] + ((w[1]      + ((w[3]      + w[7] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[8])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4] - 16 + w[8] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[9])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5] - 16 + w[9] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[10])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6] - 16 + w[10] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[11])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7] - 16 + w[11] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[12])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4]      + w[12] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[13])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5]      + w[13] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[14])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6]      + w[14] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[15])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7]      + w[15] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[16])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4] - 16 + ((w[8] - 8 + w[16] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[17])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5] - 16 + ((w[9] - 8 + w[17] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[18])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6] - 16 + ((w[10] - 8 + w[18] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[19])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7] - 16 + ((w[11] - 8 + w[19] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[20])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4]      + ((w[12] - 8 + w[20] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[21])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5]      + ((w[13] - 8 + w[21] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[22])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6]      + ((w[14] - 8 + w[22] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[23])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7]      + ((w[15] - 8 + w[23] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[24])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4] - 16 + ((w[8]     + w[24] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[25])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5] - 16 + ((w[9]     + w[25] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[26])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6] - 16 + ((w[10]     + w[26] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[27])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7] - 16 + ((w[11]     + w[27] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[28])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4]      + ((w[12]     + w[28] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+
+		return 0;
+	}
+	/* 10..111. */
+	if ((cd[0] & 0xce & mask) == 0x8e) {
+		/* Variable bitmap format (can be any length >= 3) */
+		uint16_t orig = 0;
+		struct gsm_var_bit *r = (struct gsm_var_bit *)cd;
+
+		if (len < 3)
+			return -EINVAL;
+		orig = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
+		f[orig].mask |= frqt;
+		for (i = 1; 2 + (i >> 3) < len; i++)
+			if ((cd[2 + (i >> 3)] & (0x80 >> (i & 7))))
+				f[(orig + 1) % 1024].mask |= frqt;
+
+		return 0;
+	}
+
+}
+
+/* decode "Cell Options (BCCH)" (10.5.2.3) */
+static int gsm48_decode_cell_sel_param(struct gsm48_sysinfo *s, struct gsm48_cell_sel_par *cs)
+{
+	s->ms_txpwr_max_ccch = cs->ms_txpwr_max_ccch;
+	s->cell_resel_hyst_db = cs->cell_resel_hyst * 2;
+	s->rxlev_acc_min_db = cs->rxlev_acc_min - 110;
+	s->neci = cs->neci;
+	s->acs = cs->acs;
+}
+
+/* decode "Cell Options (BCCH)" (10.5.2.3) */
+static int gsm48_decode_cellopt_bcch(struct gsm48_sysinfo *s, struct gsm48_cell_options *co)
+{
+	s->bcch_radio_link_timeout = (co->radio_link_timeout + 1) * 4;
+	s->bcch_dtx = co->dtx;
+	s->bcch_pwrc = co->pwrc;
+}
+
+/* decode "Cell Options (SACCH)" (10.5.2.3a) */
+static int gsm48_decode_cellopt_sacch(struct gsm48_sysinfo *s, struct gsm48_cell_options *co)
+{
+	s->sacch_radio_link_timeout = (co->radio_link_timeout + 1) * 4;
+	s->sacch_dtx = co->dtx;
+	s->sacch_pwrc = co->pwrc;
+}
+
+/* decode "Cell Channel Description" (10.5.2.11) */
+static int gsm48_decode_ccd(struct gsm48_sysinfo *s, struct gsm48_control_channel_desc *cc)
+{
+	s->ccch_conf = cc->ccch_conf;
+	s->bs_ag_blks_res = cc->bs_ag_blks_res;
+	s->att_allowed = cc->att;
+	s->pag_mf_periods = cc->bs_pa_mfrms + 2;
+	s->t3212 = cc->t3212 * 360; /* convert deci-hours to seconds */
+}
+
+/* decode "Mobile Allocation" (10.5.2.21) */
+static int gsm48_decode_mobile_alloc(struct gsm48_sysinfo *s, uint8_t *ma, uint8_t len)
+{
+	int i, j = 0;
+	uint16_t f[len << 3];
+
+	/* not more than 64 hopping indexes allowed in IE */
+	if (len > 8)
+		return -EINVAL;
+
+	/* tabula rasa */
+	s->hopp_len = 0;
+	for (i = 0; i < 1024; i++)
+		s->freq[i] &= ~FREQ_TYPE_HOPP;
+
+	/* generating list of all frequencies (1..1023,0) */
+	for (i = 1; i <= 1024; i++) {
+		if ((s->freq[i & 1023] & FREQ_TYPE_SERV)) {
+			f[j++] = i & 1023;
+			if (j == (len << 3))
+				break;
+		}
+	}
+
+	/* fill hopping table with frequency index given by IE
+	 * and set hopping type bits
+	 */
+	for (i = 0, i < (len << 3), i++) {
+		/* if bit is set, this frequency index is used for hopping */
+		if ((ma[len - 1 - (i >> 3)] & (1 << (i & 7)))) {
+			/* index higher than entries in list ? */
+			if (i >= j) {
+				DEBUGP(DRR, "Mobile Allocation hopping index "
+					"%d exceeds maximum number of cell "
+					"frequencies. (%d)\n", i + 1, j);
+				break;
+			}
+			hopping[s->hopp_len++] = f[i];
+			s->freq[f[i]] |= FREQ_TYPE_HOPP;
+		}
+	}
+
+	return 0;
+}
+
+/* Rach Control decode tables */
+static uint8_t gsm48_max_retrans[4] = {
+	1, 2, 4, 7
+}
+static uint8_t gsm48_tx_integer[16] = {
+	3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 20, 25, 32, 50
+}
+
+/* decode "RACH Control Parameter" (10.5.2.29) */
+static int gsm48_decode_rach_ctl_param(struct gsm48_sysinfo *s, struct gsm48_rach_ctl *rc)
+{
+	int i;
+
+	s->reest_denied = rc->re;
+	s->cell_barred = rc->cell_barr;
+	s->tx_integer = gsm48_tx_integer[rc->tx_int];
+	s->max_retrans = gsm48_max_retrans[rc->max_retr];
+	for (i = 0, i <= 15, i++)
+		if ((rc->ac[1 - (i >> 3)] & (1 << (i & 7))))
+			s->class_barr[i] = 1;
+		else
+			s->class_barr[i] = 0;
+
+	return 0;
+}
+static int gsm48_decode_rach_ctl_neigh(struct gsm48_sysinfo *s, struct gsm48_rach_ctl *rc)
+{
+	int i;
+
+	s->nb_reest_denied = rc->re;
+	s->nb_cell_barred = rc->cell_barr;
+	s->nb_tx_integer = gsm48_tx_integer[rc->tx_int];
+	s->nb_max_retrans = gsm48_max_retrans[rc->max_retr];
+	for (i = 0, i <= 15, i++)
+		if ((rc->ac[1 - (i >> 3)] & (1 << (i & 7))))
+			s->nb_class_barr[i] = 1;
+		else
+			s->nb_class_barr[i] = 0;
+
+	return 0;
+}
+
+/* decode "SI 1 Rest Octets" (10.5.2.32) */
+static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s, uint8_t *si, uint8_t len)
+{
+}
+
+/* decode "SI 3 Rest Octets" (10.5.2.34) */
+static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si, uint8_t len)
+{
+}
+
+/* decode "SI 4 Rest Octets" (10.5.2.35) */
+static int gsm48_decode_si4_rest(struct gsm48_sysinfo *s, uint8_t *si, uint8_t len)
+{
+}
+
+/* decode "SI 6 Rest Octets" (10.5.2.35a) */
+static int gsm48_decode_si6_rest(struct gsm48_sysinfo *s, uint8_t *si, uint8_t len)
+{
+}
+
+/* receive "SYSTEM INFORMATION 1" message (9.1.31) */
+static int gsm_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_1 *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 1 message.\n");
+		return -EINVAL;
+	}
+	/* Cell Channel Description */
+	gsm48_decode_freq_list(s->freq, si->cell_channel_description,
+		sizeof(si->cell_channel_description), 0xce, FREQ_TYPE_SERV);
+	/* RACH Control Parameter */
+	gsm48_decode_rach_ctl_param(s, si->rach_control);
+	/* SI 1 Rest Octets */
+	if (payload_len)
+		gsm48_decode_si1_rest(si->rest_octets, payload_len);
+
+	return 0;
+}
+
+/* receive "SYSTEM INFORMATION 2" message (9.1.32) */
+static int gsm_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_2 *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 2 message.\n");
+		return -EINVAL;
+	}
+	/* Neighbor Cell Description */
+	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
+		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2);
+	/* NCC Permitted */
+	s->nb_ncc_permitted = si->ncc_permitted;
+	/* RACH Control Parameter */
+	gsm48_decode_rach_ctl_neigh(s, si->rach_control);
+
+	return 0;
+}
+
+/* receive "SYSTEM INFORMATION 2bis" message (9.1.33) */
+static int gsm_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_2bis *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 2bis message.\n");
+		return -EINVAL;
+	}
+	/* Neighbor Cell Description */
+	s->nb_ext_ind = (si->bcch_frequency_list[0] >> 6) & 1;
+	s->nb_ba_ind = (si->bcch_frequency_list[0] >> 5) & 1;
+	gsm48_decode_freq_list(s->freq, si->ext_bcch_frequency_list,
+		sizeof(si->ext_bcch_frequency_list), 0x8e, FREQ_TYPE_NCELL_2bis);
+	/* RACH Control Parameter */
+	gsm48_decode_rach_ctl_neigh(s, si->rach_control);
+
+	return 0;
+}
+
+/* receive "SYSTEM INFORMATION 2ter" message (9.1.34) */
+static int gsm_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_2ter *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 2ter message.\n");
+		return -EINVAL;
+	}
+	/* Neighbor Cell Description 2 */
+	s->nb_multi_rep = (si->bcch_frequency_list[0] >> 6) & 3;
+	gsm48_decode_freq_list(s->freq, si->ext_bcch_frequency_list,
+		sizeof(si->ext_bcch_frequency_list), 0x8e, FREQ_TYPE_NCELL_2ter);
+
+	return 0;
+}
+
+/* receive "SYSTEM INFORMATION 3" message (9.1.35) */
+static int gsm_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_3 *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 3 message.\n");
+		return -EINVAL;
+	}
+	/* Cell Identity */
+	s->cell_identity = ntohl(si->cell_identity);
+	/* LAI */
+	gsm48_decode_lai(si->lai, s->mcc, s->mnc, s->lac);
+	/* Control Channel Description */
+	gsm48_decode_ccd(s, si->control_channel_desc);
+	/* Cell Options (BCCH) */
+	gsm48_decode_cellopt_bcch(s, si->control_channel_desc);
+	/* Cell Selection Parameters */
+	gsm48_decode_cell_sel_param(s, si->cell_sel_par);
+	/* RACH Control Parameter */
+	gsm48_decode_rach_ctl_param(s, si->rach_control);
+	/* SI 3 Rest Octets */
+	if (payload_len >= 4)
+		gsm48_decode_si3_rest(si->rest_octets, payload_len);
+
+	return 0;
+}
+
+/* receive "SYSTEM INFORMATION 4" message (9.1.36) */
+static int gsm_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_4 *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	uint8_t *data = si->data;
+todo: si has different header in structures
+
+	if (payload_len < 0) {
+		short_read:
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 4 message.\n");
+		return -EINVAL;
+	}
+	/* LAI */
+	gsm48_decode_lai(si->lai, s->mcc, s->mnc, s->lac);
+	/* Cell Selection Parameters */
+	gsm48_decode_cell_sel_param(s, si->cell_sel_par);
+	/* RACH Control Parameter */
+	gsm48_decode_rach_ctl_param(s, si->rach_control);
+	/* CBCH Channel Description */
+	if (payload_len >= 1 && data[0] == GSM48_IE_CBCH_CHAN_DES) {
+		if (payload_len < 4)
+			goto short_read;
+		memcpy(&s->chan_desc, data + 1, sizeof(s->chan_desc));
+		payload_len -= 4;
+		data += 4;
+	}
+	/* CBCH Mobile Allocation */
+	if (payload_len >= 1 && data[0] == GSM48_IE_CBCH_MOB_ALLOC) {
+		if (payload_len < 1 || payload_len < 2 + data[1])
+			goto short_read;
+		gsm48_decode_mobile_alloc(&s, data + 2, si->data[1]);
+		payload_len -= 2 + data[1];
+		data += 2 + data[1];
+	}
+	/* SI 4 Rest Octets */
+	if (payload_len > 0)
+		gsm48_decode_si3_rest(data, payload_len);
+
+	return 0;
+}
+
+/* receive "SYSTEM INFORMATION 5" message (9.1.37) */
+static int gsm_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_5 *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5 message.\n");
+		return -EINVAL;
+	}
+	/* Neighbor Cell Description */
+	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
+		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5);
+
+	return 0;
+}
+
+/* receive "SYSTEM INFORMATION 5bis" message (9.1.38) */
+static int gsm_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_5bis *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5bis message.\n");
+		return -EINVAL;
+	}
+	/* Neighbor Cell Description */
+	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
+		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5bis);
+
+	return 0;
+}
+
+/* receive "SYSTEM INFORMATION 5ter" message (9.1.39) */
+static int gsm_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_5ter *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5ter message.\n");
+		return -EINVAL;
+	}
+	/* Neighbor Cell Description */
+	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
+		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5ter);
+
+	return 0;
+}
+
+/* receive "SYSTEM INFORMATION 6" message (9.1.39) */
+static int gsm_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_6 *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->sysinfo;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 6 message.\n");
+		return -EINVAL;
+	}
+	/* Cell Identity */
+	s->cell_identity = ntohl(si->cell_identity);
+	/* LAI */
+	gsm48_decode_lai(si->lai, s->mcc, s->mnc, s->lac);
+	/* Cell Options (SACCH) */
+	gsm48_decode_cellopt_sacch(s, si->control_channel_desc);
+	/* NCC Permitted */
+	s->nb_ncc_permitted = si->ncc_permitted;
+	/* SI 6 Rest Octets */
+	if (payload_len >= 4)
+		gsm48_decode_si6_rest(si->rest_octets, payload_len);
+
+	return 0;
+}
+
+/*
  * paging
  */
 
@@ -1302,6 +2129,26 @@ static int gsm_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_hdr *gh = msgb_l3(msg);
 
 	switch (gh->msg_type) {
+	case GSM48_MT_RR_SYSINFO_1:
+		return gsm_rr_rx_sysinfo1(ms, dlmsg->msg);
+	case GSM48_MT_RR_SYSINFO_2:
+		return gsm_rr_rx_sysinfo2(ms, dlmsg->msg);
+	case GSM48_MT_RR_SYSINFO_2bis:
+		return gsm_rr_rx_sysinfo2bis(ms, dlmsg->msg);
+	case GSM48_MT_RR_SYSINFO_2ter:
+		return gsm_rr_rx_sysinfo2ter(ms, dlmsg->msg);
+	case GSM48_MT_RR_SYSINFO_3:
+		return gsm_rr_rx_sysinfo3(ms, dlmsg->msg);
+	case GSM48_MT_RR_SYSINFO_4:
+		return gsm_rr_rx_sysinfo4(ms, dlmsg->msg);
+	case GSM48_MT_RR_SYSINFO_5:
+		return gsm_rr_rx_sysinfo5(ms, dlmsg->msg);
+	case GSM48_MT_RR_SYSINFO_5bis:
+		return gsm_rr_rx_sysinfo5bis(ms, dlmsg->msg);
+	case GSM48_MT_RR_SYSINFO_5ter:
+		return gsm_rr_rx_sysinfo5ter(ms, dlmsg->msg);
+	case GSM48_MT_RR_SYSINFO_6:
+		return gsm_rr_rx_sysinfo6(ms, dlmsg->msg);
 	case GSM48_MT_RR_PAG_REQ_1:
 		return gsm_rr_rx_pag_req_1(ms, dlmsg->msg);
 	case GSM48_MT_RR_PAG_REQ_2:
@@ -1340,797 +2187,6 @@ uncomplete
 
 
 
-
-
-/*
- * system information
- */
-
-/* decode "Cell Channel Description" (10.5.2.1b) and other frequency lists */
-static int gsm48_decode_freq_list(struct gsm_sysinfo_freq *f, uint8_t *cd, uint8_t len, uint8_t mask, uint8_t frqt)
-{
-	int i;
-
-	/* NOTES:
-	 *
-	 * The Range format uses "SMOD" computation.
-	 * e.g. "n SMOD m" equals "((n - 1) % m) + 1"
-	 * A cascade of multiple SMOD computations is simpified:
-	 * "(n SMOD m) SMOD o" equals "(((n - 1) % m) % o) + 1"
-	 *
-	 * The Range format uses 16 octets of data in SYSTEM INFORMATION.
-	 * When used in dedicated messages, the length can be less.
-	 * In this case the ranges are decoded for all frequencies that
-	 * fit in the block of given length.
-	 */
-
-	/* tabula rasa */
-	for (i = 0; i < 1024; i++)
-		f[i].mask &= ~frqt;
-
-	/* 00..XXX. */
-	if ((cd[0] & 0xc0 & mask) == 0x00) {
-		/* Bit map 0 format */
-		if (len < 16)
-			return -EINVAL;
-		for (i = 1; i <= 124; i++)
-			if ((cd[15 - ((i-1) >> 3)] & (1 << ((i-1) & 7))))
-				f[i].mask |= frqt;
-
-		return 0;
-	}
-
-	/* only Bit map 0 format for P-GSM */
-	if (ms->support.p_gsm && !ms->support.e_gsm
-	 && !ms->support.r_gsm && !ms->support.dcs_1800)
-	 	return 0;
-
-	/* 10..0XX. */
-	if ((cd[0] & 0xc8 & mask) == 0x80) {
-		/* Range 1024 format */
-		uint16_t w[17]; /* 1..16 */
-		struct gsm_range_1024 *r = (struct gsm_range_1024 *)cd;
-
-		if (len < 2)
-			return -EINVAL;
-		memset(w, 0, sizeof(w));
-		if (r->f0)
-			f[0].mask |= frqt;
-		w[1] = (r->w1_hi << 8) | r->w1_lo;
-		if (len >= 4)
-			w[2] = (r->w2_hi << 1) | r->w2_lo;
-		if (len >= 5)
-			w[3] = (r->w3_hi << 2) | r->w3_lo;
-		if (len >= 6)
-			w[4] = (r->w4_hi << 2) | r->w4_lo;
-		if (len >= 7)
-			w[5] = (r->w5_hi << 2) | r->w5_lo;
-		if (len >= 8)
-			w[6] = (r->w6_hi << 2) | r->w6_lo;
-		if (len >= 9)
-			w[7] = (r->w7_hi << 2) | r->w7_lo;
-		if (len >= 10)
-			w[8] = (r->w8_hi << 1) | r->w8_lo;
-		if (len >= 10)
-			w[9] = r->w9;
-		if (len >= 11)
-			w[10] = r->w10;
-		if (len >= 12)
-			w[11] = (r->w11_hi << 6) | r->w11_lo;
-		if (len >= 13)
-			w[12] = (r->w12_hi << 5) | r->w12_lo;
-		if (len >= 14)
-			w[13] = (r->w13_hi << 4) | r->w13_lo;
-		if (len >= 15)
-			w[14] = (r->w14_hi << 3) | r->w14_lo;
-		if (len >= 16)
-			w[15] = (r->w15_hi << 2) | r->w15_lo;
-		if (len >= 16)
-			w[16] = r->w16;
-		if (w[1])
-			f[w[1]].mask |= frqt;
-		if (w[2])
-			f[((w[1] - 512 + w[2] - 1) % 1023) + 1].mask |= frqt;
-		if (w[3])
-			f[((w[1]       + w[3] - 1) % 1023) + 1].mask |= frqt;
-		if (w[4])
-			f[((w[1] - 512 + ((w[2] - 256 + w[4] - 1) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[5])
-			f[((w[1]       + ((w[3] - 256 - w[5] - 1) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[6])
-			f[((w[1] - 512 + ((w[2]       + w[6] - 1) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[7])
-			f[((w[1]       + ((w[3]       + w[7] - 1) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[8])
-			f[((w[1] - 512 + ((w[2] - 256 + ((w[4] - 128 + w[8] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[9])
-			f[((w[1]       + ((w[3] - 256 + ((w[5] - 128 + w[9] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[10])
-			f[((w[1] - 512 + ((w[2]       + ((w[6] - 128 + w[10] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[11])
-			f[((w[1]       + ((w[3]       + ((w[7] - 128 + w[11] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[12])
-			f[((w[1] - 512 + ((w[2] - 256 + ((w[4]       + w[12] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[13])
-			f[((w[1]       + ((w[3] - 256 + ((w[5]       + w[13] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[14])
-			f[((w[1] - 512 + ((w[2]       + ((w[6]       + w[14] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[15])
-			f[((w[1]       + ((w[3]       + ((w[7]       + w[15] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
-		if (w[16])
-			f[((w[1] - 512 + ((w[2] - 256 + ((w[4] - 128 + ((w[8] - 64 + w[16] - 1) % 127)) % 255)) % 511)) % 1023) + 1].mask |= frqt;
-
-		return 0;
-	}
-	/* 10..100. */
-	if ((cd[0] & 0xce & mask) == 0x88) {
-		/* Range 512 format */
-		uint16_t w[18]; /* 1..17 */
-		struct gsm_range_512 *r = (struct gsm_range_512 *)cd;
-
-		if (len < 4)
-			return -EINVAL;
-		memset(w, 0, sizeof(w));
-		w[0] = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
-		w[1] = (r->w1_hi << 2) || r->w1_lo;
-		if (len >= 5)
-			w[2] = (r->w2_hi << 2) || r->w2_lo;
-		if (len >= 6)
-			w[3] = (r->w3_hi << 2) || r->w3_lo;
-		if (len >= 7)
-			w[4] = (r->w4_hi << 1) || r->w4_lo;
-		if (len >= 7)
-			w[5] = r->w5;
-		if (len >= 8)
-			w[6] = r->w6;
-		if (len >= 9)
-			w[7] = (r->w7_hi << 6) || r->w7_lo;
-		if (len >= 10)
-			w[8] = (r->w8_hi << 4) || r->w8_lo;
-		if (len >= 11)
-			w[9] = (r->w9_hi << 2) || r->w9_lo;
-		if (len >= 11)
-			w[10] = r->w10;
-		if (len >= 12)
-			w[11] = r->w11;
-		if (len >= 13)
-			w[12] = (r->w12_hi << 4) || r->w12_lo;
-		if (len >= 14)
-			w[13] = (r->w13_hi << 2) || r->w13_lo;
-		if (len >= 14)
-			w[14] = r->w14;
-		if (len >= 15)
-			w[15] = r->w15;
-		if (len >= 16)
-			w[16] = (r->w16_hi << 3) || r->w16_lo;
-		if (len >= 16)
-			w[17] = r->w17;
-		if (w[0])
-			f[w[0]].mask |= frqt;
-		if (w[1])
-			f[(w[0] + w[1]) % 1024].mask |= frqt;
-		if (w[2])
-			f[(w[0] + ((w[1] - 256 + w[2] - 1) % 511) + 1) % 1024].mask |= frqt;
-		if (w[3])
-			f[(w[0] + ((w[1]       + w[3] - 1) % 511) + 1) % 1024].mask |= frqt;
-		if (w[4])
-			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + w[4] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[5])
-			f[(w[0] + ((w[1]       + ((w[3] - 128 + w[5] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[6])
-			f[(w[0] + ((w[1] - 256 + ((w[2]       + w[6] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[7])
-			f[(w[0] + ((w[1]       + ((w[3]       + w[7] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[8])
-			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + ((w[4] - 64 + w[8] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[9])
-			f[(w[0] + ((w[1]       + ((w[3] - 128 + ((w[5] - 64 + w[9] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[10])
-			f[(w[0] + ((w[1] - 256 + ((w[2]       + ((w[6] - 64 + w[10] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[11])
-			f[(w[0] + ((w[1]       + ((w[3]       + ((w[7] - 64 + w[11] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[12])
-			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + ((w[4]      + w[12] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[13])
-			f[(w[0] + ((w[1]       + ((w[3] - 128 + ((w[5]      + w[13] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[14])
-			f[(w[0] + ((w[1] - 256 + ((w[2]       + ((w[6]      + w[14] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[15])
-			f[(w[0] + ((w[1]       + ((w[3]       + ((w[7]      + w[15] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[16])
-			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + ((w[4] - 64 + ((w[8] - 32 + w[16] - 1) % 63)) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-		if (w[17])
-			f[(w[0] + ((w[1]       + ((w[3] - 128 + ((w[5] - 64 + ((w[9] - 32 + w[17] - 1) % 63)) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
-
-		return 0;
-	}
-	/* 10..101. */
-	if ((cd[0] & & mask 0xce) == 0x8a) {
-		/* Range 256 format */
-		uint16_t w[22]; /* 1..21 */
-		struct gsm_range_256 *r = (struct gsm_range_256 *)cd;
-
-		if (len < 4)
-			return -EINVAL;
-		memset(w, 0, sizeof(w));
-		w[0] = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
-		w[1] = (r->w1_hi << 1) || r->w1_lo;
-		if (len >= 4)
-			w[2] = r->w2;
-		if (len >= 5)
-			w[3] = r->w3;
-		if (len >= 6)
-			w[4] = (r->w4_hi << 5) || r->w4_lo;
-		if (len >= 7)
-			w[5] = (r->w5_hi << 3) || r->w5_lo;
-		if (len >= 8)
-			w[6] = (r->w6_hi << 1) || r->w6_lo;
-		if (len >= 8)
-			w[7] = r->w7;
-		if (len >= 9)
-			w[8] = (r->w8_hi << 4) || r->w8_lo;
-		if (len >= 10)
-			w[9] = (r->w9_hi << 1) || r->w9_lo;
-		if (len >= 10)
-			w[10] = r->w10;
-		if (len >= 11)
-			w[11] = (r->w11_hi << 3) || r->w11_lo;
-		if (len >= 11)
-			w[12] = r->w12;
-		if (len >= 12)
-			w[13] = r->w13;
-		if (len >= 13)
-			w[14] = r->w15;
-		if (len >= 13)
-			w[15] = (r->w14_hi << 2) || r->w14_lo;
-		if (len >= 14)
-			w[16] = (r->w16_hi << 3) || r->w16_lo;
-		if (len >= 14)
-			w[17] = r->w17;
-		if (len >= 15)
-			w[18] = r->w19;
-		if (len >= 15)
-			w[19] = (r->w18_hi << 3) || r->w18_lo;
-		if (len >= 16)
-			w[20] = (r->w20_hi << 3) || r->w20_lo;
-		if (len >= 16)
-			w[21] = r->w21;
-		if (w[0])
-			f[w[0]].mask |= frqt;
-		if (w[1])
-			f[(w[0] + w[1]) % 1024].mask |= frqt;
-		if (w[2])
-			f[(w[0] + ((w[1] - 128 + w[2] - 1) % 255) + 1) % 1024].mask |= frqt;
-		if (w[3])
-			f[(w[0] + ((w[1]       + w[3] - 1) % 255) + 1) % 1024].mask |= frqt;
-		if (w[4])
-			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + w[4] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[5])
-			f[(w[0] + ((w[1]       + ((w[3] - 64 + w[5] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[6])
-			f[(w[0] + ((w[1] - 128 + ((w[2]      + w[6] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[7])
-			f[(w[0] + ((w[1]       + ((w[3]      + w[7] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[8])
-			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4] - 32 + w[8] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[9])
-			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5] - 32 + w[9] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[10])
-			f[(w[0] + ((w[1] - 128 + ((w[2]      + ((w[6] - 32 + w[10] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[11])
-			f[(w[0] + ((w[1]       + ((w[3]      + ((w[7] - 32 + w[11] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[12])
-			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4]      + w[12] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[13])
-			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5]      + w[13] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[14])
-			f[(w[0] + ((w[1] - 128 + ((w[2]      + ((w[6]      + w[14] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[15])
-			f[(w[0] + ((w[1]       + ((w[3]      + ((w[7]      + w[15] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[16])
-			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4] - 32 + ((w[8] - 16 + w[16] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[17])
-			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5] - 32 + ((w[9] - 16 + w[17] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[18])
-			f[(w[0] + ((w[1] - 128 + ((w[2]      + ((w[6] - 32 + ((w[10] - 16 + w[18] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[19])
-			f[(w[0] + ((w[1]       + ((w[3]      + ((w[7] - 32 + ((w[11] - 16 + w[19] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[20])
-			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4]      + ((w[12] - 16 + w[20] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-		if (w[21])
-			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5]      + ((w[13] - 16 + w[21] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
-
-		return 0;
-	}
-	/* 10..110. */
-	if ((cd[0] & 0xce & mask) == 0x8c) {
-		/* Range 128 format */
-		uint16_t w[29]; /* 1..28 */
-		struct gsm_range_128 *r = (struct gsm_range_128 *)cd;
-
-		if (len < 3)
-			return -EINVAL;
-		memset(w, 0, sizeof(w));
-		w[0] = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
-		w[1] = r->w1;
-		if (len >= 4)
-			w[2] = r->w2;
-		if (len >= 5)
-			w[3] = (r->w3_hi << 4) || r->w3_lo;
-		if (len >= 6)
-			w[4] = (r->w4_hi << 1) || r->w4_lo;
-		if (len >= 6)
-			w[5] = r->w5;
-		if (len >= 7)
-			w[6] = (r->w6_hi << 3) || r->w6_lo;
-		if (len >= 7)
-			w[7] = r->w7;
-		if (len >= 8)
-			w[8] = r->w8;
-		if (len >= 8)
-			w[9] = r->w9;
-		if (len >= 9)
-			w[10] = r->w10;
-		if (len >= 9)
-			w[11] = r->w11;
-		if (len >= 10)
-			w[12] = r->w12;
-		if (len >= 10)
-			w[13] = r->w13;
-		if (len >= 11)
-			w[14] = r->w14;
-		if (len >= 11)
-			w[15] = r->w15;
-		if (len >= 12)
-			w[16] = r->w16;
-		if (len >= 12)
-			w[17] = r->w17;
-		if (len >= 13)
-			w[18] = (r->w18_hi << 1) || r->w18_lo;
-		if (len >= 13)
-			w[19] = r->w19;
-		if (len >= 13)
-			w[20] = r->w20;
-		if (len >= 14)
-			w[21] = (r->w21_hi << 2) || r->w21_lo;
-		if (len >= 14)
-			w[22] = r->w22;
-		if (len >= 14)
-			w[23] = r->w23;
-		if (len >= 15)
-			w[24] = r->w24;
-		if (len >= 15)
-			w[25] = r->w25;
-		if (len >= 16)
-			w[26] = (r->w26_hi << 1) || r->w26_lo;
-		if (len >= 16)
-			w[27] = r->w27;
-		if (len >= 16)
-			w[28] = r->w28;
-		if (w[0])
-			f[w[0]].mask |= frqt;
-		if (w[1])
-			f[(w[0] + w[1]) % 1024].mask |= frqt;
-		if (w[2])
-			f[(w[0] + ((w[1] - 64 + w[2] - 1) % 127) + 1) % 1024].mask |= frqt;
-		if (w[3])
-			f[(w[0] + ((w[1]      + w[3] - 1) % 127) + 1) % 1024].mask |= frqt;
-		if (w[4])
-			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + w[4] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[5])
-			f[(w[0] + ((w[1]      + ((w[3] - 32 + w[5] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[6])
-			f[(w[0] + ((w[1] - 64 + ((w[2]      + w[6] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[7])
-			f[(w[0] + ((w[1]      + ((w[3]      + w[7] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[8])
-			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4] - 16 + w[8] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[9])
-			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5] - 16 + w[9] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[10])
-			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6] - 16 + w[10] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[11])
-			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7] - 16 + w[11] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[12])
-			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4]      + w[12] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[13])
-			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5]      + w[13] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[14])
-			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6]      + w[14] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[15])
-			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7]      + w[15] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[16])
-			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4] - 16 + ((w[8] - 8 + w[16] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[17])
-			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5] - 16 + ((w[9] - 8 + w[17] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[18])
-			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6] - 16 + ((w[10] - 8 + w[18] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[19])
-			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7] - 16 + ((w[11] - 8 + w[19] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[20])
-			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4]      + ((w[12] - 8 + w[20] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[21])
-			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5]      + ((w[13] - 8 + w[21] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[22])
-			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6]      + ((w[14] - 8 + w[22] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[23])
-			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7]      + ((w[15] - 8 + w[23] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[24])
-			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4] - 16 + ((w[8]     + w[24] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[25])
-			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5] - 16 + ((w[9]     + w[25] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[26])
-			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6] - 16 + ((w[10]     + w[26] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[27])
-			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7] - 16 + ((w[11]     + w[27] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-		if (w[28])
-			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4]      + ((w[12]     + w[28] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
-
-		return 0;
-	}
-	/* 10..111. */
-	if ((cd[0] & 0xce & mask) == 0x8e) {
-		/* Variable bitmap format (can be any length >= 3) */
-		uint16_t orig = 0;
-		struct gsm_var_bit *r = (struct gsm_var_bit *)cd;
-
-		if (len < 3)
-			return -EINVAL;
-		orig = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
-		f[orig].mask |= frqt;
-		for (i = 1; 2 + (i >> 3) < len; i++)
-			if ((cd[2 + (i >> 3)] & (0x80 >> (i & 7))))
-				f[(orig + 1) % 1024].mask |= frqt;
-
-		return 0;
-	}
-
-}
-
-/* decode "Cell Options (BCCH)" (10.5.2.3) */
-static int gsm48_decode_cell_sel_param(struct gsm48_sysinfo *s, struct gsm48_cell_sel_par *cs)
-{
-	s->radio_link_timeout = (cs->radio_link_timeout + 1) * 4;
-	s->dtx = cs->dtx;
-	s->pwrc = cs->pwrc;
-}
-
-/* decode "Cell Options (BCCH)" (10.5.2.3) */
-static int gsm48_decode_cellopt(struct gsm48_sysinfo *s, struct gsm48_cell_options *co)
-{
-	s->ms_txpwr_max_ccch = co->ms_txpwr_max_ccch;
-	s->cell_resel_hyst_db = co->cell_resel_hyst * 2;
-	s->rxlev_acc_min_db = co->rxlev_acc_min - 110;
-	s->neci = co->neci;
-	s->acs = co->acs;
-}
-
-/* decode "Cell Channel Description" (10.5.2.11) */
-static int gsm48_decode_ccd(struct gsm48_sysinfo *s, struct gsm48_control_channel_desc *cc)
-{
-	s->ccch_conf = cc->ccch_conf;
-	s->bs_ag_blks_res = cc->bs_ag_blks_res;
-	s->att_allowed = cc->att;
-	s->pag_mf_periods = cc->bs_pa_mfrms + 2;
-	s->t3212 = cc->t3212 * 360; /* convert deci-hours to seconds */
-}
-
-/* decode "Mobile Allocation" (10.5.2.21) */
-static int gsm48_decode_mobile_alloc(struct gsm48_sysinfo *s, uint8_t *ma, uint8_t len)
-{
-	int i, j = 0;
-	uint16_t f[len << 3];
-
-	/* not more than 64 hopping indexes allowed in IE */
-	if (len > 8)
-		return -EINVAL;
-
-	/* tabula rasa */
-	s->hopp_len = 0;
-
-	/* generating list of all frequencies (1..1023,0) */
-	for (i = 1; i <= 1024; i++) {
-		if ((s->freq[i & 1023] & FREQ_TYPE_SERV)) {
-			f[j++] = i & 1023;
-			if (j == (len << 3))
-				break;
-		}
-	}
-
-	/* fill hopping table with frequency index given by IE */
-	for (i = 0, i < (len << 3), i++) {
-		/* if bit is set, this frequency index is used for hopping */
-		if ((ma[len - 1 - (i >> 3)] & (1 << (i & 7)))) {
-			/* index higher than entries in list ? */
-			if (i >= j) {
-				DEBUGP(DRR, "Mobile Allocation hopping index "
-					"%d exceeds maximum number of cell "
-					"frequencies. (%d)\n", i + 1, j);
-				break;
-			}
-			hopping[s->hopp_len++] = f[i];
-		}
-	}
-
-	return 0;
-}
-
-/* Rach Control decode tables */
-static uint8_t gsm48_max_retrans[4] = {
-	1, 2, 4, 7
-}
-static uint8_t gsm48_tx_integer[16] = {
-	3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 20, 25, 32, 50
-}
-
-/* decode "RACH Control Parameter" (10.5.2.29) */
-static int gsm48_decode_rach_ctl_param(struct gsm48_sysinfo *s, struct gsm48_rach_ctl *rc)
-{
-	int i;
-
-	s->reest_denied = rc->re;
-	s->cell_barred = rc->cell_barr;
-	s->tx_integer = gsm48_tx_integer[rc->tx_int];
-	s->max_retrans = gsm48_max_retrans[rc->max_retr];
-	for (i = 0, i <= 15, i++)
-		if ((rc->ac[1 - (i >> 3)] & (1 << (i & 7))))
-			s->class_barr[i] = 1;
-		else
-			s->class_barr[i] = 0;
-
-	return 0;
-}
-static int gsm48_decode_rach_ctl_neigh(struct gsm48_sysinfo *s, struct gsm48_rach_ctl *rc)
-{
-	int i;
-
-	s->nb_reest_denied = rc->re;
-	s->nb_cell_barred = rc->cell_barr;
-	s->nb_tx_integer = gsm48_tx_integer[rc->tx_int];
-	s->nb_max_retrans = gsm48_max_retrans[rc->max_retr];
-	for (i = 0, i <= 15, i++)
-		if ((rc->ac[1 - (i >> 3)] & (1 << (i & 7))))
-			s->nb_class_barr[i] = 1;
-		else
-			s->nb_class_barr[i] = 0;
-
-	return 0;
-}
-
-/* decode "SI 1 Rest Octets" (10.5.2.32) */
-static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s, uint8_t *si, uint8_t len)
-{
-}
-
-/* decode "SI 3 Rest Octets" (10.5.2.34) */
-static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si, uint8_t len)
-{
-}
-
-/* decode "SI 4 Rest Octets" (10.5.2.35) */
-static int gsm48_decode_si4_rest(struct gsm48_sysinfo *s, uint8_t *si, uint8_t len)
-{
-}
-
-
-todo: add to unit data ind switch-case state
-/* receive "SYSTEM INFORMATION 1" message (9.1.31) */
-static int gsm_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_system_information_type_1 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
-
-	if (payload_len < 0) {
-		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 1 message.\n");
-		return -EINVAL;
-	}
-	/* Cell Channel Description */
-	gsm48_decode_freq_list(s->freq, si->cell_channel_description,
-		sizeof(si->cell_channel_description), 0xce, FREQ_TYPE_SERV);
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_param(s, si->rach_control);
-	/* SI 1 Rest Octets */
-	if (payload_len)
-		gsm48_decode_si1_rest(si->rest_octets, payload_len);
-
-	return 0;
-}
-
-
-todo: add to unit data ind switch-case state
-/* receive "SYSTEM INFORMATION 2" message (9.1.32) */
-static int gsm_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_system_information_type_2 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
-
-	if (payload_len < 0) {
-		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 2 message.\n");
-		return -EINVAL;
-	}
-	/* Neighbor Cell Description */
-	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2);
-	/* NCC Permitted */
-	s->nb_ncc_permitted = si->ncc_permitted;
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_neigh(s, si->rach_control);
-
-	return 0;
-}
-
-todo: add to unit data ind switch-case state
-/* receive "SYSTEM INFORMATION 2bis" message (9.1.33) */
-static int gsm_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_system_information_type_2bis *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
-
-	if (payload_len < 0) {
-		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 2bis message.\n");
-		return -EINVAL;
-	}
-	/* Neighbor Cell Description */
-	s->nb_ext_ind = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->nb_ba_ind = (si->bcch_frequency_list[0] >> 5) & 1;
-	gsm48_decode_freq_list(s->freq, si->ext_bcch_frequency_list,
-		sizeof(si->ext_bcch_frequency_list), 0x8e, FREQ_TYPE_NCELL_2bis);
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_neigh(s, si->rach_control);
-
-	return 0;
-}
-
-
-todo: add to unit data ind switch-case state
-/* receive "SYSTEM INFORMATION 2ter" message (9.1.34) */
-static int gsm_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_system_information_type_2ter *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
-
-	if (payload_len < 0) {
-		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 2ter message.\n");
-		return -EINVAL;
-	}
-	/* Neighbor Cell Description 2 */
-	s->nb_multi_rep = (si->bcch_frequency_list[0] >> 6) & 3;
-	gsm48_decode_freq_list(s->freq, si->ext_bcch_frequency_list,
-		sizeof(si->ext_bcch_frequency_list), 0x8e, FREQ_TYPE_NCELL_2ter);
-
-	return 0;
-}
-
-todo: add to unit data ind switch-case state
-/* receive "SYSTEM INFORMATION 3" message (9.1.35) */
-static int gsm_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_system_information_type_3 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
-
-	if (payload_len < 0) {
-		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 3 message.\n");
-		return -EINVAL;
-	}
-	/* Cell Identity */
-	s->cell_identity = ntohl(si->cell_identity);
-	/* LAI */
-	gsm48_decode_lai(si->lai, s->mcc, s->mnc, s->lac);
-	/* Control Channel Description */
-	gsm48_decode_ccd(s, si->control_channel_desc);
-	/* Cell Options (BCCH) */
-	gsm48_decode_cellopt(s, si->control_channel_desc);
-	/* Cell Selection Parameters */
-	gsm48_decode_cell_sel_param(s, si->cell_sel_par);
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_param(s, si->rach_control);
-	/* SI 3 Rest Octets */
-	if (payload_len >= 4)
-		gsm48_decode_si3_rest(si->rest_octets, payload_len);
-
-	return 0;
-}
-
-todo: add to unit data ind switch-case state
-/* receive "SYSTEM INFORMATION 4" message (9.1.36) */
-static int gsm_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_system_information_type_4 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
-
-	if (payload_len < 0) {
-		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 4 message.\n");
-		return -EINVAL;
-	}
-	/* LAI */
-	gsm48_decode_lai(si->lai, s->mcc, s->mnc, s->lac);
-	/* Cell Selection Parameters */
-	gsm48_decode_cell_sel_param(s, si->cell_sel_par);
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_param(s, si->rach_control);
-	/* CBCH Channel Description */
-	if (payload_len >= 4 && si->data[0] == GSM48_IE_CBCH_CHAN_DES) {
-		memcpy(&s->chan_desc, si->data + 1, sizeof(s->chan_desc));
-		/* CBCH Mobile Allocation */
-		if (payload_len >= 6 && si->data[4] == GSM48_IE_CBCH_MOB_ALLOC
-			&& payload_len >= 6 + si->data[5])
-			gsm48_decode_mobile_alloc(&s, si->data + 6, si->data + 5);
-		}
-	}
-	/* Cell Options (BCCH) */
-	gsm48_decode_cellopt(s, si->control_channel_desc);
-	/* SI 4 Rest Octets */
-	if (payload_len >= 4 + 1 + si->data[5])
-		gsm48_decode_si3_rest(si->rest_octets,
-			payload_len - 4 - 1 - si->data[5]);
-
-	return 0;
-}
-
-todo: frequency list and extension processing: may we delete all frequencies in this category, or just the ones from this special system information?:
-
-todo: add to unit data ind switch-case state
-/* receive "SYSTEM INFORMATION 5" message (9.1.37) */
-static int gsm_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_system_information_type_5 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
-
-	if (payload_len < 0) {
-		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5 message.\n");
-		return -EINVAL;
-	}
-	/* Neighbor Cell Description */
-	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5);
-
-	return 0;
-}
-
-todo: add to unit data ind switch-case state
-/* receive "SYSTEM INFORMATION 5bis" message (9.1.38) */
-static int gsm_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_system_information_type_5bis *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
-
-	if (payload_len < 0) {
-		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5bis message.\n");
-		return -EINVAL;
-	}
-	/* Neighbor Cell Description */
-	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5bis);
-
-	return 0;
-}
-
-todo: add to unit data ind switch-case state
-/* receive "SYSTEM INFORMATION 5ter" message (9.1.39) */
-static int gsm_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_system_information_type_5ter *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
-
-	if (payload_len < 0) {
-		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5ter message.\n");
-		return -EINVAL;
-	}
-	/* Neighbor Cell Description */
-	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5ter);
-
-	return 0;
-}
 
 
 
@@ -2319,7 +2375,6 @@ static int tlv_copy(void *dest, int dest_len, struct tlv_parsed *tp, uint8_t ie)
 	return 0;
 }
 
-	 - flush/send when leaving this state (or completion or if back on old channel)
 static int gsm_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
@@ -2400,21 +2455,46 @@ static int gsm_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-	 - queue messages during this state
-	 - flush/send when leaving this state
+/* receiving HANDOVER COMMAND message (9.1.15) */
 static int gsm_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
 	struct gsm48_hdr *gh = msgb_l3(msg);
-	int payload_len = msgb_l3len(msg) - sizeof(*gh);
+	struct gsm48_ho_cmd *ho = (struct gsm48_ho_cmd *)gh->data;
+	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*ho);
+	struct tlv_parsed tp;
+	struct gsm_rr_chan_desc cd;
 
-	parsing
+	memset(&cd, 0, sizeof(cd));
 
-	send dl suspend req
+	if (payload_len < 0) {
+		DEBUGP(DRR, "Short read of HANDOVER COMMAND message.\n");
+		return gsm_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
+	tlv_parse(&tp, &rsl_att_tlvdef, ho->data, payload_len, 0, 0);
+
+
+
+
+
+today: more IE parsing
+
+	/* store current channel descriptions, to return in case of failure */
+	memcpy(&rr->chan_last, &rr->chan_desc, sizeof(*cd));
+	/* copy new description */
+	memcpy(&rr->chan_desc, cd, sizeof(cd));
+
+	/* start suspension of current link */
+	newmsg = gsm48_rr_msgb_alloc();
+	if (!newmsg)
+		return -ENOMEM;
+	rslms_tx_rll_req_l3(ms, RSL_MT_SUSP_REQ, rr->chan_desc.chan_nr, 0, msg);
 
 	/* change into special handover suspension state */
 	rr->hando_susp_state = 1;
 	rr->resume_last_state = 0;
+
+	return 0;
 }
 
 static int gsm_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
@@ -2428,15 +2508,15 @@ static int gsm_rr_estab_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 	if (rr->hando_susp_state || rr->assign_susp_state) {
 		if (rr->resume_last_state) {
 			rr->resume_last_state = 0;
-			gsm_rr_tx_ass_cpl(ms, cause);
-			flush queued radio ressource messages
-
-			return 0;
+			gsm_rr_tx_ass_cpl(ms, GSM48_RR_CAUSE_NORMAL);
 		} else {
 			gsm_rr_tx_ass_fail(ms, RR_CAUSE_PROTO_ERR_UNSPEC);
-			return 0;
 		}
+		/* transmit queued frames during ho / ass transition */
+		gsm_rr_dequeue_down(ms);
 	}
+
+	return 0;
 }
 
 static int gsm_rr_connect_cnf(struct osmocom_ms *ms, struct msgbl *msg)
@@ -2465,7 +2545,7 @@ static int gsm_rr_rel_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 
 	}
 	if (rr->hando_susp_state) {
-		send HANDOVER ACCESS via DL_RANDOM_ACCESS_REQ
+		gsm_rr_tx_hando_access(ms);
 		rr->hando_acc_left = 3;
 	}
 	return 0;
@@ -2487,7 +2567,11 @@ static int gsm_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 			/* change radio to old channel */
 			tx_ph_dm_est_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
 
-			return 0;
+			/* re-establish old link */
+			newmsg = gsm48_rr_msgb_alloc();
+			if (!newmsg)
+				return -ENOMEM;
+			return rslms_tx_rll_req_l3(ms, RSL_MT_EST_REQ, rr->chan_desc.chan_desc.chan_nr, 0, newmsg);
 		}
 		rr->resume_last_state = 0;
 	}
@@ -2569,6 +2653,21 @@ static void timeout_rr_t3124(void *arg)
 {
 	struct gsm_rrlayer *rr = arg;
 
+	/* stop sending more access bursts when timer expired */
+	hando_acc_left = 0;
+
+	/* get old channel description */
+	memcpy(&rr->chan_desc, &rr->chan_last, sizeof(*cd));
+
+	/* change radio to old channel */
+	tx_ph_dm_est_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
+
+	/* re-establish old link */
+	msg = gsm48_rr_msgb_alloc();
+	if (!msg)
+		return -ENOMEM;
+	return rslms_tx_rll_req_l3(ms, RSL_MT_EST_REQ, rr->chan_desc.chan_desc.chan_nr, 0, msg);
+
 	todo
 }
 
@@ -2603,6 +2702,15 @@ todo stop t3122 when cell change
 	return;
 }
 
+/* send HANDOVER ACCESS burst (9.1.14) */
+static int gsm_rr_tx_hando_access(struct osmocom_ms *ms)
+{
+	newmsg = msgb_alloc_headroom(20, 16, "HAND_ACCESS");
+	if (!newmsg)
+		return -ENOMEM;
+	*msgb_put(newmsg, 1) = rr->hando_ref;
+	return rslms_tx_rll_req_l3(ms, RSL_MT_RAND_ACC_REQ, chan_nr, 0, newmsg);
+}
 /* send next channel request in dedicated state */
 static int gsm_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -2618,11 +2726,12 @@ static int gsm_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg
 	/* send up to four handover access bursts */
 	if (rr->hando_acc_left) {
 		rr->hando_acc_left--;
-		send HANDOVER ACCESS via DL_RANDOM_ACCESS_REQ;
+		gsm_rr_tx_hando_access(ms);
 		return;
 	}
 
-	if (!timer 3124 running) {
+	/* start timer for sending next HANDOVER ACCESS bursts afterwards */
+	if (!timer_pending(&rr->t3124)) {
 		if (allocated channel is SDCCH)
 			start_rr_t3124(rr, GSM_T3124_675);
 		else
@@ -2633,43 +2742,8 @@ static int gsm_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg
 	}
 	rr->n_chan_req--;
 
-	/* table 3.1 */
-	switch(ms->si.tx_integer) {
-	case 3: case 8: case 14: case 50:
-		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
-			s = 55;
-		else
-			s = 41;
-	case 4: case 9: case 16:
-		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
-			s = 76;
-		else
-			s = 52;
-	case 5: case 10: case 20:
-		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
-			s = 109;
-		else
-			s = 58;
-	case 6: case 11: case 25:
-		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
-			s = 163;
-		else
-			s = 86;
-	default:
-		if (ms->si.bcch_type == GSM_NON_COMBINED_CCCH)
-			s = 217;
-		else
-			s = 115;
+	/* wait for PHYSICAL INFORMATION message or T3124 timeout */
+	return 0;
 
-	/* resend chan_req */
-	newmsg = msgb_alloc_headroom(20, 16, "CHAN_REQ");
-	if (!newmsg)
-		return -ENOMEM;
-	*msgb_put(newmsg, 1) = rr->chan_req;
-	*msgb_put(newmsg, 1) = (random() % ms->si.tx_integer) + s; /* delay */
-	rr->cr_hist[3] = rr->cr_hist[2];
-	rr->cr_hist[2] = rr->cr_hist[1];
-	rr->cr_hist[1] = chan_req;
-	return rslms_tx_rll_req_l3(ms, RSL_MT_RAND_ACC_REQ, chan_nr, 0, newmsg);
 }
 
