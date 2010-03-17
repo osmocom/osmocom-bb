@@ -374,10 +374,6 @@ static void l1_sync(void)
 		dsp_api.ndb->d_error_status = 0;
 	}
 
-#if 0
-	if (l1s.task != dsp_api.db_r->d_task_md)
-		printf("DSP task (%u) and L1S task (%u) disagree\n", dsp_api.db_r->d_task_md, l1s.task);
-#endif
 	/* execute the sched_items that have been scheduled for this TDMA frame */
 	tdma_sched_execute();
 
@@ -448,7 +444,7 @@ static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t fb_mode,
 	}
 
 	/* Program DSP */
-	l1s.task = dsp_api.db_w->d_task_md = FB_DSP_TASK;	/* maybe with I/Q swap? */
+	dsp_api.db_w->d_task_md = FB_DSP_TASK;	/* maybe with I/Q swap? */
 	dsp_api.ndb->d_fb_mode = fb_mode;
 	dsp_end_scenario();
 	last_task_fnr = dsp_api.frame_ctr;
@@ -726,7 +722,7 @@ static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 {
 	putchart('S');
 
-	l1s.task = dsp_api.db_w->d_task_md = SB_DSP_TASK;
+	dsp_api.db_w->d_task_md = SB_DSP_TASK;
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
 	dsp_end_scenario();
 
@@ -762,7 +758,7 @@ static int l1s_pm_cmd(__unused uint8_t p1,
 {
 	putchart('P');
 
-	l1s.task = dsp_api.db_w->d_task_md = 2;
+	dsp_api.db_w->d_task_md = 2;
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
 	dsp_end_scenario();
 	last_task_fnr = dsp_api.frame_ctr;
@@ -893,7 +889,7 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 		l1_queue_for_l2(msg);
 
 		/* clear downlink task */
-		l1s.task = dsp_api.db_w->d_task_d = 0;
+		dsp_api.db_w->d_task_d = 0;
 	}
 
 	/* mark READ page as being used */

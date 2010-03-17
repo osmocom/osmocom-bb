@@ -30,8 +30,6 @@ struct l1s_state {
 
 	uint32_t	tpu_offset;
 
-	int		task;
-
 	/* Transmit queues of pending packets for main DCCH and ACCH */
 	struct llist_head tx_queue[_NUM_L1S_CHAN];
 
