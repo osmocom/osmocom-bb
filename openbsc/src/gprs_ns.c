@@ -85,6 +85,12 @@ struct gprs_nsvc {
 	struct timer_list alive_timer;
 	int timer_is_tns_alive;
 	int alive_retries;
+
+	union {
+		struct {
+			struct sockaddr_in bts_addr;
+		} ip;
+	};
 };
 
 /* FIXME: dynamically search for the matching NSVC */
@@ -116,12 +122,12 @@ static const char *gprs_ns_cause_str(enum ns_cause cause)
 	return "undefined";
 }
 
-static int gprs_ns_tx(struct msgb *msg)
+static int gprs_ns_tx(struct msgb *msg, struct gprs_nsvc *nsvc)
 {
-	return ipac_gprs_send(msg);
+	return ipac_gprs_send(msg, &nsvc->ip.bts_addr);
 }
 
-static int gprs_ns_tx_simple(struct gprs_ns_link *link, u_int8_t pdu_type)
+static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, u_int8_t pdu_type)
 {
 	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
 	struct gprs_ns_hdr *nsh;
@@ -133,7 +139,7 @@ static int gprs_ns_tx_simple(struct gprs_ns_link *link, u_int8_t pdu_type)
 
 	nsh->pdu_type = pdu_type;
 
-	return gprs_ns_tx(msg);
+	return gprs_ns_tx(msg, nsvc);
 }
 
 #define NS_TIMER_ALIVE	3, 0 	/* after 3 seconds without response, we retry */
@@ -157,7 +163,7 @@ static void gprs_ns_alive_cb(void *data)
 		}
 	} else {
 		/* Tns-test case: send NS-ALIVE PDU */
-		gprs_ns_tx_simple(NULL, NS_PDUT_ALIVE);
+		gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
 		/* start Tns-alive timer */
 		nsvc->timer_is_tns_alive = 1;
 	}
@@ -165,25 +171,28 @@ static void gprs_ns_alive_cb(void *data)
 }
 
 /* Section 9.2.6 */
-static int gprs_ns_tx_reset_ack(u_int16_t nsvci, u_int16_t nsei)
+static int gprs_ns_tx_reset_ack(struct gprs_nsvc *nsvc)
 {
 	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
 	struct gprs_ns_hdr *nsh;
+	u_int16_t nsvci, nsei;
 
 	if (!msg)
 		return -ENOMEM;
 
-	nsvci = htons(nsvci);
-	nsei = htons(nsei);
+	nsvci = htons(nsvc->nsvci);
+	nsei = htons(nsvc->nsei);
 
 	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
 
 	nsh->pdu_type = NS_PDUT_RESET_ACK;
 
+	DEBUGP(DGPRS, "nsvci=%u, nsei=%u\n", nsvc->nsvci, nsvc->nsei);
+
 	msgb_tvlv_put(msg, NS_IE_VCI, 2, (u_int8_t *)&nsvci);
 	msgb_tvlv_put(msg, NS_IE_NSEI, 2, (u_int8_t *)&nsei);
 
-	return gprs_ns_tx(msg);
+	return gprs_ns_tx(msg, nsvc);
 }
 
 /* Section 9.2.10: transmit side */
@@ -191,6 +200,7 @@ int gprs_ns_sendmsg(struct gprs_ns_link *link, u_int16_t bvci,
 		    struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh;
+	struct gprs_nsvc *nsvc = &dummy_nsvc;
 
 	nsh = (struct gprs_ns_hdr *) msgb_push(msg, sizeof(*nsh) + 3);
 	if (!nsh) {
@@ -203,7 +213,7 @@ int gprs_ns_sendmsg(struct gprs_ns_link *link, u_int16_t bvci,
 	nsh->data[1] = bvci >> 8;
 	nsh->data[2] = bvci & 0xff;
 
-	return gprs_ns_tx(msg);
+	return gprs_ns_tx(msg, nsvc);
 }
 
 /* Section 9.2.10: receive side */
@@ -269,37 +279,37 @@ static int gprs_ns_rx_reset(struct msgb *msg)
 	nsvci = (u_int16_t *) TLVP_VAL(&tp, NS_IE_VCI);
 	nsei = (u_int16_t *) TLVP_VAL(&tp, NS_IE_NSEI);
 
-	*nsvci = ntohs(*nsvci);
-	*nsei = ntohs(*nsei);
+	nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
+	nsvc->nsei = ntohs(*nsei);
+	nsvc->nsvci = ntohs(*nsvci);
 
 	DEBUGPC(DGPRS, "cause=%s, NSVCI=%u, NSEI=%u\n",
-		gprs_ns_cause_str(*cause), *nsvci, *nsei);
+		gprs_ns_cause_str(*cause), nsvc->nsvci, nsvc->nsei);
 
 	/* mark the NS-VC as blocked and alive */
-	nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
-	nsvc->nsei = *nsei;
-	nsvc->nsvci = *nsvci;
-
 	/* start the test procedure */
 	nsvc->alive_timer.cb = gprs_ns_alive_cb;
 	nsvc->alive_timer.data = nsvc;
 	bsc_schedule_timer(&nsvc->alive_timer, NS_TIMER_ALIVE);
 
-	return gprs_ns_tx_reset_ack(*nsvci, *nsei);
+	return gprs_ns_tx_reset_ack(nsvc);
 }
 
 /* main entry point, here incoming NS frames enter */
-int gprs_ns_rcvmsg(struct msgb *msg)
+int gprs_ns_rcvmsg(struct msgb *msg, struct sockaddr_in *saddr)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
 	struct gprs_nsvc *nsvc = &dummy_nsvc;
 	int rc = 0;
 
+	/* FIXME: do this properly! */
+	nsvc->ip.bts_addr = *saddr;
+
 	switch (nsh->pdu_type) {
 	case NS_PDUT_ALIVE:
 		/* remote end inquires whether we're still alive,
 		 * we need to respond with ALIVE_ACK */
-		rc = gprs_ns_tx_simple(NULL, NS_PDUT_ALIVE_ACK);
+		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE_ACK);
 		break;
 	case NS_PDUT_ALIVE_ACK:
 		/* stop Tns-alive */
@@ -325,7 +335,7 @@ int gprs_ns_rcvmsg(struct msgb *msg)
 		/* Section 7.2: unblocking procedure */
 		DEBUGP(DGPRS, "NS UNBLOCK\n");
 		nsvc->state &= ~NSE_S_BLOCKED;
-		rc = gprs_ns_tx_simple(NULL, NS_PDUT_UNBLOCK_ACK);
+		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
 		break;
 	case NS_PDUT_UNBLOCK_ACK:
 		/* FIXME: mark remote NS-VC as unblocked + active */
@@ -333,7 +343,7 @@ int gprs_ns_rcvmsg(struct msgb *msg)
 	case NS_PDUT_BLOCK:
 		DEBUGP(DGPRS, "NS BLOCK\n");
 		nsvc->state |= NSE_S_BLOCKED;
-		rc = gprs_ns_tx_simple(NULL, NS_PDUT_UNBLOCK_ACK);
+		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
 		break;
 	case NS_PDUT_BLOCK_ACK:
 		/* FIXME: mark remote NS-VC as blocked + active */

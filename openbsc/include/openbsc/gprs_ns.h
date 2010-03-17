@@ -54,7 +54,7 @@ struct gprs_ns_link {
 };
 
 
-int gprs_ns_rcvmsg(struct msgb *msg);
+int gprs_ns_rcvmsg(struct msgb *msg, struct sockaddr_in *saddr);
 
 int gprs_ns_sendmsg(struct gprs_ns_link *link, u_int16_t bvci,
 		    struct msgb *msg);
