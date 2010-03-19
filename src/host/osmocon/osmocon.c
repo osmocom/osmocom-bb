@@ -268,7 +268,7 @@ static void hexdump(const uint8_t *data, unsigned int len)
 	const uint8_t *bufptr = data;
 	int n;
 
-	for (n=0; bufptr, n < len; n++, bufptr++)
+	for (n=0; n < len; n++, bufptr++)
 		printf("%02x ", *bufptr);
 	printf("\n");
 }
@@ -457,7 +457,7 @@ static int handle_read(void)
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
 	} else if (!memcmp(buffer, ftmtool, sizeof(ftmtool))) {
-		printf("Received FTMTOOL from phone, ramolader has aborted\n");
+		printf("Received FTMTOOL from phone, ramloader has aborted\n");
 		dnload.serial_fd.when = BSC_FD_READ;
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
