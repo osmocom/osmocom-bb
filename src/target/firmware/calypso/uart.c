@@ -260,10 +260,13 @@ static void uart_irq_handler_sercomm(__unused enum irq_nr irqnr)
 		}
 		break;
 	case IIR_INT_TYPE_MSR:
+		printf("UART IRQ MSR\n");
 		break;
 	case IIR_INT_TYPE_RX_STATUS_ERROR:
+		printf("UART IRQ RX_SE\n");
 		break;
 	case IIR_INT_TYPE_XOFF:
+		printf("UART IRQXOFF\n");
 		break;
 	}
 }
@@ -369,10 +372,28 @@ int uart_putchar_nb(uint8_t uart, int c)
 
 int uart_getchar_nb(uint8_t uart, uint8_t *ch)
 {
-	if (!(readb(UART_REG(uart, LSR)) & 0x01))
+	uint8_t lsr;
+
+	lsr = readb(UART_REG(uart, LSR));
+
+	/* something strange happened */
+	if (lsr & 0x02)
+		printf("LSR RX_OE\n");
+	if (lsr & 0x04)
+		printf("LSR RX_PE\n");
+	if (lsr & 0x08)
+		printf("LSR RX_FE\n");
+	if (lsr & 0x10)
+		printf("LSR RX_BI\n");
+	if (lsr & 0x80)
+		printf("LSR RX_FIFO_STS\n");
+
+	/* is the Rx FIFO empty? */
+	if (!(lsr & 0x01))
 		return 0;
 
 	*ch = readb(UART_REG(uart, RHR));
+	//printf("getchar_nb(%u) = %02x\n", uart, *ch);
 	return 1;
 }
 
