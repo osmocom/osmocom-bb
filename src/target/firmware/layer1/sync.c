@@ -840,8 +840,9 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 	/* 4th burst, get frame data */
 	if (dsp_api.db_r->d_burst_d == 3) {
+		struct l1ctl_hdr *l1h;
 		struct l1ctl_info_dl *dl;
-		struct l1ctl_data_ind *l1;
+		struct l1ctl_data_ind *di;
 		uint32_t avg_snr = 0;
 		int32_t avg_dbm8 = 0;
 		uint8_t i, j;
@@ -863,8 +864,9 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 		/* place it in the queue for the layer2 */
 		msg = l1_create_l2_msg(L1CTL_DATA_IND, l1s.current_time.fn-4, last_fb->snr, rf_arfcn);
-		dl = (struct l1ctl_info_dl *) msg->data;
-		l1 = (struct l1ctl_data_ind *) msgb_put(msg, sizeof(*l1));
+		l1h = (struct l1ctl_hdr *) msg->l1h;
+		dl = (struct l1ctl_info_dl *) l1h->data;
+		di = (struct l1ctl_data_ind *) msgb_put(msg, sizeof(*di));
 
 		/* Set Channel Number depending on MFrame Task ID */
 		dl->chan_nr = mframe_task2chan_nr(mf_task_id, 0); /* FIXME: TS */
@@ -885,7 +887,7 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 		/* copy the actual payload data */
 		for (i = 0; i < 23; ++i)
-			l1->data[i] = sig->nb.frame[i];
+			di->data[i] = sig->nb.frame[i];
 		l1_queue_for_l2(msg);
 
 		/* clear downlink task */

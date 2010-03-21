@@ -31,20 +31,23 @@
 #define L1CTL_DM_EST_REQ	5
 #define L1CTL_DATA_REQ		7
 #define L1CTL_RESET		8
+#define L1CTL_PM_REQ		9	/* power measurement */
 
 /*
  * NOTE: struct size. We do add manual padding out of the believe
  * that it will avoid some unaligned access.
  */
 
+struct l1ctl_hdr {
+	uint8_t msg_type;
+	uint8_t padding;
+	uint8_t data[0];
+} __attribute__((packed));
+
 /*
  * downlink info ... down from the BTS..
  */
 struct l1ctl_info_dl {
-	/* common header, should be its own struct */
-	uint8_t msg_type;
-	uint8_t padding;
-
 	/* GSM 08.58 channel number (9.3.1) */
 	uint8_t chan_nr;
 	/* GSM 08.58 link identifier (9.3.2) */
@@ -57,6 +60,7 @@ struct l1ctl_info_dl {
 
 	uint8_t rx_level;	/* 0 .. 63 in typical GSM notation (dBm+110) */
 	uint8_t snr;		/* Signal/Noise Ration (dB) */
+	uint8_t payload[0];
 } __attribute__((packed));
 
 /* new CCCH was found. This is following the header */
@@ -74,10 +78,6 @@ struct l1ctl_data_ind {
  * uplink info
  */
 struct l1ctl_info_ul {
-	/* common header, should be its own struct */
-	uint8_t msg_type;
-	uint8_t padding;
-
 	/* GSM 08.58 channel number (9.3.1) */
 	uint8_t chan_nr;
 	/* GSM 08.58 link identifier (9.3.2) */
@@ -121,6 +121,18 @@ struct l1ctl_dm_est_req {
 				 tsc:3;
 			uint8_t arfcn_low;
 		} h0;
+	};
+} __attribute__((packed));
+
+struct l1ctl_pm_req {
+	uint8_t type;
+	uint8_t padding2;
+
+	union {
+		struct {
+			uint16_t band_arfcn_from;
+			uint16_t band_arfcn_to;
+		} range;
 	};
 } __attribute__((packed));
 

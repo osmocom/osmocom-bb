@@ -82,6 +82,7 @@ static enum mframe_task chan_nr2mf_task(uint8_t chan_nr)
 struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 			      uint16_t arfcn)
 {
+	struct l1ctl_hdr *l1h;
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 
@@ -94,8 +95,10 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 		return NULL;
 	}
 
+	l1h = (struct l1ctl_hdr *) msgb_put(msg, sizeof(*l1h));
+	l1h->msg_type = msg_type;
+
 	dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
-	dl->msg_type = msg_type;
 	dl->frame_nr = htonl(fn);
 	dl->snr = snr;
 	dl->band_arfcn = arfcn;
@@ -103,10 +106,19 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 	return msg;
 }
 
+void l1ctl_rx_pm_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_pm_req *pm_req = (struct l1ctl_pm_req *) l1h->data;
+
+	/* FIXME */
+}
+
 /* callback from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) msg->data;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_sync_new_ccch_req *sync_req;
 	struct l1ctl_rach_req *rach_req;
 	struct l1ctl_dm_est_req *est_req;
@@ -121,19 +133,21 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		puts("\n");
 	}
 
-	if (sizeof(*ul) > msg->len) {
+	msg->l1h = msg->data;
+
+	if (sizeof(*l1h) > msg->len) {
 		printf("l1a_l23_cb: Short message. %u\n", msg->len);
 		goto exit_msgbfree;
 	}
 
-	switch (ul->msg_type) {
+	switch (l1h->msg_type) {
 	case L1CTL_NEW_CCCH_REQ:
-		if (sizeof(*ul) + sizeof(*sync_req) > msg->len) {
+		if (sizeof(*sync_req) > msg->len) {
 			printf("Short sync msg. %u\n", msg->len);
 			break;
 		}
 
-		sync_req = (struct l1ctl_sync_new_ccch_req *) (&msg->data[0] + sizeof(*ul));
+		sync_req = (struct l1ctl_sync_new_ccch_req *) l1h->data;
 		printd("L1CTL_DM_EST_REQ (arfcn=%u)\n", sync_req->band_arfcn);
 
 		/* reset scheduler and hardware */
@@ -177,7 +191,6 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 	case L1CTL_DATA_REQ:
 		data_ind = (struct l1ctl_data_ind *) ul->payload;
 		printd("L1CTL_DATA_REQ (link_id=0x%02x)\n", ul->link_id);
-		printd("sizeof(struct l1ctl_info_ul)=%u\n", sizeof(struct l1ctl_info_ul));
 		if (ul->link_id & 0x40)
 			tx_queue = &l1s.tx_queue[L1S_CHAN_SACCH];
 		else
@@ -188,6 +201,10 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		l1a_txq_msgb_enq(tx_queue, msg);
 		/* we have to keep the msgb, not free it! */
 		goto exit_nofree;
+	case L1CTL_PM_REQ:
+		printd("L1CTL_PM_REQ\n");
+		l1ctl_rx_pm_req(msg);
+		break;
 	}
 
 exit_msgbfree:

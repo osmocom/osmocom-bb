@@ -25,6 +25,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+
+#include <arpa/inet.h>
+
 #include <l1a_l23_interface.h>
 
 #include <osmocore/timer.h>
@@ -43,7 +46,7 @@
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {
-	struct l1ctl_info_ul *ul;
+	struct l1ctl_hdr *l1h;
 	struct msgb *msg = msgb_alloc_headroom(256, 4, "osmo_l1");
 
 	if (!msg) {
@@ -51,9 +54,9 @@ static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 		return NULL;
 	}
 
-	msg->l1h = msgb_put(msg, sizeof(*ul));
-	ul = (struct l1ctl_info_ul *) msg->l1h;
-	ul->msg_type = msg_type;
+	msg->l1h = msgb_put(msg, sizeof(*l1h));
+	l1h = (struct l1ctl_hdr *) msg->l1h;
+	l1h->msg_type = msg_type;
 	
 	return msg;
 }
@@ -77,7 +80,7 @@ static int rx_l1_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
-	sb = (struct l1ctl_sync_new_ccch_resp *) msg->l2h;
+	sb = (struct l1ctl_sync_new_ccch_resp *) dl->payload;
 
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	printf("SCH: SNR: %u TDMA: (%.4u/%.2u/%.2u) bsic: %d\n",
@@ -129,6 +132,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
+	msg->l2h = dl->payload;
 	ccch = (struct l1ctl_data_ind *) msg->l2h;
 
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
@@ -151,7 +155,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	memcpy(&dl_cpy, dl, sizeof(dl_cpy));
 
 	/* pull the L1 header from the msgb */
-	msgb_pull(msg, msg->l2h - msg->l1h);
+	msgb_pull(msg, msg->l2h - (msg->l1h-sizeof(struct l1ctl_hdr)));
 	msg->l1h = NULL;
 
 	/* send it up into LAPDm */
@@ -164,6 +168,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 		   uint8_t chan_nr, uint8_t link_id)
 {
+	struct l1ctl_hdr *l1h;
 	struct l1ctl_info_ul *l1i_ul;
 	uint8_t chan_type, chan_ts, chan_ss;
 	uint8_t gsmtap_chan_type;
@@ -184,17 +189,18 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 			0, 127, 255, msg->l2h, msgb_l2len(msg));
 
 	/* prepend uplink info header */
-	printf("sizeof(struct l1ctl_info_ul)=%lu\n", sizeof(*l1i_ul));
-	msg->l1h = msgb_push(msg, sizeof(*l1i_ul));
-	l1i_ul = (struct l1ctl_info_ul *) msg->l1h;
-
-	l1i_ul->msg_type = L1CTL_DATA_REQ;
+	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));
 
 	l1i_ul->chan_nr = chan_nr;
 	l1i_ul->link_id = link_id;
 
 	/* FIXME: where to get this from? */
 	l1i_ul->tx_power = 0;
+
+	/* prepend l1 header */
+	msg->l1h = msgb_push(msg, sizeof(*l1h));
+	l1h = (struct l1ctl_hdr *) msg->l1h;
+	l1h->msg_type = L1CTL_DATA_REQ;
 
 	return osmo_send_l1(ms, msg);
 }
@@ -220,6 +226,7 @@ static int rx_l1_reset(struct osmocom_ms *ms)
 int tx_ph_rach_req(struct osmocom_ms *ms)
 {
 	struct msgb *msg;
+	struct l1ctl_info_ul *ul;
 	struct l1ctl_rach_req *req;
 	static uint8_t i = 0;
 
@@ -228,6 +235,7 @@ int tx_ph_rach_req(struct osmocom_ms *ms)
 		return -1;
 
 	printf("RACH Req.\n");
+	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	req = (struct l1ctl_rach_req *) msgb_put(msg, sizeof(*req));
 	req->ra = i++;
 
@@ -247,7 +255,7 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 
 	printf("Tx Dedic.Mode Est Req (arfcn=%u, chan_nr=0x%02x)\n",
 		band_arfcn, chan_nr);
-	ul = (struct l1ctl_info_ul *) msg->l1h;
+	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
 	ul->link_id = 0;
 	ul->tx_power = 0; /* FIXME: initial TX power */
@@ -255,13 +263,13 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 	req->band_arfcn = band_arfcn;
 
 	return osmo_send_l1(ms, msg);
-
 }
 
 /* Receive incoming data from L1 using L1CTL format */
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {
 	int rc = 0;
+	struct l1ctl_hdr *l1h;
 	struct l1ctl_info_dl *dl;
 
 	if (msgb_l2len(msg) < sizeof(*dl)) {
@@ -269,10 +277,13 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		return -1;
 	}
 
-	dl = (struct l1ctl_info_dl *) msg->l1h;
-	msg->l2h = &msg->l1h[0] + sizeof(*dl);
+	l1h = (struct l1ctl_info_dl *) msg->l1h;
 
-	switch (dl->msg_type) {
+	/* move the l1 header pointer to point _BEHIND_ l1ctl_hdr,
+	   as the l1ctl header is of no interest to subsequent code */
+	msg->l1h = l1h->data;
+
+	switch (l1h->msg_type) {
 	case L1CTL_NEW_CCCH_RESP:
 		rc = rx_l1_ccch_resp(ms, msg);
 		break;
@@ -283,7 +294,7 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		rc = rx_l1_reset(ms);
 		break;
 	default:
-		fprintf(stderr, "Unknown MSG: %u\n", dl->msg_type);
+		fprintf(stderr, "Unknown MSG: %u\n", l1h->msg_type);
 		break;
 	}
 
