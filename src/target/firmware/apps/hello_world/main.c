@@ -73,6 +73,17 @@ static void console_rx_cb(uint8_t dlci, struct msgb *msg)
 	msgb_free(msg);
 }
 
+static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
+{
+	{
+		int i;
+		puts("l1a_l23_rx_cb: ");
+		for (i = 0; i < msg->len; i++)
+			printf("%02x ", msg->data[i]);
+		puts("\n");
+	}
+}
+
 int main(void)
 {
 	board_init();
@@ -104,6 +115,7 @@ int main(void)
 	display_puts("Hello World");
 
 	sercomm_register_rx_cb(SC_DLCI_CONSOLE, console_rx_cb);
+	sercomm_register_rx_cb(SC_DLCI_L1A_L23, l1a_l23_rx_cb);
 
 	/* beyond this point we only react to interrupts */
 	puts("entering interrupt loop\n");
