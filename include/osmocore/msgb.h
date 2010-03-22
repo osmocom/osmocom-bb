@@ -46,6 +46,7 @@ struct msgb {
 	union {
 		unsigned char *smsh;
 		unsigned char *llch;
+		unsigned char *l4h;
 	};
 
 	/* the layer 5 header, GPRS: GMM header */
