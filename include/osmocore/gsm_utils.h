@@ -46,7 +46,7 @@ enum gsm_band {
 	GSM_BAND_810	= 0x80,
 };
 
-char *gsm_band_name(enum gsm_band band);
+const char *gsm_band_name(enum gsm_band band);
 enum gsm_band gsm_band_parse(const char *mhz);
 
 int gsm_7bit_decode(char *decoded, const uint8_t *user_data, uint8_t length);

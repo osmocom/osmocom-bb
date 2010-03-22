@@ -16,7 +16,7 @@ uint8_t rsl_enc_chan_nr(uint8_t type, uint8_t subch, uint8_t timeslot);
 /* decode channel number as per Section 9.3.1 */
 int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *timeslot);
 
-const struct value_string rsl_rlm_cause_strs[];
+extern const struct value_string rsl_rlm_cause_strs[];
 
 const char *rsl_err_name(uint8_t err);
 

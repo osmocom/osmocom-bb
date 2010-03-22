@@ -193,7 +193,7 @@ uint8_t dbm2rxlev(int dbm)
 	return rxlev;
 }
 
-char *gsm_band_name(enum gsm_band band)
+const char *gsm_band_name(enum gsm_band band)
 {
 	switch (band) {
 	case GSM_BAND_450:
