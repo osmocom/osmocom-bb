@@ -39,5 +39,6 @@ struct write_queue {
 
 void write_queue_init(struct write_queue *queue, int max_length);
 int write_queue_enqueue(struct write_queue *queue, struct msgb *data);
+int write_queue_bfd_cb(struct bsc_fd *fd, unsigned int what);
 
 #endif

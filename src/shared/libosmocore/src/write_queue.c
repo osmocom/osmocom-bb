@@ -23,7 +23,7 @@
 
 #include <osmocore/write_queue.h>
 
-static int queue_cb(struct bsc_fd *fd, unsigned int what)
+int write_queue_bfd_cb(struct bsc_fd *fd, unsigned int what)
 {
 	struct write_queue *queue;
 
@@ -57,7 +57,7 @@ void write_queue_init(struct write_queue *queue, int max_length)
 	queue->current_length = 0;
 	queue->read_cb = NULL;
 	queue->write_cb = NULL;
-	queue->bfd.cb = queue_cb;
+	queue->bfd.cb = write_queue_bfd_cb;
 	INIT_LLIST_HEAD(&queue->msg_queue);
 }
 
