@@ -23,7 +23,7 @@
  * state transition
  */
 
-char *rr_state_names[] = {
+const char *rr_state_names[] = {
 	"IDLE",
 	"CONN PEND",
 	"DEDICATED",

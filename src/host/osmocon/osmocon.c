@@ -665,9 +665,9 @@ extern void hdlc_tpudbg_cb(uint8_t dlci, struct msgb *msg);
 int main(int argc, char **argv)
 {
 	int opt, flags;
-	char *serial_dev = "/dev/ttyUSB1";
-	char *layer2_un_path = "/tmp/osmocom_l2";
-	char *loader_un_path = "/tmp/osmocom_loader";
+	const char *serial_dev = "/dev/ttyUSB1";
+	const char *layer2_un_path = "/tmp/osmocom_l2";
+	const char *loader_un_path = "/tmp/osmocom_loader";
 
 	dnload.mode = MODE_C123;
 

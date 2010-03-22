@@ -39,7 +39,7 @@ static void hexdump(const uint8_t *data, unsigned int len)
 	const uint8_t *bufptr = data;
 	int n;
 
-	for (n=0; bufptr, n < len; n++, bufptr++)
+	for (n=0; n < len; n++, bufptr++)
 		printf("%02x ", *bufptr);
 	printf("\n");
 }

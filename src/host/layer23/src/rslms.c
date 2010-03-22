@@ -76,7 +76,7 @@ static int rslms_rx_udata_ind(struct msgb *msg, struct osmocom_ms *ms)
 	if (rllh->chan_nr == RSL_CHAN_PCH_AGCH)
 		rc = gsm48_rx_ccch(msg, ms);
 	else if (rllh->chan_nr == RSL_CHAN_BCCH) {
-		rc = gsm48_rx_bcch(msg);
+		rc = gsm48_rx_bcch(msg, ms);
 		if (rach_count < 2) {
 			tx_ph_rach_req(ms);
 			rach_count++;

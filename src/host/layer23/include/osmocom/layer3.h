@@ -6,5 +6,6 @@
 
 int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms);
 int gsm48_rx_dcch(struct msgb *msg, struct osmocom_ms *ms);
+int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms);
 
 #endif
