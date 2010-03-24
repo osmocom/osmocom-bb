@@ -71,22 +71,24 @@ ALL_DEPS+=$(ANY_APP_OBJS:.o=.p)
 # template for application rules
 define APPLICATION_BOARD_ENVIRONMENT_template
 
-$(1)_$(2)_$(3)_OBJS := apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS) board/$(2)/manifest.$(3).o
+# define set of objects for this binary
+$(1)_$(2)_$(3)_OBJS := apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS)
 
+# define manifest compilation
+board/$(2)/$(1).$(3).manifest.o: board/manifest.c
+	$(CROSS_COMPILE)$(CC) $(CFLAGS) -DAPPLICATION=\"$(3)\" -DBOARD=\"$(2)\" -DENVIRONMENT=\"$(3)\" -c -o $$@ $$<
+
+# add manifest object to object list
+$(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o
+
+# define compilation, generating various extra files on the way
 board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map board/$(2)/$(1).$(3).size: $$($(1)_$(2)_$(3)_OBJS) $$($(3)_LDS)
-	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic -Map board/$(2)/$(1).$(3).map  -o board/$(2)/$(1).$(3).elf --start-group $$($(1)_$(2)_$(3)_OBJS) --end-group
+	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic \
+		-Map board/$(2)/$(1).$(3).map -o board/$(2)/$(1).$(3).elf \
+		--start-group $$($(1)_$(2)_$(3)_OBJS) --end-group
 	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
 
 ALL_APPS+=board/$(2)/$(1).$(3).elf
-
-endef
-
-define BOARD_ENVIRONMENT_template
-
-board/$(1)/manifest.$(2).o: board/manifest.c
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) -DBOARD=\"$(1)\" -DENVIRONMENT=\"$(2)\" -c -o $$@ $$<
-
-ALL_OBJS+=board/$(1)/manifest.$(2).o
 
 endef
 
@@ -109,7 +111,6 @@ endef
 
 # define rules for all defined applications
 $(foreach app,$(APPLICATIONS),$(foreach brd,$(BOARDS),$(foreach env,$(ENVIRONMENTS),$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
-$(foreach brd,$(BOARDS),$(foreach env,$(ENVIRONMENTS),$(eval $(call BOARD_ENVIRONMENT_template,$(brd),$(env)))))
 $(foreach brd,$(BOARDS),$(eval $(call BOARD_template,$(brd))))
 $(foreach app,$(APPLICATIONS),$(eval $(call APPLICATION_template,$(app))))
 
