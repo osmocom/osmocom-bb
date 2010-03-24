@@ -1,5 +1,7 @@
 
 #include "manifest.h"
 
-const char *target_board = BOARD;
-const char *target_environment = ENVIRONMENT;
+const char *manifest_application = APPLICATION;
+const char *manifest_revision = GIT_REVISION;
+const char *manifest_board = BOARD;
+const char *manifest_environment = ENVIRONMENT;
