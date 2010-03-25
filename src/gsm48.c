@@ -1,7 +1,7 @@
 /* GSM Mobile Radio Interface Layer 3 messages
  * 3GPP TS 04.08 version 7.21.0 Release 1998 / ETSI TS 100 940 V7.21.0 */
 
-/* (C) 2008-2009 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2008-2010 by Harald Welte <laforge@gnumonks.org>
  * (C) 2008, 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
  *
  * All Rights Reserved
@@ -96,7 +96,8 @@ static const struct value_string rr_cause_names[] = {
 	{ 0,					NULL },
 };
 
-const char *cc_state_names[32] = {
+/* FIXME: convert to value_string */
+static const char *cc_state_names[32] = {
 	"NULL",
 	"INITIATED",
 	"illegal state 2",
@@ -131,74 +132,57 @@ const char *cc_state_names[32] = {
 	"illegal state 31",
 };
 
-const char *gsm48_cc_msg_names[0x40] = {
-	"unknown 0x00",
-	"ALERTING",
-	"CALL_PROC",
-	"PROGRESS",
-	"ESTAB",
-	"SETUP",
-	"ESTAB_CONF",
-	"CONNECT",
-	"CALL_CONF",
-	"START_CC",
-	"unknown 0x0a",
-	"RECALL",
-	"unknown 0x0c",
-	"unknown 0x0d",
-	"EMERG_SETUP",
-	"CONNECT_ACK",
-	"USER_INFO",
-	"unknown 0x11",
-	"unknown 0x12",
-	"MODIFY_REJECT",
-	"unknown 0x14",
-	"unknown 0x15",
-	"unknown 0x16",
-	"MODIFY",
-	"HOLD",
-	"HOLD_ACK",
-	"HOLD_REJ",
-	"unknown 0x1b",
-	"RETR",
-	"RETR_ACK",
-	"RETR_REJ",
-	"MODIFY_COMPL",
-	"unknown 0x20",
-	"unknown 0x21",
-	"unknown 0x22",
-	"unknown 0x23",
-	"unknown 0x24",
-	"DISCONNECT",
-	"unknown 0x26",
-	"unknown 0x27",
-	"unknown 0x28",
-	"unknown 0x29",
-	"RELEASE_COMPL",
-	"unknown 0x2b",
-	"unknown 0x2c",
-	"RELEASE",
-	"unknown 0x2e",
-	"unknown 0x2f",
-	"unknown 0x30",
-	"STOP_DTMF",
-	"STOP_DTMF_ACK",
-	"unknown 0x33",
-	"STATUS_ENQ",
-	"START_DTMF",
-	"START_DTMF_ACK",
-	"START_DTMF_REJ",
-	"unknown 0x38",
-	"CONG_CTRL",
-	"FACILITY",
-	"unknown 0x3b",
-	"STATUS",
-	"unknown 0x3d",
-	"NOTIFY",
-	"unknown 0x3f",
+const char *gsm48_cc_state_name(uint8_t state)
+{
+	if (state < ARRAY_SIZE(cc_state_names))
+		return cc_state_names[state];
+
+	return "invalid";
+}
+
+static const struct value_string cc_msg_names[] = {
+	{ GSM48_MT_CC_ALERTING,		"ALERTING" },
+	{ GSM48_MT_CC_CALL_PROC,	"CALL_PROC" },
+	{ GSM48_MT_CC_PROGRESS,		"PROGRESS" },
+	{ GSM48_MT_CC_ESTAB,		"ESTAB" },
+	{ GSM48_MT_CC_SETUP,		"SETUP" },
+	{ GSM48_MT_CC_ESTAB_CONF,	"ESTAB_CONF" },
+	{ GSM48_MT_CC_CONNECT,		"CONNECT" },
+	{ GSM48_MT_CC_CALL_CONF,	"CALL_CONF" },
+	{ GSM48_MT_CC_START_CC,		"START_CC" },
+	{ GSM48_MT_CC_RECALL,		"RECALL" },
+	{ GSM48_MT_CC_EMERG_SETUP,	"EMERG_SETUP" },
+	{ GSM48_MT_CC_CONNECT_ACK,	"CONNECT_ACK" },
+	{ GSM48_MT_CC_USER_INFO,	"USER_INFO" },
+	{ GSM48_MT_CC_MODIFY_REJECT,	"MODIFY_REJECT" },
+	{ GSM48_MT_CC_MODIFY,		"MODIFY" },
+	{ GSM48_MT_CC_HOLD,		"HOLD" },
+	{ GSM48_MT_CC_HOLD_ACK,		"HOLD_ACK" },
+	{ GSM48_MT_CC_HOLD_REJ,		"HOLD_REJ" },
+	{ GSM48_MT_CC_RETR,		"RETR" },
+	{ GSM48_MT_CC_RETR_ACK,		"RETR_ACK" },
+	{ GSM48_MT_CC_RETR_REJ,		"RETR_REJ" },
+	{ GSM48_MT_CC_MODIFY_COMPL,	"MODIFY_COMPL" },
+	{ GSM48_MT_CC_DISCONNECT,	"DISCONNECT" },
+	{ GSM48_MT_CC_RELEASE_COMPL,	"RELEASE_COMPL" },
+	{ GSM48_MT_CC_RELEASE,		"RELEASE" },
+	{ GSM48_MT_CC_STOP_DTMF,	"STOP_DTMF" },
+	{ GSM48_MT_CC_STOP_DTMF_ACK,	"STOP_DTMF_ACK" },
+	{ GSM48_MT_CC_STATUS_ENQ,	"STATUS_ENQ" },
+	{ GSM48_MT_CC_START_DTMF,	"START_DTMF" },
+	{ GSM48_MT_CC_START_DTMF_ACK,	"START_DTMF_ACK" },
+	{ GSM48_MT_CC_START_DTMF_REJ,	"START_DTMF_REJ" },
+	{ GSM48_MT_CC_CONG_CTRL,	"CONG_CTRL" },
+	{ GSM48_MT_CC_FACILITY,		"FACILITY" },
+	{ GSM48_MT_CC_STATUS,		"STATUS" },
+	{ GSM48_MT_CC_NOTIFY,		"NOTFIY" },
+	{ 0,				NULL }
 };
 
-static char strbuf[64];
+const char *gsm48_cc_msg_name(uint8_t msgtype)
+{
+	return get_value_string(cc_msg_names, msgtype);
+}
 
 const char *rr_cause_name(uint8_t cause)
 {
