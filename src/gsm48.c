@@ -75,24 +75,25 @@ const struct tlv_definition gsm48_att_tlvdef = {
 	},
 };
 
-static const char *rr_cause_names[] = {
-	[GSM48_RR_CAUSE_NORMAL]			= "Normal event",
-	[GSM48_RR_CAUSE_ABNORMAL_UNSPEC]	= "Abnormal release, unspecified",
-	[GSM48_RR_CAUSE_ABNORMAL_UNACCT]	= "Abnormal release, channel unacceptable",
-	[GSM48_RR_CAUSE_ABNORMAL_TIMER]		= "Abnormal release, timer expired",
-	[GSM48_RR_CAUSE_ABNORMAL_NOACT]		= "Abnormal release, no activity on radio path",
-	[GSM48_RR_CAUSE_PREMPTIVE_REL]		= "Preemptive release",
-	[GSM48_RR_CAUSE_HNDOVER_IMP]		= "Handover impossible, timing advance out of range",
-	[GSM48_RR_CAUSE_CHAN_MODE_UNACCT]	= "Channel mode unacceptable",
-	[GSM48_RR_CAUSE_FREQ_NOT_IMPL]		= "Frequency not implemented",
-	[GSM48_RR_CAUSE_CALL_CLEARED]		= "Call already cleared",
-	[GSM48_RR_CAUSE_SEMANT_INCORR]		= "Semantically incorrect message",
-	[GSM48_RR_CAUSE_INVALID_MAND_INF]	= "Invalid mandatory information",
-	[GSM48_RR_CAUSE_MSG_TYPE_N]		= "Message type non-existant or not implemented",
-	[GSM48_RR_CAUSE_MSG_TYPE_N_COMPAT]	= "Message type not compatible with protocol state",
-	[GSM48_RR_CAUSE_COND_IE_ERROR]		= "Conditional IE error",
-	[GSM48_RR_CAUSE_NO_CELL_ALLOC_A]	= "No cell allocation available",
-	[GSM48_RR_CAUSE_PROT_ERROR_UNSPC]	= "Protocol error unspecified",
+static const struct value_string rr_cause_names[] = {
+	{ GSM48_RR_CAUSE_NORMAL,		"Normal event" },
+	{ GSM48_RR_CAUSE_ABNORMAL_UNSPEC,	"Abnormal release, unspecified" },
+	{ GSM48_RR_CAUSE_ABNORMAL_UNACCT,	"Abnormal release, channel unacceptable" },
+	{ GSM48_RR_CAUSE_ABNORMAL_TIMER,	"Abnormal release, timer expired" },
+	{ GSM48_RR_CAUSE_ABNORMAL_NOACT,	"Abnormal release, no activity on radio path" },
+	{ GSM48_RR_CAUSE_PREMPTIVE_REL,		"Preemptive release" },
+	{ GSM48_RR_CAUSE_HNDOVER_IMP,		"Handover impossible, timing advance out of range" },
+	{ GSM48_RR_CAUSE_CHAN_MODE_UNACCT,	"Channel mode unacceptable" },
+	{ GSM48_RR_CAUSE_FREQ_NOT_IMPL,		"Frequency not implemented" },
+	{ GSM48_RR_CAUSE_CALL_CLEARED,		"Call already cleared" },
+	{ GSM48_RR_CAUSE_SEMANT_INCORR,		"Semantically incorrect message" },
+	{ GSM48_RR_CAUSE_INVALID_MAND_INF,	"Invalid mandatory information" },
+	{ GSM48_RR_CAUSE_MSG_TYPE_N,		"Message type non-existant or not implemented" },
+	{ GSM48_RR_CAUSE_MSG_TYPE_N_COMPAT,	"Message type not compatible with protocol state" },
+	{ GSM48_RR_CAUSE_COND_IE_ERROR,		"Conditional IE error" },
+	{ GSM48_RR_CAUSE_NO_CELL_ALLOC_A,	"No cell allocation available" },
+	{ GSM48_RR_CAUSE_PROT_ERROR_UNSPC,	"Protocol error unspecified" },
+	{ 0,					NULL },
 };
 
 const char *cc_state_names[32] = {
@@ -201,12 +202,7 @@ static char strbuf[64];
 
 const char *rr_cause_name(uint8_t cause)
 {
-	if (cause < ARRAY_SIZE(rr_cause_names) &&
-	    rr_cause_names[cause])
-		return rr_cause_names[cause];
-
-	snprintf(strbuf, sizeof(strbuf), "0x%02x", cause);
-	return strbuf;
+	return get_value_string(rr_cause_names, cause);
 }
 
 static void to_bcd(uint8_t *bcd, uint16_t val)

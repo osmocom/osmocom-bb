@@ -176,39 +176,39 @@ int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *tim
 	return 0;
 }
 
-/* FIXME: convert to value_string */
-static const char *rsl_err_vals[0xff] = {
-	[RSL_ERR_RADIO_IF_FAIL] =	"Radio Interface Failure",
-	[RSL_ERR_RADIO_LINK_FAIL] =	"Radio Link Failure",
-	[RSL_ERR_HANDOVER_ACC_FAIL] =	"Handover Access Failure",
-	[RSL_ERR_TALKER_ACC_FAIL] =	"Talker Access Failure",
-	[RSL_ERR_OM_INTERVENTION] =	"O&M Intervention",
-	[RSL_ERR_NORMAL_UNSPEC] =	"Normal event, unspecified",
-	[RSL_ERR_T_MSRFPCI_EXP] =	"Siemens: T_MSRFPCI Expired",
-	[RSL_ERR_EQUIPMENT_FAIL] =	"Equipment Failure",
-	[RSL_ERR_RR_UNAVAIL] =		"Radio Resource not available",
-	[RSL_ERR_TERR_CH_FAIL] =	"Terrestrial Channel Failure",
-	[RSL_ERR_CCCH_OVERLOAD] =	"CCCH Overload",
-	[RSL_ERR_ACCH_OVERLOAD] =	"ACCH Overload",
-	[RSL_ERR_PROCESSOR_OVERLOAD] =	"Processor Overload",
-	[RSL_ERR_RES_UNAVAIL] =		"Resource not available, unspecified",
-	[RSL_ERR_TRANSC_UNAVAIL] =	"Transcoding not available",
-	[RSL_ERR_SERV_OPT_UNAVAIL] =	"Service or Option not available",
-	[RSL_ERR_ENCR_UNIMPL] =		"Encryption algorithm not implemented",
-	[RSL_ERR_SERV_OPT_UNIMPL] =	"Service or Option not implemented",
-	[RSL_ERR_RCH_ALR_ACTV_ALLOC] =	"Radio channel already activated",
-	[RSL_ERR_INVALID_MESSAGE] =	"Invalid Message, unspecified",
-	[RSL_ERR_MSG_DISCR] =		"Message Discriminator Error",
-	[RSL_ERR_MSG_TYPE] =		"Message Type Error",
-	[RSL_ERR_MSG_SEQ] =		"Message Sequence Error",
-	[RSL_ERR_IE_ERROR] =		"General IE error",
-	[RSL_ERR_MAND_IE_ERROR] =	"Mandatory IE error",
-	[RSL_ERR_OPT_IE_ERROR] =	"Optional IE error",
-	[RSL_ERR_IE_NONEXIST] =		"IE non-existent",
-	[RSL_ERR_IE_LENGTH] =		"IE length error",
-	[RSL_ERR_IE_CONTENT] =		"IE content error",
-	[RSL_ERR_PROTO] =		"Protocol error, unspecified",
-	[RSL_ERR_INTERWORKING] =	"Interworking error, unspecified",
+static const struct value_string rsl_err_vals[] = {
+	{ RSL_ERR_RADIO_IF_FAIL,	"Radio Interface Failure" },
+	{ RSL_ERR_RADIO_LINK_FAIL,	"Radio Link Failure" },
+	{ RSL_ERR_HANDOVER_ACC_FAIL,	"Handover Access Failure" },
+	{ RSL_ERR_TALKER_ACC_FAIL,	"Talker Access Failure" },
+	{ RSL_ERR_OM_INTERVENTION,	"O&M Intervention" },
+	{ RSL_ERR_NORMAL_UNSPEC,	"Normal event, unspecified" },
+	{ RSL_ERR_T_MSRFPCI_EXP,	"Siemens: T_MSRFPCI Expired" },
+	{ RSL_ERR_EQUIPMENT_FAIL,	"Equipment Failure" },
+	{ RSL_ERR_RR_UNAVAIL,		"Radio Resource not available" },
+	{ RSL_ERR_TERR_CH_FAIL,		"Terrestrial Channel Failure" },
+	{ RSL_ERR_CCCH_OVERLOAD,	"CCCH Overload" },
+	{ RSL_ERR_ACCH_OVERLOAD,	"ACCH Overload" },
+	{ RSL_ERR_PROCESSOR_OVERLOAD,	"Processor Overload" },
+	{ RSL_ERR_RES_UNAVAIL,		"Resource not available, unspecified" },
+	{ RSL_ERR_TRANSC_UNAVAIL,	"Transcoding not available" },
+	{ RSL_ERR_SERV_OPT_UNAVAIL,	"Service or Option not available" },
+	{ RSL_ERR_ENCR_UNIMPL,		"Encryption algorithm not implemented" },
+	{ RSL_ERR_SERV_OPT_UNIMPL,	"Service or Option not implemented" },
+	{ RSL_ERR_RCH_ALR_ACTV_ALLOC,	"Radio channel already activated" },
+	{ RSL_ERR_INVALID_MESSAGE,	"Invalid Message, unspecified" },
+	{ RSL_ERR_MSG_DISCR,		"Message Discriminator Error" },
+	{ RSL_ERR_MSG_TYPE,		"Message Type Error" },
+	{ RSL_ERR_MSG_SEQ,		"Message Sequence Error" },
+	{ RSL_ERR_IE_ERROR,		"General IE error" },
+	{ RSL_ERR_MAND_IE_ERROR,	"Mandatory IE error" },
+	{ RSL_ERR_OPT_IE_ERROR,		"Optional IE error" },
+	{ RSL_ERR_IE_NONEXIST,		"IE non-existent" },
+	{ RSL_ERR_IE_LENGTH,		"IE length error" },
+	{ RSL_ERR_IE_CONTENT,		"IE content error" },
+	{ RSL_ERR_PROTO,		"Protocol error, unspecified" },
+	{ RSL_ERR_INTERWORKING,		"Interworking error, unspecified" },
+	{ 0,				NULL }
 };
 
 const struct value_string rsl_rlm_cause_strs[] = {
@@ -231,10 +231,7 @@ const struct value_string rsl_rlm_cause_strs[] = {
 
 const char *rsl_err_name(uint8_t err)
 {
-	if (rsl_err_vals[err])
-		return rsl_err_vals[err];
-	else
-		return "unknown";
+	return get_value_string(rsl_err_vals, err);
 }
 
 /* Section 3.3.2.3 TS 05.02. I think this looks like a table */
