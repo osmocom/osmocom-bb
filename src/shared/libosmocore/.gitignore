@@ -20,3 +20,6 @@ ltmain.sh
 install-sh
 stamp-h1
 libtool
+
+.tarball-version
+.version
