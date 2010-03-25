@@ -211,7 +211,12 @@ static const struct value_string rsl_err_vals[] = {
 	{ 0,				NULL }
 };
 
-const struct value_string rsl_rlm_cause_strs[] = {
+const char *rsl_err_name(uint8_t err)
+{
+	return get_value_string(rsl_err_vals, err);
+}
+
+static const struct value_string rsl_rlm_cause_strs[] = {
 	{ RLL_CAUSE_T200_EXPIRED,	"Timer T200 expired (N200+1) times" },
 	{ RLL_CAUSE_REEST_REQ,		"Re-establishment request" },
 	{ RLL_CAUSE_UNSOL_UA_RESP,	"Unsolicited UA response" },
@@ -229,9 +234,9 @@ const struct value_string rsl_rlm_cause_strs[] = {
 	{ 0,				NULL },
 };
 
-const char *rsl_err_name(uint8_t err)
+const char *rsl_rlm_cause_name(uint8_t err)
 {
-	return get_value_string(rsl_err_vals, err);
+	return get_value_string(rsl_rlm_cause_strs, err);
 }
 
 /* Section 3.3.2.3 TS 05.02. I think this looks like a table */

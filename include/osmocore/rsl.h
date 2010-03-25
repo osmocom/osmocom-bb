@@ -16,9 +16,8 @@ uint8_t rsl_enc_chan_nr(uint8_t type, uint8_t subch, uint8_t timeslot);
 /* decode channel number as per Section 9.3.1 */
 int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *timeslot);
 
-extern const struct value_string rsl_rlm_cause_strs[];
-
 const char *rsl_err_name(uint8_t err);
+const char *rsl_rlm_cause_name(uint8_t err);
 
 /* Section 3.3.2.3 TS 05.02. I think this looks like a table */
 int rsl_ccch_conf_to_bs_cc_chans(int ccch_conf);
