@@ -2,9 +2,11 @@
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include <osmocore/utils.h>
 
+static char namebuf[255];
 const char *get_value_string(const struct value_string *vs, uint32_t val)
 {
 	int i;
@@ -15,7 +17,9 @@ const char *get_value_string(const struct value_string *vs, uint32_t val)
 		if (vs[i].value == val)
 			return vs[i].str;
 	}
-	return "unknown";
+
+	snprintf(namebuf, sizeof(namebuf), "unknown 0x%x", val);
+	return namebuf;
 }
 
 int get_string_value(const struct value_string *vs, const char *str)
