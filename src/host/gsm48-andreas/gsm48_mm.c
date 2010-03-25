@@ -1044,7 +1044,7 @@ static int gsm48_rcv_mm(struct osmocom_ms *ms, struct msgb *msg)
 	int msg_type = gh->msg_type & 0xbf;
 
 	DEBUGP(DMM, "(ms %s) Received '%s' from BS in state %s\n", ms->name,
-		gsm0408_mm_msg_names[msg_type], mm_state_names[mm->state]);
+		gsm48_mm_msg_name(msg_type), mm_state_names[mm->state]);
 
 	/* find function for current state and message */
 	for (i = 0; i < MMDATASLLEN; i++)
@@ -1216,7 +1216,7 @@ static int gsm48_rcv_rr(struct osmocom_ms *ms, struct gsm_rr *rrmsg)
 	int msg_type = rrmsg->msg_type;
 
 	DEBUGP(DMM, "(ms %s) Received '%s' from RR in state %s\n", ms->name,
-		gsm0408_rr_msg_names[msg_type], mm_state_names[mm->state]);
+		gsm48_rr_msg_name(msg_type), mm_state_names[mm->state]);
 
 	/* find function for current state and message */
 	for (i = 0; i < RRDATASLLEN; i++)

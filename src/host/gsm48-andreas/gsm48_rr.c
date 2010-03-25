@@ -2214,37 +2214,27 @@ they queue must be flushed when rr fails
 
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/msgb.h>
+#include <osmocore/utils.h>
 #include <osmocore/gsm48.h>
 
-static struct rr_names {
-	char *name;
-	int value;
-} rr_names[] = {
-	{ "RR_EST_REQ",		RR_EST_REQ },
-	{ "RR_EST_IND",		RR_EST_IND },
-	{ "RR_EST_CNF",		RR_EST_CNF },
-	{ "RR_REL_IND",		RR_REL_IND },
-	{ "RR_SYNC_IND",	RR_SYNC_IND },
-	{ "RR_DATA_REQ",	RR_DATA_REQ },
-	{ "RR_DATA_IND",	RR_DATA_IND },
-	{ "RR_UNIT_DATA_IND",	RR_UNIT_DATA_IND },
-	{ "RR_ABORT_REQ",	RR_ABORT_REQ },
-	{ "RR_ABORT_IND",	RR_ABORT_IND },
-	{ "RR_ACT_REQ",		RR_ACT_REQ },
-
-	{NULL, 0}
+static const struct value_string rr_names[] = {
+	{ RR_EST_REQ,		"RR_EST_REQ" },
+	{ RR_EST_IND,		"RR_EST_IND" },
+	{ RR_EST_CNF,		"RR_EST_CNF" },
+	{ RR_REL_IND,		"RR_REL_IND" },
+	{ RR_SYNC_IND,		"RR_SYNC_IND" },
+	{ RR_DATA_REQ,		"RR_DATA_REQ" },
+	{ RR_DATA_IND,		"RR_DATA_IND" },
+	{ RR_UNIT_DATA_IND,	"RR_UNIT_DATA_IND" },
+	{ RR_ABORT_REQ,		"RR_ABORT_REQ" },
+	{ RR_ABORT_IND,		"RR_ABORT_IND" },
+	{ RR_ACT_REQ,		"RR_ACT_REQ" },
+	{ 0,			NULL }
 };
 
-char *get_rr_name(int value)
+const char *get_rr_name(int value)
 {
-	int i;
-
-	for (i = 0; rr_names[i].name; i++) {
-		if (rr_names[i].value == value)
-			return rr_names[i].name;
-	}
-
-	return "RR_Unknown";
+	return get_value_string(rr_names, value);
 }
 
 static int rr_rcvmsg(struct osmocom_ms *ms,
@@ -2308,7 +2298,7 @@ static int gsm_send_rr(struct osmocom_ms *ms, struct gsm_rr *msg)
 	int msg_type = mmh->msg_type;
 
 	DEBUGP(DRR, "(ms %s) Sending '%s' to DL in state %s\n", ms->name,
-		gsm0408_rr_msg_names[msg_type], mm_state_names[mm->state]);
+		gsm48_rr_msg_name(msg_type), mm_state_names[mm->state]);
 
 	/* find function for current state and message */
 	for (i = 0; i < RRDOWNSLLEN; i++)
@@ -2628,7 +2618,7 @@ static int gsm_rcv_dl(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 	int msg_type = dlmsg->msg_type;
 
 	DEBUGP(DRR, "(ms %s) Received '%s' from DL in state %s\n", ms->name,
-		gsm0408_dl_msg_names[msg_type], mm_state_names[mm->state]);
+		gsm48_dl_msg_name(msg_type), mm_state_names[mm->state]);
 
 	/* find function for current state and message */
 	for (i = 0; i < DLDATASLLEN; i++)
