@@ -72,3 +72,14 @@ int write_queue_enqueue(struct write_queue *queue, struct msgb *data)
 
 	return 0;
 }
+
+void write_queue_clear(struct write_queue *queue)
+{
+	while (!llist_empty(&queue->msg_queue)) {
+		struct msgb *msg = msgb_dequeue(&queue->msg_queue);
+		msgb_free(msg);
+	}
+
+	queue->current_length = 0;
+	queue->bfd.when &= ~BSC_FD_WRITE;
+}
