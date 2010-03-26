@@ -307,11 +307,14 @@ void log_set_category_filter(struct log_target *target, int category,
 	target->categories[category].loglevel = level;
 }
 
+/* since C89/C99 says stderr is a macro, we can safely do this! */
+#ifdef stderr
 static void _stderr_output(struct log_target *target, const char *log)
 {
 	fprintf(target->tgt_stdout.out, "%s", log);
 	fflush(target->tgt_stdout.out);
 }
+#endif
 
 struct log_target *log_target_create(void)
 {
@@ -342,6 +345,8 @@ struct log_target *log_target_create(void)
 
 struct log_target *log_target_create_stderr(void)
 {
+/* since C89/C99 says stderr is a macro, we can safely do this! */
+#ifdef stderr
 	struct log_target *target;
 
 	target = log_target_create();
@@ -351,6 +356,9 @@ struct log_target *log_target_create_stderr(void)
 	target->tgt_stdout.out = stderr;
 	target->output = _stderr_output;
 	return target;
+#else
+	return NULL;
+#endif /* stderr */
 }
 
 void log_init(const struct log_info *cat)
