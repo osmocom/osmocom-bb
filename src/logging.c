@@ -311,16 +311,26 @@ static void _stderr_output(struct log_target *target, const char *log)
 struct log_target *log_target_create(void)
 {
 	struct log_target *target;
+	unsigned int i;
 
 	target = talloc_zero(tall_log_ctx, struct log_target);
 	if (!target)
 		return NULL;
 
 	INIT_LLIST_HEAD(&target->entry);
-	memcpy(target->categories, log_info->cat,
-		sizeof(struct log_category)*log_info->num_cat);
+
+	/* initialize the per-category enabled/loglevel from defaults */
+	for (i = 0; i < log_info->num_cat; i++) {
+		struct log_category *cat = &target->categories[i];
+		cat->enabled = log_info->cat[i].enabled;
+		cat->loglevel = log_info->cat[i].loglevel;
+	}
+
+	/* global settings */
 	target->use_color = 1;
 	target->print_timestamp = 0;
+
+	/* global log level */
 	target->loglevel = 0;
 	return target;
 }
