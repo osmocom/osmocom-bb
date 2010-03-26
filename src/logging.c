@@ -30,12 +30,12 @@
 
 #include <osmocore/talloc.h>
 #include <osmocore/utils.h>
-#include <osmocore/debug.h>
+#include <osmocore/logging.h>
 
-static const struct debug_info *debug_info;
+static const struct log_info *log_info;
 
-static struct debug_context debug_context;
-static void *tall_dbg_ctx = NULL;
+static struct log_context log_context;
+static void *tall_log_ctx = NULL;
 static LLIST_HEAD(target_list);
 
 static const struct value_string loglevel_strs[] = {
@@ -48,17 +48,17 @@ static const struct value_string loglevel_strs[] = {
 	{ 0, NULL },
 };
 
-int debug_parse_level(const char *lvl)
+int log_parse_level(const char *lvl)
 {
 	return get_string_value(loglevel_strs, lvl);
 }
 
-int debug_parse_category(const char *category)
+int log_parse_category(const char *category)
 {
 	int i;
 
-	for (i = 0; i < debug_info->num_cat; ++i) {
-		if (!strcasecmp(debug_info->cat[i].name+1, category))
+	for (i = 0; i < log_info->num_cat; ++i) {
+		if (!strcasecmp(log_info->cat[i].name+1, category))
 			return i;
 	}
 
@@ -70,7 +70,7 @@ int debug_parse_category(const char *category)
  * The format can be this: category1:category2:category3
  * or category1,2:category2,3:...
  */
-void debug_parse_category_mask(struct debug_target* target, const char *_mask)
+void log_parse_category_mask(struct log_target* target, const char *_mask)
 {
 	int i = 0;
 	char *mask = strdup(_mask);
@@ -82,14 +82,14 @@ void debug_parse_category_mask(struct debug_target* target, const char *_mask)
 
 	category_token = strtok(mask, ":");
 	do {
-		for (i = 0; i < debug_info->num_cat; ++i) {
+		for (i = 0; i < log_info->num_cat; ++i) {
 			char* colon = strstr(category_token, ",");
 			int length = strlen(category_token);
 
 			if (colon)
 			    length = colon - category_token;
 
-			if (strncasecmp(debug_info->cat[i].name, category_token,
+			if (strncasecmp(log_info->cat[i].name, category_token,
 					length) == 0) {
 				int level = 0;
 
@@ -107,13 +107,13 @@ void debug_parse_category_mask(struct debug_target* target, const char *_mask)
 
 static const char* color(int subsys)
 {
-	if (subsys < debug_info->num_cat)
-		return debug_info->cat[subsys].color;
+	if (subsys < log_info->num_cat)
+		return log_info->cat[subsys].color;
 
 	return NULL;
 }
 
-static void _output(struct debug_target *target, unsigned int subsys,
+static void _output(struct log_target *target, unsigned int subsys,
 		    char *file, int line, int cont, const char *format,
 		    va_list ap)
 {
@@ -160,17 +160,17 @@ static void _output(struct debug_target *target, unsigned int subsys,
 }
 
 
-static void _debugp(unsigned int subsys, int level, char *file, int line,
-		    int cont, const char *format, va_list ap)
+static void _logp(unsigned int subsys, int level, char *file, int line,
+		  int cont, const char *format, va_list ap)
 {
-	struct debug_target *tar;
+	struct log_target *tar;
 
 	llist_for_each_entry(tar, &target_list, entry) {
-		struct debug_category *category;
+		struct log_category *category;
 		int output = 0;
 
 		category = &tar->categories[subsys];
-		/* subsystem is not supposed to be debugged */
+		/* subsystem is not supposed to be logged */
 		if (!category->enabled)
 			continue;
 
@@ -186,10 +186,10 @@ static void _debugp(unsigned int subsys, int level, char *file, int line,
 		/* Apply filters here... if that becomes messy we will
 		 * need to put filters in a list and each filter will
 		 * say stop, continue, output */
-		if ((tar->filter_map & DEBUG_FILTER_ALL) != 0)
+		if ((tar->filter_map & LOG_FILTER_ALL) != 0)
 			output = 1;
-		else if (debug_info->filter_fn)
-			output = debug_info->filter_fn(&debug_context,
+		else if (log_info->filter_fn)
+			output = log_info->filter_fn(&log_context,
 						       tar);
 
 		if (output) {
@@ -207,22 +207,22 @@ static void _debugp(unsigned int subsys, int level, char *file, int line,
 	}
 }
 
-void debugp(unsigned int subsys, char *file, int line, int cont,
-	    const char *format, ...)
+void logp(unsigned int subsys, char *file, int line, int cont,
+	  const char *format, ...)
 {
 	va_list ap;
 
 	va_start(ap, format);
-	_debugp(subsys, LOGL_DEBUG, file, line, cont, format, ap);
+	_logp(subsys, LOGL_DEBUG, file, line, cont, format, ap);
 	va_end(ap);
 }
 
-void debugp2(unsigned int subsys, unsigned int level, char *file, int line, int cont, const char *format, ...)
+void logp2(unsigned int subsys, unsigned int level, char *file, int line, int cont, const char *format, ...)
 {
 	va_list ap;
 
 	va_start(ap, format);
-	_debugp(subsys, level, file, line, cont, format, ap);
+	_logp(subsys, level, file, line, cont, format, ap);
 	va_end(ap);
 }
 
@@ -245,91 +245,91 @@ char *hexdump(const unsigned char *buf, int len)
 	return hexd_buff;
 }
 
-void debug_add_target(struct debug_target *target)
+void log_add_target(struct log_target *target)
 {
 	llist_add_tail(&target->entry, &target_list);
 }
 
-void debug_del_target(struct debug_target *target)
+void log_del_target(struct log_target *target)
 {
 	llist_del(&target->entry);
 }
 
-void debug_reset_context(void)
+void log_reset_context(void)
 {
-	memset(&debug_context, 0, sizeof(debug_context));
+	memset(&log_context, 0, sizeof(log_context));
 }
 
-int debug_set_context(uint8_t ctx_nr, void *value)
+int log_set_context(uint8_t ctx_nr, void *value)
 {
-	if (ctx_nr > DEBUG_MAX_CTX)
+	if (ctx_nr > LOG_MAX_CTX)
 		return -EINVAL;
 
-	debug_context.ctx[ctx_nr] = value;
+	log_context.ctx[ctx_nr] = value;
 
 	return 0;
 }
 
-void debug_set_all_filter(struct debug_target *target, int all)
+void log_set_all_filter(struct log_target *target, int all)
 {
 	if (all)
-		target->filter_map |= DEBUG_FILTER_ALL;
+		target->filter_map |= LOG_FILTER_ALL;
 	else
-		target->filter_map &= ~DEBUG_FILTER_ALL;
+		target->filter_map &= ~LOG_FILTER_ALL;
 }
 
-void debug_set_use_color(struct debug_target *target, int use_color)
+void log_set_use_color(struct log_target *target, int use_color)
 {
 	target->use_color = use_color;
 }
 
-void debug_set_print_timestamp(struct debug_target *target, int print_timestamp)
+void log_set_print_timestamp(struct log_target *target, int print_timestamp)
 {
 	target->print_timestamp = print_timestamp;
 }
 
-void debug_set_log_level(struct debug_target *target, int log_level)
+void log_set_log_level(struct log_target *target, int log_level)
 {
 	target->loglevel = log_level;
 }
 
-void debug_set_category_filter(struct debug_target *target, int category,
+void log_set_category_filter(struct log_target *target, int category,
 			       int enable, int level)
 {
-	if (category >= debug_info->num_cat)
+	if (category >= log_info->num_cat)
 		return;
 	target->categories[category].enabled = !!enable;
 	target->categories[category].loglevel = level;
 }
 
-static void _stderr_output(struct debug_target *target, const char *log)
+static void _stderr_output(struct log_target *target, const char *log)
 {
 	fprintf(target->tgt_stdout.out, "%s", log);
 	fflush(target->tgt_stdout.out);
 }
 
-struct debug_target *debug_target_create(void)
+struct log_target *log_target_create(void)
 {
-	struct debug_target *target;
+	struct log_target *target;
 
-	target = talloc_zero(tall_dbg_ctx, struct debug_target);
+	target = talloc_zero(tall_log_ctx, struct log_target);
 	if (!target)
 		return NULL;
 
 	INIT_LLIST_HEAD(&target->entry);
-	memcpy(target->categories, debug_info->cat,
-		sizeof(struct debug_category)*debug_info->num_cat);
+	memcpy(target->categories, log_info->cat,
+		sizeof(struct log_category)*log_info->num_cat);
 	target->use_color = 1;
 	target->print_timestamp = 0;
 	target->loglevel = 0;
 	return target;
 }
 
-struct debug_target *debug_target_create_stderr(void)
+struct log_target *log_target_create_stderr(void)
 {
-	struct debug_target *target;
+	struct log_target *target;
 
-	target = debug_target_create();
+	target = log_target_create();
 	if (!target)
 		return NULL;
 
@@ -338,8 +338,8 @@ struct debug_target *debug_target_create_stderr(void)
 	return target;
 }
 
-void debug_init(const struct debug_info *cat)
+void log_init(const struct log_info *cat)
 {
-	tall_dbg_ctx = talloc_named_const(NULL, 1, "debug");
-	debug_info = cat;
+	tall_log_ctx = talloc_named_const(NULL, 1, "logging");
+	log_info = cat;
 }
