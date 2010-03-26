@@ -48,7 +48,6 @@ struct debug_info_cat {
 	const char *name;
 	const char *color;
 	const char *description;
-	int number;
 	uint8_t loglevel;
 	uint8_t enabled;
 };

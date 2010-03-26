@@ -59,7 +59,7 @@ int debug_parse_category(const char *category)
 
 	for (i = 0; i < debug_info->num_cat; ++i) {
 		if (!strcasecmp(debug_info->cat[i].name+1, category))
-			return debug_info->cat[i].number;
+			return i;
 	}
 
 	return -EINVAL;
@@ -91,14 +91,13 @@ void debug_parse_category_mask(struct debug_target* target, const char *_mask)
 
 			if (strncasecmp(debug_info->cat[i].name, category_token,
 					length) == 0) {
-				int number = debug_info->cat[i].number;
 				int level = 0;
 
 				if (colon)
 					level = atoi(colon+1);
 
-				target->categories[number].enabled = 1;
-				target->categories[number].loglevel = level;
+				target->categories[i].enabled = 1;
+				target->categories[i].loglevel = level;
 			}
 		}
 	} while ((category_token = strtok(NULL, ":")));
@@ -108,12 +107,8 @@ void debug_parse_category_mask(struct debug_target* target, const char *_mask)
 
 static const char* color(int subsys)
 {
-	int i = 0;
-
-	for (i = 0; i < debug_info->num_cat; ++i) {
-		if (debug_info->cat[i].number == subsys)
-			return debug_info->cat[i].color;
-	}
+	if (subsys < debug_info->num_cat)
+		return debug_info->cat[subsys].color;
 
 	return NULL;
 }
