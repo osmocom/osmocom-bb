@@ -21,8 +21,8 @@
  */
 
 #include <osmocom/osmocom_data.h>
-#include <osmocom/debug.h>
 #include <osmocom/gsmtap_util.h>
+#include <osmocore/logging.h>
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/gsmtap.h>
 #include <osmocore/msgb.h>

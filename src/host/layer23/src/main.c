@@ -26,7 +26,7 @@
 #include <osmocom/lapdm.h>
 #include <osmocom/gsmtap_util.h>
 
-#include <osmocom/debug.h>
+#include <osmocore/logging.h>
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
 #include <osmocore/select.h>

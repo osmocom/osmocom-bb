@@ -24,6 +24,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include <osmocore/logging.h>
 #include <osmocore/timer.h>
 #include <osmocore/msgb.h>
 #include <osmocore/tlv.h>
@@ -32,7 +33,6 @@
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/protocol/gsm_08_58.h>
 
-#include <osmocom/debug.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/l1ctl.h>
 #include <osmocom/lapdm.h>

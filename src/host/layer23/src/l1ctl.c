@@ -30,6 +30,7 @@
 
 #include <l1a_l23_interface.h>
 
+#include <osmocore/logging.h>
 #include <osmocore/timer.h>
 #include <osmocore/msgb.h>
 #include <osmocore/tlv.h>
@@ -41,7 +42,6 @@
 #include <osmocom/l1ctl.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/lapdm.h>
-#include <osmocom/debug.h>
 #include <osmocom/gsmtap_util.h>
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
