@@ -9,7 +9,8 @@ lib_LTLIBRARIES = libosmocore.la
 
 libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c rxlev_stat.c \
 			 tlv_parser.c bitvec.c comp128.c gsm_utils.c statistics.c \
-			 write_queue.c utils.c rsl.c gsm48.c gsm48_ie.c
+			 write_queue.c utils.c rsl.c gsm48.c gsm48_ie.c \
+			 debug.c
 
 if ENABLE_TALLOC
 libosmocore_la_SOURCES += talloc.c
