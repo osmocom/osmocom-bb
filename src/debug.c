@@ -115,7 +115,7 @@ static const char* color(int subsys)
 			return debug_info->cat[i].color;
 	}
 
-	return "";
+	return NULL;
 }
 
 static void _output(struct debug_target *target, unsigned int subsys,
@@ -136,8 +136,11 @@ static void _output(struct debug_target *target, unsigned int subsys,
 
 	/* are we using color */
 	if (target->use_color) {
-		snprintf(col, sizeof(col), "%s", color(subsys));
-		col[sizeof(col)-1] = '\0';
+		const char *c = color(subsys);
+		if (c) {
+			snprintf(col, sizeof(col), "%s", color(subsys));
+			col[sizeof(col)-1] = '\0';
+		}
 	}
 	vsnprintf(buf, sizeof(buf), format, ap);
 	buf[sizeof(buf)-1] = '\0';
