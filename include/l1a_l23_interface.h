@@ -32,6 +32,8 @@
 #define L1CTL_DATA_REQ		7
 #define L1CTL_RESET		8
 #define L1CTL_PM_REQ		9	/* power measurement */
+#define L1CTL_ECHO_REQ		10
+#define L1CTL_ECHO_RESP		11
 
 /*
  * NOTE: struct size. We do add manual padding out of the believe

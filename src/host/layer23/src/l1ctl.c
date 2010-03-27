@@ -212,23 +212,6 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	return osmo_send_l1(ms, msg);
 }
 
-/* Receive L1CTL_RESET */
-static int rx_l1_reset(struct osmocom_ms *ms)
-{
-	struct msgb *msg;
-	struct l1ctl_sync_new_ccch_req *req;
-
-	msg = osmo_l1_alloc(L1CTL_NEW_CCCH_REQ);
-	if (!msg)
-		return -1;
-
-	LOGP(DL1C, LOGL_INFO, "Layer1 Reset.\n");
-	req = (struct l1ctl_sync_new_ccch_req *) msgb_put(msg, sizeof(*req));
-	req->band_arfcn = osmo_make_band_arfcn(ms);
-
-	return osmo_send_l1(ms, msg);
-}
-
 /* Transmit L1CTL_RACH_REQ */
 int tx_ph_rach_req(struct osmocom_ms *ms)
 {
@@ -272,6 +255,41 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 	return osmo_send_l1(ms, msg);
 }
 
+int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len)
+{
+	struct msgb *msg;
+	uint8_t *data;
+	unsigned int i;
+
+	msg = osmo_l1_alloc(L1CTL_ECHO_REQ);
+	if (!msg)
+		return -1;
+
+	data = msgb_put(msg, len);
+	for (i = 0; i < len; i++)
+		data[i] = i % 8;
+
+	return osmo_send_l1(ms, msg);
+}
+
+/* Receive L1CTL_RESET */
+static int rx_l1_reset(struct osmocom_ms *ms)
+{
+	struct msgb *msg;
+	struct l1ctl_sync_new_ccch_req *req;
+
+	msg = osmo_l1_alloc(L1CTL_NEW_CCCH_REQ);
+	if (!msg)
+		return -1;
+
+	LOGP(DL1C, LOGL_INFO, "Layer1 Reset.\n");
+	req = (struct l1ctl_sync_new_ccch_req *) msgb_put(msg, sizeof(*req));
+	req->band_arfcn = osmo_make_band_arfcn(ms);
+
+	return osmo_send_l1(ms, msg);
+}
+
+
 /* Receive incoming data from L1 using L1CTL format */
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -285,7 +303,7 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		return -1;
 	}
 
-	l1h = (struct l1ctl_info_dl *) msg->l1h;
+	l1h = (struct l1ctl_hdr *) msg->l1h;
 
 	/* move the l1 header pointer to point _BEHIND_ l1ctl_hdr,
 	   as the l1ctl header is of no interest to subsequent code */
