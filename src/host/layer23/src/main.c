@@ -188,6 +188,28 @@ static void handle_options(int argc, char **argv)
 	}
 }
 
+/* TEST code, regularly transmit ECHO REQ packet to L1 */
+
+static struct {
+	struct timer_list timer;
+} test_data;
+
+static void test_tmr_cb(void *data)
+{
+	struct osmocom_ms *ms = data;
+
+	l1ctl_tx_echo_req(ms, 62);
+	bsc_schedule_timer(&test_data.timer, 1, 0);
+}
+
+void test_start(struct osmocom_ms *ms)
+{
+	test_data.timer.cb = &test_tmr_cb;
+	test_data.timer.data = ms;
+
+	bsc_schedule_timer(&test_data.timer, 1, 0);
+}
+
 int main(int argc, char **argv)
 {
 	int rc;
@@ -248,6 +270,8 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 	}
+
+	//test_start(ms);
 
 	while (1) {
 		bsc_select_main(0);
