@@ -10,7 +10,6 @@ messages wie bei openbsc
 ist der tlv-parser bufferoverflow-safe?: was ist mit dem letzten ie?: sollte der parser nicht error zurücklifern und dann den aufrufenden prozess beenden?:
 wieso ist classmark1 in gsm_04_08.h MSB und nicht LSB wie sonst?:
 headerkonzept für inter-layer und interface
-debug?: DMM DCC DSS DSMS DRR
 
 
 /*

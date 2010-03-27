@@ -44,6 +44,9 @@ struct gsm_sysinfo_freq {
 
 /* structure of all received system informations */
 struct gsm_sysinfo {
+	uint8_t				si1, si2, si2bis, si2ter, si3,
+					si4, si5, si5bis, si5ter, si6;
+
 	struct	gsm_sysinfo_freq	freq[1024]; /* all frequencies */
 	uint16_t			hopping[64]; /* hopping arfcn */
 	uint8_t				hopp_len;

@@ -19,6 +19,27 @@
  *
  */
 
+/* Very short description of some of the procedures:
+ *
+ * A radio ressource request causes sendig a channel request on RACH.
+ * After receiving of an immediate assignment the link will be establised.
+ * After the link is established, the dedicated mode is entered and confirmed.
+ *
+ * A Paging request also triggers the channel request as above...
+ * After the link is established, the dedicated mode is entered and indicated.
+ *
+ * During dedicated mode, messages are transferred.
+ *
+ * When an assignment command or a handover command is received, the current
+ * link is released. After release, the new channel is activated and the
+ * link is established again. After link is establised, pending messages from
+ * radio ressource are sent.
+ *
+ * When the assignment or handover fails, the old channel is activate and the
+ * link is established again. Also pending messages are sent.
+ *
+ */
+
 /*
  * state transition
  */
@@ -1177,6 +1198,7 @@ static int gsm_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_1 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	struct msgb *nmsg;
 
 	if (payload_len < 0) {
 		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 1 message.\n");
@@ -1191,6 +1213,13 @@ static int gsm_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 	if (payload_len)
 		gsm48_decode_si1_rest(si->rest_octets, payload_len);
 
+	si->si1 = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
+
 	return 0;
 }
 
@@ -1200,6 +1229,7 @@ static int gsm_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_2 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	struct msgb *nmsg;
 
 	if (payload_len < 0) {
 		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 2 message.\n");
@@ -1213,6 +1243,13 @@ static int gsm_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 	/* RACH Control Parameter */
 	gsm48_decode_rach_ctl_neigh(s, si->rach_control);
 
+	si->si2 = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
+
 	return 0;
 }
 
@@ -1222,6 +1259,7 @@ static int gsm_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_2bis *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	struct msgb *nmsg;
 
 	if (payload_len < 0) {
 		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 2bis message.\n");
@@ -1235,6 +1273,13 @@ static int gsm_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 	/* RACH Control Parameter */
 	gsm48_decode_rach_ctl_neigh(s, si->rach_control);
 
+	si->si2bis = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
+
 	return 0;
 }
 
@@ -1244,6 +1289,7 @@ static int gsm_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_2ter *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	struct msgb *nmsg;
 
 	if (payload_len < 0) {
 		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 2ter message.\n");
@@ -1254,6 +1300,13 @@ static int gsm_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 	gsm48_decode_freq_list(s->freq, si->ext_bcch_frequency_list,
 		sizeof(si->ext_bcch_frequency_list), 0x8e, FREQ_TYPE_NCELL_2ter);
 
+	si->si2ter = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
+
 	return 0;
 }
 
@@ -1263,6 +1316,7 @@ static int gsm_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_3 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	struct msgb *nmsg;
 
 	if (payload_len < 0) {
 		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 3 message.\n");
@@ -1284,6 +1338,13 @@ static int gsm_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 	if (payload_len >= 4)
 		gsm48_decode_si3_rest(si->rest_octets, payload_len);
 
+	si->si3 = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
+
 	return 0;
 }
 
@@ -1294,6 +1355,7 @@ static int gsm_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 	uint8_t *data = si->data;
+	struct msgb *nmsg;
 todo: si has different header in structures
 
 	if (payload_len < 0) {
@@ -1327,6 +1389,13 @@ todo: si has different header in structures
 	if (payload_len > 0)
 		gsm48_decode_si3_rest(data, payload_len);
 
+	si->si4 = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
+
 	return 0;
 }
 
@@ -1336,6 +1405,7 @@ static int gsm_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_5 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	struct msgb *nmsg;
 
 	if (payload_len < 0) {
 		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5 message.\n");
@@ -1344,6 +1414,13 @@ static int gsm_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 	/* Neighbor Cell Description */
 	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5);
+
+	si->si5 = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
 
 	return 0;
 }
@@ -1354,6 +1431,7 @@ static int gsm_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_5bis *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	struct msgb *nmsg;
 
 	if (payload_len < 0) {
 		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5bis message.\n");
@@ -1362,6 +1440,13 @@ static int gsm_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 	/* Neighbor Cell Description */
 	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5bis);
+
+	si->si5bis = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
 
 	return 0;
 }
@@ -1372,6 +1457,7 @@ static int gsm_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_5ter *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	struct msgb *nmsg;
 
 	if (payload_len < 0) {
 		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 5ter message.\n");
@@ -1380,6 +1466,13 @@ static int gsm_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 	/* Neighbor Cell Description */
 	gsm48_decode_freq_list(s->freq, si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5ter);
+
+	si->si5ter = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
 
 	return 0;
 }
@@ -1390,6 +1483,7 @@ static int gsm_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_6 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->sysinfo;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	struct msgb *nmsg;
 
 	if (payload_len < 0) {
 		DEBUGP(DRR, "Short read of SYSTEM INFORMATION 6 message.\n");
@@ -1406,6 +1500,13 @@ static int gsm_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	/* SI 6 Rest Octets */
 	if (payload_len >= 4)
 		gsm48_decode_si6_rest(si->rest_octets, payload_len);
+
+	si->si6 = 1;
+
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_SYSINFO);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
 
 	return 0;
 }
@@ -1426,7 +1527,7 @@ static int gsm_rr_chan2cause[4] = {
 static int gsm_match_mi(struct osmocom_ms *ms, u_int8_t mi)
 {
 	char imsi[16];
-	u_int32_t tmsi;
+	uint32_t tmsi;
 
 	if (mi[0] < 1)
 		return 0;
@@ -1501,7 +1602,7 @@ static int gsm_rr_rx_pag_req_2(struct osmocom_ms *ms, struct gsm_msgb *msg)
 	struct gsm_rrlayer *rr = ms->rrlayer;
 	struct gsm48_rr_paging2 *pa = msgb_l3(msg);
 	int payload_len = msgb_l3len(msg) - sizeof(*pa);
-	u_int32_t tmsi;
+	uint32_t tmsi;
 	int chan_first, chan_second, chan_third;
 
 	/* 3.3.1.1.2: ignore paging while establishing */
@@ -1546,7 +1647,7 @@ static int gsm_rr_rx_pag_req_3(struct osmocom_ms *ms, struct gsm_msgb *msg)
 	struct gsm_rrlayer *rr = ms->rrlayer;
 	struct gsm48_rr_paging3 *pa = msgb_l3(msg);
 	int payload_len = msgb_l3len(msg) - sizeof(*pa);
-	u_int32_t tmsi;
+	uint32_t tmsi;
 	int chan_first, chan_second, chan_third, chan_fourth;
 
 	/* 3.3.1.1.2: ignore paging while establishing */
@@ -1673,8 +1774,8 @@ static int gsm_rr_rx_imm_ass(struct osmocom_ms *ms, struct gsm_msgb *msg)
 	/* request ref */
 	if (gsm_match_ra(ms, ia->req_ref)) {
 		/* channel description */
+todo channel structure and right management of channel IEs
 		memset(&rr->chan_desc, 0, sizeof(cd));
-		memcpy(rr->chan_desc.chan_desc, ia->chan_desc, 3);
 		/* timing advance */
 		rr->timing_advance = ia->timing_advance;
 		/* mobile allocation */
@@ -2275,7 +2376,7 @@ static int gsm_rr_act_req(struct osmocom_ms *ms, struct gsm_rr *rrmsg)
 
 /* state trasitions for radio ressource messages (upper layer) */
 static struct rrdownstate {
-	u_int32_t	states;
+	uint32_t	states;
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct gsm_dl *rrmsg);
 } rrdownstatelist[] = {
@@ -2307,6 +2408,8 @@ static int gsm_send_rr(struct osmocom_ms *ms, struct gsm_rr *msg)
 			break;
 	if (i == RRDOWNSLLEN) {
 		DEBUGP(DRR, "Message unhandled at this state.\n");
+		free_msgb(msg);
+todo: in all functions of this type: free_msgb must be called if unhandled.
 		return 0;
 	}
 
@@ -2445,6 +2548,30 @@ static int gsm_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* decode "Cell Description" (10.5.2.2) */
+static int gsm48_decode_cell_desc(struct gsm48_cell_desc *cd, uint16_t *arfcn, uint8_t *ncc uint8_t *bcc)
+{
+	*arfcn = (cd->bcch_hi << 8) + cd->bcch_lo;
+	*ncc = cd->ncc;
+	*bcc = cd->bcc;
+}
+
+/* decode "Power Command" (10.5.2.28) and (10.5.2.28a) */
+static int gsm48_decode_power_cmd_acc(struct gsm48_power_cmd *pc, uint8_t *power_level uint8_t *atc)
+{
+	*power_level = pc->power_level;
+	if (atc) /* only in case of 10.5.2.28a */
+		*atc = pc->atc;
+}
+
+/* decode "Synchronization Indication" (10.5.2.39) */
+static int gsm48_decode_power_cmd_acc(struct gsm_rrlayer *rr, struct gsm_rr_sync_ind *si)
+{
+	rr->ho_sync_ind = si->si;
+	rr->ho_rot = si->rot;
+	rr->ho_nci = si->nci;
+}
+
 /* receiving HANDOVER COMMAND message (9.1.15) */
 static int gsm_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -2463,8 +2590,25 @@ static int gsm_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	}
 	tlv_parse(&tp, &rsl_att_tlvdef, ho->data, payload_len, 0, 0);
 
-
-
+	/* decode Cell Description */
+	gsm_decode_cell_desc(&ho->cell_desc, &cd.bcch_arfcn, &cd.ncc, &cd.bcc);
+	/* Channel Description */
+	memcpy(&rr->chan_desc.chan_desc, ho->chan_desc, 3);
+	/* Handover Reference */
+	rr->hando_ref = ho->ho_ref;
+	/* Power Command and access type */
+	gsm_decode_power_cmd_acc((struct gsm48_power_cmd *)&ho->power_command,
+		&cd.power_level, cd.atc);
+	/* Synchronization Indication */
+	if (TLVP_PRESENT(&tp, GSM48_IE_SYNC_IND))
+		gsm48_decode_sync_ind(rr,
+			TLVP_VAL(&tp, GSM48_IE_MOBILE_ALLOC)-1, &cd);
+	/* Frequency Sort List */
+	if (TLVP_PRESENT(&tp, GSM48_IE_FREQ_SHORT_LIST))
+		gsm48_decode_freq_list(s->freq,
+			TLVP_VAL(&tp, GSM48_IE_MOBILE_ALLOC),
+			*(TLVP_VAL(&tp, GSM48_IE_MOBILE_ALLOC)-1),
+				0xce, FREQ_TYPE_SERV);
 
 
 today: more IE parsing
@@ -2582,7 +2726,7 @@ static int gsm_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 /* state trasitions for link layer messages (lower layer) */
 static struct dldatastate {
-	u_int32_t	states;
+	uint32_t	states;
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct gsm_dl *dlmsg);
 } dldatastatelist[] = {
@@ -2627,6 +2771,7 @@ static int gsm_rcv_dl(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 			break;
 	if (i == DLDATASLLEN) {
 		DEBUGP(DRR, "Message unhandled at this state.\n");
+		free_msgb(msg);
 		return 0;
 	}
 
@@ -2701,6 +2846,7 @@ static int gsm_rr_tx_hando_access(struct osmocom_ms *ms)
 	*msgb_put(newmsg, 1) = rr->hando_ref;
 	return rslms_tx_rll_req_l3(ms, RSL_MT_RAND_ACC_REQ, chan_nr, 0, newmsg);
 }
+
 /* send next channel request in dedicated state */
 static int gsm_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 {

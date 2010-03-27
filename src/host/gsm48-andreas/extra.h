@@ -249,6 +249,21 @@ struct gsm48_rach_ctl {
 	uint8_t ac[2];
 } __attribute__((packed));
 
+/* 10.5.2.28(a) */
+struct gsm48_power_cmd {
+	uint8_t power_level:5,
+		 spare:2,
+		 atc:1;
+} __attribute__((packed));
+
+/* 10.5.2.39 */
+struct gsm48_sync_ind {
+	uint8_t si:2,
+		 rot:1,
+		 nci:1,
+		 sync_ie:4;
+} __attribute__((packed));
+
 /* Chapter 9.1.1 */
 struct gsm48_add_ass {
 	/* Semantic is from 10.5.2.5 */

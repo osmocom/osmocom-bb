@@ -22,6 +22,7 @@
 void gsm_support_init(struct osmocom_ms *ms)
 {
 	struct gsm_support *s = &ms->support;
+	int i;
 
 	memset(s, 0, sizeof(*s));
 
@@ -58,11 +59,17 @@ void gsm_support_init(struct osmocom_ms *ms)
 	s->a5_7 = 0;
 	/* radio support */
 	s->p_gsm = 1; /* gsm 900 */
+	for(i = 1, i <= 124, i++)
+		s->freq_map[i >> 3] |= (1 << (i & 7));
+	s->frq_map[1] = 0xff;
+	s->frq_map[1] = 0xff;
 	s->e_gsm = 0;
 	s->r_gsm = 0;
 	s->r_capa = 0;
 	s->low_capa = 4; /* p,e,r power class */
-	s->dcs_1800 = 0;
+	s->dcs_1800 = 1;
+	for(i = 512, i <= 885, i++)
+		s->freq_map[i >> 3] |= (1 << (i & 7));
 	s->dcs_capa = 1; /* dcs power class */
 	/* multi slot support */
 	s->ms_sup = 0; /* no */
