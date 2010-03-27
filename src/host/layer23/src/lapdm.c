@@ -591,7 +591,6 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 	struct lapdm_msg_ctx mctx;
 	int rc;
 
-	DEBUGP(DLAPDM, "");
 	/* when we reach here, we have a msgb with l2h pointing to the raw
 	 * 23byte mac block. The l1h has already been purged. */
 
@@ -604,19 +603,18 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 	if (cbits == 0x10 || cbits == 0x12) {
 		/* Format Bbis is used on BCCH and CCCH(PCH, NCH and AGCH) */
 		mctx.lapdm_fmt = LAPDm_FMT_Bbis;
-		DEBUGPC(DLAPDM, "fmt=Bbis ");
 	} else {
 		if (mctx.link_id & 0x40) {
 			/* It was received from network on SACCH, thus
 			 * lapdm_fmt must be B4 */
 			mctx.lapdm_fmt = LAPDm_FMT_B4;
-			DEBUGPC(DLAPDM, "fmt=B4 ");
-			/* SACCH frames have a two-byte L1 header that OsmocomBB L1 doesn't
-			 * strip */
+			DEBUGP(DLAPDM, "fmt=B4\n");
+			/* SACCH frames have a two-byte L1 header that
+			 * OsmocomBB L1 doesn't strip */
 			msg->l2h += 2;
 		} else {
 			mctx.lapdm_fmt = LAPDm_FMT_B;
-			DEBUGPC(DLAPDM, "fmt=B ");
+			DEBUGP(DLAPDM, "fmt=B\n");
 		}
 	}
 
@@ -640,13 +638,12 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 		break;
 	case LAPDm_FMT_Bbis:
 		/* directly pass up to layer3 */
-		DEBUGPC(DLAPDM, "UI ");
+		DEBUGP(DLAPDM, "fmt=Bbis UI\n");
 		msg->l3h = msg->l2h;
 		msgb_pull_l2h(msg);
 		rc = send_rslms_rll_l3(RSL_MT_UNIT_DATA_IND, &mctx, msg);
 		break;
 	}
-	DEBUGPC(DLAPDM, "\n");
 
 	return rc;
 }
