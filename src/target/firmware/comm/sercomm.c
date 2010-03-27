@@ -169,7 +169,8 @@ int sercomm_drv_pull(uint8_t *ch)
 		sercomm.tx.next_char = NULL;
 	/* escaping for the two control octets */
 	} else if (*sercomm.tx.next_char == HDLC_FLAG ||
-		   *sercomm.tx.next_char == HDLC_ESCAPE) {
+		   *sercomm.tx.next_char == HDLC_ESCAPE ||
+		   *sercomm.tx.next_char == 0x00) {
 		/* send an escape octet */
 		*ch = HDLC_ESCAPE;
 		/* invert bit 5 of the next octet to be sent */
