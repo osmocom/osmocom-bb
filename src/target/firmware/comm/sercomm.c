@@ -27,6 +27,7 @@
 #include <osmocore/msgb.h>
 
 #ifdef HOST_BUILD
+#define SERCOMM_RX_MSG_SIZE	2048
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 #endif
@@ -36,6 +37,7 @@
 #define local_irq_restore(x)
 
 #else
+#define SERCOMM_RX_MSG_SIZE	256
 #include <debug.h>
 #include <osmocore/linuxlist.h>
 #include <asm/system.h>
@@ -44,7 +46,6 @@
 #include <calypso/uart.h>
 #endif
 
-#define SERCOMM_RX_MSG_SIZE	256
 
 enum rx_state {
 	RX_ST_WAIT_START,
