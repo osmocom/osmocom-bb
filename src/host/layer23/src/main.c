@@ -25,8 +25,8 @@
 #include <osmocom/l1ctl.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/gsmtap_util.h>
+#include <osmocom/logging.h>
 
-#include <osmocore/logging.h>
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
 #include <osmocore/select.h>
@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
+static struct log_target *stderr_target;
 
 #define GSM_L2_LENGTH 256
 
@@ -150,10 +151,11 @@ static void handle_options(int argc, char **argv)
 			{"socket", 1, 0, 's'},
 			{"arfcn", 1, 0, 'a'},
 			{"gsmtap-ip", 1, 0, 'i'},
+			{"debug", 1, 0, 'd'},
 			{0, 0, 0, 0},
 		};
 
-		c = getopt_long(argc, argv, "hs:a:i:",
+		c = getopt_long(argc, argv, "hs:a:i:d:",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -177,6 +179,9 @@ static void handle_options(int argc, char **argv)
 			}
 			gsmtap_ip = ntohl(gsmtap.sin_addr.s_addr);
 			break;
+		case 'd':
+			log_parse_category_mask(stderr_target, optarg);
+			break;
 		default:
 			break;
 		}
@@ -187,6 +192,11 @@ int main(int argc, char **argv)
 {
 	int rc;
 	struct sockaddr_un local;
+
+	log_init(&log_info);
+	stderr_target = log_target_create_stderr();
+	log_add_target(stderr_target);
+	log_set_all_filter(stderr_target, 1);
 
 	l2_ctx = talloc_named_const(NULL, 1, "layer2 context");
 
@@ -242,7 +252,6 @@ int main(int argc, char **argv)
 	while (1) {
 		bsc_select_main(0);
 	}
-
 
 	return 0;
 }

@@ -36,6 +36,7 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/l1ctl.h>
 #include <osmocom/lapdm.h>
+#include <osmocom/logging.h>
 
 #include <l1a_l23_interface.h>
 
@@ -179,7 +180,8 @@ static void lapdm_pad_msgb(struct msgb *msg)
 	uint8_t *data;
 
 	if (pad_len < 0) {
-		printf("cannot pad message that is already too big!\n");
+		LOGP(DLAPDM, LOGL_ERROR,
+		     "cannot pad message that is already too big!\n");
 		return;
 	}
 
@@ -221,11 +223,13 @@ static int check_length_ind(uint8_t length_ind)
 		/* G.4.1 If the EL bit is set to "0", an MDL-ERROR-INDICATION
 		 * primitive with cause "frame not implemented" is sent to the
 		 * mobile management entity. */
-		printf("we don't support multi-octet length\n");
+		LOGP(DLAPDM, LOGL_ERROR,
+			"we don't support multi-octet length\n");
 		return -EINVAL;
 	}
 	if (length_ind & 0x02) {
-		printf("we don't support LAPDm fragmentation yet\n");
+		LOGP(DLAPDM, LOGL_ERROR,
+			"we don't support LAPDm fragmentation yet\n");
 		return -EINVAL;
 	}
 	return 0;
@@ -236,7 +240,7 @@ static void lapdm_t200_cb(void *data)
 {
 	struct lapdm_datalink *dl = data;
 
-	printf("lapdm_t200_cb(%p) state=%u\n", dl, dl->state);
+	DEBUGP(DLAPDM, "lapdm_t200_cb(%p) state=%u\n", dl, dl->state);
 
 	switch (dl->state) {
 	case LAPDm_STATE_SABM_SENT:
@@ -269,7 +273,8 @@ static void lapdm_t200_cb(void *data)
 		}
 		break;
 	default:
-		printf("T200 expired in unexpected dl->state %u\n", dl->state);
+		DEBUGP(DLAPDM, "T200 expired in unexpected dl->state %u\n",
+			dl->state);
 	}
 }
 
@@ -297,7 +302,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 
 	switch (LAPDm_CTRL_U_BITS(mctx->ctrl)) {
 	case LAPDm_U_SABM:
-		printf("SABM ");
+		DEBUGPC(DLAPDM, "SABM ");
 		/* Must be Format B */
 		rc = check_length_ind(msg->l2h[2]);
 		if (rc < 0)
@@ -309,7 +314,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 				/* FIXME: re-establishment procedure 5.6 */
 			} else {
 				/* FIXME: check for contention resoultion */
-				printf("SABM command, multiple frame established state\n");
+				DEBUGP(DLAPDM, "SABM command, multiple "
+					"frame established state\n");
 				return 0;
 			}
 		}
@@ -328,7 +334,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 #endif
 		break;
 	case LAPDm_U_DM:
-		printf("DM ");
+		DEBUGPC(DLAPDM, "DM ");
 		if (!LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 			/* 5.4.1.2 DM responses with the F bit set to "0" shall be ignored. */
 			return 0;
@@ -336,18 +342,18 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		switch (dl->state) {
 		case LAPDm_STATE_IDLE:
 			/* 5.4.5 all other frame types shall be discarded */
-			printf("state=IDLE (discarding) ");
+			DEBUGPC(DLAPDM, "state=IDLE (discarding) ");
 			return 0;
 		case LAPDm_STATE_MF_EST:
 			if (LAPDm_CTRL_PF_BIT(mctx->ctrl) == 1)
-				printf("unsolicited DM resposne ");
+				DEBUGPC(DLAPDM, "unsolicited DM resposne ");
 			else
-				printf("unsolicited DM resposne, multiple frame established state ");
+				DEBUGPC(DLAPDM, "unsolicited DM resposne, multiple frame established state ");
 			return 0;
 		case LAPDm_STATE_TIMER_RECOV:
 			/* DM is normal in case PF = 1 */
 			if (LAPDm_CTRL_PF_BIT(mctx->ctrl) == 0) {
-				printf("unsolicited DM resposne, multiple frame established state ");
+				DEBUGPC(DLAPDM, "unsolicited DM resposne, multiple frame established state ");
 				return 0;
 			}
 			break;
@@ -357,7 +363,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		rc = send_rslms_rll_simple(RSL_MT_REL_IND, mctx);
 		break;
 	case LAPDm_U_UI:
-		printf("UI ");
+		DEBUGP(DLAPDM, "UI ");
 		if (mctx->lapdm_fmt == LAPDm_FMT_B4) {
 			length = N201_B4;
 			msg->l3h = msg->l2h + 2;
@@ -371,7 +377,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* do some length checks */
 		if (length == 0) {
 			/* 5.3.3 UI frames received with the length indicator set to "0" shall be ignored */
-			printf("length=0 (discarding) ");
+			DEBUGP(DLAPDM, "length=0 (discarding) ");
 			return 0;
 		}
 		/* FIXME: G.4.5 check */
@@ -381,21 +387,22 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			break;
 		default:
 			/* 5.3.3 UI frames with invalid SAPI values shall be discarded */
-			printf("sapi=%u (discarding) ", LAPDm_ADDR_SAPI(mctx->ctrl));
+			DEBUGP(DLAPDM, "sapi=%u (discarding) ", LAPDm_ADDR_SAPI(mctx->ctrl));
 			return 0;
 		}
 		msgb_pull_l2h(msg);
 		rc = send_rslms_rll_l3(RSL_MT_UNIT_DATA_IND, mctx, msg);
 		break;
 	case LAPDm_U_DISC:
-		printf("DISC ");
+		DEBUGP(DLAPDM, "DISC ");
 		length = msg->l2h[2] >> 2;
 		if (length > 0 || msg->l2h[2] & 0x02) {
 			/* G.4.4 If a DISC or DM frame is received with L>0 or
 			 * with the M bit set to "1", an MDL-ERROR-INDICATION
 			 * primitive with cause "U frame with incorrect
 			 * parameters" is sent to the mobile management entity. */
-			printf("U frame iwth incorrect parameters ");
+			LOGP(DLAPDM, LOGL_ERROR,
+				"U frame iwth incorrect parameters ");
 			return -EIO;
 		}
 		switch (dl->state) {
@@ -408,11 +415,11 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		}
 		break;
 	case LAPDm_U_UA:
-		printf("UA ");
+		DEBUGP(DLAPDM, "UA ");
 		/* FIXME: G.4.5 check */
 		if (!LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 			/* 5.4.1.2 A UA response with the F bit set to "0" shall be ignored. */
-			printf("F=0 (discarding) ");
+			DEBUGP(DLAPDM, "F=0 (discarding) ");
 			return 0;
 		}
 		switch (dl->state) {
@@ -421,7 +428,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		case LAPDm_STATE_IDLE:
 			/* 5.4.5 all other frame types shall be discarded */
 		default:
-			printf("unsolicited UA response! (discarding) ");
+			DEBUGP(DLAPDM,
+				"unsolicited UA response! (discarding) ");
 			return 0;
 		}
 		/* reset Timer T200 */
@@ -510,7 +518,8 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		msgb_pull_l2h(msg);
 		rc = send_rslms_rll_l3(RSL_MT_DATA_IND, mctx, msg);
 	} else {
-		printf("N(s) sequence error: Ns=%u, V_recv=%u ", ns, dl->V_recv);
+		LOGP(DLAPDM, LOGL_INFO, "N(s) sequence error: Ns=%u, "
+		     "V_recv=%u ", ns, dl->V_recv);
 		/* FIXME: 5.7.1: N(s) sequence error */
 		/* discard data */
 		return -EIO;
@@ -568,7 +577,7 @@ static int lapdm_ph_data_ind(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 	else if (LAPDm_CTRL_is_I(mctx->ctrl))
 		rc = lapdm_rx_i(msg, mctx);
 	else {
-		printf("unknown LAPDm format ");
+		LOGP(DLAPDM, LOGL_ERROR, "unknown LAPDm format ");
 		rc = -EINVAL;
 	}
 	return rc;
@@ -582,7 +591,7 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 	struct lapdm_msg_ctx mctx;
 	int rc;
 
-	printf("l2_ph_data_ind() ");
+	DEBUGP(DLAPDM, "");
 	/* when we reach here, we have a msgb with l2h pointing to the raw
 	 * 23byte mac block. The l1h has already been purged. */
 
@@ -595,19 +604,19 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 	if (cbits == 0x10 || cbits == 0x12) {
 		/* Format Bbis is used on BCCH and CCCH(PCH, NCH and AGCH) */
 		mctx.lapdm_fmt = LAPDm_FMT_Bbis;
-		printf("fmt=Bbis ");
+		DEBUGPC(DLAPDM, "fmt=Bbis ");
 	} else {
 		if (mctx.link_id & 0x40) {
 			/* It was received from network on SACCH, thus
 			 * lapdm_fmt must be B4 */
 			mctx.lapdm_fmt = LAPDm_FMT_B4;
-			printf("fmt=B4 ");
+			DEBUGPC(DLAPDM, "fmt=B4 ");
 			/* SACCH frames have a two-byte L1 header that OsmocomBB L1 doesn't
 			 * strip */
 			msg->l2h += 2;
 		} else {
 			mctx.lapdm_fmt = LAPDm_FMT_B;
-			printf("fmt=B ");
+			DEBUGPC(DLAPDM, "fmt=B ");
 		}
 	}
 
@@ -617,7 +626,8 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 	case LAPDm_FMT_B4:
 		mctx.addr = msg->l2h[0];
 		if (!(mctx.addr & 0x01)) {
-			printf("we don't support multibyte addresses (discarding)\n");
+			LOGP(DLAPDM, LOGL_ERROR, "we don't support "
+				"multibyte addresses (discarding)\n");
 			return -EINVAL;
 		}
 		mctx.ctrl = msg->l2h[1];
@@ -630,13 +640,13 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 		break;
 	case LAPDm_FMT_Bbis:
 		/* directly pass up to layer3 */
-		printf("UI ");
+		DEBUGPC(DLAPDM, "UI ");
 		msg->l3h = msg->l2h;
 		msgb_pull_l2h(msg);
 		rc = send_rslms_rll_l3(RSL_MT_UNIT_DATA_IND, &mctx, msg);
 		break;
 	}
-	printf("\n");
+	DEBUGPC(DLAPDM, "\n");
 
 	return rc;
 }
@@ -653,7 +663,7 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	struct tlv_parsed tv;
 	uint8_t len;
 
-	printf("RSL_MT_EST_REQ ");
+	DEBUGP(DRSL, "RSL_MT_EST_REQ ");
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 	if (TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
@@ -662,14 +672,16 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 			/* 5.4.1.4: The data link layer shall, however, ignore any such
 			 * service request if it is not in the idle state when the
 			 * request is received. */
-			printf("DL state != IDLE (discarding)\n");
+			LOGP(DRSL, LOGL_INFO,
+				"DL state != IDLE (discarding)\n");
 			msgb_free(msg);
 			return 0;
 		}
 		if (sapi != 0) {
 			/* According to clause 6, the contention resolution
 			 * procedure is only permitted with SAPI value 0 */
-			printf("SAPI != 0 but contention resolution (discarding)\n");
+			LOGP(DRSL, LOGL_INFO, "SAPI != 0 but contention"
+				"resolution (discarding)\n");
 			msgb_free(msg);
 			return -EINVAL;
 		}
@@ -736,7 +748,8 @@ static int rslms_rx_rll_data_req(struct msgb *msg, struct lapdm_datalink *dl)
 	case LAPDm_STATE_MF_EST:
 		break;
 	default:
-		printf("refusing RLL DATA REQ during DL state %u\n", dl->state);
+		LOGP(DRSL, LOGL_NOTICE, "refusing RLL DATA REQ during "
+		     "DL state %u\n", dl->state);
 		return -EIO;
 		break;
 	}
@@ -805,7 +818,7 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 	case RSL_MT_REL_REQ:
 		/* FIXME: create and send DISC command */
 	default:
-		printf("unknown RLL message type 0x%02x\n",
+		LOGP(DRSL, LOGL_NOTICE, "unknown RLL message type 0x%02x\n",
 			rllh->c.msg_type);
 		break;
 	}
@@ -821,12 +834,12 @@ int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms)
 
 	switch (rslh->msg_discr & 0xfe) {
 	case ABIS_RSL_MDISC_RLL:
-		printf("rslms_recvmsg(ABIS_RSL_MDISC_RLL)\n");
+		DEBUGP(DRSL, "rslms_recvmsg(ABIS_RSL_MDISC_RLL)\n");
 		rc = rslms_rx_rll(msg, ms);
 		break;
 	default:
-		printf("unknown RSLms message discriminator 0x%02x",
-			rslh->msg_discr);
+		LOGP(DRSL, LOGL_ERROR, "unknown RSLms message "
+			"discriminator 0x%02x", rslh->msg_discr);
 		msgb_free(msg);
 		return -EINVAL;
 	}

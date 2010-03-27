@@ -42,6 +42,7 @@
 #include <osmocom/l1ctl.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/lapdm.h>
+#include <osmocom/logging.h>
 #include <osmocom/gsmtap_util.h>
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
@@ -50,7 +51,7 @@ static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 	struct msgb *msg = msgb_alloc_headroom(256, 4, "osmo_l1");
 
 	if (!msg) {
-		fprintf(stderr, "Failed to allocate memory.\n");
+		LOGP(DL1C, LOGL_ERROR, "Failed to allocate memory.\n");
 		return NULL;
 	}
 
@@ -75,7 +76,8 @@ static int rx_l1_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_time tm;
 
 	if (msgb_l3len(msg) < sizeof(*sb)) {
-		fprintf(stderr, "MSG too short for CCCH RESP: %u\n", msgb_l3len(msg));
+		LOGP(DL1C, LOGL_ERROR, "MSG too short for CCCH RESP: %u\n",
+			msgb_l3len(msg));
 		return -1;
 	}
 
@@ -83,7 +85,7 @@ static int rx_l1_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
 	sb = (struct l1ctl_sync_new_ccch_resp *) dl->payload;
 
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
-	printf("SCH: SNR: %u TDMA: (%.4u/%.2u/%.2u) bsic: %d\n",
+	DEBUGP(DL1C, "SCH: SNR: %u TDMA: (%.4u/%.2u/%.2u) bsic: %d\n",
 		dl->snr, tm.t1, tm.t2, tm.t3, sb->bsic);
 
 	return 0;
@@ -127,7 +129,8 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_time tm;
 
 	if (msgb_l3len(msg) < sizeof(*ccch)) {
-		fprintf(stderr, "MSG too short Data Ind: %u\n", msgb_l3len(msg));
+		LOGP(DL1C, LOGL_ERROR, "MSG too short Data Ind: %u\n",
+			msgb_l3len(msg));
 		return -1;
 	}
 
@@ -137,21 +140,23 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
-	printf("%s (%.4u/%.2u/%.2u) %s\n",
+	DEBUGP(DL1C, "%s (%.4u/%.2u/%.2u) %s\n",
 		chan_nr2string(dl->chan_nr), tm.t1, tm.t2, tm.t3,
 		hexdump(ccch->data, sizeof(ccch->data)));
 
 	/* send CCCH data via GSMTAP */
 	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
 	gsmtap_sendmsg(dl->band_arfcn, chan_ts, gsmtap_chan_type, chan_ss,
-			tm.fn, dl->rx_level-110, dl->snr, ccch->data, sizeof(ccch->data));
+			tm.fn, dl->rx_level-110, dl->snr, ccch->data,
+			sizeof(ccch->data));
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
 		le = &ms->lapdm_acch;
 	else
 		le = &ms->lapdm_dcch;
-	/* make local stack copy of l1ctl_info_dl, as LAPDm will overwrite skb hdr */
+	/* make local stack copy of l1ctl_info_dl, as LAPDm will
+	 * overwrite skb hdr */
 	memcpy(&dl_cpy, dl, sizeof(dl_cpy));
 
 	/* pull the L1 header from the msgb */
@@ -173,14 +178,16 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	uint8_t chan_type, chan_ts, chan_ss;
 	uint8_t gsmtap_chan_type;
 
-	printf("tx_ph_data_req(%s)\n", hexdump(msg->l2h, msgb_l2len(msg)));
+	DEBUGP(DL1C, "(%s)\n", hexdump(msg->l2h, msgb_l2len(msg)));
 
 	if (msgb_l2len(msg) > 23) {
-		printf("L1 cannot handle message length > 23 (%u)\n", msgb_l2len(msg));
+		LOGP(DL1C, LOGL_ERROR, "L1 cannot handle message length "
+			"> 23 (%u)\n", msgb_l2len(msg));
 		msgb_free(msg);
 		return -EINVAL;
 	} else if (msgb_l2len(msg) < 23)
-		printf("L1 message length < 23 (%u) doesn't seem right!\n", msgb_l2len(msg));
+		LOGP(DL1C, LOGL_ERROR, "L1 message length < 23 (%u) "
+			"doesn't seem right!\n", msgb_l2len(msg));
 
 	/* send copy via GSMTAP */
 	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
@@ -215,7 +222,7 @@ static int rx_l1_reset(struct osmocom_ms *ms)
 	if (!msg)
 		return -1;
 
-	printf("Layer1 Reset.\n");
+	LOGP(DL1C, LOGL_INFO, "Layer1 Reset.\n");
 	req = (struct l1ctl_sync_new_ccch_req *) msgb_put(msg, sizeof(*req));
 	req->band_arfcn = osmo_make_band_arfcn(ms);
 
@@ -234,7 +241,7 @@ int tx_ph_rach_req(struct osmocom_ms *ms)
 	if (!msg)
 		return -1;
 
-	printf("RACH Req.\n");
+	DEBUGP(DL1C, "RACH Req.\n");
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	req = (struct l1ctl_rach_req *) msgb_put(msg, sizeof(*req));
 	req->ra = i++;
@@ -253,7 +260,7 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 	if (!msg)
 		return -1;
 
-	printf("Tx Dedic.Mode Est Req (arfcn=%u, chan_nr=0x%02x)\n",
+	DEBUGP(DL1C, "Tx Dedic.Mode Est Req (arfcn=%u, chan_nr=0x%02x)\n",
 		band_arfcn, chan_nr);
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
@@ -273,7 +280,8 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	struct l1ctl_info_dl *dl;
 
 	if (msgb_l2len(msg) < sizeof(*dl)) {
-		fprintf(stderr, "Short Layer2 message: %u\n", msgb_l2len(msg));
+		LOGP(DL1C, LOGL_ERROR, "Short Layer2 message: %u\n",
+			msgb_l2len(msg));
 		return -1;
 	}
 

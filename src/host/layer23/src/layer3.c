@@ -7,6 +7,7 @@
 #include <osmocore/tlv.h>
 #include <osmocore/protocol/gsm_04_08.h>
 
+#include <osmocom/logging.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/rslms.h>
 #include <osmocom/layer3.h>
@@ -133,7 +134,7 @@ static int gsm48_tx_loc_upd_req(struct osmocom_ms *ms, uint8_t chan_nr)
 	struct gsm48_hdr *gh;
 	struct gsm48_loc_upd_req *lu_r;
 
-	printf("gsm48_tx_loc_upd_req()\n");
+	DEBUGP(DMM, "chan_nr=%u\n", chan_nr);
 
 	msg->l3h = msgb_put(msg, sizeof(*gh));
 	gh = (struct gsm48_hdr *) msg->l3h;
@@ -158,8 +159,9 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	arfcn = ia->chan_desc.h0.arfcn_low | (ia->chan_desc.h0.arfcn_high << 8);
 
-	printf("GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u) ",
-		ia->req_ref.ra, ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
+	DEBUGP(DRR, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
+		"ARFCN=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
+		ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
 		ia->chan_desc.h0.tsc);
 
 	/* FIXME: compare RA and GSM time with when we sent RACH req */
@@ -167,7 +169,7 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	/* check if we can support this type of channel at the moment */
 	if (ch_type != RSL_CHAN_SDCCH4_ACCH || ch_ts != 0 ||
 	    ia->chan_desc.h0.h == 1) {
-		printf("UNSUPPORTED!\n");
+		DEBUGPC(DRR, "UNSUPPORTED!\n");
 		return 0;
 	}
 
@@ -176,6 +178,8 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 
 	/* request L2 to establish the SAPI0 connection */
 	gsm48_tx_loc_upd_req(ms, ia->chan_desc.chan_nr);
+
+	DEBUGPC(DRR, "\n");
 
 	return 0;
 }
@@ -186,7 +190,7 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 	int rc = 0;
 
 	if (sih->rr_protocol_discriminator != GSM48_PDISC_RR)
-		printf("PCH pdisc != RR\n");
+		LOGP(DRR, LOGL_ERROR, "PCH pdisc != RR\n");
 	
 	switch (sih->system_information) {
 	case GSM48_MT_RR_PAG_REQ_1:
@@ -198,7 +202,8 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 		rc = gsm48_rx_imm_ass(msg, ms);
 		break;
 	default:
-		printf("unknown PCH/AGCH type 0x%02x\n", sih->system_information);
+		LOGP(DRR, LOGL_NOTICE, "unknown PCH/AGCH type 0x%02x\n",
+			sih->system_information);
 		rc = -EINVAL;
 	}
 

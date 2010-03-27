@@ -29,6 +29,7 @@
 #include <osmocore/tlv.h>
 #include <osmocore/protocol/gsm_04_08.h>
 
+#include <osmocom/logging.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/rslms.h>
 #include <osmocom/layer3.h>
@@ -63,12 +64,12 @@ static int rslms_rx_udata_ind(struct msgb *msg, struct osmocom_ms *ms)
 	struct tlv_parsed tv;
 	int rc = 0;
 	
-	printf("RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
+	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
 		rllh->chan_nr, rllh->link_id);
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 	if (!TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
-		printf("UNIT_DATA_IND without L3 INFO ?!?\n");
+		DEBUGP(DRSL, "UNIT_DATA_IND without L3 INFO ?!?\n");
 		return -EIO;
 	}
 	msg->l3h = (uint8_t *) TLVP_VAL(&tv, RSL_IE_L3_INFO);
@@ -93,30 +94,31 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 
 	switch (rllh->c.msg_type) {
 	case RSL_MT_DATA_IND:
-		printf("RSLms DATA IND\n");
+		DEBUGP(DRSL, "RSLms DATA IND\n");
 		/* FIXME: implement this */
 		break;
 	case RSL_MT_UNIT_DATA_IND:
 		rc = rslms_rx_udata_ind(msg, ms);
 		break;
 	case RSL_MT_EST_IND:
-		printf("RSLms EST IND\n");
+		DEBUGP(DRSL, "RSLms EST IND\n");
 		/* FIXME: implement this */
 		break;
 	case RSL_MT_EST_CONF:
-		printf("RSLms EST CONF\n");
+		DEBUGP(DRSL, "RSLms EST CONF\n");
 		/* FIXME: implement this */
 		break;
 	case RSL_MT_REL_CONF:
-		printf("RSLms REL CONF\n");
+		DEBUGP(DRSL, "RSLms REL CONF\n");
 		/* FIXME: implement this */
 		break;
 	case RSL_MT_ERROR_IND:
-		printf("RSLms ERR IND\n");
+		DEBUGP(DRSL, "RSLms ERR IND\n");
 		/* FIXME: implement this */
 		break;
 	default:
-		printf("unknown RSLms message type 0x%02x\n", rllh->c.msg_type);
+		LOGP(DRSL, LOGL_NOTICE, "unknown RSLms message type "
+			"0x%02x\n", rllh->c.msg_type);
 		rc = -EINVAL;
 		break;
 	}
@@ -135,7 +137,8 @@ int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms)
 		break;
 	default:
 		/* FIXME: implement this */
-		printf("unknown RSLms msg_discr 0x%02x\n", rslh->msg_discr);
+		LOGP(DRSL, LOGL_NOTICE, "unknown RSLms msg_discr 0x%02x\n",
+			rslh->msg_discr);
 		rc = -EINVAL;
 		break;
 	}
