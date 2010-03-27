@@ -60,19 +60,19 @@ static int layer2_read(struct bsc_fd *fd)
 
 	msg = msgb_alloc(GSM_L2_LENGTH, "Layer2");
 	if (!msg) {
-		fprintf(stderr, "Failed to allocate msg.\n");
+		LOGP(DL1C, LOGL_ERROR, "Failed to allocate msg.\n");
 		return -1;
 	}
 
 	rc = read(fd->fd, &len, sizeof(len));
 	if (rc < sizeof(len)) {
-		fprintf(stderr, "Short read. Error.\n");
+		LOGP(DL1C, LOGL_ERROR, "Short read. Error.\n");
 		exit(2);
 	}
 
 	len = ntohs(len);
 	if (len > GSM_L2_LENGTH) {
-		fprintf(stderr, "Length is too big: %u\n", len);
+		LOGP(DL1C, LOGL_ERROR, "Length is too big: %u\n", len);
 		msgb_free(msg);
 		return -1;
 	}
@@ -81,7 +81,8 @@ static int layer2_read(struct bsc_fd *fd)
 	msg->l1h = msgb_put(msg, len);
 	rc = read(fd->fd, msg->l1h, msgb_l1len(msg));
 	if (rc != msgb_l1len(msg)) {
-		fprintf(stderr, "Can not read data: len=%d rc=%d errno=%d\n", len, rc, errno);
+		LOGP(DL1C, LOGL_ERROR, "Can not read data: len=%d rc=%d "
+		     "errno=%d\n", len, rc, errno);
 		msgb_free(msg);
 		return -1;
 	}
@@ -97,7 +98,7 @@ static int layer2_write(struct bsc_fd *fd, struct msgb *msg)
 
 	rc = write(fd->fd, msg->data, msg->len);
 	if (rc != msg->len) {
-		fprintf(stderr, "Failed to write data: rc: %d\n", rc);
+		LOGP(DL1C, LOGL_ERROR, "Failed to write data: rc: %d\n", rc);
 		return -1;
 	}
 
@@ -109,17 +110,17 @@ int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg)
 {
 	uint16_t *len;
 
-	printf("Sending: '%s'\n", hexdump(msg->data, msg->len));
+	DEBUGP(DL1C, "Sending: '%s'\n", hexdump(msg->data, msg->len));
 
 	if (msg->l1h != msg->data)
-		printf("Message L1 header != Message Data\n");
+		LOGP(DL1C, LOGL_ERROR, "Message L1 header != Message Data\n");
 	
 	/* prepend 16bit length before sending */
 	len = (uint16_t *) msgb_push(msg, sizeof(*len));
 	*len = htons(msg->len - sizeof(*len));
 
 	if (write_queue_enqueue(&ms->wq, msg) != 0) {
-		fprintf(stderr, "Faile to enqueue msg.\n");
+		LOGP(DL1C, LOGL_ERROR, "Failed to enqueue msg.\n");
 		msgb_free(msg);
 		return -1;
 	}
