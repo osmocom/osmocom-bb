@@ -30,7 +30,7 @@
 #define MMR_F_IMSI		0x0001
 #define MMR_F_CAUSE		0x0002
 
-struct gsm_mmr {
+struct gsm48_mmr {
 	u_int32_t       msg_type;
 
 	u_int32_t	fields;
@@ -50,7 +50,7 @@ struct gsm_mmr {
 #define MNSS_F_FACILITY		0x0002
 #define MNSS_F_RELCOMPL		0x0004
 
-struct gsm_mnss {
+struct gsm48_mnss {
 	u_int32_t       msg_type;
 	u_int32_t       callref;
 
@@ -75,7 +75,7 @@ struct gsm_mnss {
 #define	RR_ABORT_IND		0x8162
 #define	RR_ACT_REQ		0x8170
 
-struct gsm_rr {
+struct gsm48_rr {
 	u_int32_t       msg_type; /* RR_* primitive */
 	struct msgb	*msg; /* gsm48 msg */
 	u_int8_t	cause;

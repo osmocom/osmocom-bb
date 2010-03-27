@@ -42,6 +42,19 @@ static void new_mmu_state(struct gsm_mmlayer *mm, int state)
 	mm->ustate = state;
 }
 
+/* allocate GSM 04.08 mobility management message (betreen MM and RR) */
+static struct msgb *gsm48_mm_msgb_alloc(void)
+{
+	struct msgb *msg;
+
+	msg = msgb_alloc_headroom(GSM48_MM_ALLOC_SIZE, GSM48_MM_ALLOC_HEADROOM,
+		"GSM 04.08 MM");
+	if (!msg)
+		return NULL;
+
+	return msg;
+}
+
 /* 4.2.3 when returning to MM IDLE state, this function is called */
 static int gsm48_mm_return_idle(struct osmocom_ms *ms)
 {
@@ -1021,7 +1034,7 @@ static struct mmdatastate {
 	{GSM_MMSTATE_LOC_UPD_INIT, /* 4.4.4.5 */
 	 GSM48_MT_MM_LOC_UPD_ACCEPT, gsm48_mm_rx_loc_upd_acc},
 	{GSM_MMSTATE_LOC_UPD_INIT, /* 4.4.4.7 */
-	 GSM48_MT_MM_LOC_UPD_ACCEPT, gsm48_mm_rx_loc_upd_rej},
+	 GSM48_MT_MM_LOC_UPD_REJECT, gsm48_mm_rx_loc_upd_rej},
 	{ALL_STATES, /* 4.5.1.1 */
 	 GSM48_MT_MM_, gsm48_mm_rx_cm_service_ack},
 	{ALL_STATES,
@@ -1038,12 +1051,12 @@ static struct mmdatastate {
 #define DMMATASLLEN \
 	(sizeof(mmdatastatelist) / sizeof(struct mmdatastate))
 
-static int gsm48_rcv_mm(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm48_mm_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	int msg_type = gh->msg_type & 0xbf;
 
-	DEBUGP(DMM, "(ms %s) Received '%s' from BS in state %s\n", ms->name,
+	DEBUGP(DMM, "(ms %s) Received '%s' in MM state %s\n", ms->name,
 		gsm48_mm_msg_name(msg_type), mm_state_names[mm->state]);
 
 	/* find function for current state and message */
@@ -1213,6 +1226,7 @@ static struct rrdatastate {
 
 static int gsm48_rcv_rr(struct osmocom_ms *ms, struct gsm_rr *rrmsg)
 {
+	struct gsm48_mmlayer *mm = ms->mmlayer;
 	int msg_type = rrmsg->msg_type;
 
 	DEBUGP(DMM, "(ms %s) Received '%s' from RR in state %s\n", ms->name,
@@ -1231,6 +1245,22 @@ static int gsm48_rcv_rr(struct osmocom_ms *ms, struct gsm_rr *rrmsg)
 	rc = rrdatastatelist[i].rout(ms, rrmsg);
 
 	return rc;
+}
+
+/* dequeue messages from RR */
+int gsm48_mm_queue(struct osmocom_ms *ms)
+{
+	struct gsm48_mmlayer *mm = ms->mmlayer;
+	struct msgb *msg;
+	int work = 0;
+	
+	while ((msg = msgb_dequeue(&mm->up_queue))) {
+		/* msg is freed there */
+		gsm48_rcv_rr(ms, msg);
+		work = 1; /* work done */
+	}
+	
+	return work;
 }
 
 

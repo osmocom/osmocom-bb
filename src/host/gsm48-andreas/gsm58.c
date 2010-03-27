@@ -23,6 +23,27 @@ todo: cell selection and reselection criteria
 todo: path loss
 todo: downlink signal failure
 
+/*
+ * initialization
+ */
+
+void gsm58_init(struct osmocom_ms *ms)
+{
+	struct gsm58_selproc *sp = &ms->selproc;
+
+	memset(sp, 0, sizeof(*sp));
+	sp->ms = ms;
+
+	/* init list */
+	INIT_LLIST_HEAD(&sp->event_queue);
+
+	return 0;
+}
+
+/*
+ * event messages
+ */
+
 /* allocate a 05.08 event message */
 struct msgb *gsm58_msgb_alloc(int msg_type)
 {
@@ -39,12 +60,60 @@ struct msgb *gsm58_msgb_alloc(int msg_type)
 	return msg;
 }
 
+/* queue received message */
+int gsm58_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm58_selproc *sp = &ms->selproc;
+
+	msgb_enqueue(&sp->event_queue, msg);
+}
+
+/*
+ * timer
+ */
+
+/* search timer handling */
+static void gsm58_timer_timeout(void *arg)
+{
+	struct gsm322_58_selproc *sp = arg;
+	struct msgb *nmsg;
+
+	/* indicate BCCH selection T timeout */
+	nmsg = gsm58_msgb_alloc(GSM58_EVENT_TIMEOUT);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm58_sendmsg(ms, nmsg);
+}
+
+static void gsm58_timer_start(struct gsm58_selproc *sp, int secs, int micro)
+{
+	DEBUGP(DRR, "starting FREQUENCY search timer\n");
+	sp->timer.cb = gsm58_timer_timeout;
+	sp->timer.data = sp;
+	bsc_schedule_timer(&sp->timer, secs, micro);
+}
+
+static void gsm58_timer_stop(struct gsm58_selproc *plmn)
+{
+	if (timer_pending(&sp->timer)) {
+		DEBUGP(DRR, "stopping pending timer\n");
+		bsc_del_timer(&sp->timer);
+	}
+}
+
+/*
+ * process handlers
+ */
+
 /* select first/next frequency */
-static int gsm58_select_bcch(struct osmocom_ms *ms)
+static int gsm58_select_bcch(struct osmocom_ms *ms, int next)
 {
 	struct gsm_support *s = &ms->support;
 	struct gsm58_selproc *sp = &ms->selproc;
 	int i, j = 0;
+
+	if (next)
+		sp->cur_freq++;
 
 next:
 	for (i = 0, i < 1024, i++) {
@@ -84,7 +153,6 @@ next:
 	return 0;
 }
 
-
 /* start normal cell selection: search any channel for given PLMN */
 static int gsm58_start_normal_sel(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -103,7 +171,7 @@ static int gsm58_start_normal_sel(struct osmocom_ms *ms, struct msgb *msg)
 	sp->mnc = gm->mnc;
 
 	/* select first channel */
-	gsm58_select_bcch(ms);
+	gsm58_select_bcch(ms, 0);
 }
 
 /* start stored cell selection: search given channels for given PLMN */
@@ -124,7 +192,7 @@ static int gsm58_start_stored_sel(struct osmocom_ms *ms, struct msgb *msg)
 	sp->mnc = gm->mnc;
 
 	/* select first channel */
-	gsm58_select_bcch(ms);
+	gsm58_select_bcch(ms, 0);
 }
 
 /* start any cell selection: search any channel for any PLMN */
@@ -144,7 +212,7 @@ static int gsm58_start_any_sel(struct osmocom_ms *ms, struct msgb *msg)
 	memcpy(sp->ba, s->freq_map, sizeof(sp->ba));
 
 	/* select first channel */
-	gsm58_select_bcch(ms);
+	gsm58_select_bcch(ms, 0);
 }
 
 /* timeout while selecting BCCH */
@@ -165,8 +233,7 @@ static int gsm58_sel_timeout(struct osmocom_ms *ms, struct msgb *msg)
 		DEBUGP(DRR, "Timeout in wrong mode, please fix!\n");
 	}
 
-	sp->cur_freq++;
-	gsm58_select_bcch(ms);
+	gsm58_select_bcch(ms, 1);
 
 	return 0;
 }
@@ -223,8 +290,8 @@ static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 
-	/* cell has become barred */
 	if (sp->mode == GSM58_MODE_CAMP) {
+		/* cell has become barred */
 		if (barred) {
 			DEBUGP(DRR, "Cell has become barred, starting "
 				"reselection.\n");
@@ -246,17 +313,25 @@ static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 	if (barred) {
 		DEBUGP(DRR, "Selected cell is barred, select next.\n");
 		gsm58_timer_stop(sp);
-		sp->cur_freq++;
-		gsm58_select_bcch(ms);
+		gsm58_select_bcch(ms, 1);
 
 		return 0;
 	}
 
-	/* if PLMN not yet indicated */
-	if (!s->mcc && !s->mnc)
+	/* if PLMN not yet indicated, but required if not any cell selection */
+	if (!sp->any && !s->mcc)
 		return 0;
 
 	// todo: what else do we need until we can camp?
+
+	/* wrong PLMN */
+	if (!sp->any && s->mcc == sp->mcc && s->mnc == sp->mnc) {
+		DEBUGP(DRR, "Selected cell of differen PLMN, select next.\n");
+		gsm58_timer_stop(sp);
+		gsm58_select_bcch(ms, 1);
+
+		return 0;
+	}
 
 	/* all relevant informations received */
 	gsm58_timer_stop(sp);
@@ -272,6 +347,10 @@ static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 
 	return 0;
 }
+
+/*
+ * events
+ */
 
 /* receive events for GSM 05.08 processes */
 static int gsm58_event(struct osmocom_ms *ms, struct msgb *msg)
@@ -306,36 +385,24 @@ static int gsm58_event(struct osmocom_ms *ms, struct msgb *msg)
 		DEBUGP(DRR, "Message unhandled.\n");
 	}
 
-	free_msgb(msg);
-
 	return 0;
 }
 
-
-static void gsm58_timer_timeout(void *arg)
+/* dequeue GSM 05.08 events */
+int gsm58_event_queue(struct osmocom_ms *ms)
 {
-	struct gsm322_58_selproc *sp = arg;
-	struct msgb *nmsg;
-
-	/* indicate BCCH selection T timeout */
-	nmsg = gsm58_msgb_alloc(GSM58_EVENT_TIMEOUT);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm58_sendmsg(ms, nmsg);
-}
-
-static void gsm58_timer_start(struct gsm58_selproc *sp, int secs, int micro)
-{
-	DEBUGP(DRR, "starting FREQUENCY search timer\n");
-	sp->timer.cb = gsm58_timer_timeout;
-	sp->timer.data = sp;
-	bsc_schedule_timer(&sp->timer, secs, micro);
-}
-
-static void gsm58_timer_stop(struct gsm58_selproc *plmn)
-{
-	if (timer_pending(&sp->timer)) {
-		DEBUGP(DRR, "stopping pending timer\n");
-		bsc_del_timer(&sp->timer);
+	struct gsm58_selproc *sp = &ms->selproc;
+	struct msgb *msg;
+	int work = 0;
+	
+	while ((msg = msgb_dequeue(&sp->event_queue))) {
+		gsm58_event(ms, msg);
+		free_msgb(msg);
+		work = 1; /* work done */
 	}
+	
+	return work;
 }
+
+
+

@@ -76,6 +76,31 @@ static void new_rr_state(struct gsm_rrlayer *rr, int state)
 }
 
 /*
+ * messages
+ */
+
+/* allocate GSM 04.08 radio ressource message (RR to L2) */
+static struct msgb *gsm48_rr_msgb_alloc(void)
+{
+	struct msgb *msg;
+
+	msg = msgb_alloc_headroom(GSM48_RR_ALLOC_SIZE, GSM48_RR_ALLOC_HEADROOM,
+		"GSM 04.08 RR");
+	if (!msg)
+		return NULL;
+
+	return msg;
+}
+
+/* queue message L2 -> RR */
+int gsm48_rr_upmsg(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm_rrlayer *rr = ms->rrlayer;
+
+	msgb_enqueue(&rr->up_queue, msg);
+}
+
+/*
  * timers handling
  */
 
@@ -129,7 +154,7 @@ static void timeout_rr_t3126(void *arg)
 		mmh = (struct gsm_mm_hdr *)msg->data;
 		mmh->msg_type RR_REL_IND;
 		mmh->cause = GSM_MM_CAUSE_RA_FAILURE;
-		rr_rcvmsg(ms, msg);
+		gsm48_mm_upmsg(ms, msg);
 	}
 
 	new_rr_state(rr, GSM_RRSTATE_IDLE);
@@ -143,10 +168,11 @@ static void timeout_rr_t3126(void *arg)
 static int gsm_rr_tx_rr_status(struct osmocom_ms *ms, uint8_t cause)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
-	struct msgb *msg = gsm48_rr_msgb_alloc();
+	struct msgb *msg;
 	struct gsm48_hdr *gh;
 	struct gsm48_rr_status *st;
 
+	msg = gsm48_rr_msgb_alloc();
 	if (!msg)
 		return -ENOMEM;
 	gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
@@ -170,10 +196,11 @@ static int gsm_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
 	struct gsm_subscriber *subcr = ms->subscr;
-	struct msgb *msg = gsm48_rr_msgb_alloc();
+	struct msgb *msg;
 	struct gsm48_hdr *gh;
 	u_int8_t buf[11], *ie;
 
+	msg = gsm48_rr_msgb_alloc();
 	if (!msg)
 		return -ENOMEM;
 	gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
@@ -367,12 +394,13 @@ static int gsm_rr_tx_cm_change(struct osmocom_ms *ms)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
 	struct gsm_support *sup = ms->support;
-	struct msgb *msg = gsm48_rr_msgb_alloc();
+	struct msgb *msg;
 	struct gsm48_hdr *gh;
 	struct gsm48_cm_change *cc;
 	int len;
 	uint8_t buf[14];
 
+	msg = gsm48_rr_msgb_alloc();
 	if (!msg)
 		return -ENOMEM;
 	gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
@@ -526,7 +554,7 @@ static int gsm_rr_tx_chan_req(struct osmocom_ms *ms, int cause)
 		mmh = (struct gsm_mm_hdr *)msg->data;
 		mmh->msg_type RR_REL_IND;
 		mmh->cause = GSM_MM_CAUSE_UNDEFINED;
-		rr_rcvmsg(ms, msg);
+		gsm48_mm_upmsg(ms, msg);
 		new_rr_state(rr, GSM_RRSTATE_IDLE);
 		return -EINVAL;
 	}
@@ -554,7 +582,7 @@ static int gsm_rr_tx_chan_req(struct osmocom_ms *ms, int cause)
 static int gsm_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
-	struct msgb *newmsg;
+	struct msgb *nmsg;
 	int s;
 
 	if (!rr->n_chan_req) {
@@ -593,15 +621,15 @@ static int gsm_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 			s = 115;
 
 	/* resend chan_req */
-	newmsg = msgb_alloc_headroom(20, 16, "CHAN_REQ");
-	if (!newmsg)
+	nmsg = msgb_alloc_headroom(20, 16, "CHAN_REQ");
+	if (!nmsg)
 		return -ENOMEM;
-	*msgb_put(newmsg, 1) = rr->chan_req;
-	*msgb_put(newmsg, 1) = (random() % ms->si.tx_integer) + s; /* delay */
+	*msgb_put(nmsg, 1) = rr->chan_req;
+	*msgb_put(nmsg, 1) = (random() % ms->si.tx_integer) + s; /* delay */
 	rr->cr_hist[3] = rr->cr_hist[2];
 	rr->cr_hist[2] = rr->cr_hist[1];
 	rr->cr_hist[1] = chan_req;
-	return rslms_tx_rll_req_l3(ms, RSL_MT_RAND_ACC_REQ, chan_nr, 0, newmsg);
+	return rslms_tx_rll_req_l3(ms, RSL_MT_RAND_ACC_REQ, chan_nr, 0, nmsg);
 }
 
 /*
@@ -1710,10 +1738,11 @@ static int gsm_match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *req)
 static int gsm_rr_tx_ass_cpl(struct osmocom_ms *ms, uint8_t cause)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
-	struct msgb *msg = gsm48_rr_msgb_alloc();
+	struct msgb *msg;
 	struct gsm48_hdr *gh;
 	struct gsm48_ass_cpl *ac;
 
+	msg = gsm48_rr_msgb_alloc();
 	if (!msg)
 		return -ENOMEM;
 	gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
@@ -1732,10 +1761,11 @@ static int gsm_rr_tx_ass_cpl(struct osmocom_ms *ms, uint8_t cause)
 static int gsm_rr_tx_ass_fail(struct osmocom_ms *ms, uint8_t cause)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
-	struct msgb *msg = gsm48_rr_msgb_alloc();
+	struct msgb *msg;
 	struct gsm48_hdr *gh;
 	struct gsm48_ass_fail *ac;
 
+	msg = gsm48_rr_msgb_alloc();
 	if (!msg)
 		return -ENOMEM;
 	gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
@@ -1904,10 +1934,11 @@ static int gsm_rr_tx_meas_rep(struct osmocom_ms *ms)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
 	struct gsm_rr_meas *meas = &rr->meas;
-	struct msgb *msg = gsm48_rr_msgb_alloc();
+	struct msgb *msg;
 	struct gsm48_hdr *gh;
 	struct gsm48_meas_res *mr;
 
+	msg = gsm48_rr_msgb_alloc();
 	if (!msg)
 		return -ENOMEM;
 	gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
@@ -2032,29 +2063,29 @@ static int gsm_rr_dl_est(struct osmocom_ms *ms)
 /* the link is established */
 static int gsm_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct msgb *newmsg;
-	struct gsm_mm_hdr *newmmh;
+	struct msgb *nmsg;
+	struct gsm_mm_hdr *nmmh;
 
 	/* if MM has releases before confirm, we start release */
 	if (rr->state == GSM_RRSTATE_IDLE) {
 		/* release message */
-		newmsg = gsm48_rr_msgb_alloc();
-		if (!newmsg)
+		nmsg = gsm48_rr_msgb_alloc();
+		if (!nmsg)
 			return -ENOMEM;
 		/* start release */
-		return rslms_tx_rll_req_l3(ms, RSL_MT_REL_REQ, 0, 0, newmsg);
+		return rslms_tx_rll_req_l3(ms, RSL_MT_REL_REQ, 0, 0, nmsg);
 	}
 
 	/* 3.3.1.1.4 */
 	new_rr_state(rr, GSM_RRSTATE_DEDICATED);
 
 	/* send confirm to upper layer */
-	newmsg = gsm48_mm_msgb_alloc();
-	if (!newmsg)
+	nmsg = gsm48_mm_msgb_alloc();
+	if (!nmsg)
 		return -ENOMEM;
-	newmmh = (struct gsm_mm_hdr *)newmsg->data;
-	newmmh->msg_type = (rr->rr_est_req) ? RR_EST_CNF : RR_EST_IND;
-	return rr_rcvmsg(ms, newmsg);
+	nmmh = (struct gsm_mm_hdr *)nmsg->data;
+	nmmh->msg_type = (rr->rr_est_req) ? RR_EST_CNF : RR_EST_IND;
+	return gsm48_mm_upmsg(ms, nmsg);
 }
 
 /* the link is released */
@@ -2085,16 +2116,16 @@ static int gsm_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 	/* 3.3.1.1.3.2 */
 	if (timer_pending(rr->t3122)) {
 		if (rrmsg->cause != RR_EST_CAUSE_EMERGENCY) {
-			struct msgb *newmsg;
-			struct gsm_mm_hdr *newmmh;
+			struct msgb *nmsg;
+			struct gsm_mm_hdr *nmmh;
 
-			newmsg = gsm48_mm_msgb_alloc();
-			if (!newmsg)
+			nmsg = gsm48_mm_msgb_alloc();
+			if (!nmsg)
 				return -ENOMEM;
-			newmmh = (struct gsm_mm_hdr *)newmsg->data;
-			newmmh->msg_type RR_REL_IND;
-			newmmh->cause = GSM_MM_CAUSE_T3122_PEND;
-			return rr_rcvmsg(ms, newmsg);
+			nmmh = (struct gsm_mm_hdr *)nmsg->data;
+			nmmh->msg_type RR_REL_IND;
+			nmmh->cause = GSM_MM_CAUSE_T3122_PEND;
+			return gsm48_mm_upmsg(ms, nmsg);
 		} else
 			stop_rr_t3122(rr);
 	}
@@ -2104,16 +2135,16 @@ static int gsm_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 		if (!(ms->access_class & ms->si.access_class)) {
 			reject:
 			if (!ms->opt.access_class_override) {
-				struct msgb *newmsg;
-				struct gsm_mm_hdr *newmmh;
+				struct msgb *nmsg;
+				struct gsm_mm_hdr *nmmh;
 
-				newmsg = gsm48_mm_msgb_alloc();
-				if (!newmsg)
+				nmsg = gsm48_mm_msgb_alloc();
+				if (!nmsg)
 					return -ENOMEM;
-				newmmh = (struct gsm_mm_hdr *)newmsg->data;
-				newmmh->msg_type RR_REL_IND;
-				newmmh->cause = GSM_MM_CAUSE_NOT_AUTHORIZED;
-				return rr_rcvmsg(ms, newmsg);
+				nmmh = (struct gsm_mm_hdr *)nmsg->data;
+				nmmh->msg_type RR_REL_IND;
+				nmmh->cause = GSM_MM_CAUSE_NOT_AUTHORIZED;
+				return gsm48_mm_upmsg(ms, nmsg);
 			}
 		}
 	} else {
@@ -2221,7 +2252,7 @@ static int gsm_rr_data_ind(struct osmocom_ms *ms, struct msbg *msg)
 	mmh = (struct gsm_mm_hdr *)msg->data;
 	mmh->msg_type = RR_DATA_IND;
 	/* forward message */
-	return rr_rcvmsg(ms, msg);
+	return gsm48_mm_upmsg(ms, msg);
 }
 
 /* unit data from layer 2 to RR layer */
@@ -2338,13 +2369,16 @@ const char *get_rr_name(int value)
 	return get_value_string(rr_names, value);
 }
 
-static int rr_rcvmsg(struct osmocom_ms *ms,
+move to mm
+static int gsm48_mm_upmsg(struct osmocom_ms *ms,
 			int msg_type, struct gsm_mncc *rrmsg)
 {
 	struct msgb *msg;
 
+#if 0
 	DEBUGP(DRR, "(MS %s) Sending '%s' to MM.\n", ms->name,
 		get_rr_name(msg_type));
+#endif
 
 	rrmsg->msg_type = msg_type;
 	
@@ -2393,7 +2427,7 @@ static struct rrdownstate {
 #define RRDOWNSLLEN \
 	(sizeof(rrdownstatelist) / sizeof(struct rrdownstate))
 
-static int gsm_send_rr(struct osmocom_ms *ms, struct gsm_rr *msg)
+static int gsm48_rr_sendmsg(struct osmocom_ms *ms, struct gsm_rr *msg)
 {
 	struct gsm_mm_hdr *mmh = msgb->data;
 	int msg_type = mmh->msg_type;
@@ -2536,8 +2570,8 @@ static int gsm_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	memcpy(&rr->chan_desc, cd, sizeof(cd));
 
 	/* start suspension of current link */
-	newmsg = gsm48_rr_msgb_alloc();
-	if (!newmsg)
+	nmsg = gsm48_rr_msgb_alloc();
+	if (!nmsg)
 		return -ENOMEM;
 	rslms_tx_rll_req_l3(ms, RSL_MT_SUSP_REQ, rr->chan_desc.chan_nr, 0, msg);
 
@@ -2619,8 +2653,8 @@ today: more IE parsing
 	memcpy(&rr->chan_desc, cd, sizeof(cd));
 
 	/* start suspension of current link */
-	newmsg = gsm48_rr_msgb_alloc();
-	if (!newmsg)
+	nmsg = gsm48_rr_msgb_alloc();
+	if (!nmsg)
 		return -ENOMEM;
 	rslms_tx_rll_req_l3(ms, RSL_MT_SUSP_REQ, rr->chan_desc.chan_nr, 0, msg);
 
@@ -2671,11 +2705,11 @@ static int gsm_rr_rel_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 		/* change radio to new channel */
 		tx_ph_dm_est_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
 
-		newmsg = gsm48_rr_msgb_alloc();
-		if (!newmsg)
+		nmsg = gsm48_rr_msgb_alloc();
+		if (!nmsg)
 			return -ENOMEM;
 		/* send DL-ESTABLISH REQUEST */
-		rslms_tx_rll_req_l3(ms, RSL_MT_EST_REQ, rr->chan_desc.chan_desc.chan_nr, 0, newmsg);
+		rslms_tx_rll_req_l3(ms, RSL_MT_EST_REQ, rr->chan_desc.chan_desc.chan_nr, 0, nmsg);
 
 	}
 	if (rr->hando_susp_state) {
@@ -2688,8 +2722,8 @@ static int gsm_rr_rel_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
-	struct msgb *newmsg;
-	struct gsm_mm_hdr *newmmh;
+	struct msgb *nmsg;
+	struct gsm_mm_hdr *nmmh;
 
 	if (rr->hando_susp_state || rr->assign_susp_state) {
 		if (!rr->resume_last_state) {
@@ -2702,10 +2736,10 @@ static int gsm_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 			tx_ph_dm_est_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
 
 			/* re-establish old link */
-			newmsg = gsm48_rr_msgb_alloc();
-			if (!newmsg)
+			nmsg = gsm48_rr_msgb_alloc();
+			if (!nmsg)
 				return -ENOMEM;
-			return rslms_tx_rll_req_l3(ms, RSL_MT_EST_REQ, rr->chan_desc.chan_desc.chan_nr, 0, newmsg);
+			return rslms_tx_rll_req_l3(ms, RSL_MT_EST_REQ, rr->chan_desc.chan_desc.chan_nr, 0, nmsg);
 		}
 		rr->resume_last_state = 0;
 	}
@@ -2714,14 +2748,14 @@ static int gsm_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	tx_ph_dm_rel_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
 
 	/* send abort ind to upper layer */
-	newmsg = gsm48_mm_msgb_alloc();
+	nmsg = gsm48_mm_msgb_alloc();
 
 	if (!msg)
 		return -ENOMEM;
-	newmmh = (struct gsm_mm_hdr *)newmsg->data;
-	newmmh->msg_type = RR_ABORT_IND;
-	newmmh->cause = GSM_MM_CAUSE_LINK_FAILURE;
-	return rr_rcvmsg(ms, msg);
+	nmmh = (struct gsm_mm_hdr *)nmsg->data;
+	nmmh->msg_type = RR_ABORT_IND;
+	nmmh->cause = GSM_MM_CAUSE_LINK_FAILURE;
+	return gsm48_mm_upmsg(ms, msg);
 }
 
 /* state trasitions for link layer messages (lower layer) */
@@ -2757,7 +2791,7 @@ static struct dldatastate {
 #define DLDATASLLEN \
 	(sizeof(dldatastatelist) / sizeof(struct dldatastate))
 
-static int gsm_rcv_dl(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
+static int gsm48_rcv_dl(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 {
 	int msg_type = dlmsg->msg_type;
 
@@ -2782,6 +2816,22 @@ static int gsm_rcv_dl(struct osmocom_ms *ms, struct gsm_dl *dlmsg)
 		free_msgb(msg);
 
 	return rc;
+}
+
+/* dequeue messages from dl */
+int gsm48_rr_queue(struct osmocom_ms *ms)
+{
+	struct gsm_rrlayer *rr = ms->rrlayer;
+	struct msgb *msg;
+	int work = 0;
+	
+	while ((msg = msgb_dequeue(&rr->up_queue))) {
+		/* msg is freed there */
+		gsm48_rcv_dl(ms, msg);
+		work = 1; /* work done */
+	}
+	
+	return work;
 }
 
 static void timeout_rr_t3124(void *arg)
@@ -2815,9 +2865,7 @@ struct gsm_rrlayer *gsm_new_rr(struct osmocom_ms *ms)
 		return NULL;
 	rr->ms = ms;
 
-	init queues
-
-	init timers
+	INIT_LLIST_HEAD(&rr->up_queue);
 
 	return;
 }
@@ -2840,18 +2888,18 @@ todo stop t3122 when cell change
 /* send HANDOVER ACCESS burst (9.1.14) */
 static int gsm_rr_tx_hando_access(struct osmocom_ms *ms)
 {
-	newmsg = msgb_alloc_headroom(20, 16, "HAND_ACCESS");
-	if (!newmsg)
+	nmsg = msgb_alloc_headroom(20, 16, "HAND_ACCESS");
+	if (!nmsg)
 		return -ENOMEM;
-	*msgb_put(newmsg, 1) = rr->hando_ref;
-	return rslms_tx_rll_req_l3(ms, RSL_MT_RAND_ACC_REQ, chan_nr, 0, newmsg);
+	*msgb_put(nmsg, 1) = rr->hando_ref;
+	return rslms_tx_rll_req_l3(ms, RSL_MT_RAND_ACC_REQ, chan_nr, 0, nmsg);
 }
 
 /* send next channel request in dedicated state */
 static int gsm_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_rrlayer *rr = ms->rrlayer;
-	struct msgb *newmsg;
+	struct msgb *nmsg;
 	int s;
 
 	if (!rr->hando_susp_state) {

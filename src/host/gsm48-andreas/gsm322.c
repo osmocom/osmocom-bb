@@ -20,7 +20,55 @@
  */
 
 /*
- * message allocation
+ * initialization
+ */
+
+/* initialize the idle mode process */
+gsm322_init(struct osmocom_ms *ms)
+{
+	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm322_locreg *lr = &ms->locreg;
+	OSMOCOM_FILE *fp;
+	struct msgb *nmsg;
+	char suffix[] = ".plmn"
+	char filename[sizeof(ms->name) + strlen(suffix) + 1];
+
+	memset(plmn, 0, sizeof(*plmn));
+
+	plmn->ms = ms;
+
+	/* set initial state */
+	plmn->state = 0;
+	cs->state = 0;
+	lr->state = 0;
+	plmn->mode = PLMN_MODE_AUTO;
+
+	/* init lists */
+	INIT_LLIST_HEAD(&plmn->event_queue);
+	INIT_LLIST_HEAD(&plmn->nplmn_list);
+	INIT_LLIST_HEAD(&plmn->splmn_list);
+	INIT_LLIST_HEAD(&plmn->la_list);
+	INIT_LLIST_HEAD(&plmn->ba_list);
+
+	/* read PLMN list */
+	strcpy(filename, ms->name);
+	strcat(filename, suffix);
+	fp = osmocom_fopen(filename, "r");
+	if (fp) {
+		** read list
+		osmocom_close(fp);
+	}
+
+	/* enqueue power on message */
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_sendmsg(ms, nmsg);
+}
+
+/*
+ * event messages
  */
 
 /* allocate a 03.22 event message */
@@ -37,6 +85,14 @@ static struct msgb *gsm322_msgb_alloc(int msg_type)
 	gm = (struct gsm322_msg *)msgb_put(msg, sizeof(*gm));
 	gm->msg_type = msg_type;
 	return msg;
+}
+
+/* queue received message */
+int gsm322_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm322_plmn *plmn = &ms->plmn;
+
+	msgb_enqueue(&plmn->event_queue, msg);
 }
 
 /*
@@ -1229,19 +1285,7 @@ static int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg)
 	return rc;
 }
 
-
-finished
-------------------------------------------------------------------------------
-unfinished
-
-unsolved issues:
-- now to handle change in mode (manual / auto)
-- available and allowable
-- when do we have a new list, when to sort
-
-todo:
- handle not suitable cells, forbidden cells, barred cells....
-
+/* broadcast event to all GSM 03.22 processes */
 static int gsm322_event(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* send event to PLMN search process */
@@ -1256,37 +1300,39 @@ static int gsm322_event(struct osmocom_ms *ms, struct msgb *msg)
 	/* send event to location registration process */
 	gsm322_l_event(ms, msg);
 
-	/* free message */
-	free_msgb(msg);
+	return 0;
 }
 
-
-/* initialize the idle mode process */
-gsm322_init(struct osmocom_ms *ms)
+/* dequeue GSM 03.22 events */
+int gsm322_event_queue(struct osmocom_ms *ms)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
-	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm322_locreg *lr = &ms->locreg;
-
-	plmn->ms = ms;
-
-	/* set initial state */
-	plmn->state = 0;
-	cs->state = 0;
-	lr->state = 0;
-	plmn->mode = PLMN_MODE_AUTO;
-
-	/* init lists */
-	INIT_LLIST_HEAD(&plmn->nplmn_list);
-	INIT_LLIST_HEAD(&plmn->splmn_list);
-	INIT_LLIST_HEAD(&plmn->la_list);
-	INIT_LLIST_HEAD(&plmn->ba_list);
-
-	/* read PLMN list */
-	** read list
-
-	** enqueue power on message
+	struct msgb *msg;
+	int work = 0;
+	
+	while ((msg = msgb_dequeue(&plmn->event_queue))) {
+		gsm322_event(ms, msg);
+		free_msgb(msg);
+		work = 1; /* work done */
+	}
+	
+	return work;
 }
+
+
+finished
+------------------------------------------------------------------------------
+unfinished
+
+unsolved issues:
+- now to handle change in mode (manual / auto)
+- available and allowable
+- when do we have a new list, when to sort
+
+todo:
+ handle not suitable cells, forbidden cells, barred cells....
+
+
 
 /* LR request */
 static int gsm322_l_lr_request(struct osmocom_ms *ms, struct msgb *msg)

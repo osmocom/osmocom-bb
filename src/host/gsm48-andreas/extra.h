@@ -462,3 +462,26 @@ gsm_04_08.h:
 #define GSM48_IE_MOB_AL_BEFORE	0x21
 #define GSM48_IE_CIP_MODE_SET	0x90
 #define GSM48_IE_CLASSMARK2	0x20
+
+
+idea: unified api for file handling (in this case we store the file on the host)
+
+why: store information on power down, save menu settings
+
+#include <stdio.h>
+#define OSMOCOM_CONFDIR "/etc/osmocom_"
+#define OSMOCOM_FILE FILE
+static inline OSMOCOM_FILE *osmocom_fopen(const char *name, const char *mode)
+{
+	char filename[strlen(OSMOCOM_CONFDIR) + strlen(filename) + 1];
+
+	strcpy(filename, OSMOCOM_CONFDIR);
+	strcat(filename, name);
+	
+	return fopen(filename, mode);
+}
+#define osmocom_fread fread
+#define osmocom_fwrite fwrite
+#define osmocom_fclose fclose
+
+
