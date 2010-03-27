@@ -32,8 +32,9 @@
 #define L1CTL_DATA_REQ		7
 #define L1CTL_RESET		8
 #define L1CTL_PM_REQ		9	/* power measurement */
-#define L1CTL_ECHO_REQ		10
-#define L1CTL_ECHO_RESP		11
+#define L1CTL_PM_RESP		10	/* power measurement */
+#define L1CTL_ECHO_REQ		11
+#define L1CTL_ECHO_RESP		12
 
 /*
  * NOTE: struct size. We do add manual padding out of the believe
@@ -136,6 +137,12 @@ struct l1ctl_pm_req {
 			uint16_t band_arfcn_to;
 		} range;
 	};
+} __attribute__((packed));
+
+/* a single L1CTL_PM response */
+struct l1ctl_pm_resp {
+	uint16_t band_arfcn;
+	uint8_t pm[2];
 } __attribute__((packed));
 
 #endif

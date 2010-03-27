@@ -79,14 +79,12 @@ static enum mframe_task chan_nr2mf_task(uint8_t chan_nr)
 	return 0;
 }
 
-struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
-			      uint16_t arfcn)
+struct msgb *l1ctl_msgb_alloc(uint8_t msg_type)
 {
-	struct l1ctl_hdr *l1h;
-	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
+	struct l1ctl_hdr *l1h;
 
-	msg = msgb_alloc_headroom(L3_MSG_SIZE, L3_MSG_HEAD, "l1_burst");
+	msg = msgb_alloc_headroom(L3_MSG_SIZE, L3_MSG_HEAD, "l1ctl");
 	if (!msg) {
 		while (1) {
 			puts("OOPS. Out of buffers...\n");
@@ -94,9 +92,17 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 
 		return NULL;
 	}
-
 	l1h = (struct l1ctl_hdr *) msgb_put(msg, sizeof(*l1h));
 	l1h->msg_type = msg_type;
+
+	return msg;
+}
+
+struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
+			      uint16_t arfcn)
+{
+	struct l1ctl_info_dl *dl;
+	struct msgb *msg = l1ctl_msgb_alloc(msg_type);
 
 	dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
 	dl->frame_nr = htonl(fn);
@@ -106,12 +112,27 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 	return msg;
 }
 
+/* receive a L1CTL_PM_REQ from L23 */
 void l1ctl_rx_pm_req(struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_pm_req *pm_req = (struct l1ctl_pm_req *) l1h->data;
 
-	/* FIXME */
+	switch (pm_req->type) {
+	case 1:
+		l1s.pm.mode = 1;
+		l1s.pm.range.arfcn_start =
+				ntohs(pm_req->range.band_arfcn_from);
+		l1s.pm.range.arfcn_next =
+				ntohs(pm_req->range.band_arfcn_from);
+		l1s.pm.range.arfcn_end =
+				ntohs(pm_req->range.band_arfcn_to);
+		printf("L1CTL_PM_REQ start=%u end=%u\n",
+			l1s.pm.range.arfcn_start, l1s.pm.range.arfcn_end);
+		break;
+	}
+
+	l1s_pm_test(1, l1s.pm.range.arfcn_next);
 }
 
 /* callback from SERCOMM when L2 sends a message to L1 */
@@ -127,7 +148,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 
 	{
 		int i;
-		puts("l1a_l23_rx_cb: ");
+		printf("l1a_l23_rx_cb (%u): ", msg->len);
 		for (i = 0; i < msg->len; i++)
 			printf("%02x ", msg->data[i]);
 		puts("\n");
@@ -202,7 +223,6 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		/* we have to keep the msgb, not free it! */
 		goto exit_nofree;
 	case L1CTL_PM_REQ:
-		printd("L1CTL_PM_REQ\n");
 		l1ctl_rx_pm_req(msg);
 		break;
 	}

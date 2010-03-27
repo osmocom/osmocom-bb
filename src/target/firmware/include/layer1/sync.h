@@ -37,6 +37,19 @@ struct l1s_state {
 	uint32_t	mf_tasks;
 
 	struct {
+		/* power measurement l1 task */
+		unsigned int mode;
+		union {
+			struct {
+				uint16_t arfcn_start;
+				uint16_t arfcn_next;
+				uint16_t arfcn_end;
+			} range;
+		};
+		struct msgb *msg;
+	} pm;
+
+	struct {
 		uint8_t		ra;
 	} rach;
 };

@@ -30,6 +30,7 @@
 #include <defines.h>
 #include <debug.h>
 #include <memory.h>
+#include <byteorder.h>
 #include <osmocore/gsm_utils.h>
 #include <osmocore/msgb.h>
 #include <calypso/dsp_api.h>
@@ -773,8 +774,9 @@ static int l1s_pm_cmd(__unused uint8_t p1,
 
 /* scheduler callback to read power measurement resposnse from the DSP */
 static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
-		       __unused uint16_t p3)
+		       uint16_t arfcn)
 {
+	struct l1ctl_pm_resp *pmr;
 	uint16_t pm_level[2];
 	struct l1_signal sig;
 
@@ -782,26 +784,55 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 
 	l1ddsp_meas_read(2, pm_level);
 
-	printd("PM MEAS: %-4d dBm, %-4d dBm ARFCN=%u\n", 
+	printf("PM MEAS: %-4d dBm, %-4d dBm ARFCN=%u\n",
 		agc_inp_dbm8_by_pm(pm_level[0])/8,
-		agc_inp_dbm8_by_pm(pm_level[1])/8, rf_arfcn);
+		agc_inp_dbm8_by_pm(pm_level[1])/8, arfcn);
 
 	/* build and deliver signal */
 	sig.signum = L1_SIG_PM;
-	sig.arfcn = rf_arfcn;
+	sig.arfcn = arfcn;
 	sig.pm.dbm8[0] = agc_inp_dbm8_by_pm(pm_level[0]);
 	sig.pm.dbm8[1] = agc_inp_dbm8_by_pm(pm_level[1]);
 
 	if (l1s_cb)
 		l1s_cb(&sig);
 
+	if (!l1s.pm.msg)
+		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_RESP);
+
+	if (msgb_tailroom(l1s.pm.msg) < sizeof(*pmr)) {
+		/* flush current msgb */
+		l1_queue_for_l2(l1s.pm.msg);
+		/* allocate a new msgb and initialize header */
+		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_RESP);
+	}
+
+	pmr = msgb_put(l1s.pm.msg, sizeof(*pmr));
+	pmr->band_arfcn = htons(arfcn);
+	/* FIXME: do this as RxLev rather than DBM8 ? */
+	pmr->pm[0] = dbm2rxlev(agc_inp_dbm8_by_pm(pm_level[0])/8);
+	pmr->pm[1] = dbm2rxlev(agc_inp_dbm8_by_pm(pm_level[1])/8);
+
+	if (l1s.pm.mode == 1) {
+		if (l1s.pm.range.arfcn_next < l1s.pm.range.arfcn_end) {
+			/* schedule PM for next ARFCN in range */
+			l1s_pm_test(1, l1s.pm.range.arfcn_next);
+			l1s.pm.range.arfcn_next++;
+		} else {
+			/* we have finished, flush the msgb to L2 */
+			l1_queue_for_l2(l1s.pm.msg);
+			l1s.pm.msg = NULL;
+		}
+	}
+
 	return 0;
 }
 
 void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 {
+	printf("l1s_pm_test(%u, %u)\n", base_fn, arfcn);
 	tdma_schedule(base_fn, &l1s_pm_cmd, 0, 0, arfcn);
-	tdma_schedule(base_fn + 2, &l1s_pm_resp, 0, 0, 0);
+	tdma_schedule(base_fn + 2, &l1s_pm_resp, 0, 0, arfcn);
 }
 
 /* Normal Burst ***************************************************************/

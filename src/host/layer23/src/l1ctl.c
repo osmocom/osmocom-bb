@@ -212,6 +212,22 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	return osmo_send_l1(ms, msg);
 }
 
+/* Transmit NEW_CCCH_REQ */
+int l1ctl_tx_ccch_req(struct osmocom_ms *ms)
+{
+	struct msgb *msg;
+	struct l1ctl_sync_new_ccch_req *req;
+
+	msg = osmo_l1_alloc(L1CTL_NEW_CCCH_REQ);
+	if (!msg)
+		return -1;
+
+	req = (struct l1ctl_sync_new_ccch_req *) msgb_put(msg, sizeof(*req));
+	req->band_arfcn = osmo_make_band_arfcn(ms);
+
+	return osmo_send_l1(ms, msg);
+}
+
 /* Transmit L1CTL_RACH_REQ */
 int tx_ph_rach_req(struct osmocom_ms *ms)
 {
@@ -272,23 +288,46 @@ int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len)
 	return osmo_send_l1(ms, msg);
 }
 
-/* Receive L1CTL_RESET */
-static int rx_l1_reset(struct osmocom_ms *ms)
+/* Transmit L1CTL_PM_REQ */
+int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
+			  uint16_t arfcn_to)
 {
 	struct msgb *msg;
-	struct l1ctl_sync_new_ccch_req *req;
+	struct l1ctl_pm_req *pm;
 
-	msg = osmo_l1_alloc(L1CTL_NEW_CCCH_REQ);
+	msg = osmo_l1_alloc(L1CTL_PM_REQ);
 	if (!msg)
 		return -1;
 
-	LOGP(DL1C, LOGL_INFO, "Layer1 Reset.\n");
-	req = (struct l1ctl_sync_new_ccch_req *) msgb_put(msg, sizeof(*req));
-	req->band_arfcn = osmo_make_band_arfcn(ms);
+	printf("Tx PM Req (%u-%u)\n", arfcn_from, arfcn_to);
+	pm = (struct l1ctl_pm_req *) msgb_put(msg, sizeof(*pm));
+	pm->type = 1;
+	pm->range.band_arfcn_from = htons(arfcn_from);
+	pm->range.band_arfcn_to = htons(arfcn_to);
 
 	return osmo_send_l1(ms, msg);
 }
 
+/* Receive L1CTL_RESET */
+static int rx_l1_reset(struct osmocom_ms *ms)
+{
+	printf("Layer1 Reset.\n");
+	//return l1ctl_tx_pm_req_range(ms, 0, 124);
+	return l1ctl_tx_ccch_req(ms);
+}
+
+/* Receive L1CTL_PM_RESP */
+static int rx_l1_pm_resp(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_pm_resp *pmr;
+
+	for (pmr = (struct l1ctl_pm_resp *) msg->l1h;
+	     (uint8_t *) pmr < msg->tail; pmr++) {
+		DEBUGP(DL1C, "PM MEAS: ARFCN: %4u RxLev: %3d %3d\n",
+			ntohs(pmr->band_arfcn), pmr->pm[0], pmr->pm[1]);
+	}
+	return 0;
+}
 
 /* Receive incoming data from L1 using L1CTL format */
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
@@ -318,6 +357,9 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_RESET:
 		rc = rx_l1_reset(ms);
+		break;
+	case L1CTL_PM_RESP:
+		rc = rx_l1_pm_resp(ms, msg);
 		break;
 	default:
 		fprintf(stderr, "Unknown MSG: %u\n", l1h->msg_type);
