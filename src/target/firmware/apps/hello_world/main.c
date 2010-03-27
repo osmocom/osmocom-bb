@@ -75,13 +75,11 @@ static void console_rx_cb(uint8_t dlci, struct msgb *msg)
 
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
-	{
-		int i;
-		puts("l1a_l23_rx_cb: ");
-		for (i = 0; i < msg->len; i++)
-			printf("%02x ", msg->data[i]);
-		puts("\n");
-	}
+	int i;
+	puts("l1a_l23_rx_cb: ");
+	for (i = 0; i < msg->len; i++)
+		printf("%02x ", msg->data[i]);
+	puts("\n");
 }
 
 int main(void)
