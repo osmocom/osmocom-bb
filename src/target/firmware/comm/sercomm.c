@@ -62,6 +62,7 @@ static struct {
 	struct {
 		struct llist_head dlci_queues[_SC_DLCI_MAX];
 		struct msgb *msg;
+		enum rx_state state;
 		uint8_t *next_char;
 	} tx;
 
@@ -153,14 +154,12 @@ int sercomm_drv_pull(uint8_t *ch)
 		}
 	}
 
-	/* escaping for the two control octets */
-	if (*sercomm.tx.next_char == HDLC_FLAG ||
-	    *sercomm.tx.next_char == HDLC_ESCAPE) {
-		/* send an escape octet */
-		*ch = HDLC_ESCAPE;
-		/* invert bit 5 of the next octet to be sent */
-		*sercomm.tx.next_char ^= (1 << 5);
-	} else if (sercomm.tx.next_char == sercomm.tx.msg->tail) {
+	if (sercomm.tx.state == RX_ST_ESCAPE) {
+		/* we've already transmitted the ESCAPE octet,
+		 * we now need to trnsmit the escaped data */
+		*ch = *sercomm.tx.next_char++;
+		sercomm.tx.state = RX_ST_DATA;
+	} else if (sercomm.tx.next_char >= sercomm.tx.msg->tail) {
 		/* last character has already been transmitted,
 		 * send end-of-message octet */
 		*ch = HDLC_FLAG;
@@ -168,6 +167,14 @@ int sercomm_drv_pull(uint8_t *ch)
 		msgb_free(sercomm.tx.msg);
 		sercomm.tx.msg = NULL;
 		sercomm.tx.next_char = NULL;
+	/* escaping for the two control octets */
+	} else if (*sercomm.tx.next_char == HDLC_FLAG ||
+		   *sercomm.tx.next_char == HDLC_ESCAPE) {
+		/* send an escape octet */
+		*ch = HDLC_ESCAPE;
+		/* invert bit 5 of the next octet to be sent */
+		*sercomm.tx.next_char ^= (1 << 5);
+		sercomm.tx.state = RX_ST_ESCAPE;
 	} else {
 		/* standard case, simply send next octet */
 		*ch = *sercomm.tx.next_char++;
