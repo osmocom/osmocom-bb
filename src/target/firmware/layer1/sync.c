@@ -814,7 +814,7 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 	pmr->pm[1] = dbm2rxlev(agc_inp_dbm8_by_pm(pm_level[1])/8);
 
 	if (l1s.pm.mode == 1) {
-		if (l1s.pm.range.arfcn_next < l1s.pm.range.arfcn_end) {
+		if (l1s.pm.range.arfcn_next <= l1s.pm.range.arfcn_end) {
 			/* schedule PM for next ARFCN in range */
 			l1s_pm_test(1, l1s.pm.range.arfcn_next);
 			l1s.pm.range.arfcn_next++;
