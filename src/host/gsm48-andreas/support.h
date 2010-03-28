@@ -58,7 +58,7 @@ struct gsm_support {
 	uint8_t low_capa;
 	uint8_t dcs_1800;
 	uint8_t dcs_capa;
-	utnt8_t freq_map[128];
+	uint8_t freq_map[128];
 	/* multi slot support */
 	uint8_t ms_sup;
 	/* ucs2 treatment */
