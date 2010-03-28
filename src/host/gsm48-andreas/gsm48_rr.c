@@ -1353,7 +1353,7 @@ static int gsm_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 	/* Cell Identity */
 	s->cell_identity = ntohl(si->cell_identity);
 	/* LAI */
-	gsm48_decode_lai(si->lai, s->mcc, s->mnc, s->lac);
+	gsm48_decode_lai(si->lai, &s->mcc, &s->mnc, &s->lac);
 	/* Control Channel Description */
 	gsm48_decode_ccd(s, si->control_channel_desc);
 	/* Cell Options (BCCH) */
@@ -1392,7 +1392,7 @@ todo: si has different header in structures
 		return -EINVAL;
 	}
 	/* LAI */
-	gsm48_decode_lai(si->lai, s->mcc, s->mnc, s->lac);
+	gsm48_decode_lai(si->lai, &s->mcc, &s->mnc, &s->lac);
 	/* Cell Selection Parameters */
 	gsm48_decode_cell_sel_param(s, si->cell_sel_par);
 	/* RACH Control Parameter */
@@ -1520,7 +1520,7 @@ static int gsm_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	/* Cell Identity */
 	s->cell_identity = ntohl(si->cell_identity);
 	/* LAI */
-	gsm48_decode_lai(si->lai, s->mcc, s->mnc, s->lac);
+	gsm48_decode_lai(si->lai, &s->mcc, &s->mnc, &s->lac);
 	/* Cell Options (SACCH) */
 	gsm48_decode_cellopt_sacch(s, si->control_channel_desc);
 	/* NCC Permitted */
@@ -2248,10 +2248,10 @@ static int gsm_rr_data_ind(struct osmocom_ms *ms, struct msbg *msg)
 	}
 
 	/* push header */
-	msgb_push(msg, sizeof(struct gsm_mm_hdr));
-	mmh = (struct gsm_mm_hdr *)msg->data;
+	msgb_push(msg, sizeof(struct gsm48_mm_hdr));
+	mmh = (struct gsm48_mm_hdr *)msg->data;
 	mmh->msg_type = RR_DATA_IND;
-	/* forward message */
+
 	return gsm48_mm_upmsg(ms, msg);
 }
 
@@ -2301,10 +2301,9 @@ static int gsm_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 
 
-complete
--------------------------------------------------------------------------------
-uncomplete
-
+the process above is complete
+------------------------------------------------------------------------------
+incomplete
 
 
 

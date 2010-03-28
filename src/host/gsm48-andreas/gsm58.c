@@ -87,7 +87,7 @@ static void gsm58_timer_timeout(void *arg)
 
 static void gsm58_timer_start(struct gsm58_selproc *sp, int secs, int micro)
 {
-	DEBUGP(DRR, "starting FREQUENCY search timer\n");
+	DEBUGP(DLC, "starting FREQUENCY search timer\n");
 	sp->timer.cb = gsm58_timer_timeout;
 	sp->timer.data = sp;
 	bsc_schedule_timer(&sp->timer, secs, micro);
@@ -96,7 +96,7 @@ static void gsm58_timer_start(struct gsm58_selproc *sp, int secs, int micro)
 static void gsm58_timer_stop(struct gsm58_selproc *plmn)
 {
 	if (timer_pending(&sp->timer)) {
-		DEBUGP(DRR, "stopping pending timer\n");
+		DEBUGP(DLC, "stopping pending timer\n");
 		bsc_del_timer(&sp->timer);
 	}
 }
@@ -126,7 +126,7 @@ next:
 	if (i == 1024) {
 		struct msgb *nmsg;
 
-		DEBUGP(DRR, "Cycled through all %d frequencies in list.\n", j);
+		DEBUGP(DLC, "Cycled through all %d frequencies in list.\n", j);
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_NO_CELL_F);
 		if (!nmsg)
 			return -ENOMEM;
@@ -135,14 +135,14 @@ next:
 
 	/* if frequency not supported */
 	if (!(s->freq_map[i >> 3] & (1 << (i & 7)))) {
-		DEBUGP(DRR, "Frequency %d in list, but not supported.\n", i);
+		DEBUGP(DLC, "Frequency %d in list, but not supported.\n", i);
 		sp->cur_freq++;
 		goto next;
 	}
 
 	/* set current BCCH frequency */
 	sp->arfcn = i;
-	DEBUGP(DRR, "Frequency %d selected, wait for sync.\n", sp->arfcn);
+	DEBUGP(DLC, "Frequency %d selected, wait for sync.\n", sp->arfcn);
 	tx_ph_bcch_req(ms, sp->arfcn);
 
 	/* start timer for synchronizanation */
@@ -223,14 +223,14 @@ static int gsm58_sel_timeout(struct osmocom_ms *ms, struct msgb *msg)
 	switch(sp->mode) {
 	case GSM58_MODE_SYNC:
 		/* if no sync is received from radio withing sync time */
-		DEBUGP(DRR, "Syncronization failed, selecting next frq.\n");
+		DEBUGP(DLC, "Syncronization failed, selecting next frq.\n");
 		break;
 	case GSM58_MODE_READ:
 		/* timeout while reading BCCH */
-		DEBUGP(DRR, "BCC reading failed, selecting next frq.\n");
+		DEBUGP(DLC, "BCC reading failed, selecting next frq.\n");
 		break;
 	default:
-		DEBUGP(DRR, "Timeout in wrong mode, please fix!\n");
+		DEBUGP(DLC, "Timeout in wrong mode, please fix!\n");
 	}
 
 	gsm58_select_bcch(ms, 1);
@@ -246,12 +246,12 @@ static int gsm58_sel_sync(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* if we got a sync while already selecting a new frequency */
 	if (gm->arfcn != sp->arfcn) {
-		DEBUGP(DRR, "Requested frq %d, but synced to %d, ignoring.\n"
+		DEBUGP(DLC, "Requested frq %d, but synced to %d, ignoring.\n"
 			sp->arfcn, gm->arfcn);
 		return 0;
 	}
 
-	DEBUGP(DRR, "Synced to %d, waiting for relevant data.\n", sp->arfcn);
+	DEBUGP(DLC, "Synced to %d, waiting for relevant data.\n", sp->arfcn);
 
 	/* set timer for reading BCCH */
 	gsm58_timer_start(sp, 4, 0); // TODO: timer depends on BCCH configur.
@@ -268,6 +268,7 @@ static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm58_selproc *sp = &ms->selproc;
 	struct gsm58_msg *gm = (struct gsm58_msg *)msgb->data;
+	struct gsm322_msg *ngm;
 	struct msgb *nmsg;
 	int barred = 0, i;
 
@@ -293,7 +294,7 @@ static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 	if (sp->mode == GSM58_MODE_CAMP) {
 		/* cell has become barred */
 		if (barred) {
-			DEBUGP(DRR, "Cell has become barred, starting "
+			DEBUGP(DLC, "Cell has become barred, starting "
 				"reselection.\n");
 
 			sp->mode = GSM58_MODE_IDLE;
@@ -311,7 +312,7 @@ static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* can't use barred cell */
 	if (barred) {
-		DEBUGP(DRR, "Selected cell is barred, select next.\n");
+		DEBUGP(DLC, "Selected cell is barred, select next.\n");
 		gsm58_timer_stop(sp);
 		gsm58_select_bcch(ms, 1);
 
@@ -326,7 +327,7 @@ static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* wrong PLMN */
 	if (!sp->any && s->mcc == sp->mcc && s->mnc == sp->mnc) {
-		DEBUGP(DRR, "Selected cell of differen PLMN, select next.\n");
+		DEBUGP(DLC, "Selected cell of differen PLMN, select next.\n");
 		gsm58_timer_stop(sp);
 		gsm58_select_bcch(ms, 1);
 
@@ -337,12 +338,17 @@ static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 	gsm58_timer_stop(sp);
 	sp->mode = GSM58_MODE_CAMP;
 
-	DEBUGP(DRR, "Cell with freq %d, mcc = %d, mnc = %d selected.\n",
+	DEBUGP(DCS, "Cell with freq %d, mcc = %d, mnc = %d selected.\n",
 		sp->arfcn, s->mcc, s->mnc);
 
+	/* indicate cell */
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_CELL_FOUND);
 	if (!nmsg)
 		return -ENOMEM;
+	ngm = (struct gsm322_msg *)nmsg->data;
+	ngm->mcc = s->mcc;
+	ngm->mnc = s->mnc;
+	ngm->lac = s->lac;
 	gsm322_sendmsg(ms, nmsg);
 
 	return 0;
@@ -358,7 +364,7 @@ static int gsm58_event(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm58_msg *gm = (struct gsm58_msg *)msgb->data;
 	int msg_type = gm->msg_type;
 
-	DEBUGP(DRR, "(ms %s) Message '%s' for link control "
+	DEBUGP(DCS, "(ms %s) Message '%s' for link control "
 		"%s\n", ms->name, gsm58_event_names[msg_type],
 		plmn_a_state_names[plmn->state]);
 
@@ -382,7 +388,7 @@ static int gsm58_event(struct osmocom_ms *ms, struct msgb *msg)
 		gsm58_sel_sysinfo(ms, msg);
 		break;
 	default:
-		DEBUGP(DRR, "Message unhandled.\n");
+		DEBUGP(DLC, "Message unhandled.\n");
 	}
 
 	return 0;

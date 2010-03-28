@@ -52,6 +52,7 @@ struct gsm_sysinfo {
 	uint8_t				hopp_len;
 
 	/* serving cell */
+	uint16_t			mcc, mnc, lac; /* LAI */
 	uint8_t				max_retrans; /* decoded */
 	uint8_t				tx_integer; /* decoded */
 	uint8_t				reest_denied; /* 1 = denied */

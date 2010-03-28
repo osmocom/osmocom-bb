@@ -81,6 +81,10 @@ void gsm_support_init(struct osmocom_ms *ms)
 	s->meas_cap = 0; /* no */
 	//s->sms_val = ;
 	//s->sm_val = ;
+
+	/* IMEI */
+	sprintf(s->imei, "000000000000000");
+	sprintf(s->imeisv, "0000000000000000");
 }
 
 

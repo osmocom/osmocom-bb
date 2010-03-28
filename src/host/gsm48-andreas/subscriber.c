@@ -23,6 +23,11 @@ int gsm_subscr_init(struct osmocom_ms *ms)
 {
 	struct gsm_subscriber *subcr = &ms->subscr;
 
+	memset(subscr, 0, sizeof(*subscr));
+
+	/* set key invalid */
+	subscr->key_seq = 7;
+
 	INIT_LLIST_HEAD(&subscr->plmn_na);
 }
 

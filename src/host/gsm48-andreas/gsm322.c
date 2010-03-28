@@ -24,7 +24,7 @@
  */
 
 /* initialize the idle mode process */
-gsm322_init(struct osmocom_ms *ms)
+int gsm322_init(struct osmocom_ms *ms)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm322_cellsel *cs = &ms->cellsel;
@@ -65,6 +65,8 @@ gsm322_init(struct osmocom_ms *ms)
 	if (!nmsg)
 		return -ENOMEM;
 	gsm322_sendmsg(ms, nmsg);
+
+	return 0;
 }
 
 /*
@@ -126,8 +128,8 @@ static void new_a_state(struct gsm322_plmn *plmn, int state)
 	if (state < 0 || state >= (sizeof(plmn_a_state_names) / sizeof(char *)))
 		return;
 
-	DEBUGP(DRR, "new state %s -> %s\n",
-		plmn_a_state_names[rr->state], plmn_a_state_names[state]);
+	DEBUGP(DPLMN, "new state %s -> %s\n",
+		plmn_a_state_names[plmn->state], plmn_a_state_names[state]);
 
 	plmn->state = state;
 }
@@ -138,34 +140,34 @@ static void new_m_state(struct gsm322_plmn *plmn, int state)
 	if (state < 0 || state >= (sizeof(plmn_m_state_names) / sizeof(char *)))
 		return;
 
-	DEBUGP(DRR, "new state %s -> %s\n",
-		plmn_m_state_names[rr->state], plmn_m_state_names[state]);
+	DEBUGP(DPLMN, "new state %s -> %s\n",
+		plmn_m_state_names[plmn->state], plmn_m_state_names[state]);
 
 	plmn->state = state;
 }
 
 /* new Cell selection state */
-static void new_c_state(struct gsm322_plmn *plmn, int state)
+static void new_c_state(struct gsm322_cellsel *cs, int state)
 {
 	if (state < 0 || state >= (sizeof(cellsel_state_names) / sizeof(char *)))
 		return;
 
-	DEBUGP(DRR, "new state %s -> %s\n",
-		cellsel_state_names[rr->state], cellsel_state_names[state]);
+	DEBUGP(DCS, "new state %s -> %s\n",
+		cellsel_state_names[cs->state], cellsel_state_names[state]);
 
-	plmn->state = state;
+	cs->state = state;
 }
 
 /* new Location registration state */
-static void new_l_state(struct gsm322_plmn *plmn, int state)
+static void new_l_state(struct gsm322_locupd *lu, int state)
 {
 	if (state < 0 || state >= (sizeof(locreg_state_names) / sizeof(char *)))
 		return;
 
-	DEBUGP(DRR, "new state %s -> %s\n",
-		locreg_state_names[rr->state], locreg_state_names[state]);
+	DEBUGP(DLU, "new state %s -> %s\n",
+		locreg_state_names[lu->state], locreg_state_names[state]);
 
-	plmn->state = state;
+	lu->state = state;
 }
 
 /*
@@ -186,7 +188,7 @@ static void gsm322_timer_timeout(void *arg)
 
 static void gsm322_timer_start(struct gsm322_plmn *plmn, int secs)
 {
-	DEBUGP(DRR, "starting HPLMN search timer with %d minutes\n", secs / 60);
+	DEBUGP(DPLMN, "starting HPLMN search timer with %d minutes\n", secs / 60);
 	plmn->timer.cb = gsm322_timer_timeout;
 	plmn->timer.data = plmn;
 	bsc_schedule_timer(&plmn->timer, secs, 0);
@@ -195,7 +197,7 @@ static void gsm322_timer_start(struct gsm322_plmn *plmn, int secs)
 static void gsm322_timer_stop(struct gsm322_plmn *plmn)
 {
 	if (timer_pending(&plmn->timer)) {
-		DEBUGP(DRR, "stopping pending timer\n");
+		DEBUGP(DPLMN, "stopping pending timer\n");
 		bsc_del_timer(&plmn->timer);
 	}
 }
@@ -876,7 +878,7 @@ static int gsm322_c_stored_cell_sel(struct osmocom_ms *ms, struct gsm322_ba_list
 	struct msgb *nmsg;
 	struct gsm58_msg *gm;
 
-	new_c_state(plmn, GSM_C2_STORED_CELL_SEL);
+	new_c_state(cs, GSM_C2_STORED_CELL_SEL);
 
 	nmsg = gsm58_msgb_alloc(GSM58_EVENT_START_STORED);
 	if (!nmsg)
@@ -896,10 +898,10 @@ static int gsm322_c_stored_cell_sel(struct osmocom_ms *ms, struct gsm322_ba_list
 /* start noraml cell selection */
 static int gsm322_c_normal_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 
-	new_c_state(plmn, GSM_C1_NORMAL_CELL_SEL);
+	new_c_state(cs, GSM_C1_NORMAL_CELL_SEL);
 
 	nmsg = gsm58_msgb_alloc(GSM58_EVENT_START_NORMAL);
 	if (!nmsg)
@@ -916,10 +918,10 @@ static int gsm322_c_normal_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 /* start any cell selection */
 static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 
-	new_c_state(plmn, GSM_C6_ANY_CELL_SEL);
+	new_c_state(cs, GSM_C6_ANY_CELL_SEL);
 
 	nmsg = gsm58_msgb_alloc(GSM58_EVENT_START_ANY);
 	if (!nmsg)
@@ -932,9 +934,9 @@ static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 /* start noraml cell re-selection */
 static int gsm322_c_normal_cell_resel(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 
-	new_c_state(plmn, GSM_C4_NORMAL_CELL_RSEL);
+	new_c_state(cs, GSM_C4_NORMAL_CELL_RSEL);
 
 #ifdef TODO
 	start cell selection process
@@ -947,9 +949,9 @@ static int gsm322_c_normal_cell_resel(struct osmocom_ms *ms, struct msgb *msg)
 /* start any cell re-selection */
 static int gsm322_c_any_cell_resel(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 
-	new_c_state(plmn, GSM_C8_ANY_CELL_RSEL);
+	new_c_state(cs, GSM_C8_ANY_CELL_RSEL);
 
 #ifdef TODO
 	start cell selection process
@@ -962,9 +964,9 @@ static int gsm322_c_any_cell_resel(struct osmocom_ms *ms, struct msgb *msg)
 /* start 'Choose cell' */
 static int gsm322_c_choose_cell(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 
-	new_c_state(plmn, GSM_C5_CHOOSE_CELL);
+	new_c_state(cs, GSM_C5_CHOOSE_CELL);
 
 #ifdef TODO
 	start cell selection process
@@ -977,9 +979,9 @@ static int gsm322_c_choose_cell(struct osmocom_ms *ms, struct msgb *msg)
 /* start 'Choose any cell' */
 static int gsm322_c_choose_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 
-	new_c_state(plmn, GSM_C9_CHOOSE_ANY_CELL);
+	new_c_state(cs, GSM_C9_CHOOSE_ANY_CELL);
 
 #ifdef TODO
 	start cell selection process
@@ -992,7 +994,7 @@ static int gsm322_c_choose_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 /* a new PLMN is selected by PLMN search process */
 static int gsm322_c_new_plmn(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm322_ba_list *ba;
 
 	/* search for BA list */
@@ -1007,9 +1009,14 @@ static int gsm322_c_new_plmn(struct osmocom_ms *ms, struct msgb *msg)
 /* a suitable cell was found, so we camp normally */
 static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm58_msg *gm = (struct gsm58_msg *)msg->data;
 
-	new_c_state(plmn, GSM_C3_CAMPED_NORMALLY);
+	cs->mcc = gm->mcc;
+	cs->mnc = gm->mnc;
+	cs->lac = gm->lac;
+
+	new_c_state(cs, GSM_C3_CAMPED_NORMALLY);
 
 	return 0;
 }
@@ -1017,9 +1024,14 @@ static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 /* a not suitable cell was found, so we camp on any cell */
 static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm58_msg *gm = (struct gsm58_msg *)msg->data;
 
-	new_c_state(plmn, GSM_C7_CAMPED_ANY_CELL);
+	cs->mcc = gm->mcc;
+	cs->mnc = gm->mnc;
+	cs->lac = gm->lac;
+
+	new_c_state(cs, GSM_C7_CAMPED_ANY_CELL);
 
 	return 0;
 }
@@ -1027,7 +1039,7 @@ static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 /* location update reject */
 static int gsm322_c_lu_reject(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm322_hdr *gh = msgb->data;
 
 	/* not changing to Any Cell Selection */
@@ -1042,20 +1054,20 @@ static int gsm322_c_lu_reject(struct osmocom_ms *ms, struct msgb *msg)
 /* go connected mode */
 static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 
 	/* stop camping process */
-	new_c_state(plmn, GSM_Cx_CONNECTED_MODE_1);
+** todo
 
 	return 0;
 }
 
 static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 
 	/* stop camping process */
-	new_c_state(plmn, GSM_Cx_CONNECTED_MODE_2);
+** todo
 
 	return 0;
 }
@@ -1063,7 +1075,7 @@ static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 /* switch on */
 static int gsm322_c_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm_subscr *subscr = &ms->subscr;
 
 	/* if no SIM is is MS */
@@ -1128,7 +1140,7 @@ static int gsm322_a_event(struct osmocom_ms *ms, struct msgb *msg)
 	int rc;
 	int i;
 
-	DEBUGP(DRR, "(ms %s) Message '%s' for automatic PLMN selection in state "
+	DEBUGP(DPLMN, "(ms %s) Message '%s' for automatic PLMN selection in state "
 		"%s\n", ms->name, gsm322_event_names[msg_type],
 		plmn_a_state_names[plmn->state]);
 	/* find function for current state and message */
@@ -1137,7 +1149,7 @@ static int gsm322_a_event(struct osmocom_ms *ms, struct msgb *msg)
 		 && ((1 << plmn->state) & plmnastatelist[i].states))
 			break;
 	if (i == PLMNASLLEN) {
-		DEBUGP(DRR, "Message unhandled at this state. (No error.)\n");
+		DEBUGP(DPLMN, "Message unhandled at this state. (No error.)\n");
 		return 0;
 	}
 
@@ -1193,7 +1205,7 @@ static int gsm322_m_event(struct osmocom_ms *ms, struct msgb *msg)
 	int rc;
 	int i;
 
-	DEBUGP(DRR, "(ms %s) Message '%s' for manual PLMN selection in state "
+	DEBUGP(DPLMN, "(ms %s) Message '%s' for manual PLMN selection in state "
 		"%s\n", ms->name, gsm322_event_names[msg_type],
 		plmn_m_state_names[plmn->state]);
 	/* find function for current state and message */
@@ -1202,7 +1214,7 @@ static int gsm322_m_event(struct osmocom_ms *ms, struct msgb *msg)
 		 && ((1 << plmn->state) & plmnmstatelist[i].states))
 			break;
 	if (i == PLMNMSLLEN) {
-		DEBUGP(DRR, "Message unhandled at this state. (No error.)\n");
+		DEBUGP(DPLMN, "Message unhandled at this state. (No error.)\n");
 		return 0;
 	}
 
@@ -1239,14 +1251,14 @@ static struct cellselstatelist {
 	 SBIT(GSM_C4_NORMAL_CELL_RSEL),
 	 GSM322_EVENT_NO_CELL_F, gsm322_c_normal_cell_sel},
 	{SBIT(GSM_C3_CAMPED_NORMALLY),
-	 GSM322_EVENT_LU_REJECT, gsm322_c_lu_reject},
+	 GSM322_EVENT_LU_REJECT, gsm322_c_lu_reject}, /* return IDLE */
 	{SBIT(GSM_C3_CAMPED_NORMALLY),
 	 GSM322_EVENT_LEAVE_IDLE, gsm322_c_conn_mode_1},
 	{SBIT(GSM_C7_CAMPED_ANY_CELL),
 	 GSM322_EVENT_LEAVE_IDLE, gsm322_c_conn_mode_2},
-	{SBIT(GSM_Cx_CONNECTED_MODE_1),
+	{SBIT(GSM_C3_CAMPED_NORMALLY),
 	 GSM322_EVENT_RET_IDLE, gsm322_c_choose_cell},
-	{SBIT(GSM_Cx_CONNECTED_MODE_2),
+	{SBIT(GSM_C7_CAMPED_ANY_CELL),
 	 GSM322_EVENT_RET_IDLE, gsm322_c_choose_any_cell},
 	{SBIT(GSM_C3_CAMPED_NORMALLY),
 	 GSM322_EVENT_CELL_RESEL, gsm322_c_normal_cell_resel},
@@ -1267,7 +1279,7 @@ static int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg)
 	int rc;
 	int i;
 
-	DEBUGP(DRR, "(ms %s) Message '%s' for Cell selection in state "
+	DEBUGP(DCS, "(ms %s) Message '%s' for Cell selection in state "
 		"%s\n", ms->name, gsm322_event_names[msg_type],
 		cellsel_state_names[cs->state]);
 	/* find function for current state and message */
@@ -1276,7 +1288,7 @@ static int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg)
 		 && ((1 << cs->state) & cellselstatelist[i].states))
 			break;
 	if (i == CELLSELSLLEN) {
-		DEBUGP(DRR, "Message unhandled at this state. (No error.)\n");
+		DEBUGP(DCS, "Message unhandled at this state. (No error.)\n");
 		return 0;
 	}
 
@@ -1319,10 +1331,9 @@ int gsm322_event_queue(struct osmocom_ms *ms)
 	return work;
 }
 
-
-finished
+the process above is complete
 ------------------------------------------------------------------------------
-unfinished
+incomplete
 
 unsolved issues:
 - now to handle change in mode (manual / auto)
@@ -1401,12 +1412,12 @@ static struct locstatelist {
 static int gsm322_l_event(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_locreg *lr = &ms->locreg;
-	struct gsm322_hdr *gh = msgb->data;
-	int msg_type = gh->msg_type;
+	struct gsm322_msg *gm = msg->data;
+	int msg_type = gm->msg_type;
 	int rc;
 	int i;
 
-	DEBUGP(DRR, "(ms %s) Message '%s' for Location registration in state "
+	DEBUGP(DLU, "(ms %s) Message '%s' for Location registration in state "
 		"%s\n", ms->name, gsm322_event_names[msg_type],
 		locrec_state_names[lr->state]);
 	/* find function for current state and message */
@@ -1415,7 +1426,7 @@ static int gsm322_l_event(struct osmocom_ms *ms, struct msgb *msg)
 		 && ((1 << lr->state) & locstatelist[i].states))
 			break;
 	if (i == LOCSLLEN) {
-		DEBUGP(DRR, "Message unhandled at this state. (No error.)\n");
+		DEBUGP(DLU, "Message unhandled at this state. (No error.)\n");
 		return 0;
 	}
 

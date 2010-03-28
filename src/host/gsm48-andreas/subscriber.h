@@ -19,25 +19,41 @@
  *
  */
 
+/* GSM 04.08 4.1.2.2 SIM update status */
+#define GSM_SIM_U0_NULL		0
+#define GSM_SIM_U1_UPDATED	1
+#define GSM_SIM_U2_NOT_UPDATED	2
+#define GSM_SIM_U3_ROAMING_NA	3
+
 struct gsm_plmn_na {
 	struct llist_head	entry;
-	uint16_t		mcc;
-	uint16_t		mnc;
+	uint16_t		mcc, mnc;
 }
 
 struct gsm_subsriber {
-	/* imsi */
+	/* status */
 	uint8_t			sim_valid;
-	uint16_t		mcc;
-	uint16_t		mnc;
+	uint8_t			ustate;
 
-	/* stored PLMN */
+	/* IMSI */
+	uint16_t		mcc, mnc;
+	char 			imsi[GSM_IMSI_LENGTH];
+
+	/* TMSI */
+	uint8_t			tmsi_valid;
+	u_int32_t		tmsi;
+	u_int16_t		tmsi_mcc, tmsi_mnc, tmsi_lac;
+
+	/* key */
+	u_int8_t		key_seq; /* ciphering key sequence number */
+	u_int8_t		key[how much];
+
+	/* PLMN last registered */
 	uint8_t			plmn_valid;
-	uint16_t		plmn_mcc;
-	uint16_t		plmn_mnc;
+	uint16_t		plmn_mcc, plmn_mnc, plmn_lac;
 	struct llist_head	plmn_na;
 
-	/* access */
+	/* our access */
 	uint8_t			barred_access;
 	uint8_t			class_access[16];
 

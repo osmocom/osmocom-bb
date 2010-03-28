@@ -131,6 +131,13 @@ struct gsm322_plmn {
 	struct llist_head	ba_list; /* BCCH Allocation per PLMN */
 };
 
+/* Cell selection process */
+struct gsm322_cellsel {
+	int			state;
+	uint16_t		mcc; /* current mcc */
+	uint16_t		mnc; /* current mnc */
+};
+
 /* GSM 03.22 message */
 struct gsm322_msg {
 	int			msg_type;
