@@ -1004,8 +1004,8 @@ static int gsm322_c_new_plmn(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm322_c_normal_cell_sel(ms, msg);
 }
 
-/* a suitable cell was found, so we clamp normally */
-static int gsm322_c_clamp_normally(struct osmocom_ms *ms, struct msgb *msg)
+/* a suitable cell was found, so we camp normally */
+static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 
@@ -1014,8 +1014,8 @@ static int gsm322_c_clamp_normally(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-/* a not suitable cell was found, so we clamp on any cell */
-static int gsm322_c_clamp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
+/* a not suitable cell was found, so we camp on any cell */
+static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 
@@ -1227,10 +1227,10 @@ static struct cellselstatelist {
 	 GSM322_EVENT_NEW_PLMN, gsm322_c_new_plmn},
 	{SBIT(GSM_C1_NORMAL_CELL_SEL) | SBIT(GSM_C2_STORED_CELL_SEL) |
 	 SBIT(GSM_C4_NORMAL_CELL_RSEL) | SBIT(GSM_C5_CHOOSE_CELL),
-	 GSM322_EVENT_CELL_FOUND, gsm322_c_clamp_normally},
+	 GSM322_EVENT_CELL_FOUND, gsm322_c_camp_normally},
 	{SBIT(GSM_C9_CHOOSE_ANY_CELL) | SBIT(GSM_C6_ANY_CELL_SEL) |
 	 SBIT(GSM_C4_NORMAL_CELL_RSEL),
-	 GSM322_EVENT_CELL_FOUND, gsm322_c_clamp_any_cell},
+	 GSM322_EVENT_CELL_FOUND, gsm322_c_camp_any_cell},
 	{SBIT(GSM_C1_NORMAL_CELL_SEL),
 	 GSM322_EVENT_NO_CELL_F, gsm322_c_any_cell_sel},
 	{SBIT(GSM_C9_CHOOSE_ANY_CELL) | SBIT(GSM_C8_ANY_CELL_RSEL),
