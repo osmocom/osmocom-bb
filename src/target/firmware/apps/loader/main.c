@@ -33,6 +33,8 @@
 #include <console.h>
 #include <manifest.h>
 
+#include <osmocore/crc16.h>
+
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
 
@@ -168,6 +170,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 	printf("command %u: ", command);
 
 	uint8_t  nbytes;
+	uint16_t crc;
 	uint32_t address;
 
 	struct msgb *reply;
@@ -229,13 +232,25 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 	case LOADER_MEM_WRITE:
 
 		nbytes = msgb_get_u8(msg);
+		crc = msgb_get_u16(msg);
 		address = msgb_get_u32(msg);
 
 		printf("mem write %u @ %p\n", nbytes, (void*)address);
 
-		memcpy((void*)address, msgb_get(msg, nbytes), nbytes);
+		void *data = msgb_get(msg, nbytes);
 
-		reply = sercomm_alloc_msgb(6);
+		uint16_t mycrc = crc16(0, data, nbytes);
+
+#if 0
+		printf("crc %x got %x\n", mycrc, crc);
+		hexdump(data, nbytes);
+#endif
+
+		if(mycrc == crc) {
+			memcpy((void*)address, data, nbytes);
+		}
+
+		reply = sercomm_alloc_msgb(8);
 
 		if(!reply) {
 			printf("Failed to allocate reply buffer!\n");
@@ -243,6 +258,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		msgb_put_u8(reply, LOADER_MEM_WRITE);
 		msgb_put_u8(reply, nbytes);
+		msgb_put_u16(reply, mycrc);
 		msgb_put_u32(reply, address);
 
 		sercomm_sendmsg(dlci, reply);
@@ -271,7 +287,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 		break;
 
 	default:
-		printf("unknown command\n", command);
+		printf("unknown command %d\n", command);
 		break;
 
 	}

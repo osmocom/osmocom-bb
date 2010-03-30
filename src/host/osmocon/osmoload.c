@@ -38,6 +38,7 @@
 #include <osmocore/msgb.h>
 #include <osmocore/select.h>
 #include <osmocore/timer.h>
+#include <osmocore/crc16.h>
 
 #include <loader/protocol.h>
 
@@ -74,6 +75,14 @@ static struct {
 
 	/* binary i/o for firmware images */
 	FILE *binfile;
+
+	char *binbuf;
+
+	uint32_t membase;
+	uint32_t memlen;
+	uint32_t memoff;
+	uint16_t memcrc;
+	uint16_t memreq;
 
 	/* memory operation state */
 	uint32_t req_length;
@@ -169,10 +178,16 @@ loader_send_request(struct msgb *msg) {
 static void loader_do_memdump(void *address, size_t length);
 static void loader_do_memload();
 
-static void
-mem_progress() {
-	putchar('.');
-	fflush(stdout);
+static memop_timeout(void *dummy) {
+	switch(osmoload.state) {
+	case STATE_LOAD_IN_PROGRESS:
+		printf("Timeout. Repeating.");
+		osmoload.memoff -= osmoload.memreq;
+		loader_do_memload();
+		break;
+	default:
+		break;
+	}
 }
 
 static void
@@ -185,6 +200,7 @@ loader_handle_reply(struct msgb *msg) {
 	uint8_t cmd = msgb_get_u8(msg);
 
 	uint8_t length;
+	uint16_t crc;
 	uint32_t address;
 	uint32_t entrypoint;
 
@@ -209,6 +225,7 @@ loader_handle_reply(struct msgb *msg) {
 		break;
 	case LOADER_MEM_WRITE:
 		length = msgb_get_u8(msg);
+		crc = msgb_get_u16(msg);
 		address = msgb_get_u32(msg);
 		break;
 	case LOADER_JUMP:
@@ -261,13 +278,15 @@ loader_handle_reply(struct msgb *msg) {
 		break;
 	case STATE_DUMP_IN_PROGRESS:
 		if(cmd == LOADER_MEM_READ) {
-			mem_progress();
 			loader_do_memdump(data, length);
 		}
 		break;
 	case STATE_LOAD_IN_PROGRESS:
 		if(cmd == LOADER_MEM_WRITE) {
-			mem_progress();
+			if(osmoload.memcrc != crc) {
+				osmoload.memoff -= osmoload.memreq;
+				printf("bad CRC %x\n", crc);
+			}
 			loader_do_memload();
 		}
 		break;
@@ -436,9 +455,7 @@ loader_do_memdump(void *data, size_t length) {
 
 static void
 loader_do_memload() {
-	int rc;
-
-	uint32_t rembytes = osmoload.req_length - osmoload.cur_length;
+	uint32_t rembytes = osmoload.memlen - osmoload.memoff;
 
 	if(!rembytes) {
 		puts("done.");
@@ -446,31 +463,32 @@ loader_do_memload() {
 		return;
 	}
 
+	bsc_schedule_timer(&osmoload.timeout, 0, 500000);
+
 	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
+
+	osmoload.memcrc = crc16(0, osmoload.binbuf + osmoload.memoff, reqbytes);
+	osmoload.memreq = reqbytes;
 
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 
 	msgb_put_u8(msg, LOADER_MEM_WRITE);
 	msgb_put_u8(msg, reqbytes);
-	msgb_put_u32(msg, osmoload.cur_address);
+	msgb_put_u16(msg, osmoload.memcrc);
+	msgb_put_u32(msg, osmoload.membase + osmoload.memoff);
 
-	unsigned c = 0;
 	unsigned char *p = msgb_put(msg, reqbytes);
-	while(c < reqbytes) {
-		rc = fread(p, 1, reqbytes, osmoload.binfile);
-		if(ferror(osmoload.binfile)) {
-			printf("Could not read from file: %s\n", strerror(errno));
-		}
-		c -= rc;
-		p += rc;
-	}
+	memcpy(p, osmoload.binbuf + osmoload.memoff, reqbytes);
+
+	printf("Sending %u bytes at offset %u to address %x with crc %x\n",
+		   reqbytes, osmoload.memoff, osmoload.membase + osmoload.memoff,
+		   osmoload.memcrc);
 
 	loader_send_request(msg);
 
 	msgb_free(msg);
 
-	osmoload.cur_address += reqbytes;
-	osmoload.cur_length  += reqbytes;
+	osmoload.memoff += reqbytes;
 }
 
 static void
@@ -507,17 +525,34 @@ loader_start_memload(uint32_t address, char *file) {
 
 	printf("Loading %u bytes of memory at 0x%x to file %s\n", length, address, file);
 
+	osmoload.binbuf = malloc(length);
+	if(!osmoload.binbuf) {
+		printf("Could not allocate %u bytes for %s.\n", length, file);
+		exit(1);
+	}
+
 	osmoload.binfile = fopen(file, "rb");
 	if(!osmoload.binfile) {
 		printf("Could not open %s: %s\n", file, strerror(errno));
 		exit(1);
 	}
 
-	osmoload.req_length = length;
-	osmoload.req_address = address;
+	unsigned c = length;
+	char *p = osmoload.binbuf;
+	while(c) {
+		rc = fread(p, 1, c, osmoload.binfile);
+		if(ferror(osmoload.binfile)) {
+			printf("Could not read from file: %s\n", strerror(errno));
+		}
+		c -= rc;
+		p += rc;
+	}
+	fclose(osmoload.binfile);
+	osmoload.binfile = NULL;
 
-	osmoload.cur_length = 0;
-	osmoload.cur_address = address;
+	osmoload.membase = address;
+	osmoload.memlen = length;
+	osmoload.memoff = 0;
 
 	loader_do_memload();
 }
@@ -552,7 +587,6 @@ loader_command(char *name, int cmdc, char **cmdv) {
 	} else if(!strcmp(cmd, "jumpflash")) {
 		loader_send_query(LOADER_ENTER_FLASH_LOADER);
 	} else if(!strcmp(cmd, "memput")) {
-		// XXX implement command line parsing
 		uint32_t address;
 
 		if(cmdc < 3) {
@@ -646,6 +680,10 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		osmoload.timeout.cb = &query_timeout;
 		bsc_schedule_timer(&osmoload.timeout, 0, 500000);
 	}
+	if(osmoload.state == STATE_LOAD_IN_PROGRESS) {
+		osmoload.timeout.cb = &memop_timeout;
+	}
+
 }
 
 void
