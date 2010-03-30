@@ -615,6 +615,7 @@ static int register_tool_server(struct tool_server *ts,
 {
 	struct bsc_fd *bfd = &ts->bfd;
 	struct sockaddr_un local;
+	unsigned int namelen;
 	int rc;
 
 	bfd->fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -628,8 +629,20 @@ static int register_tool_server(struct tool_server *ts,
 	strncpy(local.sun_path, path, sizeof(local.sun_path));
 	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
 	unlink(local.sun_path);
-	rc = bind(bfd->fd, (struct sockaddr *) &local,
-		  sizeof(local.sun_family) + strlen(local.sun_path));
+
+	/* we use the same magic that X11 uses in Xtranssock.c for
+	 * calculating the proper length of the sockaddr */
+#if defined(BSD44SOCKETS) || defined(__UNIXWARE__)
+	local.sun_len = strlen(local.sun_path);
+#endif
+#if defined(BSD44SOCKETS) || defined(SUN_LEN)
+	namelen = SUN_LEN(&local);
+#else
+	namelen = strlen(local.sun_path) +
+		  offsetof(struct sockaddr_un, sun_path);
+#endif
+
+	rc = bind(bfd->fd, (struct sockaddr *) &local, namelen);
 	if (rc != 0) {
 		fprintf(stderr, "Failed to bind the unix domain socket. '%s'\n",
 			local.sun_path);
