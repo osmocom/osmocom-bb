@@ -102,55 +102,50 @@ static const uint8_t data_hdr_c155[]    = { 0x78, 0x47, 0xc0, 0x46 };
 
 static const uint8_t dummy_data[]    = { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde };
 
-static int serial_init(const char *serial_dev)
+/* FIXME: this routine is more or less what openbsc/src/rs232:rs232_setup()
+ * does, we should move it to libosmocore at some point */
+static int serial_init(const char *serial_port)
 {
-    struct termios options;
-    int fd, v24;
+	int rc, serial_fd, v24;
+	struct termios tio;
 
-    fd = open(serial_dev, O_RDWR | O_NOCTTY | O_NDELAY);
-    if (fd < 0)
-	return fd;
+	serial_fd = open(serial_port, O_RDWR | O_NOCTTY | O_NDELAY);
+	if (serial_fd < 0) {
+		perror("cannot open serial port");
+		return serial_fd;
+	}
 
-    fcntl(fd, F_SETFL, 0);
+	//fcntl(serial_fd, F_SETFL, 0);
 
-    /* Configure serial interface */
-    tcgetattr(fd, &options);
+	/* Configure serial interface */
+	rc = tcgetattr(serial_fd, &tio);
+	if (rc < 0) {
+		perror("tcgetattr()");
+		return rc;
+	}
+	cfsetispeed(&tio, MODEM_BAUDRATE);
+	cfsetospeed(&tio, MODEM_BAUDRATE);
+	tio.c_cflag |=  (CREAD | CLOCAL | CS8);
+	tio.c_cflag &= ~(PARENB | CSTOPB | CSIZE | CRTSCTS);
+	tio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+	tio.c_iflag |=  (INPCK | ISTRIP);
+	tio.c_iflag &= ~(ISTRIP | IXON | IXOFF | IGNBRK | INLCR | ICRNL | IGNCR);
+	tio.c_oflag &= ~(OPOST | ONLCR);
+	rc = tcsetattr(serial_fd, TCSANOW, &tio);
+	if (rc < 0) {
+		perror("tcsetattr()");
+		return rc;
+	}
 
-    cfsetispeed(&options, MODEM_BAUDRATE);
-    cfsetospeed(&options, MODEM_BAUDRATE);
+	/* set ready to read/write */
+	v24 = TIOCM_DTR | TIOCM_RTS;
+	rc = ioctl(serial_fd, TIOCMBIS, &v24);
+	if (rc < 0) {
+		perror("ioctl(TIOCMBIS)");
+		return rc;
+	}
 
-    /* local read */
-    options.c_cflag &= ~PARENB;
-    options.c_cflag &= ~CSTOPB;
-    options.c_cflag &= ~CSIZE;
-    options.c_cflag |= CS8;
-
-    /* hardware flow control off */
-    options.c_cflag &= ~CRTSCTS;
-
-    /* software flow control off */
-    options.c_iflag &= ~(IXON | IXOFF | IXANY);
-
-    /* we want raw i/o */
-    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-    options.c_iflag &= ~(INLCR | ICRNL | IGNCR);
-    options.c_oflag &= ~(ONLCR);
-
-    options.c_cc[VMIN] = 1;
-    options.c_cc[VTIME] = 0;
-    options.c_cc[VINTR] = 0;
-    options.c_cc[VQUIT] = 0;
-    options.c_cc[VSTART] = 0;
-    options.c_cc[VSTOP] = 0;
-    options.c_cc[VSUSP] = 0;
-    
-    tcsetattr(fd, TCSANOW, &options);
-
-    /* set ready to read/write */
-    v24 = TIOCM_DTR | TIOCM_RTS;
-    ioctl(fd, TIOCMBIS, &v24);
-
-    return fd;
+	return serial_fd;
 }
 
 /* Read the to-be-downloaded file, prepend header and length, append XOR sum */
