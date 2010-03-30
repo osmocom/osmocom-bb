@@ -2370,7 +2370,7 @@ const char *get_rr_name(int value)
 
 move to mm
 static int gsm48_mm_upmsg(struct osmocom_ms *ms,
-			int msg_type, struct gsm_mncc *rrmsg)
+			struct msgb *msg, int msg_type)
 {
 	struct msgb *msg;
 

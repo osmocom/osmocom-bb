@@ -5,7 +5,7 @@ struct gsm48_classmark1 {
 	uint8_t pwr_lev:3,
 		 a5_1:1,
 		 es_ind:1,
-		 rev_level:2,
+		 rev_lev:2,
 		 spare:1;
 } __attribute__ ((packed));
 

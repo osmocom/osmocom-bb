@@ -19,9 +19,9 @@
  *
  */
 
-void gsm_sysinfo_init(struct osmocom_ms *ms)
+void gsm48_sysinfo_init(struct osmocom_ms *ms)
 {
-	struct gsm_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = &ms->sysinfo;
 
 	memset(s, 0, sizeof(*s));
 

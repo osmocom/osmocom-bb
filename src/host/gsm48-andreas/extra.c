@@ -48,3 +48,50 @@ tlv_parser.c: add into tlv_parse_one() right before switch-case statement.
 		return 1;
 	}
 
+/* encode 'classmark 1' */
+int gsm48_encode_classmark1(struct msgb *msg, uint8_t rev_lev, uint8_t es_ind, uint8_t a5_1, uint8_t pwr_lev)
+{
+	struct gsm48_classmark1 cm;
+
+	memset(&cm, 0, sizeof(cm));
+	cm.rev_lev = rev_lev;
+	cm.es_ind = es_ind;
+	cm.a5_1 = a5_1;
+	cm.pwr_lev = pwr_lev;
+        msgb_v_put(msg, *((uint8_t *)&cm));
+
+	return 0;
+}
+
+/* encode 'mobile identity' */
+int gsm48_encode_mi(struct msgb *msg, struct gsm_subscriber *subscr, uint8_t mi_type)
+{
+	u_int8_t buf[11];
+	u_int8_t *ie;
+
+	switch(mi_type) {
+	case GSM_MI_TYPE_TMSI:
+		gsm48_generate_mid_from_tmsi(buf, subscr->tmsi);
+		break;
+	case GSM_MI_TYPE_IMSI:
+		gsm48_generate_mid_from_imsi(buf, subscr->imsi);
+		break;
+	case GSM_MI_TYPE_IMEI:
+	case GSM_MI_TYPE_IMEISV:
+		gsm48_generate_mid_from_imsi(buf, subscr->imeisv);
+		break;
+	case GSM_MI_TYPE_NONE:
+	default:
+	        buf[0] = GSM48_IE_MOBILE_ID;
+	        buf[1] = 1;
+	        buf[2] = 0xf0 | GSM_MI_TYPE_NONE;
+		break;
+	}
+	/* MI as LV */
+	ie = msgb_put(msg, 1 + buf[1]);
+	memcpy(ie, buf + 1, 1 + buf[1]);
+
+	return 0;
+}
+
+

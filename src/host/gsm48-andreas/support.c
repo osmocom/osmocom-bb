@@ -27,6 +27,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	memset(s, 0, sizeof(*s));
 
 	/* rf power capability */
+handheld really value 3 or is it class 3 ( = value 2)?:
 	s->pwr_lev = 3; /* handheld */
 	/* controlled early classmark sending */
 	s->es_ind = 0; /* no */

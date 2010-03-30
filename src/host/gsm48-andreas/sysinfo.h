@@ -43,7 +43,7 @@ struct gsm_sysinfo_freq {
 };
 
 /* structure of all received system informations */
-struct gsm_sysinfo {
+struct gsm48_sysinfo {
 	uint8_t				si1, si2, si2bis, si2ter, si3,
 					si4, si5, si5bis, si5ter, si6;
 
@@ -58,6 +58,7 @@ struct gsm_sysinfo {
 	uint8_t				reest_denied; /* 1 = denied */
 	uint8_t				cell_barred; /* 1 = barred */
 	uint8_t				class_barr[16]; /* 10 is emergency */
+	uint8_t				att_allowed; /* we may detach/attach */
 
 	/* neighbor cell */
 	uint8_t				nb_ext_ind;

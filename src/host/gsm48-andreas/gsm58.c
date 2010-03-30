@@ -257,7 +257,7 @@ static int gsm58_sel_sync(struct osmocom_ms *ms, struct msgb *msg)
 	gsm58_timer_start(sp, 4, 0); // TODO: timer depends on BCCH configur.
 
 	/* reset sysinfo and wait for relevant data */
-	gsm_sysinfo_init(ms);
+	gsm48_sysinfo_init(ms);
 	sp->mode = GSM58_MODE_READ;
 
 	return 0;
