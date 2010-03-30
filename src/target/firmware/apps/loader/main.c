@@ -143,7 +143,7 @@ int main(void)
 	puts(hr);
 
 	/* Identify environment */
-	printf("Running on %s in environment %s\n", target_board, target_environment);
+	printf("Running on %s in environment %s\n", manifest_board, manifest_environment);
 
 	/* Set up a key handler for powering off */
 	keypad_set_handler(&key_handler);
