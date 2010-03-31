@@ -80,6 +80,7 @@ static void new_rr_state(struct gsm_rrlayer *rr, int state)
  */
 
 /* allocate GSM 04.08 radio ressource message (RR to L2) */
+wrong sap name, must be changed to msg48_rsl_msgb_alloc...
 static struct msgb *gsm48_rr_msgb_alloc(void)
 {
 	struct msgb *msg;

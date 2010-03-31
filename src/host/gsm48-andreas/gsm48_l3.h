@@ -82,49 +82,49 @@ struct gsm48_rr {
 };
 
 /* GSM 04.07 9.2.2 */
-#define MMCC_EST_REQ		0x9110
-#define MMCC_EST_IND		0x9112
-#define MMCC_EST_CNF		0x9111
-#define MMCC_REL_REQ		0x9120
-#define MMCC_REL_IND		0x9122
-#define MMCC_DATA_REQ		0x9130
-#define MMCC_DATA_IND		0x9132
-#define MMCC_UNIT_DATA_REQ	0x9140
-#define MMCC_UNIT_DATA_IND	0x9142
-#define MMCC_SYNC_IND		0x9152
-#define MMCC_REEST_REQ		0x9160
-#define MMCC_REEST_CNF		0x9161
-#define MMCC_ERR_IND		0x9172
-#define MMCC_PROMPT_IND		0x9182
-#define MMCC_PROMPT_REJ		0x9184
-#define MMSS_EST_REQ		0x9210
-#define MMSS_EST_IND		0x9212
-#define MMSS_EST_CNF		0x9211
-#define MMSS_REL_REQ		0x9220
-#define MMSS_REL_IND		0x9222
-#define MMSS_DATA_REQ		0x9230
-#define MMSS_DATA_IND		0x9232
-#define MMSS_UNIT_DATA_REQ	0x9240
-#define MMSS_UNIT_DATA_IND	0x9242
-#define MMSS_REEST_REQ		0x9260
-#define MMSS_REEST_CNF		0x9261
-#define MMSS_ERR_IND		0x9272
-#define MMSS_PROMPT_IND		0x9282
-#define MMSS_PROMPT_REJ		0x9284
-#define MMSMS_EST_REQ		0x9310
-#define MMSMS_EST_IND		0x9312
-#define MMSMS_EST_CNF		0x9311
-#define MMSMS_REL_REQ		0x9320
-#define MMSMS_REL_IND		0x9322
-#define MMSMS_DATA_REQ		0x9330
-#define MMSMS_DATA_IND		0x9332
-#define MMSMS_UNIT_DATA_REQ	0x9340
-#define MMSMS_UNIT_DATA_IND	0x9342
-#define MMSMS_REEST_REQ		0x9360
-#define MMSMS_REEST_CNF		0x9361
-#define MMSMS_ERR_IND		0x9372
-#define MMSMS_PROMPT_IND	0x9382
-#define MMSMS_PROMPT_REJ	0x9384
+#define GSM48_MMCC_EST_REQ		0x9110 todo: renumber
+#define GSM48_MMCC_EST_IND		0x9112
+#define GSM48_MMCC_EST_CNF		0x9111
+#define GSM48_MMCC_REL_REQ		0x9120
+#define GSM48_MMCC_REL_IND		0x9122
+#define GSM48_MMCC_DATA_REQ		0x9130
+#define GSM48_MMCC_DATA_IND		0x9132
+#define GSM48_MMCC_UNIT_DATA_REQ	0x9140
+#define GSM48_MMCC_UNIT_DATA_IND	0x9142
+#define GSM48_MMCC_SYNC_IND		0x9152
+#define GSM48_MMCC_REEST_REQ		0x9160
+#define GSM48_MMCC_REEST_CNF		0x9161
+#define GSM48_MMCC_ERR_IND		0x9172
+#define GSM48_MMCC_PROMPT_IND		0x9182
+#define GSM48_MMCC_PROMPT_REJ		0x9184
+#define GSM48_MMSS_EST_REQ		0x9210
+#define GSM48_MMSS_EST_IND		0x9212
+#define GSM48_MMSS_EST_CNF		0x9211
+#define GSM48_MMSS_REL_REQ		0x9220
+#define GSM48_MMSS_REL_IND		0x9222
+#define GSM48_MMSS_DATA_REQ		0x9230
+#define GSM48_MMSS_DATA_IND		0x9232
+#define GSM48_MMSS_UNIT_DATA_REQ	0x9240
+#define GSM48_MMSS_UNIT_DATA_IND	0x9242
+#define GSM48_MMSS_REEST_REQ		0x9260
+#define GSM48_MMSS_REEST_CNF		0x9261
+#define GSM48_MMSS_ERR_IND		0x9272
+#define GSM48_MMSS_PROMPT_IND		0x9282
+#define GSM48_MMSS_PROMPT_REJ		0x9284
+#define GSM48_MMSMS_EST_REQ		0x9310
+#define GSM48_MMSMS_EST_IND		0x9312
+#define GSM48_MMSMS_EST_CNF		0x9311
+#define GSM48_MMSMS_REL_REQ		0x9320
+#define GSM48_MMSMS_REL_IND		0x9322
+#define GSM48_MMSMS_DATA_REQ		0x9330
+#define GSM48_MMSMS_DATA_IND		0x9332
+#define GSM48_MMSMS_UNIT_DATA_REQ	0x9340
+#define GSM48_MMSMS_UNIT_DATA_IND	0x9342
+#define GSM48_MMSMS_REEST_REQ		0x9360
+#define GSM48_MMSMS_REEST_CNF		0x9361
+#define GSM48_MMSMS_ERR_IND		0x9372
+#define GSM48_MMSMS_PROMPT_IND		0x9382
+#define GSM48_MMSMS_PROMPT_REJ		0x9384
 
 /* GSM 04.07 9.1.1 */
 #define GSM_RRSTATE_IDLE		0
@@ -233,7 +233,7 @@ struct gsm48_mmevent {
 
 
 /* MM sublayer instance */
-struct gsm_mmlayer {
+struct gsm48_mmlayer {
 	struct osmocom_ms	*ms;
 	int			state;
 	int			substate;
@@ -241,7 +241,22 @@ struct gsm_mmlayer {
 	struct timer_list	t3212;
 	struct timer_list	t3213;
 	int			t3212_value;
+	struct llist_head	mm_conn;
 };
+
+/* MM connection types */
+#define GSM48_MM_CONN_TYPE_CC	1
+#define GSM48_MM_CONN_TYPE_SS	2
+#define GSM48_MM_CONN_TYPE_SMS	3
+
+/* MM connection entry */
+struct gsm48_mm_conn {
+	struct llist_head	list;
+
+	unsigned int		ref;
+	int			type;
+};
+
 
 /* GSM 04.08 RR timers */
 #define GSM_T3126_MS	5, 0
