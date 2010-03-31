@@ -1,0 +1,47 @@
+Current state of work:
+
+incomplete - Some work has been done, but the process and even the structure
+is not yet complete or solved.
+
+complete - The process is complete but not yet compiled. Since it is not yet
+compiled, there are minor things like wrong structure names or missing simple
+functions. These remaining issues will be solved by trying to compile.
+So complete does mean that there is no more 'brain' requied.
+
+compiled - The code has been compiled, but not yet tested.
+
+
+code part			layer		status
+--------------------------------------------------------
+process				CC		complete
+message format			CC		incomplete
+(messages are currently totally wrong)
+state machine			CC		complete
+
+common procedures		MM		(almost) complete
+specific procedures		MM		incomplete
+connection management		MM		incomplete
+state machine			MM		incomplete
+support functions		MM		incomplete
+
+system information (1-6)	RR		complete
+connection establishment	RR		(almost) complete
+connection release		RR		??
+dedicated mode			RR		incomplete
+
+idle mode PLMN selection	MM(03.22)	complete
+idle mode cell selection	MM(03.22)	complete
+location update			MM(03.22)	-
+cell selection process		??(05.08)	incomplete
+
+message handling		mmxx-sap	incomplete
+message handling		rr-sap		incomplete
+message handling (rr<->L2)	rsl-sap		incomplete
+message handling		mm-events	incomplete
+(messages are currently totally wrong)
+
+This list may not be complete.
+
+currently working on:	MM connection structure (1:1 relation to transaction).
+
+
