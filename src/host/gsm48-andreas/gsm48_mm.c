@@ -578,6 +578,34 @@ static int gsm48_mm_rx_abort(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* 4.3.6.2 MM INFORMATION is received */
+static int gsm48_mm_rx_info(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
+	struct tlv_parsed tp;
+
+	if (payload_len < 0)
+		short:
+		DEBUGP(DMM, "Short read of location updating accept message error.\n");
+		return -EINVAL;
+	}
+	tlv_parse(&tp, &rsl_att_tlvdef, gh->data, payload_len, 0, 0);
+
+	/* long name */
+	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_LONG)) {
+		decode_network_name(mm->name_long, sizeof(mm->name_long),
+				TLVP_VAL(&tp, GSM48_IE_FACILITY)-1);
+	}
+	/* short name */
+	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_SHORT)) {
+		decode_network_name(mm->name_short, sizeof(mm->name_short),
+				TLVP_VAL(&tp, GSM48_IE_FACILITY)-1);
+	}
+
+	return 0;
+}
+
 
 
 
@@ -1054,26 +1082,6 @@ static int decode_lai(struct gsm48_loc_area_id *lai, u_int16_t *mcc, u_int16_t *
 		+ bcd2char(lai->digits[2] & 0x0f) * 10;
 		+ bcd2char(lai->digits[2] >> 4);
 	*lac = ntohs(lai->lac);
-}
-
-/* mm info is received from lower layer */
-static int gsm48_mm_rx_info(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_hdr *gh = msgb_l3(msg);
-	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
-	struct tlv_parsed tp;
-
-	tlv_parse(&tp, &rsl_att_tlvdef, gh->data, payload_len, 0, 0);
-	/* long name */
-	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_LONG)) {
-		decode_network_name(name_long, sizeof(name_long),
-				TLVP_VAL(&tp, GSM48_IE_FACILITY)-1);
-	}
-	/* short name */
-	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_SHORT)) {
-		decode_network_name(name_short, sizeof(name_short),
-				TLVP_VAL(&tp, GSM48_IE_FACILITY)-1);
-	}
 }
 
 

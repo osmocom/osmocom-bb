@@ -242,6 +242,8 @@ struct gsm48_mmlayer {
 	struct timer_list	t3213;
 	int			t3212_value;
 	struct llist_head	mm_conn;
+	char			name_short[32];
+	char			name_long[32];
 };
 
 /* MM connection types */
