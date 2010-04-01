@@ -50,17 +50,57 @@
  * messages
  */
 
-/* allocate GSM 04.08 rr-sap message (between MM and RR) */
-static struct msgb *gsm48_rr_msgb_alloc(void)
+/* allocate GSM 04.08 message (MMxx-SAP) */
+static struct msgb *gsm48_mmxx_msgb_alloc(void)
 {
 	struct msgb *msg;
 
-	msg = msgb_alloc_headroom(GSM48_MM_ALLOC_SIZE, GSM48_MM_ALLOC_HEADROOM,
-		"GSM 04.08 MM");
+	msg = msgb_alloc_headroom(RR_ALLOC_SIZE+RR_ALLOC_HEADROOM,
+		RR_ALLOC_HEADROOM, "GSM 04.08 MMxx");
 	if (!msg)
 		return NULL;
 
 	return msg;
+}
+
+/* queue message (MMxx-SAP) */
+int gsm48_mmxx_upmsg(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm_mmlayer *mm = &ms->mmlayer;
+
+	msgb_enqueue(&mm->mm_upqueue, msg);
+}
+
+/* dequeue messages (RR-SAP) */
+int gsm48_rr_dequeue(struct osmocom_ms *ms)
+{
+	struct gsm_mmlayer *mm = &ms->mmlayer;
+	struct msgb *msg;
+	int work = 0;
+	
+	while ((msg = msgb_dequeue(&mm->mm_upqueue))) {
+		/* msg is freed there */
+		gsm48_rcv_rr(ms, msg);
+		work = 1; /* work done */
+	}
+	
+	return work;
+}
+
+tomorrow:
+finish this function
+check names
+do msg for MMxx
+do msg in call control
+
+
+/* push RR header and send to RR */
+static int gsm48_mm_to_rr(ms, msg, int msg_type)
+{
+	1. push header
+	2. add msg_type
+
+	return gsm48_rr_downmsg(ms, msg);
 }
 
 /*
@@ -87,7 +127,7 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 
 		mm->delay_detach = 0;
 
-		nmsg = gsm48_mm_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
+		nmsg = gsm48_l3_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
 		if (!nmsg)
 			return -ENOMEM;
 		gsm48_mm_sendevent(ms, nmsg);
@@ -109,7 +149,7 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms)
 		if (mm->power_off) {
 			struct msgb *nmsg;
 	
-			nmsg = gsm48_mm_msgb_alloc(GSM48_MM_EVENT_POWER_OFF);
+			nmsg = gsm48_l3_msgb_alloc(GSM48_MM_EVENT_POWER_OFF);
 			if (!nmsg)
 				return -ENOMEM;
 			gsm48_mm_sendevent(ms, nmsg);
@@ -171,7 +211,7 @@ static int gsm48_mm_tx_mm_status(struct osmocom_ms *ms, u_int8_t reject)
 	struct gsm48_hdr *ngh;
 	u_int8_t *reject_cause;
 
-	nmsg = gsm48_mm_msgb_alloc();
+	nmsg = gsm48_l3_msgb_alloc();
 	if (nmsg)
 		return -ENOMEM;
 	ngh = (struct gsm48_hdr *)msgb_put(nmsg, sizeof(*ngh));
@@ -181,7 +221,7 @@ static int gsm48_mm_tx_mm_status(struct osmocom_ms *ms, u_int8_t reject)
 	gh->msg_type = GSM48_MT_MM_STATUS;
 	*reject_cause = reject;
 
-	return gsm48_mm_sendmsg(ms, nmsg, RR_DATA_REQ);
+	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
 /* 4.3.1.2 sending TMSI REALLOCATION COMPLETE message */
@@ -190,7 +230,7 @@ static int gsm48_mm_tx_tmsi_reall_cpl(struct osmocom_ms *ms)
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
 
-	nmsg = gsm48_mm_msgb_alloc();
+	nmsg = gsm48_l3_msgb_alloc();
 	if (nmsg)
 		return -ENOMEM;
 	ngh = (struct gsm48_hdr *)msgb_put(nmsg, sizeof(*ngh));
@@ -198,7 +238,7 @@ static int gsm48_mm_tx_tmsi_reall_cpl(struct osmocom_ms *ms)
 	gh->proto_discr = GSM48_PDISC_MM;
 	gh->msg_type = GSM48_MT_MM_TMSI_REALL_COMPL;
 
-	return gsm48_mm_sendmsg(ms, nmsg, RR_DATA_REQ);
+	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
 /* 4.3.1 TMSI REALLOCATION COMMAND is received */
@@ -283,7 +323,7 @@ static int gsm48_mm_rx_auth_req(struct osmocom_ms *ms, struct msgb *msg)
 /* 4.3.2.2 sending AUTHENTICATION RESPONSE */
 static int gsm48_mm_tx_auth_rsp(struct osmocom_ms *ms, struct gsm48_mmevent *ev)
 {
-	struct msgb *msg = gsm48_mm_msgb_alloc();
+	struct msgb *msg = gsm48_l3_msgb_alloc();
 	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
 	struct gsm_mmevent *mmevent = arg;
 	u_int8_t *sres = msgb_put(msg, 4);
@@ -294,7 +334,7 @@ static int gsm48_mm_tx_auth_rsp(struct osmocom_ms *ms, struct gsm48_mmevent *ev)
 	/* SRES */
 	memcpy(sres, ev->sres, 4);
 
-	return gsm48_mm_sendmsg(ms, nmsg, RR_DATA_REQ);
+	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
 /* 4.3.2.5 AUTHENTICATION REJECT is received */
@@ -365,7 +405,7 @@ static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, u_int8_t mi_type)
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
 
-	nmsg = gsm48_mm_msgb_alloc();
+	nmsg = gsm48_l3_msgb_alloc();
 	if (nmsg)
 		return -ENOMEM;
 	ngh = (struct gsm48_hdr *)msgb_put(nmsg, sizeof(*ngh));
@@ -376,7 +416,7 @@ static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, u_int8_t mi_type)
 	/* MI */
 	gsm48_encode_mi(nmsg, subscr, mi_type);
 
-	return gsm48_mm_sendmsg(ms, nmsg, RR_DATA_REQ);
+	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
 /* 4.3.4.1 sending IMSI DETACH INDICATION message */
@@ -387,7 +427,7 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 	struct gsm48_hdr *ngh;
 	struct gsm48_classmark1 *classmark1;
 
-	nmsg = gsm48_mm_msgb_alloc();
+	nmsg = gsm48_l3_msgb_alloc();
 	if (nmsg)
 		return -ENOMEM;
 	ngh = (struct gsm48_hdr *)msgb_put(nmsg, sizeof(*ngh));
@@ -401,7 +441,7 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 	/* MI */
 	gsm48_encode_mi(nmsg, subscr, mi_type);
 
-	return gsm48_mm_sendmsg(ms, nmsg, rr_prim);
+	return gsm48_mm_to_rr(ms, nmsg, rr_prim);
 }
 
 /* detach has ended */
@@ -516,7 +556,7 @@ static int gsm48_mm_release_conn(struct osmocom_ms *ms)
 			msg_type = GSM48_MMSMS_REL_IND;
 			break;
 		}
-		nmsg = gsm48_mm_msgb_alloc(msg_type, conn->ref);
+		nmsg = gsm48_l3_msgb_alloc(msg_type, conn->ref);
 		if (!nmsg)
 			return -ENOMEM;
 		gsm48_mmxx_upmsg(ms, nmsg);
@@ -644,7 +684,7 @@ static void new_sim_ustate(struct gsm_subscriber *subscr, int state)
 /* cm reestablish request message from upper layer */
 static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, void *arg)
 {
-	struct msgb *msg = gsm48_mm_msgb_alloc();
+	struct msgb *msg = gsm48_l3_msgb_alloc();
 	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
 	struct gsm48_service_request *serv_req = msgb_put(msg, 1 + 1 + sizeof(struct gsm48_classmark2));
 	u_int8_t *classmark2 = ((u_int8_t *)serv_req) + 1;
@@ -662,26 +702,26 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, void *arg)
 	gsm48_encode_mi(nmsg, subscr, mi_type);
 	/* prio is optional for eMLPP */
 
-	return gsm48_mm_sendmsg(ms, nmsg, RR_EST_REQ);
+	return gsm48_mm_to_rr(ms, nmsg, RR_EST_REQ);
 }
 
 /* cm service abort message from upper layer */
 static int gsm48_mm_tx_cm_service_abort(struct osmocom_ms *ms, void *arg)
 {
-	struct msgb *msg = gsm48_mm_msgb_alloc();
+	struct msgb *msg = gsm48_l3_msgb_alloc();
 	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
 
 	msg->lchan = lchan;
 	gh->proto_discr = GSM48_PDISC_MM;
 	gh->msg_type = GSM48_MT_MM_CM_SERV_ABORT;
 
-	return gsm48_mm_sendmsg(ms, nmsg, RR_DATA_REQ);
+	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
 /* cm reestablish request message from upper layer */
 static int gsm48_mm_tx_cm_reest_req(struct osmocom_ms *ms, void *arg)
 {
-	struct msgb *msg = gsm48_mm_msgb_alloc();
+	struct msgb *msg = gsm48_l3_msgb_alloc();
 	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
 	u_int8_t *key_seq = msgb_put(msg, 1);
 	u_int8_t *classmark2 = msgb_put(msg, 1 + sizeof(struct gsm48_classmark2));
@@ -706,7 +746,7 @@ static int gsm48_mm_tx_cm_reest_req(struct osmocom_ms *ms, void *arg)
 		memcpy(ie, buf, 1 + sizeof(struct gsm48_loc_area_id));
 	}
 
-	return gsm48_mm_sendmsg(ms, nmsg, RR__REQ);
+	return gsm48_mm_to_rr(ms, nmsg, RR__REQ);
 }
 
 /* initiate a location update */
@@ -1333,7 +1373,7 @@ static void gsm48_mm_t3213(void *arg)
 static int gsm48_mm_est_loc_upd(struct osmocom_ms *ms, struct gsm_rr *est)
 {
 	/* 4.4.4.1 */
-	struct msgb *msg = gsm48_mm_msgb_alloc();
+	struct msgb *msg = gsm48_l3_msgb_alloc();
 	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
 	struct gsm48_loc_upd *loc_upd = msgb_put(msg, 7);
 	u_int8_t *classmark1 = ((u_int8_t *)loc_upd) + 6;
@@ -1355,7 +1395,7 @@ static int gsm48_mm_est_loc_upd(struct osmocom_ms *ms, struct gsm_rr *est)
 	/* MI */
 	gsm48_encode_mi(nmsg, subscr, mi_type);
 
-	return gsm48_mm_sendmsg(ms, nmsg, RR_DATA_REQ);
+	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
 /* RR is released after location update reject */
@@ -1492,30 +1532,6 @@ static int gsm48_rcv_rr(struct osmocom_ms *ms, struct msgb *msg)
 	return rc;
 }
 
-/* dequeue messages from rr-sap */
-int gsm48_mm_dequeue_rr(struct osmocom_ms *ms)
-{
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct msgb *msg;
-	int work = 0;
-	
-	while ((msg = msgb_dequeue(&rr->rr_upqueue))) {
-		/* message is also freed here */
-		gsm48_rcv_rr(ms, msg);
-		work = 1; /* work done */
-	}
-	
-	return work;
-}
-
-
-/* queue message to upper layer at mmxx-sap */
-int gsm48_mmxx_upmsg(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_mmlayer *mm = &ms->mmlayer;
-
-	msgb_enqueue(&mm->mmxx_upqueue, msg);
-}
 
 
 wichtig: nur eine MM connection zur zeit, da ja auch nur ein cm-service-request laufen kann. die anderen werden dann als "waiting" deklariert.

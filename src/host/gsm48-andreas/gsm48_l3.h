@@ -63,95 +63,101 @@ struct gsm48_mnss {
 /* interlayer primitives */
 
 /* GSM 04.07 9.1.2 */
-#define	RR_EST_REQ		0x8110
-#define	RR_EST_IND		0x8112
-#define	RR_EST_CNF		0x8111
-#define	RR_REL_IND		0x8122
-#define	RR_SYNC_IND		0x8132
-#define	RR_DATA_REQ		0x8140
-#define	RR_DATA_IND		0x8142
-#define	RR_UNIT_DATA_IND	0x8152
-#define	RR_ABORT_REQ		0x8160
-#define	RR_ABORT_IND		0x8162
-#define	RR_ACT_REQ		0x8170
+#define	GSM48_RR_EST_REQ		0x10
+#define	GSM48_RR_EST_IND		0x12
+#define	GSM48_RR_EST_CNF		0x11
+#define	GSM48_RR_REL_IND		0x22
+#define	GSM48_RR_SYNC_IND		0x32
+#define	GSM48_RR_DATA_REQ		0x40
+#define	GSM48_RR_DATA_IND		0x42
+#define	GSM48_RR_UNIT_DATA_IND		0x52
+#define	GSM48_RR_ABORT_REQ		0x60
+#define	GSM48_RR_ABORT_IND		0x62
+#define	GSM48_RR_ACT_REQ		0x70
 
-struct gsm48_rr {
+/* GSM 04.08 RR-SAP header */
+struct gsm48_rr_hdr {
 	u_int32_t       msg_type; /* RR_* primitive */
-	struct msgb	*msg; /* gsm48 msg */
-	u_int8_t	cause;
+	u_int8_t	reject_cause;
 };
 
 /* GSM 04.07 9.2.2 */
-#define GSM48_MMCC_EST_REQ		0x9110 todo: renumber
-#define GSM48_MMCC_EST_IND		0x9112
-#define GSM48_MMCC_EST_CNF		0x9111
-#define GSM48_MMCC_REL_REQ		0x9120
-#define GSM48_MMCC_REL_IND		0x9122
-#define GSM48_MMCC_DATA_REQ		0x9130
-#define GSM48_MMCC_DATA_IND		0x9132
-#define GSM48_MMCC_UNIT_DATA_REQ	0x9140
-#define GSM48_MMCC_UNIT_DATA_IND	0x9142
-#define GSM48_MMCC_SYNC_IND		0x9152
-#define GSM48_MMCC_REEST_REQ		0x9160
-#define GSM48_MMCC_REEST_CNF		0x9161
-#define GSM48_MMCC_ERR_IND		0x9172
-#define GSM48_MMCC_PROMPT_IND		0x9182
-#define GSM48_MMCC_PROMPT_REJ		0x9184
-#define GSM48_MMSS_EST_REQ		0x9210
-#define GSM48_MMSS_EST_IND		0x9212
-#define GSM48_MMSS_EST_CNF		0x9211
-#define GSM48_MMSS_REL_REQ		0x9220
-#define GSM48_MMSS_REL_IND		0x9222
-#define GSM48_MMSS_DATA_REQ		0x9230
-#define GSM48_MMSS_DATA_IND		0x9232
-#define GSM48_MMSS_UNIT_DATA_REQ	0x9240
-#define GSM48_MMSS_UNIT_DATA_IND	0x9242
-#define GSM48_MMSS_REEST_REQ		0x9260
-#define GSM48_MMSS_REEST_CNF		0x9261
-#define GSM48_MMSS_ERR_IND		0x9272
-#define GSM48_MMSS_PROMPT_IND		0x9282
-#define GSM48_MMSS_PROMPT_REJ		0x9284
-#define GSM48_MMSMS_EST_REQ		0x9310
-#define GSM48_MMSMS_EST_IND		0x9312
-#define GSM48_MMSMS_EST_CNF		0x9311
-#define GSM48_MMSMS_REL_REQ		0x9320
-#define GSM48_MMSMS_REL_IND		0x9322
-#define GSM48_MMSMS_DATA_REQ		0x9330
-#define GSM48_MMSMS_DATA_IND		0x9332
-#define GSM48_MMSMS_UNIT_DATA_REQ	0x9340
-#define GSM48_MMSMS_UNIT_DATA_IND	0x9342
-#define GSM48_MMSMS_REEST_REQ		0x9360
-#define GSM48_MMSMS_REEST_CNF		0x9361
-#define GSM48_MMSMS_ERR_IND		0x9372
-#define GSM48_MMSMS_PROMPT_IND		0x9382
-#define GSM48_MMSMS_PROMPT_REJ		0x9384
+#define GSM48_MMCC_EST_REQ		0x110
+#define GSM48_MMCC_EST_IND		0x112
+#define GSM48_MMCC_EST_CNF		0x111
+#define GSM48_MMCC_REL_REQ		0x120
+#define GSM48_MMCC_REL_IND		0x122
+#define GSM48_MMCC_DATA_REQ		0x130
+#define GSM48_MMCC_DATA_IND		0x132
+#define GSM48_MMCC_UNIT_DATA_REQ	0x140
+#define GSM48_MMCC_UNIT_DATA_IND	0x142
+#define GSM48_MMCC_SYNC_IND		0x152
+#define GSM48_MMCC_REEST_REQ		0x160
+#define GSM48_MMCC_REEST_CNF		0x161
+#define GSM48_MMCC_ERR_IND		0x172
+#define GSM48_MMCC_PROMPT_IND		0x182
+#define GSM48_MMCC_PROMPT_REJ		0x184
+#define GSM48_MMSS_EST_REQ		0x210
+#define GSM48_MMSS_EST_IND		0x212
+#define GSM48_MMSS_EST_CNF		0x211
+#define GSM48_MMSS_REL_REQ		0x220
+#define GSM48_MMSS_REL_IND		0x222
+#define GSM48_MMSS_DATA_REQ		0x230
+#define GSM48_MMSS_DATA_IND		0x232
+#define GSM48_MMSS_UNIT_DATA_REQ	0x240
+#define GSM48_MMSS_UNIT_DATA_IND	0x242
+#define GSM48_MMSS_REEST_REQ		0x260
+#define GSM48_MMSS_REEST_CNF		0x261
+#define GSM48_MMSS_ERR_IND		0x272
+#define GSM48_MMSS_PROMPT_IND		0x282
+#define GSM48_MMSS_PROMPT_REJ		0x284
+#define GSM48_MMSMS_EST_REQ		0x310
+#define GSM48_MMSMS_EST_IND		0x312
+#define GSM48_MMSMS_EST_CNF		0x311
+#define GSM48_MMSMS_REL_REQ		0x320
+#define GSM48_MMSMS_REL_IND		0x322
+#define GSM48_MMSMS_DATA_REQ		0x330
+#define GSM48_MMSMS_DATA_IND		0x332
+#define GSM48_MMSMS_UNIT_DATA_REQ	0x340
+#define GSM48_MMSMS_UNIT_DATA_IND	0x342
+#define GSM48_MMSMS_REEST_REQ		0x360
+#define GSM48_MMSMS_REEST_CNF		0x361
+#define GSM48_MMSMS_ERR_IND		0x372
+#define GSM48_MMSMS_PROMPT_IND		0x382
+#define GSM48_MMSMS_PROMPT_REJ		0x384
+
+/* GSM 04.08 MMxx-SAP header */
+struct gsm48_mmxx_hdr {
+	u_int32_t       msg_type; /* RR_* primitive */
+	u_int8_t	reject_cause;
+};
 
 /* GSM 04.07 9.1.1 */
-#define GSM_RRSTATE_IDLE		0
-#define GSM_RRSTATE_CONN_PEND		1
-#define GSM_RRSTATE_DEDICATED		2
+#define GSM48_RR_ST_IDLE		0
+#define GSM48_RR_ST_CONN_PEND		1
+#define GSM48_RR_ST_DEDICATED		2
 
 /* GSM 04.07 6.1.1 */
-#define GSM_MMRSTATE_NOTUPDATED		0
-#define GSM_MMRSTATE_WAIT		1
-#define GSM_MMRSTATE_UPDATED		2
+#define GSM48_MMR_ST_NOTUPDATED		0
+#define GSM48_MMR_ST_WAIT		1
+#define GSM48_MMR_ST_UPDATED		2
 
 /* GSM 04.07 9.2.1 */
-#define GSM_MMCCSTATE_IDLE		0
-#define GSM_MMCCSTATE_CONN_PEND		1
-#define GSM_MMCCSTATE_DEDICATED		2
-#define GSM_MMCCSTATE_CONN_SUSP		3
-#define GSM_MMCCSTATE_REESTPEND		4
-#define GSM_MMSSSTATE_IDLE		0
-#define GSM_MMSSSTATE_CONN_PEND		1
-#define GSM_MMSSSTATE_DEDICATED		2
-#define GSM_MMSSSTATE_CONN_SUSP		3
-#define GSM_MMSSSTATE_REESTPEND		4
-#define GSM_MMSMSSTATE_IDLE		0
-#define GSM_MMSMSSTATE_CONN_PEND	1
-#define GSM_MMSMSSTATE_DEDICATED	2
-#define GSM_MMSMSSTATE_CONN_SUSP	3
-#define GSM_MMSMSSTATE_REESTPEND	4
+#define GSM48_MMCC_ST_IDLE		0
+#define GSM48_MMCC_ST_CONN_PEND		1
+#define GSM48_MMCC_ST_DEDICATED		2
+#define GSM48_MMCC_ST_CONN_SUSP		3
+#define GSM48_MMCC_ST_REESTPEND		4
+#define GSM48_MMSS_ST_IDLE		0
+#define GSM48_MMSS_ST_CONN_PEND		1
+#define GSM48_MMSS_ST_DEDICATED		2
+#define GSM48_MMSS_ST_CONN_SUSP		3
+#define GSM48_MMSS_ST_REESTPEND		4
+#define GSM48_MMSMS_ST_IDLE		0
+#define GSM48_MMSMS_ST_CONN_PEND	1
+#define GSM48_MMSMS_ST_DEDICATED	2
+#define GSM48_MMSMS_ST_CONN_SUSP	3
+#define GSM48_MMSMS_ST_REESTPEND	4
 
 /* GSM 04.08 4.1.2.1 */
 #define	GSM48_MM_ST_NULL		0
@@ -188,34 +194,35 @@ struct gsm48_rr {
 #define GSM48_MM_SST_RX_VGCS_LIMITED	10
 
 /* GSM 04.08 5.1.2.2 */
-#define	GSM_CCSTATE_NULL		0
-#define	GSM_CCSTATE_INITIATED		1
-#define	GSM_CCSTATE_MO_CALL_PROC	3
-#define	GSM_CCSTATE_CALL_DELIVERED	4
-#define	GSM_CCSTATE_CALL_PRESENT	6
-#define	GSM_CCSTATE_CALL_RECEIVED	7
-#define	GSM_CCSTATE_CONNECT_REQUEST	8
-#define	GSM_CCSTATE_MO_TERM_CALL_CONF	9
-#define	GSM_CCSTATE_ACTIVE		10
-#define	GSM_CCSTATE_DISCONNECT_REQ	12
-#define	GSM_CCSTATE_DISCONNECT_IND	12
-#define	GSM_CCSTATE_RELEASE_REQ		19
-#define	GSM_CCSTATE_MO_ORIG_MODIFY	26
-#define	GSM_CCSTATE_MO_TERM_MODIFY	27
-#define	GSM_CCSTATE_CONNECT_IND		28
+#define	GSM48_CC_ST_NULL		0
+#define	GSM48_CC_ST_INITIATED		1
+#define	GSM48_CC_ST_MO_CALL_PROC	3
+#define	GSM48_CC_ST_CALL_DELIVERED	4
+#define	GSM48_CC_ST_CALL_PRESENT	6
+#define	GSM48_CC_ST_CALL_RECEIVED	7
+#define	GSM48_CC_ST_CONNECT_REQUEST	8
+#define	GSM48_CC_ST_MO_TERM_CALL_CONF	9
+#define	GSM48_CC_ST_ACTIVE		10
+#define	GSM48_CC_ST_DISCONNECT_REQ	12
+#define	GSM48_CC_ST_DISCONNECT_IND	12
+#define	GSM48_CC_ST_RELEASE_REQ		19
+#define	GSM48_CC_ST_MO_ORIG_MODIFY	26
+#define	GSM48_CC_ST_MO_TERM_MODIFY	27
+#define	GSM48_CC_ST_CONNECT_IND		28
 
 /* MM events */
-#define GSM48_MM_EVENT_NEW_LAI		0xa001
-#define GSM48_MM_EVENT_TIMEOUT_T3211	0xa002
-#define GSM48_MM_EVENT_TIMEOUT_T3212	0xa003
-#define GSM48_MM_EVENT_TIMEOUT_T3213	0xa004
-#define GSM48_MM_EVENT_IMSI_DETACH	0xa005
-#define GSM48_MM_EVENT_IMSI_ATTACH	0xa006
-#define GSM48_MM_EVENT_POWER_OFF	0xa007
-#define GSM48_MM_EVENT_PAGING		0xa009
-#define GSM48_MM_EVENT_AUTH_RESPONSE	0xa00a
+#define GSM48_MM_EVENT_NEW_LAI		1
+#define GSM48_MM_EVENT_TIMEOUT_T3211	2
+#define GSM48_MM_EVENT_TIMEOUT_T3212	3
+#define GSM48_MM_EVENT_TIMEOUT_T3213	4
+#define GSM48_MM_EVENT_IMSI_DETACH	5
+#define GSM48_MM_EVENT_IMSI_ATTACH	6
+#define GSM48_MM_EVENT_POWER_OFF	7
+#define GSM48_MM_EVENT_PAGING		9
+#define GSM48_MM_EVENT_AUTH_RESPONSE	10
 
-struct gsm48_mmevent {
+/* message for MM events */
+struct gsm48_mm_event {
 	u_int32_t       msg_type;
 
 	u_int8_t	sres[4];
@@ -237,11 +244,20 @@ struct gsm48_mmlayer {
 	struct osmocom_ms	*ms;
 	int			state;
 	int			substate;
+
+	/* queue for MMxx-SAP message upwards */
+	struct llist_head       mm_upqueue;
+
+	/* timers */
 	struct timer_list	t3211;
 	struct timer_list	t3212;
 	struct timer_list	t3213;
 	int			t3212_value;
+
+	/* list of MM connections */
 	struct llist_head	mm_conn;
+
+	/* network name */
 	char			name_short[32];
 	char			name_long[32];
 };
@@ -279,6 +295,13 @@ struct gsm_rrlayer {
 	struct osmocom_ms	*ms;
 	int			state;
 
+	/* queue for RR-SAP message upwards */
+	struct llist_head	rr_upqueue;
+
+	/* queue for messages while RR connection is built up */
+	struct llist_head       downqueue;
+
+	/* timers */
 	struct timer_list	t3122;
 	struct timer_list	t3124;
 	struct timer_list	t3126;
