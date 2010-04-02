@@ -17,17 +17,20 @@ process				CC		complete
 message format			CC		incomplete
 (messages are currently totally wrong)
 state machine			CC		complete
+debugging			CC		
 
 common procedures		MM		(almost) complete
 specific procedures		MM		incomplete
 connection management		MM		incomplete
 state machine			MM		incomplete
 support functions		MM		incomplete
+debugging			MM		
 
 system information (1-6)	RR		complete
 connection establishment	RR		(almost) complete
 connection release		RR		??
 dedicated mode			RR		incomplete
+debugging			RR		
 
 idle mode PLMN selection	MM(03.22)	complete
 idle mode cell selection	MM(03.22)	complete

@@ -50,6 +50,59 @@
  * messages
  */
 
+/* names of MMxx-SAP */
+static const struct value_string gsm48_mmxx_msg_names[] = {
+	{ GSM48_MMCC_EST_REQ,		"MMCC_EST_REQ" },
+	{ GSM48_MMCC_EST_IND,		"MMCC_EST_IND" },
+	{ GSM48_MMCC_EST_CNF,		"MMCC_EST_CNF" },
+	{ GSM48_MMCC_REL_REQ,		"MMCC_REL_REQ" },
+	{ GSM48_MMCC_REL_IND,		"MMCC_REL_IND" },
+	{ GSM48_MMCC_DATA_REQ,		"MMCC_DATA_REQ" },
+	{ GSM48_MMCC_DATA_IND,		"MMCC_DATA_IND" },
+	{ GSM48_MMCC_UNIT_DATA_REQ,	"MMCC_UNIT_DATA_REQ" },
+	{ GSM48_MMCC_UNIT_DATA_IND,	"MMCC_UNIT_DATA_IND" },
+	{ GSM48_MMCC_SYNC_IND,		"MMCC_SYNC_IND" },
+	{ GSM48_MMCC_REEST_REQ,		"MMCC_REEST_REQ" },
+	{ GSM48_MMCC_REEST_CNF,		"MMCC_REEST_CNF" },
+	{ GSM48_MMCC_ERR_IND,		"MMCC_ERR_IND" },
+	{ GSM48_MMCC_PROMPT_IND,	"MMCC_PROMPT_IND" },
+	{ GSM48_MMCC_PROMPT_REJ,	"MMCC_PROMPT_REJ" },
+	{ GSM48_MMSS_EST_REQ,		"MMSS_EST_REQ" },
+	{ GSM48_MMSS_EST_IND,		"MMSS_EST_IND" },
+	{ GSM48_MMSS_EST_CNF,		"MMSS_EST_CNF" },
+	{ GSM48_MMSS_REL_REQ,		"MMSS_REL_REQ" },
+	{ GSM48_MMSS_REL_IND,		"MMSS_REL_IND" },
+	{ GSM48_MMSS_DATA_REQ,		"MMSS_DATA_REQ" },
+	{ GSM48_MMSS_DATA_IND,		"MMSS_DATA_IND" },
+	{ GSM48_MMSS_UNIT_DATA_REQ,	"MMSS_UNIT_DATA_REQ" },
+	{ GSM48_MMSS_UNIT_DATA_IND,	"MMSS_UNIT_DATA_IND" },
+	{ GSM48_MMSS_REEST_REQ,		"MMSS_REEST_REQ" },
+	{ GSM48_MMSS_REEST_CNF,		"MMSS_REEST_CNF" },
+	{ GSM48_MMSS_ERR_IND,		"MMSS_ERR_IND" },
+	{ GSM48_MMSS_PROMPT_IND,	"MMSS_PROMPT_IND" },
+	{ GSM48_MMSS_PROMPT_REJ,	"MMSS_PROMPT_REJ" },
+	{ GSM48_MMSMS_EST_REQ,		"MMSMS_EST_REQ" },
+	{ GSM48_MMSMS_EST_IND,		"MMSMS_EST_IND" },
+	{ GSM48_MMSMS_EST_CNF,		"MMSMS_EST_CNF" },
+	{ GSM48_MMSMS_REL_REQ,		"MMSMS_REL_REQ" },
+	{ GSM48_MMSMS_REL_IND,		"MMSMS_REL_IND" },
+	{ GSM48_MMSMS_DATA_REQ,		"MMSMS_DATA_REQ" },
+	{ GSM48_MMSMS_DATA_IND,		"MMSMS_DATA_IND" },
+	{ GSM48_MMSMS_UNIT_DATA_REQ,	"MMSMS_UNIT_DATA_REQ" },
+	{ GSM48_MMSMS_UNIT_DATA_IND,	"MMSMS_UNIT_DATA_IND" },
+	{ GSM48_MMSMS_REEST_REQ,	"MMSMS_REEST_REQ" },
+	{ GSM48_MMSMS_REEST_CNF,	"MMSMS_REEST_CNF" },
+	{ GSM48_MMSMS_ERR_IND,		"MMSMS_ERR_IND" },
+	{ GSM48_MMSMS_PROMPT_IND,	"MMSMS_PROMPT_IND" },
+	{ GSM48_MMSMS_PROMPT_REJ,	"MMSMS_PROMPT_REJ" },
+	{ 0,				NULL }
+};
+
+const char *get_mmxx_name(int value)
+{
+	return get_value_string(gsm48_mmxx_msg_names, value);
+}
+
 /* allocate GSM 04.08 message (MMxx-SAP) */
 static struct msgb *gsm48_mmxx_msgb_alloc(void)
 {
@@ -87,19 +140,15 @@ int gsm48_rr_dequeue(struct osmocom_ms *ms)
 	return work;
 }
 
-tomorrow:
-finish this function
-check names
-do msg for MMxx
-do msg in call control
-
-
 /* push RR header and send to RR */
 static int gsm48_mm_to_rr(ms, msg, int msg_type)
 {
-	1. push header
-	2. add msg_type
+	/* push RR header */
+	msgb_push(msg, sizeof(struct gsm48_rr_hdr));
+	rrh = (struct gsm48_rr_hdr *)msg->data;
+	rrh->msg_type = msg_type;
 
+	/* send message to RR */
 	return gsm48_rr_downmsg(ms, msg);
 }
 
@@ -107,15 +156,65 @@ static int gsm48_mm_to_rr(ms, msg, int msg_type)
  * state transition
  */
 
+static const char *gsm48_mm_state_names[] = {
+	"NULL",
+	"undefined 1",
+	"undefined 2",
+	"LOC_UPD_INIT",
+	"undefined 4",
+	"WAIT_OUT_MM_CONN",
+	"MM_CONN_ACTIVE",
+	"IMSI_DETACH_INIT",
+	"PROCESS_CM_SERV_P",
+	"WAIT_NETWORK_CMD",
+	"LOC_UPD_REJ",
+	"undefined 11",
+	"undefined 12",
+	"WAIT_RR_CONN_LUPD",
+	"WAIT_RR_CONN_MM_CON",
+	"WAIT_RR_CONN_IMSI_D",
+	"undefined 16",
+	"WAIT_REEST",
+	"WAIT_RR_ACTIVE",
+	"MM_IDLE",
+	"WAIT_ADD_OUT_MM_CON",
+	"MM_CONN_ACTIVE_VGCS",
+	"WAIT_RR_CONN_VGCS",
+	"LOC_UPD_PEND",
+	"IMSI_DETACH_PEND",
+	"RR_CONN_RELEASE_NA"
+};
+
+static const char *gsm48_mm_substate_names[] = {
+	"NORMAL_SERVICE",
+	"ATTEMPT_UPDATE",
+	"LIMITED_SERVICE",
+	"NO_IMSI",
+	"NO_CELL_AVAIL",
+	"LOC_UPD_NEEDED",
+	"PLMN_SEARCH",
+	"PLMN_SEARCH_NORMAL",
+	"RX_VGCS_NORMAL",
+	"RX_VGCS_LIMITED"
+};
+
+static const char *gsm48_mmxx_state_names[] = {
+	"IDLE",
+	"CONN_PEND",
+	"DEDICATED",
+	"CONN_SUSP",
+	"REESTPEND"
+};
+
 /* Set new MM state, also new substate in case of MM IDLE state. */
 static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 {
-	DEBUGP(DMM, "(ms %s) new state %s", mm->ms, mm_state_names[mm->state]);
+	DEBUGP(DMM, "(ms %s) new state %s", mm->ms, gsm48_mm_state_names[mm->state]);
 	if (mm->state == GSM48_MM_ST_MM_ILDE)
-		DEBUGP(DMM, " substate %s", mm_substate_names[mm->substate]);
+		DEBUGP(DMM, " substate %s", gsm48_mm_substate_names[mm->substate]);
 	DEBUGP(DMM, "-> %s", mm_state_names[state]);
 	if (state == GSM48_MM_ST_MM_ILDE)
-		DEBUGP(DMM, " substate %s", mm_substate_names[substate]);
+		DEBUGP(DMM, " substate %s", gsm48_mm_substate_names[substate]);
 	DEBUGP(DMM, "\n");
 
 	mm->state = state;
@@ -221,6 +320,7 @@ static int gsm48_mm_tx_mm_status(struct osmocom_ms *ms, u_int8_t reject)
 	gh->msg_type = GSM48_MT_MM_STATUS;
 	*reject_cause = reject;
 
+	/* pussh RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
@@ -238,6 +338,7 @@ static int gsm48_mm_tx_tmsi_reall_cpl(struct osmocom_ms *ms)
 	gh->proto_discr = GSM48_PDISC_MM;
 	gh->msg_type = GSM48_MT_MM_TMSI_REALL_COMPL;
 
+	/* pussh RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
@@ -334,6 +435,7 @@ static int gsm48_mm_tx_auth_rsp(struct osmocom_ms *ms, struct gsm48_mmevent *ev)
 	/* SRES */
 	memcpy(sres, ev->sres, 4);
 
+	/* pussh RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
@@ -416,6 +518,7 @@ static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, u_int8_t mi_type)
 	/* MI */
 	gsm48_encode_mi(nmsg, subscr, mi_type);
 
+	/* pussh RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
@@ -441,6 +544,7 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 	/* MI */
 	gsm48_encode_mi(nmsg, subscr, mi_type);
 
+	/* pussh RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, rr_prim);
 }
 
@@ -702,6 +806,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, void *arg)
 	gsm48_encode_mi(nmsg, subscr, mi_type);
 	/* prio is optional for eMLPP */
 
+	/* pussh RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, RR_EST_REQ);
 }
 
@@ -715,6 +820,7 @@ static int gsm48_mm_tx_cm_service_abort(struct osmocom_ms *ms, void *arg)
 	gh->proto_discr = GSM48_PDISC_MM;
 	gh->msg_type = GSM48_MT_MM_CM_SERV_ABORT;
 
+	/* pussh RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
@@ -746,6 +852,7 @@ static int gsm48_mm_tx_cm_reest_req(struct osmocom_ms *ms, void *arg)
 		memcpy(ie, buf, 1 + sizeof(struct gsm48_loc_area_id));
 	}
 
+	/* pussh RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, RR__REQ);
 }
 
@@ -902,73 +1009,36 @@ static int gsm48_mm_classm_chg(struct osmocom_ms *ms, void *arg)
 	gsm_rr_tx_cm_change(sm, abort, RR_ABORT_REQ);
 }
 
-/* state trasitions for mobile managemnt messages (upper layer / events) */
-static struct eventstate {
+/* state trasitions for MMxx-SAP messages from upper layers */
+static struct downstate {
 	u_int32_t	states;
 	u_int32_t	substates;
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
-} eventstatelist[] = {
+} downstatelist[] = {
 	/* 4.2.2.1 Normal service */
-** todo: check if there is a senders of every event
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
-	 GSM48_MM_EVENT_NEW_LAI, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
-	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
-	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
-	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
-	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_start},
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 MMSS_EST_REQ, gsm48_mm_init_mm_no_rr},
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 MMSMS_EST_REQ, gsm48_mm_init_mm_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
-	 GSM48_MM_EVENT_PAGING, gsm48_mm_paging},
 	/* 4.2.2.2 Attempt to update */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
-	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
-	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
-	 GSM48_MM_EVENT_NEW_LAI, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
-	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
 	 MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
-	 GSM48_MM_EVENT_PAGING, gsm48_mm_paging},
 	/* 4.2.2.3 Limited service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
-	 GSM48_MM_EVENT_NEW_LAI, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
 	 MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
-	 GSM48_MM_EVENT_PAGING, gsm48_mm_paging},
 	/* 4.2.2.4 No IMSI */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NO_IMSI),
 	 MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
 	/* 4.2.2.5 PLMN search, normal service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_update_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_start},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 MMSS_EST_REQ, gsm48_mm_init_mm_no_rr},
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 MMSMS_EST_REQ, gsm48_mm_init_mm_no_rr},
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_PAGING, gsm48_mm_paging},
 	/* 4.2.2.4 PLMN search */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH),
 	 MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
@@ -991,6 +1061,89 @@ static struct eventstate {
 	 MMSS_EST_REQ, gsm48_mm_init_mm_other},
 	{ALL_STATES, ALL_STATES,
 	 MMSMS_EST_REQ, gsm48_mm_init_mm_other},
+};
+
+#define DOWNSLLEN \
+	(sizeof(downstatelist) / sizeof(struct downstate))
+
+int gsm48_mmxx_downmsg(struct osmocom_ms *ms, struct msgb msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm48_mmxx_hdr *mmh = (struct gsm48_mmxx_hdr *)msg->data;
+	int msg_type = mmh->msg_type;
+
+	DEBUGP(DMM, "(ms %s) Received '%s' event in state %s", ms->name,
+		get_mmevent_name(msg_type), gsm48_mm_state_names[mm->state]);
+	if (mm->state == GSM48_MM_ST_MM_ILDE)
+		DEBUGP(DMM, " substate %s", gsm48_mm_substate_names[mm->substate]);
+	DEBUGP(DMM, "\n");
+
+	/* Find function for current state and message */
+	for (i = 0; i < DOWNSLLEN; i++)
+		if ((msg_type == downstatelist[i].type)
+		 && ((1 << mm->state) & downstatelist[i].states)
+		 && ((1 << mm->substate) & downstatelist[i].substates))
+			break;
+	if (i == DOWNSLLEN) {
+		DEBUGP(DMM, "Message unhandled at this state.\n");
+		return 0;
+	}
+
+	rc = downstatelist[i].rout(ms, msg);
+
+	return rc;
+}
+
+/* state trasitions for mobile management events */
+static struct eventstate {
+	u_int32_t	states;
+	u_int32_t	substates;
+	int		type;
+	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
+} eventstatelist[] = {
+	/* 4.2.2.1 Normal service */
+** todo: check if there is a senders of every event
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	 GSM48_MM_EVENT_NEW_LAI, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_start},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	 GSM48_MM_EVENT_PAGING, gsm48_mm_paging},
+	/* 4.2.2.2 Attempt to update */
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
+	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
+	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
+	 GSM48_MM_EVENT_NEW_LAI, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
+	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
+	 GSM48_MM_EVENT_PAGING, gsm48_mm_paging},
+	/* 4.2.2.3 Limited service */
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
+	 GSM48_MM_EVENT_NEW_LAI, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
+	 GSM48_MM_EVENT_PAGING, gsm48_mm_paging},
+	/* 4.2.2.4 No IMSI */
+	/* 4.2.2.5 PLMN search, normal service */
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
+	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
+	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
+	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_update_no_rr},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
+	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_start},
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
+	 GSM48_MM_EVENT_PAGING, gsm48_mm_paging},
+	/* 4.2.2.4 PLMN search */
 	/* IMSI detach in other cases */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NO_IMSI), /* no SIM */
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_end},
@@ -1050,16 +1203,15 @@ todo all other states (sim removed)
 #define EVENTSLLEN \
 	(sizeof(eventstatelist) / sizeof(struct eventstate))
 
-/* MM event handler */
-int mm_event(struct osmocom_ms *ms, int msg_type, struct gsm48_mmevent *mmevent)
+int gsm48_mm_event(struct osmocom_ms *ms, int msg_type, struct gsm48_mmevent *mmevent)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	int msg_type = mmevent->msg_type;
 
 	DEBUGP(DMM, "(ms %s) Received '%s' event in state %s", ms->name,
-		get_mmevent_name(msg_type), mm_state_names[mm->state]);
+		get_mmevent_name(msg_type), gsm48_mm_state_names[mm->state]);
 	if (mm->state == GSM48_MM_ST_MM_ILDE)
-		DEBUGP(DMM, " substate %s", mm_substate_names[mm->substate]);
+		DEBUGP(DMM, " substate %s", gsm48_mm_substate_names[mm->substate]);
 	DEBUGP(DMM, "\n");
 
 	/* Find function for current state and message */
@@ -1293,9 +1445,10 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	int msg_type = gh->msg_type & 0xbf;
+	struct gsm48_cc_hdr *mmh;
 
-	/* pull the MM header */
-	msgb_pull(msg, sizeof(struct gsm48_mm_hdr));
+	/* pull the RR header */
+	msgb_pull(msg, sizeof(struct gsm48_rr_hdr));
 
 	/* forward message */
 	switch (pdisc) {
@@ -1304,18 +1457,26 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	case GSM48_PDISC_CC:
 		/* push new header */
-		msgb_push(msg, sizeof(struct gsm48_cc_hdr));
-		cch = (struct gsm48_cc_hdr *)msg->data;
-		cch->msg_type = MM_DATA_IND;
+		msgb_push(msg, sizeof(struct gsm48_mmxx_hdr));
+		mmh = (struct gsm48_mmxx_hdr *)msg->data;
+		mmh->msg_type = GSM48_MMCC_DATA_IND;
 
 		return gsm48_cc_upmsg(ms, msg);
 
 #if 0
+	case GSM48_PDISC_SS:
+		/* push new header */
+		msgb_push(msg, sizeof(struct gsm48_mmxx_hdr));
+		mmh = (struct gsm48_mmxx_hdr *)msg->data;
+		mmh->msg_type = GSM48_MMSS_DATA_IND;
+
+		return gsm48_sms_upmsg(ms, msg);
+
 	case GSM48_PDISC_SMS:
 		/* push new header */
-		msgb_push(msg, sizeof(struct gsm48_sms_hdr));
-		smsh = (struct gsm48_smscc_hdr *)msg->data;
-		smsh->msg_type = MM_DATA_IND;
+		msgb_push(msg, sizeof(struct gsm48_mmxx_hdr));
+		mmh = (struct gsm48_mmxx_hdr *)msg->data;
+		mmh->msg_type = GSM48_MMSMS_DATA_IND;
 
 		return gsm48_sms_upmsg(ms, msg);
 #endif
@@ -1327,7 +1488,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	DEBUGP(DMM, "(ms %s) Received '%s' in MM state %s\n", ms->name,
-		gsm48_mm_msg_name(msg_type), mm_state_names[mm->state]);
+		gsm48_mm_msg_name(msg_type), gsm48_mm_state_names[mm->state]);
 
 	/* find function for current state and message */
 	for (i = 0; i < MMDATASLLEN; i++)
@@ -1395,6 +1556,7 @@ static int gsm48_mm_est_loc_upd(struct osmocom_ms *ms, struct gsm_rr *est)
 	/* MI */
 	gsm48_encode_mi(nmsg, subscr, mi_type);
 
+	/* pussh RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, RR_DATA_REQ);
 }
 
@@ -1511,7 +1673,7 @@ static int gsm48_rcv_rr(struct osmocom_ms *ms, struct msgb *msg)
 	int msg_type = msg->msg_type;
 
 	DEBUGP(DMM, "(ms %s) Received '%s' from RR in state %s\n", ms->name,
-		gsm48_rr_msg_name(msg_type), mm_state_names[mm->state]);
+		gsm48_rr_msg_name(msg_type), gsm48_mm_state_names[mm->state]);
 
 	/* find function for current state and message */
 	for (i = 0; i < RRDATASLLEN; i++)

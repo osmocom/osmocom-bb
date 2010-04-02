@@ -100,7 +100,7 @@ static const struct value_string gsm48_rr_msg_names[] = {
 
 const char *get_rr_name(int value)
 {
-	return get_value_string(rr_names, value);
+	return get_value_string(gsm48_rr_msg_names, value);
 }
 
 /* allocate GSM 04.08 layer 3 message */
@@ -222,7 +222,7 @@ static int gsm_rr_tx_rr_status(struct osmocom_ms *ms, uint8_t cause)
 {
 	struct gsm_rrlayer *rr = &ms->rrlayer;
 	struct msgb *nmsg;
-	struct gsm48_hdr *ngh;
+	struct gsm48_hdr *gh;
 	struct gsm48_rr_status *st;
 
 	nmsg = gsm48_l3_msgb_alloc();
@@ -250,7 +250,7 @@ static int gsm_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 	struct gsm_rrlayer *rr = &ms->rrlayer;
 	struct gsm_subscriber *subcr = ms->subscr;
 	struct msgb *nmsg;
-	struct gsm48_hdr *ngh;
+	struct gsm48_hdr *gh;
 	u_int8_t buf[11], *ie;
 
 	nmsg = gsm48_l3_msgb_alloc();
@@ -2306,9 +2306,9 @@ static int gsm_rr_data_ind(struct osmocom_ms *ms, struct msbg *msg)
 	msgb_pull(msg, msgb_l3(msg) - msg->data);
 
 	/* push RR header */
-	msgb_push(msg, sizeof(struct gsm48_mm_hdr));
-	mmh = (struct gsm48_mm_hdr *)msg->data;
-	mmh->msg_type = GSM48_RR_DATA_IND;
+	msgb_push(msg, sizeof(struct gsm48_rr_hdr));
+	rrh = (struct gsm48_rr_hdr *)msg->data;
+	rrh->msg_type = GSM48_RR_DATA_IND;
 
 	return gsm48_mm_upmsg(ms, msg);
 }

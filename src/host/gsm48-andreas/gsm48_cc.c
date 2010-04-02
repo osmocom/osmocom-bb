@@ -1,17 +1,3 @@
-fragen:
-
-warum ist layer 2 ein socket client
-wo soll layer 3 hin
-wo soll die app (layer 4) liegen, in der lib oder im con
-transactions wie im openbsc
-lchan in einer msg?: eine 1:1 beziehung zwischen ms und lchan?:
-ms instanzliste für mehrere geräte, 'name' fuer ein jedes geraet
-messages wie bei openbsc
-ist der tlv-parser bufferoverflow-safe?: was ist mit dem letzten ie?: sollte der parser nicht error zurücklifern und dann den aufrufenden prozess beenden?:
-wieso ist classmark1 in gsm_04_08.h MSB und nicht LSB wie sonst?:
-headerkonzept für inter-layer und interface
-
-
 /*
  * (C) 2010 by Andreas Eversberg <jolly@eversberg.eu>
  *
@@ -33,14 +19,23 @@ headerkonzept für inter-layer und interface
  *
  */
 
-/* QUICK OVERVIEW:
- *
- * - support functions and data
- * - handlers for messages to lower layer (gsm48_cc_tx_*)
- * - state machine for MNCC messages
- * - handlers for messages from lower layer (gsm48_cc_rx_*)
- * - state machine for lower layer messages
- * - timeout handler
+todo: on CM service request
+establish request before sending setup (queue setup message)
+on timeout (t303): handle as required
+on establish confirm: send setup
+se establishment cause, if required
+on reject request from lower layer: handle as required
+on release request from upper layer: handle as required
+
+todo: on establish indication
+process the first message as if it is a data indication
+
+todo: handle all other MMCC primitives
+
+todo: finish message handling
+
+/*
+ * timers
  */
 
 /* start various timers */
@@ -64,6 +59,29 @@ static void gsm48_stop_cc_timer(struct gsm_trans *trans)
 	}
 }
 
+/*
+ * messages
+ */
+
+/* push MMCC header and send to MM */
+static int gsm48_cc_to_mm(struct msgb *msg, struct gsm_trans *trans, int msg_type)
+{
+	struct osmocom_ms *ms = trans->ms;
+	struct gsm48_mmxx_hdr *mmh;
+
+	/* push RR header */
+	msgb_push(msg, sizeof(struct gsm48_mmxx_hdr));
+	mmh = (struct gsm48_mmxx_hdr *)msg->data;
+	mmh->msg_type = msg_type;
+
+	/* send message to MM */
+	return gsm48_mmxx_downmsg(ms, msg);
+}
+
+/*
+ * process handlers
+ */
+
 /* send release indication to upper layer */
 int mncc_release_ind(struct gsm_network *net, struct gsm_trans *trans,
 		     u_int32_t callref, int location, int value)
@@ -79,33 +97,45 @@ int mncc_release_ind(struct gsm_network *net, struct gsm_trans *trans,
 /* sending status message in response to unknown message */
 static int gsm48_cc_tx_status(struct gsm_trans *trans, void *arg)
 {
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
 	u_int8_t *cause, *call_state;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_STATUS;
 
-	cause = msgb_put(msg, 3);
+	cause = msgb_put(nmsg, 3);
 	cause[0] = 2;
-im openbsc muss LOC_PRIV_LOC_U verwendet werden !!!!
-	cause[1] = GSM48_CAUSE_CS_GSM | GSM48_CAUSE_LOC_USER;
+	cause[1] = GSM48_CAUSE_CS_GSM | GSM48_CAUSE_LOC_PRN_S_LU;
 	cause[2] = 0x80 | 30;	/* response to status inquiry */
 
-	call_state = msgb_put(msg, 1);
+	call_state = msgb_put(nmsg, 1);
 	call_state[0] = 0xc0 | 0x00;
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
+
+
+complete
+------------------------------------------------------------------------------
+incomplete
 
 /* setup message from upper layer */
 static int gsm48_cc_tx_setup(struct gsm_trans *trans, void *arg)
 {
-	struct msgb *msg = gsm48_msgb_alloc();
+	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm_mncc *setup = arg;
 	int rc, trans_id;
 
-	gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	/* transaction id must not be assigned */
 	if (trans->transaction_id != 0xff) { /* unasssigned */
@@ -113,8 +143,6 @@ static int gsm48_cc_tx_setup(struct gsm_trans *trans, void *arg)
 			"This is not allowed!\n");
 		/* Temporarily out of order */
 		rc = mncc_release_ind(trans->subscr->net, trans, trans->callref,
-alle PRN_S_LU nach USER !!!!
-auch beim LCR für ms-mode anpassen !!!!
 				      GSM48_CAUSE_LOC_PRN_S_LU,
 				      GSM48_CC_CAUSE_RESOURCE_UNAVAIL);
 		trans->callref = 0;
@@ -140,53 +168,64 @@ auch beim LCR für ms-mode anpassen !!!!
 	gsm48_start_cc_timer(trans, 0x303, GSM48_T303_MO);
 
 	/* bearer capability */
-	gsm48_encode_bearer_cap(msg, 0, &setup->bearer_cap);
+	gsm48_encode_bearer_cap(nmsg, 0, &setup->bearer_cap);
 	/* facility */
 	if (setup->fields & MNCC_F_FACILITY)
-		gsm48_encode_facility(msg, 0, &setup->facility);
+		gsm48_encode_facility(nmsg, 0, &setup->facility);
 	/* called party BCD number */
 	if (setup->fields & MNCC_F_CALLED)
-		gsm48_encode_called(msg, &setup->called);
+		gsm48_encode_called(nmsg, &setup->called);
 	/* user-user */
 	if (setup->fields & MNCC_F_USERUSER)
-		gsm48_encode_useruser(msg, 0, &setup->useruser);
+		gsm48_encode_useruser(nmsg, 0, &setup->useruser);
 	/* ss version */
 	if (setup->fields & MNCC_F_SSVERSION)
-		gsm48_encode_ssversion(msg, 0, &setup->ssversion);
+		gsm48_encode_ssversion(nmsg, 0, &setup->ssversion);
 	/* CLIR suppression */
 	if (setup->clir.sup)
-		gsm48_encode_clir_sup(msg);
+		gsm48_encode_clir_sup(nmsg);
 	/* CLIR invocation */
 	if (setup->clir.inv)
-		gsm48_encode_clir_inv(msg);
+		gsm48_encode_clir_inv(nmsg);
 	/* cc cap */
 	if (setup->fields & MNCC_F_CCCAP)
-		gsm48_encode_cccap(msg, 0, &setup->cccap);
+		gsm48_encode_cccap(nmsg, 0, &setup->cccap);
 
+	/* actually MM CONNECTION PENDING */
 	new_cc_state(trans, GSM_CSTATE_CALL_INITIATED);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_EST_REQ);
 }
 
 /* connect ack message from upper layer */
 static int gsm48_cc_tx_connect_ack(struct gsm_trans *trans, void *arg)
 {
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_CONNECT_ACK;
 
 	new_cc_state(trans, GSM_CSTATE_ACTIVE);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* call conf message from upper layer */
 static int gsm48_cc_tx_call_conf(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *confirm = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_CALL_CONF;
 
@@ -195,47 +234,57 @@ diesen state in MT_CALL_CONF umbenennen !!!!
 
 	/* bearer capability */
 	if (confirm->fields & MNCC_F_BEARER_CAP)
-		gsm48_encode_bearer_cap(msg, 0, &confirm->bearer_cap);
+		gsm48_encode_bearer_cap(nmsg, 0, &confirm->bearer_cap);
 	/* cause */
 	if (confirm->fields & MNCC_F_CAUSE)
-		gsm48_encode_cause(msg, 0, &confirm->cause);
+		gsm48_encode_cause(nmsg, 0, &confirm->cause);
 	/* cc cap */
 	if (confirm->fields & MNCC_F_CCCAP)
-		gsm48_encode_cccap(msg, 0, &confirm->cccap);
+		gsm48_encode_cccap(nmsg, 0, &confirm->cccap);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* alerting message from upper layer */
 static int gsm48_cc_tx_alerting(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *alerting = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_ALERTING;
 
 	/* facility */
 	if (alerting->fields & MNCC_F_FACILITY)
-		gsm48_encode_facility(msg, 0, &alerting->facility);
+		gsm48_encode_facility(nmsg, 0, &alerting->facility);
 	/* user-user */
 	if (alerting->fields & MNCC_F_USERUSER)
-		gsm48_encode_useruser(msg, 0, &alerting->useruser);
+		gsm48_encode_useruser(nmsg, 0, &alerting->useruser);
 	/* ss version */
 	if (alerting->fields & MNCC_F_SSVERSION)
-		gsm48_encode_ssversion(msg, 0, &alerting->ssversion);
+		gsm48_encode_ssversion(nmsg, 0, &alerting->ssversion);
 
 	new_cc_state(trans, GSM_CSTATE_CALL_RECEIVED);
 	
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* connect message from upper layer */
 static int gsm48_cc_tx_connect(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *connect = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_CONNECT;
 
@@ -244,88 +293,118 @@ static int gsm48_cc_tx_connect(struct gsm_trans *trans, void *arg)
 
 	/* facility */
 	if (connect->fields & MNCC_F_FACILITY)
-		gsm48_encode_facility(msg, 0, &connect->facility);
+		gsm48_encode_facility(nmsg, 0, &connect->facility);
 	/* user-user */
 	if (connect->fields & MNCC_F_USERUSER)
-		gsm48_encode_useruser(msg, 0, &connect->useruser);
+		gsm48_encode_useruser(nmsg, 0, &connect->useruser);
 	/* ss version */
 	if (connect->fields & MNCC_F_SSVERSION)
-		gsm48_encode_ssversion(msg, 0, &connect->ssversion);
+		gsm48_encode_ssversion(nmsg, 0, &connect->ssversion);
 
 	new_cc_state(trans, GSM_CSTATE_CONNECT_REQUEST);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* notify message from upper layer */
 static int gsm48_cc_tx_notify(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *notify = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_NOTIFY;
 
 	/* notify */
-	gsm48_encode_notify(msg, notify->notify);
+	gsm48_encode_notify(nmsg, notify->notify);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* start dtmf message from upper layer */
 static int gsm48_cc_tx_start_dtmf(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *dtmf = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_START_DTMF;
 
 	/* keypad */
-	gsm48_encode_keypad(msg, dtmf->keypad);
+	gsm48_encode_keypad(nmsg, dtmf->keypad);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* stop dtmf message from upper layer */
 static int gsm48_cc_tx_stop_dtmf(struct gsm_trans *trans, void *arg)
 {
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_STOP_DTMF;
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* hold message from upper layer */
 static int gsm48_cc_tx_hold(struct gsm_trans *trans, void *arg)
 {
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_HOLD;
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* retrieve message from upper layer */
 static int gsm48_cc_tx_hold(struct gsm_trans *trans, void *arg)
 {
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_RETRIEVE;
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* disconnect message from upper layer or from timer event */
 static int gsm48_cc_tx_disconnect(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *disc = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_DISCONNECT;
 
@@ -334,34 +413,39 @@ static int gsm48_cc_tx_disconnect(struct gsm_trans *trans, void *arg)
 
 	/* cause */
 	if (disc->fields & MNCC_F_CAUSE)
-		gsm48_encode_cause(msg, 1, &disc->cause);
+		gsm48_encode_cause(nmsg, 1, &disc->cause);
 	else
-		gsm48_encode_cause(msg, 1, &default_cause);
+		gsm48_encode_cause(nmsg, 1, &default_cause);
 
 	/* facility */
 	if (disc->fields & MNCC_F_FACILITY)
-		gsm48_encode_facility(msg, 0, &disc->facility);
+		gsm48_encode_facility(nmsg, 0, &disc->facility);
 	/* progress */
 	if (disc->fields & MNCC_F_PROGRESS)
-		gsm48_encode_progress(msg, 0, &disc->progress);
+		gsm48_encode_progress(nmsg, 0, &disc->progress);
 	/* user-user */
 	if (disc->fields & MNCC_F_USERUSER)
-		gsm48_encode_useruser(msg, 0, &disc->useruser);
+		gsm48_encode_useruser(nmsg, 0, &disc->useruser);
 	/* ss version */
 	if (disc->fields & MNCC_F_SSVERSION)
-		gsm48_encode_ssversion(msg, 0, &disc->ssversion);
+		gsm48_encode_ssversion(nmsg, 0, &disc->ssversion);
 
 	new_cc_state(trans, GSM_CSTATE_DISCONNECT_REQ);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* release message from upper layer or from timer event */
 static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *rel = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_RELEASE;
 
@@ -372,16 +456,16 @@ static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg)
 
 	/* cause */
 	if (rel->fields & MNCC_F_CAUSE)
-		gsm48_encode_cause(msg, 0, &rel->cause);
+		gsm48_encode_cause(nmsg, 0, &rel->cause);
 	/* facility */
 	if (rel->fields & MNCC_F_FACILITY)
-		gsm48_encode_facility(msg, 0, &rel->facility);
+		gsm48_encode_facility(nmsg, 0, &rel->facility);
 	/* user-user */
 	if (rel->fields & MNCC_F_USERUSER)
-		gsm48_encode_useruser(msg, 0, &rel->useruser);
+		gsm48_encode_useruser(nmsg, 0, &rel->useruser);
 	/* ss version */
 	if (rel->fields & MNCC_F_SSVERSION)
-		gsm48_encode_ssversion(msg, 0, &rel->ssversion);
+		gsm48_encode_ssversion(nmsg, 0, &rel->ssversion);
 
 	trans->cc.T308_second = 0;
 	memcpy(&trans->cc.msg, rel, sizeof(struct gsm_mncc));
@@ -389,15 +473,21 @@ static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg)
 	if (trans->cc.state != GSM_CSTATE_RELEASE_REQ)
 		new_cc_state(trans, GSM_CSTATE_RELEASE_REQ);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* reject message from upper layer or from timer event */
 static int gsm48_cc_tx_release_compl(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *rel = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_mmxx_hdr *mmh;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_RELEASE_COMPL;
 
@@ -407,112 +497,150 @@ static int gsm48_cc_tx_release_compl(struct gsm_trans *trans, void *arg)
 
 	/* cause */
 	if (rel->fields & MNCC_F_CAUSE)
-		gsm48_encode_cause(msg, 0, &rel->cause);
+		gsm48_encode_cause(nmsg, 0, &rel->cause);
 	/* facility */
 	if (rel->fields & MNCC_F_FACILITY)
-		gsm48_encode_facility(msg, 0, &rel->facility);
+		gsm48_encode_facility(nmsg, 0, &rel->facility);
 	/* user-user */
 	if (rel->fields & MNCC_F_USERUSER)
-		gsm48_encode_useruser(msg, 0, &rel->useruser);
+		gsm48_encode_useruser(nmsg, 0, &rel->useruser);
 	/* ss version */
 	if (rel->fields & MNCC_F_SSVERSION)
-		gsm48_encode_ssversion(msg, 0, &rel->ssversion);
+		gsm48_encode_ssversion(nmsg, 0, &rel->ssversion);
 
+
+	gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
+
+	/* release MM connection */
+	nmsg = gsm48_mmxx_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	mmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+	mmh->msg_type = GSM48_MMCC_REL_REQ;
+	mmh->cause = **todo
+	gsm48_mmxx_downmsg(ms, nmsg);
+
+	new_cc_state(trans, GSM_CSTATE_NULL);
+
+	trans->callref = 0;
 	trans_free(trans);
-
-	return gsm48_sendmsg(msg, trans);
 }
 
 /* facility message from upper layer or from timer event */
 static int gsm48_cc_tx_facility(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *fac = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_FACILITY;
 
 	/* facility */
-	gsm48_encode_facility(msg, 1, &fac->facility);
+	gsm48_encode_facility(nmsg, 1, &fac->facility);
 	/* ss version */
 	if (rel->fields & MNCC_F_SSVERSION)
-		gsm48_encode_ssversion(msg, 0, &rel->ssversion);
+		gsm48_encode_ssversion(nmsg, 0, &rel->ssversion);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* user info message from upper layer or from timer event */
 static int gsm48_cc_tx_userinfo(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *user = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_USER_INFO;
 
 	/* user-user */
 	if (user->fields & MNCC_F_USERUSER)
-		gsm48_encode_useruser(msg, 1, &user->useruser);
+		gsm48_encode_useruser(nmsg, 1, &user->useruser);
 	/* more data */
 	if (user->more)
-		gsm48_encode_more(msg);
+		gsm48_encode_more(nmsg);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* modify message from upper layer or from timer event */
 static int gsm48_cc_tx_modify(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *modify = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_MODIFY;
 
 	gsm48_start_cc_timer(trans, 0x323, GSM48_T323_MS);
 
 	/* bearer capability */
-	gsm48_encode_bearer_cap(msg, 1, &modify->bearer_cap);
+	gsm48_encode_bearer_cap(nmsg, 1, &modify->bearer_cap);
 
 	new_cc_state(trans, GSM_CSTATE_MO_TERM_MODIFY);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* modify complete message from upper layer or from timer event */
 static int gsm48_cc_tx_modify_complete(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *modify = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_MODIFY_COMPL;
 
 	/* bearer capability */
-	gsm48_encode_bearer_cap(msg, 1, &modify->bearer_cap);
+	gsm48_encode_bearer_cap(nmsg, 1, &modify->bearer_cap);
 
 	new_cc_state(trans, GSM_CSTATE_ACTIVE);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* modify reject message from upper layer or from timer event */
 static int gsm48_cc_tx_modify_reject(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *modify = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 
 	gh->msg_type = GSM48_MT_CC_MODIFY_REJECT;
 
 	/* bearer capability */
-	gsm48_encode_bearer_cap(msg, 1, &modify->bearer_cap);
+	gsm48_encode_bearer_cap(nmsg, 1, &modify->bearer_cap);
 	/* cause */
-	gsm48_encode_cause(msg, 1, &modify->cause);
+	gsm48_encode_cause(nmsg, 1, &modify->cause);
 
 	new_cc_state(trans, GSM_CSTATE_ACTIVE);
 
-	return gsm48_sendmsg(msg, trans);
+	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
 /* state trasitions for MNCC messages (upper layer) */
@@ -652,7 +780,7 @@ static int gsm48_cc_rx_alerting(struct gsm_trans *trans, struct msgb *msg)
 	/* user-user */
 	if (TLVP_PRESENT(&tp, GSM48_IE_USER_USER)) {
 		alerting.fields |= MNCC_F_USERUSER;
-		gsm48_decode_useruser(&alerting.alerting,
+		gsm48_decode_useruser(&alerting.useruser,
 				TLVP_VAL(&tp, GSM48_IE_USER_USER)-1);
 	}
 
@@ -1006,6 +1134,8 @@ static int gsm48_cc_rx_release(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc rel;
+	struct msgb *nmsg;
+	struct gsm48_mmxx_hdr *mmh;
 	int rc;
 
 	gsm48_stop_cc_timer(trans);
@@ -1042,6 +1172,15 @@ static int gsm48_cc_rx_release(struct gsm_trans *trans, struct msgb *msg)
 		rc = mncc_recvmsg(trans->subscr->net, trans, MNCC_REL_IND, &rel);
 	}
 
+	/* release MM connection */
+	nmsg = gsm48_mmxx_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	mmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+	mmh->msg_type = GSM48_MMCC_REL_REQ;
+	mmh->cause = **todo
+	gsm48_mmxx_downmsg(ms, nmsg);
+
 	new_cc_state(trans, GSM_CSTATE_NULL);
 
 	trans->callref = 0;
@@ -1057,6 +1196,8 @@ static int gsm48_cc_rx_release_compl(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc rel;
+	struct msgb *nmsg;
+	struct gsm48_mmxx_hdr *mmh;
 	int rc = 0;
 
 	gsm48_stop_cc_timer(trans);
@@ -1102,6 +1243,17 @@ static int gsm48_cc_rx_release_compl(struct gsm_trans *trans, struct msgb *msg)
 		}
 	}
 
+	/* release MM connection */
+	nmsg = gsm48_mmxx_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	mmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+	mmh->msg_type = GSM48_MMCC_REL_REQ;
+	mmh->cause = **todo
+	gsm48_mmxx_downmsg(ms, nmsg);
+
+	new_cc_state(trans, GSM_CSTATE_NULL);
+
 	trans->callref = 0;
 	trans_free(trans);
 
@@ -1117,33 +1269,38 @@ static int gsm48_cc_rx_facility(struct gsm_trans *trans, struct msgb *msg)
 
 	memset(&fac, 0, sizeof(struct gsm_mncc));
 	fac.callref = trans->callref;
-	/* facility */
 	if (payload_len < 1) {
 		DEBUGP(DCC, "Short read of facility message error.\n");
 		return -EINVAL;
 	}
+	/* facility */
 	gsm48_decode_facility(&fac.facility, gh->data);
 
 	return mncc_recvmsg(trans->subscr->net, trans, MNCC_FACILITY_IND, &fac);
 }
 
 /* user info is received from lower layer */
-static int gsm48_cc_tx_userinfo(struct gsm_trans *trans, void *arg)
+static int gsm48_cc_rx_userinfo(struct gsm_trans *trans, void *arg)
 {
-	struct gsm_mncc *user = arg;
-	struct msgb *msg = gsm48_msgb_alloc();
-	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
+	struct gsm_mncc user;
 
-	gh->msg_type = GSM48_MT_CC_USER_INFO;
-
+	memset(&user, 0, sizeof(struct gsm_mncc));
+	user.callref = trans->callref;
+	if (payload_len < 1) {
+		DEBUGP(DCC, "Short read of userinfo message error.\n");
+		return -EINVAL;
+	}
+	tlv_parse(&tp, &rsl_att_tlvdef, gh->data, payload_len, GSM48_IE_USERUSER, 0);
 	/* user-user */
-	if (user->fields & MNCC_F_USERUSER)
-		gsm48_encode_useruser(msg, 1, &user->useruser);
+	gsm48_decode_useruser(&user.useruser,
+			TLVP_VAL(&tp, GSM48_IE_USER_USER)-1);
 	/* more data */
-	if (user->more)
-		gsm48_encode_more(msg);
+	if (TLVP_PRESENT(&tp, GSM48_IE_MORE))
+		user.more = 1;
 
-	return gsm48_sendmsg(msg, trans);
+	return mncc_recvmsg(trans->subscr->net, trans, MNCC_USERINFO_IND, &userinfo);
 }
 
 /* modify is received from lower layer */
@@ -1160,6 +1317,7 @@ static int gsm48_cc_rx_modify(struct gsm_trans *trans, struct msgb *msg)
 		DEBUGP(DCC, "Short read of modify message error.\n");
 		return -EINVAL;
 	}
+	/* bearer capability */
 	gsm48_decode_bearer_cap(&modify.bearer_cap, gh->data);
 
 	new_cc_state(trans, GSM_CSTATE_MO_ORIG_MODIFY);
@@ -1183,6 +1341,7 @@ static int gsm48_cc_rx_modify_complete(struct gsm_trans *trans, struct msgb *msg
 		DEBUGP(DCC, "Short read of modify complete message error.\n");
 		return -EINVAL;
 	}
+	/* bearer capability */
 	gsm48_decode_bearer_cap(&modify.bearer_cap, gh->data);
 
 	new_cc_state(trans, GSM_CSTATE_ACTIVE);
@@ -1287,6 +1446,43 @@ static struct datastate {
 #define DATASLLEN \
 	(sizeof(datastatelist) / sizeof(struct datastate))
 
+static int gsm48_mmcc_data_ind(struct gsm_trans *trans, struct msgb *msg)
+{
+	struct osmocom_ms *ms = trans->ms;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	int msg_type = gh->msg_type & 0xbf;
+
+	/* pull the MMCC header */
+	msgb_pull(msg, sizeof(struct gsm48_mmxx_hdr));
+
+	DEBUGP(DMM, "(ms %s) Received '%s' in CC state %s\n", ms->name,
+		gsm48_cc_msg_name(msg_type), gsm48_cc_state_names[trans->state]);
+
+	/* find function for current state and message */
+	for (i = 0; i < MMDATASLLEN; i++)
+		if ((msg_type == datastatelist[i].type)
+		 && ((1 << trans->state) & datastatelist[i].states))
+			break;
+	if (i == MMDATASLLEN) {
+		DEBUGP(DMM, "Message unhandled at this state.\n");
+		return 0;
+	}
+
+	rc = datastatelist[i].rout(trans, msg);
+
+	return rc;
+}
+
+/* state trasitions for call control messages (lower layer) */
+static struct mmxxstate {
+	u_int32_t	states;
+	int		type;
+	int		(*rout) (struct gsm_trans *trans, struct msgb *msg);
+} mmxxstatelist[] = {
+what?:	{SBIT(GSM_CSTATE_ACTIVE),
+	 GSM48_MT_CC_MODIFY, gsm48_cc_rx_modify},
+};
+
 
 /* timeout events of all timers */
 static void gsm48_cc_timeout(void *arg)
@@ -1294,11 +1490,14 @@ static void gsm48_cc_timeout(void *arg)
 	struct gsm_trans *trans = arg;
 	int disconnect = 0, release = 0;
 	int mo_cause = GSM48_CC_CAUSE_RECOVERY_TIMER;
-im openbsc muss LOC_PRIV_LOC_U verwendet werden !!!!
-	int mo_location = GSM48_CAUSE_LOC_USER;
+** openbsc must use LOC_PRIV_LOC_U on protocol side or network (maybe some cfg option)
+** auch beim LCR für ms-mode anpassen !!!!
+	int mo_location = GSM48_CAUSE_LOC_PRN_S_LU;
 	int l4_cause = GSM48_CC_CAUSE_NORMAL_UNSPEC;
 	int l4_location = GSM48_CAUSE_LOC_PRN_S_LU;
 	struct gsm_mncc mo_rel, l4_rel;
+	struct msgb *nmsg;
+	struct gsm48_mmxx_hdr *mmh;
 
 	memset(&mo_rel, 0, sizeof(struct gsm_mncc));
 	mo_rel.callref = trans->callref;
@@ -1322,6 +1521,18 @@ im openbsc muss LOC_PRIV_LOC_U verwendet werden !!!!
 			trans->cc.T308_second = 1;
 			break; /* stay in release state */
 		}
+		/* release MM connection */
+		nmsg = gsm48_mmxx_msgb_alloc();
+		if (!nmsg)
+			return -ENOMEM;
+		mmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+		mmh->msg_type = GSM48_MMCC_REL_REQ;
+		mmh->cause = **todo
+		gsm48_mmxx_downmsg(ms, nmsg);
+
+		new_cc_state(trans, GSM_CSTATE_NULL);
+
+		trans->callref = 0;
 		trans_free(trans);
 		return;
 	case 0x310:
