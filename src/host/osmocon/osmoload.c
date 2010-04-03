@@ -76,19 +76,15 @@ static struct {
 	/* binary i/o for firmware images */
 	FILE *binfile;
 
+	/* buffer containing binfile data */
 	char *binbuf;
 
+	/* memory operation state */
 	uint32_t membase;
 	uint32_t memlen;
 	uint32_t memoff;
 	uint16_t memcrc;
 	uint16_t memreq;
-
-	/* memory operation state */
-	uint32_t req_length;
-	uint32_t req_address;
-	uint32_t cur_length;
-	uint32_t cur_address;
 } osmoload;
 
 static int usage(const char *name)
@@ -178,7 +174,7 @@ loader_send_request(struct msgb *msg) {
 static void loader_do_memdump(void *address, size_t length);
 static void loader_do_memload();
 
-static memop_timeout(void *dummy) {
+static void memop_timeout(void *dummy) {
 	switch(osmoload.state) {
 	case STATE_LOAD_IN_PROGRESS:
 		printf("Timeout. Repeating.");
@@ -188,6 +184,7 @@ static memop_timeout(void *dummy) {
 	default:
 		break;
 	}
+	return;
 }
 
 static void
@@ -397,6 +394,7 @@ loader_send_memput(uint8_t length, uint32_t address, void *data) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, LOADER_MEM_WRITE);
 	msgb_put_u8(msg, length);
+	msgb_put_u16(msg, crc16(0, data, length));
 	msgb_put_u32(msg, address);
 	memcpy(msgb_put(msg, length), data, length);
 	loader_send_request(msg);
@@ -424,17 +422,31 @@ loader_do_memdump(void *data, size_t length) {
 	int rc;
 
 	if(data && length) {
-		rc = fwrite(data, 1, length, osmoload.binfile);
-		if(ferror(osmoload.binfile)) {
-			printf("Error writing to dump file: %s\n", strerror(errno));
-		}
+		memcpy(osmoload.binbuf + osmoload.memoff, data, length);
+		osmoload.memoff += length;
 	}
 
-	uint32_t rembytes = osmoload.req_length - osmoload.cur_length;
+	uint32_t rembytes = osmoload.memlen - osmoload.memoff;
 
 	if(!rembytes) {
 		puts("done.");
 		osmoload.quit = 1;
+
+		unsigned c = osmoload.memlen;
+		char *p = osmoload.binbuf;
+		while(c) {
+			rc = fwrite(p, 1, c, osmoload.binfile);
+			if(ferror(osmoload.binfile)) {
+				printf("Could not read from file: %s\n", strerror(errno));
+			}
+			c -= rc;
+			p += rc;
+		}
+		fclose(osmoload.binfile);
+		osmoload.binfile = NULL;
+
+		free(osmoload.binbuf);
+
 		return;
 	}
 
@@ -444,13 +456,9 @@ loader_do_memdump(void *data, size_t length) {
 
 	msgb_put_u8(msg, LOADER_MEM_READ);
 	msgb_put_u8(msg, reqbytes);
-	msgb_put_u32(msg, osmoload.cur_address);
+	msgb_put_u32(msg, osmoload.membase + osmoload.memoff);
 	loader_send_request(msg);
 	msgb_free(msg);
-
-
-	osmoload.cur_address += reqbytes;
-	osmoload.cur_length  += reqbytes;
 }
 
 static void
@@ -495,17 +503,21 @@ static void
 loader_start_memdump(uint32_t length, uint32_t address, char *file) {
 	printf("Dumping %u bytes of memory at 0x%x to file %s\n", length, address, file);
 
+	osmoload.binbuf = malloc(length);
+	if(!osmoload.binbuf) {
+		printf("Could not allocate %u bytes for %s.\n", length, file);
+		exit(1);
+	}
+
 	osmoload.binfile = fopen(file, "wb");
 	if(!osmoload.binfile) {
 		printf("Could not open %s: %s\n", file, strerror(errno));
 		exit(1);
 	}
 
-	osmoload.req_length = length;
-	osmoload.req_address = address;
-
-	osmoload.cur_length = 0;
-	osmoload.cur_address = address;
+	osmoload.membase = address;
+	osmoload.memlen = length;
+	osmoload.memoff = 0;
 
 	loader_do_memdump(NULL, 0);
 }
