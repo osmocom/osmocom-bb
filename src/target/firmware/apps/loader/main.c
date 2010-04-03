@@ -51,13 +51,6 @@
 
 #include "protocol.h"
 
-struct loader_mem_read {
-	uint8_t cmd;
-	uint8_t nbytes;
-	uint32_t address;
-	uint8_t  data[0];
-} __attribute__((__packed__));
-
 /* Main Program */
 const char *hr = "======================================================================\n";
 
