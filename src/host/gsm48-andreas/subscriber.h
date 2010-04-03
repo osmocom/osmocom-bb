@@ -35,6 +35,10 @@ struct gsm_subsriber {
 	uint8_t			sim_valid;
 	uint8_t			ustate;
 
+	/* LAI */
+	uint8_t			lai_valid;
+	u_int16_t		lai_mcc, lai_mnc, lai_lac;
+
 	/* IMSI */
 	uint16_t		mcc, mnc;
 	char 			imsi[GSM_IMSI_LENGTH];
@@ -42,7 +46,6 @@ struct gsm_subsriber {
 	/* TMSI */
 	uint8_t			tmsi_valid;
 	u_int32_t		tmsi;
-	u_int16_t		tmsi_mcc, tmsi_mnc, tmsi_lac;
 
 	/* key */
 	u_int8_t		key_seq; /* ciphering key sequence number */

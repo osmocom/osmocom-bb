@@ -263,6 +263,33 @@ static int gsm58_sel_sync(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* return if the cell is barred for us */
+int gsm58_is_barred(struct osmocom_ms *ms, int any)
+{
+	struct gsm_sysinfo *s = &ms->sysinfo;
+	struct gsm_subscriber *subscr = &ms->subscr;
+
+	/* barred if we are not a test MS */
+	if (!subscr->barred_access && s->cell_barred)
+		return 1;
+
+	/* any cell ? */
+	if (any) {
+		/* barred if we are not allowed for emergency calls */
+		if (s->class_barr[10])
+			return 1;
+	} else {
+		/* barred if no class of our SIM matches */
+		for (i = 0, i <= 15, i++)
+			if (subscr->class_access[i] && !s->class_barr[i])
+				break;
+		if (i > 15)
+			return 1;
+	}
+
+	return 0;
+}
+
 /* we are getting sysinfo from BCCH */
 static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -270,26 +297,14 @@ static int gsm58_sel_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm58_msg *gm = (struct gsm58_msg *)msgb->data;
 	struct gsm322_msg *ngm;
 	struct msgb *nmsg;
-	int barred = 0, i;
+	int barred, i;
 
 	/* ignore system info, if not synced */
 	if (sp->mode != GSM58_MODE_DATA && sp->mode != GSM58_MODE_CAMP)
 		return 0;
 
 	/* check if cell is barred for us */
-	if (!subscr->barred_access && s->cell_barred)
-		barred = 1;
-	if (sp->any) {
-		if (s->class_barr[10])
-			barred = 1;
-	} else {
-		for (i = 0, i <= 15, i++)
-			if (subscr->class_access[i] && !s->class_barr[i])
-				break;
-		if (i > 15)
-			barred = 1;
-	}
-
+	barred = gsm58_is_barred(ms, sp->any);
 
 	if (sp->mode == GSM58_MODE_CAMP) {
 		/* cell has become barred */

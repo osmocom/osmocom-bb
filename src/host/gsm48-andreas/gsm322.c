@@ -35,7 +35,6 @@ int gsm322_init(struct osmocom_ms *ms)
 	char filename[sizeof(ms->name) + strlen(suffix) + 1];
 
 	memset(plmn, 0, sizeof(*plmn));
-
 	plmn->ms = ms;
 
 	/* set initial state */
@@ -543,7 +542,7 @@ static int gsm322_del_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm_plmn_na *na;
 
-	llist_for_each(na, &plmn->forbidden_list, entry) {
+	llist_for_each(na, &subscr->plmn_na, entry) {
 		if (na->mcc = mcc && na->mnc = mnc) {
 			llist_del(&na->entry);
 			talloc_free(na);
@@ -558,7 +557,7 @@ static int gsm322_del_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
 }
 
 /* add forbidden PLMN */
-static int gsm322_add_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
+int gsm322_add_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
 	uint16_t mnc)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
@@ -573,6 +572,7 @@ static int gsm322_add_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
 		return -ENOMEM;
 	na->mcc = mcc;
 	na->mnc = mnc;
+	na->cause = cause;
 	llist_add_tail(na, &subscr->plmn_na);
 
 #ifdef TODO
@@ -582,9 +582,27 @@ static int gsm322_add_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
 	return 0;
 }
 
-/* add forbidden LA */
-static int gsm322_add_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
+/* del forbidden LA */
+int gsm322_del_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
 	uint16_t mnc, uint16_t lac)
+{
+	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm32_la_list *la;
+
+	llist_for_each(la, &plmn->forbidden_list, entry) {
+		if (la->mcc = mcc && la->mnc = mnc && la->lac == lac) {
+			llist_del(&la->entry);
+			talloc_free(la);
+			return 0;
+		}
+	}
+
+	return -EINVAL;
+}
+
+/* add forbidden LA */
+int gsm322_add_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
+	uint16_t mnc, uint16_t lac, uint8_t cause)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm322_la_list *la;
@@ -595,7 +613,23 @@ static int gsm322_add_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
 	la->mcc = mcc;
 	la->mnc = mnc;
 	la->lac = lac;
+	la->cause = cause;
 	llist_add_tail(la, &plmn->forbidden_list);
+
+	return 0;
+}
+
+/* search forbidden LA */
+int gsm322_is_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
+	uint16_t mnc, uint16_t lac)
+{
+	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm32_la_list *la;
+
+	llist_for_each(la, &plmn->forbidden_list, entry) {
+		if (la->mcc = mcc && la->mnc = mnc && la->lac == lac)
+			return 1;
+	}
 
 	return 0;
 }
@@ -669,8 +703,7 @@ static int gsm322_a_lu_reject(struct osmocom_ms *ms, struct msgb *msg)
 	if (gh->reject != GSM48_REJECT_ROAMING_NOT_ALLOWED)
 		return 0;
 
-	/* store in list of forbidden LAs */
-	gsm322_add_forbidden_la(ms, ** current plmn: mcc mnc lac);
+	/* store in list of forbidden LAs is done in gsm48* */
 
 	return gsm322_a_sel_first_plmn(ms, msg);
 }
@@ -1097,6 +1130,7 @@ static struct plmnastatelist {
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
 } plmnastatelist[] = {
+** what is the difference between REG_* and LU_* ?: only the state?:
 	{SBIT(GSM_A0_NULL),
 	 GSM322_EVENT_SWITCH_ON, gsm322_a_switch_on},
 	{ALL_STATES,
@@ -1106,7 +1140,7 @@ static struct plmnastatelist {
 	{ALL_STATES,
 	 GSM322_EVENT_SIM_REMOVE, gsm322_a_sim_removed},
 	{SBIT(GSM_A1_TRYING_RPLMN),
-	 GSM322_EVENT_REG_FAILUE, gsm322_a_sel_first_plmn},
+	 GSM322_EVENT_REG_FAILURE, gsm322_a_sel_first_plmn},
 	{SBIT(GSM_A1_TRYING_RPLMN) | SBIT(GSM_A3_TRYING_PLMN),
 	 GSM322_EVENT_REG_SUCC, gsm322_a_indicate_selected},
 	{SBIT(GSM_A2_ON_PLMN),
@@ -1164,6 +1198,7 @@ static struct plmnmstatelist {
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
 } plmnmstatelist[] = {
+**check if all events are generated somwhere
 	{SBIT(GSM_M0_NULL),
 	 GSM322_EVENT_SWITCH_ON, gsm322_m_switch_on},
 	{ALL_STATES,
@@ -1173,7 +1208,7 @@ static struct plmnmstatelist {
 	{ALL_STATES,
 	 GSM322_EVENT_SIM_REMOVE, gsm322_m_sim_removed},
 	{SBIT(GSM_M1_TRYING_RPLMN),
-	 GSM322_EVENT_REG_FAILUE, gsm322_m_display_plmns},
+	 GSM322_EVENT_REG_FAILURE, gsm322_m_display_plmns},
 	{SBIT(GSM_M1_TRYING_RPLMN),
 	 GSM322_EVENT_REG_SUCC, gsm322_m_indicate_selected},
 	{SBIT(GSM_M2_ON_PLMN),
@@ -1189,7 +1224,7 @@ static struct plmnmstatelist {
 	{SBIT(GSM_M4_TRYING_PLMN),
 	 GSM322_EVENT_REG_SUCC, gsm322_m_go_on_plmn},
 	{SBIT(GSM_M4_TRYING_PLMN),
-	 GSM322_EVENT_REG_FAILUE, gsm322_m_go_not_on_plmn},
+	 GSM322_EVENT_REG_FAILURE, gsm322_m_go_not_on_plmn},
 	{ALL_STATES,
 	 GSM322_EVENT_SEL_AUTO, gsm322_m_sel_auto},
 };

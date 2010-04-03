@@ -78,7 +78,7 @@ struct gsm48_mnss {
 /* GSM 04.08 RR-SAP header */
 struct gsm48_rr_hdr {
 	u_int32_t       msg_type; /* RR_* primitive */
-	u_int8_t	reject_cause;
+	u_int8_t	cause;
 };
 
 /* GSM 04.07 9.2.2 */
@@ -239,9 +239,11 @@ struct gsm48_mmlayer {
 	struct llist_head       mm_upqueue;
 
 	/* timers */
+	struct timer_list	t3210;
 	struct timer_list	t3211;
 	struct timer_list	t3212;
 	struct timer_list	t3213;
+	struct timer_list	t3240;
 	int			t3212_value;
 
 	/* list of MM connections */
@@ -250,6 +252,11 @@ struct gsm48_mmlayer {
 	/* network name */
 	char			name_short[32];
 	char			name_long[32];
+
+	/* location update */
+	uint8_t			lupd_type;	/* current coded type */
+	int			lupd_attempt;	/* attempt counter */
+	uint8_t			lupd_rej_cause;	/* cause of last reject */
 };
 
 /* MM connection types */

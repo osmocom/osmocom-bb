@@ -1,27 +1,11 @@
+Location updating procedure:
 
-must be expanded:
+When SIM is "NOT UPDATED", there is no valid LAI in SIM. LOCATION UPDATING
+REQUEST message requires LAI. How is an IMSI attach possible, if no LAI
+exists?
 
-struct osmocom_ms:
-- struct rrlayer *
-- struct mmlayer *
-- transaction list
-- struct phone_options
-- struct system_infos (collected system infos)
 
-random acces via RSL?
+OpenBSC:
+if tx_setup fails during process, the msg must be freed to avoid memory leak.
 
-DL_RANDOM_ACCESS_REQ requires a delay of RACH slots.
-DL_RANDOM_ACCESS_FLU used to flush pending RACH requests
-
-must random value in chan_request change on every resend or only on every RR
-establishment? (currently it changes on every RR establishment only.)
-
-send und receive name concept:
-- sending to other layer
-- receiving from other layer
-- de-queue when sending to upper layer
-
-OpenBSC: if tx-msg fails during process, the msg must be freed to avoid memory leak.
-
-system information structures have different headers. why?
 
