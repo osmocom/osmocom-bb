@@ -31,3 +31,19 @@ int gsm_subscr_init(struct osmocom_ms *ms)
 	INIT_LLIST_HEAD(&subscr->plmn_na);
 }
 
+static const char *subscr_ustate_names[] = {
+	"U0_NULL",
+	"U1_UPDATED",
+	"U2_NOT_UPDATED",
+	"U3_ROAMING_NA"
+};
+
+/* change to new U state */
+void new_sim_ustate(struct gsm_subscriber *subscr, int state)
+{
+	DEBUGP(DMM, "(ms %s) new state %s -> %s\n", subscr->ms,
+		subscr_ustate_names[subscr->ustate], subscr_ustate_names[state]);
+
+	subscr->ustate = state;
+}
+

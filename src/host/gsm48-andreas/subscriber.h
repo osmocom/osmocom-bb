@@ -49,7 +49,7 @@ struct gsm_subsriber {
 
 	/* key */
 	u_int8_t		key_seq; /* ciphering key sequence number */
-	u_int8_t		key[how much];
+	u_int8_t		key[32]; /* up to 256 bit */
 
 	/* PLMN last registered */
 	uint8_t			plmn_valid;

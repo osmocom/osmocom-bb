@@ -67,12 +67,20 @@ static void gsm48_stop_cc_timer(struct gsm_trans *trans)
 static int gsm48_cc_to_mm(struct msgb *msg, struct gsm_trans *trans, int msg_type)
 {
 	struct osmocom_ms *ms = trans->ms;
+	struct gsm48_hdr *gh = (struct gsm48_hdr *) msgb_put(msg, sizeof(*gh));
 	struct gsm48_mmxx_hdr *mmh;
+	int emergency = 0;
+
+	/* indicate emergency setup to MM layer */
+	if (gh->msg_type == GSM48_MT_CC_EMERG_SETUP)
+		emergency = 1;
 
 	/* push RR header */
 	msgb_push(msg, sizeof(struct gsm48_mmxx_hdr));
 	mmh = (struct gsm48_mmxx_hdr *)msg->data;
 	mmh->msg_type = msg_type;
+	mmh->ref = trans->callref;
+	mmh->emergency = emergency;
 
 	/* send message to MM */
 	return gsm48_mmxx_downmsg(ms, msg);

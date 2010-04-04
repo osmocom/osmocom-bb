@@ -82,6 +82,10 @@ struct gsm48_rr_hdr {
 };
 
 /* GSM 04.07 9.2.2 */
+#define GSM48_MMXX_MASK			0xf00
+#define GSM48_MMCC_CLASS		0x100
+#define GSM48_MMSS_CLASS		0x200
+#define GSM48_MMSMS_CLASS		0x300
 #define GSM48_MMCC_EST_REQ		0x110
 #define GSM48_MMCC_EST_IND		0x112
 #define GSM48_MMCC_EST_CNF		0x111
@@ -128,8 +132,10 @@ struct gsm48_rr_hdr {
 
 /* GSM 04.08 MMxx-SAP header */
 struct gsm48_mmxx_hdr {
-	u_int32_t       msg_type; /* RR_* primitive */
-	u_int8_t	reject_cause;
+	int		msg_type; /* MMxx_* primitive */
+	u_int32_t	ref; /* transaction reference */
+	u_int8_t	emergency; /* emergency type of call */
+	u_int8_t	cause; /* cause used for release */
 };
 
 /* GSM 04.07 9.1.1 */
@@ -259,17 +265,16 @@ struct gsm48_mmlayer {
 	uint8_t			lupd_rej_cause;	/* cause of last reject */
 };
 
-/* MM connection types */
-#define GSM48_MM_CONN_TYPE_CC	1
-#define GSM48_MM_CONN_TYPE_SS	2
-#define GSM48_MM_CONN_TYPE_SMS	3
-
 /* MM connection entry */
 struct gsm48_mm_conn {
 	struct llist_head	list;
 
-	unsigned int		ref;
-	int			type;
+	/* ref and type form a unique tupple */
+	uint32_t		ref; /* reference to trans */
+	uint8_t			protocol;
+	uint8_t			transaction_id;
+
+	int			state;
 };
 
 
@@ -340,5 +345,13 @@ struct gsm_rrlayer {
 #define RR_REL_CAUSE_NOT_AUTHORIZED	1
 #define RR_REL_CAUSE_RA_FAILURE		2
 
+/* 10.5.3.3 CM service type */
+#define GSM48_CMSERV_MO_CALL_PACKET	1
+#define GSM48_CMSERV_EMERGENCY		2
+#define GSM48_CMSERV_SMS		4
+#define GSM48_CMSERV_SUP_SERV		8
+#define GSM48_CMSERV_VGCS		9
+#define GSM48_CMSERV_VBS		10
+#define GSM48_CMSERV_LOC_SERV		11
 
 

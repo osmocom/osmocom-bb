@@ -114,6 +114,7 @@ struct msgb *gsm48_l3_msgb_alloc(void)
 		RR_ALLOC_HEADROOM, "GSM 04.08 L3");
 	if (!msg)
 		return NULL;
+	msg->l3h = msg->data;
 
 	return msg;
 }
@@ -2147,7 +2148,7 @@ static int gsm_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* 3.3.1.1.3.2 */
 	if (timer_pending(rr->t3122)) {
-		if (rrmsg->cause != RR_EST_CAUSE_EMERGENCY) {
+		if (mmh->cause != RR_EST_CAUSE_EMERGENCY) {
 			struct msgb *nmsg;
 			struct gsm_mm_hdr *nmmh;
 
@@ -2163,7 +2164,7 @@ static int gsm_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* 3.3.1.1.1 */
-	if (rrmsg->cause != RR_EST_CAUSE_EMERGENCY) {
+	if (mmh->cause != RR_EST_CAUSE_EMERGENCY) {
 		if (!(ms->access_class & ms->si.access_class)) {
 			reject:
 			if (!ms->opt.access_class_override) {
@@ -2250,10 +2251,15 @@ static int gsm_rr_data_ind(struct osmocom_ms *ms, struct msbg *msg)
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_rr_hdr *rrh;
 	int payload_len = msgb_l3len(msg) - sizeof(*ia);
-	u_int8_t pdisc = gh->proto_discr & 0x0f;
+	uint8_t pdisc = gh->proto_discr & 0x0f;
 
 	if (pdisc == GSM48_PDISC_RR) {
 		int rc = -EINVAL;
+		uint8_t skip_ind = (gh->proto_discr & 0xf0) >> 4;
+
+		/* ignore if skip indicator is not B'0000' */
+		if (skip_ind)
+			return 0;
 
 		switch(gh->msg_type) {
 		case GSM48_MT_RR_ADD_ASS:

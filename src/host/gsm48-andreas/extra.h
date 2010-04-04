@@ -437,6 +437,7 @@ struct gsm48_system_information_type_5ter {
 } __attribute__ ((packed));
 
 
+
 rsl.h:
 
 /* encode channel number and frequency as per Section 9.3.1 */

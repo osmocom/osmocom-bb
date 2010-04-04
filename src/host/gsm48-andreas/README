@@ -19,11 +19,11 @@ message format			CC		incomplete
 state machine			CC		complete
 debugging			CC		
 
-common procedures		MM		(almost) complete
-specific procedures		MM		incomplete
-connection management		MM		incomplete
-state machine			MM		incomplete
-support functions		MM		incomplete
+common procedures		MM		complete
+specific procedures		MM		complete
+connection management		MM		complete
+state machine			MM		complete
+support functions		MM		complete
 debugging			MM		
 
 system information (1-6)	RR		complete
