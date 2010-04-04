@@ -916,8 +916,13 @@ static int gsm48_mm_rx_auth_rej(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* abort IMSI detach procedure */
 	if (mm->state == GSM48_MM_ST_IMSI_DETACH_INIT) {
-		/* send abort to RR */
-todo		gsm48_sendrr(sm, abort, RR_ABORT_REQ);
+		/* abort RR connection */
+		nmsg = gsm48_rr_msgb_alloc(GSM48_RR_ABORT_REQ);
+		if (!nmsg)
+			return -ENOMEM;
+		rrh = (struct gsm48_rr_hdr *) msgb_put(nmsg, sizeof(*rrh));
+		rrh->cause = GSM48_RR_CAUSE_NORMAL;
+		gsm48_rr_downmsg(ms, msg);
 
 		/* return to MM IDLE / No SIM */
 		gsm48_mm_return_idle(ms);
@@ -2211,9 +2216,12 @@ static int gsm48_mm_timeout_mm_con(struct osmocom_ms *ms, struct msgb *msg)
 	gsm48_mm_release_mm_conn(ms, 0, 102, 0);
 
 	/* state depends on the existance of remaining MM connections */
-	if (llist_empty(&mm->mm_conn))
+	if (llist_empty(&mm->mm_conn)) {
+		/* start RR release timer */
+		start_mm_t3240(mm);
+
 		new_mm_state(mm, GSM48_MM_ST_WAIT_NETWORK_CMD, 0);
-	else
+	} else
 		new_mm_state(mm, GSM48_MM_ST_MM_CONN_ACTIVE, 0);
 
 	return 0;
@@ -2272,9 +2280,12 @@ static int gsm48_mm_release_active(struct osmocom_ms *ms, struct msgb *msg)
 		mm_conn_free(conn);
 
 	/* state depends on the existance of remaining MM connections */
-	if (llist_empty(&mm->mm_conn))
+	if (llist_empty(&mm->mm_conn)) {
+		/* start RR release timer */
+		start_mm_t3240(mm);
+
 		new_mm_state(mm, GSM48_MM_ST_WAIT_NETWORK_CMD, 0);
-	else
+	} else
 		new_mm_state(mm, GSM48_MM_ST_MM_CONN_ACTIVE, 0);
 
 	return 0;
@@ -2724,6 +2735,12 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	gsm48_stop_mm_timer(mm, 0x3212); /* 4.4.2 */
 
+	/* 11.2 re-start pending RR release timer */
+	if (bsc_timer_pending(mm->t3240)) {
+		stop_mm_t3240(mm);
+		start_mm_t3240(mm);
+	}
+
 	/* find function for current state and message */
 	for (i = 0; i < MMDATASLLEN; i++)
 		if (msg_type == mmdatastatelist[i].type)
@@ -2830,7 +2847,7 @@ static struct eventstate {
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MM_EVENT_IMSI_ATTACH, gsm48_mm_loc_upd_imsi},
 	/* T3240 timed out */
-	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD)| 
+	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD) |
 	 SBIT(GSM48_MM_ST_LOC_UPD_REJ), ALL_STATES, /* 4.4.4.8 */
 	 GSM48_MM_EVENT_TIMEOUT_T3240, gsm48_mm_abort_rr},
 	/* T3230 timed out */
