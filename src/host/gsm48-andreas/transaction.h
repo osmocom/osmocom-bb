@@ -29,6 +29,9 @@ struct gsm_trans {
 			/* current call state */
 			int state;
 
+			/* most recent progress indicator */
+			u_int8_t prog_ind;
+
 			/* current timer and message queue */
 			int Tcurrent;		/* current CC timer */
 			int T308_second;	/* used to send release again */
@@ -52,7 +55,7 @@ struct gsm_trans {
 
 struct gsm_trans *trans_find_by_id(struct osmocom_ms *ms,
 				   u_int8_t proto, u_int8_t trans_id);
-struct gsm_trans *trans_find_by_callref(struct gsm_network *net,
+struct gsm_trans *trans_find_by_callref(struct osmocom_ms *ms,
 					u_int32_t callref);
 
 struct gsm_trans *trans_alloc(struct osmocom_ms *ms,

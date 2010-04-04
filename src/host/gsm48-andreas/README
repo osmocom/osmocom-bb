@@ -14,8 +14,7 @@ compiled - The code has been compiled, but not yet tested.
 code part			layer		status
 --------------------------------------------------------
 process				CC		complete
-message format			CC		incomplete
-(messages are currently totally wrong)
+message format			CC		complete
 state machine			CC		complete
 debugging			CC		
 
@@ -34,17 +33,17 @@ debugging			RR
 
 idle mode PLMN selection	MM(03.22)	complete
 idle mode cell selection	MM(03.22)	complete
-location update			MM(03.22)	-
 cell selection process		??(05.08)	incomplete
+interchange of 322/MM events	MM		incomplete
 
-message handling		mmxx-sap	incomplete
-message handling		rr-sap		incomplete
+message handling		mmxx-sap	complete
+message handling		rr-sap		complete
 message handling (rr<->L2)	rsl-sap		incomplete
-message handling		mm-events	incomplete
+message handling		mm-events	complete
 (messages are currently totally wrong)
 
-This list may not be complete.
+NOTE: This list may not be complete.
 
-currently working on:	MM connection structure (1:1 relation to transaction).
+currently working on:	Radio Ressource
 
 

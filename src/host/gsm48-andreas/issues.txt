@@ -6,6 +6,13 @@ exists?
 
 
 OpenBSC:
-if tx_setup fails during process, the msg must be freed to avoid memory leak.
+If tx_setup fails during process, the msg must be freed to avoid memory leak.
 
+OpenBSC:
+Must use LOC_PRN_S_LU on protocol side.
+Or it uses LOC PUN_S_LU to hide private network type (maybe some cfg option)
+
+LCR:
+Also LCR must use correct location.
+For MS support, it must use LOC_USER
 
