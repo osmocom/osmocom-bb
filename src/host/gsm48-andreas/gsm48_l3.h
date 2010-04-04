@@ -133,7 +133,8 @@ struct gsm48_rr_hdr {
 /* GSM 04.08 MMxx-SAP header */
 struct gsm48_mmxx_hdr {
 	int		msg_type; /* MMxx_* primitive */
-	u_int32_t	ref; /* transaction reference */
+	u_int32_t	ref; /* reference to transaction */
+	u_int32_t	trans_id; /* transaction identifier */
 	u_int8_t	emergency; /* emergency type of call */
 	u_int8_t	cause; /* cause used for release */
 };

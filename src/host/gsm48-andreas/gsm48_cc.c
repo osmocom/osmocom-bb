@@ -651,6 +651,25 @@ static int gsm48_cc_tx_modify_reject(struct gsm_trans *trans, void *arg)
 	return gsm48_cc_to_mm(nmsg, trans, MMCC_DATA_REQ);
 }
 
+/* Call Control Specific transaction release.
+ * gets called by trans_free, DO NOT CALL YOURSELF!
+ */
+void _gsm48_cc_trans_free(struct gsm_trans *trans)
+{
+	gsm48_stop_cc_timer(trans);
+
+	/* send release to L4, if callref still exists */
+	if (trans->callref) {
+		/* Ressource unavailable */
+		mncc_release_ind(trans->ms, trans, trans->callref,
+			GSM48_CAUSE_LOC_USER,
+			GSM48_CC_CAUSE_RESOURCE_UNAVAIL);
+	}
+	if (trans->cc.state != GSM_CSTATE_NULL)
+		new_cc_state(trans, GSM_CSTATE_NULL);
+}
+
+
 /* state trasitions for MNCC messages (upper layer) */
 static struct downstate {
 	u_int32_t	states;
@@ -701,6 +720,13 @@ static struct downstate {
 #define DOWNSLLEN \
 	(sizeof(downstatelist) / sizeof(struct downstate))
 
+int mncc_send(struct gsm_network *net, int msg_type, void *arg)
+{
+	struct gsm_mncc *data = arg, rel;
+
+	/* Find callref */
+	trans = trans_find_by_ref(net, data->callref);
+}
 
 
 /* reply status enquiry */

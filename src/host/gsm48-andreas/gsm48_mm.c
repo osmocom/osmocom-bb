@@ -222,41 +222,6 @@ void mm_conn_free(struct gsm48_mm_conn *conn)
 	talloc_free(conn);
 }
 
-/* taken from OpenBSC project:
- * allocate an unused transaction ID for the given protocol
- * using the ti_flag specified
- */
-int mm_conn_assign_trans_id(struct gsm48_mmlayer *mm,
-			  uint8_t protocol, uint8_t ti_flag)
-{
-	struct gsm48_mm_conn *conn;
-	unsigned int used_tid_bitmask = 0;
-	int i, j, h;
-
-	if (ti_flag)
-		ti_flag = 0x8;
-
-	/* generate bitmask of already-used TIDs for this (proto) */
-	llist_for_each_entry(conn, &mm->mm_conn, list) {
-		if (conn->protocol != protocol ||
-		    conn->transaction_id == 0xff)
-			continue;
-		used_tid_bitmask |= (1 << conn->transaction_id);
-	}
-
-	/* find a new one, trying to go in a 'circular' pattern */
-	for (h = 6; h > 0; h--)
-		if (used_tid_bitmask & (1 << (h | ti_flag)))
-			break;
-	for (i = 0; i < 7; i++) {
-		j = ((h + i) % 7) | ti_flag;
-		if ((used_tid_bitmask & (1 << j)) == 0)
-			return j;
-	}
-
-	return -1;
-}
-
 static const char *gsm48_mmxx_state_names[] = {
 	"IDLE",
 	"CONN_PEND",
@@ -1131,7 +1096,7 @@ static int gsm48_mm_release_mm_conn(struct osmocom_ms *ms, int abort_any, uint8_
 			}
 			if (!nmsg) {
 				/* this should not happen */
-				free(conn);
+				mm_conn_free(conn);
 				continue; /* skip if not of CC type */
 			}
 			nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
@@ -1955,15 +1920,8 @@ static int gsm48_mm_init_mm(struct osmocom_ms *ms, struct mgsb *msg, int rr_prim
 		break;
 	}
 
-	/* hunt transaction ID */
-	trans_id = mm_conn_assign_trans_id(mm, proto, 0);
-	if (!trans_id < 0) {
-		cause = 47;
-		goto reject;
-	}
-
 	/* create MM connection instance */
-	conn = mm_conn_new(mm, proto, trans_id, mmh->ref);
+	conn = mm_conn_new(mm, proto, mmh->trans_id, mmh->ref);
 	if (!conn)
 		return -ENOMEM;
 
