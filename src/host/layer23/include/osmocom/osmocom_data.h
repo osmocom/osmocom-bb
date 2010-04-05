@@ -32,6 +32,7 @@ enum osmobb_sig_subsys {
 enum osmobb_meas_sig {
 	S_L1CTL_RESET,
 	S_L1CTL_PM_RES,
+	S_L1CTL_PM_DONE,
 };
 
 struct osmobb_meas_res {

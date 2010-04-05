@@ -365,6 +365,8 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_PM_RESP:
 		rc = rx_l1_pm_resp(ms, msg);
+		if (l1h->flags & L1CTL_F_DONE)
+			dispatch_signal(SS_L1CTL, S_L1CTL_PM_DONE, ms);
 		break;
 	default:
 		fprintf(stderr, "Unknown MSG: %u\n", l1h->msg_type);
