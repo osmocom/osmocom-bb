@@ -126,7 +126,7 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 }
 
 /* input function that L2 calls when sending messages up to L3 */
-int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms)
+static int layer3_from_layer2(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
 	int rc = 0;
@@ -144,4 +144,9 @@ int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms)
 	}
 
 	return rc;
+}
+
+int layer3_init(struct osmocom_ms *ms)
+{
+	return osmol2_register_handler(ms, &layer3_from_layer2);
 }

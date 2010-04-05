@@ -7,14 +7,22 @@
 
 #include <osmocom/lapdm.h>
 
+struct osmocom_ms;
+
+/* A layer2 entity */
+struct osmol2_entity {
+	struct lapdm_entity lapdm_dcch;
+	struct lapdm_entity lapdm_acch;
+	osmol2_cb_t msg_handler;
+};
+
 /* One Mobilestation for osmocom */
 struct osmocom_ms {
 	struct write_queue wq;
 	enum gsm_band band;
 	int arfcn;
 
-	struct lapdm_entity lapdm_dcch;
-	struct lapdm_entity lapdm_acch;
+	struct osmol2_entity l2_entity;
 };
 
 #endif

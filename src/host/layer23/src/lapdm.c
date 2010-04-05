@@ -794,9 +794,9 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 	struct lapdm_datalink *dl;
 
 	if (rllh->link_id & 0x40)
-		le = &ms->lapdm_acch;
+		le = &ms->l2_entity.lapdm_acch;
 	else
-		le = &ms->lapdm_dcch;
+		le = &ms->l2_entity.lapdm_dcch;
 	dl = datalink_for_sapi(le, sapi);
 
 	switch (rllh->c.msg_type) {
@@ -844,3 +844,20 @@ int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms)
 	return rc;
 }
 
+/* input function that L2 calls when sending messages up to L3 */
+int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms)
+{
+	if (!ms->l2_entity.msg_handler)
+		return -EIO;
+
+	/* call the layer2 message handler that is registered */
+	return ms->l2_entity.msg_handler(msg, ms);
+}
+
+/* register message handler for messages that are sent from L2->L3 */
+int osmol2_register_handler(struct osmocom_ms *ms, osmol2_cb_t cb)
+{
+	ms->l2_entity.msg_handler = cb;
+
+	return 0;
+}

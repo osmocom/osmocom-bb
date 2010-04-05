@@ -57,4 +57,9 @@ int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms);
 /* sending messages up from L2 to L3 */
 int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms);
 
+typedef int (*osmol2_cb_t)(struct msgb *msg, struct osmocom_ms *ms);
+
+/* register message handler for messages that are sent from L2->L3 */
+int osmol2_register_handler(struct osmocom_ms *ms, osmol2_cb_t cb);
+
 #endif /* _OSMOCOM_LAPDM_H */

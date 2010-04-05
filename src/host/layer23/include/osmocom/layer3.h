@@ -8,4 +8,7 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms);
 int gsm48_rx_dcch(struct msgb *msg, struct osmocom_ms *ms);
 int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms);
 
+/* Initialize layer3 for the MS, hook it to L2 */
+int layer3_init(struct osmocom_ms *ms);
+
 #endif

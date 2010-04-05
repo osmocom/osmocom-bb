@@ -152,9 +152,9 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
-		le = &ms->lapdm_acch;
+		le = &ms->l2_entity.lapdm_acch;
 	else
-		le = &ms->lapdm_dcch;
+		le = &ms->l2_entity.lapdm_dcch;
 	/* make local stack copy of l1ctl_info_dl, as LAPDm will
 	 * overwrite skb hdr */
 	memcpy(&dl_cpy, dl, sizeof(dl_cpy));
@@ -312,8 +312,8 @@ int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 static int rx_l1_reset(struct osmocom_ms *ms)
 {
 	printf("Layer1 Reset.\n");
-	//return l1ctl_tx_pm_req_range(ms, 0, 124);
-	return l1ctl_tx_ccch_req(ms);
+	return l1ctl_tx_pm_req_range(ms, 0, 124);
+	//return l1ctl_tx_ccch_req(ms);
 }
 
 /* Receive L1CTL_PM_RESP */

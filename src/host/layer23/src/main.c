@@ -23,9 +23,11 @@
 
 #include <osmocom/osmocom_data.h>
 #include <osmocom/l1ctl.h>
+#include <osmocom/layer3.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/gsmtap_util.h>
 #include <osmocom/logging.h>
+#include <osmocom/l23_app.h>
 
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
@@ -189,28 +191,6 @@ static void handle_options(int argc, char **argv)
 	}
 }
 
-/* TEST code, regularly transmit ECHO REQ packet to L1 */
-
-static struct {
-	struct timer_list timer;
-} test_data;
-
-static void test_tmr_cb(void *data)
-{
-	struct osmocom_ms *ms = data;
-
-	l1ctl_tx_echo_req(ms, 62);
-	bsc_schedule_timer(&test_data.timer, 1, 0);
-}
-
-void test_start(struct osmocom_ms *ms)
-{
-	test_data.timer.cb = &test_tmr_cb;
-	test_data.timer.data = ms;
-
-	bsc_schedule_timer(&test_data.timer, 1, 0);
-}
-
 int main(int argc, char **argv)
 {
 	int rc;
@@ -256,8 +236,10 @@ int main(int argc, char **argv)
 	ms->wq.read_cb = layer2_read;
 	ms->wq.write_cb = layer2_write;
 
-	lapdm_init(&ms->lapdm_dcch, ms);
-	lapdm_init(&ms->lapdm_acch, ms);
+	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
+	lapdm_init(&ms->l2_entity.lapdm_acch, ms);
+
+	l23_app_init(ms);
 
 	if (bsc_register_fd(&ms->wq.bfd) != 0) {
 		fprintf(stderr, "Failed to register fd.\n");
@@ -271,8 +253,6 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 	}
-
-	//test_start(ms);
 
 	while (1) {
 		bsc_select_main(0);

@@ -18,6 +18,6 @@ int rslms_tx_rll_req_l3(struct osmocom_ms *ms, uint8_t msg_type,
 /* From L2 into RSLMS (direction -> L3) */
 
 /* input function that L2 calls when sending messages up to L3 */
-int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms);
+//int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms);
 
 #endif /* _OSMOCOM_RSLMS_H */
