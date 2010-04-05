@@ -309,7 +309,9 @@ static int gsm_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 
 	/* change to ciphering */
+#ifdef TODO
 	tx_ph_cipher_req(ms, sc, alg_id);
+#endif
 	rr->sc = sc, rr->alg_id = alg_id;
 
 	/* response */
@@ -515,7 +517,7 @@ static int gsm_rr_tx_chan_req(struct osmocom_ms *ms, int cause)
 	struct gsm_rrlayer *rr = &ms->rrlayer;
 	struct msgb *msg;
 	struct gsm_mm_hdr *mmh;
-	uint8_t chan_req;
+	uint8_t chan_req, chan_req_val, chan_req_mask;
 
 	/* 3.3.1.1.2 */
 	new_rr_state(rr, GSM_RRSTATE_CONN_PEND);
@@ -524,89 +526,88 @@ static int gsm_rr_tx_chan_req(struct osmocom_ms *ms, int cause)
 	rr->n_chan_req = ms->si.max_retrans;
 
 	/* generate CHAN REQ (9.1.8) */
-	chan_req = random();
 	switch (cause) {
 	case RR_EST_CAUSE_EMERGENCY:
 		/* 101xxxxx */
-		chan_req &= 0x1f;
-		chan_req |= 0xa0;
-		DEBUGP(DRR, "CHANNEL REQUEST: %02x (Emergency call)\n", chan_req);
+		chan_req_mask = 0x1f;
+		chan_req_val = 0xa0;
+		DEBUGP(DRR, "CHANNEL REQUEST: %02x (Emergency call)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_REESTAB_TCH_F:
-		chan_req &= 0x1f;
-		chan_req |= 0xc0;
-		DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/F)\n", chan_req);
+		chan_req_mask = 0x1f;
+		chan_req_val = 0xc0;
+		DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/F)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_REESTAB_TCH_H:
 		if (ms->si.neci) {
-			chan_req &= 0x03;
-			chan_req |= 0x68;
-			DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/H with NECI)\n", chan_req);
+			chan_req_mask = 0x03;
+			chan_req_val = 0x68;
+			DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/H with NECI)\n", chan_req_val);
 		} else {
-			chan_req &= 0x1f;
-			chan_req |= 0xc0;
-			DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/H no NECI)\n", chan_req);
+			chan_req_mask = 0x1f;
+			chan_req_val = 0xc0;
+			DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/H no NECI)\n", chan_req_val);
 		}
 		break;
 	case RR_EST_CAUSE_REESTAB_2_TCH_H:
 		if (ms->si.neci) {
-			chan_req &= 0x03;
-			chan_req |= 0x6c;
-			DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/H+TCH/H with NECI)\n", chan_req);
+			chan_req_mask = 0x03;
+			chan_req_val = 0x6c;
+			DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/H+TCH/H with NECI)\n", chan_req_val);
 		} else {
-			chan_req &= 0x1f;
-			chan_req |= 0xc0;
-			DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/H+TCH/H no NECI)\n", chan_req);
+			chan_req_mask = 0x1f;
+			chan_req_val = 0xc0;
+			DEBUGP(DRR, "CHANNEL REQUEST: %02x (re-establish TCH/H+TCH/H no NECI)\n", chan_req_val);
 		}
 		break;
 	case RR_EST_CAUSE_ANS_PAG_ANY:
-		chan_req &= 0x1f;
-		chan_req |= 0x80;
-		DEBUGP(DRR, "CHANNEL REQUEST: %02x (PAGING Any channel)\n", chan_req);
+		chan_req_mask = 0x1f;
+		chan_req_val = 0x80;
+		DEBUGP(DRR, "CHANNEL REQUEST: %02x (PAGING Any channel)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_SDCCH:
-		chan_req &= 0x0f;
-		chan_req |= 0x10;
-		DEBUGP(DRR, "CHANNEL REQUEST: %02x (PAGING SDCCH)\n", chan_req);
+		chan_req_mask = 0x0f;
+		chan_req_val = 0x10;
+		DEBUGP(DRR, "CHANNEL REQUEST: %02x (PAGING SDCCH)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_F:
 		/* ms supports no dual rate */
-		chan_req &= 0x1f;
-		chan_req |= 0x80;
-		DEBUGP(DRR, "CHANNEL REQUEST: %02x (PAGING TCH/F)\n", chan_req);
+		chan_req_mask = 0x1f;
+		chan_req_val = 0x80;
+		DEBUGP(DRR, "CHANNEL REQUEST: %02x (PAGING TCH/F)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_ANY:
 		/* ms supports no dual rate */
-		chan_req &= 0x1f;
-		chan_req |= 0x80;
-		DEBUGP(DRR, "CHANNEL REQUEST: %02x (PAGING TCH/H or TCH/F)\n", chan_req);
+		chan_req_mask = 0x1f;
+		chan_req_val = 0x80;
+		DEBUGP(DRR, "CHANNEL REQUEST: %02x (PAGING TCH/H or TCH/F)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_ORIG_TCHF:
 		/* ms supports no dual rate */
-		chan_req &= 0x1f;
-		chan_req |= 0xe0;
-		DEBUGP(DRR, "CHANNEL REQUEST: %02x (Orig TCH/F)\n", chan_req);
+		chan_req_mask = 0x1f;
+		chan_req_val = 0xe0;
+		DEBUGP(DRR, "CHANNEL REQUEST: %02x (Orig TCH/F)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_LOC_UPD:
 		if (ms->si.neci) {
-			chan_req &= 0x0f;
-			chan_req |= 0x00;
-			DEBUGP(DRR, "CHANNEL REQUEST: %02x (Location Update with NECI)\n", chan_req);
+			chan_req_mask = 0x0f;
+			chan_req_val = 0x00;
+			DEBUGP(DRR, "CHANNEL REQUEST: %02x (Location Update with NECI)\n", chan_req_val);
 		} else {
-			chan_req &= 0x1f;
-			chan_req |= 0x00;
-			DEBUGP(DRR, "CHANNEL REQUEST: %02x (Location Update no NECI)\n", chan_req);
+			chan_req_mask = 0x1f;
+			chan_req_val = 0x00;
+			DEBUGP(DRR, "CHANNEL REQUEST: %02x (Location Update no NECI)\n", chan_req_val);
 		}
 		break;
 	case RR_EST_CAUSE_OTHER_SDCCH:
 		if (ms->si.neci) {
-			chan_req &= 0x0f;
-			chan_req |= 0x01;
-			DEBUGP(DRR, "CHANNEL REQUEST: %02x (OHTER with NECI)\n", chan_req);
+			chan_req_mask = 0x0f;
+			chan_req_val = 0x01;
+			DEBUGP(DRR, "CHANNEL REQUEST: %02x (OHTER with NECI)\n", chan_req_val);
 		} else {
-			chan_req &= 0x1f;
-			chan_req |= 0xe0;
-			DEBUGP(DRR, "CHANNEL REQUEST: %02x (OTHER no NECI)\n", chan_req);
+			chan_req_mask = 0x1f;
+			chan_req_val = 0xe0;
+			DEBUGP(DRR, "CHANNEL REQUEST: %02x (OTHER no NECI)\n", chan_req_val);
 		}
 		break;
 	default:
@@ -631,12 +632,18 @@ static int gsm_rr_tx_chan_req(struct osmocom_ms *ms, int cause)
 	msg = msgb_alloc_headroom(20, 16, "CHAN_REQ");
 	if (!msg)
 		return -ENOMEM;
+	chan_req = random();
+	chan_req &= chan_req_mask;
+	chan_req |= chan_req_val;
 	*msgb_put(msg, 1) = chan_req;
-	rr->chan_req = chan_req;
 	t = ms->si.tx_integer;
 	if (t < 8)
 		t = 8;
 	*msgb_put(msg, 1) = random() % t; /* delay */
+
+	/* store */
+	rr->chan_req_val = chan_req_val;
+	rr->chan_req_mask = chan_req_mask;
 	rr->cr_hist[3] = -1;
 	rr->cr_hist[2] = -1;
 	rr->cr_hist[1] = chan_req;
@@ -650,6 +657,7 @@ static int gsm_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_rrlayer *rr = &ms->rrlayer;
 	struct msgb *nmsg;
 	int s;
+	uint8_t chan_req;
 
 	if (!rr->n_chan_req) {
 		if (!timer_pending(rr->t3126))
@@ -686,15 +694,21 @@ static int gsm_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 		else
 			s = 115;
 
-	/* resend chan_req */
+	/* resend chan_req with new randiom */
 	nmsg = msgb_alloc_headroom(20, 16, "CHAN_REQ");
 	if (!nmsg)
 		return -ENOMEM;
-	*msgb_put(nmsg, 1) = rr->chan_req;
+	chan_req = random();
+	chan_req &= rr->chan_req_mask;
+	chan_req |= rr->chan_req_val;
+	*msgb_put(nmsg, 1) = chan_req;
 	*msgb_put(nmsg, 1) = (random() % ms->si.tx_integer) + s; /* delay */
+
+	/* shift history and store */
 	rr->cr_hist[3] = rr->cr_hist[2];
 	rr->cr_hist[2] = rr->cr_hist[1];
 	rr->cr_hist[1] = chan_req;
+
 	return rslms_tx_rll_req_l3(ms, RSL_MT_RAND_ACC_REQ, chan_nr, 0, nmsg);
 }
 
@@ -2282,6 +2296,9 @@ static int gsm_rr_data_ind(struct osmocom_ms *ms, struct msbg *msg)
 			break;
 		default:
 			DEBUGP(DRR, "Message type 0x%02x unknown.\n", gh->msg_type);
+
+			/* status message */
+			gsm_rr_tx_rr_status(ms, GSM48_RR_CAUSE_MSG_TYPE_N);
 		}
 
 		free_msgb(msg);
