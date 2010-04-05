@@ -30,6 +30,7 @@
 
 #include <l1a_l23_interface.h>
 
+#include <osmocore/signal.h>
 #include <osmocore/logging.h>
 #include <osmocore/timer.h>
 #include <osmocore/msgb.h>
@@ -312,8 +313,7 @@ int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 static int rx_l1_reset(struct osmocom_ms *ms)
 {
 	printf("Layer1 Reset.\n");
-	return l1ctl_tx_pm_req_range(ms, 0, 124);
-	//return l1ctl_tx_ccch_req(ms);
+	dispatch_signal(SS_L1CTL, S_L1CTL_RESET, ms);
 }
 
 /* Receive L1CTL_PM_RESP */
@@ -323,8 +323,13 @@ static int rx_l1_pm_resp(struct osmocom_ms *ms, struct msgb *msg)
 
 	for (pmr = (struct l1ctl_pm_resp *) msg->l1h;
 	     (uint8_t *) pmr < msg->tail; pmr++) {
+		struct osmobb_meas_res mr;
 		DEBUGP(DL1C, "PM MEAS: ARFCN: %4u RxLev: %3d %3d\n",
 			ntohs(pmr->band_arfcn), pmr->pm[0], pmr->pm[1]);
+		mr.band_arfcn = ntohs(pmr->band_arfcn);
+		mr.rx_lev = (pmr->pm[0] + pmr->pm[1]) / 2;
+		mr.ms = ms;
+		dispatch_signal(SS_L1CTL, S_L1CTL_PM_RES, &mr);
 	}
 	return 0;
 }

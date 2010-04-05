@@ -31,8 +31,28 @@
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
 #include <osmocore/select.h>
+#include <osmocore/signal.h>
+
+static int signal_cb(unsigned int subsys, unsigned int signal,
+		     void *handler_data, void *signal_data)
+{
+	struct osmocom_ms *ms;
+
+	if (subsys != SS_L1CTL)
+		return 0;
+
+	switch (signal) {
+	case S_L1CTL_RESET:
+		ms = signal_data;
+		return l1ctl_tx_ccch_req(ms);
+		break;
+	}
+	return 0;
+}
+
 
 int l23_app_init(struct osmocom_ms *ms)
 {
+	register_signal_handler(SS_L1CTL, &signal_cb, NULL);
 	return layer3_init(ms);
 }
