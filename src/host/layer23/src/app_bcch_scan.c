@@ -44,8 +44,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	switch (signal) {
 	case S_L1CTL_RESET:
 		ms = signal_data;
-		return l1ctl_tx_pm_req_range(ms, 0, 124);
-		break;
+		return fps_start(ms);
 	}
 	return 0;
 }
@@ -53,5 +52,6 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 int l23_app_init(struct osmocom_ms *ms)
 {
 	/* don't do layer3_init() as we don't want an actualy L3 */
+	fps_init(ms);
 	return register_signal_handler(SS_L1CTL, &signal_cb, NULL);
 }
