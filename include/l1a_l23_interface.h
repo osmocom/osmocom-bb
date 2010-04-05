@@ -41,9 +41,12 @@
  * that it will avoid some unaligned access.
  */
 
+/* there are no more messages in a sequence */
+#define L1CTL_F_DONE	0x01
+
 struct l1ctl_hdr {
 	uint8_t msg_type;
-	uint8_t padding;
+	uint8_t flags;
 	uint8_t data[0];
 } __attribute__((packed));
 

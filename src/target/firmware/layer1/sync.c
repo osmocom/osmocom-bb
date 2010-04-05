@@ -820,6 +820,8 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 			l1s.pm.range.arfcn_next++;
 		} else {
 			/* we have finished, flush the msgb to L2 */
+			struct l1ctl_hdr *l1h = l1s.pm.msg->l1h;
+			l1h->flags |= L1CTL_F_DONE;
 			l1_queue_for_l2(l1s.pm.msg);
 			l1s.pm.msg = NULL;
 		}

@@ -94,6 +94,9 @@ struct msgb *l1ctl_msgb_alloc(uint8_t msg_type)
 	}
 	l1h = (struct l1ctl_hdr *) msgb_put(msg, sizeof(*l1h));
 	l1h->msg_type = msg_type;
+	l1h->flags = 0;
+
+	msg->l1h = l1h;
 
 	return msg;
 }
