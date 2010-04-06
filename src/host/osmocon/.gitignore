@@ -6,4 +6,5 @@ osmocon
 *.dump
 *.bin
 *.log
-version.h
+.version
+.tarball-version

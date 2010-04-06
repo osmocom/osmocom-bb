@@ -46,8 +46,6 @@
 
 #include <arpa/inet.h>
 
-//#include "version.h"
-
 #define MODEM_BAUDRATE		B115200
 #define MAX_DNLOAD_SIZE		0xFFFF
 #define MAX_HDR_SIZE		128
@@ -979,7 +977,7 @@ static int usage(const char *name)
 
 static int version(const char *name)
 {
-	//printf("%s version %s\n", name, VERSION);
+	printf("%s version %s\n", name, PACKAGE_VERSION);
 	exit(2);
 }
 
