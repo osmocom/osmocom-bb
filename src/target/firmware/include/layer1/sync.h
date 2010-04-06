@@ -101,6 +101,9 @@ void l1s_nb_test(uint8_t base_fn);
 
 void l1s_init(void);
 
+/* reset the layer1 as part of synchronizing to a new cell */
+void l1s_reset(void);
+
 /* init.c */
 void layer1_init(void);
 

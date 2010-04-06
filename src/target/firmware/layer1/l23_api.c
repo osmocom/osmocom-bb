@@ -175,9 +175,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		printd("L1CTL_DM_EST_REQ (arfcn=%u)\n", sync_req->band_arfcn);
 
 		/* reset scheduler and hardware */
-		l1s.mf_tasks = 0;
-		tdma_sched_reset();
-		l1s_dsp_abort();
+		l1s_reset();
 
 		/* tune to specified frequency */
 		trf6151_rx_window(0, sync_req->band_arfcn, 40, 0);

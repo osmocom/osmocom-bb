@@ -1154,6 +1154,18 @@ static void frame_irq(__unused enum irq_nr nr)
 	l1_sync();
 }
 
+/* reset the layer1 as part of synchronizing to a new cell */
+void l1s_reset(void)
+{
+	fb_once = 0;
+	sb_once = 0;
+
+	/* reset scheduler and hardware */
+	l1s.mf_tasks = 0;
+	tdma_sched_reset();
+	l1s_dsp_abort();
+}
+
 void l1s_init(void)
 {
 	unsigned int i;
