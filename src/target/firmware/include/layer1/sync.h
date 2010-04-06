@@ -6,11 +6,19 @@
 #include <layer1/tdma_sched.h>
 #include <l1a_l23_interface.h>
 
+/* structure representing L1 sync information about a cell */
 struct l1_cell_info {
+	/* on which ARFCN (+band) is the cell? */
 	uint16_t	arfcn;
+	/* what's the BSIC of the cell (from SCH burst decoding) */
 	uint32_t	bsic;
-	uint32_t	fn_offset;
+	/* whats the delta of the cells current GSM frame number
+	 * compared to our current local frame number */
+	int32_t		fn_offset;
+	/* how much does the TPU need adjustment (delta) to synchronize
+	 * with the cells burst */
 	uint32_t	time_alignment;
+	/* FIXME: should we also store the AFC value? */
 };
 
 enum l1s_chan {
@@ -21,13 +29,16 @@ enum l1s_chan {
 
 
 struct l1s_state {
-	struct gsm_time	current_time;	/* current time */
-	struct gsm_time	next_time;	/* time at next TMDMA irq */
+	struct gsm_time	current_time;	/* current GSM time */
+	struct gsm_time	next_time;	/* GSM time at next TMDMA irq */
 
+	/* the cell on which we are camping right now */
 	struct l1_cell_info serving_cell;
 
+	/* TDMA scheduler */
 	struct tdma_scheduler tdma_sched;
 
+	/* The current TPU offset register */
 	uint32_t	tpu_offset;
 
 	/* Transmit queues of pending packets for main DCCH and ACCH */
@@ -36,6 +47,8 @@ struct l1s_state {
 	/* bit-mask of multi-frame tasks that are currently active */
 	uint32_t	mf_tasks;
 
+	/* Structures below are for L1-task specific parameters, used
+	 * to communicate between l1-sync and l1-async (l23_api) */
 	struct {
 		/* power measurement l1 task */
 		unsigned int mode;
