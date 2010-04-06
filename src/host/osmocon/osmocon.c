@@ -261,7 +261,8 @@ static void beacon_timer_cb(int signr)
 
 	if (dnload.romload_state == WAITING_IDENTIFICATION) {
 		printf("Sending beacon...\n");
-		rc = write(dnload.serial_fd.fd, romload_ident_cmd, sizeof(romload_ident_cmd));
+		rc = write(dnload.serial_fd.fd, romload_ident_cmd,
+			   sizeof(romload_ident_cmd));
 
 		if (!(rc == sizeof(romload_ident_cmd)))
 			printf("Error sending identification beacon\n");
@@ -311,18 +312,18 @@ int read_file(const char *filename)
 		dnload.data = NULL;
 	}
 
-	if(dnload.mode == MODE_C140 || dnload.mode == MODE_C140xor) {
-		if (st.st_size < (MAGIC_OFFSET + sizeof(phone_magic))) {
+	if (dnload.mode == MODE_C140 || dnload.mode == MODE_C140xor) {
+		if (st.st_size < (MAGIC_OFFSET + sizeof(phone_magic)))
 			payload_size = MAGIC_OFFSET + sizeof(phone_magic);
-		} else {
-			printf("\nThe filesize is larger than 15kb, code on the magic "
-				"address will be overwritten!\nUse loader.bin and "
-				"upload the application with osmoload instead!\n\n");
+		else {
+			printf("\nThe filesize is larger than 15kb, code on "
+				"the magic address will be overwritten!\nUse "
+				"loader.bin and upload the application with "
+				"osmoload instead!\n\n");
 			payload_size = st.st_size;
 		}
-	} else {
+	} else
 		payload_size = st.st_size;
-	}
 
 	dnload.data = malloc(MAX_HDR_SIZE + payload_size);
 
@@ -396,10 +397,11 @@ int read_file(const char *filename)
 
 	/* fill memory between data end and magic, add magic */
 	if(dnload.mode == MODE_C140 || dnload.mode == MODE_C140xor) {
-		if (st.st_size < MAGIC_OFFSET){
-			memset(file_data + st.st_size, 0x00, payload_size - st.st_size);
-		}
-		memcpy(dnload.data + MAGIC_OFFSET, phone_magic, sizeof(phone_magic));
+		if (st.st_size < MAGIC_OFFSET)
+			memset(file_data + st.st_size, 0x00,
+				payload_size - st.st_size);
+		memcpy(dnload.data + MAGIC_OFFSET, phone_magic,
+			sizeof(phone_magic));
 	}
 
 	/* calculate XOR sum */
@@ -451,7 +453,8 @@ static int romload_prepare_block(void)
 		dnload.write_ptr = dnload.data;
 	}
 
-	block_address = ROMLOAD_ADDRESS + (dnload.block_number * dnload.block_payload_size);
+	block_address = ROMLOAD_ADDRESS +
+			(dnload.block_number * dnload.block_payload_size);
 
 	/* prepare our block header (10 bytes) */
 	memcpy(dnload.block, romload_write_cmd, sizeof(romload_write_cmd));
@@ -466,15 +469,18 @@ static int romload_prepare_block(void)
 	dnload.block[9] = block_address & 0xff;
 
 	block_data = dnload.block + ROMLOAD_BLOCK_HDR_LEN;
-	dnload.write_ptr = dnload.data + 2 + (dnload.block_payload_size * dnload.block_number);
+	dnload.write_ptr = dnload.data + 2 +
+			(dnload.block_payload_size * dnload.block_number);
 
-	remaining_bytes = dnload.data_len-3 - (dnload.block_payload_size * dnload.block_number);
+	remaining_bytes = dnload.data_len-3 -
+			(dnload.block_payload_size * dnload.block_number);
 
 	memcpy(block_data, dnload.write_ptr, dnload.block_payload_size);
 
-	if(remaining_bytes <= dnload.block_payload_size) {
+	if (remaining_bytes <= dnload.block_payload_size) {
 		fill_bytes = (dnload.block_payload_size - remaining_bytes);
-		printf("Preparing the last block, filling %i bytes,", fill_bytes);
+		printf("Preparing the last block, filling %i bytes,",
+			fill_bytes);
 		memset(block_data + remaining_bytes, 0x00, fill_bytes);
 		dnload.romload_state = SENDING_LAST_BLOCK;
 	} else {
@@ -510,7 +516,8 @@ static int handle_write_block(void)
 		dnload.serial_fd.when &= ~BSC_FD_WRITE;
 		if (dnload.romload_state == SENDING_LAST_BLOCK) {
 			dnload.romload_state = LAST_BLOCK_SENT;
-			printf("Finished, sent %i blocks in total\n", dnload.block_number-1);
+			printf("Finished, sent %i blocks in total\n",
+				dnload.block_number-1);
 		} else {
 			dnload.romload_state = WAITING_BLOCK_ACK;
 		}
@@ -532,7 +539,8 @@ static int handle_write_block(void)
 
 	dnload.block_ptr += rc;
 
-	printf("%u bytes (%tu/%u)\n", rc, dnload.block_ptr - dnload.block, dnload.block_len);
+	printf("%u bytes (%tu/%u)\n", rc, dnload.block_ptr - dnload.block,
+		dnload.block_len);
 
 	return 0;
 }
@@ -573,7 +581,8 @@ static int handle_write_dnload(void)
 
 	dnload.write_ptr += rc;
 
-	printf("%u bytes (%tu/%u)\n", rc, dnload.write_ptr - dnload.data, dnload.data_len);
+	printf("%u bytes (%tu/%u)\n", rc, dnload.write_ptr - dnload.data,
+		dnload.data_len);
 
 	return 0;
 }
@@ -619,7 +628,7 @@ static uint8_t *bufptr = buffer;
 static void hdlc_send_to_phone(uint8_t dlci, uint8_t *data, int len)
 {
 	struct msgb *msg;
-	uint8_t c, *dest;
+	uint8_t *dest;
 
 	printf("hdlc_send_to_phone(dlci=%u): ", dlci);
 	hexdump(data, len);
@@ -666,7 +675,8 @@ static void hdlc_tool_cb(uint8_t dlci, struct msgb *msg)
 
 		llist_for_each_entry(con, &srv->connections, entry) {
 			if (write(con->fd.fd, msg->data, msg->len) != msg->len) {
-				fprintf(stderr, "Failed to write msg to the socket..\n");
+				fprintf(stderr,
+					"Failed to write msg to the socket..\n");
 				continue;
 			}
 		}
@@ -728,7 +738,8 @@ static int handle_read(void)
 		/* re-read file */
 		rc = read_file(dnload.filename);
 		if (rc < 0) {
-			fprintf(stderr, "read_file(%s) failed with %d\n", dnload.filename, rc);
+			fprintf(stderr, "read_file(%s) failed with %d\n",
+				dnload.filename, rc);
 			exit(1);
 		}
 	} else if (!memcmp(buffer, phone_prompt2, sizeof(phone_prompt2))) {
@@ -788,58 +799,81 @@ static int handle_read_romload(void)
 	if (nbytes <= 0)
 		return nbytes;
 
-	if (dnload.romload_state == WAITING_IDENTIFICATION) {
-		if (!memcmp(buffer, romload_ident_ack, sizeof(romload_ident_ack))) {
-			printf("Received ident ack from phone, sending parameter sequence\n");
-			dnload.print_hdlc = 1;
-			dnload.romload_state = WAITING_PARAM_ACK;
-			rc = write(dnload.serial_fd.fd, romload_param, sizeof(romload_param));
-				/* re-read file */
-			rc = read_file(dnload.filename);
-			if (rc < 0) {
-				fprintf(stderr, "read_file(%s) failed with %d\n", dnload.filename, rc);
-				exit(1);
-			}
-		}
-	} else if (dnload.romload_state == WAITING_PARAM_ACK) {
-		if (!memcmp(buffer, romload_param_ack, sizeof(romload_param_ack))) {
-			printf("Received parameter ack from phone, starting download\n");
-			serial_set_baudrate(ROMLOAD_DL_BAUDRATE);
-			/* let the target's UART settle after changing baud*/
-			usleep(ROMLOAD_BEACON_INTERVAL*2);
+	switch (dnload.romload_state) {
+	case WAITING_IDENTIFICATION:
+		if (memcmp(buffer, romload_ident_ack,
+			    sizeof(romload_ident_ack)))
+			break;
 
-			/* using the max blocksize the phone tells us */
-			dnload.block_payload_size = ((buffer[3] << 8) + buffer[2]);
-			printf("Used blocksize for download is %i bytes \n", dnload.block_payload_size);
-			dnload.block_payload_size -= ROMLOAD_BLOCK_HDR_LEN;
-			dnload.romload_state = SENDING_BLOCKS;
-			dnload.block_number = 0;
-			romload_prepare_block();
-			bufptr = (bufptr - 2);
+		printf("Received ident ack from phone, sending "
+			"parameter sequence\n");
+		dnload.print_hdlc = 1;
+		dnload.romload_state = WAITING_PARAM_ACK;
+		rc = write(dnload.serial_fd.fd, romload_param,
+			   sizeof(romload_param));
+		/* re-read file */
+		rc = read_file(dnload.filename);
+		if (rc < 0) {
+			fprintf(stderr, "read_file(%s) failed with %d\n",
+				dnload.filename, rc);
+			exit(1);
 		}
-	} else if ((dnload.romload_state == WAITING_BLOCK_ACK) || (dnload.romload_state == LAST_BLOCK_SENT)) {
-		if (!memcmp(buffer, romload_block_ack, sizeof(romload_block_ack))) {
+		break;
+	case WAITING_PARAM_ACK:
+		if (memcmp(buffer, romload_param_ack,
+			    sizeof(romload_param_ack)))
+			break;
+
+		printf("Received parameter ack from phone, "
+			"starting download\n");
+		serial_set_baudrate(ROMLOAD_DL_BAUDRATE);
+		/* let the target's UART settle after changing baud*/
+		usleep(ROMLOAD_BEACON_INTERVAL*2);
+
+		/* using the max blocksize the phone tells us */
+		dnload.block_payload_size = ((buffer[3] << 8) + buffer[2]);
+		printf("Used blocksize for download is %i bytes \n",
+			dnload.block_payload_size);
+		dnload.block_payload_size -= ROMLOAD_BLOCK_HDR_LEN;
+		dnload.romload_state = SENDING_BLOCKS;
+		dnload.block_number = 0;
+		romload_prepare_block();
+		bufptr = (bufptr - 2);
+		break;
+	case WAITING_BLOCK_ACK:
+	case LAST_BLOCK_SENT:
+		if (!memcmp(buffer, romload_block_ack,
+			    sizeof(romload_block_ack))) {
 			printf("Received block ack from phone\n");
 			if (dnload.romload_state == LAST_BLOCK_SENT) {
 				/* send the checksum */
-				uint8_t final_checksum = (~(dnload.romload_dl_checksum) & 0xff);
-				printf("Sending checksum: 0x%02x \n", final_checksum);
-				rc = write(dnload.serial_fd.fd, romload_checksum_cmd, sizeof(romload_checksum_cmd));
-				rc = write(dnload.serial_fd.fd, &final_checksum, 1);
+				uint8_t final_checksum =
+					(~(dnload.romload_dl_checksum) & 0xff);
+				printf("Sending checksum: 0x%02x \n",
+					final_checksum);
+				rc = write(dnload.serial_fd.fd,
+					   romload_checksum_cmd,
+					   sizeof(romload_checksum_cmd));
+				rc = write(dnload.serial_fd.fd,
+					   &final_checksum, 1);
 				dnload.romload_state = WAITING_CHECKSUM_ACK;
-			} else {
+			} else
 				romload_prepare_block();
-			}
-		} else if (!memcmp(buffer, romload_block_nack, sizeof(romload_block_nack))) {
-			printf("Received block nack from phone, something went wrong, aborting\n");
+		} else if (!memcmp(buffer, romload_block_nack,
+				   sizeof(romload_block_nack))) {
+			printf("Received block nack from phone, "
+				"something went wrong, aborting\n");
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
 			usleep(ROMLOAD_BEACON_INTERVAL*2);
 			reload_beacon_timer();
 		}
-	} else if (dnload.romload_state == WAITING_CHECKSUM_ACK) {
-		if (!memcmp(buffer, romload_checksum_ack, sizeof(romload_checksum_ack))) {
-			printf("Checksum on phone side matches, let's branch to your code\n");
+		break;
+	case WAITING_CHECKSUM_ACK:
+		if (!memcmp(buffer, romload_checksum_ack,
+			    sizeof(romload_checksum_ack))) {
+			printf("Checksum on phone side matches, "
+				"let's branch to your code\n");
 
 			uint32_t branch_address_32 = ROMLOAD_ADDRESS;
 			uint8_t branch_address[4];
@@ -849,32 +883,39 @@ static int handle_read_romload(void)
 			branch_address[3] = branch_address_32 & 0xff;
 			printf("Branching to 0x%08x\n", branch_address_32);
 
-			rc = write(dnload.serial_fd.fd, romload_branch_cmd, sizeof(romload_branch_cmd));
+			rc = write(dnload.serial_fd.fd, romload_branch_cmd,
+				   sizeof(romload_branch_cmd));
 			rc = write(dnload.serial_fd.fd, &branch_address, 4);
 			dnload.romload_state = WAITING_BRANCH_ACK;
 			bufptr = (bufptr - 1);
-		} else if (!memcmp(buffer, romload_checksum_nack, sizeof(romload_checksum_nack))) {
-			printf("Checksum on phone side (0x%02x) doesn't match ours, aborting\n", buffer[2]);
+		} else if (!memcmp(buffer, romload_checksum_nack,
+				   sizeof(romload_checksum_nack))) {
+			printf("Checksum on phone side (0x%02x) doesn't "
+				"match ours, aborting\n", buffer[2]);
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
 			usleep(ROMLOAD_BEACON_INTERVAL*2);
 			reload_beacon_timer();
 			bufptr = (bufptr - 1);
 		}
-	} else if (dnload.romload_state == WAITING_BRANCH_ACK) {
-		if (!memcmp(buffer, romload_branch_ack, sizeof(romload_branch_ack))) {
+		break;
+	case WAITING_BRANCH_ACK:
+		if (!memcmp(buffer, romload_branch_ack,
+			    sizeof(romload_branch_ack))) {
 			printf("Received branch ack, your code is running now!\n");
 			dnload.serial_fd.when = BSC_FD_READ;
 			dnload.romload_state = FINISHED;
 			dnload.write_ptr = dnload.data;
 			dnload.print_hdlc = 1;
-		} else if (!memcmp(buffer, romload_branch_nack, sizeof(romload_branch_nack))) {
+		} else if (!memcmp(buffer, romload_branch_nack,
+			   sizeof(romload_branch_nack))) {
 			printf("Received branch nack, aborting\n");
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
 			usleep(ROMLOAD_BEACON_INTERVAL*2);
 			reload_beacon_timer();
 		}
+		break;
 	}
 
 	bufptr += nbytes;
@@ -920,19 +961,25 @@ static int parse_mode(const char *arg)
 	return -1;
 }
 
+#define HELP_TEXT \
+	"[ -v | -h ] [ -p /dev/ttyXXXX ] [ -s /tmp/osmocom_l2 ]\n" \
+	"\t\t[ -l /tmp/osmocom_loader ]\n" \
+	"\t\t[ -m {c123,c123xor,c140,c140xor,c155,romload} ]\n" \
+	"\t\t file.bin\n\n" \
+	"* Open serial port /dev/ttyXXXX (connected to your phone)\n" \
+	"* Perform handshaking with the ramloader in the phone\n" \
+	"* Download file.bin to the attached phone (base address 0x00800100)\n"
+
 static int usage(const char *name)
 {
-	printf("\nUsage: %s [ -v | -h ] [ -p /dev/ttyXXXX ] [ -s /tmp/osmocom_l2 ]"
-		"[ -l /tmp/osmocom_loader ] [ -m {c123,c123xor,c140,c140xor,c155,romload} ] file.bin\n", name);
-	printf("\t* Open serial port /dev/ttyXXXX (connected to your phone)\n"
-		"\t* Perform handshaking with the ramloader in the phone\n"
-		"\t* Download file.bin to the attached phone (base address 0x00800100)\n");
+	printf("Usage: %s ", name);
+	printf(HELP_TEXT);
 	exit(2);
 }
 
 static int version(const char *name)
 {
-	//printf("\n%s version %s\n", name, VERSION);
+	//printf("%s version %s\n", name, VERSION);
 	exit(2);
 }
 
@@ -1164,12 +1211,13 @@ int main(int argc, char **argv)
 	sercomm_register_rx_cb(SC_DLCI_DEBUG, hdlc_tpudbg_cb);
 
 	/* unix domain socket handling */
-	if (register_tool_server(&dnload.layer2_server, layer2_un_path, SC_DLCI_L1A_L23) != 0) {
+	if (register_tool_server(&dnload.layer2_server, layer2_un_path,
+				 SC_DLCI_L1A_L23) != 0)
 		exit(1);
-	}
-	if (register_tool_server(&dnload.loader_server, loader_un_path, SC_DLCI_LOADER) != 0) {
+
+	if (register_tool_server(&dnload.loader_server, loader_un_path,
+				 SC_DLCI_LOADER) != 0)
 		exit(1);
-	}
 
 	/* if in romload mode, start our beacon timer */
 	if (dnload.mode == MODE_ROMLOAD) {
