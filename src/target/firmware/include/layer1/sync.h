@@ -27,6 +27,7 @@ enum l1s_chan {
 	_NUM_L1S_CHAN
 };
 
+#define L1S_NUM_NEIGH_CELL	6
 
 struct l1s_state {
 	struct gsm_time	current_time;	/* current GSM time */
@@ -34,6 +35,9 @@ struct l1s_state {
 
 	/* the cell on which we are camping right now */
 	struct l1_cell_info serving_cell;
+
+	/* neighbor cell sync info */
+	struct l1_cell_info neigh_cell[L1S_NUM_NEIGH_CELL];
 
 	/* TDMA scheduler */
 	struct tdma_scheduler tdma_sched;
