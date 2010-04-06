@@ -40,7 +40,7 @@ I need some RACH primitives like:
 - RACH confirm, the RACK has been sent (with timeslot where is was sent)
 - RACH cancel request:
   Since RACH request must be queued in layer 1 until it the right slot is
-  reached, I need to tell L1 not to cancel it. Whenever I receive a confirm, I
+  reached, I need to tell L1 to cancel it. Whenever I receive a confirm, I
   schedule the next one until the maximum number has been transmitted or until
   an IMMEDIATE ASSIGNMENT is received on CCCH.
 Any better idea? Read GSM 04.08 clause 3.3.1.1.2 and 3.3.1.1.3 for more info.
