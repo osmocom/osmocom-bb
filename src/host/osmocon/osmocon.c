@@ -55,7 +55,6 @@
 #define ROMLOAD_DL_BAUDRATE	B115200
 #define ROMLOAD_BEACON_INTERVAL	50000
 #define ROMLOAD_BLOCK_HDR_LEN	10
-#define ROMLOAD_BLOCKSIZE	0x200
 #define ROMLOAD_ADDRESS		0x820000
 
 struct tool_server *tool_server_for_dlci[256];
@@ -163,12 +162,12 @@ static const uint8_t romload_branch_ack[] =	{ 0x3e, 0x62 };	/* >b */
 static const uint8_t romload_branch_nack[] =	{ 0x3e, 0x42 };	/* >B */
 
 /* romload_param: {"<p", uint8_t baudrate, uint8_t dpll, uint16_t memory_config,
-* uint8_t strobe_af, uint32_t uart_timeout} */
+ * uint8_t strobe_af, uint32_t uart_timeout} */
 
 static const uint8_t romload_param[] = { 0x3c, 0x70, 0x00, 0x00, 0x00, 0x04,
 					 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-/* The C123 has a hard-coded check inside the ramloder that requires the following
+/* The C123 has a hard-coded check inside the ramloader that requires the following
  * bytes to be always the first four bytes of the image */
 static const uint8_t data_hdr_c123[]    = { 0xee, 0x4c, 0x9f, 0x63 };
 
@@ -508,14 +507,14 @@ static int handle_write_block(void)
 
 	printf("handle_write_block(): ");
 
-	if (dnload.block_ptr >= dnload.block + dnload.block_len) { //FIXME
-		printf("Block %i finished\n", dnload.block_number-1);
+	if (dnload.block_ptr >= dnload.block + dnload.block_len) {
+		printf("Block %i finished\n", dnload.block_number);
 		dnload.write_ptr = dnload.data;
 		dnload.serial_fd.when &= ~BSC_FD_WRITE;
 		if (dnload.romload_state == SENDING_LAST_BLOCK) {
 			dnload.romload_state = LAST_BLOCK_SENT;
 			printf("Finished, sent %i blocks in total\n",
-				dnload.block_number-1);
+				dnload.block_number);
 		} else {
 			dnload.romload_state = WAITING_BLOCK_ACK;
 		}
@@ -548,16 +547,20 @@ static int handle_write_block(void)
 static int handle_write_dnload(void)
 {
 	int bytes_left, write_len, rc;
+	uint8_t xor_init = 0x02;
 
 	printf("handle_write(): ");
 	if (dnload.write_ptr == dnload.data) {
 		/* no bytes have been transferred yet */
-		if (dnload.mode == MODE_C155 ||
-		    dnload.mode == MODE_C123xor) {
-			uint8_t xor_init = 0x02;
+		switch (dnload.mode) {
+		case MODE_C155:
+		case MODE_C140xor:
+		case MODE_C123xor:
 			rc = write(dnload.serial_fd.fd, &xor_init, 1);
-		} else
-			usleep(1);
+			break;
+		default:
+			break;
+		}
 	} else if (dnload.write_ptr >= dnload.data + dnload.data_len) { 
 		printf("finished\n");
 		dnload.write_ptr = dnload.data;
@@ -830,13 +833,13 @@ static int handle_read_romload(void)
 
 		/* using the max blocksize the phone tells us */
 		dnload.block_payload_size = ((buffer[3] << 8) + buffer[2]);
-		printf("Used blocksize for download is %i bytes \n",
+		printf("Used blocksize for download is %i bytes\n",
 			dnload.block_payload_size);
 		dnload.block_payload_size -= ROMLOAD_BLOCK_HDR_LEN;
 		dnload.romload_state = SENDING_BLOCKS;
 		dnload.block_number = 0;
 		romload_prepare_block();
-		bufptr = (bufptr - 2);
+		bufptr -= 2;
 		break;
 	case WAITING_BLOCK_ACK:
 	case LAST_BLOCK_SENT:
@@ -885,7 +888,7 @@ static int handle_read_romload(void)
 				   sizeof(romload_branch_cmd));
 			rc = write(dnload.serial_fd.fd, &branch_address, 4);
 			dnload.romload_state = WAITING_BRANCH_ACK;
-			bufptr = (bufptr - 1);
+			bufptr -= 1;
 		} else if (!memcmp(buffer, romload_checksum_nack,
 				   sizeof(romload_checksum_nack))) {
 			printf("Checksum on phone side (0x%02x) doesn't "
@@ -894,7 +897,7 @@ static int handle_read_romload(void)
 			dnload.romload_state = WAITING_IDENTIFICATION;
 			usleep(ROMLOAD_BEACON_INTERVAL*2);
 			reload_beacon_timer();
-			bufptr = (bufptr - 1);
+			bufptr -= 1;
 		}
 		break;
 	case WAITING_BRANCH_ACK:
@@ -913,6 +916,8 @@ static int handle_read_romload(void)
 			usleep(ROMLOAD_BEACON_INTERVAL*2);
 			reload_beacon_timer();
 		}
+		break;
+	default:
 		break;
 	}
 
