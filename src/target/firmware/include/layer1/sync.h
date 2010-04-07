@@ -11,7 +11,7 @@ struct l1_cell_info {
 	/* on which ARFCN (+band) is the cell? */
 	uint16_t	arfcn;
 	/* what's the BSIC of the cell (from SCH burst decoding) */
-	uint32_t	bsic;
+	uint8_t		bsic;
 	/* whats the delta of the cells current GSM frame number
 	 * compared to our current local frame number */
 	int32_t		fn_offset;
