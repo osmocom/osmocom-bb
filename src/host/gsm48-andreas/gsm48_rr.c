@@ -154,7 +154,13 @@ todo: chan_nr and link_id, why transparent?:
 	return rslms_recvmsg(msg, ms);
 }
 
-#if 0
+/* enqueue messages (RSL-SAP) */
+static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
+	struct gsm_rrlayer *rr = &ms->rrlayer;
+
+	msgb_enqueue(&rr->rsl_upqueue, msg);
+}
+
 /* dequeue messages (RSL-SAP) */
 int gsm48_rsl_dequeue(struct osmocom_ms *ms)
 {
@@ -170,7 +176,6 @@ int gsm48_rsl_dequeue(struct osmocom_ms *ms)
 	
 	return work;
 }
-#endif 
 
 /*
  * timers handling
@@ -2828,8 +2833,7 @@ static struct dldatastate {
 #define DLDATASLLEN \
 	(sizeof(dldatastatelist) / sizeof(struct dldatastate))
 
-static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
-//static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_rrlayer *rr = &ms->rrlayer;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
