@@ -272,47 +272,47 @@ static void dump_mon_state(struct mon_state *fb)
 
 static struct mon_state _last_fb, *last_fb = &_last_fb;
 
-static int read_fb_result(int attempt)
+static int read_fb_result(struct mon_state *st, int attempt)
 {
-	last_fb->toa = dsp_api.ndb->a_sync_demod[D_TOA];
-	last_fb->pm = dsp_api.ndb->a_sync_demod[D_PM]>>3;
-	last_fb->angle = dsp_api.ndb->a_sync_demod[D_ANGLE];
-	last_fb->snr = dsp_api.ndb->a_sync_demod[D_SNR];
+	st->toa = dsp_api.ndb->a_sync_demod[D_TOA];
+	st->pm = dsp_api.ndb->a_sync_demod[D_PM]>>3;
+	st->angle = dsp_api.ndb->a_sync_demod[D_ANGLE];
+	st->snr = dsp_api.ndb->a_sync_demod[D_SNR];
 
 	//last_fb->angle = clip_int16(last_fb->angle, AFC_MAX_ANGLE);
-	last_fb->freq_diff = ANGLE_TO_FREQ(last_fb->angle);
-	last_fb->fnr_report = l1s.current_time.fn;
-	last_fb->attempt = attempt;
+	st->freq_diff = ANGLE_TO_FREQ(last_fb->angle);
+	st->fnr_report = l1s.current_time.fn;
+	st->attempt = attempt;
 
-	dump_mon_state(last_fb);
+	dump_mon_state(st);
 
 	dsp_api.ndb->d_fb_det = 0;
 	dsp_api.ndb->a_sync_demod[D_TOA] = 0; /* TSM30 does it (really needed ?) */
 
 	/* Update AFC with current frequency offset */
-	afc_correct(last_fb->freq_diff, rf_arfcn);
+	afc_correct(st->freq_diff, rf_arfcn);
 
 	//tpu_dsp_frameirq_enable();
 	return 1;
 }
 
-static void read_sb_result(int attempt)
+static void read_sb_result(struct mon_state *st, int attempt)
 {
-	last_fb->toa = dsp_api.db_r->a_serv_demod[D_TOA];
-	last_fb->pm = dsp_api.db_r->a_serv_demod[D_PM]>>3;
-	last_fb->angle = dsp_api.db_r->a_serv_demod[D_ANGLE];
-	last_fb->snr = dsp_api.db_r->a_serv_demod[D_SNR];
+	st->toa = dsp_api.db_r->a_serv_demod[D_TOA];
+	st->pm = dsp_api.db_r->a_serv_demod[D_PM]>>3;
+	st->angle = dsp_api.db_r->a_serv_demod[D_ANGLE];
+	st->snr = dsp_api.db_r->a_serv_demod[D_SNR];
 
-	last_fb->freq_diff = ANGLE_TO_FREQ(last_fb->angle);
-	last_fb->fnr_report = l1s.current_time.fn;
-	last_fb->attempt = attempt;
+	st->freq_diff = ANGLE_TO_FREQ(st->angle);
+	st->fnr_report = l1s.current_time.fn;
+	st->attempt = attempt;
 
-	dump_mon_state(last_fb);
+	dump_mon_state(st);
 
-	if (last_fb->snr > AFC_SNR_THRESHOLD)
-		afc_input(last_fb->freq_diff, rf_arfcn, 1);
+	if (st->snr > AFC_SNR_THRESHOLD)
+		afc_input(st->freq_diff, rf_arfcn, 1);
 	else
-		afc_input(last_fb->freq_diff, rf_arfcn, 0);
+		afc_input(st->freq_diff, rf_arfcn, 0);
 
 	dsp_api.r_page_used = 1;
 }
@@ -480,8 +480,9 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	}
 
 	printf("FB%u ", dsp_api.ndb->d_fb_mode);
-	read_fb_result(attempt);
+	read_fb_result(last_fb, attempt);
 
+	/* FIXME: where did this magic 23 come from? */
 	last_fb->toa -= 23;
 
 	if (last_fb->toa < 0) {
@@ -630,7 +631,7 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	l1s.sb.count++;
 
 	printf("SB%d ", attempt);
-	read_sb_result(dsp_api.frame_ctr);
+	read_sb_result(last_fb, dsp_api.frame_ctr);
 
 	sb = dsp_api.db_r->a_sch[3] | dsp_api.db_r->a_sch[4] << 16;
 	bsic = l1s_decode_sb(&sb_time, sb);
