@@ -178,8 +178,6 @@ static void l1ddsp_meas_read(uint8_t nbmeas, uint16_t *pm)
 #define	SWITCH_TIME		(TPU_RANGE-10)
 
 
-static int fb_once = 0;
-
 /* synchronize the L1S to a new timebase (typically a new cell */
 static void synchronize_tdma(struct l1_cell_info *cinfo)
 {
@@ -472,11 +470,10 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 			/* If we don't reset here, we get DSP DMA errors */
 			tdma_sched_reset();
 
-			/* if we are already synchronized initially */
-			if (fb_once == 1)
-				l1s_fb_test(1, 1);
-			else
-				l1s_fb_test(1, 0);
+			/* if we are already synchronized initially,
+			 * code below has set l1s.fb.mode to 1 and
+			 * we switch to the more narrow mode 1 */
+			l1s_fb_test(1, l1s.fb.mode);
 		}
 		return 0;
 	}
@@ -514,12 +511,15 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		}
 	}
 
-	if (dsp_api.frame_ctr > 500 && fb_once == 0) {
+	if (dsp_api.frame_ctr > 500 && l1s.fb.mode == 0) {
 		/* Don't synchronize_tdma() yet, it does probably not work
 		 * reliable due to the TPU reset) */
 		l1s_reset_hw();
 		tdma_sched_reset();
-		fb_once = 1;
+		/* We've done more than 500 rounds of FB detection, so
+		 * the AGC should be synchronized and we switch to the
+		 * more narrow FB detection mode 1 */
+		l1s.fb.mode = 1;
 	} else {
 		/* We found a frequency burst, reset everything and start next task */
 		l1s_reset_hw();
@@ -528,7 +528,7 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 
 #if 1
 	/* restart a SB or new FB detection task */
-	if (dsp_api.frame_ctr > 1000 && fb_once == 1 &&
+	if (dsp_api.frame_ctr > 1000 && l1s.fb.mode == 1 &&
 	    abs(last_fb->freq_diff) < 1000)  {
 		int delay;
 
@@ -538,7 +538,7 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		delay = fn_offset + 11 - l1s.current_time.fn - 1;
 		dsp_api.ndb->d_fb_det = 0;
 		dsp_api.ndb->a_sync_demod[D_TOA] = 0; /* TSM30 does it (really needed ?) */
-		fb_once = 0;
+		l1s.fb.mode = 0;
 		l1s_sb_test(delay);
 	} else
 #endif
@@ -1157,7 +1157,7 @@ static void frame_irq(__unused enum irq_nr nr)
 /* reset the layer1 as part of synchronizing to a new cell */
 void l1s_reset(void)
 {
-	fb_once = 0;
+	l1s.fb.mode = 0;
 	sb_once = 0;
 
 	/* reset scheduler and hardware */

@@ -54,6 +54,9 @@ struct l1s_state {
 	/* Structures below are for L1-task specific parameters, used
 	 * to communicate between l1-sync and l1-async (l23_api) */
 	struct {
+		uint8_t mode;	/* FB_MODE 0/1 */
+	} fb;
+	struct {
 		/* power measurement l1 task */
 		unsigned int mode;
 		union {
