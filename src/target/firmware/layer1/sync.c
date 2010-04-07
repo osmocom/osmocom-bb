@@ -126,8 +126,6 @@ static uint8_t l1s_decode_sb(struct gsm_time *time, uint32_t sb)
 	return bsic;
 }
 
-static int last_task_fnr;
-
 extern uint16_t rf_arfcn; // TODO
 
 /* clip a signed 16bit value at a certain limit */
@@ -446,7 +444,6 @@ static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t fb_mode,
 	dsp_api.db_w->d_task_md = FB_DSP_TASK;	/* maybe with I/Q swap? */
 	dsp_api.ndb->d_fb_mode = fb_mode;
 	dsp_end_scenario();
-	last_task_fnr = dsp_api.frame_ctr;
 
 	/* Program TPU */
 	l1s_rx_win_ctrl(rf_arfcn, L1_RXWIN_FB);
@@ -506,8 +503,10 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 			printf("=> DSP reports FB in bit that is %d bits in the future?!?\n",
 				last_fb->toa - bits_delta);
 		else {
-			int fb_fnr = last_task_fnr + last_fb->toa/BITS_PER_TDMA;
-			printf("=>FB @ FNR %u fn_offset=%d qbits=%u\n", fb_fnr, fn_offset, qbits);
+			int fb_fnr = (last_fb->fnr_report - last_fb->attempt)
+					+ last_fb->toa/BITS_PER_TDMA;
+			printf("=>FB @ FNR %u fn_offset=%d qbits=%u\n",
+				fb_fnr, fn_offset, qbits);
 		}
 	}
 
@@ -725,8 +724,6 @@ static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
 	dsp_end_scenario();
 
-	last_task_fnr = dsp_api.frame_ctr;
-
 	/* Program TPU */
 	l1s_rx_win_ctrl(rf_arfcn, L1_RXWIN_SB);
 	tpu_end_scenario();
@@ -760,7 +757,6 @@ static int l1s_pm_cmd(__unused uint8_t p1,
 	dsp_api.db_w->d_task_md = 2;
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
 	dsp_end_scenario();
-	last_task_fnr = dsp_api.frame_ctr;
 
 	/* Program TPU */
 	//l1s_rx_win_ctrl(arfcn, L1_RXWIN_PW);
