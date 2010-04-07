@@ -190,8 +190,9 @@ static void synchronize_tdma(struct l1_cell_info *cinfo)
 
 	fn_offset = cinfo->fn_offset - 1;
 
-	/* if we're already very close to the end of the TPU frame,
-	 * the next interrupt will basically occur now and we need to compensate */
+	/* if we're already very close to the end of the TPU frame, the
+	 * next interrupt will basically occur now and we need to
+	 * compensate */
 	if (tpu_shift < SWITCH_TIME)
 		fn_offset++;
 
@@ -257,14 +258,15 @@ static void dump_mon_state(struct mon_state *fb)
 {
 #if 0
 	printf("(%u:%u): TOA=%5u, Power=%4ddBm, Angle=%5dHz, "
-		"SNR=%04x(%d.%u) OFFSET=%u SYNCHRO=%u\n", fb->fnr_report, fb->attempt,
-		fb->toa, agc_inp_dbm8_by_pm(fb->pm)/8,
-		ANGLE_TO_FREQ(fb->angle), fb->snr, l1s_snr_int(fb->snr),
-		l1s_snr_fract(fb->snr), tpu_get_offset(), tpu_get_synchro());
+		"SNR=%04x(%d.%u) OFFSET=%u SYNCHRO=%u\n",
+		fb->fnr_report, fb->attempt, fb->toa,
+		agc_inp_dbm8_by_pm(fb->pm)/8, ANGLE_TO_FREQ(fb->angle),
+		fb->snr, l1s_snr_int(fb->snr), l1s_snr_fract(fb->snr),
+		tpu_get_offset(), tpu_get_synchro());
 #else
-	printf("(%u:%u): TOA=%5u, Power=%4ddBm, Angle=%5dHz ", fb->fnr_report, fb->attempt,
-		fb->toa, agc_inp_dbm8_by_pm(fb->pm)/8,
-		ANGLE_TO_FREQ(fb->angle));
+	printf("(%u:%u): TOA=%5u, Power=%4ddBm, Angle=%5dHz ",
+		fb->fnr_report, fb->attempt, fb->toa,
+		agc_inp_dbm8_by_pm(fb->pm)/8, ANGLE_TO_FREQ(fb->angle));
 #endif
 }
 
@@ -371,12 +373,14 @@ static void l1_sync(void)
 		dsp_api.ndb->d_error_status = 0;
 	}
 
-	/* execute the sched_items that have been scheduled for this TDMA frame */
+	/* execute the sched_items that have been scheduled for this
+	 * TDMA frame */
 	tdma_sched_execute();
 
 	if (dsp_api.r_page_used) {
 		/* clear and switch the read page */
-		dsp_api_memset((uint16_t *) dsp_api.db_r, sizeof(*dsp_api.db_r));
+		dsp_api_memset((uint16_t *) dsp_api.db_r,
+				sizeof(*dsp_api.db_r));
 
 		/* TSM30 does it (really needed ?):
 		 * Set crc result as "SB not found". */
@@ -500,8 +504,8 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		cinfo->arfcn = rf_arfcn;
 
 		if (last_fb->toa > bits_delta)
-			printf("=> DSP reports FB in bit that is %d bits in the future?!?\n",
-				last_fb->toa - bits_delta);
+			printf("=> DSP reports FB in bit that is %d bits in "
+				"the future?!?\n", last_fb->toa - bits_delta);
 		else {
 			int fb_fnr = (last_fb->fnr_report - last_fb->attempt)
 					+ last_fb->toa/BITS_PER_TDMA;
@@ -656,8 +660,8 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	cinfo->arfcn = rf_arfcn;
 
 	if (last_fb->toa > bits_delta)
-		printf("=> DSP reports SB in bit that is %d bits in the future?!?\n",
-			last_fb->toa - bits_delta);
+		printf("=> DSP reports SB in bit that is %d bits in the "
+			"future?!?\n", last_fb->toa - bits_delta);
 	else
 		printf(" qbits=%u\n", qbits);
 
@@ -673,38 +677,35 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	l1s_time_inc(&l1s.next_time, 1);
 
 	/* place it in the queue for the layer2 */
-	msg = l1_create_l2_msg(L1CTL_NEW_CCCH_RESP, sb_time.fn, last_fb->snr, rf_arfcn);
+	msg = l1_create_l2_msg(L1CTL_NEW_CCCH_RESP, sb_time.fn,
+				last_fb->snr, rf_arfcn);
 	l1 = (struct l1ctl_sync_new_ccch_resp *) msgb_put(msg, sizeof(*l1));
 	l1->bsic = bsic;
 	l1_queue_for_l2(msg);
 
-#if 0
-	tdma_sched_reset();
-#else
-	/*
-		If we call tdma_sched_reset(), which is only needed if there are
-		further l1s_sbdet_resp() scheduled, we will bring dsp_api.db_r and
-		dsp_api.db_w out of sync because we changed dsp_api.db_w for l1s_sbdet_cmd()
-		and canceled l1s_sbdet_resp() which would change dsp_api.db_r. The DSP
-		however expects dsp_api.db_w and dsp_api.db_r to be in sync (either 
-		"0 - 0" or "1 - 1"). So we have to bring dsp_api.db_w and dsp_api.db_r
-		into sync again, otherwise NB reading will complain. We probably don't
-		need the Abort command and could just bring dsp_api.db_w and dsp_api.db_r
-		into sync.
-	*/
+	/* If we call tdma_sched_reset(), which is only needed if there
+	 * are further l1s_sbdet_resp() scheduled, we will bring
+	 * dsp_api.db_r and dsp_api.db_w out of sync because we changed
+	 * dsp_api.db_w for l1s_sbdet_cmd() and canceled
+	 * l1s_sbdet_resp() which would change dsp_api.db_r. The DSP
+	 * however expects dsp_api.db_w and dsp_api.db_r to be in sync
+	 * (either "0 - 0" or "1 - 1"). So we have to bring dsp_api.db_w
+	 * and dsp_api.db_r into sync again, otherwise NB reading will
+	 * complain. We probably don't need the Abort command and could
+	 * just bring dsp_api.db_w and dsp_api.db_r into sync.  */
 	if (attempt != 2) {
 		tdma_sched_reset();
 		l1s_dsp_abort();
 	}
-#endif
+
 	if (l1s.sb.count > 10 && sb_time.t3 == 41) {
 		l1s_reset_hw();
 		/* enable the MF Task for BCCH reading */
 		l1s.mf_tasks |= (1 << MF_TASK_BCCH_NORM);
 		l1s.mf_tasks |= (1 << MF_TASK_CCCH_COMB);
 	} else {
-		/* We have just seen a SCH burst, we know the next one is not in
-		 * less than 7 TDMA frames from now */
+		/* We have just seen a SCH burst, we know the next one
+		 * is not in less than 7 TDMA frames from now */
 		l1s_sb_test(7);
 	}
 
@@ -852,7 +853,8 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 	sig->nb.meas[burst_id].toa_qbit = dsp_api.db_r->a_serv_demod[D_TOA];
 	sig->nb.meas[burst_id].pm_dbm8 = dsp_api.db_r->a_serv_demod[D_PM] >> 3;
-	sig->nb.meas[burst_id].freq_err = ANGLE_TO_FREQ(dsp_api.db_r->a_serv_demod[D_ANGLE]);
+	sig->nb.meas[burst_id].freq_err =
+			ANGLE_TO_FREQ(dsp_api.db_r->a_serv_demod[D_ANGLE]);
 	sig->nb.meas[burst_id].snr = dsp_api.db_r->a_serv_demod[D_SNR];
 
 	/* feed computed frequency error into AFC loop */
@@ -886,7 +888,8 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 			l1s_cb(sig);
 
 		/* place it in the queue for the layer2 */
-		msg = l1_create_l2_msg(L1CTL_DATA_IND, l1s.current_time.fn-4, last_fb->snr, rf_arfcn);
+		msg = l1_create_l2_msg(L1CTL_DATA_IND, l1s.current_time.fn-4,
+					last_fb->snr, rf_arfcn);
 		l1h = (struct l1ctl_hdr *) msg->l1h;
 		dl = (struct l1ctl_info_dl *) l1h->data;
 		di = (struct l1ctl_data_ind *) msgb_put(msg, sizeof(*di));
@@ -951,7 +954,7 @@ const struct tdma_sched_item nb_sched_set[] = {
 
 /* Transmit Burst *************************************************************/
 
-const uint8_t ubUui[23]     = { 0x01, 0x03, 0x01, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
+static const uint8_t ubUui[23]     = { 0x01, 0x03, 0x01, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
 
 /* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
 static int l1s_tx_resp(__unused uint8_t p1, __unused uint8_t burst_id,
