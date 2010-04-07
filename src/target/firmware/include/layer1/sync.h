@@ -56,6 +56,12 @@ struct l1s_state {
 	struct {
 		uint8_t mode;	/* FB_MODE 0/1 */
 	} fb;
+
+	struct {
+		unsigned int count;
+		unsigned int synced;
+	} sb;
+
 	struct {
 		/* power measurement l1 task */
 		unsigned int mode;

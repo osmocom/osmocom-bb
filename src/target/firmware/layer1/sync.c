@@ -592,10 +592,6 @@ void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode)
 
 /* SCH Burst Detection ********************************************************/
 
-static int sb_once = 0;
-
-static uint8_t sb_cnt;
-
 /* Note: When we get the SB response, it is 2 TDMA frames after the SB
  * actually happened, as it is a "C W W R" task */
 #define SB2_LATENCY	2
@@ -627,7 +623,7 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		return 0;
 	}
 
-	sb_cnt++;
+	l1s.sb.count++;
 
 	printf("SB%d ", attempt);
 	read_sb_result(dsp_api.frame_ctr);
@@ -665,9 +661,9 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	else
 		printf(" qbits=%u\n", qbits);
 
-	if (sb_cnt > 5 && sb_once == 0) {
+	if (l1s.sb.count > 5 && l1s.sb.synced == 0) {
 		synchronize_tdma(&l1s.serving_cell);
-		sb_once = 1;
+		l1s.sb.synced = 1;
 	}
 
 	/* if we have recived a SYNC burst, update our local GSM time */
@@ -701,7 +697,7 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		l1s_dsp_abort();
 	}
 #endif
-	if (sb_cnt > 10 && sb_time.t3 == 41) {
+	if (l1s.sb.count > 10 && sb_time.t3 == 41) {
 		l1s_reset_hw();
 		/* enable the MF Task for BCCH reading */
 		l1s.mf_tasks |= (1 << MF_TASK_BCCH_NORM);
@@ -1152,7 +1148,7 @@ static void frame_irq(__unused enum irq_nr nr)
 void l1s_reset(void)
 {
 	l1s.fb.mode = 0;
-	sb_once = 0;
+	l1s.sb.synced = 0;
 
 	/* reset scheduler and hardware */
 	l1s.mf_tasks = 0;
