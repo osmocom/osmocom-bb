@@ -511,19 +511,17 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		}
 	}
 
+	/* We found a frequency burst, reset everything and start next task */
+	l1s_reset_hw();
+	tdma_sched_reset();
+
 	if (dsp_api.frame_ctr > 500 && l1s.fb.mode == 0) {
-		/* Don't synchronize_tdma() yet, it does probably not work
-		 * reliable due to the TPU reset) */
-		l1s_reset_hw();
-		tdma_sched_reset();
 		/* We've done more than 500 rounds of FB detection, so
 		 * the AGC should be synchronized and we switch to the
 		 * more narrow FB detection mode 1 */
 		l1s.fb.mode = 1;
-	} else {
-		/* We found a frequency burst, reset everything and start next task */
-		l1s_reset_hw();
-		tdma_sched_reset();
+		/* Don't synchronize_tdma() yet, it does probably not work
+		 * reliable due to the TPU reset) */
 	}
 
 #if 1
