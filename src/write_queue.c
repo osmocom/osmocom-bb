@@ -32,6 +32,9 @@ int write_queue_bfd_cb(struct bsc_fd *fd, unsigned int what)
 	if (what & BSC_FD_READ)
 		queue->read_cb(fd);
 
+	if (what & BSC_FD_EXCEPT)
+		queue->except_cb(fd);
+
 	if (what & BSC_FD_WRITE) {
 		struct msgb *msg;
 

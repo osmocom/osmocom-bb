@@ -35,6 +35,7 @@ struct write_queue {
 
 	int (*read_cb)(struct bsc_fd *fd);
 	int (*write_cb)(struct bsc_fd *fd, struct msgb *msg);
+	int (*except_cb)(struct bsc_fd *fd);
 };
 
 void write_queue_init(struct write_queue *queue, int max_length);
