@@ -1,7 +1,7 @@
 /* uart routines for early assembly code */
 
 #define BA_UART_MODEM	0xFFFF5800
-		
+
 .macro	senduart, rd, rx
 	strb	\rd, [\rx, #0]
 .endm
@@ -20,7 +20,7 @@
 .endm
 
 .section .text
-		
+
 		.align	2
 		.type	phexbuf, #object
 phexbuf:	.space	12
