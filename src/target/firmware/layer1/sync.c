@@ -58,7 +58,7 @@
 
 struct l1s_state l1s;
 
-static l1s_cb_t l1s_cb = NULL;
+l1s_cb_t l1s_cb = NULL;
 
 void l1s_set_handler(l1s_cb_t cb)
 {
@@ -145,14 +145,7 @@ uint16_t l1s_snr_fract(uint16_t snr)
 	return fract & 0xffff;
 }
 
-/* Convert an angle in fx1.15 notatinon into Hz */
-#define BITFREQ_DIV_2PI		43104	/* 270kHz / 2 * pi */
-#define BITFREQ_DIV_PI		86208	/* 270kHz / pi */
-#define ANG2FREQ_SCALING	(2<<15)	/* 2^15 scaling factor for fx1.15 */
-#define ANGLE_TO_FREQ(angle)	((int16_t)angle * BITFREQ_DIV_PI / ANG2FREQ_SCALING)
-
 #define AFC_MAX_ANGLE		328	/* 0.01 radian in fx1.15 */
-#define AFC_SNR_THRESHOLD	2560	/* 2.5 dB in fx6.10 */
 
 #define BITS_PER_TDMA		1250
 #define QBITS_PER_TDMA		(BITS_PER_TDMA * 4)	/* 5000 */
@@ -585,8 +578,6 @@ void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode)
  * actually happened, as it is a "C W W R" task */
 #define SB2_LATENCY	2
 
-extern const struct tdma_sched_item rach_sched_set_ul[];
-
 static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 			  __unused uint16_t p3)
 {
@@ -727,129 +718,6 @@ void l1s_sb_test(uint8_t base_fn)
 	tdma_schedule(base_fn + 2, &l1s_sbdet_resp, 0, 2, 0);
 #endif
 }
-
-/* Normal Burst ***************************************************************/
-
-static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
-{
-	static struct l1_signal _nb_sig, *sig = &_nb_sig;
-	uint8_t mf_task_id = p3 & 0xff;
-	uint8_t mf_task_flags = p3 >> 8;
-	struct msgb *msg;
-
-	putchart('n');
-
-	/* just for debugging, d_task_d should not be 0 */
-	if (dsp_api.db_r->d_task_d == 0) {
-		puts("EMPTY\n");
-		return 0;
-	}
-
-	/* DSP burst ID needs to corespond with what we expect */
-	if (dsp_api.db_r->d_burst_d != burst_id) {
-		printf("BURST ID %u!=%u\n", dsp_api.db_r->d_burst_d, burst_id);
-		return 0;
-	}
-
-	sig->nb.meas[burst_id].toa_qbit = dsp_api.db_r->a_serv_demod[D_TOA];
-	sig->nb.meas[burst_id].pm_dbm8 = dsp_api.db_r->a_serv_demod[D_PM] >> 3;
-	sig->nb.meas[burst_id].freq_err =
-			ANGLE_TO_FREQ(dsp_api.db_r->a_serv_demod[D_ANGLE]);
-	sig->nb.meas[burst_id].snr = dsp_api.db_r->a_serv_demod[D_SNR];
-
-	/* feed computed frequency error into AFC loop */
-	if (sig->nb.meas[burst_id].snr > AFC_SNR_THRESHOLD)
-		afc_input(sig->nb.meas[burst_id].freq_err, rf_arfcn, 1);
-	else
-		afc_input(sig->nb.meas[burst_id].freq_err, rf_arfcn, 0);
-
-	/* 4th burst, get frame data */
-	if (dsp_api.db_r->d_burst_d == 3) {
-		struct l1ctl_hdr *l1h;
-		struct l1ctl_info_dl *dl;
-		struct l1ctl_data_ind *di;
-		uint32_t avg_snr = 0;
-		int32_t avg_dbm8 = 0;
-		uint8_t i, j;
-
-		sig->signum = L1_SIG_NB;
-		sig->nb.num_biterr = dsp_api.ndb->a_cd[2] & 0xffff;
-		sig->nb.crc = ((dsp_api.ndb->a_cd[0] & 0xffff) & ((1 << B_FIRE1) | (1 << B_FIRE0))) >> B_FIRE0;
-		sig->nb.fire = ((dsp_api.ndb->a_cd[0] & 0xffff) & (1 << B_FIRE1)) >> B_FIRE1;
-
-		/* copy actual data, skipping the information block [0,1,2] */
-		for (j = 0,i = 3; i < 15; i++) {
-			sig->nb.frame[j++] = dsp_api.ndb->a_cd[i] & 0xFF;
-			sig->nb.frame[j++] = (dsp_api.ndb->a_cd[i] >> 8) & 0xFF;
-		}
-
-		/* actually issue the signal */
-		if (l1s_cb)
-			l1s_cb(sig);
-
-		/* place it in the queue for the layer2 */
-		msg = l1_create_l2_msg(L1CTL_DATA_IND, l1s.current_time.fn-4,
-					last_fb->snr, rf_arfcn);
-		l1h = (struct l1ctl_hdr *) msg->l1h;
-		dl = (struct l1ctl_info_dl *) l1h->data;
-		di = (struct l1ctl_data_ind *) msgb_put(msg, sizeof(*di));
-
-		/* Set Channel Number depending on MFrame Task ID */
-		dl->chan_nr = mframe_task2chan_nr(mf_task_id, 0); /* FIXME: TS */
-
-		/* Set SACCH indication in Link IDentifier */
-		if (mf_task_flags & MF_F_SACCH)
-			dl->link_id = 0x40;
-		else
-			dl->link_id = 0x00;
-
-		/* compute average snr and rx level */
-		for (i = 0; i < 4; ++i) {
-			avg_snr += sig->nb.meas[i].snr;
-			avg_dbm8 += sig->nb.meas[i].pm_dbm8;
-		}
-		dl->snr = avg_snr / 4;
-		dl->rx_level = (avg_dbm8 / (8*4)) + 110;
-
-		/* copy the actual payload data */
-		for (i = 0; i < 23; ++i)
-			di->data[i] = sig->nb.frame[i];
-		l1_queue_for_l2(msg);
-
-		/* clear downlink task */
-		dsp_api.db_w->d_task_d = 0;
-	}
-
-	/* mark READ page as being used */
-	dsp_api.r_page_used = 1;
-
-	return 0;
-}
-
-static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
-		      __unused uint16_t p3)
-{
-	uint8_t tsc = l1s.serving_cell.bsic & 0x7;
-
-	putchart('N');
-	dsp_load_rx_task(ALLC_DSP_TASK, burst_id, tsc);
-	dsp_end_scenario();
-
-	l1s_rx_win_ctrl(rf_arfcn, L1_RXWIN_NB);
-	tpu_end_scenario();
-
-	return 0;
-}
-
-const struct tdma_sched_item nb_sched_set[] = {
-	SCHED_ITEM(l1s_nb_cmd, 0, 0),					SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_nb_cmd, 0, 1),					SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_nb_resp, 0, 0), SCHED_ITEM(l1s_nb_cmd, 0, 2),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_nb_resp, 0, 1), SCHED_ITEM(l1s_nb_cmd, 0, 3),	SCHED_END_FRAME(),
-				       SCHED_ITEM(l1s_nb_resp, 0, 2),	SCHED_END_FRAME(),
-				       SCHED_ITEM(l1s_nb_resp, 0, 3),	SCHED_END_FRAME(),
-	SCHED_END_SET()
-};
 
 void l1s_tx_apc_helper(void)
 {

@@ -140,4 +140,12 @@ void layer1_init(void);
 #define putchart(x)
 #endif
 
+/* Convert an angle in fx1.15 notatinon into Hz */
+#define BITFREQ_DIV_2PI		43104	/* 270kHz / 2 * pi */
+#define BITFREQ_DIV_PI		86208	/* 270kHz / pi */
+#define ANG2FREQ_SCALING	(2<<15)	/* 2^15 scaling factor for fx1.15 */
+#define ANGLE_TO_FREQ(angle)	((int16_t)angle * BITFREQ_DIV_PI / ANG2FREQ_SCALING)
+
+extern l1s_cb_t l1s_cb;
+
 #endif /* _L1_SYNC_H */
