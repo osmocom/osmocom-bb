@@ -5,6 +5,18 @@
 
 #include <layer1/mframe_sched.h>
 
+/* When altering data structures used by L1 Sync part, we need to
+ * make sure to temporarily disable IRQ/FIQ to keep data consistent */
+static inline void l1a_lock_sync(void)
+{
+	arm_disable_interrupts();
+}
+
+static inline void l1a_unlock_sync(void)
+{
+	arm_enable_interrupts();
+}
+
 /* safely enable a message into the L1S TX queue */
 void l1a_txq_msgb_enq(struct llist_head *queue, struct msgb *msg);
 

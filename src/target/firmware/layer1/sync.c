@@ -43,6 +43,8 @@
 
 #include <abb/twl3025.h>
 
+//#define DEBUG_EVERY_TDMA
+
 #include <layer1/sync.h>
 #include <layer1/afc.h>
 #include <layer1/agc.h>
@@ -53,15 +55,6 @@
 #include <layer1/l23_api.h>
 
 #include <l1a_l23_interface.h>
-
-//#define DEBUG_EVERY_TDMA
-
-/* A debug macro to print every TDMA frame */
-#ifdef DEBUG_EVERY_TDMA
-#define putchart(x) putchar(x)
-#else
-#define putchart(x)
-#endif
 
 struct l1s_state l1s;
 
@@ -150,15 +143,6 @@ uint16_t l1s_snr_fract(uint16_t snr)
 	fract = fract * 1000 / (2 << 10);
 
 	return fract & 0xffff;
-}
-
-static void l1ddsp_meas_read(uint8_t nbmeas, uint16_t *pm)
-{
-	uint8_t i;
-
-	for (i = 0; i < nbmeas; i++)
-		pm[i] = (uint16_t) ((dsp_api.db_r->a_pm[i] & 0xffff) >> 3);
-	dsp_api.r_page_used = 1;
 }
 
 /* Convert an angle in fx1.15 notatinon into Hz */
@@ -744,91 +728,6 @@ void l1s_sb_test(uint8_t base_fn)
 #endif
 }
 
-/* Power Measurement **********************************************************/
-
-/* scheduler callback to issue a power measurement task to the DSP */
-static int l1s_pm_cmd(__unused uint8_t p1,
-		      __unused uint8_t p2, uint16_t arfcn)
-{
-	putchart('P');
-
-	dsp_api.db_w->d_task_md = 2;
-	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
-	dsp_end_scenario();
-
-	/* Program TPU */
-	//l1s_rx_win_ctrl(arfcn, L1_RXWIN_PW);
-	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB);
-	tpu_end_scenario();
-
-	return 0;
-}
-
-/* scheduler callback to read power measurement resposnse from the DSP */
-static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
-		       uint16_t arfcn)
-{
-	struct l1ctl_pm_resp *pmr;
-	uint16_t pm_level[2];
-	struct l1_signal sig;
-
-	putchart('p');
-
-	l1ddsp_meas_read(2, pm_level);
-
-	printf("PM MEAS: %-4d dBm, %-4d dBm ARFCN=%u\n",
-		agc_inp_dbm8_by_pm(pm_level[0])/8,
-		agc_inp_dbm8_by_pm(pm_level[1])/8, arfcn);
-
-	/* build and deliver signal */
-	sig.signum = L1_SIG_PM;
-	sig.arfcn = arfcn;
-	sig.pm.dbm8[0] = agc_inp_dbm8_by_pm(pm_level[0]);
-	sig.pm.dbm8[1] = agc_inp_dbm8_by_pm(pm_level[1]);
-
-	if (l1s_cb)
-		l1s_cb(&sig);
-
-	if (!l1s.pm.msg)
-		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_RESP);
-
-	if (msgb_tailroom(l1s.pm.msg) < sizeof(*pmr)) {
-		/* flush current msgb */
-		l1_queue_for_l2(l1s.pm.msg);
-		/* allocate a new msgb and initialize header */
-		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_RESP);
-	}
-
-	pmr = msgb_put(l1s.pm.msg, sizeof(*pmr));
-	pmr->band_arfcn = htons(arfcn);
-	/* FIXME: do this as RxLev rather than DBM8 ? */
-	pmr->pm[0] = dbm2rxlev(agc_inp_dbm8_by_pm(pm_level[0])/8);
-	pmr->pm[1] = dbm2rxlev(agc_inp_dbm8_by_pm(pm_level[1])/8);
-
-	if (l1s.pm.mode == 1) {
-		if (l1s.pm.range.arfcn_next <= l1s.pm.range.arfcn_end) {
-			/* schedule PM for next ARFCN in range */
-			l1s_pm_test(1, l1s.pm.range.arfcn_next);
-			l1s.pm.range.arfcn_next++;
-		} else {
-			/* we have finished, flush the msgb to L2 */
-			struct l1ctl_hdr *l1h = l1s.pm.msg->l1h;
-			l1h->flags |= L1CTL_F_DONE;
-			l1_queue_for_l2(l1s.pm.msg);
-			l1s.pm.msg = NULL;
-		}
-	}
-
-	return 0;
-}
-
-void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
-{
-	printf("l1s_pm_test(%u, %u)\n", base_fn, arfcn);
-	tdma_schedule(base_fn, &l1s_pm_cmd, 0, 0, arfcn);
-	tdma_schedule(base_fn + 2, &l1s_pm_resp, 0, 0, arfcn);
-}
-
 /* Normal Burst ***************************************************************/
 
 static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
@@ -987,17 +886,9 @@ static int l1s_tx_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 #define TCH_EFR_MODE       8    // enhanced full rate
 #define TCH_144_MODE       9    // data 14,4 kb/s half rate
 
-static uint8_t loc_cnt = 0;
-
-/* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
-static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
+void l1s_tx_apc_helper(void)
 {
 	int i;
-	uint8_t tsc;
-	uint8_t mf_task_id = p3 & 0xff;
-	uint8_t mf_task_flags = p3 >> 8;
-
-	putchart('T');
 
 	/* Load the ApcOffset into the DSP */
 	#define  MY_OFFSET	4
@@ -1017,87 +908,81 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 	/* The Ramp Table is sent to ABB only once after RF init routine called */
 	dsp_api.db_w->d_ctrl_abb |= (1 << B_RAMP) | (1 << B_BULRAMPDEL);
+}
+
+static uint8_t loc_cnt = 0;
+
+/* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
+static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
+{
+	uint8_t tsc;
+	uint8_t mf_task_id = p3 & 0xff;
+	uint8_t mf_task_flags = p3 >> 8;
+
+	putchart('T');
+
+	l1s_tx_apc_helper();
 
 	if (p1 == 0) /* DUL_DSP_TASK, one normal burst */
 		dsp_load_tch_param(0, SIG_ONLY_MODE, INVALID_CHANNEL, 0, 0, 0);
 	else if (p1 == 2) /* DUL_DSP_TASK, four normal bursts */
 		dsp_load_tch_param(0, SIG_ONLY_MODE, SDCCH_4, 0, 0, 0);
+/* common */
 
 	/* before sending first of the four bursts, copy data to API ram */
 	if (burst_id == 0) {
-	        if (p1 == 0 || p1 == 2) { // DUL_DSP_TASK
-			uint16_t *info_ptr = dsp_api.ndb->a_cu;
-			struct llist_head *tx_queue;
-			struct msgb *msg;
-			const uint8_t *data;
-			uint8_t j;
+		uint16_t *info_ptr = dsp_api.ndb->a_cu;
+		struct llist_head *tx_queue;
+		struct msgb *msg;
+		const uint8_t *data;
+		int i;
+		uint8_t j;
 
-			/* distinguish between DCCH and ACCH */
-			if (mf_task_flags & MF_F_SACCH) {
-				puts("SACCH queue ");
-				tx_queue = &l1s.tx_queue[L1S_CHAN_SACCH];
-			} else {
-				puts("SDCCH queue ");
-				tx_queue = &l1s.tx_queue[L1S_CHAN_MAIN];
-			}
-			msg = msgb_dequeue(tx_queue);
-
-			/* If the TX queue is empty, send idle pattern */
-			if (!msg) {
-				puts("TX idle pattern\n");
-				data = ubUui;
-			} else {
-				puts("TX uplink msg\n");
-				data = msg->l3h;
-			}
-
-			/* Fill data block Header */
-			info_ptr[0] = (1 << B_BLUD);     // 1st word: Set B_BLU bit.
-			info_ptr[1] = 0;                 // 2nd word: cleared.
-			info_ptr[2] = 0;                 // 3rd word: cleared.
-
-			/* Copy first 22 bytes in the first 11 words after header. */
-			for (i=0, j=(3+0); j<(3+11); j++) {
-				info_ptr[j] = ((uint16_t)(data[i])) | ((uint16_t)(data[i+1]) << 8);
-				printf("%02x %02x ", data[i], data[i+1]);
-				i += 2;
-			}
-			/* Copy last UWORD8 (23rd) in the 12th word after header. */
-			info_ptr[14] = data[22];
-			printf("%02x\n", data[22]);
-
-			if (msg)
-				msgb_free(msg);
-		} else if (p1 == 1) { // RACH_DSP_TASK
-			uint16_t  *info_ptr;
-			uint8_t data[2];
-
-			data[0] = l1s.serving_cell.bsic << 2;
-			data[1] = 0x00 + loc_cnt; // channel request, location update, loc_cnt as random reference
-			loc_cnt++;
-			if (loc_cnt > 16)
-				loc_cnt = 0;
-
-			info_ptr = &dsp_api.ndb->d_rach;
-			info_ptr[0] = ((uint16_t)(data[0])) | ((uint16_t)(data[1])<<8);
+		/* distinguish between DCCH and ACCH */
+		if (mf_task_flags & MF_F_SACCH) {
+			puts("SACCH queue ");
+			tx_queue = &l1s.tx_queue[L1S_CHAN_SACCH];
+		} else {
+			puts("SDCCH queue ");
+			tx_queue = &l1s.tx_queue[L1S_CHAN_MAIN];
 		}
+		msg = msgb_dequeue(tx_queue);
+
+		/* If the TX queue is empty, send idle pattern */
+		if (!msg) {
+			puts("TX idle pattern\n");
+			data = ubUui;
+		} else {
+			puts("TX uplink msg\n");
+			data = msg->l3h;
+		}
+
+		/* Fill data block Header */
+		info_ptr[0] = (1 << B_BLUD);     // 1st word: Set B_BLU bit.
+		info_ptr[1] = 0;                 // 2nd word: cleared.
+		info_ptr[2] = 0;                 // 3rd word: cleared.
+
+		/* Copy first 22 bytes in the first 11 words after header. */
+		for (i=0, j=(3+0); j<(3+11); j++) {
+			info_ptr[j] = ((uint16_t)(data[i])) | ((uint16_t)(data[i+1]) << 8);
+			printf("%02x %02x ", data[i], data[i+1]);
+			i += 2;
+		}
+		/* Copy last UWORD8 (23rd) in the 12th word after header. */
+		info_ptr[14] = data[22];
+		printf("%02x\n", data[22]);
+
+		if (msg)
+			msgb_free(msg);
 	}
 
-	if (p1 == 0 || p1 == 2) {
-		tsc = 7; // !!!!! nanoBTS configuration for SDCCH 0 !!!!!!!!
+	tsc = 7; // !!!!! nanoBTS configuration for SDCCH 0 !!!!!!!!
 
-		dsp_load_tx_task(DUL_DSP_TASK, burst_id, tsc);
-		dsp_end_scenario();
+	dsp_load_tx_task(DUL_DSP_TASK, burst_id, tsc);
+	dsp_end_scenario();
 
-		l1s_tx_win_ctrl(rf_arfcn, L1_TXWIN_NB, 0);
-		tpu_end_scenario();
-	} else if (p1 == 1) {
-		dsp_api.db_w->d_task_ra = RACH_DSP_TASK;
-		dsp_end_scenario();
-
-		l1s_tx_win_ctrl(rf_arfcn, L1_TXWIN_AB, 0);
-		tpu_end_scenario();
-	}
+	l1s_tx_win_ctrl(rf_arfcn, L1_TXWIN_NB, 0);
+	tpu_end_scenario();
 
 	return 0;
 }
@@ -1109,9 +994,6 @@ void l1s_tx_test(uint8_t base_fn, uint8_t type)
 	if (type == 0) {// one normal burst
 		tdma_schedule(base_fn, &l1s_tx_cmd, 0, 0, 0);
 		tdma_schedule(base_fn + 2, &l1s_tx_resp, 0, 0, 0);
-	} else if (type == 1) { // one RACH burst
-		tdma_schedule(base_fn, &l1s_tx_cmd, 1, 0, 0);
-		tdma_schedule(base_fn + 2, &l1s_tx_resp, 1, 0, 0);
 	} else if (type == 2) { // four normal burst
 		tdma_schedule(base_fn, &l1s_tx_cmd, 2, 0, 0);
 		tdma_schedule(base_fn + 1, &l1s_tx_cmd, 2, 1, 0);
@@ -1125,12 +1007,6 @@ void l1s_tx_test(uint8_t base_fn, uint8_t type)
 }
 
 /* sched sets for uplink */
-const struct tdma_sched_item rach_sched_set_ul[] = {
-	SCHED_ITEM(l1s_tx_cmd, 1, 0),					SCHED_END_FRAME(),
-									SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_tx_resp, 1, 0),					SCHED_END_FRAME(),
-	SCHED_END_SET()
-};
 const struct tdma_sched_item nb_sched_set_ul[] = {
 	SCHED_ITEM(l1s_tx_cmd, 2, 0),					SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_tx_cmd, 2, 1),					SCHED_END_FRAME(),

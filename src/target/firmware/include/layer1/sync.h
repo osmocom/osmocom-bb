@@ -133,4 +133,11 @@ void l1s_reset(void);
 /* init.c */
 void layer1_init(void);
 
+/* A debug macro to print every TDMA frame */
+#ifdef DEBUG_EVERY_TDMA
+#define putchart(x) putchar(x)
+#else
+#define putchart(x)
+#endif
+
 #endif /* _L1_SYNC_H */
