@@ -1,6 +1,11 @@
 #ifndef _CALYPSO_TPU_H
 #define _CALYPSO_TPU_H
 
+#define BITS_PER_TDMA		1250
+#define QBITS_PER_TDMA		(BITS_PER_TDMA * 4)	/* 5000 */
+#define TPU_RANGE		QBITS_PER_TDMA
+#define	SWITCH_TIME		(TPU_RANGE-10)
+
 /* Assert or de-assert TPU reset */
 void tpu_reset(int active);
 /* Enable or Disable a new scenario loaded into the TPU */

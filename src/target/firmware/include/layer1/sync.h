@@ -148,4 +148,9 @@ void layer1_init(void);
 
 extern l1s_cb_t l1s_cb;
 
+void l1s_reset_hw(void);
+void synchronize_tdma(struct l1_cell_info *cinfo);
+void l1s_time_inc(struct gsm_time *time, uint32_t delta_fn);
+void l1s_time_dump(const struct gsm_time *time);
+
 #endif /* _L1_SYNC_H */
