@@ -2,7 +2,7 @@
  * 3GPP TS 04.08 version 7.21.0 Release 1998 / ETSI TS 100 940 V7.21.0 */
 
 /* (C) 2008 by Harald Welte <laforge@gnumonks.org>
- * (C) 2008-2010 by Andreas Eversberg
+ * (C) 2009-2010 by Andreas Eversberg
  *
  * All Rights Reserved
  *
