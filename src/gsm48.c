@@ -263,12 +263,13 @@ int gsm48_generate_mid_from_imsi(uint8_t *buf, const char *imsi)
 }
 
 /* Convert Mobile Identity (10.5.1.4) to string */
-int gsm48_mi_to_string(char *string, const int str_len, const u_int8_t *mi, const int mi_len)
+int gsm48_mi_to_string(char *string, const int str_len, const uint8_t *mi,
+		       const int mi_len)
 {
 	int i;
-	u_int8_t mi_type;
+	uint8_t mi_type;
 	char *str_cur = string;
-	u_int32_t tmsi;
+	uint32_t tmsi;
 
 	mi_type = mi[0] & GSM_MI_TYPE_MASK;
 
