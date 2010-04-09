@@ -101,6 +101,12 @@ void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr)
 	/* uplink is three TS after downlink ( "+ 32" gives a TA of 1) */
 	uint16_t offset = (L1_BURST_LENGTH_Q * 3) + 28;
 
+	/* this is needed to cause a delay of one more TDMA frame,
+	 * otherwise we have an off-by-one error and send the bursts
+	 * at the wrong point in time, resulting in only 3 out of 4
+	 * bursts arriving at the BTS */
+	tpu_enq_at(5000 - 10); /* TPU_CLOCK_RANGE - EPSILON_SYNC */
+
 #ifdef CONFIG_TX_ENABLE
 	/* window open for TRF6151 and RFFE */
 	rffe_mode(gsm_arfcn2band(arfcn), 1);
