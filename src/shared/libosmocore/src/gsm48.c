@@ -97,10 +97,10 @@ static const struct value_string rr_cause_names[] = {
 };
 
 /* FIXME: convert to value_string */
-static const char *cc_state_names[33] = {
+static const char *cc_state_names[32] = {
 	"NULL",
 	"INITIATED",
-	"MM_CONNECTION_PEND",
+	"illegal state 2",
 	"MO_CALL_PROC",
 	"CALL_DELIVERED",
 	"illegal state 5",
