@@ -685,6 +685,7 @@ enum chreq_type {
 /* Chapter 5.1.2.2 */
 #define	GSM_CSTATE_NULL			0
 #define	GSM_CSTATE_INITIATED		1
+#define	GSM_CSTATE_MM_CONNECTION_PEND	2 /* see 10.5.4.6 */
 #define	GSM_CSTATE_MO_CALL_PROC		3
 #define	GSM_CSTATE_CALL_DELIVERED	4
 #define	GSM_CSTATE_CALL_PRESENT		6
