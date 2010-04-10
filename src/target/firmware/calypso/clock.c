@@ -167,12 +167,11 @@ void calypso_bootrom(int enable)
 {
 	uint16_t conf = readw(MEMIF_REG(EXTRA_CONF));
 
-	conf &= ~(3 << 8);
+	conf |= (3 << 8);
 
 	if (enable)
-		conf |= (1 << 8);
-	else
-		conf &= ~(1 << 8);
+		conf &= ~(1 << 9);
+
 	writew(conf, MEMIF_REG(EXTRA_CONF));
 }
 
