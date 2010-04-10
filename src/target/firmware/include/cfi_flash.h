@@ -57,12 +57,14 @@ void flash_init(cfi_flash_t *flash, void *base_addr);
 
 void flash_dump_info(cfi_flash_t *flash);
 
-flash_lock flash_block_getlock(cfi_flash_t *base_addr, uint32_t block_offset);
+flash_lock flash_block_getlock(cfi_flash_t *flash, uint32_t block_offset);
 
-void flash_block_unlock(cfi_flash_t *base_addr, uint32_t block_offset);
-void flash_block_lock(cfi_flash_t *base_addr, uint32_t block_offset);
-void flash_block_lockdown(cfi_flash_t *base_addr, uint32_t block_offset);
+void flash_block_unlock(cfi_flash_t *flash, uint32_t block_offset);
+void flash_block_lock(cfi_flash_t *flash, uint32_t block_offset);
+void flash_block_lockdown(cfi_flash_t *flash, uint32_t block_offset);
 
-void flash_block_erase(cfi_flash_t *base_addr, uint32_t block_addr);
+void flash_block_erase(cfi_flash_t *flash, uint32_t block_addr);
+
+void flash_program(cfi_flash_t *flash, uint32_t dst, void *src, uint32_t nbytes);
 
 #endif
