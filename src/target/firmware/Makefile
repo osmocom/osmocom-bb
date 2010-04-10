@@ -20,7 +20,8 @@ compal_e99_OBJS=$(compal_COMMON_OBJS) board/compal_e99/init.o
 gta0x_OBJS=$(gta0x_COMMON_OBJS) board/gta0x/init.o
 
 # List of all supported execution environments
-ENVIRONMENTS?=ramload osmoload
+ENVIRONMENTS?=app ramload osmoload
+app_LDS=board/common/compal_app.lds
 ramload_LDS=board/common/compal_ramload.lds
 osmoload_LDS=board/common/compal_osmoload.lds
 

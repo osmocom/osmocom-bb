@@ -35,6 +35,7 @@ GIT_MODIFIED:=$(shell (git status | grep "modified:\|added:\|deleted:" -q) && ec
 
 GIT_REVISION:=$(GIT_COMMIT)$(GIT_MODIFIED)
 
+ASFLAGS += -DGIT_REVISION=\"$(GIT_REVISION)\"
 CFLAGS += -DGIT_REVISION=\"$(GIT_REVISION)\"
 
 #### GLOBAL DATA ####
