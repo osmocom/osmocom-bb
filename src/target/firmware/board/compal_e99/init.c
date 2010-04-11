@@ -76,13 +76,10 @@ static void board_io_init(void)
 
 static void __ctor_board board_init(void)
 {
-	/* FIXME: this needs to go to board_e99/init.c once we have it */
+	/* Disable watchdog (compal loader leaves it enabled) */
 	wdog_enable(0);
 
-	static cfi_flash_t flash;
-	// XXX: move after mapping initialization and use final address
-	flash_init(&flash, 0x00000000);
-
+	/* Configure memory interface */
 	calypso_mem_cfg(CALYPSO_nCS0, 3, CALYPSO_MEM_16bit, 1);
 	calypso_mem_cfg(CALYPSO_nCS1, 3, CALYPSO_MEM_16bit, 1);
 	calypso_mem_cfg(CALYPSO_nCS2, 5, CALYPSO_MEM_16bit, 1);
@@ -97,12 +94,14 @@ static void __ctor_board board_init(void)
 	/* Configure the RHEA bridge with some sane default values */
 	calypso_rhea_cfg(0, 0, 0xff, 0, 1, 0, 0);
 
+	/* Initialize board-specific GPIO */
 	board_io_init();
 
 	/* Enable bootrom mapping to route exception vectors to RAM */
 	calypso_bootrom(1);
 	calypso_exceptions_install();
 
+	/* Initialize interrupt controller */
 	irq_init();
 
 	/* initialize MODEM UART to be used for sercomm*/
@@ -114,15 +113,23 @@ static void __ctor_board board_init(void)
 	uart_init(CONS_UART_NR, 1);
 	uart_baudrate(CONS_UART_NR, UART_115200);
 
+	/* Initialize hardware timers */
 	hwtimer_init();
 
+	/* Initialize DMA controller */
 	dma_init();
+
+	/* Initialize real time clock */
 	rtc_init();
+
+	/* Initialize system timers (uses hwtimer 2) */
+	timer_init();
 
 	/* Initialize LCD driver (uses UWire) */
 	display = &ssd1783_display;
 	display_init();
 
+	/* Initialize keypad driver */
 	keypad_init(1);
 
 	/* Initialize ABB driver (uses SPI) */
