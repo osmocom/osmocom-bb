@@ -25,6 +25,7 @@ compal_COMMON_OBJS=board/compal/start.o $(calypso_COMMON_OBJS) board/compal/rffe
 compal_COMMON_ENVIRONMENTS=compalram
 
 compalram_LDS=board/compal/ram.lds
+compalram_OBJS=board/compal/exceptions_redirected.o board/compal/handlers.o
 
 # Compal E88
 
@@ -32,7 +33,9 @@ compal_e88_OBJS=$(compal_COMMON_OBJS) board/compal_e88/init.o
 compal_e88_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS) e88loader
 
 e88loader_LDS=board/compal_e88/loader.lds
-e88flash_LDS=board/compal_e88/flash.lds
+e88loader_OBJS=board/compal/header.o board/compal/exceptions_redirect.o
+
+e88flash_LDS=board/compal_e88/flash.lds board/compal/exceptions_full.o
 
 # Compal E99
 
@@ -43,6 +46,7 @@ gta0x_OBJS=$(gta0x_COMMON_OBJS) board/gta0x/init.o
 compal_e99_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 e99loader_LDS=board/compal_e99/loader.lds
+e99loader_OBJS=board/compal/header.o
 e99flash_LDS=board/compal_e99/flash.lds
 
 

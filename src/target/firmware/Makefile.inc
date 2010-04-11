@@ -73,23 +73,26 @@ ALL_DEPS+=$(ANY_APP_OBJS:.o=.p)
 define APPLICATION_BOARD_ENVIRONMENT_template
 
 # define set of objects for this binary
-$(1)_$(2)_$(3)_OBJS := apps/$(1)/main.o $(ANY_APP_OBJS) $(ANY_APP_LIBS) $$($(2)_OBJS)
+$(1)_$(2)_$(3)_OBJS := apps/$(1)/main.o $(ANY_APP_OBJS) $$($(2)_OBJS)
+$(1)_$(2)_$(3)_LIBS := $(ANY_APP_LIBS)
 
 # define manifest compilation
 board/$(2)/$(1).$(3).manifest.o: board/manifest.c
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) -DAPPLICATION=\"$(3)\" -DBOARD=\"$(2)\" -DENVIRONMENT=\"$(3)\" -c -o $$@ $$<
+	$(CROSS_COMPILE)$(CC) $(CFLAGS) -DAPPLICATION=\"$(1)\" -DBOARD=\"$(2)\" -DENVIRONMENT=\"$(3)\" -c -o $$@ $$<
 
 # add manifest object to object list
-$(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o
+$(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o $$($(3)_OBJS)
 
 # define compilation, generating various extra files on the way
-board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map board/$(2)/$(1).$(3).size: $$($(1)_$(2)_$(3)_OBJS) $$($(3)_LDS)
+board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map board/$(2)/$(1).$(3).size: $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) $$($(3)_LDS)
 	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic \
 		-Map board/$(2)/$(1).$(3).map -o board/$(2)/$(1).$(3).elf \
-		--start-group $$($(1)_$(2)_$(3)_OBJS) --end-group
+		--start-group $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) --end-group
 	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
 
 ALL_APPS+=board/$(2)/$(1).$(3).elf
+
+ALL_OBJS+=$$($(1)_$(2)_$(3)_OBJS)
 
 endef
 
