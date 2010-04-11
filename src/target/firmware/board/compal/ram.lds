@@ -1,3 +1,10 @@
+/*
+ * Linker script for running from internal SRAM on Compal phones
+ *
+ * This script is tailored specifically to the requirements imposed
+ * on us by the Compal bootloader.
+ *
+ */
 OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 ENTRY(_start)

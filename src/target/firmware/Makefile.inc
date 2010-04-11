@@ -111,9 +111,16 @@ ALL_DEPS+=$$($(1)_OBJS:.o=.p) apps/$(1)/main.p
 endef
 
 # define rules for all defined applications
-$(foreach app,$(APPLICATIONS),$(foreach brd,$(BOARDS),$(foreach env,$(ENVIRONMENTS),$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
-$(foreach brd,$(BOARDS),$(eval $(call BOARD_template,$(brd))))
-$(foreach app,$(APPLICATIONS),$(eval $(call APPLICATION_template,$(app))))
+$(foreach app,$(APPLICATIONS),                \
+	$(foreach brd,$(BOARDS),                  \
+		$(foreach env,$($(brd)_ENVIRONMENTS), \
+			$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
+
+$(foreach brd,$(BOARDS), \
+	$(eval $(call BOARD_template,$(brd))))
+
+$(foreach app,$(APPLICATIONS), \
+	$(eval $(call APPLICATION_template,$(app))))
 
 
 #### LIBRARY RULES ####
@@ -177,6 +184,7 @@ clean:
 
 .PHONY: distclean
 distclean: clean
+	find . -name '*.o' -or -name '*.bin' -or -name '*.map' -or -name '*.lst' -or -name '*.p' -exec rm '{}' ';'
 
 
 #### DEPENDENCY LOAD ####

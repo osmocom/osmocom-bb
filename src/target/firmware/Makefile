@@ -8,28 +8,49 @@ DISPLAY_OBJS=display/font_r8x8.o display/font_r8x8_horiz.o display/st7558.o disp
 ABB_OBJS=abb/twl3025.o
 RF_OBJS=rf/trf6151.o
 
-# Board- and environment-specific startup code and linker script
-START=board/common/compal_ramload_start.S
-
 # List of all supported boards
 BOARDS?=compal_e88 compal_e99 gta0x
-compal_COMMON_OBJS=board/common/rffe_compal_dualband.o board/common/calypso_uart.o board/common/calypso_pwl.o
-gta0x_COMMON_OBJS=board/common/rffe_gta0x_triband.o board/common/calypso_uart.o board/common/calypso_pwl.o
+
+# TI Calypso
+
+calypso_COMMON_OBJS=board/common/calypso_uart.o board/common/calypso_pwl.o
+
+# OpenMoko GTA0x
+
+gta0x_COMMON_OBJS=board/common/rffe_gta0x_triband.o $(calypso_COMMON_OBJS)
+
+# Compal Generic
+
+compal_COMMON_OBJS=board/compal/start.o $(calypso_COMMON_OBJS) board/compal/rffe_dualband.o
+compal_COMMON_ENVIRONMENTS=compalram
+
+compalram_LDS=board/compal/ram.lds
+
+# Compal E88
+
 compal_e88_OBJS=$(compal_COMMON_OBJS) board/compal_e88/init.o
+compal_e88_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS) e88loader
+
+e88loader_LDS=board/compal_e88/loader.lds
+e88flash_LDS=board/compal_e88/flash.lds
+
+# Compal E99
+
 compal_e99_OBJS=$(compal_COMMON_OBJS) board/compal_e99/init.o
+
 gta0x_OBJS=$(gta0x_COMMON_OBJS) board/gta0x/init.o
 
-# List of all supported execution environments
-ENVIRONMENTS?=app ramload osmoload
-app_LDS=board/common/compal_app.lds
-ramload_LDS=board/common/compal_ramload.lds
-osmoload_LDS=board/common/compal_osmoload.lds
+compal_e99_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
+
+e99loader_LDS=board/compal_e99/loader.lds
+e99flash_LDS=board/compal_e99/flash.lds
+
 
 # List of all applications (add yours here!)
 APPLICATIONS=hello_world compal_dsp_dump layer1 loader simtest
 
 # Things that go in all applications
-ANY_APP_OBJS+=$(START:.S=.o) $(ABB_OBJS) $(RF_OBJS) $(DISPLAY_OBJS) $(FLASH_OBJS)
+ANY_APP_OBJS+=$(ABB_OBJS) $(RF_OBJS) $(DISPLAY_OBJS) $(FLASH_OBJS)
 ANY_APP_LIBS+=calypso/libcalypso.a layer1/liblayer1.a lib/libmini.a comm/libcomm.a ../../shared/libosmocore/build-target/src/.libs/libosmocore.a
 
 # Libraries are defined in subdirectories
