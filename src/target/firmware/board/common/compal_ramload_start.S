@@ -162,8 +162,3 @@ _irq:
 _fiq:
 	b	fiq_entry
 
-/* A few strings to be linked as the description header for compal images */
-.section .compal.header
-.ascii "OSMOCOM"
-		. = 0x20
-.ascii GIT_REVISION
