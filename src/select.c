@@ -121,7 +121,8 @@ restart:
 		/* ugly, ugly hack. If more than one filedescriptors were
 		 * unregistered, they might have been consecutive and
 		 * llist_for_each_entry_safe() is no longer safe */
-		if (unregistered_count > 1)
+		/* this seems to happen with the last element of the list as well */
+		if (unregistered_count >= 1)
 			goto restart;
 	}
 	return work;
