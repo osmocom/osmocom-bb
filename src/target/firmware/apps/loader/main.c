@@ -48,8 +48,7 @@
 #include <calypso/uart.h>
 #include <calypso/timer.h>
 
-#include <layer1/sync.h>
-#include <layer1/tpu_window.h>
+#include <cfi_flash.h>
 
 #include "protocol.h"
 
@@ -95,11 +94,7 @@ static void device_jump(void *entry) {
 }
 
 static void
-loader_send_simple(uint8_t dlci, uint8_t command) {
-	struct msgb *msg = sercomm_alloc_msgb(1);
-	if(!msg) {
-		puts("Failed to allocate message buffer!\n");
-	}
+loader_send_simple(struct msgb *msg, uint8_t dlci, uint8_t command) {
 	msgb_put_u8(msg, command);
 	sercomm_sendmsg(dlci, msg);
 }
@@ -108,15 +103,14 @@ extern unsigned char _start;
 
 static void
 loader_send_init(uint8_t dlci) {
-	struct msgb *msg = sercomm_alloc_msgb(1);
-	if(!msg) {
-		puts("Failed to allocate message buffer!\n");
-	}
+	struct msgb *msg = sercomm_alloc_msgb(9);
 	msgb_put_u8(msg, LOADER_INIT);
 	msgb_put_u32(msg, 0);
 	msgb_put_u32(msg, &_start);
 	sercomm_sendmsg(dlci, msg);
 }
+
+flash_t the_flash;
 
 int main(void)
 {
@@ -136,6 +130,11 @@ int main(void)
 	/* Say hi */
 	puts("\n\nOSMOCOM Calypso loader (revision " GIT_REVISION ")\n");
 	puts(hr);
+
+	/* Initialize flash driver */
+	if(flash_init(&the_flash, 0)) {
+		puts("Failed to initialize flash!\n");
+	}
 
 	/* Identify environment */
 	printf("Running on %s in environment %s\n", manifest_board, manifest_environment);
@@ -167,42 +166,45 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 	uint8_t command = msgb_get_u8(msg);
 
-	printf("command %u: ", command);
+	int res;
 
+	flash_lock_t lock;
+
+	uint8_t  chip;
 	uint8_t  nbytes;
 	uint16_t crc;
 	uint32_t address;
 
-	struct msgb *reply;
+	struct msgb *reply = sercomm_alloc_msgb(256); // XXX
+
+	if(!reply) {
+		printf("Failed to allocate reply buffer!\n");
+		goto out;
+	}
 
 	switch(command) {
 
 	case LOADER_PING:
-		puts("ping\n");
-		loader_send_simple(dlci, LOADER_PING);
+		loader_send_simple(reply, dlci, LOADER_PING);
 		break;
 
 	case LOADER_RESET:
-		puts("reset\n");
-		loader_send_simple(dlci, LOADER_RESET);
+		loader_send_simple(reply, dlci, LOADER_RESET);
 		device_reset();
 		break;
 
 	case LOADER_POWEROFF:
-		puts("poweroff\n");
-		loader_send_simple(dlci, LOADER_POWEROFF);
+		loader_send_simple(reply, dlci, LOADER_POWEROFF);
 		device_poweroff();
 		break;
 
 	case LOADER_ENTER_ROM_LOADER:
-		puts("jump to rom loader\n");
-		loader_send_simple(dlci, LOADER_ENTER_ROM_LOADER);
+		loader_send_simple(reply, dlci, LOADER_ENTER_ROM_LOADER);
 		device_enter_loader(1);
 		break;
 
 	case LOADER_ENTER_FLASH_LOADER:
-		puts("jump to flash loader\n");
-		loader_send_simple(dlci, LOADER_ENTER_FLASH_LOADER);
+		loader_send_simple(reply, dlci, LOADER_ENTER_FLASH_LOADER);
 		device_enter_loader(0);
 		break;
 
@@ -211,16 +213,11 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 		nbytes = msgb_get_u8(msg);
 		address = msgb_get_u32(msg);
 
-		printf("mem read %u @ %p\n", nbytes, (void*)address);
-
-		reply = sercomm_alloc_msgb(6 + nbytes);
-
-		if(!reply) {
-			printf("Failed to allocate reply buffer!\n");
-		}
+		crc = crc16(0, (void*)address, nbytes);
 
 		msgb_put_u8(reply, LOADER_MEM_READ);
 		msgb_put_u8(reply, nbytes);
+		msgb_put_u16(reply, crc);
 		msgb_put_u32(reply, address);
 
 		memcpy(msgb_put(reply, nbytes), (void*)address, nbytes);
@@ -235,25 +232,12 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 		crc = msgb_get_u16(msg);
 		address = msgb_get_u32(msg);
 
-		printf("mem write %u @ %p\n", nbytes, (void*)address);
-
 		void *data = msgb_get(msg, nbytes);
 
 		uint16_t mycrc = crc16(0, data, nbytes);
 
-#if 0
-		printf("crc %x got %x\n", mycrc, crc);
-		hexdump(data, nbytes);
-#endif
-
 		if(mycrc == crc) {
 			memcpy((void*)address, data, nbytes);
-		}
-
-		reply = sercomm_alloc_msgb(8);
-
-		if(!reply) {
-			printf("Failed to allocate reply buffer!\n");
 		}
 
 		msgb_put_u8(reply, LOADER_MEM_WRITE);
@@ -269,14 +253,6 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		address = msgb_get_u32(msg);
 
-		printf("jump to 0x%x\n", address);
-
-		reply = sercomm_alloc_msgb(5);
-
-		if(!reply) {
-			printf("Failed to allocate reply buffer!\n");
-		}
-
 		msgb_put_u8(reply, LOADER_JUMP);
 		msgb_put_u32(reply, address);
 
@@ -286,11 +262,95 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		break;
 
-	default:
-		printf("unknown command %d\n", command);
+	case LOADER_FLASH_INFO:
+
+		msgb_put_u8(reply, LOADER_FLASH_INFO);
+		msgb_put_u8(reply, 1); // nchips
+
+		// chip 1
+		msgb_put_u32(reply, the_flash.f_base);
+		msgb_put_u32(reply, the_flash.f_size);
+		msgb_put_u8(reply, the_flash.f_nregions);
+
+		int i;
+		for(i = 0; i < the_flash.f_nregions; i++) {
+			msgb_put_u32(reply, the_flash.f_regions[i].fr_bnum);
+			msgb_put_u32(reply, the_flash.f_regions[i].fr_bsize);
+		}
+
+		sercomm_sendmsg(dlci, reply);
+
 		break;
 
+	case LOADER_FLASH_ERASE:
+	case LOADER_FLASH_UNLOCK:
+	case LOADER_FLASH_LOCK:
+	case LOADER_FLASH_LOCKDOWN:
+
+		chip = msgb_get_u8(msg);
+		address = msgb_get_u32(msg);
+
+		if(command == LOADER_FLASH_ERASE) {
+			res = flash_block_erase(&the_flash, address);
+		}
+		if(command == LOADER_FLASH_UNLOCK) {
+			res = flash_block_unlock(&the_flash, address);
+		}
+		if(command == LOADER_FLASH_LOCK) {
+			res = flash_block_lock(&the_flash, address);
+		}
+		if(command == LOADER_FLASH_LOCKDOWN) {
+			res = flash_block_lockdown(&the_flash, address);
+		}
+
+		msgb_put_u8(reply, command);
+		msgb_put_u8(reply, chip);
+		msgb_put_u32(reply, address);
+		msgb_put_u32(reply, (res != 0));
+
+		sercomm_sendmsg(dlci, reply);
+
+		break;
+
+	case LOADER_FLASH_GETLOCK:
+
+		chip = msgb_get_u8(msg);
+		address = msgb_get_u32(msg);
+
+		lock = flash_block_getlock(&the_flash, address);
+
+		msgb_put_u8(reply, command);
+		msgb_put_u8(reply, chip);
+		msgb_put_u32(reply, address);
+
+		switch(lock) {
+		case FLASH_UNLOCKED:
+			msgb_put_u32(reply, LOADER_FLASH_UNLOCKED);
+			break;
+		case FLASH_LOCKED:
+			msgb_put_u32(reply, LOADER_FLASH_LOCKED);
+			break;
+		case FLASH_LOCKED_DOWN:
+			msgb_put_u32(reply, LOADER_FLASH_LOCKED_DOWN);
+			break;
+		default:
+			msgb_put_u32(reply, 0xFFFFFFFF);
+			break;
+		}
+
+		sercomm_sendmsg(dlci, reply);
+
+		break;
+
+	default:
+		printf("unknown command %d\n", command);
+
+		msgb_free(reply);
+
+		break;
 	}
+
+ out:
 
 	msgb_free(msg);
 }
