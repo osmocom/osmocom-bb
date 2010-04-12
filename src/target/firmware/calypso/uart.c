@@ -303,6 +303,16 @@ void uart_init(uint8_t uart, uint8_t interrupts)
 		writeb(UART_REG_UIR, 0x00);
 	}
 #endif
+
+	/* if we don't initialize these, we get strange corruptions in the
+	   received data... :-( */
+	uart_reg_write(uart,  MDR1, 0x07); /* turn off UART */
+	uart_reg_write(uart,  XON1, 0x00); /* Xon1/Addr Register */
+	uart_reg_write(uart,  XON2, 0x00); /* Xon2/Addr Register */
+	uart_reg_write(uart, XOFF1, 0x00); /* Xoff1 Register */
+	uart_reg_write(uart, XOFF2, 0x00); /* Xoff2 Register */
+	uart_reg_write(uart,   EFR, 0x00); /* Enhanced Features Register */
+
 	/* select  UART mode */
 	uart_reg_write(uart, MDR1, 0);
 	/* no XON/XOFF flow control, ENHANCED_EN, no auto-RTS/CTS */
