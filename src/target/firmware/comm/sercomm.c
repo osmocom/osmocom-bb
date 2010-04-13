@@ -85,6 +85,9 @@ void sercomm_init(void)
 
 	sercomm.rx.msg = NULL;
 	sercomm.initialized = 1;
+
+	/* set up the echo dlci */
+	sercomm_register_rx_cb(SC_DLCI_ECHO, &sercomm_sendmsg);
 }
 
 int sercomm_initialized(void)
