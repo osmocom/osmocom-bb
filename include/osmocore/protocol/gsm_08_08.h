@@ -5,9 +5,6 @@
 
 #include <stdlib.h>
 
-#include <osmocore/msgb.h>
-#include <openbsc/gsm_data.h>
-
 /*
  * this is from GSM 03.03 CGI but is copied in GSM 08.08
  * in § 3.2.2.27 for Cell Identifier List
