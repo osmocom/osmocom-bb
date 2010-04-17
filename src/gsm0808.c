@@ -186,3 +186,31 @@ struct msgb *gsm0808_create_assignment_failure(uint8_t cause, uint8_t *rr_cause)
 	msg->l3h[1] = msgb_l3len(msg) - 2;
 	return msg;
 }
+
+static const struct tlv_definition bss_att_tlvdef = {
+	.def = {
+		[GSM0808_IE_IMSI]		    = { TLV_TYPE_TLV },
+		[GSM0808_IE_TMSI]		    = { TLV_TYPE_TLV },
+		[GSM0808_IE_CELL_IDENTIFIER_LIST]   = { TLV_TYPE_TLV },
+		[GSM0808_IE_CHANNEL_NEEDED]	    = { TLV_TYPE_TV },
+		[GSM0808_IE_EMLPP_PRIORITY]	    = { TLV_TYPE_TV },
+		[GSM0808_IE_CHANNEL_TYPE]	    = { TLV_TYPE_TLV },
+		[GSM0808_IE_PRIORITY]		    = { TLV_TYPE_TLV },
+		[GSM0808_IE_CIRCUIT_IDENTITY_CODE]  = { TLV_TYPE_TV },
+		[GSM0808_IE_DOWNLINK_DTX_FLAG]	    = { TLV_TYPE_TV },
+		[GSM0808_IE_INTERFERENCE_BAND_TO_USE] = { TLV_TYPE_TV },
+		[GSM0808_IE_CLASSMARK_INFORMATION_T2] = { TLV_TYPE_TLV },
+		[GSM0808_IE_GROUP_CALL_REFERENCE]   = { TLV_TYPE_TLV },
+		[GSM0808_IE_TALKER_FLAG]	    = { TLV_TYPE_T },
+		[GSM0808_IE_CONFIG_EVO_INDI]	    = { TLV_TYPE_TV },
+		[GSM0808_IE_LSA_ACCESS_CTRL_SUPPR]  = { TLV_TYPE_TV },
+		[GSM0808_IE_SERVICE_HANDOVER]	    = { TLV_TYPE_TV},
+		[GSM0808_IE_ENCRYPTION_INFORMATION] = { TLV_TYPE_TLV },
+		[GSM0808_IE_CIPHER_RESPONSE_MODE]   = { TLV_TYPE_TV },
+	},
+};
+
+const struct tlv_definition *gsm0808_att_tlvdef()
+{
+	return &bss_att_tlvdef;
+}
