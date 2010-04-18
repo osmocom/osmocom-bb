@@ -47,6 +47,8 @@ SECTIONS
 	      AT (LOADADDR(.text.exceptions) + SIZEOF(.text.exceptions)) {
 		/* regular code */
 		*(.text*)
+        /* always-in-ram code */
+		*(.ramtext*)
 		/* gcc voodoo */
 		*(.glue_7t) *(.glue_7) *(.vfp11_veneer) *(.v4_bx)
 		. = ALIGN(4);

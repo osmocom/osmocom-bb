@@ -3,22 +3,40 @@
 	mov   r0, #0
 	ldr   r1, =__bss_start
 	ldr   r2, =__bss_end
-2:	cmp   r1, r2
+loop_bss:
+	cmp   r1, r2
 	strlo r0, [r1], #4
-	blo   2b
+	blo   loop_bss
 .endm
 
 .macro copy_data
     ldr   r0, =__data_start
     ldr   r1, =_data_start
     ldr   r2, =__data_end
-copy:
+	cmp r0, r2
+	beq done_data
+loop_data:
     ldrb  r4, [r0], #1
     strb  r4, [r1], #1
 	cmp r0, r2
-    bne   copy
+    bne   loop_data
+done_data:
 .endm
 
+.macro copy_ramtext
+    ldr   r0, =__ramtext_start
+    ldr   r1, =_ramtext_start
+    ldr   r2, =__ramtext_end
+	cmp r0, r2
+	beq done_ramtext
+loop_ramtext:
+    ldrb  r4, [r0], #1
+    strb  r4, [r1], #1
+	cmp r0, r2
+    bne   loop_ramtext
+done_ramtext:
+.endm
+		
 	.EQU	ARM_MODE_FIQ,	0x11
 	.EQU	ARM_MODE_IRQ,	0x12
 	.EQU	ARM_MODE_SVC,	0x13

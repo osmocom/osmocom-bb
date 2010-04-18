@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <memory.h>
+#include <defines.h>
 #include <cfi_flash.h>
 
 /* XXX: memdump_range() */
@@ -122,21 +123,25 @@ enum flash_status {
 	CFI_STATUS_RESERVED = 0x01
 };
 
+__ramtext
 static inline void flash_write_cmd(const void *base_addr, uint16_t cmd)
 {
 	writew(cmd, base_addr);
 }
 
+__ramtext
 static inline uint16_t flash_read16(const void *base_addr, uint32_t offset)
 {
 	return readw(base_addr + (offset << 1));
 }
 
+__ramtext
 static char flash_protected(uint32_t block_offset) {
 	return 0; // block_offset < 64*1024;
 }
 
 
+__ramtext
 flash_lock_t flash_block_getlock(flash_t *flash, uint32_t block_offset) {
 	const void *base_addr = flash->f_base;
 
@@ -154,6 +159,7 @@ flash_lock_t flash_block_getlock(flash_t *flash, uint32_t block_offset) {
 	}
 }
 
+__ramtext
 int flash_block_unlock(flash_t *flash, uint32_t block_offset) {
 	const void *base_addr = flash->f_base;
 
@@ -174,6 +180,7 @@ int flash_block_unlock(flash_t *flash, uint32_t block_offset) {
 	return 0;
 }
 
+__ramtext
 int flash_block_lock(flash_t *flash, uint32_t block_offset) {
 	const void *base_addr = flash->f_base;
 
@@ -190,6 +197,7 @@ int flash_block_lock(flash_t *flash, uint32_t block_offset) {
 	return 0;
 }
 
+__ramtext
 int flash_block_lockdown(flash_t *flash, uint32_t block_offset) {
 	const void *base_addr = flash->f_base;
 
@@ -206,6 +214,7 @@ int flash_block_lockdown(flash_t *flash, uint32_t block_offset) {
 	return 0;
 }
 
+__ramtext
 int flash_block_erase(flash_t *flash, uint32_t block_offset) {
 	const void *base_addr = flash->f_base;
 
@@ -255,6 +264,7 @@ int flash_block_erase(flash_t *flash, uint32_t block_offset) {
 
 }
 
+__ramtext
 int flash_program(flash_t *flash, uint32_t dst, void *src, uint32_t nbytes) {
 	const void *base_addr = flash->f_base;
 	int res = 0;
@@ -351,6 +361,7 @@ int flash_program(flash_t *flash, uint32_t dst, void *src, uint32_t nbytes) {
 }
 
 /* Internal: retrieve manufacturer and device id from id space */
+__ramtext
 static int get_id(void *base_addr, uint16_t *manufacturer_id, uint16_t *device_id) {
 	flash_write_cmd(base_addr, CFI_CMD_READ_ID);
 
@@ -363,6 +374,7 @@ static int get_id(void *base_addr, uint16_t *manufacturer_id, uint16_t *device_i
 }
 
 /* Internal: retrieve cfi query response data */
+__ramtext
 static int get_query(void *base_addr, struct cfi_query *query) {
 	int res = 0;
 	int i;
@@ -384,6 +396,7 @@ static int get_query(void *base_addr, struct cfi_query *query) {
 }
 
 /* Internal: retrieve intel protection data */
+__ramtext
 static int get_intel_protection(void *base_addr, uint16_t *lockp, uint8_t protp[8]) {
 	int i;
 
@@ -472,6 +485,7 @@ void flash_dump_info(flash_t *flash) {
 
 #endif
 
+__ramtext
 int flash_init(flash_t *flash, void *base_addr) {
 	int res, i;
 	uint16_t m_id, d_id;

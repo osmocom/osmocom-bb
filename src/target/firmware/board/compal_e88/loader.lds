@@ -120,6 +120,17 @@ SECTIONS
     PROVIDE(_data_start = ADDR(.data));
     PROVIDE(_data_end = ADDR(.data) + SIZEOF(.data));
 
+    /* ram code */
+    .ramtext : AT (LOADADDR(.data) + SIZEOF(.data)) {
+		. = ALIGN(4);
+        *(.ramtext)
+		. = ALIGN(4);
+    } > IRAM
+    PROVIDE(__ramtext_start = LOADADDR(.ramtext));
+    PROVIDE(__ramtext_end = LOADADDR(.ramtext) + SIZEOF(.ramtext));
+    PROVIDE(_ramtext_start = ADDR(.ramtext));
+    PROVIDE(_ramtext_end = ADDR(.ramtext) + SIZEOF(.ramtext));
+
     /* uninitialized data */
     .bss (NOLOAD) : {
 		. = ALIGN(4);

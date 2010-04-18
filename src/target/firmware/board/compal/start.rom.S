@@ -11,6 +11,9 @@ _start:
 	/* copy data to ram */
 	copy_data
 
+	/* copy alway-in-ram code */
+	copy_ramtext
+
 	/* initialize all stacks */
 	init_stacks
 

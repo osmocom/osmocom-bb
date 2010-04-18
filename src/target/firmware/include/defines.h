@@ -14,8 +14,6 @@
 
 /* force placement in zero-waitstate memory */
 /* XXX: these are placeholders */
-#define __fast_text
-#define __fast_data
-#define __fast_bss
+#define __ramtext __section(".ramtext")
 
 #endif /* !_DEFINES_H */
