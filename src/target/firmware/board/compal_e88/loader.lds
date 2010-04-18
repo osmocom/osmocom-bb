@@ -104,6 +104,11 @@ SECTIONS
     PROVIDE(_got_start = ADDR(.got));
     PROVIDE(_got_end = ADDR(.got) + SIZEOF(.got));
 
+    /* reserved ram  */
+    .compal.reservedram 0x800000 (NOLOAD) : {
+		. = 0xff;
+    } > IRAM
+
     /* initialized data */
     .data : AT (LOADADDR(.got) + SIZEOF(.got)) {
 		. = ALIGN(4);
