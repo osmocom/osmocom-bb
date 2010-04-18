@@ -850,14 +850,16 @@ static int handle_read(void)
 		printf("Received PROMPT1 from phone, responding with CMD\n");
 		dnload.print_hdlc = 0;
 		dnload.state = WAITING_PROMPT2;
-		rc = write(dnload.serial_fd.fd, dnload_cmd, sizeof(dnload_cmd));
+		if(dnload.filename) {
+			rc = write(dnload.serial_fd.fd, dnload_cmd, sizeof(dnload_cmd));
 
-		/* re-read file */
-		rc = read_file(dnload.filename);
-		if (rc < 0) {
-			fprintf(stderr, "read_file(%s) failed with %d\n",
-				dnload.filename, rc);
-			exit(1);
+			/* re-read file */
+			rc = read_file(dnload.filename);
+			if (rc < 0) {
+				fprintf(stderr, "read_file(%s) failed with %d\n",
+						dnload.filename, rc);
+				exit(1);
+			}
 		}
 	} else if (!memcmp(buffer, phone_prompt2, sizeof(phone_prompt2))) {
 		printf("Received PROMPT2 from phone, starting download\n");
@@ -1438,11 +1440,10 @@ int main(int argc, char **argv)
 	}
 
 	if (argc <= optind) {
-		fprintf(stderr, "You have to specify the filename\n");
-		usage(argv[0]);
+		dnload.filename = NULL;
+	} else {
+		dnload.filename = argv[optind];
 	}
-
-	dnload.filename = argv[optind];
 
 	dnload.serial_fd.fd = serial_init(serial_dev);
 	if (dnload.serial_fd.fd < 0) {
