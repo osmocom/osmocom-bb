@@ -21,11 +21,11 @@ gta0x_COMMON_OBJS=board/common/rffe_gta0x_triband.o $(calypso_COMMON_OBJS)
 
 # Compal Generic
 
-compal_COMMON_OBJS=board/compal/start.o $(calypso_COMMON_OBJS) board/compal/rffe_dualband.o
+compal_COMMON_OBJS=$(calypso_COMMON_OBJS) board/compal/rffe_dualband.o
 compal_COMMON_ENVIRONMENTS=compalram
 
 compalram_LDS=board/compal/ram.lds
-compalram_OBJS=board/compal/exceptions_redirected.o board/compal/handlers.o
+compalram_OBJS=board/compal/start.ram.o board/compal/exceptions_redirected.o board/compal/handlers.o
 
 # Compal E88
 
@@ -33,7 +33,7 @@ compal_e88_OBJS=$(compal_COMMON_OBJS) board/compal_e88/init.o
 compal_e88_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS) e88loader
 
 e88loader_LDS=board/compal_e88/loader.lds
-e88loader_OBJS=board/compal/header.o board/compal/exceptions_redirect.o
+e88loader_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/exceptions_redirect.o
 
 e88flash_LDS=board/compal_e88/flash.lds board/compal/exceptions_full.o
 

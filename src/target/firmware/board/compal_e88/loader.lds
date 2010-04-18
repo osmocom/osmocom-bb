@@ -61,6 +61,32 @@ SECTIONS
     PROVIDE(_text_start = ADDR(.text));
     PROVIDE(_text_end = ADDR(.text) + SIZEOF(.text));
 
+	/* constructor pointers */
+	. = ALIGN(4);
+	.ctors : {
+		/* ctor count */
+		LONG(SIZEOF(.ctors) / 4 - 2)
+		/* ctor pointers */
+		KEEP(*(SORT(.ctors)))
+		/* end of list */
+		LONG(0)
+	}
+	PROVIDE(_ctor_start = LOADADDR(.ctors));
+	PROVIDE(_ctor_end = LOADADDR(.ctors) + SIZEOF(.ctors));
+
+	/* destructor pointers */
+	. = ALIGN(4);
+	.dtors : {
+		/* dtor count */
+		LONG(SIZEOF(.dtors) / 4 - 2)
+		/* dtor pointers */
+		KEEP(*(SORT(.dtors)))
+		/* end of list */
+		LONG(0)
+	}
+	PROVIDE(_dtor_start = LOADADDR(.dtors));
+	PROVIDE(_dtor_end = LOADADDR(.dtors) + SIZEOF(.dtors));
+
     /* read-only data */
     .rodata : {
         *(.rodata*)

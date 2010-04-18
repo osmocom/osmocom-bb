@@ -54,9 +54,6 @@ SECTIONS
 		/* constructors and destructors */
 		. = ALIGN(4);
 		__CTOR_LIST__ = .;
-		LONG((__CTOR_END__ - __CTOR_LIST__) / 4 - 2)
-		KEEP(*(SORT(.ctors)))
-		LONG(0)				/* end of list */
 		__CTOR_END__ = .;
 		__DTOR_LIST__ = .;
 		LONG((__DTOR_END__ - __DTOR_LIST__) / 4 - 2)
@@ -66,6 +63,32 @@ SECTIONS
 	} > LRAM
 	PROVIDE(_text_start = LOADADDR(.text));
 	PROVIDE(_text_end = LOADADDR(.text) + SIZEOF(.text));
+
+	/* constructor pointers */
+	. = ALIGN(4);
+	.ctors : {
+		/* ctor count */
+		LONG(SIZEOF(.ctors) / 4 - 2)
+		/* ctor pointers */
+		KEEP(*(SORT(.ctors)))
+		/* end of list */
+		LONG(0)
+	}
+	PROVIDE(_ctor_start = LOADADDR(.ctors));
+	PROVIDE(_ctor_end = LOADADDR(.ctors) + SIZEOF(.ctors));
+
+	/* destructor pointers */
+	. = ALIGN(4);
+	.dtors : {
+		/* dtor count */
+		LONG(SIZEOF(.dtors) / 4 - 2)
+		/* dtor pointers */
+		KEEP(*(SORT(.dtors)))
+		/* end of list */
+		LONG(0)
+	}
+	PROVIDE(_dtor_start = LOADADDR(.dtors));
+	PROVIDE(_dtor_end = LOADADDR(.dtors) + SIZEOF(.dtors));
 
 	/* read-only data */
 	. = ALIGN(4);
