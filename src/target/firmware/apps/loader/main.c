@@ -146,12 +146,8 @@ int main(void)
 	puts(hr);
 
 	/* Initialize flash driver */
-	if(&flash_init >= 0x00800000) { // XXX safety hack
-		if(flash_init(&the_flash, 0)) {
-			puts("Failed to initialize flash!\n");
-		} else {
-			puts("Flash initialized.\n");
-		}
+	if(flash_init(&the_flash, 0)) {
+		puts("Failed to initialize flash!\n");
 	}
 
 	/* Identify environment */
