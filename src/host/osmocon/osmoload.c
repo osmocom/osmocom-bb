@@ -81,6 +81,7 @@ static struct {
 	char *binbuf;
 
 	/* memory operation state */
+	uint8_t  memchip; /* target chip (for flashes) */
 	uint32_t membase; /* target base address of operation */
 	uint32_t memlen;  /* length of entire operation */
 	uint32_t memoff;  /* offset for next request */
@@ -100,6 +101,7 @@ static int usage(const char *name)
 	puts("  flock <chip> <address>                   - Lock flash block");
 	puts("  flockdown <chip> <address>               - Lock down flash block");
 	puts("  fgetlock <chip> <address>                - Get locking state of block");
+	puts("  fprogram <chip> <address> <file>         - Program file into flash");
 	puts("  jump <hex-address>                       - Jump to address");
 	puts("  jumpflash                                - Jump to flash loader");
 	puts("  jumprom                                  - Jump to rom loader");
@@ -179,6 +181,7 @@ loader_send_request(struct msgb *msg) {
 
 static void loader_do_memdump(void *address, size_t length);
 static void loader_do_memload();
+static void loader_do_fprogram();
 
 static void memop_timeout(void *dummy) {
 	switch(osmoload.state) {
@@ -278,6 +281,14 @@ loader_handle_reply(struct msgb *msg) {
 		address = msgb_get_u32(msg);
 		status = msgb_get_u32(msg);
 		break;
+	case LOADER_FLASH_PROGRAM:
+		length = msgb_get_u8(msg);
+		crc = msgb_get_u16(msg);
+		msgb_get_u8(msg); // XXX align
+		chip = msgb_get_u8(msg);
+		address = msgb_get_u32(msg);
+		status = msgb_get_u32(msg);
+		break;
 	default:
 		printf("Received unknown reply %d:\n", cmd);
 		hexdump(msg->data, msg->len);
@@ -370,6 +381,19 @@ loader_handle_reply(struct msgb *msg) {
 				putchar('.');
 			}
 			loader_do_memload();
+		}
+		if(cmd == LOADER_FLASH_PROGRAM) {
+			if(osmoload.memcrc != crc) {
+				osmoload.memoff -= osmoload.memreq;
+				printf("\nbad crc %4.4x (not %4.4x) at offset 0x%8.8x", crc, osmoload.memcrc, osmoload.memoff);
+			} else {
+				putchar('.');
+			}
+			if(((int)status) != 0) {
+				printf("\nstatus %d, aborting");
+				exit(1);
+			}
+			loader_do_fprogram();
 		}
 		break;
 	default:
@@ -589,9 +613,53 @@ loader_do_memload() {
 	unsigned char *p = msgb_put(msg, reqbytes);
 	memcpy(p, osmoload.binbuf + osmoload.memoff, reqbytes);
 
+#if 0
 	printf("Sending %u bytes at offset %u to address %x with crc %x\n",
 		   reqbytes, osmoload.memoff, osmoload.membase + osmoload.memoff,
 		   osmoload.memcrc);
+#endif
+
+	loader_send_request(msg);
+
+	msgb_free(msg);
+
+	osmoload.memoff += reqbytes;
+}
+
+static void
+loader_do_fprogram() {
+	uint32_t rembytes = osmoload.memlen - osmoload.memoff;
+
+	if(!rembytes) {
+		puts("done.");
+		osmoload.quit = 1;
+		return;
+	}
+
+	bsc_schedule_timer(&osmoload.timeout, 0, 10000000);
+
+	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
+
+	osmoload.memcrc = crc16(0, osmoload.binbuf + osmoload.memoff, reqbytes);
+	osmoload.memreq = reqbytes;
+
+	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
+
+	msgb_put_u8(msg, LOADER_FLASH_PROGRAM);
+	msgb_put_u8(msg, reqbytes);
+	msgb_put_u16(msg, osmoload.memcrc);
+	msgb_put_u8(msg, 0); // XXX: align data to 16bit
+	msgb_put_u8(msg, osmoload.memchip);
+	msgb_put_u32(msg, osmoload.membase + osmoload.memoff);
+
+	unsigned char *p = msgb_put(msg, reqbytes);
+	memcpy(p, osmoload.binbuf + osmoload.memoff, reqbytes);
+
+#if 0
+	printf("Sending %u bytes at offset %u to address %x with crc %x\n",
+		   reqbytes, osmoload.memoff, osmoload.membase + osmoload.memoff,
+		   osmoload.memcrc);
+#endif
 
 	loader_send_request(msg);
 
@@ -672,6 +740,55 @@ loader_start_memload(uint32_t address, char *file) {
 }
 
 static void
+loader_start_fprogram(uint8_t chip, uint32_t address, char *file) {
+	int rc;
+	struct stat st;
+
+	rc = stat(file, &st);
+	if(rc < 0) {
+		printf("Could not stat %s: %s\n", file, strerror(errno));
+		exit(1);
+	}
+
+	uint32_t length = st.st_size;
+
+	printf("Loading %u bytes of memory at 0x%x in chip %d from file %s\n", length, address, chip, file);
+
+	osmoload.binbuf = malloc(length);
+	if(!osmoload.binbuf) {
+		printf("Could not allocate %u bytes for %s.\n", length, file);
+		exit(1);
+	}
+
+	osmoload.binfile = fopen(file, "rb");
+	if(!osmoload.binfile) {
+		printf("Could not open %s: %s\n", file, strerror(errno));
+		exit(1);
+	}
+
+	unsigned c = length;
+	char *p = osmoload.binbuf;
+	while(c) {
+		rc = fread(p, 1, c, osmoload.binfile);
+		if(ferror(osmoload.binfile)) {
+			printf("Could not read from file: %s\n", strerror(errno));
+			exit(1);
+		}
+		c -= rc;
+		p += rc;
+	}
+	fclose(osmoload.binfile);
+	osmoload.binfile = NULL;
+
+	osmoload.memchip = chip;
+	osmoload.membase = address;
+	osmoload.memlen = length;
+	osmoload.memoff = 0;
+
+	loader_do_fprogram();
+}
+
+static void
 query_timeout(void *dummy) {
 	puts("Query timed out.");
 	exit(2);
@@ -700,9 +817,9 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		loader_send_query(LOADER_ENTER_ROM_LOADER);
 	} else if(!strcmp(cmd, "jumpflash")) {
 		loader_send_query(LOADER_ENTER_FLASH_LOADER);
-	} else if(!strcmp(cmd, "flashinfo")) {
+	} else if(!strcmp(cmd, "finfo")) {
 		loader_send_query(LOADER_FLASH_INFO);
-	} else if(!strcmp(cmd, "flashgetlock")) {
+	} else if(!strcmp(cmd, "fgetlock")) {
 		uint8_t chip;
 		uint32_t address;
 
@@ -714,7 +831,7 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		address = strtoul(cmdv[2], NULL, 16);
 
 		loader_send_flash_query(LOADER_FLASH_GETLOCK, chip, address);
-	} else if(!strcmp(cmd, "flashunlock")) {
+	} else if(!strcmp(cmd, "funlock")) {
 		uint8_t chip;
 		uint32_t address;
 
@@ -726,7 +843,7 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		address = strtoul(cmdv[2], NULL, 16);
 
 		loader_send_flash_query(LOADER_FLASH_UNLOCK, chip, address);
-	} else if(!strcmp(cmd, "flashlock")) {
+	} else if(!strcmp(cmd, "flock")) {
 		uint8_t chip;
 		uint32_t address;
 
@@ -738,7 +855,7 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		address = strtoul(cmdv[2], NULL, 16);
 
 		loader_send_flash_query(LOADER_FLASH_LOCK, chip, address);
-	} else if(!strcmp(cmd, "flashlockdown")) {
+	} else if(!strcmp(cmd, "flockdown")) {
 		uint8_t chip;
 		uint32_t address;
 
@@ -750,7 +867,7 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		address = strtoul(cmdv[2], NULL, 16);
 
 		loader_send_flash_query(LOADER_FLASH_LOCKDOWN, chip, address);
-	} else if(!strcmp(cmd, "flasherase")) {
+	} else if(!strcmp(cmd, "ferase")) {
 		uint8_t chip;
 		uint32_t address;
 
@@ -845,6 +962,20 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		osmoload.state = STATE_LOAD_IN_PROGRESS;
 
 		loader_start_memload(address, cmdv[2]);
+	} else if(!strcmp(cmd, "fprogram")) {
+		uint8_t chip;
+		uint32_t address;
+
+		if(cmdc < 4) {
+			usage(name);
+		}
+
+		chip = strtoul(cmdv[1], NULL, 10);
+		address = strtoul(cmdv[2], NULL, 16);
+
+		osmoload.state = STATE_LOAD_IN_PROGRESS;
+
+		loader_start_fprogram(chip, address, cmdv[3]);
 	} else if(!strcmp(cmd, "help")) {
 		usage(name);
 	} else {
