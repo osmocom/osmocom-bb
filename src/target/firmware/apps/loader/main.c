@@ -112,8 +112,18 @@ loader_send_init(uint8_t dlci) {
 
 flash_t the_flash;
 
+extern void puts_asm(char *s);
+extern void putchar_asm(uint32_t c);
+
+static const uint8_t phone_ack[]     = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x03, 0x42 };
+
 int main(void)
 {
+	int i = 0;
+	for(i = 0; i < sizeof(phone_ack); i++) {
+		putchar_asm(phone_ack[i]);
+	}
+
 	/* Always disable wdt (some platforms enable it on boot) */
 	wdog_enable(0);
 
@@ -132,8 +142,12 @@ int main(void)
 	puts(hr);
 
 	/* Initialize flash driver */
-	if(flash_init(&the_flash, 0)) {
-		puts("Failed to initialize flash!\n");
+	if(&flash_init >= 0x00800000) { // XXX safety hack
+		if(flash_init(&the_flash, 0)) {
+			puts("Failed to initialize flash!\n");
+		} else {
+			puts("Flash initialized.\n");
+		}
 	}
 
 	/* Identify environment */
@@ -170,9 +184,11 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 	flash_lock_t lock;
 
+	void *data;
+
 	uint8_t  chip;
 	uint8_t  nbytes;
-	uint16_t crc;
+	uint16_t crc, mycrc;
 	uint32_t address;
 
 	struct msgb *reply = sercomm_alloc_msgb(256); // XXX
@@ -232,9 +248,9 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 		crc = msgb_get_u16(msg);
 		address = msgb_get_u32(msg);
 
-		void *data = msgb_get(msg, nbytes);
+		data = msgb_get(msg, nbytes);
 
-		uint16_t mycrc = crc16(0, data, nbytes);
+		mycrc = crc16(0, data, nbytes);
 
 		if(mycrc == crc) {
 			memcpy((void*)address, data, nbytes);
@@ -337,6 +353,35 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 			msgb_put_u32(reply, 0xFFFFFFFF);
 			break;
 		}
+
+		sercomm_sendmsg(dlci, reply);
+
+		break;
+
+	case LOADER_FLASH_PROGRAM:
+
+		nbytes = msgb_get_u8(msg);
+		crc = msgb_get_u16(msg);
+		msgb_get_u8(msg); // XXX align
+		chip = msgb_get_u8(msg);
+		address = msgb_get_u32(msg);
+
+		data = msgb_get(msg, nbytes);
+
+		mycrc = crc16(0, data, nbytes);
+
+		if(mycrc == crc) {
+			res = flash_program(&the_flash, address, data, nbytes);
+		}
+
+		msgb_put_u8(reply, LOADER_FLASH_PROGRAM);
+		msgb_put_u8(reply, nbytes);
+		msgb_put_u16(reply, mycrc);
+		msgb_put_u8(reply, 0); // XXX align
+		msgb_put_u8(reply, chip);
+		msgb_put_u32(reply, address);
+
+		msgb_put_u32(reply, (uint32_t)res); // XXX
 
 		sercomm_sendmsg(dlci, reply);
 
