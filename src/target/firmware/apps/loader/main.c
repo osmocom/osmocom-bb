@@ -130,6 +130,10 @@ int main(void)
 	/* Initialize TWL3025 for power control */
 	twl3025_init();
 
+	/* Backlight */
+	bl_mode_pwl(1);
+	bl_level(50);
+
 	/* Initialize UART without interrupts */
 	uart_init(SERCOMM_UART_NR, 0);
 	uart_baudrate(SERCOMM_UART_NR, UART_115200);

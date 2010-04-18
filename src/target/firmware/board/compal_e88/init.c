@@ -37,6 +37,7 @@
 #include <calypso/rtc.h>
 #include <calypso/timer.h>
 #include <calypso/uart.h>
+#include <calypso/backlight.h>
 
 #include <comm/sercomm.h>
 #include <comm/timer.h>
@@ -121,9 +122,11 @@ static void __ctor_board board_init(void)
 	/* Initialize system timers (uses hwtimer 2) */
 	timer_init();
 
-	/* Initialize LCD driver (uses I2C) */
+	/* Initialize LCD driver (uses I2C) and backlight */
 	display = &st7558_display;
 	display_init();
+	bl_mode_pwl(1);
+	bl_level(50);
 
 	/* Initialize keypad driver */
 	keypad_init(1);
