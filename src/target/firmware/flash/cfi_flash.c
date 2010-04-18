@@ -33,6 +33,10 @@
 #include <calypso/uart.h>
 #include <comm/sercomm.h>
 
+/* XXX: strings must always be in ram */
+#define puts(...)
+#define printf(...)
+
 /* global definitions */
 #define CFI_FLASH_MAX_ERASE_REGIONS 4
 
