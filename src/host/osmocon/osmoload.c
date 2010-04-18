@@ -390,7 +390,7 @@ loader_handle_reply(struct msgb *msg) {
 				putchar('.');
 			}
 			if(((int)status) != 0) {
-				printf("\nstatus %d, aborting");
+				printf("\nstatus %d, aborting\n", status);
 				exit(1);
 			}
 			loader_do_fprogram();
