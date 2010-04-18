@@ -31,7 +31,7 @@
 
 enum pwl_reg {
 	PWL_LEVEL	= 0,
-	PWL_CTRL	= 2,
+	PWL_CTRL	= 1,
 };
 
 #define ASCONF_PWL_ENA	(1 << 4)
@@ -43,6 +43,7 @@ void bl_mode_pwl(int on)
 	reg = readw(ASIC_CONF_REG);
 
 	if (on) {
+		/* Enable pwl */
 		writeb(0x01, PWL_REG(PWL_CTRL));
 		/* Switch pin from LT to PWL */
 		reg |= ASCONF_PWL_ENA;
@@ -51,6 +52,7 @@ void bl_mode_pwl(int on)
 		/* Switch pin from PWL to LT */
 		reg |= ~ASCONF_PWL_ENA;
 		writew(reg, ASIC_CONF_REG);
+		/* Disable pwl */
 		writeb(0x00, PWL_REG(PWL_CTRL));
 	}
 }
