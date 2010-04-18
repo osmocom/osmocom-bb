@@ -141,7 +141,11 @@ static inline uint16_t flash_read16(const void *base_addr, uint32_t offset)
 
 __ramtext
 static char flash_protected(uint32_t block_offset) {
-	return 0; // block_offset < 64*1024;
+#ifdef CONFIG_FLASH_WRITE
+	return 0;
+#else
+	return 1;
+#endif
 }
 
 

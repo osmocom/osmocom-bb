@@ -22,6 +22,9 @@ CFLAGS += -g$(DEBUGF)
 # Uncomment this line if you want to enable Tx (Transmit) Support.
 #CFLAGS += -DCONFIG_TX_ENABLE
 
+# Uncomment this line if you want to write to flash.
+#CFLAGS += -DCONFIG_FLASH_WRITE
+
 # some older toolchains don't support this, ignore it for now
 #ASFLAGS=-Wa,-adhlns=$(<:.S=.lst),--g$(DEBUGF) $(INCLUDES) -D__ASSEMBLY__
 ASFLAGS=-Wa,-adhlns=$(<:.S=.lst) $(INCLUDES) -D__ASSEMBLY__
