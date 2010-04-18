@@ -133,7 +133,7 @@ static inline uint16_t flash_read16(const void *base_addr, uint32_t offset)
 }
 
 static char flash_protected(uint32_t block_offset) {
-	return block_offset < 64*1024;
+	return 0; // block_offset < 64*1024;
 }
 
 
@@ -268,7 +268,10 @@ int flash_program(flash_t *flash, uint32_t dst, void *src, uint32_t nbytes) {
 		return -EINVAL;
 	}
 
-	/* check destination alignment */
+	/* check alignments */
+	if(((uint32_t)src)%2) {
+		return -EINVAL;
+	}
 	if(dst%2) {
 		return -EINVAL;
 	}
