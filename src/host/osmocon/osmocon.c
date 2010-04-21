@@ -202,8 +202,8 @@ static int serial_init(const char *serial_port)
 	}
 	cfsetispeed(&tio, MODEM_BAUDRATE);
 	cfsetospeed(&tio, MODEM_BAUDRATE);
-	tio.c_cflag |=  (CREAD | CLOCAL | CS8);
 	tio.c_cflag &= ~(PARENB | CSTOPB | CSIZE | CRTSCTS);
+	tio.c_cflag |=  (CREAD | CLOCAL | CS8);
 	tio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 	tio.c_iflag |=  (INPCK | ISTRIP);
 	tio.c_iflag &= ~(ISTRIP | IXON | IXOFF | IGNBRK | INLCR | ICRNL | IGNCR);
