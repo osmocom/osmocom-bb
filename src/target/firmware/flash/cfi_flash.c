@@ -403,6 +403,8 @@ static int get_query(void *base_addr, struct cfi_query *query) {
 	return res;
 }
 
+#if 0
+
 /* Internal: retrieve intel protection data */
 __ramtext
 static int get_intel_protection(void *base_addr, uint16_t *lockp, uint8_t protp[8]) {
@@ -432,8 +434,6 @@ static int get_intel_protection(void *base_addr, uint16_t *lockp, uint8_t protp[
 
 	return 0;
 }
-
-#if 0
 
 static void dump_intel_protection(uint16_t lock, uint8_t data[8]) {
 	printf("  protection lock 0x%4.4x data 0x%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x\n",
@@ -495,7 +495,8 @@ void flash_dump_info(flash_t *flash) {
 
 __ramtext
 int flash_init(flash_t *flash, void *base_addr) {
-	int res, i;
+	int res;
+	unsigned u;
 	uint16_t m_id, d_id;
 	uint32_t base;
 	struct cfi_query qry;
@@ -533,12 +534,12 @@ int flash_init(flash_t *flash, void *base_addr) {
 
 	/* compute actual erase region info from cfi junk */
 	base = 0;
-	for(i = 0; i < flash->f_nregions; i++) {
-		flash_region_t *fr = &flash->f_regions[i];
+	for(u = 0; u < flash->f_nregions; u++) {
+		flash_region_t *fr = &flash->f_regions[u];
 
-		fr->fr_base = base;
-		fr->fr_bnum = qry.erase_regions[i].b_count + 1;
-		fr->fr_bsize = qry.erase_regions[i].b_size * 256;
+		fr->fr_base = (void*)base;
+		fr->fr_bnum = qry.erase_regions[u].b_count + 1;
+		fr->fr_bsize = qry.erase_regions[u].b_size * 256;
 
 		base += fr->fr_bnum * fr->fr_bsize;
 	}
