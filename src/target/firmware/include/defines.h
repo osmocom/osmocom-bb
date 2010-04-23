@@ -13,7 +13,6 @@
 #define __section(name) __attribute__((section(name)))
 
 /* force placement in zero-waitstate memory */
-/* XXX: these are placeholders */
 #define __ramtext __section(".ramtext")
 
 #endif /* !_DEFINES_H */
