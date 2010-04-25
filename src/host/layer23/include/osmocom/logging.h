@@ -7,6 +7,8 @@
 enum {
 	DRSL,
 	DRR,
+	DPLMN,
+	DCS,
 	DMM,
 	DCC,
 	DSMS,

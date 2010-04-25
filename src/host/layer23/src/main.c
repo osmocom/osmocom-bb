@@ -131,9 +131,9 @@ int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-static void print_usage()
+static void print_usage(const char *app)
 {
-	printf("Usage: ./layer2\n");
+	printf("Usage: %s\n", app);
 }
 
 static void print_help()
@@ -166,7 +166,7 @@ static void handle_options(int argc, char **argv)
 
 		switch (c) {
 		case 'h':
-			print_usage();
+			print_usage(argv[0]);
 			print_help();
 			exit(0);
 			break;

@@ -5,9 +5,16 @@
 #include <osmocore/gsm_utils.h>
 #include <osmocore/write_queue.h>
 
-#include <osmocom/lapdm.h>
-
 struct osmocom_ms;
+
+#include <osmocom/support.h>
+#include <osmocom/subscriber.h>
+#include <osmocom/lapdm.h>
+#include <osmocom/gsm48_rr.h>
+#include <osmocom/gsm322.h>
+#include <osmocom/gsm48_mm.h>
+#include <osmocom/sysinfo.h>
+#include <osmocom/gsm48_cc.h>
 
 /* A layer2 entity */
 struct osmol2_entity {
@@ -20,10 +27,21 @@ struct osmol2_entity {
 struct osmocom_ms {
 	char name[32];
 	struct write_queue wq;
-	enum gsm_band band;
 	uint16_t test_arfcn;
 
+	struct gsm_support support;
+
+	struct gsm_subscriber subscr;
+
 	struct osmol2_entity l2_entity;
+
+	struct gsm48_rrlayer rrlayer;
+	struct gsm322_plmn plmn;
+	struct gsm322_cellsel cellsel;
+	struct gsm48_sysinfo sysinfo;
+	struct gsm48_mmlayer mmlayer;
+	struct gsm48_cclayer cclayer;
+	struct llist_head trans_list;
 };
 
 enum osmobb_sig_subsys {
