@@ -172,7 +172,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		}
 
 		sync_req = (struct l1ctl_sync_new_ccch_req *) l1h->data;
-		printd("L1CTL_DM_EST_REQ (arfcn=%u)\n", sync_req->band_arfcn);
+		printd("L1CTL_NEW_CCCH_REQ (arfcn=%u)\n", sync_req->band_arfcn);
 
 		/* reset scheduler and hardware */
 		l1s_reset();
