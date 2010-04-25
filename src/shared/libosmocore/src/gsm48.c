@@ -75,6 +75,68 @@ const struct tlv_definition gsm48_att_tlvdef = {
 	},
 };
 
+/* RR elements */
+const struct tlv_definition gsm48_rr_att_tlvdef = {
+	.def = {
+		/* NOTE: Don't add IE 17 = MOBILE_ID here, it already used. */
+		[GSM48_IE_VGCS_TARGET]		= { TLV_TYPE_TLV },
+		[GSM48_IE_FRQSHORT_AFTER]	= { TLV_TYPE_FIXED, 9 },
+		[GSM48_IE_MUL_RATE_CFG]		= { TLV_TYPE_TLV },
+		[GSM48_IE_FRQLIST_AFTER]	= { TLV_TYPE_TLV },
+		[GSM48_IE_MSLOT_DESC]		= { TLV_TYPE_TLV },
+		[GSM48_IE_CHANMODE_2]		= { TLV_TYPE_TV },
+		[GSM48_IE_FRQSHORT_BEFOR]	= { TLV_TYPE_FIXED, 9 },
+		[GSM48_IE_CHANMODE_3]		= { TLV_TYPE_TV },
+		[GSM48_IE_CHANMODE_4]		= { TLV_TYPE_TV },
+		[GSM48_IE_CHANMODE_5]		= { TLV_TYPE_TV },
+		[GSM48_IE_CHANMODE_6]		= { TLV_TYPE_TV },
+		[GSM48_IE_CHANMODE_7]		= { TLV_TYPE_TV },
+		[GSM48_IE_CHANMODE_8]		= { TLV_TYPE_TV },
+		[GSM48_IE_FRQLIST_BEFORE]	= { TLV_TYPE_TLV },
+		[GSM48_IE_CHDES_1_BEFORE]	= { TLV_TYPE_FIXED, 3 },
+		[GSM48_IE_CHDES_2_BEFORE]	= { TLV_TYPE_FIXED, 3 },
+		[GSM48_IE_FRQSEQ_BEFORE]	= { TLV_TYPE_FIXED, 9 },
+		[GSM48_IE_CLASSMARK3]		= { TLV_TYPE_TLV },
+		[GSM48_IE_MOB_AL_BEFORE]	= { TLV_TYPE_TLV },
+		[GSM48_IE_RR_PACKET_UL]		= { TLV_TYPE_TLV },
+		[GSM48_IE_RR_PACKET_DL]		= { TLV_TYPE_TLV },
+		[GSM48_IE_CELL_CH_DESC]		= { TLV_TYPE_FIXED, 16 },
+		[GSM48_IE_CHANMODE_1]		= { TLV_TYPE_TV },
+		[GSM48_IE_CHDES_2_AFTER]	= { TLV_TYPE_FIXED, 3 },
+		[GSM48_IE_MODE_SEC_CH]		= { TLV_TYPE_TV },
+		[GSM48_IE_FRQSEQ_AFTER]		= { TLV_TYPE_FIXED, 9 },
+		[GSM48_IE_MOB_AL_AFTER]		= { TLV_TYPE_TLV },
+		[GSM48_IE_BA_RANGE]		= { TLV_TYPE_TLV },
+		[GSM48_IE_GROUP_CHDES]		= { TLV_TYPE_TLV },
+		[GSM48_IE_BA_LIST_PREF]		= { TLV_TYPE_TLV },
+		[GSM48_IE_MOB_OVSERV_DIF]	= { TLV_TYPE_TLV },
+		[GSM48_IE_REALTIME_DIFF]	= { TLV_TYPE_TLV },
+		[GSM48_IE_START_TIME]		= { TLV_TYPE_FIXED, 2 },
+		[GSM48_IE_TIMING_ADVANCE]	= { TLV_TYPE_TV },
+		[GSM48_IE_GROUP_CIP_SEQ]	= { TLV_TYPE_SINGLE_TV },
+		[GSM48_IE_CIP_MODE_SET]		= { TLV_TYPE_SINGLE_TV },
+		[GSM48_IE_GPRS_RESUMPT]		= { TLV_TYPE_SINGLE_TV },
+		[GSM48_IE_SYNC_IND]		= { TLV_TYPE_SINGLE_TV },
+	},
+};
+
+/* MM elements */
+const struct tlv_definition gsm48_mm_att_tlvdef = {
+	.def = {
+		[GSM48_IE_MOBILE_ID]		= { TLV_TYPE_TLV },
+		[GSM48_IE_NAME_LONG]		= { TLV_TYPE_TLV },
+		[GSM48_IE_NAME_SHORT]		= { TLV_TYPE_TLV },
+		[GSM48_IE_UTC]			= { TLV_TYPE_TV },
+		[GSM48_IE_NET_TIME_TZ]		= { TLV_TYPE_FIXED, 7 },
+		[GSM48_IE_LSA_IDENT]		= { TLV_TYPE_TLV },
+
+		[GSM48_IE_LOCATION_AREA]	= { TLV_TYPE_FIXED, 5 },
+		[GSM48_IE_PRIORITY_LEV]		= { TLV_TYPE_SINGLE_TV },
+		[GSM48_IE_FOLLOW_ON_PROC]	= { TLV_TYPE_T },
+		[GSM48_IE_CTS_PERMISSION]	= { TLV_TYPE_T },
+	},
+};
+
 static const struct value_string rr_cause_names[] = {
 	{ GSM48_RR_CAUSE_NORMAL,		"Normal event" },
 	{ GSM48_RR_CAUSE_ABNORMAL_UNSPEC,	"Abnormal release, unspecified" },
@@ -97,7 +159,7 @@ static const struct value_string rr_cause_names[] = {
 };
 
 /* FIXME: convert to value_string */
-static const char *cc_state_names[33] = {
+static const char *cc_state_names[32] = {
 	"NULL",
 	"INITIATED",
 	"MM_CONNECTION_PEND",

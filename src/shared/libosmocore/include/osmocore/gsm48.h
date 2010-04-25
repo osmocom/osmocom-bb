@@ -5,6 +5,8 @@
 #include <osmocore/gsm48_ie.h>
 
 extern const struct tlv_definition gsm48_att_tlvdef;
+extern const struct tlv_definition gsm48_rr_att_tlvdef;
+extern const struct tlv_definition gsm48_mm_att_tlvdef;
 const char *gsm48_cc_state_name(uint8_t state);
 const char *gsm48_cc_msg_name(uint8_t msgtype);
 const char *rr_cause_name(uint8_t cause);
