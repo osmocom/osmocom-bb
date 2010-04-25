@@ -44,7 +44,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	switch (signal) {
 	case S_L1CTL_RESET:
 		ms = signal_data;
-		return l1ctl_tx_ccch_req(ms);
+		return l1ctl_tx_ccch_req(ms, ms->test_arfcn);
 		break;
 	}
 	return 0;

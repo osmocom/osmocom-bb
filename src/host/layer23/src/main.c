@@ -173,7 +173,7 @@ static void handle_options(int argc, char **argv)
 			socket_path = talloc_strdup(l2_ctx, optarg);
 			break;
 		case 'a':
-			ms->arfcn = atoi(optarg);
+			ms->test_arfcn = atoi(optarg);
 			break;
 		case 'i':
 			if (!inet_aton(optarg, &gsmtap.sin_addr)) {
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	ms->arfcn = 871;
+	ms->test_arfcn = 871;
 
 	handle_options(argc, argv);
 

@@ -64,10 +64,10 @@ static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 }
 
 
-static int osmo_make_band_arfcn(struct osmocom_ms *ms)
+static int osmo_make_band_arfcn(struct osmocom_ms *ms, uint16_t arfcn)
 {
 	/* TODO: Include the band */
-	return ms->arfcn;
+	return arfcn;
 }
 
 static int rx_l1_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
@@ -214,7 +214,7 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 }
 
 /* Transmit NEW_CCCH_REQ */
-int l1ctl_tx_ccch_req(struct osmocom_ms *ms)
+int l1ctl_tx_ccch_req(struct osmocom_ms *ms, uint16_t arfcn)
 {
 	struct msgb *msg;
 	struct l1ctl_sync_new_ccch_req *req;
@@ -224,7 +224,7 @@ int l1ctl_tx_ccch_req(struct osmocom_ms *ms)
 		return -1;
 
 	req = (struct l1ctl_sync_new_ccch_req *) msgb_put(msg, sizeof(*req));
-	req->band_arfcn = osmo_make_band_arfcn(ms);
+	req->band_arfcn = osmo_make_band_arfcn(ms, arfcn);
 
 	return osmo_send_l1(ms, msg);
 }

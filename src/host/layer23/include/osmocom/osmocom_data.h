@@ -20,7 +20,7 @@ struct osmol2_entity {
 struct osmocom_ms {
 	struct write_queue wq;
 	enum gsm_band band;
-	int arfcn;
+	uint16_t test_arfcn;
 
 	struct osmol2_entity l2_entity;
 };

@@ -154,15 +154,14 @@ static int _cinfo_start_arfcn(unsigned int band_arfcn)
 
 	/* ask L1 to try to tune to new ARFCN */
 	/* FIXME: decode band */
-	fps.ms->arfcn = band_arfcn;
-	rc = l1ctl_tx_ccch_req(fps.ms);
+	rc = l1ctl_tx_ccch_req(fps.ms, band_arfcn);
 	if (rc < 0)
 		return rc;
 
 	/* allocate new cell info structure */
 	fps.cur_cell = cell_info_alloc();
-	fps.cur_arfcn = fps.ms->arfcn;
-	fps.cur_cell->band_arfcn = fps.ms->arfcn;
+	fps.cur_arfcn = band_arfcn;
+	fps.cur_cell->band_arfcn = band_arfcn;
 	/* FIXME: start timer in case we never get a sync */
 	fps.state = BSCAN_S_WAIT_DATA;
 	bsc_schedule_timer(&fps.timer, 2, 0);

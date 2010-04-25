@@ -19,7 +19,7 @@ int tx_ph_rach_req(struct osmocom_ms *ms);
 /* Transmit L1CTL_DM_EST_REQ */
 int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr);
 /* Transmit NEW_CCCH_REQ */
-int l1ctl_tx_ccch_req(struct osmocom_ms *ms);
+int l1ctl_tx_ccch_req(struct osmocom_ms *ms, uint16_t arfcn);
 
 int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len);
 
