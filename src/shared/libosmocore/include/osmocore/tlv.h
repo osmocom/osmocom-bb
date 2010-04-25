@@ -212,6 +212,7 @@ enum tlv_type {
 	TLV_TYPE_TLV,
 	TLV_TYPE_TL16V,
 	TLV_TYPE_TvLV,
+	TLV_TYPE_SINGLE_TV
 };
 
 struct tlv_def {
