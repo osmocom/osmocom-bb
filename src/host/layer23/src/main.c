@@ -49,10 +49,11 @@ static struct log_target *stderr_target;
 
 #define GSM_L2_LENGTH 256
 
-static void *l2_ctx = NULL;
+void *l23_ctx = NULL;
 static char *socket_path = "/tmp/osmocom_l2";
 static struct osmocom_ms *ms = NULL;
 static uint32_t gsmtap_ip = 0;
+int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
 
 static int layer2_read(struct bsc_fd *fd)
 {
@@ -170,7 +171,7 @@ static void handle_options(int argc, char **argv)
 			exit(0);
 			break;
 		case 's':
-			socket_path = talloc_strdup(l2_ctx, optarg);
+			socket_path = talloc_strdup(l23_ctx, optarg);
 			break;
 		case 'a':
 			ms->test_arfcn = atoi(optarg);
@@ -201,13 +202,15 @@ int main(int argc, char **argv)
 	log_add_target(stderr_target);
 	log_set_all_filter(stderr_target, 1);
 
-	l2_ctx = talloc_named_const(NULL, 1, "layer2 context");
+	l23_ctx = talloc_named_const(NULL, 1, "layer2 context");
 
-	ms = talloc_zero(l2_ctx, struct osmocom_ms);
+	ms = talloc_zero(l23_ctx, struct osmocom_ms);
 	if (!ms) {
 		fprintf(stderr, "Failed to allocate MS\n");
 		exit(1);
 	}
+
+	sprintf(ms->name, "1");
 
 	ms->test_arfcn = 871;
 
@@ -255,6 +258,8 @@ int main(int argc, char **argv)
 	}
 
 	while (1) {
+		if (l23_app_work)
+			l23_app_work(ms);
 		bsc_select_main(0);
 	}
 

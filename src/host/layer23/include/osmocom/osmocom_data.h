@@ -18,6 +18,7 @@ struct osmol2_entity {
 
 /* One Mobilestation for osmocom */
 struct osmocom_ms {
+	char name[32];
 	struct write_queue wq;
 	enum gsm_band band;
 	uint16_t test_arfcn;
