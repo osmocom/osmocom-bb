@@ -52,4 +52,20 @@ Does it make sense to put RACH request to the set of RSLms primitives?
 What do you say?
 
 
+I need to change storage of system informations when searching other cells.
+I prefer two modes:
+- collecting all SI on serving cell, collecting only relevant data of other cell
+- collecting all SI on serving cell and other cells, storing them for each
+  frequency (netmonitor)
+
+How do I (radio ressource) know about the channel layout on BCCH? This info is
+requred to select correct delays and timings.
+-> i think i got it from system informations^
+
+
+How do I return after L1CTL_DM_EST_REQ back to idle mode?
+Using l1ctl_tx_ccch_req?
+
+mncc.h of openbsc / layer23:
+What about putting all (except call structure) to osmocore?
 
