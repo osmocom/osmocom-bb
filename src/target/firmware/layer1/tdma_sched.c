@@ -78,9 +78,9 @@ int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_s
 {
 	struct tdma_scheduler *sched = &l1s.tdma_sched;
 	uint8_t bucket_nr = wrap_bucket(frame_offset);
-	int i;
+	int i, j;
 
-	for (i = 0; 1; i++) {
+	for (i = 0, j = 0; 1; i++) {
 		const struct tdma_sched_item *sched_item = &item_set[i];
 		struct tdma_sched_bucket *bucket = &sched->bucket[bucket_nr];
 
@@ -92,6 +92,7 @@ int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_s
 		if (sched_item->cb == NULL) {
 			/* advance to next bucket (== TDMA frame) */
 			bucket_nr = wrap_bucket(++frame_offset);
+			j++;
 			continue;
 		}
 		/* check for bucket overflow */
@@ -105,7 +106,7 @@ int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_s
 		bucket->num_items++;
 	}
 
-	return i;
+	return j;
 }
 
 /* Advance TDMA scheduler to the next bucket */
