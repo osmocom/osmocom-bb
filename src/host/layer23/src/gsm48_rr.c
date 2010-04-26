@@ -3093,6 +3093,8 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 	memset(rr, 0, sizeof(*rr));
 	rr->ms = ms;
 
+	LOGP(DRR, LOGL_INFO, "init Radio Ressource process\n");
+
 	INIT_LLIST_HEAD(&rr->rsl_upqueue);
 	INIT_LLIST_HEAD(&rr->downqueue);
 	/* downqueue is handled here, so don't add_work */
@@ -3106,6 +3108,8 @@ int gsm48_rr_exit(struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct msgb *msg;
+
+	LOGP(DRR, LOGL_INFO, "exit Radio Ressource process\n");
 
 	/* flush queues */
 	while ((msg = msgb_dequeue(&rr->rsl_upqueue)))

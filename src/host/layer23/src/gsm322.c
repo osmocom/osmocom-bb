@@ -783,7 +783,7 @@ static int gsm322_a_sel_first_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	plmn->plmn_curr = i;
 
 	/* if no PLMN in list */
-	if (plmn_first) {
+	if (!plmn_first) {
 		LOGP(DPLMN, LOGL_INFO, "No PLMN in list.\n");
 		gsm322_a_no_more_plmn(ms, msg);
 

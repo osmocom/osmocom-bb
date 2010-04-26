@@ -12,6 +12,7 @@ enum {
 	DMM,
 	DCC,
 	DSMS,
+	DMNCC,
 	DMEAS,
 	DPAG,
 	DLAPDM,

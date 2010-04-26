@@ -55,6 +55,8 @@ int gsm48_cc_init(struct osmocom_ms *ms)
 
 	cc->ms = ms;
 
+	LOGP(DCC, LOGL_INFO, "init Call Control process\n");
+
 	INIT_LLIST_HEAD(&cc->mncc_upqueue);
 
 	return 0;
@@ -65,6 +67,8 @@ int gsm48_cc_exit(struct osmocom_ms *ms)
 	struct gsm48_cclayer *cc = &ms->cclayer;
 	struct gsm_trans *trans, *trans2;
 	struct msgb *msg;
+
+	LOGP(DCC, LOGL_INFO, "exit Call Control process\n");
 
 	llist_for_each_entry_safe(trans, trans2, &ms->trans_list, entry) {
 		if (trans->protocol == GSM48_PDISC_CC)

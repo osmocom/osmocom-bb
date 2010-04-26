@@ -840,6 +840,8 @@ int gsm48_mm_init(struct osmocom_ms *ms)
 	memset(mm, 0, sizeof(*mm));
 	mm->ms = ms;
 
+	LOGP(DMM, LOGL_INFO, "init Mobility Management process\n");
+
 	/* 4.2.1.1 */
 	mm->state = GSM48_MM_ST_MM_IDLE;
 	mm->substate = GSM48_MM_SST_PLMN_SEARCH;
@@ -860,6 +862,8 @@ int gsm48_mm_exit(struct osmocom_ms *ms)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_mm_conn *conn;
 	struct msgb *msg;
+
+	LOGP(DMM, LOGL_INFO, "exit Mobility Management process\n");
 
 	/* flush lists */
 	while (!llist_empty(&mm->mm_conn)) {
@@ -3381,7 +3385,7 @@ static int gsm48_rcv_mmr(struct osmocom_ms *ms, struct msgb *msg)
 	int msg_type = mmr->msg_type;
 	int rc = 0;
 
-	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' event", ms->name,
+	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' event\n", ms->name,
 		get_mmr_name(msg_type));
 	switch(msg_type) {
 		case GSM48_MMR_REG_REQ:

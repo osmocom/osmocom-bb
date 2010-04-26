@@ -48,6 +48,8 @@ int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg)
 	int callref = data->callref;
 	struct gsm_mncc rel;
 
+	LOGP(DMNCC, LOGL_INFO, "Rejecting incomming call\n");
+
 	/* reject, as we don't support Calls */
 	memset(&rel, 0, sizeof(struct gsm_mncc));
        	rel.callref = callref;

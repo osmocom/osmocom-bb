@@ -50,9 +50,27 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[1;32m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DCS] = {
+		.name = "DCS",
+		.description = "Cell Selection",
+		.color = "\033[1;34m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
+	[DPLMN] = {
+		.name = "DPLMN",
+		.description = "PLMN Search",
+		.color = "\033[1;33m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
 	[DSMS] = {
 		.name = "DSMS",
 		.description = "Short Message Service",
+		.color = "\033[1;37m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
+	[DMNCC] = {
+		.name = "DMNCC",
+		.description = "Mobile Network Call Control",
 		.color = "\033[1;37m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
