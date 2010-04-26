@@ -94,7 +94,7 @@ void l1s_time_inc(struct gsm_time *time, uint32_t delta_fn)
 
 void l1s_time_dump(const struct gsm_time *time)
 {
-	printf("fn=%u(%u/%2u/%2u)", time->fn, time->t1, time->t2, time->t3);
+	printf("fn=%lu(%u/%2u/%2u)", time->fn, time->t1, time->t2, time->t3);
 }
 
 /* clip a signed 16bit value at a certain limit */
