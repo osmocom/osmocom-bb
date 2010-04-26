@@ -257,7 +257,7 @@ static void l1_sync(void)
 	//dsp_end_scenario();
 
 	/* schedule new / upcoming TDMA items */
-	mframe_schedule(l1s.mf_tasks);
+	mframe_schedule();
 	/* schedule new / upcoming one-shot events */
 	sched_gsmtime_execute(l1s.current_time.fn);
 
@@ -335,7 +335,7 @@ void l1s_reset(void)
 	l1s.sb.count = 0;
 
 	/* reset scheduler and hardware */
-	l1s.mf_tasks = 0;
+	mframe_reset();
 	tdma_sched_reset();
 	l1s_dsp_abort();
 }

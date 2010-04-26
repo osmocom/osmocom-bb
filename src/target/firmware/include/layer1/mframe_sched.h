@@ -31,9 +31,26 @@ enum mf_sched_item_flag {
 	MF_F_SACCH	= (1 << 0),
 };
 
+/* The scheduler itself */
+struct mframe_scheduler {
+	uint32_t tasks;
+};
+
 uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts);
 
+/* Enable a specific task */
+void mframe_enable(enum mframe_task task_id);
+
+/* Disable a specific task */
+void mframe_disable(enum mframe_task task_id);
+
+/* Replace the current active set by the new one */
+void mframe_set(uint32_t tasks);
+
 /* Schedule mframe_sched_items according to current MF TASK list */
-void mframe_schedule(uint32_t task_bitmask);
+void mframe_schedule(void);
+
+/* reset the scheduler, disabling all tasks */
+void mframe_reset(void);
 
 #endif /* _MFRAME_SCHED_H */

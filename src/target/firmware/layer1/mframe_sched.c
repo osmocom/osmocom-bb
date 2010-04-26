@@ -308,13 +308,38 @@ static void mframe_schedule_set(enum mframe_task task_id)
 	}
 }
 
+/* Enable a specific task */
+void mframe_enable(enum mframe_task task_id)
+{
+	l1s.mframe_sched.tasks |= (1 << task_id);
+}
+
+/* Disable a specific task */
+void mframe_disable(enum mframe_task task_id)
+{
+	l1s.mframe_sched.tasks &= ~(1 << task_id);
+}
+
+/* Replace the current active set by the new one */
+void mframe_set(uint32_t tasks)
+{
+	l1s.mframe_sched.tasks = tasks;
+}
+
 /* Schedule mframe_sched_items according to current MF TASK list */
-void mframe_schedule(uint32_t tasks_enabled)
+void mframe_schedule(void)
 {
 	unsigned int i;
 
 	for (i = 0; i < 32; i++) {
-		if (tasks_enabled & (1 << i))
+		if (l1s.mframe_sched.tasks & (1 << i))
 			mframe_schedule_set(i);
 	}
 }
+
+/* reset the scheduler, disabling all tasks */
+void mframe_reset(void)
+{
+	l1s.mframe_sched.tasks = 0;
+}
+
