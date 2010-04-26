@@ -1,6 +1,10 @@
 #ifndef _GPRS_NS_H
 #define _GPRS_NS_H
 
+/* GPRS Networks Service (NS) messages on the Gb interface
+ * 3GPP TS 08.16 version 8.0.1 Release 1999 / ETSI TS 101 299 V8.0.1 (2002-05)
+ * 3GPP TS 48.016 version 6.5.0 Release 6 / ETSI TS 148 016 V6.5.0 (2005-11) */
+
 struct gprs_ns_hdr {
 	u_int8_t pdu_type;
 	u_int8_t data[0];
@@ -18,6 +22,15 @@ enum ns_pdu_type {
 	NS_PDUT_STATUS		= 0x08,
 	NS_PDUT_ALIVE		= 0x0a,
 	NS_PDUT_ALIVE_ACK	= 0x0b,
+	/* TS 48.016 Section 10.3.7, Table 10.3.7.1 */
+	SNS_PDUT_ACK		= 0x0c,
+	SNS_PDUT_ADD		= 0x0d,
+	SNS_PDUT_CHANGE_WEIGHT	= 0x0e,
+	SNS_PDUT_CONFIG		= 0x0f,
+	SNS_PDUT_CONFIG_ACK	= 0x10,
+	SNS_PDUT_DELETE		= 0x11,
+	SNS_PDUT_SIZE		= 0x12,
+	SNS_PDUT_SIZE_ACK	= 0x13,
 };
 
 /* TS 08.16, Section 10.3, Table 12 */
@@ -27,6 +40,14 @@ enum ns_ctrl_ie {
 	NS_IE_PDU		= 0x02,
 	NS_IE_BVCI		= 0x03,
 	NS_IE_NSEI		= 0x04,
+	/* TS 48.016 Section 10.3, Table 10.3.1 */
+	NS_IE_IPv4_LIST		= 0x05,
+	NS_IE_IPv6_LIST		= 0x06,
+	NS_IE_MAX_NR_NSVC	= 0x07,
+	NS_IE_IPv4_EP_NR	= 0x08,
+	NS_IE_IPv6_EP_NR	= 0x09,
+	NS_IE_RESET_FLAG	= 0x0a,
+	NS_IE_IP_ADDR		= 0x0b,
 };
 
 /* TS 08.16, Section 10.3.2, Table 13 */
@@ -42,20 +63,43 @@ enum ns_cause {
 	NS_CAUSE_PROTO_ERR_UNSPEC	= 0x0b,
 	NS_CAUSE_INVAL_ESSENT_IE	= 0x0c,
 	NS_CAUSE_MISSING_ESSENT_IE	= 0x0d,
+	/* TS 48.016 Section 10.3.2, Table 10.3.2.1 */
+	NS_CAUSE_INVAL_NR_IPv4_EP	= 0x0e,
+	NS_CAUSE_INVAL_NR_IPv6_EP	= 0x0f,
+	NS_CAUSE_INVAL_NR_NS_VC		= 0x10,
+	NS_CAUSE_INVAL_WEIGH		= 0x11,
+	NS_CAUSE_UNKN_IP_EP		= 0x12,
+	NS_CAUSE_UNKN_IP_ADDR		= 0x13,
+	NS_CAUSE_UNKN_IP_TEST_FAILED	= 0x14,
 };
 
-/* a layer 1 entity transporting NS frames */
-struct gprs_ns_link {
-	union {
-		struct {
-			int fd;
-		} ip;
-	};
+struct gprs_nsvc;
+struct gprs_ns_inst;
+
+enum gprs_ns_evt {
+	GPRS_NS_EVT_UNIT_DATA,
 };
 
+typedef int gprs_ns_cb_t(enum gprs_ns_evt event, struct gprs_nsvc *nsvc,
+			 struct msgb *msg, u_int16_t bvci);
 
-int gprs_ns_rcvmsg(struct msgb *msg, struct sockaddr_in *saddr);
+/* Create a new NS protocol instance */
+struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb);
 
-int gprs_ns_sendmsg(struct gprs_ns_link *link, u_int16_t bvci,
+/* Destroy a NS protocol instance */
+void gprs_ns_destroy(struct gprs_ns_inst *nsi);
+
+/* Listen for incoming GPRS packets */
+int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port);
+
+struct sockaddr_in;
+
+/* main entry point, here incoming NS frames enter */
+int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
+		   struct sockaddr_in *saddr);
+
+/* main function for higher layers (BSSGP) to send NS messages */
+int gprs_ns_sendmsg(struct gprs_nsvc *nsvc, u_int16_t bvci,
 		    struct msgb *msg);
+
 #endif

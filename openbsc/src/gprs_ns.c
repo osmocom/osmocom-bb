@@ -1,7 +1,7 @@
 /* GPRS Networks Service (NS) messages on the Gb interface
  * 3GPP TS 08.16 version 8.0.1 Release 1999 / ETSI TS 101 299 V8.0.1 (2002-05) */
 
-/* (C) 2009 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -55,6 +55,7 @@
 #include <osmocore/msgb.h>
 #include <osmocore/tlv.h>
 #include <osmocore/talloc.h>
+#include <osmocore/select.h>
 #include <openbsc/debug.h>
 #include <openbsc/gprs_ns.h>
 #include <openbsc/gprs_bssgp.h>
@@ -76,11 +77,13 @@ static const struct tlv_definition ns_att_tlvdef = {
 
 struct gprs_nsvc {
 	struct llist_head list;
+	struct gprs_ns_inst *nsi;
 
 	u_int16_t nsei;		/* end-to-end significance */
 	u_int16_t nsvci;	/* uniquely identifies NS-VC at SGSN */
 
 	u_int32_t state;
+	u_int32_t remote_state;
 
 	struct timer_list alive_timer;
 	int timer_is_tns_alive;
@@ -93,8 +96,67 @@ struct gprs_nsvc {
 	};
 };
 
-/* FIXME: dynamically search for the matching NSVC */
-static struct gprs_nsvc dummy_nsvc = { .state = NSE_S_BLOCKED | NSE_S_ALIVE };
+enum gprs_ns_ll {
+	GPRS_NS_LL_UDP,
+	GPRS_NS_LL_E1,
+};
+
+/* An instance of the NS protocol stack */
+struct gprs_ns_inst {
+	/* callback to the user for incoming UNIT DATA IND */
+	gprs_ns_cb_t *cb;
+
+	/* linked lists of all NSVC in this instance */
+	struct llist_head gprs_nsvcs;
+
+	/* which link-layer are we based on? */
+	enum gprs_ns_ll ll;
+
+	union {
+		/* NS-over-IP specific bits */
+		struct {
+			struct bsc_fd fd;
+		} nsip;
+	};
+};
+
+/* Lookup struct gprs_nsvc based on NSVCI */
+static struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi,
+					u_int16_t nsvci)
+{
+	struct gprs_nsvc *nsvc;
+	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
+		if (nsvc->nsvci == nsvci)
+			return nsvc;
+	}
+	return NULL;
+}
+
+/* Lookup struct gprs_nsvc based on remote peer socket addr */
+static struct gprs_nsvc *nsvc_by_rem_addr(struct gprs_ns_inst *nsi,
+					  struct sockaddr_in *sin)
+{
+	struct gprs_nsvc *nsvc;
+	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
+		if (!memcmp(&nsvc->ip.bts_addr, sin, sizeof(*sin)))
+			return nsvc;
+	}
+	return NULL;
+}
+
+static struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, u_int16_t nsvci)
+{
+	struct gprs_nsvc *nsvc;
+
+	nsvc = talloc_zero(nsi, struct gprs_nsvc);
+	nsvc->nsvci = nsvci;
+	/* before RESET procedure: BLOCKED and DEAD */
+	nsvc->state = NSE_S_BLOCKED;
+	nsvc->nsi = nsi;
+	llist_add(&nsvc->list, &nsi->gprs_nsvcs);
+
+	return nsvc;
+}
 
 /* Section 10.3.2, Table 13 */
 static const char *ns_cause_str[] = {
@@ -122,9 +184,23 @@ static const char *gprs_ns_cause_str(enum ns_cause cause)
 	return "undefined";
 }
 
+static int nsip_sendmsg(struct msgb *msg, struct gprs_nsvc *nsvc);
+
 static int gprs_ns_tx(struct msgb *msg, struct gprs_nsvc *nsvc)
 {
-	return ipac_gprs_send(msg, &nsvc->ip.bts_addr);
+	int ret;
+
+	switch (nsvc->nsi->ll) {
+	case GPRS_NS_LL_UDP:
+		ret = nsip_sendmsg(msg, nsvc);
+		break;
+	default:
+		LOGP(DGPRS, LOGL_ERROR, "unsupported NS linklayer %u\n", nsvc->nsi->ll);
+		msgb_free(msg);
+		ret = -EIO;
+		break;
+	}
+	return ret;
 }
 
 static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, u_int8_t pdu_type)
@@ -196,11 +272,10 @@ static int gprs_ns_tx_reset_ack(struct gprs_nsvc *nsvc)
 }
 
 /* Section 9.2.10: transmit side */
-int gprs_ns_sendmsg(struct gprs_ns_link *link, u_int16_t bvci,
+int gprs_ns_sendmsg(struct gprs_nsvc *nsvc, u_int16_t bvci,
 		    struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh;
-	struct gprs_nsvc *nsvc = &dummy_nsvc;
 
 	nsh = (struct gprs_ns_hdr *) msgb_push(msg, sizeof(*nsh) + 3);
 	if (!nsh) {
@@ -217,7 +292,7 @@ int gprs_ns_sendmsg(struct gprs_ns_link *link, u_int16_t bvci,
 }
 
 /* Section 9.2.10: receive side */
-static int gprs_ns_rx_unitdata(struct msgb *msg)
+static int gprs_ns_rx_unitdata(struct msgb *msg, struct gprs_nsvc *nsvc)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *)msg->l2h;
 	u_int16_t bvci;
@@ -227,13 +302,13 @@ static int gprs_ns_rx_unitdata(struct msgb *msg)
 	msg->l3h = &nsh->data[3];
 
 	/* call upper layer (BSSGP) */
-	return gprs_bssgp_rcvmsg(msg, bvci);
+	return nsvc->nsi->cb(GPRS_NS_EVT_UNIT_DATA, nsvc, msg, bvci);
 }
 
 /* Section 9.2.7 */
-static int gprs_ns_rx_status(struct msgb *msg)
+static int gprs_ns_rx_status(struct msgb *msg, struct gprs_nsvc *nsvc)
 {
-	struct gprs_ns_hdr *nsh = msg->l2h;
+	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
 	struct tlv_parsed tp;
 	u_int8_t cause;
 	int rc;
@@ -254,10 +329,9 @@ static int gprs_ns_rx_status(struct msgb *msg)
 }
 
 /* Section 7.3 */
-static int gprs_ns_rx_reset(struct msgb *msg)
+static int gprs_ns_rx_reset(struct msgb *msg, struct gprs_nsvc *nsvc)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
-	struct gprs_nsvc *nsvc = &dummy_nsvc;
 	struct tlv_parsed tp;
 	u_int8_t *cause;
 	u_int16_t *nsvci, *nsei;
@@ -296,14 +370,24 @@ static int gprs_ns_rx_reset(struct msgb *msg)
 }
 
 /* main entry point, here incoming NS frames enter */
-int gprs_ns_rcvmsg(struct msgb *msg, struct sockaddr_in *saddr)
+int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
+		   struct sockaddr_in *saddr)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
-	struct gprs_nsvc *nsvc = &dummy_nsvc;
+	struct gprs_nsvc *nsvc;
 	int rc = 0;
 
-	/* FIXME: do this properly! */
-	nsvc->ip.bts_addr = *saddr;
+	/* look up the NSVC based on source address */
+	nsvc = nsvc_by_rem_addr(nsi, saddr);
+	if (!nsvc) {
+		/* Only the RESET procedure creates a new NSVC */
+		if (nsh->pdu_type != NS_PDUT_RESET)
+			return -EIO;
+		nsvc = nsvc_create(nsi, 0xffff);
+		nsvc->ip.bts_addr = *saddr;
+		rc = gprs_ns_rx_reset(msg, nsvc);
+		return rc;
+	}
 
 	switch (nsh->pdu_type) {
 	case NS_PDUT_ALIVE:
@@ -320,16 +404,18 @@ int gprs_ns_rcvmsg(struct msgb *msg, struct sockaddr_in *saddr)
 		break;
 	case NS_PDUT_UNITDATA:
 		/* actual user data */
-		rc = gprs_ns_rx_unitdata(msg);
+		rc = gprs_ns_rx_unitdata(msg, nsvc);
 		break;
 	case NS_PDUT_STATUS:
-		rc = gprs_ns_rx_status(msg);
+		rc = gprs_ns_rx_status(msg, nsvc);
 		break;
 	case NS_PDUT_RESET:
-		rc = gprs_ns_rx_reset(msg);
+		rc = gprs_ns_rx_reset(msg, nsvc);
 		break;
 	case NS_PDUT_RESET_ACK:
-		/* FIXME: mark remote NS-VC as blocked + active */
+		DEBUGP(DGPRS, "NS RESET ACK\n");
+		/* mark remote NS-VC as blocked + active */
+		nsvc->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		break;
 	case NS_PDUT_UNBLOCK:
 		/* Section 7.2: unblocking procedure */
@@ -338,7 +424,9 @@ int gprs_ns_rcvmsg(struct msgb *msg, struct sockaddr_in *saddr)
 		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
 		break;
 	case NS_PDUT_UNBLOCK_ACK:
-		/* FIXME: mark remote NS-VC as unblocked + active */
+		DEBUGP(DGPRS, "NS UNBLOCK ACK\n");
+		/* mark remote NS-VC as unblocked + active */
+		nsvc->remote_state = NSE_S_ALIVE;
 		break;
 	case NS_PDUT_BLOCK:
 		DEBUGP(DGPRS, "NS BLOCK\n");
@@ -346,7 +434,9 @@ int gprs_ns_rcvmsg(struct msgb *msg, struct sockaddr_in *saddr)
 		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
 		break;
 	case NS_PDUT_BLOCK_ACK:
-		/* FIXME: mark remote NS-VC as blocked + active */
+		DEBUGP(DGPRS, "NS BLOCK ACK\n");
+		/* mark remote NS-VC as blocked + active */
+		nsvc->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		break;
 	default:
 		DEBUGP(DGPRS, "Unknown NS PDU type 0x%02x\n", nsh->pdu_type);
@@ -356,3 +446,122 @@ int gprs_ns_rcvmsg(struct msgb *msg, struct sockaddr_in *saddr)
 	return rc;
 }
 
+struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb)
+{
+	struct gprs_ns_inst *nsi = talloc_zero(tall_bsc_ctx, struct gprs_ns_inst);
+
+	nsi->cb = cb;
+	INIT_LLIST_HEAD(&nsi->gprs_nsvcs);
+
+	return NULL;
+}
+
+void gprs_ns_destroy(struct gprs_ns_inst *nsi)
+{
+	/* FIXME: clear all timers */
+
+	/* recursively free the NSI and all its NSVCs */
+	talloc_free(nsi);
+}
+
+
+/* NS-over-IP code, according to 3GPP TS 48.016 Chapter 6.2
+ * We don't support Size Procedure, Configuration Procedure, ChangeWeight Procedure */
+
+/* Read a single NS-over-IP message */
+static struct msgb *read_nsip_msg(struct bsc_fd *bfd, int *error,
+				  struct sockaddr_in *saddr)
+{
+	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "Abis/IP/GPRS-NS");
+	int ret = 0;
+	socklen_t saddr_len = sizeof(*saddr);
+
+	if (!msg) {
+		*error = -ENOMEM;
+		return NULL;
+	}
+
+	ret = recvfrom(bfd->fd, msg->data, NS_ALLOC_SIZE, 0,
+			(struct sockaddr *)saddr, &saddr_len);
+	if (ret < 0) {
+		fprintf(stderr, "recv error  %s\n", strerror(errno));
+		msgb_free(msg);
+		*error = ret;
+		return NULL;
+	} else if (ret == 0) {
+		msgb_free(msg);
+		*error = ret;
+		return NULL;
+	}
+
+	msg->l2h = msg->data;
+	msgb_put(msg, ret);
+
+	return msg;
+}
+
+static int handle_nsip_read(struct bsc_fd *bfd)
+{
+	int error;
+	struct sockaddr_in saddr;
+	struct gprs_ns_inst *nsi = bfd->data;
+	struct msgb *msg = read_nsip_msg(bfd, &error, &saddr);
+
+	if (!msg)
+		return error;
+
+	return gprs_ns_rcvmsg(nsi, msg, &saddr);
+}
+
+static int handle_nsip_write(struct bsc_fd *bfd)
+{
+	/* FIXME: actually send the data here instead of nsip_sendmsg() */
+	return -EIO;
+}
+
+int nsip_sendmsg(struct msgb *msg, struct gprs_nsvc *nsvc)
+{
+	int rc;
+	struct gprs_ns_inst *nsi = nsvc->nsi;
+	struct sockaddr_in *daddr = &nsvc->ip.bts_addr;
+
+	rc = sendto(nsi->nsip.fd.fd, msg->data, msg->len, 0,
+		  (struct sockaddr *)daddr, sizeof(*daddr));
+
+	talloc_free(msg);
+
+	return rc;
+}
+
+/* UDP Port 23000 carries the LLC-in-BSSGP-in-NS protocol stack */
+static int nsip_fd_cb(struct bsc_fd *bfd, unsigned int what)
+{
+	int rc = 0;
+
+	if (what & BSC_FD_READ)
+		rc = handle_nsip_read(bfd);
+	if (what & BSC_FD_WRITE)
+		rc = handle_nsip_write(bfd);
+
+	return rc;
+}
+
+
+/* FIXME: this is currently in input/ipaccess.c */
+extern int make_sock(struct bsc_fd *bfd, int proto, u_int16_t port,
+		     int (*cb)(struct bsc_fd *fd, unsigned int what));
+
+/* Listen for incoming GPRS packets */
+int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port)
+{
+	int ret;
+
+	ret = make_sock(&nsi->nsip.fd, IPPROTO_UDP, udp_port, nsip_fd_cb);
+	if (ret < 0)
+		return ret;
+
+	nsi->ll = GPRS_NS_LL_UDP;
+	nsi->nsip.fd.data = nsi;
+
+	return ret;
+}
