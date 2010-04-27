@@ -34,6 +34,8 @@ enum mf_sched_item_flag {
 /* The scheduler itself */
 struct mframe_scheduler {
 	uint32_t tasks;
+	uint32_t tasks_tgt;
+	uint32_t safe_fn;
 };
 
 uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts);

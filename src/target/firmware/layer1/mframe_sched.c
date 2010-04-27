@@ -301,9 +301,20 @@ static void mframe_schedule_set(enum mframe_task task_id)
 		unsigned int trigger = si->frame_nr % si->modulo;
 		unsigned int current = (l1s.current_time.fn + SCHEDULE_AHEAD) % si->modulo;
 		if (current == trigger) {
+			uint32_t fn;
+			int rv;
+
+			/* Schedule the set */
 			/* FIXME: what to do with SACCH Flag etc? */
-			tdma_schedule_set(SCHEDULE_AHEAD-SCHEDULE_LATENCY,
+			rv = tdma_schedule_set(SCHEDULE_AHEAD-SCHEDULE_LATENCY,
 					  si->sched_set, task_id | (si->flags<<8));
+
+			/* Compute the next safe time to queue a DSP command */
+			fn = l1s.current_time.fn;
+			ADD_MODULO(fn, rv - 2, GSM_MAX_FN); /* -2 = worst case last dsp command */
+			if ((fn > l1s.mframe_sched.safe_fn) ||
+			    (l1s.mframe_sched.safe_fn >= GSM_MAX_FN))
+				l1s.mframe_sched.safe_fn = fn;
 		}
 	}
 }
@@ -311,26 +322,38 @@ static void mframe_schedule_set(enum mframe_task task_id)
 /* Enable a specific task */
 void mframe_enable(enum mframe_task task_id)
 {
-	l1s.mframe_sched.tasks |= (1 << task_id);
+	l1s.mframe_sched.tasks_tgt |= (1 << task_id);
 }
 
 /* Disable a specific task */
 void mframe_disable(enum mframe_task task_id)
 {
-	l1s.mframe_sched.tasks &= ~(1 << task_id);
+	l1s.mframe_sched.tasks_tgt &= ~(1 << task_id);
 }
 
 /* Replace the current active set by the new one */
 void mframe_set(uint32_t tasks)
 {
-	l1s.mframe_sched.tasks = tasks;
+	l1s.mframe_sched.tasks_tgt = tasks;
 }
 
 /* Schedule mframe_sched_items according to current MF TASK list */
 void mframe_schedule(void)
 {
 	unsigned int i;
+	int fn_diff;
 
+	/* Try to enable/disable task to meet target bitmap */
+	fn_diff = l1s.mframe_sched.safe_fn - l1s.current_time.fn;
+	if ((fn_diff <= 0) || (fn_diff >= (GSM_MAX_FN>>1)) ||
+	    (l1s.mframe_sched.safe_fn >= GSM_MAX_FN))
+		/* If nothing is in the way, enable new tasks */
+		l1s.mframe_sched.tasks = l1s.mframe_sched.tasks_tgt;
+	else
+		/* Else, Disable only */
+		l1s.mframe_sched.tasks &= l1s.mframe_sched.tasks_tgt;
+
+	/* Schedule any active pending set */
 	for (i = 0; i < 32; i++) {
 		if (l1s.mframe_sched.tasks & (1 << i))
 			mframe_schedule_set(i);
@@ -341,5 +364,7 @@ void mframe_schedule(void)
 void mframe_reset(void)
 {
 	l1s.mframe_sched.tasks = 0;
+	l1s.mframe_sched.tasks_tgt = 0;
+	l1s.mframe_sched.safe_fn = -1UL;	/* Force safe */
 }
 
