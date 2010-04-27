@@ -65,13 +65,6 @@ void l1s_set_handler(l1s_cb_t cb)
 	l1s_cb = cb;
 }
 
-#define ADD_MODULO(sum, delta, modulo)	do {	\
-	if ((sum += delta) >= modulo)		\
-		sum -= modulo;			\
-	} while (0)
-
-#define GSM_MAX_FN	(26*51*2048)
-
 void l1s_time_inc(struct gsm_time *time, uint32_t delta_fn)
 {
 	ADD_MODULO(time->fn, delta_fn, GSM_MAX_FN);
