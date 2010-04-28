@@ -172,7 +172,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		}
 
 		sync_req = (struct l1ctl_sync_new_ccch_req *) l1h->data;
-		printd("L1CTL_DM_EST_REQ (arfcn=%u)\n", sync_req->band_arfcn);
+		printd("L1CTL_NEW_CCCH_REQ (arfcn=%u)\n", sync_req->band_arfcn);
 
 		/* reset scheduler and hardware */
 		l1s_reset();
@@ -204,7 +204,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		}
 		/* FIXME: set TSC of ded chan according to est_req.h0.tsc */
 		/* figure out which MF tasks to enable */
-		l1s.mf_tasks = (1 << chan_nr2mf_task(ul->chan_nr));
+		l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
 		break;
 	case L1CTL_RACH_REQ:
 		rach_req = (struct l1ctl_rach_req *) ul->payload;
