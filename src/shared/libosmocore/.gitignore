@@ -7,6 +7,7 @@ Makefile.in
 *.la
 *.pc
 aclocal.m4
+m4/*.m4
 autom4te.cache
 config.h*
 config.sub
@@ -23,3 +24,7 @@ libtool
 
 .tarball-version
 .version
+
+tests/sms/sms_test
+tests/timer/timer_test
+
