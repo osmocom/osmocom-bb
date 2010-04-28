@@ -30,14 +30,14 @@ enum BSSAP_MSG_TYPE {
 };
 
 struct bssmap_header {
-	u_int8_t type;
-	u_int8_t length;
+	uint8_t type;
+	uint8_t length;
 } __attribute__((packed));
 
 struct dtap_header {
-	u_int8_t type;
-	u_int8_t link_id;
-	u_int8_t length;
+	uint8_t type;
+	uint8_t link_id;
+	uint8_t length;
 } __attribute__((packed));
 
 

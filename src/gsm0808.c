@@ -150,7 +150,7 @@ struct msgb *gsm0808_create_cipher_reject(uint8_t cause)
 	return msg;
 }
 
-struct msgb *gsm0808_create_classmark_update(const uint8_t *classmark_data, u_int8_t length)
+struct msgb *gsm0808_create_classmark_update(const uint8_t *classmark_data, uint8_t length)
 {
 	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
 					       "classmark-update");
@@ -191,7 +191,7 @@ struct msgb *gsm0808_create_assignment_completed(struct gsm_lchan *lchan, uint8_
 						 uint8_t chosen_channel, uint8_t encr_alg_id,
 						 uint8_t speech_mode)
 {
-	u_int8_t *data;
+	uint8_t *data;
 
 	struct msgb *msg = msgb_alloc(35, "bssmap: ass compl");
 	if (!msg)
