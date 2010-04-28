@@ -172,7 +172,7 @@ void l1s_reset_hw(void)
 	tpu_reset(0);
 	tpu_rewind();
 	tpu_enq_wait(5); /* really needed ? */
-	tpu_enq_offset(l1s.tpu_offset);
+	tpu_enq_sync(l1s.tpu_offset);
 	tpu_end_scenario();
 }
 
