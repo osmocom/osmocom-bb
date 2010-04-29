@@ -65,13 +65,6 @@ void l1s_set_handler(l1s_cb_t cb)
 	l1s_cb = cb;
 }
 
-#define ADD_MODULO(sum, delta, modulo)	do {	\
-	if ((sum += delta) >= modulo)		\
-		sum -= modulo;			\
-	} while (0)
-
-#define GSM_MAX_FN	(26*51*2048)
-
 void l1s_time_inc(struct gsm_time *time, uint32_t delta_fn)
 {
 	ADD_MODULO(time->fn, delta_fn, GSM_MAX_FN);
@@ -94,7 +87,7 @@ void l1s_time_inc(struct gsm_time *time, uint32_t delta_fn)
 
 void l1s_time_dump(const struct gsm_time *time)
 {
-	printf("fn=%u(%u/%2u/%2u)", time->fn, time->t1, time->t2, time->t3);
+	printf("fn=%lu(%u/%2u/%2u)", time->fn, time->t1, time->t2, time->t3);
 }
 
 /* clip a signed 16bit value at a certain limit */
@@ -264,7 +257,7 @@ static void l1_sync(void)
 	//dsp_end_scenario();
 
 	/* schedule new / upcoming TDMA items */
-	mframe_schedule(l1s.mf_tasks);
+	mframe_schedule();
 	/* schedule new / upcoming one-shot events */
 	sched_gsmtime_execute(l1s.current_time.fn);
 
@@ -342,7 +335,7 @@ void l1s_reset(void)
 	l1s.sb.count = 0;
 
 	/* reset scheduler and hardware */
-	l1s.mf_tasks = 0;
+	mframe_reset();
 	tdma_sched_reset();
 	l1s_dsp_abort();
 }

@@ -27,6 +27,13 @@
 
 #include <stdint.h>
 
+#define ADD_MODULO(sum, delta, modulo) do {	\
+	if ((sum += delta) >= modulo)		\
+		sum -= modulo;			\
+	} while (0)
+
+#define GSM_MAX_FN	(26*51*2048)
+
 struct gsm_time {
 	uint32_t	fn;	/* FN count */
 	uint16_t	t1;	/* FN div (26*51) */

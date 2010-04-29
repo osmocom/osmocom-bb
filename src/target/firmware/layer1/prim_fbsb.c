@@ -416,8 +416,8 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	if (l1s.sb.count > 10 && sb_time.t3 == 41) {
 		l1s_reset_hw();
 		/* enable the MF Task for BCCH reading */
-		l1s.mf_tasks |= (1 << MF_TASK_BCCH_NORM);
-		l1s.mf_tasks |= (1 << MF_TASK_CCCH_COMB);
+		mframe_enable(MF_TASK_BCCH_NORM);
+		mframe_enable(MF_TASK_CCCH_COMB);
 	} else {
 		/* We have just seen a SCH burst, we know the next one
 		 * is not in less than 7 TDMA frames from now */

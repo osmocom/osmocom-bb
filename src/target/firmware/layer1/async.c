@@ -46,15 +46,22 @@ void l1a_txq_msgb_enq(struct llist_head *queue, struct msgb *msg)
 /* Enable a repeating multiframe task */
 void l1a_mftask_enable(enum mframe_task task)
 {
-	/* we don't need locking here as L1S only reads mf_tasks */
-	l1s.mf_tasks |= (1 << task);
+	/* we don't need locking here as L1S only reads mframe.tasks */
+	mframe_enable(task);
 }
 
 /* Disable a repeating multiframe task */
 void l1a_mftask_disable(enum mframe_task task)
 {
-	/* we don't need locking here as L1S only reads mf_tasks */
-	l1s.mf_tasks &= ~(1 << task);
+	/* we don't need locking here as L1S only reads mframe.tasks */
+	mframe_disable(task);
+}
+
+/* Set the mask for repeating multiframe tasks */
+void l1a_mftask_set(uint32_t tasks)
+{
+	/* we don't need locking here as L1S only reads mframe.tasks */
+	mframe_set(tasks);
 }
 
 /* Initialize asynchronous part of Layer1 */

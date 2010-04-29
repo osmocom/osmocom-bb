@@ -4,6 +4,7 @@
 #include <osmocore/linuxlist.h>
 #include <osmocore/gsm_utils.h>
 #include <layer1/tdma_sched.h>
+#include <layer1/mframe_sched.h>
 #include <l1a_l23_interface.h>
 
 /* structure representing L1 sync information about a cell */
@@ -42,14 +43,14 @@ struct l1s_state {
 	/* TDMA scheduler */
 	struct tdma_scheduler tdma_sched;
 
+	/* Multiframe scheduler */
+	struct mframe_scheduler mframe_sched;
+
 	/* The current TPU offset register */
 	uint32_t	tpu_offset;
 
 	/* Transmit queues of pending packets for main DCCH and ACCH */
 	struct llist_head tx_queue[_NUM_L1S_CHAN];
-
-	/* bit-mask of multi-frame tasks that are currently active */
-	uint32_t	mf_tasks;
 
 	/* Structures below are for L1-task specific parameters, used
 	 * to communicate between l1-sync and l1-async (l23_api) */
