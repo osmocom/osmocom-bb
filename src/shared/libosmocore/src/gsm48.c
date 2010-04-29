@@ -272,13 +272,13 @@ void gsm48_generate_lai(struct gsm48_loc_area_id *lai48, uint16_t mcc,
 
 	to_bcd(bcd, mnc);
 	/* FIXME: do we need three-digit MNC? See Table 10.5.3 */
-#if 0
-	lai48->digits[1] |= bcd[2] << 4;
-	lai48->digits[2] = bcd[0] | (bcd[1] << 4);
-#else
-	lai48->digits[1] |= 0xf << 4;
-	lai48->digits[2] = bcd[1] | (bcd[2] << 4);
-#endif
+	if (mnc > 99) {
+		lai48->digits[1] |= bcd[2] << 4;
+		lai48->digits[2] = bcd[0] | (bcd[1] << 4);
+	} else {
+		lai48->digits[1] |= 0xf << 4;
+		lai48->digits[2] = bcd[1] | (bcd[2] << 4);
+	}
 
 	lai48->lac = htons(lac);
 }

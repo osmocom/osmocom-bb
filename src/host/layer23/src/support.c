@@ -65,12 +65,12 @@ void gsm_support_init(struct osmocom_ms *ms)
 	s->a5_6 = 0;
 	s->a5_7 = 0;
 	/* radio support */
-	s->p_gsm = 1; /* gsm 900 */
-	s->e_gsm = 0;
-	s->r_gsm = 0;
+	s->p_gsm = 0; /* P-GSM only */
+	s->e_gsm = 1; /* E-GSM */
+	s->r_gsm = 0; /* R-GSM only */
 	s->r_capa = 0;
 	s->low_capa = 4; /* p,e,r power class */
-	s->dcs_1800 = 1;
+	s->dcs_1800 = 0;
 	/* set supported frequencies */
 	if (s->e_gsm || s->r_gsm)
 		s->freq_map[0] |= 1;
@@ -101,6 +101,24 @@ void gsm_support_init(struct osmocom_ms *ms)
 	/* IMEI */
 	sprintf(s->imei, "000000000000000");
 	sprintf(s->imeisv, "0000000000000000");
+
+	/* radio */
+	s->min_rxlev_db = -106;
 }
+
+/* (3.2.1) maximum channels to scan within each band */
+struct gsm_support_scan_max gsm_sup_smax[] = {
+#if 0
+	{ 259, 293, 15, 0 },
+	{ 360, 340, 15, 0 },
+	{ 438, 511, 25, 0 },
+	{ 128, 251, 30, 0 },
+	{ 955, 124, 30, 0 },
+	{ 512, 885, 40, 0 },
+#else
+	{ 955, 125, 1, 0 }, /* testing with maximum of one frequency */
+#endif
+	{ 0, 0, 0, 0 }
+};
 
 

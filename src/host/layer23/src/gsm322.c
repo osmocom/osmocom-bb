@@ -29,11 +29,13 @@
 #include <osmocore/talloc.h>
 #include <osmocore/utils.h>
 #include <osmocore/gsm48.h>
+#include <osmocore/signal.h>
 
 #include <osmocom/logging.h>
 #include <osmocom/l1ctl.h>
 #include <osmocom/file.h>
 #include <osmocom/osmocom_data.h>
+#include <osmocom/networks.h>
 
 extern void *l23_ctx;
 
@@ -482,10 +484,12 @@ static void new_c_state(struct gsm322_cellsel *cs, int state)
 	stop_cs_timer(cs);
 
 	/* stop scanning of power measurement */
+	if (cs->powerscan) {
 #ifdef TODO
-	if (cs->powerscan)
 		stop power scanning 
 #endif
+		cs->powerscan = 0;
+	}
 
 	cs->state = state;
 }
@@ -738,8 +742,9 @@ static int gsm322_a_no_more_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	plmn->mcc = cs->list[found].mcc;
 	plmn->mnc = cs->list[found].mnc;
 
-	LOGP(DPLMN, LOGL_INFO, "PLMN available (mcc=%03d mnc=%02d)\n",
-		plmn->mcc, plmn->mnc);
+	LOGP(DPLMN, LOGL_INFO, "PLMN available (mcc=%03d mnc=%02d  %s, %s)\n",
+		plmn->mcc, plmn->mnc,
+		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 
 	/* indicate New PLMN */
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_NEW_PLMN);
@@ -791,8 +796,9 @@ static int gsm322_a_sel_first_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	LOGP(DPLMN, LOGL_INFO, "Selecting PLMN from list. (%02d: mcc=%03d "
-			"mnc=%02d\n", plmn->plmn_curr, plmn_first->mcc,
-			plmn_first->mnc);
+		"mnc=%02d  %s, %s)\n", plmn->plmn_curr, plmn_first->mcc,
+		plmn_first->mnc, gsm_get_mcc(plmn_first->mcc),
+		gsm_get_mnc(plmn_first->mcc, plmn_first->mnc));
 
 	/* set current network */
 	plmn->mcc = plmn_first->mcc;
@@ -845,8 +851,9 @@ static int gsm322_a_sel_next_plmn(struct osmocom_ms *ms, struct msgb *msg)
 
 
 	LOGP(DPLMN, LOGL_INFO, "Selecting PLMN from list. (%02d: mcc=%03d "
-			"mnc=%02d\n", plmn->plmn_curr, plmn_next->mcc,
-			plmn_next->mnc);
+		"mnc=%02d  %s, %s)\n", plmn->plmn_curr, plmn_next->mcc,
+		plmn_next->mnc,
+		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 
 	/* set next network */
 	plmn->mcc = plmn_next->mcc;
@@ -929,8 +936,10 @@ static int gsm322_a_loss_of_radio(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* if PLMN in list */
 	if (found >= 0) {
-		LOGP(DPLMN, LOGL_INFO, "PLMN available (mcc=%03d mnc=%02d)\n",
-			cs->list[found].mcc, cs->list[found].mnc);
+		LOGP(DPLMN, LOGL_INFO, "PLMN available (mcc=%03d mnc=%02d  "
+			"%s, %s)\n", cs->list[found].mcc, cs->list[found].mnc,
+			gsm_get_mcc(cs->list[found].mcc),
+			gsm_get_mnc(cs->list[found].mcc, cs->list[found].mnc));
 		return gsm322_a_sel_first_plmn(ms, msg);
 	}
 
@@ -963,8 +972,10 @@ static int gsm322_a_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 		plmn->mcc = subscr->plmn_mcc;
 		plmn->mnc = subscr->plmn_mnc;
 
-		LOGP(DPLMN, LOGL_INFO, "Use RPLMN (mcc=%03d mnc=%02d)\n",
-			plmn->mcc, plmn->mnc);
+		LOGP(DPLMN, LOGL_INFO, "Use RPLMN (mcc=%03d mnc=%02d  "
+			"%s, %s)\n", plmn->mcc, plmn->mnc,
+			gsm_get_mcc(plmn->mcc),
+			gsm_get_mnc(plmn->mcc, plmn->mnc));
 
 		new_a_state(plmn, GSM322_A1_TRYING_RPLMN);
 
@@ -1099,8 +1110,10 @@ static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 		plmn->mcc = subscr->plmn_mcc;
 		plmn->mnc = subscr->plmn_mnc;
 
-		LOGP(DPLMN, LOGL_INFO, "Use RPLMN (mcc=%03d mnc=%02d)\n",
-			plmn->mcc, plmn->mnc);
+		LOGP(DPLMN, LOGL_INFO, "Use RPLMN (mcc=%03d mnc=%02d  "
+			"%s, %s)\n", plmn->mcc, plmn->mnc,
+			gsm_get_mcc(plmn->mcc),
+			gsm_get_mnc(plmn->mcc, plmn->mnc));
 
 		new_m_state(plmn, GSM322_M1_TRYING_RPLMN);
 
@@ -1192,8 +1205,9 @@ static int gsm322_m_choose_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	plmn->mcc = gm->mcc;
 	plmn->mnc = gm->mnc;
 
-	LOGP(DPLMN, LOGL_INFO, "User selects PLMN. (mcc=%03d mnc=%02d)\n",
-		plmn->mcc, plmn->mnc);
+	LOGP(DPLMN, LOGL_INFO, "User selects PLMN. (mcc=%03d mnc=%02d  "
+		"%s, %s)\n", plmn->mcc, plmn->mnc,
+		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 
 	new_m_state(plmn, GSM322_M4_TRYING_PLMN);
 
@@ -1318,9 +1332,10 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any)
 		}
 
 		LOGP(DCS, LOGL_INFO, "Cell frequency %d: Cell found, (rxlev=%d "
-			"mcc=%03d mnc=%02d lac=%04x)\n", i,
+			"mcc=%03d mnc=%02d lac=%04x  %s, %s)\n", i,
 			cs->list[i].rxlev_db, cs->list[i].mcc, cs->list[i].mnc,
-			cs->list[i].lac);
+			cs->list[i].lac, gsm_get_mcc(cs->list[i].mcc),
+			gsm_get_mnc(cs->list[i].mcc, cs->list[i].mnc));
 
 		/* find highest power cell */
 		if (found < 0 || cs->list[i].rxlev_db > power) {
@@ -1328,6 +1343,8 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any)
 			found = i;
 		}
 	}
+
+	gsm322_dump_sorted_plmn(ms);
 
 	if (found >= 0)
 		LOGP(DCS, LOGL_INFO, "Cell frequency %d selected.\n", found);
@@ -1342,9 +1359,9 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_sysinfo *s = &ms->sysinfo;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	int i;
+	int i, j;
 	uint8_t mask, flags;
-	uint32_t max = 0, weight = cs->scan_state;
+	uint32_t weight = 0, test = cs->scan_state;
 
 	if (rr->state != GSM48_RR_ST_IDLE) {
 		LOGP(DCS, LOGL_FATAL, "This must only happen in IDLE mode, "
@@ -1373,19 +1390,39 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		mask |= GSM322_CS_FLAG_BA;
 	flags = mask; /* all masked flags are requied */
 	for (i = 0; i <= 1023; i++) {
+		/* skip if band has enough frequencies scanned (3.2.1) */
+		for (j = 0; gsm_sup_smax[j].max; j++) {
+			if (gsm_sup_smax[j].end > gsm_sup_smax[j].start) {
+				if (gsm_sup_smax[j].start >= i
+				 && gsm_sup_smax[j].end <= i)
+				 	break;
+			} else {
+				if (gsm_sup_smax[j].end <= i
+				 || gsm_sup_smax[j].start >= i)
+				 	break;
+			}
+		}
+		if (gsm_sup_smax[j].max) {
+			if (gsm_sup_smax[j].temp == gsm_sup_smax[j].max)
+				continue;
+		}
+		/* search for unscanned frequency */
 		if ((cs->list[i].flags & mask) == flags) {
 			/* weight depends on the power level
 			 * if it is the same, it depends on arfcn
 			 */
-			weight = cs->list[i].rxlev_db + 128;
-			weight = (weight << 16) | i;
-			if (weight >= cs->scan_state)
+			test = cs->list[i].rxlev_db + 128;
+			test = (test << 16) | i;
+			if (test >= cs->scan_state)
 				continue;
-			if (weight > max)
-				max = weight;
+			if (test > weight)
+				weight = test;
 		}
 	}
 	cs->scan_state = weight;
+
+	if (!weight)
+		gsm322_dump_cs_list(ms);
 
 	/* special negative case for HPLMN search */
 	if (cs->state == GSM322_HPLMN_SEARCH && !weight) {
@@ -1399,6 +1436,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 
 		/* re-tune back to current VPLMN */
 		l1ctl_tx_ccch_req(ms, cs->arfcn);
+		cs->ccch_active = 0;
 
 		return 0;
 	}
@@ -1424,9 +1462,16 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			/* tune */
 			cs->arfcn = found;
 			l1ctl_tx_ccch_req(ms, cs->arfcn);
+			cs->ccch_active = 0;
 	
 			/* Clear system information. */
 			gsm48_sysinfo_init(ms);
+
+			/* tell PLMN process about available PLMNs */
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_AVAIL);
+			if (!nmsg)
+				return -ENOMEM;
+			gsm322_plmn_sendmsg(ms, nmsg);
 
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_CELL_FOUND);
 		} else {
@@ -1435,7 +1480,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		}
 		if (!nmsg)
 			return -ENOMEM;
-		gsm322_plmn_sendmsg(ms, nmsg);
+		gsm322_cs_sendmsg(ms, nmsg);
 
 		return 0;
 	}
@@ -1448,13 +1493,14 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	cs->arfcn = weight & 1023;
 	LOGP(DCS, LOGL_INFO, "Scanning frequency %d.\n", cs->arfcn);
 	l1ctl_tx_ccch_req(ms, cs->arfcn);
+	cs->ccch_active = 0;
 
 	/* Clear system information. */
 	gsm48_sysinfo_init(ms);
 
-	/* set timer for reading BCCH */
-	start_cs_timer(cs, 4, 0); // TODO: timer depends on BCCH config
-
+	/* increase scan counter for each maximum scan range */
+	if (gsm_sup_smax[j].max)
+		gsm_sup_smax[j].temp++;
 	return 0;
 }
 
@@ -1539,8 +1585,10 @@ struct gsm322_ba_list *gsm322_cs_sysinfo_sacch(struct osmocom_ms *ms)
 				freq[i >> 3] |= (1 << (i & 7));
 		}
 		if (!!memcmp(freq, ba->freq, sizeof(freq))) {
-			LOGP(DCS, LOGL_INFO, "New BA list (mcc=%d mnc=%d).\n",
-				ba->mcc, ba->mnc);
+			LOGP(DCS, LOGL_INFO, "New BA list (mcc=%d mnc=%d  "
+				"%s, %s).\n", ba->mcc, ba->mnc,
+				gsm_get_mcc(ba->mcc),
+				gsm_get_mnc(ba->mcc, ba->mnc));
 			memcpy(ba->freq, freq, sizeof(freq));
 		}
 	}
@@ -1641,12 +1689,16 @@ static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 				freq[i >> 3] |= (1 << (i & 7));
 		}
 		if (!!memcmp(freq, ba->freq, sizeof(freq))) {
-			LOGP(DCS, LOGL_INFO, "New BA list (mcc=%d mnc=%d).\n",
-				ba->mcc, ba->mnc);
+			LOGP(DCS, LOGL_INFO, "New BA list (mcc=%d mnc=%d  "
+				"%s, %s).\n", ba->mcc, ba->mnc,
+				gsm_get_mcc(ba->mcc),
+				gsm_get_mnc(ba->mcc, ba->mnc));
 			memcpy(ba->freq, freq, sizeof(freq));
 		}
 	}
 
+#warning testing
+printf("%d %d %d\n", s->si1, s->si2, s->si3);
 	/* all relevant system informations received */
 	if (s->si1 && s->si2 && s->si3
 	 && (!s->nb_ext_ind_si2
@@ -1655,6 +1707,8 @@ static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 	 	&& s->nb_ext_ind_si2bis))) {
 		/* stop timer */
 		stop_cs_timer(cs);
+
+		gsm48_sysinfo_dump(ms);
 
 		/* store sysinfo and continue scan */
 		return gsm322_cs_store(ms);
@@ -1707,9 +1761,11 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 	mask = GSM322_CS_FLAG_SUPPORT | GSM322_CS_FLAG_POWER;
 	flags = GSM322_CS_FLAG_SUPPORT;
 	if (cs->state == GSM322_C2_STORED_CELL_SEL) {
+		LOGP(DCS, LOGL_FATAL, "Scanning power for stored BA list.\n");
 		mask |= GSM322_CS_FLAG_BA;
 		flags |= GSM322_CS_FLAG_BA;
-	}
+	} else
+		LOGP(DCS, LOGL_FATAL, "Scanning power for all frequencies.\n");
 	for (i = 0; i <= 1023; i++) {
 		if ((cs->list[i].flags & mask) == flags) {
 			s = e = i;
@@ -1759,6 +1815,9 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 		}
 		LOGP(DCS, LOGL_INFO, "Found %d frequencies.\n", found);
 		cs->scan_state = 0xffffffff; /* higher than high */
+		/* clear counter of scanned frequencies of each range */
+		for (i = 0; gsm_sup_smax[i].max; i++)
+			gsm_sup_smax[i].temp = 0;
 		return gsm322_cs_scan(ms);
 	}
 
@@ -1773,30 +1832,69 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 
 	LOGP(DCS, LOGL_INFO, "Scanning frequecies. (%d..%d)\n", s, e);
 
-#ifdef TODO
-	start scan on radio interface
-
+	/* start scan on radio interface */
 	cs->powerscan = 1;
-
-	also stop on state change
-
-#else
-	printf("scan not supported... exitting\n");
-	exit(-1);
-#endif
+	return l1ctl_tx_pm_req_range(ms, s, e);
 }
 
-#ifdef TODO
+static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
+		     void *handler_data, void *signal_data)
 {
+	struct osmocom_ms *ms;
+	struct gsm322_cellsel *cs;
+	struct osmobb_meas_res *mr;
+	int i;
+	int8_t rxlev_db;
 
-	LOGP(DCS, LOGL_INFO, "Found frequency %d.\n", i);
+	if (subsys != SS_L1CTL)
+		return 0;
 
-	/* set power scan flag */
-	cs->list[i].flags |= GSM322_CS_FLAG_POWER;
-	if (...)
-		cs->list[i].flags |= GSM322_CS_FLAG_SIGNAL;
+	switch (signal) {
+	case S_L1CTL_PM_RES:
+		mr = signal_data;
+		ms = mr->ms;
+		cs = &ms->cellsel;
+		if (!cs->powerscan)
+			return -EINVAL;
+		i = mr->band_arfcn & 1023;
+		rxlev_db = mr->rx_lev - 110;
+		cs->list[i].rxlev_db = rxlev_db;
+		cs->list[i].flags |= GSM322_CS_FLAG_POWER;
+		if (rxlev_db >= ms->support.min_rxlev_db) {
+			cs->list[i].flags |= GSM322_CS_FLAG_SIGNAL;
+			LOGP(DCS, LOGL_INFO, "Found signal (frequency %d "
+				"rxlev %d)\n", i, cs->list[i].rxlev_db);
+		}
+		break;
+	case S_L1CTL_PM_DONE:
+		LOGP(DCS, LOGL_INFO, "Done with power scanning range.\n");
+		ms = signal_data;
+		cs = &ms->cellsel;
+		if (!cs->powerscan)
+			return -EINVAL;
+		gsm322_cs_powerscan(ms);
+		break;
+	case S_L1CTL_CCCH_RESP:
+		ms = signal_data;
+		cs = &ms->cellsel;
+		if (!cs->ccch_active) {
+			LOGP(DCS, LOGL_INFO, "Channel activated.\n");
+			cs->ccch_active = 1;
+			/* set timer for reading BCCH */
+			if (cs->state == GSM322_C2_STORED_CELL_SEL
+			 || cs->state == GSM322_C1_NORMAL_CELL_SEL
+			 || cs->state == GSM322_C6_ANY_CELL_SEL
+			 || cs->state == GSM322_C4_NORMAL_CELL_RESEL
+			 || cs->state == GSM322_C8_ANY_CELL_RESEL
+			 || cs->state == GSM322_C5_CHOOSE_CELL
+			 || cs->state == GSM322_C9_CHOOSE_ANY_CELL)
+				start_cs_timer(cs, 4, 0);
+					// TODO: timer depends on BCCH config
+		}
+		break;
+	}
+	return 0;
 }
-#endif
 
 /*
  * handler for cell selection process
@@ -1839,15 +1937,6 @@ static int gsm322_c_stored_cell_sel(struct osmocom_ms *ms, struct gsm322_ba_list
 			cs->list[i].flags &= ~GSM322_CS_FLAG_BA;
 	}
 
-#ifdef TODO
-	remove this:
-#else
-	/* use hacked frequency */
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_POWER;
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_SIGNAL;
-	cs->list[ms->test_arfcn].rxlev_db = -40;
-#endif
-	
 	/* start power scan */
 	return gsm322_cs_powerscan(ms);
 }
@@ -1867,15 +1956,6 @@ static int gsm322_c_normal_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	new_c_state(cs, GSM322_C1_NORMAL_CELL_SEL);
-
-#ifdef TODO
-	remove this:
-#else
-	/* use hacked frequency */
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_POWER;
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_SIGNAL;
-	cs->list[ms->test_arfcn].rxlev_db = -40;
-#endif
 
 	/* start power scan */
 	return gsm322_cs_powerscan(ms);
@@ -1899,15 +1979,6 @@ static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 
 	cs->mcc = cs->mnc = 0;
 
-#ifdef TODO
-	remove this:
-#else
-	/* use hacked frequency */
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_POWER;
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_SIGNAL;
-	cs->list[ms->test_arfcn].rxlev_db = -40;
-#endif
-
 	/* start power scan */
 	return gsm322_cs_powerscan(ms);
 }
@@ -1922,15 +1993,6 @@ static int gsm322_c_normal_cell_resel(struct osmocom_ms *ms, struct msgb *msg)
 	/* NOTE: We keep our scan info we have so far.
 	 * This may cause a skip in power scan. */
 
-#ifdef TODO
-	remove this:
-#else
-	/* use hacked frequency */
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_POWER;
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_SIGNAL;
-	cs->list[ms->test_arfcn].rxlev_db = -40;
-#endif
-
 	/* start power scan */
 	return gsm322_cs_powerscan(ms);
 }
@@ -1944,15 +2006,6 @@ static int gsm322_c_any_cell_resel(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* NOTE: We keep our scan info we have so far.
 	 * This may cause a skip in power scan. */
-
-#ifdef TODO
-	remove this:
-#else
-	/* use hacked frequency */
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_POWER;
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_SIGNAL;
-	cs->list[ms->test_arfcn].rxlev_db = -40;
-#endif
 
 	/* start power scan */
 	return gsm322_cs_powerscan(ms);
@@ -2118,6 +2171,7 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
 	l1ctl_tx_ccch_req(ms, cs->arfcn);
+	cs->ccch_active = 0;
 
 	return 0;
 }
@@ -2131,6 +2185,7 @@ static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
 	l1ctl_tx_ccch_req(ms, cs->arfcn);
+	cs->ccch_active = 0;
 
 	return 0;
 }
@@ -2141,9 +2196,11 @@ static int gsm322_c_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_subscriber *subscr = &ms->subscr;
 
 	/* if no SIM is is MS */
-	if (!subscr->sim_valid)
+	if (!subscr->sim_valid) {
 		LOGP(DCS, LOGL_INFO, "Switch on without SIM.\n");
 		return gsm322_c_any_cell_sel(ms, msg);
+	LOGP(DCS, LOGL_INFO, "Switch on with SIM inserted.\n");
+	}
 
 	/* stay in NULL state until PLMN is selected */
 
@@ -2340,7 +2397,8 @@ static struct cellselstatelist {
 	 SBIT(GSM322_C4_NORMAL_CELL_RESEL),
 	 GSM322_EVENT_CELL_FOUND, gsm322_c_camp_any_cell},
 	{SBIT(GSM322_C1_NORMAL_CELL_SEL) | SBIT(GSM322_C6_ANY_CELL_SEL) |
-	 SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C8_ANY_CELL_RESEL),
+	 SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C8_ANY_CELL_RESEL) |
+	 SBIT(GSM322_C0_NULL),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_c_any_cell_sel},
 	{SBIT(GSM322_C2_STORED_CELL_SEL) | SBIT(GSM322_C5_CHOOSE_CELL) |
 	 SBIT(GSM322_C4_NORMAL_CELL_RESEL),
@@ -2361,9 +2419,10 @@ static struct cellselstatelist {
 	 GSM322_EVENT_CELL_FOUND, gsm322_c_normal_cell_sel},
 	{SBIT(GSM322_C1_NORMAL_CELL_SEL) | SBIT(GSM322_C2_STORED_CELL_SEL) |
 	 SBIT(GSM322_C4_NORMAL_CELL_RESEL) | SBIT(GSM322_C5_CHOOSE_CELL) |
-	 SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C8_ANY_CELL_RESEL),
+	 SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C8_ANY_CELL_RESEL) |
+	 SBIT(GSM322_C6_ANY_CELL_SEL),
 	 GSM322_EVENT_SYSINFO, gsm322_c_scan_sysinfo_bcch},
-	{SBIT(GSM322_C3_CAMPED_NORMALLY),
+	{SBIT(GSM322_C3_CAMPED_NORMALLY) | SBIT(GSM322_C7_CAMPED_ANY_CELL),
 	 GSM322_EVENT_SYSINFO, gsm322_c_camp_sysinfo_bcch},
 	{SBIT(GSM322_C3_CAMPED_NORMALLY),
 	 GSM322_EVENT_HPLMN_SEARCH, gsm322_c_hplmn_search}
@@ -2389,7 +2448,7 @@ int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg)
 		 && ((1 << cs->state) & cellselstatelist[i].states))
 			break;
 	if (i == CELLSELSLLEN) {
-		LOGP(DPLMN, LOGL_NOTICE, "Event unhandled at this state.\n");
+		LOGP(DCS, LOGL_NOTICE, "Event unhandled at this state.\n");
 		return 0;
 	}
 
@@ -2464,11 +2523,11 @@ int gsm322_dump_cs_list(struct osmocom_ms *ms)
 				else
 					printf(" ");
 			}
-			printf("|%4d   |%4d", cs->list[i].min_db,
+			printf("|%4d   |%4d\n", cs->list[i].min_db,
 				cs->list[i].max_pwr);
 		} else
-			printf("-      |-      |                       |"
-				"-      |-");
+			printf("n/a    |n/a    |       |                       "
+				"|n/a    |n/a\n");
 	}
 
 	return 0;
@@ -2526,7 +2585,7 @@ int gsm322_init(struct osmocom_ms *ms)
 	OSMOCOM_FILE *fp;
 	char suffix[] = ".ba";
 	char filename[sizeof(ms->name) + strlen(suffix) + 1];
-//	int i;
+	int i;
 	struct gsm322_ba_list *ba;
 	uint8_t buf[4];
 
@@ -2550,36 +2609,45 @@ int gsm322_init(struct osmocom_ms *ms)
 	INIT_LLIST_HEAD(&plmn->forbidden_la);
 	INIT_LLIST_HEAD(&cs->ba_list);
 
-#ifdef TODO
 	/* set supported frequencies in cell selection list */
 	for (i = 0; i <= 1023; i++)
-		if ((s->freq_map[i >> 3] & (1 << (i & 7))))
+		if ((ms->support.freq_map[i >> 3] & (1 << (i & 7))))
 			cs->list[i].flags |= GSM322_CS_FLAG_SUPPORT;
-#else
-	/* set cell selection list to given test frequency only */
-	cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_SUPPORT;
-#endif
 
 	/* read BA list */
 	strcpy(filename, ms->name);
 	strcat(filename, suffix);
 	fp = osmocom_fopen(filename, "r");
 	if (fp) {
-		while(!feof(fp)) {
+		int rc;
+
+		while(!osmocom_feof(fp)) {
 			ba = talloc_zero(l23_ctx, struct gsm322_ba_list);
 			if (!ba)
 				return -ENOMEM;
-			osmocom_fread(buf, 4, 1, fp);
+			rc = osmocom_fread(buf, 4, 1, fp);
+			if (!rc) {
+				talloc_free(ba);
+				break;
+			}
 			ba->mcc = (buf[0] << 8) | buf[1];
 			ba->mnc = (buf[2] << 8) | buf[3];
-			osmocom_fread(ba->freq, sizeof(ba->freq), 1, fp);
+			rc = osmocom_fread(ba->freq, sizeof(ba->freq), 1, fp);
+			if (!rc) {
+				talloc_free(ba);
+				break;
+			}
 			llist_add_tail(&ba->entry, &cs->ba_list);
-			LOGP(DPLMN, LOGL_INFO, "Read stored BA list (mcc=%d "
-				"mnc=%d)\n", ba->mcc, ba->mnc);
+			LOGP(DCS, LOGL_INFO, "Read stored BA list (mcc=%d "
+				"mnc=%d  %s, %s)\n", ba->mcc, ba->mnc,
+				gsm_get_mcc(ba->mcc),
+				gsm_get_mnc(ba->mcc, ba->mnc));
 		}
 		osmocom_fclose(fp);
 	} else
 		LOGP(DCS, LOGL_NOTICE, "No stored BA list\n");
+
+	register_signal_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
 
 	return 0;
 }
@@ -2599,6 +2667,8 @@ int gsm322_exit(struct osmocom_ms *ms)
 	LOGP(DPLMN, LOGL_INFO, "exit PLMN process\n");
 	LOGP(DCS, LOGL_INFO, "exit Cell Selection process\n");
 
+	unregister_signal_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
+
 	/* stop cell selection process (if any) */
 	new_c_state(cs, GSM322_C0_NULL);
 
@@ -2611,15 +2681,19 @@ int gsm322_exit(struct osmocom_ms *ms)
 	strcat(filename, suffix);
 	fp = osmocom_fopen(filename, "w");
 	if (fp) {
+		int rc;
+
 		llist_for_each_entry(ba, &cs->ba_list, entry) {
 			buf[0] = ba->mcc >> 8;
-			buf[1] = ba->mcc | 0xff;
+			buf[1] = ba->mcc & 0xff;
 			buf[2] = ba->mnc >> 8;
-			buf[3] = ba->mnc | 0xff;
-			osmocom_fwrite(buf, 4, 1, fp);
-			osmocom_fwrite(ba->freq, sizeof(ba->freq), 1, fp);
-			LOGP(DPLMN, LOGL_INFO, "Write stored BA list (mcc=%d "
-				"mnc=%d)\n", ba->mcc, ba->mnc);
+			buf[3] = ba->mnc & 0xff;
+			rc = osmocom_fwrite(buf, 4, 1, fp);
+			rc = osmocom_fwrite(ba->freq, sizeof(ba->freq), 1, fp);
+			LOGP(DCS, LOGL_INFO, "Write stored BA list (mcc=%d "
+				"mnc=%d  %s, %s)\n", ba->mcc, ba->mnc,
+				gsm_get_mcc(ba->mcc),
+				gsm_get_mnc(ba->mcc, ba->mnc));
 		}
 		osmocom_fclose(fp);
 	} else

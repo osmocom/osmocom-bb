@@ -38,7 +38,6 @@
 #include <osmocore/select.h>
 #include <osmocore/signal.h>
 
-extern int (*app_work) (struct osmocom_ms *ms);
 int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg);
 
 int mobile_work(struct osmocom_ms *ms)
@@ -87,6 +86,18 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
+int mobile_exit(struct osmocom_ms *ms)
+{
+	unregister_signal_handler(SS_L1CTL, &signal_cb, NULL);
+	gsm322_exit(ms);
+	gsm48_cc_exit(ms);
+	gsm48_mm_exit(ms);
+	gsm48_rr_exit(ms);
+	gsm_subscr_exit(ms);
+
+	return 0;
+}
+
 int l23_app_init(struct osmocom_ms *ms)
 {
 	gsm_support_init(ms);
@@ -99,17 +110,9 @@ int l23_app_init(struct osmocom_ms *ms)
 	ms->cclayer.mncc_recv = mncc_recv_dummy;
 	gsm322_init(ms);
 	l23_app_work = mobile_work;
-	return register_signal_handler(SS_L1CTL, &signal_cb, NULL);
-}
+	register_signal_handler(SS_L1CTL, &signal_cb, NULL);
+	l23_app_exit = mobile_exit;
 
-/* TODO handle this */
-int l23_app_exit(struct osmocom_ms *ms)
-{
-	gsm322_exit(ms);
-	gsm48_cc_exit(ms);
-	gsm48_mm_exit(ms);
-	gsm48_rr_exit(ms);
-	gsm_subscr_exit(ms);
 	return 0;
 }
 

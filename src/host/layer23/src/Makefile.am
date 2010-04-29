@@ -6,7 +6,8 @@ noinst_LIBRARIES = liblayer23.a
 liblayer23_a_SOURCES = l1ctl.c gsmtap_util.c lapdm.c rslms.c \
 			layer3.c logging.c bcch_scan.c \
 			gsm48_cc.c transaction.c gsm48_mm.c gsm48_rr.c \
-			gsm322.c support.c subscriber.c sysinfo.c mnccms.c
+			gsm322.c support.c subscriber.c sysinfo.c networks.c \
+			mnccms.c
 
 bin_PROGRAMS = bcch_scan layer23 echo_test mobile
 

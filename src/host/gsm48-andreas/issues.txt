@@ -69,3 +69,8 @@ Using l1ctl_tx_ccch_req?
 mncc.h of openbsc / layer23:
 What about putting all (except call structure) to osmocore?
 
+bsic???????
+
+How do I stop scanning frequencies?
+The scanning process may currently restart scanning, when process is running.
+

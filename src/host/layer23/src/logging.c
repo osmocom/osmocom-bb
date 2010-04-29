@@ -32,6 +32,18 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[1;35m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DCS] = {
+		.name = "DCS",
+		.description = "Radio Resource",
+		.color = "\033[1;34m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
+	[DPLMN] = {
+		.name = "DPLMN",
+		.description = "Mobility Management",
+		.color = "\033[1;33m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
 	[DRR] = {
 		.name = "DRR",
 		.description = "Radio Resource",

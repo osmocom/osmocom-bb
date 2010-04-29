@@ -139,6 +139,7 @@ struct gsm322_cellsel {
 
 	uint8_t			powerscan; /* currently scanning for power */
 	uint32_t		scan_state; /* special state of current scan */
+	uint8_t			ccch_active; /* set, if ccch is active */
 };
 
 /* GSM 03.22 message */
@@ -171,5 +172,10 @@ int gsm322_del_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
 int gsm322_is_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc);
 int gsm322_is_forbidden_la(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	uint16_t lac);
+int gsm322_dump_sorted_plmn(struct osmocom_ms *ms);
+int gsm322_dump_cs_list(struct osmocom_ms *ms);
+int gsm322_dump_sim_plmn(struct osmocom_ms *ms);
+int gsm322_dump_forbidden_plmn(struct osmocom_ms *ms);
+int gsm322_dump_forbidden_la(struct osmocom_ms *ms);
 
 #endif /* _GSM322_H */

@@ -44,6 +44,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 
 static struct log_target *stderr_target;
 
@@ -54,6 +55,7 @@ static char *socket_path = "/tmp/osmocom_l2";
 static struct osmocom_ms *ms = NULL;
 static uint32_t gsmtap_ip = 0;
 int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
+int (*l23_app_exit) (struct osmocom_ms *ms) = NULL;
 
 static int layer2_read(struct bsc_fd *fd)
 {
@@ -192,6 +194,23 @@ static void handle_options(int argc, char **argv)
 	}
 }
 
+void sighandler(int sigset)
+{
+	if (sigset == SIGHUP || sigset == SIGPIPE)
+		return;
+
+	signal(SIGINT, SIG_DFL);
+	signal(SIGHUP, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGPIPE, SIG_DFL);
+
+	fprintf(stderr, "Signal %d recevied.\n", sigset);
+	if (l23_app_exit)
+		l23_app_exit(ms);
+
+	exit (0);
+}
+
 int main(int argc, char **argv)
 {
 	int rc;
@@ -256,6 +275,11 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 	}
+
+	signal(SIGINT, sighandler);
+	signal(SIGHUP, sighandler);
+	signal(SIGTERM, sighandler);
+	signal(SIGPIPE, sighandler);
 
 	while (1) {
 		if (l23_app_work)

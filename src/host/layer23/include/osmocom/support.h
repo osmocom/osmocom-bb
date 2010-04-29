@@ -72,7 +72,18 @@ struct gsm_support {
 	/* IMEI */
 	char imei[15];
 	char imeisv[17];
+
+	/* radio */
+	int8_t min_rxlev_db;
 };
+
+struct gsm_support_scan_max {
+	uint16_t	start;
+	uint16_t	end;
+	uint16_t	max;
+	uint16_t	temp;	
+};
+extern struct gsm_support_scan_max gsm_sup_smax[];
 
 void gsm_support_init(struct osmocom_ms *ms);
 

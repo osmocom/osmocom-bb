@@ -68,12 +68,13 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms);
 int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 	uint16_t *mnc, uint16_t *lac)
 {
-	*mcc = bcd2char(lai->digits[0] & 0x0f) * 100
-		+ bcd2char(lai->digits[0] >> 4) * 10
-		+ bcd2char(lai->digits[1] & 0x0f);
-	*mnc = bcd2char(lai->digits[1] >> 4) * 100
-		+ bcd2char(lai->digits[2] & 0x0f) * 10
-		+ bcd2char(lai->digits[2] >> 4);
+	*mcc = (lai->digits[0] & 0x0f) * 100
+		+ (lai->digits[0] >> 4) * 10
+		+ (lai->digits[1] & 0x0f);
+	*mnc = (lai->digits[2] & 0x0f) * 10
+		+ (lai->digits[2] >> 4);
+	if ((lai->digits[1] >> 4) != 0xf) /* 3 digits MNC */
+		*mnc += (lai->digits[1] >> 4) * 100;
 	*lac = ntohs(lai->lac);
 
 	return 0;
@@ -268,6 +269,8 @@ static int gsm48_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
+#warning HACK!!!!!!
+return gsm48_rcv_rsl(ms, msg);
 	msgb_enqueue(&rr->rsl_upqueue, msg);
 
 	return 0;
@@ -908,11 +911,11 @@ static int gsm48_rr_tx_chan_req(struct osmocom_ms *ms, int cause, int paging)
 static int gsm48_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct gsm48_sysinfo *sys = &ms->sysinfo;
+	struct gsm48_sysinfo *s = &ms->sysinfo;
 	struct msgb *nmsg;
 	struct l1ctl_info_ul *nul;
 	struct l1ctl_rach_req *nra;
-	int s;
+	int slots;
 	uint8_t chan_req;
 
 	LOGP(DRR, LOGL_INFO, "RANDOM ACCESS confirm (requests left %d)\n",
@@ -928,32 +931,32 @@ static int gsm48_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	rr->n_chan_req--;
 
 	/* table 3.1 */
-	switch(sys->tx_integer) {
+	switch(s->tx_integer) {
 	case 3: case 8: case 14: case 50:
-		if (sys->ccch_conf != 1) /* not combined CCCH */
-			s = 55;
+		if (s->ccch_conf != 1) /* not combined CCCH */
+			slots = 55;
 		else
-			s = 41;
+			slots = 41;
 	case 4: case 9: case 16:
-		if (sys->ccch_conf != 1)
-			s = 76;
+		if (s->ccch_conf != 1)
+			slots = 76;
 		else
-			s = 52;
+			slots = 52;
 	case 5: case 10: case 20:
-		if (sys->ccch_conf != 1)
-			s = 109;
+		if (s->ccch_conf != 1)
+			slots = 109;
 		else
-			s = 58;
+			slots = 58;
 	case 6: case 11: case 25:
-		if (sys->ccch_conf != 1)
-			s = 163;
+		if (s->ccch_conf != 1)
+			slots = 163;
 		else
-			s = 86;
+			slots = 86;
 	default:
-		if (sys->ccch_conf != 1)
-			s = 217;
+		if (s->ccch_conf != 1)
+			slots = 217;
 		else
-			s = 115;
+			slots = 115;
 	}
 
 	/* resend chan_req with new randiom */
@@ -977,7 +980,7 @@ static int gsm48_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 #ifdef TODO
 	at this point we require chan req to be sent at a given delay
 	also we require a confirm from radio part
-	nra->delay = (random() % sys->tx_integer) + s;
+	nra->delay = (random() % s->tx_integer) + slots;
 
 	LOGP(DRR, LOGL_INFO, "RANDOM ACCESS (ra 0x%02x delay %d)\n", nra->ra,
 		nra->delay);
@@ -1488,7 +1491,7 @@ static int gsm48_decode_cellopt_sacch(struct gsm48_sysinfo *s,
 	return 0;
 }
 
-/* decode "Cell Channel Description" (10.5.2.11) */
+/* decode "Control Channel Description" (10.5.2.11) */
 static int gsm48_decode_ccd(struct gsm48_sysinfo *s,
 	struct gsm48_control_channel_descr *cc)
 {
@@ -1643,8 +1646,8 @@ static int gsm48_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!!memcmp(si, s->si1_msg, MIN(msgb_l3len(msg), sizeof(s->si1_msg))))
-		return -0;
+	if (!memcmp(si, s->si1_msg, MIN(msgb_l3len(msg), sizeof(s->si1_msg))))
+		return 0;
 	memcpy(s->si1_msg, si, MIN(msgb_l3len(msg), sizeof(s->si1_msg)));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 1\n");
@@ -1676,9 +1679,10 @@ static int gsm48_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 			"message.\n");
 		return -EINVAL;
 	}
+//printf("len = %d\n", MIN(msgb_l3len(msg), sizeof(s->si2_msg)));
 
-	if (!!memcmp(si, s->si2_msg, MIN(msgb_l3len(msg), sizeof(s->si2_msg))))
-		return -0;
+	if (!memcmp(si, s->si2_msg, MIN(msgb_l3len(msg), sizeof(s->si2_msg))))
+		return 0;
 	memcpy(s->si2_msg, si, MIN(msgb_l3len(msg), sizeof(s->si2_msg)));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 2\n");
@@ -1711,9 +1715,9 @@ static int gsm48_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!!memcmp(si, s->si2b_msg, MIN(msgb_l3len(msg),
+	if (!memcmp(si, s->si2b_msg, MIN(msgb_l3len(msg),
 			sizeof(s->si2b_msg))))
-		return -0;
+		return 0;
 	memcpy(s->si2b_msg, si, MIN(msgb_l3len(msg), sizeof(s->si2b_msg)));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 2bis\n");
@@ -1746,9 +1750,9 @@ static int gsm48_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!!memcmp(si, s->si2t_msg, MIN(msgb_l3len(msg),
+	if (!memcmp(si, s->si2t_msg, MIN(msgb_l3len(msg),
 			sizeof(s->si2t_msg))))
-		return -0;
+		return 0;
 	memcpy(s->si2t_msg, si, MIN(msgb_l3len(msg), sizeof(s->si2t_msg)));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 2ter\n");
@@ -1778,12 +1782,12 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!!memcmp(si, s->si3_msg, MIN(msgb_l3len(msg), sizeof(s->si3_msg))))
-		return -0;
+	if (!memcmp(si, s->si3_msg, MIN(msgb_l3len(msg), sizeof(s->si3_msg))))
+		return 0;
 	memcpy(s->si3_msg, si, MIN(msgb_l3len(msg), sizeof(s->si3_msg)));
 
 	/* Cell Identity */
-	s->cell_id = ntohl(si->cell_identity);
+	s->cell_id = ntohs(si->cell_identity);
 	/* LAI */
 	gsm48_decode_lai(&si->lai, &s->mcc, &s->mnc, &s->lac);
 	/* Control Channel Description */
@@ -1810,9 +1814,9 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
-	struct gsm48_system_information_type_4 *si = msgb_l3(msg) + 1;
+	struct gsm48_system_information_type_4 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = &ms->sysinfo;
-	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
 	uint8_t *data = si->data;
 	struct gsm48_chan_desc *cd;
 
@@ -1823,8 +1827,8 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!!memcmp(si, s->si4_msg, MIN(msgb_l3len(msg), sizeof(s->si4_msg))))
-		return -0;
+	if (!memcmp(si, s->si4_msg, MIN(msgb_l3len(msg), sizeof(s->si4_msg))))
+		return 0;
 	memcpy(s->si4_msg, si, MIN(msgb_l3len(msg), sizeof(s->si4_msg)));
 
 	/* LAI */
@@ -1882,8 +1886,8 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!!memcmp(si, s->si5_msg, MIN(msgb_l3len(msg), sizeof(s->si5_msg))))
-		return -0;
+	if (!memcmp(si, s->si5_msg, MIN(msgb_l3len(msg), sizeof(s->si5_msg))))
+		return 0;
 	memcpy(s->si5_msg, si, MIN(msgb_l3len(msg), sizeof(s->si5_msg)));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 5\n");
@@ -1915,9 +1919,9 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 5bis\n");
 
-	if (!!memcmp(si, s->si5b_msg, MIN(msgb_l3len(msg),
+	if (!memcmp(si, s->si5b_msg, MIN(msgb_l3len(msg),
 			sizeof(s->si5b_msg))))
-		return -0;
+		return 0;
 	memcpy(s->si5b_msg, si, MIN(msgb_l3len(msg), sizeof(s->si5b_msg)));
 
 	/* Neighbor Cell Description */
@@ -1947,9 +1951,9 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 5ter\n");
 
-	if (!!memcmp(si, s->si5t_msg, MIN(msgb_l3len(msg),
+	if (!memcmp(si, s->si5t_msg, MIN(msgb_l3len(msg),
 			sizeof(s->si5t_msg))))
-		return -0;
+		return 0;
 	memcpy(s->si5t_msg, si, MIN(msgb_l3len(msg), sizeof(s->si5t_msg)));
 
 	/* Neighbor Cell Description */
@@ -1975,15 +1979,15 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!!memcmp(si, s->si6_msg, MIN(msgb_l3len(msg), sizeof(s->si6_msg))))
-		return -0;
+	if (!memcmp(si, s->si6_msg, MIN(msgb_l3len(msg), sizeof(s->si6_msg))))
+		return 0;
 	memcpy(s->si6_msg, si, MIN(msgb_l3len(msg), sizeof(s->si6_msg)));
 
 	/* Cell Identity */
-	if (s->si6 && s->cell_identity != ntohl(si->cell_identity))
+	if (s->si6 && s->cell_id != ntohs(si->cell_identity))
 		LOGP(DRR, LOGL_INFO, "Cell ID on SI 6 differs from previous "
 			"read.\n");
-	s->cell_identity = ntohl(si->cell_identity);
+	s->cell_id = ntohs(si->cell_identity);
 	/* LAI */
 	gsm48_decode_lai(&si->lai, &s->mcc, &s->mnc, &s->lac);
 	/* Cell Options (SACCH) */
@@ -2311,13 +2315,13 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 			&cd.hsn);
 		LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT (ra=0x%02x, "
 			"chan_nr=0x%02x, MAIO=%u, HSN=%u, TS=%u, SS=%u, "
-			"TSC=%u) ", ia->req_ref.ra, ia->chan_desc.chan_nr,
+			"TSC=%u)\n", ia->req_ref.ra, ia->chan_desc.chan_nr,
 			cd.maio, cd.hsn, ch_ts, ch_subch, cd.tsc);
 	} else {
 		cd.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc, &cd.tsc, &cd.arfcn);
 		LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT (ra=0x%02x, "
-			"chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u) ",
+			"chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u)\n",
 			ia->req_ref.ra, ia->chan_desc.chan_nr, cd.arfcn,
 			ch_ts, ch_subch, cd.tsc);
 	}
@@ -2388,13 +2392,13 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 			&cd1.hsn);
 		LOGP(DRR, LOGL_INFO, "1(ra=0x%02x, "
 			"chan_nr=0x%02x, MAIO=%u, HSN=%u, TS=%u, SS=%u, "
-			"TSC=%u) ", ia->req_ref1.ra, ia->chan_desc1.chan_nr,
+			"TSC=%u)\n", ia->req_ref1.ra, ia->chan_desc1.chan_nr,
 			cd1.maio, cd1.hsn, ch_ts, ch_subch, cd1.tsc);
 	} else {
 		cd1.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc1, &cd1.tsc, &cd1.arfcn);
 		LOGP(DRR, LOGL_INFO, "1(ra=0x%02x, "
-			"chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u) ",
+			"chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u)\n",
 			ia->req_ref1.ra, ia->chan_desc1.chan_nr, cd1.arfcn,
 			ch_ts, ch_subch, cd1.tsc);
 	}
@@ -2405,13 +2409,13 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 			&cd1.hsn);
 		LOGP(DRR, LOGL_INFO, "2(ra=0x%02x, "
 			"chan_nr=0x%02x, MAIO=%u, HSN=%u, TS=%u, SS=%u, "
-			"TSC=%u) ", ia->req_ref2.ra, ia->chan_desc2.chan_nr,
+			"TSC=%u)\n", ia->req_ref2.ra, ia->chan_desc2.chan_nr,
 			cd2.maio, cd2.hsn, ch_ts, ch_subch, cd2.tsc);
 	} else {
 		cd2.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc2, &cd2.tsc, &cd2.arfcn);
 		LOGP(DRR, LOGL_INFO, "2(ra=0x%02x, "
-			"chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u) ",
+			"chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u)\n",
 			ia->req_ref2.ra, ia->chan_desc2.chan_nr, cd2.arfcn,
 			ch_ts, ch_subch, cd2.tsc);
 	}
@@ -2907,12 +2911,12 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm48_rr_upmsg(ms, msg);
 }
 
-/* unit data from layer 2 to RR layer */
-static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
+/* receive BCCH at RR layer */
+static int gsm48_rr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_hdr *gh = msgb_l3(msg);
+	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
 
-	switch (gh->msg_type) {
+	switch (sih->system_information) {
 	case GSM48_MT_RR_SYSINFO_1:
 		return gsm48_rr_rx_sysinfo1(ms, msg);
 	case GSM48_MT_RR_SYSINFO_2:
@@ -2925,8 +2929,25 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_rx_sysinfo3(ms, msg);
 	case GSM48_MT_RR_SYSINFO_4:
 		return gsm48_rr_rx_sysinfo4(ms, msg);
+	default:
+		LOGP(DRR, LOGL_NOTICE, "BCCH message type 0x%02x unknown.\n",
+			sih->system_information);
+		return -EINVAL;
+	}
+}
+
+/* receive CCCH at RR layer */
+static int gsm48_rr_rx_ccch(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
+	struct gsm322_cellsel *cs = &ms->cellsel;
+
+	/* when changing/deactivating ccch, ignore pending messages */
+	if (!cs->ccch_active)
+		return -EINVAL;
+
+	switch (sih->system_information) {
 	case GSM48_MT_RR_SYSINFO_5:
-#warning todo bcch or sacch
 		return gsm48_rr_rx_sysinfo5(ms, msg);
 	case GSM48_MT_RR_SYSINFO_5bis:
 		return gsm48_rr_rx_sysinfo5bis(ms, msg);
@@ -2934,6 +2955,7 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_rx_sysinfo5ter(ms, msg);
 	case GSM48_MT_RR_SYSINFO_6:
 		return gsm48_rr_rx_sysinfo6(ms, msg);
+
 	case GSM48_MT_RR_PAG_REQ_1:
 		return gsm48_rr_rx_pag_req_1(ms, msg);
 	case GSM48_MT_RR_PAG_REQ_2:
@@ -2947,8 +2969,36 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_MT_RR_IMM_ASS_REJ:
 		return gsm48_rr_rx_imm_ass_rej(ms, msg);
 	default:
-		LOGP(DRR, LOGL_NOTICE, "Message type 0x%02x unknown.\n",
-			gh->msg_type);
+		LOGP(DRR, LOGL_NOTICE, "CCCH message type 0x%02x unknown.\n",
+			sih->system_information);
+		return -EINVAL;
+	}
+}
+
+/* unit data from layer 2 to RR layer */
+static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
+	struct tlv_parsed tv;
+	
+	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
+		rllh->chan_nr, rllh->link_id);
+
+	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
+	if (!TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
+		DEBUGP(DRSL, "UNIT_DATA_IND without L3 INFO ?!?\n");
+		return -EIO;
+	}
+	msg->l3h = (uint8_t *) TLVP_VAL(&tv, RSL_IE_L3_INFO);
+
+	switch (rllh->chan_nr) {
+	case RSL_CHAN_PCH_AGCH:
+		return gsm48_rr_rx_ccch(ms, msg);
+	case RSL_CHAN_BCCH:
+		return gsm48_rr_rx_bcch(ms, msg);
+	default:
+		LOGP(DRSL, LOGL_NOTICE, "RSL with chan_nr 0x%02x unknown.\n",
+			rllh->chan_nr);
 		return -EINVAL;
 	}
 }
@@ -3011,12 +3061,12 @@ static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 		 && ((1 << rr->state) & dldatastatelist[i].states))
 			break;
 	if (i == DLDATASLLEN) {
-		LOGP(DRR, LOGL_NOTICE, "RSL message 0x%02x unhandled at state "
-		"%s.\n", msg_type, gsm48_rr_state_names[rr->state]);
+		LOGP(DRSL, LOGL_NOTICE, "RSLms message 0x%02x unhandled at "
+		"state %s.\n", msg_type, gsm48_rr_state_names[rr->state]);
 		msgb_free(msg);
 		return 0;
 	}
-	LOGP(DRR, LOGL_INFO, "(ms %s) Received 'RSL_MT_%s' from RSL in state "
+	LOGP(DRSL, LOGL_INFO, "(ms %s) Received 'RSL_MT_%s' from RSL in state "
 		"%s\n", ms->name, dldatastatelist[i].type_name,
 		gsm48_rr_state_names[rr->state]);
 
@@ -3024,6 +3074,8 @@ static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* free msgb unless it is forwarded */
 	if (dldatastatelist[i].rout != gsm48_rr_data_ind)
+#warning HACK!!!!!!
+return rc;
 		msgb_free(msg);
 
 	return rc;

@@ -51,7 +51,6 @@ struct gsm48_sysinfo {
 	uint8_t				reest_denied; /* 1 = denied */
 	uint8_t				cell_barr; /* 1 = barred */
 	uint16_t			class_barr; /* bit 10 is emergency */
-	uint16_t			cell_identity;
 	/* cell selection */
 	int8_t				ms_txpwr_max_ccch;
 	int8_t				cell_resel_hyst_db;
@@ -100,5 +99,6 @@ struct gsm48_sysinfo {
 };
 
 void gsm48_sysinfo_init(struct osmocom_ms *ms);
+int gsm48_sysinfo_dump(struct osmocom_ms *ms);
 
 #endif /* _SYSINFO_H */

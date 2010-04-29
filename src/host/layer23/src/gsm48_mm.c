@@ -2929,13 +2929,12 @@ int gsm48_mmxx_downmsg(struct osmocom_ms *ms, struct msgb *msg)
 	if (conn)
 		conn->transaction_id = mmh->transaction_id;
 
-	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' event in state %s",
+	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' event in state %s\n",
 		ms->name, get_mmxx_name(msg_type),
 		gsm48_mm_state_names[mm->state]);
 	if (mm->state == GSM48_MM_ST_MM_IDLE)
-		LOGP(DMM, LOGL_INFO, " substate %s",
+		LOGP(DMM, LOGL_INFO, "-> substate %s\n",
 			gsm48_mm_substate_names[mm->substate]);
-	LOGP(DMM, LOGL_INFO, "\n");
 
 	/* Find function for current state and message */
 	for (i = 0; i < DOWNSLLEN; i++)
@@ -3319,13 +3318,12 @@ static int gsm48_mm_ev(struct osmocom_ms *ms, int msg_type, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	int i, rc;
 
-	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' event in state %s",
+	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' event in state %s\n",
 		ms->name, get_mmevent_name(msg_type),
 		gsm48_mm_state_names[mm->state]);
 	if (mm->state == GSM48_MM_ST_MM_IDLE)
-		LOGP(DMM, LOGL_INFO, " substate %s",
+		LOGP(DMM, LOGL_INFO, "-> substate %s\n",
 			gsm48_mm_substate_names[mm->substate]);
-	LOGP(DMM, LOGL_INFO, "\n");
 
 	/* Find function for current state and message */
 	for (i = 0; i < EVENTSLLEN; i++)

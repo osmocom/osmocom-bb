@@ -88,6 +88,7 @@ static int rx_l1_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	DEBUGP(DL1C, "SCH: SNR: %u TDMA: (%.4u/%.2u/%.2u) bsic: %d\n",
 		dl->snr, tm.t1, tm.t2, tm.t3, sb->bsic);
+	dispatch_signal(SS_L1CTL, S_L1CTL_CCCH_RESP, ms);
 
 	return 0;
 }
