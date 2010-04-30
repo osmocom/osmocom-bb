@@ -84,5 +84,5 @@ void msgb_reset(struct msgb *msg)
 	msg->lchan = NULL;
 	msg->l2h = NULL;
 	msg->l3h = NULL;
-	msg->smsh = NULL;
+	msg->l4h = NULL;
 }
