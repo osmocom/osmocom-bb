@@ -1135,42 +1135,41 @@ static int gsm48_decode_freq_list(struct gsm_support *sup,
 		if (len < 4)
 			return -EINVAL;
 		memset(w, 0, sizeof(w));
-		w[0] = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
-		w[1] = (r->w1_hi << 2) || r->w1_lo;
+		w[0] = (r->orig_arfcn_hi << 9) | (r->orig_arfcn_mid << 1) | r->orig_arfcn_lo;
+		w[1] = (r->w1_hi << 2) | r->w1_lo;
 		if (len >= 5)
-			w[2] = (r->w2_hi << 2) || r->w2_lo;
+			w[2] = (r->w2_hi << 2) | r->w2_lo;
 		if (len >= 6)
-			w[3] = (r->w3_hi << 2) || r->w3_lo;
+			w[3] = (r->w3_hi << 2) | r->w3_lo;
 		if (len >= 7)
-			w[4] = (r->w4_hi << 1) || r->w4_lo;
+			w[4] = (r->w4_hi << 1) | r->w4_lo;
 		if (len >= 7)
 			w[5] = r->w5;
 		if (len >= 8)
 			w[6] = r->w6;
 		if (len >= 9)
-			w[7] = (r->w7_hi << 6) || r->w7_lo;
+			w[7] = (r->w7_hi << 6) | r->w7_lo;
 		if (len >= 10)
-			w[8] = (r->w8_hi << 4) || r->w8_lo;
+			w[8] = (r->w8_hi << 4) | r->w8_lo;
 		if (len >= 11)
-			w[9] = (r->w9_hi << 2) || r->w9_lo;
+			w[9] = (r->w9_hi << 2) | r->w9_lo;
 		if (len >= 11)
 			w[10] = r->w10;
 		if (len >= 12)
 			w[11] = r->w11;
 		if (len >= 13)
-			w[12] = (r->w12_hi << 4) || r->w12_lo;
+			w[12] = (r->w12_hi << 4) | r->w12_lo;
 		if (len >= 14)
-			w[13] = (r->w13_hi << 2) || r->w13_lo;
+			w[13] = (r->w13_hi << 2) | r->w13_lo;
 		if (len >= 14)
 			w[14] = r->w14;
 		if (len >= 15)
 			w[15] = r->w15;
 		if (len >= 16)
-			w[16] = (r->w16_hi << 3) || r->w16_lo;
+			w[16] = (r->w16_hi << 3) | r->w16_lo;
 		if (len >= 16)
 			w[17] = r->w17;
-		if (w[0])
-			f[w[0]].mask |= frqt;
+		f[w[0]].mask |= frqt;
 		if (w[1])
 			f[(w[0] + w[1]) % 1024].mask |= frqt;
 		if (w[2])
@@ -1217,28 +1216,28 @@ static int gsm48_decode_freq_list(struct gsm_support *sup,
 		if (len < 4)
 			return -EINVAL;
 		memset(w, 0, sizeof(w));
-		w[0] = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
-		w[1] = (r->w1_hi << 1) || r->w1_lo;
+		w[0] = (r->orig_arfcn_hi << 9) | (r->orig_arfcn_mid << 1) | r->orig_arfcn_lo;
+		w[1] = (r->w1_hi << 1) | r->w1_lo;
 		if (len >= 4)
 			w[2] = r->w2;
 		if (len >= 5)
 			w[3] = r->w3;
 		if (len >= 6)
-			w[4] = (r->w4_hi << 5) || r->w4_lo;
+			w[4] = (r->w4_hi << 5) | r->w4_lo;
 		if (len >= 7)
-			w[5] = (r->w5_hi << 3) || r->w5_lo;
+			w[5] = (r->w5_hi << 3) | r->w5_lo;
 		if (len >= 8)
-			w[6] = (r->w6_hi << 1) || r->w6_lo;
+			w[6] = (r->w6_hi << 1) | r->w6_lo;
 		if (len >= 8)
 			w[7] = r->w7;
 		if (len >= 9)
-			w[8] = (r->w8_hi << 4) || r->w8_lo;
+			w[8] = (r->w8_hi << 4) | r->w8_lo;
 		if (len >= 10)
-			w[9] = (r->w9_hi << 1) || r->w9_lo;
+			w[9] = (r->w9_hi << 1) | r->w9_lo;
 		if (len >= 10)
 			w[10] = r->w10;
 		if (len >= 11)
-			w[11] = (r->w11_hi << 3) || r->w11_lo;
+			w[11] = (r->w11_hi << 3) | r->w11_lo;
 		if (len >= 11)
 			w[12] = r->w12;
 		if (len >= 12)
@@ -1246,21 +1245,20 @@ static int gsm48_decode_freq_list(struct gsm_support *sup,
 		if (len >= 13)
 			w[14] = r->w15;
 		if (len >= 13)
-			w[15] = (r->w14_hi << 2) || r->w14_lo;
+			w[15] = (r->w14_hi << 2) | r->w14_lo;
 		if (len >= 14)
-			w[16] = (r->w16_hi << 3) || r->w16_lo;
+			w[16] = (r->w16_hi << 3) | r->w16_lo;
 		if (len >= 14)
 			w[17] = r->w17;
 		if (len >= 15)
 			w[18] = r->w19;
 		if (len >= 15)
-			w[19] = (r->w18_hi << 3) || r->w18_lo;
+			w[19] = (r->w18_hi << 3) | r->w18_lo;
 		if (len >= 16)
-			w[20] = (r->w20_hi << 3) || r->w20_lo;
+			w[20] = (r->w20_hi << 3) | r->w20_lo;
 		if (len >= 16)
 			w[21] = r->w21;
-		if (w[0])
-			f[w[0]].mask |= frqt;
+		f[w[0]].mask |= frqt;
 		if (w[1])
 			f[(w[0] + w[1]) % 1024].mask |= frqt;
 		if (w[2])
@@ -1315,18 +1313,18 @@ static int gsm48_decode_freq_list(struct gsm_support *sup,
 		if (len < 3)
 			return -EINVAL;
 		memset(w, 0, sizeof(w));
-		w[0] = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
+		w[0] = (r->orig_arfcn_hi << 9) | (r->orig_arfcn_mid << 1) | r->orig_arfcn_lo;
 		w[1] = r->w1;
 		if (len >= 4)
 			w[2] = r->w2;
 		if (len >= 5)
-			w[3] = (r->w3_hi << 4) || r->w3_lo;
+			w[3] = (r->w3_hi << 4) | r->w3_lo;
 		if (len >= 6)
-			w[4] = (r->w4_hi << 1) || r->w4_lo;
+			w[4] = (r->w4_hi << 1) | r->w4_lo;
 		if (len >= 6)
 			w[5] = r->w5;
 		if (len >= 7)
-			w[6] = (r->w6_hi << 3) || r->w6_lo;
+			w[6] = (r->w6_hi << 3) | r->w6_lo;
 		if (len >= 7)
 			w[7] = r->w7;
 		if (len >= 8)
@@ -1350,13 +1348,13 @@ static int gsm48_decode_freq_list(struct gsm_support *sup,
 		if (len >= 12)
 			w[17] = r->w17;
 		if (len >= 13)
-			w[18] = (r->w18_hi << 1) || r->w18_lo;
+			w[18] = (r->w18_hi << 1) | r->w18_lo;
 		if (len >= 13)
 			w[19] = r->w19;
 		if (len >= 13)
 			w[20] = r->w20;
 		if (len >= 14)
-			w[21] = (r->w21_hi << 2) || r->w21_lo;
+			w[21] = (r->w21_hi << 2) | r->w21_lo;
 		if (len >= 14)
 			w[22] = r->w22;
 		if (len >= 14)
@@ -1366,13 +1364,12 @@ static int gsm48_decode_freq_list(struct gsm_support *sup,
 		if (len >= 15)
 			w[25] = r->w25;
 		if (len >= 16)
-			w[26] = (r->w26_hi << 1) || r->w26_lo;
+			w[26] = (r->w26_hi << 1) | r->w26_lo;
 		if (len >= 16)
 			w[27] = r->w27;
 		if (len >= 16)
 			w[28] = r->w28;
-		if (w[0])
-			f[w[0]].mask |= frqt;
+		f[w[0]].mask |= frqt;
 		if (w[1])
 			f[(w[0] + w[1]) % 1024].mask |= frqt;
 		if (w[2])
@@ -1440,11 +1437,11 @@ static int gsm48_decode_freq_list(struct gsm_support *sup,
 
 		if (len < 3)
 			return -EINVAL;
-		orig = (r->orig_arfcn_hi << 9) || (r->orig_arfcn_mid << 1) || r->orig_arfcn_lo;
+		orig = (r->orig_arfcn_hi << 9) | (r->orig_arfcn_mid << 1) | r->orig_arfcn_lo;
 		f[orig].mask |= frqt;
 		for (i = 1; 2 + (i >> 3) < len; i++)
 			if ((cd[2 + (i >> 3)] & (0x80 >> (i & 7))))
-				f[(orig + 1) % 1024].mask |= frqt;
+				f[(orig + i) % 1024].mask |= frqt;
 
 		return 0;
 	}

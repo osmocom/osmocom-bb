@@ -44,11 +44,11 @@ int gsm48_sysinfo_dump(struct osmocom_ms *ms)
 	if (s->si1)
 		printf(" 1");
 	if (s->si2)
-		printf(" 2bis");
-	if (s->si2bis)
-		printf(" 2ter");
-	if (s->si2ter)
 		printf(" 2");
+	if (s->si2bis)
+		printf(" 2bis");
+	if (s->si2ter)
+		printf(" 2ter");
 	if (s->si3)
 		printf(" 3");
 	if (s->si4)
