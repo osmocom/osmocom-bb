@@ -23,13 +23,8 @@
 #include <stdint.h>
 #include "linuxlist.h"
 
-struct bts_link;
-
 struct msgb {
 	struct llist_head list;
-
-	/* ptr to the physical E1 link to the BTS(s) */
-	struct gsm_bts_link *bts_link;
 
 	/* Part of which TRX logical channel we were received / transmitted */
 	struct gsm_bts_trx *trx;

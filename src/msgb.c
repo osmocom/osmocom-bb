@@ -80,7 +80,6 @@ void msgb_reset(struct msgb *msg)
 	msg->head = msg->_data;
 	msg->tail = msg->_data;
 
-	msg->bts_link = NULL;
 	msg->trx = NULL;
 	msg->lchan = NULL;
 	msg->l2h = NULL;
