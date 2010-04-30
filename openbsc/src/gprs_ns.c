@@ -1,4 +1,4 @@
-/* GPRS Networks Service (NS) messages on the Gb interface
+/* GPRS Networks Service (NS) messages on the Gb interfacebvci = msgb_bvci(msg);
  * 3GPP TS 08.16 version 8.0.1 Release 1999 / ETSI TS 101 299 V8.0.1 (2002-05) */
 
 /* (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
@@ -132,6 +132,19 @@ static struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi,
 	return NULL;
 }
 
+/* Lookup struct gprs_nsvc based on NSVCI */
+static struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi,
+					u_int16_t nsei)
+{
+	struct gprs_nsvc *nsvc;
+	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
+		if (nsvc->nsei == nsei)
+			return nsvc;
+	}
+	return NULL;
+}
+
+
 /* Lookup struct gprs_nsvc based on remote peer socket addr */
 static struct gprs_nsvc *nsvc_by_rem_addr(struct gprs_ns_inst *nsi,
 					  struct sockaddr_in *sin)
@@ -184,15 +197,15 @@ static const char *gprs_ns_cause_str(enum ns_cause cause)
 	return "undefined";
 }
 
-static int nsip_sendmsg(struct msgb *msg, struct gprs_nsvc *nsvc);
+static int nsip_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg);
 
-static int gprs_ns_tx(struct msgb *msg, struct gprs_nsvc *nsvc)
+static int gprs_ns_tx(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	int ret;
 
 	switch (nsvc->nsi->ll) {
 	case GPRS_NS_LL_UDP:
-		ret = nsip_sendmsg(msg, nsvc);
+		ret = nsip_sendmsg(nsvc, msg);
 		break;
 	default:
 		LOGP(DGPRS, LOGL_ERROR, "unsupported NS linklayer %u\n", nsvc->nsi->ll);
@@ -215,7 +228,7 @@ static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, u_int8_t pdu_type)
 
 	nsh->pdu_type = pdu_type;
 
-	return gprs_ns_tx(msg, nsvc);
+	return gprs_ns_tx(nsvc, msg);
 }
 
 #define NS_TIMER_ALIVE	3, 0 	/* after 3 seconds without response, we retry */
@@ -268,14 +281,21 @@ static int gprs_ns_tx_reset_ack(struct gprs_nsvc *nsvc)
 	msgb_tvlv_put(msg, NS_IE_VCI, 2, (u_int8_t *)&nsvci);
 	msgb_tvlv_put(msg, NS_IE_NSEI, 2, (u_int8_t *)&nsei);
 
-	return gprs_ns_tx(msg, nsvc);
+	return gprs_ns_tx(nsvc, msg);
 }
 
-/* Section 9.2.10: transmit side */
-int gprs_ns_sendmsg(struct gprs_nsvc *nsvc, u_int16_t bvci,
-		    struct msgb *msg)
+/* Section 9.2.10: transmit side / NS-UNITDATA-REQUEST primitive */
+int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 {
+	struct gprs_nsvc *nsvc;
 	struct gprs_ns_hdr *nsh;
+	u_int16_t bvci = msgb_bvci(msg);
+
+	nsvc = nsvc_by_nsei(nsi, msgb_nsei(msg));
+	if (!nsvc) {
+		DEBUGP(DGPRS, "Unable to resolve NSEI %u to NS-VC!\n", msgb_nsei(msg));
+		return -EINVAL;
+	}
 
 	nsh = (struct gprs_ns_hdr *) msgb_push(msg, sizeof(*nsh) + 3);
 	if (!nsh) {
@@ -288,14 +308,13 @@ int gprs_ns_sendmsg(struct gprs_nsvc *nsvc, u_int16_t bvci,
 	nsh->data[1] = bvci >> 8;
 	nsh->data[2] = bvci & 0xff;
 
-	return gprs_ns_tx(msg, nsvc);
+	return gprs_ns_tx(nsvc, msg);
 }
 
 /* Section 9.2.10: receive side */
-static int gprs_ns_rx_unitdata(struct msgb *msg)
+static int gprs_ns_rx_unitdata(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *)msg->l2h;
-	struct gprs_nsvc *nsvc = msgb_nsvc(msg);
 	u_int16_t bvci;
 
 	/* spare octet in data[0] */
@@ -307,10 +326,9 @@ static int gprs_ns_rx_unitdata(struct msgb *msg)
 }
 
 /* Section 9.2.7 */
-static int gprs_ns_rx_status(struct msgb *msg)
+static int gprs_ns_rx_status(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
-	struct gprs_nsvc *nsvc = msgb_nsvc(msg);
 	struct tlv_parsed tp;
 	u_int8_t cause;
 	int rc;
@@ -331,10 +349,9 @@ static int gprs_ns_rx_status(struct msgb *msg)
 }
 
 /* Section 7.3 */
-static int gprs_ns_rx_reset(struct msgb *msg)
+static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
-	struct gprs_nsvc *nsvc = msgb_nsvc(msg);
 	struct tlv_parsed tp;
 	u_int8_t *cause;
 	u_int16_t *nsvci, *nsei;
@@ -388,10 +405,10 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			return -EIO;
 		nsvc = nsvc_create(nsi, 0xffff);
 		nsvc->ip.bts_addr = *saddr;
-		rc = gprs_ns_rx_reset(msg);
+		rc = gprs_ns_rx_reset(nsvc, msg);
 		return rc;
 	}
-	msgb_nsvc(msg) = nsvc;
+	msgb_nsei(msg) = nsvc->nsei;
 
 	switch (nsh->pdu_type) {
 	case NS_PDUT_ALIVE:
@@ -408,13 +425,13 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		break;
 	case NS_PDUT_UNITDATA:
 		/* actual user data */
-		rc = gprs_ns_rx_unitdata(msg);
+		rc = gprs_ns_rx_unitdata(nsvc, msg);
 		break;
 	case NS_PDUT_STATUS:
-		rc = gprs_ns_rx_status(msg);
+		rc = gprs_ns_rx_status(nsvc, msg);
 		break;
 	case NS_PDUT_RESET:
-		rc = gprs_ns_rx_reset(msg);
+		rc = gprs_ns_rx_reset(nsvc, msg);
 		break;
 	case NS_PDUT_RESET_ACK:
 		DEBUGP(DGPRS, "NS RESET ACK\n");
@@ -523,7 +540,7 @@ static int handle_nsip_write(struct bsc_fd *bfd)
 	return -EIO;
 }
 
-int nsip_sendmsg(struct msgb *msg, struct gprs_nsvc *nsvc)
+int nsip_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	int rc;
 	struct gprs_ns_inst *nsi = nsvc->nsi;

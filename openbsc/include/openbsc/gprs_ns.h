@@ -99,7 +99,6 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		   struct sockaddr_in *saddr);
 
 /* main function for higher layers (BSSGP) to send NS messages */
-int gprs_ns_sendmsg(struct gprs_nsvc *nsvc, u_int16_t bvci,
-		    struct msgb *msg);
+int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg);
 
 #endif

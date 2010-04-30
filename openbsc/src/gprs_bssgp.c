@@ -37,6 +37,7 @@
 /* global pointer to the gsm network data structure */
 /* FIXME: this must go! */
 extern struct gsm_network *bsc_gsmnet;
+struct gprs_ns_inst *bssgp_nsi;
 
 /* Chapter 11.3.9 / Table 11.10: Cause coding */
 static const char *bssgp_cause_strings[] = {
@@ -84,31 +85,38 @@ static inline struct msgb *bssgp_msgb_alloc(void)
 }
 
 /* Transmit a simple response such as BLOCK/UNBLOCK/RESET ACK/NACK */
-static int bssgp_tx_simple_bvci(u_int8_t pdu_type, u_int16_t bvci, u_int16_t ns_bvci)
+static int bssgp_tx_simple_bvci(u_int8_t pdu_type, u_int16_t nsei,
+			        u_int16_t bvci, u_int16_t ns_bvci)
 {
 	struct msgb *msg = bssgp_msgb_alloc();
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
 	u_int16_t _bvci;
 
+	msgb_nsei(msg) = nsei;
+	msgb_bvci(msg) = ns_bvci;
+
 	bgph->pdu_type = pdu_type;
 	_bvci = htons(bvci);
 	msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (u_int8_t *) &_bvci);
 
-	return gprs_ns_sendmsg(NULL, ns_bvci, msg);
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
 /* Chapter 10.4.5: Flow Control BVC ACK */
-static int bssgp_tx_fc_bvc_ack(u_int8_t tag, u_int16_t ns_bvci)
+static int bssgp_tx_fc_bvc_ack(u_int16_t nsei, u_int8_t tag, u_int16_t ns_bvci)
 {
 	struct msgb *msg = bssgp_msgb_alloc();
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
 
+	msgb_nsei(msg) = nsei;
+	msgb_bvci(msg) = ns_bvci;
+
 	bgph->pdu_type = BSSGP_PDUT_FLOW_CONTROL_BVC_ACK;
 	msgb_tvlv_put(msg, BSSGP_IE_TAG, 1, &tag);
 
-	return gprs_ns_sendmsg(NULL, ns_bvci, msg);
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
 /* Chapter 10.4.14: Status */
@@ -119,6 +127,8 @@ static int bssgp_tx_status(u_int8_t cause, u_int16_t *bvci, struct msgb *orig_ms
 			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
 
 	DEBUGPC(DGPRS, "BSSGP: TX STATUS, cause=%s\n", bssgp_cause_str(cause));
+	msgb_nsei(msg) = msgb_nsei(orig_msg);
+	msgb_bvci(msg) = 0;
 
 	bgph->pdu_type = BSSGP_PDUT_STATUS;
 	msgb_tvlv_put(msg, BSSGP_IE_CAUSE, 1, &cause);
@@ -130,7 +140,7 @@ static int bssgp_tx_status(u_int8_t cause, u_int16_t *bvci, struct msgb *orig_ms
 		msgb_tvlv_put(msg, BSSGP_IE_PDU_IN_ERROR,
 			      msgb_l3len(orig_msg), orig_msg->l3h);
 
-	return gprs_ns_sendmsg(NULL, 0, msg);
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
 /* Uplink unit-data */
@@ -221,7 +231,8 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 
 	/* Send FLOW_CONTROL_BVC_ACK */
-	return bssgp_tx_fc_bvc_ack(*TLVP_VAL(tp, BSSGP_IE_TAG), ns_bvci);
+	return bssgp_tx_fc_bvc_ack(msgb_nsei(msg), *TLVP_VAL(tp, BSSGP_IE_TAG),
+				   ns_bvci);
 }
 /* We expect msg->l3h to point to the BSSGP header */
 int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
@@ -287,7 +298,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 		DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
 			bssgp_cause_str(*TLVP_VAL(&tp, BSSGP_IE_CAUSE)));
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK_ACK,
-					  bvci, ns_bvci);
+					  msgb_nsei(msg), bvci, ns_bvci);
 		break;
 	case BSSGP_PDUT_BVC_UNBLOCK:
 		/* BSS tells us that BVC shall be unblocked */
@@ -297,7 +308,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 		bvci = ntohs(*(u_int16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
 		DEBUGPC(DGPRS, "BVCI=%u\n", bvci);
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_UNBLOCK_ACK,
-					  bvci, ns_bvci);
+					  msgb_nsei(msg), bvci, ns_bvci);
 		break;
 	case BSSGP_PDUT_BVC_RESET:
 		/* BSS tells us that BVC init is required */
@@ -309,7 +320,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 		DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
 			bssgp_cause_str(*TLVP_VAL(&tp, BSSGP_IE_CAUSE)));
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_RESET_ACK,
-					  bvci, ns_bvci);
+					  msgb_nsei(msg), bvci, ns_bvci);
 		break;
 	case BSSGP_PDUT_STATUS:
 		/* Some exception has occurred */
@@ -393,5 +404,8 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 	budh->tlli = htonl(msgb_tlli(msg));
 	budh->pdu_type = BSSGP_PDUT_DL_UNITDATA;
 
-	return gprs_ns_sendmsg(NULL, bts->gprs.cell.bvci, msg);
+	msgb_nsei(msg) = bts->gprs.nse.nsei;
+	msgb_bvci(msg) = bts->gprs.cell.bvci;
+
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
