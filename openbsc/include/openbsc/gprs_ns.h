@@ -73,7 +73,37 @@ enum ns_cause {
 	NS_CAUSE_UNKN_IP_TEST_FAILED	= 0x14,
 };
 
-struct gprs_nsvc;
+
+/* Our Implementation */
+#include <netinet/in.h>
+
+#define NSE_S_BLOCKED	0x0001
+#define NSE_S_ALIVE	0x0002
+
+struct gprs_nsvc {
+	struct llist_head list;
+	struct gprs_ns_inst *nsi;
+
+	u_int16_t nsei;		/* end-to-end significance */
+	u_int16_t nsvci;	/* uniquely identifies NS-VC at SGSN */
+
+	u_int32_t state;
+	u_int32_t remote_state;
+
+	struct timer_list alive_timer;
+	int timer_is_tns_alive;
+	int alive_retries;
+
+	int remote_end_is_sgsn;
+
+	union {
+		struct {
+			struct sockaddr_in bts_addr;
+		} ip;
+	};
+};
+
+
 struct gprs_ns_inst;
 
 enum gprs_ns_evt {
@@ -101,4 +131,11 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 /* main function for higher layers (BSSGP) to send NS messages */
 int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg);
 
+
+/* Listen for incoming GPRS packets */
+int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port);
+
+/* Establish a connection (from the BSS) to the SGSN */
+struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
+				struct sockaddr_in *dest, uint16_t nsvci);
 #endif

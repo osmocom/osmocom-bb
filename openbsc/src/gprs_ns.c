@@ -72,30 +72,6 @@ static const struct tlv_definition ns_att_tlvdef = {
 	},
 };
 
-#define NSE_S_BLOCKED	0x0001
-#define NSE_S_ALIVE	0x0002
-
-struct gprs_nsvc {
-	struct llist_head list;
-	struct gprs_ns_inst *nsi;
-
-	u_int16_t nsei;		/* end-to-end significance */
-	u_int16_t nsvci;	/* uniquely identifies NS-VC at SGSN */
-
-	u_int32_t state;
-	u_int32_t remote_state;
-
-	struct timer_list alive_timer;
-	int timer_is_tns_alive;
-	int alive_retries;
-
-	union {
-		struct {
-			struct sockaddr_in bts_addr;
-		} ip;
-	};
-};
-
 enum gprs_ns_ll {
 	GPRS_NS_LL_UDP,
 	GPRS_NS_LL_E1,
@@ -474,7 +450,7 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb)
 	nsi->cb = cb;
 	INIT_LLIST_HEAD(&nsi->gprs_nsvcs);
 
-	return NULL;
+	return nsi;
 }
 
 void gprs_ns_destroy(struct gprs_ns_inst *nsi)
@@ -585,4 +561,25 @@ int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port)
 	nsi->nsip.fd.data = nsi;
 
 	return ret;
+}
+
+/* Establish a connection (from the BSS) to the SGSN */
+struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
+				struct sockaddr_in *dest, uint16_t nsvci)
+{
+	struct gprs_nsvc *nsvc;
+
+	nsvc = nsvc_by_rem_addr(nsi, dest);
+	if (!nsvc) {
+		nsvc = nsvc_create(nsi, nsvci);
+		nsvc->ip.bts_addr = *dest;
+	}
+	nsvc->remote_end_is_sgsn = 1;
+
+	/* Initiate a RESET procedure */
+	if (gprs_ns_tx_simple(nsvc, NS_PDUT_RESET) < 0)
+		return NULL;
+	/* FIXME: should we run a timer and re-transmit the reset request? */
+
+	return nsvc;
 }

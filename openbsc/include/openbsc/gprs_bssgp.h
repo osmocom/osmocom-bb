@@ -133,6 +133,16 @@ enum gprs_bssgp_cause {
 	BSSGP_CAUSE_PDU_INCOMP_FEAT	= 0x28,
 };
 
+/* Our implementation */
+
+#include <osmocore/tlv.h>
+
 extern int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t bvci);
+
+/* Wrapper around TLV parser to parse BSSGP IEs */
+static inline int bssgp_tlv_parse(struct tlv_parsed *tp, u_int8_t *buf, int len)
+{
+	return tlv_parse(tp, &tvlv_att_def, buf, len, 0, 0);
+}
 
 #endif /* _GPRS_BSSGP_H */
