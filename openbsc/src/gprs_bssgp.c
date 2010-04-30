@@ -144,7 +144,7 @@ static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
 
 	DEBUGP(DGPRS, "BSSGP UL-UD\n");
 
-	msg->tlli = ntohl(budh->tlli);
+	msgb_tlli(msg) = ntohl(budh->tlli);
 	rc = bssgp_tlv_parse(&tp, budh->data, data_len);
 
 	/* Cell ID and LLC_PDU are the only mandatory IE */
@@ -159,7 +159,7 @@ static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
 	if (bts)
 		msg->trx = bts->c0;
 
-	msg->llch = TLVP_VAL(&tp, BSSGP_IE_LLC_PDU);
+	msgb_llch(msg) = TLVP_VAL(&tp, BSSGP_IE_LLC_PDU);
 
 	return gprs_llc_rcvmsg(msg, &tp);
 }
@@ -390,7 +390,7 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 	/* prepend the QoS profile, TLLI and pdu type */
 	budh = (struct bssgp_ud_hdr *) msgb_push(msg, sizeof(*budh));
 	memcpy(budh->qos_profile, qos_profile_default, sizeof(qos_profile_default));
-	budh->tlli = htonl(msg->tlli);
+	budh->tlli = htonl(msgb_tlli(msg));
 	budh->pdu_type = BSSGP_PDUT_DL_UNITDATA;
 
 	return gprs_ns_sendmsg(NULL, bts->gprs.cell.bvci, msg);
