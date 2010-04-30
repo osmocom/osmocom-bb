@@ -292,9 +292,10 @@ int gprs_ns_sendmsg(struct gprs_nsvc *nsvc, u_int16_t bvci,
 }
 
 /* Section 9.2.10: receive side */
-static int gprs_ns_rx_unitdata(struct msgb *msg, struct gprs_nsvc *nsvc)
+static int gprs_ns_rx_unitdata(struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *)msg->l2h;
+	struct gprs_nsvc *nsvc = msgb_nsvc(msg);
 	u_int16_t bvci;
 
 	/* spare octet in data[0] */
@@ -306,9 +307,10 @@ static int gprs_ns_rx_unitdata(struct msgb *msg, struct gprs_nsvc *nsvc)
 }
 
 /* Section 9.2.7 */
-static int gprs_ns_rx_status(struct msgb *msg, struct gprs_nsvc *nsvc)
+static int gprs_ns_rx_status(struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
+	struct gprs_nsvc *nsvc = msgb_nsvc(msg);
 	struct tlv_parsed tp;
 	u_int8_t cause;
 	int rc;
@@ -329,9 +331,10 @@ static int gprs_ns_rx_status(struct msgb *msg, struct gprs_nsvc *nsvc)
 }
 
 /* Section 7.3 */
-static int gprs_ns_rx_reset(struct msgb *msg, struct gprs_nsvc *nsvc)
+static int gprs_ns_rx_reset(struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
+	struct gprs_nsvc *nsvc = msgb_nsvc(msg);
 	struct tlv_parsed tp;
 	u_int8_t *cause;
 	u_int16_t *nsvci, *nsei;
@@ -385,9 +388,10 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			return -EIO;
 		nsvc = nsvc_create(nsi, 0xffff);
 		nsvc->ip.bts_addr = *saddr;
-		rc = gprs_ns_rx_reset(msg, nsvc);
+		rc = gprs_ns_rx_reset(msg);
 		return rc;
 	}
+	msgb_nsvc(msg) = nsvc;
 
 	switch (nsh->pdu_type) {
 	case NS_PDUT_ALIVE:
@@ -404,13 +408,13 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		break;
 	case NS_PDUT_UNITDATA:
 		/* actual user data */
-		rc = gprs_ns_rx_unitdata(msg, nsvc);
+		rc = gprs_ns_rx_unitdata(msg);
 		break;
 	case NS_PDUT_STATUS:
-		rc = gprs_ns_rx_status(msg, nsvc);
+		rc = gprs_ns_rx_status(msg);
 		break;
 	case NS_PDUT_RESET:
-		rc = gprs_ns_rx_reset(msg, nsvc);
+		rc = gprs_ns_rx_reset(msg);
 		break;
 	case NS_PDUT_RESET_ACK:
 		DEBUGP(DGPRS, "NS RESET ACK\n");
