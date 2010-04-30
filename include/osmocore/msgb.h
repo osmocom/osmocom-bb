@@ -27,6 +27,7 @@ struct msgb {
 	struct llist_head list;
 
 	/* Part of which TRX logical channel we were received / transmitted */
+	/* FIXME: move them into the control buffer */
 	struct gsm_bts_trx *trx;
 	struct gsm_lchan *lchan;
 
@@ -38,6 +39,9 @@ struct msgb {
 	unsigned char *l3h;
 	/* the layer 4 header */
 	unsigned char *l4h;
+
+	/* the 'control buffer', large enough to contain 5 pointers */
+	unsigned long cb[5];
 
 	uint16_t data_len;
 	uint16_t len;
