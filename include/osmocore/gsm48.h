@@ -1,4 +1,5 @@
 #ifndef _OSMOCORE_GSM48_H
+#define _OSMOCORE_GSM48_H
 
 #include <osmocore/tlv.h>
 #include <osmocore/protocol/gsm_04_08.h>
