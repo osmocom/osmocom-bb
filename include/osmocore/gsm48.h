@@ -29,5 +29,6 @@ int gsm48_mi_to_string(char *string, const int str_len,
 
 /* Parse Routeing Area Identifier */
 void gsm48_parse_ra(struct gprs_ra_id *raid, const uint8_t *buf);
+int gsm48_construct_ra(uint8_t *buf, const struct gprs_ra_id *raid);
 
 #endif
