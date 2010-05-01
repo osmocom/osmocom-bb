@@ -117,11 +117,12 @@ struct gsm48_mmr {
 #define GSM48_MM_SST_RX_VGCS_LIMITED	10
 
 /* MM events */
-#define GSM48_MM_EVENT_NEW_LAI		1
-#define GSM48_MM_EVENT_TIMEOUT_T3210	2
-#define GSM48_MM_EVENT_TIMEOUT_T3211	3
-#define GSM48_MM_EVENT_TIMEOUT_T3212	4
-#define GSM48_MM_EVENT_TIMEOUT_T3213	5
+#define GSM48_MM_EVENT_CELL_SELECTED	1
+#define GSM48_MM_EVENT_NO_CELL_FOUND	2
+#define GSM48_MM_EVENT_TIMEOUT_T3210	3
+#define GSM48_MM_EVENT_TIMEOUT_T3211	4
+#define GSM48_MM_EVENT_TIMEOUT_T3212	5
+#define GSM48_MM_EVENT_TIMEOUT_T3213	6
 #define GSM48_MM_EVENT_TIMEOUT_T3220	7
 #define GSM48_MM_EVENT_TIMEOUT_T3230	8
 #define GSM48_MM_EVENT_TIMEOUT_T3240	9
@@ -130,6 +131,7 @@ struct gsm48_mmr {
 #define GSM48_MM_EVENT_PAGING		12
 #define GSM48_MM_EVENT_AUTH_RESPONSE	13
 #define GSM48_MM_EVENT_SYSINFO		14
+#define GSM48_MM_EVENT_USER_PLMN_SEL	15
 
 /* message for MM events */
 struct gsm48_mm_event {
@@ -178,6 +180,7 @@ struct gsm48_mmlayer {
 	uint8_t			lupd_attempt;	/* attempt counter */
 	uint8_t			lupd_ra_failure;/* random access failed */
 	uint8_t			lupd_rej_cause;	/* cause of last reject */
+	uint8_t			lupd_periodic;	/* periodic update pending */
 
 	/* imsi detach */
 	uint8_t			delay_detach;	/* do detach when possible */

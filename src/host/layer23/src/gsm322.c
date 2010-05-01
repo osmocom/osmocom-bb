@@ -1002,6 +1002,12 @@ static int gsm322_a_switch_off(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+static int gsm322_a_sim_insert(struct osmocom_ms *ms, struct msgb *msg)
+{
+	LOGP(DPLMN, LOGL_INFO, "SIM already inserted when switched on.\n");
+	return 0;
+}
+
 /* SIM is removed */
 static int gsm322_a_sim_removed(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -1054,11 +1060,17 @@ static int gsm322_a_hplmn_search(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_a_sel_manual(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
+	struct msgb *nmsg;
 
 	/* restart state machine */
 	gsm322_a_switch_off(ms, msg);
 	plmn->mode = PLMN_MODE_MANUAL;
 	gsm322_m_switch_on(ms, msg);
+
+	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_USER_PLMN_SEL);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm48_mmevent_msg(ms, nmsg);
 
 	return 0;
 }
@@ -1133,6 +1145,12 @@ static int gsm322_m_switch_off(struct osmocom_ms *ms, struct msgb *msg)
 
 	new_m_state(plmn, GSM322_M0_NULL);
 
+	return 0;
+}
+
+static int gsm322_m_sim_insert(struct osmocom_ms *ms, struct msgb *msg)
+{
+	LOGP(DPLMN, LOGL_INFO, "SIM already inserted when switched on.\n");
 	return 0;
 }
 
@@ -1218,11 +1236,17 @@ static int gsm322_m_choose_plmn(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_m_sel_auto(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
+	struct msgb *nmsg;
 
 	/* restart state machine */
 	gsm322_m_switch_off(ms, msg);
 	plmn->mode = PLMN_MODE_AUTO;
 	gsm322_a_switch_on(ms, msg);
+
+	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_USER_PLMN_SEL);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm48_mmevent_msg(ms, nmsg);
 
 	return 0;
 }
@@ -1358,16 +1382,9 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_sysinfo *s = &ms->sysinfo;
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	int i, j;
 	uint8_t mask, flags;
 	uint32_t weight = 0, test = cs->scan_state;
-
-	if (rr->state != GSM48_RR_ST_IDLE) {
-		LOGP(DCS, LOGL_FATAL, "This must only happen in IDLE mode, "
-			"please fix!\n");
-		return -EINVAL;
-	}
 
 	/* special prositive case for HPLMN search */
 	if (cs->state == GSM322_HPLMN_SEARCH && s->mcc == subscr->mcc
@@ -1473,8 +1490,21 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 				return -ENOMEM;
 			gsm322_plmn_sendmsg(ms, nmsg);
 
+			/* set selected cell */
+			cs->selected = 1;
+			cs->selected_arfcn = cs->arfcn;
+			cs->selected_mcc = cs->list[cs->arfcn].mcc;
+			cs->selected_mnc = cs->list[cs->arfcn].mnc;
+			cs->selected_lac = cs->list[cs->arfcn].lac;
+
+			/* tell CS process about available cell */
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_CELL_FOUND);
+			LOGP(DCS, LOGL_INFO, "Cell available.\n");
 		} else {
+			/* unset selected cell */
+			cs->selected = 0;
+
+			/* tell CS process about no cell available */
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_NO_CELL_FOUND);
 			LOGP(DCS, LOGL_INFO, "No cell available.\n");
 		}
@@ -1635,18 +1665,11 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm48_sysinfo *s = &ms->sysinfo;
 	struct gsm322_msg *gm = (struct gsm322_msg *) msg->data;
 	struct gsm322_ba_list *ba;
 	int i;
 	uint8_t freq[128];
-
-	if (rr->state != GSM48_RR_ST_IDLE) {
-		LOGP(DCS, LOGL_FATAL, "This must only happen in IDLE mode, "
-			"please fix!\n");
-		return -EINVAL;
-	}
 
 	/* no sysinfo if we are not done with power scan */
 	if (cs->powerscan) {
@@ -1745,15 +1768,8 @@ static void gsm322_cs_timeout(void *arg)
 static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	int i, s = -1, e;
 	uint8_t mask, flags;
-
-	if (rr->state != GSM48_RR_ST_IDLE) {
-		LOGP(DCS, LOGL_FATAL, "This must only happen in IDLE mode, "
-			"please fix!\n");
-		return -EINVAL;
-	}
 
 	again:
 
@@ -1888,7 +1904,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			 || cs->state == GSM322_C8_ANY_CELL_RESEL
 			 || cs->state == GSM322_C5_CHOOSE_CELL
 			 || cs->state == GSM322_C9_CHOOSE_ANY_CELL)
-				start_cs_timer(cs, 4, 0);
+				start_cs_timer(cs, 8, 0);
 					// TODO: timer depends on BCCH config
 		}
 		break;
@@ -1969,6 +1985,14 @@ static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* in case we already tried any cell selection, power scan again */
 	if (cs->state == GSM322_C6_ANY_CELL_SEL) {
+		struct msgb *nmsg;
+
+		/* tell that we have no cell found */
+		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_NO_CELL_FOUND);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm48_mmevent_msg(ms, nmsg);
+
 		for (i = 0; i <= 1023; i++)
 			cs->list[i].flags &= ~(GSM322_CS_FLAG_POWER
 						| GSM322_CS_FLAG_SIGNAL
@@ -2141,7 +2165,8 @@ static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_NEW_LAI);
+	/* tell that we have selected a (new) cell */
+	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
 	if (!nmsg)
 		return -ENOMEM;
 	gsm48_mmevent_msg(ms, nmsg);
@@ -2155,6 +2180,13 @@ static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct msgb *nmsg;
+
+	/* tell that we have selected a (new) cell */
+	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm48_mmevent_msg(ms, nmsg);
 
 	new_c_state(cs, GSM322_C7_CAMPED_ANY_CELL);
 
@@ -2223,6 +2255,8 @@ static struct plmnastatelist {
 	 GSM322_EVENT_SWITCH_OFF, gsm322_a_switch_off},
 	{SBIT(GSM322_A6_NO_SIM),
 	 GSM322_EVENT_SIM_INSERT, gsm322_a_switch_on},
+	{ALL_STATES,
+	 GSM322_EVENT_SIM_INSERT, gsm322_a_sim_insert},
 	{ALL_STATES,
 	 GSM322_EVENT_SIM_REMOVE, gsm322_a_sim_removed},
 	{ALL_STATES,
@@ -2298,6 +2332,8 @@ static struct plmnmstatelist {
 	 GSM322_EVENT_SWITCH_OFF, gsm322_m_switch_off},
 	{SBIT(GSM322_M5_NO_SIM),
 	 GSM322_EVENT_SIM_INSERT, gsm322_m_switch_on},
+	{ALL_STATES,
+	 GSM322_EVENT_SIM_INSERT, gsm322_m_sim_insert},
 	{ALL_STATES,
 	 GSM322_EVENT_SIM_REMOVE, gsm322_m_sim_removed},
 	{SBIT(GSM322_M1_TRYING_RPLMN),

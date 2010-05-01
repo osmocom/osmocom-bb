@@ -65,9 +65,9 @@ void gsm_support_init(struct osmocom_ms *ms)
 	s->a5_6 = 0;
 	s->a5_7 = 0;
 	/* radio support */
-	s->p_gsm = 0; /* P-GSM only */
-	s->e_gsm = 1; /* E-GSM */
-	s->r_gsm = 0; /* R-GSM only */
+	s->p_gsm = 1; /* P-GSM only */
+	s->e_gsm = 0; /* E-GSM */
+	s->r_gsm = 0; /* R-GSM */
 	s->r_capa = 0;
 	s->low_capa = 4; /* p,e,r power class */
 	s->dcs_1800 = 0;
@@ -83,6 +83,8 @@ void gsm_support_init(struct osmocom_ms *ms)
 	if (s->e_gsm)
 		for(i = 975; i <= 1023; i++)
 			s->freq_map[i >> 3] |= (1 << (i & 7));
+//		for(i = 978; i <= 978; i++)
+//			s->freq_map[i >> 3] |= (1 << (i & 7));
 	if (s->r_gsm)
 		for(i = 955; i <= 1023; i++)
 			s->freq_map[i >> 3] |= (1 << (i & 7));
@@ -103,7 +105,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sprintf(s->imeisv, "0000000000000000");
 
 	/* radio */
-	s->min_rxlev_db = -106;
+	s->min_rxlev_db = -106; // TODO
 }
 
 /* (3.2.1) maximum channels to scan within each band */

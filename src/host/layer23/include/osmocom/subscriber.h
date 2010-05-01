@@ -26,7 +26,7 @@ struct gsm_subscriber {
 	/* status */
 	uint8_t			sim_valid; /* sim inserted and valid */
 	uint8_t			ustate; /* update status */
-	uint8_t			sim_att; /* attached state */
+	uint8_t			imsi_attached; /* attached state */
 
 	/* LAI */
 	uint8_t			lai_valid;

@@ -140,6 +140,10 @@ struct gsm322_cellsel {
 	uint8_t			powerscan; /* currently scanning for power */
 	uint32_t		scan_state; /* special state of current scan */
 	uint8_t			ccch_active; /* set, if ccch is active */
+
+	uint8_t			selected; /* if a cell is selected */
+	uint16_t		selected_arfcn;
+	uint16_t		selected_mcc, selected_mnc, selected_lac;
 };
 
 /* GSM 03.22 message */
