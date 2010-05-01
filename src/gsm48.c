@@ -305,3 +305,24 @@ int gsm48_mi_to_string(char *string, const int str_len, const uint8_t *mi,
 
 	return str_cur - string;
 }
+
+void gsm48_parse_ra(struct gprs_ra_id *raid, const uint8_t *buf)
+{
+	raid->mcc = (buf[0] & 0xf) * 100;
+	raid->mcc += (buf[0] >> 4) * 10;
+	raid->mcc += (buf[1] & 0xf) * 1;
+
+	/* I wonder who came up with the stupidity of encoding the MNC
+	 * differently depending on how many digits its decimal number has! */
+	if ((buf[1] >> 4) == 0xf) {
+		raid->mnc = (buf[2] & 0xf) * 10;
+		raid->mnc += (buf[2] >> 4) * 1;
+	} else {
+		raid->mnc = (buf[2] & 0xf) * 100;
+		raid->mnc += (buf[2] >> 4) * 10;
+		raid->mnc += (buf[1] >> 4) * 1;
+	}
+
+	raid->lac = ntohs(*(uint16_t *)(buf + 3));
+	raid->rac = buf[5];
+}

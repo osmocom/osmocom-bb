@@ -87,5 +87,17 @@ void gsm_fn2gsmtime(struct gsm_time *time, uint32_t fn);
 /* Convert from GSM time to frame number */
 uint32_t gsm_gsmtime2fn(struct gsm_time *time);
 
+/* GSM TS 03.03 Chapter 2.6 */
+enum gprs_tlli_tyoe {
+	TLLI_LOCAL,
+	TLLI_FOREIGN,
+	TLLI_RANDOM,
+	TLLI_AUXILIARY,
+	TLLI_RESERVED,
+};
+
+/* TS 03.03 Chapter 2.6 */
+int gprs_tlli_type(uint32_t tlli);
+
 void generate_backtrace();
 #endif
