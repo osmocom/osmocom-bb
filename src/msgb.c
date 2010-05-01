@@ -85,4 +85,6 @@ void msgb_reset(struct msgb *msg)
 	msg->l2h = NULL;
 	msg->l3h = NULL;
 	msg->l4h = NULL;
+
+	memset(&msg->cb, 0, sizeof(msg->cb));
 }
