@@ -76,9 +76,45 @@ enum ns_cause {
 
 /* Our Implementation */
 #include <netinet/in.h>
+#include <osmocore/linuxlist.h>
+#include <osmocore/msgb.h>
+#include <osmocore/timer.h>
+#include <osmocore/select.h>
 
 #define NSE_S_BLOCKED	0x0001
 #define NSE_S_ALIVE	0x0002
+
+enum gprs_ns_ll {
+	GPRS_NS_LL_UDP,
+	GPRS_NS_LL_E1,
+};
+
+enum gprs_ns_evt {
+	GPRS_NS_EVT_UNIT_DATA,
+};
+
+struct gprs_nsvc;
+typedef int gprs_ns_cb_t(enum gprs_ns_evt event, struct gprs_nsvc *nsvc,
+			 struct msgb *msg, u_int16_t bvci);
+
+/* An instance of the NS protocol stack */
+struct gprs_ns_inst {
+	/* callback to the user for incoming UNIT DATA IND */
+	gprs_ns_cb_t *cb;
+
+	/* linked lists of all NSVC in this instance */
+	struct llist_head gprs_nsvcs;
+
+	/* which link-layer are we based on? */
+	enum gprs_ns_ll ll;
+
+	union {
+		/* NS-over-IP specific bits */
+		struct {
+			struct bsc_fd fd;
+		} nsip;
+	};
+};
 
 struct gprs_nsvc {
 	struct llist_head list;
@@ -102,16 +138,6 @@ struct gprs_nsvc {
 		} ip;
 	};
 };
-
-
-struct gprs_ns_inst;
-
-enum gprs_ns_evt {
-	GPRS_NS_EVT_UNIT_DATA,
-};
-
-typedef int gprs_ns_cb_t(enum gprs_ns_evt event, struct gprs_nsvc *nsvc,
-			 struct msgb *msg, u_int16_t bvci);
 
 /* Create a new NS protocol instance */
 struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb);
@@ -137,5 +163,6 @@ int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port);
 
 /* Establish a connection (from the BSS) to the SGSN */
 struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
-				struct sockaddr_in *dest, uint16_t nsvci);
+				struct sockaddr_in *dest, uint16_t nsei,
+				uint16_t nsvci);
 #endif

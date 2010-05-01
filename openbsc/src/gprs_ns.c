@@ -72,30 +72,6 @@ static const struct tlv_definition ns_att_tlvdef = {
 	},
 };
 
-enum gprs_ns_ll {
-	GPRS_NS_LL_UDP,
-	GPRS_NS_LL_E1,
-};
-
-/* An instance of the NS protocol stack */
-struct gprs_ns_inst {
-	/* callback to the user for incoming UNIT DATA IND */
-	gprs_ns_cb_t *cb;
-
-	/* linked lists of all NSVC in this instance */
-	struct llist_head gprs_nsvcs;
-
-	/* which link-layer are we based on? */
-	enum gprs_ns_ll ll;
-
-	union {
-		/* NS-over-IP specific bits */
-		struct {
-			struct bsc_fd fd;
-		} nsip;
-	};
-};
-
 /* Lookup struct gprs_nsvc based on NSVCI */
 static struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi,
 					u_int16_t nsvci)
@@ -565,7 +541,8 @@ int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port)
 
 /* Establish a connection (from the BSS) to the SGSN */
 struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
-				struct sockaddr_in *dest, uint16_t nsvci)
+				struct sockaddr_in *dest, uint16_t nsei,
+				uint16_t nsvci)
 {
 	struct gprs_nsvc *nsvc;
 
@@ -574,6 +551,8 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 		nsvc = nsvc_create(nsi, nsvci);
 		nsvc->ip.bts_addr = *dest;
 	}
+	nsvc->nsei = nsei;
+	nsvc->nsvci = nsvci;
 	nsvc->remote_end_is_sgsn = 1;
 
 	/* Initiate a RESET procedure */
