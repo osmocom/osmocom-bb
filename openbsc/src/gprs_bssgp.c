@@ -138,6 +138,25 @@ int bssgp_tx_status(u_int8_t cause, u_int16_t *bvci, struct msgb *orig_msg)
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
+/* Chapter 8.4 BVC-Reset Procedure */
+static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,	
+			      uint16_t ns_bvci)
+{
+	uint8_t bvci;
+	int rc;
+
+	bvci = ntohs(*(u_int16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
+	DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
+		bssgp_cause_str(*TLVP_VAL(tp, BSSGP_IE_CAUSE)));
+
+	/* When we receive a BVC-RESET PDU (at least of a PTP BVCI), the BSS
+	 * informs us about its RAC + Cell ID, so we can create a mapping */
+
+	rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_RESET_ACK,
+				  msgb_nsei(msg), bvci, ns_bvci);
+	return 0;
+}
+
 /* Uplink unit-data */
 static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
 {
@@ -157,10 +176,12 @@ static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
 	    !TLVP_PRESENT(&tp, BSSGP_IE_LLC_PDU))
 		return -EIO;
 
+#if 0 //FIXME
 	/* Determine the BTS based on the Cell ID */
 	bts = gsm48_bts_by_ra_id(bsc_gsmnet,
 				 TLVP_VAL(&tp, BSSGP_IE_CELL_ID),
 				 TLVP_LEN(&tp, BSSGP_IE_CELL_ID));
+#endif
 	if (bts)
 		msg->trx = bts->c0;
 
@@ -229,6 +250,7 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 	return bssgp_tx_fc_bvc_ack(msgb_nsei(msg), *TLVP_VAL(tp, BSSGP_IE_TAG),
 				   ns_bvci);
 }
+
 /* We expect msg->l3h to point to the BSSGP header */
 int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 {
@@ -311,11 +333,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 		if (!TLVP_PRESENT(&tp, BSSGP_IE_BVCI) ||
 		    !TLVP_PRESENT(&tp, BSSGP_IE_CAUSE))
 			goto err_mand_ie;
-		bvci = ntohs(*(u_int16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
-		DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
-			bssgp_cause_str(*TLVP_VAL(&tp, BSSGP_IE_CAUSE)));
-		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_RESET_ACK,
-					  msgb_nsei(msg), bvci, ns_bvci);
+		rc = bssgp_rx_bvc_reset(msg, &tp, ns_bvci);
 		break;
 	case BSSGP_PDUT_STATUS:
 		/* Some exception has occurred */
