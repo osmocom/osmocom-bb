@@ -200,7 +200,7 @@ int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg)
 	}
 	if (orig_msg)
 		msgb_tvlv_put(msg, BSSGP_IE_PDU_IN_ERROR,
-			      msgb_l3len(orig_msg), msgb_bssgph(orig_msg));
+			      msgb_bssgp_len(orig_msg), msgb_bssgph(orig_msg));
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
@@ -257,7 +257,7 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 static int bssgp_rx_ul_ud(struct msgb *msg)
 {
 	struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
-	int data_len = msgb_l3len(msg) - sizeof(*budh);
+	int data_len = msgb_bssgp_len(msg) - sizeof(*budh);
 	struct tlv_parsed tp;
 	int rc;
 
@@ -285,7 +285,7 @@ static int bssgp_rx_suspend(struct msgb *msg)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
-	int data_len = msgb_l3len(msg) - sizeof(*bgph);
+	int data_len = msgb_bssgp_len(msg) - sizeof(*bgph);
 	struct tlv_parsed tp;
 	int rc;
 
@@ -307,7 +307,7 @@ static int bssgp_rx_resume(struct msgb *msg)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
-	int data_len = msgb_l3len(msg) - sizeof(*bgph);
+	int data_len = msgb_bssgp_len(msg) - sizeof(*bgph);
 	struct tlv_parsed tp;
 	int rc;
 
@@ -352,7 +352,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct tlv_parsed tp;
 	uint8_t pdu_type = bgph->pdu_type;
-	int data_len = msgb_l3len(msg) - sizeof(*bgph);
+	int data_len = msgb_bssgp_len(msg) - sizeof(*bgph);
 	uint16_t bvci;	/* PTP BVCI */
 	uint16_t ns_bvci = msgb_bvci(msg);
 	int rc = 0;
