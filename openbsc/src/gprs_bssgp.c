@@ -1,6 +1,6 @@
 /* GPRS BSSGP protocol implementation as per 3GPP TS 08.18 */
 
-/* (C) 2009 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -27,6 +27,8 @@
 
 #include <osmocore/msgb.h>
 #include <osmocore/tlv.h>
+#include <osmocore/talloc.h>
+
 #include <openbsc/debug.h>
 #include <openbsc/gsm_data.h>
 #include <openbsc/gsm_04_08_gprs.h>
@@ -38,6 +40,8 @@
 /* FIXME: this must go! */
 extern struct gsm_network *bsc_gsmnet;
 struct gprs_ns_inst *bssgp_nsi;
+
+void *bssgp_tall_ctx = NULL;
 
 /* Chapter 11.3.9 / Table 11.10: Cause coding */
 static const char *bssgp_cause_strings[] = {
@@ -72,6 +76,68 @@ static const char *bssgp_cause_str(enum gprs_bssgp_cause cause)
 		return bssgp_cause_strings[cause];
 
 	return "undefined";
+}
+
+#define BVC_F_BLOCKED	0x0001
+
+/* The per-BTS context that we keep on the SGSN side of the BSSGP link */
+struct bssgp_bts_ctx {
+	struct llist_head list;
+
+	/* parsed RA ID and Cell ID of the remote BTS */
+	struct gprs_ra_id ra_id;
+	uint16_t cell_id;
+
+	/* NSEI and BVCI of underlying Gb link.  Together they
+	 * uniquely identify a link to a BTS (5.4.4) */
+	uint16_t bvci;
+	uint16_t nsei;
+
+	uint32_t bvc_state;
+
+	/* we might want to add this as a shortcut later, avoiding the NSVC
+	 * lookup for every packet, similar to a routing cache */
+	//struct gprs_nsvc *nsvc;
+};
+LLIST_HEAD(bts_ctxts);
+
+/* Find a BTS Context based on parsed RA ID and Cell ID */
+struct bssgp_bts_ctx *btsctx_by_raid_cid(const struct gprs_ra_id *raid, uint16_t cid)
+{
+	struct bssgp_bts_ctx *bctx;
+
+	llist_for_each_entry(bctx, &bts_ctxts, list) {
+		if (!memcmp(&bctx->ra_id, raid, sizeof(bctx->ra_id)) &&
+		    bctx->cell_id == cid)
+			return bctx;
+	}
+	return NULL;
+}
+
+/* Find a BTS context based on BVCI+NSEI tuple */
+struct bssgp_bts_ctx *btsctx_by_bvci_nsei(uint16_t bvci, uint16_t nsei)
+{
+	struct bssgp_bts_ctx *bctx;
+
+	llist_for_each_entry(bctx, &bts_ctxts, list) {
+		if (bctx->nsei == nsei && bctx->bvci == bvci)
+			return bctx;
+	}
+	return NULL;
+}
+
+struct bssgp_btx_ctx *btsctx_alloc(uint16_t bvci, uint16_t nsei)
+{
+	struct bssgp_bts_ctx *ctx;
+
+	ctx = talloc_zero(bssgp_tall_ctx, struct bssgp_bts_ctx);
+	if (!ctx)
+		return NULL;
+	ctx->bvci = bvci;
+	ctx->nsei = nsei;
+	llist_add(&ctx->list, &bts_ctxts);
+
+	return ctx;
 }
 
 static inline struct msgb *bssgp_msgb_alloc(void)
@@ -138,22 +204,52 @@ int bssgp_tx_status(u_int8_t cause, u_int16_t *bvci, struct msgb *orig_msg)
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
+static void bssgp_parse_cell_id(struct gprs_ra_id *raid, uint16_t *cid,
+				const uint8_t *buf)
+{
+	/* 6 octets RAC */
+	gsm48_parse_ra(raid, buf);
+	/* 2 octets CID */
+	*cid = ntohs(*(uint16_t *) (buf+6));
+}
+
 /* Chapter 8.4 BVC-Reset Procedure */
 static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,	
 			      uint16_t ns_bvci)
 {
-	uint8_t bvci;
+	struct bssgp_bts_ctx *bctx;
+	uint16_t nsei = msgb_nsei(msg);
+	uint16_t bvci;
 	int rc;
 
 	bvci = ntohs(*(u_int16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
 	DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
 		bssgp_cause_str(*TLVP_VAL(tp, BSSGP_IE_CAUSE)));
 
+	/* look-up or create the BTS context for this BVC */
+	bctx = btsctx_by_bvci_nsei(bvci, nsei);
+	if (!bctx)
+		bctx = btsctx_alloc(bvci, nsei);
+
 	/* When we receive a BVC-RESET PDU (at least of a PTP BVCI), the BSS
 	 * informs us about its RAC + Cell ID, so we can create a mapping */
+	if (bvci != 0 && bvci != 1) {
+		if (!TLVP_PRESENT(tp, BSSGP_IE_CELL_ID)) {
+			LOGP(DGPRS, LOGL_ERROR, "BSSGP RESET BVCI=%u "
+				"missing mandatory IE\n", bvci);
+			return -EINVAL;
+		}
+		/* actually extract RAC / CID */
+		bssgp_parse_cell_id(&bctx->ra_id, &bctx->cell_id,
+				    TLVP_VAL(tp, BSSGP_IE_CELL_ID));
+		LOGP(DGPRS, LOGL_NOTICE, "Cell %u-%u-%u-%u CI %u on BVCI %u\n",
+			bctx->ra_id.mcc, bctx->ra_id.mnc, bctx->ra_id.lac,
+			bctx->ra_id.rac, bctx->cell_id, bvci);
+	}
 
+	/* Acknowledge the RESET to the BTS */
 	rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_RESET_ACK,
-				  msgb_nsei(msg), bvci, ns_bvci);
+				  nsei, bvci, ns_bvci);
 	return 0;
 }
 
@@ -161,13 +257,13 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
 {
 	struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msg->l3h;
-	struct gsm_bts *bts;
 	int data_len = msgb_l3len(msg) - sizeof(*budh);
 	struct tlv_parsed tp;
 	int rc;
 
 	DEBUGP(DGPRS, "BSSGP UL-UD\n");
 
+	/* extract TLLI and parse TLV IEs */
 	msgb_tlli(msg) = ntohl(budh->tlli);
 	rc = bssgp_tlv_parse(&tp, budh->data, data_len);
 
@@ -175,15 +271,6 @@ static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
 	if (!TLVP_PRESENT(&tp, BSSGP_IE_CELL_ID) ||
 	    !TLVP_PRESENT(&tp, BSSGP_IE_LLC_PDU))
 		return -EIO;
-
-#if 0 //FIXME
-	/* Determine the BTS based on the Cell ID */
-	bts = gsm48_bts_by_ra_id(bsc_gsmnet,
-				 TLVP_VAL(&tp, BSSGP_IE_CELL_ID),
-				 TLVP_LEN(&tp, BSSGP_IE_CELL_ID));
-#endif
-	if (bts)
-		msg->trx = bts->c0;
 
 	msgb_llch(msg) = TLVP_VAL(&tp, BSSGP_IE_LLC_PDU);
 
@@ -261,6 +348,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 	u_int16_t bvci;
 	int rc = 0;
 
+	/* UNITDATA BSSGP headers have TLLI in front */
 	if (pdu_type != BSSGP_PDUT_UL_UNITDATA &&
 	    pdu_type != BSSGP_PDUT_DL_UNITDATA)
 		rc = bssgp_tlv_parse(&tp, bgph->data, data_len);
@@ -314,6 +402,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 		bvci = ntohs(*(u_int16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
 		DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
 			bssgp_cause_str(*TLVP_VAL(&tp, BSSGP_IE_CAUSE)));
+		/* We always acknowledge the BLOCKing */
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK_ACK,
 					  msgb_nsei(msg), bvci, ns_bvci);
 		break;
@@ -324,6 +413,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 			goto err_mand_ie;
 		bvci = ntohs(*(u_int16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
 		DEBUGPC(DGPRS, "BVCI=%u\n", bvci);
+		/* We always acknowledge the unBLOCKing */
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_UNBLOCK_ACK,
 					  msgb_nsei(msg), bvci, ns_bvci);
 		break;
@@ -374,9 +464,11 @@ err_mand_ie:
 	return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 }
 
-int gprs_bssgp_tx_dl_ud(struct msgb *msg)
+/* Entry function from upper level (LLC), asking us to transmit a BSSGP PDU
+ * to a remote MS (identified by TLLI) at a BTS identified by its RAC and CID */
+int gprs_bssgp_tx_dl_ud(struct msgb *msg, const struct gprs_ra_id *raid, uint16_t cid)
 {
-	struct gsm_bts *bts;
+	struct bssgp_bts_ctx *bctx;
 	struct bssgp_ud_hdr *budh;
 	u_int8_t llc_pdu_tlv_hdr_len = 2;
 	u_int8_t *llc_pdu_tlv, *qos_profile;
@@ -384,12 +476,7 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 	u_int8_t qos_profile_default[3] = { 0x00, 0x00, 0x21 };
 	u_int16_t msg_len = msg->len;
 
-	if (!msg->trx) {
-		DEBUGP(DGPRS, "Cannot transmit DL-UD without TRX assigned\n");
-		return -EINVAL;
-	}
-
-	bts = msg->trx->bts;
+	bctx = btsctx_by_raid_cid(raid, cid);
 
 	if (msg->len > TVLV_MAX_ONEBYTE)
 		llc_pdu_tlv_hdr_len += 1;
@@ -417,8 +504,8 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 	budh->tlli = htonl(msgb_tlli(msg));
 	budh->pdu_type = BSSGP_PDUT_DL_UNITDATA;
 
-	msgb_nsei(msg) = bts->gprs.nse.nsei;
-	msgb_bvci(msg) = bts->gprs.cell.bvci;
+	msgb_nsei(msg) = bctx->nsei;
+	msgb_bvci(msg) = bctx->bvci;
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
