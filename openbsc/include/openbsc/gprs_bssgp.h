@@ -1,6 +1,8 @@
 #ifndef _GPRS_BSSGP_H
 #define _GPRS_BSSGP_H
 
+#include <stdint.h>
+
 /* Section 11.3.26 / Table 11.27 */
 enum bssgp_pdu_type {
 	/* PDUs between RL and BSSGP SAPs */
@@ -49,15 +51,15 @@ enum bssgp_pdu_type {
 
 /* Section 10.2.1 and 10.2.2 */
 struct bssgp_ud_hdr {
-	u_int8_t pdu_type;
-	u_int32_t tlli;
-	u_int8_t qos_profile[3];
-	u_int8_t data[0];	/* TLV's */
+	uint8_t pdu_type;
+	uint32_t tlli;
+	uint8_t qos_profile[3];
+	uint8_t data[0];	/* TLV's */
 } __attribute__((packed));
 
 struct bssgp_normal_hdr {
-	u_int8_t pdu_type;
-	u_int8_t data[0];	/* TLV's */
+	uint8_t pdu_type;
+	uint8_t data[0];	/* TLV's */
 };
 
 enum bssgp_iei_type {
@@ -140,7 +142,7 @@ enum gprs_bssgp_cause {
 extern int gprs_bssgp_rcvmsg(struct msgb *msg);
 
 /* Wrapper around TLV parser to parse BSSGP IEs */
-static inline int bssgp_tlv_parse(struct tlv_parsed *tp, u_int8_t *buf, int len)
+static inline int bssgp_tlv_parse(struct tlv_parsed *tp, uint8_t *buf, int len)
 {
 	return tlv_parse(tp, &tvlv_att_def, buf, len, 0, 0);
 }

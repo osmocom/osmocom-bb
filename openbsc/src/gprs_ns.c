@@ -47,7 +47,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 #include <arpa/inet.h>
 
@@ -74,7 +74,7 @@ static const struct tlv_definition ns_att_tlvdef = {
 
 /* Lookup struct gprs_nsvc based on NSVCI */
 static struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi,
-					u_int16_t nsvci)
+					uint16_t nsvci)
 {
 	struct gprs_nsvc *nsvc;
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
@@ -86,7 +86,7 @@ static struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi,
 
 /* Lookup struct gprs_nsvc based on NSVCI */
 static struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi,
-					u_int16_t nsei)
+					uint16_t nsei)
 {
 	struct gprs_nsvc *nsvc;
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
@@ -109,7 +109,7 @@ static struct gprs_nsvc *nsvc_by_rem_addr(struct gprs_ns_inst *nsi,
 	return NULL;
 }
 
-static struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, u_int16_t nsvci)
+static struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 {
 	struct gprs_nsvc *nsvc;
 
@@ -163,7 +163,7 @@ static int gprs_ns_tx(struct gprs_nsvc *nsvc, struct msgb *msg)
 	return ret;
 }
 
-static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, u_int8_t pdu_type)
+static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, uint8_t pdu_type)
 {
 	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
 	struct gprs_ns_hdr *nsh;
@@ -211,7 +211,7 @@ static int gprs_ns_tx_reset_ack(struct gprs_nsvc *nsvc)
 {
 	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
 	struct gprs_ns_hdr *nsh;
-	u_int16_t nsvci, nsei;
+	uint16_t nsvci, nsei;
 
 	if (!msg)
 		return -ENOMEM;
@@ -225,8 +225,8 @@ static int gprs_ns_tx_reset_ack(struct gprs_nsvc *nsvc)
 
 	DEBUGP(DGPRS, "nsvci=%u, nsei=%u\n", nsvc->nsvci, nsvc->nsei);
 
-	msgb_tvlv_put(msg, NS_IE_VCI, 2, (u_int8_t *)&nsvci);
-	msgb_tvlv_put(msg, NS_IE_NSEI, 2, (u_int8_t *)&nsei);
+	msgb_tvlv_put(msg, NS_IE_VCI, 2, (uint8_t *)&nsvci);
+	msgb_tvlv_put(msg, NS_IE_NSEI, 2, (uint8_t *)&nsei);
 
 	return gprs_ns_tx(nsvc, msg);
 }
@@ -236,7 +236,7 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 {
 	struct gprs_nsvc *nsvc;
 	struct gprs_ns_hdr *nsh;
-	u_int16_t bvci = msgb_bvci(msg);
+	uint16_t bvci = msgb_bvci(msg);
 
 	nsvc = nsvc_by_nsei(nsi, msgb_nsei(msg));
 	if (!nsvc) {
@@ -262,7 +262,7 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 static int gprs_ns_rx_unitdata(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *)msg->l2h;
-	u_int16_t bvci;
+	uint16_t bvci;
 
 	/* spare octet in data[0] */
 	bvci = nsh->data[1] << 8 | nsh->data[2];
@@ -278,7 +278,7 @@ static int gprs_ns_rx_status(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
 	struct tlv_parsed tp;
-	u_int8_t cause;
+	uint8_t cause;
 	int rc;
 
 	DEBUGP(DGPRS, "NS STATUS ");
@@ -301,8 +301,8 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
 	struct tlv_parsed tp;
-	u_int8_t *cause;
-	u_int16_t *nsvci, *nsei;
+	uint8_t *cause;
+	uint16_t *nsvci, *nsei;
 	int rc;
 
 	DEBUGP(DGPRS, "NS RESET ");
@@ -317,9 +317,9 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	cause = (u_int8_t *) TLVP_VAL(&tp, NS_IE_CAUSE);
-	nsvci = (u_int16_t *) TLVP_VAL(&tp, NS_IE_VCI);
-	nsei = (u_int16_t *) TLVP_VAL(&tp, NS_IE_NSEI);
+	cause = (uint8_t *) TLVP_VAL(&tp, NS_IE_CAUSE);
+	nsvci = (uint16_t *) TLVP_VAL(&tp, NS_IE_VCI);
+	nsei = (uint16_t *) TLVP_VAL(&tp, NS_IE_NSEI);
 
 	nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
 	nsvc->nsei = ntohs(*nsei);
@@ -517,7 +517,7 @@ static int nsip_fd_cb(struct bsc_fd *bfd, unsigned int what)
 
 
 /* FIXME: this is currently in input/ipaccess.c */
-extern int make_sock(struct bsc_fd *bfd, int proto, u_int16_t port,
+extern int make_sock(struct bsc_fd *bfd, int proto, uint16_t port,
 		     int (*cb)(struct bsc_fd *fd, unsigned int what));
 
 /* Listen for incoming GPRS packets */

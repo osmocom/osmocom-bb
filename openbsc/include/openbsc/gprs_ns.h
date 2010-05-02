@@ -1,13 +1,15 @@
 #ifndef _GPRS_NS_H
 #define _GPRS_NS_H
 
+#include <stdint.h>
+
 /* GPRS Networks Service (NS) messages on the Gb interface
  * 3GPP TS 08.16 version 8.0.1 Release 1999 / ETSI TS 101 299 V8.0.1 (2002-05)
  * 3GPP TS 48.016 version 6.5.0 Release 6 / ETSI TS 148 016 V6.5.0 (2005-11) */
 
 struct gprs_ns_hdr {
-	u_int8_t pdu_type;
-	u_int8_t data[0];
+	uint8_t pdu_type;
+	uint8_t data[0];
 } __attribute__((packed));
 
 /* TS 08.16, Section 10.3.7, Table 14 */
@@ -95,7 +97,7 @@ enum gprs_ns_evt {
 
 struct gprs_nsvc;
 typedef int gprs_ns_cb_t(enum gprs_ns_evt event, struct gprs_nsvc *nsvc,
-			 struct msgb *msg, u_int16_t bvci);
+			 struct msgb *msg, uint16_t bvci);
 
 /* An instance of the NS protocol stack */
 struct gprs_ns_inst {
@@ -120,11 +122,11 @@ struct gprs_nsvc {
 	struct llist_head list;
 	struct gprs_ns_inst *nsi;
 
-	u_int16_t nsei;		/* end-to-end significance */
-	u_int16_t nsvci;	/* uniquely identifies NS-VC at SGSN */
+	uint16_t nsei;		/* end-to-end significance */
+	uint16_t nsvci;	/* uniquely identifies NS-VC at SGSN */
 
-	u_int32_t state;
-	u_int32_t remote_state;
+	uint32_t state;
+	uint32_t remote_state;
 
 	struct timer_list alive_timer;
 	int timer_is_tns_alive;

@@ -21,7 +21,7 @@
  */
 
 #include <errno.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 #include <netinet/in.h>
 
@@ -147,26 +147,26 @@ static inline struct msgb *bssgp_msgb_alloc(void)
 }
 
 /* Transmit a simple response such as BLOCK/UNBLOCK/RESET ACK/NACK */
-static int bssgp_tx_simple_bvci(u_int8_t pdu_type, u_int16_t nsei,
-			        u_int16_t bvci, u_int16_t ns_bvci)
+static int bssgp_tx_simple_bvci(uint8_t pdu_type, uint16_t nsei,
+			        uint16_t bvci, uint16_t ns_bvci)
 {
 	struct msgb *msg = bssgp_msgb_alloc();
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
-	u_int16_t _bvci;
+	uint16_t _bvci;
 
 	msgb_nsei(msg) = nsei;
 	msgb_bvci(msg) = ns_bvci;
 
 	bgph->pdu_type = pdu_type;
 	_bvci = htons(bvci);
-	msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (u_int8_t *) &_bvci);
+	msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (uint8_t *) &_bvci);
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
 /* Chapter 10.4.5: Flow Control BVC ACK */
-static int bssgp_tx_fc_bvc_ack(u_int16_t nsei, u_int8_t tag, u_int16_t ns_bvci)
+static int bssgp_tx_fc_bvc_ack(uint16_t nsei, uint8_t tag, uint16_t ns_bvci)
 {
 	struct msgb *msg = bssgp_msgb_alloc();
 	struct bssgp_normal_hdr *bgph =
@@ -182,7 +182,7 @@ static int bssgp_tx_fc_bvc_ack(u_int16_t nsei, u_int8_t tag, u_int16_t ns_bvci)
 }
 
 /* Chapter 10.4.14: Status */
-int bssgp_tx_status(u_int8_t cause, u_int16_t *bvci, struct msgb *orig_msg)
+int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg)
 {
 	struct msgb *msg = bssgp_msgb_alloc();
 	struct bssgp_normal_hdr *bgph =
@@ -195,8 +195,8 @@ int bssgp_tx_status(u_int8_t cause, u_int16_t *bvci, struct msgb *orig_msg)
 	bgph->pdu_type = BSSGP_PDUT_STATUS;
 	msgb_tvlv_put(msg, BSSGP_IE_CAUSE, 1, &cause);
 	if (bvci) {
-		u_int16_t _bvci = htons(*bvci);
-		msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (u_int8_t *) &_bvci);
+		uint16_t _bvci = htons(*bvci);
+		msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (uint8_t *) &_bvci);
 	}
 	if (orig_msg)
 		msgb_tvlv_put(msg, BSSGP_IE_PDU_IN_ERROR,
@@ -223,7 +223,7 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 	uint16_t bvci;
 	int rc;
 
-	bvci = ntohs(*(u_int16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
+	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
 	DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
 		bssgp_cause_str(*TLVP_VAL(tp, BSSGP_IE_CAUSE)));
 
@@ -413,7 +413,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		if (!TLVP_PRESENT(&tp, BSSGP_IE_BVCI) ||
 		    !TLVP_PRESENT(&tp, BSSGP_IE_CAUSE))
 			goto err_mand_ie;
-		bvci = ntohs(*(u_int16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
+		bvci = ntohs(*(uint16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
 		DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
 			bssgp_cause_str(*TLVP_VAL(&tp, BSSGP_IE_CAUSE)));
 		/* We always acknowledge the BLOCKing */
@@ -425,7 +425,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		DEBUGP(DGPRS, "BSSGP BVC UNBLOCK ");
 		if (!TLVP_PRESENT(&tp, BSSGP_IE_BVCI))
 			goto err_mand_ie;
-		bvci = ntohs(*(u_int16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
+		bvci = ntohs(*(uint16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
 		DEBUGPC(DGPRS, "BVCI=%u\n", bvci);
 		/* We always acknowledge the unBLOCKing */
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_UNBLOCK_ACK,
@@ -485,11 +485,11 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 {
 	struct bssgp_bts_ctx *bctx;
 	struct bssgp_ud_hdr *budh;
-	u_int8_t llc_pdu_tlv_hdr_len = 2;
-	u_int8_t *llc_pdu_tlv, *qos_profile;
-	u_int16_t pdu_lifetime = 1000; /* centi-seconds */
-	u_int8_t qos_profile_default[3] = { 0x00, 0x00, 0x21 };
-	u_int16_t msg_len = msg->len;
+	uint8_t llc_pdu_tlv_hdr_len = 2;
+	uint8_t *llc_pdu_tlv, *qos_profile;
+	uint16_t pdu_lifetime = 1000; /* centi-seconds */
+	uint8_t qos_profile_default[3] = { 0x00, 0x00, 0x21 };
+	uint16_t msg_len = msg->len;
 	uint16_t bvci = msgb_bvci(msg);
 	uint16_t nsei = msgb_nsei(msg);
 
@@ -522,7 +522,7 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 
 	/* prepend the pdu lifetime */
 	pdu_lifetime = htons(pdu_lifetime);
-	msgb_tvlv_push(msg, BSSGP_IE_PDU_LIFETIME, 2, (u_int8_t *)&pdu_lifetime);
+	msgb_tvlv_push(msg, BSSGP_IE_PDU_LIFETIME, 2, (uint8_t *)&pdu_lifetime);
 
 	/* prepend the QoS profile, TLLI and pdu type */
 	budh = (struct bssgp_ud_hdr *) msgb_push(msg, sizeof(*budh));
