@@ -205,13 +205,12 @@ int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg)
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
-static void bssgp_parse_cell_id(struct gprs_ra_id *raid, uint16_t *cid,
-				const uint8_t *buf)
+uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf)
 {
 	/* 6 octets RAC */
 	gsm48_parse_ra(raid, buf);
 	/* 2 octets CID */
-	*cid = ntohs(*(uint16_t *) (buf+6));
+	return ntohs(*(uint16_t *) (buf+6));
 }
 
 /* Chapter 8.4 BVC-Reset Procedure */
@@ -241,8 +240,8 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 			return -EINVAL;
 		}
 		/* actually extract RAC / CID */
-		bssgp_parse_cell_id(&bctx->ra_id, &bctx->cell_id,
-				    TLVP_VAL(tp, BSSGP_IE_CELL_ID));
+		bctx->cell_id = bssgp_parse_cell_id(&bctx->ra_id,
+						TLVP_VAL(tp, BSSGP_IE_CELL_ID));
 		LOGP(DGPRS, LOGL_NOTICE, "Cell %u-%u-%u-%u CI %u on BVCI %u\n",
 			bctx->ra_id.mcc, bctx->ra_id.mnc, bctx->ra_id.lac,
 			bctx->ra_id.rac, bctx->cell_id, bvci);
@@ -275,7 +274,9 @@ static int bssgp_rx_ul_ud(struct msgb *msg)
 
 	/* FIXME: lookup bssgp_bts_ctx based on BVCI + NSEI */
 
+	/* store pointer to LLC header and CELL ID in msgb->cb */
 	msgb_llch(msg) = TLVP_VAL(&tp, BSSGP_IE_LLC_PDU);
+	msgb_bcid(msg) = TLVP_VAL(&tp, BSSGP_IE_CELL_ID);
 
 	return gprs_llc_rcvmsg(msg, &tp);
 }

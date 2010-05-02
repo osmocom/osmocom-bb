@@ -140,6 +140,7 @@ enum gprs_bssgp_cause {
 #include <osmocore/tlv.h>
 
 extern int gprs_bssgp_rcvmsg(struct msgb *msg);
+uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf);
 
 /* Wrapper around TLV parser to parse BSSGP IEs */
 static inline int bssgp_tlv_parse(struct tlv_parsed *tp, uint8_t *buf, int len)
