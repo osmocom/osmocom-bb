@@ -38,6 +38,8 @@
 #include <osmocore/select.h>
 #include <osmocore/signal.h>
 
+extern struct log_target *stderr_target;
+
 int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg);
 
 int mobile_work(struct osmocom_ms *ms)
@@ -72,7 +74,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	switch (signal) {
 	case S_L1CTL_RESET:
 		ms = signal_data;
-		gsm_subscr_testcard(ms, 1, 1, "0000000000");
+//		gsm_subscr_testcard(ms, 1, 1, "0000000000");
 		/* start PLMN + cell selection process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
 		if (!nmsg)
@@ -90,22 +92,23 @@ int mobile_exit(struct osmocom_ms *ms)
 {
 	unregister_signal_handler(SS_L1CTL, &signal_cb, NULL);
 	gsm322_exit(ms);
-	gsm48_cc_exit(ms);
 	gsm48_mm_exit(ms);
 	gsm48_rr_exit(ms);
 	gsm_subscr_exit(ms);
+	gsm48_cc_exit(ms);
 
 	return 0;
 }
 
 int l23_app_init(struct osmocom_ms *ms)
 {
+	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC");
+
+	gsm48_cc_init(ms);
 	gsm_support_init(ms);
 	gsm_subscr_init(ms);
-	gsm48_sysinfo_init(ms);
 	gsm48_rr_init(ms);
 	gsm48_mm_init(ms);
-	gsm48_cc_init(ms);
 	INIT_LLIST_HEAD(&ms->trans_list);
 	ms->cclayer.mncc_recv = mncc_recv_dummy;
 	gsm322_init(ms);

@@ -118,7 +118,7 @@ struct gsm_support_scan_max gsm_sup_smax[] = {
 	{ 955, 124, 30, 0 },
 	{ 512, 885, 40, 0 },
 #else
-	{ 955, 125, 1, 0 }, /* testing with maximum of one frequency */
+	{ 955, 125, 3, 0 }, /* testing */
 #endif
 	{ 0, 0, 0, 0 }
 };

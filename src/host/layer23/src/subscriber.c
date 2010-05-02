@@ -26,6 +26,7 @@
 
 #include <osmocom/logging.h>
 #include <osmocom/osmocom_data.h>
+#include <osmocom/networks.h>
 
 
 int gsm_subscr_init(struct osmocom_ms *ms)
@@ -97,7 +98,8 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, int mcc, int mnc, char *msin)
 	snprintf(subscr->imsi, 15, "%03d%02d%s", mcc, mnc, msin);
 
 	LOGP(DMM, LOGL_INFO, "(ms %s) Inserting test card (mnc=%d mnc=%d "
-		"imsi=%s)\n", ms->name, mcc, mnc, subscr->imsi);
+		"(%s, %s) imsi=%s)\n", ms->name, mcc, mnc, gsm_get_mcc(mcc),
+		gsm_get_mnc(mnc, mnc), subscr->imsi);
 
 	/* insert card */
 	msg = gsm48_mmr_msgb_alloc(GSM48_MMR_REG_REQ);

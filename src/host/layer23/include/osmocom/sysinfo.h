@@ -98,7 +98,6 @@ struct gsm48_sysinfo {
 	uint16_t			nb_class_barr; /* bit 10 is emergency */
 };
 
-void gsm48_sysinfo_init(struct osmocom_ms *ms);
-int gsm48_sysinfo_dump(struct osmocom_ms *ms);
+int gsm48_sysinfo_dump(struct osmocom_ms *ms, struct gsm48_sysinfo *s);
 
 #endif /* _SYSINFO_H */

@@ -100,10 +100,13 @@ struct gsm322_ba_list {
 struct gsm322_cs_list {
 	uint8_t			flags; /* see GSM322_CS_FLAG_* */
 	int8_t			rxlev_db; /* rx level in real dB */
+	struct gsm48_sysinfo	*sysinfo;
+#if 0
 	int8_t			min_db; /* minimum level to enter cell */
 	int8_t			max_pwr; /* maximum power to access cell */
 	uint16_t		class_barr; /* barred classes */
 	uint16_t		mcc, mnc, lac; /* received mcc, mnc, lac */
+#endif
 };
 
 /* PLMN search process */
@@ -122,12 +125,14 @@ struct gsm322_plmn {
 	uint16_t		mcc, mnc; /* current network selected */
 };
 
+struct gsm48_sysinfo;
 /* Cell selection process */
 struct gsm322_cellsel {
 	struct osmocom_ms	*ms;
 	int			state; /* GSM322_Cx_* */
 
 	uint16_t		arfcn; /* current tuned idle mode arfcn */
+	struct gsm48_sysinfo	*si; /* current sysinfo */
 
 	struct llist_head	event_queue; /* event messages */
 	struct llist_head	ba_list; /* BCCH Allocation per PLMN */
@@ -142,8 +147,9 @@ struct gsm322_cellsel {
 	uint8_t			ccch_active; /* set, if ccch is active */
 
 	uint8_t			selected; /* if a cell is selected */
-	uint16_t		selected_arfcn;
-	uint16_t		selected_mcc, selected_mnc, selected_lac;
+	uint16_t		sel_arfcn;
+	struct gsm48_sysinfo	sel_si; /* copy of selected cell, will update */
+	uint16_t		sel_mcc, sel_mnc, sel_lac;
 };
 
 /* GSM 03.22 message */

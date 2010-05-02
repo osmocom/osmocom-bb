@@ -115,7 +115,7 @@ struct gsm48_rrlayer {
 		/* cr_hist must be signed and greater 8 bit, -1 = no value */
 
 	/* current channel descriptions */
-	uint16_t		arfcn; /* dedicated mode only */
+	uint16_t		dm_arfcn; /* dedicated mode only */
 	struct gsm48_rr_cd	cd_now;
 
 	/* current cipering */

@@ -66,11 +66,23 @@ requred to select correct delays and timings.
 How do I return after L1CTL_DM_EST_REQ back to idle mode?
 Using l1ctl_tx_ccch_req?
 
+
 mncc.h of openbsc / layer23:
 What about putting all (except call structure) to osmocore?
 
+
 bsic???????
+
 
 How do I stop scanning frequencies?
 The scanning process may currently restart scanning, when process is running.
+
+
+It is absolutely importaint for messages not beeing lost between layers.
+What about the serial link between mobile and PC?
+-> There must be a security layer!
+
+
+
+
 

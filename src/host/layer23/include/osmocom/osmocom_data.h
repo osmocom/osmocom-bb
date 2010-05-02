@@ -11,9 +11,9 @@ struct osmocom_ms;
 #include <osmocom/subscriber.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/gsm48_rr.h>
+#include <osmocom/sysinfo.h>
 #include <osmocom/gsm322.h>
 #include <osmocom/gsm48_mm.h>
-#include <osmocom/sysinfo.h>
 #include <osmocom/gsm48_cc.h>
 
 /* A layer2 entity */
@@ -38,7 +38,6 @@ struct osmocom_ms {
 	struct gsm48_rrlayer rrlayer;
 	struct gsm322_plmn plmn;
 	struct gsm322_cellsel cellsel;
-	struct gsm48_sysinfo sysinfo;
 	struct gsm48_mmlayer mmlayer;
 	struct gsm48_cclayer cclayer;
 	struct llist_head trans_list;

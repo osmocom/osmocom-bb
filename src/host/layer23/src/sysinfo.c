@@ -26,16 +26,8 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/networks.h>
 
-void gsm48_sysinfo_init(struct osmocom_ms *ms)
+int gsm48_sysinfo_dump(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
 {
-	struct gsm48_sysinfo *s = &ms->sysinfo;
-
-	memset(s, 0, sizeof(*s));
-};
-
-int gsm48_sysinfo_dump(struct osmocom_ms *ms)
-{
-	struct gsm48_sysinfo *s = &ms->sysinfo;
 	char buffer[80];
 	int i, j;
 

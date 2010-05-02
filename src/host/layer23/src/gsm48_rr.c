@@ -171,9 +171,9 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		 * leave camping state, so it locks against subsequent
 		 * establishment of dedicated channel, before the
 		 * cell selection process returned to camping state
-		 * again.
+		 * again. (after cell reselection)
 		 */
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_LEAVE_IDLE);
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_RET_IDLE);
 		if (!nmsg)
 			return;
 		gsm322_c_event(rr->ms, nmsg);
@@ -258,6 +258,10 @@ static int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
+	if (!msg->l3h) {
+		printf("FIX l3h\n");
+		exit (0);
+	}
 	rsl_rll_push_l3(msg, msg_type, rr->cd_now.chan_nr,
 		rr->cd_now.link_id, 1);
 
@@ -615,7 +619,7 @@ int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_support *sup = &ms->support;
 
-	if (rr->arfcn >= 512 && rr->arfcn <= 885)
+	if (rr->dm_arfcn >= 512 && rr->dm_arfcn <= 885)
 		cm->pwr_lev = sup->pwr_lev_1800;
 	else
 		cm->pwr_lev = sup->pwr_lev_900;
@@ -700,6 +704,7 @@ static void temp_rach_to(void *arg)
 	struct abis_rsl_rll_hdr *rllh = (struct abis_rsl_rll_hdr *) msgb_put(msg, sizeof(*rllh));
 
 	rllh->c.msg_type = RSL_MT_CHAN_CNF;
+	msg->l2h = (unsigned char *)rllh;
 	gsm48_rcv_rsl(ms, msg);
 
 	return;
@@ -710,17 +715,19 @@ static int gsm48_rr_tx_chan_req(struct osmocom_ms *ms, int cause, int paging)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = cs->si;
 	struct msgb *nmsg;
 	struct l1ctl_info_ul *nul;
 	struct l1ctl_rach_req *nra;
 	struct gsm48_rr_hdr *nrrh;
 	uint8_t chan_req, chan_req_val, chan_req_mask;
-	int t;
+	int t, rc;
 
 	/* ignore paging, if not camping */
-	if (paging && cs->state != GSM322_C3_CAMPED_NORMALLY) {
-	 	return -EBUSY;
+	if (paging
+	 && (!cs->selected || cs->state != GSM322_C3_CAMPED_NORMALLY)) {
+		LOGP(DRR, LOGL_INFO, "Paging, but not camping normally.\n");
+	 	return -EINVAL;
 	}
 
 	/* tell cell selection process to leave idle mode
@@ -730,8 +737,14 @@ static int gsm48_rr_tx_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_LEAVE_IDLE);
 	if (!nmsg)
 		return -ENOMEM;
-	gsm322_c_event(ms, nmsg);
+	rc = gsm322_c_event(ms, nmsg);
 	msgb_free(nmsg);
+	if (rc) {
+		if (paging)
+			return rc;
+		LOGP(DRR, LOGL_INFO, "Failed to leave IDLE mode.\n");
+		goto undefined;
+	}
 
 	/* 3.3.1.1.2 */
 	new_rr_state(rr, GSM48_RR_ST_CONN_PEND);
@@ -848,6 +861,7 @@ static int gsm48_rr_tx_chan_req(struct osmocom_ms *ms, int cause, int paging)
 
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: with unknown "
 			"establishment cause: %d\n", cause);
+		undefined:
 		nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
 		if (!nmsg)
 			return -ENOMEM;
@@ -886,18 +900,23 @@ static int gsm48_rr_tx_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	at this point we require chan req to be sent at a given delay
 	also we require a confirm from radio part
 	nra->delay = random() % t;
+
+	LOGP(DRR, LOGL_INFO, "RANDOM ACCESS (ra 0x%02x delay %d)\n", nra->ra,
+		nra->delay);
 #else
 	rr->temp_rach_ti.cb = temp_rach_to;
 	rr->temp_rach_ti.data = rr;
 	bsc_schedule_timer(&rr->temp_rach_ti, 0, 900000);
+
+	LOGP(DRR, LOGL_INFO, "RANDOM ACCESS (ra 0x%02x)\n", nra->ra);
 #endif
 
 	/* store */
 	rr->chan_req_val = chan_req_val;
 	rr->chan_req_mask = chan_req_mask;
-	rr->cr_hist[3] = -1;
 	rr->cr_hist[2] = -1;
-	rr->cr_hist[1] = chan_req;
+	rr->cr_hist[1] = -1;
+	rr->cr_hist[0] = chan_req;
 
 #ifdef TODO
 	add layer 1 conrols to RSL...
@@ -911,7 +930,7 @@ static int gsm48_rr_tx_chan_req(struct osmocom_ms *ms, int cause, int paging)
 static int gsm48_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	struct msgb *nmsg;
 	struct l1ctl_info_ul *nul;
 	struct l1ctl_rach_req *nra;
@@ -993,9 +1012,9 @@ static int gsm48_rr_rand_acc_cnf(struct osmocom_ms *ms, struct msgb *msg)
 #endif
 
 	/* shift history and store */
-	rr->cr_hist[3] = rr->cr_hist[2];
 	rr->cr_hist[2] = rr->cr_hist[1];
-	rr->cr_hist[1] = chan_req;
+	rr->cr_hist[1] = rr->cr_hist[0];
+	rr->cr_hist[0] = chan_req;
 
 #ifdef TODO
 	add layer 1 conrols to RSL...
@@ -1634,7 +1653,7 @@ static int gsm48_send_sysinfo(struct osmocom_ms *ms, uint8_t type)
 static int gsm48_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_1 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
 	if (payload_len < 0) {
@@ -1668,7 +1687,7 @@ static int gsm48_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_2 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
 	if (payload_len < 0) {
@@ -1703,7 +1722,7 @@ static int gsm48_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_2bis *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
 	if (payload_len < 0) {
@@ -1738,7 +1757,7 @@ static int gsm48_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_2ter *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
 	if (payload_len < 0) {
@@ -1770,7 +1789,7 @@ static int gsm48_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_3 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
 	if (payload_len < 0) {
@@ -1812,7 +1831,7 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_4 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 	uint8_t *data = si->data;
 	struct gsm48_chan_desc *cd;
@@ -1874,7 +1893,7 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_5 *si = msgb_l3(msg) + 1;
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (payload_len < 0) {
@@ -1905,7 +1924,7 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_5bis *si = msgb_l3(msg) + 1;
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (payload_len < 0) {
@@ -1937,7 +1956,7 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_5ter *si = msgb_l3(msg) + 1;
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (payload_len < 0) {
@@ -1967,7 +1986,7 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_6 *si = msgb_l3(msg) + 1;
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (payload_len < 0) {
@@ -2032,7 +2051,8 @@ static int gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 		memcpy(&tmsi, mi+2, 4);
 		if (ms->subscr.tmsi == ntohl(tmsi)
 		 && ms->subscr.tmsi_valid) {
-			LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(tmsi));
+			LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n",
+				ntohl(tmsi));
 
 			return 1;
 		} else
@@ -2068,11 +2088,14 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* 3.3.1.1.2: ignore paging while not camping on a cell */
 	if (rr->state != GSM48_RR_ST_IDLE
-	 && cs->state != GSM322_C3_CAMPED_NORMALLY) {
+	 || !cs->selected || cs->state != GSM322_C3_CAMPED_NORMALLY) {
+#if 0
 		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping "
 			"normally.\n");
+#endif
 		return 0;
 	}
+	LOGP(DRR, LOGL_INFO, "PAGING REQUEST 1\n");
 
 	if (payload_len < 2) {
 		short_read:
@@ -2085,7 +2108,7 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 	chan_1 = pa->cneed1;
 	chan_2 = pa->cneed2;
 	/* first MI */
-	mi = pa->data + 1;
+	mi = pa->data;
 	if (payload_len < mi[0] + 1)
 		goto short_read;
 	if (gsm_match_mi(ms, mi) > 0)
@@ -2122,6 +2145,7 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 			"normally.\n");
 		return 0;
 	}
+	LOGP(DRR, LOGL_INFO, "PAGING REQUEST 2\n");
 
 	if (payload_len < 0) {
 		short_read:
@@ -2135,12 +2159,20 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	chan_2 = pa->cneed2;
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
-	 && ms->subscr.tmsi_valid)
+	 && ms->subscr.tmsi_valid) {
+		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
+	} else
+		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
-	 && ms->subscr.tmsi_valid)
+	 && ms->subscr.tmsi_valid) {
+		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
+	} else
+		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+			ntohl(pa->tmsi2));
 	/* third MI */
 	mi = pa->data;
 	if (payload_len < 2)
@@ -2172,6 +2204,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 			"normally.\n");
 		return 0;
 	}
+	LOGP(DRR, LOGL_INFO, "PAGING REQUEST 3\n");
 
 	if (payload_len < 0) { /* must include "channel needed", part of *pa */
 		LOGP(DRR, LOGL_NOTICE, "Short read of PAGING REQUEST 3 "
@@ -2186,20 +2219,36 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	chan_4 = pa->cneed4;
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
-	 && ms->subscr.tmsi_valid)
+	 && ms->subscr.tmsi_valid) {
+		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
+	} else
+		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
-	 && ms->subscr.tmsi_valid)
+	 && ms->subscr.tmsi_valid) {
+		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
+	} else
+		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+			ntohl(pa->tmsi2));
 	/* thrid MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi3)
-	 && ms->subscr.tmsi_valid)
+	 && ms->subscr.tmsi_valid) {
+		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi3));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1);
+	} else
+		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+			ntohl(pa->tmsi3));
 	/* fourth MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi4)
-	 && ms->subscr.tmsi_valid)
+	 && ms->subscr.tmsi_valid) {
+		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi4));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1);
+	} else
+		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+			ntohl(pa->tmsi4));
 
 	return 0;
 }
@@ -2325,7 +2374,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* 3.3.1.1.2: ignore assignment while idle */
 	if (rr->state != GSM48_RR_ST_CONN_PEND || !rr->wait_assign) {
-		LOGP(DRR, LOGL_INFO, "no previous request\n");
+		LOGP(DRR, LOGL_INFO, "Not for us, no request.\n");
 		return 0;
 	}
 
@@ -2341,7 +2390,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		rr->wait_assign = 0;
 		return gsm48_rr_dl_est(ms);
 	}
-	LOGP(DRR, LOGL_INFO, "does not match our request\n");
+	LOGP(DRR, LOGL_INFO, "Request, but not for us.\n");
 
 	return 0;
 }
@@ -2381,7 +2430,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* decode channel description */
-	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT ");
+	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT EXTENDED ");
 	rsl_dec_chan_nr(ia->chan_desc1.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ia->chan_desc1.h0.h) {
 		cd1.h = 1;
@@ -2419,7 +2468,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* 3.3.1.1.2: ignore assignment while idle */
 	if (rr->state != GSM48_RR_ST_CONN_PEND || !rr->wait_assign) {
-		LOGP(DRR, LOGL_INFO, "no previous request\n");
+		LOGP(DRR, LOGL_INFO, "Not for us, no request.\n");
 		return 0;
 	}
 
@@ -2447,7 +2496,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 		rr->wait_assign = 0;
 		return gsm48_rr_dl_est(ms);
 	}
-	LOGP(DRR, LOGL_INFO, "does not match our request\n");
+	LOGP(DRR, LOGL_INFO, "Request, but not for us.\n");
 
 	return 0;
 }
@@ -2656,8 +2705,8 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 #ifdef TODO
 	RSL_MT_ to activate channel with all the cd_now informations
 #else
-	rr->arfcn = rr->cd_now.chan_nr;
-	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->arfcn);
+	rr->dm_arfcn = rr->cd_now.arfcn;
+	tx_ph_dm_est_req(ms, rr->dm_arfcn, rr->cd_now.chan_nr);
 #endif
 
 	/* start establishmnet */
@@ -2698,12 +2747,12 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	/* deactivate channel */
-	LOGP(DRR, LOGL_INFO, "deactivating channel (arfcn %d)\n", rr->arfcn);
+	LOGP(DRR, LOGL_INFO, "deactivating channel (arfcn %d)\n", rr->dm_arfcn);
 #ifdef TODO
 	release and give new arfcn
 	tx_ph_dm_rel_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
 #else
-	l1ctl_tx_ccch_req(ms, rr->arfcn);
+	l1ctl_tx_ccch_req(ms, rr->dm_arfcn);
 #endif
 
 	/* do nothing, because we aleady IDLE
@@ -2723,7 +2772,7 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = &ms->sysinfo;
+	struct gsm48_sysinfo *s = cs->si;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *) msg->data;
 	struct gsm48_hdr *gh = msgb_l3(msg);
@@ -2747,6 +2796,13 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 		}
 		LOGP(DRR, LOGL_INFO, "T3122 running, but emergency call\n");
 		stop_rr_t3122(rr);
+	}
+
+	/* cell selected */
+	if (!cs->selected) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, rejecting!\n");
+		cause = RR_REL_CAUSE_TRY_LATER;
+	 	goto reject;
 	}
 
 	/* check if camping */
@@ -2795,7 +2851,7 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_ERROR, "Error, missing l3 message\n");
 		return -EINVAL;
 	}
-	rr->rr_est_msg = msgb_alloc_headroom(256, 16, "EST_REQ");
+	rr->rr_est_msg = gsm48_l3_msgb_alloc();
 	if (!rr->rr_est_msg)
 		return -ENOMEM;
 	memcpy(msgb_put(rr->rr_est_msg, msgb_l3len(msg)),
@@ -2912,6 +2968,11 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
+	struct gsm322_cellsel *cs = &ms->cellsel;
+
+	/* when changing/deactivating ccch, ignore pending messages */
+	if (!cs->ccch_active)
+		return -EINVAL;
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_SYSINFO_1:
@@ -2927,8 +2988,10 @@ static int gsm48_rr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_MT_RR_SYSINFO_4:
 		return gsm48_rr_rx_sysinfo4(ms, msg);
 	default:
-		LOGP(DRR, LOGL_NOTICE, "BCCH message type 0x%02x unknown.\n",
+#if 0
+		LOGP(DRR, LOGL_NOTICE, "BCCH message type 0x%02x not sup.\n",
 			sih->system_information);
+#endif
 		return -EINVAL;
 	}
 }
@@ -2959,6 +3022,7 @@ static int gsm48_rr_rx_ccch(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_rx_pag_req_2(ms, msg);
 	case GSM48_MT_RR_PAG_REQ_3:
 		return gsm48_rr_rx_pag_req_3(ms, msg);
+
 	case GSM48_MT_RR_IMM_ASS:
 		return gsm48_rr_rx_imm_ass(ms, msg);
 	case GSM48_MT_RR_IMM_ASS_EXT:
@@ -2966,8 +3030,10 @@ static int gsm48_rr_rx_ccch(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_MT_RR_IMM_ASS_REJ:
 		return gsm48_rr_rx_imm_ass_rej(ms, msg);
 	default:
+#if 0
 		LOGP(DRR, LOGL_NOTICE, "CCCH message type 0x%02x unknown.\n",
 			sih->system_information);
+#endif
 		return -EINVAL;
 	}
 }

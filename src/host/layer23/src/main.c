@@ -46,7 +46,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-static struct log_target *stderr_target;
+struct log_target *stderr_target;
 
 #define GSM_L2_LENGTH 256
 
