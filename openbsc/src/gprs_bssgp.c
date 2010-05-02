@@ -255,7 +255,7 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 }
 
 /* Uplink unit-data */
-static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
+static int bssgp_rx_ul_ud(struct msgb *msg)
 {
 	struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
 	int data_len = msgb_l3len(msg) - sizeof(*budh);
@@ -273,12 +273,14 @@ static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
 	    !TLVP_PRESENT(&tp, BSSGP_IE_LLC_PDU))
 		return -EIO;
 
+	/* FIXME: lookup bssgp_bts_ctx based on BVCI + NSEI */
+
 	msgb_llch(msg) = TLVP_VAL(&tp, BSSGP_IE_LLC_PDU);
 
 	return gprs_llc_rcvmsg(msg, &tp);
 }
 
-static int bssgp_rx_suspend(struct msgb *msg, u_int16_t bvci)
+static int bssgp_rx_suspend(struct msgb *msg)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
@@ -296,11 +298,11 @@ static int bssgp_rx_suspend(struct msgb *msg, u_int16_t bvci)
 	    !TLVP_PRESENT(&tp, BSSGP_IE_ROUTEING_AREA))
 		return -EIO;
 
+	/* FIXME: pass the SUSPEND request to GMM */
 	/* SEND SUSPEND_ACK or SUSPEND_NACK */
-	/* FIXME */
 }
 
-static int bssgp_rx_resume(struct msgb *msg, u_int16_t bvci)
+static int bssgp_rx_resume(struct msgb *msg)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
@@ -319,12 +321,11 @@ static int bssgp_rx_resume(struct msgb *msg, u_int16_t bvci)
 	    !TLVP_PRESENT(&tp, BSSGP_IE_SUSPEND_REF_NR))
 		return -EIO;
 
+	/* FIXME: pass the RESUME request to GMM */
 	/* SEND RESUME_ACK or RESUME_NACK */
-	/* FIXME */
 }
 
-static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
-			   u_int16_t ns_bvci)
+static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp)
 {
 
 	DEBUGP(DGPRS, "BSSGP FC BVC\n");
@@ -336,21 +337,26 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 	    !TLVP_PRESENT(tp, BSSGP_IE_R_DEFAULT_MS))
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 
+	/* FIXME: actually implement flow control */
+
 	/* Send FLOW_CONTROL_BVC_ACK */
 	return bssgp_tx_fc_bvc_ack(msgb_nsei(msg), *TLVP_VAL(tp, BSSGP_IE_TAG),
-				   ns_bvci);
+				   msgb_bvci(msg));
 }
 
 /* We expect msgb_bssgph() to point to the BSSGP header */
-int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
+int gprs_bssgp_rcvmsg(struct msgb *msg)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct tlv_parsed tp;
-	u_int8_t pdu_type = bgph->pdu_type;
+	uint8_t pdu_type = bgph->pdu_type;
 	int data_len = msgb_l3len(msg) - sizeof(*bgph);
-	u_int16_t bvci;
+	uint16_t bvci;	/* PTP BVCI */
+	uint16_t ns_bvci = msgb_bvci(msg);
 	int rc = 0;
+
+	/* Identifiers from DOWN: NSEI, BVCI (both in msg->cb) */
 
 	/* UNITDATA BSSGP headers have TLLI in front */
 	if (pdu_type != BSSGP_PDUT_UL_UNITDATA &&
@@ -360,7 +366,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 	switch (pdu_type) {
 	case BSSGP_PDUT_UL_UNITDATA:
 		/* some LLC data from the MS */
-		rc = bssgp_rx_ul_ud(msg, ns_bvci);
+		rc = bssgp_rx_ul_ud(msg);
 		break;
 	case BSSGP_PDUT_RA_CAPABILITY:
 		/* BSS requests RA capability or IMSI */
@@ -370,32 +376,36 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 	case BSSGP_PDUT_RADIO_STATUS:
 		DEBUGP(DGPRS, "BSSGP RADIO STATUS\n");
 		/* BSS informs us of some exception */
+		/* FIXME: notify GMM */
 		break;
 	case BSSGP_PDUT_SUSPEND:
 		/* MS wants to suspend */
-		rc = bssgp_rx_suspend(msg, ns_bvci);
+		rc = bssgp_rx_suspend(msg);
 		break;
 	case BSSGP_PDUT_RESUME:
 		/* MS wants to resume */
-		rc = bssgp_rx_resume(msg, ns_bvci);
+		rc = bssgp_rx_resume(msg);
 		break;
 	case BSSGP_PDUT_FLUSH_LL:
 		/* BSS informs MS has moved to one cell to other cell */
 		DEBUGP(DGPRS, "BSSGP FLUSH LL\n");
+		/* FIXME: notify GMM */
 		/* Send FLUSH_LL_ACK */
 		break;
 	case BSSGP_PDUT_LLC_DISCARD:
 		/* BSS informs that some LLC PDU's have been discarded */
 		DEBUGP(DGPRS, "BSSGP LLC DISCARDED\n");
+		/* FIXME: notify GMM */
 		break;
 	case BSSGP_PDUT_FLOW_CONTROL_BVC:
 		/* BSS informs us of available bandwidth in Gb interface */
-		rc = bssgp_rx_fc_bvc(msg, &tp, ns_bvci);
+		rc = bssgp_rx_fc_bvc(msg, &tp);
 		break;
 	case BSSGP_PDUT_FLOW_CONTROL_MS:
 		/* BSS informs us of available bandwidth to one MS */
 		DEBUGP(DGPRS, "BSSGP FC MS\n");
-		/* Send FLOW_CONTROL_MS_ACK */
+		/* FIXME: actually implement flow control */
+		/* FIXME: Send FLOW_CONTROL_MS_ACK */
 		break;
 	case BSSGP_PDUT_BVC_BLOCK:
 		/* BSS tells us that BVC shall be blocked */
@@ -431,6 +441,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 		break;
 	case BSSGP_PDUT_STATUS:
 		/* Some exception has occurred */
+		/* FIXME: notify GMM */
 	case BSSGP_PDUT_DOWNLOAD_BSS_PFC:
 	case BSSGP_PDUT_CREATE_BSS_PFC_ACK:
 	case BSSGP_PDUT_CREATE_BSS_PFC_NACK:
@@ -469,8 +480,8 @@ err_mand_ie:
 }
 
 /* Entry function from upper level (LLC), asking us to transmit a BSSGP PDU
- * to a remote MS (identified by TLLI) at a BTS identified by its RAC and CID */
-int gprs_bssgp_tx_dl_ud(struct msgb *msg, const struct gprs_ra_id *raid, uint16_t cid)
+ * to a remote MS (identified by TLLI) at a BTS identified by its BVCI and NSEI */
+int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 {
 	struct bssgp_bts_ctx *bctx;
 	struct bssgp_ud_hdr *budh;
@@ -479,8 +490,19 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg, const struct gprs_ra_id *raid, uint16_
 	u_int16_t pdu_lifetime = 1000; /* centi-seconds */
 	u_int8_t qos_profile_default[3] = { 0x00, 0x00, 0x21 };
 	u_int16_t msg_len = msg->len;
+	uint16_t bvci = msgb_bvci(msg);
+	uint16_t nsei = msgb_nsei(msg);
 
-	bctx = btsctx_by_raid_cid(raid, cid);
+	/* Identifiers from UP: TLLI, BVCI, NSEI (all in msgb->cb) */
+	if (bvci < 2) {
+		LOGP(DGPRS, LOGL_ERROR, "Cannot send DL-UD to BVCI %u\n",
+			bvci);
+		return -EINVAL;
+	}
+
+	bctx = btsctx_by_bvci_nsei(bvci, nsei);
+	if (!bctx)
+		bctx = btsctx_alloc(bvci, nsei);
 
 	if (msg->len > TVLV_MAX_ONEBYTE)
 		llc_pdu_tlv_hdr_len += 1;
@@ -508,8 +530,7 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg, const struct gprs_ra_id *raid, uint16_
 	budh->tlli = htonl(msgb_tlli(msg));
 	budh->pdu_type = BSSGP_PDUT_DL_UNITDATA;
 
-	msgb_nsei(msg) = bctx->nsei;
-	msgb_bvci(msg) = bctx->bvci;
+	/* Identifiers down: BVCI, NSEI (in msgb->cb) */
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
