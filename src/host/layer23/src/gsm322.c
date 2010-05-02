@@ -45,9 +45,9 @@ static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg);
 
 
 #warning HACK to stay on one channel
+static int already = 0;
 int l1ctl_tx_ccch_req_(struct osmocom_ms *ms, uint16_t arfcn)
 {
-	static int already = 0;
 
 	if (!already) {
 		already = 1;
@@ -1482,7 +1482,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	cs->scan_state = weight;
 
 	if (!weight)
-		gsm322_dump_cs_list(ms);
+		gsm322_dump_cs_list(ms, GSM322_CS_FLAG_SYSINFO);
 
 	/* special negative case for HPLMN search */
 	if (cs->state == GSM322_HPLMN_SEARCH && !weight) {
@@ -1787,8 +1787,10 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 	  || (s->si2bis && s->si2ter && s->nb_ext_ind_si2
 	 	&& s->nb_ext_ind_si2bis))) {
 		if (cs->selected) {
-			LOGP(DCS, LOGL_INFO, "Selected sysinfo is updated.\n");
+			LOGP(DCS, LOGL_INFO, "Sysinfo of selected cell is "
+				"updated.\n");
 			memcpy(&cs->sel_si, s, sizeof(cs->sel_si));
+			gsm48_sysinfo_dump(ms, s);
 		}
 	}
 
@@ -1856,6 +1858,7 @@ static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 	  || (s->si2bis && s->nb_ext_ind_si2 && !s->nb_ext_ind_si2bis)
 	  || (s->si2bis && s->si2ter && s->nb_ext_ind_si2
 	 	&& s->nb_ext_ind_si2bis))) {
+		LOGP(DCS, LOGL_INFO, "Received relevant sysinfo.\n");
 		/* stop timer */
 		stop_cs_timer(cs);
 
@@ -1922,10 +1925,14 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 	}
 
 #warning testing
-cs->list[10].rxlev_db = -50;
-cs->list[10].flags |= GSM322_CS_FLAG_POWER;
-cs->list[10].flags |= GSM322_CS_FLAG_SIGNAL;
+if (already) s = -1;
+#if 0
+cs->list[ms->test_arfcn].rxlev_db = -50;
+cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_POWER;
+cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_SIGNAL;
 s = -1;
+#endif
+
 	/* if there is no more frequency, we can tune to that cell */
 	if (s < 0) {
 		int found = 0;
@@ -2720,7 +2727,7 @@ int gsm322_dump_sorted_plmn(struct osmocom_ms *ms)
 	return 0;
 }
 
-int gsm322_dump_cs_list(struct osmocom_ms *ms)
+int gsm322_dump_cs_list(struct osmocom_ms *ms, uint8_t flags)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	int i, j;
@@ -2730,7 +2737,7 @@ int gsm322_dump_cs_list(struct osmocom_ms *ms)
 		"-------+-------+-------+-------+-----------------------+"
 		"-------+-------\n");
 	for (i = 0; i <= 1023; i++) {
-		if (!(cs->list[i].flags & GSM322_CS_FLAG_SIGNAL))
+		if (!(cs->list[i].flags & flags))
 			continue;
 		printf("%4d   |", cs->list[i].rxlev_db);
 		if ((cs->list[i].flags & GSM322_CS_FLAG_SYSINFO)) {

@@ -183,7 +183,7 @@ int gsm322_is_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc);
 int gsm322_is_forbidden_la(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	uint16_t lac);
 int gsm322_dump_sorted_plmn(struct osmocom_ms *ms);
-int gsm322_dump_cs_list(struct osmocom_ms *ms);
+int gsm322_dump_cs_list(struct osmocom_ms *ms, uint8_t flag);
 int gsm322_dump_sim_plmn(struct osmocom_ms *ms);
 int gsm322_dump_forbidden_plmn(struct osmocom_ms *ms);
 int gsm322_dump_forbidden_la(struct osmocom_ms *ms);

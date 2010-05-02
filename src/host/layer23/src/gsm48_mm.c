@@ -2398,7 +2398,7 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms)
 
 	/* start update retry timer (RR connection is released) */
 	if (mm->lupd_attempt < 4)
-		mm->start_t3211;
+		mm->start_t3211 = 1;
 
 	/* CS process will trigger: return to MM IDLE */
 	return 0;

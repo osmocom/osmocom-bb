@@ -118,7 +118,7 @@ struct gsm_support_scan_max gsm_sup_smax[] = {
 	{ 955, 124, 30, 0 },
 	{ 512, 885, 40, 0 },
 #else
-	{ 955, 125, 3, 0 }, /* testing */
+	{ 955, 125, 1, 0 }, /* we support only one ARFCN */
 #endif
 	{ 0, 0, 0, 0 }
 };
