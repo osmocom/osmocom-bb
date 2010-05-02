@@ -124,29 +124,24 @@ static struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, u_int16_t nsvci)
 }
 
 /* Section 10.3.2, Table 13 */
-static const char *ns_cause_str[] = {
-	[NS_CAUSE_TRANSIT_FAIL]		= "Transit network failure",
-	[NS_CAUSE_OM_INTERVENTION] 	= "O&M intervention",
-	[NS_CAUSE_EQUIP_FAIL]		= "Equipment failure",
-	[NS_CAUSE_NSVC_BLOCKED]		= "NS-VC blocked",
-	[NS_CAUSE_NSVC_UNKNOWN]		= "NS-VC unknown",
-	[NS_CAUSE_BVCI_UNKNOWN]		= "BVCI unknown",
-	[NS_CAUSE_SEM_INCORR_PDU]	= "Semantically incorrect PDU",
-	[NS_CAUSE_PDU_INCOMP_PSTATE]	= "PDU not compatible with protocol state",
-	[NS_CAUSE_PROTO_ERR_UNSPEC]	= "Protocol error, unspecified",
-	[NS_CAUSE_INVAL_ESSENT_IE]	= "Invalid essential IE",
-	[NS_CAUSE_MISSING_ESSENT_IE]	= "Missing essential IE",
+static const struct value_string ns_cause_str[] = {
+	{ NS_CAUSE_TRANSIT_FAIL,	"Transit network failure" },
+	{ NS_CAUSE_OM_INTERVENTION, 	"O&M intervention" },
+	{ NS_CAUSE_EQUIP_FAIL,		"Equipment failure" },
+	{ NS_CAUSE_NSVC_BLOCKED,	"NS-VC blocked" },
+	{ NS_CAUSE_NSVC_UNKNOWN,	"NS-VC unknown" },
+	{ NS_CAUSE_BVCI_UNKNOWN,	"BVCI unknown" },
+	{ NS_CAUSE_SEM_INCORR_PDU,	"Semantically incorrect PDU" },
+	{ NS_CAUSE_PDU_INCOMP_PSTATE,	"PDU not compatible with protocol state" },
+	{ NS_CAUSE_PROTO_ERR_UNSPEC,	"Protocol error }, unspecified" },
+	{ NS_CAUSE_INVAL_ESSENT_IE,	"Invalid essential IE" },
+	{ NS_CAUSE_MISSING_ESSENT_IE,	"Missing essential IE" },
+	{ 0, NULL }
 };
 
-static const char *gprs_ns_cause_str(enum ns_cause cause)
+const char *gprs_ns_cause_str(enum ns_cause cause)
 {
-	if (cause >= ARRAY_SIZE(ns_cause_str))
-		return "undefined";
-
-	if (ns_cause_str[cause])
-		return ns_cause_str[cause];
-
-	return "undefined";
+	return get_value_string(ns_cause_str, cause);
 }
 
 static int nsip_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg);
