@@ -266,7 +266,7 @@ static int gprs_ns_rx_unitdata(struct gprs_nsvc *nsvc, struct msgb *msg)
 
 	/* spare octet in data[0] */
 	bvci = nsh->data[1] << 8 | nsh->data[2];
-	msg->l3h = &nsh->data[3];
+	msgb_bssgph(msg) = &nsh->data[3];
 
 	/* call upper layer (BSSGP) */
 	return nsvc->nsi->cb(GPRS_NS_EVT_UNIT_DATA, nsvc, msg, bvci);

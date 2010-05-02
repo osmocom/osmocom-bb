@@ -200,7 +200,7 @@ int bssgp_tx_status(u_int8_t cause, u_int16_t *bvci, struct msgb *orig_msg)
 	}
 	if (orig_msg)
 		msgb_tvlv_put(msg, BSSGP_IE_PDU_IN_ERROR,
-			      msgb_l3len(orig_msg), orig_msg->l3h);
+			      msgb_l3len(orig_msg), msgb_bssgph(orig_msg));
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
@@ -257,7 +257,7 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 /* Uplink unit-data */
 static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
 {
-	struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msg->l3h;
+	struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
 	int data_len = msgb_l3len(msg) - sizeof(*budh);
 	struct tlv_parsed tp;
 	int rc;
@@ -280,7 +280,8 @@ static int bssgp_rx_ul_ud(struct msgb *msg, u_int16_t bvci)
 
 static int bssgp_rx_suspend(struct msgb *msg, u_int16_t bvci)
 {
-	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *) msg->l3h;
+	struct bssgp_normal_hdr *bgph =
+			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	int data_len = msgb_l3len(msg) - sizeof(*bgph);
 	struct tlv_parsed tp;
 	int rc;
@@ -301,7 +302,8 @@ static int bssgp_rx_suspend(struct msgb *msg, u_int16_t bvci)
 
 static int bssgp_rx_resume(struct msgb *msg, u_int16_t bvci)
 {
-	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *) msg->l3h;
+	struct bssgp_normal_hdr *bgph =
+			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	int data_len = msgb_l3len(msg) - sizeof(*bgph);
 	struct tlv_parsed tp;
 	int rc;
@@ -339,10 +341,11 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 				   ns_bvci);
 }
 
-/* We expect msg->l3h to point to the BSSGP header */
+/* We expect msgb_bssgph() to point to the BSSGP header */
 int gprs_bssgp_rcvmsg(struct msgb *msg, u_int16_t ns_bvci)
 {
-	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *) msg->l3h;
+	struct bssgp_normal_hdr *bgph =
+			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct tlv_parsed tp;
 	u_int8_t pdu_type = bgph->pdu_type;
 	int data_len = msgb_l3len(msg) - sizeof(*bgph);
