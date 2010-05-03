@@ -122,8 +122,8 @@ enum nsvc_timer_mode {
 	/* standard timers */
 	NSVC_TIMER_TNS_TEST,
 	NSVC_TIMER_TNS_ALIVE,
-	/* custom timer */
-	NSVC_TIMER_RESET,
+	NSVC_TIMER_TNS_RESET,
+	_NSVC_TIMER_NR,
 };
 
 struct gprs_nsvc {
