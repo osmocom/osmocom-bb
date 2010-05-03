@@ -118,6 +118,14 @@ struct gprs_ns_inst {
 	};
 };
 
+enum nsvc_timer_mode {
+	/* standard timers */
+	NSVC_TIMER_TNS_TEST,
+	NSVC_TIMER_TNS_ALIVE,
+	/* custom timer */
+	NSVC_TIMER_RESET,
+};
+
 struct gprs_nsvc {
 	struct llist_head list;
 	struct gprs_ns_inst *nsi;
@@ -128,8 +136,8 @@ struct gprs_nsvc {
 	uint32_t state;
 	uint32_t remote_state;
 
-	struct timer_list alive_timer;
-	int timer_is_tns_alive;
+	struct timer_list timer;
+	enum nsvc_timer_mode timer_mode;
 	int alive_retries;
 
 	int remote_end_is_sgsn;

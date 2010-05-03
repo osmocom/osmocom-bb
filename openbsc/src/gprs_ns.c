@@ -182,11 +182,12 @@ static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, uint8_t pdu_type)
 #define NS_TIMER_TEST	30, 0	/* every 10 seconds we check if the BTS is still alive */
 #define NS_ALIVE_RETRIES  10	/* after 3 failed retransmit we declare BTS as dead */
 
-static void gprs_ns_alive_cb(void *data)
+static void gprs_ns_timer_cb(void *data)
 {
 	struct gprs_nsvc *nsvc = data;
 
-	if (nsvc->timer_is_tns_alive) {
+	switch (nsvc->timer_mode) {
+	case NSVC_TIMER_TNS_ALIVE:
 		/* Tns-alive case: we expired without response ! */
 		nsvc->alive_retries++;
 		if (nsvc->alive_retries > NS_ALIVE_RETRIES) {
@@ -197,13 +198,15 @@ static void gprs_ns_alive_cb(void *data)
 			/* FIXME: inform higher layers */
 			return;
 		}
-	} else {
+		break;
+	case NSVC_TIMER_TNS_TEST:
 		/* Tns-test case: send NS-ALIVE PDU */
 		gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
 		/* start Tns-alive timer */
-		nsvc->timer_is_tns_alive = 1;
+		nsvc->timer_mode = NSVC_TIMER_TNS_ALIVE;
+		break;
 	}
-	bsc_schedule_timer(&nsvc->alive_timer, NS_TIMER_ALIVE);
+	bsc_schedule_timer(&nsvc->timer, NS_TIMER_ALIVE);
 }
 
 /* Section 9.2.6 */
@@ -330,9 +333,9 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 
 	/* mark the NS-VC as blocked and alive */
 	/* start the test procedure */
-	nsvc->alive_timer.cb = gprs_ns_alive_cb;
-	nsvc->alive_timer.data = nsvc;
-	bsc_schedule_timer(&nsvc->alive_timer, NS_TIMER_ALIVE);
+	nsvc->timer.cb = gprs_ns_timer_cb;
+	nsvc->timer.data = nsvc;
+	bsc_schedule_timer(&nsvc->timer, NS_TIMER_ALIVE);
 
 	return gprs_ns_tx_reset_ack(nsvc);
 }
@@ -370,10 +373,10 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		break;
 	case NS_PDUT_ALIVE_ACK:
 		/* stop Tns-alive */
-		bsc_del_timer(&nsvc->alive_timer);
+		bsc_del_timer(&nsvc->timer);
 		/* start Tns-test */
-		nsvc->timer_is_tns_alive = 0;
-		bsc_schedule_timer(&nsvc->alive_timer, NS_TIMER_TEST);
+		nsvc->timer_mode = NSVC_TIMER_TNS_TEST;
+		bsc_schedule_timer(&nsvc->timer, NS_TIMER_TEST);
 		break;
 	case NS_PDUT_UNITDATA:
 		/* actual user data */
