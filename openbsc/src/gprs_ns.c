@@ -183,11 +183,10 @@ static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, uint8_t pdu_type)
 	return gprs_ns_tx(nsvc, msg);
 }
 
-static int gprs_ns_tx_reset(struct gprs_nsvc *nsvc)
+static int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 {
 	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
 	struct gprs_ns_hdr *nsh;
-	uint8_t cause = NS_CAUSE_OM_INTERVENTION;
 	uint16_t nsvci = htons(nsvc->nsvci);
 	uint16_t nsei = htons(nsvc->nsei);
 
@@ -251,7 +250,7 @@ static void gprs_ns_timer_cb(void *data)
 		break;
 	case NSVC_TIMER_TNS_RESET:
 		/* Chapter 7.3: Re-send the RESET */
-		gprs_ns_tx_reset(nsvc);
+		gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
 		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
 		break;
 	}
@@ -413,6 +412,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			LOGP(DGPRS, LOGL_INFO, "Ignoring NS PDU type 0x%0x "
 				"from %s for non-existing NS-VC\n",
 				nsh->pdu_type, inet_ntoa(saddr->sin_addr));
+			//gprs_ns_tx_reset(nsvc, NS_CAUSE_NSVC_UNKNOWN);
 			return -EIO;
 		}
 		LOGP(DGPRS, LOGL_INFO, "Creating NS-VC for BSS at %s:%u\n",
@@ -451,6 +451,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		if (nsvc->remote_end_is_sgsn) {
 			/* stop RESET timer */
 			bsc_del_timer(&nsvc->timer);
+			/* send ALIVE PDU */
+			rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
+			nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
 		}
 		break;
 	case NS_PDUT_UNBLOCK:
@@ -621,7 +624,7 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 	nsvc->remote_end_is_sgsn = 1;
 
 	/* Initiate a RESET procedure */
-	if (gprs_ns_tx_reset(nsvc) < 0) {
+	if (gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION) < 0) {
 		LOGP(DGPRS, LOGL_ERROR, "NSEI=%u, error resetting NS-VC\n",
 			nsei);
 	}
