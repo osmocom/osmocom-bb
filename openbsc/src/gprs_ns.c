@@ -433,6 +433,11 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		bsc_del_timer(&nsvc->timer);
 		/* start Tns-test */
 		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_TEST);
+		if (nsvc->remote_end_is_sgsn) {
+			/* FIXME: this should be one level higher */
+			if (nsvc->state & NSE_S_BLOCKED)
+				rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK);
+		}
 		break;
 	case NS_PDUT_UNITDATA:
 		/* actual user data */
@@ -454,6 +459,8 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			/* send ALIVE PDU */
 			rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
 			nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
+			/* mark local state as BLOCKED + ALIVE */
+			nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		}
 		break;
 	case NS_PDUT_UNBLOCK:
@@ -466,6 +473,8 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		DEBUGP(DGPRS, "NSEI=%u Rx NS UNBLOCK ACK\n", nsvc->nsei);
 		/* mark remote NS-VC as unblocked + active */
 		nsvc->remote_state = NSE_S_ALIVE;
+		if (nsvc->remote_end_is_sgsn)
+			nsvc->state = NSE_S_ALIVE;
 		break;
 	case NS_PDUT_BLOCK:
 		DEBUGP(DGPRS, "NSEI=%u Rx NS BLOCK\n", nsvc->nsei);
