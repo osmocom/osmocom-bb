@@ -102,7 +102,7 @@ int mobile_exit(struct osmocom_ms *ms)
 
 int l23_app_init(struct osmocom_ms *ms)
 {
-	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC");
+	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG");
 
 	gsm48_cc_init(ms);
 	gsm_support_init(ms);

@@ -82,6 +82,7 @@ static const struct log_info_cat default_categories[] = {
 	[DPAG] = {
 		.name = "DPAG",
 		.description = "Paging",
+		.color = "\033[33m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
 	[DLAPDM] = {

@@ -72,6 +72,7 @@ int gsm48_cc_exit(struct osmocom_ms *ms)
 
 	llist_for_each_entry_safe(trans, trans2, &ms->trans_list, entry) {
 		if (trans->protocol == GSM48_PDISC_CC)
+			LOGP(DCC, LOGL_NOTICE, "Free pendig CC-transaction.\n");
 			trans_free(trans);
 	}
 

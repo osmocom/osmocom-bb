@@ -77,6 +77,14 @@ int l1ctl_tx_ccch_req_(struct osmocom_ms *ms, uint16_t arfcn)
  * if the cell is 'suitable' and 'allowable' to 'camp' on.
  *
  * This list is also used to generate a list of available networks.
+ *
+ * The states are:
+ *
+ * - cs->list[0..1023].xxx for each cell, where
+ *  - flags and rxlev_db are used to store outcome of cell scanning process
+ *  - sysinfo pointing to sysinfo memory, allocated temporarily
+ * - cs->selected and cs->sel_* states of the current / last selected cell.
+ *
  */
 
 /* PLMN selection process
@@ -361,7 +369,8 @@ int gsm322_is_plmn_avail(struct gsm322_cellsel *cs, uint16_t mcc, uint16_t mnc)
 	int i;
 
 	for (i = 0; i <= 1023; i++) {
-		if (cs->list[i].sysinfo->mcc == mcc
+		if (cs->list[i].sysinfo
+		 && cs->list[i].sysinfo->mcc == mcc
 		 && cs->list[i].sysinfo->mnc == mnc)
 			return 1;
 	}
@@ -569,7 +578,8 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 	/* Create a temporary list of all networks */
 	INIT_LLIST_HEAD(&temp_list);
 	for (i = 0; i <= 1023; i++) {
-		if (!(cs->list[i].flags & GSM322_CS_FLAG_TEMP_AA))
+		if (!(cs->list[i].flags & GSM322_CS_FLAG_TEMP_AA)
+		 || !cs->list[i].sysinfo)
 			continue;
 
 		/* search if network has multiple cells */
@@ -1363,7 +1373,7 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any)
 		s = cs->list[i].sysinfo;
 
 		/* channel has no informations for us */
-		if ((cs->list[i].flags & mask) != flags) {
+		if (!s || (cs->list[i].flags & mask) != flags) {
 			continue;
 		}
 
@@ -1576,7 +1586,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		}
 		if (!nmsg)
 			return -ENOMEM;
-		gsm322_cs_sendmsg(ms, nmsg);
+		gsm322_c_event(ms, nmsg);
+		msgb_free(nmsg);
 
 		return 0;
 	}
@@ -1592,8 +1603,9 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	l1ctl_tx_ccch_req_(ms, cs->arfcn);
 
 	/* Allocate system information. */
-	cs->list[cs->arfcn].sysinfo = talloc_zero(l23_ctx,
-					struct gsm48_sysinfo);
+	if (!cs->list[cs->arfcn].sysinfo)
+		cs->list[cs->arfcn].sysinfo = talloc_zero(l23_ctx,
+						struct gsm48_sysinfo);
 	if (!cs->list[cs->arfcn].sysinfo)
 		exit(-ENOMEM);
 	cs->si = cs->list[cs->arfcn].sysinfo;
@@ -1609,8 +1621,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm_subscriber *subscr = &ms->subscr;
-	int i = cs->scan_state & 1023;
-	struct gsm48_sysinfo *s = cs->list[i].sysinfo;
+	struct gsm48_sysinfo *s = cs->si;
 
 	if (cs->state != GSM322_C2_STORED_CELL_SEL
 	 && cs->state != GSM322_C1_NORMAL_CELL_SEL
@@ -1625,35 +1636,35 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	}
 
 	/* store sysinfo */
-	cs->list[i].flags |= GSM322_CS_FLAG_SYSINFO;
+	cs->list[cs->arfcn].flags |= GSM322_CS_FLAG_SYSINFO;
 	if (s->cell_barr)
-		cs->list[i].flags |= GSM322_CS_FLAG_BARRED;
+		cs->list[cs->arfcn].flags |= GSM322_CS_FLAG_BARRED;
 	else
-		cs->list[i].flags &= ~GSM322_CS_FLAG_BARRED;
+		cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_BARRED;
 
 #if 0
-	cs->list[i].min_db = s->rxlev_acc_min_db;
-	cs->list[i].class_barr = s->class_barr;
-	cs->list[i].max_pwr = s->ms_txpwr_max_ccch;
+	cs->list[cs->arfcn].min_db = s->rxlev_acc_min_db;
+	cs->list[cs->arfcn].class_barr = s->class_barr;
+	cs->list[cs->arfcn].max_pwr = s->ms_txpwr_max_ccch;
 #endif
 
 	/* store selected network */
 	if (s->mcc) {
 #if 0
-		cs->list[i].mcc = s->mcc;
-		cs->list[i].mnc = s->mnc;
-		cs->list[i].lac = s->lac;
+		cs->list[cs->arfcn].mcc = s->mcc;
+		cs->list[cs->arfcn].mnc = s->mnc;
+		cs->list[cs->arfcn].lac = s->lac;
 #endif
 
 		if (gsm322_is_forbidden_la(ms, s->mcc, s->mnc, s->lac))
-			cs->list[i].flags |= GSM322_CS_FLAG_FORBIDD;
+			cs->list[cs->arfcn].flags |= GSM322_CS_FLAG_FORBIDD;
 		else
-			cs->list[i].flags &= ~GSM322_CS_FLAG_FORBIDD;
+			cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_FORBIDD;
 	}
 
 	LOGP(DCS, LOGL_INFO, "Scan frequency %d: Cell found. (rxlev=%d "
-		"mcc=%03d mnc=%02d lac=%04x)\n", i, cs->list[i].rxlev_db,
-		s->mcc, s->mnc, s->lac);
+		"mcc=%03d mnc=%02d lac=%04x)\n", cs->arfcn,
+		cs->list[cs->arfcn].rxlev_db, s->mcc, s->mnc, s->lac);
 
 	/* special prositive case for HPLMN search */
 	if (cs->state == GSM322_HPLMN_SEARCH && s->mcc == subscr->mcc
@@ -1802,11 +1813,19 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 			trigger_resel:
 			/* mark cell as unscanned */
 			cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_SYSINFO;
-			/* trigger reselection event */
+			if (cs->list[cs->arfcn].sysinfo) {
+				talloc_free(cs->list[cs->arfcn].sysinfo);
+				cs->list[cs->arfcn].sysinfo = NULL;
+			}
+			/* trigger reselection without queueing,
+			 * because other sysinfo message may be queued
+			 * before
+			 */
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_CELL_RESEL);
 			if (!nmsg)
 				return -ENOMEM;
-			gsm322_cs_sendmsg(ms, nmsg);
+			gsm322_c_event(ms, nmsg);
+			msgb_free(nmsg);
 
 			return 0;
 		}
@@ -1816,6 +1835,14 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 			LOGP(DCS, LOGL_INFO, "Cell access becomes barred.\n");
 			goto trigger_resel;
 		}
+	}
+
+	/* check if MCC, MNC, LAC changes */
+	if (cs->sel_mcc != s->mcc || cs->sel_mnc != s->mnc
+	 || cs->sel_lac != s->lac) {
+		LOGP(DCS, LOGL_NOTICE, "Cell changes location area. "
+			"This is not good!\n");
+		goto trigger_resel;
 	}
 
 	return 0;
@@ -1876,17 +1903,16 @@ static void gsm322_cs_timeout(void *arg)
 {
 	struct gsm322_cellsel *cs = arg;
 	struct osmocom_ms *ms = cs->ms;
-	int i = cs->scan_state & 1023;
 
 	LOGP(DCS, LOGL_INFO, "Cell selection timer has fired.\n");
 	LOGP(DCS, LOGL_INFO, "Scan frequency %d: Cell not found. (rxlev=%d)\n",
-		i, cs->list[i].rxlev_db);
+		cs->arfcn, cs->list[cs->arfcn].rxlev_db);
 
 	/* remove system information */
-	cs->list[i].flags &= ~GSM322_CS_FLAG_SYSINFO; 
-	if (cs->list[i].sysinfo) {
-		talloc_free(cs->list[i].sysinfo);
-		cs->list[i].sysinfo = NULL;
+	cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_SYSINFO; 
+	if (cs->list[cs->arfcn].sysinfo) {
+		talloc_free(cs->list[cs->arfcn].sysinfo);
+		cs->list[cs->arfcn].sysinfo = NULL;
 	}
 
 	/* tune to next cell */
@@ -2053,7 +2079,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			 || cs->state == GSM322_C8_ANY_CELL_RESEL
 			 || cs->state == GSM322_C5_CHOOSE_CELL
 			 || cs->state == GSM322_C9_CHOOSE_ANY_CELL)
-				start_cs_timer(cs, 8, 0);
+				start_cs_timer(cs, ms->support.scan_to, 0);
 					// TODO: timer depends on BCCH config
 		}
 		break;
@@ -2278,7 +2304,10 @@ if we return from dedicated mode and we have a ba range, we can use that for cel
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_NO_CELL_FOUND);
 		if (!nmsg)
 			return -ENOMEM;
-		gsm322_cs_sendmsg(ms, nmsg);
+		gsm322_c_event(ms, nmsg);
+		msgb_free(nmsg);
+
+		return 0;
 	}
 
 	/* flag all frequencies that are in current band allocation */
@@ -2628,7 +2657,7 @@ static struct cellselstatelist {
 	 SBIT(GSM322_C4_NORMAL_CELL_RESEL) | SBIT(GSM322_C5_CHOOSE_CELL),
 	 GSM322_EVENT_CELL_FOUND, gsm322_c_camp_normally},
 	{SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C6_ANY_CELL_SEL) |
-	 SBIT(GSM322_C4_NORMAL_CELL_RESEL),
+	 SBIT(GSM322_C8_ANY_CELL_RESEL),
 	 GSM322_EVENT_CELL_FOUND, gsm322_c_camp_any_cell},
 	{SBIT(GSM322_C1_NORMAL_CELL_SEL) | SBIT(GSM322_C6_ANY_CELL_SEL) |
 	 SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C8_ANY_CELL_RESEL) |
@@ -2731,17 +2760,18 @@ int gsm322_dump_cs_list(struct osmocom_ms *ms, uint8_t flags)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	int i, j;
+	struct gsm48_sysinfo *s;
 
 	printf("rx-lev |MCC    |MNC    |forb.LA|barred,0123456789abcdef|"
 		"min-db |max-pwr\n"
 		"-------+-------+-------+-------+-----------------------+"
 		"-------+-------\n");
 	for (i = 0; i <= 1023; i++) {
-		if (!(cs->list[i].flags & flags))
+		s = cs->list[i].sysinfo;
+		if (!s || !(cs->list[i].flags & flags))
 			continue;
 		printf("%4d   |", cs->list[i].rxlev_db);
 		if ((cs->list[i].flags & GSM322_CS_FLAG_SYSINFO)) {
-			struct gsm48_sysinfo *s = cs->list[i].sysinfo;
 			printf("%03d    |%02d     |", s->mcc, s->mnc);
 			if ((cs->list[i].flags & GSM322_CS_FLAG_FORBIDD))
 				printf("yes    |");

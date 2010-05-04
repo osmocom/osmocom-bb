@@ -75,6 +75,7 @@ struct gsm_support {
 
 	/* radio */
 	int8_t min_rxlev_db;
+	uint8_t scan_to;
 };
 
 struct gsm_support_scan_max {

@@ -725,8 +725,9 @@ static int gsm48_rr_tx_chan_req(struct osmocom_ms *ms, int cause, int paging)
 
 	/* ignore paging, if not camping */
 	if (paging
-	 && (!cs->selected || cs->state != GSM322_C3_CAMPED_NORMALLY)) {
-		LOGP(DRR, LOGL_INFO, "Paging, but not camping normally.\n");
+	 && (!cs->selected || (cs->state != GSM322_C3_CAMPED_NORMALLY
+			    && cs->state != GSM322_C7_CAMPED_ANY_CELL))) {
+		LOGP(DRR, LOGL_INFO, "Paging, but not camping, ignore.\n");
 	 	return -EINVAL;
 	}
 
@@ -2051,25 +2052,25 @@ static int gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 		memcpy(&tmsi, mi+2, 4);
 		if (ms->subscr.tmsi == ntohl(tmsi)
 		 && ms->subscr.tmsi_valid) {
-			LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n",
+			LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n",
 				ntohl(tmsi));
 
 			return 1;
 		} else
-			LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+			LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
 				ntohl(tmsi));
 		break;
 	case GSM_MI_TYPE_IMSI:
 		gsm48_mi_to_string(imsi, sizeof(imsi), mi + 1, mi[0]);
 		if (!strcmp(imsi, ms->subscr.imsi)) {
-			LOGP(DRR, LOGL_INFO, "IMSI %s matches\n", imsi);
+			LOGP(DPAG, LOGL_INFO, "IMSI %s matches\n", imsi);
 
 			return 1;
 		} else
-			LOGP(DRR, LOGL_INFO, "IMSI %s (not for us)\n", imsi);
+			LOGP(DPAG, LOGL_INFO, "IMSI %s (not for us)\n", imsi);
 		break;
 	default:
-		LOGP(DRR, LOGL_NOTICE, "Paging with unsupported MI type %d.\n",
+		LOGP(DPAG, LOGL_NOTICE, "Paging with unsupported MI type %d.\n",
 			mi_type);
 	}
 
@@ -2086,16 +2087,19 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 	int chan_1, chan_2;
 	uint8_t *mi;
 
+	/* empty paging request */
+	if (payload_len >= 2 && (pa->data[1] & GSM_MI_TYPE_MASK) == 0)
+		return 0;
+
 	/* 3.3.1.1.2: ignore paging while not camping on a cell */
-	if (rr->state != GSM48_RR_ST_IDLE
-	 || !cs->selected || cs->state != GSM322_C3_CAMPED_NORMALLY) {
-#if 0
+	if (rr->state != GSM48_RR_ST_IDLE || !cs->selected
+	 || (cs->state != GSM322_C3_CAMPED_NORMALLY
+	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)) {
 		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping "
 			"normally.\n");
-#endif
 		return 0;
 	}
-	LOGP(DRR, LOGL_INFO, "PAGING REQUEST 1\n");
+	LOGP(DPAG, LOGL_INFO, "PAGING REQUEST 1\n");
 
 	if (payload_len < 2) {
 		short_read:
@@ -2139,13 +2143,14 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	int chan_1, chan_2, chan_3;
 
 	/* 3.3.1.1.2: ignore paging while not camping on a cell */
-	if (rr->state != GSM48_RR_ST_IDLE
-	 && cs->state != GSM322_C3_CAMPED_NORMALLY) {
+	if (rr->state != GSM48_RR_ST_IDLE || !cs->selected
+	 || (cs->state != GSM322_C3_CAMPED_NORMALLY
+	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)) {
 		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping "
 			"normally.\n");
 		return 0;
 	}
-	LOGP(DRR, LOGL_INFO, "PAGING REQUEST 2\n");
+	LOGP(DPAG, LOGL_INFO, "PAGING REQUEST 2\n");
 
 	if (payload_len < 0) {
 		short_read:
@@ -2160,18 +2165,18 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
 	 && ms->subscr.tmsi_valid) {
-		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
 	} else
-		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
 	 && ms->subscr.tmsi_valid) {
-		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
 	} else
-		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi2));
 	/* third MI */
 	mi = pa->data;
@@ -2198,13 +2203,14 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	int chan_1, chan_2, chan_3, chan_4;
 
 	/* 3.3.1.1.2: ignore paging while not camping on a cell */
-	if (rr->state != GSM48_RR_ST_IDLE
-	 && cs->state != GSM322_C3_CAMPED_NORMALLY) {
+	if (rr->state != GSM48_RR_ST_IDLE || !cs->selected
+	 || (cs->state != GSM322_C3_CAMPED_NORMALLY
+	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)) {
 		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping "
 			"normally.\n");
 		return 0;
 	}
-	LOGP(DRR, LOGL_INFO, "PAGING REQUEST 3\n");
+	LOGP(DPAG, LOGL_INFO, "PAGING REQUEST 3\n");
 
 	if (payload_len < 0) { /* must include "channel needed", part of *pa */
 		LOGP(DRR, LOGL_NOTICE, "Short read of PAGING REQUEST 3 "
@@ -2220,34 +2226,34 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
 	 && ms->subscr.tmsi_valid) {
-		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
 	} else
-		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
 	 && ms->subscr.tmsi_valid) {
-		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
 	} else
-		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi2));
 	/* thrid MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi3)
 	 && ms->subscr.tmsi_valid) {
-		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi3));
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi3));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1);
 	} else
-		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi3));
 	/* fourth MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi4)
 	 && ms->subscr.tmsi_valid) {
-		LOGP(DRR, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi4));
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi4));
 		return gsm48_rr_tx_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1);
 	} else
-		LOGP(DRR, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi4));
 
 	return 0;
@@ -2997,7 +3003,7 @@ static int gsm48_rr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* receive CCCH at RR layer */
-static int gsm48_rr_rx_ccch(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
 	struct gsm322_cellsel *cs = &ms->cellsel;
@@ -3056,8 +3062,16 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	switch (rllh->chan_nr) {
 	case RSL_CHAN_PCH_AGCH:
-		return gsm48_rr_rx_ccch(ms, msg);
+		return gsm48_rr_rx_pch_agch(ms, msg);
 	case RSL_CHAN_BCCH:
+#if 0
+#warning testing corrupt frames
+{int i;
+if (ms->cellsel.state == GSM322_C7_CAMPED_ANY_CELL)
+for(i=0;i<msgb_l3len(msg);i++)
+ msg->l3h[i] = random();
+ }
+#endif
 		return gsm48_rr_rx_bcch(ms, msg);
 	default:
 		LOGP(DRSL, LOGL_NOTICE, "RSL with chan_nr 0x%02x unknown.\n",
