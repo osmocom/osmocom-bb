@@ -23,6 +23,7 @@
  */
 
 #include <errno.h>
+#include <signal.h>
 
 #include <osmocom/osmocom_data.h>
 #include <osmocom/l1ctl.h>
@@ -39,6 +40,8 @@
 #include <osmocore/signal.h>
 
 extern struct log_target *stderr_target;
+
+static int started = 0;
 
 int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg);
 
@@ -73,8 +76,14 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 
 	switch (signal) {
 	case S_L1CTL_RESET:
+		if (started) {
+			printf("L1_RESET, TODO: resend last radio request "
+				"(CCCH / dedicated / power scan)\n");
+			break;
+		}
+		started = 1;
 		ms = signal_data;
-//		gsm_subscr_testcard(ms, 1, 1, "0000000000");
+		gsm_subscr_testcard(ms, 1, 1, "0000000000");
 		/* start PLMN + cell selection process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
 		if (!nmsg)
@@ -90,6 +99,26 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 
 int mobile_exit(struct osmocom_ms *ms)
 {
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+
+	if (!mm->power_off && started) {
+		struct msgb *nmsg;
+
+		mm->power_off = 1;
+		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm48_mmevent_msg(mm->ms, nmsg);
+
+		return -EBUSY;
+	}
+
+	/* in case there is a lockup during exit */
+	signal(SIGINT, SIG_DFL);
+	signal(SIGHUP, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGPIPE, SIG_DFL);
+
 	unregister_signal_handler(SS_L1CTL, &signal_cb, NULL);
 	gsm322_exit(ms);
 	gsm48_mm_exit(ms);

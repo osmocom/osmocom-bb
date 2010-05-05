@@ -56,7 +56,7 @@ struct gsm48_rr_hdr {
 struct gsm48_rr_cd {
 	uint8_t			tsc;
 	uint8_t			h; /* using hopping */
-	uint16_t		arfcn;
+	uint16_t		arfcn; /* dedicated mode */
 	uint8_t			maio;
 	uint8_t			hsn;
 	uint8_t			chan_nr; /* type, slot, sub slot */
@@ -103,7 +103,7 @@ struct gsm48_rrlayer {
 #endif
 
 	/* states if RR-EST-REQ was used */
-	int			rr_est_req;
+	uint8_t			rr_est_req;
 	struct msgb		*rr_est_msg;
 
 	/* channel request states */
@@ -115,7 +115,6 @@ struct gsm48_rrlayer {
 		/* cr_hist must be signed and greater 8 bit, -1 = no value */
 
 	/* current channel descriptions */
-	uint16_t		dm_arfcn; /* dedicated mode only */
 	struct gsm48_rr_cd	cd_now;
 
 	/* current cipering */
@@ -123,9 +122,9 @@ struct gsm48_rrlayer {
 	uint8_t			cipher_type; /* 10.5.2.9 */
 
 	/* special states when changing channel */
-	int			hando_susp_state;
-	int			assign_susp_state;
-	int			resume_last_state;
+	uint8_t			hando_susp_state;
+	uint8_t			assign_susp_state;
+	uint8_t			resume_last_state;
 	struct gsm48_rr_cd	cd_last;
 
 	/* measurements */

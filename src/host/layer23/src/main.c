@@ -196,19 +196,17 @@ static void handle_options(int argc, char **argv)
 
 void sighandler(int sigset)
 {
+	int rc = 0;
+
 	if (sigset == SIGHUP || sigset == SIGPIPE)
 		return;
 
-	signal(SIGINT, SIG_DFL);
-	signal(SIGHUP, SIG_DFL);
-	signal(SIGTERM, SIG_DFL);
-	signal(SIGPIPE, SIG_DFL);
-
 	fprintf(stderr, "Signal %d recevied.\n", sigset);
 	if (l23_app_exit)
-		l23_app_exit(ms);
+		rc = l23_app_exit(ms);
 
-	exit (0);
+	if (rc != -EBUSY)
+		exit (0);
 }
 
 int main(int argc, char **argv)

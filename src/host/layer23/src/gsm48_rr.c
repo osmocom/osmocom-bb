@@ -619,7 +619,7 @@ int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_support *sup = &ms->support;
 
-	if (rr->dm_arfcn >= 512 && rr->dm_arfcn <= 885)
+	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
 		cm->pwr_lev = sup->pwr_lev_1800;
 	else
 		cm->pwr_lev = sup->pwr_lev_900;
@@ -2436,20 +2436,20 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* decode channel description */
-	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT EXTENDED ");
+	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT EXTENDED:");
 	rsl_dec_chan_nr(ia->chan_desc1.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ia->chan_desc1.h0.h) {
 		cd1.h = 1;
 		gsm48_decode_chan_h1(&ia->chan_desc1, &cd1.tsc, &cd1.maio,
 			&cd1.hsn);
-		LOGP(DRR, LOGL_INFO, "1(ra=0x%02x, "
+		LOGP(DRR, LOGL_INFO, " assignment 1 (ra=0x%02x, "
 			"chan_nr=0x%02x, MAIO=%u, HSN=%u, TS=%u, SS=%u, "
 			"TSC=%u)\n", ia->req_ref1.ra, ia->chan_desc1.chan_nr,
 			cd1.maio, cd1.hsn, ch_ts, ch_subch, cd1.tsc);
 	} else {
 		cd1.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc1, &cd1.tsc, &cd1.arfcn);
-		LOGP(DRR, LOGL_INFO, "1(ra=0x%02x, "
+		LOGP(DRR, LOGL_INFO, " assignment 1 (ra=0x%02x, "
 			"chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u)\n",
 			ia->req_ref1.ra, ia->chan_desc1.chan_nr, cd1.arfcn,
 			ch_ts, ch_subch, cd1.tsc);
@@ -2459,14 +2459,14 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 		cd2.h = 1;
 		gsm48_decode_chan_h1(&ia->chan_desc2, &cd1.tsc, &cd1.maio,
 			&cd1.hsn);
-		LOGP(DRR, LOGL_INFO, "2(ra=0x%02x, "
+		LOGP(DRR, LOGL_INFO, " assignment 2 (ra=0x%02x, "
 			"chan_nr=0x%02x, MAIO=%u, HSN=%u, TS=%u, SS=%u, "
 			"TSC=%u)\n", ia->req_ref2.ra, ia->chan_desc2.chan_nr,
 			cd2.maio, cd2.hsn, ch_ts, ch_subch, cd2.tsc);
 	} else {
 		cd2.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc2, &cd2.tsc, &cd2.arfcn);
-		LOGP(DRR, LOGL_INFO, "2(ra=0x%02x, "
+		LOGP(DRR, LOGL_INFO, " assignment 2 (ra=0x%02x, "
 			"chan_nr=0x%02x, ARFCN=%u, TS=%u, SS=%u, TSC=%u)\n",
 			ia->req_ref2.ra, ia->chan_desc2.chan_nr, cd2.arfcn,
 			ch_ts, ch_subch, cd2.tsc);
@@ -2711,8 +2711,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 #ifdef TODO
 	RSL_MT_ to activate channel with all the cd_now informations
 #else
-	rr->dm_arfcn = rr->cd_now.arfcn;
-	tx_ph_dm_est_req(ms, rr->dm_arfcn, rr->cd_now.chan_nr);
+	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr);
 #endif
 
 	/* start establishmnet */
@@ -2753,12 +2752,13 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	/* deactivate channel */
-	LOGP(DRR, LOGL_INFO, "deactivating channel (arfcn %d)\n", rr->dm_arfcn);
+	LOGP(DRR, LOGL_INFO, "deactivating channel (arfcn %d)\n",
+		rr->cd_now.arfcn);
 #ifdef TODO
 	release and give new arfcn
 	tx_ph_dm_rel_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
 #else
-	l1ctl_tx_ccch_req(ms, rr->dm_arfcn);
+	l1ctl_tx_ccch_req(ms, rr->cd_now.arfcn);
 #endif
 
 	/* do nothing, because we aleady IDLE
@@ -3594,8 +3594,7 @@ static int gsm48_rr_rel_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 		struct msgb *msg;
 
 		/* change radio to new channel */
-		rr->arfcn = rr->chan_desc.chan_desc.chan_nr;
-		tx_ph_dm_est_req(ms, arfcn, rr->arfcn);
+		tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr);
 
 		nmsg = gsm48_l3_msgb_alloc();
 		if (!nmsg)
@@ -3625,8 +3624,8 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 			memcpy(&rr->chan_desc, &rr->chan_last, sizeof(*cd));
 
 			/* change radio to old channel */
-			rr->arfcn = rr->chan_desc.chan_desc.chan_nr;
-			tx_ph_dm_est_req(ms, arfcn, rr->arfcn);
+			tx_ph_dm_est_req(ms, rr->cd_now.arfcn,
+				rr->cd_now.chan_nr);
 
 			/* re-establish old link */
 			nmsg = gsm48_l3_msgb_alloc();
@@ -3663,8 +3662,7 @@ static void timeout_rr_t3124(void *arg)
 	memcpy(&rr->chan_desc, &rr->chan_last, sizeof(*cd));
 
 	/* change radio to old channel */
-	rr->arfcn = rr->chan_desc.chan_desc.chan_nr;
-	tx_ph_dm_est_req(ms, arfcn, rr->arfcn);
+	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr);
 
 	/* re-establish old link */
 	nmsg = gsm48_l3_msgb_alloc();

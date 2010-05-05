@@ -188,6 +188,7 @@ struct gsm48_mmlayer {
 
 	/* other */
 	int			mr_substate;	/* rem most recent substate */
+	uint8_t			power_off; /* set, if power off after detach */
 };
 
 /* MM connection entry */

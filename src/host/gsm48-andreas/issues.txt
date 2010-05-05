@@ -82,6 +82,12 @@ It is absolutely importaint for messages not beeing lost between layers.
 What about the serial link between mobile and PC?
 -> There must be a security layer!
 
+One solution: Store all radio action (DM / CCCH / power scan) and start timer.
+Send request again, if timer expires. 
+-> Also send it again, if L1 resets (restart of phone).
+We MUST at least have CRCxx on serial interface.
+
+
 
 
 

@@ -34,6 +34,7 @@
 #include <osmocom/logging.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/gsm48_cc.h>
+#include <osmocom/l23_app.h>
 
 extern void *l23_ctx;
 
@@ -518,7 +519,6 @@ static const struct value_string gsm48_mmevent_names[] = {
 	{ GSM48_MM_EVENT_TIMEOUT_T3230,	"MM_EVENT_TIMEOUT_T3230" },
 	{ GSM48_MM_EVENT_TIMEOUT_T3240,	"MM_EVENT_TIMEOUT_T3240" },
 	{ GSM48_MM_EVENT_IMSI_DETACH,	"MM_EVENT_IMSI_DETACH" },
-	{ GSM48_MM_EVENT_POWER_OFF,	"MM_EVENT_POWER_OFF" },
 	{ GSM48_MM_EVENT_PAGING,	"MM_EVENT_PAGING" },
 	{ GSM48_MM_EVENT_AUTH_RESPONSE,	"MM_EVENT_AUTH_RESPONSE" },
 	{ GSM48_MM_EVENT_SYSINFO,	"MM_EVENT_SYSINFO" },
@@ -1643,7 +1643,7 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 	ngh->msg_type = GSM48_MT_MM_IMSI_DETACH_IND;
 
 	/* classmark 1 */
-	if (rr->dm_arfcn >= 512 && rr->dm_arfcn <= 885)
+	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
 		pwr_lev = sup->pwr_lev_1800;
 	else
 		pwr_lev = sup->pwr_lev_900;
@@ -1667,6 +1667,13 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 
 	LOGP(DMM, LOGL_INFO, "IMSI has been detached.\n");
+
+	/* power off when IMSI is detached */
+	if (mm->power_off) {
+		l23_app_exit(ms);
+		printf("Power off!\n");
+		exit (0);
+	}
 
 	/* stop IMSI detach timer (if running) */
 	stop_mm_t3220(mm);
@@ -1969,6 +1976,7 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &cs->sel_si;
+	struct msgb *nmsg;
 
 	/* in case we already have a location update going on */
 	if (mm->lupd_pending) {
@@ -1980,6 +1988,12 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 	/* no location update, if limited service */
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed.\n");
+
+		/* send message to PLMN search process */
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm322_plmn_sendmsg(ms, nmsg);
 
 		return 0;
 	}
@@ -1994,6 +2008,12 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 	  || !s->att_allowed)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not required.\n");
 	  	subscr->imsi_attached = 1;
+
+		/* send message to PLMN search process */
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_SUCCESS);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm322_plmn_sendmsg(ms, nmsg);
 
 		return 0;
 	}
@@ -2079,7 +2099,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	gsm48_generate_lai(&nlu->lai,
 		subscr->lai_mcc, subscr->lai_mnc, subscr->lai_lac);
 	/* classmark 1 */
-	if (rr->dm_arfcn >= 512 && rr->dm_arfcn <= 885)
+	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
 		pwr_lev = sup->pwr_lev_1800;
 	else
 		pwr_lev = sup->pwr_lev_900;
