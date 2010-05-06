@@ -2443,7 +2443,7 @@ static int gsm48_mm_rel_loc_upd_abort(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* RA was successfull */
+	/* RA was successfull or sent twice */
 	mm->lupd_ra_failure = 0;
 
 	/* continue with failure handling */
@@ -3698,6 +3698,9 @@ static struct eventstate {
 	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_ignore},
 	{ALL_STATES - SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES,
 	 GSM48_MM_EVENT_TIMEOUT_T3210, gsm48_mm_loc_upd_timeout},
+	{ALL_STATES - SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES,
+	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_upd_failed},
+		/* 4.4.4.9 c) (but without retry) */
 	/* SYSINFO event */
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MM_EVENT_SYSINFO, gsm48_mm_sysinfo},

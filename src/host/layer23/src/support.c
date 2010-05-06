@@ -105,7 +105,8 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sprintf(sup->imeisv, "0000000000000000");
 
 	/* radio */
-	sup->min_rxlev_db = -106; // TODO
+	sup->min_rxlev_db = -60; // TODO
+	sup->sync_to = 6; /* how long to wait sync (0.9 s) */
 	sup->scan_to = 4; /* how long to wait for all sysinfos (>=4 s) */
 }
 
@@ -119,7 +120,7 @@ struct gsm_support_scan_max gsm_sup_smax[] = {
 	{ 955, 124, 30, 0 },
 	{ 512, 885, 40, 0 },
 #else
-	{ 955, 125, 1, 0 }, /* we support only one ARFCN */
+//	{ 955, 125, 1, 0 }, /* we support only one ARFCN */
 #endif
 	{ 0, 0, 0, 0 }
 };

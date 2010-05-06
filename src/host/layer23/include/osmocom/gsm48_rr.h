@@ -3,6 +3,8 @@
 
 #include "osmocore/protocol/gsm_04_08.h"
 
+#define GSM_TA_CM			55385
+
 /* GSM 04.07 9.1.2 */
 #define	GSM48_RR_EST_REQ		0x10
 #define	GSM48_RR_EST_IND		0x12
@@ -141,5 +143,6 @@ struct msgb *gsm48_rr_msgb_alloc(int msg_type);
 int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 	uint16_t *mnc, uint16_t *lac);
 int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm);
+int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg);
 
 #endif /* _GSM48_RR_H */

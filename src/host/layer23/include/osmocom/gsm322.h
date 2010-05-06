@@ -132,6 +132,7 @@ struct gsm322_cellsel {
 	int			state; /* GSM322_Cx_* */
 
 	uint16_t		arfcn; /* current tuned idle mode arfcn */
+//	uint8_t			tune_retry;
 	struct gsm48_sysinfo	*si; /* current sysinfo */
 
 	struct llist_head	event_queue; /* event messages */
@@ -144,12 +145,12 @@ struct gsm322_cellsel {
 
 	uint8_t			powerscan; /* currently scanning for power */
 	uint32_t		scan_state; /* special state of current scan */
-	uint8_t			ccch_active; /* set, if ccch is active */
+	uint8_t			ccch_sync; /* set, if ccch is synced */
 
 	uint8_t			selected; /* if a cell is selected */
 	uint16_t		sel_arfcn;
 	struct gsm48_sysinfo	sel_si; /* copy of selected cell, will update */
-	uint16_t		sel_mcc, sel_mnc, sel_lac;
+	uint16_t		sel_mcc, sel_mnc, sel_lac, sel_id;
 };
 
 /* GSM 03.22 message */

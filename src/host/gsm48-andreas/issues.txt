@@ -88,6 +88,11 @@ Send request again, if timer expires.
 We MUST at least have CRCxx on serial interface.
 
 
+power measurements sometimes does not return all measurements. it stops,
+especially if a ccch was requested before. this is not good. power measurement
+must stop all other layer 1 processes!
+
+
 
 
 
