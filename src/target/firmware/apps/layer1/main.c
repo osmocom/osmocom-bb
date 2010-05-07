@@ -64,17 +64,6 @@ const char *hr = "==============================================================
 
 /* MAIN program **************************************************************/
 
-/* completion call-back for the L1 Sync Pwer Measurement */
-static void l1s_signal_cb(struct l1_signal *sig)
-{
-	switch (sig->signum) {
-	case L1_SIG_PM:
-		break;
-	case L1_SIG_NB:
-		break;
-	}
-}
-
 static void key_handler(enum key_codes code, enum key_states state);
 
 int main(void)
@@ -97,7 +86,6 @@ int main(void)
 	display_puts("layer1.bin");
 
 	layer1_init();
-	l1s_set_handler(&l1s_signal_cb);
 
 	tpu_frame_irq_en(1, 1);
 

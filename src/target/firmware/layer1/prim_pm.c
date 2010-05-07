@@ -80,7 +80,6 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 {
 	struct l1ctl_pm_resp *pmr;
 	uint16_t pm_level[2];
-	struct l1_signal sig;
 
 	putchart('p');
 
@@ -89,12 +88,6 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 	printf("PM MEAS: %-4d dBm, %-4d dBm ARFCN=%u\n",
 		agc_inp_dbm8_by_pm(pm_level[0])/8,
 		agc_inp_dbm8_by_pm(pm_level[1])/8, arfcn);
-
-	/* build and deliver signal */
-	sig.signum = L1_SIG_PM;
-	sig.arfcn = arfcn;
-	sig.pm.dbm8[0] = agc_inp_dbm8_by_pm(pm_level[0]);
-	sig.pm.dbm8[1] = agc_inp_dbm8_by_pm(pm_level[1]);
 
 	if (!l1s.pm.msg)
 		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_RESP);

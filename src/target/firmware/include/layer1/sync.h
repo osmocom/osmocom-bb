@@ -95,38 +95,12 @@ struct l1s_state {
 
 extern struct l1s_state l1s;
 
-enum l1_sig_num {
-	L1_SIG_PM,	/* Power Measurement */
-	L1_SIG_NB,	/* Normal Burst */
-};
-
 struct l1s_meas_hdr {
 	uint16_t snr;		/* signal/noise ratio */
 	int16_t toa_qbit;	/* time of arrival (qbits) */
 	int16_t pm_dbm8;	/* power level in dbm/8 */
 	int16_t freq_err; 	/* Frequency error in Hz */
 };
-
-struct l1_signal {
-	uint16_t signum;
-	uint16_t arfcn;
-	union {
-		struct {
-			int16_t dbm8[2];
-		} pm;
-		struct {
-			struct l1s_meas_hdr meas[4];
-			uint16_t crc;
-			uint16_t fire;
-			uint16_t num_biterr;
-			uint8_t frame[24];
-		} nb;
-	};
-};
-
-typedef void (*l1s_cb_t)(struct l1_signal *sig);
-
-void l1s_set_handler(l1s_cb_t handler);
 
 int16_t l1s_snr_int(uint16_t snr);
 uint16_t l1s_snr_fract(uint16_t snr);
@@ -161,8 +135,6 @@ void layer1_init(void);
 #define BITFREQ_DIV_PI		86208	/* 270kHz / pi */
 #define ANG2FREQ_SCALING	(2<<15)	/* 2^15 scaling factor for fx1.15 */
 #define ANGLE_TO_FREQ(angle)	((int16_t)angle * BITFREQ_DIV_PI / ANG2FREQ_SCALING)
-
-extern l1s_cb_t l1s_cb;
 
 void l1s_reset_hw(void);
 void synchronize_tdma(struct l1_cell_info *cinfo);

@@ -58,13 +58,6 @@
 
 struct l1s_state l1s;
 
-l1s_cb_t l1s_cb = NULL;
-
-void l1s_set_handler(l1s_cb_t cb)
-{
-	l1s_cb = cb;
-}
-
 void l1s_time_inc(struct gsm_time *time, uint32_t delta_fn)
 {
 	ADD_MODULO(time->fn, delta_fn, GSM_MAX_FN);
