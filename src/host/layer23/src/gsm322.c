@@ -40,28 +40,9 @@
 extern void *l23_ctx;
 
 static void gsm322_cs_timeout(void *arg);
+static void gsm322_cs_loss(void *arg);
 static int gsm322_cs_select(struct osmocom_ms *ms, int any);
 static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg);
-
-
-//#define SINGLE
-
-#ifdef SINGLE
-#warning HACK to stay on one channel
-static int already = 0;
-int l1ctl_tx_ccch_req_(struct osmocom_ms *ms, uint16_t arfcn)
-{
-
-	if (!already) {
-		already = 1;
-		return l1ctl_tx_ccch_req(ms, arfcn);
-	}
-	ms->cellsel.ccch_sync = 1;
-	return 0;
-}
-#else
-#define l1ctl_tx_ccch_req_ l1ctl_tx_ccch_req
-#endif
 
 /*
  * notes
@@ -92,9 +73,9 @@ int l1ctl_tx_ccch_req_(struct osmocom_ms *ms, uint16_t arfcn)
  * - cs->selected and cs->sel_* states of the current / last selected cell.
  *
  *
- * There is a special state: GSM322_HPLMN_SEARCH
+ * There is a special state: GSM322_PLMN_SEARCH
  * It is used to search for all cells, to find the HPLMN. This is triggered
- * by a timer.
+ * by a timer. Also it is used before selecting PLMN from list.
  *
  */
 
@@ -171,9 +152,8 @@ static const struct value_string gsm322_event_names[] = {
 	{ GSM322_EVENT_REG_SUCCESS,	"EVENT_REG_SUCCESS" },
 	{ GSM322_EVENT_NEW_PLMN,	"EVENT_NEW_PLMN" },
 	{ GSM322_EVENT_ON_PLMN,		"EVENT_ON_PLMN" },
-	{ GSM322_EVENT_HPLMN_SEARCH,	"EVENT_HPLMN_SEARCH" },
-	{ GSM322_EVENT_HPLMN_FOUND,	"EVENT_HPLMN_FOUND" },
-	{ GSM322_EVENT_HPLMN_NOT_FOUND,	"EVENT_HPLMN_NOT_FOUND" },
+	{ GSM322_EVENT_PLMN_SEARCH_START,"EVENT_PLMN_SEARCH_START" },
+	{ GSM322_EVENT_PLMN_SEARCH_END,	"EVENT_PLMN_SEARCH_END" },
 	{ GSM322_EVENT_USER_RESEL,	"EVENT_USER_RESEL" },
 	{ GSM322_EVENT_PLMN_AVAIL,	"EVENT_PLMN_AVAIL" },
 	{ GSM322_EVENT_CHOSE_PLMN,	"EVENT_CHOSE_PLMN" },
@@ -185,6 +165,7 @@ static const struct value_string gsm322_event_names[] = {
 	{ GSM322_EVENT_RET_IDLE,	"EVENT_RET_IDLE" },
 	{ GSM322_EVENT_CELL_RESEL,	"EVENT_CELL_RESEL" },
 	{ GSM322_EVENT_SYSINFO,		"EVENT_SYSINFO" },
+	{ GSM322_EVENT_HPLMN_SEARCH,	"EVENT_HPLMN_SEARCH" },
 	{ 0,				NULL }
 };
 
@@ -429,10 +410,34 @@ static void stop_plmn_timer(struct gsm322_plmn *plmn)
 }
 
 /* start cell selection timer */
-static void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro)
+void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro)
 {
 	LOGP(DCS, LOGL_INFO, "Starting CS timer with %d seconds.\n", sec);
 	cs->timer.cb = gsm322_cs_timeout;
+	cs->timer.data = cs;
+	bsc_schedule_timer(&cs->timer, sec, micro);
+}
+
+/* start loss timer */
+void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro)
+{
+	/* update timer */
+	if (bsc_timer_pending(&cs->timer)) {
+		struct timeval current_time;
+		unsigned long long currentTime;
+
+		gettimeofday(&current_time, NULL);
+		currentTime = current_time.tv_sec * 1000000LL
+				+ current_time.tv_usec;
+		currentTime += sec * 1000000LL + micro;
+		cs->timer.timeout.tv_sec = currentTime / 1000000LL;
+		cs->timer.timeout.tv_usec = currentTime % 1000000LL;
+
+		return;
+	}
+
+	LOGP(DCS, LOGL_INFO, "Starting loss CS timer with %d seconds.\n", sec);
+	cs->timer.cb = gsm322_cs_loss;
 	cs->timer.data = cs;
 	bsc_schedule_timer(&cs->timer, sec, micro);
 }
@@ -461,7 +466,7 @@ static const char *plmn_a_state_names[] = {
 };
 
 static const char *plmn_m_state_names[] = {
-	"M1_NULL",
+	"M0_NULL",
 	"M1_TRYING_RPLMN",
 	"M2_ON_PLMN",
 	"M3_NOT_ON_PLMN",
@@ -480,6 +485,7 @@ static const char *cs_state_names[] = {
 	"C7_CAMPED_ANY_CELL",
 	"C8_ANY_CELL_RESEL",
 	"C9_CHOOSE_ANY_CELL",
+	"PLMN_SEARCH",
 	"HPLMN_SEARCH"
 };
 
@@ -630,7 +636,9 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 			/* move */
 			llist_del(&found->entry);
 			llist_add_tail(&found->entry, &plmn->sorted_plmn);
-		} else {
+		}
+#if 0
+		else {
 			/* add */
 			temp = talloc_zero(l23_ctx, struct gsm322_plmn_list);
 			if (!temp)
@@ -640,6 +648,7 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 			temp->rxlev_db = 0; /* unknown */
 			llist_add_tail(&temp->entry, &plmn->sorted_plmn);
 		}
+#endif
 	}
 
 	/* move entries if in SIM's PLMN Selector list */
@@ -729,14 +738,6 @@ static int gsm322_a_go_on_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm_subscriber *subscr = &ms->subscr;
 
-	/* set last registered PLMN */
-	subscr->plmn_valid = 1;
-	subscr->plmn_mcc = plmn->mcc;
-	subscr->plmn_mnc = plmn->mnc;
-#ifdef TODO
-	store on sim
-#endif
-
 	new_a_state(plmn, GSM322_A2_ON_PLMN);
 
 	/* start timer, if on VPLMN of home country OR special case */
@@ -823,6 +824,7 @@ static int gsm322_a_no_more_plmn(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_a_sel_first_plmn(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 	struct gsm322_plmn_list *plmn_entry;
 	struct gsm322_plmn_list *plmn_first = NULL;
@@ -834,10 +836,13 @@ static int gsm322_a_sel_first_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	/* select first entry */
 	i = 0;
 	llist_for_each_entry(plmn_entry, &plmn->sorted_plmn, entry) {
-		/* if RPLMN is HPLMN, we skip that */
-		if (plmn->state == GSM322_A1_TRYING_RPLMN
+		/* if last selected PLMN was HPLMN, we skip that */
+		if (plmn_entry->mcc == subscr->mcc
+		 && plmn_entry->mnc == subscr->mnc
 		 && plmn_entry->mcc == plmn->mcc
 		 && plmn_entry->mnc == plmn->mnc) {
+			LOGP(DPLMN, LOGL_INFO, "Skip HPLMN, because it was "
+				"previously selected.\n");
 			i++;
 			continue;
 		}
@@ -846,6 +851,9 @@ static int gsm322_a_sel_first_plmn(struct osmocom_ms *ms, struct msgb *msg)
 			plmn_first = plmn_entry;
 			break;
 		}
+		LOGP(DPLMN, LOGL_INFO, "Skip PLMN (%02d: mcc=%03d), because it "
+			"not allowed (cause %d).\n", plmn_entry->mcc,
+			plmn_entry->mnc, plmn_entry->cause);
 		i++;
 	}
 	plmn->plmn_curr = i;
@@ -901,6 +909,9 @@ static int gsm322_a_sel_next_plmn(struct osmocom_ms *ms, struct msgb *msg)
 			plmn_next = plmn_entry;
 			break;
 		}
+		LOGP(DPLMN, LOGL_INFO, "Skip PLMN (%02d: mcc=%03d), because it "
+			"not allowed (cause %d).\n", plmn_entry->mcc,
+			plmn_entry->mnc, plmn_entry->cause);
 		i++;
 	}
 	plmn->plmn_curr = i;
@@ -934,11 +945,24 @@ static int gsm322_a_sel_next_plmn(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* User re-selection event */
-static int gsm322_a_user_reselection(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm322_a_user_resel(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_plmn_list *plmn_entry;
 	struct gsm322_plmn_list *plmn_found = NULL;
+
+	if (!subscr->sim_valid) {
+		return 0;
+	}
+
+	/* try again later, if not idle */
+	if (rr->state != GSM48_RR_ST_IDLE) {
+		LOGP(DPLMN, LOGL_INFO, "Not idle, rejecting.\n");
+
+		return 0;
+	}
 
 	/* search current PLMN in list */
 	llist_for_each_entry(plmn_entry, &plmn->sorted_plmn, entry) {
@@ -1060,8 +1084,15 @@ static int gsm322_a_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* select first PLMN in list */
-	return gsm322_a_sel_first_plmn(ms, msg);
+	/* initiate search at cell selection */
+	LOGP(DPLMN, LOGL_INFO, "Switch on, start PLMN search first.\n");
+
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_START);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_cs_sendmsg(ms, nmsg);
+
+	return 0;
 }
 
 /* MS is switched off */
@@ -1103,7 +1134,7 @@ static int gsm322_a_roaming_na(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* On VPLMN of home country and timeout occurs */
-static int gsm322_a_hplmn_search(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm322_a_hplmn_search_start(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_plmn *plmn = &ms->plmn;
@@ -1122,7 +1153,7 @@ static int gsm322_a_hplmn_search(struct osmocom_ms *ms, struct msgb *msg)
 	new_a_state(plmn, GSM322_A5_HPLMN_SEARCH);
 
 	/* initiate search at cell selection */
-	nmsg = gsm322_msgb_alloc(GSM322_EVENT_HPLMN_SEARCH);
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_START);
 	if (!nmsg)
 		return -ENOMEM;
 	gsm322_cs_sendmsg(ms, nmsg);
@@ -1177,11 +1208,41 @@ static int gsm322_m_display_plmns(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm322_m_go_not_on_plmn(ms, msg);
 }
 
+/* user starts reselection */
+static int gsm322_m_user_resel(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct msgb *nmsg;
+
+	if (!subscr->sim_valid) {
+		return 0;
+	}
+
+	/* try again later, if not idle */
+	if (rr->state != GSM48_RR_ST_IDLE) {
+		LOGP(DPLMN, LOGL_INFO, "Not idle, rejecting.\n");
+
+		return 0;
+	}
+
+	/* initiate search at cell selection */
+	LOGP(DPLMN, LOGL_INFO, "User re-select, start PLMN search first.\n");
+
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_START);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_cs_sendmsg(ms, nmsg);
+
+	return 0;
+}
+
 /* MS is switched on OR SIM is inserted OR removed */
 static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm322_plmn *plmn = &ms->plmn;
+	struct msgb *nmsg;
 
 	if (!subscr->sim_valid) {
 		LOGP(DPLMN, LOGL_INFO, "Switch on without SIM.\n");
@@ -1214,8 +1275,15 @@ static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* display PLMNs */
-	return gsm322_m_display_plmns(ms, msg);
+	/* initiate search at cell selection */
+	LOGP(DPLMN, LOGL_INFO, "Switch on, start PLMN search first.\n");
+
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_START);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm322_cs_sendmsg(ms, nmsg);
+
+	return 0;
 }
 
 /* MS is switched off */
@@ -1525,19 +1593,35 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	if (!weight)
 		gsm322_dump_cs_list(ms, GSM322_CS_FLAG_SYSINFO);
 
-	/* special negative case for HPLMN search */
-	if (cs->state == GSM322_HPLMN_SEARCH && !weight) {
+	/* special case for PLMN search */
+	if (cs->state == GSM322_PLMN_SEARCH && !weight) {
 		struct msgb *nmsg;
 
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_HPLMN_NOT_FOUND);
-		LOGP(DCS, LOGL_INFO, "No HPLMN cell available.\n");
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_END);
+		LOGP(DCS, LOGL_INFO, "PLMN search finished.\n");
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
 
-		/* re-tune back to current VPLMN */
-		cs->ccch_sync = 0;
-		l1ctl_tx_ccch_req_(ms, cs->arfcn);
+		return 0;
+	}
+
+	/* special case for HPLMN search */
+	if (cs->state == GSM322_HPLMN_SEARCH && !weight) {
+		struct msgb *nmsg;
+
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_NO_CELL_FOUND);
+		LOGP(DCS, LOGL_INFO, "HPLMN search finished, no cell.\n");
+		if (!nmsg)
+			return -ENOMEM;
+		gsm322_plmn_sendmsg(ms, nmsg);
+
+		cs->arfcn = cs->sel_arfcn;
+		LOGP(DCS, LOGL_INFO, "Tuning back to frequency %d (rxlev "
+			"%d).\n", cs->arfcn, cs->list[cs->arfcn].rxlev_db);
+		cs->ccch_state = GSM322_CCCH_ST_INIT;
+		l1ctl_tx_ccch_req(ms, cs->arfcn);
+		start_cs_timer(cs, ms->support.sync_to, 0);
 
 		return 0;
 	}
@@ -1566,8 +1650,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			/* tune */
 			cs->arfcn = found;
 			cs->si = cs->list[cs->arfcn].sysinfo;
-			cs->ccch_sync = 0;
-			l1ctl_tx_ccch_req_(ms, cs->arfcn);
+			cs->ccch_state = GSM322_CCCH_ST_INIT;
+			l1ctl_tx_ccch_req(ms, cs->arfcn);
 
 			/* selected PLMN (manual) or any PLMN (auto) */
 			switch (plmn->mode) {
@@ -1635,9 +1719,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	cs->arfcn = weight & 1023;
 	LOGP(DCS, LOGL_INFO, "Scanning frequency %d (rxlev %d).\n", cs->arfcn,
 		cs->list[cs->arfcn].rxlev_db);
-	cs->ccch_sync = 0;
-	l1ctl_tx_ccch_req_(ms, cs->arfcn);
-//	cs->tune_retry = 0;
+	cs->ccch_state = GSM322_CCCH_ST_INIT;
+	l1ctl_tx_ccch_req(ms, cs->arfcn);
 	start_cs_timer(cs, ms->support.sync_to, 0);
 
 	/* Allocate/clean system information. */
@@ -1654,6 +1737,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	/* increase scan counter for each maximum scan range */
 	if (gsm_sup_smax[j].max)
 		gsm_sup_smax[j].temp++;
+
 	return 0;
 }
 
@@ -1661,7 +1745,6 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 static int gsm322_cs_store(struct osmocom_ms *ms)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_sysinfo *s = cs->si;
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct msgb *nmsg;
@@ -1674,6 +1757,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	 && cs->state != GSM322_C8_ANY_CELL_RESEL
 	 && cs->state != GSM322_C5_CHOOSE_CELL
 	 && cs->state != GSM322_C9_CHOOSE_ANY_CELL
+	 && cs->state != GSM322_PLMN_SEARCH
 	 && cs->state != GSM322_HPLMN_SEARCH) {
 		LOGP(DCS, LOGL_FATAL, "This must only happen during cell "
 			"(re-)selection, please fix!\n");
@@ -1711,11 +1795,22 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 		"mcc=%03d mnc=%02d lac=%04x)\n", cs->arfcn,
 		cs->list[cs->arfcn].rxlev_db, s->mcc, s->mnc, s->lac);
 
-	/* special prositive case for HPLMN search */
-	if (cs->state == GSM322_HPLMN_SEARCH && s->mcc == subscr->mcc
-	 && s->mnc == subscr->mnc) {
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_HPLMN_FOUND);
-		LOGP(DCS, LOGL_INFO, "HPLMN cell available.\n");
+	/* special case for PLMN search */
+	if (cs->state == GSM322_PLMN_SEARCH)
+		/* tune to next cell */
+		return gsm322_cs_scan(ms);
+
+	/* special case for HPLMN search */
+	if (cs->state == GSM322_HPLMN_SEARCH) {
+		struct gsm_subscriber *subscr = &ms->subscr;
+		struct msgb *nmsg;
+
+		if (!gsm322_is_plmn_avail(cs, subscr->mcc, subscr->mnc))
+			/* tune to next cell */
+			return gsm322_cs_scan(ms);
+
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_CELL_FOUND);
+		LOGP(DCS, LOGL_INFO, "HPLMN search finished, cell found.\n");
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
@@ -1742,8 +1837,8 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	/* tune */
 	cs->arfcn = found;
 	cs->si = cs->list[cs->arfcn].sysinfo;
-	cs->ccch_sync = 0;
-	l1ctl_tx_ccch_req_(ms, cs->arfcn);
+	cs->ccch_state = GSM322_CCCH_ST_INIT;
+	l1ctl_tx_ccch_req(ms, cs->arfcn);
 
 	/* selected PLMN (manual) or any PLMN (auto) */
 	switch (plmn->mode) {
@@ -2027,19 +2122,9 @@ static void gsm322_cs_timeout(void *arg)
 	LOGP(DCS, LOGL_INFO, "Cell selection timer has fired.\n");
 
 	/* if we have no lock, we retry */
-	if (!cs->ccch_sync) {
-#if 0
-		if (++cs->tune_retry < 4) {
-			LOGP(DCS, LOGL_INFO, "No lock, retrying frequency %d.\n", cs->arfcn);
-			start_cs_timer(cs, ms->support.sync_to, 0);
-			l1ctl_tx_ccch_req_(ms, cs->arfcn);
-			return;
-		}
-		LOGP(DCS, LOGL_INFO, "No lock, after trying %d times.\n", cs->tune_retry);
-#else
+	if (cs->ccch_state != GSM322_CCCH_ST_SYNC)
 		LOGP(DCS, LOGL_INFO, "Sync timeout.\n");
-#endif
-	} else
+	else
 		LOGP(DCS, LOGL_INFO, "Read timeout.\n");
 
 	LOGP(DCS, LOGL_INFO, "Scan frequency %d: Cell not found. (rxlev=%d)\n",
@@ -2088,17 +2173,6 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 		}
 	}
 
-#ifdef SINGLE
-#warning testing
-if (already) s = -1;
-#endif
-#if 0
-cs->list[ms->test_arfcn].rxlev_db = -50;
-cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_POWER;
-cs->list[ms->test_arfcn].flags |= GSM322_CS_FLAG_SIGNAL;
-s = -1;
-#endif
-
 	/* if there is no more frequency, we can tune to that cell */
 	if (s < 0) {
 		int found = 0;
@@ -2140,10 +2214,17 @@ s = -1;
 			 * If we would continue to process CS, then we might get
 			 * our list of scanned cells disturbed.
 			 */
-			nmsg = gsm322_msgb_alloc(GSM322_EVENT_NO_CELL_FOUND);
+			if (cs->state == GSM322_PLMN_SEARCH)
+				nmsg = gsm322_msgb_alloc(
+					GSM322_EVENT_PLMN_SEARCH_END);
+			else
+				nmsg = gsm322_msgb_alloc(
+					GSM322_EVENT_NO_CELL_FOUND);
 			if (!nmsg)
 				return -ENOMEM;
 			gsm322_plmn_sendmsg(ms, nmsg);
+
+			/* if HPLMN search, select last frequency */
 
 			return 0;
 		}
@@ -2211,10 +2292,11 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 	case S_L1CTL_CCCH_RESP:
 		ms = signal_data;
 		cs = &ms->cellsel;
-		if (!cs->ccch_sync) {
-			LOGP(DCS, LOGL_INFO, "Channel activated.\n");
+		if (cs->ccch_state == GSM322_CCCH_ST_INIT) {
+			LOGP(DCS, LOGL_INFO, "Channel synched.\n");
+			cs->ccch_state = GSM322_CCCH_ST_SYNC;
+#if 0
 			stop_cs_timer(cs);
-			cs->ccch_sync = 1;
 
 			/* in dedicated mode */
 			if (ms->rrlayer.state == GSM48_RR_ST_CONN_PEND)
@@ -2228,18 +2310,59 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			 || cs->state == GSM322_C8_ANY_CELL_RESEL
 			 || cs->state == GSM322_C5_CHOOSE_CELL
 			 || cs->state == GSM322_C9_CHOOSE_ANY_CELL
+			 || cs->state == GSM322_PLMN_SEARCH
 			 || cs->state == GSM322_HPLMN_SEARCH)
 				start_cs_timer(cs, ms->support.scan_to, 0);
 					// TODO: timer depends on BCCH config
+#endif
 		}
 		break;
 	}
 	return 0;
 }
 
+static void gsm322_cs_loss(void *arg)
+{
+	struct gsm322_cellsel *cs = arg;
+	struct osmocom_ms *ms = cs->ms;
+
+	LOGP(DCS, LOGL_INFO, "Loss of CCCH timer fired.\n");
+
+	return;
+}
+
 /*
  * handler for cell selection process
  */
+
+/* start PLMN search */
+static int gsm322_c_plmn_search(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	int i;
+
+	new_c_state(cs, GSM322_PLMN_SEARCH);
+
+	/* mark all frequencies except our own BA to be scanned */
+	for (i = 0; i <= 1023; i++) {
+		cs->list[i].flags &= ~(GSM322_CS_FLAG_POWER
+					| GSM322_CS_FLAG_SIGNAL
+					| GSM322_CS_FLAG_SYSINFO);
+		if (cs->list[i].sysinfo) {
+			LOGP(DCS, LOGL_INFO, "free sysinfo arfcn=%d\n", i);
+			talloc_free(cs->list[i].sysinfo);
+			cs->list[i].sysinfo = NULL;
+		}
+	}
+
+	/* unset selected cell */
+	cs->selected = 0;
+	memset(&cs->sel_si, 0, sizeof(cs->sel_si));
+	cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id = 0;
+
+	/* start power scan */
+	return gsm322_cs_powerscan(ms);
+}
 
 /* start HPLMN search */
 static int gsm322_c_hplmn_search(struct osmocom_ms *ms, struct msgb *msg)
@@ -2251,7 +2374,8 @@ static int gsm322_c_hplmn_search(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* mark all frequencies except our own BA to be scanned */
 	for (i = 0; i <= 1023; i++) {
-		if ((cs->list[i].flags & GSM322_CS_FLAG_SYSINFO)
+		if (i != cs->sel_arfcn
+		 && (cs->list[i].flags & GSM322_CS_FLAG_SYSINFO)
 		 && !(cs->list[i].flags & GSM322_CS_FLAG_BA)) {
 			cs->list[i].flags &= ~(GSM322_CS_FLAG_POWER
 						| GSM322_CS_FLAG_SIGNAL
@@ -2264,11 +2388,6 @@ static int gsm322_c_hplmn_search(struct osmocom_ms *ms, struct msgb *msg)
 			}
 		}
 	}
-
-	/* unset selected cell */
-	cs->selected = 0;
-	memset(&cs->sel_si, 0, sizeof(cs->sel_si));
-	cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id = 0;
 
 	/* start power scan */
 	return gsm322_cs_powerscan(ms);
@@ -2581,8 +2700,8 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
-	cs->ccch_sync = 0;
-	l1ctl_tx_ccch_req_(ms, cs->arfcn);
+	cs->ccch_state = GSM322_CCCH_ST_INIT;
+	l1ctl_tx_ccch_req(ms, cs->arfcn);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 
 	return 0;
@@ -2599,8 +2718,8 @@ static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
-	cs->ccch_sync = 0;
-	l1ctl_tx_ccch_req_(ms, cs->arfcn);
+	cs->ccch_state = GSM322_CCCH_ST_INIT;
+	l1ctl_tx_ccch_req(ms, cs->arfcn);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 
 	return 0;
@@ -2635,6 +2754,8 @@ static struct plmnastatelist {
 } plmnastatelist[] = {
 	{SBIT(GSM322_A0_NULL),
 	 GSM322_EVENT_SWITCH_ON, gsm322_a_switch_on},
+	{SBIT(GSM322_A0_NULL),
+	 GSM322_EVENT_PLMN_SEARCH_END, gsm322_a_sel_first_plmn},
 	{ALL_STATES,
 	 GSM322_EVENT_SWITCH_OFF, gsm322_a_switch_off},
 	{SBIT(GSM322_A6_NO_SIM),
@@ -2654,19 +2775,19 @@ static struct plmnastatelist {
 	{SBIT(GSM322_A2_ON_PLMN),
 	 GSM322_EVENT_ROAMING_NA, gsm322_a_roaming_na},
 	{SBIT(GSM322_A2_ON_PLMN),
-	 GSM322_EVENT_HPLMN_SEARCH, gsm322_a_hplmn_search},
+	 GSM322_EVENT_HPLMN_SEARCH, gsm322_a_hplmn_search_start},
 	{SBIT(GSM322_A2_ON_PLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_a_loss_of_radio},
 	{SBIT(GSM322_A2_ON_PLMN),
-	 GSM322_EVENT_USER_RESEL, gsm322_a_user_reselection},
+	 GSM322_EVENT_USER_RESEL, gsm322_a_user_resel},
 	{SBIT(GSM322_A3_TRYING_PLMN),
 	 GSM322_EVENT_REG_FAILED, gsm322_a_sel_next_plmn},
 	{SBIT(GSM322_A3_TRYING_PLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_a_sel_next_plmn},
 	{SBIT(GSM322_A5_HPLMN_SEARCH),
-	 GSM322_EVENT_HPLMN_FOUND, gsm322_a_sel_first_plmn},
+	 GSM322_EVENT_CELL_FOUND, gsm322_a_sel_first_plmn},
 	{SBIT(GSM322_A5_HPLMN_SEARCH),
-	 GSM322_EVENT_HPLMN_NOT_FOUND, gsm322_a_go_on_plmn},
+	 GSM322_EVENT_NO_CELL_FOUND, gsm322_a_go_on_plmn},
 	{SBIT(GSM322_A4_WAIT_FOR_PLMN),
 	 GSM322_EVENT_PLMN_AVAIL, gsm322_a_plmn_avail},
 	{ALL_STATES,
@@ -2712,6 +2833,8 @@ static struct plmnmstatelist {
 } plmnmstatelist[] = {
 	{SBIT(GSM322_M0_NULL),
 	 GSM322_EVENT_SWITCH_ON, gsm322_m_switch_on},
+	{SBIT(GSM322_M0_NULL) | SBIT(GSM322_M2_ON_PLMN),
+	 GSM322_EVENT_PLMN_SEARCH_END, gsm322_m_display_plmns},
 	{ALL_STATES,
 	 GSM322_EVENT_SWITCH_OFF, gsm322_m_switch_off},
 	{SBIT(GSM322_M5_NO_SIM),
@@ -2732,7 +2855,7 @@ static struct plmnmstatelist {
 	 SBIT(GSM322_M4_TRYING_PLMN),
 	 GSM322_EVENT_INVALID_SIM, gsm322_m_sim_removed},
 	{SBIT(GSM322_M2_ON_PLMN),
-	 GSM322_EVENT_USER_RESEL, gsm322_m_display_plmns},
+	 GSM322_EVENT_USER_RESEL, gsm322_m_user_resel},
 	{SBIT(GSM322_M3_NOT_ON_PLMN),
 	 GSM322_EVENT_PLMN_AVAIL, gsm322_m_plmn_avail},
 	{SBIT(GSM322_M3_NOT_ON_PLMN),
@@ -2810,6 +2933,8 @@ static struct cellselstatelist {
 	 GSM322_EVENT_SIM_REMOVE, gsm322_c_any_cell_sel},
 	{ALL_STATES,
 	 GSM322_EVENT_NEW_PLMN, gsm322_c_new_plmn},
+	{ALL_STATES,
+	 GSM322_EVENT_PLMN_SEARCH_START, gsm322_c_plmn_search},
 	{SBIT(GSM322_C1_NORMAL_CELL_SEL) | SBIT(GSM322_C2_STORED_CELL_SEL) |
 	 SBIT(GSM322_C4_NORMAL_CELL_RESEL) | SBIT(GSM322_C5_CHOOSE_CELL),
 	 GSM322_EVENT_CELL_FOUND, gsm322_c_camp_normally},
@@ -2840,12 +2965,12 @@ static struct cellselstatelist {
 	{SBIT(GSM322_C1_NORMAL_CELL_SEL) | SBIT(GSM322_C2_STORED_CELL_SEL) |
 	 SBIT(GSM322_C4_NORMAL_CELL_RESEL) | SBIT(GSM322_C5_CHOOSE_CELL) |
 	 SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C8_ANY_CELL_RESEL) |
-	 SBIT(GSM322_C6_ANY_CELL_SEL) | SBIT(GSM322_HPLMN_SEARCH),
+	 SBIT(GSM322_C6_ANY_CELL_SEL) | SBIT(GSM322_PLMN_SEARCH),
 	 GSM322_EVENT_SYSINFO, gsm322_c_scan_sysinfo_bcch},
 	{SBIT(GSM322_C3_CAMPED_NORMALLY) | SBIT(GSM322_C7_CAMPED_ANY_CELL),
 	 GSM322_EVENT_SYSINFO, gsm322_c_camp_sysinfo_bcch},
 	{SBIT(GSM322_C3_CAMPED_NORMALLY),
-	 GSM322_EVENT_HPLMN_SEARCH, gsm322_c_hplmn_search}
+	 GSM322_EVENT_HPLMN_SEARCH, gsm322_c_hplmn_search},
 };
 
 #define CELLSELSLLEN \

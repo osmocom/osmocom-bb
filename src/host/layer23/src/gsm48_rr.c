@@ -885,7 +885,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	rr->cr_hist[0] = -1;
 
 	/* if channel is already active somehow */
-	if (cs->ccch_sync)
+	if (cs->ccch_state == GSM322_CCCH_ST_DATA)
 		return gsm48_rr_tx_rand_acc(ms, NULL);
 
 	return 0;
@@ -903,7 +903,7 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 	int slots;
 	uint8_t chan_req;
 
-	if (!cs->ccch_sync) {
+	if (cs->ccch_state != GSM322_CCCH_ST_DATA) {
 		LOGP(DRR, LOGL_INFO, "CCCH channel activation failed.\n");
 
 		if (rr->rr_est_req) {
@@ -2358,7 +2358,8 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* decode channel description */
 	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT:");
-	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	cd.chan_nr = ia->chan_desc.chan_nr;
+	rsl_dec_chan_nr(cd.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ia->chan_desc.h0.h) {
 		cd.h = 1;
 		gsm48_decode_chan_h1(&ia->chan_desc, &cd.tsc, &cd.maio,
@@ -2439,7 +2440,8 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* decode channel description */
 	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT EXTENDED:\n");
-	rsl_dec_chan_nr(ia->chan_desc1.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	cd2.chan_nr = ia->chan_desc1.chan_nr;
+	rsl_dec_chan_nr(cd1.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ia->chan_desc1.h0.h) {
 		cd1.h = 1;
 		gsm48_decode_chan_h1(&ia->chan_desc1, &cd1.tsc, &cd1.maio,
@@ -2460,7 +2462,8 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 			ia->req_ref1.ra, ia->chan_desc1.chan_nr, cd1.arfcn,
 			ch_ts, ch_subch, cd1.tsc);
 	}
-	rsl_dec_chan_nr(ia->chan_desc2.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	cd2.chan_nr = ia->chan_desc2.chan_nr;
+	rsl_dec_chan_nr(cd2.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ia->chan_desc2.h0.h) {
 		cd2.h = 1;
 		gsm48_decode_chan_h1(&ia->chan_desc2, &cd2.tsc, &cd2.maio,
@@ -2664,6 +2667,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	struct gsm48_hdr *gh;
 	struct gsm48_pag_rsp *pr;
 	uint8_t mi[11];
+	uint8_t ch_type, ch_subch, ch_ts;
 
 	/* 3.3.1.1.3.1 */
 	stop_rr_t3126(rr);
@@ -2721,6 +2725,11 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 #ifdef TODO
 	RSL_MT_ to activate channel with all the cd_now informations
 #else
+	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (ch_type == RSL_CHAN_SDCCH4_ACCH || ch_ts != 0) {
+		printf("Channel type not supported, exitting.\n");
+		exit(-ENOTSUP);
+	}
 	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr);
 #endif
 
@@ -2984,11 +2993,6 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
-	struct gsm322_cellsel *cs = &ms->cellsel;
-
-	/* when changing/deactivating ccch, ignore pending messages */
-	if (!cs->ccch_sync)
-		return -EINVAL;
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_SYSINFO_1:
@@ -3016,11 +3020,6 @@ static int gsm48_rr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
-	struct gsm322_cellsel *cs = &ms->cellsel;
-
-	/* when changing/deactivating ccch, ignore pending messages */
-	if (!cs->ccch_sync)
-		return -EINVAL;
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_SYSINFO_5:
@@ -3057,6 +3056,7 @@ static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 /* unit data from layer 2 to RR layer */
 static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct tlv_parsed tv;
 	
@@ -3069,6 +3069,33 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return -EIO;
 	}
 	msg->l3h = (uint8_t *) TLVP_VAL(&tv, RSL_IE_L3_INFO);
+
+	if (cs->ccch_state != GSM322_CCCH_ST_SYNC
+	 && cs->ccch_state != GSM322_CCCH_ST_DATA)
+	 	return -EINVAL;
+
+	/* temporary moved here until confirm is fixed */
+	if (cs->ccch_state != GSM322_CCCH_ST_DATA) {
+		LOGP(DCS, LOGL_INFO, "Channel provides data.\n");
+		cs->ccch_state = GSM322_CCCH_ST_DATA;
+
+		/* in dedicated mode */
+		if (ms->rrlayer.state == GSM48_RR_ST_CONN_PEND)
+			return gsm48_rr_tx_rand_acc(ms, NULL);
+
+		/* set timer for reading BCCH */
+		if (cs->state == GSM322_C2_STORED_CELL_SEL
+		 || cs->state == GSM322_C1_NORMAL_CELL_SEL
+		 || cs->state == GSM322_C6_ANY_CELL_SEL
+		 || cs->state == GSM322_C4_NORMAL_CELL_RESEL
+		 || cs->state == GSM322_C8_ANY_CELL_RESEL
+		 || cs->state == GSM322_C5_CHOOSE_CELL
+		 || cs->state == GSM322_C9_CHOOSE_ANY_CELL
+		 || cs->state == GSM322_PLMN_SEARCH
+		 || cs->state == GSM322_HPLMN_SEARCH)
+			start_cs_timer(cs, ms->support.scan_to, 0);
+				// TODO: timer depends on BCCH config
+	}
 
 	switch (rllh->chan_nr) {
 	case RSL_CHAN_PCH_AGCH:

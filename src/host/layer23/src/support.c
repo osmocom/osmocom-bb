@@ -105,7 +105,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sprintf(sup->imeisv, "0000000000000000");
 
 	/* radio */
-	sup->min_rxlev_db = -60; // TODO
+	sup->min_rxlev_db = -70; // TODO
 	sup->sync_to = 6; /* how long to wait sync (0.9 s) */
 	sup->scan_to = 4; /* how long to wait for all sysinfos (>=4 s) */
 }

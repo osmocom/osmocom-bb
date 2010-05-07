@@ -29,7 +29,8 @@
 #define	GSM322_C7_CAMPED_ANY_CELL	7
 #define	GSM322_C8_ANY_CELL_RESEL	8
 #define	GSM322_C9_CHOOSE_ANY_CELL	9
-#define GSM322_HPLMN_SEARCH		10
+#define GSM322_PLMN_SEARCH		10
+#define GSM322_HPLMN_SEARCH		11
 
 /* GSM 03.22 events */
 #define	GSM322_EVENT_SWITCH_ON		1
@@ -42,20 +43,20 @@
 #define	GSM322_EVENT_INVALID_SIM	8
 #define	GSM322_EVENT_NEW_PLMN		9
 #define	GSM322_EVENT_ON_PLMN		10
-#define	GSM322_EVENT_HPLMN_SEARCH	11
-#define	GSM322_EVENT_HPLMN_FOUND	12
-#define	GSM322_EVENT_HPLMN_NOT_FOUND	13
-#define	GSM322_EVENT_USER_RESEL		14
-#define	GSM322_EVENT_PLMN_AVAIL		15
-#define	GSM322_EVENT_CHOSE_PLMN		16
-#define	GSM322_EVENT_SEL_MANUAL		17
-#define	GSM322_EVENT_SEL_AUTO		18
-#define	GSM322_EVENT_CELL_FOUND		19
-#define	GSM322_EVENT_NO_CELL_FOUND	20
-#define	GSM322_EVENT_LEAVE_IDLE		21
-#define	GSM322_EVENT_RET_IDLE		22
-#define	GSM322_EVENT_CELL_RESEL		23
-#define	GSM322_EVENT_SYSINFO		24
+#define	GSM322_EVENT_PLMN_SEARCH_START	11
+#define	GSM322_EVENT_PLMN_SEARCH_END	12
+#define	GSM322_EVENT_USER_RESEL		13
+#define	GSM322_EVENT_PLMN_AVAIL		14
+#define	GSM322_EVENT_CHOSE_PLMN		15
+#define	GSM322_EVENT_SEL_MANUAL		16
+#define	GSM322_EVENT_SEL_AUTO		17
+#define	GSM322_EVENT_CELL_FOUND		18
+#define	GSM322_EVENT_NO_CELL_FOUND	19
+#define	GSM322_EVENT_LEAVE_IDLE		20
+#define	GSM322_EVENT_RET_IDLE		21
+#define	GSM322_EVENT_CELL_RESEL		22
+#define	GSM322_EVENT_SYSINFO		23
+#define	GSM322_EVENT_HPLMN_SEARCH	24
 
 enum {
 	PLMN_MODE_MANUAL,
@@ -125,15 +126,17 @@ struct gsm322_plmn {
 	uint16_t		mcc, mnc; /* current network selected */
 };
 
+/* state of CCCH activation */
+#define GSM322_CCCH_ST_IDLE	0	/* no connection */
+#define GSM322_CCCH_ST_INIT	1	/* initalized */
+#define GSM322_CCCH_ST_SYNC	2	/* got sync */
+#define GSM322_CCCH_ST_DATA	3	/* receiveing data */
+
 struct gsm48_sysinfo;
 /* Cell selection process */
 struct gsm322_cellsel {
 	struct osmocom_ms	*ms;
 	int			state; /* GSM322_Cx_* */
-
-	uint16_t		arfcn; /* current tuned idle mode arfcn */
-//	uint8_t			tune_retry;
-	struct gsm48_sysinfo	*si; /* current sysinfo */
 
 	struct llist_head	event_queue; /* event messages */
 	struct llist_head	ba_list; /* BCCH Allocation per PLMN */
@@ -145,7 +148,9 @@ struct gsm322_cellsel {
 
 	uint8_t			powerscan; /* currently scanning for power */
 	uint32_t		scan_state; /* special state of current scan */
-	uint8_t			ccch_sync; /* set, if ccch is synced */
+	uint8_t			ccch_state; /* special state of current ccch */
+	uint16_t		arfcn; /* current tuned idle mode arfcn */
+	struct gsm48_sysinfo	*si; /* current sysinfo */
 
 	uint8_t			selected; /* if a cell is selected */
 	uint16_t		sel_arfcn;
@@ -188,5 +193,6 @@ int gsm322_dump_cs_list(struct osmocom_ms *ms, uint8_t flag);
 int gsm322_dump_sim_plmn(struct osmocom_ms *ms);
 int gsm322_dump_forbidden_plmn(struct osmocom_ms *ms);
 int gsm322_dump_forbidden_la(struct osmocom_ms *ms);
+void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro);
 
 #endif /* _GSM322_H */

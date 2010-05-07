@@ -44,7 +44,7 @@ static int gsm48_rcv_mmr(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_mm_ev(struct osmocom_ms *ms, int msg_type, struct msgb *msg);
 static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, uint8_t mi_type);
 static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms);
-static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms);
+static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_mm_conn_go_dedic(struct osmocom_ms *ms);
 static int gsm48_mm_init_mm_reject(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg);
@@ -2180,6 +2180,14 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	sim: apply update state
 #endif
 
+	/* set last registered PLMN */
+	subscr->plmn_valid = 1;
+	subscr->plmn_mcc = subscr->lai_mcc;
+	subscr->plmn_mnc = subscr->lai_mnc;
+#ifdef TODO
+	sim: store plmn
+#endif
+
 	LOGP(DMM, LOGL_INFO, "LOCATION UPDATING ACCEPT (mcc %03d mnc %02d "
 		"lac 0x%04x)\n", subscr->lai_mcc, subscr->lai_mnc,
 		subscr->lai_lac);
@@ -2354,7 +2362,7 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	default:
 		/* 4.4.4.9 continue with failure handling */
-		return gsm48_mm_loc_upd_failed(ms);
+		return gsm48_mm_loc_upd_failed(ms, NULL);
 	}
 
 	/* CS proc triggers: return to IDLE, case 13 is also handled there */
@@ -2373,7 +2381,7 @@ static int gsm48_mm_loc_upd_delay(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* process failues as described in the lower part of 4.4.4.9 */
-static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms)
+static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm_subscriber *subscr = &ms->subscr;
@@ -2447,7 +2455,7 @@ static int gsm48_mm_rel_loc_upd_abort(struct osmocom_ms *ms, struct msgb *msg)
 	mm->lupd_ra_failure = 0;
 
 	/* continue with failure handling */
-	return gsm48_mm_loc_upd_failed(ms);
+	return gsm48_mm_loc_upd_failed(ms, NULL);
 }
 
 /* location update has timed out */
@@ -2465,7 +2473,7 @@ static int gsm48_mm_loc_upd_timeout(struct osmocom_ms *ms, struct msgb *msg)
 	gsm48_rr_downmsg(ms, nmsg);
 
 	/* continue with failure handling */
-	return gsm48_mm_loc_upd_failed(ms);
+	return gsm48_mm_loc_upd_failed(ms, NULL);
 }
 
 /*
