@@ -69,3 +69,26 @@ void l1a_init(void)
 {
 	l1a_l23api_init();
 }
+
+/* Execute pending L1A completions */
+void l1a_compl_execute(void)
+{
+	unsigned long flags;
+	unsigned int scheduled;
+	unsigned int i;
+
+	/* get and reset the currently scheduled tasks */
+	local_irq_save(flags);
+	scheduled = l1s.scheduled_compl;
+	l1s.scheduled_compl = 0;
+	local_irq_restore(flags);
+
+	/* Iterate over list of scheduled completions, call their
+	 * respective completion handler */
+	for (i = 0; i < 32; i++) {
+		if (!(scheduled & (1 << i)))
+			continue;
+		/* call completion function */
+		l1s.completion[i](i);
+	}
+}

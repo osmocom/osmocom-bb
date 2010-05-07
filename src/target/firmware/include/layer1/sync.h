@@ -28,6 +28,13 @@ enum l1s_chan {
 	_NUM_L1S_CHAN
 };
 
+enum l1_compl {
+	L1_COMPL_FB,
+};
+
+typedef void l1_compl_cb(enum l1_compl c);
+
+#define L1S_NUM_COMPL		32
 #define L1S_NUM_NEIGH_CELL	6
 
 struct l1s_state {
@@ -51,6 +58,11 @@ struct l1s_state {
 
 	/* Transmit queues of pending packets for main DCCH and ACCH */
 	struct llist_head tx_queue[_NUM_L1S_CHAN];
+
+	/* Which L1A completions are scheduled right now */
+	uint32_t scheduled_compl;
+	/* callbacks for each of the completions */
+	l1_compl_cb *completion[L1S_NUM_COMPL];
 
 	/* Structures below are for L1-task specific parameters, used
 	 * to communicate between l1-sync and l1-async (l23_api) */
@@ -125,6 +137,9 @@ void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode);
 void l1s_sb_test(uint8_t base_fn);
 void l1s_pm_test(uint8_t base_fn, uint16_t arfcn);
 void l1s_nb_test(uint8_t base_fn);
+
+/* schedule a completion */
+void l1s_compl_sched(enum l1_compl c);
 
 void l1s_init(void);
 

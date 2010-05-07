@@ -29,6 +29,9 @@ void l1a_mftask_enable(enum mframe_task task);
 /* Disable a repeating multiframe task */
 void l1a_mftask_disable(enum mframe_task task);
 
+/* Execute pending L1A completions */
+void l1a_compl_execute(void);
+
 /* Initialize asynchronous part of Layer1 */
 void l1a_init(void);
 
