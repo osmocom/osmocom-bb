@@ -2726,7 +2726,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	RSL_MT_ to activate channel with all the cd_now informations
 #else
 	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
-	if (ch_type == RSL_CHAN_SDCCH4_ACCH || ch_ts != 0) {
+	if (ch_type != RSL_CHAN_SDCCH4_ACCH || ch_ts != 0) {
 		printf("Channel type not supported, exitting.\n");
 		exit(-ENOTSUP);
 	}
