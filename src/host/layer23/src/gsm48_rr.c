@@ -2092,8 +2092,8 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 	if (rr->state != GSM48_RR_ST_IDLE || !cs->selected
 	 || (cs->state != GSM322_C3_CAMPED_NORMALLY
 	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)) {
-		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping "
-			"normally.\n");
+		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping.\n");
+
 		return 0;
 	}
 	LOGP(DPAG, LOGL_INFO, "PAGING REQUEST 1\n");
@@ -2102,6 +2102,7 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 		short_read:
 		LOGP(DRR, LOGL_NOTICE, "Short read of PAGING REQUEST 1 "
 			"message.\n");
+
 		return -EINVAL;
 	}
 
@@ -2143,8 +2144,8 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	if (rr->state != GSM48_RR_ST_IDLE || !cs->selected
 	 || (cs->state != GSM322_C3_CAMPED_NORMALLY
 	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)) {
-		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping "
-			"normally.\n");
+		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping.\n");
+
 		return 0;
 	}
 	LOGP(DPAG, LOGL_INFO, "PAGING REQUEST 2\n");
@@ -2153,6 +2154,7 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 		short_read:
 		LOGP(DRR, LOGL_NOTICE, "Short read of PAGING REQUEST 2 "
 			"message .\n");
+
 		return -EINVAL;
 	}
 
@@ -2203,8 +2205,8 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	if (rr->state != GSM48_RR_ST_IDLE || !cs->selected
 	 || (cs->state != GSM322_C3_CAMPED_NORMALLY
 	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)) {
-		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping "
-			"normally.\n");
+		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping.\n");
+
 		return 0;
 	}
 	LOGP(DPAG, LOGL_INFO, "PAGING REQUEST 3\n");
@@ -2212,6 +2214,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	if (payload_len < 0) { /* must include "channel needed", part of *pa */
 		LOGP(DRR, LOGL_NOTICE, "Short read of PAGING REQUEST 3 "
 			"message .\n");
+
 		return -EINVAL;
 	}
 
@@ -3058,6 +3061,7 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	struct tlv_parsed tv;
 	
 	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
@@ -3073,6 +3077,11 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	if (cs->ccch_state != GSM322_CCCH_ST_SYNC
 	 && cs->ccch_state != GSM322_CCCH_ST_DATA)
 	 	return -EINVAL;
+
+	/* when camping, start/reset loss timer */
+	if (cs->state == GSM322_C3_CAMPED_NORMALLY
+	 || cs->state == GSM322_C7_CAMPED_ANY_CELL)
+		start_loss_timer(cs, s->bcch_radio_link_timeout, 0);
 
 	/* temporary moved here until confirm is fixed */
 	if (cs->ccch_state != GSM322_CCCH_ST_DATA) {

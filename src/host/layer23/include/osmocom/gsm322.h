@@ -194,5 +194,6 @@ int gsm322_dump_sim_plmn(struct osmocom_ms *ms);
 int gsm322_dump_forbidden_plmn(struct osmocom_ms *ms);
 int gsm322_dump_forbidden_la(struct osmocom_ms *ms);
 void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro);
+void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro);
 
 #endif /* _GSM322_H */

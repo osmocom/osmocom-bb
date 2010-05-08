@@ -422,6 +422,8 @@ void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro)
 void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro)
 {
 	/* update timer */
+	cs->timer.cb = gsm322_cs_loss;
+	cs->timer.data = cs;
 	if (bsc_timer_pending(&cs->timer)) {
 		struct timeval current_time;
 		unsigned long long currentTime;
@@ -437,8 +439,6 @@ void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro)
 	}
 
 	LOGP(DCS, LOGL_INFO, "Starting loss CS timer with %d seconds.\n", sec);
-	cs->timer.cb = gsm322_cs_loss;
-	cs->timer.data = cs;
 	bsc_schedule_timer(&cs->timer, sec, micro);
 }
 
@@ -2325,8 +2325,25 @@ static void gsm322_cs_loss(void *arg)
 {
 	struct gsm322_cellsel *cs = arg;
 	struct osmocom_ms *ms = cs->ms;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	LOGP(DCS, LOGL_INFO, "Loss of CCCH timer fired.\n");
+	if (cs->state == GSM322_C3_CAMPED_NORMALLY
+	 || cs->state == GSM322_C7_CAMPED_ANY_CELL) {
+		if (rr->state == GSM48_RR_ST_IDLE) {
+			struct msgb *nmsg;
+
+			LOGP(DCS, LOGL_INFO, "Trigger re-selection.\n");
+
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_CELL_RESEL);
+			if (!nmsg)
+				return;
+			gsm322_c_event(ms, nmsg);
+			msgb_free(nmsg);
+		} else {
+			LOGP(DCS, LOGL_INFO, "Trigger RR abort.\n");
+		}
+	}
 
 	return;
 }
