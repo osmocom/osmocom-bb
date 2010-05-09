@@ -42,6 +42,10 @@ struct bitvec {
 /* check if the bit is 0 or 1 for a given position inside a bitvec */
 enum bit_value bitvec_get_bit_pos(const struct bitvec *bv, unsigned int bitnr);
 
+/* check if the bit is L or H for a given position inside a bitvec */
+enum bit_value bitvec_get_bit_pos_high(const struct bitvec *bv,
+					unsigned int bitnr);
+
 /* get the Nth set bit inside the bit vector */
 unsigned int bitvec_get_nth_set_bit(const struct bitvec *bv, unsigned int n);
 
@@ -52,11 +56,17 @@ int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnum,
 /* Set the next bit in the vector */
 int bitvec_set_bit(struct bitvec *bv, enum bit_value bit);
 
+/* get the next bit (low/high) inside a bitvec */
+int bitvec_get_bit_high(struct bitvec *bv);
+
 /* Set multiple bits at the current position */
 int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, int count);
 
 /* Add an unsigned integer (of length count bits) to current position */
 int bitvec_set_uint(struct bitvec *bv, unsigned int in, int count);
+
+/* get multiple bits (based on numeric value) from current pos */
+int bitvec_get_uint(struct bitvec *bv, int num_bits);
 
 
 /* Pad the bit vector up to a certain bit position */

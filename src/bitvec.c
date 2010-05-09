@@ -77,6 +77,25 @@ enum bit_value bitvec_get_bit_pos(const struct bitvec *bv, unsigned int bitnr)
 	return ZERO;
 }
 
+/* check if the bit is L or H for a given position inside a bitvec */
+enum bit_value bitvec_get_bit_pos_high(const struct bitvec *bv,
+					unsigned int bitnr)
+{
+	unsigned int bytenum = bytenum_from_bitnum(bitnr);
+	unsigned int bitnum = 7 - (bitnr % 8);
+	uint8_t bitval;
+
+	if (bytenum >= bv->data_len)
+		return -EINVAL;
+
+	bitval = bitval2mask(H, bitnum);
+
+	if (bv->data[bytenum] & bitval)
+		return H;
+
+	return L;
+}
+
 /* get the Nth set bit inside the bit vector */
 unsigned int bitvec_get_nth_set_bit(const struct bitvec *bv, unsigned int n)
 {
@@ -127,6 +146,18 @@ int bitvec_set_bit(struct bitvec *bv, enum bit_value bit)
 	return rc;
 }
 
+/* get the next bit (low/high) inside a bitvec */
+int bitvec_get_bit_high(struct bitvec *bv)
+{
+	int rc;
+
+	rc = bitvec_get_bit_pos_high(bv, bv->cur_bit);
+	if (rc >= 0)
+		bv->cur_bit++;
+
+	return rc;
+}
+
 /* set multiple bits (based on array of bitvals) at current pos */
 int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, int count)
 {
@@ -156,6 +187,24 @@ int bitvec_set_uint(struct bitvec *bv, unsigned int ui, int num_bits)
 	}
 
 	return 0;
+}
+
+/* get multiple bits (based on numeric value) from current pos */
+int bitvec_get_uint(struct bitvec *bv, int num_bits)
+{
+	int i;
+	unsigned int ui = 0;
+
+	for (i = 0; i < num_bits; i++) {
+		int bit = bitvec_get_bit_pos(bv, bv->cur_bit);
+		if (bit < 0)
+			return bit;
+		if (bit)
+			ui |= (1 << (num_bits - i - 1));
+		bv->cur_bit++;
+	}
+
+	return ui;
 }
 
 /* pad all remaining bits up to num_bits */
