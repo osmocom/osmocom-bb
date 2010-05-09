@@ -63,10 +63,9 @@ static struct afc_state afc_state = {
 #define AFC_NORM_FACTOR_GSM	((1<<15) / 947)
 #define AFC_NORM_FACTOR_DCS	((1<<15) / 1894)
 
-/* we assume 4.9ppb per LSB, equals 0.0049 * 32768 == 160 */
-//#define AFC_SLOPE		160
-#define AFC_SLOPE		320
-//#define AFC_SLOPE		141
+/* we assume 8.769ppb per LSB, equals 0.008769 * 32768 == 287 */
+//#define AFC_SLOPE		320
+#define AFC_SLOPE		287
 
 /* The DSP can measure the frequency error in the following ranges:
  * 	FB_MODE0:	+/- 20 kHz
