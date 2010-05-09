@@ -603,9 +603,10 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 		found = NULL;
 		llist_for_each_entry(temp, &temp_list, entry) {
 			if (temp->mcc == cs->list[i].sysinfo->mcc
-			 && temp->mnc == cs->list[i].sysinfo->mnc)
+			 && temp->mnc == cs->list[i].sysinfo->mnc) {
 			 	found = temp;
 			 	break;
+			}
 		}
 		/* update or create */
 		if (found) {
@@ -716,7 +717,7 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 				break;
 			}
 		}
-		LOGP(DPLMN, LOGL_INFO, "Crating Sorted PLMN list. "
+		LOGP(DPLMN, LOGL_INFO, "Creating Sorted PLMN list. "
 			"(%02d: mcc=%03d mnc=%02d allowed=%s rx-lev=%d)\n",
 			i, temp->mcc, temp->mnc, (temp->cause) ? "no ":"yes",
 			temp->rxlev_db);
@@ -1197,11 +1198,22 @@ static int gsm322_m_go_not_on_plmn(struct osmocom_ms *ms, struct msgb *msg)
 /* display PLMNs and to Not on PLMN */
 static int gsm322_m_display_plmns(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm_sub_plmn_list *temp;
+
 	/* generate list */
 	gsm322_sort_list(ms);
 
 #ifdef TODO
 	display PLMNs to user
+#else
+	printf("\nSelect from Network:\n");
+
+	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
+		printf("Network %03d, %02d (%s, %s)\n", temp->mcc, temp->mnc,
+			gsm_get_mcc(temp->mcc),
+			gsm_get_mnc(temp->mcc, temp->mnc));
+	printf("\n");
 #endif
 	
 	/* go Not on PLMN state */
@@ -1597,6 +1609,10 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	if (cs->state == GSM322_PLMN_SEARCH && !weight) {
 		struct msgb *nmsg;
 
+		/* create AA flag */
+		cs->mcc = cs->mnc = 0;
+		gsm322_cs_select(ms, 0);
+
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_END);
 		LOGP(DCS, LOGL_INFO, "PLMN search finished.\n");
 		if (!nmsg)
@@ -1766,7 +1782,9 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 
 	/* store sysinfo */
 	cs->list[cs->arfcn].flags |= GSM322_CS_FLAG_SYSINFO;
-	if (s->cell_barr)
+	if (s->cell_barr
+	 && !(cs->list[cs->arfcn].sysinfo && cs->list[cs->arfcn].sysinfo->sp &&
+			cs->list[cs->arfcn].sysinfo->sp_cbq))
 		cs->list[cs->arfcn].flags |= GSM322_CS_FLAG_BARRED;
 	else
 		cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_BARRED;
@@ -1845,8 +1863,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	case PLMN_MODE_AUTO:
 		if (plmn->state == GSM322_A4_WAIT_FOR_PLMN) {
 			/* PLMN becomes available */
-			nmsg = gsm322_msgb_alloc(
-				GSM322_EVENT_PLMN_AVAIL);
+			nmsg = gsm322_msgb_alloc( GSM322_EVENT_PLMN_AVAIL);
 			if (!nmsg)
 				return -ENOMEM;
 			gsm322_plmn_sendmsg(ms, nmsg);
@@ -1857,8 +1874,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 		  && gsm322_is_plmn_avail(cs, plmn->mcc,
 			plmn->mnc)) {
 			/* PLMN becomes available */
-			nmsg = gsm322_msgb_alloc(
-				GSM322_EVENT_PLMN_AVAIL);
+			nmsg = gsm322_msgb_alloc( GSM322_EVENT_PLMN_AVAIL);
 			if (!nmsg)
 				return -ENOMEM;
 			gsm322_plmn_sendmsg(ms, nmsg);
@@ -2473,8 +2489,9 @@ static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	int i;
 
-	/* in case we already tried any cell selection, power scan again */
-	if (cs->state == GSM322_C6_ANY_CELL_SEL) {
+	/* in case we already tried any cell (re-)selection, power scan again */
+	if (cs->state == GSM322_C6_ANY_CELL_SEL
+	 || cs->state == GSM322_C8_ANY_CELL_RESEL) {
 		struct msgb *nmsg;
 
 		/* tell that we have no cell found */
@@ -3061,7 +3078,7 @@ int gsm322_dump_cs_list(struct osmocom_ms *ms, uint8_t flags)
 	int i, j;
 	struct gsm48_sysinfo *s;
 
-	printf("rx-lev |MCC    |MNC    |forb.LA|barred,0123456789abcdef|"
+	printf("rx-lev |MCC    |MNC    |forb.LA|prio  ,0123456789abcdef|"
 		"min-db |max-pwr\n"
 		"-------+-------+-------+-------+-----------------------+"
 		"-------+-------\n");
@@ -3077,9 +3094,13 @@ int gsm322_dump_cs_list(struct osmocom_ms *ms, uint8_t flags)
 			else
 				printf("no     |");
 			if ((cs->list[i].flags & GSM322_CS_FLAG_BARRED))
-				printf("yes    ");
-			else
-				printf("no     ");
+				printf("barred ");
+			else {
+				if (cs->list[i].sysinfo->cell_barr)
+					printf("low    ");
+				else
+					printf("high   ");
+			}
 			for (j = 0; j < 16; j++) {
 				if ((s->class_barr & (1 << j)))
 					printf("*");

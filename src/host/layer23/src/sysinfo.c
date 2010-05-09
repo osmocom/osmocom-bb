@@ -103,7 +103,11 @@ int gsm48_sysinfo_dump(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
 		if ((s->class_barr & (1 << i)))
 			printf(" C%d", i);
 	}
-	printf("\n\n");
+	printf("\n");
+	if (s->sp)
+		printf(" CBQ = %d  CRO = %d  TEMP_OFFSET = %d  PENALTY_TIME "
+			"= %d\n", s->sp_cbq, s->sp_cro, s->sp_to, s->sp_pt);
+	printf("\n");
 
 	/* neighbor cell */
 	printf("Neighbor Cell:\n");
@@ -151,7 +155,7 @@ int gsm48_sysinfo_dump(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
 	default:
 		printf("CCCH Config = reserved");
 	}
-	printf("BS-PA-MFMS = %d  Attachment = %s\n",
+	printf("  BS-PA-MFMS = %d  Attachment = %s\n",
 		s->pag_mf_periods, (s->att_allowed) ? "allowed" : "denied");
 	printf("BS-AG_BLKS_RES = %d\n", s->bs_ag_blks_res);
 

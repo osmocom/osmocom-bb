@@ -1608,6 +1608,39 @@ static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s, uint8_t *si,
 static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si,
 	uint8_t len)
 {
+	struct bitvec bv;
+
+	memset(&bv, 0, sizeof(bv));
+	bv.data_len = len;
+	bv.data = si;
+
+	/* Optional Selection Parameters */
+	if (bitvec_get_bit_high(&bv) == H) {
+		s->sp = 1;
+		s->sp_cbq = bitvec_get_uint(&bv, 1);
+		s->sp_cro = bitvec_get_uint(&bv, 6);
+		s->sp_to = bitvec_get_uint(&bv, 3);
+		s->sp_pt = bitvec_get_uint(&bv, 5);
+	}
+	/* Optional Power Offset */
+	if (bitvec_get_bit_high(&bv) == H) {
+		s->po = 1;
+		s->po_value = bitvec_get_uint(&bv, 3);
+	}
+	/* System Onformation 2ter Indicator */
+	if (bitvec_get_bit_high(&bv) == H)
+		s->si2ter_ind = 1;
+	/* Early Classark Sending Control */
+	if (bitvec_get_bit_high(&bv) == H)
+		s->ecsm = 1;
+	/* Scheduling if and where */
+	if (bitvec_get_bit_high(&bv) == H) {
+		s->sched = 1;
+		s->sched_where = bitvec_get_uint(&bv, 3);
+	}
+	/* GPRS Indicator */
+	s->gi_ra_colour = bitvec_get_uint(&bv, 3);
+	s->gi_si13_pos = bitvec_get_uint(&bv, 1);
 	return 0;
 }
 
@@ -3081,7 +3114,12 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	/* when camping, start/reset loss timer */
 	if (cs->state == GSM322_C3_CAMPED_NORMALLY
 	 || cs->state == GSM322_C7_CAMPED_ANY_CELL)
-		start_loss_timer(cs, s->bcch_radio_link_timeout, 0);
+#ifdef TODO
+	set radio link timeout on layer 1
+	it is the number of subsequent BCCH blocks. (about 1/4 seconds)
+#else
+		start_loss_timer(cs, s->bcch_radio_link_timeout / 4, 0);
+#endif
 
 	/* temporary moved here until confirm is fixed */
 	if (cs->ccch_state != GSM322_CCCH_ST_DATA) {

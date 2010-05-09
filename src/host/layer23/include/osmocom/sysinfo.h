@@ -51,6 +51,22 @@ struct gsm48_sysinfo {
 	uint8_t				reest_denied; /* 1 = denied */
 	uint8_t				cell_barr; /* 1 = barred */
 	uint16_t			class_barr; /* bit 10 is emergency */
+
+	/* si3 rest */
+	uint8_t				sp;
+	uint8_t				sp_cbq;
+	uint8_t				sp_cro;
+	uint8_t				sp_to;
+	uint8_t				sp_pt;
+	uint8_t				po;
+	uint8_t				po_value;
+	uint8_t				si2ter_ind;
+	uint8_t				ecsm;
+	uint8_t				sched;
+	uint8_t				sched_where;
+	uint8_t				gi_ra_colour;
+	uint8_t				gi_si13_pos;
+
 	/* cell selection */
 	int8_t				ms_txpwr_max_ccch;
 	int8_t				cell_resel_hyst_db;
