@@ -187,6 +187,8 @@ int gsm322_dump_sorted_plmn(struct osmocom_ms *ms);
 int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 			void (*print)(void *, const char *, ...), void *priv);
 int gsm322_dump_forbidden_la(struct osmocom_ms *ms);
+int gsm322_dump_ba_list(struct gsm322_cellsel *cs, uint16_t mcc, uint16_t mnc,
+			void (*print)(void *, const char *, ...), void *priv);
 void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro);
 void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro);
 

@@ -162,6 +162,26 @@ DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023>",
 	return CMD_SUCCESS;
 }
 
+DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [mcc] [mnc]",
+	SHOW_STR "Display information about band allocations\n")
+{
+	struct osmocom_ms *ms;
+	uint16_t mcc = 0, mnc = 0;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (argc >= 3) {
+		mcc = atoi(argv[1]);
+		mnc = atoi(argv[2]);
+	}
+
+	gsm322_dump_ba_list(&ms->cellsel, mcc, mnc, print_vty, vty);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
 	SHOW_STR "Insert test card\n")
 {
@@ -180,7 +200,7 @@ DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
 
 	if (argc >= 3) {
 		mcc = atoi(argv[1]);
-		mnc = atoi(argv[1]);
+		mnc = atoi(argv[2]);
 	}
 
 	gsm_subscr_testcard(ms, mcc, mnc, "0000000000");
@@ -217,6 +237,7 @@ int ms_vty_init(void)
 	install_element(VIEW_NODE, &show_subscr_cmd);
 	install_element(VIEW_NODE, &show_cell_cmd);
 	install_element(VIEW_NODE, &show_cell_si_cmd);
+	install_element(VIEW_NODE, &show_ba_cmd);
 
 	install_element(VIEW_NODE, &insert_test_cmd);
 	install_element(VIEW_NODE, &remove_sim_cmd);

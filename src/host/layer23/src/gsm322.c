@@ -3055,7 +3055,7 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 		s = cs->list[i].sysinfo;
 		if (!s || !(cs->list[i].flags & flags))
 			continue;
-		print(priv, "%04d   |%4d   |", i, cs->list[i].rxlev_db);
+		print(priv, "%4d   |%4d   |", i, cs->list[i].rxlev_db);
 		if ((cs->list[i].flags & GSM322_CS_FLAG_SYSINFO)) {
 			print(priv, "%03d    |%02d     |", s->mcc, s->mnc);
 			if ((cs->list[i].flags & GSM322_CS_FLAG_FORBIDD))
@@ -3097,6 +3097,28 @@ int gsm322_dump_forbidden_la(struct osmocom_ms *ms)
 	llist_for_each_entry(temp, &plmn->forbidden_la, entry)
 		printf("%03d    |%02d     |0x%04x |#%d\n", temp->mcc, temp->mnc,
 			temp->lac, temp->cause);
+
+	return 0;
+}
+
+int gsm322_dump_ba_list(struct gsm322_cellsel *cs, uint16_t mcc, uint16_t mnc,
+			void (*print)(void *, const char *, ...), void *priv)
+{
+	struct gsm322_ba_list *ba;
+	int i;
+
+	llist_for_each_entry(ba, &cs->ba_list, entry) {
+		if (mcc && mnc && (mcc != ba->mcc || mnc != ba->mnc))
+			continue;
+		print(priv, "Band Allocation of network: MCC %03d MNC %02d "
+			"(%s, %s)\n", ba->mcc, ba->mnc, gsm_get_mcc(ba->mcc),
+			gsm_get_mnc(ba->mcc, ba->mnc));
+		for (i = 0; i <= 1023; i++) {
+			if ((ba->freq[i >> 3] & (1 << (i & 7))))
+				print(priv, " %d", i);
+		}
+		print(priv, "\n");
+	}
 
 	return 0;
 }
