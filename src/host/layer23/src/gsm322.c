@@ -215,69 +215,20 @@ int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
  * support
  */
 
-/* del forbidden PLMN */
-int gsm322_del_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
-	uint16_t mnc)
+/* print to DCS logging */
+static void print_dcs(void *priv, const char *fmt, ...)
 {
-	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm_sub_plmn_na *na;
+	char buffer[1000];
+	va_list args;
 
-	llist_for_each_entry(na, &subscr->plmn_na, entry) {
-		if (na->mcc == mcc && na->mnc == mnc) {
-			LOGP(DPLMN, LOGL_INFO, "Delete from list of forbidden "
-				"PLMNs (mcc=%03d, mnc=%02d)\n", mcc, mnc);
-			llist_del(&na->entry);
-			talloc_free(na);
-#ifdef TODO
-			update plmn not allowed list on sim
-#endif
-			return 0;
-		}
-	}
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer) - 1, fmt, args);
+	buffer[sizeof(buffer) - 1] = '\0';
+	va_end(args);
 
-	return -EINVAL;
-}
-
-/* add forbidden PLMN */
-int gsm322_add_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
-	uint16_t mnc, uint8_t cause)
-{
-	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm_sub_plmn_na *na;
-
-	/* don't add Home PLMN */
-	if (subscr->sim_valid && mcc == subscr->mcc && mnc == subscr->mnc)
-		return -EINVAL;
-
-	LOGP(DPLMN, LOGL_INFO, "Add to list of forbidden PLMNs "
-		"(mcc=%03d, mnc=%02d)\n", mcc, mnc);
-	na = talloc_zero(l23_ctx, struct gsm_sub_plmn_na);
-	if (!na)
-		return -ENOMEM;
-	na->mcc = mcc;
-	na->mnc = mnc;
-	na->cause = cause;
-	llist_add_tail(&na->entry, &subscr->plmn_na);
-
-#ifdef TODO
-	update plmn not allowed list on sim
-#endif
-
-	return 0;
-}
-
-/* search forbidden PLMN */
-int gsm322_is_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc)
-{
-	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm_sub_plmn_na *na;
-
-	llist_for_each_entry(na, &subscr->plmn_na, entry) {
-		if (na->mcc == mcc && na->mnc == mnc)
-			return 1;
-	}
-
-	return 0;
+	if (buffer[0])
+//		LOGP(DCS, LOGL_INFO, "%s", buffer);
+		printf("%s", buffer);
 }
 
 /* del forbidden LA */
@@ -1340,7 +1291,7 @@ static int gsm322_m_go_on_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_subscriber *subscr = &ms->subscr;
 
 	/* if selected PLMN is in list of forbidden PLMNs */
-	gsm322_del_forbidden_plmn(ms, plmn->mcc, plmn->mnc);
+	gsm_subscr_del_forbidden_plmn(subscr, plmn->mcc, plmn->mnc);
 
 	/* set last registered PLMN */
 	subscr->plmn_valid = 1;
@@ -1603,7 +1554,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	cs->scan_state = weight;
 
 	if (!weight)
-		gsm322_dump_cs_list(ms, GSM322_CS_FLAG_SYSINFO);
+		gsm322_dump_cs_list(cs, GSM322_CS_FLAG_SYSINFO, print_dcs,
+			NULL);
 
 	/* special case for PLMN search */
 	if (cs->state == GSM322_PLMN_SEARCH && !weight) {
@@ -1612,6 +1564,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		/* create AA flag */
 		cs->mcc = cs->mnc = 0;
 		gsm322_cs_select(ms, 0);
+
+		new_c_state(cs, GSM322_C0_NULL);
 
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_END);
 		LOGP(DCS, LOGL_INFO, "PLMN search finished.\n");
@@ -1631,6 +1585,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
+
+		new_c_state(cs, GSM322_C3_CAMPED_NORMALLY);
 
 		cs->arfcn = cs->sel_arfcn;
 		LOGP(DCS, LOGL_INFO, "Tuning back to frequency %d (rxlev "
@@ -2025,7 +1981,7 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 			LOGP(DCS, LOGL_INFO, "Sysinfo of selected cell is "
 				"updated.\n");
 			memcpy(&cs->sel_si, s, sizeof(cs->sel_si));
-			gsm48_sysinfo_dump(ms, s);
+			gsm48_sysinfo_dump(s, print_dcs, NULL);
 		}
 	}
 
@@ -2120,7 +2076,7 @@ static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 		/* stop timer */
 		stop_cs_timer(cs);
 
-		gsm48_sysinfo_dump(ms, s);
+		gsm48_sysinfo_dump(s, print_dcs, NULL);
 
 		/* store sysinfo and continue scan */
 		return gsm322_cs_store(ms);
@@ -2241,6 +2197,19 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 			gsm322_plmn_sendmsg(ms, nmsg);
 
 			/* if HPLMN search, select last frequency */
+			if (cs->state == GSM322_HPLMN_SEARCH) {
+				new_c_state(cs, GSM322_C3_CAMPED_NORMALLY);
+
+				cs->arfcn = cs->sel_arfcn;
+				LOGP(DCS, LOGL_INFO, "Tuning back to frequency "
+					"%d (rxlev %d).\n", cs->arfcn,
+					cs->list[cs->arfcn].rxlev_db);
+				cs->ccch_state = GSM322_CCCH_ST_INIT;
+				l1ctl_tx_ccch_req(ms, cs->arfcn);
+				start_cs_timer(cs, ms->support.sync_to, 0);
+
+			} else
+				new_c_state(cs, GSM322_C0_NULL);
 
 			return 0;
 		}
@@ -3072,74 +3041,48 @@ int gsm322_dump_sorted_plmn(struct osmocom_ms *ms)
 	return 0;
 }
 
-int gsm322_dump_cs_list(struct osmocom_ms *ms, uint8_t flags)
+int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
+			void (*print)(void *, const char *, ...), void *priv)
 {
-	struct gsm322_cellsel *cs = &ms->cellsel;
 	int i, j;
 	struct gsm48_sysinfo *s;
 
-	printf("rx-lev |MCC    |MNC    |forb.LA|prio  ,0123456789abcdef|"
-		"min-db |max-pwr\n"
-		"-------+-------+-------+-------+-----------------------+"
-		"-------+-------\n");
+	print(priv, "arfcn  |rx-lev |MCC    |MNC    |forb.LA|"
+		"prio  ,0123456789abcdef|min-db |max-pwr\n");
+	print(priv, "-------+-------+-------+-------+-------+"
+		"-----------------------+-------+-------\n");
 	for (i = 0; i <= 1023; i++) {
 		s = cs->list[i].sysinfo;
 		if (!s || !(cs->list[i].flags & flags))
 			continue;
-		printf("%4d   |", cs->list[i].rxlev_db);
+		print(priv, "%04d   |%4d   |", i, cs->list[i].rxlev_db);
 		if ((cs->list[i].flags & GSM322_CS_FLAG_SYSINFO)) {
-			printf("%03d    |%02d     |", s->mcc, s->mnc);
+			print(priv, "%03d    |%02d     |", s->mcc, s->mnc);
 			if ((cs->list[i].flags & GSM322_CS_FLAG_FORBIDD))
-				printf("yes    |");
+				print(priv, "yes    |");
 			else
-				printf("no     |");
+				print(priv, "no     |");
 			if ((cs->list[i].flags & GSM322_CS_FLAG_BARRED))
-				printf("barred ");
+				print(priv, "barred ");
 			else {
 				if (cs->list[i].sysinfo->cell_barr)
-					printf("low    ");
+					print(priv, "low    ");
 				else
-					printf("high   ");
+					print(priv, "high   ");
 			}
 			for (j = 0; j < 16; j++) {
 				if ((s->class_barr & (1 << j)))
-					printf("*");
+					print(priv, "*");
 				else
-					printf(" ");
+					print(priv, " ");
 			}
-			printf("|%4d   |%4d\n", s->rxlev_acc_min_db,
+			print(priv, "|%4d   |%4d\n", s->rxlev_acc_min_db,
 				s->ms_txpwr_max_ccch);
 		} else
-			printf("n/a    |n/a    |       |                       "
+			print(priv, "n/a    |n/a    |       |                       "
 				"|n/a    |n/a\n");
 	}
-
-	return 0;
-}
-
-int gsm322_dump_sim_plmn(struct osmocom_ms *ms)
-{
-	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm_sub_plmn_list *temp;
-
-	printf("MCC    |MNC\n");
-	printf("-------+-------\n");
-	llist_for_each_entry(temp, &subscr->plmn_list, entry)
-		printf("%03d    |%02d\n", temp->mcc, temp->mnc);
-
-	return 0;
-}
-
-int gsm322_dump_forbidden_plmn(struct osmocom_ms *ms)
-{
-	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm_sub_plmn_na *temp;
-
-	printf("MCC    |MNC    |cause\n");
-	printf("-------+-------+-------\n");
-	llist_for_each_entry(temp, &subscr->plmn_na, entry)
-		printf("%03d    |%02d     |#%d\n", temp->mcc, temp->mnc,
-			temp->cause);
+	print(priv, "\n");
 
 	return 0;
 }

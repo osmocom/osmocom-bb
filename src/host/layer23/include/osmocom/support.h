@@ -11,6 +11,8 @@
 #define GSM_CIPHER_RESERVED	7
 
 struct gsm_support {
+	struct osmocom_ms *ms;
+
 	/* rf power capability */
 	uint8_t pwr_lev_900; /* and < 900 */
 	uint8_t pwr_lev_1800; /* DCS and PCS */
@@ -88,6 +90,8 @@ struct gsm_support_scan_max {
 extern struct gsm_support_scan_max gsm_sup_smax[];
 
 void gsm_support_init(struct osmocom_ms *ms);
+void gsm_support_dump(struct gsm_support *sup,
+			void (*print)(void *, const char *, ...), void *priv);
 
 #endif /* _SUPPORT_H */
 

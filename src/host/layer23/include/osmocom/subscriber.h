@@ -68,6 +68,14 @@ int gsm_subscr_exit(struct osmocom_ms *ms);
 int gsm_subscr_testcard(struct osmocom_ms *ms, int mcc, int mnc, char *msin);
 int gsm_subscr_remove(struct osmocom_ms *ms);
 void new_sim_ustate(struct gsm_subscriber *subscr, int state);
+int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
+	uint16_t mnc);
+int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
+					uint16_t mnc, uint8_t cause);
+int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
+					uint16_t mnc);
+void gsm_subscr_dump(struct gsm_subscriber *subscr,
+			void (*print)(void *, const char *, ...), void *priv);
 
 #endif /* _SUBSCRIBER_H */
 

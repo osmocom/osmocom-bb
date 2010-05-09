@@ -26,6 +26,7 @@ static inline OSMOCOM_FILE *osmocom_fopen(const char *name, const char *mode)
 	return fopen(filename, mode);
 }
 #define osmocom_fread fread
+#define osmocom_fgets fgets
 #define osmocom_fwrite fwrite
 #define osmocom_feof feof
 #define osmocom_fclose fclose

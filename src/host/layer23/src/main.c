@@ -32,6 +32,7 @@
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
 #include <osmocore/select.h>
+#include <osmocore/linuxlist.h>
 
 #include <arpa/inet.h>
 
@@ -52,6 +53,7 @@ struct log_target *stderr_target;
 
 void *l23_ctx = NULL;
 static char *socket_path = "/tmp/osmocom_l2";
+struct llist_head ms_list;
 static struct osmocom_ms *ms = NULL;
 static uint32_t gsmtap_ip = 0;
 int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
@@ -214,6 +216,7 @@ int main(int argc, char **argv)
 	int rc;
 	struct sockaddr_un local;
 
+	INIT_LLIST_HEAD(&ms_list);
 	log_init(&log_info);
 	stderr_target = log_target_create_stderr();
 	log_add_target(stderr_target);
@@ -226,6 +229,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to allocate MS\n");
 		exit(1);
 	}
+	llist_add_tail(&ms->entity, &ms_list);
 
 	sprintf(ms->name, "1");
 

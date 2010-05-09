@@ -28,6 +28,7 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/networks.h>
 
+void *l23_ctx;
 
 int gsm_subscr_init(struct osmocom_ms *ms)
 {
@@ -145,5 +146,133 @@ void new_sim_ustate(struct gsm_subscriber *subscr, int state)
 		subscr_ustate_names[state]);
 
 	subscr->ustate = state;
+}
+
+/* del forbidden PLMN */
+int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
+	uint16_t mnc)
+{
+	struct gsm_sub_plmn_na *na;
+
+	llist_for_each_entry(na, &subscr->plmn_na, entry) {
+		if (na->mcc == mcc && na->mnc == mnc) {
+			LOGP(DPLMN, LOGL_INFO, "Delete from list of forbidden "
+				"PLMNs (mcc=%03d, mnc=%02d)\n", mcc, mnc);
+			llist_del(&na->entry);
+			talloc_free(na);
+#ifdef TODO
+			update plmn not allowed list on sim
+#endif
+			return 0;
+		}
+	}
+
+	return -EINVAL;
+}
+
+/* add forbidden PLMN */
+int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
+					uint16_t mnc, uint8_t cause)
+{
+	struct gsm_sub_plmn_na *na;
+
+	/* don't add Home PLMN */
+	if (subscr->sim_valid && mcc == subscr->mcc && mnc == subscr->mnc)
+		return -EINVAL;
+
+	LOGP(DPLMN, LOGL_INFO, "Add to list of forbidden PLMNs "
+		"(mcc=%03d, mnc=%02d)\n", mcc, mnc);
+	na = talloc_zero(l23_ctx, struct gsm_sub_plmn_na);
+	if (!na)
+		return -ENOMEM;
+	na->mcc = mcc;
+	na->mnc = mnc;
+	na->cause = cause;
+	llist_add_tail(&na->entry, &subscr->plmn_na);
+
+#ifdef TODO
+	update plmn not allowed list on sim
+#endif
+
+	return 0;
+}
+
+/* search forbidden PLMN */
+int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
+					uint16_t mnc)
+{
+	struct gsm_sub_plmn_na *na;
+
+	llist_for_each_entry(na, &subscr->plmn_na, entry) {
+		if (na->mcc == mcc && na->mnc == mnc)
+			return 1;
+	}
+
+	return 0;
+}
+
+/* dump subscriber */
+void gsm_subscr_dump(struct gsm_subscriber *subscr,
+			void (*print)(void *, const char *, ...), void *priv)
+{
+	int i;
+	struct gsm_sub_plmn_list *plmn_list;
+	struct gsm_sub_plmn_na *plmn_na;
+
+	print(priv, "Mobile Subscriber of MS '%s':\n", subscr->ms->name);
+
+	if (!subscr->sim_valid) {
+		print(priv, " No SIM present.\n");
+		return;
+	}
+
+	print(priv, " IMSI: %s  MCC %d  MNC %d  (%s, %s)\n", subscr->imsi,
+		subscr->mcc, subscr->mnc, gsm_get_mcc(subscr->mcc),
+		gsm_get_mnc(subscr->mcc, subscr->mnc));
+	print(priv, " Status: %s  IMSI %s", subscr_ustate_names[subscr->ustate],
+		(subscr->imsi_attached) ? "attached" : "detached");
+	if (subscr->tmsi_valid)
+		print(priv, "  TSMI  %08x", subscr->tmsi);
+	if (subscr->lai_valid)
+		print(priv, "  LAI: MCC %d  MNC %d  LAC 0x%04x  (%s, %s)\n",
+			subscr->lai_mcc, subscr->lai_mnc, subscr->lai_lac,
+			gsm_get_mcc(subscr->lai_mcc),
+			gsm_get_mnc(subscr->lai_mcc, subscr->lai_mnc));
+	else
+		print(priv, "  LAI: invalid\n");
+	if (subscr->key_seq != 7) {
+		print(priv, " Key: sequence %d ");
+		for (i = 0; i < sizeof(subscr->key); i++)
+			print(priv, " %02x", subscr->key[i]);
+		print(priv, "\n");
+	}
+	if (subscr->plmn_valid)
+		print(priv, " Current PLMN: MCC %d  MNC %d  (%s, %s)\n",
+			subscr->plmn_mcc, subscr->plmn_mnc,
+			gsm_get_mcc(subscr->plmn_mcc),
+			gsm_get_mnc(subscr->plmn_mcc, subscr->plmn_mnc));
+	print(priv, " Access barred cells: %s\n",
+		(subscr->acc_barr) ? "yes" : "no");
+	print(priv, " Access classes:");
+	for (i = 0; i < 16; i++)
+		if ((subscr->acc_class & (1 << i)))
+			print(priv, " C%d", i);
+	print(priv, "\n");
+	if (!llist_empty(&subscr->plmn_list)) {
+		print(priv, " List of preferred PLMNs:\n");
+		print(priv, "        MCC    |MNC\n");
+		print(priv, "        -------+-------\n");
+		llist_for_each_entry(plmn_list, &subscr->plmn_list, entry)
+			print(priv, "        %03d    |%02d\n", plmn_list->mcc,
+				plmn_list->mnc);
+	}
+	if (!llist_empty(&subscr->plmn_na)) {
+		print(priv, " List of forbidden PLMNs:\n");
+		print(priv, "        MCC    |MNC    |cause\n");
+		print(priv, "        -------+-------+-------\n");
+		llist_for_each_entry(plmn_na, &subscr->plmn_na, entry)
+			print(priv, "        %03d    |%02d     |#%d\n",
+				plmn_na->mcc, plmn_na->mnc, plmn_na->cause);
+	}
 }
 

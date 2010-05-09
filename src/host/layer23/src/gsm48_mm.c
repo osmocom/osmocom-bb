@@ -1116,7 +1116,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* PLMN mode auto and selected cell is forbidden */
 	if (plmn->mode == PLMN_MODE_AUTO
-	 && (gsm322_is_forbidden_plmn(ms, cs->sel_mcc, cs->sel_mnc)
+	 && (gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc, cs->sel_mnc)
 	  || gsm322_is_forbidden_la(ms, cs->sel_mcc, cs->sel_mnc,
 	 	cs->sel_lac))) {
 			LOGP(DMM, LOGL_INFO, "Selected cell is forbidden.\n");
@@ -1945,7 +1945,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* if LAI is forbidden, don't start */
-	if (gsm322_is_forbidden_plmn(ms, cs->sel_mcc, cs->sel_mnc)) {
+	if (gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc, cs->sel_mnc)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed PLMN.\n");
 		mm->lupd_pending = 0;
 		return 0;
@@ -2352,7 +2352,7 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_REJECT_ILLEGAL_ME:
 		break;
 	case GSM48_REJECT_PLMN_NOT_ALLOWED:
-		gsm322_add_forbidden_plmn(ms, subscr->lai_mcc,
+		gsm_subscr_add_forbidden_plmn(subscr, subscr->lai_mcc,
 			subscr->lai_mnc, mm->lupd_rej_cause);
 		break;
 	case GSM48_REJECT_LOC_NOT_ALLOWED:

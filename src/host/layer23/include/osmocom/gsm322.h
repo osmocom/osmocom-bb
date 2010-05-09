@@ -177,21 +177,15 @@ int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg);
 int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg);
 int gsm322_plmn_dequeue(struct osmocom_ms *ms);
 int gsm322_cs_dequeue(struct osmocom_ms *ms);
-int gsm322_add_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
-	uint16_t mnc, uint8_t cause);
 int gsm322_add_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
 	uint16_t mnc, uint16_t lac, uint8_t cause);
-int gsm322_del_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc,
-	uint16_t mnc);
 int gsm322_del_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
 	uint16_t mnc, uint16_t lac);
-int gsm322_is_forbidden_plmn(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc);
 int gsm322_is_forbidden_la(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	uint16_t lac);
 int gsm322_dump_sorted_plmn(struct osmocom_ms *ms);
-int gsm322_dump_cs_list(struct osmocom_ms *ms, uint8_t flag);
-int gsm322_dump_sim_plmn(struct osmocom_ms *ms);
-int gsm322_dump_forbidden_plmn(struct osmocom_ms *ms);
+int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
+			void (*print)(void *, const char *, ...), void *priv);
 int gsm322_dump_forbidden_la(struct osmocom_ms *ms);
 void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro);
 void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro);

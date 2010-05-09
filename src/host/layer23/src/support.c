@@ -31,6 +31,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	int i;
 
 	memset(sup, 0, sizeof(*sup));
+	sup->ms = ms;
 
 	/* rf power capability */
 	sup->pwr_lev_900 = 3; /* CLASS 4: Handheld 2W */
@@ -65,12 +66,12 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->a5_6 = 0;
 	sup->a5_7 = 0;
 	/* radio support */
-	sup->p_gsm = 1; /* P-GSM only */
-	sup->e_gsm = 0; /* E-GSM */
+	sup->p_gsm = 0; /* P-GSM only */
+	sup->e_gsm = 1; /* E-GSM */
 	sup->r_gsm = 0; /* R-GSM */
 	sup->r_capa = 0;
 	sup->low_capa = 4; /* p,e,r power class */
-	sup->dcs_1800 = 0;
+	sup->dcs_1800 = 1;
 	/* set supported frequencies */
 	if (sup->e_gsm || sup->r_gsm)
 		sup->freq_map[0] |= 1;
@@ -105,7 +106,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sprintf(sup->imeisv, "0000000000000000");
 
 	/* radio */
-	sup->min_rxlev_db = -70; // TODO
+	sup->min_rxlev_db = -80; // TODO
 	sup->sync_to = 6; /* how long to wait sync (0.9 s) */
 	sup->scan_to = 4; /* how long to wait for all sysinfos (>=4 s) */
 }
@@ -125,4 +126,39 @@ struct gsm_support_scan_max gsm_sup_smax[] = {
 	{ 0, 0, 0, 0 }
 };
 
+
+/* dump support */
+void gsm_support_dump(struct gsm_support *sup,
+			void (*print)(void *, const char *, ...), void *priv)
+{
+	print(priv, "Supported features of MS '%s':\n", sup->ms->name);
+	if (sup->r_gsm)
+		print(priv, " R-GSM");
+	if (sup->e_gsm || sup->r_gsm)
+		print(priv, " E-GSM");
+	if (sup->p_gsm || sup->p_gsm || sup->r_gsm)
+		print(priv, " P-GSM");
+	if (sup->dcs_1800)
+		print(priv, " DCS1800");
+	print(priv, "  (Phase %d mobile station)\n", sup->rev_lev + 1);
+	print(priv, " CECS     : %s\n", (sup->es_ind) ? "yes" : "no");
+	print(priv, " VGCS     : %s\n", (sup->vgcs) ? "yes" : "no");
+	print(priv, " VBS      : %s\n", (sup->vbs) ? "yes" : "no");
+	print(priv, " SMS      : %s\n", (sup->sms_ptp) ? "yes" : "no");
+	print(priv, " SS_IND   : %s\n", (sup->ss_ind) ? "yes" : "no");
+	print(priv, " PS_CAP   : %s\n", (sup->ps_cap) ? "yes" : "no");
+	print(priv, " CMSP     : %s\n", (sup->cmsp) ? "yes" : "no");
+	print(priv, " SoLSA    : %s\n", (sup->solsa) ? "yes" : "no");
+	print(priv, " LCSVA    : %s\n", (sup->lcsva) ? "yes" : "no");
+	print(priv, " LOC_SERV : %s\n", (sup->loc_serv) ? "yes" : "no");
+	print(priv, " A5/1     : %s\n", (sup->a5_1) ? "yes" : "no");
+	print(priv, " A5/2     : %s\n", (sup->a5_2) ? "yes" : "no");
+	print(priv, " A5/3     : %s\n", (sup->a5_3) ? "yes" : "no");
+	print(priv, " A5/4     : %s\n", (sup->a5_4) ? "yes" : "no");
+	print(priv, " A5/5     : %s\n", (sup->a5_5) ? "yes" : "no");
+	print(priv, " A5/6     : %s\n", (sup->a5_6) ? "yes" : "no");
+	print(priv, " A5/7     : %s\n", (sup->a5_7) ? "yes" : "no");
+	print(priv, " A5/1     : %s\n", (sup->a5_1) ? "yes" : "no");
+	print(priv, " Min RXLEV: %d\n", sup->min_rxlev_db);
+}
 

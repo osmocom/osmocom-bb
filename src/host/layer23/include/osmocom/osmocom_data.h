@@ -25,6 +25,7 @@ struct osmol2_entity {
 
 /* One Mobilestation for osmocom */
 struct osmocom_ms {
+	struct llist_head entity;
 	char name[32];
 	struct write_queue wq;
 	uint16_t test_arfcn;
