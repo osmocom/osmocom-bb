@@ -1696,6 +1696,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	start_cs_timer(cs, ms->support.sync_to, 0);
 
 	/* Allocate/clean system information. */
+	cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_SYSINFO;
 	if (cs->list[cs->arfcn].sysinfo)
 		memset(cs->list[cs->arfcn].sysinfo, 0,
 			sizeof(struct gsm48_sysinfo));
@@ -1988,7 +1989,10 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 	/* check for barred cell */
 	if (gm->sysinfo == GSM48_MT_RR_SYSINFO_1) {
 		/* check if cell becomes barred */
-		if (!subscr->acc_barr && s->cell_barr) {
+		if (!subscr->acc_barr && s->cell_barr
+		 && !(cs->list[cs->arfcn].sysinfo
+		   && cs->list[cs->arfcn].sysinfo->sp
+		   && cs->list[cs->arfcn].sysinfo->sp_cbq)) {
 			LOGP(DCS, LOGL_INFO, "Cell becomes barred.\n");
 			trigger_resel:
 			/* mark cell as unscanned */

@@ -101,12 +101,14 @@ enum node_type {
 #endif
 	VTY_NODE,		/* Vty node. */
 
-	GSMNET_NODE,
+	MS_NODE,
+#if 0
 	BTS_NODE,
 	TRX_NODE,
 	TS_NODE,
 	SUBSCR_NODE,
 	MGCP_NODE,
+#endif
 };
 
 /* Node which has some commands and prompt string and configuration

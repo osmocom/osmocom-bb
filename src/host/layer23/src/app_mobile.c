@@ -87,8 +87,8 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		ms = signal_data;
 		gsm_subscr_testcard(ms, 1, 1, "0000000000");
 //		ms->subscr.plmn_valid = 1;
-		ms->subscr.plmn_mcc = 262;
-		ms->subscr.plmn_mnc = 2;
+		ms->subscr.plmn_mcc = 1;
+		ms->subscr.plmn_mnc = 1;
 		ms->plmn.mode = PLMN_MODE_MANUAL;
 		/* start PLMN + cell selection process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);

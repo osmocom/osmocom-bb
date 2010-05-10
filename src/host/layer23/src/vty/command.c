@@ -1910,11 +1910,11 @@ enum node_type vty_go_parent(struct vty *vty)
 	assert(vty->node > CONFIG_NODE);
 
 	switch (vty->node) {
-#if 0
-	case GSMNET_NODE:
+	case MS_NODE:
 		vty->node = CONFIG_NODE;
 		vty->index = NULL;
 		break;
+#if 0
 	case BTS_NODE:
 		vty->node = GSMNET_NODE;
 		{
@@ -2237,7 +2237,7 @@ cmd_execute_command_strict(vector vline, struct vty *vty,
 }
 
 /* Configration make from file. */
-int config_from_file(struct vty *vty, FILE * fp)
+int config_from_file(struct vty *vty, OSMOCOM_FILE * fp)
 {
 	int ret;
 	vector vline;
@@ -2311,11 +2311,11 @@ DEFUN(config_exit,
       config_exit_cmd, "exit", "Exit current mode and down to previous mode\n")
 {
 	switch (vty->node) {
-#if 0
-	case GSMNET_NODE:
+	case MS_NODE:
 		vty->node = CONFIG_NODE;
 		vty->index = NULL;
 		break;
+#if 0
 	case BTS_NODE:
 		vty->node = GSMNET_NODE;
 		{

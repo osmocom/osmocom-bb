@@ -33,6 +33,12 @@
 
 extern struct llist_head ms_list;
 
+struct cmd_node ms_node = {
+	MS_NODE,
+	"%s(ms)#",
+	1
+};
+
 static void print_vty(void *priv, const char *fmt, ...)
 {
 	char buffer[1000];
@@ -183,7 +189,7 @@ DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [mcc] [mnc]",
 }
 
 DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
-	SHOW_STR "Insert test card\n")
+	"Insert ...\nInsert test card\n")
 {
 	struct osmocom_ms *ms;
 	uint16_t mcc = 1, mnc = 1;
@@ -209,7 +215,7 @@ DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
 }
 
 DEFUN(remove_sim, remove_sim_cmd, "remove sim MS_NAME",
-	SHOW_STR "Insert test card\n")
+	"Remove ...\nRemove SIM card\n")
 {
 	struct osmocom_ms *ms;
 
@@ -227,20 +233,80 @@ DEFUN(remove_sim, remove_sim_cmd, "remove sim MS_NAME",
 	return CMD_SUCCESS;
 }
 
+/* per MS config */
+DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
+	"Select a mobile station to configure\n")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	vty->index = ms;
+	vty->node = MS_NODE;
+
+	return CMD_SUCCESS;
+}
+
+static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
+{
+	vty_out(vty, " ms %s%s", ms->name, VTY_NEWLINE);
+	vty_out(vty, "  network-selection-mode %s%s", (ms->plmn.mode
+			== PLMN_MODE_AUTO) ? "auto" : "manual", VTY_NEWLINE);
+}
+
+static int config_write_ms(struct vty *vty)
+{
+	struct osmocom_ms *ms;
+
+	llist_for_each_entry(ms, &ms_list, entity)
+		config_write_ms_single(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
+	"Set network selection mode\n")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct msgb *nmsg;
+
+	if (argv[0][0] == 'a')
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SEL_AUTO);
+	else
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SEL_MANUAL);
+	if (!nmsg)
+		return CMD_WARNING;
+	gsm322_plmn_sendmsg(ms, nmsg);
+
+	return CMD_SUCCESS;
+}
+
 int ms_vty_init(void)
 {
 	cmd_init(1);
 	vty_init();
 
 	install_element(VIEW_NODE, &show_ms_cmd);
-	install_element(VIEW_NODE, &show_support_cmd);
+	install_element(ENABLE_NODE, &show_ms_cmd);
 	install_element(VIEW_NODE, &show_subscr_cmd);
+	install_element(ENABLE_NODE, &show_support_cmd);
+	install_element(VIEW_NODE, &show_support_cmd);
+	install_element(ENABLE_NODE, &show_cell_cmd);
 	install_element(VIEW_NODE, &show_cell_cmd);
+	install_element(ENABLE_NODE, &show_cell_si_cmd);
 	install_element(VIEW_NODE, &show_cell_si_cmd);
+	install_element(ENABLE_NODE, &show_ba_cmd);
 	install_element(VIEW_NODE, &show_ba_cmd);
 
-	install_element(VIEW_NODE, &insert_test_cmd);
-	install_element(VIEW_NODE, &remove_sim_cmd);
+	install_element(ENABLE_NODE, &insert_test_cmd);
+	install_element(ENABLE_NODE, &remove_sim_cmd);
+
+	install_element(CONFIG_NODE, &cfg_ms_cmd);
+	install_node(&ms_node, config_write_ms);
+	install_default(MS_NODE);
+	install_element(MS_NODE, &cfg_ms_mode_cmd);
 
 	return 0;
 }
