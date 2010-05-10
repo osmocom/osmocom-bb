@@ -99,7 +99,6 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s,
 	print(priv, " MAX_RETRANS = %d  TX_INTEGER = %d  re-establish = %s\n",
 		s->max_retrans, s->tx_integer,
 		(s->reest_denied) ? "denied" : "allowed");
-		todo!!
 	print(priv, " Cell barred = %s  barred classes =",
 		(s->cell_barr ? "yes" : "no"));
 	for (i = 0; i < 16; i++) {
