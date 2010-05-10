@@ -200,7 +200,7 @@ void l1s_compl_sched(enum l1_compl c)
 {
 	unsigned long flags;
 
-	local_irq_save(flags);
+	local_firq_save(flags);
 	l1s.scheduled_compl |= (1 << c);
 	local_irq_restore(flags);
 }

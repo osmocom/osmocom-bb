@@ -17,6 +17,20 @@
 	: "memory", "cc");					\
 	})
 	
+/* Save IRQ flags and disable FIQ + IRQ */
+#define local_firq_save(x)					\
+	({							\
+		unsigned long temp;				\
+		(void) (&temp == &x);				\
+	__asm__ __volatile__(					\
+	"mrs	%0, cpsr		@ local_firq_save\n"	\
+"	orr	%1, %0, #0xC0\n"				\
+"	msr	cpsr_c, %1"					\
+	: "=r" (x), "=r" (temp)					\
+	:							\
+	: "memory", "cc");					\
+	})
+
 /*
  * Enable IRQs
  */

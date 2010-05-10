@@ -79,7 +79,7 @@ void l1a_compl_execute(void)
 	unsigned int i;
 
 	/* get and reset the currently scheduled tasks */
-	local_irq_save(flags);
+	local_firq_save(flags);
 	scheduled = l1s.scheduled_compl;
 	l1s.scheduled_compl = 0;
 	local_irq_restore(flags);
