@@ -14,6 +14,7 @@ struct gsm_networks gsm_networks[] = {
 	{ 262, 2,		"Vodafone" },
 	{ 262, 3,		"E-Plus" },
 	{ 262, 7,		"O2" },
+	{ 262, 10,		"DB Systel GSM-R" },
 	{ 262, 42,		"OpenBSC" },
 	{ 238, 0,	"Denmark" },
 	{ 238, 1,		"TDC Mobil" },
