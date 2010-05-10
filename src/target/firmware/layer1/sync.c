@@ -31,6 +31,8 @@
 #include <debug.h>
 #include <memory.h>
 #include <byteorder.h>
+#include <asm/system.h>
+
 #include <osmocore/gsm_utils.h>
 #include <osmocore/msgb.h>
 #include <calypso/dsp_api.h>

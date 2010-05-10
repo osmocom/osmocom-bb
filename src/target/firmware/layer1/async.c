@@ -24,6 +24,7 @@
 
 #include <debug.h>
 #include <arm.h>
+#include <asm/system.h>
 
 #include <osmocore/msgb.h>
 
