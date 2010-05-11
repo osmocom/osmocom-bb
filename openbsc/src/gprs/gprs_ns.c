@@ -57,6 +57,7 @@
 #include <osmocore/talloc.h>
 #include <osmocore/select.h>
 #include <openbsc/debug.h>
+#include <openbsc/signal.h>
 #include <openbsc/gprs_ns.h>
 #include <openbsc/gprs_bssgp.h>
 
@@ -128,6 +129,17 @@ static struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 	return nsvc;
 }
 
+static void ns_dispatch_signal(struct nsvc *nsvc, unsigned int signal,
+			       uint8_t cause)
+{
+	struct ns_signal_data nssd;
+
+	nssd.nsvc = nsvc;
+	nssd.cause = cause;
+
+	dispatch_signal(SS_NS, signal, &nssd);
+}
+
 /* Section 10.3.2, Table 13 */
 static const struct value_string ns_cause_str[] = {
 	{ NS_CAUSE_TRANSIT_FAIL,	"Transit network failure" },
@@ -183,7 +195,7 @@ static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, uint8_t pdu_type)
 	return gprs_ns_tx(nsvc, msg);
 }
 
-static int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
+int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 {
 	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
 	struct gprs_ns_hdr *nsh;
@@ -202,6 +214,32 @@ static int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 
 	return gprs_ns_tx(nsvc, msg);
 
+}
+
+int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
+{
+	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
+	struct gprs_ns_hdr *nsh;
+	uint16_t nsvci = htons(nsvc->nsvci);
+
+	if (!msg)
+		return -ENOMEM;
+
+	/* be conservative and mark it as blocked even now! */
+	nsvc->state |= NSE_S_BLOCKED;
+
+	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
+	nsh->pdu_type = NS_PDUT_BLOCK;
+
+	msgb_tvlv_put(msg, NS_IE_CAUSE, 1, &cause);
+	msgb_tvlv_put(msg, NS_IE_VCI, 2, (uint8_t *) &nsvci);
+
+	return gprs_ns_tx(nsvc, msg);
+}
+
+int gprs_ns_tx_unblock(struct gprs_nsvc *nsvc)
+{
+	return gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK);
 }
 
 #define NS_ALIVE_RETRIES  10	/* after 3 failed retransmit we declare BTS as dead */
@@ -393,7 +431,39 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	/* start the test procedure */
 	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
 
+	/* inform interested parties about the fact that this NSVC
+	 * has received RESET */
+	ns_dispatch_signal(nsvc, S_NS_RESET, cause);
+
 	return gprs_ns_tx_reset_ack(nsvc);
+}
+
+static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
+{
+	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
+	struct tlv_parsed tp;
+	uint8_t *cause;
+	int rc;
+
+	DEBUGP(DNS, "NSEI=%u Rx NS BLOCK\n", nsvc->nsei);
+
+	nsvc->state |= NSE_S_BLOCKED;
+
+	rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data, msgb_l2len(msg), 0, 0);
+
+	if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
+	    !TLVP_PRESENT(&tp, NS_IE_VCI)) {
+		/* FIXME: respond with NS_CAUSE_MISSING_ESSENT_IE */
+		LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
+		return -EINVAL;
+	}
+
+	cause = (uint8_t *) TLVP_VAL(&tp, NS_IE_CAUSE);
+	//nsvci = (uint16_t *) TLVP_VAL(&tp, NS_IE_VCI);
+
+	ns_dispatch_signal(nsvc, S_NS_BLOCK, cause);
+
+	return gprs_ns_tx_simple(nsvc, NS_PDUT_BLOCK_ACK);
 }
 
 /* main entry point, here incoming NS frames enter */
@@ -467,6 +537,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		/* Section 7.2: unblocking procedure */
 		DEBUGP(DNS, "NSEI=%u Rx NS UNBLOCK\n", nsvc->nsei);
 		nsvc->state &= ~NSE_S_BLOCKED;
+		ns_dispatch_signal(nsvc, S_NS_UNBLOCK, 0);
 		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
 		break;
 	case NS_PDUT_UNBLOCK_ACK:
@@ -477,9 +548,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			nsvc->state = NSE_S_ALIVE;
 		break;
 	case NS_PDUT_BLOCK:
-		DEBUGP(DNS, "NSEI=%u Rx NS BLOCK\n", nsvc->nsei);
-		nsvc->state |= NSE_S_BLOCKED;
-		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
+		rc = gprs_ns_rx_block(nsvc, msg);
 		break;
 	case NS_PDUT_BLOCK_ACK:
 		DEBUGP(DNS, "NSEI=%u Rx NS BLOCK ACK\n", nsvc->nsei);

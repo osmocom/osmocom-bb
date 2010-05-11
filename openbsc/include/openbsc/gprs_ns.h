@@ -167,6 +167,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 /* main function for higher layers (BSSGP) to send NS messages */
 int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg);
 
+int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause);
+int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause);
+int gprs_ns_tx_unblock(struct gprs_nsvc *nsvc);
 
 /* Listen for incoming GPRS packets */
 int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port);
