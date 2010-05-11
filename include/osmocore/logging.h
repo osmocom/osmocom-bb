@@ -128,4 +128,8 @@ struct log_target *log_target_create_stderr(void);
 void log_add_target(struct log_target *target);
 void log_del_target(struct log_target *target);
 
+/* Gernerate command argument strings for VTY use */
+const char *log_vty_category_string(struct log_info *info);
+const char *log_vty_level_string(struct log_info *info);
+
 #endif /* _OSMOCORE_LOGGING_H */

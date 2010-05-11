@@ -366,6 +366,52 @@ struct log_target *log_target_create_stderr(void)
 #endif /* stderr */
 }
 
+const char *log_vty_level_string(struct log_info *info)
+{
+	const struct value_string *vs;
+	unsigned int len = 3; /* ()\0 */
+	char *str;
+
+	for (vs = loglevel_strs; vs->value || vs->str; vs++)
+		len += strlen(vs->str) + 1;
+
+	str = talloc_zero_size(NULL, len);
+	if (!str)
+		return NULL;
+
+	str[0] = '(';
+	for (vs = loglevel_strs; vs->value || vs->str; vs++) {
+		strcat(str, vs->str);
+		strcat(str, "|");
+	}
+	str[strlen(str)-1] = ')';
+
+	return str;
+}
+
+const char *log_vty_category_string(struct log_info *info)
+{
+	unsigned int len = 3;	/* "()\0" */
+	unsigned int i;
+	char *str;
+
+	for (i = 0; i < info->num_cat; i++)
+		len += strlen(info->cat[i].name) + 1;
+
+	str = talloc_zero_size(NULL, len);
+	if (!str)
+		return NULL;
+
+	str[0] = '(';
+	for (i = 0; i < info->num_cat; i++) {
+		strcat(str, info->cat[i].name+1);
+		strcat(str, "|");
+	}
+	str[strlen(str)-1] = ')';
+
+	return str;
+}
+
 void log_init(const struct log_info *cat)
 {
 	tall_log_ctx = talloc_named_const(NULL, 1, "logging");
