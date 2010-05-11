@@ -39,42 +39,8 @@
 /* global pointer to the gsm network data structure */
 /* FIXME: this must go! */
 extern struct gsm_network *bsc_gsmnet;
-struct gprs_ns_inst *bssgp_nsi;
 
 void *bssgp_tall_ctx = NULL;
-
-/* BSSGP Protocol specific, not implementation specific */
-/* FIXME: This needs to go into libosmocore after finished */
-
-/* Chapter 11.3.9 / Table 11.10: Cause coding */
-static const struct value_string bssgp_cause_strings[] = {
-	{ BSSGP_CAUSE_PROC_OVERLOAD,	"Processor overload" },
-	{ BSSGP_CAUSE_EQUIP_FAIL,	"Equipment Failure" },
-	{ BSSGP_CAUSE_TRASIT_NET_FAIL,	"Transit netowkr service failure" },
-	{ BSSGP_CAUSE_CAPA_GREATER_0KPBS,"Transmission capacity modified" },
-	{ BSSGP_CAUSE_UNKNOWN_MS,	"Unknown MS" },
-	{ BSSGP_CAUSE_UNKNOWN_BVCI,	"Unknown BVCI" },
-	{ BSSGP_CAUSE_CELL_TRAF_CONG,	"Cell traffic congestion" },
-	{ BSSGP_CAUSE_SGSN_CONG,	"SGSN congestion" },
-	{ BSSGP_CAUSE_OML_INTERV,	"O&M intervention" },
-	{ BSSGP_CAUSE_BVCI_BLOCKED,	"BVCI blocked" },
-	{ BSSGP_CAUSE_PFC_CREATE_FAIL,	"PFC create failure" },
-	{ BSSGP_CAUSE_SEM_INCORR_PDU,	"Semantically incorrect PDU" },
-	{ BSSGP_CAUSE_INV_MAND_INF,	"Invalid mandatory information" },
-	{ BSSGP_CAUSE_MISSING_MAND_IE,	"Missing mandatory IE" },
-	{ BSSGP_CAUSE_MISSING_COND_IE,	"Missing conditional IE" },
-	{ BSSGP_CAUSE_UNEXP_COND_IE,	"Unexpected conditional IE" },
-	{ BSSGP_CAUSE_COND_IE_ERR,	"Conditional IE error" },
-	{ BSSGP_CAUSE_PDU_INCOMP_STATE,	"PDU incompatible with protocol state" },
-	{ BSSGP_CAUSE_PROTO_ERR_UNSPEC,	"Protocol error - unspecified" },
-	{ BSSGP_CAUSE_PDU_INCOMP_FEAT, 	"PDU not compatible with feature set" },
-	{ 0, NULL },
-};
-
-const char *bssgp_cause_str(enum gprs_bssgp_cause cause)
-{
-	return get_value_string(bssgp_cause_strings, cause);
-}
 
 
 /* Our actual implementation */
@@ -141,30 +107,6 @@ struct bssgp_btx_ctx *btsctx_alloc(uint16_t bvci, uint16_t nsei)
 	return ctx;
 }
 
-static inline struct msgb *bssgp_msgb_alloc(void)
-{
-	return msgb_alloc_headroom(4096, 128, "BSSGP");
-}
-
-/* Transmit a simple response such as BLOCK/UNBLOCK/RESET ACK/NACK */
-static int bssgp_tx_simple_bvci(uint8_t pdu_type, uint16_t nsei,
-			        uint16_t bvci, uint16_t ns_bvci)
-{
-	struct msgb *msg = bssgp_msgb_alloc();
-	struct bssgp_normal_hdr *bgph =
-			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
-	uint16_t _bvci;
-
-	msgb_nsei(msg) = nsei;
-	msgb_bvci(msg) = ns_bvci;
-
-	bgph->pdu_type = pdu_type;
-	_bvci = htons(bvci);
-	msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (uint8_t *) &_bvci);
-
-	return gprs_ns_sendmsg(bssgp_nsi, msg);
-}
-
 /* Chapter 10.4.5: Flow Control BVC ACK */
 static int bssgp_tx_fc_bvc_ack(uint16_t nsei, uint8_t tag, uint16_t ns_bvci)
 {
@@ -177,30 +119,6 @@ static int bssgp_tx_fc_bvc_ack(uint16_t nsei, uint8_t tag, uint16_t ns_bvci)
 
 	bgph->pdu_type = BSSGP_PDUT_FLOW_CONTROL_BVC_ACK;
 	msgb_tvlv_put(msg, BSSGP_IE_TAG, 1, &tag);
-
-	return gprs_ns_sendmsg(bssgp_nsi, msg);
-}
-
-/* Chapter 10.4.14: Status */
-int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg)
-{
-	struct msgb *msg = bssgp_msgb_alloc();
-	struct bssgp_normal_hdr *bgph =
-			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
-
-	DEBUGPC(DBSSGP, "BSSGP: TX STATUS, cause=%s\n", bssgp_cause_str(cause));
-	msgb_nsei(msg) = msgb_nsei(orig_msg);
-	msgb_bvci(msg) = 0;
-
-	bgph->pdu_type = BSSGP_PDUT_STATUS;
-	msgb_tvlv_put(msg, BSSGP_IE_CAUSE, 1, &cause);
-	if (bvci) {
-		uint16_t _bvci = htons(*bvci);
-		msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (uint8_t *) &_bvci);
-	}
-	if (orig_msg)
-		msgb_tvlv_put(msg, BSSGP_IE_PDU_IN_ERROR,
-			      msgb_bssgp_len(orig_msg), msgb_bssgph(orig_msg));
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }

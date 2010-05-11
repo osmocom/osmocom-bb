@@ -137,6 +137,18 @@ enum gprs_bssgp_cause {
 
 /* Our implementation */
 
+/* gprs_bssgp_util.c */
+extern struct gprs_ns_inst *bssgp_nsi;
+struct msgb *bssgp_msgb_alloc(void);
+const char *bssgp_cause_str(enum gprs_bssgp_cause cause);
+/* Transmit a simple response such as BLOCK/UNBLOCK/RESET ACK/NACK */
+int bssgp_tx_simple_bvci(uint8_t pdu_type, uint16_t nsei,
+			 uint16_t bvci, uint16_t ns_bvci);
+/* Chapter 10.4.14: Status */
+int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg);
+
+/* gprs_bssgp.c */
+
 #include <osmocore/tlv.h>
 
 extern int gprs_bssgp_rcvmsg(struct msgb *msg);
