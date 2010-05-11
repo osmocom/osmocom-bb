@@ -422,10 +422,14 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	nsvci = (uint16_t *) TLVP_VAL(&tp, NS_IE_VCI);
 	nsei = (uint16_t *) TLVP_VAL(&tp, NS_IE_NSEI);
 
-	DEBUGP(DNS, "NSEI=%u NS RESET (NSVCI=%u, cause=%s)\n",
+	DEBUGP(DNS, "NSEI=%u Rx NS RESET (NSVCI=%u, cause=%s)\n",
 		nsvc->nsvci, nsvc->nsei, gprs_ns_cause_str(*cause));
 
 	nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
+	/* FIXME: Check if we have an existing peer with this NSEI/NSVCI
+	 * and remove it, as our BSS may just have changed its source IP
+	 * address */
+
 	nsvc->nsei = ntohs(*nsei);
 	nsvc->nsvci = ntohs(*nsvci);
 
