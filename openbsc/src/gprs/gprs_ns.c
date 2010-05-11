@@ -511,8 +511,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s:%u\n",
 				inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
 			nsvc = nsvc_create(nsi, 0xffff);
-			nsvc->ip.bts_addr = *saddr;
 		}
+		/* Update the remote peer IP address/port */
+		nsvc->ip.bts_addr = *saddr;
 	} else
 		msgb_nsei(msg) = nsvc->nsei;
 
