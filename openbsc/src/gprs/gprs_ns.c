@@ -483,6 +483,8 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 	/* look up the NSVC based on source address */
 	nsvc = nsvc_by_rem_addr(nsi, saddr);
 	if (!nsvc) {
+		struct tlv_parsed tp;
+		uint16_t nsei;
 		/* Only the RESET procedure creates a new NSVC */
 		if (nsh->pdu_type != NS_PDUT_RESET) {
 			LOGP(DNS, LOGL_INFO, "Ignoring NS PDU type 0x%0x "
@@ -491,10 +493,25 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			//gprs_ns_tx_reset(nsvc, NS_CAUSE_NSVC_UNKNOWN);
 			return -EIO;
 		}
-		LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s:%u\n",
-			inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
-		nsvc = nsvc_create(nsi, 0xffff);
-		nsvc->ip.bts_addr = *saddr;
+		rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data,
+						msgb_l2len(msg), 0, 0);
+		if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
+		    !TLVP_PRESENT(&tp, NS_IE_VCI) ||
+		    !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
+			/* FIXME: respond with NS_CAUSE_MISSING_ESSENT_IE */
+			LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
+			return -EINVAL;
+		}
+		nsei = ntohs(*(uint16_t *)TLVP_VAL(&tp, NS_IE_NSEI));
+		/* Check if we already know this NSEI, the remote end might
+		 * simply have changed addresses, or it is a SGSN */
+		nsvc = nsvc_by_nsei(nsi, nsei);
+		if (!nsvc) {
+			LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s:%u\n",
+				inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
+			nsvc = nsvc_create(nsi, 0xffff);
+			nsvc->ip.bts_addr = *saddr;
+		}
 	} else
 		msgb_nsei(msg) = nsvc->nsei;
 
