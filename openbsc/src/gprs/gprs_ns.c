@@ -160,7 +160,7 @@ static int gprs_ns_tx(struct gprs_nsvc *nsvc, struct msgb *msg)
 		ret = nsip_sendmsg(nsvc, msg);
 		break;
 	default:
-		LOGP(DGPRS, LOGL_ERROR, "unsupported NS linklayer %u\n", nsvc->nsi->ll);
+		LOGP(DNS, LOGL_ERROR, "unsupported NS linklayer %u\n", nsvc->nsi->ll);
 		msgb_free(msg);
 		ret = -EIO;
 		break;
@@ -234,7 +234,7 @@ static void gprs_ns_timer_cb(void *data)
 		if (nsvc->alive_retries > NS_ALIVE_RETRIES) {
 			/* mark as dead and blocked */
 			nsvc->state = NSE_S_BLOCKED;
-			DEBUGP(DGPRS, "NSEI=%u Tns-alive expired more then "
+			DEBUGP(DNS, "NSEI=%u Tns-alive expired more then "
 				"%u times, blocking NS-VC\n", nsvc->nsei,
 				NS_ALIVE_RETRIES);
 			/* FIXME: inform higher layers */
@@ -273,7 +273,7 @@ static int gprs_ns_tx_reset_ack(struct gprs_nsvc *nsvc)
 
 	nsh->pdu_type = NS_PDUT_RESET_ACK;
 
-	DEBUGP(DGPRS, "NSEI=%u Tx NS RESET ACK (NSVCI=%u)\n",
+	DEBUGP(DNS, "NSEI=%u Tx NS RESET ACK (NSVCI=%u)\n",
 		nsvc->nsei, nsvc->nsvci);
 
 	msgb_tvlv_put(msg, NS_IE_VCI, 2, (uint8_t *)&nsvci);
@@ -291,25 +291,25 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 
 	nsvc = nsvc_by_nsei(nsi, msgb_nsei(msg));
 	if (!nsvc) {
-		LOGP(DGPRS, LOGL_ERROR, "Unable to resolve NSEI %u "
+		LOGP(DNS, LOGL_ERROR, "Unable to resolve NSEI %u "
 			"to NS-VC!\n", msgb_nsei(msg));
 		return -EINVAL;
 	}
 
 	if (!(nsvc->state & NSE_S_ALIVE)) {
-		LOGP(DGPRS, LOGL_ERROR, "NSEI=%u is not alive, cannot send\n",
+		LOGP(DNS, LOGL_ERROR, "NSEI=%u is not alive, cannot send\n",
 			nsvc->nsei);
 		return -EBUSY;
 	}
 	if (nsvc->state & NSE_S_BLOCKED) {
-		LOGP(DGPRS, LOGL_ERROR, "NSEI=%u is blocked, cannot send\n",
+		LOGP(DNS, LOGL_ERROR, "NSEI=%u is blocked, cannot send\n",
 			nsvc->nsei);
 		return -EBUSY;
 	}
 
 	nsh = (struct gprs_ns_hdr *) msgb_push(msg, sizeof(*nsh) + 3);
 	if (!nsh) {
-		LOGP(DGPRS, LOGL_ERROR, "Not enough headroom for NS header\n");
+		LOGP(DNS, LOGL_ERROR, "Not enough headroom for NS header\n");
 		return -EIO;
 	}
 
@@ -344,17 +344,17 @@ static int gprs_ns_rx_status(struct gprs_nsvc *nsvc, struct msgb *msg)
 	uint8_t cause;
 	int rc;
 
-	DEBUGP(DGPRS, "NSEI=%u NS STATUS ", nsvc->nsei);
+	DEBUGP(DNS, "NSEI=%u NS STATUS ", nsvc->nsei);
 
 	rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data, msgb_l2len(msg), 0, 0);
 
 	if (!TLVP_PRESENT(&tp, NS_IE_CAUSE)) {
-		DEBUGPC(DGPRS, "missing cause IE\n");
+		DEBUGPC(DNS, "missing cause IE\n");
 		return -EINVAL;
 	}
 
 	cause = *TLVP_VAL(&tp, NS_IE_CAUSE);
-	DEBUGPC(DGPRS, "cause=%s\n", gprs_ns_cause_str(cause));
+	DEBUGPC(DNS, "cause=%s\n", gprs_ns_cause_str(cause));
 
 	return 0;
 }
@@ -374,7 +374,7 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	    !TLVP_PRESENT(&tp, NS_IE_VCI) ||
 	    !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
 		/* FIXME: respond with NS_CAUSE_MISSING_ESSENT_IE */
-		LOGP(DGPRS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
+		LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
 		return -EINVAL;
 	}
 
@@ -382,7 +382,7 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	nsvci = (uint16_t *) TLVP_VAL(&tp, NS_IE_VCI);
 	nsei = (uint16_t *) TLVP_VAL(&tp, NS_IE_NSEI);
 
-	DEBUGP(DGPRS, "NSEI=%u NS RESET (NSVCI=%u, cause=%s)\n",
+	DEBUGP(DNS, "NSEI=%u NS RESET (NSVCI=%u, cause=%s)\n",
 		nsvc->nsvci, nsvc->nsei, gprs_ns_cause_str(*cause));
 
 	nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
@@ -409,13 +409,13 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 	if (!nsvc) {
 		/* Only the RESET procedure creates a new NSVC */
 		if (nsh->pdu_type != NS_PDUT_RESET) {
-			LOGP(DGPRS, LOGL_INFO, "Ignoring NS PDU type 0x%0x "
+			LOGP(DNS, LOGL_INFO, "Ignoring NS PDU type 0x%0x "
 				"from %s for non-existing NS-VC\n",
 				nsh->pdu_type, inet_ntoa(saddr->sin_addr));
 			//gprs_ns_tx_reset(nsvc, NS_CAUSE_NSVC_UNKNOWN);
 			return -EIO;
 		}
-		LOGP(DGPRS, LOGL_INFO, "Creating NS-VC for BSS at %s:%u\n",
+		LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s:%u\n",
 			inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
 		nsvc = nsvc_create(nsi, 0xffff);
 		nsvc->ip.bts_addr = *saddr;
@@ -450,7 +450,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		rc = gprs_ns_rx_reset(nsvc, msg);
 		break;
 	case NS_PDUT_RESET_ACK:
-		DEBUGP(DGPRS, "NSEI=%u Rx NS RESET ACK\n", nsvc->nsei);
+		DEBUGP(DNS, "NSEI=%u Rx NS RESET ACK\n", nsvc->nsei);
 		/* mark remote NS-VC as blocked + active */
 		nsvc->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		if (nsvc->remote_end_is_sgsn) {
@@ -465,29 +465,29 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		break;
 	case NS_PDUT_UNBLOCK:
 		/* Section 7.2: unblocking procedure */
-		DEBUGP(DGPRS, "NSEI=%u Rx NS UNBLOCK\n", nsvc->nsei);
+		DEBUGP(DNS, "NSEI=%u Rx NS UNBLOCK\n", nsvc->nsei);
 		nsvc->state &= ~NSE_S_BLOCKED;
 		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
 		break;
 	case NS_PDUT_UNBLOCK_ACK:
-		DEBUGP(DGPRS, "NSEI=%u Rx NS UNBLOCK ACK\n", nsvc->nsei);
+		DEBUGP(DNS, "NSEI=%u Rx NS UNBLOCK ACK\n", nsvc->nsei);
 		/* mark remote NS-VC as unblocked + active */
 		nsvc->remote_state = NSE_S_ALIVE;
 		if (nsvc->remote_end_is_sgsn)
 			nsvc->state = NSE_S_ALIVE;
 		break;
 	case NS_PDUT_BLOCK:
-		DEBUGP(DGPRS, "NSEI=%u Rx NS BLOCK\n", nsvc->nsei);
+		DEBUGP(DNS, "NSEI=%u Rx NS BLOCK\n", nsvc->nsei);
 		nsvc->state |= NSE_S_BLOCKED;
 		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
 		break;
 	case NS_PDUT_BLOCK_ACK:
-		DEBUGP(DGPRS, "NSEI=%u Rx NS BLOCK ACK\n", nsvc->nsei);
+		DEBUGP(DNS, "NSEI=%u Rx NS BLOCK ACK\n", nsvc->nsei);
 		/* mark remote NS-VC as blocked + active */
 		nsvc->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		break;
 	default:
-		DEBUGP(DGPRS, "NSEI=%u Rx Unknown NS PDU type 0x%02x\n",
+		DEBUGP(DNS, "NSEI=%u Rx Unknown NS PDU type 0x%02x\n",
 			nsvc->nsei, nsh->pdu_type);
 		rc = -EINVAL;
 		break;
@@ -533,7 +533,7 @@ static struct msgb *read_nsip_msg(struct bsc_fd *bfd, int *error,
 	ret = recvfrom(bfd->fd, msg->data, NS_ALLOC_SIZE, 0,
 			(struct sockaddr *)saddr, &saddr_len);
 	if (ret < 0) {
-		LOGP(DGPRS, LOGL_ERROR, "recv error %s during NSIP recv\n",
+		LOGP(DNS, LOGL_ERROR, "recv error %s during NSIP recv\n",
 			strerror(errno));
 		msgb_free(msg);
 		*error = ret;
@@ -634,7 +634,7 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 
 	/* Initiate a RESET procedure */
 	if (gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION) < 0) {
-		LOGP(DGPRS, LOGL_ERROR, "NSEI=%u, error resetting NS-VC\n",
+		LOGP(DNS, LOGL_ERROR, "NSEI=%u, error resetting NS-VC\n",
 			nsei);
 	}
 	/* run a timer and re-transmit the reset request? */

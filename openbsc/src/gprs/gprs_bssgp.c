@@ -188,7 +188,7 @@ int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg)
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
 
-	DEBUGPC(DGPRS, "BSSGP: TX STATUS, cause=%s\n", bssgp_cause_str(cause));
+	DEBUGPC(DBSSGP, "BSSGP: TX STATUS, cause=%s\n", bssgp_cause_str(cause));
 	msgb_nsei(msg) = msgb_nsei(orig_msg);
 	msgb_bvci(msg) = 0;
 
@@ -223,7 +223,7 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 	int rc;
 
 	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
-	DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
+	DEBUGPC(DBSSGP, "BVCI=%u, cause=%s\n", bvci,
 		bssgp_cause_str(*TLVP_VAL(tp, BSSGP_IE_CAUSE)));
 
 	/* look-up or create the BTS context for this BVC */
@@ -235,14 +235,14 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 	 * informs us about its RAC + Cell ID, so we can create a mapping */
 	if (bvci != 0 && bvci != 1) {
 		if (!TLVP_PRESENT(tp, BSSGP_IE_CELL_ID)) {
-			LOGP(DGPRS, LOGL_ERROR, "BSSGP RESET BVCI=%u "
+			LOGP(DBSSGP, LOGL_ERROR, "BSSGP RESET BVCI=%u "
 				"missing mandatory IE\n", bvci);
 			return -EINVAL;
 		}
 		/* actually extract RAC / CID */
 		bctx->cell_id = bssgp_parse_cell_id(&bctx->ra_id,
 						TLVP_VAL(tp, BSSGP_IE_CELL_ID));
-		LOGP(DGPRS, LOGL_NOTICE, "Cell %u-%u-%u-%u CI %u on BVCI %u\n",
+		LOGP(DBSSGP, LOGL_NOTICE, "Cell %u-%u-%u-%u CI %u on BVCI %u\n",
 			bctx->ra_id.mcc, bctx->ra_id.mnc, bctx->ra_id.lac,
 			bctx->ra_id.rac, bctx->cell_id, bvci);
 	}
@@ -261,7 +261,7 @@ static int bssgp_rx_ul_ud(struct msgb *msg)
 	struct tlv_parsed tp;
 	int rc;
 
-	DEBUGP(DGPRS, "BSSGP UL-UD\n");
+	DEBUGP(DBSSGP, "BSSGP UL-UD\n");
 
 	/* extract TLLI and parse TLV IEs */
 	msgb_tlli(msg) = ntohl(budh->tlli);
@@ -289,7 +289,7 @@ static int bssgp_rx_suspend(struct msgb *msg)
 	struct tlv_parsed tp;
 	int rc;
 
-	DEBUGP(DGPRS, "BSSGP SUSPEND\n");
+	DEBUGP(DBSSGP, "BSSGP SUSPEND\n");
 
 	rc = bssgp_tlv_parse(&tp, bgph->data, data_len);
 	if (rc < 0)
@@ -311,7 +311,7 @@ static int bssgp_rx_resume(struct msgb *msg)
 	struct tlv_parsed tp;
 	int rc;
 
-	DEBUGP(DGPRS, "BSSGP RESUME\n");
+	DEBUGP(DBSSGP, "BSSGP RESUME\n");
 
 	rc = bssgp_tlv_parse(&tp, bgph->data, data_len);
 	if (rc < 0)
@@ -329,7 +329,7 @@ static int bssgp_rx_resume(struct msgb *msg)
 static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp)
 {
 
-	DEBUGP(DGPRS, "BSSGP FC BVC\n");
+	DEBUGP(DBSSGP, "BSSGP FC BVC\n");
 
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TAG) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_BVC_BUCKET_SIZE) ||
@@ -371,11 +371,11 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		break;
 	case BSSGP_PDUT_RA_CAPABILITY:
 		/* BSS requests RA capability or IMSI */
-		DEBUGP(DGPRS, "BSSGP RA CAPABILITY UPDATE\n");
+		DEBUGP(DBSSGP, "BSSGP RA CAPABILITY UPDATE\n");
 		/* FIXME: send RA_CAPA_UPDATE_ACK */
 		break;
 	case BSSGP_PDUT_RADIO_STATUS:
-		DEBUGP(DGPRS, "BSSGP RADIO STATUS\n");
+		DEBUGP(DBSSGP, "BSSGP RADIO STATUS\n");
 		/* BSS informs us of some exception */
 		/* FIXME: notify GMM */
 		break;
@@ -389,13 +389,13 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		break;
 	case BSSGP_PDUT_FLUSH_LL:
 		/* BSS informs MS has moved to one cell to other cell */
-		DEBUGP(DGPRS, "BSSGP FLUSH LL\n");
+		DEBUGP(DBSSGP, "BSSGP FLUSH LL\n");
 		/* FIXME: notify GMM */
 		/* Send FLUSH_LL_ACK */
 		break;
 	case BSSGP_PDUT_LLC_DISCARD:
 		/* BSS informs that some LLC PDU's have been discarded */
-		DEBUGP(DGPRS, "BSSGP LLC DISCARDED\n");
+		DEBUGP(DBSSGP, "BSSGP LLC DISCARDED\n");
 		/* FIXME: notify GMM */
 		break;
 	case BSSGP_PDUT_FLOW_CONTROL_BVC:
@@ -404,18 +404,18 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		break;
 	case BSSGP_PDUT_FLOW_CONTROL_MS:
 		/* BSS informs us of available bandwidth to one MS */
-		DEBUGP(DGPRS, "BSSGP FC MS\n");
+		DEBUGP(DBSSGP, "BSSGP FC MS\n");
 		/* FIXME: actually implement flow control */
 		/* FIXME: Send FLOW_CONTROL_MS_ACK */
 		break;
 	case BSSGP_PDUT_BVC_BLOCK:
 		/* BSS tells us that BVC shall be blocked */
-		DEBUGP(DGPRS, "BSSGP BVC BLOCK ");
+		DEBUGP(DBSSGP, "BSSGP BVC BLOCK ");
 		if (!TLVP_PRESENT(&tp, BSSGP_IE_BVCI) ||
 		    !TLVP_PRESENT(&tp, BSSGP_IE_CAUSE))
 			goto err_mand_ie;
 		bvci = ntohs(*(uint16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
-		DEBUGPC(DGPRS, "BVCI=%u, cause=%s\n", bvci,
+		DEBUGPC(DBSSGP, "BVCI=%u, cause=%s\n", bvci,
 			bssgp_cause_str(*TLVP_VAL(&tp, BSSGP_IE_CAUSE)));
 		/* We always acknowledge the BLOCKing */
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK_ACK,
@@ -423,18 +423,18 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		break;
 	case BSSGP_PDUT_BVC_UNBLOCK:
 		/* BSS tells us that BVC shall be unblocked */
-		DEBUGP(DGPRS, "BSSGP BVC UNBLOCK ");
+		DEBUGP(DBSSGP, "BSSGP BVC UNBLOCK ");
 		if (!TLVP_PRESENT(&tp, BSSGP_IE_BVCI))
 			goto err_mand_ie;
 		bvci = ntohs(*(uint16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
-		DEBUGPC(DGPRS, "BVCI=%u\n", bvci);
+		DEBUGPC(DBSSGP, "BVCI=%u\n", bvci);
 		/* We always acknowledge the unBLOCKing */
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_UNBLOCK_ACK,
 					  msgb_nsei(msg), bvci, ns_bvci);
 		break;
 	case BSSGP_PDUT_BVC_RESET:
 		/* BSS tells us that BVC init is required */
-		DEBUGP(DGPRS, "BSSGP BVC RESET ");
+		DEBUGP(DBSSGP, "BSSGP BVC RESET ");
 		if (!TLVP_PRESENT(&tp, BSSGP_IE_BVCI) ||
 		    !TLVP_PRESENT(&tp, BSSGP_IE_CAUSE))
 			goto err_mand_ie;
@@ -448,7 +448,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 	case BSSGP_PDUT_CREATE_BSS_PFC_NACK:
 	case BSSGP_PDUT_MODIFY_BSS_PFC:
 	case BSSGP_PDUT_DELETE_BSS_PFC_ACK:
-		DEBUGP(DGPRS, "BSSGP PDU type 0x%02x not [yet] implemented\n",
+		DEBUGP(DBSSGP, "BSSGP PDU type 0x%02x not [yet] implemented\n",
 			pdu_type);
 		break;
 	/* those only exist in the SGSN -> BSS direction */
@@ -466,12 +466,12 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 	case BSSGP_PDUT_BVC_BLOCK_ACK:
 	case BSSGP_PDUT_BVC_UNBLOCK_ACK:
 	case BSSGP_PDUT_SGSN_INVOKE_TRACE:
-		DEBUGP(DGPRS, "BSSGP PDU type 0x%02x only exists in DL\n",
+		DEBUGP(DBSSGP, "BSSGP PDU type 0x%02x only exists in DL\n",
 			pdu_type);
 		rc = -EINVAL;
 		break;
 	default:
-		DEBUGP(DGPRS, "BSSGP PDU type 0x%02x unknown\n", pdu_type);
+		DEBUGP(DBSSGP, "BSSGP PDU type 0x%02x unknown\n", pdu_type);
 		break;
 	}
 
@@ -496,7 +496,7 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 
 	/* Identifiers from UP: TLLI, BVCI, NSEI (all in msgb->cb) */
 	if (bvci < 2) {
-		LOGP(DGPRS, LOGL_ERROR, "Cannot send DL-UD to BVCI %u\n",
+		LOGP(DBSSGP, LOGL_ERROR, "Cannot send DL-UD to BVCI %u\n",
 			bvci);
 		return -EINVAL;
 	}
