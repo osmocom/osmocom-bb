@@ -129,7 +129,7 @@ static struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 	return nsvc;
 }
 
-static void ns_dispatch_signal(struct nsvc *nsvc, unsigned int signal,
+static void ns_dispatch_signal(struct gprs_nsvc *nsvc, unsigned int signal,
 			       uint8_t cause)
 {
 	struct ns_signal_data nssd;
@@ -291,6 +291,8 @@ static void gprs_ns_timer_cb(void *data)
 		gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
 		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
 		break;
+	case _NSVC_TIMER_NR:
+		break;
 	}
 }
 
@@ -433,7 +435,7 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 
 	/* inform interested parties about the fact that this NSVC
 	 * has received RESET */
-	ns_dispatch_signal(nsvc, S_NS_RESET, cause);
+	ns_dispatch_signal(nsvc, S_NS_RESET, *cause);
 
 	return gprs_ns_tx_reset_ack(nsvc);
 }
@@ -461,7 +463,7 @@ static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
 	cause = (uint8_t *) TLVP_VAL(&tp, NS_IE_CAUSE);
 	//nsvci = (uint16_t *) TLVP_VAL(&tp, NS_IE_VCI);
 
-	ns_dispatch_signal(nsvc, S_NS_BLOCK, cause);
+	ns_dispatch_signal(nsvc, S_NS_BLOCK, *cause);
 
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_BLOCK_ACK);
 }
