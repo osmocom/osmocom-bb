@@ -117,6 +117,7 @@ void log_set_print_timestamp(struct log_target *target, int);
 void log_set_log_level(struct log_target *target, int log_level);
 void log_parse_category_mask(struct log_target *target, const char* mask);
 int log_parse_level(const char *lvl);
+const char *log_level_str(unsigned int lvl);
 int log_parse_category(const char *category);
 void log_set_category_filter(struct log_target *target, int category,
 			       int enable, int level);

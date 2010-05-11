@@ -58,6 +58,11 @@ int log_parse_level(const char *lvl)
 	return get_string_value(loglevel_strs, lvl);
 }
 
+const char *log_level_str(unsigned int lvl)
+{
+	return get_value_string(loglevel_strs, lvl);
+}
+
 int log_parse_category(const char *category)
 {
 	int i;
