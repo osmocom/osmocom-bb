@@ -36,14 +36,7 @@
 #include <openbsc/gprs_llc.h>
 #include <openbsc/gprs_ns.h>
 
-/* global pointer to the gsm network data structure */
-/* FIXME: this must go! */
-extern struct gsm_network *bsc_gsmnet;
-
 void *bssgp_tall_ctx = NULL;
-
-
-/* Our actual implementation */
 
 #define BVC_F_BLOCKED	0x0001
 
@@ -66,7 +59,7 @@ struct bssgp_bts_ctx {
 	 * lookup for every packet, similar to a routing cache */
 	//struct gprs_nsvc *nsvc;
 };
-LLIST_HEAD(bts_ctxts);
+static LLIST_HEAD(bts_ctxts);
 
 /* Find a BTS Context based on parsed RA ID and Cell ID */
 struct bssgp_bts_ctx *btsctx_by_raid_cid(const struct gprs_ra_id *raid, uint16_t cid)
@@ -93,7 +86,7 @@ struct bssgp_bts_ctx *btsctx_by_bvci_nsei(uint16_t bvci, uint16_t nsei)
 	return NULL;
 }
 
-struct bssgp_btx_ctx *btsctx_alloc(uint16_t bvci, uint16_t nsei)
+struct bssgp_bts_ctx *btsctx_alloc(uint16_t bvci, uint16_t nsei)
 {
 	struct bssgp_bts_ctx *ctx;
 
