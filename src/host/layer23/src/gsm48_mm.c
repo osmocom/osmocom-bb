@@ -263,7 +263,7 @@ int gsm48_encode_mi(struct msgb *msg, struct osmocom_ms *ms, uint8_t mi_type)
 		gsm48_generate_mid_from_imsi(buf, subscr->imsi);
 		break;
 	case GSM_MI_TYPE_IMEI:
-		gsm48_generate_mid_from_imsi(buf, sup->imeisv);
+		gsm48_generate_mid_from_imsi(buf, sup->imei);
 		break;
 	case GSM_MI_TYPE_IMEISV:
 		gsm48_generate_mid_from_imsi(buf, sup->imeisv);
