@@ -488,8 +488,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		/* Only the RESET procedure creates a new NSVC */
 		if (nsh->pdu_type != NS_PDUT_RESET) {
 			LOGP(DNS, LOGL_INFO, "Ignoring NS PDU type 0x%0x "
-				"from %s for non-existing NS-VC\n",
-				nsh->pdu_type, inet_ntoa(saddr->sin_addr));
+				"from %s:%u for non-existing NS-VC\n",
+				nsh->pdu_type, inet_ntoa(saddr->sin_addr),
+				ntohs(saddr->sin_port));
 			//gprs_ns_tx_reset(nsvc, NS_CAUSE_NSVC_UNKNOWN);
 			return -EIO;
 		}
