@@ -293,11 +293,26 @@ int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
 
 int gprs_ns_tx_unblock(struct gprs_nsvc *nsvc)
 {
-
 	LOGP(DNS, LOGL_INFO, "NSEI=%u Tx NS UNBLOCK (NSVCI=%u)\n",
 		nsvc->nsei, nsvc->nsvci);
 
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK);
+}
+
+int gprs_ns_tx_alive(struct gprs_nsvc *nsvc)
+{
+	LOGP(DNS, LOGL_DEBUG, "NSEI=%u Tx NS ALIVE (NSVCI=%u)\n",
+		nsvc->nsei, nsvc->nsvci);
+
+	return gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
+}
+
+int gprs_ns_tx_alive_ack(struct gprs_nsvc *nsvc)
+{
+	LOGP(DNS, LOGL_DEBUG, "NSEI=%u Tx NS ALIVE_ACK (NSVCI=%u)\n",
+		nsvc->nsei, nsvc->nsvci);
+
+	return gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE_ACK);
 }
 
 #define NS_ALIVE_RETRIES  10	/* after 3 failed retransmit we declare BTS as dead */
@@ -337,12 +352,16 @@ static void gprs_ns_timer_cb(void *data)
 			ns_dispatch_signal(nsvc, S_NS_BLOCK, NS_CAUSE_NSVC_BLOCKED);
 			return;
 		}
+		/* Tns-test case: send NS-ALIVE PDU */
+		gprs_ns_tx_alive(nsvc);
+		/* start Tns-alive timer */
 		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
 		break;
 	case NSVC_TIMER_TNS_TEST:
 		/* Tns-test case: send NS-ALIVE PDU */
-		gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
-		/* start Tns-alive timer */
+		gprs_ns_tx_alive(nsvc);
+		/* start Tns-alive timer (transition into faster
+		 * alive retransmissions) */
 		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
 		break;
 	case NSVC_TIMER_TNS_RESET:
@@ -584,7 +603,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 	case NS_PDUT_ALIVE:
 		/* remote end inquires whether we're still alive,
 		 * we need to respond with ALIVE_ACK */
-		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE_ACK);
+		rc = gprs_ns_tx_alive_ack(nsvc);
 		break;
 	case NS_PDUT_ALIVE_ACK:
 		/* stop Tns-alive */
