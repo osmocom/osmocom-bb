@@ -104,7 +104,9 @@ static struct gprs_nsvc *nsvc_by_rem_addr(struct gprs_ns_inst *nsi,
 {
 	struct gprs_nsvc *nsvc;
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
-		if (!memcmp(&nsvc->ip.bts_addr, sin, sizeof(*sin)))
+		if (nsvc->ip.bts_addr.sin_addr.s_addr ==
+					sin->sin_addr.s_addr &&
+		    nsvc->ip.bts_addr.sin_port == sin->sin_port)
 			return nsvc;
 	}
 	return NULL;
@@ -764,10 +766,9 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 	struct gprs_nsvc *nsvc;
 
 	nsvc = nsvc_by_rem_addr(nsi, dest);
-	if (!nsvc) {
+	if (!nsvc)
 		nsvc = nsvc_create(nsi, nsvci);
-		nsvc->ip.bts_addr = *dest;
-	}
+	nsvc->ip.bts_addr = *dest;
 	nsvc->nsei = nsei;
 	nsvc->nsvci = nsvci;
 	nsvc->remote_end_is_sgsn = 1;
