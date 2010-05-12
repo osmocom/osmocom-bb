@@ -216,6 +216,49 @@ int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 
 }
 
+int gprs_ns_tx_status(struct gprs_nsvc *nsvc, uint8_t cause,
+		      uint16_t bvci, struct msgb *orig_msg)
+{
+	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
+	struct gprs_ns_hdr *nsh;
+	uint16_t nsvci = htons(nsvc->nsvci);
+
+	bvci = htons(bvci);
+
+	if (!msg)
+		return -ENOMEM;
+
+	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
+	nsh->pdu_type = NS_PDUT_STATUS;
+
+	msgb_tvlv_put(msg, NS_IE_CAUSE, 1, &cause);
+
+	/* Section 9.2.7.1: Static conditions for NS-VCI */
+	if (cause == NS_CAUSE_NSVC_BLOCKED ||
+	    cause == NS_CAUSE_NSVC_UNKNOWN)
+		msgb_tvlv_put(msg, NS_IE_VCI, 2, (uint8_t *)&nsvci);
+
+	/* Section 9.2.7.2: Static conditions for NS PDU */
+	switch (cause) {
+	case NS_CAUSE_SEM_INCORR_PDU:
+	case NS_CAUSE_PDU_INCOMP_PSTATE:
+	case NS_CAUSE_PROTO_ERR_UNSPEC:
+	case NS_CAUSE_INVAL_ESSENT_IE:
+	case NS_CAUSE_MISSING_ESSENT_IE:
+		msgb_tvlv_put(msg, NS_IE_PDU, msgb_l2len(orig_msg),
+			      orig_msg->l2h);
+		break;
+	default:
+		break;
+	}
+
+	/* Section 9.2.7.3: Static conditions for BVCI */
+	if (cause == NS_CAUSE_BVCI_UNKNOWN)
+		msgb_tvlv_put(msg, NS_IE_VCI, 2, (uint8_t *)&bvci);
+
+	return gprs_ns_tx(nsvc, msg);
+}
+
 int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
 {
 	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
@@ -290,6 +333,7 @@ static void gprs_ns_timer_cb(void *data)
 	case NSVC_TIMER_TNS_RESET:
 		/* Chapter 7.3: Re-send the RESET */
 		gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+		/* Re-start Tns-reset timer */
 		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
 		break;
 	case _NSVC_TIMER_NR:
@@ -368,6 +412,10 @@ static int gprs_ns_rx_unitdata(struct gprs_nsvc *nsvc, struct msgb *msg)
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *)msg->l2h;
 	uint16_t bvci;
 
+	if (nsvc->state & NSE_S_BLOCKED)
+		return gprs_ns_tx_status(nsvc, NS_CAUSE_NSVC_BLOCKED,
+					 0, msg);
+
 	/* spare octet in data[0] */
 	bvci = nsh->data[1] << 8 | nsh->data[2];
 	msgb_bssgph(msg) = &nsh->data[3];
@@ -414,8 +462,8 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
 	    !TLVP_PRESENT(&tp, NS_IE_VCI) ||
 	    !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
-		/* FIXME: respond with NS_CAUSE_MISSING_ESSENT_IE */
 		LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
+		gprs_ns_tx_status(nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0, msg);
 		return -EINVAL;
 	}
 
@@ -426,15 +474,12 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS RESET (NSVCI=%u, cause=%s)\n",
 		nsvc->nsvci, nsvc->nsei, gprs_ns_cause_str(*cause));
 
+	/* Mark NS-VC as blocked and alive */
 	nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
-	/* FIXME: Check if we have an existing peer with this NSEI/NSVCI
-	 * and remove it, as our BSS may just have changed its source IP
-	 * address */
 
 	nsvc->nsei = ntohs(*nsei);
 	nsvc->nsvci = ntohs(*nsvci);
 
-	/* mark the NS-VC as blocked and alive */
 	/* start the test procedure */
 	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
 
@@ -460,8 +505,8 @@ static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
 
 	if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
 	    !TLVP_PRESENT(&tp, NS_IE_VCI)) {
-		/* FIXME: respond with NS_CAUSE_MISSING_ESSENT_IE */
 		LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
+		gprs_ns_tx_status(nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0, msg);
 		return -EINVAL;
 	}
 
@@ -492,6 +537,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 				"from %s:%u for non-existing NS-VC\n",
 				nsh->pdu_type, inet_ntoa(saddr->sin_addr),
 				ntohs(saddr->sin_port));
+			/* FIXME: send STATUS (but we have no NSVC!) */
 			//gprs_ns_tx_reset(nsvc, NS_CAUSE_NSVC_UNKNOWN);
 			return -EIO;
 		}
@@ -500,8 +546,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
 		    !TLVP_PRESENT(&tp, NS_IE_VCI) ||
 		    !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
-			/* FIXME: respond with NS_CAUSE_MISSING_ESSENT_IE */
 			LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
+			gprs_ns_tx_status(nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0,
+					  msg);
 			return -EINVAL;
 		}
 		nsei = ntohs(*(uint16_t *)TLVP_VAL(&tp, NS_IE_NSEI));
@@ -532,7 +579,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		if (nsvc->remote_end_is_sgsn) {
 			/* FIXME: this should be one level higher */
 			if (nsvc->state & NSE_S_BLOCKED)
-				rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK);
+				rc = gprs_ns_tx_unblock(nsvc);
 		}
 		break;
 	case NS_PDUT_UNITDATA:
@@ -547,16 +594,15 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		break;
 	case NS_PDUT_RESET_ACK:
 		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS RESET ACK\n", nsvc->nsei);
-		/* mark remote NS-VC as blocked + active */
+		/* mark NS-VC as blocked + active */
+		nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		nsvc->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		if (nsvc->remote_end_is_sgsn) {
 			/* stop RESET timer */
 			bsc_del_timer(&nsvc->timer);
-			/* send ALIVE PDU */
+			/* Initiate TEST proc.: Send ALIVE and start timer */
 			rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
 			nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
-			/* mark local state as BLOCKED + ALIVE */
-			nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		}
 		break;
 	case NS_PDUT_UNBLOCK:
@@ -568,10 +614,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		break;
 	case NS_PDUT_UNBLOCK_ACK:
 		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS UNBLOCK ACK\n", nsvc->nsei);
-		/* mark remote NS-VC as unblocked + active */
+		/* mark NS-VC as unblocked + active */
+		nsvc->state = NSE_S_ALIVE;
 		nsvc->remote_state = NSE_S_ALIVE;
-		if (nsvc->remote_end_is_sgsn)
-			nsvc->state = NSE_S_ALIVE;
 		break;
 	case NS_PDUT_BLOCK:
 		rc = gprs_ns_rx_block(nsvc, msg);
@@ -728,11 +773,14 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 	nsvc->remote_end_is_sgsn = 1;
 
 	/* Initiate a RESET procedure */
+	/* Mark NS-VC locally as blocked and dead */
+	nsvc->state = NSE_S_BLOCKED;
+	/* Send NS-RESET PDU */
 	if (gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION) < 0) {
 		LOGP(DNS, LOGL_ERROR, "NSEI=%u, error resetting NS-VC\n",
 			nsei);
 	}
-	/* run a timer and re-transmit the reset request? */
+	/* Start Tns-reset */
 	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
 
 	return nsvc;
