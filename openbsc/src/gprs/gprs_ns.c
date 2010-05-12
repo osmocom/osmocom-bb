@@ -207,6 +207,9 @@ int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 	if (!msg)
 		return -ENOMEM;
 
+	LOGP(DNS, LOGL_INFO, "NSEI=%u Tx NS RESET (NSVCI=%u, cause=%s)\n",
+		nsvc->nsei, nsvc->nsvci, gprs_ns_cause_str(cause));
+
 	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
 	nsh->pdu_type = NS_PDUT_RESET;
 
@@ -229,6 +232,9 @@ int gprs_ns_tx_status(struct gprs_nsvc *nsvc, uint8_t cause,
 
 	if (!msg)
 		return -ENOMEM;
+
+	LOGP(DNS, LOGL_INFO, "NSEI=%u Tx NS STATUS (NSVCI=%u, cause=%s)\n",
+		nsvc->nsei, nsvc->nsvci, gprs_ns_cause_str(cause));
 
 	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
 	nsh->pdu_type = NS_PDUT_STATUS;
@@ -270,6 +276,9 @@ int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
 	if (!msg)
 		return -ENOMEM;
 
+	LOGP(DNS, LOGL_INFO, "NSEI=%u Tx NS BLOCK (NSVCI=%u, cause=%s)\n",
+		nsvc->nsei, nsvc->nsvci, gprs_ns_cause_str(cause));
+
 	/* be conservative and mark it as blocked even now! */
 	nsvc->state |= NSE_S_BLOCKED;
 
@@ -284,6 +293,10 @@ int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
 
 int gprs_ns_tx_unblock(struct gprs_nsvc *nsvc)
 {
+
+	LOGP(DNS, LOGL_INFO, "NSEI=%u Tx NS UNBLOCK (NSVCI=%u)\n",
+		nsvc->nsei, nsvc->nsvci);
+
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK);
 }
 
