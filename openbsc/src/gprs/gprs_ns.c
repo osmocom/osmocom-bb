@@ -131,6 +131,14 @@ static struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 	return nsvc;
 }
 
+static void nsvc_delete(struct gprs_nsvc *nsvc)
+{
+	if (bsc_timer_pending(&nsvc->timer))
+		bsc_del_timer(&nsvc->timer);
+	llist_del(&nsvc->list);
+	talloc_free(nsvc);
+}
+
 static void ns_dispatch_signal(struct gprs_nsvc *nsvc, unsigned int signal,
 			       uint8_t cause)
 {
@@ -592,15 +600,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			fake_nsvc.nsi = nsi;
 			fake_nsvc.ip.bts_addr = *saddr;
 			fake_nsvc.state = NSE_S_ALIVE;
-#if 0
 			return gprs_ns_tx_status(&fake_nsvc,
 						NS_CAUSE_PDU_INCOMP_PSTATE, 0,
 						msg);
-#else
-			/* BS+ Gb implementation ignores STATUS, so we try
-			 * our luck with a RESET incompatible with the spec */
-			return gprs_ns_tx_simple(&fake_nsvc, NS_PDUT_RESET);
-#endif
 		}
 		rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data,
 						msgb_l2len(msg), 0, 0);
@@ -628,9 +630,14 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 
 	switch (nsh->pdu_type) {
 	case NS_PDUT_ALIVE:
-		/* remote end inquires whether we're still alive,
-		 * we need to respond with ALIVE_ACK */
-		rc = gprs_ns_tx_alive_ack(nsvc);
+		/* If we're dead and blocked and suddenly receive a
+		 * NS-ALIVE out of the blue, we might have been re-started
+		 * and should send a NS-RESET to make sure everything recovers
+		 * fine. */
+		if (nsvc->state == NSE_S_BLOCKED)
+			rc = gprs_ns_tx_reset(nsvc, NS_CAUSE_PDU_INCOMP_PSTATE);
+		else
+			rc = gprs_ns_tx_alive_ack(nsvc);
 		break;
 	case NS_PDUT_ALIVE_ACK:
 		/* stop Tns-alive */
@@ -843,4 +850,204 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
 
 	return nsvc;
+}
+
+#include <vty/vty.h>
+#include <vty/command.h>
+
+static struct gprs_ns_inst *vty_nsi = NULL;
+
+static struct cmd_node ns_node = {
+	NS_NODE,
+	"%s(ns)#",
+	1,
+};
+
+static int config_write_ns(struct vty *vty)
+{
+	struct gprs_nsvc *nsvc;
+
+	vty_out(vty, "ns%s", VTY_NEWLINE);
+
+	llist_for_each_entry(nsvc, &vty_nsi->gprs_nsvcs, list) {
+		if (!nsvc->persistent)
+			continue;
+		vty_out(vty, " nse %u nsvci %u%s",
+			nsvc->nsei, nsvc->nsvci, VTY_NEWLINE);
+		vty_out(vty, " nse %u remote-role %s%s",
+			nsvc->nsei, nsvc->remote_end_is_sgsn ? "sgsn" : "bss",
+			VTY_NEWLINE);
+		if (nsvc->nsi->ll == GPRS_NS_LL_UDP) {
+			vty_out(vty, " nse %u remote-ip %s%s",
+				nsvc->nsei, 
+				inet_ntoa(nsvc->ip.bts_addr.sin_addr),
+				VTY_NEWLINE);
+			vty_out(vty, " nse %u remote-port %u%s",
+				nsvc->nsei, ntohs(nsvc->ip.bts_addr.sin_port),
+				VTY_NEWLINE);
+		}
+		vty_out(vty, "%s", VTY_NEWLINE);
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ns, cfg_ns_cmd,
+      "ns",
+      "Configure the GPRS Network Service")
+{
+	vty->node = NS_NODE;
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_ns, show_ns_cmd, "show ns",
+      SHOW_STR "Display information about the NS protocol")
+{
+	struct gprs_ns_inst *nsi = vty_nsi;
+	struct gprs_nsvc *nsvc;
+
+	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
+		vty_out(vty, "NSEI %5u, NS-VC %5u, Remote: %-4s, %5s %9s",
+			nsvc->nsei, nsvc->nsvci,
+			nsvc->remote_end_is_sgsn ? "SGSN" : "BSS",
+			nsvc->state & NSE_S_ALIVE ? "ALIVE" : "DEAD",
+			nsvc->state & NSE_S_BLOCKED ? "BLOCKED" : "UNBLOCKED");
+		if (nsvc->nsi->ll == GPRS_NS_LL_UDP)
+			vty_out(vty, ", %15s:%u",
+				inet_ntoa(nsvc->ip.bts_addr.sin_addr),
+				ntohs(nsvc->ip.bts_addr.sin_port));
+		vty_out(vty, "%s", VTY_NEWLINE);
+	}
+
+	return CMD_SUCCESS;
+}
+
+
+#define NSE_CMD_STR "NS Entity\n" "NS Entity ID (NSEI)\n"
+
+DEFUN(cfg_nse_nsvc, cfg_nse_nsvci_cmd,
+	"nse <0-65535> nsvci <0-65534>",
+	NSE_CMD_STR
+	"NS Virtual Connection\n"
+	"NS Virtual Connection ID (NSVCI)\n"
+	)
+{
+	uint16_t nsei = atoi(argv[0]);
+	uint16_t nsvci = atoi(argv[1]);
+	struct gprs_nsvc *nsvc;
+
+	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	if (!nsvc) {
+		nsvc = nsvc_create(vty_nsi, nsvci);
+		nsvc->nsei = nsei;
+	}
+	nsvc->nsvci = nsvci;
+	/* All NSVCs that are explicitly configured by VTY are
+	 * marked as persistent so we can write them to the config
+	 * file at some later point */
+	nsvc->persistent = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_nse_remoteip, cfg_nse_remoteip_cmd,
+	"nse <0-65535> remote-ip A.B.C.D",
+	NSE_CMD_STR
+	"Remote IP Address\n"
+	"Remote IP Address\n")
+{
+	uint16_t nsei = atoi(argv[0]);
+	struct gprs_nsvc *nsvc;
+
+	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	if (!nsvc) {
+		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	inet_aton(argv[1], &nsvc->ip.bts_addr.sin_addr);
+
+	return CMD_SUCCESS;
+
+}
+
+DEFUN(cfg_nse_remoteport, cfg_nse_remoteport_cmd,
+	"nse <0-65535> remote-port <0-65535>",
+	NSE_CMD_STR
+	"Remote UDP Port\n"
+	"Remote UDP Port Number\n")
+{
+	uint16_t nsei = atoi(argv[0]);
+	uint16_t port = atoi(argv[1]);
+	struct gprs_nsvc *nsvc;
+
+	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	if (!nsvc) {
+		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	nsvc->ip.bts_addr.sin_port = htons(port);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_nse_remoterole, cfg_nse_remoterole_cmd,
+	"nse <0-65535> remote-role (sgsn|bss)",
+	NSE_CMD_STR
+	"Remote NSE Role\n"
+	"Remote Peer is SGSN\n"
+	"Remote Peer is BSS\n")
+{
+	uint16_t nsei = atoi(argv[0]);
+	struct gprs_nsvc *nsvc;
+
+	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	if (!nsvc) {
+		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (!strcmp(argv[1], "sgsn"))
+		nsvc->remote_end_is_sgsn = 1;
+	else
+		nsvc->remote_end_is_sgsn = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_nse, cfg_no_nse_cmd,
+	"no nse <0-65535>",
+	"Delete NS Entity\n"
+	"Delete " NSE_CMD_STR)
+{
+	uint16_t nsei = atoi(argv[0]);
+	struct gprs_nsvc *nsvc;
+
+	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	if (!nsvc) {
+		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	nsvc_delete(nsvc);
+
+	return CMD_SUCCESS;
+}
+
+int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
+{
+	vty_nsi = nsi;
+
+	install_element(VIEW_NODE, &show_ns_cmd);
+
+	install_element(CONFIG_NODE, &cfg_ns_cmd);
+	install_node(&ns_node, config_write_ns);
+	install_default(NS_NODE);
+	install_element(NS_NODE, &cfg_nse_nsvci_cmd);
+	install_element(NS_NODE, &cfg_nse_remoteip_cmd);
+	install_element(NS_NODE, &cfg_nse_remoteport_cmd);
+	install_element(NS_NODE, &cfg_nse_remoterole_cmd);
+	install_element(NS_NODE, &cfg_no_nse_cmd);
+
+	return 0;
 }

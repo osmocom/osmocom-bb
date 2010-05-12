@@ -140,7 +140,8 @@ struct gprs_nsvc {
 	enum nsvc_timer_mode timer_mode;
 	int alive_retries;
 
-	int remote_end_is_sgsn;
+	unsigned int remote_end_is_sgsn:1;
+	unsigned int persistent:1;
 
 	union {
 		struct {
@@ -178,4 +179,8 @@ int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port);
 struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 				struct sockaddr_in *dest, uint16_t nsei,
 				uint16_t nsvci);
+
+/* Add NS-specific VTY stuff */
+int gprs_ns_vty_init(struct gprs_ns_inst *nsi);
+
 #endif
