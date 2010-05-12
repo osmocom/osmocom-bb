@@ -582,13 +582,25 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		uint16_t nsei;
 		/* Only the RESET procedure creates a new NSVC */
 		if (nsh->pdu_type != NS_PDUT_RESET) {
+			struct gprs_nsvc fake_nsvc;
 			LOGP(DNS, LOGL_INFO, "Ignoring NS PDU type 0x%0x "
 				"from %s:%u for non-existing NS-VC\n",
 				nsh->pdu_type, inet_ntoa(saddr->sin_addr),
 				ntohs(saddr->sin_port));
-			/* FIXME: send STATUS (but we have no NSVC!) */
-			//gprs_ns_tx_reset(nsvc, NS_CAUSE_NSVC_UNKNOWN);
-			return -EIO;
+			/* Since we have no NSVC, we have to create a fake */
+			fake_nsvc.nsvci = fake_nsvc.nsei = 0;
+			fake_nsvc.nsi = nsi;
+			fake_nsvc.ip.bts_addr = *saddr;
+			fake_nsvc.state = NSE_S_ALIVE;
+#if 0
+			return gprs_ns_tx_status(&fake_nsvc,
+						NS_CAUSE_PDU_INCOMP_PSTATE, 0,
+						msg);
+#else
+			/* BS+ Gb implementation ignores STATUS, so we try
+			 * our luck with a RESET incompatible with the spec */
+			return gprs_ns_tx_simple(&fake_nsvc, NS_PDUT_RESET);
+#endif
 		}
 		rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data,
 						msgb_l2len(msg), 0, 0);
@@ -785,8 +797,6 @@ static int nsip_fd_cb(struct bsc_fd *bfd, unsigned int what)
 	return rc;
 }
 
-
-/* FIXME: this is currently in input/ipaccess.c */
 extern int make_sock(struct bsc_fd *bfd, int proto, uint16_t port,
 		     int (*cb)(struct bsc_fd *fd, unsigned int what));
 
