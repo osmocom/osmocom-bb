@@ -332,8 +332,8 @@ static const struct value_string timer_mode_strs[] = {
 
 static void nsvc_start_timer(struct gprs_nsvc *nsvc, enum nsvc_timer_mode mode)
 {
-	DEBUGP(DNS, "NSVC=%u Starting timer in mode %s (%u seconds)\n",
-		nsvc->nsvci, get_value_string(timer_mode_strs, mode),
+	DEBUGP(DNS, "NSEI=%u Starting timer in mode %s (%u seconds)\n",
+		nsvc->nsei, get_value_string(timer_mode_strs, mode),
 		timer_mode_tout[mode]);
 		
 	if (bsc_timer_pending(&nsvc->timer))
@@ -347,8 +347,8 @@ static void gprs_ns_timer_cb(void *data)
 {
 	struct gprs_nsvc *nsvc = data;
 
-	DEBUGP(DNS, "NSVC=%u Timer expired in mode %s (%u seconds)\n",
-		nsvc->nsvci, get_value_string(timer_mode_strs, nsvc->timer_mode),
+	DEBUGP(DNS, "NSEI=%u Timer expired in mode %s (%u seconds)\n",
+		nsvc->nsei, get_value_string(timer_mode_strs, nsvc->timer_mode),
 		timer_mode_tout[nsvc->timer_mode]);
 		
 	switch (nsvc->timer_mode) {
