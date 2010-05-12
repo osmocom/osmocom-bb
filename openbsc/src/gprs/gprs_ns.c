@@ -1039,6 +1039,7 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	vty_nsi = nsi;
 
 	install_element(VIEW_NODE, &show_ns_cmd);
+	install_element(ENABLE_NODE, &show_ns_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ns_cmd);
 	install_node(&ns_node, config_write_ns);
