@@ -793,7 +793,11 @@ static int handle_nsip_read(struct bsc_fd *bfd)
 	if (!msg)
 		return error;
 
-	return gprs_ns_rcvmsg(nsi, msg, &saddr);
+	error = gprs_ns_rcvmsg(nsi, msg, &saddr);
+
+	msgb_free(msg);
+
+	return error;
 }
 
 static int handle_nsip_write(struct bsc_fd *bfd)
