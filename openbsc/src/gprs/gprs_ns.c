@@ -323,10 +323,19 @@ static const uint8_t timer_mode_tout[_NSVC_TIMER_NR] = {
 	[NSVC_TIMER_TNS_TEST]	= 30,
 };
 
+static const struct value_string timer_mode_strs[] = {
+	{ NSVC_TIMER_TNS_RESET, "tns-reset" },
+	{ NSVC_TIMER_TNS_ALIVE, "tns-alive" },
+	{ NSVC_TIMER_TNS_TEST, "tns-test" },
+	{ 0, NULL }
+};
+
 static void nsvc_start_timer(struct gprs_nsvc *nsvc, enum nsvc_timer_mode mode)
 {
-	nsvc->alive_retries = 0;
-
+	DEBUGP(DNS, "NSVC=%u Starting timer in mode %s (%u seconds)\n",
+		nsvc->nsvci, get_value_string(timer_mode_strs, mode),
+		timer_mode_tout[mode]);
+		
 	if (bsc_timer_pending(&nsvc->timer))
 		bsc_del_timer(&nsvc->timer);
 
@@ -338,6 +347,10 @@ static void gprs_ns_timer_cb(void *data)
 {
 	struct gprs_nsvc *nsvc = data;
 
+	DEBUGP(DNS, "NSVC=%u Timer expired in mode %s (%u seconds)\n",
+		nsvc->nsvci, get_value_string(timer_mode_strs, nsvc->timer_mode),
+		timer_mode_tout[nsvc->timer_mode]);
+		
 	switch (nsvc->timer_mode) {
 	case NSVC_TIMER_TNS_ALIVE:
 		/* Tns-alive case: we expired without response ! */
@@ -362,6 +375,7 @@ static void gprs_ns_timer_cb(void *data)
 		gprs_ns_tx_alive(nsvc);
 		/* start Tns-alive timer (transition into faster
 		 * alive retransmissions) */
+		nsvc->alive_retries = 0;
 		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
 		break;
 	case NSVC_TIMER_TNS_RESET:
