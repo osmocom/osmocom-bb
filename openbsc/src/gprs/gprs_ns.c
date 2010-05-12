@@ -678,6 +678,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		/* mark NS-VC as unblocked + active */
 		nsvc->state = NSE_S_ALIVE;
 		nsvc->remote_state = NSE_S_ALIVE;
+		ns_dispatch_signal(nsvc, S_NS_UNBLOCK, 0);
 		break;
 	case NS_PDUT_BLOCK:
 		rc = gprs_ns_rx_block(nsvc, msg);
