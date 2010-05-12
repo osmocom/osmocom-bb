@@ -362,6 +362,7 @@ static void gprs_ns_timer_cb(void *data)
 				"NSEI=%u Tns-alive expired more then "
 				"%u times, blocking NS-VC\n", nsvc->nsei,
 				NS_ALIVE_RETRIES);
+			ns_dispatch_signal(nsvc, S_NS_ALIVE_EXP, 0);
 			ns_dispatch_signal(nsvc, S_NS_BLOCK, NS_CAUSE_NSVC_BLOCKED);
 			return;
 		}
