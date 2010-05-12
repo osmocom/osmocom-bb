@@ -63,6 +63,19 @@
 
 #define NS_ALLOC_SIZE	1024
 
+/* FIXME: this should go to some common file as it is copied
+ * in vty_interface.c of the BSC */
+static const struct value_string gprs_ns_timer_strs[] = {
+	{ 0, "tns-block" },
+	{ 1, "tns-block-retries" },
+	{ 2, "tns-reset" },
+	{ 3, "tns-reset-retries" },
+	{ 4, "tns-test" },
+	{ 5, "tns-alive" },
+	{ 6, "tns-alive-retries" },
+	{ 0, NULL }
+};
+
 static const struct tlv_definition ns_att_tlvdef = {
 	.def = {
 		[NS_IE_CAUSE]	= { TLV_TYPE_TvLV, 0 },
@@ -323,12 +336,10 @@ int gprs_ns_tx_alive_ack(struct gprs_nsvc *nsvc)
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE_ACK);
 }
 
-#define NS_ALIVE_RETRIES  10	/* after 3 failed retransmit we declare BTS as dead */
-
-static const uint8_t timer_mode_tout[_NSVC_TIMER_NR] = {
-	[NSVC_TIMER_TNS_RESET]	= 60,
-	[NSVC_TIMER_TNS_ALIVE]	= 3,
-	[NSVC_TIMER_TNS_TEST]	= 30,
+static const enum ns_timeout timer_mode_tout[_NSVC_TIMER_NR] = {
+	[NSVC_TIMER_TNS_RESET]	= NS_TOUT_TNS_RESET,
+	[NSVC_TIMER_TNS_ALIVE]	= NS_TOUT_TNS_ALIVE,
+	[NSVC_TIMER_TNS_TEST]	= NS_TOUT_TNS_TEST,
 };
 
 static const struct value_string timer_mode_strs[] = {
@@ -340,36 +351,42 @@ static const struct value_string timer_mode_strs[] = {
 
 static void nsvc_start_timer(struct gprs_nsvc *nsvc, enum nsvc_timer_mode mode)
 {
+	enum ns_timeout tout = timer_mode_tout[mode];
+	unsigned int seconds = nsvc->nsi->timeout[tout];
+
 	DEBUGP(DNS, "NSEI=%u Starting timer in mode %s (%u seconds)\n",
 		nsvc->nsei, get_value_string(timer_mode_strs, mode),
-		timer_mode_tout[mode]);
+		seconds);
 		
 	if (bsc_timer_pending(&nsvc->timer))
 		bsc_del_timer(&nsvc->timer);
 
 	nsvc->timer_mode = mode;
-	bsc_schedule_timer(&nsvc->timer, timer_mode_tout[mode], 0);
+	bsc_schedule_timer(&nsvc->timer, seconds, 0);
 }
 
 static void gprs_ns_timer_cb(void *data)
 {
 	struct gprs_nsvc *nsvc = data;
+	enum ns_timeout tout = timer_mode_tout[nsvc->timer_mode];
+	unsigned int seconds = nsvc->nsi->timeout[tout];
 
 	DEBUGP(DNS, "NSEI=%u Timer expired in mode %s (%u seconds)\n",
 		nsvc->nsei, get_value_string(timer_mode_strs, nsvc->timer_mode),
-		timer_mode_tout[nsvc->timer_mode]);
+		seconds);
 		
 	switch (nsvc->timer_mode) {
 	case NSVC_TIMER_TNS_ALIVE:
 		/* Tns-alive case: we expired without response ! */
 		nsvc->alive_retries++;
-		if (nsvc->alive_retries > NS_ALIVE_RETRIES) {
+		if (nsvc->alive_retries >
+			nsvc->nsi->timeout[NS_TOUT_TNS_ALIVE_RETRIES]) {
 			/* mark as dead and blocked */
 			nsvc->state = NSE_S_BLOCKED;
 			LOGP(DNS, LOGL_NOTICE,
 				"NSEI=%u Tns-alive expired more then "
 				"%u times, blocking NS-VC\n", nsvc->nsei,
-				NS_ALIVE_RETRIES);
+				nsvc->nsi->timeout[NS_TOUT_TNS_ALIVE_RETRIES]);
 			ns_dispatch_signal(nsvc, S_NS_ALIVE_EXP, 0);
 			ns_dispatch_signal(nsvc, S_NS_BLOCK, NS_CAUSE_NSVC_BLOCKED);
 			return;
@@ -710,6 +727,13 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb)
 
 	nsi->cb = cb;
 	INIT_LLIST_HEAD(&nsi->gprs_nsvcs);
+	nsi->timeout[NS_TOUT_TNS_BLOCK] = 3;
+	nsi->timeout[NS_TOUT_TNS_BLOCK_RETRIES] = 3;
+	nsi->timeout[NS_TOUT_TNS_RESET] = 3;
+	nsi->timeout[NS_TOUT_TNS_RESET_RETRIES] = 3;
+	nsi->timeout[NS_TOUT_TNS_TEST] = 30;
+	nsi->timeout[NS_TOUT_TNS_ALIVE] = 3;
+	nsi->timeout[NS_TOUT_TNS_ALIVE_RETRIES] = 10;
 
 	return nsi;
 }
@@ -866,6 +890,7 @@ static struct cmd_node ns_node = {
 static int config_write_ns(struct vty *vty)
 {
 	struct gprs_nsvc *nsvc;
+	unsigned int i;
 
 	vty_out(vty, "ns%s", VTY_NEWLINE);
 
@@ -886,9 +911,13 @@ static int config_write_ns(struct vty *vty)
 				nsvc->nsei, ntohs(nsvc->ip.bts_addr.sin_port),
 				VTY_NEWLINE);
 		}
-		vty_out(vty, "%s", VTY_NEWLINE);
 	}
 
+	for (i = 0; i < ARRAY_SIZE(vty_nsi->timeout); i++)
+		vty_out(vty, " timer %s %u%s",
+			get_value_string(gprs_ns_timer_strs, i),
+			vty_nsi->timeout[i], VTY_NEWLINE);
+			
 	return CMD_SUCCESS;
 }
 
@@ -1034,6 +1063,22 @@ DEFUN(cfg_no_nse, cfg_no_nse_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ns_timer, cfg_ns_timer_cmd,
+	"timer " NS_TIMERS " <0-65535>",
+	"Network Service Timer\n"
+	NS_TIMERS_HELP "Timer Value\n")
+{
+	int idx = get_string_value(gprs_ns_timer_strs, argv[0]);
+	int val = atoi(argv[1]);
+
+	if (idx < 0 || idx >= ARRAY_SIZE(vty_nsi->timeout))
+		return CMD_WARNING;
+
+	vty_nsi->timeout[idx] = val;
+
+	return CMD_SUCCESS;
+}
+
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 {
 	vty_nsi = nsi;
@@ -1048,6 +1093,7 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	install_element(NS_NODE, &cfg_nse_remoteport_cmd);
 	install_element(NS_NODE, &cfg_nse_remoterole_cmd);
 	install_element(NS_NODE, &cfg_no_nse_cmd);
+	install_element(NS_NODE, &cfg_ns_timer_cmd);
 
 	return 0;
 }

@@ -75,13 +75,31 @@ enum ns_cause {
 	NS_CAUSE_UNKN_IP_TEST_FAILED	= 0x14,
 };
 
-
 /* Our Implementation */
 #include <netinet/in.h>
 #include <osmocore/linuxlist.h>
 #include <osmocore/msgb.h>
 #include <osmocore/timer.h>
 #include <osmocore/select.h>
+
+#define NS_TIMERS_COUNT 7
+#define NS_TIMERS "(tns-block|tns-block-retries|tns-reset|tns-reset-retries|tns-test|tns-alive|tns-alive-retries)"
+#define NS_TIMERS_HELP	\
+	"(un)blocking Timer (Tns-block) timeout\n"		\
+	"(un)blocking Timer (Tns-block) number of retries\n"	\
+	"Reset Timer (Tns-reset) timeout\n"			\
+	"Reset Timer (Tns-reset) number of retries\n"		\
+	"Test Timer (Tns-test) timeout\n"			\
+
+enum ns_timeout {
+	NS_TOUT_TNS_BLOCK,
+	NS_TOUT_TNS_BLOCK_RETRIES,
+	NS_TOUT_TNS_RESET,
+	NS_TOUT_TNS_RESET_RETRIES,
+	NS_TOUT_TNS_TEST,
+	NS_TOUT_TNS_ALIVE,
+	NS_TOUT_TNS_ALIVE_RETRIES,
+};
 
 #define NSE_S_BLOCKED	0x0001
 #define NSE_S_ALIVE	0x0002
@@ -106,6 +124,8 @@ struct gprs_ns_inst {
 
 	/* linked lists of all NSVC in this instance */
 	struct llist_head gprs_nsvcs;
+
+	uint16_t timeout[NS_TIMERS_COUNT];
 
 	/* which link-layer are we based on? */
 	enum gprs_ns_ll ll;
