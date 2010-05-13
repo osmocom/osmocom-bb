@@ -673,7 +673,6 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 
 	/* Increment number of Incoming bytes */
 	rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_PKTS_IN]);
-	DEBUGP(DNS, "BYTES_IN msgb_l2len=%d\n", msgb_l2len(msg));
 	rate_ctr_add(&nsvc->ctrg->ctr[NS_CTR_BYTES_IN], msgb_l2len(msg));
 
 	switch (nsh->pdu_type) {
