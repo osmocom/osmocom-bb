@@ -151,7 +151,12 @@ int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg);
 
 #include <osmocore/tlv.h>
 
-extern int gprs_bssgp_rcvmsg(struct msgb *msg);
+/* BSSGP-UL-UNITDATA.ind */
+int gprs_bssgp_rcvmsg(struct msgb *msg);
+
+/* BSSGP-DL-UNITDATA.req */
+int gprs_bssgp_tx_dl_ud(struct msgb *msg);
+
 uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf);
 
 /* Wrapper around TLV parser to parse BSSGP IEs */
