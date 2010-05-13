@@ -610,8 +610,6 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 	struct gprs_nsvc *nsvc;
 	int rc = 0;
 
-	DEBUGP(DNS, "gprs_ns_rcvmsg(%d)\n", msgb_l2len(msg));
-
 	/* look up the NSVC based on source address */
 	nsvc = nsvc_by_rem_addr(nsi, saddr);
 	if (!nsvc) {
@@ -658,8 +656,8 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		msgb_nsei(msg) = nsvc->nsei;
 
 	/* Increment number of Incoming bytes */
-	rate_ctr_inc(&nsvc->ctrg->ctr[2]);
-	rate_ctr_add(&nsvc->ctrg->ctr[0], msgb_l2len(msg));
+	rate_ctr_inc(&nsvc->ctrg->ctr[0]);
+	rate_ctr_add(&nsvc->ctrg->ctr[2], msgb_l2len(msg));
 
 	switch (nsh->pdu_type) {
 	case NS_PDUT_ALIVE:
