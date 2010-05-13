@@ -74,15 +74,26 @@ static const struct tlv_definition ns_att_tlvdef = {
 	},
 };
 
+enum ns_ctr {
+	NS_CTR_PKTS_IN,
+	NS_CTR_PKTS_OUT,
+	NS_CTR_BYTES_IN,
+	NS_CTR_BYTES_OUT,
+	NS_CTR_BLOCKED,
+	NS_CTR_DEAD,
+};
+
 static const struct rate_ctr_desc nsvc_ctr_description[] = {
 	{ "packets.in", "Packets at NS Level ( In)" },
-	{ "packets.out", "Packets at NS Level (Out)" },
-	{ "bytes.in", "Bytes at NS Level   ( In)" },
-	{ "bytes.out", "Bytes at NS Level   (Out)" },
+	{ "packets.out","Packets at NS Level (Out)" },
+	{ "bytes.in",	"Bytes at NS Level   ( In)" },
+	{ "bytes.out",	"Bytes at NS Level   (Out)" },
+	{ "blocked",	"NS-VC Block count        " },
+	{ "dead",	"NS-VC gone dead count    " },
 };
 
 static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
-	.group_prefix_fmt = "ns.nsvc%u",
+	.group_name_prefix = "ns.nsvc",
 	.group_description = "NSVC Peer Statistics",
 	.num_ctr = ARRAY_SIZE(nsvc_ctr_description),
 	.ctr_desc = nsvc_ctr_description,
@@ -192,8 +203,8 @@ static int gprs_ns_tx(struct gprs_nsvc *nsvc, struct msgb *msg)
 	int ret;
 
 	/* Increment number of Uplink bytes */
-	rate_ctr_inc(&nsvc->ctrg->ctr[1]);
-	rate_ctr_add(&nsvc->ctrg->ctr[3], msgb_l2len(msg));
+	rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_PKTS_OUT]);
+	rate_ctr_add(&nsvc->ctrg->ctr[NS_CTR_BYTES_OUT], msgb_l2len(msg));
 
 	switch (nsvc->nsi->ll) {
 	case GPRS_NS_LL_UDP:
@@ -310,6 +321,7 @@ int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
 
 	/* be conservative and mark it as blocked even now! */
 	nsvc->state |= NSE_S_BLOCKED;
+	rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_BLOCKED]);
 
 	msg->l2h = msgb_put(msg, sizeof(*nsh));
 	nsh = (struct gprs_ns_hdr *) msg->l2h;
@@ -392,6 +404,8 @@ static void gprs_ns_timer_cb(void *data)
 			nsvc->nsi->timeout[NS_TOUT_TNS_ALIVE_RETRIES]) {
 			/* mark as dead and blocked */
 			nsvc->state = NSE_S_BLOCKED;
+			rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_BLOCKED]);
+			rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_DEAD]);
 			LOGP(DNS, LOGL_NOTICE,
 				"NSEI=%u Tns-alive expired more then "
 				"%u times, blocking NS-VC\n", nsvc->nsei,
@@ -599,6 +613,7 @@ static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
 	//nsvci = (uint16_t *) TLVP_VAL(&tp, NS_IE_VCI);
 
 	ns_dispatch_signal(nsvc, S_NS_BLOCK, *cause);
+	rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_BLOCKED]);
 
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_BLOCK_ACK);
 }
@@ -657,8 +672,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		msgb_nsei(msg) = nsvc->nsei;
 
 	/* Increment number of Incoming bytes */
-	rate_ctr_inc(&nsvc->ctrg->ctr[0]);
-	rate_ctr_add(&nsvc->ctrg->ctr[2], msgb_l2len(msg));
+	rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_PKTS_IN]);
+	DEBUGP(DNS, "BYTES_IN msgb_l2len=%d\n", msgb_l2len(msg));
+	rate_ctr_add(&nsvc->ctrg->ctr[NS_CTR_BYTES_IN], msgb_l2len(msg));
 
 	switch (nsh->pdu_type) {
 	case NS_PDUT_ALIVE:
@@ -697,6 +713,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		/* mark NS-VC as blocked + active */
 		nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		nsvc->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
+		rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_BLOCKED]);
 		if (nsvc->remote_end_is_sgsn) {
 			/* stop RESET timer */
 			bsc_del_timer(&nsvc->timer);
