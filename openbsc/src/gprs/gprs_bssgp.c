@@ -198,6 +198,13 @@ static int bssgp_rx_bvc_block(struct msgb *msg, struct tlv_parsed *tp)
 	struct bssgp_bts_ctx *ptp_ctx;
 
 	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
+	if (bvci == 0) {
+		/* 8.3.2: Signalling BVC shall never be blocked */
+		LOGP(DBSSGP, LOGL_ERROR, "NSEI=%u/BVCI=%u "
+			"received block for signalling BVC!?!\n",
+			msgb_nsei(msg), msgb_bvci(msg));
+		return 0;
+	}
 
 	LOGP(DBSSGP, LOGL_INFO, "BVCI=%u BVC-BLOCK\n", bvci);
 
@@ -221,6 +228,13 @@ static int bssgp_rx_bvc_unblock(struct msgb *msg, struct tlv_parsed *tp)
 	struct bssgp_bts_ctx *ptp_ctx;
 
 	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
+	if (bvci == 0) {
+		/* 8.3.2: Signalling BVC shall never be blocked */
+		LOGP(DBSSGP, LOGL_ERROR, "NSEI=%u/BVCI=%u "
+			"received unblock for signalling BVC!?!\n",
+			msgb_nsei(msg), msgb_bvci(msg));
+		return 0;
+	}
 
 	DEBUGP(DBSSGP, "BVCI=%u BVC-UNBLOCK\n", bvci);
 
@@ -321,6 +335,14 @@ static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	uint8_t pdu_type = bgph->pdu_type;
 	int rc = 0;
+
+	/* If traffic is received on a BVC that is marked as blocked, the
+	 * received PDU shall not be accepted and a STATUS PDU (Cause value:
+	 * BVC Blocked) shall be sent to the peer entity on the signalling BVC */
+	if (bctx->state & BVC_S_BLOCKED && pdu_type != BSSGP_PDUT_STATUS) {
+		uint16_t bvci = msgb_bvci(msg);
+		return bssgp_tx_status(BSSGP_CAUSE_BVCI_BLOCKED, &bvci, msg);
+	}
 
 	switch (pdu_type) {
 	case BSSGP_PDUT_UL_UNITDATA:
