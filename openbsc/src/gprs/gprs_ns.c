@@ -476,7 +476,8 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 		return -EBUSY;
 	}
 
-	nsh = (struct gprs_ns_hdr *) msgb_push(msg, sizeof(*nsh) + 3);
+	msg->l2h = msgb_push(msg, sizeof(*nsh) + 3);
+	nsh = (struct gprs_ns_hdr *) msg->l2h;
 	if (!nsh) {
 		LOGP(DNS, LOGL_ERROR, "Not enough headroom for NS header\n");
 		return -EIO;
