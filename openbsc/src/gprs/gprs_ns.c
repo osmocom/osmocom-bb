@@ -56,25 +56,13 @@
 #include <osmocore/tlv.h>
 #include <osmocore/talloc.h>
 #include <osmocore/select.h>
+#include <osmocore/rate_ctr.h>
 #include <openbsc/debug.h>
 #include <openbsc/signal.h>
 #include <openbsc/gprs_ns.h>
 #include <openbsc/gprs_bssgp.h>
 
 #define NS_ALLOC_SIZE	1024
-
-/* FIXME: this should go to some common file as it is copied
- * in vty_interface.c of the BSC */
-static const struct value_string gprs_ns_timer_strs[] = {
-	{ 0, "tns-block" },
-	{ 1, "tns-block-retries" },
-	{ 2, "tns-reset" },
-	{ 3, "tns-reset-retries" },
-	{ 4, "tns-test" },
-	{ 5, "tns-alive" },
-	{ 6, "tns-alive-retries" },
-	{ 0, NULL }
-};
 
 static const struct tlv_definition ns_att_tlvdef = {
 	.def = {
@@ -84,6 +72,20 @@ static const struct tlv_definition ns_att_tlvdef = {
 		[NS_IE_BVCI]	= { TLV_TYPE_TvLV, 0 },
 		[NS_IE_NSEI]	= { TLV_TYPE_TvLV, 0 },
 	},
+};
+
+static const struct rate_ctr_desc nsvc_ctr_description[] = {
+	{ "packets.in", "Packets at NS Level ( In)" },
+	{ "packets.out", "Packets at NS Level (Out)" },
+	{ "bytes.in", "Bytes at NS Level   ( In)" },
+	{ "bytes.out", "Bytes at NS Level   (Out)" },
+};
+
+static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
+	.group_prefix_fmt = "ns.nsvc%u",
+	.group_description = "NSVC Peer Statistics",
+	.num_ctr = ARRAY_SIZE(nsvc_ctr_description),
+	.ctr_desc = nsvc_ctr_description,
 };
 
 /* Lookup struct gprs_nsvc based on NSVCI */
@@ -99,8 +101,7 @@ static struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi,
 }
 
 /* Lookup struct gprs_nsvc based on NSVCI */
-static struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi,
-					uint16_t nsei)
+struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei)
 {
 	struct gprs_nsvc *nsvc;
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
@@ -109,7 +110,6 @@ static struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi,
 	}
 	return NULL;
 }
-
 
 /* Lookup struct gprs_nsvc based on remote peer socket addr */
 static struct gprs_nsvc *nsvc_by_rem_addr(struct gprs_ns_inst *nsi,
@@ -127,7 +127,7 @@ static struct gprs_nsvc *nsvc_by_rem_addr(struct gprs_ns_inst *nsi,
 
 static void gprs_ns_timer_cb(void *data);
 
-static struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
+struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 {
 	struct gprs_nsvc *nsvc;
 
@@ -138,13 +138,14 @@ static struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 	nsvc->nsi = nsi;
 	nsvc->timer.cb = gprs_ns_timer_cb;
 	nsvc->timer.data = nsvc;
+	nsvc->ctrg = rate_ctr_group_alloc(nsvc, &nsvc_ctrg_desc, nsvci);
 
 	llist_add(&nsvc->list, &nsi->gprs_nsvcs);
 
 	return nsvc;
 }
 
-static void nsvc_delete(struct gprs_nsvc *nsvc)
+void nsvc_delete(struct gprs_nsvc *nsvc)
 {
 	if (bsc_timer_pending(&nsvc->timer))
 		bsc_del_timer(&nsvc->timer);
@@ -190,6 +191,10 @@ static int gprs_ns_tx(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	int ret;
 
+	/* Increment number of Uplink bytes */
+	rate_ctr_inc(&nsvc->ctrg->ctr[1]);
+	rate_ctr_add(&nsvc->ctrg->ctr[3], msgb_l2len(msg));
+
 	switch (nsvc->nsi->ll) {
 	case GPRS_NS_LL_UDP:
 		ret = nsip_sendmsg(nsvc, msg);
@@ -211,7 +216,8 @@ static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, uint8_t pdu_type)
 	if (!msg)
 		return -ENOMEM;
 
-	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
+	msg->l2h = msgb_put(msg, sizeof(*nsh));
+	nsh = (struct gprs_ns_hdr *) msg->l2h;
 
 	nsh->pdu_type = pdu_type;
 
@@ -231,7 +237,8 @@ int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 	LOGP(DNS, LOGL_INFO, "NSEI=%u Tx NS RESET (NSVCI=%u, cause=%s)\n",
 		nsvc->nsei, nsvc->nsvci, gprs_ns_cause_str(cause));
 
-	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
+	msg->l2h = msgb_put(msg, sizeof(*nsh));
+	nsh = (struct gprs_ns_hdr *) msg->l2h;
 	nsh->pdu_type = NS_PDUT_RESET;
 
 	msgb_tvlv_put(msg, NS_IE_CAUSE, 1, &cause);
@@ -257,7 +264,8 @@ int gprs_ns_tx_status(struct gprs_nsvc *nsvc, uint8_t cause,
 	LOGP(DNS, LOGL_INFO, "NSEI=%u Tx NS STATUS (NSVCI=%u, cause=%s)\n",
 		nsvc->nsei, nsvc->nsvci, gprs_ns_cause_str(cause));
 
-	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
+	msg->l2h = msgb_put(msg, sizeof(*nsh));
+	nsh = (struct gprs_ns_hdr *) msg->l2h;
 	nsh->pdu_type = NS_PDUT_STATUS;
 
 	msgb_tvlv_put(msg, NS_IE_CAUSE, 1, &cause);
@@ -303,7 +311,8 @@ int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
 	/* be conservative and mark it as blocked even now! */
 	nsvc->state |= NSE_S_BLOCKED;
 
-	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
+	msg->l2h = msgb_put(msg, sizeof(*nsh));
+	nsh = (struct gprs_ns_hdr *) msg->l2h;
 	nsh->pdu_type = NS_PDUT_BLOCK;
 
 	msgb_tvlv_put(msg, NS_IE_CAUSE, 1, &cause);
@@ -428,7 +437,8 @@ static int gprs_ns_tx_reset_ack(struct gprs_nsvc *nsvc)
 	nsvci = htons(nsvc->nsvci);
 	nsei = htons(nsvc->nsei);
 
-	nsh = (struct gprs_ns_hdr *) msgb_put(msg, sizeof(*nsh));
+	msg->l2h = msgb_put(msg, sizeof(*nsh));
+	nsh = (struct gprs_ns_hdr *) msg->l2h;
 
 	nsh->pdu_type = NS_PDUT_RESET_ACK;
 
@@ -600,6 +610,8 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 	struct gprs_nsvc *nsvc;
 	int rc = 0;
 
+	DEBUGP(DNS, "gprs_ns_rcvmsg(%d)\n", msgb_l2len(msg));
+
 	/* look up the NSVC based on source address */
 	nsvc = nsvc_by_rem_addr(nsi, saddr);
 	if (!nsvc) {
@@ -644,6 +656,10 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		nsvc->ip.bts_addr = *saddr;
 	} else
 		msgb_nsei(msg) = nsvc->nsei;
+
+	/* Increment number of Incoming bytes */
+	rate_ctr_inc(&nsvc->ctrg->ctr[2]);
+	rate_ctr_add(&nsvc->ctrg->ctr[0], msgb_l2len(msg));
 
 	switch (nsh->pdu_type) {
 	case NS_PDUT_ALIVE:
@@ -880,224 +896,4 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 	return nsvc;
 }
 
-#include <vty/vty.h>
-#include <vty/command.h>
 
-static struct gprs_ns_inst *vty_nsi = NULL;
-
-static struct cmd_node ns_node = {
-	NS_NODE,
-	"%s(ns)#",
-	1,
-};
-
-static int config_write_ns(struct vty *vty)
-{
-	struct gprs_nsvc *nsvc;
-	unsigned int i;
-
-	vty_out(vty, "ns%s", VTY_NEWLINE);
-
-	llist_for_each_entry(nsvc, &vty_nsi->gprs_nsvcs, list) {
-		if (!nsvc->persistent)
-			continue;
-		vty_out(vty, " nse %u nsvci %u%s",
-			nsvc->nsei, nsvc->nsvci, VTY_NEWLINE);
-		vty_out(vty, " nse %u remote-role %s%s",
-			nsvc->nsei, nsvc->remote_end_is_sgsn ? "sgsn" : "bss",
-			VTY_NEWLINE);
-		if (nsvc->nsi->ll == GPRS_NS_LL_UDP) {
-			vty_out(vty, " nse %u remote-ip %s%s",
-				nsvc->nsei, 
-				inet_ntoa(nsvc->ip.bts_addr.sin_addr),
-				VTY_NEWLINE);
-			vty_out(vty, " nse %u remote-port %u%s",
-				nsvc->nsei, ntohs(nsvc->ip.bts_addr.sin_port),
-				VTY_NEWLINE);
-		}
-	}
-
-	for (i = 0; i < ARRAY_SIZE(vty_nsi->timeout); i++)
-		vty_out(vty, " timer %s %u%s",
-			get_value_string(gprs_ns_timer_strs, i),
-			vty_nsi->timeout[i], VTY_NEWLINE);
-			
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_ns, cfg_ns_cmd,
-      "ns",
-      "Configure the GPRS Network Service")
-{
-	vty->node = NS_NODE;
-	return CMD_SUCCESS;
-}
-
-DEFUN(show_ns, show_ns_cmd, "show ns",
-      SHOW_STR "Display information about the NS protocol")
-{
-	struct gprs_ns_inst *nsi = vty_nsi;
-	struct gprs_nsvc *nsvc;
-
-	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
-		vty_out(vty, "NSEI %5u, NS-VC %5u, Remote: %-4s, %5s %9s",
-			nsvc->nsei, nsvc->nsvci,
-			nsvc->remote_end_is_sgsn ? "SGSN" : "BSS",
-			nsvc->state & NSE_S_ALIVE ? "ALIVE" : "DEAD",
-			nsvc->state & NSE_S_BLOCKED ? "BLOCKED" : "UNBLOCKED");
-		if (nsvc->nsi->ll == GPRS_NS_LL_UDP)
-			vty_out(vty, ", %15s:%u",
-				inet_ntoa(nsvc->ip.bts_addr.sin_addr),
-				ntohs(nsvc->ip.bts_addr.sin_port));
-		vty_out(vty, "%s", VTY_NEWLINE);
-	}
-
-	return CMD_SUCCESS;
-}
-
-
-#define NSE_CMD_STR "NS Entity\n" "NS Entity ID (NSEI)\n"
-
-DEFUN(cfg_nse_nsvc, cfg_nse_nsvci_cmd,
-	"nse <0-65535> nsvci <0-65534>",
-	NSE_CMD_STR
-	"NS Virtual Connection\n"
-	"NS Virtual Connection ID (NSVCI)\n"
-	)
-{
-	uint16_t nsei = atoi(argv[0]);
-	uint16_t nsvci = atoi(argv[1]);
-	struct gprs_nsvc *nsvc;
-
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
-	if (!nsvc) {
-		nsvc = nsvc_create(vty_nsi, nsvci);
-		nsvc->nsei = nsei;
-	}
-	nsvc->nsvci = nsvci;
-	/* All NSVCs that are explicitly configured by VTY are
-	 * marked as persistent so we can write them to the config
-	 * file at some later point */
-	nsvc->persistent = 1;
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_nse_remoteip, cfg_nse_remoteip_cmd,
-	"nse <0-65535> remote-ip A.B.C.D",
-	NSE_CMD_STR
-	"Remote IP Address\n"
-	"Remote IP Address\n")
-{
-	uint16_t nsei = atoi(argv[0]);
-	struct gprs_nsvc *nsvc;
-
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
-	if (!nsvc) {
-		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-	inet_aton(argv[1], &nsvc->ip.bts_addr.sin_addr);
-
-	return CMD_SUCCESS;
-
-}
-
-DEFUN(cfg_nse_remoteport, cfg_nse_remoteport_cmd,
-	"nse <0-65535> remote-port <0-65535>",
-	NSE_CMD_STR
-	"Remote UDP Port\n"
-	"Remote UDP Port Number\n")
-{
-	uint16_t nsei = atoi(argv[0]);
-	uint16_t port = atoi(argv[1]);
-	struct gprs_nsvc *nsvc;
-
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
-	if (!nsvc) {
-		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	nsvc->ip.bts_addr.sin_port = htons(port);
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_nse_remoterole, cfg_nse_remoterole_cmd,
-	"nse <0-65535> remote-role (sgsn|bss)",
-	NSE_CMD_STR
-	"Remote NSE Role\n"
-	"Remote Peer is SGSN\n"
-	"Remote Peer is BSS\n")
-{
-	uint16_t nsei = atoi(argv[0]);
-	struct gprs_nsvc *nsvc;
-
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
-	if (!nsvc) {
-		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	if (!strcmp(argv[1], "sgsn"))
-		nsvc->remote_end_is_sgsn = 1;
-	else
-		nsvc->remote_end_is_sgsn = 0;
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_no_nse, cfg_no_nse_cmd,
-	"no nse <0-65535>",
-	"Delete NS Entity\n"
-	"Delete " NSE_CMD_STR)
-{
-	uint16_t nsei = atoi(argv[0]);
-	struct gprs_nsvc *nsvc;
-
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
-	if (!nsvc) {
-		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	nsvc_delete(nsvc);
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_ns_timer, cfg_ns_timer_cmd,
-	"timer " NS_TIMERS " <0-65535>",
-	"Network Service Timer\n"
-	NS_TIMERS_HELP "Timer Value\n")
-{
-	int idx = get_string_value(gprs_ns_timer_strs, argv[0]);
-	int val = atoi(argv[1]);
-
-	if (idx < 0 || idx >= ARRAY_SIZE(vty_nsi->timeout))
-		return CMD_WARNING;
-
-	vty_nsi->timeout[idx] = val;
-
-	return CMD_SUCCESS;
-}
-
-int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
-{
-	vty_nsi = nsi;
-
-	install_element_ve(&show_ns_cmd);
-
-	install_element(CONFIG_NODE, &cfg_ns_cmd);
-	install_node(&ns_node, config_write_ns);
-	install_default(NS_NODE);
-	install_element(NS_NODE, &cfg_nse_nsvci_cmd);
-	install_element(NS_NODE, &cfg_nse_remoteip_cmd);
-	install_element(NS_NODE, &cfg_nse_remoteport_cmd);
-	install_element(NS_NODE, &cfg_nse_remoterole_cmd);
-	install_element(NS_NODE, &cfg_no_nse_cmd);
-	install_element(NS_NODE, &cfg_ns_timer_cmd);
-
-	return 0;
-}

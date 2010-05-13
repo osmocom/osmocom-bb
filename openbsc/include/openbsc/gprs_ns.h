@@ -163,6 +163,8 @@ struct gprs_nsvc {
 	unsigned int remote_end_is_sgsn:1;
 	unsigned int persistent:1;
 
+	struct rate_ctr_group *ctrg;
+
 	union {
 		struct {
 			struct sockaddr_in bts_addr;
@@ -199,6 +201,10 @@ int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port);
 struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 				struct sockaddr_in *dest, uint16_t nsei,
 				uint16_t nsvci);
+
+struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci);
+void nsvc_delete(struct gprs_nsvc *nsvc);
+struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei);
 
 /* Add NS-specific VTY stuff */
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi);
