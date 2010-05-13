@@ -283,12 +283,13 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 	case BSSGP_PDUT_RA_CAPABILITY:
 		/* BSS requests RA capability or IMSI */
 		DEBUGP(DBSSGP, "BSSGP RA CAPABILITY UPDATE\n");
+		/* FIXME: send GMM_RA_CAPABILITY_UPDATE.ind to GMM */
 		/* FIXME: send RA_CAPA_UPDATE_ACK */
 		break;
 	case BSSGP_PDUT_RADIO_STATUS:
 		DEBUGP(DBSSGP, "BSSGP RADIO STATUS\n");
 		/* BSS informs us of some exception */
-		/* FIXME: notify GMM */
+		/* FIXME: send GMM_RADIO_STATUS.ind to GMM */
 		break;
 	case BSSGP_PDUT_SUSPEND:
 		/* MS wants to suspend */
@@ -298,16 +299,15 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		/* MS wants to resume */
 		rc = bssgp_rx_resume(msg);
 		break;
-	case BSSGP_PDUT_FLUSH_LL:
-		/* BSS informs MS has moved to one cell to other cell */
+	case BSSGP_PDUT_FLUSH_LL_ACK:
+		/* BSS informs us it has performed LL FLUSH */
 		DEBUGP(DBSSGP, "BSSGP FLUSH LL\n");
-		/* FIXME: notify GMM */
-		/* Send FLUSH_LL_ACK */
+		/* FIXME: send NM_FLUSH_LL.res to NM */
 		break;
 	case BSSGP_PDUT_LLC_DISCARD:
 		/* BSS informs that some LLC PDU's have been discarded */
 		DEBUGP(DBSSGP, "BSSGP LLC DISCARDED\n");
-		/* FIXME: notify GMM */
+		/* FIXME: send NM_LLC_DISCARDED to NM */
 		break;
 	case BSSGP_PDUT_FLOW_CONTROL_BVC:
 		/* BSS informs us of available bandwidth in Gb interface */
@@ -331,6 +331,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		/* We always acknowledge the BLOCKing */
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK_ACK,
 					  msgb_nsei(msg), bvci, ns_bvci);
+		/* FIXME: Send NM_BVC_BLOCK.ind to NM */
 		break;
 	case BSSGP_PDUT_BVC_UNBLOCK:
 		/* BSS tells us that BVC shall be unblocked */
@@ -342,6 +343,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		/* We always acknowledge the unBLOCKing */
 		rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_UNBLOCK_ACK,
 					  msgb_nsei(msg), bvci, ns_bvci);
+		/* FIXME: Send NM_BVC_UNBLOCK.ind to NM */
 		break;
 	case BSSGP_PDUT_BVC_RESET:
 		/* BSS tells us that BVC init is required */
@@ -353,7 +355,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		break;
 	case BSSGP_PDUT_STATUS:
 		/* Some exception has occurred */
-		/* FIXME: notify GMM */
+		/* FIXME: send NM_STATUS.ind to NM */
 	case BSSGP_PDUT_DOWNLOAD_BSS_PFC:
 	case BSSGP_PDUT_CREATE_BSS_PFC_ACK:
 	case BSSGP_PDUT_CREATE_BSS_PFC_NACK:
@@ -371,7 +373,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 	case BSSGP_PDUT_SUSPEND_NACK:
 	case BSSGP_PDUT_RESUME_ACK:
 	case BSSGP_PDUT_RESUME_NACK:
-	case BSSGP_PDUT_FLUSH_LL_ACK:
+	case BSSGP_PDUT_FLUSH_LL:
 	case BSSGP_PDUT_FLOW_CONTROL_BVC_ACK:
 	case BSSGP_PDUT_FLOW_CONTROL_MS_ACK:
 	case BSSGP_PDUT_BVC_BLOCK_ACK:
