@@ -203,3 +203,31 @@ void vty_event(enum event event, int sock, struct vty *vty)
 	}
 }
 
+void vty_notify(struct osmocom_ms *ms, const char *fmt, ...)
+{
+	struct telnet_connection *connection;
+	char buffer[1000];
+	va_list args;
+
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer) - 1, fmt, args);
+	buffer[sizeof(buffer) - 1] = '\0';
+	va_end(args);
+
+	if (!buffer[0])
+		return;
+
+	llist_for_each_entry(connection, &active_connections, entry) {
+		struct vty *vty = connection->vty;
+		if (vty) {
+			if (buffer[strlen(buffer) - 1] == '\n') {
+				buffer[strlen(buffer) - 1] = '\0';
+				vty_out(vty, "%% (MS %s) %s%s", ms->name, 
+					buffer, VTY_NEWLINE);
+				buffer[strlen(buffer)] = '\n';
+			} else
+				vty_out(vty, "%% (MS %s) %s", ms->name, buffer);
+		}
+	}
+}
+

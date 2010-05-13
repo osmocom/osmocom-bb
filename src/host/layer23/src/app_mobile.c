@@ -35,6 +35,7 @@
 #include <osmocom/gsmtap_util.h>
 #include <osmocom/logging.h>
 #include <osmocom/telnet_interface.h>
+#include <osmocom/file.h>
 
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
@@ -42,6 +43,7 @@
 #include <osmocore/signal.h>
 
 extern struct log_target *stderr_target;
+static const char *config_file = "osmocom.cfg";
 
 static int started = 0;
 
@@ -87,9 +89,8 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		ms = signal_data;
 		gsm_subscr_testcard(ms, 1, 1, "0000000000");
 //		ms->subscr.plmn_valid = 1;
-		ms->subscr.plmn_mcc = 1;
-		ms->subscr.plmn_mnc = 1;
-		ms->plmn.mode = PLMN_MODE_MANUAL;
+		ms->subscr.plmn_mcc = 262;
+		ms->subscr.plmn_mnc = 2;
 		/* start PLMN + cell selection process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
 		if (!nmsg)
@@ -137,6 +138,8 @@ int mobile_exit(struct osmocom_ms *ms)
 
 int l23_app_init(struct osmocom_ms *ms)
 {
+	int rc;
+
 	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG");
 
 	srand(time(NULL));
@@ -153,6 +156,14 @@ int l23_app_init(struct osmocom_ms *ms)
 	l23_app_exit = mobile_exit;
 
 	telnet_init(ms, 4242);
+	rc = vty_read_config_file(config_file);
+	if (rc < 0) {
+		fprintf(stderr, "Failed to parse the config file: '%s'\n",
+			config_file);
+		fprintf(stderr, "Please create config file using: "
+			"'touch %s%s'\n", OSMOCOM_CONFDIR, config_file);
+		return rc;
+	}
 
 	return 0;
 }

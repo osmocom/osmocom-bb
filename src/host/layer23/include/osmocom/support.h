@@ -74,6 +74,7 @@ struct gsm_support {
 	/* IMEI */
 	char imei[15];
 	char imeisv[17];
+	char imei_random;
 
 	/* radio */
 	int8_t min_rxlev_db;

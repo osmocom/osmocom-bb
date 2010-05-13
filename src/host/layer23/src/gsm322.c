@@ -36,6 +36,7 @@
 #include <osmocom/file.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/networks.h>
+#include <osmocom/telnet_interface.h>
 
 extern void *l23_ctx;
 
@@ -709,9 +710,10 @@ static int gsm322_a_go_on_plmn(struct osmocom_ms *ms, struct msgb *msg)
 /* indicate selected PLMN */
 static int gsm322_a_indicate_selected(struct osmocom_ms *ms, struct msgb *msg)
 {
-#ifdef TODO
-	indicate selected plmn to user
-#endif
+	struct gsm322_plmn *plmn = &ms->plmn;
+
+	vty_notify(ms, "Selected Network: %s, %s\n",
+		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 
 	return gsm322_a_go_on_plmn(ms, msg);
 }
@@ -1155,17 +1157,12 @@ static int gsm322_m_display_plmns(struct osmocom_ms *ms, struct msgb *msg)
 	/* generate list */
 	gsm322_sort_list(ms);
 
-#ifdef TODO
-	display PLMNs to user
-#else
-	printf("\nSelect from Network:\n");
+	vty_notify(ms, "Select from Network:\n");
 
 	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
-		printf("Network %03d, %02d (%s, %s)\n", temp->mcc, temp->mnc,
-			gsm_get_mcc(temp->mcc),
+		vty_notify(ms, " Network %03d, %02d (%s, %s)\n", temp->mcc,
+			temp->mnc, gsm_get_mcc(temp->mcc),
 			gsm_get_mnc(temp->mcc, temp->mnc));
-	printf("\n");
-#endif
 	
 	/* go Not on PLMN state */
 	return gsm322_m_go_not_on_plmn(ms, msg);
@@ -1190,6 +1187,7 @@ static int gsm322_m_user_resel(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* initiate search at cell selection */
+	vty_notify(ms, "Searching Network, please wait...\n");
 	LOGP(DPLMN, LOGL_INFO, "User re-select, start PLMN search first.\n");
 
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_START);
@@ -1240,6 +1238,7 @@ static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* initiate search at cell selection */
 	LOGP(DPLMN, LOGL_INFO, "Switch on, start PLMN search first.\n");
+	vty_notify(ms, "Searching Network, please wait...\n");
 
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_START);
 	if (!nmsg)
@@ -1309,9 +1308,10 @@ static int gsm322_m_go_on_plmn(struct osmocom_ms *ms, struct msgb *msg)
 /* indicate selected PLMN */
 static int gsm322_m_indicate_selected(struct osmocom_ms *ms, struct msgb *msg)
 {
-#ifdef TODO
-	indicate selected plmn to user
-#endif
+	struct gsm322_plmn *plmn = &ms->plmn;
+
+	vty_notify(ms, "Selected Network: %s, %s\n",
+		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 
 	return gsm322_m_go_on_plmn(ms, msg);
 }
@@ -1351,6 +1351,8 @@ static int gsm322_m_choose_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	plmn->mcc = gm->mcc;
 	plmn->mnc = gm->mnc;
 
+	vty_notify(ms, "Selected Network: %s, %s\n",
+		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 	LOGP(DPLMN, LOGL_INFO, "User selects PLMN. (mcc=%03d mnc=%02d  "
 		"%s, %s)\n", plmn->mcc, plmn->mnc,
 		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
@@ -2840,7 +2842,8 @@ static struct plmnmstatelist {
 } plmnmstatelist[] = {
 	{SBIT(GSM322_M0_NULL),
 	 GSM322_EVENT_SWITCH_ON, gsm322_m_switch_on},
-	{SBIT(GSM322_M0_NULL) | SBIT(GSM322_M2_ON_PLMN),
+	{SBIT(GSM322_M0_NULL) | SBIT(GSM322_M3_NOT_ON_PLMN) |
+	 SBIT(GSM322_M2_ON_PLMN),
 	 GSM322_EVENT_PLMN_SEARCH_END, gsm322_m_display_plmns},
 	{ALL_STATES,
 	 GSM322_EVENT_SWITCH_OFF, gsm322_m_switch_off},
@@ -2861,7 +2864,7 @@ static struct plmnmstatelist {
 	{SBIT(GSM322_M1_TRYING_RPLMN) | SBIT(GSM322_M2_ON_PLMN) |
 	 SBIT(GSM322_M4_TRYING_PLMN),
 	 GSM322_EVENT_INVALID_SIM, gsm322_m_sim_removed},
-	{SBIT(GSM322_M2_ON_PLMN),
+	{SBIT(GSM322_M3_NOT_ON_PLMN) | SBIT(GSM322_M2_ON_PLMN),
 	 GSM322_EVENT_USER_RESEL, gsm322_m_user_resel},
 	{SBIT(GSM322_M3_NOT_ON_PLMN),
 	 GSM322_EVENT_PLMN_AVAIL, gsm322_m_plmn_avail},
@@ -3072,7 +3075,7 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 				if (cs->list[i].sysinfo->cell_barr)
 					print(priv, "low    ");
 				else
-					print(priv, "high   ");
+					print(priv, "normal ");
 			}
 			for (j = 0; j < 16; j++) {
 				if ((s->class_barr & (1 << j)))

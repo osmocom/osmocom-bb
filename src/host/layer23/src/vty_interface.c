@@ -77,9 +77,17 @@ DEFUN(show_ms, show_ms_cmd, "show ms",
 {
 	struct osmocom_ms *ms;
 
-	llist_for_each_entry(ms, &ms_list, entity)
-		vty_out(vty, " MS: %s  IMEI: %s%s", ms->name, ms->support.imei,
+	llist_for_each_entry(ms, &ms_list, entity) {
+		vty_out(vty, "MS NAME: %s%s", ms->name, VTY_NEWLINE);
+		vty_out(vty, " IMEI: %s%s", ms->support.imei, VTY_NEWLINE);
+		vty_out(vty, " IMEISV: %s%s", ms->support.imeisv, VTY_NEWLINE);
+		vty_out(vty, " IMEI selection: %s%s",
+			(ms->support.imei_random) ? "random" : "fixed",
 			VTY_NEWLINE);
+		vty_out(vty, " network selection mode: %s%s",
+			(ms->plmn.mode == PLMN_MODE_AUTO)
+				? "automatic" : "manual", VTY_NEWLINE);
+	}
 
 	return CMD_SUCCESS;
 }
@@ -233,6 +241,46 @@ DEFUN(remove_sim, remove_sim_cmd, "remove sim MS_NAME",
 	return CMD_SUCCESS;
 }
 
+DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
+	"Select ...\nSelect Network\n")
+{
+	struct osmocom_ms *ms;
+	struct msgb *nmsg;
+	struct gsm322_msg *ngm;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_CHOSE_PLMN);
+	if (!nmsg)
+		return CMD_WARNING;
+	ngm = (struct gsm322_msg *) nmsg->data;
+	ngm->mcc = atoi(argv[1]);
+	ngm->mnc = atoi(argv[2]);
+	gsm322_plmn_sendmsg(ms, nmsg);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(network_search, network_search_cmd, "network search MS_NAME",
+	"Network ...\nTrigger network search\n")
+{
+	struct osmocom_ms *ms;
+	struct msgb *nmsg;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_USER_RESEL);
+	if (!nmsg)
+		return CMD_WARNING;
+	gsm322_plmn_sendmsg(ms, nmsg);
+
+	return CMD_SUCCESS;
+}
+
 /* per MS config */
 DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 	"Select a mobile station to configure\n")
@@ -272,6 +320,14 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 	struct osmocom_ms *ms = vty->index;
 	struct msgb *nmsg;
 
+	if (!ms->plmn.state) {
+		if (argv[0][0] == 'a')
+			ms->plmn.mode = PLMN_MODE_AUTO;
+		else
+			ms->plmn.mode = PLMN_MODE_MANUAL;
+
+		return CMD_SUCCESS;
+	}
 	if (argv[0][0] == 'a')
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SEL_AUTO);
 	else
@@ -302,6 +358,8 @@ int ms_vty_init(void)
 
 	install_element(ENABLE_NODE, &insert_test_cmd);
 	install_element(ENABLE_NODE, &remove_sim_cmd);
+	install_element(ENABLE_NODE, &network_search_cmd);
+	install_element(ENABLE_NODE, &network_select_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ms_cmd);
 	install_node(&ms_node, config_write_ms);

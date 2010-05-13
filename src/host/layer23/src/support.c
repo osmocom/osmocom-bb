@@ -66,12 +66,12 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->a5_6 = 0;
 	sup->a5_7 = 0;
 	/* radio support */
-	sup->p_gsm = 0; /* P-GSM only */
-	sup->e_gsm = 1; /* E-GSM */
+	sup->p_gsm = 1; /* P-GSM only */
+	sup->e_gsm = 0; /* E-GSM */
 	sup->r_gsm = 0; /* R-GSM */
 	sup->r_capa = 0;
 	sup->low_capa = 4; /* p,e,r power class */
-	sup->dcs_1800 = 1;
+	sup->dcs_1800 = 0;
 	/* set supported frequencies */
 	if (sup->e_gsm || sup->r_gsm)
 		sup->freq_map[0] |= 1;
@@ -113,18 +113,18 @@ void gsm_support_init(struct osmocom_ms *ms)
 
 /* (3.2.1) maximum channels to scan within each band */
 struct gsm_support_scan_max gsm_sup_smax[] = {
-#if 0
 	{ 259, 293, 15, 0 },
 	{ 360, 340, 15, 0 },
 	{ 438, 511, 25, 0 },
 	{ 128, 251, 30, 0 },
 	{ 955, 124, 30, 0 },
 	{ 512, 885, 40, 0 },
-#else
-//	{ 955, 125, 1, 0 }, /* we support only one ARFCN */
-#endif
 	{ 0, 0, 0, 0 }
 };
+
+int gsm_support_random_imei(struct gsm_support *sup)
+{
+}
 
 
 /* dump support */

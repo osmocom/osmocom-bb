@@ -2474,7 +2474,7 @@ DEFUN(config_write_file,
 	sprintf(config_file_tmp, "%s.XXXXXX", config_file);
 
 	/* Open file to configuration write. */
-	fd = mkstemp(config_file_tmp);
+	fd = OSMOCOM_MKSTEMP(config_file_tmp);
 	if (fd < 0) {
 		vty_out(vty, "Can't open configuration file %s.%s",
 			config_file_tmp, VTY_NEWLINE);
@@ -2500,48 +2500,48 @@ DEFUN(config_write_file,
 		}
 	vty_close(file_vty);
 
-	if (unlink(config_file_sav) != 0)
+	if (OSMOCOM_UNLINK(config_file_sav) != 0)
 		if (errno != ENOENT) {
 			vty_out(vty,
 				"Can't unlink backup configuration file %s.%s",
 				config_file_sav, VTY_NEWLINE);
 			talloc_free(config_file_sav);
 			talloc_free(config_file_tmp);
-			unlink(config_file_tmp);
+			OSMOCOM_UNLINK(config_file_tmp);
 			return CMD_WARNING;
 		}
-	if (link(config_file, config_file_sav) != 0) {
+	if (OSMOCOM_LINK(config_file, config_file_sav) != 0) {
 		vty_out(vty, "Can't backup old configuration file %s.%s",
 			config_file_sav, VTY_NEWLINE);
 		talloc_free(config_file_sav);
 		talloc_free(config_file_tmp);
-		unlink(config_file_tmp);
+		OSMOCOM_UNLINK(config_file_tmp);
 		return CMD_WARNING;
 	}
 	sync();
-	if (unlink(config_file) != 0) {
+	if (OSMOCOM_UNLINK(config_file) != 0) {
 		vty_out(vty, "Can't unlink configuration file %s.%s",
 			config_file, VTY_NEWLINE);
 		talloc_free(config_file_sav);
 		talloc_free(config_file_tmp);
-		unlink(config_file_tmp);
+		OSMOCOM_UNLINK(config_file_tmp);
 		return CMD_WARNING;
 	}
-	if (link(config_file_tmp, config_file) != 0) {
+	if (OSMOCOM_LINK(config_file_tmp, config_file) != 0) {
 		vty_out(vty, "Can't save configuration file %s.%s", config_file,
 			VTY_NEWLINE);
 		talloc_free(config_file_sav);
 		talloc_free(config_file_tmp);
-		unlink(config_file_tmp);
+		OSMOCOM_UNLINK(config_file_tmp);
 		return CMD_WARNING;
 	}
-	unlink(config_file_tmp);
+	OSMOCOM_UNLINK(config_file_tmp);
 	sync();
 
 	talloc_free(config_file_sav);
 	talloc_free(config_file_tmp);
 
-	if (chmod(config_file, 0666 & ~CONFIGFILE_MASK) != 0) {
+	if (OSMOCOM_CHMOD(config_file, 0666 & ~CONFIGFILE_MASK) != 0) {
 		vty_out(vty, "Can't chmod configuration file %s: %s (%d).%s",
 			config_file, strerror(errno), errno, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -3405,5 +3405,5 @@ void cmd_init(int terminal)
 		install_element(CONFIG_NODE, &no_service_terminal_length_cmd);
 
 	}
-	srand(time(NULL));
+//???	srand(time(NULL));
 }

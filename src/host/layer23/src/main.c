@@ -263,7 +263,9 @@ int main(int argc, char **argv)
 	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
 	lapdm_init(&ms->l2_entity.lapdm_acch, ms);
 
-	l23_app_init(ms);
+	rc = l23_app_init(ms);
+	if (rc < 0)
+		exit(1);
 
 	if (bsc_register_fd(&ms->wq.bfd) != 0) {
 		fprintf(stderr, "Failed to register fd.\n");
