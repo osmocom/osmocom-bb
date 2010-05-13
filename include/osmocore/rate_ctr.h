@@ -33,8 +33,8 @@ struct rate_ctr_desc {
 
 /* Describe a counter group class */
 struct rate_ctr_group_desc {
-	/* The prefix / format string to be used for all counters */
-	char *group_prefix_fmt;
+	/* The prefix to the name of all counters in this group */
+	char *group_name_prefix;
 	/* The human-readable description of the group */
 	char *group_description;
 	/* The number of counters in this group */
