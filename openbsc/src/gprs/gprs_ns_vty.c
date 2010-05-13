@@ -104,10 +104,8 @@ DEFUN(cfg_ns, cfg_ns_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(show_ns, show_ns_cmd, "show ns",
-      SHOW_STR "Display information about the NS protocol")
+static void dump_ns(struct vty *vty, struct gprs_ns_inst *nsi, int stats)
 {
-	struct gprs_ns_inst *nsi = vty_nsi;
 	struct gprs_nsvc *nsvc;
 
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
@@ -121,12 +119,28 @@ DEFUN(show_ns, show_ns_cmd, "show ns",
 				inet_ntoa(nsvc->ip.bts_addr.sin_addr),
 				ntohs(nsvc->ip.bts_addr.sin_port));
 		vty_out(vty, "%s", VTY_NEWLINE);
-		vty_out_rate_ctr_group(vty, " ", nsvc->ctrg);
+		if (stats)
+			vty_out_rate_ctr_group(vty, " ", nsvc->ctrg);
 	}
+}
 
+DEFUN(show_ns, show_ns_cmd, "show ns",
+	SHOW_STR "Display information about the NS protocol")
+{
+	struct gprs_ns_inst *nsi = vty_nsi;
+	dump_ns(vty, nsi, 0);
 	return CMD_SUCCESS;
 }
 
+DEFUN(show_ns_stats, show_ns_stats_cmd, "show ns stats",
+	SHOW_STR
+	"Display information about the NS protocol\n"
+	"Include statistics\n")
+{
+	struct gprs_ns_inst *nsi = vty_nsi;
+	dump_ns(vty, nsi, 1);
+	return CMD_SUCCESS;
+}
 
 #define NSE_CMD_STR "NS Entity\n" "NS Entity ID (NSEI)\n"
 
@@ -260,6 +274,7 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	vty_nsi = nsi;
 
 	install_element_ve(&show_ns_cmd);
+	install_element_ve(&show_ns_stats_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ns_cmd);
 	install_node(&ns_node, config_write_ns);
