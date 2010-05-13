@@ -44,6 +44,14 @@
  * Those mappings are administratively configured.
  */
 
+/* This implementation has the following limitations:
+ *  o Only one NS-VC for each NSE: No load-sharing function
+ *  o NSVCI 65535 and 65534 are reserved for internal use
+ *  o Only UDP is supported as of now, no frame relay support
+ *  o The IP Sub-Network-Service (SNS) as specified in 48.016 is not implemented
+ *  o There are no BLOCK and UNBLOCK timers (yet?)
+ */
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -633,17 +641,16 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		uint16_t nsei;
 		/* Only the RESET procedure creates a new NSVC */
 		if (nsh->pdu_type != NS_PDUT_RESET) {
-			struct gprs_nsvc fake_nsvc;
-			LOGP(DNS, LOGL_INFO, "Ignoring NS PDU type 0x%0x "
+			/* Since we have no NSVC, we have to use a fake */
+			nsvc = nsi->unknown_nsvc;
+			LOGP(DNS, LOGL_INFO, "Rejecting NS PDU type 0x%0x "
 				"from %s:%u for non-existing NS-VC\n",
 				nsh->pdu_type, inet_ntoa(saddr->sin_addr),
 				ntohs(saddr->sin_port));
-			/* Since we have no NSVC, we have to create a fake */
-			fake_nsvc.nsvci = fake_nsvc.nsei = 0;
-			fake_nsvc.nsi = nsi;
-			fake_nsvc.ip.bts_addr = *saddr;
-			fake_nsvc.state = NSE_S_ALIVE;
-			return gprs_ns_tx_status(&fake_nsvc,
+			nsvc->nsvci = nsvc->nsei = 0xfffe;
+			nsvc->ip.bts_addr = *saddr;
+			nsvc->state = NSE_S_ALIVE;
+			return gprs_ns_tx_status(nsvc,
 						NS_CAUSE_PDU_INCOMP_PSTATE, 0,
 						msg);
 		}
@@ -765,6 +772,8 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb)
 	nsi->timeout[NS_TOUT_TNS_TEST] = 30;
 	nsi->timeout[NS_TOUT_TNS_ALIVE] = 3;
 	nsi->timeout[NS_TOUT_TNS_ALIVE_RETRIES] = 10;
+
+	nsi->unknown_nsvc = nsvc_create(nsi, 0xfffe);
 
 	return nsi;
 }

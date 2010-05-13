@@ -109,6 +109,8 @@ static void dump_ns(struct vty *vty, struct gprs_ns_inst *nsi, int stats)
 	struct gprs_nsvc *nsvc;
 
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
+		if (nsvc == nsi->unknown_nsvc)
+			continue;
 		vty_out(vty, "NSEI %5u, NS-VC %5u, Remote: %-4s, %5s %9s",
 			nsvc->nsei, nsvc->nsvci,
 			nsvc->remote_end_is_sgsn ? "SGSN" : "BSS",

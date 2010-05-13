@@ -125,6 +125,9 @@ struct gprs_ns_inst {
 	/* linked lists of all NSVC in this instance */
 	struct llist_head gprs_nsvcs;
 
+	/* a NSVC object that's needed to deal with packets for unknown NSVC */
+	struct gprs_nsvc *unknown_nsvc;
+
 	uint16_t timeout[NS_TIMERS_COUNT];
 
 	/* which link-layer are we based on? */
