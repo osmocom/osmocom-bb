@@ -51,6 +51,7 @@ struct rate_ctr_group *rate_ctr_group_alloc(void *ctx,
 		return NULL;
 
 	group->desc = desc;
+	group->idx = idx;
 	/* Generate the Group prefix from the user-specified index */
 	group->name_prefix = talloc_size(group, strlen(desc->group_prefix_fmt) + 20);
 	sprintf(group->name_prefix, desc->group_prefix_fmt, idx);
