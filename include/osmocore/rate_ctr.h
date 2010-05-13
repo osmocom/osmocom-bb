@@ -49,9 +49,8 @@ struct rate_ctr_group {
 	struct llist_head list;
 	/* Pointer to the counter group class */
 	const struct rate_ctr_group_desc *desc;
+	/* The index of this ctr_group within its class */
 	unsigned int idx;
-	/* The name prefix generated from desc->group_prefix_fmt and index */
-	char *name_prefix;
 	/* Actual counter structures below */
 	struct rate_ctr ctr[0];
 };
