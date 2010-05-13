@@ -773,7 +773,10 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb)
 	nsi->timeout[NS_TOUT_TNS_ALIVE] = 3;
 	nsi->timeout[NS_TOUT_TNS_ALIVE_RETRIES] = 10;
 
+	/* Create the dummy NSVC that we use for sending
+	 * messages to non-existant/unknown NS-VC's */
 	nsi->unknown_nsvc = nsvc_create(nsi, 0xfffe);
+	llist_del(&nsi->unknown_nsvc->list);
 
 	return nsi;
 }
