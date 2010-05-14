@@ -272,6 +272,37 @@ DEFUN(cfg_ns_timer, cfg_ns_timer_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(nsvc_nsei, nsvc_nsei_cmd,
+	"nsvc nsei <0-65535> (block|unblock|reset)",
+	"Perform an operation on a NSVC\n"
+	"NS-VC Identifier (NS-VCI)\n"
+	"Initiate BLOCK procedure\n"
+	"Initiate UNBLOCK procedure\n"
+	"Initiate RESET procedure\n")
+{
+	uint16_t nsvci = atoi(argv[0]);
+	const char *operation = argv[1];
+	struct gprs_nsvc *nsvc;
+
+	nsvc = nsvc_by_nsei(vty_nsi, nsvci);
+	if (!nsvc) {
+		vty_out(vty, "No such NSVCI (%u)%s", nsvci, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (!strcmp(operation, "block"))
+		gprs_ns_tx_block(nsvc, NS_CAUSE_OM_INTERVENTION);
+	else if (!strcmp(operation, "unblock"))
+		gprs_ns_tx_unblock(nsvc);
+	else if (!strcmp(operation, "reset"))
+		gprs_nsvc_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	else
+		return CMD_WARNING;
+
+	return CMD_SUCCESS;
+}
+
+
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 {
 	vty_nsi = nsi;
@@ -290,6 +321,8 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	install_element(NS_NODE, &cfg_nse_remoterole_cmd);
 	install_element(NS_NODE, &cfg_no_nse_cmd);
 	install_element(NS_NODE, &cfg_ns_timer_cmd);
+
+	install_element(ENABLE_NODE, &nsvc_nsei_cmd);
 
 	return 0;
 }
