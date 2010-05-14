@@ -720,7 +720,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		nsvc->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_BLOCKED]);
-		if (nsvc->remote_end_is_sgsn) {
+		if (nsvc->persistent || nsvc->remote_end_is_sgsn) {
 			/* stop RESET timer */
 			bsc_del_timer(&nsvc->timer);
 			/* Initiate TEST proc.: Send ALIVE and start timer */
@@ -894,6 +894,22 @@ int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port)
 	return ret;
 }
 
+/* Initiate a RESET procedure */
+int gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
+{
+	/* Mark NS-VC locally as blocked and dead */
+	nsvc->state = NSE_S_BLOCKED;
+	/* Send NS-RESET PDU */
+	if (gprs_ns_tx_reset(nsvc, cause) < 0) {
+		LOGP(DNS, LOGL_ERROR, "NSEI=%u, error resetting NS-VC\n",
+			nsvc->nsei);
+	}
+	/* Start Tns-reset */
+	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
+
+	return nsvc;
+}
+
 /* Establish a connection (from the BSS) to the SGSN */
 struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 				struct sockaddr_in *dest, uint16_t nsei,
@@ -909,18 +925,5 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 	nsvc->nsvci = nsvci;
 	nsvc->remote_end_is_sgsn = 1;
 
-	/* Initiate a RESET procedure */
-	/* Mark NS-VC locally as blocked and dead */
-	nsvc->state = NSE_S_BLOCKED;
-	/* Send NS-RESET PDU */
-	if (gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION) < 0) {
-		LOGP(DNS, LOGL_ERROR, "NSEI=%u, error resetting NS-VC\n",
-			nsei);
-	}
-	/* Start Tns-reset */
-	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
-
-	return nsvc;
+	return gprs_nsvc_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
 }
-
-
