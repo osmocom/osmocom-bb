@@ -37,6 +37,7 @@
 #include <openbsc/signal.h>
 #include <openbsc/gprs_ns.h>
 #include <openbsc/gprs_bssgp.h>
+#include <openbsc/vty.h>
 
 #include <vty/vty.h>
 #include <vty/command.h>
@@ -281,6 +282,7 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	install_element(CONFIG_NODE, &cfg_ns_cmd);
 	install_node(&ns_node, config_write_ns);
 	install_default(NS_NODE);
+	install_element(NS_NODE, &ournode_exit_cmd);
 	install_element(NS_NODE, &cfg_nse_nsvci_cmd);
 	install_element(NS_NODE, &cfg_nse_remoteip_cmd);
 	install_element(NS_NODE, &cfg_nse_remoteport_cmd);
