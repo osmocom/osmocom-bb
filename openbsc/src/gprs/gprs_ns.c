@@ -108,8 +108,7 @@ static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
 };
 
 /* Lookup struct gprs_nsvc based on NSVCI */
-static struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi,
-					uint16_t nsvci)
+struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci)
 {
 	struct gprs_nsvc *nsvc;
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
@@ -280,7 +279,7 @@ int gprs_ns_tx_status(struct gprs_nsvc *nsvc, uint8_t cause,
 	if (!msg)
 		return -ENOMEM;
 
-	LOGP(DNS, LOGL_INFO, "NSEI=%u Tx NS STATUS (NSVCI=%u, cause=%s)\n",
+	LOGP(DNS, LOGL_NOTICE, "NSEI=%u Tx NS STATUS (NSVCI=%u, cause=%s)\n",
 		nsvc->nsei, nsvc->nsvci, gprs_ns_cause_str(cause));
 
 	msg->l2h = msgb_put(msg, sizeof(*nsh));
@@ -694,9 +693,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			rc = gprs_ns_tx_alive_ack(nsvc);
 		break;
 	case NS_PDUT_ALIVE_ACK:
-		/* stop Tns-alive */
-		bsc_del_timer(&nsvc->timer);
-		/* start Tns-test */
+		/* stop Tns-alive and start Tns-test */
 		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_TEST);
 		if (nsvc->remote_end_is_sgsn) {
 			/* FIXME: this should be one level higher */
@@ -723,10 +720,10 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		if (nsvc->persistent || nsvc->remote_end_is_sgsn) {
 			/* stop RESET timer */
 			bsc_del_timer(&nsvc->timer);
-			/* Initiate TEST proc.: Send ALIVE and start timer */
-			rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
-			nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
 		}
+		/* Initiate TEST proc.: Send ALIVE and start timer */
+		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
+		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
 		break;
 	case NS_PDUT_UNBLOCK:
 		/* Section 7.2: unblocking procedure */
