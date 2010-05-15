@@ -120,6 +120,15 @@ struct gsm48_imm_ass {
 	uint8_t mob_alloc[0];
 } __attribute__ ((packed));
 
+/* Chapter 9.1.25 */
+struct gsm48_pag_resp {
+	uint8_t spare:4,
+		 key_seq:4;
+	uint32_t classmark2;
+	uint8_t mi_len;
+	uint8_t mi[0];
+} __attribute__ ((packed));
+
 /* Chapter 10.5.1.3 */
 struct gsm48_loc_area_id {
 	uint8_t digits[3];	/* BCD! */
