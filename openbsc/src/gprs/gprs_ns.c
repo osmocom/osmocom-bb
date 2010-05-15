@@ -556,7 +556,7 @@ static int gprs_ns_rx_status(struct gprs_nsvc *nsvc, struct msgb *msg)
 	uint8_t cause;
 	int rc;
 
-	LOGP(DNS, LOGL_INFO, "NSEI=%u NS STATUS ", nsvc->nsei);
+	LOGP(DNS, LOGL_NOTICE, "NSEI=%u Rx NS STATUS ", nsvc->nsei);
 
 	rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data, msgb_l2len(msg), 0, 0);
 
@@ -566,7 +566,7 @@ static int gprs_ns_rx_status(struct gprs_nsvc *nsvc, struct msgb *msg)
 	}
 
 	cause = *TLVP_VAL(&tp, NS_IE_CAUSE);
-	LOGPC(DNS, LOGL_INFO, "cause=%s\n", gprs_ns_cause_str(cause));
+	LOGPC(DNS, LOGL_NOTICE, "cause=%s\n", gprs_ns_cause_str(cause));
 
 	return 0;
 }
