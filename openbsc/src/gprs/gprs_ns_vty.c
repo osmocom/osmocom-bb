@@ -105,6 +105,22 @@ DEFUN(cfg_ns, cfg_ns_cmd,
 	return CMD_SUCCESS;
 }
 
+static void dump_nse(struct vty *vty, struct gprs_nsvc *nsvc, int stats)
+{
+	vty_out(vty, "NSEI %5u, NS-VC %5u, Remote: %-4s, %5s %9s",
+		nsvc->nsei, nsvc->nsvci,
+		nsvc->remote_end_is_sgsn ? "SGSN" : "BSS",
+		nsvc->state & NSE_S_ALIVE ? "ALIVE" : "DEAD",
+		nsvc->state & NSE_S_BLOCKED ? "BLOCKED" : "UNBLOCKED");
+	if (nsvc->nsi->ll == GPRS_NS_LL_UDP)
+		vty_out(vty, ", %15s:%u",
+			inet_ntoa(nsvc->ip.bts_addr.sin_addr),
+			ntohs(nsvc->ip.bts_addr.sin_port));
+	vty_out(vty, "%s", VTY_NEWLINE);
+	if (stats)
+		vty_out_rate_ctr_group(vty, " ", nsvc->ctrg);
+}
+
 static void dump_ns(struct vty *vty, struct gprs_ns_inst *nsi, int stats)
 {
 	struct gprs_nsvc *nsvc;
@@ -112,18 +128,7 @@ static void dump_ns(struct vty *vty, struct gprs_ns_inst *nsi, int stats)
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
 		if (nsvc == nsi->unknown_nsvc)
 			continue;
-		vty_out(vty, "NSEI %5u, NS-VC %5u, Remote: %-4s, %5s %9s",
-			nsvc->nsei, nsvc->nsvci,
-			nsvc->remote_end_is_sgsn ? "SGSN" : "BSS",
-			nsvc->state & NSE_S_ALIVE ? "ALIVE" : "DEAD",
-			nsvc->state & NSE_S_BLOCKED ? "BLOCKED" : "UNBLOCKED");
-		if (nsvc->nsi->ll == GPRS_NS_LL_UDP)
-			vty_out(vty, ", %15s:%u",
-				inet_ntoa(nsvc->ip.bts_addr.sin_addr),
-				ntohs(nsvc->ip.bts_addr.sin_port));
-		vty_out(vty, "%s", VTY_NEWLINE);
-		if (stats)
-			vty_out_rate_ctr_group(vty, " ", nsvc->ctrg);
+		dump_nse(vty, nsvc, stats);
 	}
 }
 
@@ -142,6 +147,35 @@ DEFUN(show_ns_stats, show_ns_stats_cmd, "show ns stats",
 {
 	struct gprs_ns_inst *nsi = vty_nsi;
 	dump_ns(vty, nsi, 1);
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_nse, show_nse_cmd, "show ns (nsei|nsvc) <0-65535> [stats]",
+	SHOW_STR "Display information about the NS protocol\n"
+	"Select one NSE by its NSE Identifier\n"
+	"Select one NSE by its NS-VC Identifier\n"
+	"The Identifier of selected type\n"
+	"Include Statistics\n")
+{
+	struct gprs_ns_inst *nsi = vty_nsi;
+	struct gprs_nsvc *nsvc;
+	uint16_t id = atoi(argv[1]);
+	int show_stats = 0;
+
+	if (!strcmp(argv[0], "nsei"))
+		nsvc = nsvc_by_nsei(nsi, id);
+	else
+		nsvc = nsvc_by_nsvci(nsi, id);
+
+	if (!nsvc) {
+		vty_out(vty, "No such NS Entity%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (argc >= 3)
+		show_stats = 1;
+
+	dump_nse(vty, nsvc, show_stats);
 	return CMD_SUCCESS;
 }
 
@@ -309,6 +343,7 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 
 	install_element_ve(&show_ns_cmd);
 	install_element_ve(&show_ns_stats_cmd);
+	install_element_ve(&show_nse_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ns_cmd);
 	install_node(&ns_node, config_write_ns);
