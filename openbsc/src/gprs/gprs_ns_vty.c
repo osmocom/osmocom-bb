@@ -346,7 +346,7 @@ DEFUN(nsvc_nsei, nsvc_nsei_cmd,
 DEFUN(logging_fltr_nsvc,
       logging_fltr_nsvc_cmd,
       "logging filter nsvc (nsei|nsvci) <0-65535>",
-	LOGGING_STR "Filter log messages\n"
+	LOGGING_STR FILTER_STR
 	"Filter based on NS Virtual Connection\n"
 	"Identify NS-VC by NSEI\n"
 	"Identify NS-VC by NSVCI\n"
