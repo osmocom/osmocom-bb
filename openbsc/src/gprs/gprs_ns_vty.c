@@ -179,7 +179,7 @@ DEFUN(show_nse, show_nse_cmd, "show ns (nsei|nsvc) <0-65535> [stats]",
 	return CMD_SUCCESS;
 }
 
-#define NSE_CMD_STR "NS Entity\n" "NS Entity ID (NSEI)\n"
+#define NSE_CMD_STR "Persistent NS Entity\n" "NS Entity ID (NSEI)\n"
 
 DEFUN(cfg_nse_nsvc, cfg_nse_nsvci_cmd,
 	"nse <0-65535> nsvci <0-65534>",
@@ -273,7 +273,7 @@ DEFUN(cfg_nse_remoterole, cfg_nse_remoterole_cmd,
 
 DEFUN(cfg_no_nse, cfg_no_nse_cmd,
 	"no nse <0-65535>",
-	"Delete NS Entity\n"
+	"Delete Persistent NS Entity\n"
 	"Delete " NSE_CMD_STR)
 {
 	uint16_t nsei = atoi(argv[0]);
@@ -285,7 +285,13 @@ DEFUN(cfg_no_nse, cfg_no_nse_cmd,
 		return CMD_WARNING;
 	}
 
-	nsvc_delete(nsvc);
+	if (!nsvc->persistent) {
+		vty_out(vty, "NSEI %u is not a persistent NSE%s",
+			nsei, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	nsvc->persistent = 0;
 
 	return CMD_SUCCESS;
 }
