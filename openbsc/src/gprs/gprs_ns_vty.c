@@ -37,6 +37,7 @@
 #include <openbsc/signal.h>
 #include <openbsc/gprs_ns.h>
 #include <openbsc/gprs_bssgp.h>
+#include <openbsc/telnet_interface.h>
 #include <openbsc/vty.h>
 
 #include <vty/vty.h>
@@ -342,6 +343,38 @@ DEFUN(nsvc_nsei, nsvc_nsei_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(logging_fltr_nsvc,
+      logging_fltr_nsvc_cmd,
+      "logging filter nsvc (nsei|nsvci) <0-65535>",
+	LOGGING_STR "Filter log messages\n"
+	"Filter based on NS Virtual Connection\n"
+	"Identify NS-VC by NSEI\n"
+	"Identify NS-VC by NSVCI\n"
+	"Numeric identifier\n")
+{
+	struct telnet_connection *conn;
+	struct gprs_nsvc *nsvc;
+	uint16_t id = atoi(argv[1]);
+
+	conn = (struct telnet_connection *) vty->priv;
+	if (!conn->dbg) {
+		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (!strcmp(argv[0], "nsei"))
+		nsvc = nsvc_by_nsei(vty_nsi, id);
+	else
+		nsvc = nsvc_by_nsvci(vty_nsi, id);
+
+	if (!nsvc) {
+		vty_out(vty, "No NS-VC by that identifier%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	log_set_nsvc_filter(conn->dbg, nsvc);
+	return CMD_SUCCESS;
+}
 
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 {
@@ -350,6 +383,7 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	install_element_ve(&show_ns_cmd);
 	install_element_ve(&show_ns_stats_cmd);
 	install_element_ve(&show_nse_cmd);
+	install_element_ve(&logging_fltr_nsvc_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ns_cmd);
 	install_node(&ns_node, config_write_ns);
