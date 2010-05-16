@@ -22,6 +22,7 @@
  *
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -443,11 +444,16 @@ int read_file(const char *filename)
 
 static void hexdump(const uint8_t *data, unsigned int len)
 {
-	const uint8_t *bufptr = data;
 	int n;
 
-	for (n=0; n < len; n++, bufptr++)
-		printf("%02x ", *bufptr);
+	for (n=0; n < len; n++)
+		printf("%02x ", data[n]);
+	printf(" ");
+	for (n=0; n < len; n++)
+		if (isprint(data[n]))
+			putchar(data[n]);
+		else
+			putchar('.');
 	printf("\n");
 }
 
