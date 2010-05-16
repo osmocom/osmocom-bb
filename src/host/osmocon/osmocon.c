@@ -230,6 +230,11 @@ static int serial_set_baudrate(speed_t baudrate)
 	int rc;
 	struct termios tio;
 
+	rc = tcgetattr(dnload.serial_fd.fd, &tio);
+	if (rc < 0) {
+		perror("tcgetattr()");
+		return rc;
+	}
 	cfsetispeed(&tio, baudrate);
 	cfsetospeed(&tio, baudrate);
 
