@@ -61,7 +61,7 @@ static const struct rate_ctr_group_desc bssgp_ctrg_desc = {
 #define BVC_S_BLOCKED	0x0001
 
 /* The per-BTS context that we keep on the SGSN side of the BSSGP link */
-struct bssgp_bts_ctx {
+struct bssgp_bvc_ctx {
 	struct llist_head list;
 
 	/* parsed RA ID and Cell ID of the remote BTS */
@@ -84,9 +84,9 @@ struct bssgp_bts_ctx {
 static LLIST_HEAD(bts_ctxts);
 
 /* Find a BTS Context based on parsed RA ID and Cell ID */
-struct bssgp_bts_ctx *btsctx_by_raid_cid(const struct gprs_ra_id *raid, uint16_t cid)
+struct bssgp_bvc_ctx *btsctx_by_raid_cid(const struct gprs_ra_id *raid, uint16_t cid)
 {
-	struct bssgp_bts_ctx *bctx;
+	struct bssgp_bvc_ctx *bctx;
 
 	llist_for_each_entry(bctx, &bts_ctxts, list) {
 		if (!memcmp(&bctx->ra_id, raid, sizeof(bctx->ra_id)) &&
@@ -97,9 +97,9 @@ struct bssgp_bts_ctx *btsctx_by_raid_cid(const struct gprs_ra_id *raid, uint16_t
 }
 
 /* Find a BTS context based on BVCI+NSEI tuple */
-struct bssgp_bts_ctx *btsctx_by_bvci_nsei(uint16_t bvci, uint16_t nsei)
+struct bssgp_bvc_ctx *btsctx_by_bvci_nsei(uint16_t bvci, uint16_t nsei)
 {
-	struct bssgp_bts_ctx *bctx;
+	struct bssgp_bvc_ctx *bctx;
 
 	llist_for_each_entry(bctx, &bts_ctxts, list) {
 		if (bctx->nsei == nsei && bctx->bvci == bvci)
@@ -108,11 +108,11 @@ struct bssgp_bts_ctx *btsctx_by_bvci_nsei(uint16_t bvci, uint16_t nsei)
 	return NULL;
 }
 
-struct bssgp_bts_ctx *btsctx_alloc(uint16_t bvci, uint16_t nsei)
+struct bssgp_bvc_ctx *btsctx_alloc(uint16_t bvci, uint16_t nsei)
 {
-	struct bssgp_bts_ctx *ctx;
+	struct bssgp_bvc_ctx *ctx;
 
-	ctx = talloc_zero(bssgp_tall_ctx, struct bssgp_bts_ctx);
+	ctx = talloc_zero(bssgp_tall_ctx, struct bssgp_bvc_ctx);
 	if (!ctx)
 		return NULL;
 	ctx->bvci = bvci;
@@ -153,7 +153,7 @@ uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf)
 static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,	
 			      uint16_t ns_bvci)
 {
-	struct bssgp_bts_ctx *bctx;
+	struct bssgp_bvc_ctx *bctx;
 	uint16_t nsei = msgb_nsei(msg);
 	uint16_t bvci;
 	int rc;
@@ -195,7 +195,7 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 static int bssgp_rx_bvc_block(struct msgb *msg, struct tlv_parsed *tp)
 {
 	uint16_t bvci;
-	struct bssgp_bts_ctx *ptp_ctx;
+	struct bssgp_bvc_ctx *ptp_ctx;
 
 	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
 	if (bvci == 0) {
@@ -225,7 +225,7 @@ static int bssgp_rx_bvc_block(struct msgb *msg, struct tlv_parsed *tp)
 static int bssgp_rx_bvc_unblock(struct msgb *msg, struct tlv_parsed *tp)
 {
 	uint16_t bvci;
-	struct bssgp_bts_ctx *ptp_ctx;
+	struct bssgp_bvc_ctx *ptp_ctx;
 
 	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
 	if (bvci == 0) {
@@ -253,7 +253,7 @@ static int bssgp_rx_bvc_unblock(struct msgb *msg, struct tlv_parsed *tp)
 
 /* Uplink unit-data */
 static int bssgp_rx_ul_ud(struct msgb *msg, struct tlv_parsed *tp,
-			  struct bssgp_bts_ctx *ctx)
+			  struct bssgp_bvc_ctx *ctx)
 {
 	struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
 
@@ -275,7 +275,7 @@ static int bssgp_rx_ul_ud(struct msgb *msg, struct tlv_parsed *tp,
 }
 
 static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
-			    struct bssgp_bts_ctx *ctx)
+			    struct bssgp_bvc_ctx *ctx)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
@@ -291,7 +291,7 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 }
 
 static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
-			   struct bssgp_bts_ctx *ctx)
+			   struct bssgp_bvc_ctx *ctx)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
@@ -308,7 +308,7 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 }
 
 static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
-			   struct bssgp_bts_ctx *bctx)
+			   struct bssgp_bvc_ctx *bctx)
 {
 
 	DEBUGP(DBSSGP, "BSSGP FC BVC\n");
@@ -329,7 +329,7 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 
 /* Receive a BSSGP PDU from a BSS on a PTP BVCI */
 static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
-			     struct bssgp_bts_ctx *bctx)
+			     struct bssgp_bvc_ctx *bctx)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
@@ -405,7 +405,7 @@ static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 
 /* Receive a BSSGP PDU from a BSS on a SIGNALLING BVCI */
 static int gprs_bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
-				struct bssgp_bts_ctx *bctx)
+				struct bssgp_bvc_ctx *bctx)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
@@ -494,7 +494,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
 	struct tlv_parsed tp;
-	struct bssgp_bts_ctx *bctx;
+	struct bssgp_bvc_ctx *bctx;
 	uint8_t pdu_type = bgph->pdu_type;
 	uint16_t ns_bvci = msgb_bvci(msg);
 	int data_len;
@@ -536,7 +536,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
  * to a remote MS (identified by TLLI) at a BTS identified by its BVCI and NSEI */
 int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 {
-	struct bssgp_bts_ctx *bctx;
+	struct bssgp_bvc_ctx *bctx;
 	struct bssgp_ud_hdr *budh;
 	uint8_t llc_pdu_tlv_hdr_len = 2;
 	uint8_t *llc_pdu_tlv, *qos_profile;
