@@ -149,6 +149,35 @@ int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg);
 
 /* gprs_bssgp.c */
 
+#define BVC_S_BLOCKED	0x0001
+
+/* The per-BTS context that we keep on the SGSN side of the BSSGP link */
+struct bssgp_bvc_ctx {
+	struct llist_head list;
+
+	/* parsed RA ID and Cell ID of the remote BTS */
+	struct gprs_ra_id ra_id;
+	uint16_t cell_id;
+
+	/* NSEI and BVCI of underlying Gb link.  Together they
+	 * uniquely identify a link to a BTS (5.4.4) */
+	uint16_t bvci;
+	uint16_t nsei;
+
+	uint32_t state;
+
+	struct rate_ctr_group *ctrg;
+
+	/* we might want to add this as a shortcut later, avoiding the NSVC
+	 * lookup for every packet, similar to a routing cache */
+	//struct gprs_nsvc *nsvc;
+};
+extern struct llist_head bssgp_bvc_ctxts;
+/* Find a BTS Context based on parsed RA ID and Cell ID */
+struct bssgp_bvc_ctx *btsctx_by_raid_cid(const struct gprs_ra_id *raid, uint16_t cid);
+/* Find a BTS context based on BVCI+NSEI tuple */
+struct bssgp_bvc_ctx *btsctx_by_bvci_nsei(uint16_t bvci, uint16_t nsei);
+
 #include <osmocore/tlv.h>
 
 /* BSSGP-UL-UNITDATA.ind */
