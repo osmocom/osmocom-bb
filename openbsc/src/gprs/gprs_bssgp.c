@@ -18,6 +18,9 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
+ * TODO:
+ *  o  properly count incoming BVC-RESET packets in counter group
+ *  o  set log context as early as possible for outgoing packets
  */
 
 #include <errno.h>
@@ -508,6 +511,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 	}
 
 	if (bctx) {
+		log_set_context(BSC_CTX_BVC, bctx);
 		rate_ctr_inc(&bctx->ctrg->ctr[BSSGP_CTR_PKTS_IN]);
 		rate_ctr_add(&bctx->ctrg->ctr[BSSGP_CTR_BYTES_IN],
 			     msgb_bssgp_len(msg));
