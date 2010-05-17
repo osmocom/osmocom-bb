@@ -56,6 +56,10 @@
 #define ROMLOAD_BLOCK_HDR_LEN	10
 #define ROMLOAD_ADDRESS		0x820000
 
+#define MTK_INIT_BAUDRATE	B19200
+#define MTK_ADDRESS		0x40000800
+#define MTK_BLOCK_SIZE		1024
+
 struct tool_server *tool_server_for_dlci[256];
 
 /**
@@ -95,6 +99,20 @@ enum romload_state {
 	FINISHED,
 };
 
+enum mtk_state {
+	MTK_INIT_1,
+	MTK_INIT_2,
+	MTK_INIT_3,
+	MTK_INIT_4,
+	MTK_WAIT_WRITE_ACK,
+	MTK_WAIT_ADDR_ACK,
+	MTK_WAIT_SIZE_ACK,
+	MTK_SENDING_BLOCKS,
+	MTK_WAIT_BRANCH_CMD_ACK,
+	MTK_WAIT_BRANCH_ADDR_ACK,
+	MTK_FINISHED,
+};
+
 enum dnload_mode {
 	MODE_C123,
 	MODE_C123xor,
@@ -102,11 +120,13 @@ enum dnload_mode {
 	MODE_C140xor,
 	MODE_C155,
 	MODE_ROMLOAD,
+	MODE_MTK,
 };
 
 struct dnload {
 	enum dnload_state state;
 	enum romload_state romload_state;
+	enum mtk_state mtk_state;
 	enum dnload_mode mode;
 	struct bsc_fd serial_fd;
 	char *filename;
@@ -127,6 +147,10 @@ struct dnload {
 	int romload_dl_checksum;
 	uint8_t *block_ptr;
 	uint8_t load_address[4];
+
+	uint8_t mtk_send_size[4];
+	int block_count;
+	int echo_bytecount;
 
 	struct tool_server layer2_server;
 	struct tool_server loader_server;
@@ -158,7 +182,7 @@ static const uint8_t data_hdr_c123[]    = { 0xee, 0x4c, 0x9f, 0x63 };
  */
 static const uint8_t data_hdr_c155[]    = { 0x78, 0x47, 0xc0, 0x46 };
 
-/* romloader specific */
+/* Calypso romloader specific */
 static const uint8_t romload_ident_cmd[] =	{ 0x3c, 0x69 };	/* <i */
 static const uint8_t romload_abort_cmd[] =	{ 0x3c, 0x61 };	/* <a */
 static const uint8_t romload_write_cmd[] =	{ 0x3c, 0x77 };	/* <w */
@@ -179,6 +203,11 @@ static const uint8_t romload_branch_nack[] =	{ 0x3e, 0x42 };	/* >B */
 
 static const uint8_t romload_param[] = { 0x3c, 0x70, 0x00, 0x00, 0x00, 0x04,
 					 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+/* MTK romloader specific */
+static const uint8_t mtk_init_cmd[] =	{ 0xa0, 0x0a, 0x50, 0x05 };
+static const uint8_t mtk_init_resp[] =	{ 0x5f, 0xf5, 0xaf, 0xfa };
+static const uint8_t mtk_command[] =	{ 0xa1, 0xa2, 0xa4, 0xa8 };
 
 /* FIXME: this routine is more or less what openbsc/src/rs232:rs232_setup()
  * does, we should move it to libosmocore at some point */
@@ -248,11 +277,26 @@ static void beacon_timer_cb(void *p)
 	int rc;
 
 	if (dnload.romload_state == WAITING_IDENTIFICATION) {
-		printf("Sending beacon...\n");
+		printf("Sending Calypso romloader beacon...\n");
 		rc = write(dnload.serial_fd.fd, romload_ident_cmd,
 			   sizeof(romload_ident_cmd));
 
 		if (!(rc == sizeof(romload_ident_cmd)))
+			printf("Error sending identification beacon\n");
+
+		bsc_schedule_timer(p, 0, BEACON_INTERVAL);
+	}
+}
+
+static void mtk_timer_cb(void *p)
+{
+	int rc;
+
+	if (dnload.mtk_state == MTK_INIT_1) {
+		printf("Sending MTK romloader beacon...\n");
+		rc = write(dnload.serial_fd.fd, &mtk_init_cmd[0], 1);
+
+		if (!(rc == 1))
 			printf("Error sending identification beacon\n");
 
 		bsc_schedule_timer(p, 0, BEACON_INTERVAL);
@@ -483,6 +527,79 @@ static int romload_prepare_block(void)
 	return rc;
 }
 
+static int mtk_prepare_block(void)
+{
+	int rc, i;
+
+	int remaining_bytes;
+	int fill_bytes;
+	uint8_t *block_data;
+	uint8_t tmp_byteswap;
+	uint32_t tmp_size;
+
+	dnload.block_len = MTK_BLOCK_SIZE;
+	dnload.echo_bytecount = 0;
+
+	/* if first block, allocate memory */
+	if (!dnload.block_number) {
+		dnload.block = malloc(dnload.block_len);
+		if (!dnload.block) {
+			fprintf(stderr, "No memory\n");
+			return -ENOMEM;
+		}
+
+		/* calculate the number of blocks we need to send */
+		dnload.block_count = (dnload.data_len-3) / MTK_BLOCK_SIZE;
+		/* add one more block if no multiple of blocksize */
+		if((dnload.data_len-3) % MTK_BLOCK_SIZE)
+			dnload.block_count++;
+
+		/* divide by 2, since we have to tell the mtk loader the size
+		 * as count of uint16 (odd transfer sizes are not possible) */
+		tmp_size = (dnload.block_count * MTK_BLOCK_SIZE)/2;
+		dnload.mtk_send_size[0] = (tmp_size >> 24) & 0xff;
+		dnload.mtk_send_size[1] = (tmp_size >> 16) & 0xff;
+		dnload.mtk_send_size[2] = (tmp_size >> 8) & 0xff;
+		dnload.mtk_send_size[3] = tmp_size & 0xff;
+
+		/* initialize write pointer to start of data */
+		dnload.write_ptr = dnload.data;
+	}
+
+	block_data = dnload.block;
+	dnload.write_ptr = dnload.data + 2 +
+			(dnload.block_len * dnload.block_number);
+
+	remaining_bytes = dnload.data_len - 3 -
+			(dnload.block_len * dnload.block_number);
+
+	memcpy(block_data, dnload.write_ptr, MTK_BLOCK_SIZE);
+
+	if (remaining_bytes <= MTK_BLOCK_SIZE) {
+		fill_bytes = (MTK_BLOCK_SIZE - remaining_bytes);
+		printf("Preparing the last block, filling %i bytes\n",
+			fill_bytes);
+		memset(block_data + remaining_bytes, 0x00, fill_bytes);
+		dnload.romload_state = SENDING_LAST_BLOCK;
+	} else {
+		dnload.romload_state = SENDING_BLOCKS;
+		printf("Preparing block %i\n", dnload.block_number+1);
+	}
+
+	/* for the mtk romloader we need to swap MSB <-> LSB */
+	for (i = 0; i < dnload.block_len; i += 2) {
+		tmp_byteswap = dnload.block[i];
+		dnload.block[i] = dnload.block[i+1];
+		dnload.block[i+1] = tmp_byteswap;
+	}
+
+	/* initialize block pointer to start of block */
+	dnload.block_ptr = dnload.block;
+
+	dnload.block_number++;
+	return rc;
+}
+
 static int handle_write_block(void)
 {
 	int bytes_left, write_len, rc;
@@ -585,7 +702,9 @@ static int handle_sercomm_write(void)
 
 static int handle_write(void)
 {
-	if (dnload.mode == MODE_ROMLOAD) {
+	/* TODO: simplify this again (global state: downloading, sercomm) */
+	switch (dnload.mode) {
+	case MODE_ROMLOAD:
 		switch (dnload.romload_state) {
 		case SENDING_BLOCKS:
 		case SENDING_LAST_BLOCK:
@@ -593,7 +712,16 @@ static int handle_write(void)
 		default:
 			return handle_sercomm_write();
 		}
-	} else {
+		break;
+	case MODE_MTK:
+		switch (dnload.mtk_state) {
+		case MTK_SENDING_BLOCKS:
+			return handle_write_block();
+		default:
+			return handle_sercomm_write();
+		}
+		break;
+	default:
 		switch (dnload.state) {
 		case DOWNLOADING:
 			return handle_write_dnload();
@@ -899,15 +1027,159 @@ static int handle_read_romload(void)
 	return nbytes;
 }
 
+/* MTK romloader */
+static int handle_read_mtk(void)
+{
+	int rc, nbytes, buf_used_len;
+
+	switch (dnload.mtk_state) {
+	case MTK_WAIT_ADDR_ACK:
+	case MTK_WAIT_SIZE_ACK:
+	case MTK_WAIT_BRANCH_ADDR_ACK:
+		buf_used_len = 4;
+		break;
+	case MTK_FINISHED:
+		buf_used_len = sizeof(buffer);
+		break;
+	default:
+		buf_used_len = 1;
+	}
+
+	nbytes = handle_buffer(buf_used_len);
+	if (nbytes <= 0)
+		return nbytes;
+
+	switch (dnload.mtk_state) {
+	case MTK_INIT_1:
+		if (!(buffer[0] == mtk_init_resp[0]))
+			break;
+		dnload.mtk_state = MTK_INIT_2;
+		printf("Received init magic byte 1\n");
+		rc = write(dnload.serial_fd.fd, &mtk_init_cmd[1], 1);
+		break;
+	case MTK_INIT_2:
+		if (!(buffer[0] == mtk_init_resp[1]))
+			break;
+		dnload.mtk_state = MTK_INIT_3;
+		printf("Received init magic byte 2\n");
+		rc = write(dnload.serial_fd.fd, &mtk_init_cmd[2], 1);
+		break;
+	case MTK_INIT_3:
+		if (!(buffer[0] == mtk_init_resp[2]))
+			break;
+		dnload.mtk_state = MTK_INIT_4;
+		printf("Received init magic byte 3\n");
+		rc = write(dnload.serial_fd.fd, &mtk_init_cmd[3], 1);
+		break;
+	case MTK_INIT_4:
+		if (!(buffer[0] == mtk_init_resp[3]))
+			break;
+		dnload.mtk_state = MTK_WAIT_WRITE_ACK;
+		printf("Received init magic byte 4, requesting write\n");
+		rc = write(dnload.serial_fd.fd, &mtk_command[0], 1);
+		break;
+	case MTK_WAIT_WRITE_ACK:
+		if (!(buffer[0] == mtk_command[0]))
+			break;
+		dnload.mtk_state = MTK_WAIT_ADDR_ACK;
+		printf("Received write ack, sending load address\n");
+
+		rc = write(dnload.serial_fd.fd, &dnload.load_address,
+			   sizeof(dnload.load_address));
+		break;
+	case MTK_WAIT_ADDR_ACK:
+		if (memcmp(buffer, dnload.load_address,
+			    sizeof(dnload.load_address)))
+			break;
+		printf("Received address ack from phone, sending loadsize\n");
+		/* re-read file */
+		rc = read_file(dnload.filename);
+		if (rc < 0) {
+			fprintf(stderr, "read_file(%s) failed with %d\n",
+				dnload.filename, rc);
+			exit(1);
+		}
+		dnload.block_number = 0;
+		mtk_prepare_block();
+		dnload.mtk_state = MTK_WAIT_SIZE_ACK;
+		rc = write(dnload.serial_fd.fd, &dnload.mtk_send_size,
+			   sizeof(dnload.mtk_send_size));
+		break;
+	case MTK_WAIT_SIZE_ACK:
+		if (memcmp(buffer, dnload.mtk_send_size,
+			    sizeof(dnload.mtk_send_size)))
+			break;
+		printf("Received size ack\n");
+		dnload.print_hdlc = 1;
+		dnload.mtk_state = MTK_SENDING_BLOCKS;
+		dnload.serial_fd.when = BSC_FD_READ | BSC_FD_WRITE;
+		bufptr -= 3;
+		break;
+	case MTK_SENDING_BLOCKS:
+		if (!(buffer[0] == dnload.block[dnload.echo_bytecount]))
+			printf("Warning: Byte %i of Block %i doesn't match,"
+				" check your serial connection!\n",
+				dnload.echo_bytecount, dnload.block_number);
+		dnload.echo_bytecount++;
+
+		if ((dnload.echo_bytecount+1) > MTK_BLOCK_SIZE) {
+			if ( dnload.block_number == dnload.block_count) {
+				rc = write(dnload.serial_fd.fd,
+					   &mtk_command[3], 1);
+				printf("Sending branch command\n");
+				dnload.print_hdlc = 0;
+				dnload.mtk_state = MTK_WAIT_BRANCH_CMD_ACK;
+				break;
+			}
+			printf("Received Block %i preparing next block\n",
+				dnload.block_number);
+			mtk_prepare_block();
+			dnload.serial_fd.when = BSC_FD_READ | BSC_FD_WRITE;
+		}
+		break;
+	case MTK_WAIT_BRANCH_CMD_ACK:
+		if (!(buffer[0] == mtk_command[3]))
+			break;
+		dnload.mtk_state = MTK_WAIT_BRANCH_ADDR_ACK;
+		printf("Received branch command ack, sending address\n");
+
+		rc = write(dnload.serial_fd.fd, &dnload.load_address,
+			   sizeof(dnload.load_address));
+		break;
+	case MTK_WAIT_BRANCH_ADDR_ACK:
+		if (memcmp(buffer, dnload.load_address,
+			    sizeof(dnload.load_address)))
+			break;
+		printf("Received branch address ack, code should run now\n");
+
+		/* uncomment this once we have working uart driver & sercomm */
+		//dnload.mtk_state = MTK_FINISHED;
+		//dnload.serial_fd.when = BSC_FD_READ;
+		//dnload.print_hdlc = 1;
+		break;
+	default:
+		break;
+	}
+
+	bufptr += nbytes;
+	return nbytes;
+}
+
 static int serial_read(struct bsc_fd *fd, unsigned int flags)
 {
 	int rc;
 	if (flags & BSC_FD_READ) {
-		if (dnload.mode == MODE_ROMLOAD)
-			rc = handle_read_romload();
-		else
-			rc = handle_read();
-
+		switch (dnload.mode) {
+			case MODE_ROMLOAD:
+				rc = handle_read_romload();
+				break;
+			case MODE_MTK:
+				rc = handle_read_mtk();
+				break;
+			default:
+				rc = handle_read();
+				break;
+		}
 		if (rc == 0)
 			exit(2);
 	}
@@ -934,6 +1206,8 @@ static int parse_mode(const char *arg)
 		return MODE_C155;
 	else if (!strcasecmp(arg, "romload"))
 		return MODE_ROMLOAD;
+	else if (!strcasecmp(arg, "mtk"))
+		return MODE_MTK;
 
 	return -1;
 }
@@ -941,7 +1215,7 @@ static int parse_mode(const char *arg)
 #define HELP_TEXT \
 	"[ -v | -h ] [ -p /dev/ttyXXXX ] [ -s /tmp/osmocom_l2 ]\n" \
 	"\t\t[ -l /tmp/osmocom_loader ]\n" \
-	"\t\t[ -m {c123,c123xor,c140,c140xor,c155,romload} ]\n" \
+	"\t\t[ -m {c123,c123xor,c140,c140xor,c155,romload,mtk} ]\n" \
 	"\t\t file.bin\n\n" \
 	"* Open serial port /dev/ttyXXXX (connected to your phone)\n" \
 	"* Perform handshaking with the ramloader in the phone\n" \
@@ -1202,6 +1476,13 @@ int main(int argc, char **argv)
 		tmp_load_address = ROMLOAD_ADDRESS;
 		serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 		tick_timer.cb = &beacon_timer_cb;
+		tick_timer.data = &tick_timer;
+		bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
+	}
+	else if (dnload.mode == MODE_MTK) {
+		tmp_load_address = MTK_ADDRESS;
+		serial_set_baudrate(MTK_INIT_BAUDRATE);
+		tick_timer.cb = &mtk_timer_cb;
 		tick_timer.data = &tick_timer;
 		bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
 	}
