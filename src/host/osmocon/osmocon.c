@@ -126,6 +126,7 @@ struct dnload {
 	uint16_t block_payload_size;
 	int romload_dl_checksum;
 	uint8_t *block_ptr;
+	uint8_t load_address[4];
 
 	struct tool_server layer2_server;
 	struct tool_server loader_server;
@@ -856,18 +857,12 @@ static int handle_read_romload(void)
 			    sizeof(romload_checksum_ack))) {
 			printf("Checksum on phone side matches, "
 				"let's branch to your code\n");
-
-			uint32_t branch_address_32 = ROMLOAD_ADDRESS;
-			uint8_t branch_address[4];
-			branch_address[0] = (branch_address_32 >> 24) & 0xff;
-			branch_address[1] = (branch_address_32 >> 16) & 0xff;
-			branch_address[2] = (branch_address_32 >> 8) & 0xff;
-			branch_address[3] = branch_address_32 & 0xff;
-			printf("Branching to 0x%08x\n", branch_address_32);
+			printf("Branching to 0x%08x\n", ROMLOAD_ADDRESS);
 
 			rc = write(dnload.serial_fd.fd, romload_branch_cmd,
 				   sizeof(romload_branch_cmd));
-			rc = write(dnload.serial_fd.fd, &branch_address, 4);
+			rc = write(dnload.serial_fd.fd, &dnload.load_address,
+				   sizeof(dnload.load_address));
 			dnload.romload_state = WAITING_BRANCH_ACK;
 			bufptr -= 1;
 		} else if (!memcmp(buffer, romload_checksum_nack,
@@ -1129,6 +1124,7 @@ extern void hdlc_tpudbg_cb(uint8_t dlci, struct msgb *msg);
 int main(int argc, char **argv)
 {
 	int opt, flags;
+	uint32_t tmp_load_address = 0;
 	const char *serial_dev = "/dev/ttyUSB1";
 	const char *layer2_un_path = "/tmp/osmocom_l2";
 	const char *loader_un_path = "/tmp/osmocom_loader";
@@ -1203,11 +1199,17 @@ int main(int argc, char **argv)
 
 	/* if in romload mode, start our beacon timer */
 	if (dnload.mode == MODE_ROMLOAD) {
+		tmp_load_address = ROMLOAD_ADDRESS;
 		serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 		tick_timer.cb = &beacon_timer_cb;
 		tick_timer.data = &tick_timer;
 		bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
 	}
+
+	dnload.load_address[0] = (tmp_load_address >> 24) & 0xff;
+	dnload.load_address[1] = (tmp_load_address >> 16) & 0xff;
+	dnload.load_address[2] = (tmp_load_address >> 8) & 0xff;
+	dnload.load_address[3] = tmp_load_address & 0xff;
 
 	while (1)
 		bsc_select_main(0);
