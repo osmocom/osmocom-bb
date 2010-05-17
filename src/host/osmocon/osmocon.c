@@ -30,19 +30,18 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <termios.h>
-#include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
-#include <sys/time.h>
 
 #include <sercomm.h>
 
 #include <osmocore/linuxlist.h>
 #include <osmocore/select.h>
 #include <osmocore/talloc.h>
+#include <osmocore/timer.h>
 
 #include <arpa/inet.h>
 
@@ -51,9 +50,9 @@
 #define MAX_HDR_SIZE		128
 #define MAGIC_OFFSET		0x3be2
 
+#define BEACON_INTERVAL		50000
 #define ROMLOAD_INIT_BAUDRATE	B19200
 #define ROMLOAD_DL_BAUDRATE	B115200
-#define ROMLOAD_BEACON_INTERVAL	50000
 #define ROMLOAD_BLOCK_HDR_LEN	10
 #define ROMLOAD_ADDRESS		0x820000
 
@@ -134,6 +133,7 @@ struct dnload {
 
 
 static struct dnload dnload;
+static struct timer_list tick_timer;
 
 /* Compal ramloader specific */
 static const uint8_t phone_prompt1[] = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x01, 0x40 };
@@ -242,22 +242,7 @@ static int serial_set_baudrate(speed_t baudrate)
 	return rc;
 }
 
-static void reload_beacon_timer(void)
-{
-	struct itimerval t_val;
-	int rc;
-
-	/* load timer to our <i beacon interval */
-	bzero(&t_val, sizeof(t_val));
-	t_val.it_value.tv_usec = ROMLOAD_BEACON_INTERVAL;
-
-	if ((rc = setitimer(ITIMER_REAL, &t_val, NULL)) < 0) {
-		fprintf(stderr, "Error in setitimer()\n");
-		exit(1);
-	}
-}
-
-static void beacon_timer_cb(int signr)
+static void beacon_timer_cb(void *p)
 {
 	int rc;
 
@@ -269,18 +254,8 @@ static void beacon_timer_cb(int signr)
 		if (!(rc == sizeof(romload_ident_cmd)))
 			printf("Error sending identification beacon\n");
 
-		reload_beacon_timer();
+		bsc_schedule_timer(p, 0, BEACON_INTERVAL);
 	}
-}
-
-static void start_beacon_timer(void)
-{
-	if (signal(SIGALRM, beacon_timer_cb) == SIG_ERR) {
-		fprintf(stderr, "Cannot register signal handler\n");
-		exit(1);
-	}
-
-	reload_beacon_timer();
 }
 
 /* Read the to-be-downloaded file, prepend header and length, append XOR sum */
@@ -490,11 +465,12 @@ static int romload_prepare_block(void)
 			printf("Preparing block %i,", dnload.block_number+1);
 	}
 
-	/* block checksum is lsb of !(5 + block_size_lsb + block_address + data) */
+	/* block checksum is lsb of ~(5 + block_size_lsb +  all bytes of
+	 * block_address + all data bytes) */
 	for (i = 5; i < ROMLOAD_BLOCK_HDR_LEN + dnload.block_payload_size; i++)
 		block_checksum += dnload.block[i];
 
-	/* checksum is lsb of !(sum of LSBs of all block checksums) */
+	/* checksum is lsb of ~(sum of LSBs of all block checksums) */
 	printf(" block checksum is 0x%02x \n", ~(block_checksum) & 0xff);
 	dnload.romload_dl_checksum += ~(block_checksum) & 0xff;
 
@@ -833,8 +809,6 @@ static int handle_read_romload(void)
 		printf("Received parameter ack from phone, "
 			"starting download\n");
 		serial_set_baudrate(ROMLOAD_DL_BAUDRATE);
-		/* let the target's UART settle after changing baud*/
-		usleep(ROMLOAD_BEACON_INTERVAL*2);
 
 		/* using the max blocksize the phone tells us */
 		dnload.block_payload_size = ((buffer[3] << 8) + buffer[2]);
@@ -871,8 +845,7 @@ static int handle_read_romload(void)
 				"something went wrong, aborting\n");
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
-			usleep(ROMLOAD_BEACON_INTERVAL*2);
-			reload_beacon_timer();
+			bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
 		}
 		break;
 	case WAITING_CHECKSUM_ACK:
@@ -897,11 +870,10 @@ static int handle_read_romload(void)
 		} else if (!memcmp(buffer, romload_checksum_nack,
 				   sizeof(romload_checksum_nack))) {
 			printf("Checksum on phone side (0x%02x) doesn't "
-				"match ours, aborting\n", buffer[2]);
+				"match ours, aborting\n", ~buffer[2]);
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
-			usleep(ROMLOAD_BEACON_INTERVAL*2);
-			reload_beacon_timer();
+			bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
 			bufptr -= 1;
 		}
 		break;
@@ -918,8 +890,7 @@ static int handle_read_romload(void)
 			printf("Received branch nack, aborting\n");
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
-			usleep(ROMLOAD_BEACON_INTERVAL*2);
-			reload_beacon_timer();
+			bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
 		}
 		break;
 	default:
@@ -1230,7 +1201,9 @@ int main(int argc, char **argv)
 	/* if in romload mode, start our beacon timer */
 	if (dnload.mode == MODE_ROMLOAD) {
 		serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
-		start_beacon_timer();
+		tick_timer.cb = &beacon_timer_cb;
+		tick_timer.data = &tick_timer;
+		bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
 	}
 
 	while (1)
