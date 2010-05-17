@@ -11,7 +11,7 @@
 
 #define		RITA_RESET	TSPACT(0)	/* Reset of the Rita TRF6151 */
 #define		PA_ENABLE	TSPACT(9)	/* Enable the Power Amplifier */
-#define		GSM_TX		TSPACT(3)	/* PA GSM switch, low-active */
+#define		GSM_TXEN	TSPACT(3)	/* PA GSM switch, low-active */
 
 /* All VCn controls are low-active */
 #define		ASM_VC1		TSPACT(2)	/* Antenna switch VC1 */
