@@ -145,6 +145,18 @@ static const uint8_t phone_nack[]    = { 0x1b, 0xf6, 0x02, 0x00, 0x45, 0x53, 0x1
 static const uint8_t ftmtool[] = { 0x66, 0x74, 0x6d, 0x74, 0x6f, 0x6f, 0x6c };
 static const uint8_t phone_magic[] = { 0x31, 0x30, 0x30, 0x33 }; /* "1003" */
 
+/* The C123 has a hard-coded check inside the ramloader that requires the
+ * following bytes to be always the first four bytes of the image */
+static const uint8_t data_hdr_c123[]    = { 0xee, 0x4c, 0x9f, 0x63 };
+
+/* The C155 doesn't have some strange restriction on what the first four bytes
+ *  have to be, but it starts the ramloader in THUMB mode. We use the following
+ * four bytes to switch back to ARM mode:
+  800100:       4778            bx      pc
+  800102:       46c0            nop                     ; (mov r8, r8)
+ */
+static const uint8_t data_hdr_c155[]    = { 0x78, 0x47, 0xc0, 0x46 };
+
 /* romloader specific */
 static const uint8_t romload_ident_cmd[] =	{ 0x3c, 0x69 };	/* <i */
 static const uint8_t romload_abort_cmd[] =	{ 0x3c, 0x61 };	/* <a */
@@ -166,18 +178,6 @@ static const uint8_t romload_branch_nack[] =	{ 0x3e, 0x42 };	/* >B */
 
 static const uint8_t romload_param[] = { 0x3c, 0x70, 0x00, 0x00, 0x00, 0x04,
 					 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-/* The C123 has a hard-coded check inside the ramloader that requires the following
- * bytes to be always the first four bytes of the image */
-static const uint8_t data_hdr_c123[]    = { 0xee, 0x4c, 0x9f, 0x63 };
-
-/* The C155 doesn't have some strange restriction on what the first four bytes have
- * to be, but it starts the ramloader in THUMB mode.  We use the following four bytes
- * to switch back to ARM mode:
-  800100:       4778            bx      pc
-  800102:       46c0            nop                     ; (mov r8, r8)
- */
-static const uint8_t data_hdr_c155[]    = { 0x78, 0x47, 0xc0, 0x46 };
 
 /* FIXME: this routine is more or less what openbsc/src/rs232:rs232_setup()
  * does, we should move it to libosmocore at some point */
@@ -419,7 +419,7 @@ static int romload_prepare_block(void)
 	dnload.block_len = ROMLOAD_BLOCK_HDR_LEN + dnload.block_payload_size;
 
 	/* if first block, allocate memory */
-	if (!dnload.block_number){
+	if (!dnload.block_number) {
 		dnload.block = malloc(dnload.block_len);
 		if (!dnload.block) {
 			fprintf(stderr, "No memory\n");
@@ -449,7 +449,7 @@ static int romload_prepare_block(void)
 	dnload.write_ptr = dnload.data + 2 +
 			(dnload.block_payload_size * dnload.block_number);
 
-	remaining_bytes = dnload.data_len-3 -
+	remaining_bytes = dnload.data_len - 3 -
 			(dnload.block_payload_size * dnload.block_number);
 
 	memcpy(block_data, dnload.write_ptr, dnload.block_payload_size);
@@ -729,18 +729,21 @@ static int handle_read(void)
 		dnload.serial_fd.when = BSC_FD_READ | BSC_FD_WRITE;
 		dnload.state = DOWNLOADING;
 	} else if (!memcmp(buffer, phone_ack, sizeof(phone_ack))) {
-		printf("Received DOWNLOAD ACK from phone, your code is running now!\n");
+		printf("Received DOWNLOAD ACK from phone, your code is"
+			" running now!\n");
 		dnload.serial_fd.when = BSC_FD_READ;
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
 		dnload.print_hdlc = 1;
 	} else if (!memcmp(buffer, phone_nack, sizeof(phone_nack))) {
-		printf("Received DOWNLOAD NACK from phone, something went wrong :(\n");
+		printf("Received DOWNLOAD NACK from phone, something went"
+			" wrong :(\n");
 		dnload.serial_fd.when = BSC_FD_READ;
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
 	} else if (!memcmp(buffer, phone_nack_magic, sizeof(phone_nack_magic))) {
-		printf("Received MAGIC NACK from phone, you need to have \"1003\" at 0x803ce0\n");
+		printf("Received MAGIC NACK from phone, you need to"
+			" have \"1003\" at 0x803ce0\n");
 		dnload.serial_fd.when = BSC_FD_READ;
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
@@ -1058,8 +1061,8 @@ static int tool_accept(struct bsc_fd *fd, unsigned int flags)
  * Register and start a tool server
  */
 static int register_tool_server(struct tool_server *ts,
-								const char *path,
-								uint8_t dlci)
+				const char *path,
+				uint8_t dlci)
 {
 	struct bsc_fd *bfd = &ts->bfd;
 	struct sockaddr_un local;
