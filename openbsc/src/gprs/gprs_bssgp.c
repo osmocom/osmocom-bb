@@ -42,11 +42,19 @@ void *bssgp_tall_ctx = NULL;
 #define BVC_F_BLOCKED	0x0001
 
 enum bssgp_ctr {
+	BSSGP_CTR_PKTS_IN,
+	BSSGP_CTR_PKTS_OUT,
+	BSSGP_CTR_BYTES_IN,
+	BSSGP_CTR_BYTES_OUT,
 	BSSGP_CTR_BLOCKED,
 	BSSGP_CTR_DISCARDED,
 };
 
 static const struct rate_ctr_desc bssgp_ctr_description[] = {
+	{ "packets.in",	"Packets at BSSGP Level ( In)" },
+	{ "packets.out","Packets at BSSGP Level (Out)" },
+	{ "bytes.in",	"Bytes at BSSGP Level   ( In)" },
+	{ "bytes.out",	"Bytes at BSSGP Level   (Out)" },
 	{ "blocked",	"BVC Blocking count" },
 	{ "discarded",	"BVC LLC Discarded count" },
 };
@@ -499,6 +507,12 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, NULL, msg);
 	}
 
+	if (bctx) {
+		rate_ctr_inc(&bctx->ctrg->ctr[BSSGP_CTR_PKTS_IN]);
+		rate_ctr_add(&bctx->ctrg->ctr[BSSGP_CTR_BYTES_IN],
+			     msgb_bssgp_len(msg));
+	}
+
 	if (ns_bvci == 1)
 		rc = gprs_bssgp_rx_sign(msg, &tp, bctx);
 	else if (ns_bvci == 2)
@@ -561,6 +575,9 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 	memcpy(budh->qos_profile, qos_profile_default, sizeof(qos_profile_default));
 	budh->tlli = htonl(msgb_tlli(msg));
 	budh->pdu_type = BSSGP_PDUT_DL_UNITDATA;
+
+	rate_ctr_inc(&bctx->ctrg->ctr[BSSGP_CTR_PKTS_OUT]);
+	rate_ctr_add(&bctx->ctrg->ctr[BSSGP_CTR_BYTES_OUT], msg->len);
 
 	/* Identifiers down: BVCI, NSEI (in msgb->cb) */
 
