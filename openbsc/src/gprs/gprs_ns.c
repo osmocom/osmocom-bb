@@ -667,9 +667,13 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			nsvc->nsvci = nsvc->nsei = 0xfffe;
 			nsvc->ip.bts_addr = *saddr;
 			nsvc->state = NSE_S_ALIVE;
+#if 0
+			return gprs_ns_tx_reset(nsvc, NS_CAUSE_PDU_INCOMP_PSTATE);
+#else
 			return gprs_ns_tx_status(nsvc,
 						NS_CAUSE_PDU_INCOMP_PSTATE, 0,
 						msg);
+#endif
 		}
 		rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data,
 						msgb_l2len(msg), 0, 0);
