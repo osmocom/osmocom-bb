@@ -102,6 +102,7 @@ static void ssd1783_init(void)
 
 	calypso_reset_set(RESET_EXT, 0);
 	uwire_init();
+	delay_ms(3);
 
 	/* Begin SSD1783 initialization sequence */
 	ssd1783_cmd_write(CMD_OSCON);		/* Internal OSC on */
