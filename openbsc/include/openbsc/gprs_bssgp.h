@@ -194,4 +194,7 @@ static inline int bssgp_tlv_parse(struct tlv_parsed *tp, uint8_t *buf, int len)
 	return tlv_parse(tp, &tvlv_att_def, buf, len, 0, 0);
 }
 
+/* gprs_bssgp_vty.c */
+int gprs_bssgp_vty_init(void);
+
 #endif /* _GPRS_BSSGP_H */
