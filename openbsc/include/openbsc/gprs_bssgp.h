@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+/* Section 5.4.1 */
+#define BVCI_SIGNALLING	0x0000
+#define BVCI_PTM	0x0001
+
 /* Section 11.3.26 / Table 11.27 */
 enum bssgp_pdu_type {
 	/* PDUs between RL and BSSGP SAPs */

@@ -186,7 +186,7 @@ static int bssgp_rx_bvc_block(struct msgb *msg, struct tlv_parsed *tp)
 	struct bssgp_bvc_ctx *ptp_ctx;
 
 	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
-	if (bvci == 0) {
+	if (bvci == BVCI_SIGNALLING) {
 		/* 8.3.2: Signalling BVC shall never be blocked */
 		LOGP(DBSSGP, LOGL_ERROR, "NSEI=%u/BVCI=%u "
 			"received block for signalling BVC!?!\n",
@@ -216,7 +216,7 @@ static int bssgp_rx_bvc_unblock(struct msgb *msg, struct tlv_parsed *tp)
 	struct bssgp_bvc_ctx *ptp_ctx;
 
 	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
-	if (bvci == 0) {
+	if (bvci == BVCI_SIGNALLING) {
 		/* 8.3.2: Signalling BVC shall never be blocked */
 		LOGP(DBSSGP, LOGL_ERROR, "NSEI=%u/BVCI=%u "
 			"received unblock for signalling BVC!?!\n",
@@ -517,9 +517,9 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 			     msgb_bssgp_len(msg));
 	}
 
-	if (ns_bvci == 1)
+	if (ns_bvci == BVCI_SIGNALLING)
 		rc = gprs_bssgp_rx_sign(msg, &tp, bctx);
-	else if (ns_bvci == 2)
+	else if (ns_bvci == BVCI_PTM)
 		rc = bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_FEAT, NULL, msg);
 	else
 		rc = gprs_bssgp_rx_ptp(msg, &tp, bctx);
@@ -542,7 +542,7 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 	uint16_t nsei = msgb_nsei(msg);
 
 	/* Identifiers from UP: TLLI, BVCI, NSEI (all in msgb->cb) */
-	if (bvci < 2) {
+	if (bvci <= BVCI_PTM ) {
 		LOGP(DBSSGP, LOGL_ERROR, "Cannot send DL-UD to BVCI %u\n",
 			bvci);
 		return -EINVAL;
