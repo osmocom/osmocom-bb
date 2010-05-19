@@ -37,11 +37,12 @@
 #include <openbsc/signal.h>
 #include <openbsc/gprs_ns.h>
 #include <openbsc/gprs_bssgp.h>
-#include <openbsc/telnet_interface.h>
 #include <openbsc/vty.h>
 
-#include <vty/vty.h>
-#include <vty/command.h>
+#include <osmocom/vty/vty.h>
+#include <osmocom/vty/command.h>
+#include <osmocom/vty/logging.h>
+#include <osmocom/vty/telnet_interface.h>
 
 /* FIXME: this should go to some common file as it is copied
  * in vty_interface.c of the BSC */
