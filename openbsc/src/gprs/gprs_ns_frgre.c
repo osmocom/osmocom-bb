@@ -67,11 +67,10 @@ static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
 		LOGP(DNS, LOGL_ERROR, "recv error %s during NS-FR-GRE recv\n",
 			strerror(errno));
 		*error = ret;
-		return NULL;
+		goto out_err;
 	} else if (ret == 0) {
-		msgb_free(msg);
 		*error = ret;
-		return NULL;
+		goto out_err;
 	}
 
 	msgb_put(msg, ret);
