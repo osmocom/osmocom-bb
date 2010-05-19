@@ -202,7 +202,7 @@ static int nsfrgre_fd_cb(struct bsc_fd *bfd, unsigned int what)
 	return rc;
 }
 
-int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi, uint32_t ip)
+int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi)
 {
 	int rc;
 
@@ -210,7 +210,11 @@ int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi, uint32_t ip)
 	if (nsi->frgre.fd.fd)
 		close(nsi->frgre.fd.fd);
 
-	rc = make_sock(&nsi->frgre.fd, IPPROTO_GRE, ip, 0, nsfrgre_fd_cb);
+	if (!nsi->frgre.enabled)
+		return 0;
+
+	rc = make_sock(&nsi->frgre.fd, IPPROTO_GRE, nsi->frgre.local_ip,
+			0, nsfrgre_fd_cb);
 	if (rc < 0) {
 		LOGP(DNS, LOGL_ERROR, "Error creating GRE socket (%s)\n",
 			strerror(errno));

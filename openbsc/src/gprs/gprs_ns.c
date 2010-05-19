@@ -903,11 +903,12 @@ static int nsip_fd_cb(struct bsc_fd *bfd, unsigned int what)
 }
 
 /* Listen for incoming GPRS packets */
-int nsip_listen(struct gprs_ns_inst *nsi, uint32_t ip, uint16_t udp_port)
+int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi)
 {
 	int ret;
 
-	ret = make_sock(&nsi->nsip.fd, IPPROTO_UDP, ip, udp_port, nsip_fd_cb);
+	ret = make_sock(&nsi->nsip.fd, IPPROTO_UDP, nsi->nsip.local_ip,
+			nsi->nsip.local_port, nsip_fd_cb);
 	if (ret < 0)
 		return ret;
 

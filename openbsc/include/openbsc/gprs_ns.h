@@ -134,10 +134,14 @@ struct gprs_ns_inst {
 	/* NS-over-IP specific bits */
 	struct {
 		struct bsc_fd fd;
+		uint32_t local_ip;
+		uint16_t local_port;
 	} nsip;
 	/* NS-over-FR-over-GRE-over-IP specific bits */
 	struct {
 		struct bsc_fd fd;
+		uint32_t local_ip;
+		int enabled:1;
 	} frgre;
 };
 
@@ -188,7 +192,7 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb);
 void gprs_ns_destroy(struct gprs_ns_inst *nsi);
 
 /* Listen for incoming GPRS packets via NS/UDP */
-int nsip_listen(struct gprs_ns_inst *nsi, uint32_t ip, uint16_t udp_port);
+int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi);
 
 struct sockaddr_in;
 
@@ -200,7 +204,7 @@ int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause);
 int gprs_ns_tx_unblock(struct gprs_nsvc *nsvc);
 
 /* Listen for incoming GPRS packets via NS/FR/GRE */
-int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi, uint32_t ip);
+int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi);
 
 /* Establish a connection (from the BSS) to the SGSN */
 struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,

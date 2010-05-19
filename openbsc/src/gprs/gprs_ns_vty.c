@@ -68,6 +68,7 @@ static int config_write_ns(struct vty *vty)
 {
 	struct gprs_nsvc *nsvc;
 	unsigned int i;
+	struct in_addr ia;
 
 	vty_out(vty, "ns%s", VTY_NEWLINE);
 
@@ -111,6 +112,21 @@ static int config_write_ns(struct vty *vty)
 			get_value_string(gprs_ns_timer_strs, i),
 			vty_nsi->timeout[i], VTY_NEWLINE);
 
+	if (vty_nsi->nsip.local_ip) {
+		ia.s_addr = htonl(vty_nsi->nsip.local_ip);
+		vty_out(vty, " encapsulation udp local-ip %s%s",
+			inet_ntoa(ia), VTY_NEWLINE);
+		vty_out(vty, " encapsulation udp local-port %u%s",
+			vty_nsi->nsip.local_port);
+	}
+	vty_out(vty, " encapsulation framerelay-gre enabled %u%s",
+		vty_nsi->frgre.enabled ? 1 : 0, VTY_NEWLINE);
+	if (vty_nsi->frgre.enabled) {
+		ia.s_addr = htonl(vty_nsi->frgre.local_ip);
+		vty_out(vty, " encapsulation framerelay-gre local-ip %s%s",
+			inet_ntoa(ia), VTY_NEWLINE);
+	}
+
 	return CMD_SUCCESS;
 }
 
@@ -142,6 +158,15 @@ static void dump_nse(struct vty *vty, struct gprs_nsvc *nsvc, int stats)
 static void dump_ns(struct vty *vty, struct gprs_ns_inst *nsi, int stats)
 {
 	struct gprs_nsvc *nsvc;
+	struct in_addr ia;
+
+	ia.s_addr = htonl(vty_nsi->nsip.local_ip);
+	vty_out(vty, "NS-UDP-IP Encapsulation: Local IP: %s, UDP Port: %u%s",
+		inet_ntoa(ia), vty_nsi->nsip.local_port, VTY_NEWLINE);
+
+	ia.s_addr = htonl(vty_nsi->frgre.local_ip);
+	vty_out(vty, "NS-FR-GRE-IP Encapsulation: Local IP: %s%s",
+		inet_ntoa(ia), VTY_NEWLINE);
 
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
 		if (nsvc == nsi->unknown_nsvc)
@@ -387,6 +412,66 @@ DEFUN(cfg_ns_timer, cfg_ns_timer_cmd,
 	return CMD_SUCCESS;
 }
 
+#define ENCAPS_STR "NS encapsulation options\n"
+
+DEFUN(cfg_nsip_local_ip, cfg_nsip_local_ip_cmd,
+      "encapsulation udp local-ip A.B.C.D",
+	ENCAPS_STR "NS over UDP Encapsulation\n"
+	"Set the IP address on which we listen for NS/UDP\n"
+	"IP Address\n")
+{
+	struct in_addr ia;
+
+	inet_aton(argv[0], &ia);
+	vty_nsi->nsip.local_ip = ntohl(ia.s_addr);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_nsip_local_port, cfg_nsip_local_port_cmd,
+      "encapsulation udp local-port <0-65535>",
+	ENCAPS_STR "NS over UDP Encapsulation\n"
+	"Set the UDP port on which we listen for NS/UDP\n"
+	"UDP port number\n")
+{
+	unsigned int port = atoi(argv[0]);
+
+	vty_nsi->nsip.local_port = port;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_frgre_local_ip, cfg_frgre_local_ip_cmd,
+      "encapsulation framerelay-gre local-ip A.B.C.D",
+	ENCAPS_STR "NS over Frame Relay over GRE Encapsulation\n"
+	"Set the IP address on which we listen for NS/FR/GRE\n"
+	"IP Address\n")
+{
+	struct in_addr ia;
+
+	if (!vty_nsi->frgre.enabled) {
+		vty_out(vty, "FR/GRE is not enabled%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	inet_aton(argv[0], &ia);
+	vty_nsi->frgre.local_ip = ntohl(ia.s_addr);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_frgre_enable, cfg_frgre_enable_cmd,
+      "encapsulation framerelay-gre enabled (1|0)",
+	ENCAPS_STR "NS over Frame Relay over GRE Encapsulation\n"
+	"Enable or disable Frame Relay over GRE\n"
+	"Enable\n" "Disable\n")
+{
+	int enabled = atoi(argv[0]);
+
+	vty_nsi->frgre.enabled = enabled;
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(nsvc_nsei, nsvc_nsei_cmd,
 	"nsvc nsei <0-65535> (block|unblock|reset)",
 	"Perform an operation on a NSVC\n"
@@ -472,6 +557,10 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	install_element(NS_NODE, &cfg_nse_remoterole_cmd);
 	install_element(NS_NODE, &cfg_no_nse_cmd);
 	install_element(NS_NODE, &cfg_ns_timer_cmd);
+	install_element(NS_NODE, &cfg_nsip_local_ip_cmd);
+	install_element(NS_NODE, &cfg_nsip_local_port_cmd);
+	install_element(NS_NODE, &cfg_frgre_enable_cmd);
+	install_element(NS_NODE, &cfg_frgre_local_ip_cmd);
 
 	install_element(ENABLE_NODE, &nsvc_nsei_cmd);
 
