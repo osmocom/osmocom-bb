@@ -56,7 +56,7 @@ static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
 	struct iphdr *iph;
 	struct gre_hdr *greh;
 	uint8_t *frh;
-	uint32_t dlci;
+	uint16_t dlci;
 
 	if (!msg) {
 		*error = -ENOMEM;
@@ -114,25 +114,19 @@ static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
 		*error = -EIO;
 		goto out_err;
 	}
-	dlci = (frh[0] & 0xfc << 2);
+	dlci = ((frh[0] & 0xfc) << 2);
 	if ((frh[1] & 0x0f) != 0x01) {
 		LOGP(DNS, LOGL_NOTICE, "Unknown second FR octet 0x%02x\n",
 			frh[1]);
 		*error = -EIO;
 		goto out_err;
 	}
-	dlci |= frh[1] >> 4;
-	if (dlci > 0xffff) {
-		LOGP(DNS, LOGL_ERROR, "We don't support DLCI > 65535 (%u)\n",
-			dlci);
-		*error = -EINVAL;
-		goto out_err;
-	}
+	dlci |= (frh[1] >> 4);
 
 	msg->l2h = frh+2;
 
 	/* Store DLCI in NETWORK BYTEORDER in sockaddr port member */
-	saddr->sin_port = htons(dlci & 0xffff);
+	saddr->sin_port = htons(dlci);
 
 	return msg;
 
