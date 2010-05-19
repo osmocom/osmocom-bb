@@ -657,6 +657,12 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 	if (!nsvc) {
 		struct tlv_parsed tp;
 		uint16_t nsei;
+		if (nsh->pdu_type == NS_PDUT_STATUS) {
+			LOGP(DNS, LOGL_INFO, "Ignoring NS STATUS from %s:%u "
+			     "for non-existing NS-VC\n",
+			     inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
+			return 0;
+		}
 		/* Only the RESET procedure creates a new NSVC */
 		if (nsh->pdu_type != NS_PDUT_RESET) {
 			/* Since we have no NSVC, we have to use a fake */
