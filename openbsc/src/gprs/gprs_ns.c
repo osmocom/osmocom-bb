@@ -232,7 +232,7 @@ static int gprs_ns_tx(struct gprs_nsvc *nsvc, struct msgb *msg)
 
 static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, uint8_t pdu_type)
 {
-	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
+	struct msgb *msg = gprs_ns_msgb_alloc();
 	struct gprs_ns_hdr *nsh;
 
 	log_set_context(BSC_CTX_NSVC, nsvc);
@@ -250,7 +250,7 @@ static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, uint8_t pdu_type)
 
 int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 {
-	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
+	struct msgb *msg = gprs_ns_msgb_alloc();
 	struct gprs_ns_hdr *nsh;
 	uint16_t nsvci = htons(nsvc->nsvci);
 	uint16_t nsei = htons(nsvc->nsei);
@@ -278,7 +278,7 @@ int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 int gprs_ns_tx_status(struct gprs_nsvc *nsvc, uint8_t cause,
 		      uint16_t bvci, struct msgb *orig_msg)
 {
-	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
+	struct msgb *msg = gprs_ns_msgb_alloc();
 	struct gprs_ns_hdr *nsh;
 	uint16_t nsvci = htons(nsvc->nsvci);
 
@@ -326,7 +326,7 @@ int gprs_ns_tx_status(struct gprs_nsvc *nsvc, uint8_t cause,
 
 int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
 {
-	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
+	struct msgb *msg = gprs_ns_msgb_alloc();
 	struct gprs_ns_hdr *nsh;
 	uint16_t nsvci = htons(nsvc->nsvci);
 
@@ -465,7 +465,7 @@ static void gprs_ns_timer_cb(void *data)
 /* Section 9.2.6 */
 static int gprs_ns_tx_reset_ack(struct gprs_nsvc *nsvc)
 {
-	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "GPRS/NS");
+	struct msgb *msg = gprs_ns_msgb_alloc();
 	struct gprs_ns_hdr *nsh;
 	uint16_t nsvci, nsei;
 
@@ -823,7 +823,7 @@ void gprs_ns_destroy(struct gprs_ns_inst *nsi)
 static struct msgb *read_nsip_msg(struct bsc_fd *bfd, int *error,
 				  struct sockaddr_in *saddr)
 {
-	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "Abis/IP/GPRS-NS");
+	struct msgb *msg = gprs_ns_msgb_alloc();
 	int ret = 0;
 	socklen_t saddr_len = sizeof(*saddr);
 

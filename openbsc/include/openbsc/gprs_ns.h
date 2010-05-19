@@ -223,6 +223,10 @@ int gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause);
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi);
 
 #define NS_ALLOC_SIZE	1024
-
+#define NS_ALLOC_HEADROOM 20
+static inline struct msgb *gprs_ns_msgb_alloc(void)
+{
+	return msgb_alloc_headroom(NS_ALLOC_SIZE, NS_ALLOC_HEADROOM, "GPRS/NS");
+}
 
 #endif
