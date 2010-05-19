@@ -57,7 +57,7 @@
 #define ROMLOAD_ADDRESS		0x820000
 
 #define MTK_INIT_BAUDRATE	B19200
-#define MTK_ADDRESS		0x40000800
+#define MTK_ADDRESS		0x40001400
 #define MTK_BLOCK_SIZE		1024
 
 struct tool_server *tool_server_for_dlci[256];
