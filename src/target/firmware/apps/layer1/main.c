@@ -90,6 +90,7 @@ int main(void)
 	tpu_frame_irq_en(1, 1);
 
 	while (1) {
+		l1a_compl_execute();
 		update_timers();
 	}
 

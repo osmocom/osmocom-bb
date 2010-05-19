@@ -70,25 +70,28 @@ static int osmo_make_band_arfcn(struct osmocom_ms *ms, uint16_t arfcn)
 	return arfcn;
 }
 
-static int rx_l1_ccch_resp(struct osmocom_ms *ms, struct msgb *msg)
+static int rx_l1_fbsb_resp(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_info_dl *dl;
-	struct l1ctl_sync_new_ccch_resp *sb;
+	struct l1ctl_fbsb_resp *sb;
 	struct gsm_time tm;
 
-	if (msgb_l3len(msg) < sizeof(*sb)) {
-		LOGP(DL1C, LOGL_ERROR, "MSG too short for CCCH RESP: %u\n",
+	if (msgb_l3len(msg) < sizeof(*dl) + sizeof(*sb)) {
+		LOGP(DL1C, LOGL_ERROR, "MSG too short for FBSB RESP: %u\n",
 			msgb_l3len(msg));
 		return -1;
 	}
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
-	sb = (struct l1ctl_sync_new_ccch_resp *) dl->payload;
+	sb = (struct l1ctl_fbsb_resp *) dl->payload;
+
+	if (sb->result != 0)
+		dispatch_signal(SS_L1CTL, S_L1CTL_FBSB_ERR, ms);
 
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	DEBUGP(DL1C, "SCH: SNR: %u TDMA: (%.4u/%.2u/%.2u) bsic: %d\n",
 		dl->snr, tm.t1, tm.t2, tm.t3, sb->bsic);
-	dispatch_signal(SS_L1CTL, S_L1CTL_CCCH_RESP, ms);
+	dispatch_signal(SS_L1CTL, S_L1CTL_FBSB_RESP, ms);
 
 	return 0;
 }
@@ -214,18 +217,35 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	return osmo_send_l1(ms, msg);
 }
 
-/* Transmit NEW_CCCH_REQ */
+/* FIXME: remove this after all code has been ported */
 int l1ctl_tx_ccch_req(struct osmocom_ms *ms, uint16_t arfcn)
 {
-	struct msgb *msg;
-	struct l1ctl_sync_new_ccch_req *req;
+	LOGP(DL1C, LOGL_ERROR, "CCCH REQ no longer implemented!!!\n");
+	return -EINVAL;
+}
 
-	msg = osmo_l1_alloc(L1CTL_NEW_CCCH_REQ);
+/* Transmit FBSB_REQ */
+int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
+		      uint8_t flags, uint16_t timeout, uint8_t sync_info_idx)
+{
+	struct msgb *msg;
+	struct l1ctl_fbsb_req *req;
+
+	msg = osmo_l1_alloc(L1CTL_FBSB_REQ);
 	if (!msg)
 		return -1;
 
-	req = (struct l1ctl_sync_new_ccch_req *) msgb_put(msg, sizeof(*req));
-	req->band_arfcn = osmo_make_band_arfcn(ms, arfcn);
+	req = (struct l1ctl_fbsb_req *) msgb_put(msg, sizeof(*req));
+	req->band_arfcn = htons(osmo_make_band_arfcn(ms, arfcn));
+	req->timeout = htons(timeout);
+	/* Threshold when to consider FB_MODE1: 4kHz - 1kHz */
+	req->freq_err_thresh1 = htons(4000 - 1000);
+	/* Threshold when to consider SCH: 1kHz - 200Hz */
+	req->freq_err_thresh2 = htons(1000 - 200);
+	/* not used yet! */
+	req->num_freqerr_avg = 3;
+	req->flags = flags;
+	req->sync_info_idx = sync_info_idx;
 
 	return osmo_send_l1(ms, msg);
 }
@@ -355,8 +375,8 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	msg->l1h = l1h->data;
 
 	switch (l1h->msg_type) {
-	case L1CTL_NEW_CCCH_RESP:
-		rc = rx_l1_ccch_resp(ms, msg);
+	case L1CTL_FBSB_RESP:
+		rc = rx_l1_fbsb_resp(ms, msg);
 		break;
 	case L1CTL_DATA_IND:
 		rc = rx_ph_data_ind(ms, msg);

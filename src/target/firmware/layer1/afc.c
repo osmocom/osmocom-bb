@@ -51,6 +51,7 @@ static struct afc_state afc_state = {
 		.period = AFC_PERIOD,
 		.min_valid = AFC_MIN_MUN_VALID,
 	},
+	.dac_value = 500,
 };
 
 /* The AFC DAC in the ABB has to be configured as follows:

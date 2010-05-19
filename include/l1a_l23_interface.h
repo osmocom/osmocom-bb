@@ -24,8 +24,8 @@
 #ifndef l1a_l23_interface_h
 #define l1a_l23_interface_h
 
-#define L1CTL_NEW_CCCH_REQ	1
-#define L1CTL_NEW_CCCH_RESP	2
+#define L1CTL_FBSB_REQ		1
+#define L1CTL_FBSB_RESP		2
 #define L1CTL_DATA_IND		3
 #define L1CTL_RACH_REQ		4
 #define L1CTL_DM_EST_REQ	5
@@ -70,9 +70,13 @@ struct l1ctl_info_dl {
 } __attribute__((packed));
 
 /* new CCCH was found. This is following the header */
-struct l1ctl_sync_new_ccch_resp {
+struct l1ctl_fbsb_resp {
+	uint16_t band_arfcn;
+	int16_t initial_freq_err;
+	uint8_t result;
 	uint8_t bsic;
-	uint8_t padding[3];
+	uint8_t padding[2];
+	/* FIXME: contents of cell_info ? */
 } __attribute__((packed));
 
 /* data on the CCCH was found. This is following the header */
@@ -96,13 +100,23 @@ struct l1ctl_info_ul {
 } __attribute__((packed));
 
 /*
- * msg for SYNC_NEW_CCCH_REQ
+ * msg for FBSB_REQ
  * the l1_info_ul header is in front
  */
-struct l1ctl_sync_new_ccch_req {
+struct l1ctl_fbsb_req {
 	uint16_t band_arfcn;
+	uint16_t timeout;	/* in TDMA frames */
+	uint16_t freq_err_thresh1;
+	uint16_t freq_err_thresh2;
+	uint8_t num_freqerr_avg;
+	uint8_t flags;		/* L1CTL_FBSB_F_* */
+	uint8_t sync_info_idx;
+	uint8_t reserved;
 } __attribute__((packed));
 
+#define L1CTL_FBSB_F_FB0	(1 << 0)
+#define L1CTL_FBSB_F_FB1	(1 << 1)
+#define L1CTL_FBSB_F_SB		(1 << 2)
 
 /* the l1_info_ul header is in front */
 struct l1ctl_rach_req {

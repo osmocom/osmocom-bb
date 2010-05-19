@@ -2280,7 +2280,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			return -EINVAL;
 		gsm322_cs_powerscan(ms);
 		break;
-	case S_L1CTL_CCCH_RESP:
+	case S_L1CTL_FBSB_RESP:
 		ms = signal_data;
 		cs = &ms->cellsel;
 		if (cs->ccch_state == GSM322_CCCH_ST_INIT) {

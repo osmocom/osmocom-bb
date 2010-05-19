@@ -2813,7 +2813,7 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	release and give new arfcn
 	tx_ph_dm_rel_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
 #else
-	l1ctl_tx_ccch_req(ms, rr->cd_now.arfcn);
+	l1ctl_tx_fbsb_req(ms, rr->cd_now.arfcn, 0x07, 100, 0);
 #endif
 
 	/* do nothing, because we aleady IDLE

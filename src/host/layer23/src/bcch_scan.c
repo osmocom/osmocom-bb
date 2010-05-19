@@ -154,7 +154,7 @@ static int _cinfo_start_arfcn(unsigned int band_arfcn)
 
 	/* ask L1 to try to tune to new ARFCN */
 	/* FIXME: decode band */
-	rc = l1ctl_tx_ccch_req(fps.ms, band_arfcn);
+	rc = l1ctl_tx_fbsb_req(fps.ms, band_arfcn, 0x01, 100, 0);
 	if (rc < 0)
 		return rc;
 
