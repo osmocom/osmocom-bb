@@ -46,6 +46,7 @@ AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "x1")
 
 AC_OUTPUT(
 	libosmocore.pc
+	libosmovty.pc
 	include/osmocom/Makefile
 	include/osmocom/vty/Makefile
 	include/osmocore/Makefile
