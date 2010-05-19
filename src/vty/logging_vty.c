@@ -33,7 +33,7 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/logging.h>
 
-extern const struct log_info *log_info;
+extern const struct log_info *osmo_log_info;
 
 static void _vty_output(struct log_target *tgt, const char *line)
 {
@@ -291,7 +291,7 @@ DEFUN(show_logging_vty,
 		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	vty_print_logtarget(vty, log_info, conn->dbg);
+	vty_print_logtarget(vty, osmo_log_info, conn->dbg);
 
 	return CMD_SUCCESS;
 }
