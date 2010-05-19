@@ -116,12 +116,14 @@ static int config_write_ns(struct vty *vty)
 		ia.s_addr = htonl(vty_nsi->nsip.local_ip);
 		vty_out(vty, " encapsulation udp local-ip %s%s",
 			inet_ntoa(ia), VTY_NEWLINE);
-		vty_out(vty, " encapsulation udp local-port %u%s",
-			vty_nsi->nsip.local_port);
 	}
+	if (vty_nsi->nsip.local_port)
+		vty_out(vty, " encapsulation udp local-port %u%s",
+			vty_nsi->nsip.local_port, VTY_NEWLINE);
+
 	vty_out(vty, " encapsulation framerelay-gre enabled %u%s",
 		vty_nsi->frgre.enabled ? 1 : 0, VTY_NEWLINE);
-	if (vty_nsi->frgre.enabled) {
+	if (vty_nsi->frgre.local_ip) {
 		ia.s_addr = htonl(vty_nsi->frgre.local_ip);
 		vty_out(vty, " encapsulation framerelay-gre local-ip %s%s",
 			inet_ntoa(ia), VTY_NEWLINE);
@@ -147,7 +149,7 @@ static void dump_nse(struct vty *vty, struct gprs_nsvc *nsvc, int stats)
 		nsvc->state & NSE_S_BLOCKED ? "BLOCKED" : "UNBLOCKED");
 	if (nsvc->ll == GPRS_NS_LL_UDP || nsvc->ll == GPRS_NS_LL_FR_GRE)
 		vty_out(vty, ", %s %15s:%u",
-			nsvc->ll == GPRS_NS_LL_UDP ? "UDP" : "FR-GRE",
+			nsvc->ll == GPRS_NS_LL_UDP ? "UDP   " : "FR-GRE",
 			inet_ntoa(nsvc->ip.bts_addr.sin_addr),
 			ntohs(nsvc->ip.bts_addr.sin_port));
 	vty_out(vty, "%s", VTY_NEWLINE);
@@ -161,11 +163,11 @@ static void dump_ns(struct vty *vty, struct gprs_ns_inst *nsi, int stats)
 	struct in_addr ia;
 
 	ia.s_addr = htonl(vty_nsi->nsip.local_ip);
-	vty_out(vty, "NS-UDP-IP Encapsulation: Local IP: %s, UDP Port: %u%s",
+	vty_out(vty, "Encapsulation NS-UDP-IP     Local IP: %s, UDP Port: %u%s",
 		inet_ntoa(ia), vty_nsi->nsip.local_port, VTY_NEWLINE);
 
 	ia.s_addr = htonl(vty_nsi->frgre.local_ip);
-	vty_out(vty, "NS-FR-GRE-IP Encapsulation: Local IP: %s%s",
+	vty_out(vty, "Encapsulation NS-FR-GRE-IP  Local IP: %s%s",
 		inet_ntoa(ia), VTY_NEWLINE);
 
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
