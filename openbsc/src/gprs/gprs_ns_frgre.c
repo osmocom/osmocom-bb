@@ -29,6 +29,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/ip.h>
 #include <arpa/inet.h>
 
 #include <osmocore/select.h>
@@ -52,6 +53,7 @@ static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
 	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "Gb/NS/FR/GRE Rx");
 	int ret = 0;
 	socklen_t saddr_len = sizeof(*saddr);
+	struct iphdr *iph;
 	struct gre_hdr *greh;
 	uint8_t *frh;
 	uint32_t dlci;
@@ -75,13 +77,20 @@ static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
 
 	msgb_put(msg, ret);
 
-	if (msg->len < sizeof(*greh)) {
-		LOGP(DNS, LOGL_ERROR, "Short GRE packet: %u bytes\n", msg->len);
+	if (msg->len < sizeof(*iph) + sizeof(*greh) + 2) {
+		LOGP(DNS, LOGL_ERROR, "Short IP packet: %u bytes\n", msg->len);
 		*error = -EIO;
 		goto out_err;
 	}
 
-	greh = (struct gre_hdr *) msg->data;
+	iph = (struct iphdr *) msg->data;
+	if (msg->len < (iph->ihl*4 + sizeof(*greh) + 2)) {
+		LOGP(DNS, LOGL_ERROR, "Short IP packet: %u bytes\n", msg->len);
+		*error = -EIO;
+		goto out_err;
+	}
+
+	greh = (struct gre_hdr *) (msg->data + iph->ihl*4);
 	if (greh->flags) {
 		LOGP(DNS, LOGL_NOTICE, "Unknown GRE flags 0x%04x\n",
 			ntohs(greh->flags));
@@ -99,7 +108,7 @@ static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
 		goto out_err;
 	}
 
-	frh = msg->data + sizeof(*greh);
+	frh = (uint8_t *)greh + sizeof(*greh);
 	if (frh[0] & 0x01) {
 		LOGP(DNS, LOGL_NOTICE, "Unsupported single-byte FR address\n");
 		*error = -EIO;
@@ -120,7 +129,7 @@ static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
 		goto out_err;
 	}
 
-	msg->l2h = msg->data + sizeof(*greh) + 2;
+	msg->l2h = frh+2;
 
 	/* Store DLCI in NETWORK BYTEORDER in sockaddr port member */
 	saddr->sin_port = htons(dlci & 0xffff);
