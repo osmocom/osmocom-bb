@@ -169,18 +169,19 @@ int gprs_ns_frgre_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg)
 	struct gre_hdr *greh;
 
 	/* Build socket address for the packet destionation */
+	daddr.sin_family = AF_INET;
 	daddr.sin_addr = nsvc->frgre.bts_addr.sin_addr;
 	daddr.sin_port = IPPROTO_GRE;
 
 	/* Prepend the FR header */
-	frh = msgb_push(msg, sizeof(frh));
+	frh = msgb_push(msg, 2);
 	frh[0] = (dlci >> 2) & 0xfc;
-	frh[1] = (dlci & 0xf0) | 0x01;
+	frh[1] = ((dlci & 0xf)<<4) | 0x01;
 
 	/* Prepend the GRE header */
 	greh = (struct gre_hdr *) msgb_push(msg, sizeof(*greh));
 	greh->flags = 0;
-	greh->ptype = GRE_PTYPE_FR;
+	greh->ptype = htons(GRE_PTYPE_FR);
 
 	rc = sendto(nsi->frgre.fd.fd, msg->data, msg->len, 0,
 		  (struct sockaddr *)&daddr, sizeof(daddr));
