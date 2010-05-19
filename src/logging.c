@@ -37,7 +37,7 @@
 #include <osmocore/utils.h>
 #include <osmocore/logging.h>
 
-static const struct log_info *log_info;
+const struct log_info *log_info;
 
 static struct log_context log_context;
 static void *tall_log_ctx = NULL;

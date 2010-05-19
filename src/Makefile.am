@@ -1,3 +1,5 @@
+SUBDRIS=vty
+
 # This is _NOT_ the library release version, it's an API version.
 # Please read Chapter 6 "Library interface versions" of the libtool documentation before making any modification
 LIBVERSION=0:0:0
