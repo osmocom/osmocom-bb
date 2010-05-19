@@ -70,8 +70,6 @@
 #include <openbsc/gprs_ns.h>
 #include <openbsc/gprs_bssgp.h>
 
-#define NS_ALLOC_SIZE	1024
-
 static const struct tlv_definition ns_att_tlvdef = {
 	.def = {
 		[NS_IE_CAUSE]	= { TLV_TYPE_TvLV, 0 },
@@ -204,6 +202,7 @@ const char *gprs_ns_cause_str(enum ns_cause cause)
 }
 
 static int nsip_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg);
+extern int grps_ns_frgre_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg);
 
 static int gprs_ns_tx(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
@@ -215,12 +214,15 @@ static int gprs_ns_tx(struct gprs_nsvc *nsvc, struct msgb *msg)
 	rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_PKTS_OUT]);
 	rate_ctr_add(&nsvc->ctrg->ctr[NS_CTR_BYTES_OUT], msgb_l2len(msg));
 
-	switch (nsvc->nsi->ll) {
+	switch (nsvc->ll) {
 	case GPRS_NS_LL_UDP:
 		ret = nsip_sendmsg(nsvc, msg);
 		break;
+	case GPRS_NS_LL_FR_GRE:
+		ret = gprs_ns_frgre_sendmsg(nsvc, msg);
+		break;
 	default:
-		LOGP(DNS, LOGL_ERROR, "unsupported NS linklayer %u\n", nsvc->nsi->ll);
+		LOGP(DNS, LOGL_ERROR, "unsupported NS linklayer %u\n", nsvc->ll);
 		msgb_free(msg);
 		ret = -EIO;
 		break;
@@ -644,7 +646,7 @@ static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
 
 /* main entry point, here incoming NS frames enter */
 int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
-		   struct sockaddr_in *saddr)
+		   struct sockaddr_in *saddr, enum gprs_ns_ll ll)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
 	struct gprs_nsvc *nsvc;
@@ -667,6 +669,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			nsvc->nsvci = nsvc->nsei = 0xfffe;
 			nsvc->ip.bts_addr = *saddr;
 			nsvc->state = NSE_S_ALIVE;
+			nsvc->ll = ll;
 #if 0
 			return gprs_ns_tx_reset(nsvc, NS_CAUSE_PDU_INCOMP_PSTATE);
 #else
@@ -691,6 +694,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		nsvc = nsvc_by_nsei(nsi, nsei);
 		if (!nsvc) {
 			nsvc = nsvc_create(nsi, 0xffff);
+			nsvc->ll = ll;
 			log_set_context(BSC_CTX_NSVC, nsvc);
 			LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s:%u\n",
 				inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
@@ -858,7 +862,7 @@ static int handle_nsip_read(struct bsc_fd *bfd)
 	if (!msg)
 		return error;
 
-	error = gprs_ns_rcvmsg(nsi, msg, &saddr);
+	error = gprs_ns_rcvmsg(nsi, msg, &saddr, GPRS_NS_LL_UDP);
 
 	msgb_free(msg);
 
@@ -871,7 +875,7 @@ static int handle_nsip_write(struct bsc_fd *bfd)
 	return -EIO;
 }
 
-int nsip_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg)
+static int nsip_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg)
 {
 	int rc;
 	struct gprs_ns_inst *nsi = nsvc->nsi;
@@ -898,19 +902,15 @@ static int nsip_fd_cb(struct bsc_fd *bfd, unsigned int what)
 	return rc;
 }
 
-extern int make_sock(struct bsc_fd *bfd, int proto, uint16_t port,
-		     int (*cb)(struct bsc_fd *fd, unsigned int what));
-
 /* Listen for incoming GPRS packets */
-int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port)
+int nsip_listen(struct gprs_ns_inst *nsi, uint32_t ip, uint16_t udp_port)
 {
 	int ret;
 
-	ret = make_sock(&nsi->nsip.fd, IPPROTO_UDP, udp_port, nsip_fd_cb);
+	ret = make_sock(&nsi->nsip.fd, IPPROTO_UDP, ip, udp_port, nsip_fd_cb);
 	if (ret < 0)
 		return ret;
 
-	nsi->ll = GPRS_NS_LL_UDP;
 	nsi->nsip.fd.data = nsi;
 
 	return ret;

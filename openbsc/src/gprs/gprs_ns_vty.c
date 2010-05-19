@@ -79,7 +79,10 @@ static int config_write_ns(struct vty *vty)
 		vty_out(vty, " nse %u remote-role %s%s",
 			nsvc->nsei, nsvc->remote_end_is_sgsn ? "sgsn" : "bss",
 			VTY_NEWLINE);
-		if (nsvc->nsi->ll == GPRS_NS_LL_UDP) {
+		switch (nsvc->ll) {
+		case GPRS_NS_LL_UDP:
+			vty_out(vty, " nse %u encapsulation udp%s", nsvc->nsei,
+				VTY_NEWLINE);
 			vty_out(vty, " nse %u remote-ip %s%s",
 				nsvc->nsei,
 				inet_ntoa(nsvc->ip.bts_addr.sin_addr),
@@ -87,6 +90,19 @@ static int config_write_ns(struct vty *vty)
 			vty_out(vty, " nse %u remote-port %u%s",
 				nsvc->nsei, ntohs(nsvc->ip.bts_addr.sin_port),
 				VTY_NEWLINE);
+			break;
+		case GPRS_NS_LL_FR_GRE:
+			vty_out(vty, " nse %u encapsulation framerelay-gre%s",
+				nsvc->nsei, VTY_NEWLINE);
+			vty_out(vty, " nse %u remote-ip %s%s",
+				nsvc->nsei,
+				inet_ntoa(nsvc->frgre.bts_addr.sin_addr),
+				VTY_NEWLINE);
+			vty_out(vty, " nse %u fr-dlci %u%s",
+				nsvc->nsei, ntohs(nsvc->frgre.bts_addr.sin_port),
+				VTY_NEWLINE);
+		default:
+			break;
 		}
 	}
 
@@ -113,8 +129,9 @@ static void dump_nse(struct vty *vty, struct gprs_nsvc *nsvc, int stats)
 		nsvc->remote_end_is_sgsn ? "SGSN" : "BSS",
 		nsvc->state & NSE_S_ALIVE ? "ALIVE" : "DEAD",
 		nsvc->state & NSE_S_BLOCKED ? "BLOCKED" : "UNBLOCKED");
-	if (nsvc->nsi->ll == GPRS_NS_LL_UDP)
-		vty_out(vty, ", %15s:%u",
+	if (nsvc->ll == GPRS_NS_LL_UDP || nsvc->ll == GPRS_NS_LL_FR_GRE)
+		vty_out(vty, ", %s %15s:%u",
+			nsvc->ll == GPRS_NS_LL_UDP ? "UDP" : "FR-GRE",
 			inet_ntoa(nsvc->ip.bts_addr.sin_addr),
 			ntohs(nsvc->ip.bts_addr.sin_port));
 	vty_out(vty, "%s", VTY_NEWLINE);
@@ -243,10 +260,67 @@ DEFUN(cfg_nse_remoteport, cfg_nse_remoteport_cmd,
 		return CMD_WARNING;
 	}
 
+	if (nsvc->ll != GPRS_NS_LL_UDP) {
+		vty_out(vty, "Cannot set UDP Port on non-UDP NSE%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
 	nsvc->ip.bts_addr.sin_port = htons(port);
 
 	return CMD_SUCCESS;
 }
+
+DEFUN(cfg_nse_fr_dlci, cfg_nse_fr_dlci_cmd,
+	"nse <0-65535> fr-dlci <0-1023>",
+	NSE_CMD_STR
+	"Frame Relay DLCI\n"
+	"Frame Relay DLCI Number\n")
+{
+	uint16_t nsei = atoi(argv[0]);
+	uint16_t dlci = atoi(argv[1]);
+	struct gprs_nsvc *nsvc;
+
+	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	if (!nsvc) {
+		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (nsvc->ll != GPRS_NS_LL_FR_GRE) {
+		vty_out(vty, "Cannot set FR DLCI on non-FR NSE%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	nsvc->frgre.bts_addr.sin_port = htons(dlci);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_nse_encaps, cfg_nse_encaps_cmd,
+	"nse <0-65535> encapsulation (udp|framerelay-gre)",
+	NSE_CMD_STR
+	"Encapsulation for NS\n"
+	"UDP/IP Encapsulation\n" "Frame-Relay/GRE/IP Encapsulation\n")
+{
+	uint16_t nsei = atoi(argv[0]);
+	struct gprs_nsvc *nsvc;
+
+	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	if (!nsvc) {
+		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (!strcmp(argv[1], "udp"))
+		nsvc->ll = GPRS_NS_LL_UDP;
+	else
+		nsvc->ll = GPRS_NS_LL_FR_GRE;
+
+	return CMD_SUCCESS;
+}
+
 
 DEFUN(cfg_nse_remoterole, cfg_nse_remoterole_cmd,
 	"nse <0-65535> remote-role (sgsn|bss)",
@@ -393,6 +467,8 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	install_element(NS_NODE, &cfg_nse_nsvci_cmd);
 	install_element(NS_NODE, &cfg_nse_remoteip_cmd);
 	install_element(NS_NODE, &cfg_nse_remoteport_cmd);
+	install_element(NS_NODE, &cfg_nse_fr_dlci_cmd);
+	install_element(NS_NODE, &cfg_nse_encaps_cmd);
 	install_element(NS_NODE, &cfg_nse_remoterole_cmd);
 	install_element(NS_NODE, &cfg_no_nse_cmd);
 	install_element(NS_NODE, &cfg_ns_timer_cmd);

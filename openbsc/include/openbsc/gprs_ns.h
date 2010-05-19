@@ -107,6 +107,7 @@ enum ns_timeout {
 enum gprs_ns_ll {
 	GPRS_NS_LL_UDP,
 	GPRS_NS_LL_E1,
+	GPRS_NS_LL_FR_GRE,
 };
 
 enum gprs_ns_evt {
@@ -130,15 +131,14 @@ struct gprs_ns_inst {
 
 	uint16_t timeout[NS_TIMERS_COUNT];
 
-	/* which link-layer are we based on? */
-	enum gprs_ns_ll ll;
-
-	union {
-		/* NS-over-IP specific bits */
-		struct {
-			struct bsc_fd fd;
-		} nsip;
-	};
+	/* NS-over-IP specific bits */
+	struct {
+		struct bsc_fd fd;
+	} nsip;
+	/* NS-over-FR-over-GRE-over-IP specific bits */
+	struct {
+		struct bsc_fd fd;
+	} frgre;
 };
 
 enum nsvc_timer_mode {
@@ -168,10 +168,16 @@ struct gprs_nsvc {
 
 	struct rate_ctr_group *ctrg;
 
+	/* which link-layer are we based on? */
+	enum gprs_ns_ll ll;
+
 	union {
 		struct {
 			struct sockaddr_in bts_addr;
 		} ip;
+		struct {
+			struct sockaddr_in bts_addr;
+		} frgre;
 	};
 };
 
@@ -181,14 +187,10 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb);
 /* Destroy a NS protocol instance */
 void gprs_ns_destroy(struct gprs_ns_inst *nsi);
 
-/* Listen for incoming GPRS packets */
-int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port);
+/* Listen for incoming GPRS packets via NS/UDP */
+int nsip_listen(struct gprs_ns_inst *nsi, uint32_t ip, uint16_t udp_port);
 
 struct sockaddr_in;
-
-/* main entry point, here incoming NS frames enter */
-int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
-		   struct sockaddr_in *saddr);
 
 /* main function for higher layers (BSSGP) to send NS messages */
 int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg);
@@ -197,8 +199,8 @@ int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause);
 int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause);
 int gprs_ns_tx_unblock(struct gprs_nsvc *nsvc);
 
-/* Listen for incoming GPRS packets */
-int nsip_listen(struct gprs_ns_inst *nsi, uint16_t udp_port);
+/* Listen for incoming GPRS packets via NS/FR/GRE */
+int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi, uint32_t ip);
 
 /* Establish a connection (from the BSS) to the SGSN */
 struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
@@ -215,5 +217,8 @@ int gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause);
 
 /* Add NS-specific VTY stuff */
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi);
+
+#define NS_ALLOC_SIZE	1024
+
 
 #endif
