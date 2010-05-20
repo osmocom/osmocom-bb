@@ -71,11 +71,6 @@ struct l1s_state {
 	} fb;
 
 	struct {
-		unsigned int count;
-		unsigned int synced;
-	} sb;
-
-	struct {
 		/* power measurement l1 task */
 		unsigned int mode;
 		union {

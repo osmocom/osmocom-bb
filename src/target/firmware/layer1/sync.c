@@ -336,8 +336,6 @@ static void frame_irq(__unused enum irq_nr nr)
 void l1s_reset(void)
 {
 	l1s.fb.mode = 0;
-	l1s.sb.synced = 0;
-	l1s.sb.count = 0;
 
 	/* reset scheduler and hardware */
 	mframe_reset();

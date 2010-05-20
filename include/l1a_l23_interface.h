@@ -71,7 +71,6 @@ struct l1ctl_info_dl {
 
 /* new CCCH was found. This is following the header */
 struct l1ctl_fbsb_resp {
-	uint16_t band_arfcn;
 	int16_t initial_freq_err;
 	uint8_t result;
 	uint8_t bsic;
@@ -117,6 +116,7 @@ struct l1ctl_fbsb_req {
 #define L1CTL_FBSB_F_FB0	(1 << 0)
 #define L1CTL_FBSB_F_FB1	(1 << 1)
 #define L1CTL_FBSB_F_SB		(1 << 2)
+#define L1CTL_FBSB_F_FB01SB	(L1CTL_FBSB_F_FB0|L1CTL_FBSB_F_FB1|L1CTL_FBSB_F_SB)
 
 /* the l1_info_ul header is in front */
 struct l1ctl_rach_req {

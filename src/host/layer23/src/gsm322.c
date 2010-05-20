@@ -1594,7 +1594,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		LOGP(DCS, LOGL_INFO, "Tuning back to frequency %d (rxlev "
 			"%d).\n", cs->arfcn, cs->list[cs->arfcn].rxlev_db);
 		cs->ccch_state = GSM322_CCCH_ST_INIT;
-		l1ctl_tx_ccch_req(ms, cs->arfcn);
+		l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 		start_cs_timer(cs, ms->support.sync_to, 0);
 
 		return 0;
@@ -1625,7 +1625,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			cs->arfcn = found;
 			cs->si = cs->list[cs->arfcn].sysinfo;
 			cs->ccch_state = GSM322_CCCH_ST_INIT;
-			l1ctl_tx_ccch_req(ms, cs->arfcn);
+			l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 
 			/* selected PLMN (manual) or any PLMN (auto) */
 			switch (plmn->mode) {
@@ -1694,7 +1694,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	LOGP(DCS, LOGL_INFO, "Scanning frequency %d (rxlev %d).\n", cs->arfcn,
 		cs->list[cs->arfcn].rxlev_db);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
-	l1ctl_tx_ccch_req(ms, cs->arfcn);
+	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 	start_cs_timer(cs, ms->support.sync_to, 0);
 
 	/* Allocate/clean system information. */
@@ -1815,7 +1815,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	cs->arfcn = found;
 	cs->si = cs->list[cs->arfcn].sysinfo;
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
-	l1ctl_tx_ccch_req(ms, cs->arfcn);
+	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 
 	/* selected PLMN (manual) or any PLMN (auto) */
 	switch (plmn->mode) {
@@ -2211,7 +2211,7 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 					"%d (rxlev %d).\n", cs->arfcn,
 					cs->list[cs->arfcn].rxlev_db);
 				cs->ccch_state = GSM322_CCCH_ST_INIT;
-				l1ctl_tx_ccch_req(ms, cs->arfcn);
+				l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 				start_cs_timer(cs, ms->support.sync_to, 0);
 
 			} else
@@ -2710,7 +2710,7 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
-	l1ctl_tx_ccch_req(ms, cs->arfcn);
+	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 
 	return 0;
@@ -2728,7 +2728,7 @@ static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
-	l1ctl_tx_ccch_req(ms, cs->arfcn);
+	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 
 	return 0;

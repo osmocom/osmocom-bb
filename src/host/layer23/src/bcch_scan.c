@@ -132,7 +132,7 @@ static int get_next_arfcn(struct full_power_scan *fps)
 			best_arfcn = i;
 		}
 	}
-	printf("arfcn=%u rxlev=%u\n", best_arfcn, best_rxlev);
+	printf("arfcn=%d rxlev=%u\n", best_arfcn, best_rxlev);
 	return best_arfcn;
 }
 
@@ -154,7 +154,7 @@ static int _cinfo_start_arfcn(unsigned int band_arfcn)
 
 	/* ask L1 to try to tune to new ARFCN */
 	/* FIXME: decode band */
-	rc = l1ctl_tx_fbsb_req(fps.ms, band_arfcn, 0x01, 100, 0);
+	rc = l1ctl_tx_fbsb_req(fps.ms, band_arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 	if (rc < 0)
 		return rc;
 
@@ -169,27 +169,35 @@ static int _cinfo_start_arfcn(unsigned int band_arfcn)
 	return 0;
 }
 
-static void cinfo_timer_cb(void *data)
+
+static void cinfo_next_cell(void *data)
 {
 	int rc;
 
+	/* we've been waiting for BCCH info */
+	fps.arfcn_state[fps.cur_arfcn].flags |= AFS_F_TESTED;
+	/* if there is a BCCH, we need to add the collected BCCH
+	 * information to our list */
+
+	if (fps.arfcn_state[fps.cur_arfcn].flags & AFS_F_BCCH)
+		llist_add(&fps.cur_cell->list, &fps.cell_list);
+	else
+		cell_info_free(fps.cur_cell);
+
+	rc = get_next_arfcn(&fps);
+	if (rc < 0) {
+		fps.state = BSCAN_S_DONE;
+		return;
+	}
+	/* start syncing to the next ARFCN */
+	_cinfo_start_arfcn(rc);
+}
+
+static void cinfo_timer_cb(void *data)
+{
 	switch (fps.state) {
 	case BSCAN_S_WAIT_DATA:
-		/* we've been waiting for BCCH info */
-		fps.arfcn_state[fps.cur_arfcn].flags |= AFS_F_TESTED;
-		/* if there is a BCCH, we need to add the collected BCCH
-		 * information to our list */
-		if (fps.arfcn_state[fps.cur_arfcn].flags & AFS_F_BCCH)
-			llist_add(&fps.cur_cell->list, &fps.cell_list);
-		else
-			cell_info_free(fps.cur_cell);
-		rc = get_next_arfcn(&fps);
-		if (rc < 0) {
-			fps.state = BSCAN_S_DONE;
-			return;
-		}
-		/* start syncing to the next ARFCN */
-		_cinfo_start_arfcn(rc);
+		cinfo_next_cell(data);
 		break;
 	}
 }
@@ -230,6 +238,7 @@ static int rx_sch_info()
 static int bscan_sig_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
 {
+	struct cell_info *ci = fps.cur_cell;
 	struct osmocom_ms *ms;
 	struct osmobb_meas_res *mr;
 	uint16_t arfcn;
@@ -271,6 +280,19 @@ static int bscan_sig_cb(unsigned int subsys, unsigned int signal,
 			_cinfo_start_arfcn(rc);
 			break;
 		}
+		break;
+	case S_L1CTL_FBSB_RESP:
+		/* We actually got a FCCH/SCH burst */
+#if 0
+		fps.arfcn_state[ci->band_arfcn].flags |= AFS_F_BCCH;
+		/* fallthrough */
+#else
+		break;
+#endif
+	case S_L1CTL_FBSB_ERR:
+		/* We timed out, move on */
+		if (fps.state == BSCAN_S_WAIT_DATA)
+			cinfo_next_cell(NULL);
 		break;
 	}
 	return 0;

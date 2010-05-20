@@ -87,7 +87,7 @@ static void dump_mon_state(struct mon_state *fb)
 		fb->snr, l1s_snr_int(fb->snr), l1s_snr_fract(fb->snr),
 		tpu_get_offset(), tpu_get_synchro());
 #else
-	printf("(%u:%u): TOA=%5u, Power=%4ddBm, Angle=%5dHz ",
+	printf("(%u:%u): TOA=%5u, Power=%4ddBm, Angle=%5dHz\n",
 		fb->fnr_report, fb->attempt, fb->toa,
 		agc_inp_dbm8_by_pm(fb->pm)/8, ANGLE_TO_FREQ(fb->angle));
 #endif
@@ -98,14 +98,16 @@ static int l1ctl_fbsb_resp(uint8_t res)
 	struct msgb *msg;
 	struct l1ctl_fbsb_resp *resp;
 
-	msg = l1ctl_msgb_alloc(L1CTL_FBSB_RESP);
+	msg = l1_create_l2_msg(L1CTL_FBSB_RESP, fbs.mon.time.fn,
+				l1s_snr_int(fbs.mon.snr),
+				fbs.req.band_arfcn);
 	if (!msg)
 		return -ENOMEM;
 
 	resp = (struct l1ctl_fbsb_resp *) msgb_put(msg, sizeof(*resp));
-	resp->band_arfcn = htons(fbs.req.band_arfcn);
 	resp->initial_freq_err = htons(fbs.initial_freq_err);
 	resp->result = res;
+	resp->bsic = fbs.mon.bsic;
 
 	/* no need to set BSIC, as it is never used here */
 	l1_queue_for_l2(msg);
@@ -179,25 +181,24 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		dsp_api.r_page_used = 1;
 
 		/* after 2nd attempt, we failed */
-		if (attempt == 2)
-			return l1ctl_fbsb_resp(255);
+		if (attempt == 2) {
+			last_fb->attempt = 13;
+			l1s_compl_sched(L1_COMPL_FB);
+		}
 
 		/* after 1st attempt, we simply wait for 2nd */
 		return 0;
 	}
 
-	l1s.sb.count++;
-
 	printf("SB%d ", attempt);
-	read_sb_result(last_fb, dsp_api.frame_ctr);
+	read_sb_result(last_fb, attempt);
 
 	sb = dsp_api.db_r->a_sch[3] | dsp_api.db_r->a_sch[4] << 16;
 	fbs.mon.bsic = l1s_decode_sb(&fbs.mon.time, sb);
 	printf("=> SB 0x%08x: BSIC=%u ", sb, fbs.mon.bsic);
 	l1s_time_dump(&fbs.mon.time);
 
-#if 0
-	l1s.serving_cell.bsic = bsic;
+	l1s.serving_cell.bsic = fbs.mon.bsic;
 
 	/* calculate synchronisation value (TODO: only complete for qbits) */
 	last_fb->toa -= 23;
@@ -225,24 +226,13 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	else
 		printf(" qbits=%u\n", qbits);
 
-	if (l1s.sb.count > 5 && l1s.sb.synced == 0) {
-		synchronize_tdma(&l1s.serving_cell);
-		l1s.sb.synced = 1;
-	}
+	synchronize_tdma(&l1s.serving_cell);
 
 	/* if we have recived a SYNC burst, update our local GSM time */
-	gsm_fn2gsmtime(&l1s.current_time, sb_time.fn + SB2_LATENCY);
+	gsm_fn2gsmtime(&l1s.current_time, fbs.mon.time.fn + SB2_LATENCY);
 	/* compute next time from new current time */
 	l1s.next_time = l1s.current_time;
 	l1s_time_inc(&l1s.next_time, 1);
-
-	/* place it in the queue for the layer2 */
-	msg = l1_create_l2_msg(L1CTL_NEW_CCCH_RESP, sb_time.fn,
-				last_fb->snr, rf_arfcn);
-	l1 = (struct l1ctl_sync_new_ccch_resp *) msgb_put(msg, sizeof(*l1));
-	l1->bsic = bsic;
-	l1_queue_for_l2(msg);
-#endif
 
 	/* If we call tdma_sched_reset(), which is only needed if there
 	 * are further l1s_sbdet_resp() scheduled, we will bring
@@ -259,18 +249,13 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		l1s_dsp_abort();
 	}
 
-#if 0
-	if (l1s.sb.count > 10 && sb_time.t3 == 41) {
-		l1s_reset_hw();
-		/* enable the MF Task for BCCH reading */
-		mframe_enable(MF_TASK_BCCH_NORM);
-		mframe_enable(MF_TASK_CCCH_COMB);
-	} else {
-		/* We have just seen a SCH burst, we know the next one
-		 * is not in less than 7 TDMA frames from now */
-		l1s_sb_test(7);
-	}
-#endif
+	l1s_reset_hw();
+	/* enable the MF Task for BCCH reading */
+	mframe_enable(MF_TASK_BCCH_NORM);
+	mframe_enable(MF_TASK_CCCH_COMB);
+
+	l1s_compl_sched(L1_COMPL_FB);
+
 	return 0;
 }
 
@@ -278,6 +263,9 @@ static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 			 __unused uint16_t p3)
 {
 	putchart('S');
+
+	fbs.mon.bsic = 0;
+	fbs.mon.time.fn = 0;
 
 	dsp_api.db_w->d_task_md = SB_DSP_TASK;
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
@@ -330,6 +318,41 @@ static int read_fb_result(struct mon_state *st, int attempt)
 	return 1;
 }
 
+static void fbinfo2cellinfo(struct l1_cell_info *cinfo,
+			    const struct mon_state *mon)
+{
+	int ntdma, qbits, fn_offset, fnr_delta, bits_delta;
+
+	/* FIXME: where did this magic 23 come from? */
+	last_fb->toa -= 23;
+
+	if (last_fb->toa < 0) {
+		qbits = (last_fb->toa + BITS_PER_TDMA) * 4;
+		ntdma = -1;
+	} else {
+		ntdma = (last_fb->toa) / BITS_PER_TDMA;
+		qbits = (last_fb->toa - ntdma * BITS_PER_TDMA) * 4;
+	}
+
+	fn_offset = l1s.current_time.fn - last_fb->attempt + ntdma;
+	fnr_delta = last_fb->fnr_report - last_fb->attempt;
+	bits_delta = fnr_delta * BITS_PER_TDMA;
+
+	cinfo->fn_offset = fnr_delta;
+	cinfo->time_alignment = qbits;
+	cinfo->arfcn = rf_arfcn;
+
+	if (last_fb->toa > bits_delta)
+		printf("=> DSP reports FB in bit that is %d bits in "
+			"the future?!?\n", last_fb->toa - bits_delta);
+	else {
+		int fb_fnr = (last_fb->fnr_report - last_fb->attempt)
+				+ last_fb->toa/BITS_PER_TDMA;
+		printf("=>FB @ FNR %u fn_offset=%d qbits=%u\n",
+			fb_fnr, fn_offset, qbits);
+	}
+}
+
 /* scheduler callback to issue a FB detection task to the DSP */
 static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 			 uint16_t fb_mode)
@@ -354,6 +377,8 @@ static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 	return 0;
 }
 
+#define FB0_SNR_THRESH	2000
+#define FB1_SNR_THRESH	3000
 
 static const struct tdma_sched_item fb_sched_set[];
 
@@ -363,16 +388,7 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 {
 	putchart('f');
 
-	if (dsp_api.ndb->d_fb_det) {
-		/* We found a frequency burst, reset everything */
-		l1s_reset_hw();
-
-		printf("FB%u ", dsp_api.ndb->d_fb_mode);
-		read_fb_result(last_fb, attempt);
-		/* if this is the first success, save freq err */
-		if (!fbs.initial_freq_err)
-			fbs.initial_freq_err = last_fb->freq_diff;
-	} else {
+	if (!dsp_api.ndb->d_fb_det) {
 		/* we did not detect a FB */
 
 		/* attempt < 12, do nothing */
@@ -385,7 +401,21 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		tdma_sched_reset();
 
 		last_fb->attempt = 13;
+
+		l1s_compl_sched(L1_COMPL_FB);
+
+		return 0;
 	}
+
+	/* We found a frequency burst, reset everything */
+	l1s_reset_hw();
+
+	printf("FB%u ", dsp_api.ndb->d_fb_mode);
+	read_fb_result(last_fb, attempt);
+
+	/* if this is the first success, save freq err */
+	if (!fbs.initial_freq_err)
+		fbs.initial_freq_err = last_fb->freq_diff;
 
 	/* If we don't reset here, we get DSP DMA errors */
 	tdma_sched_reset();
@@ -398,7 +428,8 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 			/* If we don't reset here, we get DSP DMA errors */
 			tdma_sched_reset();
 			/* FIXME: don't only use the last but an average */
-			if (abs(last_fb->freq_diff) < fbs.req.freq_err_thresh1)
+			if (abs(last_fb->freq_diff) < fbs.req.freq_err_thresh1 &&
+			    last_fb->snr > FB0_SNR_THRESH)
 				tdma_schedule_set(1, fb_sched_set, 1);
 			else {
 				/* FIXME: check timeout */
@@ -408,6 +439,7 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 			l1s_compl_sched(L1_COMPL_FB);
 	} else if (fb_mode == 1) {
 		if (fbs.req.flags & L1CTL_FBSB_F_SB) {
+
 	int ntdma, qbits;
 	/* FIXME: where did this magic 23 come from? */
 	last_fb->toa -= 23;
@@ -423,8 +455,15 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 
 			int fn_offset = l1s.current_time.fn - last_fb->attempt + ntdma;
 			int delay = fn_offset + 11 - l1s.current_time.fn - 1;
-			if (abs(last_fb->freq_diff) < fbs.req.freq_err_thresh2) {
+			printf("  fn_offset=%d (fn=%u + attempt=%u + ntdma = %d)\m",
+				fn_offset, l1s.current_time.fn, last_fb->attempt, ntdma);
+			printf("  delay=%d (fn_offset=%d + 11 - fn=%u - 1\n", delay,
+				fn_offset, l1s.current_time.fn);
+			printf("  scheduling next FB/SB detection task with delay %u\n", delay);
+			if (abs(last_fb->freq_diff) < fbs.req.freq_err_thresh2 &&
+			    last_fb->snr > FB1_SNR_THRESH) {
 				/* synchronize before reading SB */
+				fbinfo2cellinfo(&l1s.serving_cell, last_fb);
 				synchronize_tdma(&l1s.serving_cell);
 				tdma_schedule_set(delay, sb_sched_set, 0);
 			} else
@@ -458,8 +497,6 @@ static const struct tdma_sched_item fb_sched_set[] = {
 /* Asynchronous completion handler for FB detection */
 static void l1a_fb_compl(__unused enum l1_compl c)
 {
-	int ntdma, qbits, fn_offset, fnr_delta, bits_delta;
-	/* FXIME: use l1s.neigh_cell[fbs.cinfo_idx] */
 	struct l1_cell_info *cinfo = &l1s.serving_cell;
 
 	if (last_fb->attempt >= 13) {
@@ -467,35 +504,10 @@ static void l1a_fb_compl(__unused enum l1_compl c)
 		return l1ctl_fbsb_resp(255);
 	}
 
-	/* FIXME: where did this magic 23 come from? */
-	last_fb->toa -= 23;
+	/* FIME: use l1s.neigh_cell[fbs.cinfo_idx] */
+	fbinfo2cellinfo(&l1s.serving_cell, last_fb);
 
-	if (last_fb->toa < 0) {
-		qbits = (last_fb->toa + BITS_PER_TDMA) * 4;
-		ntdma = -1;
-	} else {
-		ntdma = (last_fb->toa) / BITS_PER_TDMA;
-		qbits = (last_fb->toa - ntdma * BITS_PER_TDMA) * 4;
-	}
-
-	fn_offset = l1s.current_time.fn - last_fb->attempt + ntdma;
-	fnr_delta = last_fb->fnr_report - last_fb->attempt;
-	bits_delta = fnr_delta * BITS_PER_TDMA;
-
-	cinfo->fn_offset = fnr_delta;
-	cinfo->time_alignment = qbits;
-	cinfo->arfcn = rf_arfcn;
-
-	if (last_fb->toa > bits_delta)
-		printf("=> DSP reports FB in bit that is %d bits in "
-			"the future?!?\n", last_fb->toa - bits_delta);
-	else {
-		int fb_fnr = (last_fb->fnr_report - last_fb->attempt)
-				+ last_fb->toa/BITS_PER_TDMA;
-		printf("=>FB @ FNR %u fn_offset=%d qbits=%u\n",
-			fb_fnr, fn_offset, qbits);
-	}
-
+	/* send FBSB_RESP success message via L1CTL */
 	l1ctl_fbsb_resp(0);
 }
 
@@ -512,6 +524,9 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 
 	/* clear initial frequency error */
 	fbs.initial_freq_err = 0;
+
+	/* Make sure we start at a 'center' AFCDAC output value */
+	afc_reset();
 
 	if (fbs.req.flags & L1CTL_FBSB_F_FB0)
 		tdma_schedule_set(base_fn, fb_sched_set, 0);

@@ -77,7 +77,7 @@ static int rx_l1_fbsb_resp(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_time tm;
 
 	if (msgb_l3len(msg) < sizeof(*dl) + sizeof(*sb)) {
-		LOGP(DL1C, LOGL_ERROR, "MSG too short for FBSB RESP: %u\n",
+		LOGP(DL1C, LOGL_ERROR, "FBSB RESP: MSG too short %u\n",
 			msgb_l3len(msg));
 		return -1;
 	}
@@ -85,8 +85,14 @@ static int rx_l1_fbsb_resp(struct osmocom_ms *ms, struct msgb *msg)
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 	sb = (struct l1ctl_fbsb_resp *) dl->payload;
 
-	if (sb->result != 0)
+	printf("snr=%04x, arfcn=%u result=%u\n", dl->snr, ntohs(dl->band_arfcn),
+		sb->result);
+
+	if (sb->result != 0) {
+		LOGP(DL1C, LOGL_ERROR, "FBSB RESP: result=%u\n", sb->result);
 		dispatch_signal(SS_L1CTL, S_L1CTL_FBSB_ERR, ms);
+		return 0;
+	}
 
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	DEBUGP(DL1C, "SCH: SNR: %u TDMA: (%.4u/%.2u/%.2u) bsic: %d\n",
@@ -215,13 +221,6 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	l1h->msg_type = L1CTL_DATA_REQ;
 
 	return osmo_send_l1(ms, msg);
-}
-
-/* FIXME: remove this after all code has been ported */
-int l1ctl_tx_ccch_req(struct osmocom_ms *ms, uint16_t arfcn)
-{
-	LOGP(DL1C, LOGL_ERROR, "CCCH REQ no longer implemented!!!\n");
-	return -EINVAL;
 }
 
 /* Transmit FBSB_REQ */
