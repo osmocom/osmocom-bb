@@ -85,7 +85,7 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 
 	l1ddsp_meas_read(2, pm_level);
 
-	printf("PM MEAS: %-4d dBm, %-4d dBm ARFCN=%u\n",
+	printd("PM MEAS: %-4d dBm, %-4d dBm ARFCN=%u\n",
 		agc_inp_dbm8_by_pm(pm_level[0])/8,
 		agc_inp_dbm8_by_pm(pm_level[1])/8, arfcn);
 
@@ -125,7 +125,7 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 /* Schedule a power measurement test */
 void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 {
-	printf("l1s_pm_test(%u, %u)\n", base_fn, arfcn);
+	printd("l1s_pm_test(%u, %u)\n", base_fn, arfcn);
 	tdma_schedule(base_fn, &l1s_pm_cmd, 0, 0, arfcn);
 	tdma_schedule(base_fn + 2, &l1s_pm_resp, 0, 0, arfcn);
 }
