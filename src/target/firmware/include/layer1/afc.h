@@ -12,4 +12,7 @@ void afc_correct(int16_t freq_error, uint16_t arfcn);
 /* Update DSP with new AFC DAC value to be used for next TDMA frame */
 void afc_load_dsp(void);
 
+/* Reset the AFC to its initial DAC value */
+void afc_reset(void);
+
 #endif

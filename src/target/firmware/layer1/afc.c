@@ -30,6 +30,8 @@
 #include <layer1/avg.h>
 #include <calypso/dsp.h>
 
+#define AFC_INITIAL_DAC_VALUE	-700
+
 /* Over how many TDMA frames do we want to average? (this may change in dedicated mode) */
 #define AFC_PERIOD		40
 /* How many of our measurements have to be valid? */
@@ -51,7 +53,7 @@ static struct afc_state afc_state = {
 		.period = AFC_PERIOD,
 		.min_valid = AFC_MIN_MUN_VALID,
 	},
-	.dac_value = 500,
+	.dac_value = AFC_INITIAL_DAC_VALUE,
 };
 
 /* The AFC DAC in the ABB has to be configured as follows:
@@ -100,6 +102,11 @@ void afc_correct(int16_t freq_error, uint16_t arfcn)
 		afc_state.dac_value = 4095;
 	else if (afc_state.dac_value < -4096)
 		afc_state.dac_value = -4096;
+}
+
+void afc_reset(void)
+{
+	afc_state.dac_value = AFC_INITIAL_DAC_VALUE;
 }
 
 void afc_input(int32_t freq_error, uint16_t arfcn, int valid)
