@@ -287,7 +287,7 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 	ul->link_id = 0;
 	ul->tx_power = 0; /* FIXME: initial TX power */
 	req = (struct l1ctl_dm_est_req *) msgb_put(msg, sizeof(*req));
-	req->band_arfcn = band_arfcn;
+	req->band_arfcn = htons(band_arfcn);
 
 	return osmo_send_l1(ms, msg);
 }
