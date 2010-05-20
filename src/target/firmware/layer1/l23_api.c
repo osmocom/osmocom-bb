@@ -148,7 +148,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 	struct l1ctl_dm_est_req *est_req;
 	struct l1ctl_data_ind *data_ind;
 	struct llist_head *tx_queue;
-
+#if 0
 	{
 		int i;
 		printf("l1a_l23_rx_cb (%u): ", msg->len);
@@ -156,7 +156,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 			printf("%02x ", msg->data[i]);
 		puts("\n");
 	}
-
+#endif
 	msg->l1h = msg->data;
 
 	if (sizeof(*l1h) > msg->len) {
@@ -172,7 +172,8 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		}
 
 		sync_req = (struct l1ctl_fbsb_req *) l1h->data;
-		printd("L1CTL_FBSB_REQ (arfcn=%u)\n", ntohs(sync_req->band_arfcn));
+		printd("L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
+			ntohs(sync_req->band_arfcn), sync_req->flags);
 
 		/* reset scheduler and hardware */
 		l1s_reset();
