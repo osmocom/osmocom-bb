@@ -30,6 +30,7 @@
 #include <vty/vty.h>
 
 #include <osmocom/osmocom_data.h>
+#include <osmocom/networks.h>
 
 extern struct llist_head ms_list;
 
@@ -245,20 +246,62 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 	"Select ...\nSelect Network\n")
 {
 	struct osmocom_ms *ms;
+	struct gsm322_plmn *plmn;
 	struct msgb *nmsg;
 	struct gsm322_msg *ngm;
+	struct gsm322_plmn_list *temp;
+	uint16_t mcc, mnc;
+	int found = 0;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
+	plmn = &ms->plmn;
+
+	mcc = atoi(argv[1]);
+	mnc = atoi(argv[2]);
+
+	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
+		if (temp->mcc == mcc &&  temp->mnc == mnc)
+			found = 1;
+	if (!found) {
+		vty_out(vty, "Network not in list!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_CHOSE_PLMN);
 	if (!nmsg)
 		return CMD_WARNING;
 	ngm = (struct gsm322_msg *) nmsg->data;
-	ngm->mcc = atoi(argv[1]);
-	ngm->mnc = atoi(argv[2]);
+	ngm->mcc = mcc;
+	ngm->mnc = mnc;
 	gsm322_plmn_sendmsg(ms, nmsg);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(network_show, network_show_cmd, "network show MS_NAME",
+	"Network ...\nShow results of network search (again)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm322_plmn *plmn;
+	struct gsm322_plmn_list *temp;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	plmn = &ms->plmn;
+
+	if (plmn->mode != PLMN_MODE_AUTO
+	 && plmn->state != GSM322_M3_NOT_ON_PLMN) {
+		vty_out(vty, "Start network search first!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
+		vty_out(vty, " Network %03d, %02d (%s, %s)%s", temp->mcc,
+			temp->mnc, gsm_get_mcc(temp->mcc),
+			gsm_get_mnc(temp->mcc, temp->mnc), VTY_NEWLINE);
 
 	return CMD_SUCCESS;
 }
@@ -359,6 +402,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &insert_test_cmd);
 	install_element(ENABLE_NODE, &remove_sim_cmd);
 	install_element(ENABLE_NODE, &network_search_cmd);
+	install_element(ENABLE_NODE, &network_show_cmd);
 	install_element(ENABLE_NODE, &network_select_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ms_cmd);
