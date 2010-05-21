@@ -3051,13 +3051,13 @@ int gsm322_dump_sorted_plmn(struct osmocom_ms *ms)
 int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 			void (*print)(void *, const char *, ...), void *priv)
 {
-	int i, j;
+	int i;
 	struct gsm48_sysinfo *s;
 
-	print(priv, "arfcn  |rx-lev |MCC    |MNC    |forb.LA|"
-		"prio  ,0123456789abcdef|min-db |max-pwr\n");
-	print(priv, "-------+-------+-------+-------+-------+"
-		"-----------------------+-------+-------\n");
+	print(priv, "arfcn  |rx-lev |MCC    |MNC    |LAC    |cell ID|forb.LA|"
+		"prio   |min-db |max-pwr\n");
+	print(priv, "-------+-------+-------+-------+-------+-------+-------+"
+		"-------+-------+-------\n");
 	for (i = 0; i <= 1023; i++) {
 		s = cs->list[i].sysinfo;
 		if (!s || !(cs->list[i].flags & flags))
@@ -3065,29 +3065,24 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 		print(priv, "%4d   |%4d   |", i, cs->list[i].rxlev_db);
 		if ((cs->list[i].flags & GSM322_CS_FLAG_SYSINFO)) {
 			print(priv, "%03d    |%02d     |", s->mcc, s->mnc);
+			print(priv, "0x%04x |0x%04x |", s->lac, s->cell_id);
 			if ((cs->list[i].flags & GSM322_CS_FLAG_FORBIDD))
 				print(priv, "yes    |");
 			else
 				print(priv, "no     |");
 			if ((cs->list[i].flags & GSM322_CS_FLAG_BARRED))
-				print(priv, "barred ");
+				print(priv, "barred |");
 			else {
 				if (cs->list[i].sysinfo->cell_barr)
-					print(priv, "low    ");
+					print(priv, "low    |");
 				else
-					print(priv, "normal ");
-			}
-			for (j = 0; j < 16; j++) {
-				if ((s->class_barr & (1 << j)))
-					print(priv, "*");
-				else
-					print(priv, " ");
+					print(priv, "normal |");
 			}
 			print(priv, "|%4d   |%4d\n", s->rxlev_acc_min_db,
 				s->ms_txpwr_max_ccch);
 		} else
-			print(priv, "n/a    |n/a    |       |                       "
-				"|n/a    |n/a\n");
+			print(priv, "n/a    |n/a    |n/a    |n/a    |n/a    |"
+				"n/a    |n/a    |n/a\n");
 	}
 	print(priv, "\n");
 
