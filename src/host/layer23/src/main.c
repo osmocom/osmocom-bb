@@ -23,6 +23,7 @@
 
 #include <osmocom/osmocom_data.h>
 #include <osmocom/l1ctl.h>
+#include <osmocom/l1l2_interface.h>
 #include <osmocom/layer3.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/gsmtap_util.h>
@@ -36,9 +37,6 @@
 
 #include <arpa/inet.h>
 
-#include <sys/socket.h>
-#include <sys/un.h>
-
 #define _GNU_SOURCE
 #include <getopt.h>
 #include <stdlib.h>
@@ -49,8 +47,6 @@
 
 struct log_target *stderr_target;
 
-#define GSM_L2_LENGTH 256
-
 void *l23_ctx = NULL;
 static char *socket_path = "/tmp/osmocom_l2";
 struct llist_head ms_list;
@@ -58,82 +54,6 @@ static struct osmocom_ms *ms = NULL;
 static uint32_t gsmtap_ip = 0;
 int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
 int (*l23_app_exit) (struct osmocom_ms *ms) = NULL;
-
-static int layer2_read(struct bsc_fd *fd)
-{
-	struct msgb *msg;
-	u_int16_t len;
-	int rc;
-
-	msg = msgb_alloc(GSM_L2_LENGTH, "Layer2");
-	if (!msg) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to allocate msg.\n");
-		return -1;
-	}
-
-	rc = read(fd->fd, &len, sizeof(len));
-	if (rc < sizeof(len)) {
-		LOGP(DL1C, LOGL_ERROR, "Short read. Error.\n");
-		exit(2);
-	}
-
-	len = ntohs(len);
-	if (len > GSM_L2_LENGTH) {
-		LOGP(DL1C, LOGL_ERROR, "Length is too big: %u\n", len);
-		msgb_free(msg);
-		return -1;
-	}
-
-
-	msg->l1h = msgb_put(msg, len);
-	rc = read(fd->fd, msg->l1h, msgb_l1len(msg));
-	if (rc != msgb_l1len(msg)) {
-		LOGP(DL1C, LOGL_ERROR, "Can not read data: len=%d rc=%d "
-		     "errno=%d\n", len, rc, errno);
-		msgb_free(msg);
-		return -1;
-	}
-
-	l1ctl_recv((struct osmocom_ms *) fd->data, msg);
-	msgb_free(msg);
-	return 0;
-}
-
-static int layer2_write(struct bsc_fd *fd, struct msgb *msg)
-{
-	int rc;
-
-	rc = write(fd->fd, msg->data, msg->len);
-	if (rc != msg->len) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to write data: rc: %d\n", rc);
-		return -1;
-	}
-
-	return 0;
-}
-
-
-int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg)
-{
-	uint16_t *len;
-
-	DEBUGP(DL1C, "Sending: '%s'\n", hexdump(msg->data, msg->len));
-
-	if (msg->l1h != msg->data)
-		LOGP(DL1C, LOGL_ERROR, "Message L1 header != Message Data\n");
-	
-	/* prepend 16bit length before sending */
-	len = (uint16_t *) msgb_push(msg, sizeof(*len));
-	*len = htons(msg->len - sizeof(*len));
-
-	if (write_queue_enqueue(&ms->wq, msg) != 0) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to enqueue msg.\n");
-		msgb_free(msg);
-		return -1;
-	}
-
-	return 0;
-}
 
 static void print_usage(const char *app)
 {
@@ -214,7 +134,6 @@ void sighandler(int sigset)
 int main(int argc, char **argv)
 {
 	int rc;
-	struct sockaddr_un local;
 
 	INIT_LLIST_HEAD(&ms_list);
 	log_init(&log_info);
@@ -237,28 +156,11 @@ int main(int argc, char **argv)
 
 	handle_options(argc, argv);
 
-	ms->wq.bfd.fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (ms->wq.bfd.fd < 0) {
-		fprintf(stderr, "Failed to create unix domain socket.\n");
-		exit(1);
-	}
-
-	local.sun_family = AF_UNIX;
-	strncpy(local.sun_path, socket_path, sizeof(local.sun_path));
-	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
-
-	rc = connect(ms->wq.bfd.fd, (struct sockaddr *) &local,
-		     sizeof(local.sun_family) + strlen(local.sun_path));
+	rc = layer2_open(ms, socket_path);
 	if (rc < 0) {
-		fprintf(stderr, "Failed to connect to '%s'.\n", local.sun_path);
+		fprintf(stderr, "Failed during layer2_open()\n");
 		exit(1);
 	}
-
-	write_queue_init(&ms->wq, 100);
-	ms->wq.bfd.data = ms;
-	ms->wq.bfd.when = BSC_FD_READ;
-	ms->wq.read_cb = layer2_read;
-	ms->wq.write_cb = layer2_write;
 
 	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
 	lapdm_init(&ms->l2_entity.lapdm_acch, ms);
@@ -266,11 +168,6 @@ int main(int argc, char **argv)
 	rc = l23_app_init(ms);
 	if (rc < 0)
 		exit(1);
-
-	if (bsc_register_fd(&ms->wq.bfd) != 0) {
-		fprintf(stderr, "Failed to register fd.\n");
-		exit(1);
-	}
 
 	if (gsmtap_ip) {
 		rc = gsmtap_init(gsmtap_ip);

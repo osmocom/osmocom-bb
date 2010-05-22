@@ -42,6 +42,7 @@
 
 #include <osmocom/l1ctl.h>
 #include <osmocom/osmocom_data.h>
+#include <osmocom/l1l2_interface.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/logging.h>
 #include <osmocom/gsmtap_util.h>
@@ -142,6 +143,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	if (msgb_l3len(msg) < sizeof(*ccch)) {
 		LOGP(DL1C, LOGL_ERROR, "MSG too short Data Ind: %u\n",
 			msgb_l3len(msg));
+		msgb_free(msg);
 		return -1;
 	}
 
@@ -334,6 +336,8 @@ static int rx_l1_reset(struct osmocom_ms *ms)
 {
 	printf("Layer1 Reset.\n");
 	dispatch_signal(SS_L1CTL, S_L1CTL_RESET, ms);
+
+	return 0;
 }
 
 /* Receive L1CTL_PM_RESP */
@@ -364,6 +368,7 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	if (msgb_l2len(msg) < sizeof(*dl)) {
 		LOGP(DL1C, LOGL_ERROR, "Short Layer2 message: %u\n",
 			msgb_l2len(msg));
+		msgb_free(msg);
 		return -1;
 	}
 
@@ -376,20 +381,24 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	switch (l1h->msg_type) {
 	case L1CTL_FBSB_RESP:
 		rc = rx_l1_fbsb_resp(ms, msg);
+		msgb_free(msg);
 		break;
 	case L1CTL_DATA_IND:
 		rc = rx_ph_data_ind(ms, msg);
 		break;
 	case L1CTL_RESET:
 		rc = rx_l1_reset(ms);
+		msgb_free(msg);
 		break;
 	case L1CTL_PM_RESP:
 		rc = rx_l1_pm_resp(ms, msg);
+		msgb_free(msg);
 		if (l1h->flags & L1CTL_F_DONE)
 			dispatch_signal(SS_L1CTL, S_L1CTL_PM_DONE, ms);
 		break;
 	default:
 		fprintf(stderr, "Unknown MSG: %u\n", l1h->msg_type);
+		msgb_free(msg);
 		break;
 	}
 

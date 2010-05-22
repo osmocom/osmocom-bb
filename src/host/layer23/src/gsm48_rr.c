@@ -53,8 +53,9 @@
 #include <osmocore/gsm48.h>
 #include <osmocore/bitvec.h>
 
-#include <osmocom/logging.h>
 #include <osmocom/osmocom_data.h>
+#include <osmocom/l1l2_interface.h>
+#include <osmocom/logging.h>
 
 static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_rr_dl_est(struct osmocom_ms *ms);
@@ -273,8 +274,6 @@ static int gsm48_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
-#warning HACK!!!!!!
-return gsm48_rcv_rsl(ms, msg);
 	msgb_enqueue(&rr->rsl_upqueue, msg);
 
 	return 0;
@@ -294,6 +293,7 @@ static int gsm48_rx_rsl(struct msgb *msg, struct osmocom_ms *ms)
 		/* FIXME: implement this */
 		LOGP(DRSL, LOGL_NOTICE, "unknown RSLms msg_discr 0x%02x\n",
 			rslh->msg_discr);
+		msgb_free(msg);
 		rc = -EINVAL;
 		break;
 	}
@@ -3237,8 +3237,6 @@ static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* free msgb unless it is forwarded */
 	if (dldatastatelist[i].rout != gsm48_rr_data_ind)
-#warning HACK!!!!!!
-return rc;
 		msgb_free(msg);
 
 	return rc;

@@ -28,7 +28,4 @@ int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len);
 int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 			  uint16_t arfcm_to);
 
-extern int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg);
-
-
 #endif

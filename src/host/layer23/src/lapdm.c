@@ -305,8 +305,10 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		DEBUGPC(DLAPDM, "SABM ");
 		/* Must be Format B */
 		rc = check_length_ind(msg->l2h[2]);
-		if (rc < 0)
+		if (rc < 0) {
+			msgb_free(msg);
 			return rc;
+		}
 		length = msg->l2h[2] >> 2;
 		/* FIXME: G.4.5 check */
 		if (dl->state == LAPDm_STATE_MF_EST) {
@@ -316,6 +318,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 				/* FIXME: check for contention resoultion */
 				DEBUGP(DLAPDM, "SABM command, multiple "
 					"frame established state\n");
+				msgb_free(msg);
 				return 0;
 			}
 		}
@@ -337,23 +340,27 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		DEBUGPC(DLAPDM, "DM ");
 		if (!LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 			/* 5.4.1.2 DM responses with the F bit set to "0" shall be ignored. */
+			msgb_free(msg);
 			return 0;
 		}
 		switch (dl->state) {
 		case LAPDm_STATE_IDLE:
 			/* 5.4.5 all other frame types shall be discarded */
 			DEBUGPC(DLAPDM, "state=IDLE (discarding) ");
+			msgb_free(msg);
 			return 0;
 		case LAPDm_STATE_MF_EST:
 			if (LAPDm_CTRL_PF_BIT(mctx->ctrl) == 1)
 				DEBUGPC(DLAPDM, "unsolicited DM resposne ");
 			else
 				DEBUGPC(DLAPDM, "unsolicited DM resposne, multiple frame established state ");
+			msgb_free(msg);
 			return 0;
 		case LAPDm_STATE_TIMER_RECOV:
 			/* DM is normal in case PF = 1 */
 			if (LAPDm_CTRL_PF_BIT(mctx->ctrl) == 0) {
 				DEBUGPC(DLAPDM, "unsolicited DM resposne, multiple frame established state ");
+				msgb_free(msg);
 				return 0;
 			}
 			break;
@@ -369,8 +376,10 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			msg->l3h = msg->l2h + 2;
 		} else {
 			rc = check_length_ind(msg->l2h[2]);
-			if (rc < 0)
+			if (rc < 0) {
+				msgb_free(msg);
 				return rc;
+			}
 			length = msg->l2h[2] >> 2;
 			msg->l3h = msg->l2h + 3;
 		}
@@ -378,6 +387,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		if (length == 0) {
 			/* 5.3.3 UI frames received with the length indicator set to "0" shall be ignored */
 			DEBUGP(DLAPDM, "length=0 (discarding) ");
+			msgb_free(msg);
 			return 0;
 		}
 		/* FIXME: G.4.5 check */
@@ -388,6 +398,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		default:
 			/* 5.3.3 UI frames with invalid SAPI values shall be discarded */
 			DEBUGP(DLAPDM, "sapi=%u (discarding) ", LAPDm_ADDR_SAPI(mctx->ctrl));
+			msgb_free(msg);
 			return 0;
 		}
 		msgb_pull_l2h(msg);
@@ -403,8 +414,10 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			 * parameters" is sent to the mobile management entity. */
 			LOGP(DLAPDM, LOGL_ERROR,
 				"U frame iwth incorrect parameters ");
+			msgb_free(msg);
 			return -EIO;
 		}
+		msgb_free(msg);
 		switch (dl->state) {
 		case LAPDm_STATE_IDLE:
 			/* FIXME: send DM with F=P */
@@ -420,6 +433,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		if (!LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 			/* 5.4.1.2 A UA response with the F bit set to "0" shall be ignored. */
 			DEBUGP(DLAPDM, "F=0 (discarding) ");
+			msgb_free(msg);
 			return 0;
 		}
 		switch (dl->state) {
@@ -430,6 +444,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		default:
 			DEBUGP(DLAPDM,
 				"unsolicited UA response! (discarding) ");
+			msgb_free(msg);
 			return 0;
 		}
 		/* reset Timer T200 */
@@ -441,6 +456,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* send notification to L3 */
 		rc = send_rslms_rll_simple(RSL_MT_EST_CONF, mctx);
 		break;
+	default:
+		msgb_free(msg);
 	}
 	return rc;
 }
@@ -457,6 +474,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		 * with the M bit set to "1", an MDL-ERROR-INDICATION
 		 * primitive with cause "S frame with incorrect
 		 * parameters" is sent to the mobile management entity. */
+		msgb_free(msg);
 		return -EIO;
 	}
 	switch (dl->state) {
@@ -476,6 +494,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* FIXME */
 		break;
 	}
+	msgb_free(msg);
 	return 0;
 }
 
@@ -495,6 +514,7 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		 * to a numerical value L>N201 or L=0, an MDL-ERROR-INDICATION
 		 * primitive with cause "I frame with incorrect length"
 		 * is sent to the mobile management entity. */
+		msgb_free(msg);
 		return -EIO;
 	}
 	/* FIXME: G.4.2 If the numerical value of L is L<N201 and the M
@@ -522,8 +542,10 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		     "V_recv=%u ", ns, dl->V_recv);
 		/* FIXME: 5.7.1: N(s) sequence error */
 		/* discard data */
+		msgb_free(msg);
 		return -EIO;
 	}
+	msgb_free(msg);
 
 	/* Check for P bit */
 	if (LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
@@ -578,6 +600,7 @@ static int lapdm_ph_data_ind(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		rc = lapdm_rx_i(msg, mctx);
 	else {
 		LOGP(DLAPDM, LOGL_ERROR, "unknown LAPDm format ");
+		msgb_free(msg);
 		rc = -EINVAL;
 	}
 	return rc;
@@ -626,6 +649,7 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 		if (!(mctx.addr & 0x01)) {
 			LOGP(DLAPDM, LOGL_ERROR, "we don't support "
 				"multibyte addresses (discarding)\n");
+			msgb_free(msg);
 			return -EINVAL;
 		}
 		mctx.ctrl = msg->l2h[1];
@@ -635,6 +659,7 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 		break;
 	case LAPDm_FMT_Bter:
 		/* FIXME */
+		msgb_free(msg);
 		break;
 	case LAPDm_FMT_Bbis:
 		/* directly pass up to layer3 */
@@ -643,6 +668,8 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 		msgb_pull_l2h(msg);
 		rc = send_rslms_rll_l3(RSL_MT_UNIT_DATA_IND, &mctx, msg);
 		break;
+	default:
+		msgb_free(msg);
 	}
 
 	return rc;
@@ -847,8 +874,10 @@ int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms)
 /* input function that L2 calls when sending messages up to L3 */
 int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms)
 {
-	if (!ms->l2_entity.msg_handler)
+	if (!ms->l2_entity.msg_handler) {
+		msgb_free(msg);
 		return -EIO;
+	}
 
 	/* call the layer2 message handler that is registered */
 	return ms->l2_entity.msg_handler(msg, ms);

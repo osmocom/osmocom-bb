@@ -122,6 +122,7 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 		rc = -EINVAL;
 		break;
 	}
+	msgb_free(msg);
 	return rc;
 }
 
@@ -139,6 +140,7 @@ static int layer3_from_layer2(struct msgb *msg, struct osmocom_ms *ms)
 		/* FIXME: implement this */
 		LOGP(DRSL, LOGL_NOTICE, "unknown RSLms msg_discr 0x%02x\n",
 			rslh->msg_discr);
+		msgb_free(msg);
 		rc = -EINVAL;
 		break;
 	}
