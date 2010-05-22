@@ -1421,9 +1421,8 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any)
 		LOGP(DCS, LOGL_INFO, "Select using access class with Emergency "
 			"class.\n");
 	} else {
-		acc_class = subscr->acc_class & 0xfbff; /* remove emergency */
-		LOGP(DCS, LOGL_INFO, "Select using access class without "
-			"Emergency class\n");
+		acc_class = subscr->acc_class;
+		LOGP(DCS, LOGL_INFO, "Select using access class \n");
 	}
 
 	/* flags to match */
@@ -1595,7 +1594,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			"%d).\n", cs->arfcn, cs->list[cs->arfcn].rxlev_db);
 		cs->ccch_state = GSM322_CCCH_ST_INIT;
 		l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
-		start_cs_timer(cs, ms->support.sync_to, 0);
+//		start_cs_timer(cs, ms->support.sync_to, 0);
 
 		return 0;
 	}
@@ -1695,7 +1694,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		cs->list[cs->arfcn].rxlev_db);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
-	start_cs_timer(cs, ms->support.sync_to, 0);
+//	start_cs_timer(cs, ms->support.sync_to, 0);
 
 	/* Allocate/clean system information. */
 	cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_SYSINFO;
@@ -1710,8 +1709,12 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	cs->si = cs->list[cs->arfcn].sysinfo;
 
 	/* increase scan counter for each maximum scan range */
-	if (gsm_sup_smax[j].max)
+	if (gsm_sup_smax[j].max) {
+		LOGP(DCS, LOGL_INFO, "%d frequencies left in band %d..%d\n",
+			gsm_sup_smax[j].max - gsm_sup_smax[j].temp,
+			gsm_sup_smax[j].start, gsm_sup_smax[j].end);
 		gsm_sup_smax[j].temp++;
+	}
 
 	return 0;
 }
@@ -2212,7 +2215,7 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 					cs->list[cs->arfcn].rxlev_db);
 				cs->ccch_state = GSM322_CCCH_ST_INIT;
 				l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
-				start_cs_timer(cs, ms->support.sync_to, 0);
+//				start_cs_timer(cs, ms->support.sync_to, 0);
 
 			} else
 				new_c_state(cs, GSM322_C0_NULL);
@@ -2292,6 +2295,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			/* in dedicated mode */
 			if (ms->rrlayer.state == GSM48_RR_ST_CONN_PEND)
 				return gsm48_rr_tx_rand_acc(ms, NULL);
+#endif
 
 			/* set timer for reading BCCH */
 			if (cs->state == GSM322_C2_STORED_CELL_SEL
@@ -2305,10 +2309,19 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			 || cs->state == GSM322_HPLMN_SEARCH)
 				start_cs_timer(cs, ms->support.scan_to, 0);
 					// TODO: timer depends on BCCH config
-#endif
 		}
 		break;
+	case S_L1CTL_FBSB_ERR:
+		ms = signal_data;
+		cs = &ms->cellsel;
+
+		LOGP(DCS, LOGL_INFO, "Sync error.\n");
+
+		/* tune to next cell */
+		gsm322_cs_scan(ms);
+		break;
 	}
+
 	return 0;
 }
 

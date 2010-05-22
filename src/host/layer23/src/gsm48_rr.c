@@ -896,7 +896,7 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = ms->cellsel.si;
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 	struct msgb *nmsg;
 	struct l1ctl_info_ul *nul;
 	struct l1ctl_rach_req *nra;
@@ -907,7 +907,8 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_INFO, "CCCH channel activation failed.\n");
 
 		if (rr->rr_est_req) {
-			struct msgb *msg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
+			struct msgb *msg =
+				gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
 			struct gsm48_rr_hdr *rrh;
 
 			if (!msg)
@@ -3094,7 +3095,6 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
-	struct gsm48_sysinfo *s = ms->cellsel.si;
 	struct tlv_parsed tv;
 	
 	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
@@ -3113,13 +3113,15 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* when camping, start/reset loss timer */
 	if (cs->state == GSM322_C3_CAMPED_NORMALLY
-	 || cs->state == GSM322_C7_CAMPED_ANY_CELL)
+	 || cs->state == GSM322_C7_CAMPED_ANY_CELL) {
+		struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 #ifdef TODO
 	set radio link timeout on layer 1
 	it is the number of subsequent BCCH blocks. (about 1/4 seconds)
 #else
 		start_loss_timer(cs, s->bcch_radio_link_timeout / 4, 0);
 #endif
+	}
 
 	/* temporary moved here until confirm is fixed */
 	if (cs->ccch_state != GSM322_CCCH_ST_DATA) {
