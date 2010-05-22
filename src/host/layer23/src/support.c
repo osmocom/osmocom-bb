@@ -71,7 +71,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->r_gsm = 0; /* R-GSM */
 	sup->r_capa = 0;
 	sup->low_capa = 4; /* p,e,r power class */
-	sup->dcs_1800 = 1;
+	sup->dcs_1800 = 0;
 	/* set supported frequencies */
 	if (sup->e_gsm || sup->r_gsm)
 		sup->freq_map[0] |= 1;
@@ -106,19 +106,19 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sprintf(sup->imeisv, "0000000000000000");
 
 	/* radio */
-	sup->min_rxlev_db = -80; // TODO
+	sup->min_rxlev_db = -100; // TODO
 	sup->sync_to = 6; /* how long to wait sync (0.9 s) */
 	sup->scan_to = 4; /* how long to wait for all sysinfos (>=4 s) */
 }
 
 /* (3.2.1) maximum channels to scan within each band */
 struct gsm_support_scan_max gsm_sup_smax[] = {
-	{ 259, 293, 15, 0 },
-	{ 360, 340, 15, 0 },
+	{ 259, 293, 15, 0 }, /* GSM 450 */
+	{ 306, 340, 15, 0 }, /* GSM 480 */
 	{ 438, 511, 25, 0 },
-	{ 128, 251, 30, 0 },
+	{ 128, 251, 30, 0 }, 
 	{ 955, 124, 30, 0 },
-	{ 512, 885, 40, 0 },
+	{ 512, 885, 40, 0 }, /* DCS 1800 */
 	{ 0, 0, 0, 0 }
 };
 
