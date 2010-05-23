@@ -34,13 +34,13 @@ struct rate_ctr_desc {
 /* Describe a counter group class */
 struct rate_ctr_group_desc {
 	/* The prefix to the name of all counters in this group */
-	char *group_name_prefix;
+	const char *group_name_prefix;
 	/* The human-readable description of the group */
-	char *group_description;
+	const char *group_description;
 	/* The number of counters in this group */
-	unsigned int num_ctr;
+	const unsigned int num_ctr;
 	/* Pointer to array of counter names */
-	struct rate_ctr_desc *ctr_desc;
+	const struct rate_ctr_desc *ctr_desc;
 };
 
 /* One instance of a counter group class */
