@@ -8,6 +8,7 @@
 struct osmocom_ms;
 
 #include <osmocom/support.h>
+#include <osmocom/settings.h>
 #include <osmocom/subscriber.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/gsm48_rr.h>
@@ -31,6 +32,8 @@ struct osmocom_ms {
 	uint16_t test_arfcn;
 
 	struct gsm_support support;
+
+	struct gsm_settings settings;
 
 	struct gsm_subscriber subscr;
 

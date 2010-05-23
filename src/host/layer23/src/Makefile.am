@@ -4,7 +4,7 @@ AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS)
 
 noinst_LIBRARIES = liblayer23.a libvty.a
 liblayer23_a_SOURCES = l1l2_interface.c l1ctl.c gsmtap_util.c lapdm.c rslms.c \
-			layer3.c logging.c bcch_scan.c \
+			layer3.c logging.c bcch_scan.c settings.c \
 			gsm48_cc.c transaction.c gsm48_mm.c gsm48_rr.c \
 			gsm322.c support.c subscriber.c sysinfo.c networks.c \
 			mnccms.c telnet_interface.c vty_interface.c

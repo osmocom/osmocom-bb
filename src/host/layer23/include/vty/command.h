@@ -102,6 +102,7 @@ enum node_type {
 	VTY_NODE,		/* Vty node. */
 
 	MS_NODE,
+	TESTSIM_NODE,
 #if 0
 	BTS_NODE,
 	TRX_NODE,

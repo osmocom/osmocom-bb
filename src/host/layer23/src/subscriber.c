@@ -66,10 +66,13 @@ int gsm_subscr_exit(struct osmocom_ms *ms)
 }
 
 /* Attach test card, no sim must be present */
-int gsm_subscr_testcard(struct osmocom_ms *ms, int mcc, int mnc, char *msin)
+int gsm_subscr_testcard(struct osmocom_ms *ms)
 {
+	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *msg;
+	uint16_t mcc, mnc;
+	char *error;
 
 	if (subscr->sim_valid) {
 		LOGP(DMM, LOGL_ERROR, "Cannot insert card, until current card "
@@ -77,8 +80,9 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, int mcc, int mnc, char *msin)
 		return -EBUSY;
 	}
 
-	if (strlen(msin) != 10) {
-		LOGP(DMM, LOGL_ERROR, "MSIN '%s' Error.\n", msin);
+	error = gsm_check_imsi(set->test_imsi, &mcc, &mnc);
+	if (error) {
+		LOGP(DMM, LOGL_ERROR, "%s\n", error);
 		return -EINVAL;
 	}
 
@@ -90,13 +94,16 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, int mcc, int mnc, char *msin)
 	// TODO: load / save SIM to file system
 	subscr->sim_valid = 1;
 	subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
-	subscr->acc_barr = 1; /* we may access any barred cell */
+	subscr->acc_barr = set->test_barr; /* we may access barred cell */
 	subscr->acc_class = 0xfbff; /* we have any access class */
 	subscr->mcc = mcc;
 	subscr->mnc = mnc;
-	subscr->always_search_hplmn = 1;
+	subscr->plmn_valid = set->test_rplmn_valid;
+	subscr->plmn_mcc = set->test_rplmn_mcc;
+	subscr->plmn_mnc = set->test_rplmn_mnc;
+	subscr->always_search_hplmn = set->test_always;
 	subscr->t6m_hplmn = 1; /* try to find home network every 6 min */
-	snprintf(subscr->imsi, 15, "%03d%02d%s", mcc, mnc, msin);
+	strcpy(subscr->imsi, set->test_imsi);
 
 	LOGP(DMM, LOGL_INFO, "(ms %s) Inserting test card (mnc=%d mnc=%d "
 		"(%s, %s) imsi=%s)\n", ms->name, mcc, mnc, gsm_get_mcc(mcc),
@@ -275,4 +282,23 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 				plmn_na->mcc, plmn_na->mnc, plmn_na->cause);
 	}
 }
+
+char *gsm_check_imsi(char *imsi, uint16_t *mcc, uint16_t *mnc)
+{
+	int i;
+
+	if (!imsi || strlen(imsi) != 15)
+		return "IMSI must have 15 digits!";
+
+	for (i = 0; i < strlen(imsi); i++) {
+		if (imsi[i] < '0' || imsi[i] > '9')
+			return "IMSI must have digits 0 to 9 only!";
+	}
+
+	*mcc = imsi[0] * 100 + imsi[1] * 10 + imsi[2] - 111 * '0';
+	*mnc = imsi[3] * 10 + imsi[4] - 11 * '0';
+
+	return NULL;
+}
+
 

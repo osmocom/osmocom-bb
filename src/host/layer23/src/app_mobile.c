@@ -87,10 +87,9 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		}
 		started = 1;
 		ms = signal_data;
-		gsm_subscr_testcard(ms, 1, 1, "0000000000");
-//		ms->subscr.plmn_valid = 1;
-		ms->subscr.plmn_mcc = 262;
-		ms->subscr.plmn_mnc = 2;
+		/* insert test card, if enabled */
+		if (ms->settings.simtype == GSM_SIM_TYPE_TEST)
+			gsm_subscr_testcard(ms);
 		/* start PLMN + cell selection process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
 		if (!nmsg)
@@ -143,6 +142,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG");
 
 	srand(time(NULL));
+	gsm_settings_init(ms);
 	gsm48_cc_init(ms);
 	gsm_support_init(ms);
 	gsm_subscr_init(ms);

@@ -20,6 +20,12 @@ struct gsm_sub_plmn_na {
 
 #define GSM_IMSI_LENGTH		16
 
+enum {
+	GSM_SIM_TYPE_NONE = 0,
+	GSM_SIM_TYPE_SLOT,
+	GSM_SIM_TYPE_TEST
+};
+
 struct gsm_subscriber {
 	struct osmocom_ms	*ms;
 
@@ -65,7 +71,7 @@ struct gsm_subscriber {
 
 int gsm_subscr_init(struct osmocom_ms *ms);
 int gsm_subscr_exit(struct osmocom_ms *ms);
-int gsm_subscr_testcard(struct osmocom_ms *ms, int mcc, int mnc, char *msin);
+int gsm_subscr_testcard(struct osmocom_ms *ms);
 int gsm_subscr_remove(struct osmocom_ms *ms);
 void new_sim_ustate(struct gsm_subscriber *subscr, int state);
 int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
@@ -76,6 +82,7 @@ int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 					uint16_t mnc);
 void gsm_subscr_dump(struct gsm_subscriber *subscr,
 			void (*print)(void *, const char *, ...), void *priv);
+char *gsm_check_imsi(char *imsi, uint16_t *mcc, uint16_t *mnc);
 
 #endif /* _SUBSCRIBER_H */
 

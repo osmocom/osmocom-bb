@@ -40,6 +40,12 @@ struct cmd_node ms_node = {
 	1
 };
 
+struct cmd_node testsim_node = {
+	TESTSIM_NODE,
+	"%s(test-sim)#",
+	1
+};
+
 static void print_vty(void *priv, const char *fmt, ...)
 {
 	char buffer[1000];
@@ -218,7 +224,7 @@ DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
 		mnc = atoi(argv[2]);
 	}
 
-	gsm_subscr_testcard(ms, mcc, mnc, "0000000000");
+	gsm_subscr_testcard(ms);
 
 	return CMD_SUCCESS;
 }
@@ -343,8 +349,35 @@ DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 {
 	vty_out(vty, " ms %s%s", ms->name, VTY_NEWLINE);
+	switch(ms->settings.simtype) {
+		case GSM_SIM_TYPE_NONE:
+		vty_out(vty, "  sim none%s", VTY_NEWLINE);
+		break;
+		case GSM_SIM_TYPE_SLOT:
+		vty_out(vty, "  sim slot%s", VTY_NEWLINE);
+		break;
+		case GSM_SIM_TYPE_TEST:
+		vty_out(vty, "  sim test%s", VTY_NEWLINE);
+		break;
+	}
 	vty_out(vty, "  network-selection-mode %s%s", (ms->plmn.mode
 			== PLMN_MODE_AUTO) ? "auto" : "manual", VTY_NEWLINE);
+	vty_out(vty, "  test-sim%s", VTY_NEWLINE);
+	vty_out(vty, "   imsi %s%s", ms->settings.test_imsi, VTY_NEWLINE);
+	if (ms->settings.test_barr)
+		vty_out(vty, "   barred-access yes%s", VTY_NEWLINE);
+	else
+		vty_out(vty, "   barred-access no%s", VTY_NEWLINE);
+	if (ms->settings.test_rplmn_valid)
+		vty_out(vty, "   rplmn-valid%s", VTY_NEWLINE);
+	else
+		vty_out(vty, "   rplmn-invalid%s", VTY_NEWLINE);
+	vty_out(vty, "   rplmn %03d %02d%s", ms->settings.test_rplmn_mcc,
+		ms->settings.test_rplmn_mnc, VTY_NEWLINE);
+	if (ms->settings.test_always)
+		vty_out(vty, "   hplmn-search everywhere%s", VTY_NEWLINE);
+	else
+		vty_out(vty, "   hplmn-search foreign-country%s", VTY_NEWLINE);
 }
 
 static int config_write_ms(struct vty *vty)
@@ -382,6 +415,122 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|test)",
+	"Set sim card type when powering on\n")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	switch (argv[0][0]) {
+	case 'n':
+		ms->settings.simtype = GSM_SIM_TYPE_NONE;
+		break;
+	case 's':
+		ms->settings.simtype = GSM_SIM_TYPE_SLOT;
+		break;
+	case 't':
+		ms->settings.simtype = GSM_SIM_TYPE_TEST;
+		break;
+	}
+
+	return CMD_SUCCESS;
+}
+
+/* per MS config */
+DEFUN(cfg_testsim, cfg_testsim_cmd, "test-sim",
+	"Configure test SIM emulation\n")
+{
+	vty->node = TESTSIM_NODE;
+
+	return CMD_SUCCESS;
+}
+
+static int config_write_dummy(struct vty *vty)
+{
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
+	"Set IMSI on test card\n")
+{
+	struct osmocom_ms *ms = vty->index;
+	uint16_t mcc, mnc;
+	char *error = gsm_check_imsi((char *)(argv[0]), &mcc, &mnc);
+
+	if (error) {
+		vty_out(vty, "%s%s", error, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	strcpy(ms->settings.test_imsi, argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access (yes|no)",
+	"Allow access to barred cells\n")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	switch (argv[0][0]) {
+	case 'y':
+		ms->settings.test_barr = 1;
+		break;
+	case 'n':
+		ms->settings.test_barr = 0;
+		break;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_rplmn_valid, cfg_test_rplmn_valid_cmd, "rplmn-valid",
+	"Mark Registered PLMN as valid\n")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.test_rplmn_valid = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_rplmn_invalid, cfg_test_rplmn_invalid_cmd, "rplmn-invalid",
+	"Mark Registered PLMN as invalid\n")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.test_rplmn_valid = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
+	"Set Registered PLMN\n")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.test_rplmn_mcc = atoi(argv[0]);
+	ms->settings.test_rplmn_mnc = atoi(argv[1]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-country)",
+	"Set sim card type when powering on\n")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	switch (argv[0][0]) {
+	case 'e':
+		ms->settings.test_always = 1;
+		break;
+	case 'f':
+		ms->settings.test_always = 0;
+		break;
+	}
+
+	return CMD_SUCCESS;
+}
+
 int ms_vty_init(void)
 {
 	cmd_init(1);
@@ -409,6 +558,17 @@ int ms_vty_init(void)
 	install_node(&ms_node, config_write_ms);
 	install_default(MS_NODE);
 	install_element(MS_NODE, &cfg_ms_mode_cmd);
+	install_element(MS_NODE, &cfg_ms_sim_cmd);
+
+	install_element(MS_NODE, &cfg_testsim_cmd);
+	install_node(&testsim_node, config_write_dummy);
+	install_default(TESTSIM_NODE);
+	install_element(TESTSIM_NODE, &cfg_test_imsi_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_barr_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_rplmn_valid_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_rplmn_invalid_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_rplmn_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_hplmn_cmd);
 
 	return 0;
 }

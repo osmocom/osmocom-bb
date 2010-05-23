@@ -1914,6 +1914,9 @@ enum node_type vty_go_parent(struct vty *vty)
 		vty->node = CONFIG_NODE;
 		vty->index = NULL;
 		break;
+	case TESTSIM_NODE:
+		vty->node = MS_NODE;
+		break;
 #if 0
 	case BTS_NODE:
 		vty->node = GSMNET_NODE;
@@ -2314,6 +2317,9 @@ DEFUN(config_exit,
 	case MS_NODE:
 		vty->node = CONFIG_NODE;
 		vty->index = NULL;
+		break;
+	case TESTSIM_NODE:
+		vty->node = MS_NODE;
 		break;
 #if 0
 	case BTS_NODE:
