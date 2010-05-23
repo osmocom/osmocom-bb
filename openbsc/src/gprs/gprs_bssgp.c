@@ -256,8 +256,8 @@ static int bssgp_rx_ul_ud(struct msgb *msg, struct tlv_parsed *tp,
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 
 	/* store pointer to LLC header and CELL ID in msgb->cb */
-	msgb_llch(msg) = TLVP_VAL(tp, BSSGP_IE_LLC_PDU);
-	msgb_bcid(msg) = TLVP_VAL(tp, BSSGP_IE_CELL_ID);
+	msgb_llch(msg) = (uint8_t *) TLVP_VAL(tp, BSSGP_IE_LLC_PDU);
+	msgb_bcid(msg) = (uint8_t *) TLVP_VAL(tp, BSSGP_IE_CELL_ID);
 
 	return gprs_llc_rcvmsg(msg, tp);
 }
