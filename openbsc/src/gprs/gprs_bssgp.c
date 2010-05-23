@@ -276,6 +276,7 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 
 	/* FIXME: pass the SUSPEND request to GMM */
 	/* SEND SUSPEND_ACK or SUSPEND_NACK */
+	return 0;
 }
 
 static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
@@ -293,6 +294,7 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 
 	/* FIXME: pass the RESUME request to GMM */
 	/* SEND RESUME_ACK or RESUME_NACK */
+	return 0;
 }
 
 static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
@@ -388,7 +390,7 @@ static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 		break;
 	}
 
-
+	return rc;
 }
 
 /* Receive a BSSGP PDU from a BSS on a SIGNALLING BVCI */
