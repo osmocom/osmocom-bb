@@ -69,6 +69,7 @@
 #include <openbsc/signal.h>
 #include <openbsc/gprs_ns.h>
 #include <openbsc/gprs_bssgp.h>
+#include <openbsc/gprs_ns_frgre.h>
 #include <openbsc/socket.h>
 
 static const struct tlv_definition ns_att_tlvdef = {
