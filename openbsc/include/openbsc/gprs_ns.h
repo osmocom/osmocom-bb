@@ -217,7 +217,7 @@ struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei);
 struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci);
 
 /* Initiate a RESET procedure (including timer start, ...)*/
-int gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause);
+void gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause);
 
 /* Add NS-specific VTY stuff */
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi);

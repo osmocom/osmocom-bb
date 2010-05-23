@@ -924,7 +924,7 @@ int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi)
 }
 
 /* Initiate a RESET procedure */
-int gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
+void gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 {
 	/* Mark NS-VC locally as blocked and dead */
 	nsvc->state = NSE_S_BLOCKED;
@@ -935,8 +935,6 @@ int gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 	}
 	/* Start Tns-reset */
 	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
-
-	return nsvc;
 }
 
 /* Establish a connection (from the BSS) to the SGSN */
@@ -954,5 +952,6 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 	nsvc->nsvci = nsvci;
 	nsvc->remote_end_is_sgsn = 1;
 
-	return gprs_nsvc_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	gprs_nsvc_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	return nsvc;
 }
