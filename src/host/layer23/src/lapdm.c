@@ -534,7 +534,7 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		dl->V_recv = inc_mod8(dl->V_recv);
 
 		/* send a DATA INDICATION to L3 */
-		msg->l3h = msg->l2h + 2;
+		msg->l3h = msg->l2h + 3;
 		msgb_pull_l2h(msg);
 		rc = send_rslms_rll_l3(RSL_MT_DATA_IND, mctx, msg);
 	} else {
@@ -545,7 +545,6 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		msgb_free(msg);
 		return -EIO;
 	}
-	msgb_free(msg);
 
 	/* Check for P bit */
 	if (LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
@@ -612,7 +611,7 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 	uint8_t cbits = l1i->chan_nr >> 3;
 	uint8_t sapi = l1i->link_id & 7;
 	struct lapdm_msg_ctx mctx;
-	int rc;
+	int rc = 0;
 
 	/* when we reach here, we have a msgb with l2h pointing to the raw
 	 * 23byte mac block. The l1h has already been purged. */
