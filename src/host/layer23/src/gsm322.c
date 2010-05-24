@@ -2481,18 +2481,12 @@ static int gsm322_c_normal_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	int i;
 
 	/* in case we already tried any cell (re-)selection, power scan again */
-	if (cs->state == GSM322_C6_ANY_CELL_SEL
+	if (cs->state == GSM322_C0_NULL
+	 || cs->state == GSM322_C6_ANY_CELL_SEL
 	 || cs->state == GSM322_C8_ANY_CELL_RESEL) {
-		struct msgb *nmsg;
-
-		/* tell that we have no cell found */
-		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_NO_CELL_FOUND);
-		if (!nmsg)
-			return -ENOMEM;
-		gsm48_mmevent_msg(ms, nmsg);
+		int i;
 
 		for (i = 0; i <= 1023; i++) {
 			cs->list[i].flags &= ~(GSM322_CS_FLAG_POWER
@@ -2505,6 +2499,18 @@ static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 				cs->list[i].sysinfo = NULL;
 			}
 		}
+	}
+	/* after re-selection, indicate no cell found */
+	if (cs->state == GSM322_C6_ANY_CELL_SEL
+	 || cs->state == GSM322_C8_ANY_CELL_RESEL) {
+		struct msgb *nmsg;
+
+		/* tell that we have no cell found */
+		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_NO_CELL_FOUND);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm48_mmevent_msg(ms, nmsg);
+
 	} else { 
 		new_c_state(cs, GSM322_C6_ANY_CELL_SEL);
 	}
@@ -3099,7 +3105,7 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 				else
 					print(priv, "normal |");
 			}
-			print(priv, "|%4d   |%4d\n", s->rxlev_acc_min_db,
+			print(priv, "%4d   |%4d\n", s->rxlev_acc_min_db,
 				s->ms_txpwr_max_ccch);
 		} else
 			print(priv, "n/a    |n/a    |n/a    |n/a    |n/a    |"

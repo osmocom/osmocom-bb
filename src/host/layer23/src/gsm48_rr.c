@@ -929,7 +929,7 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	LOGP(DRR, LOGL_INFO, "RANDOM ACCESS confirm (requests left %d)\n",
+	LOGP(DRR, LOGL_INFO, "RANDOM ACCESS (requests left %d)\n",
 		rr->n_chan_req);
 
 	if (!rr->n_chan_req) {

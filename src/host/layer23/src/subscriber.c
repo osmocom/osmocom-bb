@@ -95,7 +95,7 @@ int gsm_subscr_testcard(struct osmocom_ms *ms)
 	subscr->sim_valid = 1;
 	subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
 	subscr->acc_barr = set->test_barr; /* we may access barred cell */
-	subscr->acc_class = 0xfbff; /* we have any access class */
+	subscr->acc_class = 0xffff; /* we have any access class */
 	subscr->mcc = mcc;
 	subscr->mnc = mnc;
 	subscr->plmn_valid = set->test_rplmn_valid;
