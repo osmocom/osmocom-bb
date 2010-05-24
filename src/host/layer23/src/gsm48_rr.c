@@ -1688,6 +1688,12 @@ static int gsm48_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 1 "
+			"ignored\n");
+		return -EINVAL;
+	}
+
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 1 "
 			"message.\n");
@@ -1721,6 +1727,12 @@ static int gsm48_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_2 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 2 "
+			"ignored\n");
+		return -EINVAL;
+	}
 
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 2 "
@@ -1757,6 +1769,12 @@ static int gsm48_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 2bis"
+			" ignored\n");
+		return -EINVAL;
+	}
+
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 2bis "
 			"message.\n");
@@ -1792,6 +1810,12 @@ static int gsm48_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 2ter"
+			" ignored\n");
+		return -EINVAL;
+	}
+
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 2ter "
 			"message.\n");
@@ -1823,6 +1847,12 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_3 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
+
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 3 "
+			"ignored\n");
+		return -EINVAL;
+	}
 
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 3 "
@@ -1867,6 +1897,12 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
 	uint8_t *data = si->data;
 	struct gsm48_chan_desc *cd;
+
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 4 "
+			"ignored\n");
+		return -EINVAL;
+	}
 
 	if (payload_len < 0) {
 		short_read:
@@ -1928,6 +1964,12 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 5 "
+			"ignored\n");
+		return -EINVAL;
+	}
+
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 5 "
 			"message.\n");
@@ -1958,6 +2000,12 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_5bis *si = msgb_l3(msg) + 1;
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
+
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 5bis"
+			" ignored\n");
+		return -EINVAL;
+	}
 
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 5bis "
@@ -1991,6 +2039,12 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 5ter"
+			" ignored\n");
+		return -EINVAL;
+	}
+
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 5ter "
 			"message.\n");
@@ -2020,6 +2074,12 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_6 *si = msgb_l3(msg) + 1;
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
+
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 6 "
+			"ignored\n");
+		return -EINVAL;
+	}
 
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 6 "

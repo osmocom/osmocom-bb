@@ -1668,6 +1668,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 #endif
 			/* unset selected cell */
 			cs->selected = 0;
+			cs->si = NULL;
 			memset(&cs->sel_si, 0, sizeof(cs->sel_si));
 			cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id
 				= 0;
@@ -2315,10 +2316,11 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		ms = signal_data;
 		cs = &ms->cellsel;
 
-		LOGP(DCS, LOGL_INFO, "Sync error.\n");
-
-		/* tune to next cell */
-		gsm322_cs_scan(ms);
+		stop_cs_timer(cs);
+		if (cs->selected)
+			gsm322_cs_loss(cs);
+		else
+			gsm322_cs_timeout(cs);
 		break;
 	}
 
@@ -2346,6 +2348,9 @@ static void gsm322_cs_loss(void *arg)
 			msgb_free(nmsg);
 		} else {
 			LOGP(DCS, LOGL_INFO, "Trigger RR abort.\n");
+#ifdef TODO
+	must trigger RR abort.
+#endif
 		}
 	}
 
@@ -2378,6 +2383,7 @@ static int gsm322_c_plmn_search(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* unset selected cell */
 	cs->selected = 0;
+	cs->si = NULL;
 	memset(&cs->sel_si, 0, sizeof(cs->sel_si));
 	cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id = 0;
 
@@ -2432,6 +2438,7 @@ static int gsm322_c_stored_cell_sel(struct osmocom_ms *ms, struct gsm322_ba_list
 
 	/* unset selected cell */
 	cs->selected = 0;
+	cs->si = NULL;
 	memset(&cs->sel_si, 0, sizeof(cs->sel_si));
 	cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id = 0;
 
@@ -2464,6 +2471,7 @@ static int gsm322_c_normal_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* unset selected cell */
 	cs->selected = 0;
+	cs->si = NULL;
 	memset(&cs->sel_si, 0, sizeof(cs->sel_si));
 	cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id = 0;
 
@@ -2507,6 +2515,7 @@ static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* unset selected cell */
 	cs->selected = 0;
+	cs->si = NULL;
 	memset(&cs->sel_si, 0, sizeof(cs->sel_si));
 	cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id = 0;
 
@@ -2627,6 +2636,7 @@ if we return from dedicated mode and we have a ba range, we can use that for cel
 
 	/* unset selected cell */
 	cs->selected = 0;
+	cs->si = NULL;
 	memset(&cs->sel_si, 0, sizeof(cs->sel_si));
 	cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id = 0;
 
