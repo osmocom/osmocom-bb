@@ -72,7 +72,7 @@ struct gsm_support {
 	uint8_t gps_conv;
 
 	/* IMEI */
-	char imei[15];
+	char imei[16];
 	char imeisv[17];
 	char imei_random;
 

@@ -55,7 +55,10 @@ int gsm48_cc_init(struct osmocom_ms *ms)
 
 	cc->ms = ms;
 
-	LOGP(DCC, LOGL_INFO, "init Call Control process\n");
+	if (!cc->mncc_upqueue.next == 0)
+		return 0;
+
+	LOGP(DCC, LOGL_INFO, "init Call Control\n");
 
 	INIT_LLIST_HEAD(&cc->mncc_upqueue);
 
@@ -68,7 +71,7 @@ int gsm48_cc_exit(struct osmocom_ms *ms)
 	struct gsm_trans *trans, *trans2;
 	struct msgb *msg;
 
-	LOGP(DCC, LOGL_INFO, "exit Call Control process\n");
+	LOGP(DCC, LOGL_INFO, "exit Call Control processes for %s\n", ms->name);
 
 	llist_for_each_entry_safe(trans, trans2, &ms->trans_list, entry) {
 		if (trans->protocol == GSM48_PDISC_CC)
@@ -242,9 +245,9 @@ static void gsm48_cc_timeout(void *arg)
 	struct osmocom_ms *ms = trans->ms;
 	int disconnect = 0, release = 0, abort = 1;
 	int mo_cause = GSM48_CC_CAUSE_RECOVERY_TIMER;
-	int mo_location = GSM48_CAUSE_LOC_USER;
+	int mo_location = GSM48_CAUSE_LOC_PRN_S_LU;
 	int l4_cause = GSM48_CC_CAUSE_NORMAL_UNSPEC;
-	int l4_location = GSM48_CAUSE_LOC_USER;
+	int l4_location = GSM48_CAUSE_LOC_PRN_S_LU;
 	struct gsm_mncc mo_rel, l4_rel;
 
 	memset(&mo_rel, 0, sizeof(struct gsm_mncc));
@@ -375,7 +378,7 @@ void _gsm48_cc_trans_free(struct gsm_trans *trans)
 	if (trans->callref) {
 		/* Ressource unavailable */
 		mncc_release_ind(trans->ms, trans, trans->callref,
-			GSM48_CAUSE_LOC_USER,
+			GSM48_CAUSE_LOC_PRN_S_LU,
 			GSM48_CC_CAUSE_RESOURCE_UNAVAIL);
 	}
 	if (trans->cc.state != GSM_CSTATE_NULL)
@@ -438,7 +441,7 @@ static int gsm48_cc_tx_status(struct gsm_trans *trans, int cause)
 
 	cause_ie = msgb_put(nmsg, 3);
 	cause_ie[0] = 2;
-	cause_ie[1] = GSM48_CAUSE_CS_GSM | GSM48_CAUSE_LOC_USER;
+	cause_ie[1] = GSM48_CAUSE_CS_GSM | GSM48_CAUSE_LOC_PRN_S_LU;
 	cause_ie[2] = 0x80 | cause;
 
 	call_state_ie = msgb_put(nmsg, 1);
@@ -522,7 +525,7 @@ static int gsm48_cc_tx_setup(struct gsm_trans *trans)
 			"This is not allowed!\n");
 		/* Temporarily out of order */
 		rc = mncc_release_ind(trans->ms, trans, trans->callref,
-				      GSM48_CAUSE_LOC_USER,
+				      GSM48_CAUSE_LOC_PRN_S_LU,
 				      GSM48_CC_CAUSE_NORMAL_UNSPEC);
 		trans->callref = 0;
 		trans_free(trans);
@@ -534,7 +537,7 @@ static int gsm48_cc_tx_setup(struct gsm_trans *trans)
 	if (transaction_id < 0) {
 		/* no free transaction ID */
 		rc = mncc_release_ind(trans->ms, trans, trans->callref,
-				      GSM48_CAUSE_LOC_USER,
+				      GSM48_CAUSE_LOC_PRN_S_LU,
 				      GSM48_CC_CAUSE_RESOURCE_UNAVAIL);
 		trans->callref = 0;
 		trans_free(trans);
@@ -1778,13 +1781,13 @@ int mncc_send(struct osmocom_ms *ms, int msg_type, void *arg)
 		if (msg_type != MNCC_SETUP_REQ) {
 			/* Invalid call reference */
 			return mncc_release_ind(ms, NULL, data->callref,
-				GSM48_CAUSE_LOC_USER,
+				GSM48_CAUSE_LOC_PRN_S_LU,
 				GSM48_CC_CAUSE_INVAL_TRANS_ID);
 		}
-		if (data->callref < 0x80000000) {
+		if (data->callref >= 0x40000000) {
 			LOGP(DCC, LOGL_FATAL, "MNCC ref wrong.\n");
 			return mncc_release_ind(ms, NULL, data->callref,
-				GSM48_CAUSE_LOC_USER,
+				GSM48_CAUSE_LOC_PRN_S_LU,
 				GSM48_CC_CAUSE_INVAL_TRANS_ID);
 		}
 
@@ -1793,7 +1796,7 @@ int mncc_send(struct osmocom_ms *ms, int msg_type, void *arg)
 		if (!trans) {
 			/* No memory or whatever */
 			return mncc_release_ind(ms, NULL, data->callref,
-				GSM48_CAUSE_LOC_USER,
+				GSM48_CAUSE_LOC_PRN_S_LU,
 				GSM48_CC_CAUSE_RESOURCE_UNAVAIL);
 		}
 	}
@@ -1942,6 +1945,10 @@ int gsm48_rcv_cc(struct osmocom_ms *ms, struct msgb *msg)
 			return -ENOMEM;
 	}
 
+	LOGP(DCC, LOGL_INFO, "(ms %s) Received '%s' in CC state %s\n", ms->name,
+		get_mmxx_name(msg_type),
+		gsm48_cc_state_name(trans->cc.state));
+
 	switch (msg_type) {
 	case GSM48_MMCC_EST_IND:
 		/* data included */
@@ -1959,7 +1966,7 @@ int gsm48_rcv_cc(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_MMCC_REL_IND:
 		/* release L4, release transaction */
 		mncc_release_ind(trans->ms, trans, trans->callref,
-			 GSM48_CAUSE_LOC_USER, GSM48_CC_CAUSE_NORMAL_UNSPEC);
+			 GSM48_CAUSE_LOC_PRN_S_LU, mmh->cause);
 		trans->callref = 0;
 		trans_free(trans);
 		break;

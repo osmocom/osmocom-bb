@@ -54,6 +54,7 @@ static struct osmocom_ms *ms = NULL;
 static uint32_t gsmtap_ip = 0;
 int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
 int (*l23_app_exit) (struct osmocom_ms *ms) = NULL;
+int quit = 0;
 
 static void print_usage(const char *app)
 {
@@ -182,7 +183,7 @@ int main(int argc, char **argv)
 	signal(SIGTERM, sighandler);
 	signal(SIGPIPE, sighandler);
 
-	while (1) {
+	while (!quit) {
 		if (l23_app_work)
 			l23_app_work(ms);
 		bsc_select_main(0);

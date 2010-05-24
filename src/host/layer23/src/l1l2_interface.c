@@ -34,8 +34,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define GSM_L2_LENGTH 256
+
+extern int quit;
 
 static int layer2_read(struct bsc_fd *fd)
 {
@@ -51,7 +54,8 @@ static int layer2_read(struct bsc_fd *fd)
 
 	rc = read(fd->fd, &len, sizeof(len));
 	if (rc < sizeof(len)) {
-		msgb_free(msg);
+		fprintf(stderr, "Layer2 socket failed\n");
+		quit = rc;
 		return rc;
 	}
 
