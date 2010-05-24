@@ -354,41 +354,41 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
 
-	vty_out(vty, " ms %s%s", ms->name, VTY_NEWLINE);
+	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
 	switch(ms->settings.simtype) {
 		case GSM_SIM_TYPE_NONE:
-		vty_out(vty, "  sim none%s", VTY_NEWLINE);
+		vty_out(vty, " sim none%s", VTY_NEWLINE);
 		break;
 		case GSM_SIM_TYPE_SLOT:
-		vty_out(vty, "  sim slot%s", VTY_NEWLINE);
+		vty_out(vty, " sim slot%s", VTY_NEWLINE);
 		break;
 		case GSM_SIM_TYPE_TEST:
-		vty_out(vty, "  sim test%s", VTY_NEWLINE);
+		vty_out(vty, " sim test%s", VTY_NEWLINE);
 		break;
 	}
-	vty_out(vty, "  network-selection-mode %s%s", (set->plmn_mode
+	vty_out(vty, " network-selection-mode %s%s", (set->plmn_mode
 			== PLMN_MODE_AUTO) ? "auto" : "manual", VTY_NEWLINE);
-	vty_out(vty, "  imei %s %s%s", set->imei,
+	vty_out(vty, " imei %s %s%s", set->imei,
 		set->imeisv + strlen(set->imei), VTY_NEWLINE);
 	if (set->imei_random)
-		vty_out(vty, "  imei-random %d%s", set->imei_random,
+		vty_out(vty, " imei-random %d%s", set->imei_random,
 			VTY_NEWLINE);
 	else
-		vty_out(vty, "  imei-fixed%s", VTY_NEWLINE);
-	vty_out(vty, "  test-sim%s", VTY_NEWLINE);
-	vty_out(vty, "   imsi %s%s", ms->settings.test_imsi, VTY_NEWLINE);
-	vty_out(vty, "   barred-access %s%s", (set->test_barr) ? "yes" : "no",
+		vty_out(vty, " imei-fixed%s", VTY_NEWLINE);
+	vty_out(vty, " test-sim%s", VTY_NEWLINE);
+	vty_out(vty, "  imsi %s%s", ms->settings.test_imsi, VTY_NEWLINE);
+	vty_out(vty, "  barred-access %s%s", (set->test_barr) ? "yes" : "no",
 		VTY_NEWLINE);
 	if (ms->settings.test_rplmn_valid)
-		vty_out(vty, "   rplmn-valid%s", VTY_NEWLINE);
+		vty_out(vty, "  rplmn-valid%s", VTY_NEWLINE);
 	else
-		vty_out(vty, "   rplmn-invalid%s", VTY_NEWLINE);
-	vty_out(vty, "   rplmn %03d %02d%s", ms->settings.test_rplmn_mcc,
+		vty_out(vty, "  rplmn-invalid%s", VTY_NEWLINE);
+	vty_out(vty, "  rplmn %03d %02d%s", ms->settings.test_rplmn_mcc,
 		ms->settings.test_rplmn_mnc, VTY_NEWLINE);
-	vty_out(vty, "   hplmn-search %s%s", (set->test_always) ? "everywhere"
+	vty_out(vty, "  hplmn-search %s%s", (set->test_always) ? "everywhere"
 			: "foreign-country", VTY_NEWLINE);
-	vty_out(vty, "  end%s", VTY_NEWLINE);
-	vty_out(vty, " end%s", VTY_NEWLINE);
+	vty_out(vty, " exit%s", VTY_NEWLINE);
+	vty_out(vty, "exit%s", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
 
