@@ -142,6 +142,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG");
 
 	srand(time(NULL));
+
 	gsm_settings_init(ms);
 	gsm48_cc_init(ms);
 	gsm_support_init(ms);
@@ -151,6 +152,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	INIT_LLIST_HEAD(&ms->trans_list);
 	ms->cclayer.mncc_recv = mncc_recv_dummy;
 	gsm322_init(ms);
+
 	l23_app_work = mobile_work;
 	register_signal_handler(SS_L1CTL, &signal_cb, NULL);
 	l23_app_exit = mobile_exit;
@@ -160,10 +162,12 @@ int l23_app_init(struct osmocom_ms *ms)
 	if (rc < 0) {
 		fprintf(stderr, "Failed to parse the config file: '%s'\n",
 			config_file);
-		fprintf(stderr, "Please create config file using: "
+		fprintf(stderr, "Please check or create config file using: "
 			"'touch %s%s'\n", OSMOCOM_CONFDIR, config_file);
 		return rc;
 	}
+
+	gsm_random_imei(&ms->settings);
 
 	return 0;
 }

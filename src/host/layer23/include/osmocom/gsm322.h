@@ -114,7 +114,6 @@ struct gsm322_cs_list {
 struct gsm322_plmn {
 	struct osmocom_ms	*ms;
 	int			state; /* GSM322_Ax_* or GSM322_Mx_* */
-	int			mode; /* PLMN_MODE_* */
 
 	struct llist_head	event_queue; /* event messages */
 	struct llist_head	sorted_plmn; /* list of sorted PLMN */

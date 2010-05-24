@@ -2,6 +2,15 @@
 #define _settings_h
 
 struct gsm_settings {
+	/* IMEI */
+	char			imei[16];
+	char			imeisv[17];
+	char			imei_random;
+
+	/* network search */
+	int			plmn_mode; /* PLMN_MODE_* */
+
+	/* SIM */
 	int			simtype; /* selects card on power on */
 
 	/* test card simulator settings */
@@ -13,6 +22,8 @@ struct gsm_settings {
 };
 
 int gsm_settings_init(struct osmocom_ms *ms);
+char *gsm_check_imei(const char *imei, const char *sv);
+int gsm_random_imei(struct gsm_settings *set);
 
 #endif /* _settings_h */
 

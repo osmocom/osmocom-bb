@@ -251,7 +251,7 @@ static int decode_network_name(char *name, int name_len,
 int gsm48_encode_mi(struct msgb *msg, struct osmocom_ms *ms, uint8_t mi_type)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 	u_int8_t buf[11];
 	u_int8_t *ie;
 
@@ -263,10 +263,10 @@ int gsm48_encode_mi(struct msgb *msg, struct osmocom_ms *ms, uint8_t mi_type)
 		gsm48_generate_mid_from_imsi(buf, subscr->imsi);
 		break;
 	case GSM_MI_TYPE_IMEI:
-		gsm48_generate_mid_from_imsi(buf, sup->imei);
+		gsm48_generate_mid_from_imsi(buf, set->imei);
 		break;
 	case GSM_MI_TYPE_IMEISV:
-		gsm48_generate_mid_from_imsi(buf, sup->imeisv);
+		gsm48_generate_mid_from_imsi(buf, set->imeisv);
 		break;
 	case GSM_MI_TYPE_NONE:
 	default:
@@ -1081,6 +1081,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &cs->sel_si;
+	struct gsm_settings *set = &ms->settings;
 
 	/* no SIM is inserted */
 	if (!subscr->sim_valid) {
@@ -1115,7 +1116,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* PLMN mode auto and selected cell is forbidden */
-	if (plmn->mode == PLMN_MODE_AUTO
+	if (set->plmn_mode == PLMN_MODE_AUTO
 	 && (gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc, cs->sel_mnc)
 	  || gsm322_is_forbidden_la(ms, cs->sel_mcc, cs->sel_mnc,
 	 	cs->sel_lac))) {
@@ -1127,7 +1128,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* PLMN mode manual and selected cell not selected PLMNN */
-	if (plmn->mode == PLMN_MODE_MANUAL
+	if (set->plmn_mode == PLMN_MODE_MANUAL
 	 && (plmn->mcc != cs->sel_mcc
 	  || plmn->mnc != cs->sel_mnc)) {
 			LOGP(DMM, LOGL_INFO, "Selected cell not found.\n");

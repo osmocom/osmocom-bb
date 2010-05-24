@@ -413,7 +413,7 @@ static int gsm48_rr_tx_rr_status(struct osmocom_ms *ms, uint8_t cause)
 /* send chiperhing mode complete */
 static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 {
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	uint8_t buf[11], *tlv;
@@ -430,7 +430,7 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 
 	/* MI */
 	if (cr) {
-		gsm48_generate_mid_from_imsi(buf, sup->imeisv);
+		gsm48_generate_mid_from_imsi(buf, set->imeisv);
 		tlv = msgb_put(nmsg, 2 + buf[1]);
 		memcpy(tlv, buf, 2 + buf[1]);
 	}

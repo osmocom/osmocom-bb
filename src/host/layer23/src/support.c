@@ -101,10 +101,6 @@ void gsm_support_init(struct osmocom_ms *ms)
 	//sup->sms_val = ;
 	//sup->sm_val = ;
 
-	/* IMEI */
-	sprintf(sup->imei, "000000000000000");
-	sprintf(sup->imeisv, "0000000000000000");
-
 	/* radio */
 	sup->min_rxlev_db = -100; // TODO
 	sup->sync_to = 6; /* how long to wait sync (0.9 s) */
@@ -121,11 +117,6 @@ struct gsm_support_scan_max gsm_sup_smax[] = {
 	{ 512, 885, 40, 0 }, /* DCS 1800 */
 	{ 0, 0, 0, 0 }
 };
-
-int gsm_support_random_imei(struct gsm_support *sup)
-{
-}
-
 
 /* dump support */
 void gsm_support_dump(struct gsm_support *sup,

@@ -85,14 +85,18 @@ DEFUN(show_ms, show_ms_cmd, "show ms",
 	struct osmocom_ms *ms;
 
 	llist_for_each_entry(ms, &ms_list, entity) {
+		struct gsm_settings *set = &ms->settings;
+
 		vty_out(vty, "MS NAME: %s%s", ms->name, VTY_NEWLINE);
-		vty_out(vty, " IMEI: %s%s", ms->support.imei, VTY_NEWLINE);
-		vty_out(vty, " IMEISV: %s%s", ms->support.imeisv, VTY_NEWLINE);
-		vty_out(vty, " IMEI selection: %s%s",
-			(ms->support.imei_random) ? "random" : "fixed",
-			VTY_NEWLINE);
+		vty_out(vty, " IMEI: %s%s", set->imei, VTY_NEWLINE);
+		vty_out(vty, " IMEISV: %s%s", set->imeisv, VTY_NEWLINE);
+		if (set->imei_random)
+			vty_out(vty, " IMEI generation: random (%d trailing "
+				"digits)%s", set->imei_random, VTY_NEWLINE);
+		else
+			vty_out(vty, " IMEI generation: fixed%s", VTY_NEWLINE);
 		vty_out(vty, " network selection mode: %s%s",
-			(ms->plmn.mode == PLMN_MODE_AUTO)
+			(set->plmn_mode == PLMN_MODE_AUTO)
 				? "automatic" : "manual", VTY_NEWLINE);
 	}
 
@@ -298,7 +302,7 @@ DEFUN(network_show, network_show_cmd, "network show MS_NAME",
 		return CMD_WARNING;
 	plmn = &ms->plmn;
 
-	if (plmn->mode != PLMN_MODE_AUTO
+	if (ms->settings.plmn_mode != PLMN_MODE_AUTO
 	 && plmn->state != GSM322_M3_NOT_ON_PLMN) {
 		vty_out(vty, "Start network search first!%s", VTY_NEWLINE);
 		return CMD_WARNING;
@@ -348,6 +352,8 @@ DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 
 static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 {
+	struct gsm_settings *set = &ms->settings;
+
 	vty_out(vty, " ms %s%s", ms->name, VTY_NEWLINE);
 	switch(ms->settings.simtype) {
 		case GSM_SIM_TYPE_NONE:
@@ -360,24 +366,30 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, "  sim test%s", VTY_NEWLINE);
 		break;
 	}
-	vty_out(vty, "  network-selection-mode %s%s", (ms->plmn.mode
+	vty_out(vty, "  network-selection-mode %s%s", (set->plmn_mode
 			== PLMN_MODE_AUTO) ? "auto" : "manual", VTY_NEWLINE);
+	vty_out(vty, "  imei %s %s%s", set->imei,
+		set->imeisv + strlen(set->imei), VTY_NEWLINE);
+	if (set->imei_random)
+		vty_out(vty, "  imei-random %d%s", set->imei_random,
+			VTY_NEWLINE);
+	else
+		vty_out(vty, "  imei-fixed%s", VTY_NEWLINE);
 	vty_out(vty, "  test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "   imsi %s%s", ms->settings.test_imsi, VTY_NEWLINE);
-	if (ms->settings.test_barr)
-		vty_out(vty, "   barred-access yes%s", VTY_NEWLINE);
-	else
-		vty_out(vty, "   barred-access no%s", VTY_NEWLINE);
+	vty_out(vty, "   barred-access %s%s", (set->test_barr) ? "yes" : "no",
+		VTY_NEWLINE);
 	if (ms->settings.test_rplmn_valid)
 		vty_out(vty, "   rplmn-valid%s", VTY_NEWLINE);
 	else
 		vty_out(vty, "   rplmn-invalid%s", VTY_NEWLINE);
 	vty_out(vty, "   rplmn %03d %02d%s", ms->settings.test_rplmn_mcc,
 		ms->settings.test_rplmn_mnc, VTY_NEWLINE);
-	if (ms->settings.test_always)
-		vty_out(vty, "   hplmn-search everywhere%s", VTY_NEWLINE);
-	else
-		vty_out(vty, "   hplmn-search foreign-country%s", VTY_NEWLINE);
+	vty_out(vty, "   hplmn-search %s%s", (set->test_always) ? "everywhere"
+			: "foreign-country", VTY_NEWLINE);
+	vty_out(vty, "  end%s", VTY_NEWLINE);
+	vty_out(vty, " end%s", VTY_NEWLINE);
+	vty_out(vty, "!%s", VTY_NEWLINE);
 }
 
 static int config_write_ms(struct vty *vty)
@@ -398,9 +410,9 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 
 	if (!ms->plmn.state) {
 		if (argv[0][0] == 'a')
-			ms->plmn.mode = PLMN_MODE_AUTO;
+			ms->settings.plmn_mode = PLMN_MODE_AUTO;
 		else
-			ms->plmn.mode = PLMN_MODE_MANUAL;
+			ms->settings.plmn_mode = PLMN_MODE_MANUAL;
 
 		return CMD_SUCCESS;
 	}
@@ -411,6 +423,49 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 	if (!nmsg)
 		return CMD_WARNING;
 	gsm322_plmn_sendmsg(ms, nmsg);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_imei, cfg_ms_imei_cmd, "imei IMEI [SV]",
+	"Set IMEI (enter without control digit)\n")
+{
+	struct osmocom_ms *ms = vty->index;
+	char *error, *sv = "0";
+
+	if (argc >= 2)
+		sv = (char *)argv[1];
+
+	error = gsm_check_imei(argv[0], sv);
+	if (error) {
+		vty_out(vty, "%s%s", error, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	strcpy(ms->settings.imei, argv[0]);
+	strcpy(ms->settings.imeisv, argv[0]);
+	strcpy(ms->settings.imeisv + 15, sv);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_imei_fixed, cfg_ms_imei_fixed_cmd, "imei-fixed",
+	"Use fixed IMEI on every power on\n")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.imei_random = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
+	"Use random IMEI on every power on with given number of trailing "
+	"digits to randomize.\n")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.imei_random = atoi(argv[0]);
 
 	return CMD_SUCCESS;
 }
@@ -454,7 +509,7 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 {
 	struct osmocom_ms *ms = vty->index;
 	uint16_t mcc, mnc;
-	char *error = gsm_check_imsi((char *)(argv[0]), &mcc, &mnc);
+	char *error = gsm_check_imsi(argv[0], &mcc, &mnc);
 
 	if (error) {
 		vty_out(vty, "%s%s", error, VTY_NEWLINE);
@@ -558,6 +613,9 @@ int ms_vty_init(void)
 	install_node(&ms_node, config_write_ms);
 	install_default(MS_NODE);
 	install_element(MS_NODE, &cfg_ms_mode_cmd);
+	install_element(MS_NODE, &cfg_ms_imei_cmd);
+	install_element(MS_NODE, &cfg_ms_imei_fixed_cmd);
+	install_element(MS_NODE, &cfg_ms_imei_random_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
 
 	install_element(MS_NODE, &cfg_testsim_cmd);

@@ -71,11 +71,6 @@ struct gsm_support {
 	uint8_t gps_based;
 	uint8_t gps_conv;
 
-	/* IMEI */
-	char imei[16];
-	char imeisv[17];
-	char imei_random;
-
 	/* radio */
 	int8_t min_rxlev_db;
 	uint8_t scan_to;

@@ -445,7 +445,7 @@ static const char *cs_state_names[] = {
 /* new automatic PLMN search state */
 static void new_a_state(struct gsm322_plmn *plmn, int state)
 {
-	if (plmn->mode != PLMN_MODE_AUTO) {
+	if (plmn->ms->settings.plmn_mode != PLMN_MODE_AUTO) {
 		LOGP(DPLMN, LOGL_FATAL, "not in auto mode, please fix!\n");
 		return;
 	}
@@ -464,7 +464,7 @@ static void new_a_state(struct gsm322_plmn *plmn, int state)
 /* new manual PLMN search state */
 static void new_m_state(struct gsm322_plmn *plmn, int state)
 {
-	if (plmn->mode != PLMN_MODE_MANUAL) {
+	if (plmn->ms->settings.plmn_mode != PLMN_MODE_MANUAL) {
 		LOGP(DPLMN, LOGL_FATAL, "not in manual mode, please fix!\n");
 		return;
 	}
@@ -1118,12 +1118,11 @@ static int gsm322_a_hplmn_search_start(struct osmocom_ms *ms, struct msgb *msg)
 /* manual mode selected */
 static int gsm322_a_sel_manual(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
 	struct msgb *nmsg;
 
 	/* restart state machine */
 	gsm322_a_switch_off(ms, msg);
-	plmn->mode = PLMN_MODE_MANUAL;
+	ms->settings.plmn_mode = PLMN_MODE_MANUAL;
 	gsm322_m_switch_on(ms, msg);
 
 	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_USER_PLMN_SEL);
@@ -1371,12 +1370,11 @@ static int gsm322_m_choose_plmn(struct osmocom_ms *ms, struct msgb *msg)
 /* auto mode selected */
 static int gsm322_m_sel_auto(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm322_plmn *plmn = &ms->plmn;
 	struct msgb *nmsg;
 
 	/* restart state machine */
 	gsm322_m_switch_off(ms, msg);
-	plmn->mode = PLMN_MODE_AUTO;
+	ms->settings.plmn_mode = PLMN_MODE_AUTO;
 	gsm322_a_switch_on(ms, msg);
 
 	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_USER_PLMN_SEL);
@@ -1627,7 +1625,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 
 			/* selected PLMN (manual) or any PLMN (auto) */
-			switch (plmn->mode) {
+			switch (ms->settings.plmn_mode) {
 			case PLMN_MODE_AUTO:
 				if (plmn->state == GSM322_A4_WAIT_FOR_PLMN) {
 					/* PLMN becomes available */
@@ -1822,7 +1820,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 
 	/* selected PLMN (manual) or any PLMN (auto) */
-	switch (plmn->mode) {
+	switch (ms->settings.plmn_mode) {
 	case PLMN_MODE_AUTO:
 		if (plmn->state == GSM322_A4_WAIT_FOR_PLMN) {
 			/* PLMN becomes available */
@@ -2943,7 +2941,7 @@ int gsm322_plmn_dequeue(struct osmocom_ms *ms)
 	
 	while ((msg = msgb_dequeue(&plmn->event_queue))) {
 		/* send event to PLMN select process */
-		if (plmn->mode == PLMN_MODE_AUTO)
+		if (ms->settings.plmn_mode == PLMN_MODE_AUTO)
 			gsm322_a_event(ms, msg);
 		else
 			gsm322_m_event(ms, msg);
@@ -3174,7 +3172,7 @@ int gsm322_init(struct osmocom_ms *ms)
 	/* set initial state */
 	plmn->state = 0;
 	cs->state = 0;
-	plmn->mode = PLMN_MODE_AUTO;
+	ms->settings.plmn_mode = PLMN_MODE_AUTO;
 
 	/* init lists */
 	INIT_LLIST_HEAD(&plmn->event_queue);

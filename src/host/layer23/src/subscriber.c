@@ -283,7 +283,7 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 	}
 }
 
-char *gsm_check_imsi(char *imsi, uint16_t *mcc, uint16_t *mnc)
+char *gsm_check_imsi(const char *imsi, uint16_t *mcc, uint16_t *mnc)
 {
 	int i;
 

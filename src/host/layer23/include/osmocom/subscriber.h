@@ -82,7 +82,7 @@ int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 					uint16_t mnc);
 void gsm_subscr_dump(struct gsm_subscriber *subscr,
 			void (*print)(void *, const char *, ...), void *priv);
-char *gsm_check_imsi(char *imsi, uint16_t *mcc, uint16_t *mnc);
+char *gsm_check_imsi(const char *imsi, uint16_t *mcc, uint16_t *mnc);
 
 #endif /* _SUBSCRIBER_H */
 
