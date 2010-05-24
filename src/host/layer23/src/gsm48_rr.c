@@ -2454,7 +2454,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		gsm48_decode_start_time(&cd, (struct gsm48_start_time *)(st+1));
 
 	/* decode channel description */
-	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT:");
+	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT:\n");
 	cd.chan_nr = ia->chan_desc.chan_nr;
 	rsl_dec_chan_nr(cd.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ia->chan_desc.h0.h) {
@@ -3237,7 +3237,8 @@ static struct dldatastate {
 	const char	*type_name;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
 } dldatastatelist[] = {
-	{SBIT(GSM48_RR_ST_IDLE) | SBIT(GSM48_RR_ST_CONN_PEND),
+	{SBIT(GSM48_RR_ST_IDLE) | SBIT(GSM48_RR_ST_CONN_PEND) |
+	 SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_UNIT_DATA_IND, "UNIT_DATA_IND", gsm48_rr_unit_data_ind},
 	{SBIT(GSM48_RR_ST_DEDICATED), /* 3.4.2 */
 	 RSL_MT_DATA_IND, "DATA_IND", gsm48_rr_data_ind},
@@ -3292,6 +3293,10 @@ static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DRSL, LOGL_INFO, "(ms %s) Received 'RSL_MT_%s' from RSL in state "
 		"%s\n", ms->name, dldatastatelist[i].type_name,
 		gsm48_rr_state_names[rr->state]);
+	if (dldatastatelist[i].rout != gsm48_rr_unit_data_ind)
+		LOGP(DRR, LOGL_INFO, "(ms %s) Received 'RSL_MT_%s' from in "
+			"state %s\n", ms->name, dldatastatelist[i].type_name,
+			gsm48_rr_state_names[rr->state]);
 
 	rc = dldatastatelist[i].rout(ms, msg);
 

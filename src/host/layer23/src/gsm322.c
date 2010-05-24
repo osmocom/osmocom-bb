@@ -2099,7 +2099,7 @@ static void gsm322_cs_timeout(void *arg)
 	struct gsm322_cellsel *cs = arg;
 	struct osmocom_ms *ms = cs->ms;
 
-	LOGP(DCS, LOGL_INFO, "Cell selection timer has fired.\n");
+	LOGP(DCS, LOGL_INFO, "Cell selection failed.\n");
 
 	/* if we have no lock, we retry */
 	if (cs->ccch_state != GSM322_CCCH_ST_SYNC)
@@ -2331,7 +2331,7 @@ static void gsm322_cs_loss(void *arg)
 	struct osmocom_ms *ms = cs->ms;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
-	LOGP(DCS, LOGL_INFO, "Loss of CCCH timer fired.\n");
+	LOGP(DCS, LOGL_INFO, "Loss of CCCH.\n");
 	if (cs->state == GSM322_C3_CAMPED_NORMALLY
 	 || cs->state == GSM322_C7_CAMPED_ANY_CELL) {
 		if (rr->state == GSM48_RR_ST_IDLE) {

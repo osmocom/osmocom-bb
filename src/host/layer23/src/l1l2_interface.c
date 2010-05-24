@@ -55,6 +55,8 @@ static int layer2_read(struct bsc_fd *fd)
 	rc = read(fd->fd, &len, sizeof(len));
 	if (rc < sizeof(len)) {
 		fprintf(stderr, "Layer2 socket failed\n");
+		if (rc >= 0)
+			rc = -EIO;
 		quit = rc;
 		return rc;
 	}

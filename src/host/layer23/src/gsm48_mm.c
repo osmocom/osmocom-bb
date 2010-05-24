@@ -248,12 +248,12 @@ static int decode_network_name(char *name, int name_len,
 }
 
 /* encode 'mobile identity' */
-int gsm48_encode_mi(struct msgb *msg, struct osmocom_ms *ms, uint8_t mi_type)
+int gsm48_encode_mi(uint8_t *buf, struct msgb *msg, struct osmocom_ms *ms,
+	uint8_t mi_type)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm_settings *set = &ms->settings;
-	u_int8_t buf[11];
-	u_int8_t *ie;
+	uint8_t *ie;
 
 	switch(mi_type) {
 	case GSM_MI_TYPE_TMSI:
@@ -275,25 +275,25 @@ int gsm48_encode_mi(struct msgb *msg, struct osmocom_ms *ms, uint8_t mi_type)
 	        buf[2] = 0xf0 | GSM_MI_TYPE_NONE;
 		break;
 	}
-	/* MI as LV */
-	ie = msgb_put(msg, 1 + buf[1]);
-	memcpy(ie, buf + 1, 1 + buf[1]);
+
+	if (msg) {
+		/* MI as LV */
+		ie = msgb_put(msg, 1 + buf[1]);
+		memcpy(ie, buf + 1, 1 + buf[1]);
+	}
 
 	return 0;
 }
 
 /* encode 'classmark 1' */
-int gsm48_encode_classmark1(struct msgb *msg, uint8_t rev_lev, uint8_t es_ind,
-	uint8_t a5_1, uint8_t pwr_lev)
+int gsm48_encode_classmark1(struct gsm48_classmark1 *cm, uint8_t rev_lev,
+	uint8_t es_ind, uint8_t a5_1, uint8_t pwr_lev)
 {
-	struct gsm48_classmark1 cm;
-
-	memset(&cm, 0, sizeof(cm));
-	cm.rev_lev = rev_lev;
-	cm.es_ind = es_ind;
-	cm.a5_1 = a5_1;
-	cm.pwr_lev = pwr_lev;
-        msgb_v_put(msg, *((uint8_t *)&cm));
+	memset(cm, 0, sizeof(*cm));
+	cm->rev_lev = rev_lev;
+	cm->es_ind = es_ind;
+	cm->a5_1 = a5_1;
+	cm->pwr_lev = pwr_lev;
 
 	return 0;
 }
@@ -1370,7 +1370,7 @@ static int gsm48_mm_tx_mm_status(struct osmocom_ms *ms, uint8_t cause)
 	struct gsm48_hdr *ngh;
 	uint8_t *reject_cause;
 
-	LOGP(DMM, LOGL_INFO, "MM STATUS (cause #%d)", cause);
+	LOGP(DMM, LOGL_INFO, "MM STATUS (cause #%d)\n", cause);
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1604,6 +1604,7 @@ static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, uint8_t mi_type)
 {
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
+	uint8_t buf[11];
 
 	LOGP(DMM, LOGL_INFO, "IDENTITY RESPONSE\n");
 
@@ -1616,7 +1617,7 @@ static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, uint8_t mi_type)
 	ngh->msg_type = GSM48_MT_MM_ID_RESP;
 
 	/* MI */
-	gsm48_encode_mi(nmsg, ms, mi_type);
+	gsm48_encode_mi(buf, nmsg, ms, mi_type);
 
 	/* push RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, GSM48_RR_DATA_REQ, 0);
@@ -1631,6 +1632,9 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
 	uint8_t pwr_lev;
+	uint8_t buf[11];
+	struct gsm48_classmark1 cm;
+
 
 	LOGP(DMM, LOGL_INFO, "IMSI DETACH INDICATION\n");
 
@@ -1647,13 +1651,14 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 		pwr_lev = sup->pwr_lev_1800;
 	else
 		pwr_lev = sup->pwr_lev_900;
-	gsm48_encode_classmark1(nmsg, sup->rev_lev, sup->es_ind, sup->a5_1,
+	gsm48_encode_classmark1(&cm, sup->rev_lev, sup->es_ind, sup->a5_1,
 		pwr_lev);
+        msgb_v_put(nmsg, *((uint8_t *)&cm));
 	/* MI */
 	if (subscr->tmsi_valid) /* have TMSI ? */
-		gsm48_encode_mi(nmsg, ms, GSM_MI_TYPE_TMSI);
+		gsm48_encode_mi(buf, nmsg, ms, GSM_MI_TYPE_TMSI);
 	else
-		gsm48_encode_mi(nmsg, ms, GSM_MI_TYPE_IMSI);
+		gsm48_encode_mi(buf, nmsg, ms, GSM_MI_TYPE_IMSI);
 
 	/* push RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, rr_prim, RR_EST_CAUSE_OTHER_SDCCH);
@@ -2079,6 +2084,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	struct gsm48_hdr *ngh;
 	struct gsm48_loc_upd_req *nlu;
 	uint8_t pwr_lev;
+	uint8_t buf[11];
 
 	LOGP(DMM, LOGL_INFO, "LOCATION UPDATING REQUEST\n");
 
@@ -2103,13 +2109,15 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 		pwr_lev = sup->pwr_lev_1800;
 	else
 		pwr_lev = sup->pwr_lev_900;
-	gsm48_encode_classmark1(nmsg, sup->rev_lev, sup->es_ind, sup->a5_1,
-		pwr_lev);
+	gsm48_encode_classmark1(&nlu->classmark1, sup->rev_lev, sup->es_ind,
+		sup->a5_1, pwr_lev);
 	/* MI */
 	if (subscr->tmsi_valid) /* have TMSI ? */
-		gsm48_encode_mi(nmsg, ms, GSM_MI_TYPE_TMSI);
+		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 	else
-		gsm48_encode_mi(nmsg, ms, GSM_MI_TYPE_IMSI);
+		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMSI);
+	msgb_put(nmsg, buf[1]);
+	memcpy(&nlu->mi_len, buf + 1, 1 + buf[1]);
 
 	new_mm_state(mm, GSM48_MM_ST_WAIT_RR_CONN_LUPD, 0);
 
@@ -2489,6 +2497,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	struct gsm48_hdr *ngh;
 	struct gsm48_service_request *nsr;
 	uint8_t *cm2lv;
+	uint8_t buf[11];
 
 	LOGP(DMM, LOGL_INFO, "CM SERVICE REQUEST\n");
 
@@ -2510,11 +2519,13 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	gsm48_rr_enc_cm2(ms, (struct gsm48_classmark2 *)(cm2lv + 1));
 	/* MI */
 	if (!subscr->sim_valid) /* have no SIM ? */
-		gsm48_encode_mi(nmsg, ms, GSM_MI_TYPE_IMEI);
+		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMEI);
 	else if (subscr->tmsi_valid) /* have TMSI ? */
-		gsm48_encode_mi(nmsg, ms, GSM_MI_TYPE_TMSI);
+		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 	else
-		gsm48_encode_mi(nmsg, ms, GSM_MI_TYPE_IMSI);
+		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMSI);
+	msgb_put(nmsg, buf[1]);
+	memcpy(&nsr->mi_len, buf + 1, 1 + buf[1]);
 	/* prio is optional for eMLPP */
 
 	/* push RR header and send down */
@@ -3475,9 +3486,9 @@ static struct mmdatastate {
 	 GSM48_MT_MM_ABORT, gsm48_mm_rx_abort},
 	{ALL_STATES, /* 4.3.6.2 */
 	 GSM48_MT_MM_INFO, gsm48_mm_rx_info},
-	{GSM48_MM_ST_LOC_UPD_INIT, /* 4.4.4.6 */
+	{SBIT(GSM48_MM_ST_LOC_UPD_INIT), /* 4.4.4.6 */
 	 GSM48_MT_MM_LOC_UPD_ACCEPT, gsm48_mm_rx_loc_upd_acc},
-	{GSM48_MM_ST_LOC_UPD_INIT, /* 4.4.4.7 */
+	{SBIT(GSM48_MM_ST_LOC_UPD_INIT), /* 4.4.4.7 */
 	 GSM48_MT_MM_LOC_UPD_REJECT, gsm48_mm_rx_loc_upd_rej},
 	{ALL_STATES, /* 4.5.1.1 */
 	 GSM48_MT_MM_CM_SERV_ACC, gsm48_mm_rx_cm_service_acc},
@@ -3503,6 +3514,10 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' in MM state %s\n", ms->name,
 		get_mm_name(msg_type), gsm48_mm_state_names[mm->state]);
 
+	/* 9.2.19 */
+	if (msg_type == GSM48_MT_MM_NULL)
+		return 0;
+
 	/* pull the RR header */
 	msgb_pull(msg, sizeof(struct gsm48_rr_hdr));
 
@@ -3512,6 +3527,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		rr_prim = GSM48_MMCC_DATA_IND;
 		rr_est = GSM48_MMCC_EST_IND;
 		break;
+#if 0
 	case GSM48_PDISC_NC_SS:
 		rr_prim = GSM48_MMSS_DATA_IND;
 		rr_est = GSM48_MMSS_EST_IND;
@@ -3520,6 +3536,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		rr_prim = GSM48_MMSMS_DATA_IND;
 		rr_est = GSM48_MMSMS_EST_IND;
 		break;
+#endif
 	}
 	if (rr_prim != -1) {
 		uint8_t transaction_id = ((gh->proto_discr & 0xf0) ^ 0x80) >> 4;
