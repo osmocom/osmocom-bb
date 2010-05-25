@@ -127,8 +127,16 @@ static inline char *vty_newline(struct vty *vty)
 	return VTY_NEWLINE;
 }
 
+struct vty_app_info {
+	char *name;
+	char *version;
+	char *copyright;
+	void *tall_ctx;
+	enum node_type (*go_parent_cb)(struct vty *vty);
+};
+
 /* Prototypes. */
-void vty_init(const char *name, const char *version, const char *copyright);
+void vty_init(struct vty_app_info *app_info);
 int vty_read_config_file(const char *file_name, void *priv);
 void vty_init_vtysh (void);
 void vty_reset (void);

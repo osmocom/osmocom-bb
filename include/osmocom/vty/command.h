@@ -58,9 +58,7 @@ struct host {
 	const char *motd;
 	char *motdfile;
 
-	const char *prog_name;
-	const char *prog_version;
-	const char *prog_copyright;
+	const struct vty_app_info *app_info;
 };
 
 /* There are some command levels which called from command node. */
@@ -386,7 +384,5 @@ void host_config_set(const char *);
 void print_version(int print_copyright);
 
 extern void *tall_vty_cmd_ctx;
-
-enum node_type (*vty_go_parent_cb)(struct vty *vty);
 
 #endif				/* _ZEBRA_COMMAND_H */

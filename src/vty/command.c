@@ -84,9 +84,9 @@ const char *default_motd = "";
 /* This is called from main when a daemon is invoked with -v or --version. */
 void print_version(int print_copyright)
 {
-	printf("%s version %s\n", host.prog_name, host.prog_version);
+	printf("%s version %s\n", host.app_info->name, host.app_info->version);
 	if (print_copyright)
-		printf("\n%s\n", host.prog_copyright);
+		printf("\n%s\n", host.app_info->copyright);
 }
 
 /* Utility function to concatenate argv argument into a single string
@@ -1751,8 +1751,8 @@ enum node_type vty_go_parent(struct vty *vty)
 {
 	assert(vty->node > CONFIG_NODE);
 
-	if (vty_go_parent_cb)
-		vty_go_parent_cb(vty);
+	if (host.app_info->go_parent_cb)
+		host.app_info->go_parent_cb(vty);
 	else
 		vty->node = CONFIG_NODE;
 
@@ -2162,9 +2162,10 @@ gDEFUN(config_exit,
 DEFUN(show_version,
       show_version_cmd, "show version", SHOW_STR "Displays program version\n")
 {
-	vty_out(vty, "%s %s (%s).%s", host.prog_name, host.prog_version,
-		host.name ? host.name : "", VTY_NEWLINE);
-	vty_out(vty, "%s%s", host.prog_copyright, VTY_NEWLINE);
+	vty_out(vty, "%s %s (%s).%s", host.app_info->name,
+		host.app_info->version,
+		host.app_info->name ? host.app_info->name : "", VTY_NEWLINE);
+	vty_out(vty, "%s%s", host.app_info->copyright, VTY_NEWLINE);
 
 	return CMD_SUCCESS;
 }
@@ -2258,7 +2259,7 @@ DEFUN(config_write_file,
 
 	/* Config file header print. */
 	vty_out(file_vty, "!\n! %s (%s) configuration saved from vty\n!",
-		host.prog_name, host.prog_version);
+		host.app_info->name, host.app_info->version);
 	//vty_time_print (file_vty, 1);
 	vty_out(file_vty, "!\n");
 
