@@ -149,6 +149,8 @@ struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 {
 	struct gprs_nsvc *nsvc;
 
+	LOGP(DNS, LOGL_INFO, "NSVCI=%u Creating NS-VC\n", nsvci);
+
 	nsvc = talloc_zero(nsi, struct gprs_nsvc);
 	nsvc->nsvci = nsvci;
 	/* before RESET procedure: BLOCKED and DEAD */
@@ -928,6 +930,9 @@ int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi)
 /* Initiate a RESET procedure */
 void gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 {
+	LOGP(DNS, LOGL_INFO, "NSEI=%u RESET procedure based on API request\n",
+		nsvc->nsei);
+
 	/* Mark NS-VC locally as blocked and dead */
 	nsvc->state = NSE_S_BLOCKED;
 	/* Send NS-RESET PDU */
