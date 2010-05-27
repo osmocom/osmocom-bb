@@ -842,7 +842,7 @@ static struct msgb *read_nsip_msg(struct bsc_fd *bfd, int *error,
 		return NULL;
 	}
 
-	ret = recvfrom(bfd->fd, msg->data, NS_ALLOC_SIZE, 0,
+	ret = recvfrom(bfd->fd, msg->data, NS_ALLOC_SIZE - NS_ALLOC_HEADROOM, 0,
 			(struct sockaddr *)saddr, &saddr_len);
 	if (ret < 0) {
 		LOGP(DNS, LOGL_ERROR, "recv error %s during NSIP recv\n",
