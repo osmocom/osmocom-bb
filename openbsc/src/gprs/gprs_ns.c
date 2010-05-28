@@ -565,6 +565,12 @@ static int gprs_ns_rx_status(struct gprs_nsvc *nsvc, struct msgb *msg)
 	LOGP(DNS, LOGL_NOTICE, "NSEI=%u Rx NS STATUS ", nsvc->nsei);
 
 	rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data, msgb_l2len(msg), 0, 0);
+	if (rc < 0) {
+		LOGPC(DNS, LOGL_NOTICE, "Error during TLV Parse\n");
+		LOGP(DNS, LOGL_ERROR, "NSEI=%u Rx NS STATUS: "
+			"Error during TLV Parse\n", nsvc->nsei);
+		return rc;
+	}
 
 	if (!TLVP_PRESENT(&tp, NS_IE_CAUSE)) {
 		LOGPC(DNS, LOGL_INFO, "missing cause IE\n");
@@ -587,6 +593,11 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	int rc;
 
 	rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data, msgb_l2len(msg), 0, 0);
+	if (rc < 0) {
+		LOGP(DNS, LOGL_ERROR, "NSEI=%u Rx NS RESET "
+			"Error during TLV Parse\n", nsvc->nsei);
+		return rc;
+	}
 
 	if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
 	    !TLVP_PRESENT(&tp, NS_IE_VCI) ||
@@ -632,6 +643,11 @@ static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
 	nsvc->state |= NSE_S_BLOCKED;
 
 	rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data, msgb_l2len(msg), 0, 0);
+	if (rc < 0) {
+		LOGP(DNS, LOGL_ERROR, "NSEI=%u Rx NS BLOCK "
+			"Error during TLV Parse\n", nsvc->nsei);
+		return rc;
+	}
 
 	if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
 	    !TLVP_PRESENT(&tp, NS_IE_VCI)) {
@@ -691,6 +707,12 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		}
 		rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data,
 						msgb_l2len(msg), 0, 0);
+		rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data, msgb_l2len(msg), 0, 0);
+		if (rc < 0) {
+			LOGP(DNS, LOGL_ERROR, "Rx NS RESET Error during "
+				"TLV Parse\n");
+			return rc;
+		}
 		if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
 		    !TLVP_PRESENT(&tp, NS_IE_VCI) ||
 		    !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
