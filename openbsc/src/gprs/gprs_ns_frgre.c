@@ -41,11 +41,66 @@
 #include <openbsc/gprs_ns.h>
 
 #define GRE_PTYPE_FR	0x6559
+#define GRE_PTYPE_IPv4	0x0800
+#define GRE_PTYPE_KAR	0x0000	/* keepalive response */
 
 struct gre_hdr {
 	uint16_t flags;
 	uint16_t ptype;
 } __attribute__ ((packed));
+
+/* IPv4 messages inside the GRE tunnel might be GRE keepalives */
+static int handle_rx_gre_ipv4(struct bsc_fd *bfd, struct msgb *msg,
+				struct iphdr *iph, struct gre_hdr *greh)
+{
+	struct gprs_ns_inst *nsi = bfd->data;
+	int gre_payload_len;
+	struct iphdr *inner_iph;
+	struct gre_hdr *inner_greh;
+	struct sockaddr_in daddr;
+	struct in_addr ia;
+
+	gre_payload_len = msg->len - (iph->ihl*4 + sizeof(*greh));
+
+	inner_iph = (struct iphdr *) (uint8_t *)greh + sizeof(*greh);
+
+	if (gre_payload_len < inner_iph->ihl*4 + sizeof(*inner_greh)) {
+		LOGP(DNS, LOGL_ERROR, "GRE keepalive too short\n");
+		return -EIO;
+	}
+
+	if (inner_iph->saddr != iph->daddr ||
+	    inner_iph->daddr != iph->saddr) {
+		LOGP(DNS, LOGL_ERROR,
+			"GRE keepalive with wrong tunnel addresses\n");
+		return -EIO;
+	}
+
+	if (inner_iph->protocol != IPPROTO_GRE) {
+		LOGP(DNS, LOGL_ERROR, "GRE keepalive with wrong protocol\n");
+		return -EIO;
+	}
+
+	inner_greh = (struct gre_hdr *) ((uint8_t *)iph + iph->ihl*4);
+	if (inner_greh->ptype != htons(GRE_PTYPE_KAR)) {
+		LOGP(DNS, LOGL_ERROR, "GRE keepalive inner GRE type != 0\n");
+		return -EIO;
+	}
+
+	/* Actually send the response back */
+
+	daddr.sin_family = AF_INET;
+	daddr.sin_addr.s_addr = inner_iph->daddr;
+	daddr.sin_port = IPPROTO_GRE;
+
+	ia.s_addr = iph->saddr;
+	LOGP(DNS, LOGL_DEBUG, "GRE keepalive from %s, responding\n",
+		inet_ntoa(ia));
+
+	return sendto(nsi->frgre.fd.fd, inner_greh,
+		      gre_payload_len - inner_iph->ihl*4, 0,
+		      (struct sockaddr *)&daddr, sizeof(daddr));
+}
 
 static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
 					struct sockaddr_in *saddr)
@@ -95,11 +150,22 @@ static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
 		LOGP(DNS, LOGL_NOTICE, "Unknown GRE flags 0x%04x\n",
 			ntohs(greh->flags));
 	}
-	if (greh->ptype != htons(GRE_PTYPE_FR)) {
+
+	switch (ntohs(greh->ptype)) {
+	case GRE_PTYPE_IPv4:
+		/* IPv4 messages might be GRE keepalives */
+		*error = handle_rx_gre_ipv4(bfd, msg, iph, greh);
+		goto out_err;
+		break;
+	case GRE_PTYPE_FR:
+		/* continue as usual */
+		break;
+	default:
 		LOGP(DNS, LOGL_NOTICE, "Unknown GRE protocol 0x%04x != FR\n",
 			ntohs(greh->ptype));
 		*error = -EIO;
 		goto out_err;
+		break;
 	}
 
 	if (msg->len < sizeof(*greh) + 2) {
