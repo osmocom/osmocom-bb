@@ -206,19 +206,29 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 
 static int handle_nsfrgre_read(struct bsc_fd *bfd)
 {
-	int error;
+	int rc;
 	struct sockaddr_in saddr;
 	struct gprs_ns_inst *nsi = bfd->data;
-	struct msgb *msg = read_nsfrgre_msg(bfd, &error, &saddr);
+	struct msgb *msg;
+	uint16_t dlci;
 
+	msg = read_nsfrgre_msg(bfd, &rc, &saddr);
 	if (!msg)
-		return error;
+		return rc;
 
-	error = gprs_ns_rcvmsg(nsi, msg, &saddr, GPRS_NS_LL_FR_GRE);
+	dlci = ntohs(saddr.sin_port);
+	if (dlci == 0 || dlci == 1023) {
+		LOGP(DNS, LOGL_INFO, "Received FR on LMI DLCI %u - ignoring\n",
+			dlci);
+		rc = 0;
+		goto out;
+	}
 
+	rc = gprs_ns_rcvmsg(nsi, msg, &saddr, GPRS_NS_LL_FR_GRE);
+out:
 	msgb_free(msg);
 
-	return error;
+	return rc;
 }
 
 static int handle_nsfrgre_write(struct bsc_fd *bfd)
