@@ -610,7 +610,8 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	nsvc->nsvci = ntohs(*nsvci);
 
 	/* start the test procedure */
-	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
+	gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
+	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_TEST);
 
 	/* inform interested parties about the fact that this NSVC
 	 * has received RESET */
@@ -762,7 +763,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		}
 		/* Initiate TEST proc.: Send ALIVE and start timer */
 		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
-		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
+		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_TEST);
 		break;
 	case NS_PDUT_UNBLOCK:
 		/* Section 7.2: unblocking procedure */
