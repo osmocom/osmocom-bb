@@ -300,7 +300,7 @@ DEFUN(cfg_nse_remoteport, cfg_nse_remoteport_cmd,
 }
 
 DEFUN(cfg_nse_fr_dlci, cfg_nse_fr_dlci_cmd,
-	"nse <0-65535> fr-dlci <0-1023>",
+	"nse <0-65535> fr-dlci <16-1007>",
 	NSE_CMD_STR
 	"Frame Relay DLCI\n"
 	"Frame Relay DLCI Number\n")
