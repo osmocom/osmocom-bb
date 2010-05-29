@@ -157,6 +157,12 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		chan_nr2string(dl->chan_nr), tm.t1, tm.t2, tm.t3,
 		hexdump(ccch->data, sizeof(ccch->data)));
 
+	if (dl->num_biterr) {
+		LOGP(DL1C, LOGL_NOTICE, "Dropping frame with %u bit errors\n",
+			dl->num_biterr);
+		return 0;
+	}
+
 	/* send CCCH data via GSMTAP */
 	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
 	gsmtap_sendmsg(dl->band_arfcn, chan_ts, gsmtap_chan_type, chan_ss,
