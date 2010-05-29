@@ -377,8 +377,13 @@ static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 	return 0;
 }
 
+#if 0
 #define FB0_SNR_THRESH	2000
 #define FB1_SNR_THRESH	3000
+#else
+#define FB0_SNR_THRESH	0
+#define FB1_SNR_THRESH	0
+#endif
 
 static const struct tdma_sched_item fb_sched_set[];
 
