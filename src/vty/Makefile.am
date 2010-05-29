@@ -5,7 +5,9 @@ LIBVERSION=0:0:0
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
 AM_CFLAGS = -fPIC -Wall
 
+if ENABLE_VTY
 lib_LTLIBRARIES = libosmovty.la
 
 libosmovty_la_SOURCES = buffer.c command.c vty.c vector.c utils.c \
 			telnet_interface.c logging_vty.c
+endif
