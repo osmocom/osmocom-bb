@@ -67,11 +67,11 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->a5_7 = 0;
 	/* radio support */
 	sup->p_gsm = 1; /* P-GSM only */
-	sup->e_gsm = 0; /* E-GSM */
-	sup->r_gsm = 0; /* R-GSM */
+	sup->e_gsm = 1; /* E-GSM */
+	sup->r_gsm = 1; /* R-GSM */
 	sup->r_capa = 0;
 	sup->low_capa = 4; /* p,e,r power class */
-	sup->dcs_1800 = 0;
+	sup->dcs_1800 = 1;
 	/* set supported frequencies */
 	if (sup->e_gsm || sup->r_gsm)
 		sup->freq_map[0] |= 1;
