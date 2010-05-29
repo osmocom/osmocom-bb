@@ -47,6 +47,7 @@
 struct l1ctl_hdr {
 	uint8_t msg_type;
 	uint8_t flags;
+	uint8_t padding[2];
 	uint8_t data[0];
 } __attribute__((packed));
 
@@ -58,14 +59,16 @@ struct l1ctl_info_dl {
 	uint8_t chan_nr;
 	/* GSM 08.58 link identifier (9.3.2) */
 	uint8_t link_id;
-
-	uint32_t frame_nr;
-
 	/* the ARFCN and the band. FIXME: what about MAIO? */
 	uint16_t band_arfcn;
 
+	uint32_t frame_nr;
+
 	uint8_t rx_level;	/* 0 .. 63 in typical GSM notation (dBm+110) */
 	uint8_t snr;		/* Signal/Noise Ration (dB) */
+	uint8_t num_biterr;
+	uint8_t fire_crc;
+
 	uint8_t payload[0];
 } __attribute__((packed));
 
@@ -74,7 +77,6 @@ struct l1ctl_fbsb_resp {
 	int16_t initial_freq_err;
 	uint8_t result;
 	uint8_t bsic;
-	uint8_t padding[2];
 	/* FIXME: contents of cell_info ? */
 } __attribute__((packed));
 
@@ -91,7 +93,6 @@ struct l1ctl_info_ul {
 	uint8_t chan_nr;
 	/* GSM 08.58 link identifier (9.3.2) */
 	uint8_t link_id;
-
 	uint8_t tx_power;
 	uint8_t padding2;
 
@@ -105,8 +106,10 @@ struct l1ctl_info_ul {
 struct l1ctl_fbsb_req {
 	uint16_t band_arfcn;
 	uint16_t timeout;	/* in TDMA frames */
+
 	uint16_t freq_err_thresh1;
 	uint16_t freq_err_thresh2;
+
 	uint8_t num_freqerr_avg;
 	uint8_t flags;		/* L1CTL_FBSB_F_* */
 	uint8_t sync_info_idx;
@@ -146,7 +149,7 @@ struct l1ctl_dm_est_req {
 
 struct l1ctl_pm_req {
 	uint8_t type;
-	uint8_t padding2;
+	uint8_t padding[3];
 
 	union {
 		struct {
