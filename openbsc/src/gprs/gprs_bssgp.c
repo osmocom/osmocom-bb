@@ -129,6 +129,96 @@ static int bssgp_tx_fc_bvc_ack(uint16_t nsei, uint8_t tag, uint16_t ns_bvci)
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
+/* 10.3.7 SUSPEND-ACK PDU */
+int bssgp_tx_suspend_ack(uint16_t nsei, uint32_t tlli,
+			 const struct gprs_ra_id *ra_id, uint8_t suspend_ref)
+{
+	struct msgb *msg = bssgp_msgb_alloc();
+	struct bssgp_normal_hdr *bgph =
+		(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
+	uint32_t _tlli;
+	uint8_t ra[6];
+
+	msgb_nsei(msg) = nsei;
+	msgb_bvci(msg) = 0; /* Signalling */
+	bgph->pdu_type = BSSGP_PDUT_SUSPEND_ACK;
+
+	_tlli = htonl(tlli);
+	msgb_tvlv_put(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &_tlli);
+	gsm48_construct_ra(ra, ra_id);
+	msgb_tvlv_put(msg, BSSGP_IE_ROUTEING_AREA, 6, ra);
+	msgb_tvlv_put(msg, BSSGP_IE_SUSPEND_REF_NR, 1, &suspend_ref);
+
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
+}
+
+/* 10.3.8 SUSPEND-NACK PDU */
+int bssgp_tx_suspend_nack(uint16_t nsei, uint32_t tlli,
+			  uint8_t *cause)
+{
+	struct msgb *msg = bssgp_msgb_alloc();
+	struct bssgp_normal_hdr *bgph =
+		(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
+	uint32_t _tlli;
+
+	msgb_nsei(msg) = nsei;
+	msgb_bvci(msg) = 0; /* Signalling */
+	bgph->pdu_type = BSSGP_PDUT_SUSPEND_NACK;
+
+	_tlli = htonl(tlli);
+	msgb_tvlv_put(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &_tlli);
+	if (cause)
+		msgb_tvlv_put(msg, BSSGP_IE_CAUSE, 1, cause);
+
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
+}
+
+/* 10.3.10 RESUME-ACK PDU */
+int bssgp_tx_resume_ack(uint16_t nsei, uint32_t tlli,
+			const struct gprs_ra_id *ra_id)
+{
+	struct msgb *msg = bssgp_msgb_alloc();
+	struct bssgp_normal_hdr *bgph =
+		(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
+	uint32_t _tlli;
+	uint8_t ra[6];
+
+	msgb_nsei(msg) = nsei;
+	msgb_bvci(msg) = 0; /* Signalling */
+	bgph->pdu_type = BSSGP_PDUT_RESUME_ACK;
+
+	_tlli = htonl(tlli);
+	msgb_tvlv_put(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &_tlli);
+	gsm48_construct_ra(ra, ra_id);
+	msgb_tvlv_put(msg, BSSGP_IE_ROUTEING_AREA, 6, ra);
+
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
+}
+
+/* 10.3.11 RESUME-NACK PDU */
+int bssgp_tx_resume_nack(uint16_t nsei, uint32_t tlli,
+			 const struct gprs_ra_id *ra_id, uint8_t *cause)
+{
+	struct msgb *msg = bssgp_msgb_alloc();
+	struct bssgp_normal_hdr *bgph =
+		(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
+	uint32_t _tlli;
+	uint8_t ra[6];
+
+	msgb_nsei(msg) = nsei;
+	msgb_bvci(msg) = 0; /* Signalling */
+	bgph->pdu_type = BSSGP_PDUT_SUSPEND_NACK;
+
+	_tlli = htonl(tlli);
+	msgb_tvlv_put(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &_tlli);
+	gsm48_construct_ra(ra, ra_id);
+	msgb_tvlv_put(msg, BSSGP_IE_ROUTEING_AREA, 6, ra);
+	if (cause)
+		msgb_tvlv_put(msg, BSSGP_IE_CAUSE, 1, cause);
+
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
+}
+
 uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf)
 {
 	/* 6 octets RAC */
@@ -267,6 +357,8 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
+	struct gprs_ra_id raid;
+	uint32_t tlli;
 
 	DEBUGP(DBSSGP, "BSSGP SUSPEND\n");
 
@@ -274,8 +366,13 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 	    !TLVP_PRESENT(tp, BSSGP_IE_ROUTEING_AREA))
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 
+	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
+
 	/* FIXME: pass the SUSPEND request to GMM */
 	/* SEND SUSPEND_ACK or SUSPEND_NACK */
+	bssgp_tx_suspend_ack(msgb_nsei(msg), tlli, &raid, 0);
+
 	return 0;
 }
 
@@ -284,6 +381,8 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
+	struct gprs_ra_id raid;
+	uint32_t tlli;
 
 	DEBUGP(DBSSGP, "BSSGP RESUME\n");
 
@@ -292,8 +391,12 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 	    !TLVP_PRESENT(tp, BSSGP_IE_SUSPEND_REF_NR))
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 
+	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
+
 	/* FIXME: pass the RESUME request to GMM */
 	/* SEND RESUME_ACK or RESUME_NACK */
+	bssgp_tx_resume_ack(msgb_nsei(msg), tlli, &raid);
 	return 0;
 }
 
