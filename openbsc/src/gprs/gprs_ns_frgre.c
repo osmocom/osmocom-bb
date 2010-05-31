@@ -62,7 +62,7 @@ static int handle_rx_gre_ipv4(struct bsc_fd *bfd, struct msgb *msg,
 
 	gre_payload_len = msg->len - (iph->ihl*4 + sizeof(*greh));
 
-	inner_iph = (struct iphdr *) (uint8_t *)greh + sizeof(*greh);
+	inner_iph = (struct iphdr *) ((uint8_t *)greh + sizeof(*greh));
 
 	if (gre_payload_len < inner_iph->ihl*4 + sizeof(*inner_greh)) {
 		LOGP(DNS, LOGL_ERROR, "GRE keepalive too short\n");
@@ -81,7 +81,7 @@ static int handle_rx_gre_ipv4(struct bsc_fd *bfd, struct msgb *msg,
 		return -EIO;
 	}
 
-	inner_greh = (struct gre_hdr *) ((uint8_t *)iph + iph->ihl*4);
+	inner_greh = (struct gre_hdr *) ((uint8_t *)inner_iph + iph->ihl*4);
 	if (inner_greh->ptype != htons(GRE_PTYPE_KAR)) {
 		LOGP(DNS, LOGL_ERROR, "GRE keepalive inner GRE type != 0\n");
 		return -EIO;
