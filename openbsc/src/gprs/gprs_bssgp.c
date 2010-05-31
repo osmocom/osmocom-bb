@@ -237,7 +237,7 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 	int rc;
 
 	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
-	DEBUGPC(DBSSGP, "BVCI=%u RESET cause=%s\n", bvci,
+	DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx RESET cause=%s\n", bvci,
 		bssgp_cause_str(*TLVP_VAL(tp, BSSGP_IE_CAUSE)));
 
 	/* look-up or create the BTS context for this BVC */
@@ -252,7 +252,7 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 	 * informs us about its RAC + Cell ID, so we can create a mapping */
 	if (bvci != 0 && bvci != 1) {
 		if (!TLVP_PRESENT(tp, BSSGP_IE_CELL_ID)) {
-			LOGP(DBSSGP, LOGL_ERROR, "BSSGP RESET BVCI=%u "
+			LOGP(DBSSGP, LOGL_ERROR, "BSSGP BVCI=%u RESET "
 				"missing mandatory IE\n", bvci);
 			return -EINVAL;
 		}
@@ -284,7 +284,7 @@ static int bssgp_rx_bvc_block(struct msgb *msg, struct tlv_parsed *tp)
 		return 0;
 	}
 
-	LOGP(DBSSGP, LOGL_INFO, "BVCI=%u BVC-BLOCK\n", bvci);
+	LOGP(DBSSGP, LOGL_INFO, "BSSGP BVCI=%u BVC-BLOCK\n", bvci);
 
 	ptp_ctx = btsctx_by_bvci_nsei(bvci, msgb_nsei(msg));
 	if (!ptp_ctx)
@@ -314,7 +314,7 @@ static int bssgp_rx_bvc_unblock(struct msgb *msg, struct tlv_parsed *tp)
 		return 0;
 	}
 
-	DEBUGP(DBSSGP, "BVCI=%u BVC-UNBLOCK\n", bvci);
+	DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx BVC-UNBLOCK\n", bvci);
 
 	ptp_ctx = btsctx_by_bvci_nsei(bvci, msgb_nsei(msg));
 	if (!ptp_ctx)
@@ -335,15 +335,18 @@ static int bssgp_rx_ul_ud(struct msgb *msg, struct tlv_parsed *tp,
 {
 	struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
 
-	DEBUGP(DBSSGP, "BSSGP UL-UD\n");
-
 	/* extract TLLI and parse TLV IEs */
 	msgb_tlli(msg) = ntohl(budh->tlli);
 
+	DEBUGP(DBSSGP, "BSSGP TLLI=0x%08x UPLINK-UNITDATA\n", msgb_tlli(msg));
+
 	/* Cell ID and LLC_PDU are the only mandatory IE */
 	if (!TLVP_PRESENT(tp, BSSGP_IE_CELL_ID) ||
-	    !TLVP_PRESENT(tp, BSSGP_IE_LLC_PDU))
+	    !TLVP_PRESENT(tp, BSSGP_IE_LLC_PDU)) {
+		LOGP(DBSSGP, LOGL_ERROR, "BSSGP TLLI=0x%08x Rx UL-UD "
+			"missing mandatory IE\n", msgb_tlli(msg));
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
+	}
 
 	/* store pointer to LLC header and CELL ID in msgb->cb */
 	msgb_llch(msg) = (uint8_t *) TLVP_VAL(tp, BSSGP_IE_LLC_PDU);
@@ -360,13 +363,18 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 	struct gprs_ra_id raid;
 	uint32_t tlli;
 
-	DEBUGP(DBSSGP, "BSSGP SUSPEND\n");
-
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TLLI) ||
-	    !TLVP_PRESENT(tp, BSSGP_IE_ROUTEING_AREA))
+	    !TLVP_PRESENT(tp, BSSGP_IE_ROUTEING_AREA)) {
+		LOGP(DBSSGP, LOGL_ERROR, "BSSGP BVCI=%u Rx SUSPEND "
+			"missing mandatory IE\n", ctx->bvci);
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
+	}
 
 	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+
+	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%082x Rx SUSPEND\n",
+		ctx->bvci, tlli);
+
 	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
 
 	/* FIXME: pass the SUSPEND request to GMM */
@@ -384,14 +392,18 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 	struct gprs_ra_id raid;
 	uint32_t tlli;
 
-	DEBUGP(DBSSGP, "BSSGP RESUME\n");
-
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TLLI) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_ROUTEING_AREA) ||
-	    !TLVP_PRESENT(tp, BSSGP_IE_SUSPEND_REF_NR))
+	    !TLVP_PRESENT(tp, BSSGP_IE_SUSPEND_REF_NR)) {
+		LOGP(DBSSGP, LOGL_ERROR, "BSSGP BVCI=%u Rx RESUME "
+			"missing mandatory IE\n", ctx->bvci);
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
+	}
 
 	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+
+	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%08x RESUME\n", ctx->bvci, tlli);
+
 	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
 
 	/* FIXME: pass the RESUME request to GMM */
@@ -400,18 +412,47 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 	return 0;
 }
 
+
+static int bssgp_rx_llc_disc(struct msgb *msg, struct tlv_parsed *tp,
+			     struct bssgp_bvc_ctx *ctx)
+{
+	uint32_t tlli;
+
+	if (!TLVP_PRESENT(tp, BSSGP_IE_TLLI) ||
+	    !TLVP_PRESENT(tp, BSSGP_IE_LLC_FRAMES_DISCARDED) ||
+	    !TLVP_PRESENT(tp, BSSGP_IE_BVCI) ||
+	    !TLVP_PRESENT(tp, BSSGP_IE_NUM_OCT_AFF)) {
+		LOGP(DBSSGP, LOGL_ERROR, "BSSGP BVCI=%u Rx LLC DISCARDED "
+			"missing mandatory IE\n", ctx->bvci);
+	}
+
+	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+
+	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=%u LLC DISCARDED\n",
+		ctx->bvci, tlli);
+
+	rate_ctr_inc(&ctx->ctrg->ctr[BSSGP_CTR_DISCARDED]);
+
+	/* FIXME: send NM_LLC_DISCARDED to NM */
+	return 0;
+}
+
 static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 			   struct bssgp_bvc_ctx *bctx)
 {
 
-	DEBUGP(DBSSGP, "BSSGP FC BVC\n");
+	DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx Flow Control BVC\n",
+		bctx->bvci);
 
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TAG) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_BVC_BUCKET_SIZE) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_BUCKET_LEAK_RATE) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_BMAX_DEFAULT_MS) ||
-	    !TLVP_PRESENT(tp, BSSGP_IE_R_DEFAULT_MS))
+	    !TLVP_PRESENT(tp, BSSGP_IE_R_DEFAULT_MS)) {
+		LOGP(DBSSGP, LOGL_ERROR, "BSSGP BVCI=%u Rx FC BVC "
+			"missing mandatory IE\n", bctx->bvci);
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
+	}
 
 	/* FIXME: actually implement flow control */
 
@@ -444,12 +485,13 @@ static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 		break;
 	case BSSGP_PDUT_RA_CAPABILITY:
 		/* BSS requests RA capability or IMSI */
-		DEBUGP(DBSSGP, "BSSGP RA CAPABILITY UPDATE\n");
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx RA CAPABILITY UPDATE\n",
+			bctx->bvci);
 		/* FIXME: send GMM_RA_CAPABILITY_UPDATE.ind to GMM */
 		/* FIXME: send RA_CAPA_UPDATE_ACK */
 		break;
 	case BSSGP_PDUT_RADIO_STATUS:
-		DEBUGP(DBSSGP, "BSSGP RADIO STATUS\n");
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx RADIO STATUS\n", bctx->bvci);
 		/* BSS informs us of some exception */
 		/* FIXME: send GMM_RADIO_STATUS.ind to GMM */
 		break;
@@ -459,7 +501,8 @@ static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 		break;
 	case BSSGP_PDUT_FLOW_CONTROL_MS:
 		/* BSS informs us of available bandwidth to one MS */
-		DEBUGP(DBSSGP, "BSSGP FC MS\n");
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx Flow Control MS\n",
+			bctx->bvci);
 		/* FIXME: actually implement flow control */
 		/* FIXME: Send FLOW_CONTROL_MS_ACK */
 		break;
@@ -471,8 +514,8 @@ static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 	case BSSGP_PDUT_CREATE_BSS_PFC_NACK:
 	case BSSGP_PDUT_MODIFY_BSS_PFC:
 	case BSSGP_PDUT_DELETE_BSS_PFC_ACK:
-		DEBUGP(DBSSGP, "BSSGP PDU type 0x%02x not [yet] implemented\n",
-			pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type 0x%02x not [yet] "
+			"implemented\n", bctx->bvci, pdu_type);
 		rc = bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_FEAT, NULL, msg);
 		break;
 	/* those only exist in the SGSN -> BSS direction */
@@ -482,13 +525,14 @@ static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 	case BSSGP_PDUT_RA_CAPA_UPDATE_ACK:
 	case BSSGP_PDUT_FLOW_CONTROL_BVC_ACK:
 	case BSSGP_PDUT_FLOW_CONTROL_MS_ACK:
-		DEBUGP(DBSSGP, "BSSGP PDU type 0x%02x only exists in DL\n",
-			pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type 0x%02x only exists "
+			"in DL\n", bctx->bvci, pdu_type);
 		bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		rc = -EINVAL;
 		break;
 	default:
-		DEBUGP(DBSSGP, "BSSGP PDU type 0x%02x unknown\n", pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type 0x%02x unknown\n",
+			bctx->bvci, pdu_type);
 		rc = bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		break;
 	}
@@ -518,38 +562,45 @@ static int gprs_bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
 		break;
 	case BSSGP_PDUT_FLUSH_LL_ACK:
 		/* BSS informs us it has performed LL FLUSH */
-		DEBUGP(DBSSGP, "BSSGP FLUSH LL\n");
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx FLUSH LL ACK\n", bctx->bvci);
 		/* FIXME: send NM_FLUSH_LL.res to NM */
 		break;
 	case BSSGP_PDUT_LLC_DISCARD:
 		/* BSS informs that some LLC PDU's have been discarded */
-		rate_ctr_inc(&bctx->ctrg->ctr[BSSGP_CTR_DISCARDED]);
-		DEBUGP(DBSSGP, "BSSGP LLC DISCARDED\n");
-		/* FIXME: send NM_LLC_DISCARDED to NM */
+		rc = bssgp_rx_llc_disc(msg, tp, bctx);
 		break;
 	case BSSGP_PDUT_BVC_BLOCK:
 		/* BSS tells us that BVC shall be blocked */
 		if (!TLVP_PRESENT(tp, BSSGP_IE_BVCI) ||
-		    !TLVP_PRESENT(tp, BSSGP_IE_CAUSE))
+		    !TLVP_PRESENT(tp, BSSGP_IE_CAUSE)) {
+			LOGP(DBSSGP, LOGL_ERROR, "BSSGP Rx BVC-BLOCK "
+				"missing mandatory IE\n");
 			goto err_mand_ie;
+		}
 		rc = bssgp_rx_bvc_block(msg, tp);
 		break;
 	case BSSGP_PDUT_BVC_UNBLOCK:
 		/* BSS tells us that BVC shall be unblocked */
-		if (!TLVP_PRESENT(tp, BSSGP_IE_BVCI))
+		if (!TLVP_PRESENT(tp, BSSGP_IE_BVCI)) {
+			LOGP(DBSSGP, LOGL_ERROR, "BSSGP Rx BVC-UNBLOCK "
+				"missing mandatory IE\n");
 			goto err_mand_ie;
+		}
 		rc = bssgp_rx_bvc_unblock(msg, tp);
 		break;
 	case BSSGP_PDUT_BVC_RESET:
 		/* BSS tells us that BVC init is required */
-		DEBUGP(DBSSGP, "BSSGP BVC RESET ");
 		if (!TLVP_PRESENT(tp, BSSGP_IE_BVCI) ||
-		    !TLVP_PRESENT(tp, BSSGP_IE_CAUSE))
+		    !TLVP_PRESENT(tp, BSSGP_IE_CAUSE)) {
+			LOGP(DBSSGP, LOGL_ERROR, "BSSGP Rx BVC-RESET "
+				"missing mandatory IE\n");
 			goto err_mand_ie;
+		}
 		rc = bssgp_rx_bvc_reset(msg, tp, ns_bvci);
 		break;
 	case BSSGP_PDUT_STATUS:
 		/* Some exception has occurred */
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx BVC STATUS\n", bctx->bvci);
 		/* FIXME: send NM_STATUS.ind to NM */
 		break;
 	/* those only exist in the SGSN -> BSS direction */
@@ -563,13 +614,14 @@ static int gprs_bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
 	case BSSGP_PDUT_BVC_BLOCK_ACK:
 	case BSSGP_PDUT_BVC_UNBLOCK_ACK:
 	case BSSGP_PDUT_SGSN_INVOKE_TRACE:
-		DEBUGP(DBSSGP, "BSSGP PDU type 0x%02x only exists in DL\n",
-			pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type 0x%02x only exists "
+			"in DL\n", bctx->bvci, pdu_type);
 		bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		rc = -EINVAL;
 		break;
 	default:
-		DEBUGP(DBSSGP, "BSSGP PDU type 0x%02x unknown\n", pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type 0x%02x unknown\n",
+			bctx->bvci, pdu_type);
 		rc = bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		break;
 	}
