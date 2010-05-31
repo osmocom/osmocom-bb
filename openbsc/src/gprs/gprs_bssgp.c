@@ -529,11 +529,10 @@ static int gprs_bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
 		break;
 	case BSSGP_PDUT_BVC_BLOCK:
 		/* BSS tells us that BVC shall be blocked */
-		DEBUGP(DBSSGP, "BSSGP BVC BLOCK ");
 		if (!TLVP_PRESENT(tp, BSSGP_IE_BVCI) ||
 		    !TLVP_PRESENT(tp, BSSGP_IE_CAUSE))
 			goto err_mand_ie;
-		rc = bssgp_rx_bvc_unblock(msg, tp);
+		rc = bssgp_rx_bvc_block(msg, tp);
 		break;
 	case BSSGP_PDUT_BVC_UNBLOCK:
 		/* BSS tells us that BVC shall be unblocked */
