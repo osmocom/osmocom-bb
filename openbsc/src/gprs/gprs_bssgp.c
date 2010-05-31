@@ -372,7 +372,7 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 
 	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
 
-	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%082x Rx SUSPEND\n",
+	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%08x Rx SUSPEND\n",
 		ctx->bvci, tlli);
 
 	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
