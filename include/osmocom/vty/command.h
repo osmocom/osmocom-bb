@@ -70,49 +70,10 @@ enum node_type {
 	CONFIG_NODE,		/* Config node. Default mode of config file. */
 	SERVICE_NODE,		/* Service node. */
 	DEBUG_NODE,		/* Debug node. */
-#if 0
-	AAA_NODE,		/* AAA node. */
-	KEYCHAIN_NODE,		/* Key-chain node. */
-	KEYCHAIN_KEY_NODE,	/* Key-chain key node. */
-	INTERFACE_NODE,		/* Interface mode node. */
-	ZEBRA_NODE,		/* zebra connection node. */
-	TABLE_NODE,		/* rtm_table selection node. */
-	RIP_NODE,		/* RIP protocol mode node. */
-	RIPNG_NODE,		/* RIPng protocol mode node. */
-	BGP_NODE,		/* BGP protocol mode which includes BGP4+ */
-	BGP_VPNV4_NODE,		/* BGP MPLS-VPN PE exchange. */
-	BGP_IPV4_NODE,		/* BGP IPv4 unicast address family.  */
-	BGP_IPV4M_NODE,		/* BGP IPv4 multicast address family.  */
-	BGP_IPV6_NODE,		/* BGP IPv6 address family */
-	OSPF_NODE,		/* OSPF protocol mode */
-	OSPF6_NODE,		/* OSPF protocol for IPv6 mode */
-	ISIS_NODE,		/* ISIS protocol mode */
-	MASC_NODE,		/* MASC for multicast.  */
-	IRDP_NODE,		/* ICMP Router Discovery Protocol mode. */
-	IP_NODE,		/* Static ip route node. */
-	ACCESS_NODE,		/* Access list node. */
-	PREFIX_NODE,		/* Prefix list node. */
-	ACCESS_IPV6_NODE,	/* Access list node. */
-	PREFIX_IPV6_NODE,	/* Prefix list node. */
-	AS_LIST_NODE,		/* AS list node. */
-	COMMUNITY_LIST_NODE,	/* Community list node. */
-	RMAP_NODE,		/* Route map node. */
-	SMUX_NODE,		/* SNMP configuration node. */
-	DUMP_NODE,		/* Packet dump node. */
-	FORWARDING_NODE,	/* IP forwarding node. */
-#endif
+
 	VTY_NODE,		/* Vty node. */
 
-	GSMNET_NODE,
-	BTS_NODE,
-	TRX_NODE,
-	TS_NODE,
-	SUBSCR_NODE,
-	MGCP_NODE,
-	GBPROXY_NODE,
-	SGSN_NODE,
-	NS_NODE,
-	BSSGP_NODE,
+	_LAST_OSMOVTY_NODE
 };
 
 /* Node which has some commands and prompt string and configuration
