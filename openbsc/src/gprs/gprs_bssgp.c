@@ -39,6 +39,7 @@
 #include <openbsc/gprs_bssgp.h>
 #include <openbsc/gprs_llc.h>
 #include <openbsc/gprs_ns.h>
+#include <openbsc/gprs_sgsn.h>
 
 void *bssgp_tall_ctx = NULL;
 
@@ -685,7 +686,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 
 /* Entry function from upper level (LLC), asking us to transmit a BSSGP PDU
  * to a remote MS (identified by TLLI) at a BTS identified by its BVCI and NSEI */
-int gprs_bssgp_tx_dl_ud(struct msgb *msg)
+int gprs_bssgp_tx_dl_ud(struct msgb *msg, struct sgsn_mm_ctx *mmctx)
 {
 	struct bssgp_bvc_ctx *bctx;
 	struct bssgp_ud_hdr *budh;
@@ -696,6 +697,7 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 	uint16_t msg_len = msg->len;
 	uint16_t bvci = msgb_bvci(msg);
 	uint16_t nsei = msgb_nsei(msg);
+	uint16_t drx_params;
 
 	/* Identifiers from UP: TLLI, BVCI, NSEI (all in msgb->cb) */
 	if (bvci <= BVCI_PTM ) {
@@ -724,7 +726,37 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg)
 		llc_pdu_tlv[1] |= 0x80;
 	}
 
-	/* FIXME: optional elements */
+	/* FIXME: optional elements: Alignment, UTRAN CCO, LSA, PFI */
+
+	if (mmctx) {
+		/* Old TLLI to help BSS map from old->new */
+#if 0
+		if (mmctx->tlli_old)
+			msgb_tvlv_push(msg, BSSGP_IE_TLLI, 4, htonl(*tlli_old));
+#endif
+
+		/* IMSI */
+		if (strlen(mmctx->imsi)) {
+			uint8_t mi[10];
+			int imsi_len = gsm48_generate_mid_from_imsi(mi, mmctx->imsi);
+			if (imsi_len > 2)
+				msgb_tvlv_push(msg, BSSGP_IE_IMSI,
+							imsi_len-2, mi+2);
+		}
+
+		/* DRX parameters */
+		drx_params = htons(mmctx->drx_parms);
+		msgb_tvlv_push(msg, BSSGP_IE_DRX_PARAMS, 2,
+				(uint8_t *) &drx_params);
+
+		/* FIXME: Priority */
+
+		/* MS Radio Access Capability */
+		if (mmctx->ms_radio_access_capa.len)
+			msgb_tvlv_push(msg, BSSGP_IE_MS_RADIO_ACCESS_CAP,
+					mmctx->ms_radio_access_capa.len,
+					mmctx->ms_radio_access_capa.buf);
+	}
 
 	/* prepend the pdu lifetime */
 	pdu_lifetime = htons(pdu_lifetime);

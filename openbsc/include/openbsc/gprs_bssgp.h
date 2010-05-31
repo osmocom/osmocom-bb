@@ -188,7 +188,8 @@ struct bssgp_bvc_ctx *btsctx_by_bvci_nsei(uint16_t bvci, uint16_t nsei);
 int gprs_bssgp_rcvmsg(struct msgb *msg);
 
 /* BSSGP-DL-UNITDATA.req */
-int gprs_bssgp_tx_dl_ud(struct msgb *msg);
+struct sgsn_mm_ctx;
+int gprs_bssgp_tx_dl_ud(struct msgb *msg, struct sgsn_mm_ctx *mmctx);
 
 uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf);
 
