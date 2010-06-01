@@ -374,3 +374,20 @@ int gprs_tlli_type(uint32_t tlli)
 
 	return TLLI_RESERVED;
 }
+
+uint32_t gprs_tmsi2tlli(uint32_t p_tmsi, enum gprs_tlli_type type)
+{
+	uint32_t tlli;
+	switch (type) {
+	case TLLI_LOCAL:
+		tlli = p_tmsi | 0xc0000000;
+		break;
+	case TLLI_FOREIGN:
+		tlli = (p_tmsi & 0x3fffffff) | 0x80000000;
+		break;
+	default:
+		tlli = 0;
+		break;
+	}
+	return tlli;
+}
