@@ -88,7 +88,7 @@ void gsm_fn2gsmtime(struct gsm_time *time, uint32_t fn);
 uint32_t gsm_gsmtime2fn(struct gsm_time *time);
 
 /* GSM TS 03.03 Chapter 2.6 */
-enum gprs_tlli_tyoe {
+enum gprs_tlli_type {
 	TLLI_LOCAL,
 	TLLI_FOREIGN,
 	TLLI_RANDOM,
@@ -98,6 +98,8 @@ enum gprs_tlli_tyoe {
 
 /* TS 03.03 Chapter 2.6 */
 int gprs_tlli_type(uint32_t tlli);
+
+uint32_t gprs_tmsi2tlli(uint32_t p_tmsi, enum gprs_tlli_type type);
 
 void generate_backtrace();
 #endif
