@@ -693,7 +693,7 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg, struct sgsn_mm_ctx *mmctx)
 	uint8_t llc_pdu_tlv_hdr_len = 2;
 	uint8_t *llc_pdu_tlv, *qos_profile;
 	uint16_t pdu_lifetime = 1000; /* centi-seconds */
-	uint8_t qos_profile_default[3] = { 0x00, 0x00, 0x21 };
+	uint8_t qos_profile_default[3] = { 0x00, 0x00, 0x20 };
 	uint16_t msg_len = msg->len;
 	uint16_t bvci = msgb_bvci(msg);
 	uint16_t nsei = msgb_nsei(msg);
