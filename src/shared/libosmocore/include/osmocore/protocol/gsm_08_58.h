@@ -75,6 +75,10 @@ enum abis_rsl_msgtype {
 	RSL_MT_REL_IND,
 	RSL_MT_UNIT_DATA_REQ,
 	RSL_MT_UNIT_DATA_IND,		/* 0x0b */
+	RSL_MT_SUSP_REQ,		/* non-standard elements */
+	RSL_MT_SUSP_CONF,
+	RSL_MT_RES_REQ,
+	RSL_MT_RECON_REQ,		/* 0x0f */
 
 	/* Common Channel Management / TRX Management */
 	RSL_MT_BCCH_INFO			= 0x11,
