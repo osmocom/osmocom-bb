@@ -139,7 +139,7 @@ int l23_app_init(struct osmocom_ms *ms)
 {
 	int rc;
 
-	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG");
+	log_parse_category_mask(stderr_target, "DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG");
 
 	srand(time(NULL));
 

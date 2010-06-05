@@ -2311,6 +2311,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		}
 		break;
 	case S_L1CTL_FBSB_ERR:
+		LOGP(DCS, LOGL_INFO, "Channel sync error.\n");
 		ms = signal_data;
 		cs = &ms->cellsel;
 
@@ -2739,6 +2740,8 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 	cs->si = cs->list[cs->arfcn].sysinfo;
+#warning TESTING: laforge must fix the sync error when sending fbsb request too close to each other. also we must get a response with arfcn or a confirm, so we know where the response belongs to.
+usleep(300000);
 
 	return 0;
 }

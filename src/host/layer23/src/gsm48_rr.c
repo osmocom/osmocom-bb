@@ -2839,6 +2839,7 @@ static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct msgb *nmsg;
+	uint8_t *mode;
 
 	/* if MM has releases before confirm, we start release */
 	if (rr->state == GSM48_RR_ST_IDLE) {
@@ -2847,6 +2848,9 @@ static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 		nmsg = gsm48_l3_msgb_alloc();
 		if (!nmsg)
 			return -ENOMEM;
+		mode = msgb_put(nmsg, 2);
+		mode[0] = RSL_IE_RELEASE_MODE;
+		mode[1] = 0; /* normal release */
 		/* start release */
 		return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
 	}
@@ -3234,37 +3238,36 @@ for(i=0;i<msgb_l3len(msg);i++)
 static struct dldatastate {
 	uint32_t	states;
 	int		type;
-	const char	*type_name;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
 } dldatastatelist[] = {
 	{SBIT(GSM48_RR_ST_IDLE) | SBIT(GSM48_RR_ST_CONN_PEND) |
 	 SBIT(GSM48_RR_ST_DEDICATED),
-	 RSL_MT_UNIT_DATA_IND, "UNIT_DATA_IND", gsm48_rr_unit_data_ind},
+	 RSL_MT_UNIT_DATA_IND, gsm48_rr_unit_data_ind},
 	{SBIT(GSM48_RR_ST_DEDICATED), /* 3.4.2 */
-	 RSL_MT_DATA_IND, "DATA_IND", gsm48_rr_data_ind},
+	 RSL_MT_DATA_IND, gsm48_rr_data_ind},
 	{SBIT(GSM48_RR_ST_IDLE) | SBIT(GSM48_RR_ST_CONN_PEND),
-	 RSL_MT_EST_CONF, "EST_CONF", gsm48_rr_estab_cnf},
+	 RSL_MT_EST_CONF, gsm48_rr_estab_cnf},
 #if 0
 	{SBIT(GSM48_RR_ST_DEDICATED),
-	 RSL_MT_EST_CONF, "EST_CONF", gsm48_rr_estab_cnf_dedicated},
+	 RSL_MT_EST_CONF, gsm48_rr_estab_cnf_dedicated},
 	{SBIT(GSM_RRSTATE),
-	 RSL_MT_CONNECT_CNF, "CONNECT_CNF", gsm48_rr_connect_cnf},
+	 RSL_MT_CONNECT_CNF, gsm48_rr_connect_cnf},
 	{SBIT(GSM_RRSTATE),
-	 RSL_MT_RELEASE_IND, "REL_IND", gsm48_rr_rel_ind},
+	 RSL_MT_RELEASE_IND, gsm48_rr_rel_ind},
 #endif
 	{SBIT(GSM48_RR_ST_IDLE) | SBIT(GSM48_RR_ST_CONN_PEND),
-	 RSL_MT_REL_CONF, "REL_CONF", gsm48_rr_rel_cnf},
+	 RSL_MT_REL_CONF, gsm48_rr_rel_cnf},
 #if 0
 	{SBIT(GSM48_RR_ST_DEDICATED),
-	 RSL_MT_REL_CONF, "REL_CONF", gsm48_rr_rel_cnf_dedicated},
+	 RSL_MT_REL_CONF, gsm48_rr_rel_cnf_dedicated},
 #endif
 	{SBIT(GSM48_RR_ST_CONN_PEND), /* 3.3.1.1.2 */
-	 RSL_MT_CHAN_CNF, "CHAN_CNF", gsm48_rr_tx_rand_acc},
+	 RSL_MT_CHAN_CNF, gsm48_rr_tx_rand_acc},
 #if 0
 	{SBIT(GSM48_RR_ST_DEDICATED),
-	 RSL_MT_CHAN_CNF, "CHAN_CNF", gsm48_rr_rand_acc_cnf_dedicated},
+	 RSL_MT_CHAN_CNF, gsm48_rr_rand_acc_cnf_dedicated},
 	{SBIT(GSM_RRSTATE),
-	 RSL_MT_MDL_ERROR_IND, "MDL_ERROR_IND", gsm48_rr_mdl_error_ind},
+	 RSL_MT_MDL_ERROR_IND, gsm48_rr_mdl_error_ind},
 #endif
 };
 
@@ -3279,24 +3282,22 @@ static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 	int i;
 	int rc;
 
+	if (msg_type != RSL_MT_UNIT_DATA_IND) {
+		LOGP(DRSL, LOGL_INFO, "(ms %s) Received '%s' from L2 in state "
+			"%s\n", ms->name, get_rsl_name(msg_type),
+			gsm48_rr_state_names[rr->state]);
+	}
+
 	/* find function for current state and message */
 	for (i = 0; i < DLDATASLLEN; i++)
 		if ((msg_type == dldatastatelist[i].type)
 		 && ((1 << rr->state) & dldatastatelist[i].states))
 			break;
 	if (i == DLDATASLLEN) {
-		LOGP(DRSL, LOGL_NOTICE, "RSLms message 0x%02x unhandled at "
-		"state %s.\n", msg_type, gsm48_rr_state_names[rr->state]);
+		LOGP(DRSL, LOGL_NOTICE, "RSLms message unhandled\n");
 		msgb_free(msg);
 		return 0;
 	}
-	LOGP(DRSL, LOGL_INFO, "(ms %s) Received 'RSL_MT_%s' from RSL in state "
-		"%s\n", ms->name, dldatastatelist[i].type_name,
-		gsm48_rr_state_names[rr->state]);
-	if (dldatastatelist[i].rout != gsm48_rr_unit_data_ind)
-		LOGP(DRR, LOGL_INFO, "(ms %s) Received 'RSL_MT_%s' from in "
-			"state %s\n", ms->name, dldatastatelist[i].type_name,
-			gsm48_rr_state_names[rr->state]);
 
 	rc = dldatastatelist[i].rout(ms, msg);
 
@@ -3458,11 +3459,17 @@ they queue must be flushed when rr fails
 static int gsm48_rr_abort_req(struct osmocom_ms *ms, struct gsm48_rr *rrmsg)
 {
 	struct gsm48_rrlayer *rr = ms->rrlayer;
+	uint8_t *mode;
+
 	stop_rr_t3126(rr);
 	if (rr->state == GSM48_RR_ST_DEDICATED) {
-		struct gsm_dl dlmsg;
-
-		memset(&dlmsg, 0, sizeof(dlmsg));
+		/* release message */
+		nmsg = gsm48_l3_msgb_alloc();
+		if (!nmsg)
+			return -ENOMEM;
+		mode = msgb_put(nmsg, 2);
+		mode[0] = RSL_IE_RELEASE_MODE;
+		mode[1] = 0; /* normal release */
 		return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
 	}
 	new_rr_state(rr, GSM48_RR_ST_IDLE);
@@ -3681,12 +3688,12 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	/* Synchronization Indication */
 	if (TLVP_PRESENT(&tp, GSM48_IE_SYNC_IND))
 		gsm48_decode_sync_ind(rr,
-			TLVP_VAL(&tp, GSM48_IE_MOBILE_ALLOC)-1, &cd);
+			TLVP_VAL(&tp, GSM48_IE_SYNC_IND)-1, &cd);
 	/* Frequency Sort List */
 	if (TLVP_PRESENT(&tp, GSM48_IE_FREQ_SHORT_LIST))
 		gsm48_decode_freq_list(&ms->support, s->freq,
-			TLVP_VAL(&tp, GSM48_IE_MOBILE_ALLOC),
-			*(TLVP_VAL(&tp, GSM48_IE_MOBILE_ALLOC)-1),
+			TLVP_VAL(&tp, GSM48_IE_FREQ_SHORT_LIST),
+			*(TLVP_VAL(&tp, GSM48_IE_FREQ_SHORT_LIST)-1),
 				0xce, FREQ_TYPE_SERV);
 
 
@@ -3765,6 +3772,15 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 	struct gsm_rr_hdr *nrrh;
 
+	printing of the cause
+
+	switch (msg->l3h[0]) {
+	case RLL_CAUSE_SEQ_ERR:
+	case RLL_CAUSE_UNSOL_DM_RESP_MF:
+	einige muessen ignoriert werden
+	andere gelten als release
+	}
+
 	if (rr->hando_susp_state || rr->assign_susp_state) {
 		if (!rr->resume_last_state) {
 			rr->resume_last_state = 1;
@@ -3780,7 +3796,7 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 			nmsg = gsm48_l3_msgb_alloc();
 			if (!nmsg)
 				return -ENOMEM;
-			return gsm48_send_rsl(ms, RSL_MT_EST_REQ, nmsg);
+			return gsm48_send_rsl(ms, RSL_MT_RECON_REQ, nmsg);
 		}
 		rr->resume_last_state = 0;
 	}

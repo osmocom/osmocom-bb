@@ -272,9 +272,11 @@ int gsm48_encode_mi(uint8_t *buf, struct msgb *msg, struct osmocom_ms *ms,
 	default:
 	        buf[0] = GSM48_IE_MOBILE_ID;
 	        buf[1] = 1;
-	        buf[2] = 0xf0 | GSM_MI_TYPE_NONE;
+	        buf[2] = 0xf0;
 		break;
 	}
+	/* alter MI type */
+	buf[2] = (buf[2] & 0xf8) | mi_type;
 
 	if (msg) {
 		/* MI as LV */
@@ -1595,6 +1597,7 @@ static int gsm48_mm_rx_id_req(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_mm_tx_mm_status(ms,
 			GSM48_REJECT_MSG_NOT_COMPATIBLE);
 	}
+	LOGP(DMM, LOGL_INFO, "IDENTITY REQUEST (mi_type %d)\n", mi_type);
 
 	return gsm48_mm_tx_id_rsp(ms, mi_type);
 }
@@ -1860,12 +1863,12 @@ static int gsm48_mm_rx_info(struct osmocom_ms *ms, struct msgb *msg)
 	/* long name */
 	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_LONG)) {
 		decode_network_name(mm->name_long, sizeof(mm->name_long),
-				TLVP_VAL(&tp, GSM48_IE_FACILITY)-1);
+				TLVP_VAL(&tp, GSM48_IE_NAME_LONG)-1);
 	}
 	/* short name */
 	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_SHORT)) {
 		decode_network_name(mm->name_short, sizeof(mm->name_short),
-				TLVP_VAL(&tp, GSM48_IE_FACILITY)-1);
+				TLVP_VAL(&tp, GSM48_IE_NAME_SHORT)-1);
 	}
 
 	return 0;
@@ -2210,7 +2213,7 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 		uint8_t mi_type;
 		uint32_t tmsi;
 
-		mi = TLVP_VAL(&tp, GSM48_IE_FACILITY)-1;
+		mi = TLVP_VAL(&tp, GSM48_IE_MOBILE_ID)-1;
 		if (mi[0] < 1)
 			goto short_read;
 		mi_type = mi[1] & GSM_MI_TYPE_MASK;
