@@ -182,6 +182,7 @@ struct gsm48_mmlayer {
 	uint8_t			lupd_ra_failure;/* random access failed */
 	uint8_t			lupd_rej_cause;	/* cause of last reject */
 	uint8_t			lupd_periodic;	/* periodic update pending */
+	uint8_t			lupd_retry;	/* pending T3211/T3213 to */
 
 	/* imsi detach */
 	uint8_t			delay_detach;	/* do detach when possible */

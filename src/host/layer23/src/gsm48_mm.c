@@ -51,6 +51,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg);
 static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate);
 static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_mm_loc_upd_periodic(struct osmocom_ms *ms, struct msgb *msg);
+static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
 
 /*
  * notes
@@ -276,7 +277,7 @@ int gsm48_encode_mi(uint8_t *buf, struct msgb *msg, struct osmocom_ms *ms,
 		break;
 	}
 	/* alter MI type */
-	buf[2] = (buf[2] & 0xf8) | mi_type;
+	buf[2] = (buf[2] & ~GSM_MI_TYPE_MASK) | mi_type;
 
 	if (msg) {
 		/* MI as LV */
@@ -316,6 +317,7 @@ static void timeout_mm_t3211(void *arg)
 {
 	struct gsm48_mmlayer *mm = arg;
 
+	LOGP(DSUM, LOGL_INFO, "Location update retry\n");
 	LOGP(DMM, LOGL_INFO, "timer T3211 (loc. upd. retry delay) has fired\n");
 	gsm48_mm_ev(mm->ms, GSM48_MM_EVENT_TIMEOUT_T3211, NULL);
 }
@@ -324,6 +326,7 @@ static void timeout_mm_t3212(void *arg)
 {
 	struct gsm48_mmlayer *mm = arg;
 
+	LOGP(DSUM, LOGL_INFO, "Periodic location update\n");
 	LOGP(DMM, LOGL_INFO, "timer T3212 (periodic loc. upd. delay) has "
 		"fired\n");
 
@@ -339,6 +342,7 @@ static void timeout_mm_t3213(void *arg)
 {
 	struct gsm48_mmlayer *mm = arg;
 
+	LOGP(DSUM, LOGL_INFO, "Location update retry\n");
 	LOGP(DMM, LOGL_INFO, "timer T3213 (delay after RA failure) has "
 		"fired\n");
 	gsm48_mm_ev(mm->ms, GSM48_MM_EVENT_TIMEOUT_T3213, NULL);
@@ -917,11 +921,21 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 		if (!bsc_timer_pending(&mm->t3212))
 			start_mm_t3212(mm, mm->t3212_value);
 		/* perform pending location update */
+		if (mm->lupd_retry) {
+			LOGP(DMM, LOGL_INFO, "Loc. upd. pending (type %d)\n",
+				mm->lupd_type);
+			mm->lupd_retry = 0;
+			gsm48_mm_loc_upd(mm->ms, NULL);
+			/* must exit, because this function can be called
+			 * recursively
+			 */
+			return;
+		}
 		if (mm->lupd_periodic) {
 			struct gsm48_sysinfo *s = &mm->ms->cellsel.sel_si;
 
-			LOGP(DMM, LOGL_INFO, "Loc. upd. pending (type %d)\n",
-				mm->lupd_type);
+			LOGP(DMM, LOGL_INFO, "Periodic loc. upd. pending "
+				"(type %d)\n", mm->lupd_type);
 			mm->lupd_periodic = 0;
 			if (s->t3212)
 				gsm48_mm_loc_upd_periodic(mm->ms, NULL);
@@ -1438,7 +1452,8 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		memcpy(&tmsi, mi+2, 4);
 		subscr->tmsi = ntohl(tmsi);
 		subscr->tmsi_valid = 1;
-		LOGP(DMM, LOGL_INFO, "TMSI 0x%08x assigned.\n", subscr->tmsi);
+		LOGP(DMM, LOGL_INFO, "TMSI 0x%08x (%u) assigned.\n",
+			subscr->tmsi, subscr->tmsi);
 		gsm48_mm_tx_tmsi_reall_cpl(ms);
 		break;
 	case GSM_MI_TYPE_IMSI:
@@ -1938,6 +1953,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm_subscriber *subscr = &ms->subscr;
+	struct msgb *nmsg;
 	
 	/* (re)start only if we still require location update */
 	if (!mm->lupd_pending) {
@@ -1948,21 +1964,26 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	/* must camp normally */
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not camping normally.\n");
+		stop:
+		LOGP(DSUM, LOGL_INFO, "Location update not possible\n");
 		mm->lupd_pending = 0;
+		/* send message to PLMN search process */
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm322_plmn_sendmsg(ms, nmsg);
 		return 0;
 	}
 
 	/* if LAI is forbidden, don't start */
 	if (gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc, cs->sel_mnc)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed PLMN.\n");
-		mm->lupd_pending = 0;
-		return 0;
+		goto stop;
 	}
 	if (gsm322_is_forbidden_la(ms, cs->sel_mcc,
 		cs->sel_mnc, cs->sel_lac)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed LA.\n");
-		mm->lupd_pending = 0;
-		return 0;
+		goto stop;
 	}
 
 	/* 4.4.4.9 if cell is barred, don't start */
@@ -1970,9 +1991,10 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	 || (!subscr->acc_barr && !((subscr->acc_class & 0xfbff) &
 	 				(s->class_barr ^ 0xffff)))) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. no access.\n");
-		mm->lupd_pending = 0;
-		return 0;
+		goto stop;
 	}
+
+	LOGP(DSUM, LOGL_INFO, "Perform location update\n");
 
 	return gsm48_mm_tx_loc_upd_req(ms);
 }
@@ -2199,6 +2221,7 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	sim: store plmn
 #endif
 
+	LOGP(DSUM, LOGL_INFO, "Location update accepted\n");
 	LOGP(DMM, LOGL_INFO, "LOCATION UPDATING ACCEPT (mcc %03d mnc %02d "
 		"lac 0x%04x)\n", subscr->lai_mcc, subscr->lai_mnc,
 		subscr->lai_lac);
@@ -2225,8 +2248,8 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 			memcpy(&tmsi, mi+2, 4);
 			subscr->tmsi = ntohl(tmsi);
 			subscr->tmsi_valid = 1;
-			LOGP(DMM, LOGL_INFO, "got TMSI 0x%08x\n",
-				subscr->tmsi);
+			LOGP(DMM, LOGL_INFO, "got TMSI 0x%08x (%u)\n",
+				subscr->tmsi, subscr->tmsi);
 #ifdef TODO
 	sim: store tmsi
 #endif
@@ -2343,10 +2366,12 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	switch(mm->lupd_rej_cause) {
 	case GSM48_REJECT_ROAMING_NOT_ALLOWED:
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_ROAMING_NA);
+		break;
 	case GSM48_REJECT_IMSI_UNKNOWN_IN_HLR:
 	case GSM48_REJECT_ILLEGAL_MS:
 	case GSM48_REJECT_ILLEGAL_ME:
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_INVALID_SIM);
+		break;
 	default:
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
 	}
@@ -2381,12 +2406,23 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* 4.2.2 delay a location update */
-static int gsm48_mm_loc_upd_delay(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm48_mm_loc_upd_delay_per(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 
 	LOGP(DMM, LOGL_INFO, "Schedule a pending periodic loc. upd.\n");
 	mm->lupd_periodic = 1;
+
+	return 0;
+}
+
+/* delay a location update retry */
+static int gsm48_mm_loc_upd_delay_retry(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+
+	LOGP(DMM, LOGL_INFO, "Schedule a pending periodic loc. upd.\n");
+	mm->lupd_retry = 1;
 
 	return 0;
 }
@@ -2398,6 +2434,8 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 
+	LOGP(DSUM, LOGL_INFO, "Location update failed\n");
+
 	/* stop location update timer, if running */
 	stop_mm_t3210(mm);
 
@@ -2407,6 +2445,7 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 	 && cs->sel_mnc == subscr->lai_mnc
 	 && cs->sel_lac == subscr->lai_lac) {
 		if (mm->lupd_attempt < 4) {
+			LOGP(DSUM, LOGL_INFO, "Try location update later\n");
 			LOGP(DMM, LOGL_INFO, "Loc. upd. failed, retry #%d\n",
 				mm->lupd_attempt);
 
@@ -2436,8 +2475,10 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 #endif
 
 	/* start update retry timer (RR connection is released) */
-	if (mm->lupd_attempt < 4)
+	if (mm->lupd_attempt < 4) {
 		mm->start_t3211 = 1;
+		LOGP(DSUM, LOGL_INFO, "Try location update later\n");
+	}
 
 	/* CS process will trigger: return to MM IDLE */
 	return 0;
@@ -2448,6 +2489,13 @@ static int gsm48_mm_rel_loc_upd_abort(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
+
+	if (rrh->msg_type == GSM48_RR_REL_IND) {
+		LOGP(DMM, LOGL_INFO, "RR link released after loc. upd.\n");
+
+		/* continue with failure handling */
+		return gsm48_mm_loc_upd_failed(ms, NULL);
+	}
 
 	LOGP(DMM, LOGL_INFO, "Loc. upd. aborted by radio (cause #%d)\n",
 		rrh->cause);
@@ -2527,7 +2575,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 	else
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMSI);
-	msgb_put(nmsg, buf[1]);
+	msgb_put(nmsg, buf[1]); /* length is part of nsr */
 	memcpy(&nsr->mi_len, buf + 1, 1 + buf[1]);
 	/* prio is optional for eMLPP */
 
@@ -2762,6 +2810,8 @@ static int gsm48_mm_init_mm(struct osmocom_ms *ms, struct msgb *msg,
 		proto = GSM48_PDISC_SMS;
 		break;
 	}
+#warning HACK: always request SDCCH for test
+cause = RR_EST_CAUSE_LOC_UPD;
 
 	/* create MM connection instance */
 	conn = mm_conn_new(mm, proto, mmh->transaction_id, mmh->ref);
@@ -3246,88 +3296,124 @@ static struct downstate {
 	/* 4.2.2.1 Normal service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MMSS_EST_REQ, gsm48_mm_init_mm_no_rr},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MMSMS_EST_REQ, gsm48_mm_init_mm_no_rr},
+
 	/* 4.2.2.2 Attempt to update / Loc. Upd. needed */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
 				SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr}, /* emergency only */
+
 	/* 4.2.2.3 Limited service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
+
 	/* 4.2.2.4 No IMSI */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NO_IMSI),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
+
 	/* 4.2.2.5 PLMN search, normal service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MMSS_EST_REQ, gsm48_mm_init_mm_no_rr},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MMSMS_EST_REQ, gsm48_mm_init_mm_no_rr},
+
 	/* 4.2.2.6 PLMN search */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
+
 	/* 4.5.1.1 MM Connection (EST) */
 	{SBIT(GSM48_MM_ST_RR_CONN_RELEASE_NA), ALL_STATES,
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_first},
+
 	{SBIT(GSM48_MM_ST_RR_CONN_RELEASE_NA), ALL_STATES,
 	 GSM48_MMSS_EST_REQ, gsm48_mm_init_mm_first},
+
 	{SBIT(GSM48_MM_ST_RR_CONN_RELEASE_NA), ALL_STATES,
 	 GSM48_MMSMS_EST_REQ, gsm48_mm_init_mm_first},
+
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_more},
+
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
 	 GSM48_MMSS_EST_REQ, gsm48_mm_init_mm_more},
+
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
 	 GSM48_MMSMS_EST_REQ, gsm48_mm_init_mm_more},
+
 	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES,
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_wait},
+
 	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES,
 	 GSM48_MMSS_EST_REQ, gsm48_mm_init_mm_wait},
+
 	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES,
 	 GSM48_MMSMS_EST_REQ, gsm48_mm_init_mm_wait},
+
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_reject},
+
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MMSS_EST_REQ, gsm48_mm_init_mm_reject},
+
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MMSMS_EST_REQ, gsm48_mm_init_mm_reject},
+
 	/* 4.5.2.1 MM Connection (DATA) */
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE) |
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), ALL_STATES,
 	 GSM48_MMCC_DATA_REQ, gsm48_mm_data},
+
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE) |
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), ALL_STATES,
 	 GSM48_MMSS_DATA_REQ, gsm48_mm_data},
+
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE) |
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), ALL_STATES,
 	 GSM48_MMSMS_DATA_REQ, gsm48_mm_data},
+
 	/* 4.5.2.1 MM Connection (REL) */
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
 	 GSM48_MMCC_REL_REQ, gsm48_mm_release_active},
+
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
 	 GSM48_MMSS_REL_REQ, gsm48_mm_release_active},
+
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
 	 GSM48_MMSMS_REL_REQ, gsm48_mm_release_active},
+
 	{SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), ALL_STATES,
 	 GSM48_MMCC_REL_REQ, gsm48_mm_release_wait_add},
+
 	{SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), ALL_STATES,
 	 GSM48_MMSS_REL_REQ, gsm48_mm_release_wait_add},
+
 	{SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), ALL_STATES,
 	 GSM48_MMSMS_REL_REQ, gsm48_mm_release_wait_add},
+
 	{SBIT(GSM48_MM_ST_WAIT_OUT_MM_CONN), ALL_STATES,
 	 GSM48_MMCC_REL_REQ, gsm48_mm_release_wait_active},
+
 	{SBIT(GSM48_MM_ST_WAIT_OUT_MM_CONN), ALL_STATES,
 	 GSM48_MMSS_REL_REQ, gsm48_mm_release_wait_active},
+
 	{SBIT(GSM48_MM_ST_WAIT_OUT_MM_CONN), ALL_STATES,
 	 GSM48_MMSMS_REL_REQ, gsm48_mm_release_wait_active},
+
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_MM_CON), ALL_STATES,
 	 GSM48_MMCC_REL_REQ, gsm48_mm_release_wait_rr},
+
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_MM_CON), ALL_STATES,
 	 GSM48_MMSS_REL_REQ, gsm48_mm_release_wait_rr},
+
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_MM_CON), ALL_STATES,
 	 GSM48_MMSMS_REL_REQ, gsm48_mm_release_wait_rr},
 };
@@ -3384,56 +3470,74 @@ static struct rrdatastate {
 	/* paging */
 	{SBIT(GSM48_MM_ST_MM_IDLE),
 	 GSM48_RR_EST_IND, gsm48_mm_est},
+
 	/* imsi detach */
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_IMSI_D), /* 4.3.4.4 */
 	 GSM48_RR_EST_CNF, gsm48_mm_imsi_detach_sent},
+
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_IMSI_D), /* 4.3.4.4 (unsuc.) */
 	 GSM48_RR_REL_IND, gsm48_mm_imsi_detach_end},
+
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_IMSI_D), /* 4.3.4.4 (lost) */
 	 GSM48_RR_ABORT_IND, gsm48_mm_imsi_detach_end},
+
 	/* location update */
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_LUPD), /* 4.4.4.1 */
 	 GSM48_RR_EST_CNF, gsm48_mm_est_loc_upd},
+
 	{SBIT(GSM48_MM_ST_LOC_UPD_INIT) |
 	 SBIT(GSM48_MM_ST_WAIT_RR_CONN_LUPD), /* 4.4.4.9 */
 	 GSM48_RR_REL_IND, gsm48_mm_rel_loc_upd_abort},
+
 	{SBIT(GSM48_MM_ST_LOC_UPD_INIT) |
 	 SBIT(GSM48_MM_ST_WAIT_RR_CONN_LUPD), /* 4.4.4.9 */
 	 GSM48_RR_ABORT_IND, gsm48_mm_rel_loc_upd_abort},
+
 	{SBIT(GSM48_MM_ST_LOC_UPD_REJ), /* 4.4.4.7 */
 	 GSM48_RR_REL_IND, gsm48_mm_rel_loc_upd_rej},
+
 	{SBIT(GSM48_MM_ST_LOC_UPD_REJ), /* 4.4.4.7 */
 	 GSM48_RR_ABORT_IND, gsm48_mm_rel_loc_upd_rej},
+
 	/* MM connection (EST) */
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_MM_CON), /* 4.5.1.1 */
 	 GSM48_RR_EST_CNF, gsm48_mm_est_mm_con},
+
 	/* MM connection (DATA) */
 	{ALL_STATES,
 	 GSM48_RR_DATA_IND, gsm48_mm_data_ind},
+
 	/* MM connection (SYNC) */
 	{SBIT(GSM48_MM_ST_WAIT_OUT_MM_CONN) |
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), /* 4.5.1.1 */
 	 GSM48_RR_SYNC_IND, gsm48_mm_sync_ind_wait},
+
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE),
 	 GSM48_RR_SYNC_IND, gsm48_mm_sync_ind_active},
+
 	/* MM connection (REL/ABORT) */
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_MM_CON) |
 	 SBIT(GSM48_MM_ST_WAIT_OUT_MM_CONN) |
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), /* 4.5.1.2 */
 	 GSM48_RR_REL_IND, gsm48_mm_abort_mm_con},
+
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_MM_CON) |
 	 SBIT(GSM48_MM_ST_WAIT_OUT_MM_CONN) |
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), /* 4.5.1.2 */
 	 GSM48_RR_ABORT_IND, gsm48_mm_abort_mm_con},
+
 	/* MM connection (REL/ABORT with re-establishment possibility) */
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), /* not supported */
 	 GSM48_RR_REL_IND, gsm48_mm_abort_mm_con},
+
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE) |
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), /* not supported */
 	 GSM48_RR_ABORT_IND, gsm48_mm_abort_mm_con},
+
 	/* other */
 	{ALL_STATES,
 	 GSM48_RR_REL_IND, gsm48_mm_rel_other},
+
 	{ALL_STATES,
 	 GSM48_RR_ABORT_IND, gsm48_mm_rel_other},
 };
@@ -3479,22 +3583,31 @@ static struct mmdatastate {
 } mmdatastatelist[] = {
 	{ALL_STATES, /* 4.3.1.2 */
 	 GSM48_MT_MM_TMSI_REALL_CMD, gsm48_mm_rx_tmsi_realloc_cmd},
+
 	{ALL_STATES, /* 4.3.2.2 */
 	 GSM48_MT_MM_AUTH_REQ, gsm48_mm_rx_auth_req},
+
 	{ALL_STATES, /* 4.3.2.5 */
 	 GSM48_MT_MM_AUTH_REJ, gsm48_mm_rx_auth_rej},
+
 	{ALL_STATES, /* 4.3.3.2 */
 	 GSM48_MT_MM_ID_REQ, gsm48_mm_rx_id_req},
+
 	{ALL_STATES, /* 4.3.5.2 */
 	 GSM48_MT_MM_ABORT, gsm48_mm_rx_abort},
+
 	{ALL_STATES, /* 4.3.6.2 */
 	 GSM48_MT_MM_INFO, gsm48_mm_rx_info},
+
 	{SBIT(GSM48_MM_ST_LOC_UPD_INIT), /* 4.4.4.6 */
 	 GSM48_MT_MM_LOC_UPD_ACCEPT, gsm48_mm_rx_loc_upd_acc},
+
 	{SBIT(GSM48_MM_ST_LOC_UPD_INIT), /* 4.4.4.7 */
 	 GSM48_MT_MM_LOC_UPD_REJECT, gsm48_mm_rx_loc_upd_rej},
+
 	{ALL_STATES, /* 4.5.1.1 */
 	 GSM48_MT_MM_CM_SERV_ACC, gsm48_mm_rx_cm_service_acc},
+
 	{ALL_STATES, /* 4.5.1.1 */
 	 GSM48_MT_MM_CM_SERV_REJ, gsm48_mm_rx_cm_service_rej},
 };
@@ -3653,77 +3766,105 @@ static struct eventstate {
 	/* 4.2.3 return to MM IDLE */
 	{ALL_STATES - SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES,
 	 GSM48_MM_EVENT_NO_CELL_FOUND, gsm48_mm_no_cell_found},
+
 	{ALL_STATES - SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES,
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_return_idle},
+
 	/* 4.2.2.1 Normal service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MM_EVENT_NO_CELL_FOUND, gsm48_mm_plmn_search}, /* 4.2.1.2 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_loc_upd_normal}, /* change */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_upd},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_upd},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_periodic},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_start},
+
 	/* 4.2.2.2 Attempt to update / Loc. upd. needed */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
 				SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
 	 GSM48_MM_EVENT_USER_PLMN_SEL, gsm48_mm_plmn_search}, /* 4.2.1.2 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
 				SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
 	 GSM48_MM_EVENT_NO_CELL_FOUND, gsm48_mm_plmn_search}, /* 4.2.1.2 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
 				SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_loc_upd_normal}, /* change */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
 	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_upd},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
 	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_upd},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
 	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_periodic},
+
 	/* 4.2.2.3 Limited service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
 	 GSM48_MM_EVENT_USER_PLMN_SEL, gsm48_mm_plmn_search}, /* 4.2.1.2 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
 	 GSM48_MM_EVENT_NO_CELL_FOUND, gsm48_mm_plmn_search}, /* 4.2.1.2 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_loc_upd_normal}, /* if allow. */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
-	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay}, /* 4.4.2 */
+	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay_per}, /* 4.4.2 */
+
 	/* 4.2.2.4 No IMSI */
 	/* 4.2.2.5 PLMN search, normal service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MM_EVENT_NO_CELL_FOUND, gsm48_mm_no_cell_found}, /* 4.2.1.1 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_cell_selected}, /* 4.2.1.1 */
-#warning MUST DELAY
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_upd},
-#warning MUST DELAY
+	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_upd_delay_retry},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_upd},
+	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_upd_delay_retry},
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay}, /* 4.4.2 */
+	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay_per}, /* 4.4.2 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_start},
+
 	/* 4.2.2.6 PLMN search */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH),
 	 GSM48_MM_EVENT_NO_CELL_FOUND, gsm48_mm_no_cell_found}, /* 4.2.1.1 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH),
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_cell_selected}, /* 4.2.1.1 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH),
-	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay}, /* 4.4.2 */
+	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay_per}, /* 4.4.2 */
+
 	/* No cell available */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NO_CELL_AVAIL),
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_cell_selected}, /* 4.2.1.1 */
+
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NO_CELL_AVAIL),
-	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay}, /* 4.4.2 */
+	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay_per}, /* 4.4.2 */
+
 	/* IMSI detach in other cases */
 	{SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES, /* silently detach */
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_end},
+
 	{SBIT(GSM48_MM_ST_WAIT_OUT_MM_CONN) |
 	 SBIT(GSM48_MM_ST_MM_CONN_ACTIVE) |
 	 SBIT(GSM48_MM_ST_PROCESS_CM_SERV_P) |
@@ -3732,35 +3873,46 @@ static struct eventstate {
 	 SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS) |
 	 SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES, /* we can release */
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_release},
+
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_IMSI_D) |
 	 SBIT(GSM48_MM_ST_IMSI_DETACH_INIT) |
 	 SBIT(GSM48_MM_ST_IMSI_DETACH_PEND), ALL_STATES, /* ignore */
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_ignore},
+
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_delay},
+
 	{GSM48_MM_ST_IMSI_DETACH_INIT, ALL_STATES,
 	 GSM48_MM_EVENT_TIMEOUT_T3220, gsm48_mm_imsi_detach_end},
+
 	/* location update in other cases */
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_ignore},
+
 	{ALL_STATES - SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES,
 	 GSM48_MM_EVENT_TIMEOUT_T3210, gsm48_mm_loc_upd_timeout},
+
 	{ALL_STATES - SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES,
 	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_upd_failed},
 		/* 4.4.4.9 c) (but without retry) */
+
 	/* SYSINFO event */
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MM_EVENT_SYSINFO, gsm48_mm_sysinfo},
+
 	/* T3240 timed out */
 	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD) |
 	 SBIT(GSM48_MM_ST_LOC_UPD_REJ), ALL_STATES, /* 4.4.4.8 */
 	 GSM48_MM_EVENT_TIMEOUT_T3240, gsm48_mm_abort_rr},
+
 	/* T3230 timed out */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MM_EVENT_TIMEOUT_T3230, gsm48_mm_timeout_mm_con},
+
 	/* SIM reports SRES */
 	{ALL_STATES, ALL_STATES, /* 4.3.2.2 */
 	 GSM48_MM_EVENT_AUTH_RESPONSE, gsm48_mm_tx_auth_rsp},
+
 #if 0
 	/* change in classmark is reported */
 	{ALL_STATES, ALL_STATES,

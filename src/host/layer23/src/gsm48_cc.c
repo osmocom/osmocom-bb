@@ -1591,6 +1591,12 @@ static int gsm48_cc_rx_disconnect(struct gsm_trans *trans, struct msgb *msg)
 		gsm48_decode_facility(&disc.facility,
 				TLVP_VAL(&tp, GSM48_IE_FACILITY)-1);
 	}
+	/* progress */
+	if (TLVP_PRESENT(&tp, GSM48_IE_PROGR_IND)) {
+		disc.fields |= MNCC_F_PROGRESS;
+		gsm48_decode_progress(&disc.progress,
+				TLVP_VAL(&tp, GSM48_IE_PROGR_IND)-1);
+	}
 	/* user-user */
 	if (TLVP_PRESENT(&tp, GSM48_IE_USER_USER)) {
 		disc.fields |= MNCC_F_USERUSER;

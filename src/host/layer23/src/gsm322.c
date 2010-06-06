@@ -1010,6 +1010,7 @@ static int gsm322_a_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 
 	if (!subscr->sim_valid) {
+		LOGP(DSUM, LOGL_INFO, "No SIM inserted\n");
 		LOGP(DPLMN, LOGL_INFO, "Switch on without SIM.\n");
 		new_a_state(plmn, GSM322_A6_NO_SIM);
 
@@ -1022,6 +1023,10 @@ static int gsm322_a_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 		plmn->mcc = subscr->plmn_mcc;
 		plmn->mnc = subscr->plmn_mnc;
 
+		LOGP(DSUM, LOGL_INFO, "Start search of last registered PLMN "
+			"(mcc=%03d mnc=%02d  %s, %s)\n", plmn->mcc, plmn->mnc,
+			gsm_get_mcc(plmn->mcc),
+			gsm_get_mnc(plmn->mcc, plmn->mnc));
 		LOGP(DPLMN, LOGL_INFO, "Use RPLMN (mcc=%03d mnc=%02d  "
 			"%s, %s)\n", plmn->mcc, plmn->mnc,
 			gsm_get_mcc(plmn->mcc),
@@ -1039,6 +1044,7 @@ static int gsm322_a_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* initiate search at cell selection */
+	LOGP(DSUM, LOGL_INFO, "Search for network\n");
 	LOGP(DPLMN, LOGL_INFO, "Switch on, start PLMN search first.\n");
 
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_START);
@@ -1205,6 +1211,7 @@ static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 
 	if (!subscr->sim_valid) {
+		LOGP(DSUM, LOGL_INFO, "No SIM inserted\n");
 		LOGP(DPLMN, LOGL_INFO, "Switch on without SIM.\n");
 		new_m_state(plmn, GSM322_M5_NO_SIM);
 
@@ -1219,6 +1226,10 @@ static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 		plmn->mcc = subscr->plmn_mcc;
 		plmn->mnc = subscr->plmn_mnc;
 
+		LOGP(DSUM, LOGL_INFO, "Start search of last registered PLMN "
+			"(mcc=%03d mnc=%02d  %s, %s)\n", plmn->mcc, plmn->mnc,
+			gsm_get_mcc(plmn->mcc),
+			gsm_get_mnc(plmn->mcc, plmn->mnc));
 		LOGP(DPLMN, LOGL_INFO, "Use RPLMN (mcc=%03d mnc=%02d  "
 			"%s, %s)\n", plmn->mcc, plmn->mnc,
 			gsm_get_mcc(plmn->mcc),
@@ -1236,6 +1247,7 @@ static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* initiate search at cell selection */
+	LOGP(DSUM, LOGL_INFO, "Search for network\n");
 	LOGP(DPLMN, LOGL_INFO, "Switch on, start PLMN search first.\n");
 	vty_notify(ms, "Searching Network, please wait...\n");
 
@@ -1986,7 +1998,7 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 			LOGP(DCS, LOGL_INFO, "Sysinfo of selected cell is "
 				"updated.\n");
 			memcpy(&cs->sel_si, s, sizeof(cs->sel_si));
-			gsm48_sysinfo_dump(s, print_dcs, NULL);
+			//gsm48_sysinfo_dump(s, print_dcs, NULL);
 		}
 	}
 
@@ -2084,7 +2096,7 @@ static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 		/* stop timer */
 		stop_cs_timer(cs);
 
-		gsm48_sysinfo_dump(s, print_dcs, NULL);
+		//gsm48_sysinfo_dump(s, print_dcs, NULL);
 
 		/* store sysinfo and continue scan */
 		return gsm322_cs_store(ms);
@@ -2679,6 +2691,10 @@ static int gsm322_c_new_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	cs->mcc = plmn->mcc;
 	cs->mnc = plmn->mnc;
 
+	LOGP(DSUM, LOGL_INFO, "Selecting network (mcc=%03d "
+		"mnc=%02d  %s, %s)\n", cs->mcc, cs->mnc, gsm_get_mcc(cs->mcc),
+		gsm_get_mnc(cs->mcc, cs->mnc));
+
 	/* search for BA list */
 	ba = gsm322_find_ba_list(cs, plmn->mcc, plmn->mnc);
 
@@ -2697,6 +2713,8 @@ static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 
+	LOGP(DSUM, LOGL_INFO, "Camping normally on cell of network\n");
+
 	/* tell that we have selected a (new) cell */
 	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
 	if (!nmsg)
@@ -2713,6 +2731,8 @@ static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
+
+	LOGP(DSUM, LOGL_INFO, "Camping on any cell of network\n");
 
 	/* tell that we have selected a (new) cell */
 	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);

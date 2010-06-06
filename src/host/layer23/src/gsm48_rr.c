@@ -336,6 +336,7 @@ static void timeout_rr_t3126(void *arg)
 		struct msgb *msg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
 		struct gsm48_rr_hdr *rrh;
 
+		LOGP(DSUM, LOGL_INFO, "Requesting channel failed\n");
 		if (!msg)
 			return;
 		rrh = (struct gsm48_rr_hdr *)msg->data;
@@ -722,6 +723,9 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	uint8_t chan_req_val, chan_req_mask;
 	int rc;
 
+	LOGP(DSUM, LOGL_INFO, "Establish radio link due to %s request\n",
+		(paging) ? "paging" : "mobility management");
+
 	/* ignore paging, if not camping */
 	if (paging
 	 && (!cs->selected || (cs->state != GSM322_C3_CAMPED_NORMALLY
@@ -862,6 +866,8 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: with unknown "
 			"establishment cause: %d\n", cause);
 		undefined:
+		LOGP(DSUM, LOGL_INFO, "Requesting channel failed\n");
+
 		nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
 		if (!nmsg)
 			return -ENOMEM;
@@ -911,6 +917,7 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 				gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
 			struct gsm48_rr_hdr *rrh;
 
+			LOGP(DSUM, LOGL_INFO, "Requesting channel failed\n");
 			if (!msg)
 				return -ENOMEM;
 			rrh = (struct gsm48_rr_hdr *)msg->data;
@@ -2838,8 +2845,8 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct msgb *nmsg;
 	uint8_t *mode;
+	struct msgb *nmsg;
 
 	/* if MM has releases before confirm, we start release */
 	if (rr->state == GSM48_RR_ST_IDLE) {
@@ -2913,6 +2920,8 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 			LOGP(DRR, LOGL_INFO, "T3122 running, rejecting!\n");
 			cause = RR_REL_CAUSE_T3122;
 			reject:
+			LOGP(DSUM, LOGL_INFO, "Establishing radio link not "
+				"possible\n");
 			nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
 			if (!nmsg)
 				return -ENOMEM;
@@ -3230,6 +3239,89 @@ for(i=0;i<msgb_l3len(msg);i++)
 	}
 }
 
+/* 3.4.13.3 RR abort in dedicated mode (also in conn. pending mode) */
+static int gsm48_rr_abort_req(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	uint8_t *mode;
+
+	/* stop pending RACH timer */
+	stop_rr_t3126(rr);
+
+	/* release "normally" if we are in dedicated mode */
+	if (rr->state == GSM48_RR_ST_DEDICATED) {
+		struct msgb *nmsg;
+
+		LOGP(DRR, LOGL_INFO, "Abort in dedicated state, send release "
+			"to layer 2.\n");
+		/* release message */
+		nmsg = gsm48_l3_msgb_alloc();
+		if (!nmsg)
+			return -ENOMEM;
+		mode = msgb_put(nmsg, 2);
+		mode[0] = RSL_IE_RELEASE_MODE;
+		mode[1] = 0; /* normal release */
+		return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
+	}
+
+	LOGP(DRR, LOGL_INFO, "Abort in connection pending state, return to "
+		"idle state.\n");
+	/* return idle */
+	new_rr_state(rr, GSM48_RR_ST_IDLE);
+
+	return 0;
+}
+
+/* release confirm in dedicated mode */
+static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	if (rr->hando_susp_state || rr->assign_susp_state) {
+		struct msgb *nmsg;
+
+		/* change radio to new channel */
+		tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr);
+
+		/* send DL-ESTABLISH REQUEST */
+		nmsg = gsm48_l3_msgb_alloc();
+		if (!nmsg)
+			return -ENOMEM;
+		gsm48_send_rsl(ms, RSL_MT_EST_REQ, nmsg);
+
+#ifdef TODO
+		/* trigger RACH */
+		if (rr->hando_susp_state) {
+			gsm48_rr_tx_hando_access(ms);
+			rr->hando_acc_left = 3;
+		}
+#endif
+	}
+	return 0;
+}
+
+/* release confirm in dedicated mode (abort) */
+static int gsm48_rr_rel_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
+
+	LOGP(DSUM, LOGL_INFO, "Requesting channel aborted\n");
+
+	/* send release indication */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->cause = RR_REL_CAUSE_UNDEFINED;
+	gsm48_rr_upmsg(ms, nmsg);
+
+	/* return idle */
+	new_rr_state(rr, GSM48_RR_ST_IDLE);
+	return 0;
+}
+
 /*
  * state machines
  */
@@ -3240,32 +3332,46 @@ static struct dldatastate {
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
 } dldatastatelist[] = {
-	{SBIT(GSM48_RR_ST_IDLE) | SBIT(GSM48_RR_ST_CONN_PEND) |
+	{SBIT(GSM48_RR_ST_IDLE) |
+	 SBIT(GSM48_RR_ST_CONN_PEND) |
 	 SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_UNIT_DATA_IND, gsm48_rr_unit_data_ind},
+
 	{SBIT(GSM48_RR_ST_DEDICATED), /* 3.4.2 */
 	 RSL_MT_DATA_IND, gsm48_rr_data_ind},
-	{SBIT(GSM48_RR_ST_IDLE) | SBIT(GSM48_RR_ST_CONN_PEND),
+
+	{SBIT(GSM48_RR_ST_IDLE) |
+	 SBIT(GSM48_RR_ST_CONN_PEND),
 	 RSL_MT_EST_CONF, gsm48_rr_estab_cnf},
+
 #if 0
 	{SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_EST_CONF, gsm48_rr_estab_cnf_dedicated},
+
 	{SBIT(GSM_RRSTATE),
 	 RSL_MT_CONNECT_CNF, gsm48_rr_connect_cnf},
+
 	{SBIT(GSM_RRSTATE),
 	 RSL_MT_RELEASE_IND, gsm48_rr_rel_ind},
 #endif
-	{SBIT(GSM48_RR_ST_IDLE) | SBIT(GSM48_RR_ST_CONN_PEND),
+
+	{SBIT(GSM48_RR_ST_IDLE) |
+	 SBIT(GSM48_RR_ST_CONN_PEND),
 	 RSL_MT_REL_CONF, gsm48_rr_rel_cnf},
-#if 0
+
 	{SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_REL_CONF, gsm48_rr_rel_cnf_dedicated},
-#endif
+
+	{SBIT(GSM48_RR_ST_DEDICATED),
+	 RSL_MT_SUSP_CONF, gsm48_rr_susp_cnf_dedicated},
+
 	{SBIT(GSM48_RR_ST_CONN_PEND), /* 3.3.1.1.2 */
 	 RSL_MT_CHAN_CNF, gsm48_rr_tx_rand_acc},
+
 #if 0
 	{SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_CHAN_CNF, gsm48_rr_rand_acc_cnf_dedicated},
+
 	{SBIT(GSM_RRSTATE),
 	 RSL_MT_MDL_ERROR_IND, gsm48_rr_mdl_error_ind},
 #endif
@@ -3316,11 +3422,15 @@ static struct rrdownstate {
 } rrdownstatelist[] = {
 	{SBIT(GSM48_RR_ST_IDLE), /* 3.3.1.1 */
 	 GSM48_RR_EST_REQ, gsm48_rr_est_req},
+
 	{SBIT(GSM48_RR_ST_DEDICATED), /* 3.4.2 */
 	 GSM48_RR_DATA_REQ, gsm48_rr_data_req},
-#if 0
-	{SBIT(GSM48_RR_ST_CONN_PEND) | SBIT(GSM48_RR_ST_DEDICATED),
+
+	{SBIT(GSM48_RR_ST_CONN_PEND) |
+	 SBIT(GSM48_RR_ST_DEDICATED), /* 3.4.13.3 */
 	 GSM48_RR_ABORT_REQ, gsm48_rr_abort_req},
+
+#if 0
 	{SBIT(GSM48_RR_ST_DEDICATED),
 	 GSM48_RR_ACT_REQ, gsm48_rr_act_req},
 #endif
@@ -3440,7 +3550,6 @@ queue messages (rslms_data_req) if channel changes
 
 flush rach msg in all cases: during sending, after its done, and when aborted
 stop timers on abort
-debugging. (wenn dies todo erledigt ist, bitte in den anderen code moven)
 wird beim abbruch immer der gepufferte cm-service-request entfernt, auch beim verschicken?:
 measurement reports
 todo rr_sync_ind when receiving ciph, re ass, channel mode modify
@@ -3455,25 +3564,6 @@ they queue must be flushed when rr fails
 #include <osmocore/msgb.h>
 #include <osmocore/utils.h>
 #include <osmocore/gsm48.h>
-
-static int gsm48_rr_abort_req(struct osmocom_ms *ms, struct gsm48_rr *rrmsg)
-{
-	struct gsm48_rrlayer *rr = ms->rrlayer;
-	uint8_t *mode;
-
-	stop_rr_t3126(rr);
-	if (rr->state == GSM48_RR_ST_DEDICATED) {
-		/* release message */
-		nmsg = gsm48_l3_msgb_alloc();
-		if (!nmsg)
-			return -ENOMEM;
-		mode = msgb_put(nmsg, 2);
-		mode[0] = RSL_IE_RELEASE_MODE;
-		mode[1] = 0; /* normal release */
-		return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
-	}
-	new_rr_state(rr, GSM48_RR_ST_IDLE);
-}
 
 static int gsm48_rr_act_req(struct osmocom_ms *ms, struct gsm48_rr *rrmsg)
 {
@@ -3739,31 +3829,6 @@ static int gsm48_rr_connect_cnf(struct osmocom_ms *ms, struct msgbl *msg)
 
 static int gsm48_rr_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
-}
-
-static int gsm48_rr_rel_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_rrlayer *rr = ms->rrlayer;
-	struct msgb *nmsg;
-
-	if (rr->hando_susp_state || rr->assign_susp_state) {
-		struct msgb *msg;
-
-		/* change radio to new channel */
-		tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr);
-
-		nmsg = gsm48_l3_msgb_alloc();
-		if (!nmsg)
-			return -ENOMEM;
-		/* send DL-ESTABLISH REQUEST */
-		gsm48_send_rsl(ms, RSL_MT_EST_REQ, nmsg);
-
-	}
-	if (rr->hando_susp_state) {
-		gsm48_rr_tx_hando_access(ms);
-		rr->hando_acc_left = 3;
-	}
-	return 0;
 }
 
 static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
