@@ -32,6 +32,10 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/networks.h>
 
+int mncc_call(struct osmocom_ms *ms, char *number);
+int mncc_hangup(struct osmocom_ms *ms);
+int mncc_answer(struct osmocom_ms *ms);
+
 extern struct llist_head ms_list;
 
 struct cmd_node ms_node = {
@@ -294,6 +298,30 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 	ngm->mcc = mcc;
 	ngm->mnc = mnc;
 	gsm322_plmn_sendmsg(ms, nmsg);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup)",
+	"Make a call\nName of MS (see \"show ms\")\nPhone number to call\n"
+	"Make an emergency call\nAnswer an incomming call\nHangup a call")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	switch (argv[1][0]) {
+	case 'a':
+		mncc_answer(ms);
+		break;
+	case 'h':
+		mncc_hangup(ms);
+		break;
+	default:
+		mncc_call(ms, (char *)argv[1]);
+	}
 
 	return CMD_SUCCESS;
 }
@@ -605,8 +633,9 @@ int ms_vty_init(void)
 	cmd_init(1);
 	vty_init();
 
-	install_element(VIEW_NODE, &show_ms_cmd);
 	install_element(ENABLE_NODE, &show_ms_cmd);
+	install_element(VIEW_NODE, &show_ms_cmd);
+	install_element(ENABLE_NODE, &show_subscr_cmd);
 	install_element(VIEW_NODE, &show_subscr_cmd);
 	install_element(ENABLE_NODE, &show_support_cmd);
 	install_element(VIEW_NODE, &show_support_cmd);
@@ -622,6 +651,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &network_search_cmd);
 	install_element(ENABLE_NODE, &network_show_cmd);
 	install_element(ENABLE_NODE, &network_select_cmd);
+	install_element(ENABLE_NODE, &call_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ms_cmd);
 	install_node(&ms_node, config_write_ms);

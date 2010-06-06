@@ -47,7 +47,7 @@ static const char *config_file = "osmocom.cfg";
 
 static int started = 0;
 
-int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg);
+int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg);
 
 int mobile_work(struct osmocom_ms *ms)
 {
@@ -139,7 +139,8 @@ int l23_app_init(struct osmocom_ms *ms)
 {
 	int rc;
 
-	log_parse_category_mask(stderr_target, "DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG");
+	log_parse_category_mask(stderr_target, "DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG:DSUM");
+//	log_parse_category_mask(stderr_target, "DRR:DMM:DCC:DMNCC:DPAG:DSUM");
 
 	srand(time(NULL));
 
@@ -150,7 +151,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	gsm48_rr_init(ms);
 	gsm48_mm_init(ms);
 	INIT_LLIST_HEAD(&ms->trans_list);
-	ms->cclayer.mncc_recv = mncc_recv_dummy;
+	ms->cclayer.mncc_recv = mncc_recv_mobile;
 	gsm322_init(ms);
 
 	l23_app_work = mobile_work;

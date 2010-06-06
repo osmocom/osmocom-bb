@@ -26,7 +26,16 @@
 #ifndef _MNCC_H
 #define _MNCC_H
 
+#include <osmocore/linuxlist.h>
 #include <osmocore/mncc.h>
+
+struct gsm_call {
+	struct llist_head entry;
+
+	void *ms;
+
+	uint32_t callref;
+};
 
 #define MNCC_SETUP_REQ		0x0101
 #define MNCC_SETUP_IND		0x0102
