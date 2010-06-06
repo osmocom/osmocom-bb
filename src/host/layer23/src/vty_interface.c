@@ -104,7 +104,8 @@ DEFUN(show_ms, show_ms_cmd, "show ms",
 }
 
 DEFUN(show_support, show_support_cmd, "show support [ms_name]",
-	SHOW_STR "Display information about MS support\n")
+	SHOW_STR "Display information about MS support\n"
+	"Name of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 
@@ -124,7 +125,8 @@ DEFUN(show_support, show_support_cmd, "show support [ms_name]",
 }
 
 DEFUN(show_subscr, show_subscr_cmd, "show subscriber [ms_name]",
-	SHOW_STR "Display information about subscriber\n")
+	SHOW_STR "Display information about subscriber\n"
+	"Name of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 
@@ -144,7 +146,8 @@ DEFUN(show_subscr, show_subscr_cmd, "show subscriber [ms_name]",
 }
 
 DEFUN(show_cell, show_cell_cmd, "show cell MS_NAME",
-	SHOW_STR "Display information about received cells\n")
+	SHOW_STR "Display information about received cells\n"
+	"Name of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 
@@ -159,7 +162,8 @@ DEFUN(show_cell, show_cell_cmd, "show cell MS_NAME",
 }
 
 DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023>",
-	SHOW_STR "Display information about received cell\n")
+	SHOW_STR "Display information about received cell\n"
+	"Name of MS (see \"show ms\")\nRadio frequency number")
 {
 	struct osmocom_ms *ms;
 	int i;
@@ -188,7 +192,9 @@ DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023>",
 }
 
 DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [mcc] [mnc]",
-	SHOW_STR "Display information about band allocations\n")
+	SHOW_STR "Display information about band allocations\n"
+	"Name of MS (see \"show ms\")\nMobile Country Code\n"
+	"Mobile Network Code")
 {
 	struct osmocom_ms *ms;
 	uint16_t mcc = 0, mnc = 0;
@@ -208,7 +214,8 @@ DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [mcc] [mnc]",
 }
 
 DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
-	"Insert ...\nInsert test card\n")
+	"Insert ...\nInsert test card\nName of MS (see \"show ms\")\n"
+	"Mobile Country Code\nMobile Network Code")
 {
 	struct osmocom_ms *ms;
 	uint16_t mcc = 1, mnc = 1;
@@ -234,7 +241,7 @@ DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
 }
 
 DEFUN(remove_sim, remove_sim_cmd, "remove sim MS_NAME",
-	"Remove ...\nRemove SIM card\n")
+	"Remove ...\nRemove SIM card\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 
@@ -253,7 +260,8 @@ DEFUN(remove_sim, remove_sim_cmd, "remove sim MS_NAME",
 }
 
 DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
-	"Select ...\nSelect Network\n")
+	"Select ...\nSelect Network\nName of MS (see \"show ms\")\n"
+	"Mobile Country Code\nMobile Network Code")
 {
 	struct osmocom_ms *ms;
 	struct gsm322_plmn *plmn;
@@ -291,7 +299,8 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 }
 
 DEFUN(network_show, network_show_cmd, "network show MS_NAME",
-	"Network ...\nShow results of network search (again)\n")
+	"Network ...\nShow results of network search (again)\n"
+	"Name of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 	struct gsm322_plmn *plmn;
@@ -317,7 +326,7 @@ DEFUN(network_show, network_show_cmd, "network show MS_NAME",
 }
 
 DEFUN(network_search, network_search_cmd, "network search MS_NAME",
-	"Network ...\nTrigger network search\n")
+	"Network ...\nTrigger network search\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 	struct msgb *nmsg;
@@ -336,7 +345,7 @@ DEFUN(network_search, network_search_cmd, "network search MS_NAME",
 
 /* per MS config */
 DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
-	"Select a mobile station to configure\n")
+	"Select a mobile station to configure\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 
@@ -403,7 +412,8 @@ static int config_write_ms(struct vty *vty)
 }
 
 DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
-	"Set network selection mode\n")
+	"Set network selection mode\nAutomatic network selection\n"
+	"Manual network selection")
 {
 	struct osmocom_ms *ms = vty->index;
 	struct msgb *nmsg;
@@ -428,7 +438,8 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 }
 
 DEFUN(cfg_ms_imei, cfg_ms_imei_cmd, "imei IMEI [SV]",
-	"Set IMEI (enter without control digit)\n")
+	"Set IMEI (enter without control digit)\n15 Digits IMEI\n"
+	"Software version digit")
 {
 	struct osmocom_ms *ms = vty->index;
 	char *error, *sv = "0";
@@ -450,7 +461,7 @@ DEFUN(cfg_ms_imei, cfg_ms_imei_cmd, "imei IMEI [SV]",
 }
 
 DEFUN(cfg_ms_imei_fixed, cfg_ms_imei_fixed_cmd, "imei-fixed",
-	"Use fixed IMEI on every power on\n")
+	"Use fixed IMEI on every power on")
 {
 	struct osmocom_ms *ms = vty->index;
 
@@ -460,8 +471,8 @@ DEFUN(cfg_ms_imei_fixed, cfg_ms_imei_fixed_cmd, "imei-fixed",
 }
 
 DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
-	"Use random IMEI on every power on with given number of trailing "
-	"digits to randomize.\n")
+	"Use random IMEI on every power on\n"
+	"Number of trailing digits to randomize")
 {
 	struct osmocom_ms *ms = vty->index;
 
@@ -471,7 +482,8 @@ DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
 }
 
 DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|test)",
-	"Set sim card type when powering on\n")
+	"Set sim card type when powering on\nNo sim interted\n"
+	"Test sim inserted")
 {
 	struct osmocom_ms *ms = vty->index;
 
@@ -492,7 +504,7 @@ DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|test)",
 
 /* per MS config */
 DEFUN(cfg_testsim, cfg_testsim_cmd, "test-sim",
-	"Configure test SIM emulation\n")
+	"Configure test SIM emulation")
 {
 	vty->node = TESTSIM_NODE;
 
@@ -505,7 +517,7 @@ static int config_write_dummy(struct vty *vty)
 }
 
 DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
-	"Set IMSI on test card\n")
+	"Set IMSI on test card\n15 Digits IMSI")
 {
 	struct osmocom_ms *ms = vty->index;
 	uint16_t mcc, mnc;
@@ -522,7 +534,7 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 }
 
 DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access (yes|no)",
-	"Allow access to barred cells\n")
+	"Allow access to barred cells\nAccess allowed\nAccess denied")
 {
 	struct osmocom_ms *ms = vty->index;
 
@@ -539,7 +551,7 @@ DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access (yes|no)",
 }
 
 DEFUN(cfg_test_rplmn_valid, cfg_test_rplmn_valid_cmd, "rplmn-valid",
-	"Mark Registered PLMN as valid\n")
+	"Mark Registered PLMN as valid")
 {
 	struct osmocom_ms *ms = vty->index;
 
@@ -549,7 +561,7 @@ DEFUN(cfg_test_rplmn_valid, cfg_test_rplmn_valid_cmd, "rplmn-valid",
 }
 
 DEFUN(cfg_test_rplmn_invalid, cfg_test_rplmn_invalid_cmd, "rplmn-invalid",
-	"Mark Registered PLMN as invalid\n")
+	"Mark Registered PLMN as invalid")
 {
 	struct osmocom_ms *ms = vty->index;
 
@@ -559,7 +571,7 @@ DEFUN(cfg_test_rplmn_invalid, cfg_test_rplmn_invalid_cmd, "rplmn-invalid",
 }
 
 DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
-	"Set Registered PLMN\n")
+	"Set Registered PLMN\nMobile Country Code\nMobile Network Code")
 {
 	struct osmocom_ms *ms = vty->index;
 
@@ -570,7 +582,9 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
 }
 
 DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-country)",
-	"Set sim card type when powering on\n")
+	"Set Home PLMN search mode\n"
+	"Search for HPLMN when on any other network\n"
+	"Search for HPLMN when in a different country")
 {
 	struct osmocom_ms *ms = vty->index;
 
