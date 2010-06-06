@@ -17,6 +17,7 @@ enum {
 	DPAG,
 	DLAPDM,
 	DL1C,
+	DSUM,
 };
 
 extern const struct log_info log_info;
