@@ -101,7 +101,7 @@ int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg)
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
 
-	DEBUGP(DBSSGP, LOGL_NOTICE, "BSSGP BVCI=%u Tx STATUS, cause=%s\n",
+	LOGP(DBSSGP, LOGL_NOTICE, "BSSGP BVCI=%u Tx STATUS, cause=%s\n",
 		bvci ? *bvci : 0, bssgp_cause_str(cause));
 	msgb_nsei(msg) = msgb_nsei(orig_msg);
 	msgb_bvci(msg) = 0;
