@@ -128,9 +128,9 @@ static inline char *vty_newline(struct vty *vty)
 }
 
 struct vty_app_info {
-	char *name;
-	char *version;
-	char *copyright;
+	const char *name;
+	const char *version;
+	const char *copyright;
 	void *tall_ctx;
 	enum node_type (*go_parent_cb)(struct vty *vty);
 };
