@@ -734,7 +734,7 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg, struct sgsn_mm_ctx *mmctx)
 		llc_pdu_tlv[1] = msg_len >> 8;
 		llc_pdu_tlv[2] = msg_len & 0xff;
 	} else {
-		llc_pdu_tlv[1] = msg_len & 0x3f;
+		llc_pdu_tlv[1] = msg_len & 0x7f;
 		llc_pdu_tlv[1] |= 0x80;
 	}
 
