@@ -40,6 +40,7 @@
 #include <openbsc/gprs_llc.h>
 #include <openbsc/gprs_ns.h>
 #include <openbsc/gprs_sgsn.h>
+#include <openbsc/gprs_gmm.h>
 
 void *bssgp_tall_ctx = NULL;
 
@@ -363,6 +364,7 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct gprs_ra_id raid;
 	uint32_t tlli;
+	int rc;
 
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TLLI) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_ROUTEING_AREA)) {
@@ -378,8 +380,11 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 
 	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
 
-	/* FIXME: pass the SUSPEND request to GMM */
-	/* SEND SUSPEND_ACK or SUSPEND_NACK */
+	/* Inform GMM about the SUSPEND request */
+	rc = gprs_gmm_rx_suspend(&raid, tlli);
+	if (rc < 0)
+		return bssgp_tx_suspend_nack(msgb_nsei(msg), tlli, NULL);
+
 	bssgp_tx_suspend_ack(msgb_nsei(msg), tlli, &raid, 0);
 
 	return 0;
@@ -392,6 +397,8 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct gprs_ra_id raid;
 	uint32_t tlli;
+	uint8_t suspend_ref;
+	int rc;
 
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TLLI) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_ROUTEING_AREA) ||
@@ -402,13 +409,18 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 	}
 
 	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+	suspend_ref = *TLVP_VAL(tp, BSSGP_IE_SUSPEND_REF_NR);
 
 	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%08x RESUME\n", ctx->bvci, tlli);
 
 	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
 
-	/* FIXME: pass the RESUME request to GMM */
-	/* SEND RESUME_ACK or RESUME_NACK */
+	/* Inform GMM about the RESUME request */
+	rc = gprs_gmm_rx_resume(&raid, tlli, suspend_ref);
+	if (rc < 0)
+		return bssgp_tx_resume_nack(msgb_nsei(msg), tlli, &raid,
+					    NULL);
+
 	bssgp_tx_resume_ack(msgb_nsei(msg), tlli, &raid);
 	return 0;
 }
