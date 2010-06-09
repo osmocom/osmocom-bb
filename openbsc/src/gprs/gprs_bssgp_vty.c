@@ -110,7 +110,7 @@ DEFUN(show_bssgp_stats, show_bssgp_stats_cmd, "show bssgp stats",
 
 DEFUN(show_bvc, show_bvc_cmd, "show bssgp nsei <0-65535> [stats]",
 	SHOW_STR BSSGP_STR
-	"Show all BVCSE by its NSE Identifier\n"
+	"Show all BVCs on one NSE\n"
 	"The NSEI\n" "Include Statistics\n")
 {
 	struct bssgp_bvc_ctx *bvc;
