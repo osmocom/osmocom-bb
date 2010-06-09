@@ -787,3 +787,66 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg, struct sgsn_mm_ctx *mmctx)
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
+
+/* Send a single GMM-PAGING.req to a given NSEI/NS-BVCI */
+int gprs_bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
+			 struct bssgp_paging_info *pinfo)
+{
+	struct msgb *msg = bssgp_msgb_alloc();
+	struct bssgp_normal_hdr *bgph =
+			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
+	uint16_t drx_params = htons(pinfo->drx_params);
+	uint8_t mi[10];
+	int imsi_len = gsm48_generate_mid_from_imsi(mi, pinfo->imsi);
+	uint8_t ra[6];
+
+	if (imsi_len < 2)
+		return -EINVAL;
+
+	msgb_nsei(msg) = nsei;
+	msgb_bvci(msg) = ns_bvci;
+
+	if (pinfo->mode == BSSGP_PAGING_PS)
+		bgph->pdu_type = BSSGP_PDUT_PAGING_PS;
+	else
+		bgph->pdu_type = BSSGP_PDUT_PAGING_CS;
+	/* IMSI */
+	msgb_tvlv_put(msg, BSSGP_IE_IMSI, imsi_len-2, mi+2);
+	/* DRX Parameters */
+	msgb_tvlv_put(msg, BSSGP_IE_DRX_PARAMS, 2,
+			(uint8_t *) &drx_params);
+	/* Scope */
+	switch (pinfo->scope) {
+	case BSSGP_PAGING_BSS_AREA:
+		{
+			uint8_t null = 0;
+			msgb_tvlv_put(msg, BSSGP_IE_BSS_AREA_ID, 1, &null);
+		}
+		break;
+	case BSSGP_PAGING_LOCATION_AREA:
+		gsm48_construct_ra(ra, &pinfo->raid);
+		msgb_tvlv_put(msg, BSSGP_IE_LOCATION_AREA, 4, ra);
+		break;
+	case BSSGP_PAGING_ROUTEING_AREA:
+		gsm48_construct_ra(ra, &pinfo->raid);
+		msgb_tvlv_put(msg, BSSGP_IE_ROUTEING_AREA, 6, ra);
+		break;
+	case BSSGP_PAGING_BVCI:
+		{
+			uint16_t bvci = htons(pinfo->bvci);
+			msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (uint8_t *)&bvci);
+		}
+		break;
+	}
+	/* QoS profile mandatory for PS */
+	if (pinfo->mode == BSSGP_PAGING_PS)
+		msgb_tvlv_put(msg, BSSGP_IE_QOS_PROFILE, 3, pinfo->qos);
+
+	/* Optional (P-)TMSI */
+	if (pinfo->ptmsi) {
+		uint32_t ptmsi = htonl(*pinfo->ptmsi);
+		msgb_tvlv_put(msg, BSSGP_IE_TMSI, 4, (uint8_t *) &ptmsi);
+	}
+
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
+}

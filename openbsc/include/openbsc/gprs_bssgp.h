@@ -199,6 +199,33 @@ static inline int bssgp_tlv_parse(struct tlv_parsed *tp, uint8_t *buf, int len)
 	return tlv_parse(tp, &tvlv_att_def, buf, len, 0, 0);
 }
 
+enum bssgp_paging_mode {
+	BSSGP_PAGING_PS,
+	BSSGP_PAGING_CS,
+};
+
+enum bssgp_paging_scope {
+	BSSGP_PAGING_BSS_AREA,		/* all cells in BSS */
+	BSSGP_PAGING_LOCATION_AREA,	/* all cells in LA */
+	BSSGP_PAGING_ROUTEING_AREA,	/* all cells in RA */
+	BSSGP_PAGING_BVCI,		/* one cell */
+};
+
+struct bssgp_paging_info {
+	enum bssgp_paging_mode mode;
+	enum bssgp_paging_scope scope;
+	struct gprs_ra_id raid;
+	uint16_t bvci;
+	const char *imsi;
+	uint32_t *ptmsi;
+	uint16_t drx_params;
+	uint8_t qos[3];
+};
+
+/* Send a single GMM-PAGING.req to a given NSEI/NS-BVCI */
+int gprs_bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
+			 struct bssgp_paging_info *pinfo);
+
 /* gprs_bssgp_vty.c */
 int gprs_bssgp_vty_init(void);
 
