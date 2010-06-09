@@ -66,6 +66,18 @@ int ms_pwr_dbm(enum gsm_band band, uint8_t lvl);
 int rxlev2dbm(uint8_t rxlev);
 uint8_t dbm2rxlev(int dbm);
 
+/* According to GSM 04.08 Chapter 10.5.1.6 */
+static inline int ms_cm2_a5n_support(uint8_t *cm2, int n) {
+	switch (n) {
+		case 0: return 1;
+		case 1: return (cm2[0] & (1<<3)) ? 0 : 1;
+		case 2: return (cm2[2] & (1<<0)) ? 1 : 0;
+		case 3: return (cm2[2] & (1<<1)) ? 1 : 0;
+		default:
+			return 0;
+	}
+}
+
 /* According to GSM 04.08 Chapter 10.5.2.29 */
 static inline int rach_max_trans_val2raw(int val) { return (val >> 1) & 3; }
 static inline int rach_max_trans_raw2val(int raw) {
