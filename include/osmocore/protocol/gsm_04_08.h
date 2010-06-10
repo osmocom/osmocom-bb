@@ -142,6 +142,11 @@ struct gsm48_auth_req {
 	uint8_t rand[16];
 } __attribute__ ((packed));
 
+/* Section 9.2.3 */
+struct gsm48_auth_resp {
+	uint8_t sres[4];
+} __attribute__ ((packed));
+
 /* Section 9.2.15 */
 struct gsm48_loc_upd_req {
 	uint8_t type:4,
