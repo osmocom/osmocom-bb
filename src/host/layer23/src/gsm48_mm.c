@@ -2546,7 +2546,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
-	struct gsm48_service_request *nsr;
+	struct gsm48_service_request *nsr; /* NOTE: includes MI length */
 	uint8_t *cm2lv;
 	uint8_t buf[11];
 
@@ -2556,7 +2556,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	if (!nmsg)
 		return -ENOMEM;
 	ngh = (struct gsm48_hdr *)msgb_put(nmsg, sizeof(*ngh));
-	nsr = (struct gsm48_service_request *)msgb_put(nmsg, sizeof(*nsr) - 1);
+	nsr = (struct gsm48_service_request *)msgb_put(nmsg, sizeof(*nsr));
 	cm2lv = (uint8_t *)&nsr->classmark;
 
 	ngh->proto_discr = GSM48_PDISC_MM;
@@ -3068,7 +3068,7 @@ static int gsm48_mm_sync_ind_active(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-/* 4.5.1.2 RR abort is received during MM connection establishment */
+/* 4.5.1.2 RR abort/release is received during MM connection establishment */
 static int gsm48_mm_abort_mm_con(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
