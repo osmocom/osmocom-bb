@@ -53,6 +53,7 @@ struct gsm48_rr_hdr {
 #define GSM48_RR_ST_IDLE		0
 #define GSM48_RR_ST_CONN_PEND		1
 #define GSM48_RR_ST_DEDICATED		2
+#define GSM48_RR_ST_REL_PEND		3
 
 /* channel description */
 struct gsm48_rr_cd {
@@ -96,6 +97,8 @@ struct gsm48_rrlayer {
 	struct llist_head       downqueue;
 
 	/* timers */
+	struct timer_list	t_rel_wait; /* wait for L2 to transmit UA */
+	struct timer_list	t3110;
 	struct timer_list	t3122;
 	struct timer_list	t3124;
 	struct timer_list	t3126;
@@ -131,6 +134,10 @@ struct gsm48_rrlayer {
 
 	/* measurements */
 	struct gsm48_rr_meas	meas;
+
+	/* BA range */
+	uint8_t			ba_ranges;
+	uint32_t		ba_range[16];
 };
 
 const char *get_rr_name(int value);
@@ -144,5 +151,6 @@ int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 	uint16_t *mnc, uint16_t *lac);
 int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm);
 int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg);
+int gsm48_rr_los(struct osmocom_ms *ms);
 
 #endif /* _GSM48_RR_H */

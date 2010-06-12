@@ -139,8 +139,8 @@ int l23_app_init(struct osmocom_ms *ms)
 {
 	int rc;
 
-	log_parse_category_mask(stderr_target, "DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG:DSUM");
-//	log_parse_category_mask(stderr_target, "DRR:DMM:DCC:DMNCC:DPAG:DSUM");
+//	log_parse_category_mask(stderr_target, "DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG:DSUM");
+	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG:DSUM");
 
 	srand(time(NULL));
 

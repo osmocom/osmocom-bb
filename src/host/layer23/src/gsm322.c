@@ -2254,6 +2254,8 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 
 	/* start scan on radio interface */
 	cs->powerscan = 1;
+#warning TESTING!!!!
+usleep(300000);
 	return l1ctl_tx_pm_req_range(ms, s, e);
 }
 
@@ -2359,9 +2361,7 @@ static void gsm322_cs_loss(void *arg)
 			msgb_free(nmsg);
 		} else {
 			LOGP(DCS, LOGL_INFO, "Trigger RR abort.\n");
-#ifdef TODO
-	must trigger RR abort.
-#endif
+			gsm48_rr_los(ms);
 		}
 	}
 
@@ -2598,25 +2598,23 @@ struct gsm322_ba_list *gsm322_cs_ba_range(struct osmocom_ms *ms,
 static int gsm322_cs_choose(struct osmocom_ms *ms)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_ba_list *ba = NULL;
 	int i;
 
-#ifdef TODO
-what we have todo here:
-if we return from dedicated mode and we have a ba range, we can use that for cell reselection
-	if (message->ranges)
-		ba = gsm322_cs_ba_range(ms, message->range, message->ranges);
+	/* NOTE: The call to this function is synchron to RR layer, so
+	 * we may access the BA range there.
+	 */
+	if (rr->ba_ranges)
+		ba = gsm322_cs_ba_range(ms, rr->ba_range, rr->ba_ranges);
 	else {
 		LOGP(DCS, LOGL_INFO, "No BA range(s), try sysinfo.\n");
-#endif
 		/* get and update BA of last received sysinfo 5* */
 		ba = gsm322_cs_sysinfo_sacch(ms);
 		if (!ba)
 			ba = gsm322_find_ba_list(cs, cs->sel_si.mcc,
 				cs->sel_si.mnc);
-#ifdef TODO
 	}
-#endif
 
 	if (!ba) {
 		struct msgb *nmsg;

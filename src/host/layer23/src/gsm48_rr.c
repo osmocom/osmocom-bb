@@ -1,3 +1,4 @@
+#warning rr on MDL error handling (as specified in 04.08 / 04.06)
 /*
  * (C) 2010 by Andreas Eversberg <jolly@eversberg.eu>
  *
@@ -135,6 +136,58 @@ static int gsm48_decode_start_time(struct gsm48_rr_cd *cd,
 	return 0;
 }
 
+/* decode "BA Range" (10.5.2.1a) */
+static int gsm48_decode_ba_range(const uint8_t *ba, uint8_t ba_len,
+	uint32_t *range, uint8_t *ranges, int max_ranges)
+{
+	/* ba = pointer to IE without IE type and length octets
+	 * ba_len = number of octets
+	 * range = pointer to store decoded range
+	 * ranges = number of ranges decoded
+	 * max_ranges = maximum number of decoded ranges that can be stored
+	 */
+	uint16_t lower, higher;
+	int i, n, required_octets;
+	
+	/* find out how much ba ranges will be decoded */
+	n = *ba++;
+	ba_len --;
+	required_octets = 5 * (n >> 1) + 3 * (n & 1);
+	if (required_octets > ba_len) {
+		LOGP(DRR, LOGL_NOTICE, "BA range IE too short: %d ranges "
+			"require %d octets, but only %d octets remain.\n",
+			n, required_octets, ba_len);
+		*ranges = 0;
+		return -EINVAL;
+	}
+	if (max_ranges > n)
+		LOGP(DRR, LOGL_NOTICE, "BA range %d exceed the maximum number "
+			"of ranges supported by this mobile (%d).\n",
+			n, max_ranges);
+		n = max_ranges;
+
+	/* decode ranges */
+	for (i = 0; i < n; i++) {
+		if (!(i & 1)) {
+			/* decode even range number */
+			lower = *ba++ << 2;
+			lower |= (*ba >> 6);
+			higher = (*ba++ & 0x3f) << 4;
+			higher |= *ba >> 4;
+		} else {
+			lower = (*ba++ & 0x0f) << 6;
+			lower |= *ba >> 2;
+			higher = (*ba++ & 0x03) << 8;
+			higher |= *ba++;
+			/* decode odd range number */
+		}
+		*range++ = (higher << 16) | lower;
+	}
+	*ranges = n;
+
+	return 0;
+}
+
 /*
  * state transition
  */
@@ -143,6 +196,7 @@ static const char *gsm48_rr_state_names[] = {
 	"IDLE",
 	"CONN PEND",
 	"DEDICATED",
+	"REL PEND",
 };
 
 static void new_rr_state(struct gsm48_rrlayer *rr, int state)
@@ -184,6 +238,8 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 			return;
 		gsm322_c_event(rr->ms, nmsg);
 		msgb_free(nmsg);
+		/* reset any BA range */
+		rr->ba_ranges = 0;
 	}
 }
 
@@ -321,6 +377,41 @@ int gsm48_rsl_dequeue(struct osmocom_ms *ms)
  * timers handling
  */
 
+/* special timer to ensure that UA is sent before disconnecting channel */
+static void timeout_rr_t_rel_wait(void *arg)
+{
+	struct gsm48_rrlayer *rr = arg;
+
+	LOGP(DRR, LOGL_INFO, "L2 release timer has fired, done waiting\n");
+
+	/* return to idle now */
+	new_rr_state(rr, GSM48_RR_ST_IDLE);
+}
+
+/* 3.4.13.1.1: Timeout of T3110 */
+static void timeout_rr_t3110(void *arg)
+{
+	struct gsm48_rrlayer *rr = arg;
+	struct osmocom_ms *ms = rr->ms;
+	struct msgb *nmsg;
+	uint8_t *mode;
+
+	LOGP(DRR, LOGL_INFO, "timer T3110 has fired, release locally\n");
+
+	new_rr_state(rr, GSM48_RR_ST_REL_PEND);
+
+	/* disconnect the main signalling link */
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return;
+	mode = msgb_put(nmsg, 2);
+	mode[0] = RSL_IE_RELEASE_MODE;
+	mode[1] = 1; /* local release */
+	gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
+
+	return;
+}
+
 static void timeout_rr_t3122(void *arg)
 {
 	LOGP(DRR, LOGL_INFO, "timer T3122 has fired\n");
@@ -347,6 +438,22 @@ static void timeout_rr_t3126(void *arg)
 	new_rr_state(rr, GSM48_RR_ST_IDLE);
 }
 
+static void start_rr_t_rel_wait(struct gsm48_rrlayer *rr, int sec, int micro)
+{
+	LOGP(DRR, LOGL_INFO, "starting T_rel_wait with %d seconds\n", sec);
+	rr->t_rel_wait.cb = timeout_rr_t_rel_wait;
+	rr->t_rel_wait.data = rr;
+	bsc_schedule_timer(&rr->t_rel_wait, sec, micro);
+}
+
+static void start_rr_t3110(struct gsm48_rrlayer *rr, int sec, int micro)
+{
+	LOGP(DRR, LOGL_INFO, "starting T3110 with %d seconds\n", sec);
+	rr->t3110.cb = timeout_rr_t3110;
+	rr->t3110.data = rr;
+	bsc_schedule_timer(&rr->t3110, sec, micro);
+}
+
 static void start_rr_t3122(struct gsm48_rrlayer *rr, int sec, int micro)
 {
 	LOGP(DRR, LOGL_INFO, "starting T3122 with %d seconds\n", sec);
@@ -361,6 +468,22 @@ static void start_rr_t3126(struct gsm48_rrlayer *rr, int sec, int micro)
 	rr->t3126.cb = timeout_rr_t3126;
 	rr->t3126.data = rr;
 	bsc_schedule_timer(&rr->t3126, sec, micro);
+}
+
+static void stop_rr_t_rel_wait(struct gsm48_rrlayer *rr)
+{
+	if (bsc_timer_pending(&rr->t_rel_wait)) {
+		LOGP(DRR, LOGL_INFO, "stopping pending timer T_rel_wait\n");
+		bsc_del_timer(&rr->t_rel_wait);
+	}
+}
+
+static void stop_rr_t3110(struct gsm48_rrlayer *rr)
+{
+	if (bsc_timer_pending(&rr->t3110)) {
+		LOGP(DRR, LOGL_INFO, "stopping pending timer T3110\n");
+		bsc_del_timer(&rr->t3110);
+	}
 }
 
 static void stop_rr_t3122(struct gsm48_rrlayer *rr)
@@ -2762,6 +2885,49 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
  * link establishment and release
  */
 
+/* process "Loss Of Signal" */
+int gsm48_rr_los(struct osmocom_ms *ms)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	uint8_t *mode;
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
+
+	LOGP(DSUM, LOGL_INFO, "Radio link lost signal\n");
+
+	if (rr->state == GSM48_RR_ST_CONN_PEND) {
+		LOGP(DRR, LOGL_INFO, "LOS during RACH request\n");
+
+		/* stop pending RACH timer */
+		stop_rr_t3126(rr);
+	} else {
+		LOGP(DRR, LOGL_INFO, "LOS during dedicated mode, release "
+			"locally\n");
+
+		new_rr_state(rr, GSM48_RR_ST_REL_PEND);
+
+		/* release message */
+		nmsg = gsm48_l3_msgb_alloc();
+		if (!nmsg)
+			return -ENOMEM;
+		mode = msgb_put(nmsg, 2);
+		mode[0] = RSL_IE_RELEASE_MODE;
+		mode[1] = 1; /* local release */
+		/* start release */
+		return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
+	}
+
+	/* send inication to upper layer */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->cause = RR_REL_CAUSE_UNDEFINED;
+	gsm48_rr_upmsg(ms, nmsg);
+
+	return 0;
+}
+
 /* activate link and send establish request */
 static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 {
@@ -2849,7 +3015,7 @@ static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 
 	/* if MM has releases before confirm, we start release */
-	if (rr->state == GSM48_RR_ST_IDLE) {
+	if (rr->state == GSM48_RR_ST_REL_PEND) {
 		LOGP(DRR, LOGL_INFO, "MM already released RR.\n");
 		/* release message */
 		nmsg = gsm48_l3_msgb_alloc();
@@ -2873,27 +3039,78 @@ static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm48_rr_upmsg(ms, nmsg);
 }
 
-/* the link is released */
-static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
+/* the link is released in pending state (by l2) */
+static int gsm48_rr_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
 
-	/* deactivate channel */
-	LOGP(DRR, LOGL_INFO, "deactivating channel (arfcn %d)\n",
-		rr->cd_now.arfcn);
-#ifdef TODO
-	release and give new arfcn
-	tx_ph_dm_rel_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
-#else
-	l1ctl_tx_fbsb_req(ms, rr->cd_now.arfcn, 0x07, 100, 0);
-#endif
+	LOGP(DSUM, LOGL_INFO, "Radio link is released\n");
 
-	/* do nothing, because we aleady IDLE
-	 * or we received the rel cnf of the last connection
-	 * while already requesting a new one (CONN PEND)
-	 */
+	/* send inication to upper layer */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->cause = RR_REL_CAUSE_UNDEFINED;
+	gsm48_rr_upmsg(ms, nmsg);
+
+	/* start release timer, so UA will be transmitted */
+	start_rr_t_rel_wait(rr, 1, 500000);
+
+	/* pending release */
+	new_rr_state(rr, GSM48_RR_ST_REL_PEND);
 
 	return 0;
+}
+
+/* 9.1.7 CHANNEL RELEASE is received  */
+static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	struct gsm48_chan_rel *cr = (struct gsm48_chan_rel *)gh->data;
+	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*cr);
+	struct tlv_parsed tp;
+	struct msgb *nmsg;
+	uint8_t *mode;
+
+	if (payload_len < 0) {
+		LOGP(DRR, LOGL_NOTICE, "Short read of CHANNEL RELEASE "
+			"message.\n");
+		return gsm48_rr_tx_rr_status(ms,
+			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
+	tlv_parse(&tp, &gsm48_rr_att_tlvdef, cr->data, payload_len, 0, 0);
+
+	LOGP(DRR, LOGL_INFO, "channel release request with cause 0x%02x)\n",
+		cr->rr_cause);
+
+	/* BA range */
+	if (TLVP_PRESENT(&tp, GSM48_IE_BA_RANGE)) {
+		gsm48_decode_ba_range(TLVP_VAL(&tp, GSM48_IE_BA_RANGE),
+			*(TLVP_VAL(&tp, GSM48_IE_BA_RANGE) - 1), rr->ba_range,
+			&rr->ba_ranges,
+			sizeof(rr->ba_range) / sizeof(rr->ba_range[0]));
+		/* NOTE: the ranges are kept until IDLE state is returned
+		 * (see new_rr_state)
+		 */
+	}
+
+	new_rr_state(rr, GSM48_RR_ST_REL_PEND);
+
+	/* start T3110, so that two DISCs can be sent due to T200 timeout */
+	start_rr_t3110(rr, 1, 500000);
+
+	/* disconnect the main signalling link */
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	mode = msgb_put(nmsg, 2);
+	mode[0] = RSL_IE_RELEASE_MODE;
+	mode[1] = 0; /* normal release */
+	return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
 }
 
 /*
@@ -2931,6 +3148,13 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 		}
 		LOGP(DRR, LOGL_INFO, "T3122 running, but emergency call\n");
 		stop_rr_t3122(rr);
+	}
+
+	/* if state is not idle */
+	if (rr->state != GSM48_RR_ST_IDLE) {
+		LOGP(DRR, LOGL_INFO, "We are not IDLE yet, rejecting!\n");
+		cause = RR_REL_CAUSE_TRY_LATER;
+	 	goto reject;
 	}
 
 	/* cell selected */
@@ -3076,6 +3300,9 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			rc = gsm48_rr_rx_freq_redef(ms, msg);
 			break;
 #endif
+		case GSM48_MT_RR_CHAN_REL:
+			rc = gsm48_rr_rx_chan_rel(ms, msg);
+			break;
 		default:
 			LOGP(DRR, LOGL_NOTICE, "Message type 0x%02x unknown.\n",
 				gh->msg_type);
@@ -3254,6 +3481,9 @@ static int gsm48_rr_abort_req(struct osmocom_ms *ms, struct msgb *msg)
 
 		LOGP(DRR, LOGL_INFO, "Abort in dedicated state, send release "
 			"to layer 2.\n");
+
+		new_rr_state(rr, GSM48_RR_ST_REL_PEND);
+
 		/* release message */
 		nmsg = gsm48_l3_msgb_alloc();
 		if (!nmsg)
@@ -3267,7 +3497,7 @@ static int gsm48_rr_abort_req(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DRR, LOGL_INFO, "Abort in connection pending state, return to "
 		"idle state.\n");
 	/* return idle */
-	new_rr_state(rr, GSM48_RR_ST_IDLE);
+	new_rr_state(rr, GSM48_RR_ST_REL_PEND);
 
 	return 0;
 }
@@ -3300,14 +3530,17 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-/* release confirm in dedicated mode (abort) */
-static int gsm48_rr_rel_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
+/* release confirm */
+static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct msgb *nmsg;
 	struct gsm48_rr_hdr *nrrh;
 
 	LOGP(DSUM, LOGL_INFO, "Requesting channel aborted\n");
+
+	/* stop T3211 if running */
+	stop_rr_t3110(rr);
 
 	/* send release indication */
 	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
@@ -3332,16 +3565,23 @@ static struct dldatastate {
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
 } dldatastatelist[] = {
+	/* data transfer */
 	{SBIT(GSM48_RR_ST_IDLE) |
 	 SBIT(GSM48_RR_ST_CONN_PEND) |
-	 SBIT(GSM48_RR_ST_DEDICATED),
+	 SBIT(GSM48_RR_ST_DEDICATED) |
+	 SBIT(GSM48_RR_ST_REL_PEND),
 	 RSL_MT_UNIT_DATA_IND, gsm48_rr_unit_data_ind},
 
 	{SBIT(GSM48_RR_ST_DEDICATED), /* 3.4.2 */
 	 RSL_MT_DATA_IND, gsm48_rr_data_ind},
 
+	/* esablish */
+	{SBIT(GSM48_RR_ST_CONN_PEND), /* 3.3.1.1.2 */
+	 RSL_MT_CHAN_CNF, gsm48_rr_tx_rand_acc},
+
 	{SBIT(GSM48_RR_ST_IDLE) |
-	 SBIT(GSM48_RR_ST_CONN_PEND),
+	 SBIT(GSM48_RR_ST_CONN_PEND) |
+	 SBIT(GSM48_RR_ST_REL_PEND),
 	 RSL_MT_EST_CONF, gsm48_rr_estab_cnf},
 
 #if 0
@@ -3351,22 +3591,18 @@ static struct dldatastate {
 	{SBIT(GSM_RRSTATE),
 	 RSL_MT_CONNECT_CNF, gsm48_rr_connect_cnf},
 
-	{SBIT(GSM_RRSTATE),
-	 RSL_MT_RELEASE_IND, gsm48_rr_rel_ind},
 #endif
 
-	{SBIT(GSM48_RR_ST_IDLE) |
-	 SBIT(GSM48_RR_ST_CONN_PEND),
+	/* release */
+	{SBIT(GSM48_RR_ST_DEDICATED),
+	 RSL_MT_REL_IND, gsm48_rr_rel_ind},
+
+	{SBIT(GSM48_RR_ST_REL_PEND),
 	 RSL_MT_REL_CONF, gsm48_rr_rel_cnf},
 
-	{SBIT(GSM48_RR_ST_DEDICATED),
-	 RSL_MT_REL_CONF, gsm48_rr_rel_cnf_dedicated},
-
+	/* suspenion */
 	{SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_SUSP_CONF, gsm48_rr_susp_cnf_dedicated},
-
-	{SBIT(GSM48_RR_ST_CONN_PEND), /* 3.3.1.1.2 */
-	 RSL_MT_CHAN_CNF, gsm48_rr_tx_rand_acc},
 
 #if 0
 	{SBIT(GSM48_RR_ST_DEDICATED),
@@ -3420,7 +3656,8 @@ static struct rrdownstate {
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
 } rrdownstatelist[] = {
-	{SBIT(GSM48_RR_ST_IDLE), /* 3.3.1.1 */
+	/* NOTE: If not IDLE, it is rejected there. */
+	{ALL_STATES, /* 3.3.1.1 */
 	 GSM48_RR_EST_REQ, gsm48_rr_est_req},
 
 	{SBIT(GSM48_RR_ST_DEDICATED), /* 3.4.2 */
@@ -3511,6 +3748,8 @@ int gsm48_rr_exit(struct osmocom_ms *ms)
 		rr->rr_est_msg = NULL;
 	}
 
+	stop_rr_t_rel_wait(rr);
+	stop_rr_t3110(rr);
 	stop_rr_t3122(rr);
 	stop_rr_t3126(rr);
 
@@ -3676,52 +3915,6 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-/* decode "BA Range" (10.5.2.1a) */
-static int gsm48_decode_ba_range(uint8_t *ba, uint8_t, ba_len, uint32_t *range,
-	uint8_t *ranges, int max_ranges)
-{
-	/* ba = pointer to IE without IE type and length octets
-	 * ba_len = number of octets
-	 * range = pointer to store decoded range
-	 * ranges = number of ranges decoded
-	 * max_ranges = maximum number of decoded ranges that can be stored
-	 */
-	uint16_t lower, higher;
-	int i, n, required_octets;
-	
-	/* find out how much ba ranges will be decoded */
-	n = *ba++;
-	ba_len --;
-	required_octets = 5 * (n >> 1) + 3 * (n & 1);
-	if (required_octets > n) {
-		*ranges = 0;
-		return -EINVAL;
-	}
-	if (max_ranges > n)
-		n = max_ranges;
-
-	/* decode ranges */
-	for (i = 0; i < n; i++) {
-		if (!(i & 1)) {
-			/* decode even range number */
-			lower = *ba++ << 2;
-			lower |= (*ba >> 6);
-			higher = (*ba++ & 0x3f) << 4;
-			higher |= *ba >> 4;
-		} else {
-			lower = (*ba++ & 0x0f) << 6;
-			lower |= *ba >> 2;
-			higher = (*ba++ & 0x03) << 8;
-			higher |= *ba++;
-			/* decode odd range number */
-		}
-		*range++ = (higher << 16) | lower;
-	}
-	*ranges = n;
-
-	return 0;
-}
-
 
 /* decode "Cell Description" (10.5.2.2) */
 static int gsm48_decode_cell_desc(struct gsm48_cell_desc *cd, uint16_t *arfcn, uint8_t *ncc uint8_t *bcc)
@@ -3827,10 +4020,6 @@ static int gsm48_rr_connect_cnf(struct osmocom_ms *ms, struct msgbl *msg)
 {
 }
 
-static int gsm48_rr_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
-{
-}
-
 static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = ms->rrlayer;
@@ -3898,7 +4087,7 @@ static void timeout_rr_t3124(void *arg)
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
-	return gsm48_send_rsl(ms, RSL_MT_EST_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_REEST_REQ, nmsg);
 
 	todo
 }
