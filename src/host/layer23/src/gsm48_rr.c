@@ -2922,7 +2922,7 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 	if (!nmsg)
 		return -ENOMEM;
 	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
-	nrrh->cause = RR_REL_CAUSE_UNDEFINED;
+	nrrh->cause = RR_REL_CAUSE_LOST_SIGNAL;
 	gsm48_rr_upmsg(ms, nmsg);
 
 	return 0;
@@ -3053,7 +3053,7 @@ static int gsm48_rr_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
 	if (!nmsg)
 		return -ENOMEM;
 	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
-	nrrh->cause = RR_REL_CAUSE_UNDEFINED;
+	nrrh->cause = RR_REL_CAUSE_NORMAL;
 	gsm48_rr_upmsg(ms, nmsg);
 
 	/* start release timer, so UA will be transmitted */
@@ -3547,7 +3547,7 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	if (!nmsg)
 		return -ENOMEM;
 	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
-	nrrh->cause = RR_REL_CAUSE_UNDEFINED;
+	nrrh->cause = RR_REL_CAUSE_NORMAL;
 	gsm48_rr_upmsg(ms, nmsg);
 
 	/* return idle */

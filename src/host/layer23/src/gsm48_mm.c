@@ -3084,6 +3084,9 @@ static int gsm48_mm_abort_mm_con(struct osmocom_ms *ms, struct msgb *msg)
 	case RR_REL_CAUSE_TRY_LATER:
 		cause = 34;
 		break;
+	case RR_REL_CAUSE_NORMAL:
+		cause = 16;
+		break;
 	default:
 		cause = 47;
 	}
