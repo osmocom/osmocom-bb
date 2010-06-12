@@ -45,7 +45,7 @@ struct lapdm_datalink {
 	struct llist_head send_queue; /* frames from L3 */
 	struct msgb *send_buffer; /* current frame transmitting */
 	int send_out; /* how much was sent from send_buffer */
-	uint8_t tx_buffer[8][200]; /* tx history buffer */
+	uint8_t tx_hist[8][200]; /* tx history buffer */
 	int tx_length[8]; /* length in history buffer */
 	struct llist_head tx_queue; /* frames to L1 */
 	struct lapdm_msg_ctx mctx; /* context of established connection */

@@ -21,7 +21,7 @@
  *
  */
 
-/* Notes on Buffering: rcv_buffer, tx_buffer, history, send_buffer, send_queue
+/* Notes on Buffering: rcv_buffer, tx_queue, tx_hist, send_buffer, send_queue
  *
  * RX data is stored in the rcv_buffer (pointer). If the message is complete, it
  * is removed from rcv_buffer pointer and forwarded to L3. If the RX data is
@@ -30,8 +30,8 @@
  * TX data is stored in the send_queue first. When transmitting a frame,
  * the first message in the send_queue is moved to the send_buffer. There it
  * resides until all fragments are acknowledged. Fragments to be sent by I
- * frames are stored in the history buffer for resend, if required. Also the
- * current fragment is copied into the tx_buffer. There it resides until it is
+ * frames are stored in the tx_hist buffer for resend, if required. Also the
+ * current fragment is copied into the tx_queue. There it resides until it is
  * forwarded to layer 1.
  *
  * In case we have SAPI 0, we only have a window size of 1, so the unack-
@@ -41,20 +41,13 @@
  * The layer 1 normally sends a PH-READY-TO-SEND. But because we use
  * asynchronous transfer between layer 1 and layer 2 (serial link), we must
  * send a frame before layer 1 reaches the right timeslot to send it. So we
- * move the tx_buffer to layer 1 when there is not already a pending frame, and
+ * move the tx_queue to layer 1 when there is not already a pending frame, and
  * wait until acknowledge after the frame has been sent. If we receive an
  * acknowledge, we can send the next frame from the buffer, if any.
  *
- * The moving of tx_buffer to layer 1 may also trigger T200, if desired. Also it
+ * The moving of tx_queue to layer 1 may also trigger T200, if desired. Also it
  * will trigger next I frame, if possible.
  *
- * If there is already a frame in the tx_buffer and a frame is written to the
- * tx_buffer, it is overwrites the tx_buffer. This is no problem, since a
- * confirm also confirms previous frames. A DISC or UA frame do not require
- * an unsent frame to be sent.
- *
- * A special case is the SABM or DISC message. Here the tx_buffer is loaded
- * with a copy of that message. This way it can be repeated at timeout.
  */
 
 #include <stdio.h>
@@ -409,10 +402,10 @@ static int lapdm_send_resend(struct lapdm_datalink *dl)
 	struct msgb *msg = msgb_alloc_headroom(23+10, 10, "LAPDm resend");
 	int length;
 
-	/* Resend SABM/DISC from tx_buffer */
+	/* Resend SABM/DISC from tx_hist */
 	length = dl->tx_length[0];
 	msg->l2h = msgb_put(msg, length);
-	memcpy(msg->l2h, dl->tx_buffer[dl->V_send], length);
+	memcpy(msg->l2h, dl->tx_hist[dl->V_send], length);
 
 	return tx_ph_data_enqueue(dl, msg, dl->mctx.chan_nr, dl->mctx.link_id,
 			dl->mctx.n201);
@@ -557,11 +550,11 @@ static void lapdm_t200_cb(void *data)
 
 				LOGP(DLAPDM, LOGL_INFO, "retransmit last frame "
 					"V(S)=%d\n", dl->V_send - 1);
-				/* Create I frame (segment) from tx_buffer */
+				/* Create I frame (segment) from tx_hist */
 				length = dl->tx_length[dl->V_send - 1];
 				msg = msgb_alloc_headroom(23+10, 10, "LAPDm I");
 				msg->l2h = msgb_put(msg, length);
-				memcpy(msg->l2h, dl->tx_buffer[dl->V_send - 1],
+				memcpy(msg->l2h, dl->tx_hist[dl->V_send - 1],
 					length);
 				msg->l2h[1] = LAPDm_CTRL_I(dl->V_recv,
 						dl->V_send - 1, 1); /* P=1 */
@@ -714,7 +707,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			LOGP(DLAPDM, LOGL_INFO, "SABM command, multiple "
 				"frame established state\n");
 			/* check for contention resoultion */
-			if (dl->tx_buffer[0][2] >> 2) {
+			if (dl->tx_hist[0][2] >> 2) {
 				LOGP(DLAPDM, LOGL_NOTICE, "SABM not allowed "
 					"during contention resolution\n");
 				rsl_rll_error(RLL_CAUSE_SABM_INFO_NOTALL, mctx);
@@ -737,7 +730,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		lapdm_send_ua(mctx, length, msg->l2h + 3);
 		/* set Vs, Vr and Va to 0 */
 		dl->V_send = dl->V_recv = dl->V_ack = 0;
-		/* clear tx_buffer */
+		/* clear tx_hist */
 		dl->tx_length[0] = 0;
 		/* enter multiple-frame-established state */
 		lapdm_dl_newstate(dl, LAPDm_STATE_MF_EST);
@@ -993,7 +986,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* reset Timer T200 */
 		bsc_del_timer(&dl->t200);
 		/* compare UA with SABME if contention resolution is applied */
-		if (dl->tx_buffer[0][2] >> 2) {
+		if (dl->tx_hist[0][2] >> 2) {
 			rc = check_length_ind(mctx, msg->l2h[2]);
 			if (rc < 0) {
 				rc = send_rll_simple(RSL_MT_REL_IND, mctx);
@@ -1001,8 +994,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 				break;
 			}
 			length = msg->l2h[2] >> 2;
-			if (length != (dl->tx_buffer[0][2] >> 2)
-			 || !!memcmp(dl->tx_buffer[0] + 3, msg->l2h + 3,
+			if (length != (dl->tx_hist[0][2] >> 2)
+			 || !!memcmp(dl->tx_hist[0] + 3, msg->l2h + 3,
 			 		length)) {
 				LOGP(DLAPDM, LOGL_INFO, "UA response "
 					"mismatches\n");
@@ -1013,7 +1006,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		}
 		/* set Vs, Vr and Va to 0 */
 		dl->V_send = dl->V_recv = dl->V_ack = 0;
-		/* clear tx_buffer */
+		/* clear tx_hist */
 		dl->tx_length[0] = 0;
 		/* enter multiple-frame-established state */
 		lapdm_dl_newstate(dl, LAPDm_STATE_MF_EST);
@@ -1596,7 +1589,7 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_SABM, 1);
 	msg->l2h[2] = LAPDm_LEN(length);
 	/* Transmit-buffer carries exactly one segment */
-	memcpy(dl->tx_buffer[0], msg->l2h, 3 + length);
+	memcpy(dl->tx_hist[0], msg->l2h, 3 + length);
 	dl->tx_length[0] = 3 + length;
 	
 	/* Set states */
@@ -1712,7 +1705,7 @@ static int rslms_send_i(struct lapdm_msg_ctx *mctx)
 		return rc;
 	}
 
-	/* if we have no tx_buffer yet, we create it */
+	/* if we have no tx_hist yet, we create it */
 	if (!dl->tx_length[dl->V_send]) {
 		/* Get next message into send-buffer, if any */
 		if (!dl->send_buffer) {
@@ -1753,7 +1746,7 @@ printf("msg-len %d sent %d left %d N201 %d length %d first byte %02x\n", msgb_l3
 			msg->l2h[2] |= LAPDm_MORE;
 		memcpy(msg->l2h + 3, dl->send_buffer->l3h + dl->send_out,
 			length);
-		memcpy(dl->tx_buffer[dl->V_send], msg->l2h, 3 + length);
+		memcpy(dl->tx_hist[dl->V_send], msg->l2h, 3 + length);
 		dl->tx_length[dl->V_send] = 3 + length;
 		/* Add length to track how much is already in the tx buffer */
 		dl->send_out += length;
@@ -1761,11 +1754,11 @@ printf("msg-len %d sent %d left %d N201 %d length %d first byte %02x\n", msgb_l3
 		LOGP(DLAPDM, LOGL_INFO, "resend I frame from tx buffer "
 			"V(S)=%d\n", dl->V_send);
 
-		/* Create I frame (segment) from tx_buffer */
+		/* Create I frame (segment) from tx_hist */
 		length = dl->tx_length[dl->V_send];
 		msg = msgb_alloc_headroom(23+10, 10, "LAPDm I");
 		msg->l2h = msgb_put(msg, length);
-		memcpy(msg->l2h, dl->tx_buffer[dl->V_send], length);
+		memcpy(msg->l2h, dl->tx_hist[dl->V_send], length);
 		msg->l2h[1] = LAPDm_CTRL_I(dl->V_recv, dl->V_send, 0);
 	}
 
@@ -1860,7 +1853,7 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_SABM, 1);
 	msg->l2h[2] = LAPDm_LEN(0);
 	/* Transmit-buffer carries exactly one segment */
-	memcpy(dl->tx_buffer[0], msg->l2h, 3);
+	memcpy(dl->tx_hist[0], msg->l2h, 3);
 	dl->tx_length[0] = 3;
 
 	/* Set states */
@@ -1908,7 +1901,7 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_DISC, 1);
 	msg->l2h[2] = LAPDm_LEN(0);
 	/* Transmit-buffer carries exactly one segment */
-	memcpy(dl->tx_buffer[0], msg->l2h, 3);
+	memcpy(dl->tx_hist[0], msg->l2h, 3);
 	dl->tx_length[0] = 3;
 	
 	/* Set states */
