@@ -33,7 +33,8 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 	int i, j;
 
 	/* available sysinfos */
-	print(priv, "Available SYSTEM INFORMATIONS:  ARFCN = %d", arfcn);
+	print(priv, "ARFCN = %d\n", arfcn);
+	print(priv, "Available SYSTEM INFORMATIONS =");
 	if (s->si1)
 		print(priv, " 1");
 	if (s->si2)
