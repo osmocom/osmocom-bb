@@ -154,6 +154,9 @@ static int gsm48_cc_to_mm(struct msgb *msg, struct gsm_trans *trans,
 	struct gsm48_mmxx_hdr *mmh;
 	int emergency = 0;
 
+	/* Add protocol type and transaction ID */
+	gh->proto_discr = trans->protocol | (trans->transaction_id << 4);
+
 	/* indicate emergency setup to MM layer */
 	if (gh->msg_type == GSM48_MT_CC_EMERG_SETUP)
 		emergency = 1;
