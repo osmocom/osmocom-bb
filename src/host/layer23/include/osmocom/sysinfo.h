@@ -114,7 +114,7 @@ struct gsm48_sysinfo {
 	uint16_t			nb_class_barr; /* bit 10 is emergency */
 };
 
-int gsm48_sysinfo_dump(struct gsm48_sysinfo *s,
+int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 			void (*print)(void *, const char *, ...), void *priv);
 
 #endif /* _SYSINFO_H */

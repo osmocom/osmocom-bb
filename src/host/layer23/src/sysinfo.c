@@ -26,14 +26,14 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/networks.h>
 
-int gsm48_sysinfo_dump(struct gsm48_sysinfo *s,
+int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 			void (*print)(void *, const char *, ...), void *priv)
 {
 	char buffer[80];
 	int i, j;
 
 	/* available sysinfos */
-	print(priv, "Available SYSTEM INFORMATIONS:");
+	print(priv, "Available SYSTEM INFORMATIONS:  ARFCN = %d", arfcn);
 	if (s->si1)
 		print(priv, " 1");
 	if (s->si2)

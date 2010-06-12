@@ -190,7 +190,7 @@ DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023>",
 		return CMD_SUCCESS;
 	}
 
-	gsm48_sysinfo_dump(s, print_vty, vty);
+	gsm48_sysinfo_dump(s, i, print_vty, vty);
 
 	return CMD_SUCCESS;
 }
