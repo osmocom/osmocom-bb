@@ -45,6 +45,9 @@ static void gsm322_cs_loss(void *arg);
 static int gsm322_cs_select(struct osmocom_ms *ms, int any);
 static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg);
 
+#warning HACKING!!!
+int hack;
+
 /*
  * notes
  */
@@ -1603,6 +1606,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		LOGP(DCS, LOGL_INFO, "Tuning back to frequency %d (rxlev "
 			"%d).\n", cs->arfcn, cs->list[cs->arfcn].rxlev_db);
 		cs->ccch_state = GSM322_CCCH_ST_INIT;
+		hack = 5;
 		l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 //		start_cs_timer(cs, ms->support.sync_to, 0);
 
@@ -1634,6 +1638,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			cs->arfcn = found;
 			cs->si = cs->list[cs->arfcn].sysinfo;
 			cs->ccch_state = GSM322_CCCH_ST_INIT;
+			hack = 5;
 			l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 
 			/* selected PLMN (manual) or any PLMN (auto) */
@@ -1704,6 +1709,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	LOGP(DCS, LOGL_INFO, "Scanning frequency %d (rxlev %d).\n", cs->arfcn,
 		cs->list[cs->arfcn].rxlev_db);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
+	hack = 5;
 	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 //	start_cs_timer(cs, ms->support.sync_to, 0);
 
@@ -1829,6 +1835,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	cs->arfcn = found;
 	cs->si = cs->list[cs->arfcn].sysinfo;
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
+	hack = 5;
 	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 
 	/* selected PLMN (manual) or any PLMN (auto) */
@@ -2225,6 +2232,7 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 					"%d (rxlev %d).\n", cs->arfcn,
 					cs->list[cs->arfcn].rxlev_db);
 				cs->ccch_state = GSM322_CCCH_ST_INIT;
+				hack = 5;
 				l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 //				start_cs_timer(cs, ms->support.sync_to, 0);
 
@@ -2325,6 +2333,14 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		}
 		break;
 	case S_L1CTL_FBSB_ERR:
+		if (hack) {
+			ms = signal_data;
+			cs = &ms->cellsel;
+			l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
+			hack--;
+			LOGP(DCS, LOGL_INFO, "Channel sync error, try again.\n");
+			break;
+		}
 		LOGP(DCS, LOGL_INFO, "Channel sync error.\n");
 		ms = signal_data;
 		cs = &ms->cellsel;
@@ -2362,6 +2378,10 @@ static void gsm322_cs_loss(void *arg)
 		} else {
 			LOGP(DCS, LOGL_INFO, "Trigger RR abort.\n");
 			gsm48_rr_los(ms);
+			/* be shure that nothing else is done after here
+			 * because the function call above may cause
+			 * to return from idle state and trigger cell re-sel.
+			 */
 		}
 	}
 
@@ -2756,6 +2776,7 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
+	hack = 5;
 	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 #warning TESTING: laforge must fix the sync error when sending fbsb request too close to each other. also we must get a response with arfcn or a confirm, so we know where the response belongs to.
@@ -2776,6 +2797,7 @@ static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
+	hack = 5;
 	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 
@@ -2811,44 +2833,64 @@ static struct plmnastatelist {
 } plmnastatelist[] = {
 	{SBIT(GSM322_A0_NULL),
 	 GSM322_EVENT_SWITCH_ON, gsm322_a_switch_on},
+
 	{SBIT(GSM322_A0_NULL),
 	 GSM322_EVENT_PLMN_SEARCH_END, gsm322_a_sel_first_plmn},
+
 	{ALL_STATES,
 	 GSM322_EVENT_SWITCH_OFF, gsm322_a_switch_off},
+
 	{SBIT(GSM322_A6_NO_SIM),
 	 GSM322_EVENT_SIM_INSERT, gsm322_a_switch_on},
+
 	{ALL_STATES,
 	 GSM322_EVENT_SIM_INSERT, gsm322_a_sim_insert},
+
 	{ALL_STATES,
 	 GSM322_EVENT_SIM_REMOVE, gsm322_a_sim_removed},
+
 	{ALL_STATES,
 	 GSM322_EVENT_INVALID_SIM, gsm322_a_sim_removed},
+
 	{SBIT(GSM322_A1_TRYING_RPLMN),
 	 GSM322_EVENT_REG_FAILED, gsm322_a_sel_first_plmn},
+
 	{SBIT(GSM322_A1_TRYING_RPLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_a_sel_first_plmn},
+
 	{SBIT(GSM322_A1_TRYING_RPLMN) | SBIT(GSM322_A3_TRYING_PLMN),
 	 GSM322_EVENT_REG_SUCCESS, gsm322_a_indicate_selected},
+
 	{SBIT(GSM322_A2_ON_PLMN),
 	 GSM322_EVENT_ROAMING_NA, gsm322_a_roaming_na},
+
 	{SBIT(GSM322_A2_ON_PLMN),
 	 GSM322_EVENT_HPLMN_SEARCH, gsm322_a_hplmn_search_start},
+
 	{SBIT(GSM322_A2_ON_PLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_a_loss_of_radio},
+
 	{SBIT(GSM322_A2_ON_PLMN),
 	 GSM322_EVENT_USER_RESEL, gsm322_a_user_resel},
+
 	{SBIT(GSM322_A3_TRYING_PLMN),
 	 GSM322_EVENT_REG_FAILED, gsm322_a_sel_next_plmn},
+
 	{SBIT(GSM322_A3_TRYING_PLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_a_sel_next_plmn},
+
 	{SBIT(GSM322_A5_HPLMN_SEARCH),
 	 GSM322_EVENT_CELL_FOUND, gsm322_a_sel_first_plmn},
+
 	{SBIT(GSM322_A5_HPLMN_SEARCH),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_a_go_on_plmn},
+
 	{SBIT(GSM322_A4_WAIT_FOR_PLMN),
 	 GSM322_EVENT_PLMN_AVAIL, gsm322_a_plmn_avail},
+
 	{ALL_STATES,
 	 GSM322_EVENT_SEL_MANUAL, gsm322_a_sel_manual},
+
 	{ALL_STATES,
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_am_no_cell_found},
 };
@@ -2890,42 +2932,60 @@ static struct plmnmstatelist {
 } plmnmstatelist[] = {
 	{SBIT(GSM322_M0_NULL),
 	 GSM322_EVENT_SWITCH_ON, gsm322_m_switch_on},
+
 	{SBIT(GSM322_M0_NULL) | SBIT(GSM322_M3_NOT_ON_PLMN) |
 	 SBIT(GSM322_M2_ON_PLMN),
 	 GSM322_EVENT_PLMN_SEARCH_END, gsm322_m_display_plmns},
+
 	{ALL_STATES,
 	 GSM322_EVENT_SWITCH_OFF, gsm322_m_switch_off},
+
 	{SBIT(GSM322_M5_NO_SIM),
 	 GSM322_EVENT_SIM_INSERT, gsm322_m_switch_on},
+
 	{ALL_STATES,
 	 GSM322_EVENT_SIM_INSERT, gsm322_m_sim_insert},
+
 	{ALL_STATES,
 	 GSM322_EVENT_SIM_REMOVE, gsm322_m_sim_removed},
+
 	{SBIT(GSM322_M1_TRYING_RPLMN),
 	 GSM322_EVENT_REG_FAILED, gsm322_m_display_plmns},
+
 	{SBIT(GSM322_M1_TRYING_RPLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_m_display_plmns},
+
 	{SBIT(GSM322_M1_TRYING_RPLMN),
 	 GSM322_EVENT_REG_SUCCESS, gsm322_m_indicate_selected},
+
 	{SBIT(GSM322_M2_ON_PLMN),
 	 GSM322_EVENT_ROAMING_NA, gsm322_m_display_plmns},
+
 	{SBIT(GSM322_M1_TRYING_RPLMN) | SBIT(GSM322_M2_ON_PLMN) |
 	 SBIT(GSM322_M4_TRYING_PLMN),
 	 GSM322_EVENT_INVALID_SIM, gsm322_m_sim_removed},
+
 	{SBIT(GSM322_M3_NOT_ON_PLMN) | SBIT(GSM322_M2_ON_PLMN),
 	 GSM322_EVENT_USER_RESEL, gsm322_m_user_resel},
+
 	{SBIT(GSM322_M3_NOT_ON_PLMN),
 	 GSM322_EVENT_PLMN_AVAIL, gsm322_m_plmn_avail},
+
 	{SBIT(GSM322_M3_NOT_ON_PLMN),
 	 GSM322_EVENT_CHOSE_PLMN, gsm322_m_choose_plmn},
+
 	{SBIT(GSM322_M4_TRYING_PLMN),
 	 GSM322_EVENT_REG_SUCCESS, gsm322_m_go_on_plmn},
+
 	{SBIT(GSM322_M4_TRYING_PLMN),
 	 GSM322_EVENT_REG_FAILED, gsm322_m_go_not_on_plmn},
+
 	{SBIT(GSM322_M4_TRYING_PLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_m_go_not_on_plmn},
+
 	{ALL_STATES,
 	 GSM322_EVENT_SEL_AUTO, gsm322_m_sel_auto},
+
 	{ALL_STATES,
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_am_no_cell_found},
 };
@@ -2987,46 +3047,63 @@ static struct cellselstatelist {
 } cellselstatelist[] = {
 	{ALL_STATES,
 	 GSM322_EVENT_SWITCH_ON, gsm322_c_switch_on},
+
 	{ALL_STATES,
 	 GSM322_EVENT_SIM_REMOVE, gsm322_c_any_cell_sel},
+
 	{ALL_STATES,
 	 GSM322_EVENT_NEW_PLMN, gsm322_c_new_plmn},
+
 	{ALL_STATES,
 	 GSM322_EVENT_PLMN_SEARCH_START, gsm322_c_plmn_search},
+
 	{SBIT(GSM322_C1_NORMAL_CELL_SEL) | SBIT(GSM322_C2_STORED_CELL_SEL) |
 	 SBIT(GSM322_C4_NORMAL_CELL_RESEL) | SBIT(GSM322_C5_CHOOSE_CELL),
 	 GSM322_EVENT_CELL_FOUND, gsm322_c_camp_normally},
+
 	{SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C6_ANY_CELL_SEL) |
 	 SBIT(GSM322_C8_ANY_CELL_RESEL),
 	 GSM322_EVENT_CELL_FOUND, gsm322_c_camp_any_cell},
+
 	{SBIT(GSM322_C1_NORMAL_CELL_SEL) | SBIT(GSM322_C6_ANY_CELL_SEL) |
 	 SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C8_ANY_CELL_RESEL) |
 	 SBIT(GSM322_C0_NULL),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_c_any_cell_sel},
+
 	{SBIT(GSM322_C2_STORED_CELL_SEL) | SBIT(GSM322_C5_CHOOSE_CELL) |
 	 SBIT(GSM322_C4_NORMAL_CELL_RESEL),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_c_normal_cell_sel},
+
 	{SBIT(GSM322_C3_CAMPED_NORMALLY),
 	 GSM322_EVENT_LEAVE_IDLE, gsm322_c_conn_mode_1},
+
 	{SBIT(GSM322_C7_CAMPED_ANY_CELL),
 	 GSM322_EVENT_LEAVE_IDLE, gsm322_c_conn_mode_2},
+
 	{SBIT(GSM322_C3_CAMPED_NORMALLY),
 	 GSM322_EVENT_RET_IDLE, gsm322_c_choose_cell},
+
 	{SBIT(GSM322_C7_CAMPED_ANY_CELL),
 	 GSM322_EVENT_RET_IDLE, gsm322_c_choose_any_cell},
+
 	{SBIT(GSM322_C3_CAMPED_NORMALLY),
 	 GSM322_EVENT_CELL_RESEL, gsm322_c_normal_cell_resel},
+
 	{SBIT(GSM322_C7_CAMPED_ANY_CELL),
 	 GSM322_EVENT_CELL_RESEL, gsm322_c_any_cell_resel},
+
 	{SBIT(GSM322_C7_CAMPED_ANY_CELL),
 	 GSM322_EVENT_CELL_FOUND, gsm322_c_normal_cell_sel},
+
 	{SBIT(GSM322_C1_NORMAL_CELL_SEL) | SBIT(GSM322_C2_STORED_CELL_SEL) |
 	 SBIT(GSM322_C4_NORMAL_CELL_RESEL) | SBIT(GSM322_C5_CHOOSE_CELL) |
 	 SBIT(GSM322_C9_CHOOSE_ANY_CELL) | SBIT(GSM322_C8_ANY_CELL_RESEL) |
 	 SBIT(GSM322_C6_ANY_CELL_SEL) | SBIT(GSM322_PLMN_SEARCH),
 	 GSM322_EVENT_SYSINFO, gsm322_c_scan_sysinfo_bcch},
+
 	{SBIT(GSM322_C3_CAMPED_NORMALLY) | SBIT(GSM322_C7_CAMPED_ANY_CELL),
 	 GSM322_EVENT_SYSINFO, gsm322_c_camp_sysinfo_bcch},
+
 	{SBIT(GSM322_C3_CAMPED_NORMALLY),
 	 GSM322_EVENT_HPLMN_SEARCH, gsm322_c_hplmn_search},
 };
