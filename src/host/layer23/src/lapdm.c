@@ -903,7 +903,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			lapdm_send_dm(mctx);
 			/* reset Timer T200 */
 			bsc_del_timer(&dl->t200);
-			return send_rll_simple(RSL_MT_REL_CONF, mctx);
+			return send_rll_simple(RSL_MT_REL_IND, mctx);
 		case LAPDm_STATE_MF_EST:
 		case LAPDm_STATE_TIMER_RECOV:
 			LOGP(DLAPDM, LOGL_INFO, "DISC in est state\n");
