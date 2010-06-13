@@ -796,7 +796,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			rc = send_rll_simple(RSL_MT_REL_CONF, mctx);
 			msgb_free(msg);
-			break;
+			return 0;
 		case LAPDm_STATE_IDLE:
 			/* 5.4.5 all other frame types shall be discarded */
 		default:
@@ -973,7 +973,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			rc = send_rll_simple(RSL_MT_REL_CONF, mctx);
 			msgb_free(msg);
-			break;
+			return 0;
 		case LAPDm_STATE_IDLE:
 			/* 5.4.5 all other frame types shall be discarded */
 		default:
@@ -991,7 +991,9 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			if (rc < 0) {
 				rc = send_rll_simple(RSL_MT_REL_IND, mctx);
 				msgb_free(msg);
-				break;
+				/* go to idle state */
+				lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
+				return 0;
 			}
 			length = msg->l2h[2] >> 2;
 			if (length != (dl->tx_hist[0][2] >> 2)
@@ -1001,7 +1003,9 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 					"mismatches\n");
 				rc = send_rll_simple(RSL_MT_REL_IND, mctx);
 				msgb_free(msg);
-				break;
+				/* go to idle state */
+				lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
+				return 0;
 			}
 		}
 		/* set Vs, Vr and Va to 0 */
