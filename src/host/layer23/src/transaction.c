@@ -65,11 +65,13 @@ struct gsm_trans *trans_alloc(struct osmocom_ms *ms,
 {
 	struct gsm_trans *trans;
 
-	DEBUGP(DCC, "ms %s\n", ms->name);
-
 	trans = talloc_zero(l23_ctx, struct gsm_trans);
 	if (!trans)
 		return NULL;
+
+	DEBUGP(DCC, "ms %s allocetes transaction (proto %d trans_id %d "
+		"callref %d mem %p)\n", ms->name, protocol, trans_id, callref,
+		trans);
 
 	trans->ms = ms;
 
@@ -97,6 +99,9 @@ void trans_free(struct gsm_trans *trans)
 		break;
 #endif
 	}
+
+	DEBUGP(DCC, "ms %s frees transaction (mem %p)\n", trans->ms->name,
+		trans);
 
 	llist_del(&trans->entry);
 
