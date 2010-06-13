@@ -1159,7 +1159,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 			GSM48_MM_SST_LIMITED_SERVICE);
 
 		/* send message to PLMN search process */
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_ROAMING_NA);
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
@@ -1508,6 +1508,10 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+#ifndef TODO
+static int gsm48_mm_tx_auth_rsp(struct osmocom_ms *ms, struct msgb *msg);
+#endif
+
 /* 4.3.2.2 AUTHENTICATION REQUEST is received */
 static int gsm48_mm_rx_auth_req(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -1535,6 +1539,17 @@ static int gsm48_mm_rx_auth_req(struct osmocom_ms *ms, struct msgb *msg)
 #ifdef TODO
 	new key to sim:
 	(..., ar->key_seq, ar->rand);
+#else
+	/* Fake response */
+	struct msgb *nmsg;
+	struct gsm48_mm_event *nmme;
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	nmme = (struct gsm48_mm_event *)msgb_put(nmsg, sizeof(*nmme));
+	*((uint32_t *)nmme->sres) = 0x12345678;
+	gsm48_mm_tx_auth_rsp(ms, nmsg);
+	msgb_free(nmsg);
 #endif
 
 	/* wait for auth response event from SIM */
@@ -1986,6 +2001,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
+	int msg_type;
 	
 	/* (re)start only if we still require location update */
 	if (!mm->lupd_pending) {
@@ -1996,11 +2012,12 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	/* must camp normally */
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not camping normally.\n");
+		msg_type = GSM322_EVENT_REG_FAILED;
 		stop:
 		LOGP(DSUM, LOGL_INFO, "Location update not possible\n");
 		mm->lupd_pending = 0;
 		/* send message to PLMN search process */
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
+		nmsg = gsm322_msgb_alloc(msg_type);
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
@@ -2010,11 +2027,13 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	/* if LAI is forbidden, don't start */
 	if (gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc, cs->sel_mnc)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed PLMN.\n");
+		msg_type = GSM322_EVENT_ROAMING_NA;
 		goto stop;
 	}
 	if (gsm322_is_forbidden_la(ms, cs->sel_mcc,
 		cs->sel_mnc, cs->sel_lac)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed LA.\n");
+		msg_type = GSM322_EVENT_ROAMING_NA;
 		goto stop;
 	}
 
@@ -2023,10 +2042,16 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	 || (!subscr->acc_barr && !((subscr->acc_class & 0xfbff) &
 	 				(s->class_barr ^ 0xffff)))) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. no access.\n");
+		msg_type = GSM322_EVENT_ROAMING_NA;
 		goto stop;
 	}
 
-	LOGP(DSUM, LOGL_INFO, "Perform location update\n");
+	mm->lupd_mcc = cs->sel_mcc;
+	mm->lupd_mnc = cs->sel_mnc;
+	mm->lupd_lac = cs->sel_lac;
+
+	LOGP(DSUM, LOGL_INFO, "Perform location update (MCC %03d, MNC %02d "
+		"LAC 0x%04x)\n", mm->lupd_mcc, mm->lupd_mnc, mm->lupd_lac);
 
 	return gsm48_mm_tx_loc_upd_req(ms);
 }
@@ -2392,6 +2417,8 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 		sim: delete key seq number
 		sim: apply update state
 #endif
+		/* update has finished */
+		mm->lupd_pending = 0;
 	}
 
 	/* send event to PLMN search process */
@@ -2416,17 +2443,27 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	/* forbidden list */
 	switch (mm->lupd_rej_cause) {
 	case GSM48_REJECT_IMSI_UNKNOWN_IN_HLR:
+		LOGP(DSUM, LOGL_INFO, "Location update failed (IMSI unknown "
+			"in HLR)\n");
+		break;
 	case GSM48_REJECT_ILLEGAL_MS:
+		LOGP(DSUM, LOGL_INFO, "Location update failed (Illegal MS)\n");
+		break;
 	case GSM48_REJECT_ILLEGAL_ME:
+		LOGP(DSUM, LOGL_INFO, "Location update failed (Illegal ME)\n");
 		break;
 	case GSM48_REJECT_PLMN_NOT_ALLOWED:
-		gsm_subscr_add_forbidden_plmn(subscr, subscr->lai_mcc,
-			subscr->lai_mnc, mm->lupd_rej_cause);
+		gsm_subscr_add_forbidden_plmn(subscr, mm->lupd_mcc,
+			mm->lupd_mnc, mm->lupd_rej_cause);
+		LOGP(DSUM, LOGL_INFO, "Location update failed (PLMN not "
+			"allowed)\n");
 		break;
 	case GSM48_REJECT_LOC_NOT_ALLOWED:
 	case GSM48_REJECT_ROAMING_NOT_ALLOWED:
-		gsm322_add_forbidden_la(ms, subscr->lai_mcc, subscr->lai_mnc,
-			subscr->lai_lac, mm->lupd_rej_cause);
+		gsm322_add_forbidden_la(ms, mm->lupd_mcc, mm->lupd_mnc,
+			mm->lupd_lac, mm->lupd_rej_cause);
+		LOGP(DSUM, LOGL_INFO, "Location update failed (LAI not "
+			"allowed)\n");
 		break;
 	default:
 		/* 4.4.4.9 continue with failure handling */
@@ -2464,7 +2501,6 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm322_cellsel *cs = &ms->cellsel;
 
 	LOGP(DSUM, LOGL_INFO, "Location update failed\n");
 
@@ -2472,10 +2508,9 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 	stop_mm_t3210(mm);
 
 	if (subscr->ustate == GSM_SIM_U1_UPDATED
-	 && cs->selected
-	 && cs->sel_mcc == subscr->lai_mcc
-	 && cs->sel_mnc == subscr->lai_mnc
-	 && cs->sel_lac == subscr->lai_lac) {
+	 && mm->lupd_mcc == subscr->lai_mcc
+	 && mm->lupd_mnc == subscr->lai_mnc
+	 && mm->lupd_lac == subscr->lai_lac) {
 		if (mm->lupd_attempt < 4) {
 			LOGP(DSUM, LOGL_INFO, "Try location update later\n");
 			LOGP(DMM, LOGL_INFO, "Loc. upd. failed, retry #%d\n",

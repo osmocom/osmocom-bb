@@ -3596,7 +3596,8 @@ static struct dldatastate {
 #endif
 
 	/* release */
-	{SBIT(GSM48_RR_ST_DEDICATED),
+	{SBIT(GSM48_RR_ST_CONN_PEND) |
+	 SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_REL_IND, gsm48_rr_rel_ind},
 
 	{SBIT(GSM48_RR_ST_REL_PEND),

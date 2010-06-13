@@ -218,6 +218,21 @@ int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 	return 0;
 }
 
+int gsm_subscr_dump_forbidden_plmn(struct osmocom_ms *ms,
+			void (*print)(void *, const char *, ...), void *priv)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm_sub_plmn_na *temp;
+
+	print(priv, "MCC    |MNC    |cause\n");
+	print(priv, "-------+-------+-------\n");
+	llist_for_each_entry(temp, &subscr->plmn_na, entry)
+		print(priv, "%03d    |%02d     |#%d\n",
+			temp->mcc, temp->mnc, temp->cause);
+
+	return 0;
+}
+
 /* dump subscriber */
 void gsm_subscr_dump(struct gsm_subscriber *subscr,
 			void (*print)(void *, const char *, ...), void *priv)

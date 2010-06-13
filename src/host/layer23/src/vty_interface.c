@@ -217,6 +217,36 @@ DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [mcc] [mnc]",
 	return CMD_SUCCESS;
 }
 
+DEFUN(show_forb_plmn, show_forb_plmn_cmd, "show forbidden plmn MS_NAME",
+	SHOW_STR "Display information about forbidden cells / networks\n"
+	"Display forbidden PLMNs\nName of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	gsm_subscr_dump_forbidden_plmn(ms, print_vty, vty);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_forb_la, show_forb_la_cmd, "show forbidden location-area MS_NAME",
+	SHOW_STR "Display information about forbidden cells / networks\n"
+	"Display forbidden location areas\nName of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	gsm322_dump_forbidden_la(ms, print_vty, vty);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
 	"Insert ...\nInsert test card\nName of MS (see \"show ms\")\n"
 	"Mobile Country Code\nMobile Network Code")
@@ -645,6 +675,10 @@ int ms_vty_init(void)
 	install_element(VIEW_NODE, &show_cell_si_cmd);
 	install_element(ENABLE_NODE, &show_ba_cmd);
 	install_element(VIEW_NODE, &show_ba_cmd);
+	install_element(ENABLE_NODE, &show_forb_la_cmd);
+	install_element(VIEW_NODE, &show_forb_la_cmd);
+	install_element(ENABLE_NODE, &show_forb_plmn_cmd);
+	install_element(VIEW_NODE, &show_forb_plmn_cmd);
 
 	install_element(ENABLE_NODE, &insert_test_cmd);
 	install_element(ENABLE_NODE, &remove_sim_cmd);

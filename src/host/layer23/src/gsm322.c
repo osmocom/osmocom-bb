@@ -1013,7 +1013,7 @@ static int gsm322_a_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 
 	if (!subscr->sim_valid) {
-		LOGP(DSUM, LOGL_INFO, "No SIM inserted\n");
+		LOGP(DSUM, LOGL_INFO, "SIM is removed\n");
 		LOGP(DPLMN, LOGL_INFO, "Switch on without SIM.\n");
 		new_a_state(plmn, GSM322_A6_NO_SIM);
 
@@ -1214,7 +1214,7 @@ static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 
 	if (!subscr->sim_valid) {
-		LOGP(DSUM, LOGL_INFO, "No SIM inserted\n");
+		LOGP(DSUM, LOGL_INFO, "SIM is removed\n");
 		LOGP(DPLMN, LOGL_INFO, "Switch on without SIM.\n");
 		new_m_state(plmn, GSM322_M5_NO_SIM);
 
@@ -2856,6 +2856,9 @@ static struct plmnastatelist {
 	 GSM322_EVENT_REG_FAILED, gsm322_a_sel_first_plmn},
 
 	{SBIT(GSM322_A1_TRYING_RPLMN),
+	 GSM322_EVENT_ROAMING_NA, gsm322_a_sel_first_plmn},
+
+	{SBIT(GSM322_A1_TRYING_RPLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_a_sel_first_plmn},
 
 	{SBIT(GSM322_A1_TRYING_RPLMN) | SBIT(GSM322_A3_TRYING_PLMN),
@@ -2875,6 +2878,9 @@ static struct plmnastatelist {
 
 	{SBIT(GSM322_A3_TRYING_PLMN),
 	 GSM322_EVENT_REG_FAILED, gsm322_a_sel_next_plmn},
+
+	{SBIT(GSM322_A3_TRYING_PLMN),
+	 GSM322_EVENT_ROAMING_NA, gsm322_a_sel_next_plmn},
 
 	{SBIT(GSM322_A3_TRYING_PLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_a_sel_next_plmn},
@@ -2953,6 +2959,9 @@ static struct plmnmstatelist {
 	 GSM322_EVENT_REG_FAILED, gsm322_m_display_plmns},
 
 	{SBIT(GSM322_M1_TRYING_RPLMN),
+	 GSM322_EVENT_ROAMING_NA, gsm322_m_display_plmns},
+
+	{SBIT(GSM322_M1_TRYING_RPLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_m_display_plmns},
 
 	{SBIT(GSM322_M1_TRYING_RPLMN),
@@ -2979,6 +2988,9 @@ static struct plmnmstatelist {
 
 	{SBIT(GSM322_M4_TRYING_PLMN),
 	 GSM322_EVENT_REG_FAILED, gsm322_m_go_not_on_plmn},
+
+	{SBIT(GSM322_M4_TRYING_PLMN),
+	 GSM322_EVENT_ROAMING_NA, gsm322_m_go_not_on_plmn},
 
 	{SBIT(GSM322_M4_TRYING_PLMN),
 	 GSM322_EVENT_NO_CELL_FOUND, gsm322_m_go_not_on_plmn},
@@ -3214,16 +3226,17 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 	return 0;
 }
 
-int gsm322_dump_forbidden_la(struct osmocom_ms *ms)
+int gsm322_dump_forbidden_la(struct osmocom_ms *ms,
+			void (*print)(void *, const char *, ...), void *priv)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm322_la_list *temp;
 
-	printf("MCC    |MNC    |LAC    |cause\n");
-	printf("-------+-------+-------+-------\n");
+	print(priv, "MCC    |MNC    |LAC    |cause\n");
+	print(priv, "-------+-------+-------+-------\n");
 	llist_for_each_entry(temp, &plmn->forbidden_la, entry)
-		printf("%03d    |%02d     |0x%04x |#%d\n", temp->mcc, temp->mnc,
-			temp->lac, temp->cause);
+		print(priv, "%03d    |%02d     |0x%04x |#%d\n",
+			temp->mcc, temp->mnc, temp->lac, temp->cause);
 
 	return 0;
 }
