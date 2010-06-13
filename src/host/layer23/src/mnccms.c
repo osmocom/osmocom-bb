@@ -161,7 +161,10 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 	default:
 		LOGP(DMNCC, LOGL_INFO, "Message 0x%02x unsupported\n",
 			msg_type);
+		return -EINVAL;
 	}
+
+	return 0;
 }
 
 int mncc_call(struct osmocom_ms *ms, char *number)
