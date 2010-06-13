@@ -2925,6 +2925,8 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 	nrrh->cause = RR_REL_CAUSE_LOST_SIGNAL;
 	gsm48_rr_upmsg(ms, nmsg);
 
+	/* return idle */
+	new_rr_state(rr, GSM48_RR_ST_IDLE);
 	return 0;
 }
 
