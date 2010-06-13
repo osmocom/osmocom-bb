@@ -879,6 +879,8 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	/* number of retransmissions (with first transmission) */
 	rr->n_chan_req = s->max_retrans + 1;
 
+#warning HACK: always request SDCCH for test
+cause = RR_EST_CAUSE_LOC_UPD;
 	/* generate CHAN REQ (9.1.8) */
 	switch (cause) {
 	case RR_EST_CAUSE_EMERGENCY:

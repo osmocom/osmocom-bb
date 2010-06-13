@@ -2611,13 +2611,14 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	uint8_t cause, uint8_t cm_serv)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm_settings *settings = &ms->settings;
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
 	struct gsm48_service_request *nsr; /* NOTE: includes MI length */
 	uint8_t *cm2lv;
 	uint8_t buf[11];
 
-	LOGP(DMM, LOGL_INFO, "CM SERVICE REQUEST\n");
+	LOGP(DMM, LOGL_INFO, "CM SERVICE REQUEST (cause %d)\n", cause);
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -2636,9 +2637,13 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	cm2lv[0] = sizeof(struct gsm48_classmark2);
 	gsm48_rr_enc_cm2(ms, (struct gsm48_classmark2 *)(cm2lv + 1));
 	/* MI */
-	if (!subscr->sim_valid) /* have no SIM ? */
-		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMEI);
-	else if (subscr->tmsi_valid) /* have TMSI ? */
+	if (!subscr->sim_valid) { /* have no SIM ? */
+		if (settings->emergency_imsi[0])
+			gsm48_generate_mid_from_imsi(buf,
+				settings->emergency_imsi);
+		else
+			gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMEI);
+	} else if (subscr->tmsi_valid) /* have TMSI ? */
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 	else
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMSI);
@@ -2877,8 +2882,6 @@ static int gsm48_mm_init_mm(struct osmocom_ms *ms, struct msgb *msg,
 		proto = GSM48_PDISC_SMS;
 		break;
 	}
-#warning HACK: always request SDCCH for test
-cause = RR_EST_CAUSE_LOC_UPD;
 
 	/* create MM connection instance */
 	conn = mm_conn_new(mm, proto, mmh->transaction_id, mmh->ref);
@@ -3697,9 +3700,6 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t skip_ind;
 	int i, rc;
 
-	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' in MM state %s\n", ms->name,
-		get_mm_name(msg_type), gsm48_mm_state_names[mm->state]);
-
 	/* 9.2.19 */
 	if (msg_type == GSM48_MT_MM_NULL)
 		return 0;
@@ -3788,6 +3788,9 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_mm_tx_mm_status(ms,
 			GSM48_REJECT_MSG_TYPE_NOT_IMPLEMENTED);
 	}
+
+	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' in MM state %s\n", ms->name,
+		get_mm_name(msg_type), gsm48_mm_state_names[mm->state]);
 
 	stop_mm_t3212(mm); /* 4.4.2 */
 

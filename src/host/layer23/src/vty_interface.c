@@ -442,6 +442,8 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 			VTY_NEWLINE);
 	else
 		vty_out(vty, " imei-fixed%s", VTY_NEWLINE);
+	vty_out(vty, " emergency-imsi %s%s", (ms->settings.emergency_imsi[0]) ?
+		ms->settings.emergency_imsi : "none", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", ms->settings.test_imsi, VTY_NEWLINE);
 	vty_out(vty, "  barred-access %s%s", (set->test_barr) ? "yes" : "no",
@@ -539,6 +541,29 @@ DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi (none|IMSI)",
+	"Use IMSI for emergency calls\n"
+	"Use IMSI of SIM or IMEI for emergency calls\n15 digits IMSI")
+{
+	struct osmocom_ms *ms = vty->index;
+	uint16_t mcc, mnc;
+	char *error;
+
+	if (argv[0][0] == 'n') {
+		ms->settings.emergency_imsi[0] = '\0';
+		return CMD_SUCCESS;
+	}
+
+	error = gsm_check_imsi(argv[0], &mcc, &mnc);
+	if (error) {
+		vty_out(vty, "%s%s", error, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	strcpy(ms->settings.emergency_imsi, argv[0]);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|test)",
 	"Set sim card type when powering on\nNo sim interted\n"
 	"Test sim inserted")
@@ -575,7 +600,7 @@ static int config_write_dummy(struct vty *vty)
 }
 
 DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
-	"Set IMSI on test card\n15 Digits IMSI")
+	"Set IMSI on test card\n15 digits IMSI")
 {
 	struct osmocom_ms *ms = vty->index;
 	uint16_t mcc, mnc;
@@ -694,6 +719,7 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_imei_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_fixed_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_random_cmd);
+	install_element(MS_NODE, &cfg_ms_emerg_imsi_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
 
 	install_element(MS_NODE, &cfg_testsim_cmd);
