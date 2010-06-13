@@ -435,6 +435,8 @@ static int gsm48_cc_tx_status(struct gsm_trans *trans, int cause)
 	struct gsm48_hdr *gh;
 	uint8_t *cause_ie, *call_state_ie;
 
+	LOGP(DCC, LOGL_INFO, "sending STATUS (cause %d)\n", cause);
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -456,6 +458,8 @@ static int gsm48_cc_tx_status(struct gsm_trans *trans, int cause)
 /* reply status enquiry */
 static int gsm48_cc_rx_status_enq(struct gsm_trans *trans, struct msgb *msg)
 {
+	LOGP(DCC, LOGL_INFO, "received STATUS ENQUIREY\n");
+
 	return gsm48_cc_tx_status(trans, GSM48_CC_CAUSE_RESP_STATUS_INQ);
 }
 
@@ -516,6 +520,8 @@ static int gsm48_cc_tx_setup(struct gsm_trans *trans)
 	struct gsm_mncc *setup = &trans->cc.msg;
 	int rc, transaction_id;
 	uint8_t *ie;
+
+	LOGP(DCC, LOGL_INFO, "sending SETUP\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -601,6 +607,8 @@ static int gsm48_cc_rx_progress(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	struct gsm_mncc progress;
 
+	LOGP(DCC, LOGL_INFO, "received PROGRESS\n");
+
 	memset(&progress, 0, sizeof(struct gsm_mncc));
 	progress.callref = trans->callref;
 	tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len,
@@ -631,6 +639,8 @@ static int gsm48_cc_rx_call_proceeding(struct gsm_trans *trans,
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc call_proc;
+
+	LOGP(DCC, LOGL_INFO, "sending CALL PROCEEDING\n");
 
 	gsm48_stop_cc_timer(trans);
 
@@ -686,6 +696,8 @@ static int gsm48_cc_rx_alerting(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	struct gsm_mncc alerting;
 	
+	LOGP(DCC, LOGL_INFO, "sending ALERTING\n");
+
 	gsm48_stop_cc_timer(trans);
 	/* no T301 in MS call control */
 
@@ -725,6 +737,8 @@ static int gsm48_cc_rx_connect(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc connect;
+
+	LOGP(DCC, LOGL_INFO, "received CONNECT\n");
 
 	gsm48_stop_cc_timer(trans);
 
@@ -768,6 +782,8 @@ static int gsm48_cc_tx_connect_ack(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
+	LOGP(DCC, LOGL_INFO, "sending CONNECT ACKNOWLEDGE\n");
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -791,6 +807,8 @@ static int gsm48_cc_rx_setup(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc setup;
+
+	LOGP(DCC, LOGL_INFO, "sending SETUP\n");
 
 	memset(&setup, 0, sizeof(struct gsm_mncc));
 	setup.callref = trans->callref;
@@ -860,6 +878,8 @@ static int gsm48_cc_tx_call_conf(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
+	LOGP(DCC, LOGL_INFO, "sending CALL CONFIRMED (proceeding)\n");
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -889,6 +909,8 @@ static int gsm48_cc_tx_alerting(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
+	LOGP(DCC, LOGL_INFO, "sending ALERTING\n");
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -917,6 +939,8 @@ static int gsm48_cc_tx_connect(struct gsm_trans *trans, void *arg)
 	struct gsm_mncc *connect = arg;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
+
+	LOGP(DCC, LOGL_INFO, "sending CONNECT\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -948,6 +972,8 @@ static int gsm48_cc_rx_connect_ack(struct gsm_trans *trans, struct msgb *msg)
 {
 	struct gsm_mncc connect_ack;
 
+	LOGP(DCC, LOGL_INFO, "received CONNECT ACKNOWLEDGE\n");
+
 	gsm48_stop_cc_timer(trans);
 
 	new_cc_state(trans, GSM_CSTATE_ACTIVE);
@@ -969,6 +995,8 @@ static int gsm48_cc_tx_notify(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
+	LOGP(DCC, LOGL_INFO, "sending NOTIFY\n");
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -989,6 +1017,8 @@ static int gsm48_cc_rx_notify(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm_mncc notify;
 
+	LOGP(DCC, LOGL_INFO, "received NOTIFY\n");
+
 	memset(&notify, 0, sizeof(struct gsm_mncc));
 	notify.callref = trans->callref;
 	/* notify */
@@ -1007,6 +1037,8 @@ static int gsm48_cc_tx_start_dtmf(struct gsm_trans *trans, void *arg)
 	struct gsm_mncc *dtmf = arg;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
+
+	LOGP(DCC, LOGL_INFO, "sending START DTMF\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1029,6 +1061,8 @@ static int gsm48_cc_rx_start_dtmf_ack(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	struct gsm_mncc dtmf;
 
+	LOGP(DCC, LOGL_INFO, "received START DTMF ACKNOWLEDGE\n");
+
 	memset(&dtmf, 0, sizeof(struct gsm_mncc));
 	dtmf.callref = trans->callref;
 	tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len, 0, 0);
@@ -1049,6 +1083,8 @@ static int gsm48_cc_rx_start_dtmf_rej(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm_mncc dtmf;
 
+	LOGP(DCC, LOGL_INFO, "received START DTMF REJECT\n");
+
 	memset(&dtmf, 0, sizeof(struct gsm_mncc));
 	dtmf.callref = trans->callref;
 	/* cause */
@@ -1068,6 +1104,8 @@ static int gsm48_cc_tx_stop_dtmf(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
+	LOGP(DCC, LOGL_INFO, "sending STOP DTMF\n");
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -1086,6 +1124,8 @@ static int gsm48_cc_rx_stop_dtmf_ack(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	struct gsm_mncc dtmf;
 
+	LOGP(DCC, LOGL_INFO, "received STOP DTMF ACKNOWLEDGE\n");
+
 	memset(&dtmf, 0, sizeof(struct gsm_mncc));
 	dtmf.callref = trans->callref;
 	tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len, 0, 0);
@@ -1098,6 +1138,8 @@ static int gsm48_cc_tx_hold(struct gsm_trans *trans, void *arg)
 {
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
+
+	LOGP(DCC, LOGL_INFO, "sending HOLD\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1114,6 +1156,8 @@ static int gsm48_cc_rx_hold_ack(struct gsm_trans *trans, struct msgb *msg)
 {
 	struct gsm_mncc hold;
 
+	LOGP(DCC, LOGL_INFO, "sending HOLD ACKNOWLEDGE\n");
+
 	memset(&hold, 0, sizeof(struct gsm_mncc));
 	hold.callref = trans->callref;
 
@@ -1126,6 +1170,8 @@ static int gsm48_cc_rx_hold_rej(struct gsm_trans *trans, struct msgb *msg)
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm_mncc hold;
+
+	LOGP(DCC, LOGL_INFO, "sending HOLD REJECT\n");
 
 	memset(&hold, 0, sizeof(struct gsm_mncc));
 	hold.callref = trans->callref;
@@ -1146,6 +1192,8 @@ static int gsm48_cc_tx_retrieve(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
+	LOGP(DCC, LOGL_INFO, "sending RETRIEVE\n");
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -1161,6 +1209,8 @@ static int gsm48_cc_rx_retrieve_ack(struct gsm_trans *trans, struct msgb *msg)
 {
 	struct gsm_mncc retrieve;
 
+	LOGP(DCC, LOGL_INFO, "sending RETRIEVE ACKNOWLEDGE\n");
+
 	memset(&retrieve, 0, sizeof(struct gsm_mncc));
 	retrieve.callref = trans->callref;
 
@@ -1173,6 +1223,8 @@ static int gsm48_cc_rx_retrieve_rej(struct gsm_trans *trans, struct msgb *msg)
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm_mncc retrieve;
+
+	LOGP(DCC, LOGL_INFO, "sending RETRIEVE REJECT\n");
 
 	memset(&retrieve, 0, sizeof(struct gsm_mncc));
 	retrieve.callref = trans->callref;
@@ -1193,6 +1245,8 @@ static int gsm48_cc_tx_facility(struct gsm_trans *trans, void *arg)
 	struct gsm_mncc *fac = arg;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
+
+	LOGP(DCC, LOGL_INFO, "sending FACILITY\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1217,6 +1271,8 @@ static int gsm48_cc_rx_facility(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm_mncc fac;
 
+	LOGP(DCC, LOGL_INFO, "received FACILITY\n");
+
 	memset(&fac, 0, sizeof(struct gsm_mncc));
 	fac.callref = trans->callref;
 	if (payload_len < 1) {
@@ -1236,6 +1292,8 @@ static int gsm48_cc_tx_userinfo(struct gsm_trans *trans, void *arg)
 	struct gsm_mncc *user = arg;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
+
+	LOGP(DCC, LOGL_INFO, "sending USERINFO\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1261,6 +1319,8 @@ static int gsm48_cc_rx_userinfo(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc user;
+
+	LOGP(DCC, LOGL_INFO, "received USERINFO\n");
 
 	memset(&user, 0, sizeof(struct gsm_mncc));
 	user.callref = trans->callref;
@@ -1288,6 +1348,8 @@ static int gsm48_cc_tx_modify(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
+	LOGP(DCC, LOGL_INFO, "sending MODIFY\n");
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -1313,6 +1375,8 @@ static int gsm48_cc_rx_modify_complete(struct gsm_trans *trans,
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm_mncc modify;
 
+	LOGP(DCC, LOGL_INFO, "received MODIFY COMPLETE\n");
+
 	gsm48_stop_cc_timer(trans);
 
 	memset(&modify, 0, sizeof(struct gsm_mncc));
@@ -1337,6 +1401,8 @@ static int gsm48_cc_rx_modify_reject(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc modify;
+
+	LOGP(DCC, LOGL_INFO, "received MODIFY REJECT\n");
 
 	gsm48_stop_cc_timer(trans);
 
@@ -1374,6 +1440,8 @@ static int gsm48_cc_rx_modify(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm_mncc modify;
 
+	LOGP(DCC, LOGL_INFO, "received MODIFY\n");
+
 	memset(&modify, 0, sizeof(struct gsm_mncc));
 	modify.callref = trans->callref;
 	if (payload_len < 1) {
@@ -1394,6 +1462,8 @@ static int gsm48_cc_tx_modify_complete(struct gsm_trans *trans, void *arg)
 	struct gsm_mncc *modify = arg;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
+
+	LOGP(DCC, LOGL_INFO, "sending MODIFY COMPLETE\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1416,6 +1486,8 @@ static int gsm48_cc_tx_modify_reject(struct gsm_trans *trans, void *arg)
 	struct gsm_mncc *modify = arg;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
+
+	LOGP(DCC, LOGL_INFO, "sending MODIFY REJECT\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1454,6 +1526,8 @@ static int gsm48_cc_tx_disconnect(struct gsm_trans *trans, void *arg)
 	struct gsm_mncc *disc = arg;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
+
+	LOGP(DCC, LOGL_INFO, "sending DISCONNECT\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1496,6 +1570,8 @@ static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
+	LOGP(DCC, LOGL_INFO, "sending RELEASE\n");
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -1537,6 +1613,8 @@ static int gsm48_cc_tx_release_compl(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
+	LOGP(DCC, LOGL_INFO, "received RELEASE COMPLETE\n");
+
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
@@ -1573,6 +1651,8 @@ static int gsm48_cc_rx_disconnect(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc disc;
+
+	LOGP(DCC, LOGL_INFO, "received DISCONNECT\n");
 
 	gsm48_stop_cc_timer(trans);
 
@@ -1620,6 +1700,8 @@ static int gsm48_cc_rx_release(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc rel;
+
+	LOGP(DCC, LOGL_INFO, "received RELEASE\n");
 
 	gsm48_stop_cc_timer(trans);
 
@@ -1671,6 +1753,8 @@ static int gsm48_cc_rx_release_compl(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct gsm_mncc rel;
+
+	LOGP(DCC, LOGL_INFO, "sending RELEASE COMPLETE\n");
 
 	gsm48_stop_cc_timer(trans);
 
