@@ -30,6 +30,7 @@
 #include <osmocom/logging.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/mncc.h>
+#include <osmocom/telnet_interface.h>
 
 void *l23_ctx;
 static int new_callref = 1;
@@ -121,38 +122,115 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 
 	switch (msg_type) {
 	case MNCC_DISC_IND:
-		LOGP(DMNCC, LOGL_INFO, "Call has been disconnected\n");
+		vty_notify(ms, NULL);
+		switch (data->cause.value) {
+		case GSM48_CC_CAUSE_UNASSIGNED_NR:
+			vty_notify(ms, "Call: Number not assigned\n");
+			break;
+		case GSM48_CC_CAUSE_NO_ROUTE:
+			vty_notify(ms, "Call: Destination unreachable\n");
+			break;
+		case GSM48_CC_CAUSE_NORM_CALL_CLEAR:
+			vty_notify(ms, "Call: Remote hangs up\n");
+			break;
+		case GSM48_CC_CAUSE_USER_BUSY:
+			vty_notify(ms, "Call: Remote busy\n");
+			break;
+		case GSM48_CC_CAUSE_USER_NOTRESPOND:
+			vty_notify(ms, "Call: Remote not responding\n");
+			break;
+		case GSM48_CC_CAUSE_USER_ALERTING_NA:
+			vty_notify(ms, "Call: Remote not answering\n");
+			break;
+		case GSM48_CC_CAUSE_CALL_REJECTED:
+			vty_notify(ms, "Call has been rejected\n");
+			break;
+		case GSM48_CC_CAUSE_NUMBER_CHANGED:
+			vty_notify(ms, "Call: Number changed\n");
+			break;
+		case GSM48_CC_CAUSE_PRE_EMPTION:
+			vty_notify(ms, "Call: Cleared due to pre-emption\n");
+			break;
+		case GSM48_CC_CAUSE_DEST_OOO:
+			vty_notify(ms, "Call: Remote out of order\n");
+			break;
+		case GSM48_CC_CAUSE_INV_NR_FORMAT:
+			vty_notify(ms, "Call: Number invalid or imcomplete\n");
+			break;
+		case GSM48_CC_CAUSE_NO_CIRCUIT_CHAN:
+			vty_notify(ms, "Call: No channel available\n");
+			break;
+		case GSM48_CC_CAUSE_NETWORK_OOO:
+			vty_notify(ms, "Call: Network out of order\n");
+			break;
+		case GSM48_CC_CAUSE_TEMP_FAILURE:
+			vty_notify(ms, "Call: Temporary failure\n");
+			break;
+		case GSM48_CC_CAUSE_SWITCH_CONG:
+			vty_notify(ms, "Congestion\n");
+			break;
+		default:
+			vty_notify(ms, "Call has been disconnected\n");
+		}
+		LOGP(DMNCC, LOGL_INFO, "Call has been disconnected "
+			"(cause %d)\n", data->cause.value);
 		if ((data->fields & MNCC_F_PROGRESS)
-		 && data->progress.descr == 8)
+		 && data->progress.descr == 8) {
+			vty_notify(ms, "Please hang up!\n");
 		 	break;
+		}
 		free_call(call);
 		cause = GSM48_CC_CAUSE_NORM_CALL_CLEAR;
 		goto release;
 	case MNCC_REL_IND:
 	case MNCC_REL_CNF:
-		LOGP(DMNCC, LOGL_INFO, "Call has been released\n");
+		vty_notify(ms, NULL);
+		if (data->cause.value == GSM48_CC_CAUSE_CALL_REJECTED)
+			vty_notify(ms, "Call has been rejected\n");
+		else
+			vty_notify(ms, "Call has been released\n");
+		LOGP(DMNCC, LOGL_INFO, "Call has been released (cause %d)\n",
+			data->cause.value);
 		free_call(call);
 		break;
 	case MNCC_CALL_PROC_IND:
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Call is proceeding\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is proceeding\n");
 		break;
 	case MNCC_ALERT_IND:
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Call is aleriting\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is alerting\n");
 		break;
 	case MNCC_SETUP_CNF:
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Call is answered\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is answered\n");
 		break;
 	case MNCC_SETUP_IND:
+		vty_notify(ms, NULL);
 		if (!llist_empty(&call_list)) {
+			vty_notify(ms, "Incomming call rejected\n");
 			LOGP(DMNCC, LOGL_INFO, "Incomming call but busy\n");
 			cause = GSM48_CC_CAUSE_NORM_CALL_CLEAR;
 			goto release;
 		}
+		if (!data->calling.present || !data->calling.number[0])
+			vty_notify(ms, "Incomming call\n");
+		else if (data->calling.type == 1)
+			vty_notify(ms, "Incomming call from +%s\n",
+				data->calling.number);
+		else if (data->calling.type == 2)
+			vty_notify(ms, "Incomming call from 0-%s\n",
+				data->calling.number);
+		else
+			vty_notify(ms, "Incomming call from %s\n",
+				data->calling.number);
 		LOGP(DMNCC, LOGL_INFO, "Incomming call\n");
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		mncc_send(ms, MNCC_CALL_CONF_REQ, &mncc);
-		break;
 		LOGP(DMNCC, LOGL_INFO, "Ring!\n");
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;

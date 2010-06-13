@@ -3149,10 +3149,8 @@ static int gsm48_mm_abort_mm_con(struct osmocom_ms *ms, struct msgb *msg)
 	switch(rrh->cause) {
 	case RR_REL_CAUSE_NOT_AUTHORIZED:
 	case RR_REL_CAUSE_EMERGENCY_ONLY:
-		cause = 21;
-		break;
 	case RR_REL_CAUSE_TRY_LATER:
-		cause = 34;
+		cause = 21;
 		break;
 	case RR_REL_CAUSE_NORMAL:
 		cause = 16;

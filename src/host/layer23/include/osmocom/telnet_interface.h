@@ -39,6 +39,6 @@ extern int telnet_init(struct osmocom_ms *ms, int port);
 
 extern int ms_vty_init(struct osmocom_ms *ms);
 
-extern void vty_notify(struct osmocom_ms *ms, const char *fmt, ...);
+extern void vty_notify(struct osmocom_ms *ms, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
 
 #endif

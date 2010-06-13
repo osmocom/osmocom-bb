@@ -715,6 +715,7 @@ static int gsm322_a_indicate_selected(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 
+	vty_notify(ms, NULL);
 	vty_notify(ms, "Selected Network: %s, %s\n",
 		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 
@@ -1165,6 +1166,7 @@ static int gsm322_m_display_plmns(struct osmocom_ms *ms, struct msgb *msg)
 	/* generate list */
 	gsm322_sort_list(ms);
 
+	vty_notify(ms, NULL);
 	vty_notify(ms, "Select from Network:\n");
 
 	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
@@ -1195,6 +1197,7 @@ static int gsm322_m_user_resel(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* initiate search at cell selection */
+	vty_notify(ms, NULL);
 	vty_notify(ms, "Searching Network, please wait...\n");
 	LOGP(DPLMN, LOGL_INFO, "User re-select, start PLMN search first.\n");
 
@@ -1252,6 +1255,7 @@ static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 	/* initiate search at cell selection */
 	LOGP(DSUM, LOGL_INFO, "Search for network\n");
 	LOGP(DPLMN, LOGL_INFO, "Switch on, start PLMN search first.\n");
+	vty_notify(ms, NULL);
 	vty_notify(ms, "Searching Network, please wait...\n");
 
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_START);
@@ -1324,6 +1328,7 @@ static int gsm322_m_indicate_selected(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 
+	vty_notify(ms, NULL);
 	vty_notify(ms, "Selected Network: %s, %s\n",
 		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 
@@ -1365,6 +1370,7 @@ static int gsm322_m_choose_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	plmn->mcc = gm->mcc;
 	plmn->mnc = gm->mnc;
 
+	vty_notify(ms, NULL);
 	vty_notify(ms, "Selected Network: %s, %s\n",
 		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 	LOGP(DPLMN, LOGL_INFO, "User selects PLMN. (mcc=%03d mnc=%02d  "
