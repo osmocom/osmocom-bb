@@ -1567,9 +1567,9 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	}
 
 	/* check if the layer3 message length exceeds N201 */
-	if (length + 3 > 20) { /* FIXME: do we know the channel N201? */
+	if (length + 3 > 21) { /* FIXME: do we know the channel N201? */
 		LOGP(DLAPDM, LOGL_ERROR, "frame too large: %d > N201(%d) "
-			"(discarding)\n", length + 3, 18);
+			"(discarding)\n", length + 3, 21);
 		msgb_free(msg);
 		return send_rll_simple(RSL_MT_REL_IND, &dl->mctx);
 	}
