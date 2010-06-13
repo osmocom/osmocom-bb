@@ -1738,13 +1738,6 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DMM, LOGL_INFO, "IMSI has been detached.\n");
 
-	/* power off when IMSI is detached */
-	if (mm->power_off) {
-		l23_app_exit(ms);
-		printf("Power off!\n");
-		exit (0);
-	}
-
 	/* stop IMSI detach timer (if running) */
 	stop_mm_t3220(mm);
 
@@ -1756,6 +1749,12 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* SIM invalid */
 	subscr->sim_valid = 0;
+
+	/* power off when IMSI is detached */
+	if (mm->power_off) {
+		l23_app_exit(ms);
+		exit (0);
+	}
 
 	/* send SIM remove event to gsm322 */
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_SIM_REMOVE);
@@ -1820,6 +1819,12 @@ static int gsm48_mm_imsi_detach_release(struct osmocom_ms *ms, struct msgb *msg)
 	if (!s->att_allowed || !subscr->imsi_attached) {
 		LOGP(DMM, LOGL_INFO, "IMSI detach not required.\n");
 		new_mm_state(mm, GSM48_MM_ST_WAIT_NETWORK_CMD, 0);
+
+		/* power off when IMSI is detached */
+		if (mm->power_off) {
+			l23_app_exit(ms);
+			exit (0);
+		}
 
 		return 0;
 	}

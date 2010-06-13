@@ -132,6 +132,8 @@ int mobile_exit(struct osmocom_ms *ms)
 	gsm_subscr_exit(ms);
 	gsm48_cc_exit(ms);
 
+	printf("Power off!\n");
+
 	return 0;
 }
 
