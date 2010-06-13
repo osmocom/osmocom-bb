@@ -1115,16 +1115,32 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 	 && cs->sel_lac == subscr->lai_lac
 	 && !mm->lupd_periodic) {
 		if (subscr->imsi_attached) {
+			struct msgb *nmsg;
+
 			LOGP(DMM, LOGL_INFO, "Valid in location area.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
 				GSM48_MM_SST_NORMAL_SERVICE);
 
+			/* send message to PLMN search process */
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_SUCCESS);
+			if (!nmsg)
+				return -ENOMEM;
+			gsm322_plmn_sendmsg(ms, nmsg);
+
 			return 0;
 		}
 		if (!s->att_allowed) {
+			struct msgb *nmsg;
+
 			LOGP(DMM, LOGL_INFO, "Attachment not required.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
 				GSM48_MM_SST_NORMAL_SERVICE);
+
+			/* send message to PLMN search process */
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_SUCCESS);
+			if (!nmsg)
+				return -ENOMEM;
+			gsm322_plmn_sendmsg(ms, nmsg);
 
 			return 0;
 		}
@@ -1136,22 +1152,38 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 	 && (gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc, cs->sel_mnc)
 	  || gsm322_is_forbidden_la(ms, cs->sel_mcc, cs->sel_mnc,
 	 	cs->sel_lac))) {
-			LOGP(DMM, LOGL_INFO, "Selected cell is forbidden.\n");
-			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_LIMITED_SERVICE);
+		struct msgb *nmsg;
 
-			return 0;
+		LOGP(DMM, LOGL_INFO, "Selected cell is forbidden.\n");
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
+			GSM48_MM_SST_LIMITED_SERVICE);
+
+		/* send message to PLMN search process */
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm322_plmn_sendmsg(ms, nmsg);
+
+		return 0;
 	}
 
-	/* PLMN mode manual and selected cell not selected PLMNN */
+	/* PLMN mode manual and selected cell not selected PLMN */
 	if (set->plmn_mode == PLMN_MODE_MANUAL
 	 && (plmn->mcc != cs->sel_mcc
 	  || plmn->mnc != cs->sel_mnc)) {
-			LOGP(DMM, LOGL_INFO, "Selected cell not found.\n");
-			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_LIMITED_SERVICE);
+		struct msgb *nmsg;
 
-			return 0;
+		LOGP(DMM, LOGL_INFO, "Selected cell not found.\n");
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
+			GSM48_MM_SST_LIMITED_SERVICE);
+
+		/* send message to PLMN search process */
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm322_plmn_sendmsg(ms, nmsg);
+
+		return 0;
 	}
 
 	/* other cases */
@@ -2107,7 +2139,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
-	struct gsm48_loc_upd_req *nlu;
+	struct gsm48_loc_upd_req *nlu; /* NOTE: mi_len is part of struct */
 	uint8_t pwr_lev;
 	uint8_t buf[11];
 
@@ -2117,7 +2149,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	if (!nmsg)
 		return -ENOMEM;
 	ngh = (struct gsm48_hdr *)msgb_put(nmsg, sizeof(*ngh));
-	nlu = (struct gsm48_loc_upd_req *)msgb_put(nmsg, sizeof(*nlu) - 1);
+	nlu = (struct gsm48_loc_upd_req *)msgb_put(nmsg, sizeof(*nlu));
 
 	ngh->proto_discr = GSM48_PDISC_MM;
 	ngh->msg_type = GSM48_MT_MM_LOC_UPD_REQUEST;
@@ -2141,7 +2173,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 	else
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMSI);
-	msgb_put(nmsg, buf[1]);
+	msgb_put(nmsg, buf[1]); /* length is part of nlu */
 	memcpy(&nlu->mi_len, buf + 1, 1 + buf[1]);
 
 	new_mm_state(mm, GSM48_MM_ST_WAIT_RR_CONN_LUPD, 0);
