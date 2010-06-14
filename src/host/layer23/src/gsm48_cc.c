@@ -1156,7 +1156,7 @@ static int gsm48_cc_rx_hold_ack(struct gsm_trans *trans, struct msgb *msg)
 {
 	struct gsm_mncc hold;
 
-	LOGP(DCC, LOGL_INFO, "sending HOLD ACKNOWLEDGE\n");
+	LOGP(DCC, LOGL_INFO, "received HOLD ACKNOWLEDGE\n");
 
 	memset(&hold, 0, sizeof(struct gsm_mncc));
 	hold.callref = trans->callref;
@@ -1171,7 +1171,7 @@ static int gsm48_cc_rx_hold_rej(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm_mncc hold;
 
-	LOGP(DCC, LOGL_INFO, "sending HOLD REJECT\n");
+	LOGP(DCC, LOGL_INFO, "received HOLD REJECT\n");
 
 	memset(&hold, 0, sizeof(struct gsm_mncc));
 	hold.callref = trans->callref;
@@ -1209,7 +1209,7 @@ static int gsm48_cc_rx_retrieve_ack(struct gsm_trans *trans, struct msgb *msg)
 {
 	struct gsm_mncc retrieve;
 
-	LOGP(DCC, LOGL_INFO, "sending RETRIEVE ACKNOWLEDGE\n");
+	LOGP(DCC, LOGL_INFO, "received RETRIEVE ACKNOWLEDGE\n");
 
 	memset(&retrieve, 0, sizeof(struct gsm_mncc));
 	retrieve.callref = trans->callref;
@@ -1224,7 +1224,7 @@ static int gsm48_cc_rx_retrieve_rej(struct gsm_trans *trans, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm_mncc retrieve;
 
-	LOGP(DCC, LOGL_INFO, "sending RETRIEVE REJECT\n");
+	LOGP(DCC, LOGL_INFO, "received RETRIEVE REJECT\n");
 
 	memset(&retrieve, 0, sizeof(struct gsm_mncc));
 	retrieve.callref = trans->callref;
@@ -1613,7 +1613,7 @@ static int gsm48_cc_tx_release_compl(struct gsm_trans *trans, void *arg)
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 
-	LOGP(DCC, LOGL_INFO, "received RELEASE COMPLETE\n");
+	LOGP(DCC, LOGL_INFO, "sending RELEASE COMPLETE\n");
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1638,7 +1638,6 @@ static int gsm48_cc_tx_release_compl(struct gsm_trans *trans, void *arg)
 	/* ss version */
 	if (rel->fields & MNCC_F_SSVERSION)
 		gsm48_encode_ssversion(nmsg, &rel->ssversion);
-
 
 	/* release MM conn, got NULL state, free trans */
 	return gsm48_rel_null_free(trans);
@@ -1731,12 +1730,24 @@ static int gsm48_cc_rx_release(struct gsm_trans *trans, struct msgb *msg)
 		/* release collision 5.4.5 */
 		mncc_recvmsg(trans->ms, trans, MNCC_REL_CNF, &rel);
 	} else {
-		struct gsm_mncc rel2;
+		struct msgb *nmsg;
 
 		/* forward cause only */
-		memcpy(&rel2, &rel, sizeof(struct gsm_mncc));
-		rel2.fields = MNCC_F_CAUSE;
-		gsm48_cc_tx_release_compl(trans, &rel);
+		LOGP(DCC, LOGL_INFO, "sending RELEASE COMPLETE\n");
+
+		nmsg = gsm48_l3_msgb_alloc();
+		if (!nmsg)
+			return -ENOMEM;
+		gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
+
+		gh->msg_type = GSM48_MT_CC_RELEASE_COMPL;
+
+		trans->callref = 0;
+	
+		if (rel.fields & MNCC_F_CAUSE)
+			gsm48_encode_cause(nmsg, 0, &rel.cause);
+
+		gsm48_cc_to_mm(nmsg, trans, GSM48_MMCC_DATA_REQ);
 
 		/* release indication */
 		mncc_recvmsg(trans->ms, trans, MNCC_REL_IND, &rel);
@@ -1754,7 +1765,7 @@ static int gsm48_cc_rx_release_compl(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	struct gsm_mncc rel;
 
-	LOGP(DCC, LOGL_INFO, "sending RELEASE COMPLETE\n");
+	LOGP(DCC, LOGL_INFO, "received RELEASE COMPLETE\n");
 
 	gsm48_stop_cc_timer(trans);
 
