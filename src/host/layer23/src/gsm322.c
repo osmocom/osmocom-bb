@@ -1447,7 +1447,8 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any)
 	/* flags to match */
 	mask = GSM322_CS_FLAG_SUPPORT | GSM322_CS_FLAG_POWER
 		| GSM322_CS_FLAG_SIGNAL | GSM322_CS_FLAG_SYSINFO;
-	if (cs->state == GSM322_C2_STORED_CELL_SEL)
+	if (cs->state == GSM322_C2_STORED_CELL_SEL
+	 || cs->state == GSM322_C5_CHOOSE_CELL)
 		mask |= GSM322_CS_FLAG_BA;
 	flags = mask; /* all masked flags are requied */
 
@@ -1538,7 +1539,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	/* search for strongest unscanned cell */
 	mask = GSM322_CS_FLAG_SUPPORT | GSM322_CS_FLAG_POWER
 		| GSM322_CS_FLAG_SIGNAL;
-	if (cs->state == GSM322_C2_STORED_CELL_SEL)
+	if (cs->state == GSM322_C2_STORED_CELL_SEL
+	 || cs->state == GSM322_C5_CHOOSE_CELL)
 		mask |= GSM322_CS_FLAG_BA;
 	flags = mask; /* all masked flags are requied */
 	for (i = 0; i <= 1023; i++) {
@@ -2165,7 +2167,8 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 	/* search for first frequency to scan */
 	mask = GSM322_CS_FLAG_SUPPORT | GSM322_CS_FLAG_POWER;
 	flags = GSM322_CS_FLAG_SUPPORT;
-	if (cs->state == GSM322_C2_STORED_CELL_SEL) {
+	if (cs->state == GSM322_C2_STORED_CELL_SEL
+	 || cs->state == GSM322_C5_CHOOSE_CELL) {
 		LOGP(DCS, LOGL_FATAL, "Scanning power for stored BA list.\n");
 		mask |= GSM322_CS_FLAG_BA;
 		flags |= GSM322_CS_FLAG_BA;
@@ -2637,9 +2640,12 @@ static int gsm322_cs_choose(struct osmocom_ms *ms)
 		LOGP(DCS, LOGL_INFO, "No BA range(s), try sysinfo.\n");
 		/* get and update BA of last received sysinfo 5* */
 		ba = gsm322_cs_sysinfo_sacch(ms);
-		if (!ba)
+		if (!ba) {
+			LOGP(DCS, LOGL_INFO, "No BA on sysinfo, try stored "
+				"BA list.\n");
 			ba = gsm322_find_ba_list(cs, cs->sel_si.mcc,
 				cs->sel_si.mnc);
+		}
 	}
 
 	if (!ba) {
@@ -2660,10 +2666,11 @@ static int gsm322_cs_choose(struct osmocom_ms *ms)
 	/* flag all frequencies that are in current band allocation */
 	for (i = 0; i <= 1023; i++) {
 		if (cs->state == GSM322_C5_CHOOSE_CELL) {
-			if ((ba->freq[i >> 3] & (1 << (i & 7))))
+			if ((ba->freq[i >> 3] & (1 << (i & 7)))) {
 				cs->list[i].flags |= GSM322_CS_FLAG_BA;
-			else
+			} else {
 				cs->list[i].flags &= ~GSM322_CS_FLAG_BA;
+			}
 		}
 		cs->list[i].flags &= ~(GSM322_CS_FLAG_POWER
 					| GSM322_CS_FLAG_SIGNAL
