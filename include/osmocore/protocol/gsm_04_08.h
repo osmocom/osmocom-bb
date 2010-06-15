@@ -526,6 +526,15 @@ struct gsm48_imsi_detach_ind {
 #define GSM48_IE_CHANMODE_7	0x17
 #define GSM48_IE_CHANMODE_8	0x18
 #define GSM48_IE_CHANDESC_2	0x64
+#define GSM48_IE_MA_AFTER	0x72
+#define GSM48_IE_START_TIME	0x7c
+#define GSM48_IE_FREQ_L_BEFORE	0x19
+#define GSM48_IE_CH_DESC_1_BEFORE	0x1c
+#define GSM48_IE_CH_DESC_2_BEFORE	0x1d
+#define GSM48_IE_F_CH_SEQ_BEFORE	0x1e
+#define GSM48_IE_MA_BEFORE	0x21
+#define GSM48_IE_VGCS_T_MODE_I	0x01
+
 /* FIXME */
 
 /* Section 10.5.4.23 / Table 10.5.130 */
