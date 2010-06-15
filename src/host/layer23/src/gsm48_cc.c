@@ -170,8 +170,9 @@ static int gsm48_cc_to_mm(struct msgb *msg, struct gsm_trans *trans,
 	mmh->emergency = emergency;
 
 	/* send message to MM */
-	LOGP(DCC, LOGL_INFO, "Sending '%s' using %s\n",
-		gsm48_cc_msg_name(gh->msg_type), get_mmxx_name(msg_type));
+	LOGP(DCC, LOGL_INFO, "Sending '%s' using %s (callref=%x, "
+		"transaction_id=%d)\n", gsm48_cc_msg_name(gh->msg_type),
+		get_mmxx_name(msg_type), trans->callref, trans->transaction_id);
 	return gsm48_mmxx_downmsg(trans->ms, msg);
 }
 
@@ -301,7 +302,6 @@ static void gsm48_cc_timeout(void *arg)
 		/* process release towards layer 4 */
 		mncc_release_ind(trans->ms, trans, trans->callref,
 				 l4_location, l4_cause);
-		trans->callref = 0;
 	}
 
 	if (disconnect && trans->callref) {
@@ -325,20 +325,8 @@ static void gsm48_cc_timeout(void *arg)
 		if (release)
 			gsm48_cc_tx_release(trans, &mo_rel);
 		if (abort) {
-			struct msgb *nmsg;
-
-			/* abort MM connection */
-			nmsg = gsm48_mmxx_msgb_alloc(GSM48_MMCC_REL_REQ,
-				trans->callref, trans->transaction_id);
-			if (!nmsg)
-				return;
-			LOGP(DCC, LOGL_INFO, "Sending MMCC_REL_REQ\n");
-			gsm48_mmxx_downmsg(ms, nmsg);
-
-			new_cc_state(trans, GSM_CSTATE_NULL);
-
-			/* free trans (impies no callref) */
-			trans_free(trans);
+			/* release MM conn, got NULL state, free trans */
+			gsm48_rel_null_free(trans);
 		}
 	}
 }
@@ -388,7 +376,7 @@ void _gsm48_cc_trans_free(struct gsm_trans *trans)
 		new_cc_state(trans, GSM_CSTATE_NULL);
 }
 
-/* release MM connection, got NULL state, free transaction */
+/* release MM connection, go NULL state, free transaction */
 static int gsm48_rel_null_free(struct gsm_trans *trans)
 {
 	struct msgb *nmsg;
@@ -1579,8 +1567,6 @@ static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg)
 
 	gh->msg_type = GSM48_MT_CC_RELEASE;
 
-	trans->callref = 0;
-	
 	gsm48_stop_cc_timer(trans);
 	gsm48_start_cc_timer(trans, 0x308, GSM48_T308_MS);
 
@@ -1603,10 +1589,17 @@ static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg)
 	if (trans->cc.state != GSM_CSTATE_RELEASE_REQ)
 		new_cc_state(trans, GSM_CSTATE_RELEASE_REQ);
 
-	return gsm48_cc_to_mm(nmsg, trans, GSM48_MMCC_DATA_REQ);
+	gsm48_cc_to_mm(nmsg, trans, GSM48_MMCC_DATA_REQ);
+
+	/* release without sending MMCC_REL_REQ */
+	new_cc_state(trans, GSM_CSTATE_NULL);
+	trans->callref = 0;
+	trans_free(trans);
+
+	return 0;
 }
 
-/* reject message from upper layer or from timer event */
+/* reject message from upper layer */
 static int gsm48_cc_tx_release_compl(struct gsm_trans *trans, void *arg)
 {
 	struct gsm_mncc *rel = arg;
@@ -1622,8 +1615,6 @@ static int gsm48_cc_tx_release_compl(struct gsm_trans *trans, void *arg)
 
 	gh->msg_type = GSM48_MT_CC_RELEASE_COMPL;
 
-	trans->callref = 0;
-	
 	gsm48_stop_cc_timer(trans);
 
 	/* cause */
@@ -1639,8 +1630,12 @@ static int gsm48_cc_tx_release_compl(struct gsm_trans *trans, void *arg)
 	if (rel->fields & MNCC_F_SSVERSION)
 		gsm48_encode_ssversion(nmsg, &rel->ssversion);
 
-	/* release MM conn, got NULL state, free trans */
-	return gsm48_rel_null_free(trans);
+	/* release without sending MMCC_REL_REQ */
+	new_cc_state(trans, GSM_CSTATE_NULL);
+	trans->callref = 0;
+	trans_free(trans);
+
+	return 0;
 }
 
 /* disconnect is received from lower layer */
@@ -1742,8 +1737,6 @@ static int gsm48_cc_rx_release(struct gsm_trans *trans, struct msgb *msg)
 
 		gh->msg_type = GSM48_MT_CC_RELEASE_COMPL;
 
-		trans->callref = 0;
-	
 		if (rel.fields & MNCC_F_CAUSE)
 			gsm48_encode_cause(nmsg, 0, &rel.cause);
 
@@ -2071,6 +2064,8 @@ int gsm48_rcv_cc(struct osmocom_ms *ms, struct msgb *msg)
 		/* release L4, release transaction */
 		mncc_release_ind(trans->ms, trans, trans->callref,
 			 GSM48_CAUSE_LOC_PRN_S_LU, mmh->cause);
+		/* release without sending MMCC_REL_REQ */
+		new_cc_state(trans, GSM_CSTATE_NULL);
 		trans->callref = 0;
 		trans_free(trans);
 		break;
