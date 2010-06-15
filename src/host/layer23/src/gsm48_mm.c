@@ -3219,6 +3219,8 @@ static int gsm48_mm_data(struct osmocom_ms *ms, struct msgb *msg)
 	/* get connection, if not exist (anymore), release */
 	conn = mm_conn_by_ref(mm, mmh->ref);
 	if (!conn) {
+		LOGP(DMM, LOGL_INFO, "MMXX_DATA_REQ with unknown (already "
+			"released) ref=%d, sending MMXX_REL_IND\n", mmh->ref);
 		switch(msg_type & GSM48_MMXX_MASK) {
 		case GSM48_MMCC_CLASS:
 			mmh->msg_type = GSM48_MMCC_REL_IND;
@@ -3516,6 +3518,8 @@ int gsm48_mmxx_downmsg(struct osmocom_ms *ms, struct msgb *msg)
 	if (mm->state == GSM48_MM_ST_MM_IDLE)
 		LOGP(DMM, LOGL_INFO, "-> substate %s\n",
 			gsm48_mm_substate_names[mm->substate]);
+	LOGP(DMM, LOGL_INFO, "-> callref %d, transaction_id %d\n",
+		mmh->ref, mmh->transaction_id);
 
 	/* Find function for current state and message */
 	for (i = 0; i < DOWNSLLEN; i++)

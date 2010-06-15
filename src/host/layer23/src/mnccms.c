@@ -99,7 +99,8 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 
 	/* call does not exist */
 	if (!call && msg_type != MNCC_SETUP_IND) {
-		LOGP(DMNCC, LOGL_INFO, "Rejecting incomming call\n");
+		LOGP(DMNCC, LOGL_INFO, "Rejecting incomming call "
+			"(callref %d)\n", data->callref);
 		if (msg_type == MNCC_REL_IND || msg_type == MNCC_REL_CNF)
 			return 0;
 		cause = GSM48_CC_CAUSE_INCOMPAT_DEST;

@@ -2744,7 +2744,10 @@ static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 
-	LOGP(DSUM, LOGL_INFO, "Camping normally on cell of network\n");
+	LOGP(DSUM, LOGL_INFO, "Camping normally on cell (arfcn=%d mcc=%03d "
+		"mnc=%02d  %s, %s)\n", cs->sel_arfcn, cs->sel_mcc,
+		cs->sel_mnc, gsm_get_mcc(cs->sel_mcc),
+		gsm_get_mnc(cs->sel_mcc, cs->sel_mnc));
 
 	/* tell that we have selected a (new) cell */
 	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
@@ -2763,7 +2766,11 @@ static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 
-	LOGP(DSUM, LOGL_INFO, "Camping on any cell of network\n");
+	LOGP(DSUM, LOGL_INFO, "Camping on any cell (arfcn=%d mcc=%03d "
+		"mnc=%02d  %s, %s)\n", cs->sel_arfcn, cs->sel_mcc,
+		cs->sel_mnc, gsm_get_mcc(cs->sel_mcc),
+		gsm_get_mnc(cs->sel_mcc, cs->sel_mnc));
+
 
 	/* tell that we have selected a (new) cell */
 	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
