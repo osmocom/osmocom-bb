@@ -246,7 +246,6 @@ static void new_cc_state(struct gsm_trans *trans, int state)
 static void gsm48_cc_timeout(void *arg)
 {
 	struct gsm_trans *trans = arg;
-	struct osmocom_ms *ms = trans->ms;
 	int disconnect = 0, release = 0, abort = 1;
 	int mo_cause = GSM48_CC_CAUSE_RECOVERY_TIMER;
 	int mo_location = GSM48_CAUSE_LOC_PRN_S_LU;
@@ -1817,46 +1816,63 @@ static struct downstate {
 	/* mobile originating call establishment */
 	{SBIT(GSM_CSTATE_NULL), /* 5.2.1 */
 	 MNCC_SETUP_REQ, gsm48_cc_init_mm},
+
 	{SBIT(GSM_CSTATE_MM_CONNECTION_PEND), /* 5.2.1 */
 	 MNCC_REL_REQ, gsm48_cc_abort_mm},
+
 	/* mobile terminating call establishment */
 	{SBIT(GSM_CSTATE_CALL_PRESENT), /* 5.2.2.3.1 */
 	 MNCC_CALL_CONF_REQ, gsm48_cc_tx_call_conf},
+
 	{SBIT(GSM_CSTATE_MO_TERM_CALL_CONF), /* 5.2.2.3.2 */
 	 MNCC_ALERT_REQ, gsm48_cc_tx_alerting},
+
 	{SBIT(GSM_CSTATE_MO_TERM_CALL_CONF) |
 	 SBIT(GSM_CSTATE_CALL_RECEIVED), /* 5.2.2.5 */
 	 MNCC_SETUP_RSP, gsm48_cc_tx_connect},
+
 	 /* signalling during call */
 	{SBIT(GSM_CSTATE_ACTIVE), /* 5.3.1 */
 	 MNCC_NOTIFY_REQ, gsm48_cc_tx_notify},
+
 	{ALL_STATES, /* 5.5.7.1 */
 	 MNCC_START_DTMF_REQ, gsm48_cc_tx_start_dtmf},
+
 	{ALL_STATES, /* 5.5.7.3 */
 	 MNCC_STOP_DTMF_REQ, gsm48_cc_tx_stop_dtmf},
+
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 MNCC_HOLD_REQ, gsm48_cc_tx_hold},
+
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 MNCC_RETRIEVE_REQ, gsm48_cc_tx_retrieve},
+
 	{ALL_STATES - SBIT(GSM_CSTATE_NULL) - SBIT(GSM_CSTATE_RELEASE_REQ),
 	 MNCC_FACILITY_REQ, gsm48_cc_tx_facility},
+
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 MNCC_USERINFO_REQ, gsm48_cc_tx_userinfo},
+
 	/* clearing */
 	{ALL_STATES - SBIT(GSM_CSTATE_NULL) - SBIT(GSM_CSTATE_DISCONNECT_IND) -
 	 SBIT(GSM_CSTATE_RELEASE_REQ) -
 	 SBIT(GSM_CSTATE_DISCONNECT_REQ), /* 5.4.3.1 */
 	 MNCC_DISC_REQ, gsm48_cc_tx_disconnect},
+
 	{SBIT(GSM_CSTATE_INITIATED),
 	 MNCC_REJ_REQ, gsm48_cc_tx_release_compl},
+
 	{ALL_STATES - SBIT(GSM_CSTATE_NULL) -
 	 SBIT(GSM_CSTATE_RELEASE_REQ), /* ??? */
 	 MNCC_REL_REQ, gsm48_cc_tx_release},
+
 	/* modify */
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 MNCC_MODIFY_REQ, gsm48_cc_tx_modify},
+
 	{SBIT(GSM_CSTATE_MO_ORIG_MODIFY),
 	 MNCC_MODIFY_RSP, gsm48_cc_tx_modify_complete},
+
 	{SBIT(GSM_CSTATE_MO_ORIG_MODIFY),
 	 MNCC_MODIFY_REJ, gsm48_cc_tx_modify_reject},
 };
@@ -1923,56 +1939,78 @@ static struct datastate {
 	/* mobile originating call establishment */
 	{SBIT(GSM_CSTATE_INITIATED), /* 5.2.1.3 */
 	 GSM48_MT_CC_CALL_PROC, gsm48_cc_rx_call_proceeding},
+
 	{SBIT(GSM_CSTATE_INITIATED) | SBIT(GSM_CSTATE_MO_CALL_PROC) |
 	 SBIT(GSM_CSTATE_CALL_DELIVERED), /* 5.2.1.4.1 */
 	 MNCC_PROGRESS_REQ, gsm48_cc_rx_progress},
+
 	{SBIT(GSM_CSTATE_INITIATED) |
 	 SBIT(GSM_CSTATE_MO_CALL_PROC), /* 5.2.1.5 */
 	 GSM48_MT_CC_ALERTING, gsm48_cc_rx_alerting},
+
 	{SBIT(GSM_CSTATE_INITIATED) | SBIT(GSM_CSTATE_MO_CALL_PROC) |
 	 SBIT(GSM_CSTATE_CALL_DELIVERED), /* 5.2.1.6 */  
 	 GSM48_MT_CC_CONNECT, gsm48_cc_rx_connect},
+
 	/* mobile terminating call establishment */
 	{SBIT(GSM_CSTATE_NULL), /* 5.2.2.1 */
 	 GSM48_MT_CC_SETUP, gsm48_cc_rx_setup},
+
 	{SBIT(GSM_CSTATE_CALL_PRESENT), /* 5.2.2.6 */
 	 GSM48_MT_CC_CONNECT_ACK, gsm48_cc_rx_connect_ack},
+
 	 /* signalling during call */
 	{SBIT(GSM_CSTATE_ACTIVE), /* 5.3.1 */
 	 GSM48_MT_CC_NOTIFY, gsm48_cc_rx_notify},
+
 	{ALL_STATES, /* 8.4 */
 	 GSM48_MT_CC_STATUS_ENQ, gsm48_cc_rx_status_enq},
+
 	{ALL_STATES, /* 5.5.7.2 */
 	 GSM48_MT_CC_START_DTMF_ACK, gsm48_cc_rx_start_dtmf_ack},
+
 	{ALL_STATES, /* 5.5.7.2 */
 	 GSM48_MT_CC_START_DTMF_REJ, gsm48_cc_rx_start_dtmf_rej},
+
 	{ALL_STATES, /* 5.5.7.4 */
 	 GSM48_MT_CC_STOP_DTMF_ACK, gsm48_cc_rx_stop_dtmf_ack},
+
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 GSM48_MT_CC_HOLD_ACK, gsm48_cc_rx_hold_ack},
+
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 GSM48_MT_CC_HOLD_REJ, gsm48_cc_rx_hold_rej},
+
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 GSM48_MT_CC_RETR_ACK, gsm48_cc_rx_retrieve_ack},
+
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 GSM48_MT_CC_RETR_REJ, gsm48_cc_rx_retrieve_rej},
+
 	{ALL_STATES - SBIT(GSM_CSTATE_NULL),
 	 GSM48_MT_CC_FACILITY, gsm48_cc_rx_facility},
+
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 GSM48_MT_CC_USER_INFO, gsm48_cc_rx_userinfo},
+
 	/* clearing */
 	{ALL_STATES - SBIT(GSM_CSTATE_NULL) - SBIT(GSM_CSTATE_RELEASE_REQ) -
 	 SBIT(GSM_CSTATE_DISCONNECT_IND), /* 5.4.4.1.1 */
 	 GSM48_MT_CC_DISCONNECT, gsm48_cc_rx_disconnect},
+
 	{ALL_STATES - SBIT(GSM_CSTATE_NULL), /* 5.4.3.3 & 5.4.5!!!*/
 	 GSM48_MT_CC_RELEASE, gsm48_cc_rx_release},
+
 	{ALL_STATES, /* 5.4.4.1.3 */
 	 GSM48_MT_CC_RELEASE_COMPL, gsm48_cc_rx_release_compl},
+
 	/* modify */
 	{SBIT(GSM_CSTATE_ACTIVE),
 	 GSM48_MT_CC_MODIFY, gsm48_cc_rx_modify},
+
 	{SBIT(GSM_CSTATE_MO_TERM_MODIFY),
 	 GSM48_MT_CC_MODIFY_COMPL, gsm48_cc_rx_modify_complete},
+
 	{SBIT(GSM_CSTATE_MO_TERM_MODIFY),
 	 GSM48_MT_CC_MODIFY_REJECT, gsm48_cc_rx_modify_reject},
 };

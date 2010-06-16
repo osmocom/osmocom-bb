@@ -191,5 +191,8 @@ int gsm322_dump_ba_list(struct gsm322_cellsel *cs, uint16_t mcc, uint16_t mnc,
 			void (*print)(void *, const char *, ...), void *priv);
 void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro);
 void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro);
+extern const char *plmn_a_state_names[];
+extern const char *plmn_m_state_names[];
+extern const char *cs_state_names[];
 
 #endif /* _GSM322_H */

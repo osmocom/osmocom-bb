@@ -29,8 +29,11 @@
 #include <vty/buffer.h>
 #include <vty/vty.h>
 
+#include <osmocore/gsm48.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/networks.h>
+#include <osmocom/mncc.h>
+#include <osmocom/transaction.h>
 
 int mncc_call(struct osmocom_ms *ms, char *number);
 int mncc_hangup(struct osmocom_ms *ms);
@@ -121,6 +124,54 @@ DEFUN(show_support, show_support_cmd, "show support [ms_name]",
 	} else {
 		llist_for_each_entry(ms, &ms_list, entity) {
 			gsm_support_dump(&ms->support, print_vty, vty);
+			vty_out(vty, "%s", VTY_NEWLINE);
+		}
+	}
+
+	return CMD_SUCCESS;
+}
+
+static void gsm_states_dump(struct osmocom_ms *ms, struct vty *vty)
+{
+	struct gsm_trans *trans;
+
+	vty_out(vty, "Current state of MS '%s'%s", ms->name, VTY_NEWLINE);
+	if (ms->settings.plmn_mode == PLMN_MODE_AUTO)
+		vty_out(vty, " automatic network selection: %s%s", 
+			plmn_a_state_names[ms->plmn.state], VTY_NEWLINE);
+	else
+		vty_out(vty, " manual network selection: %s%s", 
+			plmn_m_state_names[ms->plmn.state], VTY_NEWLINE);
+	vty_out(vty, " cell selection: %s%s", 
+		cs_state_names[ms->cellsel.state], VTY_NEWLINE);
+	vty_out(vty, " radio ressource layer: %s%s", 
+		gsm48_rr_state_names[ms->rrlayer.state], VTY_NEWLINE);
+	vty_out(vty, " mobility management layer: %s", 
+		gsm48_mm_state_names[ms->mmlayer.state]);
+	if (ms->mmlayer.state == GSM48_MM_ST_MM_IDLE)
+		vty_out(vty, ", %s", 
+			gsm48_mm_substate_names[ms->mmlayer.substate]);
+	vty_out(vty, "%s", VTY_NEWLINE);
+	llist_for_each_entry(trans, &ms->trans_list, entry) {
+		vty_out(vty, " call control: %s%s", 
+			gsm48_cc_state_name(trans->cc.state), VTY_NEWLINE);
+	}
+}
+
+DEFUN(show_states, show_states_cmd, "show states [ms_name]",
+	SHOW_STR "Display current states of given MS\n"
+	"Name of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	if (argc) {
+		ms = get_ms(argv[0], vty);
+		if (!ms)
+			return CMD_WARNING;
+		gsm_states_dump(ms, vty);
+	} else {
+		llist_for_each_entry(ms, &ms_list, entity) {
+			gsm_states_dump(ms, vty);
 			vty_out(vty, "%s", VTY_NEWLINE);
 		}
 	}
@@ -694,6 +745,8 @@ int ms_vty_init(void)
 	install_element(VIEW_NODE, &show_subscr_cmd);
 	install_element(ENABLE_NODE, &show_support_cmd);
 	install_element(VIEW_NODE, &show_support_cmd);
+	install_element(ENABLE_NODE, &show_states_cmd);
+	install_element(VIEW_NODE, &show_states_cmd);
 	install_element(ENABLE_NODE, &show_cell_cmd);
 	install_element(VIEW_NODE, &show_cell_cmd);
 	install_element(ENABLE_NODE, &show_cell_si_cmd);

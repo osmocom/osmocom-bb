@@ -192,11 +192,11 @@ static int gsm48_decode_ba_range(const uint8_t *ba, uint8_t ba_len,
  * state transition
  */
 
-static const char *gsm48_rr_state_names[] = {
-	"IDLE",
-	"CONN PEND",
-	"DEDICATED",
-	"REL PEND",
+const char *gsm48_rr_state_names[] = {
+	"idle",
+	"connection pending",
+	"dedicated",
+	"release pending",
 };
 
 static void new_rr_state(struct gsm48_rrlayer *rr, int state)
@@ -2507,54 +2507,6 @@ static int gsm48_match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref)
 	return 0;
 }
 
-/* 9.1.3 sending ASSIGNMENT COMPLETE */
-static int gsm48_rr_tx_ass_cpl(struct osmocom_ms *ms, uint8_t cause)
-{
-	struct msgb *nmsg;
-	struct gsm48_hdr *gh;
-	struct gsm48_ass_cpl *ac;
-
-	LOGP(DRR, LOGL_INFO, "ASSIGNMENT COMPLETE (cause #%d)\n", cause);
-
-	nmsg = gsm48_l3_msgb_alloc();
-	if (!nmsg)
-		return -ENOMEM;
-	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
-	ac = (struct gsm48_ass_cpl *) msgb_put(nmsg, sizeof(*ac));
-
-	gh->proto_discr = GSM48_PDISC_RR;
-	gh->msg_type = GSM48_MT_RR_ASS_COMPL;
-
-	/* RR_CAUSE */
-	ac->rr_cause = cause;
-
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
-}
-
-/* 9.1.4 sending ASSIGNMENT FAILURE */
-static int gsm48_rr_tx_ass_fail(struct osmocom_ms *ms, uint8_t cause)
-{
-	struct msgb *nmsg;
-	struct gsm48_hdr *gh;
-	struct gsm48_ass_fail *af;
-
-	LOGP(DRR, LOGL_INFO, "ASSIGNMENT FAILURE (cause #%d)\n", cause);
-
-	nmsg = gsm48_l3_msgb_alloc();
-	if (!nmsg)
-		return -ENOMEM;
-	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
-	af = (struct gsm48_ass_fail *) msgb_put(nmsg, sizeof(*af));
-
-	gh->proto_discr = GSM48_PDISC_RR;
-	gh->msg_type = GSM48_MT_RR_ASS_COMPL;
-
-	/* RR_CAUSE */
-	af->rr_cause = cause;
-
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
-}
-
 /* 9.1.18 IMMEDIATE ASSIGNMENT is received */
 static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -3118,6 +3070,145 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /*
+ * assignment and handover
+ */
+
+/* 9.1.3 sending ASSIGNMENT COMPLETE */
+static int gsm48_rr_tx_ass_cpl(struct osmocom_ms *ms, uint8_t cause)
+{
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+	struct gsm48_ass_cpl *ac;
+
+	LOGP(DRR, LOGL_INFO, "ASSIGNMENT COMPLETE (cause #%d)\n", cause);
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
+	ac = (struct gsm48_ass_cpl *) msgb_put(nmsg, sizeof(*ac));
+
+	gh->proto_discr = GSM48_PDISC_RR;
+	gh->msg_type = GSM48_MT_RR_ASS_COMPL;
+
+	/* RR_CAUSE */
+	ac->rr_cause = cause;
+
+	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+}
+
+/* 9.1.4 sending ASSIGNMENT FAILURE */
+static int gsm48_rr_tx_ass_fail(struct osmocom_ms *ms, uint8_t cause)
+{
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+	struct gsm48_ass_fail *af;
+
+	LOGP(DRR, LOGL_INFO, "ASSIGNMENT FAILURE (cause #%d)\n", cause);
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
+	af = (struct gsm48_ass_fail *) msgb_put(nmsg, sizeof(*af));
+
+	gh->proto_discr = GSM48_PDISC_RR;
+	gh->msg_type = GSM48_MT_RR_ASS_COMPL;
+
+	/* RR_CAUSE */
+	af->rr_cause = cause;
+
+	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+}
+
+/* 9.1.2 ASSIGNMENT COMMAND is received */
+static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
+{
+//	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	struct gsm48_ass_cmd *ac = (struct gsm48_ass_cmd *)gh->data;
+	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*ac);
+	struct tlv_parsed tp;
+	struct gsm48_rr_cd cd;
+
+	LOGP(DRR, LOGL_INFO, "ASSIGNMENT COMMAND\n");
+
+	memset(&cd, 0, sizeof(cd));
+
+	if (payload_len < 0) {
+		LOGP(DRR, LOGL_NOTICE, "Short read of ASSIGNMENT COMMAND message.\n");
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
+	tlv_parse(&tp, &gsm48_rr_att_tlvdef, ac->data, payload_len, 0, 0);
+
+#if 0
+	/* channel description */
+	memcpy(&cd.chan_desc, &ac->chan_desc, sizeof(chan_desc));
+	/* power command */
+	cd.power_command = ac->power_command;
+	/* frequency list, after timer */
+	tlv_copy(&cd.fl, sizeof(fl_after), &tp, GSM48_IE_FRQLIST_AFTER);
+	/* cell channel description */
+	tlv_copy(&cd.ccd, sizeof(ccd), &tp, GSM48_IE_CELL_CH_DESC);
+	/* multislot allocation */
+	tlv_copy(&cd.multia, sizeof(ma), &tp, GSM48_IE_MSLOT_DESC);
+	/* channel mode */
+	tlv_copy(&cd.chanmode, sizeof(chanmode), &tp, GSM48_IE_CHANMODE_1);
+	/* mobile allocation, after time */
+	tlv_copy(&cd.moba_after, sizeof(moba_after), &tp, GSM48_IE_MOB_AL_AFTER);
+	/* starting time */
+	tlv_copy(&cd.start, sizeof(start), &tp, GSM_IE_START_TIME);
+	/* frequency list, before time */
+	tlv_copy(&cd.fl_before, sizeof(fl_before), &tp, GSM48_IE_FRQLIST_BEFORE);
+	/* channel description, before time */
+	tlv_copy(&cd.chan_desc_before, sizeof(cd_before), &tp, GSM48_IE_CHDES_1_BEFORE);
+	/* frequency channel sequence, before time */
+	tlv_copy(&cd.fcs_before, sizeof(fcs_before), &tp, GSM48_IE_FRQSEQ_BEFORE);
+	/* mobile allocation, before time */
+	tlv_copy(&cd.moba_before, sizeof(moba_before), &tp, GSM48_IE_MOB_AL_BEFORE);
+	/* cipher mode setting */
+	if (TLVP_PRESENT(&tp, GSM48_IE_CIP_MODE_SET))
+		cd.cipher = *TLVP_VAL(&tp, GSM48_IE_CIP_MODE_SET);
+	else
+		cd.cipher = 0;
+
+	if (no CA) {
+		LOGP(DRR, LOGL_INFO, "No current cell allocation available.\n");
+		return gsm48_rr_tx_ass_fail(ms, GSM48_GSM48_RR_CAUSE_NO_CELL_ALLOC_A);
+	}
+	
+	if (not supported) {
+		LOGP(DRR, LOGL_INFO, "New channel is not supported.\n");
+		return gsm48_rr_tx_ass_fail(ms, GSM48_RR_CAUSE_CHAN_MODE_UNACCEPT);
+	}
+
+	if (freq not supported) {
+		LOGP(DRR, LOGL_INFO, "New frequency is not supported.\n");
+		return gsm48_rr_tx_ass_fail(ms, GSM48_RR_CAUSE_FREQ_NOT_IMPL);
+	}
+
+	/* store current channel descriptions, to return in case of failure */
+	memcpy(&rr->chan_last, &rr->chan_desc, sizeof(*cd));
+	/* copy new description */
+	memcpy(&rr->chan_desc, cd, sizeof(cd));
+
+	/* start suspension of current link */
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gsm48_send_rsl(ms, RSL_MT_SUSP_REQ, msg);
+
+	/* change into special assignment suspension state */
+	rr->assign_susp_state = 1;
+	rr->resume_last_state = 0;
+#else
+	return gsm48_rr_tx_ass_fail(ms, GSM48_RR_CAUSE_FREQ_NOT_IMPL);
+#endif
+
+	return 0;
+}
+
+/*
  * radio ressource requests 
  */
 
@@ -3285,10 +3376,10 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		case GSM48_MT_RR_ADD_ASS:
 			rc = gsm48_rr_rx_add_ass(ms, msg);
 			break;
-#if 0
 		case GSM48_MT_RR_ASS_CMD:
 			rc = gsm48_rr_rx_ass_cmd(ms, msg);
 			break;
+#if 0
 		case GSM48_MT_RR_CIP_MODE_CMD:
 			rc = gsm48_rr_rx_cip_mode_cmd(ms, msg);
 			break;
@@ -3787,27 +3878,12 @@ incomplete
 
 todo:
 
-add support structure
-initialize support structure
-
-queue messages (rslms_data_req) if channel changes
-
-flush rach msg in all cases: during sending, after its done, and when aborted
 stop timers on abort
 wird beim abbruch immer der gepufferte cm-service-request entfernt, auch beim verschicken?:
 measurement reports
 todo rr_sync_ind when receiving ciph, re ass, channel mode modify
 
 todo change procedures, release procedure
-
-during procedures, like "channel assignment" or "handover", rr requests must be queued
-they must be dequeued when complete
-they queue must be flushed when rr fails
-
-#include <osmocore/protocol/gsm_04_08.h>
-#include <osmocore/msgb.h>
-#include <osmocore/utils.h>
-#include <osmocore/gsm48.h>
 
 static int gsm48_rr_act_req(struct osmocom_ms *ms, struct gsm48_rr *rrmsg)
 {
@@ -3836,87 +3912,6 @@ static int tlv_copy(void *dest, int dest_len, struct tlv_parsed *tp, uint8_t ie)
 		return -ENOMEM;
 
 	memcpy(dest, TLVP_VAL(tp, ie) - 1, len + 1);
-	return 0;
-}
-
-static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_rrlayer *rr = ms->rrlayer;
-	struct gsm48_hdr *gh = msgb_l3(msg);
-	struct gsm48_ass_cmd *ac = (struct gsm48_ass_cmd *)gh->data;
-	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*ac);
-	struct tlv_parsed tp;
-	struct gsm48_rr_chan_desc cd;
-	struct msgb *nmsg;
-
-	memset(&cd, 0, sizeof(cd));
-
-	if (payload_len < 0) {
-		LOGP(DRR, LOGL_NOTICE, "Short read of ASSIGNMENT COMMAND message.\n");
-		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
-	}
-	tlv_parse(&tp, &gsm48_rr_att_tlvdef, ac->data, payload_len, 0, 0);
-
-	/* channel description */
-	memcpy(&cd.chan_desc, &ac->chan_desc, sizeof(chan_desc));
-	/* power command */
-	cd.power_command = ac->power_command;
-	/* frequency list, after timer */
-	tlv_copy(&cd.fl, sizeof(fl_after), &tp, GSM48_IE_FRQLIST_AFTER);
-	/* cell channel description */
-	tlv_copy(&cd.ccd, sizeof(ccd), &tp, GSM48_IE_CELL_CH_DESC);
-	/* multislot allocation */
-	tlv_copy(&cd.multia, sizeof(ma), &tp, GSM48_IE_MSLOT_DESC);
-	/* channel mode */
-	tlv_copy(&cd.chanmode, sizeof(chanmode), &tp, GSM48_IE_CHANMODE_1);
-	/* mobile allocation, after time */
-	tlv_copy(&cd.moba_after, sizeof(moba_after), &tp, GSM48_IE_MOB_AL_AFTER);
-	/* starting time */
-	tlv_copy(&cd.start, sizeof(start), &tp, GSM_IE_START_TIME);
-	/* frequency list, before time */
-	tlv_copy(&cd.fl_before, sizeof(fl_before), &tp, GSM48_IE_FRQLIST_BEFORE);
-	/* channel description, before time */
-	tlv_copy(&cd.chan_desc_before, sizeof(cd_before), &tp, GSM48_IE_CHDES_1_BEFORE);
-	/* frequency channel sequence, before time */
-	tlv_copy(&cd.fcs_before, sizeof(fcs_before), &tp, GSM48_IE_FRQSEQ_BEFORE);
-	/* mobile allocation, before time */
-	tlv_copy(&cd.moba_before, sizeof(moba_before), &tp, GSM48_IE_MOB_AL_BEFORE);
-	/* cipher mode setting */
-	if (TLVP_PRESENT(&tp, GSM48_IE_CIP_MODE_SET))
-		cd.cipher = *TLVP_VAL(&tp, GSM48_IE_CIP_MODE_SET);
-	else
-		cd.cipher = 0;
-
-	if (no CA) {
-		LOGP(DRR, LOGL_INFO, "No current cell allocation available.\n");
-		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_NO_CELL_ALLOC_A);
-	}
-	
-	if (not supported) {
-		LOGP(DRR, LOGL_INFO, "New channel is not supported.\n");
-		return gsm48_rr_tx_rr_status(ms, RR_CAUSE_CHAN_MODE_UNACCEPT);
-	}
-
-	if (freq not supported) {
-		LOGP(DRR, LOGL_INFO, "New frequency is not supported.\n");
-		return gsm48_rr_tx_rr_status(ms, RR_CAUSE_FREQ_NOT_IMPLEMENTED);
-	}
-
-	/* store current channel descriptions, to return in case of failure */
-	memcpy(&rr->chan_last, &rr->chan_desc, sizeof(*cd));
-	/* copy new description */
-	memcpy(&rr->chan_desc, cd, sizeof(cd));
-
-	/* start suspension of current link */
-	nmsg = gsm48_l3_msgb_alloc();
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_send_rsl(ms, RSL_MT_SUSP_REQ, msg);
-
-	/* change into special assignment suspension state */
-	rr->assign_susp_state = 1;
-	rr->resume_last_state = 0;
-
 	return 0;
 }
 
@@ -3953,7 +3948,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_ho_cmd *ho = (struct gsm48_ho_cmd *)gh->data;
 	int payload_len = msgb_l3len(msg) - sizeof(*gh) - wirklich sizeof(*ho);
 	struct tlv_parsed tp;
-	struct gsm48_rr_chan_desc cd;
+	struct gsm48_rr_cd cd;
 	struct msgb *nmsg;
 
 	memset(&cd, 0, sizeof(cd));
@@ -4012,7 +4007,7 @@ static int gsm48_rr_estab_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 			rr->resume_last_state = 0;
 			gsm48_rr_tx_ass_cpl(ms, GSM48_RR_CAUSE_NORMAL);
 		} else {
-			gsm48_rr_tx_ass_fail(ms, RR_CAUSE_PROTO_ERR_UNSPEC);
+			gsm48_rr_tx_ass_fail(ms, GSM48_RR_CAUSE_PROTO_ERR_UNSPEC);
 		}
 		/* transmit queued frames during ho / ass transition */
 		gsm48_rr_dequeue_down(ms);
