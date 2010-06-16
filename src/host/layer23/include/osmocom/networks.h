@@ -3,7 +3,7 @@
 
 struct gsm_networks {
 	uint16_t	mcc;
-	uint16_t	mnc;
+	int16_t		mnc;
 	const char 	*name;
 };
 
