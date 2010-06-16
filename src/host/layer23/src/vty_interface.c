@@ -497,14 +497,13 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 		ms->settings.emergency_imsi : "none", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", ms->settings.test_imsi, VTY_NEWLINE);
-	vty_out(vty, "  barred-access %s%s", (set->test_barr) ? "yes" : "no",
+	vty_out(vty, "  %sbarred-access%s", (set->test_barr) ? "" : "no ",
 		VTY_NEWLINE);
 	if (ms->settings.test_rplmn_valid)
-		vty_out(vty, "  rplmn-valid%s", VTY_NEWLINE);
+		vty_out(vty, "  rplmn %03d %02d%s", ms->settings.test_rplmn_mcc,
+			ms->settings.test_rplmn_mnc, VTY_NEWLINE);
 	else
-		vty_out(vty, "  rplmn-invalid%s", VTY_NEWLINE);
-	vty_out(vty, "  rplmn %03d %02d%s", ms->settings.test_rplmn_mcc,
-		ms->settings.test_rplmn_mnc, VTY_NEWLINE);
+		vty_out(vty, "  no rplmn%s", VTY_NEWLINE);
 	vty_out(vty, "  hplmn-search %s%s", (set->test_always) ? "everywhere"
 			: "foreign-country", VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
@@ -667,35 +666,28 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access (yes|no)",
-	"Allow access to barred cells\nAccess allowed\nAccess denied")
+DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access",
+	"Allow access to barred cells")
 {
 	struct osmocom_ms *ms = vty->index;
 
-	switch (argv[0][0]) {
-	case 'y':
-		ms->settings.test_barr = 1;
-		break;
-	case 'n':
-		ms->settings.test_barr = 0;
-		break;
-	}
+	ms->settings.test_barr = 1;
 
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_rplmn_valid, cfg_test_rplmn_valid_cmd, "rplmn-valid",
-	"Mark Registered PLMN as valid")
+DEFUN(cfg_test_no_barr, cfg_test_no_barr_cmd, "no barred-access",
+	NO_STR "Deny access to barred cells")
 {
 	struct osmocom_ms *ms = vty->index;
 
-	ms->settings.test_rplmn_valid = 1;
+	ms->settings.test_barr = 0;
 
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_rplmn_invalid, cfg_test_rplmn_invalid_cmd, "rplmn-invalid",
-	"Mark Registered PLMN as invalid")
+DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
+	NO_STR "Unset Registered PLMN")
 {
 	struct osmocom_ms *ms = vty->index;
 
@@ -709,6 +701,7 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
 {
 	struct osmocom_ms *ms = vty->index;
 
+	ms->settings.test_rplmn_valid = 1;
 	ms->settings.test_rplmn_mcc = atoi(argv[0]);
 	ms->settings.test_rplmn_mnc = atoi(argv[1]);
 
@@ -780,8 +773,8 @@ int ms_vty_init(void)
 	install_default(TESTSIM_NODE);
 	install_element(TESTSIM_NODE, &cfg_test_imsi_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_barr_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_rplmn_valid_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_rplmn_invalid_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_no_barr_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_no_rplmn_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_rplmn_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_hplmn_cmd);
 

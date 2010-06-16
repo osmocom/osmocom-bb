@@ -1147,19 +1147,11 @@ static int gsm322_a_sel_manual(struct osmocom_ms *ms, struct msgb *msg)
  * handler for manual search
  */
 
-/* go Not on PLMN state */
-static int gsm322_m_go_not_on_plmn(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm322_plmn *plmn = &ms->plmn;
-
-	new_m_state(plmn, GSM322_M3_NOT_ON_PLMN);
-
-	return 0;
-}
-
 /* display PLMNs and to Not on PLMN */
 static int gsm322_m_display_plmns(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm322_msg *gm = (struct gsm322_msg *) msg->data;
+	int msg_type = gm->msg_type;
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm_sub_plmn_list *temp;
 
@@ -1167,15 +1159,41 @@ static int gsm322_m_display_plmns(struct osmocom_ms *ms, struct msgb *msg)
 	gsm322_sort_list(ms);
 
 	vty_notify(ms, NULL);
-	vty_notify(ms, "Select from Network:\n");
+	switch (msg_type) {
+	case GSM322_EVENT_REG_FAILED:
+		vty_notify(ms, "Failed to register to network %03d, %02d "
+			"(%s, %s)\n",
+			plmn->mcc, plmn->mnc, gsm_get_mcc(plmn->mcc),
+			gsm_get_mnc(plmn->mcc, plmn->mnc));
+		break;
+	case GSM322_EVENT_NO_CELL_FOUND:
+		vty_notify(ms, "No cell found for network %03d, %02d "
+			"(%s, %s)\n",
+			plmn->mcc, plmn->mnc, gsm_get_mcc(plmn->mcc),
+			gsm_get_mnc(plmn->mcc, plmn->mnc));
+		break;
+	case GSM322_EVENT_ROAMING_NA:
+		vty_notify(ms, "Roaming not allowed to network %03d, %02d "
+			"(%s, %s)\n",
+			plmn->mcc, plmn->mnc, gsm_get_mcc(plmn->mcc),
+			gsm_get_mnc(plmn->mcc, plmn->mnc));
+		break;
+	}
 
-	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
-		vty_notify(ms, " Network %03d, %02d (%s, %s)\n", temp->mcc,
-			temp->mnc, gsm_get_mcc(temp->mcc),
-			gsm_get_mnc(temp->mcc, temp->mnc));
+	if (llist_empty(&plmn->sorted_plmn))
+		vty_notify(ms, "Search network!\n");
+	else {
+		vty_notify(ms, "Search or select from network:\n");
+		llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
+			vty_notify(ms, " Network %03d, %02d (%s, %s)\n",
+				temp->mcc, temp->mnc, gsm_get_mcc(temp->mcc),
+				gsm_get_mnc(temp->mcc, temp->mnc));
+	}
 	
 	/* go Not on PLMN state */
-	return gsm322_m_go_not_on_plmn(ms, msg);
+	new_m_state(plmn, GSM322_M3_NOT_ON_PLMN);
+
+	return 0;
 }
 
 /* user starts reselection */
@@ -1851,7 +1869,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	case PLMN_MODE_AUTO:
 		if (plmn->state == GSM322_A4_WAIT_FOR_PLMN) {
 			/* PLMN becomes available */
-			nmsg = gsm322_msgb_alloc( GSM322_EVENT_PLMN_AVAIL);
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_AVAIL);
 			if (!nmsg)
 				return -ENOMEM;
 			gsm322_plmn_sendmsg(ms, nmsg);
@@ -1862,7 +1880,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 		  && gsm322_is_plmn_avail(cs, plmn->mcc,
 			plmn->mnc)) {
 			/* PLMN becomes available */
-			nmsg = gsm322_msgb_alloc( GSM322_EVENT_PLMN_AVAIL);
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_AVAIL);
 			if (!nmsg)
 				return -ENOMEM;
 			gsm322_plmn_sendmsg(ms, nmsg);
@@ -3007,13 +3025,13 @@ static struct plmnmstatelist {
 	 GSM322_EVENT_REG_SUCCESS, gsm322_m_go_on_plmn},
 
 	{SBIT(GSM322_M4_TRYING_PLMN),
-	 GSM322_EVENT_REG_FAILED, gsm322_m_go_not_on_plmn},
+	 GSM322_EVENT_REG_FAILED, gsm322_m_display_plmns},
 
 	{SBIT(GSM322_M4_TRYING_PLMN),
-	 GSM322_EVENT_ROAMING_NA, gsm322_m_go_not_on_plmn},
+	 GSM322_EVENT_ROAMING_NA, gsm322_m_display_plmns},
 
 	{SBIT(GSM322_M4_TRYING_PLMN),
-	 GSM322_EVENT_NO_CELL_FOUND, gsm322_m_go_not_on_plmn},
+	 GSM322_EVENT_NO_CELL_FOUND, gsm322_m_display_plmns},
 
 	{ALL_STATES,
 	 GSM322_EVENT_SEL_AUTO, gsm322_m_sel_auto},
