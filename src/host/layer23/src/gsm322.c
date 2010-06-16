@@ -410,38 +410,38 @@ static void stop_cs_timer(struct gsm322_cellsel *cs)
  * state change
  */
 
-static const char *plmn_a_state_names[] = {
-	"A0_NULL",
-	"A1_TRYING_RPLMN",
-	"A2_ON_PLMN",
-	"A3_TRYING_PLMN",
-	"A4_WAIT_FOR_PLMN",
-	"A5_HPLMN",
-	"A6_NO_SIM"
+const char *plmn_a_state_names[] = {
+	"A0 null",
+	"A1 trying RPLMN",
+	"A2 on PLMN",
+	"A3 trying PLMN",
+	"A4 wait for PLMN to appear",
+	"A5 HPLMN search",
+	"A6 no SIM inserted"
 };
 
-static const char *plmn_m_state_names[] = {
-	"M0_NULL",
-	"M1_TRYING_RPLMN",
-	"M2_ON_PLMN",
-	"M3_NOT_ON_PLMN",
-	"M4_TRYING_PLMN",
-	"M5_NO_SIM"
+const char *plmn_m_state_names[] = {
+	"M0 null",
+	"M1 trying RPLMN",
+	"M2 on PLMN",
+	"M3 not on PLMN",
+	"M4 trying PLMN",
+	"M5 no SIM inserted"
 };
 
-static const char *cs_state_names[] = {
-	"C0_NULL",
-	"C1_NORMAL_CELL_SEL",
-	"C2_STORED_CELL_SEL",
-	"C3_CAMPED_NORMALLY",
-	"C4_NORMAL_CELL_RESEL",
-	"C5_CHOOSE_CELL",
-	"C6_ANY_CELL_SEL",
-	"C7_CAMPED_ANY_CELL",
-	"C8_ANY_CELL_RESEL",
-	"C9_CHOOSE_ANY_CELL",
-	"PLMN_SEARCH",
-	"HPLMN_SEARCH"
+const char *cs_state_names[] = {
+	"C0 null",
+	"C1 normal cell selection",
+	"C2 stored cell selection",
+	"C3 camped normally",
+	"C4 normal cell re-selection",
+	"C5 choose cell",
+	"C6 any cell selection",
+	"C7 camped on any cell",
+	"C8 any cell re-selection",
+	"C9 choose any cell",
+	"PLMN search",
+	"HPLMN search"
 };
 
 
@@ -458,7 +458,7 @@ static void new_a_state(struct gsm322_plmn *plmn, int state)
 	if (state < 0 || state >= (sizeof(plmn_a_state_names) / sizeof(char *)))
 		return;
 
-	LOGP(DPLMN, LOGL_INFO, "new state %s -> %s\n",
+	LOGP(DPLMN, LOGL_INFO, "new state '%s' -> '%s'\n",
 		plmn_a_state_names[plmn->state], plmn_a_state_names[state]);
 
 	plmn->state = state;
@@ -475,7 +475,7 @@ static void new_m_state(struct gsm322_plmn *plmn, int state)
 	if (state < 0 || state >= (sizeof(plmn_m_state_names) / sizeof(char *)))
 		return;
 
-	LOGP(DPLMN, LOGL_INFO, "new state %s -> %s\n",
+	LOGP(DPLMN, LOGL_INFO, "new state '%s' -> '%s'\n",
 		plmn_m_state_names[plmn->state], plmn_m_state_names[state]);
 
 	plmn->state = state;
@@ -487,7 +487,7 @@ static void new_c_state(struct gsm322_cellsel *cs, int state)
 	if (state < 0 || state >= (sizeof(cs_state_names) / sizeof(char *)))
 		return;
 
-	LOGP(DCS, LOGL_INFO, "new state %s -> %s\n",
+	LOGP(DCS, LOGL_INFO, "new state '%s' -> '%s'\n",
 		cs_state_names[cs->state], cs_state_names[state]);
 
 	/* stop cell selection timer, if running */
@@ -2933,7 +2933,7 @@ static int gsm322_a_event(struct osmocom_ms *ms, struct msgb *msg)
 	int i;
 
 	LOGP(DPLMN, LOGL_INFO, "(ms %s) Event '%s' for automatic PLMN "
-		"selection in state %s\n", ms->name, get_event_name(msg_type),
+		"selection in state '%s'\n", ms->name, get_event_name(msg_type),
 		plmn_a_state_names[plmn->state]);
 	/* find function for current state and message */
 	for (i = 0; i < PLMNASLLEN; i++)
@@ -3034,7 +3034,7 @@ static int gsm322_m_event(struct osmocom_ms *ms, struct msgb *msg)
 	int i;
 
 	LOGP(DPLMN, LOGL_INFO, "(ms %s) Event '%s' for manual PLMN selection "
-		"in state %s\n", ms->name, get_event_name(msg_type),
+		"in state '%s'\n", ms->name, get_event_name(msg_type),
 		plmn_m_state_names[plmn->state]);
 	/* find function for current state and message */
 	for (i = 0; i < PLMNMSLLEN; i++)
@@ -3152,7 +3152,7 @@ int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg)
 	int i;
 
 	LOGP(DCS, LOGL_INFO, "(ms %s) Event '%s' for Cell selection in state "
-		"%s\n", ms->name, get_event_name(msg_type),
+		"'%s'\n", ms->name, get_event_name(msg_type),
 		cs_state_names[cs->state]);
 	/* find function for current state and message */
 	for (i = 0; i < CELLSELSLLEN; i++)
