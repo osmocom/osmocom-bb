@@ -2387,6 +2387,8 @@ ALIAS(config_exit,
 		break;
 	case CONFIG_NODE:
 	case VTY_NODE:
+	case MS_NODE:
+	case TESTSIM_NODE:
 		vty_config_unlock(vty);
 		vty->node = ENABLE_NODE;
 		break;
