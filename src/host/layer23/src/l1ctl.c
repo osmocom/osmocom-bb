@@ -165,7 +165,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* send CCCH data via GSMTAP */
 	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
-	gsmtap_sendmsg(dl->band_arfcn, chan_ts, gsmtap_chan_type, chan_ss,
+	gsmtap_sendmsg(ntohs(dl->band_arfcn), chan_ts, gsmtap_chan_type, chan_ss,
 			tm.fn, dl->rx_level-110, dl->snr, ccch->data,
 			sizeof(ccch->data));
 
