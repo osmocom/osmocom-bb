@@ -112,6 +112,7 @@ struct gsm_networks gsm_networks[] = {
 	{ 0x257, 0x03f,		"DIALLOG" },
 	{ 0x206, -1,	"Belgium" },
 	{ 0x206, 0x01f,		"Proximus" },
+	{ 0x206, 0x02f,		"SNCB GSM-R" },
 	{ 0x206, 0x10f,		"Mobistar" },
 	{ 0x206, 0x20f,		"BASE" },
 	{ 0x702, -1,	"Belize" },
