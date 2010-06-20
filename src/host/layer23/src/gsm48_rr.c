@@ -2852,18 +2852,24 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 
 	LOGP(DSUM, LOGL_INFO, "Radio link lost signal\n");
 
-	if (rr->state == GSM48_RR_ST_CONN_PEND) {
+	/* stop T3211 if running */
+	stop_rr_t3110(rr);
+
+	switch(rr->state) {
+	case GSM48_RR_ST_CONN_PEND:
 		LOGP(DRR, LOGL_INFO, "LOS during RACH request\n");
 
 		/* stop pending RACH timer */
 		stop_rr_t3126(rr);
-	} else {
+		break;
+	case GSM48_RR_ST_DEDICATED:
 		LOGP(DRR, LOGL_INFO, "LOS during dedicated mode, release "
 			"locally\n");
 
 		new_rr_state(rr, GSM48_RR_ST_REL_PEND);
 
 		/* release message */
+		rel_local:
 		nmsg = gsm48_l3_msgb_alloc();
 		if (!nmsg)
 			return -ENOMEM;
@@ -2872,6 +2878,19 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 		mode[1] = 1; /* local release */
 		/* start release */
 		return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
+	case GSM48_RR_ST_REL_PEND:
+		LOGP(DRR, LOGL_INFO, "LOS during RR release procedure, release "
+			"locally\n");
+
+		/* stop pending RACH timer */
+		stop_rr_t3110(rr);
+
+		/* release locally */
+		goto rel_local;
+	default:
+		/* this should not happen */
+		LOGP(DRR, LOGL_ERROR, "LOS in IDLE state, ignoring\n");
+		return -EINVAL;
 	}
 
 	/* send inication to upper layer */
