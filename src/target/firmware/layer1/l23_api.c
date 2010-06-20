@@ -96,7 +96,7 @@ struct msgb *l1ctl_msgb_alloc(uint8_t msg_type)
 	l1h->msg_type = msg_type;
 	l1h->flags = 0;
 
-	msg->l1h = l1h;
+	msg->l1h = (uint8_t *)l1h;
 
 	return msg;
 }
