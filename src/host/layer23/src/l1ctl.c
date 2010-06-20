@@ -402,6 +402,15 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		if (l1h->flags & L1CTL_F_DONE)
 			dispatch_signal(SS_L1CTL, S_L1CTL_PM_DONE, ms);
 		break;
+	case L1CTL_RESET_CONF:
+		LOGP(DL1C, LOGL_NOTICE, "L1CTL_RESET_CONF\n");
+		break;
+	case L1CTL_RACH_CONF:
+		LOGP(DL1C, LOGL_NOTICE, "L1CTL_RACH_CONF\n");
+		break;
+	case L1CTL_DATA_CONF:
+		LOGP(DL1C, LOGL_NOTICE, "L1CTL_DATA_CONF\n");
+		break;
 	default:
 		fprintf(stderr, "Unknown MSG: %u\n", l1h->msg_type);
 		msgb_free(msg);
