@@ -48,6 +48,10 @@
 
 #include <l1a_l23_interface.h>
 
+struct {
+	uint32_t fn;
+	uint16_t band_arfcn;
+} last_rach;
 
 /* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
 static int l1s_tx_rach_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused uint16_t p3)
@@ -83,6 +87,12 @@ static int l1s_tx_rach_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 
 	dsp_api.r_page_used = 1;
 
+	/* schedule a confirmation back indicating the GSM time at which
+	 * the RACH burst was transmitted to the BTS */
+	last_rach.fn = l1s.current_time.fn - 1;
+	last_rach.band_arfcn = l1s.serving_cell.arfcn;
+	l1s_compl_sched(L1_COMPL_FB);
+
 	return 0;
 }
 
@@ -93,6 +103,16 @@ const struct tdma_sched_item rach_sched_set_ul[] = {
 	SCHED_ITEM(l1s_tx_rach_resp, 1, 0),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
+
+/* Asynchronous completion handler for FB detection */
+static void l1a_rach_compl(__unused enum l1_compl c)
+{
+	struct msgb *msg;
+
+	msg = l1_create_l2_msg(L1CTL_RACH_RESP, last_rach.fn, 0,
+				last_rach.band_arfcn);
+	l1_queue_for_l2(msg);
+}
 
 /* request a RACH request at the next multiframe T3 = fn51 */
 void l1a_rach_req(uint8_t fn51, uint8_t ra)
@@ -106,4 +126,7 @@ void l1a_rach_req(uint8_t fn51, uint8_t ra)
 	fn_sched += fn51;
 	sched_gsmtime(rach_sched_set_ul, fn_sched, 0);
 	l1a_unlock_sync();
+
+	memset(&last_rach, 0, sizeof(last_rach));
+	l1s.completion[L1_COMPL_FB] = &l1a_rach_compl;
 }
