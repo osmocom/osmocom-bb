@@ -257,7 +257,10 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	l1s_reset_hw();
 	/* enable the MF Task for BCCH reading */
 	mframe_enable(MF_TASK_BCCH_NORM);
-	mframe_enable(MF_TASK_CCCH_COMB);
+	if (l1s.serving_cell.ccch_mode == CCCH_MODE_COMBINED)
+		mframe_enable(MF_TASK_CCCH_COMB);
+	else if (l1s.serving_cell.ccch_mode == CCCH_MODE_NON_COMBINED)
+		mframe_enable(MF_TASK_CCCH);
 
 	l1s_compl_sched(L1_COMPL_FB);
 

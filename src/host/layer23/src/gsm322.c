@@ -222,7 +222,8 @@ int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_sync_to_cell(struct osmocom_ms *ms, struct gsm322_cellsel *cs)
 {
 	return l1ctl_tx_fbsb_req(ms, cs->arfcn,
-	                         L1CTL_FBSB_F_FB01SB, 100, 0);
+	                         L1CTL_FBSB_F_FB01SB, 100, 0,
+				 CCCH_MODE_COMBINED);
 }
 
 static void gsm322_unselect_cell(struct gsm322_cellsel *cs)

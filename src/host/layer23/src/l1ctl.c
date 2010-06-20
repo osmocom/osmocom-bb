@@ -233,7 +233,8 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 
 /* Transmit FBSB_REQ */
 int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
-		      uint8_t flags, uint16_t timeout, uint8_t sync_info_idx)
+		      uint8_t flags, uint16_t timeout, uint8_t sync_info_idx,
+		      uint8_t ccch_mode)
 {
 	struct msgb *msg;
 	struct l1ctl_fbsb_req *req;
@@ -253,6 +254,23 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 	req->num_freqerr_avg = 3;
 	req->flags = flags;
 	req->sync_info_idx = sync_info_idx;
+	req->ccch_mode = ccch_mode;
+
+	return osmo_send_l1(ms, msg);
+}
+
+/* Transmit L1CTL_CCCH_MODE_REQ */
+int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode)
+{
+	struct msgb *msg;
+	struct l1ctl_ccch_mode_req *req;
+
+	msg = osmo_l1_alloc(L1CTL_CCCH_MODE_REQ);
+	if (!msg)
+		return -1;
+
+	req = (struct l1ctl_ccch_mode_req *) msgb_put(msg, sizeof(*req));
+	req->ccch_mode = ccch_mode;
 
 	return osmo_send_l1(ms, msg);
 }

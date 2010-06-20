@@ -170,6 +170,41 @@ static void l1ctl_rx_reset_req(struct msgb *msg)
 	}
 }
 
+/* Transmit a L1CTL_CCCH_MODE_CONF */
+static void l1ctl_tx_ccch_mode_conf(uint8_t ccch_mode)
+{
+	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_CCCH_MODE_CONF);
+	struct l1ctl_ccch_mode_conf *mode_conf;
+	mode_conf = (struct l1ctl_ccch_mode_conf *)
+				msgb_put(msg, sizeof(*mode_conf));
+	mode_conf->ccch_mode = ccch_mode;
+
+	l1_queue_for_l2(msg);
+}
+
+/* receive a L1CTL_CCCH_MODE_REQ from L23 */
+static void l1ctl_rx_ccch_mode_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_ccch_mode_req *ccch_mode_req =
+		(struct l1ctl_ccch_mode_req *) l1h->data;
+	uint8_t ccch_mode = ccch_mode_req->ccch_mode;
+
+	/* pre-set the CCCH mode */
+	l1s.serving_cell.ccch_mode = ccch_mode;
+
+	/* Update task */
+	mframe_disable(MF_TASK_CCCH_COMB);
+	mframe_disable(MF_TASK_CCCH);
+
+	if (ccch_mode == CCCH_MODE_COMBINED)
+		mframe_enable(MF_TASK_CCCH_COMB);
+	else if (ccch_mode == CCCH_MODE_NON_COMBINED)
+		mframe_enable(MF_TASK_CCCH);
+
+	l1ctl_tx_ccch_mode_conf(ccch_mode);
+}
+
 /* callback from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
@@ -213,6 +248,9 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		/* tune to specified frequency */
 		trf6151_rx_window(0, ntohs(sync_req->band_arfcn), 40, 0);
 		tpu_end_scenario();
+
+		/* pre-set the CCCH mode */
+		l1s.serving_cell.ccch_mode = sync_req->ccch_mode;
 
 		printd("Starting FCCH Recognition\n");
 		l1s_fbsb_req(1, sync_req);
@@ -262,6 +300,9 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		break;
 	case L1CTL_RESET_REQ:
 		l1ctl_rx_reset_req(msg);
+		break;
+	case L1CTL_CCCH_MODE_REQ:
+		l1ctl_rx_ccch_mode_req(msg);
 		break;
 	}
 

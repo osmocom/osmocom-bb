@@ -39,6 +39,14 @@
 #define L1CTL_RESET_REQ		14
 #define L1CTL_RESET_CONF	15
 #define L1CTL_DATA_CONF		16
+#define L1CTL_CCCH_MODE_REQ	17
+#define L1CTL_CCCH_MODE_CONF	18
+
+enum ccch_mode {
+	CCCH_MODE_NONE = 0,
+	CCCH_MODE_NON_COMBINED,
+	CCCH_MODE_COMBINED,
+};
 
 /*
  * NOTE: struct size. We do add manual padding out of the believe
@@ -84,6 +92,12 @@ struct l1ctl_fbsb_conf {
 	/* FIXME: contents of cell_info ? */
 } __attribute__((packed));
 
+/* CCCH mode was changed */
+struct l1ctl_ccch_mode_conf {
+	uint8_t ccch_mode;	/* enum ccch_mode */
+	uint8_t padding[3];
+} __attribute__((packed));
+
 /* data on the CCCH was found. This is following the header */
 struct l1ctl_data_ind {
 	uint8_t data[23];
@@ -117,13 +131,22 @@ struct l1ctl_fbsb_req {
 	uint8_t num_freqerr_avg;
 	uint8_t flags;		/* L1CTL_FBSB_F_* */
 	uint8_t sync_info_idx;
-	uint8_t reserved;
+	uint8_t ccch_mode;	/* enum ccch_mode */
 } __attribute__((packed));
 
 #define L1CTL_FBSB_F_FB0	(1 << 0)
 #define L1CTL_FBSB_F_FB1	(1 << 1)
 #define L1CTL_FBSB_F_SB		(1 << 2)
 #define L1CTL_FBSB_F_FB01SB	(L1CTL_FBSB_F_FB0|L1CTL_FBSB_F_FB1|L1CTL_FBSB_F_SB)
+
+/*
+ * msg for CCCH_MODE_REQ
+ * the l1_info_ul header is in front
+ */
+struct l1ctl_ccch_mode_req {
+	uint8_t ccch_mode;	/* enum ccch_mode */
+	uint8_t padding[3];
+} __attribute__((packed));
 
 /* the l1_info_ul header is in front */
 struct l1ctl_rach_req {
