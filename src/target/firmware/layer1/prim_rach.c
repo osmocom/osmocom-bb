@@ -91,7 +91,7 @@ static int l1s_tx_rach_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 	 * the RACH burst was transmitted to the BTS */
 	last_rach.fn = l1s.current_time.fn - 1;
 	last_rach.band_arfcn = l1s.serving_cell.arfcn;
-	l1s_compl_sched(L1_COMPL_FB);
+	l1s_compl_sched(L1_COMPL_RACH);
 
 	return 0;
 }
@@ -128,5 +128,5 @@ void l1a_rach_req(uint8_t fn51, uint8_t ra)
 	l1a_unlock_sync();
 
 	memset(&last_rach, 0, sizeof(last_rach));
-	l1s.completion[L1_COMPL_FB] = &l1a_rach_compl;
+	l1s.completion[L1_COMPL_RACH] = &l1a_rach_compl;
 }
