@@ -338,6 +338,7 @@ void l1s_reset(void)
 	l1s.fb.mode = 0;
 
 	/* reset scheduler and hardware */
+	sched_gsmtime_reset();
 	mframe_reset();
 	tdma_sched_reset();
 	l1s_dsp_abort();

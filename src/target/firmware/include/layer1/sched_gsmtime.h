@@ -20,4 +20,5 @@ int sched_gsmtime(const struct tdma_sched_item *si, uint32_t fn, uint16_t p3);
 /* execute all GSMTIME one-shot events pending for 'current_fn' */
 int sched_gsmtime_execute(uint32_t current_fn);
 
+void sched_gsmtime_reset(void);
 #endif

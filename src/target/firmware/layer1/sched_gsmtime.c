@@ -106,3 +106,14 @@ void sched_gsmtime_init(void)
 	for (i = 0; i < ARRAY_SIZE(sched_gsmtime_events); i++)
 		llist_add(&sched_gsmtime_events[i].list, &inactive_evts);
 }
+
+void sched_gsmtime_reset(void)
+{
+	struct sched_gsmtime_event *evt, *evt2;
+
+	llist_for_each_entry_safe(evt, evt2, &active_evts, list) {
+		llist_del(&evt->list);
+		/* put event back in list of inactive (free) events */
+		llist_add(&evt->list, &inactive_evts);
+	}
+}
