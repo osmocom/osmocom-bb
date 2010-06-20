@@ -49,6 +49,8 @@
 
 #include <l1a_l23_interface.h>
 
+#define FB0_RETRY_COUNT		3
+
 extern uint16_t rf_arfcn; // TODO
 
 struct mon_state {
@@ -72,6 +74,7 @@ struct l1a_fb_state {
 	struct mon_state mon;
 	struct l1ctl_fbsb_req req;
 	int16_t initial_freq_err;
+	uint8_t fb_retries;
 };
 
 static struct l1a_fb_state fbs;
@@ -405,9 +408,14 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		/* If we don't reset here, we get DSP DMA errors */
 		tdma_sched_reset();
 
-		last_fb->attempt = 13;
-
-		l1s_compl_sched(L1_COMPL_FB);
+		if (fbs.fb_retries < FB0_RETRY_COUNT) {
+			/* retry once more */
+			tdma_schedule_set(1, fb_sched_set, 0);
+			fbs.fb_retries++;
+		} else {
+			last_fb->attempt = 13;
+			l1s_compl_sched(L1_COMPL_FB);
+		}
 
 		return 0;
 	}
@@ -529,6 +537,7 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 
 	/* clear initial frequency error */
 	fbs.initial_freq_err = 0;
+	fbs.fb_retries = 0;
 
 	/* Make sure we start at a 'center' AFCDAC output value */
 	afc_reset();
