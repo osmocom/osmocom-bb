@@ -259,8 +259,16 @@ DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [mcc] [mnc]",
 		return CMD_WARNING;
 
 	if (argc >= 3) {
-		mcc = atoi(argv[1]);
-		mnc = atoi(argv[2]);
+		mcc = gsm_input_mcc((char *)argv[1]);
+		mnc = gsm_input_mnc((char *)argv[2]);
+		if (!mcc) {
+			vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		if (!mnc) {
+			vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
 	}
 
 	gsm322_dump_ba_list(&ms->cellsel, mcc, mnc, print_vty, vty);
@@ -316,8 +324,16 @@ DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
 	}
 
 	if (argc >= 3) {
-		mcc = atoi(argv[1]);
-		mnc = atoi(argv[2]);
+		mcc = gsm_input_mcc((char *)argv[1]);
+		mnc = gsm_input_mnc((char *)argv[2]);
+		if (!mcc) {
+			vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		if (!mnc) {
+			vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
 	}
 
 	gsm_subscr_testcard(ms);
@@ -353,7 +369,8 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 	struct msgb *nmsg;
 	struct gsm322_msg *ngm;
 	struct gsm322_plmn_list *temp;
-	uint16_t mcc, mnc;
+	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
+		 mnc = gsm_input_mnc((char *)argv[2]);
 	int found = 0;
 
 	ms = get_ms(argv[0], vty);
@@ -361,8 +378,14 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 		return CMD_WARNING;
 	plmn = &ms->plmn;
 
-	mcc = atoi(argv[1]);
-	mnc = atoi(argv[2]);
+	if (!mcc) {
+		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (!mnc) {
+		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
 		if (temp->mcc == mcc &&  temp->mnc == mnc)
@@ -427,8 +450,9 @@ DEFUN(network_show, network_show_cmd, "network show MS_NAME",
 	}
 
 	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
-		vty_out(vty, " Network %03d, %02d (%s, %s)%s", temp->mcc,
-			temp->mnc, gsm_get_mcc(temp->mcc),
+		vty_out(vty, " Network %s, %s (%s, %s)%s",
+			gsm_print_mcc(temp->mcc), gsm_print_mnc(temp->mnc),
+			gsm_get_mcc(temp->mcc),
 			gsm_get_mnc(temp->mcc, temp->mnc), VTY_NEWLINE);
 
 	return CMD_SUCCESS;
@@ -596,7 +620,6 @@ DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi (none|IMSI)",
 	"Use IMSI of SIM or IMEI for emergency calls\n15 digits IMSI")
 {
 	struct osmocom_ms *ms = vty->index;
-	uint16_t mcc, mnc;
 	char *error;
 
 	if (argv[0][0] == 'n') {
@@ -604,7 +627,7 @@ DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi (none|IMSI)",
 		return CMD_SUCCESS;
 	}
 
-	error = gsm_check_imsi(argv[0], &mcc, &mnc);
+	error = gsm_check_imsi(argv[0]);
 	if (error) {
 		vty_out(vty, "%s%s", error, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -653,8 +676,7 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 	"Set IMSI on test card\n15 digits IMSI")
 {
 	struct osmocom_ms *ms = vty->index;
-	uint16_t mcc, mnc;
-	char *error = gsm_check_imsi(argv[0], &mcc, &mnc);
+	char *error = gsm_check_imsi(argv[0]);
 
 	if (error) {
 		vty_out(vty, "%s%s", error, VTY_NEWLINE);
@@ -700,10 +722,20 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
 	"Set Registered PLMN\nMobile Country Code\nMobile Network Code")
 {
 	struct osmocom_ms *ms = vty->index;
+	uint16_t mcc = gsm_input_mcc((char *)argv[0]),
+		 mnc = gsm_input_mnc((char *)argv[1]);
 
+	if (!mcc) {
+		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (!mnc) {
+		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 	ms->settings.test_rplmn_valid = 1;
-	ms->settings.test_rplmn_mcc = atoi(argv[0]);
-	ms->settings.test_rplmn_mnc = atoi(argv[1]);
+	ms->settings.test_rplmn_mcc = mcc;
+	ms->settings.test_rplmn_mnc = mnc;
 
 	return CMD_SUCCESS;
 }

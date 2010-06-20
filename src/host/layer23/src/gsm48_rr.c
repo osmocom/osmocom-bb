@@ -57,6 +57,7 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/l1l2_interface.h>
 #include <osmocom/logging.h>
+#include <osmocom/networks.h>
 
 static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_rr_dl_est(struct osmocom_ms *ms);
@@ -70,13 +71,12 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms);
 int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 	uint16_t *mnc, uint16_t *lac)
 {
-	*mcc = (lai->digits[0] & 0x0f) * 100
-		+ (lai->digits[0] >> 4) * 10
-		+ (lai->digits[1] & 0x0f);
-	*mnc = (lai->digits[2] & 0x0f) * 10
-		+ (lai->digits[2] >> 4);
-	if ((lai->digits[1] >> 4) != 0xf) /* 3 digits MNC */
-		*mnc += (lai->digits[1] >> 4) * 100;
+	*mcc = ((lai->digits[0] & 0x0f) << 8)
+	     | (lai->digits[0] & 0xf0)
+	     | (lai->digits[1] & 0x0f);
+	*mnc = ((lai->digits[2] & 0x0f) << 8)
+	     | (lai->digits[2] & 0xf0)
+	     | ((lai->digits[1] & 0xf0) >> 4);
 	*lac = ntohs(lai->lac);
 
 	return 0;
@@ -2012,8 +2012,9 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 	if (payload_len >= 4)
 		gsm48_decode_si3_rest(s, si->rest_octets, payload_len);
 
-	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 3 (mcc %03d mnc %02d "
-		"lac 0x%04x)\n", s->mcc, s->mnc, s->lac);
+	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 3 (mcc %s mnc %s "
+		"lac 0x%04x)\n", gsm_print_mcc(s->mcc),
+		gsm_print_mnc(s->mnc), s->lac);
 
 	s->si3 = 1;
 
@@ -2080,8 +2081,9 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 	if (payload_len > 0)
 		gsm48_decode_si4_rest(s, data, payload_len);
 
-	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 4 (mcc %03d mnc %02d "
-		"lac 0x%04x)\n", s->mcc, s->mnc, s->lac);
+	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 4 (mcc %s mnc %s "
+		"lac 0x%04x)\n", gsm_print_mcc(s->mcc),
+		gsm_print_mnc(s->mnc), s->lac);
 
 	s->si4 = 1;
 
@@ -2238,8 +2240,9 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	if (payload_len >= 4)
 		gsm48_decode_si6_rest(s, si->rest_octets, payload_len);
 
-	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 6 (mcc %03d mnc %02d "
-		"lac 0x%04x)\n", s->mcc, s->mnc, s->lac);
+	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 6 (mcc %s mnc %s "
+		"lac 0x%04x)\n", gsm_print_mcc(s->mcc),
+		gsm_print_mnc(s->mnc), s->lac);
 
 	s->si6 = 1;
 

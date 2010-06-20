@@ -39,7 +39,6 @@ struct gsm_subscriber {
 	uint16_t		lai_mcc, lai_mnc, lai_lac;
 
 	/* IMSI */
-	uint16_t		mcc, mnc;
 	char 			imsi[GSM_IMSI_LENGTH];
 
 	/* TMSI */
@@ -84,7 +83,7 @@ int gsm_subscr_dump_forbidden_plmn(struct osmocom_ms *ms,
 			void (*print)(void *, const char *, ...), void *priv);
 void gsm_subscr_dump(struct gsm_subscriber *subscr,
 			void (*print)(void *, const char *, ...), void *priv);
-char *gsm_check_imsi(const char *imsi, uint16_t *mcc, uint16_t *mnc);
+char *gsm_check_imsi(const char *imsi);
 
 #endif /* _SUBSCRIBER_H */
 

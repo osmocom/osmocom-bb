@@ -35,6 +35,7 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/gsm48_cc.h>
 #include <osmocom/l23_app.h>
+#include <osmocom/networks.h>
 
 extern void *l23_ctx;
 
@@ -2284,9 +2285,9 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 #endif
 
 	LOGP(DSUM, LOGL_INFO, "Location update accepted\n");
-	LOGP(DMM, LOGL_INFO, "LOCATION UPDATING ACCEPT (mcc %03d mnc %02d "
-		"lac 0x%04x)\n", subscr->lai_mcc, subscr->lai_mnc,
-		subscr->lai_lac);
+	LOGP(DMM, LOGL_INFO, "LOCATION UPDATING ACCEPT (mcc %s mnc %s "
+		"lac 0x%04x)\n", gsm_print_mcc(subscr->lai_mcc),
+		gsm_print_mnc(subscr->lai_mnc), subscr->lai_lac);
 
 	/* remove LA from forbidden list */
 	gsm322_del_forbidden_la(ms, subscr->lai_mcc, subscr->lai_mnc,

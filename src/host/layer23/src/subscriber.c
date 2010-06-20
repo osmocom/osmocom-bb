@@ -71,7 +71,6 @@ int gsm_subscr_testcard(struct osmocom_ms *ms)
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *msg;
-	uint16_t mcc, mnc;
 	char *error;
 
 	if (subscr->sim_valid) {
@@ -80,7 +79,7 @@ int gsm_subscr_testcard(struct osmocom_ms *ms)
 		return -EBUSY;
 	}
 
-	error = gsm_check_imsi(set->test_imsi, &mcc, &mnc);
+	error = gsm_check_imsi(set->test_imsi);
 	if (error) {
 		LOGP(DMM, LOGL_ERROR, "%s\n", error);
 		return -EINVAL;
@@ -96,8 +95,6 @@ int gsm_subscr_testcard(struct osmocom_ms *ms)
 	subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
 	subscr->acc_barr = set->test_barr; /* we may access barred cell */
 	subscr->acc_class = 0xffff; /* we have any access class */
-	subscr->mcc = mcc;
-	subscr->mnc = mnc;
 	subscr->plmn_valid = set->test_rplmn_valid;
 	subscr->plmn_mcc = set->test_rplmn_mcc;
 	subscr->plmn_mnc = set->test_rplmn_mnc;
@@ -105,9 +102,9 @@ int gsm_subscr_testcard(struct osmocom_ms *ms)
 	subscr->t6m_hplmn = 1; /* try to find home network every 6 min */
 	strcpy(subscr->imsi, set->test_imsi);
 
-	LOGP(DMM, LOGL_INFO, "(ms %s) Inserting test card (mnc=%d mnc=%d "
-		"(%s, %s) imsi=%s)\n", ms->name, mcc, mnc, gsm_get_mcc(mcc),
-		gsm_get_mnc(mnc, mnc), subscr->imsi);
+	LOGP(DMM, LOGL_INFO, "(ms %s) Inserting test card (IMSI=%s %s,%s)\n",
+		ms->name, subscr->imsi, gsm_imsi_mcc(subscr->imsi),
+		gsm_imsi_mnc(subscr->imsi));
 
 	/* insert card */
 	msg = gsm48_mmr_msgb_alloc(GSM48_MMR_REG_REQ);
@@ -164,7 +161,8 @@ int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 	llist_for_each_entry(na, &subscr->plmn_na, entry) {
 		if (na->mcc == mcc && na->mnc == mnc) {
 			LOGP(DPLMN, LOGL_INFO, "Delete from list of forbidden "
-				"PLMNs (mcc=%03d, mnc=%02d)\n", mcc, mnc);
+				"PLMNs (mcc=%s, mnc=%s)\n",
+				gsm_print_mcc(mcc), gsm_print_mnc(mnc));
 			llist_del(&na->entry);
 			talloc_free(na);
 #ifdef TODO
@@ -184,11 +182,11 @@ int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 	struct gsm_sub_plmn_na *na;
 
 	/* don't add Home PLMN */
-	if (subscr->sim_valid && mcc == subscr->mcc && mnc == subscr->mnc)
+	if (subscr->sim_valid && gsm_match_mnc(mcc, mnc, subscr->imsi))
 		return -EINVAL;
 
 	LOGP(DPLMN, LOGL_INFO, "Add to list of forbidden PLMNs "
-		"(mcc=%03d, mnc=%02d)\n", mcc, mnc);
+		"(mcc=%s, mnc=%s)\n", gsm_print_mcc(mcc), gsm_print_mnc(mnc));
 	na = talloc_zero(l23_ctx, struct gsm_sub_plmn_na);
 	if (!na)
 		return -ENOMEM;
@@ -248,9 +246,7 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		return;
 	}
 
-	print(priv, " IMSI: %s  MCC %d  MNC %d  (%s, %s)\n", subscr->imsi,
-		subscr->mcc, subscr->mnc, gsm_get_mcc(subscr->mcc),
-		gsm_get_mnc(subscr->mcc, subscr->mnc));
+	print(priv, " IMSI: %s\n", subscr->imsi);
 	print(priv, " Status: %s  IMSI %s", subscr_ustate_names[subscr->ustate],
 		(subscr->imsi_attached) ? "attached" : "detached");
 	if (subscr->tmsi_valid)
@@ -298,7 +294,7 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 	}
 }
 
-char *gsm_check_imsi(const char *imsi, uint16_t *mcc, uint16_t *mnc)
+char *gsm_check_imsi(const char *imsi)
 {
 	int i;
 
@@ -309,9 +305,6 @@ char *gsm_check_imsi(const char *imsi, uint16_t *mcc, uint16_t *mnc)
 		if (imsi[i] < '0' || imsi[i] > '9')
 			return "IMSI must have digits 0 to 9 only!";
 	}
-
-	*mcc = imsi[0] * 100 + imsi[1] * 10 + imsi[2] - 111 * '0';
-	*mnc = imsi[3] * 10 + imsi[4] - 11 * '0';
 
 	return NULL;
 }
