@@ -38,6 +38,8 @@
 int mncc_call(struct osmocom_ms *ms, char *number);
 int mncc_hangup(struct osmocom_ms *ms);
 int mncc_answer(struct osmocom_ms *ms);
+int mncc_hold(struct osmocom_ms *ms);
+int mncc_retrieve(struct osmocom_ms *ms, int number);
 
 extern struct llist_head ms_list;
 
@@ -406,9 +408,10 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 	return CMD_SUCCESS;
 }
 
-DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup)",
+DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 	"Make a call\nName of MS (see \"show ms\")\nPhone number to call\n"
-	"Make an emergency call\nAnswer an incomming call\nHangup a call")
+	"Make an emergency call\nAnswer an incomming call\nHangup a call\n"
+	"Hold current active call\n")
 {
 	struct osmocom_ms *ms;
 
@@ -421,11 +424,29 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup)",
 		mncc_answer(ms);
 		break;
 	case 'h':
-		mncc_hangup(ms);
+		if (argv[1][1] == 'a')
+			mncc_hangup(ms);
+		else
+			mncc_hold(ms);
 		break;
 	default:
 		mncc_call(ms, (char *)argv[1]);
 	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_retr, call_retr_cmd, "call MS_NAME retrieve [number]",
+	"Make a call\nName of MS (see \"show ms\")\n"
+	"Retrieve call on hold\nNumber of call to retrieve")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	mncc_retrieve(ms, (argc > 1) ? atoi(argv[1]) : 0);
 
 	return CMD_SUCCESS;
 }
@@ -519,6 +540,7 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, " imei-fixed%s", VTY_NEWLINE);
 	vty_out(vty, " emergency-imsi %s%s", (ms->settings.emergency_imsi[0]) ?
 		ms->settings.emergency_imsi : "none", VTY_NEWLINE);
+	vty_out(vty, " %scall-waiting%s", (set->cw) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", ms->settings.test_imsi, VTY_NEWLINE);
 	vty_out(vty, "  %sbarred-access%s", (set->test_barr) ? "" : "no ",
@@ -633,6 +655,26 @@ DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi (none|IMSI)",
 		return CMD_WARNING;
 	}
 	strcpy(ms->settings.emergency_imsi, argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_cw, cfg_ms_no_cw_cmd, "no call-waiting",
+	"Disallow waiting calls")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.cw = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_cw, cfg_ms_cw_cmd, "call-waiting",
+	"Allow waiting calls")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.cw = 1;
 
 	return CMD_SUCCESS;
 }
@@ -789,6 +831,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &network_show_cmd);
 	install_element(ENABLE_NODE, &network_select_cmd);
 	install_element(ENABLE_NODE, &call_cmd);
+	install_element(ENABLE_NODE, &call_retr_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ms_cmd);
 	install_node(&ms_node, config_write_ms);
@@ -798,6 +841,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_imei_fixed_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_random_cmd);
 	install_element(MS_NODE, &cfg_ms_emerg_imsi_cmd);
+	install_element(MS_NODE, &cfg_ms_cw_cmd);
+	install_element(MS_NODE, &cfg_ms_no_cw_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
 
 	install_element(MS_NODE, &cfg_testsim_cmd);

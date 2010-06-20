@@ -20,6 +20,9 @@ struct gsm_settings {
 	uint8_t			test_rplmn_valid;
 	uint16_t		test_rplmn_mcc, test_rplmn_mnc;
 	uint8_t			test_always; /* ...search hplmn... */
+
+	/* call related settings */
+	uint8_t			cw; /* set if call-waiting is allowed */
 };
 
 int gsm_settings_init(struct osmocom_ms *ms);

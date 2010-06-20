@@ -35,6 +35,9 @@ struct gsm_call {
 	void *ms;
 
 	uint32_t callref;
+
+	uint8_t	hold; /* call on hold */
+	uint8_t	ring; /* call is ringing/knocking */
 };
 
 #define MNCC_SETUP_REQ		0x0101
