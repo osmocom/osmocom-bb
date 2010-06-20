@@ -38,6 +38,7 @@
 #define L1CTL_RACH_CONF		13
 #define L1CTL_RESET_REQ		14
 #define L1CTL_RESET_CONF	15
+#define L1CTL_DATA_CONF		16
 
 /*
  * NOTE: struct size. We do add manual padding out of the believe

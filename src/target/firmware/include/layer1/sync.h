@@ -31,6 +31,7 @@ enum l1s_chan {
 enum l1_compl {
 	L1_COMPL_FB,
 	L1_COMPL_RACH,
+	L1_COMPL_TX_NB,
 };
 
 typedef void l1_compl_cb(enum l1_compl c);

@@ -68,6 +68,7 @@
 #define TCH_EFR_MODE       8    // enhanced full rate
 #define TCH_144_MODE       9    // data 14,4 kb/s half rate
 
+static uint32_t last_txnb_fn;
 
 static const uint8_t ubUui[23]     = { 0x01, 0x03, 0x01, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
 
@@ -78,6 +79,11 @@ static int l1s_tx_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 	putchart('t');
 
 	dsp_api.r_page_used = 1;
+
+	if (burst_id == 3) {
+		last_txnb_fn = l1s.current_time.fn - 4;
+		l1s_compl_sched(L1_COMPL_TX_NB);
+	}
 
 	return 0;
 }
@@ -156,6 +162,15 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 	return 0;
 }
 
+/* Asynchronous completion handler for NB transmit */
+static void l1a_tx_nb_compl(__unused enum l1_compl c)
+{
+	struct msgb *msg;
+
+	msg = l1_create_l2_msg(L1CTL_DATA_CONF, last_txnb_fn, 0, 0);
+	l1_queue_for_l2(msg);
+}
+
 void l1s_tx_test(uint8_t base_fn, uint8_t type)
 {
 	printf("Starting TX %d\n", type);
@@ -173,6 +188,8 @@ void l1s_tx_test(uint8_t base_fn, uint8_t type)
 		tdma_schedule(base_fn + 4, &l1s_tx_resp, 2, 2, 0);
 		tdma_schedule(base_fn + 5, &l1s_tx_resp, 2, 3, 0);
 	}
+
+	l1s.completion[L1_COMPL_TX_NB] = &l1a_tx_nb_compl;
 }
 
 /* sched sets for uplink */
