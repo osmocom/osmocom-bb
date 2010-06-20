@@ -416,7 +416,7 @@ struct gsm_networks gsm_networks[] = {
 	{ 0x262, 0x07f,		"O2" },
 	{ 0x262, 0x08f,		"O2" },
 	{ 0x262, 0x09f,		"Vodafone" },
-	{ 0x262, 0x10f,		"Arcor AG & Co" },
+	{ 0x262, 0x10f,		"DB Systel GSM-R" },
 	{ 0x262, 0x11f,		"O2" },
 	{ 0x262, 0x12f,		"Dolphin Telecom" },
 	{ 0x262, 0x13f,		"Mobilcom Multimedia" },
