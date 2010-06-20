@@ -115,8 +115,99 @@ struct msgb *l1_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 	return msg;
 }
 
+/* receive a L1CTL_FBSB_REQ from L23 */
+static void l1ctl_rx_fbsb_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_fbsb_req *sync_req = (struct l1ctl_fbsb_req *) l1h->data;
+
+	if (sizeof(*sync_req) > msg->len) {
+		printf("Short sync msg. %u\n", msg->len);
+		return;
+	}
+
+	printd("L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
+		ntohs(sync_req->band_arfcn), sync_req->flags);
+
+	/* reset scheduler and hardware */
+	l1s_reset();
+
+	/* tune to specified frequency */
+	trf6151_rx_window(0, ntohs(sync_req->band_arfcn), 40, 0);
+	tpu_end_scenario();
+
+	/* pre-set the CCCH mode */
+	l1s.serving_cell.ccch_mode = sync_req->ccch_mode;
+
+	printd("Starting FCCH Recognition\n");
+	l1s_fbsb_req(1, sync_req);
+}
+
+/* receive a L1CTL_DM_EST_REQ from L23 */
+static void l1ctl_rx_dm_est_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_dm_est_req *est_req = (struct l1ctl_dm_est_req *) ul->payload;
+
+	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x)\n",
+		ntohs(est_req->band_arfcn), ul->chan_nr);
+
+	if (ntohs(est_req->band_arfcn) != l1s.serving_cell.arfcn) {
+		/* FIXME: ARFCN */
+		puts("We don't support ARFCN switches yet\n");
+		return;
+	}
+	if (ul->chan_nr & 0x7) {
+		/* FIXME: Timeslot */
+		puts("We don't support non-0 TS yet\n");
+		return;
+	}
+	if (est_req->h0.h) {
+		puts("We don't support frequency hopping yet\n");
+		return;
+	}
+
+	/* FIXME: set TSC of ded chan according to est_req.h0.tsc */
+	/* figure out which MF tasks to enable */
+	l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
+}
+
+/* receive a L1CTL_RACH_REQ from L23 */
+static void l1ctl_rx_rach_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *) ul->payload;
+
+	printd("L1CTL_RACH_REQ (ra=0x%02x)\n", rach_req->ra);
+
+	l1a_rach_req(27, rach_req->ra);
+}
+
+/* receive a L1CTL_DATA_REQ from L23 */
+static void l1ctl_rx_data_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_data_ind *data_ind = (struct l1ctl_data_ind *) ul->payload;
+	struct llist_head *tx_queue;
+
+	printd("L1CTL_DATA_REQ (link_id=0x%02x)\n", ul->link_id);
+
+	msg->l3h = data_ind->data;
+	tx_queue = (ul->link_id & 0x40) ?
+			&l1s.tx_queue[L1S_CHAN_SACCH] :
+			&l1s.tx_queue[L1S_CHAN_MAIN];
+
+	printd("ul=%p, ul->payload=%p, data_ind=%p, data_ind->data=%p l3h=%p\n",
+		ul, ul->payload, data_ind, data_ind->data, msg->l3h);
+
+	l1a_txq_msgb_enq(tx_queue, msg);
+}
+
 /* receive a L1CTL_PM_REQ from L23 */
-void l1ctl_rx_pm_req(struct msgb *msg)
+static void l1ctl_rx_pm_req(struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_pm_req *pm_req = (struct l1ctl_pm_req *) l1h->data;
@@ -209,12 +300,7 @@ static void l1ctl_rx_ccch_mode_req(struct msgb *msg)
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
-	struct l1ctl_fbsb_req *sync_req;
-	struct l1ctl_rach_req *rach_req;
-	struct l1ctl_dm_est_req *est_req;
-	struct l1ctl_data_ind *data_ind;
-	struct llist_head *tx_queue;
+
 #if 0
 	{
 		int i;
@@ -224,6 +310,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		puts("\n");
 	}
 #endif
+
 	msg->l1h = msg->data;
 
 	if (sizeof(*l1h) > msg->len) {
@@ -233,66 +320,16 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 
 	switch (l1h->msg_type) {
 	case L1CTL_FBSB_REQ:
-		if (sizeof(*sync_req) > msg->len) {
-			printf("Short sync msg. %u\n", msg->len);
-			break;
-		}
-
-		sync_req = (struct l1ctl_fbsb_req *) l1h->data;
-		printd("L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
-			ntohs(sync_req->band_arfcn), sync_req->flags);
-
-		/* reset scheduler and hardware */
-		l1s_reset();
-
-		/* tune to specified frequency */
-		trf6151_rx_window(0, ntohs(sync_req->band_arfcn), 40, 0);
-		tpu_end_scenario();
-
-		/* pre-set the CCCH mode */
-		l1s.serving_cell.ccch_mode = sync_req->ccch_mode;
-
-		printd("Starting FCCH Recognition\n");
-		l1s_fbsb_req(1, sync_req);
+		l1ctl_rx_fbsb_req(msg);
 		break;
 	case L1CTL_DM_EST_REQ:
-		est_req = (struct l1ctl_dm_est_req *) ul->payload;
-		printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x)\n",
-			ntohs(est_req->band_arfcn), ul->chan_nr);
-		if (ntohs(est_req->band_arfcn) != l1s.serving_cell.arfcn) {
-			/* FIXME: ARFCN */
-			puts("We don't support ARFCN switches yet\n");
-			break;
-		}
-		if (ul->chan_nr & 0x7) {
-			/* FIXME: Timeslot */
-			puts("We don't support non-0 TS yet\n");
-			break;
-		}
-		if (est_req->h0.h) {
-			puts("We don't support frequency hopping yet\n");
-			break;
-		}
-		/* FIXME: set TSC of ded chan according to est_req.h0.tsc */
-		/* figure out which MF tasks to enable */
-		l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
+		l1ctl_rx_dm_est_req(msg);
 		break;
 	case L1CTL_RACH_REQ:
-		rach_req = (struct l1ctl_rach_req *) ul->payload;
-		printd("L1CTL_RACH_REQ (ra=0x%02x)\n", rach_req->ra);
-		l1a_rach_req(27, rach_req->ra);
+		l1ctl_rx_rach_req(msg);
 		break;
 	case L1CTL_DATA_REQ:
-		data_ind = (struct l1ctl_data_ind *) ul->payload;
-		printd("L1CTL_DATA_REQ (link_id=0x%02x)\n", ul->link_id);
-		if (ul->link_id & 0x40)
-			tx_queue = &l1s.tx_queue[L1S_CHAN_SACCH];
-		else
-			tx_queue = &l1s.tx_queue[L1S_CHAN_MAIN];
-		msg->l3h = data_ind->data;
-		printd("ul=%p, ul->payload=%p, data_ind=%p, data_ind->data=%p l3h=%p\n",
-			ul, ul->payload, data_ind, data_ind->data, msg->l3h);
-		l1a_txq_msgb_enq(tx_queue, msg);
+		l1ctl_rx_data_req(msg);
 		/* we have to keep the msgb, not free it! */
 		goto exit_nofree;
 	case L1CTL_PM_REQ:
