@@ -78,7 +78,7 @@ static int l1s_pm_cmd(__unused uint8_t p1,
 static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 		       uint16_t arfcn)
 {
-	struct l1ctl_pm_resp *pmr;
+	struct l1ctl_pm_conf *pmr;
 	uint16_t pm_level[2];
 
 	putchart('p');
@@ -90,13 +90,13 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 		agc_inp_dbm8_by_pm(pm_level[1])/8, arfcn);
 
 	if (!l1s.pm.msg)
-		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_RESP);
+		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
 
 	if (msgb_tailroom(l1s.pm.msg) < sizeof(*pmr)) {
 		/* flush current msgb */
 		l1_queue_for_l2(l1s.pm.msg);
 		/* allocate a new msgb and initialize header */
-		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_RESP);
+		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
 	}
 
 	pmr = msgb_put(l1s.pm.msg, sizeof(*pmr));

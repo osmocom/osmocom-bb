@@ -138,7 +138,7 @@ void l1ctl_rx_pm_req(struct msgb *msg)
 	l1s_pm_test(1, l1s.pm.range.arfcn_next);
 }
 
-/* Transmit a L1CTL_RESET_IND or L1CTL_RESET_RESP */
+/* Transmit a L1CTL_RESET_IND or L1CTL_RESET_CONF */
 void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type)
 {
 	struct msgb *msg = l1ctl_msgb_alloc(msg_type);
@@ -162,7 +162,7 @@ static void l1ctl_rx_reset_req(struct msgb *msg)
 		printf("L1CTL_RESET_REQ: FULL!\n");
 		l1s_reset();
 		l1s_reset_hw();
-		l1ctl_tx_reset(L1CTL_RESET_RESP, reset_req->type);
+		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	default:
 		printf("unknown L1CTL_RESET_REQ type\n");

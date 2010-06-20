@@ -25,19 +25,19 @@
 #define l1a_l23_interface_h
 
 #define L1CTL_FBSB_REQ		1
-#define L1CTL_FBSB_RESP		2
+#define L1CTL_FBSB_CONF		2
 #define L1CTL_DATA_IND		3
 #define L1CTL_RACH_REQ		4
 #define L1CTL_DM_EST_REQ	5
 #define L1CTL_DATA_REQ		7
 #define L1CTL_RESET_IND		8
 #define L1CTL_PM_REQ		9	/* power measurement */
-#define L1CTL_PM_RESP		10	/* power measurement */
+#define L1CTL_PM_CONF		10	/* power measurement */
 #define L1CTL_ECHO_REQ		11
-#define L1CTL_ECHO_RESP		12
-#define L1CTL_RACH_RESP		13
+#define L1CTL_ECHO_CONF		12
+#define L1CTL_RACH_CONF		13
 #define L1CTL_RESET_REQ		14
-#define L1CTL_RESET_RESP	15
+#define L1CTL_RESET_CONF	15
 
 /*
  * NOTE: struct size. We do add manual padding out of the believe
@@ -76,7 +76,7 @@ struct l1ctl_info_dl {
 } __attribute__((packed));
 
 /* new CCCH was found. This is following the header */
-struct l1ctl_fbsb_resp {
+struct l1ctl_fbsb_conf {
 	int16_t initial_freq_err;
 	uint8_t result;
 	uint8_t bsic;
@@ -163,7 +163,7 @@ struct l1ctl_pm_req {
 } __attribute__((packed));
 
 /* a single L1CTL_PM response */
-struct l1ctl_pm_resp {
+struct l1ctl_pm_conf {
 	uint16_t band_arfcn;
 	uint8_t pm[2];
 } __attribute__((packed));

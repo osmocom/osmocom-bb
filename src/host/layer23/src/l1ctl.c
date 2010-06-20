@@ -71,10 +71,10 @@ static int osmo_make_band_arfcn(struct osmocom_ms *ms, uint16_t arfcn)
 	return arfcn;
 }
 
-static int rx_l1_fbsb_resp(struct osmocom_ms *ms, struct msgb *msg)
+static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_info_dl *dl;
-	struct l1ctl_fbsb_resp *sb;
+	struct l1ctl_fbsb_conf *sb;
 	struct gsm_time tm;
 
 	if (msgb_l3len(msg) < sizeof(*dl) + sizeof(*sb)) {
@@ -84,7 +84,7 @@ static int rx_l1_fbsb_resp(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
-	sb = (struct l1ctl_fbsb_resp *) dl->payload;
+	sb = (struct l1ctl_fbsb_conf *) dl->payload;
 
 	printf("snr=%04x, arfcn=%u result=%u\n", dl->snr, ntohs(dl->band_arfcn),
 		sb->result);
@@ -346,12 +346,12 @@ static int rx_l1_reset(struct osmocom_ms *ms)
 	return 0;
 }
 
-/* Receive L1CTL_PM_RESP */
-static int rx_l1_pm_resp(struct osmocom_ms *ms, struct msgb *msg)
+/* Receive L1CTL_PM_CONF */
+static int rx_l1_pm_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct l1ctl_pm_resp *pmr;
+	struct l1ctl_pm_conf *pmr;
 
-	for (pmr = (struct l1ctl_pm_resp *) msg->l1h;
+	for (pmr = (struct l1ctl_pm_conf *) msg->l1h;
 	     (uint8_t *) pmr < msg->tail; pmr++) {
 		struct osmobb_meas_res mr;
 		DEBUGP(DL1C, "PM MEAS: ARFCN: %4u RxLev: %3d %3d\n",
@@ -385,8 +385,8 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	msg->l1h = l1h->data;
 
 	switch (l1h->msg_type) {
-	case L1CTL_FBSB_RESP:
-		rc = rx_l1_fbsb_resp(ms, msg);
+	case L1CTL_FBSB_CONF:
+		rc = rx_l1_fbsb_conf(ms, msg);
 		msgb_free(msg);
 		break;
 	case L1CTL_DATA_IND:
@@ -396,8 +396,8 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		rc = rx_l1_reset(ms);
 		msgb_free(msg);
 		break;
-	case L1CTL_PM_RESP:
-		rc = rx_l1_pm_resp(ms, msg);
+	case L1CTL_PM_CONF:
+		rc = rx_l1_pm_conf(ms, msg);
 		msgb_free(msg);
 		if (l1h->flags & L1CTL_F_DONE)
 			dispatch_signal(SS_L1CTL, S_L1CTL_PM_DONE, ms);

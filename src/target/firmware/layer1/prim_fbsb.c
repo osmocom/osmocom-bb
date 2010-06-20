@@ -101,15 +101,15 @@ static void dump_mon_state(struct mon_state *fb)
 static int l1ctl_fbsb_resp(uint8_t res)
 {
 	struct msgb *msg;
-	struct l1ctl_fbsb_resp *resp;
+	struct l1ctl_fbsb_conf *resp;
 
-	msg = l1_create_l2_msg(L1CTL_FBSB_RESP, fbs.mon.time.fn,
+	msg = l1_create_l2_msg(L1CTL_FBSB_CONF, fbs.mon.time.fn,
 				l1s_snr_int(fbs.mon.snr),
 				fbs.req.band_arfcn);
 	if (!msg)
 		return -ENOMEM;
 
-	resp = (struct l1ctl_fbsb_resp *) msgb_put(msg, sizeof(*resp));
+	resp = (struct l1ctl_fbsb_conf *) msgb_put(msg, sizeof(*resp));
 	resp->initial_freq_err = htons(fbs.initial_freq_err);
 	resp->result = res;
 	resp->bsic = fbs.mon.bsic;
@@ -529,7 +529,7 @@ static void l1a_fb_compl(__unused enum l1_compl c)
 	/* FIME: use l1s.neigh_cell[fbs.cinfo_idx] */
 	fbinfo2cellinfo(&l1s.serving_cell, last_fb);
 
-	/* send FBSB_RESP success message via L1CTL */
+	/* send FBSB_CONF success message via L1CTL */
 	l1ctl_fbsb_resp(0);
 }
 

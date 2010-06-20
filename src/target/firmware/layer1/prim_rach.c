@@ -109,7 +109,7 @@ static void l1a_rach_compl(__unused enum l1_compl c)
 {
 	struct msgb *msg;
 
-	msg = l1_create_l2_msg(L1CTL_RACH_RESP, last_rach.fn, 0,
+	msg = l1_create_l2_msg(L1CTL_RACH_CONF, last_rach.fn, 0,
 				last_rach.band_arfcn);
 	l1_queue_for_l2(msg);
 }
