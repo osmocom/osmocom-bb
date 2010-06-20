@@ -219,6 +219,12 @@ int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
  * support
  */
 
+static int gsm322_sync_to_cell(struct osmocom_ms *ms, struct gsm322_cellsel *cs)
+{
+	return l1ctl_tx_fbsb_req(ms, cs->arfcn,
+	                         L1CTL_FBSB_F_FB01SB, 100, 0);
+}
+
 static void gsm322_unselect_cell(struct gsm322_cellsel *cs)
 {
 	cs->selected = 0;
@@ -1645,7 +1651,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			"%d).\n", cs->arfcn, cs->list[cs->arfcn].rxlev_db);
 		cs->ccch_state = GSM322_CCCH_ST_INIT;
 		hack = 5;
-		l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
+		gsm322_sync_to_cell(ms, cs);
 //		start_cs_timer(cs, ms->support.sync_to, 0);
 
 		return 0;
@@ -1677,7 +1683,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			cs->si = cs->list[cs->arfcn].sysinfo;
 			cs->ccch_state = GSM322_CCCH_ST_INIT;
 			hack = 5;
-			l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
+			gsm322_sync_to_cell(ms, cs);
 
 			/* selected PLMN (manual) or any PLMN (auto) */
 			switch (ms->settings.plmn_mode) {
@@ -1744,7 +1750,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		cs->list[cs->arfcn].rxlev_db);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	hack = 5;
-	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
+	gsm322_sync_to_cell(ms, cs);
 //	start_cs_timer(cs, ms->support.sync_to, 0);
 
 	/* Allocate/clean system information. */
@@ -1871,7 +1877,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	cs->si = cs->list[cs->arfcn].sysinfo;
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	hack = 5;
-	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
+	gsm322_sync_to_cell(ms, cs);
 
 	/* selected PLMN (manual) or any PLMN (auto) */
 	switch (ms->settings.plmn_mode) {
@@ -2273,7 +2279,7 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 					cs->list[cs->arfcn].rxlev_db);
 				cs->ccch_state = GSM322_CCCH_ST_INIT;
 				hack = 5;
-				l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
+				gsm322_sync_to_cell(ms, cs);
 //				start_cs_timer(cs, ms->support.sync_to, 0);
 
 			} else
@@ -2376,7 +2382,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		if (hack) {
 			ms = signal_data;
 			cs = &ms->cellsel;
-			l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
+			gsm322_sync_to_cell(ms, cs);
 			hack--;
 			LOGP(DCS, LOGL_INFO, "Channel sync error, try again.\n");
 			break;
@@ -2818,7 +2824,7 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	hack = 5;
-	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
+	gsm322_sync_to_cell(ms, cs);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 #warning TESTING: laforge must fix the sync error when sending fbsb request too close to each other. also we must get a response with arfcn or a confirm, so we know where the response belongs to.
 usleep(300000);
@@ -2839,7 +2845,7 @@ static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	hack = 5;
-	l1ctl_tx_fbsb_req(ms, cs->arfcn, L1CTL_FBSB_F_FB01SB, 100, 0);
+	gsm322_sync_to_cell(ms, cs);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 
 	return 0;
