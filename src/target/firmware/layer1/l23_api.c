@@ -262,6 +262,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		break;
 	case L1CTL_RESET_REQ:
 		l1ctl_rx_reset_req(msg);
+		break;
 	}
 
 exit_msgbfree:
