@@ -49,6 +49,9 @@
 
 #include <l1a_l23_interface.h>
 
+#define FB0_RETRY_COUNT		3
+#define AFC_RETRY_COUNT		30
+
 extern uint16_t rf_arfcn; // TODO
 
 struct mon_state {
@@ -72,6 +75,8 @@ struct l1a_fb_state {
 	struct mon_state mon;
 	struct l1ctl_fbsb_req req;
 	int16_t initial_freq_err;
+	uint8_t fb_retries;
+	uint8_t afc_retries;
 };
 
 static struct l1a_fb_state fbs;
@@ -405,9 +410,14 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		/* If we don't reset here, we get DSP DMA errors */
 		tdma_sched_reset();
 
-		last_fb->attempt = 13;
-
-		l1s_compl_sched(L1_COMPL_FB);
+		if (fbs.fb_retries < FB0_RETRY_COUNT) {
+			/* retry once more */
+			tdma_schedule_set(1, fb_sched_set, 0);
+			fbs.fb_retries++;
+		} else {
+			last_fb->attempt = 13;
+			l1s_compl_sched(L1_COMPL_FB);
+		}
 
 		return 0;
 	}
@@ -434,11 +444,18 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 			tdma_sched_reset();
 			/* FIXME: don't only use the last but an average */
 			if (abs(last_fb->freq_diff) < fbs.req.freq_err_thresh1 &&
-			    last_fb->snr > FB0_SNR_THRESH)
+			    last_fb->snr > FB0_SNR_THRESH) {
+				/* continue with FB1 task in DSP */
 				tdma_schedule_set(1, fb_sched_set, 1);
-			else {
-				/* FIXME: check timeout */
-				tdma_schedule_set(1, fb_sched_set, 0);
+			} else {
+				if (fbs.afc_retries < AFC_RETRY_COUNT) {
+					tdma_schedule_set(1, fb_sched_set, 0);
+					fbs.afc_retries++;
+				} else {
+					/* Abort */
+					last_fb->attempt = 13;
+					l1s_compl_sched(L1_COMPL_FB);
+				}
 			}
 		} else
 			l1s_compl_sched(L1_COMPL_FB);
@@ -529,6 +546,7 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 
 	/* clear initial frequency error */
 	fbs.initial_freq_err = 0;
+	fbs.fb_retries = 0;
 
 	/* Make sure we start at a 'center' AFCDAC output value */
 	afc_reset();
