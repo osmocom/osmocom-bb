@@ -337,7 +337,7 @@ int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 	return osmo_send_l1(ms, msg);
 }
 
-/* Receive L1CTL_RESET */
+/* Receive L1CTL_RESET_IND */
 static int rx_l1_reset(struct osmocom_ms *ms)
 {
 	printf("Layer1 Reset.\n");
@@ -392,7 +392,7 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	case L1CTL_DATA_IND:
 		rc = rx_ph_data_ind(ms, msg);
 		break;
-	case L1CTL_RESET:
+	case L1CTL_RESET_IND:
 		rc = rx_l1_reset(ms);
 		msgb_free(msg);
 		break;

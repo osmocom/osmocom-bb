@@ -39,6 +39,7 @@
 void layer1_init(void)
 {
 	struct msgb *msg;
+	struct l1ctl_reset *res;
 
 #ifndef CONFIG_TX_ENABLE
 	printf("\n\nTHIS FIRMWARE WAS COMPILED WITHOUT TX SUPPORT!!!\n\n");
@@ -72,6 +73,8 @@ void layer1_init(void)
 	irq_disable(IRQ_RTC_TIMER);
 
 	/* inform l2 and upwards that we are ready for orders */
-	msg = l1_create_l2_msg(L1CTL_RESET, 0, 0, 0);
+	msg = l1_create_l2_msg(L1CTL_RESET_IND, 0, 0, 0);
+	res = msgb_put(msg, sizeof(*res));
+	res->type = L1CTL_RES_T_BOOT;
 	l1_queue_for_l2(msg);
 }

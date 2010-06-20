@@ -30,12 +30,13 @@
 #define L1CTL_RACH_REQ		4
 #define L1CTL_DM_EST_REQ	5
 #define L1CTL_DATA_REQ		7
-#define L1CTL_RESET		8
+#define L1CTL_RESET_IND		8
 #define L1CTL_PM_REQ		9	/* power measurement */
 #define L1CTL_PM_RESP		10	/* power measurement */
 #define L1CTL_ECHO_REQ		11
 #define L1CTL_ECHO_RESP		12
 #define L1CTL_RACH_RESP		13
+#define L1CTL_RESET_REQ		14
 
 /*
  * NOTE: struct size. We do add manual padding out of the believe
@@ -164,6 +165,17 @@ struct l1ctl_pm_req {
 struct l1ctl_pm_resp {
 	uint16_t band_arfcn;
 	uint8_t pm[2];
+} __attribute__((packed));
+
+enum l1ctl_reset_type {
+	L1CTL_RES_T_BOOT,	/* only _IND */
+	L1CTL_RES_T_FULL,
+};
+
+/* argument to L1CTL_RESET_REQ and L1CTL_RESET_IND */
+struct l1ctl_reset {
+	uint8_t type;
+	uint8_t pad[3];
 } __attribute__((packed));
 
 #endif
