@@ -138,6 +138,38 @@ void l1ctl_rx_pm_req(struct msgb *msg)
 	l1s_pm_test(1, l1s.pm.range.arfcn_next);
 }
 
+/* Transmit a L1CTL_RESET_IND or L1CTL_RESET_RESP */
+void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type)
+{
+	struct msgb *msg = l1ctl_msgb_alloc(msg_type);
+	struct l1ctl_reset *reset_resp;
+	reset_resp = (struct l1ctl_reset *)
+				msgb_put(msg, sizeof(*reset_resp));
+	reset_resp->type = reset_type;
+
+	l1_queue_for_l2(msg);
+}
+
+/* receive a L1CTL_RESET_REQ from L23 */
+static void l1ctl_rx_reset_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_reset *reset_req =
+				(struct l1ctl_reset *) l1h->data;
+
+	switch (reset_req->type) {
+	case L1CTL_RES_T_FULL:
+		printf("L1CTL_RESET_REQ: FULL!\n");
+		l1s_reset();
+		l1s_reset_hw();
+		l1ctl_tx_reset(L1CTL_RESET_RESP, reset_req->type);
+		break;
+	default:
+		printf("unknown L1CTL_RESET_REQ type\n");
+		break;
+	}
+}
+
 /* callback from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
@@ -228,6 +260,8 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 	case L1CTL_PM_REQ:
 		l1ctl_rx_pm_req(msg);
 		break;
+	case L1CTL_RESET_REQ:
+		l1ctl_rx_reset_req(msg);
 	}
 
 exit_msgbfree:
