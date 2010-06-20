@@ -23,6 +23,7 @@ struct gsm_settings {
 
 	/* call related settings */
 	uint8_t			cw; /* set if call-waiting is allowed */
+	uint8_t			clip, clir;
 };
 
 int gsm_settings_init(struct osmocom_ms *ms);

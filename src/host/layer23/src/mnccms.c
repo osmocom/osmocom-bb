@@ -317,6 +317,10 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 		setup.bearer_cap.speech_ver[1] = -1; /* end of list */
 		setup.bearer_cap.transfer = 0;
 		setup.bearer_cap.mode = 0;
+		if (ms->settings.clir)
+			setup.clir.sup = 1;
+		else if (ms->settings.clip)
+			setup.clir.inv = 1;
 	}
 
 	return mncc_send(ms, MNCC_SETUP_REQ, &setup);

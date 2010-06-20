@@ -541,6 +541,8 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, " emergency-imsi %s%s", (ms->settings.emergency_imsi[0]) ?
 		ms->settings.emergency_imsi : "none", VTY_NEWLINE);
 	vty_out(vty, " %scall-waiting%s", (set->cw) ? "" : "no ", VTY_NEWLINE);
+	vty_out(vty, " %sclip%s", (set->clip) ? "" : "no ", VTY_NEWLINE);
+	vty_out(vty, " %sclir%s", (set->clir) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", ms->settings.test_imsi, VTY_NEWLINE);
 	vty_out(vty, "  %sbarred-access%s", (set->test_barr) ? "" : "no ",
@@ -660,7 +662,7 @@ DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi (none|IMSI)",
 }
 
 DEFUN(cfg_no_cw, cfg_ms_no_cw_cmd, "no call-waiting",
-	"Disallow waiting calls")
+	NO_STR "Disallow waiting calls")
 {
 	struct osmocom_ms *ms = vty->index;
 
@@ -675,6 +677,48 @@ DEFUN(cfg_cw, cfg_ms_cw_cmd, "call-waiting",
 	struct osmocom_ms *ms = vty->index;
 
 	ms->settings.cw = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_clip, cfg_ms_clip_cmd, "clip",
+	"Force caller ID presentation")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.clip = 1;
+	ms->settings.clir = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_clir, cfg_ms_clir_cmd, "clir",
+	"Force caller ID restriction")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.clip = 0;
+	ms->settings.clir = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_clip, cfg_ms_no_clip_cmd, "no clip",
+	NO_STR "Disable forcing of caller ID presentation")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.clip = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_clir, cfg_ms_no_clir_cmd, "no clir",
+	NO_STR "Disable forcing of caller ID restriction")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.clir = 0;
 
 	return CMD_SUCCESS;
 }
@@ -843,6 +887,10 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_emerg_imsi_cmd);
 	install_element(MS_NODE, &cfg_ms_cw_cmd);
 	install_element(MS_NODE, &cfg_ms_no_cw_cmd);
+	install_element(MS_NODE, &cfg_ms_clip_cmd);
+	install_element(MS_NODE, &cfg_ms_clir_cmd);
+	install_element(MS_NODE, &cfg_ms_no_clip_cmd);
+	install_element(MS_NODE, &cfg_ms_no_clir_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
 
 	install_element(MS_NODE, &cfg_testsim_cmd);
