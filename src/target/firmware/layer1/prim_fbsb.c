@@ -50,6 +50,7 @@
 #include <l1a_l23_interface.h>
 
 #define FB0_RETRY_COUNT		3
+#define AFC_RETRY_COUNT		30
 
 extern uint16_t rf_arfcn; // TODO
 
@@ -75,6 +76,7 @@ struct l1a_fb_state {
 	struct l1ctl_fbsb_req req;
 	int16_t initial_freq_err;
 	uint8_t fb_retries;
+	uint8_t afc_retries;
 };
 
 static struct l1a_fb_state fbs;
@@ -442,11 +444,18 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 			tdma_sched_reset();
 			/* FIXME: don't only use the last but an average */
 			if (abs(last_fb->freq_diff) < fbs.req.freq_err_thresh1 &&
-			    last_fb->snr > FB0_SNR_THRESH)
+			    last_fb->snr > FB0_SNR_THRESH) {
+				/* continue with FB1 task in DSP */
 				tdma_schedule_set(1, fb_sched_set, 1);
-			else {
-				/* FIXME: check timeout */
-				tdma_schedule_set(1, fb_sched_set, 0);
+			} else {
+				if (fbs.afc_retries < AFC_RETRY_COUNT) {
+					tdma_schedule_set(1, fb_sched_set, 0);
+					fbs.afc_retries++;
+				} else {
+					/* Abort */
+					last_fb->attempt = 13;
+					l1s_compl_sched(L1_COMPL_FB);
+				}
 			}
 		} else
 			l1s_compl_sched(L1_COMPL_FB);
