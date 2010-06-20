@@ -14,10 +14,12 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/l1ctl.h>
 
-static void dump_bcch(uint8_t tc, const uint8_t *data)
+static int ccch_mode = CCCH_MODE_NONE;
+
+static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 {
 	struct gsm48_system_information_type_header *si_hdr;
-	si_hdr = (struct gsm48_system_information_type_header *) data;;
+	si_hdr = (struct gsm48_system_information_type_header *) data;
 
 	/* GSM 05.02 §6.3.1.3 Mapping of BCCH data */
 	switch (si_hdr->system_information) {
@@ -41,6 +43,17 @@ static void dump_bcch(uint8_t tc, const uint8_t *data)
 		if (tc != 2 && tc != 6)
 			fprintf(stderr, " on wrong TC");
 #endif
+		if (ccch_mode == CCCH_MODE_NONE) {
+			struct gsm48_system_information_type_3 *si3 =
+				(struct gsm48_system_information_type_3 *)data;
+
+			if (si3->control_channel_desc.ccch_conf == RSL_BCCH_CCCH_CONF_1_C)
+				ccch_mode = CCCH_MODE_COMBINED;
+			else
+				ccch_mode = CCCH_MODE_NON_COMBINED;
+
+			l1ctl_tx_ccch_mode_req(ms, ccch_mode);
+		}
 		break;
 	case GSM48_MT_RR_SYSINFO_4:
 		fprintf(stderr, "\tSI4");
@@ -215,7 +228,7 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 	/* FIXME: we have lost the gsm frame time until here, need to store it
 	 * in some msgb context */
 	//dump_bcch(dl->time.tc, ccch->data);
-	dump_bcch(0, msg->l3h);
+	dump_bcch(ms, 0, msg->l3h);
 
 	return 0;
 }

@@ -56,6 +56,7 @@ int rslms_tx_rll_req_l3(struct osmocom_ms *ms, uint8_t msg_type,
 	return rslms_recvmsg(msg, ms);
 }
 
+static int ccch_enabled = 0;
 static int rach_count = 0;
 
 static int rslms_rx_udata_ind(struct msgb *msg, struct osmocom_ms *ms)
@@ -74,11 +75,12 @@ static int rslms_rx_udata_ind(struct msgb *msg, struct osmocom_ms *ms)
 	}
 	msg->l3h = (uint8_t *) TLVP_VAL(&tv, RSL_IE_L3_INFO);
 
-	if (rllh->chan_nr == RSL_CHAN_PCH_AGCH)
+	if (rllh->chan_nr == RSL_CHAN_PCH_AGCH) {
 		rc = gsm48_rx_ccch(msg, ms);
-	else if (rllh->chan_nr == RSL_CHAN_BCCH) {
+		ccch_enabled = 1;
+	} else if (rllh->chan_nr == RSL_CHAN_BCCH) {
 		rc = gsm48_rx_bcch(msg, ms);
-		if (rach_count < 2) {
+		if (ccch_enabled && (rach_count < 2)) {
 			tx_ph_rach_req(ms);
 			rach_count++;
 		}

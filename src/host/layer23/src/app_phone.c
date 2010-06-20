@@ -46,7 +46,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		ms = signal_data;
 		return l1ctl_tx_fbsb_req(ms, ms->test_arfcn,
 		                         L1CTL_FBSB_F_FB01SB, 100, 0,
-		                         CCCH_MODE_COMBINED);
+		                         CCCH_MODE_NONE);
 		break;
 	}
 	return 0;
