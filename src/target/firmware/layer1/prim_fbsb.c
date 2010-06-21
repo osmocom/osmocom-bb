@@ -280,7 +280,7 @@ static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 	dsp_end_scenario();
 
 	/* Program TPU */
-	l1s_rx_win_ctrl(rf_arfcn, L1_RXWIN_SB);
+	l1s_rx_win_ctrl(rf_arfcn, L1_RXWIN_SB, 0);
 	tpu_end_scenario();
 
 	return 0;
@@ -382,7 +382,7 @@ static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 	dsp_end_scenario();
 
 	/* Program TPU */
-	l1s_rx_win_ctrl(fbs.req.band_arfcn, L1_RXWIN_FB);
+	l1s_rx_win_ctrl(fbs.req.band_arfcn, L1_RXWIN_FB, 0);
 	tpu_end_scenario();
 
 	return 0;

@@ -15,8 +15,8 @@ enum l1_txwin_type {
 	_NUM_L1_TXWIN
 };
 
-void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype);
-void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr);
+void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype, uint8_t tn);
+void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr, uint8_t tn);
 
 void tpu_end_scenario(void);
 

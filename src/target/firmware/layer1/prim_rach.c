@@ -73,7 +73,7 @@ static int l1s_tx_rach_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused ui
 	dsp_api.db_w->d_task_ra = RACH_DSP_TASK;
 	dsp_end_scenario();
 
-	l1s_tx_win_ctrl(l1s.serving_cell.arfcn, L1_TXWIN_AB, 0);
+	l1s_tx_win_ctrl(l1s.serving_cell.arfcn, L1_TXWIN_AB, 0, 0);
 	tpu_end_scenario();
 
 	return 0;

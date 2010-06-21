@@ -182,7 +182,7 @@ static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 	dsp_load_rx_task(ALLC_DSP_TASK, burst_id, tsc);
 	dsp_end_scenario();
 
-	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB);
+	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, tn);
 	tpu_end_scenario();
 
 	return 0;

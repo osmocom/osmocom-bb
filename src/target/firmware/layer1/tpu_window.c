@@ -30,6 +30,7 @@
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
 
+#include <layer1/sync.h>
 #include <layer1/tpu_window.h>
 
 /* all units in GSM quarter-bits (923.1ns) */
@@ -64,13 +65,17 @@ static const uint16_t tx_burst_duration[_NUM_L1_TXWIN] = {
 	[L1_TXWIN_AB]	= L1_TX_AB_DURATION_Q,
 };
 
-void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype)
+void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype, uint8_t tn)
 {
 	int16_t start = DSP_SETUP_TIME;
 	int16_t stop = start + rx_burst_duration[wtype] - 1;
 
 	/* FIXME: AGC */
 	/* FIXME: RF PLL */
+
+	/* Alignement */
+	tpu_enq_offset( (5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000 );
+	tpu_enq_at(5000 - 1000 - (L1_BURST_LENGTH_Q * tn));
 
 	/* window open for TRF6151 */
 	/* FIXME: why do we need the magic value 100 ? */
@@ -96,16 +101,14 @@ void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype)
 	trf6151_set_mode(TRF6151_IDLE);
 }
 
-void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr)
+void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr, uint8_t tn)
 {
 	/* uplink is three TS after downlink ( "+ 32" gives a TA of 1) */
 	uint16_t offset = (L1_BURST_LENGTH_Q * 3) + 28;
 
-	/* this is needed to cause a delay of one more TDMA frame,
-	 * otherwise we have an off-by-one error and send the bursts
-	 * at the wrong point in time, resulting in only 3 out of 4
-	 * bursts arriving at the BTS */
-	tpu_enq_at(5000 - 10); /* TPU_CLOCK_RANGE - EPSILON_SYNC */
+	/* Alignement */
+	tpu_enq_offset( (5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000 );
+	tpu_enq_at(5000 - 10 - (L1_BURST_LENGTH_Q * tn));
 
 #ifdef CONFIG_TX_ENABLE
 	/* window open for TRF6151 and RFFE */

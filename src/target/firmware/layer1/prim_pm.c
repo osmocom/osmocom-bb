@@ -72,7 +72,7 @@ static int l1s_pm_cmd(uint8_t num_meas,
 	/* Program TPU */
 	/* FIXME: RXWIN_PW needs to set up multiple times in case
 	 * num_meas > 1 */
-	l1s_rx_win_ctrl(arfcn, L1_RXWIN_PW);
+	l1s_rx_win_ctrl(arfcn, L1_RXWIN_PW, 0);
 	//l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB);
 	tpu_end_scenario();
 
