@@ -46,6 +46,7 @@
 #include <layer1/mframe_sched.h>
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
+#include <layer1/rfch.h>
 
 #include <l1a_l23_interface.h>
 
@@ -91,7 +92,8 @@ static int l1s_tx_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 /* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
 static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
-	uint8_t tsc;
+	uint16_t arfcn;
+	uint8_t tsc, tn;
 	uint8_t mf_task_id = p3 & 0xff;
 	uint8_t mf_task_flags = p3 >> 8;
 
@@ -151,12 +153,12 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 			msgb_free(msg);
 	}
 
-	tsc = 7; // !!!!! nanoBTS configuration for SDCCH 0 !!!!!!!!
+	rfch_get_params(&l1s.next_time, &arfcn, &tsc, &tn);
 
 	dsp_load_tx_task(DUL_DSP_TASK, burst_id, tsc);
 	dsp_end_scenario();
 
-	l1s_tx_win_ctrl(l1s.serving_cell.arfcn, L1_TXWIN_NB, 0);
+	l1s_tx_win_ctrl(arfcn, L1_TXWIN_NB, 0);
 	tpu_end_scenario();
 
 	return 0;

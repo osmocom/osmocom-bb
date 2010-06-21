@@ -45,6 +45,7 @@
 #include <layer1/mframe_sched.h>
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
+#include <layer1/rfch.h>
 
 #include <l1a_l23_interface.h>
 
@@ -60,11 +61,16 @@ static struct l1s_rxnb_state rxnb;
 
 static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
+	struct gsm_time rx_time;
 	uint8_t mf_task_id = p3 & 0xff;
 	uint8_t mf_task_flags = p3 >> 8;
-	uint16_t rf_arfcn = l1s.serving_cell.arfcn;
+	uint16_t rf_arfcn;
+	uint8_t tsc, tn;
 
 	putchart('n');
+
+	gsm_fn2gsmtime(&rx_time, l1s.current_time.fn - 4);
+	rfch_get_params(&rx_time, &rf_arfcn, &tsc, &tn);
 
 	/* just for debugging, d_task_d should not be 0 */
 	if (dsp_api.db_r->d_task_d == 0) {
@@ -98,7 +104,7 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 		int32_t avg_dbm8 = 0;
 
 		/* Set Channel Number depending on MFrame Task ID */
-		rxnb.dl->chan_nr = mframe_task2chan_nr(mf_task_id, 0); /* FIXME: TS */
+		rxnb.dl->chan_nr = mframe_task2chan_nr(mf_task_id, tn);
 
 		/* Set SACCH indication in Link IDentifier */
 		if (mf_task_flags & MF_F_SACCH)
@@ -148,7 +154,8 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 		      __unused uint16_t p3)
 {
-	uint8_t tsc = l1s.serving_cell.bsic & 0x7;
+	uint16_t arfcn;
+	uint8_t tsc, tn;
 
 	putchart('N');
 
@@ -166,10 +173,12 @@ static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 		rxnb.di = (struct l1ctl_data_ind *) msgb_put(rxnb.msg, sizeof(*rxnb.di));
 	}
 
+	rfch_get_params(&l1s.next_time, &arfcn, &tsc, &tn);
+
 	dsp_load_rx_task(ALLC_DSP_TASK, burst_id, tsc);
 	dsp_end_scenario();
 
-	l1s_rx_win_ctrl(l1s.serving_cell.arfcn, L1_RXWIN_NB);
+	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB);
 	tpu_end_scenario();
 
 	return 0;
