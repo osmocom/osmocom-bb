@@ -90,6 +90,34 @@ struct l1s_state {
 	struct {
 		uint8_t		ra;
 	} rach;
+
+	struct {
+		enum {
+			GSM_DCHAN_NONE = 0,
+			GSM_DCHAN_SDCCH_4,
+			GSM_DCHAN_SDCCH_8,
+			GSM_DCHAN_TCH_H,
+			GSM_DCHAN_TCH_F,
+			GSM_DCHAN_UNKNOWN,
+		} type;
+
+		uint8_t scn;
+		uint8_t tsc;
+		uint8_t tn;
+		uint8_t h;
+
+		union {
+			struct {
+				uint16_t arfcn;
+			} h0;
+			struct {
+				uint8_t hsn;
+				uint8_t maio;
+				uint8_t n;
+				uint16_t ma[64];
+			} h1;
+		};
+	} dedicated;
 };
 
 extern struct l1s_state l1s;

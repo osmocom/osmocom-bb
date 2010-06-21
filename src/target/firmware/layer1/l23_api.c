@@ -24,6 +24,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <debug.h>
 #include <byteorder.h>
@@ -77,6 +78,22 @@ static enum mframe_task chan_nr2mf_task(uint8_t chan_nr)
 #endif
 	}
 	return 0;
+}
+
+static int  chan_nr2dchan_type(uint8_t chan_nr)
+{
+	uint8_t cbits = chan_nr >> 3;
+
+	if (cbits == 0x01) {
+		return GSM_DCHAN_TCH_F;
+	} else if ((cbits & 0x1e) == 0x02) {
+		return GSM_DCHAN_TCH_H;
+	} else if ((cbits & 0x1c) == 0x04) {
+		return GSM_DCHAN_SDCCH_4;
+	} else if ((cbits & 0x18) == 0x08) {
+		return GSM_DCHAN_SDCCH_8;
+	}
+	return GSM_DCHAN_UNKNOWN;
 }
 
 struct msgb *l1ctl_msgb_alloc(uint8_t msg_type)
@@ -168,7 +185,23 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 		return;
 	}
 
-	/* FIXME: set TSC of ded chan according to est_req.tsc */
+	/* configure dedicated channel state */
+	l1s.dedicated.type = chan_nr2dchan_type(ul->chan_nr);
+	l1s.dedicated.tsc  = est_req->tsc;
+	l1s.dedicated.tn   = ul->chan_nr & 0x7;
+	l1s.dedicated.h    = est_req->h;
+
+	if (est_req->h) {
+		int i;
+		l1s.dedicated.h1.hsn  = est_req->h1.hsn;
+		l1s.dedicated.h1.maio = est_req->h1.maio;
+		l1s.dedicated.h1.n    = est_req->h1.n;
+		for (i=0; i<est_req->h1.n; i++)
+			l1s.dedicated.h1.ma[i] = ntohs(est_req->h1.ma[i]);
+	} else {
+		l1s.dedicated.h0.arfcn = ntohs(est_req->h0.band_arfcn);
+	}
+
 	/* figure out which MF tasks to enable */
 	l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
 }
