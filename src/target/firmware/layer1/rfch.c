@@ -22,7 +22,96 @@
 
 #include <stdint.h>
 
+#include <osmocore/gsm_utils.h>
+
 #include <layer1/sync.h>
+
+
+/*
+ * Hopping sequence generation
+ *
+ * The algorithm is explained in GSM 05.02 Section 6.2.3
+ *
+ *	if HSN = 0 (cyclic hopping) then:
+ *		MAI, integer (0 .. N-1) :
+ *			MAI = (FN + MAIO) modulo N
+ *
+ *	else:
+ *		M, integer (0 .. 152) :
+ *			M = T2 + RNTABLE((HSN xor T1R) + T3)
+ *
+ *		S, integer (0 .. N-1) :
+ *			M' = M modulo (2 ^ NBIN)
+ *			T' = T3 modulo (2 ^ NBIN)
+ *
+ *			if M' < N then:
+ *				S = M'
+ *			else:
+ *				S = (M'+T') modulo N
+ *
+ *		MAI, integer (0 .. N-1) :
+ *			MAI = (S + MAIO) modulo N
+ */
+
+static uint8_t rn_table[114] = {
+	 48,  98,  63,   1,  36,  95,  78, 102,  94,  73,
+	  0,  64,  25,  81,  76,  59, 124,  23, 104, 100,
+	101,  47, 118,  85,  18,  56,  96,  86,  54,   2,
+	 80,  34, 127,  13,   6,  89,  57, 103,  12,  74,
+	 55, 111,  75,  38, 109,  71, 112,  29,  11,  88,
+	 87,  19,   3,  68, 110,  26,  33,  31,   8,  45,
+	 82,  58,  40, 107,  32,   5, 106,  92,  62,  67,
+	 77, 108, 122,  37,  60,  66, 121,  42,  51, 126,
+	117, 114,   4,  90,  43,  52,  53, 113, 120,  72,
+	 16,  49,   7,  79, 119,  61,  22,  84,   9,  97,
+	 91,  15,  21,  24,  46,  39,  93, 105,  65,  70,
+	125,  99,  17, 123,
+};
+
+
+static int pow_nbin_mask(int n)
+{
+	int x;
+	x =	(n     ) |
+		(n >> 1) |
+		(n >> 2) |
+		(n >> 3) |
+		(n >> 4) |
+		(n >> 5) |
+		(n >> 6);
+	return x;
+}
+
+static int16_t rfch_hop_seq_gen(struct gsm_time *t,
+                                uint8_t hsn, uint8_t maio,
+                                uint8_t n, uint16_t *arfcn_tbl)
+{
+	int mai;
+
+	if (!hsn) {
+		/* cyclic hopping */
+		mai = (t->fn + maio) % n;
+	} else {
+		/* pseudo random hopping */
+		int m, mp, tp, s, pnm;
+
+		pnm = pow_nbin_mask(n);
+
+		m = t->t2 + rn_table[(hsn ^ (t->t1 & 63)) + t->t3];
+		mp = m & pnm;
+
+		if (mp < n)
+			s = mp;
+		else {
+			tp = t->t3 & pnm;
+			s = (mp + tp) % n;
+		}
+
+		mai = (s + maio) % n;
+	}
+
+	return arfcn_tbl ? arfcn_tbl[mai] : mai;
+}
 
 
 /* RF Channel parameters */
@@ -37,7 +126,11 @@ void rfch_get_params(struct gsm_time *t,
 	} else {
 		/* Dedicated channel */
 		if (l1s.dedicated.h) {
-			/* Not supported yet */
+			*arfcn_p = rfch_hop_seq_gen(t,
+					l1s.dedicated.h1.hsn,
+					l1s.dedicated.h1.maio,
+					l1s.dedicated.h1.n,
+					l1s.dedicated.h1.ma);
 		} else {
 			*arfcn_p = l1s.dedicated.h0.arfcn;
 		}
