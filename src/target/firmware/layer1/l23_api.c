@@ -166,18 +166,17 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u)\n",
 		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc);
 
-	if (ntohs(est_req->h0.band_arfcn) != l1s.serving_cell.arfcn) {
-		/* FIXME: ARFCN */
-		puts("We don't support ARFCN switches yet\n");
-		return;
-	}
+	/* Current limitations */
 	if ((ul->chan_nr & 0x7) > 4) {
 		/* FIXME: Timeslot */
 		puts("We don't support TS > 4 yet\n");
 		return;
 	}
-	if (est_req->h) {
-		puts("We don't support frequency hopping yet\n");
+
+	if ((chan_nr2mf_task(ul->chan_nr) >= MF_TASK_SDCCH8_4) &&
+	    (chan_nr2mf_task(ul->chan_nr) <= MF_TASK_SDCCH8_7)) {
+		/* FIXME: TX while RX prevents SDCCH8 [4..7] */
+		puts("We don't support SDCCH8 [4..7] yet\n");
 		return;
 	}
 
