@@ -151,9 +151,9 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	struct l1ctl_dm_est_req *est_req = (struct l1ctl_dm_est_req *) ul->payload;
 
 	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x)\n",
-		ntohs(est_req->band_arfcn), ul->chan_nr);
+		ntohs(est_req->h0.band_arfcn), ul->chan_nr);
 
-	if (ntohs(est_req->band_arfcn) != l1s.serving_cell.arfcn) {
+	if (ntohs(est_req->h0.band_arfcn) != l1s.serving_cell.arfcn) {
 		/* FIXME: ARFCN */
 		puts("We don't support ARFCN switches yet\n");
 		return;
@@ -163,12 +163,12 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 		puts("We don't support non-0 TS yet\n");
 		return;
 	}
-	if (est_req->h0.h) {
+	if (est_req->h) {
 		puts("We don't support frequency hopping yet\n");
 		return;
 	}
 
-	/* FIXME: set TSC of ded chan according to est_req.h0.tsc */
+	/* FIXME: set TSC of ded chan according to est_req.tsc */
 	/* figure out which MF tasks to enable */
 	l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
 }

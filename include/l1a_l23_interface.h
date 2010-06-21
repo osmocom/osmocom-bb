@@ -155,22 +155,19 @@ struct l1ctl_rach_req {
 } __attribute__((packed));
 
 struct l1ctl_dm_est_req {
-	uint16_t band_arfcn;
+	uint8_t tsc;
+	uint8_t h;
 	union {
 		struct {
-			uint8_t maio_high:4,
-				 h:1,
-				 tsc:3;
-			uint8_t hsn:6,
-				 maio_low:2;
-		} h1;
-		struct {
-			uint8_t arfcn_high:2,
-				 spare:2,
-				 h:1,
-				 tsc:3;
-			uint8_t arfcn_low;
+			uint16_t band_arfcn;
 		} h0;
+		struct {
+			uint8_t hsn;
+			uint8_t maio;
+			uint8_t n;
+			uint8_t _padding[1];
+			uint16_t ma[64];
+		} h1;
 	};
 } __attribute__((packed));
 

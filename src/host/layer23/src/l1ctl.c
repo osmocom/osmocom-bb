@@ -330,12 +330,16 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 
 	DEBUGP(DL1C, "Tx Dedic.Mode Est Req (arfcn=%u, chan_nr=0x%02x)\n",
 		band_arfcn, chan_nr);
+
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
 	ul->link_id = 0;
 	ul->tx_power = 0; /* FIXME: initial TX power */
+
 	req = (struct l1ctl_dm_est_req *) msgb_put(msg, sizeof(*req));
-	req->band_arfcn = htons(band_arfcn);
+	req->tsc = 7; /* FIXME */
+	req->h = 0;
+	req->h0.band_arfcn = htons(band_arfcn);
 
 	return osmo_send_l1(ms, msg);
 }
