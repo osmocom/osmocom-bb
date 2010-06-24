@@ -128,5 +128,9 @@ void l1a_rach_req(uint8_t fn51, uint8_t ra)
 	l1a_unlock_sync();
 
 	memset(&last_rach, 0, sizeof(last_rach));
+}
+
+static __attribute__ ((constructor)) void prim_rach_init(void)
+{
 	l1s.completion[L1_COMPL_RACH] = &l1a_rach_compl;
 }

@@ -188,8 +188,6 @@ void l1s_tx_test(uint8_t base_fn, uint8_t type)
 		tdma_schedule(base_fn + 4, &l1s_tx_resp, 2, 2, 0);
 		tdma_schedule(base_fn + 5, &l1s_tx_resp, 2, 3, 0);
 	}
-
-	l1s.completion[L1_COMPL_TX_NB] = &l1a_tx_nb_compl;
 }
 
 /* sched sets for uplink */
@@ -203,3 +201,7 @@ const struct tdma_sched_item nb_sched_set_ul[] = {
 	SCHED_END_SET()
 };
 
+static __attribute__ ((constructor)) void prim_tx_nb_init(void)
+{
+	l1s.completion[L1_COMPL_TX_NB] = &l1a_tx_nb_compl;
+}

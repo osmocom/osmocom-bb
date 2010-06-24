@@ -561,5 +561,9 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 	else if (fbs.req.flags & L1CTL_FBSB_F_SB)
 		tdma_schedule_set(base_fn, sb_sched_set, 0);
 
+}
+
+static __attribute__ ((constructor)) void l1s_prim_fbsb_init(void)
+{
 	l1s.completion[L1_COMPL_FB] = &l1a_fb_compl;
 }
