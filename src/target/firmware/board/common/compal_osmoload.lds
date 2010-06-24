@@ -27,6 +27,19 @@ SECTIONS
 		KEEP(*(.text.exceptions))
 		* (.text.exceptions)
 		. = ALIGN(4);
+
+		/* constructors and destructors */
+		. = ALIGN(4);
+		__CTOR_LIST__ = .;
+		LONG((__CTOR_END__ - __CTOR_LIST__) / 4 - 2)
+		*(SORT(.ctors))
+		LONG(0)				/* end of list */
+		__CTOR_END__ = .;
+		__DTOR_LIST__ = .;
+		LONG((__DTOR_END__ - __DTOR_LIST__) / 4 - 2)
+		*(SORT(.dtors))
+		LONG(0)				/* end of list */
+		__DTOR_END__ = .;
 	} > LRAM
 	PROVIDE(_exceptions = LOADADDR(.text.exceptions));
 

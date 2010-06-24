@@ -56,6 +56,11 @@ _start:
 	@ldr	r0, =0xfffffe00
 	@bl	memdump
 
+	/* call constructor functions */
+	ldr	r0, _ctor_list
+	ldr	r1, _ctor_end
+	bl	do_global_ctors
+
 	/* jump to main */
 	ldr	pc, _jump_main
 
@@ -64,6 +69,8 @@ _end:	b	_end
 	b	_start
 
 _jump_main:	.word main
+_ctor_list:	.word __CTOR_LIST__
+_ctor_end:	.word __CTOR_END__
 
 /* handler for all kinds of aborts */
 handle_abort:
