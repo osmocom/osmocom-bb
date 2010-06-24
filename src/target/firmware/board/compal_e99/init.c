@@ -25,6 +25,7 @@
 #include <stdio.h>
 
 #include <debug.h>
+#include <ctors.h>
 #include <memory.h>
 #include <board.h>
 #include <keypad.h>
@@ -73,7 +74,7 @@ static void board_io_init(void)
 	writew(reg, ARMIO_LATCH_OUT);
 }
 
-void board_init(void)
+static void __ctor_board board_init(void)
 {
 	/* FIXME: this needs to go to board_e99/init.c once we have it */
 	wdog_enable(0);

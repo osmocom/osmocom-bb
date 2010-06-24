@@ -68,7 +68,6 @@ static void key_handler(enum key_codes code, enum key_states state);
 
 int main(void)
 {
-	board_init();
 	puts("\n\nHello World from " __FILE__ " program code\n");
 
 	puts(hr);
