@@ -548,8 +548,10 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, "  %sbarred-access%s", (set->test_barr) ? "" : "no ",
 		VTY_NEWLINE);
 	if (ms->settings.test_rplmn_valid)
-		vty_out(vty, "  rplmn %03d %02d%s", ms->settings.test_rplmn_mcc,
-			ms->settings.test_rplmn_mnc, VTY_NEWLINE);
+		vty_out(vty, "  rplmn %s %s%s",
+			gsm_print_mcc(ms->settings.test_rplmn_mcc),
+			gsm_print_mnc(ms->settings.test_rplmn_mnc),
+			VTY_NEWLINE);
 	else
 		vty_out(vty, "  no rplmn%s", VTY_NEWLINE);
 	vty_out(vty, "  hplmn-search %s%s", (set->test_always) ? "everywhere"
