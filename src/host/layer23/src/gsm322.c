@@ -2320,6 +2320,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 	struct osmocom_ms *ms;
 	struct gsm322_cellsel *cs;
 	struct osmobb_meas_res *mr;
+	struct osmobb_rach_conf *rc;
 	int i;
 	int8_t rxlev_db;
 
@@ -2397,6 +2398,11 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			gsm322_cs_loss(cs);
 		else
 			gsm322_cs_timeout(cs);
+		break;
+	case S_L1CTL_RACH_CONF:
+		rc = signal_data;
+		ms = rc->ms;
+		gsm48_rr_rach_conf(ms, rc->fn);
 		break;
 	}
 

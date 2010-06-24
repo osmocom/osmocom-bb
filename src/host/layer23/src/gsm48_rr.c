@@ -835,6 +835,17 @@ static void temp_rach_to(void *arg)
 	return;
 }
 
+int gsm48_rr_rach_conf(struct osmocom_ms *ms, uint32_t fn)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	LOGP(DRR, LOGL_INFO, "RACH confirm framenr=%u\n", fn);
+	rr->cr_hist[0].valid = 2;
+	rr->cr_hist[0].fn = fn;
+
+	return 0;
+}
+
 /* start random access */
 static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 {
@@ -1011,9 +1022,9 @@ cause = RR_EST_CAUSE_LOC_UPD;
 	/* store value, mask and history */
 	rr->chan_req_val = chan_req_val;
 	rr->chan_req_mask = chan_req_mask;
-	rr->cr_hist[2] = -1;
-	rr->cr_hist[1] = -1;
-	rr->cr_hist[0] = -1;
+	rr->cr_hist[2].valid = 0;
+	rr->cr_hist[1].valid = 0;
+	rr->cr_hist[0].valid = 0;
 
 	/* if channel is already active somehow */
 	if (cs->ccch_state == GSM322_CCCH_ST_DATA)
@@ -1142,9 +1153,12 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 #endif
 
 	/* shift history and store */
-	rr->cr_hist[2] = rr->cr_hist[1];
-	rr->cr_hist[1] = rr->cr_hist[0];
-	rr->cr_hist[0] = chan_req;
+	memcpy(&(rr->cr_hist[2]), &(rr->cr_hist[1]),
+		sizeof(struct gsm48_cr_hist));
+	memcpy(&(rr->cr_hist[1]), &(rr->cr_hist[0]),
+		sizeof(struct gsm48_cr_hist));
+	rr->cr_hist[0].valid = 1;
+	rr->cr_hist[0].chan_req = chan_req;
 
 #ifdef TODO
 	add layer 1 conrols to RSL...
@@ -2497,13 +2511,29 @@ static int gsm48_match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	int i;
+	struct gsm_time tm;
+	uint8_t ia_t1, ia_t2, ia_t3;
 
 	for (i = 0; i < 3; i++) {
-		if (rr->cr_hist[i] >= 0
-		 && ref->ra == rr->cr_hist[i]) {
-		 	LOGP(DRR, LOGL_INFO, "request %02x matches\n", ref->ra);
-		 	// todo: match timeslot
-			return 1;
+		/* filter confirmed RACH requests only */
+		if (rr->cr_hist[i].valid == 2
+		 && ref->ra == rr->cr_hist[i].chan_req) {
+		 	ia_t1 = ref->t1;
+		 	ia_t2 = ref->t2;
+		 	ia_t3 = (ref->t3_high << 3) | ref->t3_low;
+			gsm_fn2gsmtime(&tm, rr->cr_hist[i].fn);
+			if (ia_t1 == (tm.t1 & 0x1f) && ia_t2 == tm.t2
+			 && ia_t3 == tm.t3) {
+		 		LOGP(DRR, LOGL_INFO, "request %02x matches "
+					"(fn=%d,%d,%d)\n", ref->ra, ia_t1,
+					ia_t2, ia_t3);
+				return 1;
+			} else
+		 		LOGP(DRR, LOGL_INFO, "request %02x matches "
+					"but not frame number (IMM.ASS "
+					"fn=%d,%d,%d != RACH fn=%d,%d,%d)\n",
+					ref->ra, ia_t1, ia_t2, ia_t3,
+					tm.t1 & 0x1f, tm.t2, tm.t3);
 		}
 	}
 

@@ -103,6 +103,28 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_info_dl *dl;
+	struct osmobb_rach_conf rc;
+
+	if (msgb_l3len(msg) < sizeof(*dl)) {
+		LOGP(DL1C, LOGL_ERROR, "RACH CONF: MSG too short %u\n",
+			msgb_l3len(msg));
+		return -1;
+	}
+
+	dl = (struct l1ctl_info_dl *) msg->l1h;
+
+	printf("RACH CONF: arfcn=%u fn=%u\n", dl->snr, ntohl(dl->frame_nr));
+
+	rc.fn = htonl(dl->frame_nr);
+	rc.ms = ms;
+	dispatch_signal(SS_L1CTL, S_L1CTL_RACH_CONF, &rc);
+
+	return 0;
+}
+
 char *chan_nr2string(uint8_t chan_nr)
 {
 	static char str[20];
@@ -422,12 +444,16 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_RESET_CONF:
 		LOGP(DL1C, LOGL_NOTICE, "L1CTL_RESET_CONF\n");
+		msgb_free(msg);
 		break;
 	case L1CTL_RACH_CONF:
 		LOGP(DL1C, LOGL_NOTICE, "L1CTL_RACH_CONF\n");
+		rc = rx_l1_rach_conf(ms, msg);
+		msgb_free(msg);
 		break;
 	case L1CTL_DATA_CONF:
 		LOGP(DL1C, LOGL_NOTICE, "L1CTL_DATA_CONF\n");
+		msgb_free(msg);
 		break;
 	default:
 		fprintf(stderr, "Unknown MSG: %u\n", l1h->msg_type);
