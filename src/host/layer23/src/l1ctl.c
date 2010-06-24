@@ -318,7 +318,8 @@ int tx_ph_rach_req(struct osmocom_ms *ms)
 }
 
 /* Transmit L1CTL_DM_EST_REQ */
-int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr)
+int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr,
+		     uint8_t tsc)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -337,7 +338,7 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 	ul->tx_power = 0; /* FIXME: initial TX power */
 
 	req = (struct l1ctl_dm_est_req *) msgb_put(msg, sizeof(*req));
-	req->tsc = 7; /* FIXME */
+	req->tsc = tsc;
 	req->h = 0;
 	req->h0.band_arfcn = htons(band_arfcn);
 

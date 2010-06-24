@@ -3008,7 +3008,8 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		printf("Channel type not supported, exitting.\n");
 		exit(-ENOTSUP);
 	}
-	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr);
+	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr,
+			 rr->cd_now.tsc);
 #endif
 
 	/* start establishmnet */
@@ -3658,7 +3659,8 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 		struct msgb *nmsg;
 
 		/* change radio to new channel */
-		tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr);
+		tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr,
+				 rr->cd_now.tsc);
 
 		/* send DL-ESTABLISH REQUEST */
 		nmsg = gsm48_l3_msgb_alloc();
@@ -4096,7 +4098,7 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 			/* change radio to old channel */
 			tx_ph_dm_est_req(ms, rr->cd_now.arfcn,
-				rr->cd_now.chan_nr);
+				rr->cd_now.chan_nr, rr->cd_now.tsc);
 
 			/* re-establish old link */
 			nmsg = gsm48_l3_msgb_alloc();
@@ -4133,7 +4135,8 @@ static void timeout_rr_t3124(void *arg)
 	memcpy(&rr->chan_desc, &rr->chan_last, sizeof(*cd));
 
 	/* change radio to old channel */
-	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr);
+	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr,
+			 rr->cd_now.tsc);
 
 	/* re-establish old link */
 	nmsg = gsm48_l3_msgb_alloc();

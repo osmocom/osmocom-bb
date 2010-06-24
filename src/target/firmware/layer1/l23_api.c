@@ -167,8 +167,8 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_dm_est_req *est_req = (struct l1ctl_dm_est_req *) ul->payload;
 
-	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x)\n",
-		ntohs(est_req->h0.band_arfcn), ul->chan_nr);
+	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u)\n",
+		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc);
 
 	if (ntohs(est_req->h0.band_arfcn) != l1s.serving_cell.arfcn) {
 		/* FIXME: ARFCN */
