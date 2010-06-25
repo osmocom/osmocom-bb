@@ -66,6 +66,9 @@ static int l1s_pm_cmd(uint8_t num_meas,
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
 	dsp_end_scenario();
 
+	/* Tell the RF frontend to set the gain appropriately */
+	rffe_set_gain(-85, CAL_DSP_TGT_BB_LVL);
+
 	/* Program TPU */
 	/* FIXME: RXWIN_PW needs to set up multiple times in case
 	 * num_meas > 1 */
@@ -86,6 +89,9 @@ static int l1s_pm_resp(uint8_t num_meas, __unused uint8_t p2,
 	putchart('p');
 
 	l1ddsp_meas_read(num_meas, pm_level);
+
+	printf("PM MEAS: ARFCN=%u, %-4d dBm at baseband, %-4d dBm at RF\n",
+		arfcn, pm_level[0]/8, agc_inp_dbm8_by_pm(pm_level[0])/8);
 
 	printd("PM MEAS: %-4d dBm, %-4d dBm ARFCN=%u\n",
 		agc_inp_dbm8_by_pm(pm_level[0])/8,
