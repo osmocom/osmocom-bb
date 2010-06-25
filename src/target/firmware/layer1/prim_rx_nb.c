@@ -85,7 +85,8 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 	}
 
 	rxnb.meas[burst_id].toa_qbit = dsp_api.db_r->a_serv_demod[D_TOA];
-	rxnb.meas[burst_id].pm_dbm8 = dsp_api.db_r->a_serv_demod[D_PM] >> 3;
+	rxnb.meas[burst_id].pm_dbm8 =
+		agc_inp_dbm8_by_pm(dsp_api.db_r->a_serv_demod[D_PM] >> 3);
 	rxnb.meas[burst_id].freq_err =
 			ANGLE_TO_FREQ(dsp_api.db_r->a_serv_demod[D_ANGLE]);
 	rxnb.meas[burst_id].snr = dsp_api.db_r->a_serv_demod[D_SNR];
