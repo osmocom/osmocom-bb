@@ -56,7 +56,7 @@ struct gsm48_multi_rate_conf {
 struct gsm48_req_ref {
 	uint8_t ra;
 	uint8_t t3_high:3,
-		 t1_:5;
+		 t1:5;
 	uint8_t t2:5,
 		 t3_low:3;
 } __attribute__ ((packed));
