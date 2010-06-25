@@ -75,7 +75,7 @@ void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype)
 	/* window open for TRF6151 */
 	/* FIXME: why do we need the magic value 100 ? */
 	rffe_mode(gsm_arfcn2band(arfcn), 0);
-	trf6151_rx_window(start - 100, arfcn, 40, 0);
+	trf6151_rx_window(start - 100, arfcn);
 
 	/* Window open for ABB */
 	twl3025_downlink(1, start);

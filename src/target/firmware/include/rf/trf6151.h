@@ -38,13 +38,13 @@ void trf6151_test(uint16_t arfcn);
 void trf6151_tx_test(uint16_t arfcn);
 
 /* prepare a Rx window with the TRF6151 finished at time 'start' (in qbits) */
-void trf6151_rx_window(int16_t start_qbits, uint16_t arfcn, uint8_t vga_dbm, int rf_gain_high);
+void trf6151_rx_window(int16_t start_qbits, uint16_t arfcn);
 
 /* prepare a Tx window with the TRF6151 finished at time 'start' (in qbits) */
 void trf6151_tx_window(int16_t start_qbits, uint16_t arfcn);
 
-/* Given the expected input level of exp_inp dBm/8 and the target of target_bb
- * dBm8, configure the RF Frontend with the respective gain */
+/* Given the expected input level of exp_inp dBm and the target of target_bb
+ * dBm, configure the RF Frontend with the respective gain */
 void trf6151_compute_gain(int16_t exp_inp, int16_t target_bb);
 
 #endif /* TRF6151_H */
