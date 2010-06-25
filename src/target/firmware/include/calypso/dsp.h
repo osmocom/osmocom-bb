@@ -3,6 +3,8 @@
 
 #include <calypso/dsp_api.h>
 
+#define CAL_DSP_TGT_BB_LVL	80
+
 struct dsp_api {
 	T_NDB_MCU_DSP *ndb;
 	T_DB_DSP_TO_MCU *db_r;

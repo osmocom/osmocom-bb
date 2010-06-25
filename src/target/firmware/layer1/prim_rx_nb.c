@@ -96,6 +96,9 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 	else
 		afc_input(rxnb.meas[burst_id].freq_err, rf_arfcn, 0);
 
+	/* Tell the RF frontend to set the gain appropriately */
+	rffe_set_gain(rxnb.meas[burst_id].pm_dbm8/8, CAL_DSP_TGT_BB_LVL);
+
 	/* 4th burst, get frame data */
 	if (dsp_api.db_r->d_burst_d == 3) {
 		uint8_t i, j;

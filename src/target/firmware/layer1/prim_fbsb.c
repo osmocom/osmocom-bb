@@ -373,6 +373,9 @@ static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 
 	l1s.fb.mode = fb_mode;
 
+	/* Tell the RF frontend to set the gain appropriately */
+	rffe_set_gain(-85, CAL_DSP_TGT_BB_LVL);
+
 	/* Program DSP */
 	dsp_api.db_w->d_task_md = FB_DSP_TASK;	/* maybe with I/Q swap? */
 	dsp_api.ndb->d_fb_mode = fb_mode;
