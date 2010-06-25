@@ -3,6 +3,13 @@
 
 #include <osmocore/gsm_utils.h>
 
+/* minimum gain (FE = LOW, VGA at lowest setting */
+#define TRF6151_GAIN_MIN	14
+/* minimum gain (FE = HIGH, VGA at highest setting */
+#define TRF6151_GAIN_MAX	60
+/* Frontend gain if FE = HIGH */
+#define TRF6151_GAIN_FE		20
+
 /* initialize (reset + power up) */
 void trf6151_init(void);
 
@@ -35,4 +42,9 @@ void trf6151_rx_window(int16_t start_qbits, uint16_t arfcn, uint8_t vga_dbm, int
 
 /* prepare a Tx window with the TRF6151 finished at time 'start' (in qbits) */
 void trf6151_tx_window(int16_t start_qbits, uint16_t arfcn);
+
+/* Given the expected input level of exp_inp dBm/8 and the target of target_bb
+ * dBm8, configure the RF Frontend with the respective gain */
+void trf6151_compute_gain(int16_t exp_inp, int16_t target_bb);
+
 #endif /* TRF6151_H */

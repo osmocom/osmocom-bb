@@ -30,6 +30,8 @@
 
 #include <calypso/tpu.h>
 #include <calypso/tsp.h>
+#include <layer1/agc.h>
+#include <rffe.h>
 
 #include <rf/trf6151.h>
 
@@ -456,4 +458,37 @@ void trf6151_tx_window(int16_t start_qbits, uint16_t arfcn)
 
 	/* FIXME: power down at the right time again */
 #endif
+}
+
+/* Given the expected input level of exp_inp dBm/8 and the target of target_bb
+ * dBm8, configure the RF Frontend with the respective gain */
+void trf6151_compute_gain(int16_t exp_inp, int16_t target_bb)
+{
+	/* TRF6151 VGA gain between 14 to 40 dB, plus 20db high/low */
+	int16_t exp_bb, delta;
+	int16_t vga_gain = TRF6151_GAIN_MIN;
+	int high = 0;
+
+	/* calculate the dBm8 that we expect at the baseband */
+	exp_bb = exp_inp + to_dbm8(system_inherent_gain);
+
+	/* calculate the error that we expect. */
+	delta = target_bb - exp_bb;
+
+	/* If this is negative or less than TRF6151_GAIN_MIN, we are pretty
+	 * much lost as we cannot reduce the system inherent gain.  If it is
+	 * positive, it corresponds to the gain that we need to configure */
+	if (delta < to_dbm8(TRF6151_GAIN_MIN)) {
+		printd("AGC Input level overflow\n");
+		high = 0;
+		vga_gain = TRF6151_GAIN_MIN;
+	} else if (delta > to_dbm8(TRF6151_GAIN_FE + TRF6151_GAIN_MIN)) {
+		high = 1;
+		delta -= to_dbm8(TRF6151_GAIN_FE);
+	}
+	vga_gain = to_dbm8(delta);
+	if (vga_gain > TRF6151_GAIN_MAX)
+		vga_gain = TRF6151_GAIN_MAX;
+
+	trf6151_set_gain(vga_gain, high);
 }

@@ -30,11 +30,6 @@
 #include <layer1/agc.h>
 #include <calypso/dsp.h>
 
-/* This is a value that has been measured on the C123 by Harald: 71dBm,
-   it is the difference between the input level at the antenna and what
-   the DSP reports, subtracted by the total gain of the TRF6151 */
-#define SYSTEM_INHERENT_GAIN	71
-
 /* compute the input level present at the antenna based on a baseband
  * power measurement of the DSP at baseband */
 int16_t agc_inp_dbm8_by_pm(int16_t pm)
@@ -43,7 +38,7 @@ int16_t agc_inp_dbm8_by_pm(int16_t pm)
 	int16_t total_gain_dbm8;
 
 	/* compute total current gain */
-	total_gain_dbm8 = (SYSTEM_INHERENT_GAIN + rffe_get_gain()) * 8;
+	total_gain_dbm8 = (system_inherent_gain + rffe_get_gain()) * 8;
 
 	/* subtract gain from power measurement at baseband level */
 	return pm - total_gain_dbm8;

@@ -7,6 +7,11 @@
 #include <calypso/tsp.h>
 #include <rf/trf6151.h>
 
+/* This is a value that has been measured on the C123 by Harald: 71dBm,
+   it is the difference between the input level at the antenna and what
+   the DSP reports, subtracted by the total gain of the TRF6151 */
+#define SYSTEM_INHERENT_GAIN	71
+
 /* describe how the RF frontend is wired on the Motorola E88 board (C117/C118/C121/C123) */
 
 #define		RITA_RESET	TSPACT(0)	/* Reset of the Rita TRF6151 */
@@ -60,11 +65,13 @@ uint8_t rffe_get_gain(void)
 	return trf6151_get_gain();
 }
 
+const uint8_t system_inherent_gain = SYSTEM_INHERENT_GAIN;
+
 /* Given the expected input level of exp_inp dBm/8 and the target of target_bb
  * dBm8, configure the RF Frontend with the respective gain */
 void rffe_set_gain(int16_t exp_inp, int16_t target_bb)
 {
-	/* FIXME */
+	trf6151_compute_gain(exp_inp, target_bb);
 }
 
 void rffe_rx_win_ctrl(int16_t exp_inp, int16_t target_bb)
