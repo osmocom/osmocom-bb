@@ -149,10 +149,6 @@ static void l1ctl_rx_fbsb_req(struct msgb *msg)
 	/* reset scheduler and hardware */
 	l1s_reset();
 
-	/* tune to specified frequency */
-	trf6151_rx_window(0, ntohs(sync_req->band_arfcn), 40, 0);
-	tpu_end_scenario();
-
 	/* pre-set the CCCH mode */
 	l1s.serving_cell.ccch_mode = sync_req->ccch_mode;
 
