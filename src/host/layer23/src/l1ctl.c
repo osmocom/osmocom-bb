@@ -116,8 +116,6 @@ static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 
-	printf("RACH CONF: arfcn=%u fn=%u\n", dl->snr, ntohl(dl->frame_nr));
-
 	rc.fn = htonl(dl->frame_nr);
 	rc.ms = ms;
 	dispatch_signal(SS_L1CTL, S_L1CTL_RACH_CONF, &rc);
