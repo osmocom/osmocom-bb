@@ -87,6 +87,12 @@ struct gsm48_rr_meas {
 	uint8_t			bcch_f_nc[6];
 };
 
+struct gsm48_cr_hist {
+	uint32_t	fn;
+	uint8_t		chan_req;
+	int		valid:1;
+};
+
 /* RR sublayer instance */
 struct gsm48_rrlayer {
 	struct osmocom_ms	*ms;
@@ -118,8 +124,9 @@ struct gsm48_rrlayer {
 	uint8_t			n_chan_req; /* number left, incl. current */
 	uint8_t			chan_req_val; /* current request value */ 
 	uint8_t			chan_req_mask; /* mask of random bits */ 
-	int16_t			cr_hist[3];
-		/* cr_hist must be signed and greater 8 bit, -1 = no value */
+
+	/* cr_hist must be signed and greater 8 bit, -1 = no value */
+	struct gsm48_cr_hist	cr_hist[3];
 
 	/* current channel descriptions */
 	struct gsm48_rr_cd	cd_now;

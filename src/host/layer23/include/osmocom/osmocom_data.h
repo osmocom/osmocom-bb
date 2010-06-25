@@ -57,12 +57,18 @@ enum osmobb_meas_sig {
 	S_L1CTL_RESET,
 	S_L1CTL_PM_RES,
 	S_L1CTL_PM_DONE,
+	S_L1CTL_RACH_CONF,
 };
 
 struct osmobb_meas_res {
 	struct osmocom_ms *ms;
 	uint16_t band_arfcn;
 	uint8_t rx_lev;
+};
+
+struct osmobb_rach_conf {
+	struct osmocom_ms *ms;
+	uint32_t fn;
 };
 
 #endif
