@@ -23,15 +23,11 @@
 #include <stdint.h>
 #include "linuxlist.h"
 
-struct bts_link;
-
 struct msgb {
 	struct llist_head list;
 
-	/* ptr to the physical E1 link to the BTS(s) */
-	struct gsm_bts_link *bts_link;
-
 	/* Part of which TRX logical channel we were received / transmitted */
+	/* FIXME: move them into the control buffer */
 	struct gsm_bts_trx *trx;
 	struct gsm_lchan *lchan;
 
@@ -41,17 +37,11 @@ struct msgb {
 	unsigned char *l2h;
 	/* the layer 3 header. For OML: FOM; RSL: 04.08; GPRS: BSSGP */
 	unsigned char *l3h;
-
 	/* the layer 4 header */
-	union {
-		unsigned char *smsh;
-		unsigned char *llch;
-		unsigned char *l4h;
-	};
+	unsigned char *l4h;
 
-	/* the layer 5 header, GPRS: GMM header */
-	unsigned char *gmmh;
-	uint32_t tlli;
+	/* the 'control buffer', large enough to contain 5 pointers */
+	unsigned long cb[5];
 
 	uint16_t data_len;
 	uint16_t len;
@@ -71,7 +61,7 @@ extern void msgb_reset(struct msgb *m);
 #define msgb_l1(m)	((void *)(m->l1h))
 #define msgb_l2(m)	((void *)(m->l2h))
 #define msgb_l3(m)	((void *)(m->l3h))
-#define msgb_sms(m)	((void *)(m->smsh))
+#define msgb_sms(m)	((void *)(m->l4h))
 
 static inline unsigned int msgb_l1len(const struct msgb *msgb)
 {

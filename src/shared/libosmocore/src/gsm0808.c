@@ -266,6 +266,14 @@ struct msgb *gsm0808_create_assignment_failure(uint8_t cause, uint8_t *rr_cause)
 	return msg;
 }
 
+void gsm0808_prepend_dtap_header(struct msgb *msg, uint8_t link_id)
+{
+	uint8_t *hh = msgb_push(msg, 3);
+	hh[0] = BSSAP_MSG_DTAP;
+	hh[1] = link_id;
+	hh[2] = msg->len - 3;
+}
+
 static const struct tlv_definition bss_att_tlvdef = {
 	.def = {
 		[GSM0808_IE_IMSI]		    = { TLV_TYPE_TLV },
@@ -286,6 +294,9 @@ static const struct tlv_definition bss_att_tlvdef = {
 		[GSM0808_IE_SERVICE_HANDOVER]	    = { TLV_TYPE_TV},
 		[GSM0808_IE_ENCRYPTION_INFORMATION] = { TLV_TYPE_TLV },
 		[GSM0808_IE_CIPHER_RESPONSE_MODE]   = { TLV_TYPE_TV },
+		[GSM0808_IE_CELL_IDENTIFIER]	    = { TLV_TYPE_TLV },
+		[GSM0808_IE_CHOSEN_CHANNEL]	    = { TLV_TYPE_TV },
+		[GSM0808_IE_LAYER_3_INFORMATION]    = { TLV_TYPE_TLV },
 	},
 };
 

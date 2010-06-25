@@ -37,7 +37,7 @@
 #include <osmocore/utils.h>
 #include <osmocore/logging.h>
 
-static const struct log_info *log_info;
+const struct log_info *osmo_log_info;
 
 static struct log_context log_context;
 static void *tall_log_ctx = NULL;
@@ -58,12 +58,17 @@ int log_parse_level(const char *lvl)
 	return get_string_value(loglevel_strs, lvl);
 }
 
+const char *log_level_str(unsigned int lvl)
+{
+	return get_value_string(loglevel_strs, lvl);
+}
+
 int log_parse_category(const char *category)
 {
 	int i;
 
-	for (i = 0; i < log_info->num_cat; ++i) {
-		if (!strcasecmp(log_info->cat[i].name+1, category))
+	for (i = 0; i < osmo_log_info->num_cat; ++i) {
+		if (!strcasecmp(osmo_log_info->cat[i].name+1, category))
 			return i;
 	}
 
@@ -87,15 +92,15 @@ void log_parse_category_mask(struct log_target* target, const char *_mask)
 
 	category_token = strtok(mask, ":");
 	do {
-		for (i = 0; i < log_info->num_cat; ++i) {
+		for (i = 0; i < osmo_log_info->num_cat; ++i) {
 			char* colon = strstr(category_token, ",");
 			int length = strlen(category_token);
 
 			if (colon)
 			    length = colon - category_token;
 
-			if (strncasecmp(log_info->cat[i].name, category_token,
-					length) == 0) {
+			if (strncasecmp(osmo_log_info->cat[i].name,
+					category_token, length) == 0) {
 				int level = 0;
 
 				if (colon)
@@ -112,8 +117,8 @@ void log_parse_category_mask(struct log_target* target, const char *_mask)
 
 static const char* color(int subsys)
 {
-	if (subsys < log_info->num_cat)
-		return log_info->cat[subsys].color;
+	if (subsys < osmo_log_info->num_cat)
+		return osmo_log_info->cat[subsys].color;
 
 	return NULL;
 }
@@ -193,8 +198,8 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 		 * say stop, continue, output */
 		if ((tar->filter_map & LOG_FILTER_ALL) != 0)
 			output = 1;
-		else if (log_info->filter_fn)
-			output = log_info->filter_fn(&log_context,
+		else if (osmo_log_info->filter_fn)
+			output = osmo_log_info->filter_fn(&log_context,
 						       tar);
 
 		if (output) {
@@ -301,7 +306,7 @@ void log_set_log_level(struct log_target *target, int log_level)
 void log_set_category_filter(struct log_target *target, int category,
 			       int enable, int level)
 {
-	if (category >= log_info->num_cat)
+	if (category >= osmo_log_info->num_cat)
 		return;
 	target->categories[category].enabled = !!enable;
 	target->categories[category].loglevel = level;
@@ -328,10 +333,10 @@ struct log_target *log_target_create(void)
 	INIT_LLIST_HEAD(&target->entry);
 
 	/* initialize the per-category enabled/loglevel from defaults */
-	for (i = 0; i < log_info->num_cat; i++) {
+	for (i = 0; i < osmo_log_info->num_cat; i++) {
 		struct log_category *cat = &target->categories[i];
-		cat->enabled = log_info->cat[i].enabled;
-		cat->loglevel = log_info->cat[i].loglevel;
+		cat->enabled = osmo_log_info->cat[i].enabled;
+		cat->loglevel = osmo_log_info->cat[i].loglevel;
 	}
 
 	/* global settings */
@@ -361,8 +366,54 @@ struct log_target *log_target_create_stderr(void)
 #endif /* stderr */
 }
 
+const char *log_vty_level_string(struct log_info *info)
+{
+	const struct value_string *vs;
+	unsigned int len = 3; /* ()\0 */
+	char *str;
+
+	for (vs = loglevel_strs; vs->value || vs->str; vs++)
+		len += strlen(vs->str) + 1;
+
+	str = talloc_zero_size(NULL, len);
+	if (!str)
+		return NULL;
+
+	str[0] = '(';
+	for (vs = loglevel_strs; vs->value || vs->str; vs++) {
+		strcat(str, vs->str);
+		strcat(str, "|");
+	}
+	str[strlen(str)-1] = ')';
+
+	return str;
+}
+
+const char *log_vty_category_string(struct log_info *info)
+{
+	unsigned int len = 3;	/* "()\0" */
+	unsigned int i;
+	char *str;
+
+	for (i = 0; i < info->num_cat; i++)
+		len += strlen(info->cat[i].name) + 1;
+
+	str = talloc_zero_size(NULL, len);
+	if (!str)
+		return NULL;
+
+	str[0] = '(';
+	for (i = 0; i < info->num_cat; i++) {
+		strcat(str, info->cat[i].name+1);
+		strcat(str, "|");
+	}
+	str[strlen(str)-1] = ')';
+
+	return str;
+}
+
 void log_init(const struct log_info *cat)
 {
 	tall_log_ctx = talloc_named_const(NULL, 1, "logging");
-	log_info = cat;
+	osmo_log_info = cat;
 }

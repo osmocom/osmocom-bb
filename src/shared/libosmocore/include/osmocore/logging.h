@@ -117,6 +117,7 @@ void log_set_print_timestamp(struct log_target *target, int);
 void log_set_log_level(struct log_target *target, int log_level);
 void log_parse_category_mask(struct log_target *target, const char* mask);
 int log_parse_level(const char *lvl);
+const char *log_level_str(unsigned int lvl);
 int log_parse_category(const char *category);
 void log_set_category_filter(struct log_target *target, int category,
 			       int enable, int level);
@@ -126,5 +127,9 @@ struct log_target *log_target_create(void);
 struct log_target *log_target_create_stderr(void);
 void log_add_target(struct log_target *target);
 void log_del_target(struct log_target *target);
+
+/* Gernerate command argument strings for VTY use */
+const char *log_vty_category_string(struct log_info *info);
+const char *log_vty_level_string(struct log_info *info);
 
 #endif /* _OSMOCORE_LOGGING_H */

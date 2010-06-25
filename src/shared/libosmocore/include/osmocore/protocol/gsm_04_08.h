@@ -386,6 +386,15 @@ struct gsm48_imm_ass {
 	uint8_t mob_alloc[0];
 } __attribute__ ((packed));
 
+/* Chapter 9.1.25 */
+struct gsm48_pag_resp {
+	uint8_t spare:4,
+		 key_seq:4;
+	uint32_t classmark2;
+	uint8_t mi_len;
+	uint8_t mi[0];
+} __attribute__ ((packed));
+
 /* Chapter 10.5.1.3 */
 struct gsm48_loc_area_id {
 	uint8_t digits[3];	/* BCD! */
@@ -397,6 +406,11 @@ struct gsm48_auth_req {
 	uint8_t key_seq:4,
 	         spare:4;
 	uint8_t rand[16];
+} __attribute__ ((packed));
+
+/* Section 9.2.3 */
+struct gsm48_auth_resp {
+	uint8_t sres[4];
 } __attribute__ ((packed));
 
 /* Section 9.2.15 */
@@ -974,7 +988,17 @@ struct gsm48_rr_status {
 #define GSM48_IE_FOLLOW_ON_PROC	0xa1
 #define GSM48_IE_CTS_PERMISSION	0xa2
 
+#define GSM48_IE_CHANDESC_2	0x64
+#define GSM48_IE_MA_AFTER	0x72
+#define GSM48_IE_START_TIME	0x7c
+#define GSM48_IE_FREQ_L_BEFORE	0x19
+#define GSM48_IE_CH_DESC_1_BEFORE	0x1c
+#define GSM48_IE_CH_DESC_2_BEFORE	0x1d
+#define GSM48_IE_F_CH_SEQ_BEFORE	0x1e
+#define GSM48_IE_MA_BEFORE	0x21
+#define GSM48_IE_VGCS_T_MODE_I	0x01
 
+/* FIXME */
 
 /* Section 10.5.4.23 / Table 10.5.130 */
 enum gsm48_signal_val {
@@ -1205,10 +1229,17 @@ enum gsm48_bcap_rrq {
 	GSM48_BCAP_RRQ_DUAL_FR	= 3,
 };
 
-
 #define GSM48_TMSI_LEN	5
 #define GSM48_MID_TMSI_LEN	(GSM48_TMSI_LEN + 2)
 #define GSM48_MI_SIZE 32
+
+/* Chapter 10.4.4.15 */
+struct gsm48_ra_id {
+	uint8_t digits[3];	/* MCC + MNC BCD digits */
+	uint16_t lac;		/* Location Area Code */
+	uint8_t rac;		/* Routing Area Code */
+} __attribute__ ((packed));
+
 
 
 #endif /* PROTO_GSM_04_08_H */

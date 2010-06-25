@@ -1,1 +1,1 @@
-SUBDIRS = osmocore
+SUBDIRS = osmocom osmocore

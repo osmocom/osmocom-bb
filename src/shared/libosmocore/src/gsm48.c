@@ -367,3 +367,49 @@ int gsm48_mi_to_string(char *string, const int str_len, const uint8_t *mi,
 
 	return str_cur - string;
 }
+
+void gsm48_parse_ra(struct gprs_ra_id *raid, const uint8_t *buf)
+{
+	raid->mcc = (buf[0] & 0xf) * 100;
+	raid->mcc += (buf[0] >> 4) * 10;
+	raid->mcc += (buf[1] & 0xf) * 1;
+
+	/* I wonder who came up with the stupidity of encoding the MNC
+	 * differently depending on how many digits its decimal number has! */
+	if ((buf[1] >> 4) == 0xf) {
+		raid->mnc = (buf[2] & 0xf) * 10;
+		raid->mnc += (buf[2] >> 4) * 1;
+	} else {
+		raid->mnc = (buf[2] & 0xf) * 100;
+		raid->mnc += (buf[2] >> 4) * 10;
+		raid->mnc += (buf[1] >> 4) * 1;
+	}
+
+	raid->lac = ntohs(*(uint16_t *)(buf + 3));
+	raid->rac = buf[5];
+}
+
+int gsm48_construct_ra(uint8_t *buf, const struct gprs_ra_id *raid)
+{
+	uint16_t mcc = raid->mcc;
+	uint16_t mnc = raid->mnc;
+
+	buf[0] = ((mcc / 100) % 10) | (((mcc / 10) % 10) << 4);
+	buf[1] = (mcc % 10);
+
+	/* I wonder who came up with the stupidity of encoding the MNC
+	 * differently depending on how many digits its decimal number has! */
+	if (mnc < 100) {
+		buf[1] |= 0xf0;
+		buf[2] = ((mnc / 10) % 10) | ((mnc % 10) << 4);
+	} else {
+		buf[1] |= (mnc % 10) << 4;
+		buf[2] = ((mnc / 100) % 10) | (((mcc / 10) % 10) << 4);
+	}
+
+	*(uint16_t *)(buf+3) = htons(raid->lac);
+
+	buf[5] = raid->rac;
+
+	return 6;
+}

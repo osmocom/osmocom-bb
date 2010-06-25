@@ -44,12 +44,22 @@ AC_ARG_ENABLE(tests,
 	[enable_tests=0], [enable_tests=1])
 AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "x1")
 
+AC_ARG_ENABLE(vtyc,
+	[  --disable-vty Disable building VTY telnet interface ],
+	[enable_vty=0], [enable_vty=1])
+AM_CONDITIONAL(ENABLE_VTY, test "x$enable_vty" = "x1")
+
+
 AC_OUTPUT(
 	libosmocore.pc
+	libosmovty.pc
+	include/osmocom/Makefile
+	include/osmocom/vty/Makefile
 	include/osmocore/Makefile
 	include/osmocore/protocol/Makefile
 	include/Makefile
 	src/Makefile
+	src/vty/Makefile
 	tests/Makefile
 	tests/timer/Makefile
 	tests/sms/Makefile

@@ -359,3 +359,35 @@ uint32_t gsm_gsmtime2fn(struct gsm_time *time)
 	/* TS 05.02 Chapter 4.3.3 TDMA frame number */
 	return (51 * ((time->t3 - time->t2 + 26) % 26) + time->t3 + (26 * 51 * time->t1));
 }
+
+/* TS 03.03 Chapter 2.6 */
+int gprs_tlli_type(uint32_t tlli)
+{
+	if ((tlli & 0xc0000000) == 0xc0000000)
+		return TLLI_LOCAL;
+	else if ((tlli & 0xc0000000) == 0x80000000)
+		return TLLI_FOREIGN;
+	else if ((tlli & 0xf8000000) == 0x78000000)
+		return TLLI_RANDOM;
+	else if ((tlli & 0xf8000000) == 0x70000000)
+		return TLLI_AUXILIARY;
+
+	return TLLI_RESERVED;
+}
+
+uint32_t gprs_tmsi2tlli(uint32_t p_tmsi, enum gprs_tlli_type type)
+{
+	uint32_t tlli;
+	switch (type) {
+	case TLLI_LOCAL:
+		tlli = p_tmsi | 0xc0000000;
+		break;
+	case TLLI_FOREIGN:
+		tlli = (p_tmsi & 0x3fffffff) | 0x80000000;
+		break;
+	default:
+		tlli = 0;
+		break;
+	}
+	return tlli;
+}

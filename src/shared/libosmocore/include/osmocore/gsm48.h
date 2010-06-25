@@ -1,8 +1,17 @@
 #ifndef _OSMOCORE_GSM48_H
+#define _OSMOCORE_GSM48_H
 
 #include <osmocore/tlv.h>
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/gsm48_ie.h>
+
+/* A parsed GPRS routing area */
+struct gprs_ra_id {
+	uint16_t	mnc;
+	uint16_t	mcc;
+	uint16_t	lac;
+	uint8_t		rac;
+};
 
 extern const struct tlv_definition gsm48_att_tlvdef;
 extern const struct tlv_definition gsm48_rr_att_tlvdef;
@@ -19,5 +28,9 @@ int gsm48_generate_mid_from_imsi(uint8_t *buf, const char *imsi);
 /* Convert Mobile Identity (10.5.1.4) to string */
 int gsm48_mi_to_string(char *string, const int str_len,
 			const uint8_t *mi, const int mi_len);
+
+/* Parse Routeing Area Identifier */
+void gsm48_parse_ra(struct gprs_ra_id *raid, const uint8_t *buf);
+int gsm48_construct_ra(uint8_t *buf, const struct gprs_ra_id *raid);
 
 #endif
