@@ -160,7 +160,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	register_signal_handler(SS_L1CTL, &signal_cb, NULL);
 	l23_app_exit = mobile_exit;
 
-	telnet_init(ms, 4242);
+	telnet_init(ms, 4247);
 	rc = vty_read_config_file(config_file);
 	if (rc < 0) {
 		fprintf(stderr, "Failed to parse the config file: '%s'\n",
