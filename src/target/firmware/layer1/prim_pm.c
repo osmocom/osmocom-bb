@@ -57,25 +57,27 @@ static void l1ddsp_meas_read(uint8_t nbmeas, uint16_t *pm)
 }
 
 /* scheduler callback to issue a power measurement task to the DSP */
-static int l1s_pm_cmd(__unused uint8_t p1,
+static int l1s_pm_cmd(uint8_t num_meas,
 		      __unused uint8_t p2, uint16_t arfcn)
 {
 	putchart('P');
 
-	dsp_api.db_w->d_task_md = 2;
+	dsp_api.db_w->d_task_md = num_meas; /* number of measurements */
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
 	dsp_end_scenario();
 
 	/* Program TPU */
-	//l1s_rx_win_ctrl(arfcn, L1_RXWIN_PW);
-	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB);
+	/* FIXME: RXWIN_PW needs to set up multiple times in case
+	 * num_meas > 1 */
+	l1s_rx_win_ctrl(arfcn, L1_RXWIN_PW);
+	//l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB);
 	tpu_end_scenario();
 
 	return 0;
 }
 
 /* scheduler callback to read power measurement resposnse from the DSP */
-static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
+static int l1s_pm_resp(uint8_t num_meas, __unused uint8_t p2,
 		       uint16_t arfcn)
 {
 	struct l1ctl_pm_conf *pmr;
@@ -83,7 +85,7 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 
 	putchart('p');
 
-	l1ddsp_meas_read(2, pm_level);
+	l1ddsp_meas_read(num_meas, pm_level);
 
 	printd("PM MEAS: %-4d dBm, %-4d dBm ARFCN=%u\n",
 		agc_inp_dbm8_by_pm(pm_level[0])/8,
@@ -103,7 +105,10 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 	pmr->band_arfcn = htons(arfcn);
 	/* FIXME: do this as RxLev rather than DBM8 ? */
 	pmr->pm[0] = dbm2rxlev(agc_inp_dbm8_by_pm(pm_level[0])/8);
-	pmr->pm[1] = dbm2rxlev(agc_inp_dbm8_by_pm(pm_level[1])/8);
+	if (num_meas > 1)
+		pmr->pm[1] = dbm2rxlev(agc_inp_dbm8_by_pm(pm_level[1])/8);
+	else
+		pmr->pm[1] = 0;
 
 	if (l1s.pm.mode == 1) {
 		if (l1s.pm.range.arfcn_next <= l1s.pm.range.arfcn_end) {
@@ -122,10 +127,16 @@ static int l1s_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 	return 0;
 }
 
+static const struct tdma_sched_item pm_sched_set[] = {
+	SCHED_ITEM(l1s_pm_cmd, 1, 0),		SCHED_END_FRAME(),
+						SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_pm_resp, 1, 0),		SCHED_END_FRAME(),
+	SCHED_END_SET()
+};
+
 /* Schedule a power measurement test */
 void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 {
 	printd("l1s_pm_test(%u, %u)\n", base_fn, arfcn);
-	tdma_schedule(base_fn, &l1s_pm_cmd, 0, 0, arfcn);
-	tdma_schedule(base_fn + 2, &l1s_pm_resp, 0, 0, arfcn);
+	tdma_schedule_set(base_fn, pm_sched_set, arfcn);
 }
