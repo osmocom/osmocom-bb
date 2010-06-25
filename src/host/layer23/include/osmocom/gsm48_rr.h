@@ -90,7 +90,7 @@ struct gsm48_rr_meas {
 struct gsm48_cr_hist {
 	uint32_t	fn;
 	uint8_t		chan_req;
-	int		valid:1;
+	uint8_t		valid;
 };
 
 /* RR sublayer instance */
