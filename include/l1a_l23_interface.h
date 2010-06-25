@@ -41,6 +41,7 @@
 #define L1CTL_DATA_CONF		16
 #define L1CTL_CCCH_MODE_REQ	17
 #define L1CTL_CCCH_MODE_CONF	18
+#define L1CTL_DM_REL_REQ	19
 
 enum ccch_mode {
 	CCCH_MODE_NONE = 0,
