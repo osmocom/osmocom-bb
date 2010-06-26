@@ -52,6 +52,7 @@ static char *socket_path = "/tmp/osmocom_l2";
 struct llist_head ms_list;
 static struct osmocom_ms *ms = NULL;
 static uint32_t gsmtap_ip = 0;
+unsigned short vty_port = 4247;
 int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
 int (*l23_app_exit) (struct osmocom_ms *ms) = NULL;
 int quit = 0;
@@ -59,7 +60,8 @@ int quit = 0;
 const char *openbsc_copyright =
 	"Copyright (C) 2008-2010 ...\n"
 	"Contributions by ...\n\n"
-	"License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n"
+	"License GPLv2+: GNU GPL version 2 or later "
+		"<http://gnu.org/licenses/gpl.html>\n"
 	"This is free software: you are free to change and redistribute it.\n"
 	"There is NO WARRANTY, to the extent permitted by law.\n";
 
@@ -72,9 +74,13 @@ static void print_help()
 {
 	printf(" Some help...\n");
 	printf("  -h --help		this text\n");
-	printf("  -s --socket		/tmp/osmocom_l2. Path to the unix domain socket\n");
+	printf("  -s --socket		/tmp/osmocom_l2. Path to the unix "
+		"domain socket\n");
 	printf("  -a --arfcn NR		The ARFCN to be used for layer2.\n");
 	printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
+	printf("  -v --vty-port		The VTY port number to telnet to. "
+		"(default %u)\n", vty_port);
+	printf("  -d --debug		Change debug flags.\n");
 }
 
 static void handle_options(int argc, char **argv)
@@ -87,18 +93,18 @@ static void handle_options(int argc, char **argv)
 			{"socket", 1, 0, 's'},
 			{"arfcn", 1, 0, 'a'},
 			{"gsmtap-ip", 1, 0, 'i'},
+			{"vty-port", 1, 0, 'v'},
 			{"debug", 1, 0, 'd'},
 			{0, 0, 0, 0},
 		};
 
-		c = getopt_long(argc, argv, "hs:a:i:d:",
+		c = getopt_long(argc, argv, "hs:a:i:v:d:",
 				long_options, &option_index);
 		if (c == -1)
 			break;
 
 		switch (c) {
 		case 'h':
-			printf("%s\n", openbsc_copyright);
 			print_usage(argv[0]);
 			print_help();
 			exit(0);
@@ -115,6 +121,9 @@ static void handle_options(int argc, char **argv)
 				exit(2);
 			}
 			gsmtap_ip = ntohl(gsmtap.sin_addr.s_addr);
+			break;
+		case 'v':
+			vty_port = atoi(optarg);
 			break;
 		case 'd':
 			log_parse_category_mask(stderr_target, optarg);
@@ -143,6 +152,8 @@ void sighandler(int sigset)
 int main(int argc, char **argv)
 {
 	int rc;
+
+	printf("%s\n", openbsc_copyright);
 
 	INIT_LLIST_HEAD(&ms_list);
 	log_init(&log_info);

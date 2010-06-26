@@ -46,6 +46,7 @@
 extern struct log_target *stderr_target;
 static const char *config_file = "/etc/osmocom/osmocom.cfg";
 extern void *l23_ctx;
+extern unsigned short vty_port;
 
 static int started = 0;
 
@@ -177,12 +178,14 @@ int l23_app_init(struct osmocom_ms *ms)
 			"'touch %s%s'\n", OSMOCOM_CONFDIR, config_file);
 		return rc;
 	}
-	telnet_init(l23_ctx, NULL, 4247);
+	telnet_init(l23_ctx, NULL, vty_port);
 	if (rc < 0)
 		return rc;
+	printf("VTY available on port %u.\n", vty_port);
 
 	gsm_random_imei(&ms->settings);
 
+	printf("Mobile initialized, please start phone now!\n");
 	return 0;
 }
 
