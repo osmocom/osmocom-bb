@@ -161,6 +161,7 @@ int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm);
 int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg);
 int gsm48_rr_los(struct osmocom_ms *ms);
+int gsm48_rr_rach_conf(struct osmocom_ms *ms, uint32_t fn);
 extern const char *gsm48_rr_state_names[];
 
 #endif /* _GSM48_RR_H */

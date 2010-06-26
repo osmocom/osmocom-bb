@@ -58,6 +58,7 @@
 #include <osmocom/l1l2_interface.h>
 #include <osmocom/logging.h>
 #include <osmocom/networks.h>
+#include <osmocom/l1ctl.h>
 
 static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_rr_dl_est(struct osmocom_ms *ms);
@@ -213,6 +214,8 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 	if (state == GSM48_RR_ST_IDLE) {
 		struct msgb *msg, *nmsg;
 
+		/* release dedicated mode, if any */
+		tx_ph_dm_rel_req(rr->ms);
 		/* free establish message, if any */
 		rr->rr_est_req = 0;
 		if (rr->rr_est_msg) {
@@ -3003,9 +3006,15 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 #ifdef TODO
 	RSL_MT_ to activate channel with all the cd_now informations
 #else
+	if (rr->cd_now.h) {
+		printf("FIXME: Channel hopping not supported, exitting.\n");
+		exit(-ENOTSUP);
+	}
 	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
-	if (ch_type != RSL_CHAN_SDCCH4_ACCH || ch_ts != 0) {
-		printf("Channel type not supported, exitting.\n");
+	if ((ch_type != RSL_CHAN_SDCCH8_ACCH
+	  && ch_type != RSL_CHAN_SDCCH4_ACCH) || ch_ts > 4) {
+		printf("Channel type %d, subch %d, ts %d not supported, "
+			"exitting.\n", ch_type, ch_subch, ch_ts);
 		exit(-ENOTSUP);
 	}
 	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr,

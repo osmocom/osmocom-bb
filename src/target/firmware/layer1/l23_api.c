@@ -171,9 +171,9 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 		puts("We don't support ARFCN switches yet\n");
 		return;
 	}
-	if (ul->chan_nr & 0x7) {
+	if ((ul->chan_nr & 0x7) > 4) {
 		/* FIXME: Timeslot */
-		puts("We don't support non-0 TS yet\n");
+		puts("We don't support TS > 4 yet\n");
 		return;
 	}
 	if (est_req->h) {

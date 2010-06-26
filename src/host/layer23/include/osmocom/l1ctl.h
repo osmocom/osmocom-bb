@@ -17,8 +17,12 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 int tx_ph_rach_req(struct osmocom_ms *ms);
 
 /* Transmit L1CTL_DM_EST_REQ */
-int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr,
-		     uint8_t tsc);
+int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn,
+		     uint8_t chan_nr, uint8_t tsc);
+
+/* Transmit L1CTL_DM_REL_REQ */
+int tx_ph_dm_rel_req(struct osmocom_ms *ms);
+
 /* Transmit FBSB_REQ */
 int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 		      uint8_t flags, uint16_t timeout, uint8_t sync_info_idx,

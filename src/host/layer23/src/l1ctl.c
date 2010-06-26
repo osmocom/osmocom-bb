@@ -343,6 +343,23 @@ int tx_ph_dm_est_req(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr
 	return osmo_send_l1(ms, msg);
 }
 
+/* Transmit L1CTL_DM_REL_REQ */
+int tx_ph_dm_rel_req(struct osmocom_ms *ms)
+{
+	struct msgb *msg;
+	struct l1ctl_info_ul *ul;
+
+	msg = osmo_l1_alloc(L1CTL_DM_REL_REQ);
+	if (!msg)
+		return -1;
+
+	DEBUGP(DL1C, "Tx Dedic.Mode Rel Req\n");
+
+	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
+
+	return osmo_send_l1(ms, msg);
+}
+
 int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len)
 {
 	struct msgb *msg;

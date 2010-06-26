@@ -2309,8 +2309,8 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 
 	/* start scan on radio interface */
 	cs->powerscan = 1;
-#warning TESTING!!!!
-usleep(300000);
+//#warning TESTING!!!!
+//usleep(300000);
 	return l1ctl_tx_pm_req_range(ms, s, e);
 }
 
@@ -2833,8 +2833,8 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 	hack = 5;
 	gsm322_sync_to_cell(ms, cs);
 	cs->si = cs->list[cs->arfcn].sysinfo;
-#warning TESTING: laforge must fix the sync error when sending fbsb request too close to each other. also we must get a response with arfcn or a confirm, so we know where the response belongs to.
-usleep(300000);
+//#warning TESTING!!!!
+//usleep(300000);
 
 	return 0;
 }
