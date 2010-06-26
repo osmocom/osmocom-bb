@@ -225,8 +225,9 @@ int gsm_subscr_dump_forbidden_plmn(struct osmocom_ms *ms,
 	print(priv, "MCC    |MNC    |cause\n");
 	print(priv, "-------+-------+-------\n");
 	llist_for_each_entry(temp, &subscr->plmn_na, entry)
-		print(priv, "%03d    |%02d     |#%d\n",
-			temp->mcc, temp->mnc, temp->cause);
+		print(priv, "%s    |%s%s    |#%d\n",
+			gsm_print_mcc(temp->mcc), gsm_print_mnc(temp->mnc),
+			((temp->mnc & 0x00f) == 0x00f) ? " ":"", temp->cause);
 
 	return 0;
 }
@@ -252,8 +253,9 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 	if (subscr->tmsi_valid)
 		print(priv, "  TSMI  %08x", subscr->tmsi);
 	if (subscr->lai_valid)
-		print(priv, "  LAI: MCC %d  MNC %d  LAC 0x%04x  (%s, %s)\n",
-			subscr->lai_mcc, subscr->lai_mnc, subscr->lai_lac,
+		print(priv, "  LAI: MCC %s  MNC %s  LAC 0x%04x  (%s, %s)\n",
+			gsm_print_mcc(subscr->lai_mcc),
+			gsm_print_mnc(subscr->lai_mnc), subscr->lai_lac,
 			gsm_get_mcc(subscr->lai_mcc),
 			gsm_get_mnc(subscr->lai_mcc, subscr->lai_mnc));
 	else
@@ -265,8 +267,9 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		print(priv, "\n");
 	}
 	if (subscr->plmn_valid)
-		print(priv, " Current PLMN: MCC %d  MNC %d  (%s, %s)\n",
-			subscr->plmn_mcc, subscr->plmn_mnc,
+		print(priv, " Current PLMN: MCC %s  MNC %s  (%s, %s)\n",
+			gsm_print_mcc(subscr->plmn_mcc),
+			gsm_print_mnc(subscr->plmn_mnc),
 			gsm_get_mcc(subscr->plmn_mcc),
 			gsm_get_mnc(subscr->plmn_mcc, subscr->plmn_mnc));
 	print(priv, " Access barred cells: %s\n",
@@ -281,16 +284,20 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		print(priv, "        MCC    |MNC\n");
 		print(priv, "        -------+-------\n");
 		llist_for_each_entry(plmn_list, &subscr->plmn_list, entry)
-			print(priv, "        %03d    |%02d\n", plmn_list->mcc,
-				plmn_list->mnc);
+			print(priv, "        %s    |%s\n",
+			gsm_print_mcc(plmn_list->mcc),
+			gsm_print_mnc(plmn_list->mnc));
 	}
 	if (!llist_empty(&subscr->plmn_na)) {
 		print(priv, " List of forbidden PLMNs:\n");
 		print(priv, "        MCC    |MNC    |cause\n");
 		print(priv, "        -------+-------+-------\n");
 		llist_for_each_entry(plmn_na, &subscr->plmn_na, entry)
-			print(priv, "        %03d    |%02d     |#%d\n",
-				plmn_na->mcc, plmn_na->mnc, plmn_na->cause);
+			print(priv, "        %s    |%s%s    |#%d\n",
+				gsm_print_mcc(plmn_na->mcc),
+				gsm_print_mnc(plmn_na->mnc),
+				((plmn_na->mnc & 0x00f) == 0x00f) ? " ":"",
+				plmn_na->cause);
 	}
 }
 
