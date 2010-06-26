@@ -208,6 +208,26 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* Receive L1CTL_DATA_CONF (Data Confirm from L1) */
+static int rx_ph_data_conf(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_info_dl *dl;
+	struct lapdm_entity *le;
+
+	dl = (struct l1ctl_info_dl *) msg->l1h;
+
+	/* determine LAPDm entity based on SACCH or not */
+	if (dl->link_id & 0x40)
+		le = &ms->l2_entity.lapdm_acch;
+	else
+		le = &ms->l2_entity.lapdm_dcch;
+
+	/* send it up into LAPDm */
+	l2_ph_data_conf(msg, le);
+
+	return 0;
+}
+
 /* Transmit L1CTL_DATA_REQ */
 int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 		   uint8_t chan_nr, uint8_t link_id)
@@ -397,6 +417,23 @@ int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 	return osmo_send_l1(ms, msg);
 }
 
+/* Transmit L1CTL_RESET_REQ */
+int l1ctl_tx_reset_req(struct osmocom_ms *ms, uint8_t type)
+{
+	struct msgb *msg;
+	struct l1ctl_reset *res;
+
+	msg = osmo_l1_alloc(L1CTL_RESET_REQ);
+	if (!msg)
+		return -1;
+
+	printf("Tx Reset Req (%u)\n", type);
+	res = (struct l1ctl_reset *) msgb_put(msg, sizeof(*res));
+	res->type = type;
+
+	return osmo_send_l1(ms, msg);
+}
+
 /* Receive L1CTL_RESET_IND */
 static int rx_l1_reset(struct osmocom_ms *ms)
 {
@@ -452,7 +489,11 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	case L1CTL_DATA_IND:
 		rc = rx_ph_data_ind(ms, msg);
 		break;
+	case L1CTL_DATA_CONF:
+		rc = rx_ph_data_conf(ms, msg);
+		break;
 	case L1CTL_RESET_IND:
+	case L1CTL_RESET_CONF:
 		rc = rx_l1_reset(ms);
 		msgb_free(msg);
 		break;
@@ -462,17 +503,8 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		if (l1h->flags & L1CTL_F_DONE)
 			dispatch_signal(SS_L1CTL, S_L1CTL_PM_DONE, ms);
 		break;
-	case L1CTL_RESET_CONF:
-		LOGP(DL1C, LOGL_NOTICE, "L1CTL_RESET_CONF\n");
-		msgb_free(msg);
-		break;
 	case L1CTL_RACH_CONF:
-		LOGP(DL1C, LOGL_NOTICE, "L1CTL_RACH_CONF\n");
 		rc = rx_l1_rach_conf(ms, msg);
-		msgb_free(msg);
-		break;
-	case L1CTL_DATA_CONF:
-		LOGP(DL1C, LOGL_NOTICE, "L1CTL_DATA_CONF\n");
 		msgb_free(msg);
 		break;
 	default:

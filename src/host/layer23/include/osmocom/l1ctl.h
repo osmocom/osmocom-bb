@@ -32,6 +32,9 @@ int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode);
 
 int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len);
 
+/* Transmit L1CTL_RESET_REQ */
+int l1ctl_tx_reset_req(struct osmocom_ms *ms, uint8_t type);
+
 /* Transmit L1CTL_PM_REQ */
 int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 			  uint16_t arfcm_to);

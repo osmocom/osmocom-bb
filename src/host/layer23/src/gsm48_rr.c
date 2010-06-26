@@ -215,7 +215,8 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		struct msgb *msg, *nmsg;
 
 		/* release dedicated mode, if any */
-		tx_ph_dm_rel_req(rr->ms);
+//		tx_ph_dm_rel_req(rr->ms);
+		l1ctl_tx_reset_req(rr->ms, L1CTL_RES_T_FULL);
 		/* free establish message, if any */
 		rr->rr_est_req = 0;
 		if (rr->rr_est_msg) {

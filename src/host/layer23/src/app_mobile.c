@@ -80,11 +80,8 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 
 	switch (signal) {
 	case S_L1CTL_RESET:
-		if (started) {
-			printf("L1_RESET, TODO: resend last radio request "
-				"(CCCH / dedicated / power scan)\n");
+		if (started)
 			break;
-		}
 		started = 1;
 		ms = signal_data;
 		/* insert test card, if enabled */

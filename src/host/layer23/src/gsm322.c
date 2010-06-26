@@ -221,6 +221,7 @@ int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
 
 static int gsm322_sync_to_cell(struct osmocom_ms *ms, struct gsm322_cellsel *cs)
 {
+//	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	return l1ctl_tx_fbsb_req(ms, cs->arfcn,
 	                         L1CTL_FBSB_F_FB01SB, 100, 0,
 				 CCCH_MODE_COMBINED);
@@ -2403,6 +2404,9 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		rc = signal_data;
 		ms = rc->ms;
 		gsm48_rr_rach_conf(ms, rc->fn);
+		break;
+	case S_L1CTL_RESET:
+		LOGP(DCS, LOGL_INFO, "Reset\n");
 		break;
 	}
 

@@ -297,14 +297,13 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 
 	/* send the frame now */
 	le->tx_pending = 1;
-#warning HACK: no confirm yet! (queue is always empty now)
-le->tx_pending = 0;
+#if 0
 printf("-> tx chan_nr 0x%x link_id 0x%x len %d data", chan_nr, link_id, msgb_l2len(msg));
 int i;
 for (i = 0; i < msgb_l2len(msg); i++)
 	printf(" %02x", msg->l2h[i]);
 printf("\n");
-//usleep(100000);
+#endif
 	lapdm_pad_msgb(msg, n201);
 	return tx_ph_data_req(ms, msg, chan_nr, link_id);
 }
@@ -312,14 +311,22 @@ printf("\n");
 /* get next frame from the tx queue. because the ms has multiple datalinks,
  * each datalink's queue is read round-robin.
  */
-static int tx_ph_data_dequeue(struct lapdm_entity *le)
+int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 {
 	struct osmocom_ms *ms = le->ms;
 	struct lapdm_datalink *dl;
 	int last = le->last_tx_dequeue;
 	int i = last, n = ARRAY_SIZE(le->datalink);
-	struct msgb *msg;
 	uint8_t chan_nr, link_id, n201;
+
+	/* we may send again */
+	le->tx_pending = 0;
+
+#if 0
+printf("-> tx confirm\n");
+#endif
+	/* free confirm message */
+	msgb_free(msg);
 
 	/* round-robin dequeue */
 	do {
@@ -331,7 +338,7 @@ static int tx_ph_data_dequeue(struct lapdm_entity *le)
 	} while (i != last);
 
 	/* no message in all queues */
-	if (msg)
+	if (!msg)
 		return 0;
 
 	/* Pull chan_nr and link_id */
@@ -347,6 +354,12 @@ static int tx_ph_data_dequeue(struct lapdm_entity *le)
 
 	/* Pad the frame, we can transmit now */
 	le->tx_pending = 1;
+#if 0
+printf("-> more tx chan_nr 0x%x link_id 0x%x len %d data", chan_nr, link_id, msgb_l2len(msg));
+for (i = 0; i < msgb_l2len(msg); i++)
+	printf(" %02x", msg->l2h[i]);
+printf("\n");
+#endif
 	lapdm_pad_msgb(msg, n201);
 	return tx_ph_data_req(ms, msg, chan_nr, link_id);
 }
@@ -1419,6 +1432,13 @@ static int lapdm_ph_data_ind(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 {
 	int rc;
 
+#if 0
+printf("-> rx chan_nr 0x%x link_id 0x%x len %d data", mctx->chan_nr, mctx->link_id, msgb_l2len(msg));
+int i;
+for (i = 0; i < msgb_l2len(msg); i++)
+	printf(" %02x", msg->l2h[i]);
+printf("\n");
+#endif
 	/* G.2.3 EA bit set to "0" is not allowed in GSM */
 	if (!LAPDm_ADDR_EA(mctx->addr)) {
 		LOGP(DLAPDM, LOGL_NOTICE, "EA bit 0 is not allowed in GSM\n");
@@ -1959,7 +1979,7 @@ const char *lapdm_state_names[] = {
 	"LAPDm_STATE_SABM_SENT",
 	"LAPDm_STATE_MF_EST",
 	"LAPDm_STATE_TIMER_RECOV",
-	"LAPDm_STATE_OWN_RCVR_BUSY"
+	"LAPDm_STATE_DISC_SENT",
 };
 
 /* statefull handling for RSLms RLL messages from L3 */
