@@ -34,7 +34,8 @@
 #include <osmocom/lapdm.h>
 #include <osmocom/gsmtap_util.h>
 #include <osmocom/logging.h>
-#include <osmocom/telnet_interface.h>
+#include <osmocom/vty.h>
+#include <osmocom/vty/telnet_interface.h>
 #include <osmocom/file.h>
 
 #include <osmocore/msgb.h>
@@ -43,7 +44,8 @@
 #include <osmocore/signal.h>
 
 extern struct log_target *stderr_target;
-static const char *config_file = "osmocom.cfg";
+static const char *config_file = "/etc/osmocom/osmocom.cfg";
+extern void *l23_ctx;
 
 static int started = 0;
 
@@ -134,9 +136,16 @@ int mobile_exit(struct osmocom_ms *ms)
 	return 0;
 }
 
+static struct vty_app_info vty_info = {
+	.name = "OsmocomBB",
+	.version = PACKAGE_VERSION,
+	.go_parent_cb = ms_vty_go_parent,
+};
+
 int l23_app_init(struct osmocom_ms *ms)
 {
 	int rc;
+	struct telnet_connection dummy_conn;
 
 //	log_parse_category_mask(stderr_target, "DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG:DSUM");
 	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG:DSUM");
@@ -157,8 +166,10 @@ int l23_app_init(struct osmocom_ms *ms)
 	register_signal_handler(SS_L1CTL, &signal_cb, NULL);
 	l23_app_exit = mobile_exit;
 
-	telnet_init(ms, 4247);
-	rc = vty_read_config_file(config_file);
+	vty_init(&vty_info);
+	ms_vty_init();
+	dummy_conn.priv = NULL;
+	rc = vty_read_config_file(config_file, &dummy_conn);
 	if (rc < 0) {
 		fprintf(stderr, "Failed to parse the config file: '%s'\n",
 			config_file);
@@ -166,6 +177,9 @@ int l23_app_init(struct osmocom_ms *ms)
 			"'touch %s%s'\n", OSMOCOM_CONFDIR, config_file);
 		return rc;
 	}
+	telnet_init(l23_ctx, NULL, 4247);
+	if (rc < 0)
+		return rc;
 
 	gsm_random_imei(&ms->settings);
 

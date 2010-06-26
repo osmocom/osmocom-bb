@@ -36,7 +36,7 @@
 #include <osmocom/file.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/networks.h>
-#include <osmocom/telnet_interface.h>
+#include <osmocom/vty.h>
 
 extern void *l23_ctx;
 

@@ -25,9 +25,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 
-#include <vty/command.h>
-#include <vty/buffer.h>
-#include <vty/vty.h>
+#include <osmocom/vty.h>
+#include <osmocom/vty/telnet_interface.h>
 
 #include <osmocore/gsm48.h>
 #include <osmocom/osmocom_data.h>
@@ -42,6 +41,7 @@ int mncc_hold(struct osmocom_ms *ms);
 int mncc_retrieve(struct osmocom_ms *ms, int number);
 
 extern struct llist_head ms_list;
+extern struct llist_head active_connections;
 
 struct cmd_node ms_node = {
 	MS_NODE,
@@ -847,29 +847,76 @@ DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-coun
 	return CMD_SUCCESS;
 }
 
+enum node_type ms_vty_go_parent(struct vty *vty)
+{
+	switch (vty->node) {
+	case MS_NODE:
+		vty->node = CONFIG_NODE;
+		vty->index = NULL;
+		break;
+	case TESTSIM_NODE:
+		vty->node = MS_NODE;
+		break;
+	default:
+		vty->node = CONFIG_NODE;
+	}
+
+	return vty->node;
+}
+
+/* Down vty node level. */
+gDEFUN(ournode_exit,
+       ournode_exit_cmd, "exit", "Exit current mode and down to previous mode\n")
+{
+	switch (vty->node) {
+	case MS_NODE:
+		vty->node = CONFIG_NODE;
+		vty->index = NULL;
+		break;
+	case TESTSIM_NODE:
+		vty->node = MS_NODE;
+		break;
+	default:
+		break;
+	}
+	return CMD_SUCCESS;
+}
+
+/* End of configuration. */
+gDEFUN(ournode_end,
+       ournode_end_cmd, "end", "End current mode and change to enable mode.")
+{
+	switch (vty->node) {
+	case VIEW_NODE:
+	case ENABLE_NODE:
+		/* Nothing to do. */
+		break;
+	case CONFIG_NODE:
+	case VTY_NODE:
+	case MS_NODE:
+	case TESTSIM_NODE:
+		vty_config_unlock(vty);
+		vty->node = ENABLE_NODE;
+		vty->index = NULL;
+		vty->index_sub = NULL;
+		break;
+	default:
+		break;
+	}
+	return CMD_SUCCESS;
+}
+
 int ms_vty_init(void)
 {
-	cmd_init(1);
-	vty_init();
-
-	install_element(ENABLE_NODE, &show_ms_cmd);
-	install_element(VIEW_NODE, &show_ms_cmd);
-	install_element(ENABLE_NODE, &show_subscr_cmd);
-	install_element(VIEW_NODE, &show_subscr_cmd);
-	install_element(ENABLE_NODE, &show_support_cmd);
-	install_element(VIEW_NODE, &show_support_cmd);
-	install_element(ENABLE_NODE, &show_states_cmd);
-	install_element(VIEW_NODE, &show_states_cmd);
-	install_element(ENABLE_NODE, &show_cell_cmd);
-	install_element(VIEW_NODE, &show_cell_cmd);
-	install_element(ENABLE_NODE, &show_cell_si_cmd);
-	install_element(VIEW_NODE, &show_cell_si_cmd);
-	install_element(ENABLE_NODE, &show_ba_cmd);
-	install_element(VIEW_NODE, &show_ba_cmd);
-	install_element(ENABLE_NODE, &show_forb_la_cmd);
-	install_element(VIEW_NODE, &show_forb_la_cmd);
-	install_element(ENABLE_NODE, &show_forb_plmn_cmd);
-	install_element(VIEW_NODE, &show_forb_plmn_cmd);
+	install_element_ve(&show_ms_cmd);
+	install_element_ve(&show_subscr_cmd);
+	install_element_ve(&show_support_cmd);
+	install_element_ve(&show_states_cmd);
+	install_element_ve(&show_cell_cmd);
+	install_element_ve(&show_cell_si_cmd);
+	install_element_ve(&show_ba_cmd);
+	install_element_ve(&show_forb_la_cmd);
+	install_element_ve(&show_forb_plmn_cmd);
 
 	install_element(ENABLE_NODE, &insert_test_cmd);
 	install_element(ENABLE_NODE, &remove_sim_cmd);
@@ -880,8 +927,11 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_retr_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ms_cmd);
+	install_element(CONFIG_NODE, &ournode_end_cmd);
 	install_node(&ms_node, config_write_ms);
 	install_default(MS_NODE);
+	install_element(MS_NODE, &ournode_exit_cmd);
+	install_element(MS_NODE, &ournode_end_cmd);
 	install_element(MS_NODE, &cfg_ms_mode_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_fixed_cmd);
@@ -898,6 +948,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_testsim_cmd);
 	install_node(&testsim_node, config_write_dummy);
 	install_default(TESTSIM_NODE);
+	install_element(TESTSIM_NODE, &ournode_exit_cmd);
+	install_element(TESTSIM_NODE, &ournode_end_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_imsi_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_barr_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_no_barr_cmd);
@@ -906,5 +958,40 @@ int ms_vty_init(void)
 	install_element(TESTSIM_NODE, &cfg_test_hplmn_cmd);
 
 	return 0;
+}
+
+void vty_notify(struct osmocom_ms *ms, const char *fmt, ...)
+{
+	struct telnet_connection *connection;
+	char buffer[1000];
+	va_list args;
+	struct vty *vty;
+
+	if (fmt) {
+		va_start(args, fmt);
+		vsnprintf(buffer, sizeof(buffer) - 1, fmt, args);
+		buffer[sizeof(buffer) - 1] = '\0';
+		va_end(args);
+
+		if (!buffer[0])
+			return;
+	}
+
+	llist_for_each_entry(connection, &active_connections, entry) {
+		vty = connection->vty;
+		if (!vty)
+			continue;
+		if (!fmt) {
+			vty_out(vty, "%s%% (MS %s)%s", VTY_NEWLINE, ms->name,
+				VTY_NEWLINE);
+			continue;
+		}
+		if (buffer[strlen(buffer) - 1] == '\n') {
+			buffer[strlen(buffer) - 1] = '\0';
+			vty_out(vty, "%% %s%s", buffer, VTY_NEWLINE);
+			buffer[strlen(buffer)] = '\n';
+		} else
+			vty_out(vty, "%% %s", buffer);
+	}
 }
 

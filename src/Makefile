@@ -8,7 +8,9 @@ CROSS_TOOL_PREFIX=arm-elf-
 
 TOPDIR=$(shell pwd)
 OSMOCORE_CONFIGURE_ENV= LIBOSMOCORE_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/.libs/libosmocore.a \
-	 	    	LIBOSMOCORE_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
+                        LIBOSMOVTY_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/vty/.libs/libosmovty.a \
+	 	    	LIBOSMOCORE_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
+	 	    	LIBOSMOVTY_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
 
 all: libosmocore-host libosmocore-target layer23 osmocon firmware
 

@@ -56,6 +56,13 @@ int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
 int (*l23_app_exit) (struct osmocom_ms *ms) = NULL;
 int quit = 0;
 
+const char *openbsc_copyright =
+	"Copyright (C) 2008-2010 ...\n"
+	"Contributions by ...\n\n"
+	"License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n"
+	"This is free software: you are free to change and redistribute it.\n"
+	"There is NO WARRANTY, to the extent permitted by law.\n";
+
 static void print_usage(const char *app)
 {
 	printf("Usage: %s\n", app);
@@ -91,6 +98,7 @@ static void handle_options(int argc, char **argv)
 
 		switch (c) {
 		case 'h':
+			printf("%s\n", openbsc_copyright);
 			print_usage(argv[0]);
 			print_help();
 			exit(0);

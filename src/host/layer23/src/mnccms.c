@@ -30,7 +30,7 @@
 #include <osmocom/logging.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/mncc.h>
-#include <osmocom/telnet_interface.h>
+#include <osmocom/vty.h>
 
 void *l23_ctx;
 static int new_callref = 1;
