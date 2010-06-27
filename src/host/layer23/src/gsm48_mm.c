@@ -995,10 +995,11 @@ static int gsm48_mm_set_plmn_search(struct osmocom_ms *ms)
 	 || cs->sel_mnc != subscr->lai_mnc
 	 || cs->sel_lac != subscr->lai_lac) {
 		LOGP(DMM, LOGL_INFO, "Selecting PLMN SEARCH state, because "
-			"LAI of selected cell (MCC %03d MNC %02d LAC 0x%04x) "
-			"!= LAI in SIM (MCC %03d MNC %02d LAC 0x%04x).\n",
-			cs->sel_mcc, cs->sel_mnc, cs->sel_lac,
-			subscr->lai_mcc, subscr->lai_mnc, subscr->lai_lac);
+			"LAI of selected cell (MCC %s MNC %s LAC 0x%04x) "
+			"!= LAI in SIM (MCC %s MNC %s LAC 0x%04x).\n",
+			gsm_print_mcc(cs->sel_mcc), gsm_print_mnc(cs->sel_mnc),
+			cs->sel_lac, gsm_print_mcc(subscr->lai_mcc),
+			gsm_print_mnc(subscr->lai_mnc), subscr->lai_lac);
 		return GSM48_MM_SST_PLMN_SEARCH;
 	}
 
@@ -2056,8 +2057,9 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	mm->lupd_mnc = cs->sel_mnc;
 	mm->lupd_lac = cs->sel_lac;
 
-	LOGP(DSUM, LOGL_INFO, "Perform location update (MCC %03d, MNC %02d "
-		"LAC 0x%04x)\n", mm->lupd_mcc, mm->lupd_mnc, mm->lupd_lac);
+	LOGP(DSUM, LOGL_INFO, "Perform location update (MCC %s, MNC %s "
+		"LAC 0x%04x)\n", gsm_print_mcc(mm->lupd_mcc),
+		gsm_print_mnc(mm->lupd_mnc), mm->lupd_lac);
 
 	return gsm48_mm_tx_loc_upd_req(ms);
 }
