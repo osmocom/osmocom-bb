@@ -3579,6 +3579,7 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct tlv_parsed tv;
+	uint8_t ch_type, ch_subch, ch_ts;
 	
 	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
 		rllh->chan_nr, rllh->link_id);
@@ -3629,17 +3630,21 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 				// TODO: timer depends on BCCH config
 	}
 
-	if (rllh->chan_nr == RSL_CHAN_PCH_AGCH)
+	rsl_dec_chan_nr(rllh->chan_nr, &ch_type, &ch_subch, &ch_ts);
+	switch (ch_type) {
+	case RSL_CHAN_PCH_AGCH:
 		return gsm48_rr_rx_pch_agch(ms, msg);
-	if (rllh->chan_nr == RSL_CHAN_BCCH)
+	case RSL_CHAN_BCCH:
 		return gsm48_rr_rx_bcch(ms, msg);
-	if ((rllh->chan_nr & 0xf0) == RSL_CHAN_SDCCH4_ACCH)
+	case RSL_CHAN_SDCCH4_ACCH:
 		return gsm48_rr_rx_acch(ms, msg);
-	if ((rllh->chan_nr & 0xf0) == RSL_CHAN_SDCCH8_ACCH)
+	case RSL_CHAN_SDCCH8_ACCH:
 		return gsm48_rr_rx_acch(ms, msg);
-	LOGP(DRSL, LOGL_NOTICE, "RSL with chan_nr 0x%02x unknown.\n",
-		rllh->chan_nr);
-	return -EINVAL;
+	default:
+		LOGP(DRSL, LOGL_NOTICE, "RSL with chan_nr 0x%02x unknown.\n",
+			rllh->chan_nr);
+		return -EINVAL;
+	}
 }
 
 /* 3.4.13.3 RR abort in dedicated mode (also in conn. pending mode) */
