@@ -58,6 +58,7 @@ enum osmobb_meas_sig {
 	S_L1CTL_PM_RES,
 	S_L1CTL_PM_DONE,
 	S_L1CTL_RACH_CONF,
+	S_L1CTL_CCCH_MODE_CONF,
 };
 
 struct osmobb_meas_res {
@@ -69,6 +70,11 @@ struct osmobb_meas_res {
 struct osmobb_rach_conf {
 	struct osmocom_ms *ms;
 	uint32_t fn;
+};
+
+struct osmobb_ccch_mode_conf {
+	struct osmocom_ms *ms;
+	uint8_t ccch_mode;
 };
 
 #endif

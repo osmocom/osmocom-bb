@@ -149,6 +149,7 @@ struct gsm322_cellsel {
 	uint32_t		scan_state; /* special state of current scan */
 	uint8_t			ccch_state; /* special state of current ccch */
 	uint16_t		arfcn; /* current tuned idle mode arfcn */
+	uint8_t			ccch_mode; /* curren CCCH_MODE_* */
 	struct gsm48_sysinfo	*si; /* current sysinfo */
 
 	uint8_t			selected; /* if a cell is selected */

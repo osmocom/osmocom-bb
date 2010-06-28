@@ -187,8 +187,8 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	}
 
 	/* request L1 to go to dedicated mode on assigned channel */
-	tx_ph_dm_est_req(ms, arfcn, ia->chan_desc.chan_nr,
-			 ia->chan_desc.h0.tsc);
+	tx_ph_dm_est_req_h0(ms, arfcn, ia->chan_desc.chan_nr,
+			 ia->chan_desc.h0.tsc, 0);
 
 	/* request L2 to establish the SAPI0 connection */
 	gsm48_tx_loc_upd_req(ms, ia->chan_desc.chan_nr);

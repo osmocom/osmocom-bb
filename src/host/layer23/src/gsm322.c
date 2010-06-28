@@ -219,12 +219,30 @@ int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
  * support
  */
 
-static int gsm322_sync_to_cell(struct osmocom_ms *ms, struct gsm322_cellsel *cs)
+static int gsm322_sync_to_cell(struct gsm322_cellsel *cs)
 {
+	struct osmocom_ms *ms = cs->ms;
+	struct gsm48_sysinfo *s = cs->si;
+
+	cs->ccch_state = GSM322_CCCH_ST_INIT;
+	if (s) {
+		if (s->ccch_conf == 1) {
+			LOGP(DCS, LOGL_INFO, "Sysinfo, ccch mode COMB\n");
+			cs->ccch_mode = CCCH_MODE_COMBINED;
+		} else {
+			LOGP(DCS, LOGL_INFO, "Sysinfo, ccch mode NON-COMB\n");
+			cs->ccch_mode = CCCH_MODE_NON_COMBINED;
+		}
+	} else {
+		LOGP(DCS, LOGL_INFO, "No sysinfo, ccch mode NONE\n");
+		cs->ccch_mode = CCCH_MODE_NONE;
+	}
+//	printf("s->ccch_conf %d\n", cs->si->ccch_conf);
+
 //	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	return l1ctl_tx_fbsb_req(ms, cs->arfcn,
 	                         L1CTL_FBSB_F_FB01SB, 100, 0,
-				 CCCH_MODE_COMBINED);
+				 cs->ccch_mode);
 }
 
 static void gsm322_unselect_cell(struct gsm322_cellsel *cs)
@@ -1651,9 +1669,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		cs->arfcn = cs->sel_arfcn;
 		LOGP(DCS, LOGL_INFO, "Tuning back to frequency %d (rxlev "
 			"%d).\n", cs->arfcn, cs->list[cs->arfcn].rxlev_db);
-		cs->ccch_state = GSM322_CCCH_ST_INIT;
 		hack = 5;
-		gsm322_sync_to_cell(ms, cs);
+		gsm322_sync_to_cell(cs);
 //		start_cs_timer(cs, ms->support.sync_to, 0);
 
 		return 0;
@@ -1683,9 +1700,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			/* tune */
 			cs->arfcn = found;
 			cs->si = cs->list[cs->arfcn].sysinfo;
-			cs->ccch_state = GSM322_CCCH_ST_INIT;
 			hack = 5;
-			gsm322_sync_to_cell(ms, cs);
+			gsm322_sync_to_cell(cs);
 
 			/* selected PLMN (manual) or any PLMN (auto) */
 			switch (ms->settings.plmn_mode) {
@@ -1750,9 +1766,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	cs->arfcn = weight & 1023;
 	LOGP(DCS, LOGL_INFO, "Scanning frequency %d (rxlev %d).\n", cs->arfcn,
 		cs->list[cs->arfcn].rxlev_db);
-	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	hack = 5;
-	gsm322_sync_to_cell(ms, cs);
+	gsm322_sync_to_cell(cs);
 //	start_cs_timer(cs, ms->support.sync_to, 0);
 
 	/* Allocate/clean system information. */
@@ -1877,9 +1892,8 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	/* tune */
 	cs->arfcn = found;
 	cs->si = cs->list[cs->arfcn].sysinfo;
-	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	hack = 5;
-	gsm322_sync_to_cell(ms, cs);
+	gsm322_sync_to_cell(cs);
 
 	/* selected PLMN (manual) or any PLMN (auto) */
 	switch (ms->settings.plmn_mode) {
@@ -2279,9 +2293,8 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 				LOGP(DCS, LOGL_INFO, "Tuning back to frequency "
 					"%d (rxlev %d).\n", cs->arfcn,
 					cs->list[cs->arfcn].rxlev_db);
-				cs->ccch_state = GSM322_CCCH_ST_INIT;
 				hack = 5;
-				gsm322_sync_to_cell(ms, cs);
+				gsm322_sync_to_cell(cs);
 //				start_cs_timer(cs, ms->support.sync_to, 0);
 
 			} else
@@ -2385,7 +2398,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		if (hack) {
 			ms = signal_data;
 			cs = &ms->cellsel;
-			gsm322_sync_to_cell(ms, cs);
+			gsm322_sync_to_cell(cs);
 			hack--;
 			LOGP(DCS, LOGL_INFO, "Channel sync error, try again.\n");
 			break;
@@ -2833,9 +2846,8 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
-	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	hack = 5;
-	gsm322_sync_to_cell(ms, cs);
+	gsm322_sync_to_cell(cs);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 //#warning TESTING!!!!
 //usleep(300000);
@@ -2854,9 +2866,8 @@ static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
-	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	hack = 5;
-	gsm322_sync_to_cell(ms, cs);
+	gsm322_sync_to_cell(cs);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 
 	return 0;
