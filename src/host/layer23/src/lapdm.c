@@ -1502,6 +1502,7 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 			LOGP(DLAPDM, LOGL_INFO, "fmt=B4\n");
 			/* SACCH frames have a two-byte L1 header that
 			 * OsmocomBB L1 doesn't strip */
+			msgb_pull(msg, 2);
 			msg->l2h += 2;
 		} else {
 			mctx.lapdm_fmt = LAPDm_FMT_B;
