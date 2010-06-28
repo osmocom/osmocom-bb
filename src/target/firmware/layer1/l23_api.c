@@ -217,9 +217,9 @@ static void l1ctl_rx_rach_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *) ul->payload;
 
-	printd("L1CTL_RACH_REQ (ra=0x%02x)\n", rach_req->ra);
+	printd("L1CTL_RACH_REQ (ra=0x%02x, fn51=%d)\n", rach_req->ra, rach_req->fn51);
 
-	l1a_rach_req(27, rach_req->ra);
+	l1a_rach_req(rach_req->fn51, rach_req->ra);
 }
 
 /* receive a L1CTL_DATA_REQ from L23 */
