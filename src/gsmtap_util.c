@@ -81,21 +81,17 @@ uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
 }
 
 /* receive a message from L1/L2 and put it in GSMTAP */
-int gsmtap_sendmsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss,
-		   uint32_t fn, int8_t signal_dbm, uint8_t snr,
-		   const uint8_t *data, unsigned int len)
+struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
+			    uint8_t ss, uint32_t fn, int8_t signal_dbm,
+			    uint8_t snr, const uint8_t *data, unsigned int len)
 {
 	struct msgb *msg;
 	struct gsmtap_hdr *gh;
 	uint8_t *dst;
 
-	/* gsmtap was never initialized, so don't try to send anything */
-	if (gsmtap_bfd.fd == -1)
-		return 0;
-
 	msg = msgb_alloc(sizeof(*gh) + len, "gsmtap_tx");
 	if (!msg)
-		return -ENOMEM;
+		return NULL;
 
 	gh = (struct gsmtap_hdr *) msgb_put(msg, sizeof(*gh));
 
@@ -113,6 +109,25 @@ int gsmtap_sendmsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss,
 
 	dst = msgb_put(msg, len);
 	memcpy(dst, data, len);
+
+	return msg;
+}
+
+/* receive a message from L1/L2 and put it in GSMTAP */
+int gsmtap_sendmsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss,
+		   uint32_t fn, int8_t signal_dbm, uint8_t snr,
+		   const uint8_t *data, unsigned int len)
+{
+	struct msgb *msg;
+
+	/* gsmtap was never initialized, so don't try to send anything */
+	if (gsmtap_bfd.fd == -1)
+		return 0;
+
+	msg = gsmtap_makemsg(arfcn, ts, chan_type, ss, fn, signal_dbm,
+			     snr, data, len);
+	if (!msg)
+		return -ENOMEM;
 
 	msgb_enqueue(&gsmtap_txqueue, msg);
 	gsmtap_bfd.when |= BSC_FD_WRITE;
