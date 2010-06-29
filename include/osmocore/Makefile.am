@@ -1,7 +1,7 @@
 osmocore_HEADERS = signal.h linuxlist.h timer.h select.h msgb.h \
 		   tlv.h bitvec.h comp128.h statistics.h gsm_utils.h utils.h \
 		   gsmtap.h write_queue.h rsl.h gsm48.h rxlev_stat.h mncc.h \
-		   gsm48_ie.h logging.h gsm0808.h rate_ctr.h
+		   gsm48_ie.h logging.h gsm0808.h rate_ctr.h gsmtap_util.h
 
 if ENABLE_TALLOC
 osmocore_HEADERS += talloc.h
