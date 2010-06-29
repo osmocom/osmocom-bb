@@ -441,7 +441,7 @@ static int bssgp_rx_llc_disc(struct msgb *msg, struct tlv_parsed *tp,
 
 	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
 
-	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=%u LLC DISCARDED\n",
+	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=%08x LLC DISCARDED\n",
 		ctx->bvci, tlli);
 
 	rate_ctr_inc(&ctx->ctrg->ctr[BSSGP_CTR_DISCARDED]);
