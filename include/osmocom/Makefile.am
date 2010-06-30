@@ -1,3 +1,5 @@
 if ENABLE_VTY
-SUBDIRS = vty
+SUBDIRS = vty crypt
+else
+SUBDIRS = crypt
 endif
