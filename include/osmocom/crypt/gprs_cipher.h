@@ -45,4 +45,10 @@ int gprs_cipher_run(uint8_t *out, uint16_t len, enum gprs_ciph_algo algo,
 /* Do we have an implementation for this cipher? */
 int gprs_cipher_supported(enum gprs_ciph_algo algo);
 
+/* GSM TS 04.64 / Section A.2.1 : Generation of 'input' */
+uint32_t gprs_cipher_gen_input_ui(uint32_t iov_ui, uint8_t sapi, uint32_t lfn, uint32_t oc);
+
+/* GSM TS 04.64 / Section A.2.1 : Generation of 'input' */
+uint32_t gprs_cipher_gen_input_i(uint32_t iov_i, uint32_t lfn, uint32_t oc);
+
 #endif /* _GPRS_CIPHER_H */
