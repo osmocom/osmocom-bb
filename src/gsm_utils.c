@@ -199,7 +199,7 @@ const char *gsm_band_name(enum gsm_band band)
 	case GSM_BAND_450:
 		return "GSM450";
 	case GSM_BAND_480:
-		return "GSM450";
+		return "GSM480";
 	case GSM_BAND_750:
 		return "GSM750";
 	case GSM_BAND_810:
