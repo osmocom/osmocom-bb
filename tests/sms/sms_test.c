@@ -1,5 +1,6 @@
 /*
  * (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
+ * (C) 2010 by Nico Golde <nico@ngolde.de>
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -32,7 +33,7 @@ int main(int argc, char** argv)
 	uint8_t *sms;
 	uint8_t i;
 
-        /* test 7-bit coding/decoding */
+	/* test 7-bit coding/decoding */
 	const char *input = "test text";
 	uint8_t length;
 	uint8_t coded[256];
@@ -43,5 +44,19 @@ int main(int argc, char** argv)
 	if (strcmp(result, input) != 0) {
 		printf("7 Bit coding failed... life sucks\n");
 		printf("Wanted: '%s' got '%s'\n", input, result);
+		return -1;
 	}
+
+	memset(coded, 0, sizeof(coded));
+	memset(result, 0, sizeof(coded));
+	input = strdup("!$ a more#^- complicated test@@?_\%! case");
+	length = gsm_7bit_encode(coded, input);
+	gsm_7bit_decode(result, coded, length);
+	if (strcmp(result, input) != 0) {
+		printf("7 Bit coding failed... life sucks\n");
+		printf("Wanted: '%s' got '%s'\n", input, result);
+		return -2;
+	}
+
+	return 0;
 }

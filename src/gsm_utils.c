@@ -2,6 +2,7 @@
  * (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
  * (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
  * (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2010 by Nico Golde <nico@ngolde.de>
  *
  * All Rights Reserved
  *
@@ -34,52 +35,110 @@
 
 #include "../config.h"
 
-/* GSM 03.38 6.2.1 Charachter packing */
+/* GSM 03.38 6.2.1 Character lookup for decoding */
+static int gsm_septet_lookup(uint8_t ch)
+{
+	int i = 0;
+	for(; i < sizeof(gsm_7bit_alphabet); i++){
+		if(gsm_7bit_alphabet[i] == ch)
+			return i;
+	}
+	return -1;
+}
+
+/* GSM 03.38 6.2.1 Character unpacking */
 int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t length)
 {
 	int i = 0;
 	int l = 0;
+	uint8_t *rtext = calloc(length, sizeof(uint8_t));
+	uint8_t tmp;
 
-        /* FIXME: We need to account for user data headers here */
+	/* FIXME: We need to account for user data headers here */
 	i += l;
-	for (; i < length; i ++)
-		*(text ++) =
+	for (; i < length; i ++){
+		rtext[i] =
 			((user_data[(i * 7 + 7) >> 3] <<
 			  (7 - ((i * 7 + 7) & 7))) |
 			 (user_data[(i * 7) >> 3] >>
 			  ((i * 7) & 7))) & 0x7f;
-	*text = '\0';
-
-	return i - l;
-}
-
-
-/* GSM 03.38 6.2.1 Charachter packing */
-int gsm_7bit_encode(uint8_t *result, const char *data)
-{
-	int i,j = 0;
-	unsigned char ch1, ch2;
-	int shift = 0;
-
-	for ( i=0; i<strlen(data); i++ ) {
-
-		ch1 = data[i] & 0x7F;
-		ch1 = ch1 >> shift;
-		ch2 = data[(i+1)] & 0x7F;
-		ch2 = ch2 << (7-shift);
-
-		ch1 = ch1 | ch2;
-
-		result[j++] = ch1;
-
-		shift++;
-
-		if ((shift == 7) && (i+1<strlen(data))) {
-			shift = 0;
+	}
+	for(i = 0; i < length; i++){
+		/* this is an extension character */
+		if(rtext[i] == 0x1b){
+			tmp = rtext[i+1];
+			*(text++) = gsm_7bit_alphabet[0x7f + tmp];
 			i++;
+			continue;
 		}
+
+		*(text++) = gsm_septet_lookup(rtext[i]);
 	}
 
+	*text = '\0';
+	free(rtext);
+
+	return i;
+}
+
+/* GSM 03.38 6.2.1 Prepare character packing */
+static int gsm_septet_encode(uint8_t *result, const char *data)
+{
+	int i, y = 0;
+	uint8_t ch;
+	for(i = 0; i < strlen(data); i++){
+		ch = data[i];
+		switch(ch){
+		/* fall-through for extension characters */
+		case 0x0c:
+		case 0x5e:
+		case 0x7b:
+		case 0x7d:
+		case 0x5c:
+		case 0x5b:
+		case 0x7e:
+		case 0x5d:
+		case 0x7c:
+			result[y++] = 0x1b;
+		default:
+			result[y] = gsm_7bit_alphabet[ch];
+			break;
+		}
+		y++;
+	}
+
+	return y;
+}
+
+/* GSM 03.38 6.2.1 Character packing */
+int gsm_7bit_encode(uint8_t *result, const char *data)
+{
+	int i,y,z = 0;
+	/* prepare for the worst case, every character expanding to two bytes */
+	uint8_t *rdata = calloc(strlen(data) * 2, sizeof(uint8_t));
+	uint8_t cb, nb;
+	int shift = 0;
+
+	y = gsm_septet_encode(rdata, data);
+
+	for(i = 0; i < y; i++) {
+		if(shift == 7 && i + 1 < y){
+			shift = 0;
+			continue;
+		}
+
+		cb = (rdata[i] & 0x7f) >> shift;
+		if(i + 1 < y){
+			nb = (rdata[i + 1] & 0x7f) << (7 - shift);
+			cb = cb | nb;
+		}
+
+		result[z++] = cb;
+
+		shift++;
+	}
+
+	free(rdata);
 	return i;
 }
 
