@@ -6,12 +6,201 @@
 /* GSM TS 04.08  definitions */
 struct gsm_lchan;
 
+/* Chapter 10.5.1.5 */
 struct gsm48_classmark1 {
-	uint8_t spare:1,
-		 rev_level:2,
-		 es_ind:1,
+	uint8_t pwr_lev:3,
 		 a5_1:1,
-		 pwr_lev:3;
+		 es_ind:1,
+		 rev_lev:2,
+		 spare:1;
+} __attribute__ ((packed));
+
+/* Chapter 10.5.1.6 */
+struct gsm48_classmark2 {
+	uint8_t pwr_lev:3,
+		 a5_1:1,
+		 es_ind:1,
+		 rev_lev:2,
+		 spare:1;
+	uint8_t	fc:1,
+		 vgcs:1,
+		 vbs:1,
+		 sm_cap:1,
+		 ss_scr:2,
+		 ps_cap:1,
+		 spare2:1;
+	uint8_t	a5_2:1,
+		 a5_3:1,
+		 cmsp:1,
+		 solsa:1,
+		 spare3:1,
+		 lcsva_cap:1,
+		 spare4:1,
+		 cm3:1;
+} __attribute__ ((packed));
+
+/* Chapter 10.5.2.1b.3 */
+struct gsm48_range_1024 {
+	uint8_t	w1_hi:2,
+		 f0:1,
+		 form_id:5;
+	uint8_t	w1_lo;
+	uint8_t	w2_hi;
+	uint8_t	w3_hi:7,
+		 w2_lo:1;
+	uint8_t	w4_hi:6,
+		 w3_lo:2;
+	uint8_t	w5_hi:6,
+		 w4_lo:2;
+	uint8_t	w6_hi:6,
+		 w5_lo:2;
+	uint8_t	w7_hi:6,
+		 w6_lo:2;
+	uint8_t	w8_hi:6,
+		 w7_lo:2;
+	uint8_t	w9:7,
+		 w8_lo:1;
+	uint8_t	w11_hi:1,
+		 w10:7;
+	uint8_t	w12_hi:2,
+		 w11_lo:6;
+	uint8_t	w13_hi:3,
+		 w12_lo:5;
+	uint8_t	w14_hi:4,
+		 w13_lo:4;
+	uint8_t	w15_hi:5,
+		 w14_lo:3;
+	uint8_t	w16:6,
+		 w15_lo:2;
+} __attribute__ ((packed));
+
+/* Chapter 10.5.2.1b.4 */
+struct gsm48_range_512 {
+	uint8_t	orig_arfcn_hi:1,
+		 form_id:7;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	w1_hi:7,
+		 orig_arfcn_lo:1;
+	uint8_t	w2_hi:6,
+		 w1_lo:2;
+	uint8_t	w3_hi:6,
+		 w2_lo:2;
+	uint8_t	w4_hi:6,
+		 w3_lo:2;
+	uint8_t	w5:7,
+		 w4_lo:1;
+	uint8_t	w7_hi:1,
+		 w6:7;
+	uint8_t	w8_hi:2,
+		 w7_lo:6;
+	uint8_t	w9_hi:4,
+		 w8_lo:4;
+	uint8_t	w10:6,
+		 w9_lo:2;
+	uint8_t	w12_hi:2,
+		 w11:6;
+	uint8_t	w13_hi:4,
+		 w12_lo:4;
+	uint8_t	w14:6,
+		 w13_lo:2;
+	uint8_t	w16_hi:2,
+		 w15:6;
+	uint8_t	w17:5,
+		 w16_lo:3;
+} __attribute__ ((packed));
+
+/* Chapter 10.5.2.1b.5 */
+struct gsm48_range_256 {
+	uint8_t	orig_arfcn_hi:1,
+		 form_id:7;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	w1_hi:7,
+		 orig_arfcn_lo:1;
+	uint8_t	w2:7,
+		 w1_lo:1;
+	uint8_t	w4_hi:1,
+		 w3:7;
+	uint8_t	w5_hi:3,
+		 w4_lo:5;
+	uint8_t	w6_hi:5,
+		 w5_lo:3;
+	uint8_t	w8_hi:1,
+		 w7:6,
+		 w6_lo:1;
+	uint8_t	w9_hi:4,
+		 w8_lo:4;
+	uint8_t	w11_hi:2,
+		 w10:5,
+		 w9_lo:1;
+	uint8_t	w12:5,
+		 w11_lo:3;
+	uint8_t	w14_hi:3,
+		 w13:5;
+	uint8_t	w16_hi:1,
+		 w15:5,
+		 w14_lo:2;
+	uint8_t	w18_hi:1,
+		 w17:4,
+		 w16_lo:3;
+	uint8_t	w20_hi:1,
+		 w19:4,
+		 w18_lo:3;
+	uint8_t	spare:1,
+		 w21:4,
+		 w20_lo:3;
+} __attribute__ ((packed));
+
+/* Chapter 10.5.2.1b.6 */
+struct gsm48_range_128 {
+	uint8_t	orig_arfcn_hi:1,
+		 form_id:7;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	w1:7,
+		 orig_arfcn_lo:1;
+	uint8_t	w3_hi:2,
+		 w2:6;
+	uint8_t	w4_hi:4,
+		 w3_lo:4;
+	uint8_t	w6_hi:2,
+		 w5:5,
+		 w4_lo:1;
+	uint8_t	w7:5,
+		 w6_lo:3;
+	uint8_t	w9:4,
+		 w8:4;
+	uint8_t	w11:4,
+		 w10:4;
+	uint8_t	w13:4,
+		 w12:4;
+	uint8_t	w15:4,
+		 w14:4;
+	uint8_t	w18_hi:2,
+		 w17:3,
+		 w16:3;
+	uint8_t	w21_hi:1,
+		 w20:3,
+		 w19:3,
+		 w18_lo:1;
+	uint8_t	w23:3,
+		 w22:3,
+		 w21_lo:2;
+	uint8_t	w26_hi:2,
+		 w25:3,
+		 w24:3;
+	uint8_t	spare:1,
+		 w28:3,
+		 w27:3,
+		 w26_lo:1;
+} __attribute__ ((packed));
+
+/* Chapter 10.5.2.1b.7 */
+struct gsm48_var_bit {
+	uint8_t	orig_arfcn_hi:1,
+		 form_id:7;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	rrfcn1_7:7,
+		 orig_arfcn_lo:1;
+	uint8_t rrfcn8_111[13];
 } __attribute__ ((packed));
 
 /* Chapter 10.5.2.5 */
@@ -35,6 +224,49 @@ struct gsm48_chan_desc {
 	};
 } __attribute__ ((packed));
 
+/* Chapter 10.5.2.20 */
+struct gsm48_meas_res {
+	uint8_t	rxlev_full:6,
+		 dtx_used:1,
+		 ba_used:1;
+	uint8_t	rxlev_sub:6,
+		 meas_valid:1,
+		 spare:1;
+	uint8_t	no_nc_n_hi:1,
+		 rxqual_sub:3,
+		 rxqual_full:3,
+		 spare2:1;
+	uint8_t	rxlev_nc1:6,
+		 no_nc_n_lo:2;
+	uint8_t	bsic_nc1_hi:3,
+		 bcch_f_nc1:5;
+	uint8_t	rxlev_nc2_hi:5,
+		 bsic_nc1_lo:3;
+	uint8_t	bsic_nc2_hi:2,
+		 bcch_f_nc2:5,
+		 rxlev_nc2_lo:1;
+	uint8_t	rxlev_nc3_hi:4,
+		 bsic_nc2_lo:4;
+	uint8_t	bsic_nc3_hi:1,
+		 bcch_f_nc3:5,
+		 rxlev_nc3_lo:2;
+	uint8_t	rxlev_nc4_hi:3,
+		 bsic_nc3_lo:5;
+	uint8_t	bcch_f_nc4:5,
+		 rxlev_nc4_lo:3;
+	uint8_t	rxlev_nc5_hi:2,
+		 bsic_nc4:6;
+	uint8_t	bcch_f_nc5_hi:4,
+		 rxlev_nc5_lo:4;
+	uint8_t	rxlev_nc6_hi:1,
+		 bsic_nc5:6,
+		 bcch_f_nc5_lo:1;
+	uint8_t	bcch_f_nc6_hi:3,
+		 rxlev_nc6_lo:5;
+	uint8_t	bsic_nc6:6,
+		 bcch_f_nc6_lo:2;
+} __attribute__ ((packed));
+
 /* Chapter 10.5.2.21aa */
 struct gsm48_multi_rate_conf {
 	uint8_t smod : 2,
@@ -52,6 +284,24 @@ struct gsm48_multi_rate_conf {
 		 m12_2 : 1;
 } __attribute__((packed));
 
+/* Chapter 10.5.2.28(a) */
+struct gsm48_power_cmd {
+	uint8_t power_level:5,
+		 spare:2,
+		 atc:1;
+} __attribute__((packed));
+
+/* Chapter 10.5.2.29 */
+struct gsm48_rach_control {
+	uint8_t re :1,
+		 cell_bar :1,
+		 tx_integer :4,
+		 max_trans :2;
+	uint8_t t2;
+	uint8_t t3;
+} __attribute__ ((packed));
+
+
 /* Chapter 10.5.2.30 */
 struct gsm48_req_ref {
 	uint8_t ra;
@@ -60,6 +310,22 @@ struct gsm48_req_ref {
 	uint8_t t2:5,
 		 t3_low:3;
 } __attribute__ ((packed));
+
+/* Chapter 10.5.2.38 */
+struct gsm48_start_time {
+	uint8_t t3_high:3,
+		 t1:5;
+	uint8_t t2:5,
+		 t3_low:3;
+} __attribute__ ((packed));
+
+/* Chapter 10.5.2.39 */
+struct gsm48_sync_ind {
+	uint8_t si:2,
+		 rot:1,
+		 nci:1,
+		 sync_ie:4;
+} __attribute__((packed));
 
 /*
  * Chapter 9.1.5/9.1.6
@@ -172,15 +438,6 @@ struct gsm48_system_information_type_header {
 	uint8_t system_information;
 } __attribute__ ((packed));
 
-struct gsm48_rach_control {
-	uint8_t re :1,
-		 cell_bar :1,
-		 tx_integer :4,
-		 max_trans :2;
-	uint8_t t2;
-	uint8_t t3;
-} __attribute__ ((packed));
-
 /* Section 10.5.2.4 Cell Selection Parameters */
 struct gsm48_cell_sel_par {
 	uint8_t ms_txpwr_max_ccch:5,	/* GSM 05.08 MS-TXPWR-MAX-CCCH */
@@ -235,6 +492,21 @@ struct gsm48_system_information_type_2 {
 	struct gsm48_rach_control rach_control;
 } __attribute__ ((packed));
 
+/* Section 9.1.33 System information Type 2bis */
+struct gsm48_system_information_type_2bis {
+	struct gsm48_system_information_type_header header;
+	uint8_t bcch_frequency_list[16];
+	struct gsm48_rach_control rach_control;
+	uint8_t rest_octets[0];
+} __attribute__ ((packed));
+
+/* Section 9.1.34 System information Type 2ter */
+struct gsm48_system_information_type_2ter {
+	struct gsm48_system_information_type_header header;
+	uint8_t ext_bcch_frequency_list[16];
+	uint8_t rest_octets[0];
+} __attribute__ ((packed));
+
 /* Section 9.1.35 System information Type 3 */
 struct gsm48_system_information_type_3 {
 	struct gsm48_system_information_type_header header;
@@ -267,6 +539,22 @@ struct gsm48_system_information_type_5 {
 	uint8_t bcch_frequency_list[16];
 } __attribute__ ((packed));
 
+/* Section 9.1.38 System information Type 5bis */
+struct gsm48_system_information_type_5bis {
+        uint8_t rr_protocol_discriminator :4,
+		 skip_indicator:4;
+	uint8_t system_information;
+	uint8_t bcch_frequency_list[16];
+} __attribute__ ((packed));
+
+/* Section 9.1.39 System information Type 5ter */
+struct gsm48_system_information_type_5ter {
+        uint8_t rr_protocol_discriminator :4,
+		 skip_indicator:4;
+	uint8_t system_information;
+	uint8_t bcch_frequency_list[16];
+} __attribute__ ((packed));
+
 /* Section 9.1.40 System information Type 6 */
 struct gsm48_system_information_type_6 {
 	uint8_t rr_protocol_discriminator :4,
@@ -291,6 +579,136 @@ struct gsm48_imsi_detach_ind {
 	uint8_t mi_len;
 	uint8_t mi[0];
 } __attribute__ ((packed));
+
+/* Section 9.1.1 */
+struct gsm48_add_ass {
+	/* Semantic is from 10.5.2.5 */
+	struct gsm48_chan_desc chan_desc;
+	uint8_t data[0];
+} __attribute__((packed));
+
+/* Section 9.1.3 */
+struct gsm48_ass_cpl {
+	uint8_t rr_cause;
+} __attribute__((packed));
+
+/* Section 9.1.4 */
+struct gsm48_ass_fail {
+	uint8_t rr_cause;
+} __attribute__((packed));
+
+/* Section 9.1.7 */
+struct gsm48_chan_rel {
+	uint8_t rr_cause;
+	uint8_t data[0];
+} __attribute__((packed));
+
+/* Section 9.1.9 */
+struct gsm48_cip_mode_cmd {
+	uint8_t sc:1,
+		 alg_id:3,
+		 spare:3,
+		 cr:1;
+} __attribute__((packed));
+
+/* Section 9.1.11 */
+struct gsm48_cm_change {
+	uint8_t cm2_len;
+	struct gsm48_classmark2 cm2;
+	uint8_t data[0];
+} __attribute__((packed));
+
+/* Section 9.1.19 */
+struct gsm48_imm_ass_ext {
+	uint8_t l2_plen;
+	uint8_t proto_discr;
+	uint8_t msg_type;
+	uint8_t page_mode;
+	struct gsm48_chan_desc chan_desc1;
+	struct gsm48_req_ref req_ref1;
+	uint8_t timing_advance1;
+	struct gsm48_chan_desc chan_desc2;
+	struct gsm48_req_ref req_ref2;
+	uint8_t timing_advance2;
+	uint8_t mob_alloc_len;
+	uint8_t mob_alloc[0];
+} __attribute__ ((packed));
+
+/* Section 9.1.20 */
+struct gsm48_imm_ass_rej {
+	uint8_t l2_plen;
+	uint8_t proto_discr;
+	uint8_t msg_type;
+	uint8_t page_mode;
+	struct gsm48_req_ref req_ref1;
+	uint8_t wait_ind1;
+	struct gsm48_req_ref req_ref2;
+	uint8_t wait_ind2;
+	struct gsm48_req_ref req_ref3;
+	uint8_t wait_ind3;
+	struct gsm48_req_ref req_ref4;
+	uint8_t wait_ind4;
+	uint8_t rest[0];
+} __attribute__ ((packed));
+
+/* Section 9.1.22 */
+struct gsm48_paging1 {
+	uint8_t l2_plen;
+	uint8_t proto_discr;
+	uint8_t msg_type;
+	uint8_t pag_mode:2,
+		 spare:2,
+		 cneed1:2,
+		 cneed2:2;
+	uint8_t data[0];
+} __attribute__((packed));
+
+/* Section 9.1.23 */
+struct gsm48_paging2 {
+	uint8_t l2_plen;
+	uint8_t proto_discr;
+	uint8_t msg_type;
+	uint8_t pag_mode:2,
+		 spare:2,
+		 cneed1:2,
+		 cneed2:2;
+	uint32_t tmsi1;
+	uint32_t tmsi2;
+	uint8_t data[0];
+} __attribute__((packed));
+
+/* Section 9.1.24 */
+struct gsm48_paging3 {
+	uint8_t l2_plen;
+	uint8_t proto_discr;
+	uint8_t msg_type;
+	uint8_t pag_mode:2,
+		 spare:2,
+		 cneed1:2,
+		 cneed2:2;
+	uint32_t tmsi1;
+	uint32_t tmsi2;
+	uint32_t tmsi3;
+	uint32_t tmsi4;
+	uint8_t cneed3:2,
+		 cneed4:2,
+		 spare2:4;
+	uint8_t rest[0];
+} __attribute__((packed));
+
+/* Section 9.1.25 */
+struct gsm48_pag_rsp {
+	uint8_t key_seq:3,
+		 spare:5;
+	uint8_t cm2_len;
+	struct gsm48_classmark2 cm2;
+	uint8_t data[0];
+} __attribute__((packed));
+
+/* Section 9.1.29 */
+struct gsm48_rr_status {
+	uint8_t rr_cause;
+} __attribute__((packed));
 
 /* Section 10.2 + GSM 04.07 12.2.3.1.1 */
 #define GSM48_PDISC_GROUP_CC	0x00
@@ -451,6 +869,15 @@ struct gsm48_imsi_detach_ind {
 
 /* FIXME: Table 10.4 / 10.4a (GPRS) */
 
+/* Section 10.5.3.3 CM service type */
+#define GSM48_CMSERV_MO_CALL_PACKET	1
+#define GSM48_CMSERV_EMERGENCY		2
+#define GSM48_CMSERV_SMS		4
+#define GSM48_CMSERV_SUP_SERV		8
+#define GSM48_CMSERV_VGCS		9
+#define GSM48_CMSERV_VBS		10
+#define GSM48_CMSERV_LOC_SERV		11
+
 /* Section 10.5.2.26, Table 10.5.64 */
 #define GSM48_PM_MASK		0x03
 #define GSM48_PM_NORMAL		0x00
@@ -473,8 +900,7 @@ struct gsm48_imsi_detach_ind {
 #define GSM_MI_TYPE_TMSI	0x04
 #define GSM_MI_ODD		0x08
 
-#define GSM48_IE_MUL_RATE_CFG	0x03	/* 10.5.2.21aa */
-#define GSM48_IE_MOBILE_ID	0x17
+#define GSM48_IE_MOBILE_ID	0x17	/* 10.5.1.4 */
 #define GSM48_IE_NAME_LONG	0x43	/* 10.5.3.5a */
 #define GSM48_IE_NAME_SHORT	0x45	/* 10.5.3.5a */
 #define GSM48_IE_UTC		0x46	/* 10.5.3.8 */
@@ -514,11 +940,16 @@ struct gsm48_imsi_detach_ind {
 #define GSM48_CAUSE_CS_GSM	0x60
 
 /* Section 9.1.2 / Table 9.3 */
-#define GSM48_IE_FRQLIST_AFTER	0x05
-#define GSM48_IE_CELL_CH_DESC	0x62
+/* RR elements */
+#define GSM48_IE_VGCS_TARGET	0x01
+//#define GSM48_IE_VGCS_T_MODE_I	0x01
+#define GSM48_IE_FRQSHORT_AFTER	0x02
+#define GSM48_IE_MUL_RATE_CFG	0x03	/* 10.5.2.21aa */
+#define GSM48_IE_FREQ_L_AFTER	0x05
 #define GSM48_IE_MSLOT_DESC	0x10
-#define GSM48_IE_CHANMODE_1	0x63
 #define GSM48_IE_CHANMODE_2	0x11
+#define GSM48_IE_FRQSHORT_BEFORE 0x12
+//#define GSM48_IE_FRQSHORT_BEFOR 0x12
 #define GSM48_IE_CHANMODE_3	0x13
 #define GSM48_IE_CHANMODE_4	0x14
 #define GSM48_IE_CHANMODE_5	0x15
@@ -529,13 +960,43 @@ struct gsm48_imsi_detach_ind {
 #define GSM48_IE_MA_AFTER	0x72
 #define GSM48_IE_START_TIME	0x7c
 #define GSM48_IE_FREQ_L_BEFORE	0x19
+//#define GSM48_IE_FRQLIST_BEFORE	0x19
 #define GSM48_IE_CH_DESC_1_BEFORE	0x1c
+//#define GSM48_IE_CHDES_1_BEFORE 0x1c
 #define GSM48_IE_CH_DESC_2_BEFORE	0x1d
+//#define GSM48_IE_CHDES_2_BEFORE	0x1d
 #define GSM48_IE_F_CH_SEQ_BEFORE	0x1e
+//#define GSM48_IE_FRQSEQ_BEFORE	0x1e
+#define GSM48_IE_CLASSMARK3	0x20
 #define GSM48_IE_MA_BEFORE	0x21
-#define GSM48_IE_VGCS_T_MODE_I	0x01
+#define GSM48_IE_RR_PACKET_UL	0x22
+#define GSM48_IE_RR_PACKET_DL	0x23
+#define GSM48_IE_CELL_CH_DESC	0x62
+#define GSM48_IE_CHANMODE_1	0x63
+#define GSM48_IE_CHDES_2_AFTER	0x64
+#define GSM48_IE_MODE_SEC_CH	0x66
+#define GSM48_IE_F_CH_SEQ_AFTER	0x69
+#define GSM48_IE_MA_AFTER	0x72
+#define GSM48_IE_BA_RANGE	0x73
+#define GSM48_IE_GROUP_CHDES	0x74
+#define GSM48_IE_BA_LIST_PREF	0x75
+#define GSM48_IE_MOB_OVSERV_DIF	0x77
+#define GSM48_IE_REALTIME_DIFF	0x7b
+#define GSM48_IE_START_TIME	0x7c
+#define GSM48_IE_TIMING_ADVANCE	0x7d
+#define GSM48_IE_GROUP_CIP_SEQ	0x80
+#define GSM48_IE_CIP_MODE_SET	0x90
+#define GSM48_IE_GPRS_RESUMPT	0xc0
+#define GSM48_IE_SYNC_IND	0xd0
+/* System Information 4 (types are equal IEs above) */
+#define GSM48_IE_CBCH_CHAN_DESC	0x64
+#define GSM48_IE_CBCH_MOB_AL	0x72
 
-/* FIXME */
+/* Additional MM elements */
+#define GSM48_IE_LOCATION_AREA	0x13
+#define GSM48_IE_PRIORITY_LEV	0x80
+#define GSM48_IE_FOLLOW_ON_PROC	0xa1
+#define GSM48_IE_CTS_PERMISSION	0xa2
 
 /* Section 10.5.4.23 / Table 10.5.130 */
 enum gsm48_signal_val {
@@ -704,6 +1165,14 @@ enum chreq_type {
 #define GSM48_T333	30, 0
 #define GSM48_T334	25, 0 /* min 15 */
 #define GSM48_T338	30, 0
+#define GSM48_T303_MS	30, 0
+#define GSM48_T305_MS	30, 0
+#define GSM48_T308_MS	30, 0
+#define GSM48_T310_MS	30, 0
+#define GSM48_T313_MS	30, 0
+#define GSM48_T323_MS	30, 0
+#define GSM48_T332_MS	30, 0
+#define GSM48_T335_MS	30, 0
 
 /* Chapter 5.1.2.2 */
 #define	GSM_CSTATE_NULL			0
