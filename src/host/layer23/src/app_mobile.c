@@ -36,7 +36,6 @@
 #include <osmocom/logging.h>
 #include <osmocom/vty.h>
 #include <osmocom/vty/telnet_interface.h>
-#include <osmocom/file.h>
 
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
@@ -175,7 +174,7 @@ int l23_app_init(struct osmocom_ms *ms)
 		fprintf(stderr, "Failed to parse the config file: '%s'\n",
 			config_file);
 		fprintf(stderr, "Please check or create config file using: "
-			"'touch %s%s'\n", OSMOCOM_CONFDIR, config_file);
+			"'touch %s'\n", config_file);
 		return rc;
 	}
 	telnet_init(l23_ctx, NULL, vty_port);

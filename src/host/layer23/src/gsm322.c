@@ -33,7 +33,6 @@
 
 #include <osmocom/logging.h>
 #include <osmocom/l1ctl.h>
-#include <osmocom/file.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/networks.h>
 #include <osmocom/vty.h>
@@ -3357,9 +3356,8 @@ int gsm322_init(struct osmocom_ms *ms)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	OSMOCOM_FILE *fp;
-	char suffix[] = ".ba";
-	char filename[sizeof(ms->name) + strlen(suffix) + 1];
+	FILE *fp;
+	char filename[128];
 	int i;
 	struct gsm322_ba_list *ba;
 	uint8_t buf[4];
@@ -3390,24 +3388,23 @@ int gsm322_init(struct osmocom_ms *ms)
 			cs->list[i].flags |= GSM322_CS_FLAG_SUPPORT;
 
 	/* read BA list */
-	strcpy(filename, ms->name);
-	strcat(filename, suffix);
-	fp = osmocom_fopen(filename, "r");
+	sprintf(filename, "/etc/osmocom/%s.ba", ms->name);
+	fp = fopen(filename, "r");
 	if (fp) {
 		int rc;
 
-		while(!osmocom_feof(fp)) {
+		while(!feof(fp)) {
 			ba = talloc_zero(l23_ctx, struct gsm322_ba_list);
 			if (!ba)
 				return -ENOMEM;
-			rc = osmocom_fread(buf, 4, 1, fp);
+			rc = fread(buf, 4, 1, fp);
 			if (!rc) {
 				talloc_free(ba);
 				break;
 			}
 			ba->mcc = (buf[0] << 8) | buf[1];
 			ba->mnc = (buf[2] << 8) | buf[3];
-			rc = osmocom_fread(ba->freq, sizeof(ba->freq), 1, fp);
+			rc = fread(ba->freq, sizeof(ba->freq), 1, fp);
 			if (!rc) {
 				talloc_free(ba);
 				break;
@@ -3418,7 +3415,7 @@ int gsm322_init(struct osmocom_ms *ms)
 				gsm_print_mnc(ba->mnc), gsm_get_mcc(ba->mcc),
 				gsm_get_mnc(ba->mcc, ba->mnc));
 		}
-		osmocom_fclose(fp);
+		fclose(fp);
 	} else
 		LOGP(DCS, LOGL_INFO, "No stored BA list\n");
 
@@ -3433,9 +3430,8 @@ int gsm322_exit(struct osmocom_ms *ms)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct llist_head *lh, *lh2;
 	struct msgb *msg;
-	OSMOCOM_FILE *fp;
-	char suffix[] = ".ba";
-	char filename[sizeof(ms->name) + strlen(suffix) + 1];
+	FILE *fp;
+	char filename[128];
 	struct gsm322_ba_list *ba;
 	uint8_t buf[4];
 	int i;
@@ -3463,9 +3459,8 @@ int gsm322_exit(struct osmocom_ms *ms)
 	}
 
 	/* store BA list */
-	strcpy(filename, ms->name);
-	strcat(filename, suffix);
-	fp = osmocom_fopen(filename, "w");
+	sprintf(filename, "/etc/osmocom/%s.ba", ms->name);
+	fp = fopen(filename, "w");
 	if (fp) {
 		int rc;
 
@@ -3474,14 +3469,14 @@ int gsm322_exit(struct osmocom_ms *ms)
 			buf[1] = ba->mcc & 0xff;
 			buf[2] = ba->mnc >> 8;
 			buf[3] = ba->mnc & 0xff;
-			rc = osmocom_fwrite(buf, 4, 1, fp);
-			rc = osmocom_fwrite(ba->freq, sizeof(ba->freq), 1, fp);
+			rc = fwrite(buf, 4, 1, fp);
+			rc = fwrite(ba->freq, sizeof(ba->freq), 1, fp);
 			LOGP(DCS, LOGL_INFO, "Write stored BA list (mcc=%s "
 				"mnc=%s  %s, %s)\n", gsm_print_mcc(ba->mcc),
 				gsm_print_mnc(ba->mnc), gsm_get_mcc(ba->mcc),
 				gsm_get_mnc(ba->mcc, ba->mnc));
 		}
-		osmocom_fclose(fp);
+		fclose(fp);
 	} else
 		LOGP(DCS, LOGL_ERROR, "Failed to write BA list\n");
 
