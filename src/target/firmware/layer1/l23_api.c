@@ -292,6 +292,11 @@ static void l1ctl_rx_reset_req(struct msgb *msg)
 		l1s_reset_hw();
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
+	case L1CTL_RES_T_SCHED:
+		printf("L1CTL_RESET_REQ: SCHED!\n");
+		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
+		sched_gsmtime_reset();
+		break;
 	default:
 		printf("unknown L1CTL_RESET_REQ type\n");
 		break;

@@ -195,6 +195,7 @@ struct l1ctl_pm_conf {
 enum l1ctl_reset_type {
 	L1CTL_RES_T_BOOT,	/* only _IND */
 	L1CTL_RES_T_FULL,
+	L1CTL_RES_T_SCHED,
 };
 
 /* argument to L1CTL_RESET_REQ and L1CTL_RESET_IND */
