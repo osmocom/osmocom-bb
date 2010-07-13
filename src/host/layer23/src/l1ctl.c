@@ -106,19 +106,17 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_info_dl *dl;
-	struct osmobb_rach_conf rc;
 
-	if (msgb_l3len(msg) < sizeof(*dl)) {
+	if (msgb_l2len(msg) < sizeof(*dl)) {
 		LOGP(DL1C, LOGL_ERROR, "RACH CONF: MSG too short %u\n",
 			msgb_l3len(msg));
+		msgb_free(msg);
 		return -1;
 	}
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 
-	rc.fn = htonl(dl->frame_nr);
-	rc.ms = ms;
-	dispatch_signal(SS_L1CTL, S_L1CTL_RACH_CONF, &rc);
+	l2_ph_chan_conf(msg, ms, dl);
 
 	return 0;
 }
@@ -229,8 +227,8 @@ static int rx_ph_data_conf(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* Transmit L1CTL_DATA_REQ */
-int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
-		   uint8_t chan_nr, uint8_t link_id)
+int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg, uint8_t chan_nr,
+	uint8_t link_id)
 {
 	struct l1ctl_hdr *l1h;
 	struct l1ctl_info_ul *l1i_ul;
@@ -260,9 +258,6 @@ int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	l1i_ul->chan_nr = chan_nr;
 	l1i_ul->link_id = link_id;
 
-	/* FIXME: where to get this from? */
-	l1i_ul->tx_power = 0;
-
 	/* prepend l1 header */
 	msg->l1h = msgb_push(msg, sizeof(*l1h));
 	l1h = (struct l1ctl_hdr *) msg->l1h;
@@ -278,6 +273,8 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 {
 	struct msgb *msg;
 	struct l1ctl_fbsb_req *req;
+
+	printf("Sync Req\n");
 
 	msg = osmo_l1_alloc(L1CTL_FBSB_REQ);
 	if (!msg)
@@ -305,6 +302,8 @@ int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode)
 	struct msgb *msg;
 	struct l1ctl_ccch_mode_req *req;
 
+	printf("CCCH Mode Req\n");
+
 	msg = osmo_l1_alloc(L1CTL_CCCH_MODE_REQ);
 	if (!msg)
 		return -1;
@@ -315,29 +314,51 @@ int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode)
 	return osmo_send_l1(ms, msg);
 }
 
+/* Transmit L1CTL_PARAM_REQ */
+int l1ctl_tx_ph_param_req(struct osmocom_ms *ms, uint8_t ta, uint8_t tx_power)
+{
+	struct msgb *msg;
+	struct l1ctl_info_ul *ul;
+	struct l1ctl_par_req *req;
+
+	msg = osmo_l1_alloc(L1CTL_PARAM_REQ);
+	if (!msg)
+		return -1;
+
+	DEBUGP(DL1C, "PARAM Req. ta=%d, tx_power=%d\n", ta, tx_power);
+	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
+	req = (struct l1ctl_par_req *) msgb_put(msg, sizeof(*req));
+	req->tx_power = tx_power;
+	req->ta = ta;
+
+	return osmo_send_l1(ms, msg);
+}
+
 /* Transmit L1CTL_RACH_REQ */
-int tx_ph_rach_req(struct osmocom_ms *ms)
+int tx_ph_rach_req(struct osmocom_ms *ms, uint8_t ra, uint8_t fn51,
+	uint8_t mf_off)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
 	struct l1ctl_rach_req *req;
-	static uint8_t i = 0;
 
 	msg = osmo_l1_alloc(L1CTL_RACH_REQ);
 	if (!msg)
 		return -1;
 
-	DEBUGP(DL1C, "RACH Req.\n");
+	DEBUGP(DL1C, "RACH Req. fn51=%d, mf_off=%d\n", fn51, mf_off);
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	req = (struct l1ctl_rach_req *) msgb_put(msg, sizeof(*req));
-	req->ra = i++;
+	req->ra = ra;
+	req->fn51 = fn51;
+	req->mf_off = mf_off;
 
 	return osmo_send_l1(ms, msg);
 }
 
 /* Transmit L1CTL_DM_EST_REQ */
 int tx_ph_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
-	uint8_t chan_nr, uint8_t tsc, uint8_t tx_power)
+	uint8_t chan_nr, uint8_t tsc)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -347,13 +368,12 @@ int tx_ph_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	if (!msg)
 		return -1;
 
-	DEBUGP(DL1C, "Tx Dedic.Mode Est Req (arfcn=%u, chan_nr=0x%02x)\n",
+	printf("Tx Dedic.Mode Est Req (arfcn=%u, chan_nr=0x%02x)\n",
 		band_arfcn, chan_nr);
 
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
 	ul->link_id = 0;
-	ul->tx_power = tx_power;
 
 	req = (struct l1ctl_dm_est_req *) msgb_put(msg, sizeof(*req));
 	req->tsc = tsc;
@@ -364,8 +384,7 @@ int tx_ph_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 }
 
 int tx_ph_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
-	uint16_t *ma, uint8_t ma_len, uint8_t chan_nr, uint8_t tsc,
-	uint8_t tx_power)
+	uint16_t *ma, uint8_t ma_len, uint8_t chan_nr, uint8_t tsc)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -376,13 +395,12 @@ int tx_ph_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 	if (!msg)
 		return -1;
 
-	DEBUGP(DL1C, "Tx Dedic.Mode Est Req (maio=%u, hsn=%u, "
+	printf("Tx Dedic.Mode Est Req (maio=%u, hsn=%u, "
 		"chan_nr=0x%02x)\n", maio, hsn, chan_nr);
 
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
 	ul->link_id = 0;
-	ul->tx_power = tx_power;
 
 	req = (struct l1ctl_dm_est_req *) msgb_put(msg, sizeof(*req));
 	req->tsc = tsc;
@@ -406,7 +424,7 @@ int tx_ph_dm_rel_req(struct osmocom_ms *ms)
 	if (!msg)
 		return -1;
 
-	DEBUGP(DL1C, "Tx Dedic.Mode Rel Req\n");
+	printf("Tx Dedic.Mode Rel Req\n");
 
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 
@@ -470,7 +488,7 @@ int l1ctl_tx_reset_req(struct osmocom_ms *ms, uint8_t type)
 /* Receive L1CTL_RESET_IND */
 static int rx_l1_reset(struct osmocom_ms *ms)
 {
-	printf("Layer1 Reset.\n");
+	printf("Layer1 Reset indication\n");
 	dispatch_signal(SS_L1CTL, S_L1CTL_RESET, ms);
 
 	return 0;
@@ -561,7 +579,6 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_RACH_CONF:
 		rc = rx_l1_rach_conf(ms, msg);
-		msgb_free(msg);
 		break;
 	case L1CTL_CCCH_MODE_CONF:
 		rc = rx_l1_ccch_mode_conf(ms, msg);

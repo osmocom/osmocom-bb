@@ -10,18 +10,21 @@ struct osmocom_ms;
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg);
 
 /* Transmit L1CTL_DATA_REQ */
-int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg,
-		   uint8_t chan_nr, uint8_t link_id);
+int tx_ph_data_req(struct osmocom_ms *ms, struct msgb *msg, uint8_t chan_nr,
+	uint8_t link_id);
+
+/* Transmit L1CTL_PARAM_REQ */
+int l1ctl_tx_ph_param_req(struct osmocom_ms *ms, uint8_t ta, uint8_t tx_power);
 
 /* Transmit L1CTL_RACH_REQ */
-int tx_ph_rach_req(struct osmocom_ms *ms);
+int tx_ph_rach_req(struct osmocom_ms *ms, uint8_t ra, uint8_t fn51,
+	uint8_t mf_off);
 
 /* Transmit L1CTL_DM_EST_REQ */
 int tx_ph_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
-	uint8_t chan_nr, uint8_t tsc, uint8_t tx_power);
+	uint8_t chan_nr, uint8_t tsc);
 int tx_ph_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
-	uint16_t *ma, uint8_t ma_len, uint8_t chan_nr, uint8_t tsc,
-	uint8_t tx_power);
+	uint16_t *ma, uint8_t ma_len, uint8_t chan_nr, uint8_t tsc);
 
 /* Transmit L1CTL_DM_REL_REQ */
 int tx_ph_dm_rel_req(struct osmocom_ms *ms);
