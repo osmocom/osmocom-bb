@@ -3289,7 +3289,7 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 					print(priv, "normal |");
 			}
 			print(priv, "%4d   |%4d\n", s->rxlev_acc_min_db,
-				s->ms_txpwr_max_ccch);
+				s->ms_txpwr_max_cch);
 		} else
 			print(priv, "n/a    |n/a    |n/a    |n/a    |n/a    |"
 				"n/a    |n/a    |n/a\n");

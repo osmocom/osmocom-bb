@@ -129,7 +129,7 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 
 	/* cell selection */
 	print(priv, "MX_TXPWR_MAX_CCCH = %d  CRH = %d  RXLEV_MIN = %d  "
-		"NECI = %d  ACS = %d\n", s->ms_txpwr_max_ccch,
+		"NECI = %d  ACS = %d\n", s->ms_txpwr_max_cch,
 		s->cell_resel_hyst_db, s->rxlev_acc_min_db, s->neci, s->acs);
 
 	/* bcch options */

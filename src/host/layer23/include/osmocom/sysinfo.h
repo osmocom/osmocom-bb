@@ -68,7 +68,7 @@ struct gsm48_sysinfo {
 	uint8_t				gi_si13_pos;
 
 	/* cell selection */
-	int8_t				ms_txpwr_max_ccch;
+	int8_t				ms_txpwr_max_cch;
 	int8_t				cell_resel_hyst_db;
 	int8_t				rxlev_acc_min_db;
 	uint8_t				neci;

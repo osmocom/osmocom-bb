@@ -1616,7 +1616,7 @@ static int gsm48_decode_cell_sel_param(struct gsm48_sysinfo *s,
 	convert ms_txpwr_max_ccch dependant on the current frequenc and support
 	to the right powe level
 #endif
-	s->ms_txpwr_max_ccch = cs->ms_txpwr_max_ccch;
+	s->ms_txpwr_max_cch = cs->ms_txpwr_max_ccch;
 	s->cell_resel_hyst_db = cs->cell_resel_hyst * 2;
 	s->rxlev_acc_min_db = cs->rxlev_acc_min - 110;
 	s->neci = cs->neci;
