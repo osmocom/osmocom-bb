@@ -96,6 +96,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 	struct gsm_call *call = get_call_ref(data->callref);
 	struct gsm_mncc mncc;
 	uint8_t cause;
+	int first_call = 0;
 
 	/* call does not exist */
 	if (!call && msg_type != MNCC_SETUP_IND) {
@@ -113,6 +114,8 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 
 	/* setup without call */
 	if (!call) {
+		if (llist_empty(&call_list))
+			first_call = 1;
 		call = talloc_zero(l23_ctx, struct gsm_call);
 		if (!call)
 			return -ENOMEM;
@@ -210,13 +213,14 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		break;
 	case MNCC_SETUP_IND:
 		vty_notify(ms, NULL);
-		if (!llist_empty(&call_list) && !ms->settings.cw) {
+		if (!first_call && !ms->settings.cw) {
 			vty_notify(ms, "Incomming call rejected while busy\n");
 			LOGP(DMNCC, LOGL_INFO, "Incomming call but busy\n");
 			cause = GSM48_CC_CAUSE_NORM_CALL_CLEAR;
 			goto release;
 		}
-		if (!data->calling.present || !data->calling.number[0])
+		/* presentation allowed if present == 0 */
+		if (data->calling.present || !data->calling.number[0])
 			vty_notify(ms, "Incomming call\n");
 		else if (data->calling.type == 1)
 			vty_notify(ms, "Incomming call from +%s\n",
@@ -231,7 +235,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		mncc_send(ms, MNCC_CALL_CONF_REQ, &mncc);
-		if (llist_empty(&call_list))
+		if (first_call)
 			LOGP(DMNCC, LOGL_INFO, "Ring!\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, "Knock!\n");
@@ -360,7 +364,7 @@ int mncc_answer(struct osmocom_ms *ms)
 	llist_for_each_entry(call, &call_list, entry) {
 		if (call->ring)
 			alerting = call;
-		if (!call->hold)
+		else if (!call->hold)
 			active = 1;
 	}
 	if (!alerting) {
@@ -376,6 +380,7 @@ int mncc_answer(struct osmocom_ms *ms)
 		return -EBUSY;
 	}
 	alerting->ring = 0;
+	alerting->hold = 0;
 
 	memset(&rsp, 0, sizeof(struct gsm_mncc));
 	rsp.callref = alerting->callref;
