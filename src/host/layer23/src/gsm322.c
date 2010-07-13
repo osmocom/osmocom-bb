@@ -239,7 +239,7 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs)
 	}
 //	printf("s->ccch_conf %d\n", cs->si->ccch_conf);
 
-//	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	return l1ctl_tx_fbsb_req(ms, cs->arfcn,
 	                         L1CTL_FBSB_F_FB01SB, 100, 0,
 				 cs->ccch_mode);
@@ -2022,17 +2022,19 @@ static int gsm322_store_ba_list(struct gsm322_cellsel *cs,
 /* process system information during camping on a cell */
 static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
+//	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = cs->si;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm322_msg *gm = (struct gsm322_msg *) msg->data;
 	struct msgb *nmsg;
 
+#if 0
 	if (rr->state != GSM48_RR_ST_IDLE) {
 		LOGP(DCS, LOGL_INFO, "Ignoring in dedicated mode.\n");
 		return -EBUSY;
 	}
+#endif
 
 	/* Store BA if we have full system info about cells and neigbor cells.
 	 * Depending on the extended bit in the channel description,
@@ -2210,25 +2212,37 @@ static void gsm322_cs_timeout(void *arg)
 static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm_settings *set = &ms->settings;
 	int i, s = -1, e;
 	uint8_t mask, flags;
 
 	again:
 
-	/* search for first frequency to scan */
 	mask = GSM322_CS_FLAG_SUPPORT | GSM322_CS_FLAG_POWER;
 	flags = GSM322_CS_FLAG_SUPPORT;
-	if (cs->state == GSM322_C2_STORED_CELL_SEL
-	 || cs->state == GSM322_C5_CHOOSE_CELL) {
-		LOGP(DCS, LOGL_FATAL, "Scanning power for stored BA list.\n");
-		mask |= GSM322_CS_FLAG_BA;
-		flags |= GSM322_CS_FLAG_BA;
-	} else
-		LOGP(DCS, LOGL_FATAL, "Scanning power for all frequencies.\n");
-	for (i = 0; i <= 1023; i++) {
-		if ((cs->list[i].flags & mask) == flags) {
+
+	/* in case of sticking to a cell, we only select it */
+	if (set->stick) {
+		LOGP(DCS, LOGL_FATAL, "Scanning power for sticked cell.\n");
+		i = set->stick_arfcn;
+		if ((cs->list[i].flags & mask) == flags)
 			s = e = i;
-			break;
+	} else {
+		/* search for first frequency to scan */
+		if (cs->state == GSM322_C2_STORED_CELL_SEL
+		 || cs->state == GSM322_C5_CHOOSE_CELL) {
+			LOGP(DCS, LOGL_FATAL, "Scanning power for stored BA "
+				"list.\n");
+			mask |= GSM322_CS_FLAG_BA;
+			flags |= GSM322_CS_FLAG_BA;
+		} else
+			LOGP(DCS, LOGL_FATAL, "Scanning power for all "
+				"frequencies.\n");
+		for (i = 0; i <= 1023; i++) {
+			if ((cs->list[i].flags & mask) == flags) {
+				s = e = i;
+				break;
+			}
 		}
 	}
 
@@ -2312,11 +2326,13 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 
 	/* search last frequency to scan (en block) */
 	e = i;
-	for (i = s + 1; i <= 1023; i++) {
-		if ((cs->list[i].flags & mask) == flags)
-			e = i;
-		else
-			break;
+	if (!set->stick) {
+		for (i = s + 1; i <= 1023; i++) {
+			if ((cs->list[i].flags & mask) == flags)
+				e = i;
+			else
+				break;
+		}
 	}
 
 	LOGP(DCS, LOGL_INFO, "Scanning frequencies. (%d..%d)\n", s, e);
@@ -2334,7 +2350,6 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 	struct osmocom_ms *ms;
 	struct gsm322_cellsel *cs;
 	struct osmobb_meas_res *mr;
-	struct osmobb_rach_conf *rc;
 	int i;
 	int8_t rxlev_db;
 
@@ -2352,7 +2367,9 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		rxlev_db = mr->rx_lev - 110;
 		cs->list[i].rxlev_db = rxlev_db;
 		cs->list[i].flags |= GSM322_CS_FLAG_POWER;
-		if (rxlev_db >= ms->support.min_rxlev_db) {
+		/* if minimum level is reached or if we stick to a cell */
+		if (rxlev_db >= ms->support.min_rxlev_db
+		 || ms->settings.stick) {
 			cs->list[i].flags |= GSM322_CS_FLAG_SIGNAL;
 			LOGP(DCS, LOGL_INFO, "Found signal (frequency %d "
 				"rxlev %d)\n", i, cs->list[i].rxlev_db);
@@ -2413,13 +2430,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		else
 			gsm322_cs_timeout(cs);
 		break;
-	case S_L1CTL_RACH_CONF:
-		rc = signal_data;
-		ms = rc->ms;
-		gsm48_rr_rach_conf(ms, rc->fn);
-		break;
 	case S_L1CTL_RESET:
-		LOGP(DCS, LOGL_INFO, "Reset\n");
 		break;
 	}
 

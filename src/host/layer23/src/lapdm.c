@@ -54,6 +54,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <arpa/inet.h>
 
 #include <osmocore/logging.h>
 #include <osmocore/timer.h>
@@ -364,7 +365,7 @@ printf("\n");
 	return tx_ph_data_req(ms, msg, chan_nr, link_id);
 }
 
-/* Take a Bbis format message from L1 and create RSLms UNIT DATA IND */
+/* Create RSLms various RSLms messages */
 static int send_rslms_rll_l3(uint8_t msg_type, struct lapdm_msg_ctx *mctx,
 			     struct msgb *msg)
 {
@@ -372,6 +373,28 @@ static int send_rslms_rll_l3(uint8_t msg_type, struct lapdm_msg_ctx *mctx,
 	rsl_rll_push_l3(msg, msg_type, mctx->chan_nr, mctx->link_id, 1);
 
 	/* send off the RSLms message to L3 */
+	return rslms_sendmsg(msg, mctx->dl->entity->ms);
+}
+
+/* Take a B4 format message from L1 and create RSLms UNIT DATA IND */
+static int send_rslms_rll_l3_ui(struct lapdm_msg_ctx *mctx, struct msgb *msg)
+{
+	uint8_t l3_len = msg->tail - (uint8_t *)msgb_l3(msg);
+	struct abis_rsl_rll_hdr *rllh;
+
+	/* Add the RSL + RLL header */
+	msgb_tv16_push(msg, RSL_IE_L3_INFO, l3_len);
+	msgb_push(msg, 2 + 2);
+	rsl_rll_push_hdr(msg, RSL_MT_UNIT_DATA_IND, mctx->chan_nr,
+		mctx->link_id, 1);
+	rllh = (struct abis_rsl_rll_hdr *)msgb_l2(msg);
+
+	rllh->data[0] = RSL_IE_ACCESS_DELAY;
+	rllh->data[1] = mctx->ta_ind;
+
+	rllh->data[2] = RSL_IE_MS_POWER;
+	rllh->data[3] = mctx->tx_power_ind;
+	
 	return rslms_sendmsg(msg, mctx->dl->entity->ms);
 }
 
@@ -388,11 +411,15 @@ static int send_rll_simple(uint8_t msg_type, struct lapdm_msg_ctx *mctx)
 static int rsl_rll_error(uint8_t cause, struct lapdm_msg_ctx *mctx)
 {
 	struct msgb *msg;
+	uint8_t *tlv;
 
 	LOGP(DLAPDM, LOGL_NOTICE, "sending MDL-ERROR-IND %d\n", cause);
 	msg = rsl_rll_simple(RSL_MT_ERROR_IND, mctx->chan_nr, mctx->link_id, 1);
-	msg->l2h = msgb_put(msg, sizeof(struct abis_rsl_rll_hdr) + 1);
-	msg->l2h[0] = cause;
+	msg->l2h = msgb_put(msg, sizeof(struct abis_rsl_rll_hdr) + 3);
+	tlv = msg->l2h + sizeof(struct abis_rsl_rll_hdr);
+	tlv[0] = RSL_IE_RLM_CAUSE;
+	tlv[1] = 1;
+	tlv[2] = cause;
 	return rslms_sendmsg(msg, mctx->dl->entity->ms);
 }
 
@@ -874,7 +901,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			return 0;
 		}
 		msgb_pull_l2h(msg);
-		rc = send_rslms_rll_l3(RSL_MT_UNIT_DATA_IND, mctx, msg);
+		rc = send_rslms_rll_l3_ui(mctx, msg);
 		break;
 	case LAPDm_U_DISC:
 		rsl_msg = RSL_MT_REL_IND;
@@ -1502,6 +1529,8 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 			LOGP(DLAPDM, LOGL_INFO, "fmt=B4\n");
 			/* SACCH frames have a two-byte L1 header that
 			 * OsmocomBB L1 doesn't strip */
+			mctx.tx_power_ind = msg->l2h[0] & 0x1f;
+			mctx.ta_ind = msg->l2h[1];
 			msgb_pull(msg, 2);
 			msg->l2h += 2;
 		} else {
@@ -1948,6 +1977,64 @@ static int rslms_rx_rll_rel_req_idle(struct msgb *msg, struct lapdm_datalink *dl
 	return send_rll_simple(RSL_MT_REL_CONF, &dl->mctx);
 }
 
+/* L3 requests channel in idle state */
+static int rslms_rx_chan_rqd(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct abis_rsl_cchan_hdr *cch = msgb_l2(msg);
+	int rc;
+
+	if (msgb_l2len(msg) < sizeof(*cch) + 4 + 2 + 2) {
+		LOGP(DRSL, LOGL_ERROR, "Message too short for CHAN RQD!\n");
+		return -EINVAL;
+	}
+	if (cch->data[0] != RSL_IE_REQ_REFERENCE) {
+		LOGP(DRSL, LOGL_ERROR, "Missing REQ REFERENCE IE\n");
+		return -EINVAL;
+	}
+	if (cch->data[4] != RSL_IE_ACCESS_DELAY) {
+		LOGP(DRSL, LOGL_ERROR, "Missing ACCESS_DELAY IE\n");
+		return -EINVAL;
+	}
+	if (cch->data[6] != RSL_IE_MS_POWER) {
+		LOGP(DRSL, LOGL_ERROR, "Missing MS POWER IE\n");
+		return -EINVAL;
+	}
+
+	/* TA = 0 - delay */
+	rc = l1ctl_tx_ph_param_req(ms, 0 - cch->data[5], cch->data[7]);
+
+	rc = tx_ph_rach_req(ms, cch->data[1], cch->data[2], cch->data[3]);
+
+	msgb_free(msg);
+
+	return rc;
+}
+
+/* L1 confirms channel request */
+int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms,
+			struct l1ctl_info_dl *dl)
+{
+	struct abis_rsl_cchan_hdr *ch;
+	struct gsm_time tm;
+	struct gsm48_req_ref *ref;
+
+	gsm_fn2gsmtime(&tm, htonl(dl->frame_nr));
+
+	msgb_pull_l2h(msg);
+	msg->l2h = msgb_push(msg, sizeof(*ch) + sizeof(*ref));
+	ch = (struct abis_rsl_cchan_hdr *)msg->l2h;
+	rsl_init_cchan_hdr(ch, RSL_MT_CHAN_CONF);
+	ch->chan_nr = RSL_CHAN_RACH;
+	ch->data[0] = RSL_IE_REQ_REFERENCE;
+	ref = (struct gsm48_req_ref *) (ch->data + 1);
+	ref->t1 = tm.t1;
+	ref->t2 = tm.t2;
+	ref->t3_low = tm.t3 & 0x3;
+	ref->t3_high = tm.t3 >> 3;
+	
+	return rslms_sendmsg(msg, ms);
+}
+
 /* Names for Radio Link Layer Management */
 static const struct value_string rsl_msg_names[] = {
 	{ RSL_MT_DATA_REQ,		"RSL_MT_DATA_REQ" },
@@ -1966,6 +2053,8 @@ static const struct value_string rsl_msg_names[] = {
 	{ RSL_MT_SUSP_CONF,		"RSL_MT_SUSP_CONF" },
 	{ RSL_MT_RES_REQ,		"RSL_MT_RES_REQ" },
 	{ RSL_MT_RECON_REQ,		"RSL_MT_RECON_REQ" },
+	{ RSL_MT_CHAN_RQD,		"RSL_MT_CHAN_RQD" },
+	{ RSL_MT_CHAN_CONF,		"RSL_MT_CHAN_CONF" },
 	{ 0,				NULL }
 };
 
@@ -2026,8 +2115,6 @@ static struct l2downstate {
 	/* release in idle state */
 	{SBIT(LAPDm_STATE_IDLE),
 	 RSL_MT_REL_REQ, rslms_rx_rll_rel_req_idle},
-
-	/* FIXME: create and send DISC command */
 };
 
 #define L2DOWNSLLEN \
@@ -2043,6 +2130,11 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 	struct lapdm_datalink *dl;
 	int i, supported = 0;
 	int rc = 0;
+
+	if (msgb_l2len(msg) < sizeof(*rllh)) {
+		LOGP(DRSL, LOGL_ERROR, "Message too short for RLL hdr!\n");
+		return -EINVAL;
+	}
 
 	if (rllh->link_id & 0x40)
 		le = &ms->l2_entity.lapdm_acch;
@@ -2085,15 +2177,50 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 	return rc;
 }
 
+/* incoming RSLms COMMON CHANNEL message from L3 */
+static int rslms_rx_com_chan(struct msgb *msg, struct osmocom_ms *ms)
+{
+	struct abis_rsl_cchan_hdr *cch = msgb_l2(msg);
+	int msg_type = cch->c.msg_type;
+	int rc = 0;
+
+	if (msgb_l2len(msg) < sizeof(*cch)) {
+		LOGP(DRSL, LOGL_ERROR, "Message too short for COM CHAN hdr!\n");
+		return -EINVAL;
+	}
+
+	switch (msg_type) {
+	case RSL_MT_CHAN_RQD:
+		/* create and send RACH request */
+		rc = rslms_rx_chan_rqd(ms, msg);
+		break;
+	default:
+		LOGP(DRSL, LOGL_NOTICE, "Unknown COMMON CHANNEL msg %d!\n",
+			msg_type);
+		msgb_free(msg);
+		return 0;
+	}
+
+	return rc;
+}
+
 /* input into layer2 (from layer 3) */
 int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
 	int rc = 0;
 
+	if (msgb_l2len(msg) < sizeof(*rslh)) {
+		LOGP(DRSL, LOGL_ERROR, "Message too short RSL hdr!\n");
+		return -EINVAL;
+	}
+
 	switch (rslh->msg_discr & 0xfe) {
 	case ABIS_RSL_MDISC_RLL:
 		rc = rslms_rx_rll(msg, ms);
+		break;
+	case ABIS_RSL_MDISC_COM_CHAN:
+		rc = rslms_rx_com_chan(msg, ms);
 		break;
 	default:
 		LOGP(DRSL, LOGL_ERROR, "unknown RSLms message "

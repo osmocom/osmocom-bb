@@ -28,6 +28,8 @@ struct lapdm_msg_ctx {
 	uint8_t link_id;
 	uint8_t addr;
 	uint8_t ctrl;
+	uint8_t ta_ind;
+	uint8_t tx_power_ind;
 };
 
 /* TS 04.06 / Section 3.5.2 */
@@ -79,6 +81,10 @@ void lapdm_exit(struct lapdm_entity *le);
 /* input into layer2 (from layer 1) */
 int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_dl *l1i);
 int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le);
+
+/* L1 confirms channel request */
+int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms,
+			struct l1ctl_info_dl *dl);
 
 /* input into layer2 (from layer 3) */
 int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms);

@@ -42,6 +42,9 @@
 #define L3_ALLOC_SIZE			256
 #define L3_ALLOC_HEADROOM		64
 
+#define RSL_ALLOC_SIZE			256
+#define RSL_ALLOC_HEADROOM		64
+
 #define RR_ALLOC_SIZE			256
 #define RR_ALLOC_HEADROOM		64
 
@@ -88,9 +91,8 @@ struct gsm48_rr_meas {
 };
 
 struct gsm48_cr_hist {
-	uint32_t	fn;
-	uint8_t		chan_req;
-	uint8_t		valid;
+	uint8_t			valid;
+	struct gsm48_req_ref	ref;
 };
 
 /* RR sublayer instance */
@@ -123,9 +125,10 @@ struct gsm48_rrlayer {
 	uint8_t			wait_assign; /* waiting for assignment state */
 	uint8_t			n_chan_req; /* number left, incl. current */
 	uint8_t			chan_req_val; /* current request value */ 
-	uint8_t			chan_req_mask; /* mask of random bits */ 
+	uint8_t			chan_req_mask; /* mask of random bits */
 
-	/* cr_hist must be signed and greater 8 bit, -1 = no value */
+	/* cr_hist */
+	uint8_t			cr_ra; /* stores requested ra until confirmed */
 	struct gsm48_cr_hist	cr_hist[3];
 
 	/* current channel descriptions */
@@ -143,6 +146,8 @@ struct gsm48_rrlayer {
 
 	/* measurements */
 	struct gsm48_rr_meas	meas;
+	uint8_t			ind_tx_power; /* last indicated power */
+	uint8_t			ind_ta; /* last indicated ta */
 
 	/* BA range */
 	uint8_t			ba_ranges;

@@ -206,6 +206,13 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		(sizeof(gsm48_rr_state_names) / sizeof(char *)))
 		return;
 
+	/* must check against equal state */
+	if (rr->state == state) {
+		LOGP(DRR, LOGL_INFO, "equal state ? %s\n",
+			gsm48_rr_state_names[rr->state]);
+		return;
+	}
+
 	LOGP(DRR, LOGL_INFO, "new state %s -> %s\n",
 		gsm48_rr_state_names[rr->state], gsm48_rr_state_names[state]);
 
@@ -215,7 +222,7 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		struct msgb *msg, *nmsg;
 
 		/* release dedicated mode, if any */
-//		tx_ph_dm_rel_req(rr->ms);
+		tx_ph_dm_rel_req(rr->ms);
 		l1ctl_tx_reset_req(rr->ms, L1CTL_RES_T_FULL);
 		/* free establish message, if any */
 		rr->rr_est_req = 0;
@@ -286,6 +293,20 @@ struct msgb *gsm48_l3_msgb_alloc(void)
 	return msg;
 }
 
+/* allocate GSM 04.06 layer 2 RSL message */
+struct msgb *gsm48_rsl_msgb_alloc(void)
+{
+	struct msgb *msg;
+
+	msg = msgb_alloc_headroom(RSL_ALLOC_SIZE+RSL_ALLOC_HEADROOM,
+		RSL_ALLOC_HEADROOM, "GSM 04.06 RSL");
+	if (!msg)
+		return NULL;
+	msg->l2h = msg->data;
+
+	return msg;
+}
+
 /* allocate GSM 04.08 message (RR-SAP) */
 struct msgb *gsm48_rr_msgb_alloc(int msg_type)
 {
@@ -330,35 +351,13 @@ static int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
 }
 
 /* enqueue messages (RSL-SAP) */
-static int gsm48_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
+static int gsm48_rx_rsl(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	msgb_enqueue(&rr->rsl_upqueue, msg);
 
 	return 0;
-}
-
-/* input function that L2 calls when sending messages up to L3 */
-static int gsm48_rx_rsl(struct msgb *msg, struct osmocom_ms *ms)
-{
-	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
-	int rc = 0;
-
-	switch (rslh->msg_discr & 0xfe) {
-	case ABIS_RSL_MDISC_RLL:
-		rc = gsm48_rx_rll(msg, ms);
-		break;
-	default:
-		/* FIXME: implement this */
-		LOGP(DRSL, LOGL_NOTICE, "unknown RSLms msg_discr 0x%02x\n",
-			rslh->msg_discr);
-		msgb_free(msg);
-		rc = -EINVAL;
-		break;
-	}
-
-	return rc;
 }
 
 /* dequeue messages (RSL-SAP) */
@@ -821,33 +820,6 @@ static int gsm48_rr_rx_cm_enq(struct osmocom_ms *ms, struct msgb *msg)
  * random access
  */
 
-/* temporary timer until we have time control over channnel request */
-/* TODO: turn this into a channel activation timeout, later */
-#define RSL_MT_CHAN_CNF 0x19
-#include <osmocom/l1ctl.h>
-int gsm48_rr_rach_conf(struct osmocom_ms *ms, uint32_t fn)
-{
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct msgb *msg = msgb_alloc_headroom(23+10, 10, "LAPDm RR");
-	struct abis_rsl_rll_hdr *rllh =
-		(struct abis_rsl_rll_hdr *) msgb_put(msg, sizeof(*rllh));
-
-	if (!rr->wait_assign) {
-		LOGP(DRR, LOGL_INFO, "RACH confirm ignored, not waiting for "
-			"assignment.\n");
-		return 0;
-	}
-	LOGP(DRR, LOGL_INFO, "RACH confirm framenr=%u\n", fn);
-	rr->cr_hist[0].valid = 2;
-	rr->cr_hist[0].fn = fn;
-
-	rllh->c.msg_type = RSL_MT_CHAN_CNF;
-	msg->l2h = (unsigned char *)rllh;
-	gsm48_rcv_rsl(ms, msg);
-
-	return 0;
-}
-
 /* start random access */
 static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 {
@@ -888,6 +860,9 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 
 	/* 3.3.1.1.2 */
 	new_rr_state(rr, GSM48_RR_ST_CONN_PEND);
+
+	/* set assignment state */
+	rr->wait_assign = 0;
 
 	/* number of retransmissions (with first transmission) */
 	rr->n_chan_req = s->max_retrans + 1;
@@ -1036,11 +1011,40 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
+	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
-	struct l1ctl_info_ul *nul;
-	struct l1ctl_rach_req *nra;
+	struct abis_rsl_cchan_hdr *ncch;
 	int slots;
 	uint8_t chan_req;
+	uint8_t tx_power;
+
+	/* already assigned */
+	if (rr->wait_assign == 2)
+		return 0;
+
+	/* store frame number */
+	if (msg) {
+		struct abis_rsl_cchan_hdr *ch = msgb_l2(msg);
+		struct gsm48_req_ref *ref =
+				(struct gsm48_req_ref *) (ch->data + 1);
+
+		if (msgb_l2len(msg) < sizeof(*ch) + sizeof(*ref)) {
+			LOGP(DRR, LOGL_ERROR, "CHAN_CNF too slort\n");
+			return -EINVAL;
+		}
+
+		/* shift history and store */
+		memcpy(&(rr->cr_hist[2]), &(rr->cr_hist[1]),
+			sizeof(struct gsm48_cr_hist));
+		memcpy(&(rr->cr_hist[1]), &(rr->cr_hist[0]),
+			sizeof(struct gsm48_cr_hist));
+		rr->cr_hist[0].valid = 1;
+		rr->cr_hist[0].ref.ra = rr->cr_ra;
+		rr->cr_hist[0].ref.t1 = ref->t1;
+		rr->cr_hist[0].ref.t2 = ref->t2;
+		rr->cr_hist[0].ref.t3_low = ref->t3_low;
+		rr->cr_hist[0].ref.t3_high = ref->t3_high;
+	}
 
 	if (cs->ccch_state != GSM322_CCCH_ST_DATA) {
 		LOGP(DRR, LOGL_INFO, "CCCH channel activation failed.\n");
@@ -1081,7 +1085,7 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 	}
 	rr->n_chan_req--;
 
-	if (!rr->wait_assign) {
+	if (rr->wait_assign == 0) {
 		/* first random acces, without delay of slots */
 		slots = 0;
 		rr->wait_assign = 1;
@@ -1121,47 +1125,62 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 		}
 	}
 
-	/* resend chan_req with new randiom */
-#ifdef TODO
-	nmsg = gsm48_rsl_msgb_alloc();
-#else
-	nmsg = msgb_alloc_headroom(64, 48, "RAND_ACC");
-	struct l1ctl_hdr *l1h;
-	nmsg->l1h = msgb_put(nmsg, sizeof(*l1h));
-	l1h = (struct l1ctl_hdr *) nmsg->l1h;
-	l1h->msg_type = L1CTL_RACH_REQ;
-	if (!nmsg)
-		return -ENOMEM;
-	nul = (struct l1ctl_info_ul *) msgb_put(nmsg, sizeof(*nul));
-#endif
-	nra = (struct l1ctl_rach_req *) msgb_put(nmsg, sizeof(*nra));
 	chan_req = random();
 	chan_req &= rr->chan_req_mask;
 	chan_req |= rr->chan_req_val;
-	nra->ra = chan_req;
-#warning TODO
-	nra->mf_off = 1; // (random() % s->tx_integer) + slots;
-	nra->fn51 = (s->ccch_conf == 1) ? 27 : 50;
 
 	LOGP(DRR, LOGL_INFO, "RANDOM ACCESS (Tx-integer %d combined %s "
-		"S(lots) %d ra 0x%02x offset %d)\n", s->tx_integer,
-		(s->ccch_conf == 1) ? "yes": "no", slots, nra->ra, nra->mf_off);
+		"S(lots) %d ra 0x%02x)\n", s->tx_integer,
+		(s->ccch_conf == 1) ? "yes": "no", slots, chan_req);
 
-	/* shift history and store */
-	memcpy(&(rr->cr_hist[2]), &(rr->cr_hist[1]),
-		sizeof(struct gsm48_cr_hist));
-	memcpy(&(rr->cr_hist[1]), &(rr->cr_hist[0]),
-		sizeof(struct gsm48_cr_hist));
-	rr->cr_hist[0].valid = 1;
-	rr->cr_hist[0].chan_req = chan_req;
+	/* (re)send CHANNEL RQD with new randiom */
+	nmsg = gsm48_rsl_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	ncch = (struct abis_rsl_cchan_hdr *) msgb_put(nmsg, sizeof(*ncch)
+							+ 4 + 2 + 2);
+	rsl_init_cchan_hdr(ncch, RSL_MT_CHAN_RQD);
+	ncch->chan_nr = RSL_CHAN_RACH;
+	ncch->data[0] = RSL_IE_REQ_REFERENCE;
+	ncch->data[1] = chan_req;
+#warning HACK: fn51 and fn_off
+	ncch->data[2] = (s->ccch_conf == 1) ? 27 : 50;
+	ncch->data[3] = 1 + ((random() % s->tx_integer) + slots) / 51;
+printf("%d\n", ncch->data[3]);
+	ncch->data[4] = RSL_IE_ACCESS_DELAY;
+	ncch->data[5] = set->alter_delay; /* (-)=earlier (+)=later */
+	ncch->data[6] = RSL_IE_MS_POWER;
+	if (set->alter_tx_power) {
+		tx_power = set->alter_tx_power_value;
+		LOGP(DRR, LOGL_INFO, "Use alternative tx-power %d (%d dBm)\n",
+			tx_power,
+			ms_pwr_dbm(gsm_arfcn2band(cs->arfcn), tx_power));
+	} else {
+		tx_power = s->ms_txpwr_max_cch;
+		/* power offset in case of DCS1800 */
+		if (s->po && cs->arfcn >= 512 && cs->arfcn <= 885) {
+			LOGP(DRR, LOGL_INFO, "Use MS-TXPWR-MAX-CCH power value "
+				"%d (%d dBm) with offset %d dBm\n", tx_power,
+				ms_pwr_dbm(gsm_arfcn2band(cs->arfcn), tx_power),
+				s->po_value * 2);
+			/* use reserved bits 7,8 for offset (+ X * 2dB) */
+			tx_power |= s->po_value << 6;
+		} else
+			LOGP(DRR, LOGL_INFO, "Use MS-TXPWR-MAX-CCH power value "
+				"%d (%d dBm)\n", tx_power,
+				ms_pwr_dbm(gsm_arfcn2band(cs->arfcn),
+							tx_power));
+	}
+	ncch->data[7] = tx_power;
 
-#ifdef TODO
-	add layer 1 conrols to RSL...
-	return gsm48_send_rsl(ms, RSL_MT_CHAN_REQ, nmsg);
-#else
-//#warning disabled!
-	return osmo_send_l1(ms, nmsg);
-#endif
+	/* set initial indications */
+	rr->ind_tx_power = s->ms_txpwr_max_cch;
+	rr->ind_ta = set->alter_delay;
+
+	/* store ra until confirmed, then copy it with time into cr_hist */
+	rr->cr_ra = chan_req;
+
+	return rslms_recvmsg(nmsg, ms);
 }
 
 /*
@@ -2273,8 +2292,8 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 		gsm48_decode_si6_rest(s, si->rest_octets, payload_len);
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 6 (mcc %s mnc %s "
-		"lac 0x%04x)\n", gsm_print_mcc(s->mcc),
-		gsm_print_mnc(s->mnc), s->lac);
+		"lac 0x%04x SACCH-timeout %d)\n", gsm_print_mcc(s->mcc),
+		gsm_print_mnc(s->mnc), s->lac, s->sacch_radio_link_timeout);
 
 	s->si6 = 1;
 
@@ -2529,19 +2548,21 @@ static int gsm48_match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	int i;
-	struct gsm_time tm;
 	uint8_t ia_t1, ia_t2, ia_t3;
+	uint8_t cr_t1, cr_t2, cr_t3;
 
 	for (i = 0; i < 3; i++) {
 		/* filter confirmed RACH requests only */
-		if (rr->cr_hist[i].valid == 2
-		 && ref->ra == rr->cr_hist[i].chan_req) {
+		if (rr->cr_hist[i].valid && ref->ra == rr->cr_hist[i].ref.ra) {
 		 	ia_t1 = ref->t1;
 		 	ia_t2 = ref->t2;
 		 	ia_t3 = (ref->t3_high << 3) | ref->t3_low;
-			gsm_fn2gsmtime(&tm, rr->cr_hist[i].fn);
-			if (ia_t1 == (tm.t1 & 0x1f) && ia_t2 == tm.t2
-			 && ia_t3 == tm.t3) {
+			ref = &rr->cr_hist[i].ref;
+		 	cr_t1 = ref->t1;
+		 	cr_t2 = ref->t2;
+		 	cr_t3 = (ref->t3_high << 3) | ref->t3_low;
+			if (ia_t1 == cr_t1 && ia_t2 == cr_t2
+			 && ia_t3 == cr_t3) {
 		 		LOGP(DRR, LOGL_INFO, "request %02x matches "
 					"(fn=%d,%d,%d)\n", ref->ra, ia_t1,
 					ia_t2, ia_t3);
@@ -2551,7 +2572,7 @@ static int gsm48_match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref)
 					"but not frame number (IMM.ASS "
 					"fn=%d,%d,%d != RACH fn=%d,%d,%d)\n",
 					ref->ra, ia_t1, ia_t2, ia_t3,
-					tm.t1 & 0x1f, tm.t2, tm.t3);
+					cr_t1, cr_t2, cr_t3);
 		}
 	}
 
@@ -2614,8 +2635,13 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* 3.3.1.1.2: ignore assignment while idle */
-	if (rr->state != GSM48_RR_ST_CONN_PEND || !rr->wait_assign) {
+	if (rr->state != GSM48_RR_ST_CONN_PEND || rr->wait_assign == 0) {
 		LOGP(DRR, LOGL_INFO, "Not for us, no request.\n");
+		return 0;
+	}
+
+	if (rr->wait_assign == 2) {
+		LOGP(DRR, LOGL_INFO, "Ignoring, channel already assigned.\n");
 		return 0;
 	}
 
@@ -2628,7 +2654,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		/* mobile allocation */
 		memcpy(&rr->cd_now.mob_alloc_lv, &ia->mob_alloc_len, 
 			ia->mob_alloc_len + 1);
-		rr->wait_assign = 0;
+		rr->wait_assign = 2;
 		return gsm48_rr_dl_est(ms);
 	}
 	LOGP(DRR, LOGL_INFO, "Request, but not for us.\n");
@@ -2718,8 +2744,13 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* 3.3.1.1.2: ignore assignment while idle */
-	if (rr->state != GSM48_RR_ST_CONN_PEND || !rr->wait_assign) {
+	if (rr->state != GSM48_RR_ST_CONN_PEND || rr->wait_assign == 0) {
 		LOGP(DRR, LOGL_INFO, "Not for us, no request.\n");
+		return 0;
+	}
+
+	if (rr->wait_assign == 2) {
+		LOGP(DRR, LOGL_INFO, "Ignoring, channel already assigned.\n");
 		return 0;
 	}
 
@@ -2732,7 +2763,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 		/* mobile allocation */
 		memcpy(&rr->cd_now.mob_alloc_lv, &ia->mob_alloc_len,
 			ia->mob_alloc_len + 1);
-		rr->wait_assign = 0;
+		rr->wait_assign = 2;
 		return gsm48_rr_dl_est(ms);
 	}
 	/* request ref 1 */
@@ -2744,7 +2775,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 		/* mobile allocation */
 		memcpy(&rr->cd_now.mob_alloc_lv, &ia->mob_alloc_len,
 			ia->mob_alloc_len + 1);
-		rr->wait_assign = 0;
+		rr->wait_assign = 2;
 		return gsm48_rr_dl_est(ms);
 	}
 	LOGP(DRR, LOGL_INFO, "Request, but not for us.\n");
@@ -2763,8 +2794,12 @@ static int gsm48_rr_rx_imm_ass_rej(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t t3122_value;
 
 	/* 3.3.1.1.2: ignore assignment while idle */
-	if (rr->state != GSM48_RR_ST_CONN_PEND || !rr->wait_assign)
+	if (rr->state != GSM48_RR_ST_CONN_PEND || rr->wait_assign == 0)
 		return 0;
+
+	if (rr->wait_assign == 2) {
+		return 0;
+	}
 
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of IMMEDIATE ASSIGNMENT "
@@ -2961,6 +2996,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = cs->si;
+	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm48_pag_rsp *pr;
@@ -3018,23 +3054,36 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		memcpy(pr->data, mi + 1, 1 + mi[1]);
 	}
 
+	/* reset scheduler */
+	LOGP(DRR, LOGL_INFO, "resetting scheduler\n");
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
+
+	/* setting (new) timing advance */
+	rr->ind_ta = rr->cd_now.ta;
+	LOGP(DRR, LOGL_INFO, "setting indicated ta %d (actual ta %d)\n",
+		rr->ind_ta, rr->ind_ta - set->alter_delay);
+	l1ctl_tx_ph_param_req(ms, rr->ind_ta - set->alter_delay,
+			(set->alter_tx_power) ? set->alter_tx_power_value
+						: rr->ind_tx_power);
+
 	/* activate channel */
+	LOGP(DRR, LOGL_INFO, "activating channel\n");
 #ifdef TODO
 	RSL_MT_ to activate channel with all the cd_now informations
 #else
 	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if ((ch_type != RSL_CHAN_SDCCH8_ACCH
-	  && ch_type != RSL_CHAN_SDCCH4_ACCH) || ch_ts > 4) {
+	  && ch_type != RSL_CHAN_SDCCH4_ACCH) || ch_ts > 4 || ch_subch >= 4) {
 		printf("Channel type %d, subch %d, ts %d not supported, "
 			"exitting.\n", ch_type, ch_subch, ch_ts);
 		exit(-ENOTSUP);
 	}
 	if (rr->cd_now.h)
 		tx_ph_dm_est_req_h1(ms, rr->cd_now.maio, rr->cd_now.hsn,
-			ma, ma_len, rr->cd_now.chan_nr, rr->cd_now.tsc, 0);
+			ma, ma_len, rr->cd_now.chan_nr, rr->cd_now.tsc);
 	else
 		tx_ph_dm_est_req_h0(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr,
-			rr->cd_now.tsc, 0);
+			rr->cd_now.tsc);
 #endif
 
 	/* start establishmnet */
@@ -3546,8 +3595,10 @@ static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_MT_RR_IMM_ASS_REJ:
 		return gsm48_rr_rx_imm_ass_rej(ms, msg);
 	default:
+#if 0
 		LOGP(DRR, LOGL_NOTICE, "CCCH message type 0x%02x unknown.\n",
 			sih->system_information);
+#endif
 		return -EINVAL;
 	}
 }
@@ -3555,7 +3606,31 @@ static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 /* receive ACCH at RR layer */
 static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm_settings *set = &ms->settings;
+	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
+	uint8_t ind_ta, ind_tx_power;
+
+	if (msgb_l2len(msg) < sizeof(*rllh) + 2 + 2) {
+		LOGP(DRR, LOGL_ERROR, "Missing TA and TX_POWER IEs\n");
+		return -EINVAL;
+	}
+
+	ind_ta = rllh->data[1];
+	ind_tx_power = rllh->data[3];
+	LOGP(DRR, LOGL_INFO, "Indicated ta %d (actual ta %d)\n",
+		ind_ta, ind_ta - set->alter_delay);
+	LOGP(DRR, LOGL_INFO, "Indicated tx_power %d\n",
+		ind_tx_power);
+	if (ind_ta != rr->ind_ta || ind_tx_power != rr->ind_tx_power) {
+		LOGP(DRR, LOGL_INFO, "setting new ta and tx_power\n");
+		l1ctl_tx_ph_param_req(ms, ind_ta - set->alter_delay,
+			(set->alter_tx_power) ? set->alter_tx_power_value
+						: ind_tx_power);
+		rr->ind_ta = ind_ta;
+		rr->ind_tx_power = ind_tx_power;
+	}
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_SYSINFO_5:
@@ -3576,6 +3651,7 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 /* unit data from layer 2 to RR layer */
 static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct tlv_parsed tv;
@@ -3603,7 +3679,10 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	set radio link timeout on layer 1
 	it is the number of subsequent BCCH blocks. (about 1/4 seconds)
 #else
-		start_loss_timer(cs, s->bcch_radio_link_timeout / 4, 0);
+		/* use maximu loss timer, if to value is not available yet */
+		start_loss_timer(cs, ((rr->state == GSM48_RR_ST_DEDICATED)
+			? ((s->sacch_radio_link_timeout) ? : 64)
+			: s->bcch_radio_link_timeout) / 4, 0);
 #endif
 	}
 
@@ -3758,9 +3837,6 @@ static struct dldatastate {
 	 RSL_MT_DATA_IND, gsm48_rr_data_ind},
 
 	/* esablish */
-	{SBIT(GSM48_RR_ST_CONN_PEND), /* 3.3.1.1.2 */
-	 RSL_MT_CHAN_CNF, gsm48_rr_tx_rand_acc},
-
 	{SBIT(GSM48_RR_ST_IDLE) |
 	 SBIT(GSM48_RR_ST_CONN_PEND) |
 	 SBIT(GSM48_RR_ST_REL_PEND),
@@ -3799,7 +3875,7 @@ static struct dldatastate {
 #define DLDATASLLEN \
 	(sizeof(dldatastatelist) / sizeof(struct dldatastate))
 
-static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm48_rcv_rll(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
@@ -3829,6 +3905,55 @@ static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 	/* free msgb unless it is forwarded */
 	if (dldatastatelist[i].rout != gsm48_rr_data_ind)
 		msgb_free(msg);
+
+	return rc;
+}
+
+static int gsm48_rcv_cch(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct abis_rsl_cchan_hdr *ch = msgb_l2(msg);
+	int msg_type = ch->c.msg_type;
+	int rc;
+
+	LOGP(DRSL, LOGL_INFO, "(ms %s) Received '%s' from L2 in state "
+		"%s\n", ms->name, get_rsl_name(msg_type),
+		gsm48_rr_state_names[rr->state]);
+
+	if (rr->state == GSM48_RR_ST_CONN_PEND
+	 && msg_type == RSL_MT_CHAN_CONF) {
+	 	rc = gsm48_rr_tx_rand_acc(ms, msg);
+		msgb_free(msg);
+		return rc;
+	}
+
+	LOGP(DRSL, LOGL_NOTICE, "RSLms message unhandled\n");
+	msgb_free(msg);
+	return 0;
+}
+
+
+/* input function for L2 messags up to L3 */
+static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
+	int rc = 0;
+
+	switch (rslh->msg_discr & 0xfe) {
+	case ABIS_RSL_MDISC_RLL:
+		rc = gsm48_rcv_rll(ms, msg);
+		break;
+	case ABIS_RSL_MDISC_COM_CHAN:
+		rc = gsm48_rcv_cch(ms, msg);
+		break;
+	default:
+		/* FIXME: implement this */
+		LOGP(DRSL, LOGL_NOTICE, "unknown RSLms msg_discr 0x%02x\n",
+			rslh->msg_discr);
+		msgb_free(msg);
+		rc = -EINVAL;
+		break;
+	}
 
 	return rc;
 }
@@ -4110,12 +4235,13 @@ static int gsm48_rr_connect_cnf(struct osmocom_ms *ms, struct msgbl *msg)
 static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = ms->rrlayer;
+	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct msgb *nmsg;
-	struct gsm_rr_hdr *nrrh;
+	uint8_t cause = rllh->data[2];
 
 	printing of the cause
 
-	switch (msg->l3h[0]) {
+	switch (cause) {
 	case RLL_CAUSE_SEQ_ERR:
 	case RLL_CAUSE_UNSOL_DM_RESP_MF:
 	einige muessen ignoriert werden
