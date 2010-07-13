@@ -1146,7 +1146,6 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 #warning HACK: fn51 and fn_off
 	ncch->data[2] = (s->ccch_conf == 1) ? 27 : 50;
 	ncch->data[3] = 1 + ((random() % s->tx_integer) + slots) / 51;
-printf("%d\n", ncch->data[3]);
 	ncch->data[4] = RSL_IE_ACCESS_DELAY;
 	ncch->data[5] = set->alter_delay; /* (-)=earlier (+)=later */
 	ncch->data[6] = RSL_IE_MS_POWER;
@@ -3029,6 +3028,8 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		if (!nmsg)
 			return -ENOMEM;
 		gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
+		gh->proto_discr = GSM48_PDISC_RR;
+		gh->msg_type = GSM48_MT_RR_PAG_RESP;
 		pr = (struct gsm48_pag_rsp *) msgb_put(nmsg, sizeof(*pr));
 		/* key sequence */
 		pr->key_seq = subscr->key_seq;
