@@ -49,6 +49,14 @@ struct abis_rsl_dchan_hdr {
 	uint8_t	data[0];
 } __attribute__ ((packed));
 
+/* Chapter 8.5 */
+struct abis_rsl_cchan_hdr {
+	struct abis_rsl_common_hdr c;
+	uint8_t	ie_chan;
+	uint8_t	chan_nr;
+	uint8_t	data[0];
+} __attribute__ ((packed));
+
 
 /* Chapter 9.1 */
 #define ABIS_RSL_MDISC_RLL		0x02
@@ -88,6 +96,7 @@ enum abis_rsl_msgtype {
 	RSL_MT_PAGING_CMD,
 	RSL_MT_IMMEDIATE_ASSIGN_CMD,
 	RSL_MT_SMS_BC_REQ,
+	RSL_MT_CHAN_CONF,		/* non-standard element */
 	/* empty */
 	RSL_MT_RF_RES_IND			= 0x19,
 	RSL_MT_SACCH_FILL,
