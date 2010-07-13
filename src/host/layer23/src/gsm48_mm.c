@@ -1646,11 +1646,14 @@ static int gsm48_mm_rx_id_req(struct osmocom_ms *ms, struct msgb *msg)
 			"error.\n");
 		return -EINVAL;
 	}
+
 	/* id type */
 	mi_type = *gh->data;
+	LOGP(DMM, LOGL_INFO, "IDENTITY REQUEST (mi_type %d)\n", mi_type);
 
 	/* check if request can be fulfilled */
-	if (!subscr->sim_valid) {
+	if (!subscr->sim_valid && mi_type != GSM_MI_TYPE_IMEI
+	 && mi_type != GSM_MI_TYPE_IMEISV) {
 		LOGP(DMM, LOGL_INFO, "IDENTITY REQUEST without SIM\n");
 		return gsm48_mm_tx_mm_status(ms,
 			GSM48_REJECT_MSG_NOT_COMPATIBLE);
@@ -1661,7 +1664,6 @@ static int gsm48_mm_rx_id_req(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_mm_tx_mm_status(ms,
 			GSM48_REJECT_MSG_NOT_COMPATIBLE);
 	}
-	LOGP(DMM, LOGL_INFO, "IDENTITY REQUEST (mi_type %d)\n", mi_type);
 
 	return gsm48_mm_tx_id_rsp(ms, mi_type);
 }
