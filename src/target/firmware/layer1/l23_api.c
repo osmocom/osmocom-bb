@@ -207,7 +207,22 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 
+	printd("L1CTL_DM_REL_REQ\n");
 	l1a_mftask_set(0);
+}
+
+/* receive a L1CTL_RACH_REQ from L23 */
+static void l1ctl_rx_param_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_par_req *par_req = (struct l1ctl_par_req *) ul->payload;
+
+	printd("L1CTL_PARAM_REQ (ta=%d, tx_power=%d)\n", par_req->ta,
+		par_req->tx_power);
+
+	l1s.ta = par_req->ta;
+	// FIXME: set power
 }
 
 /* receive a L1CTL_RACH_REQ from L23 */
@@ -369,6 +384,9 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		break;
 	case L1CTL_DM_REL_REQ:
 		l1ctl_rx_dm_rel_req(msg);
+		break;
+	case L1CTL_PARAM_REQ:
+		l1ctl_rx_param_req(msg);
 		break;
 	case L1CTL_RACH_REQ:
 		l1ctl_rx_rach_req(msg);

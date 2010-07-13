@@ -42,6 +42,7 @@
 #define L1CTL_CCCH_MODE_REQ	17
 #define L1CTL_CCCH_MODE_CONF	18
 #define L1CTL_DM_REL_REQ	19
+#define L1CTL_PARAM_REQ		20
 
 enum ccch_mode {
 	CCCH_MODE_NONE = 0,
@@ -112,8 +113,7 @@ struct l1ctl_info_ul {
 	uint8_t chan_nr;
 	/* GSM 08.58 link identifier (9.3.2) */
 	uint8_t link_id;
-	uint8_t tx_power;
-	uint8_t padding2;
+	uint8_t padding[2];
 
 	uint8_t payload[0];
 } __attribute__((packed));
@@ -155,6 +155,13 @@ struct l1ctl_rach_req {
 	uint8_t fn51;
 	uint8_t mf_off;
 	uint8_t padding[1];
+} __attribute__((packed));
+
+/* the l1_info_ul header is in front */
+struct l1ctl_par_req {
+	int8_t ta;
+	uint8_t tx_power;
+	uint8_t padding[2];
 } __attribute__((packed));
 
 struct l1ctl_dm_est_req {

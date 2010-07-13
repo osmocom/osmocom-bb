@@ -107,7 +107,7 @@ void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr, uint
 	uint16_t offset = (L1_BURST_LENGTH_Q * 3) + 28;
 
 	/* Alignement */
-	tpu_enq_offset( (5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000 );
+	tpu_enq_offset( (5000 + l1s.tpu_offset - (l1s.ta << 2) + (L1_BURST_LENGTH_Q * tn)) % 5000 );
 	tpu_enq_at(5000 - 10 - (L1_BURST_LENGTH_Q * tn));
 
 #ifdef CONFIG_TX_ENABLE
