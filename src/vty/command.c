@@ -867,41 +867,77 @@ static int cmd_range_match(const char *range, const char *str)
 	char *p;
 	char buf[DECIMAL_STRLEN_MAX + 1];
 	char *endptr = NULL;
-	unsigned long min, max, val;
 
 	if (str == NULL)
 		return 1;
 
-	val = strtoul(str, &endptr, 10);
-	if (*endptr != '\0')
-		return 0;
+	if (range[1] == '-') {
+		signed long min = 0, max = 0, val;
 
-	range++;
-	p = strchr(range, '-');
-	if (p == NULL)
-		return 0;
-	if (p - range > DECIMAL_STRLEN_MAX)
-		return 0;
-	strncpy(buf, range, p - range);
-	buf[p - range] = '\0';
-	min = strtoul(buf, &endptr, 10);
-	if (*endptr != '\0')
-		return 0;
+		val = strtol(str, &endptr, 10);
+		if (*endptr != '\0')
+			return 0;
 
-	range = p + 1;
-	p = strchr(range, '>');
-	if (p == NULL)
-		return 0;
-	if (p - range > DECIMAL_STRLEN_MAX)
-		return 0;
-	strncpy(buf, range, p - range);
-	buf[p - range] = '\0';
-	max = strtoul(buf, &endptr, 10);
-	if (*endptr != '\0')
-		return 0;
+		range += 2;
+		p = strchr(range, '-');
+		if (p == NULL)
+			return 0;
+		if (p - range > DECIMAL_STRLEN_MAX)
+			return 0;
+		strncpy(buf, range, p - range);
+		buf[p - range] = '\0';
+		min = -strtol(buf, &endptr, 10);
+		if (*endptr != '\0')
+			return 0;
 
-	if (val < min || val > max)
-		return 0;
+		range = p + 1;
+		p = strchr(range, '>');
+		if (p == NULL)
+			return 0;
+		if (p - range > DECIMAL_STRLEN_MAX)
+			return 0;
+		strncpy(buf, range, p - range);
+		buf[p - range] = '\0';
+		max = strtol(buf, &endptr, 10);
+		if (*endptr != '\0')
+			return 0;
+
+		if (val < min || val > max)
+			return 0;
+	} else {
+		unsigned long min, max, val;
+
+		val = strtoul(str, &endptr, 10);
+		if (*endptr != '\0')
+			return 0;
+
+		range++;
+		p = strchr(range, '-');
+		if (p == NULL)
+			return 0;
+		if (p - range > DECIMAL_STRLEN_MAX)
+			return 0;
+		strncpy(buf, range, p - range);
+		buf[p - range] = '\0';
+		min = strtoul(buf, &endptr, 10);
+		if (*endptr != '\0')
+			return 0;
+
+		range = p + 1;
+		p = strchr(range, '>');
+		if (p == NULL)
+			return 0;
+		if (p - range > DECIMAL_STRLEN_MAX)
+			return 0;
+		strncpy(buf, range, p - range);
+		buf[p - range] = '\0';
+		max = strtoul(buf, &endptr, 10);
+		if (*endptr != '\0')
+			return 0;
+
+		if (val < min || val > max)
+			return 0;
+	}
 
 	return 1;
 }
