@@ -115,7 +115,7 @@ static void l1a_rach_compl(__unused enum l1_compl c)
 }
 
 /* request a RACH request at the next multiframe T3 = fn51 */
-void l1a_rach_req(uint8_t fn51, uint8_t ra)
+void l1a_rach_req(uint8_t fn51, uint8_t mf_off, uint8_t ra)
 {
 	uint32_t fn_sched;
 
@@ -123,6 +123,7 @@ void l1a_rach_req(uint8_t fn51, uint8_t ra)
 	l1s.rach.ra = ra;
 	/* TODO: can we wrap here? I don't think so */
 	fn_sched = l1s.current_time.fn - l1s.current_time.t3;
+	fn_sched += mf_off * 51;
 	fn_sched += fn51;
 	sched_gsmtime(rach_sched_set_ul, fn_sched, 0);
 	l1a_unlock_sync();
