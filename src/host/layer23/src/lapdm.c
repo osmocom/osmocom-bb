@@ -1943,8 +1943,13 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 		lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 		/* send notification to L3 */
 		return send_rll_simple(RSL_MT_REL_CONF, &dl->mctx);
-	} else
-		LOGP(DLAPDM, LOGL_INFO, "perform normal release (DISC)\n");
+	}
+
+	/* in case we are already disconnecting */
+	if (dl->state == LAPDm_STATE_DISC_SENT)
+		return -EBUSY;
+
+	LOGP(DLAPDM, LOGL_INFO, "perform normal release (DISC)\n");
 
 	/* Create new msgb */
 	msgb_pull_l2h(msg);
@@ -2109,7 +2114,8 @@ static struct l2downstate {
 	/* create and send DISC command */
 	{SBIT(LAPDm_STATE_SABM_SENT) |
 	 SBIT(LAPDm_STATE_MF_EST) |
-	 SBIT(LAPDm_STATE_TIMER_RECOV),
+	 SBIT(LAPDm_STATE_TIMER_RECOV) |
+	 SBIT(LAPDm_STATE_DISC_SENT),
 	 RSL_MT_REL_REQ, rslms_rx_rll_rel_req},
 
 	/* release in idle state */

@@ -350,6 +350,18 @@ static int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
 	return rslms_recvmsg(msg, ms);
 }
 
+/* push rsl header + release mode and send (RSL-SAP) */
+static int gsm48_send_rsl_rel(struct osmocom_ms *ms, uint8_t msg_type,
+				struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	rsl_rll_push_hdr(msg, msg_type, rr->cd_now.chan_nr,
+		rr->cd_now.link_id, 1);
+
+	return rslms_recvmsg(msg, ms);
+}
+
 /* enqueue messages (RSL-SAP) */
 static int gsm48_rx_rsl(struct msgb *msg, struct osmocom_ms *ms)
 {
@@ -410,7 +422,7 @@ static void timeout_rr_t3110(void *arg)
 	mode = msgb_put(nmsg, 2);
 	mode[0] = RSL_IE_RELEASE_MODE;
 	mode[1] = 1; /* local release */
-	gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
+	gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
 
 	return;
 }
@@ -2959,7 +2971,7 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 		mode[0] = RSL_IE_RELEASE_MODE;
 		mode[1] = 1; /* local release */
 		/* start release */
-		return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
+		return gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
 	case GSM48_RR_ST_REL_PEND:
 		LOGP(DRR, LOGL_INFO, "LOS during RR release procedure, release "
 			"locally\n");
@@ -3109,7 +3121,7 @@ static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 		mode[0] = RSL_IE_RELEASE_MODE;
 		mode[1] = 0; /* normal release */
 		/* start release */
-		return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
+		return gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
 	}
 
 	/* 3.3.1.1.4 */
@@ -3194,7 +3206,7 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 	mode = msgb_put(nmsg, 2);
 	mode[0] = RSL_IE_RELEASE_MODE;
 	mode[1] = 0; /* normal release */
-	return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
+	return gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
 }
 
 /*
@@ -3752,13 +3764,13 @@ static int gsm48_rr_abort_req(struct osmocom_ms *ms, struct msgb *msg)
 		mode = msgb_put(nmsg, 2);
 		mode[0] = RSL_IE_RELEASE_MODE;
 		mode[1] = 0; /* normal release */
-		return gsm48_send_rsl(ms, RSL_MT_REL_REQ, nmsg);
+		return gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
 	}
 
 	LOGP(DRR, LOGL_INFO, "Abort in connection pending state, return to "
 		"idle state.\n");
 	/* return idle */
-	new_rr_state(rr, GSM48_RR_ST_REL_PEND);
+	new_rr_state(rr, GSM48_RR_ST_IDLE);
 
 	return 0;
 }
