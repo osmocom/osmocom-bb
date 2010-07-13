@@ -518,7 +518,7 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	struct gsm_settings *set = &ms->settings;
 
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
-	switch(ms->settings.simtype) {
+	switch(set->simtype) {
 		case GSM_SIM_TYPE_NONE:
 		vty_out(vty, " sim none%s", VTY_NEWLINE);
 		break;
@@ -538,25 +538,46 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 			VTY_NEWLINE);
 	else
 		vty_out(vty, " imei-fixed%s", VTY_NEWLINE);
-	vty_out(vty, " emergency-imsi %s%s", (ms->settings.emergency_imsi[0]) ?
-		ms->settings.emergency_imsi : "none", VTY_NEWLINE);
+	if (set->emergency_imsi[0])
+		vty_out(vty, " emergency-imsi %s%s", set->emergency_imsi,
+			VTY_NEWLINE);
+	else
+		vty_out(vty, " no emergency-imsi%s", VTY_NEWLINE);
 	vty_out(vty, " %scall-waiting%s", (set->cw) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " %sclip%s", (set->clip) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " %sclir%s", (set->clir) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
-	vty_out(vty, "  imsi %s%s", ms->settings.test_imsi, VTY_NEWLINE);
+	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
 	vty_out(vty, "  %sbarred-access%s", (set->test_barr) ? "" : "no ",
 		VTY_NEWLINE);
-	if (ms->settings.test_rplmn_valid)
+	if (set->test_rplmn_valid)
 		vty_out(vty, "  rplmn %s %s%s",
-			gsm_print_mcc(ms->settings.test_rplmn_mcc),
-			gsm_print_mnc(ms->settings.test_rplmn_mnc),
+			gsm_print_mcc(set->test_rplmn_mcc),
+			gsm_print_mnc(set->test_rplmn_mnc),
 			VTY_NEWLINE);
 	else
 		vty_out(vty, "  no rplmn%s", VTY_NEWLINE);
 	vty_out(vty, "  hplmn-search %s%s", (set->test_always) ? "everywhere"
 			: "foreign-country", VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
+	if (set->alter_tx_power)
+		if (set->alter_tx_power_value)
+			vty_out(vty, " tx-power %d%s",
+				set->alter_tx_power_value, VTY_NEWLINE);
+		else
+			vty_out(vty, " tx-power full%s", VTY_NEWLINE);
+	else
+		vty_out(vty, " tx-power auto%s", VTY_NEWLINE);
+	if (set->alter_delay)
+		vty_out(vty, " simulated-delay %d%s", set->alter_delay,
+			VTY_NEWLINE);
+	else
+		vty_out(vty, " no simulated-delay%s", VTY_NEWLINE);
+	if (set->stick)
+		vty_out(vty, " stick %d%s", set->stick_arfcn,
+			VTY_NEWLINE);
+	else
+		vty_out(vty, " no stick%s", VTY_NEWLINE);
 	vty_out(vty, "exit%s", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
@@ -567,6 +588,27 @@ static int config_write_ms(struct vty *vty)
 
 	llist_for_each_entry(ms, &ms_list, entity)
 		config_write_ms_single(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|test)",
+	"Set sim card type when powering on\nNo sim interted\n"
+	"Test sim inserted")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	switch (argv[0][0]) {
+	case 'n':
+		ms->settings.simtype = GSM_SIM_TYPE_NONE;
+		break;
+	case 's':
+		ms->settings.simtype = GSM_SIM_TYPE_SLOT;
+		break;
+	case 't':
+		ms->settings.simtype = GSM_SIM_TYPE_TEST;
+		break;
+	}
 
 	return CMD_SUCCESS;
 }
@@ -641,17 +683,11 @@ DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi (none|IMSI)",
-	"Use IMSI for emergency calls\n"
-	"Use IMSI of SIM or IMEI for emergency calls\n15 digits IMSI")
+DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi IMSI",
+	"Use special IMSI for emergency calls\n15 digits IMSI")
 {
 	struct osmocom_ms *ms = vty->index;
 	char *error;
-
-	if (argv[0][0] == 'n') {
-		ms->settings.emergency_imsi[0] = '\0';
-		return CMD_SUCCESS;
-	}
 
 	error = gsm_check_imsi(argv[0]);
 	if (error) {
@@ -659,6 +695,16 @@ DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi (none|IMSI)",
 		return CMD_WARNING;
 	}
 	strcpy(ms->settings.emergency_imsi, argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_emerg_imsi, cfg_ms_no_emerg_imsi_cmd, "no emergency-imsi",
+	NO_STR "Use IMSI of SIM or IMEI for emergency calls")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.emergency_imsi[0] = '\0';
 
 	return CMD_SUCCESS;
 }
@@ -725,29 +771,81 @@ DEFUN(cfg_no_clir, cfg_ms_no_clir_cmd, "no clir",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|test)",
-	"Set sim card type when powering on\nNo sim interted\n"
-	"Test sim inserted")
+DEFUN(cfg_ms_tx_power, cfg_ms_tx_power_cmd, "tx-power (auto|full)",
+	"Set the way to choose transmit power\nControlled by BTS\n"
+	"Always full power\nFixed GSM power value if supported")
 {
 	struct osmocom_ms *ms = vty->index;
 
 	switch (argv[0][0]) {
-	case 'n':
-		ms->settings.simtype = GSM_SIM_TYPE_NONE;
+	case 'a':
+		ms->settings.alter_tx_power = 0;
 		break;
-	case 's':
-		ms->settings.simtype = GSM_SIM_TYPE_SLOT;
-		break;
-	case 't':
-		ms->settings.simtype = GSM_SIM_TYPE_TEST;
+	case 'f':
+		ms->settings.alter_tx_power = 1;
+		ms->settings.alter_tx_power_value = 0;
 		break;
 	}
 
 	return CMD_SUCCESS;
 }
 
-/* per MS config */
-DEFUN(cfg_testsim, cfg_testsim_cmd, "test-sim",
+DEFUN(cfg_ms_tx_power_val, cfg_ms_tx_power_val_cmd, "tx-power <0-31>",
+	"Set the way to choose transmit power\n"
+	"Fixed GSM power value if supported")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.alter_tx_power = 1;
+	ms->settings.alter_tx_power_value = atoi(argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sim_delay, cfg_ms_sim_delay_cmd, "simulated-delay <-128-127>",
+	"Simulate a lower or higher distance from the BTS\n"
+	"Delay in half bits (distance in 553.85 meter steps)")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.alter_delay = atoi(argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_sim_delay, cfg_ms_no_sim_delay_cmd, "no simulated-delay",
+	NO_STR "Do not simulate a lower or higher distance from the BTS")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.alter_delay = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_stick, cfg_ms_stick_cmd, "stick <0-1023>",
+	"Stick to the given cell\nARFCN of the cell to stick to")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.stick = 1;
+	ms->settings.stick_arfcn = atoi(argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_stick, cfg_ms_no_stick_cmd, "no stick",
+	NO_STR "Do not stick to any cell")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.stick = 0;
+
+	return CMD_SUCCESS;
+}
+
+/* per testsim config */
+DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	"Configure test SIM emulation")
 {
 	vty->node = TESTSIM_NODE;
@@ -932,10 +1030,12 @@ int ms_vty_init(void)
 	install_default(MS_NODE);
 	install_element(MS_NODE, &ournode_exit_cmd);
 	install_element(MS_NODE, &ournode_end_cmd);
+	install_element(MS_NODE, &cfg_ms_sim_cmd);
 	install_element(MS_NODE, &cfg_ms_mode_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_fixed_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_random_cmd);
+	install_element(MS_NODE, &cfg_ms_no_emerg_imsi_cmd);
 	install_element(MS_NODE, &cfg_ms_emerg_imsi_cmd);
 	install_element(MS_NODE, &cfg_ms_cw_cmd);
 	install_element(MS_NODE, &cfg_ms_no_cw_cmd);
@@ -943,9 +1043,14 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_clir_cmd);
 	install_element(MS_NODE, &cfg_ms_no_clip_cmd);
 	install_element(MS_NODE, &cfg_ms_no_clir_cmd);
-	install_element(MS_NODE, &cfg_ms_sim_cmd);
+	install_element(MS_NODE, &cfg_ms_testsim_cmd);
+	install_element(MS_NODE, &cfg_ms_tx_power_cmd);
+	install_element(MS_NODE, &cfg_ms_tx_power_val_cmd);
+	install_element(MS_NODE, &cfg_ms_sim_delay_cmd);
+	install_element(MS_NODE, &cfg_ms_no_sim_delay_cmd);
+	install_element(MS_NODE, &cfg_ms_stick_cmd);
+	install_element(MS_NODE, &cfg_ms_no_stick_cmd);
 
-	install_element(MS_NODE, &cfg_testsim_cmd);
 	install_node(&testsim_node, config_write_dummy);
 	install_default(TESTSIM_NODE);
 	install_element(TESTSIM_NODE, &ournode_exit_cmd);
