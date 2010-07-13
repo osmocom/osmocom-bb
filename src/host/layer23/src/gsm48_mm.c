@@ -1245,7 +1245,6 @@ int gsm48_mm_exit(struct osmocom_ms *ms)
 	while (!llist_empty(&mm->mm_conn)) {
 		conn = llist_entry(mm->mm_conn.next, 
 			struct gsm48_mm_conn, list);
-		llist_del(&conn->list);
 		mm_conn_free(conn);
 	}
 	while ((msg = msgb_dequeue(&mm->rr_upqueue)))
