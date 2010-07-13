@@ -3335,8 +3335,9 @@ int gsm322_dump_ba_list(struct gsm322_cellsel *cs, uint16_t mcc, uint16_t mnc,
 	llist_for_each_entry(ba, &cs->ba_list, entry) {
 		if (mcc && mnc && (mcc != ba->mcc || mnc != ba->mnc))
 			continue;
-		print(priv, "Band Allocation of network: MCC %03d MNC %02d "
-			"(%s, %s)\n", ba->mcc, ba->mnc, gsm_get_mcc(ba->mcc),
+		print(priv, "Band Allocation of network: MCC %s MNC %s "
+			"(%s, %s)\n", gsm_print_mcc(ba->mcc),
+			gsm_print_mnc(ba->mnc), gsm_get_mcc(ba->mcc),
 			gsm_get_mnc(ba->mcc, ba->mnc));
 		for (i = 0; i <= 1023; i++) {
 			if ((ba->freq[i >> 3] & (1 << (i & 7))))
