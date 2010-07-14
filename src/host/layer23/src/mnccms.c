@@ -246,6 +246,11 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		mncc.callref = call->callref;
 		mncc_send(ms, MNCC_ALERT_REQ, &mncc);
 		break;
+	case MNCC_SETUP_COMPL_IND:
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Call is connected\n");
+		LOGP(DMNCC, LOGL_INFO, "Call is connected\n");
+		break;
 	case MNCC_HOLD_CNF:
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is on hold\n");
