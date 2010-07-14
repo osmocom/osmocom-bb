@@ -74,7 +74,7 @@ static void board_io_init(void)
 	writew(reg, ARMIO_LATCH_OUT);
 }
 
-static void __ctor_board board_init(void)
+void board_init(void)
 {
 	/* Configure the memory interface */
 	calypso_mem_cfg(CALYPSO_nCS0, 3, CALYPSO_MEM_16bit, 1);

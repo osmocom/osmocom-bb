@@ -75,7 +75,7 @@ static void board_io_init(void)
 	writew(reg, ARMIO_LATCH_OUT);
 }
 
-static void __ctor_board board_init(void)
+void board_init(void)
 {
 	/* Disable watchdog (compal loader leaves it enabled) */
 	wdog_enable(0);
