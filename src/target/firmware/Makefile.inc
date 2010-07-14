@@ -29,7 +29,7 @@ CFLAGS += -g$(DEBUGF)
 #ASFLAGS=-Wa,-adhlns=$(<:.S=.lst),--g$(DEBUGF) $(INCLUDES) -D__ASSEMBLY__
 ASFLAGS=-Wa,-adhlns=$(<:.S=.lst) $(INCLUDES) -D__ASSEMBLY__
 
-LDFLAGS = -nostartfiles -nostdlib -nodefaultlibs --gc-sections #-Wl,-Map=$(TARGET).map,--cref
+LDFLAGS = -nostartfiles -nostdlib -nodefaultlibs --gc-sections --cref
 
 #### GIT VERSION ####
 
@@ -52,7 +52,7 @@ ALL_LSTS=$(ALL_OBJS:.o=.lst)
 
 ALL_APPS=
 
-ALL_APP_TARGETS=$(ALL_APPS) $(ALL_APPS:.elf=.bin) $(ALL_APPS:.elf=.map) $(ALL_APPS:.elf=.size)
+ALL_APP_TARGETS=$(ALL_APPS:.elf=.bin) $(ALL_APPS:.elf=.size) $(ALL_APPS) $(ALL_APPS:.elf=.map)
 
 #### LIBRARY DATA ####
 
@@ -86,11 +86,14 @@ board/$(2)/$(1).$(3).manifest.o: board/manifest.c
 # add manifest object to object list
 $(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o $$($(3)_OBJS)
 
-# define compilation, generating various extra files on the way
-board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map board/$(2)/$(1).$(3).size: $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) $$($(3)_LDS)
+# define compilation rule, also generates map file
+board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map: $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) $$($(3)_LDS)
 	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic \
 		-Map board/$(2)/$(1).$(3).map -o board/$(2)/$(1).$(3).elf \
 		--start-group $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) --end-group
+
+# define size rule
+board/$(2)/$(1).$(3).size: board/$(2)/$(1).$(3).elf
 	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
 
 ALL_APPS+=board/$(2)/$(1).$(3).elf
@@ -155,7 +158,7 @@ $(foreach lbr,$(LIBRARIES),$(eval $(call LIBRARY_template,$(lbr))))
 #### TOPLEVEL RULES ####
 
 .PHONY: all
-all: $(ALL_DEPS) $(ALL_APP_TARGETS) $(ALL_LIB_TARGETS)
+all: $(ALL_DEPS) $(ALL_APPS:.elf=.size)
 
 .PHONY: depend
 depend: $(ALL_DEPS)
