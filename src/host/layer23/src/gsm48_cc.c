@@ -1590,10 +1590,12 @@ static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg)
 
 	gsm48_cc_to_mm(nmsg, trans, GSM48_MMCC_DATA_REQ);
 
+#if 0
 	/* release without sending MMCC_REL_REQ */
 	new_cc_state(trans, GSM_CSTATE_NULL);
 	trans->callref = 0;
 	trans_free(trans);
+#endif
 
 	return 0;
 }
@@ -1720,6 +1722,12 @@ static int gsm48_cc_rx_release(struct gsm_trans *trans, struct msgb *msg)
 				TLVP_VAL(&tp, GSM48_IE_USER_USER)-1);
 	}
 
+	/* in case we receive a relase, when we are already in NULL state */
+	if (trans->cc.state == GSM_CSTATE_NULL) {
+		LOGP(DCC, LOGL_INFO, "ignoring RELEASE in NULL state\n");
+		/* release MM conn, free trans */
+		return gsm48_rel_null_free(trans);
+	}
 	if (trans->cc.state == GSM_CSTATE_RELEASE_REQ) {
 		/* release collision 5.4.5 */
 		mncc_recvmsg(trans->ms, trans, MNCC_REL_CNF, &rel);
@@ -1956,7 +1964,7 @@ static struct datastate {
 	{SBIT(GSM_CSTATE_NULL), /* 5.2.2.1 */
 	 GSM48_MT_CC_SETUP, gsm48_cc_rx_setup},
 
-	{SBIT(GSM_CSTATE_CALL_PRESENT), /* 5.2.2.6 */
+	{SBIT(GSM_CSTATE_CONNECT_REQUEST), /* 5.2.2.6 */
 	 GSM48_MT_CC_CONNECT_ACK, gsm48_cc_rx_connect_ack},
 
 	 /* signalling during call */
@@ -1998,7 +2006,7 @@ static struct datastate {
 	 SBIT(GSM_CSTATE_DISCONNECT_IND), /* 5.4.4.1.1 */
 	 GSM48_MT_CC_DISCONNECT, gsm48_cc_rx_disconnect},
 
-	{ALL_STATES - SBIT(GSM_CSTATE_NULL), /* 5.4.3.3 & 5.4.5!!!*/
+	{ALL_STATES, /* 5.4.3.3 & 5.4.5!!!*/
 	 GSM48_MT_CC_RELEASE, gsm48_cc_rx_release},
 
 	{ALL_STATES, /* 5.4.4.1.3 */
