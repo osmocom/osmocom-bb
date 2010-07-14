@@ -33,6 +33,7 @@
 
 #include <osmocom/logging.h>
 #include <osmocom/l1ctl.h>
+#include <osmocom/l23_app.h>
 #include <osmocom/osmocom_data.h>
 #include <osmocom/networks.h>
 #include <osmocom/vty.h>
@@ -2430,6 +2431,11 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			gsm322_cs_timeout(cs);
 		break;
 	case S_L1CTL_RESET:
+		ms = signal_data;
+		if (ms->mmlayer.power_off_idle) {
+			l23_app_exit(ms);
+			exit(0);
+		}
 		break;
 	}
 

@@ -36,6 +36,7 @@
 #include <osmocom/gsm48_cc.h>
 #include <osmocom/l23_app.h>
 #include <osmocom/networks.h>
+#include <osmocom/l1ctl.h>
 
 extern void *l23_ctx;
 
@@ -1753,10 +1754,11 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 	/* SIM invalid */
 	subscr->sim_valid = 0;
 
-	/* power off when IMSI is detached */
+	/* wait for RR idle and then power off when IMSI is detached */
 	if (mm->power_off) {
-		l23_app_exit(ms);
-		exit (0);
+		mm->power_off_idle = 1;
+
+		return 0;
 	}
 
 	/* send SIM remove event to gsm322 */
@@ -1823,10 +1825,10 @@ static int gsm48_mm_imsi_detach_release(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DMM, LOGL_INFO, "IMSI detach not required.\n");
 		new_mm_state(mm, GSM48_MM_ST_WAIT_NETWORK_CMD, 0);
 
-		/* power off when IMSI is detached */
+		/* power off */
 		if (mm->power_off) {
 			l23_app_exit(ms);
-			exit (0);
+			exit(0);
 		}
 
 		return 0;
