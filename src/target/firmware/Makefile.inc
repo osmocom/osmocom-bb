@@ -158,7 +158,7 @@ $(foreach lbr,$(LIBRARIES),$(eval $(call LIBRARY_template,$(lbr))))
 #### TOPLEVEL RULES ####
 
 .PHONY: all
-all: $(ALL_DEPS) $(ALL_APPS:.elf=.size)
+all: $(ALL_DEPS) $(ALL_APPS:.elf=.bin) $(ALL_APPS:.elf=.size)
 
 .PHONY: depend
 depend: $(ALL_DEPS)
