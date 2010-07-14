@@ -3362,6 +3362,11 @@ static int gsm48_mm_abort_rr(struct osmocom_ms *ms, struct msgb *msg)
 /* RR is released in other states */
 static int gsm48_mm_rel_other(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+
+	/* stop RR release timer (if running) */
+	stop_mm_t3240(mm);
+
 	/* CS process will trigger: return to MM IDLE */
 	return 0;
 }
@@ -3620,7 +3625,7 @@ static struct rrdatastate {
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), /* not supported */
 	 GSM48_RR_ABORT_IND, gsm48_mm_abort_mm_con},
 
-	/* other */
+	/* other (also wait for network command) */
 	{ALL_STATES,
 	 GSM48_RR_REL_IND, gsm48_mm_rel_other},
 
