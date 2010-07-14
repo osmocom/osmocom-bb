@@ -1041,6 +1041,13 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			 		length)) {
 				LOGP(DLAPDM, LOGL_INFO, "UA response "
 					"mismatches\n");
+int i;
+for (i = 0; i < (dl->tx_hist[0][2] >> 2); i++)
+	printf(" %02x", dl->tx_hist[0][3+i]);
+printf(" == SENT\n");
+for (i = 0; i < length; i++)
+	printf(" %02x", msg->l2h[3+i]);
+printf(" == RECEIVED\n");
 				rc = send_rll_simple(RSL_MT_REL_IND, mctx);
 				msgb_free(msg);
 				/* go to idle state */
@@ -1951,8 +1958,8 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 
 	LOGP(DLAPDM, LOGL_INFO, "perform normal release (DISC)\n");
 
-	/* Create new msgb */
-	msgb_pull_l2h(msg);
+	/* Pull rllh */
+	msgb_pull(msg, msg->tail - msg->l2h);
 
 	/* Push LAPDm header on msgb */
 	msg->l2h = msgb_push(msg, 3);
