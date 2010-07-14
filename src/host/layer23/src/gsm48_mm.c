@@ -1756,6 +1756,10 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* wait for RR idle and then power off when IMSI is detached */
 	if (mm->power_off) {
+		if (mm->state == GSM48_MM_ST_MM_IDLE) {
+			l23_app_exit(ms);
+			exit(0);
+		}
 		mm->power_off_idle = 1;
 
 		return 0;
@@ -3568,8 +3572,15 @@ static struct rrdatastate {
 
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_IMSI_D), /* 4.3.4.4 (unsuc.) */
 	 GSM48_RR_REL_IND, gsm48_mm_imsi_detach_end},
+	 	/* also this may happen if SABM is ackwnowledged with DISC */
 
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_IMSI_D), /* 4.3.4.4 (lost) */
+	 GSM48_RR_ABORT_IND, gsm48_mm_imsi_detach_end},
+
+	{SBIT(GSM48_MM_ST_IMSI_DETACH_INIT), /* 4.3.4.4 (unsuc.) */
+	 GSM48_RR_REL_IND, gsm48_mm_imsi_detach_end},
+
+	{SBIT(GSM48_MM_ST_IMSI_DETACH_INIT), /* 4.3.4.4 (lost) */
 	 GSM48_RR_ABORT_IND, gsm48_mm_imsi_detach_end},
 
 	/* location update */
@@ -3722,6 +3733,11 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	if (msg_type == GSM48_MT_MM_NULL)
 		return 0;
 
+	if (mm->state == GSM48_MM_ST_IMSI_DETACH_INIT) {
+		LOGP(DMM, LOGL_NOTICE, "DATA IND ignored during IMSI "
+			"detach.\n");
+		return 0;
+	}
 	/* pull the RR header */
 	msgb_pull(msg, sizeof(struct gsm48_rr_hdr));
 
