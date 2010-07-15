@@ -1,0 +1,60 @@
+Index: Makefile
+===================================================================
+RCS file: /cvs/dietlibc/Makefile,v
+retrieving revision 1.191
+diff -r1.191 Makefile
+11c11,13
+< MYARCH:=$(shell uname -m | sed -e 's/i[4-9]86/i386/' -e 's/armv[3-6]t\?e\?[lb]/arm/')
+---
+> #MYARCH:=$(shell uname -m | sed -e 's/i[4-9]86/i386/' -e 's/armv[3-6]t\?e\?[lb]/arm/')
+> 
+> MYARCH=arm
+91c93
+< WHAT=	$(OBJDIR) $(OBJDIR)/start.o $(OBJDIR)/dyn_start.o $(OBJDIR)/dyn_stop.o \
+---
+> WHAT=	$(OBJDIR) \
+94,97c96
+< 	$(OBJDIR)/librpc.a $(OBJDIR)/libpthread.a \
+< 	$(OBJDIR)/libcrypt.a \
+< 	$(OBJDIR)/diet $(OBJDIR)/diet-i $(OBJDIR)/elftrunc \
+< 	$(OBJDIR)/dnsd
+---
+> 	$(OBJDIR)/libcrypt.a
+104c103
+< CROSS=
+---
+> CROSS=arm-elf-
+111c110
+< SYSCALLOBJ=$(patsubst syscalls.s/%.S,$(OBJDIR)/%.o,$(wildcard syscalls.s/*.S))
+---
+> SYSCALLOBJ=#$(patsubst syscalls.s/%.S,$(OBJDIR)/%.o,$(wildcard syscalls.s/*.S))
+202c201
+< $(OBJDIR)/dietlibc.a: $(DIETLIBC_OBJ) $(OBJDIR)/start.o
+---
+> $(OBJDIR)/dietlibc.a: $(DIETLIBC_OBJ)
+529c528
+< 	$(CROSS)$(CC) $(INC) $(CFLAGS) -c lib/stackgap.c -o $@ -D__dietlibc__ -fno-stack-protector
+---
+> 	$(CROSS)$(CC) $(INC) $(CFLAGS) -c lib/stackgap.c -o $@ -D__dietlibc__ # -fno-stack-protector
+Index: dietfeatures.h
+===================================================================
+RCS file: /cvs/dietlibc/dietfeatures.h,v
+retrieving revision 1.68
+diff -r1.68 dietfeatures.h
+6,8c6,8
+< #define WANT_FLOATING_POINT_IN_PRINTF
+< #define WANT_FLOATING_POINT_IN_SCANF
+< #define WANT_CHARACTER_CLASSES_IN_SCANF
+---
+> /* #define WANT_FLOATING_POINT_IN_PRINTF */
+> /* #define WANT_FLOATING_POINT_IN_SCANF */
+> /* #define WANT_CHARACTER_CLASSES_IN_SCANF */
+Index: arm/Makefile.add
+===================================================================
+RCS file: /cvs/dietlibc/arm/Makefile.add,v
+retrieving revision 1.9
+diff -r1.9 Makefile.add
+5c5
+< CFLAGS+=-mabi=aapcs-linux -mfloat-abi=soft -mno-thumb-interwork
+---
+> CFLAGS+=-mfloat-abi=soft -mno-thumb-interwork
