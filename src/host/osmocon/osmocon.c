@@ -1157,11 +1157,11 @@ static int handle_read_mtk(void)
 			    sizeof(dnload.load_address)))
 			break;
 		printf("Received branch address ack, code should run now\n");
-
-		/* uncomment this once we have working uart driver & sercomm */
-		//dnload.mtk_state = MTK_FINISHED;
-		//dnload.serial_fd.when = BSC_FD_READ;
-		//dnload.print_hdlc = 1;
+		serial_set_baudrate(MODEM_BAUDRATE);
+		dnload.serial_fd.when = BSC_FD_READ;
+		dnload.mtk_state = MTK_FINISHED;
+		dnload.write_ptr = dnload.data;
+		dnload.print_hdlc = 1;
 		break;
 	default:
 		break;
