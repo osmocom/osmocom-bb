@@ -70,6 +70,8 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 
 int main(void)
 {
+	board_init();
+
 	puts("\n\nHello World from " __FILE__ " program code\n");
 	puts(hr);
 	/* Dump device identification */

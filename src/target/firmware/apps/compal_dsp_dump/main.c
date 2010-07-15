@@ -43,6 +43,8 @@ const char *hr = "==============================================================
 
 int main(void)
 {
+	board_init();
+
 	puts("\n\nCompal DSP data dumper\n");
 	puts(hr);
 

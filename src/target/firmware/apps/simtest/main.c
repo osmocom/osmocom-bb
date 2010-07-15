@@ -273,6 +273,8 @@ static void *console_rx_cb(uint8_t dlci, struct msgb *msg)
 
 int main(void)
 {
+	board_init();
+
 	puts("\n\nSIM-Test from " __FILE__ " program code\n");
 	puts(hr);
 	/* Dump device identification */
