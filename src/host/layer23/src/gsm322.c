@@ -224,6 +224,7 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs)
 	struct osmocom_ms *ms = cs->ms;
 	struct gsm48_sysinfo *s = cs->si;
 
+	LOGP(DCS, LOGL_INFO, "Start syncing. (ARFCN=%d)\n", cs->arfcn);
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	if (s) {
 		if (s->ccch_conf == 1) {
@@ -545,9 +546,8 @@ static void new_c_state(struct gsm322_cellsel *cs, int state)
 
 	/* stop scanning of power measurement */
 	if (cs->powerscan) {
-#ifdef TODO
-		stop power scanning 
-#endif
+		LOGP(DCS, LOGL_INFO, "changing state while power scanning\n");
+		l1ctl_tx_reset_req(cs->ms, L1CTL_RES_T_FULL);
 		cs->powerscan = 0;
 	}
 
@@ -2338,7 +2338,10 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 	LOGP(DCS, LOGL_INFO, "Scanning frequencies. (%d..%d)\n", s, e);
 
 	/* start scan on radio interface */
-	cs->powerscan = 1;
+	if (!cs->powerscan) {
+		l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+		cs->powerscan = 1;
+	}
 //#warning TESTING!!!!
 //usleep(300000);
 	return l1ctl_tx_pm_req_range(ms, s, e);
@@ -2387,7 +2390,8 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		ms = signal_data;
 		cs = &ms->cellsel;
 		if (cs->ccch_state == GSM322_CCCH_ST_INIT) {
-			LOGP(DCS, LOGL_INFO, "Channel synched.\n");
+			LOGP(DCS, LOGL_INFO, "Channel synched. (ARFCN=%d)\n",
+				cs->arfcn);
 			cs->ccch_state = GSM322_CCCH_ST_SYNC;
 #if 0
 			stop_cs_timer(cs);
