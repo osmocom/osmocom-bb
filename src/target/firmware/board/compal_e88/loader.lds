@@ -12,11 +12,11 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 MEMORY
 {
-	/* 2 MBytes of external flash memory */
+    /* 2 MBytes of external flash memory */
     FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 0x200000
-	/* 256 kBytes of internal zero-waitstate sram */
+    /* 256 kBytes of internal zero-waitstate sram */
     IRAM  (rw) : ORIGIN = 0x00800000, LENGTH = 0x040000
-	/* 256 kBytes of external slow sram */
+    /* 256 kBytes of external slow sram */
     ERAM  (rw) : ORIGIN = 0x01000000, LENGTH = 0x040000
 }
 SECTIONS
@@ -39,7 +39,7 @@ SECTIONS
 
     /* Compal-style vector table */
     .compal.vectors 0x000020A0 : {
-		PROVIDE(_exceptions = .);
+        PROVIDE(_exceptions = .);
         KEEP(*(.text.exceptions))
         *(.text.exceptions)
     } > FLASH
@@ -61,31 +61,31 @@ SECTIONS
     PROVIDE(_text_start = ADDR(.text));
     PROVIDE(_text_end = ADDR(.text) + SIZEOF(.text));
 
-	/* constructor pointers */
-	. = ALIGN(4);
-	.ctors : {
-		/* ctor count */
-		LONG(SIZEOF(.ctors) / 4 - 2)
-		/* ctor pointers */
-		KEEP(*(SORT(.ctors)))
-		/* end of list */
-		LONG(0)
-	}
-	PROVIDE(_ctor_start = LOADADDR(.ctors));
-	PROVIDE(_ctor_end = LOADADDR(.ctors) + SIZEOF(.ctors));
+    /* constructor pointers */
+    . = ALIGN(4);
+    .ctors : {
+        /* ctor count */
+        LONG(SIZEOF(.ctors) / 4 - 2)
+        /* ctor pointers */
+        KEEP(*(SORT(.ctors)))
+        /* end of list */
+        LONG(0)
+    }
+    PROVIDE(_ctor_start = LOADADDR(.ctors));
+    PROVIDE(_ctor_end = LOADADDR(.ctors) + SIZEOF(.ctors));
 
-	/* destructor pointers */
-	. = ALIGN(4);
-	.dtors : {
-		/* dtor count */
-		LONG(SIZEOF(.dtors) / 4 - 2)
-		/* dtor pointers */
-		KEEP(*(SORT(.dtors)))
-		/* end of list */
-		LONG(0)
-	}
-	PROVIDE(_dtor_start = LOADADDR(.dtors));
-	PROVIDE(_dtor_end = LOADADDR(.dtors) + SIZEOF(.dtors));
+    /* destructor pointers */
+    . = ALIGN(4);
+    .dtors : {
+        /* dtor count */
+        LONG(SIZEOF(.dtors) / 4 - 2)
+        /* dtor pointers */
+        KEEP(*(SORT(.dtors)))
+        /* end of list */
+        LONG(0)
+    }
+    PROVIDE(_dtor_start = LOADADDR(.dtors));
+    PROVIDE(_dtor_end = LOADADDR(.dtors) + SIZEOF(.dtors));
 
     /* read-only data */
     .rodata : {
@@ -96,24 +96,24 @@ SECTIONS
 
     /* pic offset tables */
     .got : {
-		. = ALIGN(4);
+        . = ALIGN(4);
         *(.got)
         *(.got.plt) *(.igot.plt) *(.got) *(.igot)
-		. = ALIGN(4);
+        . = ALIGN(4);
     } > FLASH
     PROVIDE(_got_start = ADDR(.got));
     PROVIDE(_got_end = ADDR(.got) + SIZEOF(.got));
 
     /* reserved ram  */
     .compal.reservedram 0x800000 (NOLOAD) : {
-		. = 0xff;
+        . = 0xff;
     } > IRAM
 
     /* initialized data */
     .data : AT (LOADADDR(.got) + SIZEOF(.got)) {
-		. = ALIGN(4);
+        . = ALIGN(4);
         *(.data)
-		. = ALIGN(4);
+        . = ALIGN(4);
     } > IRAM
     PROVIDE(__data_start = LOADADDR(.data));
     PROVIDE(__data_end = LOADADDR(.data) + SIZEOF(.data));
@@ -122,9 +122,9 @@ SECTIONS
 
     /* ram code */
     .ramtext : AT (LOADADDR(.data) + SIZEOF(.data)) {
-		. = ALIGN(4);
+        . = ALIGN(4);
         *(.ramtext)
-		. = ALIGN(4);
+        . = ALIGN(4);
     } > IRAM
     PROVIDE(__ramtext_start = LOADADDR(.ramtext));
     PROVIDE(__ramtext_end = LOADADDR(.ramtext) + SIZEOF(.ramtext));
@@ -133,14 +133,14 @@ SECTIONS
 
     /* uninitialized data */
     .bss (NOLOAD) : {
-		. = ALIGN(4);
+        . = ALIGN(4);
         *(.bss)
         . = ALIGN(4);
     } > IRAM
     PROVIDE(__bss_start = ADDR(.bss));
     PROVIDE(__bss_end = ADDR(.bss) + SIZEOF(.bss));
-	PROVIDE(_bss_start = __bss_start);
-	PROVIDE(_bss_end = __bss_end);
+    PROVIDE(_bss_start = __bss_start);
+    PROVIDE(_bss_end = __bss_end);
 
     /* end of image */
     . = ALIGN(4);
