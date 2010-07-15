@@ -3210,8 +3210,90 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /*
- * assignment and handover
+ * chanel mode modify, assignment, and handover
  */
+
+/* 9.1.6 sending CHANNEL MODE MODIFY ACKNOWLEDGE */
+static int gsm48_rr_tx_chan_modify_ack(struct osmocom_ms *ms,
+		struct gsm48_chan_desc *cd, uint8_t mode)
+{
+	struct msgb *nmsg;
+	struct gsm48_hdr *gh;
+	struct gsm48_chan_mode_modify *cm;
+
+	LOGP(DRR, LOGL_INFO, "CHAN.MODE.MOD ACKNOWLEDGE\n");
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
+	cm = (struct gsm48_chan_mode_modify *) msgb_put(nmsg, sizeof(*cm));
+
+	gh->proto_discr = GSM48_PDISC_RR;
+	gh->msg_type = GSM48_MT_RR_CHAN_MODE_MODIF_ACK;
+
+	/* CD */
+	memcpy(&cm->chan_desc, cd, sizeof(struct gsm48_chan_desc));
+	/* mode */
+	cm->mode = mode;
+
+	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+}
+
+/* 9.1.5 CHANNEL MODE MODIFY is received */
+static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	struct gsm48_chan_mode_modify *cm =
+		(struct gsm48_chan_mode_modify *)gh->data;
+	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*cm);
+	struct gsm48_rr_cd *cd = &rr->cd_now;
+	uint8_t ch_type, ch_subch, ch_ts;
+	uint8_t mode;
+
+	LOGP(DRR, LOGL_INFO, "CHANNEL MODE MODIFY\n");
+
+
+	if (payload_len < 0) {
+		LOGP(DRR, LOGL_NOTICE, "Short read of CHANNEL MODE MODIFY "
+			"message.\n");
+		return gsm48_rr_tx_rr_status(ms,
+			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
+
+	/* decode channel description */
+	cd->chan_nr = cm->chan_desc.chan_nr;
+	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (cm->chan_desc.h0.h) {
+		cd->h = 1;
+		gsm48_decode_chan_h1(&cm->chan_desc, &cd->tsc, &cd->maio,
+			&cd->hsn);
+		LOGP(DRR, LOGL_INFO, " (chan_nr 0x%02x MAIO %u HSN %u TS %u "
+			"SS %u TSC %u mode %u)\n", cm->chan_desc.chan_nr,
+			cd->maio, cd->hsn, ch_ts, ch_subch, cd->tsc, cm->mode);
+	} else {
+		cd->h = 0;
+		gsm48_decode_chan_h0(&cm->chan_desc, &cd->tsc, &cd->arfcn);
+		LOGP(DRR, LOGL_INFO, " (chan_nr 0x%02x ARFCN %u TS %u SS %u "
+			"TSC %u mode %u)\n", cm->chan_desc.chan_nr, cd->arfcn,
+			ch_ts, ch_subch, cd->tsc, cm->mode);
+	}
+	/* mode */
+	mode = cm->mode;
+	switch (mode) {
+	case GSM48_CMODE_SIGN:
+		LOGP(DRR, LOGL_INFO, "Mode set to signalling.\n");
+		break;
+	case GSM48_CMODE_SPEECH_V1:
+		LOGP(DRR, LOGL_INFO, "Mode set to GSM full-rate codec.\n");
+		break;
+	default:
+		LOGP(DRR, LOGL_ERROR, "Mode %u not supported!\n", mode);
+	}
+
+	return gsm48_rr_tx_chan_modify_ack(ms, &cm->chan_desc, mode);
+}
 
 /* 9.1.3 sending ASSIGNMENT COMPLETE */
 static int gsm48_rr_tx_ass_cpl(struct osmocom_ms *ms, uint8_t cause)
@@ -3276,8 +3358,10 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	memset(&cd, 0, sizeof(cd));
 
 	if (payload_len < 0) {
-		LOGP(DRR, LOGL_NOTICE, "Short read of ASSIGNMENT COMMAND message.\n");
-		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+		LOGP(DRR, LOGL_NOTICE, "Short read of ASSIGNMENT COMMAND "
+			"message.\n");
+		return gsm48_rr_tx_rr_status(ms,
+			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 	}
 	tlv_parse(&tp, &gsm48_rr_att_tlvdef, ac->data, payload_len, 0, 0);
 
@@ -3526,6 +3610,9 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 #endif
 		case GSM48_MT_RR_CLSM_ENQ:
 			rc = gsm48_rr_rx_cm_enq(ms, msg);
+			break;
+		case GSM48_MT_RR_CHAN_MODE_MODIF:
+			rc = gsm48_rr_rx_chan_modify(ms, msg);
 			break;
 #if 0
 		case GSM48_MT_RR_HANDO_CMD:
