@@ -72,7 +72,7 @@ int hack;
  * The states are:
  *
  * - cs->list[0..1023].xxx for each cell, where
- *  - flags and rxlev_db are used to store outcome of cell scanning process
+ *  - flags and rxlev are used to store outcome of cell scanning process
  *  - sysinfo pointing to sysinfo memory, allocated temporarily
  * - cs->selected and cs->sel_* states of the current / last selected cell.
  *
@@ -218,6 +218,17 @@ int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
 /*
  * support
  */
+
+static char *gsm_print_rxlev(uint8_t rxlev)
+{
+	static char string[5];
+	if (rxlev == 0)
+		return "<=-110";
+	if (rxlev >= 63)
+		return ">=-48";
+	sprintf(string, "-%d", 110 - rxlev);
+	return string;
+}
 
 static int gsm322_sync_to_cell(struct gsm322_cellsel *cs)
 {
@@ -589,7 +600,7 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 	struct gsm322_plmn_list *temp, *found;
 	struct llist_head *lh, *lh2;
 	int i, entries, move;
-	int8_t search_db = 0;
+	int8_t search = 0;
 
 	/* flush list */
 	llist_for_each_safe(lh, lh2, &plmn->sorted_plmn) {
@@ -615,15 +626,15 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 		}
 		/* update or create */
 		if (found) {
-			if (cs->list[i].rxlev_db > found->rxlev_db)
-				found->rxlev_db = cs->list[i].rxlev_db;
+			if (cs->list[i].rxlev > found->rxlev)
+				found->rxlev = cs->list[i].rxlev;
 		} else {
 			temp = talloc_zero(l23_ctx, struct gsm322_plmn_list);
 			if (!temp)
 				return -ENOMEM;
 			temp->mcc = cs->list[i].sysinfo->mcc;
 			temp->mnc = cs->list[i].sysinfo->mnc;
-			temp->rxlev_db = cs->list[i].rxlev_db;
+			temp->rxlev = cs->list[i].rxlev;
 			llist_add_tail(&temp->entry, &temp_list);
 		}
 	}
@@ -663,14 +674,14 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 	/* move PLMN above -85 dBm in random order */
 	entries = 0;
 	llist_for_each_entry(temp, &temp_list, entry) {
-		if (temp->rxlev_db > -85)
+		if (rxlev2dbm(temp->rxlev) > -85)
 			entries++;
 	}
 	while(entries) {
 		move = random() % entries;
 		i = 0;
 		llist_for_each_entry(temp, &temp_list, entry) {
-			if (temp->rxlev_db > -85) {
+			if (rxlev2dbm(temp->rxlev) > -85) {
 				if (i == move) {
 					llist_del(&temp->entry);
 					llist_add_tail(&temp->entry,
@@ -688,8 +699,8 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 		found = NULL;
 		llist_for_each_entry(temp, &temp_list, entry) {
 			if (!found
-			 || temp->rxlev_db > search_db) {
-			 	search_db = temp->rxlev_db;
+			 || temp->rxlev > search) {
+			 	search = temp->rxlev;
 				found = temp;
 			}
 		}
@@ -710,10 +721,10 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 			}
 		}
 		LOGP(DPLMN, LOGL_INFO, "Creating Sorted PLMN list. "
-			"(%02d: mcc=%s mnc=%s allowed=%s rx-lev=%d)\n",
+			"(%02d: mcc %s mnc %s allowed %s rx-lev %s)\n",
 			i, gsm_print_mcc(temp->mcc),
 			gsm_print_mnc(temp->mnc), (temp->cause) ? "no ":"yes",
-			temp->rxlev_db);
+			gsm_print_rxlev(temp->rxlev));
 		i++;
 	}
 
@@ -1518,10 +1529,11 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any)
 
 		/* check C1 criteria not fullfilled */
 		// TODO: C1 is also dependant on power class and max power
-		if (cs->list[i].rxlev_db < s->rxlev_acc_min_db) {
+		if (rxlev2dbm(cs->list[i].rxlev) < s->rxlev_acc_min_db) {
 			LOGP(DCS, LOGL_INFO, "Skip frequency %d: C1 criteria "
-				"not met. (rxlev=%d < min=%d)\n", i,
-				cs->list[i].rxlev_db, s->rxlev_acc_min_db);
+				"not met. (rxlev %s < min %d)\n", i,
+				gsm_print_rxlev(cs->list[i].rxlev),
+				s->rxlev_acc_min_db);
 			continue;
 		}
 
@@ -1565,15 +1577,15 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any)
 			continue;
 		}
 
-		LOGP(DCS, LOGL_INFO, "Cell frequency %d: Cell found, (rxlev=%d "
+		LOGP(DCS, LOGL_INFO, "Cell frequency %d: Cell found, (rxlev=%s "
 			"mcc=%s mnc=%s lac=%04x  %s, %s)\n", i,
-			cs->list[i].rxlev_db, gsm_print_mcc(s->mcc),
-			gsm_print_mnc(s->mnc), s->lac, gsm_get_mcc(s->mcc),
-			gsm_get_mnc(s->mcc, s->mnc));
+			gsm_print_rxlev(cs->list[i].rxlev),
+			gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc), s->lac,
+			gsm_get_mcc(s->mcc), gsm_get_mnc(s->mcc, s->mnc));
 
 		/* find highest power cell */
-		if (found < 0 || cs->list[i].rxlev_db > power) {
-			power = cs->list[i].rxlev_db;
+		if (found < 0 || cs->list[i].rxlev > power) {
+			power = cs->list[i].rxlev;
 			found = i;
 		}
 	}
@@ -1621,7 +1633,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			/* weight depends on the power level
 			 * if it is the same, it depends on arfcn
 			 */
-			test = cs->list[i].rxlev_db + 128;
+			test = cs->list[i].rxlev + 1;
 			test = (test << 16) | i;
 			if (test >= cs->scan_state)
 				continue;
@@ -1668,7 +1680,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 
 		cs->arfcn = cs->sel_arfcn;
 		LOGP(DCS, LOGL_INFO, "Tuning back to frequency %d (rxlev "
-			"%d).\n", cs->arfcn, cs->list[cs->arfcn].rxlev_db);
+			"%s).\n", cs->arfcn,
+			gsm_print_rxlev(cs->list[cs->arfcn].rxlev));
 		hack = 5;
 		gsm322_sync_to_cell(cs);
 //		start_cs_timer(cs, ms->support.sync_to, 0);
@@ -1764,8 +1777,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 
 	/* Tune to frequency for a while, to receive broadcasts. */
 	cs->arfcn = weight & 1023;
-	LOGP(DCS, LOGL_INFO, "Scanning frequency %d (rxlev %d).\n", cs->arfcn,
-		cs->list[cs->arfcn].rxlev_db);
+	LOGP(DCS, LOGL_INFO, "Scanning frequency %d (rxlev %s).\n", cs->arfcn,
+		gsm_print_rxlev(cs->list[cs->arfcn].rxlev));
 	hack = 5;
 	gsm322_sync_to_cell(cs);
 //	start_cs_timer(cs, ms->support.sync_to, 0);
@@ -1845,10 +1858,10 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 			cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_FORBIDD;
 	}
 
-	LOGP(DCS, LOGL_INFO, "Scan frequency %d: Cell found. (rxlev=%d "
-		"mcc=%s mnc=%s lac=%04x)\n", cs->arfcn,
-		cs->list[cs->arfcn].rxlev_db, gsm_print_mcc(s->mcc),
-		gsm_print_mnc(s->mnc), s->lac);
+	LOGP(DCS, LOGL_INFO, "Scan frequency %d: Cell found. (rxlev %s "
+		"mcc %s mnc %s lac %04x)\n", cs->arfcn,
+		gsm_print_rxlev(cs->list[cs->arfcn].rxlev),
+		gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc), s->lac);
 
 	/* special case for PLMN search */
 	if (cs->state == GSM322_PLMN_SEARCH)
@@ -2186,8 +2199,8 @@ static void gsm322_cs_timeout(void *arg)
 	else
 		LOGP(DCS, LOGL_INFO, "Read timeout.\n");
 
-	LOGP(DCS, LOGL_INFO, "Scan frequency %d: Cell not found. (rxlev=%d)\n",
-		cs->arfcn, cs->list[cs->arfcn].rxlev_db);
+	LOGP(DCS, LOGL_INFO, "Scan frequency %d: Cell not found. (rxlev %s)\n",
+		cs->arfcn, gsm_print_rxlev(cs->list[cs->arfcn].rxlev));
 
 	/* remove system information */
 	cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_SYSINFO; 
@@ -2305,8 +2318,9 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 
 				cs->arfcn = cs->sel_arfcn;
 				LOGP(DCS, LOGL_INFO, "Tuning back to frequency "
-					"%d (rxlev %d).\n", cs->arfcn,
-					cs->list[cs->arfcn].rxlev_db);
+					"%d (rxlev %s).\n", cs->arfcn,
+					gsm_print_rxlev(
+						cs->list[cs->arfcn].rxlev));
 				hack = 5;
 				gsm322_sync_to_cell(cs);
 //				start_cs_timer(cs, ms->support.sync_to, 0);
@@ -2354,7 +2368,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 	struct gsm322_cellsel *cs;
 	struct osmobb_meas_res *mr;
 	int i;
-	int8_t rxlev_db;
+	int8_t rxlev;
 
 	if (subsys != SS_L1CTL)
 		return 0;
@@ -2367,15 +2381,16 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		if (!cs->powerscan)
 			return -EINVAL;
 		i = mr->band_arfcn & 1023;
-		rxlev_db = mr->rx_lev - 110;
-		cs->list[i].rxlev_db = rxlev_db;
+		rxlev = mr->rx_lev;
+		cs->list[i].rxlev = rxlev;
 		cs->list[i].flags |= GSM322_CS_FLAG_POWER;
 		/* if minimum level is reached or if we stick to a cell */
-		if (rxlev_db >= ms->support.min_rxlev_db
+		if (rxlev2dbm(rxlev) >= ms->support.min_rxlev_db
 		 || ms->settings.stick) {
 			cs->list[i].flags |= GSM322_CS_FLAG_SIGNAL;
 			LOGP(DCS, LOGL_INFO, "Found signal (frequency %d "
-				"rxlev %d)\n", i, cs->list[i].rxlev_db);
+				"rxlev %s (%d))\n", i,
+				gsm_print_rxlev(rxlev), rxlev);
 		}
 		break;
 	case S_L1CTL_PM_DONE:
@@ -3267,10 +3282,11 @@ int gsm322_dump_sorted_plmn(struct osmocom_ms *ms)
 	printf("MCC    |MNC    |allowed|rx-lev\n");
 	printf("-------+-------+-------+-------\n");
 	llist_for_each_entry(temp, &plmn->sorted_plmn, entry) {
-		printf("%s    |%s%s    |%s    |%d\n", gsm_print_mcc(temp->mcc),
+		printf("%s    |%s%s    |%s    |%s\n", gsm_print_mcc(temp->mcc),
 			gsm_print_mnc(temp->mnc),
 			((temp->mnc & 0x00f) == 0x00f) ? " ":"",
-			(temp->cause) ? "no ":"yes", temp->rxlev_db);
+			(temp->cause) ? "no ":"yes",
+			gsm_print_rxlev(temp->rxlev));
 	}
 
 	return 0;
@@ -3282,15 +3298,15 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 	int i;
 	struct gsm48_sysinfo *s;
 
-	print(priv, "arfcn  |rx-lev |MCC    |MNC    |LAC    |cell ID|forb.LA|"
-		"prio   |min-db |max-pwr\n");
+	print(priv, "arfcn  |MCC    |MNC    |LAC    |cell ID|forb.LA|prio   |"
+		"min-db |max-pwr|rx-lev\n");
 	print(priv, "-------+-------+-------+-------+-------+-------+-------+"
 		"-------+-------+-------\n");
 	for (i = 0; i <= 1023; i++) {
 		s = cs->list[i].sysinfo;
 		if (!s || !(cs->list[i].flags & flags))
 			continue;
-		print(priv, "%4d   |%4d   |", i, cs->list[i].rxlev_db);
+		print(priv, "%4d   |", i);
 		if ((cs->list[i].flags & GSM322_CS_FLAG_SYSINFO)) {
 			print(priv, "%s    |%s%s    |", gsm_print_mcc(s->mcc),
 				gsm_print_mnc(s->mnc),
@@ -3308,8 +3324,9 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 				else
 					print(priv, "normal |");
 			}
-			print(priv, "%4d   |%4d\n", s->rxlev_acc_min_db,
-				s->ms_txpwr_max_cch);
+			print(priv, "%4d   |%4d   |%s\n", s->rxlev_acc_min_db,
+				s->ms_txpwr_max_cch,
+				gsm_print_rxlev(cs->list[i].rxlev));
 		} else
 			print(priv, "n/a    |n/a    |n/a    |n/a    |n/a    |"
 				"n/a    |n/a    |n/a\n");

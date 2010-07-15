@@ -67,7 +67,7 @@ enum {
 struct gsm322_plmn_list {
 	struct llist_head	entry;
 	uint16_t		mcc, mnc;
-	int8_t			rxlev_db; /* rx level in real dB */
+	int8_t			rxlev; /* rx level in range format */
 	uint8_t			cause; /* cause value, if PLMN is not allowed */
 };
 
@@ -100,10 +100,10 @@ struct gsm322_ba_list {
 /* Cell selection list */
 struct gsm322_cs_list {
 	uint8_t			flags; /* see GSM322_CS_FLAG_* */
-	int8_t			rxlev_db; /* rx level in real dB */
+	int8_t			rxlev; /* rx level range format */
 	struct gsm48_sysinfo	*sysinfo;
 #if 0
-	int8_t			min_db; /* minimum level to enter cell */
+	int8_t			min_dbm; /* minimum level to enter cell */
 	int8_t			max_pwr; /* maximum power to access cell */
 	uint16_t		class_barr; /* barred classes */
 	uint16_t		mcc, mnc, lac; /* received mcc, mnc, lac */
