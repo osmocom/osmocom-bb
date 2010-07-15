@@ -64,7 +64,7 @@ SECTIONS
         KEEP(*(SORT(.ctors)))
         /* end of list */
         LONG(0)
-    }
+    } > LRAM
     PROVIDE(_ctor_start = LOADADDR(.ctors));
     PROVIDE(_ctor_end = LOADADDR(.ctors) + SIZEOF(.ctors));
 
@@ -76,7 +76,7 @@ SECTIONS
         KEEP(*(SORT(.dtors)))
         /* end of list */
         LONG(0)
-    }
+    } > LRAM
     PROVIDE(_dtor_start = LOADADDR(.dtors));
     PROVIDE(_dtor_end = LOADADDR(.dtors) + SIZEOF(.dtors));
 
