@@ -22,10 +22,13 @@ gta0x_COMMON_OBJS=board/common/rffe_gta0x_triband.o $(calypso_COMMON_OBJS)
 # Compal Generic
 
 compal_COMMON_OBJS=$(calypso_COMMON_OBJS) board/compal/rffe_dualband.o
-compal_COMMON_ENVIRONMENTS=compalram
+compal_COMMON_ENVIRONMENTS=compalram highram
 
 compalram_LDS=board/compal/ram.lds
 compalram_OBJS=board/compal/start.ram.o board/compal/exceptions_redirected.o board/compal/handlers.o
+
+highram_LDS=board/compal/highram.lds
+highram_OBJS=board/compal/start.ram.o board/compal/exceptions_redirected.o board/compal/handlers.o
 
 # Compal E88
 
