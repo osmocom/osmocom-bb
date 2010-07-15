@@ -704,7 +704,7 @@ loader_start_memload(uint32_t address, char *file) {
 
 	uint32_t length = st.st_size;
 
-	printf("Loading %u bytes of memory at 0x%x to file %s\n", length, address, file);
+	printf("Loading %u bytes of memory to address 0x%x from file %s\n", length, address, file);
 
 	osmoload.binbuf = malloc(length);
 	if(!osmoload.binbuf) {
