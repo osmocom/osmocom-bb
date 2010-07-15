@@ -2403,6 +2403,9 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DMM, LOGL_INFO, "Loc. upd. rejected (cause %d)\n",
 		mm->lupd_rej_cause);
 
+	/* stop RR release timer */
+	stop_mm_t3240(mm);
+
 	/* new status */
 	switch (mm->lupd_rej_cause) {
 	case GSM48_REJECT_IMSI_UNKNOWN_IN_HLR:
@@ -2572,6 +2575,9 @@ static int gsm48_mm_rel_loc_upd_abort(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
 
+	/* stop RR release timer */
+	stop_mm_t3240(mm);
+
 	if (rrh->msg_type == GSM48_RR_REL_IND) {
 		LOGP(DMM, LOGL_INFO, "RR link released after loc. upd.\n");
 
@@ -2670,7 +2676,9 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	return gsm48_mm_to_rr(ms, nmsg, rr_prim, cause);
 }
 
-/* cm service abort message from upper layer */
+/* cm service abort message from upper layer
+ * NOTE: T3240 is started by the calling function
+ */
 static int gsm48_mm_tx_cm_service_abort(struct osmocom_ms *ms)
 {
 	struct msgb *nmsg;
@@ -3159,6 +3167,9 @@ static int gsm48_mm_abort_mm_con(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
 	int cause;
+
+	/* stop RR release timer */
+	stop_mm_t3240(mm);
 
 	/* this conversion is not of any standard */
 	switch(rrh->cause) {
