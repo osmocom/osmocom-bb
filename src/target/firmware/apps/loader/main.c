@@ -26,6 +26,7 @@
 
 #include <debug.h>
 #include <memory.h>
+#include <delay.h>
 #include <rffe.h>
 #include <keypad.h>
 #include <board.h>
@@ -86,21 +87,6 @@ uint16_t ntohs(uint16_t hostshort) __attribute__((weak,alias("htons")));
 /* fixed ARFCN in GSM1800 at which Harald has his GSM test license */
 #define BASE_ARFCN	871
 #endif
-
-/* FIXME: We need proper calibrated delay loops at some point! */
-void delay_us(unsigned int us)
-{
-	volatile unsigned int i;
-
-	for (i= 0; i < us*4; i++) { i; }
-}
-
-void delay_ms(unsigned int ms)
-{
-	volatile unsigned int i;
-
-	for (i= 0; i < ms*1300; i++) { i; }
-}
 
 /* Main Program */
 const char *hr = "======================================================================\n";

@@ -25,6 +25,7 @@
 
 #include <debug.h>
 #include <memory.h>
+#include <delay.h>
 #include <rffe.h>
 #include <keypad.h>
 #include <board.h>
@@ -44,21 +45,6 @@
 
 #include <layer1/sync.h>
 #include <layer1/tpu_window.h>
-
-/* FIXME: We need proper calibrated delay loops at some point! */
-void delay_us(unsigned int us)
-{
-	volatile unsigned int i;
-
-	for (i= 0; i < us*4; i++) { i; }
-}
-
-void delay_ms(unsigned int ms)
-{
-	volatile unsigned int i;
-
-	for (i= 0; i < ms*1300; i++) { i; }
-}
 
 const char *hr = "======================================================================\n";
 
