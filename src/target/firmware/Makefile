@@ -25,7 +25,7 @@ ramload_LDS=board/common/compal_ramload.lds
 osmoload_LDS=board/common/compal_osmoload.lds
 
 # List of all applications (add yours here!)
-APPLICATIONS=hello_world compal_dump compal_dsp_dump layer1 loader
+APPLICATIONS=hello_world compal_dump compal_dsp_dump layer1 loader simtest
 
 # Things that go in all applications
 ANY_APP_OBJS+=$(START:.S=.o) $(ABB_OBJS) $(RF_OBJS) $(DISPLAY_OBJS) $(FLASH_OBJS)
