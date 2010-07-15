@@ -132,7 +132,10 @@ struct dnload {
 	struct bsc_fd serial_fd;
 	char *filename;
 
-	int print_hdlc;
+	int expect_hdlc;
+
+	int dump_rx;
+	int dump_tx;
 
 	/* data to be downloaded */
 	uint8_t *data;
@@ -747,8 +750,10 @@ static void hdlc_send_to_phone(uint8_t dlci, uint8_t *data, int len)
 	struct msgb *msg;
 	uint8_t *dest;
 
-	printf("hdlc_send_to_phone(dlci=%u): ", dlci);
-	hexdump(data, len);
+	if(dnload.dump_tx) {
+		printf("hdlc_send(dlci=%u): ", dlci);
+		hexdump(data, len);
+	}
 
 	if (len > 512) {
 		fprintf(stderr, "Too much data to send. %u\n", len);
@@ -783,6 +788,11 @@ static void hdlc_tool_cb(uint8_t dlci, struct msgb *msg)
 {
 	struct tool_server *srv = tool_server_for_dlci[dlci];
 
+	if(dnload.dump_rx) {
+		printf("hdlc_recv(dlci=%u): ", dlci);
+		hexdump(msg->data, msg->len);
+	}
+
 	if(srv) {
 		struct tool_connection *con;
 		u_int16_t *len;
@@ -802,18 +812,9 @@ static void hdlc_tool_cb(uint8_t dlci, struct msgb *msg)
 	msgb_free(msg);
 }
 
-static void print_hdlc(uint8_t *buffer, int length)
-{
-	int i;
-
-	for (i = 0; i < length; ++i)
-		if (sercomm_drv_rx_char(buffer[i]) == 0)
-			printf("Dropping sample '%c'\n", buffer[i]);
-}
-
 static int handle_buffer(int buf_used_len)
 {
-	int nbytes, buf_left;
+	int nbytes, buf_left, i;
 
 	buf_left = buf_used_len - (bufptr - buffer);
 	if (buf_left <= 0) {
@@ -826,12 +827,14 @@ static int handle_buffer(int buf_used_len)
 	if (nbytes <= 0)
 		return nbytes;
 
-	if (!dnload.print_hdlc) {
+	if (!dnload.expect_hdlc) {
 		printf("got %i bytes from modem, ", nbytes);
 		printf("data looks like: ");
 		hexdump(bufptr, nbytes);
 	} else {
-		print_hdlc(bufptr, nbytes);
+		for (i = 0; i < nbytes; ++i)
+			if (sercomm_drv_rx_char(bufptr[i]) == 0)
+				printf("Dropping sample '%c'\n", bufptr[i]);
 	}
 
 	return nbytes;
@@ -848,7 +851,7 @@ static int handle_read(void)
 
 	if (!memcmp(buffer, phone_prompt1, sizeof(phone_prompt1))) {
 		printf("Received PROMPT1 from phone, responding with CMD\n");
-		dnload.print_hdlc = 0;
+		dnload.expect_hdlc = 0;
 		dnload.state = WAITING_PROMPT2;
 		if(dnload.filename) {
 			rc = write(dnload.serial_fd.fd, dnload_cmd, sizeof(dnload_cmd));
@@ -871,7 +874,7 @@ static int handle_read(void)
 		dnload.serial_fd.when = BSC_FD_READ;
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
-		dnload.print_hdlc = 1;
+		dnload.expect_hdlc = 1;
 	} else if (!memcmp(buffer, phone_nack, sizeof(phone_nack))) {
 		printf("Received DOWNLOAD NACK from phone, something went"
 			" wrong :(\n");
@@ -929,7 +932,7 @@ static int handle_read_romload(void)
 
 		printf("Received ident ack from phone, sending "
 			"parameter sequence\n");
-		dnload.print_hdlc = 1;
+		dnload.expect_hdlc = 1;
 		dnload.romload_state = WAITING_PARAM_ACK;
 		rc = write(dnload.serial_fd.fd, romload_param,
 			   sizeof(romload_param));
@@ -1018,7 +1021,7 @@ static int handle_read_romload(void)
 			dnload.serial_fd.when = BSC_FD_READ;
 			dnload.romload_state = FINISHED;
 			dnload.write_ptr = dnload.data;
-			dnload.print_hdlc = 1;
+			dnload.expect_hdlc = 1;
 		} else if (!memcmp(buffer, romload_branch_nack,
 			   sizeof(romload_branch_nack))) {
 			printf("Received branch nack, aborting\n");
@@ -1118,7 +1121,7 @@ static int handle_read_mtk(void)
 			    sizeof(dnload.mtk_send_size)))
 			break;
 		printf("Received size ack\n");
-		dnload.print_hdlc = 1;
+		dnload.expect_hdlc = 1;
 		dnload.mtk_state = MTK_SENDING_BLOCKS;
 		dnload.serial_fd.when = BSC_FD_READ | BSC_FD_WRITE;
 		bufptr -= 3;
@@ -1135,7 +1138,7 @@ static int handle_read_mtk(void)
 				rc = write(dnload.serial_fd.fd,
 					   &mtk_command[3], 1);
 				printf("Sending branch command\n");
-				dnload.print_hdlc = 0;
+				dnload.expect_hdlc = 0;
 				dnload.mtk_state = MTK_WAIT_BRANCH_CMD_ACK;
 				break;
 			}
@@ -1163,7 +1166,7 @@ static int handle_read_mtk(void)
 		dnload.serial_fd.when = BSC_FD_READ;
 		dnload.mtk_state = MTK_FINISHED;
 		dnload.write_ptr = dnload.data;
-		dnload.print_hdlc = 1;
+		dnload.expect_hdlc = 1;
 		break;
 	default:
 		break;
@@ -1221,7 +1224,7 @@ static int parse_mode(const char *arg)
 }
 
 #define HELP_TEXT \
-	"[ -v | -h ] [ -p /dev/ttyXXXX ] [ -s /tmp/osmocom_l2 ]\n" \
+	"[ -v | -h ] [ -d [t][r] ] [ -p /dev/ttyXXXX ] [ -s /tmp/osmocom_l2 ]\n" \
 	"\t\t[ -l /tmp/osmocom_loader ]\n" \
 	"\t\t[ -m {c123,c123xor,c140,c140xor,c155,romload,mtk} ]\n" \
 	"\t\t file.bin\n\n" \
@@ -1403,6 +1406,25 @@ static int register_tool_server(struct tool_server *ts,
 
 extern void hdlc_tpudbg_cb(uint8_t dlci, struct msgb *msg);
 
+void parse_debug(const char *str)
+{
+	while(*str) {
+		switch(*str) {
+		case 't':
+			dnload.dump_tx = 1;
+			break;
+		case 'r':
+			dnload.dump_rx = 1;
+			break;
+		default:
+			printf("Unknown debug flag %c\n", *str);
+			abort();
+			break;
+		}
+		str++;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	int opt, flags;
@@ -1413,7 +1435,7 @@ int main(int argc, char **argv)
 
 	dnload.mode = MODE_C123;
 
-	while ((opt = getopt(argc, argv, "hl:p:m:s:v")) != -1) {
+	while ((opt = getopt(argc, argv, "d:hl:p:m:s:v")) != -1) {
 		switch (opt) {
 		case 'p':
 			serial_dev = optarg;
@@ -1431,6 +1453,9 @@ int main(int argc, char **argv)
 			break;
 		case 'v':
 			version(argv[0]);
+			break;
+		case 'd':
+			parse_debug(optarg);
 			break;
 		case 'h':
 		default:
