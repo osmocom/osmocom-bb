@@ -209,6 +209,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 
 	printd("L1CTL_DM_REL_REQ\n");
 	l1a_mftask_set(0);
+	l1s.dedicated.type = GSM_DCHAN_NONE;
 }
 
 /* receive a L1CTL_RACH_REQ from L23 */
