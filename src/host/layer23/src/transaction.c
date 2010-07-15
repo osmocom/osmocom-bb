@@ -69,8 +69,8 @@ struct gsm_trans *trans_alloc(struct osmocom_ms *ms,
 	if (!trans)
 		return NULL;
 
-	DEBUGP(DCC, "ms %s allocetes transaction (proto %d trans_id %d "
-		"callref %d mem %p)\n", ms->name, protocol, trans_id, callref,
+	DEBUGP(DCC, "ms %s allocates transaction (proto %d trans_id %d "
+		"callref %x mem %p)\n", ms->name, protocol, trans_id, callref,
 		trans);
 
 	trans->ms = ms;

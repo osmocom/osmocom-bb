@@ -33,7 +33,7 @@
 #include <osmocom/vty.h>
 
 void *l23_ctx;
-static int new_callref = 1;
+static uint32_t new_callref = 1;
 static LLIST_HEAD(call_list);
 
 /*
@@ -101,7 +101,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 	/* call does not exist */
 	if (!call && msg_type != MNCC_SETUP_IND) {
 		LOGP(DMNCC, LOGL_INFO, "Rejecting incomming call "
-			"(callref %d)\n", data->callref);
+			"(callref %x)\n", data->callref);
 		if (msg_type == MNCC_REL_IND || msg_type == MNCC_REL_CNF)
 			return 0;
 		cause = GSM48_CC_CAUSE_INCOMPAT_DEST;
@@ -119,7 +119,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		call = talloc_zero(l23_ctx, struct gsm_call);
 		if (!call)
 			return -ENOMEM;
-		call->callref = new_callref++;
+		call->callref = data->callref;
 		llist_add_tail(&call->entry, &call_list);
 	}
 
@@ -221,17 +221,19 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		}
 		/* presentation allowed if present == 0 */
 		if (data->calling.present || !data->calling.number[0])
-			vty_notify(ms, "Incomming call\n");
+			vty_notify(ms, "Incomming call (callref %x)\n",
+				call->callref);
 		else if (data->calling.type == 1)
-			vty_notify(ms, "Incomming call from +%s\n",
-				data->calling.number);
+			vty_notify(ms, "Incomming call from +%s (callref %x)\n",
+				data->calling.number, call->callref);
 		else if (data->calling.type == 2)
-			vty_notify(ms, "Incomming call from 0-%s\n",
-				data->calling.number);
+			vty_notify(ms, "Incomming call from 0-%s (callref "
+				"%x)\n", data->calling.number, call->callref);
 		else
-			vty_notify(ms, "Incomming call from %s\n",
-				data->calling.number);
-		LOGP(DMNCC, LOGL_INFO, "Incomming call\n");
+			vty_notify(ms, "Incomming call from %s (callref %x)\n",
+				data->calling.number, call->callref);
+		LOGP(DMNCC, LOGL_INFO, "Incomming call (callref %x)\n",
+			call->callref);
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		mncc_send(ms, MNCC_CALL_CONF_REQ, &mncc);
