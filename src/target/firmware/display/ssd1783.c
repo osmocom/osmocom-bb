@@ -252,6 +252,6 @@ const struct display_driver ssd1783_display = {
 	.unset_attr = &ssd1783_set_attr,
 	.clrscr = &ssd1783_clrscr,
 	.goto_xy = &ssd1783_goto_xy,
-	.putc = &ssd1783_putc,
+	.putchr = &ssd1783_putc,
 	.puts = &ssd1783_puts,
 };

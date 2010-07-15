@@ -13,7 +13,7 @@ struct display_driver {
 	void (*clrscr)(void);
 	void (*goto_xy)(int xpos, int ypos);
 	void (*set_color)(int fgcolor, int bgcolor);
-	int (*putc)(unsigned char c);
+	int (*putchr)(unsigned char c);
 	int (*puts)(const char *str);
 };
 
@@ -37,7 +37,7 @@ static inline void display_clrscr(void)
 }
 static inline int display_putchar(unsigned char c)
 {
-	return display->putc(c);
+	return display->putchr(c);
 }
 int display_puts(const char *s);
 

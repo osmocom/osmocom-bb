@@ -119,5 +119,5 @@ const struct display_driver st7558_display = {
 	.clrscr = &st7558_clrscr,
 	.set_attr = &st7558_set_attr,
 	.unset_attr = &st7558_unset_attr,
-	.putc = &st7558_putc,
+	.putchr = &st7558_putc,
 };

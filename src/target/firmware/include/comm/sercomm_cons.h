@@ -4,7 +4,8 @@
 /* how large buffers do we allocate? */
 #define SERCOMM_CONS_ALLOC	256
 
-int sercomm_puts(const char *s);
+int sercomm_write(const char *s, const int len);
 int sercomm_putchar(int c);
+void sercomm_flush();
 
 #endif /* _SERCOMM_CONS_H */

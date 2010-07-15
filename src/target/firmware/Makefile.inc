@@ -22,7 +22,7 @@ CFLAGS += -g$(DEBUGF)
 #ASFLAGS=--g$(DEBUGF) $(INCLUDES) -D__ASSEMBLY__
 ASFLAGS=$(INCLUDES) -D__ASSEMBLY__
 
-LDFLAGS = -nostartfiles -nostdlib -nodefaultlibs --gc-sections --cref
+LDFLAGS = -static -static-libgcc -nostartfiles -nostdlib -nodefaultlibs -Wl,--gc-sections -Wl,--cref
 
 #### GIT VERSION ####
 
@@ -82,9 +82,9 @@ $(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o $$($(3)_OBJS)
 
 # define compilation rule, also generates map file
 board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map: $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) $$($(3)_LDS)
-	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic \
-		-Map board/$(2)/$(1).$(3).map -o board/$(2)/$(1).$(3).elf \
-		--start-group $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) --end-group
+	$(CROSS_COMPILE)$(CC) $(LDFLAGS) -T $$($(3)_LDS) \
+		-Wl,-Map="board/$(2)/$(1).$(3).map" -o board/$(2)/$(1).$(3).elf \
+		-Wl,--start-group -lgcc $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) -Wl,--end-group
 
 # define size rule
 board/$(2)/$(1).$(3).size: board/$(2)/$(1).$(3).elf

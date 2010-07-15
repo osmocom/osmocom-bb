@@ -1,7 +1,7 @@
 
 LIBRARIES+=mini
 mini_DIR=lib
-mini_SRCS=vsprintf.c string.c ctype.c printf.c console.c ctors.c \
-		changebit.S clearbit.S div64.S lib1funcs.S memcpy.S memset.S setbit.S testchangebit.S testclearbit.S testsetbit.S
+mini_SRCS=system.c console.c ctors.c \
+		changebit.S clearbit.S setbit.S testchangebit.S testclearbit.S testsetbit.S
 
 

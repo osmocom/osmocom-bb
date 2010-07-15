@@ -50,16 +50,15 @@ static void raw_puts(const char *s)
 #define raw_putd(x)
 #endif
 
-int sercomm_puts(const char *s)
+int sercomm_write(const char *s, const int len)
 {
 	unsigned long flags;
-	const int len = strlen(s);
 	unsigned int bytes_left = len;
 
 	if (!sercomm_initialized()) {
 		raw_putd("sercomm not initialized: ");
 		raw_puts(s);
-		return len - 1;
+		return len;
 	}
 
 	/* This function is called from any context: Supervisor, IRQ, FIQ, ...
@@ -112,27 +111,34 @@ int sercomm_puts(const char *s)
 		bytes_left -= write_num;
 
 		if (flush) {
-			sercomm_sendmsg(SC_DLCI_CONSOLE, scons.cur_msg);
-			/* reset scons.cur_msg pointer to ensure we allocate
-			 * a new one next round */
-			scons.cur_msg = NULL;
+			sercomm_flush();
 		}
 	}
 
 	local_irq_restore(flags);
 
-	return len - 1;
+	sercomm_flush();
+
+	return len;
+}
+
+void sercomm_flush()
+{
+	if(scons.cur_msg) {
+		sercomm_sendmsg(SC_DLCI_CONSOLE, scons.cur_msg);
+		/* reset scons.cur_msg pointer to ensure we allocate
+		 * a new one next round */
+		scons.cur_msg = NULL;
+	}
 }
 
 int sercomm_putchar(int c)
 {
-	char s[2];
+	char xc = c & 0xFF;
 	int rc;
 
-	s[0] = c & 0xff;
-	s[1] = '\0';
+	rc = sercomm_write(&xc, 1);
 
-	rc = sercomm_puts(s);
 	if (rc < 0)
 		return rc;
 

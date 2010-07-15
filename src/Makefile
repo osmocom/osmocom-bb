@@ -12,7 +12,7 @@ OSMOCORE_CONFIGURE_ENV= LIBOSMOCORE_LIBS=$(TOPDIR)/shared/libosmocore/build-host
 	 	    	LIBOSMOCORE_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
 	 	    	LIBOSMOVTY_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
 
-all: libosmocore-host libosmocore-target layer23 osmocon firmware
+all: libosmocore-host libosmocore-target layer23 osmocon dietlibc firmware
 
 libosmocore-host: shared/libosmocore/build-host/src/.libs/libosmocore.la
 
@@ -69,6 +69,9 @@ host/layer23/Makefile: host/layer23/configure
 host/layer23/layer23: host/layer23/Makefile libosmocore-host
 	make -C host/layer23
 
+.PHONY: dietlibc
+dietlibc:
+	make -C target/dietlibc
 
 .PHONY: firmware
 firmware: libosmocore-target
@@ -80,6 +83,7 @@ clean:
 	make -C shared/libosmocore/build-target $@
 	make -C host/layer23 $@
 	make -C host/osmocon $@
+	make -C target/dietlibc $@
 	make -C target/firmware $@
 
 distclean:
@@ -87,4 +91,5 @@ distclean:
 	rm -rf shared/libosmocore/build-target
 	make -C host/layer23 $@
 	make -C host/osmocon $@
+	make -C target/dietlibc clean # always distclean
 	make -C target/firmware $@
