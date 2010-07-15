@@ -176,8 +176,13 @@ void l1s_reset_hw(void)
 	tpu_end_scenario();
 }
 
+/* Lost TDMA interrupt detection.  This works by starting a hardware timer
+ * that is clocked by the same master clock source (VCTCXO).  We expect
+ * 1875 timer ticks in the duration of a TDMA frame (5000 qbits / 1250 bits) */
+
 /* Timer for detecting lost IRQ */
 #define TIMER_TICKS_PER_TDMA	1875
+#define TIMER_TICK_JITTER	1
 
 static int last_timestamp;
 
@@ -189,7 +194,10 @@ static inline void check_lost_frame(void)
 		last_timestamp += (4*TIMER_TICKS_PER_TDMA);
 
 	diff = last_timestamp - timestamp;
-	if (diff != 1875)
+
+	/* allow for a bit of jitter */
+	if (diff < TIMER_TICKS_PER_TDMA - TIMER_TICK_JITTER ||
+	    diff > TIMER_TICKS_PER_TDMA + TIMER_TICK_JITTER)
 		printf("LOST!\n");
 
 	last_timestamp = timestamp;
