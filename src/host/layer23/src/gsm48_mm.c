@@ -2852,35 +2852,36 @@ static int gsm48_mm_init_mm(struct osmocom_ms *ms, struct msgb *msg,
 		goto reject;
 	}
 
-	/* current MM idle state
-	 * (implies MM IDLE state, otherwise this function is not called)
-	 */
-	switch (mm->substate) {
-	case GSM48_MM_SST_NORMAL_SERVICE:
-	case GSM48_MM_SST_PLMN_SEARCH_NORMAL:
-		LOGP(DMM, LOGL_INFO, "Init MM Connection.\n");
-		break; /* allow when normal */
-	case GSM48_MM_SST_LOC_UPD_NEEDED:
-	case GSM48_MM_SST_ATTEMPT_UPDATE:
-		/* store mm request if attempting to update */
-		if (!emergency) {
-			LOGP(DMM, LOGL_INFO, "Init MM Connection, but "
-				"attempting to update.\n");
-			cause = 21;
-			goto reject;
-			/* Some day implement delay and start loc upd. */
+	if (mm->state == GSM48_MM_ST_MM_IDLE) {
+		/* current MM idle state */
+		switch (mm->substate) {
+		case GSM48_MM_SST_NORMAL_SERVICE:
+		case GSM48_MM_SST_PLMN_SEARCH_NORMAL:
+			LOGP(DMM, LOGL_INFO, "Init MM Connection.\n");
+			break; /* allow when normal */
+		case GSM48_MM_SST_LOC_UPD_NEEDED:
+		case GSM48_MM_SST_ATTEMPT_UPDATE:
+			/* store mm request if attempting to update */
+			if (!emergency) {
+				LOGP(DMM, LOGL_INFO, "Init MM Connection, but "
+					"attempting to update.\n");
+				cause = 21;
+				goto reject;
+				/* TODO: implement delay and start loc upd. */
+			}
+			break;
+		default:
+			/* reject if not emergency */
+			if (!emergency) {
+				LOGP(DMM, LOGL_INFO, "Init MM Connection, not "
+					"in normal state.\n");
+				cause = 21;
+				goto reject;
+			}
+			break;
 		}
-		break;
-	default:
-		/* reject if not emergency */
-		if (!emergency) {
-			LOGP(DMM, LOGL_INFO, "Init MM Connection, not in "
-				"normal state.\n");
-			cause = 21;
-			goto reject;
-		}
-		break;
-	}
+	} else
+		LOGP(DMM, LOGL_INFO, "Init another MM Connection.\n");
 
 	/* set cause, service, proto */
 	switch(msg_type) {
