@@ -142,7 +142,7 @@ int main(void)
 	sercomm_init();
 
 	/* Say hi */
-	puts("\n\nOSMOCOM Calypso loader (revision " GIT_REVISION ")\n");
+	puts("\n\nOSMOCOM Loader (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Initialize flash driver */

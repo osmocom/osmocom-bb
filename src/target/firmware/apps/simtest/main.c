@@ -275,8 +275,9 @@ int main(void)
 {
 	board_init();
 
-	puts("\n\nSIM-Test from " __FILE__ " program code\n");
+	puts("\n\nOSMOCOM SIM Test (revision " GIT_REVISION ")\n");
 	puts(hr);
+
 	/* Dump device identification */
 	dump_dev_id();
 	puts(hr);

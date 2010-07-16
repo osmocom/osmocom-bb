@@ -56,9 +56,9 @@ int main(void)
 {
 	board_init();
 
-	puts("\n\nHello World from " __FILE__ " program code\n");
-
+	puts("\n\nOSMOCOM Layer 1 (revision " GIT_REVISION ")\n");
 	puts(hr);
+
 	/* Dump device identification */
 	dump_dev_id();
 	puts(hr);
