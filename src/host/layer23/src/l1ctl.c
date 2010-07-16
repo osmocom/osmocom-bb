@@ -154,6 +154,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct l1ctl_info_dl *dl, dl_cpy;
 	struct l1ctl_data_ind *ccch;
 	struct lapdm_entity *le;
+	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t chan_type, chan_ts, chan_ss;
 	uint8_t gsmtap_chan_type;
 	struct gsm_time tm;
@@ -175,7 +176,12 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		chan_nr2string(dl->chan_nr), tm.t1, tm.t2, tm.t3,
 		hexdump(ccch->data, sizeof(ccch->data)));
 
+	meas->frames++;
+	meas->berr += dl->num_biterr;
+	meas->rxlev += dl->rx_level;
+
 	if (dl->num_biterr) {
+printf("dropping frame with %u bit errors\n", dl->num_biterr);
 		LOGP(DL1C, LOGL_NOTICE, "Dropping frame with %u bit errors\n",
 			dl->num_biterr);
 		return 0;
@@ -280,6 +286,8 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 	if (!msg)
 		return -1;
 
+	memset(&ms->meas, 0, sizeof(ms->meas));
+
 	req = (struct l1ctl_fbsb_req *) msgb_put(msg, sizeof(*req));
 	req->band_arfcn = htons(osmo_make_band_arfcn(ms, arfcn));
 	req->timeout = htons(timeout);
@@ -371,6 +379,8 @@ int tx_ph_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	printf("Tx Dedic.Mode Est Req (arfcn=%u, chan_nr=0x%02x)\n",
 		band_arfcn, chan_nr);
 
+	memset(&ms->meas, 0, sizeof(ms->meas));
+
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
 	ul->link_id = 0;
@@ -397,6 +407,8 @@ int tx_ph_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 
 	printf("Tx Dedic.Mode Est Req (maio=%u, hsn=%u, "
 		"chan_nr=0x%02x)\n", maio, hsn, chan_nr);
+
+	memset(&ms->meas, 0, sizeof(ms->meas));
 
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
@@ -425,6 +437,8 @@ int tx_ph_dm_rel_req(struct osmocom_ms *ms)
 		return -1;
 
 	printf("Tx Dedic.Mode Rel Req\n");
+
+	memset(&ms->meas, 0, sizeof(ms->meas));
 
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 

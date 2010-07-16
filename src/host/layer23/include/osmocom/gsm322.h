@@ -196,4 +196,6 @@ extern const char *plmn_a_state_names[];
 extern const char *plmn_m_state_names[];
 extern const char *cs_state_names[];
 
+char *gsm_print_rxlev(uint8_t rxlev); 
+
 #endif /* _GSM322_H */

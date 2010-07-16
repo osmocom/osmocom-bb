@@ -219,7 +219,7 @@ int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
  * support
  */
 
-static char *gsm_print_rxlev(uint8_t rxlev)
+char *gsm_print_rxlev(uint8_t rxlev)
 {
 	static char string[5];
 	if (rxlev == 0)

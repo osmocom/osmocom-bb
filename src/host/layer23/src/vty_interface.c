@@ -308,6 +308,35 @@ DEFUN(show_forb_la, show_forb_la_cmd, "show forbidden location-area MS_NAME",
 	return CMD_SUCCESS;
 }
 
+DEFUN(monitor_network, monitor_network_cmd, "monitor network MS_NAME",
+	"Monitor...\nMonitor network information\nName of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	gsm48_rr_start_monitor(ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(no_monitor_network, no_monitor_network_cmd, "no monitor network MS_NAME",
+	NO_STR "Monitor...\nDeactivate monitor of network information\n"
+	"Name of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	gsm48_rr_stop_monitor(ms);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
 	"Insert ...\nInsert test card\nName of MS (see \"show ms\")\n"
 	"Mobile Country Code\nMobile Network Code")
@@ -1015,6 +1044,8 @@ int ms_vty_init(void)
 	install_element_ve(&show_ba_cmd);
 	install_element_ve(&show_forb_la_cmd);
 	install_element_ve(&show_forb_plmn_cmd);
+	install_element_ve(&monitor_network_cmd);
+	install_element_ve(&no_monitor_network_cmd);
 
 	install_element(ENABLE_NODE, &insert_test_cmd);
 	install_element(ENABLE_NODE, &remove_sim_cmd);

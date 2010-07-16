@@ -59,7 +59,10 @@
 #include <osmocom/logging.h>
 #include <osmocom/networks.h>
 #include <osmocom/l1ctl.h>
+#include <osmocom/vty.h>
 
+static void start_rr_t_monitor(struct gsm48_rrlayer *rr, int sec, int micro);
+static void stop_rr_t_monitor(struct gsm48_rrlayer *rr);
 static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_rr_dl_est(struct osmocom_ms *ms);
 
@@ -388,9 +391,67 @@ int gsm48_rsl_dequeue(struct osmocom_ms *ms)
 	return work;
 }
 
+int gsm48_rr_start_monitor(struct osmocom_ms *ms)
+{
+	ms->rrlayer.monitor = 1;
+	memset(&ms->meas, 0, sizeof(&ms->meas));
+	start_rr_t_monitor(&ms->rrlayer, 1, 0);
+
+	return 0;
+}
+
+int gsm48_rr_stop_monitor(struct osmocom_ms *ms)
+{
+	ms->rrlayer.monitor = 0;
+	memset(&ms->meas, 0, sizeof(&ms->meas));
+	stop_rr_t_monitor(&ms->rrlayer);
+
+	return 0;
+}
+
 /*
  * timers handling
  */
+
+/* special timer to monitor measurements */
+static void timeout_rr_monitor(void *arg)
+{
+	struct gsm48_rrlayer *rr = arg;
+	struct gsm322_cellsel *cs = &rr->ms->cellsel;
+	struct rx_meas_stat *meas = &rr->ms->meas;
+	struct gsm_settings *set = &rr->ms->settings;
+	int rxlev, berr;
+	uint8_t ch_type, ch_subch, ch_ts;
+	char text[256];
+
+	if (!cs->selected) {
+		sprintf(text, "MON: no cell selected");
+	} else if (!meas->frames) {
+		sprintf(text, "MON: no cell info");
+	} else {
+		rxlev = meas->rxlev / meas->frames;
+		berr = meas->berr / meas->frames;
+		sprintf(text, "MON: arfcn=%d lev=%s ber=%2d LAI=%s %s %04x "
+			"ID=%04x", cs->sel_arfcn, gsm_print_rxlev(rxlev),
+			berr, gsm_print_mcc(cs->sel_mcc),
+			gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
+		if (rr->state == GSM48_RR_ST_DEDICATED) {
+			rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type,
+				&ch_subch, &ch_ts);
+			sprintf(text + strlen(text), " TA=%d pwr=%d TS=%d",
+			rr->ind_ta - set->alter_delay,
+			(set->alter_tx_power) ? set->alter_tx_power_value
+						: rr->ind_tx_power, ch_ts);
+			if (ch_type == RSL_CHAN_SDCCH8_ACCH
+			 || ch_type == RSL_CHAN_SDCCH4_ACCH)
+				sprintf(text + strlen(text), "/%d", ch_subch);
+		}
+	}
+	vty_notify(rr->ms, "%s\n", text);
+
+	memset(meas, 0, sizeof(*meas));
+	start_rr_t_monitor(rr, 1, 0);
+}
 
 /* special timer to ensure that UA is sent before disconnecting channel */
 static void timeout_rr_t_rel_wait(void *arg)
@@ -453,6 +514,13 @@ static void timeout_rr_t3126(void *arg)
 	new_rr_state(rr, GSM48_RR_ST_IDLE);
 }
 
+static void start_rr_t_monitor(struct gsm48_rrlayer *rr, int sec, int micro)
+{
+	rr->t_monitor.cb = timeout_rr_monitor;
+	rr->t_monitor.data = rr;
+	bsc_schedule_timer(&rr->t_monitor, sec, micro);
+}
+
 static void start_rr_t_rel_wait(struct gsm48_rrlayer *rr, int sec, int micro)
 {
 	LOGP(DRR, LOGL_INFO, "starting T_rel_wait with %d seconds\n", sec);
@@ -483,6 +551,14 @@ static void start_rr_t3126(struct gsm48_rrlayer *rr, int sec, int micro)
 	rr->t3126.cb = timeout_rr_t3126;
 	rr->t3126.data = rr;
 	bsc_schedule_timer(&rr->t3126, sec, micro);
+}
+
+static void stop_rr_t_monitor(struct gsm48_rrlayer *rr)
+{
+	if (bsc_timer_pending(&rr->t_monitor)) {
+		LOGP(DRR, LOGL_INFO, "stopping pending timer T_monitor\n");
+		bsc_del_timer(&rr->t_monitor);
+	}
 }
 
 static void stop_rr_t_rel_wait(struct gsm48_rrlayer *rr)
@@ -3073,7 +3149,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 
 	/* setting (new) timing advance */
 	rr->ind_ta = rr->cd_now.ta;
-	LOGP(DRR, LOGL_INFO, "setting indicated ta %d (actual ta %d)\n",
+	LOGP(DRR, LOGL_INFO, "setting indicated TA %d (actual TA %d)\n",
 		rr->ind_ta, rr->ind_ta - set->alter_delay);
 	l1ctl_tx_ph_param_req(ms, rr->ind_ta - set->alter_delay,
 			(set->alter_tx_power) ? set->alter_tx_power_value
@@ -4156,6 +4232,7 @@ int gsm48_rr_exit(struct osmocom_ms *ms)
 		rr->rr_est_msg = NULL;
 	}
 
+	stop_rr_t_monitor(rr);
 	stop_rr_t_rel_wait(rr);
 	stop_rr_t3110(rr);
 	stop_rr_t3122(rr);

@@ -24,6 +24,13 @@ struct osmol2_entity {
 	osmol2_cb_t msg_handler;
 };
 
+/* RX measurement statistics */
+struct rx_meas_stat {
+	uint32_t frames;
+	uint32_t berr;
+	uint32_t rxlev;
+};
+
 /* One Mobilestation for osmocom */
 struct osmocom_ms {
 	struct llist_head entity;
@@ -38,6 +45,8 @@ struct osmocom_ms {
 	struct gsm_subscriber subscr;
 
 	struct osmol2_entity l2_entity;
+
+	struct rx_meas_stat meas;
 
 	struct gsm48_rrlayer rrlayer;
 	struct gsm322_plmn plmn;

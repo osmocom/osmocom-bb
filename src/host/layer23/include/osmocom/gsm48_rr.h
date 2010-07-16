@@ -152,6 +152,10 @@ struct gsm48_rrlayer {
 	/* BA range */
 	uint8_t			ba_ranges;
 	uint32_t		ba_range[16];
+
+	/* monitor */
+	uint8_t			monitor;
+	struct timer_list	t_monitor;
 };
 
 const char *get_rr_name(int value);
@@ -168,5 +172,7 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg);
 int gsm48_rr_los(struct osmocom_ms *ms);
 int gsm48_rr_rach_conf(struct osmocom_ms *ms, uint32_t fn);
 extern const char *gsm48_rr_state_names[];
+int gsm48_rr_start_monitor(struct osmocom_ms *ms);
+int gsm48_rr_stop_monitor(struct osmocom_ms *ms);
 
 #endif /* _GSM48_RR_H */
