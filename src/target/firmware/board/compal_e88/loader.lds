@@ -1,5 +1,5 @@
 /*
- * Linker script for flashed applications on the Compal E88
+ * Linker script for flashed loader on the Compal E88
  *
  * This script creates a binary that can replace a standard firmware
  * located at 0x2000. It works in conjunction with the compal ramloader.
