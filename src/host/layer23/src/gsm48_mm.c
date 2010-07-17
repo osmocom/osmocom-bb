@@ -2014,6 +2014,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 	int msg_type;
 	
@@ -2036,6 +2037,16 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
 		return 0;
+	}
+
+	/* deny network, if disabled */
+	if (set->no_lupd) {
+		LOGP(DMM, LOGL_INFO, "Loc. upd. disabled, adding "
+			"forbidden PLMN.\n");
+		gsm_subscr_add_forbidden_plmn(subscr, cs->sel_mcc,
+			cs->sel_mnc, GSM48_REJECT_PLMN_NOT_ALLOWED);
+		msg_type = GSM322_EVENT_ROAMING_NA;
+		goto stop;
 	}
 
 	/* if LAI is forbidden, don't start */
@@ -2632,7 +2643,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	uint8_t cause, uint8_t cm_serv)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm_settings *settings = &ms->settings;
+	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
 	struct gsm48_service_request *nsr; /* NOTE: includes MI length */
@@ -2659,9 +2670,9 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	gsm48_rr_enc_cm2(ms, (struct gsm48_classmark2 *)(cm2lv + 1));
 	/* MI */
 	if (!subscr->sim_valid) { /* have no SIM ? */
-		if (settings->emergency_imsi[0])
+		if (set->emergency_imsi[0])
 			gsm48_generate_mid_from_imsi(buf,
-				settings->emergency_imsi);
+				set->emergency_imsi);
 		else
 			gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMEI);
 	} else if (subscr->tmsi_valid) /* have TMSI ? */

@@ -31,6 +31,7 @@ struct gsm_settings {
 	int8_t			alter_delay;
 	uint8_t			stick;
 	uint16_t		stick_arfcn;
+	uint8_t			no_lupd;
 };
 
 int gsm_settings_init(struct osmocom_ms *ms);

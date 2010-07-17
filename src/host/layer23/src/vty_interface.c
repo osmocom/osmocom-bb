@@ -607,6 +607,10 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 			VTY_NEWLINE);
 	else
 		vty_out(vty, " no stick%s", VTY_NEWLINE);
+	if (set->no_lupd)
+		vty_out(vty, " no location-updating%s", VTY_NEWLINE);
+	else
+		vty_out(vty, " location-updating%s", VTY_NEWLINE);
 	vty_out(vty, "exit%s", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
@@ -873,6 +877,26 @@ DEFUN(cfg_ms_no_stick, cfg_ms_no_stick_cmd, "no stick",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_lupd, cfg_ms_lupd_cmd, "location-updating",
+	"Allow location updating")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.no_lupd = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_lupd, cfg_ms_no_lupd_cmd, "no location-updating",
+	NO_STR "Do not allow location updating")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.no_lupd = 1;
+
+	return CMD_SUCCESS;
+}
+
 /* per testsim config */
 DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	"Configure test SIM emulation")
@@ -1081,6 +1105,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_sim_delay_cmd);
 	install_element(MS_NODE, &cfg_ms_stick_cmd);
 	install_element(MS_NODE, &cfg_ms_no_stick_cmd);
+	install_element(MS_NODE, &cfg_ms_lupd_cmd);
+	install_element(MS_NODE, &cfg_ms_no_lupd_cmd);
 
 	install_node(&testsim_node, config_write_dummy);
 	install_default(TESTSIM_NODE);
