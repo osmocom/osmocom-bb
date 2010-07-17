@@ -223,6 +223,7 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 
 	if (state == GSM48_RR_ST_IDLE) {
 		struct msgb *msg, *nmsg;
+		struct gsm322_msg *em;
 
 		/* release dedicated mode, if any */
 		tx_ph_dm_rel_req(rr->ms);
@@ -250,6 +251,11 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_RET_IDLE);
 		if (!nmsg)
 			return;
+		/* return to same cell after LOC.UPD. */
+		if (rr->est_cause == RR_EST_CAUSE_LOC_UPD) {
+			em = (struct gsm322_msg *) nmsg->data;
+			em->same_cell = 1;
+		}
 		gsm322_c_event(rr->ms, nmsg);
 		msgb_free(nmsg);
 		/* reset any BA range */
@@ -1085,6 +1091,10 @@ cause = RR_EST_CAUSE_LOC_UPD;
 	rr->cr_hist[2].valid = 0;
 	rr->cr_hist[1].valid = 0;
 	rr->cr_hist[0].valid = 0;
+
+	/* store establishment cause, so 'choose cell' selects the last cell
+	 * after location updating */
+	rr->est_cause = cause;
 
 	/* if channel is already active somehow */
 	if (cs->ccch_state == GSM322_CCCH_ST_DATA)

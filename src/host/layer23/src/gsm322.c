@@ -1682,7 +1682,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		LOGP(DCS, LOGL_INFO, "Tuning back to frequency %d (rxlev "
 			"%s).\n", cs->arfcn,
 			gsm_print_rxlev(cs->list[cs->arfcn].rxlev));
-		hack = 5;
+		hack = 1;
 		gsm322_sync_to_cell(cs);
 //		start_cs_timer(cs, ms->support.sync_to, 0);
 
@@ -1713,7 +1713,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			/* tune */
 			cs->arfcn = found;
 			cs->si = cs->list[cs->arfcn].sysinfo;
-			hack = 5;
+			hack = 1;
 			gsm322_sync_to_cell(cs);
 
 			/* selected PLMN (manual) or any PLMN (auto) */
@@ -1779,7 +1779,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	cs->arfcn = weight & 1023;
 	LOGP(DCS, LOGL_INFO, "Scanning frequency %d (rxlev %s).\n", cs->arfcn,
 		gsm_print_rxlev(cs->list[cs->arfcn].rxlev));
-	hack = 5;
+	hack = 1;
 	gsm322_sync_to_cell(cs);
 //	start_cs_timer(cs, ms->support.sync_to, 0);
 
@@ -1905,7 +1905,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	/* tune */
 	cs->arfcn = found;
 	cs->si = cs->list[cs->arfcn].sysinfo;
-	hack = 5;
+	hack = 1;
 	gsm322_sync_to_cell(cs);
 
 	/* selected PLMN (manual) or any PLMN (auto) */
@@ -2321,7 +2321,7 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 					"%d (rxlev %s).\n", cs->arfcn,
 					gsm_print_rxlev(
 						cs->list[cs->arfcn].rxlev));
-				hack = 5;
+				hack = 1;
 				gsm322_sync_to_cell(cs);
 //				start_cs_timer(cs, ms->support.sync_to, 0);
 
@@ -2685,6 +2685,51 @@ static int gsm322_c_any_cell_resel(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm322_cs_powerscan(ms);
 }
 
+/* a suitable cell was found, so we camp normally */
+static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct msgb *nmsg;
+
+	LOGP(DSUM, LOGL_INFO, "Camping normally on cell (arfcn=%d mcc=%s "
+		"mnc=%s  %s, %s)\n", cs->sel_arfcn, gsm_print_mcc(cs->sel_mcc),
+		gsm_print_mnc(cs->sel_mnc), gsm_get_mcc(cs->sel_mcc),
+		gsm_get_mnc(cs->sel_mcc, cs->sel_mnc));
+
+	/* tell that we have selected a (new) cell */
+	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm48_mmevent_msg(ms, nmsg);
+
+	new_c_state(cs, GSM322_C3_CAMPED_NORMALLY);
+
+	return 0;
+}
+
+/* a not suitable cell was found, so we camp on any cell */
+static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct msgb *nmsg;
+
+	LOGP(DSUM, LOGL_INFO, "Camping on any cell (arfcn=%d mcc=%s "
+		"mnc=%s  %s, %s)\n", cs->sel_arfcn, gsm_print_mcc(cs->sel_mcc),
+		gsm_print_mnc(cs->sel_mnc), gsm_get_mcc(cs->sel_mcc),
+		gsm_get_mnc(cs->sel_mcc, cs->sel_mnc));
+
+
+	/* tell that we have selected a (new) cell */
+	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
+	if (!nmsg)
+		return -ENOMEM;
+	gsm48_mmevent_msg(ms, nmsg);
+
+	new_c_state(cs, GSM322_C7_CAMPED_ANY_CELL);
+
+	return 0;
+}
+
 /* create temporary ba range with given frequency ranges */
 struct gsm322_ba_list *gsm322_cs_ba_range(struct osmocom_ms *ms,
 	uint32_t *range, uint8_t ranges)
@@ -2781,6 +2826,25 @@ static int gsm322_cs_choose(struct osmocom_ms *ms)
 static int gsm322_c_choose_cell(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm322_msg *gm = (struct gsm322_msg *) msg->data;
+
+	/* After location updating, we choose the last cell */
+	if (gm->same_cell) {
+		if (!cs->selected) {
+			printf("No cell selected when ret.idle, please fix!\n");
+			exit(0L);
+		}
+		cs->arfcn = cs->sel_arfcn;
+
+		/* be sure to go to current camping frequency on return */
+		LOGP(DCS, LOGL_INFO, "Selecting frequency %d. after LOC.UPD.\n",
+			cs->arfcn);
+		hack = 1;
+		gsm322_sync_to_cell(cs);
+		cs->si = cs->list[cs->arfcn].sysinfo;
+
+		return gsm322_c_camp_normally(ms, NULL);
+	}
 
 	new_c_state(cs, GSM322_C5_CHOOSE_CELL);
 
@@ -2824,51 +2888,6 @@ static int gsm322_c_new_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	}
 }
 
-/* a suitable cell was found, so we camp normally */
-static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct msgb *nmsg;
-
-	LOGP(DSUM, LOGL_INFO, "Camping normally on cell (arfcn=%d mcc=%s "
-		"mnc=%s  %s, %s)\n", cs->sel_arfcn, gsm_print_mcc(cs->sel_mcc),
-		gsm_print_mnc(cs->sel_mnc), gsm_get_mcc(cs->sel_mcc),
-		gsm_get_mnc(cs->sel_mcc, cs->sel_mnc));
-
-	/* tell that we have selected a (new) cell */
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmevent_msg(ms, nmsg);
-
-	new_c_state(cs, GSM322_C3_CAMPED_NORMALLY);
-
-	return 0;
-}
-
-/* a not suitable cell was found, so we camp on any cell */
-static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct msgb *nmsg;
-
-	LOGP(DSUM, LOGL_INFO, "Camping on any cell (arfcn=%d mcc=%s "
-		"mnc=%s  %s, %s)\n", cs->sel_arfcn, gsm_print_mcc(cs->sel_mcc),
-		gsm_print_mnc(cs->sel_mnc), gsm_get_mcc(cs->sel_mcc),
-		gsm_get_mnc(cs->sel_mcc, cs->sel_mnc));
-
-
-	/* tell that we have selected a (new) cell */
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmevent_msg(ms, nmsg);
-
-	new_c_state(cs, GSM322_C7_CAMPED_ANY_CELL);
-
-	return 0;
-}
-
 /* go connected mode */
 static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -2881,11 +2900,9 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
-	hack = 5;
+	hack = 1;
 	gsm322_sync_to_cell(cs);
 	cs->si = cs->list[cs->arfcn].sysinfo;
-//#warning TESTING!!!!
-//usleep(300000);
 
 	return 0;
 }
@@ -2901,7 +2918,7 @@ static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* be sure to go to current camping frequency on return */
 	LOGP(DCS, LOGL_INFO, "Going to camping frequency %d.\n", cs->arfcn);
-	hack = 5;
+	hack = 1;
 	gsm322_sync_to_cell(cs);
 	cs->si = cs->list[cs->arfcn].sysinfo;
 

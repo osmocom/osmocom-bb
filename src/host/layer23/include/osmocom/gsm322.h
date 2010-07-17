@@ -163,6 +163,7 @@ struct gsm322_msg {
 	int			msg_type;
 	uint16_t		mcc, mnc;
 	uint8_t			sysinfo; /* system information type */
+	uint8_t			same_cell; /* select same cell when RET_IDLE */
 	uint8_t			reject; /* location update reject cause */
 };
 

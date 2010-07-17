@@ -120,6 +120,7 @@ struct gsm48_rrlayer {
 	/* states if RR-EST-REQ was used */
 	uint8_t			rr_est_req;
 	struct msgb		*rr_est_msg;
+	uint8_t			est_cause; /* cause used for establishment */
 
 	/* channel request states */
 	uint8_t			wait_assign; /* waiting for assignment state */
