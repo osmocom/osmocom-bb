@@ -42,7 +42,7 @@ extern void *l23_ctx;
 
 static void gsm322_cs_timeout(void *arg);
 static void gsm322_cs_loss(void *arg);
-static int gsm322_cs_select(struct osmocom_ms *ms, int any);
+static int gsm322_cs_select(struct osmocom_ms *ms, int any, int plmn_allowed);
 static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg);
 
 #warning HACKING!!!
@@ -781,18 +781,26 @@ static int gsm322_a_no_more_plmn(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* any allowable PLMN available? */
 	plmn->mcc = plmn->mnc = 0;
-	found = gsm322_cs_select(ms, 0);
+	found = gsm322_cs_select(ms, 0, 1);
 
 	/* if no PLMN in list */
 	if (found < 0) {
-		LOGP(DPLMN, LOGL_INFO, "Not any PLNs allowable.\n");
+		LOGP(DPLMN, LOGL_INFO, "Not any PLMN allowable.\n");
 
 		new_a_state(plmn, GSM322_A4_WAIT_FOR_PLMN);
 
+#if 0
 		/* we must forward this, otherwhise "Any cell selection" 
 		 * will not start automatically.
 		 */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_NO_CELL_FOUND);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm322_cs_sendmsg(ms, nmsg);
+#endif
+		LOGP(DPLMN, LOGL_INFO, "Trigger full PLMN search.\n");
+
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_PLMN_SEARCH_START);
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_cs_sendmsg(ms, nmsg);
@@ -849,9 +857,11 @@ static int gsm322_a_sel_first_plmn(struct osmocom_ms *ms, struct msgb *msg)
 			plmn_first = plmn_entry;
 			break;
 		}
-		LOGP(DPLMN, LOGL_INFO, "Skip PLMN (%02d: mcc=%03d), because it "
-			"not allowed (cause %d).\n", plmn_entry->mcc,
-			plmn_entry->mnc, plmn_entry->cause);
+		LOGP(DPLMN, LOGL_INFO, "Skip PLMN (%02d: mcc=%s, mnc=%s), "
+			"because it is not allowed (cause %d).\n", i,
+			gsm_print_mcc(plmn_entry->mcc),
+			gsm_print_mnc(plmn_entry->mnc),
+			plmn_entry->cause);
 		i++;
 	}
 	plmn->plmn_curr = i;
@@ -908,9 +918,11 @@ static int gsm322_a_sel_next_plmn(struct osmocom_ms *ms, struct msgb *msg)
 			plmn_next = plmn_entry;
 			break;
 		}
-		LOGP(DPLMN, LOGL_INFO, "Skip PLMN (%02d: mcc=%03d), because it "
-			"not allowed (cause %d).\n", plmn_entry->mcc,
-			plmn_entry->mnc, plmn_entry->cause);
+		LOGP(DPLMN, LOGL_INFO, "Skip PLMN (%02d: mcc=%s, mnc=%s), "
+			"because it is not allowed (cause %d).\n", i,
+			gsm_print_mcc(plmn_entry->mcc),
+			gsm_print_mnc(plmn_entry->mnc),
+			plmn_entry->cause);
 		i++;
 	}
 	plmn->plmn_curr = i;
@@ -922,15 +934,14 @@ static int gsm322_a_sel_next_plmn(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-
-	LOGP(DPLMN, LOGL_INFO, "Selecting PLMN from list. (%02d: mcc=%s "
-		"mnc=%s  %s, %s)\n", plmn->plmn_curr,
-		gsm_print_mcc(plmn_next->mcc), gsm_print_mnc(plmn_next->mnc),
-		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
-
 	/* set next network */
 	plmn->mcc = plmn_next->mcc;
 	plmn->mnc = plmn_next->mnc;
+
+	LOGP(DPLMN, LOGL_INFO, "Selecting PLMN from list. (%02d: mcc=%s "
+		"mnc=%s  %s, %s)\n", plmn->plmn_curr,
+		gsm_print_mcc(plmn->mcc), gsm_print_mnc(plmn->mnc),
+		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 
 	new_a_state(plmn, GSM322_A3_TRYING_PLMN);
 
@@ -1019,7 +1030,7 @@ static int gsm322_a_loss_of_radio(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 
 	/* any PLMN available */
-	found = gsm322_cs_select(ms, 0);
+	found = gsm322_cs_select(ms, 0, 1);
 
 	/* if PLMN in list */
 	if (found >= 0) {
@@ -1490,7 +1501,7 @@ static int gsm322_am_no_cell_found(struct osmocom_ms *ms, struct msgb *msg)
  */
 
 /* select a suitable and allowable cell */
-static int gsm322_cs_select(struct osmocom_ms *ms, int any)
+static int gsm322_cs_select(struct osmocom_ms *ms, int any, int plmn_allowed)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm_subscriber *subscr = &ms->subscr;
@@ -1546,12 +1557,20 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any)
 		}
 
 		/* if cell is in list of forbidden LAs */
-	        if (!subscr->acc_barr
-		 && (cs->list[i].flags & GSM322_CS_FLAG_FORBIDD)) {
+	        if ((cs->list[i].flags & GSM322_CS_FLAG_FORBIDD)) {
 			LOGP(DCS, LOGL_INFO, "Skip frequency %d: Cell is in "
 				"list of forbidden LAs. (mcc=%s mnc=%s "
 				"lai=%04x)\n", i, gsm_print_mcc(s->mcc),
 				gsm_print_mnc(s->mnc), s->lac);
+		 	continue;
+		}
+
+		/* if cell is in list of forbidden PLMNs */
+	        if (plmn_allowed && gsm_subscr_is_forbidden_plmn(subscr,
+						s->mcc, s->mnc)) {
+			LOGP(DCS, LOGL_INFO, "Skip frequency %d: Cell is in "
+				"list of forbidden PLMNs. (mcc=%s mnc=%s)\n", i,
+				gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc));
 		 	continue;
 		}
 
@@ -1653,7 +1672,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 
 		/* create AA flag */
 		cs->mcc = cs->mnc = 0;
-		gsm322_cs_select(ms, 0);
+		gsm322_cs_select(ms, 0, 0);
 
 		new_c_state(cs, GSM322_C0_NULL);
 
@@ -1703,7 +1722,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		 || cs->state == GSM322_C9_CHOOSE_ANY_CELL)
 		 	any = 1;
 
-		found = gsm322_cs_select(ms, any);
+		found = gsm322_cs_select(ms, any, 0);
 
 		/* if found */
 		if (found >= 0) {
@@ -1892,7 +1911,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	 || cs->state == GSM322_C9_CHOOSE_ANY_CELL)
 	 	any = 1;
 
-	found = gsm322_cs_select(ms, any);
+	found = gsm322_cs_select(ms, any, 0);
 
 	/* if not found */
 	if (found < 0) {
@@ -2843,7 +2862,9 @@ static int gsm322_c_choose_cell(struct osmocom_ms *ms, struct msgb *msg)
 		gsm322_sync_to_cell(cs);
 		cs->si = cs->list[cs->arfcn].sysinfo;
 
-		return gsm322_c_camp_normally(ms, NULL);
+		new_c_state(cs, GSM322_C3_CAMPED_NORMALLY);
+
+		return 0;
 	}
 
 	new_c_state(cs, GSM322_C5_CHOOSE_CELL);
@@ -2955,6 +2976,7 @@ static struct plmnastatelist {
 	{SBIT(GSM322_A0_NULL),
 	 GSM322_EVENT_SWITCH_ON, gsm322_a_switch_on},
 
+	/* special case for full search */
 	{SBIT(GSM322_A0_NULL),
 	 GSM322_EVENT_PLMN_SEARCH_END, gsm322_a_sel_first_plmn},
 
@@ -3014,6 +3036,9 @@ static struct plmnastatelist {
 
 	{SBIT(GSM322_A4_WAIT_FOR_PLMN),
 	 GSM322_EVENT_PLMN_AVAIL, gsm322_a_plmn_avail},
+
+	{SBIT(GSM322_A4_WAIT_FOR_PLMN),
+	 GSM322_EVENT_PLMN_SEARCH_END, gsm322_a_plmn_avail},
 
 	{ALL_STATES,
 	 GSM322_EVENT_SEL_MANUAL, gsm322_a_sel_manual},
