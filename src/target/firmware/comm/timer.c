@@ -27,6 +27,8 @@
 #include <calypso/timer.h>
 #include <calypso/irq.h>
 
+#include <keypad.h>
+
 static LLIST_HEAD(timer_list);
 
 unsigned long volatile jiffies;
@@ -189,6 +191,8 @@ static void timer_irq(enum irq_nr irq)
 {
 	/* we only increment jiffies here.  FIXME: does this need to be atomic? */
 	jiffies++;
+
+	keypad_poll();
 }
 
 void timer_init(void)

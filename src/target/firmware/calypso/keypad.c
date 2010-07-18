@@ -53,13 +53,14 @@ void emit_key(uint8_t key, uint8_t state)
 	}
 }
 
-volatile uint32_t lastbuttons;
+volatile uint32_t lastbuttons = 0;
 
 #define BTN_TO_KEY(name) \
 	((diff & BTN_##name) == BTN_##name)	\
 	{					\
 		key = KEY_##name;		\
 		diff = diff & ~BTN_##name;	\
+		state = (buttons & BTN_##name) ? PRESSED : RELEASED;	\
 	}
 
 void dispatch_buttons(uint32_t buttons)
@@ -68,11 +69,6 @@ void dispatch_buttons(uint32_t buttons)
 
 	if (buttons == lastbuttons)
 		return;
-
-	if (buttons > lastbuttons)
-		state = PRESSED;
-	else
-		state = RELEASED;
 
 	uint32_t diff = buttons ^ lastbuttons;
 	uint8_t key=KEY_INV;
@@ -105,21 +101,24 @@ void dispatch_buttons(uint32_t buttons)
 			printf("\nunknown keycode: 0x%08x\n", diff);
 			break;
 		}
-		if ( key == KEY_POWER )
-			diff = 0;
 		emit_key(key, state);
 	}
 	lastbuttons = buttons;
 }
 
+static uint8_t	polling = 0;
+
 static void keypad_irq(__unused enum irq_nr nr)
 {
-	keypad_poll();
+	/* enable polling */
+	polling = 1;
+	irq_disable(IRQ_KEYPAD_GPIO);
 }
 
 void keypad_init(uint8_t interrupts)
 {
 	lastbuttons = 0;
+	polling = 0;
 	writew(0, KBD_GPIO_MASKIT);
 	writew(0, KBC_REG);
 
@@ -137,32 +136,57 @@ void keypad_set_handler(key_handler_t handler)
 
 void keypad_poll()
 {
-	uint16_t reg;
-	uint16_t col;
-	uint32_t buttons;
+	static uint16_t reg;
+	static uint16_t col;
+	static uint32_t buttons = 0, debounce1 = 0, debounce2 = 0;
 
-//	putchar('\n');
-	buttons = 0x0;
-	//scan for BTN_POWER
-	writew(0xff, KBC_REG);
-	delay_ms(1);
-	reg = readw(KBR_LATCH_REG);
-//	printd("%02x ", (~reg & 0x1f));
-	buttons = buttons | ((~reg & 0x1f) << 20 );
+	if (!polling)
+		return;
 
-	//scan for muxed keys if not powerbtn
-	if ((~reg & 0x1f) != 0x10)
-	  for (col=0;col<4;col++)
-	  {
-		writew(0x1f & ~(0x1 << col ), KBC_REG);
-		delay_ms(1);
-		reg = readw(KBR_LATCH_REG);
-		buttons = buttons | ((~reg & 0x1f) << (col * 5 ));
-//		printd("%02x ", (~reg & 0x1f));
+	/* start polling */
+	if (polling == 1) {
+		writew(0x1f & ~0x1, KBC_REG); /* first col */
+		col = 0;
+		polling = 2;
+		return;
 	}
-	//enable keypad irq via master 'or' gate (needs col lines low in idle to work)
-	writew(0, KBC_REG);
-	dispatch_buttons(buttons);
+
+	/* enable keypad irq after the signal settles */
+	if (polling == 3) {
+		irq_enable(IRQ_KEYPAD_GPIO);
+		polling = 0;
+		return;
+	}
+
+	reg = readw(KBR_LATCH_REG);
+	buttons = (buttons & ~(0x1f << (col * 5)))
+		| ((~reg & 0x1f) << (col * 5 ));
+	/* if key is released, stay in column for faster debounce */
+	if ((debounce1 | debounce2) & ~buttons) {
+		debounce2 = debounce1;
+		debounce1 = buttons;
+		return;
+	}
+
+	col++;
+	if (col > 4) {
+		col = 0;
+		/* if power button, ignore other states */
+		if (buttons & BTN_POWER)
+			buttons = lastbuttons | BTN_POWER;
+		else if (lastbuttons & BTN_POWER)
+			buttons = lastbuttons & ~BTN_POWER;
+		dispatch_buttons(buttons);
+		if (buttons == 0) {
+			writew(0x0, KBC_REG);
+			polling = 3;
+			return;
+		}
+	}
+	if (col == 4)
+		writew(0xff, KBC_REG);
+	else
+		writew(0x1f & ~(0x1 << col ), KBC_REG);
 
 }
 

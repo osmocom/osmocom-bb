@@ -113,10 +113,33 @@ int main(void)
 
 void key_handler(enum key_codes code, enum key_states state)
 {
+	char test[16];
+
 	if (state != PRESSED)
 		return;
 
 	switch (code) {
+	case KEY_0:
+	case KEY_1:
+	case KEY_2:
+	case KEY_3:
+	case KEY_4:
+	case KEY_5:
+	case KEY_6:
+	case KEY_7:
+	case KEY_8:
+	case KEY_9:
+		sprintf(test, "%d", code - KEY_0);
+		display_puts(test);
+		break;
+	case KEY_STAR:
+		sprintf(test, "*", 0);
+		display_puts(test);
+		break;
+	case KEY_HASH:
+		sprintf(test, "#", 0);
+		display_puts(test);
+		break;
 	default:
 		break;
 	}
