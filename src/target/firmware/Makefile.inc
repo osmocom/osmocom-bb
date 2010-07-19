@@ -19,15 +19,6 @@ CFLAGS += -Wa,-adhlns=$(subst $(suffix $<),.lst,$<)
 CFLAGS += -Os -ffunction-sections
 CFLAGS += -g$(DEBUGF)
 
-# Uncomment this line if you want to enable Tx (Transmit) Support.
-#CFLAGS += -DCONFIG_TX_ENABLE
-
-# Uncomment this line if you want to write to flash.
-#CFLAGS += -DCONFIG_FLASH_WRITE
-
-# Uncomment this line if you want to write to flash, including the bootloader.
-#CFLAGS += -DCONFIG_FLASH_WRITE_LOADER
-
 # some older toolchains don't support this, ignore it for now
 #ASFLAGS=-Wa,-adhlns=$(<:.S=.lst),--g$(DEBUGF) $(INCLUDES) -D__ASSEMBLY__
 ASFLAGS=-Wa,-adhlns=$(<:.S=.lst) $(INCLUDES) -D__ASSEMBLY__

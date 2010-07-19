@@ -69,3 +69,12 @@ ANY_APP_LIBS+=calypso/libcalypso.a layer1/liblayer1.a lib/libmini.a comm/libcomm
 
 # Include rules
 -include Makefile.inc
+
+# Uncomment this line if you want to enable Tx (Transmit) Support.
+#CFLAGS += -DCONFIG_TX_ENABLE
+
+# Uncomment this line if you want to write to flash.
+#CFLAGS += -DCONFIG_FLASH_WRITE
+
+# Uncomment this line if you want to write to flash, including the bootloader.
+#CFLAGS += -DCONFIG_FLASH_WRITE_LOADER
