@@ -65,7 +65,7 @@ int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t length)
 	}
 	for(i = 0; i < length; i++){
 		/* this is an extension character */
-		if(rtext[i] == 0x1b){
+		if(rtext[i] == 0x1b && i + 1 < length){
 			tmp = rtext[i+1];
 			*(text++) = gsm_7bit_alphabet[0x7f + tmp];
 			i++;
