@@ -145,13 +145,25 @@ int main(void)
 	puts("\n\nOSMOCOM Loader (revision " GIT_REVISION ")\n");
 	puts(hr);
 
+	/* Identify environment */
+	printf("Running on %s in environment %s\n", manifest_board, manifest_environment);
+
 	/* Initialize flash driver */
 	if(flash_init(&the_flash, 0)) {
 		puts("Failed to initialize flash!\n");
-	}
+	} else {
+		printf("Found flash of %d bytes at 0x%x with %d regions\n",
+			   the_flash.f_size, the_flash.f_base, the_flash.f_nregions);
 
-	/* Identify environment */
-	printf("Running on %s in environment %s\n", manifest_board, manifest_environment);
+		int i;
+		for(i = 0; i < the_flash.f_nregions; i++) {
+			printf("  Region %d of %d pages with %d bytes each.\n",
+				   i,
+				   the_flash.f_regions[i].fr_bnum,
+				   the_flash.f_regions[i].fr_bsize);
+		}
+
+	}
 
 	/* Set up a key handler for powering off */
 	keypad_set_handler(&key_handler);

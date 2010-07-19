@@ -55,7 +55,18 @@ enum {
 	STATE_QUERY_PENDING,
 	STATE_DUMP_IN_PROGRESS,
 	STATE_LOAD_IN_PROGRESS,
+	STATE_FLASHRANGE_GET_INFO,
+	STATE_FLASHRANGE_IN_PROGRESS,
+	STATE_PROGRAM_GET_INFO,
+	STATE_PROGRAM_IN_PROGRESS,
 	STATE_DUMPING,
+};
+
+struct flashblock {
+	uint8_t fb_chip;
+	uint32_t fb_offset;
+	uint32_t fb_addr;
+	uint32_t fb_size;
 };
 
 static struct {
@@ -87,28 +98,44 @@ static struct {
 	uint32_t memoff;  /* offset for next request */
 	uint16_t memcrc;  /* crc for current request */
 	uint16_t memreq;  /* length of current request */
+
+	/* array of all flash blocks */
+	uint8_t flashcommand;
+	uint32_t numblocks;
+	struct flashblock blocks[512];
 } osmoload;
 
 static int usage(const char *name)
 {
-	printf("\nUsage: %s [ -v | -h ] [ -d tr ] [ -m {c123,c155} ] [ -l /tmp/osmocom_loader ] COMMAND ...\n", name);
-	puts("  memget <hex-address> <hex-length>        - Peek at memory");
-	puts("  memput <hex-address> <hex-bytes>         - Poke at memory");
-	puts("  memdump <hex-address> <hex-length> <file>- Dump memory to file");
-	puts("  memload <hex-address> <file>             - Load file into memory");
-	puts("  finfo                                    - Information about flash chips");
-	puts("  funlock <chip> <address>                 - Unlock flash block");
-	puts("  flock <chip> <address>                   - Lock flash block");
-	puts("  flockdown <chip> <address>               - Lock down flash block");
-	puts("  fgetlock <chip> <address>                - Get locking state of block");
-	puts("  fprogram <chip> <address> <file>         - Program file into flash");
-	puts("  jump <hex-address>                       - Jump to address");
-	puts("  jumpflash                                - Jump to flash loader");
-	puts("  jumprom                                  - Jump to rom loader");
-	puts("  ping                                     - Ping the loader");
-	puts("  reset                                    - Reset device");
-	puts("  off                                      - Power off device");
-	puts("  dump                                     - Dump loader traffic to console");
+	printf("Usage: %s [ -v | -h ] [ -d tr ] [ -m {c123,c155} ] [ -l /tmp/osmocom_loader ] COMMAND ...\n", name);
+
+	puts("\n  Memory commands:");
+	puts("    memget <hex-address> <hex-length>        - Peek at memory");
+	puts("    memput <hex-address> <hex-bytes>         - Poke at memory");
+	puts("    memdump <hex-address> <hex-length> <file>- Dump memory to file");
+	puts("    memload <hex-address> <file>             - Load file into memory");
+
+	puts("\n  Flash commands:");
+	puts("    finfo                             - Information about flash chips");
+	puts("    funlock <address> <length>        - Unlock flash block");
+	puts("    flock <address> <length>          - Lock flash block");
+	puts("    flockdown <address> <length>      - Lock down flash block");
+	puts("    fgetlock <address> <length>       - Get locking state of block");
+	puts("    ferase <address> <length>         - Erase flash range");
+	puts("    fprogram <chip> <address> <file>  - Program file into flash");
+
+	puts("\n  Execution commands:");
+	puts("    jump <hex-address>                 - Jump to address");
+	puts("    jumpflash                          - Jump to flash loader");
+	puts("    jumprom                            - Jump to rom loader");
+
+	puts("\n  Device lifecycle:");
+	puts("    ping                               - Ping the loader");
+	puts("    reset                              - Reset device");
+	puts("    off                                - Power off device");
+
+	puts("\n  Debug:");
+	puts("    dump                               - Dump loader traffic to console");
 
 	exit(2);
 }
@@ -179,9 +206,10 @@ loader_send_request(struct msgb *msg) {
 	}
 }
 
-static void loader_do_memdump(void *address, size_t length);
+static void loader_do_memdump(uint16_t crc, void *address, size_t length);
 static void loader_do_memload();
 static void loader_do_fprogram();
+static void loader_do_flashrange(uint8_t cmd, struct msgb *msg, uint8_t chip, uint32_t address, uint32_t status);
 
 static void memop_timeout(void *dummy) {
 	switch(osmoload.state) {
@@ -197,10 +225,12 @@ static void memop_timeout(void *dummy) {
 }
 
 static void
-loader_dump_flash_info(struct msgb *msg) {
+loader_parse_flash_info(struct msgb *msg) {
 	uint8_t nchips;
 
 	nchips = msgb_get_u8(msg);
+
+	osmoload.numblocks = 0;
 
 	int chip;
 	for(chip = 0; chip < nchips; chip++) {
@@ -214,17 +244,34 @@ loader_dump_flash_info(struct msgb *msg) {
 		uint8_t nregions;
 		nregions = msgb_get_u8(msg);
 
-		printf("chip %d at 0x%8.8x of %d bytes in %d regions\n", chip, address, chipsize, nregions);
+		printf("    chip %d at 0x%8.8x of %d bytes in %d regions\n", chip, address, chipsize, nregions);
 
+		uint32_t curoffset = 0;
 		int region;
 		for(region = 0; region < nregions; region++) {
-			uint16_t c = msgb_get_u32(msg);
-			uint32_t s = msgb_get_u32(msg);
+			uint16_t blockcount = msgb_get_u32(msg);
+			uint32_t blocksize = msgb_get_u32(msg);
 
-			printf("  region %d with %d blocks of %d bytes each\n", region, c, s);
+			printf("      region %d with %d blocks of %d bytes each\n", region, blockcount, blocksize);
+
+			int block;
+			for(block = 0; block < blockcount; block++) {
+				osmoload.blocks[osmoload.numblocks].fb_chip   = chip;
+				osmoload.blocks[osmoload.numblocks].fb_offset = curoffset;
+				osmoload.blocks[osmoload.numblocks].fb_addr   = address + curoffset;
+				osmoload.blocks[osmoload.numblocks].fb_size   = blocksize;
+
+				printf("        block %d with %d bytes at 0x%8.8x on chip %d\n",
+					   osmoload.numblocks, blocksize, address + curoffset, chip);
+
+				curoffset += blocksize;
+
+				osmoload.numblocks++;
+			}
 		}
 	}
 }
+
 
 static void
 loader_handle_reply(struct msgb *msg) {
@@ -349,7 +396,7 @@ loader_handle_reply(struct msgb *msg) {
 				   chip, address, status ? "FAILED" : "ok");
 			break;
 		case LOADER_FLASH_INFO:
-			loader_dump_flash_info(msg);
+			loader_parse_flash_info(msg);
 			break;
 		default:
 			break;
@@ -362,14 +409,7 @@ loader_handle_reply(struct msgb *msg) {
 		break;
 	case STATE_DUMP_IN_PROGRESS:
 		if(cmd == LOADER_MEM_READ) {
-			osmoload.memcrc = crc16(0, data, length);
-			if(osmoload.memcrc != crc) {
-				osmoload.memoff -= osmoload.memreq;
-				printf("\nbad crc %4.4x (not %4.4x) at offset 0x%8.8x", crc, osmoload.memcrc, osmoload.memoff);
-			} else {
-				putchar('.');
-			}
-			loader_do_memdump(data, length);
+			loader_do_memdump(crc, data, length);
 		}
 		break;
 	case STATE_LOAD_IN_PROGRESS:
@@ -382,6 +422,9 @@ loader_handle_reply(struct msgb *msg) {
 			}
 			loader_do_memload();
 		}
+		break;
+	case STATE_PROGRAM_GET_INFO:
+	case STATE_PROGRAM_IN_PROGRESS:
 		if(cmd == LOADER_FLASH_PROGRAM) {
 			if(osmoload.memcrc != crc) {
 				osmoload.memoff -= osmoload.memreq;
@@ -395,6 +438,10 @@ loader_handle_reply(struct msgb *msg) {
 			}
 			loader_do_fprogram();
 		}
+		break;
+	case STATE_FLASHRANGE_GET_INFO:
+	case STATE_FLASHRANGE_IN_PROGRESS:
+		loader_do_flashrange(cmd, msg, chip, address, status);
 		break;
 	default:
 		break;
@@ -477,14 +524,19 @@ loader_connect(const char *socket_path) {
 }
 
 static void
-loader_send_query(uint8_t command) {
+loader_send_simple(uint8_t command) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, command);
 	loader_send_request(msg);
 	msgb_free(msg);
 
-	osmoload.state = STATE_QUERY_PENDING;
 	osmoload.command = command;
+}
+
+static void
+loader_start_query(uint8_t command) {
+	loader_send_simple(command);
+	osmoload.state = STATE_QUERY_PENDING;
 }
 
 static void
@@ -496,12 +548,17 @@ loader_send_flash_query(uint8_t command, uint8_t chip, uint32_t address) {
 	loader_send_request(msg);
 	msgb_free(msg);
 
-	osmoload.state = STATE_QUERY_PENDING;
 	osmoload.command = command;
 }
 
 static void
-loader_send_memget(uint8_t length, uint32_t address) {
+loader_start_flash_query(uint8_t command, uint8_t chip, uint32_t address) {
+	loader_send_flash_query(command, chip, address);
+	osmoload.state = STATE_QUERY_PENDING;
+}
+
+static void
+loader_start_memget(uint8_t length, uint32_t address) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, LOADER_MEM_READ);
 	msgb_put_u8(msg, length);
@@ -514,7 +571,7 @@ loader_send_memget(uint8_t length, uint32_t address) {
 }
 
 static void
-loader_send_memput(uint8_t length, uint32_t address, void *data) {
+loader_start_memput(uint8_t length, uint32_t address, void *data) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, LOADER_MEM_WRITE);
 	msgb_put_u8(msg, length);
@@ -529,7 +586,7 @@ loader_send_memput(uint8_t length, uint32_t address, void *data) {
 }
 
 static void
-loader_send_jump(uint32_t address) {
+loader_start_jump(uint32_t address) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, LOADER_JUMP);
 	msgb_put_u32(msg, address);
@@ -542,10 +599,18 @@ loader_send_jump(uint32_t address) {
 
 
 static void
-loader_do_memdump(void *data, size_t length) {
+loader_do_memdump(uint16_t crc, void *data, size_t length) {
 	int rc;
 
 	if(data && length) {
+		osmoload.memcrc = crc16(0, data, length);
+		if(osmoload.memcrc != crc) {
+			osmoload.memoff -= osmoload.memreq;
+			printf("\nbad crc %4.4x (not %4.4x) at offset 0x%8.8x", crc, osmoload.memcrc, osmoload.memoff);
+		} else {
+			putchar('.');
+		}
+
 		memcpy(osmoload.binbuf + osmoload.memoff, data, length);
 		osmoload.memoff += length;
 	}
@@ -688,7 +753,8 @@ loader_start_memdump(uint32_t length, uint32_t address, char *file) {
 	osmoload.memlen = length;
 	osmoload.memoff = 0;
 
-	loader_do_memdump(NULL, 0);
+	osmoload.state = STATE_DUMP_IN_PROGRESS;
+	loader_do_memdump(0, NULL, 0);
 }
 
 static void
@@ -736,7 +802,102 @@ loader_start_memload(uint32_t address, char *file) {
 	osmoload.memlen = length;
 	osmoload.memoff = 0;
 
+	osmoload.state = STATE_LOAD_IN_PROGRESS;
 	loader_do_memload();
+}
+
+static void
+loader_start_flashrange(uint8_t command, uint32_t address, uint32_t length) {
+	switch(command) {
+	case LOADER_FLASH_ERASE:
+		printf("Erasing %u bytes of flash at 0x%x\n", length, address);
+		break;
+	case LOADER_FLASH_LOCK:
+		printf("Locking %u bytes of flash at 0x%x\n", length, address);
+		break;
+	case LOADER_FLASH_LOCKDOWN:
+		printf("Locking down %u bytes of flash at 0x%x\n", length, address);
+		break;
+	case LOADER_FLASH_UNLOCK:
+		printf("Unlocking %u bytes of flash at 0x%x\n", length, address);
+		break;
+	case LOADER_FLASH_GETLOCK:
+		printf("Getlocking %u bytes of flash at 0x%x\n", length, address);
+		break;
+	default:
+		puts("Unknown range command");
+		abort();
+		break;
+	}
+
+	osmoload.flashcommand = command;
+
+	osmoload.membase = address;
+	osmoload.memlen = length;
+	osmoload.memoff = 0;
+
+	printf("  requesting flash info to determine block layout\n");
+
+	osmoload.state = STATE_FLASHRANGE_GET_INFO;
+
+	loader_send_simple(LOADER_FLASH_INFO);
+}
+
+static void
+loader_do_flashrange(uint8_t cmd, struct msgb *msg, uint8_t chip, uint32_t address, uint32_t status) {
+	switch(osmoload.state) {
+	case STATE_FLASHRANGE_GET_INFO:
+		if(cmd == LOADER_FLASH_INFO) {
+			loader_parse_flash_info(msg);
+			osmoload.state = STATE_FLASHRANGE_IN_PROGRESS;
+			loader_do_flashrange(0, NULL, 0, 0, 0);
+		}
+		break;
+	case STATE_FLASHRANGE_IN_PROGRESS:
+		{
+			if(msg) {
+				if(cmd == osmoload.flashcommand) {
+					if(cmd == LOADER_FLASH_GETLOCK) {
+						printf("  lock state of chip %d address 0x%8.8x is %s\n",
+							   chip, address, (status == LOADER_FLASH_LOCKED ? "locked"
+											   : (status == LOADER_FLASH_LOCKED_DOWN ? "locked down"
+												  : (status == LOADER_FLASH_UNLOCKED ? "unlocked"
+													 : "UNKNOWN"))));
+					} else {
+						printf("  confirmed operation on chip %d address 0x%8.8x, status %s\n",
+							   chip, address, status ? "FAILED" : "ok");
+					}
+				} else {
+					break;
+				}
+			}
+
+			uint32_t addr = osmoload.membase + osmoload.memoff;
+
+			if(osmoload.memoff >= osmoload.memlen) {
+				puts("  operation done");
+				osmoload.quit = 1;
+				break;
+			}
+
+			uint8_t found = 0;
+			int i;
+			for(i = 0; i < osmoload.numblocks; i++) {
+				struct flashblock *b = &osmoload.blocks[i];
+				if(b->fb_addr == addr) {
+					loader_send_flash_query(osmoload.flashcommand, b->fb_chip, b->fb_offset);
+					osmoload.memoff += b->fb_size;
+					found = 1;
+					break;
+				}
+			}
+			if(!found) {
+				puts("Oops!? Block not found?"); // XXX message
+				abort();
+			}
+		}
+		break;
+	}
 }
 
 static void
@@ -785,6 +946,8 @@ loader_start_fprogram(uint8_t chip, uint32_t address, char *file) {
 	osmoload.memlen = length;
 	osmoload.memoff = 0;
 
+	osmoload.state = STATE_PROGRAM_IN_PROGRESS;
+
 	loader_do_fprogram();
 }
 
@@ -808,77 +971,18 @@ loader_command(char *name, int cmdc, char **cmdv) {
 	if(!strcmp(cmd, "dump")) {
 		osmoload.state = STATE_DUMPING;
 	} else if(!strcmp(cmd, "ping")) {
-		loader_send_query(LOADER_PING);
+		loader_start_query(LOADER_PING);
 	} else if(!strcmp(cmd, "off")) {
-		loader_send_query(LOADER_POWEROFF);
+		loader_start_query(LOADER_POWEROFF);
 	} else if(!strcmp(cmd, "reset")) {
-		loader_send_query(LOADER_RESET);
+		loader_start_query(LOADER_RESET);
 	} else if(!strcmp(cmd, "jumprom")) {
-		loader_send_query(LOADER_ENTER_ROM_LOADER);
+		loader_start_query(LOADER_ENTER_ROM_LOADER);
 	} else if(!strcmp(cmd, "jumpflash")) {
-		loader_send_query(LOADER_ENTER_FLASH_LOADER);
+		loader_start_query(LOADER_ENTER_FLASH_LOADER);
 	} else if(!strcmp(cmd, "finfo")) {
-		loader_send_query(LOADER_FLASH_INFO);
-	} else if(!strcmp(cmd, "fgetlock")) {
-		uint8_t chip;
-		uint32_t address;
-
-		if(cmdc < 3) {
-			usage(name);
-		}
-
-		chip = strtoul(cmdv[1], NULL, 10);
-		address = strtoul(cmdv[2], NULL, 16);
-
-		loader_send_flash_query(LOADER_FLASH_GETLOCK, chip, address);
-	} else if(!strcmp(cmd, "funlock")) {
-		uint8_t chip;
-		uint32_t address;
-
-		if(cmdc < 3) {
-			usage(name);
-		}
-
-		chip = strtoul(cmdv[1], NULL, 10);
-		address = strtoul(cmdv[2], NULL, 16);
-
-		loader_send_flash_query(LOADER_FLASH_UNLOCK, chip, address);
-	} else if(!strcmp(cmd, "flock")) {
-		uint8_t chip;
-		uint32_t address;
-
-		if(cmdc < 3) {
-			usage(name);
-		}
-
-		chip = strtoul(cmdv[1], NULL, 10);
-		address = strtoul(cmdv[2], NULL, 16);
-
-		loader_send_flash_query(LOADER_FLASH_LOCK, chip, address);
-	} else if(!strcmp(cmd, "flockdown")) {
-		uint8_t chip;
-		uint32_t address;
-
-		if(cmdc < 3) {
-			usage(name);
-		}
-
-		chip = strtoul(cmdv[1], NULL, 10);
-		address = strtoul(cmdv[2], NULL, 16);
-
-		loader_send_flash_query(LOADER_FLASH_LOCKDOWN, chip, address);
-	} else if(!strcmp(cmd, "ferase")) {
-		uint8_t chip;
-		uint32_t address;
-
-		if(cmdc < 3) {
-			usage(name);
-		}
-
-		chip = strtoul(cmdv[1], NULL, 10);
-		address = strtoul(cmdv[2], NULL, 16);
-
-		loader_send_flash_query(LOADER_FLASH_ERASE, chip, address);
+		puts("Requesting flash layout info");
+		loader_start_query(LOADER_FLASH_INFO);
 	} else if(!strcmp(cmd, "memput")) {
 		uint32_t address;
 
@@ -908,7 +1012,7 @@ loader_command(char *name, int cmdc, char **cmdv) {
 			buf[i] = byte & 0xFF;
 		}
 
-		loader_send_memput(i & 0xFF, address, buf);
+		loader_start_memput(i & 0xFF, address, buf);
 	} else if(!strcmp(cmd, "memget")) {
 		uint32_t address;
 		uint8_t length;
@@ -925,7 +1029,7 @@ loader_command(char *name, int cmdc, char **cmdv) {
 			exit(2);
 		}
 
-		loader_send_memget(length, address);
+		loader_start_memget(length, address);
 	} else if(!strcmp(cmd, "jump")) {
 		uint32_t address;
 
@@ -935,7 +1039,7 @@ loader_command(char *name, int cmdc, char **cmdv) {
 
 		address = strtoul(cmdv[1], NULL, 16);
 
-		loader_send_jump(address);
+		loader_start_jump(address);
 	} else if(!strcmp(cmd, "memdump")) {
 		uint32_t address;
 		uint32_t length;
@@ -947,8 +1051,6 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		address = strtoul(cmdv[1], NULL, 16);
 		length = strtoul(cmdv[2], NULL, 16);
 
-		osmoload.state = STATE_DUMP_IN_PROGRESS;
-
 		loader_start_memdump(length, address, cmdv[3]);
 	} else if(!strcmp(cmd, "memload")) {
 		uint32_t address;
@@ -958,8 +1060,6 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		}
 
 		address = strtoul(cmdv[1], NULL, 16);
-
-		osmoload.state = STATE_LOAD_IN_PROGRESS;
 
 		loader_start_memload(address, cmdv[2]);
 	} else if(!strcmp(cmd, "fprogram")) {
@@ -973,9 +1073,67 @@ loader_command(char *name, int cmdc, char **cmdv) {
 		chip = strtoul(cmdv[1], NULL, 10);
 		address = strtoul(cmdv[2], NULL, 16);
 
-		osmoload.state = STATE_LOAD_IN_PROGRESS;
-
 		loader_start_fprogram(chip, address, cmdv[3]);
+	} else if(!strcmp(cmd, "ferase")) {
+		uint32_t address;
+		uint32_t length;
+
+		if(cmdc < 3) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+		length = strtoul(cmdv[2], NULL, 16);
+
+		loader_start_flashrange(LOADER_FLASH_ERASE, address, length);
+	} else if(!strcmp(cmd, "flock")) {
+		uint32_t address;
+		uint32_t length;
+
+		if(cmdc < 3) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+		length = strtoul(cmdv[2], NULL, 16);
+
+		loader_start_flashrange(LOADER_FLASH_LOCK, address, length);
+	} else if(!strcmp(cmd, "flockdown")) {
+		uint32_t address;
+		uint32_t length;
+
+		if(cmdc < 3) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+		length = strtoul(cmdv[2], NULL, 16);
+
+		loader_start_flashrange(LOADER_FLASH_LOCKDOWN, address, length);
+	} else if(!strcmp(cmd, "funlock")) {
+		uint32_t address;
+		uint32_t length;
+
+		if(cmdc < 3) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+		length = strtoul(cmdv[2], NULL, 16);
+
+		loader_start_flashrange(LOADER_FLASH_UNLOCK, address, length);
+	} else if(!strcmp(cmd, "fgetlock")) {
+		uint32_t address;
+		uint32_t length;
+
+		if(cmdc < 3) {
+			usage(name);
+		}
+
+		address = strtoul(cmdv[1], NULL, 16);
+		length = strtoul(cmdv[2], NULL, 16);
+
+		loader_start_flashrange(LOADER_FLASH_GETLOCK, address, length);
 	} else if(!strcmp(cmd, "help")) {
 		usage(name);
 	} else {
