@@ -49,6 +49,25 @@ int munmap(void *addr, size_t length) {
 	return 0;
 }
 
+int fstat(int fd, struct stat *buf) {
+	errno = ENOENT;
+	return -1;
+}
+
+int __libc_open(const char *pathname, int flags) {
+	errno = ENOENT;
+	return -1;
+}
+
+int __libc_close(int fd) {
+	return 0;
+}
+
+ssize_t __libc_read(int fd, void *buf, size_t count) {
+	errno = ENOTSUP;
+	return -1;
+}
+
 ssize_t __libc_write(int fd, const void *buf, size_t count) {
 	char c;
 	int i;
@@ -76,3 +95,21 @@ void _exit(int status) {
 	puts("Program exit\n");
 	while(1) { }
 }
+
+int __rt_sigprocmask(int how, const sigset_t *set, sigset_t *oldsetm, long nr) {
+	return 0;
+}
+
+
+/* XXX: very bad */
+
+double floor(double x) {
+	return 0.0;
+}
+double log(double x) {
+	return 0.0;
+}
+double exp(double x) {
+	return 0.0;
+}
+
