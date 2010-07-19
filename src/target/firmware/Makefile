@@ -4,7 +4,7 @@
 BOARDS?=compal_e88 compal_e99 gta0x
 
 # List of all applications (meant to be overridden on command line)
-APPLICATIONS?=hello_world compal_dsp_dump layer1 loader simtest
+APPLICATIONS?=hello_world compal_dsp_dump layer1 loader simtest chainload
 
 
 # TI Calypso
