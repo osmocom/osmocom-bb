@@ -160,7 +160,7 @@ static const struct value_string gsm322_event_names[] = {
 	{ GSM322_EVENT_PLMN_SEARCH_END,	"EVENT_PLMN_SEARCH_END" },
 	{ GSM322_EVENT_USER_RESEL,	"EVENT_USER_RESEL" },
 	{ GSM322_EVENT_PLMN_AVAIL,	"EVENT_PLMN_AVAIL" },
-	{ GSM322_EVENT_CHOSE_PLMN,	"EVENT_CHOSE_PLMN" },
+	{ GSM322_EVENT_CHOOSE_PLMN,	"EVENT_CHOOSE_PLMN" },
 	{ GSM322_EVENT_SEL_MANUAL,	"EVENT_SEL_MANUAL" },
 	{ GSM322_EVENT_SEL_AUTO,	"EVENT_SEL_AUTO" },
 	{ GSM322_EVENT_CELL_FOUND,	"EVENT_CELL_FOUND" },
@@ -1068,7 +1068,7 @@ static int gsm322_a_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (!subscr->sim_valid) {
 		LOGP(DSUM, LOGL_INFO, "SIM is removed\n");
-		LOGP(DPLMN, LOGL_INFO, "Switch on without SIM.\n");
+		LOGP(DPLMN, LOGL_INFO, "SIM is removed\n");
 		new_a_state(plmn, GSM322_A6_NO_SIM);
 
 		return 0;
@@ -1383,9 +1383,6 @@ static int gsm322_m_go_on_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm_subscriber *subscr = &ms->subscr;
 
-	/* if selected PLMN is in list of forbidden PLMNs */
-	gsm_subscr_del_forbidden_plmn(subscr, plmn->mcc, plmn->mnc);
-
 	/* set last registered PLMN */
 	subscr->plmn_valid = 1;
 	subscr->plmn_mcc = plmn->mcc;
@@ -1439,6 +1436,7 @@ static int gsm322_m_plmn_avail(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_m_choose_plmn(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
+	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm322_msg *gm = (struct gsm322_msg *) msg->data;
 	struct msgb *nmsg;
 
@@ -1452,6 +1450,9 @@ static int gsm322_m_choose_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DPLMN, LOGL_INFO, "User selects PLMN. (mcc=%s mnc=%s  "
 		"%s, %s)\n", gsm_print_mcc(plmn->mcc), gsm_print_mnc(plmn->mnc),
 		gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
+
+	/* if selected PLMN is in list of forbidden PLMNs */
+	gsm_subscr_del_forbidden_plmn(subscr, plmn->mcc, plmn->mnc);
 
 	new_m_state(plmn, GSM322_M4_TRYING_PLMN);
 
@@ -2849,6 +2850,8 @@ static int gsm322_c_choose_cell(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* After location updating, we choose the last cell */
 	if (gm->same_cell) {
+		struct msgb *nmsg;
+
 		if (!cs->selected) {
 			printf("No cell selected when ret.idle, please fix!\n");
 			exit(0L);
@@ -2863,6 +2866,12 @@ static int gsm322_c_choose_cell(struct osmocom_ms *ms, struct msgb *msg)
 		cs->si = cs->list[cs->arfcn].sysinfo;
 
 		new_c_state(cs, GSM322_C3_CAMPED_NORMALLY);
+
+		/* tell that we have selected the cell, so RR returns IDLE */
+		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm48_mmevent_msg(ms, nmsg);
 
 		return 0;
 	}
@@ -3127,7 +3136,7 @@ static struct plmnmstatelist {
 	 GSM322_EVENT_PLMN_AVAIL, gsm322_m_plmn_avail},
 
 	{SBIT(GSM322_M3_NOT_ON_PLMN),
-	 GSM322_EVENT_CHOSE_PLMN, gsm322_m_choose_plmn},
+	 GSM322_EVENT_CHOOSE_PLMN, gsm322_m_choose_plmn},
 
 	{SBIT(GSM322_M4_TRYING_PLMN),
 	 GSM322_EVENT_REG_SUCCESS, gsm322_m_go_on_plmn},

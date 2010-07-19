@@ -426,7 +426,7 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 		return CMD_WARNING;
 	}
 
-	nmsg = gsm322_msgb_alloc(GSM322_EVENT_CHOSE_PLMN);
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_CHOOSE_PLMN);
 	if (!nmsg)
 		return CMD_WARNING;
 	ngm = (struct gsm322_msg *) nmsg->data;

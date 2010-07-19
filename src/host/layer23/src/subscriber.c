@@ -181,10 +181,6 @@ int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 {
 	struct gsm_sub_plmn_na *na;
 
-	/* don't add Home PLMN */
-	if (subscr->sim_valid && gsm_match_mnc(mcc, mnc, subscr->imsi))
-		return -EINVAL;
-
 	LOGP(DPLMN, LOGL_INFO, "Add to list of forbidden PLMNs "
 		"(mcc=%s, mnc=%s)\n", gsm_print_mcc(mcc), gsm_print_mnc(mnc));
 	na = talloc_zero(l23_ctx, struct gsm_sub_plmn_na);
@@ -194,6 +190,10 @@ int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 	na->mnc = mnc;
 	na->cause = cause;
 	llist_add_tail(&na->entry, &subscr->plmn_na);
+
+	/* don't add Home PLMN to SIM */
+	if (subscr->sim_valid && gsm_match_mnc(mcc, mnc, subscr->imsi))
+		return -EINVAL;
 
 #ifdef TODO
 	update plmn not allowed list on sim
