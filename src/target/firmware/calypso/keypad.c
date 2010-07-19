@@ -107,6 +107,7 @@ void dispatch_buttons(uint32_t buttons)
 }
 
 static uint8_t	polling = 0;
+static uint8_t  with_interrupts = 0;
 
 static void keypad_irq(__unused enum irq_nr nr)
 {
@@ -123,6 +124,7 @@ void keypad_init(uint8_t interrupts)
 	writew(0, KBC_REG);
 
 	if(interrupts) {
+		with_interrupts = 1;
 		irq_register_handler(IRQ_KEYPAD_GPIO, &keypad_irq);
 		irq_config(IRQ_KEYPAD_GPIO, 0, 0, 0);
 		irq_enable(IRQ_KEYPAD_GPIO);
@@ -140,7 +142,7 @@ void keypad_poll()
 	static uint16_t col;
 	static uint32_t buttons = 0, debounce1 = 0, debounce2 = 0;
 
-	if (!polling)
+	if (with_interrupts && !polling)
 		return;
 
 	/* start polling */
@@ -153,8 +155,12 @@ void keypad_poll()
 
 	/* enable keypad irq after the signal settles */
 	if (polling == 3) {
-		irq_enable(IRQ_KEYPAD_GPIO);
-		polling = 0;
+		if(with_interrupts) {
+			irq_enable(IRQ_KEYPAD_GPIO);
+			polling = 0;
+		} else {
+			polling = 1;
+		}
 		return;
 	}
 
