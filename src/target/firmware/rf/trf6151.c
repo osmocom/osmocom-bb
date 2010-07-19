@@ -471,7 +471,7 @@ void trf6151_compute_gain(int16_t exp_inp, int16_t target_bb)
 	int16_t exp_bb_dbm8, delta_dbm8;
 	int16_t exp_inp_dbm8 = to_dbm8(exp_inp);
 	int16_t target_bb_dbm8 = to_dbm8(target_bb);
-	int16_t vga_gain = TRF6151_GAIN_MIN;
+	int16_t vga_gain = TRF6151_VGA_GAIN_MIN;
 	int high = 0;
 
 	/* calculate the dBm8 that we expect at the baseband */
@@ -483,17 +483,18 @@ void trf6151_compute_gain(int16_t exp_inp, int16_t target_bb)
 	/* If this is negative or less than TRF6151_GAIN_MIN, we are pretty
 	 * much lost as we cannot reduce the system inherent gain.  If it is
 	 * positive, it corresponds to the gain that we need to configure */
-	if (delta_dbm8 < to_dbm8(TRF6151_GAIN_MIN)) {
+	if (delta_dbm8 < to_dbm8(TRF6151_FE_GAIN_LOW + TRF6151_VGA_GAIN_MIN)) {
 		printd("AGC Input level overflow\n");
 		high = 0;
-		vga_gain = TRF6151_GAIN_MIN;
-	} else if (delta_dbm8 > to_dbm8(TRF6151_GAIN_FE + TRF6151_GAIN_MIN)) {
+		vga_gain = TRF6151_VGA_GAIN_MIN;
+	} else if (delta_dbm8 > to_dbm8(TRF6151_FE_GAIN_HIGH +
+					TRF6151_VGA_GAIN_MIN)) {
 		high = 1;
-		delta_dbm8 -= to_dbm8(TRF6151_GAIN_FE);
+		delta_dbm8 -= to_dbm8(TRF6151_FE_GAIN_HIGH);
 	}
 	vga_gain = delta_dbm8/8;
-	if (vga_gain > TRF6151_GAIN_MAX)
-		vga_gain = TRF6151_GAIN_MAX;
+	if (vga_gain > TRF6151_VGA_GAIN_MAX)
+		vga_gain = TRF6151_VGA_GAIN_MAX;
 
 	/* update the static global variables which are used when programming
 	 * the window */

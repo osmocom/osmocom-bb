@@ -3,13 +3,6 @@
 
 #include <osmocore/gsm_utils.h>
 
-/* minimum gain (FE = LOW, VGA at lowest setting */
-#define TRF6151_GAIN_MIN	14
-/* minimum gain (FE = HIGH, VGA at highest setting */
-#define TRF6151_GAIN_MAX	60
-/* Frontend gain if FE = HIGH */
-#define TRF6151_GAIN_FE		20
-
 /* initialize (reset + power up) */
 void trf6151_init(void);
 
