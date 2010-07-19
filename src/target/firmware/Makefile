@@ -1,15 +1,11 @@
 
-# Global include path
-INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
 
-# Various objects that are currently linked into all applications
-FLASH_OBJS=flash/cfi_flash.o
-DISPLAY_OBJS=display/font_r8x8.o display/font_r8x8_horiz.o display/st7558.o display/ssd1783.o display/display.o
-ABB_OBJS=abb/twl3025.o
-RF_OBJS=rf/trf6151.o
-
-# List of all supported boards
+# List of all supported boards (meant to be overridden on command line)
 BOARDS?=compal_e88 compal_e99 gta0x
+
+# List of all applications (meant to be overridden on command line)
+APPLICATIONS?=hello_world compal_dsp_dump layer1 loader simtest
+
 
 # TI Calypso
 
@@ -54,12 +50,19 @@ e99loader_OBJS=board/compal/header.o
 e99flash_LDS=board/compal_e99/flash.lds
 
 
-# List of all applications (add yours here!)
-APPLICATIONS=hello_world compal_dsp_dump layer1 loader simtest
+# Global include path
+INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
 
-# Things that go in all applications
+# Various objects that are currently linked into all applications
+FLASH_OBJS=flash/cfi_flash.o
+DISPLAY_OBJS=display/font_r8x8.o display/font_r8x8_horiz.o display/st7558.o display/ssd1783.o display/display.o
+ABB_OBJS=abb/twl3025.o
+RF_OBJS=rf/trf6151.o
+
+# Objects that go in all applications
 ANY_APP_OBJS+=$(ABB_OBJS) $(RF_OBJS) $(DISPLAY_OBJS) $(FLASH_OBJS)
 ANY_APP_LIBS+=calypso/libcalypso.a layer1/liblayer1.a lib/libmini.a comm/libcomm.a ../../shared/libosmocore/build-target/src/.libs/libosmocore.a
+
 
 # Libraries are defined in subdirectories
 -include calypso/Makefile

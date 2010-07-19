@@ -15,13 +15,12 @@ CFLAGS=-mcpu=arm7tdmi $(INCLUDES)
 CFLAGS += -Wall -Wextra -Wcast-align -Wimplicit -Wunused
 CFLAGS += -Wswitch -Wredundant-decls -Wreturn-type -Wshadow -Wnested-externs
 CFLAGS += -Wbad-function-cast -Wsign-compare -Waggregate-return
-CFLAGS += -Wa,-adhlns=$(subst $(suffix $<),.lst,$<)
 CFLAGS += -Os -ffunction-sections
 CFLAGS += -g$(DEBUGF)
 
 # some older toolchains don't support this, ignore it for now
-#ASFLAGS=-Wa,-adhlns=$(<:.S=.lst),--g$(DEBUGF) $(INCLUDES) -D__ASSEMBLY__
-ASFLAGS=-Wa,-adhlns=$(<:.S=.lst) $(INCLUDES) -D__ASSEMBLY__
+#ASFLAGS=--g$(DEBUGF) $(INCLUDES) -D__ASSEMBLY__
+ASFLAGS=$(INCLUDES) -D__ASSEMBLY__
 
 LDFLAGS = -nostartfiles -nostdlib -nodefaultlibs --gc-sections --cref
 
@@ -38,9 +37,9 @@ CFLAGS += -DGIT_REVISION=\"$(GIT_REVISION)\"
 #### GLOBAL DATA ####
 
 ALL_OBJS=
-ALL_DEPS=
 
 ALL_LSTS=$(ALL_OBJS:.o=.lst)
+ALL_DEPS=$(ALL_OBJS:.o=.p)
 
 #### APPLICATION DATA ####
 
@@ -63,9 +62,6 @@ default: all
 
 #### APPLICATION RULES ####
 
-ALL_OBJS+=$(ANY_APP_OBJS)
-ALL_DEPS+=$(ANY_APP_OBJS:.o=.p)
-
 # template for application rules
 define APPLICATION_BOARD_ENVIRONMENT_template
 
@@ -76,6 +72,10 @@ $(1)_$(2)_$(3)_LIBS := $(ANY_APP_LIBS)
 # define manifest compilation
 board/$(2)/$(1).$(3).manifest.o: board/manifest.c
 	$(CROSS_COMPILE)$(CC) $(CFLAGS) -DAPPLICATION=\"$(1)\" -DBOARD=\"$(2)\" -DENVIRONMENT=\"$(3)\" -c -o $$@ $$<
+
+# generate dummy dependencies for manifest
+board/$(2)/$(1).$(3).manifest.p: board/manifest.c
+	@touch board/$(2)/$(1).$(3).manifest.p
 
 # add manifest object to object list
 $(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o $$($(3)_OBJS)
@@ -91,26 +91,24 @@ board/$(2)/$(1).$(3).size: board/$(2)/$(1).$(3).elf
 	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
 
 ALL_APPS+=board/$(2)/$(1).$(3).elf
-
-ALL_OBJS+=$$($(1)_$(2)_$(3)_OBJS)
+ALL_OBJS+=board/$(2)/$(1).$(3).manifest.o
 
 endef
 
 define BOARD_template
-
 ALL_OBJS+=$$($(1)_OBJS)
+endef
 
+define BOARD_ENVIRONMENT_template
+ALL_OBJS+=$$($(1)_OBJS)
 endef
 
 define APPLICATION_template
-
 $(1)_SRCS_REL=$$(patsubst %,$$($(1)_DIR)/%,$$($(1)_SRCS))
 $(1)_OBJS:=$$($(1)_SRCS_REL:.c=.o)
 $(1)_OBJS:=$$($(1)_OBJS:.S=.o)
 
 ALL_OBJS+=$$($(1)_OBJS) apps/$(1)/main.o
-ALL_DEPS+=$$($(1)_OBJS:.o=.p) apps/$(1)/main.p
-
 endef
 
 # define rules for all defined applications
@@ -120,11 +118,16 @@ $(foreach app,$(APPLICATIONS),                \
 			$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
 
 $(foreach brd,$(BOARDS), \
-	$(eval $(call BOARD_template,$(brd))))
+	$(eval $(call BOARD_template,$(brd)) \
+    $(foreach env,$($(brd)_ENVIRONMENTS), \
+	    $(eval $(call BOARD_ENVIRONMENT_template,$(env))))))
 
 $(foreach app,$(APPLICATIONS), \
 	$(eval $(call APPLICATION_template,$(app))))
 
+
+# add common things to global lists
+ALL_OBJS+=$(ANY_APP_OBJS)
 
 #### LIBRARY RULES ####
 
@@ -141,7 +144,6 @@ $$($(1)_DIR)/lib$(1).a: $$($(1)_OBJS)
 ALL_LIBS+=$$($(1)_DIR)/lib$(1).a
 
 ALL_OBJS+=$$($(1)_OBJS)
-ALL_DEPS+=$$($(1)_OBJS:.o=.p)
 
 endef
 
@@ -169,10 +171,10 @@ depend: $(ALL_DEPS)
 	@sed 's|.*\.o:|$(@:.p=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
 
 %.o: %.c
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) -c -o $@ $<
+	$(CROSS_COMPILE)$(CC) $(CFLAGS) -Wa,-adhlns=$(@:.o=.lst) -c -o $@ $<
 
 %.o: %.S
-	$(CROSS_COMPILE)$(CC) $(ASFLAGS) -c -o $@ $<
+	$(CROSS_COMPILE)$(CC) $(ASFLAGS) -Wa,-adhlns=$(@:.o=.lst) -c -o $@ $<
 
 
 %.bin: %.elf
