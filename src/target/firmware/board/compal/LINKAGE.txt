@@ -1,0 +1,12 @@
+
+We provide the following common RAM linkages for all Compal phones:
+
+(both use the Calypso ROM loader for interrupt redirect, if required)
+
+  compalram:
+    Image for the Compal ramloader. Starts at a weird address and
+    contains various ramloader specifics.
+
+  highram:
+    Image linked to 0x820000, used for various special purposes.
+    This image is completely independent of the compal loader.

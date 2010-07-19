@@ -1,0 +1,33 @@
+
+The Compal E88 supports the common Compal RAM linkages.
+These operate entirely from the Calypso internal RAM.
+
+Flash linkages are structured as follows:
+
+  e88loader:
+    Linked at address of original compal application (0x2000).
+    Provides interrupt vectors as expected by compal loader.
+    Allows interrupt redirection (XXX to where?).
+    
+    We introduce this for the following reasons:
+    1. We want to start our app at 0x10000, because that
+       is the first flash page after the loader page, allowing
+       us a higher degree of "unbrickability" by never reflashing
+       the bootloader.
+    2. We want to keep the compal loader so we do not need even
+       more boot options and to allow recovery of original firmware.
+    3. When there is a custom app in flash at 0xFFFF, just turning
+       the phone on with the compal loader would jump into an incomplete
+       motorola app. That might not even allow turning the phone off.
+       The loader provides this functionality.
+    4. We do not want to patch the compal loader for interrupt
+       redirect and entry vectors. So we need to place something between
+       0x2000 and 0x10000 anyway. And since there is space, why not put
+       the whole loader in there.
+    5. This loader has a good chance of being able to read crash buffers.
+       and examining RAM without it being clobbered by a ram upload.
+
+  e88flash:
+    Our main application linkage, starting at 0x10000 and going through
+    all of flash. Data storage locations are still to be determined.
+

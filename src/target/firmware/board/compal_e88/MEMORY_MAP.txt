@@ -1,0 +1,21 @@
+The Compal E88 has the following physical memory map:
+
+    /* 2 MBytes of external flash memory */
+    FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 0x200000
+    /* 256 kBytes of internal zero-waitstate sram */
+    IRAM  (rw) : ORIGIN = 0x00800000, LENGTH = 0x040000
+    /* 256 kBytes of external slow sram */
+    ERAM  (rw) : ORIGIN = 0x01000000, LENGTH = 0x040000
+
+The flash layout, as distributed, is:
+
+    0x00000000 0x2000 Compal loader
+    0x00002000 >>>>>> Compal application and storage
+
+Our flash layout is:
+
+    0x00000000 0x2000 Compal loader
+    0x00002000 0xE000 OSMOCOM loader (see LINKAGE.txt for reasoning)
+    0x00010000 >>>>>> OSMOCOM application and storage
+
+(XXX: determine storage location / storage descriptor location)
