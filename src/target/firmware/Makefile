@@ -33,12 +33,13 @@ highram_OBJS=board/compal/start.ram.o board/compal/exceptions_redirected.o board
 # Compal E88
 
 compal_e88_OBJS=$(compal_COMMON_OBJS) board/compal_e88/init.o
-compal_e88_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS) e88loader
+compal_e88_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS) e88loader e88flash
 
 e88loader_LDS=board/compal_e88/loader.lds
 e88loader_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/exceptions_redirect.o
 
-e88flash_LDS=board/compal_e88/flash.lds board/compal/exceptions_full.o
+e88flash_LDS=board/compal_e88/flash.lds
+e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/exceptions_redirected.o board/compal/handlers.o
 
 # Compal E99
 
