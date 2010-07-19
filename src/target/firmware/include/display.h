@@ -43,5 +43,6 @@ int display_puts(const char *s);
 
 extern const struct display_driver st7558_display;
 extern const struct display_driver ssd1783_display;
+extern const struct display_driver td014_display;
 
 #endif
