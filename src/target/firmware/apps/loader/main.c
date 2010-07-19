@@ -48,7 +48,7 @@
 #include <calypso/uart.h>
 #include <calypso/timer.h>
 
-#include <cfi_flash.h>
+#include <flash/cfi_flash.h>
 
 #include "protocol.h"
 

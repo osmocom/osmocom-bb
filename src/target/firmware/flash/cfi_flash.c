@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <memory.h>
 #include <defines.h>
-#include <cfi_flash.h>
+#include <flash/cfi_flash.h>
 
 /* XXX: memdump_range() */
 #include <calypso/misc.h>

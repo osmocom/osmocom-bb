@@ -29,7 +29,7 @@
 #include <board.h>
 #include <keypad.h>
 #include <console.h>
-#include <cfi_flash.h>
+#include <flash/cfi_flash.h>
 
 #include <calypso/irq.h>
 #include <calypso/clock.h>
