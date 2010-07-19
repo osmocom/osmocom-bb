@@ -131,6 +131,7 @@ struct dnload {
 	enum dnload_mode mode;
 	struct bsc_fd serial_fd;
 	char *filename;
+	char *chainload_filename;
 
 	int expect_hdlc;
 
@@ -875,6 +876,20 @@ static int handle_read(void)
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
 		dnload.expect_hdlc = 1;
+
+		/* check for romloader chainloading mode used as a workaround
+		 * for the magic on the C139/C140 and J100i */
+		if (dnload.chainload_filename != NULL) {
+			printf("Enabled Compal ramloader -> Calypso romloader"
+				" chainloading mode\n");
+			bufptr = buffer;
+			dnload.filename = dnload.chainload_filename;
+			dnload.mode = MODE_ROMLOAD;
+			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
+			tick_timer.cb = &beacon_timer_cb;
+			tick_timer.data = &tick_timer;
+			bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
+		}
 	} else if (!memcmp(buffer, phone_nack, sizeof(phone_nack))) {
 		printf("Received DOWNLOAD NACK from phone, something went"
 			" wrong :(\n");
@@ -1224,10 +1239,12 @@ static int parse_mode(const char *arg)
 }
 
 #define HELP_TEXT \
-	"[ -v | -h ] [ -d [t][r] ] [ -p /dev/ttyXXXX ] [ -s /tmp/osmocom_l2 ]\n" \
-	"\t\t[ -l /tmp/osmocom_loader ]\n" \
-	"\t\t[ -m {c123,c123xor,c140,c140xor,c155,romload,mtk} ]\n" \
-	"\t\t file.bin\n\n" \
+	"[ -v | -h ] [ -d [t][r] ] [ -p /dev/ttyXXXX ]\n" \
+	"\t\t [ -s /tmp/osmocom_l2 ]\n" \
+	"\t\t [ -l /tmp/osmocom_loader ]\n" \
+	"\t\t [ -m {c123,c123xor,c140,c140xor,c155,romload,mtk} ]\n" \
+	"\t\t [ -c /to-be-chainloaded-file.bin ]\n" \
+	"\t\t  file.bin\n\n" \
 	"* Open serial port /dev/ttyXXXX (connected to your phone)\n" \
 	"* Perform handshaking with the ramloader in the phone\n" \
 	"* Download file.bin to the attached phone (base address 0x00800100)\n"
@@ -1428,14 +1445,15 @@ void parse_debug(const char *str)
 int main(int argc, char **argv)
 {
 	int opt, flags;
-	uint32_t tmp_load_address = 0;
+	uint32_t tmp_load_address = ROMLOAD_ADDRESS;
 	const char *serial_dev = "/dev/ttyUSB1";
 	const char *layer2_un_path = "/tmp/osmocom_l2";
 	const char *loader_un_path = "/tmp/osmocom_loader";
 
 	dnload.mode = MODE_C123;
+	dnload.chainload_filename = NULL;
 
-	while ((opt = getopt(argc, argv, "d:hl:p:m:s:v")) != -1) {
+	while ((opt = getopt(argc, argv, "d:hl:p:m:c:s:v")) != -1) {
 		switch (opt) {
 		case 'p':
 			serial_dev = optarg;
@@ -1456,6 +1474,9 @@ int main(int argc, char **argv)
 			break;
 		case 'd':
 			parse_debug(optarg);
+			break;
+		case 'c':
+			dnload.chainload_filename = optarg;
 			break;
 		case 'h':
 		default:
