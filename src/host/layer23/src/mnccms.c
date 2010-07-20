@@ -216,24 +216,23 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		if (!first_call && !ms->settings.cw) {
 			vty_notify(ms, "Incomming call rejected while busy\n");
 			LOGP(DMNCC, LOGL_INFO, "Incomming call but busy\n");
-			cause = GSM48_CC_CAUSE_NORM_CALL_CLEAR;
+			cause = GSM48_CC_CAUSE_USER_BUSY;
 			goto release;
 		}
 		/* presentation allowed if present == 0 */
 		if (data->calling.present || !data->calling.number[0])
-			vty_notify(ms, "Incomming call (callref %x)\n",
-				call->callref);
+			vty_notify(ms, "Incomming call (anonymous)\n");
 		else if (data->calling.type == 1)
-			vty_notify(ms, "Incomming call from +%s (callref %x)\n",
-				data->calling.number, call->callref);
+			vty_notify(ms, "Incomming call (from +%s)\n",
+				data->calling.number);
 		else if (data->calling.type == 2)
-			vty_notify(ms, "Incomming call from 0-%s (callref "
-				"%x)\n", data->calling.number, call->callref);
+			vty_notify(ms, "Incomming call (from 0-%s)\n",
+				data->calling.number);
 		else
-			vty_notify(ms, "Incomming call from %s (callref %x)\n",
-				data->calling.number, call->callref);
-		LOGP(DMNCC, LOGL_INFO, "Incomming call (callref %x)\n",
-			call->callref);
+			vty_notify(ms, "Incomming call (from %s)\n",
+				data->calling.number);
+		LOGP(DMNCC, LOGL_INFO, "Incomming call (from %s callref %x)\n",
+			data->calling.number, call->callref);
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		mncc_send(ms, MNCC_CALL_CONF_REQ, &mncc);

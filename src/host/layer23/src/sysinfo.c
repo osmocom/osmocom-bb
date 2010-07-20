@@ -71,26 +71,20 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 				buffer[j + 5] = 'S';
 			else if ((s->freq[i+j].mask & FREQ_TYPE_HOPP))
 				buffer[j + 5] = 'H';
-			else if ((s->freq[i+j].mask & FREQ_TYPE_NCELL_2))
-				buffer[j + 5] = 'N';
-			else if ((s->freq[i+j].mask & FREQ_TYPE_NCELL_2bis))
-				buffer[j + 5] = 'b';
-			else if ((s->freq[i+j].mask & FREQ_TYPE_NCELL_2ter))
-				buffer[j + 5] = 't';
-			else if ((s->freq[i+j].mask & FREQ_TYPE_REP_5))
-				buffer[j + 5] = 'R';
-			else if ((s->freq[i+j].mask & FREQ_TYPE_REP_5bis))
-				buffer[j + 5] = 'b';
-			else if ((s->freq[i+j].mask & FREQ_TYPE_REP_5ter))
-				buffer[j + 5] = 't';
+			else if ((s->freq[i+j].mask & FREQ_TYPE_NCELL))
+				buffer[j + 5] = 'n';
+			else if ((s->freq[i+j].mask & FREQ_TYPE_REP))
+				buffer[j + 5] = 'r';
+			else if ((s->freq[i+j].mask & FREQ_TYPE_SI_2_5))
+				buffer[j + 5] = '*';
 			else
 				buffer[j + 5] = '.';
 		}
 		sprintf(buffer + 69, " %d", i + 63);
 		print(priv, "%s\n", buffer);
 	}
-	print(priv, " S = serv. cell  H = hopping seq.  N,b,t = neigh. cells  "
-		"R,b,t = cells to rep.\n\n");
+	print(priv, " S = serv. cell  H = hopping seq.  n = SI2 (neigh.)  "
+		"r = SI5 (rep.)  * = SI2+SI5\n\n");
 
 	/* serving cell */
 	print(priv, "Serving Cell:\n");

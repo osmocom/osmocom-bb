@@ -1901,6 +1901,7 @@ int mncc_send(struct osmocom_ms *ms, int msg_type, void *arg)
 		/* check for SETUP message */
 		if (msg_type != MNCC_SETUP_REQ) {
 			/* Invalid call reference */
+			LOGP(DCC, LOGL_NOTICE, "transaction not found\n");
 			return mncc_release_ind(ms, NULL, data->callref,
 				GSM48_CAUSE_LOC_PRN_S_LU,
 				GSM48_CC_CAUSE_INVAL_TRANS_ID);
@@ -1920,6 +1921,12 @@ int mncc_send(struct osmocom_ms *ms, int msg_type, void *arg)
 				GSM48_CAUSE_LOC_PRN_S_LU,
 				GSM48_CC_CAUSE_RESOURCE_UNAVAIL);
 		}
+	}
+
+	switch (msg_type) {
+	case GSM_TCHF_FRAME:
+		printf("TCH/F frame ignored!\n");
+		return -EINVAL;
 	}
 
 	/* Find function for current state and message */

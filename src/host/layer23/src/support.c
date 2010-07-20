@@ -66,28 +66,26 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->a5_6 = 0;
 	sup->a5_7 = 0;
 	/* radio support */
-	sup->p_gsm = 1; /* P-GSM only */
+	sup->p_gsm = 1; /* P-GSM */
 	sup->e_gsm = 1; /* E-GSM */
 	sup->r_gsm = 1; /* R-GSM */
 	sup->r_capa = 0;
 	sup->low_capa = 4; /* p,e,r power class */
 	sup->dcs_1800 = 1;
 	/* set supported frequencies */
-	if (sup->e_gsm || sup->r_gsm)
-		sup->freq_map[0] |= 1;
-	if (sup->p_gsm || sup->e_gsm || sup->r_gsm)
+	if (sup->p_gsm)
 		for(i = 1; i <= 124; i++)
 			sup->freq_map[i >> 3] |= (1 << (i & 7));
 	if (sup->dcs_1800)
 		for(i = 512; i <= 885; i++)
 			sup->freq_map[i >> 3] |= (1 << (i & 7));
-	if (sup->e_gsm)
+	if (sup->e_gsm) {
 		for(i = 975; i <= 1023; i++)
 			sup->freq_map[i >> 3] |= (1 << (i & 7));
-//		for(i = 978; i <= 978; i++)
-//			sup->freq_map[i >> 3] |= (1 << (i & 7));
+		sup->freq_map[0] |= 1;
+	}
 	if (sup->r_gsm)
-		for(i = 955; i <= 1023; i++)
+		for(i = 955; i <= 974; i++)
 			sup->freq_map[i >> 3] |= (1 << (i & 7));
 	sup->dcs_capa = 1; /* dcs power class */
 	/* multi slot support */
@@ -113,7 +111,7 @@ struct gsm_support_scan_max gsm_sup_smax[] = {
 	{ 306, 340, 15, 0 }, /* GSM 480 */
 	{ 438, 511, 25, 0 },
 	{ 128, 251, 30, 0 }, 
-	{ 955, 124, 30, 0 },
+	{ 955, 124, 30, 0 }, /* P,E,R GSM */
 	{ 512, 885, 40, 0 }, /* DCS 1800 */
 	{ 0, 0, 0, 0 }
 };
@@ -124,14 +122,14 @@ void gsm_support_dump(struct gsm_support *sup,
 {
 	print(priv, "Supported features of MS '%s':\n", sup->ms->name);
 	if (sup->r_gsm)
-		print(priv, " R-GSM");
-	if (sup->e_gsm || sup->r_gsm)
-		print(priv, " E-GSM");
-	if (sup->p_gsm || sup->p_gsm || sup->r_gsm)
-		print(priv, " P-GSM");
+		print(priv, " R-GSM (Channels 955-974)\n");
+	if (sup->e_gsm)
+		print(priv, " E-GSM (Channels 975-1023,0)\n");
+	if (sup->p_gsm)
+		print(priv, " P-GSM (Channels 1-124)\n");
 	if (sup->dcs_1800)
-		print(priv, " DCS1800");
-	print(priv, "  (Phase %d mobile station)\n", sup->rev_lev + 1);
+		print(priv, " DCS1800 (Channels 512-885)\n");
+	print(priv, " Phase %d mobile station\n", sup->rev_lev + 1);
 	print(priv, " CECS     : %s\n", (sup->es_ind) ? "yes" : "no");
 	print(priv, " VGCS     : %s\n", (sup->vgcs) ? "yes" : "no");
 	print(priv, " VBS      : %s\n", (sup->vbs) ? "yes" : "no");

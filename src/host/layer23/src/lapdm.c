@@ -1047,7 +1047,7 @@ for (i = 0; i < (dl->tx_hist[0][2] >> 2); i++)
 printf(" == SENT\n");
 for (i = 0; i < length; i++)
 	printf(" %02x", msg->l2h[3+i]);
-printf(" == RECEIVED\n");
+printf(" == RECEIVED (len=%d,%d)\n", msg->l2h[2] >> 2, length);
 				rc = send_rll_simple(RSL_MT_REL_IND, mctx);
 				msgb_free(msg);
 				/* go to idle state */

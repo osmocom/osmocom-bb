@@ -3102,9 +3102,6 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	uint16_t ma[64];
 	uint8_t ma_len;
 
-	/* 3.3.1.1.3.1 */
-	stop_rr_t3126(rr);
-
 	if (rr->cd_now.h) {
 		gsm48_decode_mobile_alloc(s, rr->cd_now.mob_alloc_lv + 1,
 			rr->cd_now.mob_alloc_lv[0], ma, &ma_len, 0);
@@ -3113,6 +3110,9 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 			return -EINVAL;
 		}
 	}
+
+	/* 3.3.1.1.3.1 */
+	stop_rr_t3126(rr);
 
 	/* send DL_EST_REQ */
 	if (rr->rr_est_msg) {
