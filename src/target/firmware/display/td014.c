@@ -179,6 +179,6 @@ const struct display_driver td014_display = {
 	.unset_attr = &td014_set_attr,
 	.clrscr = &td014_clrscr,
 	.goto_xy = &td014_goto_xy,
-	.putc = &td014_putc,
+	.putchr = &td014_putc,
 	.puts = &td014_puts,
 };
