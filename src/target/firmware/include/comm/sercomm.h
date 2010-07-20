@@ -19,8 +19,9 @@ enum sercomm_dlci {
 	SC_DLCI_HIGHEST = 0,
 	SC_DLCI_DEBUG   = 4,
 	SC_DLCI_L1A_L23 = 5,
-	SC_DLCI_LOADER  = 9,
-	SC_DLCI_CONSOLE = 10,
+	SC_DLCI_SAP     = 6,
+	SC_DLCI_LOADER  = 50,
+	SC_DLCI_CONSOLE = 60,
 	SC_DLCI_ECHO    = 128,
 	_SC_DLCI_MAX
 };

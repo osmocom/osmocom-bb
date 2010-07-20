@@ -158,6 +158,7 @@ struct dnload {
 	int echo_bytecount;
 
 	struct tool_server layer2_server;
+	struct tool_server sap_server;
 	struct tool_server loader_server;
 };
 
@@ -1448,12 +1449,13 @@ int main(int argc, char **argv)
 	uint32_t tmp_load_address = ROMLOAD_ADDRESS;
 	const char *serial_dev = "/dev/ttyUSB1";
 	const char *layer2_un_path = "/tmp/osmocom_l2";
+	const char *sap_un_path = "/tmp/osmocom_sap";
 	const char *loader_un_path = "/tmp/osmocom_loader";
 
 	dnload.mode = MODE_C123;
 	dnload.chainload_filename = NULL;
 
-	while ((opt = getopt(argc, argv, "d:hl:p:m:c:s:v")) != -1) {
+	while ((opt = getopt(argc, argv, "d:hl:p:m:c:s:a:v")) != -1) {
 		switch (opt) {
 		case 'p':
 			serial_dev = optarg;
@@ -1468,6 +1470,9 @@ int main(int argc, char **argv)
 			break;
 		case 'l':
 			loader_un_path = optarg;
+			break;
+		case 'a':
+			sap_un_path = optarg;
 			break;
 		case 'v':
 			version(argv[0]);
@@ -1518,6 +1523,10 @@ int main(int argc, char **argv)
 	/* unix domain socket handling */
 	if (register_tool_server(&dnload.layer2_server, layer2_un_path,
 				 SC_DLCI_L1A_L23) != 0)
+		exit(1);
+
+	if (register_tool_server(&dnload.sap_server, sap_un_path,
+				 SC_DLCI_SAP) != 0)
 		exit(1);
 
 	if (register_tool_server(&dnload.loader_server, loader_un_path,
