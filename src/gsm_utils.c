@@ -52,7 +52,7 @@ int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t length)
 	int i = 0;
 	int l = 0;
 	int septet_l = (length * 8) / 7;
-	uint8_t *rtext = calloc(septet_l + 1, sizeof(uint8_t));
+	uint8_t *rtext = calloc(septet_l, sizeof(uint8_t));
 	uint8_t tmp;
 
 	/* FIXME: We need to account for user data headers here */
