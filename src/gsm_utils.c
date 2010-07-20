@@ -51,19 +51,21 @@ int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t length)
 {
 	int i = 0;
 	int l = 0;
-	uint8_t *rtext = calloc(length, sizeof(uint8_t));
+	int septet_l = (length * 8) / 7;
+	uint8_t *rtext = calloc(septet_l + 1, sizeof(uint8_t));
 	uint8_t tmp;
 
 	/* FIXME: We need to account for user data headers here */
 	i += l;
-	for (; i < length; i ++){
+	for (; i < septet_l; i++){
 		rtext[i] =
 			((user_data[(i * 7 + 7) >> 3] <<
 			  (7 - ((i * 7 + 7) & 7))) |
 			 (user_data[(i * 7) >> 3] >>
 			  ((i * 7) & 7))) & 0x7f;
 	}
-	for(i = 0; i < length; i++){
+
+	for(i = 0; i < septet_l; i++){
 		/* this is an extension character */
 		if(rtext[i] == 0x1b && i + 1 < length){
 			tmp = rtext[i+1];
@@ -139,7 +141,7 @@ int gsm_7bit_encode(uint8_t *result, const char *data)
 	}
 
 	free(rdata);
-	return i;
+	return z;
 }
 
 /* determine power control level for given dBm value, as indicated

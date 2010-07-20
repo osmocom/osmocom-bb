@@ -37,7 +37,7 @@ struct test_case {
 
 static const char simple_text[] = "test text";
 static const uint8_t simple_enc[] = {
-	0xf4, 0xf2, 0x9c, 0x0e, 0xa2, 0x97, 0xf1, 0x74, 0x00,
+	0xf4, 0xf2, 0x9c, 0x0e, 0xa2, 0x97, 0xf1, 0x74
 };
 
 static const char escape_text[] = "!$ a more#^- complicated test@@?_\%! case";
@@ -46,7 +46,6 @@ static const uint8_t escape_enc[] = {
 	0x86, 0xd2, 0x02, 0x8d, 0xdf, 0x6d, 0x38, 0x3b, 0x3d,
 	0x0e, 0xd3, 0xcb, 0x64, 0x10, 0xbd, 0x3c, 0xa7, 0x03,
 	0x00, 0xbf, 0x48, 0x29, 0x04, 0x1a, 0x87, 0xe7, 0x65,
-	0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 static const struct test_case test_encode[] =
@@ -54,12 +53,12 @@ static const struct test_case test_encode[] =
 	{
 		.input = simple_text,
 		.expected = simple_enc,
-		.expected_length = 9,
+		.expected_length = sizeof(simple_enc),
 	},
 	{
 		.input = escape_text,
 		.expected = escape_enc,
-		.expected_length = 41,
+		.expected_length = sizeof(escape_enc),
 	},
 };
 
@@ -67,12 +66,12 @@ static const struct test_case test_decode[] =
 {
 	{
 		.input = simple_enc,
-		.input_length = 9,
+		.input_length = sizeof(simple_enc),
 		.expected = simple_text,
 	},
 	{
 		.input = escape_enc,
-		.input_length = 41,
+		.input_length = sizeof(escape_enc),
 		.expected = escape_text,
 	},
 };
@@ -89,13 +88,13 @@ int main(int argc, char** argv)
 	char result[256];
 
 	/* test 7-bit encoding */
-        for (i = 0; i < ARRAY_SIZE(test_encode); ++i) {
-		memset(coded, 0, sizeof(coded));
+	for (i = 0; i < ARRAY_SIZE(test_encode); ++i) {
+		memset(coded, 0x42, sizeof(coded));
 		length = gsm_7bit_encode(coded, test_encode[i].input);
 
 		if (length != test_encode[i].expected_length) {
-			fprintf(stderr, "Failed to encode case %d. Got %d\n",
-				i, length);
+			fprintf(stderr, "Failed to encode case %d. Got %d, expected %d\n",
+				i, length, test_encode[i].expected_length);
 			return -1;
 		}
 
@@ -108,7 +107,7 @@ int main(int argc, char** argv)
 
 	/* test 7-bit decoding */
 	for (i = 0; i < ARRAY_SIZE(test_decode); ++i) {
-		memset(result, 0, sizeof(coded));
+		memset(result, 0x42, sizeof(coded));
 		gsm_7bit_decode(result, test_decode[i].input,
 				test_decode[i].input_length);
 
