@@ -208,6 +208,7 @@ struct file *file_for_fd(int fd)
 	return open_fds[fd];
 }
 
+/* dummy open implementation */
 int __libc_open(const char *pathname, int flags, ...)
 {
 	errno = EOPNOTSUPP;
@@ -217,6 +218,7 @@ int __libc_open(const char *pathname, int flags, ...)
 int open(const char *pathname, int flags, ...)
     __attribute__ ((weak, alias("__libc_open")));
 
+/* close implementation */
 int __libc_close(int fd)
 {
 	struct file *file = file_for_fd(fd);
@@ -238,6 +240,7 @@ int __libc_close(int fd)
 int close(int fd)
     __attribute__ ((weak, alias("__libc_close")));
 
+/* read implementation */
 ssize_t __libc_read(int fd, void *buf, size_t count)
 {
 	struct file *f = file_for_fd(fd);
@@ -252,6 +255,7 @@ ssize_t __libc_read(int fd, void *buf, size_t count)
 ssize_t read(int fd, void *buf, size_t count)
     __attribute__ ((weak, alias("__libc_read")));
 
+/* write implementation */
 ssize_t __libc_write(int fd, const void *buf, size_t count)
 {
 	struct file *f = file_for_fd(fd);
@@ -266,6 +270,7 @@ ssize_t __libc_write(int fd, const void *buf, size_t count)
 ssize_t write(int fd, const void *buf, size_t count)
     __attribute__ ((weak, alias("__libc_write")));
 
+/* seek implementation */
 off_t __libc_lseek(int fd, off_t offset, int whence)
 {
 	struct file *f = file_for_fd(fd);
@@ -280,8 +285,15 @@ off_t __libc_lseek(int fd, off_t offset, int whence)
 off_t lseek(int fd, off_t offset, int whence)
     __attribute__ ((weak, alias("__libc_lseek")));
 
+/* dummy fstat implementation */
 int __libc_fstat(int fd, struct stat *buf)
 {
+	struct file *f = file_for_fd(fd);
+	if (!f) {
+		errno = EBADF;
+		return -1;
+	}
+
 	errno = EOPNOTSUPP;
 	return -1;
 }
@@ -289,8 +301,16 @@ int __libc_fstat(int fd, struct stat *buf)
 int fstat(int fd, struct stat *buf)
     __attribute__ ((weak, alias("__libc_fstat")));
 
+
+/* dummy ioctl implementation */
 int __libc_ioctl(int fd, long int request, ...)
 {
+	struct file *f = file_for_fd(fd);
+	if (!f) {
+		errno = EBADF;
+		return -1;
+	}
+
 	errno = EOPNOTSUPP;
 	return -1;
 }
