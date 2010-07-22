@@ -34,8 +34,10 @@
 #include <comm/sercomm.h>
 
 /* XXX: strings must always be in ram */
+#if 0
 #define puts(...)
 #define printf(...)
+#endif
 
 /* global definitions */
 #define CFI_FLASH_MAX_ERASE_REGIONS 4
@@ -44,33 +46,33 @@
 struct cfi_region {
 	uint16_t b_count;
 	uint16_t b_size;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 /* structure of cfi query response */
 struct cfi_query {
-	uint8_t	qry[3];
-	uint16_t	p_id;
-	uint16_t	p_adr;
-	uint16_t	a_id;
-	uint16_t	a_adr;
-	uint8_t	vcc_min;
-	uint8_t	vcc_max;
-	uint8_t	vpp_min;
-	uint8_t	vpp_max;
-	uint8_t	word_write_timeout_typ;
-	uint8_t	buf_write_timeout_typ;
-	uint8_t	block_erase_timeout_typ;
-	uint8_t	chip_erase_timeout_typ;
-	uint8_t	word_write_timeout_max;
-	uint8_t	buf_write_timeout_max;
-	uint8_t	block_erase_timeout_max;
+	uint8_t qry[3];
+	uint16_t p_id;
+	uint16_t p_adr;
+	uint16_t a_id;
+	uint16_t a_adr;
+	uint8_t vcc_min;
+	uint8_t vcc_max;
+	uint8_t vpp_min;
+	uint8_t vpp_max;
+	uint8_t word_write_timeout_typ;
+	uint8_t buf_write_timeout_typ;
+	uint8_t block_erase_timeout_typ;
+	uint8_t chip_erase_timeout_typ;
+	uint8_t word_write_timeout_max;
+	uint8_t buf_write_timeout_max;
+	uint8_t block_erase_timeout_max;
 	uint8_t chip_erase_timeout_max;
-	uint8_t	dev_size;
-	uint16_t	interface_desc;
-	uint16_t	max_buf_write_size;
-	uint8_t	num_erase_regions;
-	struct cfi_region  erase_regions[CFI_FLASH_MAX_ERASE_REGIONS];
-} __attribute__((packed));
+	uint8_t dev_size;
+	uint16_t interface_desc;
+	uint16_t max_buf_write_size;
+	uint8_t num_erase_regions;
+	struct cfi_region erase_regions[CFI_FLASH_MAX_ERASE_REGIONS];
+} __attribute__ ((packed));
 
 /* manufacturer ids */
 enum cfi_manuf {
@@ -84,13 +86,13 @@ enum cfi_algo {
 
 /* various command bytes */
 enum cfi_flash_cmd {
-	CFI_CMD_RESET		= 0xff,
-	CFI_CMD_READ_ID	= 0x90,
-	CFI_CMD_CFI		= 0x98,
-	CFI_CMD_READ_STATUS	= 0x70,
-	CFI_CMD_CLEAR_STATUS	= 0x50,
-	CFI_CMD_WRITE		= 0x40,
-	CFI_CMD_BLOCK_ERASE	= 0x20,
+	CFI_CMD_RESET = 0xff,
+	CFI_CMD_READ_ID = 0x90,
+	CFI_CMD_CFI = 0x98,
+	CFI_CMD_READ_STATUS = 0x70,
+	CFI_CMD_CLEAR_STATUS = 0x50,
+	CFI_CMD_WRITE = 0x40,
+	CFI_CMD_BLOCK_ERASE = 0x20,
 	CFI_CMD_ERASE_CONFIRM = 0xD0,
 	CFI_CMD_PROTECT = 0x60,
 };
@@ -104,10 +106,10 @@ enum flash_prot_cmd {
 
 /* offsets from base */
 enum flash_offset {
-	CFI_OFFSET_MANUFACTURER_ID	= 0x00,
-	CFI_OFFSET_DEVICE_ID		= 0x01,
-	CFI_OFFSET_INTEL_PROTECTION	= 0x81,
-	CFI_OFFSET_CFI_RESP		= 0x10
+	CFI_OFFSET_MANUFACTURER_ID = 0x00,
+	CFI_OFFSET_DEVICE_ID = 0x01,
+	CFI_OFFSET_INTEL_PROTECTION = 0x81,
+	CFI_OFFSET_CFI_RESP = 0x10
 };
 
 /* offsets from block base */
@@ -140,7 +142,8 @@ static inline uint16_t flash_read16(const void *base_addr, uint32_t offset)
 }
 
 __ramtext
-static char flash_protected(uint32_t block_offset) {
+static char flash_protected(uint32_t block_offset)
+{
 #ifdef CONFIG_FLASH_WRITE
 #  ifdef CONFIG_FLASH_WRITE_LOADER
 	return 0;
@@ -152,19 +155,21 @@ static char flash_protected(uint32_t block_offset) {
 #endif
 }
 
-
 __ramtext
-flash_lock_t flash_block_getlock(flash_t *flash, uint32_t block_offset) {
+flash_lock_t flash_block_getlock(flash_t * flash, uint32_t block_offset)
+{
 	const void *base_addr = flash->f_base;
 
 	uint8_t lockstate;
 	flash_write_cmd(base_addr, CFI_CMD_READ_ID);
-	lockstate = flash_read16(base_addr, (block_offset>>1) + CFI_OFFSET_BLOCK_LOCKSTATE);
+	lockstate =
+		flash_read16(base_addr,
+			     (block_offset >> 1) + CFI_OFFSET_BLOCK_LOCKSTATE);
 	flash_write_cmd(base_addr, CFI_CMD_RESET);
 
-	if(lockstate & 0x2) {
+	if (lockstate & 0x2) {
 		return FLASH_LOCKED_DOWN;
-	} else if(lockstate & 0x01) {
+	} else if (lockstate & 0x01) {
 		return FLASH_LOCKED;
 	} else {
 		return FLASH_UNLOCKED;
@@ -172,18 +177,20 @@ flash_lock_t flash_block_getlock(flash_t *flash, uint32_t block_offset) {
 }
 
 __ramtext
-int flash_block_unlock(flash_t *flash, uint32_t block_offset) {
+int flash_block_unlock(flash_t * flash, uint32_t block_offset)
+{
 	const void *base_addr = flash->f_base;
 
-	if(block_offset >= flash->f_size) {
+	if (block_offset >= flash->f_size) {
 		return -EINVAL;
 	}
 
-	if(flash_protected(block_offset)) {
+	if (flash_protected(block_offset)) {
 		return -EPERM;
 	}
 
-	printf("Unlocking block at 0x%08x, meaning %08x\n", block_offset, base_addr + block_offset);
+	printf("Unlocking block at 0x%08x, meaning %08x\n",
+		   block_offset, base_addr + block_offset);
 
 	flash_write_cmd(base_addr, CFI_CMD_PROTECT);
 	flash_write_cmd(base_addr + block_offset, CFI_PROT_UNLOCK);
@@ -193,10 +200,11 @@ int flash_block_unlock(flash_t *flash, uint32_t block_offset) {
 }
 
 __ramtext
-int flash_block_lock(flash_t *flash, uint32_t block_offset) {
+int flash_block_lock(flash_t * flash, uint32_t block_offset)
+{
 	const void *base_addr = flash->f_base;
 
-	if(block_offset >= flash->f_size) {
+	if (block_offset >= flash->f_size) {
 		return -EINVAL;
 	}
 
@@ -210,10 +218,11 @@ int flash_block_lock(flash_t *flash, uint32_t block_offset) {
 }
 
 __ramtext
-int flash_block_lockdown(flash_t *flash, uint32_t block_offset) {
+int flash_block_lockdown(flash_t * flash, uint32_t block_offset)
+{
 	const void *base_addr = flash->f_base;
 
-	if(block_offset >= flash->f_size) {
+	if (block_offset >= flash->f_size) {
 		return -EINVAL;
 	}
 
@@ -227,20 +236,21 @@ int flash_block_lockdown(flash_t *flash, uint32_t block_offset) {
 }
 
 __ramtext
-int flash_block_erase(flash_t *flash, uint32_t block_offset) {
+int flash_block_erase(flash_t * flash, uint32_t block_offset)
+{
 	const void *base_addr = flash->f_base;
 
-	if(block_offset >= flash->f_size) {
+	if (block_offset >= flash->f_size) {
 		return -EINVAL;
 	}
 
-	if(flash_protected(block_offset)) {
+	if (flash_protected(block_offset)) {
 		return -EPERM;
 	}
 
 	printf("Erasing block 0x%08x...", block_offset);
 
-	void *block_addr = ((uint8_t*)base_addr) + block_offset;
+	void *block_addr = ((uint8_t *) base_addr) + block_offset;
 
 	flash_write_cmd(base_addr, CFI_CMD_CLEAR_STATUS);
 
@@ -251,15 +261,15 @@ int flash_block_erase(flash_t *flash, uint32_t block_offset) {
 	uint16_t status;
 	do {
 		status = flash_read16(base_addr, 0);
-	} while(!(status&CFI_STATUS_READY));
+	} while (!(status & CFI_STATUS_READY));
 
 	int res = 0;
-	if(status&CFI_STATUS_ERASE_ERROR) {
+	if (status & CFI_STATUS_ERASE_ERROR) {
 		puts("error: ");
-		if(status&CFI_STATUS_VPP_LOW) {
+		if (status & CFI_STATUS_VPP_LOW) {
 			puts("vpp insufficient\n");
 			res = -EFAULT;
-		} else if(status&CFI_STATUS_LOCKED_ERROR) {
+		} else if (status & CFI_STATUS_LOCKED_ERROR) {
 			puts("block is lock-protected\n");
 			res = -EPERM;
 		} else {
@@ -277,32 +287,33 @@ int flash_block_erase(flash_t *flash, uint32_t block_offset) {
 }
 
 __ramtext
-int flash_program(flash_t *flash, uint32_t dst, void *src, uint32_t nbytes) {
+int flash_program(flash_t * flash, uint32_t dst, void *src, uint32_t nbytes)
+{
 	const void *base_addr = flash->f_base;
 	int res = 0;
 	uint32_t i;
 
 	/* check destination bounds */
-	if(dst >= flash->f_size) {
+	if (dst >= flash->f_size) {
 		return -EINVAL;
 	}
-	if(dst + nbytes > flash->f_size) {
+	if (dst + nbytes > flash->f_size) {
 		return -EINVAL;
 	}
 
 	/* check alignments */
-	if(((uint32_t)src)%2) {
+	if (((uint32_t) src) % 2) {
 		return -EINVAL;
 	}
-	if(dst%2) {
+	if (dst % 2) {
 		return -EINVAL;
 	}
-	if(nbytes%2) {
+	if (nbytes % 2) {
 		return -EINVAL;
 	}
 
 	/* check permissions */
-	if(flash_protected(dst)) {
+	if (flash_protected(dst)) {
 		return -EPERM;
 	}
 
@@ -314,9 +325,9 @@ int flash_program(flash_t *flash, uint32_t dst, void *src, uint32_t nbytes) {
 
 	/* write the words */
 	puts("writing...");
-	for(i = 0; i < nbytes; i += 2) {
-		uint16_t *src_addr = (uint16_t*)(src + i);
-		uint16_t *dst_addr = (uint16_t*)(base_addr + dst + i);
+	for (i = 0; i < nbytes; i += 2) {
+		uint16_t *src_addr = (uint16_t *) (src + i);
+		uint16_t *dst_addr = (uint16_t *) (base_addr + dst + i);
 
 		uint16_t data = *src_addr;
 
@@ -327,14 +338,14 @@ int flash_program(flash_t *flash, uint32_t dst, void *src, uint32_t nbytes) {
 		uint16_t status;
 		do {
 			status = flash_read16(base_addr, 0);
-		} while(!(status&CFI_STATUS_READY));
+		} while (!(status & CFI_STATUS_READY));
 
-		if(status&CFI_STATUS_PROGRAM_ERROR) {
+		if (status & CFI_STATUS_PROGRAM_ERROR) {
 			puts("error: ");
-			if(status&CFI_STATUS_VPP_LOW) {
+			if (status & CFI_STATUS_VPP_LOW) {
 				puts("vpp insufficient");
 				res = -EFAULT;
-			} else if(status&CFI_STATUS_LOCKED_ERROR) {
+			} else if (status & CFI_STATUS_LOCKED_ERROR) {
 				puts("block is lock-protected");
 				res = -EPERM;
 			} else {
@@ -349,10 +360,10 @@ int flash_program(flash_t *flash, uint32_t dst, void *src, uint32_t nbytes) {
 
 	/* verify the result */
 	puts("verifying...");
-	for(i = 0; i < nbytes; i += 2) {
-		uint16_t *src_addr = (uint16_t*)(src + i);
-		uint16_t *dst_addr = (uint16_t*)(base_addr + dst + i);
-		if(*src_addr != *dst_addr) {
+	for (i = 0; i < nbytes; i += 2) {
+		uint16_t *src_addr = (uint16_t *) (src + i);
+		uint16_t *dst_addr = (uint16_t *) (base_addr + dst + i);
+		if (*src_addr != *dst_addr) {
 			puts("error: verification failed");
 			res = -EFAULT;
 			goto err;
@@ -374,7 +385,9 @@ int flash_program(flash_t *flash, uint32_t dst, void *src, uint32_t nbytes) {
 
 /* Internal: retrieve manufacturer and device id from id space */
 __ramtext
-static int get_id(void *base_addr, uint16_t *manufacturer_id, uint16_t *device_id) {
+static int get_id(void *base_addr,
+		  uint16_t * manufacturer_id, uint16_t * device_id)
+{
 	flash_write_cmd(base_addr, CFI_CMD_READ_ID);
 
 	*manufacturer_id = flash_read16(base_addr, CFI_OFFSET_MANUFACTURER_ID);
@@ -387,18 +400,20 @@ static int get_id(void *base_addr, uint16_t *manufacturer_id, uint16_t *device_i
 
 /* Internal: retrieve cfi query response data */
 __ramtext
-static int get_query(void *base_addr, struct cfi_query *query) {
+static int get_query(void *base_addr, struct cfi_query *query)
+{
 	int res = 0;
 	int i;
 
 	flash_write_cmd(base_addr, CFI_CMD_CFI);
 
-	for(i = 0; i < sizeof(struct cfi_query); i++) {
-		uint16_t byte = flash_read16(base_addr, CFI_OFFSET_CFI_RESP+i);
-		*(((unsigned char*)query)+i) = byte;
+	for (i = 0; i < sizeof(struct cfi_query); i++) {
+		uint16_t byte =
+			flash_read16(base_addr, CFI_OFFSET_CFI_RESP + i);
+		*(((unsigned char *)query) + i) = byte;
 	}
 
-	if(query->qry[0] != 'Q' || query->qry[1] != 'R' || query->qry[2] != 'Y') {
+	if (query->qry[0] != 'Q' || query->qry[1] != 'R' || query->qry[2] != 'Y') {
 		res = -ENOENT;
 	}
 
@@ -411,14 +426,16 @@ static int get_query(void *base_addr, struct cfi_query *query) {
 
 /* Internal: retrieve intel protection data */
 __ramtext
-static int get_intel_protection(void *base_addr, uint16_t *lockp, uint8_t protp[8]) {
+static int get_intel_protection(void *base_addr,
+				uint16_t * lockp, uint8_t protp[8])
+{
 	int i;
 
 	/* check args */
-	if(!lockp) {
+	if (!lockp) {
 		return -EINVAL;
 	}
-	if(!protp) {
+	if (!protp) {
 		return -EINVAL;
 	}
 
@@ -429,7 +446,7 @@ static int get_intel_protection(void *base_addr, uint16_t *lockp, uint8_t protp[
 	*lockp = flash_read16(base_addr, CFI_OFFSET_INTEL_PROTECTION);
 
 	/* get data */
-	for(i = 0; i < 8; i++) {
+	for (i = 0; i < 8; i++) {
 		protp[i] = flash_read16(base_addr, CFI_OFFSET_INTEL_PROTECTION + 1 + i);
 	}
 
@@ -439,35 +456,43 @@ static int get_intel_protection(void *base_addr, uint16_t *lockp, uint8_t protp[
 	return 0;
 }
 
-static void dump_intel_protection(uint16_t lock, uint8_t data[8]) {
-	printf("  protection lock 0x%4.4x data 0x%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x\n",
-		   lock, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
+static void dump_intel_protection(uint16_t lock, uint8_t data[8])
+{
+	printf
+		("  protection lock 0x%4.4x data 0x%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x\n",
+		 lock, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
 }
 
-static void dump_query_algorithms(struct cfi_query *qry) {
+static void dump_query_algorithms(struct cfi_query *qry)
+{
 	printf("  primary algorithm 0x%4.4x\n", qry->p_id);
 	printf("  primary extended query 0x%4.4x\n", qry->p_adr);
 	printf("  alternate algorithm 0x%4.4x\n", qry->a_id);
 	printf("  alternate extended query 0x%4.4x\n", qry->a_adr);
 }
 
-static void dump_query_timing(struct cfi_query *qry) {
-	uint32_t block_erase_typ = 1<<qry->block_erase_timeout_typ;
-	uint32_t block_erase_max = (1<<qry->block_erase_timeout_max) * block_erase_typ;
-	uint32_t word_program_typ = 1<<qry->word_write_timeout_typ;
-	uint32_t word_program_max = (1<<qry->word_write_timeout_max) * word_program_typ;
+static void dump_query_timing(struct cfi_query *qry)
+{
+	uint32_t block_erase_typ = 1 << qry->block_erase_timeout_typ;
+	uint32_t block_erase_max =
+		(1 << qry->block_erase_timeout_max) * block_erase_typ;
+	uint32_t word_program_typ = 1 << qry->word_write_timeout_typ;
+	uint32_t word_program_max =
+		(1 << qry->word_write_timeout_max) * word_program_typ;
 	printf("  block erase typ %u ms\n", block_erase_typ);
 	printf("  block erase max %u ms\n", block_erase_max);
 	printf("  word program typ %u us\n", word_program_typ);
 	printf("  word program max %u us\n", word_program_max);
 }
 
-void flash_dump_info(flash_t *flash) {
+void flash_dump_info(flash_t * flash)
+{
 	int i;
-	printf("flash at 0x%p of %d bytes with %d regions\n", flash->f_base, flash->f_size, flash->f_nregions);
+	printf("flash at 0x%p of %d bytes with %d regions\n",
+		   flash->f_base, flash->f_size, flash->f_nregions);
 
 	uint16_t m_id, d_id;
-	if(get_id(flash->f_base, &m_id, &d_id)) {
+	if (get_id(flash->f_base, &m_id, &d_id)) {
 		puts("  failed to get id\n");
 	} else {
 		printf("  manufacturer 0x%4.4x device 0x%4.4x\n", m_id, d_id);
@@ -475,30 +500,32 @@ void flash_dump_info(flash_t *flash) {
 
 	uint16_t plock;
 	uint8_t pdata[8];
-	if(get_intel_protection(flash->f_base, &plock, pdata)) {
+	if (get_intel_protection(flash->f_base, &plock, pdata)) {
 		puts("  failed to get protection data\n");
 	} else {
 		dump_intel_protection(plock, pdata);
 	}
 
 	struct cfi_query qry;
-	if(get_query(flash->f_base, &qry)) {
+	if (get_query(flash->f_base, &qry)) {
 		puts("  failed to get cfi query response\n");
 	} else {
 		dump_query_algorithms(&qry);
 		dump_query_timing(&qry);
 	}
 
-	for(i = 0; i < flash->f_nregions; i++) {
+	for (i = 0; i < flash->f_nregions; i++) {
 		flash_region_t *fr = &flash->f_regions[i];
-		printf("  region %d: %d blocks of %d bytes at 0x%p\n", i, fr->fr_bnum, fr->fr_bsize, fr->fr_base);
+		printf("  region %d: %d blocks of %d bytes at 0x%p\n",
+			   i, fr->fr_bnum, fr->fr_bsize, fr->fr_base);
 	}
 }
 
 #endif
 
 __ramtext
-int flash_init(flash_t *flash, void *base_addr) {
+int flash_init(flash_t * flash, void *base_addr)
+{
 	int res;
 	unsigned u;
 	uint16_t m_id, d_id;
@@ -507,41 +534,41 @@ int flash_init(flash_t *flash, void *base_addr) {
 
 	/* retrieve and check manufacturer and device id */
 	res = get_id(base_addr, &m_id, &d_id);
-	if(res) {
+	if (res) {
 		return res;
 	}
-	if(m_id != CFI_MANUF_INTEL) {
+	if (m_id != CFI_MANUF_INTEL) {
 		/* we only support intel devices */
 		return -ENOTSUP;
 	}
 
 	/* retrieve and check query response */
 	res = get_query(base_addr, &qry);
-	if(res) {
+	if (res) {
 		return res;
 	}
-	if(qry.p_id != CFI_ALGO_INTEL_3) {
+	if (qry.p_id != CFI_ALGO_INTEL_3) {
 		/* we only support algo 3 */
 		return -ENOTSUP;
 	}
-	if(qry.num_erase_regions > FLASH_MAX_REGIONS) {
+	if (qry.num_erase_regions > FLASH_MAX_REGIONS) {
 		/* we have a hard limit on the number of regions */
 		return -ENOTSUP;
 	}
 
 	/* fill in basic information */
 	flash->f_base = base_addr;
-	flash->f_size = 1<<qry.dev_size;
+	flash->f_size = 1 << qry.dev_size;
 
 	/* determine number of erase regions */
 	flash->f_nregions = qry.num_erase_regions;
 
 	/* compute actual erase region info from cfi junk */
 	base = 0;
-	for(u = 0; u < flash->f_nregions; u++) {
+	for (u = 0; u < flash->f_nregions; u++) {
 		flash_region_t *fr = &flash->f_regions[u];
 
-		fr->fr_base = (void*)base;
+		fr->fr_base = (void *)base;
 		fr->fr_bnum = qry.erase_regions[u].b_count + 1;
 		fr->fr_bsize = qry.erase_regions[u].b_size * 256;
 
