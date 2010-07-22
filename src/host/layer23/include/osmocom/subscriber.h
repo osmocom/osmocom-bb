@@ -70,7 +70,7 @@ struct gsm_subscriber {
 
 int gsm_subscr_init(struct osmocom_ms *ms);
 int gsm_subscr_exit(struct osmocom_ms *ms);
-int gsm_subscr_testcard(struct osmocom_ms *ms);
+int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc);
 int gsm_subscr_remove(struct osmocom_ms *ms);
 void new_sim_ustate(struct gsm_subscriber *subscr, int state);
 int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,

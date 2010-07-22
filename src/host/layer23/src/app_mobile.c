@@ -75,6 +75,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
+	struct gsm_settings *set;
 	struct msgb *nmsg;
 
 	if (subsys != SS_L1CTL)
@@ -86,9 +87,11 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 			break;
 		started = 1;
 		ms = signal_data;
+		set = &ms->settings;
 		/* insert test card, if enabled */
-		if (ms->settings.simtype == GSM_SIM_TYPE_TEST)
-			gsm_subscr_testcard(ms);
+		if (set->simtype == GSM_SIM_TYPE_TEST)
+			gsm_subscr_testcard(ms, set->test_rplmn_mcc,
+						set->test_rplmn_mnc);
 		/* start PLMN + cell selection process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
 		if (!nmsg)

@@ -337,12 +337,12 @@ DEFUN(no_monitor_network, no_monitor_network_cmd, "no monitor network MS_NAME",
 	return CMD_SUCCESS;
 }
 
-DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
-	"Insert ...\nInsert test card\nName of MS (see \"show ms\")\n"
-	"Mobile Country Code\nMobile Network Code")
+DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [mcc] [mnc]",
+	"SIM actions\nInsert test card\nName of MS (see \"show ms\")\n"
+	"Mobile Country Code of RPLMN\nMobile Network Code of RPLMN")
 {
 	struct osmocom_ms *ms;
-	uint16_t mcc = 1, mnc = 1;
+	uint16_t mcc = 0x001, mnc = 0x01f;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
@@ -367,13 +367,13 @@ DEFUN(insert_test, insert_test_cmd, "insert testcard MS_NAME [mcc] [mnc]",
 		}
 	}
 
-	gsm_subscr_testcard(ms);
+	gsm_subscr_testcard(ms, mcc, mnc);
 
 	return CMD_SUCCESS;
 }
 
-DEFUN(remove_sim, remove_sim_cmd, "remove sim MS_NAME",
-	"Remove ...\nRemove SIM card\nName of MS (see \"show ms\")")
+DEFUN(sim_remove, sim_remove_cmd, "sim remove MS_NAME",
+	"SIM actions\nRemove SIM card\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 
@@ -1071,8 +1071,8 @@ int ms_vty_init(void)
 	install_element_ve(&monitor_network_cmd);
 	install_element_ve(&no_monitor_network_cmd);
 
-	install_element(ENABLE_NODE, &insert_test_cmd);
-	install_element(ENABLE_NODE, &remove_sim_cmd);
+	install_element(ENABLE_NODE, &sim_test_cmd);
+	install_element(ENABLE_NODE, &sim_remove_cmd);
 	install_element(ENABLE_NODE, &network_search_cmd);
 	install_element(ENABLE_NODE, &network_show_cmd);
 	install_element(ENABLE_NODE, &network_select_cmd);

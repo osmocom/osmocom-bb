@@ -66,7 +66,7 @@ int gsm_subscr_exit(struct osmocom_ms *ms)
 }
 
 /* Attach test card, no sim must be present */
-int gsm_subscr_testcard(struct osmocom_ms *ms)
+int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
@@ -96,15 +96,19 @@ int gsm_subscr_testcard(struct osmocom_ms *ms)
 	subscr->acc_barr = set->test_barr; /* we may access barred cell */
 	subscr->acc_class = 0xffff; /* we have any access class */
 	subscr->plmn_valid = set->test_rplmn_valid;
-	subscr->plmn_mcc = set->test_rplmn_mcc;
-	subscr->plmn_mnc = set->test_rplmn_mnc;
+	subscr->plmn_mcc = mcc;
+	subscr->plmn_mnc = mnc;
 	subscr->always_search_hplmn = set->test_always;
 	subscr->t6m_hplmn = 1; /* try to find home network every 6 min */
 	strcpy(subscr->imsi, set->test_imsi);
 
-	LOGP(DMM, LOGL_INFO, "(ms %s) Inserting test card (IMSI=%s %s,%s)\n",
+	LOGP(DMM, LOGL_INFO, "(ms %s) Inserting test card (IMSI=%s %s, %s)\n",
 		ms->name, subscr->imsi, gsm_imsi_mcc(subscr->imsi),
 		gsm_imsi_mnc(subscr->imsi));
+
+	LOGP(DMM, LOGL_INFO, "-> Test card regisered to %s %s (%s, %s)\n",
+		gsm_print_mcc(mcc), gsm_print_mnc(mnc), gsm_get_mcc(mcc), 
+		gsm_get_mnc(mcc, mnc));
 
 	/* insert card */
 	msg = gsm48_mmr_msgb_alloc(GSM48_MMR_REG_REQ);
