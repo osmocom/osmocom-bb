@@ -13,17 +13,17 @@ struct file;
 struct file_operations;
 
 /* function pointer types for operations */
-typedef int (*fop_sync_t) (struct file *fd);
-typedef off_t (*fop_seek_t) (struct file *fd, off_t offset, int whence);
-typedef ssize_t (*fop_read_t) (struct file *fd, void *buf, size_t size);
-typedef ssize_t (*fop_write_t) (struct file *fd, const void *buf, size_t size);
-typedef int (*fop_close_t) (struct file *fd);
+typedef int (*fop_sync_t) (struct file * fd);
+typedef off_t(*fop_seek_t) (struct file * fd, off_t offset, int whence);
+typedef ssize_t(*fop_read_t) (struct file * fd, void *buf, size_t size);
+typedef ssize_t(*fop_write_t) (struct file * fd, const void *buf, size_t size);
+typedef int (*fop_close_t) (struct file * fd);
 
 /* structure describing operations for file */
 struct file_operations {
 	fop_sync_t fop_sync;
 	fop_seek_t fop_seek;
-	fop_read_t  fop_read;
+	fop_read_t fop_read;
 	fop_write_t fop_write;
 	fop_close_t fop_close;
 };
@@ -55,7 +55,7 @@ struct file_operations sercomm_console_operations = {
 	.fop_write = &scc_write
 };
 
-__attribute__((constructor))
+__attribute__ ((constructor))
 void file_table_init(void)
 {
 	/* clear all structures */
@@ -81,12 +81,11 @@ void file_table_init(void)
 	open_fds[2] = &open_files[2];
 }
 
-
 struct file *file_alloc()
 {
 	int i;
-	for(i = 0; i < MAXFILES; i++) {
-		if(!open_files[i].f_used) {
+	for (i = 0; i < MAXFILES; i++) {
+		if (!open_files[i].f_used) {
 			open_files[i].f_used = -1;
 			return &open_files[i];
 		}
@@ -98,7 +97,7 @@ struct file *file_alloc()
 
 int file_ref(struct file *fd)
 {
-	if(fd->f_used == -1) {
+	if (fd->f_used == -1) {
 		fd->f_used = 1;
 	} else {
 		fd->f_used++;
@@ -108,7 +107,7 @@ int file_ref(struct file *fd)
 
 int file_unref(struct file *fd)
 {
-	if(fd->f_used <= 0) {
+	if (fd->f_used <= 0) {
 		fd->f_used = 0;
 	} else {
 		fd->f_used--;
@@ -116,11 +115,10 @@ int file_unref(struct file *fd)
 	return fd->f_used;
 }
 
-
 int file_sync(struct file *fd)
 {
 	/* pass through to the implementation, if present. else fail. */
-	if(fd->f_ops->fop_sync) {
+	if (fd->f_ops->fop_sync) {
 		return fd->f_ops->fop_sync(fd);
 	} else {
 		errno = EOPNOTSUPP;
@@ -128,10 +126,10 @@ int file_sync(struct file *fd)
 	}
 }
 
-off_t file_seek(struct file *fd, off_t offset, int whence)
+off_t file_seek(struct file * fd, off_t offset, int whence)
 {
 	/* pass through to the implementation, if present. else fail. */
-	if(fd->f_ops->fop_seek) {
+	if (fd->f_ops->fop_seek) {
 		return fd->f_ops->fop_seek(fd, offset, whence);
 	} else {
 		errno = EOPNOTSUPP;
@@ -139,10 +137,10 @@ off_t file_seek(struct file *fd, off_t offset, int whence)
 	}
 }
 
-size_t file_read(struct file *fd, void *buf, size_t count)
+size_t file_read(struct file * fd, void *buf, size_t count)
 {
 	/* pass through to the implementation, if present. else fail. */
-	if(fd->f_ops->fop_read) {
+	if (fd->f_ops->fop_read) {
 		return fd->f_ops->fop_read(fd, buf, count);
 	} else {
 		errno = EOPNOTSUPP;
@@ -150,10 +148,10 @@ size_t file_read(struct file *fd, void *buf, size_t count)
 	}
 }
 
-size_t file_write(struct file *fd, const void *buf, size_t count)
+size_t file_write(struct file * fd, const void *buf, size_t count)
 {
 	/* pass through to the implementation, if present. else fail. */
-	if(fd->f_ops->fop_write) {
+	if (fd->f_ops->fop_write) {
 		return fd->f_ops->fop_write(fd, buf, count);
 	} else {
 		errno = EOPNOTSUPP;
@@ -164,12 +162,12 @@ size_t file_write(struct file *fd, const void *buf, size_t count)
 int file_close(struct file *fd)
 {
 	/* unref and really close if at last ref */
-	if(!file_unref(fd)) {
+	if (!file_unref(fd)) {
 		return 0;
 	}
 
 	/* call object implementation once */
-	if(fd->f_ops->fop_close) {
+	if (fd->f_ops->fop_close) {
 		return fd->f_ops->fop_close(fd);
 	}
 
@@ -180,13 +178,11 @@ int file_close(struct file *fd)
 	return 0;
 }
 
-
-
 int fd_alloc(struct file *file)
 {
 	int i;
-	for(i = 0; i < MAXFDS; i++) {
-		if(!open_fds[i]) {
+	for (i = 0; i < MAXFDS; i++) {
+		if (!open_fds[i]) {
 			file_ref(file);
 			open_fds[i] = file;
 			return i;
@@ -199,20 +195,18 @@ int fd_alloc(struct file *file)
 
 struct file *file_for_fd(int fd)
 {
-	if(fd >= MAXFDS) {
+	if (fd >= MAXFDS) {
 		errno = EBADF;
 		return NULL;
 	}
 
-	if(!open_fds[fd]) {
+	if (!open_fds[fd]) {
 		errno = EBADF;
 		return NULL;
 	}
 
 	return open_fds[fd];
 }
-
-
 
 int __libc_open(const char *pathname, int flags, ...)
 {
@@ -221,19 +215,18 @@ int __libc_open(const char *pathname, int flags, ...)
 }
 
 int open(const char *pathname, int flags, ...)
-	__attribute__((weak,alias("__libc_open")));
-
+    __attribute__ ((weak, alias("__libc_open")));
 
 int __libc_close(int fd)
 {
 	struct file *file = file_for_fd(fd);
-	if(!file) {
+	if (!file) {
 		errno = EBADF;
 		return -1;
 	}
 
 	int res = file_close(file);
-	if(res < 0) {
+	if (res < 0) {
 		return res;
 	}
 
@@ -243,13 +236,12 @@ int __libc_close(int fd)
 }
 
 int close(int fd)
-	__attribute__((weak,alias("__libc_close")));
-
+    __attribute__ ((weak, alias("__libc_close")));
 
 ssize_t __libc_read(int fd, void *buf, size_t count)
 {
 	struct file *f = file_for_fd(fd);
-	if(!f) {
+	if (!f) {
 		errno = EBADF;
 		return -1;
 	}
@@ -258,13 +250,12 @@ ssize_t __libc_read(int fd, void *buf, size_t count)
 }
 
 ssize_t read(int fd, void *buf, size_t count)
-	__attribute__((weak,alias("__libc_read")));
-
+    __attribute__ ((weak, alias("__libc_read")));
 
 ssize_t __libc_write(int fd, const void *buf, size_t count)
 {
 	struct file *f = file_for_fd(fd);
-	if(!f) {
+	if (!f) {
 		errno = EBADF;
 		return -1;
 	}
@@ -273,13 +264,12 @@ ssize_t __libc_write(int fd, const void *buf, size_t count)
 }
 
 ssize_t write(int fd, const void *buf, size_t count)
-	__attribute__((weak,alias("__libc_write")));
-
+    __attribute__ ((weak, alias("__libc_write")));
 
 off_t __libc_lseek(int fd, off_t offset, int whence)
 {
 	struct file *f = file_for_fd(fd);
-	if(!f) {
+	if (!f) {
 		errno = EBADF;
 		return -1;
 	}
@@ -288,8 +278,7 @@ off_t __libc_lseek(int fd, off_t offset, int whence)
 }
 
 off_t lseek(int fd, off_t offset, int whence)
-	__attribute__((weak,alias("__libc_lseek")));
-
+    __attribute__ ((weak, alias("__libc_lseek")));
 
 int __libc_fstat(int fd, struct stat *buf)
 {
@@ -298,8 +287,7 @@ int __libc_fstat(int fd, struct stat *buf)
 }
 
 int fstat(int fd, struct stat *buf)
-	__attribute__((weak,alias("__libc_fstat")));
-
+    __attribute__ ((weak, alias("__libc_fstat")));
 
 int __libc_ioctl(int fd, long int request, ...)
 {
@@ -308,4 +296,4 @@ int __libc_ioctl(int fd, long int request, ...)
 }
 
 int ioctl(int fd, long int request, ...)
-	__attribute__((weak,alias("__libc_ioctl")));
+    __attribute__ ((weak, alias("__libc_ioctl")));
