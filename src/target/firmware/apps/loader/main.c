@@ -53,56 +53,62 @@
 #include "protocol.h"
 
 /* Main Program */
-const char *hr = "======================================================================\n";
+const char *hr =
+    "======================================================================\n";
 
 static void key_handler(enum key_codes code, enum key_states state);
 static void cmd_handler(uint8_t dlci, struct msgb *msg);
 
 int flag = 0;
 
-static void flush_uart(void) {
+static void flush_uart(void)
+{
 	unsigned i;
-	for(i = 0; i < 500; i++) {
+	for (i = 0; i < 500; i++) {
 		uart_poll(SERCOMM_UART_NR);
 		delay_ms(1);
 	}
 }
 
-static void device_poweroff(void) {
+static void device_poweroff(void)
+{
 	flush_uart();
 	twl3025_power_off();
 }
 
-static void device_reset(void) {
+static void device_reset(void)
+{
 	flush_uart();
 	wdog_reset();
 }
 
-static void device_enter_loader(unsigned char bootrom) {
+static void device_enter_loader(unsigned char bootrom)
+{
 	flush_uart();
 
 	calypso_bootrom(bootrom);
-	void (*entry)( void ) = (void (*)(void))0;
+	void (*entry) (void) = (void (*)(void))0;
 	entry();
 }
 
-static void device_jump(void *entry) {
+static void device_jump(void *entry)
+{
 	flush_uart();
 
-	void (*f)( void ) = (void (*)(void))entry;
+	void (*f) (void) = (void (*)(void))entry;
 	f();
 }
 
-static void
-loader_send_simple(struct msgb *msg, uint8_t dlci, uint8_t command) {
+static void loader_send_simple(struct msgb *msg, uint8_t dlci, uint8_t command)
+{
 	msgb_put_u8(msg, command);
 	sercomm_sendmsg(dlci, msg);
 }
 
 extern unsigned char _start;
 
-static void
-loader_send_init(uint8_t dlci) {
+static void loader_send_init(uint8_t dlci)
+{
 	struct msgb *msg = sercomm_alloc_msgb(9);
 	msgb_put_u8(msg, LOADER_INIT);
 	msgb_put_u32(msg, 0);
@@ -114,13 +120,13 @@ flash_t the_flash;
 
 extern void putchar_asm(uint32_t c);
 
-static const uint8_t phone_ack[]     = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x03, 0x42 };
+static const uint8_t phone_ack[] = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x03, 0x42 };
 
 int main(void)
 {
 	/* Simulate a compal loader saying "ACK" */
 	int i = 0;
-	for(i = 0; i < sizeof(phone_ack); i++) {
+	for (i = 0; i < sizeof(phone_ack); i++) {
 		putchar_asm(phone_ack[i]);
 	}
 
@@ -146,21 +152,23 @@ int main(void)
 	puts(hr);
 
 	/* Identify environment */
-	printf("Running on %s in environment %s\n", manifest_board, manifest_environment);
+	printf("Running on %s in environment %s\n", manifest_board,
+	       manifest_environment);
 
 	/* Initialize flash driver */
-	if(flash_init(&the_flash, 0)) {
+	if (flash_init(&the_flash, 0)) {
 		puts("Failed to initialize flash!\n");
 	} else {
 		printf("Found flash of %d bytes at 0x%x with %d regions\n",
-			   the_flash.f_size, the_flash.f_base, the_flash.f_nregions);
+		       the_flash.f_size, the_flash.f_base,
+		       the_flash.f_nregions);
 
 		int i;
-		for(i = 0; i < the_flash.f_nregions; i++) {
+		for (i = 0; i < the_flash.f_nregions; i++) {
 			printf("  Region %d of %d pages with %d bytes each.\n",
-				   i,
-				   the_flash.f_regions[i].fr_bnum,
-				   the_flash.f_regions[i].fr_bsize);
+			       i,
+			       the_flash.f_regions[i].fr_bnum,
+			       the_flash.f_regions[i].fr_bsize);
 		}
 
 	}
@@ -185,8 +193,9 @@ int main(void)
 	twl3025_power_off();
 }
 
-static void cmd_handler(uint8_t dlci, struct msgb *msg) {
-	if(msg->data_len < 1) {
+static void cmd_handler(uint8_t dlci, struct msgb *msg)
+{
+	if (msg->data_len < 1) {
 		return;
 	}
 
@@ -198,19 +207,19 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 	void *data;
 
-	uint8_t  chip;
-	uint8_t  nbytes;
+	uint8_t chip;
+	uint8_t nbytes;
 	uint16_t crc, mycrc;
 	uint32_t address;
 
-	struct msgb *reply = sercomm_alloc_msgb(256); // XXX
+	struct msgb *reply = sercomm_alloc_msgb(256);	// XXX
 
-	if(!reply) {
+	if (!reply) {
 		printf("Failed to allocate reply buffer!\n");
 		goto out;
 	}
 
-	switch(command) {
+	switch (command) {
 
 	case LOADER_PING:
 		loader_send_simple(reply, dlci, LOADER_PING);
@@ -241,14 +250,14 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 		nbytes = msgb_get_u8(msg);
 		address = msgb_get_u32(msg);
 
-		crc = crc16(0, (void*)address, nbytes);
+		crc = crc16(0, (void *)address, nbytes);
 
 		msgb_put_u8(reply, LOADER_MEM_READ);
 		msgb_put_u8(reply, nbytes);
 		msgb_put_u16(reply, crc);
 		msgb_put_u32(reply, address);
 
-		memcpy(msgb_put(reply, nbytes), (void*)address, nbytes);
+		memcpy(msgb_put(reply, nbytes), (void *)address, nbytes);
 
 		sercomm_sendmsg(dlci, reply);
 
@@ -264,8 +273,8 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		mycrc = crc16(0, data, nbytes);
 
-		if(mycrc == crc) {
-			memcpy((void*)address, data, nbytes);
+		if (mycrc == crc) {
+			memcpy((void *)address, data, nbytes);
 		}
 
 		msgb_put_u8(reply, LOADER_MEM_WRITE);
@@ -286,14 +295,14 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		sercomm_sendmsg(dlci, reply);
 
-		device_jump((void*)address);
+		device_jump((void *)address);
 
 		break;
 
 	case LOADER_FLASH_INFO:
 
 		msgb_put_u8(reply, LOADER_FLASH_INFO);
-		msgb_put_u8(reply, 1); // nchips
+		msgb_put_u8(reply, 1);	// nchips
 
 		// chip 1
 		msgb_put_u32(reply, the_flash.f_base);
@@ -301,7 +310,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 		msgb_put_u8(reply, the_flash.f_nregions);
 
 		int i;
-		for(i = 0; i < the_flash.f_nregions; i++) {
+		for (i = 0; i < the_flash.f_nregions; i++) {
 			msgb_put_u32(reply, the_flash.f_regions[i].fr_bnum);
 			msgb_put_u32(reply, the_flash.f_regions[i].fr_bsize);
 		}
@@ -318,16 +327,16 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 		chip = msgb_get_u8(msg);
 		address = msgb_get_u32(msg);
 
-		if(command == LOADER_FLASH_ERASE) {
+		if (command == LOADER_FLASH_ERASE) {
 			res = flash_block_erase(&the_flash, address);
 		}
-		if(command == LOADER_FLASH_UNLOCK) {
+		if (command == LOADER_FLASH_UNLOCK) {
 			res = flash_block_unlock(&the_flash, address);
 		}
-		if(command == LOADER_FLASH_LOCK) {
+		if (command == LOADER_FLASH_LOCK) {
 			res = flash_block_lock(&the_flash, address);
 		}
-		if(command == LOADER_FLASH_LOCKDOWN) {
+		if (command == LOADER_FLASH_LOCKDOWN) {
 			res = flash_block_lockdown(&the_flash, address);
 		}
 
@@ -351,7 +360,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 		msgb_put_u8(reply, chip);
 		msgb_put_u32(reply, address);
 
-		switch(lock) {
+		switch (lock) {
 		case FLASH_UNLOCKED:
 			msgb_put_u32(reply, LOADER_FLASH_UNLOCKED);
 			break;
@@ -374,7 +383,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		nbytes = msgb_get_u8(msg);
 		crc = msgb_get_u16(msg);
-		msgb_get_u8(msg); // XXX align
+		msgb_get_u8(msg);	// XXX align
 		chip = msgb_get_u8(msg);
 		address = msgb_get_u32(msg);
 
@@ -382,18 +391,18 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg) {
 
 		mycrc = crc16(0, data, nbytes);
 
-		if(mycrc == crc) {
+		if (mycrc == crc) {
 			res = flash_program(&the_flash, address, data, nbytes);
 		}
 
 		msgb_put_u8(reply, LOADER_FLASH_PROGRAM);
 		msgb_put_u8(reply, nbytes);
 		msgb_put_u16(reply, mycrc);
-		msgb_put_u8(reply, 0); // XXX align
+		msgb_put_u8(reply, 0);	// XXX align
 		msgb_put_u8(reply, chip);
 		msgb_put_u32(reply, address);
 
-		msgb_put_u32(reply, (uint32_t)res); // XXX
+		msgb_put_u32(reply, (uint32_t) res);	// XXX
 
 		sercomm_sendmsg(dlci, reply);
 
