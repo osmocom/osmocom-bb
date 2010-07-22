@@ -519,7 +519,7 @@ static int rx_l1_pm_conf(struct osmocom_ms *ms, struct msgb *msg)
 		DEBUGP(DL1C, "PM MEAS: ARFCN: %4u RxLev: %3d %3d\n",
 			ntohs(pmr->band_arfcn), pmr->pm[0], pmr->pm[1]);
 		mr.band_arfcn = ntohs(pmr->band_arfcn);
-		mr.rx_lev = (pmr->pm[0] + pmr->pm[1]) / 2;
+		mr.rx_lev = pmr->pm[0];
 		mr.ms = ms;
 		dispatch_signal(SS_L1CTL, S_L1CTL_PM_RES, &mr);
 	}
