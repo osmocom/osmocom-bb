@@ -23,6 +23,8 @@
 #include <stdint.h>
 #include "linuxlist.h"
 
+#define MSGB_DEBUG
+
 struct msgb {
 	struct llist_head list;
 
@@ -58,6 +60,16 @@ extern void msgb_enqueue(struct llist_head *queue, struct msgb *msg);
 extern struct msgb *msgb_dequeue(struct llist_head *queue);
 extern void msgb_reset(struct msgb *m);
 
+#ifdef MSGB_DEBUG
+#include <stdio.h>
+#include <stdlib.h>
+static inline void msgb_abort(struct msgb *msg, const char *text)
+{
+	fprintf(stderr, text);
+	abort();
+}
+#endif
+
 #define msgb_l1(m)	((void *)(m->l1h))
 #define msgb_l2(m)	((void *)(m->l2h))
 #define msgb_l3(m)	((void *)(m->l3h))
@@ -82,9 +94,24 @@ static inline unsigned int msgb_headlen(const struct msgb *msgb)
 {
 	return msgb->len - msgb->data_len;
 }
+
+static inline int msgb_tailroom(const struct msgb *msgb)
+{
+	return (msgb->head + msgb->data_len) - msgb->tail;
+}
+
+static inline int msgb_headroom(const struct msgb *msgb)
+{
+	return (msgb->data - msgb->head);
+}
+
 static inline unsigned char *msgb_put(struct msgb *msgb, unsigned int len)
 {
 	unsigned char *tmp = msgb->tail;
+#ifdef MSGB_DEBUG
+	if (msgb_tailroom(msgb) < len)
+		msgb_abort(msgb, "Not enough tailroom\n");
+#endif
 	msgb->tail += len;
 	msgb->len += len;
 	return tmp;
@@ -132,6 +159,10 @@ static inline uint32_t msgb_get_u32(struct msgb *msgb)
 }
 static inline unsigned char *msgb_push(struct msgb *msgb, unsigned int len)
 {
+#ifdef MSGB_DEBUG
+	if (msgb_headroom(msgb) < len)
+		msgb_abort(msgb, "Not enough headroom\n");
+#endif
 	msgb->data -= len;
 	msgb->len += len;
 	return msgb->data;
@@ -140,10 +171,6 @@ static inline unsigned char *msgb_pull(struct msgb *msgb, unsigned int len)
 {
 	msgb->len -= len;
 	return msgb->data += len;
-}
-static inline int msgb_tailroom(const struct msgb *msgb)
-{
-	return (msgb->head + msgb->data_len) - msgb->tail;
 }
 
 /* increase the headroom of an empty msgb, reducing the tailroom */
