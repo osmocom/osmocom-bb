@@ -27,10 +27,15 @@
 #define BSSMAP_MSG_SIZE 512
 #define BSSMAP_MSG_HEADROOM 128
 
-struct msgb *gsm0808_create_layer3(struct msgb *msg_l3, uint16_t nc, uint16_t cc, int lac, int _ci)
+static void put_data_16(uint8_t *data, const uint16_t val)
+{
+	memcpy(data, &val, sizeof(val));
+}
+
+struct msgb *gsm0808_create_layer3(struct msgb *msg_l3, uint16_t nc, uint16_t cc, int lac, uint16_t _ci)
 {
 	uint8_t *data;
-	uint16_t *ci;
+	uint8_t *ci;
 	struct msgb* msg;
 	struct gsm48_loc_area_id *lai;
 
@@ -56,8 +61,8 @@ struct msgb *gsm0808_create_layer3(struct msgb *msg_l3, uint16_t nc, uint16_t cc
 	lai = (struct gsm48_loc_area_id *) msgb_put(msg, sizeof(*lai));
 	gsm48_generate_lai(lai, cc, nc, lac);
 
-	ci = (uint16_t *) msgb_put(msg, 2);
-	*ci = htons(_ci);
+	ci = msgb_put(msg, 2);
+	put_data_16(ci, htons(_ci));
 
 	/* copy the layer3 data */
 	data = msgb_put(msg, msgb_l3len(msg_l3) + 2);
