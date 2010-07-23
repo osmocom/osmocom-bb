@@ -192,7 +192,7 @@ struct msgb *gsm0808_create_sapi_reject(uint8_t link_id)
 	return msg;
 }
 
-struct msgb *gsm0808_create_assignment_completed(struct gsm_lchan *lchan, uint8_t rr_cause,
+struct msgb *gsm0808_create_assignment_completed(uint8_t rr_cause,
 						 uint8_t chosen_channel, uint8_t encr_alg_id,
 						 uint8_t speech_mode)
 {
