@@ -429,7 +429,7 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 static int bssgp_rx_llc_disc(struct msgb *msg, struct tlv_parsed *tp,
 			     struct bssgp_bvc_ctx *ctx)
 {
-	uint32_t tlli;
+	uint32_t tlli = 0;
 
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TLLI) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_LLC_FRAMES_DISCARDED) ||
@@ -439,7 +439,8 @@ static int bssgp_rx_llc_disc(struct msgb *msg, struct tlv_parsed *tp,
 			"missing mandatory IE\n", ctx->bvci);
 	}
 
-	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+	if (TLVP_PRESENT(tp, BSSGP_IE_TLLI))
+		tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
 
 	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=%08x LLC DISCARDED\n",
 		ctx->bvci, tlli);
