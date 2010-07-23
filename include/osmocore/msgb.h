@@ -65,7 +65,7 @@ extern void msgb_reset(struct msgb *m);
 #include <stdlib.h>
 static inline void msgb_abort(struct msgb *msg, const char *text)
 {
-	fprintf(stderr, text);
+	fprintf(stderr, "%s", text);
 	abort();
 }
 #endif
