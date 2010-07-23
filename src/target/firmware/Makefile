@@ -13,7 +13,10 @@ calypso_COMMON_OBJS=board/common/calypso_uart.o board/common/calypso_pwl.o
 
 # OpenMoko GTA0x
 
-gta0x_COMMON_OBJS=board/common/rffe_gta0x_triband.o $(calypso_COMMON_OBJS)
+gta0x_COMMON_OBJS=$(calypso_COMMON_OBJS) board/common/rffe_gta0x_triband.o
+gta0x_COMMON_ENVIRONMENTS=highram
+gta0x_OBJS=$(gta0x_COMMON_OBJS) board/gta0x/init.o
+gta0x_ENVIRONMENTS=$(gta0x_COMMON_ENVIRONMENTS)
 
 # Compal Generic
 
@@ -40,15 +43,11 @@ e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/except
 # Compal E99
 
 compal_e99_OBJS=$(compal_COMMON_OBJS) board/compal_e99/init.o
-
-gta0x_OBJS=$(gta0x_COMMON_OBJS) board/gta0x/init.o
-
 compal_e99_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 e99loader_LDS=board/compal_e99/loader.lds
 e99loader_OBJS=board/compal/header.o
 e99flash_LDS=board/compal_e99/flash.lds
-
 
 # Global include path
 INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
