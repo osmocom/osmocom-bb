@@ -26,7 +26,6 @@
 #include <osmocom/l1l2_interface.h>
 #include <osmocom/layer3.h>
 #include <osmocom/lapdm.h>
-#include <osmocom/gsmtap_util.h>
 #include <osmocom/logging.h>
 #include <osmocom/l23_app.h>
 
@@ -34,6 +33,7 @@
 #include <osmocore/talloc.h>
 #include <osmocore/select.h>
 #include <osmocore/linuxlist.h>
+#include <osmocore/gsmtap_util.h>
 
 #include <arpa/inet.h>
 

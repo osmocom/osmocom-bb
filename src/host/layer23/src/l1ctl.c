@@ -36,6 +36,7 @@
 #include <osmocore/msgb.h>
 #include <osmocore/tlv.h>
 #include <osmocore/gsm_utils.h>
+#include <osmocore/gsmtap_util.h>
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/protocol/gsm_08_58.h>
 #include <osmocore/rsl.h>
@@ -45,7 +46,6 @@
 #include <osmocom/l1l2_interface.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/logging.h>
-#include <osmocom/gsmtap_util.h>
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {

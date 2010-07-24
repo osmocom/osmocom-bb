@@ -42,7 +42,6 @@
 #include <osmocom/osmocom_data.h>
 #include <osmocom/lapdm.h>
 #include <osmocom/logging.h>
-#include <osmocom/gsmtap_util.h>
 
 /* somewhere in 05.08 */
 #define MAX_CELLS_IN_BA	32

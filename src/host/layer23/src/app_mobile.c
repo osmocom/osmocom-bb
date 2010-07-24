@@ -32,7 +32,6 @@
 #include <osmocom/gsm48_rr.h>
 #include <osmocom/sysinfo.h>
 #include <osmocom/lapdm.h>
-#include <osmocom/gsmtap_util.h>
 #include <osmocom/logging.h>
 #include <osmocom/vty.h>
 #include <osmocom/vty/telnet_interface.h>

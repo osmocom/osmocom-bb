@@ -25,7 +25,6 @@
 #include <osmocom/l1ctl.h>
 #include <osmocom/layer3.h>
 #include <osmocom/lapdm.h>
-#include <osmocom/gsmtap_util.h>
 #include <osmocom/logging.h>
 
 #include <osmocore/msgb.h>
