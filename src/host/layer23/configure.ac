@@ -23,6 +23,9 @@ dnl Checks for typedefs, structures and compiler characteristics
 
 AC_OUTPUT(
     src/Makefile
+    src/common/Makefile
+    src/misc/Makefile
+    src/mobile/Makefile
     include/Makefile
     include/osmocom/Makefile
     Makefile)
