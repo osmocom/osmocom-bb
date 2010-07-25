@@ -121,33 +121,6 @@ static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-char *chan_nr2string(uint8_t chan_nr)
-{
-	static char str[20];
-	uint8_t cbits = chan_nr >> 3;
-
-	str[0] = '\0';
-
-	if (cbits == 0x01)
-		sprintf(str, "TCH/F");
-	else if ((cbits & 0x1e) == 0x02)
-		sprintf(str, "TCH/H(%u)", cbits & 0x01);
-	else if ((cbits & 0x1c) == 0x04)
-		sprintf(str, "SDCCH/4(%u)", cbits & 0x03);
-	else if ((cbits & 0x18) == 0x08)
-		sprintf(str, "SDCCH/8(%u)", cbits & 0x07);
-	else if (cbits == 0x10)
-		sprintf(str, "BCCH");
-	else if (cbits == 0x11)
-		sprintf(str, "RACH");
-	else if (cbits == 0x12)
-		sprintf(str, "PCH/AGCH");
-	else
-		sprintf(str, "UNKNOWN");
-
-	return str;
-}
-
 /* Receive L1CTL_DATA_IND (Data Indication from L1) */
 static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -173,7 +146,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
 	DEBUGP(DL1C, "%s (%.4u/%.2u/%.2u) %s\n",
-		chan_nr2string(dl->chan_nr), tm.t1, tm.t2, tm.t3,
+		rsl_chan_nr_str(dl->chan_nr), tm.t1, tm.t2, tm.t3,
 		hexdump(ccch->data, sizeof(ccch->data)));
 
 	meas->frames++;
