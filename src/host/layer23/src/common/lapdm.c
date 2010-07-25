@@ -306,7 +306,7 @@ for (i = 0; i < msgb_l2len(msg); i++)
 printf("\n");
 #endif
 	lapdm_pad_msgb(msg, n201);
-	return tx_ph_data_req(ms, msg, chan_nr, link_id);
+	return l1ctl_tx_data_req(ms, msg, chan_nr, link_id);
 }
 
 /* get next frame from the tx queue. because the ms has multiple datalinks,
@@ -362,7 +362,7 @@ for (i = 0; i < msgb_l2len(msg); i++)
 printf("\n");
 #endif
 	lapdm_pad_msgb(msg, n201);
-	return tx_ph_data_req(ms, msg, chan_nr, link_id);
+	return l1ctl_tx_data_req(ms, msg, chan_nr, link_id);
 }
 
 /* Create RSLms various RSLms messages */
@@ -2013,9 +2013,9 @@ static int rslms_rx_chan_rqd(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* TA = 0 - delay */
-	rc = l1ctl_tx_ph_param_req(ms, 0 - cch->data[5], cch->data[7]);
+	rc = l1ctl_tx_param_req(ms, 0 - cch->data[5], cch->data[7]);
 
-	rc = tx_ph_rach_req(ms, cch->data[1], cch->data[2], cch->data[3]);
+	rc = l1ctl_tx_rach_req(ms, cch->data[1], cch->data[2], cch->data[3]);
 
 	msgb_free(msg);
 

@@ -226,7 +226,7 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		struct gsm322_msg *em;
 
 		/* release dedicated mode, if any */
-		tx_ph_dm_rel_req(rr->ms);
+		l1ctl_tx_dm_rel_req(rr->ms);
 		l1ctl_tx_reset_req(rr->ms, L1CTL_RES_T_FULL);
 		/* free establish message, if any */
 		rr->rr_est_req = 0;
@@ -3161,7 +3161,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	rr->ind_ta = rr->cd_now.ta;
 	LOGP(DRR, LOGL_INFO, "setting indicated TA %d (actual TA %d)\n",
 		rr->ind_ta, rr->ind_ta - set->alter_delay);
-	l1ctl_tx_ph_param_req(ms, rr->ind_ta - set->alter_delay,
+	l1ctl_tx_param_req(ms, rr->ind_ta - set->alter_delay,
 			(set->alter_tx_power) ? set->alter_tx_power_value
 						: rr->ind_tx_power);
 
@@ -3178,10 +3178,10 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		exit(-ENOTSUP);
 	}
 	if (rr->cd_now.h)
-		tx_ph_dm_est_req_h1(ms, rr->cd_now.maio, rr->cd_now.hsn,
+		l1ctl_tx_dm_est_req_h1(ms, rr->cd_now.maio, rr->cd_now.hsn,
 			ma, ma_len, rr->cd_now.chan_nr, rr->cd_now.tsc);
 	else
-		tx_ph_dm_est_req_h0(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr,
+		l1ctl_tx_dm_est_req_h0(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr,
 			rr->cd_now.tsc);
 #endif
 
@@ -3811,7 +3811,7 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 		ind_tx_power);
 	if (ind_ta != rr->ind_ta || ind_tx_power != rr->ind_tx_power) {
 		LOGP(DRR, LOGL_INFO, "setting new ta and tx_power\n");
-		l1ctl_tx_ph_param_req(ms, ind_ta - set->alter_delay,
+		l1ctl_tx_param_req(ms, ind_ta - set->alter_delay,
 			(set->alter_tx_power) ? set->alter_tx_power_value
 						: ind_tx_power);
 		rr->ind_ta = ind_ta;
@@ -4456,7 +4456,7 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* deactivate channel */
-	tx_ph_dm_rel_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
+	l1ctl_tx_dm_rel_req(ms, arfcn, rr->chan_desc.chan_desc.chan_nr);
 
 	/* send abort ind to upper layer */
 	nmsg = gsm48_mm_msgb_alloc();

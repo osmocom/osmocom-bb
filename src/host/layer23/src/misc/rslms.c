@@ -81,7 +81,7 @@ static int rslms_rx_udata_ind(struct msgb *msg, struct osmocom_ms *ms)
 	} else if (rllh->chan_nr == RSL_CHAN_BCCH) {
 		rc = gsm48_rx_bcch(msg, ms);
 		if (ccch_enabled && (rach_count < 2)) {
-			tx_ph_rach_req(ms, rach_count, 27, 0);
+			l1ctl_tx_rach_req(ms, rach_count, 27, 0);
 			rach_count++;
 		}
 	}
