@@ -24,25 +24,28 @@
 #ifndef __L1CTL_PROTO_H__
 #define __L1CTL_PROTO_H__
 
-#define L1CTL_FBSB_REQ		1
-#define L1CTL_FBSB_CONF		2
-#define L1CTL_DATA_IND		3
-#define L1CTL_RACH_REQ		4
-#define L1CTL_DM_EST_REQ	5
-#define L1CTL_DATA_REQ		7
-#define L1CTL_RESET_IND		8
-#define L1CTL_PM_REQ		9	/* power measurement */
-#define L1CTL_PM_CONF		10	/* power measurement */
-#define L1CTL_ECHO_REQ		11
-#define L1CTL_ECHO_CONF		12
-#define L1CTL_RACH_CONF		13
-#define L1CTL_RESET_REQ		14
-#define L1CTL_RESET_CONF	15
-#define L1CTL_DATA_CONF		16
-#define L1CTL_CCCH_MODE_REQ	17
-#define L1CTL_CCCH_MODE_CONF	18
-#define L1CTL_DM_REL_REQ	19
-#define L1CTL_PARAM_REQ		20
+enum {
+	_L1CTL_NONE		= 0,
+	L1CTL_FBSB_REQ,
+	L1CTL_FBSB_CONF,
+	L1CTL_DATA_IND,
+	L1CTL_RACH_REQ,
+	L1CTL_DM_EST_REQ,
+	L1CTL_DATA_REQ,
+	L1CTL_RESET_IND,
+	L1CTL_PM_REQ,		/* power measurement */
+	L1CTL_PM_CONF,		/* power measurement */
+	L1CTL_ECHO_REQ,
+	L1CTL_ECHO_CONF,
+	L1CTL_RACH_CONF,
+	L1CTL_RESET_REQ,
+	L1CTL_RESET_CONF,
+	L1CTL_DATA_CONF,
+	L1CTL_CCCH_MODE_REQ,
+	L1CTL_CCCH_MODE_CONF,
+	L1CTL_DM_REL_REQ,
+	L1CTL_PARAM_REQ,
+};
 
 enum ccch_mode {
 	CCCH_MODE_NONE = 0,
