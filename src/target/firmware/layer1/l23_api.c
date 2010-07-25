@@ -39,7 +39,7 @@
 
 #include <rf/trf6151.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 /* the size we will allocate struct msgb* for HDLC */
 #define L3_MSG_HEAD 4

@@ -1,2 +1,2 @@
-noinst_HEADERS = l1a_l23_interface.h
+noinst_HEADERS = l1ctl_proto.h
 SUBDIRS = osmocom

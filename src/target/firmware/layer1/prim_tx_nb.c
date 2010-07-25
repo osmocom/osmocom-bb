@@ -48,7 +48,7 @@
 #include <layer1/l23_api.h>
 #include <layer1/rfch.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 /* Channel type definitions for DEDICATED mode */
 #define INVALID_CHANNEL    0

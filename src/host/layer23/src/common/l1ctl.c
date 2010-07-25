@@ -28,7 +28,7 @@
 
 #include <arpa/inet.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 #include <osmocore/signal.h>
 #include <osmocore/logging.h>

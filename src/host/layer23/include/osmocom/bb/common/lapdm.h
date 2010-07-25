@@ -6,7 +6,7 @@
 #include <osmocore/timer.h>
 #include <osmocore/msgb.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 enum lapdm_state {
 	LAPDm_STATE_NULL = 0,

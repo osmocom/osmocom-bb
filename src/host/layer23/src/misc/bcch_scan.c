@@ -25,7 +25,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 #include <osmocore/logging.h>
 #include <osmocore/talloc.h>

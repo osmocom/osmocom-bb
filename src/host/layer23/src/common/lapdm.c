@@ -70,7 +70,7 @@
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 /* TS 04.06 Figure 4 / Section 3.2 */
 #define LAPDm_LPD_NORMAL  0
