@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef l1a_l23_interface_h
-#define l1a_l23_interface_h
+#ifndef __L1CTL_PROTO_H__
+#define __L1CTL_PROTO_H__
 
 #define L1CTL_FBSB_REQ		1
 #define L1CTL_FBSB_CONF		2
@@ -211,4 +211,4 @@ struct l1ctl_reset {
 	uint8_t pad[3];
 } __attribute__((packed));
 
-#endif
+#endif /* __L1CTL_PROTO_H__ */
