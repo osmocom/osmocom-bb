@@ -37,6 +37,7 @@
 #include <stdlib.h>
 
 #define GSM_L2_LENGTH 256
+#define GSM_L2_HEADROOM 32
 
 extern int quit;
 
@@ -46,7 +47,7 @@ static int layer2_read(struct bsc_fd *fd)
 	u_int16_t len;
 	int rc;
 
-	msg = msgb_alloc(GSM_L2_LENGTH, "Layer2");
+	msg = msgb_alloc_headroom(GSM_L2_LENGTH+GSM_L2_HEADROOM, GSM_L2_HEADROOM, "Layer2");
 	if (!msg) {
 		LOGP(DL1C, LOGL_ERROR, "Failed to allocate msg.\n");
 		return -ENOMEM;
