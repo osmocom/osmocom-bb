@@ -61,12 +61,10 @@ extern struct msgb *msgb_dequeue(struct llist_head *queue);
 extern void msgb_reset(struct msgb *m);
 
 #ifdef MSGB_DEBUG
-#include <stdio.h>
-#include <stdlib.h>
+#include <osmocore/panic.h>
 static inline void msgb_abort(struct msgb *msg, const char *text)
 {
-	fprintf(stderr, "%s", text);
-	abort();
+	osmo_panic("%s", text);
 }
 #endif
 
