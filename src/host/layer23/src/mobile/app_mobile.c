@@ -26,14 +26,14 @@
 #include <signal.h>
 #include <time.h>
 
-#include <osmocom/osmocom_data.h>
-#include <osmocom/l1ctl.h>
-#include <osmocom/l23_app.h>
-#include <osmocom/gsm48_rr.h>
-#include <osmocom/sysinfo.h>
-#include <osmocom/lapdm.h>
-#include <osmocom/logging.h>
-#include <osmocom/vty.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/l23_app.h>
+#include <osmocom/bb/common/lapdm.h>
+#include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/mobile/gsm48_rr.h>
+#include <osmocom/bb/mobile/sysinfo.h>
+#include <osmocom/bb/mobile/vty.h>
 #include <osmocom/vty/telnet_interface.h>
 
 #include <osmocore/msgb.h>

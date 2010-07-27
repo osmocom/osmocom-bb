@@ -21,13 +21,13 @@
  *
  */
 
-#include <osmocom/osmocom_data.h>
-#include <osmocom/l1ctl.h>
-#include <osmocom/l1l2_interface.h>
-#include <osmocom/layer3.h>
-#include <osmocom/lapdm.h>
-#include <osmocom/logging.h>
-#include <osmocom/l23_app.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/l1l2_interface.h>
+#include <osmocom/bb/misc/layer3.h>
+#include <osmocom/bb/common/lapdm.h>
+#include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/l23_app.h>
 
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>

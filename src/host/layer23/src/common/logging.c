@@ -23,7 +23,7 @@
 
 #include <osmocore/utils.h>
 #include <osmocore/logging.h>
-#include <osmocom/logging.h>
+#include <osmocom/bb/common/logging.h>
 
 static const struct log_info_cat default_categories[] = {
 	[DRSL] = {

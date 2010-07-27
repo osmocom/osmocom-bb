@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <osmocom/networks.h>
+#include <osmocom/bb/common/networks.h>
 
 /* list of networks */
 

@@ -25,10 +25,10 @@
 #include <osmocore/timer.h>
 #include <osmocore/msgb.h>
 
-#include <osmocom/osmocom_data.h>
-#include <osmocom/mncc.h>
-#include <osmocom/transaction.h>
-#include <osmocom/logging.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/mobile/mncc.h>
+#include <osmocom/bb/mobile/transaction.h>
 
 extern void *l23_ctx;
 

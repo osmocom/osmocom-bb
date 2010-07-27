@@ -24,9 +24,9 @@
 #include <string.h>
 #include <osmocore/talloc.h>
 
-#include <osmocom/logging.h>
-#include <osmocom/osmocom_data.h>
-#include <osmocom/networks.h>
+#include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/networks.h>
 
 void *l23_ctx;
 

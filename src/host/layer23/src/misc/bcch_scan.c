@@ -38,10 +38,10 @@
 #include <osmocore/protocol/gsm_08_58.h>
 #include <osmocore/rsl.h>
 
-#include <osmocom/l1ctl.h>
-#include <osmocom/osmocom_data.h>
-#include <osmocom/lapdm.h>
-#include <osmocom/logging.h>
+#include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/lapdm.h>
+#include <osmocom/bb/common/logging.h>
 
 /* somewhere in 05.08 */
 #define MAX_CELLS_IN_BA	32

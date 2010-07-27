@@ -23,8 +23,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <osmocom/osmocom_data.h>
-#include <osmocom/networks.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/networks.h>
 
 int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 			void (*print)(void *, const char *, ...), void *priv)

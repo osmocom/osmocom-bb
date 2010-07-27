@@ -21,9 +21,9 @@
  *
  */
 
-#include <osmocom/osmocom_data.h>
-#include <osmocom/l1ctl.h>
-#include <osmocom/logging.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/logging.h>
 
 #include <sys/socket.h>
 #include <sys/un.h>

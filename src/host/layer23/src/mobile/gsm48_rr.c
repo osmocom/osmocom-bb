@@ -54,12 +54,12 @@
 #include <osmocore/gsm48.h>
 #include <osmocore/bitvec.h>
 
-#include <osmocom/osmocom_data.h>
-#include <osmocom/l1l2_interface.h>
-#include <osmocom/logging.h>
-#include <osmocom/networks.h>
-#include <osmocom/l1ctl.h>
-#include <osmocom/vty.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/l1l2_interface.h>
+#include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/networks.h>
+#include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/mobile/vty.h>
 
 static void start_rr_t_monitor(struct gsm48_rrlayer *rr, int sec, int micro);
 static void stop_rr_t_monitor(struct gsm48_rrlayer *rr);

@@ -28,4 +28,8 @@ AC_OUTPUT(
     src/mobile/Makefile
     include/Makefile
     include/osmocom/Makefile
+    include/osmocom/bb/Makefile
+    include/osmocom/bb/common/Makefile
+    include/osmocom/bb/misc/Makefile
+    include/osmocom/bb/mobile/Makefile
     Makefile)

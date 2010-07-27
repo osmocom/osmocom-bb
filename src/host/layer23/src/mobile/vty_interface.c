@@ -25,14 +25,14 @@
 #include <unistd.h>
 #include <sys/types.h>
 
-#include <osmocom/vty.h>
-#include <osmocom/vty/telnet_interface.h>
-
 #include <osmocore/gsm48.h>
-#include <osmocom/osmocom_data.h>
-#include <osmocom/networks.h>
-#include <osmocom/mncc.h>
-#include <osmocom/transaction.h>
+
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/networks.h>
+#include <osmocom/bb/mobile/mncc.h>
+#include <osmocom/bb/mobile/transaction.h>
+#include <osmocom/bb/mobile/vty.h>
+#include <osmocom/vty/telnet_interface.h>
 
 int mncc_call(struct osmocom_ms *ms, char *number);
 int mncc_hangup(struct osmocom_ms *ms);

@@ -1,7 +1,7 @@
 #ifndef OSMOCOM_VTY_H
 #define OSMOCOM_VTY_H
 
-#include <osmocom/osmocom_data.h>
+#include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/buffer.h>
 #include <osmocom/vty/command.h>

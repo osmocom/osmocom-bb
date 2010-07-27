@@ -65,10 +65,10 @@
 #include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/protocol/gsm_08_58.h>
 
-#include <osmocom/osmocom_data.h>
-#include <osmocom/l1ctl.h>
-#include <osmocom/lapdm.h>
-#include <osmocom/logging.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/lapdm.h>
+#include <osmocom/bb/common/logging.h>
 
 #include <l1a_l23_interface.h>
 

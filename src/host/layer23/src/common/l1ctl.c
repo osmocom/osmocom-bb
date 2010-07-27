@@ -41,11 +41,11 @@
 #include <osmocore/protocol/gsm_08_58.h>
 #include <osmocore/rsl.h>
 
-#include <osmocom/l1ctl.h>
-#include <osmocom/osmocom_data.h>
-#include <osmocom/l1l2_interface.h>
-#include <osmocom/lapdm.h>
-#include <osmocom/logging.h>
+#include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/l1l2_interface.h>
+#include <osmocom/bb/common/lapdm.h>
+#include <osmocom/bb/common/logging.h>
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {

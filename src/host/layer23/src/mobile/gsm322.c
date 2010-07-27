@@ -31,12 +31,12 @@
 #include <osmocore/gsm48.h>
 #include <osmocore/signal.h>
 
-#include <osmocom/logging.h>
-#include <osmocom/l1ctl.h>
-#include <osmocom/l23_app.h>
-#include <osmocom/osmocom_data.h>
-#include <osmocom/networks.h>
-#include <osmocom/vty.h>
+#include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/l23_app.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/networks.h>
+#include <osmocom/bb/mobile/vty.h>
 
 extern void *l23_ctx;
 

@@ -7,12 +7,12 @@
 #include <osmocore/tlv.h>
 #include <osmocore/protocol/gsm_04_08.h>
 
-#include <osmocom/logging.h>
-#include <osmocom/lapdm.h>
-#include <osmocom/rslms.h>
-#include <osmocom/layer3.h>
-#include <osmocom/osmocom_data.h>
-#include <osmocom/l1ctl.h>
+#include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/lapdm.h>
+#include <osmocom/bb/misc/rslms.h>
+#include <osmocom/bb/misc/layer3.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/l1ctl.h>
 
 static int ccch_mode = CCCH_MODE_NONE;
 

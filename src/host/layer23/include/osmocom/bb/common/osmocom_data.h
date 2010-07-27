@@ -7,15 +7,16 @@
 
 struct osmocom_ms;
 
-#include <osmocom/support.h>
-#include <osmocom/settings.h>
-#include <osmocom/subscriber.h>
-#include <osmocom/lapdm.h>
-#include <osmocom/gsm48_rr.h>
-#include <osmocom/sysinfo.h>
-#include <osmocom/gsm322.h>
-#include <osmocom/gsm48_mm.h>
-#include <osmocom/gsm48_cc.h>
+	/* FIXME no 'mobile' specific stuff should be here */
+#include <osmocom/bb/mobile/support.h>
+#include <osmocom/bb/mobile/settings.h>
+#include <osmocom/bb/mobile/subscriber.h>
+#include <osmocom/bb/common/lapdm.h>
+#include <osmocom/bb/mobile/gsm48_rr.h>
+#include <osmocom/bb/mobile/sysinfo.h>
+#include <osmocom/bb/mobile/gsm322.h>
+#include <osmocom/bb/mobile/gsm48_mm.h>
+#include <osmocom/bb/mobile/gsm48_cc.h>
 
 /* A layer2 entity */
 struct osmol2_entity {

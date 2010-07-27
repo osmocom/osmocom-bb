@@ -27,10 +27,10 @@
 
 #include <osmocore/talloc.h>
 
-#include <osmocom/logging.h>
-#include <osmocom/osmocom_data.h>
-#include <osmocom/mncc.h>
-#include <osmocom/vty.h>
+#include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/mobile/mncc.h>
+#include <osmocom/bb/mobile/vty.h>
 
 void *l23_ctx;
 static uint32_t new_callref = 1;
