@@ -52,5 +52,6 @@ int l23_app_init(struct osmocom_ms *ms)
 {
 	/* don't do layer3_init() as we don't want an actualy L3 */
 	fps_init(ms);
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	return register_signal_handler(SS_L1CTL, &signal_cb, NULL);
 }

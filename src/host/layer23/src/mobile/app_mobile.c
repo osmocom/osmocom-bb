@@ -186,6 +186,7 @@ int l23_app_init(struct osmocom_ms *ms)
 
 	gsm_random_imei(&ms->settings);
 
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	printf("Mobile initialized, please start phone now!\n");
 	return 0;
 }
