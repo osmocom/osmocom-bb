@@ -1,14 +1,32 @@
-Makefile
-Makefile.in
+# autoreconf by-products
+*.in
+
 aclocal.m4
+autom4te.cache/
+config.h.in
 configure
-missing
-*.o
 depcomp
-config.*
+install-sh
+missing
+
+# configure by-products
+.deps
+Makefile
+
+config.h
+config.log
+config.status
+
+# build by-products
+*.o
+*.a
+
+# various
 *.sw?
 *.deps
-layer2
-install-sh
-autom4te.cache
-*.a
+
+# final executables
+src/misc/bcch_scan
+src/misc/echo_test
+src/misc/layer23
+src/mobile/mobile
