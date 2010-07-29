@@ -69,9 +69,6 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 	putchart('n');
 
-	gsm_fn2gsmtime(&rx_time, l1s.current_time.fn - 4);
-	rfch_get_params(&rx_time, &rf_arfcn, &tsc, &tn);
-
 	/* just for debugging, d_task_d should not be 0 */
 	if (dsp_api.db_r->d_task_d == 0) {
 		puts("EMPTY\n");
@@ -84,6 +81,11 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 		return 0;
 	}
 
+	/* get radio parameters for _this_ burst */
+	gsm_fn2gsmtime(&rx_time, l1s.current_time.fn - 1);
+	rfch_get_params(&rx_time, &rf_arfcn, &tsc, &tn);
+
+	/* collect measurements */
 	rxnb.meas[burst_id].toa_qbit = dsp_api.db_r->a_serv_demod[D_TOA];
 	rxnb.meas[burst_id].pm_dbm8 =
 		agc_inp_dbm8_by_pm(dsp_api.db_r->a_serv_demod[D_PM] >> 3);
@@ -107,6 +109,10 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 		uint32_t avg_snr = 0;
 		int32_t avg_dbm8 = 0;
 
+		/* Get radio parameters for the first burst */
+		gsm_fn2gsmtime(&rx_time, l1s.current_time.fn - 4);
+		rfch_get_params(&rx_time, &rf_arfcn, &tsc, &tn);
+
 		/* Set Channel Number depending on MFrame Task ID */
 		rxnb.dl->chan_nr = mframe_task2chan_nr(mf_task_id, tn);
 
@@ -118,7 +124,7 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 		rxnb.dl->band_arfcn = htons(rf_arfcn);
 
-		rxnb.dl->frame_nr = htonl(l1s.current_time.fn-4);
+		rxnb.dl->frame_nr = htonl(rx_time.fn);
 
 		/* compute average snr and rx level */
 		for (i = 0; i < 4; ++i) {
