@@ -117,7 +117,7 @@ static void trf6151_reg_write(uint16_t reg, uint16_t val)
 int trf6151_set_gain(uint8_t dbm, int high)
 {
 	uint16_t reg = trf6151_reg_cache[REG_RX] & 0x07ff;
-	printf("trf6151_set_gain(%u, %d)\n", dbm, high);
+	printd("trf6151_set_gain(%u, %d)\n", dbm, high);
 
 	if (dbm < 14 || dbm > 40)
 		return -1;

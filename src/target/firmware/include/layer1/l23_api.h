@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <osmocore/msgb.h>
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 void l1a_l23api_init(void);
 void l1_queue_for_l2(struct msgb *msg);

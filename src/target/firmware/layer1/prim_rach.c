@@ -46,7 +46,7 @@
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 struct {
 	uint32_t fn;

@@ -39,11 +39,11 @@
 
 #include <rf/trf6151.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 /* the size we will allocate struct msgb* for HDLC */
 #define L3_MSG_HEAD 4
-#define L3_MSG_SIZE (sizeof(struct l1ctl_info_dl)+sizeof(struct l1ctl_data_ind) + L3_MSG_HEAD)
+#define L3_MSG_SIZE (sizeof(struct l1ctl_hdr)+sizeof(struct l1ctl_info_dl)+sizeof(struct l1ctl_data_ind) + L3_MSG_HEAD)
 
 void l1_queue_for_l2(struct msgb *msg)
 {

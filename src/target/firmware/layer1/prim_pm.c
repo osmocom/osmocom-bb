@@ -45,7 +45,7 @@
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 static void l1ddsp_meas_read(uint8_t nbmeas, uint16_t *pm)
 {

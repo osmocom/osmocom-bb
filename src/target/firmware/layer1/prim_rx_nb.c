@@ -47,7 +47,7 @@
 #include <layer1/l23_api.h>
 #include <layer1/rfch.h>
 
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 struct l1s_rxnb_state {
 	struct l1s_meas_hdr meas[4];

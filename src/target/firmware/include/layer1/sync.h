@@ -5,7 +5,7 @@
 #include <osmocore/gsm_utils.h>
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
-#include <l1a_l23_interface.h>
+#include <l1ctl_proto.h>
 
 /* structure representing L1 sync information about a cell */
 struct l1_cell_info {
