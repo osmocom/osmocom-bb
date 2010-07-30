@@ -21,7 +21,6 @@
 
 #define static_assert(exp, name) typedef int dummy##name [(exp) ? 1 : -1];
 
-char *hexdump(const unsigned char *buf, int len);
 void logp(unsigned int subsys, char *file, int line, int cont, const char *format, ...) __attribute__ ((format (printf, 5, 6)));
 
 /* new logging interface */
