@@ -48,3 +48,30 @@ uint8_t char2bcd(char c)
 {
 	return c - 0x30;
 }
+
+int hexparse(const char *str, uint8_t *b, int max_len)
+
+{
+	int i, l, v;
+
+	l = strlen(str);
+	if ((l&1) || ((l>>1) > max_len))
+		return -1;
+
+	memset(b, 0x00, max_len);
+
+	for (i=0; i<l; i++) {
+		char c = str[i];
+		if (c >= '0' && c <= '9')
+			v = c - '0';
+		else if (c >= 'a' && c <= 'f')
+			v = 10 + (c - 'a');
+		else if (c >= 'A' && c <= 'F')
+			v = 10 + (c - 'A');
+		else
+			return -1;
+		b[i>>1] |= v << (i&1 ? 0 : 4);
+	}
+
+	return i>>1;
+}
