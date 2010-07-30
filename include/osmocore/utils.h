@@ -19,5 +19,6 @@ uint8_t char2bcd(char c);
 
 int hexparse(const char *str, uint8_t *b, int max_len);
 char *hexdump(const unsigned char *buf, int len);
+char *hexdump_nospc(const unsigned char *buf, int len);
 
 #endif

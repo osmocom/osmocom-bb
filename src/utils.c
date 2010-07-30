@@ -78,7 +78,7 @@ int hexparse(const char *str, uint8_t *b, int max_len)
 
 static char hexd_buff[4096];
 
-char *hexdump(const unsigned char *buf, int len)
+static char *_hexdump(const unsigned char *buf, int len, char *delim)
 {
 	int i;
 	char *cur = hexd_buff;
@@ -86,11 +86,21 @@ char *hexdump(const unsigned char *buf, int len)
 	hexd_buff[0] = 0;
 	for (i = 0; i < len; i++) {
 		int len_remain = sizeof(hexd_buff) - (cur - hexd_buff);
-		int rc = snprintf(cur, len_remain, "%02x ", buf[i]);
+		int rc = snprintf(cur, len_remain, "%02x%s", buf[i], delim);
 		if (rc <= 0)
 			break;
 		cur += rc;
 	}
 	hexd_buff[sizeof(hexd_buff)-1] = 0;
 	return hexd_buff;
+}
+
+char *hexdump(const unsigned char *buf, int len)
+{
+	return _hexdump(buf, len, " ");
+}
+
+char *hexdump_nospc(const unsigned char *buf, int len)
+{
+	return _hexdump(buf, len, "");
 }
