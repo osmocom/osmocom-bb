@@ -164,7 +164,8 @@ static void _output(struct log_target *target, unsigned int subsys,
 		sub[sizeof(sub)-1] = '\0';
 	}
 
-	snprintf(final, sizeof(final), "%s%s%s%s\033[0;m", col, tim, sub, buf);
+	snprintf(final, sizeof(final), "%s%s%s%s%s", col, tim, sub, buf,
+		 target->use_color ? "\033[0;m" : "");
 	final[sizeof(final)-1] = '\0';
 	target->output(target, final);
 }
