@@ -156,7 +156,6 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	meas->rxlev += dl->rx_level;
 
 	if (dl->num_biterr) {
-printf("dropping frame with %u bit errors\n", dl->num_biterr);
 		LOGP(DL1C, LOGL_NOTICE, "Dropping frame with %u bit errors\n",
 			dl->num_biterr);
 		return 0;
