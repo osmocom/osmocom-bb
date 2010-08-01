@@ -56,9 +56,6 @@ int rslms_tx_rll_req_l3(struct osmocom_ms *ms, uint8_t msg_type,
 	return rslms_recvmsg(msg, ms);
 }
 
-static int ccch_enabled = 0;
-static int rach_count = 0;
-
 static int rslms_rx_udata_ind(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
@@ -77,13 +74,8 @@ static int rslms_rx_udata_ind(struct msgb *msg, struct osmocom_ms *ms)
 
 	if (rllh->chan_nr == RSL_CHAN_PCH_AGCH) {
 		rc = gsm48_rx_ccch(msg, ms);
-		ccch_enabled = 1;
 	} else if (rllh->chan_nr == RSL_CHAN_BCCH) {
 		rc = gsm48_rx_bcch(msg, ms);
-		if (ccch_enabled && (rach_count < 2)) {
-			l1ctl_tx_rach_req(ms, rach_count, 27, 0);
-			rach_count++;
-		}
 	}
 
 	return rc;

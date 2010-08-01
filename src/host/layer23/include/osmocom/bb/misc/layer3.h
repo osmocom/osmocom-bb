@@ -11,4 +11,7 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms);
 /* Initialize layer3 for the MS, hook it to L2 */
 int layer3_init(struct osmocom_ms *ms);
 
+/* Reset the 'aplication' state */
+void layer3_app_reset(void);
+
 #endif

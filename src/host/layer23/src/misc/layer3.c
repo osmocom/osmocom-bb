@@ -14,7 +14,12 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1ctl.h>
 
-static int ccch_mode = CCCH_MODE_NONE;
+static struct {
+	int ccch_mode;
+	int ccch_enabled;
+	int rach_count;
+} app_state;
+
 
 static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 {
@@ -43,16 +48,16 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 		if (tc != 2 && tc != 6)
 			fprintf(stderr, " on wrong TC");
 #endif
-		if (ccch_mode == CCCH_MODE_NONE) {
+		if (app_state.ccch_mode == CCCH_MODE_NONE) {
 			struct gsm48_system_information_type_3 *si3 =
 				(struct gsm48_system_information_type_3 *)data;
 
 			if (si3->control_channel_desc.ccch_conf == RSL_BCCH_CCCH_CONF_1_C)
-				ccch_mode = CCCH_MODE_COMBINED;
+				app_state.ccch_mode = CCCH_MODE_COMBINED;
 			else
-				ccch_mode = CCCH_MODE_NON_COMBINED;
+				app_state.ccch_mode = CCCH_MODE_NON_COMBINED;
 
-			l1ctl_tx_ccch_mode_req(ms, ccch_mode);
+			l1ctl_tx_ccch_mode_req(ms, app_state.ccch_mode);
 		}
 		break;
 	case GSM48_MT_RR_SYSINFO_4:
@@ -231,5 +236,21 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 	//dump_bcch(dl->time.tc, ccch->data);
 	dump_bcch(ms, 0, msg->l3h);
 
+	/* Req channel logic */
+	if (app_state.ccch_enabled && (app_state.rach_count < 2)) {
+		l1ctl_tx_rach_req(ms, app_state.rach_count,
+			app_state.ccch_mode == CCCH_MODE_COMBINED ? 27 : 51, 0);
+		app_state.rach_count++;
+	}
+
 	return 0;
 }
+
+void layer3_app_reset(void)
+{
+	/* Reset state */
+	app_state.ccch_mode = CCCH_MODE_NONE;
+	app_state.ccch_enabled = 0;
+	app_state.rach_count = 0;
+}
+
