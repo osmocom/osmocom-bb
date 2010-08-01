@@ -36,6 +36,7 @@ struct gsm_call {
 
 	uint32_t callref;
 
+	uint8_t init; /* call has been initiated, no response yet */
 	uint8_t	hold; /* call on hold */
 	uint8_t	ring; /* call is ringing/knocking */
 };

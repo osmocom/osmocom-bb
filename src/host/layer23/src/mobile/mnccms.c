@@ -123,6 +123,9 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		llist_add_tail(&call->entry, &call_list);
 	}
 
+	/* not in initiated state anymore */
+	call->init = 0;
+
 	switch (msg_type) {
 	case MNCC_DISC_IND:
 		vty_notify(ms, NULL);
@@ -302,6 +305,7 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 	if (!call)
 		return -ENOMEM;
 	call->callref = new_callref++;
+	call->init = 1;
 	llist_add_tail(&call->entry, &call_list);
 
 	memset(&setup, 0, sizeof(struct gsm_mncc));
@@ -358,7 +362,8 @@ int mncc_hangup(struct osmocom_ms *ms)
 	disc.callref = found->callref;
 	mncc_set_cause(&disc, GSM48_CAUSE_LOC_USER,
 		GSM48_CC_CAUSE_NORM_CALL_CLEAR);
-	return mncc_send(ms, MNCC_DISC_REQ, &disc);
+	return mncc_send(ms, (call->init) ? MNCC_REL_REQ : MNCC_DISC_REQ,
+		&disc);
 }
 
 int mncc_answer(struct osmocom_ms *ms)
