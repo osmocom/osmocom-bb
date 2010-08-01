@@ -145,8 +145,9 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
-	DEBUGP(DL1C, "%s (%.4u/%.2u/%.2u) %s\n",
+	DEBUGP(DL1C, "%s (%.4u/%.2u/%.2u) %d dBm: %s\n",
 		rsl_chan_nr_str(dl->chan_nr), tm.t1, tm.t2, tm.t3,
+		(int)dl->rx_level-110,
 		hexdump(ccch->data, sizeof(ccch->data)));
 
 	meas->last_fn = ntohl(dl->frame_nr);
