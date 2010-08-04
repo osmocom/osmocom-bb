@@ -302,6 +302,8 @@ static const struct tlv_definition bss_att_tlvdef = {
 		[GSM0808_IE_CELL_IDENTIFIER]	    = { TLV_TYPE_TLV },
 		[GSM0808_IE_CHOSEN_CHANNEL]	    = { TLV_TYPE_TV },
 		[GSM0808_IE_LAYER_3_INFORMATION]    = { TLV_TYPE_TLV },
+		[GSM0808_IE_SPEECH_VERSION]         = { TLV_TYPE_TV },
+		[GSM0808_IE_CHOSEN_ENCR_ALG]        = { TLV_TYPE_TV },
 	},
 };
 
