@@ -32,6 +32,7 @@
 #include <osmocore/tlv.h>
 #include <osmocore/mncc.h>
 #include <osmocore/protocol/gsm_04_08.h>
+#include <osmocore/gsm48_ie.h>
 
 static const char bcd_num_digits[] = {
 	'0', '1', '2', '3', '4', '5', '6', '7',
@@ -657,3 +658,437 @@ int gsm48_encode_more(struct msgb *msg)
 	return 0;
 }
 
+/* decode "Cell Channel Description" (10.5.2.1b) and other frequency lists */
+int gsm48_decode_freq_list(struct gsm_sysinfo_freq *f, uint8_t *cd,
+			   uint8_t len, uint8_t mask, uint8_t frqt)
+{
+	int i;
+
+	/* NOTES:
+	 *
+	 * The Range format uses "SMOD" computation.
+	 * e.g. "n SMOD m" equals "((n - 1) % m) + 1"
+	 * A cascade of multiple SMOD computations is simpified:
+	 * "(n SMOD m) SMOD o" equals "(((n - 1) % m) % o) + 1"
+	 *
+	 * The Range format uses 16 octets of data in SYSTEM INFORMATION.
+	 * When used in dedicated messages, the length can be less.
+	 * In this case the ranges are decoded for all frequencies that
+	 * fit in the block of given length.
+	 */
+
+	/* tabula rasa */
+	for (i = 0; i < 1024; i++)
+		f[i].mask &= ~frqt;
+
+	/* 00..XXX. */
+	if ((cd[0] & 0xc0 & mask) == 0x00) {
+		/* Bit map 0 format */
+		if (len < 16)
+			return -EINVAL;
+		for (i = 1; i <= 124; i++)
+			if ((cd[15 - ((i-1) >> 3)] & (1 << ((i-1) & 7))))
+				f[i].mask |= frqt;
+
+		return 0;
+	}
+
+	/* 10..0XX. */
+	if ((cd[0] & 0xc8 & mask) == 0x80) {
+		/* Range 1024 format */
+		uint16_t w[17]; /* 1..16 */
+		struct gsm48_range_1024 *r = (struct gsm48_range_1024 *)cd;
+
+		if (len < 2)
+			return -EINVAL;
+		memset(w, 0, sizeof(w));
+		if (r->f0)
+			f[0].mask |= frqt;
+		w[1] = (r->w1_hi << 8) | r->w1_lo;
+		if (len >= 4)
+			w[2] = (r->w2_hi << 1) | r->w2_lo;
+		if (len >= 5)
+			w[3] = (r->w3_hi << 2) | r->w3_lo;
+		if (len >= 6)
+			w[4] = (r->w4_hi << 2) | r->w4_lo;
+		if (len >= 7)
+			w[5] = (r->w5_hi << 2) | r->w5_lo;
+		if (len >= 8)
+			w[6] = (r->w6_hi << 2) | r->w6_lo;
+		if (len >= 9)
+			w[7] = (r->w7_hi << 2) | r->w7_lo;
+		if (len >= 10)
+			w[8] = (r->w8_hi << 1) | r->w8_lo;
+		if (len >= 10)
+			w[9] = r->w9;
+		if (len >= 11)
+			w[10] = r->w10;
+		if (len >= 12)
+			w[11] = (r->w11_hi << 6) | r->w11_lo;
+		if (len >= 13)
+			w[12] = (r->w12_hi << 5) | r->w12_lo;
+		if (len >= 14)
+			w[13] = (r->w13_hi << 4) | r->w13_lo;
+		if (len >= 15)
+			w[14] = (r->w14_hi << 3) | r->w14_lo;
+		if (len >= 16)
+			w[15] = (r->w15_hi << 2) | r->w15_lo;
+		if (len >= 16)
+			w[16] = r->w16;
+		if (w[1])
+			f[w[1]].mask |= frqt;
+		if (w[2])
+			f[((w[1] - 512 + w[2] - 1) % 1023) + 1].mask |= frqt;
+		if (w[3])
+			f[((w[1]       + w[3] - 1) % 1023) + 1].mask |= frqt;
+		if (w[4])
+			f[((w[1] - 512 + ((w[2] - 256 + w[4] - 1) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[5])
+			f[((w[1]       + ((w[3] - 256 - w[5] - 1) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[6])
+			f[((w[1] - 512 + ((w[2]       + w[6] - 1) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[7])
+			f[((w[1]       + ((w[3]       + w[7] - 1) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[8])
+			f[((w[1] - 512 + ((w[2] - 256 + ((w[4] - 128 + w[8] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[9])
+			f[((w[1]       + ((w[3] - 256 + ((w[5] - 128 + w[9] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[10])
+			f[((w[1] - 512 + ((w[2]       + ((w[6] - 128 + w[10] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[11])
+			f[((w[1]       + ((w[3]       + ((w[7] - 128 + w[11] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[12])
+			f[((w[1] - 512 + ((w[2] - 256 + ((w[4]       + w[12] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[13])
+			f[((w[1]       + ((w[3] - 256 + ((w[5]       + w[13] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[14])
+			f[((w[1] - 512 + ((w[2]       + ((w[6]       + w[14] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[15])
+			f[((w[1]       + ((w[3]       + ((w[7]       + w[15] - 1) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+		if (w[16])
+			f[((w[1] - 512 + ((w[2] - 256 + ((w[4] - 128 + ((w[8] - 64 + w[16] - 1) % 127)) % 255)) % 511)) % 1023) + 1].mask |= frqt;
+
+		return 0;
+	}
+	/* 10..100. */
+	if ((cd[0] & 0xce & mask) == 0x88) {
+		/* Range 512 format */
+		uint16_t w[18]; /* 1..17 */
+		struct gsm48_range_512 *r = (struct gsm48_range_512 *)cd;
+
+		if (len < 4)
+			return -EINVAL;
+		memset(w, 0, sizeof(w));
+		w[0] = (r->orig_arfcn_hi << 9) | (r->orig_arfcn_mid << 1) | r->orig_arfcn_lo;
+		w[1] = (r->w1_hi << 2) | r->w1_lo;
+		if (len >= 5)
+			w[2] = (r->w2_hi << 2) | r->w2_lo;
+		if (len >= 6)
+			w[3] = (r->w3_hi << 2) | r->w3_lo;
+		if (len >= 7)
+			w[4] = (r->w4_hi << 1) | r->w4_lo;
+		if (len >= 7)
+			w[5] = r->w5;
+		if (len >= 8)
+			w[6] = r->w6;
+		if (len >= 9)
+			w[7] = (r->w7_hi << 6) | r->w7_lo;
+		if (len >= 10)
+			w[8] = (r->w8_hi << 4) | r->w8_lo;
+		if (len >= 11)
+			w[9] = (r->w9_hi << 2) | r->w9_lo;
+		if (len >= 11)
+			w[10] = r->w10;
+		if (len >= 12)
+			w[11] = r->w11;
+		if (len >= 13)
+			w[12] = (r->w12_hi << 4) | r->w12_lo;
+		if (len >= 14)
+			w[13] = (r->w13_hi << 2) | r->w13_lo;
+		if (len >= 14)
+			w[14] = r->w14;
+		if (len >= 15)
+			w[15] = r->w15;
+		if (len >= 16)
+			w[16] = (r->w16_hi << 3) | r->w16_lo;
+		if (len >= 16)
+			w[17] = r->w17;
+		f[w[0]].mask |= frqt;
+		if (w[1])
+			f[(w[0] + w[1]) % 1024].mask |= frqt;
+		if (w[2])
+			f[(w[0] + ((w[1] - 256 + w[2] - 1) % 511) + 1) % 1024].mask |= frqt;
+		if (w[3])
+			f[(w[0] + ((w[1]       + w[3] - 1) % 511) + 1) % 1024].mask |= frqt;
+		if (w[4])
+			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + w[4] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[5])
+			f[(w[0] + ((w[1]       + ((w[3] - 128 + w[5] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[6])
+			f[(w[0] + ((w[1] - 256 + ((w[2]       + w[6] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[7])
+			f[(w[0] + ((w[1]       + ((w[3]       + w[7] - 1) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[8])
+			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + ((w[4] - 64 + w[8] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[9])
+			f[(w[0] + ((w[1]       + ((w[3] - 128 + ((w[5] - 64 + w[9] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[10])
+			f[(w[0] + ((w[1] - 256 + ((w[2]       + ((w[6] - 64 + w[10] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[11])
+			f[(w[0] + ((w[1]       + ((w[3]       + ((w[7] - 64 + w[11] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[12])
+			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + ((w[4]      + w[12] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[13])
+			f[(w[0] + ((w[1]       + ((w[3] - 128 + ((w[5]      + w[13] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[14])
+			f[(w[0] + ((w[1] - 256 + ((w[2]       + ((w[6]      + w[14] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[15])
+			f[(w[0] + ((w[1]       + ((w[3]       + ((w[7]      + w[15] - 1) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[16])
+			f[(w[0] + ((w[1] - 256 + ((w[2] - 128 + ((w[4] - 64 + ((w[8] - 32 + w[16] - 1) % 63)) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+		if (w[17])
+			f[(w[0] + ((w[1]       + ((w[3] - 128 + ((w[5] - 64 + ((w[9] - 32 + w[17] - 1) % 63)) % 127)) % 255)) % 511) + 1) % 1024].mask |= frqt;
+
+		return 0;
+	}
+	/* 10..101. */
+	if ((cd[0] & 0xce & mask) == 0x8a) {
+		/* Range 256 format */
+		uint16_t w[22]; /* 1..21 */
+		struct gsm48_range_256 *r = (struct gsm48_range_256 *)cd;
+
+		if (len < 4)
+			return -EINVAL;
+		memset(w, 0, sizeof(w));
+		w[0] = (r->orig_arfcn_hi << 9) | (r->orig_arfcn_mid << 1) | r->orig_arfcn_lo;
+		w[1] = (r->w1_hi << 1) | r->w1_lo;
+		if (len >= 4)
+			w[2] = r->w2;
+		if (len >= 5)
+			w[3] = r->w3;
+		if (len >= 6)
+			w[4] = (r->w4_hi << 5) | r->w4_lo;
+		if (len >= 7)
+			w[5] = (r->w5_hi << 3) | r->w5_lo;
+		if (len >= 8)
+			w[6] = (r->w6_hi << 1) | r->w6_lo;
+		if (len >= 8)
+			w[7] = r->w7;
+		if (len >= 9)
+			w[8] = (r->w8_hi << 4) | r->w8_lo;
+		if (len >= 10)
+			w[9] = (r->w9_hi << 1) | r->w9_lo;
+		if (len >= 10)
+			w[10] = r->w10;
+		if (len >= 11)
+			w[11] = (r->w11_hi << 3) | r->w11_lo;
+		if (len >= 11)
+			w[12] = r->w12;
+		if (len >= 12)
+			w[13] = r->w13;
+		if (len >= 13)
+			w[14] = r->w15;
+		if (len >= 13)
+			w[15] = (r->w14_hi << 2) | r->w14_lo;
+		if (len >= 14)
+			w[16] = (r->w16_hi << 3) | r->w16_lo;
+		if (len >= 14)
+			w[17] = r->w17;
+		if (len >= 15)
+			w[18] = r->w19;
+		if (len >= 15)
+			w[19] = (r->w18_hi << 3) | r->w18_lo;
+		if (len >= 16)
+			w[20] = (r->w20_hi << 3) | r->w20_lo;
+		if (len >= 16)
+			w[21] = r->w21;
+		f[w[0]].mask |= frqt;
+		if (w[1])
+			f[(w[0] + w[1]) % 1024].mask |= frqt;
+		if (w[2])
+			f[(w[0] + ((w[1] - 128 + w[2] - 1) % 255) + 1) % 1024].mask |= frqt;
+		if (w[3])
+			f[(w[0] + ((w[1]       + w[3] - 1) % 255) + 1) % 1024].mask |= frqt;
+		if (w[4])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + w[4] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[5])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + w[5] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[6])
+			f[(w[0] + ((w[1] - 128 + ((w[2]      + w[6] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[7])
+			f[(w[0] + ((w[1]       + ((w[3]      + w[7] - 1) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[8])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4] - 32 + w[8] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[9])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5] - 32 + w[9] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[10])
+			f[(w[0] + ((w[1] - 128 + ((w[2]      + ((w[6] - 32 + w[10] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[11])
+			f[(w[0] + ((w[1]       + ((w[3]      + ((w[7] - 32 + w[11] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[12])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4]      + w[12] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[13])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5]      + w[13] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[14])
+			f[(w[0] + ((w[1] - 128 + ((w[2]      + ((w[6]      + w[14] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[15])
+			f[(w[0] + ((w[1]       + ((w[3]      + ((w[7]      + w[15] - 1) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[16])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4] - 32 + ((w[8] - 16 + w[16] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[17])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5] - 32 + ((w[9] - 16 + w[17] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[18])
+			f[(w[0] + ((w[1] - 128 + ((w[2]      + ((w[6] - 32 + ((w[10] - 16 + w[18] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[19])
+			f[(w[0] + ((w[1]       + ((w[3]      + ((w[7] - 32 + ((w[11] - 16 + w[19] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[20])
+			f[(w[0] + ((w[1] - 128 + ((w[2] - 64 + ((w[4]      + ((w[12] - 16 + w[20] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+		if (w[21])
+			f[(w[0] + ((w[1]       + ((w[3] - 64 + ((w[5]      + ((w[13] - 16 + w[21] - 1) % 31)) % 63)) % 127)) % 255) + 1) % 1024].mask |= frqt;
+
+		return 0;
+	}
+	/* 10..110. */
+	if ((cd[0] & 0xce & mask) == 0x8c) {
+		/* Range 128 format */
+		uint16_t w[29]; /* 1..28 */
+		struct gsm48_range_128 *r = (struct gsm48_range_128 *)cd;
+
+		if (len < 3)
+			return -EINVAL;
+		memset(w, 0, sizeof(w));
+		w[0] = (r->orig_arfcn_hi << 9) | (r->orig_arfcn_mid << 1) | r->orig_arfcn_lo;
+		w[1] = r->w1;
+		if (len >= 4)
+			w[2] = r->w2;
+		if (len >= 5)
+			w[3] = (r->w3_hi << 4) | r->w3_lo;
+		if (len >= 6)
+			w[4] = (r->w4_hi << 1) | r->w4_lo;
+		if (len >= 6)
+			w[5] = r->w5;
+		if (len >= 7)
+			w[6] = (r->w6_hi << 3) | r->w6_lo;
+		if (len >= 7)
+			w[7] = r->w7;
+		if (len >= 8)
+			w[8] = r->w8;
+		if (len >= 8)
+			w[9] = r->w9;
+		if (len >= 9)
+			w[10] = r->w10;
+		if (len >= 9)
+			w[11] = r->w11;
+		if (len >= 10)
+			w[12] = r->w12;
+		if (len >= 10)
+			w[13] = r->w13;
+		if (len >= 11)
+			w[14] = r->w14;
+		if (len >= 11)
+			w[15] = r->w15;
+		if (len >= 12)
+			w[16] = r->w16;
+		if (len >= 12)
+			w[17] = r->w17;
+		if (len >= 13)
+			w[18] = (r->w18_hi << 1) | r->w18_lo;
+		if (len >= 13)
+			w[19] = r->w19;
+		if (len >= 13)
+			w[20] = r->w20;
+		if (len >= 14)
+			w[21] = (r->w21_hi << 2) | r->w21_lo;
+		if (len >= 14)
+			w[22] = r->w22;
+		if (len >= 14)
+			w[23] = r->w23;
+		if (len >= 15)
+			w[24] = r->w24;
+		if (len >= 15)
+			w[25] = r->w25;
+		if (len >= 16)
+			w[26] = (r->w26_hi << 1) | r->w26_lo;
+		if (len >= 16)
+			w[27] = r->w27;
+		if (len >= 16)
+			w[28] = r->w28;
+		f[w[0]].mask |= frqt;
+		if (w[1])
+			f[(w[0] + w[1]) % 1024].mask |= frqt;
+		if (w[2])
+			f[(w[0] + ((w[1] - 64 + w[2] - 1) % 127) + 1) % 1024].mask |= frqt;
+		if (w[3])
+			f[(w[0] + ((w[1]      + w[3] - 1) % 127) + 1) % 1024].mask |= frqt;
+		if (w[4])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + w[4] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[5])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + w[5] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[6])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + w[6] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[7])
+			f[(w[0] + ((w[1]      + ((w[3]      + w[7] - 1) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[8])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4] - 16 + w[8] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[9])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5] - 16 + w[9] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[10])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6] - 16 + w[10] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[11])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7] - 16 + w[11] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[12])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4]      + w[12] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[13])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5]      + w[13] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[14])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6]      + w[14] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[15])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7]      + w[15] - 1) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[16])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4] - 16 + ((w[8] - 8 + w[16] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[17])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5] - 16 + ((w[9] - 8 + w[17] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[18])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6] - 16 + ((w[10] - 8 + w[18] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[19])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7] - 16 + ((w[11] - 8 + w[19] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[20])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4]      + ((w[12] - 8 + w[20] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[21])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5]      + ((w[13] - 8 + w[21] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[22])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6]      + ((w[14] - 8 + w[22] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[23])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7]      + ((w[15] - 8 + w[23] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[24])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4] - 16 + ((w[8]     + w[24] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[25])
+			f[(w[0] + ((w[1]      + ((w[3] - 32 + ((w[5] - 16 + ((w[9]     + w[25] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[26])
+			f[(w[0] + ((w[1] - 64 + ((w[2]      + ((w[6] - 16 + ((w[10]     + w[26] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[27])
+			f[(w[0] + ((w[1]      + ((w[3]      + ((w[7] - 16 + ((w[11]     + w[27] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+		if (w[28])
+			f[(w[0] + ((w[1] - 64 + ((w[2] - 32 + ((w[4]      + ((w[12]     + w[28] - 1) % 15)) % 31)) % 63)) % 127) + 1) % 1024].mask |= frqt;
+
+		return 0;
+	}
+	/* 10..111. */
+	if ((cd[0] & 0xce & mask) == 0x8e) {
+		/* Variable bitmap format (can be any length >= 3) */
+		uint16_t orig = 0;
+		struct gsm48_var_bit *r = (struct gsm48_var_bit *)cd;
+
+		if (len < 3)
+			return -EINVAL;
+		orig = (r->orig_arfcn_hi << 9) | (r->orig_arfcn_mid << 1) | r->orig_arfcn_lo;
+		f[orig].mask |= frqt;
+		for (i = 1; 2 + (i >> 3) < len; i++)
+			if ((cd[2 + (i >> 3)] & (0x80 >> (i & 7))))
+				f[(orig + i) % 1024].mask |= frqt;
+
+		return 0;
+	}
+
+	return 0;
+}

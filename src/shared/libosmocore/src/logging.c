@@ -164,7 +164,8 @@ static void _output(struct log_target *target, unsigned int subsys,
 		sub[sizeof(sub)-1] = '\0';
 	}
 
-	snprintf(final, sizeof(final), "%s%s%s%s\033[0;m", col, tim, sub, buf);
+	snprintf(final, sizeof(final), "%s%s%s%s%s", col, tim, sub, buf,
+		 target->use_color ? "\033[0;m" : "");
 	final[sizeof(final)-1] = '\0';
 	target->output(target, final);
 }
@@ -234,25 +235,6 @@ void logp2(unsigned int subsys, unsigned int level, char *file, int line, int co
 	va_start(ap, format);
 	_logp(subsys, level, file, line, cont, format, ap);
 	va_end(ap);
-}
-
-static char hexd_buff[4096];
-
-char *hexdump(const unsigned char *buf, int len)
-{
-	int i;
-	char *cur = hexd_buff;
-
-	hexd_buff[0] = 0;
-	for (i = 0; i < len; i++) {
-		int len_remain = sizeof(hexd_buff) - (cur - hexd_buff);
-		int rc = snprintf(cur, len_remain, "%02x ", buf[i]);
-		if (rc <= 0)
-			break;
-		cur += rc;
-	}
-	hexd_buff[sizeof(hexd_buff)-1] = 0;
-	return hexd_buff;
 }
 
 void log_add_target(struct log_target *target)

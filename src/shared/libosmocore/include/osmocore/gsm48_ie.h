@@ -104,4 +104,14 @@ int gsm48_encode_ssversion(struct msgb *msg,
 /* encode 'more data' */
 int gsm48_encode_more(struct msgb *msg);
 
+/* structure of one frequency */
+struct gsm_sysinfo_freq {
+	/* if the frequency included in the sysinfo */
+	uint8_t	mask;
+};
+
+/* decode "Cell Channel Description" (10.5.2.1b) and other frequency lists */
+int gsm48_decode_freq_list(struct gsm_sysinfo_freq *f, uint8_t *cd,
+			   uint8_t len, uint8_t mask, uint8_t frqt);
+
 #endif
