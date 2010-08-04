@@ -1,6 +1,8 @@
 #ifndef _SYSINFO_H
 #define _SYSINFO_H
 
+#include <osmocore/gsm48_ie.h>
+
 /* collection of system information of the current cell */
 
 /* frequency mask flags of frequency type */
@@ -15,12 +17,6 @@
 #define	FREQ_TYPE_REP_5bis	0x40 /* sub channel of SI 5bis */
 #define	FREQ_TYPE_REP_5ter	0x80 /* sub channel of SI 5ter */
 #define	FREQ_TYPE_SI_2_5	0xfc /* both SI 2 and SI 5 */
-
-/* structure of one frequency */
-struct gsm_sysinfo_freq {
-	/* if the frequency included in the sysinfo */
-	uint8_t	mask;
-};
 
 /* structure of all received system informations */
 struct gsm48_sysinfo {
