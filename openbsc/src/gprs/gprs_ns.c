@@ -505,6 +505,7 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 	if (!nsvc) {
 		LOGP(DNS, LOGL_ERROR, "Unable to resolve NSEI %u "
 			"to NS-VC!\n", msgb_nsei(msg));
+		msgb_free(msg);
 		return -EINVAL;
 	}
 	log_set_context(BSC_CTX_NSVC, nsvc);
@@ -512,11 +513,13 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 	if (!(nsvc->state & NSE_S_ALIVE)) {
 		LOGP(DNS, LOGL_ERROR, "NSEI=%u is not alive, cannot send\n",
 			nsvc->nsei);
+		msgb_free(msg);
 		return -EBUSY;
 	}
 	if (nsvc->state & NSE_S_BLOCKED) {
 		LOGP(DNS, LOGL_ERROR, "NSEI=%u is blocked, cannot send\n",
 			nsvc->nsei);
+		msgb_free(msg);
 		return -EBUSY;
 	}
 
@@ -524,6 +527,7 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 	nsh = (struct gprs_ns_hdr *) msg->l2h;
 	if (!nsh) {
 		LOGP(DNS, LOGL_ERROR, "Not enough headroom for NS header\n");
+		msgb_free(msg);
 		return -EIO;
 	}
 
