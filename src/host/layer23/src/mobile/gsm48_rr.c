@@ -192,6 +192,49 @@ static int gsm48_decode_ba_range(const uint8_t *ba, uint8_t ba_len,
 	return 0;
 }
 
+/* 3.1.4.3 set sequence number and increment */
+static int gsm48_apply_v_sd(struct gsm48_rrlayer *rr, struct msgb *msg)
+{
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	uint8_t pdisc = gh->proto_discr & 0x0f;
+	uint8_t v_sd;
+
+	switch (pdisc) {
+	case GSM48_PDISC_MM:
+	case GSM48_PDISC_CC:
+	case GSM48_PDISC_NC_SS:
+		/* all thre pdiscs share the same V(SD) */
+		pdisc = GSM48_PDISC_MM;
+		// fall through
+	case GSM48_PDISC_GROUP_CC:
+	case GSM48_PDISC_BCAST_CC:
+	case GSM48_PDISC_PDSS1:
+	case GSM48_PDISC_PDSS2:
+		/* extract v_sd(pdisc) */
+		v_sd = (rr->v_sd >> pdisc) & 1;
+
+		/* replace bit 7 vy v_sd */
+		gh->msg_type &= 0xbf;
+		gh->msg_type |= (v_sd << 6);
+
+		/* increment V(SD) */
+		rr->v_sd ^= (1 << pdisc);
+		LOGP(DRR, LOGL_INFO, "Using and incrementing V(SD) = %d "
+			"(pdisc %x)\n", v_sd, pdisc);
+		break;
+	case GSM48_PDISC_RR:
+	case GSM48_PDISC_SMS:
+		/* no V(VSD) is required */
+		break;
+	default:
+		LOGP(DRR, LOGL_ERROR, "Error, V(SD) of pdisc %x not handled\n",
+			pdisc);
+		return -ENOTSUP;
+	}
+
+	return 0;
+}
+
 /*
  * state transition
  */
@@ -2687,12 +2730,19 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	/* 3.3.1.1.3.1 */
 	stop_rr_t3126(rr);
 
+	/* clear all sequence numbers for all possible PDs */
+	rr->v_sd = 0;
+
 	/* send DL_EST_REQ */
 	if (rr->rr_est_msg) {
+		LOGP(DRR, LOGL_INFO, "sending establish message\n");
+
 		/* use queued message */
 		nmsg = rr->rr_est_msg;
 		rr->rr_est_msg = 0;
-		LOGP(DRR, LOGL_INFO, "sending establish message\n");
+
+		/* set sequence number and increment */
+		gsm48_apply_v_sd(rr, nmsg);
 	} else {
 		/* create paging response */
 		nmsg = gsm48_l3_msgb_alloc();
@@ -3224,6 +3274,9 @@ static int gsm48_rr_data_req(struct osmocom_ms *ms, struct msgb *msg)
 	
 	/* pull RR header */
 	msgb_pull(msg, sizeof(struct gsm48_rr_hdr));
+
+	/* set sequence number and increment */
+	gsm48_apply_v_sd(rr, msg);
 
 	/* queue message, during handover or assignment procedure */
 	if (rr->hando_susp_state || rr->assign_susp_state) {

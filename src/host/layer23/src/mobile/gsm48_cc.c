@@ -795,7 +795,7 @@ static int gsm48_cc_rx_setup(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	struct gsm_mncc setup;
 
-	LOGP(DCC, LOGL_INFO, "sending SETUP\n");
+	LOGP(DCC, LOGL_INFO, "received SETUP\n");
 
 	memset(&setup, 0, sizeof(struct gsm_mncc));
 	setup.callref = trans->callref;

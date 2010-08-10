@@ -132,6 +132,9 @@ struct gsm48_rrlayer {
 	uint8_t			cr_ra; /* stores requested ra until confirmed */
 	struct gsm48_cr_hist	cr_hist[3];
 
+	/* V(SD) sequence numbers */
+	uint16_t		v_sd; /* 16 PD 1-bit sequence numbers packed */
+
 	/* current channel descriptions */
 	struct gsm48_rr_cd	cd_now;
 
