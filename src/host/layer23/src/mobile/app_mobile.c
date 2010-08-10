@@ -34,6 +34,7 @@
 #include <osmocom/bb/mobile/gsm48_rr.h>
 #include <osmocom/bb/mobile/sysinfo.h>
 #include <osmocom/bb/mobile/vty.h>
+#include <osmocom/bb/mobile/gps.h>
 #include <osmocom/vty/telnet_interface.h>
 
 #include <osmocore/msgb.h>
@@ -127,6 +128,7 @@ int mobile_exit(struct osmocom_ms *ms)
 	signal(SIGPIPE, SIG_DFL);
 
 	unregister_signal_handler(SS_L1CTL, &signal_cb, NULL);
+	gps_close();
 	gsm322_exit(ms);
 	gsm48_mm_exit(ms);
 	gsm48_rr_exit(ms);

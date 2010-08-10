@@ -32,6 +32,7 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/vty.h>
+#include <osmocom/bb/mobile/gps.h>
 #include <osmocom/vty/telnet_interface.h>
 
 int mncc_call(struct osmocom_ms *ms, char *number);
@@ -526,6 +527,68 @@ DEFUN(network_search, network_search_cmd, "network search MS_NAME",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_gps_enable, cfg_gps_enable_cmd, "gps enable",
+	"GPS receiver")
+{
+	if (gps_open()) {
+		gps.enable = 1;
+		vty_out(vty, "Failed to open GPS device!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	gps.enable = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_gps_enable, cfg_no_gps_enable_cmd, "no gps enable",
+	NO_STR "Disable GPS receiver")
+{
+	if (gps.enable)
+		gps_close();
+	gps.enable = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gps_device, cfg_gps_device_cmd, "gps device DEVICE",
+	"GPS receiver\nSelect serial device\n"
+	"Full path of serial device including /dev/")
+{
+	strncpy(gps.device, argv[0], sizeof(gps.device));
+	gps.device[sizeof(gps.device) - 1] = '\0';
+	if (gps.enable) {
+		gps_close();
+		if (gps_open()) {
+			vty_out(vty, "Failed to open GPS device!%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gps_baud, cfg_gps_baud_cmd, "gps baudrate "
+	"(default|4800|""9600|19200|38400|57600|115200)",
+	"GPS receiver\nSelect baud rate\nDefault, don't modify\n\n\n\n\n\n")
+{
+	if (argv[0][0] == 'd')
+		gps.baud = 0;
+	else
+		gps.baud = atoi(argv[0]);
+	if (gps.enable) {
+		gps_close();
+		if (gps_open()) {
+			gps.enable = 0;
+			vty_out(vty, "Failed to open GPS device!%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	return CMD_SUCCESS;
+}
+
 /* per MS config */
 DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 	"Select a mobile station to configure\nName of MS (see \"show ms\")")
@@ -618,6 +681,14 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 static int config_write_ms(struct vty *vty)
 {
 	struct osmocom_ms *ms;
+
+	vty_out(vty, "gps device %s%s", gps.device, VTY_NEWLINE);
+	if (gps.baud)
+		vty_out(vty, "gps baudrate %d%s", gps.baud, VTY_NEWLINE);
+	else
+		vty_out(vty, "gps baudrate default%s", VTY_NEWLINE);
+	vty_out(vty, "%sgps enable%s", (gps.enable) ? "" : "no ", VTY_NEWLINE);
+	vty_out(vty, "!%s", VTY_NEWLINE);
 
 	llist_for_each_entry(ms, &ms_list, entity)
 		config_write_ms_single(vty, ms);
@@ -1078,6 +1149,11 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &network_select_cmd);
 	install_element(ENABLE_NODE, &call_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
+
+	install_element(CONFIG_NODE, &cfg_gps_device_cmd);
+	install_element(CONFIG_NODE, &cfg_gps_baud_cmd);
+	install_element(CONFIG_NODE, &cfg_gps_enable_cmd);
+	install_element(CONFIG_NODE, &cfg_no_gps_enable_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ms_cmd);
 	install_element(CONFIG_NODE, &ournode_end_cmd);
