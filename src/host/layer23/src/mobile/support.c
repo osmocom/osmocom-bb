@@ -100,6 +100,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	//sup->sm_val = ;
 
 	/* radio */
+	sup->ch_cap = GSM_CAP_SDCCH_TCHF;
 	sup->min_rxlev_db = -100; // TODO
 	sup->sync_to = 6; /* how long to wait sync (0.9 s) */
 	sup->scan_to = 4; /* how long to wait for all sysinfos (>=4 s) */
@@ -148,6 +149,17 @@ void gsm_support_dump(struct gsm_support *sup,
 	print(priv, " A5/6     : %s\n", (sup->a5_6) ? "yes" : "no");
 	print(priv, " A5/7     : %s\n", (sup->a5_7) ? "yes" : "no");
 	print(priv, " A5/1     : %s\n", (sup->a5_1) ? "yes" : "no");
+	switch (sup->ch_cap) {
+		case GSM_CAP_SDCCH:
+		print(priv, " Channels : SDCCH only\n");
+		break;
+		case GSM_CAP_SDCCH_TCHF:
+		print(priv, " Channels : SDCCH + TCH/F\n");
+		break;
+		case GSM_CAP_SDCCH_TCHF_TCHH:
+		print(priv, " Channels : SDCCH + TCH/F + TCH/H\n");
+		break;
+	}
 	print(priv, " Min RXLEV: %d\n", sup->min_rxlev_db);
 }
 

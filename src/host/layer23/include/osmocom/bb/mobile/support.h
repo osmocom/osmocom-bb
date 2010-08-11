@@ -10,6 +10,10 @@
 #define GSM_CIPHER_A5_7		6
 #define GSM_CIPHER_RESERVED	7
 
+#define GSM_CAP_SDCCH		0
+#define GSM_CAP_SDCCH_TCHF	1
+#define GSM_CAP_SDCCH_TCHF_TCHH	2
+
 struct gsm_support {
 	struct osmocom_ms *ms;
 
@@ -72,6 +76,7 @@ struct gsm_support {
 	uint8_t gps_conv;
 
 	/* radio */
+	uint8_t ch_cap; /* channel capability */
 	int8_t min_rxlev_db;
 	uint8_t scan_to;
 	uint8_t sync_to;

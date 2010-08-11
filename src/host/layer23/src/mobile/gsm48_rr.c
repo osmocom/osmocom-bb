@@ -960,6 +960,7 @@ static int gsm48_rr_rx_cm_enq(struct osmocom_ms *ms, struct msgb *msg)
 /* start random access */
 static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 {
+	struct gsm_support *sup = &ms->support;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = cs->si;
@@ -1063,16 +1064,38 @@ cause = RR_EST_CAUSE_LOC_UPD;
 			chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_F:
-		/* ms supports no dual rate */
-		chan_req_mask = 0x1f;
-		chan_req_val = 0x80;
+		switch (sup->ch_cap) {
+		case GSM_CAP_SDCCH_TCHF:
+			chan_req_mask = 0x1f;
+			chan_req_val = 0x80;
+			break;
+		case GSM_CAP_SDCCH_TCHF_TCHH:
+			chan_req_mask = 0x0f;
+			chan_req_val = 0x20;
+			break;
+		case GSM_CAP_SDCCH:
+			chan_req_mask = 0x0f;
+			chan_req_val = 0x10;
+			break;
+		}
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (PAGING TCH/F)\n",
 			chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_ANY:
-		/* ms supports no dual rate */
-		chan_req_mask = 0x1f;
-		chan_req_val = 0x80;
+		switch (sup->ch_cap) {
+		case GSM_CAP_SDCCH_TCHF:
+			chan_req_mask = 0x1f;
+			chan_req_val = 0x80;
+			break;
+		case GSM_CAP_SDCCH_TCHF_TCHH:
+			chan_req_mask = 0x0f;
+			chan_req_val = 0x30;
+			break;
+		case GSM_CAP_SDCCH:
+			chan_req_mask = 0x0f;
+			chan_req_val = 0x10;
+			break;
+		}
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (PAGING TCH/H or "
 				"TCH/F)\n", chan_req_val);
 		break;
