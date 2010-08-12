@@ -1394,7 +1394,7 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			if (!dl->rcv_buffer) {
 				LOGP(DLAPDM, LOGL_INFO, "message in multiple I "
 					"frames (first message)\n");
-				dl->rcv_buffer = msgb_alloc_headroom(200+10, 10,
+				dl->rcv_buffer = msgb_alloc_headroom(200+56, 56,
 								"LAPDm RX");
 				dl->rcv_buffer->l3h = dl->rcv_buffer->data;
 			}
