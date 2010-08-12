@@ -1005,8 +1005,6 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	/* number of retransmissions (with first transmission) */
 	rr->n_chan_req = s->max_retrans + 1;
 
-#warning HACK: always request SDCCH for test
-cause = RR_EST_CAUSE_LOC_UPD;
 	/* generate CHAN REQ (9.1.8) */
 	switch (cause) {
 	case RR_EST_CAUSE_EMERGENCY:
@@ -1065,17 +1063,17 @@ cause = RR_EST_CAUSE_LOC_UPD;
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_F:
 		switch (sup->ch_cap) {
+		case GSM_CAP_SDCCH:
+			chan_req_mask = 0x0f;
+			chan_req_val = 0x10;
+			break;
 		case GSM_CAP_SDCCH_TCHF:
 			chan_req_mask = 0x1f;
 			chan_req_val = 0x80;
 			break;
-		case GSM_CAP_SDCCH_TCHF_TCHH:
+		default:
 			chan_req_mask = 0x0f;
 			chan_req_val = 0x20;
-			break;
-		case GSM_CAP_SDCCH:
-			chan_req_mask = 0x0f;
-			chan_req_val = 0x10;
 			break;
 		}
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (PAGING TCH/F)\n",
@@ -1083,17 +1081,17 @@ cause = RR_EST_CAUSE_LOC_UPD;
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_ANY:
 		switch (sup->ch_cap) {
+		case GSM_CAP_SDCCH:
+			chan_req_mask = 0x0f;
+			chan_req_val = 0x10;
+			break;
 		case GSM_CAP_SDCCH_TCHF:
 			chan_req_mask = 0x1f;
 			chan_req_val = 0x80;
 			break;
-		case GSM_CAP_SDCCH_TCHF_TCHH:
+		default:
 			chan_req_mask = 0x0f;
 			chan_req_val = 0x30;
-			break;
-		case GSM_CAP_SDCCH:
-			chan_req_mask = 0x0f;
-			chan_req_val = 0x10;
 			break;
 		}
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (PAGING TCH/H or "
@@ -2818,7 +2816,8 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 #else
 	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if ((ch_type != RSL_CHAN_SDCCH8_ACCH
-	  && ch_type != RSL_CHAN_SDCCH4_ACCH) || ch_ts > 4 || ch_subch >= 4) {
+	  && ch_type != RSL_CHAN_SDCCH4_ACCH
+	  && ch_type != RSL_CHAN_Bm_ACCHs) /*|| ch_ts > 4*/ || ch_subch >= 4) {
 		printf("Channel type %d, subch %d, ts %d not supported, "
 			"exitting.\n", ch_type, ch_subch, ch_ts);
 		exit(-ENOTSUP);
