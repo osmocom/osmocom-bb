@@ -69,9 +69,16 @@ struct gsm48_rr_cd {
 	uint8_t			hsn;
 	uint8_t			chan_nr; /* type, slot, sub slot */
 	uint8_t			link_id;
-	uint8_t			ta; /* timing advance */
+	uint8_t			ind_tx_power; /* last indicated power */
+	uint8_t			ind_ta; /* last indicated ta */
 	uint8_t			mob_alloc_lv[9]; /* len + up to 64 bits */
-	uint8_t			start_t1, start_t2, start_t3; /* start. time */
+	uint8_t			freq_list_lv[131]; /* len + 130 octets */
+	uint8_t			freq_seq_lv[10]; /* len + 9 octets */
+	uint8_t			cell_desc_lv[17]; /* len + 16 octets */
+	uint8_t			start; /* start time available */
+	struct gsm_time		start_tm; /* start time */
+	uint8_t			mode; /* mode of channel */
+	uint8_t			cipher; /* ciphering of channel */
 };
 
 /* measurements */
@@ -146,12 +153,12 @@ struct gsm48_rrlayer {
 	uint8_t			hando_susp_state;
 	uint8_t			assign_susp_state;
 	uint8_t			resume_last_state;
-	struct gsm48_rr_cd	cd_last;
+	struct gsm48_rr_cd	cd_last; /* store last cd in case of failure */
+	struct gsm48_rr_cd	cd_before; /* before start time */
+	struct gsm48_rr_cd	cd_after; /* after start time */
 
 	/* measurements */
 	struct gsm48_rr_meas	meas;
-	uint8_t			ind_tx_power; /* last indicated power */
-	uint8_t			ind_ta; /* last indicated ta */
 
 	/* BA range */
 	uint8_t			ba_ranges;

@@ -27,7 +27,9 @@ struct osmol2_entity {
 
 /* RX measurement statistics */
 struct rx_meas_stat {
+	uint32_t last_fn;
 	uint32_t frames;
+	uint32_t snr;
 	uint32_t berr;
 	uint32_t rxlev;
 };

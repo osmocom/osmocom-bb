@@ -149,7 +149,9 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		rsl_chan_nr_str(dl->chan_nr), tm.t1, tm.t2, tm.t3,
 		hexdump(ccch->data, sizeof(ccch->data)));
 
+	meas->last_fn = ntohl(dl->frame_nr);
 	meas->frames++;
+	meas->snr += dl->snr;
 	meas->berr += dl->num_biterr;
 	meas->rxlev += dl->rx_level;
 
