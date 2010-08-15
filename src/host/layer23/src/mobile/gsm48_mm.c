@@ -2669,16 +2669,24 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	cm2lv[0] = sizeof(struct gsm48_classmark2);
 	gsm48_rr_enc_cm2(ms, (struct gsm48_classmark2 *)(cm2lv + 1));
 	/* MI */
+	if (cause == RR_EST_CAUSE_EMERGENCY && set->emergency_imsi[0]) {
+		LOGP(DMM, LOGL_INFO, "-> Using IMSI %s for emergency\n",
+			set->emergency_imsi);
+		gsm48_generate_mid_from_imsi(buf, set->emergency_imsi);
+	} else
 	if (!subscr->sim_valid) { /* have no SIM ? */
-		if (set->emergency_imsi[0])
-			gsm48_generate_mid_from_imsi(buf,
-				set->emergency_imsi);
-		else
-			gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMEI);
-	} else if (subscr->tmsi_valid) /* have TMSI ? */
+		LOGP(DMM, LOGL_INFO, "-> Using IMEI %s\n",
+			set->imei);
+		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMEI);
+	} else
+	if (subscr->tmsi_valid) { /* have TMSI ? */
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
-	else
+		LOGP(DMM, LOGL_INFO, "-> Using TMSI\n");
+	} else {
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMSI);
+		LOGP(DMM, LOGL_INFO, "-> Using IMSI %s\n",
+			subscr->imsi);
+	}
 	msgb_put(nmsg, buf[1]); /* length is part of nsr */
 	memcpy(&nsr->mi_len, buf + 1, 1 + buf[1]);
 	/* prio is optional for eMLPP */
