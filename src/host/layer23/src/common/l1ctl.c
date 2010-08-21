@@ -402,6 +402,67 @@ int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 	return osmo_send_l1(ms, msg);
 }
 
+/* Transmit L1CTL_DM_FREQ_REQ */
+int l1ctl_tx_dm_freq_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
+                            uint8_t tsc, uint16_t fn)
+{
+	struct msgb *msg;
+	struct l1ctl_info_ul *ul;
+	struct l1ctl_dm_freq_req *req;
+
+	msg = osmo_l1_alloc(L1CTL_DM_FREQ_REQ);
+	if (!msg)
+		return -1;
+
+	printf("Tx Dedic.Mode Freq Req (arfcn=%u, fn=%d)\n",
+		band_arfcn, fn);
+
+	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
+	ul->chan_nr = 0;
+	ul->link_id = 0;
+
+	req = (struct l1ctl_dm_freq_req *) msgb_put(msg, sizeof(*req));
+	req->fn = htons(fn);
+	req->tsc = tsc;
+	req->h = 0;
+	req->h0.band_arfcn = htons(band_arfcn);
+
+	return osmo_send_l1(ms, msg);
+}
+
+int l1ctl_tx_dm_freq_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
+                            uint16_t *ma, uint8_t ma_len,
+                            uint8_t tsc, uint16_t fn)
+{
+	struct msgb *msg;
+	struct l1ctl_info_ul *ul;
+	struct l1ctl_dm_freq_req *req;
+	int i;
+
+	msg = osmo_l1_alloc(L1CTL_DM_FREQ_REQ);
+	if (!msg)
+		return -1;
+
+	printf("Tx Dedic.Mode Freq Req (maio=%u, hsn=%u, "
+		"fn=%d)\n", maio, hsn, fn);
+
+	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
+	ul->chan_nr = 0;
+	ul->link_id = 0;
+
+	req = (struct l1ctl_dm_freq_req *) msgb_put(msg, sizeof(*req));
+	req->fn = htons(fn);
+	req->tsc = tsc;
+	req->h = 1;
+	req->h1.maio = maio;
+	req->h1.hsn = hsn;
+	req->h1.n = ma_len;
+	for (i = 0; i < ma_len; i++)
+		req->h1.ma[i] = htons(ma[i]);
+
+	return osmo_send_l1(ms, msg);
+}
+
 /* Transmit L1CTL_DM_REL_REQ */
 int l1ctl_tx_dm_rel_req(struct osmocom_ms *ms)
 {
