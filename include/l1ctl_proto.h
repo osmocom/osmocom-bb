@@ -45,6 +45,7 @@ enum {
 	L1CTL_CCCH_MODE_CONF,
 	L1CTL_DM_REL_REQ,
 	L1CTL_PARAM_REQ,
+	L1CTL_DM_FREQ_REQ,
 };
 
 enum ccch_mode {
@@ -167,20 +168,34 @@ struct l1ctl_par_req {
 	uint8_t padding[2];
 } __attribute__((packed));
 
+struct l1ctl_h0 {
+	uint16_t band_arfcn;
+} __attribute__((packed));
+
+struct l1ctl_h1 {
+	uint8_t hsn;
+	uint8_t maio;
+	uint8_t n;
+	uint8_t _padding[1];
+	uint16_t ma[64];
+} __attribute__((packed));
+
 struct l1ctl_dm_est_req {
 	uint8_t tsc;
 	uint8_t h;
 	union {
-		struct {
-			uint16_t band_arfcn;
-		} h0;
-		struct {
-			uint8_t hsn;
-			uint8_t maio;
-			uint8_t n;
-			uint8_t _padding[1];
-			uint16_t ma[64];
-		} h1;
+		struct l1ctl_h0 h0;
+		struct l1ctl_h1 h1;
+	};
+} __attribute__((packed));
+
+struct l1ctl_dm_freq_req {
+	uint16_t fn;
+	uint8_t tsc;
+	uint8_t h;
+	union {
+		struct l1ctl_h0 h0;
+		struct l1ctl_h1 h1;
 	};
 } __attribute__((packed));
 
