@@ -38,6 +38,7 @@
 #define RR_REL_CAUSE_TRY_LATER		5
 #define RR_REL_CAUSE_EMERGENCY_ONLY	6
 #define RR_REL_CAUSE_LOST_SIGNAL	7
+#define RR_REL_CAUSE_LINK_FAILURE	8
 
 #define L3_ALLOC_SIZE			256
 #define L3_ALLOC_HEADROOM		64
@@ -59,6 +60,14 @@ struct gsm48_rr_hdr {
 #define GSM48_RR_ST_CONN_PEND		1
 #define GSM48_RR_ST_DEDICATED		2
 #define GSM48_RR_ST_REL_PEND		3
+
+/* modify state */
+#define GSM48_RR_MOD_NONE		0
+#define GSM48_RR_MOD_IMM_ASS		1
+#define GSM48_RR_MOD_ASSIGN		2
+#define GSM48_RR_MOD_HANDO		3
+#define GSM48_RR_MOD_ASSIGN_RESUME	4
+#define GSM48_RR_MOD_HANDO_RESUME	5
 
 /* channel description */
 struct gsm48_rr_cd {
@@ -114,6 +123,7 @@ struct gsm48_rrlayer {
 	struct llist_head       downqueue;
 
 	/* timers */
+	struct timer_list	t_starting; /* starting time for chan. access */
 	struct timer_list	t_rel_wait; /* wait for L2 to transmit UA */
 	struct timer_list	t3110;
 	struct timer_list	t3122;
@@ -149,10 +159,9 @@ struct gsm48_rrlayer {
 	uint8_t			cipher_on;
 	uint8_t			cipher_type; /* 10.5.2.9 */
 
-	/* special states when changing channel */
-	uint8_t			hando_susp_state;
-	uint8_t			assign_susp_state;
-	uint8_t			resume_last_state;
+	/* special states when assigning channel */
+	uint8_t			modify_state;
+	uint8_t			hando_sync_ind, hando_rot, hando_nci, hando_act;
 	struct gsm48_rr_cd	cd_last; /* store last cd in case of failure */
 	struct gsm48_rr_cd	cd_before; /* before start time */
 	struct gsm48_rr_cd	cd_after; /* after start time */
