@@ -1,0 +1,46 @@
+Description: Upstream changes introduced in version 0.1.17-1
+ This patch has been created by dpkg-source during the package build.
+ Here's the last changelog entry, hopefully it gives details on why
+ those changes were made:
+ .
+ libosmocore (0.1.17-1) unstable; urgency=low
+ .
+   * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+ .
+ The person named in the Author field signed this changelog entry.
+Author: Harald Welte <laforge@gnumonks.org>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: <vendor|upstream|other>, <url of original patch>
+Bug: <url in upstream bugtracker>
+Bug-Debian: http://bugs.debian.org/<bugnumber>
+Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
+Forwarded: <no|not-needed|url proving that it has been forwarded>
+Reviewed-By: <name and email of someone who approved the patch>
+Last-Update: <YYYY-MM-DD>
+
+--- /dev/null
++++ libosmocore-0.1.17/.version
+@@ -0,0 +1 @@
++0.1.17
+--- /dev/null
++++ libosmocore-0.1.17/copyright
+@@ -0,0 +1,14 @@
++Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=135
++Name: libosmocore
++Maintainer: Harald Welte <laforge@gnumonks.org>
++Source: git://git.osmocom.org/libosmocore.git
++
++Copyright: 2008-2010 Harald Welte <laforge@gnumonks.org>
++License: GPL-2+
++
++Files: src/talloc.c include/osmocore/talloc.h
++Copyright: 2004 Andrew Tridgell
++License: LGPL-3+
++
++Files: include/osmocore/linuxlist.h
++License: GPL-2
