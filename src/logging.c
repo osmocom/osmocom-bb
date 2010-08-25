@@ -296,10 +296,10 @@ void log_set_category_filter(struct log_target *target, int category,
 
 /* since C89/C99 says stderr is a macro, we can safely do this! */
 #ifdef stderr
-static void _stderr_output(struct log_target *target, const char *log)
+static void _file_output(struct log_target *target, const char *log)
 {
-	fprintf(target->tgt_stdout.out, "%s", log);
-	fflush(target->tgt_stdout.out);
+	fprintf(target->tgt_file.out, "%s", log);
+	fflush(target->tgt_file.out);
 }
 #endif
 
@@ -340,8 +340,8 @@ struct log_target *log_target_create_stderr(void)
 	if (!target)
 		return NULL;
 
-	target->tgt_stdout.out = stderr;
-	target->output = _stderr_output;
+	target->tgt_file.out = stderr;
+	target->output = _file_output;
 	return target;
 #else
 	return NULL;

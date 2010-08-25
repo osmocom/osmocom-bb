@@ -84,7 +84,7 @@ struct log_target {
 	union {
 		struct {
 			FILE *out;
-		} tgt_stdout;
+		} tgt_file;
 
 		struct {
 			int priority;
