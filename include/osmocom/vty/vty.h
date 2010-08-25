@@ -133,6 +133,7 @@ struct vty_app_info {
 	const char *copyright;
 	void *tall_ctx;
 	enum node_type (*go_parent_cb)(struct vty *vty);
+	int (*is_config_node)(struct vty *vty, int node);
 };
 
 /* Prototypes. */

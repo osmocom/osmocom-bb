@@ -141,6 +141,10 @@ static int cmp_desc(const void *p, const void *q)
 
 static int is_config(struct vty *vty)
 {
+	/* ask the application */
+	if (host.app_info->is_config_node)
+		return host.app_info->is_config_node(vty, vty->node);
+
 	/* Assume that everything above CONFIG_NODE is a config node */
 	return vty->node > CONFIG_NODE;
 }
