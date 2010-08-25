@@ -84,6 +84,7 @@ struct log_target {
 	union {
 		struct {
 			FILE *out;
+			const char *fname;
 		} tgt_file;
 
 		struct {
@@ -123,7 +124,11 @@ void log_set_category_filter(struct log_target *target, int category,
 
 /* management of the targets */
 struct log_target *log_target_create(void);
+void log_target_destroy(struct log_target *target);
 struct log_target *log_target_create_stderr(void);
+struct log_target *log_target_create_file(const char *fname);
+int log_target_file_reopen(struct log_target *tgt);
+
 void log_add_target(struct log_target *target);
 void log_del_target(struct log_target *target);
 
