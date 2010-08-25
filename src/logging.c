@@ -348,6 +348,56 @@ struct log_target *log_target_create_stderr(void)
 #endif /* stderr */
 }
 
+struct log_target *log_target_create_file(const char *fname)
+{
+	struct log_target *target;
+
+	target = log_target_create();
+	if (!target)
+		return NULL;
+
+	target->tgt_file.out = fopen(fname, "a");
+	if (!target->tgt_file.out)
+		return NULL;
+
+	target->output = _file_output;
+
+	target->tgt_file.fname = talloc_strdup(target, fname);
+
+	return target;
+}
+
+void log_target_destroy(struct log_target *target)
+{
+
+	/* just in case, to make sure we don't have any references */
+	log_del_target(target);
+
+	if (target->output == &_file_output) {
+		/* don't close stderr */
+		if (target->tgt_file.out != stderr) {
+			fclose(target->tgt_file.out);
+			target->tgt_file.out = NULL;
+		}
+	}
+
+	talloc_free(target);
+}
+
+/* close and re-open a log file (for log file rotation) */
+int log_target_file_reopen(struct log_target *target)
+{
+	fclose(target->tgt_file.out);
+
+	target->tgt_file.out = fopen(target->tgt_file.fname, "a");
+	if (!target->tgt_file.out)
+		return -errno;
+
+	/* we assume target->output already to be set */
+
+	return 0;
+}
+
 const char *log_vty_level_string(struct log_info *info)
 {
 	const struct value_string *vs;
