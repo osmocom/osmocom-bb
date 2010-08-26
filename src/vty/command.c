@@ -141,12 +141,14 @@ static int cmp_desc(const void *p, const void *q)
 
 static int is_config(struct vty *vty)
 {
-	/* ask the application */
-	if (host.app_info->is_config_node)
+	if (vty->node < CONFIG_NODE)
+		return 0;
+	else if (vty->node >= CONFIG_NODE && vty->node < _LAST_OSMOVTY_NODE)
+		return 1;
+	else if (host.app_info->is_config_node)
 		return host.app_info->is_config_node(vty, vty->node);
-
-	/* Assume that everything above CONFIG_NODE is a config node */
-	return vty->node > CONFIG_NODE;
+	else
+		return vty->node > CONFIG_NODE;
 }
 
 /* Sort each node's command element according to command string. */
