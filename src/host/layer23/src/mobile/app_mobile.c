@@ -47,7 +47,7 @@ static const char *config_file = "/etc/osmocom/osmocom.cfg";
 extern void *l23_ctx;
 extern unsigned short vty_port;
 
-static int started = 0;
+int mobile_started = 0;
 
 int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg);
 
@@ -64,6 +64,7 @@ int mobile_work(struct osmocom_ms *ms)
 		w |= gsm48_mmevent_dequeue(ms);
 		w |= gsm322_plmn_dequeue(ms);
 		w |= gsm322_cs_dequeue(ms);
+		w |= gsm_sim_job_dequeue(ms);
 		w |= mncc_dequeue(ms);
 		if (w)
 			work = 1;
@@ -83,15 +84,27 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 
 	switch (signal) {
 	case S_L1CTL_RESET:
-		if (started)
+		if (mobile_started)
 			break;
-		started = 1;
+
 		ms = signal_data;
 		set = &ms->settings;
+
 		/* insert test card, if enabled */
-		if (set->simtype == GSM_SIM_TYPE_TEST)
+		switch (set->sim_type) {
+		case GSM_SIM_TYPE_READER:
+			/* trigger sim card reader process */
+			gsm_subscr_simcard(ms);
+			break;
+		case GSM_SIM_TYPE_TEST:
 			gsm_subscr_testcard(ms, set->test_rplmn_mcc,
 						set->test_rplmn_mnc);
+			break;
+		default:
+			/* no SIM */
+			;
+		}
+
 		/* start PLMN + cell selection process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
 		if (!nmsg)
@@ -101,6 +114,8 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_cs_sendmsg(ms, nmsg);
+
+		mobile_started = 1;
 	}
 	return 0;
 }
@@ -109,7 +124,7 @@ int mobile_exit(struct osmocom_ms *ms)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 
-	if (!mm->power_off && started) {
+	if (!mm->power_off && mobile_started) {
 		struct msgb *nmsg;
 
 		mm->power_off = 1;
@@ -134,6 +149,7 @@ int mobile_exit(struct osmocom_ms *ms)
 	gsm48_rr_exit(ms);
 	gsm_subscr_exit(ms);
 	gsm48_cc_exit(ms);
+	gsm_sim_exit(ms);
 
 	printf("Power off!\n");
 
@@ -151,11 +167,12 @@ int l23_app_init(struct osmocom_ms *ms)
 	int rc;
 	struct telnet_connection dummy_conn;
 
-//	log_parse_category_mask(stderr_target, "DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG:DSUM");
-	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DCC:DMNCC:DPAG:DSUM");
+//	log_parse_category_mask(stderr_target, "DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
+	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
 
 	srand(time(NULL));
 
+	gsm_sim_init(ms);
 	gsm_settings_init(ms);
 	gsm48_cc_init(ms);
 	gsm_support_init(ms);

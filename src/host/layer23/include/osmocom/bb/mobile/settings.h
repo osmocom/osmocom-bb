@@ -11,7 +11,7 @@ struct gsm_settings {
 	int			plmn_mode; /* PLMN_MODE_* */
 
 	/* SIM */
-	int			simtype; /* selects card on power on */
+	int			sim_type; /* selects card on power on */
 	char 			emergency_imsi[20]; /* just in case... */
 
 	/* test card simulator settings */

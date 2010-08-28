@@ -106,6 +106,17 @@ int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 	return 0;
 }
 
+int gsm48_encode_lai(struct gsm48_loc_area_id *lai, uint16_t mcc,
+	uint16_t mnc, uint16_t lac)
+{
+	lai->digits[0] = (mcc >> 8) | (mcc & 0xf0);
+	lai->digits[1] = (mcc & 0x0f) | (mnc << 4);
+	lai->digits[2] = (mnc >> 8) | (mnc & 0xf0);
+	lai->lac = htons(lac);
+
+	return 0;
+}
+
 static int gsm48_decode_chan_h0(struct gsm48_chan_desc *cd, uint8_t *tsc, 
 	uint16_t *arfcn)
 {
@@ -2156,6 +2167,7 @@ static int gsm48_rr_chan2cause[4] = {
 /* given LV of mobile identity is checked agains ms */
 static int gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 {
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	char imsi[16];
 	uint32_t tmsi;
 	uint8_t mi_type;
@@ -2169,7 +2181,9 @@ static int gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 			return 0;
 		memcpy(&tmsi, mi+2, 4);
 		if (ms->subscr.tmsi == ntohl(tmsi)
-		 && ms->subscr.tmsi_valid) {
+		 && ms->subscr.mcc == cs->sel_mcc
+		 && ms->subscr.mnc == cs->sel_mnc
+		 && ms->subscr.lac == cs->sel_lac) {
 			LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n",
 				ntohl(tmsi));
 
@@ -2284,7 +2298,9 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	chan_2 = pa->cneed2;
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
-	 && ms->subscr.tmsi_valid) {
+	 && ms->subscr.mcc == cs->sel_mcc
+	 && ms->subscr.mnc == cs->sel_mnc
+	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
 	} else
@@ -2292,7 +2308,9 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
-	 && ms->subscr.tmsi_valid) {
+	 && ms->subscr.mcc == cs->sel_mcc
+	 && ms->subscr.mnc == cs->sel_mnc
+	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
 	} else
@@ -2346,7 +2364,9 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	chan_4 = pa->cneed4;
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
-	 && ms->subscr.tmsi_valid) {
+	 && ms->subscr.mcc == cs->sel_mcc
+	 && ms->subscr.mnc == cs->sel_mnc
+	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
 	} else
@@ -2354,7 +2374,9 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
-	 && ms->subscr.tmsi_valid) {
+	 && ms->subscr.mcc == cs->sel_mcc
+	 && ms->subscr.mnc == cs->sel_mnc
+	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
 	} else
@@ -2362,7 +2384,9 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 			ntohl(pa->tmsi2));
 	/* thrid MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi3)
-	 && ms->subscr.tmsi_valid) {
+	 && ms->subscr.mcc == cs->sel_mcc
+	 && ms->subscr.mnc == cs->sel_mnc
+	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi3));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1);
 	} else
@@ -2370,7 +2394,9 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 			ntohl(pa->tmsi3));
 	/* fourth MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi4)
-	 && ms->subscr.tmsi_valid) {
+	 && ms->subscr.mcc == cs->sel_mcc
+	 && ms->subscr.mnc == cs->sel_mnc
+	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi4));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1);
 	} else
@@ -3033,6 +3059,7 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
@@ -3111,7 +3138,10 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		pr->cm2_len = sizeof(pr->cm2);
 		gsm48_rr_enc_cm2(ms, &pr->cm2);
 		/* mobile identity */
-		if (ms->subscr.tmsi_valid) {
+		if (ms->subscr.tmsi != 0xffffffff
+		 && ms->subscr.mcc == cs->sel_mcc
+		 && ms->subscr.mnc == cs->sel_mnc
+		 && ms->subscr.lac == cs->sel_lac) {
 			gsm48_generate_mid_from_tmsi(mi, subscr->tmsi);
 			LOGP(DRR, LOGL_INFO, "sending paging response with "
 				"TMSI\n");

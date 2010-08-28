@@ -350,7 +350,7 @@ DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [mcc] [mnc]",
 		return CMD_WARNING;
 
 	if (ms->subscr.sim_valid) {
-		vty_out(vty, "Sim already presend, remove first!%s",
+		vty_out(vty, "SIM already presend, remove first!%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -373,6 +373,26 @@ DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [mcc] [mnc]",
 	return CMD_SUCCESS;
 }
 
+DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
+	"SIM actions\nSelect SIM from reader\nName of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (ms->subscr.sim_valid) {
+		vty_out(vty, "SIM already presend, remove first!%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_simcard(ms);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(sim_remove, sim_remove_cmd, "sim remove MS_NAME",
 	"SIM actions\nRemove SIM card\nName of MS (see \"show ms\")")
 {
@@ -388,6 +408,26 @@ DEFUN(sim_remove, sim_remove_cmd, "sim remove MS_NAME",
 	}
 
 	gsm_subscr_remove(ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_pin, sim_pin_cmd, "sim pin MS_NAME PIN",
+	"SIM actions\nEnter PIN for SIM card\nName of MS (see \"show ms\")\n"
+	"PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (!ms->subscr.sim_pin_required) {
+		vty_out(vty, "No PIN is required at this time!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1]);
 
 	return CMD_SUCCESS;
 }
@@ -610,12 +650,12 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	struct gsm_settings *set = &ms->settings;
 
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
-	switch(set->simtype) {
+	switch(set->sim_type) {
 		case GSM_SIM_TYPE_NONE:
 		vty_out(vty, " sim none%s", VTY_NEWLINE);
 		break;
-		case GSM_SIM_TYPE_SLOT:
-		vty_out(vty, " sim slot%s", VTY_NEWLINE);
+		case GSM_SIM_TYPE_READER:
+		vty_out(vty, " sim reader%s", VTY_NEWLINE);
 		break;
 		case GSM_SIM_TYPE_TEST:
 		vty_out(vty, " sim test%s", VTY_NEWLINE);
@@ -696,22 +736,25 @@ static int config_write_ms(struct vty *vty)
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|test)",
-	"Set sim card type when powering on\nNo sim interted\n"
-	"Test sim inserted")
+DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test)",
+	"Set SIM card type when powering on\nNo SIM interted\n"
+	"Use SIM from reader\nTest SIM inserted")
 {
 	struct osmocom_ms *ms = vty->index;
 
 	switch (argv[0][0]) {
 	case 'n':
-		ms->settings.simtype = GSM_SIM_TYPE_NONE;
+		ms->settings.sim_type = GSM_SIM_TYPE_NONE;
 		break;
-	case 's':
-		ms->settings.simtype = GSM_SIM_TYPE_SLOT;
+	case 'r':
+		ms->settings.sim_type = GSM_SIM_TYPE_READER;
 		break;
 	case 't':
-		ms->settings.simtype = GSM_SIM_TYPE_TEST;
+		ms->settings.sim_type = GSM_SIM_TYPE_TEST;
 		break;
+	default:
+		vty_out(vty, "unknown SIM type%s", VTY_NEWLINE);
+		return CMD_WARNING;
 	}
 
 	return CMD_SUCCESS;
@@ -1143,7 +1186,9 @@ int ms_vty_init(void)
 	install_element_ve(&no_monitor_network_cmd);
 
 	install_element(ENABLE_NODE, &sim_test_cmd);
+	install_element(ENABLE_NODE, &sim_reader_cmd);
 	install_element(ENABLE_NODE, &sim_remove_cmd);
+	install_element(ENABLE_NODE, &sim_pin_cmd);
 	install_element(ENABLE_NODE, &network_search_cmd);
 	install_element(ENABLE_NODE, &network_show_cmd);
 	install_element(ENABLE_NODE, &network_select_cmd);

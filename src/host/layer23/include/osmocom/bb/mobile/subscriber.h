@@ -22,32 +22,37 @@ struct gsm_sub_plmn_na {
 
 enum {
 	GSM_SIM_TYPE_NONE = 0,
-	GSM_SIM_TYPE_SLOT,
+	GSM_SIM_TYPE_READER,
 	GSM_SIM_TYPE_TEST
+};
+
+/* state of reading SIM */
+enum {
+	SUBSCR_SIM_NULL = 0,
 };
 
 struct gsm_subscriber {
 	struct osmocom_ms	*ms;
 
 	/* status */
+	uint8_t			sim_type; /* type of sim */
 	uint8_t			sim_valid; /* sim inserted and valid */
 	uint8_t			ustate; /* update status */
 	uint8_t			imsi_attached; /* attached state */
 
-	/* LAI */
-	uint8_t			lai_valid;
-	uint16_t		lai_mcc, lai_mnc, lai_lac;
-
-	/* IMSI */
+	/* IMSI & co */
 	char 			imsi[GSM_IMSI_LENGTH];
+	char 			msisdn[31]; /* may include access codes */
+	char 			iccid[21]; /* 20 + termination */
 
-	/* TMSI */
-	uint8_t			tmsi_valid;
-	uint32_t		tmsi;
+	/* TMSI / LAI */
+	uint32_t		tmsi; /* invalid tmsi: 0xffffffff */
+	uint16_t		mcc, mnc, lac; /* invalid lac: 0x0000 */
+
 
 	/* key */
 	uint8_t			key_seq; /* ciphering key sequence number */
-	uint8_t			key[32]; /* up to 256 bit */
+	uint8_t			key[64]; /* 64 bit */
 
 	/* other */
 	struct llist_head	plmn_list; /* PLMN Selector field */
@@ -57,7 +62,8 @@ struct gsm_subscriber {
 	/* special things */
 	uint8_t			always_search_hplmn;
 		/* search hplmn in other countries also (for test cards) */
-	char			sim_name[32]; /* name to load/save sim */
+	char			sim_name[31]; /* name to load/save sim */
+	char			sim_spn[17]; /* name of service privider */
 
 	/* PLMN last registered */
 	uint8_t			plmn_valid;
@@ -66,11 +72,24 @@ struct gsm_subscriber {
 	/* our access */
 	uint8_t			acc_barr; /* if we may access, if cell barred */
 	uint16_t		acc_class; /* bitmask of what we may access */
+
+	/* talk to SIM */
+	uint8_t			sim_state;
+	uint8_t			sim_pin_required; /* state: wait for PIN */
+	uint8_t			sim_file_index;
+	uint32_t		sim_handle_query;
+	uint32_t		sim_handle_update;
+	uint32_t		sim_handle_key;
 };
 
 int gsm_subscr_init(struct osmocom_ms *ms);
 int gsm_subscr_exit(struct osmocom_ms *ms);
 int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc);
+int gsm_subscr_simcard(struct osmocom_ms *ms);
+void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin);
+int gsm_subscr_write_loci(struct osmocom_ms *ms);
+int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
+	uint8_t *rand);
 int gsm_subscr_remove(struct osmocom_ms *ms);
 void new_sim_ustate(struct gsm_subscriber *subscr, int state);
 int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,

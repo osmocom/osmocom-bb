@@ -978,7 +978,7 @@ static int gsm48_mm_set_plmn_search(struct osmocom_ms *ms)
 			"SIM not updated.\n");
 		return GSM48_MM_SST_PLMN_SEARCH;
 	}
-	if (!subscr->lai_valid) {
+	if (subscr->lac == 0x0000 || subscr->lac >= 0xfffe) {
 		LOGP(DMM, LOGL_INFO, "Selecting PLMN SEARCH state, because "
 			"LAI in SIM not valid.\n");
 		return GSM48_MM_SST_PLMN_SEARCH;
@@ -992,15 +992,15 @@ static int gsm48_mm_set_plmn_search(struct osmocom_ms *ms)
 	}
 
 	/* selected cell's LAI not equal to LAI stored on the sim */
-	if (cs->sel_mcc != subscr->lai_mcc
-	 || cs->sel_mnc != subscr->lai_mnc
-	 || cs->sel_lac != subscr->lai_lac) {
+	if (cs->sel_mcc != subscr->mcc
+	 || cs->sel_mnc != subscr->mnc
+	 || cs->sel_lac != subscr->lac) {
 		LOGP(DMM, LOGL_INFO, "Selecting PLMN SEARCH state, because "
 			"LAI of selected cell (MCC %s MNC %s LAC 0x%04x) "
 			"!= LAI in SIM (MCC %s MNC %s LAC 0x%04x).\n",
 			gsm_print_mcc(cs->sel_mcc), gsm_print_mnc(cs->sel_mnc),
-			cs->sel_lac, gsm_print_mcc(subscr->lai_mcc),
-			gsm_print_mnc(subscr->lai_mnc), subscr->lai_lac);
+			cs->sel_lac, gsm_print_mcc(subscr->mcc),
+			gsm_print_mnc(subscr->mnc), subscr->lac);
 		return GSM48_MM_SST_PLMN_SEARCH;
 	}
 
@@ -1047,10 +1047,10 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* selected cell equals the registered LAI */
-	if (subscr->lai_valid
-	 && cs->sel_mcc == subscr->lai_mcc
-	 && cs->sel_mnc == subscr->lai_mnc
-	 && cs->sel_lac == subscr->lai_lac) {
+	if (subscr->lac /* valid */
+	 && cs->sel_mcc == subscr->mcc
+	 && cs->sel_mnc == subscr->mnc
+	 && cs->sel_lac == subscr->lac) {
 		LOGP(DMM, LOGL_INFO, "We are in registered LAI as returning "
 			"to MM IDLE\n");
 		/* if SIM not updated (abnormal case as described in 4.4.4.9) */
@@ -1112,10 +1112,10 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* SIM not updated in this LA */
 	if (subscr->ustate == GSM_SIM_U1_UPDATED
-	 && subscr->lai_valid
-	 && cs->sel_mcc == subscr->lai_mcc
-	 && cs->sel_mnc == subscr->lai_mnc
-	 && cs->sel_lac == subscr->lai_lac
+	 && subscr->lac /* valid */
+	 && cs->sel_mcc == subscr->mcc
+	 && cs->sel_mnc == subscr->mnc
+	 && cs->sel_lac == subscr->lac
 	 && !mm->lupd_periodic) {
 		if (subscr->imsi_attached) {
 			struct msgb *nmsg;
@@ -1473,8 +1473,7 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 	/* LAI */
-	gsm48_decode_lai(lai, &subscr->lai_mcc, &subscr->lai_mnc,
-		&subscr->lai_lac);
+	gsm48_decode_lai(lai, &subscr->mcc, &subscr->mnc, &subscr->lac);
 	/* MI */
 	mi = gh->data + sizeof(struct gsm48_loc_area_id);
 	mi_type = mi[1] & GSM_MI_TYPE_MASK;
@@ -1485,34 +1484,27 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 			goto short_read;
 		memcpy(&tmsi, mi+2, 4);
 		subscr->tmsi = ntohl(tmsi);
-		subscr->tmsi_valid = 1;
 		LOGP(DMM, LOGL_INFO, "TMSI 0x%08x (%u) assigned.\n",
 			subscr->tmsi, subscr->tmsi);
 		gsm48_mm_tx_tmsi_reall_cpl(ms);
 		break;
 	case GSM_MI_TYPE_IMSI:
-		subscr->tmsi_valid = 0;
+		subscr->tmsi = 0x00000000;
 		LOGP(DMM, LOGL_INFO, "TMSI removed.\n");
 		gsm48_mm_tx_tmsi_reall_cpl(ms);
 		break;
 	default:
+		subscr->tmsi = 0x00000000;
 		LOGP(DMM, LOGL_NOTICE, "TMSI reallocation with unknown MI "
 			"type %d.\n", mi_type);
 		gsm48_mm_tx_mm_status(ms, GSM48_REJECT_INCORRECT_MESSAGE);
-
-		return 0; /* don't store in SIM */
 	}
 
-#ifdef TODO
-	store / remove from sim
-#endif
+	/* store LOCI on sim */
+	gsm_subscr_write_loci(ms);
 
 	return 0;
 }
-
-#ifndef TODO
-static int gsm48_mm_tx_auth_rsp(struct osmocom_ms *ms, struct msgb *msg);
-#endif
 
 /* 4.3.2.2 AUTHENTICATION REQUEST is received */
 static int gsm48_mm_rx_auth_req(struct osmocom_ms *ms, struct msgb *msg)
@@ -1537,22 +1529,10 @@ static int gsm48_mm_rx_auth_req(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DMM, LOGL_INFO, "AUTHENTICATION REQUEST (seq %d)\n", ar->key_seq);
 
-	/* key_seq and random */
-#ifdef TODO
-	new key to sim:
-	(..., ar->key_seq, ar->rand);
-#else
-	/* Fake response */
-	struct msgb *nmsg;
-	struct gsm48_mm_event *nmme;
-	nmsg = gsm48_l3_msgb_alloc();
-	if (!nmsg)
-		return -ENOMEM;
-	nmme = (struct gsm48_mm_event *)msgb_put(nmsg, sizeof(*nmme));
-	*((uint32_t *)nmme->sres) = 0x12345678;
-	gsm48_mm_tx_auth_rsp(ms, nmsg);
-	msgb_free(nmsg);
-#endif
+	/* key_seq and random
+	 * in case of test case, there is a fake response
+	 */
+	gsm_subscr_generate_kc(ms, ar->key_seq, ar->rand);
 
 	/* wait for auth response event from SIM */
 	return 0;
@@ -1598,8 +1578,8 @@ static int gsm48_mm_rx_auth_rej(struct osmocom_ms *ms, struct msgb *msg)
 	subscr->sim_valid = 0;
 
 	/* TMSI and LAI invalid */
-	subscr->lai_valid = 0;
-	subscr->tmsi_valid = 0;
+	subscr->tmsi = 0xffffffff;
+	subscr->lac = 0x0000;
 
 	/* key is invalid */
 	subscr->key_seq = 7;
@@ -1607,11 +1587,8 @@ static int gsm48_mm_rx_auth_rej(struct osmocom_ms *ms, struct msgb *msg)
 	/* update status */
 	new_sim_ustate(subscr, GSM_SIM_U3_ROAMING_NA);
 
-#ifdef TODO
-	sim: delete tmsi, lai
-	sim: delete key seq number
-	sim: set update status
-#endif
+	/* store LOCI on sim */
+	gsm_subscr_write_loci(ms);
 
 	/* abort IMSI detach procedure */
 	if (mm->state == GSM48_MM_ST_IMSI_DETACH_INIT) {
@@ -1658,7 +1635,7 @@ static int gsm48_mm_rx_id_req(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_mm_tx_mm_status(ms,
 			GSM48_REJECT_MSG_NOT_COMPATIBLE);
 	}
-	if (mi_type == GSM_MI_TYPE_TMSI && !subscr->tmsi_valid) {
+	if (mi_type == GSM_MI_TYPE_TMSI && subscr->tmsi == 0xffffffff) {
 		LOGP(DMM, LOGL_INFO, "IDENTITY REQUEST of TMSI, but we have no "
 			"TMSI\n");
 		return gsm48_mm_tx_mm_status(ms,
@@ -1724,7 +1701,7 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 		pwr_lev);
         msgb_v_put(nmsg, *((uint8_t *)&cm));
 	/* MI */
-	if (subscr->tmsi_valid) /* have TMSI ? */
+	if (subscr->tmsi != 0xffffffff) /* have TMSI ? */
 		gsm48_encode_mi(buf, nmsg, ms, GSM_MI_TYPE_TMSI);
 	else
 		gsm48_encode_mi(buf, nmsg, ms, GSM_MI_TYPE_IMSI);
@@ -1745,11 +1722,6 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 	/* stop IMSI detach timer (if running) */
 	stop_mm_t3220(mm);
 
-	/* update SIM */
-#ifdef TODO
-	sim: store BA list
-	sim: what else?:
-#endif
 
 	/* SIM invalid */
 	subscr->sim_valid = 0;
@@ -1899,8 +1871,8 @@ static int gsm48_mm_rx_abort(struct osmocom_ms *ms, struct msgb *msg)
 		subscr->sim_valid = 0;
 
 		/* TMSI and LAI invalid */
-		subscr->lai_valid = 0;
-		subscr->tmsi_valid = 0;
+		subscr->tmsi = 0xffffffff;
+		subscr->lac = 0x0000;
 
 		/* key is invalid */
 		subscr->key_seq = 7;
@@ -1908,11 +1880,8 @@ static int gsm48_mm_rx_abort(struct osmocom_ms *ms, struct msgb *msg)
 		/* update status */
 		new_sim_ustate(subscr, GSM_SIM_U3_ROAMING_NA);
 
-#ifdef TODO
-		sim: delete tmsi, lai
-		sim: delete key seq number
-		sim: apply update state
-#endif
+		/* store LOCI on sim */
+		gsm_subscr_write_loci(ms);
 
 		/* CS process will trigger: return to MM IDLE / No SIM */
 		return 0;
@@ -2029,7 +1998,8 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not camping normally.\n");
 		msg_type = GSM322_EVENT_REG_FAILED;
 		stop:
-		LOGP(DSUM, LOGL_INFO, "Location update not possible\n");
+		LOGP(DSUM, LOGL_INFO, "Location updating not possible\n");
+		_stop:
 		mm->lupd_pending = 0;
 		/* send message to PLMN search process */
 		nmsg = gsm322_msgb_alloc(msg_type);
@@ -2043,10 +2013,12 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	if (set->no_lupd) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. disabled, adding "
 			"forbidden PLMN.\n");
+		LOGP(DSUM, LOGL_INFO, "Location updating is disabled by "
+			"configuration\n");
 		gsm_subscr_add_forbidden_plmn(subscr, cs->sel_mcc,
 			cs->sel_mnc, GSM48_REJECT_PLMN_NOT_ALLOWED);
 		msg_type = GSM322_EVENT_ROAMING_NA;
-		goto stop;
+		goto _stop;
 	}
 
 	/* if LAI is forbidden, don't start */
@@ -2114,9 +2086,9 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 	/* if location update is not required */
 	if (subscr->ustate == GSM_SIM_U1_UPDATED
 	 && cs->selected
-	 && cs->sel_mcc == subscr->lai_mcc
-	 && cs->sel_mnc == subscr->lai_mnc
-	 && cs->sel_lac == subscr->lai_lac
+	 && cs->sel_mcc == subscr->mcc
+	 && cs->sel_mnc == subscr->mnc
+	 && cs->sel_lac == subscr->lac
 	 && (subscr->imsi_attached
 	  || !s->att_allowed)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not required.\n");
@@ -2134,9 +2106,9 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 	/* 4.4.3 is attachment required? */
 	if (subscr->ustate == GSM_SIM_U1_UPDATED
 	 && cs->selected
-	 && cs->sel_mcc == subscr->lai_mcc
-	 && cs->sel_mnc == subscr->lai_mnc
-	 && cs->sel_lac == subscr->lai_lac
+	 && cs->sel_mcc == subscr->mcc
+	 && cs->sel_mnc == subscr->mnc
+	 && cs->sel_lac == subscr->lac
 	 && !subscr->imsi_attached
 	 && s->att_allowed) {
 		/* do location update for IMSI attach */
@@ -2209,9 +2181,11 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	nlu->type = mm->lupd_type;
 	/* cipering key */
 	nlu->key_seq = subscr->key_seq;
-	/* LAI (use last SIM stored LAI) */
-	gsm48_generate_lai(&nlu->lai,
-		subscr->lai_mcc, subscr->lai_mnc, subscr->lai_lac);
+	/* LAI (last SIM stored LAI)
+	 *
+	 * NOTE: The TMSI is only valid within a LAI!
+	 */
+	gsm48_encode_lai(&nlu->lai, subscr->mcc, subscr->mnc, subscr->lac);
 	/* classmark 1 */
 	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
 		pwr_lev = sup->pwr_lev_1800;
@@ -2220,7 +2194,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	gsm48_encode_classmark1(&nlu->classmark1, sup->rev_lev, sup->es_ind,
 		sup->a5_1, pwr_lev);
 	/* MI */
-	if (subscr->tmsi_valid) /* have TMSI ? */
+	if (subscr->tmsi != 0xffffffff) /* have TMSI ? */
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 	else
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMSI);
@@ -2277,9 +2251,7 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	stop_mm_t3212(mm); /* 4.4.2 */
 
 	/* LAI */
-	subscr->lai_valid = 1;
-	gsm48_decode_lai(lai, &subscr->lai_mcc, &subscr->lai_mnc,
-		&subscr->lai_lac);
+	gsm48_decode_lai(lai, &subscr->mcc, &subscr->mnc, &subscr->lac);
 
 	/* stop location update timer */
 	stop_mm_t3210(mm);
@@ -2292,26 +2264,24 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* set the status in the sim to updated */
 	new_sim_ustate(subscr, GSM_SIM_U1_UPDATED);
-#ifdef TODO
-	sim: apply update state
-#endif
+
+	/* store LOCI on sim */
+	gsm_subscr_write_loci(ms);
 
 	/* set last registered PLMN */
-	subscr->plmn_valid = 1;
-	subscr->plmn_mcc = subscr->lai_mcc;
-	subscr->plmn_mnc = subscr->lai_mnc;
-#ifdef TODO
-	sim: store plmn
-#endif
+	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
+		subscr->plmn_valid = 1;
+		subscr->plmn_mcc = subscr->mcc;
+		subscr->plmn_mnc = subscr->mnc;
+	}
 
 	LOGP(DSUM, LOGL_INFO, "Location update accepted\n");
 	LOGP(DMM, LOGL_INFO, "LOCATION UPDATING ACCEPT (mcc %s mnc %s "
-		"lac 0x%04x)\n", gsm_print_mcc(subscr->lai_mcc),
-		gsm_print_mnc(subscr->lai_mnc), subscr->lai_lac);
+		"lac 0x%04x)\n", gsm_print_mcc(subscr->mcc),
+		gsm_print_mnc(subscr->mnc), subscr->lac);
 
 	/* remove LA from forbidden list */
-	gsm322_del_forbidden_la(ms, subscr->lai_mcc, subscr->lai_mnc,
-		subscr->lai_lac);
+	gsm322_del_forbidden_la(ms, subscr->mcc, subscr->mnc, subscr->lac);
 
 	/* MI */
 	if (TLVP_PRESENT(&tp, GSM48_IE_MOBILE_ID)) {
@@ -2330,19 +2300,20 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 				goto short_read;
 			memcpy(&tmsi, mi+2, 4);
 			subscr->tmsi = ntohl(tmsi);
-			subscr->tmsi_valid = 1;
 			LOGP(DMM, LOGL_INFO, "got TMSI 0x%08x (%u)\n",
 				subscr->tmsi, subscr->tmsi);
-#ifdef TODO
-	sim: store tmsi
-#endif
+
+			/* store LOCI on sim */
+			gsm_subscr_write_loci(ms);
+
 			break;
 		case GSM_MI_TYPE_IMSI:
 			LOGP(DMM, LOGL_INFO, "TMSI removed\n");
-			subscr->tmsi_valid = 0;
-#ifdef TODO
-	sim: delete tmsi
-#endif
+			subscr->tmsi = 0xffffffff;
+
+			/* store LOCI on sim */
+			gsm_subscr_write_loci(ms);
+
 			/* send TMSI REALLOCATION COMPLETE */
 			gsm48_mm_tx_tmsi_reall_cpl(ms);
 			break;
@@ -2433,19 +2404,18 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_REJECT_LOC_NOT_ALLOWED:
 	case GSM48_REJECT_ROAMING_NOT_ALLOWED:
 		/* TMSI and LAI invalid */
-		subscr->lai_valid = 0;
-		subscr->tmsi_valid = 0;
+		subscr->tmsi = 0xffffffff;
+		subscr->lac = 0x0000;
 
 		/* key is invalid */
 		subscr->key_seq = 7;
 
 		/* update status */
 		new_sim_ustate(subscr, GSM_SIM_U3_ROAMING_NA);
-#ifdef TODO
-		sim: delete tmsi, lai
-		sim: delete key seq number
-		sim: apply update state
-#endif
+
+		/* store LOCI on sim */
+		gsm_subscr_write_loci(ms);
+
 		/* update has finished */
 		mm->lupd_pending = 0;
 	}
@@ -2537,9 +2507,9 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 	stop_mm_t3210(mm);
 
 	if (subscr->ustate == GSM_SIM_U1_UPDATED
-	 && mm->lupd_mcc == subscr->lai_mcc
-	 && mm->lupd_mnc == subscr->lai_mnc
-	 && mm->lupd_lac == subscr->lai_lac) {
+	 && mm->lupd_mcc == subscr->mcc
+	 && mm->lupd_mnc == subscr->mnc
+	 && mm->lupd_lac == subscr->lac) {
 		if (mm->lupd_attempt < 4) {
 			LOGP(DSUM, LOGL_INFO, "Try location update later\n");
 			LOGP(DMM, LOGL_INFO, "Loc. upd. failed, retry #%d\n",
@@ -2555,8 +2525,8 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* TMSI and LAI invalid */
-	subscr->lai_valid = 0;
-	subscr->tmsi_valid = 0;
+	subscr->tmsi = 0xffffffff;
+	subscr->lac = 0x0000;
 
 	/* key is invalid */
 	subscr->key_seq = 7;
@@ -2564,11 +2534,8 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 	/* update status */
 	new_sim_ustate(subscr, GSM_SIM_U2_NOT_UPDATED);
 
-#ifdef TODO
-	sim: delete tmsi, lai
-	sim: delete key seq number
-	sim: set update status
-#endif
+	/* store LOCI on sim */
+	gsm_subscr_write_loci(ms);
 
 	/* start update retry timer (RR connection is released) */
 	if (mm->lupd_attempt < 4) {
@@ -2679,7 +2646,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 			set->imei);
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMEI);
 	} else
-	if (subscr->tmsi_valid) { /* have TMSI ? */
+	if (subscr->tmsi != 0xffffffff) { /* have TMSI ? */
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 		LOGP(DMM, LOGL_INFO, "-> Using TMSI\n");
 	} else {
@@ -2761,8 +2728,8 @@ static int gsm48_mm_rx_cm_service_rej(struct osmocom_ms *ms, struct msgb *msg)
 		abort_any = 1;
 
 		/* TMSI and LAI invalid */
-		subscr->lai_valid = 0;
-		subscr->tmsi_valid = 0;
+		subscr->tmsi = 0xffffffff;
+		subscr->lac = 0x0000;
 
 		/* key is invalid */
 		subscr->key_seq = 7;
@@ -2770,11 +2737,8 @@ static int gsm48_mm_rx_cm_service_rej(struct osmocom_ms *ms, struct msgb *msg)
 		/* update status */
 		new_sim_ustate(subscr, GSM_SIM_U2_NOT_UPDATED);
 
-#ifdef TODO
-		sim: delete tmsi, lai
-		sim: delete key seq number
-		sim: set update status
-#endif
+		/* store LOCI on sim */
+		gsm_subscr_write_loci(ms);
 
 		/* change to WAIT_NETWORK_CMD state impied by abort_any == 1 */
 
@@ -4122,7 +4086,7 @@ static int gsm48_mmr_nreg_req(struct osmocom_ms *ms)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct msgb *nmsg;
 
-	nmsg = gsm322_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
+	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
 	if (!nmsg)
 		return -ENOMEM;
 	gsm48_mmevent_msg(mm->ms, nmsg);

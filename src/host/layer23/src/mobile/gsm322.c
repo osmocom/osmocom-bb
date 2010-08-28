@@ -748,12 +748,10 @@ static int gsm322_a_go_on_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	/* start timer, if on VPLMN of home country OR special case */
 	if (!gsm_match_mnc(plmn->mcc, plmn->mnc, subscr->imsi)
 	 && (subscr->always_search_hplmn
-	  || gsm_match_mcc(plmn->mcc, subscr->imsi))) {
-	 	if (subscr->sim_valid && subscr->t6m_hplmn)
-		 	start_plmn_timer(plmn, subscr->t6m_hplmn * 360);
-		else
-		 	start_plmn_timer(plmn, 30 * 360);
-	} else
+	  || gsm_match_mcc(plmn->mcc, subscr->imsi))
+	 && subscr->sim_valid && subscr->t6m_hplmn)
+	 	start_plmn_timer(plmn, subscr->t6m_hplmn * 360);
+	else
 		stop_plmn_timer(plmn);
 
 	return 0;
