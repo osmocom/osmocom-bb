@@ -17,6 +17,7 @@ struct osmocom_ms;
 #include <osmocom/bb/mobile/gsm322.h>
 #include <osmocom/bb/mobile/gsm48_mm.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
+#include <osmocom/bb/mobile/sim.h>
 
 /* A layer2 entity */
 struct osmol2_entity {
@@ -42,15 +43,11 @@ struct osmocom_ms {
 	uint16_t test_arfcn;
 
 	struct gsm_support support;
-
 	struct gsm_settings settings;
-
 	struct gsm_subscriber subscr;
-
+	struct gsm_sim sim;
 	struct osmol2_entity l2_entity;
-
 	struct rx_meas_stat meas;
-
 	struct gsm48_rrlayer rrlayer;
 	struct gsm322_plmn plmn;
 	struct gsm322_cellsel cellsel;

@@ -102,6 +102,12 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[1;37m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DSIM] = {
+		.name = "DSIM",
+		.description = "SIM client",
+		.color = "\033[0;35m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
 };
 
 const struct log_info log_info = {
