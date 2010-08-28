@@ -3293,6 +3293,8 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 /* 9.1.13 FREQUENCY REDEFINITION is received */
 static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 {
+#warning disabled, until added to libosmocore
+#if 0
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm48_frq_redef *fr = msgb_l3(msg);
 	int mob_al_len = msgb_l3len(msg) - sizeof(*fr);
@@ -3366,6 +3368,7 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 
 	rr->cd_now.start = 0;
 
+#endif
 	return 0;
 }
 
@@ -3806,6 +3809,8 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 /* 9.1.16 sending HANDOVER COMPLETE */
 static int gsm48_rr_tx_hando_cpl(struct osmocom_ms *ms, uint8_t cause)
 {
+#warning disabled, until added to libosmocore
+#if 0
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm48_ho_cpl *hc;
@@ -3827,11 +3832,14 @@ static int gsm48_rr_tx_hando_cpl(struct osmocom_ms *ms, uint8_t cause)
 	// FIXME: mobile observed time
 
 	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+#endif
 }
 
 /* 9.1.4 sending HANDOVER FAILURE */
 static int gsm48_rr_tx_hando_fail(struct osmocom_ms *ms, uint8_t cause)
 {
+#warning disabled, until added to libosmocore
+#if 0
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm48_ho_fail *hf;
@@ -3851,6 +3859,7 @@ static int gsm48_rr_tx_hando_fail(struct osmocom_ms *ms, uint8_t cause)
 	hf->rr_cause = cause;
 
 	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+#endif
 }
 
 /* receiving HANDOVER COMMAND message (9.1.15) */
