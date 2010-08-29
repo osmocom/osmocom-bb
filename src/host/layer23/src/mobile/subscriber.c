@@ -783,12 +783,14 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
 		if (!nmsg)
 			return -ENOMEM;
-		nmme = (struct gsm48_mm_event *)msgb_put(nmsg, sizeof(*nmme));
+		nmme = (struct gsm48_mm_event *) nmsg->data;
 		nmme->sres[0] = 0x12;
 		nmme->sres[1] = 0x34;
 		nmme->sres[2] = 0x56;
 		nmme->sres[3] = 0x78;
 		gsm48_mmevent_msg(ms, nmsg);
+
+		return 0;
 	}
 
 	LOGP(DMM, LOGL_INFO, "Generating KEY at SIM\n");
@@ -860,7 +862,7 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg)
 	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
 	if (!nmsg)
 		return;
-	nmme = (struct gsm48_mm_event *)msgb_put(nmsg, sizeof(*nmme));
+	nmme = (struct gsm48_mm_event *) nmsg->data;
 	nmme->sres[0] = 0x12;
 	nmme->sres[1] = 0x34;
 	nmme->sres[2] = 0x56;
