@@ -29,8 +29,8 @@
 int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 			void (*print)(void *, const char *, ...), void *priv)
 {
-	char buffer[80];
-	int i, j;
+	char buffer[81];
+	int i, j, k;
 
 	/* available sysinfos */
 	print(priv, "ARFCN = %d\n", arfcn);
@@ -58,6 +58,75 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 	print(priv, "\n");
 	print(priv, "\n");
 
+	/* frequency list */
+	j = 0; k = 0;
+	for (i = 0; i < 1024; i++) {
+		if ((s->freq[i].mask & FREQ_TYPE_SERV)) {
+			if (!k) {
+				sprintf(buffer, "serv. cell  : ");
+				j = strlen(buffer);
+			}
+			if (j >= 75) {
+				buffer[j - 1] = '\0';
+				print(priv, "%s\n", buffer);
+				sprintf(buffer, "              ");
+				j = strlen(buffer);
+			}
+			sprintf(buffer + j, "%d,", i);
+			j = strlen(buffer);
+			k++;
+		}
+	}
+	if (j) {
+		buffer[j - 1] = '\0';
+		print(priv, "%s\n", buffer);
+	}
+	j = 0; k = 0;
+	for (i = 0; i < 1024; i++) {
+		if ((s->freq[i].mask & FREQ_TYPE_NCELL)) {
+			if (!k) {
+				sprintf(buffer, "SI2 (neigh.): ");
+				j = strlen(buffer);
+			}
+			if (j >= 75) {
+				buffer[j - 1] = '\0';
+				print(priv, "%s\n", buffer);
+				sprintf(buffer, "              ");
+				j = strlen(buffer);
+			}
+			sprintf(buffer + j, "%d,", i);
+			j = strlen(buffer);
+			k++;
+		}
+	}
+	if (j) {
+		buffer[j - 1] = '\0';
+		print(priv, "%s\n", buffer);
+	}
+	j = 0; k = 0;
+	for (i = 0; i < 1024; i++) {
+		if ((s->freq[i].mask & FREQ_TYPE_REP)) {
+			if (!k) {
+				sprintf(buffer, "SI5 (report): ");
+				j = strlen(buffer);
+			}
+			if (j >= 75) {
+				buffer[j - 1] = '\0';
+				print(priv, "%s\n", buffer);
+				sprintf(buffer, "              ");
+				j = strlen(buffer);
+			}
+			sprintf(buffer + j, "%d,", i);
+			j = strlen(buffer);
+			k++;
+		}
+	}
+	if (j) {
+		buffer[j - 1] = '\0';
+		print(priv, "%s\n", buffer);
+	}
+	print(priv, "\n");
+
 	/* frequency map */
 	for (i = 0; i < 1024; i += 64) {
 		if (i < 10)
@@ -69,22 +138,21 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 		for (j = 0; j < 64; j++) {
 			if ((s->freq[i+j].mask & FREQ_TYPE_SERV))
 				buffer[j + 5] = 'S';
-			else if ((s->freq[i+j].mask & FREQ_TYPE_HOPP))
-				buffer[j + 5] = 'H';
+			else if ((s->freq[i+j].mask & (FREQ_TYPE_NCELL
+							& FREQ_TYPE_REP)))
+				buffer[j + 5] = 'b';
 			else if ((s->freq[i+j].mask & FREQ_TYPE_NCELL))
 				buffer[j + 5] = 'n';
 			else if ((s->freq[i+j].mask & FREQ_TYPE_REP))
 				buffer[j + 5] = 'r';
-			else if ((s->freq[i+j].mask & FREQ_TYPE_SI_2_5))
-				buffer[j + 5] = '*';
 			else
 				buffer[j + 5] = '.';
 		}
 		sprintf(buffer + 69, " %d", i + 63);
 		print(priv, "%s\n", buffer);
 	}
-	print(priv, " S = serv. cell  H = hopping seq.  n = SI2 (neigh.)  "
-		"r = SI5 (rep.)  * = SI2+SI5\n\n");
+	print(priv, " 'S' = serv. cell  'n' = SI2 (neigh.)  'r' = SI5 (rep.)  "
+		"'b' = SI2+SI5\n\n");
 
 	/* serving cell */
 	print(priv, "Serving Cell:\n");
