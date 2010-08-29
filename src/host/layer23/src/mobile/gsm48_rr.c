@@ -4236,12 +4236,11 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 		uint16_t ma[64];
 		uint8_t ma_len;
 
-		LOGP(DRR, LOGL_INFO, "suspend complete, request resume of "
-			"data link\n");
-
 		/* deactivating dedicated mode */
-		LOGP(DRR, LOGL_INFO, "leaving dedicated mode\n");
-		l1ctl_tx_dm_rel_req(rr->ms);
+		LOGP(DRR, LOGL_INFO, "suspension coplete, leaving dedicated "
+			"mode\n");
+		l1ctl_tx_dm_rel_req(ms);
+		l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
 
 		/* store current channel descriptions */
 		memcpy(&rr->cd_last, &rr->cd_now, sizeof(rr->cd_last));
@@ -4767,7 +4766,8 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
 
 	/* deactivate channel */
-	l1ctl_tx_dm_rel_req(rr->ms);
+	l1ctl_tx_dm_rel_req(ms);
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
 
 	switch (rr->modify_state) {
 	case GSM48_RR_MOD_ASSIGN:
