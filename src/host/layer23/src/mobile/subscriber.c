@@ -769,17 +769,18 @@ static void subscr_sim_update_cb(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
-	uint8_t *rand)
+	uint8_t *rand, uint8_t no_sim)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 	struct sim_hdr *nsh;
 
 	/* not a SIM */
-	if (subscr->sim_type != GSM_SIM_TYPE_READER || !subscr->sim_valid) {
+	if (subscr->sim_type != GSM_SIM_TYPE_READER || !subscr->sim_valid
+	 || no_sim) {
 		struct gsm48_mm_event *nmme;
 
-		LOGP(DMM, LOGL_INFO, "Sending fake authentication response\n");
+		LOGP(DMM, LOGL_INFO, "Sending dummy authentication response\n");
 		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
 		if (!nmsg)
 			return -ENOMEM;

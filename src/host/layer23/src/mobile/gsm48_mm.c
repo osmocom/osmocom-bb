@@ -1510,9 +1510,12 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_mm_rx_auth_req(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm48_auth_req *ar = (struct gsm48_auth_req *) gh->data;
+	uint8_t no_sim = 0;
 
 	if (payload_len < sizeof(struct gsm48_auth_req)) {
 		LOGP(DMM, LOGL_NOTICE, "Short read of AUTHENTICATION REQUEST "
@@ -1530,9 +1533,14 @@ static int gsm48_mm_rx_auth_req(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DMM, LOGL_INFO, "AUTHENTICATION REQUEST (seq %d)\n", ar->key_seq);
 
 	/* key_seq and random
-	 * in case of test case, there is a fake response
+	 * in case of test card, there is a dummy response.
+	 * authentication request is possible during emergency call, if
+	 * IMSI is known to the network. in case of emergency IMSI, we need to
+	 * send a dummy response also.
 	 */
-	gsm_subscr_generate_kc(ms, ar->key_seq, ar->rand);
+	if (mm->est_cause == RR_EST_CAUSE_EMERGENCY && set->emergency_imsi[0])
+		no_sim = 1;
+	gsm_subscr_generate_kc(ms, ar->key_seq, ar->rand, no_sim);
 
 	/* wait for auth response event from SIM */
 	return 0;
@@ -1673,6 +1681,7 @@ static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, uint8_t mi_type)
 static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm_support *sup = &ms->support;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct msgb *nmsg;
@@ -1707,7 +1716,8 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 		gsm48_encode_mi(buf, nmsg, ms, GSM_MI_TYPE_IMSI);
 
 	/* push RR header and send down */
-	return gsm48_mm_to_rr(ms, nmsg, rr_prim, RR_EST_CAUSE_OTHER_SDCCH);
+	mm->est_cause = RR_EST_CAUSE_OTHER_SDCCH;
+	return gsm48_mm_to_rr(ms, nmsg, rr_prim, mm->est_cause);
 }
 
 /* detach has ended */
@@ -2204,7 +2214,8 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	new_mm_state(mm, GSM48_MM_ST_WAIT_RR_CONN_LUPD, 0);
 
 	/* push RR header and send down */
-	return gsm48_mm_to_rr(ms, nmsg, GSM48_RR_EST_REQ, RR_EST_CAUSE_LOC_UPD);
+	mm->est_cause = RR_EST_CAUSE_LOC_UPD;
+	return gsm48_mm_to_rr(ms, nmsg, GSM48_RR_EST_REQ, mm->est_cause);
 }
 
 /* 4.4.4.1 RR is esablised during location update */
@@ -2607,8 +2618,9 @@ static int gsm48_mm_loc_upd_timeout(struct osmocom_ms *ms, struct msgb *msg)
 
 /* cm reestablish request message from upper layer */
 static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
-	uint8_t cause, uint8_t cm_serv)
+	uint8_t cm_serv)
 {
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
@@ -2617,7 +2629,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	uint8_t *cm2lv;
 	uint8_t buf[11];
 
-	LOGP(DMM, LOGL_INFO, "CM SERVICE REQUEST (cause %d)\n", cause);
+	LOGP(DMM, LOGL_INFO, "CM SERVICE REQUEST (cause %d)\n", mm->est_cause);
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -2636,7 +2648,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	cm2lv[0] = sizeof(struct gsm48_classmark2);
 	gsm48_rr_enc_cm2(ms, (struct gsm48_classmark2 *)(cm2lv + 1));
 	/* MI */
-	if (cause == RR_EST_CAUSE_EMERGENCY && set->emergency_imsi[0]) {
+	if (mm->est_cause == RR_EST_CAUSE_EMERGENCY && set->emergency_imsi[0]) {
 		LOGP(DMM, LOGL_INFO, "-> Using IMSI %s for emergency\n",
 			set->emergency_imsi);
 		gsm48_generate_mid_from_imsi(buf, set->emergency_imsi);
@@ -2659,7 +2671,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	/* prio is optional for eMLPP */
 
 	/* push RR header and send down */
-	return gsm48_mm_to_rr(ms, nmsg, rr_prim, cause);
+	return gsm48_mm_to_rr(ms, nmsg, rr_prim, mm->est_cause);
 }
 
 /* cm service abort message from upper layer
@@ -2898,9 +2910,10 @@ static int gsm48_mm_init_mm(struct osmocom_ms *ms, struct msgb *msg,
 	new_conn_state(conn, GSM48_MMXX_ST_CONN_PEND);
 
 	/* send CM SERVICE REQUEST */
-	if (rr_prim)
-		return gsm48_mm_tx_cm_serv_req(ms, rr_prim, cause, cm_serv);
-	else
+	if (rr_prim) {
+		mm->est_cause = cause;
+		return gsm48_mm_tx_cm_serv_req(ms, rr_prim, cm_serv);
+	} else
 		return 0;
 }
 
@@ -3208,6 +3221,7 @@ static int gsm48_mm_est(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 
+	mm->est_cause = RR_EST_CAUSE_ANS_PAG_ANY;
 	new_mm_state(mm, GSM48_MM_ST_WAIT_NETWORK_CMD, 0);
 
 	return 0;

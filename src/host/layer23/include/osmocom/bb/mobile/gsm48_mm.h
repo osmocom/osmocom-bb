@@ -189,6 +189,7 @@ struct gsm48_mmlayer {
 	uint8_t			delay_detach;	/* do detach when possible */
 
 	/* other */
+	uint8_t			est_cause; /* cause of establishment msg */
 	int			mr_substate;	/* rem most recent substate */
 	uint8_t			power_off; /* set, if power off after detach */
 	uint8_t			power_off_idle; /* waits for IDLE before po */

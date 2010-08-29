@@ -89,7 +89,7 @@ int gsm_subscr_simcard(struct osmocom_ms *ms);
 void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin);
 int gsm_subscr_write_loci(struct osmocom_ms *ms);
 int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
-	uint8_t *rand);
+	uint8_t *rand, uint8_t no_sim);
 int gsm_subscr_remove(struct osmocom_ms *ms);
 void new_sim_ustate(struct gsm_subscriber *subscr, int state);
 int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
