@@ -861,6 +861,7 @@ static int sim_apdu_receive(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM1111_STAT_PROACTIVE:
 	case GSM1111_STAT_DL_ERROR:
 	case GSM1111_STAT_RESPONSE:
+	case GSM1111_STAT_RESPONSE_TOO:
 		LOGP(DSIM, LOGL_INFO, "command successfull\n");
 		switch (sh->job_type) {
 		case SIM_JOB_PIN1_CHANGE:
