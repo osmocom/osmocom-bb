@@ -156,5 +156,5 @@ int vty_shell (struct vty *);
 int vty_shell_serv (struct vty *);
 void vty_hello (struct vty *);
 
-void *tall_vty_ctx;
+extern void *tall_vty_ctx;
 #endif
