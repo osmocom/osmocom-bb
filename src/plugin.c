@@ -29,6 +29,7 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <errno.h>
+#include <limits.h>
 
 #include <osmocore/plugin.h>
 
