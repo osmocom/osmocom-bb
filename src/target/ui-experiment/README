@@ -1,0 +1,11 @@
+
+This is some exploratory and experimental code related
+to the development of a proper lcd-based ui.
+
+It has been written by Ingo Albrecht <prom@berlin.ccc.de>
+and, lacking further arrangements, should be considered to
+be licensed under the GNU GPL v2 or later.
+
+I have placed this here due to general interest. All of it
+can safely be removed once we have a proper ui.
+
