@@ -356,6 +356,14 @@ struct gsm48_ass_cmd {
 	uint8_t data[0];
 } __attribute__((packed));
 
+/* Chapter 9.1.13 */
+struct gsm48_frq_redef {
+	/* Semantic is from 10.5.2.5a */
+	struct gsm48_chan_desc chan_desc;
+	uint8_t mob_alloc_len;
+	uint8_t mob_alloc[0];
+} __attribute__((packed));
+
 /* Chapter 10.5.2.2 */
 struct gsm48_cell_desc {
 	uint8_t bcc:3,
@@ -594,6 +602,17 @@ struct gsm48_ass_cpl {
 
 /* Section 9.1.4 */
 struct gsm48_ass_fail {
+	uint8_t rr_cause;
+} __attribute__((packed));
+
+/* Section 9.1.3 */
+struct gsm48_ho_cpl {
+	uint8_t rr_cause;
+	uint8_t data[0];
+} __attribute__((packed));
+
+/* Section 9.1.4 */
+struct gsm48_ho_fail {
 	uint8_t rr_cause;
 } __attribute__((packed));
 
