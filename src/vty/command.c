@@ -141,9 +141,9 @@ static int cmp_desc(const void *p, const void *q)
 
 static int is_config(struct vty *vty)
 {
-	if (vty->node < CONFIG_NODE)
+	if (vty->node <= CONFIG_NODE)
 		return 0;
-	else if (vty->node >= CONFIG_NODE && vty->node < _LAST_OSMOVTY_NODE)
+	else if (vty->node > CONFIG_NODE && vty->node < _LAST_OSMOVTY_NODE)
 		return 1;
 	else if (host.app_info->is_config_node)
 		return host.app_info->is_config_node(vty, vty->node);
