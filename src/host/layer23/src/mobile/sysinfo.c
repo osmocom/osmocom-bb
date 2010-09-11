@@ -156,9 +156,10 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 
 	/* serving cell */
 	print(priv, "Serving Cell:\n");
-	print(priv, " MCC = %03d  MNC = %02d  LAC = 0x%04x  Cell ID = 0x%04x  "
-		"(%s, %s)\n", s->mcc, s->mnc, s->lac, s->cell_id,
-		gsm_get_mcc(s->mcc), gsm_get_mnc(s->mcc, s->mnc));
+	print(priv, " MCC = %s  MNC = %s  LAC = 0x%04x  Cell ID = 0x%04x  "
+		"(%s, %s)\n", gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc),
+		s->lac, s->cell_id, gsm_get_mcc(s->mcc),
+		gsm_get_mnc(s->mcc, s->mnc));
 	print(priv, " MAX_RETRANS = %d  TX_INTEGER = %d  re-establish = %s\n",
 		s->max_retrans, s->tx_integer,
 		(s->reest_denied) ? "denied" : "allowed");
