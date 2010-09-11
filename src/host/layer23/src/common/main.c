@@ -24,6 +24,7 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/l1l2_interface.h>
+#include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/bb/misc/layer3.h>
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
@@ -48,7 +49,8 @@
 struct log_target *stderr_target;
 
 void *l23_ctx = NULL;
-static char *socket_path = "/tmp/osmocom_l2";
+static char *layer2_socket_path = "/tmp/osmocom_l2";
+static char *sap_socket_path = "/tmp/osmocom_sap";
 struct llist_head ms_list;
 static struct osmocom_ms *ms = NULL;
 static uint32_t gsmtap_ip = 0;
@@ -75,7 +77,9 @@ static void print_help()
 	printf(" Some help...\n");
 	printf("  -h --help		this text\n");
 	printf("  -s --socket		/tmp/osmocom_l2. Path to the unix "
-		"domain socket\n");
+		"domain socket (l2)\n");
+	printf("  -S --sap		/tmp/osmocom_sap. Path to the unix "
+		"domain socket (BTSAP)\n");
 	printf("  -a --arfcn NR		The ARFCN to be used for layer2.\n");
 	printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
 	printf("  -v --vty-port		The VTY port number to telnet to. "
@@ -91,6 +95,7 @@ static void handle_options(int argc, char **argv)
 		static struct option long_options[] = {
 			{"help", 0, 0, 'h'},
 			{"socket", 1, 0, 's'},
+			{"sap", 1, 0, 'S'},
 			{"arfcn", 1, 0, 'a'},
 			{"gsmtap-ip", 1, 0, 'i'},
 			{"vty-port", 1, 0, 'v'},
@@ -98,7 +103,7 @@ static void handle_options(int argc, char **argv)
 			{0, 0, 0, 0},
 		};
 
-		c = getopt_long(argc, argv, "hs:a:i:v:d:",
+		c = getopt_long(argc, argv, "hs:S:a:i:v:d:",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -110,7 +115,10 @@ static void handle_options(int argc, char **argv)
 			exit(0);
 			break;
 		case 's':
-			socket_path = talloc_strdup(l23_ctx, optarg);
+			layer2_socket_path = talloc_strdup(l23_ctx, optarg);
+			break;
+		case 'S':
+			sap_socket_path = talloc_strdup(l23_ctx, optarg);
 			break;
 		case 'a':
 			ms->test_arfcn = atoi(optarg);
@@ -176,11 +184,15 @@ int main(int argc, char **argv)
 
 	handle_options(argc, argv);
 
-	rc = layer2_open(ms, socket_path);
+	rc = layer2_open(ms, layer2_socket_path);
 	if (rc < 0) {
 		fprintf(stderr, "Failed during layer2_open()\n");
 		exit(1);
 	}
+
+	rc = sap_open(ms, sap_socket_path);
+	if (rc < 0)
+		fprintf(stderr, "Failed during sap_open(), no SIM reader\n");
 
 	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
 	lapdm_init(&ms->l2_entity.lapdm_acch, ms);
