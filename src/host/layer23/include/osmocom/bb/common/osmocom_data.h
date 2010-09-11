@@ -12,6 +12,7 @@ struct osmocom_ms;
 #include <osmocom/bb/mobile/settings.h>
 #include <osmocom/bb/mobile/subscriber.h>
 #include <osmocom/bb/common/lapdm.h>
+#include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
 #include <osmocom/bb/mobile/sysinfo.h>
 #include <osmocom/bb/mobile/gsm322.h>
@@ -24,6 +25,10 @@ struct osmol2_entity {
 	struct lapdm_entity lapdm_dcch;
 	struct lapdm_entity lapdm_acch;
 	osmol2_cb_t msg_handler;
+};
+
+struct osmosap_entity {
+	osmosap_cb_t msg_handler;
 };
 
 /* RX measurement statistics */
@@ -39,7 +44,7 @@ struct rx_meas_stat {
 struct osmocom_ms {
 	struct llist_head entity;
 	char name[32];
-	struct write_queue wq;
+	struct write_queue l2_wq, sap_wq;
 	uint16_t test_arfcn;
 
 	struct gsm_support support;
@@ -47,6 +52,7 @@ struct osmocom_ms {
 	struct gsm_subscriber subscr;
 	struct gsm_sim sim;
 	struct osmol2_entity l2_entity;
+	struct osmosap_entity sap_entity;
 	struct rx_meas_stat meas;
 	struct gsm48_rrlayer rrlayer;
 	struct gsm322_plmn plmn;
