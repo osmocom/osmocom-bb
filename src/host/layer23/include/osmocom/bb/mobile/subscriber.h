@@ -52,7 +52,7 @@ struct gsm_subscriber {
 
 	/* key */
 	uint8_t			key_seq; /* ciphering key sequence number */
-	uint8_t			key[64]; /* 64 bit */
+	uint8_t			key[8]; /* 64 bit */
 
 	/* other */
 	struct llist_head	plmn_list; /* PLMN Selector field */

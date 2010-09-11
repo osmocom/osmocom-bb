@@ -46,6 +46,7 @@ enum {
 	L1CTL_DM_REL_REQ,
 	L1CTL_PARAM_REQ,
 	L1CTL_DM_FREQ_REQ,
+	L1CTL_CRYPTO_REQ,
 };
 
 enum ccch_mode {
@@ -197,6 +198,11 @@ struct l1ctl_dm_freq_req {
 		struct l1ctl_h0 h0;
 		struct l1ctl_h1 h1;
 	};
+} __attribute__((packed));
+
+struct l1ctl_crypto_req {
+	uint8_t algo;
+	uint8_t key[0];
 } __attribute__((packed));
 
 struct l1ctl_pm_req {

@@ -201,6 +201,20 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
 }
 
+/* receive a L1CTL_CRYPTO_REQ from L23 */
+static void l1ctl_rx_crypto_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_crypto_req *cr = (struct l1ctl_crypto_req *) ul->payload;
+	uint8_t key_len = msg->len - sizeof(*l1h) - sizeof(*ul) - sizeof(*cr);
+
+	printd("L1CTL_CRYPTO_REQ (algo=A5/%u, len=%u)\n", cr->algo, key_len);
+
+	// for dieter: (cr->alog, cr->key, key_len);
+
+}
+
 /* receive a L1CTL_DM_REL_REQ from L23 */
 static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 {
@@ -388,6 +402,9 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		break;
 	case L1CTL_PARAM_REQ:
 		l1ctl_rx_param_req(msg);
+		break;
+	case L1CTL_CRYPTO_REQ:
+		l1ctl_rx_crypto_req(msg);
 		break;
 	case L1CTL_RACH_REQ:
 		l1ctl_rx_rach_req(msg);

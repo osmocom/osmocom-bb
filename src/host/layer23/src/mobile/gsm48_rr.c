@@ -826,6 +826,7 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm_support *sup = &ms->support;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_cip_mode_cmd *cm = (struct gsm48_cip_mode_cmd *)gh->data;
@@ -854,7 +855,7 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* 3.4.7.2 */
 	if (rr->cipher_on && sc) {
-		LOGP(DRR, LOGL_NOTICE, "chiphering already applied.\n");
+		LOGP(DRR, LOGL_NOTICE, "chiphering already applied\n");
 		return gsm48_rr_tx_rr_status(ms,
 			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 	}
@@ -870,11 +871,21 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_tx_rr_status(ms,
 			GSM48_RR_CAUSE_CHAN_MODE_UNACCT);
 
-	/* change to ciphering */
-#warning FIXME: cyphering command
-	rr->cipher_on = sc, rr->cipher_type = alg_id;
+	/* check if we have no key */
+	if (sc && subscr->key_seq == 7) {
+		LOGP(DRR, LOGL_NOTICE, "no key available\n");
+		return gsm48_rr_tx_rr_status(ms,
+			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
 
-	/* response */
+	/* change to ciphering */
+	rr->cipher_on = sc, rr->cipher_type = alg_id;
+	if (sc)
+		l1ctl_tx_crypto_req(ms, alg_id + 1, subscr->key, 8);
+	else
+		l1ctl_tx_crypto_req(ms, 0, NULL, 0);
+
+	/* response (using the new mode) */
 	return gsm48_rr_tx_cip_mode_cpl(ms, cr);
 }
 
