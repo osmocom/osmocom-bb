@@ -23,6 +23,9 @@ void l1a_txq_msgb_enq(struct llist_head *queue, struct msgb *msg);
 /* request a RACH request at the next multiframe T3 = fn51 */
 void l1a_rach_req(uint8_t fn51, uint8_t mf_off, uint8_t ra);
 
+/* schedule frequency change */
+void l1a_freq_req(uint32_t fn_sched);
+
 /* Enable a repeating multiframe task */
 void l1a_mftask_enable(enum mframe_task task);
 

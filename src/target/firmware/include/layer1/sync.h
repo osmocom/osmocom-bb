@@ -41,6 +41,17 @@ typedef void l1_compl_cb(enum l1_compl c);
 #define L1S_NUM_COMPL		32
 #define L1S_NUM_NEIGH_CELL	6
 
+struct l1s_h0 {
+	uint16_t arfcn;
+};
+
+struct l1s_h1 {
+	uint8_t hsn;
+	uint8_t maio;
+	uint8_t n;
+	uint16_t ma[64];
+};
+
 struct l1s_state {
 	struct gsm_time	current_time;	/* current GSM time */
 	struct gsm_time	next_time;	/* GSM time at next TMDMA irq */
@@ -109,15 +120,17 @@ struct l1s_state {
 		uint8_t h;
 
 		union {
-			struct {
-				uint16_t arfcn;
-			} h0;
-			struct {
-				uint8_t hsn;
-				uint8_t maio;
-				uint8_t n;
-				uint16_t ma[64];
-			} h1;
+			struct l1s_h0 h0;
+			struct l1s_h1 h1;
+		};
+
+		uint8_t st_tsc;
+		uint8_t st_tn;
+		uint8_t st_h;
+
+		union {
+			struct l1s_h0 st_h0;
+			struct l1s_h1 st_h1;
 		};
 	} dedicated;
 };

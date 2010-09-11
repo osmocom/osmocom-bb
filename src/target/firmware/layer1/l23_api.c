@@ -201,6 +201,35 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
 }
 
+/* receive a L1CTL_DM_FREQ_REQ from L23 */
+static void l1ctl_rx_dm_freq_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_dm_freq_req *freq_req =
+			(struct l1ctl_dm_freq_req *) ul->payload;
+
+	printd("L1CTL_DM_FREQ_REQ (arfcn=%u, tsc=%u)\n",
+		ntohs(freq_req->h0.band_arfcn), freq_req->tsc);
+
+	/* configure dedicated channel state */
+	l1s.dedicated.st_tsc  = freq_req->tsc;
+	l1s.dedicated.st_h    = freq_req->h;
+
+	if (freq_req->h) {
+		int i;
+		l1s.dedicated.st_h1.hsn  = freq_req->h1.hsn;
+		l1s.dedicated.st_h1.maio = freq_req->h1.maio;
+		l1s.dedicated.st_h1.n    = freq_req->h1.n;
+		for (i=0; i<freq_req->h1.n; i++)
+			l1s.dedicated.st_h1.ma[i] = ntohs(freq_req->h1.ma[i]);
+	} else {
+		l1s.dedicated.st_h0.arfcn = ntohs(freq_req->h0.band_arfcn);
+	}
+
+	l1a_freq_req(ntohs(freq_req->fn));
+}
+
 /* receive a L1CTL_CRYPTO_REQ from L23 */
 static void l1ctl_rx_crypto_req(struct msgb *msg)
 {
@@ -402,6 +431,9 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		break;
 	case L1CTL_PARAM_REQ:
 		l1ctl_rx_param_req(msg);
+		break;
+	case L1CTL_DM_FREQ_REQ:
+		l1ctl_rx_dm_freq_req(msg);
 		break;
 	case L1CTL_CRYPTO_REQ:
 		l1ctl_rx_crypto_req(msg);
