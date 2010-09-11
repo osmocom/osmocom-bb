@@ -17,6 +17,7 @@ enum {
 	DPAG,
 	DLAPDM,
 	DL1C,
+	DSAP,
 	DSUM,
 	DSIM,
 };

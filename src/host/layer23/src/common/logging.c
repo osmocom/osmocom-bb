@@ -96,6 +96,12 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[1;31m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DSAP]	= {
+		.name = "DSAP",
+		.description = "SAP Control",
+		.color = "\033[1;31m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
 	[DSUM] = {
 		.name = "DSUM",
 		.description = "Summary of Process",
