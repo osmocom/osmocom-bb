@@ -5,6 +5,7 @@
 #include <osmocore/msgb.h>
 #include <osmocore/rsl.h>
 #include <osmocore/tlv.h>
+#include <osmocore/gsm48_ie.h>
 #include <osmocore/protocol/gsm_04_08.h>
 
 #include <osmocom/bb/common/logging.h>
@@ -15,9 +16,11 @@
 #include <osmocom/bb/common/l1ctl.h>
 
 static struct {
+	int has_si1;
 	int ccch_mode;
 	int ccch_enabled;
 	int rach_count;
+	struct gsm_sysinfo_freq cell_arfcns[1024];
 } app_state;
 
 
@@ -34,6 +37,17 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 		if (tc != 0)
 			fprintf(stderr, " on wrong TC");
 #endif
+		if (!app_state.has_si1) {
+			struct gsm48_system_information_type_1 *si1 =
+				(struct gsm48_system_information_type_1 *)data;
+
+			gsm48_decode_freq_list(&app_state.cell_arfcns,
+			                       si1->cell_channel_description,
+					       sizeof(si1->cell_channel_description),
+					       0xff, 0x01);
+
+			app_state.has_si1 = 1;
+		}
 		break;
 	case GSM48_MT_RR_SYSINFO_2:
 		fprintf(stderr, "\tSI2");
@@ -172,35 +186,78 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_imm_ass *ia = msgb_l3(msg);
 	uint8_t ch_type, ch_subch, ch_ts;
-	uint16_t arfcn;
+	int rv;
 
-	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
-	arfcn = ia->chan_desc.h0.arfcn_low | (ia->chan_desc.h0.arfcn_high << 8);
-
-	DEBUGP(DRR, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
-		"ARFCN=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
-		ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
-		ia->chan_desc.h0.tsc);
+	/* Discard packet TBF assignement */
+	if (ia->page_mode & 0xf0)
+		return 0;
 
 	/* FIXME: compare RA and GSM time with when we sent RACH req */
 
-	/* check if we can support this type of channel at the moment */
-	if (ch_type != RSL_CHAN_SDCCH4_ACCH || ch_ts != 0 ||
-	    ia->chan_desc.h0.h == 1) {
-		DEBUGPC(DRR, "UNSUPPORTED!\n");
-		return 0;
+	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
+
+	if (!ia->chan_desc.h0.h) {
+		/* Non-hopping */
+		uint16_t arfcn;
+
+		arfcn = ia->chan_desc.h0.arfcn_low | (ia->chan_desc.h0.arfcn_high << 8);
+
+		DEBUGP(DRR, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
+			"ARFCN=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
+			ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
+			ia->chan_desc.h0.tsc);
+
+		if (ch_ts >= 4 || ch_subch >= 4) {
+			DEBUGPC(DRR, "UNSUPPORTED!\n");
+			return 0;
+		}
+
+		/* request L1 to go to dedicated mode on assigned channel */
+		rv = l1ctl_tx_dm_est_req_h0(ms,
+			arfcn, ia->chan_desc.chan_nr, ia->chan_desc.h0.tsc);
+	} else {
+		/* Hopping */
+		uint8_t maio, hsn, ma_len;
+		uint16_t ma[64], arfcn;
+		int i, j, k;
+
+		hsn = ia->chan_desc.h1.hsn;
+		maio = ia->chan_desc.h1.maio_low | (ia->chan_desc.h1.maio_high << 2);
+
+		DEBUGP(DRR, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
+			"HSN=%u, MAIO=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
+			ia->chan_desc.chan_nr, hsn, maio, ch_ts, ch_subch,
+			ia->chan_desc.h1.tsc);
+
+		/* decode mobile allocation */
+		ma_len = 0;
+		for (i=1, j=0; i<=1024; i++) {
+			arfcn = i & 1023;
+			if (app_state.cell_arfcns[arfcn].mask & 0x01) {
+				k = ia->mob_alloc_len - (j>>3) - 1;
+				if (ia->mob_alloc[k] & (1 << (j&7))) {
+					ma[ma_len++] = arfcn;
+				}
+				j++;
+			}
+		}
+
+		if (ch_ts >= 4 || ch_subch >= 4) {
+			DEBUGPC(DRR, "UNSUPPORTED!\n");
+			return 0;
+		}
+
+		/* request L1 to go to dedicated mode on assigned channel */
+		rv = l1ctl_tx_dm_est_req_h1(ms,
+			maio, hsn, ma, ma_len,
+			ia->chan_desc.chan_nr, ia->chan_desc.h1.tsc);
 	}
-
-	/* request L1 to go to dedicated mode on assigned channel */
-	l1ctl_tx_dm_est_req_h0(ms, arfcn, ia->chan_desc.chan_nr,
-			 ia->chan_desc.h0.tsc);
-
-	/* request L2 to establish the SAPI0 connection */
-	gsm48_tx_loc_upd_req(ms, ia->chan_desc.chan_nr);
 
 	DEBUGPC(DRR, "\n");
 
-	return 0;
+	rv = gsm48_tx_loc_upd_req(ms, ia->chan_desc.chan_nr);
+
+	return rv;
 }
 
 int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
@@ -249,8 +306,11 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 void layer3_app_reset(void)
 {
 	/* Reset state */
+	app_state.has_si1 = 0;
 	app_state.ccch_mode = CCCH_MODE_NONE;
 	app_state.ccch_enabled = 0;
 	app_state.rach_count = 0;
+
+	memset(&app_state.cell_arfcns, 0x00, sizeof(app_state.cell_arfcns));
 }
 
