@@ -39,6 +39,7 @@
 #include <calypso/dsp.h>
 #include <calypso/timer.h>
 #include <comm/sercomm.h>
+#include <asm/system.h>
 
 #include <layer1/sync.h>
 #include <layer1/async.h>
@@ -118,15 +119,16 @@ static void l1a_rach_compl(__unused enum l1_compl c)
 void l1a_rach_req(uint8_t fn51, uint8_t mf_off, uint8_t ra)
 {
 	uint32_t fn_sched;
+	unsigned long flags;
 
-	l1a_lock_sync();
+	local_firq_save(flags);
 	l1s.rach.ra = ra;
 	/* TODO: can we wrap here? I don't think so */
 	fn_sched = l1s.current_time.fn - l1s.current_time.t3;
 	fn_sched += mf_off * 51;
 	fn_sched += fn51;
 	sched_gsmtime(rach_sched_set_ul, fn_sched, 0);
-	l1a_unlock_sync();
+	local_irq_restore(flags);
 
 	memset(&last_rach, 0, sizeof(last_rach));
 }

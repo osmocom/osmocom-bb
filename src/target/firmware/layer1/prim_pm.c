@@ -38,6 +38,7 @@
 #include <calypso/dsp.h>
 #include <calypso/timer.h>
 #include <comm/sercomm.h>
+#include <asm/system.h>
 
 #include <layer1/sync.h>
 #include <layer1/agc.h>
@@ -143,6 +144,11 @@ static const struct tdma_sched_item pm_sched_set[] = {
 /* Schedule a power measurement test */
 void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 {
+	unsigned long flags;
+
 	printd("l1s_pm_test(%u, %u)\n", base_fn, arfcn);
+
+	local_firq_save(flags);
 	tdma_schedule_set(base_fn, pm_sched_set, arfcn);
+	local_irq_restore(flags);
 }

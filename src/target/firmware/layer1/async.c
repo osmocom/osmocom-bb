@@ -39,9 +39,11 @@ extern const struct tdma_sched_item rach_sched_set_ul[];
 /* safely enable a message into the L1S TX queue */
 void l1a_txq_msgb_enq(struct llist_head *queue, struct msgb *msg)
 {
-	l1a_lock_sync();
+	unsigned long flags;
+
+	local_firq_save(flags);
 	msgb_enqueue(queue, msg);
-	l1a_unlock_sync();
+	local_irq_restore(flags);
 }
 
 /* Enable a repeating multiframe task */

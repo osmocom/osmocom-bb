@@ -38,6 +38,7 @@
 #include <calypso/dsp.h>
 #include <calypso/timer.h>
 #include <comm/sercomm.h>
+#include <asm/system.h>
 
 #include <layer1/sync.h>
 #include <layer1/async.h>
@@ -82,6 +83,7 @@ const struct tdma_sched_item freq_sched_set[] = {
 void l1a_freq_req(uint32_t fn_sched)
 {
 	int32_t diff;
+	unsigned long flags;
 
 	/* We must check here, if the time already elapsed.
 	 * This is required, because we may have an undefined delay between
@@ -103,8 +105,8 @@ void l1a_freq_req(uint32_t fn_sched)
 	printf("Scheduling frequency change at fn=%u, currently fn=%u\n",
 		fn_sched, l1s.current_time.fn);
 
-	l1a_lock_sync();
+	local_firq_save(flags);
 	sched_gsmtime(freq_sched_set, fn_sched, 0);
-	l1a_unlock_sync();
+	local_irq_restore(flags);
 }
 
