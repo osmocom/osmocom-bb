@@ -155,6 +155,8 @@ int vty_config_unlock (struct vty *);
 int vty_shell (struct vty *);
 int vty_shell_serv (struct vty *);
 void vty_hello (struct vty *);
+void *vty_current_index(struct vty *);
+int vty_current_node(struct vty *vty);
 
 extern void *tall_vty_ctx;
 #endif

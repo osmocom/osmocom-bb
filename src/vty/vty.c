@@ -248,6 +248,15 @@ int vty_out_newline(struct vty *vty)
 	return 0;
 }
 
+void *vty_current_index(struct vty *vty)
+{
+	return vty->index;
+}
+int vty_current_node(struct vty *vty)
+{
+	return vty->node;
+}
+
 int vty_config_lock(struct vty *vty)
 {
 	if (vty_config == 0) {
