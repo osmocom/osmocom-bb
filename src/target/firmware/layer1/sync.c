@@ -271,7 +271,11 @@ static void l1_sync(void)
 		dsp_api.r_page ^= 1;
 	}
 
-	//dsp_end_scenario();
+	if (sched_flags & TDMA_IFLG_DSP)
+		dsp_end_scenario();
+
+	if (sched_flags & TDMA_IFLG_TPU)
+		tpu_end_scenario();
 
 	/* schedule new / upcoming TDMA items */
 	mframe_schedule();
