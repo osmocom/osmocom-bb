@@ -25,6 +25,9 @@ static inline void l1a_unlock_sync(void)
 /* safely enable a message into the L1S TX queue */
 void l1a_txq_msgb_enq(struct llist_head *queue, struct msgb *msg);
 
+/* flush all pending msgb */
+void l1a_txq_msgb_flush(struct llist_head *queue);
+
 /* request a RACH request at the next multiframe T3 = fn51 */
 void l1a_rach_req(uint8_t fn51, uint8_t mf_off, uint8_t ra);
 
