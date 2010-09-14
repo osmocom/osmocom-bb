@@ -74,7 +74,7 @@ static int l1s_freq_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused uint1
 
 /* sched set for frequency change */
 const struct tdma_sched_item freq_sched_set[] = {
-	SCHED_ITEM(l1s_freq_cmd, 1, 0),
+	SCHED_ITEM(l1s_freq_cmd, -3, 1, 0),
 	SCHED_END_SET()
 };
 

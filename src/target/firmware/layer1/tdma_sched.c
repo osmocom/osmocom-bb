@@ -51,7 +51,8 @@ static uint8_t wrap_bucket(uint8_t offset)
 }
 
 /* Schedule an item at 'frame_offset' TDMA frames in the future */
-int tdma_schedule(uint8_t frame_offset, tdma_sched_cb *cb, uint8_t p1, uint8_t p2, uint16_t p3)
+int tdma_schedule(uint8_t frame_offset, tdma_sched_cb *cb,
+                  uint8_t p1, uint8_t p2, uint16_t p3, int16_t prio)
 {
 	struct tdma_scheduler *sched = &l1s.tdma_sched;
 	uint8_t bucket_nr = wrap_bucket(frame_offset);
@@ -69,6 +70,7 @@ int tdma_schedule(uint8_t frame_offset, tdma_sched_cb *cb, uint8_t p1, uint8_t p
 	sched_item->p1 = p1;
 	sched_item->p2 = p2;
 	sched_item->p3 = p3;
+	sched_item->prio = prio;
 
 	return 0;
 }
@@ -120,19 +122,55 @@ void tdma_sched_advance(void)
 	sched->cur_bucket = next_bucket;
 }
 
+/* Sort a bucket entries by priority */
+static void _tdma_sched_bucket_sort(struct tdma_sched_bucket *bucket, int *seq)
+{
+	int i, j, k;
+	struct tdma_sched_item *item_i, *item_j;
+
+	/* initial sequence */
+		/* we need all the items because some call back may schedule
+		 * new call backs 'on the fly' */
+	for (i=0; i<TDMASCHED_NUM_CB; i++)
+		seq[i] = i;
+
+	/* iterate over items in this bucket and sort them */
+	for (i=0; i<bucket->num_items; i++)
+	{
+		item_i = &bucket->item[seq[i]];
+
+		for (j=i+1; j<bucket->num_items; j++)
+		{
+			item_j = &bucket->item[seq[j]];
+
+			if (item_i->prio > item_j->prio)
+			{
+				item_i = item_j;
+				k      = seq[i];
+				seq[i] = seq[j];
+				seq[j] = k;
+			}
+		}
+	}
+}
+
 /* Execute pre-scheduled events for current frame */
 int tdma_sched_execute(void)
 {
 	struct tdma_scheduler *sched = &l1s.tdma_sched;
 	struct tdma_sched_bucket *bucket;
 	int i, num_events = 0;
+	int seq[TDMASCHED_NUM_CB];
 
 	/* determine current bucket */
 	bucket = &sched->bucket[sched->cur_bucket];
 
+	/* get sequence in priority order */
+	_tdma_sched_bucket_sort(bucket, seq);
+
 	/* iterate over items in this bucket and call callback function */
 	for (i = 0; i < bucket->num_items; i++) {
-		struct tdma_sched_item *item = &bucket->item[i];
+		struct tdma_sched_item *item = &bucket->item[seq[i]];
 		int rc;
 
 		num_events++;
@@ -145,7 +183,8 @@ int tdma_sched_execute(void)
 		}
 		/* if the cb() we just called has scheduled more items for the
 		 * current TDMA, bucket->num_items will have increased and we
-		 * will simply continue to execute them as intended */
+		 * will simply continue to execute them as intended. Priorities
+		 * won't work though ! */
 	}
 
 	/* clear/reset the bucket */

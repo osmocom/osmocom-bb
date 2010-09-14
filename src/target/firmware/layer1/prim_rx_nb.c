@@ -195,11 +195,11 @@ static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 }
 
 const struct tdma_sched_item nb_sched_set[] = {
-	SCHED_ITEM(l1s_nb_cmd, 0, 0),					SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_nb_cmd, 0, 1),					SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_nb_resp, 0, 0), SCHED_ITEM(l1s_nb_cmd, 0, 2),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_nb_resp, 0, 1), SCHED_ITEM(l1s_nb_cmd, 0, 3),	SCHED_END_FRAME(),
-				       SCHED_ITEM(l1s_nb_resp, 0, 2),	SCHED_END_FRAME(),
-				       SCHED_ITEM(l1s_nb_resp, 0, 3),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_nb_cmd, 0, 0, 0),						SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_nb_cmd, 0, 0, 1),						SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_nb_resp, -4, 0, 0),	SCHED_ITEM(l1s_nb_cmd, 0, 0, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_nb_resp, -4, 0, 1),	SCHED_ITEM(l1s_nb_cmd, 0, 0, 3),	SCHED_END_FRAME(),
+						SCHED_ITEM(l1s_nb_resp, -4, 0, 2),	SCHED_END_FRAME(),
+						SCHED_ITEM(l1s_nb_resp, -4, 0, 3),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };

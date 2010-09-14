@@ -307,7 +307,7 @@ static int l1s_abort_cmd(__unused uint8_t p1, __unused uint8_t p2,
 void l1s_dsp_abort(void)
 {
 	/* abort right now */
-	tdma_schedule(0, &l1s_abort_cmd, 0, 0, 0);
+	tdma_schedule(0, &l1s_abort_cmd, 0, 0, 0, 10);
 }
 
 void l1s_tx_apc_helper(void)

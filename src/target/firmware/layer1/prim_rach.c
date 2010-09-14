@@ -99,9 +99,9 @@ static int l1s_tx_rach_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 
 /* sched sets for uplink */
 const struct tdma_sched_item rach_sched_set_ul[] = {
-	SCHED_ITEM(l1s_tx_rach_cmd, 1, 0),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_rach_cmd, 3, 1, 0),	SCHED_END_FRAME(),
 						SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_tx_rach_resp, 1, 0),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_rach_resp, -4, 1, 0),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
 

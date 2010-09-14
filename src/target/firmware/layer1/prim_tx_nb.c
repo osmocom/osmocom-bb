@@ -178,28 +178,28 @@ void l1s_tx_test(uint8_t base_fn, uint8_t type)
 	printf("Starting TX %d\n", type);
 
 	if (type == 0) {// one normal burst
-		tdma_schedule(base_fn, &l1s_tx_cmd, 0, 0, 0);
-		tdma_schedule(base_fn + 2, &l1s_tx_resp, 0, 0, 0);
+		tdma_schedule(base_fn, &l1s_tx_cmd, 0, 0, 0, 3);
+		tdma_schedule(base_fn + 2, &l1s_tx_resp, 0, 0, 0, 3);
 	} else if (type == 2) { // four normal burst
-		tdma_schedule(base_fn, &l1s_tx_cmd, 2, 0, 0);
-		tdma_schedule(base_fn + 1, &l1s_tx_cmd, 2, 1, 0);
-		tdma_schedule(base_fn + 2, &l1s_tx_resp, 2, 0, 0);
-		tdma_schedule(base_fn + 2, &l1s_tx_cmd, 2, 2, 0);
-		tdma_schedule(base_fn + 3, &l1s_tx_resp, 2, 1, 0);
-		tdma_schedule(base_fn + 3, &l1s_tx_cmd, 2, 3, 0);
-		tdma_schedule(base_fn + 4, &l1s_tx_resp, 2, 2, 0);
-		tdma_schedule(base_fn + 5, &l1s_tx_resp, 2, 3, 0);
+		tdma_schedule(base_fn, &l1s_tx_cmd, 2, 0, 0, 3);
+		tdma_schedule(base_fn + 1, &l1s_tx_cmd, 2, 1, 0, 3);
+		tdma_schedule(base_fn + 2, &l1s_tx_resp, 2, 0, 0, 3);
+		tdma_schedule(base_fn + 2, &l1s_tx_cmd, 2, 2, 0, 3);
+		tdma_schedule(base_fn + 3, &l1s_tx_resp, 2, 1, 0, 3);
+		tdma_schedule(base_fn + 3, &l1s_tx_cmd, 2, 3, 0, 3);
+		tdma_schedule(base_fn + 4, &l1s_tx_resp, 2, 2, 0, 3);
+		tdma_schedule(base_fn + 5, &l1s_tx_resp, 2, 3, 0, 3);
 	}
 }
 
 /* sched sets for uplink */
 const struct tdma_sched_item nb_sched_set_ul[] = {
-	SCHED_ITEM(l1s_tx_cmd, 2, 0),					SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_tx_cmd, 2, 1),					SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_tx_resp, 2, 0), SCHED_ITEM(l1s_tx_cmd, 2, 2),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_tx_resp, 2, 1), SCHED_ITEM(l1s_tx_cmd, 2, 3),	SCHED_END_FRAME(),
-				       SCHED_ITEM(l1s_tx_resp, 2, 2),	SCHED_END_FRAME(),
-				       SCHED_ITEM(l1s_tx_resp, 2, 3),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_cmd, 3, 2, 0),						SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_cmd, 3, 2, 1),						SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_resp, -4, 2, 0),	SCHED_ITEM(l1s_tx_cmd, 3, 2, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_resp, -4, 2, 1),	SCHED_ITEM(l1s_tx_cmd, 3, 2, 3),	SCHED_END_FRAME(),
+						SCHED_ITEM(l1s_tx_resp, -4, 2, 2),	SCHED_END_FRAME(),
+						SCHED_ITEM(l1s_tx_resp, -4, 2, 3),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
 

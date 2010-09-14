@@ -135,9 +135,9 @@ static int l1s_pm_resp(uint8_t num_meas, __unused uint8_t p2,
 }
 
 static const struct tdma_sched_item pm_sched_set[] = {
-	SCHED_ITEM(l1s_pm_cmd, 1, 0),		SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_pm_cmd, 0, 1, 0),	SCHED_END_FRAME(),
 						SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_pm_resp, 1, 0),		SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_pm_resp, -4, 1, 0),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
 

@@ -21,6 +21,7 @@ struct tdma_sched_item {
 	uint8_t p1;
 	uint8_t p2;
 	uint16_t p3;
+	int16_t prio;
 };
 
 /* A bucket inside the TDMA scheduler */
@@ -36,7 +37,8 @@ struct tdma_scheduler {
 };
 
 /* Schedule an item at 'frame_offset' TDMA frames in the future */
-int tdma_schedule(uint8_t frame_offset, tdma_sched_cb *cb, uint8_t p1, uint8_t p2, uint16_t p3);
+int tdma_schedule(uint8_t frame_offset, tdma_sched_cb *cb,
+                  uint8_t p1, uint8_t p2, uint16_t p3, int16_t prio);
 
 /* Schedule a set of items starting from 'frame_offset' TDMA frames in the future */
 int tdma_schedule_set(uint8_t frame_offset, const struct tdma_sched_item *item_set, uint16_t p3);
@@ -55,7 +57,7 @@ void tdma_sched_dump(void);
 
 
 extern int tdma_end_set(uint8_t p1, uint8_t p2, uint16_t p3);
-#define SCHED_ITEM(x, y, z)		{ .cb = x, .p1 = y, .p2 = z }
+#define SCHED_ITEM(x, p, y, z)		{ .cb = x, .p1 = y, .p2 = z, .prio = p }
 #define SCHED_END_FRAME()		{ .cb = NULL, .p1 = 0, .p2 = 0 }
 #define SCHED_END_SET()			{ .cb = &tdma_end_set, .p1 = 0, .p2 = 0 }
 

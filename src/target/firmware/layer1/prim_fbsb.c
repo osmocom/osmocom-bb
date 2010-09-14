@@ -288,11 +288,11 @@ static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 
 /* This is how it is done by the TSM30 */
 static const struct tdma_sched_item sb_sched_set[] = {
-	SCHED_ITEM(l1s_sbdet_cmd, 0, 1),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_sbdet_cmd, 0, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_sbdet_cmd, 0, 0, 1),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_sbdet_cmd, 0, 0, 2),	SCHED_END_FRAME(),
 						SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_sbdet_resp, 0, 1),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_sbdet_resp, 0, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_sbdet_resp, -4, 0, 1),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_sbdet_resp, -4, 0, 2),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
 
@@ -505,20 +505,20 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 
 /* FB detection */
 static const struct tdma_sched_item fb_sched_set[] = {
-	SCHED_ITEM(l1s_fbdet_cmd, 0, 0),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_cmd, 0, 0, 0),	SCHED_END_FRAME(),
 						SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 1),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 2),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 3),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 4),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 5),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 6),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 7),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 8),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 9),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 10),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 11),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_fbdet_resp, 0, 12),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 1),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 3),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 4),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 5),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 6),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 7),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 8),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 9),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 10),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 11),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 12),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
 
