@@ -122,6 +122,26 @@ void tdma_sched_advance(void)
 	sched->cur_bucket = next_bucket;
 }
 
+/* Scan current frame scheduled items for flags */
+uint16_t tdma_sched_flag_scan(void)
+{
+	struct tdma_scheduler *sched = &l1s.tdma_sched;
+	struct tdma_sched_bucket *bucket;
+	int i;
+	uint16_t flags = 0;
+
+	/* determine current bucket */
+	bucket = &sched->bucket[sched->cur_bucket];
+
+	/* iterate over items in this bucket and call callback function */
+	for (i=0; i<bucket->num_items; i++) {
+		struct tdma_sched_item *item = &bucket->item[i];
+		flags |= item->flags;
+	}
+
+	return flags;
+}
+
 /* Sort a bucket entries by priority */
 static void _tdma_sched_bucket_sort(struct tdma_sched_bucket *bucket, int *seq)
 {
