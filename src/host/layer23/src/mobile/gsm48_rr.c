@@ -1199,8 +1199,8 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 			chan_req_val = 0x10;
 			break;
 		case GSM_CAP_SDCCH_TCHF:
-			chan_req_mask = 0x0f;
-			chan_req_val = 0x20;
+			chan_req_mask = 0x1f;
+			chan_req_val = 0x80;
 			break;
 		default:
 			chan_req_mask = 0x0f;
