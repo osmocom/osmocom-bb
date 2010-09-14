@@ -45,7 +45,7 @@
  * When enabled, the starting time will be set by given frames in the future.
  * If a starting time is given by the network, this time is ignored.
  */
-//#define TEST_STARTING_TIMER 40
+//#define TEST_STARTING_TIMER 140
 
 /* Testing if frequency modification works correctly "after time".
  *
@@ -815,6 +815,8 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 	/* MI */
 	if (cr) {
 		gsm48_generate_mid_from_imsi(buf, set->imeisv);
+		/* alter MI type */
+	        buf[2] = (buf[2] & ~GSM_MI_TYPE_MASK) | GSM_MI_TYPE_IMEISV;
 		tlv = msgb_put(nmsg, 2 + buf[1]);
 		memcpy(tlv, buf, 2 + buf[1]);
 	}
@@ -1197,8 +1199,8 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 			chan_req_val = 0x10;
 			break;
 		case GSM_CAP_SDCCH_TCHF:
-			chan_req_mask = 0x1f;
-			chan_req_val = 0x80;
+			chan_req_mask = 0x0f;
+			chan_req_val = 0x20;
 			break;
 		default:
 			chan_req_mask = 0x0f;
