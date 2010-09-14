@@ -257,6 +257,9 @@ static void l1_sync(void)
 	 * TDMA frame (including setup/cleanup steps) */
 	sched_flags = tdma_sched_flag_scan();
 
+	if (sched_flags & TDMA_IFLG_TPU)
+		l1s_win_init();
+
 	tdma_sched_execute();
 
 	if (dsp_api.r_page_used) {

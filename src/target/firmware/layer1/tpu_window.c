@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <debug.h>
+#include <defines.h>
 #include <stdio.h>
 
 #include <rffe.h>
@@ -65,17 +66,40 @@ static const uint16_t tx_burst_duration[_NUM_L1_TXWIN] = {
 	[L1_TXWIN_AB]	= L1_TX_AB_DURATION_Q,
 };
 
-void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype, uint8_t tn)
+
+static int _win_setup(__unused uint8_t p1, __unused uint8_t p2, __unused uint8_t p3)
 {
-	int16_t start = DSP_SETUP_TIME;
-	int16_t stop = start + rx_burst_duration[wtype] - 1;
+	uint8_t tn;
 
-	/* FIXME: AGC */
-	/* FIXME: RF PLL */
+	rfch_get_params(&l1s.next_time, NULL, NULL, &tn);
 
-	/* Alignement */
 	tpu_enq_offset( (5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000 );
 	tpu_enq_at(5000 - 1000 - (L1_BURST_LENGTH_Q * tn));
+
+	return 0;
+}
+
+static int _win_cleanup(__unused uint8_t p1, __unused uint8_t p2, __unused uint8_t p3)
+{
+	return 0;
+}
+
+void l1s_win_init(void)
+{
+	tdma_schedule(0, _win_setup,   0, 0, 0, -2);
+	tdma_schedule(0, _win_cleanup, 0, 0, 0,  9);
+}
+
+void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype, uint8_t tn_ofs)
+{
+	int16_t start, stop;
+
+	/* TN offset & TA adjust */
+	start = DSP_SETUP_TIME;
+	start += L1_BURST_LENGTH_Q * tn_ofs;
+	start -= l1s.ta << 2;
+
+	stop = start + rx_burst_duration[wtype] - 1;
 
 	/* window open for TRF6151 */
 	/* FIXME: why do we need the magic value 100 ? */
@@ -101,14 +125,14 @@ void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype, uint8_t tn)
 	trf6151_set_mode(TRF6151_IDLE);
 }
 
-void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr, uint8_t tn)
+void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr, uint8_t tn_ofs)
 {
-	/* uplink is three TS after downlink ( "+ 32" gives a TA of 1) */
-	uint16_t offset = (L1_BURST_LENGTH_Q * 3) + 28;
+	uint16_t offset;
 
-	/* Alignement */
-	tpu_enq_offset( (5000 + l1s.tpu_offset - (l1s.ta << 2) + (L1_BURST_LENGTH_Q * tn)) % 5000 );
-	tpu_enq_at(5000 - 10 - (L1_BURST_LENGTH_Q * tn));
+	/* TN offset & TA adjust */
+	offset = 28; /* ("+ 32" gives a TA of 1) */
+	offset += L1_BURST_LENGTH_Q * tn_ofs;
+	offset -= l1s.ta << 2;
 
 #ifdef CONFIG_TX_ENABLE
 	/* window open for TRF6151 and RFFE */
