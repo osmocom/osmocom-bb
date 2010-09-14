@@ -120,23 +120,33 @@ void rfch_get_params(struct gsm_time *t,
 {
 	if (l1s.dedicated.type == GSM_DCHAN_NONE) {
 		/* Serving cell only */
-		*arfcn_p = l1s.serving_cell.arfcn;
-		*tsc_p   = l1s.serving_cell.bsic & 0x7;
-		*tn_p    = 0;
+		if (arfcn_p)
+			*arfcn_p = l1s.serving_cell.arfcn;
+
+		if (tsc_p)
+			*tsc_p = l1s.serving_cell.bsic & 0x7;
+
+		if (tn_p)
+			*tn_p = 0;
 	} else {
 		/* Dedicated channel */
-		if (l1s.dedicated.h) {
-			*arfcn_p = rfch_hop_seq_gen(t,
-					l1s.dedicated.h1.hsn,
-					l1s.dedicated.h1.maio,
-					l1s.dedicated.h1.n,
-					l1s.dedicated.h1.ma);
-		} else {
-			*arfcn_p = l1s.dedicated.h0.arfcn;
+		if (arfcn_p) {
+			if (l1s.dedicated.h) {
+				*arfcn_p = rfch_hop_seq_gen(t,
+						l1s.dedicated.h1.hsn,
+						l1s.dedicated.h1.maio,
+						l1s.dedicated.h1.n,
+						l1s.dedicated.h1.ma);
+			} else {
+				*arfcn_p = l1s.dedicated.h0.arfcn;
+			}
 		}
 
-		*tsc_p = l1s.dedicated.tsc;
-		*tn_p  = l1s.dedicated.tn;
+		if (tsc_p)
+			*tsc_p = l1s.dedicated.tsc;
+
+		if (tn_p)
+			*tn_p = l1s.dedicated.tn;
 	}
 }
 
