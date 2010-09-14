@@ -173,13 +173,6 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 		return;
 	}
 
-	if ((chan_nr2mf_task(ul->chan_nr) >= MF_TASK_SDCCH8_4) &&
-	    (chan_nr2mf_task(ul->chan_nr) <= MF_TASK_SDCCH8_7)) {
-		/* FIXME: TX while RX prevents SDCCH8 [4..7] */
-		puts("We don't support SDCCH8 [4..7] yet\n");
-		return;
-	}
-
 	/* configure dedicated channel state */
 	l1s.dedicated.type = chan_nr2dchan_type(ul->chan_nr);
 	l1s.dedicated.tsc  = est_req->tsc;
