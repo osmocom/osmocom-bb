@@ -65,7 +65,6 @@ static int l1s_pm_cmd(uint8_t num_meas,
 
 	dsp_api.db_w->d_task_md = num_meas; /* number of measurements */
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
-	dsp_end_scenario();
 
 	/* Tell the RF frontend to set the gain appropriately */
 	rffe_set_gain(-85, CAL_DSP_TGT_BB_LVL);
@@ -75,7 +74,6 @@ static int l1s_pm_cmd(uint8_t num_meas,
 	 * num_meas > 1 */
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_PW, 0);
 	//l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB);
-	tpu_end_scenario();
 
 	return 0;
 }
@@ -135,7 +133,7 @@ static int l1s_pm_resp(uint8_t num_meas, __unused uint8_t p2,
 }
 
 static const struct tdma_sched_item pm_sched_set[] = {
-	SCHED_ITEM(l1s_pm_cmd, 0, 1, 0),	SCHED_END_FRAME(),
+	SCHED_ITEM_DT(l1s_pm_cmd, 0, 1, 0),	SCHED_END_FRAME(),
 						SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_pm_resp, -4, 1, 0),	SCHED_END_FRAME(),
 	SCHED_END_SET()

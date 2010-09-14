@@ -186,19 +186,17 @@ static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 	rfch_get_params(&l1s.next_time, &arfcn, &tsc, &tn);
 
 	dsp_load_rx_task(ALLC_DSP_TASK, burst_id, tsc);
-	dsp_end_scenario();
 
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, tn);
-	tpu_end_scenario();
 
 	return 0;
 }
 
 const struct tdma_sched_item nb_sched_set[] = {
-	SCHED_ITEM(l1s_nb_cmd, 0, 0, 0),						SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_nb_cmd, 0, 0, 1),						SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_nb_resp, -4, 0, 0),	SCHED_ITEM(l1s_nb_cmd, 0, 0, 2),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_nb_resp, -4, 0, 1),	SCHED_ITEM(l1s_nb_cmd, 0, 0, 3),	SCHED_END_FRAME(),
+	SCHED_ITEM_DT(l1s_nb_cmd, 0, 0, 0),						SCHED_END_FRAME(),
+	SCHED_ITEM_DT(l1s_nb_cmd, 0, 0, 1),						SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_nb_resp, -4, 0, 0),	SCHED_ITEM_DT(l1s_nb_cmd, 0, 0, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_nb_resp, -4, 0, 1),	SCHED_ITEM_DT(l1s_nb_cmd, 0, 0, 3),	SCHED_END_FRAME(),
 						SCHED_ITEM(l1s_nb_resp, -4, 0, 2),	SCHED_END_FRAME(),
 						SCHED_ITEM(l1s_nb_resp, -4, 0, 3),	SCHED_END_FRAME(),
 	SCHED_END_SET()

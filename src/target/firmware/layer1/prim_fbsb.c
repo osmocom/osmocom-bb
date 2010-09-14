@@ -277,19 +277,17 @@ static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 
 	dsp_api.db_w->d_task_md = SB_DSP_TASK;
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
-	dsp_end_scenario();
 
 	/* Program TPU */
 	l1s_rx_win_ctrl(rf_arfcn, L1_RXWIN_SB, 0);
-	tpu_end_scenario();
 
 	return 0;
 }
 
 /* This is how it is done by the TSM30 */
 static const struct tdma_sched_item sb_sched_set[] = {
-	SCHED_ITEM(l1s_sbdet_cmd, 0, 0, 1),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_sbdet_cmd, 0, 0, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM_DT(l1s_sbdet_cmd, 0, 0, 1),	SCHED_END_FRAME(),
+	SCHED_ITEM_DT(l1s_sbdet_cmd, 0, 0, 2),	SCHED_END_FRAME(),
 						SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_sbdet_resp, -4, 0, 1),	SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_sbdet_resp, -4, 0, 2),	SCHED_END_FRAME(),
@@ -379,11 +377,9 @@ static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 	/* Program DSP */
 	dsp_api.db_w->d_task_md = FB_DSP_TASK;	/* maybe with I/Q swap? */
 	dsp_api.ndb->d_fb_mode = fb_mode;
-	dsp_end_scenario();
 
 	/* Program TPU */
 	l1s_rx_win_ctrl(fbs.req.band_arfcn, L1_RXWIN_FB, 0);
-	tpu_end_scenario();
 
 	return 0;
 }
@@ -505,7 +501,7 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 
 /* FB detection */
 static const struct tdma_sched_item fb_sched_set[] = {
-	SCHED_ITEM(l1s_fbdet_cmd, 0, 0, 0),	SCHED_END_FRAME(),
+	SCHED_ITEM_DT(l1s_fbdet_cmd, 0, 0, 0),	SCHED_END_FRAME(),
 						SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 1),	SCHED_END_FRAME(),
 	SCHED_ITEM(l1s_fbdet_resp, -4, 0, 2),	SCHED_END_FRAME(),

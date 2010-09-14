@@ -72,10 +72,8 @@ static int l1s_tx_rach_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused ui
 	info_ptr[0] = ((uint16_t)(data[0])) | ((uint16_t)(data[1])<<8);
 
 	dsp_api.db_w->d_task_ra = RACH_DSP_TASK;
-	dsp_end_scenario();
 
 	l1s_tx_win_ctrl(l1s.serving_cell.arfcn, L1_TXWIN_AB, 0, 0);
-	tpu_end_scenario();
 
 	return 0;
 }
@@ -99,9 +97,9 @@ static int l1s_tx_rach_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 
 /* sched sets for uplink */
 const struct tdma_sched_item rach_sched_set_ul[] = {
-	SCHED_ITEM(l1s_tx_rach_cmd, 3, 1, 0),	SCHED_END_FRAME(),
-						SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_tx_rach_resp, -4, 1, 0),	SCHED_END_FRAME(),
+	SCHED_ITEM_DT(l1s_tx_rach_cmd, 3, 1, 0),	SCHED_END_FRAME(),
+							SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tx_rach_resp, -4, 1, 0),		SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
 
