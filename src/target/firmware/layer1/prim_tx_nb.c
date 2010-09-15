@@ -83,11 +83,6 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 	l1s_tx_apc_helper();
 
-	if (p1 == 0) /* DUL_DSP_TASK, one normal burst */
-		dsp_load_tch_param(0, SIG_ONLY_MODE, INVALID_CHANNEL, 0, 0, 0);
-	else if (p1 == 2) /* DUL_DSP_TASK, four normal bursts */
-		dsp_load_tch_param(0, SIG_ONLY_MODE, SDCCH_4, 0, 0, 0);
-
 	/* before sending first of the four bursts, copy data to API ram */
 	if (burst_id == 0) {
 		uint16_t *info_ptr = dsp_api.ndb->a_cu;
@@ -135,7 +130,17 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 			msgb_free(msg);
 	}
 
-	rfch_get_params(&l1s.next_time, &arfcn, &tsc, NULL);
+	rfch_get_params(&l1s.next_time, &arfcn, &tsc, &tn);
+
+	if (p1 == 0)
+		/* DUL_DSP_TASK, one normal burst */
+		dsp_load_tch_param(&l1s.next_time,
+		                   SIG_ONLY_MODE, INVALID_CHANNEL, 0, 0, 0, tn);
+
+	else if (p1 == 2)
+		/* DUL_DSP_TASK, four normal bursts */
+		dsp_load_tch_param(&l1s.next_time,
+		                   SIG_ONLY_MODE, SDCCH_4, 0, 0, 0, tn);
 
 	dsp_load_tx_task(DUL_DSP_TASK, burst_id, tsc);
 

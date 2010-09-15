@@ -34,6 +34,9 @@
 
 #include <abb/twl3025.h>
 
+#include <osmocore/gsm_utils.h>
+
+
 #define REG_API_CONTROL		0xfffe0000
 #define APIC_R_SMODE_HOM	(1 << 1)	/* API is configured in HOM mode */
 #define APIC_R_HINT		(1 << 3)	/* Host processor interrupt (DSP->MCU) */
@@ -316,11 +319,13 @@ void dsp_load_tx_task(uint16_t task, uint8_t burst_id, uint8_t tsc)
 	dsp_api.db_w->d_ctrl_system |= tsc & 0x7;
 }
 
-/* no AMR, no ciphering yet, fn does not work this way */
-void dsp_load_tch_param(uint16_t fn, uint8_t chan_mode, uint8_t chan_type,
-			uint8_t subchannel, uint8_t tch_loop, uint8_t sync_tch)
+/* no AMR yet */
+void dsp_load_tch_param(struct gsm_time *next_time,
+                        uint8_t chan_mode, uint8_t chan_type, uint8_t chan_sub,
+                        uint8_t tch_loop, uint8_t sync_tch, uint8_t tn)
 {
-	uint16_t  d_ctrl_tch;
+	uint16_t d_ctrl_tch;
+	uint16_t fn, a5fn0, a5fn1;
 
 	/* d_ctrl_tch
 	   ----------
@@ -334,21 +339,35 @@ void dsp_load_tch_param(uint16_t fn, uint8_t chan_mode, uint8_t chan_type,
 	    bit [15]     -> b_subchannel */
 	d_ctrl_tch = (chan_mode  << B_CHAN_MODE) |
 		     (chan_type  << B_CHAN_TYPE)  |
-		     (subchannel << B_SUBCHANNEL) |
+		     (chan_sub   << B_SUBCHANNEL) |
 		     (sync_tch   << B_SYNC_TCH_UL) |
 		     (sync_tch   << B_SYNC_TCH_DL) |
 		     (tch_loop   << B_TCH_LOOP);
 
-	/* TODO (used for ciphering and TCH traffic) */
+	/* used for ciphering and TCH traffic */
 
 	/* d_fn
 	   ----
-	     bit [0..7]  -> b_fn_report
-	     bit [8..15] -> b_fn_sid */
-	dsp_api.db_w->d_fn         = fn;     /* write both Fn_sid, Fn_report. */
-	dsp_api.db_w->a_a5fn[0]    = 0;      /* cyphering FN part 1 (TODO) */
-	dsp_api.db_w->a_a5fn[1]    = 0;      /* cyphering FN part 2 (TODO) */
-	dsp_api.db_w->d_ctrl_tch   = d_ctrl_tch;   /* Channel config. */
+	     bit [0..7]  -> b_fn_report = (fn - (tn * 13) + 104) % 104)
+	     bit [8..15] -> b_fn_sid    = (fn % 104) */
+
+	fn = ((next_time->fn - (tn * 13) + 104) % 104) |
+	     ((next_time->fn % 104) << 8);
+
+	/* a_a5fn
+	   ------
+	     byte[0] bit [0..4]  -> T2
+	     byte[0] bit [5..10] -> T3
+	     byte[1] bit [0..10] -> T1 */
+
+	a5fn0 = ((uint16_t)next_time->t3 << 5) |
+	         (uint16_t)next_time->t2;
+	a5fn1 =  (uint16_t)next_time->t1;
+
+	dsp_api.db_w->d_fn        = fn;         /* Fn_sid & Fn_report  */
+	dsp_api.db_w->a_a5fn[0]   = a5fn0;      /* cyphering FN part 1 */
+	dsp_api.db_w->a_a5fn[1]   = a5fn1;      /* cyphering FN part 2 */
+	dsp_api.db_w->d_ctrl_tch  = d_ctrl_tch; /* Channel config.     */
 }
 
 #define SC_CHKSUM_VER     (BASE_API_W_PAGE_0 + (2 * (0x08DB - 0x800)))

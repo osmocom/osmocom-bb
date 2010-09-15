@@ -5,6 +5,8 @@
 
 #define CAL_DSP_TGT_BB_LVL	80
 
+struct gsm_time;
+
 struct dsp_api {
 	T_NDB_MCU_DSP *ndb;
 	T_DB_DSP_TO_MCU *db_r;
@@ -25,8 +27,9 @@ void dsp_checksum_task(void);
 void dsp_api_memset(uint16_t *ptr, int octets);
 void dsp_load_afc_dac(uint16_t afc);
 void dsp_load_apc_dac(uint16_t apc);
-void dsp_load_tch_param(uint16_t fn, uint8_t chan_mode, uint8_t chan_type,
-			uint8_t subchannel, uint8_t tch_loop, uint8_t sync_tch);
+void dsp_load_tch_param(struct gsm_time *next_time,
+                        uint8_t chan_mode, uint8_t chan_type, uint8_t chan_sub,
+                        uint8_t tch_loop, uint8_t sync_tch, uint8_t tn);
 void dsp_end_scenario(void);
 
 void dsp_load_rx_task(uint16_t task, uint8_t burst_id, uint8_t tsc);
