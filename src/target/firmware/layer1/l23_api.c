@@ -233,8 +233,12 @@ static void l1ctl_rx_crypto_req(struct msgb *msg)
 
 	printd("L1CTL_CRYPTO_REQ (algo=A5/%u, len=%u)\n", cr->algo, key_len);
 
-	// for dieter: (cr->alog, cr->key, key_len);
+	if (cr->algo && key_len != 8) {
+		printd("L1CTL_CRYPTO_REQ -> Invalid key\n");
+		return;
+	}
 
+	dsp_load_ciph_param(cr->algo, cr->key);
 }
 
 /* receive a L1CTL_DM_REL_REQ from L23 */
@@ -248,6 +252,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	l1s.dedicated.type = GSM_DCHAN_NONE;
 	l1a_txq_msgb_flush(&l1s.tx_queue[L1S_CHAN_MAIN]);
 	l1a_txq_msgb_flush(&l1s.tx_queue[L1S_CHAN_SACCH]);
+	dsp_load_ciph_param(0, NULL);
 }
 
 /* receive a L1CTL_RACH_REQ from L23 */
