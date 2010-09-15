@@ -361,6 +361,9 @@ void l1s_reset(void)
 	mframe_reset();
 	tdma_sched_reset();
 	l1s_dsp_abort();
+
+	/* Cipher off */
+	dsp_load_ciph_param(0, NULL);
 }
 
 void l1s_init(void)

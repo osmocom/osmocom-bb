@@ -30,6 +30,7 @@ void dsp_load_apc_dac(uint16_t apc);
 void dsp_load_tch_param(struct gsm_time *next_time,
                         uint8_t chan_mode, uint8_t chan_type, uint8_t chan_sub,
                         uint8_t tch_loop, uint8_t sync_tch, uint8_t tn);
+void dsp_load_ciph_param(int mode, uint8_t *key);
 void dsp_end_scenario(void);
 
 void dsp_load_rx_task(uint16_t task, uint8_t burst_id, uint8_t tsc);

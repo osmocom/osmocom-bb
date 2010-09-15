@@ -370,6 +370,22 @@ void dsp_load_tch_param(struct gsm_time *next_time,
 	dsp_api.db_w->d_ctrl_tch  = d_ctrl_tch; /* Channel config.     */
 }
 
+void dsp_load_ciph_param(int mode, uint8_t *key)
+{
+	dsp_api.ndb->d_a5mode = mode;
+
+	if (!mode || !key)
+		return;
+
+		/* key is expected in the same format as in RSL
+		 * Encryption information IE. So we need to load the
+		 * bytes backward in A5 unit */
+	dsp_api.ndb->a_kc[0] = (uint16_t)key[7] | ((uint16_t)key[6] << 8);
+	dsp_api.ndb->a_kc[1] = (uint16_t)key[5] | ((uint16_t)key[4] << 8);
+	dsp_api.ndb->a_kc[2] = (uint16_t)key[3] | ((uint16_t)key[2] << 8);
+	dsp_api.ndb->a_kc[3] = (uint16_t)key[1] | ((uint16_t)key[0] << 8);
+}
+
 #define SC_CHKSUM_VER     (BASE_API_W_PAGE_0 + (2 * (0x08DB - 0x800)))
 static void dsp_dump_csum(void)
 {
