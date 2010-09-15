@@ -1899,6 +1899,7 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	/* Replace message in the send-buffer (reconnect) */
 	if (dl->send_buffer)
 		msgb_free(dl->send_buffer);
+	dl->send_out = 0;
 	dl->send_buffer = msg;
 
 	/* Discard partly received L3 message */
