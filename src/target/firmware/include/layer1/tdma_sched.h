@@ -11,7 +11,7 @@
  * index reaches that particular bucket. */
 
 #define TDMASCHED_NUM_FRAMES	25
-#define TDMASCHED_NUM_CB	5
+#define TDMASCHED_NUM_CB	8
 
 #define TDMA_IFLG_TPU		(1<<0)
 #define TDMA_IFLG_DSP		(1<<1)
