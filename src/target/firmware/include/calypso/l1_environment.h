@@ -363,3 +363,23 @@ typedef signed short API_SIGNED;
 #define B_TSQ                    0
 #define B_BCCH_FREQ_IND          3
 #define B_TASK_ABORT            15  // Abort RF tasks for DSP.
+
+/* Channel type definitions for DEDICATED mode */
+#define INVALID_CHANNEL    0
+#define TCH_F              1
+#define TCH_H              2
+#define SDCCH_4            3
+#define SDCCH_8            4
+
+/* Channel mode definitions for DEDICATED mode */
+#define SIG_ONLY_MODE      0    // signalling only
+#define TCH_FS_MODE        1    // speech full rate
+#define TCH_HS_MODE        2    // speech half rate
+#define TCH_96_MODE        3    // data 9,6 kb/s
+#define TCH_48F_MODE       4    // data 4,8 kb/s full rate
+#define TCH_48H_MODE       5    // data 4,8 kb/s half rate
+#define TCH_24F_MODE       6    // data 2,4 kb/s full rate
+#define TCH_24H_MODE       7    // data 2,4 kb/s half rate
+#define TCH_EFR_MODE       8    // enhanced full rate
+#define TCH_144_MODE       9    // data 14,4 kb/s half rate
+
