@@ -297,7 +297,7 @@ int gsm48_encode_classmark1(struct gsm48_classmark1 *cm, uint8_t rev_lev,
 	memset(cm, 0, sizeof(*cm));
 	cm->rev_lev = rev_lev;
 	cm->es_ind = es_ind;
-	cm->a5_1 = a5_1;
+	cm->a5_1 = !a5_1;
 	cm->pwr_lev = pwr_lev;
 
 	return 0;

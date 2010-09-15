@@ -848,12 +848,12 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	/* cipher mode response */
 	cr = cm->cr;
 
-	if (sc)
-		LOGP(DRR, LOGL_INFO, "CIPHERING MODE COMMAND (sc=%u, cr=%u)",
+	if (!sc)
+		LOGP(DRR, LOGL_INFO, "CIPHERING MODE COMMAND (sc=%u, cr=%u)\n",
 			sc, cr);
 	else
 		LOGP(DRR, LOGL_INFO, "CIPHERING MODE COMMAND (sc=%u, "
-			"algo=A5/%d cr=%u)", sc, alg_id + 1, cr);
+			"algo=A5/%d cr=%u)\n", sc, alg_id + 1, cr);
 
 	/* 3.4.7.2 */
 	if (rr->cipher_on && sc) {
@@ -863,15 +863,17 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* check if we actually support this cipher */
-	if ((alg_id == GSM_CIPHER_A5_1 && !sup->a5_1)
-	 || (alg_id == GSM_CIPHER_A5_2 && !sup->a5_2)
-	 || (alg_id == GSM_CIPHER_A5_3 && !sup->a5_3)
-	 || (alg_id == GSM_CIPHER_A5_4 && !sup->a5_4)
-	 || (alg_id == GSM_CIPHER_A5_5 && !sup->a5_5)
-	 || (alg_id == GSM_CIPHER_A5_6 && !sup->a5_6)
-	 || (alg_id == GSM_CIPHER_A5_7 && !sup->a5_7))
+	if (sc && ((alg_id == GSM_CIPHER_A5_1 && !sup->a5_1)
+		|| (alg_id == GSM_CIPHER_A5_2 && !sup->a5_2)
+		|| (alg_id == GSM_CIPHER_A5_3 && !sup->a5_3)
+		|| (alg_id == GSM_CIPHER_A5_4 && !sup->a5_4)
+		|| (alg_id == GSM_CIPHER_A5_5 && !sup->a5_5)
+		|| (alg_id == GSM_CIPHER_A5_6 && !sup->a5_6)
+		|| (alg_id == GSM_CIPHER_A5_7 && !sup->a5_7))) {
+		LOGP(DRR, LOGL_NOTICE, "algo not supported\n");
 		return gsm48_rr_tx_rr_status(ms,
 			GSM48_RR_CAUSE_CHAN_MODE_UNACCT);
+	}
 
 	/* check if we have no key */
 	if (sc && subscr->key_seq == 7) {
@@ -1018,7 +1020,7 @@ int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm)
 		cm->pwr_lev = sup->pwr_lev_1800;
 	else
 		cm->pwr_lev = sup->pwr_lev_900;
-	cm->a5_1 = sup->a5_1;
+	cm->a5_1 = !sup->a5_1;
 	cm->es_ind = sup->es_ind;
 	cm->rev_lev = sup->rev_lev;
 	cm->fc = (sup->r_gsm || sup->e_gsm);
