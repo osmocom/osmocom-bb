@@ -165,7 +165,7 @@ static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 		      __unused uint16_t p3)
 {
 	uint16_t arfcn;
-	uint8_t tsc;
+	uint8_t tsc, tn;
 
 	putchart('N');
 
@@ -183,7 +183,11 @@ static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 		rxnb.di = (struct l1ctl_data_ind *) msgb_put(rxnb.msg, sizeof(*rxnb.di));
 	}
 
-	rfch_get_params(&l1s.next_time, &arfcn, &tsc, NULL);
+	rfch_get_params(&l1s.next_time, &arfcn, &tsc, &tn);
+
+	/* DDL_DSP_TASK, four normal bursts */
+	dsp_load_tch_param(&l1s.next_time,
+	                   SIG_ONLY_MODE, SDCCH_4, 0, 0, 0, tn);
 
 	dsp_load_rx_task(ALLC_DSP_TASK, burst_id, tsc);
 
