@@ -255,7 +255,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	dsp_load_ciph_param(0, NULL);
 }
 
-/* receive a L1CTL_RACH_REQ from L23 */
+/* receive a L1CTL_PARAM_REQ from L23 */
 static void l1ctl_rx_param_req(struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
