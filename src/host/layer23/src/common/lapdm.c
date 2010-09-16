@@ -1652,6 +1652,8 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	/* Transmit-buffer carries exactly one segment */
 	memcpy(dl->tx_hist[0], msg->l2h, 3 + length);
 	dl->tx_length[0] = 3 + length;
+	/* set Vs to 0, because it is used as index when resending SAMB */
+	dl->V_send = 0;
 	
 	/* Set states */
 	dl->own_busy = dl->peer_busy = 0;
@@ -1917,6 +1919,8 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	/* Transmit-buffer carries exactly one segment */
 	memcpy(dl->tx_hist[0], msg->l2h, 3);
 	dl->tx_length[0] = 3;
+	/* set Vs to 0, because it is used as index when resending SAMB */
+	dl->V_send = 0;
 
 	/* Set states */
 	dl->own_busy = dl->peer_busy = 0;
