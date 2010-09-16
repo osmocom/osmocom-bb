@@ -58,8 +58,8 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->lcsva = 0; /* no */
 	sup->loc_serv = 0; /* no */
 	/* codec supprot */
-	sup->a5_1 = 0; /* currently not */
-	sup->a5_2 = 0;
+	sup->a5_1 = 1;
+	sup->a5_2 = 1;
 	sup->a5_3 = 0;
 	sup->a5_4 = 0;
 	sup->a5_5 = 0;
