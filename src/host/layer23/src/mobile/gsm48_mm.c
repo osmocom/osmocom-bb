@@ -3117,6 +3117,13 @@ static int gsm48_mm_conn_go_dedic(struct osmocom_ms *ms)
 static int gsm48_mm_sync_ind_wait(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
+
+	if (rrh->cause != RR_SYNC_CAUSE_CIPHERING) {
+		LOGP(DMM, LOGL_NOTICE, "Ignore sync indication, not waiting "
+			"for CM service\n");
+		return -EINVAL;
+	}
 
 	/* stop MM connection timer */
 	stop_mm_t3230(mm);

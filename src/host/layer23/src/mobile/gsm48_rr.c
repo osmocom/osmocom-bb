@@ -800,6 +800,7 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
+	struct gsm48_rr_hdr *nrrh;
 	uint8_t buf[11], *tlv;
 
 	LOGP(DRR, LOGL_INFO, "CIPHERING MODE COMPLETE (cr %d)\n", cr);
@@ -821,7 +822,15 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 		memcpy(tlv, buf, 2 + buf[1]);
 	}
 
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+	gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+
+	/* send RR_SYNC_IND(ciphering) */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_SYNC_IND);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->cause = RR_SYNC_CAUSE_CIPHERING;
+	return gsm48_rr_upmsg(ms, nmsg);
 }
 
 /* receive ciphering mode command */
