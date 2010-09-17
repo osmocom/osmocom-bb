@@ -626,8 +626,8 @@ struct gsm48_chan_rel {
 struct gsm48_cip_mode_cmd {
 	uint8_t sc:1,
 		 alg_id:3,
-		 spare:3,
-		 cr:1;
+		 cr:1,
+		 spare:3;
 } __attribute__((packed));
 
 /* Section 9.1.11 */
