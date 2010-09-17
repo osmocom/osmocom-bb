@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#include <osmocore/utils.h>
 #include <osmocore/gsm48.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
@@ -680,6 +681,16 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, " %sclir%s", (set->clir) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
+	switch (set->test_ki_type) {
+	case GSM_SIM_KEY_XOR:
+		vty_out(vty, "  ki xor %s%s", hexdump(set->test_ki, 12),
+			VTY_NEWLINE);
+		break;
+	case GSM_SIM_KEY_COMP128:
+		vty_out(vty, "  ki comp128 %s%s", hexdump(set->test_ki, 16),
+			VTY_NEWLINE);
+		break;
+	}
 	vty_out(vty, "  %sbarred-access%s", (set->test_barr) ? "" : "no ",
 		VTY_NEWLINE);
 	if (set->test_rplmn_valid)
@@ -1041,6 +1052,64 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 	return CMD_SUCCESS;
 }
 
+#define HEX_STR "\nByte as two digits hexadecimal"
+DEFUN(cfg_test_ki_xor, cfg_test_ki_xor_cmd, "ki xor HEX HEX HEX HEX HEX HEX "
+	"HEX HEX HEX HEX HEX HEX",
+	"Set Key (Kc) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
+	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR)
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	uint8_t ki[12];
+	const char *p;
+	int i;
+
+	for (i = 0; i < 12; i++) {
+		p = argv[i];
+		if (!strncmp(p, "0x", 2))
+			p += 2;
+		if (strlen(p) != 2) {
+			vty_out(vty, "Expecting two digits hex value (with or "
+				"without 0x in front)%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		ki[i] = strtoul(p, NULL, 16);
+	}
+
+	set->test_ki_type = GSM_SIM_KEY_XOR;
+	memcpy(set->test_ki, ki, 12);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_ki_comp128, cfg_test_ki_comp128_cmd, "ki comp128 HEX HEX HEX "
+	"HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX",
+	"Set Key (Kc) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
+	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR
+	HEX_STR HEX_STR HEX_STR HEX_STR)
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	uint8_t ki[16];
+	const char *p;
+	int i;
+
+	for (i = 0; i < 16; i++) {
+		p = argv[i];
+		if (!strncmp(p, "0x", 2))
+			p += 2;
+		if (strlen(p) != 2) {
+			vty_out(vty, "Expecting two digits hex value (with or "
+				"without 0x in front)%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		ki[i] = strtoul(p, NULL, 16);
+	}
+
+	set->test_ki_type = GSM_SIM_KEY_COMP128;
+	memcpy(set->test_ki, ki, 16);
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access",
 	"Allow access to barred cells")
 {
@@ -1234,6 +1303,8 @@ int ms_vty_init(void)
 	install_element(TESTSIM_NODE, &ournode_exit_cmd);
 	install_element(TESTSIM_NODE, &ournode_end_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_imsi_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_ki_xor_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_ki_comp128_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_barr_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_no_barr_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_no_rplmn_cmd);

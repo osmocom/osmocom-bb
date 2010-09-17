@@ -24,6 +24,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <osmocore/talloc.h>
+#include <osmocore/comp128.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
@@ -76,6 +77,16 @@ static char *sim_decode_bcd(uint8_t *data, uint8_t length)
 	return result;
 }
 
+static void xor96(uint8_t *ki, uint8_t *rand, uint8_t *sres, uint8_t *kc)
+{
+        int i;
+
+        for (i=0; i < 4; i++)
+                sres[i] = rand[i] ^ ki[i];
+        for (i=0; i < 8; i++)
+                kc[i] = rand[i] ^ ki[i+4];
+}
+
 /*
  * init/exit
  */
@@ -102,7 +113,6 @@ int gsm_subscr_init(struct osmocom_ms *ms)
 	subscr->sim_handle_query = sim_open(ms, subscr_sim_query_cb);
 	subscr->sim_handle_update = sim_open(ms, subscr_sim_update_cb);
 	subscr->sim_handle_key = sim_open(ms, subscr_sim_key_cb);
-	subscr->sim_state = SUBSCR_SIM_NULL;
 
 	return 0;
 }
@@ -776,8 +786,9 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 	struct sim_hdr *nsh;
 
 	/* not a SIM */
-	if (subscr->sim_type != GSM_SIM_TYPE_READER || !subscr->sim_valid
-	 || no_sim) {
+	if ((subscr->sim_type != GSM_SIM_TYPE_READER
+	  && subscr->sim_type != GSM_SIM_TYPE_TEST)
+	 || !subscr->sim_valid || no_sim) {
 		struct gsm48_mm_event *nmme;
 
 		LOGP(DMM, LOGL_INFO, "Sending dummy authentication response\n");
@@ -789,6 +800,30 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 		nmme->sres[1] = 0x34;
 		nmme->sres[2] = 0x56;
 		nmme->sres[3] = 0x78;
+		gsm48_mmevent_msg(ms, nmsg);
+
+		return 0;
+	}
+
+	/* test SIM */
+	if (subscr->sim_type == GSM_SIM_TYPE_TEST) {
+		struct gsm48_mm_event *nmme;
+		uint8_t sres[4];
+		struct gsm_settings *set = &ms->settings;
+
+		if (set->test_ki_type == GSM_SIM_KEY_COMP128)
+        		comp128(set->test_ki, rand, sres, subscr->key);
+		else
+			xor96(set->test_ki, rand, sres, subscr->key);
+		/* store sequence */
+		subscr->key_seq = key_seq;
+
+		LOGP(DMM, LOGL_INFO, "Sending authentication response\n");
+		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
+		if (!nmsg)
+			return -ENOMEM;
+		nmme = (struct gsm48_mm_event *) nmsg->data;
+		memcpy(nmme->sres, sres, 4);
 		gsm48_mmevent_msg(ms, nmsg);
 
 		return 0;
@@ -864,10 +899,7 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg)
 	if (!nmsg)
 		return;
 	nmme = (struct gsm48_mm_event *) nmsg->data;
-	nmme->sres[0] = 0x12;
-	nmme->sres[1] = 0x34;
-	nmme->sres[2] = 0x56;
-	nmme->sres[3] = 0x78;
+	memcpy(nmme->sres, payload, 4);
 	gsm48_mmevent_msg(ms, nmsg);
 
 	msgb_free(msg);

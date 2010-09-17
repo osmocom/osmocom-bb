@@ -1,6 +1,12 @@
 #ifndef _settings_h
 #define _settings_h
 
+/* type of test SIM key */
+enum {
+	GSM_SIM_KEY_XOR = 0,
+	GSM_SIM_KEY_COMP128
+};
+
 struct gsm_settings {
 	/* IMEI */
 	char			imei[16];
@@ -16,6 +22,8 @@ struct gsm_settings {
 
 	/* test card simulator settings */
 	char 			test_imsi[20]; /* just in case... */
+	uint8_t			test_ki_type;
+	uint8_t			test_ki[16]; /* 128 bit max */
 	uint8_t			test_barr;
 	uint8_t			test_rplmn_valid;
 	uint16_t		test_rplmn_mcc, test_rplmn_mnc;

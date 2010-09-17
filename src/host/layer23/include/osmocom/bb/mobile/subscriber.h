@@ -26,11 +26,6 @@ enum {
 	GSM_SIM_TYPE_TEST
 };
 
-/* state of reading SIM */
-enum {
-	SUBSCR_SIM_NULL = 0,
-};
-
 struct gsm_subscriber {
 	struct osmocom_ms	*ms;
 
