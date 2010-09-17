@@ -1,0 +1,5 @@
+usr/lib
+usr/include
+usr/include/osmocore
+usr/include/osmocom
+usr/include/osmocom/vty

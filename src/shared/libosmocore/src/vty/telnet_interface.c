@@ -31,6 +31,7 @@
 
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/buffer.h>
+#include <osmocom/vty/command.h>
 
 /* per connection data */
 LLIST_HEAD(active_connections);
@@ -89,16 +90,18 @@ int telnet_init(void *tall_ctx, void *priv, int port)
 	return 0;
 }
 
-extern const char *openbsc_copyright;
+extern struct host host;
 
 static void print_welcome(int fd)
 {
 	int ret;
 	static char *msg =
-		"Welcome to the OpenBSC Control interface\n";
+		"Welcome to the OpenBSC Control interface\r\n";
 
 	ret = write(fd, msg, strlen(msg));
-	ret = write(fd, openbsc_copyright, strlen(openbsc_copyright));
+
+	if (host.app_info->copyright)
+		ret = write(fd, host.app_info->copyright, strlen(host.app_info->copyright));
 }
 
 int telnet_close_client(struct bsc_fd *fd)

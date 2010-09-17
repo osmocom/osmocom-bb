@@ -19,6 +19,8 @@
  */
 
 #include <fcntl.h>
+#include <stdio.h>
+
 #include <osmocore/select.h>
 #include <osmocore/linuxlist.h>
 #include <osmocore/timer.h>
@@ -47,6 +49,16 @@ int bsc_register_fd(struct bsc_fd *fd)
 	/* Register FD */
 	if (fd->fd > maxfd)
 		maxfd = fd->fd;
+
+#ifdef BSC_FD_CHECK
+	struct bsc_fd *entry;
+	llist_for_each_entry(entry, &bsc_fds, list) {
+		if (entry == fd) {
+			fprintf(stderr, "Adding a bsc_fd that is already in the list.\n");
+			return 0;
+		}
+	}
+#endif
 
 	llist_add_tail(&fd->list, &bsc_fds);
 

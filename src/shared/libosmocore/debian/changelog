@@ -1,0 +1,5 @@
+libosmocore (0.1.17-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Harald Welte <laforge@gnumonks.org>  Tue, 24 Aug 2010 10:55:04 +0200
