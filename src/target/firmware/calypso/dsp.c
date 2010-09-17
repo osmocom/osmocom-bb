@@ -200,6 +200,80 @@ void dsp_api_memset(uint16_t *ptr, int octets)
 		*ptr++ = 0;
 }
 
+static void dsp_audio_init(void)
+{
+	T_NDB_MCU_DSP *ndb = dsp_api.ndb;
+	uint8_t i;
+
+	ndb->d_vbctrl1  = ABB_VAL_T(VBCTRL1, 0x00B); 	/* VULSWITCH=0, VDLAUX=1, VDLEAR=1 */
+	ndb->d_vbctrl2	= ABB_VAL_T(VBCTRL2, 0x000); 	/* MICBIASEL=0, VDLHSO=0, MICAUX=0 */
+
+	/*
+	 * TODO: the following two settings are used to control
+	 * the volume and uplink/downlink/sidetone gain. Make them
+	 * adjustable by the user.
+	 */
+
+	ndb->d_vbuctrl	= ABB_VAL_T(VBUCTRL, 0x009);	/* Uplink gain amp 3dB, Sidetone gain -5dB */
+	ndb->d_vbdctrl	= ABB_VAL_T(VBDCTRL, 0x066);	/* Downlink gain amp 0dB, Volume control -6 dB */
+
+	ndb->d_toneskb_init = 0;			/* MCU/DSP audio task com. register */
+	ndb->d_toneskb_status = 0;			/* MCU/DSP audio task com. register */
+
+	ndb->d_shiftul = 0x100;
+	ndb->d_shiftdl = 0x100;
+
+	ndb->d_melo_osc_used    = 0;
+	ndb->d_melo_osc_active  = 0;
+
+#define SC_END_OSCILLATOR_MASK        0xfffe
+
+	ndb->a_melo_note0[0] = SC_END_OSCILLATOR_MASK;
+	ndb->a_melo_note1[0] = SC_END_OSCILLATOR_MASK;
+	ndb->a_melo_note2[0] = SC_END_OSCILLATOR_MASK;
+	ndb->a_melo_note3[0] = SC_END_OSCILLATOR_MASK;
+	ndb->a_melo_note4[0] = SC_END_OSCILLATOR_MASK;
+	ndb->a_melo_note5[0] = SC_END_OSCILLATOR_MASK;
+	ndb->a_melo_note6[0] = SC_END_OSCILLATOR_MASK;
+	ndb->a_melo_note7[0] = SC_END_OSCILLATOR_MASK;
+
+#define MAX_FIR_COEF  31
+
+	/* Initialize the FIR as an all band pass */
+	dsp_api.param->a_fir31_downlink[0] = 0x4000;
+	dsp_api.param->a_fir31_uplink[0]   = 0x4000;
+	for (i = 1; i < MAX_FIR_COEF; i++)
+	{
+		dsp_api.param->a_fir31_downlink[i]  = 0;
+		dsp_api.param->a_fir31_uplink[i]    = 0;
+	}
+
+#define B_GSM_ONLY	((1L <<  13) | (1L <<  11))	/* GSM normal mode */
+#define B_BT_CORDLESS	(1L <<  12)			/* Bluetooth cordless mode */
+#define B_BT_HEADSET	(1L <<  14)			/* Bluetooth headset mode */
+
+		/* Bit set by the MCU to close the loop between the audio UL and DL path. */
+		/* This features is used to find the FIR coefficient. */
+#define B_FIR_LOOP	(1L <<  1)
+
+	/* Reset the FIR loopback and the audio mode */
+	ndb->d_audio_init &= ~(B_FIR_LOOP | B_GSM_ONLY | B_BT_HEADSET | B_BT_CORDLESS);
+
+	/* Set the GSM mode  */
+	ndb->d_audio_init |= (B_GSM_ONLY);
+
+	ndb->d_aec_ctrl = 0;
+
+	/* DSP background task through pending task queue */
+	dsp_api.param->d_gsm_bgd_mgt = 0;
+
+	ndb->d_audio_compressor_ctrl = 0x0401;
+
+#define NO_MELODY_SELECTED    (0)
+
+	ndb->d_melody_selection = NO_MELODY_SELECTED;
+}
+
 static void dsp_ndb_init(void)
 {
 	T_NDB_MCU_DSP *ndb = dsp_api.ndb;
@@ -259,6 +333,9 @@ static void dsp_ndb_init(void)
 	/* MCM = 1, XRST = 0, CLKX_AUTO=1, TXM=1, NCLK_EN=1, NCLK13_EN=1,
 	 * THRESHOLD = 0, DIV_CLK = 0 (13MHz) */
 	ndb->d_spcx_rif	= 0x179;
+
+	/* Init audio related parameters */
+	dsp_audio_init();
 }
 
 static void dsp_db_init(void)
