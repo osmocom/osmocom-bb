@@ -812,7 +812,7 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 		struct gsm_settings *set = &ms->settings;
 
 		if (set->test_ki_type == GSM_SIM_KEY_COMP128)
-        		comp128(set->test_ki, rand, sres, subscr->key);
+			comp128(set->test_ki, rand, sres, subscr->key);
 		else
 			xor96(set->test_ki, rand, sres, subscr->key);
 		/* store sequence */
