@@ -63,9 +63,12 @@ int osmo_daemonize(void)
 		return rc;
 
 	/* Redirect stdio to /dev/null */
+/* since C89/C99 says stderr is a macro, we can safely do this! */
+#ifdef stderr
 	freopen("/dev/null", "r", stdin);
 	freopen("/dev/null", "w", stdout);
 	freopen("/dev/null", "w", stderr);
+#endif
 
 	return 0;
 }
