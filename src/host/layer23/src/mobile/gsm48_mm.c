@@ -3128,6 +3128,8 @@ static int gsm48_mm_sync_ind_wait(struct osmocom_ms *ms, struct msgb *msg)
 	/* stop MM connection timer */
 	stop_mm_t3230(mm);
 
+	new_mm_state(mm, GSM48_MM_ST_MM_CONN_ACTIVE, 0);
+
 	return gsm48_mm_conn_go_dedic(ms);
 }
 
