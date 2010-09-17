@@ -26,7 +26,7 @@ static T_PARAM_MCU_DSP dsp_params = {
 	/* TCH Full Speech */
 	.d_maccthresh1			= 7872,
 	.d_mldt				= -4,
-	.d_maccthresh			= 7172,
+	.d_maccthresh			= 7872,
 	.d_gu				= 5772,
 	.d_go				= 7872,
 	.d_attmax			= 53,
