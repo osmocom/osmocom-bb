@@ -2317,6 +2317,8 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 			/* store LOCI on sim */
 			gsm_subscr_write_loci(ms);
 
+			/* send TMSI REALLOCATION COMPLETE */
+			gsm48_mm_tx_tmsi_reall_cpl(ms);
 			break;
 		case GSM_MI_TYPE_IMSI:
 			LOGP(DMM, LOGL_INFO, "TMSI removed\n");
