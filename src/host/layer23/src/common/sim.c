@@ -27,6 +27,7 @@
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/l1ctl.h>
 
 extern void *l23_ctx;
 static int sim_process_job(struct osmocom_ms *ms);
@@ -146,7 +147,8 @@ void gsm_sim_reply(struct osmocom_ms *ms, uint8_t result_type, uint8_t *result,
 	uint16_t payload_len;
 	struct gsm_sim_handler *handler;
 
-	LOGP(DSIM, LOGL_INFO, "sending result to callback function\n");
+	LOGP(DSIM, LOGL_INFO, "sending result to callback function "
+		"(type=%d)\n", result_type);
 
 	/* if no handler, or no callback, just free the job */
 	sh = (struct sim_hdr *)msg->data;
@@ -181,10 +183,9 @@ void gsm_sim_reply(struct osmocom_ms *ms, uint8_t result_type, uint8_t *result,
 /* send APDU to card reader */
 static int sim_apdu_send(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 {
-	// FIXME: send apdu to layer 1
 	LOGP(DSIM, LOGL_INFO, "sending APDU (class 0x%02x, ins 0x%02x)\n",
 		data[0], data[1]);
-	printf("process stops here, because no APDU is exchanged with layer 1\n");
+	l1ctl_tx_sim_req(ms, data, length);
 	return 0;
 }
 
@@ -673,32 +674,44 @@ static int sim_process_job(struct osmocom_ms *ms)
 		// FIXME: send reset command to L1
 	}
 
-	/* check MF / DF */
-	i = 0;
-	while (sh->path[i] && sim->path[i]) {
-		if (sh->path[i] != sh->path[i])
-			break;
-		i++;
+	/* navigate to right DF */
+	switch (sh->job_type) {
+	case SIM_JOB_READ_BINARY:
+	case SIM_JOB_UPDATE_BINARY:
+	case SIM_JOB_READ_RECORD:
+	case SIM_JOB_UPDATE_RECORD:
+	case SIM_JOB_SEEK_RECORD:
+	case SIM_JOB_INCREASE:
+	case SIM_JOB_INVALIDATE:
+	case SIM_JOB_REHABILITATE:
+	case SIM_JOB_RUN_GSM_ALGO:
+		/* check MF / DF */
+		i = 0;
+		while (sh->path[i] && sim->path[i]) {
+			if (sh->path[i] != sh->path[i])
+				break;
+			i++;
+		}
+		/* if path in message is shorter or if paths are different */
+		if (sim->path[i]) {
+			LOGP(DSIM, LOGL_INFO, "go MF\n");
+			sim->job_state = SIM_JST_SELECT_MFDF;
+			/* go MF */
+			sim->path[0] = 0;
+			return gsm1111_tx_select(ms, 0x3f00);
+		}
+		/* if path in message is longer */
+		if (sh->path[i]) {
+			LOGP(DSIM, LOGL_INFO, "requested path is longer, go "
+				"child %s\n", get_df_name(sh->path[i]));
+			sim->job_state = SIM_JST_SELECT_MFDF;
+			/* select child */
+			sim->path[i] = sh->path[i];
+			sim->path[i + 1] = 0;
+			return gsm1111_tx_select(ms, sh->path[i]);
+		}
+		/* if paths are equal, continue */
 	}
-	/* if path in message is shorter or if paths are different */
-	if (sim->path[i]) {
-		LOGP(DSIM, LOGL_INFO, "wrong DF, go MF\n");
-		sim->job_state = SIM_JST_SELECT_MFDF;
-		/* go MF */
-		sim->path[0] = 0;
-		return gsm1111_tx_select(ms, 0x3f00);
-	}
-	/* if path in message is longer */
-	if (sh->path[i]) {
-		LOGP(DSIM, LOGL_INFO, "requested path is longer, go child %s\n",
-			get_df_name(sh->path[i]));
-		sim->job_state = SIM_JST_SELECT_MFDF;
-		/* select child */
-		sim->path[i] = sh->path[i];
-		sim->path[i + 1] = 0;
-		return gsm1111_tx_select(ms, sh->path[i]);
-	}
-	/* if paths are equal, continue */
 
 	/* set state and trigger SIM process */
 	switch (sh->job_type) {
@@ -711,6 +724,7 @@ static int sim_process_job(struct osmocom_ms *ms)
 	case SIM_JOB_INVALIDATE:
 	case SIM_JOB_REHABILITATE:
 		sim->job_state = SIM_JST_SELECT_EF;
+		sim->file = sh->file;
 		return gsm1111_tx_select(ms, sh->file);
 	case SIM_JOB_RUN_GSM_ALGO:
 		if (payload_len != 16) {
@@ -806,7 +820,7 @@ static int sim_process_job(struct osmocom_ms *ms)
 }
 
 /* receive SIM response */
-static int sim_apdu_receive(struct osmocom_ms *ms, struct msgb *msg)
+int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_sim *sim = &ms->sim;
 	uint8_t *payload;
@@ -815,6 +829,7 @@ static int sim_apdu_receive(struct osmocom_ms *ms, struct msgb *msg)
 	int length = msg->len, ef_len;
 	uint8_t sw1, sw2;
 	uint8_t cause;
+	uint8_t pin_cause[2];
 	struct sim_hdr *sh;
 	struct gsm1111_response_ef *ef;
 	struct gsm1111_response_mfdf *mfdf;
@@ -845,6 +860,13 @@ static int sim_apdu_receive(struct osmocom_ms *ms, struct msgb *msg)
 		length, sw1, sw2);
 
 	switch (sw1) {
+	case GSM1111_STAT_SECURITY:
+			LOGP(DSIM, LOGL_NOTICE, "SIM Security\n");
+			pin_cause[0] = SIM_CAUSE_PIN1_REQUIRED;
+			pin_cause[1] = 1; /* PIN retries left */
+			gsm_sim_reply(ms, SIM_JOB_ERROR, pin_cause, 2);
+			msgb_free(msg);
+			return 0;
 	case GSM1111_STAT_MEM_PROBLEM:
 		if (sw2 >= 0x40) {
 			LOGP(DSIM, LOGL_NOTICE, "memory of SIM failed\n");
@@ -917,23 +939,36 @@ static int sim_apdu_receive(struct osmocom_ms *ms, struct msgb *msg)
 		}
 		mfdf = (struct gsm1111_response_mfdf *)data;
 		mfdf_gsm = (struct gsm1111_response_mfdf_gsm *)(data + 13);
-		/* if MF was selected, but MF is not indicated */
-		if (ntohs(mfdf->file_id) != 0x3f00 && sim->path[0] == 0) {
-			goto sim_error;
-		}
-		/* if MF was selected, but type is not indicated */
-		if (mfdf->tof != GSM1111_TOF_MF && sim->path[0]) {
-			goto sim_error;
+		/* if MF was selected */
+		if (sim->path[0] == 0) {
+			/* if MF was selected, but MF is not indicated */
+			if (ntohs(mfdf->file_id) != 0x3f00) {
+				LOGP(DSIM, LOGL_NOTICE, "Not MF\n");
+				goto sim_error;
+			}
+			/* if MF was selected, but type is not indicated */
+			if (mfdf->tof != GSM1111_TOF_MF) {
+				LOGP(DSIM, LOGL_NOTICE, "MF %02x != %02x "
+					"%04x\n", mfdf->tof, GSM1111_TOF_MF,
+					sim->path[0]);
+				goto sim_error;
+			}
+			/* now continue */
+			msgb_free(msg);
+			return sim_process_job(ms);
 		}
 		/* if DF was selected, but this DF is not indicated */
 		i = 0;
 		while (sim->path[i + 1])
 			i++;
 		if (ntohs(mfdf->file_id) != sim->path[i]) {
+			LOGP(DSIM, LOGL_NOTICE, "Path %04x != %04x\n",
+				ntohs(mfdf->file_id), sim->path[i]);
 			goto sim_error;
 		}
 		/* if DF was selected, but type is not indicated */
 		if (mfdf->tof != GSM1111_TOF_DF) {
+			LOGP(DSIM, LOGL_NOTICE, "TOF error\n");
 			goto sim_error;
 		}
 		/* now continue */
@@ -960,6 +995,8 @@ static int sim_apdu_receive(struct osmocom_ms *ms, struct msgb *msg)
 		ef = (struct gsm1111_response_ef *)data;
 		/* if EF was selected, but type is not indicated */
 		if (ntohs(ef->file_id) != sim->file) {
+			LOGP(DSIM, LOGL_NOTICE, "EF ID %04x != %04x\n",
+				ntohs(ef->file_id), sim->file);
 			goto sim_error;
 		}
 		/* get length of file */
@@ -973,27 +1010,27 @@ static int sim_apdu_receive(struct osmocom_ms *ms, struct msgb *msg)
 			break;
 		case SIM_JOB_UPDATE_BINARY:
 			// FIXME: do chunks when greater or equal 256 bytes */
-			if (ef_len < length) {
+			if (ef_len < payload_len) {
 				LOGP(DSIM, LOGL_NOTICE, "selected file is "
 					"smaller (%d) than data to update "
-					"(%d)\n", ef_len, length);
+					"(%d)\n", ef_len, payload_len);
 				goto request_error;
 			}
-			gsm1111_tx_update_binary(ms, 0, data, length);
+			gsm1111_tx_update_binary(ms, 0, payload, payload_len);
 			break;
 		case SIM_JOB_READ_RECORD:
 			gsm1111_tx_read_record(ms, sh->rec_no, sh->rec_mode,
 				ef_len);
 			break;
 		case SIM_JOB_UPDATE_RECORD:
-			if (ef_len != length) {
+			if (ef_len != payload_len) {
 				LOGP(DSIM, LOGL_NOTICE, "selected file length "
 					"(%d) does not equal record to update "
-					"(%d)\n", ef_len, length);
+					"(%d)\n", ef_len, payload_len);
 				goto request_error;
 			}
 			gsm1111_tx_update_record(ms, sh->rec_no, sh->rec_mode,
-				data, length);
+				payload, payload_len);
 			break;
 		case SIM_JOB_SEEK_RECORD:
 			gsm1111_tx_seek(ms, sh->seek_type_mode, data, length);
@@ -1112,8 +1149,9 @@ int gsm_sim_init(struct osmocom_ms *ms)
 {
 	struct gsm_sim *sim = &ms->sim;
 
-	/* current path is root (MF), no file selected */
-	sim->path[0] = 0;
+	/* current path is undefined, forching MF */
+	sim->path[0] = 0x0bad;
+	sim->path[1] = 0;
 	sim->file = 0;
 
 	INIT_LLIST_HEAD(&sim->handlers);

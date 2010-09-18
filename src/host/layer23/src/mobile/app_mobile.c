@@ -101,19 +101,16 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 						set->test_rplmn_mnc);
 			break;
 		default:
-			/* no SIM */
-			;
+			/* no SIM, trigger PLMN selection process */
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
+			if (!nmsg)
+				return -ENOMEM;
+			gsm322_plmn_sendmsg(ms, nmsg);
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
+			if (!nmsg)
+				return -ENOMEM;
+			gsm322_cs_sendmsg(ms, nmsg);
 		}
-
-		/* start PLMN + cell selection process */
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
-		if (!nmsg)
-			return -ENOMEM;
-		gsm322_plmn_sendmsg(ms, nmsg);
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
-		if (!nmsg)
-			return -ENOMEM;
-		gsm322_cs_sendmsg(ms, nmsg);
 
 		mobile_started = 1;
 	}

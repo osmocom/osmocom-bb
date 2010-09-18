@@ -18,7 +18,7 @@ struct osmocom_ms;
 #include <osmocom/bb/mobile/gsm322.h>
 #include <osmocom/bb/mobile/gsm48_mm.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
-#include <osmocom/bb/mobile/sim.h>
+#include <osmocom/bb/common/sim.h>
 
 /* A layer2 entity */
 struct osmol2_entity {

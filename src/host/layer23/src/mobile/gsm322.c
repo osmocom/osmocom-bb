@@ -2962,8 +2962,8 @@ static int gsm322_c_switch_on(struct osmocom_ms *ms, struct msgb *msg)
 	if (!subscr->sim_valid) {
 		LOGP(DCS, LOGL_INFO, "Switch on without SIM.\n");
 		return gsm322_c_any_cell_sel(ms, msg);
-	LOGP(DCS, LOGL_INFO, "Switch on with SIM inserted.\n");
 	}
+	LOGP(DCS, LOGL_INFO, "Switch on with SIM inserted.\n");
 
 	/* stay in NULL state until PLMN is selected */
 
@@ -2990,7 +2990,7 @@ static struct plmnastatelist {
 	{ALL_STATES,
 	 GSM322_EVENT_SWITCH_OFF, gsm322_a_switch_off},
 
-	{SBIT(GSM322_A6_NO_SIM),
+	{SBIT(GSM322_A0_NULL) | SBIT(GSM322_A6_NO_SIM),
 	 GSM322_EVENT_SIM_INSERT, gsm322_a_switch_on},
 
 	{ALL_STATES,
@@ -3099,7 +3099,7 @@ static struct plmnmstatelist {
 	{ALL_STATES,
 	 GSM322_EVENT_SWITCH_OFF, gsm322_m_switch_off},
 
-	{SBIT(GSM322_M5_NO_SIM),
+	{SBIT(GSM322_M0_NULL) | SBIT(GSM322_M5_NO_SIM),
 	 GSM322_EVENT_SIM_INSERT, gsm322_m_switch_on},
 
 	{ALL_STATES,

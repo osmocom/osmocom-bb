@@ -187,7 +187,7 @@ struct sim_hdr {
 	uint8_t seek_type_mode; /* in case of seek command */
 };
 
-#define SIM_ALLOC_SIZE		128
+#define SIM_ALLOC_SIZE		512
 #define SIM_ALLOC_HEADROOM	64
 
 struct msgb *gsm_sim_msgb_alloc(uint32_t handle, uint8_t job_type);
@@ -266,6 +266,7 @@ struct gsm1111_ef_adn {
 	uint8_t ext_id;
 } __attribute__ ((packed));
 
+int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg);
 int gsm_sim_init(struct osmocom_ms *ms);
 int gsm_sim_exit(struct osmocom_ms *ms);
 int gsm_sim_job_dequeue(struct osmocom_ms *ms);

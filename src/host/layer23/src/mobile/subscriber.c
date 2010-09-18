@@ -63,12 +63,12 @@ static char *sim_decode_bcd(uint8_t *data, uint8_t length)
 
 	for (i = 0; i < (length << 1); i++) {
 		if ((i & 1))
-			c = (data[i >> 1] >> 4) + '0';
+			c = (data[i >> 1] >> 4);
 		else
-			c = (data[i >> 1] & 0xf) + '0';
+			c = (data[i >> 1] & 0xf);
 		if (c == 0xf)
 			break;
-		result[j++] = c;
+		result[j++] = c + '0';
 		if (j == sizeof(result) - 1)
 			break;
 	}
@@ -229,6 +229,7 @@ static int subscr_sim_imsi(struct osmocom_ms *ms, uint8_t *data,
 	uint8_t length)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
+	char *imsi;
 
 	/* get actual length */
 	if (length < 1)
@@ -238,14 +239,16 @@ static int subscr_sim_imsi(struct osmocom_ms *ms, uint8_t *data,
 		return -EINVAL;
 	}
 	length = data[0];
-	if ((length << 1) > GSM_IMSI_LENGTH - 1 || (length << 1) < 6) {
+
+	/* decode IMSI, skip first digit (parity) */
+	imsi = sim_decode_bcd(data + 1, length);
+	if (strlen(imsi) - 1 > GSM_IMSI_LENGTH - 1 || strlen(imsi) - 1 < 6) {
 		LOGP(DMM, LOGL_NOTICE, "IMSI invalid length = %d\n",
-			length << 1);
+			strlen(imsi) - 1);
 		return -EINVAL;
 	}
 
-	strncpy(subscr->imsi, sim_decode_bcd(data + 1, length),
-		sizeof(subscr->imsi - 1));
+	strncpy(subscr->imsi, imsi + 1, sizeof(subscr->imsi) - 1);
 
 	LOGP(DMM, LOGL_INFO, "received IMSI %s from SIM\n", subscr->imsi);
 
@@ -281,7 +284,9 @@ static int subscr_sim_loci(struct osmocom_ms *ms, uint8_t *data,
 		subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
 	}
 
-	LOGP(DMM, LOGL_INFO, "received LOCI from SIM\n");
+	LOGP(DMM, LOGL_INFO, "received LOCI from SIM (mcc=%s mnc=%s lac=0x%04x "
+		"U%d)\n", gsm_print_mcc(subscr->mcc),
+		gsm_print_mnc(subscr->mnc), subscr->lac, subscr->ustate);
 
 	return 0;
 }
@@ -386,8 +391,8 @@ static int subscr_sim_hpplmn(struct osmocom_ms *ms, uint8_t *data,
 	/* HPLMN search interval */
 	subscr->t6m_hplmn = *data; /* multiple of 6 minutes */
 
-	LOGP(DMM, LOGL_INFO, "received HPPLMN %d from SIM\n",
-		subscr->t6m_hplmn);
+	LOGP(DMM, LOGL_INFO, "received HPPLMN %d (%d mins) from SIM\n",
+		subscr->t6m_hplmn, subscr->t6m_hplmn * 6);
 
 	return 0;
 }
@@ -578,6 +583,12 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 			vty_notify(ms, "PIN is blocked\n");
 			break;
 		default:
+			if (!subscr_sim_files[subscr->sim_file_index].
+								mandatory) {
+				LOGP(DMM, LOGL_NOTICE, "SIM reading failed, "
+					"ignoring!\n");
+				goto ignore;
+			}
 			LOGP(DMM, LOGL_NOTICE, "SIM reading failed\n");
 
 			vty_notify(ms, NULL);
@@ -604,6 +615,7 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 		}
 	}
 
+ignore:
 	msgb_free(msg);
 
 	/* trigger next file */

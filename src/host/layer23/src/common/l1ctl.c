@@ -157,6 +157,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	meas->rxlev += dl->rx_level;
 
 	if (dl->num_biterr) {
+printf("Dropping frame with %u bit errors\n", dl->num_biterr);
 		LOGP(DL1C, LOGL_NOTICE, "Dropping frame with %u bit errors\n",
 			dl->num_biterr);
 		return 0;
@@ -521,6 +522,38 @@ int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len)
 	return osmo_send_l1(ms, msg);
 }
 
+int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
+{
+	struct msgb *msg;
+	uint8_t *dat;
+
+	msg = osmo_l1_alloc(L1CTL_SIM_REQ);
+	if (!msg)
+		return -1;
+
+	dat = msgb_put(msg, length);
+	memcpy(dat, data, length);
+
+	return osmo_send_l1(ms, msg);
+}
+
+/* just forward the SIM response to the SIM handler */
+static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
+{
+	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
+	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
+	
+	printf("SIM %s\n", hexdump(data, len));
+	
+	/* pull the L1 header from the msgb */
+	msgb_pull(msg, sizeof(struct l1ctl_hdr));
+	msg->l1h = NULL;
+
+	sim_apdu_resp(ms, msg);
+	
+	return 0;
+}
+
 /* Transmit L1CTL_PM_REQ */
 int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 			  uint16_t arfcn_to)
@@ -656,6 +689,9 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	case L1CTL_CCCH_MODE_CONF:
 		rc = rx_l1_ccch_mode_conf(ms, msg);
 		msgb_free(msg);
+		break;
+	case L1CTL_SIM_CONF:
+		rc = rx_l1_sim_conf(ms, msg);
 		break;
 	default:
 		fprintf(stderr, "Unknown MSG: %u\n", l1h->msg_type);

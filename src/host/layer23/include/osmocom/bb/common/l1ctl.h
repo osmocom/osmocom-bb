@@ -56,4 +56,6 @@ int l1ctl_tx_reset_req(struct osmocom_ms *ms, uint8_t type);
 int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 			  uint16_t arfcm_to);
 
+int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length);
+
 #endif

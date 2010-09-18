@@ -47,6 +47,8 @@ enum {
 	L1CTL_PARAM_REQ,
 	L1CTL_DM_FREQ_REQ,
 	L1CTL_CRYPTO_REQ,
+	L1CTL_SIM_REQ,
+	L1CTL_SIM_CONF,
 };
 
 enum ccch_mode {
