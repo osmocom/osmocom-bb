@@ -1103,22 +1103,27 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 	}
 
 	print(priv, " IMSI: %s\n", subscr->imsi);
+	if (subscr->iccid[0])
+		print(priv, " ICCID: %s\n", subscr->iccid);
+	if (subscr->sim_spn[0])
+		print(priv, " Service Provider Name: %s\n", subscr->sim_spn);
 	if (subscr->msisdn[0])
 		print(priv, " MSISDN: %s\n", subscr->msisdn);
 	print(priv, " Status: %s  IMSI %s", subscr_ustate_names[subscr->ustate],
 		(subscr->imsi_attached) ? "attached" : "detached");
 	if (subscr->tmsi != 0xffffffff)
-		print(priv, "  TSMI  %08x", subscr->tmsi);
-	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe)
-		print(priv, "  LAI: MCC %s  MNC %s  LAC 0x%04x  (%s, %s)\n",
-			gsm_print_mcc(subscr->mcc),
+		print(priv, "  TSMI 0x%08x", subscr->tmsi);
+	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
+		print(priv, "\n");
+		print(priv, "         LAI: MCC %s  MNC %s  LAC 0x%04x  "
+			"(%s, %s)\n", gsm_print_mcc(subscr->mcc),
 			gsm_print_mnc(subscr->mnc), subscr->lac,
 			gsm_get_mcc(subscr->mcc),
 			gsm_get_mnc(subscr->mcc, subscr->mnc));
-	else
+	} else
 		print(priv, "  LAI: invalid\n");
 	if (subscr->key_seq != 7) {
-		print(priv, " Key: sequence %d ");
+		print(priv, " Key: sequence %d ", subscr->key_seq);
 		for (i = 0; i < sizeof(subscr->key); i++)
 			print(priv, " %02x", subscr->key[i]);
 		print(priv, "\n");
@@ -1141,20 +1146,23 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		print(priv, "        MCC    |MNC\n");
 		print(priv, "        -------+-------\n");
 		llist_for_each_entry(plmn_list, &subscr->plmn_list, entry)
-			print(priv, "        %s    |%s\n",
+			print(priv, "        %s    |%s        (%s, %s)\n",
 			gsm_print_mcc(plmn_list->mcc),
-			gsm_print_mnc(plmn_list->mnc));
+			gsm_print_mnc(plmn_list->mnc),
+			gsm_get_mcc(plmn_list->mcc),
+			gsm_get_mnc(plmn_list->mcc, plmn_list->mnc));
 	}
 	if (!llist_empty(&subscr->plmn_na)) {
 		print(priv, " List of forbidden PLMNs:\n");
 		print(priv, "        MCC    |MNC    |cause\n");
 		print(priv, "        -------+-------+-------\n");
 		llist_for_each_entry(plmn_na, &subscr->plmn_na, entry)
-			print(priv, "        %s    |%s%s    |#%d\n",
-				gsm_print_mcc(plmn_na->mcc),
+			print(priv, "        %s    |%s%s    |#%d        "
+				"(%s, %s)\n", gsm_print_mcc(plmn_na->mcc),
 				gsm_print_mnc(plmn_na->mnc),
 				((plmn_na->mnc & 0x00f) == 0x00f) ? " ":"",
-				plmn_na->cause);
+				plmn_na->cause, gsm_get_mcc(plmn_na->mcc),
+				gsm_get_mnc(plmn_na->mcc, plmn_na->mnc));
 	}
 }
 
