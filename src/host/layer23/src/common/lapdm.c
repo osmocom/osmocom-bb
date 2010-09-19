@@ -298,13 +298,6 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 
 	/* send the frame now */
 	le->tx_pending = 1;
-#if 0
-printf("-> tx chan_nr 0x%x link_id 0x%x len %d data", chan_nr, link_id, msgb_l2len(msg));
-int i;
-for (i = 0; i < msgb_l2len(msg); i++)
-	printf(" %02x", msg->l2h[i]);
-printf("\n");
-#endif
 	lapdm_pad_msgb(msg, n201);
 	return l1ctl_tx_data_req(ms, msg, chan_nr, link_id);
 }
@@ -323,9 +316,6 @@ int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 	/* we may send again */
 	le->tx_pending = 0;
 
-#if 0
-printf("-> tx confirm\n");
-#endif
 	/* free confirm message */
 	msgb_free(msg);
 
@@ -355,12 +345,6 @@ printf("-> tx confirm\n");
 
 	/* Pad the frame, we can transmit now */
 	le->tx_pending = 1;
-#if 0
-printf("-> more tx chan_nr 0x%x link_id 0x%x len %d data", chan_nr, link_id, msgb_l2len(msg));
-for (i = 0; i < msgb_l2len(msg); i++)
-	printf(" %02x", msg->l2h[i]);
-printf("\n");
-#endif
 	lapdm_pad_msgb(msg, n201);
 	return l1ctl_tx_data_req(ms, msg, chan_nr, link_id);
 }
@@ -540,6 +524,9 @@ static void lapdm_t200_cb(void *data)
 			send_rll_simple(RSL_MT_REL_IND, &dl->mctx);
 			/* send MDL ERROR INIDCATION to L3 */
 			rsl_rll_error(RLL_CAUSE_T200_EXPIRED, &dl->mctx);
+			/* flush buffers */
+			lapdm_dl_flush_tx(dl);
+			lapdm_dl_flush_send(dl);
 			/* go back to idle state */
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			/* NOTE: we must not change any other states or buffers
@@ -561,6 +548,9 @@ static void lapdm_t200_cb(void *data)
 			send_rll_simple(RSL_MT_REL_CONF, &dl->mctx);
 			/* send MDL ERROR INIDCATION to L3 */
 			rsl_rll_error(RLL_CAUSE_T200_EXPIRED, &dl->mctx);
+			/* flush buffers */
+			lapdm_dl_flush_tx(dl);
+			lapdm_dl_flush_send(dl);
 			/* go back to idle state */
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			/* NOTE: we must not change any other states or buffers
@@ -924,7 +914,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* G.4.4 If a DISC or DM frame is received with L>0 or
 			 * with the M bit set to "1", an MDL-ERROR-INDICATION
 			 * primitive with cause "U frame with incorrect
-			 * parameters" is sent to the mobile management entity. */
+			 * parameters" is sent to the mobile management entity.
+			 */
 			LOGP(DLAPDM, LOGL_NOTICE,
 				"U frame iwth incorrect parameters ");
 			msgb_free(msg);
@@ -1039,15 +1030,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			if (length != (dl->tx_hist[0][2] >> 2)
 			 || !!memcmp(dl->tx_hist[0] + 3, msg->l2h + 3,
 			 		length)) {
-				LOGP(DLAPDM, LOGL_INFO, "UA response "
-					"mismatches\n");
-int i;
-for (i = 0; i < (dl->tx_hist[0][2] >> 2); i++)
-	printf(" %02x", dl->tx_hist[0][3+i]);
-printf(" == SENT\n");
-for (i = 0; i < length; i++)
-	printf(" %02x", msg->l2h[3+i]);
-printf(" == RECEIVED (len=%d,%d)\n", msg->l2h[2] >> 2, length);
+				LOGP(DLAPDM, LOGL_INFO, "**** UA response "
+					"mismatches ****\n");
 				rc = send_rll_simple(RSL_MT_REL_IND, mctx);
 				msgb_free(msg);
 				/* go to idle state */
@@ -1125,7 +1109,9 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_CMD
 		 && LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 		 	if (!dl->own_busy && !dl->seq_err_cond) {
-				LOGP(DLAPDM, LOGL_NOTICE, "RR frame command with polling bit set and we are not busy, so we reply with RR frame\n");
+				LOGP(DLAPDM, LOGL_NOTICE, "RR frame command "
+					"with polling bit set and we are not "
+					"busy, so we reply with RR frame\n");
 				lapdm_send_rr(mctx, 1);
 				/* NOTE: In case of sequence error condition,
 				 * the REJ frame has been transmitted when
@@ -1133,7 +1119,9 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 				 * done here
 				 */
 			} else if (dl->own_busy) {
-				LOGP(DLAPDM, LOGL_NOTICE, "RR frame command with polling bit set and we are busy, so we reply with RR frame\n");
+				LOGP(DLAPDM, LOGL_NOTICE, "RR frame command "
+					"with polling bit set and we are busy, "
+					"so we reply with RR frame\n");
 				lapdm_send_rnr(mctx, 1);
 			}
 		}
@@ -1466,13 +1454,6 @@ static int lapdm_ph_data_ind(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 {
 	int rc;
 
-#if 0
-printf("-> rx chan_nr 0x%x link_id 0x%x len %d data", mctx->chan_nr, mctx->link_id, msgb_l2len(msg));
-int i;
-for (i = 0; i < msgb_l2len(msg); i++)
-	printf(" %02x", msg->l2h[i]);
-printf("\n");
-#endif
 	/* G.2.3 EA bit set to "0" is not allowed in GSM */
 	if (!LAPDm_ADDR_EA(mctx->addr)) {
 		LOGP(DLAPDM, LOGL_NOTICE, "EA bit 0 is not allowed in GSM\n");
@@ -1713,7 +1694,8 @@ static int rslms_rx_rll_data_req(struct msgb *msg, struct lapdm_datalink *dl)
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 	if (!TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
-		LOGP(DLAPDM, LOGL_ERROR, "data request without message error\n");
+		LOGP(DLAPDM, LOGL_ERROR, "data request without message "
+			"error\n");
 		msgb_free(msg);
 		return -EINVAL;
 	}
@@ -1953,6 +1935,9 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 		bsc_del_timer(&dl->t200);
 		/* enter idle state */
 		lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
+		/* flush buffers */
+		lapdm_dl_flush_tx(dl);
+		lapdm_dl_flush_send(dl);
 		/* send notification to L3 */
 		return send_rll_simple(RSL_MT_REL_CONF, &dl->mctx);
 	}
