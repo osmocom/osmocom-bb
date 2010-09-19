@@ -892,9 +892,10 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* change to ciphering */
-	rr->cipher_on = sc, rr->cipher_type = alg_id;
-	if (sc)
-		l1ctl_tx_crypto_req(ms, alg_id + 1, subscr->key, 8);
+	rr->cipher_on = sc;
+	rr->cipher_type = alg_id;
+	if (rr->cipher_on)
+		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
 	else
 		l1ctl_tx_crypto_req(ms, 0, NULL, 0);
 
@@ -2913,6 +2914,8 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	struct gsm48_rr_cd *cd, uint16_t *ma, uint8_t ma_len)
 {
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_settings *set = &ms->settings;
 	uint8_t ch_type, ch_subch, ch_ts;
 
@@ -2926,20 +2929,21 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	/* establish */
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
 	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
-	if ((ch_type != RSL_CHAN_SDCCH8_ACCH
-	  && ch_type != RSL_CHAN_SDCCH4_ACCH
-	  && ch_type != RSL_CHAN_Bm_ACCHs) || ch_ts >= 4) {
+	if (ch_ts >= 6) {
 		printf("Channel type %d, subch %d, ts %d not supported, "
 			"exitting.\n", ch_type, ch_subch, ch_ts);
 		exit(-ENOTSUP);
 	}
+	printf("Channel type %d, subch %d, ts %d\n", ch_type, ch_subch, ch_ts);
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
 			ma, ma_len, cd->chan_nr, cd->tsc);
 	else
 		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc);
 
-#warning FIXME: channel mode, cyphering command
+	if (rr->cipher_on)
+		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
+#warning FIXME: channel mode
 
 	return 0;
 }
@@ -2948,13 +2952,18 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 static int gsm48_rr_channel_after_time(struct osmocom_ms *ms,
 	struct gsm48_rr_cd *cd, uint16_t *ma, uint8_t ma_len, uint16_t fn)
 {
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
 	if (cd->h)
 		l1ctl_tx_dm_freq_req_h1(ms, cd->maio, cd->hsn,
 			ma, ma_len, cd->tsc, fn);
 	else
 		l1ctl_tx_dm_freq_req_h0(ms, cd->arfcn, cd->tsc, fn);
 
-#warning FIXME: channel mode, cyphering command
+	if (rr->cipher_on)
+		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
+#warning FIXME: channel mode
 
 	return 0;
 }
