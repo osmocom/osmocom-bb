@@ -297,7 +297,7 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 	}
 
 	/* send the frame now */
-	le->tx_pending = 1;
+	le->tx_pending = 0; /* disabled flow control */
 	lapdm_pad_msgb(msg, n201);
 	return l1ctl_tx_data_req(ms, msg, chan_nr, link_id);
 }
