@@ -2611,7 +2611,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* decode channel description */
 	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT EXTENDED:\n");
-	cd2.chan_nr = ia->chan_desc1.chan_nr;
+	cd1.chan_nr = ia->chan_desc1.chan_nr;
 	rsl_dec_chan_nr(cd1.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ia->chan_desc1.h0.h) {
 		cd1.h = 1;
@@ -2683,7 +2683,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 
 		return gsm48_rr_dl_est(ms);
 	}
-	/* request ref 1 */
+	/* request ref 2 */
 	if (gsm48_match_ra(ms, &ia->req_ref2)) {
 		/* channel description */
 		memcpy(&rr->cd_now, &cd2, sizeof(rr->cd_now));
