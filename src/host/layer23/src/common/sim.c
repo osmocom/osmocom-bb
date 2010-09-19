@@ -411,7 +411,7 @@ static int gsm1111_tx_change_chv(struct osmocom_ms *ms, uint8_t chv_no,
 	buffer[1] = GSM1111_INST_CHANGE_CHV;
 	buffer[2] = 0x00;
 	buffer[3] = chv_no;
-	buffer[4] = 8;
+	buffer[4] = 16;
 	for (i = 0; i < 8; i++) {
 		if (i < length_old)
 			buffer[5 + i] = chv_old[i];
@@ -485,7 +485,7 @@ static int gsm1111_tx_unblock_chv(struct osmocom_ms *ms, uint8_t chv_no,
 	buffer[1] = GSM1111_INST_UNBLOCK_CHV;
 	buffer[2] = 0x00;
 	buffer[3] = (chv_no == 1) ? 0 : chv_no;
-	buffer[4] = 8;
+	buffer[4] = 16;
 	for (i = 0; i < 8; i++) {
 		if (i < length_unblk)
 			buffer[5 + i] = chv_unblk[i];
@@ -654,8 +654,8 @@ static int gsm1111_tx_terminal_response(struct osmocom_ms *ms, uint8_t *data,
 static int sim_process_job(struct osmocom_ms *ms)
 {
 	struct gsm_sim *sim = &ms->sim;
-	uint8_t *payload;
-	uint16_t payload_len;
+	uint8_t *payload, *payload2;
+	uint16_t payload_len, payload_len2;
 	struct sim_hdr *sh;
 	uint8_t cause;
 	int i;
@@ -734,82 +734,98 @@ static int sim_process_job(struct osmocom_ms *ms)
 		sim->job_state = SIM_JST_RUN_GSM_ALGO;
 		return gsm1111_tx_run_gsm_algo(ms, payload);
 	case SIM_JOB_PIN1_UNLOCK:
+		payload_len = strlen((char *)payload);
 		if (payload_len < 4 || payload_len > 8) {
 			LOGP(DSIM, LOGL_ERROR, "key not in range 4..8\n");
 			break;
 		}
 		sim->job_state = SIM_JST_PIN1_UNLOCK;
-		memcpy(sim->pin1, payload, payload_len);
-		sim->pin1_len = payload_len;
 		return gsm1111_tx_verify_chv(ms, 0x01, payload, payload_len);
 	case SIM_JOB_PIN2_UNLOCK:
+		payload_len = strlen((char *)payload);
 		if (payload_len < 4 || payload_len > 8) {
 			LOGP(DSIM, LOGL_ERROR, "key not in range 4..8\n");
 			break;
 		}
 		sim->job_state = SIM_JST_PIN2_UNLOCK;
-		memcpy(sim->pin2, payload, payload_len);
-		sim->pin2_len = payload_len;
 		return gsm1111_tx_verify_chv(ms, 0x02, payload, payload_len);
 	case SIM_JOB_PIN1_CHANGE:
-		if (!sim->pin1_len) {
-			LOGP(DSIM, LOGL_ERROR, "no pin set\n");
+		payload_len = strlen((char *)payload);
+		payload2 = payload + payload_len + 1;
+		payload_len2 = strlen((char *)payload2);
+		if (payload_len < 4 || payload_len > 8) {
+			LOGP(DSIM, LOGL_ERROR, "key1 not in range 4..8\n");
 			break;
 		}
-		if (payload_len < 4 || payload_len > 8 || !sim->pin1_len) {
-			LOGP(DSIM, LOGL_ERROR, "key not in range 4..8\n");
+		if (payload_len2 < 4 || payload_len2 > 8) {
+			LOGP(DSIM, LOGL_ERROR, "key2 not in range 4..8\n");
 			break;
 		}
 		sim->job_state = SIM_JST_PIN1_CHANGE;
-		return gsm1111_tx_change_chv(ms, 0x01, sim->pin1, sim->pin1_len,
-			payload, payload_len);
+		return gsm1111_tx_change_chv(ms, 0x01, payload, payload_len,
+			payload2, payload_len2);
 	case SIM_JOB_PIN2_CHANGE:
-		if (!sim->pin2_len) {
-			LOGP(DSIM, LOGL_ERROR, "no pin set\n");
+		payload_len = strlen((char *)payload);
+		payload2 = payload + payload_len + 1;
+		payload_len2 = strlen((char *)payload2);
+		if (payload_len < 4 || payload_len > 8) {
+			LOGP(DSIM, LOGL_ERROR, "key1 not in range 4..8\n");
 			break;
 		}
+		if (payload_len2 < 4 || payload_len2 > 8) {
+			LOGP(DSIM, LOGL_ERROR, "key2 not in range 4..8\n");
+			break;
+		}
+		sim->job_state = SIM_JST_PIN2_CHANGE;
+		return gsm1111_tx_change_chv(ms, 0x02, payload, payload_len,
+			payload2, payload_len2);
+	case SIM_JOB_PIN1_DISABLE:
+		payload_len = strlen((char *)payload);
 		if (payload_len < 4 || payload_len > 8) {
 			LOGP(DSIM, LOGL_ERROR, "key not in range 4..8\n");
 			break;
 		}
-		sim->job_state = SIM_JST_PIN2_CHANGE;
-		return gsm1111_tx_change_chv(ms, 0x02, sim->pin1, sim->pin1_len,
-			payload, payload_len);
-	case SIM_JOB_PIN1_DISABLE:
-		if (!sim->pin1_len) {
-			LOGP(DSIM, LOGL_ERROR, "no pin set\n");
-			break;
-		}
 		sim->job_state = SIM_JST_PIN1_DISABLE;
-		return gsm1111_tx_disable_chv(ms, sim->pin1, sim->pin1_len);
+		return gsm1111_tx_disable_chv(ms, payload, payload_len);
 	case SIM_JOB_PIN1_ENABLE:
-		if (!sim->pin1_len) {
-			LOGP(DSIM, LOGL_ERROR, "no pin set\n");
+		payload_len = strlen((char *)payload);
+		if (payload_len < 4 || payload_len > 8) {
+			LOGP(DSIM, LOGL_ERROR, "key not in range 4..8\n");
 			break;
 		}
 		sim->job_state = SIM_JST_PIN1_ENABLE;
-		return gsm1111_tx_enable_chv(ms, sim->pin1, sim->pin1_len);
+		return gsm1111_tx_enable_chv(ms, payload, payload_len);
 	case SIM_JOB_PIN1_UNBLOCK:
-		if (payload_len < 12 || payload_len > 16) {
-			LOGP(DSIM, LOGL_ERROR, "key not in range 4..8\n");
+		payload_len = strlen((char *)payload);
+		payload2 = payload + payload_len + 1;
+		payload_len2 = strlen((char *)payload2);
+		if (payload_len !=  8) {
+			LOGP(DSIM, LOGL_ERROR, "key1 not 8 digits\n");
 			break;
 		}
-		sim->job_state = SIM_JST_PIN1_UNLOCK;
-		memcpy(sim->pin1, payload + 8, payload_len - 8);
-		sim->pin1_len = payload_len;
+		if (payload_len2 < 4 || payload_len2 > 8) {
+			LOGP(DSIM, LOGL_ERROR, "key2 not in range 4..8\n");
+			break;
+		}
+		sim->job_state = SIM_JST_PIN1_UNBLOCK;
 		/* NOTE: CHV1 is coded 0x00 here */
-		return gsm1111_tx_unblock_chv(ms, 0x00, payload, 8, payload + 8,
-			payload_len - 8);
+		return gsm1111_tx_unblock_chv(ms, 0x00, payload, payload_len,
+			payload2, payload_len2);
 	case SIM_JOB_PIN2_UNBLOCK:
-		if (payload_len < 12 || payload_len > 16) {
-			LOGP(DSIM, LOGL_ERROR, "key not in range 4..8\n");
+		payload_len = strlen((char *)payload);
+		payload2 = payload + payload_len + 1;
+		payload_len2 = strlen((char *)payload2);
+		if (payload_len !=  8) {
+			LOGP(DSIM, LOGL_ERROR, "key1 not 8 digits\n");
 			break;
 		}
-		sim->job_state = SIM_JST_PIN2_UNLOCK;
-		memcpy(sim->pin2, payload + 8, payload_len - 8);
-		sim->pin2_len = payload_len;
-		return gsm1111_tx_unblock_chv(ms, 0x02, payload, 8, payload + 8,
-			payload_len - 8);
+		if (payload_len2 < 4 || payload_len2 > 8) {
+			LOGP(DSIM, LOGL_ERROR, "key2 not in range 4..8\n");
+			break;
+		}
+		sim->job_state = SIM_JST_PIN2_UNBLOCK;
+		return gsm1111_tx_unblock_chv(ms, 0x02, payload, payload_len,
+			payload2, payload_len2);
 	}
 
 	LOGP(DSIM, LOGL_ERROR, "unknown job %x, please fix\n", sh->job_type);
@@ -861,12 +877,58 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 
 	switch (sw1) {
 	case GSM1111_STAT_SECURITY:
-			LOGP(DSIM, LOGL_NOTICE, "SIM Security\n");
-			pin_cause[0] = SIM_CAUSE_PIN1_REQUIRED;
-			pin_cause[1] = 1; /* PIN retries left */
-			gsm_sim_reply(ms, SIM_JOB_ERROR, pin_cause, 2);
-			msgb_free(msg);
-			return 0;
+		LOGP(DSIM, LOGL_NOTICE, "SIM Security\n");
+		/* error */
+		if (sw2 != GSM1111_SEC_NO_ACCESS && sw2 != GSM1111_SEC_BLOCKED)
+			goto sim_error;
+
+		/* select the right remaining counter an cause */
+		// FIXME: read status to replace "*_remain"-counters
+		switch (sim->job_state) {
+		case SIM_JST_PIN1_UNBLOCK:
+			if (sw2 == GSM1111_SEC_NO_ACCESS) {
+				pin_cause[0] = SIM_CAUSE_PIN1_BLOCKED;
+				pin_cause[1] = --sim->unblk1_remain;
+			} else {
+				pin_cause[0] = SIM_CAUSE_PUC_BLOCKED;
+				pin_cause[1] = 0;
+			}
+			break;
+		case SIM_JST_PIN2_UNLOCK:
+		case SIM_JST_PIN2_CHANGE:
+			if (sw2 == GSM1111_SEC_NO_ACCESS && sim->chv2_remain) {
+				pin_cause[0] = SIM_CAUSE_PIN2_REQUIRED;
+				pin_cause[1] = sim->chv2_remain--;
+			} else {
+				pin_cause[0] = SIM_CAUSE_PIN2_BLOCKED;
+				pin_cause[1] = sim->unblk2_remain;
+			}
+			break;
+		case SIM_JST_PIN2_UNBLOCK:
+			if (sw2 == GSM1111_SEC_NO_ACCESS) {
+				pin_cause[0] = SIM_CAUSE_PIN2_BLOCKED;
+				pin_cause[1] = --sim->unblk2_remain;
+			} else {
+				pin_cause[0] = SIM_CAUSE_PUC_BLOCKED;
+				pin_cause[1] = 0;
+			}
+		case SIM_JST_PIN1_UNLOCK:
+		case SIM_JST_PIN1_CHANGE:
+		case SIM_JST_PIN1_DISABLE:
+		case SIM_JST_PIN1_ENABLE:
+		default:
+			if (sw2 == GSM1111_SEC_NO_ACCESS && sim->chv1_remain) {
+				pin_cause[0] = SIM_CAUSE_PIN1_REQUIRED;
+				pin_cause[1] = sim->chv1_remain--;
+			} else {
+				pin_cause[0] = SIM_CAUSE_PIN1_BLOCKED;
+				pin_cause[1] = sim->unblk1_remain;
+			}
+			break;
+		}
+		gsm_sim_reply(ms, SIM_JOB_ERROR, pin_cause, 2);
+		msgb_free(msg);
+		return 0;
 	case GSM1111_STAT_MEM_PROBLEM:
 		if (sw2 >= 0x40) {
 			LOGP(DSIM, LOGL_NOTICE, "memory of SIM failed\n");
@@ -885,29 +947,9 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM1111_STAT_RESPONSE:
 	case GSM1111_STAT_RESPONSE_TOO:
 		LOGP(DSIM, LOGL_INFO, "command successfull\n");
-		switch (sh->job_type) {
-		case SIM_JOB_PIN1_CHANGE:
-			memcpy(sim->pin1, payload, payload_len);
-			sim->pin1_len = payload_len;
-			break;
-		case SIM_JOB_PIN2_CHANGE:
-			memcpy(sim->pin2, payload, payload_len);
-			sim->pin2_len = payload_len;
-			break;
-		}
 		break;
 	default:
 		LOGP(DSIM, LOGL_INFO, "command failed\n");
-		switch (sh->job_type) {
-		case SIM_JOB_PIN1_UNLOCK:
-		case SIM_JOB_PIN1_UNBLOCK:
-			sim->pin1_len = 0;
-			break;
-		case SIM_JOB_PIN2_UNLOCK:
-		case SIM_JOB_PIN2_UNBLOCK:
-			sim->pin2_len = 0;
-			break;
-		}
 		request_error:
 		cause = SIM_CAUSE_REQUEST_ERROR;
 		gsm_sim_reply(ms, SIM_JOB_ERROR, &cause, 1);
@@ -939,6 +981,10 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 		}
 		mfdf = (struct gsm1111_response_mfdf *)data;
 		mfdf_gsm = (struct gsm1111_response_mfdf_gsm *)(data + 13);
+		sim->chv1_remain = mfdf_gsm->chv1_remain;
+		sim->chv2_remain = mfdf_gsm->chv2_remain;
+		sim->unblk1_remain = mfdf_gsm->unblk1_remain;
+		sim->unblk2_remain = mfdf_gsm->unblk2_remain;
 		/* if MF was selected */
 		if (sim->path[0] == 0) {
 			/* if MF was selected, but MF is not indicated */

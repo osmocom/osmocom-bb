@@ -560,6 +560,7 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t *payload = msg->data + sizeof(*sh);
 	uint16_t payload_len = msg->len - sizeof(*sh);
 	int rc;
+	struct subscr_sim_file *sf = &subscr_sim_files[subscr->sim_file_index];
 
 	/* error handling */
 	if (sh->job_type == SIM_JOB_ERROR) {
@@ -581,10 +582,22 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 
 			vty_notify(ms, NULL);
 			vty_notify(ms, "PIN is blocked\n");
+			if (payload[1]) {
+				vty_notify(ms, "Please give PUC for ICCID %s "
+					"(you have %d tries left)\n",
+					subscr->iccid, payload[1]);
+			}
+			subscr->sim_pin_required = 1;
+			break;
+		case SIM_CAUSE_PUC_BLOCKED:
+			LOGP(DMM, LOGL_NOTICE, "PUC is blocked\n");
+
+			vty_notify(ms, NULL);
+			vty_notify(ms, "PUC is blocked\n");
+			subscr->sim_pin_required = 1;
 			break;
 		default:
-			if (!subscr_sim_files[subscr->sim_file_index].
-								mandatory) {
+			if (sf->func && !sf->mandatory) {
 				LOGP(DMM, LOGL_NOTICE, "SIM reading failed, "
 					"ignoring!\n");
 				goto ignore;
@@ -599,10 +612,19 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 		return;
 	}
 
-	/* call function do decode SIM reply */
-	rc = subscr_sim_files[subscr->sim_file_index].func(ms, payload,
-		payload_len);
+	/* if pin was successfully unlocked, then resend request */
+	if (subscr->sim_pin_required) {
+		subscr->sim_pin_required = 0;
+		subscr_sim_request(ms);
+		return;
+	}
 
+	/* done when nothing more to read. this happens on PIN requests */
+	if (!sf->func)
+		return;
+
+	/* call function do decode SIM reply */
+	rc = sf->func(ms, payload, payload_len);
 	if (rc) {
 		LOGP(DMM, LOGL_NOTICE, "SIM reading failed, file invalid\n");
 		if (subscr_sim_files[subscr->sim_file_index].mandatory) {
@@ -624,23 +646,45 @@ ignore:
 }
 
 /* enter PIN */
-void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin)
+void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
+	int8_t mode)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
+	uint8_t job;
 
-	if (!subscr->sim_pin_required) {
-		LOGP(DMM, LOGL_ERROR, "No PIN required now\n");
-		return;
+	switch (mode) {
+	case -1:
+		job = SIM_JOB_PIN1_DISABLE;
+		LOGP(DMM, LOGL_INFO, "disabling PIN %s\n", pin1);
+		break;
+	case 1:
+		job = SIM_JOB_PIN1_ENABLE;
+		LOGP(DMM, LOGL_INFO, "enabling PIN %s\n", pin1);
+		break;
+	case 2:
+		job = SIM_JOB_PIN1_CHANGE;
+		LOGP(DMM, LOGL_INFO, "changing PIN %s to %s\n", pin1, pin2);
+		break;
+	case 99:
+		job = SIM_JOB_PIN1_UNBLOCK;
+		LOGP(DMM, LOGL_INFO, "unblocking PIN %s with PUC %s\n", pin1,
+			pin2);
+		break;
+	default:
+		if (!subscr->sim_pin_required) {
+			LOGP(DMM, LOGL_ERROR, "No PIN required now\n");
+			return;
+		}
+		LOGP(DMM, LOGL_INFO, "entering PIN %s\n", pin1);
+		job = SIM_JOB_PIN1_UNLOCK;
 	}
 
-	subscr->sim_pin_required = 0;
-	LOGP(DMM, LOGL_INFO, "Unlocking PIN %s\n", pin);
-	nmsg = gsm_sim_msgb_alloc(subscr->sim_handle_update,
-		SIM_JOB_PIN1_UNLOCK);
+	nmsg = gsm_sim_msgb_alloc(subscr->sim_handle_query, job);
 	if (!nmsg)
 		return;
-	memcpy(msgb_put(nmsg, strlen(pin)), pin, strlen(pin));
+	memcpy(msgb_put(nmsg, strlen(pin1) + 1), pin1, strlen(pin1) + 1);
+	memcpy(msgb_put(nmsg, strlen(pin2) + 1), pin2, strlen(pin2) + 1);
 	sim_job(ms, nmsg);
 }
 

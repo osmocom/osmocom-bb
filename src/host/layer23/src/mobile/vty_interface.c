@@ -423,12 +423,105 @@ DEFUN(sim_pin, sim_pin_cmd, "sim pin MS_NAME PIN",
 	if (!ms)
 		return CMD_WARNING;
 
+	if (strlen(argv[1]) < 4 || strlen(argv[1]) > 8) {
+		vty_out(vty, "PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
 	if (!ms->subscr.sim_pin_required) {
 		vty_out(vty, "No PIN is required at this time!%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	gsm_subscr_sim_pin(ms, (char *)argv[1]);
+	gsm_subscr_sim_pin(ms, (char *)argv[1], "", 0);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_disable_pin, sim_disable_pin_cmd, "sim disable-pin MS_NAME PIN",
+	"SIM actions\nDisable PIN of SIM card\nName of MS (see \"show ms\")\n"
+	"PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (strlen(argv[1]) < 4 || strlen(argv[1]) > 8) {
+		vty_out(vty, "PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1], "", -1);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_enable_pin, sim_enable_pin_cmd, "sim enable-pin MS_NAME PIN",
+	"SIM actions\nEnable PIN of SIM card\nName of MS (see \"show ms\")\n"
+	"PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (strlen(argv[1]) < 4 || strlen(argv[1]) > 8) {
+		vty_out(vty, "PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1], "", 1);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_change_pin, sim_change_pin_cmd, "sim change-pin MS_NAME OLD NEW",
+	"SIM actions\nChange PIN of SIM card\nName of MS (see \"show ms\")\n"
+	"Old PIN number\nNew PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (strlen(argv[1]) < 4 || strlen(argv[1]) > 8) {
+		vty_out(vty, "Old PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (strlen(argv[2]) < 4 || strlen(argv[2]) > 8) {
+		vty_out(vty, "New PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1], (char *)argv[2], 2);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_unblock_pin, sim_unblock_pin_cmd, "sim unblock-pin MS_NAME PUC NEW",
+	"SIM actions\nChange PIN of SIM card\nName of MS (see \"show ms\")\n"
+	"Personal Unblock Key\nNew PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (strlen(argv[1]) != 8) {
+		vty_out(vty, "PUC must be 8 digits!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (strlen(argv[2]) < 4 || strlen(argv[2]) > 8) {
+		vty_out(vty, "PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1], (char *)argv[2], 99);
 
 	return CMD_SUCCESS;
 }
@@ -1258,6 +1351,10 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &sim_reader_cmd);
 	install_element(ENABLE_NODE, &sim_remove_cmd);
 	install_element(ENABLE_NODE, &sim_pin_cmd);
+	install_element(ENABLE_NODE, &sim_disable_pin_cmd);
+	install_element(ENABLE_NODE, &sim_enable_pin_cmd);
+	install_element(ENABLE_NODE, &sim_change_pin_cmd);
+	install_element(ENABLE_NODE, &sim_unblock_pin_cmd);
 	install_element(ENABLE_NODE, &network_search_cmd);
 	install_element(ENABLE_NODE, &network_show_cmd);
 	install_element(ENABLE_NODE, &network_select_cmd);

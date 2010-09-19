@@ -174,8 +174,8 @@ struct gsm_sim {
 	int			job_state;
 
 	uint8_t			reset;
-	uint8_t			pin1[8], pin2[8];
-	uint8_t			pin1_len, pin2_len;
+	uint8_t			chv1_remain, chv2_remain;
+	uint8_t			unblk1_remain, unblk2_remain;
 };
 
 struct sim_hdr {
@@ -215,16 +215,16 @@ struct gsm1111_response_mfdf_gsm {
 	uint8_t rfu1;
 	uint8_t chv1_remain:4,
 		 rfu2:3,
-		 chv1_init;
+		 chv1_init:1;
 	uint8_t unblk1_remain:4,
 		 rfu3:3,
-		 unblk1_init;
+		 unblk1_init:1;
 	uint8_t chv2_remain:4,
 		 rfu4:3,
-		 chv2_init;
+		 chv2_init:1;
 	uint8_t unblk2_remain:4,
 		 rfu5:3,
-		 unblk2_init;
+		 unblk2_init:1;
 	uint8_t more_data[0];
 } __attribute__ ((packed));
 
