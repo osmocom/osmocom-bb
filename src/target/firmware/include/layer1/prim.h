@@ -26,4 +26,7 @@ void l1a_rach_req(uint8_t fn51, uint8_t mf_off, uint8_t ra);
 extern const struct tdma_sched_item nb_sched_set[];
 extern const struct tdma_sched_item nb_sched_set_ul[];
 
+extern const struct tdma_sched_item tch_sched_set[];
+extern const struct tdma_sched_item tch_a_sched_set[];
+
 #endif /* _L1_PRIM_H */

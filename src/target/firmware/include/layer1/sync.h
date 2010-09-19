@@ -34,6 +34,7 @@ enum l1_compl {
 	L1_COMPL_FB,
 	L1_COMPL_RACH,
 	L1_COMPL_TX_NB,
+	L1_COMPL_TX_TCH,
 };
 
 typedef void l1_compl_cb(enum l1_compl c);
@@ -75,8 +76,9 @@ struct l1s_state {
 	int8_t		ta;
 	uint8_t		tx_power;
 
-	/* TCH mode */
+	/* TCH */
 	uint8_t		tch_mode;
+	uint8_t		tch_sync;
 
 	/* Transmit queues of pending packets for main DCCH and ACCH */
 	struct llist_head tx_queue[_NUM_L1S_CHAN];
