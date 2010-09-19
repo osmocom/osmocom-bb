@@ -1710,10 +1710,13 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 		pwr_lev);
         msgb_v_put(nmsg, *((uint8_t *)&cm));
 	/* MI */
-	if (subscr->tmsi != 0xffffffff) /* have TMSI ? */
+	if (subscr->tmsi != 0xffffffff) { /* have TMSI ? */
 		gsm48_encode_mi(buf, nmsg, ms, GSM_MI_TYPE_TMSI);
-	else
+		LOGP(DMM, LOGL_INFO, " using TMSI 0x%08x\n", subscr->tmsi);
+	} else {
 		gsm48_encode_mi(buf, nmsg, ms, GSM_MI_TYPE_IMSI);
+		LOGP(DMM, LOGL_INFO, " using IMSI %s\n", subscr->imsi);
+	}
 
 	/* push RR header and send down */
 	mm->est_cause = RR_EST_CAUSE_OTHER_SDCCH;
@@ -2204,10 +2207,13 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	gsm48_encode_classmark1(&nlu->classmark1, sup->rev_lev, sup->es_ind,
 		sup->a5_1, pwr_lev);
 	/* MI */
-	if (subscr->tmsi != 0xffffffff) /* have TMSI ? */
+	if (subscr->tmsi != 0xffffffff) { /* have TMSI ? */
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
-	else
+		LOGP(DMM, LOGL_INFO, " using TMSI 0x%08x\n", subscr->tmsi);
+	} else {
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMSI);
+		LOGP(DMM, LOGL_INFO, " using IMSI %s\n", subscr->imsi);
+	}
 	msgb_put(nmsg, buf[1]); /* length is part of nlu */
 	memcpy(&nlu->mi_len, buf + 1, 1 + buf[1]);
 
