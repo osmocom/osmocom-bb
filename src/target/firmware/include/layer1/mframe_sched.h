@@ -23,6 +23,11 @@ enum mframe_task {
 	MF_TASK_SDCCH8_6,
 	MF_TASK_SDCCH8_7,
 
+	MF_TASK_TCH_F_EVEN,
+	MF_TASK_TCH_F_ODD,
+	MF_TASK_TCH_H_0,
+	MF_TASK_TCH_H_1,
+
 	/* Test task: send Normal Burst in all timeslots */
 	MF_TASK_UL_ALL_NB,
 };

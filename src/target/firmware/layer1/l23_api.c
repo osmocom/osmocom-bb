@@ -56,14 +56,15 @@ void l1_queue_for_l2(struct msgb *msg)
 static enum mframe_task chan_nr2mf_task(uint8_t chan_nr)
 {
 	uint8_t cbits = chan_nr >> 3;
+	uint8_t tn = chan_nr & 0x7;
 	uint8_t lch_idx;
 
 	if (cbits == 0x01) {
 		lch_idx = 0;
-		/* FIXME: TCH/F */
+		return (tn & 1) ? MF_TASK_TCH_F_ODD : MF_TASK_TCH_F_EVEN;
 	} else if ((cbits & 0x1e) == 0x02) {
 		lch_idx = cbits & 0x1;
-		/* FIXME: TCH/H */
+		return MF_TASK_TCH_H_0 + lch_idx;
 	} else if ((cbits & 0x1c) == 0x04) {
 		lch_idx = cbits & 0x3;
 		return MF_TASK_SDCCH4_0 + lch_idx;

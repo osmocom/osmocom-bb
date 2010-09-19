@@ -197,6 +197,67 @@ static const struct mframe_sched_item mf_sdcch8_7[] = {
 	{ .sched_set = NULL }
 };
 
+/* TCH */
+#define TCH	tch_sched_set
+#define TCH_A	tch_a_sched_set
+
+static const struct mframe_sched_item mf_tch_f_even[] = {
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  0 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  1 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  2 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  3 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  4 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  5 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  6 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  7 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  8 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  9 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr = 10 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr = 11 },
+	{ .sched_set = TCH_A, .modulo = 26, .frame_nr = 12 },
+	{ .sched_set = NULL }
+};
+
+static const struct mframe_sched_item mf_tch_f_odd[] = {
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  0 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  1 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  2 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  3 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  4 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  5 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  6 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  7 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  8 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  9 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr = 10 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr = 11 },
+	{ .sched_set = TCH_A, .modulo = 26, .frame_nr = 25 },
+	{ .sched_set = NULL }
+};
+
+static const struct mframe_sched_item mf_tch_h_0[] = {
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  0 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  2 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  4 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  6 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  8 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr = 10 },
+	{ .sched_set = TCH_A, .modulo = 26, .frame_nr = 12 },
+	{ .sched_set = NULL }
+};
+
+static const struct mframe_sched_item mf_tch_h_1[] = {
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  1 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  3 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  5 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  7 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  9 },
+	{ .sched_set = TCH,   .modulo = 13, .frame_nr = 11 },
+	{ .sched_set = TCH_A, .modulo = 26, .frame_nr = 25 },
+	{ .sched_set = NULL }
+};
+
+/* Test TX */
 static const struct mframe_sched_item mf_tx_all_nb[] = {
 	{ .sched_set = NB_QUAD_FH_UL, .modulo = 4, .frame_nr = 0 },
 	{ .sched_set = NULL }
@@ -221,6 +282,11 @@ static const struct mframe_sched_item *sched_set_for_task[32] = {
 	[MF_TASK_SDCCH8_5] = mf_sdcch8_5,
 	[MF_TASK_SDCCH8_6] = mf_sdcch8_6,
 	[MF_TASK_SDCCH8_7] = mf_sdcch8_7,
+
+	[MF_TASK_TCH_F_EVEN] = mf_tch_f_even,
+	[MF_TASK_TCH_F_ODD]  = mf_tch_f_odd,
+	[MF_TASK_TCH_H_0]    = mf_tch_h_0,
+	[MF_TASK_TCH_H_1]    = mf_tch_h_1,
 
 	[MF_TASK_UL_ALL_NB] = mf_tx_all_nb,
 };
@@ -274,6 +340,16 @@ uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts)
 		break;
 	case MF_TASK_SDCCH8_7:
 		cbits = 0x08 + 7;
+		break;
+	case MF_TASK_TCH_F_EVEN:
+	case MF_TASK_TCH_F_ODD:
+		cbits = 0x01;
+		break;
+	case MF_TASK_TCH_H_0:
+		cbits = 0x02 + 0;
+		break;
+	case MF_TASK_TCH_H_1:
+		cbits = 0x02 + 1;
 		break;
 	case MF_TASK_UL_ALL_NB:
 		/* ERROR: cannot express as channel number */
