@@ -73,14 +73,21 @@ static int _win_setup(__unused uint8_t p1, __unused uint8_t p2, __unused uint8_t
 
 	rfch_get_params(&l1s.next_time, NULL, NULL, &tn);
 
-	tpu_enq_offset( (5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000 );
-	tpu_enq_at(5000 - 1000 - (L1_BURST_LENGTH_Q * tn));
+	tpu_enq_at(4740);
+	tpu_enq_sync((5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000);
 
 	return 0;
 }
 
 static int _win_cleanup(__unused uint8_t p1, __unused uint8_t p2, __unused uint8_t p3)
 {
+	uint8_t tn;
+
+	rfch_get_params(&l1s.next_time, NULL, NULL, &tn);
+
+	/* restore offset */
+	tpu_enq_offset((5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000);
+
 	return 0;
 }
 
