@@ -249,7 +249,8 @@ int gsm48_encode_called(struct msgb *msg,
 	int ret;
 
 	/* octet 3 */
-	lv[1] = called->plan;
+	lv[1] = 0x80; /* no extension */
+	lv[1] |= called->plan;
 	lv[1] |= called->type << 4;
 
 	/* octet 4..N, octet 2 */
