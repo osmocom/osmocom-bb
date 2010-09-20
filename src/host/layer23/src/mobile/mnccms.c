@@ -319,7 +319,12 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 		LOGP(DMNCC, LOGL_INFO, "Make call to %s\n", number);
 		/* called number */
 		setup.fields |= MNCC_F_CALLED;
-		setup.called.type = 0; /* auto/unknown - prefix must be used */
+		if (number[0] == '+') {
+			number++;
+			setup.called.type = 1; /* international */
+		} else
+			setup.called.type = 0; /* auto/unknown - prefix must be
+				 		  used */
 		setup.called.plan = 1; /* ISDN */
 		strncpy(setup.called.number, number,
 			sizeof(setup.called.number) - 1);

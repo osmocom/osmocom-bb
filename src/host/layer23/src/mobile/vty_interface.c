@@ -573,11 +573,13 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 }
 
 DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
-	"Make a call\nName of MS (see \"show ms\")\nPhone number to call\n"
+	"Make a call\nName of MS (see \"show ms\")\nPhone number to call "
+	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
 	"Make an emergency call\nAnswer an incomming call\nHangup a call\n"
 	"Hold current active call\n")
 {
 	struct osmocom_ms *ms;
+	int i;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
@@ -594,6 +596,19 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 			mncc_hold(ms);
 		break;
 	default:
+		for (i = 0; i < strlen(argv[1]); i++) {
+			/* allow international notation with + */
+			if (i == 0 && argv[1][i] == '+')
+				continue;
+			if (!(argv[1][i] >= '0' && argv[1][i] <= '9')
+			 && argv[1][i] != '*'
+			 && argv[1][i] != '#'
+			 && !(argv[1][i] >= 'a' && argv[1][i] <= 'c')) {
+				vty_out(vty, "Invalid digit '%c'%s", argv[1][i],
+					VTY_NEWLINE);
+				return CMD_WARNING;
+			}
+		}
 		mncc_call(ms, (char *)argv[1]);
 	}
 
