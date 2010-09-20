@@ -97,7 +97,6 @@ void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype, uint8_t tn_ofs)
 	/* TN offset & TA adjust */
 	start = DSP_SETUP_TIME;
 	start += L1_BURST_LENGTH_Q * tn_ofs;
-	start -= l1s.ta << 2;
 
 	stop = start + rx_burst_duration[wtype] - 1;
 
