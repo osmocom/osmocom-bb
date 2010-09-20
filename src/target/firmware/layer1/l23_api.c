@@ -166,13 +166,6 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u)\n",
 		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc);
 
-	/* Current limitations */
-	if ((ul->chan_nr & 0x7) > 4) {
-		/* FIXME: Timeslot */
-		puts("We don't support TS > 4 yet\n");
-		return;
-	}
-
 	/* configure dedicated channel state */
 	l1s.dedicated.type = chan_nr2dchan_type(ul->chan_nr);
 	l1s.dedicated.tsc  = est_req->tsc;

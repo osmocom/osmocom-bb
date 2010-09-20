@@ -3153,11 +3153,6 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	/* establish */
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
 	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
-	if (ch_ts >= 6) {
-		printf("Channel type %d, subch %d, ts %d not supported, "
-			"exitting.\n", ch_type, ch_subch, ch_ts);
-		exit(-ENOTSUP);
-	}
 	printf("Channel type %d, subch %d, ts %d\n", ch_type, ch_subch, ch_ts);
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,

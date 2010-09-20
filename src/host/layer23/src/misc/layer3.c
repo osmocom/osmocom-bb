@@ -207,11 +207,6 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 			ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
 			ia->chan_desc.h0.tsc);
 
-		if (ch_ts >= 4) {
-			DEBUGPC(DRR, "UNSUPPORTED!\n");
-			return 0;
-		}
-
 		/* request L1 to go to dedicated mode on assigned channel */
 		rv = l1ctl_tx_dm_est_req_h0(ms,
 			arfcn, ia->chan_desc.chan_nr, ia->chan_desc.h0.tsc);
@@ -240,11 +235,6 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 				}
 				j++;
 			}
-		}
-
-		if (ch_ts >= 4) {
-			DEBUGPC(DRR, "UNSUPPORTED!\n");
-			return 0;
 		}
 
 		/* request L1 to go to dedicated mode on assigned channel */
