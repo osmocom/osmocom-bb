@@ -1599,11 +1599,11 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 		 * command shall contain the layer 3 message unit */
 		length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 		LOGP(DLAPDM, LOGL_INFO, "perform establishment with content "
-			"(SAMB)\n");
+			"(SABM)\n");
 	} else {
 		/* normal establishment procedure */
 		length = 0;
-		LOGP(DLAPDM, LOGL_INFO, "perform normal establishm. (SAMB)\n");
+		LOGP(DLAPDM, LOGL_INFO, "perform normal establishm. (SABM)\n");
 	}
 
 	/* check if the layer3 message length exceeds N201 */
@@ -1635,7 +1635,7 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	/* Transmit-buffer carries exactly one segment */
 	memcpy(dl->tx_hist[0], msg->l2h, 3 + length);
 	dl->tx_length[0] = 3 + length;
-	/* set Vs to 0, because it is used as index when resending SAMB */
+	/* set Vs to 0, because it is used as index when resending SABM */
 	dl->V_send = 0;
 	
 	/* Set states */
@@ -1896,7 +1896,7 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	}
 	length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 
-	LOGP(DLAPDM, LOGL_INFO, "perform re-establishment (SAMB)\n");
+	LOGP(DLAPDM, LOGL_INFO, "perform re-establishment (SABM)\n");
 	
 	/* Replace message in the send-buffer (reconnect) */
 	if (dl->send_buffer)
@@ -1919,7 +1919,7 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	/* Transmit-buffer carries exactly one segment */
 	memcpy(dl->tx_hist[0], msg->l2h, 3);
 	dl->tx_length[0] = 3;
-	/* set Vs to 0, because it is used as index when resending SAMB */
+	/* set Vs to 0, because it is used as index when resending SABM */
 	dl->V_send = 0;
 
 	/* Set states */
