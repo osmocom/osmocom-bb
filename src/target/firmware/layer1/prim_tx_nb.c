@@ -81,8 +81,6 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 	putchart('T');
 
-	l1s_tx_apc_helper();
-
 	/* before sending first of the four bursts, copy data to API ram */
 	if (burst_id == 0) {
 		uint16_t *info_ptr = dsp_api.ndb->a_cu;
@@ -131,6 +129,8 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 	}
 
 	rfch_get_params(&l1s.next_time, &arfcn, &tsc, &tn);
+
+	l1s_tx_apc_helper(arfcn);
 
 	if (p1 == 0)
 		/* DUL_DSP_TASK, one normal burst */

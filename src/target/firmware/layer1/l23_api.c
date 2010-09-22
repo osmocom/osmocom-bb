@@ -266,7 +266,7 @@ static void l1ctl_rx_param_req(struct msgb *msg)
 		par_req->tx_power);
 
 	l1s.ta = par_req->ta;
-	// FIXME: set power
+	l1s.tx_power = par_req->tx_power;
 }
 
 /* receive a L1CTL_RACH_REQ from L23 */

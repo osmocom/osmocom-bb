@@ -71,7 +71,9 @@ struct l1s_state {
 	/* The current TPU offset register */
 	uint32_t	tpu_offset;
 
+	/* TX parameters */
 	int8_t		ta;
+	uint8_t		tx_power;
 
 	/* Transmit queues of pending packets for main DCCH and ACCH */
 	struct llist_head tx_queue[_NUM_L1S_CHAN];

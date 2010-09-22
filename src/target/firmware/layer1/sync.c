@@ -50,6 +50,7 @@
 #include <layer1/sync.h>
 #include <layer1/afc.h>
 #include <layer1/agc.h>
+#include <layer1/apc.h>
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
 #include <layer1/sched_gsmtime.h>
@@ -321,9 +322,15 @@ void l1s_dsp_abort(void)
 	tdma_schedule(0, &l1s_abort_cmd, 0, 0, 0, 10);
 }
 
-void l1s_tx_apc_helper(void)
+void l1s_tx_apc_helper(uint16_t arfcn)
 {
+	int16_t auxapc;
+	enum gsm_band band;
 	int i;
+
+	/* Get DAC setting */
+	band = gsm_arfcn2band(arfcn);
+	auxapc = apc_tx_pwrlvl2auxapc(band, l1s.tx_power);
 
 	/* Load the ApcOffset into the DSP */
 	#define  MY_OFFSET	4
@@ -335,7 +342,7 @@ void l1s_tx_apc_helper(void)
 	   especially for GSM-1800. However an MS does not send below
 	   0dBm anyway.
 	*/
-	dsp_api.db_w->d_power_ctl = ABB_VAL(AUXAPC, 0xC0); /* 2 dBm pulse with offset 4 (GSM-1800) */
+	dsp_api.db_w->d_power_ctl = ABB_VAL(AUXAPC, auxapc);
 
 	/* Update the ramp according to the PCL */
 	for (i = 0; i < 16; i++)
@@ -354,7 +361,9 @@ static void frame_irq(__unused enum irq_nr nr)
 /* reset the layer1 as part of synchronizing to a new cell */
 void l1s_reset(void)
 {
+	/* Reset state */
 	l1s.fb.mode = 0;
+	l1s.tx_power = 7; /* initial power reset */
 
 	/* reset scheduler and hardware */
 	sched_gsmtime_reset();

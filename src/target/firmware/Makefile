@@ -15,12 +15,12 @@ calypso_COMMON_OBJS=board/common/calypso_uart.o board/common/calypso_pwl.o
 
 gta0x_COMMON_OBJS=$(calypso_COMMON_OBJS) board/common/rffe_gta0x_triband.o
 gta0x_COMMON_ENVIRONMENTS=highram
-gta0x_OBJS=$(gta0x_COMMON_OBJS) board/gta0x/init.o
+gta0x_OBJS=$(gta0x_COMMON_OBJS) board/gta0x/init.o board/gta0x/rf_power.o
 gta0x_ENVIRONMENTS=$(gta0x_COMMON_ENVIRONMENTS)
 
 # Compal Generic
 
-compal_COMMON_OBJS=$(calypso_COMMON_OBJS) board/compal/rffe_dualband.o
+compal_COMMON_OBJS=$(calypso_COMMON_OBJS) board/compal/rffe_dualband.o board/compal/rf_power.o
 compal_COMMON_ENVIRONMENTS=compalram highram
 
 compalram_LDS=board/compal/ram.lds

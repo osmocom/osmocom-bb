@@ -63,7 +63,7 @@ static int l1s_tx_rach_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused ui
 
 	putchart('T');
 
-	l1s_tx_apc_helper();
+	l1s_tx_apc_helper(l1s.serving_cell.arfcn);
 
 	data[0] = l1s.serving_cell.bsic << 2;
 	data[1] = l1s.rach.ra;
