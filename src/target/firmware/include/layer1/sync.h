@@ -72,7 +72,9 @@ struct l1s_state {
 
 	/* The current TPU offset register */
 	uint32_t	tpu_offset;
-	int32_t		tpu_offset_correction;
+	int32_t		tpu_offset_correction; /* used for TOA adjustment */
+	int32_t		tpu_offset_shift; /* used for TS or sync change */
+	int32_t		tpu_offset_changed; /* offset changed at last fiq */
 
 	/* TX parameters */
 	int8_t		ta;

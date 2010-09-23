@@ -183,25 +183,56 @@ void l1s_reset_hw(void)
 
 /* Timer for detecting lost IRQ */
 #define TIMER_TICKS_PER_TDMA	1875
-#define TIMER_TICK_JITTER	1
+#define TIMER_TICK_JITTER	2
 
 static int last_timestamp;
 
 static inline void check_lost_frame(void)
 {
-	int diff, timestamp = hwtimer_read(1);
+	int diff, expected, timestamp = hwtimer_read(1);
 
 	if (last_timestamp < timestamp)
 		last_timestamp += (4*TIMER_TICKS_PER_TDMA);
 
 	diff = last_timestamp - timestamp;
 
+	/* calculate expected diff */
+	expected = (5000 + l1s.tpu_offset_changed)
+	         * TIMER_TICKS_PER_TDMA / 5000;
+
 	/* allow for a bit of jitter */
-	if (diff < TIMER_TICKS_PER_TDMA - TIMER_TICK_JITTER ||
-	    diff > TIMER_TICKS_PER_TDMA + TIMER_TICK_JITTER)
-		printf("LOST %d!\n", diff);
+	if (diff < expected - TIMER_TICK_JITTER ||
+	    diff > expected + TIMER_TICK_JITTER)
+		printf("LOST %d (expected %d)\n", diff, expected);
+
+	/* check for lost frames */
+	if ((diff - expected) > (TIMER_TICKS_PER_TDMA >> 1)) {
+		int frames_1000;
+		int fn_offset;
+
+		frames_1000 = (diff - expected) * 1000 / TIMER_TICKS_PER_TDMA;
+		fn_offset = (frames_1000 + 500) / 1000;
+
+		printf("%d.%03d frames lost, compensating GSM time\n",
+			frames_1000 / 1000, frames_1000 % 1000);
+
+		l1s_time_inc(&l1s.current_time, fn_offset);
+		l1s.next_time = l1s.current_time;
+		l1s_time_inc(&l1s.next_time, 1);
+		if (l1s.mframe_sched.safe_fn < GSM_MAX_FN)
+			ADD_MODULO(l1s.mframe_sched.safe_fn, fn_offset,
+				GSM_MAX_FN);
+	}
+
+	/* check for two FIQs in the same frame */
+	if ((diff - expected) < -(TIMER_TICKS_PER_TDMA >> 1)) {
+		puts("double FIQ in TDMA frame, compensating GSM time\n");
+		l1s.next_time = l1s.current_time;
+		l1s_time_inc(&l1s.current_time, GSM_MAX_FN - 1);
+	}
 
 	last_timestamp = timestamp;
+	l1s.tpu_offset_changed = 0;
 }
 
 /* schedule a completion */
@@ -257,6 +288,10 @@ static void l1_sync(void)
 	/* execute the sched_items that have been scheduled for this
 	 * TDMA frame (including setup/cleanup steps) */
 	sched_flags = tdma_sched_flag_scan();
+
+	/* if tpu offset needs to be shifted, schedule tpu scenario */
+	if (l1s.tpu_offset_shift)
+		sched_flags |= TDMA_IFLG_TPU;
 
 	if (sched_flags & TDMA_IFLG_TPU)
 		l1s_win_init();
@@ -367,6 +402,12 @@ void l1s_reset(void)
 
 	/* Leave dedicated mode */
 	l1s.dedicated.type = GSM_DCHAN_NONE;
+	l1s.dedicated.tn = 0;
+
+	/* reset TPU offset shift/correction */
+	l1s.tpu_offset_correction = 0;
+	l1s.tpu_offset_shift = 0;
+	l1s.tpu_offset_changed = 0;
 
 	/* reset scheduler and hardware */
 	sched_gsmtime_reset();

@@ -425,7 +425,7 @@ static void mframe_schedule_set(enum mframe_task task_id)
 		unsigned int trigger = si->frame_nr % si->modulo;
 		unsigned int current = (l1s.current_time.fn + SCHEDULE_AHEAD) % si->modulo;
 		if (current == trigger) {
-			uint32_t fn;
+			uint32_t fn, fn_diff;
 			int rv;
 
 			/* Schedule the set */
@@ -436,8 +436,9 @@ static void mframe_schedule_set(enum mframe_task task_id)
 			/* Compute the next safe time to queue a DSP command */
 			fn = l1s.current_time.fn;
 			ADD_MODULO(fn, rv - 2, GSM_MAX_FN); /* -2 = worst case last dsp command */
-			if ((fn > l1s.mframe_sched.safe_fn) ||
-			    (l1s.mframe_sched.safe_fn >= GSM_MAX_FN))
+			fn_diff = (fn - l1s.mframe_sched.safe_fn + GSM_MAX_FN) % GSM_MAX_FN;
+			if (fn_diff < (GSM_MAX_FN >> 1) /* diff is equal or positive */
+			 || (l1s.mframe_sched.safe_fn >= GSM_MAX_FN)) /* or safe_fn not yet set */
 				l1s.mframe_sched.safe_fn = fn;
 		}
 	}
@@ -465,12 +466,19 @@ void mframe_set(uint32_t tasks)
 void mframe_schedule(void)
 {
 	unsigned int i;
-	int fn_diff;
+	uint32_t fn_diff;
+
+	/* Do not schedule new tasks until TPU is shifted */
+	if (l1s.tpu_offset_shift)
+{
+puts("outstanding TPU shift, do not schedule!\n");
+		return;
+}
 
 	/* Try to enable/disable task to meet target bitmap */
-	fn_diff = l1s.mframe_sched.safe_fn - l1s.current_time.fn;
-	if ((fn_diff <= 0) || (fn_diff >= (GSM_MAX_FN>>1)) ||
-	    (l1s.mframe_sched.safe_fn >= GSM_MAX_FN))
+	fn_diff = (l1s.mframe_sched.safe_fn - l1s.current_time.fn + GSM_MAX_FN) % GSM_MAX_FN;
+	if ((fn_diff == 0 || fn_diff >= (GSM_MAX_FN>>1)) /* safe_fn is now or already was */
+	 || (l1s.mframe_sched.safe_fn >= GSM_MAX_FN)) /* or safe_fn not yet set */
 		/* If nothing is in the way, enable new tasks */
 		l1s.mframe_sched.tasks = l1s.mframe_sched.tasks_tgt;
 	else
