@@ -235,9 +235,11 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_dm_est_req *est_req = (struct l1ctl_dm_est_req *) ul->payload;
+	uint8_t old_tn;
 
-	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u)\n",
-		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc);
+	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u tn=%u)\n",
+		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc,
+		ul->chan_nr & 0x7);
 
 	/* disable neighbour cell measurement of C0 TS 0 */
 	mframe_disable(MF_TASK_NEIGH_PM51_C0T0);
@@ -245,6 +247,7 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	/* configure dedicated channel state */
 	l1s.dedicated.type = chan_nr2dchan_type(ul->chan_nr);
 	l1s.dedicated.tsc  = est_req->tsc;
+	old_tn = l1s.dedicated.tn;
 	l1s.dedicated.tn   = ul->chan_nr & 0x7;
 	l1s.dedicated.h    = est_req->h;
 
@@ -274,6 +277,13 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 
 	/* figure out which MF tasks to enable */
 	l1a_mftask_set(chan_nr2mf_task_mask(ul->chan_nr, NEIGH_MODE_PM));
+
+	/* shift TPU according to chnage in TN */
+	if (l1s.dedicated.tn != old_tn) {
+		l1s.tpu_offset_shift += (l1s.dedicated.tn - old_tn) * 625;
+		printf("Shift TPU by %d TN (%d qbits)\n",
+			l1s.dedicated.tn - old_tn, l1s.tpu_offset_shift);
+	}
 }
 
 /* receive a L1CTL_DM_FREQ_REQ from L23 */

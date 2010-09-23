@@ -138,6 +138,10 @@ void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra)
 	unsigned long flags;
 
 	offset += 3;
+	if (l1s.tpu_offset_shift) {
+		puts("RACH while TPU is not correct, delaying!\n");
+		offset += 2;
+	}
 
 	local_firq_save(flags);
 	if (combined) {
