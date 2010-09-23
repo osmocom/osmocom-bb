@@ -198,7 +198,7 @@ static inline void check_lost_frame(void)
 	/* allow for a bit of jitter */
 	if (diff < TIMER_TICKS_PER_TDMA - TIMER_TICK_JITTER ||
 	    diff > TIMER_TICKS_PER_TDMA + TIMER_TICK_JITTER)
-		printf("LOST!\n");
+		printf("LOST %d!\n", diff);
 
 	last_timestamp = timestamp;
 }
