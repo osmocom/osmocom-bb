@@ -75,6 +75,6 @@ static void toa_ravg_output(struct running_avg *ravg, int32_t avg)
 {
 	if (avg != 16) {
 		printf("TOA AVG is not 16 qbits, correcting (got %ld)\n", avg);
-		l1s.tpu_offset_correction = avg - 16;
+		l1s.tpu_offset_correction += avg - 16;
 	}
 }

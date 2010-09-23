@@ -67,30 +67,60 @@ static const uint16_t tx_burst_duration[_NUM_L1_TXWIN] = {
 	[L1_TXWIN_AB]	= L1_TX_AB_DURATION_Q,
 };
 
+/* correct TPU window and compensate frame number */
+static int16_t tpu_correction(void)
+{
+	int16_t correction = l1s.tpu_offset_correction;
+
+	/* allow minimal corrections, like TOA */
+	if (correction >= -32 && correction <= 32) {
+		l1s.tpu_offset_correction = 0;
+		return correction;
+	}
+
+	/* except for minimal changes, always advance TPU offset */
+	if (correction < 0) {
+		printf("Negative TPU Chg (%u qbits), correcting forward...\n",
+			correction);
+		correction += L1_TDMA_LENGTH_Q;
+		l1s.tpu_offset_correction = correction;
+		l1s.current_time = l1s.next_time;
+		l1s_time_inc(&l1s.next_time, 1);
+		if (l1s.mframe_sched.safe_fn < GSM_MAX_FN)
+			ADD_MODULO(l1s.mframe_sched.safe_fn, 1, GSM_MAX_FN);
+	}
+	if (correction <= (L1_TDMA_LENGTH_Q >> 1)) {
+		printf("TPU Chg forth by %u qbits! (final step)\n",
+			correction);
+		l1s.tpu_offset_correction = 0;
+	} else {
+		/* no correction by more than half of the TDMA length */
+		correction = (L1_TDMA_LENGTH_Q >> 1);
+		printf("TPU Chg forth by %u qbits! (intermediate step)\n",
+			correction);
+		l1s.tpu_offset_correction -= (L1_TDMA_LENGTH_Q >> 1);
+	}
+
+	return correction;
+}
 
 static int _win_setup(__unused uint8_t p1, __unused uint8_t p2, __unused uint16_t p3)
 {
-	uint8_t tn;
+	int16_t correction = tpu_correction();
 
-	rfch_get_params(&l1s.next_time, NULL, NULL, &tn);
-
-	l1s.tpu_offset = (5000 + l1s.tpu_offset + l1s.tpu_offset_correction) % 5000;
-	l1s.tpu_offset_correction = 0;
+	l1s.tpu_offset = (l1s.tpu_offset + correction + L1_TDMA_LENGTH_Q)
+				% L1_TDMA_LENGTH_Q;
 
 	tpu_enq_at(4740);
-	tpu_enq_sync((5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000);
+	tpu_enq_sync(l1s.tpu_offset);
 
 	return 0;
 }
 
 static int _win_cleanup(__unused uint8_t p1, __unused uint8_t p2, __unused uint16_t p3)
 {
-	uint8_t tn;
-
-	rfch_get_params(&l1s.next_time, NULL, NULL, &tn);
-
 	/* restore offset */
-	tpu_enq_offset((5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000);
+	tpu_enq_offset(l1s.tpu_offset);
 
 	return 0;
 }
