@@ -1656,30 +1656,46 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	struct tlv_parsed tv;
 	int length;
 	uint8_t n201 = 23; //FIXME
+	uint8_t ta = 0, tx_power = 0;
 
 	/* check if the layer3 message length exceeds N201 */
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 
+	if (TLVP_PRESENT(&tv, RSL_IE_ACCESS_DELAY)) {
+		ta = *TLVP_VAL(&tv, RSL_IE_ACCESS_DELAY);
+	}
+	if (TLVP_PRESENT(&tv, RSL_IE_MS_POWER)) {
+		tx_power = *TLVP_VAL(&tv, RSL_IE_MS_POWER);
+	}
+	if (!TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
+		LOGP(DLAPDM, LOGL_ERROR, "unit data request without message "
+			"error\n");
+		msgb_free(msg);
+		return -EINVAL;
+	}
 	length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 	/* check if the layer3 message length exceeds N201 */
-	if (length + 3 > 18) { /* FIXME: do we know the channel N201? */
+	if (length + 5 > 23) { /* FIXME: do we know the channel N201? */
 		LOGP(DLAPDM, LOGL_ERROR, "frame too large: %d > N201(%d) "
-			"(discarding)\n", length + 3, 18);
+			"(discarding)\n", length + 5, 23);
 		msgb_free(msg);
 		return -EIO;
 	}
 
-	LOGP(DLAPDM, LOGL_INFO, "sending unit data\n");
+	LOGP(DLAPDM, LOGL_INFO, "sending unit data (tx_power=%d, ta=%d)\n",
+		tx_power, ta);
 
 	/* Remove RLL header from msgb */
 	msgb_pull_l2h(msg);
 
-	/* Push LAPDm header on msgb */
-	msg->l2h = msgb_push(msg, 3);
-	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
-	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_UI, 0);
-	msg->l2h[2] = LAPDm_LEN(length);
+	/* Push L1 + LAPDm header on msgb */
+	msg->l2h = msgb_push(msg, 2 + 3);
+	msg->l2h[0] = tx_power;
+	msg->l2h[1] = ta;
+	msg->l2h[2] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
+	msg->l2h[3] = LAPDm_CTRL_U(LAPDm_U_UI, 0);
+	msg->l2h[4] = LAPDm_LEN(length);
 	// FIXME: short L2 header support
 
 	/* Tramsmit */
