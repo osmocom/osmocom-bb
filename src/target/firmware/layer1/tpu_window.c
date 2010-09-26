@@ -67,7 +67,7 @@ static const uint16_t tx_burst_duration[_NUM_L1_TXWIN] = {
 };
 
 
-static int _win_setup(__unused uint8_t p1, __unused uint8_t p2, __unused uint8_t p3)
+static int _win_setup(__unused uint8_t p1, __unused uint8_t p2, __unused uint16_t p3)
 {
 	uint8_t tn;
 
@@ -79,7 +79,7 @@ static int _win_setup(__unused uint8_t p1, __unused uint8_t p2, __unused uint8_t
 	return 0;
 }
 
-static int _win_cleanup(__unused uint8_t p1, __unused uint8_t p2, __unused uint8_t p3)
+static int _win_cleanup(__unused uint8_t p1, __unused uint8_t p2, __unused uint16_t p3)
 {
 	uint8_t tn;
 
