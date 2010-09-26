@@ -79,12 +79,13 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/mobile/vty.h>
 
-static void start_rr_t_monitor(struct gsm48_rrlayer *rr, int sec, int micro);
-static void stop_rr_t_monitor(struct gsm48_rrlayer *rr);
+static void start_rr_t_meas(struct gsm48_rrlayer *rr, int sec, int micro);
+static void stop_rr_t_meas(struct gsm48_rrlayer *rr);
 static void stop_rr_t_starting(struct gsm48_rrlayer *rr);
 static void stop_rr_t3124(struct gsm48_rrlayer *rr);
 static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_rr_dl_est(struct osmocom_ms *ms);
+static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms);
 
 /*
  * support
@@ -322,6 +323,7 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 
 		/* release dedicated mode, if any */
 		l1ctl_tx_dm_rel_req(rr->ms);
+		rr->dm_est = 0;
 		l1ctl_tx_reset_req(rr->ms, L1CTL_RES_T_FULL);
 		/* free establish message, if any */
 		rr->rr_est_req = 0;
@@ -495,8 +497,6 @@ int gsm48_rsl_dequeue(struct osmocom_ms *ms)
 int gsm48_rr_start_monitor(struct osmocom_ms *ms)
 {
 	ms->rrlayer.monitor = 1;
-	memset(&ms->meas, 0, sizeof(&ms->meas));
-	start_rr_t_monitor(&ms->rrlayer, 1, 0);
 
 	return 0;
 }
@@ -504,8 +504,6 @@ int gsm48_rr_start_monitor(struct osmocom_ms *ms)
 int gsm48_rr_stop_monitor(struct osmocom_ms *ms)
 {
 	ms->rrlayer.monitor = 0;
-	memset(&ms->meas, 0, sizeof(&ms->meas));
-	stop_rr_t_monitor(&ms->rrlayer);
 
 	return 0;
 }
@@ -515,7 +513,7 @@ int gsm48_rr_stop_monitor(struct osmocom_ms *ms)
  */
 
 /* special timer to monitor measurements */
-static void timeout_rr_monitor(void *arg)
+static void timeout_rr_meas(void *arg)
 {
 	struct gsm48_rrlayer *rr = arg;
 	struct gsm322_cellsel *cs = &rr->ms->cellsel;
@@ -526,7 +524,7 @@ static void timeout_rr_monitor(void *arg)
 	char text[256];
 
 	if (!cs->selected) {
-		sprintf(text, "MON: no cell selected");
+		return;
 	} else if (!meas->frames) {
 		sprintf(text, "MON: no cell info");
 	} else {
@@ -550,10 +548,14 @@ static void timeout_rr_monitor(void *arg)
 				sprintf(text + strlen(text), "/%d", ch_subch);
 		}
 	}
-	vty_notify(rr->ms, "%s\n", text);
+	LOGP(DRR, LOGL_INFO, "%s\n", text);
+	if (rr->monitor)
+		vty_notify(rr->ms, "%s\n", text);
 
+	if (rr->dm_est)
+		gsm48_rr_tx_meas_rep(rr->ms);
 	memset(meas, 0, sizeof(*meas));
-	start_rr_t_monitor(rr, 1, 0);
+	start_rr_t_meas(rr, 1, 0);
 }
 
 /* special timer to assign / handover when starting time is reached */
@@ -645,11 +647,11 @@ static void timeout_rr_t3126(void *arg)
 	new_rr_state(rr, GSM48_RR_ST_IDLE);
 }
 
-static void start_rr_t_monitor(struct gsm48_rrlayer *rr, int sec, int micro)
+static void start_rr_t_meas(struct gsm48_rrlayer *rr, int sec, int micro)
 {
-	rr->t_monitor.cb = timeout_rr_monitor;
-	rr->t_monitor.data = rr;
-	bsc_schedule_timer(&rr->t_monitor, sec, micro);
+	rr->t_meas.cb = timeout_rr_meas;
+	rr->t_meas.data = rr;
+	bsc_schedule_timer(&rr->t_meas, sec, micro);
 }
 
 static void start_rr_t_rel_wait(struct gsm48_rrlayer *rr, int sec, int micro)
@@ -706,11 +708,11 @@ static void start_rr_t3126(struct gsm48_rrlayer *rr, int sec, int micro)
 	bsc_schedule_timer(&rr->t3126, sec, micro);
 }
 
-static void stop_rr_t_monitor(struct gsm48_rrlayer *rr)
+static void stop_rr_t_meas(struct gsm48_rrlayer *rr)
 {
-	if (bsc_timer_pending(&rr->t_monitor)) {
-		LOGP(DRR, LOGL_INFO, "stopping pending timer T_monitor\n");
-		bsc_del_timer(&rr->t_monitor);
+	if (bsc_timer_pending(&rr->t_meas)) {
+		LOGP(DRR, LOGL_INFO, "stopping pending timer T_meas\n");
+		bsc_del_timer(&rr->t_meas);
 	}
 }
 
@@ -1704,11 +1706,46 @@ static int gsm48_decode_si6_rest(struct gsm48_sysinfo *s, uint8_t *si,
 }
 
 /* send sysinfo event to other layers */
-static int gsm48_send_sysinfo(struct osmocom_ms *ms, uint8_t type)
+static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 {
+	struct gsm48_sysinfo *s = ms->cellsel.si;
 	struct msgb *nmsg;
 	struct gsm322_msg *em;
 
+	/* update list of measurements, if BA(SACCH) is complete and new */
+	if (s
+	 && (type == GSM48_MT_RR_SYSINFO_5
+	  || type == GSM48_MT_RR_SYSINFO_5bis
+	  || type == GSM48_MT_RR_SYSINFO_5ter)
+	 && s->si5
+	 && (!s->nb_ext_ind_si5
+	  || (s->si5bis && s->nb_ext_ind_si5 && !s->nb_ext_ind_si5bis)
+	  || (s->si5bis && s->si5ter && s->nb_ext_ind_si5
+		&& s->nb_ext_ind_si5bis))) {
+		struct gsm48_rr_meas *rrmeas = &ms->rrlayer.meas;
+		int n = 0, i;
+
+		LOGP(DRR, LOGL_NOTICE, "Complete set of SI5* for BA(%d)\n",
+			s->nb_ba_ind_si5);
+		rrmeas->nc_num = 0;
+		for (i = 1; i <= 1024; i++) {
+			if ((s->freq[i & 1023].mask & FREQ_TYPE_REP)) {
+				if (n == 32) {
+					LOGP(DRR, LOGL_NOTICE, "SI5* report "
+						"exceeds 32 BCCHs\n");
+					break;
+				}
+				LOGP(DRR, LOGL_NOTICE, "SI5* report arfcn %d\n",
+					i & 1023);
+				rrmeas->nc_arfcn[n] = i & 1023;
+				rrmeas->nc_rxlev[n] = -128;
+				n++;
+			}
+		}
+		rrmeas->nc_num = n;
+	}
+
+	/* send sysinfo event to other layers */
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_SYSINFO);
 	if (!nmsg)
 		return -ENOMEM;
@@ -1762,7 +1799,7 @@ static int gsm48_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 
 	s->si1 = 1;
 
-	return gsm48_send_sysinfo(ms, si->header.system_information);
+	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
 
 /* receive "SYSTEM INFORMATION 2" message (9.1.32) */
@@ -1797,13 +1834,13 @@ static int gsm48_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 	decode_freq_list(&ms->support, s->freq, si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2);
 	/* NCC Permitted */
-	s->nb_ncc_permitted = si->ncc_permitted;
+	s->nb_ncc_permitted_si2 = si->ncc_permitted;
 	/* RACH Control Parameter */
 	gsm48_decode_rach_ctl_neigh(s, &si->rach_control);
 
 	s->si2 = 1;
 
-	return gsm48_send_sysinfo(ms, si->header.system_information);
+	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
 
 /* receive "SYSTEM INFORMATION 2bis" message (9.1.33) */
@@ -1837,14 +1874,13 @@ static int gsm48_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 	s->nb_ba_ind_si2bis = (si->bcch_frequency_list[0] >> 5) & 1;
 	decode_freq_list(&ms->support, s->freq,
 		si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0x8e,
-		FREQ_TYPE_NCELL_2bis);
+		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2bis);
 	/* RACH Control Parameter */
 	gsm48_decode_rach_ctl_neigh(s, &si->rach_control);
 
 	s->si2bis = 1;
 
-	return gsm48_send_sysinfo(ms, si->header.system_information);
+	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
 
 /* receive "SYSTEM INFORMATION 2ter" message (9.1.34) */
@@ -1875,14 +1911,15 @@ static int gsm48_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* Neighbor Cell Description 2 */
 	s->nb_multi_rep_si2ter = (si->ext_bcch_frequency_list[0] >> 6) & 3;
+	s->nb_ba_ind_si2ter = (si->ext_bcch_frequency_list[0] >> 5) & 1;
 	decode_freq_list(&ms->support, s->freq,
 		si->ext_bcch_frequency_list,
 		sizeof(si->ext_bcch_frequency_list), 0x8e,
-		FREQ_TYPE_NCELL_2ter);
+			FREQ_TYPE_NCELL_2ter);
 
 	s->si2ter = 1;
 
-	return gsm48_send_sysinfo(ms, si->header.system_information);
+	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
 
 /* receive "SYSTEM INFORMATION 3" message (9.1.35) */
@@ -1939,7 +1976,7 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 		l1ctl_tx_ccch_mode_req(ms, cs->ccch_mode);
 	}
 
-	return gsm48_send_sysinfo(ms, si->header.system_information);
+	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
 
 /* receive "SYSTEM INFORMATION 4" message (9.1.36) */
@@ -2015,7 +2052,7 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 
 	s->si4 = 1;
 
-	return gsm48_send_sysinfo(ms, si->header.system_information);
+	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
 
 /* receive "SYSTEM INFORMATION 5" message (9.1.37) */
@@ -2052,7 +2089,7 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 
 	s->si5 = 1;
 
-	return gsm48_send_sysinfo(ms, si->system_information);
+	return gsm48_new_sysinfo(ms, si->system_information);
 }
 
 /* receive "SYSTEM INFORMATION 5bis" message (9.1.38) */
@@ -2090,7 +2127,7 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 
 	s->si5bis = 1;
 
-	return gsm48_send_sysinfo(ms, si->system_information);
+	return gsm48_new_sysinfo(ms, si->system_information);
 }
 
 /* receive "SYSTEM INFORMATION 5ter" message (9.1.39) */
@@ -2121,12 +2158,14 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 	memcpy(s->si5t_msg, si, MIN(msgb_l3len(msg), sizeof(s->si5t_msg)));
 
 	/* Neighbor Cell Description */
+	s->nb_multi_rep_si5ter = (si->bcch_frequency_list[0] >> 6) & 3;
+	s->nb_ba_ind_si5ter = (si->bcch_frequency_list[0] >> 5) & 1;
 	decode_freq_list(&ms->support, s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5ter);
+		sizeof(si->bcch_frequency_list), 0x8e, FREQ_TYPE_REP_5ter);
 
 	s->si5ter = 1;
 
-	return gsm48_send_sysinfo(ms, si->system_information);
+	return gsm48_new_sysinfo(ms, si->system_information);
 }
 
 /* receive "SYSTEM INFORMATION 6" message (9.1.39) */
@@ -2163,7 +2202,7 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	/* Cell Options (SACCH) */
 	gsm48_decode_cellopt_sacch(s, &si->cell_options);
 	/* NCC Permitted */
-	s->nb_ncc_permitted = si->ncc_permitted;
+	s->nb_ncc_permitted_si6 = si->ncc_permitted;
 	/* SI 6 Rest Octets */
 	if (payload_len >= 4)
 		gsm48_decode_si6_rest(s, si->rest_octets, payload_len);
@@ -2174,7 +2213,7 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 
 	s->si6 = 1;
 
-	return gsm48_send_sysinfo(ms, si->system_information);
+	return gsm48_new_sysinfo(ms, si->system_information);
 }
 
 /*
@@ -2484,6 +2523,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 #endif
 
 	memset(&cd, 0, sizeof(cd));
+	cd.ind_tx_power = rr->cd_now.ind_tx_power;
 
 	if (ma_len < 0 /* mobile allocation IE must be included */
 	 || ia->mob_alloc_len > ma_len) { /* short read of IE */
@@ -2579,7 +2619,9 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 #endif
 
 	memset(&cd1, 0, sizeof(cd1));
+	cd1.ind_tx_power = rr->cd_now.ind_tx_power;
 	memset(&cd2, 0, sizeof(cd2));
+	cd2.ind_tx_power = rr->cd_now.ind_tx_power;
 
 	if (ma_len < 0 /* mobile allocation IE must be included */
 	 || ia->mob_alloc_len > ma_len) { /* short read of IE */
@@ -2780,14 +2822,91 @@ static int gsm48_rr_rx_add_ass(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct gsm48_rr_meas *meas = &rr->meas;
+	struct gsm48_sysinfo *s = ms->cellsel.si;
+	struct rx_meas_stat *meas = &rr->ms->meas;
+	struct gsm48_rr_meas *rrmeas = &rr->meas;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm48_meas_res *mr;
+	uint8_t serv_rxlev_full = 0, serv_rxlev_sub = 0, serv_rxqual_full = 0,
+		serv_rxqual_sub = 0;
+	uint8_t ta, tx_power;
+	uint8_t rep_ba = 0, rep_valid = 0, meas_valid = 0, multi_rep = 0;
+	uint8_t n = 0, rxlev_nc[6], bsic_nc[6], bcch_f_nc[6];
+
+	/* just in case! */
+	if (!s)
+		return -EINVAL;
+
+	/* check if SI5* is completely received, check BA-IND */
+	if (s->si5
+	 && (!s->nb_ext_ind_si5
+	  || (s->si5bis && s->nb_ext_ind_si5 && !s->nb_ext_ind_si5bis)
+	  || (s->si5bis && s->si5ter && s->nb_ext_ind_si5
+			&& s->nb_ext_ind_si5bis))) {
+		rep_ba = s->nb_ba_ind_si5;
+		if ((s->si5bis && s->nb_ext_ind_si5
+		  && s->nb_ba_ind_si5bis != rep_ba)
+		 || (s->si5bis && s->si5ter && s->nb_ext_ind_si5
+		  && s->nb_ext_ind_si5bis && s->nb_ba_ind_si5ter != rep_ba)) {
+			LOGP(DRR, LOGL_NOTICE, "BA-IND missmatch on SI5*");
+		} else
+			rep_valid = 1;
+	}
+
+	/* check for valid measurements, any frame must exist */
+	if (meas->frames) {
+		meas_valid = 1;
+		serv_rxlev_full = serv_rxlev_sub = meas->rxlev / meas->frames;
+		serv_rxqual_full = serv_rxqual_sub = 0; // FIXME
+	}
+
+	memset(&rxlev_nc, 0, sizeof(rxlev_nc));
+	memset(&bsic_nc, 0, sizeof(bsic_nc));
+	memset(&bcch_f_nc, 0, sizeof(bcch_f_nc));
+	if (rep_valid) {
+		int8_t strongest, current;
+		uint8_t ncc;
+		int i, index;
+
+		/* multiband reporting, if not: 0 = normal reporting */
+		if (s->si5 && s->si5bis && s->si5ter && s->nb_ext_ind_si5
+		 && s->nb_ext_ind_si5bis)
+			multi_rep = s->nb_multi_rep_si5ter;
+
+		/* get 6 strongest measurements */
+		// FIXME: multiband report
+		strongest = 127; /* infinite */
+		for (n = 0; n < 6; n++) {
+			current = -128; /* -infinite */
+			index = 0;
+			for (i = 0; i < rrmeas->nc_num; i++) {
+				/* only check if NCC is permitted */
+				ncc = rrmeas->nc_bsic[i] >> 3;
+				if ((s->nb_ncc_permitted_si6 & (1 << ncc))
+				 && rrmeas->nc_rxlev[i] > current
+				 && rrmeas->nc_rxlev[i] < strongest) {
+					current = rrmeas->nc_rxlev[i];
+					index = i;
+				}
+			}
+			if (current == -128) /* no more found */
+				break;
+			rxlev_nc[n] = rrmeas->nc_rxlev[index] + 110;
+			bsic_nc[n] = rrmeas->nc_bsic[index];
+			bcch_f_nc[n] = index;
+		}
+	}
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
+
+	/* use indicated tx-power and TA (not the altered ones) */
+	tx_power = rr->cd_now.ind_tx_power;
+	// FIXME: degrade power to the max supported level
+	ta = rr->cd_now.ind_ta;
+
 	gh = (struct gsm48_hdr *) msgb_put(nmsg, sizeof(*gh));
 	mr = (struct gsm48_meas_res *) msgb_put(nmsg, sizeof(*mr));
 
@@ -2795,51 +2914,68 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 	gh->msg_type = GSM48_MT_RR_MEAS_REP;
 
 	/* measurement results */
-	mr->rxlev_full = meas->rxlev_full;
-	mr->rxlev_sub = meas->rxlev_sub;
-	mr->rxqual_full = meas->rxqual_full;
-	mr->rxqual_sub = meas->rxqual_sub;
-	mr->dtx_used = meas->dtx;
-	mr->ba_used = meas->ba;
-	mr->meas_valid = meas->meas_valid;
-	if (meas->ncell_na) {
+	mr->rxlev_full = serv_rxlev_full;
+	mr->rxlev_sub = serv_rxlev_sub;
+	mr->rxqual_full = serv_rxqual_full;
+	mr->rxqual_sub = serv_rxqual_sub;
+	mr->dtx_used = 0; // FIXME: no DTX yet
+	mr->ba_used = rep_ba;
+	mr->meas_valid = !meas_valid; /* 0 = valid */
+	if (rep_valid) {
+		mr->no_nc_n_hi = n >> 2;
+		mr->no_nc_n_lo = n & 3;
+	} else {
 		/* no results for serving cells */
 		mr->no_nc_n_hi = 1;
 		mr->no_nc_n_lo = 3;
-	} else {
-		mr->no_nc_n_hi = meas->count >> 2;
-		mr->no_nc_n_lo = meas->count & 3;
 	}
-	mr->rxlev_nc1 = meas->rxlev_nc[0];
-	mr->rxlev_nc2_hi = meas->rxlev_nc[1] >> 1;
-	mr->rxlev_nc2_lo = meas->rxlev_nc[1] & 1;
-	mr->rxlev_nc3_hi = meas->rxlev_nc[2] >> 2;
-	mr->rxlev_nc3_lo = meas->rxlev_nc[2] & 3;
-	mr->rxlev_nc4_hi = meas->rxlev_nc[3] >> 3;
-	mr->rxlev_nc4_lo = meas->rxlev_nc[3] & 7;
-	mr->rxlev_nc5_hi = meas->rxlev_nc[4] >> 4;
-	mr->rxlev_nc5_lo = meas->rxlev_nc[4] & 15;
-	mr->rxlev_nc6_hi = meas->rxlev_nc[5] >> 5;
-	mr->rxlev_nc6_lo = meas->rxlev_nc[5] & 31;
-	mr->bsic_nc1_hi = meas->bsic_nc[0] >> 3;
-	mr->bsic_nc1_lo = meas->bsic_nc[0] & 7;
-	mr->bsic_nc2_hi = meas->bsic_nc[1] >> 4;
-	mr->bsic_nc2_lo = meas->bsic_nc[1] & 15;
-	mr->bsic_nc3_hi = meas->bsic_nc[2] >> 5;
-	mr->bsic_nc3_lo = meas->bsic_nc[2] & 31;
-	mr->bsic_nc4 = meas->bsic_nc[3];
-	mr->bsic_nc5 = meas->bsic_nc[4];
-	mr->bsic_nc6 = meas->bsic_nc[5];
-	mr->bcch_f_nc1 = meas->bcch_f_nc[0];
-	mr->bcch_f_nc2 = meas->bcch_f_nc[1];
-	mr->bcch_f_nc3 = meas->bcch_f_nc[2];
-	mr->bcch_f_nc4 = meas->bcch_f_nc[3];
-	mr->bcch_f_nc5_hi = meas->bcch_f_nc[4] >> 1;
-	mr->bcch_f_nc5_lo = meas->bcch_f_nc[4] & 1;
-	mr->bcch_f_nc6_hi = meas->bcch_f_nc[5] >> 2;
-	mr->bcch_f_nc6_lo = meas->bcch_f_nc[5] & 3;
+	mr->rxlev_nc1 = rxlev_nc[0];
+	mr->rxlev_nc2_hi = rxlev_nc[1] >> 1;
+	mr->rxlev_nc2_lo = rxlev_nc[1] & 1;
+	mr->rxlev_nc3_hi = rxlev_nc[2] >> 2;
+	mr->rxlev_nc3_lo = rxlev_nc[2] & 3;
+	mr->rxlev_nc4_hi = rxlev_nc[3] >> 3;
+	mr->rxlev_nc4_lo = rxlev_nc[3] & 7;
+	mr->rxlev_nc5_hi = rxlev_nc[4] >> 4;
+	mr->rxlev_nc5_lo = rxlev_nc[4] & 15;
+	mr->rxlev_nc6_hi = rxlev_nc[5] >> 5;
+	mr->rxlev_nc6_lo = rxlev_nc[5] & 31;
+	mr->bsic_nc1_hi = bsic_nc[0] >> 3;
+	mr->bsic_nc1_lo = bsic_nc[0] & 7;
+	mr->bsic_nc2_hi = bsic_nc[1] >> 4;
+	mr->bsic_nc2_lo = bsic_nc[1] & 15;
+	mr->bsic_nc3_hi = bsic_nc[2] >> 5;
+	mr->bsic_nc3_lo = bsic_nc[2] & 31;
+	mr->bsic_nc4 = bsic_nc[3];
+	mr->bsic_nc5 = bsic_nc[4];
+	mr->bsic_nc6 = bsic_nc[5];
+	mr->bcch_f_nc1 = bcch_f_nc[0];
+	mr->bcch_f_nc2 = bcch_f_nc[1];
+	mr->bcch_f_nc3 = bcch_f_nc[2];
+	mr->bcch_f_nc4 = bcch_f_nc[3];
+	mr->bcch_f_nc5_hi = bcch_f_nc[4] >> 1;
+	mr->bcch_f_nc5_lo = bcch_f_nc[4] & 1;
+	mr->bcch_f_nc6_hi = bcch_f_nc[5] >> 2;
+	mr->bcch_f_nc6_lo = bcch_f_nc[5] & 3;
 
-	return gsm48_send_rsl(ms, RSL_MT_UNIT_DATA_REQ, nmsg);
+	LOGP(DRR, LOGL_INFO, "MEAS REP: pwr=%d TA=%d meas-invalid=%d "
+		"rxlev-full=%d rxlev-sub=%d rxqual-full=%d rxqual-sub=%d "
+		"dtx %d ba %d no-ncell-n %d\n", tx_power, ta, mr->meas_valid,
+		mr->rxlev_full - 110, mr->rxlev_sub - 110,
+		mr->rxqual_full, mr->rxqual_sub, mr->dtx_used, mr->ba_used,
+		(mr->no_nc_n_hi << 2) | mr->no_nc_n_lo);
+
+	msgb_tv16_push(nmsg, RSL_IE_L3_INFO,
+		nmsg->tail - (uint8_t *)msgb_l3(nmsg));
+	msgb_push(nmsg, 2 + 2);
+	nmsg->data[0] = RSL_IE_ACCESS_DELAY;
+	nmsg->data[1] = ta;
+	nmsg->data[2] = RSL_IE_MS_POWER;
+	nmsg->data[3] = tx_power;
+	rsl_rll_push_hdr(nmsg, RSL_MT_UNIT_DATA_REQ, rr->cd_now.chan_nr,
+		0x40, 1);
+
+	return rslms_recvmsg(nmsg, ms);
 }
 
 /*
@@ -2917,6 +3053,8 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_settings *set = &ms->settings;
+ 	struct gsm48_sysinfo *s = ms->cellsel.si;
+ 	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t ch_type, ch_subch, ch_ts;
 
 	/* setting (new) timing advance */
@@ -2925,6 +3063,17 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	l1ctl_tx_param_req(ms, cd->ind_ta - set->alter_delay,
 			(set->alter_tx_power) ? set->alter_tx_power_value
 						: cd->ind_tx_power);
+	/* setting initial (invalid) measurement report, resetting SI5* */
+	if (s) {
+		memset(s->si5_msg, 0, sizeof(s->si5_msg));
+		memset(s->si5b_msg, 0, sizeof(s->si5b_msg));
+		memset(s->si5t_msg, 0, sizeof(s->si5t_msg));
+		memset(meas, 0, sizeof(*meas));
+	}
+	rr->meas.nc_num = 0;
+	stop_rr_t_meas(rr);
+	start_rr_t_meas(rr, 1, 0);
+	gsm48_rr_tx_meas_rep(ms);
 
 	/* establish */
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
@@ -2940,6 +3089,7 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 			ma, ma_len, cd->chan_nr, cd->tsc);
 	else
 		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc);
+	rr->dm_est = 1;
 
 	if (rr->cipher_on)
 		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
@@ -3556,7 +3706,9 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DRR, LOGL_INFO, "ASSIGNMENT COMMAND\n");
 
 	memset(cda, 0, sizeof(*cda));
+	cda->ind_tx_power = rr->cd_now.ind_tx_power;
 	memset(cdb, 0, sizeof(*cdb));
+	cdb->ind_tx_power = rr->cd_now.ind_tx_power;
 
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of ASSIGNMENT COMMAND "
@@ -3909,7 +4061,9 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DRR, LOGL_INFO, "HANDOVER COMMAND\n");
 
 	memset(cda, 0, sizeof(*cda));
+	cda->ind_tx_power = rr->cd_now.ind_tx_power;
 	memset(cdb, 0, sizeof(*cdb));
+	cdb->ind_tx_power = rr->cd_now.ind_tx_power;
 
 	if (payload_len < 0) {
 		LOGP(DRR, LOGL_NOTICE, "Short read of HANDOVER COMMAND "
@@ -4264,6 +4418,7 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_INFO, "suspension coplete, leaving dedicated "
 			"mode\n");
 		l1ctl_tx_dm_rel_req(ms);
+		rr->dm_est = 0;
 		l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
 
 		/* store current channel descriptions */
@@ -4791,6 +4946,7 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* deactivate channel */
 	l1ctl_tx_dm_rel_req(ms);
+	rr->dm_est = 0;
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
 
 	switch (rr->modify_state) {
@@ -5041,6 +5197,8 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 
 	osmol2_register_handler(ms, &gsm48_rx_rsl);
 
+	start_rr_t_meas(rr, 1, 0);
+
 	return 0;
 }
 
@@ -5062,7 +5220,7 @@ int gsm48_rr_exit(struct osmocom_ms *ms)
 		rr->rr_est_msg = NULL;
 	}
 
-	stop_rr_t_monitor(rr);
+	stop_rr_t_meas(rr);
 	stop_rr_t_starting(rr);
 	stop_rr_t_rel_wait(rr);
 	stop_rr_t3110(rr);
@@ -5092,6 +5250,7 @@ static void timeout_rr_t3124(void *arg)
 	/* change radio to old channel */
 	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr,
 			 rr->cd_now.tsc);
+	rr->dm_est = 1;
 
 	/* re-establish old link */
 	nmsg = gsm48_l3_msgb_alloc();
@@ -5138,6 +5297,7 @@ static int gsm48_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *m
 			start_rr_t3124(rr, GSM_T3124_675);
 		else
 			start_rr_t3124(rr, GSM_T3124_320);
+	}
 	if (!rr->n_chan_req) {
 		start_rr_t3126(rr, 5, 0); /* TODO improve! */
 		return 0;
@@ -5150,5 +5310,4 @@ static int gsm48_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *m
 }
 
 #endif
-
 

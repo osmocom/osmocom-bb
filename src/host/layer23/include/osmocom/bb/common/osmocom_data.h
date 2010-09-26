@@ -34,6 +34,8 @@ struct osmosap_entity {
 /* RX measurement statistics */
 struct rx_meas_stat {
 	uint32_t last_fn;
+
+	/* cumulated values of current cell from SACCH dl */
 	uint32_t frames;
 	uint32_t snr;
 	uint32_t berr;
@@ -73,6 +75,12 @@ enum osmobb_meas_sig {
 	S_L1CTL_PM_RES,
 	S_L1CTL_PM_DONE,
 	S_L1CTL_CCCH_MODE_CONF,
+};
+
+struct osmobb_fbsb_res {
+	struct osmocom_ms *ms;
+	int8_t snr;
+	uint8_t bsic;
 };
 
 struct osmobb_meas_res {

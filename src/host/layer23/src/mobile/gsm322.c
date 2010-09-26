@@ -260,6 +260,8 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs)
 static void gsm322_unselect_cell(struct gsm322_cellsel *cs)
 {
 	cs->selected = 0;
+	if (cs->si)
+		cs->si->si5 = 0; /* unset SI5* */
 	cs->si = NULL;
 	memset(&cs->sel_si, 0, sizeof(cs->sel_si));
 	cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id = 0;
@@ -1996,9 +1998,10 @@ struct gsm322_ba_list *gsm322_cs_sysinfo_sacch(struct osmocom_ms *ms)
 			llist_add_tail(&ba->entry, &cs->ba_list);
 		}
 		/* update (add) ba list */
-		memcpy(freq, ba->freq, sizeof(freq));
+		memset(freq, 0, sizeof(freq));
 		for (i = 0; i <= 1023; i++) {
-			if ((s->freq[i].mask & FREQ_TYPE_REP))
+			if ((s->freq[i].mask & (FREQ_TYPE_SERV
+				| FREQ_TYPE_NCELL | FREQ_TYPE_REP)))
 				freq[i >> 3] |= (1 << (i & 7));
 		}
 		if (!!memcmp(freq, ba->freq, sizeof(freq))) {
@@ -2036,7 +2039,7 @@ static int gsm322_store_ba_list(struct gsm322_cellsel *cs,
 	freq[cs->arfcn >> 3] |= (1 << (cs->arfcn & 7));
 	for (i = 0; i <= 1023; i++) {
 		if ((s->freq[i].mask &
-			(FREQ_TYPE_SERV | FREQ_TYPE_NCELL)))
+		    (FREQ_TYPE_SERV | FREQ_TYPE_NCELL | FREQ_TYPE_REP)))
 			freq[i >> 3] |= (1 << (i & 7));
 	}
 	if (!!memcmp(freq, ba->freq, sizeof(freq))) {
@@ -2385,6 +2388,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 	struct osmocom_ms *ms;
 	struct gsm322_cellsel *cs;
 	struct osmobb_meas_res *mr;
+	struct osmobb_fbsb_res *fr;
 	int i;
 	int8_t rxlev;
 
@@ -2420,12 +2424,16 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		gsm322_cs_powerscan(ms);
 		break;
 	case S_L1CTL_FBSB_RESP:
-		ms = signal_data;
+		fr = signal_data;
+		ms = fr->ms;
 		cs = &ms->cellsel;
 		if (cs->ccch_state == GSM322_CCCH_ST_INIT) {
-			LOGP(DCS, LOGL_INFO, "Channel synched. (ARFCN=%d)\n",
-				cs->arfcn);
+			LOGP(DCS, LOGL_INFO, "Channel synched. (ARFCN=%d, "
+				"snr=%u, BSIC=%u)\n", cs->arfcn, fr->snr,
+				fr->bsic);
 			cs->ccch_state = GSM322_CCCH_ST_SYNC;
+			if (cs->si)
+				cs->si->bsic = fr->bsic;
 #if 0
 			stop_cs_timer(cs);
 

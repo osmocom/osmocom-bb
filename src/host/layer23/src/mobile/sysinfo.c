@@ -85,13 +85,14 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 	for (i = 0; i < 1024; i++) {
 		if ((s->freq[i].mask & FREQ_TYPE_NCELL)) {
 			if (!k) {
-				sprintf(buffer, "SI2 (neigh.): ");
+				sprintf(buffer, "SI2 (neigh.) BA=%d: ",
+					s->nb_ba_ind_si2);
 				j = strlen(buffer);
 			}
-			if (j >= 75) {
+			if (j >= 70) {
 				buffer[j - 1] = '\0';
 				print(priv, "%s\n", buffer);
-				sprintf(buffer, "              ");
+				sprintf(buffer, "                   ");
 				j = strlen(buffer);
 			}
 			sprintf(buffer + j, "%d,", i);
@@ -107,13 +108,14 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 	for (i = 0; i < 1024; i++) {
 		if ((s->freq[i].mask & FREQ_TYPE_REP)) {
 			if (!k) {
-				sprintf(buffer, "SI5 (report): ");
+				sprintf(buffer, "SI5 (report) BA=%d: ",
+					s->nb_ba_ind_si5);
 				j = strlen(buffer);
 			}
-			if (j >= 75) {
+			if (j >= 70) {
 				buffer[j - 1] = '\0';
 				print(priv, "%s\n", buffer);
-				sprintf(buffer, "              ");
+				sprintf(buffer, "                   ");
 				j = strlen(buffer);
 			}
 			sprintf(buffer + j, "%d,", i);
@@ -138,8 +140,8 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 		for (j = 0; j < 64; j++) {
 			if ((s->freq[i+j].mask & FREQ_TYPE_SERV))
 				buffer[j + 5] = 'S';
-			else if ((s->freq[i+j].mask & (FREQ_TYPE_NCELL
-							& FREQ_TYPE_REP)))
+			else if ((s->freq[i+j].mask & FREQ_TYPE_NCELL)
+			      && (s->freq[i+j].mask & FREQ_TYPE_REP))
 				buffer[j + 5] = 'b';
 			else if ((s->freq[i+j].mask & FREQ_TYPE_NCELL))
 				buffer[j + 5] = 'n';
@@ -156,9 +158,11 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 
 	/* serving cell */
 	print(priv, "Serving Cell:\n");
-	print(priv, " MCC = %s  MNC = %s  LAC = 0x%04x  Cell ID = 0x%04x  "
-		"(%s, %s)\n", gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc),
-		s->lac, s->cell_id, gsm_get_mcc(s->mcc),
+	print(priv, " BSIC = %d,%d  MCC = %s  MNC = %s  LAC = 0x%04x  Cell ID "
+		"= 0x%04x\n", s->bsic >> 3, s->bsic & 0x7,
+		gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc), s->lac,
+		s->cell_id);
+	print(priv, " Country = %s  Network Name = %s\n", gsm_get_mcc(s->mcc),
 		gsm_get_mnc(s->mcc, s->mnc));
 	print(priv, " MAX_RETRANS = %d  TX_INTEGER = %d  re-establish = %s\n",
 		s->max_retrans, s->tx_integer,
@@ -174,6 +178,20 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 		print(priv, " CBQ = %d  CRO = %d  TEMP_OFFSET = %d  "
 			"PENALTY_TIME = %d\n", s->sp_cbq, s->sp_cro, s->sp_to,
 			s->sp_pt);
+	if (s->nb_ncc_permitted_si2) {
+		print(priv, "NCC Permitted BCCH =");
+		for (i = 0; i < 8; i++)
+			if ((s->nb_ncc_permitted_si2 & (1 << i)))
+				print(priv, " %d", i);
+		print(priv, "\n");
+	}
+	if (s->nb_ncc_permitted_si6) {
+		print(priv, "NCC Permitted SACCH/TCH =");
+		for (i = 0; i < 8; i++)
+			if ((s->nb_ncc_permitted_si6 & (1 << i)))
+				print(priv, " %d", i);
+		print(priv, "\n");
+	}
 	print(priv, "\n");
 
 	/* neighbor cell */

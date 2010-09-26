@@ -76,6 +76,7 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 	struct l1ctl_info_dl *dl;
 	struct l1ctl_fbsb_conf *sb;
 	struct gsm_time tm;
+	struct osmobb_fbsb_res fr;
 
 	if (msgb_l3len(msg) < sizeof(*dl) + sizeof(*sb)) {
 		LOGP(DL1C, LOGL_ERROR, "FBSB RESP: MSG too short %u\n",
@@ -98,7 +99,10 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
 	DEBUGP(DL1C, "SCH: SNR: %u TDMA: (%.4u/%.2u/%.2u) bsic: %d\n",
 		dl->snr, tm.t1, tm.t2, tm.t3, sb->bsic);
-	dispatch_signal(SS_L1CTL, S_L1CTL_FBSB_RESP, ms);
+	fr.ms = ms;
+	fr.snr = dl->snr;
+	fr.bsic = sb->bsic;
+	dispatch_signal(SS_L1CTL, S_L1CTL_FBSB_RESP, &fr);
 
 	return 0;
 }

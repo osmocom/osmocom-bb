@@ -92,25 +92,18 @@ struct gsm48_rr_cd {
 	uint8_t			cipher; /* ciphering of channel */
 };
 
-/* measurements */
-struct gsm48_rr_meas {
-	uint8_t			rxlev_full;
-	uint8_t			rxlev_sub;
-	uint8_t			rxqual_full;
-	uint8_t			rxqual_sub;
-	uint8_t			dtx;
-	uint8_t			ba;
-	uint8_t			meas_valid;
-	uint8_t			ncell_na;
-	uint8_t			count;
-	uint8_t			rxlev_nc[6];
-	uint8_t			bsic_nc[6];
-	uint8_t			bcch_f_nc[6];
-};
-
 struct gsm48_cr_hist {
 	uint8_t			valid;
 	struct gsm48_req_ref	ref;
+};
+
+/* neighbor cell measurements */
+struct gsm48_rr_meas {
+	/* note: must be sorted by arfcn 1..1023,0 according to SI5* */
+	uint8_t nc_num; /* number of measured cells (32 max) */
+	int8_t nc_rxlev[32]; /* -128 = no value */
+	uint8_t nc_bsic[32];
+	uint16_t nc_arfcn[32];
 };
 
 /* RR sublayer instance */
@@ -147,6 +140,9 @@ struct gsm48_rrlayer {
 	uint8_t			chan_req_val; /* current request value */ 
 	uint8_t			chan_req_mask; /* mask of random bits */
 
+	/* state of dedicated mdoe */
+	uint8_t			dm_est;
+
 	/* cr_hist */
 	uint8_t			cr_ra; /* stores requested ra until confirmed */
 	struct gsm48_cr_hist	cr_hist[3];
@@ -168,16 +164,14 @@ struct gsm48_rrlayer {
 	struct gsm48_rr_cd	cd_before; /* before start time */
 	struct gsm48_rr_cd	cd_after; /* after start time */
 
-	/* measurements */
-	struct gsm48_rr_meas	meas;
-
 	/* BA range */
 	uint8_t			ba_ranges;
 	uint32_t		ba_range[16];
 
-	/* monitor */
+	/* measurements */
+	struct timer_list	t_meas;
+	struct gsm48_rr_meas	meas;
 	uint8_t			monitor;
-	struct timer_list	t_monitor;
 };
 
 const char *get_rr_name(int value);

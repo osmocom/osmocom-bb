@@ -40,6 +40,7 @@ struct gsm48_sysinfo {
 	uint8_t				hopp_len;
 
 	/* serving cell */
+	uint8_t				bsic;
 	uint16_t			cell_id;
 	uint16_t			mcc, mnc, lac; /* LAI */
 	uint8_t				max_retrans; /* decoded */
@@ -97,12 +98,15 @@ struct gsm48_sysinfo {
 	uint8_t				nb_ext_ind_si2bis;
 	uint8_t				nb_ba_ind_si2bis;
 	uint8_t				nb_multi_rep_si2ter; /* see GSM 05.08 8.4.3 */
+	uint8_t				nb_ba_ind_si2ter;
 	uint8_t				nb_ext_ind_si5;
 	uint8_t				nb_ba_ind_si5;
 	uint8_t				nb_ext_ind_si5bis;
 	uint8_t				nb_ba_ind_si5bis;
 	uint8_t				nb_multi_rep_si5ter;
-	uint8_t				nb_ncc_permitted;
+	uint8_t				nb_ba_ind_si5ter;
+	uint8_t				nb_ncc_permitted_si2;
+	uint8_t				nb_ncc_permitted_si6;
 	uint8_t				nb_max_retrans; /* decoded */
 	uint8_t				nb_tx_integer; /* decoded */
 	uint8_t				nb_reest_denied; /* 1 = denied */
