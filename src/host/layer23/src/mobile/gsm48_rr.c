@@ -3043,7 +3043,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 	msgb_tv16_push(nmsg, RSL_IE_L3_INFO,
 		nmsg->tail - (uint8_t *)msgb_l3(nmsg));
 	msgb_push(nmsg, 2 + 2);
-	nmsg->data[0] = RSL_IE_ACCESS_DELAY;
+	nmsg->data[0] = RSL_IE_TIMING_ADVANCE;
 	nmsg->data[1] = ta;
 	nmsg->data[2] = RSL_IE_MS_POWER;
 	nmsg->data[3] = tx_power;

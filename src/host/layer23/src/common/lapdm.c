@@ -373,7 +373,7 @@ static int send_rslms_rll_l3_ui(struct lapdm_msg_ctx *mctx, struct msgb *msg)
 		mctx->link_id, 1);
 	rllh = (struct abis_rsl_rll_hdr *)msgb_l2(msg);
 
-	rllh->data[0] = RSL_IE_ACCESS_DELAY;
+	rllh->data[0] = RSL_IE_TIMING_ADVANCE;
 	rllh->data[1] = mctx->ta_ind;
 
 	rllh->data[2] = RSL_IE_MS_POWER;
@@ -1664,8 +1664,8 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 
-	if (TLVP_PRESENT(&tv, RSL_IE_ACCESS_DELAY)) {
-		ta = *TLVP_VAL(&tv, RSL_IE_ACCESS_DELAY);
+	if (TLVP_PRESENT(&tv, RSL_IE_TIMING_ADVANCE)) {
+		ta = *TLVP_VAL(&tv, RSL_IE_TIMING_ADVANCE);
 	}
 	if (TLVP_PRESENT(&tv, RSL_IE_MS_POWER)) {
 		tx_power = *TLVP_VAL(&tv, RSL_IE_MS_POWER);
