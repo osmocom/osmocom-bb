@@ -209,7 +209,8 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 
 		/* request L1 to go to dedicated mode on assigned channel */
 		rv = l1ctl_tx_dm_est_req_h0(ms,
-			arfcn, ia->chan_desc.chan_nr, ia->chan_desc.h0.tsc);
+			arfcn, ia->chan_desc.chan_nr, ia->chan_desc.h0.tsc,
+			GSM48_CMODE_SIGN);
 	} else {
 		/* Hopping */
 		uint8_t maio, hsn, ma_len;
@@ -240,7 +241,8 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 		/* request L1 to go to dedicated mode on assigned channel */
 		rv = l1ctl_tx_dm_est_req_h1(ms,
 			maio, hsn, ma, ma_len,
-			ia->chan_desc.chan_nr, ia->chan_desc.h1.tsc);
+			ia->chan_desc.chan_nr, ia->chan_desc.h1.tsc,
+			GSM48_CMODE_SIGN);
 	}
 
 	DEBUGPC(DRR, "\n");

@@ -386,7 +386,7 @@ int l1ctl_tx_rach_req(struct osmocom_ms *ms, uint8_t ra, uint8_t fn51,
 
 /* Transmit L1CTL_DM_EST_REQ */
 int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
-                           uint8_t chan_nr, uint8_t tsc)
+                           uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -409,13 +409,14 @@ int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	req->tsc = tsc;
 	req->h = 0;
 	req->h0.band_arfcn = htons(band_arfcn);
+	req->tch_mode = tch_mode;
 
 	return osmo_send_l1(ms, msg);
 }
 
 int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
                            uint16_t *ma, uint8_t ma_len,
-                           uint8_t chan_nr, uint8_t tsc)
+                           uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -443,6 +444,7 @@ int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 	req->h1.n = ma_len;
 	for (i = 0; i < ma_len; i++)
 		req->h1.ma[i] = htons(ma[i]);
+	req->tch_mode = tch_mode;
 
 	return osmo_send_l1(ms, msg);
 }

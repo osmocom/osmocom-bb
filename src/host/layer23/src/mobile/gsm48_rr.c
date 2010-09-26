@@ -3171,15 +3171,14 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 		ch_type, ch_subch, ch_ts, cd->mode);
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
-			ma, ma_len, cd->chan_nr, cd->tsc);
+			ma, ma_len, cd->chan_nr, cd->tsc, cd->mode);
 	else
-		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc);
+		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc,
+			cd->mode);
 	rr->dm_est = 1;
 
 	if (rr->cipher_on)
 		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
-
-	gsm48_rr_set_mode(ms, cd->chan_nr, cd->mode);
 
 	return 0;
 }

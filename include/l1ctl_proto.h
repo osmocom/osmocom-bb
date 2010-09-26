@@ -207,6 +207,8 @@ struct l1ctl_dm_est_req {
 		struct l1ctl_h0 h0;
 		struct l1ctl_h1 h1;
 	};
+	uint8_t tch_mode;
+	uint8_t _padding[1];
 } __attribute__((packed));
 
 struct l1ctl_dm_freq_req {
