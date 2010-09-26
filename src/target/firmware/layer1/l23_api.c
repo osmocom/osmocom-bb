@@ -185,6 +185,9 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 		l1s.dedicated.h0.arfcn = ntohs(est_req->h0.band_arfcn);
 	}
 
+	/* TCH mode */
+	l1a_tch_mode_set(est_req->tch_mode);
+
 	/* figure out which MF tasks to enable */
 	l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
 }
@@ -249,6 +252,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	l1a_txq_msgb_flush(&l1s.tx_queue[L1S_CHAN_SACCH]);
 	l1a_meas_msgb_set(NULL);
 	dsp_load_ciph_param(0, NULL);
+	l1a_tch_mode_set(GSM48_CMODE_SIGN);
 }
 
 /* receive a L1CTL_PARAM_REQ from L23 */
@@ -401,6 +405,32 @@ static void l1ctl_rx_ccch_mode_req(struct msgb *msg)
 	l1ctl_tx_ccch_mode_conf(ccch_mode);
 }
 
+/* Transmit a L1CTL_TCH_MODE_CONF */
+static void l1ctl_tx_tch_mode_conf(uint8_t tch_mode)
+{
+	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_TCH_MODE_CONF);
+	struct l1ctl_tch_mode_conf *mode_conf;
+	mode_conf = (struct l1ctl_tch_mode_conf *)
+				msgb_put(msg, sizeof(*mode_conf));
+	mode_conf->tch_mode = tch_mode;
+
+	l1_queue_for_l2(msg);
+}
+
+/* receive a L1CTL_TCH_MODE_REQ from L23 */
+static void l1ctl_rx_tch_mode_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_tch_mode_req *tch_mode_req =
+		(struct l1ctl_tch_mode_req *) l1h->data;
+	uint8_t tch_mode = tch_mode_req->tch_mode;
+
+	printd("L1CTL_TCH_MODE_REQ (mode=0x%02x)\n", tch_mode);
+	tch_mode = l1a_tch_mode_set(tch_mode);
+
+	l1ctl_tx_tch_mode_conf(tch_mode);
+}
+
 /* callback from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
@@ -457,6 +487,9 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		break;
 	case L1CTL_CCCH_MODE_REQ:
 		l1ctl_rx_ccch_mode_req(msg);
+		break;
+	case L1CTL_TCH_MODE_REQ:
+		l1ctl_rx_tch_mode_req(msg);
 		break;
 	}
 

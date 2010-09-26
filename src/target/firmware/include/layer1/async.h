@@ -41,6 +41,9 @@ void l1a_mftask_enable(enum mframe_task task);
 /* Disable a repeating multiframe task */
 void l1a_mftask_disable(enum mframe_task task);
 
+/* Set TCH mode */
+uint8_t l1a_tch_mode_set(uint8_t mode);
+
 /* Execute pending L1A completions */
 void l1a_compl_execute(void);
 

@@ -75,6 +75,9 @@ struct l1s_state {
 	int8_t		ta;
 	uint8_t		tx_power;
 
+	/* TCH mode */
+	uint8_t		tch_mode;
+
 	/* Transmit queues of pending packets for main DCCH and ACCH */
 	struct llist_head tx_queue[_NUM_L1S_CHAN];
 	struct msgb *tx_meas;

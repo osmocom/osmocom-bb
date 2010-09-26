@@ -27,12 +27,14 @@
 #include <asm/system.h>
 
 #include <osmocore/msgb.h>
+#include <osmocore/protocol/gsm_04_08.h>
 
 #include <layer1/sync.h>
 #include <layer1/async.h>
 #include <layer1/mframe_sched.h>
 #include <layer1/sched_gsmtime.h>
 #include <layer1/l23_api.h>
+#include <calypso/l1_environment.h>
 
 extern const struct tdma_sched_item rach_sched_set_ul[];
 
@@ -88,6 +90,24 @@ void l1a_mftask_set(uint32_t tasks)
 {
 	/* we don't need locking here as L1S only reads mframe.tasks */
 	mframe_set(tasks);
+}
+
+/* Set TCH mode */
+uint8_t l1a_tch_mode_set(uint8_t mode)
+{
+	switch (mode) {
+	case GSM48_CMODE_SPEECH_V1:
+		l1s.tch_mode = TCH_FS_MODE;
+		break;
+	case GSM48_CMODE_SPEECH_EFR:
+		l1s.tch_mode = TCH_EFR_MODE;
+		break;
+	default:
+		mode = GSM48_CMODE_SIGN;
+		l1s.tch_mode = SIG_ONLY_MODE;
+	}
+
+	return mode;
 }
 
 /* Initialize asynchronous part of Layer1 */
