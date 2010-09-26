@@ -384,14 +384,6 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 				LOGP(DMNCC, LOGL_INFO, " only supported full "
 					"rate codec is given, using it\n");
 			}
-			if (speech_ver < 0) {
-				vty_notify(ms, "Incomming call rejected, no "
-					"voice call\n");
-				LOGP(DMNCC, LOGL_INFO, "Incomming call "
-					"rejected, no voice call\n");
-				cause = GSM48_CC_CAUSE_BEARERSERV_UNIMPL;
-				goto release;
-			}
 		}
 		/* presentation allowed if present == 0 */
 		if (data->calling.present || !data->calling.number[0])
