@@ -1376,6 +1376,8 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* send a DATA INDICATION to L3 */
 			msg->l3h = msg->l2h + 3;
 			msgb_pull_l2h(msg);
+			msg->len = length;
+			msg->tail = msg->data + length;
 			rc = send_rslms_rll_l3(RSL_MT_DATA_IND, mctx, msg);
 		} else {
 			/* create rcv_buffer */
@@ -1397,13 +1399,13 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* if the last segment was received */
 			if (!(msg->l2h[2] & LAPDm_MORE)) {
 				LOGP(DLAPDM, LOGL_INFO, "message in multiple I "
-					"frames (next message)\n");
+					"frames (last message)\n");
 				rc = send_rslms_rll_l3(RSL_MT_DATA_IND, mctx,
 					dl->rcv_buffer);
 				dl->rcv_buffer = NULL;
 			} else
 				LOGP(DLAPDM, LOGL_INFO, "message in multiple I "
-					"frames (last message)\n");
+					"frames (next message)\n");
 			msgb_free(msg);
 
 		}
