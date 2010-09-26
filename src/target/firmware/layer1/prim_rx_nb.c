@@ -46,6 +46,7 @@
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
 #include <layer1/rfch.h>
+#include <layer1/prim.h>
 
 #include <l1ctl_proto.h>
 
@@ -141,6 +142,9 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 			rxnb.dl->num_biterr = num_biterr;
 
 		rxnb.dl->fire_crc = ((dsp_api.ndb->a_cd[0] & 0xffff) & ((1 << B_FIRE1) | (1 << B_FIRE0))) >> B_FIRE0;
+
+		/* update rx level for pm report */
+		pu_update_rx_level(rxnb.dl->rx_level);
 
 		/* copy actual data, skipping the information block [0,1,2] */
 		for (j = 0,i = 3; i < 15; i++) {

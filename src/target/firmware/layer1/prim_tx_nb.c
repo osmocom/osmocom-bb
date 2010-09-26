@@ -47,6 +47,7 @@
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
 #include <layer1/rfch.h>
+#include <layer1/prim.h>
 
 #include <l1ctl_proto.h>
 
@@ -82,7 +83,6 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 	/* before sending first of the four bursts, copy data to API ram */
 	if (burst_id == 0) {
 		uint16_t *info_ptr = dsp_api.ndb->a_cu;
-		struct llist_head *tx_queue;
 		struct msgb *msg;
 		const uint8_t *data;
 		int i;
@@ -91,20 +91,12 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 		/* distinguish between DCCH and ACCH */
 		if (mf_task_flags & MF_F_SACCH) {
 			puts("SACCH queue ");
-			tx_queue = &l1s.tx_queue[L1S_CHAN_SACCH];
+			msg = msgb_dequeue(&l1s.tx_queue[L1S_CHAN_SACCH]);
+			data = msg ? msg->l3h : pu_get_meas_frame();
 		} else {
 			puts("SDCCH queue ");
-			tx_queue = &l1s.tx_queue[L1S_CHAN_MAIN];
-		}
-		msg = msgb_dequeue(tx_queue);
-
-		/* If the TX queue is empty, send idle pattern */
-		if (!msg) {
-			puts("TX idle pattern\n");
-			data = pu_get_idle_frame();
-		} else {
-			puts("TX uplink msg\n");
-			data = msg->l3h;
+			msg = msgb_dequeue(&l1s.tx_queue[L1S_CHAN_MAIN]);
+			data = msg ? msg->l3h : pu_get_idle_frame();
 		}
 
 		/* Fill data block Header */

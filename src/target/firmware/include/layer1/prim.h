@@ -9,6 +9,8 @@ struct l1ctl_fbsb_req;
 
 /* Utils */
 const uint8_t *pu_get_idle_frame(void);
+void pu_update_rx_level(uint8_t rx_level);
+const uint8_t *pu_get_meas_frame(void);
 
 /* Primitives tests/requests */
 void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode);
