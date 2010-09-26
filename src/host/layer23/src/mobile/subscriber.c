@@ -653,6 +653,10 @@ void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
 	struct msgb *nmsg;
 	uint8_t job;
 
+	/* skip, if no real valid SIM */
+	if (subscr->sim_type != GSM_SIM_TYPE_READER)
+		return;
+
 	switch (mode) {
 	case -1:
 		job = SIM_JOB_PIN1_DISABLE;

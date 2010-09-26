@@ -526,6 +526,37 @@ DEFUN(sim_unblock_pin, sim_unblock_pin_cmd, "sim unblock-pin MS_NAME PUC NEW",
 	return CMD_SUCCESS;
 }
 
+DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
+	"SIM actions\nChange LAI of SIM card\nName of MS (see \"show ms\")\n"
+	"Mobile Country Code\nMobile Network Code\nLocation Area Code")
+{
+	struct osmocom_ms *ms;
+	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
+		 mnc = gsm_input_mnc((char *)argv[2]),
+		 lac = strtoul(argv[3], NULL, 16);
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (!mcc) {
+		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (!mnc) {
+		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	ms->subscr.mcc = mcc;
+	ms->subscr.mnc = mnc;
+	ms->subscr.lac = lac;
+
+	gsm_subscr_write_loci(ms);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 	"Select ...\nSelect Network\nName of MS (see \"show ms\")\n"
 	"Mobile Country Code\nMobile Network Code")
@@ -1467,6 +1498,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &sim_enable_pin_cmd);
 	install_element(ENABLE_NODE, &sim_change_pin_cmd);
 	install_element(ENABLE_NODE, &sim_unblock_pin_cmd);
+	install_element(ENABLE_NODE, &sim_lai_cmd);
 	install_element(ENABLE_NODE, &network_search_cmd);
 	install_element(ENABLE_NODE, &network_show_cmd);
 	install_element(ENABLE_NODE, &network_select_cmd);
