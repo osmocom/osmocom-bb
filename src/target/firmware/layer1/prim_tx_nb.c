@@ -53,8 +53,6 @@
 
 static uint32_t last_txnb_fn;
 
-static const uint8_t ubUui[23]     = { 0x01, 0x03, 0x01, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
-
 /* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
 static int l1s_tx_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 		       __unused uint16_t p3)
@@ -103,7 +101,7 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 		/* If the TX queue is empty, send idle pattern */
 		if (!msg) {
 			puts("TX idle pattern\n");
-			data = ubUui;
+			data = pu_get_idle_frame();
 		} else {
 			puts("TX uplink msg\n");
 			data = msg->l3h;

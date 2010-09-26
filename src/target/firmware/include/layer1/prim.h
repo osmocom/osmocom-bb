@@ -7,6 +7,9 @@
 
 struct l1ctl_fbsb_req;
 
+/* Utils */
+const uint8_t *pu_get_idle_frame(void);
+
 /* Primitives tests/requests */
 void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode);
 void l1s_sb_test(uint8_t base_fn);
