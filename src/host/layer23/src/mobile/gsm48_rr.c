@@ -86,6 +86,8 @@ static void stop_rr_t3124(struct gsm48_rrlayer *rr);
 static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_rr_dl_est(struct osmocom_ms *ms);
 static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms);
+static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
+	uint8_t mode);
 
 /*
  * support
@@ -273,6 +275,79 @@ static int gsm48_apply_v_sd(struct gsm48_rrlayer *rr, struct msgb *msg)
 		LOGP(DRR, LOGL_ERROR, "Error, V(SD) of pdisc %x not handled\n",
 			pdisc);
 		return -ENOTSUP;
+	}
+
+	return 0;
+}
+
+/* set channel mode if supported, or return error cause */
+static uint8_t gsm48_rr_check_mode(struct osmocom_ms *ms, uint8_t chan_nr,
+	uint8_t mode)
+{
+	struct gsm_support *sup = &ms->support;
+	uint8_t ch_type, ch_subch, ch_ts;
+
+	/* only complain if we use TCH/F or TCH/H */
+	rsl_dec_chan_nr(chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (ch_type != RSL_CHAN_Bm_ACCHs
+	 && ch_type != RSL_CHAN_Lm_ACCHs)
+		return 0;
+
+	switch (mode) {
+	case GSM48_CMODE_SIGN:
+		LOGP(DRR, LOGL_INFO, "Mode: signalling\n");
+		break;
+	case GSM48_CMODE_SPEECH_V1:
+		if (ch_type == RSL_CHAN_Bm_ACCHs) {
+			if (!sup->full_v1) {
+				LOGP(DRR, LOGL_NOTICE, "Not supporting "
+					"full-rate speech V1\n");
+				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+			}
+			LOGP(DRR, LOGL_INFO, "Mode: full-rate speech V1\n");
+		} else {
+			if (!sup->half_v1) {
+				LOGP(DRR, LOGL_NOTICE, "Not supporting "
+					"half-rate speech V1\n");
+				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+			}
+			LOGP(DRR, LOGL_INFO, "Mode: half-rate speech V1\n");
+		}
+		break;
+	case GSM48_CMODE_SPEECH_EFR:
+		if (ch_type == RSL_CHAN_Bm_ACCHs) {
+			if (!sup->full_v2) {
+				LOGP(DRR, LOGL_NOTICE, "Not supporting "
+					"full-rate speech V2\n");
+				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+			}
+			LOGP(DRR, LOGL_INFO, "Mode: full-rate speech V2\n");
+		} else {
+			LOGP(DRR, LOGL_NOTICE, "Not supporting "
+					"half-rate speech V2\n");
+			return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		}
+		break;
+	case GSM48_CMODE_SPEECH_AMR:
+		if (ch_type == RSL_CHAN_Bm_ACCHs) {
+			if (!sup->full_v3) {
+				LOGP(DRR, LOGL_NOTICE, "Not supporting "
+					"full-rate speech V3\n");
+				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+			}
+			LOGP(DRR, LOGL_INFO, "Mode: full-rate speech V3\n");
+		} else {
+			if (!sup->half_v3) {
+				LOGP(DRR, LOGL_NOTICE, "Not supporting "
+					"half-rate speech V3\n");
+				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+			}
+			LOGP(DRR, LOGL_INFO, "Mode: half-rate speech V3\n");
+		}
+		break;
+	default:
+		LOGP(DRR, LOGL_ERROR, "Mode 0x%02x not supported!\n", mode);
+		return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
 	}
 
 	return 0;
@@ -883,7 +958,7 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		|| (alg_id == GSM_CIPHER_A5_7 && !sup->a5_7))) {
 		LOGP(DRR, LOGL_NOTICE, "algo not supported\n");
 		return gsm48_rr_tx_rr_status(ms,
-			GSM48_RR_CAUSE_CHAN_MODE_UNACCT);
+			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 	}
 
 	/* check if we have no key */
@@ -3093,7 +3168,8 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 
 	if (rr->cipher_on)
 		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
-#warning FIXME: channel mode
+
+	gsm48_rr_set_mode(ms, cd->chan_nr, cd->mode);
 
 	return 0;
 }
@@ -3113,7 +3189,8 @@ static int gsm48_rr_channel_after_time(struct osmocom_ms *ms,
 
 	if (rr->cipher_on)
 		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
-#warning FIXME: channel mode
+
+	gsm48_rr_set_mode(ms, cd->chan_nr, cd->mode);
 
 	return 0;
 }
@@ -3473,6 +3550,25 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
  * frequency redefition, chanel mode modify, assignment, and handover
  */
 
+/* set channel mode in case of TCH */
+static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
+	uint8_t mode)
+{
+	uint8_t ch_type, ch_subch, ch_ts;
+
+	/* only apply mode to TCH/F or TCH/H */
+	rsl_dec_chan_nr(chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (ch_type != RSL_CHAN_Bm_ACCHs
+	 && ch_type != RSL_CHAN_Lm_ACCHs)
+		return -ENOTSUP;
+
+	/* setting (new) timing advance */
+	LOGP(DRR, LOGL_INFO, "setting TCH mode to %d\n", mode);
+	l1ctl_tx_tch_mode_req(ms, mode);
+
+	return 0;
+}
+
 /* 9.1.13 FREQUENCY REDEFINITION is received */
 static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -3589,7 +3685,7 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*cm);
 	struct gsm48_rr_cd *cd = &rr->cd_now;
 	uint8_t ch_type, ch_subch, ch_ts;
-	uint8_t mode;
+	uint8_t cause;
 
 	LOGP(DRR, LOGL_INFO, "CHANNEL MODE MODIFY\n");
 
@@ -3619,21 +3715,13 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 			ch_ts, ch_subch, cd->tsc, cm->mode);
 	}
 	/* mode */
-	mode = cm->mode;
-	switch (mode) {
-	case GSM48_CMODE_SIGN:
-		LOGP(DRR, LOGL_INFO, "Mode set to signalling.\n");
-		break;
-	case GSM48_CMODE_SPEECH_V1:
-		LOGP(DRR, LOGL_INFO, "Mode set to GSM full-rate codec.\n");
-		break;
-	default:
-		LOGP(DRR, LOGL_ERROR, "Mode %u not supported!\n", mode);
-	}
-	rr->cd_now.mode = mode;
-#warning FIXME: channel mode
+	cause = gsm48_rr_check_mode(ms, cd->chan_nr, cm->mode);
+	if (cause)
+		return gsm48_rr_tx_rr_status(ms, cause);
+	cd->mode = cm->mode;
+	gsm48_rr_set_mode(ms, cd->chan_nr, cd->mode);
 
-	return gsm48_rr_tx_chan_modify_ack(ms, &cm->chan_desc, mode);
+	return gsm48_rr_tx_chan_modify_ack(ms, &cm->chan_desc, cm->mode);
 }
 
 /* 9.1.3 sending ASSIGNMENT COMPLETE */
@@ -3860,6 +3948,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				"mobile allocation after time\n");
 			memcpy(&cdb->mob_alloc_lv, &cda->mob_alloc_lv,
 				sizeof(cdb->mob_alloc_lv));
+		} else
 		if (cda->freq_list_lv[0]) {
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
 				"frequency list not available, using "
@@ -3901,7 +3990,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		cda->mode = cdb->mode = rr->cd_now.mode;
 
 	/* cipher mode setting */
-	if (TLVP_PRESENT(&tp, GSM48_IE_CIP_MODE_SET))
+	if (TLVP_PRESENT(&tp, GSM48_IE_CIP_MODE_SET)) {
 		cda->cipher = cdb->cipher =
 			*TLVP_VAL(&tp, GSM48_IE_CIP_MODE_SET);
 		LOGP(DRR, LOGL_INFO, " both: changing cipher mode 0x%02x\n",
@@ -3943,6 +4032,9 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* check if channels are valid */
+	cause = gsm48_rr_check_mode(ms, cda->chan_nr, cda->mode);
+	if (cause)
+		return gsm48_rr_tx_ass_fail(ms, cause);
 	if (before_time) {
 		cause = gsm48_rr_render_ma(ms, cdb, ma, &ma_len);
 		if (cause)
@@ -4231,6 +4323,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				"mobile allocation after time\n");
 			memcpy(&cdb->mob_alloc_lv, &cda->mob_alloc_lv,
 				sizeof(cdb->mob_alloc_lv));
+		} else
 		if (cda->freq_list_lv[0]) {
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
 				"frequency list not available, using "
@@ -4272,7 +4365,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		cda->mode = cdb->mode = rr->cd_now.mode;
 
 	/* cipher mode setting */
-	if (TLVP_PRESENT(&tp, GSM48_IE_CIP_MODE_SET))
+	if (TLVP_PRESENT(&tp, GSM48_IE_CIP_MODE_SET)) {
 		cda->cipher = cdb->cipher =
 			*TLVP_VAL(&tp, GSM48_IE_CIP_MODE_SET);
 		LOGP(DRR, LOGL_INFO, " both: changing cipher mode 0x%02x\n",

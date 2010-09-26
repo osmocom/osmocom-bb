@@ -80,6 +80,13 @@ struct gsm_support {
 	int8_t min_rxlev_db;
 	uint8_t scan_to;
 	uint8_t sync_to;
+
+	/* codecs */
+	uint8_t full_v1;
+	uint8_t full_v2;
+	uint8_t full_v3;
+	uint8_t half_v1;
+	uint8_t half_v3;
 };
 
 struct gsm_support_scan_max {

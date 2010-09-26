@@ -32,6 +32,7 @@ struct gsm_settings {
 	/* call related settings */
 	uint8_t			cw; /* set if call-waiting is allowed */
 	uint8_t			clip, clir;
+	uint8_t			half, half_prefer;
 
 	/* changing default behavior */
 	uint8_t			alter_tx_power;

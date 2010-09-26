@@ -756,6 +756,7 @@ DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 
 static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 {
+	struct gsm_support *sup = &ms->support;
 	struct gsm_settings *set = &ms->settings;
 
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
@@ -833,6 +834,20 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, " no location-updating%s", VTY_NEWLINE);
 	else
 		vty_out(vty, " location-updating%s", VTY_NEWLINE);
+	if (sup->full_v1 || sup->full_v2 || sup->full_v3) {
+		/* mandatory anyway */
+		vty_out(vty, " codec full-speed%s%s",
+			(!set->half_prefer) ? " prefer" : "",
+			VTY_NEWLINE);
+	}
+	if (sup->half_v1 || sup->half_v3) {
+		if (set->half)
+			vty_out(vty, " codec half-speed%s%s",
+				(set->half_prefer) ? " prefer" : "",
+				VTY_NEWLINE);
+		else
+			vty_out(vty, " no codec half-speed%s", VTY_NEWLINE);
+	}
 	vty_out(vty, "exit%s", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
@@ -1130,6 +1145,88 @@ DEFUN(cfg_ms_no_lupd, cfg_ms_no_lupd_cmd, "no location-updating",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_codec_full, cfg_ms_codec_full_cmd, "codec full-speed",
+	"Enable codec\nFull speed speech codec")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_support *sup = &ms->support;
+
+	if (!sup->full_v1 && !sup->full_v2 && !sup->full_v3) {
+		vty_out(vty, "Full-rate codec not supported%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_codec_full_pref, cfg_ms_codec_full_pref_cmd, "codec full-speed "
+	"prefer",
+	"Enable codec\nFull speed speech codec\nPrefer this codec")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_support *sup = &ms->support;
+
+	if (!sup->full_v1 && !sup->full_v2 && !sup->full_v3) {
+		vty_out(vty, "Full-rate codec not supported%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	ms->settings.half_prefer = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_codec_half, cfg_ms_codec_half_cmd, "codec half-speed",
+	"Enable codec\nHalf speed speech codec")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_support *sup = &ms->support;
+
+	if (!sup->half_v1 && !sup->half_v3) {
+		vty_out(vty, "Half-rate codec not supported%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	ms->settings.half = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_codec_half_pref, cfg_ms_codec_half_pref_cmd, "codec half-speed "
+	"prefer",
+	"Enable codec\nHalf speed speech codec\nPrefer this codec")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_support *sup = &ms->support;
+
+	if (!sup->half_v1 && !sup->half_v3) {
+		vty_out(vty, "Half-rate codec not supported%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	ms->settings.half = 1;
+	ms->settings.half_prefer = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_codec_half, cfg_ms_no_codec_half_cmd, "no codec half-speed",
+	NO_STR "Disable codec\nHalf speed speech codec")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_support *sup = &ms->support;
+
+	if (!sup->half_v1 && !sup->half_v3) {
+		vty_out(vty, "Half-rate codec not supported%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	ms->settings.half = 0;
+	ms->settings.half_prefer = 0;
+
+	return CMD_SUCCESS;
+}
+
 /* per testsim config */
 DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	"Configure test SIM emulation")
@@ -1409,7 +1506,11 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_stick_cmd);
 	install_element(MS_NODE, &cfg_ms_lupd_cmd);
 	install_element(MS_NODE, &cfg_ms_no_lupd_cmd);
-
+	install_element(MS_NODE, &cfg_ms_codec_full_cmd);
+	install_element(MS_NODE, &cfg_ms_codec_full_pref_cmd);
+	install_element(MS_NODE, &cfg_ms_codec_half_cmd);
+	install_element(MS_NODE, &cfg_ms_codec_half_pref_cmd);
+	install_element(MS_NODE, &cfg_ms_no_codec_half_cmd);
 	install_node(&testsim_node, config_write_dummy);
 	install_default(TESTSIM_NODE);
 	install_element(TESTSIM_NODE, &ournode_exit_cmd);

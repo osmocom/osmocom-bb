@@ -550,9 +550,10 @@ static int gsm48_cc_tx_setup(struct gsm_trans *trans)
 	 */
 	gsm48_start_cc_timer(trans, 0x303, GSM48_T303_MS);
 
-	if (!setup->emergency) {
-		/* bearer capability */
+	/* bearer capability (optional for emergency calls only) */
+	if (setup->fields & MNCC_F_BEARER_CAP)
 		gsm48_encode_bearer_cap(nmsg, 0, &setup->bearer_cap);
+	if (!setup->emergency) {
 		/* facility */
 		if (setup->fields & MNCC_F_FACILITY)
 			gsm48_encode_facility(nmsg, 0, &setup->facility);

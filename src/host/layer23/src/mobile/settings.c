@@ -31,6 +31,7 @@
 int gsm_settings_init(struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
+	struct gsm_support *sup = &ms->support;
 
 	/* IMEI */
 	sprintf(set->imei,   "000000000000000");
@@ -39,6 +40,9 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	/* test sim */
 	strcpy(set->test_imsi, "001010000000000");
 	set->test_rplmn_mcc = set->test_rplmn_mnc = 1;
+
+	if (sup->half_v1 || sup->half_v3)
+		set->half = 1;
 
 	return 0;
 }

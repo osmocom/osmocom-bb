@@ -104,6 +104,13 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->min_rxlev_db = -100; // TODO
 	sup->sync_to = 6; /* how long to wait sync (0.9 s) */
 	sup->scan_to = 4; /* how long to wait for all sysinfos (>=4 s) */
+
+	/* codec */
+	sup->full_v1 = 1;
+	sup->full_v2 = 1;
+	sup->full_v3 = 0;
+	sup->half_v1 = 0;
+	sup->half_v3 = 0;
 }
 
 /* (3.2.1) maximum channels to scan within each band */
