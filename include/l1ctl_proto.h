@@ -49,6 +49,8 @@ enum {
 	L1CTL_CRYPTO_REQ,
 	L1CTL_SIM_REQ,
 	L1CTL_SIM_CONF,
+	L1CTL_TCH_MODE_REQ,
+	L1CTL_TCH_MODE_CONF,
 };
 
 enum ccch_mode {
@@ -107,6 +109,12 @@ struct l1ctl_ccch_mode_conf {
 	uint8_t padding[3];
 } __attribute__((packed));
 
+/* TCH mode was changed */
+struct l1ctl_tch_mode_conf {
+	uint8_t tch_mode;	/* enum tch_mode */
+	uint8_t padding[3];
+} __attribute__((packed));
+
 /* data on the CCCH was found. This is following the header */
 struct l1ctl_data_ind {
 	uint8_t data[23];
@@ -153,6 +161,15 @@ struct l1ctl_fbsb_req {
  */
 struct l1ctl_ccch_mode_req {
 	uint8_t ccch_mode;	/* enum ccch_mode */
+	uint8_t padding[3];
+} __attribute__((packed));
+
+/*
+ * msg for TCH_MODE_REQ
+ * the l1_info_ul header is in front
+ */
+struct l1ctl_tch_mode_req {
+	uint8_t tch_mode;	/* enum gsm48_chan_mode */
 	uint8_t padding[3];
 } __attribute__((packed));
 

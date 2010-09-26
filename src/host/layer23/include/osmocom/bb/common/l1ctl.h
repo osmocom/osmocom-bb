@@ -46,6 +46,9 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 /* Transmit CCCH_MODE_REQ */
 int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode);
 
+/* Transmit TCH_MODE_REQ */
+int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode);
+
 /* Transmit ECHO_REQ */
 int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len);
 

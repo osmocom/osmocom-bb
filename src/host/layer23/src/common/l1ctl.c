@@ -302,6 +302,24 @@ int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode)
 	return osmo_send_l1(ms, msg);
 }
 
+/* Transmit L1CTL_TCH_MODE_REQ */
+int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode)
+{
+	struct msgb *msg;
+	struct l1ctl_tch_mode_req *req;
+
+	printf("TCH Mode Req\n");
+
+	msg = osmo_l1_alloc(L1CTL_TCH_MODE_REQ);
+	if (!msg)
+		return -1;
+
+	req = (struct l1ctl_tch_mode_req *) msgb_put(msg, sizeof(*req));
+	req->tch_mode = tch_mode;
+
+	return osmo_send_l1(ms, msg);
+}
+
 /* Transmit L1CTL_PARAM_REQ */
 int l1ctl_tx_param_req(struct osmocom_ms *ms, uint8_t ta, uint8_t tx_power)
 {
@@ -622,7 +640,7 @@ static int rx_l1_pm_conf(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-/* Receive L1CTL_MODE_CONF */
+/* Receive L1CTL_CCCH_MODE_CONF */
 static int rx_l1_ccch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct osmobb_ccch_mode_conf mc;
@@ -641,6 +659,29 @@ static int rx_l1_ccch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 	mc.ccch_mode = conf->ccch_mode;
 	mc.ms = ms;
 	dispatch_signal(SS_L1CTL, S_L1CTL_CCCH_MODE_CONF, &mc);
+
+	return 0;
+}
+
+/* Receive L1CTL_TCH_MODE_CONF */
+static int rx_l1_tch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct osmobb_tch_mode_conf mc;
+	struct l1ctl_tch_mode_conf *conf;
+
+	if (msgb_l3len(msg) < sizeof(*conf)) {
+		LOGP(DL1C, LOGL_ERROR, "MODE CONF: MSG too short %u\n",
+			msgb_l3len(msg));
+		return -1;
+	}
+
+	conf = (struct l1ctl_tch_mode_conf *) msg->l1h;
+
+	printf("mode=%u\n", conf->tch_mode);
+
+	mc.tch_mode = conf->tch_mode;
+	mc.ms = ms;
+	dispatch_signal(SS_L1CTL, S_L1CTL_TCH_MODE_CONF, &mc);
 
 	return 0;
 }
@@ -692,6 +733,10 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_CCCH_MODE_CONF:
 		rc = rx_l1_ccch_mode_conf(ms, msg);
+		msgb_free(msg);
+		break;
+	case L1CTL_TCH_MODE_CONF:
+		rc = rx_l1_tch_mode_conf(ms, msg);
 		msgb_free(msg);
 		break;
 	case L1CTL_SIM_CONF:
