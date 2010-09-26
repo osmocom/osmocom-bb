@@ -77,6 +77,7 @@ struct l1s_state {
 
 	/* Transmit queues of pending packets for main DCCH and ACCH */
 	struct llist_head tx_queue[_NUM_L1S_CHAN];
+	struct msgb *tx_meas;
 
 	/* Which L1A completions are scheduled right now */
 	uint32_t scheduled_compl;

@@ -24,6 +24,7 @@ static inline void l1a_unlock_sync(void)
 
 /* safely enable a message into the L1S TX queue */
 void l1a_txq_msgb_enq(struct llist_head *queue, struct msgb *msg);
+void l1a_meas_msgb_set(struct msgb *msg);
 
 /* flush all pending msgb */
 void l1a_txq_msgb_flush(struct llist_head *queue);

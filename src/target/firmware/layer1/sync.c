@@ -381,6 +381,7 @@ void l1s_init(void)
 
 	for (i = 0; i < ARRAY_SIZE(l1s.tx_queue); i++)
 		INIT_LLIST_HEAD(&l1s.tx_queue[i]);
+	l1s.tx_meas = NULL;
 
 	sched_gsmtime_init();
 

@@ -30,6 +30,7 @@
 #include <byteorder.h>
 
 #include <osmocore/msgb.h>
+#include <osmocore/protocol/gsm_04_08.h>
 #include <comm/sercomm.h>
 
 #include <layer1/sync.h>
@@ -246,6 +247,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	l1s.dedicated.type = GSM_DCHAN_NONE;
 	l1a_txq_msgb_flush(&l1s.tx_queue[L1S_CHAN_MAIN]);
 	l1a_txq_msgb_flush(&l1s.tx_queue[L1S_CHAN_SACCH]);
+	l1a_meas_msgb_set(NULL);
 	dsp_load_ciph_param(0, NULL);
 }
 
@@ -286,9 +288,17 @@ static void l1ctl_rx_data_req(struct msgb *msg)
 	printd("L1CTL_DATA_REQ (link_id=0x%02x)\n", ul->link_id);
 
 	msg->l3h = data_ind->data;
-	tx_queue = (ul->link_id & 0x40) ?
-			&l1s.tx_queue[L1S_CHAN_SACCH] :
-			&l1s.tx_queue[L1S_CHAN_MAIN];
+	if (ul->link_id & 0x40) {
+		struct gsm48_hdr *gh = (struct gsm48_hdr *)(data_ind->data + 5);
+		if (gh->proto_discr == GSM48_PDISC_RR
+		 && gh->msg_type == GSM48_MT_RR_MEAS_REP) {
+			printd("updating measurement report\n");
+			l1a_meas_msgb_set(msg);
+			return;
+		}
+		tx_queue = &l1s.tx_queue[L1S_CHAN_SACCH];
+	} else
+		tx_queue = &l1s.tx_queue[L1S_CHAN_MAIN];
 
 	printd("ul=%p, ul->payload=%p, data_ind=%p, data_ind->data=%p l3h=%p\n",
 		ul, ul->payload, data_ind, data_ind->data, msg->l3h);

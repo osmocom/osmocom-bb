@@ -46,7 +46,18 @@ void l1a_txq_msgb_enq(struct llist_head *queue, struct msgb *msg)
 	local_irq_restore(flags);
 }
 
-/* flush all pending msgb */
+void l1a_meas_msgb_set(struct msgb *msg)
+{
+	unsigned long flags;
+
+	local_firq_save(flags);
+	if (l1s.tx_meas)
+		msgb_free(l1s.tx_meas);
+	l1s.tx_meas = msg;
+	local_irq_restore(flags);
+}
+
+/* safely flush all pending msgb */
 void l1a_txq_msgb_flush(struct llist_head *queue)
 {
 	struct msgb *msg;
