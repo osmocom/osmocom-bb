@@ -28,6 +28,7 @@
 
 #include <osmocore/gsm_utils.h>
 
+#include <layer1/prim.h>
 #include <layer1/sync.h>
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
@@ -45,8 +46,6 @@ struct mframe_sched_item {
 };
 
 /* FIXME: properly clean this up */
-extern const struct tdma_sched_item nb_sched_set[];
-extern const struct tdma_sched_item nb_sched_set_ul[];
 #define NB_QUAD_DL	nb_sched_set
 #define NB_QUAD_FH_DL	NB_QUAD_DL
 #define NB_QUAD_UL	nb_sched_set_ul

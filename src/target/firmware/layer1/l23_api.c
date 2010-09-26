@@ -35,6 +35,7 @@
 #include <layer1/sync.h>
 #include <layer1/async.h>
 #include <layer1/mframe_sched.h>
+#include <layer1/prim.h>
 #include <layer1/tpu_window.h>
 
 #include <rf/trf6151.h>

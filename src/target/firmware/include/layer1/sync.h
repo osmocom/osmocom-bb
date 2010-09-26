@@ -151,11 +151,6 @@ uint16_t l1s_snr_fract(uint16_t snr);
 
 void l1s_dsp_abort(void);
 
-void l1s_fb_test(uint8_t base_fn, uint8_t fb_mode);
-void l1s_sb_test(uint8_t base_fn);
-void l1s_pm_test(uint8_t base_fn, uint16_t arfcn);
-void l1s_nb_test(uint8_t base_fn);
-
 /* schedule a completion */
 void l1s_compl_sched(enum l1_compl c);
 
