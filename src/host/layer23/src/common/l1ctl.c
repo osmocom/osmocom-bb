@@ -87,8 +87,8 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 	sb = (struct l1ctl_fbsb_conf *) dl->payload;
 
-	printf("snr=%04x, arfcn=%u result=%u\n", dl->snr, ntohs(dl->band_arfcn),
-		sb->result);
+	LOGP(DL1C, LOGL_INFO, "snr=%04x, arfcn=%u result=%u\n", dl->snr,
+		ntohs(dl->band_arfcn), sb->result);
 
 	if (sb->result != 0) {
 		LOGP(DL1C, LOGL_ERROR, "FBSB RESP: result=%u\n", sb->result);
@@ -260,7 +260,7 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 	struct msgb *msg;
 	struct l1ctl_fbsb_req *req;
 
-	printf("Sync Req\n");
+	LOGP(DL1C, LOGL_INFO, "Sync Req\n");
 
 	msg = osmo_l1_alloc(L1CTL_FBSB_REQ);
 	if (!msg)
@@ -290,7 +290,7 @@ int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode)
 	struct msgb *msg;
 	struct l1ctl_ccch_mode_req *req;
 
-	printf("CCCH Mode Req\n");
+	LOGP(DL1C, LOGL_INFO, "CCCH Mode Req\n");
 
 	msg = osmo_l1_alloc(L1CTL_CCCH_MODE_REQ);
 	if (!msg)
@@ -308,7 +308,7 @@ int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode)
 	struct msgb *msg;
 	struct l1ctl_tch_mode_req *req;
 
-	printf("TCH Mode Req\n");
+	LOGP(DL1C, LOGL_INFO, "TCH Mode Req\n");
 
 	msg = osmo_l1_alloc(L1CTL_TCH_MODE_REQ);
 	if (!msg)
@@ -396,8 +396,8 @@ int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	if (!msg)
 		return -1;
 
-	printf("Tx Dedic.Mode Est Req (arfcn=%u, chan_nr=0x%02x)\n",
-		band_arfcn, chan_nr);
+	LOGP(DL1C, LOGL_INFO, "Tx Dedic.Mode Est Req (arfcn=%u, "
+		"chan_nr=0x%02x)\n", band_arfcn, chan_nr);
 
 	memset(&ms->meas, 0, sizeof(ms->meas));
 
@@ -426,7 +426,7 @@ int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 	if (!msg)
 		return -1;
 
-	printf("Tx Dedic.Mode Est Req (maio=%u, hsn=%u, "
+	LOGP(DL1C, LOGL_INFO, "Tx Dedic.Mode Est Req (maio=%u, hsn=%u, "
 		"chan_nr=0x%02x)\n", maio, hsn, chan_nr);
 
 	memset(&ms->meas, 0, sizeof(ms->meas));
@@ -459,7 +459,7 @@ int l1ctl_tx_dm_freq_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	if (!msg)
 		return -1;
 
-	printf("Tx Dedic.Mode Freq Req (arfcn=%u, fn=%d)\n",
+	LOGP(DL1C, LOGL_INFO, "Tx Dedic.Mode Freq Req (arfcn=%u, fn=%d)\n",
 		band_arfcn, fn);
 
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
@@ -488,7 +488,7 @@ int l1ctl_tx_dm_freq_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 	if (!msg)
 		return -1;
 
-	printf("Tx Dedic.Mode Freq Req (maio=%u, hsn=%u, "
+	LOGP(DL1C, LOGL_INFO, "Tx Dedic.Mode Freq Req (maio=%u, hsn=%u, "
 		"fn=%d)\n", maio, hsn, fn);
 
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
@@ -518,7 +518,7 @@ int l1ctl_tx_dm_rel_req(struct osmocom_ms *ms)
 	if (!msg)
 		return -1;
 
-	printf("Tx Dedic.Mode Rel Req\n");
+	LOGP(DL1C, LOGL_INFO, "Tx Dedic.Mode Rel Req\n");
 
 	memset(&ms->meas, 0, sizeof(ms->meas));
 
@@ -565,7 +565,7 @@ static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
 	
-	printf("SIM %s\n", hexdump(data, len));
+	LOGP(DL1C, LOGL_INFO, "SIM %s\n", hexdump(data, len));
 	
 	/* pull the L1 header from the msgb */
 	msgb_pull(msg, sizeof(struct l1ctl_hdr));
@@ -587,7 +587,7 @@ int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 	if (!msg)
 		return -1;
 
-	printf("Tx PM Req (%u-%u)\n", arfcn_from, arfcn_to);
+	LOGP(DL1C, LOGL_INFO, "Tx PM Req (%u-%u)\n", arfcn_from, arfcn_to);
 	pm = (struct l1ctl_pm_req *) msgb_put(msg, sizeof(*pm));
 	pm->type = 1;
 	pm->range.band_arfcn_from = htons(arfcn_from);
@@ -606,7 +606,7 @@ int l1ctl_tx_reset_req(struct osmocom_ms *ms, uint8_t type)
 	if (!msg)
 		return -1;
 
-	printf("Tx Reset Req (%u)\n", type);
+	LOGP(DL1C, LOGL_INFO, "Tx Reset Req (%u)\n", type);
 	res = (struct l1ctl_reset *) msgb_put(msg, sizeof(*res));
 	res->type = type;
 
@@ -616,7 +616,7 @@ int l1ctl_tx_reset_req(struct osmocom_ms *ms, uint8_t type)
 /* Receive L1CTL_RESET_IND */
 static int rx_l1_reset(struct osmocom_ms *ms)
 {
-	printf("Layer1 Reset indication\n");
+	LOGP(DL1C, LOGL_INFO, "Layer1 Reset indication\n");
 	dispatch_signal(SS_L1CTL, S_L1CTL_RESET, ms);
 
 	return 0;
@@ -647,14 +647,14 @@ static int rx_l1_ccch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 	struct l1ctl_ccch_mode_conf *conf;
 
 	if (msgb_l3len(msg) < sizeof(*conf)) {
-		LOGP(DL1C, LOGL_ERROR, "MODE CONF: MSG too short %u\n",
+		LOGP(DL1C, LOGL_ERROR, "CCCH MODE CONF: MSG too short %u\n",
 			msgb_l3len(msg));
 		return -1;
 	}
 
 	conf = (struct l1ctl_ccch_mode_conf *) msg->l1h;
 
-	printf("mode=%u\n", conf->ccch_mode);
+	LOGP(DL1C, LOGL_INFO, "CCCH MODE CONF: mode=%u\n", conf->ccch_mode);
 
 	mc.ccch_mode = conf->ccch_mode;
 	mc.ms = ms;
@@ -670,14 +670,14 @@ static int rx_l1_tch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 	struct l1ctl_tch_mode_conf *conf;
 
 	if (msgb_l3len(msg) < sizeof(*conf)) {
-		LOGP(DL1C, LOGL_ERROR, "MODE CONF: MSG too short %u\n",
+		LOGP(DL1C, LOGL_ERROR, "TCH MODE CONF: MSG too short %u\n",
 			msgb_l3len(msg));
 		return -1;
 	}
 
 	conf = (struct l1ctl_tch_mode_conf *) msg->l1h;
 
-	printf("mode=%u\n", conf->tch_mode);
+	LOGP(DL1C, LOGL_INFO, "TCH MODE CONF: mode=%u\n", conf->tch_mode);
 
 	mc.tch_mode = conf->tch_mode;
 	mc.ms = ms;
@@ -743,7 +743,7 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		rc = rx_l1_sim_conf(ms, msg);
 		break;
 	default:
-		fprintf(stderr, "Unknown MSG: %u\n", l1h->msg_type);
+		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
 		msgb_free(msg);
 		break;
 	}

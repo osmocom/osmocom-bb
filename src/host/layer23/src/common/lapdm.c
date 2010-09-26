@@ -1788,7 +1788,10 @@ static int rslms_send_i(struct lapdm_msg_ctx *mctx)
 		length = left;
 		if (length > mctx->n201 - 3)
 			length = mctx->n201 - 3;
-printf("msg-len %d sent %d left %d N201 %d length %d first byte %02x\n", msgb_l3len(dl->send_buffer), dl->send_out, left, mctx->n201, length, dl->send_buffer->l3h[0]);
+		LOGP(DLAPDM, LOGL_INFO, "msg-len %d sent %d left %d N201 %d "
+			"length %d first byte %02x\n",
+			msgb_l3len(dl->send_buffer), dl->send_out, left,
+			mctx->n201, length, dl->send_buffer->l3h[0]);
 		/* If message in send-buffer is completely sent */
 		if (left == 0) {
 			msgb_free(dl->send_buffer);

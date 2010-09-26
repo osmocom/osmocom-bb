@@ -249,7 +249,6 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs)
 		LOGP(DCS, LOGL_INFO, "No sysinfo, ccch mode NONE\n");
 		cs->ccch_mode = CCCH_MODE_NONE;
 	}
-//	printf("s->ccch_conf %d\n", cs->si->ccch_conf);
 
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	return l1ctl_tx_fbsb_req(ms, cs->arfcn,

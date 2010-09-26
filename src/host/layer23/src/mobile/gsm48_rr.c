@@ -522,8 +522,8 @@ static int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	if (!msg->l3h) {
-		printf("FIX l3h\n");
-		exit (0);
+		LOGP(DRR, LOGL_ERROR, "FIX l3h\n");
+		return -EINVAL;
 	}
 	rsl_rll_push_l3(msg, msg_type, rr->cd_now.chan_nr,
 		rr->cd_now.link_id, 1);
@@ -1895,7 +1895,6 @@ static int gsm48_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 			"message.\n");
 		return -EINVAL;
 	}
-//printf("len = %d\n", MIN(msgb_l3len(msg), sizeof(s->si2_msg)));
 
 	if (!memcmp(si, s->si2_msg, MIN(msgb_l3len(msg), sizeof(s->si2_msg))))
 		return 0;
@@ -3153,7 +3152,8 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	/* establish */
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
 	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
-	printf("Channel type %d, subch %d, ts %d\n", ch_type, ch_subch, ch_ts);
+	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d\n",
+		cd->mode, ch_type, ch_subch, ch_ts);
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
 			ma, ma_len, cd->chan_nr, cd->tsc);
