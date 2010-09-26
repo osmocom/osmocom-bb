@@ -1489,12 +1489,12 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		gsm48_mm_tx_tmsi_reall_cpl(ms);
 		break;
 	case GSM_MI_TYPE_IMSI:
-		subscr->tmsi = 0x00000000;
+		subscr->tmsi = 0xffffffff;
 		LOGP(DMM, LOGL_INFO, "TMSI removed.\n");
 		gsm48_mm_tx_tmsi_reall_cpl(ms);
 		break;
 	default:
-		subscr->tmsi = 0x00000000;
+		subscr->tmsi = 0xffffffff;
 		LOGP(DMM, LOGL_NOTICE, "TMSI reallocation with unknown MI "
 			"type %d.\n", mi_type);
 		gsm48_mm_tx_mm_status(ms, GSM48_REJECT_INCORRECT_MESSAGE);

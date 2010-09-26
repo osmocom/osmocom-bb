@@ -528,7 +528,8 @@ DEFUN(sim_unblock_pin, sim_unblock_pin_cmd, "sim unblock-pin MS_NAME PUC NEW",
 
 DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 	"SIM actions\nChange LAI of SIM card\nName of MS (see \"show ms\")\n"
-	"Mobile Country Code\nMobile Network Code\nLocation Area Code")
+	"Mobile Country Code\nMobile Network Code\nLocation Area Code "
+	" (use 0000 to remove LAI)")
 {
 	struct osmocom_ms *ms;
 	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
@@ -551,6 +552,7 @@ DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 	ms->subscr.mcc = mcc;
 	ms->subscr.mnc = mnc;
 	ms->subscr.lac = lac;
+	ms->subscr.tmsi = 0xffffffff;
 
 	gsm_subscr_write_loci(ms);
 
