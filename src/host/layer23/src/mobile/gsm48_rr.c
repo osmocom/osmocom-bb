@@ -353,6 +353,21 @@ static uint8_t gsm48_rr_check_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	return 0;
 }
 
+/* apply new "alter_delay" in dedicated mode */
+int gsm48_rr_alter_delay(struct osmocom_ms *ms)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm_settings *set = &rr->ms->settings;
+
+	if (rr->state != GSM48_RR_ST_DEDICATED)
+		return -EINVAL;
+	l1ctl_tx_param_req(ms, rr->cd_now.ind_ta - set->alter_delay,
+		(set->alter_tx_power) ? set->alter_tx_power_value
+					: rr->cd_now.ind_tx_power);
+
+	return 0;
+}
+
 /*
  * state transition
  */

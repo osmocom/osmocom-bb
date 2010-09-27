@@ -1123,6 +1123,7 @@ DEFUN(cfg_ms_sim_delay, cfg_ms_sim_delay_cmd, "simulated-delay <-128-127>",
 	struct osmocom_ms *ms = vty->index;
 
 	ms->settings.alter_delay = atoi(argv[0]);
+	gsm48_rr_alter_delay(ms);
 
 	return CMD_SUCCESS;
 }
@@ -1133,6 +1134,7 @@ DEFUN(cfg_ms_no_sim_delay, cfg_ms_no_sim_delay_cmd, "no simulated-delay",
 	struct osmocom_ms *ms = vty->index;
 
 	ms->settings.alter_delay = 0;
+	gsm48_rr_alter_delay(ms);
 
 	return CMD_SUCCESS;
 }

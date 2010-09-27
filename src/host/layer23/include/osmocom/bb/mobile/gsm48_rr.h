@@ -192,5 +192,6 @@ int gsm48_rr_rach_conf(struct osmocom_ms *ms, uint32_t fn);
 extern const char *gsm48_rr_state_names[];
 int gsm48_rr_start_monitor(struct osmocom_ms *ms);
 int gsm48_rr_stop_monitor(struct osmocom_ms *ms);
+int gsm48_rr_alter_delay(struct osmocom_ms *ms);
 
 #endif /* _GSM48_RR_H */
