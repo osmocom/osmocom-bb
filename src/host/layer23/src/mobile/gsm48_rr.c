@@ -3941,16 +3941,18 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 			memcpy(&cdb->freq_list_lv, lv, *lv + 1);
 		} else
 		if (TLVP_PRESENT(&tp, GSM48_IE_F_CH_SEQ_BEFORE)) {
-			const uint8_t *lv =
-				TLVP_VAL(&tp, GSM48_IE_F_CH_SEQ_BEFORE) - 1;
+			const uint8_t *v =
+				TLVP_VAL(&tp, GSM48_IE_F_CH_SEQ_BEFORE);
+			uint8_t len = TLVP_LEN(&tp, GSM48_IE_F_CH_SEQ_BEFORE);
 
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
 				"frequency channel sequence available\n");
-			if (*lv + 1 > sizeof(cdb->freq_seq_lv)) {
+			if (len + 1 > sizeof(cdb->freq_seq_lv)) {
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cdb->freq_seq_lv, lv, *lv + 1);
+			cdb->freq_seq_lv[0] = len;
+			memcpy(&cdb->freq_seq_lv + 1, v, len);
 		} else
 		if (cda->mob_alloc_lv[0]) {
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
@@ -3973,16 +3975,19 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* cell channel description */
 	if (TLVP_PRESENT(&tp, GSM48_IE_CELL_CH_DESC)) {
-		const uint8_t *lv = TLVP_VAL(&tp, GSM48_IE_CELL_CH_DESC) - 1;
+		const uint8_t *v = TLVP_VAL(&tp, GSM48_IE_CELL_CH_DESC);
+		uint8_t len = TLVP_LEN(&tp, GSM48_IE_CELL_CH_DESC);
 
 		LOGP(DRR, LOGL_INFO, " both: using cell channel description "
 			"in case of mobile allocation\n");
-		if (*lv + 1 > sizeof(cdb->cell_desc_lv)) {
+		if (len + 1 > sizeof(cdb->cell_desc_lv)) {
 			LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 			return -ENOMEM;
 		}
-		memcpy(&cdb->cell_desc_lv, lv, *lv + 1);
-		memcpy(&cda->cell_desc_lv, lv, *lv + 1);
+		cdb->cell_desc_lv[0] = len;
+		memcpy(&cdb->cell_desc_lv + 1, v, len);
+		cda->cell_desc_lv[0] = len;
+		memcpy(&cda->cell_desc_lv + 1, v, len);
 	} else {
 		/* keep old */
 		memcpy(&cdb->cell_desc_lv, &rr->cd_now.cell_desc_lv,
@@ -4316,16 +4321,18 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 			memcpy(&cdb->freq_list_lv, lv, *lv + 1);
 		} else
 		if (TLVP_PRESENT(&tp, GSM48_IE_F_CH_SEQ_BEFORE)) {
-			const uint8_t *lv =
-				TLVP_VAL(&tp, GSM48_IE_F_CH_SEQ_BEFORE) - 1;
+			const uint8_t *v =
+				TLVP_VAL(&tp, GSM48_IE_F_CH_SEQ_BEFORE);
+			uint8_t len = TLVP_LEN(&tp, GSM48_IE_F_CH_SEQ_BEFORE);
 
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
 				"frequency channel sequence available\n");
-			if (*lv + 1 > sizeof(cdb->freq_seq_lv)) {
+			if (len + 1 > sizeof(cdb->freq_seq_lv)) {
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cdb->freq_seq_lv, lv, *lv + 1);
+			cdb->freq_seq_lv[0] = len;
+			memcpy(&cdb->freq_seq_lv, v + 1, *v);
 		} else
 		if (cda->mob_alloc_lv[0]) {
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
@@ -4348,16 +4355,19 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* cell channel description */
 	if (TLVP_PRESENT(&tp, GSM48_IE_CELL_CH_DESC)) {
-		const uint8_t *lv = TLVP_VAL(&tp, GSM48_IE_CELL_CH_DESC) - 1;
+		const uint8_t *v = TLVP_VAL(&tp, GSM48_IE_CELL_CH_DESC);
+		uint8_t len = TLVP_LEN(&tp, GSM48_IE_CELL_CH_DESC);
 
 		LOGP(DRR, LOGL_INFO, " both: using cell channel description "
 			"in case of mobile allocation\n");
-		if (*lv + 1 > sizeof(cdb->cell_desc_lv)) {
+		if (len + 1 > sizeof(cdb->cell_desc_lv)) {
 			LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 			return -ENOMEM;
 		}
-		memcpy(&cdb->cell_desc_lv, lv, *lv + 1);
-		memcpy(&cda->cell_desc_lv, lv, *lv + 1);
+		cdb->cell_desc_lv[0] = len;
+		memcpy(&cdb->cell_desc_lv + 1, v, len);
+		cda->cell_desc_lv[0] = len;
+		memcpy(&cda->cell_desc_lv + 1, v, len);
 	} else {
 		/* keep old */
 		memcpy(&cdb->cell_desc_lv, &rr->cd_now.cell_desc_lv,
