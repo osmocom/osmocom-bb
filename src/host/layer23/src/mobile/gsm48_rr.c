@@ -3168,7 +3168,7 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
 	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
 	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d\n",
-		cd->mode, ch_type, ch_subch, ch_ts);
+		ch_type, ch_subch, ch_ts, cd->mode);
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
 			ma, ma_len, cd->chan_nr, cd->tsc);
