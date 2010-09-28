@@ -3624,7 +3624,7 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* mobile allocation */
-	memcpy(&rr->cd_now.mob_alloc_lv, &fr->mob_alloc_len, 
+	memcpy(rr->cd_now.mob_alloc_lv, &fr->mob_alloc_len, 
 		fr->mob_alloc_len + 1);
 
 	/* starting time */
@@ -3634,11 +3634,11 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 	/* cell channel description */
 	if (mob_al_len >= fr->mob_alloc_len + 2 + 17
 	 && fr->mob_alloc[fr->mob_alloc_len + 2] == GSM48_IE_CELL_CH_DESC) {
-		const uint8_t *v = fr->mob_alloc + fr->mob_alloc_len + 3 + 1;
+		const uint8_t *v = fr->mob_alloc + fr->mob_alloc_len + 2 + 1;
 
 		LOGP(DRR, LOGL_INFO, " using cell channel description)\n");
-		memcpy(&cd.cell_desc_lv + 1, v, 17);
 		cd.cell_desc_lv[0] = 16;
+		memcpy(cd.cell_desc_lv + 1, v, 17);
 	}
 
 	/* render channel "after time" */
@@ -3895,7 +3895,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cda->mob_alloc_lv, lv, *lv + 1);
+			memcpy(cda->mob_alloc_lv, lv, *lv + 1);
 		} else
 		if (TLVP_PRESENT(&tp, GSM48_IE_FREQ_L_AFTER)) {
 			const uint8_t *lv =
@@ -3907,7 +3907,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cda->freq_list_lv, lv, *lv + 1);
+			memcpy(cda->freq_list_lv, lv, *lv + 1);
 		} else {
 			LOGP(DRR, LOGL_NOTICE, " after: hopping required, but "
 				"no mobile allocation / frequency list\n");
@@ -3926,7 +3926,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cdb->mob_alloc_lv, lv, *lv + 1);
+			memcpy(cdb->mob_alloc_lv, lv, *lv + 1);
 		} else
 		if (TLVP_PRESENT(&tp, GSM48_IE_FREQ_L_BEFORE)) {
 			const uint8_t *lv =
@@ -3938,7 +3938,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cdb->freq_list_lv, lv, *lv + 1);
+			memcpy(cdb->freq_list_lv, lv, *lv + 1);
 		} else
 		if (TLVP_PRESENT(&tp, GSM48_IE_F_CH_SEQ_BEFORE)) {
 			const uint8_t *v =
@@ -3952,20 +3952,20 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				return -ENOMEM;
 			}
 			cdb->freq_seq_lv[0] = len;
-			memcpy(&cdb->freq_seq_lv + 1, v, len);
+			memcpy(cdb->freq_seq_lv + 1, v, len);
 		} else
 		if (cda->mob_alloc_lv[0]) {
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
 				"mobile allocation not available, using "
 				"mobile allocation after time\n");
-			memcpy(&cdb->mob_alloc_lv, &cda->mob_alloc_lv,
+			memcpy(cdb->mob_alloc_lv, cda->mob_alloc_lv,
 				sizeof(cdb->mob_alloc_lv));
 		} else
 		if (cda->freq_list_lv[0]) {
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
 				"frequency list not available, using "
 				"frequency list after time\n");
-			memcpy(&cdb->freq_list_lv, &cda->freq_list_lv,
+			memcpy(cdb->freq_list_lv, cda->freq_list_lv,
 				sizeof(cdb->freq_list_lv));
 		} else {
 			LOGP(DRR, LOGL_NOTICE, " before: hopping required, but "
@@ -3985,14 +3985,14 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 			return -ENOMEM;
 		}
 		cdb->cell_desc_lv[0] = len;
-		memcpy(&cdb->cell_desc_lv + 1, v, len);
+		memcpy(cdb->cell_desc_lv + 1, v, len);
 		cda->cell_desc_lv[0] = len;
-		memcpy(&cda->cell_desc_lv + 1, v, len);
+		memcpy(cda->cell_desc_lv + 1, v, len);
 	} else {
 		/* keep old */
-		memcpy(&cdb->cell_desc_lv, &rr->cd_now.cell_desc_lv,
+		memcpy(cdb->cell_desc_lv, rr->cd_now.cell_desc_lv,
 			sizeof(cdb->cell_desc_lv));
-		memcpy(&cda->cell_desc_lv, &rr->cd_now.cell_desc_lv,
+		memcpy(cda->cell_desc_lv, rr->cd_now.cell_desc_lv,
 			sizeof(cda->cell_desc_lv));
 	}
 
@@ -4275,7 +4275,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cda->mob_alloc_lv, lv, *lv + 1);
+			memcpy(cda->mob_alloc_lv, lv, *lv + 1);
 		} else
 		if (TLVP_PRESENT(&tp, GSM48_IE_FREQ_L_AFTER)) {
 			const uint8_t *lv =
@@ -4287,7 +4287,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cda->freq_list_lv, lv, *lv + 1);
+			memcpy(cda->freq_list_lv, lv, *lv + 1);
 		} else {
 			LOGP(DRR, LOGL_NOTICE, " after: hopping required, but "
 				"no mobile allocation / frequency list\n");
@@ -4306,7 +4306,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cdb->mob_alloc_lv, lv, *lv + 1);
+			memcpy(cdb->mob_alloc_lv, lv, *lv + 1);
 		} else
 		if (TLVP_PRESENT(&tp, GSM48_IE_FREQ_L_BEFORE)) {
 			const uint8_t *lv =
@@ -4318,7 +4318,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				LOGP(DRR, LOGL_ERROR, "Error: no LV space!\n");
 				return -ENOMEM;
 			}
-			memcpy(&cdb->freq_list_lv, lv, *lv + 1);
+			memcpy(cdb->freq_list_lv, lv, *lv + 1);
 		} else
 		if (TLVP_PRESENT(&tp, GSM48_IE_F_CH_SEQ_BEFORE)) {
 			const uint8_t *v =
@@ -4332,20 +4332,20 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 				return -ENOMEM;
 			}
 			cdb->freq_seq_lv[0] = len;
-			memcpy(&cdb->freq_seq_lv, v + 1, *v);
+			memcpy(cdb->freq_seq_lv, v + 1, *v);
 		} else
 		if (cda->mob_alloc_lv[0]) {
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
 				"mobile allocation not available, using "
 				"mobile allocation after time\n");
-			memcpy(&cdb->mob_alloc_lv, &cda->mob_alloc_lv,
+			memcpy(cdb->mob_alloc_lv, cda->mob_alloc_lv,
 				sizeof(cdb->mob_alloc_lv));
 		} else
 		if (cda->freq_list_lv[0]) {
 			LOGP(DRR, LOGL_INFO, " before: hopping required and "
 				"frequency list not available, using "
 				"frequency list after time\n");
-			memcpy(&cdb->freq_list_lv, &cda->freq_list_lv,
+			memcpy(cdb->freq_list_lv, cda->freq_list_lv,
 				sizeof(cdb->freq_list_lv));
 		} else {
 			LOGP(DRR, LOGL_NOTICE, " before: hopping required, but "
@@ -4365,14 +4365,14 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 			return -ENOMEM;
 		}
 		cdb->cell_desc_lv[0] = len;
-		memcpy(&cdb->cell_desc_lv + 1, v, len);
+		memcpy(cdb->cell_desc_lv + 1, v, len);
 		cda->cell_desc_lv[0] = len;
-		memcpy(&cda->cell_desc_lv + 1, v, len);
+		memcpy(cda->cell_desc_lv + 1, v, len);
 	} else {
 		/* keep old */
-		memcpy(&cdb->cell_desc_lv, &rr->cd_now.cell_desc_lv,
+		memcpy(cdb->cell_desc_lv, rr->cd_now.cell_desc_lv,
 			sizeof(cdb->cell_desc_lv));
-		memcpy(&cda->cell_desc_lv, &rr->cd_now.cell_desc_lv,
+		memcpy(cda->cell_desc_lv, rr->cd_now.cell_desc_lv,
 			sizeof(cda->cell_desc_lv));
 	}
 
