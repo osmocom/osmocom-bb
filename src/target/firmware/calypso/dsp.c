@@ -116,6 +116,41 @@ static void dsp_bl_start_at(uint16_t addr)
 	writew(BL_CMD_COPY_BLOCK, BL_CMD_STATUS);
 }
 
+static int dsp_bl_upload_sections(const struct dsp_section *sec)
+{
+	/* Make sure the bootloader is ready */
+	dsp_bl_wait_ready();
+
+	/* Set mode */
+	writew(BL_MODE_DATA_WRITE, BASE_API_RAM);
+	writew(BL_CMD_COPY_MODE, BL_CMD_STATUS);
+	dsp_bl_wait_ready();
+
+	/* Scan all sections */
+	for (; sec->data; sec++) {
+		volatile uint16_t *api = (volatile uint16_t *)BASE_API_RAM;
+		unsigned int i;
+
+		if (sec->size > BL_MAX_BLOCK_SIZE)
+			return -1; /* not supported for now */
+
+		/* Copy data to API */
+		for (i=0; i<sec->size; i++)
+			api[i] = sec->data[i];
+
+		/* Issue DRAM write */
+		writew(sec->addr >> 16, BL_ADDR_HI);
+		writew(sec->addr & 0xffff, BL_ADDR_LO);
+		writew(sec->size, BL_SIZE);
+		writew(BL_CMD_COPY_BLOCK, BL_CMD_STATUS);
+
+		/* Wait for completion */
+		dsp_bl_wait_ready();
+	}
+
+	return 0;
+}
+
 static int dsp_upload_sections_api(const struct dsp_section *sec, uint16_t dsp_base_api)
 {
 	for (; sec->data; sec++) {
