@@ -2107,6 +2107,10 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not required.\n");
 	  	subscr->imsi_attached = 1;
 
+		/* go straight to normal service state */
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
+				GSM48_MM_SST_NORMAL_SERVICE);
+
 		/* send message to PLMN search process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_SUCCESS);
 		if (!nmsg)
