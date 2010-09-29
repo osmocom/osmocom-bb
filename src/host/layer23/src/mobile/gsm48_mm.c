@@ -4065,11 +4065,13 @@ static int gsm48_mm_ev(struct osmocom_ms *ms, int msg_type, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	int i, rc;
 
-	if (mm->state == GSM48_MM_ST_MM_IDLE)
-		LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' event in state "
-			"MM IDLE, %s\n", ms->name, get_mmevent_name(msg_type),
-			gsm48_mm_substate_names[mm->substate]);
-	else
+	if (mm->state == GSM48_MM_ST_MM_IDLE) {
+		if (msg_type != GSM48_MM_EVENT_SYSINFO)
+			LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' event in "
+				"state MM IDLE, %s\n", ms->name,
+				get_mmevent_name(msg_type),
+				gsm48_mm_substate_names[mm->substate]);
+	} else
 		LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' event in state "
 			"%s\n", ms->name, get_mmevent_name(msg_type),
 		gsm48_mm_state_names[mm->state]);

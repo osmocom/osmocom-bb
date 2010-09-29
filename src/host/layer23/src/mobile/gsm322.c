@@ -3334,9 +3334,10 @@ int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg)
 	int rc;
 	int i;
 
-	LOGP(DCS, LOGL_INFO, "(ms %s) Event '%s' for Cell selection in state "
-		"'%s'\n", ms->name, get_event_name(msg_type),
-		cs_state_names[cs->state]);
+	if (msg_type != GSM322_EVENT_SYSINFO)
+		LOGP(DCS, LOGL_INFO, "(ms %s) Event '%s' for Cell selection "
+			"in state '%s'\n", ms->name, get_event_name(msg_type),
+			cs_state_names[cs->state]);
 	/* find function for current state and message */
 	for (i = 0; i < CELLSELSLLEN; i++)
 		if ((msg_type == cellselstatelist[i].type)
