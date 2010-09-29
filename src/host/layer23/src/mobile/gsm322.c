@@ -2436,8 +2436,14 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			return -EINVAL;
 		i = mr->band_arfcn & 1023;
 		rxlev = mr->rx_lev;
+		if ((cs->list[i].flags & GSM322_CS_FLAG_POWER)) {
+			LOGP(DCS, LOGL_ERROR, "Getting PM for frequency %d "
+				"twice. Overwriting the first! Please fix "
+				"prim_pm.c\n", i);
+		}
 		cs->list[i].rxlev = rxlev;
 		cs->list[i].flags |= GSM322_CS_FLAG_POWER;
+		cs->list[i].flags &= ~GSM322_CS_FLAG_SIGNAL;
 		/* if minimum level is reached or if we stick to a cell */
 		if (rxlev2dbm(rxlev) >= ms->support.min_rxlev_db
 		 || ms->settings.stick) {
