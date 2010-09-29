@@ -45,6 +45,7 @@ static void gsm322_cs_loss(void *arg);
 static int gsm322_cs_select(struct osmocom_ms *ms, int any, int plmn_allowed);
 static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg);
 
+#define SKIP_MAX_PER_BAND
 //#define CS_HEAVY_DEBUG
 
 #warning HACKING!!!
@@ -1648,6 +1649,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		mask |= GSM322_CS_FLAG_BA;
 	flags = mask; /* all masked flags are requied */
 	for (i = 0; i <= 1023; i++) {
+#ifndef SKIP_MAX_PER_BAND
 		/* skip if band has enough frequencies scanned (3.2.1) */
 		for (j = 0; gsm_sup_smax[j].max; j++) {
 			if (gsm_sup_smax[j].end > gsm_sup_smax[j].start) {
@@ -1664,6 +1666,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 			if (gsm_sup_smax[j].temp == gsm_sup_smax[j].max)
 				continue;
 		}
+#endif
 		/* search for unscanned frequency */
 		if ((cs->list[i].flags & mask) == flags) {
 			/* weight depends on the power level
@@ -1832,6 +1835,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	cs->si = cs->list[cs->arfcn].sysinfo;
 
 	/* increase scan counter for each maximum scan range */
+#ifndef SKIP_MAX_PER_BAND
 	if (gsm_sup_smax[j].max) {
 #ifdef CS_HEAVY_DEBUG
 		LOGP(DCS, LOGL_INFO, "%d frequencies left in band %d..%d\n",
@@ -1840,6 +1844,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 #endif
 		gsm_sup_smax[j].temp++;
 	}
+#endif
 
 	return 0;
 }
