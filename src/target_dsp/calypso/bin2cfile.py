@@ -15,19 +15,26 @@ def main(pn, filename):
 
 	# Get the data
 	ops = ''.join([
-		'0x%04x,%c' % (
+		'0x%04x,%s' % (
 			struct.unpack('=H', x)[0],
-			'\n' if (i&3==3) else ' '
+			'\n\t\t\t' if (i&3==3) else ' '
 		)
 		for i, x
 		in enumerate(group_by_n(d, 2))
 	])[:-1]
 
+	ops = '\t\t\t' + ops
+	if ops[-1] == '\t':
+		ops = ops[:-4]
+
+	# Name
+	name = filename.split('.',1)[0]
+
 	# Header / footer
 	print """
 #define _SA_DECL (const uint16_t *)&(const uint16_t [])
 
-static const struct dsp_section dsp_xxx[] = {
+static const struct dsp_section %s[] = {
 	{
 		.addr = 0x,
 		.size = 0x%04x,
@@ -43,7 +50,7 @@ static const struct dsp_section dsp_xxx[] = {
 };
 
 #undef _SA_DECL
-""" % (len(d)/2, ops)
+""" % (name, len(d)/2, ops)
 
 
 if __name__ == "__main__":
