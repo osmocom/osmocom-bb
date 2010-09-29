@@ -108,6 +108,14 @@ static void dsp_bl_wait_ready(void)
 	while (readw(BL_CMD_STATUS) != BL_STATUS_IDLE);
 }
 
+static void dsp_bl_start_at(uint16_t addr)
+{
+	writew(0, BL_ADDR_HI);
+	writew(addr, BL_ADDR_LO);
+	writew(0, BL_SIZE);
+	writew(BL_CMD_COPY_BLOCK, BL_CMD_STATUS);
+}
+
 static int dsp_upload_sections_api(const struct dsp_section *sec, uint16_t dsp_base_api)
 {
 	for (; sec->data; sec++) {
@@ -186,9 +194,7 @@ static void dsp_set_params(int16_t *param_tab, int param_size)
 	dsp_dump_version();
 
 	dputs("Finishing download phase\n");
-	writew(0, BL_SIZE);
-	writew(DSP_START, BL_ADDR_LO);
-	writew(BL_CMD_COPY_BLOCK, BL_CMD_STATUS);
+	dsp_bl_start_at(DSP_START);
 
 	dsp_dump_version();
 }
@@ -628,11 +634,7 @@ void dsp_dump(void)
 
 	/* Load and execute our dump code in the DSP */
 	dsp_upload_sections_api(dsp_dumpcode, DSP_BASE_API);
-
-	writew(0, BL_ADDR_HI);
-	writew(DSP_DUMPCODE_START, BL_ADDR_LO);
-	writew(0, BL_SIZE);
-	writew(BL_CMD_COPY_BLOCK, BL_CMD_STATUS);
+	dsp_bl_start_at(DSP_DUMPCODE_START);
 
 		/* our dump code actually simulates the boot loaded
 		 * but with added read commands */
