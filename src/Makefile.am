@@ -13,7 +13,7 @@ libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c rxlev_stat.c \
 			 tlv_parser.c bitvec.c comp128.c gsm_utils.c statistics.c \
 			 write_queue.c utils.c rsl.c gsm48.c gsm48_ie.c \
 			 logging.c gsm0808.c rate_ctr.c gsmtap_util.c \
-			 gprs_cipher_core.c crc16.c panic.c process.c
+			 gprs_cipher_core.c crc16.c panic.c process.c gsm0480.c
 
 if ENABLE_PLUGIN
 libosmocore_la_SOURCES += plugin.c
