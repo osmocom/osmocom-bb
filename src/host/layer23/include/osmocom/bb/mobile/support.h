@@ -98,7 +98,6 @@ struct gsm_support_scan_max {
 extern struct gsm_support_scan_max gsm_sup_smax[];
 
 void gsm_support_init(struct osmocom_ms *ms);
-int gsm_support_txpwr(uint8_t tx_power, uint16_t arfcn);
 void gsm_support_dump(struct gsm_support *sup,
 			void (*print)(void *, const char *, ...), void *priv);
 
