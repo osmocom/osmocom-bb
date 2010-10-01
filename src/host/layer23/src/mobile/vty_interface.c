@@ -845,6 +845,7 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, "  hplmn-search %s%s", (set->test_always) ? "everywhere"
 			: "foreign-country", VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
+	vty_out(vty, " min-rxlev %d%s", set->min_rxlev_db, VTY_NEWLINE);
 	if (set->alter_tx_power)
 		if (set->alter_tx_power_value)
 			vty_out(vty, " tx-power %d%s",
@@ -1081,6 +1082,17 @@ DEFUN(cfg_no_clir, cfg_ms_no_clir_cmd, "no clir",
 	struct osmocom_ms *ms = vty->index;
 
 	ms->settings.clir = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_min_rxlev, cfg_ms_min_rxlev_cmd, "min-rxlev <-110--47>",
+	"Set the minimum receive level to select a cell\n"
+	"Minimum receive level from -110 dBm to -47 dBm")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	ms->settings.min_rxlev_db = atoi(argv[0]);
 
 	return CMD_SUCCESS;
 }
@@ -1534,6 +1546,7 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_clip_cmd);
 	install_element(MS_NODE, &cfg_ms_no_clir_cmd);
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
+	install_element(MS_NODE, &cfg_ms_min_rxlev_cmd);
 	install_element(MS_NODE, &cfg_ms_tx_power_cmd);
 	install_element(MS_NODE, &cfg_ms_tx_power_val_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_delay_cmd);

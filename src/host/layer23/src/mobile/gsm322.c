@@ -2418,7 +2418,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		cs->list[i].flags |= GSM322_CS_FLAG_POWER;
 		cs->list[i].flags &= ~GSM322_CS_FLAG_SIGNAL;
 		/* if minimum level is reached or if we stick to a cell */
-		if (rxlev2dbm(rxlev) >= ms->support.min_rxlev_db
+		if (rxlev2dbm(rxlev) >= ms->settings.min_rxlev_db
 		 || ms->settings.stick) {
 			cs->list[i].flags |= GSM322_CS_FLAG_SIGNAL;
 			LOGP(DCS, LOGL_INFO, "Found signal (frequency %d "

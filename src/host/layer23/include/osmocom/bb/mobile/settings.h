@@ -15,6 +15,7 @@ struct gsm_settings {
 
 	/* network search */
 	int			plmn_mode; /* PLMN_MODE_* */
+	int8_t			min_rxlev_db; /* min DB to access */
 
 	/* SIM */
 	int			sim_type; /* selects card on power on */

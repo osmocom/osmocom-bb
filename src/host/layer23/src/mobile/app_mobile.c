@@ -170,10 +170,10 @@ int l23_app_init(struct osmocom_ms *ms)
 
 	srand(time(NULL));
 
+	gsm_support_init(ms);
 	gsm_sim_init(ms);
 	gsm_settings_init(ms);
 	gsm48_cc_init(ms);
-	gsm_support_init(ms);
 	gsm_subscr_init(ms);
 	gsm48_rr_init(ms);
 	gsm48_mm_init(ms);

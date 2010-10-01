@@ -44,6 +44,8 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	if (sup->half_v1 || sup->half_v3)
 		set->half = 1;
 
+	set->min_rxlev_db = sup->min_rxlev_db;
+
 	return 0;
 }
 
