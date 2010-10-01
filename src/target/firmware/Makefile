@@ -67,12 +67,11 @@ INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
 
 # Various objects that are currently linked into all applications
 FLASH_OBJS=flash/cfi_flash.o
-DISPLAY_OBJS=display/font_r8x8.o display/font_r8x8_horiz.o display/st7558.o display/td014.o display/ssd1783.o display/ssd1963.o display/display.o
 ABB_OBJS=abb/twl3025.o
 RF_OBJS=rf/trf6151.o
 
 # Objects that go in all applications
-ANY_APP_OBJS+=$(ABB_OBJS) $(RF_OBJS) $(DISPLAY_OBJS) $(FLASH_OBJS)
+ANY_APP_OBJS+=$(ABB_OBJS) $(RF_OBJS) $(FLASH_OBJS)
 ANY_APP_LIBS+=calypso/libcalypso.a layer1/liblayer1.a lib/libmini.a comm/libcomm.a ../../shared/libosmocore/build-target/src/.libs/libosmocore.a ../../shared/libosmocore/build-target/src/gsm/.libs/libosmogsm.a
 
 # Libraries are defined in subdirectories

@@ -32,7 +32,6 @@
 #include <board.h>
 
 #include <abb/twl3025.h>
-#include <display.h>
 #include <rf/trf6151.h>
 
 #include <comm/sercomm.h>
@@ -75,15 +74,12 @@ int main(void)
 	calypso_clk_dump();
 	puts(hr);
 
-	display_puts("layer1.bin");
-
 	/* initialize SIM */
         calypso_sim_init();
 
         puts("Power up simcard:\n");
         memset(atr,0,sizeof(atr));
         atrLength = calypso_sim_powerup(atr);
-
 
 	layer1_init();
 
