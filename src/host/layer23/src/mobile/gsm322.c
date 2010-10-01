@@ -46,7 +46,6 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any, int plmn_allowed);
 static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg);
 
 #define SKIP_MAX_PER_BAND
-//#define CS_HEAVY_DEBUG
 
 #warning HACKING!!!
 int hack;
@@ -438,9 +437,7 @@ static void stop_plmn_timer(struct gsm322_plmn *plmn)
 /* start cell selection timer */
 void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro)
 {
-#ifdef CS_HEAVY_DEBUG
-	LOGP(DCS, LOGL_INFO, "Starting CS timer with %d seconds.\n", sec);
-#endif
+	LOGP(DCS, LOGL_DEBUG, "Starting CS timer with %d seconds.\n", sec);
 	cs->timer.cb = gsm322_cs_timeout;
 	cs->timer.data = cs;
 	bsc_schedule_timer(&cs->timer, sec, micro);
@@ -466,9 +463,7 @@ void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro)
 		return;
 	}
 
-#ifdef CS_HEAVY_DEBUG
-	LOGP(DCS, LOGL_INFO, "Starting loss CS timer with %d seconds.\n", sec);
-#endif
+	LOGP(DCS, LOGL_DEBUG, "Starting loss CS timer with %d seconds.\n", sec);
 	bsc_schedule_timer(&cs->timer, sec, micro);
 }
 
@@ -476,9 +471,7 @@ void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro)
 static void stop_cs_timer(struct gsm322_cellsel *cs)
 {
 	if (bsc_timer_pending(&cs->timer)) {
-#ifdef CS_HEAVY_DEBUG
-		LOGP(DCS, LOGL_INFO, "stopping pending CS timer.\n");
-#endif
+		LOGP(DCS, LOGL_DEBUG, "stopping pending CS timer.\n");
 		bsc_del_timer(&cs->timer);
 	}
 }
@@ -1527,15 +1520,11 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any, int plmn_allowed)
 	/* set out access class depending on the cell selection type */
 	if (any) {
 		acc_class = subscr->acc_class | 0x0400; /* add emergency */
-#ifdef CS_HEAVY_DEBUG
-		LOGP(DCS, LOGL_INFO, "Select using access class with Emergency "
-			"class.\n");
-#endif
+		LOGP(DCS, LOGL_DEBUG, "Select using access class with "
+			"Emergency class.\n");
 	} else {
 		acc_class = subscr->acc_class;
-#ifdef CS_HEAVY_DEBUG
-		LOGP(DCS, LOGL_INFO, "Select using access class \n");
-#endif
+		LOGP(DCS, LOGL_DEBUG, "Select using access class \n");
 	}
 
 	/* flags to match */
@@ -1637,7 +1626,10 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any, int plmn_allowed)
 static int gsm322_cs_scan(struct osmocom_ms *ms)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	int i, j;
+	int i;
+#ifndef SKIP_MAX_PER_BAND
+	int j;
+#endif
 	uint8_t mask, flags;
 	uint32_t weight = 0, test = cs->scan_state;
 
@@ -1815,10 +1807,8 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 
 	/* Tune to frequency for a while, to receive broadcasts. */
 	cs->arfcn = weight & 1023;
-#ifdef CS_HEAVY_DEBUG
-	LOGP(DCS, LOGL_INFO, "Scanning frequency %d (rxlev %s).\n", cs->arfcn,
+	LOGP(DCS, LOGL_DEBUG, "Scanning frequency %d (rxlev %s).\n", cs->arfcn,
 		gsm_print_rxlev(cs->list[cs->arfcn].rxlev));
-#endif
 	hack = 1;
 	gsm322_sync_to_cell(cs);
 
@@ -1837,11 +1827,9 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	/* increase scan counter for each maximum scan range */
 #ifndef SKIP_MAX_PER_BAND
 	if (gsm_sup_smax[j].max) {
-#ifdef CS_HEAVY_DEBUG
-		LOGP(DCS, LOGL_INFO, "%d frequencies left in band %d..%d\n",
+		LOGP(DCS, LOGL_DEBUG, "%d frequencies left in band %d..%d\n",
 			gsm_sup_smax[j].max - gsm_sup_smax[j].temp,
 			gsm_sup_smax[j].start, gsm_sup_smax[j].end);
-#endif
 		gsm_sup_smax[j].temp++;
 	}
 #endif
@@ -1901,12 +1889,10 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 			cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_FORBIDD;
 	}
 
-#ifdef CS_HEAVY_DEBUG
-	LOGP(DCS, LOGL_INFO, "Scan frequency %d: Cell found. (rxlev %s "
+	LOGP(DCS, LOGL_DEBUG, "Scan frequency %d: Cell found. (rxlev %s "
 		"mcc %s mnc %s lac %04x)\n", cs->arfcn,
 		gsm_print_rxlev(cs->list[cs->arfcn].rxlev),
 		gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc), s->lac);
-#endif
 
 	/* special case for PLMN search */
 	if (cs->state == GSM322_PLMN_SEARCH)
@@ -2218,9 +2204,7 @@ static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 	  || (s->si2bis && s->nb_ext_ind_si2 && !s->nb_ext_ind_si2bis)
 	  || (s->si2bis && s->si2ter && s->nb_ext_ind_si2
 	 	&& s->nb_ext_ind_si2bis))) {
-#ifdef CS_HEAVY_DEBUG
-		LOGP(DCS, LOGL_INFO, "Received relevant sysinfo.\n");
-#endif
+		LOGP(DCS, LOGL_DEBUG, "Received relevant sysinfo.\n");
 		/* stop timer */
 		stop_cs_timer(cs);
 
@@ -2248,9 +2232,7 @@ static void gsm322_cs_timeout(void *arg)
 	/* remove system information */
 	cs->list[cs->arfcn].flags &= ~GSM322_CS_FLAG_SYSINFO; 
 	if (cs->list[cs->arfcn].sysinfo) {
-#ifdef CS_HEAVY_DEBUG
-		LOGP(DCS, LOGL_INFO, "free sysinfo arfcn=%d\n", cs->arfcn);
-#endif
+		LOGP(DCS, LOGL_DEBUG, "free sysinfo arfcn=%d\n", cs->arfcn);
 		talloc_free(cs->list[cs->arfcn].sysinfo);
 		cs->list[cs->arfcn].sysinfo = NULL;
 		gsm322_unselect_cell(cs);
@@ -2281,9 +2263,7 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 
 	/* in case of sticking to a cell, we only select it */
 	if (set->stick) {
-#ifdef CS_HEAVY_DEBUG
-		LOGP(DCS, LOGL_FATAL, "Scanning power for sticked cell.\n");
-#endif
+		LOGP(DCS, LOGL_DEBUG, "Scanning power for sticked cell.\n");
 		i = set->stick_arfcn;
 		if ((cs->list[i].flags & mask) == flags)
 			s = e = i;
@@ -2291,18 +2271,13 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 		/* search for first frequency to scan */
 		if (cs->state == GSM322_C2_STORED_CELL_SEL
 		 || cs->state == GSM322_C5_CHOOSE_CELL) {
-#ifdef CS_HEAVY_DEBUG
-			LOGP(DCS, LOGL_FATAL, "Scanning power for stored BA "
+			LOGP(DCS, LOGL_DEBUG, "Scanning power for stored BA "
 				"list.\n");
-#endif
 			mask |= GSM322_CS_FLAG_BA;
 			flags |= GSM322_CS_FLAG_BA;
-		}
-#ifdef CS_HEAVY_DEBUG
-		  else
-			LOGP(DCS, LOGL_FATAL, "Scanning power for all "
+		} else
+			LOGP(DCS, LOGL_DEBUG, "Scanning power for all "
 				"frequencies.\n");
-#endif
 		for (i = 0; i <= 1023; i++) {
 			if ((cs->list[i].flags & mask) == flags) {
 				s = e = i;
@@ -2400,9 +2375,7 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 		}
 	}
 
-#ifdef CS_HEAVY_DEBUG
-	LOGP(DCS, LOGL_INFO, "Scanning frequencies. (%d..%d)\n", s, e);
-#endif
+	LOGP(DCS, LOGL_DEBUG, "Scanning frequencies. (%d..%d)\n", s, e);
 
 	/* start scan on radio interface */
 	if (!cs->powerscan) {
@@ -2454,9 +2427,7 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		}
 		break;
 	case S_L1CTL_PM_DONE:
-#ifdef CS_HEAVY_DEBUG
-		LOGP(DCS, LOGL_INFO, "Done with power scanning range.\n");
-#endif
+		LOGP(DCS, LOGL_DEBUG, "Done with power scanning range.\n");
 		ms = signal_data;
 		cs = &ms->cellsel;
 		if (!cs->powerscan)

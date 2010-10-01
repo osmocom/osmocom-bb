@@ -164,8 +164,9 @@ int l23_app_init(struct osmocom_ms *ms)
 	int rc;
 	struct telnet_connection dummy_conn;
 
-//	log_parse_category_mask(stderr_target, "DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
+//	log_parse_category_mask(stderr_target, "DL1C:DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
 	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
+	log_set_log_level(stderr_target, LOGL_INFO);
 
 	srand(time(NULL));
 
