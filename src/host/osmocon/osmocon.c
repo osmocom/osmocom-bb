@@ -463,7 +463,7 @@ static void hexdump(const uint8_t *data, unsigned int len)
 
 static int romload_prepare_block(void)
 {
-	int rc, i;
+	int i;
 
 	int block_checksum = 5;
 	int remaining_bytes;
@@ -534,7 +534,7 @@ static int romload_prepare_block(void)
 
 	dnload.block_number++;
 	dnload.serial_fd.when = BSC_FD_READ | BSC_FD_WRITE;
-	return rc;
+	return 0;
 }
 
 static int mtk_prepare_block(void)
