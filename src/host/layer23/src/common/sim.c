@@ -153,7 +153,7 @@ void gsm_sim_reply(struct osmocom_ms *ms, uint8_t result_type, uint8_t *result,
 	/* if no handler, or no callback, just free the job */
 	sh = (struct sim_hdr *)msg->data;
 	handler = sim_get_handler(sim, sh->handle);
-	if (!handler && !handler->cb) {
+	if (!handler || !handler->cb) {
 		LOGP(DSIM, LOGL_INFO, "no callback or no handler, "
 			"dropping result\n");
 		msgb_free(sim->job_msg);
