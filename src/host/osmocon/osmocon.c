@@ -796,9 +796,9 @@ static void hdlc_tool_cb(uint8_t dlci, struct msgb *msg)
 
 	if(srv) {
 		struct tool_connection *con;
-		u_int16_t *len;
+		uint16_t *len;
 
-		len = (u_int16_t *) msgb_push(msg, 2);
+		len = (uint16_t *) msgb_push(msg, 2);
 		*len = htons(msg->len - sizeof(*len));
 
 		llist_for_each_entry(con, &srv->connections, entry) {
@@ -1265,8 +1265,8 @@ static int version(const char *name)
 static int un_tool_read(struct bsc_fd *fd, unsigned int flags)
 {
 	int rc, c;
-	u_int16_t length = 0xffff;
-	u_int8_t buf[4096];
+	uint16_t length = 0xffff;
+	uint8_t buf[4096];
 	struct tool_connection *con = (struct tool_connection *)fd->data;
 
 	c = 0;
@@ -1286,7 +1286,7 @@ static int un_tool_read(struct bsc_fd *fd, unsigned int flags)
 		c += rc;
 	}
 
-	length = ntohs(*(u_int16_t*)buf);
+	length = ntohs(*(uint16_t*)buf);
 
 	c = 0;
 	while(c < length) {
