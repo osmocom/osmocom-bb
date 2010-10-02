@@ -32,9 +32,9 @@
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 #endif
 #include <sercomm.h>
-#define local_irq_save(x)
+#define local_irq_save(x) (void) x
 #define local_fiq_disable()
-#define local_irq_restore(x)
+#define local_irq_restore(x) (void) x
 
 #else
 #define SERCOMM_RX_MSG_SIZE	256
