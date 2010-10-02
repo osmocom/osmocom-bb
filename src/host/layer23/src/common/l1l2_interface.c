@@ -25,6 +25,8 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/logging.h>
 
+#include <osmocore/util.h>
+
 #include <sys/socket.h>
 #include <sys/un.h>
 
