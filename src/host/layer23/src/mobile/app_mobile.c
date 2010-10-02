@@ -46,6 +46,7 @@ extern struct log_target *stderr_target;
 static const char *config_file = "/etc/osmocom/osmocom.cfg";
 extern void *l23_ctx;
 extern unsigned short vty_port;
+extern int vty_reading;
 
 int mobile_started = 0;
 
@@ -188,6 +189,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	vty_init(&vty_info);
 	ms_vty_init();
 	dummy_conn.priv = NULL;
+	vty_reading = 1;
 	rc = vty_read_config_file(config_file, &dummy_conn);
 	if (rc < 0) {
 		fprintf(stderr, "Failed to parse the config file: '%s'\n",
@@ -196,6 +198,7 @@ int l23_app_init(struct osmocom_ms *ms)
 			"'touch %s'\n", config_file);
 		return rc;
 	}
+	vty_reading = 0;
 	telnet_init(l23_ctx, NULL, vty_port);
 	if (rc < 0)
 		return rc;

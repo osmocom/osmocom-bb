@@ -77,6 +77,15 @@ static void print_vty(void *priv, const char *fmt, ...)
 	}
 }
 
+int vty_reading = 0;
+
+static void vty_restart(struct vty *vty)
+{
+	if (vty_reading)
+		return;
+	vty_out(vty, "You must restart for change take effect!%s", VTY_NEWLINE);
+}
+
 static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
 {
 	struct osmocom_ms *ms;
@@ -925,6 +934,7 @@ DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test)",
 		return CMD_WARNING;
 	}
 
+	vty_restart(vty);
 	return CMD_SUCCESS;
 }
 
@@ -984,6 +994,7 @@ DEFUN(cfg_ms_imei_fixed, cfg_ms_imei_fixed_cmd, "imei-fixed",
 
 	ms->settings.imei_random = 0;
 
+	vty_restart(vty);
 	return CMD_SUCCESS;
 }
 
@@ -995,6 +1006,7 @@ DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
 
 	ms->settings.imei_random = atoi(argv[0]);
 
+	vty_restart(vty);
 	return CMD_SUCCESS;
 }
 
@@ -1301,6 +1313,7 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 
 	strcpy(ms->settings.test_imsi, argv[0]);
 
+	vty_restart(vty);
 	return CMD_SUCCESS;
 }
 
@@ -1389,6 +1402,7 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 
 	ms->settings.test_rplmn_valid = 0;
 
+	vty_restart(vty);
 	return CMD_SUCCESS;
 }
 
@@ -1411,6 +1425,7 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
 	ms->settings.test_rplmn_mcc = mcc;
 	ms->settings.test_rplmn_mnc = mnc;
 
+	vty_restart(vty);
 	return CMD_SUCCESS;
 }
 
@@ -1430,6 +1445,7 @@ DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-coun
 		break;
 	}
 
+	vty_restart(vty);
 	return CMD_SUCCESS;
 }
 
