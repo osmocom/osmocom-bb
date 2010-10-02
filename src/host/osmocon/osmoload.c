@@ -665,7 +665,7 @@ loader_do_memload() {
 
 	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
 
-	osmoload.memcrc = crc16(0, osmoload.binbuf + osmoload.memoff, reqbytes);
+	osmoload.memcrc = crc16(0, (uint8_t *) osmoload.binbuf + osmoload.memoff, reqbytes);
 	osmoload.memreq = reqbytes;
 
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
@@ -705,7 +705,7 @@ loader_do_fprogram() {
 
 	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
 
-	osmoload.memcrc = crc16(0, osmoload.binbuf + osmoload.memoff, reqbytes);
+	osmoload.memcrc = crc16(0, (uint8_t *) osmoload.binbuf + osmoload.memoff, reqbytes);
 	osmoload.memreq = reqbytes;
 
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
