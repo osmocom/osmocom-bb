@@ -4185,6 +4185,8 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	rr->chan_req_val = ho->ho_ref;
 	rr->chan_req_mask = 0x00;
 
+	tlv_parse(&tp, &gsm48_rr_att_tlvdef, ho->data, payload_len, 0, 0);
+
 	/* sync ind */
 	if (TLVP_PRESENT(&tp, GSM48_IE_SYNC_IND)) {	
 		gsm48_decode_sync_ind(rr, (struct gsm48_sync_ind *) 
@@ -4192,8 +4194,6 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_INFO, " (sync_ind=%d rot=%d nci=%d)\n",
 			rr->hando_sync_ind, rr->hando_rot, rr->hando_nci);
 	}
-
-	tlv_parse(&tp, &gsm48_rr_att_tlvdef, ho->data, payload_len, 0, 0);
 
 	/* decode channel description (before time) */
 	if (TLVP_PRESENT(&tp, GSM48_IE_CH_DESC_1_BEFORE)) {
