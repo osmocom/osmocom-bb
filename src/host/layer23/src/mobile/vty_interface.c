@@ -635,7 +635,9 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 	if (!ms)
 		return CMD_WARNING;
 
-	switch (argv[1][0]) {
+	if (!strcmp(argv[1], "emergency"))
+		mncc_call(ms, (char *)argv[1]);
+	else switch (argv[1][0]) {
 	case 'a':
 		mncc_answer(ms);
 		break;
