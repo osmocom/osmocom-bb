@@ -57,6 +57,12 @@ struct cmd_node testsim_node = {
 	1
 };
 
+struct cmd_node support_node = {
+	SUPPORT_NODE,
+	"%s(support)#",
+	1
+};
+
 static void print_vty(void *priv, const char *fmt, ...)
 {
 	char buffer[1000];
@@ -83,7 +89,8 @@ static void vty_restart(struct vty *vty)
 {
 	if (vty_reading)
 		return;
-	vty_out(vty, "You must restart for change take effect!%s", VTY_NEWLINE);
+	vty_out(vty, "You must restart for change to take effect!%s",
+		VTY_NEWLINE);
 }
 
 static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
@@ -133,10 +140,10 @@ DEFUN(show_support, show_support_cmd, "show support [ms_name]",
 		ms = get_ms(argv[0], vty);
 		if (!ms)
 			return CMD_WARNING;
-		gsm_support_dump(&ms->support, print_vty, vty);
+		gsm_support_dump(ms, print_vty, vty);
 	} else {
 		llist_for_each_entry(ms, &ms_list, entity) {
-			gsm_support_dump(&ms->support, print_vty, vty);
+			gsm_support_dump(ms, print_vty, vty);
 			vty_out(vty, "%s", VTY_NEWLINE);
 		}
 	}
@@ -146,10 +153,11 @@ DEFUN(show_support, show_support_cmd, "show support [ms_name]",
 
 static void gsm_states_dump(struct osmocom_ms *ms, struct vty *vty)
 {
+	struct gsm_settings *set = &ms->settings;
 	struct gsm_trans *trans;
 
 	vty_out(vty, "Current state of MS '%s'%s", ms->name, VTY_NEWLINE);
-	if (ms->settings.plmn_mode == PLMN_MODE_AUTO)
+	if (set->plmn_mode == PLMN_MODE_AUTO)
 		vty_out(vty, " automatic network selection: %s%s", 
 			plmn_a_state_names[ms->plmn.state], VTY_NEWLINE);
 	else
@@ -677,15 +685,17 @@ DEFUN(network_show, network_show_cmd, "network show MS_NAME",
 	"Name of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
+	struct gsm_settings *set;
 	struct gsm322_plmn *plmn;
 	struct gsm322_plmn_list *temp;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
+	set = &ms->settings;
 	plmn = &ms->plmn;
 
-	if (ms->settings.plmn_mode != PLMN_MODE_AUTO
+	if (set->plmn_mode != PLMN_MODE_AUTO
 	 && plmn->state != GSM322_M3_NOT_ON_PLMN) {
 		vty_out(vty, "Start network search first!%s", VTY_NEWLINE);
 		return CMD_WARNING;
@@ -796,10 +806,15 @@ DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 	return CMD_SUCCESS;
 }
 
+#define SUP_WRITE(item, cmd) \
+	if (sup->item) \
+		vty_out(vty, "  %s%s%s", (set->item) ? "" : "no ", cmd, \
+			VTY_NEWLINE);
+
 static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 {
-	struct gsm_support *sup = &ms->support;
 	struct gsm_settings *set = &ms->settings;
+	struct gsm_support *sup = &ms->support;
 
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
 	switch(set->sim_type) {
@@ -830,6 +845,76 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, " %scall-waiting%s", (set->cw) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " %sclip%s", (set->clip) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " %sclir%s", (set->clir) ? "" : "no ", VTY_NEWLINE);
+	if (set->alter_tx_power)
+		if (set->alter_tx_power_value)
+			vty_out(vty, " tx-power %d%s",
+				set->alter_tx_power_value, VTY_NEWLINE);
+		else
+			vty_out(vty, " tx-power full%s", VTY_NEWLINE);
+	else
+		vty_out(vty, " tx-power auto%s", VTY_NEWLINE);
+	if (set->alter_delay)
+		vty_out(vty, " simulated-delay %d%s", set->alter_delay,
+			VTY_NEWLINE);
+	else
+		vty_out(vty, " no simulated-delay%s", VTY_NEWLINE);
+	if (set->stick)
+		vty_out(vty, " stick %d%s", set->stick_arfcn,
+			VTY_NEWLINE);
+	else
+		vty_out(vty, " no stick%s", VTY_NEWLINE);
+	if (set->no_lupd)
+		vty_out(vty, " no location-updating%s", VTY_NEWLINE);
+	else
+		vty_out(vty, " location-updating%s", VTY_NEWLINE);
+	if (set->full_v1 || set->full_v2 || set->full_v3) {
+		/* mandatory anyway */
+		vty_out(vty, " codec full-speed%s%s",
+			(!set->half_prefer) ? " prefer" : "",
+			VTY_NEWLINE);
+	}
+	if (set->half_v1 || set->half_v3) {
+		if (set->half)
+			vty_out(vty, " codec half-speed%s%s",
+				(set->half_prefer) ? " prefer" : "",
+				VTY_NEWLINE);
+		else
+			vty_out(vty, " no codec half-speed%s", VTY_NEWLINE);
+	}
+	vty_out(vty, " support%s", VTY_NEWLINE);
+	SUP_WRITE(sms_ptp, "sms");
+	SUP_WRITE(a5_1, "a5/1");
+	SUP_WRITE(a5_2, "a5/2");
+	SUP_WRITE(a5_3, "a5/3");
+	SUP_WRITE(a5_4, "a5/4");
+	SUP_WRITE(a5_5, "a5/5");
+	SUP_WRITE(a5_6, "a5/6");
+	SUP_WRITE(a5_7, "a5/7");
+	SUP_WRITE(p_gsm, "p-gsm");
+	SUP_WRITE(e_gsm, "e-gsm");
+	SUP_WRITE(r_gsm, "r-gsm");
+	SUP_WRITE(dcs, "dcs");
+	vty_out(vty, "  class-900 %d%s", set->class_900, VTY_NEWLINE);
+	vty_out(vty, "  class-dcs %d%s", set->class_dcs, VTY_NEWLINE);
+	switch (set->ch_cap) {
+	case GSM_CAP_SDCCH:
+		vty_out(vty, "  channel-capability sdcch%s", VTY_NEWLINE);
+		break;
+	case GSM_CAP_SDCCH_TCHF:
+		vty_out(vty, "  channel-capability sdcch+tchf%s", VTY_NEWLINE);
+		break;
+	case GSM_CAP_SDCCH_TCHF_TCHH:
+		vty_out(vty, "  channel-capability sdcch+tchf+tchh%s",
+			VTY_NEWLINE);
+		break;
+	}
+	SUP_WRITE(full_v1, "full-speech-v1");
+	SUP_WRITE(full_v2, "full-speech-v2");
+	SUP_WRITE(full_v3, "full-speech-v3");
+	SUP_WRITE(half_v1, "half-speech-v1");
+	SUP_WRITE(half_v3, "half-speech-v3");
+	vty_out(vty, "  min-rxlev %d%s", set->min_rxlev_db, VTY_NEWLINE);
+	vty_out(vty, " exit%s", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
 	switch (set->test_ki_type) {
@@ -854,43 +939,6 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, "  hplmn-search %s%s", (set->test_always) ? "everywhere"
 			: "foreign-country", VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
-	vty_out(vty, " min-rxlev %d%s", set->min_rxlev_db, VTY_NEWLINE);
-	if (set->alter_tx_power)
-		if (set->alter_tx_power_value)
-			vty_out(vty, " tx-power %d%s",
-				set->alter_tx_power_value, VTY_NEWLINE);
-		else
-			vty_out(vty, " tx-power full%s", VTY_NEWLINE);
-	else
-		vty_out(vty, " tx-power auto%s", VTY_NEWLINE);
-	if (set->alter_delay)
-		vty_out(vty, " simulated-delay %d%s", set->alter_delay,
-			VTY_NEWLINE);
-	else
-		vty_out(vty, " no simulated-delay%s", VTY_NEWLINE);
-	if (set->stick)
-		vty_out(vty, " stick %d%s", set->stick_arfcn,
-			VTY_NEWLINE);
-	else
-		vty_out(vty, " no stick%s", VTY_NEWLINE);
-	if (set->no_lupd)
-		vty_out(vty, " no location-updating%s", VTY_NEWLINE);
-	else
-		vty_out(vty, " location-updating%s", VTY_NEWLINE);
-	if (sup->full_v1 || sup->full_v2 || sup->full_v3) {
-		/* mandatory anyway */
-		vty_out(vty, " codec full-speed%s%s",
-			(!set->half_prefer) ? " prefer" : "",
-			VTY_NEWLINE);
-	}
-	if (sup->half_v1 || sup->half_v3) {
-		if (set->half)
-			vty_out(vty, " codec half-speed%s%s",
-				(set->half_prefer) ? " prefer" : "",
-				VTY_NEWLINE);
-		else
-			vty_out(vty, " no codec half-speed%s", VTY_NEWLINE);
-	}
 	vty_out(vty, "exit%s", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
@@ -918,16 +966,17 @@ DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test)",
 	"Use SIM from reader\nTest SIM inserted")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
 	switch (argv[0][0]) {
 	case 'n':
-		ms->settings.sim_type = GSM_SIM_TYPE_NONE;
+		set->sim_type = GSM_SIM_TYPE_NONE;
 		break;
 	case 'r':
-		ms->settings.sim_type = GSM_SIM_TYPE_READER;
+		set->sim_type = GSM_SIM_TYPE_READER;
 		break;
 	case 't':
-		ms->settings.sim_type = GSM_SIM_TYPE_TEST;
+		set->sim_type = GSM_SIM_TYPE_TEST;
 		break;
 	default:
 		vty_out(vty, "unknown SIM type%s", VTY_NEWLINE);
@@ -943,13 +992,14 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 	"Manual network selection")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 
 	if (!ms->plmn.state) {
 		if (argv[0][0] == 'a')
-			ms->settings.plmn_mode = PLMN_MODE_AUTO;
+			set->plmn_mode = PLMN_MODE_AUTO;
 		else
-			ms->settings.plmn_mode = PLMN_MODE_MANUAL;
+			set->plmn_mode = PLMN_MODE_MANUAL;
 
 		return CMD_SUCCESS;
 	}
@@ -969,6 +1019,7 @@ DEFUN(cfg_ms_imei, cfg_ms_imei_cmd, "imei IMEI [SV]",
 	"Software version digit")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 	char *error, *sv = "0";
 
 	if (argc >= 2)
@@ -980,9 +1031,9 @@ DEFUN(cfg_ms_imei, cfg_ms_imei_cmd, "imei IMEI [SV]",
 		return CMD_WARNING;
 	}
 
-	strcpy(ms->settings.imei, argv[0]);
-	strcpy(ms->settings.imeisv, argv[0]);
-	strcpy(ms->settings.imeisv + 15, sv);
+	strcpy(set->imei, argv[0]);
+	strcpy(set->imeisv, argv[0]);
+	strcpy(set->imeisv + 15, sv);
 
 	return CMD_SUCCESS;
 }
@@ -991,8 +1042,9 @@ DEFUN(cfg_ms_imei_fixed, cfg_ms_imei_fixed_cmd, "imei-fixed",
 	"Use fixed IMEI on every power on")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.imei_random = 0;
+	set->imei_random = 0;
 
 	vty_restart(vty);
 	return CMD_SUCCESS;
@@ -1003,8 +1055,9 @@ DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
 	"Number of trailing digits to randomize")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.imei_random = atoi(argv[0]);
+	set->imei_random = atoi(argv[0]);
 
 	vty_restart(vty);
 	return CMD_SUCCESS;
@@ -1014,6 +1067,7 @@ DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi IMSI",
 	"Use special IMSI for emergency calls\n15 digits IMSI")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 	char *error;
 
 	error = gsm_check_imsi(argv[0]);
@@ -1021,7 +1075,7 @@ DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi IMSI",
 		vty_out(vty, "%s%s", error, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	strcpy(ms->settings.emergency_imsi, argv[0]);
+	strcpy(set->emergency_imsi, argv[0]);
 
 	return CMD_SUCCESS;
 }
@@ -1030,8 +1084,9 @@ DEFUN(cfg_ms_no_emerg_imsi, cfg_ms_no_emerg_imsi_cmd, "no emergency-imsi",
 	NO_STR "Use IMSI of SIM or IMEI for emergency calls")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.emergency_imsi[0] = '\0';
+	set->emergency_imsi[0] = '\0';
 
 	return CMD_SUCCESS;
 }
@@ -1040,8 +1095,9 @@ DEFUN(cfg_no_cw, cfg_ms_no_cw_cmd, "no call-waiting",
 	NO_STR "Disallow waiting calls")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.cw = 0;
+	set->cw = 0;
 
 	return CMD_SUCCESS;
 }
@@ -1050,8 +1106,9 @@ DEFUN(cfg_cw, cfg_ms_cw_cmd, "call-waiting",
 	"Allow waiting calls")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.cw = 1;
+	set->cw = 1;
 
 	return CMD_SUCCESS;
 }
@@ -1060,9 +1117,10 @@ DEFUN(cfg_clip, cfg_ms_clip_cmd, "clip",
 	"Force caller ID presentation")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.clip = 1;
-	ms->settings.clir = 0;
+	set->clip = 1;
+	set->clir = 0;
 
 	return CMD_SUCCESS;
 }
@@ -1071,9 +1129,10 @@ DEFUN(cfg_clir, cfg_ms_clir_cmd, "clir",
 	"Force caller ID restriction")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.clip = 0;
-	ms->settings.clir = 1;
+	set->clip = 0;
+	set->clir = 1;
 
 	return CMD_SUCCESS;
 }
@@ -1082,8 +1141,9 @@ DEFUN(cfg_no_clip, cfg_ms_no_clip_cmd, "no clip",
 	NO_STR "Disable forcing of caller ID presentation")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.clip = 0;
+	set->clip = 0;
 
 	return CMD_SUCCESS;
 }
@@ -1092,19 +1152,9 @@ DEFUN(cfg_no_clir, cfg_ms_no_clir_cmd, "no clir",
 	NO_STR "Disable forcing of caller ID restriction")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.clir = 0;
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_ms_min_rxlev, cfg_ms_min_rxlev_cmd, "min-rxlev <-110--47>",
-	"Set the minimum receive level to select a cell\n"
-	"Minimum receive level from -110 dBm to -47 dBm")
-{
-	struct osmocom_ms *ms = vty->index;
-
-	ms->settings.min_rxlev_db = atoi(argv[0]);
+	set->clir = 0;
 
 	return CMD_SUCCESS;
 }
@@ -1114,14 +1164,15 @@ DEFUN(cfg_ms_tx_power, cfg_ms_tx_power_cmd, "tx-power (auto|full)",
 	"Always full power\nFixed GSM power value if supported")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
 	switch (argv[0][0]) {
 	case 'a':
-		ms->settings.alter_tx_power = 0;
+		set->alter_tx_power = 0;
 		break;
 	case 'f':
-		ms->settings.alter_tx_power = 1;
-		ms->settings.alter_tx_power_value = 0;
+		set->alter_tx_power = 1;
+		set->alter_tx_power_value = 0;
 		break;
 	}
 
@@ -1133,9 +1184,10 @@ DEFUN(cfg_ms_tx_power_val, cfg_ms_tx_power_val_cmd, "tx-power <0-31>",
 	"Fixed GSM power value if supported")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.alter_tx_power = 1;
-	ms->settings.alter_tx_power_value = atoi(argv[0]);
+	set->alter_tx_power = 1;
+	set->alter_tx_power_value = atoi(argv[0]);
 
 	return CMD_SUCCESS;
 }
@@ -1145,8 +1197,9 @@ DEFUN(cfg_ms_sim_delay, cfg_ms_sim_delay_cmd, "simulated-delay <-128-127>",
 	"Delay in half bits (distance in 553.85 meter steps)")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.alter_delay = atoi(argv[0]);
+	set->alter_delay = atoi(argv[0]);
 	gsm48_rr_alter_delay(ms);
 
 	return CMD_SUCCESS;
@@ -1156,8 +1209,9 @@ DEFUN(cfg_ms_no_sim_delay, cfg_ms_no_sim_delay_cmd, "no simulated-delay",
 	NO_STR "Do not simulate a lower or higher distance from the BTS")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.alter_delay = 0;
+	set->alter_delay = 0;
 	gsm48_rr_alter_delay(ms);
 
 	return CMD_SUCCESS;
@@ -1167,9 +1221,10 @@ DEFUN(cfg_ms_stick, cfg_ms_stick_cmd, "stick <0-1023>",
 	"Stick to the given cell\nARFCN of the cell to stick to")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.stick = 1;
-	ms->settings.stick_arfcn = atoi(argv[0]);
+	set->stick = 1;
+	set->stick_arfcn = atoi(argv[0]);
 
 	return CMD_SUCCESS;
 }
@@ -1178,8 +1233,9 @@ DEFUN(cfg_ms_no_stick, cfg_ms_no_stick_cmd, "no stick",
 	NO_STR "Do not stick to any cell")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.stick = 0;
+	set->stick = 0;
 
 	return CMD_SUCCESS;
 }
@@ -1188,8 +1244,9 @@ DEFUN(cfg_ms_lupd, cfg_ms_lupd_cmd, "location-updating",
 	"Allow location updating")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.no_lupd = 0;
+	set->no_lupd = 0;
 
 	return CMD_SUCCESS;
 }
@@ -1198,8 +1255,9 @@ DEFUN(cfg_ms_no_lupd, cfg_ms_no_lupd_cmd, "no location-updating",
 	NO_STR "Do not allow location updating")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.no_lupd = 1;
+	set->no_lupd = 1;
 
 	return CMD_SUCCESS;
 }
@@ -1208,9 +1266,9 @@ DEFUN(cfg_codec_full, cfg_ms_codec_full_cmd, "codec full-speed",
 	"Enable codec\nFull speed speech codec")
 {
 	struct osmocom_ms *ms = vty->index;
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 
-	if (!sup->full_v1 && !sup->full_v2 && !sup->full_v3) {
+	if (!set->full_v1 && !set->full_v2 && !set->full_v3) {
 		vty_out(vty, "Full-rate codec not supported%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -1223,14 +1281,14 @@ DEFUN(cfg_codec_full_pref, cfg_ms_codec_full_pref_cmd, "codec full-speed "
 	"Enable codec\nFull speed speech codec\nPrefer this codec")
 {
 	struct osmocom_ms *ms = vty->index;
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 
-	if (!sup->full_v1 && !sup->full_v2 && !sup->full_v3) {
+	if (!set->full_v1 && !set->full_v2 && !set->full_v3) {
 		vty_out(vty, "Full-rate codec not supported%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	ms->settings.half_prefer = 0;
+	set->half_prefer = 0;
 
 	return CMD_SUCCESS;
 }
@@ -1239,14 +1297,14 @@ DEFUN(cfg_codec_half, cfg_ms_codec_half_cmd, "codec half-speed",
 	"Enable codec\nHalf speed speech codec")
 {
 	struct osmocom_ms *ms = vty->index;
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 
-	if (!sup->half_v1 && !sup->half_v3) {
+	if (!set->half_v1 && !set->half_v3) {
 		vty_out(vty, "Half-rate codec not supported%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	ms->settings.half = 1;
+	set->half = 1;
 
 	return CMD_SUCCESS;
 }
@@ -1256,15 +1314,15 @@ DEFUN(cfg_codec_half_pref, cfg_ms_codec_half_pref_cmd, "codec half-speed "
 	"Enable codec\nHalf speed speech codec\nPrefer this codec")
 {
 	struct osmocom_ms *ms = vty->index;
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 
-	if (!sup->half_v1 && !sup->half_v3) {
+	if (!set->half_v1 && !set->half_v3) {
 		vty_out(vty, "Half-rate codec not supported%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	ms->settings.half = 1;
-	ms->settings.half_prefer = 1;
+	set->half = 1;
+	set->half_prefer = 1;
 
 	return CMD_SUCCESS;
 }
@@ -1273,15 +1331,197 @@ DEFUN(cfg_no_codec_half, cfg_ms_no_codec_half_cmd, "no codec half-speed",
 	NO_STR "Disable codec\nHalf speed speech codec")
 {
 	struct osmocom_ms *ms = vty->index;
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 
-	if (!sup->half_v1 && !sup->half_v3) {
+	if (!set->half_v1 && !set->half_v3) {
 		vty_out(vty, "Half-rate codec not supported%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	ms->settings.half = 0;
-	ms->settings.half_prefer = 0;
+	set->half = 0;
+	set->half_prefer = 0;
+
+	return CMD_SUCCESS;
+}
+
+static int config_write_dummy(struct vty *vty)
+{
+	return CMD_SUCCESS;
+}
+
+/* per support config */
+DEFUN(cfg_ms_support, cfg_ms_support_cmd, "support",
+	"Define supported features")
+{
+	vty->node = SUPPORT_NODE;
+
+	return CMD_SUCCESS;
+}
+
+#define SUP_EN(cfg, cfg_cmd, item, cmd, desc, restart) \
+DEFUN(cfg, cfg_cmd, cmd, "Enable " desc "support") \
+{ \
+	struct osmocom_ms *ms = vty->index; \
+	struct gsm_settings *set = &ms->settings; \
+	struct gsm_support *sup = &ms->support; \
+	if (!sup->item) { \
+		vty_out(vty, desc " not supported%s", VTY_NEWLINE); \
+		if (vty_reading) \
+			return CMD_SUCCESS; \
+		return CMD_WARNING; \
+	} \
+	if (restart) \
+		vty_restart(vty); \
+	set->item = 1; \
+	return CMD_SUCCESS; \
+}
+
+#define SUP_DI(cfg, cfg_cmd, item, cmd, desc, restart) \
+DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
+{ \
+	struct osmocom_ms *ms = vty->index; \
+	struct gsm_settings *set = &ms->settings; \
+	struct gsm_support *sup = &ms->support; \
+	if (!sup->item) { \
+		vty_out(vty, desc " not supported%s", VTY_NEWLINE); \
+		if (vty_reading) \
+			return CMD_SUCCESS; \
+		return CMD_WARNING; \
+	} \
+	if (restart) \
+		vty_restart(vty); \
+	set->item = 0; \
+	return CMD_SUCCESS; \
+}
+
+SUP_EN(cfg_ms_sup_sms, cfg_ms_sup_sms_cmd, sms_ptp, "sms", "SMS", 0);
+SUP_DI(cfg_ms_sup_no_sms, cfg_ms_sup_no_sms_cmd, sms_ptp, "sms", "SMS", 0);
+SUP_EN(cfg_ms_sup_a5_1, cfg_ms_sup_a5_1_cmd, a5_1, "a5/1", "A5/1", 0);
+SUP_DI(cfg_ms_sup_no_a5_1, cfg_ms_sup_no_a5_1_cmd, a5_1, "a5/1", "A5/1", 0);
+SUP_EN(cfg_ms_sup_a5_2, cfg_ms_sup_a5_2_cmd, a5_2, "a5/2", "A5/2", 0);
+SUP_DI(cfg_ms_sup_no_a5_2, cfg_ms_sup_no_a5_2_cmd, a5_2, "a5/2", "A5/2", 0);
+SUP_EN(cfg_ms_sup_a5_3, cfg_ms_sup_a5_3_cmd, a5_3, "a5/3", "A5/3", 0);
+SUP_DI(cfg_ms_sup_no_a5_3, cfg_ms_sup_no_a5_3_cmd, a5_3, "a5/3", "A5/3", 0);
+SUP_EN(cfg_ms_sup_a5_4, cfg_ms_sup_a5_4_cmd, a5_4, "a5/4", "A5/4", 0);
+SUP_DI(cfg_ms_sup_no_a5_4, cfg_ms_sup_no_a5_4_cmd, a5_4, "a5/4", "A5/4", 0);
+SUP_EN(cfg_ms_sup_a5_5, cfg_ms_sup_a5_5_cmd, a5_5, "a5/5", "A5/5", 0);
+SUP_DI(cfg_ms_sup_no_a5_5, cfg_ms_sup_no_a5_5_cmd, a5_5, "a5/5", "A5/5", 0);
+SUP_EN(cfg_ms_sup_a5_6, cfg_ms_sup_a5_6_cmd, a5_6, "a5/6", "A5/6", 0);
+SUP_DI(cfg_ms_sup_no_a5_6, cfg_ms_sup_no_a5_6_cmd, a5_6, "a5/6", "A5/6", 0);
+SUP_EN(cfg_ms_sup_a5_7, cfg_ms_sup_a5_7_cmd, a5_7, "a5/7", "A5/7", 0);
+SUP_DI(cfg_ms_sup_no_a5_7, cfg_ms_sup_no_a5_7_cmd, a5_7, "a5/7", "A5/7", 1);
+SUP_EN(cfg_ms_sup_p_gsm, cfg_ms_sup_p_gsm_cmd, p_gsm, "p-gsm", "P-GSM (900)",
+	1);
+SUP_DI(cfg_ms_sup_no_p_gsm, cfg_ms_sup_no_p_gsm_cmd, p_gsm, "p-gsm",
+	"P-GSM (900)", 1);
+SUP_EN(cfg_ms_sup_e_gsm, cfg_ms_sup_e_gsm_cmd, e_gsm, "e-gsm", "E-GSM (850)",
+	1);
+SUP_DI(cfg_ms_sup_no_e_gsm, cfg_ms_sup_no_e_gsm_cmd, e_gsm, "e-gsm",
+	"E-GSM (850)", 1);
+SUP_EN(cfg_ms_sup_r_gsm, cfg_ms_sup_r_gsm_cmd, r_gsm, "r-gsm", "R-GSM (850)",
+	1);
+SUP_DI(cfg_ms_sup_no_r_gsm, cfg_ms_sup_no_r_gsm_cmd, r_gsm, "r-gsm",
+	"R-GSM (850)", 1);
+SUP_EN(cfg_ms_sup_dcs, cfg_ms_sup_dcs_cmd, dcs, "dcs", "DCS (1800)", 0);
+SUP_DI(cfg_ms_sup_no_dcs, cfg_ms_sup_no_dcs_cmd, dcs, "dcs", "DCS (1800)", 0);
+
+DEFUN(cfg_ms_sup_class_900, cfg_ms_sup_class_900_cmd, "class-900 (1|2|3|4|5)",
+	"Select power class for GSM 850/900\n"
+	"20 Watts\n"
+	"8 Watts\n"
+	"5 Watts\n"
+	"2 Watts\n"
+	"0.8 Watts")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_support *sup = &ms->support;
+
+	set->class_900 = atoi(argv[0]);
+
+	if (set->class_900 < sup->class_900 && !vty_reading)
+		vty_out(vty, "You selected an higher class than supported "
+			" by hardware!%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sup_class_dcs, cfg_ms_sup_class_dcs_cmd, "class-dcs (1|2|3)",
+	"Select power class for DCS 1800\n"
+	"1 Watt\n"
+	"0.25 Watts\n"
+	"4 Watts")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_support *sup = &ms->support;
+
+	set->class_dcs = atoi(argv[0]);
+
+	if (((set->class_dcs + 1) & 3) < ((sup->class_dcs + 1) & 3)
+	 && !vty_reading)
+		vty_out(vty, "You selected an higher class than supported "
+			" by hardware!%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sup_ch_cap, cfg_ms_sup_ch_cap_cmd, "channel-capability "
+	"(sdcch|sdcch+tchf|sdcch+tchf+tchh)",
+	"Select channel capability\nSDCCH only\nSDCCH + TCH/F\nSDCCH + TCH/H")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_support *sup = &ms->support;
+	uint8_t ch_cap;
+
+	if (!strcmp(argv[0], "sdcch+tchf+tchh"))
+		ch_cap = GSM_CAP_SDCCH_TCHF_TCHH;
+	else if (!strcmp(argv[0], "sdcch+tchf"))
+		ch_cap = GSM_CAP_SDCCH_TCHF;
+	else
+		ch_cap = GSM_CAP_SDCCH;
+
+	if (ch_cap > sup->ch_cap && !vty_reading) {
+		vty_out(vty, "You selected an higher capability than supported "
+			" by hardware!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	set->ch_cap = ch_cap;
+
+	return CMD_SUCCESS;
+}
+
+SUP_EN(cfg_ms_sup_full_v1, cfg_ms_sup_full_v1_cmd, full_v1, "full-speech-v1",
+	"Full rate speech V1", 0);
+SUP_DI(cfg_ms_sup_no_full_v1, cfg_ms_sup_no_full_v1_cmd, full_v1,
+	"full-speech-v1", "Full rate speech V1", 0);
+SUP_EN(cfg_ms_sup_full_v2, cfg_ms_sup_full_v2_cmd, full_v2, "full-speech-v2",
+	"Full rate speech V2 (EFR)", 0);
+SUP_DI(cfg_ms_sup_no_full_v2, cfg_ms_sup_no_full_v2_cmd, full_v2,
+	"full-speech-v2", "Full rate speech V2 (EFR)", 0);
+SUP_EN(cfg_ms_sup_full_v3, cfg_ms_sup_full_v3_cmd, full_v3, "full-speech-v3",
+	"Full rate speech V3 (AMR)", 0);
+SUP_DI(cfg_ms_sup_no_full_v3, cfg_ms_sup_no_full_v3_cmd, full_v3,
+	"full-speech-v3", "Full rate speech V3 (AMR)", 0);
+SUP_EN(cfg_ms_sup_half_v1, cfg_ms_sup_half_v1_cmd, half_v1, "half-speech-v1",
+	"Half rate speech V1 (AMR)", 0);
+SUP_DI(cfg_ms_sup_no_half_v1, cfg_ms_sup_no_half_v1_cmd, half_v1,
+	"half-speech-v1", "Half rate speech V1", 0);
+SUP_EN(cfg_ms_sup_half_v3, cfg_ms_sup_half_v3_cmd, half_v3, "half-speech-v3",
+	"Half rate speech V3 (AMR)", 0);
+SUP_DI(cfg_ms_sup_no_half_v3, cfg_ms_sup_no_half_v3_cmd, half_v3,
+	"half-speech-v3", "Half rate speech V3", 0);
+
+DEFUN(cfg_ms_sup_min_rxlev, cfg_ms_sup_min_rxlev_cmd, "min-rxlev <-110--47>",
+	"Set the minimum receive level to select a cell\n"
+	"Minimum receive level from -110 dBm to -47 dBm")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->min_rxlev_db = atoi(argv[0]);
 
 	return CMD_SUCCESS;
 }
@@ -1295,15 +1535,11 @@ DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	return CMD_SUCCESS;
 }
 
-static int config_write_dummy(struct vty *vty)
-{
-	return CMD_SUCCESS;
-}
-
 DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 	"Set IMSI on test card\n15 digits IMSI")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 	char *error = gsm_check_imsi(argv[0]);
 
 	if (error) {
@@ -1311,7 +1547,7 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 		return CMD_WARNING;
 	}
 
-	strcpy(ms->settings.test_imsi, argv[0]);
+	strcpy(set->test_imsi, argv[0]);
 
 	vty_restart(vty);
 	return CMD_SUCCESS;
@@ -1379,8 +1615,9 @@ DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access",
 	"Allow access to barred cells")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.test_barr = 1;
+	set->test_barr = 1;
 
 	return CMD_SUCCESS;
 }
@@ -1389,8 +1626,9 @@ DEFUN(cfg_test_no_barr, cfg_test_no_barr_cmd, "no barred-access",
 	NO_STR "Deny access to barred cells")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.test_barr = 0;
+	set->test_barr = 0;
 
 	return CMD_SUCCESS;
 }
@@ -1399,8 +1637,9 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 	NO_STR "Unset Registered PLMN")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
-	ms->settings.test_rplmn_valid = 0;
+	set->test_rplmn_valid = 0;
 
 	vty_restart(vty);
 	return CMD_SUCCESS;
@@ -1410,6 +1649,7 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
 	"Set Registered PLMN\nMobile Country Code\nMobile Network Code")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 	uint16_t mcc = gsm_input_mcc((char *)argv[0]),
 		 mnc = gsm_input_mnc((char *)argv[1]);
 
@@ -1421,9 +1661,9 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	ms->settings.test_rplmn_valid = 1;
-	ms->settings.test_rplmn_mcc = mcc;
-	ms->settings.test_rplmn_mnc = mnc;
+	set->test_rplmn_valid = 1;
+	set->test_rplmn_mcc = mcc;
+	set->test_rplmn_mnc = mnc;
 
 	vty_restart(vty);
 	return CMD_SUCCESS;
@@ -1435,13 +1675,14 @@ DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-coun
 	"Search for HPLMN when in a different country")
 {
 	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
 
 	switch (argv[0][0]) {
 	case 'e':
-		ms->settings.test_always = 1;
+		set->test_always = 1;
 		break;
 	case 'f':
-		ms->settings.test_always = 0;
+		set->test_always = 0;
 		break;
 	}
 
@@ -1457,6 +1698,7 @@ enum node_type ms_vty_go_parent(struct vty *vty)
 		vty->index = NULL;
 		break;
 	case TESTSIM_NODE:
+	case SUPPORT_NODE:
 		vty->node = MS_NODE;
 		break;
 	default:
@@ -1476,6 +1718,7 @@ gDEFUN(ournode_exit,
 		vty->index = NULL;
 		break;
 	case TESTSIM_NODE:
+	case SUPPORT_NODE:
 		vty->node = MS_NODE;
 		break;
 	default:
@@ -1497,6 +1740,7 @@ gDEFUN(ournode_end,
 	case VTY_NODE:
 	case MS_NODE:
 	case TESTSIM_NODE:
+	case SUPPORT_NODE:
 		vty_config_unlock(vty);
 		vty->node = ENABLE_NODE;
 		vty->index = NULL;
@@ -1507,6 +1751,9 @@ gDEFUN(ournode_end,
 	}
 	return CMD_SUCCESS;
 }
+
+#define SUP_NODE(item) \
+	install_element(SUPPORT_NODE, &cfg_ms_sup_item_cmd);
 
 int ms_vty_init(void)
 {
@@ -1561,8 +1808,6 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_clir_cmd);
 	install_element(MS_NODE, &cfg_ms_no_clip_cmd);
 	install_element(MS_NODE, &cfg_ms_no_clir_cmd);
-	install_element(MS_NODE, &cfg_ms_testsim_cmd);
-	install_element(MS_NODE, &cfg_ms_min_rxlev_cmd);
 	install_element(MS_NODE, &cfg_ms_tx_power_cmd);
 	install_element(MS_NODE, &cfg_ms_tx_power_val_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_delay_cmd);
@@ -1576,6 +1821,50 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_codec_half_cmd);
 	install_element(MS_NODE, &cfg_ms_codec_half_pref_cmd);
 	install_element(MS_NODE, &cfg_ms_no_codec_half_cmd);
+	install_element(MS_NODE, &cfg_ms_testsim_cmd);
+	install_element(MS_NODE, &cfg_ms_support_cmd);
+	install_node(&support_node, config_write_dummy);
+	install_default(SUPPORT_NODE);
+	install_element(SUPPORT_NODE, &ournode_exit_cmd);
+	install_element(SUPPORT_NODE, &ournode_end_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_sms_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_sms_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_2_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_2_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_4_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_4_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_5_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_5_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_6_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_6_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_7_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_7_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_p_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_p_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_e_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_e_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_r_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_r_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_dcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_dcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_class_900_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_class_dcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_ch_cap_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_full_v1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_full_v1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_full_v2_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_full_v2_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_full_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_full_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_half_v1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_half_v1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_half_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_half_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_min_rxlev_cmd);
 	install_node(&testsim_node, config_write_dummy);
 	install_default(TESTSIM_NODE);
 	install_element(TESTSIM_NODE, &ournode_exit_cmd);

@@ -17,9 +17,6 @@
 struct gsm_support {
 	struct osmocom_ms *ms;
 
-	/* rf power capability */
-	uint8_t pwr_lev_900; /* and < 900 */
-	uint8_t pwr_lev_1800; /* DCS and PCS */
 	/* controlled early classmark sending */
 	uint8_t es_ind;
 	/* revision level */
@@ -52,10 +49,9 @@ struct gsm_support {
 	uint8_t p_gsm;
 	uint8_t e_gsm;
 	uint8_t r_gsm;
-	uint8_t r_capa;
-	uint8_t low_capa;
-	uint8_t dcs_1800;
-	uint8_t dcs_capa;
+	uint8_t dcs;
+	uint8_t class_900;
+	uint8_t class_dcs;
 	uint8_t freq_map[128];
 	/* multi slot support */
 	uint8_t ms_sup;
@@ -98,7 +94,7 @@ struct gsm_support_scan_max {
 extern struct gsm_support_scan_max gsm_sup_smax[];
 
 void gsm_support_init(struct osmocom_ms *ms);
-void gsm_support_dump(struct gsm_support *sup,
+void gsm_support_dump(struct osmocom_ms *ms,
 			void (*print)(void *, const char *, ...), void *priv);
 
 #endif /* _SUPPORT_H */

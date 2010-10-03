@@ -61,11 +61,11 @@ struct gsm_call *get_call_ref(uint32_t callref)
 	return NULL;
 }
 
-static int8_t mncc_get_bearer(struct gsm_support *sup, uint8_t speech_ver)
+static int8_t mncc_get_bearer(struct gsm_settings *set, uint8_t speech_ver)
 {
 	switch (speech_ver) {
 	case 4:
-		if (sup->full_v3)
+		if (set->full_v3)
 			LOGP(DMNCC, LOGL_INFO, " net suggests full rate v3\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " full rate v3 not supported\n");
@@ -73,7 +73,7 @@ static int8_t mncc_get_bearer(struct gsm_support *sup, uint8_t speech_ver)
 		}
 		break;
 	case 2:
-		if (sup->full_v2)
+		if (set->full_v2)
 			LOGP(DMNCC, LOGL_INFO, " net suggests full rate v2\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " full rate v2 not supported\n");
@@ -81,7 +81,7 @@ static int8_t mncc_get_bearer(struct gsm_support *sup, uint8_t speech_ver)
 		}
 		break;
 	case 0: /* mandatory */
-		if (sup->full_v1)
+		if (set->full_v1)
 			LOGP(DMNCC, LOGL_INFO, " net suggests full rate v1\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " full rate v1 not supported\n");
@@ -89,7 +89,7 @@ static int8_t mncc_get_bearer(struct gsm_support *sup, uint8_t speech_ver)
 		}
 		break;
 	case 5:
-		if (sup->half_v3)
+		if (set->half_v3)
 			LOGP(DMNCC, LOGL_INFO, " net suggests half rate v3\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " half rate v3 not supported\n");
@@ -97,7 +97,7 @@ static int8_t mncc_get_bearer(struct gsm_support *sup, uint8_t speech_ver)
 		}
 		break;
 	case 1:
-		if (sup->half_v1)
+		if (set->half_v1)
 			LOGP(DMNCC, LOGL_INFO, " net suggests half rate v1\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " half rate v1 not supported\n");
@@ -116,14 +116,13 @@ static int8_t mncc_get_bearer(struct gsm_support *sup, uint8_t speech_ver)
 static void mncc_set_bearer(struct osmocom_ms *ms, int8_t speech_ver,
 	struct gsm_mncc *mncc)
 {
-	struct gsm_support *sup = &ms->support;
 	struct gsm_settings *set = &ms->settings;
 	int i = 0;
 
 	mncc->fields |= MNCC_F_BEARER_CAP;
 	mncc->bearer_cap.coding = 0;
-	if (sup->ch_cap == GSM_CAP_SDCCH_TCHF_TCHH
-	 && (sup->half_v1 || sup->half_v3)) {
+	if (set->ch_cap == GSM_CAP_SDCCH_TCHF_TCHH
+	 && (set->half_v1 || set->half_v3)) {
 		mncc->bearer_cap.radio = 3;
 		LOGP(DMNCC, LOGL_INFO, " support TCH/H also\n");
 	} else {
@@ -134,33 +133,33 @@ static void mncc_set_bearer(struct osmocom_ms *ms, int8_t speech_ver,
 	/* if no specific speech_ver is given */
 	if (speech_ver < 0) {
 		/* if half rate is supported and prefered */
-		if (sup->half_v3 && set->half && set->half_prefer) {
+		if (set->half_v3 && set->half && set->half_prefer) {
 			mncc->bearer_cap.speech_ver[i++] = 5;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v3\n");
 		}
-		if (sup->half_v1 && set->half && set->half_prefer) {
+		if (set->half_v1 && set->half && set->half_prefer) {
 			mncc->bearer_cap.speech_ver[i++] = 1;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v1\n");
 		}
 		/* if full rate is supported */
-		if (sup->full_v3) {
+		if (set->full_v3) {
 			mncc->bearer_cap.speech_ver[i++] = 4;
 			LOGP(DMNCC, LOGL_INFO, " support full rate v3\n");
 		}
-		if (sup->full_v2) {
+		if (set->full_v2) {
 			mncc->bearer_cap.speech_ver[i++] = 2;
 			LOGP(DMNCC, LOGL_INFO, " support full rate v2\n");
 		}
-		if (sup->full_v1) { /* mandatory, so it's always true */
+		if (set->full_v1) { /* mandatory, so it's always true */
 			mncc->bearer_cap.speech_ver[i++] = 0;
 			LOGP(DMNCC, LOGL_INFO, " support full rate v1\n");
 		}
 		/* if half rate is supported and not prefered */
-		if (sup->half_v3 && set->half && !set->half_prefer) {
+		if (set->half_v3 && set->half && !set->half_prefer) {
 			mncc->bearer_cap.speech_ver[i++] = 5;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v3\n");
 		}
-		if (sup->half_v1 && set->half && !set->half_prefer) {
+		if (set->half_v1 && set->half && !set->half_prefer) {
 			mncc->bearer_cap.speech_ver[i++] = 1;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v1\n");
 		}
@@ -204,7 +203,6 @@ int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg)
 int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 {
 	struct gsm_settings *set = &ms->settings;
-	struct gsm_support *sup = &ms->support;
 	struct gsm_mncc *data = arg;
 	struct gsm_call *call = get_call_ref(data->callref);
 	struct gsm_mncc mncc;
@@ -319,7 +317,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		LOGP(DMNCC, LOGL_INFO, "Call is proceeding\n");
 		if ((data->fields & MNCC_F_BEARER_CAP)
 		 && data->bearer_cap.speech_ver[0] >= 0) {
-			mncc_get_bearer(sup, data->bearer_cap.speech_ver[0]);
+			mncc_get_bearer(set, data->bearer_cap.speech_ver[0]);
 		}
 		break;
 	case MNCC_ALERT_IND:
@@ -346,7 +344,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 
 			for (i = 0; data->bearer_cap.speech_ver[i] >= 0; i++) {
 
-				temp = mncc_get_bearer(sup,
+				temp = mncc_get_bearer(set,
 					data->bearer_cap.speech_ver[i]);
 				if (temp < 0)
 					continue;

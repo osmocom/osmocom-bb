@@ -284,7 +284,7 @@ static int gsm48_apply_v_sd(struct gsm48_rrlayer *rr, struct msgb *msg)
 static uint8_t gsm48_rr_check_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	uint8_t mode)
 {
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 	uint8_t ch_type, ch_subch, ch_ts;
 
 	/* only complain if we use TCH/F or TCH/H */
@@ -299,14 +299,14 @@ static uint8_t gsm48_rr_check_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 		break;
 	case GSM48_CMODE_SPEECH_V1:
 		if (ch_type == RSL_CHAN_Bm_ACCHs) {
-			if (!sup->full_v1) {
+			if (!set->full_v1) {
 				LOGP(DRR, LOGL_NOTICE, "Not supporting "
 					"full-rate speech V1\n");
 				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
 			}
 			LOGP(DRR, LOGL_INFO, "Mode: full-rate speech V1\n");
 		} else {
-			if (!sup->half_v1) {
+			if (!set->half_v1) {
 				LOGP(DRR, LOGL_NOTICE, "Not supporting "
 					"half-rate speech V1\n");
 				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
@@ -316,7 +316,7 @@ static uint8_t gsm48_rr_check_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 		break;
 	case GSM48_CMODE_SPEECH_EFR:
 		if (ch_type == RSL_CHAN_Bm_ACCHs) {
-			if (!sup->full_v2) {
+			if (!set->full_v2) {
 				LOGP(DRR, LOGL_NOTICE, "Not supporting "
 					"full-rate speech V2\n");
 				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
@@ -330,14 +330,14 @@ static uint8_t gsm48_rr_check_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 		break;
 	case GSM48_CMODE_SPEECH_AMR:
 		if (ch_type == RSL_CHAN_Bm_ACCHs) {
-			if (!sup->full_v3) {
+			if (!set->full_v3) {
 				LOGP(DRR, LOGL_NOTICE, "Not supporting "
 					"full-rate speech V3\n");
 				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
 			}
 			LOGP(DRR, LOGL_INFO, "Mode: full-rate speech V3\n");
 		} else {
-			if (!sup->half_v3) {
+			if (!set->half_v3) {
 				LOGP(DRR, LOGL_NOTICE, "Not supporting "
 					"half-rate speech V3\n");
 				return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
@@ -930,7 +930,7 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_cip_mode_cmd *cm = (struct gsm48_cip_mode_cmd *)gh->data;
 	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*cm);
@@ -964,13 +964,13 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* check if we actually support this cipher */
-	if (sc && ((alg_id == GSM_CIPHER_A5_1 && !sup->a5_1)
-		|| (alg_id == GSM_CIPHER_A5_2 && !sup->a5_2)
-		|| (alg_id == GSM_CIPHER_A5_3 && !sup->a5_3)
-		|| (alg_id == GSM_CIPHER_A5_4 && !sup->a5_4)
-		|| (alg_id == GSM_CIPHER_A5_5 && !sup->a5_5)
-		|| (alg_id == GSM_CIPHER_A5_6 && !sup->a5_6)
-		|| (alg_id == GSM_CIPHER_A5_7 && !sup->a5_7))) {
+	if (sc && ((alg_id == GSM_CIPHER_A5_1 && !set->a5_1)
+		|| (alg_id == GSM_CIPHER_A5_2 && !set->a5_2)
+		|| (alg_id == GSM_CIPHER_A5_3 && !set->a5_3)
+		|| (alg_id == GSM_CIPHER_A5_4 && !set->a5_4)
+		|| (alg_id == GSM_CIPHER_A5_5 && !set->a5_5)
+		|| (alg_id == GSM_CIPHER_A5_6 && !set->a5_6)
+		|| (alg_id == GSM_CIPHER_A5_7 && !set->a5_7))) {
 		LOGP(DRR, LOGL_NOTICE, "algo not supported\n");
 		return gsm48_rr_tx_rr_status(ms,
 			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
@@ -1003,6 +1003,7 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 {
 	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 	struct bitvec bv;
 
 	memset(&bv, 0, sizeof(bv));
@@ -1012,57 +1013,57 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 	/* spare bit */
 	bitvec_set_bit(&bv, 0);
 	/* band 3 supported */
-	if (sup->dcs_1800)
+	if (set->dcs)
 		bitvec_set_bit(&bv, ONE);
 	else
 		bitvec_set_bit(&bv, ZERO);
 	/* band 2 supported */
-	if (sup->e_gsm || sup->r_gsm)
+	if (set->e_gsm || set->r_gsm)
 		bitvec_set_bit(&bv, ONE);
 	else
 		bitvec_set_bit(&bv, ZERO);
 	/* band 1 supported */
-	if (sup->p_gsm && !(sup->e_gsm || sup->r_gsm))
+	if (set->p_gsm && !(set->e_gsm || set->r_gsm))
 		bitvec_set_bit(&bv, ONE);
 	else
 		bitvec_set_bit(&bv, ZERO);
 	/* a5 bits */
-	if (sup->a5_7)
+	if (set->a5_7)
 		bitvec_set_bit(&bv, ONE);
 	else
 		bitvec_set_bit(&bv, ZERO);
-	if (sup->a5_6)
+	if (set->a5_6)
 		bitvec_set_bit(&bv, ONE);
 	else
 		bitvec_set_bit(&bv, ZERO);
-	if (sup->a5_5)
+	if (set->a5_5)
 		bitvec_set_bit(&bv, ONE);
 	else
 		bitvec_set_bit(&bv, ZERO);
-	if (sup->a5_4)
+	if (set->a5_4)
 		bitvec_set_bit(&bv, ONE);
 	else
 		bitvec_set_bit(&bv, ZERO);
 	/* radio capability */
-	if (sup->dcs_1800 && !sup->p_gsm && !(sup->e_gsm || sup->r_gsm)) {
+	if (set->dcs && !set->p_gsm && !(set->e_gsm || set->r_gsm)) {
 		/* dcs only */
 		bitvec_set_uint(&bv, 0, 4);
-		bitvec_set_uint(&bv, sup->dcs_capa, 4);
+		bitvec_set_uint(&bv, set->class_dcs, 4);
 	} else
-	if (sup->dcs_1800 && (sup->p_gsm || (sup->e_gsm || sup->r_gsm))) {
+	if (set->dcs && (set->p_gsm || (set->e_gsm || set->r_gsm))) {
 		/* dcs */
-		bitvec_set_uint(&bv, sup->dcs_capa, 4);
+		bitvec_set_uint(&bv, set->class_dcs, 4);
 		/* low band */
-		bitvec_set_uint(&bv, sup->low_capa, 4);
+		bitvec_set_uint(&bv, set->class_900, 4);
 	} else {
 		/* low band only */
 		bitvec_set_uint(&bv, 0, 4);
-		bitvec_set_uint(&bv, sup->low_capa, 4);
+		bitvec_set_uint(&bv, set->class_900, 4);
 	}
 	/* r support */
-	if (sup->r_gsm) {
+	if (set->r_gsm) {
 		bitvec_set_bit(&bv, ONE);
-		bitvec_set_uint(&bv, sup->r_capa, 3);
+		bitvec_set_uint(&bv, set->class_900, 3);
 	} else {
 		bitvec_set_bit(&bv, ZERO);
 	}
@@ -1117,22 +1118,23 @@ int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 
 	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
-		cm->pwr_lev = sup->pwr_lev_1800;
+		cm->pwr_lev = set->class_dcs - 1;
 	else
-		cm->pwr_lev = sup->pwr_lev_900;
-	cm->a5_1 = !sup->a5_1;
+		cm->pwr_lev = set->class_900 - 1;
+	cm->a5_1 = !set->a5_1;
 	cm->es_ind = sup->es_ind;
 	cm->rev_lev = sup->rev_lev;
-	cm->fc = (sup->r_gsm || sup->e_gsm);
+	cm->fc = (set->r_gsm || set->e_gsm);
 	cm->vgcs = sup->vgcs;
 	cm->vbs = sup->vbs;
-	cm->sm_cap = sup->sms_ptp;
+	cm->sm_cap = set->sms_ptp;
 	cm->ss_scr = sup->ss_ind;
 	cm->ps_cap = sup->ps_cap;
-	cm->a5_2 = sup->a5_2;
-	cm->a5_3 = sup->a5_3;
+	cm->a5_2 = set->a5_2;
+	cm->a5_3 = set->a5_3;
 	cm->cmsp = sup->cmsp;
 	cm->solsa = sup->solsa;
 	cm->lcsva_cap = sup->lcsva;
@@ -1144,6 +1146,7 @@ int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm)
 static int gsm48_rr_tx_cm_change(struct osmocom_ms *ms)
 {
 	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm48_cm_change *cc;
@@ -1165,8 +1168,8 @@ static int gsm48_rr_tx_cm_change(struct osmocom_ms *ms)
 	gsm48_rr_enc_cm2(ms, &cc->cm2);
 
 	/* classmark 3 */
-	if (sup->dcs_1800 || sup->e_gsm || sup->r_gsm
-	 || sup->a5_7 || sup->a5_6 || sup->a5_5 || sup->a5_4
+	if (set->dcs || set->e_gsm || set->r_gsm
+	 || set->a5_7 || set->a5_6 || set->a5_5 || set->a5_4
 	 || sup->ms_sup
 	 || sup->ucs2_treat
 	 || sup->ext_meas || sup->meas_cap
@@ -1195,7 +1198,7 @@ static int gsm48_rr_rx_cm_enq(struct osmocom_ms *ms, struct msgb *msg)
 /* start random access */
 static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 {
-	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = cs->si;
@@ -1297,7 +1300,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 			chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_F:
-		switch (sup->ch_cap) {
+		switch (set->ch_cap) {
 		case GSM_CAP_SDCCH:
 			chan_req_mask = 0x0f;
 			chan_req_val = 0x10;
@@ -1315,7 +1318,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 			chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_ANY:
-		switch (sup->ch_cap) {
+		switch (set->ch_cap) {
 		case GSM_CAP_SDCCH:
 			chan_req_mask = 0x0f;
 			chan_req_val = 0x10;
@@ -1584,13 +1587,13 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
  */
 
 /* decode "Cell Channel Description" (10.5.2.1b) and other frequency lists */
-static int decode_freq_list(struct gsm_support *sup,
+static int decode_freq_list(struct gsm_settings *set,
 	struct gsm_sysinfo_freq *f, uint8_t *cd, uint8_t len, uint8_t mask,
 	uint8_t frqt)
 {
 	/* only Bit map 0 format for P-GSM */
 	if ((cd[0] & 0xc0 & mask) != 0x00 &&
-	    (sup->p_gsm && !sup->e_gsm && !sup->r_gsm && !sup->dcs_1800))
+	    (set->p_gsm && !set->e_gsm && !set->r_gsm && !set->dcs))
 	 	return 0;
 
 	return gsm48_decode_freq_list(f, cd, len, mask, frqt);
@@ -1878,7 +1881,7 @@ static int gsm48_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 1\n");
 
 	/* Cell Channel Description */
-	decode_freq_list(&ms->support, s->freq,
+	decode_freq_list(&ms->settings, s->freq,
 		si->cell_channel_description,
 		sizeof(si->cell_channel_description), 0xce, FREQ_TYPE_SERV);
 	/* RACH Control Parameter */
@@ -1920,7 +1923,7 @@ static int gsm48_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 	/* Neighbor Cell Description */
 	s->nb_ext_ind_si2 = (si->bcch_frequency_list[0] >> 6) & 1;
 	s->nb_ba_ind_si2 = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->support, s->freq, si->bcch_frequency_list,
+	decode_freq_list(&ms->settings, s->freq, si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2);
 	/* NCC Permitted */
 	s->nb_ncc_permitted_si2 = si->ncc_permitted;
@@ -1961,7 +1964,7 @@ static int gsm48_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 	/* Neighbor Cell Description */
 	s->nb_ext_ind_si2bis = (si->bcch_frequency_list[0] >> 6) & 1;
 	s->nb_ba_ind_si2bis = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->support, s->freq,
+	decode_freq_list(&ms->settings, s->freq,
 		si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2bis);
 	/* RACH Control Parameter */
@@ -2001,7 +2004,7 @@ static int gsm48_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 	/* Neighbor Cell Description 2 */
 	s->nb_multi_rep_si2ter = (si->ext_bcch_frequency_list[0] >> 6) & 3;
 	s->nb_ba_ind_si2ter = (si->ext_bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->support, s->freq,
+	decode_freq_list(&ms->settings, s->freq,
 		si->ext_bcch_frequency_list,
 		sizeof(si->ext_bcch_frequency_list), 0x8e,
 			FREQ_TYPE_NCELL_2ter);
@@ -2173,7 +2176,7 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 	/* Neighbor Cell Description */
 	s->nb_ext_ind_si5 = (si->bcch_frequency_list[0] >> 6) & 1;
 	s->nb_ba_ind_si5 = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->support, s->freq, si->bcch_frequency_list,
+	decode_freq_list(&ms->settings, s->freq, si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5);
 
 	s->si5 = 1;
@@ -2211,7 +2214,7 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 	/* Neighbor Cell Description */
 	s->nb_ext_ind_si5bis = (si->bcch_frequency_list[0] >> 6) & 1;
 	s->nb_ba_ind_si5bis = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->support, s->freq, si->bcch_frequency_list,
+	decode_freq_list(&ms->settings, s->freq, si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5bis);
 
 	s->si5bis = 1;
@@ -2249,7 +2252,7 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 	/* Neighbor Cell Description */
 	s->nb_multi_rep_si5ter = (si->bcch_frequency_list[0] >> 6) & 3;
 	s->nb_ba_ind_si5ter = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->support, s->freq, si->bcch_frequency_list,
+	decode_freq_list(&ms->settings, s->freq, si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0x8e, FREQ_TYPE_REP_5ter);
 
 	s->si5ter = 1;

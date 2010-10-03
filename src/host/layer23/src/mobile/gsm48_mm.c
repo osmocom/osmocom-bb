@@ -1683,6 +1683,7 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
@@ -1703,10 +1704,10 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 
 	/* classmark 1 */
 	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
-		pwr_lev = sup->pwr_lev_1800;
+		pwr_lev = sup->class_dcs - 1;
 	else
-		pwr_lev = sup->pwr_lev_900;
-	gsm48_encode_classmark1(&cm, sup->rev_lev, sup->es_ind, sup->a5_1,
+		pwr_lev = sup->class_900 - 1;
+	gsm48_encode_classmark1(&cm, sup->rev_lev, sup->es_ind, set->a5_1,
 		pwr_lev);
         msgb_v_put(nmsg, *((uint8_t *)&cm));
 	/* MI */
@@ -2174,6 +2175,7 @@ static int gsm48_mm_loc_upd_ignore(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm_settings *set = &ms->settings;
 	struct gsm_support *sup = &ms->support;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
@@ -2205,11 +2207,11 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	gsm48_encode_lai(&nlu->lai, subscr->mcc, subscr->mnc, subscr->lac);
 	/* classmark 1 */
 	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
-		pwr_lev = sup->pwr_lev_1800;
+		pwr_lev = sup->class_dcs - 1;
 	else
-		pwr_lev = sup->pwr_lev_900;
+		pwr_lev = sup->class_900 - 1;
 	gsm48_encode_classmark1(&nlu->classmark1, sup->rev_lev, sup->es_ind,
-		sup->a5_1, pwr_lev);
+		set->a5_1, pwr_lev);
 	/* MI */
 	if (subscr->tmsi != 0xffffffff) { /* have TMSI ? */
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);

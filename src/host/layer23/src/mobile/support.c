@@ -34,8 +34,8 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->ms = ms;
 
 	/* rf power capability */
-	sup->pwr_lev_900 = 3; /* CLASS 4: Handheld 2W */
-	sup->pwr_lev_1800 = 0; /* CLASS 1: Handheld 1W */
+	sup->class_900 = 4; /* CLASS 4: Handheld 2W */
+	sup->class_dcs = 1; /* CLASS 1: Handheld 1W */
 	/* controlled early classmark sending */
 	sup->es_ind = 0; /* no */
 	/* revision level */
@@ -69,14 +69,12 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->p_gsm = 1; /* P-GSM */
 	sup->e_gsm = 1; /* E-GSM */
 	sup->r_gsm = 1; /* R-GSM */
-	sup->r_capa = 0;
-	sup->low_capa = 4; /* p,e,r power class */
-	sup->dcs_1800 = 1;
+	sup->dcs = 1;
 	/* set supported frequencies */
 	if (sup->p_gsm)
 		for(i = 1; i <= 124; i++)
 			sup->freq_map[i >> 3] |= (1 << (i & 7));
-	if (sup->dcs_1800)
+	if (sup->dcs)
 		for(i = 512; i <= 885; i++)
 			sup->freq_map[i >> 3] |= (1 << (i & 7));
 	if (sup->e_gsm) {
@@ -87,7 +85,6 @@ void gsm_support_init(struct osmocom_ms *ms)
 	if (sup->r_gsm)
 		for(i = 955; i <= 974; i++)
 			sup->freq_map[i >> 3] |= (1 << (i & 7));
-	sup->dcs_capa = 1; /* dcs power class */
 	/* multi slot support */
 	sup->ms_sup = 0; /* no */
 	/* ucs2 treatment */
@@ -124,49 +121,57 @@ struct gsm_support_scan_max gsm_sup_smax[] = {
 	{ 0, 0, 0, 0 }
 };
 
+#define SUP_SET(item) \
+	((sup->item) ? ((set->item) ? "yes" : "disabled") : "no")
 /* dump support */
-void gsm_support_dump(struct gsm_support *sup,
+void gsm_support_dump(struct osmocom_ms *ms,
 			void (*print)(void *, const char *, ...), void *priv)
 {
+	struct gsm_support *sup = &ms->support;
+	struct gsm_settings *set = &ms->settings;
+
 	print(priv, "Supported features of MS '%s':\n", sup->ms->name);
-	if (sup->r_gsm)
-		print(priv, " R-GSM (Channels 955-974)\n");
-	if (sup->e_gsm)
-		print(priv, " E-GSM (Channels 975-1023,0)\n");
-	if (sup->p_gsm)
-		print(priv, " P-GSM (Channels 1-124)\n");
-	if (sup->dcs_1800)
-		print(priv, " DCS1800 (Channels 512-885)\n");
 	print(priv, " Phase %d mobile station\n", sup->rev_lev + 1);
-	print(priv, " CECS     : %s\n", (sup->es_ind) ? "yes" : "no");
-	print(priv, " VGCS     : %s\n", (sup->vgcs) ? "yes" : "no");
-	print(priv, " VBS      : %s\n", (sup->vbs) ? "yes" : "no");
-	print(priv, " SMS      : %s\n", (sup->sms_ptp) ? "yes" : "no");
-	print(priv, " SS_IND   : %s\n", (sup->ss_ind) ? "yes" : "no");
-	print(priv, " PS_CAP   : %s\n", (sup->ps_cap) ? "yes" : "no");
-	print(priv, " CMSP     : %s\n", (sup->cmsp) ? "yes" : "no");
-	print(priv, " SoLSA    : %s\n", (sup->solsa) ? "yes" : "no");
-	print(priv, " LCSVA    : %s\n", (sup->lcsva) ? "yes" : "no");
-	print(priv, " LOC_SERV : %s\n", (sup->loc_serv) ? "yes" : "no");
-	print(priv, " A5/1     : %s\n", (sup->a5_1) ? "yes" : "no");
-	print(priv, " A5/2     : %s\n", (sup->a5_2) ? "yes" : "no");
-	print(priv, " A5/3     : %s\n", (sup->a5_3) ? "yes" : "no");
-	print(priv, " A5/4     : %s\n", (sup->a5_4) ? "yes" : "no");
-	print(priv, " A5/5     : %s\n", (sup->a5_5) ? "yes" : "no");
-	print(priv, " A5/6     : %s\n", (sup->a5_6) ? "yes" : "no");
-	print(priv, " A5/7     : %s\n", (sup->a5_7) ? "yes" : "no");
-	print(priv, " A5/1     : %s\n", (sup->a5_1) ? "yes" : "no");
-	switch (sup->ch_cap) {
+	print(priv, " R-GSM       : %s\n", SUP_SET(r_gsm));
+	print(priv, " E-GSM       : %s\n", SUP_SET(e_gsm));
+	print(priv, " P-GSM       : %s\n", SUP_SET(p_gsm));
+	print(priv, " GSM900 Class: %d\n", set->class_900);
+	print(priv, " DCS 1800    : %s\n", SUP_SET(dcs));
+	print(priv, " DCS Class   : %d\n", set->class_dcs);
+	print(priv, " CECS        : %s\n", (sup->es_ind) ? "yes" : "no");
+	print(priv, " VGCS        : %s\n", (sup->vgcs) ? "yes" : "no");
+	print(priv, " VBS         : %s\n", (sup->vbs) ? "yes" : "no");
+	print(priv, " SMS         : %s\n", SUP_SET(sms_ptp));
+	print(priv, " SS_IND      : %s\n", (sup->ss_ind) ? "yes" : "no");
+	print(priv, " PS_CAP      : %s\n", (sup->ps_cap) ? "yes" : "no");
+	print(priv, " CMSP        : %s\n", (sup->cmsp) ? "yes" : "no");
+	print(priv, " SoLSA       : %s\n", (sup->solsa) ? "yes" : "no");
+	print(priv, " LCSVA       : %s\n", (sup->lcsva) ? "yes" : "no");
+	print(priv, " LOC_SERV    : %s\n", (sup->loc_serv) ? "yes" : "no");
+	print(priv, " A5/1        : %s\n", SUP_SET(a5_1));
+	print(priv, " A5/2        : %s\n", SUP_SET(a5_2));
+	print(priv, " A5/3        : %s\n", SUP_SET(a5_3));
+	print(priv, " A5/4        : %s\n", SUP_SET(a5_4));
+	print(priv, " A5/5        : %s\n", SUP_SET(a5_5));
+	print(priv, " A5/6        : %s\n", SUP_SET(a5_6));
+	print(priv, " A5/7        : %s\n", SUP_SET(a5_7));
+	print(priv, " A5/1        : %s\n", SUP_SET(a5_1));
+	switch (set->ch_cap) {
 		case GSM_CAP_SDCCH:
-		print(priv, " Channels : SDCCH only\n");
+		print(priv, " Channels    : SDCCH only\n");
 		break;
 		case GSM_CAP_SDCCH_TCHF:
-		print(priv, " Channels : SDCCH + TCH/F\n");
+		print(priv, " Channels    : SDCCH + TCH/F\n");
 		break;
 		case GSM_CAP_SDCCH_TCHF_TCHH:
-		print(priv, " Channels : SDCCH + TCH/F + TCH/H\n");
+		print(priv, " Channels    : SDCCH + TCH/F + TCH/H\n");
 		break;
 	}
-	print(priv, " Min RXLEV: %d\n", sup->min_rxlev_db);
+	print(priv, " Full-Rate V1: %s\n", SUP_SET(full_v1));
+	print(priv, " Full-Rate V2: %s\n", SUP_SET(full_v2));
+	print(priv, " Full-Rate V3: %s\n", SUP_SET(full_v3));
+	print(priv, " Half-Rate V1: %s\n", SUP_SET(half_v1));
+	print(priv, " Half-Rate V3: %s\n", SUP_SET(half_v3));
+	print(priv, " Min RXLEV   : %d\n", set->min_rxlev_db);
 }
 

@@ -41,10 +41,31 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	strcpy(set->test_imsi, "001010000000000");
 	set->test_rplmn_mcc = set->test_rplmn_mnc = 1;
 
+	/* set all supported features */
+	set->sms_ptp = sup->sms_ptp;
+	set->a5_1 = sup->a5_1;
+	set->a5_2 = sup->a5_2;
+	set->a5_3 = sup->a5_3;
+	set->a5_4 = sup->a5_4;
+	set->a5_5 = sup->a5_5;
+	set->a5_6 = sup->a5_6;
+	set->a5_7 = sup->a5_7;
+	set->p_gsm = sup->p_gsm;
+	set->e_gsm = sup->e_gsm;
+	set->r_gsm = sup->r_gsm;
+	set->dcs = sup->dcs;
+	set->class_900 = sup->class_900;
+	set->class_dcs = sup->class_dcs;
+	set->full_v1 = sup->full_v1;
+	set->full_v2 = sup->full_v2;
+	set->full_v3 = sup->full_v3;
+	set->half_v1 = sup->half_v1;
+	set->half_v3 = sup->half_v3;
+	set->ch_cap = sup->ch_cap;
+	set->min_rxlev_db = sup->min_rxlev_db;
+
 	if (sup->half_v1 || sup->half_v3)
 		set->half = 1;
-
-	set->min_rxlev_db = sup->min_rxlev_db;
 
 	return 0;
 }
@@ -88,6 +109,4 @@ int gsm_random_imei(struct gsm_settings *set)
 	
 	return 0;
 }
-
-
 

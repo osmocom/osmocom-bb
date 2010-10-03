@@ -15,7 +15,6 @@ struct gsm_settings {
 
 	/* network search */
 	int			plmn_mode; /* PLMN_MODE_* */
-	int8_t			min_rxlev_db; /* min DB to access */
 
 	/* SIM */
 	int			sim_type; /* selects card on power on */
@@ -42,6 +41,29 @@ struct gsm_settings {
 	uint8_t			stick;
 	uint16_t		stick_arfcn;
 	uint8_t			no_lupd;
+
+	/* supported by configuration */
+	uint8_t			sms_ptp;
+	uint8_t			a5_1;
+	uint8_t			a5_2;
+	uint8_t			a5_3;
+	uint8_t			a5_4;
+	uint8_t			a5_5;
+	uint8_t			a5_6;
+	uint8_t			a5_7;
+	uint8_t			p_gsm;
+	uint8_t			e_gsm;
+	uint8_t			r_gsm;
+	uint8_t			dcs;
+	uint8_t			class_900;
+	uint8_t			class_dcs;
+	uint8_t			full_v1;
+	uint8_t			full_v2;
+	uint8_t			full_v3;
+	uint8_t			half_v1;
+	uint8_t			half_v3;
+	uint8_t			ch_cap; /* channel capability */
+	int8_t			min_rxlev_db; /* min DB to access */
 };
 
 int gsm_settings_init(struct osmocom_ms *ms);
