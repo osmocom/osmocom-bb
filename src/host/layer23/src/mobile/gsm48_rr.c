@@ -4955,8 +4955,9 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_rx_pch_agch(ms, msg);
 	case RSL_CHAN_BCCH:
 		return gsm48_rr_rx_bcch(ms, msg);
+	case RSL_CHAN_Bm_ACCHs:
+	case RSL_CHAN_Lm_ACCHs:
 	case RSL_CHAN_SDCCH4_ACCH:
-		return gsm48_rr_rx_acch(ms, msg);
 	case RSL_CHAN_SDCCH8_ACCH:
 		return gsm48_rr_rx_acch(ms, msg);
 	default:
