@@ -52,7 +52,7 @@ enum i2c_reg {
 
 #define I2C_STATUS_ERROR_DATA	(1 << 0)
 #define I2C_STATUS_ERROR_DEV	(1 << 1)
-#define I2C_STATUS_IDLE		(1 << 2)
+#define I2C_STATUS_IDLE		(1 << 2) // 1: not idle, 0: idle
 #define I2C_STATUS_INTERRUPT	(1 << 3)
 
 int i2c_write(uint8_t chip, uint32_t addr, int alen, const uint8_t *buffer, int len)
@@ -92,7 +92,7 @@ int i2c_write(uint8_t chip, uint32_t addr, int alen, const uint8_t *buffer, int 
 	while (1) {
 		uint8_t reg = readb(I2C_REG(STATUS_ACTIVITY_REG));
 		printd("I2C Status: 0x%02x\n", rerg & 0xf);
-		if (reg & I2C_STATUS_IDLE)
+		if (!(reg & I2C_STATUS_IDLE)) // 0: idle 1: not idle
 			break;
 	}
 	dputs("I2C transfer completed\n");
