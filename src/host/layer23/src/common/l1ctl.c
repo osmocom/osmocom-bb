@@ -272,7 +272,7 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 	req->band_arfcn = htons(osmo_make_band_arfcn(ms, arfcn));
 	req->timeout = htons(timeout);
 	/* Threshold when to consider FB_MODE1: 4kHz - 1kHz */
-	req->freq_err_thresh1 = htons(4000 - 1000);
+	req->freq_err_thresh1 = htons(11000 - 1000);
 	/* Threshold when to consider SCH: 1kHz - 200Hz */
 	req->freq_err_thresh2 = htons(1000 - 200);
 	/* not used yet! */
