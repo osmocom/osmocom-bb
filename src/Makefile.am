@@ -23,3 +23,7 @@ endif
 if ENABLE_TALLOC
 libosmocore_la_SOURCES += talloc.c
 endif
+
+if ENABLE_MSGFILE
+libosmocore_la_SOURCES += msgfile.c
+endif
