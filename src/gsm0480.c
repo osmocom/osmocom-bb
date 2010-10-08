@@ -25,6 +25,9 @@
 #include <osmocore/gsm0480.h>
 #include <osmocore/gsm_utils.h>
 
+#include <osmocore/logging.h>
+
+#include <osmocore/protocol/gsm_04_08.h>
 #include <osmocore/protocol/gsm_04_80.h>
 
 #include <string.h>
@@ -188,3 +191,188 @@ struct msgb *gsm0480_create_notifySS(const char *text)
 	return msg;
 }
 
+/* Forward declarations */
+static int parse_ussd(uint8_t *ussd, struct ussd_request *req);
+static int parse_ussd_info_elements(uint8_t *ussd_ie,
+					struct ussd_request *req);
+static int parse_facility_ie(uint8_t *facility_ie, uint8_t length,
+					struct ussd_request *req);
+static int parse_ss_invoke(uint8_t *invoke_data, uint8_t length,
+					struct ussd_request *req);
+static int parse_process_uss_req(uint8_t *uss_req_data, uint8_t length,
+					struct ussd_request *req);
+
+/* Decode a mobile-originated USSD-request message */
+int gsm0480_decode_ussd_request(const struct msgb *msg, struct ussd_request *req)
+{
+	int rc = 0;
+	uint8_t *parse_ptr = msgb_l3(msg);
+
+	if ((*parse_ptr & 0x0F) == GSM48_PDISC_NC_SS) {
+		req->transaction_id = *parse_ptr & 0x70;
+		rc = parse_ussd(parse_ptr+1, req);
+	}
+
+	if (!rc)
+		LOGP(0, LOGL_DEBUG, "Error occurred while parsing received USSD!\n");
+
+	return rc;
+}
+
+static int parse_ussd(uint8_t *ussd, struct ussd_request *req)
+{
+	int rc = 1;
+	uint8_t msg_type = ussd[0] & 0xBF;  /* message-type - section 3.4 */
+
+	switch (msg_type) {
+	case GSM0480_MTYPE_RELEASE_COMPLETE:
+		LOGP(0, LOGL_DEBUG, "USS Release Complete\n");
+		/* could also parse out the optional Cause/Facility data */
+		req->text[0] = 0xFF;
+		break;
+	case GSM0480_MTYPE_REGISTER:
+	case GSM0480_MTYPE_FACILITY:
+		rc &= parse_ussd_info_elements(ussd+1, req);
+		break;
+	default:
+		LOGP(0, LOGL_DEBUG, "Unknown GSM 04.80 message-type field 0x%02x\n",
+			ussd[0]);
+		rc = 0;
+		break;
+	}
+
+	return rc;
+}
+
+static int parse_ussd_info_elements(uint8_t *ussd_ie, struct ussd_request *req)
+{
+	int rc = -1;
+	/* Information Element Identifier - table 3.2 & GSM 04.08 section 10.5 */
+	uint8_t iei = ussd_ie[0];
+	uint8_t iei_length = ussd_ie[1];
+
+	switch (iei) {
+	case GSM48_IE_CAUSE:
+		break;
+	case GSM0480_IE_FACILITY:
+		rc = parse_facility_ie(ussd_ie+2, iei_length, req);
+		break;
+	case GSM0480_IE_SS_VERSION:
+		break;
+	default:
+		LOGP(0, LOGL_DEBUG, "Unhandled GSM 04.08 or 04.80 IEI 0x%02x\n",
+			iei);
+		rc = 0;
+		break;
+	}
+
+	return rc;
+}
+
+static int parse_facility_ie(uint8_t *facility_ie, uint8_t length,
+						struct ussd_request *req)
+{
+	int rc = 1;
+	uint8_t offset = 0;
+
+	do {
+		/* Component Type tag - table 3.7 */
+		uint8_t component_type = facility_ie[offset];
+		uint8_t component_length = facility_ie[offset+1];
+
+		switch (component_type) {
+		case GSM0480_CTYPE_INVOKE:
+			rc &= parse_ss_invoke(facility_ie+2,
+						component_length,
+						req);
+			break;
+		case GSM0480_CTYPE_RETURN_RESULT:
+			break;
+		case GSM0480_CTYPE_RETURN_ERROR:
+			break;
+		case GSM0480_CTYPE_REJECT:
+			break;
+		default:
+			LOGP(0, LOGL_DEBUG, "Unknown GSM 04.80 Facility "
+				"Component Type 0x%02x\n", component_type);
+			rc = 0;
+			break;
+		}
+		offset += (component_length+2);
+	} while (offset < length);
+
+	return rc;
+}
+
+/* Parse an Invoke component - see table 3.3 */
+static int parse_ss_invoke(uint8_t *invoke_data, uint8_t length,
+						struct ussd_request *req)
+{
+	int rc = 1;
+	uint8_t offset;
+
+	/* mandatory part */
+	if (invoke_data[0] != GSM0480_COMPIDTAG_INVOKE_ID) {
+		LOGP(0, LOGL_DEBUG, "Unexpected GSM 04.80 Component-ID tag "
+			"0x%02x (expecting Invoke ID tag)\n", invoke_data[0]);
+	}
+
+	offset = invoke_data[1] + 2;
+	req->invoke_id = invoke_data[2];
+
+	/* optional part */
+	if (invoke_data[offset] == GSM0480_COMPIDTAG_LINKED_ID)
+		offset += invoke_data[offset+1] + 2;  /* skip over it */
+
+	/* mandatory part */
+	if (invoke_data[offset] == GSM0480_OPERATION_CODE) {
+		uint8_t operation_code = invoke_data[offset+2];
+		switch (operation_code) {
+		case GSM0480_OP_CODE_PROCESS_USS_REQ:
+			rc = parse_process_uss_req(invoke_data + offset + 3,
+						   length - offset - 3,
+						   req);
+			break;
+		default:
+			LOGP(0, LOGL_DEBUG, "GSM 04.80 operation code 0x%02x "
+				"is not yet handled\n", operation_code);
+			rc = 0;
+			break;
+		}
+	} else {
+		LOGP(0, LOGL_DEBUG, "Unexpected GSM 04.80 Component-ID tag 0x%02x "
+			"(expecting Operation Code tag)\n",
+			invoke_data[0]);
+		rc = 0;
+	}
+
+	return rc;
+}
+
+/* Parse the parameters of a Process UnstructuredSS Request */
+static int parse_process_uss_req(uint8_t *uss_req_data, uint8_t length,
+					struct ussd_request *req)
+{
+	int rc = 0;
+	int num_chars;
+	uint8_t dcs;
+
+	if (uss_req_data[0] == GSM_0480_SEQUENCE_TAG) {
+		if (uss_req_data[2] == ASN1_OCTET_STRING_TAG) {
+			dcs = uss_req_data[4];
+			if ((dcs == 0x0F) &&
+			    (uss_req_data[5] == ASN1_OCTET_STRING_TAG)) {
+				num_chars = (uss_req_data[6] * 8) / 7;
+				/* Prevent a mobile-originated buffer-overrun! */
+				if (num_chars > MAX_LEN_USSD_STRING)
+					num_chars = MAX_LEN_USSD_STRING;
+				gsm_7bit_decode(req->text,
+						&(uss_req_data[7]), num_chars);
+				/* append null-terminator */
+				req->text[num_chars+1] = 0;
+				rc = 1;
+			}
+		}
+	}
+	return rc;
+}
