@@ -11,19 +11,16 @@ ENTRY(_start)
 MEMORY
 {
     /* compal-loaded binary: our text, initialized data */
-    LRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00010000
+    LRAM (rw) : ORIGIN = 0x40000000, LENGTH = 0x00005000
     /* compal-loaded binary: our unitialized data, stacks, heap */
-    IRAM (rw) : ORIGIN = 0x00810000, LENGTH = 0x00010000
+    IRAM (rw) : ORIGIN = 0x40005000, LENGTH = 0x00005000
 }
 SECTIONS
 {
-    . = 0x800000;
+    . = 0x40000000;
 
     /* romloader data section, contains passthru interrupt vectors */
-    .compal.loader (NOLOAD) : { . = 0x100; } > LRAM
-
-    /* image signature (prepended by osmocon according to phone type) */
-    .compal.header (NOLOAD) : { . = 4; } > LRAM
+    .compal.loader (NOLOAD) : { . = 0x1400; } > LRAM
 
     /* initialization code */
     . = ALIGN(4);
@@ -34,7 +31,7 @@ SECTIONS
     } > LRAM
 
     /* exception vectors from 0x80001c to 0x800034 */
-    .text.exceptions 0x80001c : AT (LOADADDR(.text.start) + SIZEOF(.text.start)) {
+    .text.exceptions 0x4000001c : AT (LOADADDR(.text.start) + SIZEOF(.text.start)) {
         KEEP(*(.text.exceptions))
         * (.text.exceptions)
         . = ALIGN(4);

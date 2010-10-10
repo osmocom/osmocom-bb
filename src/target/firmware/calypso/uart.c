@@ -1,7 +1,8 @@
-/* Calypso DBB internal UART Driver */
+/* MediaTek MT622x internal UART Driver */
 
 /* (C) 2010 by Harald Welte <laforge@gnumonks.org>
  * (C) 2010 by Ingo Albrecht <prom@berlin.ccc.de>
+ * (C) 2010 by Steve Markgraf <steve@steve-m.de>
  *
  * All Rights Reserved
  *
@@ -35,10 +36,12 @@
 #include <calypso/irq.h>
 #include <calypso/uart.h>
 
-#define BASE_ADDR_UART_MODEM	0xffff5000
-#define OFFSET_IRDA		0x800
+#define BASE_ADDR_UART1	0x80130000
+#define BASE_ADDR_UART2	0x80180000
+#define BASE_ADDR_UART3	0x801b0000
 
-#define UART_REG(n,m)	(BASE_ADDR_UART_MODEM + ((n)*OFFSET_IRDA)+(m))
+//TODO make UART2 and 3 work
+#define UART_REG(n,m)	(BASE_ADDR_UART1 + (m))
 
 #define LCR7BIT		0x80
 #define LCRBFBIT	0x40
@@ -46,46 +49,39 @@
 #define REG_OFFS(m)	((m) &= ~(LCR7BIT|LCRBFBIT|MCR6BIT))
 /* read access LCR[7] = 0 */
 enum uart_reg {
-	RHR	= 0,
-	IER	= 1,
-	IIR	= 2,
-	LCR	= 3,
-	MCR	= 4,
-	LSR	= 5,
-	MSR	= 6,
-	SPR	= 7,
-	MDR1	= 8,
-	DMR2	= 9,
-	SFLSR	= 0x0a,
-	RESUME	= 0x0b,
-	SFREGL	= 0x0c,
-	SFREGH	= 0x0d,
-	BLR	= 0x0e,
-	ACREG	= 0x0f,
-	SCR	= 0x10,
-	SSR	= 0x11,
-	EBLR	= 0x12,
+	RBR		= 0x00,
+	IER		= 0x04,
+	IIR		= 0x08,
+	LCR		= 0x0c,
+	MCR		= 0x10,
+	LSR		= 0x14,
+	MSR		= 0x18,
+	SCR		= 0x1c,
+	AUTOBAUD_EN	= 0x20,
+	HIGHSPEED	= 0x24,
+	SAMPLE_COUNT	= 0x28,
+	SAMPLE_POINT	= 0x2c,
+	AUTOBAUD_REG	= 0x30,
+	RATE_FIX_REG	= 0x34, /* undocumented */
+	AUTOBAUDSAMPLE	= 0x38,
+	GUARD		= 0x3c,
+	ESCAPE_DAT	= 0x40,
+	ESCAPE_EN	= 0x44,
+	SLEEP_EN	= 0x48,
+	VFIFO_EN	= 0x4c,
 /* read access LCR[7] = 1 */
-	DLL	= RHR | LCR7BIT,
-	DLH	= IER | LCR7BIT,
-	DIV1_6	= ACREG | LCR7BIT,
+	DLL	= RBR,
+	DLH	= IER,
 /* read/write access LCR[7:0] = 0xbf */
 	EFR	= IIR | LCRBFBIT,
 	XON1	= MCR | LCRBFBIT,
 	XON2	= LSR | LCRBFBIT,
 	XOFF1	= MSR | LCRBFBIT,
-	XOFF2 	= SPR | LCRBFBIT,
-/* read/write access if EFR[4] = 1 and MCR[6] = 1 */
-	TCR	= MSR | MCR6BIT,
-	TLR	= SPR | MCR6BIT,
+	XOFF2 	= SCR | LCRBFBIT,
 };
-/* write access LCR[7] = 0 */
-#define THR	RHR
-#define FCR	IIR		/* only if EFR[4] = 1 */
-#define TXFLL	SFLSR
-#define TXFLH	RESUME
-#define RXFLL	SFREGL
-#define RXFLH	SFREGH
+/* write access */
+#define THR	RBR
+#define FCR	IIR
 
 enum fcr_bits {
 	FIFO_EN		= (1 << 0),
@@ -101,7 +97,7 @@ enum iir_bits {
 	IIR_INT_TYPE			= 0x3E,
 	IIR_INT_TYPE_RX_STATUS_ERROR 	= 0x06,
 	IIR_INT_TYPE_RX_TIMEOUT		= 0x0C,
-	IIR_INT_TYPE_RHR		= 0x04,
+	IIR_INT_TYPE_RBR		= 0x04,
 	IIR_INT_TYPE_THR		= 0x02,
 	IIR_INT_TYPE_MSR		= 0x00,
 	IIR_INT_TYPE_XOFF		= 0x10,
@@ -109,7 +105,6 @@ enum iir_bits {
 	IIR_FCR0_MIRROR			= 0xC0,
 };
 
-#define UART_REG_UIR	0xffff6000
 
 /* enable or disable the divisor latch for access to DLL, DLH */
 static void uart_set_lcr7bit(int uart, int on)
@@ -203,7 +198,7 @@ static void uart_irq_handler_cons(__unused enum irq_nr irqnr)
 		return;
 
 	switch (iir & IIR_INT_TYPE) {
-	case IIR_INT_TYPE_RHR:
+	case IIR_INT_TYPE_RBR:
 		break;
 	case IIR_INT_TYPE_THR:
 		if (cons_rb_flush() == 1) {
@@ -237,7 +232,7 @@ static void uart_irq_handler_sercomm(__unused enum irq_nr irqnr)
 
 	switch (iir & IIR_INT_TYPE) {
 	case IIR_INT_TYPE_RX_TIMEOUT:
-	case IIR_INT_TYPE_RHR:
+	case IIR_INT_TYPE_RBR:
 		/* as long as we have rx data available */
 		while (uart_getchar_nb(uart, &ch)) {
 			if (sercomm_drv_rx_char(ch) < 0) {
@@ -304,22 +299,15 @@ void uart_init(uint8_t uart, uint8_t interrupts)
 	}
 #endif
 
-	/* if we don't initialize these, we get strange corruptions in the
-	   received data... :-( */
-	uart_reg_write(uart,  MDR1, 0x07); /* turn off UART */
-	uart_reg_write(uart,  XON1, 0x00); /* Xon1/Addr Register */
-	uart_reg_write(uart,  XON2, 0x00); /* Xon2/Addr Register */
-	uart_reg_write(uart, XOFF1, 0x00); /* Xoff1 Register */
-	uart_reg_write(uart, XOFF2, 0x00); /* Xoff2 Register */
-	uart_reg_write(uart,   EFR, 0x00); /* Enhanced Features Register */
+	uart_reg_write(uart, AUTOBAUD_EN, 0x00); /* disable AUTOBAUD */
+	uart_reg_write(uart,   EFR, 0x10); /* Enhanced Features Register */
 
-	/* select  UART mode */
-	uart_reg_write(uart, MDR1, 0);
 	/* no XON/XOFF flow control, ENHANCED_EN, no auto-RTS/CTS */
 	uart_reg_write(uart, EFR, (1 << 4));
 	/* enable Tx/Rx FIFO, Tx trigger at 56 spaces, Rx trigger at 60 chars */
+	//FIXME check those FIFO settings
 	uart_reg_write(uart, FCR, FIFO_EN | RX_FIFO_CLEAR | TX_FIFO_CLEAR |
-			(3 << TX_FIFO_TRIG_SHIFT) | (3 << RX_FIFO_TRIG_SHIFT));
+			(3 << TX_FIFO_TRIG_SHIFT) | (1 << RX_FIFO_TRIG_SHIFT));
 
 	/* THR interrupt only when TX FIFO and TX shift register are empty */
 	uart_reg_write(uart, SCR, (1 << 0));// | (1 << 3));
@@ -364,7 +352,7 @@ void uart_irq_enable(uint8_t uart, enum uart_irq irq, int on)
 void uart_putchar_wait(uint8_t uart, int c)
 {
 	/* wait while TX FIFO indicates full */
-	while (readb(UART_REG(uart, SSR)) & 0x01) { }
+	while (~readb(UART_REG(uart, LSR)) & 0x20) { }
 
 	/* put character in TX FIFO */
 	writeb(c, UART_REG(uart, THR));
@@ -373,7 +361,7 @@ void uart_putchar_wait(uint8_t uart, int c)
 int uart_putchar_nb(uint8_t uart, int c)
 {
 	/* if TX FIFO indicates full, abort */
-	if (readb(UART_REG(uart, SSR)) & 0x01)
+	if (~readb(UART_REG(uart, LSR)) & 0x20)
 		return 0;
 
 	writeb(c, UART_REG(uart, THR));
@@ -402,25 +390,27 @@ int uart_getchar_nb(uint8_t uart, uint8_t *ch)
 	if (!(lsr & 0x01))
 		return 0;
 
-	*ch = readb(UART_REG(uart, RHR));
+	*ch = readb(UART_REG(uart, RBR));
 	//printf("getchar_nb(%u) = %02x\n", uart, *ch);
 	return 1;
 }
 
 int uart_tx_busy(uint8_t uart)
 {
-	if (readb(UART_REG(uart, SSR)) & 0x01)
+	/* Check THRE bit (LSR[5]) to see if FIFO is full */
+	if (~readb(UART_REG(uart, LSR)) & 0x20)
 		return 1;
 	return 0;
 }
 
+/* currently only valid for 26MHz clock input */
 static const uint16_t divider[] = {
-	[UART_38400]	= 21,	/*   38,690 */
-	[UART_57600]	= 14,	/*   58,035 */
-	[UART_115200]	= 7,	/*  116,071 */
-	[UART_230400]	= 4,	/*  203,125! (-3% would be 223,488) */
-	[UART_460800]	= 2,	/*  406,250! (-3% would be 446,976) */
-	[UART_921600]	= 1,	/*  812,500! (-3% would be 893,952) */
+	[UART_38400]	= 42,
+	[UART_57600]	= 28,
+	[UART_115200]	= 14,
+	[UART_230400]	= 7,
+	[UART_460800]	= 14,	/* would need UART_REG(HIGHSPEED) = 1 or 2 */
+	[UART_921600]	= 7,	/* would need UART_REG(HIGHSPEED) = 2 */
 };
 
 int uart_baudrate(uint8_t uart, enum uart_baudrate bdrt)

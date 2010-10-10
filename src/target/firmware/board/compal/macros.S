@@ -44,7 +44,7 @@ done_ramtext:
 	.EQU	I_BIT,		0x80
 	.EQU	F_BIT,		0x40
 
-#define	TOP_OF_RAM	0x083fff0
+#define	TOP_OF_RAM	0x4000a000
 #define FIQ_STACK_SIZE	1024
 #define IRQ_STACK_SIZE	1024
 		

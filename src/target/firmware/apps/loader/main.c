@@ -52,6 +52,90 @@
 
 #include "protocol.h"
 
+/* MT6223 */
+//TODO split to separate drivers and put the register definitions there
+#define GPIO_BASE	0x80120000
+#define GPIO_REG(n)	(GPIO_BASE + n)
+enum gpio_reg {
+	/* data direction registers */
+	DIR1	= 0x00,
+	DIR2	= 0x10,
+	DIR3	= 0x20,
+	DIR4	= 0x30,
+	/* pull-up registers */
+	PULLEN1	= 0x40,
+	PULLEN2	= 0x50,
+	PULLEN3	= 0x60,
+	PULLEN4	= 0x70,
+	/* data inversion registers */
+	DINV1	= 0x80,
+	DINV2	= 0x90,
+	DINV3	= 0xa0,
+	DINV4	= 0xb0,
+	/* data output registers */
+	DOUT1	= 0xc0,\
+	DOUT2	= 0xd0,
+	DOUT3	= 0xe0,
+	DOUT4	= 0xf0,
+	/* data input registers */
+	DIN1	= 0x0100,
+	DIN2	= 0x0110,
+	DIN3	= 0x0120,
+	DIN4	= 0x0130,
+	/*[...]*/
+	BANK	= 0x01c0,
+
+	/* GPIO mode registers */
+	MODE1	= 0x0150,
+	MODE2	= 0x0160,
+	MODE3	= 0x0170,
+	MODE4	= 0x0180,
+	MODE5	= 0x0190,
+	MODE6	= 0x01a0,
+	MODE7	= 0x01b0,
+
+};
+
+#define CONFIG_BASE	0x80000000
+#define CONFIG_REG(n)	(CONFIG_BASE + n)
+
+enum config_reg {
+	HW_VERSION	= 0x00,
+	SW_VERSION	= 0x04,
+	HW_CODE		= 0x08,
+
+	PDN_CON0 = 0x300,
+	PDN_CON1 = 0x304,
+	PDN_CON2 = 0x308,
+	PDN_CON3 = 0x30c,
+	PDN_CON4 = 0x330,
+	PDN_SET0 = 0x310,
+	PDN_SET1 = 0x314,
+	PDN_SET2 = 0x318,
+	PDN_SET3 = 0x31c,
+	PDN_CLR0 = 0x320,
+	PDN_CLR1 = 0x324,
+	PDN_CLR2 = 0x328,
+	PDN_CLR3 = 0x32c,
+	PDN_CLR4 = 0x338,
+
+	APB_CON		= 0x404,
+	AHB_CON		= 0x500,
+};
+
+#define MAGIC_POWERKEY1		0xa357
+#define MAGIC_POWERKEY2		0x67d2
+#define RTC_BASE		0x80210000
+#define RGU_BASE		0x80040000
+
+#define RTC_REG(n)	(RTC_BASE + n)
+
+enum rtc_reg {
+	BBPU		= 0x00,
+	POWERKEY1	= 0x50,
+	POWERKEY2	= 0x54,
+};
+
 /* Main Program */
 const char *hr =
     "======================================================================\n";
@@ -73,21 +157,21 @@ static void flush_uart(void)
 static void device_poweroff(void)
 {
 	flush_uart();
-	twl3025_power_off();
+	writew(0x430a, RTC_REG(BBPU));
 }
 
 static void device_reset(void)
 {
 	flush_uart();
-	wdog_reset();
+//	wdog_reset();
 }
 
 static void device_enter_loader(unsigned char bootrom)
 {
 	flush_uart();
-
-	calypso_bootrom(bootrom);
-	void (*entry) (void) = (void (*)(void))0;
+	delay_ms(2000);
+//	calypso_bootrom(bootrom);
+	void (*entry)( void ) = (void (*)(void))0;
 	entry();
 }
 
@@ -124,21 +208,20 @@ static const uint8_t phone_ack[] = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x03, 0x42 };
 
 int main(void)
 {
-	/* Simulate a compal loader saying "ACK" */
-	int i = 0;
-	for (i = 0; i < sizeof(phone_ack); i++) {
-		putchar_asm(phone_ack[i]);
-	}
+	/* powerup the baseband */
+	writew(MAGIC_POWERKEY1, RTC_REG(POWERKEY1));
+	writew(MAGIC_POWERKEY2, RTC_REG(POWERKEY2));
+	writew(0x430e, RTC_REG(BBPU));
 
-	/* Always disable wdt (some platforms enable it on boot) */
-	wdog_enable(0);
+	/* disable watchdog timer */
+	writew(0x2200, RGU_BASE);
 
-	/* Initialize TWL3025 for power control */
-	twl3025_init();
-
-	/* Backlight */
-	bl_mode_pwl(1);
-	bl_level(50);
+	/* power _everything_ on for now */
+	writew(0xffff, CONFIG_REG(PDN_CLR0));
+	writew(0xffff, CONFIG_REG(PDN_CLR1));
+	writew(0xffff, CONFIG_REG(PDN_CLR2));
+	writew(0xffff, CONFIG_REG(PDN_CLR3));
+	writew(0xffff, CONFIG_REG(PDN_CLR4));
 
 	/* Initialize UART without interrupts */
 	uart_init(SERCOMM_UART_NR, 0);
@@ -155,8 +238,12 @@ int main(void)
 	printf("Running on %s in environment %s\n", manifest_board,
 	       manifest_environment);
 
+	printf("HW_VERSION = 0x%04x\n", readw(CONFIG_REG(HW_VERSION)));
+	printf("SW_VERSION = 0x%04x\n", readw(CONFIG_REG(SW_VERSION)));
+	printf("HW_CODE = 0x%04x\n", readw(CONFIG_REG(HW_CODE)));
+
 	/* Initialize flash driver */
-	if (flash_init(&the_flash, 0)) {
+/*	if (flash_init(&the_flash, 0)) {
 		puts("Failed to initialize flash!\n");
 	} else {
 		printf("Found flash of %d bytes at 0x%x with %d regions\n",
@@ -172,25 +259,25 @@ int main(void)
 		}
 
 	}
+*/
 
 	/* Set up a key handler for powering off */
-	keypad_set_handler(&key_handler);
+//	keypad_set_handler(&key_handler);
 
 	/* Set up loader communications */
 	sercomm_register_rx_cb(SC_DLCI_LOADER, &cmd_handler);
 
 	/* Notify any running osmoload about our startup */
-	loader_send_init(SC_DLCI_LOADER);
+//	loader_send_init(SC_DLCI_LOADER);
 
 	/* Wait for events */
 	while (1) {
-		keypad_poll();
 		uart_poll(SERCOMM_UART_NR);
 	}
 
 	/* NOT REACHED */
 
-	twl3025_power_off();
+//	twl3025_power_off();
 }
 
 static void cmd_handler(uint8_t dlci, struct msgb *msg)
