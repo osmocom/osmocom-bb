@@ -403,8 +403,6 @@ static int parse_process_uss_req(const uint8_t *uss_req_data, uint16_t length,
 					num_chars = MAX_LEN_USSD_STRING;
 				gsm_7bit_decode(req->text,
 						&(uss_req_data[7]), num_chars);
-				/* append null-terminator */
-				req->text[num_chars+1] = 0;
 				rc = 1;
 			}
 		}
