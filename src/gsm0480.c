@@ -289,10 +289,16 @@ static int parse_facility_ie(const uint8_t *facility_ie, uint16_t length,
 	int rc = 1;
 	uint8_t offset = 0;
 
-	do {
+	while (offset + 2 <= length) {
 		/* Component Type tag - table 3.7 */
 		uint8_t component_type = facility_ie[offset];
 		uint8_t component_length = facility_ie[offset+1];
+
+		/* size check */
+		if (offset + 2 + component_length > length) {
+			LOGP(0, LOGL_ERROR, "Component does not fit.\n");
+			return 0;
+		}
 
 		switch (component_type) {
 		case GSM0480_CTYPE_INVOKE:
@@ -313,7 +319,7 @@ static int parse_facility_ie(const uint8_t *facility_ie, uint16_t length,
 			break;
 		}
 		offset += (component_length+2);
-	} while (offset < length);
+	};
 
 	return rc;
 }
