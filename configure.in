@@ -112,4 +112,5 @@ AC_OUTPUT(
 	tests/timer/Makefile
 	tests/sms/Makefile
 	tests/msgfile/Makefile
+	tests/ussd/Makefile
 	Makefile)

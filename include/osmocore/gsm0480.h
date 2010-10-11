@@ -2,6 +2,8 @@
 #define gsm0480_h
 
 #include "msgb.h"
+#include "protocol/gsm_04_08.h"
+#include "protocol/gsm_04_80.h"
 
 #define MAX_LEN_USSD_STRING	31
 
@@ -11,7 +13,7 @@ struct ussd_request {
 	uint8_t invoke_id;
 };
 
-int gsm0480_decode_ussd_request(const struct msgb *msg,
+int gsm0480_decode_ussd_request(const struct gsm48_hdr *hdr, uint16_t len,
 				struct ussd_request *request);
 
 struct msgb *gsm0480_create_unstructuredSS_Notify(int alertPattern, const char *text);

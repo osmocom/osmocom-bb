@@ -192,25 +192,26 @@ struct msgb *gsm0480_create_notifySS(const char *text)
 }
 
 /* Forward declarations */
-static int parse_ussd(uint8_t *ussd, struct ussd_request *req);
-static int parse_ussd_info_elements(uint8_t *ussd_ie,
+static int parse_ussd(const struct gsm48_hdr *hdr,
+		      uint16_t len, struct ussd_request *req);
+static int parse_ussd_info_elements(const uint8_t *ussd_ie, uint16_t len,
 					struct ussd_request *req);
-static int parse_facility_ie(uint8_t *facility_ie, uint8_t length,
+static int parse_facility_ie(const uint8_t *facility_ie, uint8_t length,
 					struct ussd_request *req);
-static int parse_ss_invoke(uint8_t *invoke_data, uint8_t length,
+static int parse_ss_invoke(const uint8_t *invoke_data, uint8_t length,
 					struct ussd_request *req);
-static int parse_process_uss_req(uint8_t *uss_req_data, uint8_t length,
+static int parse_process_uss_req(const uint8_t *uss_req_data, uint8_t length,
 					struct ussd_request *req);
 
 /* Decode a mobile-originated USSD-request message */
-int gsm0480_decode_ussd_request(const struct msgb *msg, struct ussd_request *req)
+int gsm0480_decode_ussd_request(const struct gsm48_hdr *hdr, uint16_t len,
+				struct ussd_request *req)
 {
 	int rc = 0;
-	uint8_t *parse_ptr = msgb_l3(msg);
 
-	if ((*parse_ptr & 0x0F) == GSM48_PDISC_NC_SS) {
-		req->transaction_id = *parse_ptr & 0x70;
-		rc = parse_ussd(parse_ptr+1, req);
+	if ((hdr->proto_discr & 0x0f) == GSM48_PDISC_NC_SS) {
+		req->transaction_id = hdr->proto_discr & 0x70;
+		rc = parse_ussd(hdr, len, req);
 	}
 
 	if (!rc)
@@ -219,10 +220,10 @@ int gsm0480_decode_ussd_request(const struct msgb *msg, struct ussd_request *req
 	return rc;
 }
 
-static int parse_ussd(uint8_t *ussd, struct ussd_request *req)
+static int parse_ussd(const struct gsm48_hdr *hdr, uint16_t len, struct ussd_request *req)
 {
 	int rc = 1;
-	uint8_t msg_type = ussd[0] & 0xBF;  /* message-type - section 3.4 */
+	uint8_t msg_type = hdr->msg_type & 0xBF;  /* message-type - section 3.4 */
 
 	switch (msg_type) {
 	case GSM0480_MTYPE_RELEASE_COMPLETE:
@@ -232,11 +233,11 @@ static int parse_ussd(uint8_t *ussd, struct ussd_request *req)
 		break;
 	case GSM0480_MTYPE_REGISTER:
 	case GSM0480_MTYPE_FACILITY:
-		rc &= parse_ussd_info_elements(ussd+1, req);
+		rc &= parse_ussd_info_elements(&hdr->data[0], len - sizeof(*hdr), req);
 		break;
 	default:
 		LOGP(0, LOGL_DEBUG, "Unknown GSM 04.80 message-type field 0x%02x\n",
-			ussd[0]);
+			hdr->msg_type);
 		rc = 0;
 		break;
 	}
@@ -244,12 +245,16 @@ static int parse_ussd(uint8_t *ussd, struct ussd_request *req)
 	return rc;
 }
 
-static int parse_ussd_info_elements(uint8_t *ussd_ie, struct ussd_request *req)
+static int parse_ussd_info_elements(const uint8_t *ussd_ie, uint16_t len,
+				    struct ussd_request *req)
 {
 	int rc = -1;
 	/* Information Element Identifier - table 3.2 & GSM 04.08 section 10.5 */
-	uint8_t iei = ussd_ie[0];
-	uint8_t iei_length = ussd_ie[1];
+	uint8_t iei;
+	uint8_t iei_length;
+
+	iei = ussd_ie[0];
+	iei_length = ussd_ie[1];
 
 	switch (iei) {
 	case GSM48_IE_CAUSE:
@@ -269,7 +274,7 @@ static int parse_ussd_info_elements(uint8_t *ussd_ie, struct ussd_request *req)
 	return rc;
 }
 
-static int parse_facility_ie(uint8_t *facility_ie, uint8_t length,
+static int parse_facility_ie(const uint8_t *facility_ie, uint8_t length,
 						struct ussd_request *req)
 {
 	int rc = 1;
@@ -305,7 +310,7 @@ static int parse_facility_ie(uint8_t *facility_ie, uint8_t length,
 }
 
 /* Parse an Invoke component - see table 3.3 */
-static int parse_ss_invoke(uint8_t *invoke_data, uint8_t length,
+static int parse_ss_invoke(const uint8_t *invoke_data, uint8_t length,
 						struct ussd_request *req)
 {
 	int rc = 1;
@@ -350,7 +355,7 @@ static int parse_ss_invoke(uint8_t *invoke_data, uint8_t length,
 }
 
 /* Parse the parameters of a Process UnstructuredSS Request */
-static int parse_process_uss_req(uint8_t *uss_req_data, uint8_t length,
+static int parse_process_uss_req(const uint8_t *uss_req_data, uint8_t length,
 					struct ussd_request *req)
 {
 	int rc = 0;
