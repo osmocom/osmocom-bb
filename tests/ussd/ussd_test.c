@@ -47,6 +47,23 @@ static int parse_ussd(const uint8_t *_data, int len)
 	return rc;
 }
 
+static int parse_mangle_ussd(const uint8_t *_data, int len)
+{
+	uint8_t *data;
+	int rc;
+	struct ussd_request req;
+	struct gsm48_hdr *hdr;
+
+	data = malloc(len);
+	memcpy(data, _data, len);
+	hdr = (struct gsm48_hdr *) &data[0];
+	hdr->data[1] = len - sizeof(*hdr) - 2;
+	rc = gsm0480_decode_ussd_request(hdr, len, &req);
+	free(data);
+
+	return rc;
+}
+
 int main(int argc, char **argv)
 {
 	const int size = sizeof(ussd_request);
@@ -56,6 +73,12 @@ int main(int argc, char **argv)
 
 	for (i = size; i > sizeof(struct gsm48_hdr); --i) {
 		int rc = parse_ussd(&ussd_request[0], i);
+		printf("Result for %d is %d\n", rc, i);
+	}
+
+	printf("Mangling the container now\n");
+	for (i = size; i > sizeof(struct gsm48_hdr) + 2; --i) {
+		int rc = parse_mangle_ussd(&ussd_request[0], i);
 		printf("Result for %d is %d\n", rc, i);
 	}
 
