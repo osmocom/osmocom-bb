@@ -331,6 +331,9 @@ static int parse_ss_invoke(const uint8_t *invoke_data, uint16_t length,
 	int rc = 1;
 	uint8_t offset;
 
+	if (length < 3)
+		return 0;
+
 	/* mandatory part */
 	if (invoke_data[0] != GSM0480_COMPIDTAG_INVOKE_ID) {
 		LOGP(0, LOGL_DEBUG, "Unexpected GSM 04.80 Component-ID tag "
@@ -340,12 +343,18 @@ static int parse_ss_invoke(const uint8_t *invoke_data, uint16_t length,
 	offset = invoke_data[1] + 2;
 	req->invoke_id = invoke_data[2];
 
+	/* look ahead once */
+	if (offset + 1 > length)
+		return 0;
+
 	/* optional part */
 	if (invoke_data[offset] == GSM0480_COMPIDTAG_LINKED_ID)
 		offset += invoke_data[offset+1] + 2;  /* skip over it */
 
 	/* mandatory part */
 	if (invoke_data[offset] == GSM0480_OPERATION_CODE) {
+		if (offset + 2 > length)
+			return 0;
 		uint8_t operation_code = invoke_data[offset+2];
 		switch (operation_code) {
 		case GSM0480_OP_CODE_PROCESS_USS_REQ:
