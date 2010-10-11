@@ -45,6 +45,8 @@
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
 
+#include <fb/framebuffer.h>
+
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define IO_CNTL_REG	0xfffe4804
 #define ASIC_CONF_REG	0xfffef008
@@ -128,6 +130,8 @@ void board_init(void)
 	/* Initialize LCD driver (uses UWire) and backlight */
 	bl_mode_pwl(1);
 	bl_level(50);
+
+	fb_init();
 
 	/* Initialize keypad driver */
 	keypad_init(1);
