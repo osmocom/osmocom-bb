@@ -44,6 +44,7 @@
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
+#include <fb/framebuffer.h>
 
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define IO_CNTL_REG	0xfffe4804
@@ -122,6 +123,8 @@ void board_init(void)
 	timer_init();
 
 	/* Initialize LCD driver (uses I2C) and backlight */
+	fb_init();
+
 	bl_mode_pwl(1);
 	bl_level(50);
 
