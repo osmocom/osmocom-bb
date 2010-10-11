@@ -196,11 +196,11 @@ static int parse_ussd(const struct gsm48_hdr *hdr,
 		      uint16_t len, struct ussd_request *req);
 static int parse_ussd_info_elements(const uint8_t *ussd_ie, uint16_t len,
 					struct ussd_request *req);
-static int parse_facility_ie(const uint8_t *facility_ie, uint8_t length,
+static int parse_facility_ie(const uint8_t *facility_ie, uint16_t length,
 					struct ussd_request *req);
-static int parse_ss_invoke(const uint8_t *invoke_data, uint8_t length,
+static int parse_ss_invoke(const uint8_t *invoke_data, uint16_t length,
 					struct ussd_request *req);
-static int parse_process_uss_req(const uint8_t *uss_req_data, uint8_t length,
+static int parse_process_uss_req(const uint8_t *uss_req_data, uint16_t length,
 					struct ussd_request *req);
 
 /* Decode a mobile-originated USSD-request message */
@@ -283,7 +283,7 @@ static int parse_ussd_info_elements(const uint8_t *ussd_ie, uint16_t len,
 	return rc;
 }
 
-static int parse_facility_ie(const uint8_t *facility_ie, uint8_t length,
+static int parse_facility_ie(const uint8_t *facility_ie, uint16_t length,
 						struct ussd_request *req)
 {
 	int rc = 1;
@@ -319,7 +319,7 @@ static int parse_facility_ie(const uint8_t *facility_ie, uint8_t length,
 }
 
 /* Parse an Invoke component - see table 3.3 */
-static int parse_ss_invoke(const uint8_t *invoke_data, uint8_t length,
+static int parse_ss_invoke(const uint8_t *invoke_data, uint16_t length,
 						struct ussd_request *req)
 {
 	int rc = 1;
@@ -364,7 +364,7 @@ static int parse_ss_invoke(const uint8_t *invoke_data, uint8_t length,
 }
 
 /* Parse the parameters of a Process UnstructuredSS Request */
-static int parse_process_uss_req(const uint8_t *uss_req_data, uint8_t length,
+static int parse_process_uss_req(const uint8_t *uss_req_data, uint16_t length,
 					struct ussd_request *req)
 {
 	int rc = 0;
