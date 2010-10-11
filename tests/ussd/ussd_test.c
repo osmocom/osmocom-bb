@@ -66,8 +66,13 @@ static int parse_mangle_ussd(const uint8_t *_data, int len)
 
 int main(int argc, char **argv)
 {
+	struct ussd_request req;
 	const int size = sizeof(ussd_request);
 	int i;
+
+	gsm0480_decode_ussd_request((struct gsm48_hdr *) ussd_request, size, &req);
+	printf("Tested if it still works. Text was: %s\n", req.text);
+
 
 	printf("Testing parsing a USSD request and truncated versions\n");
 
