@@ -209,6 +209,11 @@ int gsm0480_decode_ussd_request(const struct gsm48_hdr *hdr, uint16_t len,
 {
 	int rc = 0;
 
+	if (len < sizeof(*hdr) + 2) {
+		LOGP(0, LOGL_DEBUG, "USSD Request is too short.\n");
+		return 0;
+	}
+
 	if ((hdr->proto_discr & 0x0f) == GSM48_PDISC_NC_SS) {
 		req->transaction_id = hdr->proto_discr & 0x70;
 		rc = parse_ussd(hdr, len, req);
@@ -255,6 +260,10 @@ static int parse_ussd_info_elements(const uint8_t *ussd_ie, uint16_t len,
 
 	iei = ussd_ie[0];
 	iei_length = ussd_ie[1];
+
+	/* If the data does not fit, report an error */
+	if (len - 2 < iei_length)
+		return 0;
 
 	switch (iei) {
 	case GSM48_IE_CAUSE:
