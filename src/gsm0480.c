@@ -386,6 +386,12 @@ static int parse_process_uss_req(const uint8_t *uss_req_data, uint16_t length,
 	int num_chars;
 	uint8_t dcs;
 
+
+	/* we need at least that much */
+	if (length < 8)
+		return 0;
+
+
 	if (uss_req_data[0] == GSM_0480_SEQUENCE_TAG) {
 		if (uss_req_data[2] == ASN1_OCTET_STRING_TAG) {
 			dcs = uss_req_data[4];
