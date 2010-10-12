@@ -399,6 +399,7 @@ static int gsm48_rel_null_free(struct gsm_trans *trans)
 void mncc_set_cause(struct gsm_mncc *data, int loc, int val)
 {
         data->fields |= MNCC_F_CAUSE;
+	data->cause.coding = 0x3;
 	data->cause.location = loc;
 	data->cause.value = val;
 }
