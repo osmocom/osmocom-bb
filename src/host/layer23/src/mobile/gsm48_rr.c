@@ -3779,11 +3779,12 @@ static int gsm48_rr_tx_ass_cpl(struct osmocom_ms *ms, uint8_t cause)
 	/* RR_CAUSE */
 	ac->rr_cause = cause;
 
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_RES_REQ, nmsg);
 }
 
 /* 9.1.4 sending ASSIGNMENT FAILURE */
-static int gsm48_rr_tx_ass_fail(struct osmocom_ms *ms, uint8_t cause)
+static int gsm48_rr_tx_ass_fail(struct osmocom_ms *ms, uint8_t cause,
+	uint8_t rsl_prim)
 {
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
@@ -3803,7 +3804,7 @@ static int gsm48_rr_tx_ass_fail(struct osmocom_ms *ms, uint8_t cause)
 	/* RR_CAUSE */
 	af->rr_cause = cause;
 
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+	return gsm48_send_rsl(ms, rsl_prim, nmsg);
 }
 
 /* 9.1.2 ASSIGNMENT COMMAND is received */
@@ -4073,15 +4074,15 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	/* check if channels are valid */
 	cause = gsm48_rr_check_mode(ms, cda->chan_nr, cda->mode);
 	if (cause)
-		return gsm48_rr_tx_ass_fail(ms, cause);
+		return gsm48_rr_tx_ass_fail(ms, cause, RSL_MT_DATA_REQ);
 	if (before_time) {
 		cause = gsm48_rr_render_ma(ms, cdb, ma, &ma_len);
 		if (cause)
-			return gsm48_rr_tx_ass_fail(ms, cause);
+			return gsm48_rr_tx_ass_fail(ms, cause, RSL_MT_DATA_REQ);
 	}
 	cause = gsm48_rr_render_ma(ms, cda, ma, &ma_len);
 	if (cause)
-		return gsm48_rr_tx_ass_fail(ms, cause);
+		return gsm48_rr_tx_ass_fail(ms, cause, RSL_MT_DATA_REQ);
 
 
 #if 0
@@ -4142,11 +4143,12 @@ static int gsm48_rr_tx_hando_cpl(struct osmocom_ms *ms, uint8_t cause)
 
 	// FIXME: mobile observed time
 
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_RES_REQ, nmsg);
 }
 
 /* 9.1.4 sending HANDOVER FAILURE */
-static int gsm48_rr_tx_hando_fail(struct osmocom_ms *ms, uint8_t cause)
+static int gsm48_rr_tx_hando_fail(struct osmocom_ms *ms, uint8_t cause,
+	uint8_t rsl_prim)
 {
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
@@ -4166,7 +4168,7 @@ static int gsm48_rr_tx_hando_fail(struct osmocom_ms *ms, uint8_t cause)
 	/* RR_CAUSE */
 	hf->rr_cause = cause;
 
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+	return gsm48_send_rsl(ms, rsl_prim, nmsg);
 }
 
 /* receiving HANDOVER COMMAND message (9.1.15) */
@@ -4455,11 +4457,11 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	if (before_time) {
 		cause = gsm48_rr_render_ma(ms, cdb, ma, &ma_len);
 		if (cause)
-			return gsm48_rr_tx_hando_fail(ms, cause);
+			return gsm48_rr_tx_hando_fail(ms, cause, RSL_MT_DATA_REQ);
 	}
 	cause = gsm48_rr_render_ma(ms, cda, ma, &ma_len);
 	if (cause)
-		return gsm48_rr_tx_hando_fail(ms, cause);
+		return gsm48_rr_tx_hando_fail(ms, cause, RSL_MT_DATA_REQ);
 
 
 #if 0
@@ -4518,21 +4520,6 @@ static int gsm48_rr_estab_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DRR, LOGL_INFO, "data link is resumed\n");
 
-	switch (rr->modify_state) {
-	case GSM48_RR_MOD_ASSIGN:
-		gsm48_rr_tx_ass_cpl(ms, GSM48_RR_CAUSE_NORMAL);
-		break;
-	case GSM48_RR_MOD_HANDO:
-		gsm48_rr_tx_hando_cpl(ms, GSM48_RR_CAUSE_NORMAL);
-		break;
-	case GSM48_RR_MOD_ASSIGN_RESUME:
-		gsm48_rr_tx_ass_fail(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
-		break;
-	case GSM48_RR_MOD_HANDO_RESUME:
-		gsm48_rr_tx_hando_fail(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
-		break;
-	}
-
 	/* transmit queued frames during ho / ass transition */
 	gsm48_rr_dequeue_down(ms);
 
@@ -4547,7 +4534,6 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	if (rr->modify_state) {
-		struct msgb *nmsg;
 		uint16_t ma[64];
 		uint8_t ma_len;
 
@@ -4589,10 +4575,23 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 
 		/* send DL-RESUME REQUEST */
 		LOGP(DRR, LOGL_INFO, "request resume of data link\n");
-		nmsg = gsm48_l3_msgb_alloc();
-		if (!nmsg)
-			return -ENOMEM;
-		gsm48_send_rsl(ms, RSL_MT_RES_REQ, nmsg);
+		switch (rr->modify_state) {
+		case GSM48_RR_MOD_ASSIGN:
+			gsm48_rr_tx_ass_cpl(ms, GSM48_RR_CAUSE_NORMAL);
+			break;
+		case GSM48_RR_MOD_HANDO:
+			gsm48_rr_tx_hando_cpl(ms, GSM48_RR_CAUSE_NORMAL);
+			break;
+		case GSM48_RR_MOD_ASSIGN_RESUME:
+			gsm48_rr_tx_ass_fail(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC,
+				RSL_MT_RECON_REQ);
+			break;
+		case GSM48_RR_MOD_HANDO_RESUME:
+			gsm48_rr_tx_hando_fail(ms,
+				GSM48_RR_CAUSE_PROT_ERROR_UNSPC,
+				RSL_MT_RECON_REQ);
+			break;
+		}
 
 #ifdef TODO
 		/* trigger RACH */

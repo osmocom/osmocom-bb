@@ -524,9 +524,8 @@ static void lapdm_t200_cb(void *data)
 			send_rll_simple(RSL_MT_REL_IND, &dl->mctx);
 			/* send MDL ERROR INIDCATION to L3 */
 			rsl_rll_error(RLL_CAUSE_T200_EXPIRED, &dl->mctx);
-			/* flush buffers */
+			/* flush tx buffers */
 			lapdm_dl_flush_tx(dl);
-			lapdm_dl_flush_send(dl);
 			/* go back to idle state */
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			/* NOTE: we must not change any other states or buffers
@@ -1871,9 +1870,8 @@ static int rslms_rx_rll_susp_req(struct msgb *msg, struct lapdm_datalink *dl)
 	} else
 		LOGP(DLAPDM, LOGL_INFO, "no frame in sendbuffer\n");
 
-	/* Clear transmit and send buffer, if any */
+	/* Clear transmit buffer, but keep send buffer */
 	lapdm_dl_flush_tx(dl);
-	lapdm_dl_flush_send(dl);
 
 	msgb_free(msg);
 
@@ -1906,13 +1904,19 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	}
 	length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 
-	LOGP(DLAPDM, LOGL_INFO, "perform re-establishment (SABM)\n");
+	LOGP(DLAPDM, LOGL_INFO, "perform re-establishment (SABM) length=%d\n",
+		length);
 	
 	/* Replace message in the send-buffer (reconnect) */
 	if (dl->send_buffer)
 		msgb_free(dl->send_buffer);
 	dl->send_out = 0;
-	dl->send_buffer = msg;
+	if (length) {
+		/* Remove the RSL/RLL header */
+		msgb_pull_l2h(msg);
+		/* Write data into the send buffer, to be sent first */
+		dl->send_buffer = msg;
+	}
 
 	/* Discard partly received L3 message */
 	if (dl->rcv_buffer) {
