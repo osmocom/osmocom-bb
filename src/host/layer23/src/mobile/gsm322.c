@@ -1966,10 +1966,20 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 struct gsm322_ba_list *gsm322_cs_sysinfo_sacch(struct osmocom_ms *ms)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s;
 	struct gsm322_ba_list *ba = NULL;
 	int i;
 	uint8_t freq[128];
+
+	if (!cs) {
+		LOGP(DCS, LOGL_INFO, "No BA, because no cell selected\n");
+		return ba;
+	}
+	s = cs->si;
+	if (!s) {
+		LOGP(DCS, LOGL_INFO, "No BA, because no sysinfo\n");
+		return ba;
+	}
 
 	/* collect system information received during dedicated mode */
 	if (s->si5
@@ -2495,6 +2505,10 @@ static void gsm322_cs_loss(void *arg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	LOGP(DCS, LOGL_INFO, "Loss of CCCH.\n");
+
+	/* unset selected cell */
+	gsm322_unselect_cell(cs);
+
 	if (cs->state == GSM322_C3_CAMPED_NORMALLY
 	 || cs->state == GSM322_C7_CAMPED_ANY_CELL) {
 		if (rr->state == GSM48_RR_ST_IDLE) {
