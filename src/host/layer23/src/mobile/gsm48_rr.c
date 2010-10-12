@@ -80,7 +80,6 @@
 #include <osmocom/bb/mobile/vty.h>
 
 static void start_rr_t_meas(struct gsm48_rrlayer *rr, int sec, int micro);
-static void stop_rr_t_meas(struct gsm48_rrlayer *rr);
 static void stop_rr_t_starting(struct gsm48_rrlayer *rr);
 static void stop_rr_t3124(struct gsm48_rrlayer *rr);
 static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg);
@@ -88,6 +87,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms);
 static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms);
 static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	uint8_t mode);
+static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg);
 
 /*
  * support
@@ -3513,6 +3513,18 @@ static int gsm48_rr_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 	struct gsm48_rr_hdr *nrrh;
 
+	/* switch back to old channel, if modify/ho failed */
+	switch (rr->modify_state) {
+	case GSM48_RR_MOD_ASSIGN:
+	case GSM48_RR_MOD_HANDO:
+		/* channel is deactivate there */
+		return gsm48_rr_rel_cnf(ms, msg);
+	case GSM48_RR_MOD_ASSIGN_RESUME:
+	case GSM48_RR_MOD_HANDO_RESUME:
+		rr->modify_state = GSM48_RR_MOD_NONE;
+		break;
+	}
+
 	LOGP(DSUM, LOGL_INFO, "Radio link is released\n");
 
 	/* send inication to upper layer */
@@ -4084,14 +4096,6 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	if (cause)
 		return gsm48_rr_tx_ass_fail(ms, cause, RSL_MT_DATA_REQ);
 
-
-#if 0
-	if (not supported) {
-		LOGP(DRR, LOGL_NOTICE, "New channel is not supported.\n");
-		return GSM48_RR_CAUSE_CHAN_MODE_UNACCEPT;
-	}
-#endif
-
 #ifdef TEST_FREQUENCY_MOD
 	LOGP(DRR, LOGL_INFO, " TESTING: frequency modify ASS.CMD\n");
 	before_time = 1;
@@ -4582,15 +4586,6 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 		case GSM48_RR_MOD_HANDO:
 			gsm48_rr_tx_hando_cpl(ms, GSM48_RR_CAUSE_NORMAL);
 			break;
-		case GSM48_RR_MOD_ASSIGN_RESUME:
-			gsm48_rr_tx_ass_fail(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC,
-				RSL_MT_RECON_REQ);
-			break;
-		case GSM48_RR_MOD_HANDO_RESUME:
-			gsm48_rr_tx_hando_fail(ms,
-				GSM48_RR_CAUSE_PROT_ERROR_UNSPC,
-				RSL_MT_RECON_REQ);
-			break;
 		}
 
 #ifdef TODO
@@ -5017,8 +5012,51 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct msgb *nmsg;
 	struct gsm48_rr_hdr *nrrh;
+	uint8_t cause = RR_REL_CAUSE_NORMAL;
+	uint16_t ma[64];
+	uint8_t ma_len;
 
-	LOGP(DSUM, LOGL_INFO, "Requesting channel aborted\n");
+	/* switch back to old channel, if modify/ho failed */
+	switch (rr->modify_state) {
+	case GSM48_RR_MOD_ASSIGN:
+	case GSM48_RR_MOD_HANDO:
+		/* deactivate channel */
+		l1ctl_tx_dm_rel_req(ms);
+		ms->meas.rl_fail = 0;
+		rr->dm_est = 0;
+		l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
+
+		/* get old channel description */
+		memcpy(&rr->cd_now, &rr->cd_last, sizeof(rr->cd_now));
+
+		/* render and change radio to old channel */
+		gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
+		gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len);
+
+		/* re-establish old link */
+		nmsg = gsm48_l3_msgb_alloc();
+		if (!nmsg)
+			return -ENOMEM;
+		if (rr->modify_state == GSM48_RR_MOD_ASSIGN) {
+			rr->modify_state = GSM48_RR_MOD_ASSIGN_RESUME;
+			return gsm48_rr_tx_ass_fail(ms,
+				GSM48_RR_CAUSE_ABNORMAL_UNSPEC,
+				RSL_MT_RECON_REQ);
+		} else {
+			rr->modify_state = GSM48_RR_MOD_HANDO_RESUME;
+			return gsm48_rr_tx_hando_fail(ms,
+				GSM48_RR_CAUSE_ABNORMAL_UNSPEC,
+				RSL_MT_RECON_REQ);
+		}
+		/* returns above */
+	case GSM48_RR_MOD_ASSIGN_RESUME:
+	case GSM48_RR_MOD_HANDO_RESUME:
+		rr->modify_state = GSM48_RR_MOD_NONE;
+		cause = RR_REL_CAUSE_LINK_FAILURE;
+		break;
+	}
+
+	LOGP(DSUM, LOGL_INFO, "Requested channel aborted\n");
 
 	/* stop T3211 if running */
 	stop_rr_t3110(rr);
@@ -5028,7 +5066,7 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	if (!nmsg)
 		return -ENOMEM;
 	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
-	nrrh->cause = RR_REL_CAUSE_NORMAL;
+	nrrh->cause = cause;
 	gsm48_rr_upmsg(ms, nmsg);
 
 	/* return idle */
@@ -5045,8 +5083,6 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rr_hdr *nrrh;
 	uint8_t *mode;
 	uint8_t cause = rllh->data[2];
-	uint16_t ma[64];
-	uint8_t ma_len;
 
 	switch (cause) {
 	case RLL_CAUSE_SEQ_ERR:
@@ -5068,37 +5104,9 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	mode[1] = 1; /* local release */
 	gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
 
-	/* deactivate channel */
-	l1ctl_tx_dm_rel_req(ms);
-	ms->meas.rl_fail = 0;
-	rr->dm_est = 0;
-	l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
-
-	switch (rr->modify_state) {
-	case GSM48_RR_MOD_ASSIGN:
-	case GSM48_RR_MOD_HANDO:
-		if (rr->modify_state == GSM48_RR_MOD_ASSIGN)
-			rr->modify_state = GSM48_RR_MOD_ASSIGN_RESUME;
-		else
-			rr->modify_state = GSM48_RR_MOD_HANDO_RESUME;
-
-		/* get old channel description */
-		memcpy(&rr->cd_now, &rr->cd_last, sizeof(rr->cd_now));
-
-		/* render and change radio to old channel */
-		gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
-		gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len);
-
-		/* re-establish old link */
-		nmsg = gsm48_l3_msgb_alloc();
-		if (!nmsg)
-			return -ENOMEM;
-		return gsm48_send_rsl(ms, RSL_MT_RECON_REQ, nmsg);
-	case GSM48_RR_MOD_ASSIGN_RESUME:
-	case GSM48_RR_MOD_HANDO_RESUME:
-		rr->modify_state = GSM48_RR_MOD_NONE;
-		break;
-	}
+	/* in case of modify/hando: wait for confirm */
+	if (rr->modify_state)
+		return 0;
 
 	/* send abort ind to upper layer */
 	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_ABORT_IND);
@@ -5149,6 +5157,11 @@ static struct dldatastate {
 	 RSL_MT_REL_IND, gsm48_rr_rel_ind},
 
 	{SBIT(GSM48_RR_ST_REL_PEND),
+	 RSL_MT_REL_CONF, gsm48_rr_rel_cnf},
+
+	/* reconnect */
+	{SBIT(GSM48_RR_ST_CONN_PEND) |
+	 SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_REL_CONF, gsm48_rr_rel_cnf},
 
 	/* suspenion */
