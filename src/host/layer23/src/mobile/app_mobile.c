@@ -51,6 +51,7 @@ extern int vty_reading;
 int mobile_started = 0;
 
 int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg);
+int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg);
 
 int mobile_work(struct osmocom_ms *ms)
 {
@@ -179,7 +180,6 @@ int l23_app_init(struct osmocom_ms *ms)
 	gsm48_rr_init(ms);
 	gsm48_mm_init(ms);
 	INIT_LLIST_HEAD(&ms->trans_list);
-	ms->cclayer.mncc_recv = mncc_recv_mobile;
 	gsm322_init(ms);
 
 	l23_app_work = mobile_work;
@@ -202,6 +202,12 @@ int l23_app_init(struct osmocom_ms *ms)
 	telnet_init(l23_ctx, NULL, vty_port);
 	if (rc < 0)
 		return rc;
+
+	if (ms->settings.ch_cap == GSM_CAP_SDCCH)
+		ms->cclayer.mncc_recv = mncc_recv_dummy;
+	else
+		ms->cclayer.mncc_recv = mncc_recv_mobile;
+
 	printf("VTY available on port %u.\n", vty_port);
 
 	gsm_random_imei(&ms->settings);

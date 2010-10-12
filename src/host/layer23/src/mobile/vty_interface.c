@@ -629,11 +629,19 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 	"Hold current active call\n")
 {
 	struct osmocom_ms *ms;
+	struct gsm_settings *set;
 	int i;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
+	set = &ms->settings;
+
+	if (set->ch_cap == GSM_CAP_SDCCH) {
+		vty_out(vty, "Basic call is not supported for SDCCH only "
+			"mobile%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	if (!strcmp(argv[1], "emergency"))
 		mncc_call(ms, (char *)argv[1]);
@@ -1490,6 +1498,10 @@ DEFUN(cfg_ms_sup_ch_cap, cfg_ms_sup_ch_cap_cmd, "channel-capability "
 			" by hardware!%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
+
+	if (ch_cap != set->ch_cap
+	 && (ch_cap == GSM_CAP_SDCCH || set->ch_cap == GSM_CAP_SDCCH))
+		vty_restart(vty);
 
 	set->ch_cap = ch_cap;
 
