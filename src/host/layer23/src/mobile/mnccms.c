@@ -448,6 +448,10 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		vty_notify(ms, "Call retrieve was rejected\n");
 		LOGP(DMNCC, LOGL_INFO, "Call retrieve was rejected\n");
 		break;
+	case MNCC_FACILITY_IND:
+		LOGP(DMNCC, LOGL_INFO, "Facility info not displayed, "
+			"unsupported\n");
+		break;
 	default:
 		LOGP(DMNCC, LOGL_INFO, "Message 0x%02x unsupported\n",
 			msg_type);
