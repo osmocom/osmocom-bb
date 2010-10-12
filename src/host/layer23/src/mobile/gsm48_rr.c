@@ -3191,8 +3191,9 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	/* establish */
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
 	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
-	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d\n",
-		ch_type, ch_subch, ch_ts, cd->mode);
+	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d, "
+		"cipher %d\n", ch_type, ch_subch, ch_ts, cd->mode,
+		rr->cipher_type + 1);
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
 			ma, ma_len, cd->chan_nr, cd->tsc, cd->mode);
@@ -4658,13 +4659,15 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 	/* check if camping */
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY
 	 && rrh->cause != RR_EST_CAUSE_EMERGENCY) {
-		LOGP(DRR, LOGL_INFO, "Not camping normally, rejecting!\n");
+		LOGP(DRR, LOGL_INFO, "Not camping normally, rejecting! "
+			"(cs->state = %d)\n", cs->state);
 		cause = RR_REL_CAUSE_EMERGENCY_ONLY;
 	 	goto reject;
 	}
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY
 	 && cs->state != GSM322_C7_CAMPED_ANY_CELL) {
-		LOGP(DRR, LOGL_INFO, "Not camping, rejecting!\n");
+		LOGP(DRR, LOGL_INFO, "Not camping, rejecting! "
+			"(cs->state = %d)\n", cs->state);
 		cause = RR_REL_CAUSE_TRY_LATER;
 	 	goto reject;
 	}

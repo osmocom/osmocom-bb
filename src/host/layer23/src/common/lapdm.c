@@ -155,7 +155,7 @@ enum lapdm_format {
 };
 
 static void lapdm_t200_cb(void *data);
-static int rslms_send_i(struct lapdm_msg_ctx *mctx);
+static int rslms_send_i(struct lapdm_msg_ctx *mctx, int line);
 
 /* UTILITY FUNCTIONS */
 
@@ -1046,7 +1046,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* enter multiple-frame-established state */
 		lapdm_dl_newstate(dl, LAPDm_STATE_MF_EST);
 		/* send outstanding frames, if any (resume / reconnect) */
-		rslms_send_i(mctx);
+		rslms_send_i(mctx, __LINE__);
 		/* send notification to L3 */
 		rc = send_rll_simple(RSL_MT_EST_CONF, mctx);
 		msgb_free(msg);
@@ -1126,7 +1126,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			}
 		}
 		/* Send message, if possible due to acknowledged data */
-		rslms_send_i(mctx);
+		rslms_send_i(mctx, __LINE__);
 
 		break;
 	case LAPDm_S_RNR:
@@ -1169,7 +1169,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 				"received\n");
 
 		/* Send message, if possible due to acknowledged data */
-		rslms_send_i(mctx);
+		rslms_send_i(mctx, __LINE__);
 
 		break;
 	case LAPDm_S_REJ:
@@ -1273,7 +1273,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* FIXME: 5.5.4.2 2) */
 
 		/* Send message, if possible due to acknowledged data */
-		rslms_send_i(mctx);
+		rslms_send_i(mctx, __LINE__);
 
 		break;
 	default:
@@ -1431,13 +1431,15 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* check if we are not in own receiver busy */
 		if (!dl->own_busy) {
 			/* NOTE: V(R) is already set above */
-			rc = rslms_send_i(mctx);
+			rc = rslms_send_i(mctx, __LINE__);
 			if (rc) {
 				LOGP(DLAPDM, LOGL_INFO, "we are not busy and "
 					"have no pending data, send RR\n");
 				/* Send RR with F=0 */
 				return lapdm_send_rr(mctx, 0);
 			}
+			/* all I or one RR is sent, we are done */
+			return 0;
 		} else {
 			LOGP(DLAPDM, LOGL_INFO, "we are busy, send RNR\n");
 			/* Send RNR with F=0 */
@@ -1446,7 +1448,7 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 	}
 
 	/* Send message, if possible due to acknowledged data */
-	rslms_send_i(mctx);
+	rslms_send_i(mctx, __LINE__);
 
 	return rc;
 }
@@ -1727,12 +1729,12 @@ static int rslms_rx_rll_data_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msgb_enqueue(&dl->send_queue, msg);
 
 	/* Send message, if possible */
-	rslms_send_i(&dl->mctx);
+	rslms_send_i(&dl->mctx, __LINE__);
 	return 0;
 }
 
 /* Send next I frame from queued/buffered data */
-static int rslms_send_i(struct lapdm_msg_ctx *mctx)
+static int rslms_send_i(struct lapdm_msg_ctx *mctx, int line)
 {
 	struct lapdm_datalink *dl = mctx->dl;
 	uint8_t chan_nr = mctx->chan_nr;
@@ -1742,6 +1744,8 @@ static int rslms_send_i(struct lapdm_msg_ctx *mctx)
 	struct msgb *msg;
 	int length, left;
 	int rc = -1; /* we sent nothing */
+
+	LOGP(DLAPDM, LOGL_INFO, "%s() called from line %d\n", __func__, line);
 
 	next_frame:
 
@@ -1860,9 +1864,12 @@ static int rslms_rx_rll_susp_req(struct msgb *msg, struct lapdm_datalink *dl)
 
 	/* put back the send-buffer to the send-queue (first position) */
 	if (dl->send_buffer) {
+		LOGP(DLAPDM, LOGL_INFO, "put frame in sendbuffer back to "
+			"queue\n");
 		llist_add(&dl->send_buffer->list, &dl->send_queue);
 		dl->send_buffer = NULL;
-	}
+	} else
+		LOGP(DLAPDM, LOGL_INFO, "no frame in sendbuffer\n");
 
 	/* Clear transmit and send buffer, if any */
 	lapdm_dl_flush_tx(dl);
