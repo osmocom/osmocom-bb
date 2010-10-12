@@ -40,6 +40,10 @@ struct rx_meas_stat {
 	uint32_t snr;
 	uint32_t berr;
 	uint32_t rxlev;
+
+	/* counters loss criterion */
+	int16_t dsc, ds_fail;
+	int16_t s, rl_fail;
 };
 
 /* One Mobilestation for osmocom */
@@ -76,6 +80,7 @@ enum osmobb_meas_sig {
 	S_L1CTL_PM_DONE,
 	S_L1CTL_CCCH_MODE_CONF,
 	S_L1CTL_TCH_MODE_CONF,
+	S_L1CTL_LOSS_IND,
 };
 
 struct osmobb_fbsb_res {

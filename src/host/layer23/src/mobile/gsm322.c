@@ -236,6 +236,7 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs)
 {
 	struct osmocom_ms *ms = cs->ms;
 	struct gsm48_sysinfo *s = cs->si;
+	struct rx_meas_stat *meas = &ms->meas;
 
 	cs->ccch_state = GSM322_CCCH_ST_INIT;
 	if (s && s->si3) {
@@ -256,6 +257,8 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs)
 			gsm_print_rxlev(cs->list[cs->arfcn].rxlev));
 		cs->ccch_mode = CCCH_MODE_NONE;
 	}
+
+	meas->frames = meas->snr = meas->berr = meas->rxlev = 0;
 
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	return l1ctl_tx_fbsb_req(ms, cs->arfcn,
@@ -440,30 +443,6 @@ void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro)
 	LOGP(DCS, LOGL_DEBUG, "Starting CS timer with %d seconds.\n", sec);
 	cs->timer.cb = gsm322_cs_timeout;
 	cs->timer.data = cs;
-	bsc_schedule_timer(&cs->timer, sec, micro);
-}
-
-/* start loss timer */
-void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro)
-{
-	/* update timer */
-	cs->timer.cb = gsm322_cs_loss;
-	cs->timer.data = cs;
-	if (bsc_timer_pending(&cs->timer)) {
-		struct timeval current_time;
-		unsigned long long currentTime;
-
-		gettimeofday(&current_time, NULL);
-		currentTime = current_time.tv_sec * 1000000LL
-				+ current_time.tv_usec;
-		currentTime += sec * 1000000LL + micro;
-		cs->timer.timeout.tv_sec = currentTime / 1000000LL;
-		cs->timer.timeout.tv_usec = currentTime % 1000000LL;
-
-		return;
-	}
-
-	LOGP(DCS, LOGL_DEBUG, "Starting loss CS timer with %d seconds.\n", sec);
 	bsc_schedule_timer(&cs->timer, sec, micro);
 }
 
@@ -2465,6 +2444,10 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			 || cs->state == GSM322_HPLMN_SEARCH)
 				start_cs_timer(cs, ms->support.scan_to, 0);
 					// TODO: timer depends on BCCH config
+
+			/* set downlink signalling failure criterion */
+			ms->meas.ds_fail = ms->meas.dsc = ms->settings.dsc_max;
+			LOGP(DRR, LOGL_INFO, "using DSC of %d\n", ms->meas.dsc);
 		}
 		break;
 	case S_L1CTL_FBSB_ERR:
@@ -2487,6 +2470,11 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			gsm322_cs_loss(cs);
 		else
 			gsm322_cs_timeout(cs);
+		break;
+	case S_L1CTL_LOSS_IND:
+		ms = signal_data;
+		cs = &ms->cellsel;
+		gsm322_cs_loss(cs);
 		break;
 	case S_L1CTL_RESET:
 		ms = signal_data;

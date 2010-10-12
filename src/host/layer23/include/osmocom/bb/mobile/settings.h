@@ -64,6 +64,9 @@ struct gsm_settings {
 	uint8_t			half_v3;
 	uint8_t			ch_cap; /* channel capability */
 	int8_t			min_rxlev_db; /* min DB to access */
+
+	/* radio */
+	uint16_t		dsc_max;
 };
 
 int gsm_settings_init(struct osmocom_ms *ms);

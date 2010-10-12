@@ -916,6 +916,7 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(half_v1, "half-speech-v1");
 	SUP_WRITE(half_v3, "half-speech-v3");
 	vty_out(vty, "  min-rxlev %d%s", set->min_rxlev_db, VTY_NEWLINE);
+	vty_out(vty, "  dsc-max %d%s", set->dsc_max, VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
@@ -1528,6 +1529,20 @@ DEFUN(cfg_ms_sup_min_rxlev, cfg_ms_sup_min_rxlev_cmd, "min-rxlev <-110--47>",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_sup_dsc_max, cfg_ms_sup_dsc_max_cmd, "dsc-max <90-500>",
+	"Set the maximum DSC value. Standard is 90. Increase to make mobile "
+	"more reliable against bad RX signal. This increase the propability "
+	"of missing a paging requests\n"
+	"DSC initial and maximum value (standard is 90)")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->dsc_max = atoi(argv[0]);
+
+	return CMD_SUCCESS;
+}
+
 /* per testsim config */
 DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	"Configure test SIM emulation")
@@ -1867,6 +1882,7 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_half_v3_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_half_v3_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_min_rxlev_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
 	install_node(&testsim_node, config_write_dummy);
 	install_default(TESTSIM_NODE);
 	install_element(TESTSIM_NODE, &ournode_exit_cmd);

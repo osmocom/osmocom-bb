@@ -76,6 +76,7 @@ struct gsm_support {
 	int8_t min_rxlev_db;
 	uint8_t scan_to;
 	uint8_t sync_to;
+	uint16_t dsc_max; /* maximum dl signal failure counter */
 
 	/* codecs */
 	uint8_t full_v1;

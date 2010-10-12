@@ -160,7 +160,51 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	meas->berr += dl->num_biterr;
 	meas->rxlev += dl->rx_level;
 
-	if (dl->num_biterr) {
+	/* counting loss criteria */
+	if (!(dl->link_id & 0x40)) {
+		switch (chan_type) {
+		case RSL_CHAN_PCH_AGCH:
+			if (!meas->ds_fail)
+				break;
+			if (dl->fire_crc >= 2)
+				meas->dsc -= 4;
+			else
+				meas->dsc += 1;
+			if (meas->dsc > meas->ds_fail)
+				meas->dsc = meas->ds_fail;
+			if (meas->dsc < meas->ds_fail)
+				printf("LOSS counter for CCCH %d\n", meas->dsc);
+			if (meas->dsc > 0)
+				break;
+			meas->ds_fail = 0;
+			dispatch_signal(SS_L1CTL, S_L1CTL_LOSS_IND, ms);
+			break;
+		}
+	} else {
+		switch (chan_type) {
+		case RSL_CHAN_Bm_ACCHs:
+		case RSL_CHAN_Lm_ACCHs:
+		case RSL_CHAN_SDCCH4_ACCH:
+		case RSL_CHAN_SDCCH8_ACCH:
+			if (!meas->rl_fail)
+				break;
+			if (dl->fire_crc >= 2)
+				meas->s -= 1;
+			else
+				meas->s += 2;
+			if (meas->s > meas->rl_fail)
+				meas->s = meas->rl_fail;
+			if (meas->s < meas->rl_fail)
+				printf("LOSS counter for ACCH %d\n", meas->s);
+			if (meas->s > 0)
+				break;
+			meas->rl_fail = 0;
+			dispatch_signal(SS_L1CTL, S_L1CTL_LOSS_IND, ms);
+			break;
+		}
+	}
+
+	if (dl->fire_crc >= 2) {
 printf("Dropping frame with %u bit errors\n", dl->num_biterr);
 		LOGP(DL1C, LOGL_NOTICE, "Dropping frame with %u bit errors\n",
 			dl->num_biterr);
@@ -265,8 +309,6 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 	msg = osmo_l1_alloc(L1CTL_FBSB_REQ);
 	if (!msg)
 		return -1;
-
-	memset(&ms->meas, 0, sizeof(ms->meas));
 
 	req = (struct l1ctl_fbsb_req *) msgb_put(msg, sizeof(*req));
 	req->band_arfcn = htons(osmo_make_band_arfcn(ms, arfcn));
@@ -399,8 +441,6 @@ int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	LOGP(DL1C, LOGL_INFO, "Tx Dedic.Mode Est Req (arfcn=%u, "
 		"chan_nr=0x%02x)\n", band_arfcn, chan_nr);
 
-	memset(&ms->meas, 0, sizeof(ms->meas));
-
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
 	ul->link_id = 0;
@@ -429,8 +469,6 @@ int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 
 	LOGP(DL1C, LOGL_INFO, "Tx Dedic.Mode Est Req (maio=%u, hsn=%u, "
 		"chan_nr=0x%02x)\n", maio, hsn, chan_nr);
-
-	memset(&ms->meas, 0, sizeof(ms->meas));
 
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
@@ -521,8 +559,6 @@ int l1ctl_tx_dm_rel_req(struct osmocom_ms *ms)
 		return -1;
 
 	LOGP(DL1C, LOGL_INFO, "Tx Dedic.Mode Rel Req\n");
-
-	memset(&ms->meas, 0, sizeof(ms->meas));
 
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 

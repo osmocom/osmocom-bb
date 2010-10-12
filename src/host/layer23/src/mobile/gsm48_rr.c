@@ -413,6 +413,7 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 
 		/* release dedicated mode, if any */
 		l1ctl_tx_dm_rel_req(rr->ms);
+		rr->ms->meas.rl_fail = 0;
 		rr->dm_est = 0;
 		l1ctl_tx_reset_req(rr->ms, L1CTL_RES_T_FULL);
 		/* free establish message, if any */
@@ -644,7 +645,7 @@ static void timeout_rr_meas(void *arg)
 
 	if (rr->dm_est)
 		gsm48_rr_tx_meas_rep(rr->ms);
-	memset(meas, 0, sizeof(*meas));
+	meas->frames = meas->snr = meas->berr = meas->rxlev = 0;
 	start_rr_t_meas(rr, 1, 0);
 }
 
@@ -2266,6 +2267,7 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_6 *si = msgb_l3(msg) + 1;
 	struct gsm48_sysinfo *s = ms->cellsel.si;
+	struct rx_meas_stat *meas = &ms->meas;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (!s) {
@@ -2303,6 +2305,8 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 		"lac 0x%04x SACCH-timeout %d)\n", gsm_print_mcc(s->mcc),
 		gsm_print_mnc(s->mnc), s->lac, s->sacch_radio_link_timeout);
 
+	meas->rl_fail = meas->s = s->sacch_radio_link_timeout;
+	LOGP(DRR, LOGL_INFO, "using (new) SACCH timeout %d\n", meas->rl_fail);
 	s->si6 = 1;
 
 	return gsm48_new_sysinfo(ms, si->system_information);
@@ -3148,6 +3152,7 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
  	struct gsm48_sysinfo *s = ms->cellsel.si;
  	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t ch_type, ch_subch, ch_ts;
+	uint8_t timeout = 64;
 
 	/* setting (new) timing advance */
 	LOGP(DRR, LOGL_INFO, "setting indicated TA %d (actual TA %d)\n",
@@ -3155,13 +3160,29 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	l1ctl_tx_param_req(ms, cd->ind_ta - set->alter_delay,
 			(set->alter_tx_power) ? set->alter_tx_power_value
 						: cd->ind_tx_power);
+
+	/* reset measurement and link timeout */
+	meas->ds_fail = 0;
+	if (s) {
+		if (s->sacch_radio_link_timeout) {
+			timeout = s->sacch_radio_link_timeout;
+			LOGP(DRR, LOGL_INFO, "using last SACCH timeout %d\n",
+				timeout);
+		} else if (s->bcch_radio_link_timeout) {
+			timeout = s->bcch_radio_link_timeout;
+			LOGP(DRR, LOGL_INFO, "using last BCCH timeout %d\n",
+				timeout);
+		}
+	}
+	meas->rl_fail = meas->s = timeout;
+
 	/* setting initial (invalid) measurement report, resetting SI5* */
 	if (s) {
 		memset(s->si5_msg, 0, sizeof(s->si5_msg));
 		memset(s->si5b_msg, 0, sizeof(s->si5b_msg));
 		memset(s->si5t_msg, 0, sizeof(s->si5t_msg));
-		memset(meas, 0, sizeof(*meas));
 	}
+	meas->frames = meas->snr = meas->berr = meas->rxlev = 0;
 	rr->meas.nc_num = 0;
 	stop_rr_t_meas(rr);
 	start_rr_t_meas(rr, 1, 0);
@@ -4533,6 +4554,7 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_INFO, "suspension coplete, leaving dedicated "
 			"mode\n");
 		l1ctl_tx_dm_rel_req(ms);
+		ms->meas.rl_fail = 0;
 		rr->dm_est = 0;
 		l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
 
@@ -4891,7 +4913,6 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 /* unit data from layer 2 to RR layer */
 static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct tlv_parsed tv;
@@ -4910,21 +4931,6 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	if (cs->ccch_state != GSM322_CCCH_ST_SYNC
 	 && cs->ccch_state != GSM322_CCCH_ST_DATA)
 	 	return -EINVAL;
-
-	/* when camping, start/reset loss timer */
-	if (cs->state == GSM322_C3_CAMPED_NORMALLY
-	 || cs->state == GSM322_C7_CAMPED_ANY_CELL) {
-		struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
-#ifdef TODO
-	set radio link timeout on layer 1
-	it is the number of subsequent BCCH blocks. (about 1/4 seconds)
-#else
-		/* use maximu loss timer, if to value is not available yet */
-		start_loss_timer(cs, ((rr->state == GSM48_RR_ST_DEDICATED)
-			? ((s->sacch_radio_link_timeout) ? : 64)
-			: s->bcch_radio_link_timeout) / 4, 0);
-#endif
-	}
 
 	/* temporary moved here until confirm is fixed */
 	if (cs->ccch_state != GSM322_CCCH_ST_DATA) {
@@ -5062,6 +5068,7 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* deactivate channel */
 	l1ctl_tx_dm_rel_req(ms);
+	ms->meas.rl_fail = 0;
 	rr->dm_est = 0;
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
 
