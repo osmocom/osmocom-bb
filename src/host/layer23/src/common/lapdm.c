@@ -2136,7 +2136,8 @@ static struct l2downstate {
 	 RSL_MT_RES_REQ, rslms_rx_rll_res_req},
 
 	/* create and send SABM command (reconnect) */
-	{SBIT(LAPDm_STATE_MF_EST) |
+	{SBIT(LAPDm_STATE_IDLE) |
+	 SBIT(LAPDm_STATE_MF_EST) |
 	 SBIT(LAPDm_STATE_TIMER_RECOV),
 	 RSL_MT_RECON_REQ, rslms_rx_rll_res_req},
 
