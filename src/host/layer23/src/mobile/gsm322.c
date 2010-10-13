@@ -2506,15 +2506,16 @@ static void gsm322_cs_loss(void *arg)
 
 	LOGP(DCS, LOGL_INFO, "Loss of CCCH.\n");
 
-	/* unset selected cell */
-	gsm322_unselect_cell(cs);
-
 	if (cs->state == GSM322_C3_CAMPED_NORMALLY
 	 || cs->state == GSM322_C7_CAMPED_ANY_CELL) {
 		if (rr->state == GSM48_RR_ST_IDLE) {
 			struct msgb *nmsg;
 
-			LOGP(DCS, LOGL_INFO, "Trigger re-selection.\n");
+			LOGP(DCS, LOGL_INFO, "Loss of CCCH, Trigger "
+				"re-selection.\n");
+
+			/* unset selected cell */
+			gsm322_unselect_cell(cs);
 
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_CELL_RESEL);
 			if (!nmsg)
@@ -2522,7 +2523,11 @@ static void gsm322_cs_loss(void *arg)
 			gsm322_c_event(ms, nmsg);
 			msgb_free(nmsg);
 		} else {
-			LOGP(DCS, LOGL_INFO, "Trigger RR abort.\n");
+			LOGP(DCS, LOGL_INFO, "Loss of SACCH, Trigger RR "
+				"abort.\n");
+
+			/* keep cell info for re-selection */
+
 			gsm48_rr_los(ms);
 			/* be shure that nothing else is done after here
 			 * because the function call above may cause
