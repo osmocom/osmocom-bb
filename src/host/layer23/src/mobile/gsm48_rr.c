@@ -615,7 +615,7 @@ static void timeout_rr_meas(void *arg)
 	char text[256];
 
 	if (!cs->selected) {
-		return;
+		goto restart;
 	} else if (!meas->frames) {
 		sprintf(text, "MON: no cell info");
 	} else {
@@ -645,6 +645,8 @@ static void timeout_rr_meas(void *arg)
 
 	if (rr->dm_est)
 		gsm48_rr_tx_meas_rep(rr->ms);
+
+restart:
 	meas->frames = meas->snr = meas->berr = meas->rxlev = 0;
 	start_rr_t_meas(rr, 1, 0);
 }
