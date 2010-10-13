@@ -685,7 +685,7 @@ static int gsm48_cc_rx_alerting(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	struct gsm_mncc alerting;
 	
-	LOGP(DCC, LOGL_INFO, "sending ALERTING\n");
+	LOGP(DCC, LOGL_INFO, "received ALERTING\n");
 
 	gsm48_stop_cc_timer(trans);
 	/* no T301 in MS call control */
@@ -699,7 +699,6 @@ static int gsm48_cc_rx_alerting(struct gsm_trans *trans, struct msgb *msg)
 		gsm48_decode_facility(&alerting.facility,
 				TLVP_VAL(&tp, GSM48_IE_FACILITY)-1);
 	}
-
 	/* progress */
 	if (TLVP_PRESENT(&tp, GSM48_IE_PROGR_IND)) {
 		alerting.fields |= MNCC_F_PROGRESS;
