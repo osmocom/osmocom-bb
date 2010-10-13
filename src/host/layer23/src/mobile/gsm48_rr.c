@@ -2344,22 +2344,22 @@ static int gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 		 && ms->subscr.mcc == cs->sel_mcc
 		 && ms->subscr.mnc == cs->sel_mnc
 		 && ms->subscr.lac == cs->sel_lac) {
-			LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n",
+			LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
 				ntohl(tmsi));
 
 			return 1;
 		} else
-			LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
+			LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 				ntohl(tmsi));
 		break;
 	case GSM_MI_TYPE_IMSI:
 		gsm48_mi_to_string(imsi, sizeof(imsi), mi + 1, mi[0]);
 		if (!strcmp(imsi, ms->subscr.imsi)) {
-			LOGP(DPAG, LOGL_INFO, "IMSI %s matches\n", imsi);
+			LOGP(DPAG, LOGL_INFO, " IMSI %s matches\n", imsi);
 
 			return 1;
 		} else
-			LOGP(DPAG, LOGL_INFO, "IMSI %s (not for us)\n", imsi);
+			LOGP(DPAG, LOGL_INFO, " IMSI %s (not for us)\n", imsi);
 		break;
 	default:
 		LOGP(DPAG, LOGL_NOTICE, "Paging with unsupported MI type %d.\n",
@@ -2461,20 +2461,20 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mcc == cs->sel_mcc
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
 	} else
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
 	 && ms->subscr.mcc == cs->sel_mcc
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
 	} else
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi2));
 	/* third MI */
 	mi = pa->data;
@@ -2527,40 +2527,40 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mcc == cs->sel_mcc
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi1));
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
 	} else
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
 	 && ms->subscr.mcc == cs->sel_mcc
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi2));
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
 	} else
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi2));
 	/* thrid MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi3)
 	 && ms->subscr.mcc == cs->sel_mcc
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi3));
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi3));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1);
 	} else
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi3));
 	/* fourth MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi4)
 	 && ms->subscr.mcc == cs->sel_mcc
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x matches\n", ntohl(pa->tmsi4));
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi4));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1);
 	} else
-		LOGP(DPAG, LOGL_INFO, "TMSI %08x (not for us)\n",
+		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi4));
 
 	return 0;
