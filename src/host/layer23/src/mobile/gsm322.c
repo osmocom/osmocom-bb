@@ -1116,8 +1116,14 @@ static int gsm322_a_sim_insert(struct osmocom_ms *ms, struct msgb *msg)
 /* SIM is removed */
 static int gsm322_a_sim_removed(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm322_msg *gm = (struct gsm322_msg *) msg->data;
+	int msg_type = gm->msg_type;
 	struct msgb *nmsg;
 
+	if (msg_type == GSM322_EVENT_INVALID_SIM) {
+		vty_notify(ms, NULL);
+		vty_notify(ms, "SIM not valid\n");
+	}
 	/* indicate SIM remove to cell selection process */
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_SIM_REMOVE);
 	if (!nmsg)
