@@ -163,8 +163,11 @@ static void gsm_states_dump(struct osmocom_ms *ms, struct vty *vty)
 	else
 		vty_out(vty, " manual network selection: %s%s", 
 			plmn_m_state_names[ms->plmn.state], VTY_NEWLINE);
-	vty_out(vty, " cell selection: %s%s", 
-		cs_state_names[ms->cellsel.state], VTY_NEWLINE);
+	vty_out(vty, " cell selection: %s",
+		cs_state_names[ms->cellsel.state]);
+	if (ms->rrlayer.state == GSM48_RR_ST_IDLE && ms->cellsel.selected)
+		vty_out(vty, " (ARFCN %d)", ms->cellsel.sel_arfcn);
+	vty_out(vty, "%s", VTY_NEWLINE);
 	vty_out(vty, " radio ressource layer: %s%s", 
 		gsm48_rr_state_names[ms->rrlayer.state], VTY_NEWLINE);
 	vty_out(vty, " mobility management layer: %s", 
