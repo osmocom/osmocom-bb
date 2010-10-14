@@ -6,6 +6,14 @@ BOARDS?=compal_e88 compal_e86 compal_e99 se_j100 gta0x pirelli_dpl10
 # List of all applications (meant to be overridden on command line)
 APPLICATIONS?=hello_world compal_dsp_dump layer1 loader chainload
 
+# Framebuffer support, board specific drivers
+# 	
+
+FB_OBJS=fb/framebuffer.o fb/font.o fb/helvR08.o fb/helvB14.o
+
+FB_e88_OBJS=$(FB_OBJS) fb/fb_bw8.o fb/fb_st7558.o
+FB_e99_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_ssd1783.o
+FB_dummy_OBJS=$(FB_OBJS) fb/fb_dummy.o
 
 # TI Calypso
 
@@ -13,12 +21,12 @@ calypso_COMMON_OBJS=board/common/calypso_uart.o board/common/calypso_pwl.o
 
 # OpenMoko GTA0x
 
-gta0x_OBJS=$(calypso_COMMON_OBJS) board/gta0x/rffe_gta0x_triband.o board/gta0x/init.o board/gta0x/rf_power.o
+gta0x_OBJS=$(calypso_COMMON_OBJS) board/gta0x/rffe_gta0x_triband.o board/gta0x/init.o board/gta0x/rf_power.o $(FB_dummy_OBJS)
 gta0x_ENVIRONMENTS=highram
 
 # Pirelli DP-L10
 
-pirelli_dpl10_OBJS=$(calypso_COMMON_OBJS) board/pirelli_dpl10/rffe_dpl10_triband.o board/pirelli_dpl10/init.o board/pirelli_dpl10/rf_power.o
+pirelli_dpl10_OBJS=$(calypso_COMMON_OBJS) board/pirelli_dpl10/rffe_dpl10_triband.o board/pirelli_dpl10/init.o board/pirelli_dpl10/rf_power.o $(FB_dummy_OBJS)
 pirelli_dpl10_ENVIRONMENTS=highram
 
 # Compal Generic
@@ -34,7 +42,7 @@ highram_OBJS=board/compal/start.ram.o board/compal/exceptions_redirected.o board
 
 # Compal E88
 
-compal_e88_OBJS=$(compal_COMMON_OBJS) board/compal_e88/init.o
+compal_e88_OBJS=$(compal_COMMON_OBJS) board/compal_e88/init.o $(FB_e88_OBJS)
 compal_e88_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS) e88loader e88flash
 
 e88loader_LDS=board/compal_e88/loader.lds
@@ -45,12 +53,12 @@ e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/except
 
 # Compal E86 (has a different RFFE configuration)
 
-compal_e86_OBJS=$(calypso_COMMON_OBJS) board/compal_e86/rffe_dualband_e86.o board/compal/rf_power.o board/compal_e86/init.o
+compal_e86_OBJS=$(calypso_COMMON_OBJS) board/compal_e86/rffe_dualband_e86.o board/compal/rf_power.o board/compal_e86/init.o $(FB_dummy_OBJS)
 compal_e86_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 # Compal E99
 
-compal_e99_OBJS=$(compal_COMMON_OBJS) board/compal_e99/init.o
+compal_e99_OBJS=$(compal_COMMON_OBJS) board/compal_e99/init.o $(FB_e99_OBJS)
 compal_e99_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 e99loader_LDS=board/compal_e99/loader.lds
@@ -59,7 +67,7 @@ e99flash_LDS=board/compal_e99/flash.lds
 
 # Sony Ericsson J100 (made by Compal)
 
-se_j100_OBJS=$(compal_COMMON_OBJS) board/se_j100/init.o
+se_j100_OBJS=$(compal_COMMON_OBJS) board/se_j100/init.o $(FB_dummy_OBJS)
 se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 # Global include path

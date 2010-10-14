@@ -40,6 +40,7 @@
 #include <calypso/misc.h>
 #include <comm/sercomm.h>
 #include <comm/timer.h>
+#include <fb/framebuffer.h>
 
 /* Main Program */
 const char *hr = "======================================================================\n";
@@ -86,6 +87,30 @@ int main(void)
 	/* Dump clock config after PLL set */
 	calypso_clk_dump();
 	puts(hr);
+
+	fb_clear();
+
+	fb_setfg(FB_COLOR_GREEN);
+	fb_setbg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVB14);
+
+	fb_gotoxy(2,20);
+	fb_putstr("Hello World!",framebuffer->width-4);
+
+	fb_setfg(FB_COLOR_RED);
+	fb_setbg(FB_COLOR_BLUE);
+
+	fb_gotoxy(2,25);
+	fb_boxto(framebuffer->width-3,38);
+
+	fb_setfg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVR08);
+	fb_gotoxy(8,33);
+	fb_putstr("osmocom-bb",framebuffer->width-4);
+
+	fb_flush();
+
+
 
 	/* Dump all memory */
 	//dump_mem();
