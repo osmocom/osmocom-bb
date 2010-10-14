@@ -27,6 +27,7 @@
 
 #include <osmocore/utils.h>
 #include <osmocore/gsm48.h>
+#include <osmocore/talloc.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
@@ -35,6 +36,8 @@
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/gps.h>
 #include <osmocom/vty/telnet_interface.h>
+
+void *l23_ctx;
 
 int mncc_call(struct osmocom_ms *ms, char *number);
 int mncc_hangup(struct osmocom_ms *ms);
@@ -81,6 +84,31 @@ static void print_vty(void *priv, const char *fmt, ...)
 		} else
 			vty_out(vty, "%s", buffer);
 	}
+}
+
+int vty_check_number(struct vty *vty, const char *number)
+{
+	int i;
+
+	for (i = 0; i < strlen(number); i++) {
+		/* allow international notation with + */
+		if (i == 0 && number[i] == '+')
+			continue;
+		if (!(number[i] >= '0' && number[i] <= '9')
+		 && number[i] != '*'
+		 && number[i] != '#'
+		 && !(number[i] >= 'a' && number[i] <= 'c')) {
+			vty_out(vty, "Invalid digit '%c' of number!%s",
+				number[i], VTY_NEWLINE);
+			return -EINVAL;
+		}
+	}
+	if (number[0] == '\0' || (number[0] == '+' && number[1] == '\0')) {
+		vty_out(vty, "Given number has no digits!%s", VTY_NEWLINE);
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 int vty_reading = 0;
@@ -633,7 +661,8 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
-	int i;
+	struct gsm_settings_abbrev *abbrev;
+	char *number;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
@@ -646,33 +675,27 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 		return CMD_WARNING;
 	}
 
-	if (!strcmp(argv[1], "emergency"))
-		mncc_call(ms, (char *)argv[1]);
-	else switch (argv[1][0]) {
-	case 'a':
+	number = (char *)argv[1];
+	if (!strcmp(number, "emergency"))
+		mncc_call(ms, number);
+	else if (!strcmp(number, "answer"))
 		mncc_answer(ms);
-		break;
-	case 'h':
-		if (argv[1][1] == 'a')
-			mncc_hangup(ms);
-		else
-			mncc_hold(ms);
-		break;
-	default:
-		for (i = 0; i < strlen(argv[1]); i++) {
-			/* allow international notation with + */
-			if (i == 0 && argv[1][i] == '+')
-				continue;
-			if (!(argv[1][i] >= '0' && argv[1][i] <= '9')
-			 && argv[1][i] != '*'
-			 && argv[1][i] != '#'
-			 && !(argv[1][i] >= 'a' && argv[1][i] <= 'c')) {
-				vty_out(vty, "Invalid digit '%c'%s", argv[1][i],
+	else if (!strcmp(number, "hangup"))
+		mncc_hangup(ms);
+	else if (!strcmp(number, "hold"))
+		mncc_hold(ms);
+	else {
+		llist_for_each_entry(abbrev, &set->abbrev, list) {
+			if (!strcmp(number, abbrev->abbrev)) {
+				number = abbrev->number;
+				vty_out(vty, "Dialing number '%s'%s", number,
 					VTY_NEWLINE);
-				return CMD_WARNING;
+				break;
 			}
 		}
-		mncc_call(ms, (char *)argv[1]);
+		if (vty_check_number(vty, number))
+			return CMD_WARNING;
+		mncc_call(ms, number);
 	}
 
 	return CMD_SUCCESS;
@@ -828,6 +851,7 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_support *sup = &ms->support;
+	struct gsm_settings_abbrev *abbrev;
 
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
 	switch(set->sim_type) {
@@ -893,6 +917,14 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 				VTY_NEWLINE);
 		else
 			vty_out(vty, " no codec half-speed%s", VTY_NEWLINE);
+	}
+	if (llist_empty(&set->abbrev))
+		vty_out(vty, " no abbrev%s", VTY_NEWLINE);
+	else {
+		llist_for_each_entry(abbrev, &set->abbrev, list)
+			vty_out(vty, " abbrev %s %s%s%s%s", abbrev->abbrev,
+				abbrev->number, (abbrev->name[0]) ? " " : "",
+				abbrev->name, VTY_NEWLINE);
 	}
 	vty_out(vty, " support%s", VTY_NEWLINE);
 	SUP_WRITE(sms_ptp, "sms");
@@ -1354,6 +1386,80 @@ DEFUN(cfg_no_codec_half, cfg_ms_no_codec_half_cmd, "no codec half-speed",
 
 	set->half = 0;
 	set->half_prefer = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_abbrev, cfg_ms_abbrev_cmd, "abbrev ABBREVIATION NUMBER [name]",
+	"Store given abbreviation number\n1-3 digits abbreviation\n"
+	"Number to store for the abbreviation "
+	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
+	"Name of the abbreviation")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_settings_abbrev *abbrev;
+	int i;
+
+	llist_for_each_entry(abbrev, &set->abbrev, list) {
+		if (!strcmp(argv[0], abbrev->abbrev)) {
+			vty_out(vty, "Given abbreviation '%s' already stored, "
+				"delete first!%s", argv[0], VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	if (strlen(argv[0]) >= sizeof(abbrev->abbrev)) {
+		vty_out(vty, "Given abbreviation too long%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	for (i = 0; i < strlen(argv[0]); i++) {
+		if (argv[0][i] < '0' || argv[0][i] > '9') {
+			vty_out(vty, "Given abbreviation must have digits "
+				"0..9 only!%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	if (vty_check_number(vty, argv[1]))
+		return CMD_WARNING;
+
+	abbrev = talloc_zero(l23_ctx, struct gsm_settings_abbrev);
+	if (!abbrev) {
+		vty_out(vty, "No Memory!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	llist_add_tail(&abbrev->list, &set->abbrev);
+	strncpy(abbrev->abbrev, argv[0], sizeof(abbrev->abbrev) - 1);
+	strncpy(abbrev->number, argv[1], sizeof(abbrev->number) - 1);
+	if (argc >= 3)
+		strncpy(abbrev->name, argv[2], sizeof(abbrev->name) - 1);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_abbrev, cfg_ms_no_abbrev_cmd, "no abbrev [abbreviation]",
+	NO_STR "Remove given abbreviation number or all numbers\n"
+	"Abbreviation number to remove")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_settings_abbrev *abbrev, *abbrev2;
+	uint8_t deleted = 0;
+
+	llist_for_each_entry_safe(abbrev, abbrev2, &set->abbrev, list) {
+		if (argc < 1 || !strcmp(argv[0], abbrev->abbrev)) {
+			llist_del(&abbrev->list);
+			deleted = 1;
+		}
+	}
+
+	if (argc >= 1 && !deleted) {
+		vty_out(vty, "Given abbreviation '%s' not found!%s",
+			argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	return CMD_SUCCESS;
 }
@@ -1853,6 +1959,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_codec_half_cmd);
 	install_element(MS_NODE, &cfg_ms_codec_half_pref_cmd);
 	install_element(MS_NODE, &cfg_ms_no_codec_half_cmd);
+	install_element(MS_NODE, &cfg_ms_abbrev_cmd);
+	install_element(MS_NODE, &cfg_ms_no_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);

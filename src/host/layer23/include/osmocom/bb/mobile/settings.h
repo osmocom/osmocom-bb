@@ -67,9 +67,20 @@ struct gsm_settings {
 
 	/* radio */
 	uint16_t		dsc_max;
+
+	/* dialing */
+	struct llist_head	abbrev;
+};
+
+struct gsm_settings_abbrev {
+	struct llist_head	list;
+	char			abbrev[4];
+	char			number[32];
+	char			name[32];
 };
 
 int gsm_settings_init(struct osmocom_ms *ms);
+int gsm_settings_exit(struct osmocom_ms *ms);
 char *gsm_check_imei(const char *imei, const char *sv);
 int gsm_random_imei(struct gsm_settings *set);
 

@@ -68,6 +68,23 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	if (sup->half_v1 || sup->half_v3)
 		set->half = 1;
 
+	INIT_LLIST_HEAD(&set->abbrev);
+
+	return 0;
+}
+
+int gsm_settings_exit(struct osmocom_ms *ms)
+{
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_settings_abbrev *abbrev;
+
+	while (!llist_empty(&set->abbrev)) {
+		abbrev = llist_entry(set->abbrev.next,
+			struct gsm_settings_abbrev, list);
+		llist_del(&abbrev->list);
+		talloc_free(abbrev);
+	}
+
 	return 0;
 }
 
