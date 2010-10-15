@@ -105,7 +105,7 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 	/* 4th burst, get frame data */
 	if (dsp_api.db_r->d_burst_d == 3) {
-		uint8_t i, j;
+		uint8_t i;
 		uint16_t num_biterr;
 		uint32_t avg_snr = 0;
 		int32_t avg_dbm8 = 0;
@@ -147,10 +147,7 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 		pu_update_rx_level(rxnb.dl->rx_level);
 
 		/* copy actual data, skipping the information block [0,1,2] */
-		for (j = 0,i = 3; i < 15; i++) {
-			rxnb.di->data[j++] = dsp_api.ndb->a_cd[i] & 0xFF;
-			rxnb.di->data[j++] = (dsp_api.ndb->a_cd[i] >> 8) & 0xFF;
-		}
+		dsp_memcpy_from_api(rxnb.di->data, &dsp_api.ndb->a_cd[3], 23, 0);
 
 		l1_queue_for_l2(rxnb.msg);
 		rxnb.msg = NULL; rxnb.dl = NULL; rxnb.di = NULL;

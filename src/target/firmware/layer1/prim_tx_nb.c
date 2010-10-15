@@ -85,16 +85,12 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 		uint16_t *info_ptr = dsp_api.ndb->a_cu;
 		struct msgb *msg;
 		const uint8_t *data;
-		int i;
-		uint8_t j;
 
 		/* distinguish between DCCH and ACCH */
 		if (mf_task_flags & MF_F_SACCH) {
-			puts("SACCH queue ");
 			msg = msgb_dequeue(&l1s.tx_queue[L1S_CHAN_SACCH]);
 			data = msg ? msg->l3h : pu_get_meas_frame();
 		} else {
-			puts("SDCCH queue ");
 			msg = msgb_dequeue(&l1s.tx_queue[L1S_CHAN_MAIN]);
 			data = msg ? msg->l3h : pu_get_idle_frame();
 		}
@@ -104,15 +100,8 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 		info_ptr[1] = 0;                 // 2nd word: cleared.
 		info_ptr[2] = 0;                 // 3rd word: cleared.
 
-		/* Copy first 22 bytes in the first 11 words after header. */
-		for (i=0, j=(3+0); j<(3+11); j++) {
-			info_ptr[j] = ((uint16_t)(data[i])) | ((uint16_t)(data[i+1]) << 8);
-			printf("%02x %02x ", data[i], data[i+1]);
-			i += 2;
-		}
-		/* Copy last UWORD8 (23rd) in the 12th word after header. */
-		info_ptr[14] = data[22];
-		printf("%02x\n", data[22]);
+		/* Copy the actual data after the header */
+		dsp_memcpy_to_api(&info_ptr[3], data, 23, 0);
 
 		if (msg)
 			msgb_free(msg);
