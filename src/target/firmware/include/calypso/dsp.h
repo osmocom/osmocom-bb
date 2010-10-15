@@ -25,6 +25,8 @@ void dsp_dump_version(void);
 void dsp_dump(void);
 void dsp_checksum_task(void);
 void dsp_api_memset(uint16_t *ptr, int octets);
+void dsp_memcpy_to_api(volatile uint16_t *dsp_buf, const uint8_t *mcu_buf, int n, int be);
+void dsp_memcpy_from_api(uint8_t *mcu_buf, const volatile uint16_t *dsp_buf, int n, int be);
 void dsp_load_afc_dac(uint16_t afc);
 void dsp_load_apc_dac(uint16_t apc);
 void dsp_load_tch_param(struct gsm_time *next_time,

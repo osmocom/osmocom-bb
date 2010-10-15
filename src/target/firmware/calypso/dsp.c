@@ -200,6 +200,63 @@ void dsp_api_memset(uint16_t *ptr, int octets)
 		*ptr++ = 0;
 }
 
+/* memcpy from RAM to DSP API, 16 bits by 16 bits. If odd byte count, last word will
+ * be zero filled */
+void dsp_memcpy_to_api(volatile uint16_t *dsp_buf, const uint8_t *mcu_buf, int n, int be)
+{
+	int odd, i;
+
+	odd = n & 1;
+	n >>= 1;
+
+	if (be) {
+		for (i=0; i<n; i++) {
+			uint16_t w;
+			w  = *(mcu_buf++) << 8;
+			w |= *(mcu_buf++);
+			*(dsp_buf++) = w;
+		}
+		if (odd)
+			*dsp_buf = *mcu_buf << 8;
+	} else {
+		for (i=0; i<n; i++) {
+			uint16_t w;
+			w  = *(mcu_buf++);
+			w |= *(mcu_buf++) << 8;
+			*(dsp_buf++) = w;
+		}
+		if (odd)
+			*dsp_buf = *mcu_buf;
+	}
+}
+
+/* memcpy from DSP API to RAM, accessing API 16 bits word at a time */
+void dsp_memcpy_from_api(uint8_t *mcu_buf, const volatile uint16_t *dsp_buf, int n, int be)
+{
+	int odd, i;
+
+	odd = n & 1;
+	n >>= 1;
+
+	if (be) {
+		for (i=0; i<n; i++) {
+			uint16_t w = *(dsp_buf++);
+			*(mcu_buf++) = w >> 8;
+			*(mcu_buf++) = w;
+		}
+		if (odd)
+			*mcu_buf = *(dsp_buf++) >> 8;
+	} else {
+		for (i=0; i<n; i++) {
+			uint16_t w = *(dsp_buf++);
+			*(mcu_buf++) = w;
+			*(mcu_buf++) = w >> 8;
+		}
+		if (odd)
+			*mcu_buf = *(dsp_buf++);
+	}
+}
+
 static void dsp_audio_init(void)
 {
 	T_NDB_MCU_DSP *ndb = dsp_api.ndb;
