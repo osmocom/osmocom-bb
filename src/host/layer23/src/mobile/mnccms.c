@@ -36,14 +36,36 @@ void *l23_ctx;
 static uint32_t new_callref = 1;
 static LLIST_HEAD(call_list);
 
+void mncc_set_cause(struct gsm_mncc *data, int loc, int val);
+static int dtmf_statemachine(struct gsm_call *call, struct gsm_mncc *mncc);
+static void timeout_dtmf(void *arg);
+
 /*
  * support functions
  */
 
-void mncc_set_cause(struct gsm_mncc *data, int loc, int val);
+/* DTMF timer */
+static void start_dtmf_timer(struct gsm_call *call, uint16_t ms)
+{
+	LOGP(DCC, LOGL_INFO, "starting DTMF timer %d ms\n", ms);
+	call->dtmf_timer.cb = timeout_dtmf;
+	call->dtmf_timer.data = call;
+	bsc_schedule_timer(&call->dtmf_timer, 0, ms * 1000);
+}
 
+static void stop_dtmf_timer(struct gsm_call *call)
+{
+	if (bsc_timer_pending(&call->dtmf_timer)) {
+		LOGP(DCC, LOGL_INFO, "stopping pending DTMF timer\n");
+		bsc_del_timer(&call->dtmf_timer);
+	}
+}
+
+/* free call instance */
 static void free_call(struct gsm_call *call)
 {
+	stop_dtmf_timer(call);
+
 	llist_del(&call->entry);
 	DEBUGP(DMNCC, "(call %x) Call removed.\n", call->callref);
 	talloc_free(call);
@@ -231,6 +253,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		call = talloc_zero(l23_ctx, struct gsm_call);
 		if (!call)
 			return -ENOMEM;
+		call->ms = ms;
 		call->callref = data->callref;
 		llist_add_tail(&call->entry, &call_list);
 	}
@@ -288,7 +311,8 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 			vty_notify(ms, "Congestion\n");
 			break;
 		default:
-			vty_notify(ms, "Call has been disconnected\n");
+			vty_notify(ms, "Call has been disconnected "
+				"(clear cause %d)\n", data->cause.value);
 		}
 		LOGP(DMNCC, LOGL_INFO, "Call has been disconnected "
 			"(cause %d)\n", data->cause.value);
@@ -452,6 +476,11 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		LOGP(DMNCC, LOGL_INFO, "Facility info not displayed, "
 			"unsupported\n");
 		break;
+	case MNCC_START_DTMF_RSP:
+	case MNCC_START_DTMF_REJ:
+	case MNCC_STOP_DTMF_RSP:
+		dtmf_statemachine(call, data);
+		break;
 	default:
 		LOGP(DMNCC, LOGL_INFO, "Message 0x%02x unsupported\n",
 			msg_type);
@@ -479,6 +508,7 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 	call = talloc_zero(l23_ctx, struct gsm_call);
 	if (!call)
 		return -ENOMEM;
+	call->ms = ms;
 	call->callref = new_callref++;
 	call->init = 1;
 	llist_add_tail(&call->entry, &call_list);
@@ -510,6 +540,12 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 			setup.clir.sup = 1;
 		else if (ms->settings.clip)
 			setup.clir.inv = 1;
+
+		/* CC capabilities (optional) */
+		if (ms->settings.cc_dtmf) {
+			setup.fields |= MNCC_F_CCCAP;
+			setup.cccap.dtmf = 1;
+		}
 	}
 
 	return mncc_send(ms, MNCC_SETUP_REQ, &setup);
@@ -644,6 +680,88 @@ int mncc_retrieve(struct osmocom_ms *ms, int number)
 	return mncc_send(ms, MNCC_RETRIEVE_REQ, &retr);
 }
 
+/*
+ * DTMF
+ */
 
+static int dtmf_statemachine(struct gsm_call *call, struct gsm_mncc *mncc)
+{
+	struct osmocom_ms *ms = call->ms;
+	struct gsm_mncc dtmf;
 
+	switch (call->dtmf_state) {
+	case DTMF_ST_SPACE:
+	case DTMF_ST_IDLE:
+		/* end of string */
+		if (!call->dtmf[call->dtmf_index]) {
+			LOGP(DMNCC, LOGL_INFO, "done with DTMF\n");
+			call->dtmf_state = DTMF_ST_IDLE;
+			return -EOF;
+		}
+		memset(&dtmf, 0, sizeof(struct gsm_mncc));
+		dtmf.callref = call->callref;
+		dtmf.keypad = call->dtmf[call->dtmf_index++];
+		call->dtmf_state = DTMF_ST_START;
+		LOGP(DMNCC, LOGL_INFO, "start DTMF (keypad %c)\n",
+			dtmf.keypad);
+		return mncc_send(ms, MNCC_START_DTMF_REQ, &dtmf);
+	case DTMF_ST_START:
+		if (mncc->msg_type != MNCC_START_DTMF_RSP) {
+			LOGP(DMNCC, LOGL_INFO, "DTMF was rejected\n");
+			return -ENOTSUP;
+		}
+		start_dtmf_timer(call, 70);
+		call->dtmf_state = DTMF_ST_MARK;
+		LOGP(DMNCC, LOGL_INFO, "DTMF is on\n");
+		break;
+	case DTMF_ST_MARK:
+		memset(&dtmf, 0, sizeof(struct gsm_mncc));
+		dtmf.callref = call->callref;
+		call->dtmf_state = DTMF_ST_STOP;
+		LOGP(DMNCC, LOGL_INFO, "stop DTMF\n");
+		return mncc_send(ms, MNCC_STOP_DTMF_REQ, &dtmf);
+	case DTMF_ST_STOP:
+		start_dtmf_timer(call, 120);
+		call->dtmf_state = DTMF_ST_SPACE;
+		LOGP(DMNCC, LOGL_INFO, "DTMF is off\n");
+		break;
+	}
+
+	return 0;
+}
+
+static void timeout_dtmf(void *arg)
+{
+	struct gsm_call *call = arg;
+
+	LOGP(DCC, LOGL_INFO, "DTMF timer has fired\n");
+	dtmf_statemachine(call, NULL);
+}
+
+int mncc_dtmf(struct osmocom_ms *ms, char *dtmf)
+{
+	struct gsm_call *call, *found = NULL;
+
+	llist_for_each_entry(call, &call_list, entry) {
+		if (!call->hold) {
+			found = call;
+			break;
+		}
+	}
+	if (!found) {
+		LOGP(DMNCC, LOGL_INFO, "No active call to send DTMF\n");
+		vty_notify(ms, NULL);
+		vty_notify(ms, "No active call\n");
+		return -EINVAL;
+	}
+
+	if (call->dtmf_state != DTMF_ST_IDLE) {
+		LOGP(DMNCC, LOGL_INFO, "sending DTMF already\n");
+		return -EINVAL;
+	}
+
+	call->dtmf_index = 0;
+	strncpy(call->dtmf, dtmf, sizeof(call->dtmf) - 1);
+	return dtmf_statemachine(call, NULL);
+}
 

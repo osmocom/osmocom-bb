@@ -68,6 +68,9 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	if (sup->half_v1 || sup->half_v3)
 		set->half = 1;
 
+	/* software features */
+	set->cc_dtmf = 1;
+
 	INIT_LLIST_HEAD(&set->abbrev);
 
 	return 0;

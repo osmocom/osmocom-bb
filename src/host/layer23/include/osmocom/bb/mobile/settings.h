@@ -43,6 +43,7 @@ struct gsm_settings {
 	uint8_t			no_lupd;
 
 	/* supported by configuration */
+	uint8_t			cc_dtmf;
 	uint8_t			sms_ptp;
 	uint8_t			a5_1;
 	uint8_t			a5_2;

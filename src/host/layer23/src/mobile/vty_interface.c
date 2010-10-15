@@ -44,6 +44,7 @@ int mncc_hangup(struct osmocom_ms *ms);
 int mncc_answer(struct osmocom_ms *ms);
 int mncc_hold(struct osmocom_ms *ms);
 int mncc_retrieve(struct osmocom_ms *ms, int number);
+int mncc_dtmf(struct osmocom_ms *ms, char *dtmf);
 
 extern struct llist_head ms_list;
 extern struct llist_head active_connections;
@@ -712,6 +713,29 @@ DEFUN(call_retr, call_retr_cmd, "call MS_NAME retrieve [number]",
 		return CMD_WARNING;
 
 	mncc_retrieve(ms, (argc > 1) ? atoi(argv[1]) : 0);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS",
+	"Make a call\nName of MS (see \"show ms\")\n"
+	"One or more DTMF digits to transmit")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+
+	if (!set->cc_dtmf) {
+		vty_out(vty, "DTMF not supported, please enable!%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	mncc_dtmf(ms, (char *)argv[1]);
 
 	return CMD_SUCCESS;
 }
@@ -1514,6 +1538,30 @@ DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
 	return CMD_SUCCESS; \
 }
 
+#define SET_EN(cfg, cfg_cmd, item, cmd, desc, restart) \
+DEFUN(cfg, cfg_cmd, cmd, "Enable " desc "support") \
+{ \
+	struct osmocom_ms *ms = vty->index; \
+	struct gsm_settings *set = &ms->settings; \
+	if (restart) \
+		vty_restart(vty); \
+	set->item = 1; \
+	return CMD_SUCCESS; \
+}
+
+#define SET_DI(cfg, cfg_cmd, item, cmd, desc, restart) \
+DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
+{ \
+	struct osmocom_ms *ms = vty->index; \
+	struct gsm_settings *set = &ms->settings; \
+	if (restart) \
+		vty_restart(vty); \
+	set->item = 0; \
+	return CMD_SUCCESS; \
+}
+
+SET_EN(cfg_ms_sup_dtmf, cfg_ms_sup_dtmf_cmd, cc_dtmf, "dtmf", "DTMF", 0);
+SET_DI(cfg_ms_sup_no_dtmf, cfg_ms_sup_no_dtmf_cmd, cc_dtmf, "dtmf", "DTMF", 0);
 SUP_EN(cfg_ms_sup_sms, cfg_ms_sup_sms_cmd, sms_ptp, "sms", "SMS", 0);
 SUP_DI(cfg_ms_sup_no_sms, cfg_ms_sup_no_sms_cmd, sms_ptp, "sms", "SMS", 0);
 SUP_EN(cfg_ms_sup_a5_1, cfg_ms_sup_a5_1_cmd, a5_1, "a5/1", "A5/1", 0);
@@ -1921,6 +1969,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &network_select_cmd);
 	install_element(ENABLE_NODE, &call_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
+	install_element(ENABLE_NODE, &call_dtmf_cmd);
 
 	install_element(CONFIG_NODE, &cfg_gps_device_cmd);
 	install_element(CONFIG_NODE, &cfg_gps_baud_cmd);
@@ -1967,6 +2016,8 @@ int ms_vty_init(void)
 	install_default(SUPPORT_NODE);
 	install_element(SUPPORT_NODE, &ournode_exit_cmd);
 	install_element(SUPPORT_NODE, &ournode_end_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_dtmf_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_dtmf_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_sms_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_sms_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_1_cmd);

@@ -30,16 +30,27 @@
 #include <osmocore/mncc.h>
 
 struct gsm_call {
-	struct llist_head entry;
+	struct llist_head	entry;
 
-	void *ms;
+	struct osmocom_ms	*ms;
 
-	uint32_t callref;
+	uint32_t		callref;
 
-	uint8_t init; /* call has been initiated, no response yet */
-	uint8_t	hold; /* call on hold */
-	uint8_t	ring; /* call is ringing/knocking */
+	uint8_t			init; /* call initiated, no response yet */
+	uint8_t			hold; /* call on hold */
+	uint8_t			ring; /* call ringing/knocking */
+
+	struct timer_list	dtmf_timer;
+	uint8_t			dtmf_state;
+	uint8_t			dtmf_index;
+	char			dtmf[32]; /* dtmf sequence */
 };
+
+#define DTMF_ST_IDLE		0	/* no DTMF active */
+#define DTMF_ST_START		1	/* DTMF started, waiting for resp. */
+#define DTMF_ST_MARK		2	/* wait tone duration */
+#define DTMF_ST_STOP		3	/* DTMF stopped, waiting for resp. */
+#define DTMF_ST_SPACE		4	/* wait space between tones */
 
 #define MNCC_SETUP_REQ		0x0101
 #define MNCC_SETUP_IND		0x0102
