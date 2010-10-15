@@ -1496,6 +1496,7 @@ static int gsm322_am_no_cell_found(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_cs_select(struct osmocom_ms *ms, int any, int plmn_allowed)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_sysinfo *s;
 	int i, found = -1, power = 0;
@@ -1532,7 +1533,8 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int any, int plmn_allowed)
 
 		/* check C1 criteria not fullfilled */
 		// TODO: C1 is also dependant on power class and max power
-		if (rxlev2dbm(cs->list[i].rxlev) < s->rxlev_acc_min_db) {
+		if (rxlev2dbm(cs->list[i].rxlev) < s->rxlev_acc_min_db
+		 && !set->stick) {
 			LOGP(DCS, LOGL_INFO, "Skip frequency %d: C1 criteria "
 				"not met. (rxlev %s < min %d)\n", i,
 				gsm_print_rxlev(cs->list[i].rxlev),
