@@ -451,6 +451,24 @@ static int gsm48_cc_rx_status_enq(struct gsm_trans *trans, struct msgb *msg)
 	return gsm48_cc_tx_status(trans, GSM48_CC_CAUSE_RESP_STATUS_INQ);
 }
 
+static int gsm48_cc_rx_status(struct gsm_trans *trans, struct msgb *msg)
+{
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
+	struct gsm_mncc_cause cause;
+
+	if (payload_len < 1 || payload_len < gh->data[0] + 1) {
+		LOGP(DCC, LOGL_NOTICE, "Short read of status message "
+			"error.\n");
+		return -EINVAL;
+	}
+	gsm48_decode_cause(&cause, gh->data);
+
+	LOGP(DCC, LOGL_INFO, "received STATUS (cause %d)\n", cause.value);
+
+	return 0;
+}
+
 /*
  * process handlers (mobile originating call establish)
  */
@@ -1981,6 +1999,9 @@ static struct datastate {
 
 	{ALL_STATES, /* 8.4 */
 	 GSM48_MT_CC_STATUS_ENQ, gsm48_cc_rx_status_enq},
+
+	{ALL_STATES,
+	 GSM48_MT_CC_STATUS, gsm48_cc_rx_status},
 
 	{ALL_STATES, /* 5.5.7.2 */
 	 GSM48_MT_CC_START_DTMF_ACK, gsm48_cc_rx_start_dtmf_ack},
