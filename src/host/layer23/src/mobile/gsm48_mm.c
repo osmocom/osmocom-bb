@@ -1607,7 +1607,7 @@ static int gsm48_mm_rx_auth_rej(struct osmocom_ms *ms, struct msgb *msg)
 		nmsg = gsm48_rr_msgb_alloc(GSM48_RR_ABORT_REQ);
 		if (!nmsg)
 			return -ENOMEM;
-		nrrh = (struct gsm48_rr_hdr *) msgb_put(nmsg, sizeof(*nrrh));
+		nrrh = (struct gsm48_rr_hdr *) nmsg->data;
 		nrrh->cause = GSM48_RR_CAUSE_NORMAL;
 		gsm48_rr_downmsg(ms, nmsg);
 
@@ -2618,7 +2618,7 @@ static int gsm48_mm_loc_upd_timeout(struct osmocom_ms *ms, struct msgb *msg)
 	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_ABORT_REQ);
 	if (!nmsg)
 		return -ENOMEM;
-	nrrh = (struct gsm48_rr_hdr *) msgb_put(nmsg, sizeof(*nrrh));
+	nrrh = (struct gsm48_rr_hdr *) nmsg->data;
 	nrrh->cause = GSM48_RR_CAUSE_ABNORMAL_TIMER;
 	gsm48_rr_downmsg(ms, nmsg);
 
@@ -3383,7 +3383,7 @@ static int gsm48_mm_abort_rr(struct osmocom_ms *ms, struct msgb *msg)
 	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_ABORT_REQ);
 	if (!nmsg)
 		return -ENOMEM;
-	nrrh = (struct gsm48_rr_hdr *) msgb_put(nmsg, sizeof(*nrrh));
+	nrrh = (struct gsm48_rr_hdr *) nmsg->data;
 	nrrh->cause = GSM48_RR_CAUSE_ABNORMAL_TIMER;
 	gsm48_rr_downmsg(ms, nmsg);
 
