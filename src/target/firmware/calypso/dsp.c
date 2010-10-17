@@ -482,11 +482,30 @@ void dsp_load_tch_param(struct gsm_time *next_time,
 
 	/* d_fn
 	   ----
-	     bit [0..7]  -> b_fn_report = (fn - (tn * 13) + 104) % 104)
-	     bit [8..15] -> b_fn_sid    = (fn % 104) */
 
-	fn = ((next_time->fn - (tn * 13) + 104) % 104) |
-	     ((next_time->fn % 104) << 8);
+	   for TCH_F:
+	     bit [0..7]  -> b_fn_report = (fn - (tn * 13) + 104) % 104)
+	     bit [8..15] -> b_fn_sid    = (fn % 104)
+
+	   for TCH_H:
+	                    tn_report = (tn & ~1) | subchannel
+	     bit [0..7]  -> b_fn_report = (fn - tn_report * 13) + 104) % 104)
+	     bit [8..15] -> b_fn_sid    = (fn % 104)
+
+	   for other: irrelevant
+	 */
+
+	if (chan_type == TCH_F) {
+		fn = ((next_time->fn - (tn * 13) + 104) % 104) |
+		     ((next_time->fn % 104) << 8);
+	} else if (chan_type == TCH_H) {
+		uint8_t tn_report = (tn & ~1) | chan_sub;
+		fn = ((next_time->fn - (tn_report * 13) + 104) % 104) |
+		     ((next_time->fn % 104) << 8);
+	} else {
+		/* irrelevant */
+		fn = 0;
+	}
 
 	/* a_a5fn
 	   ------
