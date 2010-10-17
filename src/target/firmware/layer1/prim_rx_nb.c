@@ -174,8 +174,11 @@ static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 		/* allocate message only at 2nd burst in case of
 		 * consecutive/overlapping normal burst RX tasks */
 		/* FIXME: we actually want all allocation out of L1S! */
-		if (rxnb.msg)
+		if (rxnb.msg) {
+			/* Can happen when resetting ... */
 			printf("nb_cmd(0) and rxnb.msg != NULL\n");
+			msgb_free(rxnb.msg);
+		}
 		/* allocate msgb as needed. FIXME: from L1A ?? */
 		rxnb.msg = l1ctl_msgb_alloc(L1CTL_DATA_IND);
 		if (!rxnb.msg)
