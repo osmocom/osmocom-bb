@@ -155,6 +155,8 @@ uint16_t l1s_snr_fract(uint16_t snr);
 
 void l1s_dsp_abort(void);
 
+void l1s_tx_apc_helper(uint16_t arfcn);
+
 /* schedule a completion */
 void l1s_compl_sched(enum l1_compl c);
 
