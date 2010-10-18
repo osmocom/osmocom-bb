@@ -39,6 +39,7 @@
 #include <layer1/prim.h>
 #include <layer1/tpu_window.h>
 
+#include <abb/twl3025.h>
 #include <rf/trf6151.h>
 
 #include <l1ctl_proto.h>
@@ -103,6 +104,12 @@ static int chan_nr_is_tch(uint8_t chan_nr)
 {
 	return ((chan_nr >> 3) == 0x01 ||		/* TCH/F */
 		((chan_nr >> 3) & 0x1e) == 0x02);	/* TCH/H */
+}
+
+static void audio_set_enabled(int enabled)
+{
+	twl3025_unit_enable(TWL3025_UNIT_VUL, enabled);
+	twl3025_unit_enable(TWL3025_UNIT_VDL, enabled);
 }
 
 struct msgb *l1ctl_msgb_alloc(uint8_t msg_type)
@@ -199,6 +206,9 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 
 		/* Sync */
 		l1s.tch_sync = 1;	/* can be set without locking */
+
+		/* Audio path */
+		audio_set_enabled(est_req->tch_mode != GSM48_CMODE_SIGN);
 	}
 
 	/* figure out which MF tasks to enable */
@@ -266,6 +276,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	l1a_meas_msgb_set(NULL);
 	dsp_load_ciph_param(0, NULL);
 	l1a_tch_mode_set(GSM48_CMODE_SIGN);
+	audio_set_enabled(0);
 }
 
 /* receive a L1CTL_PARAM_REQ from L23 */
@@ -370,6 +381,7 @@ static void l1ctl_rx_reset_req(struct msgb *msg)
 		printf("L1CTL_RESET_REQ: FULL!\n");
 		l1s_reset();
 		l1s_reset_hw();
+		audio_set_enabled(0);
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	case L1CTL_RES_T_SCHED:
@@ -440,6 +452,8 @@ static void l1ctl_rx_tch_mode_req(struct msgb *msg)
 
 	printd("L1CTL_TCH_MODE_REQ (mode=0x%02x)\n", tch_mode);
 	tch_mode = l1a_tch_mode_set(tch_mode);
+
+	audio_set_enabled(tch_mode != GSM48_CMODE_SIGN);
 
 	l1ctl_tx_tch_mode_conf(tch_mode);
 }
