@@ -99,6 +99,12 @@ static int  chan_nr2dchan_type(uint8_t chan_nr)
 	return GSM_DCHAN_UNKNOWN;
 }
 
+static int chan_nr_is_tch(uint8_t chan_nr)
+{
+	return ((chan_nr >> 3) == 0x01 ||		/* TCH/F */
+		((chan_nr >> 3) & 0x1e) == 0x02);	/* TCH/H */
+}
+
 struct msgb *l1ctl_msgb_alloc(uint8_t msg_type)
 {
 	struct msgb *msg;
@@ -186,8 +192,14 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 		l1s.dedicated.h0.arfcn = ntohs(est_req->h0.band_arfcn);
 	}
 
-	/* TCH mode */
-	l1a_tch_mode_set(est_req->tch_mode);
+	/* TCH config */
+	if (chan_nr_is_tch(ul->chan_nr)) {
+		/* Mode */
+		l1a_tch_mode_set(est_req->tch_mode);
+
+		/* Sync */
+		l1s.tch_sync = 1;	/* can be set without locking */
+	}
 
 	/* figure out which MF tasks to enable */
 	l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
