@@ -16,6 +16,7 @@ struct ussd_request {
 int gsm0480_decode_ussd_request(const struct gsm48_hdr *hdr, uint16_t len,
 				struct ussd_request *request);
 
+struct msgb *gsm0480_create_ussd_resp(uint8_t invoke_id, uint8_t trans_id, const char *text);
 struct msgb *gsm0480_create_unstructuredSS_Notify(int alertPattern, const char *text);
 struct msgb *gsm0480_create_notifySS(const char *text);
 

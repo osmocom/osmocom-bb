@@ -409,3 +409,53 @@ static int parse_process_uss_req(const uint8_t *uss_req_data, uint16_t length,
 	}
 	return rc;
 }
+
+struct msgb *gsm0480_create_ussd_resp(uint8_t invoke_id, uint8_t trans_id, const char *text)
+{
+	struct msgb *msg;
+	struct gsm48_hdr *gh;
+	uint8_t *ptr8;
+	int response_len;
+
+	msg = msgb_alloc_headroom(1024, 128, "GSM 04.80");
+	if (!msg)
+		return NULL;
+
+	/* First put the payload text into the message */
+	ptr8 = msgb_put(msg, 0);
+	response_len = gsm_7bit_encode(ptr8, text);
+	msgb_put(msg, response_len);
+
+	/* Then wrap it as an Octet String */
+	msgb_wrap_with_TL(msg, ASN1_OCTET_STRING_TAG);
+
+	/* Pre-pend the DCS octet string */
+	msgb_push_TLV1(msg, ASN1_OCTET_STRING_TAG, 0x0F);
+
+	/* Then wrap these as a Sequence */
+	msgb_wrap_with_TL(msg, GSM_0480_SEQUENCE_TAG);
+
+	/* Pre-pend the operation code */
+	msgb_push_TLV1(msg, GSM0480_OPERATION_CODE,
+			GSM0480_OP_CODE_PROCESS_USS_REQ);
+
+	/* Wrap the operation code and IA5 string as a sequence */
+	msgb_wrap_with_TL(msg, GSM_0480_SEQUENCE_TAG);
+
+	/* Pre-pend the invoke ID */
+	msgb_push_TLV1(msg, GSM0480_COMPIDTAG_INVOKE_ID, invoke_id);
+
+	/* Wrap this up as a Return Result component */
+	msgb_wrap_with_TL(msg, GSM0480_CTYPE_RETURN_RESULT);
+
+	/* Wrap the component in a Facility message */
+	msgb_wrap_with_TL(msg, GSM0480_IE_FACILITY);
+
+	/* And finally pre-pend the L3 header */
+	gh = (struct gsm48_hdr *) msgb_push(msg, sizeof(*gh));
+	gh->proto_discr = GSM48_PDISC_NC_SS | trans_id
+					| (1<<7);  /* TI direction = 1 */
+	gh->msg_type = GSM0480_MTYPE_RELEASE_COMPLETE;
+
+	return msg;
+}
