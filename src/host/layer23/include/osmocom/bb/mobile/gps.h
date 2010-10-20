@@ -20,9 +20,15 @@
  */
 
 struct gps {
-	uint8_t enable;
-	char device[32];
-	uint32_t baud;
+	/* GPS device */
+	uint8_t		enable;
+	char		device[32];
+	uint32_t	baud;
+
+	/* current data */
+	uint8_t		valid; /* we have a fix */
+	time_t		gmt; /* GMT time when position was received */
+	double		latitude, longitude;
 };
 
 extern struct gps gps;
