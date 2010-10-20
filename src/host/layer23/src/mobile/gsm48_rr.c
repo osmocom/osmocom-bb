@@ -1361,7 +1361,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	case RR_EST_CAUSE_OTHER_SDCCH:
 		if (s->neci) {
 			chan_req_mask = 0x0f;
-			chan_req_val = 0x01;
+			chan_req_val = 0x10;
 			LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (OHTER "
 				"with NECI)\n", chan_req_val);
 		} else {
