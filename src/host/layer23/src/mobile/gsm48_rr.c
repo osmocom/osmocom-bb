@@ -1451,7 +1451,7 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (cs->ccch_state != GSM322_CCCH_ST_DATA) {
 		LOGP(DRR, LOGL_INFO, "CCCH channel activation failed.\n");
-
+fail:
 		if (rr->rr_est_req) {
 			struct msgb *msg =
 				gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
@@ -1468,6 +1468,11 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 		new_rr_state(rr, GSM48_RR_ST_IDLE);
 
 		return 0;
+	}
+
+	if (!s || !s->si3 || !s->tx_integer) {
+		LOGP(DRR, LOGL_NOTICE, "Not enough SYSINFO\n");
+		goto fail;
 	}
 
 	if (rr->state == GSM48_RR_ST_IDLE) {
