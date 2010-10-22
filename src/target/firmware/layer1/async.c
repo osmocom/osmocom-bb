@@ -97,17 +97,14 @@ uint8_t l1a_tch_mode_set(uint8_t mode)
 {
 	switch (mode) {
 	case GSM48_CMODE_SPEECH_V1:
-		l1s.tch_mode = TCH_FS_MODE;
-		break;
 	case GSM48_CMODE_SPEECH_EFR:
-		l1s.tch_mode = TCH_EFR_MODE;
+		l1s.tch_mode = mode;
 		break;
 	default:
-		mode = GSM48_CMODE_SIGN;
-		l1s.tch_mode = SIG_ONLY_MODE;
+		l1s.tch_mode = GSM48_CMODE_SIGN;
 	}
 
-	return mode;
+	return l1s.tch_mode;
 }
 
 /* Initialize asynchronous part of Layer1 */
