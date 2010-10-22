@@ -107,7 +107,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->full_v1 = 1;
 	sup->full_v2 = 1;
 	sup->full_v3 = 0;
-	sup->half_v1 = 0;
+	sup->half_v1 = 1;
 	sup->half_v3 = 0;
 }
 
