@@ -1678,13 +1678,13 @@ SUP_EN(cfg_ms_sup_full_v3, cfg_ms_sup_full_v3_cmd, full_v3, "full-speech-v3",
 SUP_DI(cfg_ms_sup_no_full_v3, cfg_ms_sup_no_full_v3_cmd, full_v3,
 	"full-speech-v3", "Full rate speech V3 (AMR)", 0);
 SUP_EN(cfg_ms_sup_half_v1, cfg_ms_sup_half_v1_cmd, half_v1, "half-speech-v1",
-	"Half rate speech V1 (AMR)", 0);
+	"Half rate speech V1", 0);
 SUP_DI(cfg_ms_sup_no_half_v1, cfg_ms_sup_no_half_v1_cmd, half_v1,
 	"half-speech-v1", "Half rate speech V1", 0);
 SUP_EN(cfg_ms_sup_half_v3, cfg_ms_sup_half_v3_cmd, half_v3, "half-speech-v3",
 	"Half rate speech V3 (AMR)", 0);
 SUP_DI(cfg_ms_sup_no_half_v3, cfg_ms_sup_no_half_v3_cmd, half_v3,
-	"half-speech-v3", "Half rate speech V3", 0);
+	"half-speech-v3", "Half rate speech V3 (AMR)", 0);
 
 DEFUN(cfg_ms_sup_min_rxlev, cfg_ms_sup_min_rxlev_cmd, "min-rxlev <-110--47>",
 	"Set the minimum receive level to select a cell\n"
