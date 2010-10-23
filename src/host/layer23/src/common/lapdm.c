@@ -1078,11 +1078,17 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		rsl_rll_error(RLL_CAUSE_SFRM_INC_PARAM, mctx);
 		return -EIO;
 	}
-	/* 5.4.2.2: Inidcate error on supervisory reponse F=1 */
+
 	if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP
 	 && LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
-		LOGP(DLAPDM, LOGL_NOTICE, "S frame response with F=1 error\n");
-		rsl_rll_error(RLL_CAUSE_UNSOL_SPRV_RESP, mctx);
+		if (dl->state != LAPDm_STATE_TIMER_RECOV) {
+			/* 5.4.2.2: Inidcate error on supervisory reponse F=1 */
+			LOGP(DLAPDM, LOGL_NOTICE, "S frame response with F=1 error\n");
+			rsl_rll_error(RLL_CAUSE_UNSOL_SPRV_RESP, mctx);
+		} else {
+			/* 5.5.7: Exit Timer Recovery */
+			lapdm_dl_newstate(dl, LAPDm_STATE_MF_EST);
+		}
 	}
 
 	switch (dl->state) {
