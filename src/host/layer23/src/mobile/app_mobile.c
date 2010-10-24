@@ -31,10 +31,9 @@
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
-#include <osmocom/bb/mobile/sysinfo.h>
 #include <osmocom/bb/mobile/vty.h>
-#include <osmocom/bb/mobile/gps.h>
 #include <osmocom/vty/telnet_interface.h>
 
 #include <osmocore/msgb.h>

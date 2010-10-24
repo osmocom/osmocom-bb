@@ -31,7 +31,7 @@
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
-#include <osmocom/bb/mobile/gps.h>
+#include <osmocom/bb/common/gps.h>
 
 struct gps gps = {
 	0,

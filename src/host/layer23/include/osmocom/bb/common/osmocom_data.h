@@ -14,7 +14,7 @@ struct osmocom_ms;
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
-#include <osmocom/bb/mobile/sysinfo.h>
+#include <osmocom/bb/common/sysinfo.h>
 #include <osmocom/bb/mobile/gsm322.h>
 #include <osmocom/bb/mobile/gsm48_mm.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>

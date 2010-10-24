@@ -31,10 +31,10 @@
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
+#include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/vty.h>
-#include <osmocom/bb/mobile/gps.h>
 #include <osmocom/vty/telnet_interface.h>
 
 void *l23_ctx;

@@ -29,7 +29,7 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/logging.h>
-#include <osmocom/bb/mobile/sysinfo.h>
+#include <osmocom/bb/common/sysinfo.h>
 
 #define MIN(a, b) ((a < b) ? a : b)
 
