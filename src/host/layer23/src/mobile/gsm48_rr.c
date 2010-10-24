@@ -95,20 +95,6 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg);
 
 #define MIN(a, b) ((a < b) ? a : b)
 
-int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
-	uint16_t *mnc, uint16_t *lac)
-{
-	*mcc = ((lai->digits[0] & 0x0f) << 8)
-	     | (lai->digits[0] & 0xf0)
-	     | (lai->digits[1] & 0x0f);
-	*mnc = ((lai->digits[2] & 0x0f) << 8)
-	     | (lai->digits[2] & 0xf0)
-	     | ((lai->digits[1] & 0xf0) >> 4);
-	*lac = ntohs(lai->lac);
-
-	return 0;
-}
-
 int gsm48_encode_lai(struct gsm48_loc_area_id *lai, uint16_t mcc,
 	uint16_t mnc, uint16_t lac)
 {
@@ -116,25 +102,6 @@ int gsm48_encode_lai(struct gsm48_loc_area_id *lai, uint16_t mcc,
 	lai->digits[1] = (mcc & 0x0f) | (mnc << 4);
 	lai->digits[2] = (mnc >> 8) | (mnc & 0xf0);
 	lai->lac = htons(lac);
-
-	return 0;
-}
-
-static int gsm48_decode_chan_h0(struct gsm48_chan_desc *cd, uint8_t *tsc, 
-	uint16_t *arfcn)
-{
-	*tsc = cd->h0.tsc;
-	*arfcn = cd->h0.arfcn_low | (cd->h0.arfcn_high << 8);
-
-	return 0;
-}
-
-static int gsm48_decode_chan_h1(struct gsm48_chan_desc *cd, uint8_t *tsc,
-	uint8_t *maio, uint8_t *hsn)
-{
-	*tsc = cd->h1.tsc;
-	*maio = cd->h1.maio_low | (cd->h1.maio_high << 2);
-	*hsn = cd->h1.hsn;
 
 	return 0;
 }
@@ -1594,218 +1561,6 @@ fail:
  * system information
  */
 
-/* decode "Cell Channel Description" (10.5.2.1b) and other frequency lists */
-static int decode_freq_list(struct gsm_settings *set,
-	struct gsm_sysinfo_freq *f, uint8_t *cd, uint8_t len, uint8_t mask,
-	uint8_t frqt)
-{
-	/* only Bit map 0 format for P-GSM */
-	if ((cd[0] & 0xc0 & mask) != 0x00 &&
-	    (set->p_gsm && !set->e_gsm && !set->r_gsm && !set->dcs))
-	 	return 0;
-
-	return gsm48_decode_freq_list(f, cd, len, mask, frqt);
-}
-
-/* decode "Cell Selection Parameters" (10.5.2.4) */
-static int gsm48_decode_cell_sel_param(struct gsm48_sysinfo *s,
-	struct gsm48_cell_sel_par *cs)
-{
-#ifdef TODO
-	convert ms_txpwr_max_ccch dependant on the current frequenc and support
-	to the right powe level
-#endif
-	s->ms_txpwr_max_cch = cs->ms_txpwr_max_ccch;
-	s->cell_resel_hyst_db = cs->cell_resel_hyst * 2;
-	s->rxlev_acc_min_db = cs->rxlev_acc_min - 110;
-	s->neci = cs->neci;
-	s->acs = cs->acs;
-
-	return 0;
-}
-
-/* decode "Cell Options (BCCH)" (10.5.2.3) */
-static int gsm48_decode_cellopt_bcch(struct gsm48_sysinfo *s,
-	struct gsm48_cell_options *co)
-{
-	s->bcch_radio_link_timeout = (co->radio_link_timeout + 1) * 4;
-	s->bcch_dtx = co->dtx;
-	s->bcch_pwrc = co->pwrc;
-
-	return 0;
-}
-
-/* decode "Cell Options (SACCH)" (10.5.2.3a) */
-static int gsm48_decode_cellopt_sacch(struct gsm48_sysinfo *s,
-	struct gsm48_cell_options *co)
-{
-	s->sacch_radio_link_timeout = (co->radio_link_timeout + 1) * 4;
-	s->sacch_dtx = co->dtx;
-	s->sacch_pwrc = co->pwrc;
-
-	return 0;
-}
-
-/* decode "Control Channel Description" (10.5.2.11) */
-static int gsm48_decode_ccd(struct gsm48_sysinfo *s,
-	struct gsm48_control_channel_descr *cc)
-{
-	s->ccch_conf = cc->ccch_conf;
-	s->bs_ag_blks_res = cc->bs_ag_blks_res;
-	s->att_allowed = cc->att;
-	s->pag_mf_periods = cc->bs_pa_mfrms + 2;
-	s->t3212 = cc->t3212 * 360; /* convert deci-hours to seconds */
-
-	return 0;
-}
-
-/* decode "Mobile Allocation" (10.5.2.21) */
-static int gsm48_decode_mobile_alloc(struct gsm_sysinfo_freq *freq,
-	uint8_t *ma, uint8_t len, uint16_t *hopping, uint8_t *hopp_len, int si4)
-{
-	int i, j = 0;
-	uint16_t f[len << 3];
-
-	/* not more than 64 hopping indexes allowed in IE */
-	if (len > 8)
-		return -EINVAL;
-
-	/* tabula rasa */
-	*hopp_len = 0;
-	if (si4) {
-		for (i = 0; i < 1024; i++)
-			freq[i].mask &= ~FREQ_TYPE_HOPP;
-	}
-
-	/* generating list of all frequencies (1..1023,0) */
-	for (i = 1; i <= 1024; i++) {
-		if ((freq[i & 1023].mask & FREQ_TYPE_SERV)) {
-			LOGP(DRR, LOGL_INFO, "Serving cell ARFCN #%d: %d\n",
-				j, i & 1023);
-			f[j++] = i & 1023;
-			if (j == (len << 3))
-				break;
-		}
-	}
-
-	/* fill hopping table with frequency index given by IE
-	 * and set hopping type bits
-	 */
-	for (i = 0; i < (len << 3); i++) {
-		/* if bit is set, this frequency index is used for hopping */
-		if ((ma[len - 1 - (i >> 3)] & (1 << (i & 7)))) {
-			LOGP(DRR, LOGL_INFO, "Hopping ARFCN: %d (bit %d)\n",
-				i, f[i]);
-			/* index higher than entries in list ? */
-			if (i >= j) {
-				LOGP(DRR, LOGL_NOTICE, "Mobile Allocation "
-					"hopping index %d exceeds maximum "
-					"number of cell frequencies. (%d)\n",
-					i + 1, j);
-				break;
-			}
-			hopping[(*hopp_len)++] = f[i];
-			if (si4)
-				freq[f[i]].mask |= FREQ_TYPE_HOPP;
-		}
-	}
-
-	return 0;
-}
-
-/* Rach Control decode tables */
-static uint8_t gsm48_max_retrans[4] = {
-	1, 2, 4, 7
-};
-static uint8_t gsm48_tx_integer[16] = {
-	3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 20, 25, 32, 50
-};
-
-/* decode "RACH Control Parameter" (10.5.2.29) */
-static int gsm48_decode_rach_ctl_param(struct gsm48_sysinfo *s,
-	struct gsm48_rach_control *rc)
-{
-	s->reest_denied = rc->re;
-	s->cell_barr = rc->cell_bar;
-	s->tx_integer = gsm48_tx_integer[rc->tx_integer];
-	s->max_retrans = gsm48_max_retrans[rc->max_trans];
-	s->class_barr = (rc->t2 << 8) | rc->t3;
-
-	return 0;
-}
-static int gsm48_decode_rach_ctl_neigh(struct gsm48_sysinfo *s,
-	struct gsm48_rach_control *rc)
-{
-	s->nb_reest_denied = rc->re;
-	s->nb_cell_barr = rc->cell_bar;
-	s->nb_tx_integer = gsm48_tx_integer[rc->tx_integer];
-	s->nb_max_retrans = gsm48_max_retrans[rc->max_trans];
-	s->nb_class_barr = (rc->t2 << 8) | rc->t3;
-
-	return 0;
-}
-
-/* decode "SI 1 Rest Octets" (10.5.2.32) */
-static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s, uint8_t *si,
-	uint8_t len)
-{
-	return 0;
-}
-
-/* decode "SI 3 Rest Octets" (10.5.2.34) */
-static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si,
-	uint8_t len)
-{
-	struct bitvec bv;
-
-	memset(&bv, 0, sizeof(bv));
-	bv.data_len = len;
-	bv.data = si;
-
-	/* Optional Selection Parameters */
-	if (bitvec_get_bit_high(&bv) == H) {
-		s->sp = 1;
-		s->sp_cbq = bitvec_get_uint(&bv, 1);
-		s->sp_cro = bitvec_get_uint(&bv, 6);
-		s->sp_to = bitvec_get_uint(&bv, 3);
-		s->sp_pt = bitvec_get_uint(&bv, 5);
-	}
-	/* Optional Power Offset */
-	if (bitvec_get_bit_high(&bv) == H) {
-		s->po = 1;
-		s->po_value = bitvec_get_uint(&bv, 3);
-	}
-	/* System Onformation 2ter Indicator */
-	if (bitvec_get_bit_high(&bv) == H)
-		s->si2ter_ind = 1;
-	/* Early Classark Sending Control */
-	if (bitvec_get_bit_high(&bv) == H)
-		s->ecsm = 1;
-	/* Scheduling if and where */
-	if (bitvec_get_bit_high(&bv) == H) {
-		s->sched = 1;
-		s->sched_where = bitvec_get_uint(&bv, 3);
-	}
-	/* GPRS Indicator */
-	s->gi_ra_colour = bitvec_get_uint(&bv, 3);
-	s->gi_si13_pos = bitvec_get_uint(&bv, 1);
-	return 0;
-}
-
-/* decode "SI 4 Rest Octets" (10.5.2.35) */
-static int gsm48_decode_si4_rest(struct gsm48_sysinfo *s, uint8_t *si,
-	uint8_t len)
-{
-	return 0;
-}
-
-/* decode "SI 6 Rest Octets" (10.5.2.35a) */
-static int gsm48_decode_si6_rest(struct gsm48_sysinfo *s, uint8_t *si,
-	uint8_t len)
-{
-	return 0;
-}
-
 /* send sysinfo event to other layers */
 static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 {
@@ -1819,10 +1574,7 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 	  || type == GSM48_MT_RR_SYSINFO_5bis
 	  || type == GSM48_MT_RR_SYSINFO_5ter)
 	 && s->si5
-	 && (!s->nb_ext_ind_si5
-	  || (s->si5bis && s->nb_ext_ind_si5 && !s->nb_ext_ind_si5bis)
-	  || (s->si5bis && s->si5ter && s->nb_ext_ind_si5
-		&& s->nb_ext_ind_si5bis))) {
+	 && (!s->nb_ext_ind_si5 || s->si5bis)) {
 		struct gsm48_rr_meas *rrmeas = &ms->rrlayer.meas;
 		int n = 0, i;
 
@@ -1884,21 +1636,10 @@ static int gsm48_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (!memcmp(si, s->si1_msg, MIN(msgb_l3len(msg), sizeof(s->si1_msg))))
 		return 0;
-	memcpy(s->si1_msg, si, MIN(msgb_l3len(msg), sizeof(s->si1_msg)));
+
+	gsm48_decode_sysinfo1(s, si, msgb_l3len(msg));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 1\n");
-
-	/* Cell Channel Description */
-	decode_freq_list(&ms->settings, s->freq,
-		si->cell_channel_description,
-		sizeof(si->cell_channel_description), 0xce, FREQ_TYPE_SERV);
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_param(s, &si->rach_control);
-	/* SI 1 Rest Octets */
-	if (payload_len)
-		gsm48_decode_si1_rest(s, si->rest_octets, payload_len);
-
-	s->si1 = 1;
 
 	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
@@ -1924,21 +1665,10 @@ static int gsm48_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (!memcmp(si, s->si2_msg, MIN(msgb_l3len(msg), sizeof(s->si2_msg))))
 		return 0;
-	memcpy(s->si2_msg, si, MIN(msgb_l3len(msg), sizeof(s->si2_msg)));
+
+	gsm48_decode_sysinfo2(s, si, msgb_l3len(msg));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 2\n");
-
-	/* Neighbor Cell Description */
-	s->nb_ext_ind_si2 = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->nb_ba_ind_si2 = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->settings, s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2);
-	/* NCC Permitted */
-	s->nb_ncc_permitted_si2 = si->ncc_permitted;
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_neigh(s, &si->rach_control);
-
-	s->si2 = 1;
 
 	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
@@ -1962,23 +1692,12 @@ static int gsm48_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si2b_msg, MIN(msgb_l3len(msg),
-			sizeof(s->si2b_msg))))
+	if (!memcmp(si, s->si2b_msg, MIN(msgb_l3len(msg), sizeof(s->si2b_msg))))
 		return 0;
-	memcpy(s->si2b_msg, si, MIN(msgb_l3len(msg), sizeof(s->si2b_msg)));
+
+	gsm48_decode_sysinfo2bis(s, si, msgb_l3len(msg));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 2bis\n");
-
-	/* Neighbor Cell Description */
-	s->nb_ext_ind_si2bis = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->nb_ba_ind_si2bis = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->settings, s->freq,
-		si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2bis);
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_neigh(s, &si->rach_control);
-
-	s->si2bis = 1;
 
 	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
@@ -2002,22 +1721,12 @@ static int gsm48_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si2t_msg, MIN(msgb_l3len(msg),
-			sizeof(s->si2t_msg))))
+	if (!memcmp(si, s->si2t_msg, MIN(msgb_l3len(msg), sizeof(s->si2t_msg))))
 		return 0;
-	memcpy(s->si2t_msg, si, MIN(msgb_l3len(msg), sizeof(s->si2t_msg)));
+
+	gsm48_decode_sysinfo2ter(s, si, msgb_l3len(msg));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 2ter\n");
-
-	/* Neighbor Cell Description 2 */
-	s->nb_multi_rep_si2ter = (si->ext_bcch_frequency_list[0] >> 6) & 3;
-	s->nb_ba_ind_si2ter = (si->ext_bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->settings, s->freq,
-		si->ext_bcch_frequency_list,
-		sizeof(si->ext_bcch_frequency_list), 0x8e,
-			FREQ_TYPE_NCELL_2ter);
-
-	s->si2ter = 1;
 
 	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
@@ -2044,29 +1753,8 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (!memcmp(si, s->si3_msg, MIN(msgb_l3len(msg), sizeof(s->si3_msg))))
 		return 0;
-	memcpy(s->si3_msg, si, MIN(msgb_l3len(msg), sizeof(s->si3_msg)));
 
-	/* Cell Identity */
-	s->cell_id = ntohs(si->cell_identity);
-	/* LAI */
-	gsm48_decode_lai(&si->lai, &s->mcc, &s->mnc, &s->lac);
-	/* Control Channel Description */
-	gsm48_decode_ccd(s, &si->control_channel_desc);
-	/* Cell Options (BCCH) */
-	gsm48_decode_cellopt_bcch(s, &si->cell_options);
-	/* Cell Selection Parameters */
-	gsm48_decode_cell_sel_param(s, &si->cell_sel_par);
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_param(s, &si->rach_control);
-	/* SI 3 Rest Octets */
-	if (payload_len >= 4)
-		gsm48_decode_si3_rest(s, si->rest_octets, payload_len);
-
-	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 3 (mcc %s mnc %s "
-		"lac 0x%04x)\n", gsm_print_mcc(s->mcc),
-		gsm_print_mnc(s->mnc), s->lac);
-
-	s->si3 = 1;
+	gsm48_decode_sysinfo3(s, si, msgb_l3len(msg));
 
 	if (cs->ccch_mode == CCCH_MODE_NONE) {
 		cs->ccch_mode = (s->ccch_conf == 1) ? CCCH_MODE_COMBINED :
@@ -2086,8 +1774,6 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_system_information_type_4 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
-	uint8_t *data = si->data;
-	struct gsm48_chan_desc *cd;
 
 	if (!s) {
 		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 4 "
@@ -2096,61 +1782,19 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	if (payload_len < 0) {
-		short_read:
 		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 4 "
 			"message.\n");
 		return -EINVAL;
 	}
 
-	if (!s->si1) {
-		LOGP(DRR, LOGL_NOTICE, "Ignoring SYSTEM INFORMATION 4 "
-			"until SI 1 is received.\n");
-		return -EBUSY;
-	}
-
 	if (!memcmp(si, s->si4_msg, MIN(msgb_l3len(msg), sizeof(s->si4_msg))))
 		return 0;
-	memcpy(s->si4_msg, si, MIN(msgb_l3len(msg), sizeof(s->si4_msg)));
 
-	/* LAI */
-	gsm48_decode_lai(&si->lai, &s->mcc, &s->mnc, &s->lac);
-	/* Cell Selection Parameters */
-	gsm48_decode_cell_sel_param(s, &si->cell_sel_par);
-	/* RACH Control Parameter */
-	gsm48_decode_rach_ctl_param(s, &si->rach_control);
-	/* CBCH Channel Description */
-	if (payload_len >= 1 && data[0] == GSM48_IE_CBCH_CHAN_DESC) {
-		if (payload_len < 4)
-			goto short_read;
-		cd = (struct gsm48_chan_desc *) (data + 1);
-		if (cd->h0.h) {
-			s->h = 1;
-			gsm48_decode_chan_h1(cd, &s->tsc, &s->maio, &s->hsn);
-		} else {
-			s->h = 0;
-			gsm48_decode_chan_h0(cd, &s->tsc, &s->arfcn);
-		}
-		payload_len -= 4;
-		data += 4;
-	}
-	/* CBCH Mobile Allocation */
-	if (payload_len >= 1 && data[0] == GSM48_IE_CBCH_MOB_AL) {
-		if (payload_len < 1 || payload_len < 2 + data[1])
-			goto short_read;
-		gsm48_decode_mobile_alloc(s->freq, data + 2, si->data[1],
-			s->hopping, &s->hopp_len, 1);
-		payload_len -= 2 + data[1];
-		data += 2 + data[1];
-	}
-	/* SI 4 Rest Octets */
-	if (payload_len > 0)
-		gsm48_decode_si4_rest(s, data, payload_len);
+	gsm48_decode_sysinfo4(s, si, msgb_l3len(msg));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 4 (mcc %s mnc %s "
 		"lac 0x%04x)\n", gsm_print_mcc(s->mcc),
 		gsm_print_mnc(s->mnc), s->lac);
-
-	s->si4 = 1;
 
 	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
@@ -2177,17 +1821,10 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (!memcmp(si, s->si5_msg, MIN(msgb_l3len(msg), sizeof(s->si5_msg))))
 		return 0;
-	memcpy(s->si5_msg, si, MIN(msgb_l3len(msg), sizeof(s->si5_msg)));
+
+	gsm48_decode_sysinfo5(s, si, msgb_l3len(msg));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 5\n");
-
-	/* Neighbor Cell Description */
-	s->nb_ext_ind_si5 = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->nb_ba_ind_si5 = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->settings, s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5);
-
-	s->si5 = 1;
 
 	return gsm48_new_sysinfo(ms, si->system_information);
 }
@@ -2212,20 +1849,13 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 5bis\n");
-
 	if (!memcmp(si, s->si5b_msg, MIN(msgb_l3len(msg),
 			sizeof(s->si5b_msg))))
 		return 0;
-	memcpy(s->si5b_msg, si, MIN(msgb_l3len(msg), sizeof(s->si5b_msg)));
 
-	/* Neighbor Cell Description */
-	s->nb_ext_ind_si5bis = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->nb_ba_ind_si5bis = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->settings, s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5bis);
+	gsm48_decode_sysinfo5bis(s, si, msgb_l3len(msg));
 
-	s->si5bis = 1;
+	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 5bis\n");
 
 	return gsm48_new_sysinfo(ms, si->system_information);
 }
@@ -2250,20 +1880,13 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 5ter\n");
-
 	if (!memcmp(si, s->si5t_msg, MIN(msgb_l3len(msg),
 			sizeof(s->si5t_msg))))
 		return 0;
-	memcpy(s->si5t_msg, si, MIN(msgb_l3len(msg), sizeof(s->si5t_msg)));
 
-	/* Neighbor Cell Description */
-	s->nb_multi_rep_si5ter = (si->bcch_frequency_list[0] >> 6) & 3;
-	s->nb_ba_ind_si5ter = (si->bcch_frequency_list[0] >> 5) & 1;
-	decode_freq_list(&ms->settings, s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0x8e, FREQ_TYPE_REP_5ter);
+	gsm48_decode_sysinfo5ter(s, si, msgb_l3len(msg));
 
-	s->si5ter = 1;
+	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 5ter\n");
 
 	return gsm48_new_sysinfo(ms, si->system_information);
 }
@@ -2291,22 +1914,8 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (!memcmp(si, s->si6_msg, MIN(msgb_l3len(msg), sizeof(s->si6_msg))))
 		return 0;
-	memcpy(s->si6_msg, si, MIN(msgb_l3len(msg), sizeof(s->si6_msg)));
 
-	/* Cell Identity */
-	if (s->si6 && s->cell_id != ntohs(si->cell_identity))
-		LOGP(DRR, LOGL_INFO, "Cell ID on SI 6 differs from previous "
-			"read.\n");
-	s->cell_id = ntohs(si->cell_identity);
-	/* LAI */
-	gsm48_decode_lai(&si->lai, &s->mcc, &s->mnc, &s->lac);
-	/* Cell Options (SACCH) */
-	gsm48_decode_cellopt_sacch(s, &si->cell_options);
-	/* NCC Permitted */
-	s->nb_ncc_permitted_si6 = si->ncc_permitted;
-	/* SI 6 Rest Octets */
-	if (payload_len >= 4)
-		gsm48_decode_si6_rest(s, si->rest_octets, payload_len);
+	gsm48_decode_sysinfo6(s, si, msgb_l3len(msg));
 
 	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 6 (mcc %s mnc %s "
 		"lac 0x%04x SACCH-timeout %d)\n", gsm_print_mcc(s->mcc),
@@ -2314,7 +1923,6 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 
 	meas->rl_fail = meas->s = s->sacch_radio_link_timeout;
 	LOGP(DRR, LOGL_INFO, "using (new) SACCH timeout %d\n", meas->rl_fail);
-	s->si6 = 1;
 
 	return gsm48_new_sysinfo(ms, si->system_information);
 }
