@@ -12,7 +12,7 @@ OSMOCORE_CONFIGURE_ENV= LIBOSMOCORE_LIBS=$(TOPDIR)/shared/libosmocore/build-host
 	 	    	LIBOSMOCORE_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
 	 	    	LIBOSMOVTY_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
 
-all: libosmocore-host libosmocore-target layer23 osmocon firmware
+all: libosmocore-host libosmocore-target layer23 osmocon gsmmap firmware
 
 libosmocore-host: shared/libosmocore/build-host/src/.libs/libosmocore.la
 
@@ -55,6 +55,19 @@ host/osmocon/Makefile: host/osmocon/configure
 
 host/osmocon/osmocon: host/osmocon/Makefile libosmocore-host
 	make -C host/osmocon
+
+
+.PHONY: gsmmap
+gsmmap: host/gsmmap/gsmmap
+
+host/gsmmap/configure: host/gsmmap/configure.ac
+	cd host/gsmmap && autoreconf -i
+
+host/gsmmap/Makefile: host/gsmmap/configure
+	cd host/gsmmap && $(OSMOCORE_CONFIGURE_ENV) ./configure
+
+host/gsmmap/gsmmap: host/gsmmap/Makefile libosmocore-host
+	make -C host/gsmmap
 
 
 .PHONY: layer23
