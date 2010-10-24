@@ -1,97 +1,21 @@
 Location updating procedure:
 
-When SIM is "NOT UPDATED", there is no valid LAI in SIM. LOCATION UPDATING
-REQUEST message requires LAI. How is an IMSI attach possible, if no LAI
-exists?
-We have three conditions:
-- LAI in SIM is valid
-- LAI in SIM exists (last stored) but marked invalid.
-- No LAI in SIM (brand new one)
-See Table 10.5.3 TS 04.08 and try to understand the riddle...
-
-
 OpenBSC:
 If tx_setup fails during process, the msg must be freed to avoid memory leak.
-
 
 OpenBSC:
 Must use *_LOC_PRN_S_LU on protocol side.
 Or it uses *_LOC_PUN_S_LU to hide private network type (maybe some cfg option)
 
+OpenBSC:
+Wrong channel is assigned when mobile supports TCH only.
 
 LCR:
 Also LCR must use correct location.
 For MS support, it must use *_LOC_USER
 
-
-Measurements:
-How do we send MEASUREMENT RESULTS to RSL? (maybe RSL_MT_MEAS_RES)
-what triggers the sending? Or do we just send it from time to time to layer 1
-where it is stored and sent when the time is right? (Then we might get
-something like RSL_MT_MEAS_CNF, so we can send the next one, if we have new
-measurements available, otherwhise the L1 will use the old measurement results
-and resends them without confirming it.)
-
-
-RACH:
-I need some RACH primitives like:
-- RACH request (tx_ph_rach_req already exists) including value and offset of
-  RACH slot from now.
-- RACH confirm, the RACK has been sent (with timeslot where is was sent)
-- RACH cancel request:
-  Since RACH request must be queued in layer 1 until it the right slot is
-  reached, I need to tell L1 to cancel it. Whenever I receive a confirm, I
-  schedule the next one until the maximum number has been transmitted or until
-  an IMMEDIATE ASSIGNMENT is received on CCCH.
-Any better idea? Read GSM 04.08 clause 3.3.1.1.2 and 3.3.1.1.3 for more info.
-
-
-RACH request on RSL:
-Does it make sense to put RACH request to the set of RSLms primitives?
-(i.e. RSL_MT_CHAN_REQ, not RQD!, RSL_MT_CHAN_CNF, RSL_MT_CHAN_CAN)
-What do you say?
-
-
-I need to change storage of system informations when searching other cells.
-I prefer two modes:
-- collecting all SI on serving cell, collecting only relevant data of other cell
-- collecting all SI on serving cell and other cells, storing them for each
-  frequency (netmonitor)
-
-How do I (radio ressource) know about the channel layout on BCCH? This info is
-requred to select correct delays and timings.
--> i think i got it from system informations^
-
-
-How do I return after L1CTL_DM_EST_REQ back to idle mode?
-Using l1ctl_tx_ccch_req?
-
-
 mncc.h of openbsc / layer23:
 What about putting all (except call structure) to osmocore?
-
-
-bsic???????
-
-
-How do I stop scanning frequencies?
-The scanning process may currently restart scanning, when process is running.
-
-
-It is absolutely importaint for messages not beeing lost between layers.
-What about the serial link between mobile and PC?
--> There must be a security layer!
-
-One solution: Store all radio action (DM / CCCH / power scan) and start timer.
-Send request again, if timer expires. 
--> Also send it again, if L1 resets (restart of phone).
-We MUST at least have CRCxx on serial interface.
-
-
-power measurements sometimes does not return all measurements. it stops,
-especially if a ccch was requested before. this is not good. power measurement
-must stop all other layer 1 processes!
-
 
 
 
