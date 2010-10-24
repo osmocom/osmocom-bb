@@ -1080,15 +1080,11 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 	}
 
 	if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP
-	 && LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
-		if (dl->state != LAPDm_STATE_TIMER_RECOV) {
-			/* 5.4.2.2: Inidcate error on supervisory reponse F=1 */
-			LOGP(DLAPDM, LOGL_NOTICE, "S frame response with F=1 error\n");
-			rsl_rll_error(RLL_CAUSE_UNSOL_SPRV_RESP, mctx);
-		} else {
-			/* 5.5.7: Exit Timer Recovery */
-			lapdm_dl_newstate(dl, LAPDm_STATE_MF_EST);
-		}
+	 && LAPDm_CTRL_PF_BIT(mctx->ctrl)
+	 && dl->state != LAPDm_STATE_TIMER_RECOV) {
+		/* 5.4.2.2: Inidcate error on supervisory reponse F=1 */
+		LOGP(DLAPDM, LOGL_NOTICE, "S frame response with F=1 error\n");
+		rsl_rll_error(RLL_CAUSE_UNSOL_SPRV_RESP, mctx);
 	}
 
 	switch (dl->state) {
@@ -1164,7 +1160,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 				LOGP(DLAPDM, LOGL_INFO, "RNR poll response "
 					"and we in timer recovery state, so "
 					"we leave that state\n");
-				/* Clear timer recovery condition */
+				/* 5.5.7 Clear timer recovery condition */
 				lapdm_dl_newstate(dl, LAPDm_STATE_MF_EST);
 				/* V(S) to the N(R) in the RNR frame */
 				dl->V_send = LAPDm_CTRL_Nr(mctx->ctrl);
@@ -1232,7 +1228,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 				"recovery state received\n");
 			/* Clear an existing peer receiver busy condition */
 			dl->peer_busy = 0;
-			/* Clear timer recovery condition */
+			/* 5.5.7 Clear timer recovery condition */
 			lapdm_dl_newstate(dl, LAPDm_STATE_MF_EST);
 			/* V(S) and V(A) to the N(R) in the REJ frame */
 			dl->V_send = dl->V_ack = LAPDm_CTRL_Nr(mctx->ctrl);
