@@ -90,7 +90,7 @@ enum bit_value bitvec_get_bit_pos_high(const struct bitvec *bv,
 
 	bitval = bitval2mask(H, bitnum);
 
-	if (bv->data[bytenum] & bitval)
+	if ((bv->data[bytenum] & (1 << bitnum)) == bitval)
 		return H;
 
 	return L;
