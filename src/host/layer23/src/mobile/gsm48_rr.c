@@ -2817,6 +2817,9 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 			cd->mode);
 	rr->dm_est = 1;
 
+	/* old SI 5/6 are not valid on a new dedicated channel */
+	s->si5 = s->si5bis = s->si5ter = s->si6 = 0;
+
 	if (rr->cipher_on)
 		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
 
