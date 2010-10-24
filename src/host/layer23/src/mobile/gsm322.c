@@ -1990,11 +1990,7 @@ struct gsm322_ba_list *gsm322_cs_sysinfo_sacch(struct osmocom_ms *ms)
 	}
 
 	/* collect system information received during dedicated mode */
-	if (s->si5
-	 && (!s->nb_ext_ind_si5 
-	  || (s->si5bis && s->nb_ext_ind_si5 && !s->nb_ext_ind_si5bis)
-	  || (s->si5bis && s->si5ter && s->nb_ext_ind_si5
-	 	&& s->nb_ext_ind_si5bis))) {
+	if (s->si5 && (!s->nb_ext_ind_si5 || s->si5bis)) {
 		/* find or create ba list */
 		ba = gsm322_find_ba_list(cs, s->mcc, s->mnc);
 		if (!ba) {
@@ -2189,18 +2185,14 @@ static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 	  || gm->sysinfo == GSM48_MT_RR_SYSINFO_2ter)
 	 && s->si1
 	 && s->si2
-	 && (!s->nb_ext_ind_si2 
-	  || (s->si2bis && s->nb_ext_ind_si2 && !s->nb_ext_ind_si2bis)
-	  || (s->si2bis && s->si2ter && s->nb_ext_ind_si2
-	 	&& s->nb_ext_ind_si2bis)))
+	 && (!s->nb_ext_ind_si2 || s->si2bis)
+	 && (!s->si2ter_ind || s->si2ter))
 		gsm322_store_ba_list(cs, s);
 
 	/* all relevant system informations received */
 	if (s->si1 && s->si2 && s->si3
-	 && (!s->nb_ext_ind_si2
-	  || (s->si2bis && s->nb_ext_ind_si2 && !s->nb_ext_ind_si2bis)
-	  || (s->si2bis && s->si2ter && s->nb_ext_ind_si2
-	 	&& s->nb_ext_ind_si2bis))) {
+	 && (!s->nb_ext_ind_si2 || s->si2bis)
+	 && (!s->si2ter_ind || s->si2ter)) {
 		LOGP(DCS, LOGL_DEBUG, "Received relevant sysinfo.\n");
 		/* stop timer */
 		stop_cs_timer(cs);

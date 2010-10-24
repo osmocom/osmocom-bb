@@ -2551,15 +2551,11 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 
 	/* check if SI5* is completely received, check BA-IND */
 	if (s->si5
-	 && (!s->nb_ext_ind_si5
-	  || (s->si5bis && s->nb_ext_ind_si5 && !s->nb_ext_ind_si5bis)
-	  || (s->si5bis && s->si5ter && s->nb_ext_ind_si5
-			&& s->nb_ext_ind_si5bis))) {
+	 && (!s->nb_ext_ind_si5 || s->si5bis)) {
 		rep_ba = s->nb_ba_ind_si5;
 		if ((s->si5bis && s->nb_ext_ind_si5
 		  && s->nb_ba_ind_si5bis != rep_ba)
-		 || (s->si5bis && s->si5ter && s->nb_ext_ind_si5
-		  && s->nb_ext_ind_si5bis && s->nb_ba_ind_si5ter != rep_ba)) {
+		 || (s->si5ter && s->nb_ba_ind_si5ter != rep_ba)) {
 			LOGP(DRR, LOGL_NOTICE, "BA-IND missmatch on SI5*");
 		} else
 			rep_valid = 1;
@@ -2581,8 +2577,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 		int i, index;
 
 		/* multiband reporting, if not: 0 = normal reporting */
-		if (s->si5 && s->si5bis && s->si5ter && s->nb_ext_ind_si5
-		 && s->nb_ext_ind_si5bis)
+		if (s->si5ter)
 			multi_rep = s->nb_multi_rep_si5ter;
 
 		/* get 6 strongest measurements */
