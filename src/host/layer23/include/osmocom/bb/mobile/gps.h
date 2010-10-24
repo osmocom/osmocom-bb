@@ -35,5 +35,6 @@ extern struct gps gps;
 
 int gps_open(void);
 void gps_close(void);
+void gps_init(void);
 
 

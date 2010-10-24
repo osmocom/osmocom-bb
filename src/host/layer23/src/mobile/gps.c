@@ -65,6 +65,7 @@ static int gps_line(char *line)
 	if (line[36] != 'A') {
 		LOGP(DGPS, LOGL_INFO, "%s (invalid)\n", line);
 		gps.valid = 0;
+		return 0;
 	}
 	gps.valid = 1;
 
@@ -112,7 +113,7 @@ static int gps_line(char *line)
 		longitude = 360.0 - longitude;
 	gps.longitude = longitude;
 	
-	LOGP(DGPS, LOGL_INFO, "%s\n", line);
+	LOGP(DGPS, LOGL_DEBUG, "%s\n", line);
 	LOGP(DGPS, LOGL_INFO, " time=%02d:%02d:%02d %04d-%02d-%02d, "
 		"diff-to-host=%d, latitude=%do%.4f, longitude=%do%.4f\n",
 		tm->tm_hour, tm->tm_min, tm->tm_sec, tm->tm_year + 1900,
@@ -240,6 +241,11 @@ void gps_close(void)
 
 	close(gps_bfd.fd);
 	gps_bfd.fd = -1; /* -1 or 0 indicates: 'close' */
+}
+
+void gps_init(void)
+{
+	memset(&gps_bfd, 0, sizeof(gps_bfd));
 }
 
 

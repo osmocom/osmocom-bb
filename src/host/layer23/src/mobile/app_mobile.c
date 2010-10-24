@@ -173,6 +173,7 @@ int l23_app_init(struct osmocom_ms *ms)
 
 	srand(time(NULL));
 
+	gps_init();
 	gsm_support_init(ms);
 	gsm_sim_init(ms);
 	gsm_settings_init(ms);
