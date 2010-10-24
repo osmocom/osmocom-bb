@@ -187,4 +187,9 @@ static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 	return msg;
 }
 
+/* non inline functions to ease binding */
+uint8_t *msgb_data(const struct msgb *msg);
+uint16_t msgb_length(const struct msgb *msg);
+
+
 #endif /* _MSGB_H */

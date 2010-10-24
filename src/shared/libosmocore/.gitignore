@@ -27,4 +27,5 @@ libtool
 
 tests/sms/sms_test
 tests/timer/timer_test
-
+tests/msgfile/msgfile_test
+tests/ussd/ussd_test

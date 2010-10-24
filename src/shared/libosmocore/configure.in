@@ -88,6 +88,14 @@ then
 	AC_DEFINE([BSC_FD_CHECK],[1],[Instrument the bsc_register_fd])
 fi
 
+AC_ARG_ENABLE(msgfile,
+	[AS_HELP_STRING(
+		[--disable-msgfile],
+		[Disable support for the msgfile],
+	)],
+	[enable_msgfile=0], [enable_msgfile=1])
+AM_CONDITIONAL(ENABLE_MSGFILE, test "x$enable_msgfile" = "x1")
+
 
 AC_OUTPUT(
 	libosmocore.pc
@@ -100,7 +108,10 @@ AC_OUTPUT(
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile
+	src/codec/Makefile
 	tests/Makefile
 	tests/timer/Makefile
 	tests/sms/Makefile
+	tests/msgfile/Makefile
+	tests/ussd/Makefile
 	Makefile)

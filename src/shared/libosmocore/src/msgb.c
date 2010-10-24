@@ -1,4 +1,5 @@
 /* (C) 2008 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2010 by Holger Hans Peter Freyther <zecke@selfish.org>
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -87,4 +88,14 @@ void msgb_reset(struct msgb *msg)
 	msg->l4h = NULL;
 
 	memset(&msg->cb, 0, sizeof(msg->cb));
+}
+
+uint8_t *msgb_data(const struct msgb *msg)
+{
+	return msg->data;
+}
+
+uint16_t msgb_length(const struct msgb *msg)
+{
+	return msg->len;
 }
