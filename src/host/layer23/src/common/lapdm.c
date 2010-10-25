@@ -573,20 +573,21 @@ static void lapdm_t200_cb(void *data)
 		dl->retrans_ctr++;
 		if (dl->retrans_ctr < N200) {
 			/* retransmit I frame (V_s-1) with P=1, if any */
-			if (dl->tx_length[dl->V_send - 1]) {
+			if (dl->tx_length[sub_mod8(dl->V_send, 1)]) {
 				struct msgb *msg;
 				int length;
 
 				LOGP(DLAPDM, LOGL_INFO, "retransmit last frame "
-					"V(S)=%d\n", dl->V_send - 1);
+					"V(S)=%d\n", sub_mod8(dl->V_send, 1));
 				/* Create I frame (segment) from tx_hist */
-				length = dl->tx_length[dl->V_send - 1];
+				length = dl->tx_length[sub_mod8(dl->V_send, 1)];
 				msg = msgb_alloc_headroom(23+10, 10, "LAPDm I");
 				msg->l2h = msgb_put(msg, length);
-				memcpy(msg->l2h, dl->tx_hist[dl->V_send - 1],
+				memcpy(msg->l2h,
+					dl->tx_hist[sub_mod8(dl->V_send, 1)],
 					length);
 				msg->l2h[1] = LAPDm_CTRL_I(dl->V_recv,
-						dl->V_send - 1, 1); /* P=1 */
+					sub_mod8(dl->V_send, 1), 1); /* P=1 */
 				tx_ph_data_enqueue(dl, msg, dl->mctx.chan_nr,
 					dl->mctx.link_id, dl->mctx.n201);
 			} else {
@@ -1125,6 +1126,18 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 					"so we reply with RR frame\n");
 				lapdm_send_rnr(mctx, 1);
 			}
+		} else if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP
+			&& LAPDm_CTRL_PF_BIT(mctx->ctrl)
+			&& dl->state == LAPDm_STATE_TIMER_RECOV) {
+			LOGP(DLAPDM, LOGL_INFO, "RR response with F==1, "
+				"and we are in timer recovery state, so "
+				"we leave that state\n");
+			/* V(S) to the N(R) in the RR frame */
+			dl->V_send = LAPDm_CTRL_Nr(mctx->ctrl);
+			/* reset Timer T200 */
+			bsc_del_timer(&dl->t200);
+			/* 5.5.7 Clear timer recovery condition */
+			lapdm_dl_newstate(dl, LAPDm_STATE_MF_EST);
 		}
 		/* Send message, if possible due to acknowledged data */
 		rslms_send_i(mctx, __LINE__);
@@ -1744,7 +1757,7 @@ static int rslms_send_i(struct lapdm_msg_ctx *mctx, int line)
 	int k = k_sapi[sapi];
 	struct msgb *msg;
 	int length, left;
-	int rc = -1; /* we sent nothing */
+	int rc = - 1; /* we sent nothing */
 
 	LOGP(DLAPDM, LOGL_INFO, "%s() called from line %d\n", __func__, line);
 
