@@ -549,6 +549,7 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 	/* clear initial frequency error */
 	fbs.initial_freq_err = 0;
 	fbs.fb_retries = 0;
+	fbs.afc_retries = 0;
 
 	/* Make sure we start at a 'center' AFCDAC output value */
 	afc_reset();
