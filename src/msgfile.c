@@ -70,6 +70,10 @@ static void handle_line(struct msg_entries *entries, char *line)
 	char *items[3];
 	int last_item = 0;
 
+	/* Skip comments from the file */
+	if (line[0] == '#')
+		return;
+
 	for (i = 0; i < len; ++i) {
 		if (line[i] == '\n' || line[i] == '\r')
 			line[i] = '\0';
