@@ -207,11 +207,11 @@ int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg)
 	if (msg_type == MNCC_REL_IND || msg_type == MNCC_REL_CNF)
 		return 0;
 
-	LOGP(DMNCC, LOGL_INFO, "Rejecting incomming call\n");
+	LOGP(DMNCC, LOGL_INFO, "Rejecting incoming call\n");
 
 	/* reject, as we don't support Calls */
 	memset(&rel, 0, sizeof(struct gsm_mncc));
-       	rel.callref = callref;
+	rel.callref = callref;
 	mncc_set_cause(&rel, GSM48_CAUSE_LOC_USER,
 		GSM48_CC_CAUSE_INCOMPAT_DEST);
 
@@ -234,7 +234,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 
 	/* call does not exist */
 	if (!call && msg_type != MNCC_SETUP_IND) {
-		LOGP(DMNCC, LOGL_INFO, "Rejecting incomming call "
+		LOGP(DMNCC, LOGL_INFO, "Rejecting incoming call "
 			"(callref %x)\n", data->callref);
 		if (msg_type == MNCC_REL_IND || msg_type == MNCC_REL_CNF)
 			return 0;
@@ -346,7 +346,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		break;
 	case MNCC_ALERT_IND:
 		vty_notify(ms, NULL);
-		vty_notify(ms, "Call is aleriting\n");
+		vty_notify(ms, "Call is alerting\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is alerting\n");
 		break;
 	case MNCC_SETUP_CNF:
@@ -357,8 +357,8 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 	case MNCC_SETUP_IND:
 		vty_notify(ms, NULL);
 		if (!first_call && !ms->settings.cw) {
-			vty_notify(ms, "Incomming call rejected while busy\n");
-			LOGP(DMNCC, LOGL_INFO, "Incomming call but busy\n");
+			vty_notify(ms, "Incoming call rejected while busy\n");
+			LOGP(DMNCC, LOGL_INFO, "Incoming call but busy\n");
 			cause = GSM48_CC_CAUSE_USER_BUSY;
 			goto release;
 		}
@@ -409,17 +409,17 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		}
 		/* presentation allowed if present == 0 */
 		if (data->calling.present || !data->calling.number[0])
-			vty_notify(ms, "Incomming call (anonymous)\n");
+			vty_notify(ms, "Incoming call (anonymous)\n");
 		else if (data->calling.type == 1)
-			vty_notify(ms, "Incomming call (from +%s)\n",
+			vty_notify(ms, "Incoming call (from +%s)\n",
 				data->calling.number);
 		else if (data->calling.type == 2)
-			vty_notify(ms, "Incomming call (from 0-%s)\n",
+			vty_notify(ms, "Incoming call (from 0-%s)\n",
 				data->calling.number);
 		else
-			vty_notify(ms, "Incomming call (from %s)\n",
+			vty_notify(ms, "Incoming call (from %s)\n",
 				data->calling.number);
-		LOGP(DMNCC, LOGL_INFO, "Incomming call (from %s callref %x)\n",
+		LOGP(DMNCC, LOGL_INFO, "Incoming call (from %s callref %x)\n",
 			data->calling.number, call->callref);
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
@@ -514,7 +514,7 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 	llist_add_tail(&call->entry, &call_list);
 
 	memset(&setup, 0, sizeof(struct gsm_mncc));
-       	setup.callref = call->callref;
+	setup.callref = call->callref;
 
 	if (!strncasecmp(number, "emerg", 5)) {
 		LOGP(DMNCC, LOGL_INFO, "Make emergency call\n");

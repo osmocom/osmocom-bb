@@ -378,7 +378,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		LOGP(DSUM, LOGL_INFO, "Synchronized, start reading\n");
 		break;
 	case S_L1CTL_FBSB_ERR:
-		LOGP(DSUM, LOGL_INFO, "Sync faild\n");
+		LOGP(DSUM, LOGL_INFO, "Sync failed\n");
 		arfcn++;
 		start_sync();
 		break;
@@ -791,6 +791,3 @@ int scan_exit(void)
 
 	return 0;
 }
-
-
-
