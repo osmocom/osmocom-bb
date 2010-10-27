@@ -904,6 +904,8 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	else
 		vty_out(vty, " no emergency-imsi%s", VTY_NEWLINE);
 	vty_out(vty, " %scall-waiting%s", (set->cw) ? "" : "no ", VTY_NEWLINE);
+	vty_out(vty, " %sauto-answer%s", (set->auto_answer) ? "" : "no ",
+		VTY_NEWLINE);
 	vty_out(vty, " %sclip%s", (set->clip) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " %sclir%s", (set->clir) ? "" : "no ", VTY_NEWLINE);
 	if (set->alter_tx_power)
@@ -1179,6 +1181,28 @@ DEFUN(cfg_cw, cfg_ms_cw_cmd, "call-waiting",
 	struct gsm_settings *set = &ms->settings;
 
 	set->cw = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_auto_answer, cfg_ms_no_auto_answer_cmd, "no auto-answer",
+	NO_STR "Disable auto-answering calls")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->auto_answer = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_auto_answer, cfg_ms_auto_answer_cmd, "auto-answer",
+	"Enable auto-answering calls")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->auto_answer = 1;
 
 	return CMD_SUCCESS;
 }
@@ -1991,6 +2015,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_emerg_imsi_cmd);
 	install_element(MS_NODE, &cfg_ms_cw_cmd);
 	install_element(MS_NODE, &cfg_ms_no_cw_cmd);
+	install_element(MS_NODE, &cfg_ms_auto_answer_cmd);
+	install_element(MS_NODE, &cfg_ms_no_auto_answer_cmd);
 	install_element(MS_NODE, &cfg_ms_clip_cmd);
 	install_element(MS_NODE, &cfg_ms_clir_cmd);
 	install_element(MS_NODE, &cfg_ms_no_clip_cmd);

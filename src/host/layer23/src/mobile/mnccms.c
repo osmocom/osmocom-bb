@@ -444,6 +444,10 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		mncc_send(ms, MNCC_ALERT_REQ, &mncc);
+		if (ms->settings.auto_answer) {
+			LOGP(DMNCC, LOGL_INFO, "Auto-answering call\n");
+			mncc_answer(ms);
+		}
 		break;
 	case MNCC_SETUP_COMPL_IND:
 		vty_notify(ms, NULL);

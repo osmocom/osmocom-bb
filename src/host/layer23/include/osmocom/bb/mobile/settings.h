@@ -31,6 +31,7 @@ struct gsm_settings {
 
 	/* call related settings */
 	uint8_t			cw; /* set if call-waiting is allowed */
+	uint8_t			auto_answer;
 	uint8_t			clip, clir;
 	uint8_t			half, half_prefer;
 
