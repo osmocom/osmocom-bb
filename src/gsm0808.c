@@ -115,8 +115,9 @@ struct msgb *gsm0808_create_clear_command(uint8_t reason)
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_tv_put(msg, BSSAP_MSG_BSS_MANAGEMENT, 2);
-	msgb_tv_put(msg, BSS_MAP_MSG_CLEAR_CMD, reason);
+	msg->l3h = msgb_tv_put(msg, BSSAP_MSG_BSS_MANAGEMENT, 4);
+	msgb_v_put(msg, BSS_MAP_MSG_CLEAR_CMD);
+	msgb_tlv_put(msg, GSM0808_IE_CAUSE, 1, &reason);
 	return msg;
 }
 
