@@ -108,6 +108,18 @@ struct msgb *gsm0808_create_clear_complete(void)
 	return msg;
 }
 
+struct msgb *gsm0808_create_clear_command(uint8_t reason)
+{
+	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
+					       "bssmap: clear command");
+	if (!msg)
+		return NULL;
+
+	msg->l3h = msgb_tv_put(msg, BSSAP_MSG_BSS_MANAGEMENT, 2);
+	msgb_tv_put(msg, BSS_MAP_MSG_CLEAR_CMD, reason);
+	return msg;
+}
+
 struct msgb *gsm0808_create_cipher_complete(struct msgb *layer3, uint8_t alg_id)
 {
 	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
