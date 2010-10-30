@@ -57,7 +57,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	srand(time(NULL));
 
 //	log_parse_category_mask(stderr_target, "DL1C:DRSL:DRR:DGPS:DSUM");
-	log_parse_category_mask(stderr_target, "DGPS:DSUM");
+	log_parse_category_mask(stderr_target, "DSUM");
 	log_set_log_level(stderr_target, LOGL_INFO);
 
 	l23_app_work = _scan_work;

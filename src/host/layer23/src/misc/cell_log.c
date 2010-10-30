@@ -44,11 +44,13 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/misc/cell_log.h>
+#include "../../../gsmmap/geo.h"
 
 #define READ_WAIT	2, 0
 #define RACH_MAX	2
 #define RACH_WAIT	0, 900000
-#define MIN_RXLEV	-95
+#define MIN_RXLEV	-106
+#define MAX_DIST	2000
 
 enum {
 	SCAN_STATE_PM,
@@ -81,7 +83,8 @@ static int started = 0;
 static int state;
 static int8_t min_rxlev = MIN_RXLEV;
 static int sync_count;
-static int pm_index;
+static int pm_index, pm_gps_valid;
+static double pm_gps_x, pm_gps_y, pm_gps_z;
 static int arfcn;
 static int rach_count;
 static FILE *logfp = NULL;
@@ -177,12 +180,14 @@ static void log_sysinfo(void)
 	struct rx_meas_stat *meas = &ms->meas;
 	struct gsm48_sysinfo *s = &sysinfo;
 	int8_t rxlev;
+	char ta_str[32] = "";
 
-	LOGP(DSUM, LOGL_INFO, "Cell: ARFCN=%d  MCC=%s  MNC=%s  (%s, %s)\n",
+	if (log_si.ta != 0xff)
+		sprintf(ta_str, " TA=%d", log_si.ta);
+
+	LOGP(DSUM, LOGL_INFO, "Cell: ARFCN=%d MCC=%s MNC=%s (%s, %s)%s\n",
 		arfcn, gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc),
-		gsm_get_mcc(s->mcc), gsm_get_mnc(s->mcc, s->mnc));
-
-	printf("%d %d\n", s->si2ter, s->si2ter_ind);
+		gsm_get_mcc(s->mcc), gsm_get_mnc(s->mcc, s->mnc), ta_str);
 
 	LOGFILE("[sysinfo]\n");
 	LOGFILE("arfcn %d\n", s->arfcn);
@@ -214,12 +219,11 @@ static void timeout_cb(void *arg)
 {
 	switch (state) {
 	case SCAN_STATE_READ:
-		LOGP(DSUM, LOGL_INFO, "Timeout reading BCCH\n");
-	 	arfcn++;
+		LOGP(DRR, LOGL_INFO, "Timeout reading BCCH\n");
 		start_sync();
 		break;
 	case SCAN_STATE_RACH:
-		LOGP(DSUM, LOGL_INFO, "Timeout on RACH\n");
+		LOGP(DRR, LOGL_INFO, "Timeout on RACH\n");
 		rach_count++;
 		start_rach();
 		break;
@@ -249,7 +253,6 @@ static void start_rach(void)
 
 	if (rach_count == RACH_MAX) {
 		log_sysinfo();
-		arfcn++;
 		start_sync();
 		return;
 	}
@@ -259,12 +262,12 @@ static void start_rach(void)
 	if (s->neci) {
 		chan_req_mask = 0x0f;
 		chan_req_val = 0x01;
-		LOGP(DSUM, LOGL_INFO, "CHANNEL REQUEST: %02x "
+		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x "
 			"(OTHER with NECI)\n", chan_req_val);
 	} else {
 		chan_req_mask = 0x1f;
 		chan_req_val = 0xe0;
-		LOGP(DSUM, LOGL_INFO, "CHANNEL REQUEST: %02x (OTHER no NECI)\n",
+		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (OTHER no NECI)\n",
 			chan_req_val);
 	}
 
@@ -299,21 +302,37 @@ static void start_rach(void)
 
 static void start_sync(void)
 {
-	while (arfcn <= 1023) {
-		if ((pm[arfcn].flags & INFO_FLG_PM)
-		 && pm[arfcn].rxlev >= min_rxlev)
-		 	break;
-		arfcn++;
+	int rxlev = -128;
+	int i, dist = 0;
+	char dist_str[32] = "";
+
+	arfcn = 0xffff;
+	for (i = 0; i <= 1023; i++) {
+		if ((pm[i].flags & INFO_FLG_PM)
+		 && !(pm[i].flags & INFO_FLG_SYNC)) {
+			if (pm[i].rxlev > rxlev) {
+				rxlev = pm[i].rxlev;
+				arfcn = i;
+			}
+		}
 	}
-	if (arfcn > 1023) {
+	if (pm_gps_valid && gps.valid) {
+		double x, y, z;
+
+		geo2space(&x, &y, &z, gps.longitude, gps.latitude);
+		dist = distinspace(pm_gps_x, pm_gps_y, pm_gps_z, x, y, z);
+		sprintf(dist_str, "  dist %d", (int)dist);
+	}
+	if (dist > MAX_DIST || arfcn == 0xffff || rxlev < min_rxlev) {
 		memset(pm, 0, sizeof(pm));
 		pm_index = 0;
 		sync_count = 0;
 		start_pm();
 		return;
 	}
-	LOGP(DSUM, LOGL_INFO, "Sync requested to ARFCN %d (rxlev %d, %d syncs "
-		"left)\n", arfcn, pm[arfcn].rxlev, sync_count--);
+	pm[arfcn].flags |= INFO_FLG_SYNC;
+	LOGP(DSUM, LOGL_INFO, "Sync ARFCN %d (rxlev %d, %d syncs "
+		"left)%s\n", arfcn, pm[arfcn].rxlev, sync_count--, dist_str);
 	memset(&sysinfo, 0, sizeof(sysinfo));
 	sysinfo.arfcn = arfcn;
 	state = SCAN_STATE_SYNC;
@@ -332,8 +351,11 @@ static void start_pm(void)
 
 	if (from == 0 && to == 0) {
 		LOGP(DSUM, LOGL_INFO, "Measurement done\n");
+		pm_gps_valid = gps.enable && gps.valid;
+		if (pm_gps_valid)
+			geo2space(&pm_gps_x, &pm_gps_y, &pm_gps_z,
+				gps.longitude, gps.latitude);
 		log_pm();
-	 	arfcn = 0;
 		start_sync();
 		return;
 	}
@@ -375,11 +397,10 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		log_si.flags |= INFO_FLG_SYNC;
 		log_si.ta = 0xff; /* invalid */
 		start_timer(READ_WAIT);
-		LOGP(DSUM, LOGL_INFO, "Synchronized, start reading\n");
+		LOGP(DRR, LOGL_INFO, "Synchronized, start reading\n");
 		break;
 	case S_L1CTL_FBSB_ERR:
-		LOGP(DSUM, LOGL_INFO, "Sync failed\n");
-		arfcn++;
+		LOGP(DRR, LOGL_INFO, "Sync failed\n");
 		start_sync();
 		break;
 	case S_L1CTL_RESET:
@@ -401,12 +422,11 @@ static int ta_result(uint8_t ta)
 	if (ta == 0xff)
 		LOGP(DSUM, LOGL_INFO, "Got assignment reject\n");
 	else {
-		LOGP(DSUM, LOGL_INFO, "Got assignment TA = %d\n", ta);
+		LOGP(DSUM, LOGL_DEBUG, "Got assignment TA = %d\n", ta);
 		log_si.ta = ta;
 	}
 
 	log_sysinfo();
-	arfcn++;
 	start_sync();
 
 	return 0;

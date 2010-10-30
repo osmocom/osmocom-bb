@@ -1,5 +1,5 @@
 #include <math.h>
-#include <geo.h>
+#include "geo.h"
 
 void geo2space(double *x, double *y, double *z, double lon, double lat)
 {
