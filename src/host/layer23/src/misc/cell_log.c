@@ -287,9 +287,8 @@ static void start_rach(void)
 	ncch->chan_nr = RSL_CHAN_RACH;
 	ncch->data[0] = RSL_IE_REQ_REFERENCE;
 	ncch->data[1] = rach_ref.cr;
-#warning HACK: fn51 and fn_off
-	ncch->data[2] = (s->ccch_conf == 1) ? 27 : 50;
-	ncch->data[3] = 1; /* next frame */
+	ncch->data[2] = (s->ccch_conf == 1) << 7;
+	ncch->data[3] = 0;
 	ncch->data[4] = RSL_IE_ACCESS_DELAY;
 	ncch->data[5] = 0; /* no delay */ 
 	ncch->data[6] = RSL_IE_MS_POWER;

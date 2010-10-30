@@ -1508,6 +1508,8 @@ fail:
 		"S(lots) %d ra 0x%02x)\n", s->tx_integer,
 		(s->ccch_conf == 1) ? "yes": "no", slots, chan_req);
 
+	slots = (random() % s->tx_integer) + slots;
+
 	/* (re)send CHANNEL RQD with new randiom */
 	nmsg = gsm48_rsl_msgb_alloc();
 	if (!nmsg)
@@ -1518,9 +1520,8 @@ fail:
 	ncch->chan_nr = RSL_CHAN_RACH;
 	ncch->data[0] = RSL_IE_REQ_REFERENCE;
 	ncch->data[1] = chan_req;
-#warning HACK: fn51 and fn_off
-	ncch->data[2] = (s->ccch_conf == 1) ? 27 : 50;
-	ncch->data[3] = 1 + ((random() % s->tx_integer) + slots) / 51;
+	ncch->data[2] = (slots >> 8) | ((s->ccch_conf == 1) << 7);
+	ncch->data[3] = slots;
 	ncch->data[4] = RSL_IE_ACCESS_DELAY;
 	ncch->data[5] = set->alter_delay; /* (-)=earlier (+)=later */
 	ncch->data[6] = RSL_IE_MS_POWER;

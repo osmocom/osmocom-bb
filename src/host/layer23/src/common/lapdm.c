@@ -2052,7 +2052,8 @@ static int rslms_rx_chan_rqd(struct osmocom_ms *ms, struct msgb *msg)
 	/* TA = 0 - delay */
 	rc = l1ctl_tx_param_req(ms, 0 - cch->data[5], cch->data[7]);
 
-	rc = l1ctl_tx_rach_req(ms, cch->data[1], cch->data[2], cch->data[3]);
+	rc = l1ctl_tx_rach_req(ms, cch->data[1],
+		((cch->data[2] & 0x7f) << 8) | cch->data[3], cch->data[2] >> 7);
 
 	msgb_free(msg);
 

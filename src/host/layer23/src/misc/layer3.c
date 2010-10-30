@@ -287,8 +287,8 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 
 	/* Req channel logic */
 	if (app_state.ccch_enabled && (app_state.rach_count < 2)) {
-		l1ctl_tx_rach_req(ms, app_state.rach_count,
-			app_state.ccch_mode == CCCH_MODE_COMBINED ? 27 : 51, 0);
+		l1ctl_tx_rach_req(ms, app_state.rach_count, 0,
+			app_state.ccch_mode == CCCH_MODE_COMBINED);
 		app_state.rach_count++;
 	}
 
