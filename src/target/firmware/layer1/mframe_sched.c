@@ -200,6 +200,7 @@ static const struct mframe_sched_item mf_sdcch8_7[] = {
 /* TCH */
 #define TCH	tch_sched_set
 #define TCH_A	tch_a_sched_set
+#define TCH_D	tch_d_sched_set
 
 static const struct mframe_sched_item mf_tch_f_even[] = {
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  0 },
@@ -237,21 +238,33 @@ static const struct mframe_sched_item mf_tch_f_odd[] = {
 
 static const struct mframe_sched_item mf_tch_h_0[] = {
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  0 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  1 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  2 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  3 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  4 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  5 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  6 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  7 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  8 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  9 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr = 10 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr = 11 },
 	{ .sched_set = TCH_A, .modulo = 26, .frame_nr = 12 },
 	{ .sched_set = NULL }
 };
 
 static const struct mframe_sched_item mf_tch_h_1[] = {
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  0 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  1 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  2 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  3 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  4 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  5 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  6 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  7 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr =  8 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr =  9 },
+	{ .sched_set = TCH_D, .modulo = 13, .frame_nr = 10 },
 	{ .sched_set = TCH,   .modulo = 13, .frame_nr = 11 },
 	{ .sched_set = TCH_A, .modulo = 26, .frame_nr = 25 },
 	{ .sched_set = NULL }

@@ -394,6 +394,55 @@ const struct tdma_sched_item tch_sched_set[] = {
 
 
 /* -------------------------------------------------------------------------
+ * TCH/H: Dummy
+ * ------------------------------------------------------------------------- */
+
+/* This task is needed to perform some operation in the DSP when there is
+ * no data to be exchanged */
+
+static int l1s_tch_d_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
+{
+	/* mark READ page as being used */
+	dsp_api.r_page_used = 1;
+
+	return 0;
+}
+
+static int l1s_tch_d_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
+{
+	uint8_t mf_task_id = p3 & 0xff;
+	uint8_t chan_nr;
+	uint8_t tsc, tn;
+	uint8_t tch_f_hn, tch_sub, tch_mode;
+	uint32_t fn_report;
+
+	/* Get/compute various parameters */
+	rfch_get_params(&l1s.next_time, NULL, &tsc, &tn);
+	chan_nr = mframe_task2chan_nr(mf_task_id, tn);
+	tch_get_params(&l1s.next_time, chan_nr, &fn_report, &tch_f_hn, &tch_sub, &tch_mode);
+
+	/* Configure DSP */
+	dsp_load_tch_param(
+		&l1s.next_time,
+		tch_mode, tch_f_hn ? TCH_F : TCH_H, tch_sub,
+		0, 0, tn
+	);
+
+	dsp_load_rx_task(TCHD_DSP_TASK, 0, tsc); /* burst_id unused for TCH */
+	dsp_load_tx_task(TCHD_DSP_TASK, 0, tsc); /* burst_id unused for TCH */
+
+	return 0;
+}
+
+const struct tdma_sched_item tch_d_sched_set[] = {
+	SCHED_ITEM_DT(l1s_tch_d_cmd, 0, 0, 0),	SCHED_END_FRAME(),
+						SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_tch_d_resp, 0, 0, -4),	SCHED_END_FRAME(),
+	SCHED_END_SET()
+};
+
+
+/* -------------------------------------------------------------------------
  * TCH: SACCH
  * ------------------------------------------------------------------------- */
 
