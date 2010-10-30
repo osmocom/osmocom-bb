@@ -2078,7 +2078,7 @@ int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms,
 	ref = (struct gsm48_req_ref *) (ch->data + 1);
 	ref->t1 = tm.t1;
 	ref->t2 = tm.t2;
-	ref->t3_low = tm.t3 & 0x3;
+	ref->t3_low = tm.t3 & 0x7;
 	ref->t3_high = tm.t3 >> 3;
 	
 	return rslms_sendmsg(msg, ms);
