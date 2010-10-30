@@ -300,9 +300,11 @@ static void l1ctl_rx_rach_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *) ul->payload;
 
-	printd("L1CTL_RACH_REQ (ra=0x%02x, fn51=%d, mf_off=%d)\n", rach_req->ra, rach_req->fn51, rach_req->mf_off);
+	printd("L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
+		rach_req->ra, ntohs(rach_req->offset), rach_req->combined);
 
-	l1a_rach_req(rach_req->fn51, rach_req->mf_off, rach_req->ra);
+	l1a_rach_req(ntohs(rach_req->offset), rach_req->combined,
+		rach_req->ra);
 }
 
 /* receive a L1CTL_DATA_REQ from L23 */

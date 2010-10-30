@@ -29,8 +29,8 @@ void l1a_meas_msgb_set(struct msgb *msg);
 /* flush all pending msgb */
 void l1a_txq_msgb_flush(struct llist_head *queue);
 
-/* request a RACH request at the next multiframe T3 = fn51 */
-void l1a_rach_req(uint8_t fn51, uint8_t mf_off, uint8_t ra);
+/* request a RACH */
+void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra);
 
 /* schedule frequency change */
 void l1a_freq_req(uint32_t fn_sched);

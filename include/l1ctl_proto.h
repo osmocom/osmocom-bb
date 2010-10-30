@@ -176,9 +176,8 @@ struct l1ctl_tch_mode_req {
 /* the l1_info_ul header is in front */
 struct l1ctl_rach_req {
 	uint8_t ra;
-	uint8_t fn51;
-	uint8_t mf_off;
-	uint8_t padding[1];
+	uint8_t combined;
+	uint16_t offset;
 } __attribute__((packed));
 
 /* the l1_info_ul header is in front */

@@ -113,18 +113,40 @@ static void l1a_rach_compl(__unused enum l1_compl c)
 	l1_queue_for_l2(msg);
 }
 
+static uint8_t t3_to_rach_comb[51] = {
+	 0,  0,  0,  0,
+	 0,  1,
+	 2,  2,  2,  2,  2,  2,  2,  2,
+	 2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12,
+	13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+	25, 25, 25, 25, 25, 25, 25, 25,
+	25, 26,
+	27, 27, 27, 27};
+static uint8_t rach_to_t3_comb[27] = {
+	 4,  5,
+	14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+	25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+	45, 46};
+
 /* request a RACH request at the next multiframe T3 = fn51 */
-void l1a_rach_req(uint8_t fn51, uint8_t mf_off, uint8_t ra)
+void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra)
 {
 	uint32_t fn_sched;
 	unsigned long flags;
 
+	offset += 3;
+
 	local_firq_save(flags);
+	if (combined) {
+		/* add elapsed RACH slots to offset */
+		offset += t3_to_rach_comb[l1s.current_time.t3];
+		/* offset is the number of RACH slots in the future */
+		fn_sched = l1s.current_time.fn - l1s.current_time.t3;
+		fn_sched += offset / 27 * 51;
+		fn_sched += rach_to_t3_comb[offset % 27];
+	} else
+		fn_sched = l1s.current_time.fn + offset;
 	l1s.rach.ra = ra;
-	/* TODO: can we wrap here? I don't think so */
-	fn_sched = l1s.current_time.fn - l1s.current_time.t3;
-	fn_sched += mf_off * 51;
-	fn_sched += fn51;
 	sched_gsmtime(rach_sched_set_ul, fn_sched, 0);
 	local_irq_restore(flags);
 
