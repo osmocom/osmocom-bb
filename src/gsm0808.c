@@ -292,6 +292,29 @@ void gsm0808_prepend_dtap_header(struct msgb *msg, uint8_t link_id)
 	hh[2] = msg->len - 3;
 }
 
+struct msgb *gsm0808_create_dtap(struct msgb *msg_l3, uint8_t link_id)
+{
+	struct dtap_header *header;
+	uint8_t *data;
+	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
+					       "dtap");
+	if (!msg)
+		return NULL;
+
+	/* DTAP header */
+	msg->l3h = msgb_put(msg, sizeof(*header));
+	header = (struct dtap_header *) &msg->l3h[0];
+	header->type = BSSAP_MSG_DTAP;
+	header->link_id = link_id;
+	header->length = msgb_l3len(msg_l3);
+
+	/* Payload */
+	data = msgb_put(msg, header->length);
+	memcpy(data, msg_l3->l3h, header->length);
+
+	return msg;
+}
+
 static const struct tlv_definition bss_att_tlvdef = {
 	.def = {
 		[GSM0808_IE_IMSI]		    = { TLV_TYPE_TLV },

@@ -37,6 +37,7 @@ struct msgb *gsm0808_create_assignment_completed(uint8_t rr_cause,
 						 uint8_t speech_mode);
 struct msgb *gsm0808_create_assignment_failure(uint8_t cause, uint8_t *rr_cause);
 
+struct msgb *gsm0808_create_dtap(struct msgb *msg, uint8_t link_id);
 void gsm0808_prepend_dtap_header(struct msgb *msg, uint8_t link_id);
 
 const struct tlv_definition *gsm0808_att_tlvdef();
