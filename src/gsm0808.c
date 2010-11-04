@@ -284,6 +284,26 @@ struct msgb *gsm0808_create_assignment_failure(uint8_t cause, uint8_t *rr_cause)
 	return msg;
 }
 
+struct msgb *gsm0808_create_clear_rqst(uint8_t cause)
+{
+	struct msgb *msg;
+
+	msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
+				  "bssmap: clear rqst");
+	if (!msg)
+		return NULL;
+
+	msg->l3h = msgb_put(msg, 2 + 4);
+	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
+	msg->l3h[1] = 4;
+
+	msg->l3h[2] = BSS_MAP_MSG_CLEAR_RQST;
+	msg->l3h[3] = GSM0808_IE_CAUSE;
+	msg->l3h[4] = 1;
+	msg->l3h[5] = cause;
+	return msg;
+}
+
 void gsm0808_prepend_dtap_header(struct msgb *msg, uint8_t link_id)
 {
 	uint8_t *hh = msgb_push(msg, 3);
