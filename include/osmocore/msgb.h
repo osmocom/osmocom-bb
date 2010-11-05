@@ -62,7 +62,9 @@ extern void msgb_reset(struct msgb *m);
 
 #ifdef MSGB_DEBUG
 #include <osmocore/panic.h>
+#include <osmocore/gsm_utils.h>
 #define MSGB_ABORT(msg, fmt, args ...) do {		\
+	generate_backtrace();				\
 	osmo_panic("msgb(%p)" fmt, ## args);		\
 	} while(0)
 #else
