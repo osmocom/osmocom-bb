@@ -556,14 +556,14 @@ static int l1s_tch_a_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 	uint8_t chan_nr;
 	uint16_t arfcn;
 	uint8_t tsc, tn;
-	uint8_t tch_f_hn, tch_sub;
+	uint8_t tch_f_hn, tch_sub, tch_mode;
 	uint32_t fn_report;
 	uint8_t burst_id;
 
 	/* Get/compute various parameters */
 	rfch_get_params(&l1s.next_time, &arfcn, &tsc, &tn);
 	chan_nr = mframe_task2chan_nr(mf_task_id, tn);
-	tch_get_params(&l1s.next_time, chan_nr, &fn_report, &tch_f_hn, &tch_sub, NULL);
+	tch_get_params(&l1s.next_time, chan_nr, &fn_report, &tch_f_hn, &tch_sub, &tch_mode);
 	burst_id = (fn_report - 12) / 26;
 
 	/* Load SACCH data if we start a new burst */
@@ -625,7 +625,7 @@ static int l1s_tch_a_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 
 	dsp_load_tch_param(
 		&l1s.next_time,
-		SIG_ONLY_MODE, tch_f_hn ? TCH_F : TCH_H, tch_sub,
+		tch_mode, tch_f_hn ? TCH_F : TCH_H, tch_sub,
 		0, 0, tn
 	);
 
