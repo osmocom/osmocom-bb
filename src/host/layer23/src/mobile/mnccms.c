@@ -39,6 +39,7 @@ static LLIST_HEAD(call_list);
 void mncc_set_cause(struct gsm_mncc *data, int loc, int val);
 static int dtmf_statemachine(struct gsm_call *call, struct gsm_mncc *mncc);
 static void timeout_dtmf(void *arg);
+int mncc_answer(struct osmocom_ms *ms);
 
 /*
  * support functions
