@@ -434,6 +434,11 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		else if (data->bearer_cap.speech_ver[1] >= 0
 		      || speech_ver != 0)
 			mncc_set_bearer(ms, speech_ver, &mncc);
+		/* CC capabilities (optional) */
+		if (ms->settings.cc_dtmf) {
+			mncc.fields |= MNCC_F_CCCAP;
+			mncc.cccap.dtmf = 1;
+		}
 		mncc_send(ms, MNCC_CALL_CONF_REQ, &mncc);
 		if (first_call)
 			LOGP(DMNCC, LOGL_INFO, "Ring!\n");
