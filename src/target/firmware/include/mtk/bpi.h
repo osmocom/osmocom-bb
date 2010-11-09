@@ -7,6 +7,8 @@
 
 #define BPI_BUF(n)	(BPI_BUF0 + ((n) * 4))
 
+#define MTK_BPI(n)	(n)
+
 enum mtk_bpi_reg {
 	BPI_CON		= 0x0000,
 	BPI_BUF0	= 0x0004,
