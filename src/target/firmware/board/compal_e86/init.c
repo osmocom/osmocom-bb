@@ -107,7 +107,7 @@ void board_init(void)
 
 	/* initialize MODEM UART to be used for sercomm*/
 	uart_init(SERCOMM_UART_NR, 1);
-	uart_baudrate(SERCOMM_UART_NR, UART_115200);
+	uart_baudrate(SERCOMM_UART_NR, UART_460800);
 
 	/* initialize IRDA UART to be used for old-school console code.
 	 * note: IRDA uart only accessible on C115 and C117 PCB */
