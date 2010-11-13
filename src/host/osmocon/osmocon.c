@@ -234,6 +234,34 @@ static const uint8_t mtk_init_cmd[] =	{ 0xa0, 0x0a, 0x50, 0x05 };
 static const uint8_t mtk_init_resp[] =	{ 0x5f, 0xf5, 0xaf, 0xfa };
 static const uint8_t mtk_command[] =	{ 0xa1, 0xa2, 0xa4, 0xa8 };
 
+
+int serial_up_to_eleven(void)
+{
+	int rv;
+
+	/* Attempt custom baudrate */
+	rv = osmo_serial_set_custom_baudrate(dnload.serial_fd.fd, 406250);
+	if (rv == 0)
+		return 0;
+
+#ifdef I_HAVE_A_CP210x /* and I know what I'm doing, I swear ! */
+	/* Try closest standard baudrate (CP210x reprogrammed adapters) */
+	rv = osmo_serial_set_baudrate(dnload.serial_fd.fd, B460800);
+	if (rv == 0)
+		return 0;
+#endif
+
+	/* Everything failed */
+	fprintf(stderr, "!!!\n");
+	fprintf(stderr, "!!! ERROR !!!\n");
+	fprintf(stderr, "!!!\n");
+	fprintf(stderr, "!!! Unable to set custom baudrate, please use appropriate cable\n");
+	fprintf(stderr, "!!! ( see wiki http://bb.osmocom.org/trac/wiki/Sniffing )\n");
+	fprintf(stderr, "!!!\n");
+
+	exit(-1);
+}
+
 static void beacon_timer_cb(void *p)
 {
 	int rc;
@@ -842,6 +870,7 @@ static int handle_read(void)
 		dnload.write_ptr = dnload.data;
 		dnload.expect_hdlc = 1;
 
+
 		/* check for romloader chainloading mode used as a workaround
 		 * for the magic on the C139/C140 and J100i */
 		if (dnload.do_chainload) {
@@ -855,6 +884,8 @@ static int handle_read(void)
 			tick_timer.data = &tick_timer;
 			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 		}
+		else
+			serial_up_to_eleven();
 	} else if (!memcmp(buffer, phone_nack, sizeof(phone_nack))) {
 		printf("Received DOWNLOAD NACK from phone, something went"
 			" wrong :(\n");
@@ -990,6 +1021,7 @@ static int handle_read_romload(void)
 		if (!memcmp(buffer, romload_branch_ack,
 			    sizeof(romload_branch_ack))) {
 			printf("Received branch ack, your code is running now!\n");
+			serial_up_to_eleven();
 			dnload.serial_fd.when = BSC_FD_READ;
 			dnload.romload_state = FINISHED;
 			dnload.write_ptr = dnload.data;
