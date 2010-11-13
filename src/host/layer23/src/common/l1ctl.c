@@ -762,9 +762,9 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_PM_CONF:
 		rc = rx_l1_pm_conf(ms, msg);
-		msgb_free(msg);
 		if (l1h->flags & L1CTL_F_DONE)
 			dispatch_signal(SS_L1CTL, S_L1CTL_PM_DONE, ms);
+		msgb_free(msg);
 		break;
 	case L1CTL_RACH_CONF:
 		rc = rx_l1_rach_conf(ms, msg);
