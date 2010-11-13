@@ -28,16 +28,26 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
 
+static char *layer2_socket_path = "/tmp/osmocom_l2";
+static char *sap_socket_path = "/tmp/osmocom_sap";
+
 int gsm_settings_init(struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_support *sup = &ms->support;
 
+	strcpy(set->layer2_socket_path, layer2_socket_path);
+	strcpy(set->sap_socket_path, sap_socket_path);
+
 	/* IMEI */
 	sprintf(set->imei,   "000000000000000");
 	sprintf(set->imeisv, "0000000000000000");
 
-	/* test sim */
+	/* SIM type */
+#warning TODO: Enable after SIM reader is available in master branch.
+//	set->sim_type = SIM_TYPE_READER;
+
+	/* test SIM */
 	strcpy(set->test_imsi, "001010000000000");
 	set->test_rplmn_mcc = set->test_rplmn_mnc = 1;
 

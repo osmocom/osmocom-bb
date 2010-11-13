@@ -131,6 +131,7 @@ int layer2_open(struct osmocom_ms *ms, const char *socket_path)
 	rc = bsc_register_fd(&ms->l2_wq.bfd);
 	if (rc != 0) {
 		fprintf(stderr, "Failed to register fd.\n");
+		close(ms->l2_wq.bfd.fd);
 		return rc;
 	}
 

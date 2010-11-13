@@ -28,6 +28,7 @@
 #include <osmocore/utils.h>
 #include <osmocore/gsm48.h>
 #include <osmocore/talloc.h>
+#include <osmocore/signal.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
@@ -38,6 +39,10 @@
 #include <osmocom/vty/telnet_interface.h>
 
 void *l23_ctx;
+extern int l23_app_init(struct osmocom_ms *ms);
+extern int (*l23_app_exit) (struct osmocom_ms *ms, int force);
+extern struct osmocom_ms *mobile_new(char *name);
+extern int mobile_delete(struct osmocom_ms *ms, int force);
 
 int mncc_call(struct osmocom_ms *ms, char *number);
 int mncc_hangup(struct osmocom_ms *ms);
@@ -114,12 +119,14 @@ int vty_check_number(struct vty *vty, const char *number)
 
 int vty_reading = 0;
 
-static void vty_restart(struct vty *vty)
+static void vty_restart(struct vty *vty, struct osmocom_ms *ms)
 {
 	if (vty_reading)
 		return;
-	vty_out(vty, "You must restart for change to take effect!%s",
-		VTY_NEWLINE);
+	if (ms->shutdown != 0)
+		return;
+	vty_out(vty, "You must restart MS '%s' ('shutdown / no shutdown') for "
+		"change to take effect!%s", ms->name, VTY_NEWLINE);
 }
 
 static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
@@ -128,6 +135,10 @@ static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
 
 	llist_for_each_entry(ms, &ms_list, entity) {
 		if (!strcmp(ms->name, name))
+			if (ms->shutdown) {
+				vty_out(vty, "MS '%s' is admin down.%s", name,
+					VTY_NEWLINE);
+			}
 			return ms;
 	}
 	vty_out(vty, "MS name '%s' does not exits.%s", name, VTY_NEWLINE);
@@ -224,8 +235,10 @@ DEFUN(show_states, show_states_cmd, "show states [ms_name]",
 		gsm_states_dump(ms, vty);
 	} else {
 		llist_for_each_entry(ms, &ms_list, entity) {
-			gsm_states_dump(ms, vty);
-			vty_out(vty, "%s", VTY_NEWLINE);
+			if (!ms->shutdown) {
+				gsm_states_dump(ms, vty);
+				vty_out(vty, "%s", VTY_NEWLINE);
+			}
 		}
 	}
 
@@ -245,8 +258,10 @@ DEFUN(show_subscr, show_subscr_cmd, "show subscriber [ms_name]",
 		gsm_subscr_dump(&ms->subscr, print_vty, vty);
 	} else {
 		llist_for_each_entry(ms, &ms_list, entity) {
-			gsm_subscr_dump(&ms->subscr, print_vty, vty);
-			vty_out(vty, "%s", VTY_NEWLINE);
+			if (!ms->shutdown) {
+				gsm_subscr_dump(&ms->subscr, print_vty, vty);
+				vty_out(vty, "%s", VTY_NEWLINE);
+			}
 		}
 	}
 
@@ -855,13 +870,113 @@ DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 	"Select a mobile station to configure\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
+	int found = 0;
 
-	ms = get_ms(argv[0], vty);
-	if (!ms)
-		return CMD_WARNING;
+	llist_for_each_entry(ms, &ms_list, entity) {
+		if (!strcmp(ms->name, argv[0])) {
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found) {
+		if (!vty_reading) {
+			vty_out(vty, "MS name '%s' does not exits, try "
+				"'ms %s create'%s", argv[0], argv[0],
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		ms = mobile_new((char *)argv[0]);
+		if (!ms) {
+			vty_out(vty, "Failed to add MS name '%s'%s", argv[0],
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
 
 	vty->index = ms;
 	vty->node = MS_NODE;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_create, cfg_ms_create_cmd, "ms MS_NAME create",
+	"Select a mobile station to configure\nName of MS (see \"show ms\")\n"
+	"Create if MS does not exists")
+{
+	struct osmocom_ms *ms;
+	int found = 0;
+
+	llist_for_each_entry(ms, &ms_list, entity) {
+		if (!strcmp(ms->name, argv[0])) {
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found) {
+		ms = mobile_new((char *)argv[0]);
+		if (!ms) {
+			vty_out(vty, "Failed to add MS name '%s'%s", argv[0],
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	vty->index = ms;
+	vty->node = MS_NODE;
+
+	vty_out(vty, "MS '%s' created, after configuration, do 'no shutdown'%s",
+		argv[0], VTY_NEWLINE);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_rename, cfg_ms_rename_cmd, "ms MS_NAME rename MS_NAME",
+	"Select a mobile station to configure\nName of MS (see \"show ms\")\n"
+	"Rename MS\nNew name of MS")
+{
+	struct osmocom_ms *ms;
+	int found = 0;
+
+	llist_for_each_entry(ms, &ms_list, entity) {
+		if (!strcmp(ms->name, argv[0])) {
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found) {
+		vty_out(vty, "MS name '%s' does not exist%s", argv[0],
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	strncpy(ms->name, argv[1], sizeof(ms->name) - 1);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_ms, cfg_no_ms_cmd, "no ms MS_NAME",
+	NO_STR "Select a mobile station to remove\n"
+	"Name of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+	int found = 0;
+
+	llist_for_each_entry(ms, &ms_list, entity) {
+		if (!strcmp(ms->name, argv[0])) {
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found) {
+		vty_out(vty, "MS name '%s' does not exist%s", argv[0],
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	mobile_delete(ms, 1);
 
 	return CMD_SUCCESS;
 }
@@ -878,6 +993,9 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	struct gsm_settings_abbrev *abbrev;
 
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
+	vty_out(vty, " layer2-socket %s%s", set->layer2_socket_path,
+		VTY_NEWLINE);
+	vty_out(vty, " sap-socket %s%s", set->sap_socket_path, VTY_NEWLINE);
 	switch(set->sim_type) {
 		case GSM_SIM_TYPE_NONE:
 		vty_out(vty, " sim none%s", VTY_NEWLINE);
@@ -1011,6 +1129,8 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, "  hplmn-search %s%s", (set->test_always) ? "everywhere"
 			: "foreign-country", VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
+	vty_out(vty, " %sshutdown%s", (ms->shutdown) ? "" : "no ",
+		VTY_NEWLINE);
 	vty_out(vty, "exit%s", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
@@ -1030,6 +1150,34 @@ static int config_write_ms(struct vty *vty)
 	llist_for_each_entry(ms, &ms_list, entity)
 		config_write_ms_single(vty, ms);
 
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_layer2, cfg_ms_layer2_cmd, "layer2-socket PATH",
+	"Define socket path to connect between layer 2 and layer 1\n"
+	"Unix socket, default '/tmp/osmocom_l2'")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	strncpy(set->layer2_socket_path, argv[0],
+		sizeof(set->layer2_socket_path) - 1);
+
+	vty_restart(vty, ms);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sap, cfg_ms_sap_cmd, "sap-socket PATH",
+	"Define socket path to connect to SIM reader\n"
+	"Unix socket, default '/tmp/osmocom_sap'")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	strncpy(set->sap_socket_path, argv[0],
+		sizeof(set->sap_socket_path) - 1);
+
+	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -1055,7 +1203,7 @@ DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test)",
 		return CMD_WARNING;
 	}
 
-	vty_restart(vty);
+	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -1118,7 +1266,7 @@ DEFUN(cfg_ms_imei_fixed, cfg_ms_imei_fixed_cmd, "imei-fixed",
 
 	set->imei_random = 0;
 
-	vty_restart(vty);
+	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -1131,7 +1279,7 @@ DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
 
 	set->imei_random = atoi(argv[0]);
 
-	vty_restart(vty);
+	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -1539,7 +1687,7 @@ DEFUN(cfg, cfg_cmd, cmd, "Enable " desc "support") \
 		return CMD_WARNING; \
 	} \
 	if (restart) \
-		vty_restart(vty); \
+		vty_restart(vty, ms); \
 	set->item = 1; \
 	return CMD_SUCCESS; \
 }
@@ -1557,7 +1705,7 @@ DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
 		return CMD_WARNING; \
 	} \
 	if (restart) \
-		vty_restart(vty); \
+		vty_restart(vty, ms); \
 	set->item = 0; \
 	return CMD_SUCCESS; \
 }
@@ -1568,7 +1716,7 @@ DEFUN(cfg, cfg_cmd, cmd, "Enable " desc "support") \
 	struct osmocom_ms *ms = vty->index; \
 	struct gsm_settings *set = &ms->settings; \
 	if (restart) \
-		vty_restart(vty); \
+		vty_restart(vty, ms); \
 	set->item = 1; \
 	return CMD_SUCCESS; \
 }
@@ -1579,7 +1727,7 @@ DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
 	struct osmocom_ms *ms = vty->index; \
 	struct gsm_settings *set = &ms->settings; \
 	if (restart) \
-		vty_restart(vty); \
+		vty_restart(vty, ms); \
 	set->item = 0; \
 	return CMD_SUCCESS; \
 }
@@ -1682,7 +1830,7 @@ DEFUN(cfg_ms_sup_ch_cap, cfg_ms_sup_ch_cap_cmd, "channel-capability "
 
 	if (ch_cap != set->ch_cap
 	 && (ch_cap == GSM_CAP_SDCCH || set->ch_cap == GSM_CAP_SDCCH))
-		vty_restart(vty);
+		vty_restart(vty, ms);
 
 	set->ch_cap = ch_cap;
 
@@ -1759,7 +1907,7 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 
 	strcpy(set->test_imsi, argv[0]);
 
-	vty_restart(vty);
+	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -1851,7 +1999,7 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 
 	set->test_rplmn_valid = 0;
 
-	vty_restart(vty);
+	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -1875,7 +2023,7 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
 	set->test_rplmn_mcc = mcc;
 	set->test_rplmn_mnc = mnc;
 
-	vty_restart(vty);
+	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -1896,7 +2044,69 @@ DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-coun
 		break;
 	}
 
-	vty_restart(vty);
+	vty_restart(vty, ms);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
+	NO_STR "Activate and run MS")
+{
+	struct osmocom_ms *ms = vty->index, *tmp;
+	int rc;
+
+	if (ms->shutdown != 2)
+		return CMD_SUCCESS;
+
+	llist_for_each_entry(tmp, &ms_list, entity) {
+		if (tmp->shutdown == 2)
+			continue;
+		if (!strcmp(ms->settings.layer2_socket_path,
+				tmp->settings.layer2_socket_path)) {
+			vty_out(vty, "Cannot start MS '%s', because MS '%s' "
+				"use the same layer2-socket.%sPlease shutdown "
+				"MS '%s' first.%s", ms->name, tmp->name,
+				VTY_NEWLINE, tmp->name, VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		if (!strcmp(ms->settings.sap_socket_path,
+				tmp->settings.sap_socket_path)) {
+			vty_out(vty, "Cannot start MS '%s', because MS '%s' "
+				"use the same sap-socket.%sPlease shutdown "
+				"MS '%s' first.%s", ms->name, tmp->name,
+				VTY_NEWLINE, tmp->name, VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	rc = l23_app_init(ms);
+	if (rc < 0) {
+		vty_out(vty, "Connection to layer 1 failed!%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_shutdown, cfg_ms_shutdown_cmd, "shutdown",
+	"Shut down and deactivate MS")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	if (ms->shutdown == 0)
+		l23_app_exit(ms, 0);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
+	"Shut down and deactivate MS\nDo not perform IMSI detach")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	if (ms->shutdown <= 1)
+		l23_app_exit(ms, 1);
+
 	return CMD_SUCCESS;
 }
 
@@ -1962,6 +2172,14 @@ gDEFUN(ournode_end,
 	return CMD_SUCCESS;
 }
 
+DEFUN(off, off_cmd, "off",
+	"Turn mobiles off (shutdown) and exit")
+{
+	dispatch_signal(SS_GLOBAL, S_GLOBAL_SHUTDOWN, NULL);
+
+	return CMD_SUCCESS;
+}
+
 #define SUP_NODE(item) \
 	install_element(SUPPORT_NODE, &cfg_ms_sup_item_cmd);
 
@@ -1978,6 +2196,7 @@ int ms_vty_init(void)
 	install_element_ve(&show_forb_plmn_cmd);
 	install_element_ve(&monitor_network_cmd);
 	install_element_ve(&no_monitor_network_cmd);
+	install_element(ENABLE_NODE, &off_cmd);
 
 	install_element(ENABLE_NODE, &sim_test_cmd);
 	install_element(ENABLE_NODE, &sim_reader_cmd);
@@ -2001,11 +2220,16 @@ int ms_vty_init(void)
 	install_element(CONFIG_NODE, &cfg_no_gps_enable_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ms_cmd);
+	install_element(CONFIG_NODE, &cfg_ms_create_cmd);
+	install_element(CONFIG_NODE, &cfg_ms_rename_cmd);
+	install_element(CONFIG_NODE, &cfg_no_ms_cmd);
 	install_element(CONFIG_NODE, &ournode_end_cmd);
 	install_node(&ms_node, config_write_ms);
 	install_default(MS_NODE);
 	install_element(MS_NODE, &ournode_exit_cmd);
 	install_element(MS_NODE, &ournode_end_cmd);
+	install_element(MS_NODE, &cfg_ms_layer2_cmd);
+	install_element(MS_NODE, &cfg_ms_sap_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
 	install_element(MS_NODE, &cfg_ms_mode_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_cmd);
@@ -2095,6 +2319,9 @@ int ms_vty_init(void)
 	install_element(TESTSIM_NODE, &cfg_test_no_rplmn_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_rplmn_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_hplmn_cmd);
+	install_element(MS_NODE, &cfg_ms_shutdown_cmd);
+	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
+	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);
 
 	return 0;
 }

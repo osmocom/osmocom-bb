@@ -9,7 +9,7 @@ libmobile_a_SOURCES = gsm322.c gsm48_cc.c gsm48_mm.c gsm48_rr.c	\
 
 bin_PROGRAMS = mobile
 
-mobile_SOURCES = ../common/main.c app_mobile.c
+mobile_SOURCES = main.c app_mobile.c
 mobile_LDADD = libmobile.a $(LDADD)
 
 

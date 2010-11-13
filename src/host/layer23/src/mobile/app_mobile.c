@@ -24,14 +24,12 @@
 
 #include <errno.h>
 #include <signal.h>
-#include <time.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/l1ctl.h>
-#include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
-#include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/vty/telnet_interface.h>
@@ -39,18 +37,10 @@
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
 #include <osmocore/select.h>
-#include <osmocore/signal.h>
-
-extern struct log_target *stderr_target;
-static const char *config_file = "/etc/osmocom/osmocom.cfg";
-extern void *l23_ctx;
-extern unsigned short vty_port;
-extern int vty_reading;
-
-int mobile_started = 0;
 
 int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg);
 int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg);
+extern int (*l23_app_exit) (struct osmocom_ms *ms, int force);
 
 int mobile_work(struct osmocom_ms *ms)
 {
@@ -73,7 +63,7 @@ int mobile_work(struct osmocom_ms *ms)
 	return work;
 }
 
-static int signal_cb(unsigned int subsys, unsigned int signal,
+int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
@@ -85,11 +75,11 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 
 	switch (signal) {
 	case S_L1CTL_RESET:
-		if (mobile_started)
-			break;
-
 		ms = signal_data;
 		set = &ms->settings;
+
+		if (ms->started)
+			break;
 
 		/* insert test card, if enabled */
 		switch (set->sim_type) {
@@ -113,19 +103,19 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 			gsm322_cs_sendmsg(ms, nmsg);
 		}
 
-		mobile_started = 1;
+		ms->started = 1;
 	}
 	return 0;
 }
 
-int mobile_exit(struct osmocom_ms *ms)
+int mobile_exit(struct osmocom_ms *ms, int force)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 
-	if (!mm->power_off && mobile_started) {
+	if (!force && ms->started) {
 		struct msgb *nmsg;
 
-		mm->power_off = 1;
+		ms->shutdown = 1; /* going down */
 		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
 		if (!nmsg)
 			return -ENOMEM;
@@ -134,48 +124,30 @@ int mobile_exit(struct osmocom_ms *ms)
 		return -EBUSY;
 	}
 
-	/* in case there is a lockup during exit */
-	signal(SIGINT, SIG_DFL);
-	signal(SIGHUP, SIG_DFL);
-	signal(SIGTERM, SIG_DFL);
-	signal(SIGPIPE, SIG_DFL);
-
-	unregister_signal_handler(SS_L1CTL, &signal_cb, NULL);
-	gps_close();
 	gsm322_exit(ms);
 	gsm48_mm_exit(ms);
 	gsm48_rr_exit(ms);
 	gsm_subscr_exit(ms);
 	gsm48_cc_exit(ms);
 	gsm_sim_exit(ms);
-	gsm_settings_exit(ms);
+	lapdm_exit(&ms->l2_entity.lapdm_acch);
+	lapdm_exit(&ms->l2_entity.lapdm_dcch);
 
-	printf("Power off!\n");
+	ms->shutdown = 2; /* being down */
+	vty_notify(ms, NULL);
+	vty_notify(ms, "Power off!\n");
+	printf("Power off! (MS %s)\n", ms->name);
 
 	return 0;
 }
 
-static struct vty_app_info vty_info = {
-	.name = "OsmocomBB",
-	.version = PACKAGE_VERSION,
-	.go_parent_cb = ms_vty_go_parent,
-};
-
 int l23_app_init(struct osmocom_ms *ms)
 {
 	int rc;
-	struct telnet_connection dummy_conn;
 
-//	log_parse_category_mask(stderr_target, "DL1C:DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
-	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
-	log_set_log_level(stderr_target, LOGL_INFO);
-
-	srand(time(NULL));
-
-	gps_init();
-	gsm_support_init(ms);
+	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
+	lapdm_init(&ms->l2_entity.lapdm_acch, ms);
 	gsm_sim_init(ms);
-	gsm_settings_init(ms);
 	gsm48_cc_init(ms);
 	gsm_subscr_init(ms);
 	gsm48_rr_init(ms);
@@ -183,38 +155,36 @@ int l23_app_init(struct osmocom_ms *ms)
 	INIT_LLIST_HEAD(&ms->trans_list);
 	gsm322_init(ms);
 
-	l23_app_work = mobile_work;
-	register_signal_handler(SS_L1CTL, &signal_cb, NULL);
-	l23_app_exit = mobile_exit;
-
-	vty_init(&vty_info);
-	ms_vty_init();
-	dummy_conn.priv = NULL;
-	vty_reading = 1;
-	rc = vty_read_config_file(config_file, &dummy_conn);
+	rc = layer2_open(ms, ms->settings.layer2_socket_path);
 	if (rc < 0) {
-		fprintf(stderr, "Failed to parse the config file: '%s'\n",
-			config_file);
-		fprintf(stderr, "Please check or create config file using: "
-			"'touch %s'\n", config_file);
+		fprintf(stderr, "Failed during layer2_open()\n");
+		ms->l2_wq.bfd.fd = -1;
+		l23_app_exit(ms, 1);
 		return rc;
 	}
-	vty_reading = 0;
-	telnet_init(l23_ctx, NULL, vty_port);
-	if (rc < 0)
+
+#if 0
+	rc = sap_open(ms, ms->settings.sap_socket_path);
+	if (rc < 0) {
+		fprintf(stderr, "Failed during sap_open(), no SIM reader\n");
+		ms->sap_wq.bfd.fd = -1;
+		l23_app_exit(ms, 1);
 		return rc;
+	}
+#endif
 
 	if (ms->settings.ch_cap == GSM_CAP_SDCCH)
 		ms->cclayer.mncc_recv = mncc_recv_dummy;
 	else
 		ms->cclayer.mncc_recv = mncc_recv_mobile;
 
-	printf("VTY available on port %u.\n", vty_port);
-
 	gsm_random_imei(&ms->settings);
 
+	ms->shutdown = 0;
+	ms->started = 0;
+
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
-	printf("Mobile initialized, please start phone now!\n");
+	printf("Mobile '%s' initialized, please start phone now!\n", ms->name);
 	return 0;
 }
 

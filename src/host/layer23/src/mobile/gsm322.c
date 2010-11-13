@@ -33,12 +33,12 @@
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l1ctl.h>
-#include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/mobile/vty.h>
 
 extern void *l23_ctx;
+extern int (*l23_app_exit) (struct osmocom_ms *ms, int force);
 
 static void gsm322_cs_timeout(void *arg);
 static void gsm322_cs_loss(void *arg);
@@ -2376,7 +2376,7 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 	return l1ctl_tx_pm_req_range(ms, s, e);
 }
 
-static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
+int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
@@ -2489,8 +2489,8 @@ static int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 	case S_L1CTL_RESET:
 		ms = signal_data;
 		if (ms->mmlayer.power_off_idle) {
-			l23_app_exit(ms);
-			exit(0);
+			l23_app_exit(ms, 1);
+			return 0;
 		}
 		break;
 	}
@@ -3525,8 +3525,6 @@ int gsm322_init(struct osmocom_ms *ms)
 	} else
 		LOGP(DCS, LOGL_INFO, "No stored BA list\n");
 
-	register_signal_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
-
 	return 0;
 }
 
@@ -3544,8 +3542,6 @@ int gsm322_exit(struct osmocom_ms *ms)
 
 	LOGP(DPLMN, LOGL_INFO, "exit PLMN process\n");
 	LOGP(DCS, LOGL_INFO, "exit Cell Selection process\n");
-
-	unregister_signal_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
 
 	/* stop cell selection process (if any) */
 	new_c_state(cs, GSM322_C0_NULL);

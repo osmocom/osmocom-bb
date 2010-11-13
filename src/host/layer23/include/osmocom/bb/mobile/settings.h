@@ -8,6 +8,9 @@ enum {
 };
 
 struct gsm_settings {
+	char			layer2_socket_path[128];
+	char			sap_socket_path[128];
+
 	/* IMEI */
 	char			imei[16];
 	char			imeisv[17];

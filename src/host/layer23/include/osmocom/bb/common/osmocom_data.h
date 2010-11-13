@@ -53,6 +53,7 @@ struct osmocom_ms {
 	struct write_queue l2_wq, sap_wq;
 	uint16_t test_arfcn;
 
+	uint8_t delete, shutdown, started;
 	struct gsm_support support;
 	struct gsm_settings settings;
 	struct gsm_subscriber subscr;
@@ -70,9 +71,10 @@ struct osmocom_ms {
 
 enum osmobb_sig_subsys {
 	SS_L1CTL,
+	SS_GLOBAL,
 };
 
-enum osmobb_meas_sig {
+enum osmobb_l1ctl_sig {
 	S_L1CTL_FBSB_ERR,
 	S_L1CTL_FBSB_RESP,
 	S_L1CTL_RESET,
@@ -81,6 +83,10 @@ enum osmobb_meas_sig {
 	S_L1CTL_CCCH_MODE_CONF,
 	S_L1CTL_TCH_MODE_CONF,
 	S_L1CTL_LOSS_IND,
+};
+
+enum osmobb_global_sig {
+	S_GLOBAL_SHUTDOWN,
 };
 
 struct osmobb_fbsb_res {

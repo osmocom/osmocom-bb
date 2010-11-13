@@ -196,6 +196,8 @@ void start_loss_timer(struct gsm322_cellsel *cs, int sec, int micro);
 extern const char *plmn_a_state_names[];
 extern const char *plmn_m_state_names[];
 extern const char *cs_state_names[];
+int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
+		     void *handler_data, void *signal_data);
 
 char *gsm_print_rxlev(uint8_t rxlev); 
 
