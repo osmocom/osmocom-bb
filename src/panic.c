@@ -64,7 +64,7 @@ void osmo_panic(const char *fmt, ...)
 }
  
 
-void osmo_set_panic_handler(osmo_panic_handler_t *h)
+void osmo_set_panic_handler(osmo_panic_handler_t h)
 {
 	osmo_panic_handler = h;
 }
