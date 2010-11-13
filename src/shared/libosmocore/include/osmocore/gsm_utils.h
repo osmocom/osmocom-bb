@@ -87,6 +87,7 @@ static inline int rach_max_trans_raw2val(int raw) {
 
 #define	ARFCN_PCS	0x8000
 #define	ARFCN_UPLINK	0x4000
+#define	ARFCN_FLAG_MASK	0xf000	/* Reserve the upper 5 bits for flags */
 
 enum gsm_band gsm_arfcn2band(uint16_t arfcn);
 

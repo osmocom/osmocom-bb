@@ -26,6 +26,7 @@ struct msgb;
 
 struct msgb *gsm0808_create_layer3(struct msgb *msg, uint16_t netcode, uint16_t countrycode, int lac, uint16_t ci);
 struct msgb *gsm0808_create_reset(void);
+struct msgb *gsm0808_create_clear_command(uint8_t reason);
 struct msgb *gsm0808_create_clear_complete(void);
 struct msgb *gsm0808_create_cipher_complete(struct msgb *layer3, uint8_t alg_id);
 struct msgb *gsm0808_create_cipher_reject(uint8_t cause);
@@ -35,7 +36,9 @@ struct msgb *gsm0808_create_assignment_completed(uint8_t rr_cause,
 						 uint8_t chosen_channel, uint8_t encr_alg_id,
 						 uint8_t speech_mode);
 struct msgb *gsm0808_create_assignment_failure(uint8_t cause, uint8_t *rr_cause);
+struct msgb *gsm0808_create_clear_rqst(uint8_t cause);
 
+struct msgb *gsm0808_create_dtap(struct msgb *msg, uint8_t link_id);
 void gsm0808_prepend_dtap_header(struct msgb *msg, uint8_t link_id);
 
 const struct tlv_definition *gsm0808_att_tlvdef();

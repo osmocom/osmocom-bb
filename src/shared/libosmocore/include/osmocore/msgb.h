@@ -62,10 +62,11 @@ extern void msgb_reset(struct msgb *m);
 
 #ifdef MSGB_DEBUG
 #include <osmocore/panic.h>
-static inline void msgb_abort(struct msgb *msg, const char *text)
-{
-	osmo_panic("%s", text);
-}
+#define MSGB_ABORT(msg, fmt, args ...) do {		\
+	osmo_panic("msgb(%p): " fmt, msg, ## args);	\
+	} while(0)
+#else
+#define MSGB_ABORT(msg, fmt, args ...)
 #endif
 
 #define msgb_l1(m)	((void *)(m->l1h))
@@ -106,10 +107,9 @@ static inline int msgb_headroom(const struct msgb *msgb)
 static inline unsigned char *msgb_put(struct msgb *msgb, unsigned int len)
 {
 	unsigned char *tmp = msgb->tail;
-#ifdef MSGB_DEBUG
-	if (msgb_tailroom(msgb) < len)
-		msgb_abort(msgb, "Not enough tailroom\n");
-#endif
+	if (msgb_tailroom(msgb) < (int) len)
+		MSGB_ABORT(msgb, "Not enough tailroom msgb_push (%u < %u)\n",
+			   msgb_tailroom(msgb), len);
 	msgb->tail += len;
 	msgb->len += len;
 	return tmp;
@@ -157,10 +157,9 @@ static inline uint32_t msgb_get_u32(struct msgb *msgb)
 }
 static inline unsigned char *msgb_push(struct msgb *msgb, unsigned int len)
 {
-#ifdef MSGB_DEBUG
-	if (msgb_headroom(msgb) < len)
-		msgb_abort(msgb, "Not enough headroom\n");
-#endif
+	if (msgb_headroom(msgb) < (int) len)
+		MSGB_ABORT(msgb, "Not enough headroom msgb_push (%u < %u)\n",
+			   msgb_headroom(msgb), len);
 	msgb->data -= len;
 	msgb->len += len;
 	return msgb->data;

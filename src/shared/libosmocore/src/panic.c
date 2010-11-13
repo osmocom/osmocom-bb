@@ -20,6 +20,7 @@
  *
  */
 
+#include <osmocore/gsm_utils.h>
 #include <osmocore/panic.h>
 
 #include "../config.h"
@@ -36,6 +37,7 @@ static osmo_panic_handler_t osmo_panic_handler = (void*)0;
 static void osmo_panic_default(const char *fmt, va_list args)
 {
 	vfprintf(stderr, fmt, args);
+	generate_backtrace();
 	abort();
 }
 
@@ -64,7 +66,7 @@ void osmo_panic(const char *fmt, ...)
 }
  
 
-void osmo_set_panic_handler(osmo_panic_handler_t *h)
+void osmo_set_panic_handler(osmo_panic_handler_t h)
 {
 	osmo_panic_handler = h;
 }

@@ -1,5 +1,5 @@
 if ENABLE_VTY
-SUBDIRS = vty crypt
+SUBDIRS = vty codec crypt
 else
-SUBDIRS = crypt
+SUBDIRS = codec crypt
 endif

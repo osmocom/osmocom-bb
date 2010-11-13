@@ -99,9 +99,11 @@ AM_CONDITIONAL(ENABLE_MSGFILE, test "x$enable_msgfile" = "x1")
 
 AC_OUTPUT(
 	libosmocore.pc
+	libosmocodec.pc
 	libosmovty.pc
 	include/osmocom/Makefile
 	include/osmocom/vty/Makefile
+	include/osmocom/codec/Makefile
 	include/osmocom/crypt/Makefile
 	include/osmocore/Makefile
 	include/osmocore/protocol/Makefile

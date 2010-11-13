@@ -359,7 +359,11 @@ void generate_backtrace()
 
 enum gsm_band gsm_arfcn2band(uint16_t arfcn)
 {
-	if (arfcn & ARFCN_PCS)
+	int is_pcs = arfcn & ARFCN_PCS;
+
+	arfcn &= ~ARFCN_FLAG_MASK;
+
+	if (is_pcs)
 		return GSM_BAND_1900;
 	else if (arfcn <= 124)
 		return GSM_BAND_900;
@@ -386,8 +390,11 @@ uint16_t gsm_arfcn2freq10(uint16_t arfcn, int uplink)
 {
 	uint16_t freq10_ul;
 	uint16_t freq10_dl;
+	int is_pcs = arfcn & ARFCN_PCS;
 
-	if (arfcn & ARFCN_PCS) {
+	arfcn &= ~ARFCN_FLAG_MASK;
+
+	if (is_pcs) {
 		/* DCS 1900 */
 		arfcn &= ~ARFCN_PCS;
 		freq10_ul = 18502 + 2 * (arfcn-512);

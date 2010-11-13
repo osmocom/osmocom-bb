@@ -4,7 +4,8 @@
 #include <stdint.h>
 
 extern uint16_t gsm610_bitorder[];	/* FR */
-extern uint16_t gsm620_bitorder[];	/* HR */
+extern uint16_t gsm620_unvoiced_bitorder[]; /* HR unvoiced */
+extern uint16_t gsm620_voiced_bitorder[];   /* HR voiced */
 extern uint16_t gsm660_bitorder[];	/* EFR */
 
 extern uint16_t gsm690_12_2_bitorder[];	/* AMR 12.2  kbits */
