@@ -131,37 +131,115 @@ static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
 	struct osmocom_ms *ms;
 
 	llist_for_each_entry(ms, &ms_list, entity) {
-		if (!strcmp(ms->name, name))
+		if (!strcmp(ms->name, name)) {
 			if (ms->shutdown) {
 				vty_out(vty, "MS '%s' is admin down.%s", name,
 					VTY_NEWLINE);
+				return NULL;
 			}
 			return ms;
+		}
 	}
 	vty_out(vty, "MS name '%s' does not exits.%s", name, VTY_NEWLINE);
 
 	return NULL;
 }
 
-DEFUN(show_ms, show_ms_cmd, "show ms",
+static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
+{
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_trans *trans;
+	char *service = "";
+
+	if (!ms->started)
+		service = ", radio is not started";
+	else if (ms->mmlayer.state == GSM48_MM_ST_MM_IDLE) {
+		/* current MM idle state */
+		switch (ms->mmlayer.substate) {
+		case GSM48_MM_SST_NORMAL_SERVICE:
+		case GSM48_MM_SST_PLMN_SEARCH_NORMAL:
+			service = ", service is normal";
+			break;
+		case GSM48_MM_SST_LOC_UPD_NEEDED:
+		case GSM48_MM_SST_ATTEMPT_UPDATE:
+			service = ", service is limited (pending)";
+			break;
+		case GSM48_MM_SST_NO_CELL_AVAIL:
+			service = ", service is unavailable";
+			break;
+		default:
+			if (ms->subscr.sim_valid)
+				service = ", service is limited";
+			else
+				service = ", service is limited "
+					"(IMSI detached)";
+			break;
+		}
+	} else
+		service = ", MM connection active";
+
+	vty_out(vty, "MS '%s' is %s%s%s%s", ms->name,
+		(ms->shutdown) ? "administratively " : "",
+		(ms->shutdown || !ms->started) ? "down" : "up",
+		(!ms->shutdown) ? service : "",
+		VTY_NEWLINE);
+	vty_out(vty, "  IMEI: %s%s", set->imei, VTY_NEWLINE);
+	vty_out(vty, "     IMEISV: %s%s", set->imeisv, VTY_NEWLINE);
+	if (set->imei_random)
+		vty_out(vty, "     IMEI generation: random (%d trailing "
+			"digits)%s", set->imei_random, VTY_NEWLINE);
+	else
+		vty_out(vty, "     IMEI generation: fixed%s", VTY_NEWLINE);
+
+	if (ms->shutdown)
+		return;
+
+	if (set->plmn_mode == PLMN_MODE_AUTO)
+		vty_out(vty, "  automatic network selection state: %s%s", 
+			plmn_a_state_names[ms->plmn.state], VTY_NEWLINE);
+	else
+		vty_out(vty, "  manual network selection state: %s%s", 
+			plmn_m_state_names[ms->plmn.state], VTY_NEWLINE);
+	vty_out(vty, "  cell selection state: %s",
+		cs_state_names[ms->cellsel.state]);
+	if (ms->rrlayer.state == GSM48_RR_ST_IDLE && ms->cellsel.selected)
+		vty_out(vty, " (ARFCN %d)", ms->cellsel.sel_arfcn);
+	vty_out(vty, "%s", VTY_NEWLINE);
+	vty_out(vty, "  radio ressource layer state: %s%s", 
+		gsm48_rr_state_names[ms->rrlayer.state], VTY_NEWLINE);
+	vty_out(vty, "  mobility management layer state: %s", 
+		gsm48_mm_state_names[ms->mmlayer.state]);
+	if (ms->mmlayer.state == GSM48_MM_ST_MM_IDLE)
+		vty_out(vty, ", %s", 
+			gsm48_mm_substate_names[ms->mmlayer.substate]);
+	vty_out(vty, "%s", VTY_NEWLINE);
+	llist_for_each_entry(trans, &ms->trans_list, entry) {
+		vty_out(vty, "  call control state: %s%s", 
+			gsm48_cc_state_name(trans->cc.state), VTY_NEWLINE);
+	}
+}
+
+
+DEFUN(show_ms, show_ms_cmd, "show ms [ms_name]",
 	SHOW_STR "Display available MS entities\n")
 {
 	struct osmocom_ms *ms;
 
-	llist_for_each_entry(ms, &ms_list, entity) {
-		struct gsm_settings *set = &ms->settings;
-
-		vty_out(vty, "MS NAME: %s%s", ms->name, VTY_NEWLINE);
-		vty_out(vty, " IMEI: %s%s", set->imei, VTY_NEWLINE);
-		vty_out(vty, " IMEISV: %s%s", set->imeisv, VTY_NEWLINE);
-		if (set->imei_random)
-			vty_out(vty, " IMEI generation: random (%d trailing "
-				"digits)%s", set->imei_random, VTY_NEWLINE);
-		else
-			vty_out(vty, " IMEI generation: fixed%s", VTY_NEWLINE);
-		vty_out(vty, " network selection mode: %s%s",
-			(set->plmn_mode == PLMN_MODE_AUTO)
-				? "automatic" : "manual", VTY_NEWLINE);
+	if (argc) {
+		llist_for_each_entry(ms, &ms_list, entity) {
+			if (!strcmp(ms->name, argv[0])) {
+				gsm_ms_dump(ms, vty);
+				return CMD_SUCCESS;
+			}
+		}
+		vty_out(vty, "MS name '%s' does not exits.%s", argv[0],
+		VTY_NEWLINE);
+		return CMD_WARNING;
+	} else {
+		llist_for_each_entry(ms, &ms_list, entity) {
+			gsm_ms_dump(ms, vty);
+			vty_out(vty, "%s", VTY_NEWLINE);
+		}
 	}
 
 	return CMD_SUCCESS;
@@ -182,60 +260,6 @@ DEFUN(show_support, show_support_cmd, "show support [ms_name]",
 		llist_for_each_entry(ms, &ms_list, entity) {
 			gsm_support_dump(ms, print_vty, vty);
 			vty_out(vty, "%s", VTY_NEWLINE);
-		}
-	}
-
-	return CMD_SUCCESS;
-}
-
-static void gsm_states_dump(struct osmocom_ms *ms, struct vty *vty)
-{
-	struct gsm_settings *set = &ms->settings;
-	struct gsm_trans *trans;
-
-	vty_out(vty, "Current state of MS '%s'%s", ms->name, VTY_NEWLINE);
-	if (set->plmn_mode == PLMN_MODE_AUTO)
-		vty_out(vty, " automatic network selection: %s%s", 
-			plmn_a_state_names[ms->plmn.state], VTY_NEWLINE);
-	else
-		vty_out(vty, " manual network selection: %s%s", 
-			plmn_m_state_names[ms->plmn.state], VTY_NEWLINE);
-	vty_out(vty, " cell selection: %s",
-		cs_state_names[ms->cellsel.state]);
-	if (ms->rrlayer.state == GSM48_RR_ST_IDLE && ms->cellsel.selected)
-		vty_out(vty, " (ARFCN %d)", ms->cellsel.sel_arfcn);
-	vty_out(vty, "%s", VTY_NEWLINE);
-	vty_out(vty, " radio ressource layer: %s%s", 
-		gsm48_rr_state_names[ms->rrlayer.state], VTY_NEWLINE);
-	vty_out(vty, " mobility management layer: %s", 
-		gsm48_mm_state_names[ms->mmlayer.state]);
-	if (ms->mmlayer.state == GSM48_MM_ST_MM_IDLE)
-		vty_out(vty, ", %s", 
-			gsm48_mm_substate_names[ms->mmlayer.substate]);
-	vty_out(vty, "%s", VTY_NEWLINE);
-	llist_for_each_entry(trans, &ms->trans_list, entry) {
-		vty_out(vty, " call control: %s%s", 
-			gsm48_cc_state_name(trans->cc.state), VTY_NEWLINE);
-	}
-}
-
-DEFUN(show_states, show_states_cmd, "show states [ms_name]",
-	SHOW_STR "Display current states of given MS\n"
-	"Name of MS (see \"show ms\")")
-{
-	struct osmocom_ms *ms;
-
-	if (argc) {
-		ms = get_ms(argv[0], vty);
-		if (!ms)
-			return CMD_WARNING;
-		gsm_states_dump(ms, vty);
-	} else {
-		llist_for_each_entry(ms, &ms_list, entity) {
-			if (!ms->shutdown) {
-				gsm_states_dump(ms, vty);
-				vty_out(vty, "%s", VTY_NEWLINE);
-			}
 		}
 	}
 
@@ -2185,7 +2209,6 @@ int ms_vty_init(void)
 	install_element_ve(&show_ms_cmd);
 	install_element_ve(&show_subscr_cmd);
 	install_element_ve(&show_support_cmd);
-	install_element_ve(&show_states_cmd);
 	install_element_ve(&show_cell_cmd);
 	install_element_ve(&show_cell_si_cmd);
 	install_element_ve(&show_ba_cmd);
