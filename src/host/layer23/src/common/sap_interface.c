@@ -24,6 +24,7 @@
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/sap_interface.h>
 
 #include <osmocore/utils.h>
 
@@ -41,8 +42,6 @@
 #define GSM_SAP_LENGTH 300
 #define GSM_SAP_HEADROOM 32
 
-extern int quit;
-
 static int sap_read(struct bsc_fd *fd)
 {
 	struct msgb *msg;
@@ -59,9 +58,10 @@ static int sap_read(struct bsc_fd *fd)
 	rc = read(fd->fd, &len, sizeof(len));
 	if (rc < sizeof(len)) {
 		fprintf(stderr, "SAP socket failed\n");
+		msgb_free(msg);
 		if (rc >= 0)
 			rc = -EIO;
-		quit = rc;
+		sap_close(ms);
 		return rc;
 	}
 
@@ -91,6 +91,9 @@ static int sap_read(struct bsc_fd *fd)
 static int sap_write(struct bsc_fd *fd, struct msgb *msg)
 {
 	int rc;
+
+	if (fd->fd <= 0)
+		return -EINVAL;
 
 	rc = write(fd->fd, msg->data, msg->len);
 	if (rc != msg->len) {
@@ -145,6 +148,7 @@ int sap_close(struct osmocom_ms *ms)
 		return -EINVAL;
 
 	close(ms->sap_wq.bfd.fd);
+	ms->sap_wq.bfd.fd = -1;
 	bsc_unregister_fd(&ms->sap_wq.bfd);
 
 	return 0;

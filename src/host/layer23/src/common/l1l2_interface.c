@@ -24,6 +24,7 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/l1l2_interface.h>
 
 #include <osmocore/utils.h>
 
@@ -41,8 +42,6 @@
 #define GSM_L2_LENGTH 256
 #define GSM_L2_HEADROOM 32
 
-extern int quit;
-
 static int layer2_read(struct bsc_fd *fd)
 {
 	struct msgb *msg;
@@ -58,9 +57,10 @@ static int layer2_read(struct bsc_fd *fd)
 	rc = read(fd->fd, &len, sizeof(len));
 	if (rc < sizeof(len)) {
 		fprintf(stderr, "Layer2 socket failed\n");
+		msgb_free(msg);
 		if (rc >= 0)
 			rc = -EIO;
-		quit = rc;
+		layer2_close((struct osmocom_ms *) fd->data);
 		return rc;
 	}
 
@@ -89,6 +89,9 @@ static int layer2_read(struct bsc_fd *fd)
 static int layer2_write(struct bsc_fd *fd, struct msgb *msg)
 {
 	int rc;
+
+	if (fd->fd <= 0)
+		return -EINVAL;
 
 	rc = write(fd->fd, msg->data, msg->len);
 	if (rc != msg->len) {
@@ -140,7 +143,11 @@ int layer2_open(struct osmocom_ms *ms, const char *socket_path)
 
 int layer2_close(struct osmocom_ms *ms)
 {
+	if (ms->l2_wq.bfd.fd <= 0)
+		return -EINVAL;
+
 	close(ms->l2_wq.bfd.fd);
+	ms->l2_wq.bfd.fd = -1;
 	bsc_unregister_fd(&ms->l2_wq.bfd);
 
 	return 0;
