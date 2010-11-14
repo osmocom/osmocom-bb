@@ -51,8 +51,7 @@
 
 /* the size we will allocate struct msgb* for HDLC */
 #define L3_MSG_HEAD 4
-#define L3_MSG_DATA 200
-#define L3_MSG_SIZE (L3_MSG_HEAD + sizeof(struct l1ctl_hdr) + L3_MSG_DATA)
+#define L3_MSG_SIZE (sizeof(struct l1ctl_hdr)+sizeof(struct l1ctl_info_dl)+sizeof(struct l1ctl_burst_ind) + L3_MSG_HEAD)
 
 void (*l1a_l23_tx_cb)(struct msgb *msg) = NULL;
 
