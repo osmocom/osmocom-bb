@@ -223,7 +223,7 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		}
 
 		dl->snr = avg_snr / n;
-		dl->rx_level = (avg_dbm8 / (8*n)) + 110;
+		dl->rx_level = dbm2rxlev(avg_dbm8 / (8*n));
 
 		/* Errors & CRC status */
 		num_biterr = dsp_api.ndb->a_fd[2] & 0xffff;
@@ -518,7 +518,7 @@ static int l1s_tch_a_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 			avg_dbm8 += rx_tch_a.meas[i].pm_dbm8;
 		}
 		rx_tch_a.dl->snr = avg_snr / 4;
-		rx_tch_a.dl->rx_level = (avg_dbm8 / (8*4)) + 110;
+		rx_tch_a.dl->rx_level = dbm2rxlev(avg_dbm8 / (8*4));
 
 		num_biterr = dsp_api.ndb->a_cd[2];
 		if (num_biterr > 0xff)

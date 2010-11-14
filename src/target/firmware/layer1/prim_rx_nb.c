@@ -133,7 +133,7 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 			avg_dbm8 += rxnb.meas[i].pm_dbm8;
 		}
 		rxnb.dl->snr = avg_snr / 4;
-		rxnb.dl->rx_level = (avg_dbm8 / (8*4)) + 110;
+		rxnb.dl->rx_level = dbm2rxlev(avg_dbm8 / (8*4));
 
 		num_biterr = dsp_api.ndb->a_cd[2] & 0xffff;
 		if (num_biterr > 0xff)
