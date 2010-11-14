@@ -53,7 +53,7 @@ struct osmocom_ms {
 	struct write_queue l2_wq, sap_wq;
 	uint16_t test_arfcn;
 
-	uint8_t delete, shutdown, started;
+	uint8_t deleting, shutdown, started;
 	struct gsm_support support;
 	struct gsm_settings settings;
 	struct gsm_subscriber subscr;

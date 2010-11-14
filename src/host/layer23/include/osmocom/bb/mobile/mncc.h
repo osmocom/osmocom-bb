@@ -109,6 +109,9 @@ struct gsm_call {
 #define GSM_TCHF_FRAME		0x0300
 #define GSM_TCHF_FRAME_EFR	0x0301
 
+#define MS_NEW			0x0400
+#define MS_DELETE		0x0401
+
 #define GSM_MAX_FACILITY	128
 #define GSM_MAX_SSVERSION	128
 #define GSM_MAX_USERUSER	128

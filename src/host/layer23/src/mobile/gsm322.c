@@ -36,9 +36,9 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/mobile/vty.h>
+#include <osmocom/bb/mobile/app_mobile.h>
 
 extern void *l23_ctx;
-extern int (*l23_app_exit) (struct osmocom_ms *ms, int force);
 
 static void gsm322_cs_timeout(void *arg);
 static void gsm322_cs_loss(void *arg);
@@ -2489,7 +2489,7 @@ int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 	case S_L1CTL_RESET:
 		ms = signal_data;
 		if (ms->mmlayer.power_off_idle) {
-			l23_app_exit(ms, 1);
+			mobile_exit(ms, 1);
 			return 0;
 		}
 		break;

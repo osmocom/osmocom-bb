@@ -36,9 +36,9 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
+#include <osmocom/bb/mobile/app_mobile.h>
 
 extern void *l23_ctx;
-extern int (*l23_app_exit) (struct osmocom_ms *ms, int force);
 
 void mm_conn_free(struct gsm48_mm_conn *conn);
 static int gsm48_rcv_rr(struct osmocom_ms *ms, struct msgb *msg);
@@ -1743,7 +1743,7 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 	/* wait for RR idle and then power off when IMSI is detached */
 	if (ms->shutdown) {
 		if (mm->state == GSM48_MM_ST_MM_IDLE) {
-			l23_app_exit(ms, 1);
+			mobile_exit(ms, 1);
 			return 0;
 		}
 		/* power off when MM idle */
@@ -1818,7 +1818,7 @@ static int gsm48_mm_imsi_detach_release(struct osmocom_ms *ms, struct msgb *msg)
 
 		/* power off */
 		if (ms->shutdown) {
-			l23_app_exit(ms, 1);
+			mobile_exit(ms, 1);
 			return 0;
 		}
 

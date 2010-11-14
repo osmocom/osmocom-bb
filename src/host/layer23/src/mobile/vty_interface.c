@@ -36,13 +36,10 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/vty.h>
+#include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/vty/telnet_interface.h>
 
 void *l23_ctx;
-extern int l23_app_init(struct osmocom_ms *ms);
-extern int (*l23_app_exit) (struct osmocom_ms *ms, int force);
-extern struct osmocom_ms *mobile_new(char *name);
-extern int mobile_delete(struct osmocom_ms *ms, int force);
 
 int mncc_call(struct osmocom_ms *ms, char *number);
 int mncc_hangup(struct osmocom_ms *ms);
@@ -2078,7 +2075,7 @@ DEFUN(cfg_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
 		}
 	}
 
-	rc = l23_app_init(ms);
+	rc = mobile_init(ms);
 	if (rc < 0) {
 		vty_out(vty, "Connection to layer 1 failed!%s",
 			VTY_NEWLINE);
@@ -2094,7 +2091,7 @@ DEFUN(cfg_shutdown, cfg_ms_shutdown_cmd, "shutdown",
 	struct osmocom_ms *ms = vty->index;
 
 	if (ms->shutdown == 0)
-		l23_app_exit(ms, 0);
+		mobile_exit(ms, 0);
 
 	return CMD_SUCCESS;
 }
@@ -2105,7 +2102,7 @@ DEFUN(cfg_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
 	struct osmocom_ms *ms = vty->index;
 
 	if (ms->shutdown <= 1)
-		l23_app_exit(ms, 1);
+		mobile_exit(ms, 1);
 
 	return CMD_SUCCESS;
 }

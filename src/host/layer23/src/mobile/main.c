@@ -22,19 +22,10 @@
  */
 
 #include <osmocom/bb/common/osmocom_data.h>
-#include <osmocom/bb/common/l1l2_interface.h>
-#include <osmocom/bb/common/l1ctl.h>
-#include <osmocom/bb/common/sap_interface.h>
-#include <osmocom/bb/misc/layer3.h>
-#include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
-#include <osmocom/bb/common/gps.h>
-#include <osmocom/bb/mobile/vty.h>
-#include <osmocom/vty/telnet_interface.h>
+#include <osmocom/bb/mobile/app_mobile.h>
 
-#include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
-#include <osmocore/select.h>
 #include <osmocore/linuxlist.h>
 #include <osmocore/gsmtap_util.h>
 #include <osmocore/signal.h>
@@ -57,16 +48,13 @@ static const char *config_file = "/etc/osmocom/osmocom.cfg";
 struct llist_head ms_list;
 static uint32_t gsmtap_ip = 0;
 unsigned short vty_port = 4247;
-int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
-int (*l23_app_exit) (struct osmocom_ms *ms, int force) = NULL;
-int quit = 0;
+int debug_set = 0;
 
 int mobile_delete(struct osmocom_ms *ms, int force);
 int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data);
 int mobile_work(struct osmocom_ms *ms);
 int mobile_exit(struct osmocom_ms *ms, int force);
-extern int vty_reading;
 
 
 const char *openbsc_copyright =
@@ -128,6 +116,7 @@ static void handle_options(int argc, char **argv)
 			break;
 		case 'd':
 			log_parse_category_mask(stderr_target, optarg);
+			debug_set = 1;
 			break;
 		default:
 			break;
@@ -151,75 +140,9 @@ void sighandler(int sigset)
 	dispatch_signal(SS_GLOBAL, S_GLOBAL_SHUTDOWN, NULL);
 }
 
-int global_signal_cb(unsigned int subsys, unsigned int signal,
-		     void *handler_data, void *signal_data)
-{
-	struct osmocom_ms *ms, *ms2;
-
-	if (subsys != SS_GLOBAL)
-		return 0;
-
-	switch (signal) {
-	case S_GLOBAL_SHUTDOWN:
-		llist_for_each_entry_safe(ms, ms2, &ms_list, entity)
-			mobile_delete(ms, quit);
-
-		/* if second signal is received, force to exit */
-		quit = 1;
-		break;
-	}
-	return 0;
-}
-
-struct osmocom_ms *mobile_new(char *name)
-{
-	static struct osmocom_ms *ms;
-
-	ms = talloc_zero(l23_ctx, struct osmocom_ms);
-	if (!ms) {
-		fprintf(stderr, "Failed to allocate MS\n");
-		exit(1);
-	}
-	llist_add_tail(&ms->entity, &ms_list);
-
-	strcpy(ms->name, name);
-
-	ms->l2_wq.bfd.fd = -1;
-	ms->sap_wq.bfd.fd = -1;
-
-	gsm_support_init(ms);
-	gsm_settings_init(ms);
-
-	ms->shutdown = 2; /* being down */
-
-	return ms;
-}
-
-int mobile_delete(struct osmocom_ms *ms, int force)
-{
-	int rc;
-
-	ms->delete = 1;
-
-	if (ms->shutdown == 0 || (ms->shutdown == 1 && force)) {
-		rc = l23_app_exit(ms, force);
-		if (rc < 0)
-			return rc;
-	}
-
-	return 0;
-}
-
-static struct vty_app_info vty_info = {
-	.name = "OsmocomBB",
-	.version = PACKAGE_VERSION,
-	.go_parent_cb = ms_vty_go_parent,
-};
-
 int main(int argc, char **argv)
 {
-	struct osmocom_ms *ms, *ms2;
-	struct telnet_connection dummy_conn;
+	int quit = 0;
 	int rc;
 
 	printf("%s\n", openbsc_copyright);
@@ -236,44 +159,9 @@ int main(int argc, char **argv)
 
 	handle_options(argc, argv);
 
-//	log_parse_category_mask(stderr_target, "DL1C:DRSL:DLAPDM:DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
-	log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
+	if (!debug_set)
+		log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
 	log_set_log_level(stderr_target, LOGL_INFO);
-
-	gps_init();
-
-	l23_app_work = mobile_work;
-	register_signal_handler(SS_GLOBAL, &global_signal_cb, NULL);
-	register_signal_handler(SS_L1CTL, &mobile_signal_cb, NULL);
-	register_signal_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
-	l23_app_exit = mobile_exit;
-
-	vty_init(&vty_info);
-	ms_vty_init();
-	dummy_conn.priv = NULL;
-	vty_reading = 1;
-	rc = vty_read_config_file(config_file, &dummy_conn);
-	if (rc < 0) {
-		fprintf(stderr, "Failed to parse the config file: '%s'\n",
-			config_file);
-		fprintf(stderr, "Please check or create config file using: "
-			"'touch %s'\n", config_file);
-		return rc;
-	}
-	vty_reading = 0;
-	telnet_init(l23_ctx, NULL, vty_port);
-	if (rc < 0)
-		return rc;
-	printf("VTY available on port %u.\n", vty_port);
-
-	if (llist_empty(&ms_list)) {
-		struct osmocom_ms *ms;
-
-		printf("No Mobile Station defined, creating: MS '1'\n");
-		ms = mobile_new("1");
-		if (ms)
-			l23_app_init(ms);
-	}
 
 	if (gsmtap_ip) {
 		rc = gsmtap_init(gsmtap_ip);
@@ -283,43 +171,21 @@ int main(int argc, char **argv)
 		}
 	}
 
+	l23_app_init(NULL, config_file, vty_port);
+
 	signal(SIGINT, sighandler);
 	signal(SIGHUP, sighandler);
 	signal(SIGTERM, sighandler);
 	signal(SIGPIPE, sighandler);
 
 	while (1) {
-		llist_for_each_entry_safe(ms, ms2, &ms_list, entity) {
-			if (ms->shutdown != 2)
-				l23_app_work(ms);
-			if (ms->shutdown == 2) {
-				if (ms->l2_wq.bfd.fd > -1) {
-					layer2_close(ms);
-					ms->l2_wq.bfd.fd = -1;
-				}
-
-				if (ms->sap_wq.bfd.fd > -1) {
-					sap_close(ms);
-					ms->sap_wq.bfd.fd = -1;
-				}
-
-				if (ms->delete) {
-					gsm_settings_exit(ms);
-					llist_del(&ms->entity);
-					talloc_free(ms);
-				}
-			}
-		}
+		l23_app_work(&quit);
 		if (quit && llist_empty(&ms_list))
 			break;
 		bsc_select_main(0);
 	}
 
-	unregister_signal_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
-	unregister_signal_handler(SS_L1CTL, &mobile_signal_cb, NULL);
-	unregister_signal_handler(SS_GLOBAL, &global_signal_cb, NULL);
-
-	gps_close();
+	l23_app_exit();
 
 	return 0;
 }
