@@ -31,4 +31,8 @@ extern const struct tdma_sched_item tch_a_sched_set[];
 extern const struct tdma_sched_item tch_d_sched_set[];
 extern const struct tdma_sched_item neigh_pm_sched_set[];
 
+extern const struct tdma_sched_item sniff_xcch_dl_sched_set[];
+extern const struct tdma_sched_item sniff_xcch_ul_sched_set[];
+extern const struct tdma_sched_item sniff_tch_sched_set[];
+
 #endif /* _L1_PRIM_H */
