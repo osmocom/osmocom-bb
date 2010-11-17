@@ -51,7 +51,7 @@
 #define MAX_HDR_SIZE		128
 #define MAGIC_OFFSET		0x3be2
 
-#define BEACON_INTERVAL		50000
+#define DEFAULT_BEACON_INTERVAL	50000
 #define ROMLOAD_INIT_BAUDRATE	B19200
 #define ROMLOAD_DL_BAUDRATE	B115200
 #define ROMLOAD_BLOCK_HDR_LEN	10
@@ -137,6 +137,7 @@ struct dnload {
 
 	int dump_rx;
 	int dump_tx;
+	int beacon_interval;
 
 	/* data to be downloaded */
 	uint8_t *data;
@@ -289,7 +290,7 @@ static void beacon_timer_cb(void *p)
 		if (!(rc == sizeof(romload_ident_cmd)))
 			printf("Error sending identification beacon\n");
 
-		bsc_schedule_timer(p, 0, BEACON_INTERVAL);
+		bsc_schedule_timer(p, 0, dnload.beacon_interval);
 	}
 }
 
@@ -304,7 +305,7 @@ static void mtk_timer_cb(void *p)
 		if (!(rc == 1))
 			printf("Error sending identification beacon\n");
 
-		bsc_schedule_timer(p, 0, BEACON_INTERVAL);
+		bsc_schedule_timer(p, 0, dnload.beacon_interval);
 	}
 }
 
@@ -888,7 +889,7 @@ static int handle_read(void)
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			tick_timer.cb = &beacon_timer_cb;
 			tick_timer.data = &tick_timer;
-			bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
+			bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
 		}
 	} else if (!memcmp(buffer, phone_nack, sizeof(phone_nack))) {
 		printf("Received DOWNLOAD NACK from phone, something went"
@@ -1003,7 +1004,7 @@ static int handle_read_romload(void)
 				"something went wrong, aborting\n");
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
-			bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
+			bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
 		}
 		break;
 	case WAITING_CHECKSUM_ACK:
@@ -1025,7 +1026,7 @@ static int handle_read_romload(void)
 				"match ours, aborting\n", ~buffer[2]);
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
-			bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
+			bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
 			bufptr -= 1;
 		}
 		break;
@@ -1042,7 +1043,7 @@ static int handle_read_romload(void)
 			printf("Received branch nack, aborting\n");
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
-			bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
+			bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
 		}
 		break;
 	default:
@@ -1244,6 +1245,7 @@ static int parse_mode(const char *arg)
 	"\t\t [ -l /tmp/osmocom_loader ]\n" \
 	"\t\t [ -m {c123,c123xor,c140,c140xor,c155,romload,mtk} ]\n" \
 	"\t\t [ -c /to-be-chainloaded-file.bin ]\n" \
+	"\t\t [ -i beacon-interval (mS) ]\n" \
 	"\t\t  file.bin\n\n" \
 	"* Open serial port /dev/ttyXXXX (connected to your phone)\n" \
 	"* Perform handshaking with the ramloader in the phone\n" \
@@ -1452,8 +1454,9 @@ int main(int argc, char **argv)
 
 	dnload.mode = MODE_C123;
 	dnload.chainload_filename = NULL;
+	dnload.beacon_interval = DEFAULT_BEACON_INTERVAL;
 
-	while ((opt = getopt(argc, argv, "d:hl:p:m:c:s:v")) != -1) {
+	while ((opt = getopt(argc, argv, "d:hl:p:m:c:s:i:v")) != -1) {
 		switch (opt) {
 		case 'p':
 			serial_dev = optarg;
@@ -1477,6 +1480,9 @@ int main(int argc, char **argv)
 			break;
 		case 'c':
 			dnload.chainload_filename = optarg;
+			break;
+		case 'i':
+			dnload.beacon_interval = atoi(optarg) * 1000;
 			break;
 		case 'h':
 		default:
@@ -1530,14 +1536,14 @@ int main(int argc, char **argv)
 		serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 		tick_timer.cb = &beacon_timer_cb;
 		tick_timer.data = &tick_timer;
-		bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
+		bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
 	}
 	else if (dnload.mode == MODE_MTK) {
 		tmp_load_address = MTK_ADDRESS;
 		serial_set_baudrate(MTK_INIT_BAUDRATE);
 		tick_timer.cb = &mtk_timer_cb;
 		tick_timer.data = &tick_timer;
-		bsc_schedule_timer(&tick_timer, 0, BEACON_INTERVAL);
+		bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
 	}
 
 	dnload.load_address[0] = (tmp_load_address >> 24) & 0xff;
