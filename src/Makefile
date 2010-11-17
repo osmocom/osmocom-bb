@@ -23,7 +23,7 @@ shared/libosmocore/configure: shared/libosmocore/configure.in
 	cd shared/libosmocore && autoreconf -i
 
 shared/libosmocore/build-host/Makefile: shared/libosmocore/configure shared/libosmocore/build-host
-	cd shared/libosmocore/build-host && ../configure
+	cd shared/libosmocore/build-host && ../configure $(HOST_CONFARGS)
 
 shared/libosmocore/build-host/src/.libs/libosmocore.la: shared/libosmocore/build-host/Makefile
 	cd shared/libosmocore/build-host && make
@@ -51,7 +51,7 @@ host/osmocon/configure: host/osmocon/configure.ac
 	cd host/osmocon && autoreconf -i
 
 host/osmocon/Makefile: host/osmocon/configure
-	cd host/osmocon && $(OSMOCORE_CONFIGURE_ENV) ./configure
+	cd host/osmocon && $(OSMOCORE_CONFIGURE_ENV) ./configure $(HOST_CONFARGS)
 
 host/osmocon/osmocon: host/osmocon/Makefile libosmocore-host
 	make -C host/osmocon
@@ -64,7 +64,7 @@ host/gsmmap/configure: host/gsmmap/configure.ac
 	cd host/gsmmap && autoreconf -i
 
 host/gsmmap/Makefile: host/gsmmap/configure
-	cd host/gsmmap && $(OSMOCORE_CONFIGURE_ENV) ./configure
+	cd host/gsmmap && $(OSMOCORE_CONFIGURE_ENV) ./configure $(HOST_CONFARGS)
 
 host/gsmmap/gsmmap: host/gsmmap/Makefile libosmocore-host
 	make -C host/gsmmap
@@ -77,7 +77,7 @@ host/layer23/configure: host/layer23/configure.ac
 	cd host/layer23 && autoreconf -i
 
 host/layer23/Makefile: host/layer23/configure
-	cd host/layer23 && $(OSMOCORE_CONFIGURE_ENV) ./configure
+	cd host/layer23 && $(OSMOCORE_CONFIGURE_ENV) ./configure $(HOST_CONFARGS)
 
 host/layer23/layer23: host/layer23/Makefile libosmocore-host
 	make -C host/layer23
