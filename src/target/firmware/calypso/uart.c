@@ -127,12 +127,12 @@ static void uart_set_lcr7bit(int uart, int on)
 static uint8_t old_lcr;
 static void uart_set_lcr_bf(int uart, int on)
 {
-	old_lcr = readb(UART_REG(uart, LCR));
-
-	if (on)
+	if (on) {
+		old_lcr = readb(UART_REG(uart, LCR));
 		writeb(0xBF, UART_REG(uart, LCR));
-	else
+	} else {
 		writeb(old_lcr, UART_REG(uart, LCR));
+	}
 }
 
 /* Enable or disable the TCR_TLR latch bit in MCR[6] */
