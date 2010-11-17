@@ -43,7 +43,7 @@
 #define LCR7BIT		0x80
 #define LCRBFBIT	0x40
 #define MCR6BIT		0x20
-#define REG_OFFS(m)	((m) &= ~(LCR7BIT|LCRBFBIT|MCR6BIT))
+#define REG_OFFS(m)	((m) & ~(LCR7BIT|LCRBFBIT|MCR6BIT))
 /* read access LCR[7] = 0 */
 enum uart_reg {
 	RHR	= 0,
