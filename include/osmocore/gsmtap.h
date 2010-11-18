@@ -19,6 +19,7 @@
 #define GSMTAP_TYPE_UM		0x01
 #define GSMTAP_TYPE_ABIS	0x02
 #define GSMTAP_TYPE_UM_BURST	0x03	/* raw burst bits */
+#define GSMTAP_TYPE_SIM		0x04
 
 #define GSMTAP_BURST_UNKNOWN		0x00
 #define GSMTAP_BURST_FCCH		0x01
