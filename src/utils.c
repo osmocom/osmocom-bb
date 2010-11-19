@@ -43,7 +43,7 @@ char bcd2char(uint8_t bcd)
 		return 'A' + (bcd - 0xa);
 }
 
-/* only works for numbers in ascci */
+/* only works for numbers in ascii */
 uint8_t char2bcd(char c)
 {
 	return c - 0x30;
