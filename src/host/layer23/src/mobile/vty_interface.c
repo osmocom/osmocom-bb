@@ -220,7 +220,7 @@ static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 }
 
 
-DEFUN(show_ms, show_ms_cmd, "show ms [ms_name]",
+DEFUN(show_ms, show_ms_cmd, "show ms [MS_NAME]",
 	SHOW_STR "Display available MS entities\n")
 {
 	struct osmocom_ms *ms;
@@ -245,7 +245,7 @@ DEFUN(show_ms, show_ms_cmd, "show ms [ms_name]",
 	return CMD_SUCCESS;
 }
 
-DEFUN(show_support, show_support_cmd, "show support [ms_name]",
+DEFUN(show_support, show_support_cmd, "show support [MS_NAME]",
 	SHOW_STR "Display information about MS support\n"
 	"Name of MS (see \"show ms\")")
 {
@@ -266,7 +266,7 @@ DEFUN(show_support, show_support_cmd, "show support [ms_name]",
 	return CMD_SUCCESS;
 }
 
-DEFUN(show_subscr, show_subscr_cmd, "show subscriber [ms_name]",
+DEFUN(show_subscr, show_subscr_cmd, "show subscriber [MS_NAME]",
 	SHOW_STR "Display information about subscriber\n"
 	"Name of MS (see \"show ms\")")
 {
@@ -335,7 +335,7 @@ DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023>",
 	return CMD_SUCCESS;
 }
 
-DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [mcc] [mnc]",
+DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [MCC] [MNC]",
 	SHOW_STR "Display information about band allocations\n"
 	"Name of MS (see \"show ms\")\nMobile Country Code\n"
 	"Mobile Network Code")
@@ -424,7 +424,7 @@ DEFUN(no_monitor_network, no_monitor_network_cmd, "no monitor network MS_NAME",
 	return CMD_SUCCESS;
 }
 
-DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [mcc] [mnc] [lac] [tmsi]",
+DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
 	"SIM actions\nInsert test card\nName of MS (see \"show ms\")\n"
 	"Mobile Country Code of RPLMN\nMobile Network Code of RPLMN\n"
 	"Optionally locatio area code\nOptionally current assigned TMSI")
@@ -746,7 +746,7 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 	return CMD_SUCCESS;
 }
 
-DEFUN(call_retr, call_retr_cmd, "call MS_NAME retrieve [number]",
+DEFUN(call_retr, call_retr_cmd, "call MS_NAME retrieve [NUMBER]",
 	"Make a call\nName of MS (see \"show ms\")\n"
 	"Retrieve call on hold\nNumber of call to retrieve")
 {
@@ -1629,7 +1629,7 @@ DEFUN(cfg_no_codec_half, cfg_ms_no_codec_half_cmd, "no codec half-speed",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_abbrev, cfg_ms_abbrev_cmd, "abbrev ABBREVIATION NUMBER [name]",
+DEFUN(cfg_abbrev, cfg_ms_abbrev_cmd, "abbrev ABBREVIATION NUMBER [NAME]",
 	"Store given abbreviation number\n1-3 digits abbreviation\n"
 	"Number to store for the abbreviation "
 	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
@@ -1678,7 +1678,7 @@ DEFUN(cfg_abbrev, cfg_ms_abbrev_cmd, "abbrev ABBREVIATION NUMBER [name]",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_no_abbrev, cfg_ms_no_abbrev_cmd, "no abbrev [abbreviation]",
+DEFUN(cfg_no_abbrev, cfg_ms_no_abbrev_cmd, "no abbrev [ABBREVIATION]",
 	NO_STR "Remove given abbreviation number or all numbers\n"
 	"Abbreviation number to remove")
 {
@@ -2046,7 +2046,7 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC [lac] [tmsi]",
+DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC [LAC] [TMSI]",
 	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
 	"Optionally set locatio area code\n"
 	"Optionally set current assigned TMSI")
