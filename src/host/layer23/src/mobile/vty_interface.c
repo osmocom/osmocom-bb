@@ -1015,7 +1015,7 @@ DEFUN(cfg_no_ms, cfg_no_ms_cmd, "no ms MS_NAME",
 		vty_out(vty, "  %s%s%s", (set->item) ? "" : "no ", cmd, \
 			VTY_NEWLINE);
 
-static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
+static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_support *sup = &ms->support;
@@ -1168,7 +1168,7 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
 
-static int config_write_ms(struct vty *vty)
+static int config_write(struct vty *vty)
 {
 	struct osmocom_ms *ms;
 
@@ -1181,7 +1181,17 @@ static int config_write_ms(struct vty *vty)
 	vty_out(vty, "!%s", VTY_NEWLINE);
 
 	llist_for_each_entry(ms, &ms_list, entity)
-		config_write_ms_single(vty, ms);
+		config_write_ms(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_show_this, cfg_ms_show_this_cmd, "show this",
+	SHOW_STR "Show config of this MS")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	config_write_ms(vty, ms);
 
 	return CMD_SUCCESS;
 }
@@ -2268,10 +2278,11 @@ int ms_vty_init(void)
 	install_element(CONFIG_NODE, &cfg_ms_rename_cmd);
 	install_element(CONFIG_NODE, &cfg_no_ms_cmd);
 	install_element(CONFIG_NODE, &ournode_end_cmd);
-	install_node(&ms_node, config_write_ms);
+	install_node(&ms_node, config_write);
 	install_default(MS_NODE);
 	install_element(MS_NODE, &ournode_exit_cmd);
 	install_element(MS_NODE, &ournode_end_cmd);
+	install_element(MS_NODE, &cfg_ms_show_this_cmd);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
 	install_element(MS_NODE, &cfg_ms_sap_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
