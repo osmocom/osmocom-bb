@@ -25,11 +25,13 @@ struct gsm_settings {
 
 	/* test card simulator settings */
 	char 			test_imsi[20]; /* just in case... */
+	uint32_t		test_tmsi;
 	uint8_t			test_ki_type;
 	uint8_t			test_ki[16]; /* 128 bit max */
 	uint8_t			test_barr;
 	uint8_t			test_rplmn_valid;
 	uint16_t		test_rplmn_mcc, test_rplmn_mnc;
+	uint16_t		test_lac;
 	uint8_t			test_always; /* ...search hplmn... */
 
 	/* call related settings */

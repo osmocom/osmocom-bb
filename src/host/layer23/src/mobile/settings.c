@@ -50,6 +50,8 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	/* test SIM */
 	strcpy(set->test_imsi, "001010000000000");
 	set->test_rplmn_mcc = set->test_rplmn_mnc = 1;
+	set->test_lac = 0x0000;
+	set->test_tmsi = 0xffffffff;
 
 	/* set all supported features */
 	set->sms_ptp = sup->sms_ptp;

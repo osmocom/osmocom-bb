@@ -424,12 +424,14 @@ DEFUN(no_monitor_network, no_monitor_network_cmd, "no monitor network MS_NAME",
 	return CMD_SUCCESS;
 }
 
-DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [mcc] [mnc]",
+DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [mcc] [mnc] [lac] [tmsi]",
 	"SIM actions\nInsert test card\nName of MS (see \"show ms\")\n"
-	"Mobile Country Code of RPLMN\nMobile Network Code of RPLMN")
+	"Mobile Country Code of RPLMN\nMobile Network Code of RPLMN\n"
+	"Optionally locatio area code\nOptionally current assigned TMSI")
 {
 	struct osmocom_ms *ms;
-	uint16_t mcc = 0x001, mnc = 0x01f;
+	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
+	uint32_t tmsi = 0xffffffff;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
@@ -454,7 +456,13 @@ DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [mcc] [mnc]",
 		}
 	}
 
-	gsm_subscr_testcard(ms, mcc, mnc);
+	if (argc >= 4)
+		lac = strtoul(argv[3], NULL, 16);
+
+	if (argc >= 5)
+		tmsi = strtoul(argv[4], NULL, 16);
+
+	gsm_subscr_testcard(ms, mcc, mnc, lac, tmsi);
 
 	return CMD_SUCCESS;
 }
@@ -1140,12 +1148,16 @@ static void config_write_ms_single(struct vty *vty, struct osmocom_ms *ms)
 	}
 	vty_out(vty, "  %sbarred-access%s", (set->test_barr) ? "" : "no ",
 		VTY_NEWLINE);
-	if (set->test_rplmn_valid)
-		vty_out(vty, "  rplmn %s %s%s",
+	if (set->test_rplmn_valid) {
+		vty_out(vty, "  rplmn %s %s",
 			gsm_print_mcc(set->test_rplmn_mcc),
-			gsm_print_mnc(set->test_rplmn_mnc),
-			VTY_NEWLINE);
-	else
+			gsm_print_mnc(set->test_rplmn_mnc));
+		if (set->test_lac > 0x0000 && set->test_lac < 0xfffe)
+			vty_out(vty, " 0x%04x", set->test_lac);
+		if (set->test_tmsi != 0xffffffff)
+			vty_out(vty, " 0x%08x", set->test_tmsi);
+		vty_out(vty, "%s", VTY_NEWLINE);
+	} else
 		vty_out(vty, "  no rplmn%s", VTY_NEWLINE);
 	vty_out(vty, "  hplmn-search %s%s", (set->test_always) ? "everywhere"
 			: "foreign-country", VTY_NEWLINE);
@@ -2024,8 +2036,10 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
-	"Set Registered PLMN\nMobile Country Code\nMobile Network Code")
+DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC [lac] [tmsi]",
+	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
+	"Optionally set locatio area code\n"
+	"Optionally set current assigned TMSI")
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
@@ -2043,6 +2057,16 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC",
 	set->test_rplmn_valid = 1;
 	set->test_rplmn_mcc = mcc;
 	set->test_rplmn_mnc = mnc;
+
+	if (argc >= 3)
+		set->test_lac = strtoul(argv[2], NULL, 16);
+	else
+		set->test_lac = 0xfffe;
+
+	if (argc >= 4)
+		set->test_tmsi = strtoul(argv[3], NULL, 16);
+	else
+		set->test_tmsi = 0xffffffff;
 
 	vty_restart(vty, ms);
 	return CMD_SUCCESS;

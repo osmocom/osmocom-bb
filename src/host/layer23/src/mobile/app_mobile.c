@@ -100,7 +100,8 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 			break;
 		case GSM_SIM_TYPE_TEST:
 			gsm_subscr_testcard(ms, set->test_rplmn_mcc,
-						set->test_rplmn_mnc);
+				set->test_rplmn_mnc, set->test_lac,
+				set->test_tmsi);
 			break;
 		default:
 			/* no SIM, trigger PLMN selection process */

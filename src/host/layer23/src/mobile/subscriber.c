@@ -153,7 +153,8 @@ int gsm_subscr_exit(struct osmocom_ms *ms)
  */
 
 /* Attach test card, no SIM must be currently attached */
-int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc)
+int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
+	uint16_t lac, uint32_t tmsi)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
@@ -185,6 +186,10 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc)
 	subscr->plmn_valid = set->test_rplmn_valid;
 	subscr->plmn_mcc = mcc;
 	subscr->plmn_mnc = mnc;
+	subscr->mcc = mcc;
+	subscr->mnc = mnc;
+	subscr->lac = lac;
+	subscr->tmsi = tmsi;
 	subscr->always_search_hplmn = set->test_always;
 	subscr->t6m_hplmn = 1; /* try to find home network every 6 min */
 	strcpy(subscr->imsi, set->test_imsi);
@@ -194,9 +199,10 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc)
 		gsm_imsi_mnc(subscr->imsi));
 
 	if (subscr->plmn_valid)
-		LOGP(DMM, LOGL_INFO, "-> Test card registered to %s %s "
-			"(%s, %s)\n", gsm_print_mcc(mcc), gsm_print_mnc(mnc),
-			gsm_get_mcc(mcc), gsm_get_mnc(mcc, mnc));
+		LOGP(DMM, LOGL_INFO, "-> Test card registered to %s %s 0x%04x"
+			"(%s, %s)\n", gsm_print_mcc(mcc),
+			gsm_print_mnc(mnc), lac, gsm_get_mcc(mcc),
+			gsm_get_mnc(mcc, mnc));
 	else
 		LOGP(DMM, LOGL_INFO, "-> Test card not registered\n");
 
