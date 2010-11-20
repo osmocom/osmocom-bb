@@ -171,7 +171,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-	l23_app_init(NULL, config_file, vty_port);
+	rc = l23_app_init(NULL, config_file, vty_port);
+	if (rc)
+		exit(rc);
 
 	signal(SIGINT, sighandler);
 	signal(SIGHUP, sighandler);
