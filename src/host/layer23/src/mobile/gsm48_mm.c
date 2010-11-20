@@ -2206,6 +2206,9 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	 * NOTE: The TMSI is only valid within a LAI!
 	 */
 	gsm48_encode_lai(&nlu->lai, subscr->mcc, subscr->mnc, subscr->lac);
+	LOGP(DMM, LOGL_INFO, " using LAI (mcc %s mnc %s " "lac 0x%04x)\n",
+		gsm_print_mcc(subscr->mcc),
+		gsm_print_mnc(subscr->mnc), subscr->lac);
 	/* classmark 1 */
 	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
 		pwr_lev = sup->class_dcs - 1;
