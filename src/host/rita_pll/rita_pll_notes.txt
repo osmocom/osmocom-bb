@@ -6,3 +6,14 @@ GSM900 Rx: 864.4 ... 966.2 MHz			925.0 ... 959.8
 
 GSM1800 Tx: 1702.4 ... 1919.8 MHz		1710.2 ... 1784.8
 GSM1800 Rx: 1804.8 ... 1996.4 MHz		1805.2 ... 1879.8
+
+GSM850 Tx:  
+
+[824.2 ~ 837.0 MHz]
+[837.2 ~ 848.8 MHz]
+
+
+GSM810 Tx: 					806.0 ... 821.0
+* modify B value to go down to 125 (A = 60)
+GSM810 Rx:					851.0 ... 866.0
+* modify B value to go down to 132 (A = 62)

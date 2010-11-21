@@ -64,6 +64,8 @@ sub hr() {
 
 printf("PLL Rx Low Band:\n");
 for (my $b = 135; $b <= 150; $b++) {
+#for GSM 810
+#for (my $b = 132; $b <= 150; $b++) {
 	for (my $a = 0; $a <= 62; $a++) {
 		printf("Fout=%4.2f (A=%03u, B=%03u)\n", pll_rx_low_band($a, $b), $a, $b);
 	}
@@ -80,6 +82,8 @@ for (my $b = 141; $b <= 155; $b++) {
 hr();
 printf("PLL Tx GSM850_1\n");
 for (my $b = 128; $b <= 130; $b++) {
+#for GSM 810
+#for (my $b = 125; $b <= 130; $b++) {
 	for (my $a = 0; $a <= 62; $a++) {
 		printf("Fout=%4.2f (A=%03u, B=%03u)\n", pll_tx_gsm850_1($a, $b), $a, $b);
 	}
