@@ -12,7 +12,8 @@ OSMOCORE_CONFIGURE_ENV= LIBOSMOCORE_LIBS=$(TOPDIR)/shared/libosmocore/build-host
 	 	    	LIBOSMOCORE_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
 	 	    	LIBOSMOVTY_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
 
-all: libosmocore-host libosmocore-target layer23 osmocon gsmmap firmware
+all: libosmocore-target nofirmware firmware
+nofirmware: libosmocore-host layer23 osmocon gsmmap
 
 libosmocore-host: shared/libosmocore/build-host/src/.libs/libosmocore.la
 
