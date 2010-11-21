@@ -682,7 +682,7 @@ short_read:
 	if (payload_len >= 1 && data[0] == GSM48_IE_CBCH_MOB_AL) {
 		if (payload_len < 1 || payload_len < 2 + data[1])
 			goto short_read;
-		gsm48_decode_mobile_alloc(s->freq, data + 2, si->data[1],
+		gsm48_decode_mobile_alloc(s->freq, data + 2, data[1],
 			s->hopping, &s->hopp_len, 1);
 		payload_len -= 2 + data[1];
 		data += 2 + data[1];
