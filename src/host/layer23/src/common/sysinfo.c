@@ -667,6 +667,7 @@ short_read:
 			return -EIO;
 		}
 		cd = (struct gsm48_chan_desc *) (data + 1);
+		s->chan_nr = cd->chan_nr;
 		if (cd->h0.h) {
 			s->h = 1;
 			gsm48_decode_chan_h1(cd, &s->tsc, &s->maio, &s->hsn);
