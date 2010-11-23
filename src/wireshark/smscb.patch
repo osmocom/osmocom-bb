@@ -1,0 +1,248 @@
+From 8ab33ab3f2de22f83df1cd45ae9a38254dc76400 Mon Sep 17 00:00:00 2001
+From: Alex Badea <vamposdecampos@gmail.com>
+Date: Sun, 21 Nov 2010 22:19:58 +0200
+Subject: [RFC][PATCH wireshark] packet-lapdm: dissect CBS payloads
+
+Hack dissection of Cell Broadcast Service into LAPDm.  First-Block payloads
+are also dissected directly.
+---
+ packet-lapdm.c |  164 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 163 insertions(+), 1 deletion(-)
+
+diff --git a/epan/dissectors/packet-lapdm.c b/epan/dissectors/packet-lapdm.c
+index dbeac85..e1d67b4 100644
+--- a/epan/dissectors/packet-lapdm.c
++++ b/epan/dissectors/packet-lapdm.c
+@@ -61,12 +61,25 @@
+ #include <epan/xdlc.h>
+ #include <epan/reassemble.h>
+ 
++#include <epan/asn1.h>
++#include "packet-gsm_map.h"
++#include "packet-gsm_sms.h"
++
+ static int proto_lapdm = -1;
+ static int hf_lapdm_address = -1;
+ static int hf_lapdm_ea = -1;
+ static int hf_lapdm_cr = -1;
+ static int hf_lapdm_sapi = -1;
+ static int hf_lapdm_lpd = -1;
++static int hf_lapdm_cb_lb = -1;
++static int hf_lapdm_cb_seq = -1;
++static int hf_lapdm_cbs_serial_gs = -1;
++static int hf_lapdm_cbs_serial_mcode = -1;
++static int hf_lapdm_cbs_serial_updnum = -1;
++static int hf_lapdm_cbs_msgid = -1;
++static int hf_lapdm_cbs_page_num = -1;
++static int hf_lapdm_cbs_page_cnt = -1;
++static int hf_lapdm_cbs_content = -1;
+ 
+ static int hf_lapdm_control = -1;
+ static int hf_lapdm_n_r = -1;
+@@ -103,6 +116,8 @@ static gint ett_lapdm_control = -1;
+ static gint ett_lapdm_length = -1;
+ static gint ett_lapdm_fragment = -1;
+ static gint ett_lapdm_fragments = -1;
++static gint ett_lapdm_cbs_serial = -1;
++static gint ett_lapdm_cbs_dcs = -1;
+ 
+ static GHashTable *lapdm_fragment_table = NULL;
+ static GHashTable *lapdm_reassembled_table = NULL;
+@@ -121,6 +136,12 @@ static gboolean reassemble_lapdm = TRUE;
+ #define	LAPDM_CR		0x02	/* Command/Response bit */
+ #define	LAPDM_EA		0x01	/* First Address Extension bit */
+ #define	LAPDM_LPD		0x60	/* Link Protocol Discriminator */
++#define	LAPDM_LPD_CB		0x20	/* Cell Broadcast LPD */
++#define	LAPDM_CB_LB		0x10	/* Cell Broadcast Last Bit */
++#define	LAPDM_CB_SEQ		0x0f	/* Cell Broadcast sequence number */
++#define LAPDM_CBS_SERIAL_GS	0xc0	/* CBS Serial Number - Geographical Scope */
++#define LAPDM_CBS_SERIAL_MCODE	0x3ffc	/* CBS Serial Number - Message Code */
++#define LAPDM_CBS_SERIAL_UPDNUM	0x03	/* CBS Serial Number - Update Number */
+ 
+ /*
+  * Bits in the length field.
+@@ -132,6 +153,7 @@ static gboolean reassemble_lapdm = TRUE;
+ #define	LAPDM_LEN_SHIFT		2
+ 
+ #define LAPDM_HEADER_LEN 3
++#define LAPDM_CB_HEADER_LEN 1
+ 
+ #define LAPDM_SAPI_RR_CC_MM	0
+ #define LAPDM_SAPI_SMS		3
+@@ -179,6 +201,33 @@ static const value_string lapdm_el_vals[] = {
+     { 0,		NULL }
+ };
+ 
++/* 04.12 section 3.3.1 */
++static const value_string lapdm_lb_vals[] = {
++    { 0,		"More blocks" },
++    { 1,		"Last block" },
++    { 0,		NULL }
++};
++
++/* 04.12 section 3.3.1 */
++static const value_string lapdm_seq_vals[] = {
++    { 0,		"First block" },
++    { 1,		"Second block" },
++    { 2,		"Third block" },
++    { 3,		"Fourth block" },
++    { 8,		"First schedule block" },
++    { 15,		"Null message" },
++    { 0,		NULL }
++};
++
++/* 03.41 section 9.3.2.1 */
++static const value_string lapdm_serial_gs_vals[] = {
++    { 0,		"Cell wide (immediate)" },
++    { 1,		"PLMN wide" },
++    { 2,		"Location Area wide" },
++    { 3,		"Cell wide" },
++    { 0,		NULL }
++};
++
+ 
+ static const fragment_items lapdm_frag_items = {
+     /* Fragment subtrees */
+@@ -209,6 +258,79 @@ lapdm_defragment_init (void)
+ 
+ 
+ static void
++dissect_lapdm_cb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
++{
++    proto_tree *lapdm_tree, *addr_tree;
++    proto_item *lapdm_ti, *addr_ti;
++    guint8 addr, seq;
++    tvbuff_t *payload;
++    int offset;
++    int length, out_len;
++    gchar msgbuf[88];
++
++    addr = tvb_get_guint8(tvb, 0);
++    if (tree) {
++        lapdm_ti = proto_tree_add_item(tree, proto_lapdm, tvb, 0, LAPDM_CB_HEADER_LEN, FALSE);
++        lapdm_tree = proto_item_add_subtree(lapdm_ti, ett_lapdm);
++
++        addr_ti = proto_tree_add_uint(lapdm_tree, hf_lapdm_address, tvb, 0, 1, addr);
++        addr_tree = proto_item_add_subtree(addr_ti, ett_lapdm_address);
++
++        proto_tree_add_uint(addr_tree, hf_lapdm_lpd, tvb, 0, 1, addr);
++        proto_tree_add_uint(addr_tree, hf_lapdm_cb_lb, tvb, 0, 1, addr);
++        proto_tree_add_uint(addr_tree, hf_lapdm_cb_seq, tvb, 0, 1, addr);
++    } else {
++        lapdm_ti = NULL;
++        lapdm_tree = NULL;
++    }
++
++    col_append_str(pinfo->cinfo, COL_INFO, "CBS ");
++
++    offset = 1;
++
++    /* TODO: reassemble blocks 1-3 */
++    seq = addr & LAPDM_CB_SEQ;
++    if (seq == 0) {
++        proto_item *ti;
++        proto_tree *subtree;
++
++        ti = proto_tree_add_text(lapdm_tree, tvb, offset, 2, "Serial Number");
++        subtree = proto_item_add_subtree(ti, ett_lapdm_cbs_serial);
++
++        proto_tree_add_item(subtree, hf_lapdm_cbs_serial_gs, tvb, offset, 1, FALSE);
++        proto_tree_add_item(subtree, hf_lapdm_cbs_serial_mcode, tvb, offset, 2, FALSE);
++        offset++;
++        proto_tree_add_item(subtree, hf_lapdm_cbs_serial_updnum, tvb, offset, 1, FALSE);
++        offset++;
++
++        proto_tree_add_item(lapdm_tree, hf_lapdm_cbs_msgid, tvb, offset, 2, FALSE);
++        offset += 2;
++
++        ti = proto_tree_add_text(lapdm_tree, tvb, offset, 1, "Data Coding Scheme");
++        subtree = proto_item_add_subtree(ti, ett_lapdm_cbs_dcs);
++        dissect_cbs_data_coding_scheme(tvb_new_subset(tvb, offset, 1, -1), pinfo, subtree);
++        offset++;
++
++        proto_tree_add_item(lapdm_tree, hf_lapdm_cbs_page_num, tvb, offset, 1, FALSE);
++        proto_tree_add_item(lapdm_tree, hf_lapdm_cbs_page_cnt, tvb, offset, 1, FALSE);
++        offset++;
++
++        length = tvb_length(tvb) - offset;
++        out_len = gsm_sms_char_7bit_unpack(0, length, sizeof(msgbuf) - 1,
++            tvb_get_ptr(tvb, offset, length), msgbuf);
++        msgbuf[out_len] = '\0';
++        proto_tree_add_string(lapdm_tree, hf_lapdm_cbs_content, tvb, offset, length,
++            gsm_sms_chars_to_utf8(msgbuf, out_len));
++
++        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", gsm_sms_chars_to_utf8(msgbuf, out_len));
++    }
++
++    payload = tvb_new_subset_remaining(tvb, offset);
++    call_dissector(data_handle, payload, pinfo, tree);
++}
++
++
++static void
+ dissect_lapdm(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+ {
+     proto_tree *lapdm_tree, *addr_tree, *length_tree;
+@@ -227,6 +349,11 @@ dissect_lapdm(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+     col_set_str(pinfo->cinfo, COL_PROTOCOL, "LAPDm");
+ 
+     addr = tvb_get_guint8(tvb, 0);
++    if ((addr & LAPDM_LPD) == LAPDM_LPD_CB) {
++        dissect_lapdm_cb(tvb, pinfo, tree);
++        return;
++    }
++
+     length = tvb_get_guint8(tvb, 2);
+ 
+     cr = addr & LAPDM_CR;
+@@ -360,6 +487,39 @@ proto_register_lapdm(void)
+         { "SAPI", "lapdm.sapi", FT_UINT8, BASE_DEC, VALS(lapdm_sapi_vals), LAPDM_SAPI,
+         "Service access point identifier", HFILL }},
+ 
++        { &hf_lapdm_cb_lb,
++        { "LB", "lapdm.cb.lb", FT_UINT8, BASE_DEC,
++        VALS(lapdm_lb_vals), LAPDM_CB_LB, "Last Block bit", HFILL }},
++
++        { &hf_lapdm_cb_seq,
++        { "SEQ", "lapdm.cb.seq", FT_UINT8, BASE_DEC,
++        VALS(lapdm_seq_vals), LAPDM_CB_SEQ, "Sequence Number", HFILL }},
++
++        { &hf_lapdm_cbs_serial_gs,
++        { "GS", "lapdm.cbs.serial.gs", FT_UINT8, BASE_DEC,
++        VALS(lapdm_serial_gs_vals), LAPDM_CBS_SERIAL_GS, "Geographic Scope", HFILL }},
++        { &hf_lapdm_cbs_serial_mcode,
++        { "Message Code", "lapdm.cbs.serial.mcode", FT_UINT16, BASE_DEC,
++        NULL, LAPDM_CBS_SERIAL_MCODE, NULL, HFILL }},
++        { &hf_lapdm_cbs_serial_updnum,
++        { "Update Number", "lapdm.cbs.serial.updnum", FT_UINT8, BASE_DEC,
++        NULL, LAPDM_CBS_SERIAL_MCODE, NULL, HFILL }},
++
++        { &hf_lapdm_cbs_msgid,
++        { "Message Identifier", "lapdm.cbs.msgid", FT_UINT16, BASE_DEC,
++        NULL, 0, NULL, HFILL }},
++
++        { &hf_lapdm_cbs_page_num,
++        { "Page number", "lapdm.cbs.page.num", FT_UINT8, BASE_DEC,
++        NULL, 0xf0, NULL, HFILL }},
++        { &hf_lapdm_cbs_page_cnt,
++        { "Total pages", "lapdm.cbs.page.cnt", FT_UINT8, BASE_DEC,
++        NULL, 0x0f, NULL, HFILL }},
++
++        { &hf_lapdm_cbs_content,
++        { "Content of Message", "lapdm.cbs.content", FT_STRING, BASE_NONE,
++        NULL, 0x00, NULL, HFILL }},
++
+         { &hf_lapdm_control,
+         { "Control Field", "lapdm.control_field", FT_UINT8, BASE_HEX, NULL, 0x0,
+         NULL, HFILL }},
+@@ -461,7 +621,9 @@ proto_register_lapdm(void)
+         &ett_lapdm_control,
+         &ett_lapdm_length,
+         &ett_lapdm_fragment,
+-        &ett_lapdm_fragments
++        &ett_lapdm_fragments,
++        &ett_lapdm_cbs_serial,
++        &ett_lapdm_cbs_dcs,
+     };
+ 
+     module_t *lapdm_module;
