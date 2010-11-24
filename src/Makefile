@@ -39,7 +39,7 @@ shared/libosmocore/build-target/Makefile: shared/libosmocore/configure shared/li
 	cd shared/libosmocore/build-target && ../configure \
 			--host=arm-elf-linux --disable-vty --enable-panic-infloop \
 			--disable-shared --disable-talloc --disable-tests \
-		CC="$(CROSS_TOOL_PREFIX)gcc" CFLAGS="-Os -ffunction-sections -I../../../../target/firmware/include"
+		CC="$(CROSS_TOOL_PREFIX)gcc" CFLAGS="-Os -ffunction-sections -I$(TOPDIR)/target/firmware/include"
 
 shared/libosmocore/build-target/src/.libs/libosmocore.a: shared/libosmocore/build-target/Makefile
 	cd shared/libosmocore/build-target && make
