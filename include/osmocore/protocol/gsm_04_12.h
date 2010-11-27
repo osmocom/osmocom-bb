@@ -10,7 +10,7 @@
 #define GSM412_SEQ_TRD_BLOCK		0x2
 #define GSM412_SEQ_FTH_BLOCK		0x3
 #define GSM412_SEQ_FST_SCHED_BLOCK	0x8
-#define GSM413_SEQ_NULL_MSG		0xf
+#define GSM412_SEQ_NULL_MSG		0xf
 
 struct gsm412_block_type {
 	uint8_t	seq_nr : 4,
@@ -19,7 +19,7 @@ struct gsm412_block_type {
 		spare : 1;
 } __attribute__((packed));
 
-struct gsm413_sched_msg {
+struct gsm412_sched_msg {
 	uint8_t beg_slot_nr : 6,
 		type : 2;
 	uint8_t end_slot_nr : 6,
