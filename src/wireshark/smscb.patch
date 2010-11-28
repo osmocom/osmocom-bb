@@ -8,7 +8,7 @@ The dissector supports reassembly of SMSCB Message blocks.  Schedule
 block reassmebly or dissection is not yet implemented.
 
 Signed-off-by: Alex Badea <vamposdecampos@gmail.com>
-
+---
  Makefile.common    |    1 
  packet-gsm_smscb.c |  404 +++++++++++++++++++++++++++++++++++++++++++++++++++++
  packet-lapdm.c     |   18 +-
@@ -28,7 +28,7 @@ index 1c1e60b..86bc856 100644
  	packet-gssapi.c		\
 diff --git a/epan/dissectors/packet-gsm_smscb.c b/epan/dissectors/packet-gsm_smscb.c
 new file mode 100644
-index 0000000..12b98f9
+index 0000000..c591564
 --- /dev/null
 +++ b/epan/dissectors/packet-gsm_smscb.c
 @@ -0,0 +1,404 @@
@@ -117,9 +117,9 @@ index 0000000..12b98f9
 + */
 +#define	SMSCB_ADDR_LB		0x10	/* Address Last Bit */
 +#define	SMSCB_ADDR_SEQ		0x0f	/* Address sequence number */
-+#define	SMSCB_SERIAL_GS		0xc0	/* CBS Serial Number - Geographical Scope */
++#define	SMSCB_SERIAL_GS		0xc000	/* CBS Serial Number - Geographical Scope */
 +#define	SMSCB_SERIAL_MCODE	0x3ffc	/* CBS Serial Number - Message Code */
-+#define	SMSCB_SERIAL_UPDNUM	0x03	/* CBS Serial Number - Update Number */
++#define	SMSCB_SERIAL_UPDNUM	0x0003	/* CBS Serial Number - Update Number */
 +#define	SMSCB_PAGE_NUM		0xf0	/* Page number */
 +#define	SMSCB_PAGE_CNT		0x0f	/* Page total count */
 +
@@ -194,7 +194,7 @@ index 0000000..12b98f9
 +	offset++;
 +	proto_tree_add_item(tree, hf_smscb_serial_updnum, tvb, offset, 1, ENC_NA);
 +	offset++;
-+	proto_tree_add_item(tree, hf_smscb_msgid, tvb, offset, 1, ENC_BIG_ENDIAN);
++	proto_tree_add_item(tree, hf_smscb_msgid, tvb, offset, 2, ENC_BIG_ENDIAN);
 +	offset += 2;
 +	ti = proto_tree_add_text(tree, tvb, offset, 1, "Data Coding Scheme");
 +	encoding = dissect_cbs_data_coding_scheme(
@@ -333,7 +333,7 @@ index 0000000..12b98f9
 +	}},
 +
 +	{ &hf_smscb_serial_gs, {
-+		"Geographic Scope", "smscb.serial.gs", FT_UINT8, BASE_DEC,
++		"Geographic Scope", "smscb.serial.gs", FT_UINT16, BASE_DEC,
 +		VALS(smscb_serial_gs_vals), SMSCB_SERIAL_GS, NULL, HFILL,
 +	}},
 +	{ &hf_smscb_serial_mcode, {
@@ -341,8 +341,8 @@ index 0000000..12b98f9
 +		NULL, SMSCB_SERIAL_MCODE, NULL, HFILL,
 +	}},
 +	{ &hf_smscb_serial_updnum, {
-+		"Update Number", "smscb.serial.updnum", FT_UINT8, BASE_DEC,
-+		NULL, SMSCB_SERIAL_MCODE, NULL, HFILL,
++		"Update Number", "smscb.serial.updnum", FT_UINT16, BASE_DEC,
++		NULL, SMSCB_SERIAL_UPDNUM, NULL, HFILL,
 +	}},
 +
 +	{ &hf_smscb_msgid, {
