@@ -441,6 +441,27 @@ struct rsl_ie_chan_ident {
 #define RSL_CHANNEED_TCH_F	0x02
 #define RSL_CHANNEED_TCH_ForH	0x03
 
+/* Chapter 9.3.45 */
+struct rsl_ie_cb_cmd_type {
+	uint8_t last_block:2;
+	uint8_t spare:1;
+	uint8_t def_bcast:1;
+	uint8_t command:4;
+} __attribute__ ((packed));
+/* ->command */
+#define RSL_CB_CMD_TYPE_NORMAL		0x00
+#define RSL_CB_CMD_TYPE_SCHEDULE	0x08
+#define RSL_CB_CMD_TYPE_DEFAULT		0x0e
+#define RSL_CB_CMD_TYPE_NULL		0x0f
+/* ->def_bcast */
+#define RSL_CB_CMD_DEFBCAST_NORMAL	0
+#define RSL_CB_CMD_DEFBCAST_NULL	1
+/* ->last_block */
+#define RSL_CB_CMD_LASTBLOCK_4		0
+#define RSL_CB_CMD_LASTBLOCK_1		1
+#define RSL_CB_CMD_LASTBLOCK_2		2
+#define RSL_CB_CMD_LASTBLOCK_3		3
+
 /* Chapter 3.3.2.3 Brocast control channel */
 /* CCCH-CONF, NC is not combined */
 #define RSL_BCCH_CCCH_CONF_1_NC	0x00
