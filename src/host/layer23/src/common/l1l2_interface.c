@@ -118,9 +118,10 @@ int layer2_open(struct osmocom_ms *ms, const char *socket_path)
 	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
 
 	rc = connect(ms->l2_wq.bfd.fd, (struct sockaddr *) &local,
-		     sizeof(local.sun_family) + strlen(local.sun_path));
+		     sizeof(local));
 	if (rc < 0) {
-		fprintf(stderr, "Failed to connect to '%s'.\n", local.sun_path);
+		fprintf(stderr, "Failed to connect to '%s': %s\n", local.sun_path,
+			strerror(errno));
 		close(ms->l2_wq.bfd.fd);
 		return rc;
 	}
