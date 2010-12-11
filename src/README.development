@@ -4,7 +4,22 @@ Feel free to help us by extending the code.  Always make sure to
 send back all your patches to the baseband-devel@lists.osmocom.org
 mailing list - Free Software is all about sharing.
 
-== src/shared/libosmocore ==
+== Coding Style ==
+
+Lie all C language Osmocom projects, we use the Linux Kernel coding
+style, you can find it in the Documentation/CodingStyle subdirectory
+of any Linux Kernel source.
+
+== More Information ==
+
+Please consult the http://bb.osmocom.org/ web page / wiki.
+
+If you have any technical questions regarding the code, don't hesitate
+to ask the baseband-devel@lists.osmocom.org mailing list.
+
+== subdirectories containing libraries and code ==
+
+=== src/shared/libosmocore ===
 
 is a library of various utility routines, including linked lists,
 message buffers, bit-vectors, memory allocator, signals, select loop
@@ -26,7 +41,7 @@ embedded target without OS.  So please refrain from using fancy
 functions.
 
 
-== src/target/firmware ==
+=== src/target/firmware ===
 
 The firmware is what we build for the actual target (phone).  It was
 written with some idea of modularity in mind, i.e. we have
@@ -45,13 +60,13 @@ written with some idea of modularity in mind, i.e. we have
  * Applications (each app builds one firmware image) in apps/
 
 
-== src/target_dsp/calypso ==
+=== src/target_dsp/calypso ===
 
 This is where we keep some (assembly) code that we wrote for
 the DSP that is part of the Caylypso DBB.
 
-== host/layer23 ==
+=== src/host/layer23 ===
 
-The Layer2 (LAPDm / TS 04.06) and Layer3 (CC/MM/RR / 04.08)
+The Layer2 (LAPDm / TS 04.06) and Layer3 (CC/MM/RR / TS 04.08)
 implementations, as they are growing.
 

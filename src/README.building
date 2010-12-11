@@ -3,8 +3,9 @@
 === Prerequisites ===
 
 We assume you are building on a GNU/Linux host system such as Debian
-GNU/Linux.  Windows builds have been reported successfully using the
-Cygwin environment, but we do not officially support this.
+GNU/Linux.  Builds have been reported successfully using MacOS X
+and the Cygwin environment for MS Windows, but we do not officially support
+this.
 
  # Get a GNU toolchain (gcc/binutils) for ARM (e.g. from http://gnuarm.com/)
  # Set your path to include the arm-elf-* executables of your toolchain
@@ -18,3 +19,12 @@ The master Makefile will build
  * libosmocore for the target (ARM)
  * osmocon and layer23 executables for the host (linking libosmocore)
  * the actual target firmware images (in src/target/firmware/board/*/*.bin)
+
+== Transmitting ==
+
+For safety reasons, all code that can enable the transmitter on the phone is
+disabled in the default builds.  Plese check the src/target/firmware/Makefile
+for the "#CFLAGS += -DCONFIG_TX_ENABLE" line.
+
+Please notice that GSM operates in licensed spectrum and in most jurisdictions
+you will need a license from a regulatory authority to transmit.
