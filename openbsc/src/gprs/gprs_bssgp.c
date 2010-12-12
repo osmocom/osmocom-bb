@@ -156,12 +156,14 @@ int bssgp_tx_suspend_ack(uint16_t nsei, uint32_t tlli,
 
 /* 10.3.8 SUSPEND-NACK PDU */
 int bssgp_tx_suspend_nack(uint16_t nsei, uint32_t tlli,
+			  const struct gprs_ra_id *ra_id,
 			  uint8_t *cause)
 {
 	struct msgb *msg = bssgp_msgb_alloc();
 	struct bssgp_normal_hdr *bgph =
 		(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
 	uint32_t _tlli;
+	uint8_t ra[6];
 
 	msgb_nsei(msg) = nsei;
 	msgb_bvci(msg) = 0; /* Signalling */
@@ -169,6 +171,8 @@ int bssgp_tx_suspend_nack(uint16_t nsei, uint32_t tlli,
 
 	_tlli = htonl(tlli);
 	msgb_tvlv_put(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &_tlli);
+	gsm48_construct_ra(ra, ra_id);
+	msgb_tvlv_put(msg, BSSGP_IE_ROUTEING_AREA, 6, ra);
 	if (cause)
 		msgb_tvlv_put(msg, BSSGP_IE_CAUSE, 1, cause);
 
@@ -383,7 +387,7 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 	/* Inform GMM about the SUSPEND request */
 	rc = gprs_gmm_rx_suspend(&raid, tlli);
 	if (rc < 0)
-		return bssgp_tx_suspend_nack(msgb_nsei(msg), tlli, NULL);
+		return bssgp_tx_suspend_nack(msgb_nsei(msg), tlli, &raid, NULL);
 
 	bssgp_tx_suspend_ack(msgb_nsei(msg), tlli, &raid, 0);
 
