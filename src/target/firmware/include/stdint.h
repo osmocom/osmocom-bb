@@ -10,7 +10,14 @@
    header file and then check if it has defined int8_t and
    if not we will use our own typedefs */
 
+/* another bad criteria. We can not detect __NEWLIB_H__ or
+   _NEWLIB_VERSION. Assume that older GCCs have a older C library
+   that did not include a stdint.h yet. This is for gnuarm-3.x
+   one of the compilers producing working code right now. */
+
+#if __GNUC__ > 3
 #include_next <stdint.h>
+#endif
 
 #ifndef __int8_t_defined
 typedef signed char int8_t;
