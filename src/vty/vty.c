@@ -306,7 +306,7 @@ static void vty_prompt(struct vty *vty)
 	const char *hostname;
 
 	if (vty->type == VTY_TERM) {
-		hostname = host.name;
+		hostname = host.app_info->name;
 		if (!hostname) {
 			uname(&names);
 			hostname = names.nodename;
