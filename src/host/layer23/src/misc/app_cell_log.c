@@ -72,8 +72,14 @@ int l23_app_init(struct osmocom_ms *ms)
 	return 0;
 }
 
+static int l23_cfg_supported()
+{
+	return L23_OPT_TAP | L23_OPT_DBG;
+}
+
 static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
+	.cfg_supported	= l23_cfg_supported,
 };
 
 struct l23_app_info *l23_app_info()

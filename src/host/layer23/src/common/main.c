@@ -74,17 +74,33 @@ static void print_usage(const char *app)
 
 static void print_help()
 {
+	int options = 0xff;
+	struct l23_app_info *app = l23_app_info();
+
+	if (app && app->cfg_supported != 0)
+		options = app->cfg_supported();
+
 	printf(" Some help...\n");
 	printf("  -h --help		this text\n");
 	printf("  -s --socket		/tmp/osmocom_l2. Path to the unix "
 		"domain socket (l2)\n");
-	printf("  -S --sap		/tmp/osmocom_sap. Path to the unix "
-		"domain socket (BTSAP)\n");
-	printf("  -a --arfcn NR		The ARFCN to be used for layer2.\n");
-	printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
-	printf("  -v --vty-port		The VTY port number to telnet to. "
-		"(default %u)\n", vty_port);
-	printf("  -d --debug		Change debug flags.\n");
+
+	if (options & L23_OPT_SAP)
+		printf("  -S --sap		/tmp/osmocom_sap. Path to the "
+			"unix domain socket (BTSAP)\n");
+
+	if (options & L23_OPT_ARFCN)
+		printf("  -a --arfcn NR		The ARFCN to be used for layer2.\n");
+
+	if (options & L23_OPT_TAP)
+		printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
+
+	if (options & L23_OPT_VTY)
+		printf("  -v --vty-port		The VTY port number to telnet "
+			"to. (default %u)\n", vty_port);
+
+	if (options & L23_OPT_DBG)
+		printf("  -d --debug		Change debug flags.\n");
 }
 
 static void handle_options(int argc, char **argv)
