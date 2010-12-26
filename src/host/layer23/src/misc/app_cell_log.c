@@ -72,4 +72,11 @@ int l23_app_init(struct osmocom_ms *ms)
 	return 0;
 }
 
+static struct l23_app_info info = {
+	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
+};
 
+struct l23_app_info *l23_app_info()
+{
+	return &info;
+}

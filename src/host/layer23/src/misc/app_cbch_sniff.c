@@ -26,6 +26,7 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/misc/layer3.h>
 
 #include <osmocore/msgb.h>
@@ -185,4 +186,14 @@ int l23_app_init(struct osmocom_ms *ms)
 	 * (if previously set), so we release it here. */
 	l1ctl_tx_dm_rel_req(ms);
 	return register_signal_handler(SS_L1CTL, &signal_cb, NULL);
+}
+
+static struct l23_app_info info = {
+	.copyright	= "Copyright (C) 2010 Harald Welte <laforge@gnumonks.org>\n",
+	.contribution	= "Contributions by Holger Hans Peter Freyther\n",
+};
+
+struct l23_app_info *l23_app_info()
+{
+	return &info;
 }

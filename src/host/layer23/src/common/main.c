@@ -60,12 +60,12 @@ int (*l23_app_exit) (struct osmocom_ms *ms) = NULL;
 int quit = 0;
 
 const char *openbsc_copyright =
-	"Copyright (C) 2008-2010 ...\n"
-	"Contributions by ...\n\n"
+	"%s"
+	"%s\n"
 	"License GPLv2+: GNU GPL version 2 or later "
 		"<http://gnu.org/licenses/gpl.html>\n"
 	"This is free software: you are free to change and redistribute it.\n"
-	"There is NO WARRANTY, to the extent permitted by law.\n";
+	"There is NO WARRANTY, to the extent permitted by law.\n\n";
 
 static void print_usage(const char *app)
 {
@@ -157,11 +157,18 @@ void sighandler(int sigset)
 		exit (0);
 }
 
+static void print_copyright()
+{
+	struct l23_app_info *app;
+	app = l23_app_info();
+	printf(openbsc_copyright,
+	       app && app->copyright ? app->copyright : "",
+	       app && app->contribution ? app->contribution : "");
+}
+
 int main(int argc, char **argv)
 {
 	int rc;
-
-	printf("%s\n", openbsc_copyright);
 
 	INIT_LLIST_HEAD(&ms_list);
 	log_init(&log_info);
@@ -176,6 +183,9 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to allocate MS\n");
 		exit(1);
 	}
+
+	print_copyright();
+
 	llist_add_tail(&ms->entity, &ms_list);
 
 	sprintf(ms->name, "1");

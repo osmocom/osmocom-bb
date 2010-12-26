@@ -25,6 +25,7 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/misc/layer3.h>
 
 #include <osmocore/msgb.h>
@@ -52,4 +53,14 @@ int l23_app_init(struct osmocom_ms *ms)
 	bsc_schedule_timer(&test_data.timer, 1, 0);
 
 	return 0;
+}
+
+static struct l23_app_info info = {
+	.copyright	= "Copyright (C) 2010 Harald Welte <laforge@gnumonks.org>\n",
+	.contribution	= "Contributions by Holger Hans Peter Freyther\n",
+};
+
+struct l23_app_info *l23_app_info()
+{
+	return &info;
 }
