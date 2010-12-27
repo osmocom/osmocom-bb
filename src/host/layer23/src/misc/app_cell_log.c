@@ -30,7 +30,12 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/misc/cell_log.h>
 
+#include <osmocore/talloc.h>
+
 extern struct log_target *stderr_target;
+extern void *l23_ctx;
+
+char *logname = "/var/log/osmocom.log";
 
 int _scan_work(struct osmocom_ms *ms)
 {
@@ -77,9 +82,30 @@ static int l23_cfg_supported()
 	return L23_OPT_TAP | L23_OPT_DBG;
 }
 
+static int l23_cfg_print_help()
+{
+	printf("\nApplication specific\n");
+	printf("  -l --logfile LOGFILE		Logfile for the cell log.\n");
+	return 0;
+}
+
+static int l23_cfg_handle(int c, const char *optarg)
+{
+	switch (c) {
+	case 'l':
+		logname = talloc_strdup(l23_ctx, optarg);
+		break;
+	}
+
+	return 0;
+}
+
 static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
+	.getopt_string	= "l:",
 	.cfg_supported	= l23_cfg_supported,
+	.cfg_handle_opt	= l23_cfg_handle,
+	.cfg_print_help	= l23_cfg_print_help,
 };
 
 struct l23_app_info *l23_app_info()

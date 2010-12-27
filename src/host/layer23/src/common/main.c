@@ -35,6 +35,7 @@
 #include <osmocore/select.h>
 #include <osmocore/linuxlist.h>
 #include <osmocore/gsmtap_util.h>
+#include <osmocore/utils.h>
 
 #include <arpa/inet.h>
 
@@ -101,25 +102,46 @@ static void print_help()
 
 	if (options & L23_OPT_DBG)
 		printf("  -d --debug		Change debug flags.\n");
+
+	if (app && app->cfg_print_help)
+		app->cfg_print_help();
+}
+
+static void build_config(char **opt, struct option **option)
+{
+	struct l23_app_info *app;
+	static struct option long_options[] = {
+		{"help", 0, 0, 'h'},
+		{"socket", 1, 0, 's'},
+		{"sap", 1, 0, 'S'},
+		{"arfcn", 1, 0, 'a'},
+		{"gsmtap-ip", 1, 0, 'i'},
+		{"vty-port", 1, 0, 'v'},
+		{"debug", 1, 0, 'd'},
+	};
+
+
+	app = l23_app_info();
+	*opt = talloc_asprintf(l23_ctx, "hs:S:a:i:v:d:%s",
+			       app && app->getopt_string ? app->getopt_string : "");
+	*option = talloc_zero_array(l23_ctx, struct option,
+				    ARRAY_SIZE(long_options) + 1);
+	memcpy(*option, long_options, sizeof(long_options));
 }
 
 static void handle_options(int argc, char **argv)
 {
 	struct sockaddr_in gsmtap;
+	struct l23_app_info *app = l23_app_info();
+	struct option *long_options;
+	char *opt;
+
+	build_config(&opt, &long_options);
+
 	while (1) {
 		int option_index = 0, c;
-		static struct option long_options[] = {
-			{"help", 0, 0, 'h'},
-			{"socket", 1, 0, 's'},
-			{"sap", 1, 0, 'S'},
-			{"arfcn", 1, 0, 'a'},
-			{"gsmtap-ip", 1, 0, 'i'},
-			{"vty-port", 1, 0, 'v'},
-			{"debug", 1, 0, 'd'},
-			{0, 0, 0, 0},
-		};
 
-		c = getopt_long(argc, argv, "hs:S:a:i:v:d:",
+		c = getopt_long(argc, argv, opt,
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -153,9 +175,14 @@ static void handle_options(int argc, char **argv)
 			log_parse_category_mask(stderr_target, optarg);
 			break;
 		default:
+			if (app && app->cfg_handle_opt)
+				app->cfg_handle_opt(c, optarg);
 			break;
 		}
 	}
+
+	talloc_free(opt);
+	talloc_free(long_options);
 }
 
 void sighandler(int sigset)

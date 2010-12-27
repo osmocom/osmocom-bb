@@ -88,7 +88,7 @@ static double pm_gps_x, pm_gps_y, pm_gps_z;
 static int arfcn;
 static int rach_count;
 static FILE *logfp = NULL;
-static char *logname = "/var/log/osmocom.log";
+extern char *logname;
 
 static struct gsm48_sysinfo sysinfo;
 

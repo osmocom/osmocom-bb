@@ -21,7 +21,10 @@ struct l23_app_info {
 	const char *copyright;
 	const char *contribution;
 
+	char *getopt_string;
 	int (*cfg_supported)();
+	int (*cfg_print_help)();
+	int (*cfg_handle_opt)(int c,const char *optarg);
 };
 
 extern struct l23_app_info *l23_app_info();
