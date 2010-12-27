@@ -457,6 +457,8 @@ static void l1ctl_rx_tch_mode_req(struct msgb *msg)
 
 	audio_set_enabled(tch_mode != GSM48_CMODE_SIGN);
 
+	l1s.tch_sync = 1; /* Needed for audio to work */
+
 	l1ctl_tx_tch_mode_conf(tch_mode);
 }
 
