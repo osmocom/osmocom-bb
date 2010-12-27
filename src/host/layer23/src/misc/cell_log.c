@@ -47,7 +47,6 @@
 #include "../../../gsmmap/geo.h"
 
 #define READ_WAIT	2, 0
-#define RACH_MAX	2
 #define RACH_WAIT	0, 900000
 #define MIN_RXLEV	-106
 #define MAX_DIST	2000
@@ -89,6 +88,8 @@ static int arfcn;
 static int rach_count;
 static FILE *logfp = NULL;
 extern char *logname;
+extern int RACH_MAX;
+
 
 static struct gsm48_sysinfo sysinfo;
 

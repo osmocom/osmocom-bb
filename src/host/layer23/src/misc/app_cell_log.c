@@ -38,6 +38,7 @@ extern struct log_target *stderr_target;
 extern void *l23_ctx;
 
 char *logname = "/var/log/osmocom.log";
+int RACH_MAX = 2;
 
 int _scan_work(struct osmocom_ms *ms)
 {
@@ -88,6 +89,8 @@ static int l23_getopt_options(struct option **options)
 {
 	static struct option opts [] = {
 		{"logfile", 1, 0, 'l'},
+		{"rach", 1, 0, 'r'},
+		{"no-rach", 1, 0, 'n'},
 	};
 
 	*options = opts;
@@ -98,6 +101,8 @@ static int l23_cfg_print_help()
 {
 	printf("\nApplication specific\n");
 	printf("  -l --logfile LOGFILE		Logfile for the cell log.\n");
+	printf("  -r --rach    RACH		Nr. of RACH bursts to send.\n");
+	printf("  -n --no-rach			Send no rach bursts.\n");
 	return 0;
 }
 
@@ -107,6 +112,12 @@ static int l23_cfg_handle(int c, const char *optarg)
 	case 'l':
 		logname = talloc_strdup(l23_ctx, optarg);
 		break;
+	case 'r':
+		RACH_MAX = atoi(optarg);
+		break;
+	case 'n':
+		RACH_MAX = 0;
+		break;
 	}
 
 	return 0;
@@ -114,7 +125,7 @@ static int l23_cfg_handle(int c, const char *optarg)
 
 static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
-	.getopt_string	= "l:",
+	.getopt_string	= "l:r:n",
 	.cfg_supported	= l23_cfg_supported,
 	.cfg_getopt_opt = l23_getopt_options,
 	.cfg_handle_opt	= l23_cfg_handle,
