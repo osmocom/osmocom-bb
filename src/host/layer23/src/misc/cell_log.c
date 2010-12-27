@@ -315,6 +315,12 @@ static void start_sync(void)
 			}
 		}
 	}
+	/* if GPS becomes valid, like after exitting a tunnel */
+	if (!pm_gps_valid && gps.valid) {
+		pm_gps_valid = 1;
+		geo2space(&pm_gps_x, &pm_gps_y, &pm_gps_z, gps.longitude,
+			gps.latitude);
+	}
 	if (pm_gps_valid && gps.valid) {
 		double x, y, z;
 
