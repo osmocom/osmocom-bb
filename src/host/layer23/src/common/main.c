@@ -110,6 +110,9 @@ static void print_help()
 static void build_config(char **opt, struct option **option)
 {
 	struct l23_app_info *app;
+	struct option *app_opp = NULL;
+	int app_len = 0, len;
+
 	static struct option long_options[] = {
 		{"help", 0, 0, 'h'},
 		{"socket", 1, 0, 's'},
@@ -124,9 +127,14 @@ static void build_config(char **opt, struct option **option)
 	app = l23_app_info();
 	*opt = talloc_asprintf(l23_ctx, "hs:S:a:i:v:d:%s",
 			       app && app->getopt_string ? app->getopt_string : "");
-	*option = talloc_zero_array(l23_ctx, struct option,
-				    ARRAY_SIZE(long_options) + 1);
+
+	len = ARRAY_SIZE(long_options);
+	if (app && app->cfg_getopt_opt)
+		app_len = app->cfg_getopt_opt(&app_opp);
+
+	*option = talloc_zero_array(l23_ctx, struct option, len + app_len + 1);
 	memcpy(*option, long_options, sizeof(long_options));
+	memcpy(*option + len, app_opp, app_len * sizeof(struct option));
 }
 
 static void handle_options(int argc, char **argv)

@@ -1,6 +1,8 @@
 #ifndef _L23_APP_H
 #define _L23_APP_H
 
+struct option;
+
 /* Options supported by the l23 app */
 enum {
 	L23_OPT_SAP	= 1,
@@ -24,6 +26,7 @@ struct l23_app_info {
 	char *getopt_string;
 	int (*cfg_supported)();
 	int (*cfg_print_help)();
+	int (*cfg_getopt_opt)(struct option **options);
 	int (*cfg_handle_opt)(int c,const char *optarg);
 };
 

@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <time.h>
+#include <getopt.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1ctl.h>
@@ -31,6 +32,7 @@
 #include <osmocom/bb/misc/cell_log.h>
 
 #include <osmocore/talloc.h>
+#include <osmocore/utils.h>
 
 extern struct log_target *stderr_target;
 extern void *l23_ctx;
@@ -82,6 +84,16 @@ static int l23_cfg_supported()
 	return L23_OPT_TAP | L23_OPT_DBG;
 }
 
+static int l23_getopt_options(struct option **options)
+{
+	static struct option opts [] = {
+		{"logfile", 1, 0, 'l'},
+	};
+
+	*options = opts;
+	return ARRAY_SIZE(opts);
+}
+
 static int l23_cfg_print_help()
 {
 	printf("\nApplication specific\n");
@@ -104,6 +116,7 @@ static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
 	.getopt_string	= "l:",
 	.cfg_supported	= l23_cfg_supported,
+	.cfg_getopt_opt = l23_getopt_options,
 	.cfg_handle_opt	= l23_cfg_handle,
 	.cfg_print_help	= l23_cfg_print_help,
 };
