@@ -2976,6 +2976,9 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	uint16_t ma[64];
 	uint8_t ma_len;
 
+	/* 3.3.1.1.3.1 */
+	stop_rr_t3126(rr);
+
 	/* check if we have to change channel at starting time (we delay) */
 	if (rr->cd_now.start) {
 		int32_t now, start, diff;
@@ -3014,9 +3017,6 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	/* get hopping sequence, if required */
 	if (gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len))
 		return -EINVAL;
-
-	/* 3.3.1.1.3.1 */
-	stop_rr_t3126(rr);
 
 	/* clear all sequence numbers for all possible PDs */
 	rr->v_sd = 0;
