@@ -97,8 +97,8 @@ void gsm_support_init(struct osmocom_ms *ms)
 	//sup->sm_val = ;
 
 	/* radio */
-	sup->ch_cap = GSM_CAP_SDCCH_TCHF;
-	sup->min_rxlev_db = -100; // TODO
+	sup->ch_cap = GSM_CAP_SDCCH_TCHF_TCHH;
+	sup->min_rxlev_db = -106; // TODO
 	sup->sync_to = 6; /* how long to wait sync (0.9 s) */
 	sup->scan_to = 4; /* how long to wait for all sysinfos (>=4 s) */
 	sup->dsc_max = 90; /* the specs defines 90 */
