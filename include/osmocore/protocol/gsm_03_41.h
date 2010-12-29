@@ -3,15 +3,15 @@
 
 #include <stdint.h>
 
-/* GSM TS 03.41 definitions */
+/* GSM TS 03.41 definitions also TS 23.041*/
 
 /* Chapter 9.3.2 */
 struct gsm341_ms_message {
 	struct {
 		uint8_t code_hi:6;
 		uint8_t gs:2;
-		uint8_t update:2;
-		uint8_t code_lo:6;
+		uint8_t update:4;
+		uint8_t code_lo:4;
 	} serial;
 	uint16_t msg_id;
 	struct {
