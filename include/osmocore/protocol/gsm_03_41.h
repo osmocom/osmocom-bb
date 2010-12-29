@@ -25,6 +25,21 @@ struct gsm341_ms_message {
 	uint8_t data[0];
 } __attribute__((packed));
 
+/* Chapter 9.4.1.3 */
+struct gsm341_etws_message {
+	struct {
+		uint8_t code_hi:4;
+		uint8_t popup:1;
+		uint8_t alert:1;
+		uint8_t gs:2;
+		uint8_t update:4;
+		uint8_t code_lo:4;
+	} serial;
+	uint16_t msg_id;
+	uint16_t warning_type;
+	uint8_t data[0];
+} __attribute__((packed));
+
 #define GSM341_MSG_CODE(ms) (ms->serial.code_lo | (msg->serial.code_hi << 4))
 
 /* Section 9.3.2.1 - Geographical Scope */
