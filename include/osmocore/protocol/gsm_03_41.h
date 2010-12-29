@@ -25,6 +25,8 @@ struct gsm341_ms_message {
 	uint8_t data[0];
 } __attribute__((packed));
 
+#define GSM341_MSG_CODE(ms) (ms->serial.code_lo | (msg->serial.code_hi << 4))
+
 /* Section 9.3.2.1 - Geographical Scope */
 #define GSM341_GS_CELL_WIDE_IMMED	0
 #define GSM341_GS_PLMN_WIDE		1
