@@ -83,6 +83,7 @@ static void td014_init(void)
 {
 	calypso_reset_set(RESET_EXT, 0);
 	uwire_init();
+	delay_ms(3);
 
 	td014_cmd_write(0x3f);
 	td014_data_write(0x01);
