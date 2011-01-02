@@ -36,7 +36,8 @@
 #define Y_ADDR(n)	(0x40|((n)&0xf))
 #define X_ADDR(n)	(0x80|((n)&0x3f))
 
-static const uint8_t setup[] = { CONTROL_RS_CMD, 0x2e, 0x21, 0x12, 0xc0, 0x0b, 0x20, 0x11, 0x00, 0x40, 0x80 };
+static const uint8_t setup[] = { CONTROL_RS_CMD, 0x2e, 0x21, 0x12, 0xc0, 0x0b,
+						 0x20, 0x11, 0x00, 0x40, 0x80 };
 static const uint8_t home[] = { CONTROL_RS_CMD, Y_ADDR(0), X_ADDR(0) };
 
 /* video modes */
@@ -48,8 +49,6 @@ static const uint8_t off[] = { CONTROL_RS_CMD, 0x20, 0x08 };
 static int st7558_write(const uint8_t *data, int len)
 {
 	int rc = i2c_write(ST7558_SLAVE_ADDR, data[0], 1, data+1, len-1);
-	/* FIXME: find out why this is needed! */
-	delay_ms(10);
 	return rc;
 }
 
@@ -74,7 +73,6 @@ static void st7558_init(void)
 	calypso_reset_set(RESET_EXT, 0);
 
 	i2c_init(0,0);
-	delay_ms(10);
 
 	st7558_write(setup, sizeof(setup));
 	st7558_clrscr();
