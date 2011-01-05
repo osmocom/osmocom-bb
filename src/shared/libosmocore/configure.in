@@ -116,4 +116,5 @@ AC_OUTPUT(
 	tests/sms/Makefile
 	tests/msgfile/Makefile
 	tests/ussd/Makefile
+	tests/smscb/Makefile
 	Makefile)

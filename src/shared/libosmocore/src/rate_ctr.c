@@ -21,7 +21,6 @@
  */
 
 #include <stdint.h>
-#include <inttypes.h>
 #include <string.h>
 
 #include <osmocore/utils.h>

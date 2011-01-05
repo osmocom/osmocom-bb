@@ -70,7 +70,7 @@ int telnet_init(void *tall_ctx, void *priv, int port)
 	sock_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
 	rc = bind(fd, (struct sockaddr*)&sock_addr, sizeof(sock_addr));
-	if (bind < 0) {
+	if (rc < 0) {
 		LOGP(0, LOGL_ERROR, "Telnet interface failed to bind\n");
 		close(fd);
 		return rc;
