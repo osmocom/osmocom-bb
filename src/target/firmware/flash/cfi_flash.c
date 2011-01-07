@@ -410,7 +410,7 @@ static int get_query(void *base_addr, struct cfi_query *query)
 	for (i = 0; i < sizeof(struct cfi_query); i++) {
 		uint16_t byte =
 			flash_read16(base_addr, CFI_OFFSET_CFI_RESP + i);
-		*(((unsigned char *)query) + i) = byte;
+		*(((volatile unsigned char *)query) + i) = byte;
 	}
 
 	if (query->qry[0] != 'Q' || query->qry[1] != 'R' || query->qry[2] != 'Y') {
