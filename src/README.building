@@ -3,7 +3,7 @@
 === Prerequisites ===
 
 We assume you are building on a GNU/Linux host system such as Debian
-GNU/Linux.  Builds have been reported successfully using MacOS X
+GNU/Linux.  Successful builds have also been reported using MacOS X
 and the Cygwin environment for MS Windows, but we do not officially support
 this.
 
@@ -13,7 +13,7 @@ this.
 
 === Details ===
 
-The master Makefile will build
+The master Makefile will build:
 
  * libosmocore for the host (x86 or whatever you use)
  * libosmocore for the target (ARM)

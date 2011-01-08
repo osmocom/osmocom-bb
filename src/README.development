@@ -6,7 +6,7 @@ mailing list - Free Software is all about sharing.
 
 == Coding Style ==
 
-Lie all C language Osmocom projects, we use the Linux Kernel coding
+Like all C language Osmocom projects, we use the Linux Kernel coding
 style, you can find it in the Documentation/CodingStyle subdirectory
 of any Linux Kernel source.
 
@@ -21,7 +21,7 @@ to ask the baseband-devel@lists.osmocom.org mailing list.
 
 === src/shared/libosmocore ===
 
-is a library of various utility routines, including linked lists,
+This is a library of various utility routines, including linked lists,
 message buffers, bit-vectors, memory allocator, signals, select loop
 handling, timers - as well as some more specifically GSM related things
 like a TLV parser, a Comp128V1 implementation and utility functions for
@@ -51,7 +51,7 @@ written with some idea of modularity in mind, i.e. we have
  * RF Mixer code in rf/
  * Layer1 code in layer1/
  * NOR flash handling in flash/
- * LCD display handlin in display/
+ * LCD display handling in display/
  * minimal C-Library code in lib/
  * communications utility routines in comm/
  * Board (phone model/family) specific code in board/
@@ -63,7 +63,7 @@ written with some idea of modularity in mind, i.e. we have
 === src/target_dsp/calypso ===
 
 This is where we keep some (assembly) code that we wrote for
-the DSP that is part of the Caylypso DBB.
+the DSP that is part of the Calypso DBB.
 
 === src/host/layer23 ===
 
