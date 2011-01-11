@@ -60,7 +60,7 @@ static struct afc_state afc_state = {
  * DAC = 1MHz / 947MHz * FreqErr(Hz) / AFCslop(ppm/LSB)
  * where:
  *	947 MHz is the center of EGSM
- *	AFCslope is coded F1.15, thus a normalization factor of 2^15 aplpies
+ *	AFCslope is coded F1.15, thus a normalization factor of 2^15 applies
  */
 
 #define AFC_NORM_FACTOR_GSM	((1<<15) / 947)

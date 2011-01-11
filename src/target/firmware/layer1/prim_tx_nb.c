@@ -54,7 +54,7 @@
 
 static uint32_t last_txnb_fn;
 
-/* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
+/* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB) */
 static int l1s_tx_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 		       __unused uint16_t p3)
 {
@@ -70,7 +70,7 @@ static int l1s_tx_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 	return 0;
 }
 
-/* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
+/* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB) */
 static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	uint16_t arfcn;
@@ -144,7 +144,7 @@ void l1s_tx_test(uint8_t base_fn, uint8_t type)
 	if (type == 0) {// one normal burst
 		tdma_schedule(base_fn, &l1s_tx_cmd, 0, 0, 0, 3);
 		tdma_schedule(base_fn + 2, &l1s_tx_resp, 0, 0, 0, 3);
-	} else if (type == 2) { // four normal burst
+	} else if (type == 2) { // four normal bursts
 		tdma_schedule(base_fn, &l1s_tx_cmd, 2, 0, 0, 3);
 		tdma_schedule(base_fn + 1, &l1s_tx_cmd, 2, 1, 0, 3);
 		tdma_schedule(base_fn + 2, &l1s_tx_resp, 2, 0, 0, 3);

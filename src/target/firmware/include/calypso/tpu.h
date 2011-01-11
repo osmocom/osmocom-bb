@@ -10,7 +10,7 @@
 void tpu_reset(int active);
 /* Enable or Disable a new scenario loaded into the TPU */
 void tpu_enable(int active);
-/* Enable or Disable the clock of teh TPU Module */
+/* Enable or Disable the clock of the TPU Module */
 void tpu_clk_enable(int active);
 /* Enable Frame Interrupt generation on next frame.  DSP will reset it */
 void tpu_dsp_frameirq_enable(void);

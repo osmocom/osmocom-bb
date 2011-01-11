@@ -194,7 +194,7 @@ void tpu_enable(int active)
 #endif
 }
 
-/* Enable or Disable the clock of teh TPU Module */
+/* Enable or Disable the clock of the TPU Module */
 void tpu_clk_enable(int active)
 {
 	uint16_t reg = readw(TPU_REG(TPU_CTRL));

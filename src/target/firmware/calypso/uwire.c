@@ -90,7 +90,7 @@ int uwire_xfer(int cs, int bitlen, const void *dout, void *din)
 	if (cs < 0 || cs > 4)
 		return -1;
 
-	/* FIXME uwire_init always select CS0 for now */
+	/* FIXME uwire_init always selects CS0 for now */
 
 	printd("uwire_xfer(dev_idx=%u, bitlen=%u\n", cs, bitlen);
 

@@ -48,10 +48,10 @@
 
 #define API_SIZE		0x2000U		/* in words */
 
-#define BASE_API_RAM		0xffd00000	/* Base address of API RAM form ARM point of view */
+#define BASE_API_RAM		0xffd00000	/* Base address of API RAM from ARM point of view */
 
 #define DSP_BASE_API		0x0800		/* Base address of API RAM for DSP */
-#define DSP_BASE_API_MIRROR	0xe000		/* Base address of API RAM for DSP (API boot mirrot */
+#define DSP_BASE_API_MIRROR	0xe000		/* Base address of API RAM for DSP (API boot mirror) */
 #define DSP_START		0x7000		/* DSP Start address */
 
 /* Boot loader */
@@ -446,7 +446,7 @@ static void dsp_db_init(void)
 
 void dsp_power_on(void)
 {
-	/* proabaly a good idea to initialize the whole API area to a know value */
+	/* probably a good idea to initialize the whole API area to a known value */
 	dsp_api_memset((uint16_t *)BASE_API_RAM, API_SIZE * 2); // size is in words
 
 	dsp_set_params((int16_t *)&dsp_params, sizeof(dsp_params)/2);
@@ -559,8 +559,8 @@ void dsp_load_tch_param(struct gsm_time *next_time,
 	a5fn1 =  (uint16_t)next_time->t1;
 
 	dsp_api.db_w->d_fn        = fn;         /* Fn_sid & Fn_report  */
-	dsp_api.db_w->a_a5fn[0]   = a5fn0;      /* cyphering FN part 1 */
-	dsp_api.db_w->a_a5fn[1]   = a5fn1;      /* cyphering FN part 2 */
+	dsp_api.db_w->a_a5fn[0]   = a5fn0;      /* ciphering FN part 1 */
+	dsp_api.db_w->a_a5fn[1]   = a5fn1;      /* ciphering FN part 2 */
 	dsp_api.db_w->d_ctrl_tch  = d_ctrl_tch; /* Channel config.     */
 }
 
@@ -671,7 +671,7 @@ void dsp_dump(void)
 	dsp_upload_sections_api(dsp_dumpcode, DSP_BASE_API);
 	dsp_bl_start_at(DSP_DUMPCODE_START);
 
-		/* our dump code actually simulates the boot loaded
+		/* our dump code actually simulates the boot loader
 		 * but with added read commands */
 	dsp_bl_wait_ready();
 

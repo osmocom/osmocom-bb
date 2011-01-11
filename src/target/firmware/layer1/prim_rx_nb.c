@@ -76,7 +76,7 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 		return 0;
 	}
 
-	/* DSP burst ID needs to corespond with what we expect */
+	/* DSP burst ID needs to correspond with what we expect */
 	if (dsp_api.db_r->d_burst_d != burst_id) {
 		printf("BURST ID %u!=%u\n", dsp_api.db_r->d_burst_d, burst_id);
 		return 0;

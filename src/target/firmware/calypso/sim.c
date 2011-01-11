@@ -34,8 +34,8 @@ static int sim_tx_character_count = 0;	/* How many bytes have been transmitted b
 static int sim_tx_character_length = 0;	/* How many bytes have to be transmitted by calypso_sim_transmit() */
 static uint8_t *rx_buffer = 0;		/* RX-Buffer that is issued by calypso_sim_receive() */
 static uint8_t *tx_buffer = 0;		/* TX-Buffer that is issued by calypso_sim_transmit() */
-volatile static int rxDoneFlag = 0;	/* Used for rx syncronization instead of a semaphore in calypso_sim_receive() */
-volatile static int txDoneFlag = 0;	/* Used for rx syncronization instead of a semaphore in calypso_sim_transmit() */
+volatile static int rxDoneFlag = 0;	/* Used for rx synchronization instead of a semaphore in calypso_sim_receive() */
+volatile static int txDoneFlag = 0;	/* Used for rx synchronization instead of a semaphore in calypso_sim_transmit() */
 
 /* Display Register dump */
 void calypso_sim_regdump(void)

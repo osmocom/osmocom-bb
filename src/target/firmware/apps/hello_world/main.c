@@ -85,7 +85,7 @@ int main(void)
 
 	keypad_set_handler(&key_handler);
 
-	/* Dump clock config aftee PLL set */
+	/* Dump clock config after PLL set */
 	calypso_clk_dump();
 	puts(hr);
 

@@ -71,7 +71,7 @@ static void myHexdump(uint8_t *data, int len)
 #define SIM_UPDATE_RECORD 0xDC		/* Write record of a record based file */
 #define SIM_SEEK 0xA2			/* Seek in a record based file */
 #define SIM_INCREASE 0x32		/* Increase a record in a record based file */
-#define SIM_VERIFY_CHV 0x20		/* Authenicate with card (enter pin) */
+#define SIM_VERIFY_CHV 0x20		/* Authenticate with card (enter pin) */
 #define SIM_CHANGE_CHV 0x24		/* Change pin */
 #define SIM_DISABLE_CHV 0x26		/* Disable pin so that no authentication is needed anymore */
 #define SIM_ENABLE_CHV 0x28		/* Enable pin, authentication is now needed again */
@@ -83,7 +83,7 @@ static void myHexdump(uint8_t *data, int len)
 #define SIM_GET_RESPONSE 0xC0		/* Get the response of a command from the card */
 
 /* File identifiers (filenames)
-   The file identifiers are the standartized file identfiers mentiond in the
+   The file identifiers are the standardized file identifiers mentioned in the
    GSM-11-11 specification. */
 #define SIM_MF		0x3F00
 #define SIM_EF_ICCID	0x2FE2
@@ -159,7 +159,7 @@ uint16_t sim_readbinary(uint8_t offset_high, uint8_t offset_low, uint8_t length,
 
 
 
-/* FIXME: We need proper calibrated delay loops at some point! */
+/* FIXME: We need properly calibrated delay loops at some point! */
 void delay_us(unsigned int us)
 {
 	volatile unsigned int i;
@@ -201,8 +201,8 @@ void do_sim_test(void)
 
 	puts("----------------SIMTEST----8<-----------------\n");
 
-	/* Initalize Sim-Controller driver */
-	puts("Initalizing driver:\n");
+	/* Initialize Sim-Controller driver */
+	puts("Initializing driver:\n");
 	calypso_sim_init();
 
 	/* Power up sim and display ATR */
@@ -288,7 +288,7 @@ int main(void)
 
 	keypad_set_handler(&key_handler);
 
-	/* Dump clock config aftee PLL set */
+	/* Dump clock config after PLL set */
 	calypso_clk_dump();
 	puts(hr);
 

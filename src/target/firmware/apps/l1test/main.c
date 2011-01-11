@@ -120,7 +120,7 @@ static void l1test_state_change(enum l1test_state new_state)
 	}
 }
 
-/* completion call-back for the L1 Sync Pwer Measurement */
+/* completion call-back for the L1 Sync Power Measurement */
 static void l1s_signal_cb(struct l1_signal *sig)
 {
 	uint16_t i, next_arfcn;
@@ -176,7 +176,7 @@ int main(void)
 
 	keypad_set_handler(&key_handler);
 
-	/* Dump clock config aftee PLL set */
+	/* Dump clock config after PLL set */
 	calypso_clk_dump();
 	puts(hr);
 

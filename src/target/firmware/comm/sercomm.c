@@ -159,7 +159,7 @@ int sercomm_drv_pull(uint8_t *ch)
 
 	if (sercomm.tx.state == RX_ST_ESCAPE) {
 		/* we've already transmitted the ESCAPE octet,
-		 * we now need to trnsmit the escaped data */
+		 * we now need to transmit the escaped data */
 		*ch = *sercomm.tx.next_char++;
 		sercomm.tx.state = RX_ST_DATA;
 	} else if (sercomm.tx.next_char >= sercomm.tx.msg->tail) {
@@ -199,7 +199,7 @@ int sercomm_register_rx_cb(uint8_t dlci, dlci_cb_t cb)
 	return 0;
 }
 
-/* dispatch an incomnig message once it is completely received */
+/* dispatch an incoming message once it is completely received */
 static void dispatch_rx_msg(uint8_t dlci, struct msgb *msg)
 {
 	if (dlci >= ARRAY_SIZE(sercomm.rx.dlci_handler) ||
@@ -268,7 +268,7 @@ int sercomm_drv_rx_char(uint8_t ch)
 		ch ^= (1 << 5);
 		ptr = msgb_put(sercomm.rx.msg, 1);
 		*ptr = ch;
-		/* transition back to nromal DATA state */
+		/* transition back to normal DATA state */
 		sercomm.rx.state = RX_ST_DATA;
 		break;
 	}

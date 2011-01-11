@@ -38,7 +38,7 @@
 enum trf6151_reg {
 	REG_RX		= 0,	/* RF general settings */
 	REG_PLL		= 1,	/* PLL settings */
-	REG_PWR		= 2,	/* Power on/off funcitonal blocks */
+	REG_PWR		= 2,	/* Power on/off functional blocks */
 	REG_CFG		= 3,	/* Transceiver and PA controller settings */
 	REG_TEST1	= 4,
 	REG_TEST2	= 5,
@@ -87,7 +87,7 @@ enum trf6151_reg {
 
 #define PLL_VAL(a, b)	((a << 3) | (((b)-64) << 9))
 
-/* All values in qbits unless otherwise speciifed */
+/* All values in qbits unless otherwise specified */
 #define TRF6151_LDO_DELAY_TS	6	/* six TDMA frames (at least 25ms) */
 #define TRF6151_RX_PLL_DELAY	184	/* 170 us */
 #define TRF6151_TX_PLL_DELAY	260	/* 240 us */

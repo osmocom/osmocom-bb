@@ -1,6 +1,6 @@
 #include <delay.h>
 
-/* FIXME: We need proper calibrated delay loops at some point! */
+/* FIXME: We need properly calibrated delay loops at some point! */
 void delay_us(unsigned int us)
 {
 	volatile unsigned int i;
