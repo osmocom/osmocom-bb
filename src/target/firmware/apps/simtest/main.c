@@ -1,4 +1,4 @@
-/* main program of Free Software for Calypso Phone */
+/* SIM test application */
 
 /* (C) 2010 by Harald Welte <laforge@gnumonks.org>
  *
@@ -26,6 +26,7 @@
 
 #include <debug.h>
 #include <memory.h>
+#include <delay.h>
 #include <rffe.h>
 #include <keypad.h>
 #include <board.h>
@@ -41,9 +42,7 @@
 #include <comm/sercomm.h>
 #include <comm/timer.h>
 
-
 #include <calypso/sim.h>
-
 
 #define DEBUG
 
@@ -128,7 +127,8 @@ uint16_t sim_select(uint16_t fid)
 	txBuffer[1] = (uint8_t) fid;
 	txBuffer[0] = (uint8_t) (fid >> 8);
 
-	if(calypso_sim_transceive(SIM_CLASS, SIM_SELECT, 0x00, 0x00, 0x02,txBuffer,status_word, SIM_APDU_PUT) != 0)
+	if(calypso_sim_transceive(SIM_CLASS, SIM_SELECT, 0x00, 0x00, 0x02,
+				  txBuffer, status_word, SIM_APDU_PUT) != 0)
 		return 0xFFFF;
 
 	return (status_word[0] << 8) | status_word[1];
@@ -139,7 +139,8 @@ uint16_t sim_status(void)
 {
 	uint8_t status_word[2];
 
-	if(calypso_sim_transceive(SIM_CLASS, SIM_STATUS, 0x00, 0x00, 0x00,0,status_word, SIM_APDU_PUT) != 0)
+	if(calypso_sim_transceive(SIM_CLASS, SIM_STATUS, 0x00, 0x00, 0x00, 0,
+				  status_word, SIM_APDU_PUT) != 0)
 		return 0xFFFF;
 
 	return (status_word[0] << 8) | status_word[1];
@@ -149,32 +150,13 @@ uint16_t sim_status(void)
 uint16_t sim_readbinary(uint8_t offset_high, uint8_t offset_low, uint8_t length, uint8_t *data)
 {
 	uint8_t status_word[2];
-	if(calypso_sim_transceive(SIM_CLASS, SIM_READ_BINARY, offset_high, offset_low, length, data ,status_word, SIM_APDU_GET) != 0)
+	if(calypso_sim_transceive(SIM_CLASS, SIM_READ_BINARY, offset_high,
+				  offset_low, length, data ,status_word,
+				  SIM_APDU_GET) != 0)
 		return 0xFFFF;
 
 	return (status_word[0] << 8) | status_word[1];
 }
-
-
-
-
-
-/* FIXME: We need properly calibrated delay loops at some point! */
-void delay_us(unsigned int us)
-{
-	volatile unsigned int i;
-
-	for (i= 0; i < us*4; i++) { i; }
-}
-
-void delay_ms(unsigned int ms)
-{
-	volatile unsigned int i;
-	for (i= 0; i < ms*1300; i++) { i; }
-}
-
-
-
 
 /* Execute my (dexter's) personal test */
 void do_sim_test(void)
@@ -251,9 +233,6 @@ void do_sim_test(void)
 
 	puts("------------END SIMTEST----8<-----------------\n");
 }
-
-
-
 
 /* Main Program */
 const char *hr = "======================================================================\n";
