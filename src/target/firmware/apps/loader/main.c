@@ -133,6 +133,9 @@ int main(void)
 	/* Always disable wdt (some platforms enable it on boot) */
 	wdog_enable(0);
 
+	/* Disable the bootrom mapping */
+	calypso_bootrom(0);
+
 	/* Initialize TWL3025 for power control */
 	twl3025_init();
 
