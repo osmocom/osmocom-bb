@@ -420,7 +420,7 @@ static void dsp_ndb_init(void)
 	ndb->a_fd[0]	= (1<<B_FIRE1);
 	ndb->a_fd[2]	= 0xffff;
 	ndb->d_a5mode	= 0;
-	ndb->d_tch_mode	= 0x0800;
+	ndb->d_tch_mode	= 0x0800; /* Set ABB model to Iota */
 
 	#define GUARD_BITS 8 // 11 or 9 for TSM30, 7 for Freerunner
 	ndb->d_tch_mode |= (((GUARD_BITS - 4) & 0x000F) << 7); //Bit 7..10: guard bits
