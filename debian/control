@@ -17,7 +17,7 @@ Description: Open Source MObile COMmunications CORE library
 Package: libosmocore-dev
 Section: libdevel
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libosmocore
 Description: Development headers for Open Source MObile COMmunications CORE library
 
 #Package: libosmocore-dbg
