@@ -65,7 +65,7 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 			struct gsm48_system_information_type_1 *si1 =
 				(struct gsm48_system_information_type_1 *)data;
 
-			gsm48_decode_freq_list(&app_state.cell_arfcns,
+			gsm48_decode_freq_list(app_state.cell_arfcns,
 			                       si1->cell_channel_description,
 					       sizeof(si1->cell_channel_description),
 					       0xff, 0x01);
