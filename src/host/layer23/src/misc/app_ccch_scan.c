@@ -28,6 +28,7 @@
 #include <osmocore/rsl.h>
 #include <osmocore/tlv.h>
 #include <osmocore/gsm48_ie.h>
+#include <osmocore/signal.h>
 #include <osmocore/protocol/gsm_04_08.h>
 
 #include <osmocom/bb/common/logging.h>
@@ -36,6 +37,7 @@
 #include <osmocom/bb/misc/layer3.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/l23_app.h>
 
 static struct {
 	int has_si1;
@@ -326,4 +328,42 @@ void layer3_app_reset(void)
 	app_state.rach_count = 0;
 
 	memset(&app_state.cell_arfcns, 0x00, sizeof(app_state.cell_arfcns));
+}
+
+static int signal_cb(unsigned int subsys, unsigned int signal,
+		     void *handler_data, void *signal_data)
+{
+	struct osmocom_ms *ms;
+
+	if (subsys != SS_L1CTL)
+		return 0;
+
+	switch (signal) {
+	case S_L1CTL_RESET:
+		ms = signal_data;
+		layer3_app_reset();
+		return l1ctl_tx_fbsb_req(ms, ms->test_arfcn,
+		                         L1CTL_FBSB_F_FB01SB, 100, 0,
+		                         CCCH_MODE_NONE);
+		break;
+	}
+	return 0;
+}
+
+
+int l23_app_init(struct osmocom_ms *ms)
+{
+	register_signal_handler(SS_L1CTL, &signal_cb, NULL);
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	return layer3_init(ms);
+}
+
+static struct l23_app_info info = {
+	.copyright	= "Copyright (C) 2010 Harald Welte <laforge@gnumonks.org>\n",
+	.contribution	= "Contributions by Holger Hans Peter Freyther\n",
+};
+
+struct l23_app_info *l23_app_info()
+{
+	return &info;
 }
