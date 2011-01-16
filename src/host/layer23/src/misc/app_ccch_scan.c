@@ -182,35 +182,15 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 }
 
 
-/* send location updating request * (as part of RSLms EST IND /
-   LAPDm SABME) */
-static int gsm48_tx_loc_upd_req(struct osmocom_ms *ms, uint8_t chan_nr)
-{
-	struct msgb *msg = msgb_alloc_headroom(256, 16, "loc_upd_req");
-	struct gsm48_hdr *gh;
-	struct gsm48_loc_upd_req *lu_r;
-
-	DEBUGP(DMM, "chan_nr=%u\n", chan_nr);
-
-	msg->l3h = msgb_put(msg, sizeof(*gh));
-	gh = (struct gsm48_hdr *) msg->l3h;
-	gh->proto_discr = GSM48_PDISC_MM;
-	gh->msg_type = GSM48_MT_MM_LOC_UPD_REQUEST;
-	lu_r = (struct gsm48_loc_upd_req *) msgb_put(msg, sizeof(*lu_r));
-	lu_r->type = GSM48_LUPD_IMSI_ATT;
-	lu_r->key_seq = 0;
-	/* FIXME: set LAI and CM1 */
-	/* FIXME: set MI */
-	lu_r->mi_len = 0;
-
-	return rslms_tx_rll_req_l3(ms, RSL_MT_EST_REQ, chan_nr, 0, msg);
-}
-
-static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
+/**
+ * This method used to send a l1ctl_tx_dm_est_req_h0 or
+ * a l1ctl_tx_dm_est_req_h1 to the layer1 to follow this
+ * assignment. The code has been removed.
+ */
+int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_imm_ass *ia = msgb_l3(msg);
 	uint8_t ch_type, ch_subch, ch_ts;
-	int rv;
 
 	/* Discard packet TBF assignement */
 	if (ia->page_mode & 0xf0)
@@ -231,10 +211,6 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 			ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
 			ia->chan_desc.h0.tsc);
 
-		/* request L1 to go to dedicated mode on assigned channel */
-		rv = l1ctl_tx_dm_est_req_h0(ms,
-			arfcn, ia->chan_desc.chan_nr, ia->chan_desc.h0.tsc,
-			GSM48_CMODE_SIGN);
 	} else {
 		/* Hopping */
 		uint8_t maio, hsn, ma_len;
@@ -261,19 +237,10 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 				j++;
 			}
 		}
-
-		/* request L1 to go to dedicated mode on assigned channel */
-		rv = l1ctl_tx_dm_est_req_h1(ms,
-			maio, hsn, ma, ma_len,
-			ia->chan_desc.chan_nr, ia->chan_desc.h1.tsc,
-			GSM48_CMODE_SIGN);
 	}
 
 	DEBUGPC(DRR, "\n");
-
-	rv = gsm48_tx_loc_upd_req(ms, ia->chan_desc.chan_nr);
-
-	return rv;
+	return 0;
 }
 
 int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
@@ -291,7 +258,7 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 		/* FIXME: implement decoding of paging request */
 		break;
 	case GSM48_MT_RR_IMM_ASS:
-		rc = gsm48_rx_imm_ass(msg, ms);
+		LOGP(DRR, LOGL_NOTICE, "Immediate assignment.\n");
 		break;
 	default:
 		LOGP(DRR, LOGL_NOTICE, "unknown PCH/AGCH type 0x%02x\n",
