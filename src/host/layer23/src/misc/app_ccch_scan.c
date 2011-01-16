@@ -259,7 +259,7 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 
 	if (sih->rr_protocol_discriminator != GSM48_PDISC_RR)
 		LOGP(DRR, LOGL_ERROR, "PCH pdisc != RR\n");
-	
+
 	switch (sih->system_information) {
 	case GSM48_MT_RR_PAG_REQ_1:
 	case GSM48_MT_RR_PAG_REQ_2:
@@ -305,4 +305,3 @@ void layer3_app_reset(void)
 
 	memset(&app_state.cell_arfcns, 0x00, sizeof(app_state.cell_arfcns));
 }
-
