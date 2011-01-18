@@ -27,6 +27,7 @@ config.status
 
 # final executables
 src/misc/bcch_scan
+src/misc/cbch_sniff
 src/misc/cell_log
 src/misc/echo_test
 src/misc/layer23
