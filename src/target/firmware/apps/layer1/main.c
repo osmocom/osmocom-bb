@@ -69,10 +69,11 @@ int main(void)
 	calypso_clk_dump();
 	puts(hr);
 
-	display_set_attr(DISP_ATTR_INVERT);
 	display_puts("layer1.bin");
 
 	layer1_init();
+
+	display_unset_attr(DISP_ATTR_INVERT);
 
 	tpu_frame_irq_en(1, 1);
 
