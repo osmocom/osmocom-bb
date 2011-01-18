@@ -21,6 +21,7 @@
 #define GSMTAP_TYPE_UM_BURST	0x03	/* raw burst bits */
 #define GSMTAP_TYPE_SIM		0x04
 
+/* sub-types for TYPE_UM_BURST */
 #define GSMTAP_BURST_UNKNOWN		0x00
 #define GSMTAP_BURST_FCCH		0x01
 #define GSMTAP_BURST_PARTIAL_SCH	0x02
@@ -32,6 +33,7 @@
 #define GSMTAP_BURST_ACCESS		0x08
 #define GSMTAP_BURST_NONE		0x09
 
+/* sub-types for TYPE_UM */
 #define GSMTAP_CHANNEL_UNKNOWN	0x00
 #define GSMTAP_CHANNEL_BCCH	0x01
 #define GSMTAP_CHANNEL_CCCH	0x02
@@ -45,10 +47,12 @@
 #define GSMTAP_CHANNEL_TCH_H	0x0a
 #define GSMTAP_CHANNEL_ACCH	0x80
 
+/* flags for the ARFCN */
 #define GSMTAP_ARFCN_F_PCS	0x8000
 #define GSMTAP_ARFCN_F_UPLINK	0x4000
 #define GSMTAP_ARFCN_MASK	0x3fff
 
+/* IANA-assigned well-known UDP port for GSMTAP messages */
 #define GSMTAP_UDP_PORT			4729
 
 struct gsmtap_hdr {
