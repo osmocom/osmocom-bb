@@ -1,7 +1,7 @@
 
 
 # List of all supported boards (meant to be overridden on command line)
-BOARDS?=compal_e88 compal_e99 gta0x
+BOARDS?=compal_e88 compal_e86 compal_e99 gta0x
 
 # List of all applications (meant to be overridden on command line)
 APPLICATIONS?=hello_world compal_dsp_dump layer1 loader simtest chainload
@@ -39,6 +39,11 @@ e88loader_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/excep
 
 e88flash_LDS=board/compal_e88/flash.lds
 e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/exceptions_redirected.o board/compal/handlers.o
+
+# Compal E86
+
+compal_e86_OBJS=$(compal_COMMON_OBJS) board/compal_e86/init.o
+compal_e86_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 # Compal E99
 
