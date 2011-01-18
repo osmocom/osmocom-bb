@@ -33,7 +33,7 @@ void rffe_mode(enum gsm_band band, int tx)
 
 	/* First we mask off all bits from the state cache */
 	tspact &= ~PA_ENABLE;
-	tspact |=  GSM_TXEN;	/* low-active */
+	tspact &= ~GSM_TXEN;
 	tspact |= ASM_VC1 | ASM_VC2 | ASM_VC3; /* low-active */
 
 	switch (band) {
@@ -52,7 +52,21 @@ void rffe_mode(enum gsm_band band, int tx)
 #ifdef CONFIG_TX_ENABLE
 	/* Then we selectively set the bits on, if required */
 	if (tx) {
-		// TODO: Implement tx
+		switch (band) {
+		case GSM_BAND_850:
+		case GSM_BAND_900:
+			tspact &= ~ASM_VC3;
+			break;
+		case GSM_BAND_1800:
+		case GSM_BAND_1900:
+			tspact &= ~ASM_VC1;
+			tspact |= ASM_VC2;
+			tspact |= GSM_TXEN;
+			break;
+		default:
+			break;
+		}
+		tspact |= PA_ENABLE;
 	}
 #endif /* TRANSMIT_SUPPORT */
 
