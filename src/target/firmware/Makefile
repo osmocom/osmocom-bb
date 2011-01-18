@@ -13,10 +13,8 @@ calypso_COMMON_OBJS=board/common/calypso_uart.o board/common/calypso_pwl.o
 
 # OpenMoko GTA0x
 
-gta0x_COMMON_OBJS=$(calypso_COMMON_OBJS) board/common/rffe_gta0x_triband.o
-gta0x_COMMON_ENVIRONMENTS=highram
-gta0x_OBJS=$(gta0x_COMMON_OBJS) board/gta0x/init.o board/gta0x/rf_power.o
-gta0x_ENVIRONMENTS=$(gta0x_COMMON_ENVIRONMENTS)
+gta0x_OBJS=$(calypso_COMMON_OBJS) board/gta0x/rffe_gta0x_triband.o board/gta0x/init.o board/gta0x/rf_power.o
+gta0x_ENVIRONMENTS=highram
 
 # Compal Generic
 
