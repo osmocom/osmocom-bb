@@ -20,6 +20,8 @@
 #define GSMTAP_TYPE_ABIS	0x02
 #define GSMTAP_TYPE_UM_BURST	0x03	/* raw burst bits */
 #define GSMTAP_TYPE_SIM		0x04
+#define GSMTAP_TYPE_TETRA_I1		0x05	/* tetra air interface */
+#define GSMTAP_TYPE_TETRA_I1_BURST	0x06	/* tetra air interface */
 
 /* sub-types for TYPE_UM_BURST */
 #define GSMTAP_BURST_UNKNOWN		0x00
@@ -46,6 +48,17 @@
 #define GSMTAP_CHANNEL_TCH_F	0x09
 #define GSMTAP_CHANNEL_TCH_H	0x0a
 #define GSMTAP_CHANNEL_ACCH	0x80
+
+/* sub-types for TYPE_TETRA_AIR */
+#define GSMTAP_TETRA_BSCH	0x01
+#define GSMTAP_TETRA_AACH	0x02
+#define GSMTAP_TETRA_AACH	0x03
+#define GSMTAP_TETRA_SCH_HU	0x04
+#define GSMTAP_TETRA_SCH_HD	0x05
+#define GSMTAP_TETRA_SCH_F	0x06
+#define GSMTAP_TETRA_BNCH	0x07
+#define GSMTAP_TETRA_STCH	0x08
+#define GSMTAP_TETRA_TCH_F	0x09
 
 /* flags for the ARFCN */
 #define GSMTAP_ARFCN_F_PCS	0x8000
