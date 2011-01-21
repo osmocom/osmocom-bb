@@ -63,3 +63,36 @@ int osmo_pbit2ubit(ubit_t *out, const pbit_t *in, unsigned int num_bits)
 	}
 	return cur - out;
 }
+
+/* convert unpacked bits to packed bits (extended options but slower),
+ * return length in bytes (max written ofs of output buffer + 1) */
+int osmo_ubit2pbit_ext(pbit_t *out, unsigned int out_ofs,
+                       const ubit_t *in, unsigned int in_ofs,
+                       unsigned int num_bits, int lsb_mode)
+{
+	int i, op, bn;
+	for (i=0; i<num_bits; i++) {
+		op = out_ofs + i;
+		bn = lsb_mode ? (op&7) : (7-(op&7));
+		if (in[in_ofs+i])
+			out[op>>3] |= 1 << bn;
+		else
+			out[op>>3] &= ~(1 << bn);
+	}
+	return ((out_ofs + num_bits - 1) >> 3) + 1;
+}
+
+/* convert packed bits to unpacked bits (extended options but slower),
+ * return length in bytes (max written ofs of output buffer + 1) */
+int osmo_pbit2ubit_ext(ubit_t *out, unsigned int out_ofs,
+                       const pbit_t *in, unsigned int in_ofs,
+                       unsigned int num_bits, int lsb_mode)
+{
+	int i, ip, bn;
+	for (i=0; i<num_bits; i++) {
+		ip = in_ofs + i;
+		bn = lsb_mode ? (ip&7) : (7-(ip&7));
+		out[out_ofs+i] = !!(in[ip>>3] & (1<<bn));
+	}
+	return out_ofs + num_bits;
+}

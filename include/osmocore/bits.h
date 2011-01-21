@@ -24,4 +24,16 @@ int osmo_ubit2pbit(pbit_t *out, const ubit_t *in, unsigned int num_bits);
 /* convert packed bits to unpacked bits, return length in bytes */
 int osmo_pbit2ubit(ubit_t *out, const pbit_t *in, unsigned int num_bits);
 
+/* convert unpacked bits to packed bits (extended options but slower),
+ * return length in bytes (max written ofs of output buffer + 1) */
+int osmo_ubit2pbit_ext(pbit_t *out, unsigned int out_ofs,
+                       const ubit_t *in, unsigned int in_ofs,
+                       unsigned int num_bits, int lsb_mode);
+
+/* convert packed bits to unpacked bits (extended options but slower),
+ * return length in bytes (max written ofs of output buffer + 1) */
+int osmo_pbit2ubit_ext(ubit_t *out, unsigned int out_ofs,
+                       const pbit_t *in, unsigned int in_ofs,
+                       unsigned int num_bits, int lsb_mode);
+
 #endif
