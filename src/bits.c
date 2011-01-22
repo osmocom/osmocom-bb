@@ -15,7 +15,7 @@ int osmo_ubit2pbit(pbit_t *out, const ubit_t *in, unsigned int num_bits)
 
 		curbyte |= (in[i] << bitnum);
 
-		if (i > 0 && i % 8 == 0) {
+		if(i % 8 == 7){
 			*outptr++ = curbyte;
 			curbyte = 0;
 		}
