@@ -138,7 +138,7 @@ DEFUN(logging_prnt_timestamp,
 }
 
 /* FIXME: those have to be kept in sync with the log levels and categories */
-#define VTY_DEBUG_CATEGORIES "(rll|cc|mm|rr|rsl|nm|sms|pag|mncc|inp|mi|mib|mux|meas|sccp|msc|mgcp|ho|db|ref|gprs|ns|bssgp|llc|sndcp|all)"
+#define VTY_DEBUG_CATEGORIES "(rll|cc|mm|rr|rsl|nm|sms|pag|mncc|inp|mi|mib|mux|meas|sccp|msc|mgcp|ho|db|ref|gprs|ns|bssgp|llc|sndcp|isup|m2ua|pcap|all)"
 #define CATEGORIES_HELP	\
 	"A-bis Radio Link Layer (RLL)\n"			\
 	"Layer3 Call Control (CC)\n"				\
@@ -165,6 +165,9 @@ DEFUN(logging_prnt_timestamp,
 	"GPRS BSS Gateway Protocol (BSSGP)\n"			\
 	"GPRS Logical Link Control Protocol (LLC)\n"		\
 	"GPRS Sub-Network Dependent Control Protocol (SNDCP)\n"	\
+	"ISDN User Part (ISUP)\n"				\
+	"SCTP M2UA\n"						\
+	"Trace message IO\n"					\
 	"Global setting for all subsytems\n"
 
 #define VTY_DEBUG_LEVELS "(everything|debug|info|notice|error|fatal)"
