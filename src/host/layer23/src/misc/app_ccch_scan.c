@@ -170,7 +170,7 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
  * a l1ctl_tx_dm_est_req_h1 to the layer1 to follow this
  * assignment. The code has been removed.
  */
-int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
+static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_imm_ass *ia = msgb_l3(msg);
 	uint8_t ch_type, ch_subch, ch_ts;
@@ -189,7 +189,7 @@ int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 
 		arfcn = ia->chan_desc.h0.arfcn_low | (ia->chan_desc.h0.arfcn_high << 8);
 
-		DEBUGP(DRR, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
+		LOGP(DRR, LOGL_NOTICE, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
 			"ARFCN=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
 			ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
 			ia->chan_desc.h0.tsc);
@@ -203,7 +203,7 @@ int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 		hsn = ia->chan_desc.h1.hsn;
 		maio = ia->chan_desc.h1.maio_low | (ia->chan_desc.h1.maio_high << 2);
 
-		DEBUGP(DRR, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
+		LOGP(DRR, LOGL_NOTICE, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
 			"HSN=%u, MAIO=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
 			ia->chan_desc.chan_nr, hsn, maio, ch_ts, ch_subch,
 			ia->chan_desc.h1.tsc);
@@ -222,7 +222,7 @@ int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 		}
 	}
 
-	DEBUGPC(DRR, "\n");
+	LOGPC(DRR, LOGL_NOTICE, "\n");
 	return 0;
 }
 
@@ -241,7 +241,13 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 		/* FIXME: implement decoding of paging request */
 		break;
 	case GSM48_MT_RR_IMM_ASS:
-		LOGP(DRR, LOGL_NOTICE, "Immediate assignment.\n");
+		gsm48_rx_imm_ass(msg, ms);
+		break;
+	case GSM48_MT_RR_NOTIF_NCH:
+		/* notification for voice call groups and such */
+		break;
+	case 0x07:
+		/* wireshark know that this is SI2 quater and for 3G interop */
 		break;
 	default:
 		LOGP(DRR, LOGL_NOTICE, "unknown PCH/AGCH type 0x%02x\n",
