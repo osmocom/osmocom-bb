@@ -30,7 +30,7 @@ static const struct log_info_cat default_categories[] = {
 		.name = "DRSL",
 		.description = "Radio Signalling Link (MS)",
 		.color = "\033[1;35m",
-		.enabled = 1, .loglevel = LOGL_DEBUG,
+		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
 	[DCS] = {
 		.name = "DCS",
@@ -88,13 +88,13 @@ static const struct log_info_cat default_categories[] = {
 	[DLAPDM] = {
 		.name = "DLAPDM",
 		.description = "LAPDm Layer2",
-		.enabled = 1, .loglevel = LOGL_DEBUG,
+		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
 	[DL1C]	= {
 		.name = "DL1C",
 		.description = "Layer 1 Control",
 		.color = "\033[1;31m",
-		.enabled = 1, .loglevel = LOGL_DEBUG,
+		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
 	[DSAP]	= {
 		.name = "DSAP",
