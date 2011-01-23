@@ -333,6 +333,51 @@ static int gsm48_rx_paging_p1(struct msgb *msg, struct osmocom_ms *ms)
 	return 0;
 }
 
+static int gsm48_rx_paging_p2(struct msgb *msg, struct osmocom_ms *ms)
+{
+	struct gsm48_paging2 *pag;
+	int tag, len, mi_type;
+	char mi_string[GSM48_MI_SIZE];
+
+	if (msgb_l3len(msg) < sizeof(*pag)) {
+		LOGP(DRR, LOGL_ERROR, "Paging2 message is too small.\n");
+		return -1;
+	}
+
+	pag = msgb_l3(msg);
+	LOGP(DRR, LOGL_NOTICE, "Paging1: %s chan %s to TMSI M(0x%x) \n",
+		     pag_print_mode(pag->pag_mode),
+		     chan_need(pag->cneed1), pag->tmsi1);
+	LOGP(DRR, LOGL_NOTICE, "Paging2: %s chan %s to TMSI M(0x%x) \n",
+		     pag_print_mode(pag->pag_mode),
+		     chan_need(pag->cneed1), pag->tmsi2);
+
+	/* no optional element */
+	if (msgb_l3len(msg) < sizeof(*pag) + 3)
+		return 0;
+
+	tag = pag->data[0];
+	len = pag->data[1];
+	mi_type = pag->data[2] & GSM_MI_TYPE_MASK;
+
+	if (tag != GSM48_IE_MOBILE_ID)
+		return 0;
+
+	if (msgb_l3len(msg) < sizeof(*pag) + 3 + len) {
+		LOGP(DRR, LOGL_ERROR, "Optional MI does not fit in here\n");
+		return -1;
+	}
+
+	gsm48_mi_to_string(mi_string, sizeof(mi_string), &pag->data[2], len);
+	LOGP(DRR, LOGL_NOTICE, "Paging3: %s chan %s to %s M(%s) \n",
+	     pag_print_mode(pag->pag_mode),
+	     "n/a ",
+	     mi_type_to_string(mi_type),
+	     mi_string);
+
+	return 0;
+}
+
 int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
@@ -346,7 +391,7 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 		gsm48_rx_paging_p1(msg, ms);
 		break;
 	case GSM48_MT_RR_PAG_REQ_2:
-		LOGP(DRR, LOGL_ERROR, "PAGING of type 2 is not implemented.\n");
+		gsm48_rx_paging_p2(msg, ms);
 		break;
 	case GSM48_MT_RR_PAG_REQ_3:
 		LOGP(DRR, LOGL_ERROR, "PAGING of type 3 is not implemented.\n");
