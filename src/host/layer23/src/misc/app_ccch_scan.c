@@ -56,10 +56,9 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 	/* GSM 05.02 §6.3.1.3 Mapping of BCCH data */
 	switch (si_hdr->system_information) {
 	case GSM48_MT_RR_SYSINFO_1:
-		fprintf(stderr, "\tSI1");
 #ifdef BCCH_TC_CHECK
 		if (tc != 0)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI1 on the wrong TC: %d\n", tc);
 #endif
 		if (!app_state.has_si1) {
 			struct gsm48_system_information_type_1 *si1 =
@@ -71,20 +70,19 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 					       0xff, 0x01);
 
 			app_state.has_si1 = 1;
+			LOGP(DRR, LOGL_ERROR, "SI1 received.\n");
 		}
 		break;
 	case GSM48_MT_RR_SYSINFO_2:
-		fprintf(stderr, "\tSI2");
 #ifdef BCCH_TC_CHECK
 		if (tc != 1)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI2 on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_3:
-		fprintf(stderr, "\tSI3");
 #ifdef BCCH_TC_CHECK
 		if (tc != 2 && tc != 6)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI3 on the wrong TC: %d\n", tc);
 #endif
 		if (app_state.ccch_mode == CCCH_MODE_NONE) {
 			struct gsm48_system_information_type_3 *si3 =
@@ -99,86 +97,71 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 		}
 		break;
 	case GSM48_MT_RR_SYSINFO_4:
-		fprintf(stderr, "\tSI4");
 #ifdef BCCH_TC_CHECK
 		if (tc != 3 && tc != 7)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI4 on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_5:
-		fprintf(stderr, "\tSI5");
 		break;
 	case GSM48_MT_RR_SYSINFO_6:
-		fprintf(stderr, "\tSI6");
 		break;
 	case GSM48_MT_RR_SYSINFO_7:
-		fprintf(stderr, "\tSI7");
 #ifdef BCCH_TC_CHECK
 		if (tc != 7)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI7 on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_8:
-		fprintf(stderr, "\tSI8");
 #ifdef BCCH_TC_CHECK
 		if (tc != 3)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI8 on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_9:
-		fprintf(stderr, "\tSI9");
 #ifdef BCCH_TC_CHECK
 		if (tc != 4)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI9 on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_13:
-		fprintf(stderr, "\tSI13");
 #ifdef BCCH_TC_CHECK
 		if (tc != 4 && tc != 0)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI13 on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_16:
-		fprintf(stderr, "\tSI16");
 #ifdef BCCH_TC_CHECK
 		if (tc != 6)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI16 on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_17:
-		fprintf(stderr, "\tSI17");
 #ifdef BCCH_TC_CHECK
 		if (tc != 2)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI17 on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_2bis:
-		fprintf(stderr, "\tSI2bis");
 #ifdef BCCH_TC_CHECK
 		if (tc != 5)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI2bis on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_2ter:
-		fprintf(stderr, "\tSI2ter");
 #ifdef BCCH_TC_CHECK
 		if (tc != 5 && tc != 4)
-			fprintf(stderr, " on wrong TC");
+			LOGP(DRR, LOGL_ERROR, "SI2ter on the wrong TC: %d\n", tc);
 #endif
 		break;
 	case GSM48_MT_RR_SYSINFO_5bis:
-		fprintf(stderr, "\tSI5bis");
 		break;
 	case GSM48_MT_RR_SYSINFO_5ter:
-		fprintf(stderr, "\tSI5ter");
 		break;
 	default:
 		fprintf(stderr, "\tUnknown SI");
 		break;
 	};
-
-	fprintf(stderr, "\n");
 }
 
 
