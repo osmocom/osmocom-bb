@@ -28,6 +28,7 @@
 #include <osmocore/rsl.h>
 #include <osmocore/tlv.h>
 #include <osmocore/gsm48_ie.h>
+#include <osmocore/gsm48.h>
 #include <osmocore/signal.h>
 #include <osmocore/protocol/gsm_04_08.h>
 
@@ -226,6 +227,112 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	return 0;
 }
 
+static const char *pag_print_mode(int mode)
+{
+	switch (mode) {
+	case 0:
+		return "Normal paging";
+	case 1:
+		return "Extended paging";
+	case 2:
+		return "Paging reorganization";
+	case 3:
+		return "Same as before";
+	default:
+		return "invalid";
+	}
+}
+
+static char *chan_need(int need)
+{
+	switch (need) {
+	case 0:
+		return "any";
+	case 1:
+		return "sdch";
+	case 2:
+		return "tch/f";
+	case 3:
+		return "tch/h";
+	default:
+		return "invalid";
+	}
+}
+
+static char *mi_type_to_string(int type)
+{
+	switch (type) {
+	case GSM_MI_TYPE_NONE:
+		return "none";
+	case GSM_MI_TYPE_IMSI:
+		return "imsi";
+	case GSM_MI_TYPE_IMEI:
+		return "imei";
+	case GSM_MI_TYPE_IMEISV:
+		return "imeisv";
+	case GSM_MI_TYPE_TMSI:
+		return "tmsi";
+	default:
+		return "invalid";
+	}
+}
+
+/**
+ * This can contain two MIs. The size checking is a bit of a mess.
+ */
+static int gsm48_rx_paging_p1(struct msgb *msg, struct osmocom_ms *ms)
+{
+	struct gsm48_paging1 *pag;
+	int len1, len2, mi_type, tag;
+	char mi_string[GSM48_MI_SIZE];
+
+	/* is there enough room for the header + LV? */
+	if (msgb_l3len(msg) < sizeof(*pag) + 2) {
+		LOGP(DRR, LOGL_ERROR, "PagingRequest is too short.\n");
+		return -1;
+	}
+
+	pag = msgb_l3(msg);
+	len1 = pag->data[0];
+	mi_type = pag->data[1] & GSM_MI_TYPE_MASK;
+
+	if (msgb_l3len(msg) < sizeof(*pag) + 2 + len1) {
+		LOGP(DRR, LOGL_ERROR, "PagingRequest with wrong MI\n");
+		return -1;
+	}
+
+	if (mi_type != GSM_MI_TYPE_NONE) {
+		gsm48_mi_to_string(mi_string, sizeof(mi_string), &pag->data[1], len1);
+		LOGP(DRR, LOGL_NOTICE, "Paging1: %s chan %s to %s M(%s) \n",
+		     pag_print_mode(pag->pag_mode),
+		     chan_need(pag->cneed1),
+		     mi_type_to_string(mi_type),
+		     mi_string);
+	}
+
+	/* check if we have a MI type in here */
+	if (msgb_l3len(msg) < sizeof(*pag) + 2 + len1 + 3)
+		return 0;
+
+	tag = pag->data[2 + len1 + 0];
+	len2 = pag->data[2 + len1 + 1];
+	mi_type = pag->data[2 + len1 + 2] & GSM_MI_TYPE_MASK;
+	if (tag == GSM48_IE_MOBILE_ID && mi_type != GSM_MI_TYPE_NONE) {
+		if (msgb_l3len(msg) < sizeof(*pag) + 2 + len1 + 3 + len2) {
+			LOGP(DRR, LOGL_ERROR, "Optional MI does not fit here.\n");
+			return -1;
+		}
+
+		gsm48_mi_to_string(mi_string, sizeof(mi_string), &pag->data[2 + len1 + 2], len2);
+		LOGP(DRR, LOGL_NOTICE, "Paging2: %s chan %s to %s M(%s) \n",
+		     pag_print_mode(pag->pag_mode),
+		     chan_need(pag->cneed2),
+		     mi_type_to_string(mi_type),
+		     mi_string);
+	}
+	return 0;
+}
+
 int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
@@ -236,9 +343,13 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_PAG_REQ_1:
+		gsm48_rx_paging_p1(msg, ms);
+		break;
 	case GSM48_MT_RR_PAG_REQ_2:
+		LOGP(DRR, LOGL_ERROR, "PAGING of type 2 is not implemented.\n");
+		break;
 	case GSM48_MT_RR_PAG_REQ_3:
-		/* FIXME: implement decoding of paging request */
+		LOGP(DRR, LOGL_ERROR, "PAGING of type 3 is not implemented.\n");
 		break;
 	case GSM48_MT_RR_IMM_ASS:
 		gsm48_rx_imm_ass(msg, ms);
