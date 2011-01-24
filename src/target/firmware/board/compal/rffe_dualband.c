@@ -19,8 +19,8 @@
 #define		TRENA		TSPACT(6)	/* Transmit Enable (Antenna Switch) */
 #define		GSM_TXEN	TSPACT(8)	/* GSM (as opposed to DCS) Transmit */
 
-#define		IOTA_STROBE	TSPEN0		/* Strobe for the Iota TSP */
-#define 	RITA_STROBE	TSPEN2		/* Strobe for the Rita TSP */
+#define		IOTA_STROBE	TSPEN(0)	/* Strobe for the Iota TSP */
+#define		RITA_STROBE	TSPEN(2)	/* Strobe for the Rita TSP */
 
 /* switch RF Frontend Mode */
 void rffe_mode(enum gsm_band band, int tx)
@@ -58,6 +58,11 @@ void rffe_init(void)
 	reg = readw(MCU_SW_TRACE);
 	reg &= ~(1 << 5);	/* TSPACT8 I/O function, not nMREQ */
 	writew(reg, MCU_SW_TRACE);
+
+	/* Configure the TSPEN which is connected to the TWL3025 */
+	tsp_setup(IOTA_STROBE, 1, 0, 0);
+
+	trf6151_init(RITA_STROBE, RITA_RESET);
 }
 
 uint8_t rffe_get_gain(void)

@@ -2,6 +2,7 @@
 #define _CALYPSO_TSP_H
 
 #define TSPACT(x)	(1 << x)
+#define TSPEN(x)	(x)
 
 /* initiate a TSP write through the TPU */
 void tsp_write(uint8_t dev_idx, uint8_t bitlen, uint32_t dout);

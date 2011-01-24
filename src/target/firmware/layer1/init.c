@@ -52,7 +52,6 @@ void layer1_init(void)
 	/* Initialize TPU, TSP and TRF drivers */
 	tpu_init();
 	tsp_init();
-	trf6151_init();
 
 	rffe_init();
 

@@ -95,6 +95,7 @@ enum trf6151_reg {
 uint16_t rf_arfcn = 871;	/* TODO: this needs to be private */
 static uint16_t rf_band;
 
+static uint8_t trf6151_tsp_uid;
 static uint8_t trf6151_vga_dbm = 40;
 static int trf6151_gain_high = 1;
 
@@ -110,7 +111,7 @@ static void trf6151_reg_write(uint16_t reg, uint16_t val)
 {
 	printd("trf6151_reg_write(reg=%u, val=0x%04x)\n", reg, val);
 	/* each TSP write takes 4 TPU instructions */
-	tsp_write(TRF6151_TSP_UID, 16, (reg | val));
+	tsp_write(trf6151_tsp_uid, 16, (reg | val));
 	trf6151_reg_cache[reg] = val;
 }
 
@@ -232,24 +233,23 @@ enum trf6151_gsm_band {
 	GSM1900		= 6,
 };
 
-static inline void trf6151_reset(void)
+static inline void trf6151_reset(uint16_t reset_id)
 {
 	/* pull the nRESET line low */
-	tsp_act_disable((1 << 0));
+	tsp_act_disable(reset_id);
 	tpu_enq_wait(50);
 	/* release nRESET */
-	tsp_act_enable((1 << 0));
+	tsp_act_enable(reset_id);
 }
 
-void trf6151_init(void)
+void trf6151_init(uint8_t tsp_uid, uint16_t tsp_reset_id)
 {
-	/* Configure TSPEN0, which is connected to TWL3025,
-	 * FIXME: why is this here and not in the TWL3025 driver? */
-	tsp_setup(0, 1, 0, 0);
-	/* Configure TSPEN2, which is connected ot TRF6151 STROBE */
-	tsp_setup(TRF6151_TSP_UID, 0, 1, 1);
+	trf6151_tsp_uid = tsp_uid;
 
-	trf6151_reset();
+	/* Configure the TSPEN which is connected to TRF6151 STROBE */
+	tsp_setup(trf6151_tsp_uid, 0, 1, 1);
+
+	trf6151_reset(tsp_reset_id);
 
 	/* configure TRF6151 for operation */
 	trf6151_power(1);

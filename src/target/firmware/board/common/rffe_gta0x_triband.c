@@ -23,8 +23,8 @@
 #define		ASM_VC2		TSPACT(1)	/* Antenna switch VC2 */
 #define		ASM_VC3		TSPACT(4)	/* Antenna switch VC3 */
 
-#define		IOTA_STROBE	TSPEN0		/* Strobe for the Iota TSP */
-#define		RITA_STROBE	TSPEN2		/* Strobe for the Rita TSP */
+#define		IOTA_STROBE	TSPEN(0)	/* Strobe for the Iota TSP */
+#define		RITA_STROBE	TSPEN(2)	/* Strobe for the Rita TSP */
 
 /* switch RF Frontend Mode */
 void rffe_mode(enum gsm_band band, int tx)
@@ -73,6 +73,11 @@ void rffe_init(void)
 	reg = readw(MCU_SW_TRACE);
 	reg &= ~(1 << 1);	/* TSPACT9 I/O function, not MAS(1) */
 	writew(reg, MCU_SW_TRACE);
+
+	/* Configure the TSPEN which is connected to the TWL3025 */
+	tsp_setup(IOTA_STROBE, 1, 0, 0);
+
+	trf6151_init(RITA_STROBE, RITA_RESET);
 }
 
 uint8_t rffe_get_gain(void)

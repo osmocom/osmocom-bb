@@ -4,7 +4,7 @@
 #include <osmocore/gsm_utils.h>
 
 /* initialize (reset + power up) */
-void trf6151_init(void);
+void trf6151_init(uint8_t tsp_uid, uint16_t tsp_reset_id);
 
 /* switch power off or on */
 void trf6151_power(int on);
