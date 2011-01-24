@@ -1,7 +1,7 @@
 
 
 # List of all supported boards (meant to be overridden on command line)
-BOARDS?=compal_e88 compal_e86 compal_e99 gta0x
+BOARDS?=compal_e88 compal_e86 compal_e99 gta0x pirelli_dpl10
 
 # List of all applications (meant to be overridden on command line)
 APPLICATIONS?=hello_world compal_dsp_dump layer1 loader simtest chainload
@@ -15,6 +15,11 @@ calypso_COMMON_OBJS=board/common/calypso_uart.o board/common/calypso_pwl.o
 
 gta0x_OBJS=$(calypso_COMMON_OBJS) board/gta0x/rffe_gta0x_triband.o board/gta0x/init.o board/gta0x/rf_power.o
 gta0x_ENVIRONMENTS=highram
+
+# Pirelli DP-L10
+
+pirelli_dpl10_OBJS=$(calypso_COMMON_OBJS) board/pirelli_dpl10/rffe_dpl10_triband.o board/pirelli_dpl10/init.o board/pirelli_dpl10/rf_power.o
+pirelli_dpl10_ENVIRONMENTS=highram
 
 # Compal Generic
 
