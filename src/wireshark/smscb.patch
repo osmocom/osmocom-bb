@@ -4,18 +4,15 @@ Create a new gsm_smscb dissector module for SMSCB as defined in GSM TS
 04.12.  Call it from packet-lapdm when the Link Protocol Discriminator
 has the value "0 1".
 
-The dissector supports reassembly of SMSCB Message blocks.  Schedule
-block reassmebly or dissection is not yet implemented.
-
 Signed-off-by: Alex Badea <vamposdecampos@gmail.com>
 ---
- Makefile.common    |    1 
- packet-gsm_smscb.c |  404 +++++++++++++++++++++++++++++++++++++++++++++++++++++
- packet-lapdm.c     |   18 +-
- 3 files changed, 420 insertions(+), 3 deletions(-)
+ epan/dissectors/Makefile.common    |    1 +
+ epan/dissectors/packet-gsm_smscb.c |  642 ++++++++++++++++++++++++++++++++++++
+ epan/dissectors/packet-lapdm.c     |   18 +-
+ 3 files changed, 658 insertions(+), 3 deletions(-)
 
 diff --git a/epan/dissectors/Makefile.common b/epan/dissectors/Makefile.common
-index 1c1e60b..86bc856 100644
+index 9f9a602..5684579 100644
 --- a/epan/dissectors/Makefile.common
 +++ b/epan/dissectors/Makefile.common
 @@ -500,6 +500,7 @@ DISSECTOR_SRC = \
@@ -28,10 +25,10 @@ index 1c1e60b..86bc856 100644
  	packet-gssapi.c		\
 diff --git a/epan/dissectors/packet-gsm_smscb.c b/epan/dissectors/packet-gsm_smscb.c
 new file mode 100644
-index 0000000..c591564
+index 0000000..a2f8bee
 --- /dev/null
 +++ b/epan/dissectors/packet-gsm_smscb.c
-@@ -0,0 +1,404 @@
+@@ -0,0 +1,642 @@
 +/* packet-gsm_smscb.c
 + * Routines for GSM SMSCB (GSM 04.12) dissection
 + * Copyright 2010, Alex Badea <vamposdecampos@gmail.com>
@@ -41,12 +38,6 @@ index 0000000..c591564
 + * Wireshark - Network traffic analyzer
 + * By Gerald Combs <gerald@wireshark.org>
 + * Copyright 1998 Gerald Combs
-+ *
-+ * Copied from WHATEVER_FILE_YOU_USED (where "WHATEVER_FILE_YOU_USED"
-+ * is a dissector file; if you just copied this from README.developer,
-+ * don't bother with the "Copied from" - you don't even need to put
-+ * in a "Copied from" if you copied an existing dissector, especially
-+ * if the bulk of the code in the new dissector is your code)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -96,12 +87,24 @@ index 0000000..c591564
 +static gint hf_smscb_fragment_error = -1;
 +static gint hf_smscb_reassembled_in = -1;
 +static gint hf_smscb_reassembled_length = -1;
++static gint hf_smscb_sched_type = -1;
++static gint hf_smscb_sched_spare = -1;
++static gint hf_smscb_sched_begin_slot = -1;
++static gint hf_smscb_sched_end_slot = -1;
++static gint hf_smscb_sched_mdt1 = -1;
++static gint hf_smscb_sched_mdt2 = -1;
++static gint hf_smscb_sched_mdt8 = -1;
++static gint hf_smscb_sched_msgid = -1;
++static gint hf_smscb_sched_repslot = -1;
 +
 +static gint ett_smscb = -1;
 +static gint ett_smscb_addr = -1;
 +static gint ett_smscb_dcs = -1;
 +static gint ett_smscb_fragment = -1;
 +static gint ett_smscb_fragments = -1;
++static gint ett_smscb_sched_new = -1;
++static gint ett_smscb_sched_other = -1;
++static gint ett_smscb_sched_slot = -1;
 +
 +static GHashTable *smscb_fragment_table = NULL;
 +static GHashTable *smscb_reassembled_table = NULL;
@@ -118,12 +121,27 @@ index 0000000..c591564
 +#define	SMSCB_ADDR_LB		0x10	/* Address Last Bit */
 +#define	SMSCB_ADDR_SEQ		0x0f	/* Address sequence number */
 +#define	SMSCB_SERIAL_GS		0xc000	/* CBS Serial Number - Geographical Scope */
-+#define	SMSCB_SERIAL_MCODE	0x3ffc	/* CBS Serial Number - Message Code */
-+#define	SMSCB_SERIAL_UPDNUM	0x0003	/* CBS Serial Number - Update Number */
++#define	SMSCB_SERIAL_MCODE	0x3ff0	/* CBS Serial Number - Message Code */
++#define	SMSCB_SERIAL_UPDNUM	0x000f	/* CBS Serial Number - Update Number */
 +#define	SMSCB_PAGE_NUM		0xf0	/* Page number */
 +#define	SMSCB_PAGE_CNT		0x0f	/* Page total count */
 +
++/*
++ * Bits in the Schedule message
++ */
++#define SMSCB_SCHED_TYPE	0xc0	/* Type */
++#define SMSCB_SCHED_SLOT	0x3f	/* Begin/End Slot Number */
++#define SMSCB_SCHED_SPARE	0xc0	/* Spare */
++#define SMSCB_SCHED_MDT1	0x8000	/* MDT (1 bit)*/
++#define SMSCB_SCHED_MSGID	0x7fff	/* Message ID */
++#define SMSCB_SCHED_MDT2	0xc0	/* MDT (2 bits) */
++#define SMSCB_SCHED_REPSLOT	0x3f	/* Repeated Slot Number */
++
 +#define SMSCB_SEQ_LAST		3
++#define SMSCB_SEQ_1ST		0
++#define SMSCB_SEQ_1ST_SCHED	8
++
++#define SMSCB_SCHED_SLOT_MAX	48
 +
 +/* 04.12 section 3.3.1 */
 +static const value_string smscb_addr_lb_vals[] = {
@@ -152,6 +170,14 @@ index 0000000..c591564
 +	{ 0,		NULL }
 +};
 +
++/* 04.14 section 3.5.5 */
++static const value_string smscb_sched_mdt8_vals[] = {
++	{ 0x00,		"Retransmission indication" },
++	{ 0x80,		"First transmission of an SMSCB within the Schedule Period" },
++	{ 0x40,		"Free Message Slot, optional reading" },
++	{ 0x41,		"Free Message Slot, reading advised" },
++	{ 0,		NULL }
++};
 +
 +static const fragment_items smscb_frag_items = {
 +	/* Fragment subtrees */
@@ -195,6 +221,7 @@ index 0000000..c591564
 +	proto_tree_add_item(tree, hf_smscb_serial_updnum, tvb, offset, 1, ENC_NA);
 +	offset++;
 +	proto_tree_add_item(tree, hf_smscb_msgid, tvb, offset, 2, ENC_BIG_ENDIAN);
++	col_append_fstr(pinfo->cinfo, COL_INFO, " - Message ID %d", tvb_get_ntohs(tvb, offset));
 +	offset += 2;
 +	ti = proto_tree_add_text(tree, tvb, offset, 1, "Data Coding Scheme");
 +	encoding = dissect_cbs_data_coding_scheme(
@@ -233,6 +260,200 @@ index 0000000..c591564
 +	return tvb_length(tvb);
 +}
 +
++/* [3GPP TS 04.14 section 3.5.5] */
++static int dissect_sched_msg_desc(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree,
++	gint *slot_list, gint slot_count)
++{
++	gint offset = 0;
++	gint k;
++	proto_item *ti;
++	proto_tree *subtree;
++	guint8 mdt;
++
++	for (k = 0; k < slot_count; k++) {
++		mdt = tvb_get_guint8(tvb, offset);
++
++		if (mdt & 0x80)
++			mdt = 0x80;
++		else if (!(mdt & 0x40))
++			mdt = 0;
++
++		ti = proto_tree_add_text(tree, tvb, offset, 1, "Slot %d - %s",
++			slot_list[k],
++			val_to_str(mdt, smscb_sched_mdt8_vals, "Unknown (0x%02x)"));
++		subtree = proto_item_add_subtree(ti, ett_smscb_sched_slot);
++
++		if (mdt & 0x80) {
++			guint16 msgid = tvb_get_ntohs(tvb, offset) & SMSCB_SCHED_MSGID;
++			proto_item_append_text(ti, " (message ID %d)", msgid);
++			proto_item_set_len(ti, 2);
++			proto_tree_add_item(subtree, hf_smscb_sched_mdt1, tvb, offset, 2, ENC_BIG_ENDIAN);
++			proto_tree_add_item(subtree, hf_smscb_sched_msgid, tvb, offset, 2, ENC_BIG_ENDIAN);
++			offset += 2;
++		} else if (!(mdt & 0xc0)) {
++			guint8 slot = tvb_get_guint8(tvb, offset) & SMSCB_SCHED_SLOT;
++			proto_item_append_text(ti, " (slot %d)", slot);
++			proto_tree_add_item(subtree, hf_smscb_sched_mdt2, tvb, offset, 1, ENC_NA);
++			proto_tree_add_item(subtree, hf_smscb_sched_repslot, tvb, offset, 1, ENC_NA);
++			offset++;
++		} else {
++			proto_tree_add_item(subtree, hf_smscb_sched_mdt8, tvb, offset, 1, ENC_NA);
++			offset++;
++		}
++	}
++	return offset;
++}
++
++/* [3GPP TS 04.14 section 3.5] */
++static int dissect_sched_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
++{
++	proto_item *ti;
++	gint offset = 0;
++	gint first, last, nm, len;
++	gint new_count = 0;
++	gint other_count = 0;
++	gint new_list[SMSCB_SCHED_SLOT_MAX];
++	gint other_list[SMSCB_SCHED_SLOT_MAX];
++
++	col_append_str(pinfo->cinfo, COL_INFO, " - Schedule message");
++
++	proto_tree_add_item(tree, hf_smscb_sched_type, tvb, offset, 1, ENC_NA);
++	proto_tree_add_item(tree, hf_smscb_sched_begin_slot, tvb, offset, 1, ENC_NA);
++	offset++;
++	proto_tree_add_item(tree, hf_smscb_sched_spare, tvb, offset, 1, ENC_NA);
++	proto_tree_add_item(tree, hf_smscb_sched_end_slot, tvb, offset, 1, ENC_NA);
++	offset++;
++
++	first = tvb_get_guint8(tvb, 0) & SMSCB_SCHED_SLOT;
++	last = tvb_get_guint8(tvb, 1) & SMSCB_SCHED_SLOT;
++	last = MIN(last, SMSCB_SCHED_SLOT_MAX);
++
++	ti = proto_tree_add_text(tree, tvb, offset, 6, "List of new message slots =");
++	for (nm = first; nm <= last; nm++) {
++		if (tvb_get_bits8(tvb, offset * 8 + nm - first, 1)) {
++			proto_item_append_text(ti, " %d", nm);
++			new_list[new_count++] = nm;
++		} else {
++			other_list[other_count++] = nm;
++		}
++	}
++	offset += 6;
++
++	ti = proto_tree_add_text(tree, tvb, offset, 0, "New Message Descriptions");
++	len = dissect_sched_msg_desc(tvb_new_subset(tvb, offset, -1, -1), pinfo,
++		proto_item_add_subtree(ti, ett_smscb_sched_new),
++		new_list, new_count);
++	offset += len;
++	proto_item_set_len(ti, len);
++
++	ti = proto_tree_add_text(tree, tvb, offset, 0, "Other Message Descriptions");
++	len = dissect_sched_msg_desc(tvb_new_subset(tvb, offset, -1, -1), pinfo,
++		proto_item_add_subtree(ti, ett_smscb_sched_other),
++		other_list, other_count);
++	offset += len;
++	proto_item_set_len(ti, len);
++
++	return offset;
++}
++
++static inline int seq_any_frags(guint8 seq)
++{
++	return seq <= SMSCB_SEQ_LAST || seq == SMSCB_SEQ_1ST_SCHED;
++}
++
++static inline int seq_more_frags(guint8 seq)
++{
++	return seq < SMSCB_SEQ_LAST || seq == SMSCB_SEQ_1ST_SCHED;
++}
++
++static inline int seq_first(guint8 seq)
++{
++	return seq == SMSCB_SEQ_1ST || seq == SMSCB_SEQ_1ST_SCHED;
++}
++
++static inline int seq_bits(guint8 seq)
++{
++	return seq & 3;
++}
++
++/*
++ * Do the reassembly thing.
++ *
++ * SMSCB fragmentation doesn't really fit in with the wireshark
++ * reassembler.  There are only two valid fragment sequences:
++ *   i) 0,1,2,3 for a SMSCB message
++ *   ii) 8,1,2,3 for a schedule message
++ *
++ * We can't use different fragment-IDs for each content type,
++ * since the last 3 blocks have identical sequence numbers.
++ *
++ * We can't just mask the lower 2 bits, because when reassembly
++ * completes (which is on the last block, sequence #3) we won't
++ * know which content type we've reassembled.
++ *
++ * We also can't munge e.g. the schedule sequence to 8,9,10,11,
++ * since the reassembler will think we're missing the first 8
++ * blocks and not do anything.
++ *
++ * Also, according to TS 03.41 section 8 we must discard
++ * non-consecutive sequences.
++ *
++ * So the approach here is to include the address header byte
++ * in the first fragment.  This way after reassembly we can peek
++ * at it and dissect accordingly.
++ *
++ * A clean implementation would likely be to add a FD_* reassembler
++ * flag to special-case this behaviour.
++ */
++static tvbuff_t *smscb_try_reassembly(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
++	guint8 *seq_p, guint8 more)
++{
++	guint8 seq = *seq_p;
++	fragment_data *frag;
++	guint32 frag_id = 0x42;
++	guchar expected_seq = 0;
++	tvbuff_t *reassembled = NULL;
++	gboolean save_fragmented = pinfo->fragmented;
++
++	if (!reassemble_smscb || !seq_any_frags(seq))
++		return tvb;
++
++	frag = fragment_get(pinfo, frag_id, smscb_fragment_table);
++	if (frag) {
++		while (frag->next)
++			frag = frag->next;
++		expected_seq = frag->offset + 1;
++	}
++
++	if (seq != expected_seq)
++		g_free(fragment_delete(pinfo, frag_id, smscb_fragment_table));
++
++	if (!seq_first(seq))
++		tvb = tvb_new_subset(tvb, 1, -1, -1);
++
++	pinfo->fragmented = more;
++	frag = fragment_add_seq_check(tvb, 0, pinfo, frag_id,
++		smscb_fragment_table,
++		smscb_reassembled_table, seq_bits(seq),
++		tvb_length(tvb),
++		more);
++
++	reassembled = process_reassembled_data(tvb, 0, pinfo,
++		"Reassembled SMSCB", frag, &smscb_frag_items, NULL, tree);
++
++	if (frag && pinfo->fd->num == frag->reassembled_in) {
++		*seq_p = tvb_get_guint8(reassembled, 0) & SMSCB_ADDR_SEQ;
++		reassembled = tvb_new_subset(reassembled, 1, -1, -1);
++	} else {
++		col_append_str(pinfo->cinfo, COL_INFO, " (Fragment)");
++		proto_tree_add_text(tree, tvb, 0, -1, "Fragment Data");
++		reassembled = NULL;
++	}
++
++	pinfo->fragmented = save_fragmented;
++	return reassembled;
++}
++
 +static int dissect_gsm_smscb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 +{
 +	proto_item *ti;
@@ -246,12 +467,13 @@ index 0000000..c591564
 +
 +	addr = tvb_get_guint8(tvb, 0);
 +	seq = addr & SMSCB_ADDR_SEQ;
-+	more = !(addr & SMSCB_ADDR_LB) && seq < SMSCB_SEQ_LAST;
++	more = !(addr & SMSCB_ADDR_LB) && seq_more_frags(seq);
 +
 +	col_set_str(pinfo->cinfo, COL_PROTOCOL, "SMSCB");
 +
 +	col_clear(pinfo->cinfo, COL_INFO);
-+	col_append_fstr(pinfo->cinfo, COL_INFO, "seq=%d", seq);
++	col_append_str(pinfo->cinfo, COL_INFO,
++		val_to_str(seq, smscb_addr_seq_vals, "Unknown block #%d"));
 +
 +	if (tree) {
 +		ti = proto_tree_add_item(tree, proto_gsm_smscb, tvb, 0, -1, ENC_NA);
@@ -263,53 +485,16 @@ index 0000000..c591564
 +		proto_tree_add_item(subtree, hf_smscb_addr_seq, tvb, 0, 1, ENC_NA);
 +	}
 +
-+	payload = tvb_new_subset(tvb, 1, -1, -1);
-+
-+	if (reassemble_smscb && seq <= SMSCB_SEQ_LAST) {
-+		fragment_data *frag;
-+		guint32 frag_id = 0x42;
-+		guchar expected_seq = 0;
-+		tvbuff_t *reassembled = NULL;
-+		gboolean save_fragmented = pinfo->fragmented;
-+
-+		frag = fragment_get(pinfo, frag_id, smscb_fragment_table);
-+		if (frag) {
-+			while (frag->next)
-+				frag = frag->next;
-+			expected_seq = frag->offset + 1;
++	payload = smscb_try_reassembly(tvb, pinfo, gsm_smscb_tree, &seq, more);
++	if (payload) {
++		switch (seq) {
++		case SMSCB_SEQ_1ST:
++			dissect_smscb_message(payload, pinfo, gsm_smscb_tree);
++			break;
++		case SMSCB_SEQ_1ST_SCHED:
++			dissect_sched_message(payload, pinfo, gsm_smscb_tree);
++			break;
 +		}
-+
-+		/*
-+		 * TS 03.41 section 8 says we should discard sequences
-+		 * which do not consist of consecutive blocks
-+		 */
-+		if (seq != expected_seq)
-+			g_free(fragment_delete(pinfo, frag_id, smscb_fragment_table));
-+
-+		pinfo->fragmented = more;
-+		frag = fragment_add_seq_check(payload, 0, pinfo, frag_id,
-+			smscb_fragment_table,
-+			smscb_reassembled_table, seq,
-+			tvb_length(payload),
-+			more);
-+
-+		reassembled = process_reassembled_data(payload, 0, pinfo,
-+			"Reassembled SMSCB", frag, &smscb_frag_items, NULL,
-+			gsm_smscb_tree);
-+
-+		if (frag && pinfo->fd->num == frag->reassembled_in) {
-+			dissect_smscb_message(reassembled, pinfo, gsm_smscb_tree);
-+		} else {
-+			col_append_str(pinfo->cinfo, COL_INFO, " (Fragment)");
-+			proto_tree_add_text(gsm_smscb_tree, payload, 0, -1, "Fragment Data");
-+		}
-+
-+		pinfo->fragmented = save_fragmented;
-+	} else if (seq == 0) {
-+		dissect_smscb_message(payload, pinfo, gsm_smscb_tree);
-+	} else {
-+		/* TODO: reassemble & dissect Schedule messages */
-+		call_dissector(data_handle, payload, pinfo, tree);
 +	}
 +
 +	return tvb_length(tvb);
@@ -361,6 +546,53 @@ index 0000000..c591564
 +	{ &hf_smscb_content, {
 +		"Content of Message", "smscb.content", FT_STRING, BASE_NONE,
 +		NULL, 0x00, NULL, HFILL,
++	}},
++
++	/* Schedule message */
++	{ &hf_smscb_sched_type, {
++		"Type", "smscb.sched.type", FT_UINT8, BASE_HEX,
++		NULL, SMSCB_SCHED_TYPE,
++		"Type", HFILL,
++	}},
++	{ &hf_smscb_sched_spare, {
++		"Spare", "smscb.sched.spare", FT_UINT8, BASE_DEC,
++		NULL, SMSCB_SCHED_TYPE,
++		"Spare", HFILL,
++	}},
++	{ &hf_smscb_sched_begin_slot, {
++		"Begin slot", "smscb.sched.begin_slot", FT_UINT8, BASE_DEC,
++		NULL, SMSCB_SCHED_SLOT,
++		"Begin slot", HFILL,
++	}},
++	{ &hf_smscb_sched_end_slot, {
++		"End slot", "smscb.sched.end_slot", FT_UINT8, BASE_DEC,
++		NULL, SMSCB_SCHED_SLOT,
++		"End slot", HFILL,
++	}},
++	{ &hf_smscb_sched_mdt1, {
++		"MDT", "smscb.sched.mdt1", FT_UINT16, BASE_DEC,
++		NULL, SMSCB_SCHED_MDT1,
++		"Message Description Type", HFILL,
++	}},
++	{ &hf_smscb_sched_msgid, {
++		"Message ID", "smscb.sched.msg_id", FT_UINT16, BASE_DEC,
++		NULL, SMSCB_SCHED_MSGID,
++		"Message ID", HFILL,
++	}},
++	{ &hf_smscb_sched_mdt2, {
++		"MDT", "smscb.sched.mdt2", FT_UINT8, BASE_DEC,
++		NULL, SMSCB_SCHED_MDT2,
++		"Message Description Type", HFILL,
++	}},
++	{ &hf_smscb_sched_repslot, {
++		"Repeated Slot Number", "smscb.sched.repslot", FT_UINT8, BASE_DEC,
++		NULL, SMSCB_SCHED_REPSLOT,
++		"Repeated Slot Number", HFILL,
++	}},
++	{ &hf_smscb_sched_mdt8, {
++		"MDT", "smscb.sched.mdt8", FT_UINT8, BASE_HEX,
++		VALS(smscb_sched_mdt8_vals), 0x00,
++		"Message Description Type", HFILL,
 +	}},
 +
 +	/* Fragment reassembly */
@@ -417,6 +649,9 @@ index 0000000..c591564
 +	&ett_smscb_dcs,
 +	&ett_smscb_fragment,
 +	&ett_smscb_fragments,
++	&ett_smscb_sched_new,
++	&ett_smscb_sched_other,
++	&ett_smscb_sched_slot,
 +};
 +
 +void proto_reg_handoff_gsm_smscb(void)
@@ -505,3 +740,4 @@ index dbeac85..add859d 100644
 +    smscb_handle = find_dissector("gsm_smscb");
  }
  
++
