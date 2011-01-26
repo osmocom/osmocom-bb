@@ -29,6 +29,7 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/misc/cell_log.h>
 
 #include <osmocore/talloc.h>
@@ -91,6 +92,8 @@ static int l23_getopt_options(struct option **options)
 		{"logfile", 1, 0, 'l'},
 		{"rach", 1, 0, 'r'},
 		{"no-rach", 1, 0, 'n'},
+		{"gps", 1, 0, 'g'},
+		{"baud", 1, 0, 'b'}
 	};
 
 	*options = opts;
@@ -103,6 +106,8 @@ static int l23_cfg_print_help()
 	printf("  -l --logfile LOGFILE		Logfile for the cell log.\n");
 	printf("  -r --rach    RACH		Nr. of RACH bursts to send.\n");
 	printf("  -n --no-rach			Send no rach bursts.\n");
+	printf("  -g --gps DEVICE		/dev/ttyACM0. GPS device.\n");
+	printf("  -b --baud BAUDRAT		The baud rate of the GPS device\n");
 	return 0;
 }
 
@@ -118,6 +123,16 @@ static int l23_cfg_handle(int c, const char *optarg)
 	case 'n':
 		RACH_MAX = 0;
 		break;
+	case 'g':
+		snprintf(gps.device, ARRAY_SIZE(gps.device), "%s", optarg);
+		/* force string terminator */
+		gps.device[ARRAY_SIZE(gps.device) - 1] = '\0';
+		LOGP(DGPS, LOGL_INFO, "Using GPS device %s\n", gps.device);
+		break;
+	case 'b':
+		gps.baud = atoi(optarg);
+		LOGP(DGPS, LOGL_INFO, "Setting GPS baudrate to %u\n", gps.baud);
+		break;
 	}
 
 	return 0;
@@ -125,7 +140,7 @@ static int l23_cfg_handle(int c, const char *optarg)
 
 static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
-	.getopt_string	= "l:r:n",
+	.getopt_string	= "l:r:ng:b:",
 	.cfg_supported	= l23_cfg_supported,
 	.cfg_getopt_opt = l23_getopt_options,
 	.cfg_handle_opt	= l23_cfg_handle,
