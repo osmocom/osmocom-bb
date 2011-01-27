@@ -208,6 +208,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 printf("Dropping frame with %u bit errors\n", dl->num_biterr);
 		LOGP(DL1C, LOGL_NOTICE, "Dropping frame with %u bit errors\n",
 			dl->num_biterr);
+		msgb_free(msg);
 		return 0;
 	}
 
