@@ -1123,8 +1123,8 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 				GSM48_MM_SST_NORMAL_SERVICE);
 
 			/* send message to PLMN search process */
-			gsm322_makesend_plmn_msg(ms, GSM322_EVENT_REG_SUCCESS,
-						 NULL, 0);
+			gsm322_event_input(ms, GSM322_EVT_PLMN,
+					   GSM322_EVENT_REG_SUCCESS, NULL, 0);
 			return 0;
 		}
 		if (!s->att_allowed) {
@@ -1133,8 +1133,8 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 				GSM48_MM_SST_NORMAL_SERVICE);
 
 			/* send message to PLMN search process */
-			gsm322_makesend_plmn_msg(ms, GSM322_EVENT_REG_SUCCESS,
-						 NULL, 0);
+			gsm322_event_input(ms, GSM322_EVT_PLMN,
+					   GSM322_EVENT_REG_SUCCESS, NULL, 0);
 			return 0;
 		}
 		/* else, continue */
@@ -1150,8 +1150,8 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 			GSM48_MM_SST_LIMITED_SERVICE);
 
 		/* send message to PLMN search process */
-		gsm322_makesend_plmn_msg(ms, GSM322_EVENT_ROAMING_NA,
-					 NULL, 0);
+		gsm322_event_input(ms, GSM322_EVT_PLMN,
+				   GSM322_EVENT_ROAMING_NA, NULL, 0);
 
 		return 0;
 	}
@@ -1165,7 +1165,8 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 			GSM48_MM_SST_LIMITED_SERVICE);
 
 		/* send message to PLMN search process */
-		gsm322_makesend_plmn_msg(ms, GSM322_EVENT_REG_FAILED, NULL, 0);
+		gsm322_event_input(ms, GSM322_EVT_PLMN,
+				   GSM322_EVENT_REG_FAILED, NULL, 0);
 
 		return 0;
 	}
@@ -1733,7 +1734,8 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* send SIM remove event to gsm322 */
-	gsm322_makesend_plmn_msg(ms, GSM322_EVENT_SIM_REMOVE, NULL, 0);
+	gsm322_event_input(ms, GSM322_EVT_PLMN,
+			   GSM322_EVENT_SIM_REMOVE, NULL, 0);
 
 	/* CS process will trigger return to MM IDLE / No SIM */
 	return 0;
@@ -1993,7 +1995,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 		_stop:
 		mm->lupd_pending = 0;
 		/* send message to PLMN search process */
-		gsm322_makesend_plmn_msg(ms, msg_type, NULL, 0);
+		gsm322_event_input(ms, GSM322_EVT_PLMN, msg_type, NULL, 0);
 		return 0;
 	}
 
@@ -2062,7 +2064,8 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed.\n");
 
 		/* send message to PLMN search process */
-		gsm322_makesend_plmn_msg(ms, GSM322_EVENT_REG_FAILED, NULL, 0);
+		gsm322_event_input(ms, GSM322_EVT_PLMN,
+				   GSM322_EVENT_REG_FAILED, NULL, 0);
 
 		return 0;
 	}
@@ -2083,7 +2086,8 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 				GSM48_MM_SST_NORMAL_SERVICE);
 
 		/* send message to PLMN search process */
-		gsm322_makesend_plmn_msg(ms, GSM322_EVENT_REG_SUCCESS, NULL, 0);
+		gsm322_event_input(ms, GSM322_EVT_PLMN,
+				   GSM322_EVENT_REG_SUCCESS, NULL, 0);
 
 		return 0;
 	}
@@ -2318,7 +2322,8 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* send message to PLMN search process */
-	gsm322_makesend_plmn_msg(ms, GSM322_EVENT_REG_SUCCESS, NULL, 0);
+	gsm322_event_input(ms, GSM322_EVT_PLMN,
+			   GSM322_EVENT_REG_SUCCESS, NULL, 0);
 
 	/* follow on proceed */
 	if (TLVP_PRESENT(&tp, GSM48_IE_MOBILE_ID))
@@ -2426,7 +2431,7 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	}
 	memset(&ngm, 0, sizeof(ngm));
 	ngm.reject = mm->lupd_rej_cause;
-	gsm322_makesend_plmn_msg(ms, msg_type, NULL, 0);
+	gsm322_event_input(ms, GSM322_EVT_PLMN, msg_type, &ngm, sizeof(ngm));
 
 	/* forbidden list */
 	switch (mm->lupd_rej_cause) {
@@ -4068,7 +4073,8 @@ static int gsm48_mmr_reg_req(struct osmocom_ms *ms)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 
 	/* schedule insertion of SIM */
-	gsm322_makesend_plmn_msg(ms, GSM322_EVENT_SIM_INSERT, NULL, 0);
+	gsm322_event_input(ms, GSM322_EVT_PLMN,
+			   GSM322_EVENT_SIM_INSERT, NULL, 0);
 
 	/* 4.2.1.2 SIM is inserted in state NO IMSI */
 	if (mm->state == GSM48_MM_ST_MM_IDLE

@@ -3604,8 +3604,8 @@ int gsm322_exit(struct osmocom_ms *ms)
 	return 0;
 }
 
-int gsm322_makesend_c_event(struct osmocom_ms *ms, int msg_type,
-			    uint8_t *data, unsigned int len)
+int gsm322_event_input(struct osmocom_ms *ms, enum gsm322_evt_type type,
+		       int msg_type, uint8_t *data, unsigned int len)
 {
 	struct msgb *nmsg = gsm322_msgb_alloc(msg_type);
 	int rc;
@@ -3621,46 +3621,18 @@ int gsm322_makesend_c_event(struct osmocom_ms *ms, int msg_type,
 		}
 		memcpy(cur, data, len);
 	}
-	rc = gsm322_c_event(ms, nmsg);
-	msgb_free(nmsg);
+	switch (type) {
+	case GSM322_EVT_C:
+		rc = gsm322_c_event(ms, nmsg);
+		msgb_free(nmsg);
+		break;
+	case GSM322_EVT_CS:
+		rc = gsm322_cs_sendmsg(ms, nmsg);
+		break;
+	case GSM322_EVT_PLMN:
+		rc = gsm322_plmn_sendmsg(ms, nmsg);
+		break;
+	}
 
 	return rc;
-}
-
-int gsm322_makesend_cs_event(struct osmocom_ms *ms, int msg_type,
-			     uint8_t *data, unsigned int len)
-{
-	struct msgb *nmsg = gsm322_msgb_alloc(msg_type);
-
-	if (!nmsg)
-		return -ENOMEM;
-
-	if (data && len) {
-		uint8_t *cur = msgb_push(nmsg, len);
-		if (!cur) {
-			msgb_free(nmsg);
-			return -EIO;
-		}
-		memcpy(cur, data, len);
-	}
-	return  gsm322_cs_sendmsg(ms, nmsg);
-}
-
-int gsm322_makesend_plmn_msg(struct osmocom_ms *ms, int msg_type,
-			     uint8_t *data, unsigned int len)
-{
-	struct msgb *nmsg = gsm322_msgb_alloc(msg_type);
-
-	if (!nmsg)
-		return -ENOMEM;
-
-	if (data && len) {
-		uint8_t *cur = msgb_push(nmsg, len);
-		if (!cur) {
-			msgb_free(nmsg);
-			return -EIO;
-		}
-		memcpy(cur, data, len);
-	}
-	return gsm322_plmn_sendmsg(ms, nmsg);
 }

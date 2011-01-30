@@ -408,8 +408,8 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 			memset(&em, 0, sizeof(em));
 			em.same_cell = 1;
 		}
-		gsm322_makesend_c_event(rr->ms, GSM322_EVENT_RET_IDLE,
-					(uint8_t *)&em, sizeof(em));
+		gsm322_event_input(rr->ms, GSM322_EVT_C, GSM322_EVENT_RET_IDLE,
+				   (uint8_t *)&em, sizeof(em));
 		/* reset any BA range */
 		rr->ba_ranges = 0;
 	}
@@ -1189,7 +1189,8 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	 * NOTE: this must be sent unbuffered, because the state may not
 	 * change until idle mode is left
 	 */
-	rc = gsm322_makesend_c_event(ms, GSM322_EVENT_LEAVE_IDLE, NULL, 0);
+	rc = gsm322_event_input(ms, GSM322_EVT_C, GSM322_EVENT_LEAVE_IDLE,
+				NULL, 0);
 	if (rc) {
 		if (paging)
 			return rc;
@@ -1595,7 +1596,7 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 	/* send sysinfo event to other layers */
 	memset(&em, 0, sizeof(em));
 	em.sysinfo = type;
-	gsm322_makesend_cs_event(ms, GSM322_EVENT_SYSINFO,
+	gsm322_event_input(ms, GSM322_EVT_CS, GSM322_EVENT_SYSINFO,
 				 (uint8_t *)&em, sizeof(em));
 
 	/* send timer info to location update process */

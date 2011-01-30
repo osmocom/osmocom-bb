@@ -689,8 +689,8 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 	memset(&ngm, 0, sizeof(ngm));
 	ngm.mcc = mcc;
 	ngm.mnc = mnc;
-	gsm322_makesend_plmn_msg(ms, GSM322_EVENT_CHOOSE_PLMN,
-				 (uint8_t *)&ngm, sizeof(ngm));
+	gsm322_event_input(ms, GSM322_EVT_PLMN, GSM322_EVENT_CHOOSE_PLMN,
+			   (uint8_t *)&ngm, sizeof(ngm));
 
 	return CMD_SUCCESS;
 }
@@ -820,7 +820,8 @@ DEFUN(network_search, network_search_cmd, "network search MS_NAME",
 	if (!ms)
 		return CMD_WARNING;
 
-	gsm322_makesend_plmn_msg(ms, GSM322_EVENT_USER_RESEL, NULL, 0);
+	gsm322_event_input(ms, GSM322_EVT_PLMN,
+			   GSM322_EVENT_USER_RESEL, NULL, 0);
 
 	return CMD_SUCCESS;
 }
@@ -1265,7 +1266,7 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 		msg_type = GSM322_EVENT_SEL_MANUAL;
 	if (msg_type < 0)
 		return CMD_WARNING;
-	gsm322_makesend_plmn_msg(ms, msg_type, NULL, 0);
+	gsm322_event_input(ms, GSM322_EVT_PLMN, msg_type, NULL, 0);
 
 	return CMD_SUCCESS;
 }

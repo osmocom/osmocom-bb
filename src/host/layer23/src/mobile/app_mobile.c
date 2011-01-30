@@ -104,10 +104,10 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 			break;
 		default:
 			/* no SIM, trigger PLMN selection process */
-			gsm322_makesend_plmn_msg(ms, GSM322_EVENT_SWITCH_ON,
-						 NULL, 0);
-			gsm322_makesend_cs_event(ms, GSM322_EVENT_SWITCH_ON,
-						 NULL, 0);
+			gsm322_event_input(ms, GSM322_EVT_PLMN,
+					   GSM322_EVENT_SWITCH_ON, NULL, 0);
+			gsm322_event_input(ms, GSM322_EVT_CS,
+					   GSM322_EVENT_SWITCH_ON, NULL, 0);
 		}
 
 		ms->started = 1;

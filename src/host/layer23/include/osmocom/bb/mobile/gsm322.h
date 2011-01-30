@@ -32,6 +32,13 @@
 #define GSM322_PLMN_SEARCH		10
 #define GSM322_HPLMN_SEARCH		11
 
+/* GSM 03.22 event types */
+enum gsm322_evt_type {
+	GSM322_EVT_C,		/* direct cell event, no queue */
+	GSM322_EVT_CS,		/* enqueue cs->event_queue */
+	GSM322_EVT_PLMN,	/* enqueue plmn->event_queue */
+};
+
 /* GSM 03.22 events */
 #define	GSM322_EVENT_SWITCH_ON		1
 #define	GSM322_EVENT_SWITCH_OFF		2	
@@ -172,9 +179,8 @@ struct gsm322_msg {
 
 int gsm322_init(struct osmocom_ms *ms);
 int gsm322_exit(struct osmocom_ms *ms);
-int gsm322_makesend_plmn_msg(struct osmocom_ms *ms, int msg_type, uint8_t *data, unsigned int len);
-int gsm322_makesend_cs_event(struct osmocom_ms *ms, int msg_type, uint8_t *data, unsigned int len);
-int gsm322_makesend_c_event(struct osmocom_ms *ms, int msg_type, uint8_t *data, unsigned int len);
+int gsm322_event_input(struct osmocom_ms *ms, enum gsm322_evt_type type,
+		       int msg_type, uint8_t *data, unsigned int len);
 int gsm322_plmn_dequeue(struct osmocom_ms *ms);
 int gsm322_cs_dequeue(struct osmocom_ms *ms);
 int gsm322_add_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
