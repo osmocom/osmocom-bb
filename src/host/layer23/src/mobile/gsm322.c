@@ -1174,17 +1174,12 @@ static int gsm322_a_hplmn_search_start(struct osmocom_ms *ms, struct msgb *msg)
 /* manual mode selected */
 static int gsm322_a_sel_manual(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct msgb *nmsg;
-
 	/* restart state machine */
 	gsm322_a_switch_off(ms, msg);
 	ms->settings.plmn_mode = PLMN_MODE_MANUAL;
 	gsm322_m_switch_on(ms, msg);
 
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_USER_PLMN_SEL);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmevent_msg(ms, nmsg);
+	gsm48_mmevent_input(ms, GSM48_MM_EVENT_USER_PLMN_SEL, NULL, 0);
 
 	return 0;
 }
@@ -1461,17 +1456,12 @@ static int gsm322_m_choose_plmn(struct osmocom_ms *ms, struct msgb *msg)
 /* auto mode selected */
 static int gsm322_m_sel_auto(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct msgb *nmsg;
-
 	/* restart state machine */
 	gsm322_m_switch_off(ms, msg);
 	ms->settings.plmn_mode = PLMN_MODE_AUTO;
 	gsm322_a_switch_on(ms, msg);
 
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_USER_PLMN_SEL);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmevent_msg(ms, nmsg);
+	gsm48_mmevent_input(ms, GSM48_MM_EVENT_USER_PLMN_SEL, NULL, 0);
 
 	return 0;
 }
@@ -2684,14 +2674,8 @@ static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 	/* after re-selection, indicate no cell found */
 	if (cs->state == GSM322_C6_ANY_CELL_SEL
 	 || cs->state == GSM322_C8_ANY_CELL_RESEL) {
-		struct msgb *nmsg;
-
 		/* tell that we have no cell found */
-		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_NO_CELL_FOUND);
-		if (!nmsg)
-			return -ENOMEM;
-		gsm48_mmevent_msg(ms, nmsg);
-
+		gsm48_mmevent_input(ms, GSM48_MM_EVENT_NO_CELL_FOUND, NULL, 0);
 	} else { 
 		new_c_state(cs, GSM322_C6_ANY_CELL_SEL);
 	}
@@ -2737,7 +2721,6 @@ static int gsm322_c_any_cell_resel(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct msgb *nmsg;
 
 	LOGP(DSUM, LOGL_INFO, "Camping normally on cell (arfcn=%d mcc=%s "
 		"mnc=%s  %s, %s)\n", cs->sel_arfcn, gsm_print_mcc(cs->sel_mcc),
@@ -2745,10 +2728,7 @@ static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 		gsm_get_mnc(cs->sel_mcc, cs->sel_mnc));
 
 	/* tell that we have selected a (new) cell */
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmevent_msg(ms, nmsg);
+	gsm48_mmevent_input(ms, GSM48_MM_EVENT_CELL_SELECTED, NULL, 0);
 
 	new_c_state(cs, GSM322_C3_CAMPED_NORMALLY);
 
@@ -2759,7 +2739,6 @@ static int gsm322_c_camp_normally(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct msgb *nmsg;
 
 	LOGP(DSUM, LOGL_INFO, "Camping on any cell (arfcn=%d mcc=%s "
 		"mnc=%s  %s, %s)\n", cs->sel_arfcn, gsm_print_mcc(cs->sel_mcc),
@@ -2768,10 +2747,7 @@ static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 
 
 	/* tell that we have selected a (new) cell */
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmevent_msg(ms, nmsg);
+	gsm48_mmevent_input(ms, GSM48_MM_EVENT_CELL_SELECTED, NULL, 0);
 
 	new_c_state(cs, GSM322_C7_CAMPED_ANY_CELL);
 
@@ -2878,8 +2854,6 @@ static int gsm322_c_choose_cell(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* After location updating, we choose the last cell */
 	if (gm->same_cell) {
-		struct msgb *nmsg;
-
 		if (!cs->selected) {
 			printf("No cell selected when ret.idle, please fix!\n");
 			exit(0L);
@@ -2896,10 +2870,7 @@ static int gsm322_c_choose_cell(struct osmocom_ms *ms, struct msgb *msg)
 		new_c_state(cs, GSM322_C3_CAMPED_NORMALLY);
 
 		/* tell that we have selected the cell, so RR returns IDLE */
-		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_CELL_SELECTED);
-		if (!nmsg)
-			return -ENOMEM;
-		gsm48_mmevent_msg(ms, nmsg);
+		gsm48_mmevent_input(ms, GSM48_MM_EVENT_CELL_SELECTED, NULL, 0);
 
 		return 0;
 	}

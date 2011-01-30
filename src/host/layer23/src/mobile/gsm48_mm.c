@@ -658,7 +658,7 @@ struct msgb *gsm48_mmxx_msgb_alloc(int msg_type, uint32_t ref,
 }
 
 /* allocate MM event message */
-struct msgb *gsm48_mmevent_msgb_alloc(int msg_type)
+static struct msgb *gsm48_mmevent_msgb_alloc(int msg_type)
 {
 	struct msgb *msg;
 	struct gsm48_mm_event *mme;
@@ -710,7 +710,7 @@ int gsm48_mmr_downmsg(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* queue MM event message */
-int gsm48_mmevent_msg(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm48_mmevent_msg(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 
@@ -905,14 +905,10 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 
 	/* resend detach event, if flag is set */
 	if (state == GSM48_MM_ST_MM_IDLE && mm->delay_detach) {
-		struct msgb *nmsg;
-
 		mm->delay_detach = 0;
 
-		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
-		if (!nmsg)
-			return;
-		gsm48_mmevent_msg(mm->ms, nmsg);
+		gsm48_mmevent_input(mm->ms, GSM48_MM_EVENT_IMSI_DETACH,
+				    NULL, 0);
 	}
 
 	/* 4.4.2 start T3212 in MM IDLE mode if not started or has expired */
@@ -2431,7 +2427,8 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	}
 	memset(&ngm, 0, sizeof(ngm));
 	ngm.reject = mm->lupd_rej_cause;
-	gsm322_event_input(ms, GSM322_EVT_PLMN, msg_type, &ngm, sizeof(ngm));
+	gsm322_event_input(ms, GSM322_EVT_PLMN, msg_type,
+			   (uint8_t *)&ngm, sizeof(ngm));
 
 	/* forbidden list */
 	switch (mm->lupd_rej_cause) {
@@ -4088,13 +4085,7 @@ static int gsm48_mmr_reg_req(struct osmocom_ms *ms)
 /* trigger detach of sim card */
 static int gsm48_mmr_nreg_req(struct osmocom_ms *ms)
 {
-	struct gsm48_mmlayer *mm = &ms->mmlayer;
-	struct msgb *nmsg;
-
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmevent_msg(mm->ms, nmsg);
+	gsm48_mmevent_input(ms, GSM48_MM_EVENT_IMSI_DETACH, NULL, 0);
 
 	return 0;
 }
@@ -4121,4 +4112,22 @@ static int gsm48_rcv_mmr(struct osmocom_ms *ms, struct msgb *msg)
 	return rc;
 }
 
+int gsm48_mmevent_input(struct osmocom_ms *ms, int msg_type,
+			const uint8_t *data, unsigned int len)
+{
+	struct msgb *nmsg = gsm48_mmevent_msgb_alloc(msg_type);
+	int rc;
 
+	if (!nmsg)
+		return -ENOMEM;
+
+	if (data && len) {
+		uint8_t *cur = msgb_push(nmsg, len);
+		if (!cur) {
+			msgb_free(nmsg);
+			return -EIO;
+		}
+		memcpy(cur, data, len);
+	}
+	return gsm48_mmevent_msg(ms, nmsg);
+}

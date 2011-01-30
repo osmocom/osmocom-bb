@@ -1560,7 +1560,6 @@ fail:
 static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 {
 	struct gsm48_sysinfo *s = ms->cellsel.si;
-	struct msgb *nmsg;
 	struct gsm322_msg em;
 
 	/* update list of measurements, if BA(SACCH) is complete and new */
@@ -1600,10 +1599,7 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 				 (uint8_t *)&em, sizeof(em));
 
 	/* send timer info to location update process */
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_SYSINFO);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmevent_msg(ms, nmsg);
+	gsm48_mmevent_input(ms, GSM48_MM_EVENT_SYSINFO, NULL, 0);
 
 	return 0;
 }

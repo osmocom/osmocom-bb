@@ -210,8 +210,8 @@ struct gsm48_mm_conn {
 int gsm48_mm_init(struct osmocom_ms *ms);
 int gsm48_mm_exit(struct osmocom_ms *ms);
 struct msgb *gsm48_mmr_msgb_alloc(int msg_type);
-struct msgb *gsm48_mmevent_msgb_alloc(int msg_type);
-int gsm48_mmevent_msg(struct osmocom_ms *ms, struct msgb *msg);
+int gsm48_mmevent_input(struct osmocom_ms *ms, int msg_type,
+			const uint8_t *data, unsigned int len);
 int gsm48_mmr_downmsg(struct osmocom_ms *ms, struct msgb *msg);
 int gsm48_rr_dequeue(struct osmocom_ms *ms);
 int gsm48_mmxx_dequeue(struct osmocom_ms *ms);

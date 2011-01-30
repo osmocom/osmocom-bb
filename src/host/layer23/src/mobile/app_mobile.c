@@ -124,10 +124,7 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 		struct msgb *nmsg;
 
 		ms->shutdown = 1; /* going down */
-		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
-		if (!nmsg)
-			return -ENOMEM;
-		gsm48_mmevent_msg(mm->ms, nmsg);
+		gsm48_mmevent_input(ms, GSM48_MM_EVENT_IMSI_DETACH, NULL, 0);
 
 		return -EBUSY;
 	}

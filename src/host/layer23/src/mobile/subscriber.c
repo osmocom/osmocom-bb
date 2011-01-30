@@ -855,25 +855,16 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 	if ((subscr->sim_type != GSM_SIM_TYPE_READER
 	  && subscr->sim_type != GSM_SIM_TYPE_TEST)
 	 || !subscr->sim_valid || no_sim) {
-		struct gsm48_mm_event *nmme;
+		uint8_t dummy_sres[4] = { 0x12, 0x34, 0x56, 0x78 };
 
 		LOGP(DMM, LOGL_INFO, "Sending dummy authentication response\n");
-		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
-		if (!nmsg)
-			return -ENOMEM;
-		nmme = (struct gsm48_mm_event *) nmsg->data;
-		nmme->sres[0] = 0x12;
-		nmme->sres[1] = 0x34;
-		nmme->sres[2] = 0x56;
-		nmme->sres[3] = 0x78;
-		gsm48_mmevent_msg(ms, nmsg);
-
+		gsm48_mmevent_input(ms, GSM48_MM_EVENT_AUTH_RESPONSE,
+				    dummy_sres, sizeof(dummy_sres));
 		return 0;
 	}
 
 	/* test SIM */
 	if (subscr->sim_type == GSM_SIM_TYPE_TEST) {
-		struct gsm48_mm_event *nmme;
 		uint8_t sres[4];
 		struct gsm_settings *set = &ms->settings;
 
@@ -885,12 +876,8 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 		subscr->key_seq = key_seq;
 
 		LOGP(DMM, LOGL_INFO, "Sending authentication response\n");
-		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
-		if (!nmsg)
-			return -ENOMEM;
-		nmme = (struct gsm48_mm_event *) nmsg->data;
-		memcpy(nmme->sres, sres, 4);
-		gsm48_mmevent_msg(ms, nmsg);
+		gsm48_mmevent_input(ms, GSM48_MM_EVENT_AUTH_RESPONSE,
+				    sres, sizeof(sres));
 
 		return 0;
 	}
@@ -924,7 +911,6 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg)
 	uint16_t payload_len = msg->len - sizeof(*sh);
 	struct msgb *nmsg;
 	struct sim_hdr *nsh;
-	struct gsm48_mm_event *nmme;
 	uint8_t *data;
 
 	/* error handling */
@@ -961,12 +947,7 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg)
 	sim_job(ms, nmsg);
 
 	/* return signed response */
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
-	if (!nmsg)
-		return;
-	nmme = (struct gsm48_mm_event *) nmsg->data;
-	memcpy(nmme->sres, payload, 4);
-	gsm48_mmevent_msg(ms, nmsg);
+	gsm48_mmevent_input(ms, GSM48_MM_EVENT_AUTH_RESPONSE, payload, 4);
 
 	msgb_free(msg);
 }
