@@ -79,7 +79,6 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
-	struct msgb *nmsg;
 
 	if (subsys != SS_L1CTL)
 		return 0;
@@ -105,14 +104,10 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 			break;
 		default:
 			/* no SIM, trigger PLMN selection process */
-			nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
-			if (!nmsg)
-				return -ENOMEM;
-			gsm322_plmn_sendmsg(ms, nmsg);
-			nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);
-			if (!nmsg)
-				return -ENOMEM;
-			gsm322_cs_sendmsg(ms, nmsg);
+			gsm322_makesend_plmn_msg(ms, GSM322_EVENT_SWITCH_ON,
+						 NULL, 0);
+			gsm322_makesend_cs_event(ms, GSM322_EVENT_SWITCH_ON,
+						 NULL, 0);
 		}
 
 		ms->started = 1;

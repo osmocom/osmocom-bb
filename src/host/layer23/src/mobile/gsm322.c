@@ -45,6 +45,8 @@ static void gsm322_cs_loss(void *arg);
 static int gsm322_cs_select(struct osmocom_ms *ms, int any, int plmn_allowed);
 static int gsm322_m_switch_on(struct osmocom_ms *ms, struct msgb *msg);
 
+static int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg);
+
 #define SKIP_MAX_PER_BAND
 
 #warning HACKING!!!
@@ -182,7 +184,7 @@ const char *get_event_name(int value)
 
 
 /* allocate a 03.22 event message */
-struct msgb *gsm322_msgb_alloc(int msg_type)
+static struct msgb *gsm322_msgb_alloc(int msg_type)
 {
 	struct msgb *msg;
 	struct gsm322_msg *gm;
@@ -198,7 +200,7 @@ struct msgb *gsm322_msgb_alloc(int msg_type)
 }
 
 /* queue PLMN selection message */
-int gsm322_plmn_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm322_plmn_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 
@@ -208,7 +210,7 @@ int gsm322_plmn_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* queue cell selection message */
-int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 
@@ -3304,7 +3306,7 @@ static struct cellselstatelist {
 #define CELLSELSLLEN \
 	(sizeof(cellselstatelist) / sizeof(struct cellselstatelist))
 
-int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg)
+static int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm322_msg *gm = (struct gsm322_msg *) msg->data;
@@ -3602,4 +3604,63 @@ int gsm322_exit(struct osmocom_ms *ms)
 	return 0;
 }
 
+int gsm322_makesend_c_event(struct osmocom_ms *ms, int msg_type,
+			    uint8_t *data, unsigned int len)
+{
+	struct msgb *nmsg = gsm322_msgb_alloc(msg_type);
+	int rc;
 
+	if (!nmsg)
+		return -ENOMEM;
+
+	if (data && len) {
+		uint8_t *cur = msgb_push(nmsg, len);
+		if (!cur) {
+			msgb_free(nmsg);
+			return -EIO;
+		}
+		memcpy(cur, data, len);
+	}
+	rc = gsm322_c_event(ms, nmsg);
+	msgb_free(nmsg);
+
+	return rc;
+}
+
+int gsm322_makesend_cs_event(struct osmocom_ms *ms, int msg_type,
+			     uint8_t *data, unsigned int len)
+{
+	struct msgb *nmsg = gsm322_msgb_alloc(msg_type);
+
+	if (!nmsg)
+		return -ENOMEM;
+
+	if (data && len) {
+		uint8_t *cur = msgb_push(nmsg, len);
+		if (!cur) {
+			msgb_free(nmsg);
+			return -EIO;
+		}
+		memcpy(cur, data, len);
+	}
+	return  gsm322_cs_sendmsg(ms, nmsg);
+}
+
+int gsm322_makesend_plmn_msg(struct osmocom_ms *ms, int msg_type,
+			     uint8_t *data, unsigned int len)
+{
+	struct msgb *nmsg = gsm322_msgb_alloc(msg_type);
+
+	if (!nmsg)
+		return -ENOMEM;
+
+	if (data && len) {
+		uint8_t *cur = msgb_push(nmsg, len);
+		if (!cur) {
+			msgb_free(nmsg);
+			return -EIO;
+		}
+		memcpy(cur, data, len);
+	}
+	return gsm322_plmn_sendmsg(ms, nmsg);
+}

@@ -375,8 +375,8 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 	rr->state = state;
 
 	if (state == GSM48_RR_ST_IDLE) {
-		struct msgb *msg, *nmsg;
-		struct gsm322_msg *em;
+		struct msgb *msg;
+		struct gsm322_msg em;
 
 		/* release dedicated mode, if any */
 		l1ctl_tx_dm_rel_req(rr->ms);
@@ -403,16 +403,13 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		 * cell selection process returned to camping state
 		 * again. (after cell reselection)
 		 */
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_RET_IDLE);
-		if (!nmsg)
-			return;
 		/* return to same cell after LOC.UPD. */
 		if (rr->est_cause == RR_EST_CAUSE_LOC_UPD) {
-			em = (struct gsm322_msg *) nmsg->data;
-			em->same_cell = 1;
+			memset(&em, 0, sizeof(em));
+			em.same_cell = 1;
 		}
-		gsm322_c_event(rr->ms, nmsg);
-		msgb_free(nmsg);
+		gsm322_makesend_c_event(rr->ms, GSM322_EVENT_RET_IDLE,
+					(uint8_t *)&em, sizeof(em));
 		/* reset any BA range */
 		rr->ba_ranges = 0;
 	}
@@ -1192,11 +1189,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	 * NOTE: this must be sent unbuffered, because the state may not
 	 * change until idle mode is left
 	 */
-	nmsg = gsm322_msgb_alloc(GSM322_EVENT_LEAVE_IDLE);
-	if (!nmsg)
-		return -ENOMEM;
-	rc = gsm322_c_event(ms, nmsg);
-	msgb_free(nmsg);
+	rc = gsm322_makesend_c_event(ms, GSM322_EVENT_LEAVE_IDLE, NULL, 0);
 	if (rc) {
 		if (paging)
 			return rc;
@@ -1567,7 +1560,7 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 {
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	struct msgb *nmsg;
-	struct gsm322_msg *em;
+	struct gsm322_msg em;
 
 	/* update list of measurements, if BA(SACCH) is complete and new */
 	if (s
@@ -1600,12 +1593,10 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 	}
 
 	/* send sysinfo event to other layers */
-	nmsg = gsm322_msgb_alloc(GSM322_EVENT_SYSINFO);
-	if (!nmsg)
-		return -ENOMEM;
-	em = (struct gsm322_msg *) nmsg->data;
-	em->sysinfo = type;
-	gsm322_cs_sendmsg(ms, nmsg);
+	memset(&em, 0, sizeof(em));
+	em.sysinfo = type;
+	gsm322_makesend_cs_event(ms, GSM322_EVENT_SYSINFO,
+				 (uint8_t *)&em, sizeof(em));
 
 	/* send timer info to location update process */
 	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_SYSINFO);

@@ -658,8 +658,7 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 {
 	struct osmocom_ms *ms;
 	struct gsm322_plmn *plmn;
-	struct msgb *nmsg;
-	struct gsm322_msg *ngm;
+	struct gsm322_msg ngm;
 	struct gsm322_plmn_list *temp;
 	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
 		 mnc = gsm_input_mnc((char *)argv[2]);
@@ -687,13 +686,11 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 		return CMD_WARNING;
 	}
 
-	nmsg = gsm322_msgb_alloc(GSM322_EVENT_CHOOSE_PLMN);
-	if (!nmsg)
-		return CMD_WARNING;
-	ngm = (struct gsm322_msg *) nmsg->data;
-	ngm->mcc = mcc;
-	ngm->mnc = mnc;
-	gsm322_plmn_sendmsg(ms, nmsg);
+	memset(&ngm, 0, sizeof(ngm));
+	ngm.mcc = mcc;
+	ngm.mnc = mnc;
+	gsm322_makesend_plmn_msg(ms, GSM322_EVENT_CHOOSE_PLMN,
+				 (uint8_t *)&ngm, sizeof(ngm));
 
 	return CMD_SUCCESS;
 }
@@ -818,16 +815,12 @@ DEFUN(network_search, network_search_cmd, "network search MS_NAME",
 	"Network ...\nTrigger network search\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
-	struct msgb *nmsg;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
-	nmsg = gsm322_msgb_alloc(GSM322_EVENT_USER_RESEL);
-	if (!nmsg)
-		return CMD_WARNING;
-	gsm322_plmn_sendmsg(ms, nmsg);
+	gsm322_makesend_plmn_msg(ms, GSM322_EVENT_USER_RESEL, NULL, 0);
 
 	return CMD_SUCCESS;
 }
@@ -1256,7 +1249,7 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
-	struct msgb *nmsg;
+	int msg_type = -1;
 
 	if (!ms->plmn.state) {
 		if (argv[0][0] == 'a')
@@ -1267,12 +1260,12 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 		return CMD_SUCCESS;
 	}
 	if (argv[0][0] == 'a')
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SEL_AUTO);
+		msg_type = GSM322_EVENT_SEL_AUTO;
 	else
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SEL_MANUAL);
-	if (!nmsg)
+		msg_type = GSM322_EVENT_SEL_MANUAL;
+	if (msg_type < 0)
 		return CMD_WARNING;
-	gsm322_plmn_sendmsg(ms, nmsg);
+	gsm322_makesend_plmn_msg(ms, msg_type, NULL, 0);
 
 	return CMD_SUCCESS;
 }

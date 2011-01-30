@@ -172,10 +172,9 @@ struct gsm322_msg {
 
 int gsm322_init(struct osmocom_ms *ms);
 int gsm322_exit(struct osmocom_ms *ms);
-struct msgb *gsm322_msgb_alloc(int msg_type);
-int gsm322_plmn_sendmsg(struct osmocom_ms *ms, struct msgb *msg);
-int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg);
-int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg);
+int gsm322_makesend_plmn_msg(struct osmocom_ms *ms, int msg_type, uint8_t *data, unsigned int len);
+int gsm322_makesend_cs_event(struct osmocom_ms *ms, int msg_type, uint8_t *data, unsigned int len);
+int gsm322_makesend_c_event(struct osmocom_ms *ms, int msg_type, uint8_t *data, unsigned int len);
 int gsm322_plmn_dequeue(struct osmocom_ms *ms);
 int gsm322_cs_dequeue(struct osmocom_ms *ms);
 int gsm322_add_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
