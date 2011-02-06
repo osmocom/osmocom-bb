@@ -47,7 +47,7 @@
 #include <display.h>
 
 #define ARMIO_LATCH_OUT 0xfffe4802
-#define ARMIO_CNTL_REG	0xfffe4804
+#define IO_CNTL_REG	0xfffe4804
 #define ASIC_CONF_REG	0xfffef008
 
 static void board_io_init(void)
@@ -64,9 +64,9 @@ static void board_io_init(void)
 
 	/* LCD Set I/O(3) to output mode and enable C140 backlight (IO1) */
 	/* FIXME: Put the display backlight control to backlight.c */
-	reg = readw(ARMIO_CNTL_REG);
-	reg &= ~( (1 << 3) | (1 << 1));
-	writew(reg, ARMIO_CNTL_REG);
+	reg = readw(IO_CNTL_REG);
+	reg &= ~((1 << 3) | (1 << 1));
+	writew(reg, IO_CNTL_REG);
 
 	/* LCD Set I/O(3) output low */
 	reg = readw(ARMIO_LATCH_OUT);

@@ -47,7 +47,7 @@
 #include <display.h>
 
 #define ARMIO_LATCH_OUT 0xfffe4802
-#define ARMIO_CNTL_REG	0xfffe4804
+#define IO_CNTL_REG	0xfffe4804
 #define ASIC_CONF_REG	0xfffef008
 
 static void board_io_init(void)
@@ -58,15 +58,15 @@ static void board_io_init(void)
 	/* LCD Set I/O(3) / SA0 to I/O(3) mode */
 	reg &= ~(1 << 10);
 	/* Set function pins to I2C Mode */
-	reg |= 0x1080;			/* SCL / SDA */
+	reg |= ((1 << 12) | (1 << 7));		/* SCL / SDA */
 	/* TWL3025: Set SPI+RIF RX clock to rising edge */
 	reg |= (1 << 13) | (1 << 14);
 	writew(reg, ASIC_CONF_REG);
 
 	/* LCD Set I/O(3) to output mode */
-	reg = readw(ARMIO_CNTL_REG);
+	reg = readw(IO_CNTL_REG);
 	reg &= ~(1 << 3);
-	writew(reg, ARMIO_CNTL_REG);
+	writew(reg, IO_CNTL_REG);
 
 	/* LCD Set I/O(3) output low */
 	reg = readw(ARMIO_LATCH_OUT);
