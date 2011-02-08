@@ -20,7 +20,7 @@ uint8_t char2bcd(char c);
 int hexparse(const char *str, uint8_t *b, int max_len);
 char *hexdump(const unsigned char *buf, int len);
 char *hexdump_nospc(const unsigned char *buf, int len);
-char *bitdump(const uint8_t *bits, unsigned int len);
+char *ubit_dump(const uint8_t *bits, unsigned int len);
 
 #define static_assert(exp, name) typedef int dummy##name [(exp) ? 1 : -1];
 

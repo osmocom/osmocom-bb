@@ -95,7 +95,7 @@ static char *_hexdump(const unsigned char *buf, int len, char *delim)
 	return hexd_buff;
 }
 
-char *bitdump(const uint8_t *bits, unsigned int len)
+char *ubit_dump(const uint8_t *bits, unsigned int len)
 {
 	int i;
 
