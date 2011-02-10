@@ -835,7 +835,7 @@ DEFUN(network_search, network_search_cmd, "network search MS_NAME",
 DEFUN(cfg_gps_enable, cfg_gps_enable_cmd, "gps enable",
 	"GPS receiver")
 {
-	if (gps_open()) {
+	if (osmo_gps_open()) {
 		gps.enable = 1;
 		vty_out(vty, "Failed to open GPS device!%s", VTY_NEWLINE);
 		return CMD_WARNING;
@@ -849,7 +849,7 @@ DEFUN(cfg_no_gps_enable, cfg_no_gps_enable_cmd, "no gps enable",
 	NO_STR "Disable GPS receiver")
 {
 	if (gps.enable)
-		gps_close();
+		osmo_gps_close();
 	gps.enable = 0;
 
 	return CMD_SUCCESS;
@@ -862,8 +862,8 @@ DEFUN(cfg_gps_device, cfg_gps_device_cmd, "gps device DEVICE",
 	strncpy(gps.device, argv[0], sizeof(gps.device));
 	gps.device[sizeof(gps.device) - 1] = '\0';
 	if (gps.enable) {
-		gps_close();
-		if (gps_open()) {
+		osmo_gps_close();
+		if (osmo_gps_open()) {
 			vty_out(vty, "Failed to open GPS device!%s",
 				VTY_NEWLINE);
 			return CMD_WARNING;
@@ -882,8 +882,8 @@ DEFUN(cfg_gps_baud, cfg_gps_baud_cmd, "gps baudrate "
 	else
 		gps.baud = atoi(argv[0]);
 	if (gps.enable) {
-		gps_close();
-		if (gps_open()) {
+		osmo_gps_close();
+		if (osmo_gps_open()) {
 			gps.enable = 0;
 			vty_out(vty, "Failed to open GPS device!%s",
 				VTY_NEWLINE);

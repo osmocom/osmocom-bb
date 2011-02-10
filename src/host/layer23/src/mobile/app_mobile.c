@@ -333,7 +333,7 @@ int l23_app_exit(void)
 	unregister_signal_handler(SS_L1CTL, &mobile_signal_cb, NULL);
 	unregister_signal_handler(SS_GLOBAL, &global_signal_cb, NULL);
 
-	gps_close();
+	osmo_gps_close();
 
 	return 0;
 }
@@ -353,7 +353,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 
 	mncc_recv_app = mncc_recv;
 
-	gps_init();
+	osmo_gps_init();
 
 	vty_init(&vty_info);
 	ms_vty_init();

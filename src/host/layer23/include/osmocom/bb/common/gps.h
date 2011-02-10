@@ -19,7 +19,7 @@
  *
  */
 
-struct gps {
+struct osmo_gps {
 	/* GPS device */
 	uint8_t		enable;
 	char		device[32];
@@ -31,10 +31,10 @@ struct gps {
 	double		latitude, longitude;
 };
 
-extern struct gps gps;
+extern struct osmo_gps gps;
 
-int gps_open(void);
-void gps_close(void);
-void gps_init(void);
+int osmo_gps_open(void);
+void osmo_gps_close(void);
+void osmo_gps_init(void);
 
 

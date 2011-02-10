@@ -33,7 +33,7 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/gps.h>
 
-struct gps gps = {
+struct osmo_gps gps = {
 	0,
 	"/dev/ttyACM0",
 	0,
@@ -46,7 +46,7 @@ struct gps gps = {
 static struct bsc_fd gps_bfd;
 static struct termios gps_termios, gps_old_termios;
 
-static int gps_line(char *line)
+static int osmo_gps_line(char *line)
 {
 	time_t gps_now, host_now;
 	struct tm *tm;
@@ -141,7 +141,7 @@ static int nmea_checksum(char *line)
 	return (strtoul(line+1, NULL, 16) == checksum);
 }
 
-int gps_cb(struct bsc_fd *bfd, unsigned int what)
+int osmo_gps_cb(struct bsc_fd *bfd, unsigned int what)
 {
 	char buff[128];
 	static char line[128];
@@ -165,7 +165,7 @@ int gps_cb(struct bsc_fd *bfd, unsigned int what)
 			if (!nmea_checksum(line))
 				fprintf(stderr, "NMEA checksum error\n");
 			else
-				gps_line(line);
+				osmo_gps_line(line);
 			continue;
 		}
 		line[lpos++] = buff[i++];
@@ -176,7 +176,7 @@ int gps_cb(struct bsc_fd *bfd, unsigned int what)
 	return 0;
 }
 
-int gps_open(void)
+int osmo_gps_open(void)
 {
 	int baud = 0;
 
@@ -187,7 +187,7 @@ int gps_open(void)
 
 	gps_bfd.data = NULL;
 	gps_bfd.when = BSC_FD_READ;
-	gps_bfd.cb = gps_cb;
+	gps_bfd.cb = osmo_gps_cb;
 	gps_bfd.fd = open(gps.device, O_RDONLY);
 	if (gps_bfd.fd < 0)
 		return gps_bfd.fd;
@@ -227,7 +227,7 @@ int gps_open(void)
 	return 0;
 }
 
-void gps_close(void)
+void osmo_gps_close(void)
 {
 	if (gps_bfd.fd <= 0)
 		return;
@@ -243,7 +243,7 @@ void gps_close(void)
 	gps_bfd.fd = -1; /* -1 or 0 indicates: 'close' */
 }
 
-void gps_init(void)
+void osmo_gps_init(void)
 {
 	memset(&gps_bfd, 0, sizeof(gps_bfd));
 }

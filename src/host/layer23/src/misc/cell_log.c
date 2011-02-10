@@ -787,8 +787,8 @@ int scan_init(struct osmocom_ms *_ms)
 	memset(&timer, 0, sizeof(timer));
 	osmol2_register_handler(ms, &rcv_rsl);
 	gps.enable = 1;
-	gps_init();
-	if (gps_open())
+	osmo_gps_init();
+	if (osmo_gps_open())
 		gps.enable = 0;
 
 	if (!strcmp(logname, "-"))
@@ -809,7 +809,7 @@ int scan_exit(void)
 {
 	LOGP(DSUM, LOGL_INFO, "Scanner exit\n");
 	if (gps.valid)
-		gps_close();
+		osmo_gps_close();
 	if (logfp)
 		fclose(logfp);
 	unregister_signal_handler(SS_L1CTL, &signal_cb, NULL);
