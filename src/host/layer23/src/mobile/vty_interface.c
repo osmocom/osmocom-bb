@@ -855,6 +855,35 @@ DEFUN(cfg_no_gps_enable, cfg_no_gps_enable_cmd, "no gps enable",
 	return CMD_SUCCESS;
 }
 
+#ifdef _USE_GPSD
+DEFUN(cfg_gps_host, cfg_gps_host_cmd, "gps host HOST:PORT",
+	"GPS receiver\nSelect gpsd host and port\n"
+	"IP and port (optional) of the host running gpsd")
+{
+	char* colon = strstr(argv[0], ":");
+	if (colon != NULL) {
+		memcpy(gps.gpsd_host, argv[0], colon - argv[0] - 1);
+		gps.gpsd_host[colon - argv[0]] = '\0';
+		memcpy(gps.gpsd_port, colon, strlen(colon));
+		gps.gpsd_port[strlen(colon)] = '\0';
+	} else {
+		snprintf(gps.gpsd_host, ARRAY_SIZE(gps.gpsd_host), "%s", argv[0]);
+		gps.gpsd_host[ARRAY_SIZE(gps.gpsd_host) - 1] = '\0';
+		snprintf(gps.gpsd_port, ARRAY_SIZE(gps.gpsd_port), "2947");
+		gps.gpsd_port[ARRAY_SIZE(gps.gpsd_port) - 1] = '\0';
+	}
+	if (gps.enable) {
+		osmo_gps_close();
+		if (osmo_gps_open()) {
+			vty_out(vty, "Failed to connect to gpsd host!%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	return CMD_SUCCESS;
+}
+#else
 DEFUN(cfg_gps_device, cfg_gps_device_cmd, "gps device DEVICE",
 	"GPS receiver\nSelect serial device\n"
 	"Full path of serial device including /dev/")
@@ -872,7 +901,9 @@ DEFUN(cfg_gps_device, cfg_gps_device_cmd, "gps device DEVICE",
 
 	return CMD_SUCCESS;
 }
+#endif
 
+#ifndef _USE_GPSD
 DEFUN(cfg_gps_baud, cfg_gps_baud_cmd, "gps baudrate "
 	"(default|4800|""9600|19200|38400|57600|115200)",
 	"GPS receiver\nSelect baud rate\nDefault, don't modify\n\n\n\n\n\n")
@@ -893,6 +924,7 @@ DEFUN(cfg_gps_baud, cfg_gps_baud_cmd, "gps baudrate "
 
 	return CMD_SUCCESS;
 }
+#endif
 
 /* per MS config */
 DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
@@ -1172,11 +1204,16 @@ static int config_write(struct vty *vty)
 {
 	struct osmocom_ms *ms;
 
+#ifdef _USE_GPSD
+	vty_out(vty, "gpsd host %s%s", gps.gpsd_host, VTY_NEWLINE);
+	vty_out(vty, "gpsd port %s%s", gps.gpsd_port, VTY_NEWLINE);
+#else
 	vty_out(vty, "gps device %s%s", gps.device, VTY_NEWLINE);
 	if (gps.baud)
 		vty_out(vty, "gps baudrate %d%s", gps.baud, VTY_NEWLINE);
 	else
 		vty_out(vty, "gps baudrate default%s", VTY_NEWLINE);
+#endif
 	vty_out(vty, "%sgps enable%s", (gps.enable) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 
@@ -2268,8 +2305,12 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
 
+#ifdef _USE_GPSD
+	install_element(CONFIG_NODE, &cfg_gps_host_cmd);
+#else
 	install_element(CONFIG_NODE, &cfg_gps_device_cmd);
 	install_element(CONFIG_NODE, &cfg_gps_baud_cmd);
+#endif
 	install_element(CONFIG_NODE, &cfg_gps_enable_cmd);
 	install_element(CONFIG_NODE, &cfg_no_gps_enable_cmd);
 

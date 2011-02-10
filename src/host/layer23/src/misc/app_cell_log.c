@@ -92,8 +92,13 @@ static int l23_getopt_options(struct option **options)
 		{"logfile", 1, 0, 'l'},
 		{"rach", 1, 0, 'r'},
 		{"no-rach", 1, 0, 'n'},
+#ifdef _USE_GPSD
+		{"gpsd-host", 1, 0, 'g'},
+		{"gpsd-port", 1, 0, 'p'}
+#else
 		{"gps", 1, 0, 'g'},
 		{"baud", 1, 0, 'b'}
+#endif
 	};
 
 	*options = opts;
@@ -103,11 +108,16 @@ static int l23_getopt_options(struct option **options)
 static int l23_cfg_print_help()
 {
 	printf("\nApplication specific\n");
-	printf("  -l --logfile LOGFILE		Logfile for the cell log.\n");
+	printf("  -l --logfile LOGFILE	Logfile for the cell log.\n");
 	printf("  -r --rach    RACH		Nr. of RACH bursts to send.\n");
 	printf("  -n --no-rach			Send no rach bursts.\n");
+#ifdef _USE_GPSD
+	printf("  -g --gpsd-host HOST	127.0.0.1. gpsd host.\n");
+	printf("  -p --port PORT		2947. gpsd port\n");
+#else
 	printf("  -g --gps DEVICE		/dev/ttyACM0. GPS device.\n");
 	printf("  -b --baud BAUDRAT		The baud rate of the GPS device\n");
+#endif
 	return 0;
 }
 
@@ -123,6 +133,20 @@ static int l23_cfg_handle(int c, const char *optarg)
 	case 'n':
 		RACH_MAX = 0;
 		break;
+#ifdef _USE_GPSD
+	case 'g':
+		snprintf(gps.gpsd_host, ARRAY_SIZE(gps.gpsd_host), "%s", optarg);
+		/* force string terminator */
+		gps.gpsd_host[ARRAY_SIZE(gps.gpsd_host) - 1] = '\0';
+		LOGP(DGPS, LOGL_INFO, "Using gpsd host %s\n", gps.gpsd_host);
+		break;
+	case 'p':
+		snprintf(gps.gpsd_port, ARRAY_SIZE(gps.gpsd_port), "%s", optarg);
+		/* force string terminator */
+		gps.gpsd_port[ARRAY_SIZE(gps.gpsd_port) - 1] = '\0';
+		LOGP(DGPS, LOGL_INFO, "Using gpsd port %s\n", gps.gpsd_port);
+		break;
+#else
 	case 'g':
 		snprintf(gps.device, ARRAY_SIZE(gps.device), "%s", optarg);
 		/* force string terminator */
@@ -133,14 +157,18 @@ static int l23_cfg_handle(int c, const char *optarg)
 		gps.baud = atoi(optarg);
 		LOGP(DGPS, LOGL_INFO, "Setting GPS baudrate to %u\n", gps.baud);
 		break;
+#endif
 	}
-
 	return 0;
 }
 
 static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
+#ifdef _USE_GPSD
+	.getopt_string	= "l:r:ng:p:",
+#else
 	.getopt_string	= "l:r:ng:b:",
+#endif
 	.cfg_supported	= l23_cfg_supported,
 	.cfg_getopt_opt = l23_getopt_options,
 	.cfg_handle_opt	= l23_cfg_handle,

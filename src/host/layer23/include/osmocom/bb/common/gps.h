@@ -22,8 +22,14 @@
 struct osmo_gps {
 	/* GPS device */
 	uint8_t		enable;
+
+#ifdef _USE_GPSD
+	char		gpsd_host[32];
+	char		gpsd_port[6];
+#else
 	char		device[32];
 	uint32_t	baud;
+#endif
 
 	/* current data */
 	uint8_t		valid; /* we have a fix */

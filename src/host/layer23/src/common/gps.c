@@ -27,6 +27,10 @@
 #include <errno.h>
 #include <time.h>
 
+#ifdef _USE_GPSD
+#include <gps.h>
+#endif
+
 #include <osmocore/utils.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
@@ -35,15 +39,111 @@
 
 struct osmo_gps gps = {
 	0,
+#ifdef _USE_GPSD
+    "localhost",
+	"2947",
+#else
 	"/dev/ttyACM0",
 	0,
-
+#endif
 	0,
 	0,
-	0,0,
+	0,0
 };
 
 static struct bsc_fd gps_bfd;
+
+#ifdef _USE_GPSD
+
+static struct gps_data_t* gdata;
+
+int osmo_gps_cb(struct bsc_fd *bfd, unsigned int what)
+{
+	struct tm *tm;
+	unsigned diff = 0;
+
+	gps.valid = 0;
+
+	/* gps is offline */
+	if (gdata->online)
+	    goto gps_not_ready;
+
+	/* gps has no data */
+	if (gps_waiting(gdata))
+	    goto gps_not_ready;
+
+	/* polling returned an error */
+	if (gps_poll(gdata))
+	    goto gps_not_ready;
+
+	/* data are valid */
+	if (gdata->set & LATLON_SET) {
+		gps.valid = 1;
+		gps.gmt = gdata->fix.time;
+		tm = localtime(&gps.gmt);
+		diff = time(NULL) - gps.gmt;
+		gps.latitude = gdata->fix.latitude;
+		gps.longitude = gdata->fix.longitude;
+
+		LOGP(DGPS, LOGL_INFO, " time=%02d:%02d:%02d %04d-%02d-%02d, "
+			"diff-to-host=%d, latitude=%do%.4f, longitude=%do%.4f\n",
+			tm->tm_hour, tm->tm_min, tm->tm_sec, tm->tm_year + 1900,
+			tm->tm_mday, tm->tm_mon + 1, diff,
+			(int)gps.latitude,
+			(gps.latitude - ((int)gps.latitude)) * 60.0,
+			(int)gps.longitude,
+			(gps.longitude - ((int)gps.longitude)) * 60.0);
+	}
+
+	return 0;
+
+gps_not_ready:
+	LOGP(DGPS, LOGL_DEBUG, "gps is offline");
+	return -1;
+}
+
+int osmo_gps_open(void)
+{
+	LOGP(DGPS, LOGL_INFO, "Connecting to gpsd at '%s:%s'\n", gps.gpsd_host, gps.gpsd_port);
+
+	gps_bfd.data = NULL;
+	gps_bfd.when = BSC_FD_READ;
+	gps_bfd.cb = osmo_gps_cb;
+
+	gdata = gps_open(gps.gpsd_host, gps.gpsd_port);
+	if (gdata == NULL) {
+		LOGP(DGPS, LOGL_ERROR, "Can't connect to gpsd\n");
+		return -1;
+	}
+	gps_bfd.fd = gdata->gps_fd;
+	if (gps_bfd.fd < 0)
+		return gps_bfd.fd;
+
+	if (gps_stream(gdata, WATCH_ENABLE, NULL) == -1) {
+		LOGP(DGPS, LOGL_ERROR, "Error in gps_stream()\n");
+		return -1;
+	}
+
+	bsc_register_fd(&gps_bfd);
+
+	return 0;
+}
+
+void osmo_gps_close(void)
+{
+	if (gps_bfd.fd <= 0)
+		return;
+
+	LOGP(DGPS, LOGL_INFO, "Disconnecting from gpsd\n");
+
+	bsc_unregister_fd(&gps_bfd);
+
+	gps_close(gdata);
+	gps_bfd.fd = -1; /* -1 or 0 indicates: 'close' */
+}
+
+#else
+
 static struct termios gps_termios, gps_old_termios;
 
 static int osmo_gps_line(char *line)
@@ -242,6 +342,8 @@ void osmo_gps_close(void)
 	close(gps_bfd.fd);
 	gps_bfd.fd = -1; /* -1 or 0 indicates: 'close' */
 }
+
+#endif
 
 void osmo_gps_init(void)
 {
