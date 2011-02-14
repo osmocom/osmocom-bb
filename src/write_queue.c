@@ -39,16 +39,18 @@ int write_queue_bfd_cb(struct bsc_fd *fd, unsigned int what)
 		struct msgb *msg;
 
 		fd->when &= ~BSC_FD_WRITE;
-		msg = msgb_dequeue(&queue->msg_queue);
-		if (!msg)
-			return -1;
 
-		--queue->current_length;
-		queue->write_cb(fd, msg);
-		msgb_free(msg);
+		/* the queue might have been emptied */
+		if (!llist_empty(&queue->msg_queue)) {
+			--queue->current_length;
 
-		if (!llist_empty(&queue->msg_queue))
-			fd->when |= BSC_FD_WRITE;
+			msg = msgb_dequeue(&queue->msg_queue);
+			queue->write_cb(fd, msg);
+			msgb_free(msg);
+
+			if (!llist_empty(&queue->msg_queue))
+				fd->when |= BSC_FD_WRITE;
+		}
 	}
 
 	return 0;
