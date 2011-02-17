@@ -127,6 +127,8 @@ struct log_target *log_target_create(void);
 void log_target_destroy(struct log_target *target);
 struct log_target *log_target_create_stderr(void);
 struct log_target *log_target_create_file(const char *fname);
+struct log_target *log_target_create_syslog(const char *ident, int option,
+					    int facility);
 int log_target_file_reopen(struct log_target *tgt);
 
 void log_add_target(struct log_target *target);
