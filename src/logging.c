@@ -124,8 +124,8 @@ static const char* color(int subsys)
 }
 
 static void _output(struct log_target *target, unsigned int subsys,
-		    char *file, int line, int cont, const char *format,
-		    va_list ap)
+		    unsigned int level, char *file, int line, int cont,
+		    const char *format, va_list ap)
 {
 	char col[30];
 	char sub[30];
@@ -167,7 +167,7 @@ static void _output(struct log_target *target, unsigned int subsys,
 	snprintf(final, sizeof(final), "%s%s%s%s%s", col, tim, sub, buf,
 		 target->use_color ? "\033[0;m" : "");
 	final[sizeof(final)-1] = '\0';
-	target->output(target, final);
+	target->output(target, level, final);
 }
 
 
@@ -212,7 +212,7 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 			 * with the same va_list will segfault */
 			va_list bp;
 			va_copy(bp, ap);
-			_output(tar, subsys, file, line, cont, format, bp);
+			_output(tar, subsys, level, file, line, cont, format, bp);
 			va_end(bp);
 		}
 	}
@@ -294,7 +294,8 @@ void log_set_category_filter(struct log_target *target, int category,
 	target->categories[category].loglevel = level;
 }
 
-static void _file_output(struct log_target *target, const char *log)
+static void _file_output(struct log_target *target, unsigned int level,
+			 const char *log)
 {
 	fprintf(target->tgt_file.out, "%s", log);
 	fflush(target->tgt_file.out);

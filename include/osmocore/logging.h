@@ -95,7 +95,8 @@ struct log_target {
 		} tgt_vty;
 	};
 
-        void (*output) (struct log_target *target, const char *string);
+        void (*output) (struct log_target *target, unsigned int level,
+			const char *string);
 };
 
 /* use the above macros */

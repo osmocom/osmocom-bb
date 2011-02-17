@@ -35,7 +35,8 @@
 
 extern const struct log_info *osmo_log_info;
 
-static void _vty_output(struct log_target *tgt, const char *line)
+static void _vty_output(struct log_target *tgt,
+			unsigned int level, const char *line)
 {
 	struct vty *vty = tgt->tgt_vty.vty;
 	vty_out(vty, "%s", line);
