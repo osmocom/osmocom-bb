@@ -138,16 +138,13 @@ DEFUN(logging_fltr_bvc,
 	"BVCI of the BVC to be filtered\n"
 	"BSSGP Virtual Connection Identifier (BVCI)\n")
 {
-	struct telnet_connection *conn;
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
 	struct bssgp_bvc_ctx *bvc;
 	uint16_t nsei = atoi(argv[0]);
 	uint16_t bvci = atoi(argv[1]);
 
-	conn = (struct telnet_connection *) vty->priv;
-	if (!conn->dbg) {
-		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+	if (!tgt)
 		return CMD_WARNING;
-	}
 
 	bvc = btsctx_by_bvci_nsei(bvci, nsei);
 	if (!bvc) {
@@ -155,7 +152,7 @@ DEFUN(logging_fltr_bvc,
 		return CMD_WARNING;
 	}
 
-	log_set_bvc_filter(conn->dbg, bvc);
+	log_set_bvc_filter(tgt, bvc);
 	return CMD_SUCCESS;
 }
 
@@ -165,6 +162,8 @@ int gprs_bssgp_vty_init(void)
 	install_element_ve(&show_bssgp_stats_cmd);
 	install_element_ve(&show_bvc_cmd);
 	install_element_ve(&logging_fltr_bvc_cmd);
+
+	install_element(CFG_LOG_NODE, &logging_fltr_bvc_cmd);
 
 	install_element(CONFIG_NODE, &cfg_bssgp_cmd);
 	install_node(&bssgp_node, config_write_bssgp);

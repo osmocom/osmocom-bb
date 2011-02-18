@@ -513,15 +513,12 @@ DEFUN(logging_fltr_nsvc,
 	"Identify NS-VC by NSVCI\n"
 	"Numeric identifier\n")
 {
-	struct telnet_connection *conn;
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
 	struct gprs_nsvc *nsvc;
 	uint16_t id = atoi(argv[1]);
 
-	conn = (struct telnet_connection *) vty->priv;
-	if (!conn->dbg) {
-		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+	if (!tgt)
 		return CMD_WARNING;
-	}
 
 	if (!strcmp(argv[0], "nsei"))
 		nsvc = nsvc_by_nsei(vty_nsi, id);
@@ -533,7 +530,7 @@ DEFUN(logging_fltr_nsvc,
 		return CMD_WARNING;
 	}
 
-	log_set_nsvc_filter(conn->dbg, nsvc);
+	log_set_nsvc_filter(tgt, nsvc);
 	return CMD_SUCCESS;
 }
 
@@ -545,6 +542,8 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	install_element_ve(&show_ns_stats_cmd);
 	install_element_ve(&show_nse_cmd);
 	install_element_ve(&logging_fltr_nsvc_cmd);
+
+	install_element(CFG_LOG_NODE, &logging_fltr_nsvc_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ns_cmd);
 	install_node(&ns_node, config_write_ns);
