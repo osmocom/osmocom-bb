@@ -70,6 +70,7 @@ enum node_type {
 	CONFIG_NODE,		/* Config node. Default mode of config file. */
 	SERVICE_NODE,		/* Service node. */
 	DEBUG_NODE,		/* Debug node. */
+	CFG_LOG_NODE,		/* Configure the logging */
 
 	VTY_NODE,		/* Vty node. */
 

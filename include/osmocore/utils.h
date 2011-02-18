@@ -24,4 +24,7 @@ char *ubit_dump(const uint8_t *bits, unsigned int len);
 
 #define static_assert(exp, name) typedef int dummy##name [(exp) ? 1 : -1];
 
+void osmo_str2lower(char *out, const char *in);
+void osmo_str2upper(char *out, const char *in);
+
 #endif

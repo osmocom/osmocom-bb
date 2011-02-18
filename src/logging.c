@@ -41,7 +41,7 @@ const struct log_info *osmo_log_info;
 
 static struct log_context log_context;
 static void *tall_log_ctx = NULL;
-static LLIST_HEAD(target_list);
+LLIST_HEAD(osmo_log_target_list);
 
 static const struct value_string loglevel_strs[] = {
 	{ 0,		"EVERYTHING" },
@@ -176,7 +176,7 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 {
 	struct log_target *tar;
 
-	llist_for_each_entry(tar, &target_list, entry) {
+	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
 		struct log_category *category;
 		int output = 0;
 
@@ -239,7 +239,7 @@ void logp2(unsigned int subsys, unsigned int level, char *file, int line, int co
 
 void log_add_target(struct log_target *target)
 {
-	llist_add_tail(&target->entry, &target_list);
+	llist_add_tail(&target->entry, &osmo_log_target_list);
 }
 
 void log_del_target(struct log_target *target)
@@ -338,6 +338,7 @@ struct log_target *log_target_create_stderr(void)
 	if (!target)
 		return NULL;
 
+	target->type = LOG_TGT_TYPE_STDERR;
 	target->tgt_file.out = stderr;
 	target->output = _file_output;
 	return target;
@@ -354,6 +355,7 @@ struct log_target *log_target_create_file(const char *fname)
 	if (!target)
 		return NULL;
 
+	target->type = LOG_TGT_TYPE_FILE;
 	target->tgt_file.out = fopen(fname, "a");
 	if (!target->tgt_file.out)
 		return NULL;
@@ -363,6 +365,22 @@ struct log_target *log_target_create_file(const char *fname)
 	target->tgt_file.fname = talloc_strdup(target, fname);
 
 	return target;
+}
+
+struct log_target *log_target_find(int type, const char *fname)
+{
+	struct log_target *tgt;
+
+	llist_for_each_entry(tgt, &osmo_log_target_list, entry) {
+		if (tgt->type != type)
+			continue;
+		if (tgt->type == LOG_TGT_TYPE_FILE) {
+			if (!strcmp(fname, tgt->tgt_file.fname))
+				return tgt;
+		} else
+			return tgt;
+	}
+	return NULL;
 }
 
 void log_target_destroy(struct log_target *target)

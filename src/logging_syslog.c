@@ -21,6 +21,8 @@
 
 #include "../config.h"
 
+#ifdef HAVE_SYSLOG_H
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -64,9 +66,13 @@ struct log_target *log_target_create_syslog(const char *ident, int option,
 	if (!target)
 		return NULL;
 
+	target->tgt_syslog.facility = facility;
+	target->type = LOG_TGT_TYPE_SYSLOG;
 	target->output = _syslog_output;
 
 	openlog(ident, option, facility);
 
 	return target;
 }
+
+#endif /* HAVE_SYSLOG_H */

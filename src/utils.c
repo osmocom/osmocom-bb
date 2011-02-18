@@ -134,3 +134,25 @@ char *hexdump_nospc(const unsigned char *buf, int len)
 {
 	return _hexdump(buf, len, "");
 }
+
+#include "../config.h"
+#ifdef HAVE_CTYPE_H
+#include <ctype.h>
+void osmo_str2lower(char *out, const char *in)
+{
+	unsigned int i;
+
+	for (i = 0; i < strlen(in); i++)
+		out[i] = tolower(in[i]);
+	out[strlen(in)] = '\0';
+}
+
+void osmo_str2upper(char *out, const char *in)
+{
+	unsigned int i;
+
+	for (i = 0; i < strlen(in); i++)
+		out[i] = toupper(in[i]);
+	out[strlen(in)] = '\0';
+}
+#endif /* HAVE_CTYPE_H */

@@ -69,6 +69,13 @@ struct log_info {
 	unsigned int num_cat;
 };
 
+enum log_target_type {
+	LOG_TGT_TYPE_VTY,
+	LOG_TGT_TYPE_SYSLOG,
+	LOG_TGT_TYPE_FILE,
+	LOG_TGT_TYPE_STDERR,
+};
+
 struct log_target {
         struct llist_head entry;
 
@@ -80,6 +87,8 @@ struct log_target {
 	int use_color:1;
 	int print_timestamp:1;
 
+	enum log_target_type type;
+
 	union {
 		struct {
 			FILE *out;
@@ -88,6 +97,7 @@ struct log_target {
 
 		struct {
 			int priority;
+			int facility;
 		} tgt_syslog;
 
 		struct {
@@ -137,5 +147,8 @@ void log_del_target(struct log_target *target);
 /* Gernerate command argument strings for VTY use */
 const char *log_vty_category_string(struct log_info *info);
 const char *log_vty_level_string(struct log_info *info);
+
+struct log_target *log_target_find(int type, const char *fname);
+extern struct llist_head osmo_log_target_list;
 
 #endif /* _OSMOCORE_LOGGING_H */
