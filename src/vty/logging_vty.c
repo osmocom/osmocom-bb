@@ -85,6 +85,21 @@ DEFUN(enable_logging,
 	return CMD_SUCCESS;
 }
 
+struct log_target *osmo_log_vty2tgt(struct vty *vty)
+{
+	struct telnet_connection *conn;
+
+	if (vty->node == CFG_LOG_NODE)
+		return vty->index;
+
+
+	conn = (struct telnet_connection *) vty->priv;
+	if (!conn->dbg)
+		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+
+	return conn->dbg;
+}
+
 DEFUN(logging_fltr_all,
       logging_fltr_all_cmd,
       "logging filter all (0|1)",
@@ -93,15 +108,12 @@ DEFUN(logging_fltr_all,
 	"Only print messages matched by other filters\n"
 	"Bypass filter and print all messages\n")
 {
-	struct telnet_connection *conn;
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
 
-	conn = (struct telnet_connection *) vty->priv;
-	if (!conn->dbg) {
-		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+	if (!tgt)
 		return CMD_WARNING;
-	}
 
-	log_set_all_filter(conn->dbg, atoi(argv[0]));
+	log_set_all_filter(tgt, atoi(argv[0]));
 	return CMD_SUCCESS;
 }
 
@@ -112,15 +124,12 @@ DEFUN(logging_use_clr,
       "Don't use color for printing messages\n"
       "Use color for printing messages\n")
 {
-	struct telnet_connection *conn;
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
 
-	conn = (struct telnet_connection *) vty->priv;
-	if (!conn->dbg) {
-		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+	if (!tgt)
 		return CMD_WARNING;
-	}
 
-	log_set_use_color(conn->dbg, atoi(argv[0]));
+	log_set_use_color(tgt, atoi(argv[0]));
 	return CMD_SUCCESS;
 }
 
@@ -131,15 +140,12 @@ DEFUN(logging_prnt_timestamp,
 	"Don't prefix each log message\n"
 	"Prefix each log message with current timestamp\n")
 {
-	struct telnet_connection *conn;
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
 
-	conn = (struct telnet_connection *) vty->priv;
-	if (!conn->dbg) {
-		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+	if (!tgt)
 		return CMD_WARNING;
-	}
 
-	log_set_print_timestamp(conn->dbg, atoi(argv[0]));
+	log_set_print_timestamp(tgt, atoi(argv[0]));
 	return CMD_SUCCESS;
 }
 
@@ -186,34 +192,6 @@ DEFUN(logging_prnt_timestamp,
 	"Log error messages and higher levels\n"		\
 	"Log only fatal messages\n"
 
-static int _logging_level(struct vty *vty, struct log_target *dbg,
-			  const char *cat_str, const char *lvl_str)
-{
-	int category = log_parse_category(cat_str);
-	int level = log_parse_level(lvl_str);
-
-	if (level < 0) {
-		vty_out(vty, "Invalid level `%s'%s", lvl_str, VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	/* Check for special case where we want to set global log level */
-	if (!strcmp(cat_str, "all")) {
-		log_set_log_level(dbg, level);
-		return CMD_SUCCESS;
-	}
-
-	if (category < 0) {
-		vty_out(vty, "Invalid category `%s'%s", cat_str, VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	dbg->categories[category].enabled = 1;
-	dbg->categories[category].loglevel = level;
-
-	return CMD_SUCCESS;
-}
-
 DEFUN(logging_level,
       logging_level_cmd,
       "logging level " VTY_DEBUG_CATEGORIES " " VTY_DEBUG_LEVELS,
@@ -222,15 +200,33 @@ DEFUN(logging_level,
       CATEGORIES_HELP
       LEVELS_HELP)
 {
-	struct telnet_connection *conn;
+	int category = log_parse_category(argv[0]);
+	int level = log_parse_level(argv[1]);
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
 
-	conn = (struct telnet_connection *) vty->priv;
-	if (!conn->dbg) {
-		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+	if (!tgt)
+		return CMD_WARNING;
+
+	if (level < 0) {
+		vty_out(vty, "Invalid level `%s'%s", argv[1], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	return _logging_level(vty, conn->dbg, argv[0], argv[1]);
+	/* Check for special case where we want to set global log level */
+	if (!strcmp(argv[0], "all")) {
+		log_set_log_level(tgt, level);
+		return CMD_SUCCESS;
+	}
+
+	if (category < 0) {
+		vty_out(vty, "Invalid category `%s'%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	tgt->categories[category].enabled = 1;
+	tgt->categories[category].loglevel = level;
+
+	return CMD_SUCCESS;
 }
 
 DEFUN(logging_set_category_mask,
@@ -239,15 +235,12 @@ DEFUN(logging_set_category_mask,
 	LOGGING_STR
       "Decide which categories to output.\n")
 {
-	struct telnet_connection *conn;
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
 
-	conn = (struct telnet_connection *) vty->priv;
-	if (!conn->dbg) {
-		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+	if (!tgt)
 		return CMD_WARNING;
-	}
 
-	log_parse_category_mask(conn->dbg, argv[0]);
+	log_parse_category_mask(tgt, argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -257,17 +250,16 @@ DEFUN(diable_logging,
 	LOGGING_STR
       "Disables logging to this vty\n")
 {
-	struct telnet_connection *conn;
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
+	struct telnet_connection *conn = (struct telnet_connection *) vty->priv;
 
-	conn = (struct telnet_connection *) vty->priv;
-	if (!conn->dbg) {
-		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+	if (!tgt)
 		return CMD_WARNING;
-	}
 
-	log_del_target(conn->dbg);
-	talloc_free(conn->dbg);
+	log_del_target(tgt);
+	talloc_free(tgt);
 	conn->dbg = NULL;
+
 	return CMD_SUCCESS;
 }
 
@@ -302,14 +294,12 @@ DEFUN(show_logging_vty,
 	SHOW_STR SHOW_LOG_STR
 	"Show current logging configuration for this vty\n")
 {
-	struct telnet_connection *conn;
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
 
-	conn = (struct telnet_connection *) vty->priv;
-	if (!conn->dbg) {
-		vty_out(vty, "Logging was not enabled.%s", VTY_NEWLINE);
+	if (!tgt)
 		return CMD_WARNING;
-	}
-	vty_print_logtarget(vty, osmo_log_info, conn->dbg);
+
+	vty_print_logtarget(vty, osmo_log_info, tgt);
 
 	return CMD_SUCCESS;
 }
@@ -359,59 +349,6 @@ struct cmd_node cfg_log_node = {
 	"%s(config-log)# ",
 	1
 };
-
-DEFUN(cfg_log_fltr_all,
-      cfg_log_fltr_all_cmd,
-      "logging filter all (0|1)",
-	LOGGING_STR FILTER_STR
-	"Do you want to log all messages?\n"
-	"Only print messages matched by other filters\n"
-	"Bypass filter and print all messages\n")
-{
-	struct log_target *dbg = vty->index;
-
-	log_set_all_filter(dbg, atoi(argv[0]));
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_log_use_clr,
-      cfg_log_use_clr_cmd,
-      "logging color (0|1)",
-	LOGGING_STR "Configure color-printing for log messages\n"
-      "Don't use color for printing messages\n"
-      "Use color for printing messages\n")
-{
-	struct log_target *dbg = vty->index;
-
-	log_set_use_color(dbg, atoi(argv[0]));
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_log_timestamp,
-      cfg_log_timestamp_cmd,
-      "logging timestamp (0|1)",
-	LOGGING_STR "Configure log message timestamping\n"
-	"Don't prefix each log message\n"
-	"Prefix each log message with current timestamp\n")
-{
-	struct log_target *dbg = vty->index;
-
-	log_set_print_timestamp(dbg, atoi(argv[0]));
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_log_level,
-      cfg_log_level_cmd,
-      "logging level " VTY_DEBUG_CATEGORIES " " VTY_DEBUG_LEVELS,
-      LOGGING_STR
-      "Set the log level for a specified category\n"
-      CATEGORIES_HELP
-      LEVELS_HELP)
-{
-	struct log_target *dbg = vty->index;
-
-	return _logging_level(vty, dbg, argv[0], argv[1]);
-}
 
 #ifdef HAVE_SYSLOG_H
 
@@ -668,10 +605,10 @@ void logging_vty_add_cmds()
 	install_element_ve(&show_logging_vty_cmd);
 
 	install_node(&cfg_log_node, config_write_log);
-	install_element(CFG_LOG_NODE, &cfg_log_fltr_all_cmd);
-	install_element(CFG_LOG_NODE, &cfg_log_use_clr_cmd);
-	install_element(CFG_LOG_NODE, &cfg_log_timestamp_cmd);
-	install_element(CFG_LOG_NODE, &cfg_log_level_cmd);
+	install_element(CFG_LOG_NODE, &logging_fltr_all_cmd);
+	install_element(CFG_LOG_NODE, &logging_use_clr_cmd);
+	install_element(CFG_LOG_NODE, &logging_prnt_timestamp_cmd);
+	install_element(CFG_LOG_NODE, &logging_level_cmd);
 
 	install_element(CONFIG_NODE, &cfg_log_stderr_cmd);
 	install_element(CONFIG_NODE, &cfg_no_log_stderr_cmd);

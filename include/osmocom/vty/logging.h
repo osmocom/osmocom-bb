@@ -6,4 +6,6 @@
 
 void logging_vty_add_cmds(void);
 
+struct log_target *osmo_log_vty2tgt(struct vty *vty);
+
 #endif /* _VTY_LOGGING_H */
