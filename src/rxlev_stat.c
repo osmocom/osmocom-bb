@@ -68,7 +68,7 @@ int16_t rxlev_stat_get_next(const struct rxlev_stats *st, uint8_t rxlev, int16_t
 	if (arfcn < 0)
 		arfcn = -1;
 
-	bv.data = st->rxlev_buckets[rxlev];
+	bv.data = (uint8_t *) st->rxlev_buckets[rxlev];
 
 	return bitvec_find_bit_pos(&bv, arfcn+1, ONE);
 }
