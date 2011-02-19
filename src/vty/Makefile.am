@@ -10,5 +10,5 @@ lib_LTLIBRARIES = libosmovty.la
 
 libosmovty_la_SOURCES = buffer.c command.c vty.c vector.c utils.c \
 			telnet_interface.c logging_vty.c
-libosmovty_la_LIBADD = -losmocore $(top_builddir)/src/libosmocore.la
+libosmovty_la_LIBADD = $(top_builddir)/src/libosmocore.la
 endif
