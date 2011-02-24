@@ -269,6 +269,8 @@ gDEFUN(cfg_description, cfg_description_cmd,
 		return CMD_WARNING;
 	}
 
+	if (*dptr)
+		talloc_free(*dptr);
 	*dptr = argv_concat(argv, argc, 0);
 	if (!dptr)
 		return CMD_WARNING;
