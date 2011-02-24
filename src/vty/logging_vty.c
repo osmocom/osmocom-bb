@@ -365,6 +365,9 @@ static const int local_sysl_map[] = {
 	[7] = LOG_LOCAL7
 };
 
+/* From VTY core code */
+extern struct host host;
+
 static int _cfg_log_syslog(struct vty *vty, int facility)
 {
 	struct log_target *tgt;
@@ -374,7 +377,7 @@ static int _cfg_log_syslog(struct vty *vty, int facility)
 	if (tgt)
 		log_target_destroy(tgt);
 
-	tgt = log_target_create_syslog("FIXME", 0, facility);
+	tgt = log_target_create_syslog(host.app_info->name, 0, facility);
 	if (!tgt) {
 		vty_out(vty, "%% Unable to open syslog%s", VTY_NEWLINE);
 		return CMD_WARNING;
