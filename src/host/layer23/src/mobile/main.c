@@ -42,6 +42,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <time.h>
+#include <libgen.h>
 
 struct log_target *stderr_target;
 
@@ -50,6 +51,7 @@ struct llist_head ms_list;
 static uint32_t gsmtap_ip = 0;
 unsigned short vty_port = 4247;
 int debug_set = 0;
+char *config_dir = NULL;
 
 int mobile_delete(struct osmocom_ms *ms, int force);
 int mobile_signal_cb(unsigned int subsys, unsigned int signal,
@@ -183,8 +185,11 @@ int main(int argc, char **argv)
 		if (config_file != NULL)
 			snprintf(config_file, len, "%s/%s", home, osmocomcfg);
 	}
+	/* save the config file directory name */
+	config_dir = talloc_strdup(l23_ctx, config_file);
+	config_dir = dirname(config_dir);
+
 	rc = l23_app_init(NULL, config_file, vty_port);
-	talloc_free(config_file);
 	if (rc)
 		exit(rc);
 

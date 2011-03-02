@@ -1,6 +1,8 @@
 #ifndef APP_MOBILE_H
 #define APP_MOBILE_H
 
+char *config_dir;
+
 int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 	const char *config_file, uint16_t vty_port);
 int l23_app_exit(void);

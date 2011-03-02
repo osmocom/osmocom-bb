@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
@@ -3463,7 +3464,7 @@ int gsm322_init(struct osmocom_ms *ms)
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	FILE *fp;
-	char filename[128];
+	char filename[PATH_MAX];
 	int i;
 	struct gsm322_ba_list *ba;
 	uint8_t buf[4];
@@ -3494,7 +3495,7 @@ int gsm322_init(struct osmocom_ms *ms)
 			cs->list[i].flags |= GSM322_CS_FLAG_SUPPORT;
 
 	/* read BA list */
-	sprintf(filename, "/etc/osmocom/%s.ba", ms->name);
+	sprintf(filename, "%s/%s.ba", config_dir, ms->name);
 	fp = fopen(filename, "r");
 	if (fp) {
 		int rc;
@@ -3535,7 +3536,7 @@ int gsm322_exit(struct osmocom_ms *ms)
 	struct llist_head *lh, *lh2;
 	struct msgb *msg;
 	FILE *fp;
-	char filename[128];
+	char filename[PATH_MAX];
 	struct gsm322_ba_list *ba;
 	uint8_t buf[4];
 	int i;
@@ -3561,7 +3562,7 @@ int gsm322_exit(struct osmocom_ms *ms)
 	}
 
 	/* store BA list */
-	sprintf(filename, "/etc/osmocom/%s.ba", ms->name);
+	sprintf(filename, "%s/%s.ba", config_dir, ms->name);
 	fp = fopen(filename, "w");
 	if (fp) {
 		int rc;
@@ -3601,5 +3602,3 @@ int gsm322_exit(struct osmocom_ms *ms)
 	}
 	return 0;
 }
-
-
