@@ -35,7 +35,9 @@
 #define _GNU_SOURCE
 #include <getopt.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -44,7 +46,6 @@
 struct log_target *stderr_target;
 
 void *l23_ctx = NULL;
-static const char *config_file = "/etc/osmocom/osmocom.cfg";
 struct llist_head ms_list;
 static uint32_t gsmtap_ip = 0;
 unsigned short vty_port = 4247;
@@ -129,7 +130,7 @@ void sighandler(int sigset)
 	if (sigset == SIGHUP || sigset == SIGPIPE)
 		return;
 
-	fprintf(stderr, "Signal %d recevied.\n", sigset);
+	fprintf(stderr, "Signal %d received.\n", sigset);
 
 	/* in case there is a lockup during exit */
 	signal(SIGINT, SIG_DFL);
@@ -144,6 +145,10 @@ int main(int argc, char **argv)
 {
 	int quit = 0;
 	int rc;
+	char const * home;
+	size_t len;
+	const char osmocomcfg[] = ".osmocom/bb/mobile.cfg";
+	char *config_file = NULL;
 
 	printf("%s\n", openbsc_copyright);
 
@@ -171,7 +176,15 @@ int main(int argc, char **argv)
 		}
 	}
 
+	home = getenv("HOME");
+	if (home != NULL) {
+		len = strlen(home) + 1 + sizeof(osmocomcfg);
+		config_file = talloc_size(l23_ctx, len);
+		if (config_file != NULL)
+			snprintf(config_file, len, "%s/%s", home, osmocomcfg);
+	}
 	rc = l23_app_init(NULL, config_file, vty_port);
+	talloc_free(config_file);
 	if (rc)
 		exit(rc);
 

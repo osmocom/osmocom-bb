@@ -349,7 +349,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 	const char *config_file, uint16_t vty_port)
 {
 	struct telnet_connection dummy_conn;
-	int rc;
+	int rc = 0;
 
 	mncc_recv_app = mncc_recv;
 
@@ -359,13 +359,15 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 	ms_vty_init();
 	dummy_conn.priv = NULL;
 	vty_reading = 1;
-	rc = vty_read_config_file(config_file, &dummy_conn);
-	if (rc < 0) {
-		fprintf(stderr, "Failed to parse the config file: '%s'\n",
-			config_file);
-		fprintf(stderr, "Please check or create config file using: "
-			"'touch %s'\n", config_file);
-		return rc;
+	if (config_file != NULL) {
+		rc = vty_read_config_file(config_file, &dummy_conn);
+		if (rc < 0) {
+			fprintf(stderr, "Failed to parse the config file:"
+					" '%s'\n", config_file);
+			fprintf(stderr, "Please check or create config file"
+					" using: 'touch %s'\n", config_file);
+			return rc;
+		}
 	}
 	vty_reading = 0;
 	telnet_init(l23_ctx, NULL, vty_port);
