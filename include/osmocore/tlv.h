@@ -132,6 +132,14 @@ static inline uint8_t *tv_put(uint8_t *buf, uint8_t tag,
 	return buf;
 }
 
+static inline uint8_t *tv_fixed_put(uint8_t *buf, uint8_t tag,
+				    unsigned int len, const uint8_t *val)
+{
+	*buf++ = tag;
+	memcpy(buf, val, len);
+	return buf + len;
+}
+
 /* 'val' is still in host byte order! */
 static inline uint8_t *tv16_put(uint8_t *buf, uint8_t tag, 
 				 uint16_t val)
@@ -158,6 +166,13 @@ static inline uint8_t *msgb_tv_put(struct msgb *msg, uint8_t tag, uint8_t val)
 {
 	uint8_t *buf = msgb_put(msg, 2);
 	return tv_put(buf, tag, val);
+}
+
+static inline uint8_t *msgb_tv_fixed_put(struct msgb *msg, uint8_t tag,
+					unsigned int len, const uint8_t *val)
+{
+	uint8_t *buf = msgb_put(msg, 1+len);
+	return tv_fixed_put(buf, tag, len, val);
 }
 
 static inline uint8_t *msgb_v_put(struct msgb *msg, uint8_t val)
