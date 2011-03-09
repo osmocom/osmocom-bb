@@ -15,7 +15,7 @@ AC_PROG_RANLIB
 dnl checks for libraries
 PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore)
 PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty)
-AC_CHECK_LIB(gps, gps_open, CFLAGS+=" -D_USE_GPSD" LDFLAGS+=" -lgps",,)
+AC_CHECK_LIB(gps, gps_waiting, CFLAGS+=" -D_HAVE_GPSD" LDFLAGS+=" -lgps",,)
 
 dnl checks for header files
 AC_HEADER_STDC

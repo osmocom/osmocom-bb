@@ -836,11 +836,11 @@ DEFUN(cfg_gps_enable, cfg_gps_enable_cmd, "gps enable",
 	"GPS receiver")
 {
 	if (osmo_gps_open()) {
-		gps.enable = 1;
+		g.enable = 1;
 		vty_out(vty, "Failed to open GPS device!%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	gps.enable = 1;
+	g.enable = 1;
 
 	return CMD_SUCCESS;
 }
@@ -848,31 +848,32 @@ DEFUN(cfg_gps_enable, cfg_gps_enable_cmd, "gps enable",
 DEFUN(cfg_no_gps_enable, cfg_no_gps_enable_cmd, "no gps enable",
 	NO_STR "Disable GPS receiver")
 {
-	if (gps.enable)
+	if (g.enable)
 		osmo_gps_close();
-	gps.enable = 0;
+	g.enable = 0;
 
 	return CMD_SUCCESS;
 }
 
-#ifdef _USE_GPSD
+#ifdef _HAVE_GPSD
 DEFUN(cfg_gps_host, cfg_gps_host_cmd, "gps host HOST:PORT",
 	"GPS receiver\nSelect gpsd host and port\n"
 	"IP and port (optional) of the host running gpsd")
 {
 	char* colon = strstr(argv[0], ":");
 	if (colon != NULL) {
-		memcpy(gps.gpsd_host, argv[0], colon - argv[0] - 1);
-		gps.gpsd_host[colon - argv[0]] = '\0';
-		memcpy(gps.gpsd_port, colon, strlen(colon));
-		gps.gpsd_port[strlen(colon)] = '\0';
+		memcpy(g.gpsd_host, argv[0], colon - argv[0] - 1);
+		g.gpsd_host[colon - argv[0]] = '\0';
+		memcpy(g.gpsd_port, colon, strlen(colon));
+		g.gpsd_port[strlen(colon)] = '\0';
 	} else {
-		snprintf(gps.gpsd_host, ARRAY_SIZE(gps.gpsd_host), "%s", argv[0]);
-		gps.gpsd_host[ARRAY_SIZE(gps.gpsd_host) - 1] = '\0';
-		snprintf(gps.gpsd_port, ARRAY_SIZE(gps.gpsd_port), "2947");
-		gps.gpsd_port[ARRAY_SIZE(gps.gpsd_port) - 1] = '\0';
+		snprintf(g.gpsd_host, ARRAY_SIZE(g.gpsd_host), "%s", argv[0]);
+		g.gpsd_host[ARRAY_SIZE(g.gpsd_host) - 1] = '\0';
+		snprintf(g.gpsd_port, ARRAY_SIZE(g.gpsd_port), "2947");
+		g.gpsd_port[ARRAY_SIZE(g.gpsd_port) - 1] = '\0';
 	}
-	if (gps.enable) {
+	g.gps_type = GPS_TYPE_GPSD;
+	if (g.enable) {
 		osmo_gps_close();
 		if (osmo_gps_open()) {
 			vty_out(vty, "Failed to connect to gpsd host!%s",
@@ -883,14 +884,16 @@ DEFUN(cfg_gps_host, cfg_gps_host_cmd, "gps host HOST:PORT",
 
 	return CMD_SUCCESS;
 }
-#else
+#endif
+
 DEFUN(cfg_gps_device, cfg_gps_device_cmd, "gps device DEVICE",
 	"GPS receiver\nSelect serial device\n"
 	"Full path of serial device including /dev/")
 {
-	strncpy(gps.device, argv[0], sizeof(gps.device));
-	gps.device[sizeof(gps.device) - 1] = '\0';
-	if (gps.enable) {
+	strncpy(g.device, argv[0], sizeof(g.device));
+	g.device[sizeof(g.device) - 1] = '\0';
+	g.gps_type = GPS_TYPE_SERIAL;
+	if (g.enable) {
 		osmo_gps_close();
 		if (osmo_gps_open()) {
 			vty_out(vty, "Failed to open GPS device!%s",
@@ -901,21 +904,19 @@ DEFUN(cfg_gps_device, cfg_gps_device_cmd, "gps device DEVICE",
 
 	return CMD_SUCCESS;
 }
-#endif
 
-#ifndef _USE_GPSD
 DEFUN(cfg_gps_baud, cfg_gps_baud_cmd, "gps baudrate "
 	"(default|4800|""9600|19200|38400|57600|115200)",
 	"GPS receiver\nSelect baud rate\nDefault, don't modify\n\n\n\n\n\n")
 {
 	if (argv[0][0] == 'd')
-		gps.baud = 0;
+		g.baud = 0;
 	else
-		gps.baud = atoi(argv[0]);
-	if (gps.enable) {
+		g.baud = atoi(argv[0]);
+	if (g.enable) {
 		osmo_gps_close();
 		if (osmo_gps_open()) {
-			gps.enable = 0;
+			g.enable = 0;
 			vty_out(vty, "Failed to open GPS device!%s",
 				VTY_NEWLINE);
 			return CMD_WARNING;
@@ -924,7 +925,6 @@ DEFUN(cfg_gps_baud, cfg_gps_baud_cmd, "gps baudrate "
 
 	return CMD_SUCCESS;
 }
-#endif
 
 /* per MS config */
 DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
@@ -1204,17 +1204,16 @@ static int config_write(struct vty *vty)
 {
 	struct osmocom_ms *ms;
 
-#ifdef _USE_GPSD
-	vty_out(vty, "gpsd host %s%s", gps.gpsd_host, VTY_NEWLINE);
-	vty_out(vty, "gpsd port %s%s", gps.gpsd_port, VTY_NEWLINE);
-#else
-	vty_out(vty, "gps device %s%s", gps.device, VTY_NEWLINE);
-	if (gps.baud)
-		vty_out(vty, "gps baudrate %d%s", gps.baud, VTY_NEWLINE);
+#ifdef _HAVE_GPSD
+	vty_out(vty, "gpsd host %s%s", g.gpsd_host, VTY_NEWLINE);
+	vty_out(vty, "gpsd port %s%s", g.gpsd_port, VTY_NEWLINE);
+#endif
+	vty_out(vty, "gps device %s%s", g.device, VTY_NEWLINE);
+	if (g.baud)
+		vty_out(vty, "gps baudrate %d%s", g.baud, VTY_NEWLINE);
 	else
 		vty_out(vty, "gps baudrate default%s", VTY_NEWLINE);
-#endif
-	vty_out(vty, "%sgps enable%s", (gps.enable) ? "" : "no ", VTY_NEWLINE);
+	vty_out(vty, "%sgps enable%s", (g.enable) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 
 	llist_for_each_entry(ms, &ms_list, entity)
@@ -2305,12 +2304,11 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
 
-#ifdef _USE_GPSD
+#ifdef _HAVE_GPSD
 	install_element(CONFIG_NODE, &cfg_gps_host_cmd);
-#else
+#endif
 	install_element(CONFIG_NODE, &cfg_gps_device_cmd);
 	install_element(CONFIG_NODE, &cfg_gps_baud_cmd);
-#endif
 	install_element(CONFIG_NODE, &cfg_gps_enable_cmd);
 	install_element(CONFIG_NODE, &cfg_no_gps_enable_cmd);
 

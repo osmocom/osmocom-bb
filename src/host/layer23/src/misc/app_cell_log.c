@@ -92,13 +92,12 @@ static int l23_getopt_options(struct option **options)
 		{"logfile", 1, 0, 'l'},
 		{"rach", 1, 0, 'r'},
 		{"no-rach", 1, 0, 'n'},
-#ifdef _USE_GPSD
+#ifdef _HAVE_GPSD
 		{"gpsd-host", 1, 0, 'g'},
-		{"gpsd-port", 1, 0, 'p'}
-#else
+		{"gpsd-port", 1, 0, 'p'},
+#endif
 		{"gps", 1, 0, 'g'},
 		{"baud", 1, 0, 'b'}
-#endif
 	};
 
 	*options = opts;
@@ -109,15 +108,13 @@ static int l23_cfg_print_help()
 {
 	printf("\nApplication specific\n");
 	printf("  -l --logfile LOGFILE	Logfile for the cell log.\n");
-	printf("  -r --rach    RACH		Nr. of RACH bursts to send.\n");
-	printf("  -n --no-rach			Send no rach bursts.\n");
-#ifdef _USE_GPSD
+	printf("  -r --rach RACH	Nr. of RACH bursts to send.\n");
+	printf("  -n --no-rach		Send no rach bursts.\n");
 	printf("  -g --gpsd-host HOST	127.0.0.1. gpsd host.\n");
-	printf("  -p --port PORT		2947. gpsd port\n");
-#else
-	printf("  -g --gps DEVICE		/dev/ttyACM0. GPS device.\n");
-	printf("  -b --baud BAUDRAT		The baud rate of the GPS device\n");
-#endif
+	printf("  -p --port PORT	2947. gpsd port\n");
+	printf("  -f --gps DEVICE	/dev/ttyACM0. GPS serial device.\n");
+	printf("  -b --baud BAUDRAT	The baud rate of the GPS device\n");
+
 	return 0;
 }
 
@@ -133,42 +130,57 @@ static int l23_cfg_handle(int c, const char *optarg)
 	case 'n':
 		RACH_MAX = 0;
 		break;
-#ifdef _USE_GPSD
 	case 'g':
-		snprintf(gps.gpsd_host, ARRAY_SIZE(gps.gpsd_host), "%s", optarg);
+#ifdef _HAVE_GPSD
+		snprintf(g.gpsd_host, ARRAY_SIZE(g.gpsd_host), "%s", optarg);
 		/* force string terminator */
-		gps.gpsd_host[ARRAY_SIZE(gps.gpsd_host) - 1] = '\0';
-		LOGP(DGPS, LOGL_INFO, "Using gpsd host %s\n", gps.gpsd_host);
+		g.gpsd_host[ARRAY_SIZE(g.gpsd_host) - 1] = '\0';
+		if (g.gps_type != GPS_TYPE_UNDEF)
+			goto cmd_line_error;
+		g.gps_type = GPS_TYPE_GPSD;
+		LOGP(DGPS, LOGL_INFO, "Using gpsd host %s\n", g.gpsd_host);
+#else
+		printf("Gpsd support not compiled.\n");
+		exit(1);
+#endif
 		break;
 	case 'p':
-		snprintf(gps.gpsd_port, ARRAY_SIZE(gps.gpsd_port), "%s", optarg);
+#ifdef _HAVE_GPSD
+		snprintf(g.gpsd_port, ARRAY_SIZE(g.gpsd_port), "%s", optarg);
 		/* force string terminator */
-		gps.gpsd_port[ARRAY_SIZE(gps.gpsd_port) - 1] = '\0';
-		LOGP(DGPS, LOGL_INFO, "Using gpsd port %s\n", gps.gpsd_port);
-		break;
+		g.gpsd_port[ARRAY_SIZE(g.gpsd_port) - 1] = '\0';
+		g.gps_type = GPS_TYPE_GPSD;
+		LOGP(DGPS, LOGL_INFO, "Using gpsd port %s\n", g.gpsd_port);
 #else
-	case 'g':
-		snprintf(gps.device, ARRAY_SIZE(gps.device), "%s", optarg);
+		printf("Gpsd support not compiled.\n");
+		exit(1);
+#endif
+		break;
+	case 'f':
+		snprintf(g.device, ARRAY_SIZE(g.device), "%s", optarg);
 		/* force string terminator */
-		gps.device[ARRAY_SIZE(gps.device) - 1] = '\0';
-		LOGP(DGPS, LOGL_INFO, "Using GPS device %s\n", gps.device);
+		g.device[ARRAY_SIZE(g.device) - 1] = '\0';
+		if (g.gps_type != GPS_TYPE_UNDEF)
+			goto cmd_line_error;
+		g.gps_type = GPS_TYPE_SERIAL;
+		LOGP(DGPS, LOGL_INFO, "Using GPS serial device %s\n", g.device);
 		break;
 	case 'b':
-		gps.baud = atoi(optarg);
-		LOGP(DGPS, LOGL_INFO, "Setting GPS baudrate to %u\n", gps.baud);
+		g.baud = atoi(optarg);
+		g.gps_type = GPS_TYPE_SERIAL;
+		LOGP(DGPS, LOGL_INFO, "Setting GPS baudrate to %u\n", g.baud);
 		break;
-#endif
 	}
 	return 0;
+
+cmd_line_error:
+	printf("\nYou can't specify both gpsd and serial gps!!\n\n");
+	exit(1);
 }
 
 static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
-#ifdef _USE_GPSD
-	.getopt_string	= "l:r:ng:p:",
-#else
-	.getopt_string	= "l:r:ng:b:",
-#endif
+	.getopt_string	= "g:p:l:r:nf:b:",
 	.cfg_supported	= l23_cfg_supported,
 	.cfg_getopt_opt = l23_getopt_options,
 	.cfg_handle_opt	= l23_cfg_handle,

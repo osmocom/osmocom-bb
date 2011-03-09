@@ -19,17 +19,24 @@
  *
  */
 
+enum {
+	GPS_TYPE_UNDEF,
+	GPS_TYPE_GPSD,
+	GPS_TYPE_SERIAL
+};
+
 struct osmo_gps {
 	/* GPS device */
 	uint8_t		enable;
+	uint8_t		gps_type;
 
-#ifdef _USE_GPSD
+#ifdef _HAVE_GPSD
 	char		gpsd_host[32];
 	char		gpsd_port[6];
-#else
+#endif
+
 	char		device[32];
 	uint32_t	baud;
-#endif
 
 	/* current data */
 	uint8_t		valid; /* we have a fix */
@@ -37,7 +44,7 @@ struct osmo_gps {
 	double		latitude, longitude;
 };
 
-extern struct osmo_gps gps;
+extern struct osmo_gps g;
 
 int osmo_gps_open(void);
 void osmo_gps_close(void);

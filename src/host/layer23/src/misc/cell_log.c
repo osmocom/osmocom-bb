@@ -119,17 +119,17 @@ static void start_pm(void);
 
 static void log_gps(void)
 {
-	if (!gps.enable || !gps.valid)
+	if (!g.enable || !g.valid)
 		return;
-	LOGFILE("position %.8f %.8f\n", gps.longitude, gps.latitude);
+	LOGFILE("position %.8f %.8f\n", g.longitude, g.latitude);
 }
 
 static void log_time(void)
 {
 	time_t now;
 
-	if (gps.enable && gps.valid)
-		now = gps.gmt;
+	if (g.enable && g.valid)
+		now = g.gmt;
 	else
 		time(&now);
 	LOGFILE("time %lu\n", now);
@@ -317,15 +317,15 @@ static void start_sync(void)
 		}
 	}
 	/* if GPS becomes valid, like after exitting a tunnel */
-	if (!pm_gps_valid && gps.valid) {
+	if (!pm_gps_valid && g.valid) {
 		pm_gps_valid = 1;
-		geo2space(&pm_gps_x, &pm_gps_y, &pm_gps_z, gps.longitude,
-			gps.latitude);
+		geo2space(&pm_gps_x, &pm_gps_y, &pm_gps_z, g.longitude,
+			g.latitude);
 	}
-	if (pm_gps_valid && gps.valid) {
+	if (pm_gps_valid && g.valid) {
 		double x, y, z;
 
-		geo2space(&x, &y, &z, gps.longitude, gps.latitude);
+		geo2space(&x, &y, &z, g.longitude, g.latitude);
 		dist = distinspace(pm_gps_x, pm_gps_y, pm_gps_z, x, y, z);
 		sprintf(dist_str, "  dist %d", (int)dist);
 	}
@@ -357,10 +357,10 @@ static void start_pm(void)
 
 	if (from == 0 && to == 0) {
 		LOGP(DSUM, LOGL_INFO, "Measurement done\n");
-		pm_gps_valid = gps.enable && gps.valid;
+		pm_gps_valid = g.enable && g.valid;
 		if (pm_gps_valid)
 			geo2space(&pm_gps_x, &pm_gps_y, &pm_gps_z,
-				gps.longitude, gps.latitude);
+				g.longitude, g.latitude);
 		log_pm();
 		start_sync();
 		return;
@@ -786,10 +786,10 @@ int scan_init(struct osmocom_ms *_ms)
 	register_signal_handler(SS_L1CTL, &signal_cb, NULL);
 	memset(&timer, 0, sizeof(timer));
 	osmol2_register_handler(ms, &rcv_rsl);
-	gps.enable = 1;
+	g.enable = 1;
 	osmo_gps_init();
 	if (osmo_gps_open())
-		gps.enable = 0;
+		g.enable = 0;
 
 	if (!strcmp(logname, "-"))
 		logfp = stdout;
@@ -808,7 +808,7 @@ int scan_init(struct osmocom_ms *_ms)
 int scan_exit(void)
 {
 	LOGP(DSUM, LOGL_INFO, "Scanner exit\n");
-	if (gps.valid)
+	if (g.valid)
 		osmo_gps_close();
 	if (logfp)
 		fclose(logfp);
