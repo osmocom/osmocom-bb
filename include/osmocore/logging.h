@@ -144,9 +144,9 @@ int log_target_file_reopen(struct log_target *tgt);
 void log_add_target(struct log_target *target);
 void log_del_target(struct log_target *target);
 
-/* Gernerate command argument strings for VTY use */
-const char *log_vty_category_string(struct log_info *info);
-const char *log_vty_level_string(struct log_info *info);
+/* Generate command string for VTY use */
+const char *log_vty_command_string(const struct log_info *info);
+const char *log_vty_command_description(const struct log_info *info);
 
 struct log_target *log_target_find(int type, const char *fname);
 extern struct llist_head osmo_log_target_list;

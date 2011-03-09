@@ -149,56 +149,10 @@ DEFUN(logging_prnt_timestamp,
 	return CMD_SUCCESS;
 }
 
-/* FIXME: those have to be kept in sync with the log levels and categories */
-#define VTY_DEBUG_CATEGORIES "(rll|cc|mm|rr|rsl|nm|sms|pag|mncc|inp|mi|mib|mux|meas|sccp|msc|mgcp|ho|db|ref|gprs|ns|bssgp|llc|sndcp|isup|m2ua|pcap|nat|all)"
-#define CATEGORIES_HELP	\
-	"A-bis Radio Link Layer (RLL)\n"			\
-	"Layer3 Call Control (CC)\n"				\
-	"Layer3 Mobility Management (MM)\n"			\
-	"Layer3 Radio Resource (RR)\n"				\
-	"A-bis Radio Signalling Link (RSL)\n"			\
-	"A-bis Network Management / O&M (NM/OML)\n"		\
-	"Layer3 Short Messagaging Service (SMS)\n"		\
-	"Paging Subsystem\n"					\
-	"MNCC API for Call Control application\n"		\
-	"A-bis Input Subsystem\n"				\
-	"A-bis Input Driver for Signalling\n"			\
-	"A-bis Input Driver for B-Channel (voice data)\n"	\
-	"A-bis B-Channel / Sub-channel Multiplexer\n"		\
-	"Radio Measurements\n"					\
-	"SCCP\n"						\
-	"Mobile Switching Center\n"				\
-	"Media Gateway Control Protocol\n"			\
-	"Hand-over\n"						\
-	"Database Layer\n"					\
-	"Reference Counting\n"					\
-	"GPRS Core\n"						\
-	"GPRS Network Service (NS)\n"				\
-	"GPRS BSS Gateway Protocol (BSSGP)\n"			\
-	"GPRS Logical Link Control Protocol (LLC)\n"		\
-	"GPRS Sub-Network Dependent Control Protocol (SNDCP)\n"	\
-	"ISDN User Part (ISUP)\n"				\
-	"SCTP M2UA\n"						\
-	"Trace message IO\n"					\
-	"BSC NAT\n"						\
-	"Global setting for all subsytems\n"
-
-#define VTY_DEBUG_LEVELS "(everything|debug|info|notice|error|fatal)"
-#define LEVELS_HELP	\
-	"Log simply everything\n"				\
-	"Log debug messages and higher levels\n"		\
-	"Log informational messages and higher levels\n"	\
-	"Log noticable messages and higher levels\n"		\
-	"Log error messages and higher levels\n"		\
-	"Log only fatal messages\n"
-
 DEFUN(logging_level,
       logging_level_cmd,
-      "logging level " VTY_DEBUG_CATEGORIES " " VTY_DEBUG_LEVELS,
-      LOGGING_STR
-      "Set the log level for a specified category\n"
-      CATEGORIES_HELP
-      LEVELS_HELP)
+      NULL, /* cmdstr is dynamically set in logging_vty_add_cmds(). */
+      NULL) /* same thing for helpstr. */
 {
 	int category = log_parse_category(argv[0]);
 	int level = log_parse_level(argv[1]);
@@ -596,7 +550,7 @@ static int config_write_log(struct vty *vty)
 	return 1;
 }
 
-void logging_vty_add_cmds()
+void logging_vty_add_cmds(const struct log_info *cat)
 {
 	install_element_ve(&enable_logging_cmd);
 	install_element_ve(&disable_logging_cmd);
@@ -604,6 +558,10 @@ void logging_vty_add_cmds()
 	install_element_ve(&logging_use_clr_cmd);
 	install_element_ve(&logging_prnt_timestamp_cmd);
 	install_element_ve(&logging_set_category_mask_cmd);
+
+	/* Logging level strings are generated dynamically. */
+	logging_level_cmd.string = log_vty_command_string(cat);
+	logging_level_cmd.doc = log_vty_command_description(cat);
 	install_element_ve(&logging_level_cmd);
 	install_element_ve(&show_logging_vty_cmd);
 

@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -37,13 +38,17 @@
 #include <osmocore/utils.h>
 #include <osmocore/logging.h>
 
+#include <osmocom/vty/logging.h>	/* for LOGGING_STR. */
+
 const struct log_info *osmo_log_info;
 
 static struct log_context log_context;
 static void *tall_log_ctx = NULL;
 LLIST_HEAD(osmo_log_target_list);
 
-static const struct value_string loglevel_strs[] = {
+#define LOGLEVEL_DEFS	6	/* Number of loglevels.*/
+
+static const struct value_string loglevel_strs[LOGLEVEL_DEFS+1] = {
 	{ 0,		"EVERYTHING" },
 	{ LOGL_DEBUG,	"DEBUG" },
 	{ LOGL_INFO,	"INFO" },
@@ -51,6 +56,17 @@ static const struct value_string loglevel_strs[] = {
 	{ LOGL_ERROR,	"ERROR" },
 	{ LOGL_FATAL,	"FATAL" },
 	{ 0, NULL },
+};
+
+/* You have to keep this in sync with the structure loglevel_strs. */
+const char *loglevel_descriptions[LOGLEVEL_DEFS+1] = {
+	"Log simply everything",
+	"Log debug messages and higher levels",
+	"Log informational messages and higher levels",
+	"Log noticable messages and higher levels",
+	"Log error messages and higher levels",
+	"Log only fatal messages",
+	NULL,
 };
 
 int log_parse_level(const char *lvl)
@@ -418,49 +434,125 @@ int log_target_file_reopen(struct log_target *target)
 	return 0;
 }
 
-const char *log_vty_level_string(struct log_info *info)
+/* This can go into some header file so others can benefit from it. */
+#define SNPRINTF_FAILURE(ret, rem, offset, len)			\
+do {								\
+	len += ret;						\
+	if (ret > rem)						\
+		ret = rem;					\
+	offset += ret;						\
+	rem -= ret;						\
+} while (0)
+
+/* This generates the logging command string for VTY. */
+const char *log_vty_command_string(const struct log_info *info)
 {
-	const struct value_string *vs;
-	unsigned int len = 3; /* ()\0 */
-	char *str;
-
-	for (vs = loglevel_strs; vs->value || vs->str; vs++)
-		len += strlen(vs->str) + 1;
-
-	str = talloc_zero_size(NULL, len);
-	if (!str)
-		return NULL;
-
-	str[0] = '(';
-	for (vs = loglevel_strs; vs->value || vs->str; vs++) {
-		strcat(str, vs->str);
-		strcat(str, "|");
-	}
-	str[strlen(str)-1] = ')';
-
-	return str;
-}
-
-const char *log_vty_category_string(struct log_info *info)
-{
-	unsigned int len = 3;	/* "()\0" */
-	unsigned int i;
+	int len = 0, offset = 0, ret, i, rem;
+	int size = strlen("logging level () ()") + 1;
 	char *str;
 
 	for (i = 0; i < info->num_cat; i++)
-		len += strlen(info->cat[i].name) + 1;
+		size += strlen(info->cat[i].name) + 1;
 
-	str = talloc_zero_size(NULL, len);
+	for (i = 0; i < LOGLEVEL_DEFS; i++)
+		size += strlen(loglevel_strs[i].str) + 1;
+
+	rem = size;
+	str = talloc_zero_size(NULL, size);
 	if (!str)
 		return NULL;
 
-	str[0] = '(';
-	for (i = 0; i < info->num_cat; i++) {
-		strcat(str, info->cat[i].name+1);
-		strcat(str, "|");
-	}
-	str[strlen(str)-1] = ')';
+	ret = snprintf(str + offset, rem, "logging level (");
+	if (ret < 0)
+		goto err;
+	SNPRINTF_FAILURE(ret, rem, offset, len);
 
+	for (i = 0; i < info->num_cat; i++) {
+		int j, name_len = strlen(info->cat[i].name)+1;
+		char name[name_len];
+
+		for (j = 0; j < name_len; j++)
+			name[j] = tolower(info->cat[i].name[j]);
+
+		name[name_len-1] = '\0';
+		ret = snprintf(str + offset, rem, "%s|", name+1);
+		if (ret < 0)
+			goto err;
+		SNPRINTF_FAILURE(ret, rem, offset, len);
+	}
+	offset--;	/* to remove the trailing | */
+	rem++;
+
+	ret = snprintf(str + offset, rem, ") (");
+	if (ret < 0)
+		goto err;
+	SNPRINTF_FAILURE(ret, rem, offset, len);
+
+	for (i = 0; i < LOGLEVEL_DEFS; i++) {
+		int j, loglevel_str_len = strlen(loglevel_strs[i].str)+1;
+		char loglevel_str[loglevel_str_len];
+
+		for (j = 0; j < loglevel_str_len; j++)
+			loglevel_str[j] = tolower(loglevel_strs[i].str[j]);
+
+		loglevel_str[loglevel_str_len-1] = '\0';
+		ret = snprintf(str + offset, rem, "%s|", loglevel_str);
+		if (ret < 0)
+			goto err;
+		SNPRINTF_FAILURE(ret, rem, offset, len);
+	}
+	offset--;	/* to remove the trailing | */
+	rem++;
+
+	ret = snprintf(str + offset, rem, ")");
+	if (ret < 0)
+		goto err;
+	SNPRINTF_FAILURE(ret, rem, offset, len);
+err:
+	return str;
+}
+
+/* This generates the logging command description for VTY. */
+const char *log_vty_command_description(const struct log_info *info)
+{
+	char *str;
+	int i, ret, len = 0, offset = 0, rem;
+	unsigned int size =
+		strlen(LOGGING_STR
+		       "Set the log level for a specified category\n") + 1;
+
+	for (i = 0; i < info->num_cat; i++)
+		size += strlen(info->cat[i].description) + 1;
+
+	for (i = 0; i < LOGLEVEL_DEFS; i++)
+		size += strlen(loglevel_descriptions[i]) + 1;
+
+	rem = size;
+	str = talloc_zero_size(NULL, size);
+	if (!str)
+		return NULL;
+
+	ret = snprintf(str + offset, rem, LOGGING_STR
+			"Set the log level for a specified category\n");
+	if (ret < 0)
+		goto err;
+	SNPRINTF_FAILURE(ret, rem, offset, len);
+
+	for (i = 0; i < info->num_cat; i++) {
+		ret = snprintf(str + offset, rem, "%s\n",
+				info->cat[i].description);
+		if (ret < 0)
+			goto err;
+		SNPRINTF_FAILURE(ret, rem, offset, len);
+	}
+	for (i = 0; i < LOGLEVEL_DEFS; i++) {
+		ret = snprintf(str + offset, rem, "%s\n",
+				loglevel_descriptions[i]);
+		if (ret < 0)
+			goto err;
+		SNPRINTF_FAILURE(ret, rem, offset, len);
+	}
+err:
 	return str;
 }
 
