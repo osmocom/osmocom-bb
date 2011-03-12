@@ -1,10 +1,13 @@
 
 # this is not really used as we don't do 'make install'. You can still specify
 # it in case you _want_ to manually 'make install' the target libosmocore.
-CROSS_INST_PREFIX=/usr/local/stow/osmocom-bb/arm-elf
+CROSS_INST_PREFIX ?= /usr/local/stow/osmocom-bb/arm-2010.09
+
+# this is the host tuple of your cross-toolchain
+CROSS_HOST ?= $(shell which arm-elf-gcc >/dev/null 2>&1 && echo arm-elf || echo arm-none-eabi)
 
 # this is the prefix of your cross-toolchain programs
-CROSS_TOOL_PREFIX=arm-elf-
+CROSS_TOOL_PREFIX=$(CROSS_HOST)-
 
 TOPDIR=$(shell pwd)
 OSMOCORE_CONFIGURE_ENV= LIBOSMOCORE_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/.libs/libosmocore.a \
@@ -37,9 +40,9 @@ shared/libosmocore/build-target:
 
 shared/libosmocore/build-target/Makefile: shared/libosmocore/configure shared/libosmocore/build-target
 	cd shared/libosmocore/build-target && ../configure \
-			--host=arm-elf-linux --disable-vty --enable-panic-infloop \
+			--host=$(CROSS_HOST) --disable-vty --enable-panic-infloop \
 			--disable-shared --disable-talloc --disable-tests \
-		CC="$(CROSS_TOOL_PREFIX)gcc" CFLAGS="-Os -ffunction-sections -I$(TOPDIR)/target/firmware/include -nostartfiles -nodefaultlibs"
+		CFLAGS="-Os -ffunction-sections -I$(TOPDIR)/target/firmware/include -nostartfiles -nodefaultlibs"
 
 shared/libosmocore/build-target/src/.libs/libosmocore.a: shared/libosmocore/build-target/Makefile
 	cd shared/libosmocore/build-target && make
