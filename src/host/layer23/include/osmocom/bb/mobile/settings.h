@@ -62,8 +62,16 @@ struct gsm_settings {
 	uint8_t			e_gsm;
 	uint8_t			r_gsm;
 	uint8_t			dcs;
+	uint8_t			gsm_850;
+	uint8_t			pcs;
+	uint8_t			gsm_480;
+	uint8_t			gsm_450;
 	uint8_t			class_900;
 	uint8_t			class_dcs;
+	uint8_t			class_850;
+	uint8_t			class_pcs;
+	uint8_t			class_400;
+	uint8_t			freq_map[128+38];
 	uint8_t			full_v1;
 	uint8_t			full_v2;
 	uint8_t			full_v3;
@@ -77,6 +85,20 @@ struct gsm_settings {
 
 	/* dialing */
 	struct llist_head	abbrev;
+
+	/* EDGE / UMTS / CDMA */
+	uint8_t			edge_ms_sup;
+	uint8_t			edge_psk_sup;
+	uint8_t			edge_psk_uplink;
+	uint8_t			class_900_edge;
+	uint8_t			class_dcs_pcs_edge;
+	uint8_t			umts_fdd;
+	uint8_t			umts_tdd;
+	uint8_t			cdma_2000;
+	uint8_t			dtm;
+	uint8_t			class_dtm;
+	uint8_t			dtm_mac;
+	uint8_t			dtm_egprs;
 };
 
 struct gsm_settings_abbrev {
@@ -86,6 +108,7 @@ struct gsm_settings_abbrev {
 	char			name[32];
 };
 
+int gsm_settings_arfcn(struct osmocom_ms *ms);
 int gsm_settings_init(struct osmocom_ms *ms);
 int gsm_settings_exit(struct osmocom_ms *ms);
 char *gsm_check_imei(const char *imei, const char *sv);

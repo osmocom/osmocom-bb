@@ -68,6 +68,9 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	set->dcs = sup->dcs;
 	set->class_900 = sup->class_900;
 	set->class_dcs = sup->class_dcs;
+	set->class_850 = sup->class_850;
+	set->class_pcs = sup->class_pcs;
+	set->class_400 = sup->class_400;
 	set->full_v1 = sup->full_v1;
 	set->full_v2 = sup->full_v2;
 	set->full_v3 = sup->full_v3;
@@ -80,10 +83,48 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	if (sup->half_v1 || sup->half_v3)
 		set->half = 1;
 
+
 	/* software features */
 	set->cc_dtmf = 1;
 
 	INIT_LLIST_HEAD(&set->abbrev);
+
+	return 0;
+}
+
+int gsm_settings_arfcn(struct osmocom_ms *ms)
+{
+	int i;
+	struct gsm_settings *set = &ms->settings;
+
+	/* set supported frequencies */
+	memset(set->freq_map, 0, sizeof(set->freq_map));
+	if (set->p_gsm)
+		for(i = 1; i <= 124; i++)
+			set->freq_map[i >> 3] |= (1 << (i & 7));
+	if (set->gsm_850)
+		for(i = 128; i <= 251; i++)
+			set->freq_map[i >> 3] |= (1 << (i & 7));
+	if (set->gsm_450)
+		for(i = 259; i <= 293; i++)
+			set->freq_map[i >> 3] |= (1 << (i & 7));
+	if (set->gsm_480)
+		for(i = 306; i <= 340; i++)
+			set->freq_map[i >> 3] |= (1 << (i & 7));
+	if (set->dcs)
+		for(i = 512; i <= 885; i++)
+			set->freq_map[i >> 3] |= (1 << (i & 7));
+	if (set->pcs)
+		for(i = 1024; i <= 1024-512+810; i++)
+			set->freq_map[i >> 3] |= (1 << (i & 7));
+	if (set->e_gsm) {
+		for(i = 975; i <= 1023; i++)
+			set->freq_map[i >> 3] |= (1 << (i & 7));
+		set->freq_map[0] |= 1;
+	}
+	if (set->r_gsm)
+		for(i = 955; i <= 974; i++)
+			set->freq_map[i >> 3] |= (1 << (i & 7));
 
 	return 0;
 }

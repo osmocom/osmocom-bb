@@ -159,6 +159,7 @@ int mobile_init(struct osmocom_ms *ms)
 {
 	int rc;
 
+	gsm_settings_arfcn(ms);
 	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
 	lapdm_init(&ms->l2_entity.lapdm_acch, ms);
 	gsm_sim_init(ms);

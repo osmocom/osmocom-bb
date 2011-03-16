@@ -203,7 +203,8 @@ static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 	vty_out(vty, "  cell selection state: %s",
 		cs_state_names[ms->cellsel.state]);
 	if (ms->rrlayer.state == GSM48_RR_ST_IDLE && ms->cellsel.selected)
-		vty_out(vty, " (ARFCN %d)", ms->cellsel.sel_arfcn);
+		vty_out(vty, " (ARFCN %s)",
+			gsm_print_arfcn(ms->cellsel.sel_arfcn));
 	vty_out(vty, "%s", VTY_NEWLINE);
 	vty_out(vty, "  radio ressource layer state: %s%s", 
 		gsm48_rr_state_names[ms->rrlayer.state], VTY_NEWLINE);
@@ -305,32 +306,36 @@ DEFUN(show_cell, show_cell_cmd, "show cell MS_NAME",
 	return CMD_SUCCESS;
 }
 
-DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023>",
+DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023> [pcs]",
 	SHOW_STR "Display information about received cell\n"
-	"Name of MS (see \"show ms\")\nRadio frequency number")
+	"Name of MS (see \"show ms\")\nRadio frequency number\n"
+	"Given frequency is PCS band (1900) rather than DCS band.")
 {
 	struct osmocom_ms *ms;
-	int i;
 	struct gsm48_sysinfo *s;
+	uint16_t arfcn = atoi(argv[1]);
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
-	i = atoi(argv[1]);
-	if (i < 0 || i > 1023) {
-		vty_out(vty, "Given ARFCN '%s' not in range (0..1023)%s",
-			argv[1], VTY_NEWLINE);
-		return CMD_WARNING;
+	if (argc > 2) {
+		if (arfcn < 512 || arfcn > 810) {
+			vty_out(vty, "Given ARFCN not in PCS band%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		arfcn |= ARFCN_PCS;
 	}
-	s = ms->cellsel.list[i].sysinfo;
+
+	s = ms->cellsel.list[arfcn2index(arfcn)].sysinfo;
 	if (!s) {
 		vty_out(vty, "Given ARFCN '%s' has no sysinfo available%s",
 			argv[1], VTY_NEWLINE);
 		return CMD_SUCCESS;
 	}
 
-	gsm48_sysinfo_dump(s, i, print_vty, vty);
+	gsm48_sysinfo_dump(s, arfcn, print_vty, vty, ms->settings.freq_map);
 
 	return CMD_SUCCESS;
 }
@@ -1101,7 +1106,8 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	else
 		vty_out(vty, " no simulated-delay%s", VTY_NEWLINE);
 	if (set->stick)
-		vty_out(vty, " stick %d%s", set->stick_arfcn,
+		vty_out(vty, " stick %d%s%s", set->stick_arfcn & 1023,
+			(set->stick_arfcn & ARFCN_PCS) ? " pcs" : "",
 			VTY_NEWLINE);
 	else
 		vty_out(vty, " no stick%s", VTY_NEWLINE);
@@ -1143,9 +1149,21 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(p_gsm, "p-gsm");
 	SUP_WRITE(e_gsm, "e-gsm");
 	SUP_WRITE(r_gsm, "r-gsm");
+	SUP_WRITE(pcs, "gsm-850");
+	SUP_WRITE(gsm_480, "gsm-480");
+	SUP_WRITE(gsm_450, "gsm-450");
 	SUP_WRITE(dcs, "dcs");
-	vty_out(vty, "  class-900 %d%s", set->class_900, VTY_NEWLINE);
-	vty_out(vty, "  class-dcs %d%s", set->class_dcs, VTY_NEWLINE);
+	SUP_WRITE(pcs, "pcs");
+	if (sup->r_gsm || sup->e_gsm || sup->p_gsm)
+		vty_out(vty, "  class-900 %d%s", set->class_900, VTY_NEWLINE);
+	if (sup->gsm_850)
+		vty_out(vty, "  class-850 %d%s", set->class_850, VTY_NEWLINE);
+	if (sup->gsm_480 || sup->gsm_450)
+		vty_out(vty, "  class-400 %d%s", set->class_400, VTY_NEWLINE);
+	if (sup->dcs)
+		vty_out(vty, "  class-dcs %d%s", set->class_dcs, VTY_NEWLINE);
+	if (sup->pcs)
+		vty_out(vty, "  class-pcs %d%s", set->class_pcs, VTY_NEWLINE);
 	switch (set->ch_cap) {
 	case GSM_CAP_SDCCH:
 		vty_out(vty, "  channel-capability sdcch%s", VTY_NEWLINE);
@@ -1538,14 +1556,24 @@ DEFUN(cfg_ms_no_sim_delay, cfg_ms_no_sim_delay_cmd, "no simulated-delay",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_stick, cfg_ms_stick_cmd, "stick <0-1023>",
-	"Stick to the given cell\nARFCN of the cell to stick to")
+DEFUN(cfg_ms_stick, cfg_ms_stick_cmd, "stick <0-1023> [pcs]",
+	"Stick to the given cell\nARFCN of the cell to stick to\n"
+	"Given frequency is PCS band (1900) rather than DCS band.")
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
+	uint16_t arfcn = atoi(argv[0]);
 
+	if (argc > 1) {
+		if (arfcn < 512 || arfcn > 810) {
+			vty_out(vty, "Given ARFCN not in PCS band%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		arfcn |= ARFCN_PCS;
+	}
 	set->stick = 1;
-	set->stick_arfcn = atoi(argv[0]);
+	set->stick_arfcn = arfcn;
 
 	return CMD_SUCCESS;
 }
@@ -1843,9 +1871,23 @@ SUP_DI(cfg_ms_sup_no_r_gsm, cfg_ms_sup_no_r_gsm_cmd, r_gsm, "r-gsm",
 	"R-GSM (850)", 1);
 SUP_EN(cfg_ms_sup_dcs, cfg_ms_sup_dcs_cmd, dcs, "dcs", "DCS (1800)", 0);
 SUP_DI(cfg_ms_sup_no_dcs, cfg_ms_sup_no_dcs_cmd, dcs, "dcs", "DCS (1800)", 0);
+SUP_EN(cfg_ms_sup_gsm_850, cfg_ms_sup_gsm_850_cmd, gsm_850, "gsm-850",
+	"GSM 850", 0);
+SUP_DI(cfg_ms_sup_no_gsm_850, cfg_ms_sup_no_gsm_850_cmd, gsm_850, "gsm-850",
+	"GSM 850", 0);
+SUP_EN(cfg_ms_sup_pcs, cfg_ms_sup_pcs_cmd, pcs, "pcs", "PCS (1900)", 0);
+SUP_DI(cfg_ms_sup_no_pcs, cfg_ms_sup_no_pcs_cmd, pcs, "pcs", "PCS (1900)", 0);
+SUP_EN(cfg_ms_sup_gsm_480, cfg_ms_sup_gsm_480_cmd, gsm_480, "gsm-480",
+	"GSM 480", 0);
+SUP_DI(cfg_ms_sup_no_gsm_480, cfg_ms_sup_no_gsm_480_cmd, gsm_480, "gsm-480",
+	"GSM 480", 0);
+SUP_EN(cfg_ms_sup_gsm_450, cfg_ms_sup_gsm_450_cmd, gsm_450, "gsm-450",
+	"GSM 450", 0);
+SUP_DI(cfg_ms_sup_no_gsm_450, cfg_ms_sup_no_gsm_450_cmd, gsm_450, "gsm-450",
+	"GSM 450", 0);
 
 DEFUN(cfg_ms_sup_class_900, cfg_ms_sup_class_900_cmd, "class-900 (1|2|3|4|5)",
-	"Select power class for GSM 850/900\n"
+	"Select power class for GSM 900\n"
 	"20 Watts\n"
 	"8 Watts\n"
 	"5 Watts\n"
@@ -1859,7 +1901,49 @@ DEFUN(cfg_ms_sup_class_900, cfg_ms_sup_class_900_cmd, "class-900 (1|2|3|4|5)",
 	set->class_900 = atoi(argv[0]);
 
 	if (set->class_900 < sup->class_900 && !vty_reading)
-		vty_out(vty, "You selected an higher class than supported "
+		vty_out(vty, "Note: You selected a higher class than supported "
+			" by hardware!%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sup_class_850, cfg_ms_sup_class_850_cmd, "class-850 (1|2|3|4|5)",
+	"Select power class for GSM 850\n"
+	"20 Watts\n"
+	"8 Watts\n"
+	"5 Watts\n"
+	"2 Watts\n"
+	"0.8 Watts")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_support *sup = &ms->support;
+
+	set->class_850 = atoi(argv[0]);
+
+	if (set->class_850 < sup->class_850 && !vty_reading)
+		vty_out(vty, "Note: You selected a higher class than supported "
+			" by hardware!%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sup_class_400, cfg_ms_sup_class_400_cmd, "class-400 (1|2|3|4|5)",
+	"Select power class for GSM 400 (480 and 450)\n"
+	"20 Watts\n"
+	"8 Watts\n"
+	"5 Watts\n"
+	"2 Watts\n"
+	"0.8 Watts")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_support *sup = &ms->support;
+
+	set->class_400 = atoi(argv[0]);
+
+	if (set->class_400 < sup->class_400 && !vty_reading)
+		vty_out(vty, "Note: You selected a higher class than supported "
 			" by hardware!%s", VTY_NEWLINE);
 
 	return CMD_SUCCESS;
@@ -1879,7 +1963,27 @@ DEFUN(cfg_ms_sup_class_dcs, cfg_ms_sup_class_dcs_cmd, "class-dcs (1|2|3)",
 
 	if (((set->class_dcs + 1) & 3) < ((sup->class_dcs + 1) & 3)
 	 && !vty_reading)
-		vty_out(vty, "You selected an higher class than supported "
+		vty_out(vty, "Note: You selected a higher class than supported "
+			" by hardware!%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sup_class_pcs, cfg_ms_sup_class_pcs_cmd, "class-pcs (1|2|3)",
+	"Select power class for PCS 1900\n"
+	"1 Watt\n"
+	"0.25 Watts\n"
+	"4 Watts")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_support *sup = &ms->support;
+
+	set->class_pcs = atoi(argv[0]);
+
+	if (((set->class_pcs + 1) & 3) < ((sup->class_pcs + 1) & 3)
+	 && !vty_reading)
+		vty_out(vty, "Note: You selected a higher class than supported "
 			" by hardware!%s", VTY_NEWLINE);
 
 	return CMD_SUCCESS;
@@ -2386,8 +2490,19 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_r_gsm_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dcs_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_dcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_gsm_850_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_gsm_850_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_pcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_pcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_gsm_480_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_gsm_480_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_gsm_450_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_gsm_450_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_class_900_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_class_dcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_class_850_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_class_pcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_class_400_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_ch_cap_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_full_v1_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_full_v1_cmd);

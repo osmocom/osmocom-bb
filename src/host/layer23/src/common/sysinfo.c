@@ -37,14 +37,47 @@
  * dumping
  */
 
+// FIXME: move to libosmocore
+char *gsm_print_arfcn(uint16_t arfcn)
+{
+	static char text[10];
+
+	sprintf(text, "%d", arfcn & 1023);
+	if ((arfcn & ARFCN_PCS))
+		strcat(text, "(PCS)");
+	else if (arfcn >= 512 && arfcn <= 885)
+		strcat(text, "(DCS)");
+
+	return text;
+}
+
+/* check if the cell 'talks' about DCS (0) or PCS (1) */
+uint8_t gsm_refer_pcs(uint16_t arfcn, struct gsm48_sysinfo *s)
+{
+	/* If ARFCN is PCS band, the cell refers to PCS */
+	if ((arfcn & ARFCN_PCS))
+		return 1;
+
+	/* If no SI1 is available, we assume DCS. Be sure to call this
+	 * function only if SI 1 is available. */
+	if (!s->si1)
+		return 0;
+
+	/* If band indicator indicates PCS band, the cell refers to PCSThe  */
+	return s->band_ind;
+}
+
 int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
-			void (*print)(void *, const char *, ...), void *priv)
+	void (*print)(void *, const char *, ...), void *priv, uint8_t *freq_map)
 {
 	char buffer[81];
-	int i, j, k;
+	int i, j, k, index;
+	int refer_pcs = gsm_refer_pcs(arfcn, s);
 
 	/* available sysinfos */
-	print(priv, "ARFCN = %d\n", arfcn);
+	print(priv, "ARFCN = %s  channels 512+ refer to %s\n",
+		gsm_print_arfcn(arfcn),
+		(refer_pcs) ? "PCS (1900)" : "DCS (1800)");
 	print(priv, "Available SYSTEM INFORMATIONS =");
 	if (s->si1)
 		print(priv, " 1");
@@ -142,13 +175,11 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 
 	/* frequency map */
 	for (i = 0; i < 1024; i += 64) {
-		if (i < 10)
-			sprintf(buffer, "   %d ", i);
-		else if (i < 100)
-			sprintf(buffer, "  %d ", i);
-		else
-			sprintf(buffer, " %d ", i);
+		sprintf(buffer, " %3d ", i);
 		for (j = 0; j < 64; j++) {
+			index = i+j;
+			if (refer_pcs && index >= 512 && index <= 885)
+				index = index-512+1024;
 			if ((s->freq[i+j].mask & FREQ_TYPE_SERV))
 				buffer[j + 5] = 'S';
 			else if ((s->freq[i+j].mask & FREQ_TYPE_NCELL)
@@ -158,9 +189,14 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 				buffer[j + 5] = 'n';
 			else if ((s->freq[i+j].mask & FREQ_TYPE_REP))
 				buffer[j + 5] = 'r';
-			else
+			else if (!freq_map || (freq_map[index >> 3]
+						& (1 << (index & 7))))
 				buffer[j + 5] = '.';
+			else
+				buffer[j + 5] = ' ';
 		}
+		for (; j < 64; j++)
+			buffer[j + 5] = ' ';
 		sprintf(buffer + 69, " %d", i + 63);
 		print(priv, "%s\n", buffer);
 	}
@@ -461,6 +497,22 @@ static int gsm48_decode_rach_ctl_neigh(struct gsm48_sysinfo *s,
 static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s, uint8_t *si,
 	uint8_t len)
 {
+	struct bitvec bv;
+
+	memset(&bv, 0, sizeof(bv));
+	bv.data_len = len;
+	bv.data = si;
+
+	/* Optional Selection Parameters */
+	if (bitvec_get_bit_high(&bv) == H) {
+		s->nch = 1;
+		s->nch_position = bitvec_get_uint(&bv, 5);
+	} else
+		s->nch = 0;
+	if (bitvec_get_bit_high(&bv) == H)
+		s->band_ind = 1;
+	else
+		s->band_ind = 0;
 	return 0;
 }
 
@@ -481,23 +533,30 @@ static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si,
 		s->sp_cro = bitvec_get_uint(&bv, 6);
 		s->sp_to = bitvec_get_uint(&bv, 3);
 		s->sp_pt = bitvec_get_uint(&bv, 5);
-	}
+	} else
+		s->sp = 0;
 	/* Optional Power Offset */
 	if (bitvec_get_bit_high(&bv) == H) {
 		s->po = 1;
 		s->po_value = bitvec_get_uint(&bv, 3);
-	}
+	} else
+		s->po = 0;
 	/* System Onformation 2ter Indicator */
 	if (bitvec_get_bit_high(&bv) == H)
 		s->si2ter_ind = 1;
+	else
+		s->si2ter_ind = 0;
 	/* Early Classark Sending Control */
 	if (bitvec_get_bit_high(&bv) == H)
 		s->ecsm = 1;
+	else
+		s->ecsm = 0;
 	/* Scheduling if and where */
 	if (bitvec_get_bit_high(&bv) == H) {
 		s->sched = 1;
 		s->sched_where = bitvec_get_uint(&bv, 3);
-	}
+	} else
+		s->sched = 0;
 	/* GPRS Indicator */
 	s->gi_ra_colour = bitvec_get_uint(&bv, 3);
 	s->gi_si13_pos = bitvec_get_uint(&bv, 1);

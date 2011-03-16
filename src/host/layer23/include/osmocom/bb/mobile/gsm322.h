@@ -82,10 +82,10 @@ struct gsm322_la_list {
 struct gsm322_ba_list {
 	struct llist_head	entry;
 	uint16_t		mcc, mnc;
-	/* Band allocation for 1024 frequencies.
+	/* Band allocation for 1024+299 frequencies.
 	 * First bit of first index is frequency 0.
 	 */
-	uint8_t			freq[128];
+	uint8_t			freq[128+38];
 };
 
 #define GSM322_CS_FLAG_SUPPORT	0x01 /* frequency is supported by radio */
@@ -143,12 +143,14 @@ struct gsm322_cellsel {
 	struct osmo_timer_list	timer;
 
 	uint16_t		mcc, mnc; /* current network to search for */
-	struct gsm322_cs_list	list[1024]; /* cell selection list per freq. */
+	struct gsm322_cs_list	list[1024+299];
+					/* cell selection list per frequency. */
 
 	uint8_t			powerscan; /* currently scanning for power */
 	uint32_t		scan_state; /* special state of current scan */
 	uint8_t			ccch_state; /* special state of current ccch */
 	uint16_t		arfcn; /* current tuned idle mode arfcn */
+	int			arfci; /* list index of frequency above */
 	uint8_t			ccch_mode; /* curren CCCH_MODE_* */
 	struct gsm48_sysinfo	*si; /* current sysinfo */
 
@@ -170,6 +172,8 @@ struct gsm322_msg {
 #define	GSM322_ALLOC_SIZE	sizeof(struct gsm322_msg)
 #define GSM322_ALLOC_HEADROOM	0
 
+uint16_t index2arfcn(int index);
+int arfcn2index(uint16_t arfcn);
 int gsm322_init(struct osmocom_ms *ms);
 int gsm322_exit(struct osmocom_ms *ms);
 struct msgb *gsm322_msgb_alloc(int msg_type);

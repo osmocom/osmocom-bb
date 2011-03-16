@@ -49,6 +49,11 @@ struct gsm48_sysinfo {
 	uint8_t				cell_barr; /* 1 = barred */
 	uint16_t			class_barr; /* bit 10 is emergency */
 
+	/* si1 rest */
+	uint8_t				nch;
+	uint8_t				nch_position;
+	uint8_t				band_ind; /* set for DCS */
+
 	/* si3 rest */
 	uint8_t				sp;
 	uint8_t				sp_cbq;
@@ -114,8 +119,11 @@ struct gsm48_sysinfo {
 	uint16_t			nb_class_barr; /* bit 10 is emergency */
 };
 
+char *gsm_print_arfcn(uint16_t arfcn);
+uint8_t gsm_refer_pcs(uint16_t arfcn, struct gsm48_sysinfo *s);
 int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
-			void (*print)(void *, const char *, ...), void *priv);
+	void (*print)(void *, const char *, ...), void *priv,
+	uint8_t *freq_map);
 int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 	uint16_t *mnc, uint16_t *lac);
 int gsm48_decode_chan_h0(struct gsm48_chan_desc *cd, uint8_t *tsc,

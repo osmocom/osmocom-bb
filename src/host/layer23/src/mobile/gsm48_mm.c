@@ -223,6 +223,25 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  * support functions
  */
 
+/* get supported power level of given arfcn */
+uint8_t gsm48_current_pwr_lev(struct gsm_settings *set, uint16_t arfcn)
+{
+	uint8_t pwr_lev;
+
+	if (arfcn >= (512 | ARFCN_PCS) && arfcn <= (810 | ARFCN_PCS))
+		pwr_lev = set->class_pcs - 1;
+	else if (arfcn >= 512 && arfcn <= 885)
+		pwr_lev = set->class_dcs - 1;
+	else if (arfcn >= 259 && arfcn <= 340)
+		pwr_lev = set->class_400 - 1;
+	else if (arfcn >= 128 && arfcn <= 251)
+		pwr_lev = set->class_850 - 1;
+	else
+		pwr_lev = set->class_900 - 1;
+
+	return pwr_lev;
+}
+
 /* decode network name */
 static int decode_network_name(char *name, int name_len,
 	const uint8_t *lv)
@@ -1703,10 +1722,7 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 	ngh->msg_type = GSM48_MT_MM_IMSI_DETACH_IND;
 
 	/* classmark 1 */
-	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
-		pwr_lev = sup->class_dcs - 1;
-	else
-		pwr_lev = sup->class_900 - 1;
+	pwr_lev = gsm48_current_pwr_lev(set, rr->cd_now.arfcn);
 	gsm48_encode_classmark1(&cm, sup->rev_lev, sup->es_ind, set->a5_1,
 		pwr_lev);
         msgb_v_put(nmsg, *((uint8_t *)&cm));
@@ -2210,10 +2226,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 		gsm_print_mcc(subscr->mcc),
 		gsm_print_mnc(subscr->mnc), subscr->lac);
 	/* classmark 1 */
-	if (rr->cd_now.arfcn >= 512 && rr->cd_now.arfcn <= 885)
-		pwr_lev = sup->class_dcs - 1;
-	else
-		pwr_lev = sup->class_900 - 1;
+	pwr_lev = gsm48_current_pwr_lev(set, rr->cd_now.arfcn);
 	gsm48_encode_classmark1(&nlu->classmark1, sup->rev_lev, sup->es_ind,
 		set->a5_1, pwr_lev);
 	/* MI */

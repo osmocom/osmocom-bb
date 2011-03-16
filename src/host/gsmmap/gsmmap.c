@@ -431,7 +431,8 @@ void kml_cell(FILE *outfp, struct node_cell *cell)
 		gsm_get_mcc(cell->s.mcc),
 		gsm_get_mnc(cell->s.mcc, cell->s.mnc));
 	fprintf(outfp, "\t\t\t\t\t\t<description>\n");
-	gsm48_sysinfo_dump(&cell->s, cell->sysinfo.arfcn, print_si, outfp);
+	gsm48_sysinfo_dump(&cell->s, cell->sysinfo.arfcn, print_si, outfp,
+		NULL);
 	fprintf(outfp, "\t\t\t\t\t\t</description>\n");
 	fprintf(outfp, "\t\t\t\t\t\t<LookAt>\n");
 	fprintf(outfp, "\t\t\t\t\t\t\t<longitude>%.8f</longitude>\n",
