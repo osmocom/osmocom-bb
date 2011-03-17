@@ -237,6 +237,42 @@ int ctrl_cmd_install(enum ctrl_node_type node, struct ctrl_cmd_element *cmd)
 	return 0;
 }
 
+struct ctrl_cmd *ctrl_cmd_cpy(void *ctx, struct ctrl_cmd *cmd)
+{
+	struct ctrl_cmd *cmd2;
+
+	cmd2 = talloc_zero(ctx, struct ctrl_cmd);
+	if (!cmd2)
+		return NULL;
+
+	cmd2->type = cmd->type;
+	if (cmd->id) {
+		cmd2->id = talloc_strdup(cmd2, cmd->id);
+		if (!cmd2->id)
+			goto err;
+	}
+	if (cmd->variable) {
+		cmd2->variable = talloc_strdup(cmd2, cmd->variable);
+		if (!cmd2->variable)
+			goto err;
+	}
+	if (cmd->value) {
+		cmd2->value = talloc_strdup(cmd2, cmd->value);
+		if (!cmd2->value)
+			goto err;
+	}
+	if (cmd->reply) {
+		cmd2->reply = talloc_strdup(cmd2, cmd->reply);
+		if (!cmd2->reply)
+			goto err;
+	}
+
+	return cmd2;
+err:
+	talloc_free(cmd2);
+	return NULL;
+}
+
 struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg)
 {
 	char *str, *tmp, *saveptr = NULL;
