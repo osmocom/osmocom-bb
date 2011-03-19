@@ -635,6 +635,9 @@ static void _dsp_dump_range(uint32_t addr, uint32_t size, int mode)
 		dsp_bl_wait_ready();
 
 		while (bs--) {
+			/* FIXME workaround: small delay to prevent overflowing
+			 * the sercomm buffer */
+			delay_ms(2);
 			if ((addr&15)==0)
 				printf("%05x : ", addr);
 			printf("%04hx%c", *api++, ((addr&15)==15)?'\n':' ');
