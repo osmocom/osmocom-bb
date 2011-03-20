@@ -42,6 +42,7 @@
 
 #include <layer1/sync.h>
 #include <layer1/afc.h>
+#include <layer1/toa.h>
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
 #include <layer1/tpu_window.h>
@@ -553,6 +554,9 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 
 	/* Make sure we start at a 'center' AFCDAC output value */
 	afc_reset();
+
+	/* Reset the TOA loop counters */
+	toa_reset();
 
 	if (fbs.req.flags & L1CTL_FBSB_F_FB0)
 		tdma_schedule_set(base_fn, fb_sched_set, 0);

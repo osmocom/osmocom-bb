@@ -73,6 +73,9 @@ static int _win_setup(__unused uint8_t p1, __unused uint8_t p2, __unused uint16_
 
 	rfch_get_params(&l1s.next_time, NULL, NULL, &tn);
 
+	l1s.tpu_offset = (5000 + l1s.tpu_offset + l1s.tpu_offset_correction) % 5000;
+	l1s.tpu_offset_correction = 0;
+
 	tpu_enq_at(4740);
 	tpu_enq_sync((5000 + l1s.tpu_offset + (L1_BURST_LENGTH_Q * tn)) % 5000);
 

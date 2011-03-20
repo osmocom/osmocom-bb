@@ -41,6 +41,7 @@
 
 #include <layer1/sync.h>
 #include <layer1/afc.h>
+#include <layer1/toa.h>
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
 #include <layer1/tpu_window.h>
@@ -99,6 +100,9 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 		afc_input(rxnb.meas[burst_id].freq_err, rf_arfcn, 1);
 	else
 		afc_input(rxnb.meas[burst_id].freq_err, rf_arfcn, 0);
+
+	/* feed computed TOA into TA loop */
+	toa_input(rxnb.meas[burst_id].toa_qbit << 2, rxnb.meas[burst_id].snr);
 
 	/* Tell the RF frontend to set the gain appropriately */
 	rffe_set_gain(rxnb.meas[burst_id].pm_dbm8/8, CAL_DSP_TGT_BB_LVL);

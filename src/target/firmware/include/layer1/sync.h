@@ -71,6 +71,7 @@ struct l1s_state {
 
 	/* The current TPU offset register */
 	uint32_t	tpu_offset;
+	int32_t		tpu_offset_correction;
 
 	/* TX parameters */
 	int8_t		ta;
