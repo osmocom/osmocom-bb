@@ -21,8 +21,8 @@
 #ifndef TELNET_INTERFACE_H
 #define TELNET_INTERFACE_H
 
-#include <osmocore/logging.h>
-#include <osmocore/select.h>
+#include <osmocom/core/logging.h>
+#include <osmocom/core/select.h>
 
 #include <osmocom/vty/vty.h>
 

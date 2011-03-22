@@ -1,9 +1,9 @@
 #ifndef gsm0480_h
 #define gsm0480_h
 
-#include "msgb.h"
-#include "protocol/gsm_04_08.h"
-#include "protocol/gsm_04_80.h"
+#include <osmocom/core/msgb.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/protocol/gsm_04_80.h>
 
 #define MAX_LEN_USSD_STRING	31
 

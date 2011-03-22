@@ -21,7 +21,7 @@
  *
  */
 
-#include <osmocore/write_queue.h>
+#include <osmocom/core/write_queue.h>
 
 int write_queue_bfd_cb(struct bsc_fd *fd, unsigned int what)
 {

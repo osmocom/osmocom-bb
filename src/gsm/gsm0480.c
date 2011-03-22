@@ -22,13 +22,13 @@
  *
  */
 
-#include <osmocore/gsm0480.h>
-#include <osmocore/gsm_utils.h>
+#include <osmocom/gsm/gsm0480.h>
+#include <osmocom/gsm/gsm_utils.h>
 
-#include <osmocore/logging.h>
+#include <osmocom/core/logging.h>
 
-#include <osmocore/protocol/gsm_04_08.h>
-#include <osmocore/protocol/gsm_04_80.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/protocol/gsm_04_80.h>
 
 #include <string.h>
 

@@ -27,8 +27,8 @@
 #include <errno.h>
 #include <stdint.h>
 
-#include <osmocore/bitvec.h>
-#include <osmocore/rxlev_stat.h>
+#include <osmocom/core/bitvec.h>
+#include <osmocom/gsm/rxlev_stat.h>
 
 int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value val)
 {

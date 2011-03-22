@@ -23,8 +23,8 @@
  */
 
 //#include <openbsc/gsm_data.h>
-#include <osmocore/utils.h>
-#include <osmocore/gsm_utils.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -33,7 +33,7 @@
 #include <errno.h>
 #include <ctype.h>
 
-#include "../config.h"
+#include "../../config.h"
 
 /* ETSI GSM 03.38 6.2.1 and 6.2.1.1 default alphabet
  * Greek symbols at hex positions 0x10 and 0x12-0x1a

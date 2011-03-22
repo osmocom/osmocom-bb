@@ -23,9 +23,9 @@
 
 #include <sys/types.h>
 
-#include <osmocore/linuxlist.h>
-#include <osmocore/talloc.h>
-#include <osmocore/statistics.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/statistics.h>
 
 static LLIST_HEAD(counters);
 

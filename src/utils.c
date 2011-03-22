@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include <osmocore/utils.h>
+#include <osmocom/core/utils.h>
 
 static char namebuf[255];
 const char *get_value_string(const struct value_string *vs, uint32_t val)

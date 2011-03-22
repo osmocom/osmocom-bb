@@ -27,12 +27,12 @@
 #include <string.h>
 #include <errno.h>
 
-#include <osmocore/utils.h>
-#include <osmocore/msgb.h>
-#include <osmocore/tlv.h>
-#include <osmocore/mncc.h>
-#include <osmocore/protocol/gsm_04_08.h>
-#include <osmocore/gsm48_ie.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/mncc.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/gsm48_ie.h>
 
 static const char bcd_num_digits[] = {
 	'0', '1', '2', '3', '4', '5', '6', '7',

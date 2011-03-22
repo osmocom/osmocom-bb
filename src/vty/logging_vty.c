@@ -24,9 +24,9 @@
 
 #include "../../config.h"
 
-#include <osmocore/talloc.h>
-#include <osmocore/logging.h>
-#include <osmocore/utils.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/logging.h>
+#include <osmocom/core/utils.h>
 
 //#include <openbsc/vty.h>
 

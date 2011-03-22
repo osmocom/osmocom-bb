@@ -20,7 +20,7 @@
 
 #include <assert.h>
 #include <string.h>
-#include <osmocore/timer.h>
+#include <osmocom/core/timer.h>
 
 static LLIST_HEAD(timer_list);
 static struct timeval s_nearest_time;

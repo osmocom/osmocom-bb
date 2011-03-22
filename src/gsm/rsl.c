@@ -25,8 +25,8 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include <osmocore/tlv.h>
-#include <osmocore/rsl.h>
+#include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/rsl.h>
 
 #define RSL_ALLOC_SIZE		200
 #define RSL_ALLOC_HEADROOM	56

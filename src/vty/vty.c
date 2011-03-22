@@ -16,7 +16,7 @@
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/buffer.h>
-#include <osmocore/talloc.h>
+#include <osmocom/core/talloc.h>
 
 #define SYSCONFDIR "/usr/local/etc"
 

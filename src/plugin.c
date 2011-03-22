@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <limits.h>
 
-#include <osmocore/plugin.h>
+#include <osmocom/core/plugin.h>
 
 int plugin_load_all(const char *directory)
 {

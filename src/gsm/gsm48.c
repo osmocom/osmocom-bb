@@ -28,11 +28,11 @@
 
 #include <arpa/inet.h>
 
-#include <osmocore/utils.h>
-#include <osmocore/tlv.h>
-#include <osmocore/gsm48.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/gsm48.h>
 
-#include <osmocore/protocol/gsm_04_08.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 
 const struct tlv_definition gsm48_att_tlvdef = {
 	.def = {

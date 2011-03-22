@@ -55,7 +55,7 @@
 #define __USE_GNU
 #include <string.h>
 #undef __USE_GNU
-#include <osmocore/talloc.h>
+#include <osmocom/core/talloc.h>
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 #endif /* not _TALLOC_SAMBA3 */
 

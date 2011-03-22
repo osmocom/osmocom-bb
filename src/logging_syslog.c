@@ -33,9 +33,9 @@
 #include <strings.h>
 #endif
 
-#include <osmocore/talloc.h>
-#include <osmocore/utils.h>
-#include <osmocore/logging.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/core/logging.h>
 
 static const int logp2syslog_level(unsigned int level)
 {

@@ -1,7 +1,7 @@
 #ifndef _BSC_SELECT_H
 #define _BSC_SELECT_H
 
-#include "linuxlist.h"
+#include <osmocom/core/linuxlist.h>
 
 #define BSC_FD_READ	0x0001
 #define BSC_FD_WRITE	0x0002

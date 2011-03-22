@@ -8,7 +8,7 @@
  * Version 2. See the file COPYING for more details.
  */
 
-#include <osmocore/crc16.h>
+#include <osmocom/core/crc16.h>
 
 /** CRC table for the CRC-16. The poly is 0x8005 (x^16 + x^15 + x^2 + 1) */
 uint16_t const crc16_table[256] = {

@@ -23,9 +23,9 @@
 #include <errno.h>
 #include <stdint.h>
 
-#include <osmocore/utils.h>
-#include <osmocore/linuxlist.h>
-#include <osmocore/plugin.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/plugin.h>
 
 #include <osmocom/crypt/gprs_cipher.h>
 

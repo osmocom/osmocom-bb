@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <osmocore/utils.h>
-#include <osmocore/tlv.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/tlv.h>
 
 struct tlv_definition tvlv_att_def;
 

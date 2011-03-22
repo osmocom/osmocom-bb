@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <osmocore/utils.h>
+#include <osmocom/core/utils.h>
 #include "config.h"
 
 #ifdef HAVE_EXECINFO_H

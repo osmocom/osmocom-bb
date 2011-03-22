@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 
 /* Terminology / wording
 		tag	length		value	(in bits)

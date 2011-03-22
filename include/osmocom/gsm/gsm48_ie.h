@@ -5,10 +5,10 @@
 #include <string.h>
 #include <errno.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/tlv.h>
-#include <osmocore/mncc.h>
-#include <osmocore/protocol/gsm_04_08.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/mncc.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 
 /* decode a 'called/calling/connect party BCD number' as in 10.5.4.7 */
 int gsm48_decode_bcd_number(char *output, int output_len,

@@ -23,11 +23,11 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <osmocore/utils.h>
-#include <osmocore/linuxlist.h>
-#include <osmocore/talloc.h>
-#include <osmocore/timer.h>
-#include <osmocore/rate_ctr.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/rate_ctr.h>
 
 static LLIST_HEAD(rate_ctr_groups);
 

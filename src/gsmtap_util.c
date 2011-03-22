@@ -24,13 +24,13 @@
 
 #ifdef HAVE_SYS_SELECT_H
 
-#include <osmocore/gsmtap_util.h>
-#include <osmocore/logging.h>
-#include <osmocore/protocol/gsm_04_08.h>
-#include <osmocore/gsmtap.h>
-#include <osmocore/msgb.h>
-#include <osmocore/rsl.h>
-#include <osmocore/select.h>
+#include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/logging.h>
+#include <osmocom/core/gsmtap.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/select.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/rsl.h>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>

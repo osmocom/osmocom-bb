@@ -1,9 +1,9 @@
 #ifndef _OSMOCORE_GSM48_H
 #define _OSMOCORE_GSM48_H
 
-#include <osmocore/tlv.h>
-#include <osmocore/protocol/gsm_04_08.h>
-#include <osmocore/gsm48_ie.h>
+#include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/gsm48_ie.h>
 
 /* A parsed GPRS routing area */
 struct gprs_ra_id {

@@ -106,8 +106,9 @@ AC_OUTPUT(
 	include/osmocom/vty/Makefile
 	include/osmocom/codec/Makefile
 	include/osmocom/crypt/Makefile
-	include/osmocore/Makefile
-	include/osmocore/protocol/Makefile
+	include/osmocom/gsm/Makefile
+	include/osmocom/gsm/protocol/Makefile
+	include/osmocom/core/Makefile
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile

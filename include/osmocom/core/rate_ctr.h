@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <osmocore/linuxlist.h>
+#include <osmocom/core/linuxlist.h>
 
 #define RATE_CTR_INTV_NUM	4
 

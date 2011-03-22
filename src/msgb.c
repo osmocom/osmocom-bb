@@ -24,9 +24,9 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 //#include <openbsc/gsm_data.h>
-#include <osmocore/talloc.h>
+#include <osmocom/core/talloc.h>
 //#include <openbsc/debug.h>
 
 void *tall_msgb_ctx;

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <osmocore/linuxlist.h>
+#include <osmocom/core/linuxlist.h>
 
 #define LOG_MAX_CATEGORY	32
 #define LOG_MAX_CTX		8

@@ -21,8 +21,8 @@
  */
 
 #include <stdint.h>
-#include "linuxlist.h"
-#include "utils.h"
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/utils.h>
 
 #define MSGB_DEBUG
 
@@ -62,7 +62,7 @@ extern struct msgb *msgb_dequeue(struct llist_head *queue);
 extern void msgb_reset(struct msgb *m);
 
 #ifdef MSGB_DEBUG
-#include <osmocore/panic.h>
+#include <osmocom/core/panic.h>
 #define MSGB_ABORT(msg, fmt, args ...) do {		\
 	osmo_panic("msgb(%p): " fmt, msg, ## args);	\
 	} while(0)

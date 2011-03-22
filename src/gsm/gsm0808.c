@@ -18,9 +18,9 @@
  *
  */
 
-#include <osmocore/gsm0808.h>
-#include <osmocore/protocol/gsm_08_08.h>
-#include <osmocore/gsm48.h>
+#include <osmocom/gsm/gsm0808.h>
+#include <osmocom/gsm/protocol/gsm_08_08.h>
+#include <osmocom/gsm/gsm48.h>
 
 #include <arpa/inet.h>
 

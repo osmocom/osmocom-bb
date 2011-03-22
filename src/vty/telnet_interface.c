@@ -25,9 +25,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/talloc.h>
-#include <osmocore/logging.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/logging.h>
 
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/buffer.h>

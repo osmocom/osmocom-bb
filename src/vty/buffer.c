@@ -28,7 +28,7 @@
 #include <stddef.h>
 #include <sys/uio.h>
 
-#include <osmocore/talloc.h>
+#include <osmocom/core/talloc.h>
 #include <osmocom/vty/buffer.h>
 #include <osmocom/vty/vty.h>
 

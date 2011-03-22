@@ -24,7 +24,7 @@
  */
 
 #include <stdint.h>
-#include <osmocore/tlv.h>
+#include <osmocom/gsm/tlv.h>
 
 /* generic header in front of every OML message according to TS 08.59 */
 struct abis_om_hdr {

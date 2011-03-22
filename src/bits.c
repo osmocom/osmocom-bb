@@ -1,7 +1,7 @@
 
 #include <stdint.h>
 
-#include <osmocore/bits.h>
+#include <osmocom/core/bits.h>
 
 /* convert unpacked bits to packed bits, return length in bytes */
 int osmo_ubit2pbit(pbit_t *out, const ubit_t *in, unsigned int num_bits)
