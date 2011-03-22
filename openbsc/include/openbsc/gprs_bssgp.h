@@ -182,7 +182,7 @@ struct bssgp_bvc_ctx *btsctx_by_raid_cid(const struct gprs_ra_id *raid, uint16_t
 /* Find a BTS context based on BVCI+NSEI tuple */
 struct bssgp_bvc_ctx *btsctx_by_bvci_nsei(uint16_t bvci, uint16_t nsei);
 
-#include <osmocore/tlv.h>
+#include <osmocom/gsm/tlv.h>
 
 /* BSSGP-UL-UNITDATA.ind */
 int gprs_bssgp_rcvmsg(struct msgb *msg);

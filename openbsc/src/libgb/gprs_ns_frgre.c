@@ -31,9 +31,9 @@
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 
-#include <osmocore/select.h>
-#include <osmocore/msgb.h>
-#include <osmocore/talloc.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/talloc.h>
 
 #include <openbsc/socket.h>
 #include <openbsc/debug.h>

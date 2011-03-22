@@ -77,10 +77,10 @@ enum ns_cause {
 
 /* Our Implementation */
 #include <netinet/in.h>
-#include <osmocore/linuxlist.h>
-#include <osmocore/msgb.h>
-#include <osmocore/timer.h>
-#include <osmocore/select.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/select.h>
 
 #define NS_TIMERS_COUNT 7
 #define NS_TIMERS "(tns-block|tns-block-retries|tns-reset|tns-reset-retries|tns-test|tns-alive|tns-alive-retries)"

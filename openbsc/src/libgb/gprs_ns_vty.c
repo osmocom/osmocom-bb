@@ -27,11 +27,11 @@
 #include <arpa/inet.h>
 
 #include <openbsc/gsm_data.h>
-#include <osmocore/msgb.h>
-#include <osmocore/tlv.h>
-#include <osmocore/talloc.h>
-#include <osmocore/select.h>
-#include <osmocore/rate_ctr.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/gsm/tlv.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/rate_ctr.h>
 #include <openbsc/debug.h>
 #include <openbsc/signal.h>
 #include <openbsc/gprs_ns.h>
