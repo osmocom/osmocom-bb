@@ -334,29 +334,6 @@ enum gsm_band gsm_band_parse(const char* mhz)
 	}
 }
 
-
-#ifdef HAVE_EXECINFO_H
-#include <execinfo.h>
-void generate_backtrace()
-{
-	int i, nptrs;
-	void *buffer[100];
-	char **strings;
-
-	nptrs = backtrace(buffer, ARRAY_SIZE(buffer));
-	printf("backtrace() returned %d addresses\n", nptrs);
-
-	strings = backtrace_symbols(buffer, nptrs);
-	if (!strings)
-		return;
-
-	for (i = 1; i < nptrs; i++)
-		printf("%s\n", strings[i]);
-
-	free(strings);
-}
-#endif
-
 enum gsm_band gsm_arfcn2band(uint16_t arfcn)
 {
 	int is_pcs = arfcn & ARFCN_PCS;

@@ -114,5 +114,4 @@ int gprs_tlli_type(uint32_t tlli);
 
 uint32_t gprs_tmsi2tlli(uint32_t p_tmsi, enum gprs_tlli_type type);
 
-void generate_backtrace();
 #endif

@@ -1,6 +1,8 @@
-/* Panic handling */
 /*
- * (C) 2010 by Sylvain Munaut <tnt@246tNt.com>
+ * (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
+ * (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
+ * (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2010 by Nico Golde <nico@ngolde.de>
  *
  * All Rights Reserved
  *
@@ -20,55 +22,29 @@
  *
  */
 
-#include <osmocore/gsm_utils.h>
-#include <osmocore/panic.h>
-#include <osmocore/backtrace.h>
-
-#include "../config.h"
-
-
-static osmo_panic_handler_t osmo_panic_handler = (void*)0;
-
-
-#ifndef PANIC_INFLOOP
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <osmocore/utils.h>
+#include "config.h"
 
-static void osmo_panic_default(const char *fmt, va_list args)
+#ifdef HAVE_EXECINFO_H
+#include <execinfo.h>
+void generate_backtrace()
 {
-	vfprintf(stderr, fmt, args);
-	generate_backtrace();
-	abort();
+	int i, nptrs;
+	void *buffer[100];
+	char **strings;
+
+	nptrs = backtrace(buffer, ARRAY_SIZE(buffer));
+	printf("backtrace() returned %d addresses\n", nptrs);
+
+	strings = backtrace_symbols(buffer, nptrs);
+	if (!strings)
+		return;
+
+	for (i = 1; i < nptrs; i++)
+		printf("%s\n", strings[i]);
+
+	free(strings);
 }
-
-#else
-
-static void osmo_panic_default(const char *fmt, va_list args)
-{
-	while (1);
-}
-
 #endif
-
-
-void osmo_panic(const char *fmt, ...)
-{
-	va_list args;
-
-	va_start(args, fmt);
-
-	if (osmo_panic_handler)
-		osmo_panic_handler(fmt, args);
-	else
-		osmo_panic_default(fmt, args);
-
-	va_end(args);
-}
- 
-
-void osmo_set_panic_handler(osmo_panic_handler_t h)
-{
-	osmo_panic_handler = h;
-}
-
