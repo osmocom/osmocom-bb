@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-typedef uint8_t sbit_t;		/* soft bit (-127...127) */
+typedef int8_t  sbit_t;		/* soft bit (-127...127) */
 typedef uint8_t ubit_t;		/* unpacked bit (0 or 1) */
 typedef uint8_t pbit_t;		/* packed bis (8 bits in a byte) */
 
