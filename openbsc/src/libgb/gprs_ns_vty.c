@@ -42,6 +42,7 @@
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/logging.h>
 #include <osmocom/vty/telnet_interface.h>
+#include <osmocom/vty/misc.h>
 
 static struct gprs_ns_inst *vty_nsi = NULL;
 
