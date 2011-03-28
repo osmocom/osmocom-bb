@@ -68,6 +68,8 @@ int bitvec_set_uint(struct bitvec *bv, unsigned int in, int count);
 /* get multiple bits (based on numeric value) from current pos */
 int bitvec_get_uint(struct bitvec *bv, int num_bits);
 
+/* find the first bit set in bit vector */
+int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value val);
 
 /* Pad the bit vector up to a certain bit position */
 int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit);

@@ -30,18 +30,6 @@
 #include <osmocom/core/bitvec.h>
 #include <osmocom/gsm/rxlev_stat.h>
 
-int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value val)
-{
-	unsigned int i;
-
-	for (i = n; i < bv->data_len*8; i++) {
-		if (bitvec_get_bit_pos(bv, i) == val)
-			return i;
-	}
-
-	return -1;
-}
-
 void rxlev_stat_input(struct rxlev_stats *st, uint16_t arfcn, uint8_t rxlev)
 {
 	struct bitvec bv;
