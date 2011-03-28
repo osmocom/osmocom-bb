@@ -23,8 +23,8 @@
 #ifndef write_queue_h
 #define write_queue_h
 
-#include "select.h"
-#include "msgb.h"
+#include <osmocom/core/select.h>
+#include <osmocom/core/msgb.h>
 
 struct write_queue {
 	struct bsc_fd bfd;
