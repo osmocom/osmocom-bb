@@ -434,16 +434,6 @@ int log_target_file_reopen(struct log_target *target)
 	return 0;
 }
 
-/* This can go into some header file so others can benefit from it. */
-#define SNPRINTF_FAILURE(ret, rem, offset, len)			\
-do {								\
-	len += ret;						\
-	if (ret > rem)						\
-		ret = rem;					\
-	offset += ret;						\
-	rem -= ret;						\
-} while (0)
-
 /* This generates the logging command string for VTY. */
 const char *log_vty_command_string(const struct log_info *info)
 {
@@ -465,7 +455,7 @@ const char *log_vty_command_string(const struct log_info *info)
 	ret = snprintf(str + offset, rem, "logging level (");
 	if (ret < 0)
 		goto err;
-	SNPRINTF_FAILURE(ret, rem, offset, len);
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 
 	for (i = 0; i < info->num_cat; i++) {
 		int j, name_len = strlen(info->cat[i].name)+1;
@@ -478,7 +468,7 @@ const char *log_vty_command_string(const struct log_info *info)
 		ret = snprintf(str + offset, rem, "%s|", name+1);
 		if (ret < 0)
 			goto err;
-		SNPRINTF_FAILURE(ret, rem, offset, len);
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
 	}
 	offset--;	/* to remove the trailing | */
 	rem++;
@@ -486,7 +476,7 @@ const char *log_vty_command_string(const struct log_info *info)
 	ret = snprintf(str + offset, rem, ") (");
 	if (ret < 0)
 		goto err;
-	SNPRINTF_FAILURE(ret, rem, offset, len);
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 
 	for (i = 0; i < LOGLEVEL_DEFS; i++) {
 		int j, loglevel_str_len = strlen(loglevel_strs[i].str)+1;
@@ -499,7 +489,7 @@ const char *log_vty_command_string(const struct log_info *info)
 		ret = snprintf(str + offset, rem, "%s|", loglevel_str);
 		if (ret < 0)
 			goto err;
-		SNPRINTF_FAILURE(ret, rem, offset, len);
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
 	}
 	offset--;	/* to remove the trailing | */
 	rem++;
@@ -507,7 +497,7 @@ const char *log_vty_command_string(const struct log_info *info)
 	ret = snprintf(str + offset, rem, ")");
 	if (ret < 0)
 		goto err;
-	SNPRINTF_FAILURE(ret, rem, offset, len);
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 err:
 	return str;
 }
@@ -536,21 +526,21 @@ const char *log_vty_command_description(const struct log_info *info)
 			"Set the log level for a specified category\n");
 	if (ret < 0)
 		goto err;
-	SNPRINTF_FAILURE(ret, rem, offset, len);
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 
 	for (i = 0; i < info->num_cat; i++) {
 		ret = snprintf(str + offset, rem, "%s\n",
 				info->cat[i].description);
 		if (ret < 0)
 			goto err;
-		SNPRINTF_FAILURE(ret, rem, offset, len);
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
 	}
 	for (i = 0; i < LOGLEVEL_DEFS; i++) {
 		ret = snprintf(str + offset, rem, "%s\n",
 				loglevel_descriptions[i]);
 		if (ret < 0)
 			goto err;
-		SNPRINTF_FAILURE(ret, rem, offset, len);
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
 	}
 err:
 	return str;

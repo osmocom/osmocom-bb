@@ -27,4 +27,13 @@ char *ubit_dump(const uint8_t *bits, unsigned int len);
 void osmo_str2lower(char *out, const char *in);
 void osmo_str2upper(char *out, const char *in);
 
+#define OSMO_SNPRINTF_RET(ret, rem, offset, len)		\
+do {								\
+	len += ret;						\
+	if (ret > rem)						\
+		ret = rem;					\
+	offset += ret;						\
+	rem -= ret;						\
+} while (0)
+
 #endif
