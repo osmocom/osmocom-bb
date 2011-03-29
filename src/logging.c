@@ -452,7 +452,7 @@ const char *log_vty_command_string(const struct log_info *info)
 	if (!str)
 		return NULL;
 
-	ret = snprintf(str + offset, rem, "logging level (");
+	ret = snprintf(str + offset, rem, "logging level (all|");
 	if (ret < 0)
 		goto err;
 	OSMO_SNPRINTF_RET(ret, rem, offset, len);
