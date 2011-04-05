@@ -292,7 +292,7 @@ int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi)
 		return 0;
 
 	rc = make_sock(&nsi->frgre.fd, IPPROTO_GRE, nsi->frgre.local_ip,
-			0, nsfrgre_fd_cb);
+			0, 0, nsfrgre_fd_cb, NULL);
 	if (rc < 0) {
 		LOGP(DNS, LOGL_ERROR, "Error creating GRE socket (%s)\n",
 			strerror(errno));

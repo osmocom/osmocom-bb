@@ -946,7 +946,7 @@ int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi)
 	int ret;
 
 	ret = make_sock(&nsi->nsip.fd, IPPROTO_UDP, nsi->nsip.local_ip,
-			nsi->nsip.local_port, nsip_fd_cb);
+			nsi->nsip.local_port, 0, nsip_fd_cb, NULL);
 	if (ret < 0)
 		return ret;
 
