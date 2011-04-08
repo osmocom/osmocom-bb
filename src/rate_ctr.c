@@ -125,3 +125,37 @@ int rate_ctr_init(void *tall_ctx)
 
 	return 0;
 }
+
+struct rate_ctr_group *rate_ctr_get_group_by_name_idx(const char *name, const unsigned int idx)
+{
+	struct rate_ctr_group *ctrg;
+
+	llist_for_each_entry(ctrg, &rate_ctr_groups, list) {
+		if (!ctrg->desc)
+			continue;
+
+		if (!strcmp(ctrg->desc->group_name_prefix, name) &&
+				ctrg->idx == idx) {
+			return ctrg;
+		}
+	}
+	return NULL;
+}
+
+struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, const char *name)
+{
+	int i;
+	struct rate_ctr_desc *ctr_desc;
+
+	if (!ctrg->desc)
+		return NULL;
+
+	for (i = 0; i < ctrg->desc->num_ctr; i++) {
+		ctr_desc = &ctrg->desc->ctr_desc[i];
+
+		if (!strcmp(ctr_desc->name, name)) {
+			return &ctrg->ctr[i];
+		}
+	}
+	return NULL;
+}
