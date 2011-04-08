@@ -28,4 +28,6 @@ void counter_free(struct counter *ctr);
 
 int counters_for_each(int (*handle_counter)(struct counter *, void *), void *data);
 
+struct counter *counter_get_by_name(const char *name);
+
 #endif /* _STATISTICS_H */

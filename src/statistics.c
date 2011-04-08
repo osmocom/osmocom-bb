@@ -64,3 +64,13 @@ int counters_for_each(int (*handle_counter)(struct counter *, void *), void *dat
 	return rc;
 }
 
+struct counter *counter_get_by_name(const char *name)
+{
+	struct counter *ctr;
+
+	llist_for_each_entry(ctr, &counters, list) {
+		if (!strcmp(ctr->name, name))
+			return ctr;
+	}
+	return NULL;
+}
