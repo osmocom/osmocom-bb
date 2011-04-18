@@ -142,10 +142,10 @@ struct rate_ctr_group *rate_ctr_get_group_by_name_idx(const char *name, const un
 	return NULL;
 }
 
-struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, const char *name)
+const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, const char *name)
 {
 	int i;
-	struct rate_ctr_desc *ctr_desc;
+	const struct rate_ctr_desc *ctr_desc;
 
 	if (!ctrg->desc)
 		return NULL;

@@ -76,5 +76,5 @@ static inline void rate_ctr_inc(struct rate_ctr *ctr)
 int rate_ctr_init(void *tall_ctx);
 
 struct rate_ctr_group *rate_ctr_get_group_by_name_idx(const char *name, const unsigned int idx);
-struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, const char *name);
+const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, const char *name);
 #endif /* RATE_CTR_H */

@@ -20,8 +20,8 @@
  *
  */
 
-
 #include <sys/types.h>
+#include <string.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/talloc.h>
