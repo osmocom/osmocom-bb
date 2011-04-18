@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/utils.h>

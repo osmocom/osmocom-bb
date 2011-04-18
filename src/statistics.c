@@ -20,7 +20,6 @@
  *
  */
 
-#include <sys/types.h>
 #include <string.h>
 
 #include <osmocom/core/linuxlist.h>

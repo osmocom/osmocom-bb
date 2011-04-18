@@ -22,7 +22,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/types.h>
 
 #include <osmocom/core/msgb.h>
 //#include <openbsc/gsm_data.h>

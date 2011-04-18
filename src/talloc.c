@@ -48,7 +48,6 @@
 
 #ifndef _TALLOC_SAMBA3
 //#include "replace.h"
-#include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdbool.h>

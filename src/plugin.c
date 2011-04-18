@@ -24,7 +24,6 @@
 
 #if HAVE_DLFCN_H
 
-#include <sys/types.h>
 #include <dirent.h>
 #include <dlfcn.h>
 #include <stdio.h>
