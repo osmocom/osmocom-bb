@@ -49,7 +49,9 @@
 #include <openbsc/abis_nm.h>
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/select.h>
+#include <osmocom/core/statistics.h>
 #include <osmocom/core/talloc.h>
 
 #include <osmocom/gsm/tlv.h>
@@ -342,6 +344,259 @@ static int listen_fd_cb(struct osmo_fd *listen_bfd, unsigned int what)
 	return ret;
 }
 
+static uint64_t get_rate_ctr_value(const struct rate_ctr *ctr, int intv)
+{
+	if (intv >= RATE_CTR_INTV_NUM)
+		return 0;
+
+	/* Absolute value */
+	if (intv == -1) {
+		return  ctr->current;
+	} else {
+		return ctr->intv[intv].rate;
+	}
+}
+
+static char *get_all_rate_ctr_in_group(const struct rate_ctr_group *ctrg, int intv)
+{
+	int i;
+	char *counters = talloc_strdup(tall_bsc_ctx, "");
+	if (!counters)
+		return NULL;
+
+	for (i=0;i<ctrg->desc->num_ctr;i++) {
+		counters = talloc_asprintf_append(counters, "\n%s.%u.%s %lu",
+			ctrg->desc->group_name_prefix, ctrg->idx,
+			ctrg->desc->ctr_desc[i].name,
+			get_rate_ctr_value(&ctrg->ctr[i], intv));
+		if (!counters)
+			return NULL;
+	}
+	return counters;
+}
+
+static int get_rate_ctr_group(const char *ctr_group, int intv, struct ctrl_cmd *cmd)
+{
+	int i;
+	char *counters;
+	struct rate_ctr_group *ctrg;
+
+	cmd->reply = talloc_asprintf(cmd, "All counters in group %s", ctr_group);
+	if (!cmd->reply)
+		goto oom;
+
+	for (i=0;;i++) {
+		ctrg = rate_ctr_get_group_by_name_idx(ctr_group, i);
+		if (!ctrg)
+			break;
+
+		counters = get_all_rate_ctr_in_group(ctrg, intv);
+		if (!counters)
+			goto oom;
+
+		cmd->reply = talloc_asprintf_append(cmd->reply, "%s", counters);
+		talloc_free(counters);
+		if (!cmd->reply)
+			goto oom;
+	}
+
+	/* We found no counter group by that name */
+	if (i == 0) {
+		cmd->reply = talloc_asprintf(cmd, "No counter group with name %s.", ctr_group);
+		return CTRL_CMD_ERROR;
+	}
+
+	return CTRL_CMD_REPLY;
+oom:
+	cmd->reply = "OOM.";
+	return CTRL_CMD_ERROR;
+}
+
+static int get_rate_ctr_group_idx(const struct rate_ctr_group *ctrg, int intv, struct ctrl_cmd *cmd)
+{
+	char *counters;
+
+	counters = get_all_rate_ctr_in_group(ctrg, intv);
+	if (!counters)
+		goto oom;
+
+	cmd->reply = talloc_asprintf(cmd, "All counters in %s.%u%s",
+			ctrg->desc->group_name_prefix, ctrg->idx, counters);
+	talloc_free(counters);
+	if (!cmd->reply)
+		goto oom;
+
+	return CTRL_CMD_REPLY;
+oom:
+	cmd->reply = "OOM.";
+	return CTRL_CMD_ERROR;
+}
+
+/* rate_ctr */
+CTRL_CMD_DEFINE(rate_ctr, "rate_ctr *");
+int get_rate_ctr(struct ctrl_cmd *cmd, void *data)
+{
+	int intv;
+	unsigned int idx;
+	char *ctr_group, *ctr_idx, *ctr_name, *tmp, *dup, *saveptr, *interval;
+	struct rate_ctr_group *ctrg;
+	const struct rate_ctr *ctr;
+
+	dup = talloc_strdup(cmd, cmd->variable);
+	if (!dup)
+		goto oom;
+
+	/* Skip over possible prefixes (net.) */
+	tmp = strstr(dup, "rate_ctr");
+	if (!tmp) {
+		talloc_free(dup);
+		cmd->reply = "rate_ctr not a token in rate_ctr command!";
+		goto err;
+	}
+
+	strtok_r(tmp, ".", &saveptr);
+	interval = strtok_r(NULL, ".", &saveptr);
+	if (!interval) {
+		talloc_free(dup);
+		cmd->reply = "Missing interval.";
+		goto err;
+	}
+
+	if (!strcmp(interval, "abs")) {
+		intv = -1;
+	} else if (!strcmp(interval, "per_sec")) {
+		intv = RATE_CTR_INTV_SEC;
+	} else if (!strcmp(interval, "per_min")) {
+		intv = RATE_CTR_INTV_MIN;
+	} else if (!strcmp(interval, "per_hour")) {
+		intv = RATE_CTR_INTV_HOUR;
+	} else if (!strcmp(interval, "per_day")) {
+		intv = RATE_CTR_INTV_DAY;
+	} else {
+		talloc_free(dup);
+		cmd->reply = "Wrong interval.";
+		goto err;
+	}
+
+	ctr_group = strtok_r(NULL, ".", &saveptr);
+	tmp = strtok_r(NULL, ".", &saveptr);
+	if (!ctr_group || !tmp) {
+		talloc_free(dup);
+		cmd->reply = "Counter group must be of form a.b";
+		goto err;
+	}
+	ctr_group[strlen(ctr_group)] = '.';
+
+	ctr_idx = strtok_r(NULL, ".", &saveptr);
+	if (!ctr_idx) {
+		talloc_free(dup);
+		return get_rate_ctr_group(ctr_group, intv, cmd);
+	}
+	idx = atoi(ctr_idx);
+
+	ctrg = rate_ctr_get_group_by_name_idx(ctr_group, idx);
+	if (!ctrg) {
+		talloc_free(dup);
+		cmd->reply = "Counter group not found.";
+		goto err;
+	}
+
+	ctr_name = strtok_r(NULL, "\0", &saveptr);
+	if (!ctr_name) {
+		talloc_free(dup);
+		return get_rate_ctr_group_idx(ctrg, intv, cmd);
+	}
+
+	ctr = rate_ctr_get_by_name(ctrg, ctr_name);
+	if (!ctr) {
+		cmd->reply = "Counter name not found.";
+		talloc_free(dup);
+		goto err;
+	}
+
+	talloc_free(dup);
+
+	cmd->reply = talloc_asprintf(cmd, "%lu", get_rate_ctr_value(ctr, intv));
+	if (!cmd->reply)
+		goto oom;
+
+	return CTRL_CMD_REPLY;
+oom:
+	cmd->reply = "OOM";
+err:
+	return CTRL_CMD_ERROR;
+}
+
+int set_rate_ctr(struct ctrl_cmd *cmd, void *data)
+{
+	cmd->reply = "Can't set rate counter.";
+
+	return CTRL_CMD_ERROR;
+}
+
+int verify_rate_ctr(struct ctrl_cmd *cmd, const char *value, void *data)
+{
+	return 0;
+}
+
+/* counter */
+CTRL_CMD_DEFINE(counter, "counter *");
+int get_counter(struct ctrl_cmd *cmd, void *data)
+{
+	char *ctr_name, *tmp, *dup, *saveptr;
+	struct osmo_counter *counter;
+
+	cmd->reply = "OOM";
+	dup = talloc_strdup(cmd, cmd->variable);
+	if (!dup)
+		goto err;
+
+
+	tmp = strstr(dup, "counter");
+	if (!tmp) {
+		talloc_free(dup);
+		goto err;
+	}
+
+	strtok_r(tmp, ".", &saveptr);
+	ctr_name = strtok_r(NULL, "\0", &saveptr);
+
+	if (!ctr_name)
+		goto err;
+
+	counter = osmo_counter_get_by_name(ctr_name);
+	if (!counter) {
+		cmd->reply = "Counter name not found.";
+		talloc_free(dup);
+		goto err;
+	}
+
+	talloc_free(dup);
+
+	cmd->reply = talloc_asprintf(cmd, "%lu", counter->value);
+	if (!cmd->reply) {
+		cmd->reply = "OOM";
+		goto err;
+	}
+
+	return CTRL_CMD_REPLY;
+err:
+	return CTRL_CMD_ERROR;
+}
+
+int set_counter(struct ctrl_cmd *cmd, void *data)
+{
+
+	cmd->reply = "Can't set counter.";
+
+	return CTRL_CMD_ERROR;
+}
+
+int verify_counter(struct ctrl_cmd *cmd, const char *value, void *data)
+{
+	return 0;
+}
+
 int controlif_setup(struct gsm_network *gsmnet, uint16_t port)
 {
 	int ret;
@@ -364,6 +619,9 @@ int controlif_setup(struct gsm_network *gsmnet, uint16_t port)
 		talloc_free(ctrl);
 		return ret;
 	}
+
+	ctrl_cmd_install(CTRL_NODE_ROOT, &cmd_rate_ctr);
+	ctrl_cmd_install(CTRL_NODE_ROOT, &cmd_counter);
 
 	return ret;
 }
