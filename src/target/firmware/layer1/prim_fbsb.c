@@ -286,7 +286,7 @@ static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 }
 
 /* This is how it is done by the TSM30 */
-static const struct tdma_sched_item sb_sched_set[] = {
+static const struct tdma_sched_item sb2_sched_set[] = {
 	SCHED_ITEM_DT(l1s_sbdet_cmd, 0, 0, 1),	SCHED_END_FRAME(),
 	SCHED_ITEM_DT(l1s_sbdet_cmd, 0, 0, 2),	SCHED_END_FRAME(),
 						SCHED_END_FRAME(),
@@ -297,7 +297,7 @@ static const struct tdma_sched_item sb_sched_set[] = {
 
 void l1s_sb_test(uint8_t base_fn)
 {
-	tdma_schedule_set(base_fn, sb_sched_set, 0);
+	tdma_schedule_set(base_fn, sb2_sched_set, 0);
 }
 /* FCCH Burst *****************************************************************/
 
@@ -490,7 +490,7 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 				/* synchronize before reading SB */
 				fbinfo2cellinfo(&l1s.serving_cell, last_fb);
 				synchronize_tdma(&l1s.serving_cell);
-				tdma_schedule_set(delay, sb_sched_set, 0);
+				tdma_schedule_set(delay, sb2_sched_set, 0);
 			} else
 				tdma_schedule_set(delay, fb_sched_set, 1);
 		} else
@@ -563,7 +563,7 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 	else if (fbs.req.flags & L1CTL_FBSB_F_FB1)
 		tdma_schedule_set(base_fn, fb_sched_set, 0);
 	else if (fbs.req.flags & L1CTL_FBSB_F_SB)
-		tdma_schedule_set(base_fn, sb_sched_set, 0);
+		tdma_schedule_set(base_fn, sb2_sched_set, 0);
 
 }
 
