@@ -14,7 +14,7 @@ libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c bits.c \
 			 write_queue.c utils.c \
 			 logging.c logging_syslog.c rate_ctr.c \
 			 gsmtap_util.c crc16.c panic.c backtrace.c \
-			 process.c
+			 process.c conv.c
 
 if ENABLE_PLUGIN
 libosmocore_la_SOURCES += plugin.c
