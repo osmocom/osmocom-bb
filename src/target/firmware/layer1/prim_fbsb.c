@@ -172,8 +172,8 @@ static void read_sb_result(struct mon_state *st, int attempt)
  * actually happened, as it is a "C W W R" task */
 #define SB2_LATENCY	2
 
-static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
-			  __unused uint16_t p3)
+static int l1s_sb2det_resp(__unused uint8_t p1, uint8_t attempt,
+			   __unused uint16_t p3)
 {
 	uint32_t sb;
 	int qbits, fn_offset;
@@ -241,10 +241,10 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	l1s_time_inc(&l1s.next_time, 1);
 
 	/* If we call tdma_sched_reset(), which is only needed if there
-	 * are further l1s_sbdet_resp() scheduled, we will bring
+	 * are further l1s_sb2det_resp() scheduled, we will bring
 	 * dsp_api.db_r and dsp_api.db_w out of sync because we changed
 	 * dsp_api.db_w for l1s_sbdet_cmd() and canceled
-	 * l1s_sbdet_resp() which would change dsp_api.db_r. The DSP
+	 * l1s_sb2det_resp() which would change dsp_api.db_r. The DSP
 	 * however expects dsp_api.db_w and dsp_api.db_r to be in sync
 	 * (either "0 - 0" or "1 - 1"). So we have to bring dsp_api.db_w
 	 * and dsp_api.db_r into sync again, otherwise NB reading will
@@ -268,8 +268,8 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	return 0;
 }
 
-static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
-			 __unused uint16_t p3)
+static int l1s_sb2det_cmd(__unused uint8_t p1, __unused uint8_t p2,
+			  __unused uint16_t p3)
 {
 	putchart('S');
 
@@ -287,11 +287,11 @@ static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 
 /* This is how it is done by the TSM30 */
 static const struct tdma_sched_item sb2_sched_set[] = {
-	SCHED_ITEM_DT(l1s_sbdet_cmd, 0, 0, 1),	SCHED_END_FRAME(),
-	SCHED_ITEM_DT(l1s_sbdet_cmd, 0, 0, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM_DT(l1s_sb2det_cmd, 0, 0, 1),	SCHED_END_FRAME(),
+	SCHED_ITEM_DT(l1s_sb2det_cmd, 0, 0, 2),	SCHED_END_FRAME(),
 						SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_sbdet_resp, -4, 0, 1),	SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_sbdet_resp, -4, 0, 2),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_sb2det_resp, -4, 0, 1),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_sb2det_resp, -4, 0, 2),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
 
@@ -567,7 +567,173 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 
 }
 
+/* SB for Neighbours in dedicated mode ****************************************/
+
+static int l1s_neigh_sb_cmd(__unused uint8_t p1, __unused uint8_t p2,
+			    __unused uint16_t p3)
+{
+	struct l1_cell_info *cinfo = &l1s.neigh_cell[l1s.sb.neigh_idx];
+
+	putchart('S');
+
+	fbs.mon.bsic = 0;
+	fbs.mon.time.fn = 0;
+
+	dsp_api.db_w->d_task_md = SB_DSP_TASK;
+	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
+
+	switch (l1s.sb.mode) {
+	case L1S_NSB_DETECT:
+		/* Program TPU using ARFCN from current cinfo */
+		l1s_rx_win_ctrl(cinfo->arfcn, L1_RXWIN_SB, 0);
+		break;
+	case L1S_NSB_CONFIRM:
+		/* FIXME: we need to load new sync values from cinfo first !!! */
+		break;
+	}
+
+	return 0;
+}
+
+/* compute which neighbor cell will do the next SB detection */
+static int l1s_neigh_proceed_next(void)
+{
+	struct l1_cell_info *cinfo = &l1s.neigh_cell[l1s.sb.neigh_idx];
+	uint8_t old_neigh_idx = l1s.sb.neigh_idx;
+	unsigned int i;
+
+	switch (l1s.sb.mode) {
+	case L1S_NSB_DETECT:
+		if (!cinfo->flags & L1_CINF_F_VALID) {
+			if (l1s.sb.detect_count_remain > 0) {
+				/* retry on same arfcn / cinfo */
+				l1s.sb.detect_count_remain--;
+			} else {
+				/* select next cell */
+				l1s.sb.neigh_idx = (l1s.sb.neigh_idx + 1)
+							% l1s.num_neigh_cell;
+				l1s.sb.detect_count_remain = l1s.sb.detect_count;
+			}
+		} else {
+			/* select next cell */
+			l1s.sb.neigh_idx = (l1s.sb.neigh_idx + 1)
+							% l1s.num_neigh_cell;
+			l1s.sb.detect_count_remain = l1s.sb.detect_count;
+		}
+		break;
+	case L1S_NSB_CONFIRM:
+		/* when we try to confirm, we proceed to the next neighbor cell that
+		 * is valid, i.e. we already have synchronization values */
+		for (i = (l1s.sb.neigh_idx + 1) % l1s.num_neigh_cell;
+		     i < l1s.sb.neigh_idx; i++) {
+			if (l1s.neigh_cell[i].flags & L1_CINF_F_VALID) {
+				l1s.sb.neigh_idx = i;
+				break;
+			}
+		}
+		break;
+	}
+
+	/* return 1 in case we have wrapped over the end of neighbor array */
+	if (old_neigh_idx > l1s.sb.neigh_idx)
+		return 1;
+
+	return 0;
+}
+
+static int l1s_neigh_sb_resp(__unused uint8_t p1, __unused uint8_t p2,
+			     __unused uint16_t p3)
+{
+	struct l1_cell_info *cinfo = &l1s.neigh_cell[l1s.sb.neigh_idx];
+	int need_report;
+	uint32_t sb;
+	int qbits, fn_offset;
+	int fnr_delta, bits_delta;
+
+	putchart('s');
+
+	if (dsp_api.db_r->a_sch[0] & (1<<B_SCH_CRC)) {
+		/* mark READ page as being used */
+		dsp_api.r_page_used = 1;
+
+		/* we have failed due to CRC error */
+		printf("NSB ERROR: ARFCN=%u ", cinfo->arfcn);
+		cinfo->flags &= ~L1_CINF_F_VALID;
+		goto proceed_out;
+	}
+
+	/* Success */
+	read_sb_result(last_fb, 1);
+
+	sb = dsp_api.db_r->a_sch[3] | dsp_api.db_r->a_sch[4] << 16;
+	fbs.mon.bsic = l1s_decode_sb(&fbs.mon.time, sb);
+	printf("NSB SUCCESS: ARFCN=%u BSIC=%u ", cinfo->arfcn, fbs.mon.bsic);
+	l1s_time_dump(&fbs.mon.time);
+
+	/* calculate synchronisation value (TODO: only complete for qbits) */
+	last_fb->toa -= 23;
+	qbits = last_fb->toa * 4;
+	fn_offset = l1s.current_time.fn; // TODO
+
+	if (qbits > QBITS_PER_TDMA) {
+		qbits -= QBITS_PER_TDMA;
+		fn_offset -= 1;
+	} else if (qbits < 0)  {
+		qbits += QBITS_PER_TDMA;
+		fn_offset += 1;
+	}
+
+	fnr_delta = last_fb->fnr_report - 1;
+	bits_delta = fnr_delta * BITS_PER_TDMA;
+
+	/* update neighbor cell info with the new sync information */
+	cinfo->fn_offset = fnr_delta;
+	cinfo->time_alignment = qbits;
+	cinfo->arfcn = rf_arfcn;
+	cinfo->flags |= L1_CINF_F_VALID;
+
+	if (last_fb->toa > bits_delta)
+		printf("=> DSP reports SB in bit that is %d bits in the "
+			"future?!?\n", last_fb->toa - bits_delta);
+	else
+		printf(" qbits=%u\n", qbits);
+
+proceed_out:
+	/* compute next cell and tell us if we need to report results */
+	need_report = l1s_neigh_proceed_next();
+
+	/* decide if we need to report a result up the stack */
+	if (need_report)
+		l1s_compl_sched(L1_COMPL_NEIGH_SB);
+
+	return 0;
+}
+
+const struct tdma_sched_item neigh_sb_sched_set[] = {
+	SCHED_ITEM_DT(l1s_neigh_sb_cmd, 0, 0, 1),	SCHED_END_FRAME(),
+							SCHED_END_FRAME(),
+							SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_neigh_sb_resp, -4, 0, 1),	SCHED_END_FRAME(),
+	SCHED_END_SET()
+};
+
+/* Asynchronous completion handler for FB detection */
+static void l1a_neigh_sb_compl(__unused enum l1_compl c)
+{
+	struct l1_cell_info *cinfo = &l1s.neigh_cell[l1s.sb.neigh_idx];
+
+	/* FIXME: do something with the results in the neighbor cell array */
+}
+
+/* configure the parameters for l1s neighbour SB detection/confirmation */
+void l1s_neigh_sb_cfg(enum l1s_nsb_mode mode, uint8_t detect_count)
+{
+	l1s.sb.mode = mode;
+	l1s.sb.detect_count = detect_count;
+}
+
 static __attribute__ ((constructor)) void l1s_prim_fbsb_init(void)
 {
 	l1s.completion[L1_COMPL_FB] = &l1a_fb_compl;
+	l1s.completion[L1_COMPL_NEIGH_SB] = &l1a_neigh_sb_compl;
 }

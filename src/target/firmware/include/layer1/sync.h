@@ -7,6 +7,8 @@
 #include <layer1/mframe_sched.h>
 #include <l1ctl_proto.h>
 
+#define L1_CINF_F_VALID	0x01
+
 /* structure representing L1 sync information about a cell */
 struct l1_cell_info {
 	/* on which ARFCN (+band) is the cell? */
@@ -22,6 +24,7 @@ struct l1_cell_info {
 	 * with the cells burst */
 	uint32_t	time_alignment;
 	/* FIXME: should we also store the AFC value? */
+	uint8_t		flags;
 };
 
 enum l1s_chan {
@@ -36,6 +39,7 @@ enum l1_compl {
 	L1_COMPL_RACH,
 	L1_COMPL_TX_NB,
 	L1_COMPL_TX_TCH,
+	L1_COMPL_NEIGH_SB,
 };
 
 typedef void l1_compl_cb(enum l1_compl c);
@@ -54,6 +58,11 @@ struct l1s_h1 {
 	uint16_t ma[64];
 };
 
+enum l1s_nsb_mode {
+	L1S_NSB_DETECT,
+	L1S_NSB_CONFIRM,
+};
+
 struct l1s_state {
 	struct gsm_time	current_time;	/* current GSM time */
 	struct gsm_time	next_time;	/* GSM time at next TMDMA irq */
@@ -63,6 +72,7 @@ struct l1s_state {
 
 	/* neighbor cell sync info */
 	struct l1_cell_info neigh_cell[L1S_NUM_NEIGH_CELL];
+	unsigned int num_neigh_cell;
 
 	/* TDMA scheduler */
 	struct tdma_scheduler tdma_sched;
@@ -97,6 +107,13 @@ struct l1s_state {
 	struct {
 		uint8_t mode;	/* FB_MODE 0/1 */
 	} fb;
+
+	struct {
+		enum l1s_nsb_mode mode;
+		uint8_t detect_count;		/* total number of attempts in detect mode */
+		uint8_t detect_count_remain;	/* how many attempts remaining */
+		uint8_t neigh_idx;		/* index into l1s.neigh_cell */
+	} sb;
 
 	struct {
 		/* power measurement l1 task */

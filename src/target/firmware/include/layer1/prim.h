@@ -18,6 +18,8 @@ void l1s_sb_test(uint8_t base_fn);
 void l1s_pm_test(uint8_t base_fn, uint16_t arfcn);
 void l1s_nb_test(uint8_t base_fn);
 
+void l1s_neigh_sb_cfg(enum l1s_nsb_mode mode, uint8_t detect_count);
+
 void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req);
 void l1a_freq_req(uint32_t fn_sched);
 void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra);
@@ -25,6 +27,8 @@ void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra);
 /* Primitives raw scheduling sets */
 extern const struct tdma_sched_item nb_sched_set[];
 extern const struct tdma_sched_item nb_sched_set_ul[];
+
+extern const struct tdma_sched_item neigh_sb_sched_set[];
 
 extern const struct tdma_sched_item tch_sched_set[];
 extern const struct tdma_sched_item tch_a_sched_set[];
