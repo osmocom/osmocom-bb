@@ -41,7 +41,7 @@ shared/libosmocore/build-target:
 shared/libosmocore/build-target/Makefile: shared/libosmocore/configure shared/libosmocore/build-target
 	cd shared/libosmocore/build-target && ../configure \
 			--host=$(CROSS_HOST) --disable-vty --enable-panic-infloop \
-			--disable-shared --disable-talloc --disable-tests \
+			--disable-shared --disable-talloc --disable-tests ac_cv_header_sys_select_h=no \
 		CFLAGS="-Os -ffunction-sections -I$(TOPDIR)/target/firmware/include -nostartfiles -nodefaultlibs"
 
 shared/libosmocore/build-target/src/.libs/libosmocore.a: shared/libosmocore/build-target/Makefile
