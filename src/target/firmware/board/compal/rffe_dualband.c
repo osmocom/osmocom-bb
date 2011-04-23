@@ -44,6 +44,18 @@ void rffe_mode(enum gsm_band band, int tx)
 	tsp_act_update(tspact);
 }
 
+/* Returns RF wiring */
+uint32_t rffe_get_rx_ports(void)
+{
+	return (1 << PORT_LO) | (1 << PORT_DCS1800);
+}
+
+uint32_t rffe_get_tx_ports(void)
+{
+	return (1 << PORT_LO) | (1 << PORT_HI);
+}
+
+
 #define MCU_SW_TRACE	0xfffef00e
 #define ARM_CONF_REG	0xfffef006
 

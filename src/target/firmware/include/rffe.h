@@ -11,6 +11,20 @@ void rffe_init(void);
 /* switch RF Frontend Mode */
 void rffe_mode(enum gsm_band band, int tx);
 
+/* query RF wiring */
+enum rffe_port
+{
+	PORT_LO		= 0,	/* Combined 850/900 port */
+	PORT_HI		= 1,	/* Combined 1800/1900 port */
+	PORT_GSM850	= 2,
+	PORT_GSM900	= 3,
+	PORT_DCS1800	= 4,
+	PORT_PCS1900	= 5,
+};
+
+uint32_t rffe_get_rx_ports(void);
+uint32_t rffe_get_tx_ports(void);
+
 /* get current gain of RF frontend (anything between antenna and baseband in dBm */
 uint8_t rffe_get_gain(void);
 
