@@ -92,6 +92,23 @@ enum trf6151_reg {
 #define TRF6151_RX_PLL_DELAY	184	/* 170 us */
 #define TRF6151_TX_PLL_DELAY	260	/* 240 us */
 
+
+enum trf6151_pwr_unit {
+	TRF1651_PACTLR_APC,
+	TRF6151_PACTRL_APCEN,
+	TRF6151_TRANSMITTER,
+	TRF6151_REGULATORS,
+};
+
+enum trf6151_gsm_band {
+	GSM900		= 1,
+	GSM1800		= 2,
+	GSM850_LOW	= 4,
+	GSM850_HIGH	= 5,
+	GSM1900		= 6,
+};
+
+
 uint16_t rf_arfcn = 871;	/* TODO: this needs to be private */
 static uint16_t rf_band;
 
@@ -140,98 +157,154 @@ int trf6151_set_gain(uint8_t dbm, int high)
 
 #define SCALE_100KHZ	100
 
-/* Compute TRF6151 PLL valuese for all 4 RX bands */
-static uint16_t trf6151_pll_rx(uint32_t freq_khz)
+/* Compute TRF6151 PLL valuese */
+static void trf6151_pll_rx(uint32_t freq_khz,
+                           uint16_t *pll_config, enum trf6151_gsm_band *band)
 {
-	uint32_t freq_100khz = freq_khz / SCALE_100KHZ;	/* Scale from *1000 (k) to *100000 (0.1M) */
-	uint32_t fb_100khz;	/* frequency of B alone, without A (units of 100kHz) */
-	uint32_t l;
-	uint32_t a, b;	/* The PLL multipliers we want to compute */
+	const uint32_t p=64, r=65;
+	uint32_t freq_100khz, vco_freq_100khz;
+	uint32_t l, n;
+	uint32_t a, b;
 
-	/* L = 4 for low band, 2 for high band */
-	if (freq_khz < 1000000)
-		l = 4;
-	else
-		l = 2;
+	/* Scale into 100kHz unit (avoid overflow in intermediates) */
+	freq_100khz = freq_khz / SCALE_100KHZ;
 
-	/* To compute B, we assume A is zero */
-	b = (freq_100khz * 65 * l) / (64 * 26 * 10);
+	/* L selects hi/lo band */
+	l = (freq_khz > 1350000) ? 2 : 4; /* cut at mid point :) */
 
+	/* VCO frequency */
+	vco_freq_100khz = freq_100khz * l;
+
+	/* vco_freq = 26MHz / R * N  with R=65 and N=B*P+A */
+	n = (vco_freq_100khz * r) / 260;
+	a = n % p;
+	b = n / p;
+
+	*pll_config = PLL_VAL(a, b);
+
+	/* Out-of-spec tuning warning */
 	if ((l == 4 && (b < 135 || b > 150)) ||
 	    (l == 2 && (b < 141 || b > 155)))
-		printf("Frequency %u kHz is out of spec\n", freq_khz);
+		printf("Frequency %u kHz is out of spec\n", (unsigned int)freq_khz);
 
-	/* Compute PLL frequency assuming A == 0 */
-	fb_100khz = (b * 64 * 26 * 10) / (65 * l);
+	/* Select band */
+	if (l==4) {
+		/* If in the low band, same port for both GSM850/GSM900, so we
+		 * choose the best VCO (VCOMAIN1=3.37GHz, VCOMAIN2=3.8GHz) */
+		if (vco_freq_100khz < 35850) /* midpoint */
+			*band = GSM850_LOW;
+		else
+			*band = GSM900;
 
-	/* Compute how many 100kHz units A needs to add */
-	a = freq_100khz - fb_100khz;
+		/* Out-of-spec freq check */
+		if (!(freq_khz >= 869000 && freq_khz <= 894000) &&
+		    !(freq_khz >= 921000 && freq_khz <= 960000)) /* include GSM-R */
+			printf("Frequency %u outside normal filter range for selected port\n", (unsigned int)freq_khz);
+	} else {
+		/* In the high band, different ports for DCS/PCS, so
+		 * take what's best and available */
+		/* We're stuck to VCOMAIN2=3.8GHz though ... */
+		uint32_t rx_ports = rffe_get_rx_ports();
+		uint32_t port;
 
-	if (l == 2)
-		a = a / 2;
+		/* Select port */
+		port = (freq_khz < 1905000) ? (1 << PORT_DCS1800) : (1 << PORT_PCS1900);
+		port = (port & rx_ports) ? port : rx_ports;
 
-	/* since all frequencies are expanded a factor of 10, we don't need to multiply A */
-	printd("Freq %u kHz => A = %u, B = %u\n", freq_khz, a, b);
+		/* Select band */
+		*band = (port & (1 << PORT_DCS1800)) ? GSM1800 : GSM1900;
 
-	/* return value in trf6151 register layout form */
-	return PLL_VAL(a, b);
+		/* Out-of-spec freq check */
+		if ((*band == GSM1800 && (freq_khz < 1805000 || freq_khz > 1880000)) ||
+		    (*band == GSM1900 && (freq_khz < 1930000 || freq_khz > 1990000)))
+			printf("Frequency %u outside normal filter range for selected port\n", (unsigned int)freq_khz);
+	}
+
+	/* Debug */
+	printd("RX Freq %u kHz => A = %u, B = %u, band = %d, vco_freq = %u kHz\n", freq_khz, a, b, *band, vco_freq_100khz*100);
+
+	/* All done */
+	return;
 }
 
-/* Compute TRF6151 PLL TX values for GSM900 and GSM1800 only! */
-static uint16_t trf6151_pll_tx(uint32_t freq_khz)
+/* Compute TRF6151 PLL TX values */
+static void trf6151_pll_tx(uint32_t freq_khz,
+                           uint16_t *pll_config, enum trf6151_gsm_band *band)
 {
-	uint32_t freq_100khz = freq_khz / SCALE_100KHZ;	/* Scale from *1000 (k) to *100000 (0.1M) */
-	uint32_t fb_100khz;	/* frequency of B alone, without A (units of 100kHz) */
-	uint32_t l, r, m;
-	uint32_t a, b;	/* The PLL multipliers we want to compute */
+	const uint32_t p=64;
+	uint32_t r, l, m, m_op_l; /* m_op_l = m +/- l depending on mode */
+	uint32_t freq_100khz;
+	uint32_t n, a, b, b_min, b_max;
 
-	/* L = 4 for low band, 2 for high band */
-	if (freq_khz < 1000000) {
-		r = 35;
-		l = 4;
-		m = 52;
-	} else {
+	/* Scale into 100kHz unit (avoid overflow in intermediates) */
+	freq_100khz = freq_khz / SCALE_100KHZ;
+
+	/* Select band (and PLL mode) */
+	if (freq_khz > 1350000) {
+		/* High band, so only 1 real PLL mode. band doesn't matter
+		 * that much (or at all) but we still do it :p */
+		*band = (freq_khz < 1817500) ? GSM1800 : GSM1900;
 		r = 70;
 		l = 2;
 		m = 26;
+		m_op_l = m + l;
+		b_min = 133;
+		b_max = 149;
+	} else {
+		/* Low band. We have 3 possible PLL modes that output on
+		 * the right port: GSM900, GSM850_HIGH, GSM850_LOW.
+		 *
+		 * The transistion points have been chosen looking at the VCO
+		 * and IF frequencies for various frequencies for theses modes
+		 */
+		if (freq_khz < 837100) {
+			/* GSM850_LOW */
+			*band = GSM850_LOW;
+			r = 55;
+			l = 4;
+			m = 26;
+			m_op_l = m - l;
+			b_min = 128;
+			b_max = 130;
+		} else if (freq_khz < 850000) {
+			/* GSM850_HIGH */
+			*band = GSM850_HIGH;
+			r = 30;
+			l = 4;
+			m = 52;
+			m_op_l = m - l;
+			b_min = 65;
+			b_max = 66;
+		} else {
+			/* GSM900 */
+			*band = GSM900;
+			r = 35;
+			l = 4;
+			m = 52;
+			m_op_l = m + l;
+			b_min = 68;
+			b_max = 71;
+		}
 	}
 
-	/* To compute B, we assume A is zero */
-	b = (freq_100khz * r * l * m) / (64 * 26 * 10 * (m + l));
+	/* vco_freq = f * M * L / (M +- L)                 */
+	/*          = 26MHz / R * N  with R=65 and N=B*P+A */
+	n = (freq_100khz * m * l * r) / (m_op_l * 260);
+	a = n % p;
+	b = n / p;
 
-	if ((l == 4 && (b <  68 || b >  71)) ||
-	    (l == 2 && (b < 133 || b > 149)))
-		printf("Frequency %u kHz is out of spec\n", freq_khz);
+	*pll_config = PLL_VAL(a, b);
 
-	/* Compute PLL frequency assuming A == 0 */
-	fb_100khz = (b * 64 * 26 * 10 * (m + l)) / (r * l * m);
+	/* Debug */
+	printd("TX Freq %u kHz => A = %u, B = %u, band = %d\n", freq_khz, a, b, *band);
 
-	/* Compute how many 100kHz units A needs to add */
-	a = freq_100khz - fb_100khz;
+	/* Out-of-spec tuning warning */
+	if (b < b_min || b > b_max)
+		printf("Frequency %u kHz is out of spec\n", (unsigned int)freq_khz);
 
-	a = a / 2;
-
-	/* since all frequencies are expanded a factor of 10, we don't need to multiply A */
-	printd("Freq %u kHz => A = %u, B = %u\n", freq_khz, a, b);
-
-	/* return value in trf6151 register layout form */
-	return PLL_VAL(a, b);
+	/* All done */
+	return;
 }
-
-enum trf6151_pwr_unit {
-	TRF1651_PACTLR_APC,
-	TRF6151_PACTRL_APCEN,
-	TRF6151_TRANSMITTER,
-	TRF6151_REGULATORS,
-};
-
-enum trf6151_gsm_band {
-	GSM900		= 1,
-	GSM1800		= 2,
-	GSM850_LOW	= 4,
-	GSM850_HIGH	= 5,
-	GSM1900		= 6,
-};
 
 static inline void trf6151_reset(uint16_t reset_id)
 {
@@ -310,43 +383,36 @@ static void trf6151_band_select(enum trf6151_gsm_band band)
 void trf6151_set_arfcn(uint16_t arfcn, int uplink)
 {
 	uint32_t freq_khz;
+	uint16_t pll_config;
+	enum trf6151_gsm_band pll_band;
 
 	switch (gsm_arfcn2band(arfcn)) {
 	case GSM_BAND_850:
-		rf_band = GSM850_LOW;	/* FIXME: what about HIGH */
-		break;
 	case GSM_BAND_900:
-		rf_band = GSM900;
-		break;
 	case GSM_BAND_1800:
-		rf_band = GSM1800;
-		break;
 	case GSM_BAND_1900:
-		rf_band = GSM1900;
+		/* Supported */
 		break;
 	case GSM_BAND_450:
 	case GSM_BAND_480:
 	case GSM_BAND_750:
 	case GSM_BAND_810:
-		printf("Unsupported rf_band.\n");
+		printf("Unsupported band ! YMMV.\n");
 		break;
 	}
-
-	trf6151_band_select(rf_band);
 
 	freq_khz = gsm_arfcn2freq10(arfcn, uplink) * 100;
 	printd("ARFCN %u -> %u kHz\n", arfcn, freq_khz);
 
 	if (uplink == 0)
-		trf6151_reg_write(REG_PLL, trf6151_pll_rx(freq_khz));
-	else {
-		if (rf_band != GSM900 && rf_band != GSM1800) {
-			printf("TX only supports GSM900/1800\n");
-			return;
-		}
-		trf6151_reg_write(REG_PLL, trf6151_pll_tx(freq_khz));
-	}
+		trf6151_pll_rx(freq_khz, &pll_config, &pll_band);
+	else
+		trf6151_pll_tx(freq_khz, &pll_config, &pll_band);
 
+	trf6151_band_select(pll_band);
+	trf6151_reg_write(REG_PLL, pll_config);
+
+	rf_band = pll_band;
 	rf_arfcn = arfcn; // TODO: arfcn is referenced at other places
 }
 
