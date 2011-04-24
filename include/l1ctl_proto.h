@@ -53,6 +53,9 @@ enum {
 	L1CTL_TCH_MODE_CONF,
 	L1CTL_NEIGH_PM_REQ,
 	L1CTL_NEIGH_PM_IND,
+	L1CTL_TRAFFIC_REQ,
+	L1CTL_TRAFFIC_CONF,
+	L1CTL_TRAFFIC_IND,
 };
 
 enum ccch_mode {
@@ -66,6 +69,8 @@ enum neigh_mode {
 	NEIGH_MODE_PM,
 	NEIGH_MODE_SB,
 };
+
+#define TRAFFIC_DATA_LEN	40
 
 /*
  * NOTE: struct size. We do add manual padding out of the believe
@@ -126,6 +131,11 @@ struct l1ctl_tch_mode_conf {
 /* data on the CCCH was found. This is following the header */
 struct l1ctl_data_ind {
 	uint8_t data[23];
+} __attribute__((packed));
+
+/* traffic from the network */
+struct l1ctl_traffic_ind {
+	uint8_t data[TRAFFIC_DATA_LEN];
 } __attribute__((packed));
 
 /*
@@ -273,6 +283,11 @@ struct l1ctl_neigh_pm_req {
 struct l1ctl_neigh_pm_ind {
 	uint16_t band_arfcn;
 	uint8_t pm[2];
+} __attribute__((packed));
+
+/* traffic data to network */
+struct l1ctl_traffic_req {
+	uint8_t data[TRAFFIC_DATA_LEN];
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */
