@@ -303,6 +303,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	l1s.dedicated.type = GSM_DCHAN_NONE;
 	l1a_txq_msgb_flush(&l1s.tx_queue[L1S_CHAN_MAIN]);
 	l1a_txq_msgb_flush(&l1s.tx_queue[L1S_CHAN_SACCH]);
+	l1a_txq_msgb_flush(&l1s.tx_queue[L1S_CHAN_TRAFFIC]);
 	l1a_meas_msgb_set(NULL);
 	dsp_load_ciph_param(0, NULL);
 	l1a_tch_mode_set(GSM48_CMODE_SIGN);
@@ -517,6 +518,28 @@ static void l1ctl_rx_neigh_pm_req(struct msgb *msg)
 		mframe_enable(MF_TASK_NEIGH_PM51);
 }
 
+/* receive a L1CTL_TRAFFIC_REQ from L23 */
+static void l1ctl_rx_traffic_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_traffic_req *tr = (struct l1ctl_traffic_req *) ul->payload;
+	int num = 0;
+
+	/* printd("L1CTL_TRAFFIC_REQ\n"); */ /* Very verbose, can overwelm serial */
+
+	msg->l2h = tr->data;
+
+	num = l1a_txq_msgb_count(&l1s.tx_queue[L1S_CHAN_TRAFFIC]);
+	if (num >= 4) {
+		printd("dropping traffic frame\n");
+		msgb_free(msg);
+		return;
+	}
+
+	l1a_txq_msgb_enq(&l1s.tx_queue[L1S_CHAN_TRAFFIC], msg);
+}
+
 /* callback from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
@@ -580,6 +603,10 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 	case L1CTL_NEIGH_PM_REQ:
 		l1ctl_rx_neigh_pm_req(msg);
 		break;
+	case L1CTL_TRAFFIC_REQ:
+		l1ctl_rx_traffic_req(msg);
+		/* we have to keep the msgb, not free it! */
+		goto exit_nofree;
 	}
 
 exit_msgbfree:

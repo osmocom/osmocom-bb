@@ -27,6 +27,7 @@ struct l1_cell_info {
 enum l1s_chan {
 	L1S_CHAN_MAIN,
 	L1S_CHAN_SACCH,
+	L1S_CHAN_TRAFFIC,
 	_NUM_L1S_CHAN
 };
 
