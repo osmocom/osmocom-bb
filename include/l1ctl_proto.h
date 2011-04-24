@@ -125,7 +125,8 @@ struct l1ctl_ccch_mode_conf {
 /* TCH mode was changed */
 struct l1ctl_tch_mode_conf {
 	uint8_t tch_mode;	/* enum tch_mode */
-	uint8_t padding[3];
+	uint8_t audio_mode;
+	uint8_t padding[2];
 } __attribute__((packed));
 
 /* data on the CCCH was found. This is following the header */
@@ -188,7 +189,12 @@ struct l1ctl_ccch_mode_req {
  */
 struct l1ctl_tch_mode_req {
 	uint8_t tch_mode;	/* enum gsm48_chan_mode */
-	uint8_t padding[3];
+#define AUDIO_TX_MICROPHONE	(1<<0)
+#define AUDIO_TX_TRAFFIC_REQ	(1<<1)
+#define AUDIO_RX_SPEAKER	(1<<2)
+#define AUDIO_RX_TRAFFIC_IND	(1<<3)
+	uint8_t audio_mode;
+	uint8_t padding[2];
 } __attribute__((packed));
 
 /* the l1_info_ul header is in front */
@@ -225,7 +231,7 @@ struct l1ctl_dm_est_req {
 		struct l1ctl_h1 h1;
 	};
 	uint8_t tch_mode;
-	uint8_t _padding[1];
+	uint8_t audio_mode;
 } __attribute__((packed));
 
 struct l1ctl_dm_freq_req {
