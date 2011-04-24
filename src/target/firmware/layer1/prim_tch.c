@@ -207,7 +207,7 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		msg = l1ctl_msgb_alloc(L1CTL_DATA_IND);
 		if(!msg) {
 			printf("TCH FACCH: unable to allocate msgb\n");
-			goto skip;
+			goto skip_rx_facch;
 		}
 
 		dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
@@ -248,7 +248,7 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		/* Give message to up layer */
 		l1_queue_for_l2(msg);
 
-	skip:
+	skip_rx_facch:
 		/* Reset A_FD header (needed by DSP) */
 		/* B_FIRE1 =1, B_FIRE0 =0 , BLUD =0 */
 		dsp_api.ndb->a_fd[0] = (1<<B_FIRE1);
@@ -279,6 +279,32 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		traffic_buf = tch_sub ? dsp_api.ndb->a_dd_1 : dsp_api.ndb->a_dd_0;
 
 		if (traffic_buf[0] & (1<<B_BLUD)) {
+			/* Send the data to upper layers (if interested and good frame) */
+			if ((l1s.audio_mode & AUDIO_RX_TRAFFIC_IND) &&
+			    !(dsp_api.ndb->a_dd_0[0] & (1<<B_BFI))) {
+				struct msgb *msg;
+				struct l1ctl_info_dl *dl;
+				struct l1ctl_traffic_ind *ti;
+
+				/* Allocate msgb */
+				/* FIXME: we actually want all allocation out of L1S! */
+				msg = l1ctl_msgb_alloc(L1CTL_TRAFFIC_IND);
+				if(!msg) {
+					printf("TCH traffic: unable to allocate msgb\n");
+					goto skip_rx_traffic;
+				}
+
+				dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
+				ti = (struct l1ctl_traffic_ind *) msgb_put(msg, sizeof(*ti));
+
+				/* Copy actual data, skipping the information block [0,1,2] */
+				dsp_memcpy_from_api(ti->data, &traffic_buf[3], 33, 1);
+
+				/* Give message to up layer */
+				l1_queue_for_l2(msg);
+			}
+
+	skip_rx_traffic:
 			/* Reset traffic buffer header in NDB (needed by DSP) */
 			traffic_buf[0] = 0;
 			traffic_buf[2] = 0xffff;
