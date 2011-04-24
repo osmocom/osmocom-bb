@@ -35,6 +35,8 @@
 
 #include <rf/trf6151.h>
 
+/* #define WARN_OUT_OF_SPEC 1 */
+
 enum trf6151_reg {
 	REG_RX		= 0,	/* RF general settings */
 	REG_PLL		= 1,	/* PLL settings */
@@ -183,9 +185,11 @@ static void trf6151_pll_rx(uint32_t freq_khz,
 	*pll_config = PLL_VAL(a, b);
 
 	/* Out-of-spec tuning warning */
+#ifdef WARN_OUT_OF_SPEC
 	if ((l == 4 && (b < 135 || b > 150)) ||
 	    (l == 2 && (b < 141 || b > 155)))
 		printf("Frequency %u kHz is out of spec\n", (unsigned int)freq_khz);
+#endif
 
 	/* Select band */
 	if (l==4) {
@@ -197,9 +201,11 @@ static void trf6151_pll_rx(uint32_t freq_khz,
 			*band = GSM900;
 
 		/* Out-of-spec freq check */
+#ifdef WARN_OUT_OF_SPEC
 		if (!(freq_khz >= 869000 && freq_khz <= 894000) &&
 		    !(freq_khz >= 921000 && freq_khz <= 960000)) /* include GSM-R */
 			printf("Frequency %u outside normal filter range for selected port\n", (unsigned int)freq_khz);
+#endif
 	} else {
 		/* In the high band, different ports for DCS/PCS, so
 		 * take what's best and available */
@@ -215,9 +221,11 @@ static void trf6151_pll_rx(uint32_t freq_khz,
 		*band = (port & (1 << PORT_DCS1800)) ? GSM1800 : GSM1900;
 
 		/* Out-of-spec freq check */
+#ifdef WARN_OUT_OF_SPEC
 		if ((*band == GSM1800 && (freq_khz < 1805000 || freq_khz > 1880000)) ||
 		    (*band == GSM1900 && (freq_khz < 1930000 || freq_khz > 1990000)))
 			printf("Frequency %u outside normal filter range for selected port\n", (unsigned int)freq_khz);
+#endif
 	}
 
 	/* Debug */
@@ -299,8 +307,10 @@ static void trf6151_pll_tx(uint32_t freq_khz,
 	printd("TX Freq %u kHz => A = %u, B = %u, band = %d\n", freq_khz, a, b, *band);
 
 	/* Out-of-spec tuning warning */
+#ifdef WARN_OUT_OF_SPEC
 	if (b < b_min || b > b_max)
 		printf("Frequency %u kHz is out of spec\n", (unsigned int)freq_khz);
+#endif
 
 	/* All done */
 	return;
