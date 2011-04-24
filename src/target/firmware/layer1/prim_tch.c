@@ -104,14 +104,28 @@ static void tch_get_params(struct gsm_time *time, uint8_t chan_nr,
  *       Right now, we just 'hope' it gets processed before the next one ...
  */
 
+#define TX_TYPE_SACCH	(1<<0)
+#define TX_TYPE_FACCH	(1<<1)
+#define TX_TYPE_TRAFFIC	(1<<2)
+
 static uint16_t last_tx_tch_fn;
+static uint16_t last_tx_tch_type;
 
 static void l1a_tx_tch_compl(__unused enum l1_compl c)
 {
 	struct msgb *msg;
 
-	msg = l1_create_l2_msg(L1CTL_DATA_CONF, last_tx_tch_fn, 0, 0);
-	l1_queue_for_l2(msg);
+	if (last_tx_tch_type & (TX_TYPE_SACCH | TX_TYPE_FACCH)) {
+		msg = l1_create_l2_msg(L1CTL_DATA_CONF, last_tx_tch_fn, 0, 0);
+		l1_queue_for_l2(msg);
+	}
+
+	if (last_tx_tch_type & TX_TYPE_TRAFFIC) {
+		msg = l1_create_l2_msg(L1CTL_TRAFFIC_CONF, last_tx_tch_fn, 0, 0);
+		l1_queue_for_l2(msg);
+	}
+
+	last_tx_tch_type = 0;
 }
 
 static __attribute__ ((constructor)) void prim_tch_init(void)
@@ -327,7 +341,7 @@ static int l1s_tch_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 	uint32_t fn_report;
 	uint8_t sync = 0;
 	static int icnt;
-	int facch_tx_now;
+	int facch_tx_now, traffic_tx_now;
 
 	/* Get/compute various parameters */
 	rfch_get_params(&l1s.next_time, &arfcn, &tsc, &tn);
@@ -389,6 +403,7 @@ static int l1s_tch_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		/* Indicate completion (FIXME: early but easier this way for now) */
 		if (msg) {
 			last_tx_tch_fn = l1s.next_time.fn;
+			last_tx_tch_type |= TX_TYPE_FACCH;
 			l1s_compl_sched(L1_COMPL_TX_TCH);
 		}
 
@@ -396,6 +411,60 @@ static int l1s_tch_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		if (msg)
 			msgb_free(msg);
 	}
+
+	/* Traffic now ? */
+	if (tch_f_hn) {
+		/* TCH/F: B0(0...7),B1(4...11),B2(8...11,0...3) (mod 13)*/
+		traffic_tx_now = ((l1s.next_time.fn % 13) % 4) == 3;
+	} else {
+		/* TCH/H0: B0(0,2,4,6),B1(4,6,8,10),B2(8,10,0,2) (mod 13) */
+		/*     H1: B0(1,3,5,7),B1(5,7,9,11),B2(9,11,1,3) (mod 13) */
+		traffic_tx_now = (((l1s.next_time.fn - tch_sub + 13) % 13) % 4) == 2;
+	}
+
+	if (traffic_tx_now) {
+		volatile uint16_t *traffic_buf;
+		struct msgb *msg;
+		const uint8_t *data;
+
+		/* Reset play mode */
+		dsp_api.ndb->d_tch_mode &= ~B_PLAY_UL;
+
+		/* Check l1s audio mode */
+		if (!(l1s.audio_mode & AUDIO_TX_TRAFFIC_REQ))
+			goto skip_tx_traffic;
+
+		/* Traffic buffer = !tch_sub */
+		traffic_buf = tch_sub ? dsp_api.ndb->a_du_0 : dsp_api.ndb->a_du_1;
+
+		/* Pull Traffic data (if any) */
+		msg = msgb_dequeue(&l1s.tx_queue[L1S_CHAN_TRAFFIC]);
+
+		/* Copy actual data, skipping the information block [0,1,2] */
+		if (msg) {
+			data = msg->l2h;
+			dsp_memcpy_to_api(&traffic_buf[3], data, 33, 1);
+
+			traffic_buf[0] = (1 << B_BLUD);	/* 1st word: Set B_BLU bit. */
+			traffic_buf[1] = 0;		/* 2nd word: cleared. */
+			traffic_buf[2] = 0;		/* 3nd word: cleared. */
+		}
+
+		if (msg)
+			dsp_api.ndb->d_tch_mode |= B_PLAY_UL;
+
+		/* Indicate completion (FIXME: early but easier this way for now) */
+		if (msg) {
+			last_tx_tch_fn = l1s.next_time.fn;
+			last_tx_tch_type |= TX_TYPE_TRAFFIC;
+			l1s_compl_sched(L1_COMPL_TX_TCH);
+		}
+
+		/* Free msg now that we're done with it */
+		if (msg)
+			msgb_free(msg);
+	}
+skip_tx_traffic:
 
 	/* Configure DSP for TX/RX */
 	l1s_tx_apc_helper(arfcn);
@@ -622,6 +691,7 @@ static int l1s_tch_a_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		/* Indicate completion (FIXME: early but easier this way for now) */
 		if (msg) {
 			last_tx_tch_fn = l1s.next_time.fn;
+			last_tx_tch_type |= TX_TYPE_SACCH;
 			l1s_compl_sched(L1_COMPL_TX_TCH);
 		}
 
