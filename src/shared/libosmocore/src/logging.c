@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -33,17 +34,21 @@
 #include <time.h>
 #include <errno.h>
 
-#include <osmocore/talloc.h>
-#include <osmocore/utils.h>
-#include <osmocore/logging.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/core/logging.h>
+
+#include <osmocom/vty/logging.h>	/* for LOGGING_STR. */
 
 const struct log_info *osmo_log_info;
 
 static struct log_context log_context;
 static void *tall_log_ctx = NULL;
-static LLIST_HEAD(target_list);
+LLIST_HEAD(osmo_log_target_list);
 
-static const struct value_string loglevel_strs[] = {
+#define LOGLEVEL_DEFS	6	/* Number of loglevels.*/
+
+static const struct value_string loglevel_strs[LOGLEVEL_DEFS+1] = {
 	{ 0,		"EVERYTHING" },
 	{ LOGL_DEBUG,	"DEBUG" },
 	{ LOGL_INFO,	"INFO" },
@@ -51,6 +56,17 @@ static const struct value_string loglevel_strs[] = {
 	{ LOGL_ERROR,	"ERROR" },
 	{ LOGL_FATAL,	"FATAL" },
 	{ 0, NULL },
+};
+
+/* You have to keep this in sync with the structure loglevel_strs. */
+const char *loglevel_descriptions[LOGLEVEL_DEFS+1] = {
+	"Log simply everything",
+	"Log debug messages and higher levels",
+	"Log informational messages and higher levels",
+	"Log noticable messages and higher levels",
+	"Log error messages and higher levels",
+	"Log only fatal messages",
+	NULL,
 };
 
 int log_parse_level(const char *lvl)
@@ -124,8 +140,8 @@ static const char* color(int subsys)
 }
 
 static void _output(struct log_target *target, unsigned int subsys,
-		    char *file, int line, int cont, const char *format,
-		    va_list ap)
+		    unsigned int level, char *file, int line, int cont,
+		    const char *format, va_list ap)
 {
 	char col[30];
 	char sub[30];
@@ -167,7 +183,7 @@ static void _output(struct log_target *target, unsigned int subsys,
 	snprintf(final, sizeof(final), "%s%s%s%s%s", col, tim, sub, buf,
 		 target->use_color ? "\033[0;m" : "");
 	final[sizeof(final)-1] = '\0';
-	target->output(target, final);
+	target->output(target, level, final);
 }
 
 
@@ -176,7 +192,7 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 {
 	struct log_target *tar;
 
-	llist_for_each_entry(tar, &target_list, entry) {
+	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
 		struct log_category *category;
 		int output = 0;
 
@@ -212,7 +228,7 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 			 * with the same va_list will segfault */
 			va_list bp;
 			va_copy(bp, ap);
-			_output(tar, subsys, file, line, cont, format, bp);
+			_output(tar, subsys, level, file, line, cont, format, bp);
 			va_end(bp);
 		}
 	}
@@ -239,7 +255,7 @@ void logp2(unsigned int subsys, unsigned int level, char *file, int line, int co
 
 void log_add_target(struct log_target *target)
 {
-	llist_add_tail(&target->entry, &target_list);
+	llist_add_tail(&target->entry, &osmo_log_target_list);
 }
 
 void log_del_target(struct log_target *target)
@@ -294,7 +310,8 @@ void log_set_category_filter(struct log_target *target, int category,
 	target->categories[category].loglevel = level;
 }
 
-static void _file_output(struct log_target *target, const char *log)
+static void _file_output(struct log_target *target, unsigned int level,
+			 const char *log)
 {
 	fprintf(target->tgt_file.out, "%s", log);
 	fflush(target->tgt_file.out);
@@ -337,6 +354,7 @@ struct log_target *log_target_create_stderr(void)
 	if (!target)
 		return NULL;
 
+	target->type = LOG_TGT_TYPE_STDERR;
 	target->tgt_file.out = stderr;
 	target->output = _file_output;
 	return target;
@@ -353,6 +371,7 @@ struct log_target *log_target_create_file(const char *fname)
 	if (!target)
 		return NULL;
 
+	target->type = LOG_TGT_TYPE_FILE;
 	target->tgt_file.out = fopen(fname, "a");
 	if (!target->tgt_file.out)
 		return NULL;
@@ -362,6 +381,22 @@ struct log_target *log_target_create_file(const char *fname)
 	target->tgt_file.fname = talloc_strdup(target, fname);
 
 	return target;
+}
+
+struct log_target *log_target_find(int type, const char *fname)
+{
+	struct log_target *tgt;
+
+	llist_for_each_entry(tgt, &osmo_log_target_list, entry) {
+		if (tgt->type != type)
+			continue;
+		if (tgt->type == LOG_TGT_TYPE_FILE) {
+			if (!strcmp(fname, tgt->tgt_file.fname))
+				return tgt;
+		} else
+			return tgt;
+	}
+	return NULL;
 }
 
 void log_target_destroy(struct log_target *target)
@@ -399,49 +434,115 @@ int log_target_file_reopen(struct log_target *target)
 	return 0;
 }
 
-const char *log_vty_level_string(struct log_info *info)
+/* This generates the logging command string for VTY. */
+const char *log_vty_command_string(const struct log_info *info)
 {
-	const struct value_string *vs;
-	unsigned int len = 3; /* ()\0 */
-	char *str;
-
-	for (vs = loglevel_strs; vs->value || vs->str; vs++)
-		len += strlen(vs->str) + 1;
-
-	str = talloc_zero_size(NULL, len);
-	if (!str)
-		return NULL;
-
-	str[0] = '(';
-	for (vs = loglevel_strs; vs->value || vs->str; vs++) {
-		strcat(str, vs->str);
-		strcat(str, "|");
-	}
-	str[strlen(str)-1] = ')';
-
-	return str;
-}
-
-const char *log_vty_category_string(struct log_info *info)
-{
-	unsigned int len = 3;	/* "()\0" */
-	unsigned int i;
+	int len = 0, offset = 0, ret, i, rem;
+	int size = strlen("logging level () ()") + 1;
 	char *str;
 
 	for (i = 0; i < info->num_cat; i++)
-		len += strlen(info->cat[i].name) + 1;
+		size += strlen(info->cat[i].name) + 1;
 
-	str = talloc_zero_size(NULL, len);
+	for (i = 0; i < LOGLEVEL_DEFS; i++)
+		size += strlen(loglevel_strs[i].str) + 1;
+
+	rem = size;
+	str = talloc_zero_size(NULL, size);
 	if (!str)
 		return NULL;
 
-	str[0] = '(';
-	for (i = 0; i < info->num_cat; i++) {
-		strcat(str, info->cat[i].name+1);
-		strcat(str, "|");
-	}
-	str[strlen(str)-1] = ')';
+	ret = snprintf(str + offset, rem, "logging level (all|");
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 
+	for (i = 0; i < info->num_cat; i++) {
+		int j, name_len = strlen(info->cat[i].name)+1;
+		char name[name_len];
+
+		for (j = 0; j < name_len; j++)
+			name[j] = tolower(info->cat[i].name[j]);
+
+		name[name_len-1] = '\0';
+		ret = snprintf(str + offset, rem, "%s|", name+1);
+		if (ret < 0)
+			goto err;
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
+	}
+	offset--;	/* to remove the trailing | */
+	rem++;
+
+	ret = snprintf(str + offset, rem, ") (");
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
+
+	for (i = 0; i < LOGLEVEL_DEFS; i++) {
+		int j, loglevel_str_len = strlen(loglevel_strs[i].str)+1;
+		char loglevel_str[loglevel_str_len];
+
+		for (j = 0; j < loglevel_str_len; j++)
+			loglevel_str[j] = tolower(loglevel_strs[i].str[j]);
+
+		loglevel_str[loglevel_str_len-1] = '\0';
+		ret = snprintf(str + offset, rem, "%s|", loglevel_str);
+		if (ret < 0)
+			goto err;
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
+	}
+	offset--;	/* to remove the trailing | */
+	rem++;
+
+	ret = snprintf(str + offset, rem, ")");
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
+err:
+	return str;
+}
+
+/* This generates the logging command description for VTY. */
+const char *log_vty_command_description(const struct log_info *info)
+{
+	char *str;
+	int i, ret, len = 0, offset = 0, rem;
+	unsigned int size =
+		strlen(LOGGING_STR
+		       "Set the log level for a specified category\n") + 1;
+
+	for (i = 0; i < info->num_cat; i++)
+		size += strlen(info->cat[i].description) + 1;
+
+	for (i = 0; i < LOGLEVEL_DEFS; i++)
+		size += strlen(loglevel_descriptions[i]) + 1;
+
+	rem = size;
+	str = talloc_zero_size(NULL, size);
+	if (!str)
+		return NULL;
+
+	ret = snprintf(str + offset, rem, LOGGING_STR
+			"Set the log level for a specified category\n");
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
+
+	for (i = 0; i < info->num_cat; i++) {
+		ret = snprintf(str + offset, rem, "%s\n",
+				info->cat[i].description);
+		if (ret < 0)
+			goto err;
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
+	}
+	for (i = 0; i < LOGLEVEL_DEFS; i++) {
+		ret = snprintf(str + offset, rem, "%s\n",
+				loglevel_descriptions[i]);
+		if (ret < 0)
+			goto err;
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
+	}
+err:
 	return str;
 }
 

@@ -20,12 +20,11 @@
  *
  */
 
+#include <string.h>
 
-#include <sys/types.h>
-
-#include <osmocore/linuxlist.h>
-#include <osmocore/talloc.h>
-#include <osmocore/statistics.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/statistics.h>
 
 static LLIST_HEAD(counters);
 
@@ -64,3 +63,13 @@ int counters_for_each(int (*handle_counter)(struct counter *, void *), void *dat
 	return rc;
 }
 
+struct counter *counter_get_by_name(const char *name)
+{
+	struct counter *ctr;
+
+	llist_for_each_entry(ctr, &counters, list) {
+		if (!strcmp(ctr->name, name))
+			return ctr;
+	}
+	return NULL;
+}

@@ -18,9 +18,9 @@
  *
  */
 
-#include <osmocore/signal.h>
-#include <osmocore/talloc.h>
-#include <osmocore/linuxlist.h>
+#include <osmocom/core/signal.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/linuxlist.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>

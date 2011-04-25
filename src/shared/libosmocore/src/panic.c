@@ -20,8 +20,9 @@
  *
  */
 
-#include <osmocore/gsm_utils.h>
-#include <osmocore/panic.h>
+#include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/core/panic.h>
+#include <osmocom/core/backtrace.h>
 
 #include "../config.h"
 

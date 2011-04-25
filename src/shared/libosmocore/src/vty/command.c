@@ -38,7 +38,7 @@ Boston, MA 02111-1307, USA.  */
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
 
-#include <osmocore/talloc.h>
+#include <osmocom/core/talloc.h>
 
 #define CONFIGFILE_MASK 022
 
@@ -2180,6 +2180,9 @@ gDEFUN(config_exit,
 	case VTY_NODE:
 		vty->node = CONFIG_NODE;
 		break;
+	case CFG_LOG_NODE:
+		vty->node = CONFIG_NODE;
+		break;
 	default:
 		break;
 	}
@@ -2195,6 +2198,7 @@ gDEFUN(config_exit,
 	case ENABLE_NODE:
 		/* Nothing to do. */
 		break;
+	case CFG_LOG_NODE:
 	case CONFIG_NODE:
 	case VTY_NODE:
 		vty_config_unlock(vty);

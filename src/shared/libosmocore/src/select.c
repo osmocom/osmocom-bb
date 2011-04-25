@@ -22,9 +22,9 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-#include <osmocore/select.h>
-#include <osmocore/linuxlist.h>
-#include <osmocore/timer.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/timer.h>
 
 #include "../config.h"
 

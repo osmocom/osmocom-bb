@@ -24,7 +24,7 @@
 #include <errno.h>
 #include <stdint.h>
 
-#include <osmocore/bitvec.h>
+#include <osmocom/core/bitvec.h>
 
 #define BITNUM_FROM_COMP(byte, bit)	((byte*8)+bit)
 
@@ -216,4 +216,18 @@ int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit)
 		bitvec_set_bit(bv, L);
 
 	return 0;
+}
+
+/* find first bit set in bit vector */
+int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n,
+			enum bit_value val)
+{
+	unsigned int i;
+
+	for (i = n; i < bv->data_len*8; i++) {
+		if (bitvec_get_bit_pos(bv, i) == val)
+			return i;
+	}
+
+	return -1;
 }

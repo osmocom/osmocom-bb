@@ -23,10 +23,10 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include <osmocore/linuxlist.h>
-#include <osmocore/talloc.h>
-#include <osmocore/timer.h>
-#include <osmocore/rate_ctr.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/rate_ctr.h>
 
 #include <osmocom/vty/vty.h>
 

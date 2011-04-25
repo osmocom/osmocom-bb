@@ -18,7 +18,7 @@ AC_CONFIG_MACRO_DIR([m4])
 
 dnl checks for header files
 AC_HEADER_STDC
-AC_CHECK_HEADERS(execinfo.h sys/select.h)
+AC_CHECK_HEADERS(execinfo.h sys/select.h syslog.h ctype.h)
 
 # The following test is taken from WebKit's webkit.m4
 saved_CFLAGS="$CFLAGS"
@@ -101,16 +101,19 @@ AC_OUTPUT(
 	libosmocore.pc
 	libosmocodec.pc
 	libosmovty.pc
+	libosmogsm.pc
 	include/osmocom/Makefile
 	include/osmocom/vty/Makefile
 	include/osmocom/codec/Makefile
 	include/osmocom/crypt/Makefile
-	include/osmocore/Makefile
-	include/osmocore/protocol/Makefile
+	include/osmocom/gsm/Makefile
+	include/osmocom/gsm/protocol/Makefile
+	include/osmocom/core/Makefile
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile
 	src/codec/Makefile
+	src/gsm/Makefile
 	tests/Makefile
 	tests/timer/Makefile
 	tests/sms/Makefile

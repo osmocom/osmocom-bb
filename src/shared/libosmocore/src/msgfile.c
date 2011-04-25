@@ -21,10 +21,9 @@
  *
  */
 
-#include <osmocore/msgfile.h>
-#include <osmocore/talloc.h>
+#include <osmocom/core/msgfile.h>
+#include <osmocom/core/talloc.h>
 
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>

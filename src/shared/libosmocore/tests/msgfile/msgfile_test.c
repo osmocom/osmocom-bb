@@ -19,7 +19,7 @@
  *
  */
 
-#include <osmocore/msgfile.h>
+#include <osmocom/core/msgfile.h>
 
 #include <stdio.h>
 

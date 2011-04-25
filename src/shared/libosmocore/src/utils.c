@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include <osmocore/utils.h>
+#include <osmocom/core/utils.h>
 
 static char namebuf[255];
 const char *get_value_string(const struct value_string *vs, uint32_t val)
@@ -95,6 +95,36 @@ static char *_hexdump(const unsigned char *buf, int len, char *delim)
 	return hexd_buff;
 }
 
+char *ubit_dump(const uint8_t *bits, unsigned int len)
+{
+	int i;
+
+	if (len > sizeof(hexd_buff)-1)
+		len = sizeof(hexd_buff)-1;
+	memset(hexd_buff, 0, sizeof(hexd_buff));
+
+	for (i = 0; i < len; i++) {
+		char outch;
+		switch (bits[i]) {
+		case 0:
+			outch = '0';
+			break;
+		case 0xff:
+			outch = '?';
+			break;
+		case 1:
+			outch = '1';
+			break;
+		default:
+			outch = 'E';
+			break;
+		}
+		hexd_buff[i] = outch;
+	}
+	hexd_buff[sizeof(hexd_buff)-1] = 0;
+	return hexd_buff;
+}
+
 char *hexdump(const unsigned char *buf, int len)
 {
 	return _hexdump(buf, len, " ");
@@ -104,3 +134,25 @@ char *hexdump_nospc(const unsigned char *buf, int len)
 {
 	return _hexdump(buf, len, "");
 }
+
+#include "../config.h"
+#ifdef HAVE_CTYPE_H
+#include <ctype.h>
+void osmo_str2lower(char *out, const char *in)
+{
+	unsigned int i;
+
+	for (i = 0; i < strlen(in); i++)
+		out[i] = tolower(in[i]);
+	out[strlen(in)] = '\0';
+}
+
+void osmo_str2upper(char *out, const char *in)
+{
+	unsigned int i;
+
+	for (i = 0; i < strlen(in); i++)
+		out[i] = toupper(in[i]);
+	out[strlen(in)] = '\0';
+}
+#endif /* HAVE_CTYPE_H */

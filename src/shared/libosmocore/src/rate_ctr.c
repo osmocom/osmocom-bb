@@ -23,11 +23,11 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <osmocore/utils.h>
-#include <osmocore/linuxlist.h>
-#include <osmocore/talloc.h>
-#include <osmocore/timer.h>
-#include <osmocore/rate_ctr.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/rate_ctr.h>
 
 static LLIST_HEAD(rate_ctr_groups);
 
@@ -124,4 +124,38 @@ int rate_ctr_init(void *tall_ctx)
 	bsc_schedule_timer(&rate_ctr_timer, 1, 0);
 
 	return 0;
+}
+
+struct rate_ctr_group *rate_ctr_get_group_by_name_idx(const char *name, const unsigned int idx)
+{
+	struct rate_ctr_group *ctrg;
+
+	llist_for_each_entry(ctrg, &rate_ctr_groups, list) {
+		if (!ctrg->desc)
+			continue;
+
+		if (!strcmp(ctrg->desc->group_name_prefix, name) &&
+				ctrg->idx == idx) {
+			return ctrg;
+		}
+	}
+	return NULL;
+}
+
+const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, const char *name)
+{
+	int i;
+	const struct rate_ctr_desc *ctr_desc;
+
+	if (!ctrg->desc)
+		return NULL;
+
+	for (i = 0; i < ctrg->desc->num_ctr; i++) {
+		ctr_desc = &ctrg->desc->ctr_desc[i];
+
+		if (!strcmp(ctr_desc->name, name)) {
+			return &ctrg->ctr[i];
+		}
+	}
+	return NULL;
 }

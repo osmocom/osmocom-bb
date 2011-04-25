@@ -18,7 +18,7 @@
  *
  */
 
-#include <osmocore/protocol/gsm_03_41.h>
+#include <osmocom/gsm/protocol/gsm_03_41.h>
 
 #include <stdio.h>
 

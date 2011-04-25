@@ -16,7 +16,7 @@
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/buffer.h>
-#include <osmocore/talloc.h>
+#include <osmocom/core/talloc.h>
 
 #define SYSCONFDIR "/usr/local/etc"
 
@@ -765,6 +765,9 @@ static void vty_end_config(struct vty *vty)
 		vty_config_unlock(vty);
 		vty->node = ENABLE_NODE;
 		break;
+	case CFG_LOG_NODE:
+		vty->node = CONFIG_NODE;
+		break;
 	default:
 		/* Unknown node, we have to ignore it. */
 		break;
@@ -1128,6 +1131,9 @@ static void vty_stop_input(struct vty *vty)
 	case VTY_NODE:
 		vty_config_unlock(vty);
 		vty->node = ENABLE_NODE;
+		break;
+	case CFG_LOG_NODE:
+		vty->node = CONFIG_NODE;
 		break;
 	default:
 		/* Unknown node, we have to ignore it. */

@@ -20,8 +20,8 @@
 
 #include <stdio.h>
 
-#include <osmocore/timer.h>
-#include <osmocore/select.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/select.h>
 
 #include "../../config.h"
 

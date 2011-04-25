@@ -1,3 +1,9 @@
+libosmocore (0.1.27) natty; urgency=low
+
+  * New upstream version of libosmocore.
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Thu, 13 Jan 2011 18:07:36 +0800
+
 libosmocore (0.1.17-1) unstable; urgency=low
 
   * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>

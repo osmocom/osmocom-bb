@@ -24,14 +24,13 @@
 
 #if HAVE_DLFCN_H
 
-#include <sys/types.h>
 #include <dirent.h>
 #include <dlfcn.h>
 #include <stdio.h>
 #include <errno.h>
 #include <limits.h>
 
-#include <osmocore/plugin.h>
+#include <osmocom/core/plugin.h>
 
 int plugin_load_all(const char *directory)
 {

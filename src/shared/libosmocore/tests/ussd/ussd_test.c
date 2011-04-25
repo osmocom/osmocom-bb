@@ -19,7 +19,7 @@
  *
  */
 
-#include <osmocore/gsm0480.h>
+#include <osmocom/gsm/gsm0480.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
