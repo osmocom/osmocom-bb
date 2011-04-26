@@ -1,7 +1,7 @@
 #ifndef _OSMOCOM_RSLMS_H
 #define _OSMOCOM_RSLMS_H
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 #include <osmocom/bb/common/osmocom_data.h>
 
 /* From L3 into RSLMS (direction -> L2) */

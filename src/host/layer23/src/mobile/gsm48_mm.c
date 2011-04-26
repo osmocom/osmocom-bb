@@ -26,10 +26,10 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/utils.h>
-#include <osmocore/gsm48.h>
-#include <osmocore/talloc.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/gsm48.h>
+#include <osmocom/core/talloc.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>

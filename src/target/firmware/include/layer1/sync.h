@@ -1,8 +1,8 @@
 #ifndef _L1_SYNC_H
 #define _L1_SYNC_H
 
-#include <osmocore/linuxlist.h>
-#include <osmocore/gsm_utils.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/gsm/gsm_utils.h>
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
 #include <l1ctl_proto.h>

@@ -25,10 +25,10 @@
 #include <unistd.h>
 #include <sys/types.h>
 
-#include <osmocore/utils.h>
-#include <osmocore/gsm48.h>
-#include <osmocore/talloc.h>
-#include <osmocore/signal.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/gsm48.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/signal.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>

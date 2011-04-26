@@ -24,7 +24,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-#include <osmocore/bitvec.h>
+#include <osmocom/core/bitvec.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>

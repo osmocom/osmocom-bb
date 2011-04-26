@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 #include <layer1/sync.h>
 
 

@@ -56,14 +56,14 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
-#include <osmocore/logging.h>
-#include <osmocore/timer.h>
-#include <osmocore/msgb.h>
-#include <osmocore/tlv.h>
-#include <osmocore/utils.h>
-#include <osmocore/rsl.h>
-#include <osmocore/protocol/gsm_04_08.h>
-#include <osmocore/protocol/gsm_08_58.h>
+#include <osmocom/core/logging.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/gsm/tlv.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/rsl.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1ctl.h>

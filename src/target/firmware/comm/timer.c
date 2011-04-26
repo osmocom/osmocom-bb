@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 #include <debug.h>
-#include <osmocore/linuxlist.h>
+#include <osmocom/core/linuxlist.h>
 
 #include <comm/timer.h>
 

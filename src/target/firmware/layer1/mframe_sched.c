@@ -26,7 +26,7 @@
 
 #include <debug.h>
 
-#include <osmocore/gsm_utils.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 #include <layer1/prim.h>
 #include <layer1/sync.h>

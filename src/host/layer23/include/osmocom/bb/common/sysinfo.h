@@ -1,7 +1,7 @@
 #ifndef _SYSINFO_H
 #define _SYSINFO_H
 
-#include <osmocore/gsm48_ie.h>
+#include <osmocom/gsm/gsm48_ie.h>
 
 /* collection of system information of the current cell */
 

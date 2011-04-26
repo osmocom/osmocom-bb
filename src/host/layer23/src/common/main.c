@@ -30,12 +30,12 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l23_app.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/talloc.h>
-#include <osmocore/select.h>
-#include <osmocore/linuxlist.h>
-#include <osmocore/gsmtap_util.h>
-#include <osmocore/utils.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/utils.h>
 
 #include <arpa/inet.h>
 

@@ -3,7 +3,7 @@
 
 /* SERCOMM layer on UART1 (modem UART) */
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 
 #define SERCOMM_UART_NR	1
 

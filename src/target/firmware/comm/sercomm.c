@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 
 #ifdef HOST_BUILD
 #define SERCOMM_RX_MSG_SIZE	2048
@@ -39,7 +39,7 @@
 #else
 #define SERCOMM_RX_MSG_SIZE	256
 #include <debug.h>
-#include <osmocore/linuxlist.h>
+#include <osmocom/core/linuxlist.h>
 #include <asm/system.h>
 
 #include <comm/sercomm.h>

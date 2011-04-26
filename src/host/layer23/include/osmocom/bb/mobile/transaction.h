@@ -1,7 +1,7 @@
 #ifndef _TRANSACT_H
 #define _TRANSACT_H
 
-#include <osmocore/linuxlist.h>
+#include <osmocom/core/linuxlist.h>
 
 /* One transaction */
 struct gsm_trans {

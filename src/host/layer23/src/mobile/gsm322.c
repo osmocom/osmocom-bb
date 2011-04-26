@@ -26,11 +26,11 @@
 #include <stdlib.h>
 #include <limits.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/talloc.h>
-#include <osmocore/utils.h>
-#include <osmocore/gsm48.h>
-#include <osmocore/signal.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/gsm48.h>
+#include <osmocom/core/signal.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l1ctl.h>

@@ -21,9 +21,9 @@
 
 #include <stdint.h>
 
-#include <osmocore/talloc.h>
-#include <osmocore/timer.h>
-#include <osmocore/msgb.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/msgb.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>

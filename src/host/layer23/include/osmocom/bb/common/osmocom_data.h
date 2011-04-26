@@ -1,9 +1,9 @@
 #ifndef osmocom_data_h
 #define osmocom_data_h
 
-#include <osmocore/select.h>
-#include <osmocore/gsm_utils.h>
-#include <osmocore/write_queue.h>
+#include <osmocom/core/select.h>
+#include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/core/write_queue.h>
 
 struct osmocom_ms;
 

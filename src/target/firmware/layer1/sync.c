@@ -33,8 +33,8 @@
 #include <byteorder.h>
 #include <asm/system.h>
 
-#include <osmocore/gsm_utils.h>
-#include <osmocore/msgb.h>
+#include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/core/msgb.h>
 #include <calypso/dsp_api.h>
 #include <calypso/irq.h>
 #include <calypso/tpu.h>

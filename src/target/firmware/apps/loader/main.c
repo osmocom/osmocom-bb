@@ -33,7 +33,7 @@
 #include <console.h>
 #include <manifest.h>
 
-#include <osmocore/crc16.h>
+#include <osmocom/core/crc16.h>
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>

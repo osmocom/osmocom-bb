@@ -22,8 +22,8 @@
 
 #include <errno.h>
 
-#include <osmocore/utils.h>
-#include <osmocore/gsm_utils.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 #include <layer1/apc.h>
 

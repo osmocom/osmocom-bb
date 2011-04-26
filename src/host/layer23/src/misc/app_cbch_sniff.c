@@ -29,11 +29,11 @@
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/misc/layer3.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/talloc.h>
-#include <osmocore/select.h>
-#include <osmocore/signal.h>
-#include <osmocore/rsl.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/signal.h>
+#include <osmocom/gsm/rsl.h>
 
 struct osmocom_ms *g_ms;
 struct gsm48_sysinfo g_sysinfo = {};

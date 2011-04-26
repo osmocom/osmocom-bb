@@ -21,7 +21,7 @@
  */
 
 #include <stdint.h>
-#include <osmocore/utils.h>
+#include <osmocom/core/utils.h>
 
 /* GSM900 ARFCN 33, Measurements by Steve Markgraf / May 2010 */
 /* FIXME those are from compal ... need real GTA calibration */

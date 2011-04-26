@@ -1,7 +1,7 @@
 #ifndef _L1_ASYNC_H
 #define _L1_ASYNC_H
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 
 #include <layer1/mframe_sched.h>
 

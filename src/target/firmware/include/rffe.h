@@ -1,7 +1,7 @@
 #ifndef _RFFE_H
 #define _RFFE_H
 
-#include <osmocore/gsm_utils.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 extern const uint8_t system_inherent_gain;
 

@@ -7,12 +7,11 @@ $(top_srcdir)/.version:
 dist-hook:
 	echo $(VERSION) > $(distdir)/.tarball-version
 
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS)
+INCLUDES = $(all_includes) -I../layer23/include -DHOST_BUILD
+AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS)
 
 sbin_PROGRAMS = gsmmap 
 
-INCLUDES += -I../layer23/include -DHOST_BUILD
 gsmmap_SOURCES = gsmmap.c geo.c locate.c log.c ../layer23/src/common/sysinfo.c ../layer23/src/common/networks.c
-gsmmap_LDADD = $(LIBOSMOCORE_LIBS) -lm
+gsmmap_LDADD = $(LIBOSMOGSM_LIBS) $(LIBOSMOCORE_LIBS) -lm
 

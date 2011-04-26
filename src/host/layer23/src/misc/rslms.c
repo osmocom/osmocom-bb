@@ -24,10 +24,10 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/rsl.h>
-#include <osmocore/tlv.h>
-#include <osmocore/protocol/gsm_04_08.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/gsm/rsl.h>
+#include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/lapdm.h>

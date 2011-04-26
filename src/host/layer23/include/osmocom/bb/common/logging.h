@@ -2,7 +2,7 @@
 #define _LOGGING_H
 
 #define DEBUG
-#include <osmocore/logging.h>
+#include <osmocom/core/logging.h>
 
 enum {
 	DRSL,

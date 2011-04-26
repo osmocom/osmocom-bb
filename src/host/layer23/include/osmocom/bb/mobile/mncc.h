@@ -26,8 +26,8 @@
 #ifndef _MNCC_H
 #define _MNCC_H
 
-#include <osmocore/linuxlist.h>
-#include <osmocore/mncc.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/gsm/mncc.h>
 
 struct gsm_call {
 	struct llist_head	entry;

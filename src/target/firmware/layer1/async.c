@@ -26,8 +26,8 @@
 #include <arm.h>
 #include <asm/system.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/protocol/gsm_04_08.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <layer1/sync.h>
 #include <layer1/async.h>

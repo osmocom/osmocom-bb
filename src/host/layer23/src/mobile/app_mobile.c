@@ -37,10 +37,10 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/vty/telnet_interface.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/talloc.h>
-#include <osmocore/select.h>
-#include <osmocore/signal.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/signal.h>
 
 extern void *l23_ctx;
 extern struct llist_head ms_list;

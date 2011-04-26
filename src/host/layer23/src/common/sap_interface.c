@@ -26,7 +26,7 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/sap_interface.h>
 
-#include <osmocore/utils.h>
+#include <osmocom/core/utils.h>
 
 #include <sys/socket.h>
 #include <sys/un.h>

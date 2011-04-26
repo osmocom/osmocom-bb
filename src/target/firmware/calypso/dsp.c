@@ -34,7 +34,7 @@
 
 #include <abb/twl3025.h>
 
-#include <osmocore/gsm_utils.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 
 #define REG_API_CONTROL		0xfffe0000

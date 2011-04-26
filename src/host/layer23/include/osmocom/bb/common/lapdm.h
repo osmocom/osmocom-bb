@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#include <osmocore/timer.h>
-#include <osmocore/msgb.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/msgb.h>
 
 #include <l1ctl_proto.h>
 

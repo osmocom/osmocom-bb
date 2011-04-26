@@ -1,6 +1,6 @@
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -Wall $(LIBOSMOCORE_CFLAGS)
-LDADD = ../common/liblayer23.a $(LIBOSMOCORE_LIBS)
+AM_CFLAGS = -Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS)
+LDADD = ../common/liblayer23.a $(LIBOSMOCORE_LIBS) $(LIBOSMOGSM_LIBS)
 
 bin_PROGRAMS = bcch_scan ccch_scan echo_test cell_log cbch_sniff
 

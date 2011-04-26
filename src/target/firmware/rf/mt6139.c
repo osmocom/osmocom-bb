@@ -26,7 +26,7 @@
 #include <debug.h>
 #include <memory.h>
 #include <keypad.h>
-#include <osmocore/gsm_utils.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 #include <layer1/agc.h>
 #include <rffe.h>

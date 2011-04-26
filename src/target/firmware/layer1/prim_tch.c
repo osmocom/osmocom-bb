@@ -30,9 +30,9 @@
 #include <debug.h>
 #include <memory.h>
 #include <byteorder.h>
-#include <osmocore/gsm_utils.h>
-#include <osmocore/protocol/gsm_04_08.h>
-#include <osmocore/msgb.h>
+#include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/core/msgb.h>
 #include <calypso/dsp_api.h>
 #include <calypso/irq.h>
 #include <calypso/tpu.h>

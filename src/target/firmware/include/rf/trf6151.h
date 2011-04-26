@@ -1,7 +1,7 @@
 #ifndef _TRF6151_H
 #define _TRF6151_H
 
-#include <osmocore/gsm_utils.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 /* initialize (reset + power up) */
 void trf6151_init(uint8_t tsp_uid, uint16_t tsp_reset_id);

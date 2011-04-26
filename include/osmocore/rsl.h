@@ -2,8 +2,8 @@
 #define _OSMOCORE_RSL_H
 
 #include <stdint.h>
-#include <osmocore/utils.h>
-#include <osmocore/protocol/gsm_08_58.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 void rsl_init_rll_hdr(struct abis_rsl_rll_hdr *dh, uint8_t msg_type);
 

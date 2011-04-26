@@ -32,8 +32,8 @@
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/misc/cell_log.h>
 
-#include <osmocore/talloc.h>
-#include <osmocore/utils.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/utils.h>
 
 extern struct log_target *stderr_target;
 extern void *l23_ctx;

@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 
 /* TPU disassembler begin */
 

@@ -25,10 +25,10 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 
-#include <osmocore/talloc.h>
-#include <osmocore/linuxlist.h>
-#include <osmocore/gsmtap_util.h>
-#include <osmocore/signal.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/signal.h>
 
 #include <arpa/inet.h>
 

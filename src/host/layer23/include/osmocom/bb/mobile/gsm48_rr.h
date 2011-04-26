@@ -1,7 +1,7 @@
 #ifndef _GSM48_RR_H
 #define _GSM48_RR_H
 
-#include "osmocore/protocol/gsm_04_08.h"
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #define GSM_TA_CM			55385
 

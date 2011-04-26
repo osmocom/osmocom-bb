@@ -39,10 +39,10 @@
 
 #include <sercomm.h>
 
-#include <osmocore/linuxlist.h>
-#include <osmocore/select.h>
-#include <osmocore/talloc.h>
-#include <osmocore/timer.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/timer.h>
 
 #include <arpa/inet.h>
 
@@ -447,7 +447,7 @@ int read_file(const char *filename)
 	return 0;
 }
 
-static void hexdump(const uint8_t *data, unsigned int len)
+static void osmocon_hexdump(const uint8_t *data, unsigned int len)
 {
 	int n;
 
@@ -754,7 +754,7 @@ static void hdlc_send_to_phone(uint8_t dlci, uint8_t *data, int len)
 
 	if(dnload.dump_tx) {
 		printf("hdlc_send(dlci=%u): ", dlci);
-		hexdump(data, len);
+		osmocon_hexdump(data, len);
 	}
 
 	if (len > 512) {
@@ -792,7 +792,7 @@ static void hdlc_tool_cb(uint8_t dlci, struct msgb *msg)
 
 	if(dnload.dump_rx) {
 		printf("hdlc_recv(dlci=%u): ", dlci);
-		hexdump(msg->data, msg->len);
+		osmocon_hexdump(msg->data, msg->len);
 	}
 
 	if(srv) {
@@ -832,7 +832,7 @@ static int handle_buffer(int buf_used_len)
 	if (!dnload.expect_hdlc) {
 		printf("got %i bytes from modem, ", nbytes);
 		printf("data looks like: ");
-		hexdump(bufptr, nbytes);
+		osmocon_hexdump(bufptr, nbytes);
 	} else {
 		for (i = 0; i < nbytes; ++i)
 			if (sercomm_drv_rx_char(bufptr[i]) == 0)

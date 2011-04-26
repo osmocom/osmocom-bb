@@ -23,8 +23,8 @@
 #include <errno.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <osmocore/talloc.h>
-#include <osmocore/comp128.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/gsm/comp128.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>

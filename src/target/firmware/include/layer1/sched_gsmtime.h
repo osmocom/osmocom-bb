@@ -2,7 +2,7 @@
 #define _L1_SCHED_GSMTIME_H
 
 #include <stdint.h>
-#include <osmocore/linuxlist.h>
+#include <osmocom/core/linuxlist.h>
 
 struct sched_gsmtime_event {
 	struct llist_head list;

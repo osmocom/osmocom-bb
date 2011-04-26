@@ -26,7 +26,7 @@
 #include <debug.h>
 #include <delay.h>
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 
 #include <calypso/backlight.h>
 

@@ -32,7 +32,7 @@
 #include <gps.h>
 #endif
 
-#include <osmocore/utils.h>
+#include <osmocom/core/utils.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>

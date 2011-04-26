@@ -20,7 +20,7 @@
  *
  */
 
-#include <osmocore/linuxlist.h>
+#include <osmocom/core/linuxlist.h>
 #include <console.h>
 
 struct msgb {

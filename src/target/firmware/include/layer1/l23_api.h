@@ -2,7 +2,7 @@
 #define _L1_L23_API_H
 
 #include <stdint.h>
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 #include <l1ctl_proto.h>
 
 void l1a_l23api_init(void);

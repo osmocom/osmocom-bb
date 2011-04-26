@@ -1,7 +1,7 @@
 #ifndef osmocom_l1ctl_h
 #define osmocom_l1ctl_h
 
-#include <osmocore/msgb.h>
+#include <osmocom/core/msgb.h>
 #include <osmocom/bb/common/osmocom_data.h>
 
 struct osmocom_ms;

@@ -66,11 +66,11 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/utils.h>
-#include <osmocore/rsl.h>
-#include <osmocore/gsm48.h>
-#include <osmocore/bitvec.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/rsl.h>
+#include <osmocom/gsm/gsm48.h>
+#include <osmocom/core/bitvec.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1l2_interface.h>

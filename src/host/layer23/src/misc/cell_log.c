@@ -29,13 +29,13 @@
 
 #include <l1ctl_proto.h>
 
-#include <osmocore/logging.h>
-#include <osmocore/timer.h>
-#include <osmocore/signal.h>
-#include <osmocore/msgb.h>
-#include <osmocore/gsm_utils.h>
-#include <osmocore/protocol/gsm_04_08.h>
-#include <osmocore/rsl.h>
+#include <osmocom/core/logging.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/signal.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/rsl.h>
 
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/osmocom_data.h>

@@ -22,8 +22,8 @@
 #include <stdint.h>
 #include <errno.h>
 #include <arpa/inet.h>
-#include <osmocore/talloc.h>
-#include <osmocore/utils.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/utils.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>

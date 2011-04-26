@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <osmocore/gsm_utils.h>
+#include <osmocom/gsm/gsm_utils.h>
 #include <debug.h>
 #include <rffe.h>
 

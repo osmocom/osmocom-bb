@@ -35,10 +35,10 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/select.h>
-#include <osmocore/timer.h>
-#include <osmocore/crc16.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/crc16.h>
 
 #include <loader/protocol.h>
 
@@ -146,7 +146,7 @@ static int version(const char *name)
 	exit(2);
 }
 
-static void hexdump(const uint8_t *data, unsigned int len)
+static void osmoload_hexdump(const uint8_t *data, unsigned int len)
 {
 	const uint8_t *bufptr = data;
 	const uint8_t const *endptr = bufptr + len;
@@ -190,7 +190,7 @@ loader_send_request(struct msgb *msg) {
 
 	if(osmoload.print_requests) {
 		printf("Sending %d bytes:\n", msg->len);
-		hexdump(msg->data, msg->len);
+		osmoload_hexdump(msg->data, msg->len);
 	}
 
 	rc = write(connection.fd, &len, sizeof(len));
@@ -277,7 +277,7 @@ static void
 loader_handle_reply(struct msgb *msg) {
 	if(osmoload.print_replies) {
 		printf("Received %d bytes:\n", msg->len);
-		hexdump(msg->data, msg->len);
+		osmoload_hexdump(msg->data, msg->len);
 	}
 
 	uint8_t cmd = msgb_get_u8(msg);
@@ -338,7 +338,7 @@ loader_handle_reply(struct msgb *msg) {
 		break;
 	default:
 		printf("Received unknown reply %d:\n", cmd);
-		hexdump(msg->data, msg->len);
+		osmoload_hexdump(msg->data, msg->len);
 		osmoload.quit = 1;
 		return;
 	}
@@ -364,7 +364,7 @@ loader_handle_reply(struct msgb *msg) {
 			break;
 		case LOADER_MEM_READ:
 			printf("Received memory dump of %d bytes at 0x%x:\n", length, address);
-			hexdump(data, length);
+			osmoload_hexdump(data, length);
 			break;
 		case LOADER_MEM_WRITE:
 			printf("Confirmed memory write of %d bytes at 0x%x.\n", length, address);
