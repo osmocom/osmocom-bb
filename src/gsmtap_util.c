@@ -43,6 +43,7 @@
 #include <errno.h>
 
 static struct bsc_fd gsmtap_bfd = { .fd = -1 };
+static struct bsc_fd gsmtap_sink_bfd = { .fd = -1 };
 static LLIST_HEAD(gsmtap_txqueue);
 
 uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
@@ -175,7 +176,7 @@ int gsmtap_init(uint32_t dst_ip)
 	sin.sin_port = htons(GSMTAP_UDP_PORT);
 	sin.sin_addr.s_addr = htonl(dst_ip);
 
-	/* FIXME: create socket */
+	/* create socket */
 	rc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (rc < 0) {
 		perror("creating UDP socket");
@@ -186,7 +187,7 @@ int gsmtap_init(uint32_t dst_ip)
 	if (rc < 0) {
 		perror("connecting UDP socket");
 		close(gsmtap_bfd.fd);
-		gsmtap_bfd.fd = 0;
+		gsmtap_bfd.fd = -1;
 		return rc;
 	}
 
@@ -195,6 +196,58 @@ int gsmtap_init(uint32_t dst_ip)
 	gsmtap_bfd.data = NULL;
 
 	return bsc_register_fd(&gsmtap_bfd);
+}
+
+/* Callback from select layer if we can read from the sink socket */
+static int gsmtap_sink_fd_cb(struct bsc_fd *fd, unsigned int flags)
+{
+	int rc;
+	uint8_t buf[4096];
+
+	if (!(flags & BSC_FD_READ))
+		return 0;
+
+	rc = read(fd->fd, buf, sizeof(buf));
+	if (rc < 0) {
+		perror("reading from gsmtap sink fd");
+		return rc;
+	}
+	/* simply discard any data arriving on the socket */
+
+	return 0;
+}
+
+/* Create a local 'gsmtap sink' avoiding the UDP packets being rejected
+ * with ICMP reject messages */
+int gsmtap_sink_init(uint32_t bind_ip)
+{
+	int rc;
+	struct sockaddr_in sin;
+
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(GSMTAP_UDP_PORT);
+	sin.sin_addr.s_addr = htonl(bind_ip);
+
+	rc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (rc < 0) {
+		perror("creating UDP socket");
+		return rc;
+	}
+	gsmtap_sink_bfd.fd = rc;
+	rc = bind(rc, (struct sockaddr *)&sin, sizeof(sin));
+	if (rc < 0) {
+		perror("binding UDP socket");
+		close(gsmtap_sink_bfd.fd);
+		gsmtap_sink_bfd.fd = -1;
+		return rc;
+	}
+
+	gsmtap_sink_bfd.when = BSC_FD_READ;
+	gsmtap_sink_bfd.cb = gsmtap_sink_fd_cb;
+	gsmtap_sink_bfd.data = NULL;
+
+	return bsc_register_fd(&gsmtap_sink_bfd);
+
 }
 
 #endif /* HAVE_SYS_SELECT_H */

@@ -18,4 +18,8 @@ int gsmtap_sendmsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss,
 
 int gsmtap_init(uint32_t dst_ip);
 
+/* Create a local 'gsmtap sink' avoiding the UDP packets being rejected
+ * with ICMP reject messages */
+int gsmtap_sink_init(uint32_t bind_ip);
+
 #endif /* _GSMTAP_UTIL_H */
