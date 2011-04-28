@@ -24,6 +24,17 @@ ASFLAGS=$(INCLUDES) -D__ASSEMBLY__
 
 LDFLAGS = -nostartfiles -nostdlib -nodefaultlibs --gc-sections --cref
 
+#### QUIET OUTPUT ####
+
+ifndef V
+  V = 0
+endif
+
+Q_CC = $(if $(V:1=),@echo "  CC     $@";)
+Q_LD = $(if $(V:1=),@echo "  LD     $@";)
+Q_AR = $(if $(V:1=),@echo "  AR     $@";)
+Q_OBJ = $(if $(V:1=),@echo "  OBJ    $@";)
+
 #### GIT VERSION ####
 
 GIT_COMMIT:=$(shell git describe --always)
@@ -71,7 +82,7 @@ $(1)_$(2)_$(3)_LIBS := $(ANY_APP_LIBS)
 
 # define manifest compilation
 board/$(2)/$(1).$(3).manifest.o: board/manifest.c
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) -DAPPLICATION=\"$(1)\" -DBOARD=\"$(2)\" -DENVIRONMENT=\"$(3)\" -c -o $$@ $$<
+	$$(Q_CC)$(CROSS_COMPILE)$(CC) $(CFLAGS) -DAPPLICATION=\"$(1)\" -DBOARD=\"$(2)\" -DENVIRONMENT=\"$(3)\" -c -o $$@ $$<
 
 # generate dummy dependencies for manifest
 board/$(2)/$(1).$(3).manifest.p: board/manifest.c
@@ -82,7 +93,7 @@ $(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o $$($(3)_OBJS)
 
 # define compilation rule, also generates map file
 board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map: $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) $$($(3)_LDS)
-	$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic \
+	$$(Q_LD)$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic \
 		-Map board/$(2)/$(1).$(3).map -o board/$(2)/$(1).$(3).elf \
 		--start-group $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) --end-group
 
@@ -139,7 +150,7 @@ $(1)_OBJS:=$$($(1)_SRCS_REL:.c=.o)
 $(1)_OBJS:=$$($(1)_OBJS:.S=.o)
 
 $$($(1)_DIR)/lib$(1).a: $$($(1)_OBJS)
-	$(CROSS_COMPILE)$(AR) cru $$($(1)_DIR)/lib$(1).a $$($(1)_OBJS)
+	$$(Q_AR)$(CROSS_COMPILE)$(AR) cru $$($(1)_DIR)/lib$(1).a $$($(1)_OBJS)
 
 ALL_LIBS+=$$($(1)_DIR)/lib$(1).a
 
@@ -171,14 +182,14 @@ depend: $(ALL_DEPS)
 	@sed 's|.*\.o:|$(@:.p=.o): |g' < $*.d > $@; rm -f $*.d; [ -s $@ ] || rm -f $@
 
 %.o: %.c
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) -Wa,-adhlns=$(@:.o=.lst) -c -o $@ $<
+	$(Q_CC)$(CROSS_COMPILE)$(CC) $(CFLAGS) -Wa,-adhlns=$(@:.o=.lst) -c -o $@ $<
 
 %.o: %.S
-	$(CROSS_COMPILE)$(CC) $(ASFLAGS) -Wa,-adhlns=$(@:.o=.lst) -c -o $@ $<
+	$(Q_CC)$(CROSS_COMPILE)$(CC) $(ASFLAGS) -Wa,-adhlns=$(@:.o=.lst) -c -o $@ $<
 
 
 %.bin: %.elf
-	$(CROSS_COMPILE)objcopy --gap-fill=0xff -O binary $^ $@
+	$(Q_OBJ)$(CROSS_COMPILE)objcopy --gap-fill=0xff -O binary $^ $@
 
 
 #### CLEANUP RULES ####
