@@ -7,7 +7,7 @@
 #define inline __inline__
 #endif
 
-static inline void prefetch(const void *x) {;}
+static inline void prefetch(__attribute__((unused)) const void *x) {;}
 
 /**
  * container_of - cast a member of a structure out to the containing structure
