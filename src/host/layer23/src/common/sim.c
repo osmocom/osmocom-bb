@@ -688,7 +688,7 @@ static int sim_process_job(struct osmocom_ms *ms)
 		/* check MF / DF */
 		i = 0;
 		while (sh->path[i] && sim->path[i]) {
-			if (sh->path[i] != sh->path[i])
+			if (sh->path[i] != sim->path[i])
 				break;
 			i++;
 		}

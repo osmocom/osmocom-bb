@@ -492,7 +492,7 @@ static struct subscr_sim_file {
 	{ 1, { 0 },         0x2fe2, subscr_sim_iccid },
 	{ 1, { 0x7f20, 0 }, 0x6f07, subscr_sim_imsi },
 	{ 1, { 0x7f20, 0 }, 0x6f7e, subscr_sim_loci },
-	{ 0, { 0x7f20, 0 }, 0x6f40, subscr_sim_msisdn },
+	{ 0, { 0x7f10, 0 }, 0x6f40, subscr_sim_msisdn },
 	{ 0, { 0x7f20, 0 }, 0x6f20, subscr_sim_kc },
 	{ 0, { 0x7f20, 0 }, 0x6f30, subscr_sim_plmnsel },
 	{ 0, { 0x7f20, 0 }, 0x6f31, subscr_sim_hpplmn },
