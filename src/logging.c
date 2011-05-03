@@ -221,19 +221,10 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 		else if (osmo_log_info->filter_fn)
 			output = osmo_log_info->filter_fn(&log_context,
 						       tar);
+		if (!output)
+			continue;
 
-		if (output) {
-			/* FIXME: copying the va_list is an ugly
-			 * workaround against a bug hidden somewhere in
-			 * _output.  If we do not copy here, the first
-			 * call to _output() will corrupt the va_list
-			 * contents, and any further _output() calls
-			 * with the same va_list will segfault */
-			va_list bp;
-			va_copy(bp, ap);
-			_output(tar, subsys, level, file, line, cont, format, bp);
-			va_end(bp);
-		}
+		_output(tar, subsys, level, file, line, cont, format, ap);
 	}
 }
 
