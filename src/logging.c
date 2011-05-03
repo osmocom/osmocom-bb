@@ -517,6 +517,7 @@ const char *log_vty_command_description(const struct log_info *info)
 	for (i = 0; i < LOGLEVEL_DEFS; i++)
 		size += strlen(loglevel_descriptions[i]) + 1;
 
+	size += strlen("Global setting for all subsystems") + 1;
 	rem = size;
 	str = talloc_zero_size(NULL, size);
 	if (!str)
@@ -524,6 +525,12 @@ const char *log_vty_command_description(const struct log_info *info)
 
 	ret = snprintf(str + offset, rem, LOGGING_STR
 			"Set the log level for a specified category\n");
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
+
+	ret = snprintf(str + offset, rem,
+			"Global setting for all subsystems\n");
 	if (ret < 0)
 		goto err;
 	OSMO_SNPRINTF_RET(ret, rem, offset, len);
