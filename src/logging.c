@@ -493,6 +493,7 @@ const char *log_vty_command_string(const struct log_info *info)
 		goto err;
 	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 err:
+	str[size-1] = '\0';
 	return str;
 }
 
@@ -544,6 +545,7 @@ const char *log_vty_command_description(const struct log_info *info)
 		OSMO_SNPRINTF_RET(ret, rem, offset, len);
 	}
 err:
+	str[size-1] = '\0';
 	return str;
 }
 
