@@ -448,7 +448,7 @@ const char *log_vty_command_string(const struct log_info *info)
 		size += strlen(loglevel_strs[i].str) + 1;
 
 	rem = size;
-	str = talloc_zero_size(NULL, size);
+	str = talloc_zero_size(tall_log_ctx, size);
 	if (!str)
 		return NULL;
 
@@ -519,7 +519,7 @@ const char *log_vty_command_description(const struct log_info *info)
 
 	size += strlen("Global setting for all subsystems") + 1;
 	rem = size;
-	str = talloc_zero_size(NULL, size);
+	str = talloc_zero_size(tall_log_ctx, size);
 	if (!str)
 		return NULL;
 
