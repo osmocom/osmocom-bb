@@ -60,7 +60,6 @@ void *_talloc_zero(void *ctx, unsigned int size, const char *name)
 			}
 		}
 		cons_puts("unable to allocate msgb\n");
-		bl_level(++i % 50);
 		delay_ms(50);
 	}
 panic:
