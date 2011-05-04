@@ -28,11 +28,6 @@
 #include <defines.h>
 #include <flash/cfi_flash.h>
 
-/* XXX: memdump_range() */
-#include <calypso/misc.h>
-#include <calypso/uart.h>
-#include <comm/sercomm.h>
-
 /* XXX: strings must always be in ram */
 #if 0
 #define puts(...)
