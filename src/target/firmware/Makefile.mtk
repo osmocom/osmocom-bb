@@ -1,0 +1,32 @@
+# List of all supported boards (meant to be overridden on command line)
+BOARDS?=mt62xx
+
+# List of all applications (meant to be overridden on command line)
+APPLICATIONS?=loader_mtk
+
+mtkram_LDS=board/mediatek/ram.lds
+mtkram_OBJS=board/mediatek/start.ram.o
+
+mtk_COMMON_OBJS=board/mediatek/uart.o
+
+# Mediatek MT62xx
+mt62xx_OBJS=$(mtk_COMMON_OBJS) board/mt62xx/init.o
+mt62xx_ENVIRONMENTS=mtkram
+
+# Global include path
+INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
+
+FLASH_OBJS=flash/cfi_flash.o
+
+# Objects that go in all applications
+ANY_APP_OBJS+=$(FLASH_OBJS)
+
+# Various objects that are currently linked into all applications
+ANY_APP_LIBS+=lib/libmini.a comm/libcomm.a ../../shared/libosmocore/build-target/src/.libs/libosmocore.a
+
+# Libraries are defined in subdirectories
+-include comm/Makefile
+-include lib/Makefile
+
+# Include rules
+-include Makefile.inc

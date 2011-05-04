@@ -17,7 +17,7 @@ OSMOCORE_CONFIGURE_ENV= LIBOSMOCORE_LIBS=$(TOPDIR)/shared/libosmocore/build-host
 	 	    	LIBOSMOVTY_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
 			LIBOSMOGSM_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
 
-all: libosmocore-target nofirmware firmware
+all: libosmocore-target nofirmware firmware mtk-firmware
 nofirmware: libosmocore-host layer23 osmocon gsmmap
 
 libosmocore-host: shared/libosmocore/build-host/src/.libs/libosmocore.la
@@ -93,6 +93,10 @@ host/layer23/layer23: host/layer23/Makefile libosmocore-host
 firmware: libosmocore-target
 	make -C target/firmware CROSS_COMPILE=$(CROSS_TOOL_PREFIX)
 
+.PHONY: mtk-firmware
+mtk-firmware: libosmocore-target
+	make -C target/firmware -f Makefile.mtk CROSS_COMPILE=$(CROSS_TOOL_PREFIX)
+
 
 clean:
 	make -C shared/libosmocore/build-host $@
@@ -100,10 +104,12 @@ clean:
 	make -C host/layer23 $@
 	make -C host/osmocon $@
 	make -C target/firmware $@
+	make -C target/firmware -f Makefile.mtk $@
 
 distclean:
 	rm -rf shared/libosmocore/build-host
 	rm -rf shared/libosmocore/build-target
 	make -C host/layer23 $@
 	make -C host/osmocon $@
+# 'firmware' also handles 'mtk-firmware'
 	make -C target/firmware $@
