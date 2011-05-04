@@ -26,7 +26,7 @@
 
 #include <asm/system.h>
 
-#include <calypso/uart.h>
+#include <uart.h>
 
 #include <console.h>
 #include <osmocom/core/msgb.h>

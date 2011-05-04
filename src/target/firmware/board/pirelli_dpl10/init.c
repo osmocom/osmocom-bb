@@ -37,7 +37,7 @@
 #include <calypso/dma.h>
 #include <calypso/rtc.h>
 #include <calypso/timer.h>
-#include <calypso/uart.h>
+#include <uart.h>
 #include <calypso/backlight.h>
 
 #include <comm/sercomm.h>

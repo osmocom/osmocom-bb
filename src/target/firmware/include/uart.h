@@ -1,5 +1,5 @@
-#ifndef _CAL_UART_H
-#define _CAL_UART_H
+#ifndef _UART_H
+#define _UART_H
 
 #include <stdint.h>
 
@@ -29,4 +29,4 @@ void uart_irq_enable(uint8_t uart, enum uart_irq irq, int on);
 
 void uart_poll(uint8_t uart);
 
-#endif /* _CAL_UART_H */
+#endif /* _UART_H */

@@ -43,7 +43,7 @@
 #include <asm/system.h>
 
 #include <comm/sercomm.h>
-#include <calypso/uart.h>
+#include <uart.h>
 #endif
 
 

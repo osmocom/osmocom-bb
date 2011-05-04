@@ -33,7 +33,7 @@
 #include <comm/sercomm.h>
 
 #include <calypso/irq.h>
-#include <calypso/uart.h>
+#include <uart.h>
 
 #define BASE_ADDR_UART_MODEM	0xffff5000
 #define OFFSET_IRDA		0x800

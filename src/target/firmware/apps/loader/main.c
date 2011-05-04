@@ -45,7 +45,7 @@
 #include <calypso/tsp.h>
 #include <calypso/irq.h>
 #include <calypso/misc.h>
-#include <calypso/uart.h>
+#include <uart.h>
 #include <calypso/timer.h>
 
 #include <flash/cfi_flash.h>

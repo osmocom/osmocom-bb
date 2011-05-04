@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <console.h>
-#include <calypso/uart.h>
+#include <uart.h>
 
 #include <asm/system.h>
 
