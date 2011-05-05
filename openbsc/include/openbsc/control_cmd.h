@@ -78,4 +78,73 @@ int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd);
 struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg);
 struct msgb *ctrl_cmd_make(struct ctrl_cmd *cmd);
 
+#define CTRL_CMD_DEFINE_RANGE(cmdname, cmdstr, dtype, element, min, max) \
+int get_##cmdname(struct ctrl_cmd *cmd, void *data) \
+{ \
+	dtype *node = data; \
+	cmd->reply = talloc_asprintf(cmd, "%i", node->element); \
+	if (!cmd->reply) { \
+		cmd->reply = "OOM"; \
+		return CTRL_CMD_ERROR; \
+	} \
+	return CTRL_CMD_REPLY; \
+} \
+int set_##cmdname(struct ctrl_cmd *cmd, void *data) \
+{ \
+	dtype *node = data; \
+	int tmp = atoi(cmd->value); \
+	node->element = tmp; \
+	return get_##cmdname(cmd, data); \
+} \
+int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *data) \
+{ \
+	int tmp = atoi(value); \
+	if ((tmp >= min)&&(tmp <= max)) { \
+		return 0; \
+	} \
+	return -1; \
+} \
+struct ctrl_cmd_element cmd_##cmdname = { \
+	.name = cmdstr, \
+	.param = NULL, \
+	.get = &get_##cmdname, \
+	.set = &set_##cmdname, \
+	.verify = &verify_##cmdname, \
+}
+
+#define CTRL_CMD_DEFINE_STRING(cmdname, cmdstr, dtype, element) \
+int get_##cmdname(struct ctrl_cmd *cmd, dtype *data) \
+{ \
+	cmd->reply = talloc_asprintf(cmd, "%s", data->element); \
+	if (!cmd->reply) { \
+		cmd->reply = "OOM"; \
+		return CTRL_CMD_ERROR; \
+	} \
+	return CTRL_CMD_REPLY; \
+} \
+int set_##cmdname(struct ctrl_cmd *cmd, dtype *data) \
+{ \
+	bsc_replace_string(cmd->node, &data->element, cmd->value); \
+	return get_##cmdname(cmd, data); \
+} \
+struct ctrl_cmd_element cmd_##cmdname = { \
+	.name = cmdstr, \
+	.param = NULL, \
+	.get = &get_##cmdname, \
+	.set = &set_##cmdname, \
+	.verify = NULL, \
+}
+
+#define CTRL_CMD_DEFINE(cmdname, cmdstr) \
+int get_##cmdname(struct ctrl_cmd *cmd, void *data); \
+int set_##cmdname(struct ctrl_cmd *cmd, void *data); \
+int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *data); \
+struct ctrl_cmd_element cmd_##cmdname = { \
+	.name = cmdstr, \
+	.param = NULL, \
+	.get = &get_##cmdname, \
+	.set = &set_##cmdname, \
+	.verify = &verify_##cmdname, \
+}
+
 #endif /* _CONTROL_CMD_H */
