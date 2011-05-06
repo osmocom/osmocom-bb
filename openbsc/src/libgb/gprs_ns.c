@@ -858,7 +858,7 @@ void gprs_ns_destroy(struct gprs_ns_inst *nsi)
  * We don't support Size Procedure, Configuration Procedure, ChangeWeight Procedure */
 
 /* Read a single NS-over-IP message */
-static struct msgb *read_nsip_msg(struct bsc_fd *bfd, int *error,
+static struct msgb *read_nsip_msg(struct osmo_fd *bfd, int *error,
 				  struct sockaddr_in *saddr)
 {
 	struct msgb *msg = gprs_ns_msgb_alloc();
@@ -890,7 +890,7 @@ static struct msgb *read_nsip_msg(struct bsc_fd *bfd, int *error,
 	return msg;
 }
 
-static int handle_nsip_read(struct bsc_fd *bfd)
+static int handle_nsip_read(struct osmo_fd *bfd)
 {
 	int error;
 	struct sockaddr_in saddr;
@@ -907,7 +907,7 @@ static int handle_nsip_read(struct bsc_fd *bfd)
 	return error;
 }
 
-static int handle_nsip_write(struct bsc_fd *bfd)
+static int handle_nsip_write(struct osmo_fd *bfd)
 {
 	/* FIXME: actually send the data here instead of nsip_sendmsg() */
 	return -EIO;
@@ -928,7 +928,7 @@ static int nsip_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg)
 }
 
 /* UDP Port 23000 carries the LLC-in-BSSGP-in-NS protocol stack */
-static int nsip_fd_cb(struct bsc_fd *bfd, unsigned int what)
+static int nsip_fd_cb(struct osmo_fd *bfd, unsigned int what)
 {
 	int rc = 0;
 

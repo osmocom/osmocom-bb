@@ -133,13 +133,13 @@ struct gprs_ns_inst {
 
 	/* NS-over-IP specific bits */
 	struct {
-		struct bsc_fd fd;
+		struct osmo_fd fd;
 		uint32_t local_ip;
 		uint16_t local_port;
 	} nsip;
 	/* NS-over-FR-over-GRE-over-IP specific bits */
 	struct {
-		struct bsc_fd fd;
+		struct osmo_fd fd;
 		uint32_t local_ip;
 		int enabled:1;
 	} frgre;

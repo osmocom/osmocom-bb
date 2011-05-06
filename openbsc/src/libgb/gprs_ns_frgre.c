@@ -49,7 +49,7 @@ struct gre_hdr {
 } __attribute__ ((packed));
 
 /* IPv4 messages inside the GRE tunnel might be GRE keepalives */
-static int handle_rx_gre_ipv4(struct bsc_fd *bfd, struct msgb *msg,
+static int handle_rx_gre_ipv4(struct osmo_fd *bfd, struct msgb *msg,
 				struct iphdr *iph, struct gre_hdr *greh)
 {
 	struct gprs_ns_inst *nsi = bfd->data;
@@ -101,7 +101,7 @@ static int handle_rx_gre_ipv4(struct bsc_fd *bfd, struct msgb *msg,
 		      (struct sockaddr *)&daddr, sizeof(daddr));
 }
 
-static struct msgb *read_nsfrgre_msg(struct bsc_fd *bfd, int *error,
+static struct msgb *read_nsfrgre_msg(struct osmo_fd *bfd, int *error,
 					struct sockaddr_in *saddr)
 {
 	struct msgb *msg = msgb_alloc(NS_ALLOC_SIZE, "Gb/NS/FR/GRE Rx");
@@ -203,7 +203,7 @@ out_err:
 int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		   struct sockaddr_in *saddr, enum gprs_ns_ll ll);
 
-static int handle_nsfrgre_read(struct bsc_fd *bfd)
+static int handle_nsfrgre_read(struct osmo_fd *bfd)
 {
 	int rc;
 	struct sockaddr_in saddr;
@@ -230,7 +230,7 @@ out:
 	return rc;
 }
 
-static int handle_nsfrgre_write(struct bsc_fd *bfd)
+static int handle_nsfrgre_write(struct osmo_fd *bfd)
 {
 	/* FIXME: actually send the data here instead of nsip_sendmsg() */
 	return -EIO;
@@ -268,7 +268,7 @@ int gprs_ns_frgre_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg)
 	return rc;
 }
 
-static int nsfrgre_fd_cb(struct bsc_fd *bfd, unsigned int what)
+static int nsfrgre_fd_cb(struct osmo_fd *bfd, unsigned int what)
 {
 	int rc = 0;
 
