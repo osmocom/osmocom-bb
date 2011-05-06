@@ -163,7 +163,7 @@ struct gprs_nsvc {
 	uint32_t state;
 	uint32_t remote_state;
 
-	struct timer_list timer;
+	struct osmo_timer_list timer;
 	enum nsvc_timer_mode timer_mode;
 	int alive_retries;
 

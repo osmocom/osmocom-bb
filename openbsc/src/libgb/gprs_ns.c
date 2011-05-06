@@ -166,8 +166,8 @@ struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 
 void nsvc_delete(struct gprs_nsvc *nsvc)
 {
-	if (bsc_timer_pending(&nsvc->timer))
-		bsc_del_timer(&nsvc->timer);
+	if (osmo_timer_pending(&nsvc->timer))
+		osmo_timer_del(&nsvc->timer);
 	llist_del(&nsvc->list);
 	talloc_free(nsvc);
 }
@@ -405,11 +405,11 @@ static void nsvc_start_timer(struct gprs_nsvc *nsvc, enum nsvc_timer_mode mode)
 		nsvc->nsei, get_value_string(timer_mode_strs, mode),
 		seconds);
 		
-	if (bsc_timer_pending(&nsvc->timer))
-		bsc_del_timer(&nsvc->timer);
+	if (osmo_timer_pending(&nsvc->timer))
+		osmo_timer_del(&nsvc->timer);
 
 	nsvc->timer_mode = mode;
-	bsc_schedule_timer(&nsvc->timer, seconds, 0);
+	osmo_timer_schedule(&nsvc->timer, seconds, 0);
 }
 
 static void gprs_ns_timer_cb(void *data)
@@ -786,7 +786,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_BLOCKED]);
 		if (nsvc->persistent || nsvc->remote_end_is_sgsn) {
 			/* stop RESET timer */
-			bsc_del_timer(&nsvc->timer);
+			osmo_timer_del(&nsvc->timer);
 		}
 		/* Initiate TEST proc.: Send ALIVE and start timer */
 		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
