@@ -65,6 +65,21 @@
 
 vector ctrl_node_vec;
 
+/* Send command to all  */
+int ctrl_cmd_send_to_all(struct ctrl_handle *ctrl, struct ctrl_cmd *cmd)
+{
+	struct ctrl_connection *ccon;
+	int ret = 0;
+
+	llist_for_each_entry(ccon, &ctrl->ccon_list, list_entry) {
+		if (ccon == cmd->ccon)
+			continue;
+		if (ctrl_cmd_send(&ccon->write_queue, cmd))
+			ret++;
+	}
+	return ret;
+}
+
 int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd)
 {
 	int ret;

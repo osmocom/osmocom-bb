@@ -10,6 +10,8 @@
 #define CTRL_CMD_HANDLED	0
 #define CTRL_CMD_REPLY		1
 
+struct ctrl_handle;
+
 enum ctrl_node_type {
 	CTRL_NODE_ROOT,	/* Root elements */
 	CTRL_NODE_NET,	/* Network specific (net.) */
@@ -75,6 +77,7 @@ int ctrl_cmd_exec(vector vline, struct ctrl_cmd *command, vector node, void *dat
 int ctrl_cmd_install(enum ctrl_node_type node, struct ctrl_cmd_element *cmd);
 int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data);
 int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd);
+int ctrl_cmd_send_to_all(struct ctrl_handle *ctrl, struct ctrl_cmd *cmd);
 struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg);
 struct msgb *ctrl_cmd_make(struct ctrl_cmd *cmd);
 struct ctrl_cmd *ctrl_cmd_cpy(void *ctx, struct ctrl_cmd *cmd);
