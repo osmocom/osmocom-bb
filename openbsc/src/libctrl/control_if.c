@@ -65,6 +65,9 @@
 struct ctrl_handle {
 	struct osmo_fd listen_fd;
 	struct gsm_network *gsmnet;
+
+	/* List of control connections */
+	struct llist_head ccon_list;
 };
 
 vector ctrl_node_vec;
@@ -196,6 +199,7 @@ static void control_close_conn(struct ctrl_connection *ccon)
 {
 	close(ccon->write_queue.bfd.fd);
 	osmo_fd_unregister(&ccon->write_queue.bfd);
+	llist_del(&ccon->list_entry);
 	if (ccon->closed_cb)
 		ccon->closed_cb(ccon);
 	talloc_free(ccon);
@@ -300,6 +304,7 @@ static struct ctrl_connection *ctrl_connection_alloc(void *ctx)
 static int listen_fd_cb(struct osmo_fd *listen_bfd, unsigned int what)
 {
 	int ret, fd, on;
+	struct ctrl_handle *ctrl;
 	struct ctrl_connection *ccon;
 	struct sockaddr_in sa;
 	socklen_t sa_len = sizeof(sa);
@@ -330,7 +335,8 @@ static int listen_fd_cb(struct osmo_fd *listen_bfd, unsigned int what)
 		return -1;
 	}
 
-	ccon->write_queue.bfd.data = listen_bfd->data;
+	ctrl = listen_bfd->data;
+	ccon->write_queue.bfd.data = ctrl;
 	ccon->write_queue.bfd.fd = fd;
 	ccon->write_queue.bfd.when = BSC_FD_READ;
 	ccon->write_queue.read_cb = handle_control_read;
@@ -342,6 +348,8 @@ static int listen_fd_cb(struct osmo_fd *listen_bfd, unsigned int what)
 		close(ccon->write_queue.bfd.fd);
 		talloc_free(ccon);
 	}
+
+	llist_add(&ccon->list_entry, &ctrl->ccon_list);
 
 	return ret;
 }
@@ -607,6 +615,8 @@ int controlif_setup(struct gsm_network *gsmnet, uint16_t port)
 	ctrl = talloc_zero(tall_bsc_ctx, struct ctrl_handle);
 	if (!ctrl)
 		return -ENOMEM;
+
+	INIT_LLIST_HEAD(&ctrl->ccon_list);
 
 	ctrl->gsmnet = gsmnet;
 
