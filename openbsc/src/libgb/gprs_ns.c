@@ -172,7 +172,7 @@ void nsvc_delete(struct gprs_nsvc *nsvc)
 	talloc_free(nsvc);
 }
 
-static void ns_dispatch_signal(struct gprs_nsvc *nsvc, unsigned int signal,
+static void ns_osmo_signal_dispatch(struct gprs_nsvc *nsvc, unsigned int signal,
 			       uint8_t cause)
 {
 	struct ns_signal_data nssd;
@@ -180,7 +180,7 @@ static void ns_dispatch_signal(struct gprs_nsvc *nsvc, unsigned int signal,
 	nssd.nsvc = nsvc;
 	nssd.cause = cause;
 
-	dispatch_signal(SS_NS, signal, &nssd);
+	osmo_signal_dispatch(SS_NS, signal, &nssd);
 }
 
 /* Section 10.3.2, Table 13 */
@@ -437,8 +437,8 @@ static void gprs_ns_timer_cb(void *data)
 				"NSEI=%u Tns-alive expired more then "
 				"%u times, blocking NS-VC\n", nsvc->nsei,
 				nsvc->nsi->timeout[NS_TOUT_TNS_ALIVE_RETRIES]);
-			ns_dispatch_signal(nsvc, S_NS_ALIVE_EXP, 0);
-			ns_dispatch_signal(nsvc, S_NS_BLOCK, NS_CAUSE_NSVC_BLOCKED);
+			ns_osmo_signal_dispatch(nsvc, S_NS_ALIVE_EXP, 0);
+			ns_osmo_signal_dispatch(nsvc, S_NS_BLOCK, NS_CAUSE_NSVC_BLOCKED);
 			return;
 		}
 		/* Tns-test case: send NS-ALIVE PDU */
@@ -631,7 +631,7 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 
 	/* inform interested parties about the fact that this NSVC
 	 * has received RESET */
-	ns_dispatch_signal(nsvc, S_NS_RESET, *cause);
+	ns_osmo_signal_dispatch(nsvc, S_NS_RESET, *cause);
 
 	return gprs_ns_tx_reset_ack(nsvc);
 }
@@ -665,7 +665,7 @@ static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
 	cause = (uint8_t *) TLVP_VAL(&tp, NS_IE_CAUSE);
 	//nsvci = (uint16_t *) TLVP_VAL(&tp, NS_IE_VCI);
 
-	ns_dispatch_signal(nsvc, S_NS_BLOCK, *cause);
+	ns_osmo_signal_dispatch(nsvc, S_NS_BLOCK, *cause);
 	rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_BLOCKED]);
 
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_BLOCK_ACK);
@@ -796,7 +796,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		/* Section 7.2: unblocking procedure */
 		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS UNBLOCK\n", nsvc->nsei);
 		nsvc->state &= ~NSE_S_BLOCKED;
-		ns_dispatch_signal(nsvc, S_NS_UNBLOCK, 0);
+		ns_osmo_signal_dispatch(nsvc, S_NS_UNBLOCK, 0);
 		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
 		break;
 	case NS_PDUT_UNBLOCK_ACK:
@@ -804,7 +804,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		/* mark NS-VC as unblocked + active */
 		nsvc->state = NSE_S_ALIVE;
 		nsvc->remote_state = NSE_S_ALIVE;
-		ns_dispatch_signal(nsvc, S_NS_UNBLOCK, 0);
+		ns_osmo_signal_dispatch(nsvc, S_NS_UNBLOCK, 0);
 		break;
 	case NS_PDUT_BLOCK:
 		rc = gprs_ns_rx_block(nsvc, msg);
