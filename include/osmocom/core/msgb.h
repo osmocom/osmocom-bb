@@ -181,7 +181,7 @@ static inline void msgb_reserve(struct msgb *msg, int len)
 static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 						const char *name)
 {
-	static_assert(size > headroom, headroom_bigger);
+	osmo_static_assert(size > headroom, headroom_bigger);
 
 	struct msgb *msg = msgb_alloc(size, name);
 	if (msg)

@@ -301,7 +301,7 @@ int gsm48_generate_mid_from_imsi(uint8_t *buf, const char *imsi)
 	uint8_t odd = (length & 0x1) == 1;
 
 	buf[0] = GSM48_IE_MOBILE_ID;
-	buf[2] = char2bcd(imsi[0]) << 4 | GSM_MI_TYPE_IMSI | (odd << 3);
+	buf[2] = osmo_char2bcd(imsi[0]) << 4 | GSM_MI_TYPE_IMSI | (odd << 3);
 
 	/* if the length is even we will fill half of the last octet */
 	if (odd)
@@ -312,11 +312,11 @@ int gsm48_generate_mid_from_imsi(uint8_t *buf, const char *imsi)
 	for (i = 1; i < buf[1]; ++i) {
 		uint8_t lower, upper;
 
-		lower = char2bcd(imsi[++off]);
+		lower = osmo_char2bcd(imsi[++off]);
 		if (!odd && off + 1 == length)
 			upper = 0x0f;
 		else
-			upper = char2bcd(imsi[++off]) & 0x0f;
+			upper = osmo_char2bcd(imsi[++off]) & 0x0f;
 
 		buf[2 + i] = (upper << 4) | lower;
 	}
@@ -349,15 +349,15 @@ int gsm48_mi_to_string(char *string, const int str_len, const uint8_t *mi,
 	case GSM_MI_TYPE_IMSI:
 	case GSM_MI_TYPE_IMEI:
 	case GSM_MI_TYPE_IMEISV:
-		*str_cur++ = bcd2char(mi[0] >> 4);
+		*str_cur++ = osmo_bcd2char(mi[0] >> 4);
 
                 for (i = 1; i < mi_len; i++) {
 			if (str_cur + 2 >= string + str_len)
 				return str_cur - string;
-			*str_cur++ = bcd2char(mi[i] & 0xf);
+			*str_cur++ = osmo_bcd2char(mi[i] & 0xf);
 			/* skip last nibble in last input byte when GSM_EVEN */
 			if( (i != mi_len-1) || (mi[0] & GSM_MI_ODD))
-				*str_cur++ = bcd2char(mi[i] >> 4);
+				*str_cur++ = osmo_bcd2char(mi[i] >> 4);
 		}
 		break;
 	default:

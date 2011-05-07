@@ -13,16 +13,16 @@ struct value_string {
 const char *get_value_string(const struct value_string *vs, uint32_t val);
 int get_string_value(const struct value_string *vs, const char *str);
 
-char bcd2char(uint8_t bcd);
+char osmo_bcd2char(uint8_t bcd);
 /* only works for numbers in ascci */
-uint8_t char2bcd(char c);
+uint8_t osmo_char2bcd(char c);
 
-int hexparse(const char *str, uint8_t *b, int max_len);
-char *hexdump(const unsigned char *buf, int len);
-char *hexdump_nospc(const unsigned char *buf, int len);
-char *ubit_dump(const uint8_t *bits, unsigned int len);
+int osmo_hexparse(const char *str, uint8_t *b, int max_len);
+char *osmo_hexdump(const unsigned char *buf, int len);
+char *osmo_osmo_hexdump_nospc(const unsigned char *buf, int len);
+char *osmo_ubit_dump(const uint8_t *bits, unsigned int len);
 
-#define static_assert(exp, name) typedef int dummy##name [(exp) ? 1 : -1];
+#define osmo_static_assert(exp, name) typedef int dummy##name [(exp) ? 1 : -1];
 
 void osmo_str2lower(char *out, const char *in);
 void osmo_str2upper(char *out, const char *in);
