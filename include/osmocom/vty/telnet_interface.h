@@ -29,7 +29,7 @@
 struct telnet_connection {
 	struct llist_head entry;
 	void *priv;
-	struct bsc_fd fd;
+	struct osmo_fd fd;
 	struct vty *vty;
 	struct log_target *dbg;
 };

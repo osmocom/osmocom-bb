@@ -39,9 +39,9 @@ LLIST_HEAD(active_connections);
 static void *tall_telnet_ctx;
 
 /* per network data */
-static int telnet_new_connection(struct bsc_fd *fd, unsigned int what);
+static int telnet_new_connection(struct osmo_fd *fd, unsigned int what);
 
-static struct bsc_fd server_socket = {
+static struct osmo_fd server_socket = {
 	.when	    = BSC_FD_READ,
 	.cb	    = telnet_new_connection,
 	.priv_nr    = 0,
@@ -85,7 +85,7 @@ int telnet_init(void *tall_ctx, void *priv, int port)
 
 	server_socket.data = priv;
 	server_socket.fd = fd;
-	bsc_register_fd(&server_socket);
+	osmo_fd_register(&server_socket);
 
 	return 0;
 }
@@ -104,12 +104,12 @@ static void print_welcome(int fd)
 		ret = write(fd, host.app_info->copyright, strlen(host.app_info->copyright));
 }
 
-int telnet_close_client(struct bsc_fd *fd)
+int telnet_close_client(struct osmo_fd *fd)
 {
 	struct telnet_connection *conn = (struct telnet_connection*)fd->data;
 
 	close(fd->fd);
-	bsc_unregister_fd(fd);
+	osmo_fd_unregister(fd);
 
 	if (conn->dbg) {
 		log_del_target(conn->dbg);
@@ -121,7 +121,7 @@ int telnet_close_client(struct bsc_fd *fd)
 	return 0;
 }
 
-static int client_data(struct bsc_fd *fd, unsigned int what)
+static int client_data(struct osmo_fd *fd, unsigned int what)
 {
 	struct telnet_connection *conn = fd->data;
 	int rc = 0;
@@ -144,7 +144,7 @@ static int client_data(struct bsc_fd *fd, unsigned int what)
 	return rc;
 }
 
-static int telnet_new_connection(struct bsc_fd *fd, unsigned int what)
+static int telnet_new_connection(struct osmo_fd *fd, unsigned int what)
 {
 	struct telnet_connection *connection;
 	struct sockaddr_in sockaddr;
@@ -162,7 +162,7 @@ static int telnet_new_connection(struct bsc_fd *fd, unsigned int what)
 	connection->fd.fd = new_connection;
 	connection->fd.when = BSC_FD_READ;
 	connection->fd.cb = client_data;
-	bsc_register_fd(&connection->fd);
+	osmo_fd_register(&connection->fd);
 	llist_add_tail(&connection->entry, &active_connections);
 
 	print_welcome(new_connection);
@@ -182,7 +182,7 @@ static int telnet_new_connection(struct bsc_fd *fd, unsigned int what)
 void vty_event(enum event event, int sock, struct vty *vty)
 {
 	struct telnet_connection *connection = vty->priv;
-	struct bsc_fd *bfd = &connection->fd;
+	struct osmo_fd *bfd = &connection->fd;
 
 	if (vty->type != VTY_TERM)
 		return;

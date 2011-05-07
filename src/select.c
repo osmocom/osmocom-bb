@@ -31,10 +31,10 @@
 #ifdef HAVE_SYS_SELECT_H
 
 static int maxfd = 0;
-static LLIST_HEAD(bsc_fds);
+static LLIST_HEAD(osmo_fds);
 static int unregistered_count;
 
-int bsc_register_fd(struct bsc_fd *fd)
+int osmo_fd_register(struct osmo_fd *fd)
 {
 	int flags;
 
@@ -52,29 +52,29 @@ int bsc_register_fd(struct bsc_fd *fd)
 		maxfd = fd->fd;
 
 #ifdef BSC_FD_CHECK
-	struct bsc_fd *entry;
-	llist_for_each_entry(entry, &bsc_fds, list) {
+	struct osmo_fd *entry;
+	llist_for_each_entry(entry, &osmo_fds, list) {
 		if (entry == fd) {
-			fprintf(stderr, "Adding a bsc_fd that is already in the list.\n");
+			fprintf(stderr, "Adding a osmo_fd that is already in the list.\n");
 			return 0;
 		}
 	}
 #endif
 
-	llist_add_tail(&fd->list, &bsc_fds);
+	llist_add_tail(&fd->list, &osmo_fds);
 
 	return 0;
 }
 
-void bsc_unregister_fd(struct bsc_fd *fd)
+void osmo_fd_unregister(struct osmo_fd *fd)
 {
 	unregistered_count++;
 	llist_del(&fd->list);
 }
 
-int bsc_select_main(int polling)
+int osmo_select_main(int polling)
 {
-	struct bsc_fd *ufd, *tmp;
+	struct osmo_fd *ufd, *tmp;
 	fd_set readset, writeset, exceptset;
 	int work = 0, rc;
 	struct timeval no_time = {0, 0};
@@ -84,7 +84,7 @@ int bsc_select_main(int polling)
 	FD_ZERO(&exceptset);
 
 	/* prepare read and write fdsets */
-	llist_for_each_entry(ufd, &bsc_fds, list) {
+	llist_for_each_entry(ufd, &osmo_fds, list) {
 		if (ufd->when & BSC_FD_READ)
 			FD_SET(ufd->fd, &readset);
 
@@ -109,7 +109,7 @@ int bsc_select_main(int polling)
 	/* call registered callback functions */
 restart:
 	unregistered_count = 0;
-	llist_for_each_entry_safe(ufd, tmp, &bsc_fds, list) {
+	llist_for_each_entry_safe(ufd, tmp, &osmo_fds, list) {
 		int flags = 0;
 
 		if (FD_ISSET(ufd->fd, &readset)) {

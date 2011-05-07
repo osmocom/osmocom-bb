@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 
 #ifdef HAVE_SYS_SELECT_H
     while (1) {
-        bsc_select_main(0);
+        osmo_select_main(0);
     }
 #else
     printf("Select not supported on this platform!\n");

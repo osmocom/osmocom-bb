@@ -42,8 +42,8 @@
 #include <string.h>
 #include <errno.h>
 
-static struct bsc_fd gsmtap_bfd = { .fd = -1 };
-static struct bsc_fd gsmtap_sink_bfd = { .fd = -1 };
+static struct osmo_fd gsmtap_bfd = { .fd = -1 };
+static struct osmo_fd gsmtap_sink_bfd = { .fd = -1 };
 static LLIST_HEAD(gsmtap_txqueue);
 
 uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
@@ -137,7 +137,7 @@ int gsmtap_sendmsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss,
 }
 
 /* Callback from select layer if we can write to the socket */
-static int gsmtap_fd_cb(struct bsc_fd *fd, unsigned int flags)
+static int gsmtap_fd_cb(struct osmo_fd *fd, unsigned int flags)
 {
 	struct msgb *msg;
 	int rc;
@@ -195,11 +195,11 @@ int gsmtap_init(uint32_t dst_ip)
 	gsmtap_bfd.cb = gsmtap_fd_cb;
 	gsmtap_bfd.data = NULL;
 
-	return bsc_register_fd(&gsmtap_bfd);
+	return osmo_fd_register(&gsmtap_bfd);
 }
 
 /* Callback from select layer if we can read from the sink socket */
-static int gsmtap_sink_fd_cb(struct bsc_fd *fd, unsigned int flags)
+static int gsmtap_sink_fd_cb(struct osmo_fd *fd, unsigned int flags)
 {
 	int rc;
 	uint8_t buf[4096];
@@ -246,7 +246,7 @@ int gsmtap_sink_init(uint32_t bind_ip)
 	gsmtap_sink_bfd.cb = gsmtap_sink_fd_cb;
 	gsmtap_sink_bfd.data = NULL;
 
-	return bsc_register_fd(&gsmtap_sink_bfd);
+	return osmo_fd_register(&gsmtap_sink_bfd);
 
 }
 

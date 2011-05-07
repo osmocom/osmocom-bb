@@ -7,16 +7,16 @@
 #define BSC_FD_WRITE	0x0002
 #define BSC_FD_EXCEPT	0x0004
 
-struct bsc_fd {
+struct osmo_fd {
 	struct llist_head list;
 	int fd;
 	unsigned int when;
-	int (*cb)(struct bsc_fd *fd, unsigned int what);
+	int (*cb)(struct osmo_fd *fd, unsigned int what);
 	void *data;
 	unsigned int priv_nr;
 };
 
-int bsc_register_fd(struct bsc_fd *fd);
-void bsc_unregister_fd(struct bsc_fd *fd);
-int bsc_select_main(int polling);
+int osmo_fd_register(struct osmo_fd *fd);
+void osmo_fd_unregister(struct osmo_fd *fd);
+int osmo_select_main(int polling);
 #endif /* _BSC_SELECT_H */
