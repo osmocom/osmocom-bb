@@ -29,11 +29,13 @@
 #include <unistd.h>
 #include <string.h>
 
-static struct msg_entry *alloc_entry(struct msg_entries *entries,
-				     const char *mcc, const char *mnc,
-				     const char *option, const char *text)
+static struct osmo_config_entry *
+alloc_entry(struct osmo_config_list *entries,
+	    const char *mcc, const char *mnc,
+	    const char *option, const char *text)
 {
-	struct msg_entry *entry = talloc_zero(entries, struct msg_entry);
+	struct osmo_config_entry *entry =
+		talloc_zero(entries, struct osmo_config_entry);
 	if (!entry)
 		return NULL;
 
@@ -46,11 +48,11 @@ static struct msg_entry *alloc_entry(struct msg_entries *entries,
 	return entry;
 }
 
-static struct msg_entries *alloc_entries(void *ctx)
+static struct osmo_config_list *alloc_entries(void *ctx)
 {
-	struct msg_entries *entries;
+	struct osmo_config_list *entries;
 
-	entries = talloc_zero(ctx, struct msg_entries);
+	entries = talloc_zero(ctx, struct osmo_config_list);
 	if (!entries)
 		return NULL;
 
@@ -61,7 +63,7 @@ static struct msg_entries *alloc_entries(void *ctx)
 /*
  * split a line like 'foo:Text'.
  */
-static void handle_line(struct msg_entries *entries, char *line)
+static void handle_line(struct osmo_config_list *entries, char *line)
 {
 	int i;
 	const int len = strlen(line);
@@ -91,9 +93,9 @@ static void handle_line(struct msg_entries *entries, char *line)
 	/* nothing found */
 }
 
-struct msg_entries *msg_entry_parse(void *ctx, const char *filename)
+struct osmo_config_list *osmo_config_list_parse(void *ctx, const char *filename)
 {
-	struct msg_entries *entries;
+	struct osmo_config_list *entries;
 	size_t n;
 	char *line;
 	FILE *file;
