@@ -31,12 +31,13 @@ static LLIST_HEAD(signal_handler_list);
 struct signal_handler {
 	struct llist_head entry;
 	unsigned int subsys;
-	signal_cbfn *cbfn;
+	osmo_signal_cbfn *cbfn;
 	void *data;
 };
 
 
-int register_signal_handler(unsigned int subsys, signal_cbfn *cbfn, void *data)
+int osmo_signal_register_handler(unsigned int subsys,
+				 osmo_signal_cbfn *cbfn, void *data)
 {
 	struct signal_handler *sig_data;
 
@@ -57,7 +58,8 @@ int register_signal_handler(unsigned int subsys, signal_cbfn *cbfn, void *data)
 	return 0;
 }
 
-void unregister_signal_handler(unsigned int subsys, signal_cbfn *cbfn, void *data)
+void osmo_signal_unregister_handler(unsigned int subsys,
+				    osmo_signal_cbfn *cbfn, void *data)
 {
 	struct signal_handler *handler;
 
@@ -72,7 +74,8 @@ void unregister_signal_handler(unsigned int subsys, signal_cbfn *cbfn, void *dat
 }
 
 
-void dispatch_signal(unsigned int subsys, unsigned int signal, void *signal_data)
+void osmo_signal_dispatch(unsigned int subsys, unsigned int signal,
+			  void *signal_data)
 {
 	struct signal_handler *handler;
 
