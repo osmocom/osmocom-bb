@@ -23,11 +23,11 @@
 
 #include <osmocom/core/write_queue.h>
 
-int write_queue_bfd_cb(struct osmo_fd *fd, unsigned int what)
+int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what)
 {
-	struct write_queue *queue;
+	struct osmo_wqueue *queue;
 
-	queue = container_of(fd, struct write_queue, bfd);
+	queue = container_of(fd, struct osmo_wqueue, bfd);
 
 	if (what & BSC_FD_READ)
 		queue->read_cb(fd);
@@ -56,17 +56,17 @@ int write_queue_bfd_cb(struct osmo_fd *fd, unsigned int what)
 	return 0;
 }
 
-void write_queue_init(struct write_queue *queue, int max_length)
+void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length)
 {
 	queue->max_length = max_length;
 	queue->current_length = 0;
 	queue->read_cb = NULL;
 	queue->write_cb = NULL;
-	queue->bfd.cb = write_queue_bfd_cb;
+	queue->bfd.cb = osmo_wqueue_bfd_cb;
 	INIT_LLIST_HEAD(&queue->msg_queue);
 }
 
-int write_queue_enqueue(struct write_queue *queue, struct msgb *data)
+int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data)
 {
 //	if (queue->current_length + 1 >= queue->max_length)
 //		LOGP(DMSC, LOGL_ERROR, "The queue is full. Dropping not yet implemented.\n");
@@ -78,7 +78,7 @@ int write_queue_enqueue(struct write_queue *queue, struct msgb *data)
 	return 0;
 }
 
-void write_queue_clear(struct write_queue *queue)
+void osmo_wqueue_clear(struct osmo_wqueue *queue)
 {
 	while (!llist_empty(&queue->msg_queue)) {
 		struct msgb *msg = msgb_dequeue(&queue->msg_queue);
