@@ -53,7 +53,7 @@ int gprs_cipher_register(struct gprs_cipher_impl *ciph)
 int gprs_cipher_load(const char *path)
 {
 	/* load all plugins available from path */
-	return plugin_load_all(path);
+	return osmo_plugin_load_all(path);
 }
 
 /* function to be called by core code */

@@ -32,7 +32,7 @@
 
 #include <osmocom/core/plugin.h>
 
-int plugin_load_all(const char *directory)
+int osmo_plugin_load_all(const char *directory)
 {
 	unsigned int num = 0;
 	char fname[PATH_MAX];
@@ -55,7 +55,7 @@ int plugin_load_all(const char *directory)
 	return num;
 }
 #else
-int plugin_load_all(const char *directory)
+int osmo_plugin_load_all(const char *directory)
 {
 	return 0;
 }
