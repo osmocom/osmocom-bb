@@ -22,13 +22,13 @@
 
 #include <sys/types.h>
 
-extern uint16_t const crc16_table[256];
+extern uint16_t const osmo_crc16_table[256];
 
-extern uint16_t crc16(uint16_t crc, const uint8_t *buffer, size_t len);
+extern uint16_t osmo_crc16(uint16_t crc, const uint8_t *buffer, size_t len);
 
-static inline uint16_t crc16_byte(uint16_t crc, const uint8_t data)
+static inline uint16_t osmo_crc16_byte(uint16_t crc, const uint8_t data)
 {
-	return (crc >> 8) ^ crc16_table[(crc ^ data) & 0xff];
+	return (crc >> 8) ^ osmo_crc16_table[(crc ^ data) & 0xff];
 }
 
 #endif /* __CRC16_H */
