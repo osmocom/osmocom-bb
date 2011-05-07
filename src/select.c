@@ -95,16 +95,16 @@ int bsc_select_main(int polling)
 			FD_SET(ufd->fd, &exceptset);
 	}
 
-	bsc_timer_check();
+	osmo_timers_check();
 
 	if (!polling)
-		bsc_prepare_timers();
-	rc = select(maxfd+1, &readset, &writeset, &exceptset, polling ? &no_time : bsc_nearest_timer());
+		osmo_timers_prepare();
+	rc = select(maxfd+1, &readset, &writeset, &exceptset, polling ? &no_time : osmo_timers_nearest());
 	if (rc < 0)
 		return 0;
 
 	/* fire timers */
-	bsc_update_timers();
+	osmo_timers_update();
 
 	/* call registered callback functions */
 restart:

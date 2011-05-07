@@ -31,9 +31,9 @@ static struct timeval s_select_time;
 #define TIME_SMALLER(left, right) \
         (left.tv_sec*MICRO_SECONDS+left.tv_usec) <= (right.tv_sec*MICRO_SECONDS+right.tv_usec)
 
-void bsc_add_timer(struct timer_list *timer)
+void osmo_timer_add(struct osmo_timer_list *timer)
 {
-	struct timer_list *list_timer;
+	struct osmo_timer_list *list_timer;
 
 	/* TODO: Optimize and remember the closest item... */
 	timer->active = 1;
@@ -47,7 +47,8 @@ void bsc_add_timer(struct timer_list *timer)
 	llist_add(&timer->entry, &timer_list);
 }
 
-void bsc_schedule_timer(struct timer_list *timer, int seconds, int microseconds)
+void
+osmo_timer_schedule(struct osmo_timer_list *timer, int seconds, int microseconds)
 {
 	struct timeval current_time;
 
@@ -56,10 +57,10 @@ void bsc_schedule_timer(struct timer_list *timer, int seconds, int microseconds)
 	currentTime += seconds * MICRO_SECONDS + microseconds;
 	timer->timeout.tv_sec = currentTime / MICRO_SECONDS;
 	timer->timeout.tv_usec = currentTime % MICRO_SECONDS;
-	bsc_add_timer(timer);
+	osmo_timer_add(timer);
 }
 
-void bsc_del_timer(struct timer_list *timer)
+void osmo_timer_del(struct osmo_timer_list *timer)
 {
 	if (timer->in_list) {
 		timer->active = 0;
@@ -68,7 +69,7 @@ void bsc_del_timer(struct timer_list *timer)
 	}
 }
 
-int bsc_timer_pending(struct timer_list *timer)
+int osmo_timer_pending(struct osmo_timer_list *timer)
 {
 	return timer->active;
 }
@@ -79,7 +80,7 @@ int bsc_timer_pending(struct timer_list *timer)
  * If the nearest timer timed out return NULL and then we will
  * dispatch everything after the select
  */
-struct timeval *bsc_nearest_timer()
+struct timeval *osmo_timers_nearest()
 {
 	struct timeval current_time;
 
@@ -106,9 +107,9 @@ struct timeval *bsc_nearest_timer()
 /*
  * Find the nearest time and update s_nearest_time
  */
-void bsc_prepare_timers()
+void osmo_timers_prepare()
 {
-	struct timer_list *timer, *nearest_timer = NULL;
+	struct osmo_timer_list *timer, *nearest_timer = NULL;
 	llist_for_each_entry(timer, &timer_list, entry) {
 		if (!nearest_timer || TIME_SMALLER(timer->timeout, nearest_timer->timeout)) {
 			nearest_timer = timer;
@@ -125,10 +126,10 @@ void bsc_prepare_timers()
 /*
  * fire all timers... and remove them
  */
-int bsc_update_timers()
+int osmo_timers_update()
 {
 	struct timeval current_time;
-	struct timer_list *timer, *tmp;
+	struct osmo_timer_list *timer, *tmp;
 	int work = 0;
 
 	gettimeofday(&current_time, NULL);
@@ -166,16 +167,16 @@ restart:
 	llist_for_each_entry_safe(timer, tmp, &timer_list, entry) {
 		timer->handled = 0;
 		if (!timer->active) {
-			bsc_del_timer(timer);
+			osmo_timer_del(timer);
 		}
 	}
 
 	return work;
 }
 
-int bsc_timer_check(void)
+int osmo_timers_check(void)
 {
-	struct timer_list *timer;
+	struct osmo_timer_list *timer;
 	int i = 0;
 
 	llist_for_each_entry(timer, &timer_list, entry) {
