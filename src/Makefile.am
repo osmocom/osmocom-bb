@@ -2,7 +2,7 @@ SUBDIRS=. vty codec gsm
 
 # This is _NOT_ the library release version, it's an API version.
 # Please read Chapter 6 "Library interface versions" of the libtool documentation before making any modification
-LIBVERSION=0:0:0
+LIBVERSION=1:0:0
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
 AM_CFLAGS = -fPIC -Wall
@@ -18,7 +18,9 @@ libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c bits.c \
 
 if ENABLE_PLUGIN
 libosmocore_la_SOURCES += plugin.c
-libosmocore_la_LDFLAGS = -ldl
+libosmocore_la_LDFLAGS = -version-info $(LIBVERSION) -ldl
+else
+libosmocore_la_LDFLAGS = -version-info $(LIBVERSION)
 endif
 
 if ENABLE_TALLOC
