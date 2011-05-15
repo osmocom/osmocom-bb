@@ -152,7 +152,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	DEBUGP(DL1C, "%s (%.4u/%.2u/%.2u) %d dBm: %s\n",
 		rsl_chan_nr_str(dl->chan_nr), tm.t1, tm.t2, tm.t3,
 		(int)dl->rx_level-110,
-		hexdump(ccch->data, sizeof(ccch->data)));
+		osmo_hexdump(ccch->data, sizeof(ccch->data)));
 
 	meas->last_fn = ntohl(dl->frame_nr);
 	meas->frames++;
@@ -266,7 +266,7 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	uint8_t chan_type, chan_ts, chan_ss;
 	uint8_t gsmtap_chan_type;
 
-	DEBUGP(DL1C, "(%s)\n", hexdump(msg->l2h, msgb_l2len(msg)));
+	DEBUGP(DL1C, "(%s)\n", osmo_hexdump(msg->l2h, msgb_l2len(msg)));
 
 	if (msgb_l2len(msg) > 23) {
 		LOGP(DL1C, LOGL_ERROR, "L1 cannot handle message length "
@@ -604,7 +604,7 @@ static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
 	
-	LOGP(DL1C, LOGL_INFO, "SIM %s\n", hexdump(data, len));
+	LOGP(DL1C, LOGL_INFO, "SIM %s\n", osmo_hexdump(data, len));
 	
 	/* pull the L1 header from the msgb */
 	msgb_pull(msg, sizeof(struct l1ctl_hdr));

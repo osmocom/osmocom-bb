@@ -52,7 +52,7 @@ static int try_cbch(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
 			"HSN = %d  hseq (%d): %s\n",
 			s->chan_nr, s->tsc, s->maio, s->hsn,
 			s->hopp_len,
-			hexdump((unsigned char *) s->hopping, s->hopp_len * 2));
+			osmo_hexdump((unsigned char *) s->hopping, s->hopp_len * 2));
 		return l1ctl_tx_dm_est_req_h1(ms,
 			s->maio, s->hsn, s->hopping, s->hopp_len,
 			s->chan_nr, s->tsc,

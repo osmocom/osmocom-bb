@@ -1170,11 +1170,11 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
 	switch (set->test_ki_type) {
 	case GSM_SIM_KEY_XOR:
-		vty_out(vty, "  ki xor %s%s", hexdump(set->test_ki, 12),
+		vty_out(vty, "  ki xor %s%s", osmo_hexdump(set->test_ki, 12),
 			VTY_NEWLINE);
 		break;
 	case GSM_SIM_KEY_COMP128:
-		vty_out(vty, "  ki comp128 %s%s", hexdump(set->test_ki, 16),
+		vty_out(vty, "  ki comp128 %s%s", osmo_hexdump(set->test_ki, 16),
 			VTY_NEWLINE);
 		break;
 	}

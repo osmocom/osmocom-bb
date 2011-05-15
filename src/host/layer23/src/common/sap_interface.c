@@ -161,7 +161,7 @@ int osmosap_send(struct osmocom_ms *ms, struct msgb *msg)
 	if (ms->sap_wq.bfd.fd <= 0)
 		return -EINVAL;
 
-	DEBUGP(DSAP, "Sending: '%s'\n", hexdump(msg->data, msg->len));
+	DEBUGP(DSAP, "Sending: '%s'\n", osmo_hexdump(msg->data, msg->len));
 
 	if (msg->l1h != msg->data)
 		LOGP(DSAP, LOGL_ERROR, "Message SAP header != Message Data\n");
