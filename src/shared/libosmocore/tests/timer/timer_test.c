@@ -27,17 +27,17 @@
 
 static void timer_fired(void *data);
 
-static struct timer_list timer_one = {
+static struct osmo_timer_list timer_one = {
     .cb = timer_fired,
     .data = (void*)1,
 };
 
-static struct timer_list timer_two = {
+static struct osmo_timer_list timer_two = {
     .cb = timer_fired,
     .data = (void*)2,
 };
 
-static struct timer_list timer_three = {
+static struct osmo_timer_list timer_three = {
     .cb = timer_fired,
     .data = (void*)3,
 };
@@ -48,8 +48,8 @@ static void timer_fired(void *_data)
     printf("Fired timer: %lu\n", data);
 
     if (data == 1) {
-        bsc_schedule_timer(&timer_one, 3, 0);
-        bsc_del_timer(&timer_two);
+        osmo_timer_schedule(&timer_one, 3, 0);
+        osmo_timer_del(&timer_two);
     } else if (data == 2) {
         printf("Should not be fired... bug in del_timer\n");
     } else if (data == 3) {
@@ -63,13 +63,13 @@ int main(int argc, char** argv)
 {
     printf("Starting... timer\n");
 
-    bsc_schedule_timer(&timer_one, 3, 0);
-    bsc_schedule_timer(&timer_two, 5, 0);
-    bsc_schedule_timer(&timer_three, 4, 0);
+    osmo_timer_schedule(&timer_one, 3, 0);
+    osmo_timer_schedule(&timer_two, 5, 0);
+    osmo_timer_schedule(&timer_three, 4, 0);
 
 #ifdef HAVE_SYS_SELECT_H
     while (1) {
-        bsc_select_main(0);
+        osmo_select_main(0);
     }
 #else
     printf("Select not supported on this platform!\n");

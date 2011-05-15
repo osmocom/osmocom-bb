@@ -22,12 +22,12 @@
 #ifndef MSG_FILE_H
 #define MSG_FILE_H
 
-#include "linuxlist.h"
+#include <osmocom/core/linuxlist.h>
 
 /**
  * One message in the list.
  */
-struct msg_entry {
+struct osmo_config_entry {
 	struct llist_head list;
 
 	/* number for everyone to use */
@@ -40,10 +40,10 @@ struct msg_entry {
 	char *text;
 };
 
-struct msg_entries {
+struct osmo_config_list {
 	struct llist_head entry;
 };
 
-struct msg_entries *msg_entry_parse(void *ctx, const char *filename);
+struct osmo_config_list* osmo_config_list_parse(void *ctx, const char *filename);
 
 #endif

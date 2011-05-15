@@ -20,27 +20,27 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  */
-#ifndef write_queue_h
-#define write_queue_h
+#ifndef OSMO_WQUEUE_H
+#define OSMO_WQUEUE_H
 
 #include <osmocom/core/select.h>
 #include <osmocom/core/msgb.h>
 
-struct write_queue {
-	struct bsc_fd bfd;
+struct osmo_wqueue {
+	struct osmo_fd bfd;
 	unsigned int max_length;
 	unsigned int current_length;
 
 	struct llist_head msg_queue;
 
-	int (*read_cb)(struct bsc_fd *fd);
-	int (*write_cb)(struct bsc_fd *fd, struct msgb *msg);
-	int (*except_cb)(struct bsc_fd *fd);
+	int (*read_cb)(struct osmo_fd *fd);
+	int (*write_cb)(struct osmo_fd *fd, struct msgb *msg);
+	int (*except_cb)(struct osmo_fd *fd);
 };
 
-void write_queue_init(struct write_queue *queue, int max_length);
-void write_queue_clear(struct write_queue *queue);
-int write_queue_enqueue(struct write_queue *queue, struct msgb *data);
-int write_queue_bfd_cb(struct bsc_fd *fd, unsigned int what);
+void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length);
+void osmo_wqueue_clear(struct osmo_wqueue *queue);
+int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data);
+int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what);
 
 #endif

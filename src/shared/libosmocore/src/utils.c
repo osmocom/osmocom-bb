@@ -35,7 +35,7 @@ int get_string_value(const struct value_string *vs, const char *str)
 	return -EINVAL;
 }
 
-char bcd2char(uint8_t bcd)
+char osmo_bcd2char(uint8_t bcd)
 {
 	if (bcd < 0xa)
 		return '0' + bcd;
@@ -44,12 +44,12 @@ char bcd2char(uint8_t bcd)
 }
 
 /* only works for numbers in ascii */
-uint8_t char2bcd(char c)
+uint8_t osmo_char2bcd(char c)
 {
 	return c - 0x30;
 }
 
-int hexparse(const char *str, uint8_t *b, int max_len)
+int osmo_hexparse(const char *str, uint8_t *b, int max_len)
 
 {
 	int i, l, v;
@@ -78,7 +78,7 @@ int hexparse(const char *str, uint8_t *b, int max_len)
 
 static char hexd_buff[4096];
 
-static char *_hexdump(const unsigned char *buf, int len, char *delim)
+static char *_osmo_hexdump(const unsigned char *buf, int len, char *delim)
 {
 	int i;
 	char *cur = hexd_buff;
@@ -95,7 +95,7 @@ static char *_hexdump(const unsigned char *buf, int len, char *delim)
 	return hexd_buff;
 }
 
-char *ubit_dump(const uint8_t *bits, unsigned int len)
+char *osmo_ubit_dump(const uint8_t *bits, unsigned int len)
 {
 	int i;
 
@@ -125,14 +125,14 @@ char *ubit_dump(const uint8_t *bits, unsigned int len)
 	return hexd_buff;
 }
 
-char *hexdump(const unsigned char *buf, int len)
+char *osmo_hexdump(const unsigned char *buf, int len)
 {
-	return _hexdump(buf, len, " ");
+	return _osmo_hexdump(buf, len, " ");
 }
 
-char *hexdump_nospc(const unsigned char *buf, int len)
+char *osmo_osmo_hexdump_nospc(const unsigned char *buf, int len)
 {
-	return _hexdump(buf, len, "");
+	return _osmo_hexdump(buf, len, "");
 }
 
 #include "../config.h"

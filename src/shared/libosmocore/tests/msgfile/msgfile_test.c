@@ -23,9 +23,9 @@
 
 #include <stdio.h>
 
-static void dump_entries(struct msg_entries *entries)
+static void dump_entries(struct osmo_config_list *entries)
 {
-	struct msg_entry *entry;
+	struct osmo_config_entry *entry;
 
 	if (!entries) {
 		fprintf(stderr, "Failed to parse the file\n");
@@ -40,10 +40,10 @@ static void dump_entries(struct msg_entries *entries)
 
 int main(int argc, char **argv)
 {
-	struct msg_entries *entries;
+	struct osmo_config_list *entries;
 
 	/* todo use msgfile_test.c.in and replace the path */
-	entries = msg_entry_parse(NULL, "msgconfig.cfg");
+	entries = osmo_config_list_parse(NULL, "msgconfig.cfg");
 	dump_entries(entries);
 
 	return 0;

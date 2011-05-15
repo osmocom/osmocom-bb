@@ -1,5 +1,8 @@
 usr/lib
 usr/include
-usr/include/osmocore
 usr/include/osmocom
+usr/include/osmocom/codec
+usr/include/osmocom/core
+usr/include/osmocom/crypt
+usr/include/osmocom/gsm
 usr/include/osmocom/vty

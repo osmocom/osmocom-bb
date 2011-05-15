@@ -1,5 +1,7 @@
-/* minimalistic telnet/network interface it might turn into a wire interface */
-/* (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
+/* Utility functions to setup applications */
+/*
+ * (C) 2011 by Holger Hans Peter Freyther
+ *
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,23 +20,30 @@
  *
  */
 
-#ifndef TELNET_INTERFACE_H
-#define TELNET_INTERFACE_H
-
+#include <osmocom/core/application.h>
 #include <osmocom/core/logging.h>
-#include <osmocom/core/select.h>
 
-#include <osmocom/vty/vty.h>
+#include <signal.h>
 
-struct telnet_connection {
-	struct llist_head entry;
-	void *priv;
-	struct osmo_fd fd;
-	struct vty *vty;
-	struct log_target *dbg;
-};
+struct log_target *osmo_stderr_target;
 
+void osmo_init_ignore_signals(void)
+{
+	/* Signals that by default would terminate */
+	signal(SIGPIPE, SIG_IGN);
+	signal(SIGALRM, SIG_IGN);
+	signal(SIGHUP, SIG_IGN);
+	signal(SIGIO, SIG_IGN);
+}
 
-int telnet_init(void *tall_ctx, void *priv, int port);
+int osmo_init_logging(const struct log_info *log_info)
+{
+	log_init(log_info);
+	osmo_stderr_target = log_target_create_stderr();
+	if (!osmo_stderr_target)
+		return -1;
 
-#endif
+	log_add_target(osmo_stderr_target);
+	log_set_all_filter(osmo_stderr_target, 1);
+	return 0;
+}

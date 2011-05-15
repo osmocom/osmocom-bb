@@ -27,7 +27,7 @@
 
 /**
  * Timer management:
- *      - Create a struct timer_list
+ *      - Create a struct osmo_timer_list
  *      - Fill out timeout and use add_timer or
  *        use schedule_timer to schedule a timer in
  *        x seconds and microseconds from now...
@@ -41,7 +41,7 @@
  *        the timers.
  *
  */
-struct timer_list {
+struct osmo_timer_list {
 	struct llist_head entry;
 	struct timeval timeout;
 	unsigned int active  : 1;
@@ -55,18 +55,18 @@ struct timer_list {
 /**
  * timer management
  */
-void bsc_add_timer(struct timer_list *timer);
-void bsc_schedule_timer(struct timer_list *timer, int seconds, int microseconds);
-void bsc_del_timer(struct timer_list *timer);
-int bsc_timer_pending(struct timer_list *timer);
+void osmo_timer_add(struct osmo_timer_list *timer);
+void osmo_timer_schedule(struct osmo_timer_list *timer, int seconds, int microseconds);
+void osmo_timer_del(struct osmo_timer_list *timer);
+int osmo_timer_pending(struct osmo_timer_list *timer);
 
 
 /**
  * internal timer list management
  */
-struct timeval *bsc_nearest_timer();
-void bsc_prepare_timers();
-int bsc_update_timers();
-int bsc_timer_check(void);
+struct timeval *osmo_timers_nearest();
+void osmo_timers_prepare();
+int osmo_timers_update();
+int osmo_timers_check(void);
 
 #endif

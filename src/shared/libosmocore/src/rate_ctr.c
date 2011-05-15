@@ -82,7 +82,7 @@ static void interval_expired(struct rate_ctr *ctr, enum rate_ctr_intv intv)
 		ctr->intv[intv+1].rate += ctr->intv[intv].rate;
 }
 
-static struct timer_list rate_ctr_timer;
+static struct osmo_timer_list rate_ctr_timer;
 static uint64_t timer_ticks;
 
 /* The one-second interval has expired */
@@ -114,14 +114,14 @@ static void rate_ctr_timer_cb(void *data)
 	llist_for_each_entry(ctrg, &rate_ctr_groups, list)
 		rate_ctr_group_intv(ctrg);
 
-	bsc_schedule_timer(&rate_ctr_timer, 1, 0);
+	osmo_timer_schedule(&rate_ctr_timer, 1, 0);
 }
 
 int rate_ctr_init(void *tall_ctx)
 {
 	tall_rate_ctr_ctx = tall_ctx;
 	rate_ctr_timer.cb = rate_ctr_timer_cb;
-	bsc_schedule_timer(&rate_ctr_timer, 1, 0);
+	osmo_timer_schedule(&rate_ctr_timer, 1, 0);
 
 	return 0;
 }

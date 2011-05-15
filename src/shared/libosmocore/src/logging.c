@@ -143,29 +143,19 @@ static void _output(struct log_target *target, unsigned int subsys,
 		    unsigned int level, char *file, int line, int cont,
 		    const char *format, va_list ap)
 {
-	char col[30];
-	char sub[30];
-	char tim[30];
 	char buf[4096];
-	char final[4096];
-
-	/* prepare the data */
-	col[0] = '\0';
-	sub[0] = '\0';
-	tim[0] = '\0';
-	buf[0] = '\0';
+	int ret, len = 0, offset = 0, rem = sizeof(buf);
 
 	/* are we using color */
 	if (target->use_color) {
 		const char *c = color(subsys);
 		if (c) {
-			snprintf(col, sizeof(col), "%s", color(subsys));
-			col[sizeof(col)-1] = '\0';
+			ret = snprintf(buf + offset, rem, "%s", color(subsys));
+			if (ret < 0)
+				goto err;
+			OSMO_SNPRINTF_RET(ret, rem, offset, len);
 		}
 	}
-	vsnprintf(buf, sizeof(buf), format, ap);
-	buf[sizeof(buf)-1] = '\0';
-
 	if (!cont) {
 		if (target->print_timestamp) {
 			char *timestr;
@@ -173,17 +163,30 @@ static void _output(struct log_target *target, unsigned int subsys,
 			tm = time(NULL);
 			timestr = ctime(&tm);
 			timestr[strlen(timestr)-1] = '\0';
-			snprintf(tim, sizeof(tim), "%s ", timestr);
-			tim[sizeof(tim)-1] = '\0';
+			ret = snprintf(buf + offset, rem, "%s ", timestr);
+			if (ret < 0)
+				goto err;
+			OSMO_SNPRINTF_RET(ret, rem, offset, len);
 		}
-		snprintf(sub, sizeof(sub), "<%4.4x> %s:%d ", subsys, file, line);
-		sub[sizeof(sub)-1] = '\0';
+		ret = snprintf(buf + offset, rem, "<%4.4x> %s:%d ",
+				subsys, file, line);
+		if (ret < 0)
+			goto err;
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
 	}
+	ret = vsnprintf(buf + offset, rem, format, ap);
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 
-	snprintf(final, sizeof(final), "%s%s%s%s%s", col, tim, sub, buf,
-		 target->use_color ? "\033[0;m" : "");
-	final[sizeof(final)-1] = '\0';
-	target->output(target, level, final);
+	ret = snprintf(buf + offset, rem, "%s",
+			target->use_color ? "\033[0;m" : "");
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
+err:
+	buf[sizeof(buf)-1] = '\0';
+	target->output(target, level, buf);
 }
 
 
@@ -218,19 +221,10 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 		else if (osmo_log_info->filter_fn)
 			output = osmo_log_info->filter_fn(&log_context,
 						       tar);
+		if (!output)
+			continue;
 
-		if (output) {
-			/* FIXME: copying the va_list is an ugly
-			 * workaround against a bug hidden somewhere in
-			 * _output.  If we do not copy here, the first
-			 * call to _output() will corrupt the va_list
-			 * contents, and any further _output() calls
-			 * with the same va_list will segfault */
-			va_list bp;
-			va_copy(bp, ap);
-			_output(tar, subsys, level, file, line, cont, format, bp);
-			va_end(bp);
-		}
+		_output(tar, subsys, level, file, line, cont, format, ap);
 	}
 }
 
@@ -448,7 +442,7 @@ const char *log_vty_command_string(const struct log_info *info)
 		size += strlen(loglevel_strs[i].str) + 1;
 
 	rem = size;
-	str = talloc_zero_size(NULL, size);
+	str = talloc_zero_size(tall_log_ctx, size);
 	if (!str)
 		return NULL;
 
@@ -499,6 +493,7 @@ const char *log_vty_command_string(const struct log_info *info)
 		goto err;
 	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 err:
+	str[size-1] = '\0';
 	return str;
 }
 
@@ -517,13 +512,20 @@ const char *log_vty_command_description(const struct log_info *info)
 	for (i = 0; i < LOGLEVEL_DEFS; i++)
 		size += strlen(loglevel_descriptions[i]) + 1;
 
+	size += strlen("Global setting for all subsystems") + 1;
 	rem = size;
-	str = talloc_zero_size(NULL, size);
+	str = talloc_zero_size(tall_log_ctx, size);
 	if (!str)
 		return NULL;
 
 	ret = snprintf(str + offset, rem, LOGGING_STR
 			"Set the log level for a specified category\n");
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
+
+	ret = snprintf(str + offset, rem,
+			"Global setting for all subsystems\n");
 	if (ret < 0)
 		goto err;
 	OSMO_SNPRINTF_RET(ret, rem, offset, len);
@@ -543,6 +545,7 @@ const char *log_vty_command_description(const struct log_info *info)
 		OSMO_SNPRINTF_RET(ret, rem, offset, len);
 	}
 err:
+	str[size-1] = '\0';
 	return str;
 }
 
