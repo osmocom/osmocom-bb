@@ -575,7 +575,7 @@ loader_start_memput(uint8_t length, uint32_t address, void *data) {
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
 	msgb_put_u8(msg, LOADER_MEM_WRITE);
 	msgb_put_u8(msg, length);
-	msgb_put_u16(msg, crc16(0, data, length));
+	msgb_put_u16(msg, osmo_crc16(0, data, length));
 	msgb_put_u32(msg, address);
 	memcpy(msgb_put(msg, length), data, length);
 	loader_send_request(msg);
@@ -603,7 +603,7 @@ loader_do_memdump(uint16_t crc, void *data, size_t length) {
 	int rc;
 
 	if(data && length) {
-		osmoload.memcrc = crc16(0, data, length);
+		osmoload.memcrc = osmo_crc16(0, data, length);
 		if(osmoload.memcrc != crc) {
 			osmoload.memoff -= osmoload.memreq;
 			printf("\nbad crc %4.4x (not %4.4x) at offset 0x%8.8x", crc, osmoload.memcrc, osmoload.memoff);
@@ -665,7 +665,7 @@ loader_do_memload() {
 
 	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
 
-	osmoload.memcrc = crc16(0, (uint8_t *) osmoload.binbuf + osmoload.memoff, reqbytes);
+	osmoload.memcrc = osmo_crc16(0, (uint8_t *) osmoload.binbuf + osmoload.memoff, reqbytes);
 	osmoload.memreq = reqbytes;
 
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");
@@ -705,7 +705,7 @@ loader_do_fprogram() {
 
 	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
 
-	osmoload.memcrc = crc16(0, (uint8_t *) osmoload.binbuf + osmoload.memoff, reqbytes);
+	osmoload.memcrc = osmo_crc16(0, (uint8_t *) osmoload.binbuf + osmoload.memoff, reqbytes);
 	osmoload.memreq = reqbytes;
 
 	struct msgb *msg = msgb_alloc(MSGB_MAX, "loader");

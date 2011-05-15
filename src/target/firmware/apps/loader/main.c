@@ -253,7 +253,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 		nbytes = msgb_get_u8(msg);
 		address = msgb_get_u32(msg);
 
-		crc = crc16(0, (void *)address, nbytes);
+		crc = osmo_crc16(0, (void *)address, nbytes);
 
 		msgb_put_u8(reply, LOADER_MEM_READ);
 		msgb_put_u8(reply, nbytes);
@@ -274,7 +274,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 		data = msgb_get(msg, nbytes);
 
-		mycrc = crc16(0, data, nbytes);
+		mycrc = osmo_crc16(0, data, nbytes);
 
 		if (mycrc == crc) {
 			memcpy((void *)address, data, nbytes);
@@ -392,7 +392,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 		data = msgb_get(msg, nbytes);
 
-		mycrc = crc16(0, data, nbytes);
+		mycrc = osmo_crc16(0, data, nbytes);
 
 		if (mycrc == crc) {
 			res = flash_program(&the_flash, address, data, nbytes);
