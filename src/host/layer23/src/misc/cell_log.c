@@ -783,7 +783,7 @@ static int rcv_rsl(struct msgb *msg, struct osmocom_ms *ms)
 int scan_init(struct osmocom_ms *_ms)
 {
 	ms = _ms;
-	register_signal_handler(SS_L1CTL, &signal_cb, NULL);
+	osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
 	memset(&timer, 0, sizeof(timer));
 	osmol2_register_handler(ms, &rcv_rsl);
 	g.enable = 1;
@@ -812,7 +812,7 @@ int scan_exit(void)
 		osmo_gps_close();
 	if (logfp)
 		fclose(logfp);
-	unregister_signal_handler(SS_L1CTL, &signal_cb, NULL);
+	osmo_signal_unregister_handler(SS_L1CTL, &signal_cb, NULL);
 	stop_timer();
 
 	return 0;

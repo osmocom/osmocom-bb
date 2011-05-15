@@ -314,5 +314,5 @@ int fps_start(struct osmocom_ms *ms)
 
 int fps_init(void)
 {
-	return register_signal_handler(SS_L1CTL, &bscan_sig_cb, NULL);
+	return osmo_signal_register_handler(SS_L1CTL, &bscan_sig_cb, NULL);
 }

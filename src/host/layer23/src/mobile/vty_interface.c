@@ -2266,7 +2266,7 @@ gDEFUN(ournode_end,
 DEFUN(off, off_cmd, "off",
 	"Turn mobiles off (shutdown) and exit")
 {
-	dispatch_signal(SS_GLOBAL, S_GLOBAL_SHUTDOWN, NULL);
+	osmo_signal_dispatch(SS_GLOBAL, S_GLOBAL_SHUTDOWN, NULL);
 
 	return CMD_SUCCESS;
 }

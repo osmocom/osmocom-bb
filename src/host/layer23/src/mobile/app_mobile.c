@@ -329,9 +329,9 @@ int l23_app_work(int *_quit)
 /* global exit */
 int l23_app_exit(void)
 {
-	unregister_signal_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
-	unregister_signal_handler(SS_L1CTL, &mobile_signal_cb, NULL);
-	unregister_signal_handler(SS_GLOBAL, &global_signal_cb, NULL);
+	osmo_signal_unregister_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
+	osmo_signal_unregister_handler(SS_L1CTL, &mobile_signal_cb, NULL);
+	osmo_signal_unregister_handler(SS_GLOBAL, &global_signal_cb, NULL);
 
 	osmo_gps_close();
 
@@ -375,9 +375,9 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 		return rc;
 	printf("VTY available on port %u.\n", vty_port);
 
-	register_signal_handler(SS_GLOBAL, &global_signal_cb, NULL);
-	register_signal_handler(SS_L1CTL, &mobile_signal_cb, NULL);
-	register_signal_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
+	osmo_signal_register_handler(SS_GLOBAL, &global_signal_cb, NULL);
+	osmo_signal_register_handler(SS_L1CTL, &mobile_signal_cb, NULL);
+	osmo_signal_register_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
 
 	if (llist_empty(&ms_list)) {
 		struct osmocom_ms *ms;

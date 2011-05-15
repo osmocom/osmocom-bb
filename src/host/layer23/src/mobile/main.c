@@ -140,7 +140,7 @@ void sighandler(int sigset)
 	signal(SIGTERM, SIG_DFL);
 	signal(SIGPIPE, SIG_DFL);
 
-	dispatch_signal(SS_GLOBAL, S_GLOBAL_SHUTDOWN, NULL);
+	osmo_signal_dispatch(SS_GLOBAL, S_GLOBAL_SHUTDOWN, NULL);
 }
 
 int main(int argc, char **argv)

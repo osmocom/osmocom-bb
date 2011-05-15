@@ -92,7 +92,7 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (sb->result != 0) {
 		LOGP(DL1C, LOGL_ERROR, "FBSB RESP: result=%u\n", sb->result);
-		dispatch_signal(SS_L1CTL, S_L1CTL_FBSB_ERR, ms);
+		osmo_signal_dispatch(SS_L1CTL, S_L1CTL_FBSB_ERR, ms);
 		return 0;
 	}
 
@@ -102,7 +102,7 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 	fr.ms = ms;
 	fr.snr = dl->snr;
 	fr.bsic = sb->bsic;
-	dispatch_signal(SS_L1CTL, S_L1CTL_FBSB_RESP, &fr);
+	osmo_signal_dispatch(SS_L1CTL, S_L1CTL_FBSB_RESP, &fr);
 
 	return 0;
 }
@@ -177,7 +177,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			if (meas->dsc > 0)
 				break;
 			meas->ds_fail = 0;
-			dispatch_signal(SS_L1CTL, S_L1CTL_LOSS_IND, ms);
+			osmo_signal_dispatch(SS_L1CTL, S_L1CTL_LOSS_IND, ms);
 			break;
 		}
 	} else {
@@ -199,7 +199,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			if (meas->s > 0)
 				break;
 			meas->rl_fail = 0;
-			dispatch_signal(SS_L1CTL, S_L1CTL_LOSS_IND, ms);
+			osmo_signal_dispatch(SS_L1CTL, S_L1CTL_LOSS_IND, ms);
 			break;
 		}
 	}
@@ -656,7 +656,7 @@ int l1ctl_tx_reset_req(struct osmocom_ms *ms, uint8_t type)
 static int rx_l1_reset(struct osmocom_ms *ms)
 {
 	LOGP(DL1C, LOGL_INFO, "Layer1 Reset indication\n");
-	dispatch_signal(SS_L1CTL, S_L1CTL_RESET, ms);
+	osmo_signal_dispatch(SS_L1CTL, S_L1CTL_RESET, ms);
 
 	return 0;
 }
@@ -674,7 +674,7 @@ static int rx_l1_pm_conf(struct osmocom_ms *ms, struct msgb *msg)
 		mr.band_arfcn = ntohs(pmr->band_arfcn);
 		mr.rx_lev = pmr->pm[0];
 		mr.ms = ms;
-		dispatch_signal(SS_L1CTL, S_L1CTL_PM_RES, &mr);
+		osmo_signal_dispatch(SS_L1CTL, S_L1CTL_PM_RES, &mr);
 	}
 	return 0;
 }
@@ -697,7 +697,7 @@ static int rx_l1_ccch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 	mc.ccch_mode = conf->ccch_mode;
 	mc.ms = ms;
-	dispatch_signal(SS_L1CTL, S_L1CTL_CCCH_MODE_CONF, &mc);
+	osmo_signal_dispatch(SS_L1CTL, S_L1CTL_CCCH_MODE_CONF, &mc);
 
 	return 0;
 }
@@ -720,7 +720,7 @@ static int rx_l1_tch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 	mc.tch_mode = conf->tch_mode;
 	mc.ms = ms;
-	dispatch_signal(SS_L1CTL, S_L1CTL_TCH_MODE_CONF, &mc);
+	osmo_signal_dispatch(SS_L1CTL, S_L1CTL_TCH_MODE_CONF, &mc);
 
 	return 0;
 }
@@ -764,7 +764,7 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	case L1CTL_PM_CONF:
 		rc = rx_l1_pm_conf(ms, msg);
 		if (l1h->flags & L1CTL_F_DONE)
-			dispatch_signal(SS_L1CTL, S_L1CTL_PM_DONE, ms);
+			osmo_signal_dispatch(SS_L1CTL, S_L1CTL_PM_DONE, ms);
 		msgb_free(msg);
 		break;
 	case L1CTL_RACH_CONF:

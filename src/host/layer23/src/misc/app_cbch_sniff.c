@@ -185,7 +185,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	/* FIXME: L1CTL_RES_T_FULL doesn't reset dedicated mode
 	 * (if previously set), so we release it here. */
 	l1ctl_tx_dm_rel_req(ms);
-	return register_signal_handler(SS_L1CTL, &signal_cb, NULL);
+	return osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
 }
 
 static struct l23_app_info info = {
