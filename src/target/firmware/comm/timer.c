@@ -41,9 +41,9 @@ unsigned long volatile jiffies;
 	 ((long)(b) - (long)(a) < 0))
 #define time_before(a,b)        time_after(b,a)
 
-void add_timer(struct timer_list *timer)
+void add_timer(struct osmo_timer_list *timer)
 {
-	struct timer_list *list_timer;
+	struct osmo_timer_list *list_timer;
 
 	/* TODO: Optimize and remember the closest item... */
 	timer->active = 1;
@@ -57,13 +57,13 @@ void add_timer(struct timer_list *timer)
 	llist_add(&timer->entry, &timer_list);
 }
 
-void schedule_timer(struct timer_list *timer, int milliseconds)
+void schedule_timer(struct osmo_timer_list *timer, int milliseconds)
 {
 	timer->expires = jiffies + ((milliseconds * TIMER_HZ) / 1000);
 	add_timer(timer);
 }
 
-void del_timer(struct timer_list *timer)
+void del_timer(struct osmo_timer_list *timer)
 {
 	if (timer->in_list) {
 		timer->active = 0;
@@ -72,7 +72,7 @@ void del_timer(struct timer_list *timer)
 	}
 }
 
-int timer_pending(struct timer_list *timer)
+int timer_pending(struct osmo_timer_list *timer)
 {
 	return timer->active;
 }
@@ -113,7 +113,7 @@ struct timeval *nearest_timer()
  */
 void prepare_timers()
 {
-	struct timer_list *timer, *nearest_timer = NULL;
+	struct osmo_timer_list *timer, *nearest_timer = NULL;
 	llist_for_each_entry(timer, &timer_list, entry) {
 		if (!nearest_timer || time_before(timer->expires, nearest_timer->expires)) {
 			nearest_timer = timer;
@@ -133,7 +133,7 @@ void prepare_timers()
  */
 int update_timers(void)
 {
-	struct timer_list *timer, *tmp;
+	struct osmo_timer_list *timer, *tmp;
 	int work = 0;
 
 	/*
@@ -178,7 +178,7 @@ restart:
 
 int timer_check(void)
 {
-	struct timer_list *timer;
+	struct osmo_timer_list *timer;
 	int i = 0;
 
 	llist_for_each_entry(timer, &timer_list, entry) {

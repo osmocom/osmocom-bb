@@ -27,7 +27,7 @@
 
 /**
  * Timer management:
- *      - Create a struct timer_list
+ *      - Create a struct osmo_timer_list
  *      - Fill out timeout and use add_timer or
  *        use schedule_timer to schedule a timer in
  *        x seconds and microseconds from now...
@@ -41,7 +41,7 @@
  *        the timers.
  *
  */
-struct timer_list {
+struct osmo_timer_list {
 	struct llist_head entry;
 	unsigned long expires;
 
@@ -58,10 +58,10 @@ extern unsigned long volatile jiffies;
 /**
  * timer management
  */
-void add_timer(struct timer_list *timer);
-void schedule_timer(struct timer_list *timer, int miliseconds);
-void del_timer(struct timer_list *timer);
-int timer_pending(struct timer_list *timer);
+void add_timer(struct osmo_timer_list *timer);
+void schedule_timer(struct osmo_timer_list *timer, int miliseconds);
+void del_timer(struct osmo_timer_list *timer);
+int timer_pending(struct osmo_timer_list *timer);
 
 
 /**

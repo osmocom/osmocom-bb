@@ -538,7 +538,7 @@ static void lapdm_t200_cb(void *data)
 		/* increment re-transmission counter */
 		dl->retrans_ctr++;
 		/* restart T200 (PH-READY-TO-SEND) */
-		bsc_schedule_timer(&dl->t200, T200);
+		osmo_timer_schedule(&dl->t200, T200);
 		break;
 	case LAPDm_STATE_DISC_SENT:
 		/* 5.4.4.3 */
@@ -562,7 +562,7 @@ static void lapdm_t200_cb(void *data)
 		/* increment re-transmission counter */
 		dl->retrans_ctr++;
 		/* restart T200 (PH-READY-TO-SEND) */
-		bsc_schedule_timer(&dl->t200, T200);
+		osmo_timer_schedule(&dl->t200, T200);
 		break;
 	case LAPDm_STATE_MF_EST:
 		/* 5.5.7 */
@@ -608,7 +608,7 @@ static void lapdm_t200_cb(void *data)
 				}
 			}
 			/* restart T200 (PH-READY-TO-SEND) */
-			bsc_schedule_timer(&dl->t200, T200);
+			osmo_timer_schedule(&dl->t200, T200);
 		} else {
 			/* send MDL ERROR INIDCATION to L3 */
 			rsl_rll_error(RLL_CAUSE_T200_EXPIRED, &dl->mctx);
@@ -652,7 +652,7 @@ static void lapdm_acknowledge(struct lapdm_msg_ctx *mctx)
 		 || (rej && nr == dl->V_ack)) {
 			LOGP(DLAPDM, LOGL_INFO, "reset t200\n");
 		 	t200_reset = 1;
-			bsc_del_timer(&dl->t200);
+			osmo_timer_del(&dl->t200);
 			/* 5.5.3.1 Note 1 + 2 imply timer recovery cond. */
 		}
 		/* 5.7.4: N(R) sequence error
@@ -674,7 +674,7 @@ static void lapdm_acknowledge(struct lapdm_msg_ctx *mctx)
 		if (dl->tx_length[dl->V_send - 1]) {
 			LOGP(DLAPDM, LOGL_INFO, "start T200, due to unacked I "
 				"frame(s)\n");
-			bsc_schedule_timer(&dl->t200, T200);
+			osmo_timer_schedule(&dl->t200, T200);
 		}
 	}
 }
@@ -748,7 +748,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* 5.4.6.2 send DM with F=P */
 			lapdm_send_dm(mctx);
 			/* reset Timer T200 */
-			bsc_del_timer(&dl->t200);
+			osmo_timer_del(&dl->t200);
 			msgb_free(msg);
 			return send_rll_simple(RSL_MT_REL_CONF, mctx);
 		default:
@@ -821,7 +821,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			break;
 		case LAPDm_STATE_DISC_SENT:
 			/* reset Timer T200 */
-			bsc_del_timer(&dl->t200);
+			osmo_timer_del(&dl->t200);
 			/* go to idle state */
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			rc = send_rll_simple(RSL_MT_REL_CONF, mctx);
@@ -836,7 +836,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			return 0;
 		}
 		/* reset T200 */
-		bsc_del_timer(&dl->t200);
+		osmo_timer_del(&dl->t200);
 		rc = send_rll_simple(RSL_MT_REL_IND, mctx);
 		msgb_free(msg);
 		break;
@@ -933,7 +933,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* 5.4.6.2 send DM with F=P */
 			lapdm_send_dm(mctx);
 			/* reset Timer T200 */
-			bsc_del_timer(&dl->t200);
+			osmo_timer_del(&dl->t200);
 			return send_rll_simple(RSL_MT_REL_IND, mctx);
 		case LAPDm_STATE_MF_EST:
 		case LAPDm_STATE_TIMER_RECOV:
@@ -950,7 +950,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* send UA response */
 		lapdm_send_ua(mctx, length, msg->l2h + 3);
 		/* reset Timer T200 */
-		bsc_del_timer(&dl->t200);
+		osmo_timer_del(&dl->t200);
 		/* enter idle state */
 		lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 		/* send notification to L3 */
@@ -999,7 +999,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		case LAPDm_STATE_DISC_SENT:
 			LOGP(DLAPDM, LOGL_INFO, "UA in disconnect state\n");
 			/* reset Timer T200 */
-			bsc_del_timer(&dl->t200);
+			osmo_timer_del(&dl->t200);
 			/* go to idle state */
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			rc = send_rll_simple(RSL_MT_REL_CONF, mctx);
@@ -1015,7 +1015,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		}
 		LOGP(DLAPDM, LOGL_INFO, "UA in SABM state\n");
 		/* reset Timer T200 */
-		bsc_del_timer(&dl->t200);
+		osmo_timer_del(&dl->t200);
 		/* compare UA with SABME if contention resolution is applied */
 		if (dl->tx_hist[0][2] >> 2) {
 			rc = check_length_ind(mctx, msg->l2h[2]);
@@ -1135,7 +1135,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* V(S) to the N(R) in the RR frame */
 			dl->V_send = LAPDm_CTRL_Nr(mctx->ctrl);
 			/* reset Timer T200 */
-			bsc_del_timer(&dl->t200);
+			osmo_timer_del(&dl->t200);
 			/* 5.5.7 Clear timer recovery condition */
 			lapdm_dl_newstate(dl, LAPDm_STATE_MF_EST);
 		}
@@ -1198,7 +1198,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* V(S) and V(A) to the N(R) in the REJ frame */
 			dl->V_send = dl->V_ack = LAPDm_CTRL_Nr(mctx->ctrl);
 			/* reset Timer T200 */
-			bsc_del_timer(&dl->t200);
+			osmo_timer_del(&dl->t200);
 			/* 5.5.3.2 */
 			if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_CMD
 			 && LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
@@ -1246,7 +1246,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* V(S) and V(A) to the N(R) in the REJ frame */
 			dl->V_send = dl->V_ack = LAPDm_CTRL_Nr(mctx->ctrl);
 			/* reset Timer T200 */
-			bsc_del_timer(&dl->t200);
+			osmo_timer_del(&dl->t200);
 		} else {
 			/* Clear an existing peer receiver busy condition */
 			dl->peer_busy = 0;
@@ -1660,7 +1660,7 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	lapdm_dl_newstate(dl, LAPDm_STATE_SABM_SENT);
 
 	/* Tramsmit and start T200 */
-	bsc_schedule_timer(&dl->t200, T200);
+	osmo_timer_schedule(&dl->t200, T200);
 	return tx_ph_data_enqueue(dl, msg, chan_nr, link_id, n201);
 }
 
@@ -1853,8 +1853,8 @@ static int rslms_send_i(struct lapdm_msg_ctx *mctx, int line)
 	/* If timer T200 is not running at the time right before transmitting a
 	 * frame, when the PH-READY-TO-SEND primitive is received from the
 	 * physical layer., it shall be set. */
-	if (!bsc_timer_pending(&dl->t200))
-		bsc_schedule_timer(&dl->t200, T200);
+	if (!osmo_timer_pending(&dl->t200))
+		osmo_timer_schedule(&dl->t200, T200);
 
 	tx_ph_data_enqueue(dl, msg, chan_nr, link_id, mctx->n201);
 
@@ -1957,7 +1957,7 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	lapdm_dl_newstate(dl, LAPDm_STATE_SABM_SENT);
 
 	/* Tramsmit and start T200 */
-	bsc_schedule_timer(&dl->t200, T200);
+	osmo_timer_schedule(&dl->t200, T200);
 	return tx_ph_data_enqueue(dl, msg, chan_nr, link_id, n201);
 }
 
@@ -1979,7 +1979,7 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 		LOGP(DLAPDM, LOGL_INFO, "perform local release\n");
 		msgb_free(msg);
 		/* reset Timer T200 */
-		bsc_del_timer(&dl->t200);
+		osmo_timer_del(&dl->t200);
 		/* enter idle state */
 		lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 		/* flush buffers */
@@ -2013,7 +2013,7 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 	lapdm_dl_newstate(dl, LAPDm_STATE_DISC_SENT);
 
 	/* Tramsmit and start T200 */
-	bsc_schedule_timer(&dl->t200, T200);
+	osmo_timer_schedule(&dl->t200, T200);
 	return tx_ph_data_enqueue(dl, msg, chan_nr, link_id, dl->mctx.n201);
 }
 

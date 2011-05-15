@@ -84,7 +84,7 @@ static struct {
 	uint8_t command;
 
 	/* general timeout */
-	struct timer_list timeout;
+	struct osmo_timer_list timeout;
 
 	/* binary i/o for firmware images */
 	FILE *binfile;
@@ -661,7 +661,7 @@ loader_do_memload() {
 		return;
 	}
 
-	bsc_schedule_timer(&osmoload.timeout, 0, 500000);
+	osmo_timer_schedule(&osmoload.timeout, 0, 500000);
 
 	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
 
@@ -701,7 +701,7 @@ loader_do_fprogram() {
 		return;
 	}
 
-	bsc_schedule_timer(&osmoload.timeout, 0, 10000000);
+	osmo_timer_schedule(&osmoload.timeout, 0, 10000000);
 
 	uint8_t reqbytes = (rembytes < MEM_MSG_MAX) ? rembytes : MEM_MSG_MAX;
 
@@ -1143,7 +1143,7 @@ loader_command(char *name, int cmdc, char **cmdv) {
 
 	if(osmoload.state == STATE_QUERY_PENDING) {
 		osmoload.timeout.cb = &query_timeout;
-		bsc_schedule_timer(&osmoload.timeout, 0, 5000000);
+		osmo_timer_schedule(&osmoload.timeout, 0, 5000000);
 	}
 	if(osmoload.state == STATE_LOAD_IN_PROGRESS) {
 		osmoload.timeout.cb = &memop_timeout;

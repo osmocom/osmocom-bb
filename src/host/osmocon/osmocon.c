@@ -164,7 +164,7 @@ struct dnload {
 
 
 static struct dnload dnload;
-static struct timer_list tick_timer;
+static struct osmo_timer_list tick_timer;
 
 /* Compal ramloader specific */
 static const uint8_t phone_prompt1[] = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x01, 0x40 };
@@ -290,7 +290,7 @@ static void beacon_timer_cb(void *p)
 		if (!(rc == sizeof(romload_ident_cmd)))
 			printf("Error sending identification beacon\n");
 
-		bsc_schedule_timer(p, 0, dnload.beacon_interval);
+		osmo_timer_schedule(p, 0, dnload.beacon_interval);
 	}
 }
 
@@ -305,7 +305,7 @@ static void mtk_timer_cb(void *p)
 		if (!(rc == 1))
 			printf("Error sending identification beacon\n");
 
-		bsc_schedule_timer(p, 0, dnload.beacon_interval);
+		osmo_timer_schedule(p, 0, dnload.beacon_interval);
 	}
 }
 
@@ -889,7 +889,7 @@ static int handle_read(void)
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			tick_timer.cb = &beacon_timer_cb;
 			tick_timer.data = &tick_timer;
-			bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
+			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 		}
 	} else if (!memcmp(buffer, phone_nack, sizeof(phone_nack))) {
 		printf("Received DOWNLOAD NACK from phone, something went"
@@ -1004,7 +1004,7 @@ static int handle_read_romload(void)
 				"something went wrong, aborting\n");
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
-			bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
+			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 		}
 		break;
 	case WAITING_CHECKSUM_ACK:
@@ -1026,7 +1026,7 @@ static int handle_read_romload(void)
 				"match ours, aborting\n", ~buffer[2]);
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
-			bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
+			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 			bufptr -= 1;
 		}
 		break;
@@ -1043,7 +1043,7 @@ static int handle_read_romload(void)
 			printf("Received branch nack, aborting\n");
 			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
-			bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
+			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 		}
 		break;
 	default:
@@ -1536,14 +1536,14 @@ int main(int argc, char **argv)
 		serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
 		tick_timer.cb = &beacon_timer_cb;
 		tick_timer.data = &tick_timer;
-		bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
+		osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 	}
 	else if (dnload.mode == MODE_MTK) {
 		tmp_load_address = MTK_ADDRESS;
 		serial_set_baudrate(MTK_INIT_BAUDRATE);
 		tick_timer.cb = &mtk_timer_cb;
 		tick_timer.data = &tick_timer;
-		bsc_schedule_timer(&tick_timer, 0, dnload.beacon_interval);
+		osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 	}
 
 	dnload.load_address[0] = (tmp_load_address >> 24) & 0xff;

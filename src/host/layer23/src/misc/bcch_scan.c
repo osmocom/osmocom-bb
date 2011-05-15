@@ -105,7 +105,7 @@ struct full_power_scan {
 	struct llist_head cell_list;
 	struct cell_info *cur_cell;
 	uint16_t cur_arfcn;
-	struct timer_list timer;
+	struct osmo_timer_list timer;
 };
 
 static struct full_power_scan fps;
@@ -164,7 +164,7 @@ static int _cinfo_start_arfcn(unsigned int band_arfcn)
 	fps.cur_cell->band_arfcn = band_arfcn;
 	/* FIXME: start timer in case we never get a sync */
 	fps.state = BSCAN_S_WAIT_DATA;
-	bsc_schedule_timer(&fps.timer, 2, 0);
+	osmo_timer_schedule(&fps.timer, 2, 0);
 
 	return 0;
 }

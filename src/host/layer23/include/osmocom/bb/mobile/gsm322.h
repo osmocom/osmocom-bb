@@ -119,7 +119,7 @@ struct gsm322_plmn {
 	struct llist_head	sorted_plmn; /* list of sorted PLMN */
 	struct llist_head	forbidden_la; /* forbidden LAs */
 
-	struct timer_list	timer;
+	struct osmo_timer_list	timer;
 
 	int			plmn_curr; /* current index in sorted_plmn */
 	uint16_t		mcc, mnc; /* current network selected */
@@ -140,7 +140,7 @@ struct gsm322_cellsel {
 	struct llist_head	event_queue; /* event messages */
 	struct llist_head	ba_list; /* BCCH Allocation per PLMN */
 
-	struct timer_list	timer;
+	struct osmo_timer_list	timer;
 
 	uint16_t		mcc, mnc; /* current network to search for */
 	struct gsm322_cs_list	list[1024]; /* cell selection list per freq. */

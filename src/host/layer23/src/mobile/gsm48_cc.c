@@ -338,17 +338,17 @@ static void gsm48_start_cc_timer(struct gsm_trans *trans, int current,
 		sec);
 	trans->cc.timer.cb = gsm48_cc_timeout;
 	trans->cc.timer.data = trans;
-	bsc_schedule_timer(&trans->cc.timer, sec, micro);
+	osmo_timer_schedule(&trans->cc.timer, sec, micro);
 	trans->cc.Tcurrent = current;
 }
 
 /* stop various timers */
 static void gsm48_stop_cc_timer(struct gsm_trans *trans)
 {
-	if (bsc_timer_pending(&trans->cc.timer)) {
+	if (osmo_timer_pending(&trans->cc.timer)) {
 		LOGP(DCC, LOGL_INFO, "stopping pending timer T%x\n",
 			trans->cc.Tcurrent);
-		bsc_del_timer(&trans->cc.timer);
+		osmo_timer_del(&trans->cc.timer);
 		trans->cc.Tcurrent = 0;
 	}
 }

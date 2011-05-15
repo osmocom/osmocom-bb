@@ -163,8 +163,8 @@ struct gsm48_mmlayer {
 	struct llist_head       event_queue;
 
 	/* timers */
-	struct timer_list	t3210, t3211, t3212, t3213;
-	struct timer_list	t3220, t3230, t3240;
+	struct osmo_timer_list	t3210, t3211, t3212, t3213;
+	struct osmo_timer_list	t3220, t3230, t3240;
 	int			t3212_value;
 	int			start_t3211; /* remember to start timer */
 

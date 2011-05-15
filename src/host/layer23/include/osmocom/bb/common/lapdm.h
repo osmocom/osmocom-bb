@@ -42,7 +42,7 @@ struct lapdm_datalink {
 	uint32_t state;
 	int seq_err_cond; /* condition of sequence error */
 	uint8_t own_busy, peer_busy;
-	struct timer_list t200;
+	struct osmo_timer_list t200;
 	uint8_t retrans_ctr;
 	struct llist_head send_queue; /* frames from L3 */
 	struct msgb *send_buffer; /* current frame transmitting */

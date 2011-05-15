@@ -71,7 +71,7 @@ static uint16_t band_range[][2] = {{0, 124}, {512, 885}, {955, 1023}, {0, 0}};
 #define INFO_FLG_SI4	128
 
 static struct osmocom_ms *ms;
-static struct timer_list timer;
+static struct osmo_timer_list timer;
 
 static struct pm_info {
 	uint16_t flags;
@@ -233,8 +233,8 @@ static void timeout_cb(void *arg)
 
 static void stop_timer(void)
 {
-	if (bsc_timer_pending(&timer))
-		bsc_del_timer(&timer);
+	if (osmo_timer_pending(&timer))
+		osmo_timer_del(&timer);
 }
 
 static void start_timer(int sec, int micro)
@@ -242,7 +242,7 @@ static void start_timer(int sec, int micro)
 	stop_timer();
 	timer.cb = timeout_cb;
 	timer.data = ms;
-	bsc_schedule_timer(&timer, sec, micro);
+	osmo_timer_schedule(&timer, sec, micro);
 }
 
 static void start_rach(void)

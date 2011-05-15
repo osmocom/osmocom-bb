@@ -34,7 +34,7 @@
 
 
 static struct {
-	struct timer_list timer;
+	struct osmo_timer_list timer;
 } test_data;
 
 static void test_tmr_cb(void *data)
@@ -42,7 +42,7 @@ static void test_tmr_cb(void *data)
 	struct osmocom_ms *ms = data;
 
 	l1ctl_tx_echo_req(ms, 62);
-	bsc_schedule_timer(&test_data.timer, 1, 0);
+	osmo_timer_schedule(&test_data.timer, 1, 0);
 }
 
 int l23_app_init(struct osmocom_ms *ms)
@@ -50,7 +50,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	test_data.timer.cb = &test_tmr_cb;
 	test_data.timer.data = ms;
 
-	bsc_schedule_timer(&test_data.timer, 1, 0);
+	osmo_timer_schedule(&test_data.timer, 1, 0);
 
 	return 0;
 }

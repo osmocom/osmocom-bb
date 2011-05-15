@@ -711,7 +711,7 @@ static void start_rr_t_meas(struct gsm48_rrlayer *rr, int sec, int micro)
 {
 	rr->t_meas.cb = timeout_rr_meas;
 	rr->t_meas.data = rr;
-	bsc_schedule_timer(&rr->t_meas, sec, micro);
+	osmo_timer_schedule(&rr->t_meas, sec, micro);
 }
 
 static void start_rr_t_rel_wait(struct gsm48_rrlayer *rr, int sec, int micro)
@@ -720,7 +720,7 @@ static void start_rr_t_rel_wait(struct gsm48_rrlayer *rr, int sec, int micro)
 		micro / 1000);
 	rr->t_rel_wait.cb = timeout_rr_t_rel_wait;
 	rr->t_rel_wait.data = rr;
-	bsc_schedule_timer(&rr->t_rel_wait, sec, micro);
+	osmo_timer_schedule(&rr->t_rel_wait, sec, micro);
 }
 
 static void start_rr_t_starting(struct gsm48_rrlayer *rr, int sec, int micro)
@@ -729,7 +729,7 @@ static void start_rr_t_starting(struct gsm48_rrlayer *rr, int sec, int micro)
 		micro / 1000);
 	rr->t_starting.cb = timeout_rr_t_starting;
 	rr->t_starting.data = rr;
-	bsc_schedule_timer(&rr->t_starting, sec, micro);
+	osmo_timer_schedule(&rr->t_starting, sec, micro);
 }
 
 static void start_rr_t3110(struct gsm48_rrlayer *rr, int sec, int micro)
@@ -738,7 +738,7 @@ static void start_rr_t3110(struct gsm48_rrlayer *rr, int sec, int micro)
 		micro / 1000);
 	rr->t3110.cb = timeout_rr_t3110;
 	rr->t3110.data = rr;
-	bsc_schedule_timer(&rr->t3110, sec, micro);
+	osmo_timer_schedule(&rr->t3110, sec, micro);
 }
 
 static void start_rr_t3122(struct gsm48_rrlayer *rr, int sec, int micro)
@@ -747,7 +747,7 @@ static void start_rr_t3122(struct gsm48_rrlayer *rr, int sec, int micro)
 		micro / 1000);
 	rr->t3122.cb = timeout_rr_t3122;
 	rr->t3122.data = rr;
-	bsc_schedule_timer(&rr->t3122, sec, micro);
+	osmo_timer_schedule(&rr->t3122, sec, micro);
 }
 
 static void start_rr_t3124(struct gsm48_rrlayer *rr, int sec, int micro)
@@ -756,7 +756,7 @@ static void start_rr_t3124(struct gsm48_rrlayer *rr, int sec, int micro)
 		micro / 1000);
 	rr->t3124.cb = timeout_rr_t3124;
 	rr->t3124.data = rr;
-	bsc_schedule_timer(&rr->t3124, sec, micro);
+	osmo_timer_schedule(&rr->t3124, sec, micro);
 }
 
 static void start_rr_t3126(struct gsm48_rrlayer *rr, int sec, int micro)
@@ -765,62 +765,62 @@ static void start_rr_t3126(struct gsm48_rrlayer *rr, int sec, int micro)
 		micro / 1000);
 	rr->t3126.cb = timeout_rr_t3126;
 	rr->t3126.data = rr;
-	bsc_schedule_timer(&rr->t3126, sec, micro);
+	osmo_timer_schedule(&rr->t3126, sec, micro);
 }
 
 static void stop_rr_t_meas(struct gsm48_rrlayer *rr)
 {
-	if (bsc_timer_pending(&rr->t_meas)) {
+	if (osmo_timer_pending(&rr->t_meas)) {
 		LOGP(DRR, LOGL_INFO, "stopping pending timer T_meas\n");
-		bsc_del_timer(&rr->t_meas);
+		osmo_timer_del(&rr->t_meas);
 	}
 }
 
 static void stop_rr_t_starting(struct gsm48_rrlayer *rr)
 {
-	if (bsc_timer_pending(&rr->t_starting)) {
+	if (osmo_timer_pending(&rr->t_starting)) {
 		LOGP(DRR, LOGL_INFO, "stopping pending timer T_starting\n");
-		bsc_del_timer(&rr->t_starting);
+		osmo_timer_del(&rr->t_starting);
 	}
 }
 
 static void stop_rr_t_rel_wait(struct gsm48_rrlayer *rr)
 {
-	if (bsc_timer_pending(&rr->t_rel_wait)) {
+	if (osmo_timer_pending(&rr->t_rel_wait)) {
 		LOGP(DRR, LOGL_INFO, "stopping pending timer T_rel_wait\n");
-		bsc_del_timer(&rr->t_rel_wait);
+		osmo_timer_del(&rr->t_rel_wait);
 	}
 }
 
 static void stop_rr_t3110(struct gsm48_rrlayer *rr)
 {
-	if (bsc_timer_pending(&rr->t3110)) {
+	if (osmo_timer_pending(&rr->t3110)) {
 		LOGP(DRR, LOGL_INFO, "stopping pending timer T3110\n");
-		bsc_del_timer(&rr->t3110);
+		osmo_timer_del(&rr->t3110);
 	}
 }
 
 static void stop_rr_t3122(struct gsm48_rrlayer *rr)
 {
-	if (bsc_timer_pending(&rr->t3122)) {
+	if (osmo_timer_pending(&rr->t3122)) {
 		LOGP(DRR, LOGL_INFO, "stopping pending timer T3122\n");
-		bsc_del_timer(&rr->t3122);
+		osmo_timer_del(&rr->t3122);
 	}
 }
 
 static void stop_rr_t3124(struct gsm48_rrlayer *rr)
 {
-	if (bsc_timer_pending(&rr->t3124)) {
+	if (osmo_timer_pending(&rr->t3124)) {
 		LOGP(DRR, LOGL_INFO, "stopping pending timer T3124\n");
-		bsc_del_timer(&rr->t3124);
+		osmo_timer_del(&rr->t3124);
 	}
 }
 
 static void stop_rr_t3126(struct gsm48_rrlayer *rr)
 {
-	if (bsc_timer_pending(&rr->t3126)) {
+	if (osmo_timer_pending(&rr->t3126)) {
 		LOGP(DRR, LOGL_INFO, "stopping pending timer T3126\n");
-		bsc_del_timer(&rr->t3126);
+		osmo_timer_del(&rr->t3126);
 	}
 }
 
@@ -1454,7 +1454,7 @@ fail:
 	if (!rr->n_chan_req) {
 		LOGP(DRR, LOGL_INFO, "Done with sending RANDOM ACCESS "
 			"bursts\n");
-		if (!bsc_timer_pending(&rr->t3126))
+		if (!osmo_timer_pending(&rr->t3126))
 			start_rr_t3126(rr, 5, 0); /* TODO improve! */
 		return 0;
 	}
@@ -2494,7 +2494,7 @@ static int gsm48_rr_rx_imm_ass_rej(struct osmocom_ms *ms, struct msgb *msg)
 			if (t3122_value)
 				start_rr_t3122(rr, t3122_value, 0);
 			/* start timer 3126 if not already */
-			if (!bsc_timer_pending(&rr->t3126))
+			if (!osmo_timer_pending(&rr->t3126))
 				start_rr_t3126(rr, 5, 0); /* TODO improve! */
 			/* stop assignmnet requests */
 			rr->n_chan_req = 0;
@@ -4232,7 +4232,7 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 	uint16_t acc_class;
 
 	/* 3.3.1.1.3.2 */
-	if (bsc_timer_pending(&rr->t3122)) {
+	if (osmo_timer_pending(&rr->t3122)) {
 		if (rrh->cause != RR_EST_CAUSE_EMERGENCY) {
 			LOGP(DRR, LOGL_INFO, "T3122 running, rejecting!\n");
 			cause = RR_REL_CAUSE_T3122;
@@ -5044,7 +5044,7 @@ static int gsm48_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *m
 	}
 
 	/* start timer for sending next HANDOVER ACCESS bursts afterwards */
-	if (!bsc_timer_pending(&rr->t3124)) {
+	if (!osmo_timer_pending(&rr->t3124)) {
 		if (allocated channel is SDCCH)
 			start_rr_t3124(rr, GSM_T3124_675);
 		else

@@ -382,7 +382,7 @@ static void start_mm_t3210(struct gsm48_mmlayer *mm)
 		"seconds\n", GSM_T3210_MS);
 	mm->t3210.cb = timeout_mm_t3210;
 	mm->t3210.data = mm;
-	bsc_schedule_timer(&mm->t3210, GSM_T3210_MS);
+	osmo_timer_schedule(&mm->t3210, GSM_T3210_MS);
 }
 
 static void start_mm_t3211(struct gsm48_mmlayer *mm)
@@ -391,7 +391,7 @@ static void start_mm_t3211(struct gsm48_mmlayer *mm)
 		"%d.%d seconds\n", GSM_T3211_MS);
 	mm->t3211.cb = timeout_mm_t3211;
 	mm->t3211.data = mm;
-	bsc_schedule_timer(&mm->t3211, GSM_T3211_MS);
+	osmo_timer_schedule(&mm->t3211, GSM_T3211_MS);
 }
 
 static void start_mm_t3212(struct gsm48_mmlayer *mm, int sec)
@@ -404,7 +404,7 @@ static void start_mm_t3212(struct gsm48_mmlayer *mm, int sec)
 		"%d seconds\n", sec);
 	mm->t3212.cb = timeout_mm_t3212;
 	mm->t3212.data = mm;
-	bsc_schedule_timer(&mm->t3212, sec, 0);
+	osmo_timer_schedule(&mm->t3212, sec, 0);
 }
 
 static void start_mm_t3213(struct gsm48_mmlayer *mm)
@@ -413,7 +413,7 @@ static void start_mm_t3213(struct gsm48_mmlayer *mm)
 		"%d.%d seconds\n", GSM_T3213_MS);
 	mm->t3213.cb = timeout_mm_t3213;
 	mm->t3213.data = mm;
-	bsc_schedule_timer(&mm->t3213, GSM_T3213_MS);
+	osmo_timer_schedule(&mm->t3213, GSM_T3213_MS);
 }
 
 static void start_mm_t3220(struct gsm48_mmlayer *mm)
@@ -422,7 +422,7 @@ static void start_mm_t3220(struct gsm48_mmlayer *mm)
 		"%d.%d seconds\n", GSM_T3220_MS);
 	mm->t3220.cb = timeout_mm_t3220;
 	mm->t3220.data = mm;
-	bsc_schedule_timer(&mm->t3220, GSM_T3220_MS);
+	osmo_timer_schedule(&mm->t3220, GSM_T3220_MS);
 }
 
 static void start_mm_t3230(struct gsm48_mmlayer *mm)
@@ -431,7 +431,7 @@ static void start_mm_t3230(struct gsm48_mmlayer *mm)
 		"%d.%d seconds\n", GSM_T3230_MS);
 	mm->t3230.cb = timeout_mm_t3230;
 	mm->t3230.data = mm;
-	bsc_schedule_timer(&mm->t3230, GSM_T3230_MS);
+	osmo_timer_schedule(&mm->t3230, GSM_T3230_MS);
 }
 
 static void start_mm_t3240(struct gsm48_mmlayer *mm)
@@ -440,69 +440,69 @@ static void start_mm_t3240(struct gsm48_mmlayer *mm)
 		"seconds\n", GSM_T3240_MS);
 	mm->t3240.cb = timeout_mm_t3240;
 	mm->t3240.data = mm;
-	bsc_schedule_timer(&mm->t3240, GSM_T3240_MS);
+	osmo_timer_schedule(&mm->t3240, GSM_T3240_MS);
 }
 
 static void stop_mm_t3210(struct gsm48_mmlayer *mm)
 {
-	if (bsc_timer_pending(&mm->t3210)) {
+	if (osmo_timer_pending(&mm->t3210)) {
 		LOGP(DMM, LOGL_INFO, "stopping pending (loc. upd. timeout) "
 			"timer T3210\n");
-		bsc_del_timer(&mm->t3210);
+		osmo_timer_del(&mm->t3210);
 	}
 }
 
 static void stop_mm_t3211(struct gsm48_mmlayer *mm)
 {
-	if (bsc_timer_pending(&mm->t3211)) {
+	if (osmo_timer_pending(&mm->t3211)) {
 		LOGP(DMM, LOGL_INFO, "stopping pending (loc. upd. retry "
 			"delay) timer T3211\n");
-		bsc_del_timer(&mm->t3211);
+		osmo_timer_del(&mm->t3211);
 	}
 }
 
 static void stop_mm_t3212(struct gsm48_mmlayer *mm)
 {
-	if (bsc_timer_pending(&mm->t3212)) {
+	if (osmo_timer_pending(&mm->t3212)) {
 		LOGP(DMM, LOGL_INFO, "stopping pending (periodic loc. upd. "
 			"delay) timer T3212\n");
-		bsc_del_timer(&mm->t3212);
+		osmo_timer_del(&mm->t3212);
 	}
 }
 
 static void stop_mm_t3213(struct gsm48_mmlayer *mm)
 {
-	if (bsc_timer_pending(&mm->t3213)) {
+	if (osmo_timer_pending(&mm->t3213)) {
 		LOGP(DMM, LOGL_INFO, "stopping pending (delay after RA "
 			"failure) timer T3213\n");
-		bsc_del_timer(&mm->t3213);
+		osmo_timer_del(&mm->t3213);
 	}
 }
 
 static void stop_mm_t3220(struct gsm48_mmlayer *mm)
 {
-	if (bsc_timer_pending(&mm->t3220)) {
+	if (osmo_timer_pending(&mm->t3220)) {
 		LOGP(DMM, LOGL_INFO, "stopping pending (IMSI detach keepalive) "
 			"timer T3220\n");
-		bsc_del_timer(&mm->t3220);
+		osmo_timer_del(&mm->t3220);
 	}
 }
 
 static void stop_mm_t3230(struct gsm48_mmlayer *mm)
 {
-	if (bsc_timer_pending(&mm->t3230)) {
+	if (osmo_timer_pending(&mm->t3230)) {
 		LOGP(DMM, LOGL_INFO, "stopping pending (MM connection timeout) "
 			"timer T3230\n");
-		bsc_del_timer(&mm->t3230);
+		osmo_timer_del(&mm->t3230);
 	}
 }
 
 static void stop_mm_t3240(struct gsm48_mmlayer *mm)
 {
-	if (bsc_timer_pending(&mm->t3240)) {
+	if (osmo_timer_pending(&mm->t3240)) {
 		LOGP(DMM, LOGL_INFO, "stopping pending (RR release timeout) "
 			"timer T3240\n");
-		bsc_del_timer(&mm->t3240);
+		osmo_timer_del(&mm->t3240);
 	}
 }
 
@@ -920,7 +920,7 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 	 && (substate == GSM48_MM_SST_NORMAL_SERVICE
 	  || substate == GSM48_MM_SST_ATTEMPT_UPDATE)) {
 	  	/* start periodic location update timer */
-		if (!bsc_timer_pending(&mm->t3212))
+		if (!osmo_timer_pending(&mm->t3212))
 			start_mm_t3212(mm, mm->t3212_value);
 		/* perform pending location update */
 		if (mm->lupd_retry) {
@@ -1954,7 +1954,7 @@ static int gsm48_mm_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* new periodic location update timer timeout */
 	if (s->t3212 && s->t3212 != mm->t3212_value) {
-		if (bsc_timer_pending(&mm->t3212)) {
+		if (osmo_timer_pending(&mm->t3212)) {
 			int t;
 			struct timeval current_time;
 
@@ -3865,7 +3865,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	stop_mm_t3212(mm); /* 4.4.2 */
 
 	/* 11.2 re-start pending RR release timer */
-	if (bsc_timer_pending(&mm->t3240)) {
+	if (osmo_timer_pending(&mm->t3240)) {
 		stop_mm_t3240(mm);
 		start_mm_t3240(mm);
 	}

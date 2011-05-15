@@ -51,14 +51,14 @@ static void start_dtmf_timer(struct gsm_call *call, uint16_t ms)
 	LOGP(DCC, LOGL_INFO, "starting DTMF timer %d ms\n", ms);
 	call->dtmf_timer.cb = timeout_dtmf;
 	call->dtmf_timer.data = call;
-	bsc_schedule_timer(&call->dtmf_timer, 0, ms * 1000);
+	osmo_timer_schedule(&call->dtmf_timer, 0, ms * 1000);
 }
 
 static void stop_dtmf_timer(struct gsm_call *call)
 {
-	if (bsc_timer_pending(&call->dtmf_timer)) {
+	if (osmo_timer_pending(&call->dtmf_timer)) {
 		LOGP(DCC, LOGL_INFO, "stopping pending DTMF timer\n");
-		bsc_del_timer(&call->dtmf_timer);
+		osmo_timer_del(&call->dtmf_timer);
 	}
 }
 

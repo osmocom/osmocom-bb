@@ -426,15 +426,15 @@ static void start_plmn_timer(struct gsm322_plmn *plmn, int secs)
 		secs / 60);
 	plmn->timer.cb = plmn_timer_timeout;
 	plmn->timer.data = plmn;
-	bsc_schedule_timer(&plmn->timer, secs, 0);
+	osmo_timer_schedule(&plmn->timer, secs, 0);
 }
 
 /* stop plmn search timer */
 static void stop_plmn_timer(struct gsm322_plmn *plmn)
 {
-	if (bsc_timer_pending(&plmn->timer)) {
+	if (osmo_timer_pending(&plmn->timer)) {
 		LOGP(DPLMN, LOGL_INFO, "Stopping pending timer.\n");
-		bsc_del_timer(&plmn->timer);
+		osmo_timer_del(&plmn->timer);
 	}
 }
 
@@ -444,15 +444,15 @@ void start_cs_timer(struct gsm322_cellsel *cs, int sec, int micro)
 	LOGP(DCS, LOGL_DEBUG, "Starting CS timer with %d seconds.\n", sec);
 	cs->timer.cb = gsm322_cs_timeout;
 	cs->timer.data = cs;
-	bsc_schedule_timer(&cs->timer, sec, micro);
+	osmo_timer_schedule(&cs->timer, sec, micro);
 }
 
 /* stop cell selection timer */
 static void stop_cs_timer(struct gsm322_cellsel *cs)
 {
-	if (bsc_timer_pending(&cs->timer)) {
+	if (osmo_timer_pending(&cs->timer)) {
 		LOGP(DCS, LOGL_DEBUG, "stopping pending CS timer.\n");
-		bsc_del_timer(&cs->timer);
+		osmo_timer_del(&cs->timer);
 	}
 }
 

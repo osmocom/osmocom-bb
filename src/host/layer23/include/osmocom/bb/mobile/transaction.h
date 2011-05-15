@@ -35,7 +35,7 @@ struct gsm_trans {
 			/* current timer and message queue */
 			int Tcurrent;		/* current CC timer */
 			int T308_second;	/* used to send release again */
-			struct timer_list timer;
+			struct osmo_timer_list timer;
 			struct gsm_mncc msg;	/* stores setup/disconnect/release message */
 		} cc;
 #if 0
@@ -43,7 +43,7 @@ struct gsm_trans {
 			uint8_t link_id;	/* RSL Link ID to be used for this trans */
 			int is_mt;	/* is this a MO (0) or MT (1) transfer */
 			enum gsm411_cp_state cp_state;
-			struct timer_list cp_timer;
+			struct osmo_timer_list cp_timer;
 
 			enum gsm411_rp_state rp_state;
 

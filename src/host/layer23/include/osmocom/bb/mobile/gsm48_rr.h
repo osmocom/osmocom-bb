@@ -118,15 +118,15 @@ struct gsm48_rrlayer {
 	struct llist_head       downqueue;
 
 	/* timers */
-	struct timer_list	t_starting; /* starting time for chan. access */
-	struct timer_list	t_rel_wait; /* wait for L2 to transmit UA */
-	struct timer_list	t3110;
-	struct timer_list	t3122;
-	struct timer_list	t3124;
-	struct timer_list	t3126;
+	struct osmo_timer_list	t_starting; /* starting time for chan. access */
+	struct osmo_timer_list	t_rel_wait; /* wait for L2 to transmit UA */
+	struct osmo_timer_list	t3110;
+	struct osmo_timer_list	t3122;
+	struct osmo_timer_list	t3124;
+	struct osmo_timer_list	t3126;
 	int			t3126_value;
 #ifndef TODO
-	struct timer_list	temp_rach_ti; /* temporary timer */
+	struct osmo_timer_list	temp_rach_ti; /* temporary timer */
 #endif
 
 	/* states if RR-EST-REQ was used */
@@ -169,7 +169,7 @@ struct gsm48_rrlayer {
 	uint32_t		ba_range[16];
 
 	/* measurements */
-	struct timer_list	t_meas;
+	struct osmo_timer_list	t_meas;
 	struct gsm48_rr_meas	meas;
 	uint8_t			monitor;
 };

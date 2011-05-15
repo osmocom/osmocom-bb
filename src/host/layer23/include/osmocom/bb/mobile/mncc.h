@@ -40,7 +40,7 @@ struct gsm_call {
 	uint8_t			hold; /* call on hold */
 	uint8_t			ring; /* call ringing/knocking */
 
-	struct timer_list	dtmf_timer;
+	struct osmo_timer_list	dtmf_timer;
 	uint8_t			dtmf_state;
 	uint8_t			dtmf_index;
 	char			dtmf[32]; /* dtmf sequence */
