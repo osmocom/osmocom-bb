@@ -52,13 +52,13 @@ struct osmo_gps g = {
 	0,0
 };
 
-static struct bsc_fd gps_bfd;
+static struct osmo_fd gps_bfd;
 
 #ifdef _HAVE_GPSD
 
 static struct gps_data_t* gdata;
 
-int osmo_gpsd_cb(struct bsc_fd *bfd, unsigned int what)
+int osmo_gpsd_cb(struct osmo_fd *bfd, unsigned int what)
 {
 	struct tm *tm;
 	unsigned diff = 0;
@@ -125,7 +125,7 @@ int osmo_gpsd_open(void)
 		return -1;
 	}
 
-	bsc_register_fd(&gps_bfd);
+	osmo_fd_register(&gps_bfd);
 
 	return 0;
 }
@@ -137,7 +137,7 @@ void osmo_gpsd_close(void)
 
 	LOGP(DGPS, LOGL_INFO, "Disconnecting from gpsd\n");
 
-	bsc_unregister_fd(&gps_bfd);
+	osmo_fd_unregister(&gps_bfd);
 
 	gps_close(gdata);
 	gps_bfd.fd = -1; /* -1 or 0 indicates: 'close' */
@@ -242,7 +242,7 @@ static int nmea_checksum(char *line)
 	return (strtoul(line+1, NULL, 16) == checksum);
 }
 
-int osmo_serialgps_cb(struct bsc_fd *bfd, unsigned int what)
+int osmo_serialgps_cb(struct osmo_fd *bfd, unsigned int what)
 {
 	char buff[128];
 	static char line[128];
@@ -323,7 +323,7 @@ int osmo_serialgps_open(void)
 			printf("Failed to set termios for GPS\n");
 	}
 
-	bsc_register_fd(&gps_bfd);
+	osmo_fd_register(&gps_bfd);
 
 	return 0;
 }
@@ -335,7 +335,7 @@ void osmo_serialgps_close(void)
 
 	LOGP(DGPS, LOGL_INFO, "Close GPS device\n");
 
-	bsc_unregister_fd(&gps_bfd);
+	osmo_fd_unregister(&gps_bfd);
 
 	if (isatty(gps_bfd.fd))
 		tcsetattr(gps_bfd.fd, TCSANOW, &gps_old_termios);

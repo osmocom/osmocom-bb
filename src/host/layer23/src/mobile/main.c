@@ -202,7 +202,7 @@ int main(int argc, char **argv)
 		l23_app_work(&quit);
 		if (quit && llist_empty(&ms_list))
 			break;
-		bsc_select_main(0);
+		osmo_select_main(0);
 	}
 
 	l23_app_exit();

@@ -69,14 +69,14 @@ struct tool_server *tool_server_for_dlci[256];
 struct tool_connection {
 	struct tool_server *server;
 	struct llist_head entry;
-	struct bsc_fd fd;
+	struct osmo_fd fd;
 };
 
 /**
  * server for a tool
  */
 struct tool_server {
-	struct bsc_fd bfd;
+	struct osmo_fd bfd;
 	uint8_t dlci;
 	struct llist_head connections;
 };
@@ -129,7 +129,7 @@ struct dnload {
 	enum romload_state romload_state;
 	enum mtk_state mtk_state;
 	enum dnload_mode mode;
-	struct bsc_fd serial_fd;
+	struct osmo_fd serial_fd;
 	char *filename;
 	char *chainload_filename;
 
@@ -1192,7 +1192,7 @@ static int handle_read_mtk(void)
 	return nbytes;
 }
 
-static int serial_read(struct bsc_fd *fd, unsigned int flags)
+static int serial_read(struct osmo_fd *fd, unsigned int flags)
 {
 	int rc;
 	if (flags & BSC_FD_READ) {
@@ -1264,7 +1264,7 @@ static int version(const char *name)
 	exit(2);
 }
 
-static int un_tool_read(struct bsc_fd *fd, unsigned int flags)
+static int un_tool_read(struct osmo_fd *fd, unsigned int flags)
 {
 	int rc, c;
 	uint16_t length = 0xffff;
@@ -1313,14 +1313,14 @@ static int un_tool_read(struct bsc_fd *fd, unsigned int flags)
 close:
 
 	close(fd->fd);
-	bsc_unregister_fd(fd);
+	osmo_fd_unregister(fd);
 	llist_del(&con->entry);
 	talloc_free(con);
 	return -1;
 }
 
 /* accept a new connection */
-static int tool_accept(struct bsc_fd *fd, unsigned int flags)
+static int tool_accept(struct osmo_fd *fd, unsigned int flags)
 {
 	struct tool_server *srv = (struct tool_server *)fd->data;
 	struct tool_connection *con;
@@ -1347,7 +1347,7 @@ static int tool_accept(struct bsc_fd *fd, unsigned int flags)
 	con->fd.when = BSC_FD_READ;
 	con->fd.cb = un_tool_read;
 	con->fd.data = con;
-	if (bsc_register_fd(&con->fd) != 0) {
+	if (osmo_fd_register(&con->fd) != 0) {
 		fprintf(stderr, "Failed to register the fd.\n");
 		return -1;
 	}
@@ -1363,7 +1363,7 @@ static int register_tool_server(struct tool_server *ts,
 				const char *path,
 				uint8_t dlci)
 {
-	struct bsc_fd *bfd = &ts->bfd;
+	struct osmo_fd *bfd = &ts->bfd;
 	struct sockaddr_un local;
 	unsigned int namelen;
 	int rc;
@@ -1415,7 +1415,7 @@ static int register_tool_server(struct tool_server *ts,
 
 	sercomm_register_rx_cb(dlci, hdlc_tool_cb);
 
-	if (bsc_register_fd(bfd) != 0) {
+	if (osmo_fd_register(bfd) != 0) {
 		fprintf(stderr, "Failed to register the bfd.\n");
 		return -1;
 	}
@@ -1503,7 +1503,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (bsc_register_fd(&dnload.serial_fd) != 0) {
+	if (osmo_fd_register(&dnload.serial_fd) != 0) {
 		fprintf(stderr, "Failed to register the serial.\n");
 		exit(1);
 	}
@@ -1552,7 +1552,7 @@ int main(int argc, char **argv)
 	dnload.load_address[3] = tmp_load_address & 0xff;
 
 	while (1)
-		bsc_select_main(0);
+		osmo_select_main(0);
 
 	close(dnload.serial_fd.fd);
 

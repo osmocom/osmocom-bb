@@ -42,7 +42,7 @@
 #define GSM_L2_LENGTH 256
 #define GSM_L2_HEADROOM 32
 
-static int layer2_read(struct bsc_fd *fd)
+static int layer2_read(struct osmo_fd *fd)
 {
 	struct msgb *msg;
 	u_int16_t len;
@@ -86,7 +86,7 @@ static int layer2_read(struct bsc_fd *fd)
 	return 0;
 }
 
-static int layer2_write(struct bsc_fd *fd, struct msgb *msg)
+static int layer2_write(struct osmo_fd *fd, struct msgb *msg)
 {
 	int rc;
 
@@ -132,7 +132,7 @@ int layer2_open(struct osmocom_ms *ms, const char *socket_path)
 	ms->l2_wq.read_cb = layer2_read;
 	ms->l2_wq.write_cb = layer2_write;
 
-	rc = bsc_register_fd(&ms->l2_wq.bfd);
+	rc = osmo_fd_register(&ms->l2_wq.bfd);
 	if (rc != 0) {
 		fprintf(stderr, "Failed to register fd.\n");
 		close(ms->l2_wq.bfd.fd);
@@ -149,7 +149,7 @@ int layer2_close(struct osmocom_ms *ms)
 
 	close(ms->l2_wq.bfd.fd);
 	ms->l2_wq.bfd.fd = -1;
-	bsc_unregister_fd(&ms->l2_wq.bfd);
+	osmo_fd_unregister(&ms->l2_wq.bfd);
 
 	return 0;
 }

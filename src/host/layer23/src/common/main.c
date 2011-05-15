@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 	while (!quit) {
 		if (l23_app_work)
 			l23_app_work(ms);
-		bsc_select_main(0);
+		osmo_select_main(0);
 	}
 
 	return 0;

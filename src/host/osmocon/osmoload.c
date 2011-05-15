@@ -48,7 +48,7 @@
 
 #define DEFAULT_SOCKET "/tmp/osmocom_loader"
 
-static struct bsc_fd connection;
+static struct osmo_fd connection;
 
 enum {
 	STATE_INIT,
@@ -451,7 +451,7 @@ loader_handle_reply(struct msgb *msg) {
 }
 
 static int
-loader_read_cb(struct bsc_fd *fd, unsigned int flags) {
+loader_read_cb(struct osmo_fd *fd, unsigned int flags) {
 	struct msgb *msg;
 	u_int16_t len;
 	int rc;
@@ -494,7 +494,7 @@ static void
 loader_connect(const char *socket_path) {
 	int rc;
 	struct sockaddr_un local;
-	struct bsc_fd *conn = &connection;
+	struct osmo_fd *conn = &connection;
 
 	local.sun_family = AF_UNIX;
 	strncpy(local.sun_path, socket_path, sizeof(local.sun_path));
@@ -517,7 +517,7 @@ loader_connect(const char *socket_path) {
 	conn->cb = loader_read_cb;
 	conn->data = NULL;
 
-	if (bsc_register_fd(conn) != 0) {
+	if (osmo_fd_register(conn) != 0) {
 		fprintf(stderr, "Failed to register fd.\n");
 		exit(1);
 	}
@@ -1205,7 +1205,7 @@ main(int argc, char **argv) {
 	loader_command(argv[0], argc - optind, argv + optind);
 
 	while(!osmoload.quit) {
-		bsc_select_main(0);
+		osmo_select_main(0);
 	}
 
 	if(osmoload.binfile) {

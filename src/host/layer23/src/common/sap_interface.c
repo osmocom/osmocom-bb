@@ -42,7 +42,7 @@
 #define GSM_SAP_LENGTH 300
 #define GSM_SAP_HEADROOM 32
 
-static int sap_read(struct bsc_fd *fd)
+static int sap_read(struct osmo_fd *fd)
 {
 	struct msgb *msg;
 	u_int16_t len;
@@ -88,7 +88,7 @@ static int sap_read(struct bsc_fd *fd)
 	return 0;
 }
 
-static int sap_write(struct bsc_fd *fd, struct msgb *msg)
+static int sap_write(struct osmo_fd *fd, struct msgb *msg)
 {
 	int rc;
 
@@ -133,7 +133,7 @@ int sap_open(struct osmocom_ms *ms, const char *socket_path)
 	ms->sap_wq.read_cb = sap_read;
 	ms->sap_wq.write_cb = sap_write;
 
-	rc = bsc_register_fd(&ms->sap_wq.bfd);
+	rc = osmo_fd_register(&ms->sap_wq.bfd);
 	if (rc != 0) {
 		fprintf(stderr, "Failed to register fd.\n");
 		return rc;
@@ -149,7 +149,7 @@ int sap_close(struct osmocom_ms *ms)
 
 	close(ms->sap_wq.bfd.fd);
 	ms->sap_wq.bfd.fd = -1;
-	bsc_unregister_fd(&ms->sap_wq.bfd);
+	osmo_fd_unregister(&ms->sap_wq.bfd);
 
 	return 0;
 }
