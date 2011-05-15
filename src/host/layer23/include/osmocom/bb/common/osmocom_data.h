@@ -50,7 +50,7 @@ struct rx_meas_stat {
 struct osmocom_ms {
 	struct llist_head entity;
 	char name[32];
-	struct write_queue l2_wq, sap_wq;
+	struct osmo_wqueue l2_wq, sap_wq;
 	uint16_t test_arfcn;
 
 	uint8_t deleting, shutdown, started;

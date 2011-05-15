@@ -126,7 +126,7 @@ int layer2_open(struct osmocom_ms *ms, const char *socket_path)
 		return rc;
 	}
 
-	write_queue_init(&ms->l2_wq, 100);
+	osmo_wqueue_init(&ms->l2_wq, 100);
 	ms->l2_wq.bfd.data = ms;
 	ms->l2_wq.bfd.when = BSC_FD_READ;
 	ms->l2_wq.read_cb = layer2_read;
@@ -167,7 +167,7 @@ int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg)
 	len = (uint16_t *) msgb_push(msg, sizeof(*len));
 	*len = htons(msg->len - sizeof(*len));
 
-	if (write_queue_enqueue(&ms->l2_wq, msg) != 0) {
+	if (osmo_wqueue_enqueue(&ms->l2_wq, msg) != 0) {
 		LOGP(DL1C, LOGL_ERROR, "Failed to enqueue msg.\n");
 		msgb_free(msg);
 		return -1;

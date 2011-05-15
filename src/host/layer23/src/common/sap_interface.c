@@ -127,7 +127,7 @@ int sap_open(struct osmocom_ms *ms, const char *socket_path)
 		return rc;
 	}
 
-	write_queue_init(&ms->sap_wq, 100);
+	osmo_wqueue_init(&ms->sap_wq, 100);
 	ms->sap_wq.bfd.data = ms;
 	ms->sap_wq.bfd.when = BSC_FD_READ;
 	ms->sap_wq.read_cb = sap_read;
@@ -170,7 +170,7 @@ int osmosap_send(struct osmocom_ms *ms, struct msgb *msg)
 	len = (uint16_t *) msgb_push(msg, sizeof(*len));
 	*len = htons(msg->len - sizeof(*len));
 
-	if (write_queue_enqueue(&ms->sap_wq, msg) != 0) {
+	if (osmo_wqueue_enqueue(&ms->sap_wq, msg) != 0) {
 		LOGP(DSAP, LOGL_ERROR, "Failed to enqueue msg.\n");
 		msgb_free(msg);
 		return -1;
