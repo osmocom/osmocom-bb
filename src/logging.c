@@ -198,6 +198,7 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
 		struct log_category *category;
 		int output = 0;
+		va_list bp;
 
 		category = &tar->categories[subsys];
 		/* subsystem is not supposed to be logged */
@@ -224,7 +225,12 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 		if (!output)
 			continue;
 
+		/* According to the manpage, vsnprintf leaves the value of ap
+		 * in undefined state. Since _output uses vsnprintf and it may
+		 * be called several times, we have to pass a copy of ap. */
+		va_copy(bp, ap);
 		_output(tar, subsys, level, file, line, cont, format, ap);
+		va_end(bp);
 	}
 }
 
