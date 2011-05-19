@@ -66,7 +66,9 @@ struct lapdm_entity {
 	struct lapdm_datalink datalink[_NR_DL_SAPI];
 	int last_tx_dequeue; /* last entity that was dequeued */
 	int tx_pending; /* currently a pending frame not confirmed by L1 */
-	struct osmocom_ms *ms;
+
+	void *l1_ctx;	/* context for layer1 instance */
+	void *l3_ctx;	/* context for layer3 instance */
 };
 
 const char *get_rsl_name(int value);

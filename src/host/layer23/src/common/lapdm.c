@@ -193,7 +193,8 @@ void lapdm_init(struct lapdm_entity *le, struct osmocom_ms *ms)
 	for (i = 0; i < ARRAY_SIZE(le->datalink); i++)
 		lapdm_dl_init(&le->datalink[i], le);
 
-	le->ms = ms;
+	le->l1_ctx = ms;
+	le->l3_ctx = ms;
 }
 
 static void lapdm_dl_flush_send(struct lapdm_datalink *dl)
@@ -285,7 +286,6 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 				uint8_t chan_nr, uint8_t link_id, uint8_t n201)
 {
 	struct lapdm_entity *le = dl->entity;
-	struct osmocom_ms *ms = le->ms;
 
 	/* if there is a pending message, queue it */
 	if (le->tx_pending) {
@@ -299,7 +299,7 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 	/* send the frame now */
 	le->tx_pending = 0; /* disabled flow control */
 	lapdm_pad_msgb(msg, n201);
-	return l1ctl_tx_data_req(ms, msg, chan_nr, link_id);
+	return l1ctl_tx_data_req(le->l1_ctx, msg, chan_nr, link_id);
 }
 
 /* get next frame from the tx queue. because the ms has multiple datalinks,
@@ -307,7 +307,6 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
  */
 int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 {
-	struct osmocom_ms *ms = le->ms;
 	struct lapdm_datalink *dl;
 	int last = le->last_tx_dequeue;
 	int i = last, n = ARRAY_SIZE(le->datalink);
@@ -346,7 +345,7 @@ int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 	/* Pad the frame, we can transmit now */
 	le->tx_pending = 1;
 	lapdm_pad_msgb(msg, n201);
-	return l1ctl_tx_data_req(ms, msg, chan_nr, link_id);
+	return l1ctl_tx_data_req(le->l1_ctx, msg, chan_nr, link_id);
 }
 
 /* Create RSLms various RSLms messages */
@@ -357,7 +356,7 @@ static int send_rslms_rll_l3(uint8_t msg_type, struct lapdm_msg_ctx *mctx,
 	rsl_rll_push_l3(msg, msg_type, mctx->chan_nr, mctx->link_id, 1);
 
 	/* send off the RSLms message to L3 */
-	return rslms_sendmsg(msg, mctx->dl->entity->ms);
+	return rslms_sendmsg(msg, mctx->dl->entity->l3_ctx);
 }
 
 /* Take a B4 format message from L1 and create RSLms UNIT DATA IND */
@@ -379,7 +378,7 @@ static int send_rslms_rll_l3_ui(struct lapdm_msg_ctx *mctx, struct msgb *msg)
 	rllh->data[2] = RSL_IE_MS_POWER;
 	rllh->data[3] = mctx->tx_power_ind;
 	
-	return rslms_sendmsg(msg, mctx->dl->entity->ms);
+	return rslms_sendmsg(msg, mctx->dl->entity->l3_ctx);
 }
 
 static int send_rll_simple(uint8_t msg_type, struct lapdm_msg_ctx *mctx)
@@ -389,7 +388,7 @@ static int send_rll_simple(uint8_t msg_type, struct lapdm_msg_ctx *mctx)
 	msg = rsl_rll_simple(msg_type, mctx->chan_nr, mctx->link_id, 1);
 
 	/* send off the RSLms message to L3 */
-	return rslms_sendmsg(msg, mctx->dl->entity->ms);
+	return rslms_sendmsg(msg, mctx->dl->entity->l3_ctx);
 }
 
 static int rsl_rll_error(uint8_t cause, struct lapdm_msg_ctx *mctx)
@@ -404,7 +403,7 @@ static int rsl_rll_error(uint8_t cause, struct lapdm_msg_ctx *mctx)
 	tlv[0] = RSL_IE_RLM_CAUSE;
 	tlv[1] = 1;
 	tlv[2] = cause;
-	return rslms_sendmsg(msg, mctx->dl->entity->ms);
+	return rslms_sendmsg(msg, mctx->dl->entity->l3_ctx);
 }
 
 static int check_length_ind(struct lapdm_msg_ctx *mctx, uint8_t length_ind)
