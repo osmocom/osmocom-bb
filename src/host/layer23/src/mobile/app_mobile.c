@@ -160,8 +160,12 @@ int mobile_init(struct osmocom_ms *ms)
 	int rc;
 
 	gsm_settings_arfcn(ms);
-	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
-	lapdm_init(&ms->l2_entity.lapdm_acch, ms);
+	ms->l2_entity.lapdm_dcch.l1_ctx = ms;
+	ms->l2_entity.lapdm_dcch.l3_ctx = ms;
+	lapdm_init(&ms->l2_entity.lapdm_dcch);
+	ms->l2_entity.lapdm_acch.l1_ctx = ms;
+	ms->l2_entity.lapdm_acch.l3_ctx = ms;
+	lapdm_init(&ms->l2_entity.lapdm_acch);
 	gsm_sim_init(ms);
 	gsm48_cc_init(ms);
 	gsm_subscr_init(ms);

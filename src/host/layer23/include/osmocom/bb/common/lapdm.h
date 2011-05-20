@@ -75,7 +75,7 @@ const char *get_rsl_name(int value);
 extern const char *lapdm_state_names[];
 
 /* initialize a LAPDm entity */
-void lapdm_init(struct lapdm_entity *le, struct osmocom_ms *ms);
+void lapdm_init(struct lapdm_entity *le);
 
 /* deinitialize a LAPDm entity */
 void lapdm_exit(struct lapdm_entity *le);

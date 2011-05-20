@@ -1,6 +1,6 @@
 /* GSM LAPDm (TS 04.06) implementation */
 
-/* (C) 2010 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2010-2011 by Harald Welte <laforge@gnumonks.org>
  * (C) 2010 by Andreas Eversberg <jolly@eversberg.eu>
  *
  * All Rights Reserved
@@ -186,15 +186,12 @@ static void lapdm_dl_init(struct lapdm_datalink *dl,
 	dl->entity = entity;
 }
 
-void lapdm_init(struct lapdm_entity *le, struct osmocom_ms *ms)
+void lapdm_init(struct lapdm_entity *le)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(le->datalink); i++)
 		lapdm_dl_init(&le->datalink[i], le);
-
-	le->l1_ctx = ms;
-	le->l3_ctx = ms;
 }
 
 static void lapdm_dl_flush_send(struct lapdm_datalink *dl)

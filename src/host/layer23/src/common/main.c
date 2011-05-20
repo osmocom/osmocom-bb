@@ -254,8 +254,13 @@ int main(int argc, char **argv)
 	if (rc < 0)
 		fprintf(stderr, "Failed during sap_open(), no SIM reader\n");
 
-	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
-	lapdm_init(&ms->l2_entity.lapdm_acch, ms);
+	ms->l2_entity.lapdm_dcch.l1_ctx = ms;
+	ms->l2_entity.lapdm_dcch.l3_ctx = ms;
+	lapdm_init(&ms->l2_entity.lapdm_dcch);
+
+	ms->l2_entity.lapdm_acch.l1_ctx = ms;
+	ms->l2_entity.lapdm_acch.l3_ctx = ms;
+	lapdm_init(&ms->l2_entity.lapdm_acch);
 
 	rc = l23_app_init(ms);
 	if (rc < 0)
