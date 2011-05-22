@@ -148,6 +148,9 @@ int gsmtap_source_add_sink_fd(int gsmtap_fd)
 
 int gsmtap_sendmsg(struct gsmtap_inst *gti, struct msgb *msg)
 {
+	if (!gti)
+		return -ENODEV;
+
 	if (gti->ofd_wq_mode)
 		return osmo_wqueue_enqueue(&gti->wq, msg);
 	else {
@@ -174,6 +177,9 @@ int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
 		unsigned int len)
 {
 	struct msgb *msg;
+
+	if (!gti)
+		return -ENODEV;
 
 	msg = gsmtap_makemsg(arfcn, ts, chan_type, ss, fn, signal_dbm,
 			     snr, data, len);
