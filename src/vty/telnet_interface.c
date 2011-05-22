@@ -95,10 +95,16 @@ extern struct host host;
 static void print_welcome(int fd)
 {
 	int ret;
-	static char *msg =
-		"Welcome to the OpenBSC Control interface\r\n";
+	static const char *msg1 = "Welcome to the ";
+	static const char *msg2 = " control interface\r\n";
+	char *app_name = "<unnamed>";
 
-	ret = write(fd, msg, strlen(msg));
+	if (host.app_info->name)
+		app_name = host.app_info->name;
+
+	ret = write(fd, msg1, strlen(msg1));
+	ret = write(fd, app_name, strlen(app_name));
+	ret = write(fd, msg2, strlen(msg2));
 
 	if (host.app_info->copyright)
 		ret = write(fd, host.app_info->copyright, strlen(host.app_info->copyright));
