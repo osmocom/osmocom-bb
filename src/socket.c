@@ -85,7 +85,6 @@ int osmo_sock_init_sa(struct sockaddr *ss, uint16_t type,
 	default:
 		return -EINVAL;
 	}
-	fprintf(stderr, "==> PORT = %u\n", port);
 
 	s = getnameinfo(ss, sa_len, host, NI_MAXHOST,
 			NULL, 0, NI_NUMERICHOST);
