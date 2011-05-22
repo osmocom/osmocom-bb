@@ -20,13 +20,6 @@ struct osmocom_ms;
 #include <osmocom/bb/mobile/gsm48_cc.h>
 #include <osmocom/bb/common/sim.h>
 
-/* A layer2 entity */
-struct osmol2_entity {
-	struct lapdm_entity lapdm_dcch;
-	struct lapdm_entity lapdm_acch;
-	osmol2_cb_t msg_handler;
-};
-
 struct osmosap_entity {
 	osmosap_cb_t msg_handler;
 };
@@ -58,7 +51,7 @@ struct osmocom_ms {
 	struct gsm_settings settings;
 	struct gsm_subscriber subscr;
 	struct gsm_sim sim;
-	struct osmol2_entity l2_entity;
+	struct lapdm_channel lapdm_channel;
 	struct osmosap_entity sap_entity;
 	struct rx_meas_stat meas;
 	struct gsm48_rrlayer rrlayer;

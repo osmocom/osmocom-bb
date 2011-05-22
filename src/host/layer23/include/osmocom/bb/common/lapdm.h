@@ -18,7 +18,6 @@ enum lapdm_state {
 };
 
 struct lapdm_entity;
-struct osmocom_ms;
 
 struct lapdm_msg_ctx {
 	struct lapdm_datalink *dl;
@@ -62,6 +61,9 @@ enum lapdm_dl_sapi {
 	_NR_DL_SAPI
 };
 
+typedef int (*lapdm_cb_t)(struct msgb *msg, struct lapdm_entity *le, void *ctx);
+
+/* register message handler for messages that are sent from L2->L3 */
 struct lapdm_entity {
 	struct lapdm_datalink datalink[_NR_DL_SAPI];
 	int last_tx_dequeue; /* last entity that was dequeued */
@@ -69,16 +71,31 @@ struct lapdm_entity {
 
 	void *l1_ctx;	/* context for layer1 instance */
 	void *l3_ctx;	/* context for layer3 instance */
+
+	lapdm_cb_t l1_cb;	/* callback for sending stuff to L1 */
+	lapdm_cb_t l3_cb;	/* callback for sending stuff to L3 */
+
+	struct lapdm_channel *lapdm_ch;
+};
+
+/* the two lapdm_entities that form a GSM logical channel (ACCH + DCCH) */
+struct lapdm_channel {
+	struct llist_head list;
+	char *name;
+	struct lapdm_entity lapdm_acch;
+	struct lapdm_entity lapdm_dcch;
 };
 
 const char *get_rsl_name(int value);
 extern const char *lapdm_state_names[];
 
 /* initialize a LAPDm entity */
-void lapdm_init(struct lapdm_entity *le);
+void lapdm_entity_init(struct lapdm_entity *le);
+void lapdm_channel_init(struct lapdm_channel *lc);
 
 /* deinitialize a LAPDm entity */
-void lapdm_exit(struct lapdm_entity *le);
+void lapdm_entity_exit(struct lapdm_entity *le);
+void lapdm_channel_exit(struct lapdm_channel *lc);
 
 /* input into layer2 (from layer 1) */
 int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_dl *l1i);
@@ -89,14 +106,8 @@ int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms,
 			struct l1ctl_info_dl *dl);
 
 /* input into layer2 (from layer 3) */
-int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms);
+int lapdm_rslms_recvmsg(struct msgb *msg, struct lapdm_channel *lc);
 
-/* sending messages up from L2 to L3 */
-int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms);
-
-typedef int (*osmol2_cb_t)(struct msgb *msg, struct osmocom_ms *ms);
-
-/* register message handler for messages that are sent from L2->L3 */
-int osmol2_register_handler(struct osmocom_ms *ms, osmol2_cb_t cb);
+int osmol2_register_handler(struct osmocom_ms *ms, lapdm_cb_t cb);
 
 #endif /* _OSMOCOM_LAPDM_H */

@@ -297,7 +297,7 @@ static void start_rach(void)
 
 	start_timer(RACH_WAIT);
 
-	rslms_recvmsg(nmsg, ms);
+	lapdm_rslms_recvmsg(nmsg, &ms->lapdm_channel);
 }
 
 static void start_sync(void)
@@ -757,8 +757,9 @@ static int rcv_cch(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-static int rcv_rsl(struct msgb *msg, struct osmocom_ms *ms)
+static int rcv_rsl(struct msgb *msg, struct lapdm_entity *le, void *l3ctx)
 {
+	struct osmocom_ms *ms = l3ctx;
 	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
 	int rc = 0;
 

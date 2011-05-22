@@ -134,8 +134,9 @@ static int rcv_rll(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-static int rcv_rsl(struct msgb *msg, struct osmocom_ms *ms)
+static int rcv_rsl(struct msgb *msg, struct lapdm_entity *le, void *l3ctx)
 {
+	struct osmocom_ms *ms = l3ctx;
 	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
 	int rc = 0;
 

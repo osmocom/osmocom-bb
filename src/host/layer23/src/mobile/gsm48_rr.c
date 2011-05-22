@@ -74,6 +74,7 @@
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1l2_interface.h>
+#include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/l1ctl.h>
@@ -511,7 +512,7 @@ static int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
 	rsl_rll_push_l3(msg, msg_type, rr->cd_now.chan_nr,
 		rr->cd_now.link_id, 1);
 
-	return rslms_recvmsg(msg, ms);
+	return lapdm_rslms_recvmsg(msg, &ms->lapdm_channel);
 }
 
 /* push rsl header + release mode and send (RSL-SAP) */
@@ -523,12 +524,13 @@ static int gsm48_send_rsl_rel(struct osmocom_ms *ms, uint8_t msg_type,
 	rsl_rll_push_hdr(msg, msg_type, rr->cd_now.chan_nr,
 		rr->cd_now.link_id, 1);
 
-	return rslms_recvmsg(msg, ms);
+	return lapdm_rslms_recvmsg(msg, &ms->lapdm_channel);
 }
 
 /* enqueue messages (RSL-SAP) */
-static int gsm48_rx_rsl(struct msgb *msg, struct osmocom_ms *ms)
+static int rcv_rsl(struct msgb *msg, struct lapdm_entity *le, void *l3ctx)
 {
+	struct osmocom_ms *ms = l3ctx;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	msgb_enqueue(&rr->rsl_upqueue, msg);
@@ -1620,7 +1622,7 @@ fail:
 	/* store ra until confirmed, then copy it with time into cr_hist */
 	rr->cr_ra = chan_req;
 
-	return rslms_recvmsg(nmsg, ms);
+	return lapdm_rslms_recvmsg(nmsg, &ms->lapdm_channel);
 }
 
 /*
@@ -2763,7 +2765,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 	rsl_rll_push_hdr(nmsg, RSL_MT_UNIT_DATA_REQ, rr->cd_now.chan_nr,
 		0x40, 1);
 
-	return rslms_recvmsg(nmsg, ms);
+	return lapdm_rslms_recvmsg(nmsg, &ms->lapdm_channel);
 }
 
 /*
@@ -5055,7 +5057,7 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 	INIT_LLIST_HEAD(&rr->downqueue);
 	/* downqueue is handled here, so don't add_work */
 
-	osmol2_register_handler(ms, &gsm48_rx_rsl);
+	osmol2_register_handler(ms, &rcv_rsl);
 
 	start_rr_t_meas(rr, 1, 0);
 

@@ -143,8 +143,7 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	gsm_subscr_exit(ms);
 	gsm48_cc_exit(ms);
 	gsm_sim_exit(ms);
-	lapdm_exit(&ms->l2_entity.lapdm_acch);
-	lapdm_exit(&ms->l2_entity.lapdm_dcch);
+	lapdm_channel_exit(&ms->lapdm_channel);
 
 	ms->shutdown = 2; /* being down */
 	vty_notify(ms, NULL);
@@ -160,12 +159,11 @@ int mobile_init(struct osmocom_ms *ms)
 	int rc;
 
 	gsm_settings_arfcn(ms);
-	ms->l2_entity.lapdm_dcch.l1_ctx = ms;
-	ms->l2_entity.lapdm_dcch.l3_ctx = ms;
-	lapdm_init(&ms->l2_entity.lapdm_dcch);
-	ms->l2_entity.lapdm_acch.l1_ctx = ms;
-	ms->l2_entity.lapdm_acch.l3_ctx = ms;
-	lapdm_init(&ms->l2_entity.lapdm_acch);
+	ms->lapdm_channel.lapdm_dcch.l1_ctx = ms;
+	ms->lapdm_channel.lapdm_dcch.l3_ctx = ms;
+	ms->lapdm_channel.lapdm_acch.l1_ctx = ms;
+	ms->lapdm_channel.lapdm_acch.l3_ctx = ms;
+	lapdm_channel_init(&ms->lapdm_channel);
 	gsm_sim_init(ms);
 	gsm48_cc_init(ms);
 	gsm_subscr_init(ms);

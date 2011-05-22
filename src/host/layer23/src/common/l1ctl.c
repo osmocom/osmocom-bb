@@ -222,9 +222,9 @@ printf("Dropping frame with %u bit errors\n", dl->num_biterr);
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
-		le = &ms->l2_entity.lapdm_acch;
+		le = &ms->lapdm_channel.lapdm_acch;
 	else
-		le = &ms->l2_entity.lapdm_dcch;
+		le = &ms->lapdm_channel.lapdm_dcch;
 	/* make local stack copy of l1ctl_info_dl, as LAPDm will
 	 * overwrite skb hdr */
 	memcpy(&dl_cpy, dl, sizeof(dl_cpy));
@@ -249,9 +249,9 @@ static int rx_ph_data_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
-		le = &ms->l2_entity.lapdm_acch;
+		le = &ms->lapdm_channel.lapdm_acch;
 	else
-		le = &ms->l2_entity.lapdm_dcch;
+		le = &ms->lapdm_channel.lapdm_dcch;
 
 	/* send it up into LAPDm */
 	l2_ph_data_conf(msg, le);

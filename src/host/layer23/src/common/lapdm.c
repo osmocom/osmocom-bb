@@ -186,13 +186,20 @@ static void lapdm_dl_init(struct lapdm_datalink *dl,
 	dl->entity = entity;
 }
 
-void lapdm_init(struct lapdm_entity *le)
+void lapdm_entity_init(struct lapdm_entity *le)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(le->datalink); i++)
 		lapdm_dl_init(&le->datalink[i], le);
 }
+
+void lapdm_channel_init(struct lapdm_channel *lc)
+{
+	lapdm_entity_init(&lc->lapdm_acch);
+	lapdm_entity_init(&lc->lapdm_dcch);
+}
+
 
 static void lapdm_dl_flush_send(struct lapdm_datalink *dl)
 {
@@ -220,7 +227,7 @@ static void lapdm_dl_flush_tx(struct lapdm_datalink *dl)
 		dl->tx_length[i] = 0;
 }
 
-void lapdm_exit(struct lapdm_entity *le)
+void lapdm_entity_exit(struct lapdm_entity *le)
 {
 	unsigned int i;
 	struct lapdm_datalink *dl;
@@ -232,6 +239,12 @@ void lapdm_exit(struct lapdm_entity *le)
 		if (dl->rcv_buffer)
 			msgb_free(dl->rcv_buffer);
 	}
+}
+
+void lapdm_channel_exit(struct lapdm_channel *lc)
+{
+	lapdm_entity_exit(&lc->lapdm_acch);
+	lapdm_entity_exit(&lc->lapdm_dcch);
 }
 
 static void lapdm_dl_newstate(struct lapdm_datalink *dl, uint32_t state)
@@ -276,6 +289,18 @@ static void lapdm_pad_msgb(struct msgb *msg, uint8_t n201)
 
 	data = msgb_put(msg, pad_len);
 	memset(data, 0x2B, pad_len);
+}
+
+/* input function that L2 calls when sending messages up to L3 */
+static int rslms_sendmsg(struct msgb *msg, struct lapdm_entity *le)
+{
+	if (!le->l3_cb) {
+		msgb_free(msg);
+		return -EIO;
+	}
+
+	/* call the layer2 message handler that is registered */
+	return le->l3_cb(msg, le, le->l3_ctx);
 }
 
 /* write a frame into the tx queue */
@@ -353,7 +378,7 @@ static int send_rslms_rll_l3(uint8_t msg_type, struct lapdm_msg_ctx *mctx,
 	rsl_rll_push_l3(msg, msg_type, mctx->chan_nr, mctx->link_id, 1);
 
 	/* send off the RSLms message to L3 */
-	return rslms_sendmsg(msg, mctx->dl->entity->l3_ctx);
+	return rslms_sendmsg(msg, mctx->dl->entity);
 }
 
 /* Take a B4 format message from L1 and create RSLms UNIT DATA IND */
@@ -375,7 +400,7 @@ static int send_rslms_rll_l3_ui(struct lapdm_msg_ctx *mctx, struct msgb *msg)
 	rllh->data[2] = RSL_IE_MS_POWER;
 	rllh->data[3] = mctx->tx_power_ind;
 	
-	return rslms_sendmsg(msg, mctx->dl->entity->l3_ctx);
+	return rslms_sendmsg(msg, mctx->dl->entity);
 }
 
 static int send_rll_simple(uint8_t msg_type, struct lapdm_msg_ctx *mctx)
@@ -385,7 +410,7 @@ static int send_rll_simple(uint8_t msg_type, struct lapdm_msg_ctx *mctx)
 	msg = rsl_rll_simple(msg_type, mctx->chan_nr, mctx->link_id, 1);
 
 	/* send off the RSLms message to L3 */
-	return rslms_sendmsg(msg, mctx->dl->entity->l3_ctx);
+	return rslms_sendmsg(msg, mctx->dl->entity);
 }
 
 static int rsl_rll_error(uint8_t cause, struct lapdm_msg_ctx *mctx)
@@ -400,7 +425,7 @@ static int rsl_rll_error(uint8_t cause, struct lapdm_msg_ctx *mctx)
 	tlv[0] = RSL_IE_RLM_CAUSE;
 	tlv[1] = 1;
 	tlv[2] = cause;
-	return rslms_sendmsg(msg, mctx->dl->entity->l3_ctx);
+	return rslms_sendmsg(msg, mctx->dl->entity);
 }
 
 static int check_length_ind(struct lapdm_msg_ctx *mctx, uint8_t length_ind)
@@ -2023,9 +2048,10 @@ static int rslms_rx_rll_rel_req_idle(struct msgb *msg, struct lapdm_datalink *dl
 }
 
 /* L3 requests channel in idle state */
-static int rslms_rx_chan_rqd(struct osmocom_ms *ms, struct msgb *msg)
+static int rslms_rx_chan_rqd(struct lapdm_channel *lc, struct msgb *msg)
 {
 	struct abis_rsl_cchan_hdr *cch = msgb_l2(msg);
+	void *l1ctx = lc->lapdm_dcch.l1_ctx;
 	int rc;
 
 	if (msgb_l2len(msg) < sizeof(*cch) + 4 + 2 + 2) {
@@ -2046,9 +2072,9 @@ static int rslms_rx_chan_rqd(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* TA = 0 - delay */
-	rc = l1ctl_tx_param_req(ms, 0 - cch->data[5], cch->data[7]);
+	rc = l1ctl_tx_param_req(l1ctx, 0 - cch->data[5], cch->data[7]);
 
-	rc = l1ctl_tx_rach_req(ms, cch->data[1],
+	rc = l1ctl_tx_rach_req(l1ctx, cch->data[1],
 		((cch->data[2] & 0x7f) << 8) | cch->data[3], cch->data[2] >> 7);
 
 	msgb_free(msg);
@@ -2078,7 +2104,7 @@ int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms,
 	ref->t3_low = tm.t3 & 0x7;
 	ref->t3_high = tm.t3 >> 3;
 	
-	return rslms_sendmsg(msg, ms);
+	return rslms_sendmsg(msg, &ms->lapdm_channel.lapdm_dcch);
 }
 
 /* Names for Radio Link Layer Management */
@@ -2169,7 +2195,7 @@ static struct l2downstate {
 	(sizeof(l2downstatelist) / sizeof(struct l2downstate))
 
 /* incoming RSLms RLL message from L3 */
-static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
+static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 {
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	int msg_type = rllh->c.msg_type;
@@ -2185,9 +2211,9 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 	}
 
 	if (rllh->link_id & 0x40)
-		le = &ms->l2_entity.lapdm_acch;
+		le = &lc->lapdm_acch;
 	else
-		le = &ms->l2_entity.lapdm_dcch;
+		le = &lc->lapdm_dcch;
 
 	/* G.2.1 No action schall be taken on frames containing an unallocated
 	 * SAPI.
@@ -2198,8 +2224,8 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 		return -EINVAL;
 	}
 
-	LOGP(DRSL, LOGL_INFO, "(ms %s) RLL Message '%s' received in state %s\n",
-		ms->name, get_rsl_name(msg_type), lapdm_state_names[dl->state]);
+	LOGP(DRSL, LOGL_INFO, "(%p) RLL Message '%s' received in state %s\n",
+		lc->name, get_rsl_name(msg_type), lapdm_state_names[dl->state]);
 
 	/* find function for current state and message */
 	for (i = 0; i < L2DOWNSLLEN; i++) {
@@ -2226,7 +2252,7 @@ static int rslms_rx_rll(struct msgb *msg, struct osmocom_ms *ms)
 }
 
 /* incoming RSLms COMMON CHANNEL message from L3 */
-static int rslms_rx_com_chan(struct msgb *msg, struct osmocom_ms *ms)
+static int rslms_rx_com_chan(struct msgb *msg, struct lapdm_channel *lc)
 {
 	struct abis_rsl_cchan_hdr *cch = msgb_l2(msg);
 	int msg_type = cch->c.msg_type;
@@ -2240,7 +2266,7 @@ static int rslms_rx_com_chan(struct msgb *msg, struct osmocom_ms *ms)
 	switch (msg_type) {
 	case RSL_MT_CHAN_RQD:
 		/* create and send RACH request */
-		rc = rslms_rx_chan_rqd(ms, msg);
+		rc = rslms_rx_chan_rqd(lc, msg);
 		break;
 	default:
 		LOGP(DRSL, LOGL_NOTICE, "Unknown COMMON CHANNEL msg %d!\n",
@@ -2253,7 +2279,7 @@ static int rslms_rx_com_chan(struct msgb *msg, struct osmocom_ms *ms)
 }
 
 /* input into layer2 (from layer 3) */
-int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms)
+int lapdm_rslms_recvmsg(struct msgb *msg, struct lapdm_channel *lc)
 {
 	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
 	int rc = 0;
@@ -2265,10 +2291,10 @@ int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms)
 
 	switch (rslh->msg_discr & 0xfe) {
 	case ABIS_RSL_MDISC_RLL:
-		rc = rslms_rx_rll(msg, ms);
+		rc = rslms_rx_rll(msg, lc);
 		break;
 	case ABIS_RSL_MDISC_COM_CHAN:
-		rc = rslms_rx_com_chan(msg, ms);
+		rc = rslms_rx_com_chan(msg, lc);
 		break;
 	default:
 		LOGP(DRSL, LOGL_ERROR, "unknown RSLms message "
@@ -2280,22 +2306,12 @@ int rslms_recvmsg(struct msgb *msg, struct osmocom_ms *ms)
 	return rc;
 }
 
-/* input function that L2 calls when sending messages up to L3 */
-int rslms_sendmsg(struct msgb *msg, struct osmocom_ms *ms)
+int osmol2_register_handler(struct osmocom_ms *ms, lapdm_cb_t cb)
 {
-	if (!ms->l2_entity.msg_handler) {
-		msgb_free(msg);
-		return -EIO;
-	}
-
-	/* call the layer2 message handler that is registered */
-	return ms->l2_entity.msg_handler(msg, ms);
-}
-
-/* register message handler for messages that are sent from L2->L3 */
-int osmol2_register_handler(struct osmocom_ms *ms, osmol2_cb_t cb)
-{
-	ms->l2_entity.msg_handler = cb;
+	ms->lapdm_channel.lapdm_acch.l3_cb = cb;
+	ms->lapdm_channel.lapdm_dcch.l3_cb = cb;
+	ms->lapdm_channel.lapdm_acch.l3_ctx = ms;
+	ms->lapdm_channel.lapdm_dcch.l3_ctx = ms;
 
 	return 0;
 }
