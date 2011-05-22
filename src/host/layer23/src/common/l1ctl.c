@@ -47,6 +47,8 @@
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
 
+extern struct gsmtap_inst *gsmtap_inst;
+
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {
 	struct l1ctl_hdr *l1h;
@@ -214,9 +216,9 @@ printf("Dropping frame with %u bit errors\n", dl->num_biterr);
 
 	/* send CCCH data via GSMTAP */
 	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
-	gsmtap_sendmsg(ntohs(dl->band_arfcn), chan_ts, gsmtap_chan_type, chan_ss,
-			tm.fn, dl->rx_level-110, dl->snr, ccch->data,
-			sizeof(ccch->data));
+	gsmtap_send(gsmtap_inst, ntohs(dl->band_arfcn), chan_ts,
+		    gsmtap_chan_type, chan_ss, tm.fn, dl->rx_level-110,
+		    dl->snr, ccch->data, sizeof(ccch->data));
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
@@ -280,8 +282,8 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	/* send copy via GSMTAP */
 	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
 	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, link_id);
-	gsmtap_sendmsg(0|0x4000, chan_ts, gsmtap_chan_type, chan_ss,
-			0, 127, 255, msg->l2h, msgb_l2len(msg));
+	gsmtap_send(gsmtap_inst, 0|0x4000, chan_ts, gsmtap_chan_type,
+		    chan_ss, 0, 127, 255, msg->l2h, msgb_l2len(msg));
 
 	/* prepend uplink info header */
 	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));

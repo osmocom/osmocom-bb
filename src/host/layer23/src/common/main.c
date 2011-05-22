@@ -35,6 +35,7 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/gsmtap.h>
 #include <osmocom/core/utils.h>
 
 #include <arpa/inet.h>
@@ -50,15 +51,18 @@
 struct log_target *stderr_target;
 
 void *l23_ctx = NULL;
+
 static char *layer2_socket_path = "/tmp/osmocom_l2";
 static char *sap_socket_path = "/tmp/osmocom_sap";
 struct llist_head ms_list;
 static struct osmocom_ms *ms = NULL;
-static uint32_t gsmtap_ip = 0;
+static char *gsmtap_ip = NULL;
+
 unsigned short vty_port = 4247;
 int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
 int (*l23_app_exit) (struct osmocom_ms *ms) = NULL;
 int quit = 0;
+struct gsmtap_inst *gsmtap_inst;
 
 const char *openbsc_copyright =
 	"%s"
@@ -139,7 +143,6 @@ static void build_config(char **opt, struct option **option)
 
 static void handle_options(int argc, char **argv)
 {
-	struct sockaddr_in gsmtap;
 	struct l23_app_info *app = l23_app_info();
 	struct option *long_options;
 	char *opt;
@@ -170,11 +173,7 @@ static void handle_options(int argc, char **argv)
 			ms->test_arfcn = atoi(optarg);
 			break;
 		case 'i':
-			if (!inet_aton(optarg, &gsmtap.sin_addr)) {
-				perror("inet_aton");
-				exit(2);
-			}
-			gsmtap_ip = ntohl(gsmtap.sin_addr.s_addr);
+			gsmtap_ip = optarg;
 			break;
 		case 'v':
 			vty_port = atoi(optarg);
@@ -263,11 +262,12 @@ int main(int argc, char **argv)
 		exit(1);
 
 	if (gsmtap_ip) {
-		rc = gsmtap_init(gsmtap_ip);
-		if (rc < 0) {
+		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
+		if (!gsmtap_inst) {
 			fprintf(stderr, "Failed during gsmtap_init()\n");
 			exit(1);
 		}
+		gsmtap_source_add_sink(gsmtap_inst);
 	}
 
 	signal(SIGINT, sighandler);

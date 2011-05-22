@@ -28,6 +28,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/gsmtap.h>
 #include <osmocom/core/signal.h>
 
 #include <arpa/inet.h>
@@ -48,7 +49,8 @@ struct log_target *stderr_target;
 
 void *l23_ctx = NULL;
 struct llist_head ms_list;
-static uint32_t gsmtap_ip = 0;
+static char *gsmtap_ip = 0;
+struct gsmtap_inst *gsmtap_inst = NULL;
 unsigned short vty_port = 4247;
 int debug_set = 0;
 char *config_dir = NULL;
@@ -85,7 +87,6 @@ static void print_help()
 
 static void handle_options(int argc, char **argv)
 {
-	struct sockaddr_in gsmtap;
 	while (1) {
 		int option_index = 0, c;
 		static struct option long_options[] = {
@@ -108,11 +109,7 @@ static void handle_options(int argc, char **argv)
 			exit(0);
 			break;
 		case 'i':
-			if (!inet_aton(optarg, &gsmtap.sin_addr)) {
-				perror("inet_aton");
-				exit(2);
-			}
-			gsmtap_ip = ntohl(gsmtap.sin_addr.s_addr);
+			gsmtap_ip = optarg;
 			break;
 		case 'v':
 			vty_port = atoi(optarg);
@@ -171,11 +168,12 @@ int main(int argc, char **argv)
 	log_set_log_level(stderr_target, LOGL_INFO);
 
 	if (gsmtap_ip) {
-		rc = gsmtap_init(gsmtap_ip);
-		if (rc < 0) {
+		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
+		if (!gsmtap_inst) {
 			fprintf(stderr, "Failed during gsmtap_init()\n");
 			exit(1);
 		}
+		gsmtap_source_add_sink(gsmtap_inst);
 	}
 
 	home = getenv("HOME");
