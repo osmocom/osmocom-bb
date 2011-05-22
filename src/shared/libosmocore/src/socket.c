@@ -1,5 +1,7 @@
 #include "../config.h"
 
+#ifdef HAVE_SYS_SOCKET_H
+
 #include <osmocom/core/logging.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/socket.h>
@@ -97,7 +99,7 @@ int osmo_sock_init_sa(struct sockaddr *ss, uint16_t type,
 }
 
 static int sockaddr_equal(const struct sockaddr *a,
-			  const struct sockaddr *b, socklen_t len)
+			  const struct sockaddr *b, unsigned int len)
 {
 	struct sockaddr_in *sin_a, *sin_b;
 	struct sockaddr_in6 *sin6_a, *sin6_b;
@@ -141,3 +143,5 @@ int osmo_sockaddr_is_local(struct sockaddr *addr, socklen_t addrlen)
 
 	return 0;
 }
+
+#endif /* HAVE_SYS_SOCKET_H */

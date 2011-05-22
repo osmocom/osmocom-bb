@@ -32,10 +32,9 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/rsl.h>
 
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
+
+#include <arpa/inet.h>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -111,6 +110,11 @@ struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
 	return msg;
 }
 
+#ifdef HAVE_SYS_SOCKET_H
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+
 /* Open a GSMTAP source (sending) socket, conncet it to host/port and
  * return resulting fd */
 int gsmtap_source_init_fd(const char *host, uint16_t port)
@@ -141,8 +145,6 @@ int gsmtap_source_add_sink_fd(int gsmtap_fd)
 
 	return -ENODEV;
 }
-
-#ifdef HAVE_SYS_SELECT_H
 
 int gsmtap_sendmsg(struct gsmtap_inst *gti, struct msgb *msg)
 {
@@ -270,4 +272,4 @@ struct gsmtap_inst *gsmtap_source_init(const char *host, uint16_t port,
 	return gti;
 }
 
-#endif /* HAVE_SYS_SELECT_H */
+#endif /* HAVE_SYS_SOCKET_H */
