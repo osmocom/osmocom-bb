@@ -9,8 +9,8 @@ const enum abis_nm_msgtype abis_nm_no_ack_nack[3];
 const enum abis_nm_msgtype abis_nm_sw_load_msgs[9];
 const enum abis_nm_msgtype abis_nm_nacks[33];
 
-const struct value_string abis_nm_obj_class_names[];
-const struct value_string abis_nm_adm_state_names[];
+extern const struct value_string abis_nm_obj_class_names[];
+extern const struct value_string abis_nm_adm_state_names[];
 
 const char *abis_nm_nack_cause_name(uint8_t cause);
 const char *abis_nm_nack_name(uint8_t nack);
