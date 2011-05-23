@@ -35,9 +35,9 @@ void rffe_mode(enum gsm_band band, int tx)
 	/* Then we selectively set the bits on, if required */
 	if (tx) {
 		tspact &= ~TRENA;
-		if (band == GSM_BAND_900)
+		if (band == GSM_BAND_850 || band == GSM_BAND_900)
 			tspact &= ~GSM_TXEN;
-		tspact |= PA_ENABLE;	/* Dieter: TODO */
+		tspact |= PA_ENABLE;
 	}
 #endif /* TRANSMIT_SUPPORT */
 
