@@ -595,7 +595,15 @@ int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 	dat = msgb_put(msg, length);
 	memcpy(dat, data, length);
 
-	return osmo_send_l1(ms, msg);
+	/* strip l1 header, we want to dump the raw apdu into the socket */
+	msgb_pull(msg, sizeof(struct l1ctl_hdr));
+	msg->l1h = NULL;
+	LOGP(DSIM, LOGL_INFO, "Sending: '%s'\n", hexdump(msg->data, msg->len));
+
+	if(ms->settings.sap_socket_path[0] == 0)
+		return osmo_send_l1(ms, msg);
+	else 
+		return osmosap_send_apdu(ms, msg);
 }
 
 /* just forward the SIM response to the SIM handler */

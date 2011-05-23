@@ -438,7 +438,7 @@ DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
 		return CMD_WARNING;
 
 	if (ms->subscr.sim_valid) {
-		vty_out(vty, "SIM already presend, remove first!%s",
+		vty_out(vty, "SIM already present, remove first!%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -471,15 +471,25 @@ DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
 	"SIM actions\nSelect SIM from reader\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
+	struct gsm_settings *set = &ms->settings;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
 	if (ms->subscr.sim_valid) {
-		vty_out(vty, "SIM already presend, remove first!%s",
+		vty_out(vty, "SIM already present, remove first!%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
+	}
+
+	if(access(set->sap_socket_path, F_OK) == 0){
+		if(osmosap_init(ms) != 0){
+			return CMD_WARNING;
+		}
+	} else {
+		/* this is only so we can check the first byte to be null in l1ctl_tx_sim_req */
+		set->sap_socket_path[0] = 0;
 	}
 
 	gsm_subscr_simcard(ms);
@@ -648,6 +658,27 @@ DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 	ms->subscr.tmsi = 0xffffffff;
 
 	gsm_subscr_write_loci(ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_sapsocket, sim_sapsocket_cmd, "sim sap-socket MS_NAME SOCKET_PATH",
+	"SIM actions\nEnter SAP socket used instead of SIM driver for card\nName of MS (see \"show ms\")\n"
+	"socket path")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if(!argv[1]){
+		vty_out(vty, "You must specify a SAP socket path%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+
+	osmosap_sapsocket(ms, (char *)argv[1]);
 
 	return CMD_SUCCESS;
 }
@@ -2296,6 +2327,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &sim_enable_pin_cmd);
 	install_element(ENABLE_NODE, &sim_change_pin_cmd);
 	install_element(ENABLE_NODE, &sim_unblock_pin_cmd);
+	install_element(ENABLE_NODE, &sim_sapsocket_cmd);
 	install_element(ENABLE_NODE, &sim_lai_cmd);
 	install_element(ENABLE_NODE, &network_search_cmd);
 	install_element(ENABLE_NODE, &network_show_cmd);

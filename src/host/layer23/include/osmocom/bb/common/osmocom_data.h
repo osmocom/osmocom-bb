@@ -29,6 +29,8 @@ struct osmol2_entity {
 
 struct osmosap_entity {
 	osmosap_cb_t msg_handler;
+	uint8_t sap_state;
+	uint16_t max_msg_size;
 };
 
 /* RX measurement statistics */

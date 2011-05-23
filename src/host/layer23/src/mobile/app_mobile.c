@@ -177,16 +177,6 @@ int mobile_init(struct osmocom_ms *ms)
 		return rc;
 	}
 
-#if 0
-	rc = sap_open(ms, ms->settings.sap_socket_path);
-	if (rc < 0) {
-		fprintf(stderr, "Failed during sap_open(), no SIM reader\n");
-		ms->sap_wq.bfd.fd = -1;
-		mobile_exit(ms, 1);
-		return rc;
-	}
-#endif
-
 	if (mncc_recv_app)
 		ms->cclayer.mncc_recv = mncc_recv_app;
 	else if (ms->settings.ch_cap == GSM_CAP_SDCCH)

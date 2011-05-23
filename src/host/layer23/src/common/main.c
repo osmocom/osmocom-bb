@@ -251,9 +251,13 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	rc = sap_open(ms, sap_socket_path);
-	if (rc < 0)
-		fprintf(stderr, "Failed during sap_open(), no SIM reader\n");
+	if(sap_socket_path){
+		rc = sap_open(ms, sap_socket_path);
+		if (rc < 0){
+			fprintf(stderr, "Failed during sap_open(), no SIM reader\n");
+			exit(1);
+		}
+	}
 
 	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
 	lapdm_init(&ms->l2_entity.lapdm_acch, ms);

@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 	handle_options(argc, argv);
 
 	if (!debug_set)
-		log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
+		log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM:DSAP");
 	log_set_log_level(stderr_target, LOGL_INFO);
 
 	if (gsmtap_ip) {
