@@ -1,6 +1,6 @@
-/* GSMTAP output for Osmocom Layer2 (will only work on the host PC) */
+/* GSMTAP support code in libmsomcore */
 /*
- * (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2010-2011 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -22,29 +22,25 @@
 
 #include "../config.h"
 
-#ifdef HAVE_SYS_SELECT_H
-
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
+#include <osmocom/core/socket.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/rsl.h>
 
+#include <sys/types.h>
+
 #include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
-
-static struct osmo_fd gsmtap_bfd = { .fd = -1 };
-static struct osmo_fd gsmtap_sink_bfd = { .fd = -1 };
-static LLIST_HEAD(gsmtap_txqueue);
 
 uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
 {
@@ -114,44 +110,91 @@ struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
 	return msg;
 }
 
+#ifdef HAVE_SYS_SOCKET_H
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+/* Open a GSMTAP source (sending) socket, conncet it to host/port and
+ * return resulting fd */
+int gsmtap_source_init_fd(const char *host, uint16_t port)
+{
+	if (port == 0)
+		port = GSMTAP_UDP_PORT;
+	if (host == NULL)
+		host = "localhost";
+
+	return osmo_sock_init(AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, host, port, 0);
+}
+
+int gsmtap_source_add_sink_fd(int gsmtap_fd)
+{
+	struct sockaddr_storage ss;
+	socklen_t ss_len = sizeof(ss);
+	int rc;
+
+	rc = getpeername(gsmtap_fd, (struct sockaddr *)&ss, &ss_len);
+	if (rc < 0)
+		return rc;
+
+	if (osmo_sockaddr_is_local((struct sockaddr *)&ss, ss_len) == 1) {
+		rc = osmo_sock_init_sa((struct sockaddr *)&ss, SOCK_DGRAM, IPPROTO_UDP, 1);
+		if (rc >= 0)
+			return rc;
+	}
+
+	return -ENODEV;
+}
+
+int gsmtap_sendmsg(struct gsmtap_inst *gti, struct msgb *msg)
+{
+	if (!gti)
+		return -ENODEV;
+
+	if (gti->ofd_wq_mode)
+		return osmo_wqueue_enqueue(&gti->wq, msg);
+	else {
+		/* try immediate send and return error if any */
+		int rc;
+
+		rc = write(gsmtap_inst_fd(gti), msg->data, msg->len);
+		if (rc <= 0) {
+			return rc;
+		} else if (rc >= msg->len) {
+			msgb_free(msg);
+			return 0;
+		} else {
+			/* short write */
+			return -EIO;
+		}
+	}
+}
+
 /* receive a message from L1/L2 and put it in GSMTAP */
-int gsmtap_sendmsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss,
-		   uint32_t fn, int8_t signal_dbm, uint8_t snr,
-		   const uint8_t *data, unsigned int len)
+int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
+		uint8_t chan_type, uint8_t ss, uint32_t fn,
+		int8_t signal_dbm, uint8_t snr, const uint8_t *data,
+		unsigned int len)
 {
 	struct msgb *msg;
 
-	/* gsmtap was never initialized, so don't try to send anything */
-	if (gsmtap_bfd.fd == -1)
-		return 0;
+	if (!gti)
+		return -ENODEV;
 
 	msg = gsmtap_makemsg(arfcn, ts, chan_type, ss, fn, signal_dbm,
 			     snr, data, len);
 	if (!msg)
 		return -ENOMEM;
 
-	msgb_enqueue(&gsmtap_txqueue, msg);
-	gsmtap_bfd.when |= BSC_FD_WRITE;
-
-	return 0;
+	return gsmtap_sendmsg(gti, msg);
 }
 
 /* Callback from select layer if we can write to the socket */
-static int gsmtap_fd_cb(struct osmo_fd *fd, unsigned int flags)
+static int gsmtap_wq_w_cb(struct osmo_fd *ofd, struct msgb *msg)
 {
-	struct msgb *msg;
 	int rc;
 
-	if (!(flags & BSC_FD_WRITE))
-		return 0;
-
-	msg = msgb_dequeue(&gsmtap_txqueue);
-	if (!msg) {
-		/* no more messages in the queue, disable READ cb */
-		gsmtap_bfd.when = 0;
-		return 0;
-	}
-	rc = write(gsmtap_bfd.fd, msg->data, msg->len);
+	rc = write(ofd->fd, msg->data, msg->len);
 	if (rc < 0) {
 		perror("writing msgb to gsmtap fd");
 		msgb_free(msg);
@@ -165,37 +208,6 @@ static int gsmtap_fd_cb(struct osmo_fd *fd, unsigned int flags)
 
 	msgb_free(msg);
 	return 0;
-}
-
-int gsmtap_init(uint32_t dst_ip)
-{
-	int rc;
-	struct sockaddr_in sin;
-
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(GSMTAP_UDP_PORT);
-	sin.sin_addr.s_addr = htonl(dst_ip);
-
-	/* create socket */
-	rc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (rc < 0) {
-		perror("creating UDP socket");
-		return rc;
-	}
-	gsmtap_bfd.fd = rc;
-	rc = connect(rc, (struct sockaddr *)&sin, sizeof(sin));
-	if (rc < 0) {
-		perror("connecting UDP socket");
-		close(gsmtap_bfd.fd);
-		gsmtap_bfd.fd = -1;
-		return rc;
-	}
-
-	gsmtap_bfd.when = BSC_FD_WRITE;
-	gsmtap_bfd.cb = gsmtap_fd_cb;
-	gsmtap_bfd.data = NULL;
-
-	return osmo_fd_register(&gsmtap_bfd);
 }
 
 /* Callback from select layer if we can read from the sink socket */
@@ -217,37 +229,53 @@ static int gsmtap_sink_fd_cb(struct osmo_fd *fd, unsigned int flags)
 	return 0;
 }
 
-/* Create a local 'gsmtap sink' avoiding the UDP packets being rejected
- * with ICMP reject messages */
-int gsmtap_sink_init(uint32_t bind_ip)
+/* Add a local sink to an existing GSMTAP source instance */
+int gsmtap_source_add_sink(struct gsmtap_inst *gti)
 {
-	int rc;
-	struct sockaddr_in sin;
+	int fd;
 
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(GSMTAP_UDP_PORT);
-	sin.sin_addr.s_addr = htonl(bind_ip);
+	fd = gsmtap_source_add_sink_fd(gsmtap_inst_fd(gti));
+	if (fd < 0)
+		return fd;
 
-	rc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (rc < 0) {
-		perror("creating UDP socket");
-		return rc;
-	}
-	gsmtap_sink_bfd.fd = rc;
-	rc = bind(rc, (struct sockaddr *)&sin, sizeof(sin));
-	if (rc < 0) {
-		perror("binding UDP socket");
-		close(gsmtap_sink_bfd.fd);
-		gsmtap_sink_bfd.fd = -1;
-		return rc;
+	if (gti->ofd_wq_mode) {
+		struct osmo_fd *sink_ofd;
+
+		sink_ofd = &gti->sink_ofd;
+		sink_ofd->fd = fd;
+		sink_ofd->when = BSC_FD_READ;
+		sink_ofd->cb = gsmtap_sink_fd_cb;
+
+		osmo_fd_register(sink_ofd);
 	}
 
-	gsmtap_sink_bfd.when = BSC_FD_READ;
-	gsmtap_sink_bfd.cb = gsmtap_sink_fd_cb;
-	gsmtap_sink_bfd.data = NULL;
-
-	return osmo_fd_register(&gsmtap_sink_bfd);
-
+	return fd;
 }
 
-#endif /* HAVE_SYS_SELECT_H */
+/* like gsmtap_init2() but integrated with libosmocore select.c */
+struct gsmtap_inst *gsmtap_source_init(const char *host, uint16_t port,
+					int ofd_wq_mode)
+{
+	struct gsmtap_inst *gti;
+	int fd;
+
+	fd = gsmtap_source_init_fd(host, port);
+	if (fd < 0)
+		return NULL;
+
+	gti = talloc_zero(NULL, struct gsmtap_inst);
+	gti->ofd_wq_mode = ofd_wq_mode;
+	gti->wq.bfd.fd = fd;
+	gti->sink_ofd.fd = -1;
+
+	if (ofd_wq_mode) {
+		osmo_wqueue_init(&gti->wq, 64);
+		gti->wq.write_cb = &gsmtap_wq_w_cb;
+
+		osmo_fd_register(&gti->wq.bfd);
+	}
+
+	return gti;
+}
+
+#endif /* HAVE_SYS_SOCKET_H */
