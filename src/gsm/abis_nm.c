@@ -308,7 +308,7 @@ const struct tlv_definition abis_nm_att_tlvdef = {
 	},
 };
 
-static const struct value_string abis_nm_obj_class_names[] = {
+const struct value_string abis_nm_obj_class_names[] = {
 	{ NM_OC_SITE_MANAGER,	"SITE-MANAGER" },
 	{ NM_OC_BTS,		"BTS" },
 	{ NM_OC_RADIO_CARRIER,	"RADIO-CARRIER" },
@@ -328,11 +328,6 @@ static const struct value_string abis_nm_obj_class_names[] = {
 	{ NM_OC_BS11,		"SIEMENSHW" },
 	{ 0,			NULL }
 };
-
-const char *abis_nm_obj_class_name(uint8_t oc)
-{
-	return get_value_string(abis_nm_obj_class_names, oc);
-}
 
 const char *abis_nm_opstate_name(uint8_t os)
 {
@@ -384,7 +379,7 @@ const char *abis_nm_test_name(uint8_t test)
 	return get_value_string(test_names, test);
 }
 
-static const struct value_string abis_nm_adm_state_names[] = {
+const struct value_string abis_nm_adm_state_names[] = {
 	{ NM_STATE_LOCKED,	"Locked" },
 	{ NM_STATE_UNLOCKED,	"Unlocked" },
 	{ NM_STATE_SHUTDOWN,	"Shutdown" },
@@ -392,15 +387,10 @@ static const struct value_string abis_nm_adm_state_names[] = {
 	{ 0, NULL }
 };
 
-const char *abis_nm_adm_state_name(uint8_t adm)
-{
-	return get_value_string(abis_nm_adm_state_names, adm);
-}
-
 void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh)
 {
 	DEBUGP(ss, "OC=%s(%02x) INST=(%02x,%02x,%02x) ",
-		abis_nm_obj_class_name(foh->obj_class), foh->obj_class,
-		foh->obj_inst.bts_nr, foh->obj_inst.trx_nr,
+		get_value_string(abis_nm_obj_class_names, foh->obj_class),
+		foh->obj_class, foh->obj_inst.bts_nr, foh->obj_inst.trx_nr,
 		foh->obj_inst.ts_nr);
 }
