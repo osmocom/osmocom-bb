@@ -392,7 +392,7 @@ static const struct value_string abis_nm_adm_state_names[] = {
 	{ 0, NULL }
 };
 
-const char *abis_nm_adm_name(uint8_t adm)
+const char *abis_nm_adm_state_name(uint8_t adm)
 {
 	return get_value_string(abis_nm_adm_state_names, adm);
 }

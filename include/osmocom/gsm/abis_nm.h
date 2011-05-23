@@ -18,7 +18,7 @@ const char *abis_nm_obj_class_name(uint8_t oc);
 const char *abis_nm_opstate_name(uint8_t os);
 const char *abis_nm_avail_name(uint8_t avail);
 const char *abis_nm_test_name(uint8_t test);
-const char *abis_nm_adm_name(uint8_t adm);
+const char *abis_nm_adm_state_name(uint8_t adm);
 void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh);
 
 #endif /* _OSMO_GSM_ABIS_NM_H */
