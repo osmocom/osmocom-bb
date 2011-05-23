@@ -23,7 +23,7 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 		   const char *host, uint16_t port, int connect0_bind1)
 {
 	struct addrinfo hints, *result, *rp;
-	int sfd, rc;
+	int sfd, rc, on = 1;
 	char portbuf[16];
 
 	sprintf(portbuf, "%u", port);
@@ -58,6 +58,39 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 		perror("unable to connect/bind socket");
 		return -ENODEV;
 	}
+
+	setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+
+	/* Make sure to call 'listen' on a bound, connection-oriented sock */
+	if (connect0_bind1 == 1) {
+		switch (type) {
+		case SOCK_STREAM:
+		case SOCK_SEQPACKET:
+			listen(sfd, 10);
+			break;
+		}
+	}
+	return sfd;
+}
+
+int osmo_sock_init_ofd(struct osmo_fd *ofd, int family, int type, int proto,
+			const char *host, uint16_t port, int connect0_bind1)
+{
+	int sfd, rc;
+
+	sfd = osmo_sock_init(family, type, proto, host, port, connect0_bind1);
+	if (sfd < 0)
+		return sfd;
+
+	ofd->fd = sfd;
+	ofd->when = BSC_FD_READ;
+
+	rc = osmo_fd_register(ofd);
+	if (rc < 0) {
+		close(sfd);
+		return rc;
+	}
+
 	return sfd;
 }
 
@@ -85,7 +118,6 @@ int osmo_sock_init_sa(struct sockaddr *ss, uint16_t type,
 	default:
 		return -EINVAL;
 	}
-	fprintf(stderr, "==> PORT = %u\n", port);
 
 	s = getnameinfo(ss, sa_len, host, NI_MAXHOST,
 			NULL, 0, NI_NUMERICHOST);
