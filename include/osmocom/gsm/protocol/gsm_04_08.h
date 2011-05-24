@@ -1257,6 +1257,9 @@ struct gsm48_ra_id {
 	uint8_t rac;		/* Routing Area Code */
 } __attribute__ ((packed));
 
+#define GSM48_CELL_CHAN_DESC_SIZE	16
 
+#define GSM_MACBLOCK_LEN	23
+#define GSM_MACBLOCK_PADDING	0x2b
 
 #endif /* PROTO_GSM_04_08_H */
