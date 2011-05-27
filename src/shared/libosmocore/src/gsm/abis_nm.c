@@ -21,9 +21,12 @@
  */
 
 #include <stdint.h>
+#include <errno.h>
+
 #include <osmocom/core/utils.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_12_21.h>
 #include <osmocom/gsm/abis_nm.h>
 
@@ -393,4 +396,33 @@ void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh)
 		get_value_string(abis_nm_obj_class_names, foh->obj_class),
 		foh->obj_class, foh->obj_inst.bts_nr, foh->obj_inst.trx_nr,
 		foh->obj_inst.ts_nr);
+}
+
+static const enum abis_nm_chan_comb chcomb4pchan[] = {
+	[GSM_PCHAN_CCCH]	= NM_CHANC_mainBCCH,
+	[GSM_PCHAN_CCCH_SDCCH4]	= NM_CHANC_BCCHComb,
+	[GSM_PCHAN_TCH_F]	= NM_CHANC_TCHFull,
+	[GSM_PCHAN_TCH_H]	= NM_CHANC_TCHHalf,
+	[GSM_PCHAN_SDCCH8_SACCH8C] = NM_CHANC_SDCCH,
+	[GSM_PCHAN_PDCH]	= NM_CHANC_IPAC_PDCH,
+	[GSM_PCHAN_TCH_F_PDCH]	= NM_CHANC_IPAC_TCHFull_PDCH,
+	/* FIXME: bounds check */
+};
+
+int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan)
+{
+	if (pchan < ARRAY_SIZE(chcomb4pchan))
+		return chcomb4pchan[pchan];
+
+	return -EINVAL;
+}
+
+enum abis_nm_chan_comb abis_nm_pchan4chcomb(uint8_t chcomb)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(chcomb4pchan); i++) {
+		if (chcomb4pchan[i] == chcomb)
+			return i;
+	}
+	return GSM_PCHAN_NONE;
 }
