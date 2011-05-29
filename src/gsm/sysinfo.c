@@ -70,7 +70,7 @@ static const uint8_t sitype2rsl[_MAX_SYSINFO_TYPE] = {
 	[SYSINFO_TYPE_5ter]	= RSL_SYSTEM_INFO_5ter,
 };
 
-static const uint8_t rsl2sitype[0xff] = {
+static const uint8_t rsl2sitype[256] = {
 	[RSL_SYSTEM_INFO_1] = SYSINFO_TYPE_1,
 	[RSL_SYSTEM_INFO_2] = SYSINFO_TYPE_2,
 	[RSL_SYSTEM_INFO_3] = SYSINFO_TYPE_3,
