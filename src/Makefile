@@ -25,7 +25,7 @@ libosmocore-host: shared/libosmocore/build-host/src/.libs/libosmocore.la
 shared/libosmocore/build-host:
 	mkdir $@
 
-shared/libosmocore/configure: shared/libosmocore/configure.in
+shared/libosmocore/configure: shared/libosmocore/configure.ac
 	cd shared/libosmocore && autoreconf -i
 
 shared/libosmocore/build-host/Makefile: shared/libosmocore/configure shared/libosmocore/build-host
