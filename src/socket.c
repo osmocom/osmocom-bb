@@ -6,10 +6,8 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/socket.h>
 
-#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
 
 #include <stdio.h>
 #include <unistd.h>
