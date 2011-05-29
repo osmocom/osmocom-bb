@@ -23,7 +23,6 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
-#include <netinet/in.h>
 
 #include <osmocom/core/bitvec.h>
 #include <osmocom/core/utils.h>
