@@ -197,16 +197,13 @@ static int gsmtap_wq_w_cb(struct osmo_fd *ofd, struct msgb *msg)
 	rc = write(ofd->fd, msg->data, msg->len);
 	if (rc < 0) {
 		perror("writing msgb to gsmtap fd");
-		msgb_free(msg);
 		return rc;
 	}
 	if (rc != msg->len) {
 		perror("short write to gsmtap fd");
-		msgb_free(msg);
 		return -EIO;
 	}
 
-	msgb_free(msg);
 	return 0;
 }
 
