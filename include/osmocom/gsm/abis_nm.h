@@ -4,6 +4,9 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/gsm/protocol/gsm_12_21.h>
 
+enum abis_nm_msgtype;
+enum gsm_phys_chan_config;
+
 const enum abis_nm_msgtype abis_nm_reports[4];
 const enum abis_nm_msgtype abis_nm_no_ack_nack[3];
 const enum abis_nm_msgtype abis_nm_sw_load_msgs[9];
