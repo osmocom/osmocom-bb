@@ -11,9 +11,9 @@ ENTRY(_start)
 MEMORY
 {
     /* mtk-loaded binary: our text, initialized data */
-    LRAM (rw) : ORIGIN = 0x40000000, LENGTH = 0x00005000
+    LRAM (rw) : ORIGIN = 0x40000000, LENGTH = 0x00006000
     /* mtk-loaded binary: our unitialized data, stacks, heap */
-    IRAM (rw) : ORIGIN = 0x40005000, LENGTH = 0x00005000
+    IRAM (rw) : ORIGIN = 0x40006000, LENGTH = 0x00006000
 }
 SECTIONS
 {
