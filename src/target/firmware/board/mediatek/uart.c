@@ -36,8 +36,6 @@
 
 #include <comm/sercomm.h>
 
-#include <calypso/irq.h>
-
 /* MT622x */
 #if 0
 #define BASE_ADDR_UART1	0x80130000
