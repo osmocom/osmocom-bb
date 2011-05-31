@@ -31,6 +31,9 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 	hints.ai_flags = 0;
 	hints.ai_protocol = proto;
 
+	if (connect0_bind1)
+		hints.ai_flags |= AI_PASSIVE;
+
 	rc = getaddrinfo(host, portbuf, &hints, &result);
 	if (rc != 0) {
 		perror("getaddrinfo returned NULL");
