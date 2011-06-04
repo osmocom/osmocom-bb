@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
+#include <asm/system.h>
 
 #include <debug.h>
 #include <delay.h>
@@ -44,7 +45,10 @@ struct supermsg {
 static struct supermsg msgs[MSGB_NUM];
 void *_talloc_zero(void *ctx, unsigned int size, const char *name)
 {
+	unsigned long flags;
 	unsigned int i;
+
+	local_firq_save(flags);
 
 	if (size > sizeof(struct msgb) + MSGB_DATA_SIZE)
 		goto panic;
@@ -54,6 +58,7 @@ void *_talloc_zero(void *ctx, unsigned int size, const char *name)
 			msgs[i].allocated = 1;
 			memset(&msgs[i].msg, 0, sizeof(&msgs[i].msg));
 			memset(&msgs[i].buf, 0, sizeof(&msgs[i].buf));
+			local_irq_restore(flags);
 			return &msgs[i].msg;
 		}
 	}
@@ -67,6 +72,7 @@ panic:
 void talloc_free(void *msg)
 {
 	struct supermsg *smsg = container_of(msg, struct supermsg, msg);
+	/* no locking required, since this is atomic */
 	smsg->allocated = 0;
 }
 #endif
