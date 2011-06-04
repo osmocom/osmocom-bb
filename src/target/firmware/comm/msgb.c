@@ -28,8 +28,6 @@
 
 #include <osmocom/core/msgb.h>
 
-#include <calypso/backlight.h>
-
 #define NO_TALLOC
 
 void *tall_msgb_ctx;
