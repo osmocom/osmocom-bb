@@ -2,6 +2,7 @@
 #define _OSMO_GSM_ABIS_NM_H
 
 #include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_12_21.h>
 
 enum abis_nm_msgtype;
