@@ -124,7 +124,8 @@ int gsmtap_source_init_fd(const char *host, uint16_t port)
 	if (host == NULL)
 		host = "localhost";
 
-	return osmo_sock_init(AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, host, port, 0);
+	return osmo_sock_init(AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, host, port,
+				OSMO_SOCK_F_CONNECT);
 }
 
 int gsmtap_source_add_sink_fd(int gsmtap_fd)
@@ -138,7 +139,8 @@ int gsmtap_source_add_sink_fd(int gsmtap_fd)
 		return rc;
 
 	if (osmo_sockaddr_is_local((struct sockaddr *)&ss, ss_len) == 1) {
-		rc = osmo_sock_init_sa((struct sockaddr *)&ss, SOCK_DGRAM, IPPROTO_UDP, 1);
+		rc = osmo_sock_init_sa((struct sockaddr *)&ss, SOCK_DGRAM,
+					IPPROTO_UDP, OSMO_SOCK_F_BIND);
 		if (rc >= 0)
 			return rc;
 	}
