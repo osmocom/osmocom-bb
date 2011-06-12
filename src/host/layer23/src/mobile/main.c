@@ -164,8 +164,8 @@ int main(int argc, char **argv)
 	handle_options(argc, argv);
 
 	if (!debug_set)
-		log_parse_category_mask(stderr_target, "DCS:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
-	log_set_log_level(stderr_target, LOGL_INFO);
+		log_parse_category_mask(stderr_target, "DCS:DNB:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
+	log_set_log_level(stderr_target, LOGL_DEBUG);
 
 	if (gsmtap_ip) {
 		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);

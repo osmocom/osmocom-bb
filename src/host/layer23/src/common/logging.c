@@ -38,6 +38,12 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[34m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DNB] = {
+		.name = "DNB",
+		.description = "Neighbour cell measurement",
+		.color = "\033[0;31m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 	[DPLMN] = {
 		.name = "DPLMN",
 		.description = "PLMN selection",

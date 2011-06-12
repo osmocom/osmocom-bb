@@ -9,6 +9,7 @@ enum {
 	DRR,
 	DPLMN,
 	DCS,
+	DNB,
 	DMM,
 	DCC,
 	DSMS,
