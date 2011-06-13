@@ -271,19 +271,13 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 	/* control channel */
 	switch(s->ccch_conf) {
 	case 0:
-		print(priv, "CCCH Config = 1 CCCH");
+	case 2:
+	case 4:
+	case 6:
+		print(priv, "CCCH Config = %d CCCH", (s->ccch_conf >> 1) + 1);
 		break;
 	case 1:
 		print(priv, "CCCH Config = 1 CCCH + SDCCH");
-		break;
-	case 2:
-		print(priv, "CCCH Config = 2 CCCH");
-		break;
-	case 4:
-		print(priv, "CCCH Config = 3 CCCH");
-		break;
-	case 6:
-		print(priv, "CCCH Config = 4 CCCH");
 		break;
 	default:
 		print(priv, "CCCH Config = reserved");
@@ -363,10 +357,6 @@ static int decode_freq_list(struct gsm_sysinfo_freq *f, uint8_t *cd,
 static int gsm48_decode_cell_sel_param(struct gsm48_sysinfo *s,
 	struct gsm48_cell_sel_par *cs)
 {
-#ifdef TODO
-	convert ms_txpwr_max_ccch dependant on the current frequenc and support
-	to the right powe level
-#endif
 	s->ms_txpwr_max_cch = cs->ms_txpwr_max_ccch;
 	s->cell_resel_hyst_db = cs->cell_resel_hyst * 2;
 	s->rxlev_acc_min_db = cs->rxlev_acc_min - 110;
@@ -517,6 +507,7 @@ static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s, uint8_t *si,
 		s->band_ind = 1;
 	else
 		s->band_ind = 0;
+
 	return 0;
 }
 
@@ -562,8 +553,13 @@ static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si,
 	} else
 		s->sched = 0;
 	/* GPRS Indicator */
-	s->gi_ra_colour = bitvec_get_uint(&bv, 3);
-	s->gi_si13_pos = bitvec_get_uint(&bv, 1);
+	if (bitvec_get_bit_high(&bv) == H) {
+		s->gprs = 1;
+		s->gprs_ra_colour = bitvec_get_uint(&bv, 3);
+		s->gprs_si13_pos = bitvec_get_uint(&bv, 1);
+	} else
+		s->gprs = 0;
+
 	return 0;
 }
 
@@ -571,6 +567,36 @@ static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si,
 static int gsm48_decode_si4_rest(struct gsm48_sysinfo *s, uint8_t *si,
 	uint8_t len)
 {
+	struct bitvec bv;
+
+	memset(&bv, 0, sizeof(bv));
+	bv.data_len = len;
+	bv.data = si;
+
+	/* Optional Selection Parameters */
+	if (bitvec_get_bit_high(&bv) == H) {
+		s->sp = 1;
+		s->sp_cbq = bitvec_get_uint(&bv, 1);
+		s->sp_cro = bitvec_get_uint(&bv, 6);
+		s->sp_to = bitvec_get_uint(&bv, 3);
+		s->sp_pt = bitvec_get_uint(&bv, 5);
+	} else
+		s->sp = 0;
+	/* Optional Power Offset */
+	if (bitvec_get_bit_high(&bv) == H) {
+		s->po = 1;
+		s->po_value = bitvec_get_uint(&bv, 3);
+	} else
+		s->po = 0;
+	/* GPRS Indicator */
+	if (bitvec_get_bit_high(&bv) == H) {
+		s->gprs = 1;
+		s->gprs_ra_colour = bitvec_get_uint(&bv, 3);
+		s->gprs_si13_pos = bitvec_get_uint(&bv, 1);
+	} else
+		s->gprs = 0;
+	// todo: more rest octet bits
+
 	return 0;
 }
 
@@ -597,18 +623,15 @@ int gsm48_decode_sysinfo1(struct gsm48_sysinfo *s,
 	if (payload_len)
 		gsm48_decode_si1_rest(s, si->rest_octets, payload_len);
 
-	if (!s->si1 && s->si4) {
-		s->si1 = 1;
-		LOGP(DRR, LOGL_NOTICE, "Now decoding previously received "
+	s->si1 = 1;
+
+	if (s->si4) {
+		LOGP(DRR, LOGL_NOTICE, "Now updating previously received "
 			"SYSTEM INFORMATION 4\n");
 		gsm48_decode_sysinfo4(s,
 			(struct gsm48_system_information_type_4 *) s->si4_msg,
 			sizeof(s->si4_msg));
-
-		return -EBUSY;
 	}
-
-	s->si1 = 1;
 
 	return 0;
 }
@@ -710,18 +733,13 @@ int gsm48_decode_sysinfo4(struct gsm48_sysinfo *s,
 
 	memcpy(s->si4_msg, si, MIN(len, sizeof(s->si4_msg)));
 
-	if (!s->si1) {
-		LOGP(DRR, LOGL_NOTICE, "Ignoring SYSTEM INFORMATION 4 "
-			"until SI 1 is received.\n");
-		s->si4 = 1;
-		return -EBUSY;
-	}
 	/* LAI */
 	gsm48_decode_lai(&si->lai, &s->mcc, &s->mnc, &s->lac);
 	/* Cell Selection Parameters */
 	gsm48_decode_cell_sel_param(s, &si->cell_sel_par);
 	/* RACH Control Parameter */
 	gsm48_decode_rach_ctl_param(s, &si->rach_control);
+
 	/* CBCH Channel Description */
 	if (payload_len >= 1 && data[0] == GSM48_IE_CBCH_CHAN_DESC) {
 		if (payload_len < 4) {
@@ -745,8 +763,13 @@ short_read:
 	if (payload_len >= 1 && data[0] == GSM48_IE_CBCH_MOB_AL) {
 		if (payload_len < 1 || payload_len < 2 + data[1])
 			goto short_read;
-		gsm48_decode_mobile_alloc(s->freq, data + 2, data[1],
-			s->hopping, &s->hopp_len, 1);
+		if (!s->si1) {
+			LOGP(DRR, LOGL_NOTICE, "Ignoring CBCH allocation of "
+				"SYSTEM INFORMATION 4 until SI 1 is "
+				"received.\n");
+			gsm48_decode_mobile_alloc(s->freq, data + 2, data[1],
+				s->hopping, &s->hopp_len, 1);
+		}
 		payload_len -= 2 + data[1];
 		data += 2 + data[1];
 	}

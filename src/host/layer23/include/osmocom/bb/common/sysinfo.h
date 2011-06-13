@@ -66,8 +66,9 @@ struct gsm48_sysinfo {
 	uint8_t				ecsm;
 	uint8_t				sched;
 	uint8_t				sched_where;
-	uint8_t				gi_ra_colour;
-	uint8_t				gi_si13_pos;
+	uint8_t				gprs;
+	uint8_t				gprs_ra_colour;
+	uint8_t				gprs_si13_pos;
 
 	/* cell selection */
 	int8_t				ms_txpwr_max_cch;
