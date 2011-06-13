@@ -6,10 +6,8 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/socket.h>
 
-#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -32,6 +30,9 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 	hints.ai_socktype = type;
 	hints.ai_flags = 0;
 	hints.ai_protocol = proto;
+
+	if (connect0_bind1)
+		hints.ai_flags |= AI_PASSIVE;
 
 	rc = getaddrinfo(host, portbuf, &hints, &result);
 	if (rc != 0) {
@@ -169,6 +170,8 @@ int osmo_sockaddr_is_local(struct sockaddr *addr, socklen_t addrlen)
 	}
 
 	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		if (!ifa->ifa_addr)
+			continue;
 		if (sockaddr_equal(ifa->ifa_addr, addr, addrlen))
 			return 1;
 	}

@@ -1,6 +1,7 @@
 #ifndef _OSMO_GSM_SYSINFO_H
 #define _OSMO_GSM_SYSINFO_H
 
+#include <osmocom/core/utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
 enum osmo_sysinfo_type {

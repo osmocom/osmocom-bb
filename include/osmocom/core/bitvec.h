@@ -23,6 +23,7 @@
  *
  */
 
+#include <stdint.h>
 
 /* In GSM mac blocks, every bit can be 0 or 1, or L or H.  L/H are
  * defined relative to the 0x2b padding pattern */
