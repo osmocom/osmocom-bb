@@ -66,11 +66,8 @@
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
-#include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
-
-#include <l1ctl_proto.h>
 
 /* TS 04.06 Figure 4 / Section 3.2 */
 #define LAPDm_LPD_NORMAL  0
