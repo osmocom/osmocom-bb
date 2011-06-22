@@ -69,6 +69,8 @@
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
 
+#include <osmocom/bb/common/l1ctl.h>
+
 /* TS 04.06 Figure 4 / Section 3.2 */
 #define LAPDm_LPD_NORMAL  0
 #define LAPDm_LPD_SMSCB	  1
@@ -2080,14 +2082,13 @@ static int rslms_rx_chan_rqd(struct lapdm_channel *lc, struct msgb *msg)
 }
 
 /* L1 confirms channel request */
-int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms,
-			struct l1ctl_info_dl *dl)
+int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms, uint32_t frame_nr)
 {
 	struct abis_rsl_cchan_hdr *ch;
 	struct gsm_time tm;
 	struct gsm48_req_ref *ref;
 
-	gsm_fn2gsmtime(&tm, htonl(dl->frame_nr));
+	gsm_fn2gsmtime(&tm, frame_nr);
 
 	msgb_pull_l2h(msg);
 	msg->l2h = msgb_push(msg, sizeof(*ch) + sizeof(*ref));

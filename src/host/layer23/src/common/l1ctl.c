@@ -122,7 +122,7 @@ static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 
-	l2_ph_chan_conf(msg, ms, dl);
+	l2_ph_chan_conf(msg, ms, ntohl(dl->frame_nr));
 
 	return 0;
 }

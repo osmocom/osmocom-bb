@@ -6,8 +6,6 @@
 #include <osmocom/core/timer.h>
 #include <osmocom/core/msgb.h>
 
-#include <l1ctl_proto.h>
-
 enum lapdm_state {
 	LAPDm_STATE_NULL = 0,
 	LAPDm_STATE_IDLE,
@@ -102,8 +100,7 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t chan_nr, u
 int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le);
 
 /* L1 confirms channel request */
-int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms,
-			struct l1ctl_info_dl *dl);
+int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms, uint32_t frame_nr);
 
 /* input into layer2 (from layer 3) */
 int lapdm_rslms_recvmsg(struct msgb *msg, struct lapdm_channel *lc);
