@@ -98,7 +98,7 @@ void lapdm_entity_exit(struct lapdm_entity *le);
 void lapdm_channel_exit(struct lapdm_channel *lc);
 
 /* input into layer2 (from layer 1) */
-int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_dl *l1i);
+int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t chan_nr, uint8_t link_id);
 int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le);
 
 /* L1 confirms channel request */

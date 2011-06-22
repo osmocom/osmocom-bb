@@ -1513,10 +1513,10 @@ static int lapdm_ph_data_ind(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 }
 
 /* input into layer2 (from layer 1) */
-int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_dl *l1i)
+int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t chan_nr, uint8_t link_id)
 {
-	uint8_t cbits = l1i->chan_nr >> 3;
-	uint8_t sapi = l1i->link_id & 7;
+	uint8_t cbits = chan_nr >> 3;
+	uint8_t sapi = link_id & 7;
 	struct lapdm_msg_ctx mctx;
 	int rc = 0;
 
@@ -1524,8 +1524,8 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, struct l1ctl_info_
 	 * 23byte mac block. The l1h has already been purged. */
 
 	mctx.dl = datalink_for_sapi(le, sapi);
-	mctx.chan_nr = l1i->chan_nr;
-	mctx.link_id = l1i->link_id;
+	mctx.chan_nr = chan_nr;
+	mctx.link_id = link_id;
 	mctx.addr = mctx.ctrl = 0;
 
 	/* G.2.1 No action schall be taken on frames containing an unallocated

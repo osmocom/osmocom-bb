@@ -130,7 +130,7 @@ static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 /* Receive L1CTL_DATA_IND (Data Indication from L1) */
 static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct l1ctl_info_dl *dl, dl_cpy;
+	struct l1ctl_info_dl *dl;
 	struct l1ctl_data_ind *ccch;
 	struct lapdm_entity *le;
 	struct rx_meas_stat *meas = &ms->meas;
@@ -225,16 +225,13 @@ printf("Dropping frame with %u bit errors\n", dl->num_biterr);
 		le = &ms->lapdm_channel.lapdm_acch;
 	else
 		le = &ms->lapdm_channel.lapdm_dcch;
-	/* make local stack copy of l1ctl_info_dl, as LAPDm will
-	 * overwrite skb hdr */
-	memcpy(&dl_cpy, dl, sizeof(dl_cpy));
 
 	/* pull the L1 header from the msgb */
 	msgb_pull(msg, msg->l2h - (msg->l1h-sizeof(struct l1ctl_hdr)));
 	msg->l1h = NULL;
 
 	/* send it up into LAPDm */
-	l2_ph_data_ind(msg, le, &dl_cpy);
+	l2_ph_data_ind(msg, le, dl->chan_nr, dl->link_id);
 
 	return 0;
 }
