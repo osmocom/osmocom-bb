@@ -33,6 +33,8 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/signal.h>
 
+#include <l1ctl_proto.h>
+
 static int signal_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
 {

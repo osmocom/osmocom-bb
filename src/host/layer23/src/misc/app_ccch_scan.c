@@ -40,6 +40,8 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/l23_app.h>
 
+#include <l1ctl_proto.h>
+
 static struct {
 	int has_si1;
 	int ccch_mode;

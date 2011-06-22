@@ -35,6 +35,8 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/utils.h>
 
+#include <l1ctl_proto.h>
+
 extern struct log_target *stderr_target;
 extern void *l23_ctx;
 

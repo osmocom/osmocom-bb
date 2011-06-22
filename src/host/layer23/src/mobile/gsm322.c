@@ -39,6 +39,8 @@
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 
+#include <l1ctl_proto.h>
+
 const char *ba_version = "osmocom BA V1\n";
 
 extern void *l23_ctx;

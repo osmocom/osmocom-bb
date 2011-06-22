@@ -80,6 +80,8 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/mobile/vty.h>
 
+#include <l1ctl_proto.h>
+
 static void start_rr_t_meas(struct gsm48_rrlayer *rr, int sec, int micro);
 static void stop_rr_t_starting(struct gsm48_rrlayer *rr);
 static void stop_rr_t3124(struct gsm48_rrlayer *rr);

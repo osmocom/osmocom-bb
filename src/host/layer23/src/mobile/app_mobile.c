@@ -42,6 +42,8 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/signal.h>
 
+#include <l1ctl_proto.h>
+
 extern void *l23_ctx;
 extern struct llist_head ms_list;
 extern int vty_reading;

@@ -35,6 +35,8 @@
 #include <osmocom/core/signal.h>
 #include <osmocom/gsm/rsl.h>
 
+#include <l1ctl_proto.h>
+
 struct osmocom_ms *g_ms;
 struct gsm48_sysinfo g_sysinfo = {};
 
