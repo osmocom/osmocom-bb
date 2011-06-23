@@ -427,15 +427,11 @@ static int send_rll_simple(uint8_t msg_type, struct lapdm_msg_ctx *mctx)
 static int rsl_rll_error(uint8_t cause, struct lapdm_msg_ctx *mctx)
 {
 	struct msgb *msg;
-	uint8_t *tlv;
 
 	LOGP(DLAPDM, LOGL_NOTICE, "sending MDL-ERROR-IND %d\n", cause);
 	msg = rsl_rll_simple(RSL_MT_ERROR_IND, mctx->chan_nr, mctx->link_id, 1);
-	msg->l2h = msgb_put(msg, sizeof(struct abis_rsl_rll_hdr) + 3);
-	tlv = msg->l2h + sizeof(struct abis_rsl_rll_hdr);
-	tlv[0] = RSL_IE_RLM_CAUSE;
-	tlv[1] = 1;
-	tlv[2] = cause;
+	msg->l2h = msgb_put(msg, sizeof(struct abis_rsl_rll_hdr));
+	msgb_tlv_put(msg, RSL_IE_RLM_CAUSE, 1, &cause);
 	return rslms_sendmsg(msg, mctx->dl->entity);
 }
 
