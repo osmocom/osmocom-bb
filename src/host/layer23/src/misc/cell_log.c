@@ -744,7 +744,7 @@ static int rcv_cch(struct osmocom_ms *ms, struct msgb *msg)
 	int rc;
 
 	LOGP(DRSL, LOGL_INFO, "Received '%s' from layer1\n",
-		get_rsl_name(msg_type));
+		rsl_msg_name(msg_type));
 
 	if (state == SCAN_STATE_RACH && msg_type == RSL_MT_CHAN_CONF) {
 	 	rc = chan_conf(ms, msg);

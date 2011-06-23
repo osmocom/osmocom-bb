@@ -2166,34 +2166,6 @@ static int l2_ph_chan_conf(struct msgb *msg, struct lapdm_entity *le, uint32_t f
 	return rslms_sendmsg(msg, le);
 }
 
-/* Names for Radio Link Layer Management */
-static const struct value_string rsl_msg_names[] = {
-	{ RSL_MT_DATA_REQ,		"RSL_MT_DATA_REQ" },
-	{ RSL_MT_DATA_IND,		"RSL_MT_DATA_IND" },
-	{ RSL_MT_ERROR_IND,		"RSL_MT_ERROR_IND" },
-	{ RSL_MT_EST_REQ,		"RSL_MT_EST_REQ" },
-	{ RSL_MT_EST_CONF,		"RSL_MT_EST_CONF" },
-	{ RSL_MT_EST_IND,		"RSL_MT_EST_IND" },
-	{ RSL_MT_EST_IND,		"RSL_MT_REL_REQ" },
-	{ RSL_MT_REL_REQ,		"RSL_MT_REL_REQ" },
-	{ RSL_MT_REL_CONF,		"RSL_MT_REL_CONF" },
-	{ RSL_MT_REL_IND,		"RSL_MT_REL_IND" },
-	{ RSL_MT_UNIT_DATA_REQ,		"RSL_MT_UNIT_DATA_REQ" },
-	{ RSL_MT_UNIT_DATA_IND,		"RSL_MT_UNIT_DATA_IND" },
-	{ RSL_MT_SUSP_REQ,		"RSL_MT_SUSP_REQ" },
-	{ RSL_MT_SUSP_CONF,		"RSL_MT_SUSP_CONF" },
-	{ RSL_MT_RES_REQ,		"RSL_MT_RES_REQ" },
-	{ RSL_MT_RECON_REQ,		"RSL_MT_RECON_REQ" },
-	{ RSL_MT_CHAN_RQD,		"RSL_MT_CHAN_RQD" },
-	{ RSL_MT_CHAN_CONF,		"RSL_MT_CHAN_CONF" },
-	{ 0,				NULL }
-};
-
-const char *get_rsl_name(int value)
-{
-	return get_value_string(rsl_msg_names, value);
-}
-
 const char *lapdm_state_names[] = {
 	"LAPDm_STATE_NULL",
 	"LAPDm_STATE_IDLE",
@@ -2284,7 +2256,7 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 	}
 
 	LOGP(DRSL, LOGL_INFO, "(%p) RLL Message '%s' received in state %s\n",
-		lc->name, get_rsl_name(msg_type), lapdm_state_names[dl->state]);
+		lc->name, rsl_msg_name(msg_type), lapdm_state_names[dl->state]);
 
 	/* find function for current state and message */
 	for (i = 0; i < L2DOWNSLLEN; i++) {

@@ -4916,7 +4916,7 @@ static int gsm48_rcv_rll(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (msg_type != RSL_MT_UNIT_DATA_IND) {
 		LOGP(DRSL, LOGL_INFO, "(ms %s) Received '%s' from L2 in state "
-			"%s\n", ms->name, get_rsl_name(msg_type),
+			"%s\n", ms->name, rsl_msg_name(msg_type),
 			gsm48_rr_state_names[rr->state]);
 	}
 
@@ -4948,7 +4948,7 @@ static int gsm48_rcv_cch(struct osmocom_ms *ms, struct msgb *msg)
 	int rc;
 
 	LOGP(DRSL, LOGL_INFO, "(ms %s) Received '%s' from L2 in state "
-		"%s\n", ms->name, get_rsl_name(msg_type),
+		"%s\n", ms->name, rsl_msg_name(msg_type),
 		gsm48_rr_state_names[rr->state]);
 
 	if (rr->state == GSM48_RR_ST_CONN_PEND
