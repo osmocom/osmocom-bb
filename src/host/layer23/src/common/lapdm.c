@@ -1608,6 +1608,33 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t cha
 	return rc;
 }
 
+/* input into layer2 (from layer 1) */
+static int l2_ph_rach_ind(struct lapdm_entity *le, uint8_t ra, uint32_t fn, uint8_t acc_delay)
+{
+	struct abis_rsl_cchan_hdr *ch;
+	struct gsm48_req_ref req_ref;
+	struct gsm_time gt;
+	struct msgb *msg = msgb_alloc_headroom(512, 64, "RSL CHAN RQD");
+
+	msg->l2h = msgb_push(msg, sizeof(*ch));
+	ch = (struct abis_rsl_cchan_hdr *)msg->l2h;
+	rsl_init_cchan_hdr(ch, RSL_MT_CHAN_RQD);
+	ch->chan_nr = RSL_CHAN_RACH;
+
+	/* generate a RSL CHANNEL REQUIRED message */
+	gsm_fn2gsmtime(&gt, fn);
+	req_ref.ra = ra;
+	req_ref.t1 = gt.t1; /* FIXME: modulo? */
+	req_ref.t2 = gt.t2;
+	req_ref.t3_low = gt.t3 & 7;
+	req_ref.t3_high = gt.t3 >> 3;
+
+	msgb_tv_fixed_put(msg, RSL_IE_REQ_REFERENCE, 3, (uint8_t *) &req_ref);
+	msgb_tv_put(msg, RSL_IE_ACCESS_DELAY, acc_delay);
+
+	return rslms_sendmsg(msg, le);
+}
+
 static int l2_ph_chan_conf(struct msgb *msg, struct lapdm_entity *le, uint32_t frame_nr);
 
 int lapdm_phsap_up(struct osmo_prim_hdr *oph, struct lapdm_entity *le)
@@ -1636,8 +1663,8 @@ int lapdm_phsap_up(struct osmo_prim_hdr *oph, struct lapdm_entity *le)
 	case PRIM_PH_RACH:
 		switch (oph->operation) {
 		case PRIM_OP_INDICATION:
-#warning FIX BTS
-			//rc = l2_ph_rach_ind(le, pp->u.rach_ind.ra, pp->u.rach_ind.fn);
+			rc = l2_ph_rach_ind(le, pp->u.rach_ind.ra, pp->u.rach_ind.fn,
+					    pp->u.rach_ind.acc_delay);
 			break;
 		case PRIM_OP_CONFIRM:
 			rc = l2_ph_chan_conf(oph->msg, le, pp->u.rach_ind.fn);

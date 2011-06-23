@@ -29,6 +29,7 @@ struct ph_rach_req_param {
 /* for PH-RANDOM_ACCESS.ind */
 struct ph_rach_ind_param {
 	uint8_t ra;
+	uint8_t acc_delay;
 	uint32_t fn;
 };
 
