@@ -5,6 +5,52 @@
 
 #include <osmocom/core/timer.h>
 #include <osmocom/core/msgb.h>
+#include <osmocom/gsm/prim.h>
+
+/* primitive related sutff */
+
+enum osmo_ph_prim {
+	PRIM_PH_DATA,		/* PH-DATA */
+	PRIM_PH_RACH,		/* PH-RANDOM_ACCESS */
+	PRIM_PH_CONN,		/* PH-CONNECT */
+	PRIM_PH_EMPTY_FRAME,	/* PH-EMPTY_FRAME */
+	PRIM_PH_RTS,		/* PH-RTS */
+};
+
+/* for PH-RANDOM_ACCESS.req */
+struct ph_rach_req_param {
+	uint8_t ra;
+	uint8_t ta;
+	uint8_t tx_power;
+	uint8_t is_combined_ccch;
+	uint16_t offset;
+};
+
+/* for PH-RANDOM_ACCESS.ind */
+struct ph_rach_ind_param {
+	uint8_t ra;
+	uint32_t fn;
+};
+
+/* for PH-[UNIT]DATA.{req,ind} */
+struct ph_data_param {
+	uint8_t link_id;
+	uint8_t chan_nr;
+};
+
+struct ph_conn_ind_param {
+	uint32_t fn;
+};
+
+struct osmo_phsap_prim {
+	struct osmo_prim_hdr oph;
+	union {
+		struct ph_data_param data;
+		struct ph_rach_req_param rach_req;
+		struct ph_rach_ind_param rach_ind;
+		struct ph_conn_ind_param conn_ind;
+	} u;
+};
 
 enum lapdm_state {
 	LAPDm_STATE_NULL = 0,
@@ -70,7 +116,7 @@ struct lapdm_entity {
 	void *l1_ctx;	/* context for layer1 instance */
 	void *l3_ctx;	/* context for layer3 instance */
 
-	lapdm_cb_t l1_cb;	/* callback for sending stuff to L1 */
+	osmo_prim_cb l1_prim_cb;
 	lapdm_cb_t l3_cb;	/* callback for sending stuff to L3 */
 
 	struct lapdm_channel *lapdm_ch;
@@ -96,15 +142,12 @@ void lapdm_entity_exit(struct lapdm_entity *le);
 void lapdm_channel_exit(struct lapdm_channel *lc);
 
 /* input into layer2 (from layer 1) */
-int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t chan_nr, uint8_t link_id);
-int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le);
-
-/* L1 confirms channel request */
-int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms, uint32_t frame_nr);
+int lapdm_phsap_up(struct osmo_prim_hdr *oph, struct lapdm_entity *le);
 
 /* input into layer2 (from layer 3) */
 int lapdm_rslms_recvmsg(struct msgb *msg, struct lapdm_channel *lc);
 
-int osmol2_register_handler(struct osmocom_ms *ms, lapdm_cb_t cb);
+void lapdm_channel_set_l3(struct lapdm_channel *lc, lapdm_cb_t cb, void *ctx);
+void lapdm_channel_set_l1(struct lapdm_channel *lc, osmo_prim_cb cb, void *ctx);
 
 #endif /* _OSMOCOM_LAPDM_H */

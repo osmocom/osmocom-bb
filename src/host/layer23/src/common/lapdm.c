@@ -62,14 +62,13 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/rsl.h>
+#include <osmocom/gsm/prim.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
-
-#include <osmocom/bb/common/l1ctl.h>
 
 /* TS 04.06 Figure 4 / Section 3.2 */
 #define LAPDm_LPD_NORMAL  0
@@ -307,6 +306,12 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 				uint8_t chan_nr, uint8_t link_id, uint8_t n201)
 {
 	struct lapdm_entity *le = dl->entity;
+	struct osmo_phsap_prim pp;
+
+	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_RACH,
+			PRIM_OP_REQUEST, msg);
+	pp.u.data.chan_nr = chan_nr;
+	pp.u.data.link_id = link_id;
 
 	/* if there is a pending message, queue it */
 	if (le->tx_pending) {
@@ -320,24 +325,27 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 	/* send the frame now */
 	le->tx_pending = 0; /* disabled flow control */
 	lapdm_pad_msgb(msg, n201);
-	return l1ctl_tx_data_req(le->l1_ctx, msg, chan_nr, link_id);
+
+	return le->l1_prim_cb(&pp.oph, le->l1_ctx);
 }
 
 /* get next frame from the tx queue. because the ms has multiple datalinks,
  * each datalink's queue is read round-robin.
  */
-int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
+static int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 {
 	struct lapdm_datalink *dl;
 	int last = le->last_tx_dequeue;
 	int i = last, n = ARRAY_SIZE(le->datalink);
-	uint8_t chan_nr, link_id, n201;
+	struct osmo_phsap_prim pp;
+	uint8_t n201;
 
 	/* we may send again */
 	le->tx_pending = 0;
 
 	/* free confirm message */
-	msgb_free(msg);
+	if (msg)
+		msgb_free(msg);
 
 	/* round-robin dequeue */
 	do {
@@ -352,10 +360,13 @@ int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 	if (!msg)
 		return 0;
 
+	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
+			PRIM_OP_REQUEST, msg);
+
 	/* Pull chan_nr and link_id */
-	chan_nr = *msg->data;
+	pp.u.data.chan_nr = *msg->data;
 	msgb_pull(msg, 1);
-	link_id = *msg->data;
+	pp.u.data.link_id = *msg->data;
 	msgb_pull(msg, 1);
 	n201 = *msg->data;
 	msgb_pull(msg, 1);
@@ -366,7 +377,8 @@ int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 	/* Pad the frame, we can transmit now */
 	le->tx_pending = 1;
 	lapdm_pad_msgb(msg, n201);
-	return l1ctl_tx_data_req(le->l1_ctx, msg, chan_nr, link_id);
+
+	return le->l1_prim_cb(&pp.oph, le->l1_ctx);
 }
 
 /* Create RSLms various RSLms messages */
@@ -1515,7 +1527,7 @@ static int lapdm_ph_data_ind(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 }
 
 /* input into layer2 (from layer 1) */
-int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t chan_nr, uint8_t link_id)
+static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t chan_nr, uint8_t link_id)
 {
 	uint8_t cbits = chan_nr >> 3;
 	uint8_t sapi = link_id & 7;
@@ -1599,6 +1611,50 @@ int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t chan_nr, u
 
 	return rc;
 }
+
+static int l2_ph_chan_conf(struct msgb *msg, struct lapdm_entity *le, uint32_t frame_nr);
+
+int lapdm_phsap_up(struct osmo_prim_hdr *oph, struct lapdm_entity *le)
+{
+	struct osmo_phsap_prim *pp = (struct osmo_phsap_prim *) oph;
+	int rc = 0;
+
+	if (oph->sap != SAP_GSM_PH)
+		return -ENODEV;
+
+	if (oph->operation != PRIM_OP_INDICATION)
+		return -ENODEV;
+
+	switch (oph->primitive) {
+	case PRIM_PH_DATA:
+		if (oph->operation != PRIM_OP_INDICATION)
+			return -ENODEV;
+		rc = l2_ph_data_ind(oph->msg, le, pp->u.data.chan_nr,
+				    pp->u.data.link_id);
+		break;
+	case PRIM_PH_RTS:
+		if (oph->operation != PRIM_OP_INDICATION)
+			return -ENODEV;
+		rc = l2_ph_data_conf(oph->msg, le);
+		break;
+	case PRIM_PH_RACH:
+		switch (oph->operation) {
+		case PRIM_OP_INDICATION:
+#warning FIX BTS
+			//rc = l2_ph_rach_ind(le, pp->u.rach_ind.ra, pp->u.rach_ind.fn);
+			break;
+		case PRIM_OP_CONFIRM:
+			rc = l2_ph_chan_conf(oph->msg, le, pp->u.rach_ind.fn);
+			break;
+		default:
+			return -EIO;
+		}
+		break;
+	}
+
+	return rc;
+}
+
 
 /* L3 -> L2 / RSLMS -> LAPDm */
 
@@ -2051,7 +2107,10 @@ static int rslms_rx_chan_rqd(struct lapdm_channel *lc, struct msgb *msg)
 {
 	struct abis_rsl_cchan_hdr *cch = msgb_l2(msg);
 	void *l1ctx = lc->lapdm_dcch.l1_ctx;
-	int rc;
+	struct osmo_phsap_prim pp;
+
+	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_RACH,
+			PRIM_OP_REQUEST, NULL);
 
 	if (msgb_l2len(msg) < sizeof(*cch) + 4 + 2 + 2) {
 		LOGP(DRSL, LOGL_ERROR, "Message too short for CHAN RQD!\n");
@@ -2061,28 +2120,30 @@ static int rslms_rx_chan_rqd(struct lapdm_channel *lc, struct msgb *msg)
 		LOGP(DRSL, LOGL_ERROR, "Missing REQ REFERENCE IE\n");
 		return -EINVAL;
 	}
+	pp.u.rach_req.ra = cch->data[1];
+	pp.u.rach_req.offset = ((cch->data[2] & 0x7f) << 8) | cch->data[3];
+	pp.u.rach_req.is_combined_ccch = cch->data[2] >> 7;
+
 	if (cch->data[4] != RSL_IE_ACCESS_DELAY) {
 		LOGP(DRSL, LOGL_ERROR, "Missing ACCESS_DELAY IE\n");
 		return -EINVAL;
 	}
+	/* TA = 0 - delay */
+	pp.u.rach_req.ta = 0 - cch->data[5];
+
 	if (cch->data[6] != RSL_IE_MS_POWER) {
 		LOGP(DRSL, LOGL_ERROR, "Missing MS POWER IE\n");
 		return -EINVAL;
 	}
-
-	/* TA = 0 - delay */
-	rc = l1ctl_tx_param_req(l1ctx, 0 - cch->data[5], cch->data[7]);
-
-	rc = l1ctl_tx_rach_req(l1ctx, cch->data[1],
-		((cch->data[2] & 0x7f) << 8) | cch->data[3], cch->data[2] >> 7);
+	pp.u.rach_req.tx_power = cch->data[7];
 
 	msgb_free(msg);
 
-	return rc;
+	return lc->lapdm_dcch.l1_prim_cb(&pp.oph, l1ctx);
 }
 
 /* L1 confirms channel request */
-int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms, uint32_t frame_nr)
+static int l2_ph_chan_conf(struct msgb *msg, struct lapdm_entity *le, uint32_t frame_nr)
 {
 	struct abis_rsl_cchan_hdr *ch;
 	struct gsm_time tm;
@@ -2102,7 +2163,7 @@ int l2_ph_chan_conf(struct msgb *msg, struct osmocom_ms *ms, uint32_t frame_nr)
 	ref->t3_low = tm.t3 & 0x7;
 	ref->t3_high = tm.t3 >> 3;
 	
-	return rslms_sendmsg(msg, &ms->lapdm_channel.lapdm_dcch);
+	return rslms_sendmsg(msg, le);
 }
 
 /* Names for Radio Link Layer Management */
@@ -2304,12 +2365,18 @@ int lapdm_rslms_recvmsg(struct msgb *msg, struct lapdm_channel *lc)
 	return rc;
 }
 
-int osmol2_register_handler(struct osmocom_ms *ms, lapdm_cb_t cb)
+void lapdm_channel_set_l1(struct lapdm_channel *lc, osmo_prim_cb cb, void *ctx)
 {
-	ms->lapdm_channel.lapdm_acch.l3_cb = cb;
-	ms->lapdm_channel.lapdm_dcch.l3_cb = cb;
-	ms->lapdm_channel.lapdm_acch.l3_ctx = ms;
-	ms->lapdm_channel.lapdm_dcch.l3_ctx = ms;
+	lc->lapdm_dcch.l1_prim_cb = cb;
+	lc->lapdm_acch.l1_prim_cb = cb;
+	lc->lapdm_dcch.l1_ctx = ctx;
+	lc->lapdm_acch.l1_ctx = ctx;
+}
 
-	return 0;
+void lapdm_channel_set_l3(struct lapdm_channel *lc, lapdm_cb_t cb, void *ctx)
+{
+	lc->lapdm_dcch.l3_cb = cb;
+	lc->lapdm_acch.l3_cb = cb;
+	lc->lapdm_dcch.l3_ctx = ctx;
+	lc->lapdm_acch.l3_ctx = ctx;
 }

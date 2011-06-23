@@ -5059,7 +5059,7 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 	INIT_LLIST_HEAD(&rr->downqueue);
 	/* downqueue is handled here, so don't add_work */
 
-	osmol2_register_handler(ms, &rcv_rsl);
+	lapdm_channel_set_l3(&ms->lapdm_channel, &rcv_rsl, ms);
 
 	start_rr_t_meas(rr, 1, 0);
 

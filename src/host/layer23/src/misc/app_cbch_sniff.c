@@ -182,7 +182,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	/* don't do layer3_init() as we don't want an actualy L3 */
 
 	g_ms = ms;
-	osmol2_register_handler(ms, &rcv_rsl);
+	lapdm_channel_set_l1(&ms->lapdm_channel, &rcv_rsl, ms);
 
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	/* FIXME: L1CTL_RES_T_FULL doesn't reset dedicated mode

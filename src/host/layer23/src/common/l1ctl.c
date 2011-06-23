@@ -111,6 +111,8 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct lapdm_entity *le = &ms->lapdm_channel.lapdm_dcch;
+	struct osmo_phsap_prim pp;
 	struct l1ctl_info_dl *dl;
 
 	if (msgb_l2len(msg) < sizeof(*dl)) {
@@ -122,14 +124,17 @@ static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 
-	l2_ph_chan_conf(msg, ms, ntohl(dl->frame_nr));
+	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_RACH,
+			PRIM_OP_CONFIRM, msg);
+	pp.u.rach_ind.fn = ntohl(dl->frame_nr);
 
-	return 0;
+	return lapdm_phsap_up(&pp.oph, le);
 }
 
 /* Receive L1CTL_DATA_IND (Data Indication from L1) */
 static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct osmo_phsap_prim pp;
 	struct l1ctl_info_dl *dl;
 	struct l1ctl_data_ind *ccch;
 	struct lapdm_entity *le;
@@ -230,19 +235,24 @@ printf("Dropping frame with %u bit errors\n", dl->num_biterr);
 	msgb_pull(msg, msg->l2h - (msg->l1h-sizeof(struct l1ctl_hdr)));
 	msg->l1h = NULL;
 
-	/* send it up into LAPDm */
-	l2_ph_data_ind(msg, le, dl->chan_nr, dl->link_id);
+	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
+			PRIM_OP_REQUEST, msg);
+	pp.u.data.chan_nr = dl->chan_nr;
+	pp.u.data.link_id = dl->link_id;
 
-	return 0;
+	/* send it up into LAPDm */
+	return lapdm_phsap_up(&pp.oph, le);
 }
 
 /* Receive L1CTL_DATA_CONF (Data Confirm from L1) */
 static int rx_ph_data_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct l1ctl_info_dl *dl;
+	struct osmo_phsap_prim pp;
+	struct l1ctl_info_dl *dl = (struct l1ctl_info_dl *) msg->l1h;
 	struct lapdm_entity *le;
 
-	dl = (struct l1ctl_info_dl *) msg->l1h;
+	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_RTS,
+			PRIM_OP_INDICATION, msg);
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
@@ -251,9 +261,7 @@ static int rx_ph_data_conf(struct osmocom_ms *ms, struct msgb *msg)
 		le = &ms->lapdm_channel.lapdm_dcch;
 
 	/* send it up into LAPDm */
-	l2_ph_data_conf(msg, le);
-
-	return 0;
+	return lapdm_phsap_up(&pp.oph, le);
 }
 
 /* Transmit L1CTL_DATA_REQ */

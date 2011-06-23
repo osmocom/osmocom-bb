@@ -786,7 +786,7 @@ int scan_init(struct osmocom_ms *_ms)
 	ms = _ms;
 	osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
 	memset(&timer, 0, sizeof(timer));
-	osmol2_register_handler(ms, &rcv_rsl);
+	lapdm_channel_set_l3(&ms->lapdm_channel, &rcv_rsl, ms);
 	g.enable = 1;
 	osmo_gps_init();
 	if (osmo_gps_open())
