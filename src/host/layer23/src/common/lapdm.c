@@ -63,10 +63,10 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/prim.h>
+#include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
-#include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
 
