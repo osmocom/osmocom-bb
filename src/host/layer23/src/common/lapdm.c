@@ -184,18 +184,20 @@ static void lapdm_dl_init(struct lapdm_datalink *dl,
 	dl->entity = entity;
 }
 
-void lapdm_entity_init(struct lapdm_entity *le)
+void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(le->datalink); i++)
 		lapdm_dl_init(&le->datalink[i], le);
+
+	lapdm_entity_set_mode(le, mode);
 }
 
-void lapdm_channel_init(struct lapdm_channel *lc)
+void lapdm_channel_init(struct lapdm_channel *lc, enum lapdm_mode mode)
 {
-	lapdm_entity_init(&lc->lapdm_acch);
-	lapdm_entity_init(&lc->lapdm_dcch);
+	lapdm_entity_init(&lc->lapdm_acch, mode);
+	lapdm_entity_init(&lc->lapdm_dcch, mode);
 }
 
 
@@ -468,9 +470,10 @@ static int lapdm_send_ua(struct lapdm_msg_ctx *mctx, uint8_t len, uint8_t *data)
 	uint8_t sapi = mctx->link_id & 7;
 	uint8_t f_bit = LAPDm_CTRL_PF_BIT(mctx->ctrl);
 	struct msgb *msg = msgb_alloc_headroom(23+10, 10, "LAPDm UA");
-	msg->l2h = msgb_put(msg, 3 + len);
+	struct lapdm_entity *le = mctx->dl->entity;
 
-	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_RESP);
+	msg->l2h = msgb_put(msg, 3 + len);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.resp);
 	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_UA, f_bit);
 	msg->l2h[2] = LAPDm_LEN(len);
 	if (len)
@@ -485,9 +488,10 @@ static int lapdm_send_dm(struct lapdm_msg_ctx *mctx)
 	uint8_t sapi = mctx->link_id & 7;
 	uint8_t f_bit = LAPDm_CTRL_PF_BIT(mctx->ctrl);
 	struct msgb *msg = msgb_alloc_headroom(23+10, 10, "LAPDm DM");
-	msg->l2h = msgb_put(msg, 3);
+	struct lapdm_entity *le = mctx->dl->entity;
 
-	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_RESP);
+	msg->l2h = msgb_put(msg, 3);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.resp);
 	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_DM, f_bit);
 	msg->l2h[2] = 0;
 
@@ -499,9 +503,10 @@ static int lapdm_send_rr(struct lapdm_msg_ctx *mctx, uint8_t f_bit)
 {
 	uint8_t sapi = mctx->link_id & 7;
 	struct msgb *msg = msgb_alloc_headroom(23+10, 10, "LAPDm RR");
-	msg->l2h = msgb_put(msg, 3);
+	struct lapdm_entity *le = mctx->dl->entity;
 
-	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_RESP);
+	msg->l2h = msgb_put(msg, 3);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.resp);
 	msg->l2h[1] = LAPDm_CTRL_S(mctx->dl->V_recv, LAPDm_S_RR, f_bit);
 	msg->l2h[2] = LAPDm_LEN(0);
 
@@ -513,9 +518,10 @@ static int lapdm_send_rnr(struct lapdm_msg_ctx *mctx, uint8_t f_bit)
 {
 	uint8_t sapi = mctx->link_id & 7;
 	struct msgb *msg = msgb_alloc_headroom(23+10, 10, "LAPDm RNR");
-	msg->l2h = msgb_put(msg, 3);
+	struct lapdm_entity *le = mctx->dl->entity;
 
-	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_RESP);
+	msg->l2h = msgb_put(msg, 3);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.resp);
 	msg->l2h[1] = LAPDm_CTRL_S(mctx->dl->V_recv, LAPDm_S_RNR, f_bit);
 	msg->l2h[2] = LAPDm_LEN(0);
 
@@ -527,9 +533,10 @@ static int lapdm_send_rej(struct lapdm_msg_ctx *mctx, uint8_t f_bit)
 {
 	uint8_t sapi = mctx->link_id & 7;
 	struct msgb *msg = msgb_alloc_headroom(23+10, 10, "LAPDm REJ");
-	msg->l2h = msgb_put(msg, 3);
+	struct lapdm_entity *le = mctx->dl->entity;
 
-	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_RESP);
+	msg->l2h = msgb_put(msg, 3);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.resp);
 	msg->l2h[1] = LAPDm_CTRL_S(mctx->dl->V_recv, LAPDm_S_REJ, f_bit);
 	msg->l2h[2] = LAPDm_LEN(0);
 
@@ -713,6 +720,7 @@ static void lapdm_acknowledge(struct lapdm_msg_ctx *mctx)
 static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 {
 	struct lapdm_datalink *dl = mctx->dl;
+	struct lapdm_entity *le = dl->entity;
 	uint8_t length;
 	int rc;
 	int rsl_msg;
@@ -725,7 +733,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* 5.7.1 */
 		dl->seq_err_cond = 0;
 		/* G.2.2 Wrong value of the C/R bit */
-		if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP) {
+		if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.resp) {
 			LOGP(DLAPDM, LOGL_NOTICE, "SABM response error\n");
 			msgb_free(msg);
 			rsl_rll_error(RLL_CAUSE_FRM_UNIMPL, mctx);
@@ -756,6 +764,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			dl->mctx.dl = dl;
 			dl->mctx.chan_nr = mctx->chan_nr;
 			dl->mctx.link_id = mctx->link_id;
+			dl->mctx.n201 = mctx->n201;
 			break;
 		case LAPDm_STATE_MF_EST:
 			if (length == 0) {
@@ -807,7 +816,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 	case LAPDm_U_DM:
 		LOGP(DLAPDM, LOGL_INFO, "DM received\n");
 		/* G.2.2 Wrong value of the C/R bit */
-		if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_CMD) {
+		if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.cmd) {
 			LOGP(DLAPDM, LOGL_NOTICE, "DM command error\n");
 			msgb_free(msg);
 			rsl_rll_error(RLL_CAUSE_FRM_UNIMPL, mctx);
@@ -871,7 +880,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 	case LAPDm_U_UI:
 		LOGP(DLAPDM, LOGL_INFO, "UI received\n");
 		/* G.2.2 Wrong value of the C/R bit */
-		if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP) {
+		if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.resp) {
 			LOGP(DLAPDM, LOGL_NOTICE, "UI indicates response "
 				"error\n");
 			msgb_free(msg);
@@ -931,7 +940,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* 5.7.1 */
 		dl->seq_err_cond = 0;
 		/* G.2.2 Wrong value of the C/R bit */
-		if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP) {
+		if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.resp) {
 			LOGP(DLAPDM, LOGL_NOTICE, "DISC response error\n");
 			msgb_free(msg);
 			rsl_rll_error(RLL_CAUSE_FRM_UNIMPL, mctx);
@@ -987,7 +996,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 	case LAPDm_U_UA:
 		LOGP(DLAPDM, LOGL_INFO, "UA received\n");
 		/* G.2.2 Wrong value of the C/R bit */
-		if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_CMD) {
+		if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.cmd) {
 			LOGP(DLAPDM, LOGL_NOTICE, "UA indicates command "
 				"error\n");
 			msgb_free(msg);
@@ -1093,6 +1102,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 {
 	struct lapdm_datalink *dl = mctx->dl;
+	struct lapdm_entity *le = dl->entity;
 	uint8_t length;
 
 	length = msg->l2h[2] >> 2;
@@ -1108,7 +1118,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		return -EIO;
 	}
 
-	if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP
+	if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.resp
 	 && LAPDm_CTRL_PF_BIT(mctx->ctrl)
 	 && dl->state != LAPDm_STATE_TIMER_RECOV) {
 		/* 5.4.2.2: Inidcate error on supervisory reponse F=1 */
@@ -1136,7 +1146,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		lapdm_acknowledge(mctx);
 
 		/* 5.5.3.2 */
-		if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_CMD
+		if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.cmd
 		 && LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 		 	if (!dl->own_busy && !dl->seq_err_cond) {
 				LOGP(DLAPDM, LOGL_NOTICE, "RR frame command "
@@ -1154,7 +1164,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 					"so we reply with RR frame\n");
 				lapdm_send_rnr(mctx, 1);
 			}
-		} else if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP
+		} else if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.resp
 			&& LAPDm_CTRL_PF_BIT(mctx->ctrl)
 			&& dl->state == LAPDm_STATE_TIMER_RECOV) {
 			LOGP(DLAPDM, LOGL_INFO, "RR response with F==1, "
@@ -1181,7 +1191,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		dl->peer_busy = 1;
 
 		if (LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
-			if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_CMD) {
+			if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.cmd) {
 				if (!dl->own_busy) {
 					LOGP(DLAPDM, LOGL_INFO, "RNR poll "
 						"command and we are not busy, "
@@ -1228,7 +1238,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* reset Timer T200 */
 			osmo_timer_del(&dl->t200);
 			/* 5.5.3.2 */
-			if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_CMD
+			if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.cmd
 			 && LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 				if (!dl->own_busy && !dl->seq_err_cond) {
 					LOGP(DLAPDM, LOGL_INFO, "REJ poll "
@@ -1258,12 +1268,12 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 					"polling command not in timer recovery "
 					"state received\n");
 			/* send MDL ERROR INIDCATION to L3 */
-			if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP
+			if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.resp
 			 && LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 				rsl_rll_error(RLL_CAUSE_UNSOL_SPRV_RESP, mctx);
 			}
 
-		} else if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP
+		} else if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.resp
 			&& LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 			LOGP(DLAPDM, LOGL_INFO, "REJ poll response in timer "
 				"recovery state received\n");
@@ -1281,7 +1291,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* V(S) and V(A) to the N(R) in the REJ frame */
 			dl->V_send = dl->V_ack = LAPDm_CTRL_Nr(mctx->ctrl);
 			/* 5.5.3.2 */
-			if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_CMD
+			if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.cmd
 			 && LAPDm_CTRL_PF_BIT(mctx->ctrl)) {
 				if (!dl->own_busy && !dl->seq_err_cond) {
 					LOGP(DLAPDM, LOGL_INFO, "REJ poll "
@@ -1333,6 +1343,7 @@ static int lapdm_rx_s(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 {
 	struct lapdm_datalink *dl = mctx->dl;
+	struct lapdm_entity *le = dl->entity;
 	//uint8_t nr = LAPDm_CTRL_Nr(mctx->ctrl);
 	uint8_t ns = LAPDm_CTRL_I_Ns(mctx->ctrl);
 	uint8_t length;
@@ -1341,7 +1352,7 @@ static int lapdm_rx_i(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 	LOGP(DLAPDM, LOGL_NOTICE, "I received\n");
 		
 	/* G.2.2 Wrong value of the C/R bit */
-	if (LAPDm_ADDR_CR(mctx->addr) == CR_BS2MS_RESP) {
+	if (LAPDm_ADDR_CR(mctx->addr) == le->cr.rem2loc.resp) {
 		LOGP(DLAPDM, LOGL_NOTICE, "I frame response not allowed\n");
 		msgb_free(msg);
 		rsl_rll_error(RLL_CAUSE_FRM_UNIMPL, mctx);
@@ -1684,6 +1695,7 @@ int lapdm_phsap_up(struct osmo_prim_hdr *oph, struct lapdm_entity *le)
 /* L3 requests establishment of data link */
 static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 {
+	struct lapdm_entity *le = dl->entity;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	uint8_t chan_nr = rllh->chan_nr;
 	uint8_t link_id = rllh->link_id;
@@ -1744,7 +1756,7 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 
 	/* Push LAPDm header on msgb */
 	msg->l2h = msgb_push(msg, 3);
-	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.cmd);
 	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_SABM, 1);
 	msg->l2h[2] = LAPDm_LEN(length);
 	/* Transmit-buffer carries exactly one segment */
@@ -1766,6 +1778,7 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 /* L3 requests transfer of unnumbered information */
 static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 {
+	struct lapdm_entity *le = dl->entity;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	uint8_t chan_nr = rllh->chan_nr;
 	uint8_t link_id = rllh->link_id;
@@ -1810,7 +1823,7 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->l2h = msgb_push(msg, 2 + 3);
 	msg->l2h[0] = tx_power;
 	msg->l2h[1] = ta;
-	msg->l2h[2] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
+	msg->l2h[2] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.cmd);
 	msg->l2h[3] = LAPDm_CTRL_U(LAPDm_U_UI, 0);
 	msg->l2h[4] = LAPDm_LEN(length);
 	// FIXME: short L2 header support
@@ -1850,6 +1863,7 @@ static int rslms_rx_rll_data_req(struct msgb *msg, struct lapdm_datalink *dl)
 static int rslms_send_i(struct lapdm_msg_ctx *mctx, int line)
 {
 	struct lapdm_datalink *dl = mctx->dl;
+	struct lapdm_entity *le = dl->entity;
 	uint8_t chan_nr = mctx->chan_nr;
 	uint8_t link_id = mctx->link_id;
 	uint8_t sapi = link_id & 7;
@@ -1922,7 +1936,7 @@ static int rslms_send_i(struct lapdm_msg_ctx *mctx, int line)
 		/* Create I frame (segment) and transmit-buffer content */
 		msg = msgb_alloc_headroom(23+10, 10, "LAPDm I");
 		msg->l2h = msgb_put(msg, 3 + length);
-		msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
+		msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.cmd);
 		msg->l2h[1] = LAPDm_CTRL_I(dl->V_recv, dl->V_send, 0);
 		msg->l2h[2] = LAPDm_LEN(length);
 		if (left > length)
@@ -1995,6 +2009,7 @@ static int rslms_rx_rll_susp_req(struct msgb *msg, struct lapdm_datalink *dl)
 /* L3 requests resume of data link */
 static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 {
+	struct lapdm_entity *le = dl->entity;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	uint8_t chan_nr = rllh->chan_nr;
 	uint8_t link_id = rllh->link_id;
@@ -2041,7 +2056,7 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	/* Create new msgb (old one is now free) */
 	msg = msgb_alloc_headroom(23+10, 10, "LAPDm SABM");
 	msg->l2h = msgb_put(msg, 3);
-	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.cmd);
 	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_SABM, 1);
 	msg->l2h[2] = LAPDm_LEN(0);
 	/* Transmit-buffer carries exactly one segment */
@@ -2063,6 +2078,7 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 /* L3 requests release of data link */
 static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 {
+	struct lapdm_entity *le = dl->entity;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	uint8_t chan_nr = rllh->chan_nr;
 	uint8_t link_id = rllh->link_id;
@@ -2099,7 +2115,7 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 
 	/* Push LAPDm header on msgb */
 	msg->l2h = msgb_push(msg, 3);
-	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, CR_MS2BS_CMD);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, le->cr.loc2rem.cmd);
 	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_DISC, 1);
 	msg->l2h[2] = LAPDm_LEN(0);
 	/* Transmit-buffer carries exactly one segment */
@@ -2360,6 +2376,41 @@ int lapdm_rslms_recvmsg(struct msgb *msg, struct lapdm_channel *lc)
 	return rc;
 }
 
+int lapdm_entity_set_mode(struct lapdm_entity *le, enum lapdm_mode mode)
+{
+	switch (mode) {
+	case LAPDM_MODE_MS:
+		le->cr.loc2rem.cmd = CR_MS2BS_CMD;
+		le->cr.loc2rem.resp = CR_MS2BS_RESP;
+		le->cr.rem2loc.cmd = CR_BS2MS_CMD;
+		le->cr.rem2loc.resp = CR_BS2MS_RESP;
+		break;
+	case LAPDM_MODE_BTS:
+		le->cr.loc2rem.cmd = CR_BS2MS_CMD;
+		le->cr.loc2rem.resp = CR_BS2MS_RESP;
+		le->cr.rem2loc.cmd = CR_MS2BS_CMD;
+		le->cr.rem2loc.resp = CR_MS2BS_RESP;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	le->mode = mode;
+
+	return 0;
+}
+
+int lapdm_channel_set_mode(struct lapdm_channel *lc, enum lapdm_mode mode)
+{
+	int rc;
+
+	rc = lapdm_entity_set_mode(&lc->lapdm_dcch, mode);
+	if (rc < 0)
+		return rc;
+
+	return lapdm_entity_set_mode(&lc->lapdm_acch, mode);
+}
+
 void lapdm_channel_set_l1(struct lapdm_channel *lc, osmo_prim_cb cb, void *ctx)
 {
 	lc->lapdm_dcch.l1_prim_cb = cb;
@@ -2374,4 +2425,30 @@ void lapdm_channel_set_l3(struct lapdm_channel *lc, lapdm_cb_t cb, void *ctx)
 	lc->lapdm_acch.l3_cb = cb;
 	lc->lapdm_dcch.l3_ctx = ctx;
 	lc->lapdm_acch.l3_ctx = ctx;
+}
+
+void lapdm_entity_reset(struct lapdm_entity *le)
+{
+	struct lapdm_datalink *dl;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(le->datalink); i++) {
+		dl = &le->datalink[i];
+		if (dl->state == LAPDm_STATE_IDLE)
+			continue;
+		LOGP(DLAPDM, LOGL_INFO, "Resetting LAPDm instance\n");
+		/* reset Timer T200 */
+		osmo_timer_del(&dl->t200);
+		/* enter idle state */
+		dl->state = LAPDm_STATE_IDLE;
+		/* flush buffer */
+		lapdm_dl_flush_tx(dl);
+		lapdm_dl_flush_send(dl);
+	}
+}
+
+void lapdm_channel_reset(struct lapdm_channel *lc)
+{
+	lapdm_entity_reset(&lc->lapdm_dcch);
+	lapdm_entity_reset(&lc->lapdm_acch);
 }

@@ -53,6 +53,11 @@ struct osmo_phsap_prim {
 	} u;
 };
 
+enum lapdm_mode {
+	LAPDM_MODE_MS,
+	LAPDM_MODE_BTS,
+};
+
 enum lapdm_state {
 	LAPDm_STATE_NULL = 0,
 	LAPDm_STATE_IDLE,
@@ -108,11 +113,23 @@ enum lapdm_dl_sapi {
 
 typedef int (*lapdm_cb_t)(struct msgb *msg, struct lapdm_entity *le, void *ctx);
 
+struct lapdm_cr_ent {
+	uint8_t cmd;
+	uint8_t resp;
+};
+
 /* register message handler for messages that are sent from L2->L3 */
 struct lapdm_entity {
 	struct lapdm_datalink datalink[_NR_DL_SAPI];
 	int last_tx_dequeue; /* last entity that was dequeued */
 	int tx_pending; /* currently a pending frame not confirmed by L1 */
+	enum lapdm_mode mode; /* are we in BTS mode or MS mode */
+
+	struct {
+		/* filled-in once we set the lapdm_mode above */
+		struct lapdm_cr_ent loc2rem;
+		struct lapdm_cr_ent rem2loc;
+	} cr;
 
 	void *l1_ctx;	/* context for layer1 instance */
 	void *l3_ctx;	/* context for layer3 instance */
@@ -135,8 +152,8 @@ const char *get_rsl_name(int value);
 extern const char *lapdm_state_names[];
 
 /* initialize a LAPDm entity */
-void lapdm_entity_init(struct lapdm_entity *le);
-void lapdm_channel_init(struct lapdm_channel *lc);
+void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode);
+void lapdm_channel_init(struct lapdm_channel *lc, enum lapdm_mode mode);
 
 /* deinitialize a LAPDm entity */
 void lapdm_entity_exit(struct lapdm_entity *le);
@@ -150,5 +167,11 @@ int lapdm_rslms_recvmsg(struct msgb *msg, struct lapdm_channel *lc);
 
 void lapdm_channel_set_l3(struct lapdm_channel *lc, lapdm_cb_t cb, void *ctx);
 void lapdm_channel_set_l1(struct lapdm_channel *lc, osmo_prim_cb cb, void *ctx);
+
+int lapdm_entity_set_mode(struct lapdm_entity *le, enum lapdm_mode mode);
+int lapdm_channel_set_mode(struct lapdm_channel *lc, enum lapdm_mode mode);
+
+void lapdm_entity_reset(struct lapdm_entity *le);
+void lapdm_channel_reset(struct lapdm_channel *lc);
 
 #endif /* _OSMOCOM_LAPDM_H */
