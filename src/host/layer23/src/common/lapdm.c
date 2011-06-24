@@ -1663,22 +1663,28 @@ int lapdm_phsap_up(struct osmo_prim_hdr *oph, struct lapdm_entity *le)
 	struct osmo_phsap_prim *pp = (struct osmo_phsap_prim *) oph;
 	int rc = 0;
 
-	if (oph->sap != SAP_GSM_PH)
+	if (oph->sap != SAP_GSM_PH) {
+		LOGP(DLAPDM, LOGL_ERROR, "primitive for unknown SAP %u\n",
+			oph->sap);
 		return -ENODEV;
-
-	if (oph->operation != PRIM_OP_INDICATION)
-		return -ENODEV;
+	}
 
 	switch (oph->primitive) {
 	case PRIM_PH_DATA:
-		if (oph->operation != PRIM_OP_INDICATION)
+		if (oph->operation != PRIM_OP_INDICATION) {
+			LOGP(DLAPDM, LOGL_ERROR, "PH_DATA is not INDICATION %u\n",
+				oph->operation);
 			return -ENODEV;
+		}
 		rc = l2_ph_data_ind(oph->msg, le, pp->u.data.chan_nr,
 				    pp->u.data.link_id);
 		break;
 	case PRIM_PH_RTS:
-		if (oph->operation != PRIM_OP_INDICATION)
+		if (oph->operation != PRIM_OP_INDICATION) {
+			LOGP(DLAPDM, LOGL_ERROR, "PH_RTS is not INDICATION %u\n",
+				oph->operation);
 			return -ENODEV;
+		}
 		rc = l2_ph_data_conf(oph->msg, le);
 		break;
 	case PRIM_PH_RACH:
