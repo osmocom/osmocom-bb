@@ -310,11 +310,6 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 	struct lapdm_entity *le = dl->entity;
 	struct osmo_phsap_prim pp;
 
-	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_RACH,
-			PRIM_OP_REQUEST, msg);
-	pp.u.data.chan_nr = chan_nr;
-	pp.u.data.link_id = link_id;
-
 	/* if there is a pending message, queue it */
 	if (le->tx_pending || le->flags & LAPDM_ENT_F_POLLING_ONLY) {
 		*msgb_push(msg, 1) = n201;
@@ -323,6 +318,11 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 		msgb_enqueue(&dl->tx_queue, msg);
 		return -EBUSY;
 	}
+
+	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
+			PRIM_OP_REQUEST, msg);
+	pp.u.data.chan_nr = chan_nr;
+	pp.u.data.link_id = link_id;
 
 	/* send the frame now */
 	le->tx_pending = 0; /* disabled flow control */
