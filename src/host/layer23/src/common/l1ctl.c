@@ -236,7 +236,7 @@ printf("Dropping frame with %u bit errors\n", dl->num_biterr);
 	msg->l1h = NULL;
 
 	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
-			PRIM_OP_REQUEST, msg);
+			PRIM_OP_INDICATION, msg);
 	pp.u.data.chan_nr = dl->chan_nr;
 	pp.u.data.link_id = dl->link_id;
 
