@@ -316,7 +316,7 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 	pp.u.data.link_id = link_id;
 
 	/* if there is a pending message, queue it */
-	if (le->tx_pending) {
+	if (le->tx_pending || le->flags & LAPDM_ENT_F_POLLING_ONLY) {
 		*msgb_push(msg, 1) = n201;
 		*msgb_push(msg, 1) = link_id;
 		*msgb_push(msg, 1) = chan_nr;
@@ -358,27 +358,37 @@ static int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 			break;
 	} while (i != last);
 
-	/* no message in all queues */
-	if (!msg)
-		return 0;
+	if (!msg) {
+		/* no message in all queues */
 
-	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
-			PRIM_OP_REQUEST, msg);
+		/* If user didn't request PH-EMPTY_FRAME.req, abort */
+		if (!(le->flags & LAPDM_ENT_F_EMPTY_FRAME))
+			return 0;
 
-	/* Pull chan_nr and link_id */
-	pp.u.data.chan_nr = *msg->data;
-	msgb_pull(msg, 1);
-	pp.u.data.link_id = *msg->data;
-	msgb_pull(msg, 1);
-	n201 = *msg->data;
-	msgb_pull(msg, 1);
+		/* otherwise, send PH-EMPTY_FRAME.req */
+		osmo_prim_init(&pp.oph, SAP_GSM_PH,
+				PRIM_PH_EMPTY_FRAME,
+				PRIM_OP_REQUEST, NULL);
+	} else {
+		/* if we have a message, send PH-DATA.req */
+		osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
+				PRIM_OP_REQUEST, msg);
 
-	/* Set last dequeue position */
-	le->last_tx_dequeue = i;
+		/* Pull chan_nr and link_id */
+		pp.u.data.chan_nr = *msg->data;
+		msgb_pull(msg, 1);
+		pp.u.data.link_id = *msg->data;
+		msgb_pull(msg, 1);
+		n201 = *msg->data;
+		msgb_pull(msg, 1);
 
-	/* Pad the frame, we can transmit now */
-	le->tx_pending = 1;
-	lapdm_pad_msgb(msg, n201);
+		/* Set last dequeue position */
+		le->last_tx_dequeue = i;
+
+		/* Pad the frame, we can transmit now */
+		le->tx_pending = 1;
+		lapdm_pad_msgb(msg, n201);
+	}
 
 	return le->l1_prim_cb(&pp.oph, le->l1_ctx);
 }
@@ -2451,4 +2461,15 @@ void lapdm_channel_reset(struct lapdm_channel *lc)
 {
 	lapdm_entity_reset(&lc->lapdm_dcch);
 	lapdm_entity_reset(&lc->lapdm_acch);
+}
+
+void lapdm_entity_set_flags(struct lapdm_entity *le, unsigned int flags)
+{
+	le->flags = flags;
+}
+
+void lapdm_channel_set_flags(struct lapdm_channel *lc, unsigned int flags)
+{
+	lapdm_entity_set_flags(&lc->lapdm_dcch, flags);
+	lapdm_entity_set_flags(&lc->lapdm_acch, flags);
 }

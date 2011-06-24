@@ -118,12 +118,16 @@ struct lapdm_cr_ent {
 	uint8_t resp;
 };
 
+#define LAPDM_ENT_F_EMPTY_FRAME		0x0001
+#define LAPDM_ENT_F_POLLING_ONLY	0x0002
+
 /* register message handler for messages that are sent from L2->L3 */
 struct lapdm_entity {
 	struct lapdm_datalink datalink[_NR_DL_SAPI];
 	int last_tx_dequeue; /* last entity that was dequeued */
 	int tx_pending; /* currently a pending frame not confirmed by L1 */
 	enum lapdm_mode mode; /* are we in BTS mode or MS mode */
+	unsigned int flags;
 
 	struct {
 		/* filled-in once we set the lapdm_mode above */
@@ -173,5 +177,8 @@ int lapdm_channel_set_mode(struct lapdm_channel *lc, enum lapdm_mode mode);
 
 void lapdm_entity_reset(struct lapdm_entity *le);
 void lapdm_channel_reset(struct lapdm_channel *lc);
+
+void lapdm_entity_set_flags(struct lapdm_entity *le, unsigned int flags);
+void lapdm_channel_set_flags(struct lapdm_channel *lc, unsigned int flags);
 
 #endif /* _OSMOCOM_LAPDM_H */
