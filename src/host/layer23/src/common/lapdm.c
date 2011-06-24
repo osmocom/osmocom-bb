@@ -331,23 +331,12 @@ static int tx_ph_data_enqueue(struct lapdm_datalink *dl, struct msgb *msg,
 	return le->l1_prim_cb(&pp.oph, le->l1_ctx);
 }
 
-/* get next frame from the tx queue. because the ms has multiple datalinks,
- * each datalink's queue is read round-robin.
- */
-static int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
+static struct msgb *tx_dequeue_msgb(struct lapdm_entity *le)
 {
 	struct lapdm_datalink *dl;
 	int last = le->last_tx_dequeue;
 	int i = last, n = ARRAY_SIZE(le->datalink);
-	struct osmo_phsap_prim pp;
-	uint8_t n201;
-
-	/* we may send again */
-	le->tx_pending = 0;
-
-	/* free confirm message */
-	if (msg)
-		msgb_free(msg);
+	struct msgb *msg = NULL;
 
 	/* round-robin dequeue */
 	do {
@@ -358,7 +347,58 @@ static int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 			break;
 	} while (i != last);
 
-	if (!msg) {
+	if (msg) {
+		/* Set last dequeue position */
+		le->last_tx_dequeue = i;
+	}
+
+	return msg;
+}
+
+/* dequeue a msg that's pending transmission via L1 and wrap it into
+ * a osmo_phsap_prim */
+int lapdm_phsap_dequeue_prim(struct lapdm_entity *le, struct osmo_phsap_prim *pp)
+{
+	struct msgb *msg;
+	uint8_t n201;
+
+	msg = tx_dequeue_msgb(le);
+	if (!msg)
+		return -ENODEV;
+
+	/* if we have a message, send PH-DATA.req */
+	osmo_prim_init(&pp->oph, SAP_GSM_PH, PRIM_PH_DATA,
+			PRIM_OP_REQUEST, msg);
+
+	/* Pull chan_nr and link_id */
+	pp->u.data.chan_nr = *msg->data;
+	msgb_pull(msg, 1);
+	pp->u.data.link_id = *msg->data;
+	msgb_pull(msg, 1);
+	n201 = *msg->data;
+	msgb_pull(msg, 1);
+
+	/* Pad the frame, we can transmit now */
+	lapdm_pad_msgb(msg, n201);
+
+	return 0;
+}
+
+/* get next frame from the tx queue. because the ms has multiple datalinks,
+ * each datalink's queue is read round-robin.
+ */
+static int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
+{
+	struct osmo_phsap_prim pp;
+
+	/* we may send again */
+	le->tx_pending = 0;
+
+	/* free confirm message */
+	if (msg)
+		msgb_free(msg);
+
+	if (lapdm_phsap_dequeue_prim(le, &pp) < 0) {
 		/* no message in all queues */
 
 		/* If user didn't request PH-EMPTY_FRAME.req, abort */
@@ -370,24 +410,7 @@ static int l2_ph_data_conf(struct msgb *msg, struct lapdm_entity *le)
 				PRIM_PH_EMPTY_FRAME,
 				PRIM_OP_REQUEST, NULL);
 	} else {
-		/* if we have a message, send PH-DATA.req */
-		osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
-				PRIM_OP_REQUEST, msg);
-
-		/* Pull chan_nr and link_id */
-		pp.u.data.chan_nr = *msg->data;
-		msgb_pull(msg, 1);
-		pp.u.data.link_id = *msg->data;
-		msgb_pull(msg, 1);
-		n201 = *msg->data;
-		msgb_pull(msg, 1);
-
-		/* Set last dequeue position */
-		le->last_tx_dequeue = i;
-
-		/* Pad the frame, we can transmit now */
 		le->tx_pending = 1;
-		lapdm_pad_msgb(msg, n201);
 	}
 
 	return le->l1_prim_cb(&pp.oph, le->l1_ctx);
