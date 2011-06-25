@@ -426,7 +426,7 @@ struct rsl_ie_chan_ident {
 #define RSL_SYSTEM_INFO_5bis	0x0d
 #define RSL_SYSTEM_INFO_5ter	0x0e
 #define RSL_SYSTEM_INFO_10	0x0f
-#define REL_EXT_MEAS_ORDER	0x47
+#define RSL_EXT_MEAS_ORDER	0x47
 #define RSL_MEAS_INFO		0x48
 #define RSL_SYSTEM_INFO_13	0x28
 #define RSL_SYSTEM_INFO_2quater	0x29

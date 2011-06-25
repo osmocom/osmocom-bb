@@ -1,6 +1,7 @@
 #ifndef _OSMO_GSM_SYSINFO_H
 #define _OSMO_GSM_SYSINFO_H
 
+#include <osmocom/core/utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
 enum osmo_sysinfo_type {
@@ -26,6 +27,8 @@ enum osmo_sysinfo_type {
 	SYSINFO_TYPE_2quater,
 	SYSINFO_TYPE_5bis,
 	SYSINFO_TYPE_5ter,
+	SYSINFO_TYPE_EMO,
+	SYSINFO_TYPE_MEAS_INFO,
 	/* FIXME all the various bis and ter */
 	_MAX_SYSINFO_TYPE
 };

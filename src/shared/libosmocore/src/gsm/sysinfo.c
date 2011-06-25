@@ -68,6 +68,8 @@ static const uint8_t sitype2rsl[_MAX_SYSINFO_TYPE] = {
 	[SYSINFO_TYPE_2quater]	= RSL_SYSTEM_INFO_2quater,
 	[SYSINFO_TYPE_5bis]	= RSL_SYSTEM_INFO_5bis,
 	[SYSINFO_TYPE_5ter]	= RSL_SYSTEM_INFO_5ter,
+	[SYSINFO_TYPE_EMO]	= RSL_EXT_MEAS_ORDER,
+	[SYSINFO_TYPE_MEAS_INFO]= RSL_MEAS_INFO,
 };
 
 static const uint8_t rsl2sitype[256] = {
@@ -92,6 +94,8 @@ static const uint8_t rsl2sitype[256] = {
 	[RSL_SYSTEM_INFO_2quater] = SYSINFO_TYPE_2quater,
 	[RSL_SYSTEM_INFO_5bis] = SYSINFO_TYPE_5bis,
 	[RSL_SYSTEM_INFO_5ter] = SYSINFO_TYPE_5ter,
+	[RSL_EXT_MEAS_ORDER] = SYSINFO_TYPE_EMO,
+	[RSL_MEAS_INFO] = SYSINFO_TYPE_MEAS_INFO,
 };
 
 const struct value_string osmo_sitype_strs[_MAX_SYSINFO_TYPE] = {
@@ -116,6 +120,8 @@ const struct value_string osmo_sitype_strs[_MAX_SYSINFO_TYPE] = {
 	{ SYSINFO_TYPE_2quater,	"2quater" },
 	{ SYSINFO_TYPE_5bis,	"5bis" },
 	{ SYSINFO_TYPE_5ter,	"5ter" },
+	{ SYSINFO_TYPE_EMO,	"EMO" },
+	{ SYSINFO_TYPE_MEAS_INFO, "MI" },
 	{ 0, NULL }
 };
 
