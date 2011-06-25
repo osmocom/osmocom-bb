@@ -1752,6 +1752,7 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 	if (TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
+		msg->l3h = TLVP_VAL(&tv, RSL_IE_L3_INFO);
 		/* contention resolution establishment procedure */
 		if (sapi != 0) {
 			/* According to clause 6, the contention resolution
@@ -1843,6 +1844,7 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 		msgb_free(msg);
 		return -EINVAL;
 	}
+	msg->l3h = TLVP_VAL(&tv, RSL_IE_L3_INFO);
 	length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 	/* check if the layer3 message length exceeds N201 */
 	if (length + 5 > 23) { /* FIXME: do we know the channel N201? */
@@ -1884,6 +1886,7 @@ static int rslms_rx_rll_data_req(struct msgb *msg, struct lapdm_datalink *dl)
 		msgb_free(msg);
 		return -EINVAL;
 	}
+	msg->l3h = TLVP_VAL(&tv, RSL_IE_L3_INFO);
 
 	LOGP(DLAPDM, LOGL_INFO, "writing message to send-queue\n");
 
