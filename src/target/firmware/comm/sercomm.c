@@ -27,23 +27,36 @@
 #include <osmocom/core/msgb.h>
 
 #ifdef HOST_BUILD
-#define SERCOMM_RX_MSG_SIZE	2048
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
-#endif
-#include <sercomm.h>
-#define local_irq_save(x) (void) x
-#define local_fiq_disable()
-#define local_irq_restore(x) (void) x
+
+# define SERCOMM_RX_MSG_SIZE	2048
+# ifndef ARRAY_SIZE
+#  define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
+# endif
+# include <sercomm.h>
+
+static inline void sercomm_lock(unsigned long __attribute__((unused)) *flags) {}
+static inline void sercomm_unlock(unsigned long __attribute__((unused)) *flags) {}
 
 #else
-#define SERCOMM_RX_MSG_SIZE	256
-#include <debug.h>
-#include <osmocom/core/linuxlist.h>
-#include <asm/system.h>
 
-#include <comm/sercomm.h>
-#include <uart.h>
+# define SERCOMM_RX_MSG_SIZE	256
+# include <debug.h>
+# include <osmocom/core/linuxlist.h>
+# include <asm/system.h>
+
+static inline void sercomm_lock(unsigned long *flags)
+{
+	local_firq_save(*flags);
+}
+
+static inline void sercomm_unlock(unsigned long *flags)
+{
+	local_irq_restore(*flags);
+}
+
+# include <comm/sercomm.h>
+# include <uart.h>
+
 #endif
 
 
@@ -108,10 +121,9 @@ void sercomm_sendmsg(uint8_t dlci, struct msgb *msg)
 
 	/* This functiion can be called from any context: FIQ, IRQ
 	 * and supervisor context.  Proper locking is important! */
-	local_irq_save(flags);
-	local_fiq_disable();
+	sercomm_lock(&flags);
 	msgb_enqueue(&sercomm.tx.dlci_queues[dlci], msg);
-	local_irq_restore(flags);
+	sercomm_unlock(&flags);
 
 #ifndef HOST_BUILD
 	/* tell UART that we have something to send */
