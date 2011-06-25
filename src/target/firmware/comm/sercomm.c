@@ -147,9 +147,13 @@ unsigned int sercomm_tx_queue_depth(uint8_t dlci)
 /* fetch one octet of to-be-transmitted serial data */
 int sercomm_drv_pull(uint8_t *ch)
 {
-	/* we are always called from interrupt context in this function,
-	 * which means that any data structures we use need to be for
-	 * our exclusive access */
+	unsigned long flags;
+
+	/* we may be called from interrupt context, but we stiff need to lock
+	 * because sercomm could be accessed from a FIQ context ... */
+
+	sercomm_lock(&flags);
+
 	if (!sercomm.tx.msg) {
 		unsigned int i;
 		/* dequeue a new message from the queues */
@@ -162,9 +166,11 @@ int sercomm_drv_pull(uint8_t *ch)
 			/* start of a new message, send start flag octet */
 			*ch = HDLC_FLAG;
 			sercomm.tx.next_char = sercomm.tx.msg->data;
+			sercomm_unlock(&flags);
 			return 1;
 		} else {
 			/* no more data avilable */
+			sercomm_unlock(&flags);
 			return 0;
 		}
 	}
@@ -195,6 +201,8 @@ int sercomm_drv_pull(uint8_t *ch)
 		/* standard case, simply send next octet */
 		*ch = *sercomm.tx.next_char++;
 	}
+
+	sercomm_unlock(&flags);
 	return 1;
 }
 
