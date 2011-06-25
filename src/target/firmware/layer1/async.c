@@ -59,6 +59,21 @@ void l1a_meas_msgb_set(struct msgb *msg)
 	local_irq_restore(flags);
 }
 
+/* safely count messages in the L1S TX queue */
+int l1a_txq_msgb_count(struct llist_head *queue)
+{
+	unsigned long flags;
+	int num = 0;
+	struct llist_head *le;
+
+	local_firq_save(flags);
+	llist_for_each(le, queue)
+		num++;
+	local_irq_restore(flags);
+
+	return num;
+}
+
 /* safely flush all pending msgb */
 void l1a_txq_msgb_flush(struct llist_head *queue)
 {

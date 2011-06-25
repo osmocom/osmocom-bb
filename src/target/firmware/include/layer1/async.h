@@ -26,6 +26,9 @@ static inline void l1a_unlock_sync(void)
 void l1a_txq_msgb_enq(struct llist_head *queue, struct msgb *msg);
 void l1a_meas_msgb_set(struct msgb *msg);
 
+/* safely count messages in the L1S TX queue */
+int l1a_txq_msgb_count(struct llist_head *queue);
+
 /* flush all pending msgb */
 void l1a_txq_msgb_flush(struct llist_head *queue);
 
