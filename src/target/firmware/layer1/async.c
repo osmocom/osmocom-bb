@@ -122,6 +122,13 @@ uint8_t l1a_tch_mode_set(uint8_t mode)
 	return l1s.tch_mode;
 }
 
+/* Set Audio routing mode */
+uint8_t l1a_audio_mode_set(uint8_t mode)
+{
+	l1s.audio_mode = mode;
+	return mode;
+}
+
 /* Initialize asynchronous part of Layer1 */
 void l1a_init(void)
 {

@@ -81,6 +81,7 @@ struct l1s_state {
 	/* TCH */
 	uint8_t		tch_mode;
 	uint8_t		tch_sync;
+	uint8_t		audio_mode;
 
 	/* Transmit queues of pending packets for main DCCH and ACCH */
 	struct llist_head tx_queue[_NUM_L1S_CHAN];

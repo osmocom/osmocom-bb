@@ -133,10 +133,17 @@ static int chan_nr_is_tch(uint8_t chan_nr)
 		((chan_nr >> 3) & 0x1e) == 0x02);	/* TCH/H */
 }
 
-static void audio_set_enabled(int enabled)
+static void audio_set_enabled(uint8_t tch_mode, uint8_t audio_mode)
 {
-	twl3025_unit_enable(TWL3025_UNIT_VUL, enabled);
-	twl3025_unit_enable(TWL3025_UNIT_VDL, enabled);
+	if (tch_mode == GSM48_CMODE_SIGN) {
+		twl3025_unit_enable(TWL3025_UNIT_VUL, 0);
+		twl3025_unit_enable(TWL3025_UNIT_VDL, 0);
+	} else {
+		twl3025_unit_enable(TWL3025_UNIT_VUL,
+		                    !!(audio_mode & AUDIO_TX_MICROPHONE));
+		twl3025_unit_enable(TWL3025_UNIT_VDL,
+		                    !!(audio_mode & AUDIO_RX_SPEAKER));
+	}
 }
 
 struct msgb *l1ctl_msgb_alloc(uint8_t msg_type)
@@ -233,12 +240,13 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	if (chan_nr_is_tch(ul->chan_nr)) {
 		/* Mode */
 		l1a_tch_mode_set(est_req->tch_mode);
+		l1a_audio_mode_set(est_req->audio_mode);
 
 		/* Sync */
 		l1s.tch_sync = 1;	/* can be set without locking */
 
 		/* Audio path */
-		audio_set_enabled(est_req->tch_mode != GSM48_CMODE_SIGN);
+		audio_set_enabled(est_req->tch_mode, est_req->audio_mode);
 	}
 
 	/* figure out which MF tasks to enable */
@@ -307,7 +315,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	l1a_meas_msgb_set(NULL);
 	dsp_load_ciph_param(0, NULL);
 	l1a_tch_mode_set(GSM48_CMODE_SIGN);
-	audio_set_enabled(0);
+	audio_set_enabled(GSM48_CMODE_SIGN, 0);
 	l1s.neigh_pm.n = 0;
 }
 
@@ -415,7 +423,7 @@ static void l1ctl_rx_reset_req(struct msgb *msg)
 		printf("L1CTL_RESET_REQ: FULL!\n");
 		l1s_reset();
 		l1s_reset_hw();
-		audio_set_enabled(0);
+		audio_set_enabled(GSM48_CMODE_SIGN, 0);
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	case L1CTL_RES_T_SCHED:
@@ -465,13 +473,14 @@ static void l1ctl_rx_ccch_mode_req(struct msgb *msg)
 }
 
 /* Transmit a L1CTL_TCH_MODE_CONF */
-static void l1ctl_tx_tch_mode_conf(uint8_t tch_mode)
+static void l1ctl_tx_tch_mode_conf(uint8_t tch_mode, uint8_t audio_mode)
 {
 	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_TCH_MODE_CONF);
 	struct l1ctl_tch_mode_conf *mode_conf;
 	mode_conf = (struct l1ctl_tch_mode_conf *)
 				msgb_put(msg, sizeof(*mode_conf));
 	mode_conf->tch_mode = tch_mode;
+	mode_conf->audio_mode = audio_mode;
 
 	l1_queue_for_l2(msg);
 }
@@ -483,15 +492,18 @@ static void l1ctl_rx_tch_mode_req(struct msgb *msg)
 	struct l1ctl_tch_mode_req *tch_mode_req =
 		(struct l1ctl_tch_mode_req *) l1h->data;
 	uint8_t tch_mode = tch_mode_req->tch_mode;
+	uint8_t audio_mode = tch_mode_req->audio_mode;
 
-	printd("L1CTL_TCH_MODE_REQ (mode=0x%02x)\n", tch_mode);
+	printd("L1CTL_TCH_MODE_REQ (tch_mode=0x%02x audio_mode=0x%02x)\n",
+		tch_mode, audio_mode);
 	tch_mode = l1a_tch_mode_set(tch_mode);
+	audio_mode = l1a_audio_mode_set(audio_mode);
 
-	audio_set_enabled(tch_mode != GSM48_CMODE_SIGN);
+	audio_set_enabled(tch_mode, audio_mode);
 
 	l1s.tch_sync = 1; /* Needed for audio to work */
 
-	l1ctl_tx_tch_mode_conf(tch_mode);
+	l1ctl_tx_tch_mode_conf(tch_mode, audio_mode);
 }
 
 /* receive a L1CTL_NEIGH_PM_REQ from L23 */
