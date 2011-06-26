@@ -567,6 +567,7 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 	uint16_t payload_len = msg->len - sizeof(*sh);
 	int rc;
 	struct subscr_sim_file *sf = &subscr_sim_files[subscr->sim_file_index];
+	struct msgb *nmsg;
 
 	/* error handling */
 	if (sh->job_type == SIM_JOB_ERROR) {
@@ -612,6 +613,13 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 
 			vty_notify(ms, NULL);
 			vty_notify(ms, "SIM failed, replace SIM!\n");
+
+			/* detach simcard */
+			subscr->sim_valid = 0;
+			nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_NREG_REQ);
+			if (!nmsg)
+				return;
+			gsm48_mmr_downmsg(ms, nmsg);
 		}
 		msgb_free(msg);
 
