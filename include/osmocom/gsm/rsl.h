@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/msgb.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
 void rsl_init_rll_hdr(struct abis_rsl_rll_hdr *dh, uint8_t msg_type);

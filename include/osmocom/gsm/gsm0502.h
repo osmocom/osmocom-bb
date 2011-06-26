@@ -32,4 +32,7 @@ gsm0502_get_paging_group(uint64_t imsi, unsigned int bs_cc_chans,
 	return (imsi % 1000) % (bs_cc_chans * n_pag_blocks) % n_pag_blocks;
 }
 
+unsigned int
+gsm0502_calc_paging_group(struct gsm48_control_channel_descr *chan_desc, uint64_t imsi);
+
 #endif
