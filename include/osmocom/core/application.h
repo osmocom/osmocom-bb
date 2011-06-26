@@ -13,4 +13,6 @@ extern struct log_target *osmo_stderr_target;
 void osmo_init_ignore_signals(void);
 int osmo_init_logging(const struct log_info *);
 
+int osmo_daemonize(void);
+
 #endif

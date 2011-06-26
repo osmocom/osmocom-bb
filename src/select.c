@@ -47,6 +47,15 @@ int osmo_fd_register(struct osmo_fd *fd)
 	if (flags < 0)
 		return flags;
 
+	/* set close-on-exec flag */
+	flags = fcntl(fd->fd, F_GETFD);
+	if (flags < 0)
+		return flags;
+	flags |= FD_CLOEXEC;
+	flags = fcntl(fd->fd, F_SETFD, flags);
+	if (flags < 0)
+		return flags;
+
 	/* Register FD */
 	if (fd->fd > maxfd)
 		maxfd = fd->fd;
