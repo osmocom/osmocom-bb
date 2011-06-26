@@ -171,6 +171,47 @@ int gsm_7bit_encode(uint8_t *result, const char *data)
 	return z;
 }
 
+/* convert power class to dBm according to GSM TS 05.05 */
+unsigned int ms_class_gmsk_dbm(enum gsm_band band, int class)
+{
+	switch (band) {
+	case GSM_BAND_450:
+	case GSM_BAND_480:
+	case GSM_BAND_750:
+	case GSM_BAND_900:
+	case GSM_BAND_810:
+	case GSM_BAND_850:
+		if (class == 1)
+			return 43; /* 20W */
+		if (class == 2)
+			return 39; /* 8W */
+		if (class == 3)
+			return 37; /* 5W */
+		if (class == 4)
+			return 33; /* 2W */
+		if (class == 5)
+			return 29; /* 0.8W */
+		break;
+	case GSM_BAND_1800:
+		if (class == 1)
+			return 30; /* 1W */
+		if (class == 2)
+			return 24; /* 0.25W */
+		if (class == 3)
+			return 36; /* 4W */
+		break;
+	case GSM_BAND_1900:
+		if (class == 1)
+			return 30; /* 1W */
+		if (class == 2)
+			return 24; /* 0.25W */
+		if (class == 3)
+			return 33; /* 2W */
+		break;
+	}
+	return -EINVAL;
+}
+
 /* determine power control level for given dBm value, as indicated
  * by the tables in chapter 4.1.1 of GSM TS 05.05 */
 int ms_pwr_ctl_lvl(enum gsm_band band, unsigned int dbm)

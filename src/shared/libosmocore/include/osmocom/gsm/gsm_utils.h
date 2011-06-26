@@ -59,6 +59,8 @@ enum gsm_band gsm_band_parse(const char *mhz);
 int gsm_7bit_decode(char *decoded, const uint8_t *user_data, uint8_t length);
 int gsm_7bit_encode(uint8_t *result, const char *data);
 
+unsigned int ms_class_gmsk_dbm(enum gsm_band band, int class);
+
 int ms_pwr_ctl_lvl(enum gsm_band band, unsigned int dbm);
 int ms_pwr_dbm(enum gsm_band band, uint8_t lvl);
 
