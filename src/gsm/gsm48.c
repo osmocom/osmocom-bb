@@ -33,6 +33,7 @@
 #include <osmocom/gsm/gsm48.h>
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 const struct tlv_definition gsm48_att_tlvdef = {
 	.def = {
@@ -412,4 +413,16 @@ int gsm48_construct_ra(uint8_t *buf, const struct gprs_ra_id *raid)
 	buf[5] = raid->rac;
 
 	return 6;
+}
+
+/* From Table 10.5.33 of GSM 04.08 */
+int gsm48_number_of_paging_subchannels(struct gsm48_control_channel_descr *chan_desc)
+{
+	if (chan_desc->ccch_conf == RSL_BCCH_CCCH_CONF_1_C) {
+		return OSMO_MAX(1, (3 - chan_desc->bs_ag_blks_res))
+			* (chan_desc->bs_pa_mfrms + 2);
+	} else {
+		return (9 - chan_desc->bs_ag_blks_res)
+			* (chan_desc->bs_pa_mfrms + 2);
+	}
 }
