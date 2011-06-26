@@ -1857,15 +1857,18 @@ const uint16_t gsm_input_mcc(char *string)
 	uint16_t mcc;
 
 	if (strlen(string) != 3)
-		return 0;
+		return GSM_INPUT_INVALID;
 	if (string[0] < '0' || string [0] > '9'
 	 || string[1] < '0' || string [1] > '9'
 	 || string[2] < '0' || string [2] > '9')
-		return 0;
+		return GSM_INPUT_INVALID;
 
 	mcc = ((string[0] - '0') << 8)
 	    | ((string[1] - '0') << 4)
 	    | ((string[2] - '0'));
+
+	if (mcc == 0x000)
+		return GSM_INPUT_INVALID;
 
 	return mcc;
 }
@@ -1877,7 +1880,7 @@ const uint16_t gsm_input_mnc(char *string)
 	if (strlen(string) == 2) {
 		if (string[0] < '0' || string [0] > '9'
 		 || string[1] < '0' || string [1] > '9')
-			return 0;
+			return GSM_INPUT_INVALID;
 
 		mnc = ((string[0] - '0') << 8)
 		    | ((string[1] - '0') << 4)
@@ -1887,7 +1890,7 @@ const uint16_t gsm_input_mnc(char *string)
 		if (string[0] < '0' || string [0] > '9'
 		 || string[1] < '0' || string [1] > '9'
 		 || string[2] < '0' || string [2] > '9')
-			return 0;
+			return GSM_INPUT_INVALID;
 
 		mnc = ((string[0] - '0') << 8)
 		    | ((string[1] - '0') << 4)

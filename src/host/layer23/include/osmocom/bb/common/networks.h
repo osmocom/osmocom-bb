@@ -1,6 +1,8 @@
 #ifndef _NETWORKS_H
 #define _NETWORKS_H
 
+#define GSM_INPUT_INVALID	0xffff
+
 struct gsm_networks {
 	uint16_t	mcc;
 	int16_t		mnc;

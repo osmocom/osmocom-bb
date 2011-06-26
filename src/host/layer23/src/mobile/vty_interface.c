@@ -391,11 +391,11 @@ DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [MCC] [MNC]",
 	if (argc >= 3) {
 		mcc = gsm_input_mcc((char *)argv[1]);
 		mnc = gsm_input_mnc((char *)argv[2]);
-		if (!mcc) {
+		if (mcc == GSM_INPUT_INVALID) {
 			vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
-		if (!mnc) {
+		if (mnc == GSM_INPUT_INVALID) {
 			vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
@@ -487,11 +487,11 @@ DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
 	if (argc >= 3) {
 		mcc = gsm_input_mcc((char *)argv[1]);
 		mnc = gsm_input_mnc((char *)argv[2]);
-		if (!mcc) {
+		if (mcc == GSM_INPUT_INVALID) {
 			vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
-		if (!mnc) {
+		if (mnc == GSM_INPUT_INVALID) {
 			vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
@@ -674,11 +674,11 @@ DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 	if (!ms)
 		return CMD_WARNING;
 
-	if (!mcc) {
+	if (mcc == GSM_INPUT_INVALID) {
 		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	if (!mnc) {
+	if (mnc == GSM_INPUT_INVALID) {
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -719,11 +719,11 @@ DEFUN(network_select, network_select_cmd,
 		return CMD_WARNING;
 	}
 
-	if (!mcc) {
+	if (mcc == GSM_INPUT_INVALID) {
 		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	if (!mnc) {
+	if (mnc == GSM_INPUT_INVALID) {
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -877,11 +877,11 @@ DEFUN(delete_forbidden_plmn, delete_forbidden_plmn_cmd,
 	if (!ms)
 		return CMD_WARNING;
 
-	if (!mcc) {
+	if (mcc == GSM_INPUT_INVALID) {
 		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	if (!mnc) {
+	if (mnc == GSM_INPUT_INVALID) {
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -2410,11 +2410,11 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC [LAC] [TMSI]",
 	uint16_t mcc = gsm_input_mcc((char *)argv[0]),
 		 mnc = gsm_input_mnc((char *)argv[1]);
 
-	if (!mcc) {
+	if (mcc == GSM_INPUT_INVALID) {
 		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	if (!mnc) {
+	if (mnc == GSM_INPUT_INVALID) {
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
