@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <osmocom/core/linuxlist.h>
 
-#define LOG_MAX_CATEGORY	32
 #define LOG_MAX_CTX		8
 #define LOG_MAX_FILTERS	8
 
@@ -20,7 +19,7 @@
 #endif
 
 
-void logp(unsigned int subsys, char *file, int line, int cont, const char *format, ...) __attribute__ ((format (printf, 5, 6)));
+void logp(int subsys, char *file, int line, int cont, const char *format, ...) __attribute__ ((format (printf, 5, 6)));
 
 /* new logging interface */
 #define LOGP(ss, level, fmt, args...) \
@@ -36,6 +35,10 @@ void logp(unsigned int subsys, char *file, int line, int cont, const char *forma
 #define LOGL_FATAL	8	/* fatal, program aborted */
 
 #define LOG_FILTER_ALL	0x0001
+
+/* logging levels defined by the library itself */
+#define DLGLOBAL	-1
+#define OSMO_NUM_DLIB	1
 
 struct log_category {
 	uint8_t loglevel;
@@ -65,8 +68,9 @@ struct log_info {
 	log_filter *filter_fn;
 
 	/* per-category information */
-	const struct log_info_cat *cat;
+	struct log_info_cat *cat;
 	unsigned int num_cat;
+	unsigned int num_cat_user;
 };
 
 enum log_target_type {
@@ -82,7 +86,8 @@ struct log_target {
 	int filter_map;
 	void *filter_data[LOG_MAX_FILTERS+1];
 
-	struct log_category categories[LOG_MAX_CATEGORY+1];
+	struct log_category *categories;
+
 	uint8_t loglevel;
 	int use_color:1;
 	int print_timestamp:1;
@@ -110,10 +115,10 @@ struct log_target {
 };
 
 /* use the above macros */
-void logp2(unsigned int subsys, unsigned int level, char *file,
+void logp2(int subsys, unsigned int level, char *file,
 	   int line, int cont, const char *format, ...)
 				__attribute__ ((format (printf, 6, 7)));
-void log_init(const struct log_info *cat);
+int log_init(const struct log_info *inf, void *talloc_ctx);
 
 /* context management */
 void log_reset_context(void);

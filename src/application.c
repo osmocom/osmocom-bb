@@ -44,7 +44,7 @@ void osmo_init_ignore_signals(void)
 
 int osmo_init_logging(const struct log_info *log_info)
 {
-	log_init(log_info);
+	log_init(log_info, NULL);
 	osmo_stderr_target = log_target_create_stderr();
 	if (!osmo_stderr_target)
 		return -1;
