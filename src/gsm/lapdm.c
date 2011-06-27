@@ -1573,34 +1573,23 @@ static int lapdm_ph_data_ind(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t chan_nr, uint8_t link_id)
 {
 	uint8_t cbits = chan_nr >> 3;
-	uint8_t sapi = link_id & 7;
+	uint8_t sapi; /* we cannot take SAPI from link_id, as L1 has no clue */
 	struct lapdm_msg_ctx mctx;
 	int rc = 0;
 
 	/* when we reach here, we have a msgb with l2h pointing to the raw
 	 * 23byte mac block. The l1h has already been purged. */
 
-	mctx.dl = datalink_for_sapi(le, sapi);
 	mctx.chan_nr = chan_nr;
 	mctx.link_id = link_id;
 	mctx.addr = mctx.ctrl = 0;
-
-	/* G.2.1 No action schall be taken on frames containing an unallocated
-	 * SAPI.
-	 */
-	if (!mctx.dl) {
-		LOGP(DLLAPDM, LOGL_NOTICE, "Received frame for unsupported "
-			"SAPI %d!\n", sapi);
-		return -EINVAL;
-		msgb_free(msg);
-		return -EIO;
-	}
 
 	/* check for L1 chan_nr/link_id and determine LAPDm hdr format */
 	if (cbits == 0x10 || cbits == 0x12) {
 		/* Format Bbis is used on BCCH and CCCH(PCH, NCH and AGCH) */
 		mctx.lapdm_fmt = LAPDm_FMT_Bbis;
 		mctx.n201 = N201_Bbis;
+		sapi = 0;
 	} else {
 		if (mctx.link_id & 0x40) {
 			/* It was received from network on SACCH, thus
@@ -1614,11 +1603,23 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t cha
 			mctx.ta_ind = msg->l2h[1];
 			msgb_pull(msg, 2);
 			msg->l2h += 2;
+			sapi = (msg->l2h[0] >> 2) & 7;
 		} else {
 			mctx.lapdm_fmt = LAPDm_FMT_B;
 			LOGP(DLLAPDM, LOGL_INFO, "fmt=B\n");
 			mctx.n201 = 23; // FIXME: select correct size by chan.
+			sapi = (msg->l2h[0] >> 2) & 7;
 		}
+	}
+
+	mctx.dl = datalink_for_sapi(le, sapi);
+	/* G.2.1 No action on frames containing an unallocated SAPI. */
+	if (!mctx.dl) {
+		LOGP(DLLAPDM, LOGL_NOTICE, "Received frame for unsupported "
+			"SAPI %d!\n", sapi);
+		return -EINVAL;
+		msgb_free(msg);
+		return -EIO;
 	}
 
 	switch (mctx.lapdm_fmt) {
