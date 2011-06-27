@@ -475,8 +475,9 @@ int log_target_file_reopen(struct log_target *target)
 }
 
 /* This generates the logging command string for VTY. */
-const char *log_vty_command_string(const struct log_info *info)
+const char *log_vty_command_string(const struct log_info *unused_info)
 {
+	struct log_info *info = osmo_log_info;
 	int len = 0, offset = 0, ret, i, rem;
 	int size = strlen("logging level () ()") + 1;
 	char *str;
@@ -549,8 +550,9 @@ err:
 }
 
 /* This generates the logging command description for VTY. */
-const char *log_vty_command_description(const struct log_info *info)
+const char *log_vty_command_description(const struct log_info *unused_info)
 {
+	struct log_info *info = osmo_log_info;
 	char *str;
 	int i, ret, len = 0, offset = 0, rem;
 	unsigned int size =
@@ -619,7 +621,7 @@ int log_init(const struct log_info *inf, void *ctx)
 
 	osmo_log_info->num_cat_user = inf->num_cat;
 	/* total number = number of user cat + library cat */
-	osmo_log_info->num_cat = inf->num_cat + OSMO_NUM_DLIB;
+	osmo_log_info->num_cat = inf->num_cat + ARRAY_SIZE(internal_cat);
 
 	osmo_log_info->cat = talloc_zero_array(osmo_log_info,
 					struct log_info_cat,
@@ -638,7 +640,8 @@ int log_init(const struct log_info *inf, void *ctx)
 
 	/* copy over the library part */
 	for (i = 0; i < ARRAY_SIZE(internal_cat); i++) {
-		memcpy(&osmo_log_info->cat[inf->num_cat+i],
+		unsigned int cn = osmo_log_info->num_cat_user + i;
+		memcpy(&osmo_log_info->cat[cn],
 			&internal_cat[i], sizeof(struct log_info_cat));
 	}
 
