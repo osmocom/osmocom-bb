@@ -637,4 +637,10 @@ int log_init(const struct log_info *inf, void *ctx)
 	}
 
 	/* copy over the library part */
+	for (i = 0; i < ARRAY_SIZE(internal_cat); i++) {
+		memcpy(&osmo_log_info->cat[inf->num_cat+i],
+			&internal_cat[i], sizeof(struct log_info_cat));
+	}
+
+	return 0;
 }
