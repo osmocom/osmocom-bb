@@ -992,11 +992,11 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			rsl_rll_error(RLL_CAUSE_UFRM_INC_PARAM, mctx);
 			return -EIO;
 		}
-		msgb_free(msg);
 		switch (dl->state) {
 		case LAPDm_STATE_IDLE:
 			LOGP(DLAPDM, LOGL_INFO, "DISC in idle state\n");
 			/* send DM with F=P */
+			msgb_free(msg);
 			return lapdm_send_dm(mctx);
 		case LAPDm_STATE_SABM_SENT:
 			LOGP(DLAPDM, LOGL_INFO, "DISC in SABM state\n");
@@ -1004,6 +1004,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			lapdm_send_dm(mctx);
 			/* reset Timer T200 */
 			osmo_timer_del(&dl->t200);
+			msgb_free(msg);
 			return send_rll_simple(RSL_MT_REL_IND, mctx);
 		case LAPDm_STATE_MF_EST:
 		case LAPDm_STATE_TIMER_RECOV:
@@ -1015,6 +1016,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			break;
 		default:
 			lapdm_send_ua(mctx, length, msg->l2h + 3);
+			msgb_free(msg);
 			return 0;
 		}
 		/* send UA response */
@@ -1025,6 +1027,7 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 		/* send notification to L3 */
 		rc = send_rll_simple(rsl_msg, mctx);
+		msgb_free(msg);
 		break;
 	case LAPDm_U_UA:
 		LOGP(DLAPDM, LOGL_INFO, "UA received\n");
