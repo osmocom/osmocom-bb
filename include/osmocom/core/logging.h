@@ -38,7 +38,8 @@ void logp(int subsys, char *file, int line, int cont, const char *format, ...) _
 
 /* logging levels defined by the library itself */
 #define DLGLOBAL	-1
-#define OSMO_NUM_DLIB	1
+#define DLLAPDM		-2
+#define OSMO_NUM_DLIB	2
 
 struct log_category {
 	uint8_t loglevel;

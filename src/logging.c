@@ -66,6 +66,12 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 		.loglevel = LOGL_NOTICE,
 		.enabled = 1,
 	},
+	[INT2IDX(DLLAPDM)] = {	/* -2 becomes 1 */
+		.name = "DLLAPDM",
+		.description = "LAPDm in libosmogsm",
+		.loglevel = LOGL_NOTICE,
+		.enabled = 1,
+	},
 };
 
 /* You have to keep this in sync with the structure loglevel_strs. */
