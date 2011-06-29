@@ -399,6 +399,7 @@ void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh)
 }
 
 static const enum abis_nm_chan_comb chcomb4pchan[] = {
+	[GSM_PCHAN_NONE]	= 0xff,
 	[GSM_PCHAN_CCCH]	= NM_CHANC_mainBCCH,
 	[GSM_PCHAN_CCCH_SDCCH4]	= NM_CHANC_BCCHComb,
 	[GSM_PCHAN_TCH_F]	= NM_CHANC_TCHFull,
@@ -406,6 +407,7 @@ static const enum abis_nm_chan_comb chcomb4pchan[] = {
 	[GSM_PCHAN_SDCCH8_SACCH8C] = NM_CHANC_SDCCH,
 	[GSM_PCHAN_PDCH]	= NM_CHANC_IPAC_PDCH,
 	[GSM_PCHAN_TCH_F_PDCH]	= NM_CHANC_IPAC_TCHFull_PDCH,
+	[GSM_PCHAN_UNKNOWN]	= 0xff,
 	/* FIXME: bounds check */
 };
 
