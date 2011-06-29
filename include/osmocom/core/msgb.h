@@ -193,5 +193,7 @@ static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 uint8_t *msgb_data(const struct msgb *msg);
 uint16_t msgb_length(const struct msgb *msg);
 
+/* set the talloc context for msgb_alloc[_headroom] */
+void msgb_set_talloc_ctx(void *ctx);
 
 #endif /* _MSGB_H */

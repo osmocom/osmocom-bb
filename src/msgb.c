@@ -98,3 +98,8 @@ uint16_t msgb_length(const struct msgb *msg)
 {
 	return msg->len;
 }
+
+void msgb_set_talloc_ctx(void *ctx)
+{
+	tall_msgb_ctx = ctx;
+}
