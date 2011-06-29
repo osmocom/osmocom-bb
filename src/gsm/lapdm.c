@@ -594,6 +594,7 @@ static void lapdm_t200_cb(void *data)
 			rsl_rll_error(RLL_CAUSE_T200_EXPIRED, &dl->mctx);
 			/* flush tx buffers */
 			lapdm_dl_flush_tx(dl);
+			lapdm_dl_flush_send(dl);
 			/* go back to idle state */
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			/* NOTE: we must not change any other states or buffers
@@ -893,6 +894,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* reset Timer T200 */
 			osmo_timer_del(&dl->t200);
 			/* go to idle state */
+			lapdm_dl_flush_tx(dl);
+			lapdm_dl_flush_send(dl);
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			rc = send_rll_simple(RSL_MT_REL_CONF, mctx);
 			msgb_free(msg);
@@ -1024,6 +1027,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 		/* reset Timer T200 */
 		osmo_timer_del(&dl->t200);
 		/* enter idle state */
+		lapdm_dl_flush_tx(dl);
+		lapdm_dl_flush_send(dl);
 		lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 		/* send notification to L3 */
 		rc = send_rll_simple(rsl_msg, mctx);
@@ -1074,6 +1079,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 			/* reset Timer T200 */
 			osmo_timer_del(&dl->t200);
 			/* go to idle state */
+			lapdm_dl_flush_tx(dl);
+			lapdm_dl_flush_send(dl);
 			lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 			rc = send_rll_simple(RSL_MT_REL_CONF, mctx);
 			msgb_free(msg);
@@ -1096,6 +1103,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 				rc = send_rll_simple(RSL_MT_REL_IND, mctx);
 				msgb_free(msg);
 				/* go to idle state */
+				lapdm_dl_flush_tx(dl);
+				lapdm_dl_flush_send(dl);
 				lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 				return 0;
 			}
@@ -1108,6 +1117,8 @@ static int lapdm_rx_u(struct msgb *msg, struct lapdm_msg_ctx *mctx)
 				rc = send_rll_simple(RSL_MT_REL_IND, mctx);
 				msgb_free(msg);
 				/* go to idle state */
+				lapdm_dl_flush_tx(dl);
+				lapdm_dl_flush_send(dl);
 				lapdm_dl_newstate(dl, LAPDm_STATE_IDLE);
 				return 0;
 			}
