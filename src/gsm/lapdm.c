@@ -1592,11 +1592,18 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t cha
 		sapi = 0;
 	} else {
 		if (mctx.link_id & 0x40) {
-			/* It was received from network on SACCH, thus
-			 * lapdm_fmt must be B4 */
-			mctx.lapdm_fmt = LAPDm_FMT_B4;
-			mctx.n201 = N201_B4;
-			LOGP(DLLAPDM, LOGL_INFO, "fmt=B4\n");
+			/* It was received from network on SACCH */
+
+			/* If sent by BTS, lapdm_fmt must be B4 */
+			if (le->mode == LAPDM_MODE_MS) {
+				mctx.lapdm_fmt = LAPDm_FMT_B4;
+				mctx.n201 = N201_B4;
+				LOGP(DLLAPDM, LOGL_INFO, "fmt=B4\n");
+			} else {
+				mctx.lapdm_fmt = LAPDm_FMT_B;
+				mctx.n201 = N201_AB_SACCH;
+				LOGP(DLLAPDM, LOGL_INFO, "fmt=B\n");
+			}
 			/* SACCH frames have a two-byte L1 header that
 			 * OsmocomBB L1 doesn't strip */
 			mctx.tx_power_ind = msg->l2h[0] & 0x1f;
