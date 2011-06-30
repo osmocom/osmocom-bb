@@ -471,12 +471,13 @@ DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
 	"SIM actions\nSelect SIM from reader\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
-	struct gsm_settings *set = &ms->settings;
+	struct gsm_settings *set;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
+ 	set = &ms->settings;
 	if (ms->subscr.sim_valid) {
 		vty_out(vty, "SIM already present, remove first!%s",
 			VTY_NEWLINE);
