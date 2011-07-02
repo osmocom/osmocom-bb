@@ -261,7 +261,7 @@ static void _logp(int subsys, int level, char *file, int line,
 		 * in undefined state. Since _output uses vsnprintf and it may
 		 * be called several times, we have to pass a copy of ap. */
 		va_copy(bp, ap);
-		_output(tar, subsys, level, file, line, cont, format, ap);
+		_output(tar, subsys, level, file, line, cont, format, bp);
 		va_end(bp);
 	}
 }
