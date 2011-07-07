@@ -29,6 +29,9 @@
 struct msgb {
 	struct llist_head list;
 
+	/* routing information. */
+	void *dst;
+
 	/* Part of which TRX logical channel we were received / transmitted */
 	/* FIXME: move them into the control buffer */
 	struct gsm_bts_trx *trx;
