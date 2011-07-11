@@ -159,7 +159,7 @@ struct msgb *gsm0808_create_cipher_reject(uint8_t cause)
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_put(msg, 3);
+	msg->l3h = msgb_put(msg, 4);
 	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
 	msg->l3h[1] = 2;
 	msg->l3h[2] = BSS_MAP_MSG_CIPHER_MODE_REJECT;
