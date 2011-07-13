@@ -3,7 +3,7 @@ Section: libs
 Priority: optional
 Maintainer: Harald Welte <laforge@gnumonks.org>
 Build-Depends: debhelper (>= 7.0.50~), autotools-dev, autoconf, automake, libtool, dh-autoreconf
-Standards-Version: 3.8.4
+Standards-Version: 3.9.1
 Homepage: http://bb.osmocom.org/trac/wiki/libosmocore
 Vcs-Git: git://git.osmocom.org/libosmocore.git
 Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmocore.git;a=summary
@@ -13,12 +13,14 @@ Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Open Source MObile COMmunications CORE library
+ A helper library for mobile communication.
 
 Package: libosmocore-dev
 Section: libdevel
 Architecture: any
 Depends: ${misc:Depends}, libosmocore
 Description: Development headers for Open Source MObile COMmunications CORE library
+ A helper library for mobile communication.
 
 #Package: libosmocore-dbg
 #Section: libdevel

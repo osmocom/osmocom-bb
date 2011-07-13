@@ -1,3 +1,15 @@
+libosmocore (0.3.4-3zecke3) natty; urgency=low
+
+  * Try to make launchpad.net happy. One more lintian error fixed
+
+ -- Holger Hans Peter Freyther <zecke@selfish.org>  Wed, 13 Jul 2011 19:57:28 +0200
+
+libosmocore (0.3.4-3zecke2) natty; urgency=low
+
+  * Try to make launchpad.net happy. Many lintian errors are fixed 
+
+ -- Holger Hans Peter Freyther <zecke@selfish.org>  Wed, 13 Jul 2011 19:17:23 +0200
+
 libosmocore (0.3.4-3zecke1) natty; urgency=low
 
   * Try to make launchpad.net happy. It fails for an unspecified reason
@@ -24,6 +36,6 @@ libosmocore (0.1.27) natty; urgency=low
 
 libosmocore (0.1.17-1) unstable; urgency=low
 
-  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+  * Initial release.
 
  -- Harald Welte <laforge@gnumonks.org>  Tue, 24 Aug 2010 10:55:04 +0200
