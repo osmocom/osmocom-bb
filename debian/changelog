@@ -1,3 +1,9 @@
+libosmocore (0.3.4-3zecke1) natty; urgency=low
+
+  * Try to make launchpad.net happy. It fails for an unspecified reason
+
+ -- Holger Hans Peter Freyther <zecke@selfish.org>  Wed, 13 Jul 2011 15:08:07 +0200
+
 libosmocore (0.3.4-3) natty; urgency=low
 
   * New upstream version of libosmocore (+git)
