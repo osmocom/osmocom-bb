@@ -1,26 +1,8 @@
-libosmocore (0.3.4-3zecke3) natty; urgency=low
+libosmocore (0.3.4) natty; urgency=low
 
-  * Try to make launchpad.net happy. One more lintian error fixed
+  * New upstream release 
 
- -- Holger Hans Peter Freyther <zecke@selfish.org>  Wed, 13 Jul 2011 19:57:28 +0200
-
-libosmocore (0.3.4-3zecke2) natty; urgency=low
-
-  * Try to make launchpad.net happy. Many lintian errors are fixed 
-
- -- Holger Hans Peter Freyther <zecke@selfish.org>  Wed, 13 Jul 2011 19:17:23 +0200
-
-libosmocore (0.3.4-3zecke1) natty; urgency=low
-
-  * Try to make launchpad.net happy. It fails for an unspecified reason
-
- -- Holger Hans Peter Freyther <zecke@selfish.org>  Wed, 13 Jul 2011 15:08:07 +0200
-
-libosmocore (0.3.4-3) natty; urgency=low
-
-  * New upstream version of libosmocore (+git)
-
- -- Holger Hans Peter Freyther <zecke@selfish.org>  Wed, 13 Jul 2011 13:41:17 +0200
+ -- Holger Hans Peter Freyther <zecke@selfish.org>  Wed, 13 Jul 2011 21:10:33 +0200
 
 libosmocore (0.3.0) natty; urgency=low
 
