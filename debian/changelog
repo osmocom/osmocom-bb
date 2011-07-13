@@ -1,3 +1,9 @@
+libosmocore (0.3.4-3) natty; urgency=low
+
+  * New upstream version of libosmocore (+git)
+
+ -- Holger Hans Peter Freyther <zecke@selfish.org>  Wed, 13 Jul 2011 13:41:17 +0200
+
 libosmocore (0.3.0) natty; urgency=low
 
   * New upstream version of libosmocore
