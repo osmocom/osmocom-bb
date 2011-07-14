@@ -471,26 +471,15 @@ DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
 	"SIM actions\nSelect SIM from reader\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
-	struct gsm_settings *set;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
- 	set = &ms->settings;
 	if (ms->subscr.sim_valid) {
 		vty_out(vty, "SIM already present, remove first!%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
-	}
-
-	if(access(set->sap_socket_path, F_OK) == 0){
-		if(osmosap_init(ms) != 0){
-			return CMD_WARNING;
-		}
-	} else {
-		/* this is only so we can check the first byte to be null in l1ctl_tx_sim_req */
-		set->sap_socket_path[0] = 0;
 	}
 
 	gsm_subscr_simcard(ms);
@@ -668,6 +657,7 @@ DEFUN(sim_sapsocket, sim_sapsocket_cmd, "sim sap-socket MS_NAME SOCKET_PATH",
 	"socket path")
 {
 	struct osmocom_ms *ms;
+	struct gsm_settings *set;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
@@ -680,6 +670,16 @@ DEFUN(sim_sapsocket, sim_sapsocket_cmd, "sim sap-socket MS_NAME SOCKET_PATH",
 
 
 	osmosap_sapsocket(ms, (char *)argv[1]);
+	set = &ms->settings;
+
+	if(access(set->sap_socket_path, F_OK) == 0){
+		if(osmosap_init(ms) != 0){
+			return CMD_WARNING;
+		}
+	} else {
+		/* this is only so we can check the first byte to be null in l1ctl_tx_sim_req */
+		set->sap_socket_path[0] = 0;
+	}
 
 	return CMD_SUCCESS;
 }
