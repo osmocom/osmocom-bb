@@ -86,6 +86,8 @@ static char *_osmo_hexdump(const unsigned char *buf, int len, char *delim)
 	hexd_buff[0] = 0;
 	for (i = 0; i < len; i++) {
 		int len_remain = sizeof(hexd_buff) - (cur - hexd_buff);
+		if (len_remain <= 0)
+			break;
 		int rc = snprintf(cur, len_remain, "%02x%s", buf[i], delim);
 		if (rc <= 0)
 			break;
