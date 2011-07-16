@@ -1635,7 +1635,6 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le, uint8_t cha
 	if (!mctx.dl) {
 		LOGP(DLLAPDM, LOGL_NOTICE, "Received frame for unsupported "
 			"SAPI %d!\n", sapi);
-		return -EINVAL;
 		msgb_free(msg);
 		return -EIO;
 	}
