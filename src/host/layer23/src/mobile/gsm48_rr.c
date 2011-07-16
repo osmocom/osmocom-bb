@@ -3016,7 +3016,7 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 		LOGP(DRR, LOGL_INFO, "Listed Sequence ARFCN #%d: %s\n", j,
 			gsm_print_arfcn(arfcn | pcs));
 		ma[j++] = arfcn;
-		for (i = 0; i <= 16; i++) {
+		for (i = 0; i < 16; i++) {
 			if ((i & 1))
 				inc = cd->freq_seq_lv[2 + (i >> 1)] & 0x0f;
 			else
