@@ -335,10 +335,8 @@ int read_file(const char *filename)
 		return -EFBIG;
 	}
 
-	if (dnload.data) {
-		free(dnload.data);
-		dnload.data = NULL;
-	}
+	free(dnload.data);
+	dnload.data = NULL;
 
 	if (dnload.mode == MODE_C140 || dnload.mode == MODE_C140xor) {
 		if (st.st_size < (MAGIC_OFFSET + sizeof(phone_magic)))
@@ -1551,8 +1549,10 @@ int main(int argc, char **argv)
 	dnload.load_address[2] = (tmp_load_address >> 8) & 0xff;
 	dnload.load_address[3] = tmp_load_address & 0xff;
 
-	while (1)
-		osmo_select_main(0);
+	while (1) {
+		if (osmo_select_main(0) < 0)
+			break;
+	}
 
 	close(dnload.serial_fd.fd);
 
