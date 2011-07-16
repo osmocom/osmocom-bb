@@ -259,6 +259,7 @@ int main(int argc, char **argv)
 	ms->lapdm_channel.lapdm_acch.l1_ctx = ms;
 	ms->lapdm_channel.lapdm_acch.l3_ctx = ms;
 	lapdm_channel_init(&ms->lapdm_channel, LAPDM_MODE_MS);
+	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
 	rc = l23_app_init(ms);
 	if (rc < 0)
