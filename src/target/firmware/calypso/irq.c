@@ -194,7 +194,7 @@ void fiq(void)
 
 void irq_register_handler(enum irq_nr nr, irq_handler *handler)
 {
-	if (nr > NR_IRQS)
+	if (nr >= NR_IRQS)
 		return;
 
 	irq_handlers[nr] = handler;
