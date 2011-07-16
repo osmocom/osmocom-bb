@@ -97,7 +97,7 @@ static void print_welcome(int fd)
 	int ret;
 	static const char *msg1 = "Welcome to the ";
 	static const char *msg2 = " control interface\r\n";
-	char *app_name = "<unnamed>";
+	const char *app_name = "<unnamed>";
 
 	if (host.app_info->name)
 		app_name = host.app_info->name;
