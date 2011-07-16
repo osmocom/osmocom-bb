@@ -102,7 +102,8 @@ void l1s_win_init(void)
 
 void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype, uint8_t tn_ofs)
 {
-	int16_t start, stop;
+	int16_t start;
+	int32_t stop;	/* prevent overflow of int16_t in L1_RXWIN_FB */
 
 	/* TN offset & TA adjust */
 	start = DSP_SETUP_TIME;
@@ -128,7 +129,7 @@ void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype, uint8_t tn_ofs)
 	}
 
 	/* Window close for ABB */
-	twl3025_downlink(0, stop);
+	twl3025_downlink(0, stop & 0xffff);
 
 	/* window close for TRF6151 */
 	trf6151_set_mode(TRF6151_IDLE);
