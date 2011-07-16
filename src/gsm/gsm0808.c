@@ -363,7 +363,7 @@ static const struct tlv_definition bss_att_tlvdef = {
 	},
 };
 
-const struct tlv_definition *gsm0808_att_tlvdef()
+const struct tlv_definition *gsm0808_att_tlvdef(void)
 {
 	return &bss_att_tlvdef;
 }
