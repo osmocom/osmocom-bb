@@ -427,7 +427,7 @@ int uart_baudrate(uint8_t uart, enum uart_baudrate bdrt)
 {
 	uint16_t div;
 
-	if (bdrt > ARRAY_SIZE(divider))
+	if (bdrt >= ARRAY_SIZE(divider))
 		return -1;
 
 	div = divider[bdrt];
