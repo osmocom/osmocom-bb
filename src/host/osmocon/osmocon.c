@@ -778,9 +778,7 @@ static void hdlc_send_to_phone(uint8_t dlci, uint8_t *data, int len)
 
 static void hdlc_console_cb(uint8_t dlci, struct msgb *msg)
 {
-	int rc;
-
-	rc = write(1, msg->data, msg->len);
+	write(1, msg->data, msg->len);
 	msgb_free(msg);
 }
 
