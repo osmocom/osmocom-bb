@@ -36,7 +36,7 @@ static struct gprs_cipher_impl *selected_ciphers[_GPRS_ALGO_NUM];
 /* register a cipher with the core */
 int gprs_cipher_register(struct gprs_cipher_impl *ciph)
 {
-	if (ciph->algo > ARRAY_SIZE(selected_ciphers))
+	if (ciph->algo >= ARRAY_SIZE(selected_ciphers))
 		return -ERANGE;
 
 	llist_add_tail(&ciph->list, &gprs_ciphers);
@@ -60,7 +60,7 @@ int gprs_cipher_load(const char *path)
 int gprs_cipher_run(uint8_t *out, uint16_t len, enum gprs_ciph_algo algo,
 		    uint64_t kc, uint32_t iv, enum gprs_cipher_direction dir)
 {
-	if (algo > ARRAY_SIZE(selected_ciphers))
+	if (algo >= ARRAY_SIZE(selected_ciphers))
 		return -ERANGE;
 
 	if (!selected_ciphers[algo])
@@ -75,7 +75,7 @@ int gprs_cipher_run(uint8_t *out, uint16_t len, enum gprs_ciph_algo algo,
 
 int gprs_cipher_supported(enum gprs_ciph_algo algo)
 {
-	if (algo > ARRAY_SIZE(selected_ciphers))
+	if (algo >= ARRAY_SIZE(selected_ciphers))
 		return -ERANGE;
 
 	if (selected_ciphers[algo])
