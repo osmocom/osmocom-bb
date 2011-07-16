@@ -64,9 +64,9 @@ int osmo_timer_pending(struct osmo_timer_list *timer);
 /**
  * internal timer list management
  */
-struct timeval *osmo_timers_nearest();
-void osmo_timers_prepare();
-int osmo_timers_update();
+struct timeval *osmo_timers_nearest(void);
+void osmo_timers_prepare(void);
+int osmo_timers_update(void);
 int osmo_timers_check(void);
 
 #endif

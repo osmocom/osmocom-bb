@@ -80,7 +80,7 @@ int osmo_timer_pending(struct osmo_timer_list *timer)
  * If the nearest timer timed out return NULL and then we will
  * dispatch everything after the select
  */
-struct timeval *osmo_timers_nearest()
+struct timeval *osmo_timers_nearest(void)
 {
 	struct timeval current_time;
 
@@ -107,7 +107,7 @@ struct timeval *osmo_timers_nearest()
 /*
  * Find the nearest time and update s_nearest_time
  */
-void osmo_timers_prepare()
+void osmo_timers_prepare(void)
 {
 	struct osmo_timer_list *timer, *nearest_timer = NULL;
 	llist_for_each_entry(timer, &timer_list, entry) {
@@ -126,7 +126,7 @@ void osmo_timers_prepare()
 /*
  * fire all timers... and remove them
  */
-int osmo_timers_update()
+int osmo_timers_update(void)
 {
 	struct timeval current_time;
 	struct osmo_timer_list *timer, *tmp;
