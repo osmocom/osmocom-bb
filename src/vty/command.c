@@ -152,7 +152,7 @@ static int is_config(struct vty *vty)
 }
 
 /* Sort each node's command element according to command string. */
-void sort_node()
+void sort_node(void)
 {
 	unsigned int i, j;
 	struct cmd_node *cnode;

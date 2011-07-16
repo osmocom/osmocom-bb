@@ -29,7 +29,7 @@
 
 #ifdef HAVE_EXECINFO_H
 #include <execinfo.h>
-void osmo_generate_backtrace()
+void osmo_generate_backtrace(void)
 {
 	int i, nptrs;
 	void *buffer[100];
