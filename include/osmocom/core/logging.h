@@ -90,8 +90,8 @@ struct log_target {
 	struct log_category *categories;
 
 	uint8_t loglevel;
-	int use_color:1;
-	int print_timestamp:1;
+	unsigned int use_color:1;
+	unsigned int print_timestamp:1;
 
 	enum log_target_type type;
 
