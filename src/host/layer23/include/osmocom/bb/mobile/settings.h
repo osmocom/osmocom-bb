@@ -21,10 +21,10 @@ struct gsm_settings {
 
 	/* SIM */
 	int			sim_type; /* selects card on power on */
-	char 			emergency_imsi[20]; /* just in case... */
+	char 			emergency_imsi[16];
 
 	/* test card simulator settings */
-	char 			test_imsi[20]; /* just in case... */
+	char 			test_imsi[16];
 	uint32_t		test_tmsi;
 	uint8_t			test_ki_type;
 	uint8_t			test_ki[16]; /* 128 bit max */
