@@ -76,6 +76,7 @@ enum osmobb_l1ctl_sig {
 	S_L1CTL_CCCH_MODE_CONF,
 	S_L1CTL_TCH_MODE_CONF,
 	S_L1CTL_LOSS_IND,
+	S_L1CTL_NEIGH_PM_IND,
 };
 
 enum osmobb_global_sig {
@@ -102,6 +103,12 @@ struct osmobb_ccch_mode_conf {
 struct osmobb_tch_mode_conf {
 	struct osmocom_ms *ms;
 	uint8_t tch_mode;
+};
+
+struct osmobb_neigh_pm_ind {
+	struct osmocom_ms *ms;
+	uint16_t band_arfcn;
+	uint8_t rx_lev;
 };
 
 #endif

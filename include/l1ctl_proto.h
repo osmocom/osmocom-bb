@@ -51,12 +51,20 @@ enum {
 	L1CTL_SIM_CONF,
 	L1CTL_TCH_MODE_REQ,
 	L1CTL_TCH_MODE_CONF,
+	L1CTL_NEIGH_PM_REQ,
+	L1CTL_NEIGH_PM_IND,
 };
 
 enum ccch_mode {
 	CCCH_MODE_NONE = 0,
 	CCCH_MODE_NON_COMBINED,
 	CCCH_MODE_COMBINED,
+};
+
+enum neigh_mode {
+	NEIGH_MODE_NONE = 0,
+	NEIGH_MODE_PM,
+	NEIGH_MODE_SB,
 };
 
 /*
@@ -253,6 +261,18 @@ enum l1ctl_reset_type {
 struct l1ctl_reset {
 	uint8_t type;
 	uint8_t pad[3];
+} __attribute__((packed));
+
+struct l1ctl_neigh_pm_req {
+	uint8_t n;
+	uint8_t padding[1];
+	uint16_t band_arfcn[64];
+} __attribute__((packed));
+
+/* neighbour cell measurement results */
+struct l1ctl_neigh_pm_ind {
+	uint16_t band_arfcn;
+	uint8_t pm[2];
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */

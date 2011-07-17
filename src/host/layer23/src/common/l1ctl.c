@@ -732,6 +732,45 @@ static int rx_l1_tch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* Transmit L1CTL_NEIGH_PM_REQ */
+int l1ctl_tx_neigh_pm_req(struct osmocom_ms *ms, int num, uint16_t *arfcn)
+{
+	struct msgb *msg;
+	struct l1ctl_neigh_pm_req *pm_req;
+	int i;
+
+	msg = osmo_l1_alloc(L1CTL_NEIGH_PM_REQ);
+	if (!msg)
+		return -1;
+
+	LOGP(DL1C, LOGL_INFO, "Tx NEIGH PM Req (num %u)\n", num);
+	pm_req = (struct l1ctl_neigh_pm_req *) msgb_put(msg, sizeof(*pm_req));
+	pm_req->n = num;
+	for (i = 0; i < num; i++)
+		pm_req->band_arfcn[i] = htons(*arfcn++);
+
+	return osmo_send_l1(ms, msg);
+}
+
+/* Receive L1CTL_NEIGH_PM_IND */
+static int rx_l1_neigh_pm_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_neigh_pm_ind *pm_ind;
+
+	for (pm_ind = (struct l1ctl_neigh_pm_ind *) msg->l1h;
+	     (uint8_t *) pm_ind < msg->tail; pm_ind++) {
+		struct osmobb_neigh_pm_ind mi;
+		DEBUGP(DL1C, "NEIGH_PM IND: ARFCN: %4u RxLev: %3d %3d\n",
+			ntohs(pm_ind->band_arfcn), pm_ind->pm[0],
+			pm_ind->pm[1]);
+		mi.band_arfcn = ntohs(pm_ind->band_arfcn);
+		mi.rx_lev = pm_ind->pm[0];
+		mi.ms = ms;
+		osmo_signal_dispatch(SS_L1CTL, S_L1CTL_NEIGH_PM_IND, &mi);
+	}
+	return 0;
+}
+
 /* Receive incoming data from L1 using L1CTL format */
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -787,6 +826,10 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_SIM_CONF:
 		rc = rx_l1_sim_conf(ms, msg);
+		break;
+	case L1CTL_NEIGH_PM_IND:
+		rc = rx_l1_neigh_pm_ind(ms, msg);
+		msgb_free(msg);
 		break;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
