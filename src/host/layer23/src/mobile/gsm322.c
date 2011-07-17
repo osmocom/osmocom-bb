@@ -1258,9 +1258,10 @@ static int gsm322_a_user_resel(struct osmocom_ms *ms, struct msgb *msg)
 	/* search current PLMN in list */
 	llist_for_each_entry(plmn_entry, &plmn->sorted_plmn, entry) {
 		if (plmn_entry->mcc == plmn->mcc
-		 && plmn_entry->mnc == plmn->mnc)
+		 && plmn_entry->mnc == plmn->mnc) {
 			plmn_found = plmn_entry;
 			break;
+		}
 	}
 
 	/* abort if list is empty */
