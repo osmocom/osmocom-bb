@@ -1654,8 +1654,9 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 		rrmeas->nc_num = 0;
 		refer_pcs = gsm_refer_pcs(cs->arfcn, s);
 
+		/* collect channels from freq list (1..1023,0) */
 		for (i = 1; i <= 1024; i++) {
-			if ((s->freq[i].mask & FREQ_TYPE_REP)) {
+			if ((s->freq[i & 1023].mask & FREQ_TYPE_REP)) {
 				if (n == 32) {
 					LOGP(DRR, LOGL_NOTICE, "SI5* report "
 						"exceeds 32 BCCHs\n");
@@ -1664,7 +1665,7 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 				if (refer_pcs && i >= 512 && i <= 810)
 					rrmeas->nc_arfcn[n] = i | ARFCN_PCS;
 				else
-					rrmeas->nc_arfcn[n] = i;
+					rrmeas->nc_arfcn[n] = i & 1023;
 				rrmeas->nc_rxlev[n] = -128;
 				LOGP(DRR, LOGL_NOTICE, "SI5* report arfcn %s\n",
 					gsm_print_arfcn(rrmeas->nc_arfcn[n]));
@@ -2990,13 +2991,13 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 		for (i = 1; i <= 1024; i++) {
 			if ((f[i & 1023].mask & FREQ_TYPE_SERV)) {
 				LOGP(DRR, LOGL_INFO, "Listed ARFCN #%d: %s\n",
-					j, gsm_print_arfcn(i | pcs));
+					j, gsm_print_arfcn((i & 1023) | pcs));
 				if (j == 64) {
 					LOGP(DRR, LOGL_NOTICE, "frequency list "
 						"exceeds 64 entries!\n");
 					return GSM48_RR_CAUSE_ABNORMAL_UNSPEC;
 				}
-				ma[j++] = i;
+				ma[j++] = i & 1023;
 			}
 		}
 		*ma_len = j;

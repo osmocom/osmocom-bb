@@ -35,7 +35,7 @@ struct gsm48_sysinfo {
 	uint8_t				si5t_msg[18];
 	uint8_t				si6_msg[18];
 
-	struct	gsm_sysinfo_freq	freq[1024+1]; /* all frequencies */
+	struct	gsm_sysinfo_freq	freq[1024]; /* all frequencies */
 	uint16_t			hopping[64]; /* hopping arfcn */
 	uint8_t				hopp_len;
 
