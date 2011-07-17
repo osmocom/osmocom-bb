@@ -369,6 +369,7 @@ int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode)
 
 	req = (struct l1ctl_tch_mode_req *) msgb_put(msg, sizeof(*req));
 	req->tch_mode = tch_mode;
+	req->audio_mode = AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER;
 
 	return osmo_send_l1(ms, msg);
 }
@@ -461,6 +462,7 @@ int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	req->h = 0;
 	req->h0.band_arfcn = htons(band_arfcn);
 	req->tch_mode = tch_mode;
+	req->audio_mode = AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER;
 
 	return osmo_send_l1(ms, msg);
 }
@@ -494,6 +496,7 @@ int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 	for (i = 0; i < ma_len; i++)
 		req->h1.ma[i] = htons(ma[i]);
 	req->tch_mode = tch_mode;
+	req->audio_mode = AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER;
 
 	return osmo_send_l1(ms, msg);
 }
