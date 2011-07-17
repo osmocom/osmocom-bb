@@ -127,6 +127,13 @@ static void vty_restart(struct vty *vty, struct osmocom_ms *ms)
 		"change to take effect!%s", ms->name, VTY_NEWLINE);
 }
 
+static void vty_restart_if_started(struct vty *vty, struct osmocom_ms *ms)
+{
+	if (!ms->started)
+		return;
+	vty_restart(vty, ms);
+}
+
 static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
 {
 	struct osmocom_ms *ms;
@@ -196,27 +203,40 @@ static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 		return;
 
 	if (set->plmn_mode == PLMN_MODE_AUTO)
-		vty_out(vty, "  automatic network selection state: %s%s", 
-			plmn_a_state_names[ms->plmn.state], VTY_NEWLINE);
+		vty_out(vty, "  automatic network selection state: %s%s",
+			get_a_state_name(ms->plmn.state), VTY_NEWLINE);
 	else
-		vty_out(vty, "  manual network selection state: %s%s", 
-			plmn_m_state_names[ms->plmn.state], VTY_NEWLINE);
-	vty_out(vty, "  cell selection state: %s",
-		cs_state_names[ms->cellsel.state]);
-	if (ms->rrlayer.state == GSM48_RR_ST_IDLE && ms->cellsel.selected)
-		vty_out(vty, " (ARFCN %s)",
-			gsm_print_arfcn(ms->cellsel.sel_arfcn));
-	vty_out(vty, "%s", VTY_NEWLINE);
-	vty_out(vty, "  radio ressource layer state: %s%s", 
+		vty_out(vty, "  manual network selection state   : %s%s",
+			get_m_state_name(ms->plmn.state), VTY_NEWLINE);
+	if (ms->plmn.mcc)
+		vty_out(vty, "                                     MCC=%s "
+			"MNC=%s (%s, %s)%s", gsm_print_mcc(ms->plmn.mcc),
+			gsm_print_mnc(ms->plmn.mnc), gsm_get_mcc(ms->plmn.mcc),
+			gsm_get_mnc(ms->plmn.mcc, ms->plmn.mnc), VTY_NEWLINE);
+	vty_out(vty, "  cell selection state: %s%s",
+		get_cs_state_name(ms->cellsel.state), VTY_NEWLINE);
+	if (ms->cellsel.sel_mcc) {
+		vty_out(vty, "                        ARFCN=%s MCC=%s MNC=%s "
+			"LAC=0x%04x CELLID=0x%04x%s",
+			gsm_print_arfcn(ms->cellsel.sel_arfcn),
+			gsm_print_mcc(ms->cellsel.sel_mcc),
+			gsm_print_mnc(ms->cellsel.sel_mnc),
+			ms->cellsel.sel_lac, ms->cellsel.sel_id, VTY_NEWLINE);
+		vty_out(vty, "                        (%s, %s)%s",
+			gsm_get_mcc(ms->cellsel.sel_mcc),
+			gsm_get_mnc(ms->cellsel.sel_mcc, ms->cellsel.sel_mnc),
+			VTY_NEWLINE);
+	}
+	vty_out(vty, "  radio ressource layer state: %s%s",
 		gsm48_rr_state_names[ms->rrlayer.state], VTY_NEWLINE);
-	vty_out(vty, "  mobility management layer state: %s", 
+	vty_out(vty, "  mobility management layer state: %s",
 		gsm48_mm_state_names[ms->mmlayer.state]);
 	if (ms->mmlayer.state == GSM48_MM_ST_MM_IDLE)
-		vty_out(vty, ", %s", 
+		vty_out(vty, ", %s",
 			gsm48_mm_substate_names[ms->mmlayer.substate]);
 	vty_out(vty, "%s", VTY_NEWLINE);
 	llist_for_each_entry(trans, &ms->trans_list, entry) {
-		vty_out(vty, "  call control state: %s%s", 
+		vty_out(vty, "  call control state: %s%s",
 			gsm48_cc_state_name(trans->cc.state), VTY_NEWLINE);
 	}
 }
@@ -301,7 +321,7 @@ DEFUN(show_cell, show_cell_cmd, "show cell MS_NAME",
 	if (!ms)
 		return CMD_WARNING;
 
-	gsm322_dump_cs_list(&ms->cellsel, GSM322_CS_FLAG_SYSINFO, print_vty,
+	gsm322_dump_cs_list(&ms->cellsel, GSM322_CS_FLAG_SUPPORT, print_vty,
 		vty);
 
 	return CMD_SUCCESS;
@@ -337,6 +357,21 @@ DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023> [pcs]",
 	}
 
 	gsm48_sysinfo_dump(s, arfcn, print_vty, vty, ms->settings.freq_map);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_nbcells, show_nbcells_cmd, "show neighbour-cells MS_NAME",
+	SHOW_STR "Display information about current neighbour cells\n"
+	"Name of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	gsm322_dump_nb_list(&ms->cellsel, print_vty, vty);
 
 	return CMD_SUCCESS;
 }
@@ -431,9 +466,9 @@ DEFUN(no_monitor_network, no_monitor_network_cmd, "no monitor network MS_NAME",
 }
 
 DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
-	"SIM actions\nInsert test card\nName of MS (see \"show ms\")\n"
+	"SIM actions\nAttach bulit in test SIM\nName of MS (see \"show ms\")\n"
 	"Mobile Country Code of RPLMN\nMobile Network Code of RPLMN\n"
-	"Optionally locatio area code\nOptionally current assigned TMSI")
+	"Optionally location area code\nOptionally current assigned TMSI")
 {
 	struct osmocom_ms *ms;
 	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
@@ -444,7 +479,7 @@ DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
 		return CMD_WARNING;
 
 	if (ms->subscr.sim_valid) {
-		vty_out(vty, "SIM already presend, remove first!%s",
+		vty_out(vty, "SIM already attached, remove first!%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -474,7 +509,7 @@ DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
 }
 
 DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
-	"SIM actions\nSelect SIM from reader\nName of MS (see \"show ms\")")
+	"SIM actions\nAttach SIM from reader\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 
@@ -483,7 +518,7 @@ DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
 		return CMD_WARNING;
 
 	if (ms->subscr.sim_valid) {
-		vty_out(vty, "SIM already presend, remove first!%s",
+		vty_out(vty, "SIM already attached, remove first!%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -494,7 +529,7 @@ DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
 }
 
 DEFUN(sim_remove, sim_remove_cmd, "sim remove MS_NAME",
-	"SIM actions\nRemove SIM card\nName of MS (see \"show ms\")")
+	"SIM actions\nDetach SIM card\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 
@@ -503,7 +538,7 @@ DEFUN(sim_remove, sim_remove_cmd, "sim remove MS_NAME",
 		return CMD_WARNING;
 
 	if (!ms->subscr.sim_valid) {
-		vty_out(vty, "No Sim inserted!%s", VTY_NEWLINE);
+		vty_out(vty, "No SIM attached!%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -658,9 +693,11 @@ DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 	return CMD_SUCCESS;
 }
 
-DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
+DEFUN(network_select, network_select_cmd,
+	"network select MS_NAME MCC MNC [force]",
 	"Select ...\nSelect Network\nName of MS (see \"show ms\")\n"
-	"Mobile Country Code\nMobile Network Code")
+	"Mobile Country Code\nMobile Network Code\n"
+	"Force selecting a network that is not in the list")
 {
 	struct osmocom_ms *ms;
 	struct gsm322_plmn *plmn;
@@ -676,6 +713,12 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 		return CMD_WARNING;
 	plmn = &ms->plmn;
 
+	if (ms->settings.plmn_mode != PLMN_MODE_MANUAL) {
+		vty_out(vty, "Not in manual network selection mode%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
 	if (!mcc) {
 		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
@@ -685,12 +728,16 @@ DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 		return CMD_WARNING;
 	}
 
-	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
-		if (temp->mcc == mcc &&  temp->mnc == mnc)
-			found = 1;
-	if (!found) {
-		vty_out(vty, "Network not in list!%s", VTY_NEWLINE);
-		return CMD_WARNING;
+	if (argc < 4) {
+		llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
+			if (temp->mcc == mcc &&  temp->mnc == mnc)
+				found = 1;
+		if (!found) {
+			vty_out(vty, "Network not in list!%s", VTY_NEWLINE);
+			vty_out(vty, "To force selecting this network, use "
+				"'force' keyword%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
 	}
 
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_CHOOSE_PLMN);
@@ -786,6 +833,60 @@ DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS",
 	}
 
 	mncc_dtmf(ms, (char *)argv[1]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(test_reselection, test_reselection_cmd, "test re-selection NAME",
+	"Manually trigger cell re-selection\nName of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct msgb *nmsg;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+
+	if (set->stick) {
+		vty_out(vty, "Cannot trigger cell re-selection, because we "
+			"stick to a cell!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_CELL_RESEL);
+	if (!nmsg)
+		return CMD_WARNING;
+	gsm322_c_event(ms, nmsg);
+
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(delete_forbidden_plmn, delete_forbidden_plmn_cmd,
+	"delete forbidden plmn NAME MCC MNC",
+	"Delete\nForbidden\nplmn\nName of MS (see \"show ms\")\n"
+	"Mobile Country Code\nMobile Network Code")
+{
+	struct osmocom_ms *ms;
+	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
+		 mnc = gsm_input_mnc((char *)argv[2]);
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (!mcc) {
+		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (!mnc) {
+		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_del_forbidden_plmn(&ms->subscr, mcc, mnc);
 
 	return CMD_SUCCESS;
 }
@@ -1144,6 +1245,9 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	if (!hide_default || set->no_lupd)
 		vty_out(vty, " %slocation-updating%s",
 			(set->no_lupd) ? "no " : "", VTY_NEWLINE);
+	if (!hide_default || set->no_neighbour)
+		vty_out(vty, " %sneighbour-measurement%s",
+			(set->no_neighbour) ? "no " : "", VTY_NEWLINE);
 	if (set->full_v1 || set->full_v2 || set->full_v3) {
 		/* mandatory anyway */
 		vty_out(vty, " codec full-speed%s%s",
@@ -1230,6 +1334,9 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 			VTY_NEWLINE);
 	if (!hide_default || sup->dsc_max != set->dsc_max)
 		vty_out(vty, "  dsc-max %d%s", set->dsc_max, VTY_NEWLINE);
+	if (!hide_default || set->skip_max_per_band)
+		vty_out(vty, "  %skip-max-per-band%s",
+			(set->skip_max_per_band) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
@@ -1335,8 +1442,8 @@ DEFUN(cfg_ms_sap, cfg_ms_sap_cmd, "sap-socket PATH",
 }
 
 DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test)",
-	"Set SIM card type when powering on\nNo SIM interted\n"
-	"Use SIM from reader\nTest SIM inserted")
+	"Set SIM card to attach when powering on\nAttach no SIM\n"
+	"Attach SIM from reader\nAttach bulit in test SIM")
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
@@ -1356,7 +1463,8 @@ DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test)",
 		return CMD_WARNING;
 	}
 
-	vty_restart(vty, ms);
+	vty_restart_if_started(vty, ms);
+
 	return CMD_SUCCESS;
 }
 
@@ -1368,21 +1476,20 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 
-	if (!ms->plmn.state) {
+	if (!ms->started) {
 		if (argv[0][0] == 'a')
 			set->plmn_mode = PLMN_MODE_AUTO;
 		else
 			set->plmn_mode = PLMN_MODE_MANUAL;
-
-		return CMD_SUCCESS;
+	} else {
+		if (argv[0][0] == 'a')
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_SEL_AUTO);
+		else
+			nmsg = gsm322_msgb_alloc(GSM322_EVENT_SEL_MANUAL);
+		if (!nmsg)
+			return CMD_WARNING;
+		gsm322_plmn_sendmsg(ms, nmsg);
 	}
-	if (argv[0][0] == 'a')
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SEL_AUTO);
-	else
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_SEL_MANUAL);
-	if (!nmsg)
-		return CMD_WARNING;
-	gsm322_plmn_sendmsg(ms, nmsg);
 
 	return CMD_SUCCESS;
 }
@@ -1419,7 +1526,6 @@ DEFUN(cfg_ms_imei_fixed, cfg_ms_imei_fixed_cmd, "imei-fixed",
 
 	set->imei_random = 0;
 
-	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -1432,7 +1538,6 @@ DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
 
 	set->imei_random = atoi(argv[0]);
 
-	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -1823,6 +1928,33 @@ DEFUN(cfg_no_abbrev, cfg_ms_no_abbrev_cmd, "no abbrev [ABBREVIATION]",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_neighbour, cfg_ms_neighbour_cmd, "neighbour-measurement",
+	"Allow neighbour cell measurement in idle mode")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->no_neighbour = 0;
+
+	vty_restart_if_started(vty, ms);
+
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_neighbour, cfg_ms_no_neighbour_cmd, "no neighbour-measurement",
+	NO_STR "Do not allow neighbour cell measurement in idle mode")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->no_neighbour = 1;
+
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
 static int config_write_dummy(struct vty *vty)
 {
 	return CMD_SUCCESS;
@@ -2067,9 +2199,9 @@ DEFUN(cfg_ms_sup_ch_cap, cfg_ms_sup_ch_cap_cmd, "channel-capability "
 		return CMD_WARNING;
 	}
 
-	if (ch_cap != set->ch_cap
+	if (ms->started && ch_cap != set->ch_cap
 	 && (ch_cap == GSM_CAP_SDCCH || set->ch_cap == GSM_CAP_SDCCH))
-		vty_restart(vty, ms);
+		vty_restart_if_started(vty, ms);
 
 	set->ch_cap = ch_cap;
 
@@ -2123,6 +2255,30 @@ DEFUN(cfg_ms_sup_dsc_max, cfg_ms_sup_dsc_max_cmd, "dsc-max <90-500>",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_sup_skip_max_per_band, cfg_ms_sup_skip_max_per_band_cmd,
+	"skip-max-per-band",
+	"Scan all frequencies per band, not only a maximum number")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->skip_max_per_band = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sup_no_skip_max_per_band, cfg_ms_sup_no_skip_max_per_band_cmd,
+	"no skip-max-per-band",
+	NO_STR "Scan only a maximum number of frequencies per band")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->skip_max_per_band = 0;
+
+	return CMD_SUCCESS;
+}
+
 /* per testsim config */
 DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	"Configure test SIM emulation")
@@ -2146,7 +2302,8 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 
 	strcpy(set->test_imsi, argv[0]);
 
-	vty_restart(vty, ms);
+	vty_restart_if_started(vty, ms);
+
 	return CMD_SUCCESS;
 }
 
@@ -2238,7 +2395,8 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 
 	set->test_rplmn_valid = 0;
 
-	vty_restart(vty, ms);
+	vty_restart_if_started(vty, ms);
+
 	return CMD_SUCCESS;
 }
 
@@ -2274,7 +2432,8 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC [LAC] [TMSI]",
 	else
 		set->test_tmsi = 0xffffffff;
 
-	vty_restart(vty, ms);
+	vty_restart_if_started(vty, ms);
+
 	return CMD_SUCCESS;
 }
 
@@ -2295,7 +2454,8 @@ DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-coun
 		break;
 	}
 
-	vty_restart(vty, ms);
+	vty_restart_if_started(vty, ms);
+
 	return CMD_SUCCESS;
 }
 
@@ -2441,6 +2601,7 @@ int ms_vty_init(void)
 	install_element_ve(&show_support_cmd);
 	install_element_ve(&show_cell_cmd);
 	install_element_ve(&show_cell_si_cmd);
+	install_element_ve(&show_nbcells_cmd);
 	install_element_ve(&show_ba_cmd);
 	install_element_ve(&show_forb_la_cmd);
 	install_element_ve(&show_forb_plmn_cmd);
@@ -2463,6 +2624,8 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
+	install_element(ENABLE_NODE, &test_reselection_cmd);
+	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
 
 #ifdef _HAVE_GPSD
 	install_element(CONFIG_NODE, &cfg_gps_host_cmd);
@@ -2518,6 +2681,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_no_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
+	install_element(MS_NODE, &cfg_ms_neighbour_cmd);
+	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
 	install_default(SUPPORT_NODE);
@@ -2575,6 +2740,8 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_half_v3_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_min_rxlev_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_skip_max_per_band_cmd);
 	install_node(&testsim_node, config_write_dummy);
 	install_default(TESTSIM_NODE);
 	install_element(TESTSIM_NODE, &ournode_exit_cmd);

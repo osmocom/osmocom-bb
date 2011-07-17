@@ -290,7 +290,11 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 	}
 	print(priv, "  BS-PA-MFMS = %d  Attachment = %s\n",
 		s->pag_mf_periods, (s->att_allowed) ? "allowed" : "denied");
-	print(priv, "BS-AG_BLKS_RES = %d\n", s->bs_ag_blks_res);
+	print(priv, "BS-AG_BLKS_RES = %d  ", s->bs_ag_blks_res);
+	if (s->t3212)
+		print(priv, "T3212 = %d sec.\n", s->t3212);
+	else
+		print(priv, "T3212 = disabled\n", s->t3212);
 
 	/* channel description */
 	if (s->h)

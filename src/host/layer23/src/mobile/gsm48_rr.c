@@ -585,14 +585,16 @@ static void timeout_rr_meas(void *arg)
 	uint8_t ch_type, ch_subch, ch_ts;
 	char text[256];
 
-	if (!cs->selected) {
+	/* don't monitor if no cell is selcted or if we scan neighbour cells */
+	if (!cs->selected || cs->neighbour) {
+		sprintf(text, "MON: not camping on serving cell");
 		goto restart;
 	} else if (!meas->frames) {
 		sprintf(text, "MON: no cell info");
 	} else {
-		rxlev = meas->rxlev / meas->frames;
-		berr = meas->berr / meas->frames;
-		snr = meas->snr / meas->frames;
+		rxlev = (meas->rxlev + meas->frames / 2) / meas->frames;
+		berr = (meas->berr + meas->frames / 2) / meas->frames;
+		snr = (meas->snr + meas->frames / 2) / meas->frames;
 		sprintf(text, "MON: f=%d lev=%s snr=%2d ber=%3d "
 			"LAI=%s %s %04x ID=%04x", cs->sel_arfcn,
 			gsm_print_rxlev(rxlev), berr, snr, 
@@ -608,7 +610,8 @@ static void timeout_rr_meas(void *arg)
 			if (ch_type == RSL_CHAN_SDCCH8_ACCH
 			 || ch_type == RSL_CHAN_SDCCH4_ACCH)
 				sprintf(text + strlen(text), "/%d", ch_subch);
-		}
+		} else
+			gsm322_meas(rr->ms, rxlev);
 	}
 	LOGP(DRR, LOGL_INFO, "%s\n", text);
 	if (rr->monitor)
@@ -1256,6 +1259,14 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 	 	return -EINVAL;
 	}
 
+	/* ignore channel request while not camping on a cell */
+	if (!cs->selected) {
+		LOGP(DRR, LOGL_INFO, "Channel request rejected, we did not "
+			"properly select the serving cell.\n");
+
+		goto rel_ind;
+	}
+
 	/* tell cell selection process to leave idle mode
 	 * NOTE: this must be sent unbuffered, because the state may not
 	 * change until idle mode is left
@@ -1415,6 +1426,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
 		undefined:
 		LOGP(DSUM, LOGL_INFO, "Requesting channel failed\n");
 
+rel_ind:
 		nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
 		if (!nmsg)
 			return -ENOMEM;
@@ -1682,6 +1694,12 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 	em = (struct gsm322_msg *) nmsg->data;
 	em->sysinfo = type;
 	gsm322_cs_sendmsg(ms, nmsg);
+
+	/* if not camping, we don't care about SI */
+	if (ms->cellsel.neighbour
+	 || (ms->cellsel.state != GSM322_C3_CAMPED_NORMALLY
+	  && ms->cellsel.state != GSM322_C7_CAMPED_ANY_CELL))
+		return 0;
 
 	/* send timer info to location update process */
 	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_SYSINFO);
@@ -2078,7 +2096,8 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 	/* 3.3.1.1.2: ignore paging while not camping on a cell */
 	if (rr->state != GSM48_RR_ST_IDLE || !cs->selected
 	 || (cs->state != GSM322_C3_CAMPED_NORMALLY
-	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)) {
+	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)
+	 || cs->neighbour) {
 		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping.\n");
 
 		return 0;
@@ -2130,7 +2149,8 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	/* 3.3.1.1.2: ignore paging while not camping on a cell */
 	if (rr->state != GSM48_RR_ST_IDLE || !cs->selected
 	 || (cs->state != GSM322_C3_CAMPED_NORMALLY
-	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)) {
+	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)
+	 || cs->neighbour) {
 		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping.\n");
 
 		return 0;
@@ -2195,7 +2215,8 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	/* 3.3.1.1.2: ignore paging while not camping on a cell */
 	if (rr->state != GSM48_RR_ST_IDLE || !cs->selected
 	 || (cs->state != GSM322_C3_CAMPED_NORMALLY
-	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)) {
+	  && cs->state != GSM322_C7_CAMPED_ANY_CELL)
+	 || cs->neighbour) {
 		LOGP(DRR, LOGL_INFO, "PAGING ignored, we are not camping.\n");
 
 		return 0;
@@ -2312,6 +2333,14 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t *st, st_len;
 #endif
 
+	/* ignore imm.ass. while not camping on a cell */
+	if (!cs->selected || cs->neighbour || !s) {
+		LOGP(DRR, LOGL_INFO, "IMMEDIATED ASSGINMENT ignored, we are "
+			"have not proper selected the serving cell.\n");
+
+		return 0;
+	}
+
 	memset(&cd, 0, sizeof(cd));
 	cd.ind_tx_power = rr->cd_now.ind_tx_power;
 
@@ -2411,6 +2440,14 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 #ifndef TEST_STARTING_TIMER
 	uint8_t *st, st_len;
 #endif
+
+	/* ignore imm.ass.ext while not camping on a cell */
+	if (!cs->selected || cs->neighbour || !s) {
+		LOGP(DRR, LOGL_INFO, "IMMEDIATED ASSGINMENT ignored, we are "
+			"have not proper selected the serving cell.\n");
+
+		return 0;
+	}
 
 	memset(&cd1, 0, sizeof(cd1));
 	cd1.ind_tx_power = rr->cd_now.ind_tx_power;
@@ -2651,7 +2688,8 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 	/* check for valid measurements, any frame must exist */
 	if (meas->frames) {
 		meas_valid = 1;
-		serv_rxlev_full = serv_rxlev_sub = meas->rxlev / meas->frames;
+		serv_rxlev_full = serv_rxlev_sub =
+			(meas->rxlev + (meas->frames / 2)) / meas->frames;
 		serv_rxqual_full = serv_rxqual_sub = 0; // FIXME
 	}
 
@@ -4335,7 +4373,7 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *) msg->data;
 	struct gsm48_hdr *gh = msgb_l3(msg);

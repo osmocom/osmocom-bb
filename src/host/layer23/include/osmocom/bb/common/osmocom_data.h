@@ -87,6 +87,7 @@ struct osmobb_fbsb_res {
 	struct osmocom_ms *ms;
 	int8_t snr;
 	uint8_t bsic;
+	uint16_t band_arfcn;
 };
 
 struct osmobb_meas_res {

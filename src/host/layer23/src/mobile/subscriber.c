@@ -31,6 +31,10 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/mobile/vty.h>
 
+/* enable to get an empty list of forbidden PLMNs, even if stored on SIM.
+ * if list is changed, the result is not written back to SIM */
+//#define TEST_EMPTY_FPLMN
+
 void *l23_ctx;
 
 static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg);
@@ -104,6 +108,9 @@ int gsm_subscr_init(struct osmocom_ms *ms)
 
 	/* set key invalid */
 	subscr->key_seq = 7;
+
+	/* any cell selection timer timeout */
+	subscr->any_timeout = 30;
 
 	/* init lists */
 	INIT_LLIST_HEAD(&subscr->plmn_list);
@@ -453,6 +460,10 @@ static int subscr_sim_fplmn(struct osmocom_ms *ms, uint8_t *data,
 	uint8_t lai[5];
 	uint16_t dummy_lac;
 
+#ifdef TEST_EMPTY_FPLMN
+	return 0;
+#endif
+
 	/* flush list */
 	llist_for_each_safe(lh, lh2, &subscr->plmn_na) {
 		llist_del(lh);
@@ -473,7 +484,7 @@ static int subscr_sim_fplmn(struct osmocom_ms *ms, uint8_t *data,
 		lai[2] = data[2];
 		gsm48_decode_lai((struct gsm48_loc_area_id *)lai, &na->mcc,
 			&na->mnc, &dummy_lac);
-		na->cause = 0;
+		na->cause = -1; /* must have a value, but SIM stores no cause */
 		llist_add_tail(&na->entry, &subscr->plmn_na);
 
 		data += 3;
@@ -741,6 +752,10 @@ static int subscr_write_plmn_na(struct osmocom_ms *ms)
 	int count = 0, i;
 	uint8_t *data;
 	uint8_t lai[5];
+
+#ifdef TEST_EMPTY_FPLMN
+	return 0;
+#endif
 
 	/* skip, if no real valid SIM */
 	if (subscr->sim_type != GSM_SIM_TYPE_READER || !subscr->sim_valid)
@@ -1024,23 +1039,29 @@ void new_sim_ustate(struct gsm_subscriber *subscr, int state)
 	subscr->ustate = state;
 }
 
-/* del forbidden PLMN */
+/* del forbidden PLMN. if MCC==0, flush complete list */
 int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 	uint16_t mnc)
 {
-	struct gsm_sub_plmn_na *na;
+	struct gsm_sub_plmn_na *na, *na2;
+	int deleted = 0;
 
-	llist_for_each_entry(na, &subscr->plmn_na, entry) {
-		if (na->mcc == mcc && na->mnc == mnc) {
+	llist_for_each_entry_safe(na, na2, &subscr->plmn_na, entry) {
+		if (!mcc || (na->mcc == mcc && na->mnc == mnc)) {
 			LOGP(DPLMN, LOGL_INFO, "Delete from list of forbidden "
 				"PLMNs (mcc=%s, mnc=%s)\n",
 				gsm_print_mcc(mcc), gsm_print_mnc(mnc));
 			llist_del(&na->entry);
 			talloc_free(na);
-			/* update plmn not allowed list on SIM */
-			subscr_write_plmn_na(subscr->ms);
-			return 0;
+			deleted = 1;
+			if (mcc)
+				break;
 		}
+	}
+
+	if (deleted) {
+		/* update plmn not allowed list on SIM */
+		subscr_write_plmn_na(subscr->ms);
 	}
 
 	return -EINVAL;
@@ -1062,7 +1083,7 @@ int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 		return -ENOMEM;
 	na->mcc = mcc;
 	na->mnc = mnc;
-	na->cause = cause;
+	na->cause = cause ? : -1; /* cause 0 is not allowed */
 	llist_add_tail(&na->entry, &subscr->plmn_na);
 
 	/* don't add Home PLMN to SIM */

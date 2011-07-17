@@ -57,6 +57,8 @@ struct gsm_subscriber {
 	/* special things */
 	uint8_t			always_search_hplmn;
 		/* search hplmn in other countries also (for test cards) */
+	uint8_t			any_timeout;
+		/* timer to restart 'any cell selection' */
 	char			sim_name[31]; /* name to load/save sim */
 	char			sim_spn[17]; /* name of service privider */
 

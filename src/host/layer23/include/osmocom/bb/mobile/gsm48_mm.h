@@ -132,6 +132,7 @@ struct gsm48_mmr {
 #define GSM48_MM_EVENT_AUTH_RESPONSE	13
 #define GSM48_MM_EVENT_SYSINFO		14
 #define GSM48_MM_EVENT_USER_PLMN_SEL	15
+#define GSM48_MM_EVENT_LOST_COVERAGE	16
 
 /* message for MM events */
 struct gsm48_mm_event {

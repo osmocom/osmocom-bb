@@ -37,6 +37,7 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
 #include <osmocom/bb/mobile/app_mobile.h>
+#include <osmocom/bb/mobile/vty.h>
 
 extern void *l23_ctx;
 
@@ -107,8 +108,6 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  * Otherwhise PLMN SEARCH is entered.
  *
  * During PLMN SEARCH NORMAL state: (4.2.2.5)
- *  - on expirery of T3211 or T3213: Perform location update, when back
- *    to NORMAL SERVICE state.
  *  - on expirery of T3212: Perform periodic location update, when back
  *    to NORMAL SERVICE state.
  *  - perform IMSI detach
@@ -125,14 +124,12 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  * During NO CELL AVAILABLE state:
  *  - reject any MM connection
  *
- *
  * The NO IMSI state is entered if:
  *  - SIM is invalid
  *  - and cell is selected during PLMN SEARCH states
  *
  * During NO IMSO state: (4.2.2.4)
  *  - reject MM connection except for emergency calls
- *
  *
  * The LIMITED SERVICE state is entered if:
  *  - SIM is valid
@@ -150,6 +147,10 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  *
  * During LOCATION UPDATE NEEDED state:
  *  - reject MM connection except for emergency calls
+ *
+ * In all IDLE states:
+ *  - on expirery of T3211 or T3213: Perform location update, when back
+ *    to NORMAL SERVICE state.
  *
  * This state is left if location update is possible and directly enter
  * state ATTEMPTING TO UPDATE and trigger location update.
@@ -546,10 +547,12 @@ static const struct value_string gsm48_mmevent_names[] = {
 	{ GSM48_MM_EVENT_TIMEOUT_T3230,	"MM_EVENT_TIMEOUT_T3230" },
 	{ GSM48_MM_EVENT_TIMEOUT_T3240,	"MM_EVENT_TIMEOUT_T3240" },
 	{ GSM48_MM_EVENT_IMSI_DETACH,	"MM_EVENT_IMSI_DETACH" },
+	{ GSM48_MM_EVENT_POWER_OFF,	"MM_EVENT_POWER_OFF" },
 	{ GSM48_MM_EVENT_PAGING,	"MM_EVENT_PAGING" },
 	{ GSM48_MM_EVENT_AUTH_RESPONSE,	"MM_EVENT_AUTH_RESPONSE" },
 	{ GSM48_MM_EVENT_SYSINFO,	"MM_EVENT_SYSINFO" },
 	{ GSM48_MM_EVENT_USER_PLMN_SEL,	"MM_EVENT_USER_PLMN_SEL" },
+	{ GSM48_MM_EVENT_LOST_COVERAGE,	"MM_EVENT_LOST_COVERAGE" },
 	{ 0,				NULL }
 };
 
@@ -894,6 +897,9 @@ static int gsm48_mm_loc_upd_possible(struct gsm48_mmlayer *mm)
 /* Set new MM state, also new substate in case of MM IDLE state. */
 static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 {
+	struct osmocom_ms *ms = mm->ms;
+	struct gsm322_plmn *plmn = &ms->plmn;
+
 	/* IDLE -> IDLE */
 	if (mm->state == GSM48_MM_ST_MM_IDLE && state == mm->state)
 		LOGP(DMM, LOGL_INFO, "new MM IDLE state %s -> %s\n",
@@ -915,6 +921,43 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 			gsm48_mm_state_names[mm->state],
 			gsm48_mm_state_names[state]);
 
+	/* display service on new IDLE state */
+	if (state == GSM48_MM_ST_MM_IDLE
+	 && (mm->state != GSM48_MM_ST_MM_IDLE || mm->substate != substate)) {
+		switch (substate) {
+		case GSM48_MM_SST_NORMAL_SERVICE:
+			vty_notify(ms, NULL);
+			vty_notify(ms, "On Network, normal service: %s, %s\n", 
+				gsm_get_mcc(plmn->mcc),
+				gsm_get_mnc(plmn->mcc, plmn->mnc));
+			break;
+		case GSM48_MM_SST_LIMITED_SERVICE:
+			vty_notify(ms, NULL);
+			vty_notify(ms, "Limited service, emergency calls are "
+				"possible.\n");
+			break;
+		case GSM48_MM_SST_PLMN_SEARCH_NORMAL:
+		case GSM48_MM_SST_PLMN_SEARCH:
+			vty_notify(ms, NULL);
+			vty_notify(ms, "Searching network...\n");
+			break;
+		case GSM48_MM_SST_NO_IMSI:
+			vty_notify(ms, NULL);
+			vty_notify(ms, "No SIM, emergency calls are "
+				"possible.\n");
+			break;
+		case GSM48_MM_SST_NO_CELL_AVAIL:
+			vty_notify(ms, NULL);
+			vty_notify(ms, "No service.\n");
+			break;
+		case GSM48_MM_SST_ATTEMPT_UPDATE:
+			vty_notify(ms, NULL);
+			vty_notify(ms, "Trying to registering with "
+				"network...\n");
+			break;
+		}
+	}
+
 	/* remember most recent substate */
 	if (mm->state == GSM48_MM_ST_MM_IDLE)
 		mm->mr_substate = mm->substate;
@@ -931,35 +974,37 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
 		if (!nmsg)
 			return;
-		gsm48_mmevent_msg(mm->ms, nmsg);
+		gsm48_mmevent_msg(ms, nmsg);
 	}
 
 	/* 4.4.2 start T3212 in MM IDLE mode if not started or has expired */
 	if (state == GSM48_MM_ST_MM_IDLE
 	 && (substate == GSM48_MM_SST_NORMAL_SERVICE
 	  || substate == GSM48_MM_SST_ATTEMPT_UPDATE)) {
+		struct gsm48_sysinfo *s = &mm->ms->cellsel.sel_si;
+
 	  	/* start periodic location update timer */
-		if (!osmo_timer_pending(&mm->t3212))
+		if (s->t3212 && !osmo_timer_pending(&mm->t3212)) {
+			mm->t3212_value = s->t3212;
 			start_mm_t3212(mm, mm->t3212_value);
+		}
 		/* perform pending location update */
 		if (mm->lupd_retry) {
 			LOGP(DMM, LOGL_INFO, "Loc. upd. pending (type %d)\n",
 				mm->lupd_type);
 			mm->lupd_retry = 0;
-			gsm48_mm_loc_upd(mm->ms, NULL);
+			gsm48_mm_loc_upd(ms, NULL);
 			/* must exit, because this function can be called
 			 * recursively
 			 */
 			return;
 		}
 		if (mm->lupd_periodic) {
-			struct gsm48_sysinfo *s = &mm->ms->cellsel.sel_si;
-
 			LOGP(DMM, LOGL_INFO, "Periodic loc. upd. pending "
 				"(type %d)\n", mm->lupd_type);
 			mm->lupd_periodic = 0;
-			if (s->t3212)
-				gsm48_mm_loc_upd_periodic(mm->ms, NULL);
+			if (s->t3212) /* still required? */
+				gsm48_mm_loc_upd_periodic(ms, NULL);
 			else
 				LOGP(DMM, LOGL_INFO, "but not requred\n");
 			/* must exit, because this function can be called
@@ -1035,6 +1080,13 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 
+	if (cs->state != GSM322_C3_CAMPED_NORMALLY
+	 && cs->state != GSM322_C7_CAMPED_ANY_CELL) {
+		LOGP(DMM, LOGL_INFO, "Not camping, wait for CS process to "
+			"camp, it sends us CELL_SELECTED then.\n");
+		return 0;
+	}
+
 	/* 4.4.4.9 start T3211 when RR is released */
 	if (mm->start_t3211) {
 		LOGP(DMM, LOGL_INFO, "Starting T3211 after RR release.\n");
@@ -1083,13 +1135,30 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* location update allowed */
 	if (cs->state == GSM322_C3_CAMPED_NORMALLY) {
 		LOGP(DMM, LOGL_INFO, "We are camping normally as returning to "
 			"MM IDLE\n");
-		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-			GSM48_MM_SST_LOC_UPD_NEEDED);
-	} else { /* location update not allowed */
+		if (gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc,
+				cs->sel_mnc)) {
+			/* location update not allowed */
+			LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed PLMN.\n");
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
+				GSM48_MM_SST_LIMITED_SERVICE);
+		} else
+		if (gsm322_is_forbidden_la(ms, cs->sel_mcc, cs->sel_mnc,
+				cs->sel_lac)) {
+			/* location update not allowed */
+			LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed LA.\n");
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
+				GSM48_MM_SST_LIMITED_SERVICE);
+		} else {
+			/* location update allowed */
+			LOGP(DMM, LOGL_INFO, "Loc. upd. allowed.\n");
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
+				GSM48_MM_SST_LOC_UPD_NEEDED);
+		}
+	} else {
+		/* location update not allowed */
 		LOGP(DMM, LOGL_INFO, "We are camping on any cell as returning "
 			"to MM IDLE\n");
 		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
@@ -1171,7 +1240,8 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* PLMN mode auto and selected cell is forbidden */
 	if (set->plmn_mode == PLMN_MODE_AUTO
-	 && (gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc, cs->sel_mnc)
+	 && (!cs->selected
+	  || gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc, cs->sel_mnc)
 	  || gsm322_is_forbidden_la(ms, cs->sel_mcc, cs->sel_mnc,
 	 	cs->sel_lac))) {
 		struct msgb *nmsg;
@@ -1181,7 +1251,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 			GSM48_MM_SST_LIMITED_SERVICE);
 
 		/* send message to PLMN search process */
-		nmsg = gsm322_msgb_alloc(GSM322_EVENT_ROAMING_NA);
+		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
@@ -1189,10 +1259,13 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* PLMN mode manual and selected cell not selected PLMN */
+	/* PLMN mode manual and selected cell not selected PLMN.
+	 * in M3 state the PLMN is not selected for registration. */
 	if (set->plmn_mode == PLMN_MODE_MANUAL
-	 && (plmn->mcc != cs->sel_mcc
-	  || plmn->mnc != cs->sel_mnc)) {
+	 && (!cs->selected
+	  || plmn->mcc != cs->sel_mcc
+	  || plmn->mnc != cs->sel_mnc
+	  || plmn->state == GSM322_M3_NOT_ON_PLMN)) {
 		struct msgb *nmsg;
 
 		LOGP(DMM, LOGL_INFO, "Selected cell not found.\n");
@@ -1630,8 +1703,8 @@ static int gsm48_mm_rx_auth_rej(struct osmocom_ms *ms, struct msgb *msg)
 		nrrh->cause = GSM48_RR_CAUSE_NORMAL;
 		gsm48_rr_downmsg(ms, nmsg);
 
-		/* CS process will trigger: return to MM IDLE / No SIM */
-		return 0;
+		/* return to MM IDLE */
+		return gsm48_mm_return_idle(ms, NULL);
 	}
 
 	return 0;
@@ -1765,7 +1838,8 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 		/* power off when MM idle */
 		mm->power_off_idle = 1;
 
-		return 0;
+		/* return to MM IDLE */
+		return gsm48_mm_return_idle(ms, NULL);
 	}
 
 	/* send SIM remove event to gsm322 */
@@ -1774,8 +1848,8 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 		return -ENOMEM;
 	gsm322_plmn_sendmsg(ms, nmsg);
 
-	/* CS process will trigger return to MM IDLE / No SIM */
-	return 0;
+	/* return to MM IDLE */
+	return gsm48_mm_return_idle(ms, NULL);
 }
 
 /* start an IMSI detach in MM IDLE */
@@ -1914,8 +1988,8 @@ static int gsm48_mm_rx_abort(struct osmocom_ms *ms, struct msgb *msg)
 		/* store LOCI on sim */
 		gsm_subscr_write_loci(ms);
 
-		/* CS process will trigger: return to MM IDLE / No SIM */
-		return 0;
+		/* return to MM IDLE */
+		return gsm48_mm_return_idle(ms, NULL);
 	}
 
 	return 0;
@@ -2021,7 +2095,8 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	/* (re)start only if we still require location update */
 	if (!mm->lupd_pending) {
 		LOGP(DMM, LOGL_INFO, "No loc. upd. pending.\n");
-		return 0;
+		/* use MM IDLE to selecte the idle state */
+		return gsm48_mm_return_idle(ms, NULL);
 	}
 
 	/* must camp normally */
@@ -2032,12 +2107,20 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DSUM, LOGL_INFO, "Location updating not possible\n");
 		_stop:
 		mm->lupd_pending = 0;
+
+#if 0
+		/* don't send message, if we got not triggered by PLMN search */
+		if (!msg)
+			return 0;
+#endif
+
 		/* send message to PLMN search process */
 		nmsg = gsm322_msgb_alloc(msg_type);
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
-		return 0;
+		/* use MM IDLE to selecte the idle state */
+		return gsm48_mm_return_idle(ms, NULL);
 	}
 
 	/* deny network, if disabled */
@@ -2048,20 +2131,20 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 			"configuration\n");
 		gsm_subscr_add_forbidden_plmn(subscr, cs->sel_mcc,
 			cs->sel_mnc, GSM48_REJECT_PLMN_NOT_ALLOWED);
-		msg_type = GSM322_EVENT_ROAMING_NA;
+		msg_type = GSM322_EVENT_REG_FAILED;
 		goto _stop;
 	}
 
 	/* if LAI is forbidden, don't start */
 	if (gsm_subscr_is_forbidden_plmn(subscr, cs->sel_mcc, cs->sel_mnc)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed PLMN.\n");
-		msg_type = GSM322_EVENT_ROAMING_NA;
+		msg_type = GSM322_EVENT_REG_FAILED;
 		goto stop;
 	}
 	if (gsm322_is_forbidden_la(ms, cs->sel_mcc,
 		cs->sel_mnc, cs->sel_lac)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed LA.\n");
-		msg_type = GSM322_EVENT_ROAMING_NA;
+		msg_type = GSM322_EVENT_REG_FAILED;
 		goto stop;
 	}
 
@@ -2070,7 +2153,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	 || (!subscr->acc_barr && !((subscr->acc_class & 0xfbff) &
 	 				(s->class_barr ^ 0xffff)))) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. no access.\n");
-		msg_type = GSM322_EVENT_ROAMING_NA;
+		msg_type = GSM322_EVENT_REG_FAILED;
 		goto stop;
 	}
 
@@ -2105,6 +2188,12 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed.\n");
 
+#if 0
+		/* don't send message, if we got not triggered by PLMN search */
+		if (!msg)
+			return 0;
+#endif
+
 		/* send message to PLMN search process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
 		if (!nmsg)
@@ -2128,6 +2217,12 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 		/* go straight to normal service state */
 		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
 				GSM48_MM_SST_NORMAL_SERVICE);
+
+#if 0
+		/* don't send message, if we got not triggered by PLMN search */
+		if (!msg)
+			return 0;
+#endif
 
 		/* send message to PLMN search process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_SUCCESS);
@@ -2465,6 +2560,8 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	/* send event to PLMN search process */
 	switch(mm->lupd_rej_cause) {
 	case GSM48_REJECT_ROAMING_NOT_ALLOWED:
+	case GSM48_REJECT_PLMN_NOT_ALLOWED:
+	case GSM48_REJECT_LOC_NOT_ALLOWED:
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_ROAMING_NA);
 		break;
 	case GSM48_REJECT_IMSI_UNKNOWN_IN_HLR:
@@ -2511,8 +2608,8 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_mm_loc_upd_failed(ms, NULL);
 	}
 
-	/* CS proc triggers: return to IDLE, case 13 is also handled there */
-	return 0;
+	/* return to MM IDLE */
+	return gsm48_mm_return_idle(ms, NULL);
 }
 
 /* 4.2.2 delay a location update */
@@ -2560,8 +2657,8 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 			/* start update retry timer */
 			start_mm_t3211(mm);
 
-			/* CS process will trigger: return to MM IDLE */
-			return 0;
+			/* return to MM IDLE */
+			return gsm48_mm_return_idle(ms, NULL);
 		} else
 			LOGP(DMM, LOGL_INFO, "Loc. upd. failed too often.\n");
 	}
@@ -2585,8 +2682,8 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DSUM, LOGL_INFO, "Try location update later\n");
 	}
 
-	/* CS process will trigger: return to MM IDLE */
-	return 0;
+	/* return to MM IDLE */
+	return gsm48_mm_return_idle(ms, NULL);
 }
 
 /* abort a location update due to radio failure or release */
@@ -3228,12 +3325,8 @@ static int gsm48_mm_abort_mm_con(struct osmocom_ms *ms, struct msgb *msg)
 	/* release all connections */
 	gsm48_mm_release_mm_conn(ms, 1, cause, 1);
 
-	/* no RR connection, so we return to MM IDLE */
-	if (mm->state == GSM48_MM_ST_WAIT_RR_CONN_MM_CON)
-		return gsm48_mm_return_idle(ms, NULL);
-
-	/* CS process will trigger: return to MM IDLE */
-	return 0;
+	/* return to MM IDLE */
+	return gsm48_mm_return_idle(ms, NULL);
 }
 
 /* 4.5.1.2 timeout is received during MM connection establishment */
@@ -3404,8 +3497,8 @@ static int gsm48_mm_abort_rr(struct osmocom_ms *ms, struct msgb *msg)
 	nrrh->cause = GSM48_RR_CAUSE_ABNORMAL_TIMER;
 	gsm48_rr_downmsg(ms, nmsg);
 
-	/* CS process will trigger: return to MM IDLE / No SIM */
-	return 0;
+	/* return to MM IDLE */
+	return gsm48_mm_return_idle(ms, NULL);
 }
 
 /*
@@ -3420,8 +3513,8 @@ static int gsm48_mm_rel_other(struct osmocom_ms *ms, struct msgb *msg)
 	/* stop RR release timer (if running) */
 	stop_mm_t3240(mm);
 
-	/* CS process will trigger: return to MM IDLE */
-	return 0;
+	/* return to MM IDLE */
+	return gsm48_mm_return_idle(ms, NULL);
 }
 
 /*
@@ -3928,7 +4021,10 @@ static struct eventstate {
 
 	/* 4.2.2.1 Normal service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
-	 GSM48_MM_EVENT_NO_CELL_FOUND, gsm48_mm_plmn_search}, /* 4.2.1.2 */
+	 GSM48_MM_EVENT_USER_PLMN_SEL, gsm48_mm_plmn_search}, /* 4.2.1.2 */
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	 GSM48_MM_EVENT_LOST_COVERAGE, gsm48_mm_plmn_search}, /* 4.2.1.2 */
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_loc_upd_normal}, /* change */
@@ -3952,7 +4048,7 @@ static struct eventstate {
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
 				SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
-	 GSM48_MM_EVENT_NO_CELL_FOUND, gsm48_mm_plmn_search}, /* 4.2.1.2 */
+	 GSM48_MM_EVENT_LOST_COVERAGE, gsm48_mm_plmn_search}, /* 4.2.1.2 */
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
 				SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
@@ -3972,7 +4068,7 @@ static struct eventstate {
 	 GSM48_MM_EVENT_USER_PLMN_SEL, gsm48_mm_plmn_search}, /* 4.2.1.2 */
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
-	 GSM48_MM_EVENT_NO_CELL_FOUND, gsm48_mm_plmn_search}, /* 4.2.1.2 */
+	 GSM48_MM_EVENT_LOST_COVERAGE, gsm48_mm_plmn_search}, /* 4.2.1.2 */
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_loc_upd_normal}, /* if allow. */
@@ -3987,12 +4083,6 @@ static struct eventstate {
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MM_EVENT_CELL_SELECTED, gsm48_mm_cell_selected}, /* 4.2.1.1 */
-
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_upd_delay_retry},
-
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
-	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_upd_delay_retry},
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay_per}, /* 4.4.2 */
@@ -4042,6 +4132,12 @@ static struct eventstate {
 	 GSM48_MM_EVENT_TIMEOUT_T3220, gsm48_mm_imsi_detach_end},
 
 	/* location update in other cases */
+	{SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES,
+	 GSM48_MM_EVENT_TIMEOUT_T3211, gsm48_mm_loc_upd_delay_retry},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES,
+	 GSM48_MM_EVENT_TIMEOUT_T3213, gsm48_mm_loc_upd_delay_retry},
+
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_ignore},
 

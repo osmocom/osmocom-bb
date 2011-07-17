@@ -39,6 +39,9 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	strcpy(set->layer2_socket_path, layer2_socket_path);
 	strcpy(set->sap_socket_path, sap_socket_path);
 
+	/* network search */
+	set->plmn_mode = PLMN_MODE_AUTO;
+
 	/* IMEI */
 	sprintf(set->imei,   "000000000000000");
 	sprintf(set->imeisv, "0000000000000000");
