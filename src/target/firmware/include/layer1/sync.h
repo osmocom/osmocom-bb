@@ -142,6 +142,15 @@ struct l1s_state {
 			struct l1s_h1 st_h1;
 		};
 	} dedicated;
+
+	/* neighbour cell power measurement process */
+	struct {
+		uint8_t n, second;
+		uint8_t pos;
+		uint8_t running;
+		uint16_t band_arfcn[64];
+		uint8_t	level[64];
+	} neigh_pm;
 };
 
 extern struct l1s_state l1s;

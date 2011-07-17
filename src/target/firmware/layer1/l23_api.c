@@ -54,34 +54,61 @@ void l1_queue_for_l2(struct msgb *msg)
 	sercomm_sendmsg(SC_DLCI_L1A_L23, msg);
 }
 
-static enum mframe_task chan_nr2mf_task(uint8_t chan_nr)
+enum mf_type {
+	MFNONE,
+	MF51,
+	MF26ODD,
+	MF26EVEN
+};
+static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 {
 	uint8_t cbits = chan_nr >> 3;
 	uint8_t tn = chan_nr & 0x7;
 	uint8_t lch_idx;
+	enum mframe_task master_task = 0;
+	uint32_t neigh_task = 0;
+	enum mf_type multiframe;
 
 	if (cbits == 0x01) {
 		lch_idx = 0;
-		return (tn & 1) ? MF_TASK_TCH_F_ODD : MF_TASK_TCH_F_EVEN;
+		master_task = (tn & 1) ? MF_TASK_TCH_F_ODD : MF_TASK_TCH_F_EVEN;
+		multiframe = (tn & 1) ? MF26ODD : MF26EVEN;
 	} else if ((cbits & 0x1e) == 0x02) {
 		lch_idx = cbits & 0x1;
-		return MF_TASK_TCH_H_0 + lch_idx;
+		master_task = MF_TASK_TCH_H_0 + lch_idx;
 	} else if ((cbits & 0x1c) == 0x04) {
 		lch_idx = cbits & 0x3;
-		return MF_TASK_SDCCH4_0 + lch_idx;
+		master_task = MF_TASK_SDCCH4_0 + lch_idx;
+		multiframe = MF51;
 	} else if ((cbits & 0x18) == 0x08) {
 		lch_idx = cbits & 0x7;
-		return MF_TASK_SDCCH8_0 + lch_idx;
+		master_task = MF_TASK_SDCCH8_0 + lch_idx;
+		multiframe = MF51;
 #if 0
 	} else if (cbits == 0x10) {
 		/* FIXME: when to do extended BCCH? */
-		return MF_TASK_BCCH_NORM;
+		master_task = MF_TASK_BCCH_NORM;
 	} else if (cbits == 0x11 || cbits == 0x12) {
 		/* FIXME: how to decide CCCH norm/extd? */
-		return MF_TASK_BCCH_CCCH;
+		master_task = MF_TASK_BCCH_CCCH;
 #endif
 	}
-	return 0;
+	switch (neigh_mode) {
+	case NEIGH_MODE_PM:
+		switch (multiframe) {
+		case MF51:
+			neigh_task = (1 << MF_TASK_NEIGH_PM51);
+			break;
+		case MF26EVEN:
+			neigh_task = (1 << MF_TASK_NEIGH_PM26E);
+			break;
+		case MF26ODD:
+			neigh_task = (1 << MF_TASK_NEIGH_PM26O);
+			break;
+		}
+		break;
+	}
+	return (1 << master_task) | neigh_task;
 }
 
 static int  chan_nr2dchan_type(uint8_t chan_nr)
@@ -182,6 +209,9 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u)\n",
 		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc);
 
+	/* disable neighbour cell measurement */
+	mframe_disable(MF_TASK_NEIGH_PM51);
+
 	/* configure dedicated channel state */
 	l1s.dedicated.type = chan_nr2dchan_type(ul->chan_nr);
 	l1s.dedicated.tsc  = est_req->tsc;
@@ -212,7 +242,7 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	}
 
 	/* figure out which MF tasks to enable */
-	l1a_mftask_set(1 << chan_nr2mf_task(ul->chan_nr));
+	l1a_mftask_set(chan_nr2mf_task_mask(ul->chan_nr, NEIGH_MODE_PM));
 }
 
 /* receive a L1CTL_DM_FREQ_REQ from L23 */
@@ -277,6 +307,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	dsp_load_ciph_param(0, NULL);
 	l1a_tch_mode_set(GSM48_CMODE_SIGN);
 	audio_set_enabled(0);
+	l1s.neigh_pm.n = 0;
 }
 
 /* receive a L1CTL_PARAM_REQ from L23 */
@@ -462,6 +493,30 @@ static void l1ctl_rx_tch_mode_req(struct msgb *msg)
 	l1ctl_tx_tch_mode_conf(tch_mode);
 }
 
+/* receive a L1CTL_NEIGH_PM_REQ from L23 */
+static void l1ctl_rx_neigh_pm_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_neigh_pm_req *pm_req =
+		(struct l1ctl_neigh_pm_req *) l1h->data;
+	int i;
+
+	/* reset list in order to prevent race condition */
+	l1s.neigh_pm.n = 0; /* atomic */
+	l1s.neigh_pm.second = 0;
+	/* now reset pointer and fill list */
+	l1s.neigh_pm.pos = 0;
+	l1s.neigh_pm.running = 0;
+	for (i = 0; i < pm_req->n; i++)
+		l1s.neigh_pm.band_arfcn[i] = ntohs(pm_req->band_arfcn[i]);
+	printf("L1CTL_NEIGH_PM_REQ new list with %u entries\n", pm_req->n);
+	l1s.neigh_pm.n = pm_req->n; /* atomic */
+
+	/* on BCCH enable PM on frame 51 */
+	if (l1s.dedicated.type == GSM_DCHAN_NONE)
+		mframe_enable(MF_TASK_NEIGH_PM51);
+}
+
 /* callback from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
@@ -521,6 +576,9 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		break;
 	case L1CTL_TCH_MODE_REQ:
 		l1ctl_rx_tch_mode_req(msg);
+		break;
+	case L1CTL_NEIGH_PM_REQ:
+		l1ctl_rx_neigh_pm_req(msg);
 		break;
 	}
 

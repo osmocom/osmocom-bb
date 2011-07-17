@@ -152,3 +152,87 @@ void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 	tdma_schedule_set(base_fn, pm_sched_set, arfcn);
 	local_irq_restore(flags);
 }
+
+/*
+ * perform measurements of neighbour cells
+ */
+
+/* scheduler callback to issue a power measurement task to the DSP */
+static int l1s_neigh_pm_cmd(uint8_t num_meas,
+		      __unused uint8_t p2, __unused uint16_t p3)
+{
+	uint8_t last_gain = rffe_get_gain();
+
+	dsp_api.db_w->d_task_md = num_meas; /* number of measurements */
+//	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
+
+	/* Tell the RF frontend to set the gain appropriately (keep last) */
+	rffe_compute_gain(-85, CAL_DSP_TGT_BB_LVL);
+
+	/* Program TPU */
+	/* FIXME: RXWIN_PW needs to set up multiple times in case
+	 * num_meas > 1 */
+	/* do measurement dummy, in case l1s.neigh_pm.n == 0 */
+	l1s_rx_win_ctrl((l1s.neigh_pm.n) ?
+		l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] : 0, L1_RXWIN_PW, 0);
+
+	/* restore last gain */
+	rffe_set_gain(last_gain);
+
+	l1s.neigh_pm.running = 1;
+
+	return 0;
+}
+
+/* scheduler callback to read power measurement resposnse from the DSP */
+static int l1s_neigh_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
+		       __unused uint16_t p3)
+{
+	uint16_t dbm;
+	uint8_t level;
+
+	dsp_api.r_page_used = 1;
+
+	if (l1s.neigh_pm.n == 0 || !l1s.neigh_pm.running)
+		goto out;
+
+	dbm = (uint16_t) ((dsp_api.db_r->a_pm[0] & 0xffff) >> 3);
+	level = dbm2rxlev(agc_inp_dbm8_by_pm(dbm)/8);
+
+	l1s.neigh_pm.level[l1s.neigh_pm.pos] = level;
+
+	if (++l1s.neigh_pm.pos >= l1s.neigh_pm.n) {
+		struct msgb *msg;
+		struct l1ctl_neigh_pm_ind *mi;
+		int i;
+
+		l1s.neigh_pm.pos = 0;
+		/* return result */
+		msg = l1ctl_msgb_alloc(L1CTL_NEIGH_PM_IND);
+		for (i = 0; i < l1s.neigh_pm.n; i++) {
+			if (msgb_tailroom(msg) < (int) sizeof(*mi)) {
+				l1_queue_for_l2(msg);
+				msg = l1ctl_msgb_alloc(L1CTL_NEIGH_PM_IND);
+			}
+			mi = (struct l1ctl_neigh_pm_ind *)
+				msgb_put(msg, sizeof(*mi));
+			mi->band_arfcn = htons(l1s.neigh_pm.band_arfcn[i]);
+			mi->pm[0] = l1s.neigh_pm.level[i];
+			mi->pm[1] = 0;
+		}
+		l1_queue_for_l2(msg);
+	}
+
+out:
+	l1s.neigh_pm.running = 0;
+
+	return 0;
+}
+
+const struct tdma_sched_item neigh_pm_sched_set[] = {
+	SCHED_ITEM_DT(l1s_neigh_pm_cmd, 0, 1, 0),	SCHED_END_FRAME(),
+							SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_neigh_pm_resp, -4, 1, 0),	SCHED_END_FRAME(),
+	SCHED_END_SET()
+};
+

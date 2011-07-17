@@ -50,6 +50,7 @@ struct mframe_sched_item {
 #define NB_QUAD_FH_DL	NB_QUAD_DL
 #define NB_QUAD_UL	nb_sched_set_ul
 #define NB_QUAD_FH_UL	NB_QUAD_UL
+#define NEIGH_PM	neigh_pm_sched_set
 
 /* BCCH Normal */
 static const struct mframe_sched_item mf_bcch_norm[] = {
@@ -197,6 +198,12 @@ static const struct mframe_sched_item mf_sdcch8_7[] = {
 	{ .sched_set = NULL }
 };
 
+/* Measurement for MF 51 */
+static const struct mframe_sched_item mf_neigh_pm51[] = {
+	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 50 },
+	{ .sched_set = NULL }
+};
+
 /* TCH */
 #define TCH	tch_sched_set
 #define TCH_A	tch_a_sched_set
@@ -274,6 +281,16 @@ static const struct mframe_sched_item mf_tch_h_1[] = {
 	{ .sched_set = NULL }
 };
 
+/* Measurement for MF 26 */
+static const struct mframe_sched_item mf_neigh_pm26_even[] = {
+	{ .sched_set = NEIGH_PM   , .modulo = 26, .frame_nr = 25 },
+	{ .sched_set = NULL }
+};
+static const struct mframe_sched_item mf_neigh_pm26_odd[] = {
+	{ .sched_set = NEIGH_PM   , .modulo = 26, .frame_nr = 12 },
+	{ .sched_set = NULL }
+};
+
 /* Test TX */
 static const struct mframe_sched_item mf_tx_all_nb[] = {
 	{ .sched_set = NB_QUAD_FH_UL, .modulo = 4, .frame_nr = 0 },
@@ -304,6 +321,10 @@ static const struct mframe_sched_item *sched_set_for_task[32] = {
 	[MF_TASK_TCH_F_ODD]  = mf_tch_f_odd,
 	[MF_TASK_TCH_H_0]    = mf_tch_h_0,
 	[MF_TASK_TCH_H_1]    = mf_tch_h_1,
+
+	[MF_TASK_NEIGH_PM51] = mf_neigh_pm51,
+	[MF_TASK_NEIGH_PM26E] = mf_neigh_pm26_even,
+	[MF_TASK_NEIGH_PM26O] = mf_neigh_pm26_odd,
 
 	[MF_TASK_UL_ALL_NB] = mf_tx_all_nb,
 };
