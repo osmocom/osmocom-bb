@@ -203,6 +203,13 @@ int mobile_init(struct osmocom_ms *ms)
 	ms->shutdown = 0;
 	ms->started = 0;
 
+	if (!strcmp(ms->settings.imei, "000000000000000")) {
+		printf("***\nWarning: Mobile '%s' has default IMEI: %s\n",
+			ms->name, ms->settings.imei);
+		printf("This could relate your identitiy to other users with "
+			"default IMEI.\n***\n");
+	}
+
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	printf("Mobile '%s' initialized, please start phone now!\n", ms->name);
 	return 0;
