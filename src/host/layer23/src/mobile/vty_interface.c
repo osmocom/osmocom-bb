@@ -2029,7 +2029,7 @@ DEFUN(cfg_ms_sup_class_pcs, cfg_ms_sup_class_pcs_cmd, "class-pcs (1|2|3)",
 	"Select power class for PCS 1900\n"
 	"1 Watt\n"
 	"0.25 Watts\n"
-	"4 Watts")
+	"2 Watts")
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
