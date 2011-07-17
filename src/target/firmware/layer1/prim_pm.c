@@ -46,6 +46,7 @@
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
 #include <layer1/prim.h>
+#include <rffe.h>
 
 #include <l1ctl_proto.h>
 
@@ -68,7 +69,7 @@ static int l1s_pm_cmd(uint8_t num_meas,
 	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
 
 	/* Tell the RF frontend to set the gain appropriately */
-	rffe_set_gain(-85, CAL_DSP_TGT_BB_LVL);
+	rffe_compute_gain(-85, CAL_DSP_TGT_BB_LVL);
 
 	/* Program TPU */
 	/* FIXME: RXWIN_PW needs to set up multiple times in case

@@ -28,6 +28,8 @@ uint32_t rffe_get_tx_ports(void);
 /* get current gain of RF frontend (anything between antenna and baseband in dBm */
 uint8_t rffe_get_gain(void);
 
-void rffe_set_gain(int16_t exp_inp, int16_t target_bb);
+void rffe_set_gain(uint8_t dbm);
+
+void rffe_compute_gain(int16_t exp_inp, int16_t target_bb);
 
 #endif

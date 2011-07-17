@@ -178,7 +178,8 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 	toa_input(rx_tch.meas[meas_id].toa_qbit << 2, rx_tch.meas[meas_id].snr);
 
 	/* Tell the RF frontend to set the gain appropriately */
-	rffe_set_gain(rx_tch.meas[meas_id].pm_dbm8 / 8, CAL_DSP_TGT_BB_LVL);
+	rffe_compute_gain(rx_tch.meas[meas_id].pm_dbm8 / 8,
+		CAL_DSP_TGT_BB_LVL);
 
 	/* FACCH Block end ? */
 	if (tch_f_hn) {
@@ -510,7 +511,8 @@ static int l1s_tch_a_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 	toa_input(rx_tch_a.meas[burst_id].toa_qbit << 2, rx_tch_a.meas[burst_id].snr);
 
 	/* Tell the RF frontend to set the gain appropriately */
-	rffe_set_gain(rx_tch_a.meas[burst_id].pm_dbm8 / 8, CAL_DSP_TGT_BB_LVL);
+	rffe_compute_gain(rx_tch_a.meas[burst_id].pm_dbm8 / 8,
+		CAL_DSP_TGT_BB_LVL);
 
 	/* Last burst, read data & send to the up layer */
 	if ((burst_id == 3) && (dsp_api.ndb->a_cd[0] & (1<<B_BLUD))) {

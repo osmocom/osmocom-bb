@@ -9,10 +9,16 @@ void trf6151_init(uint8_t tsp_uid, uint16_t tsp_reset_id);
 /* switch power off or on */
 void trf6151_power(int on);
 
-/* set the VGA and RF gain */
-int trf6151_set_gain(uint8_t dbm, int high);
-
 /* obtain the current total gain of the TRF6151 */
+uint8_t trf6151_get_gain_reg(void);
+
+/* put current set (or computed) gain to register */
+int trf6151_set_gain_reg(uint8_t dbm, int high);
+
+/* set the global gain to use */
+int trf6151_set_gain(uint8_t dbm);
+
+/* obtain the global gain set */
 uint8_t trf6151_get_gain(void);
 
 /* Request the PLL to be tuned to the given frequency */

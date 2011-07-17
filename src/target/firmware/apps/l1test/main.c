@@ -210,7 +210,7 @@ static int afcout = 0;
 static void update_vga_gain(void)
 {
 	printf("VGA Gain: %u %s\n", vga_gain, high_gain ? "HIGH" : "LOW");
-	trf6151_set_gain(vga_gain, high_gain);
+	trf6151_compute_gain(vga_gain, high_gain);
 	tpu_enq_sleep();
 	tpu_enable(1);
 	tpu_wait_idle();

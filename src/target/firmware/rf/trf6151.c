@@ -134,18 +134,27 @@ static void trf6151_reg_write(uint16_t reg, uint16_t val)
 	trf6151_reg_cache[reg] = val;
 }
 
-int trf6151_set_gain(uint8_t dbm, int high)
+/* Frontend gain can be switched high or low (dB) */
+#define TRF6151_FE_GAIN_LOW	7
+#define TRF6151_FE_GAIN_HIGH	27
+
+/* VGA at baseband can be adjusted in this range (dB) */
+#define TRF6151_VGA_GAIN_MIN	14
+#define TRF6151_VGA_GAIN_MAX	40
+
+/* put current set (or computed) gain to register */
+int trf6151_set_gain_reg(uint8_t dbm, int high)
 {
 	uint16_t reg = trf6151_reg_cache[REG_RX] & 0x07ff;
-	printd("trf6151_set_gain(%u, %d)\n", dbm, high);
+	printd("trf6151_set_gain_reg(%u, %d)\n", dbm, high);
 
-	if (dbm < 14 || dbm > 40)
+	if (dbm < TRF6151_VGA_GAIN_MIN || dbm > TRF6151_VGA_GAIN_MAX)
 		return -1;
 
 	/* clear the gain bits first */
 	reg &= ~((0x1F) << RX_VGA_GAIN_SHIFT);
 	/* OR-in the new gain value */
-	reg |= (6 + (dbm-14)/2) << RX_VGA_GAIN_SHIFT;
+	reg |= (6 + (dbm-TRF6151_VGA_GAIN_MIN)/2) << RX_VGA_GAIN_SHIFT;
 
 	if (high)
 		reg |= RX_RF_GAIN_HIGH;
@@ -153,6 +162,35 @@ int trf6151_set_gain(uint8_t dbm, int high)
 		reg &= ~RX_RF_GAIN_HIGH;
 
 	trf6151_reg_write(REG_RX, reg);
+
+	return 0;
+}
+
+int trf6151_set_gain(uint8_t dbm)
+{
+	int high = 0;
+
+	printd("trf6151_set_gain(%u, %d)\n", dbm);
+	/* If this is negative or less than TRF6151_GAIN_MIN, we are pretty
+	 * much lost as we cannot reduce the system inherent gain.  If it is
+	 * positive, it corresponds to the gain that we need to configure */
+	if (dbm < TRF6151_FE_GAIN_LOW + TRF6151_VGA_GAIN_MIN) {
+		printd("AGC Input level overflow\n");
+		trf6151_vga_dbm = TRF6151_VGA_GAIN_MIN;
+		trf6151_gain_high = 0;
+		return 0;
+	} else if (dbm >= TRF6151_FE_GAIN_HIGH + TRF6151_VGA_GAIN_MIN) {
+		high = 1;
+		dbm -= TRF6151_FE_GAIN_HIGH;
+	} else
+		dbm -= TRF6151_FE_GAIN_LOW;
+	if (dbm > TRF6151_VGA_GAIN_MAX)
+		dbm = TRF6151_VGA_GAIN_MAX;
+
+	/* update the static global variables which are used when programming
+	 * the window */
+	trf6151_vga_dbm = dbm;
+	trf6151_gain_high = high;
 
 	return 0;
 }
@@ -436,15 +474,7 @@ void trf6151_calib_dc_offs(void)
 	tpu_enq_wait(55);
 }
 
-/* Frontend gain can be switched high or low (dB) */
-#define TRF6151_FE_GAIN_LOW	7
-#define TRF6151_FE_GAIN_HIGH	27
-
-/* VGA at baseband can be adjusted in this range (dB) */
-#define TRF6151_VGA_GAIN_MIN	14
-#define TRF6151_VGA_GAIN_MAX	40
-
-uint8_t trf6151_get_gain(void)
+uint8_t trf6151_get_gain_reg(void)
 {
 	uint16_t vga, reg_rx = trf6151_reg_cache[REG_RX];
 	uint8_t gain = 0;
@@ -463,6 +493,19 @@ uint8_t trf6151_get_gain(void)
 		vga = 6;
 
 	gain += TRF6151_VGA_GAIN_MIN + (vga - 6) * 2;
+
+	return gain;
+}
+
+uint8_t trf6151_get_gain(void)
+{
+	uint8_t gain;
+	
+	gain = trf6151_vga_dbm;
+	if (trf6151_gain_high)
+		gain += TRF6151_FE_GAIN_HIGH;
+	else
+		gain += TRF6151_FE_GAIN_LOW;
 
 	return gain;
 }
@@ -500,7 +543,7 @@ void trf6151_tx_test(uint16_t arfcn)
 }
 
 #define TRF6151_REGWR_QBITS	8	/* 4 GSM qbits + 4 TPU instructions */
-#define TRF6151_RX_TPU_INSTR	4	/* set_gain(1), set_arfcn(2), set_mode(1) */
+#define TRF6151_RX_TPU_INSTR	4	/* set_gain_reg(1), set_arfcn(2), set_mode(1) */
 
 /* delay caused by this driver programming the TPU for RX mode */
 #define TRF6151_RX_TPU_DELAY	(TRF6151_RX_TPU_INSTR * TRF6151_REGWR_QBITS)
@@ -516,7 +559,7 @@ void trf6151_rx_window(int16_t start_qbits, uint16_t arfcn)
 
 	/* Set the AGC and PLL registers */
 	trf6151_set_arfcn(arfcn, 0);
-	trf6151_set_gain(trf6151_vga_dbm, trf6151_gain_high);
+	trf6151_set_gain_reg(trf6151_vga_dbm, trf6151_gain_high);
 	trf6151_set_mode(TRF6151_RX);
 
 	/* FIXME: power down at the right time again */
@@ -544,36 +587,15 @@ void trf6151_tx_window(int16_t start_qbits, uint16_t arfcn)
 void trf6151_compute_gain(int16_t exp_inp, int16_t target_bb)
 {
 	/* TRF6151 VGA gain between 14 to 40 dB, plus 20db high/low */
-	int16_t exp_bb_dbm8, delta_dbm8;
-	int16_t exp_inp_dbm8 = to_dbm8(exp_inp);
-	int16_t target_bb_dbm8 = to_dbm8(target_bb);
-	int16_t vga_gain = TRF6151_VGA_GAIN_MIN;
-	int high = 0;
+	int16_t exp_bb, delta;
 
 	/* calculate the dBm8 that we expect at the baseband */
-	exp_bb_dbm8 = exp_inp_dbm8 + to_dbm8(system_inherent_gain);
+	exp_bb = exp_inp + system_inherent_gain;
 
 	/* calculate the error that we expect. */
-	delta_dbm8 = target_bb_dbm8 - exp_bb_dbm8;
+	delta = target_bb - exp_bb;
 
-	/* If this is negative or less than TRF6151_GAIN_MIN, we are pretty
-	 * much lost as we cannot reduce the system inherent gain.  If it is
-	 * positive, it corresponds to the gain that we need to configure */
-	if (delta_dbm8 < to_dbm8(TRF6151_FE_GAIN_LOW + TRF6151_VGA_GAIN_MIN)) {
-		printd("AGC Input level overflow\n");
-		high = 0;
-		vga_gain = TRF6151_VGA_GAIN_MIN;
-	} else if (delta_dbm8 > to_dbm8(TRF6151_FE_GAIN_HIGH +
-					TRF6151_VGA_GAIN_MIN)) {
-		high = 1;
-		delta_dbm8 -= to_dbm8(TRF6151_FE_GAIN_HIGH);
-	}
-	vga_gain = delta_dbm8/8;
-	if (vga_gain > TRF6151_VGA_GAIN_MAX)
-		vga_gain = TRF6151_VGA_GAIN_MAX;
-
-	/* update the static global variables which are used when programming
-	 * the window */
-	trf6151_vga_dbm = vga_gain;
-	trf6151_gain_high = high;
+	printd("computed gain %d\n", delta);
+	trf6151_set_gain(delta);
 }
+

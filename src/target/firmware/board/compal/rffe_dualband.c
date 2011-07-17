@@ -82,11 +82,16 @@ uint8_t rffe_get_gain(void)
 	return trf6151_get_gain();
 }
 
+void rffe_set_gain(uint8_t dbm)
+{
+	trf6151_set_gain(dbm);
+}
+
 const uint8_t system_inherent_gain = SYSTEM_INHERENT_GAIN;
 
 /* Given the expected input level of exp_inp dBm/8 and the target of target_bb
  * dBm8, configure the RF Frontend with the respective gain */
-void rffe_set_gain(int16_t exp_inp, int16_t target_bb)
+void rffe_compute_gain(int16_t exp_inp, int16_t target_bb)
 {
 	trf6151_compute_gain(exp_inp, target_bb);
 }
