@@ -87,18 +87,7 @@ int main(void)
 	twl3025_power_off();
 }
 
-static int8_t vga_gain = 40;
-static int high_gain = 0;
 static int afcout = 0;
-
-static void update_vga_gain(void)
-{
-	printf("VGA Gain: %u %s\n", vga_gain, high_gain ? "HIGH" : "LOW");
-	trf6151_compute_gain(vga_gain, high_gain);
-	tpu_enq_sleep();
-	tpu_enable(1);
-	tpu_wait_idle();
-}
 
 static void tspact_toggle(uint8_t num)
 {
@@ -115,22 +104,6 @@ static void key_handler(enum key_codes code, enum key_states state)
 		return;
 
 	switch (code) {
-	case KEY_1:	/* VGA gain decrement */
-		vga_gain -= 2;
-		if (vga_gain < 14)
-			vga_gain = 14;
-		update_vga_gain();
-		break;
-	case KEY_2: 	/* High/Low Rx gain */
-		high_gain ^= 1;
-		update_vga_gain();
-		break;
-	case KEY_3:	/* VGA gain increment */
-		vga_gain += 2;
-		if (vga_gain > 40)
-			vga_gain = 40;
-		update_vga_gain();
-		break;
 	case KEY_4:
 		tspact_toggle(6);	/* TRENA (RFFE) */
 		break;
