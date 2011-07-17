@@ -115,6 +115,7 @@ int vty_check_number(struct vty *vty, const char *number)
 }
 
 int vty_reading = 0;
+static int hide_default = 0;
 
 static void vty_restart(struct vty *vty, struct osmocom_ms *ms)
 {
@@ -931,6 +932,22 @@ DEFUN(cfg_gps_baud, cfg_gps_baud_cmd, "gps baudrate "
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_hide_default, cfg_hide_default_cmd, "hide-default",
+	"Hide most default values in config to make it more compact")
+{
+	hide_default = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_hide_default, cfg_no_hide_default_cmd, "no hide-default",
+	NO_STR "Show default values in config")
+{
+	hide_default = 0;
+
+	return CMD_SUCCESS;
+}
+
 /* per MS config */
 DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 	"Select a mobile station to configure\nName of MS (see \"show ms\")")
@@ -1049,8 +1066,9 @@ DEFUN(cfg_no_ms, cfg_no_ms_cmd, "no ms MS_NAME",
 
 #define SUP_WRITE(item, cmd) \
 	if (sup->item) \
-		vty_out(vty, "  %s%s%s", (set->item) ? "" : "no ", cmd, \
-			VTY_NEWLINE);
+		if (!hide_default || !set->item) \
+			vty_out(vty, "  %s%s%s", (set->item) ? "" : "no ", \
+			cmd, VTY_NEWLINE);
 
 static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 {
@@ -1081,17 +1099,26 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, " imei-random %d%s", set->imei_random,
 			VTY_NEWLINE);
 	else
-		vty_out(vty, " imei-fixed%s", VTY_NEWLINE);
+		if (!hide_default)
+			vty_out(vty, " imei-fixed%s", VTY_NEWLINE);
 	if (set->emergency_imsi[0])
 		vty_out(vty, " emergency-imsi %s%s", set->emergency_imsi,
 			VTY_NEWLINE);
 	else
-		vty_out(vty, " no emergency-imsi%s", VTY_NEWLINE);
-	vty_out(vty, " %scall-waiting%s", (set->cw) ? "" : "no ", VTY_NEWLINE);
-	vty_out(vty, " %sauto-answer%s", (set->auto_answer) ? "" : "no ",
-		VTY_NEWLINE);
-	vty_out(vty, " %sclip%s", (set->clip) ? "" : "no ", VTY_NEWLINE);
-	vty_out(vty, " %sclir%s", (set->clir) ? "" : "no ", VTY_NEWLINE);
+		if (!hide_default)
+			vty_out(vty, " no emergency-imsi%s", VTY_NEWLINE);
+	if (!hide_default || set->cw)
+		vty_out(vty, " %scall-waiting%s", (set->cw) ? "" : "no ",
+			VTY_NEWLINE);
+	if (!hide_default || set->auto_answer)
+		vty_out(vty, " %sauto-answer%s",
+			(set->auto_answer) ? "" : "no ", VTY_NEWLINE);
+	if (!hide_default || set->clip)
+		vty_out(vty, " %sclip%s", (set->clip) ? "" : "no ",
+			VTY_NEWLINE);
+	if (!hide_default || set->clir)
+		vty_out(vty, " %sclir%s", (set->clir) ? "" : "no ",
+			VTY_NEWLINE);
 	if (set->alter_tx_power)
 		if (set->alter_tx_power_value)
 			vty_out(vty, " tx-power %d%s",
@@ -1099,22 +1126,24 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		else
 			vty_out(vty, " tx-power full%s", VTY_NEWLINE);
 	else
-		vty_out(vty, " tx-power auto%s", VTY_NEWLINE);
+		if (!hide_default)
+			vty_out(vty, " tx-power auto%s", VTY_NEWLINE);
 	if (set->alter_delay)
 		vty_out(vty, " simulated-delay %d%s", set->alter_delay,
 			VTY_NEWLINE);
 	else
-		vty_out(vty, " no simulated-delay%s", VTY_NEWLINE);
+		if (!hide_default)
+			vty_out(vty, " no simulated-delay%s", VTY_NEWLINE);
 	if (set->stick)
 		vty_out(vty, " stick %d%s%s", set->stick_arfcn & 1023,
 			(set->stick_arfcn & ARFCN_PCS) ? " pcs" : "",
 			VTY_NEWLINE);
 	else
-		vty_out(vty, " no stick%s", VTY_NEWLINE);
-	if (set->no_lupd)
-		vty_out(vty, " no location-updating%s", VTY_NEWLINE);
-	else
-		vty_out(vty, " location-updating%s", VTY_NEWLINE);
+		if (!hide_default)
+			vty_out(vty, " no stick%s", VTY_NEWLINE);
+	if (!hide_default || set->no_lupd)
+		vty_out(vty, " %slocation-updating%s",
+			(set->no_lupd) ? "no " : "", VTY_NEWLINE);
 	if (set->full_v1 || set->full_v2 || set->full_v3) {
 		/* mandatory anyway */
 		vty_out(vty, " codec full-speed%s%s",
@@ -1129,9 +1158,10 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		else
 			vty_out(vty, " no codec half-speed%s", VTY_NEWLINE);
 	}
-	if (llist_empty(&set->abbrev))
-		vty_out(vty, " no abbrev%s", VTY_NEWLINE);
-	else {
+	if (llist_empty(&set->abbrev)) {
+		if (!hide_default)
+			vty_out(vty, " no abbrev%s", VTY_NEWLINE);
+	} else {
 		llist_for_each_entry(abbrev, &set->abbrev, list)
 			vty_out(vty, " abbrev %s %s%s%s%s", abbrev->abbrev,
 				abbrev->number, (abbrev->name[0]) ? " " : "",
@@ -1155,49 +1185,67 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(dcs, "dcs");
 	SUP_WRITE(pcs, "pcs");
 	if (sup->r_gsm || sup->e_gsm || sup->p_gsm)
-		vty_out(vty, "  class-900 %d%s", set->class_900, VTY_NEWLINE);
+		if (!hide_default || sup->class_900 != set->class_900)
+			vty_out(vty, "  class-900 %d%s", set->class_900,
+				VTY_NEWLINE);
 	if (sup->gsm_850)
-		vty_out(vty, "  class-850 %d%s", set->class_850, VTY_NEWLINE);
+		if (!hide_default || sup->class_850 != set->class_850)
+			vty_out(vty, "  class-850 %d%s", set->class_850,
+				VTY_NEWLINE);
 	if (sup->gsm_480 || sup->gsm_450)
-		vty_out(vty, "  class-400 %d%s", set->class_400, VTY_NEWLINE);
+		if (!hide_default || sup->class_400 != set->class_400)
+			vty_out(vty, "  class-400 %d%s", set->class_400,
+				VTY_NEWLINE);
 	if (sup->dcs)
-		vty_out(vty, "  class-dcs %d%s", set->class_dcs, VTY_NEWLINE);
+		if (!hide_default || sup->class_dcs != set->class_dcs)
+			vty_out(vty, "  class-dcs %d%s", set->class_dcs,
+				VTY_NEWLINE);
 	if (sup->pcs)
-		vty_out(vty, "  class-pcs %d%s", set->class_pcs, VTY_NEWLINE);
-	switch (set->ch_cap) {
-	case GSM_CAP_SDCCH:
-		vty_out(vty, "  channel-capability sdcch%s", VTY_NEWLINE);
-		break;
-	case GSM_CAP_SDCCH_TCHF:
-		vty_out(vty, "  channel-capability sdcch+tchf%s", VTY_NEWLINE);
-		break;
-	case GSM_CAP_SDCCH_TCHF_TCHH:
-		vty_out(vty, "  channel-capability sdcch+tchf+tchh%s",
-			VTY_NEWLINE);
-		break;
+		if (!hide_default || sup->class_pcs != set->class_pcs)
+			vty_out(vty, "  class-pcs %d%s", set->class_pcs,
+				VTY_NEWLINE);
+	if (!hide_default || sup->ch_cap != set->ch_cap) {
+		switch (set->ch_cap) {
+		case GSM_CAP_SDCCH:
+			vty_out(vty, "  channel-capability sdcch%s",
+				VTY_NEWLINE);
+			break;
+		case GSM_CAP_SDCCH_TCHF:
+			vty_out(vty, "  channel-capability sdcch+tchf%s",
+				VTY_NEWLINE);
+			break;
+		case GSM_CAP_SDCCH_TCHF_TCHH:
+			vty_out(vty, "  channel-capability sdcch+tchf+tchh%s",
+				VTY_NEWLINE);
+			break;
+		}
 	}
 	SUP_WRITE(full_v1, "full-speech-v1");
 	SUP_WRITE(full_v2, "full-speech-v2");
 	SUP_WRITE(full_v3, "full-speech-v3");
 	SUP_WRITE(half_v1, "half-speech-v1");
 	SUP_WRITE(half_v3, "half-speech-v3");
-	vty_out(vty, "  min-rxlev %d%s", set->min_rxlev_db, VTY_NEWLINE);
-	vty_out(vty, "  dsc-max %d%s", set->dsc_max, VTY_NEWLINE);
+	if (!hide_default || sup->min_rxlev_db != set->min_rxlev_db)
+		vty_out(vty, "  min-rxlev %d%s", set->min_rxlev_db,
+			VTY_NEWLINE);
+	if (!hide_default || sup->dsc_max != set->dsc_max)
+		vty_out(vty, "  dsc-max %d%s", set->dsc_max, VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
 	switch (set->test_ki_type) {
 	case GSM_SIM_KEY_XOR:
-		vty_out(vty, "  ki xor %s%s", osmo_hexdump(set->test_ki, 12),
-			VTY_NEWLINE);
+		vty_out(vty, "  ki xor %s%s",
+			osmo_hexdump(set->test_ki, 12), VTY_NEWLINE);
 		break;
 	case GSM_SIM_KEY_COMP128:
-		vty_out(vty, "  ki comp128 %s%s", osmo_hexdump(set->test_ki, 16),
-			VTY_NEWLINE);
+		vty_out(vty, "  ki comp128 %s%s",
+			osmo_hexdump(set->test_ki, 16), VTY_NEWLINE);
 		break;
 	}
-	vty_out(vty, "  %sbarred-access%s", (set->test_barr) ? "" : "no ",
-		VTY_NEWLINE);
+	if (!hide_default || set->test_barr)
+		vty_out(vty, "  %sbarred-access%s",
+			(set->test_barr) ? "" : "no ", VTY_NEWLINE);
 	if (set->test_rplmn_valid) {
 		vty_out(vty, "  rplmn %s %s",
 			gsm_print_mcc(set->test_rplmn_mcc),
@@ -1208,10 +1256,14 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 			vty_out(vty, " 0x%08x", set->test_tmsi);
 		vty_out(vty, "%s", VTY_NEWLINE);
 	} else
-		vty_out(vty, "  no rplmn%s", VTY_NEWLINE);
-	vty_out(vty, "  hplmn-search %s%s", (set->test_always) ? "everywhere"
-			: "foreign-country", VTY_NEWLINE);
+		if (!hide_default)
+			vty_out(vty, "  no rplmn%s", VTY_NEWLINE);
+	if (!hide_default || set->test_always)
+		vty_out(vty, "  hplmn-search %s%s",
+			(set->test_always) ? "everywhere" : "foreign-country",
+			VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
+	/* no shutdown must be written to config, because shutdown is default */
 	vty_out(vty, " %sshutdown%s", (ms->shutdown) ? "" : "no ",
 		VTY_NEWLINE);
 	vty_out(vty, "exit%s", VTY_NEWLINE);
@@ -1232,6 +1284,10 @@ static int config_write(struct vty *vty)
 	else
 		vty_out(vty, "gps baudrate default%s", VTY_NEWLINE);
 	vty_out(vty, "%sgps enable%s", (g.enable) ? "" : "no ", VTY_NEWLINE);
+	vty_out(vty, "!%s", VTY_NEWLINE);
+
+	vty_out(vty, "%shide-default%s", (hide_default) ? "": "no ",
+		VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 
 	llist_for_each_entry(ms, &ms_list, entity)
@@ -2415,6 +2471,9 @@ int ms_vty_init(void)
 	install_element(CONFIG_NODE, &cfg_gps_baud_cmd);
 	install_element(CONFIG_NODE, &cfg_gps_enable_cmd);
 	install_element(CONFIG_NODE, &cfg_no_gps_enable_cmd);
+
+	install_element(CONFIG_NODE, &cfg_hide_default_cmd);
+	install_element(CONFIG_NODE, &cfg_no_hide_default_cmd);
 
 	install_element(CONFIG_NODE, &cfg_ms_cmd);
 	install_element(CONFIG_NODE, &cfg_ms_create_cmd);
