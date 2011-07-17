@@ -147,8 +147,6 @@
 							/* 1 = SIM card insertion/extraction */
 
 
-#define SIM_DEBUG_OUTPUTDELAY 200 			/* Output delay to minimize stress with some uart bugs */
-#define SIM_DEBUG 0					/* 0=Debug messages are off / 1=Debug messages are on */
 #define SIM_OPERATION_DELAY 100				/* Time between operations like reset, vcc apply ect... */ 
 
 
@@ -164,24 +162,14 @@ void calypso_sim_powerdown(void);			/* Powerdown simcard */
 #define SIM_APDU_PUT 0		/* Transmit a data body to the card */
 #define SIM_APDU_GET 1		/* Fetch data from the card eg. GET RESOPNSE */
 
-/* Transceive T0 Apdu to sim acording to GSM 11.11 Page 34 */
-int calypso_sim_transceive(uint8_t cla, 		/* Class (in GSM context mostly 0xA0 */
-				uint8_t ins,		/* Instruction */
-				uint8_t p1,		/* First parameter */
-				uint8_t p2,		/* Second parameter */
-				uint8_t p3le,		/* Length of the data that should be transceived */
-				uint8_t *data,		/* Data payload */
-				uint8_t *status,	/* Status word (2 byte array, see note 1) */
-				uint8_t mode);		/* Mode of operation: 1=GET, 0=PUT */
-
-				/* Note 1: You can use a null-pointer (0) if you are not interested in 
-					   the status word */
-
-/* Transmission of raw data */
-int calypso_sim_receive(uint8_t *data);			/* Receive raw data through the sim interface */
-int calypso_sim_transmit(uint8_t *data, int length);	/* Transmit raw data through the sim interface */
 
 void calypso_sim_init(void);				/* Initialize simcard interface */
+
+/* handling sim events */
+void sim_handler(void);
+
+/* simm command from layer 23 */
+void sim_apdu(uint16_t len, uint8_t *data);
 
 
 /* Known Bugs:

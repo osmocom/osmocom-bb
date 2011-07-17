@@ -25,6 +25,7 @@
 
 #include <debug.h>
 #include <memory.h>
+#include <string.h>
 #include <delay.h>
 #include <rffe.h>
 #include <keypad.h>
@@ -42,8 +43,10 @@
 #include <calypso/tsp.h>
 #include <calypso/irq.h>
 #include <calypso/misc.h>
+#include <calypso/sim.h>
 
 #include <layer1/sync.h>
+#include <layer1/async.h>
 #include <layer1/tpu_window.h>
 
 const char *hr = "======================================================================\n";
@@ -54,6 +57,9 @@ static void key_handler(enum key_codes code, enum key_states state);
 
 int main(void)
 {
+	uint8_t atr[20];
+	uint8_t atrLength = 0;
+
 	board_init();
 
 	puts("\n\nOSMOCOM Layer 1 (revision " GIT_REVISION ")\n");
@@ -71,6 +77,14 @@ int main(void)
 
 	display_puts("layer1.bin");
 
+	/* initialize SIM */
+        calypso_sim_init();
+
+        puts("Power up simcard:\n");
+        memset(atr,0,sizeof(atr));
+        atrLength = calypso_sim_powerup(atr);
+
+
 	layer1_init();
 
 	display_unset_attr(DISP_ATTR_INVERT);
@@ -80,6 +94,7 @@ int main(void)
 	while (1) {
 		l1a_compl_execute();
 		update_timers();
+		sim_handler();
 	}
 
 	/* NOT REACHED */
@@ -130,6 +145,9 @@ static void key_handler(enum key_codes code, enum key_states state)
 	default:
 		break;
 	}
+	/* power down SIM, TODO:  this will happen with every key pressed,
+       put it somewhere else ! */
+	calypso_sim_powerdown();
 }
 
 

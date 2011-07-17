@@ -52,14 +52,14 @@ static void myHexdump(uint8_t *data, int len)
 	int i;
 
 	for(i=0;i<len;i++)
-		printf("%x ",data[i]);
+		printf("%02x ",data[i]);
 
 	printf("(%i bytes)\n", len);
 
 	return;
 }
 
-/* SIM instructions 
+/* SIM instructions
    All instructions a standard sim card must feature: */
 #define SIM_CLASS 0xA0			/* Class that contains the following instructions */
 #define SIM_SELECT 0xA4			/* Select a file on the card */
@@ -135,7 +135,7 @@ uint16_t sim_select(uint16_t fid)
 }
 
 /* Get the status of the currently selected file */
-uint16_t sim_status(void) 
+uint16_t sim_status(void)
 {
 	uint8_t status_word[2];
 
@@ -158,6 +158,55 @@ uint16_t sim_readbinary(uint8_t offset_high, uint8_t offset_low, uint8_t length,
 	return (status_word[0] << 8) | status_word[1];
 }
 
+uint16_t sim_verify(char *pin)
+{
+	uint8_t txBuffer[8];
+	uint8_t status_word[2];
+
+	memset(txBuffer, 0xFF, 8);
+	memcpy(txBuffer, pin, strlen(pin));
+
+	if(calypso_sim_transceive(SIM_CLASS, SIM_VERIFY_CHV, 0x00, 0x01, 0x08, txBuffer,status_word, SIM_APDU_PUT) != 0)
+		return 0xFFFF;
+
+	return (status_word[0] << 8) | status_word[1];
+}
+
+uint16_t sim_run_gsm_algorith(uint8_t *data)
+{
+	uint8_t status_word[2];
+
+	if(calypso_sim_transceive(SIM_CLASS, SIM_RUN_GSM_ALGORITHM, 0x00, 0x00, 0x10, data, status_word, SIM_APDU_PUT) != 0)
+		return 0xFFFF;
+
+	printf("   ==> Status word: %x\n", (status_word[0] << 8) | status_word[1]);
+
+	if(status_word[0] != 0x9F || status_word[1] != 0x0C)
+		return (status_word[0] << 8) | status_word[1];
+
+	/* GET RESPONSE */
+
+	if(calypso_sim_transceive(SIM_CLASS, SIM_GET_RESPONSE, 0, 0, 0x0C, data ,status_word, SIM_APDU_GET) != 0)
+		return 0xFFFF;
+
+	return (status_word[0] << 8) | status_word[1];
+}
+
+
+/* FIXME: We need proper calibrated delay loops at some point! */
+void delay_us(unsigned int us)
+{
+	volatile unsigned int i;
+
+	for (i= 0; i < us*4; i++) { i; }
+}
+
+void delay_ms(unsigned int ms)
+{
+	volatile unsigned int i;
+	for (i= 0; i < ms*1300; i++) { i; }
+}
+
 /* Execute my (dexter's) personal test */
 void do_sim_test(void)
 {
@@ -171,7 +220,7 @@ void do_sim_test(void)
 
 	uint8_t atr[20];
 	uint8_t atrLength = 0;
-	
+
 	memset(atr,0,sizeof(atr));
 
 
@@ -185,7 +234,7 @@ void do_sim_test(void)
 
 	/* Initialize Sim-Controller driver */
 	puts("Initializing driver:\n");
-	calypso_sim_init();
+	calypso_sim_init(NULL);
 
 	/* Power up sim and display ATR */
 	puts("Power up simcard:\n");
@@ -215,6 +264,9 @@ void do_sim_test(void)
 	puts(" * Testing SELECT: Selecting DF_GSM\n");
 	printf("   ==> Status word: %x\n", sim_select(SIM_DF_GSM));
 
+	puts(" * Testing PIN VERIFY\n");
+	printf("   ==> Status word: %x\n", sim_verify("1234"));
+
 	puts(" * Testing SELECT: Selecting EF_IMSI\n");
 	printf("   ==> Status word: %x\n", sim_select(SIM_EF_IMSI));
 
@@ -222,10 +274,17 @@ void do_sim_test(void)
 	printf("   ==> Status word: %x\n", sim_status());
 
 	memset(buffer,0,sizeof(buffer));
-	puts(" * Testing READ BINARY:\n");	
+	puts(" * Testing READ BINARY:\n");
 	printf("   ==> Status word: %x\n", sim_readbinary(0,0,9,buffer));
 	printf("       Data: ");
 	myHexdump(buffer,9);
+
+	memset(buffer,0,sizeof(buffer));
+	memcpy(buffer,"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff",16);
+	puts(" * Testing RUN GSM ALGORITHM\n");
+	printf("   ==> Status word: %x\n", sim_run_gsm_algorith(buffer));
+	printf("       Result: ");
+	myHexdump(buffer,12);
 
 	delay_ms(5000);
 

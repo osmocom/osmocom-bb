@@ -41,6 +41,7 @@
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
+#include <calypso/sim.h>
 
 #include <l1ctl_proto.h>
 
@@ -552,6 +553,26 @@ static void l1ctl_rx_traffic_req(struct msgb *msg)
 	l1a_txq_msgb_enq(&l1s.tx_queue[L1S_CHAN_TRAFFIC], msg);
 }
 
+void sim_apdu(uint16_t len, uint8_t *data);
+
+static void l1ctl_sim_req(struct msgb *msg)
+{
+	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
+	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
+
+#if 1 /* for debugging only */
+	{
+		int i;
+		printf("SIM Request (%u): ", len);
+		for (i = 0; i < len; i++)
+			printf("%02x ", data[i]);
+		puts("\n");
+	}
+#endif
+
+   sim_apdu(len, data);
+}
+
 /* callback from SERCOMM when L2 sends a message to L1 */
 static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 {
@@ -619,6 +640,9 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		l1ctl_rx_traffic_req(msg);
 		/* we have to keep the msgb, not free it! */
 		goto exit_nofree;
+	case L1CTL_SIM_REQ:
+		l1ctl_sim_req(msg);
+		break;
 	}
 
 exit_msgbfree:
