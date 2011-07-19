@@ -39,12 +39,12 @@ void logp(int subsys, char *file, int line, int cont, const char *format, ...) _
 /* logging levels defined by the library itself */
 #define DLGLOBAL	-1
 #define DLLAPDM		-2
-#define DINP		-3
-#define DMUX		-4
-#define DMI		-5
-#define DMIB		-6
-#define DRSL		-7
-#define DNM		-8
+#define DLINP		-3
+#define DLMUX		-4
+#define DLMI		-5
+#define DLMIB		-6
+#define DLRSL		-7
+#define DLNM		-8
 #define OSMO_NUM_DLIB	9
 
 struct log_category {

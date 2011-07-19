@@ -11,8 +11,8 @@
 
 /* signal subsystems. */
 enum {
-	SS_GLOBAL		= OSMO_SIGNAL_SS_RESERVED,
-	SS_INPUT,
+	SS_L_GLOBAL		= OSMO_SIGNAL_SS_RESERVED,
+	SS_L_INPUT,
 };
 
 /* application-defined signal types. */
@@ -21,7 +21,7 @@ enum {
 
 /* signal types. */
 enum {
-	S_GLOBAL_SHUTDOWN	= OSMO_SIGNAL_T_RESERVED,
+	S_L_GLOBAL_SHUTDOWN	= OSMO_SIGNAL_T_RESERVED,
 };
 
 typedef int osmo_signal_cbfn(unsigned int subsys, unsigned int signal, void *handler_data, void *signal_data);

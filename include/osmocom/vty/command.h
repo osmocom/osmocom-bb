@@ -74,8 +74,8 @@ enum node_type {
 
 	VTY_NODE,		/* Vty node. */
 
-	E1INP_NODE,		/* E1 line in libosmo-abis. */
-	IPA_NODE,		/* IPA proxying commands in libosmo-abis. */
+	L_E1INP_NODE,		/* E1 line in libosmo-abis. */
+	L_IPA_NODE,		/* IPA proxying commands in libosmo-abis. */
 
 	_LAST_OSMOVTY_NODE
 };
