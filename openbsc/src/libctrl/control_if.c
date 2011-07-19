@@ -22,6 +22,7 @@
  */
 
 #include <errno.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -365,7 +366,7 @@ static char *get_all_rate_ctr_in_group(const struct rate_ctr_group *ctrg, int in
 		return NULL;
 
 	for (i=0;i<ctrg->desc->num_ctr;i++) {
-		counters = talloc_asprintf_append(counters, "\n%s.%u.%s %lu",
+		counters = talloc_asprintf_append(counters, "\n%s.%u.%s %"PRIu64,
 			ctrg->desc->group_name_prefix, ctrg->idx,
 			ctrg->desc->ctr_desc[i].name,
 			get_rate_ctr_value(&ctrg->ctr[i], intv));
