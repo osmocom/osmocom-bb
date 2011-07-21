@@ -94,18 +94,6 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 		.description = "A-bis Input Driver for B-Channels (voice)",
 		.enabled = 0, .loglevel = LOGL_NOTICE,
 	},
-	[INT2IDX(DLRSL)] = {
-		.name = "DRSL",
-		.description = "A-bis Radio Siganlling Link (RSL)",
-		.color = "\033[1;35m",
-		.enabled = 1, .loglevel = LOGL_NOTICE,
-	},
-	[INT2IDX(DLNM)] = {
-		.name = "DNM",
-		.description = "A-bis Network Management / O&M (NM/OML)",
-		.color = "\033[1;36m",
-		.enabled = 1, .loglevel = LOGL_INFO,
-	},
 };
 
 /* You have to keep this in sync with the structure loglevel_strs. */
