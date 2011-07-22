@@ -150,6 +150,5 @@ struct ctrl_cmd_element cmd_##cmdname = { \
 }
 
 struct gsm_network;
-int controlif_setup(struct gsm_network *gsmnet, uint16_t port);
 
 #endif /* _CONTROL_CMD_H */
