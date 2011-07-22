@@ -87,6 +87,19 @@ int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd)
 	return ret;
 }
 
+struct ctrl_cmd *ctrl_cmd_trap(struct ctrl_cmd *cmd)
+{
+	struct ctrl_cmd *trap;
+
+	trap = ctrl_cmd_cpy(tall_bsc_ctx, cmd);
+	if (!trap)
+		return NULL;
+
+	trap->ccon = cmd->ccon;
+	trap->type = CTRL_TYPE_TRAP;
+	return trap;
+}
+
 int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 {
 	char *token, *request;
