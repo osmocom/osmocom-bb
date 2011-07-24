@@ -137,7 +137,7 @@ struct desc {
 #define CMD_SUCCESS_DAEMON      10
 
 /* Argc max counts. */
-#define CMD_ARGC_MAX   25
+#define CMD_ARGC_MAX   256
 
 /* Turn off these macros when uisng cpp with extract.pl */
 #ifndef VTYSH_EXTRACT_PL
