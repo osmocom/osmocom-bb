@@ -66,8 +66,8 @@ static unsigned char gsm_7bit_alphabet[] = {
 static int gsm_septet_lookup(uint8_t ch)
 {
 	int i = 0;
-	for(; i < sizeof(gsm_7bit_alphabet); i++){
-		if(gsm_7bit_alphabet[i] == ch)
+	for (; i < sizeof(gsm_7bit_alphabet); i++) {
+		if (gsm_7bit_alphabet[i] == ch)
 			return i;
 	}
 	return -1;
@@ -108,7 +108,7 @@ int gsm_7bit_decode_hdr(char *text, const uint8_t *user_data, uint8_t septet_l, 
 			  (((i + shift) * 7) & 7))) & 0x7f;
 	}
 
-	for(i = 0; i < septet_l; i++){
+	for (i = 0; i < septet_l; i++) {
 		/* this is an extension character */
 		if(rtext[i] == 0x1b && i + 1 < septet_l){
 			tmp = rtext[i+1];
@@ -138,7 +138,7 @@ int gsm_septet_encode(uint8_t *result, const char *data)
 {
 	int i, y = 0;
 	uint8_t ch;
-	for(i = 0; i < strlen(data); i++){
+	for (i = 0; i < strlen(data); i++) {
 		ch = data[i];
 		switch(ch){
 		/* fall-through for extension characters */
@@ -177,7 +177,7 @@ int gsm_septets2octets(uint8_t *result, uint8_t *rdata, uint8_t septet_len, uint
 	} else
 		memcpy(data, rdata, septet_len);
 
-	for(i = 0; i < septet_len; i++) {
+	for (i = 0; i < septet_len; i++) {
 		if (shift == 7) {
 			/*
 			 * special end case with the. This is necessary if the
