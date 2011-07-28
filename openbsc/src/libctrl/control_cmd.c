@@ -137,7 +137,9 @@ int ctrl_cmd_exec(vector vline, struct ctrl_cmd *command, vector node, void *dat
 		if (cmd_el->verify) {
 			if ((ret = cmd_el->verify(command, command->value, data))) {
 				ret = CTRL_CMD_ERROR;
-				command->reply = "Value failed verification.";
+				/* If verify() set an appropriate error message, don't change it. */
+				if (!command->reply)
+					command->reply = "Value failed verification.";
 				goto out;
 			}
 		} else if (cmd_el->param) {
