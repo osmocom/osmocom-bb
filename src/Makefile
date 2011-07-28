@@ -13,9 +13,11 @@ TOPDIR=$(shell pwd)
 OSMOCORE_CONFIGURE_ENV= LIBOSMOCORE_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/.libs/libosmocore.a \
                         LIBOSMOVTY_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/vty/.libs/libosmovty.a \
 			LIBOSMOGSM_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/gsm/.libs/libosmogsm.a \
+			LIBOSMOCODEC_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/codec/.libs/libosmocodec.a \
 	 	    	LIBOSMOCORE_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
 	 	    	LIBOSMOVTY_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
-			LIBOSMOGSM_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
+			LIBOSMOGSM_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
+			LIBOSMOCODEC_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
 
 all: libosmocore-target nofirmware firmware mtk-firmware
 nofirmware: libosmocore-host layer23 osmocon gsmmap

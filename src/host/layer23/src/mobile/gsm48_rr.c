@@ -399,6 +399,7 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		memset(&rr->cd_now, 0, sizeof(rr->cd_now));
 		/* reset ciphering */
 		rr->cipher_on = 0;
+		/* reset audio mode */
 		/* tell cell selection process to return to idle mode
 		 * NOTE: this must be sent unbuffered, because it will
 		 * leave camping state, so it locks against subsequent
@@ -2927,14 +2928,15 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
 	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
 	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d, "
-		"cipher %d\n", ch_type, ch_subch, ch_ts, cd->mode,
-		rr->cipher_type + 1);
+		"audio-mode %d, cipher %d\n", ch_type, ch_subch, ch_ts,
+		cd->mode, rr->audio_mode, rr->cipher_type + 1);
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
-			ma, ma_len, cd->chan_nr, cd->tsc, cd->mode);
+			ma, ma_len, cd->chan_nr, cd->tsc, cd->mode,
+			rr->audio_mode);
 	else
 		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc,
-			cd->mode);
+			cd->mode, rr->audio_mode);
 	rr->dm_est = 1;
 
 	/* old SI 5/6 are not valid on a new dedicated channel */
@@ -3342,6 +3344,7 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	uint8_t mode)
 {
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;
 
 	/* only apply mode to TCH/F or TCH/H */
@@ -3351,8 +3354,9 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 		return -ENOTSUP;
 
 	/* setting (new) timing advance */
-	LOGP(DRR, LOGL_INFO, "setting TCH mode to %d\n", mode);
-	l1ctl_tx_tch_mode_req(ms, mode);
+	LOGP(DRR, LOGL_INFO, "setting TCH mode to %d, audio mode to %d\n",
+		mode, rr->audio_mode);
+	l1ctl_tx_tch_mode_req(ms, mode, rr->audio_mode);
 
 	return 0;
 }
@@ -5102,6 +5106,8 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 
 	start_rr_t_meas(rr, 1, 0);
 
+	rr->audio_mode = AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER;
+
 	return 0;
 }
 
@@ -5213,4 +5219,46 @@ static int gsm48_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *m
 }
 
 #endif
+
+int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	uint8_t ch_type, ch_subch, ch_ts;
+
+	if (!rr->dm_est) {
+		LOGP(DRR, LOGL_INFO, "Current channel is not active\n");
+		msgb_free(msg);
+		return -ENOTSUP;
+	}
+
+	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (ch_type != RSL_CHAN_Bm_ACCHs) {
+		LOGP(DRR, LOGL_INFO, "Current channel is not (yet) TCH/F\n");
+		msgb_free(msg);
+		return -ENOTSUP;
+	}
+
+	return l1ctl_tx_traffic_req(ms, msg, rr->cd_now.chan_nr,
+		rr->cd_now.link_id);
+}
+
+int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	uint8_t ch_type, ch_subch, ch_ts;
+
+	LOGP(DRR, LOGL_INFO, "setting audio mode to %d\n", mode);
+
+	rr->audio_mode = mode;
+
+	if (!rr->dm_est)
+		return 0;
+
+	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (ch_type != RSL_CHAN_Bm_ACCHs
+	 && ch_type != RSL_CHAN_Lm_ACCHs)
+		return 0;
+
+	return l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, mode);
+}
 

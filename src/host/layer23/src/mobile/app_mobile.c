@@ -35,6 +35,7 @@
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/mncc.h>
+#include <osmocom/bb/mobile/voice.h>
 #include <osmocom/vty/telnet_interface.h>
 
 #include <osmocom/core/msgb.h>
@@ -167,6 +168,7 @@ int mobile_init(struct osmocom_ms *ms)
 
 	gsm_sim_init(ms);
 	gsm48_cc_init(ms);
+	gsm_voice_init(ms);
 	gsm_subscr_init(ms);
 	gsm48_rr_init(ms);
 	gsm48_mm_init(ms);
@@ -190,13 +192,6 @@ int mobile_init(struct osmocom_ms *ms)
 		return rc;
 	}
 #endif
-
-	if (mncc_recv_app)
-		ms->cclayer.mncc_recv = mncc_recv_app;
-	else if (ms->settings.ch_cap == GSM_CAP_SDCCH)
-		ms->cclayer.mncc_recv = mncc_recv_dummy;
-	else
-		ms->cclayer.mncc_recv = mncc_recv_mobile;
 
 	gsm_random_imei(&ms->settings);
 
@@ -247,9 +242,12 @@ struct osmocom_ms *mobile_new(char *name)
 			mncc->msg_type = MS_NEW;
 			mncc_recv_app(ms, mncc->msg_type, mncc);
 		}
-		ms->cclayer.mncc_recv = mncc_recv_app;
-	} else
-		ms->cclayer.mncc_recv = mncc_recv_dummy;
+		ms->mncc_entity.mncc_recv = mncc_recv_app;
+	} else if (ms->settings.ch_cap == GSM_CAP_SDCCH)
+		ms->mncc_entity.mncc_recv = mncc_recv_dummy;
+	else
+		ms->mncc_entity.mncc_recv = mncc_recv_mobile;
+
 
 	return ms;
 }

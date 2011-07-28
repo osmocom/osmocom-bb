@@ -46,6 +46,7 @@
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/codec/codec.h>
 
 extern struct gsmtap_inst *gsmtap_inst;
 
@@ -64,6 +65,23 @@ static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 	l1h->msg_type = msg_type;
 	
 	return msg;
+}
+
+
+static inline int msb_get_bit(uint8_t *buf, int bn)
+{
+	int pos_byte = bn >> 3;
+	int pos_bit  = 7 - (bn & 7);
+
+	return (buf[pos_byte] >> pos_bit) & 1;
+}
+
+static inline void msb_set_bit(uint8_t *buf, int bn, int bit)
+{
+	int pos_byte = bn >> 3;
+	int pos_bit  = 7 - (bn & 7);
+
+	buf[pos_byte] |=  (bit << pos_bit);
 }
 
 
@@ -356,7 +374,8 @@ int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode)
 }
 
 /* Transmit L1CTL_TCH_MODE_REQ */
-int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode)
+int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode,
+	uint8_t audio_mode)
 {
 	struct msgb *msg;
 	struct l1ctl_tch_mode_req *req;
@@ -369,7 +388,7 @@ int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode)
 
 	req = (struct l1ctl_tch_mode_req *) msgb_put(msg, sizeof(*req));
 	req->tch_mode = tch_mode;
-	req->audio_mode = AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER;
+	req->audio_mode = audio_mode;
 
 	return osmo_send_l1(ms, msg);
 }
@@ -440,7 +459,8 @@ int l1ctl_tx_rach_req(struct osmocom_ms *ms, uint8_t ra, uint16_t offset,
 
 /* Transmit L1CTL_DM_EST_REQ */
 int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
-                           uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode)
+                           uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode,
+			   uint8_t audio_mode)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -462,14 +482,15 @@ int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	req->h = 0;
 	req->h0.band_arfcn = htons(band_arfcn);
 	req->tch_mode = tch_mode;
-	req->audio_mode = AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER;
+	req->audio_mode = audio_mode;
 
 	return osmo_send_l1(ms, msg);
 }
 
 int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
                            uint16_t *ma, uint8_t ma_len,
-                           uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode)
+                           uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode,
+			   uint8_t audio_mode)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -496,7 +517,7 @@ int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 	for (i = 0; i < ma_len; i++)
 		req->h1.ma[i] = htons(ma[i]);
 	req->tch_mode = tch_mode;
-	req->audio_mode = AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER;
+	req->audio_mode = audio_mode;
 
 	return osmo_send_l1(ms, msg);
 }
@@ -732,10 +753,101 @@ static int rx_l1_tch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DL1C, LOGL_INFO, "TCH MODE CONF: mode=%u\n", conf->tch_mode);
 
 	mc.tch_mode = conf->tch_mode;
+	mc.audio_mode = conf->audio_mode;
 	mc.ms = ms;
 	osmo_signal_dispatch(SS_L1CTL, S_L1CTL_TCH_MODE_CONF, &mc);
 
 	return 0;
+}
+
+/* Receive L1CTL_TRAFFIC_IND (Traffic Indication from L1) */
+static int rx_l1_traffic_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_info_dl *dl;
+	struct l1ctl_traffic_ind *ti;
+	uint8_t fr[33];
+	int i, di, si;
+
+	/* Header handling */
+	dl = (struct l1ctl_info_dl *) msg->l1h;
+	msg->l2h = dl->payload;
+	ti = (struct l1ctl_traffic_ind *) msg->l2h;
+
+	memset(fr, 0x00, 33);
+	fr[0] = 0xd0;
+	for (i = 0; i < 260; i++) {
+		di = gsm610_bitorder[i];
+		si = (i > 181) ? i + 4 : i;
+		msb_set_bit(fr, 4 + di, msb_get_bit(ti->data, si));
+        }
+	memcpy(ti->data, fr, 33);
+
+	DEBUGP(DL1C, "TRAFFIC IND (%s)\n", osmo_hexdump(ti->data, 33));
+
+	/* distribute or drop */
+	if (ms->l1_entity.l1_traffic_ind) {
+		/* pull the L1 header from the msgb */
+		msgb_pull(msg, msg->l2h - (msg->l1h-sizeof(struct l1ctl_hdr)));
+		msg->l1h = NULL;
+
+		return ms->l1_entity.l1_traffic_ind(ms, msg);
+	}
+
+	msgb_free(msg);
+	return 0;
+}
+
+/* Transmit L1CTL_TRAFFIC_REQ (Traffic Request to L1) */
+int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
+                       uint8_t chan_nr, uint8_t link_id)
+{
+	struct l1ctl_hdr *l1h;
+	struct l1ctl_info_ul *l1i_ul;
+	struct l1ctl_traffic_req *tr;
+	uint8_t fr[33];
+	int i, di, si;
+
+	/* Header handling */
+	tr = (struct l1ctl_traffic_req *) msg->l2h;
+
+	DEBUGP(DL1C, "TRAFFIC REQ (%s)\n",
+		osmo_hexdump(msg->l2h, msgb_l2len(msg)));
+
+	if (msgb_l2len(msg) != 33) {
+		LOGP(DL1C, LOGL_ERROR, "Traffic Request has incorrect length "
+			"(%u != 33)\n", msgb_l2len(msg));
+		msgb_free(msg);
+		return -EINVAL;
+	}
+
+	if ((tr->data[0] >> 4) != 0xd) {
+		LOGP(DL1C, LOGL_ERROR, "Traffic Request has incorrect magic "
+			"(%u != 0xd)\n", tr->data[0] >> 4);
+		msgb_free(msg);
+		return -EINVAL;
+	}
+
+	memset(fr, 0x00, 33);
+	for (i = 0; i < 260; i++) {
+		si = gsm610_bitorder[i];
+		di = (i > 181) ? i + 4 : i;
+		msb_set_bit(fr, di, msb_get_bit(tr->data, 4 + si));
+        }
+	memcpy(tr->data, fr, 33);
+//	printf("TX %s\n", osmo_hexdump(tr->data, 33));
+
+	/* prepend uplink info header */
+	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));
+
+	l1i_ul->chan_nr = chan_nr;
+	l1i_ul->link_id = link_id;
+
+	/* prepend l1 header */
+	msg->l1h = msgb_push(msg, sizeof(*l1h));
+	l1h = (struct l1ctl_hdr *) msg->l1h;
+	l1h->msg_type = L1CTL_TRAFFIC_REQ;
+
+	return osmo_send_l1(ms, msg);
 }
 
 /* Transmit L1CTL_NEIGH_PM_REQ */
@@ -835,6 +947,12 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_NEIGH_PM_IND:
 		rc = rx_l1_neigh_pm_ind(ms, msg);
+		msgb_free(msg);
+		break;
+	case L1CTL_TRAFFIC_IND:
+		rc = rx_l1_traffic_ind(ms, msg);
+		break;
+	case L1CTL_TRAFFIC_CONF:
 		msgb_free(msg);
 		break;
 	default:

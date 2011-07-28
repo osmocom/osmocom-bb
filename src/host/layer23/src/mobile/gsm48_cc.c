@@ -35,6 +35,8 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
+#include <osmocom/bb/mobile/voice.h>
+#include <l1ctl_proto.h>
 
 extern void *l23_ctx;
 
@@ -138,6 +140,9 @@ static const struct value_string gsm_mncc_names[] = {
 	{ MNCC_STOP_DTMF_REQ,	"MNCC_STOP_DTMF_REQ" },
 	{ MNCC_HOLD_REQ,	"MNCC_HOLD_REQ " },
 	{ MNCC_RETRIEVE_REQ,	"MNCC_RETRIEVE_REQ" },
+	{ MNCC_FRAME_RECV,      "MNCC_FRAME_RECV" },
+	{ MNCC_FRAME_DROP,      "MNCC_FRAME_DROP" },
+	{ MNCC_LCHAN_MODIFY,    "MNCC_LCHAN_MODIFY" },
 	{ 0,			NULL }
 };
 
@@ -212,10 +217,10 @@ int mncc_dequeue(struct osmocom_ms *ms)
 	
 	while ((msg = msgb_dequeue(&cc->mncc_upqueue))) {
 		mncc = (struct gsm_mncc *)msg->data;
-		if (cc->mncc_recv)
-			cc->mncc_recv(ms, mncc->msg_type, mncc);
+		if (ms->mncc_entity.mncc_recv)
+			ms->mncc_entity.mncc_recv(ms, mncc->msg_type, mncc);
 		work = 1; /* work done */
-		talloc_free(msg);
+		msgb_free(msg);
 	}
 	
 	return work;
@@ -363,6 +368,10 @@ static void gsm48_stop_cc_timer(struct gsm_trans *trans)
 void _gsm48_cc_trans_free(struct gsm_trans *trans)
 {
 	gsm48_stop_cc_timer(trans);
+
+	/* disable audio distribution */
+	if (trans->ms->mncc_entity.ref == trans->callref)
+		trans->ms->mncc_entity.ref = 0;
 
 	/* send release to L4, if callref still exists */
 	if (trans->callref) {
@@ -1944,8 +1953,19 @@ int mncc_send(struct osmocom_ms *ms, int msg_type, void *arg)
 
 	switch (msg_type) {
 	case GSM_TCHF_FRAME:
-		printf("TCH/F frame ignored!\n");
-		return -EINVAL;
+		return gsm_send_voice(ms, arg);
+	case MNCC_LCHAN_MODIFY:
+		return 0;
+	case MNCC_FRAME_RECV:
+		ms->mncc_entity.ref = trans->callref;
+		gsm48_rr_audio_mode(ms,
+			AUDIO_TX_TRAFFIC_REQ | AUDIO_RX_TRAFFIC_IND);
+		return 0;
+	case MNCC_FRAME_DROP:
+		if (ms->mncc_entity.ref == trans->callref)
+			ms->mncc_entity.ref = 0;
+		gsm48_rr_audio_mode(ms, AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER);
+		return 0;
 	}
 
 	/* Find function for current state and message */
@@ -1954,8 +1974,8 @@ int mncc_send(struct osmocom_ms *ms, int msg_type, void *arg)
 		 && ((1 << trans->cc.state) & downstatelist[i].states))
 			break;
 		if (i == DOWNSLLEN) {
-			LOGP(DCC, LOGL_NOTICE, "Message unhandled at this "
-				"state.\n");
+			LOGP(DCC, LOGL_NOTICE, "Message %d unhandled at state "
+				"%d\n", msg_type, trans->cc.state);
 			return 0;
 		}
 		

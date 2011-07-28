@@ -25,10 +25,10 @@ int l1ctl_tx_rach_req(struct osmocom_ms *ms, uint8_t ra, uint16_t offset,
 
 /* Transmit L1CTL_DM_EST_REQ */
 int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
-	uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode);
+	uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode, uint8_t audio_mode);
 int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 	uint16_t *ma, uint8_t ma_len, uint8_t chan_nr, uint8_t tsc,
-	uint8_t tch_mode);
+	uint8_t tch_mode, uint8_t audio_mode);
 
 /* Transmit L1CTL_DM_FREQ_REQ */
 int l1ctl_tx_dm_freq_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
@@ -48,7 +48,8 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode);
 
 /* Transmit TCH_MODE_REQ */
-int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode);
+int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode,
+	uint8_t audio_mode);
 
 /* Transmit ECHO_REQ */
 int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len);
@@ -62,6 +63,9 @@ int l1ctl_tx_pm_req_range(struct osmocom_ms *ms, uint16_t arfcn_from,
 
 int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length);
 
+/* Transmit L1CTL_VOICE_REQ */
+int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
+			uint8_t chan_nr, uint8_t link_id);
 
 /* LAPDm wants to send a PH-* primitive to the physical layer (L1) */
 int l1ctl_ph_prim_cb(struct osmo_prim_hdr *oph, void *ctx);

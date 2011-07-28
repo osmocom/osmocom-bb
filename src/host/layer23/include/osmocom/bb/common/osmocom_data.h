@@ -19,10 +19,21 @@ struct osmocom_ms;
 #include <osmocom/bb/mobile/gsm48_mm.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
 #include <osmocom/bb/common/sim.h>
+#include <osmocom/bb/common/l1ctl.h>
 
 struct osmosap_entity {
 	osmosap_cb_t msg_handler;
 };
+
+struct osmol1_entity {
+	int (*l1_traffic_ind)(struct osmocom_ms *ms, struct msgb *msg);
+};
+
+struct osmomncc_entity {
+	int (*mncc_recv)(struct osmocom_ms *ms, int msg_type, void *arg);
+	uint32_t ref;
+};
+
 
 /* RX measurement statistics */
 struct rx_meas_stat {
@@ -45,6 +56,7 @@ struct osmocom_ms {
 	char name[32];
 	struct osmo_wqueue l2_wq, sap_wq;
 	uint16_t test_arfcn;
+	struct osmol1_entity l1_entity;
 
 	uint8_t deleting, shutdown, started;
 	struct gsm_support support;
@@ -59,6 +71,7 @@ struct osmocom_ms {
 	struct gsm322_cellsel cellsel;
 	struct gsm48_mmlayer mmlayer;
 	struct gsm48_cclayer cclayer;
+	struct osmomncc_entity mncc_entity;
 	struct llist_head trans_list;
 };
 
@@ -104,6 +117,7 @@ struct osmobb_ccch_mode_conf {
 struct osmobb_tch_mode_conf {
 	struct osmocom_ms *ms;
 	uint8_t tch_mode;
+	uint8_t audio_mode;
 };
 
 struct osmobb_neigh_pm_ind {

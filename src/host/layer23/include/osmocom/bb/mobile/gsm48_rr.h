@@ -172,6 +172,9 @@ struct gsm48_rrlayer {
 	struct osmo_timer_list	t_meas;
 	struct gsm48_rr_meas	meas;
 	uint8_t			monitor;
+
+	/* audio flow */
+	uint8_t                 audio_mode;
 };
 
 const char *get_rr_name(int value);
@@ -193,5 +196,7 @@ extern const char *gsm48_rr_state_names[];
 int gsm48_rr_start_monitor(struct osmocom_ms *ms);
 int gsm48_rr_stop_monitor(struct osmocom_ms *ms);
 int gsm48_rr_alter_delay(struct osmocom_ms *ms);
+int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg);
+int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode);
 
 #endif /* _GSM48_RR_H */
