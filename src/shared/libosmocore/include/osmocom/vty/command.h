@@ -74,6 +74,9 @@ enum node_type {
 
 	VTY_NODE,		/* Vty node. */
 
+	L_E1INP_NODE,		/* E1 line in libosmo-abis. */
+	L_IPA_NODE,		/* IPA proxying commands in libosmo-abis. */
+
 	_LAST_OSMOVTY_NODE
 };
 
@@ -134,7 +137,7 @@ struct desc {
 #define CMD_SUCCESS_DAEMON      10
 
 /* Argc max counts. */
-#define CMD_ARGC_MAX   25
+#define CMD_ARGC_MAX   256
 
 /* Turn off these macros when uisng cpp with extract.pl */
 #ifndef VTYSH_EXTRACT_PL
@@ -316,7 +319,7 @@ void install_node(struct cmd_node *, int (*)(struct vty *));
 void install_default(enum node_type);
 void install_element(enum node_type, struct cmd_element *);
 void install_element_ve(struct cmd_element *cmd);
-void sort_node();
+void sort_node(void);
 
 /* Concatenates argv[shift] through argv[argc-1] into a single NUL-terminated
    string with a space between each element (allocated using

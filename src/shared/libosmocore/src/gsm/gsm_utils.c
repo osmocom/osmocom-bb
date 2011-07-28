@@ -66,35 +66,51 @@ static unsigned char gsm_7bit_alphabet[] = {
 static int gsm_septet_lookup(uint8_t ch)
 {
 	int i = 0;
-	for(; i < sizeof(gsm_7bit_alphabet); i++){
-		if(gsm_7bit_alphabet[i] == ch)
+	for (; i < sizeof(gsm_7bit_alphabet); i++) {
+		if (gsm_7bit_alphabet[i] == ch)
 			return i;
 	}
 	return -1;
 }
 
+/* Compute the number of octets from the number of septets, for instance: 47 septets needs 41,125 = 42 octets */
+uint8_t gsm_get_octet_len(const uint8_t sept_len){
+	int octet_len = (sept_len * 7) / 8;
+	if ((sept_len * 7) % 8 != 0)
+		octet_len++;
+
+	return octet_len;
+}
+
 /* GSM 03.38 6.2.1 Character unpacking */
-int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t length)
+int gsm_7bit_decode_hdr(char *text, const uint8_t *user_data, uint8_t septet_l, uint8_t ud_hdr_ind)
 {
 	int i = 0;
-	int l = 0;
-	int septet_l = (length * 8) / 7;
+	int shift = 0;
+
 	uint8_t *rtext = calloc(septet_l, sizeof(uint8_t));
 	uint8_t tmp;
 
-	/* FIXME: We need to account for user data headers here */
-	i += l;
-	for (; i < septet_l; i++){
-		rtext[i] =
-			((user_data[(i * 7 + 7) >> 3] <<
-			  (7 - ((i * 7 + 7) & 7))) |
-			 (user_data[(i * 7) >> 3] >>
-			  ((i * 7) & 7))) & 0x7f;
+	/* skip the user data header */
+	if (ud_hdr_ind) {
+		/* get user data header length + 1 (for the 'user data header length'-field) */
+		shift = ((user_data[0] + 1) * 8) / 7;
+		if ((((user_data[0] + 1) * 8) % 7) != 0)
+			shift++;
+		septet_l = septet_l - shift;
 	}
 
-	for(i = 0; i < septet_l; i++){
+	for (i = 0; i < septet_l; i++) {
+		rtext[i] =
+			((user_data[((i + shift) * 7 + 7) >> 3] <<
+			  (7 - (((i + shift) * 7 + 7) & 7))) |
+			 (user_data[((i + shift) * 7) >> 3] >>
+			  (((i + shift) * 7) & 7))) & 0x7f;
+	}
+
+	for (i = 0; i < septet_l; i++) {
 		/* this is an extension character */
-		if(rtext[i] == 0x1b && i + 1 < length){
+		if(rtext[i] == 0x1b && i + 1 < septet_l){
 			tmp = rtext[i+1];
 			*(text++) = gsm_7bit_alphabet[0x7f + tmp];
 			i++;
@@ -104,18 +120,25 @@ int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t length)
 		*(text++) = gsm_septet_lookup(rtext[i]);
 	}
 
+	if (ud_hdr_ind)
+		i += shift;
 	*text = '\0';
 	free(rtext);
 
 	return i;
 }
 
+int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t septet_l)
+{
+	return gsm_7bit_decode_hdr(text, user_data, septet_l, 0);
+}
+
 /* GSM 03.38 6.2.1 Prepare character packing */
-static int gsm_septet_encode(uint8_t *result, const char *data)
+int gsm_septet_encode(uint8_t *result, const char *data)
 {
 	int i, y = 0;
 	uint8_t ch;
-	for(i = 0; i < strlen(data); i++){
+	for (i = 0; i < strlen(data); i++) {
 		ch = data[i];
 		switch(ch){
 		/* fall-through for extension characters */
@@ -139,36 +162,73 @@ static int gsm_septet_encode(uint8_t *result, const char *data)
 	return y;
 }
 
-/* GSM 03.38 6.2.1 Character packing */
-int gsm_7bit_encode(uint8_t *result, const char *data)
-{
-	int i,y,z = 0;
-	/* prepare for the worst case, every character expanding to two bytes */
-	uint8_t *rdata = calloc(strlen(data) * 2, sizeof(uint8_t));
+/* 7bit to octet packing */
+int gsm_septets2octets(uint8_t *result, uint8_t *rdata, uint8_t septet_len, uint8_t padding){
+	int i = 0, z = 0;
 	uint8_t cb, nb;
 	int shift = 0;
+	uint8_t *data = calloc(septet_len + 1, sizeof(uint8_t));
 
-	y = gsm_septet_encode(rdata, data);
+	if (padding) {
+		shift = 7 - padding;
+		/* the first zero is needed for padding */
+		memcpy(data + 1, rdata, septet_len);
+		septet_len++;
+	} else
+		memcpy(data, rdata, septet_len);
 
-	for(i = 0; i < y; i++) {
-		if(shift == 7 && i + 1 < y){
-			shift = 0;
-			continue;
+	for (i = 0; i < septet_len; i++) {
+		if (shift == 7) {
+			/*
+			 * special end case with the. This is necessary if the
+			 * last septet fits into the previous octet. E.g. 48
+			 * non-extension characters:
+			 *   ....ag ( a = 1100001, g = 1100111)
+			 * result[40] = 100001 XX, result[41] = 1100111 1 */
+			if (i + 1 < septet_len) {
+				shift = 0;
+				continue;
+			} else if (i + 1 == septet_len)
+				break;
 		}
 
-		cb = (rdata[i] & 0x7f) >> shift;
-		if(i + 1 < y){
-			nb = (rdata[i + 1] & 0x7f) << (7 - shift);
+		cb = (data[i] & 0x7f) >> shift;
+		if (i + 1 < septet_len) {
+			nb = (data[i + 1] & 0x7f) << (7 - shift);
 			cb = cb | nb;
 		}
 
 		result[z++] = cb;
-
 		shift++;
 	}
 
-	free(rdata);
+	free(data);
+
 	return z;
+}
+
+/* GSM 03.38 6.2.1 Character packing */
+int gsm_7bit_encode(uint8_t *result, const char *data)
+{
+	int y = 0, z = 0;
+	/* prepare for the worst case, every character expanding to two bytes */
+	uint8_t *rdata = calloc(strlen(data) * 2, sizeof(uint8_t));
+	y = gsm_septet_encode(rdata, data);
+	z = gsm_septets2octets(result, rdata, y, 0);
+
+	free(rdata);
+
+	/*
+	 * We don't care about the number of octets (z), because they are not
+	 * unique. E.g.:
+	 *  1.) 46 non-extension characters + 1 extension character
+	 *         => (46 * 7 bit + (1 * (2 * 7 bit))) / 8 bit =  42 octets
+	 *  2.) 47 non-extension characters
+	 *         => (47 * 7 bit) / 8 bit = 41,125 = 42 octets
+	 *  3.) 48 non-extension characters
+	 *         => (48 * 7 bit) / 8 bit = 42 octects
+	 */
+	return y;
 }
 
 /* convert power class to dBm according to GSM TS 05.05 */

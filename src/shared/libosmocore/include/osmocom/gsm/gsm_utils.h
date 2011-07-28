@@ -57,9 +57,14 @@ const char *gsm_band_name(enum gsm_band band);
 enum gsm_band gsm_band_parse(const char *mhz);
 
 int gsm_7bit_decode(char *decoded, const uint8_t *user_data, uint8_t length);
+int gsm_7bit_decode_hdr(char *decoded, const uint8_t *user_data, uint8_t length, uint8_t ud_hdr_ind);
 int gsm_7bit_encode(uint8_t *result, const char *data);
 
-unsigned int ms_class_gmsk_dbm(enum gsm_band band, int class);
+int gsm_septets2octets(uint8_t *result, uint8_t *rdata, uint8_t septet_len, uint8_t padding);
+int gsm_septet_encode(uint8_t *result, const char *data);
+uint8_t gsm_get_octet_len(const uint8_t sept_len);
+
+unsigned int ms_class_gmsk_dbm(enum gsm_band band, int ms_class);
 
 int ms_pwr_ctl_lvl(enum gsm_band band, unsigned int dbm);
 int ms_pwr_dbm(enum gsm_band band, uint8_t lvl);

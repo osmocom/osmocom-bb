@@ -41,6 +41,9 @@ struct msgb *gsm0808_create_clear_rqst(uint8_t cause);
 struct msgb *gsm0808_create_dtap(struct msgb *msg, uint8_t link_id);
 void gsm0808_prepend_dtap_header(struct msgb *msg, uint8_t link_id);
 
-const struct tlv_definition *gsm0808_att_tlvdef();
+const struct tlv_definition *gsm0808_att_tlvdef(void);
+
+const char *gsm0808_bssmap_name(uint8_t msg_type);
+const char *gsm0808_bssap_name(uint8_t msg_type);
 
 #endif

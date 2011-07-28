@@ -29,9 +29,13 @@
 struct msgb {
 	struct llist_head list;
 
+
 	/* Part of which TRX logical channel we were received / transmitted */
 	/* FIXME: move them into the control buffer */
-	struct gsm_bts_trx *trx;
+	union {
+		void *dst;
+		struct gsm_bts_trx *trx;
+	};
 	struct gsm_lchan *lchan;
 
 	/* the Layer1 header (if any) */
@@ -193,5 +197,7 @@ static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 uint8_t *msgb_data(const struct msgb *msg);
 uint16_t msgb_length(const struct msgb *msg);
 
+/* set the talloc context for msgb_alloc[_headroom] */
+void msgb_set_talloc_ctx(void *ctx);
 
 #endif /* _MSGB_H */

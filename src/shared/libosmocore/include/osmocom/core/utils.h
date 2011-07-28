@@ -2,6 +2,8 @@
 #define OSMOCORE_UTIL_H
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#define OSMO_MAX(a, b) (a) >= (b) ? (a) : (b)
+#define OSMO_MIN(a, b) (a) >= (b) ? (b) : (a)
 
 #include <stdint.h>
 

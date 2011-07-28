@@ -40,7 +40,7 @@
 
 #include <osmocom/vty/logging.h>	/* for LOGGING_STR. */
 
-const struct log_info *osmo_log_info;
+struct log_info *osmo_log_info;
 
 static struct log_context log_context;
 static void *tall_log_ctx = NULL;
@@ -58,6 +58,44 @@ static const struct value_string loglevel_strs[LOGLEVEL_DEFS+1] = {
 	{ 0, NULL },
 };
 
+#define INT2IDX(x)	(-1*(x)-1)
+static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
+	[INT2IDX(DLGLOBAL)] = {	/* -1 becomes 0 */
+		.name = "DLGLOBAL",
+		.description = "Library-internal global log family",
+		.loglevel = LOGL_NOTICE,
+		.enabled = 1,
+	},
+	[INT2IDX(DLLAPDM)] = {	/* -2 becomes 1 */
+		.name = "DLLAPDM",
+		.description = "LAPDm in libosmogsm",
+		.loglevel = LOGL_NOTICE,
+		.enabled = 1,
+	},
+	[INT2IDX(DLINP)] = {
+		.name = "DINP",
+		.description = "A-bis Intput Subsystem",
+		.loglevel = LOGL_NOTICE,
+		.enabled = 1,
+	},
+	[INT2IDX(DLMUX)] = {
+		.name = "DMUX",
+		.description = "A-bis B-Subchannel TRAU Frame Multiplex",
+		.loglevel = LOGL_NOTICE,
+		.enabled = 1,
+	},
+	[INT2IDX(DLMI)] = {
+		.name = "DMI",
+		.description = "A-bis Input Driver for Signalling",
+		.enabled = 0, .loglevel = LOGL_NOTICE,
+	},
+	[INT2IDX(DLMIB)] = {
+		.name = "DMIB",
+		.description = "A-bis Input Driver for B-Channels (voice)",
+		.enabled = 0, .loglevel = LOGL_NOTICE,
+	},
+};
+
 /* You have to keep this in sync with the structure loglevel_strs. */
 const char *loglevel_descriptions[LOGLEVEL_DEFS+1] = {
 	"Log simply everything",
@@ -68,6 +106,12 @@ const char *loglevel_descriptions[LOGLEVEL_DEFS+1] = {
 	"Log only fatal messages",
 	NULL,
 };
+
+/* special magic for negative (library-internal) log subsystem numbers */
+static int subsys_lib2index(int subsys)
+{
+	return (subsys * -1) + (osmo_log_info->num_cat_user-1);
+}
 
 int log_parse_level(const char *lvl)
 {
@@ -84,6 +128,8 @@ int log_parse_category(const char *category)
 	int i;
 
 	for (i = 0; i < osmo_log_info->num_cat; ++i) {
+		if (osmo_log_info->cat[i].name == NULL)
+			continue;
 		if (!strcasecmp(osmo_log_info->cat[i].name+1, category))
 			return i;
 	}
@@ -103,7 +149,7 @@ void log_parse_category_mask(struct log_target* target, const char *_mask)
 	char *category_token = NULL;
 
 	/* Disable everything to enable it afterwards */
-	for (i = 0; i < ARRAY_SIZE(target->categories); ++i)
+	for (i = 0; i < osmo_log_info->num_cat; ++i)
 		target->categories[i].enabled = 0;
 
 	category_token = strtok(mask, ":");
@@ -111,6 +157,9 @@ void log_parse_category_mask(struct log_target* target, const char *_mask)
 		for (i = 0; i < osmo_log_info->num_cat; ++i) {
 			char* colon = strstr(category_token, ",");
 			int length = strlen(category_token);
+
+			if (!osmo_log_info->cat[i].name)
+				continue;
 
 			if (colon)
 			    length = colon - category_token;
@@ -189,11 +238,16 @@ err:
 	target->output(target, level, buf);
 }
 
-
-static void _logp(unsigned int subsys, int level, char *file, int line,
+static void _logp(int subsys, int level, char *file, int line,
 		  int cont, const char *format, va_list ap)
 {
 	struct log_target *tar;
+
+	if (subsys < 0)
+		subsys = subsys_lib2index(subsys);
+
+	if (subsys > osmo_log_info->num_cat)
+		subsys = DLGLOBAL;
 
 	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
 		struct log_category *category;
@@ -229,12 +283,12 @@ static void _logp(unsigned int subsys, int level, char *file, int line,
 		 * in undefined state. Since _output uses vsnprintf and it may
 		 * be called several times, we have to pass a copy of ap. */
 		va_copy(bp, ap);
-		_output(tar, subsys, level, file, line, cont, format, ap);
+		_output(tar, subsys, level, file, line, cont, format, bp);
 		va_end(bp);
 	}
 }
 
-void logp(unsigned int subsys, char *file, int line, int cont,
+void logp(int subsys, char *file, int line, int cont,
 	  const char *format, ...)
 {
 	va_list ap;
@@ -244,7 +298,7 @@ void logp(unsigned int subsys, char *file, int line, int cont,
 	va_end(ap);
 }
 
-void logp2(unsigned int subsys, unsigned int level, char *file, int line, int cont, const char *format, ...)
+void logp2(int subsys, unsigned int level, char *file, int line, int cont, const char *format, ...)
 {
 	va_list ap;
 
@@ -325,6 +379,14 @@ struct log_target *log_target_create(void)
 	target = talloc_zero(tall_log_ctx, struct log_target);
 	if (!target)
 		return NULL;
+
+	target->categories = talloc_zero_array(target, 
+						struct log_category,
+						osmo_log_info->num_cat);
+	if (!target->categories) {
+		talloc_free(target);
+		return NULL;
+	}
 
 	INIT_LLIST_HEAD(&target->entry);
 
@@ -435,14 +497,18 @@ int log_target_file_reopen(struct log_target *target)
 }
 
 /* This generates the logging command string for VTY. */
-const char *log_vty_command_string(const struct log_info *info)
+const char *log_vty_command_string(const struct log_info *unused_info)
 {
+	struct log_info *info = osmo_log_info;
 	int len = 0, offset = 0, ret, i, rem;
 	int size = strlen("logging level () ()") + 1;
 	char *str;
 
-	for (i = 0; i < info->num_cat; i++)
+	for (i = 0; i < info->num_cat; i++) {
+		if (info->cat[i].name == NULL)
+			continue;
 		size += strlen(info->cat[i].name) + 1;
+	}
 
 	for (i = 0; i < LOGLEVEL_DEFS; i++)
 		size += strlen(loglevel_strs[i].str) + 1;
@@ -458,17 +524,19 @@ const char *log_vty_command_string(const struct log_info *info)
 	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 
 	for (i = 0; i < info->num_cat; i++) {
-		int j, name_len = strlen(info->cat[i].name)+1;
-		char name[name_len];
+		if (info->cat[i].name) {
+			int j, name_len = strlen(info->cat[i].name)+1;
+			char name[name_len];
 
-		for (j = 0; j < name_len; j++)
-			name[j] = tolower(info->cat[i].name[j]);
+			for (j = 0; j < name_len; j++)
+				name[j] = tolower(info->cat[i].name[j]);
 
-		name[name_len-1] = '\0';
-		ret = snprintf(str + offset, rem, "%s|", name+1);
-		if (ret < 0)
-			goto err;
-		OSMO_SNPRINTF_RET(ret, rem, offset, len);
+			name[name_len-1] = '\0';
+			ret = snprintf(str + offset, rem, "%s|", name+1);
+			if (ret < 0)
+				goto err;
+			OSMO_SNPRINTF_RET(ret, rem, offset, len);
+		}
 	}
 	offset--;	/* to remove the trailing | */
 	rem++;
@@ -504,16 +572,20 @@ err:
 }
 
 /* This generates the logging command description for VTY. */
-const char *log_vty_command_description(const struct log_info *info)
+const char *log_vty_command_description(const struct log_info *unused_info)
 {
+	struct log_info *info = osmo_log_info;
 	char *str;
 	int i, ret, len = 0, offset = 0, rem;
 	unsigned int size =
 		strlen(LOGGING_STR
 		       "Set the log level for a specified category\n") + 1;
 
-	for (i = 0; i < info->num_cat; i++)
+	for (i = 0; i < info->num_cat; i++) {
+		if (info->cat[i].name == NULL)
+			continue;
 		size += strlen(info->cat[i].description) + 1;
+	}
 
 	for (i = 0; i < LOGLEVEL_DEFS; i++)
 		size += strlen(loglevel_descriptions[i]) + 1;
@@ -537,6 +609,8 @@ const char *log_vty_command_description(const struct log_info *info)
 	OSMO_SNPRINTF_RET(ret, rem, offset, len);
 
 	for (i = 0; i < info->num_cat; i++) {
+		if (info->cat[i].name == NULL)
+			continue;
 		ret = snprintf(str + offset, rem, "%s\n",
 				info->cat[i].description);
 		if (ret < 0)
@@ -555,8 +629,43 @@ err:
 	return str;
 }
 
-void log_init(const struct log_info *cat)
+int log_init(const struct log_info *inf, void *ctx)
 {
-	tall_log_ctx = talloc_named_const(NULL, 1, "logging");
-	osmo_log_info = cat;
+	int i;
+
+	tall_log_ctx = talloc_named_const(ctx, 1, "logging");
+	if (!tall_log_ctx)
+		return -ENOMEM;
+
+	osmo_log_info = talloc_zero(tall_log_ctx, struct log_info);
+	if (!osmo_log_info)
+		return -ENOMEM;
+
+	osmo_log_info->num_cat_user = inf->num_cat;
+	/* total number = number of user cat + library cat */
+	osmo_log_info->num_cat = inf->num_cat + ARRAY_SIZE(internal_cat);
+
+	osmo_log_info->cat = talloc_zero_array(osmo_log_info,
+					struct log_info_cat,
+					osmo_log_info->num_cat);
+	if (!osmo_log_info->cat) {
+		talloc_free(osmo_log_info);
+		osmo_log_info = NULL;
+		return -ENOMEM;
+	}
+
+	/* copy over the user part */
+	for (i = 0; i < inf->num_cat; i++) {
+		memcpy(&osmo_log_info->cat[i], &inf->cat[i],
+			sizeof(struct log_info_cat));
+	}
+
+	/* copy over the library part */
+	for (i = 0; i < ARRAY_SIZE(internal_cat); i++) {
+		unsigned int cn = osmo_log_info->num_cat_user + i;
+		memcpy(&osmo_log_info->cat[cn],
+			&internal_cat[i], sizeof(struct log_info_cat));
+	}
+
+	return 0;
 }

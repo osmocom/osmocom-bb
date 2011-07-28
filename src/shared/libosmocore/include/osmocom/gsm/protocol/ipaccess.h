@@ -33,6 +33,7 @@ enum ipaccess_proto_ext {
 	IPAC_PROTO_EXT_CTRL	= 0x00,
 	IPAC_PROTO_EXT_MGCP	= 0x01,
 	IPAC_PROTO_EXT_LAC	= 0x02,
+	IPAC_PROTO_EXT_SMSC	= 0x03,
 };
 
 enum ipaccess_msgtype {

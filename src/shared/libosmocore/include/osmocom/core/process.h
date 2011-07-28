@@ -1,6 +1,2 @@
-#ifndef _OSMO_PROCESS_H
-#define _OSMO_PROCESS_H
-
-int osmo_daemonize(void);
-
-#endif
+#warning "Update from osmocom/core/process.h to osmocom/core/application.h"
+#include <osmocom/core/application.h>

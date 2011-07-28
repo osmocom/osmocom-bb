@@ -236,11 +236,11 @@ struct tlv_def {
 };
 
 struct tlv_definition {
-	struct tlv_def def[0xff];
+	struct tlv_def def[256];
 };
 
 struct tlv_parsed {
-	struct tlv_p_entry lv[0xff];
+	struct tlv_p_entry lv[256];
 };
 
 extern struct tlv_definition tvlv_att_def;
