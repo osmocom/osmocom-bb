@@ -615,7 +615,7 @@ int controlif_setup(struct gsm_network *gsmnet, uint16_t port)
 		return -ENOMEM;
 
 	/* Listen for control connections */
-	ret = make_sock(&ctrl->listen_fd, IPPROTO_TCP, 0, port,
+	ret = make_sock(&ctrl->listen_fd, IPPROTO_TCP, INADDR_LOOPBACK, port,
 			0, listen_fd_cb, ctrl);
 	if (ret < 0) {
 		talloc_free(ctrl);
