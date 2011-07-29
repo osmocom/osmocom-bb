@@ -111,9 +111,8 @@ int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg)
 		uint16_t _bvci = htons(*bvci);
 		msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (uint8_t *) &_bvci);
 	}
-	if (orig_msg)
-		msgb_tvlv_put(msg, BSSGP_IE_PDU_IN_ERROR,
-			      msgb_bssgp_len(orig_msg), msgb_bssgph(orig_msg));
+	msgb_tvlv_put(msg, BSSGP_IE_PDU_IN_ERROR,
+		      msgb_bssgp_len(orig_msg), msgb_bssgph(orig_msg));
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
