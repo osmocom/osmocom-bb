@@ -745,7 +745,7 @@ int gsm48_decode_freq_list(struct gsm_sysinfo_freq *f, uint8_t *cd,
 		if (w[4])
 			f[((w[1] - 512 + ((w[2] - 256 + w[4] - 1) % 511)) % 1023) + 1].mask |= frqt;
 		if (w[5])
-			f[((w[1]       + ((w[3] - 256 - w[5] - 1) % 511)) % 1023) + 1].mask |= frqt;
+			f[((w[1]       + ((w[3] - 256 + w[5] - 1) % 511)) % 1023) + 1].mask |= frqt;
 		if (w[6])
 			f[((w[1] - 512 + ((w[2]       + w[6] - 1) % 511)) % 1023) + 1].mask |= frqt;
 		if (w[7])

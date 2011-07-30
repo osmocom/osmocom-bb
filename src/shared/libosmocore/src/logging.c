@@ -73,24 +73,24 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 		.enabled = 1,
 	},
 	[INT2IDX(DLINP)] = {
-		.name = "DINP",
+		.name = "DLINP",
 		.description = "A-bis Intput Subsystem",
 		.loglevel = LOGL_NOTICE,
 		.enabled = 1,
 	},
 	[INT2IDX(DLMUX)] = {
-		.name = "DMUX",
+		.name = "DLMUX",
 		.description = "A-bis B-Subchannel TRAU Frame Multiplex",
 		.loglevel = LOGL_NOTICE,
 		.enabled = 1,
 	},
 	[INT2IDX(DLMI)] = {
-		.name = "DMI",
+		.name = "DLMI",
 		.description = "A-bis Input Driver for Signalling",
 		.enabled = 0, .loglevel = LOGL_NOTICE,
 	},
 	[INT2IDX(DLMIB)] = {
-		.name = "DMIB",
+		.name = "DLMIB",
 		.description = "A-bis Input Driver for B-Channels (voice)",
 		.enabled = 0, .loglevel = LOGL_NOTICE,
 	},
