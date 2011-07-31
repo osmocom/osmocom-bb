@@ -70,6 +70,21 @@ static void add_power()
 	memcpy(&node_power->power, &power, sizeof(power));
 }
 
+static void print_si(void *priv, const char *fmt, ...)
+{
+	char buffer[1000];
+	FILE *outfp = (FILE *)priv;
+	va_list args;
+
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer) - 1, fmt, args);
+	buffer[sizeof(buffer) - 1] = '\0';
+	va_end(args);
+
+	if (buffer[0])
+		fprintf(outfp, "%s", buffer);
+}
+
 static void add_sysinfo()
 {
 	struct gsm48_sysinfo s;
@@ -108,7 +123,8 @@ static void add_sysinfo()
 		gsm48_decode_sysinfo4(&s,
 			(struct gsm48_system_information_type_4 *) sysinfo.si4,
 			23);
-
+	printf("--------------------------------------------------------------------------\n");
+	gsm48_sysinfo_dump(&s, sysinfo.arfcn, print_si, stdout, NULL);
 	mcc = get_node_mcc(s.mcc);
 	if (!mcc)
 		nomem();
@@ -321,21 +337,6 @@ void kml_meas(FILE *outfp, struct node_meas *meas, int n, uint16_t mcc,
 		meas->longitude, meas->latitude);
 	fprintf(outfp, "\t\t\t\t\t\t</Point>\n");
 	fprintf(outfp, "\t\t\t\t\t</Placemark>\n");
-}
-
-static void print_si(void *priv, const char *fmt, ...)
-{
-	char buffer[1000];
-	FILE *outfp = (FILE *)priv;
-	va_list args;
-
-	va_start(args, fmt);
-	vsnprintf(buffer, sizeof(buffer) - 1, fmt, args);
-	buffer[sizeof(buffer) - 1] = '\0';
-	va_end(args);
-
-	if (buffer[0])
-		fprintf(outfp, "%s", buffer);
 }
 
 double debug_long, debug_lat, debug_x_scale;
