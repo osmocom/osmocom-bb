@@ -12,6 +12,6 @@ AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS)
 
 sbin_PROGRAMS = gsmmap 
 
-gsmmap_SOURCES = gsmmap.c geo.c locate.c log.c ../layer23/src/common/sysinfo.c ../layer23/src/common/networks.c
+gsmmap_SOURCES = gsmmap.c geo.c locate.c log.c ../layer23/src/common/sysinfo.c ../layer23/src/common/networks.c ../layer23/src/common/logging.c
 gsmmap_LDADD = $(LIBOSMOGSM_LIBS) $(LIBOSMOCORE_LIBS) -lm
 

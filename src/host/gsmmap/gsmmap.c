@@ -32,6 +32,7 @@
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
+#include <osmocom/bb/common/logging.h>
 
 #include "log.h"
 #include "geo.h"
@@ -499,6 +500,8 @@ void kml_cell(FILE *outfp, struct node_cell *cell)
 	fprintf(outfp, "\t</Folder>\n");
 }
 
+struct log_target *stderr_target;
+
 int main(int argc, char *argv[])
 {
 	FILE *infp, *outfp;
@@ -509,6 +512,13 @@ int main(int argc, char *argv[])
 	struct node_lac *lac;
 	struct node_cell *cell;
 	struct node_meas *meas;
+
+	log_init(&log_info, NULL);
+	stderr_target = log_target_create_stderr();
+	log_add_target(stderr_target);
+	log_set_all_filter(stderr_target, 1);
+	log_parse_category_mask(stderr_target, "Dxxx");
+	log_set_log_level(stderr_target, LOGL_INFO);
 
 	if (argc <= 2) {
 usage:
