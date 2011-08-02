@@ -120,4 +120,5 @@ AC_OUTPUT(
 	tests/msgfile/Makefile
 	tests/ussd/Makefile
 	tests/smscb/Makefile
+	utils/Makefile
 	Makefile)
