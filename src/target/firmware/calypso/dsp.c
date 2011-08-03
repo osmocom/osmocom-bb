@@ -181,7 +181,7 @@ static void dsp_pre_boot(const struct dsp_section *bootcode)
 
 	if (bootcode) {
 		dputs("Loading initial DSP bootcode (API boot mode)\n");
-		dsp_upload_sections_api(dsp_bootcode, DSP_BASE_API_MIRROR);
+		dsp_upload_sections_api(bootcode, DSP_BASE_API_MIRROR);
 
 		writew(BL_STATUS_NA, BL_CMD_STATUS);
 	} else
