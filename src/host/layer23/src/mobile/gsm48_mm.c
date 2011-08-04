@@ -1777,6 +1777,7 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 	struct gsm_support *sup = &ms->support;
 	struct gsm_settings *set = &ms->settings;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
 	uint8_t pwr_lev;
@@ -1795,7 +1796,10 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 	ngh->msg_type = GSM48_MT_MM_IMSI_DETACH_IND;
 
 	/* classmark 1 */
-	pwr_lev = gsm48_current_pwr_lev(set, rr->cd_now.arfcn);
+	if (rr_prim == GSM48_RR_EST_REQ)
+		pwr_lev = gsm48_current_pwr_lev(set, cs->sel_arfcn);
+	else
+		pwr_lev = gsm48_current_pwr_lev(set, rr->cd_now.arfcn);
 	gsm48_encode_classmark1(&cm, sup->rev_lev, sup->es_ind, set->a5_1,
 		pwr_lev);
         msgb_v_put(nmsg, *((uint8_t *)&cm));
@@ -2290,7 +2294,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_support *sup = &ms->support;
 	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 	struct gsm48_hdr *ngh;
 	struct gsm48_loc_upd_req *nlu; /* NOTE: mi_len is part of struct */
@@ -2321,7 +2325,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 		gsm_print_mcc(subscr->mcc),
 		gsm_print_mnc(subscr->mnc), subscr->lac);
 	/* classmark 1 */
-	pwr_lev = gsm48_current_pwr_lev(set, rr->cd_now.arfcn);
+	pwr_lev = gsm48_current_pwr_lev(set, cs->sel_arfcn);
 	gsm48_encode_classmark1(&nlu->classmark1, sup->rev_lev, sup->es_ind,
 		set->a5_1, pwr_lev);
 	/* MI */
