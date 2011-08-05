@@ -436,7 +436,7 @@ oom:
 
 /* rate_ctr */
 CTRL_CMD_DEFINE(rate_ctr, "rate_ctr *");
-int get_rate_ctr(struct ctrl_cmd *cmd, void *data)
+static int get_rate_ctr(struct ctrl_cmd *cmd, void *data)
 {
 	int intv;
 	unsigned int idx;
@@ -529,21 +529,21 @@ err:
 	return CTRL_CMD_ERROR;
 }
 
-int set_rate_ctr(struct ctrl_cmd *cmd, void *data)
+static int set_rate_ctr(struct ctrl_cmd *cmd, void *data)
 {
 	cmd->reply = "Can't set rate counter.";
 
 	return CTRL_CMD_ERROR;
 }
 
-int verify_rate_ctr(struct ctrl_cmd *cmd, const char *value, void *data)
+static int verify_rate_ctr(struct ctrl_cmd *cmd, const char *value, void *data)
 {
 	return 0;
 }
 
 /* counter */
 CTRL_CMD_DEFINE(counter, "counter *");
-int get_counter(struct ctrl_cmd *cmd, void *data)
+static int get_counter(struct ctrl_cmd *cmd, void *data)
 {
 	char *ctr_name, *tmp, *dup, *saveptr;
 	struct osmo_counter *counter;
@@ -586,7 +586,7 @@ err:
 	return CTRL_CMD_ERROR;
 }
 
-int set_counter(struct ctrl_cmd *cmd, void *data)
+static int set_counter(struct ctrl_cmd *cmd, void *data)
 {
 
 	cmd->reply = "Can't set counter.";
@@ -594,7 +594,7 @@ int set_counter(struct ctrl_cmd *cmd, void *data)
 	return CTRL_CMD_ERROR;
 }
 
-int verify_counter(struct ctrl_cmd *cmd, const char *value, void *data)
+static int verify_counter(struct ctrl_cmd *cmd, const char *value, void *data)
 {
 	return 0;
 }
