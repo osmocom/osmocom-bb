@@ -1159,13 +1159,13 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 }
 
 /* encode classmark 2 */
-int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm)
+int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm,
+	uint16_t arfcn)
 {
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_support *sup = &ms->support;
 	struct gsm_settings *set = &ms->settings;
 
-	cm->pwr_lev = gsm48_current_pwr_lev(set, rr->cd_now.arfcn);
+	cm->pwr_lev = gsm48_current_pwr_lev(set, arfcn);
 	cm->a5_1 = !set->a5_1;
 	cm->es_ind = sup->es_ind;
 	cm->rev_lev = sup->rev_lev;
@@ -1189,6 +1189,7 @@ static int gsm48_rr_tx_cm_change(struct osmocom_ms *ms)
 {
 	struct gsm_support *sup = &ms->support;
 	struct gsm_settings *set = &ms->settings;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm48_cm_change *cc;
@@ -1207,7 +1208,7 @@ static int gsm48_rr_tx_cm_change(struct osmocom_ms *ms)
 
 	/* classmark 2 */
 	cc->cm2_len = sizeof(cc->cm2);
-	gsm48_rr_enc_cm2(ms, &cc->cm2);
+	gsm48_rr_enc_cm2(ms, &cc->cm2, rr->cd_now.arfcn);
 
 	/* classmark 3 */
 	if (set->dcs || set->pcs || set->e_gsm || set->r_gsm || set->gsm_850
@@ -3174,7 +3175,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		pr->key_seq = subscr->key_seq;
 		/* classmark 2 */
 		pr->cm2_len = sizeof(pr->cm2);
-		gsm48_rr_enc_cm2(ms, &pr->cm2);
+		gsm48_rr_enc_cm2(ms, &pr->cm2, rr->cd_now.arfcn);
 		/* mobile identity */
 		if (ms->subscr.tmsi != 0xffffffff
 		 && ms->subscr.mcc == cs->sel_mcc

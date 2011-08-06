@@ -2753,6 +2753,8 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	uint8_t cm_serv)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
@@ -2778,7 +2780,9 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 	nsr->cipher_key_seq = subscr->key_seq;
 	/* classmark 2 */
 	cm2lv[0] = sizeof(struct gsm48_classmark2);
-	gsm48_rr_enc_cm2(ms, (struct gsm48_classmark2 *)(cm2lv + 1));
+	gsm48_rr_enc_cm2(ms, (struct gsm48_classmark2 *)(cm2lv + 1),
+		(rr_prim == GSM48_RR_EST_REQ)	? cs->sel_arfcn
+						: rr->cd_now.arfcn);
 	/* MI */
 	if (mm->est_cause == RR_EST_CAUSE_EMERGENCY && set->emergency_imsi[0]) {
 		LOGP(DMM, LOGL_INFO, "-> Using IMSI %s for emergency\n",
