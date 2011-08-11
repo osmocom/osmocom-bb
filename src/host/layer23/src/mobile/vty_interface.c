@@ -1335,7 +1335,7 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	if (!hide_default || sup->dsc_max != set->dsc_max)
 		vty_out(vty, "  dsc-max %d%s", set->dsc_max, VTY_NEWLINE);
 	if (!hide_default || set->skip_max_per_band)
-		vty_out(vty, "  %skip-max-per-band%s",
+		vty_out(vty, "  %sskip-max-per-band%s",
 			(set->skip_max_per_band) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
