@@ -1,11 +1,17 @@
 #ifndef _OSMOCORE_LOGGING_H
 #define _OSMOCORE_LOGGING_H
 
+/*! \file logging.h
+ *  \brief Osmocom logging framework
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <osmocom/core/linuxlist.h>
 
+/*! \brief Maximum number of logging contexts */
 #define LOG_MAX_CTX		8
+/*! \brief Maximum number of logging filters */
 #define LOG_MAX_FILTERS	8
 
 #define DEBUG
@@ -21,9 +27,21 @@
 
 void logp(int subsys, char *file, int line, int cont, const char *format, ...) __attribute__ ((format (printf, 5, 6)));
 
-/* new logging interface */
+/*! \brief Log a new message through the Osmocom logging framework
+ *  \param[in] ss logging subsystem (e.g. \ref DLGLOBAL)
+ *  \param[in] level logging level (e.g. \ref LOGL_NOTICE)
+ *  \param[in] fmt format string
+ *  \param[in] args variable argument list
+ */
 #define LOGP(ss, level, fmt, args...) \
 	logp2(ss, level, __FILE__, __LINE__, 0, fmt, ##args)
+
+/*! \brief Continue a log message through the Osmocom logging framework
+ *  \param[in] ss logging subsystem (e.g. \ref DLGLOBAL)
+ *  \param[in] level logging level (e.g. \ref LOGL_NOTICE)
+ *  \param[in] fmt format string
+ *  \param[in] args variable argument list
+ */
 #define LOGPC(ss, level, fmt, args...) \
 	logp2(ss, level, __FILE__, __LINE__, 1, fmt, ##args)
 
@@ -151,7 +169,12 @@ struct log_target *log_target_create_syslog(const char *ident, int option,
 					    int facility);
 int log_target_file_reopen(struct log_target *tgt);
 
+/*! \brief Add a new logging target
+ */
 void log_add_target(struct log_target *target);
+
+/*! \brief Deelete an existing logging target
+ */
 void log_del_target(struct log_target *target);
 
 /* Generate command string for VTY use */

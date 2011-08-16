@@ -24,45 +24,85 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/utils.h>
 
+/*! \file msgb.h
+ *  \brief Osmocom message buffers
+ * The Osmocom message buffers are modelled after the 'struct skb'
+ * inside the Linux kernel network stack.  As they exist in userspace,
+ * they are much simplified.  However, terminology such as headroom,
+ * tailroom, push/pull/put etc. remains the same.
+ */
+
 #define MSGB_DEBUG
 
+/*! \brief Osmocom message buffer */
 struct msgb {
-	struct llist_head list;
+	struct llist_head list; /*!< \brief linked list header */
 
 
 	/* Part of which TRX logical channel we were received / transmitted */
 	/* FIXME: move them into the control buffer */
 	union {
-		void *dst;
+		void *dst; /*!< \brief reference of origin/destination */
 		struct gsm_bts_trx *trx;
 	};
-	struct gsm_lchan *lchan;
+	struct gsm_lchan *lchan; /*!< \brief logical channel */
 
-	/* the Layer1 header (if any) */
-	unsigned char *l1h;
-	/* the A-bis layer 2 header: OML, RSL(RLL), NS */
-	unsigned char *l2h;
-	/* the layer 3 header. For OML: FOM; RSL: 04.08; GPRS: BSSGP */
-	unsigned char *l3h;
-	/* the layer 4 header */
-	unsigned char *l4h;
+	unsigned char *l1h; /*!< \brief pointer to Layer1 header (if any) */
+	unsigned char *l2h; /*!< \brief pointer to A-bis layer 2 header: OML, RSL(RLL), NS */
+	unsigned char *l3h; /*!< \brief pointer to Layer 3 header. For OML: FOM; RSL: 04.08; GPRS: BSSGP */
+	unsigned char *l4h; /*!< \brief pointer to layer 4 header */
 
-	/* the 'control buffer', large enough to contain 5 pointers */
-	unsigned long cb[5];
+	unsigned long cb[5]; /*!< \brief control buffer */
 
-	uint16_t data_len;
-	uint16_t len;
+	uint16_t data_len;   /*!< \brief length of underlying data array */
+	uint16_t len;	     /*!< \brief length of bytes used in msgb */
 
-	unsigned char *head;
-	unsigned char *tail;
-	unsigned char *data;
-	unsigned char _data[0];
+	unsigned char *head;	/*!< \brief start of underlying memory buffer */
+	unsigned char *tail;	/*!< \brief end of message in buffer */
+	unsigned char *data;	/*!< \brief start of message in buffer */
+	unsigned char _data[0]; /*!< \brief optional immediate data array */
 };
 
+/*! \brief Allocate a new message buffer
+ * \param[in] size Length in octets, including headroom
+ * \param[in] name Human-readable name to be associated with msgb
+ *
+ * This function allocates a 'struct msgb' as well as the underlying
+ * memory buffer for the actual message data (size specified by \a size)
+ * using the talloc memory context previously set by \ref msgb_set_talloc_ctx
+ */
 extern struct msgb *msgb_alloc(uint16_t size, const char *name);
+
+/*! \brief Release given message buffer
+ * \param[in] m Message buffer to be free'd
+ */
 extern void msgb_free(struct msgb *m);
+
+/*! \brief Enqueue message buffer to tail of a queue
+ * \param[in] queue linked list header of queue
+ * \param[in] msgb message buffer to be added to the queue
+ *
+ * The function will append the specified message buffer \a msg to the
+ * queue implemented by \ref llist_head \a queue
+ */
 extern void msgb_enqueue(struct llist_head *queue, struct msgb *msg);
+
+/*! \brief Dequeue message buffer from head of queue
+ * \param[in] queue linked list header of queue
+ * \returns message buffer (if any) or NULL if queue empty
+ *
+ * The function will remove the first message buffer from the queue
+ * implemented by 'ref llist_head \a queue.
+ */
 extern struct msgb *msgb_dequeue(struct llist_head *queue);
+
+/*! \brief Re-set all message buffer pointers
+ *  \param[in] m message buffer that is to be resetted
+ *
+ * This will re-set the various internal pointers into the underlying
+ * message buffer, i.e. remvoe all headroom and treat the msgb as
+ * completely empty.  It also initializes the control buffer to zero.
+ */
 extern void msgb_reset(struct msgb *m);
 
 #ifdef MSGB_DEBUG
@@ -74,41 +114,99 @@ extern void msgb_reset(struct msgb *m);
 #define MSGB_ABORT(msg, fmt, args ...)
 #endif
 
+/*! \brief obtain L1 header of msgb */
 #define msgb_l1(m)	((void *)(m->l1h))
+/*! \brief obtain L2 header of msgb */
 #define msgb_l2(m)	((void *)(m->l2h))
+/*! \brief obtain L3 header of msgb */
 #define msgb_l3(m)	((void *)(m->l3h))
+/*! \brief obtain SMS header of msgb */
 #define msgb_sms(m)	((void *)(m->l4h))
 
+/*! \brief determine length of L1 message
+ *  \param[in] msgb message buffer
+ *  \returns size of L1 message in bytes
+ *
+ * This function computes the number of bytes between the tail of the
+ * message and the layer 1 header.
+ */
 static inline unsigned int msgb_l1len(const struct msgb *msgb)
 {
 	return msgb->tail - (uint8_t *)msgb_l1(msgb);
 }
 
+/*! \brief determine length of L2 message
+ *  \param[in] msgb message buffer
+ *  \returns size of L2 message in bytes
+ *
+ * This function computes the number of bytes between the tail of the
+ * message and the layer 2 header.
+ */
 static inline unsigned int msgb_l2len(const struct msgb *msgb)
 {
 	return msgb->tail - (uint8_t *)msgb_l2(msgb);
 }
 
+/*! \brief determine length of L3 message
+ *  \param[in] msgb message buffer
+ *  \returns size of L3 message in bytes
+ *
+ * This function computes the number of bytes between the tail of the
+ * message and the layer 3 header.
+ */
 static inline unsigned int msgb_l3len(const struct msgb *msgb)
 {
 	return msgb->tail - (uint8_t *)msgb_l3(msgb);
 }
 
+/*! \brief determine the length of the header
+ *  \param[in] msgb message buffer
+ *  \returns number of bytes between start of buffer and start of msg
+ *
+ * This function computes the length difference between the underlying
+ * data buffer and the used section of the \a msgb.
+ */
 static inline unsigned int msgb_headlen(const struct msgb *msgb)
 {
 	return msgb->len - msgb->data_len;
 }
 
+/*! \brief determine how much tail room is left in msgb
+ *  \param[in] msgb message buffer
+ *  \returns number of bytes remaining at end of msgb
+ *
+ * This function computes the amount of octets left in the underlying
+ * data buffer after the end of the message.
+ */
 static inline int msgb_tailroom(const struct msgb *msgb)
 {
 	return (msgb->head + msgb->data_len) - msgb->tail;
 }
 
+/*! \brief determine the amount of headroom in msgb
+ *  \param[in] msgb message buffer
+ *  \returns number of bytes left ahead of message start in msgb
+ *
+ * This function computes the amount of bytes left in the underlying
+ * data buffer before the start of the actual message.
+ */
 static inline int msgb_headroom(const struct msgb *msgb)
 {
 	return (msgb->data - msgb->head);
 }
 
+/*! \brief append data to end of message buffer
+ *  \param[in] msgb message buffer
+ *  \param[in] len number of bytes to append to message
+ *  \returns pointer to start of newly-appended data
+ *
+ * This function will move the \a tail pointer of the message buffer \a
+ * len bytes further, thus enlarging the message by \a len bytes.
+ *
+ * The return value is a pointer to start of the newly added section at
+ * the end of the message and can be used for actually filling/copying
+ * data into it.
+ */
 static inline unsigned char *msgb_put(struct msgb *msgb, unsigned int len)
 {
 	unsigned char *tmp = msgb->tail;
@@ -119,17 +217,32 @@ static inline unsigned char *msgb_put(struct msgb *msgb, unsigned int len)
 	msgb->len += len;
 	return tmp;
 }
+
+/*! \brief append a uint8 value to the end of the message
+ *  \param[in] msgb message buffer
+ *  \param[in] word unsigned 8bit byte to be appended
+ */
 static inline void msgb_put_u8(struct msgb *msgb, uint8_t word)
 {
 	uint8_t *space = msgb_put(msgb, 1);
 	space[0] = word & 0xFF;
 }
+
+/*! \brief append a uint16 value to the end of the message
+ *  \param[in] msgb message buffer
+ *  \param[in] word unsigned 16bit byte to be appended
+ */
 static inline void msgb_put_u16(struct msgb *msgb, uint16_t word)
 {
 	uint8_t *space = msgb_put(msgb, 2);
 	space[0] = word >> 8 & 0xFF;
 	space[1] = word & 0xFF;
 }
+
+/*! \brief append a uint32 value to the end of the message
+ *  \param[in] msgb message buffer
+ *  \param[in] word unsigned 32bit byte to be appended
+ */
 static inline void msgb_put_u32(struct msgb *msgb, uint32_t word)
 {
 	uint8_t *space = msgb_put(msgb, 4);
@@ -138,6 +251,11 @@ static inline void msgb_put_u32(struct msgb *msgb, uint32_t word)
 	space[2] = word >> 8 & 0xFF;
 	space[3] = word & 0xFF;
 }
+
+/*! \brief remove data from end of message
+ *  \param[in] msgb message buffer
+ *  \param[in] len number of bytes to remove from end
+ */
 static inline unsigned char *msgb_get(struct msgb *msgb, unsigned int len)
 {
 	unsigned char *tmp = msgb->data;
@@ -145,21 +263,46 @@ static inline unsigned char *msgb_get(struct msgb *msgb, unsigned int len)
 	msgb->len -= len;
 	return tmp;
 }
+/*! \brief remove uint8 from end of message
+ *  \param[in] msgb message buffer
+ *  \returns 8bit value taken from end of msgb
+ */
 static inline uint8_t msgb_get_u8(struct msgb *msgb)
 {
 	uint8_t *space = msgb_get(msgb, 1);
 	return space[0];
 }
+/*! \brief remove uint16 from end of message
+ *  \param[in] msgb message buffer
+ *  \returns 16bit value taken from end of msgb
+ */
 static inline uint16_t msgb_get_u16(struct msgb *msgb)
 {
 	uint8_t *space = msgb_get(msgb, 2);
 	return space[0] << 8 | space[1];
 }
+/*! \brief remove uint32 from end of message
+ *  \param[in] msgb message buffer
+ *  \returns 32bit value taken from end of msgb
+ */
 static inline uint32_t msgb_get_u32(struct msgb *msgb)
 {
 	uint8_t *space = msgb_get(msgb, 4);
 	return space[0] << 24 | space[1] << 16 | space[2] << 8 | space[3];
 }
+
+/*! \brief prepend (push) some data to start of message
+ *  \param[in] msgb message buffer
+ *  \param[in] len number of bytes to pre-pend
+ *  \returns pointer to newly added portion at start of \a msgb
+ *
+ * This function moves the \a data pointer of the \ref msgb further
+ * to the front (by \a len bytes), thereby enlarging the message by \a
+ * len bytes.
+ *
+ * The return value is a pointer to the newly added section in the
+ * beginning of the message.  It can be used to fill/copy data into it.
+ */
 static inline unsigned char *msgb_push(struct msgb *msgb, unsigned int len)
 {
 	if (msgb_headroom(msgb) < (int) len)
@@ -169,19 +312,48 @@ static inline unsigned char *msgb_push(struct msgb *msgb, unsigned int len)
 	msgb->len += len;
 	return msgb->data;
 }
+/*! \brief remove (pull) a header from the front of the message buffer
+ *  \param[in] msgb message buffer
+ *  \param[in] len number of octets to be pulled
+ *  \returns pointer to new start of msgb
+ *
+ * This function moves the \a data pointer of the \ref msgb further back
+ * in the message, thereby shrinking the size of the message by \a len
+ * bytes.
+ */
 static inline unsigned char *msgb_pull(struct msgb *msgb, unsigned int len)
 {
 	msgb->len -= len;
 	return msgb->data += len;
 }
 
-/* increase the headroom of an empty msgb, reducing the tailroom */
+/*! \brief Increase headroom of empty msgb, reducing the tailroom
+ *  \param[in] msg message buffer
+ *  \param[in] len amount of extra octets to be reserved as headroom
+ *
+ * This function reserves some memory at the beginning of the underlying
+ * data buffer.  The idea is to reserve space in case further headers
+ * have to be pushed to the \ref msgb during further processing.
+ *
+ * Calling this function leads to undefined reusults if it is called on
+ * a non-empty \ref msgb.
+ */
 static inline void msgb_reserve(struct msgb *msg, int len)
 {
 	msg->data += len;
 	msg->tail += len;
 }
 
+/*! \brief Allocate message buffer with specified headroom
+ *  \param[in] size size in bytes, including headroom
+ *  \param[in] headroom headroom in bytes
+ *  \param[in] name human-readable name
+ *  \returns allocated message buffer with specified headroom
+ *
+ * This function is a convenience wrapper around \ref msgb_alloc
+ * followed by \ref msgb_reserve in order to create a new \ref msgb with
+ * user-specified amount of headroom.
+ */
 static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 						const char *name)
 {
@@ -194,10 +366,22 @@ static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 }
 
 /* non inline functions to ease binding */
+
+/*! \brief get pointer to data section of message buffer
+ *  \param[in] msg message buffer
+ *  \returns pointer to data section of message buffer
+ */
 uint8_t *msgb_data(const struct msgb *msg);
+
+/*! \brief get length of message buffer
+ *  \param[in] msg message buffer
+ *  \returns length of data section in message buffer
+ */
 uint16_t msgb_length(const struct msgb *msg);
 
-/* set the talloc context for msgb_alloc[_headroom] */
+/*! \brief Set the talloc context for \ref msgb_alloc
+ *  \param[in] ctx talloc context to be used as root for msgb allocations
+ */
 void msgb_set_talloc_ctx(void *ctx);
 
 #endif /* _MSGB_H */
