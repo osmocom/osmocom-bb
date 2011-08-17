@@ -3,8 +3,14 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/tlv.h>
 
+/*! \addtogroup tlv
+ *  @{
+ */
+/*! \file tlv.c */
+
 struct tlv_definition tvlv_att_def;
 
+/*! \brief Dump pasred TLV structure to stdout */
 int tlv_dump(struct tlv_parsed *dec)
 {
 	int i;
@@ -17,14 +23,14 @@ int tlv_dump(struct tlv_parsed *dec)
 	return 0;
 }
 
-/* o_tag:  output: tag found
- * o_len:  output: length of the data
- * o_val:  output: pointer to the data
- * def:     input: a structure defining the valid TLV tags / configurations
- * buf:     input: the input data buffer to be parsed
- * buf_len: input: the length of the input data buffer
- *
- * Also, returns the number of bytes consumed by the TLV entry
+/*! \brief Parse a single TLV encoded IE
+ *  \param[out] o_tag the tag of the IE that was found
+ *  \param[out] o_len length of the IE that was found
+ *  \param[out] o_val pointer to the data of the IE that was found
+ *  \param[in] def structure defining the valid TLV tags / configurations
+ *  \param[in] buf the input data buffer to be parsed
+ *  \param[in] buf_len length of the input data buffer
+ *  \returns number of bytes consumed by the TLV entry / IE parsed
  */
 int tlv_parse_one(uint8_t *o_tag, uint16_t *o_len, const uint8_t **o_val,
 		  const struct tlv_definition *def,
@@ -101,12 +107,14 @@ int tlv_parse_one(uint8_t *o_tag, uint16_t *o_len, const uint8_t **o_val,
 	return len;
 }
 
-/* dec:    output: a caller-allocated pointer to a struct tlv_parsed,
- * def:     input: a structure defining the valid TLV tags / configurations
- * buf:     input: the input data buffer to be parsed
- * buf_len: input: the length of the input data buffer
- * lv_tag:  input: an initial LV tag at the start of the buffer
- * lv_tag2: input: a second initial LV tag following lv_tag 
+/*! \brief Parse an entire buffer of TLV encoded Information Eleemnts
+ *  \param[out] dec caller-allocated pointer to \ref tlv_parsed
+ *  \param[in] def structure defining the valid TLV tags / configurations
+ *  \param[in] buf the input data buffer to be parsed
+ *  \param[in] buf_len length of the input data buffer
+ *  \param[in] lv_tag an initial LV tag at the start of the buffer
+ *  \param[in] lv_tag2 a second initial LV tag following the \a lv_tag
+ *  \returns number of bytes consumed by the TLV entry / IE parsed
  */
 int tlv_parse(struct tlv_parsed *dec, const struct tlv_definition *def,
 	      const uint8_t *buf, int buf_len, uint8_t lv_tag,
@@ -158,7 +166,7 @@ int tlv_parse(struct tlv_parsed *dec, const struct tlv_definition *def,
 	return num_parsed;
 }
 
-/* take a master (src) tlvdev and fill up all empty slots in 'dst' */
+/*! \brief take a master (src) tlvdev and fill up all empty slots in 'dst' */
 void tlv_def_patch(struct tlv_definition *dst, const struct tlv_definition *src)
 {
 	int i;
@@ -177,3 +185,5 @@ static __attribute__((constructor)) void on_dso_load_tlv(void)
 	for (i = 0; i < ARRAY_SIZE(tvlv_att_def.def); i++)
 		tvlv_att_def.def[i].type = TLV_TYPE_TvLV;
 }
+
+/*! }@ */
