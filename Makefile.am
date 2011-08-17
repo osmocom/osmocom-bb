@@ -27,7 +27,7 @@ $(doc_html_DATA): $(top_builddir)/doc/core/html/index.html \
 		  $(top_builddir)/doc/gsm/html/index.html \
 		  $(top_builddir)/doc/vty/html/index.html \
 		  $(top_builddir)/doc/codec/html/index.html
-	cd $(top_builddir)/doc && tar cf html.tar *
+	cd $(top_builddir)/doc && tar cf html.tar */html
 
 $(top_builddir)/doc/core/html/index.html: $(SOURCES) Doxyfile
 	rm -rf doc/core
