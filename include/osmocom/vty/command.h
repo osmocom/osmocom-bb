@@ -28,7 +28,7 @@
 #include "vector.h"
 #include "vty.h"
 
-/*! \addtogroup vty
+/*! \defgroup command VTY Command
  *  @{
  */
 /*! \file command.h */

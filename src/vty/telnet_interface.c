@@ -33,7 +33,7 @@
 #include <osmocom/vty/buffer.h>
 #include <osmocom/vty/command.h>
 
-/*! \addtogroup vty
+/*! \addtogroup telnet_interface
  *  @{
  */
 /*! \file telnet_interface.c */

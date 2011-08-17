@@ -26,7 +26,7 @@
 
 #include <osmocom/vty/vty.h>
 
-/*! \addtogroup vty
+/*! \defgroup telnet_interface Telnet Interface
  *  @{
  */
 
