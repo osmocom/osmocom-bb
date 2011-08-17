@@ -23,56 +23,48 @@
  *
  */
 
+/*! \defgroup bitvec Bit vectors
+ *  @{
+ */
+
+/*! \file bitvec.h
+ *  \brief Osmocom bit vector abstraction
+ */
+
 #include <stdint.h>
 
-/* In GSM mac blocks, every bit can be 0 or 1, or L or H.  L/H are
+/*! \brief A single GSM bit
+ *
+ * In GSM mac blocks, every bit can be 0 or 1, or L or H.  L/H are
  * defined relative to the 0x2b padding pattern */
 enum bit_value {
-	ZERO	= 0,
-	ONE	= 1,
-	L	= 2,
-	H	= 3,
+	ZERO	= 0, 	/*!< \brief A zero (0) bit */
+	ONE	= 1,	/*!< \brief A one (1) bit */
+	L	= 2,	/*!< \brief A CSN.1 "L" bit */
+	H	= 3,	/*!< \brief A CSN.1 "H" bit */
 };
 
+/*! \brief structure describing a bit vector */
 struct bitvec {
-	unsigned int cur_bit;	/* curser to the next unused bit */
-	unsigned int data_len;	/* length of data array in bytes */
-	uint8_t *data;		/* pointer to data array */
+	unsigned int cur_bit;	/*!< \brief curser to the next unused bit */
+	unsigned int data_len;	/*!< \brief length of data array in bytes */
+	uint8_t *data;		/*!< \brief pointer to data array */
 };
 
-/* check if the bit is 0 or 1 for a given position inside a bitvec */
 enum bit_value bitvec_get_bit_pos(const struct bitvec *bv, unsigned int bitnr);
-
-/* check if the bit is L or H for a given position inside a bitvec */
 enum bit_value bitvec_get_bit_pos_high(const struct bitvec *bv,
 					unsigned int bitnr);
-
-/* get the Nth set bit inside the bit vector */
 unsigned int bitvec_get_nth_set_bit(const struct bitvec *bv, unsigned int n);
-
-/* Set a bit at given position */
 int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnum,
 			enum bit_value bit);
-
-/* Set the next bit in the vector */
 int bitvec_set_bit(struct bitvec *bv, enum bit_value bit);
-
-/* get the next bit (low/high) inside a bitvec */
 int bitvec_get_bit_high(struct bitvec *bv);
-
-/* Set multiple bits at the current position */
 int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, int count);
-
-/* Add an unsigned integer (of length count bits) to current position */
 int bitvec_set_uint(struct bitvec *bv, unsigned int in, int count);
-
-/* get multiple bits (based on numeric value) from current pos */
 int bitvec_get_uint(struct bitvec *bv, int num_bits);
-
-/* find the first bit set in bit vector */
 int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value val);
-
-/* Pad the bit vector up to a certain bit position */
 int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit);
+
+/*! }@ */
 
 #endif /* _BITVEC_H */

@@ -30,10 +30,21 @@
 
 #ifdef HAVE_SYS_SELECT_H
 
+/*! \addtogroup select
+ *  @{
+ */
+
+/*! \file select.c
+ *  \brief select loop abstraction
+ */
+
 static int maxfd = 0;
 static LLIST_HEAD(osmo_fds);
 static int unregistered_count;
 
+/*! \brief Register a new file descriptor with select loop abstraction
+ *  \param[in] fd osmocom file descriptor to be registered
+ */
 int osmo_fd_register(struct osmo_fd *fd)
 {
 	int flags;
@@ -75,12 +86,18 @@ int osmo_fd_register(struct osmo_fd *fd)
 	return 0;
 }
 
+/*! \brief Unregister a file descriptor from select loop abstraction
+ *  \param[in] fd osmocom file descriptor to be unregistered
+ */
 void osmo_fd_unregister(struct osmo_fd *fd)
 {
 	unregistered_count++;
 	llist_del(&fd->list);
 }
 
+/*! \brief select main loop integration
+ *  \param[in] polling should we pollonly (1) or block on select (0)
+ */
 int osmo_select_main(int polling)
 {
 	struct osmo_fd *ufd, *tmp;
@@ -149,5 +166,7 @@ restart:
 	}
 	return work;
 }
+
+/*! }@ */
 
 #endif /* _HAVE_SYS_SELECT_H */

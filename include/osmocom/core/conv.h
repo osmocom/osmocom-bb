@@ -20,6 +20,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/*! \defgroup conv Convolutional encoding and decoding routines
+ *  @{
+ */
+
+/*! \file conv.h
+ *  \file Osmocom convolutional encoder and decoder
+ */
+
 #ifndef __OSMO_CONV_H__
 #define __OSMO_CONV_H__
 
@@ -27,6 +35,7 @@
 
 #include <osmocom/core/bits.h>
 
+/*! \brief structure describing a given convolutional code */
 struct osmo_conv_code {
 	int N;
 	int K;
@@ -45,11 +54,12 @@ struct osmo_conv_code {
 /* Encoding */
 
 	/* Low level API */
+/*! \brief convolutional encoder state */
 struct osmo_conv_encoder {
-	const struct osmo_conv_code *code;
-	int i_idx;	/* Next input bit index */
-	int p_idx;	/* Current puncture index */
-	uint8_t state;	/* Current state */
+	const struct osmo_conv_code *code; /*!< \brief for which code? */
+	int i_idx;	/*!< \brief Next input bit index */
+	int p_idx;	/*!< \brief Current puncture index */
+	uint8_t state;	/*!< \brief Current state */
 };
 
 void osmo_conv_encode_init(struct osmo_conv_encoder *encoder,
@@ -66,19 +76,21 @@ int  osmo_conv_encode(const struct osmo_conv_code *code,
 /* Decoding */
 
 	/* Low level API */
+/*! \brief convolutional decoder state */
 struct osmo_conv_decoder {
+	/*! \brief description of convolutional code */
 	const struct osmo_conv_code *code;
 
-	int n_states;
+	int n_states;		/*!< \brief number of states */
 
-	int len;		/* Max o_idx (excl. termination) */
+	int len;		/*!< \brief Max o_idx (excl. termination) */
 
-	int o_idx;		/* output index */
-	int p_idx;		/* puncture index */
+	int o_idx;		/*!< \brief output index */
+	int p_idx;		/*!< \brief puncture index */
 
-	unsigned int *ae;	/* accumulater error */
-	unsigned int *ae_next;	/* next accumulated error (tmp in scan) */
-	uint8_t *state_history;	/* state history [len][n_states] */
+	unsigned int *ae;	/*!< \brief accumulater error */
+	unsigned int *ae_next;	/*!< \brief next accumulated error (tmp in scan) */
+	uint8_t *state_history;	/*!< \brief state history [len][n_states] */
 };
 
 void osmo_conv_decode_init(struct osmo_conv_decoder *decoder,
@@ -97,5 +109,7 @@ int osmo_conv_decode_get_output(struct osmo_conv_decoder *decoder,
 int osmo_conv_decode(const struct osmo_conv_code *code,
                      const sbit_t *input, ubit_t *output);
 
+
+/*! }@ */
 
 #endif /* __OSMO_CONV_H__ */

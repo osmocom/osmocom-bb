@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+/*! \defgroup bits soft, unpacked and packed bits
+ *  @{
+ */
+
 /*! \file bits.h
  *  \brief Osmocom bit level support code
  */
@@ -30,44 +34,18 @@ static inline unsigned int osmo_pbit_bytesize(unsigned int num_bits)
 	return pbit_bytesize;
 }
 
-/*! \brief convert unpacked bits to packed bits, return length in bytes
- *  \param[out] out output buffer of packed bits
- *  \param[in] in input buffer of unpacked bits
- *  \param[in] num_bits number of bits
- */
 int osmo_ubit2pbit(pbit_t *out, const ubit_t *in, unsigned int num_bits);
 
-/*! \brief convert packed bits to unpacked bits, return length in bytes
- *  \param[out] out output buffer of unpacked bits
- *  \param[in] in input buffer of packed bits
- *  \param[in] num_bits number of bits
- */
 int osmo_pbit2ubit(ubit_t *out, const pbit_t *in, unsigned int num_bits);
 
-/*! \brief convert unpacked bits to packed bits (extended options)
- *  \param[out] out output buffer of packed bits
- *  \param[in] out_ofs offset into output buffer
- *  \param[in] in input buffer of unpacked bits
- *  \param[in] in_ofs offset into input buffer
- *  \param[in] num_bits number of bits
- *  \param[in] lsb_mode Encode bits in LSB orde instead of MSB
- *  \returns length in bytes (max written offset of output buffer + 1)
- */
 int osmo_ubit2pbit_ext(pbit_t *out, unsigned int out_ofs,
                        const ubit_t *in, unsigned int in_ofs,
                        unsigned int num_bits, int lsb_mode);
 
-/*! \brief convert packed bits to unpacked bits (extended options)
- *  \param[out] out output buffer of unpacked bits
- *  \param[in] out_ofs offset into output buffer
- *  \param[in] in input buffer of packed bits
- *  \param[in] in_ofs offset into input buffer
- *  \param[in] num_bits number of bits
- *  \param[in] lsb_mode Encode bits in LSB orde instead of MSB
- *  \returns length in bytes (max written offset of output buffer + 1)
- */
 int osmo_pbit2ubit_ext(ubit_t *out, unsigned int out_ofs,
                        const pbit_t *in, unsigned int in_ofs,
                        unsigned int num_bits, int lsb_mode);
 
-#endif
+/*! }@ */
+
+#endif /* _OSMO_BITS_H */

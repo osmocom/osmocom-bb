@@ -24,6 +24,10 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/utils.h>
 
+/*! \defgroup msgb Message buffers
+ *  @{
+ */
+
 /*! \file msgb.h
  *  \brief Osmocom message buffers
  * The Osmocom message buffers are modelled after the 'struct skb'
@@ -63,46 +67,10 @@ struct msgb {
 	unsigned char _data[0]; /*!< \brief optional immediate data array */
 };
 
-/*! \brief Allocate a new message buffer
- * \param[in] size Length in octets, including headroom
- * \param[in] name Human-readable name to be associated with msgb
- *
- * This function allocates a 'struct msgb' as well as the underlying
- * memory buffer for the actual message data (size specified by \a size)
- * using the talloc memory context previously set by \ref msgb_set_talloc_ctx
- */
 extern struct msgb *msgb_alloc(uint16_t size, const char *name);
-
-/*! \brief Release given message buffer
- * \param[in] m Message buffer to be free'd
- */
 extern void msgb_free(struct msgb *m);
-
-/*! \brief Enqueue message buffer to tail of a queue
- * \param[in] queue linked list header of queue
- * \param[in] msgb message buffer to be added to the queue
- *
- * The function will append the specified message buffer \a msg to the
- * queue implemented by \ref llist_head \a queue
- */
 extern void msgb_enqueue(struct llist_head *queue, struct msgb *msg);
-
-/*! \brief Dequeue message buffer from head of queue
- * \param[in] queue linked list header of queue
- * \returns message buffer (if any) or NULL if queue empty
- *
- * The function will remove the first message buffer from the queue
- * implemented by 'ref llist_head \a queue.
- */
 extern struct msgb *msgb_dequeue(struct llist_head *queue);
-
-/*! \brief Re-set all message buffer pointers
- *  \param[in] m message buffer that is to be resetted
- *
- * This will re-set the various internal pointers into the underlying
- * message buffer, i.e. remvoe all headroom and treat the msgb as
- * completely empty.  It also initializes the control buffer to zero.
- */
 extern void msgb_reset(struct msgb *m);
 
 #ifdef MSGB_DEBUG
@@ -367,21 +335,10 @@ static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 
 /* non inline functions to ease binding */
 
-/*! \brief get pointer to data section of message buffer
- *  \param[in] msg message buffer
- *  \returns pointer to data section of message buffer
- */
 uint8_t *msgb_data(const struct msgb *msg);
-
-/*! \brief get length of message buffer
- *  \param[in] msg message buffer
- *  \returns length of data section in message buffer
- */
 uint16_t msgb_length(const struct msgb *msg);
-
-/*! \brief Set the talloc context for \ref msgb_alloc
- *  \param[in] ctx talloc context to be used as root for msgb allocations
- */
 void msgb_set_talloc_ctx(void *ctx);
+
+/*! }@ */
 
 #endif /* _MSGB_H */

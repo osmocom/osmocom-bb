@@ -22,6 +22,10 @@
  *
  */
 
+/*! \file backtrace.c
+ *  \brief Routines realted to generating call back traces
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <osmocom/core/utils.h>
@@ -29,6 +33,12 @@
 
 #ifdef HAVE_EXECINFO_H
 #include <execinfo.h>
+
+/*! \brief Generate and print a call back-trace
+ *
+ * This function will generate a function call back-trace of the
+ * current process and print it to stdout
+ */
 void osmo_generate_backtrace(void)
 {
 	int i, nptrs;

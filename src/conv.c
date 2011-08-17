@@ -22,6 +22,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/*! \addtogroup conv
+ *  @{
+ */
+
+/*! \file conv.c
+ *  \file Osmocom convolutional encoder and decoder
+ */
+
 #include <alloca.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -35,6 +43,10 @@
 /* Encoding                                                                 */
 /* ------------------------------------------------------------------------ */
 
+/*! \brief Initialize a convolutional encoder
+ *  \param[in,out] encoder Encoder state to initialize
+ *  \param[in] code Description of convolutional code
+ */
 void
 osmo_conv_encode_init(struct osmo_conv_encoder *encoder,
                       const struct osmo_conv_code *code)
@@ -138,6 +150,15 @@ osmo_conv_encode_finish(struct osmo_conv_encoder *encoder,
 	return o_idx;
 }
 
+/*! \brief All-in-one convolutional encoding function
+ *  \param[in] code description of convolutional code to be used
+ *  \param[in] input array of unpacked bits (uncoded)
+ *  \param[out] output array of unpacked bits (encoded)
+ *
+ * This is an all-in-one function, taking care of
+ * \ref osmo_conv_init, \ref osmo_conv_encode_raw and
+ * \ref osmo_conv_encode_finish.
+ */
 int
 osmo_conv_encode(const struct osmo_conv_code *code,
                  const ubit_t *input, ubit_t *output)
@@ -476,6 +497,16 @@ osmo_conv_decode_get_output(struct osmo_conv_decoder *decoder,
 	return min_ae;
 }
 
+/*! \brief All-in-one convolutional decoding function
+ *  \param[in] code description of convolutional code to be used
+ *  \param[in] input array of soft bits (coded)
+ *  \param[out] output array of unpacked bits (decoded)
+ *
+ * This is an all-in-one function, taking care of
+ * \ref osmo_conv_decode_init, \ref osmo_conv_decode_scan,
+ * \ref osmo_conv_decode_finish, \ref osmo_conv_decode_get_output and
+ * \ref osmo_conv_decode_deinit.
+ */
 int
 osmo_conv_decode(const struct osmo_conv_code *code,
                  const sbit_t *input, ubit_t *output)
@@ -494,3 +525,5 @@ osmo_conv_decode(const struct osmo_conv_code *code,
 
 	return rv;
 }
+
+/*! }@ */
