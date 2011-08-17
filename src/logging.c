@@ -20,6 +20,12 @@
  *
  */
 
+/* \addtogroup logging
+ * @{
+ */
+
+/* \file logging.c */
+
 #include "../config.h"
 
 #include <stdarg.h>
@@ -113,16 +119,22 @@ static int subsys_lib2index(int subsys)
 	return (subsys * -1) + (osmo_log_info->num_cat_user-1);
 }
 
+/*! \brief Parse a human-readable log level into a numeric value */
 int log_parse_level(const char *lvl)
 {
 	return get_string_value(loglevel_strs, lvl);
 }
 
+/*! \brief convert a numeric log level into human-readable string */
 const char *log_level_str(unsigned int lvl)
 {
 	return get_value_string(loglevel_strs, lvl);
 }
 
+/*! \brief parse a human-readable log category into numeric form
+ *  \param[in] category human-readable log category name
+ *  \returns numeric category value, or -EINVAL otherwise
+ */
 int log_parse_category(const char *category)
 {
 	int i;
@@ -137,8 +149,10 @@ int log_parse_category(const char *category)
 	return -EINVAL;
 }
 
-/*
- * Parse the category mask.
+/*! \brief parse the log category mask
+ *  \param[in] target log target to be configured
+ *  \param[in] _mask log category mask string
+ *
  * The format can be this: category1:category2:category3
  * or category1,2:category2,3:...
  */
@@ -312,21 +326,38 @@ void logp2(int subsys, unsigned int level, char *file, int line, int cont, const
 	va_end(ap);
 }
 
+/*! \brief Register a new log target with the logging core
+ *  \param[in] target Log target to be registered
+ */
 void log_add_target(struct log_target *target)
 {
 	llist_add_tail(&target->entry, &osmo_log_target_list);
 }
 
+/*! \brief Unregister a log target from the logging core
+ *  \param[in] target Log target to be unregistered
+ */
 void log_del_target(struct log_target *target)
 {
 	llist_del(&target->entry);
 }
 
+/*! \brief Reset (clear) the logging context */
 void log_reset_context(void)
 {
 	memset(&log_context, 0, sizeof(log_context));
 }
 
+/*! \brief Set the logging context
+ *  \param[in] ctx_nr logging context number
+ *  \param[in] value value to which the context is to be set
+ *
+ * A logging context is something like the subscriber identity to which
+ * the currently processed message relates, or the BTS through which it
+ * was received.  As soon as this data is known, it can be set using
+ * this function.  The main use of context information is for logging
+ * filters.
+ */
 int log_set_context(uint8_t ctx_nr, void *value)
 {
 	if (ctx_nr > LOG_MAX_CTX)
@@ -337,6 +368,14 @@ int log_set_context(uint8_t ctx_nr, void *value)
 	return 0;
 }
 
+/*! \brief Enable the \ref LOG_FILTER_ALL log filter
+ *  \param[in] target Log target to be affected
+ *  \param[in] all enable (1) or disable (0) the ALL filter
+ *
+ * When the \ref LOG_FILTER_ALL filter is enabled, all log messages will
+ * be printed.  It acts as a wildcard.  Setting it to \a 1 means there
+ * is no filtering.
+ */
 void log_set_all_filter(struct log_target *target, int all)
 {
 	if (all)
@@ -345,16 +384,28 @@ void log_set_all_filter(struct log_target *target, int all)
 		target->filter_map &= ~LOG_FILTER_ALL;
 }
 
+/*! \brief Enable or disable the use of colored output
+ *  \param[in] target Log target to be affected
+ *  \param[in] use_color Use color (1) or don't use color (0)
+ */
 void log_set_use_color(struct log_target *target, int use_color)
 {
 	target->use_color = use_color;
 }
 
+/*! \brief Enable or disable printing of timestamps while logging
+ *  \param[in] target Log target to be affected
+ *  \param[in] print_timestamp Enable (1) or disable (0) timestamps
+ */
 void log_set_print_timestamp(struct log_target *target, int print_timestamp)
 {
 	target->print_timestamp = print_timestamp;
 }
 
+/*! \brief Set the global log level for a given log target
+ *  \param[in] target Log target to be affected
+ *  \param[in] log_level New global log level
+ */
 void log_set_log_level(struct log_target *target, int log_level)
 {
 	target->loglevel = log_level;
@@ -376,6 +427,7 @@ static void _file_output(struct log_target *target, unsigned int level,
 	fflush(target->tgt_file.out);
 }
 
+/*! \brief Create a new log target skeleton */
 struct log_target *log_target_create(void)
 {
 	struct log_target *target;
@@ -411,6 +463,7 @@ struct log_target *log_target_create(void)
 	return target;
 }
 
+/*! \brief Create the STDERR log target */
 struct log_target *log_target_create_stderr(void)
 {
 /* since C89/C99 says stderr is a macro, we can safely do this! */
@@ -430,6 +483,10 @@ struct log_target *log_target_create_stderr(void)
 #endif /* stderr */
 }
 
+/*! \brief Create a new file-based log target
+ *  \param[in] fname File name of the new log file
+ *  \returns Log target in case of success, NULL otherwise
+ */
 struct log_target *log_target_create_file(const char *fname)
 {
 	struct log_target *target;
@@ -450,6 +507,11 @@ struct log_target *log_target_create_file(const char *fname)
 	return target;
 }
 
+/*! \brief Find a registered log target
+ *  \param[in] type Log target type
+ *  \param[in] fname File name
+ *  \returns Log target (if found), NULL otherwise
+ */
 struct log_target *log_target_find(int type, const char *fname)
 {
 	struct log_target *tgt;
@@ -466,6 +528,7 @@ struct log_target *log_target_find(int type, const char *fname)
 	return NULL;
 }
 
+/*! \brief Unregister, close and delete a log target */
 void log_target_destroy(struct log_target *target)
 {
 
@@ -487,7 +550,7 @@ void log_target_destroy(struct log_target *target)
 	talloc_free(target);
 }
 
-/* close and re-open a log file (for log file rotation) */
+/*! \brief close and re-open a log file (for log file rotation) */
 int log_target_file_reopen(struct log_target *target)
 {
 	fclose(target->tgt_file.out);
@@ -501,7 +564,9 @@ int log_target_file_reopen(struct log_target *target)
 	return 0;
 }
 
-/* This generates the logging command string for VTY. */
+/*! \brief Generates the logging command string for VTY
+ *  \param[in] unused_info Deprecated parameter, no longer used!
+ */
 const char *log_vty_command_string(const struct log_info *unused_info)
 {
 	struct log_info *info = osmo_log_info;
@@ -576,7 +641,9 @@ err:
 	return str;
 }
 
-/* This generates the logging command description for VTY. */
+/*! \brief Generates the logging command description for VTY
+ *  \param[in] unused_info Deprecated parameter, no longer used!
+ */
 const char *log_vty_command_description(const struct log_info *unused_info)
 {
 	struct log_info *info = osmo_log_info;
@@ -634,6 +701,11 @@ err:
 	return str;
 }
 
+/*! \brief Initialize the Osmocom logging core
+ *  \param[in] inf Information regarding logging categories
+ *  \param[in] ctx \ref talloc context for logging allocations
+ *  \returns 0 in case of success, negative in case of error
+ */
 int log_init(const struct log_info *inf, void *ctx)
 {
 	int i;
@@ -674,3 +746,5 @@ int log_init(const struct log_info *inf, void *ctx)
 
 	return 0;
 }
+
+/*! }@ */
