@@ -20,6 +20,12 @@
  *
  */
 
+/*! \addtogroup utils
+ *  @{
+ */
+
+/*! \file panic.c */
+
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/panic.h>
 #include <osmocom/core/backtrace.h>
@@ -52,6 +58,7 @@ static void osmo_panic_default(const char *fmt, va_list args)
 #endif
 
 
+/*! \brief Terminate the current program with a panic */
 void osmo_panic(const char *fmt, ...)
 {
 	va_list args;
@@ -67,6 +74,7 @@ void osmo_panic(const char *fmt, ...)
 }
  
 
+/*! \brief Set the panic handler */
 void osmo_set_panic_handler(osmo_panic_handler_t h)
 {
 	osmo_panic_handler = h;
