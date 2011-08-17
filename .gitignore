@@ -22,6 +22,11 @@ install-sh
 stamp-h1
 libtool
 
+Doxyfile
+Doxyfile.gsm
+Doxyfile.vty
+Doxyfile.codec
+
 .tarball-version
 .version
 
