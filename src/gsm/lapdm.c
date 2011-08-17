@@ -21,7 +21,14 @@
  *
  */
 
-/* Notes on Buffering: rcv_buffer, tx_queue, tx_hist, send_buffer, send_queue
+/*! \addtogroup lapdm
+ *  @{
+ */
+
+/*! \file lapdm.c */
+
+/*!
+ * Notes on Buffering: rcv_buffer, tx_queue, tx_hist, send_buffer, send_queue
  *
  * RX data is stored in the rcv_buffer (pointer). If the message is complete, it
  * is removed from rcv_buffer pointer and forwarded to L3. If the RX data is
@@ -184,6 +191,10 @@ static void lapdm_dl_init(struct lapdm_datalink *dl,
 	dl->entity = entity;
 }
 
+/*! \brief initialize a LAPDm entity and all datalinks inside
+ *  \param[in] le LAPDm entity
+ *  \param[in] mode \ref lapdm_mode (BTS/MS)
+ */
 void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode)
 {
 	unsigned int i;
@@ -194,12 +205,18 @@ void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode)
 	lapdm_entity_set_mode(le, mode);
 }
 
+/*! \brief initialize a LAPDm channel and all its channels
+ *  \param[in] lc \ref lapdm_channel to be initialized
+ *  \param[in] mode \ref lapdm_mode (BTS/MS)
+ *
+ * This really is a convenience wrapper around calling \ref
+ * lapdm_entity_init twice.
+ */
 void lapdm_channel_init(struct lapdm_channel *lc, enum lapdm_mode mode)
 {
 	lapdm_entity_init(&lc->lapdm_acch, mode);
 	lapdm_entity_init(&lc->lapdm_dcch, mode);
 }
-
 
 static void lapdm_dl_flush_send(struct lapdm_datalink *dl)
 {
@@ -227,6 +244,7 @@ static void lapdm_dl_flush_tx(struct lapdm_datalink *dl)
 		dl->tx_length[i] = 0;
 }
 
+/*! \brief flush and release all resoures in LAPDm entity */
 void lapdm_entity_exit(struct lapdm_entity *le)
 {
 	unsigned int i;
@@ -241,6 +259,11 @@ void lapdm_entity_exit(struct lapdm_entity *le)
 	}
 }
 
+/* \brief lfush and release all resources in LAPDm channel
+ *
+ * A convenience wrapper calling \ref lapdm_entity_exit on both
+ * entities inside the \ref lapdm_channel
+ */
 void lapdm_channel_exit(struct lapdm_channel *lc)
 {
 	lapdm_entity_exit(&lc->lapdm_acch);
@@ -355,7 +378,7 @@ static struct msgb *tx_dequeue_msgb(struct lapdm_entity *le)
 	return msg;
 }
 
-/* dequeue a msg that's pending transmission via L1 and wrap it into
+/*! \brief dequeue a msg that's pending transmission via L1 and wrap it into
  * a osmo_phsap_prim */
 int lapdm_phsap_dequeue_prim(struct lapdm_entity *le, struct osmo_phsap_prim *pp)
 {
@@ -1702,6 +1725,7 @@ static int l2_ph_rach_ind(struct lapdm_entity *le, uint8_t ra, uint32_t fn, uint
 
 static int l2_ph_chan_conf(struct msgb *msg, struct lapdm_entity *le, uint32_t frame_nr);
 
+/*! \brief Receive a PH-SAP primitive from L1 */
 int lapdm_phsap_up(struct osmo_prim_hdr *oph, struct lapdm_entity *le)
 {
 	struct osmo_phsap_prim *pp = (struct osmo_phsap_prim *) oph;
@@ -2411,7 +2435,7 @@ static int rslms_rx_com_chan(struct msgb *msg, struct lapdm_channel *lc)
 	return rc;
 }
 
-/* input into layer2 (from layer 3) */
+/*! \brief Receive a RSLms \ref msgb from Layer 3 */
 int lapdm_rslms_recvmsg(struct msgb *msg, struct lapdm_channel *lc)
 {
 	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
@@ -2439,6 +2463,7 @@ int lapdm_rslms_recvmsg(struct msgb *msg, struct lapdm_channel *lc)
 	return rc;
 }
 
+/*! \brief Set the \ref lapdm_mode of a LAPDm entity */
 int lapdm_entity_set_mode(struct lapdm_entity *le, enum lapdm_mode mode)
 {
 	switch (mode) {
@@ -2463,6 +2488,7 @@ int lapdm_entity_set_mode(struct lapdm_entity *le, enum lapdm_mode mode)
 	return 0;
 }
 
+/*! \brief Set the \ref lapdm_mode of a LAPDm channel*/
 int lapdm_channel_set_mode(struct lapdm_channel *lc, enum lapdm_mode mode)
 {
 	int rc;
@@ -2474,6 +2500,7 @@ int lapdm_channel_set_mode(struct lapdm_channel *lc, enum lapdm_mode mode)
 	return lapdm_entity_set_mode(&lc->lapdm_acch, mode);
 }
 
+/*! \brief Set the L1 callback and context of a LAPDm channel */
 void lapdm_channel_set_l1(struct lapdm_channel *lc, osmo_prim_cb cb, void *ctx)
 {
 	lc->lapdm_dcch.l1_prim_cb = cb;
@@ -2482,6 +2509,7 @@ void lapdm_channel_set_l1(struct lapdm_channel *lc, osmo_prim_cb cb, void *ctx)
 	lc->lapdm_acch.l1_ctx = ctx;
 }
 
+/*! \brief Set the L3 callback and context of a LAPDm channel */
 void lapdm_channel_set_l3(struct lapdm_channel *lc, lapdm_cb_t cb, void *ctx)
 {
 	lc->lapdm_dcch.l3_cb = cb;
@@ -2490,6 +2518,7 @@ void lapdm_channel_set_l3(struct lapdm_channel *lc, lapdm_cb_t cb, void *ctx)
 	lc->lapdm_acch.l3_ctx = ctx;
 }
 
+/*! \brief Reset an entire LAPDm entity and all its datalinks */
 void lapdm_entity_reset(struct lapdm_entity *le)
 {
 	struct lapdm_datalink *dl;
@@ -2510,19 +2539,24 @@ void lapdm_entity_reset(struct lapdm_entity *le)
 	}
 }
 
+/*! \brief Reset a LAPDm channel with all its entities */
 void lapdm_channel_reset(struct lapdm_channel *lc)
 {
 	lapdm_entity_reset(&lc->lapdm_dcch);
 	lapdm_entity_reset(&lc->lapdm_acch);
 }
 
+/*! \brief Set the flags of a LAPDm entity */
 void lapdm_entity_set_flags(struct lapdm_entity *le, unsigned int flags)
 {
 	le->flags = flags;
 }
 
+/*! \brief Set the flags of all LAPDm entities in a LAPDm channel */
 void lapdm_channel_set_flags(struct lapdm_channel *lc, unsigned int flags)
 {
 	lapdm_entity_set_flags(&lc->lapdm_dcch, flags);
 	lapdm_entity_set_flags(&lc->lapdm_acch, flags);
 }
+
+/*! }@ */
