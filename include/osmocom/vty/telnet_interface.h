@@ -26,15 +26,28 @@
 
 #include <osmocom/vty/vty.h>
 
+/*! \addtogroup vty
+ *  @{
+ */
+
+/*! \file telnet_interface.h */
+
+/*! \brief A telnet connection */
 struct telnet_connection {
+	/*! \brief linked list header for internal management */
 	struct llist_head entry;
+	/*! \brief private data pointer passed through */
 	void *priv;
+	/*! \brief filedsecriptor (socket ) */
 	struct osmo_fd fd;
+	/*! \brief VTY instance associated with telnet connection */
 	struct vty *vty;
+	/*! \brief logging target associated with this telnet connection */
 	struct log_target *dbg;
 };
 
-
 int telnet_init(void *tall_ctx, void *priv, int port);
 
-#endif
+/*! }@ */
+
+#endif /* TELNET_INTERFACE_H */

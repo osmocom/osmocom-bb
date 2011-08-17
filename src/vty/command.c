@@ -40,6 +40,11 @@ Boston, MA 02111-1307, USA.  */
 
 #include <osmocom/core/talloc.h>
 
+/*! \addtogroup vty
+ * @{
+ */
+/*! \file command.c */
+
 #define CONFIGFILE_MASK 022
 
 void *tall_vty_cmd_ctx;
@@ -81,7 +86,9 @@ struct cmd_node config_node = {
 /* Default motd string. */
 const char *default_motd = "";
 
-/* This is called from main when a daemon is invoked with -v or --version. */
+/*! \brief print the version (and optionally copyright) information
+ *
+ * This is called from main when a daemon is invoked with -v or --version. */
 void print_version(int print_copyright)
 {
 	printf("%s version %s\n", host.app_info->name, host.app_info->version);
@@ -114,7 +121,7 @@ char *argv_concat(const char **argv, int argc, int shift)
 	return str;
 }
 
-/* Install top node of command vector. */
+/*! \brief Install top node of command vector. */
 void install_node(struct cmd_node *node, int (*func) (struct vty *))
 {
 	vector_set_index(cmdvec, node->node, node);
@@ -151,7 +158,7 @@ static int is_config(struct vty *vty)
 		return vty->node > CONFIG_NODE;
 }
 
-/* Sort each node's command element according to command string. */
+/*! \brief Sort each node's command element according to command string. */
 void sort_node(void)
 {
 	unsigned int i, j;
@@ -181,7 +188,7 @@ void sort_node(void)
 		}
 }
 
-/* Breaking up string into each command piece. I assume given
+/*! Breaking up string into each command piece. I assume given
    character is separated by a space character. Return value is a
    vector which includes char ** data element. */
 vector cmd_make_strvec(const char *string)
@@ -231,7 +238,7 @@ vector cmd_make_strvec(const char *string)
 	}
 }
 
-/* Free allocated string vector. */
+/*! \brief Free allocated string vector. */
 void cmd_free_strvec(vector v)
 {
 	unsigned int i;
@@ -247,7 +254,7 @@ void cmd_free_strvec(vector v)
 	vector_free(v);
 }
 
-/* Fetch next description.  Used in cmd_make_descvec(). */
+/*! \brief Fetch next description.  Used in \ref cmd_make_descvec(). */
 static char *cmd_desc_str(const char **string)
 {
 	const char *cp, *start;
@@ -282,7 +289,7 @@ static char *cmd_desc_str(const char **string)
 	return token;
 }
 
-/* New string vector. */
+/*! \brief New string vector. */
 static vector cmd_make_descvec(const char *string, const char *descstr)
 {
 	int multiple = 0;
@@ -389,7 +396,7 @@ static int cmd_cmdsize(vector strvec)
 	return size;
 }
 
-/* Return prompt character of specified node. */
+/*! \brief Return prompt character of specified node. */
 const char *cmd_prompt(enum node_type node)
 {
 	struct cmd_node *cnode;
@@ -398,7 +405,10 @@ const char *cmd_prompt(enum node_type node)
 	return cnode->prompt;
 }
 
-/* Install a command into a node. */
+/*! \brief Install a command into a node
+ *  \param[in] ntype Node Type
+ *  \param[cmd] element to be installed
+ */
 void install_element(enum node_type ntype, struct cmd_element *cmd)
 {
 	struct cmd_node *cnode;
@@ -3227,3 +3237,5 @@ void cmd_init(int terminal)
 	}
 	srand(time(NULL));
 }
+
+/*! }@ */

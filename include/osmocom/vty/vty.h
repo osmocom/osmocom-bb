@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+/*! \defgroup vty VTY (Virtual TTY) interface
+ *  @{
+ */
+/*! \file vty.h */
+
 /* GCC have printf type attribute check.  */
 #ifdef __GNUC__
 #define VTY_PRINTF_ATTRIBUTE(a,b) __attribute__ ((__format__ (__printf__, a, b)))
@@ -21,7 +26,7 @@
 #define VTY_BUFSIZ 512
 #define VTY_MAXHIST 20
 
-/* Vty events */
+/*! \brief VTY events */
 enum event {
 	VTY_SERV,
 	VTY_READ,
@@ -35,87 +40,94 @@ enum event {
 #endif				/* VTYSH */
 };
 
+/*! Internal representation of a single VTY */
 struct vty {
+	/*! \brief underlying file (if any) */
 	FILE *file;
 
-	/* private data, specified by creator */
+	/*! \brief private data, specified by creator */
 	void *priv;
 
-	/* File descripter of this vty. */
+	/*! \brief File descripter of this vty. */
 	int fd;
 
-	/* Is this vty connect to file or not */
+	/*! \brief Is this vty connect to file or not */
 	enum { VTY_TERM, VTY_FILE, VTY_SHELL, VTY_SHELL_SERV } type;
 
-	/* Node status of this vty */
+	/*! \brief Node status of this vty */
 	int node;
 
-	/* Failure count */
+	/*! \brief Failure count */
 	int fail;
 
-	/* Output buffer. */
+	/*! \brief Output buffer. */
 	struct buffer *obuf;
 
-	/* Command input buffer */
+	/*! \brief Command input buffer */
 	char *buf;
 
-	/* Command cursor point */
+	/*! \brief Command cursor point */
 	int cp;
 
-	/* Command length */
+	/*! \brief Command length */
 	int length;
 
-	/* Command max length. */
+	/*! \brief Command max length. */
 	int max;
 
-	/* Histry of command */
+	/*! \brief Histry of command */
 	char *hist[VTY_MAXHIST];
 
-	/* History lookup current point */
+	/*! \brief History lookup current point */
 	int hp;
 
-	/* History insert end point */
+	/*! \brief History insert end point */
 	int hindex;
 
-	/* For current referencing point of interface, route-map,
+	/*! \brief For current referencing point of interface, route-map,
 	   access-list etc... */
 	void *index;
 
-	/* For multiple level index treatment such as key chain and key. */
+	/*! \brief For multiple level index treatment such as key chain and key. */
 	void *index_sub;
 
-	/* For escape character. */
+	/*! \brief For escape character. */
 	unsigned char escape;
 
-	/* Current vty status. */
+	/*! \brief Current vty status. */
 	enum { VTY_NORMAL, VTY_CLOSE, VTY_MORE, VTY_MORELINE } status;
 
-	/* IAC handling: was the last character received the IAC
+	/*! \brief IAC handling
+	 *
+	 * IAC handling: was the last character received the IAC
 	 * (interpret-as-command) escape character (and therefore the next
 	 * character will be the command code)?  Refer to Telnet RFC 854. */
 	unsigned char iac;
 
-	/* IAC SB (option subnegotiation) handling */
+	/*! \brief IAC SB (option subnegotiation) handling */
 	unsigned char iac_sb_in_progress;
 	/* At the moment, we care only about the NAWS (window size) negotiation,
 	 * and that requires just a 5-character buffer (RFC 1073):
 	 * <NAWS char> <16-bit width> <16-bit height> */
 #define TELNET_NAWS_SB_LEN 5
+	/*! \brief sub-negotiation buffer */
 	unsigned char sb_buf[TELNET_NAWS_SB_LEN];
-	/* How many subnegotiation characters have we received?  We just drop
-	 * those that do not fit in the buffer. */
+	/*! \brief How many subnegotiation characters have we received?  
+	 *
+	 * We just drop those that do not fit in the buffer. */
 	size_t sb_len;
 
-	/* Window width/height. */
+	/*! \brief Window width */
 	int width;
+	/*! \brief Widnow height */
 	int height;
 
-	/* Configure lines. */
+	/*! \brief Configure lines. */
 	int lines;
 
 	int monitor;
 
-	/* In configure mode. */
+	/*! \brief In configure mode. */
 	int config;
 };
 
@@ -127,12 +139,19 @@ static inline char *vty_newline(struct vty *vty)
 	return VTY_NEWLINE;
 }
 
+/*! Information an application registers with the VTY */
 struct vty_app_info {
+	/*! \brief name of the application */
 	const char *name;
+	/*! \brief version string of the application */
 	const char *version;
+	/*! \brief copyright string of the application */
 	const char *copyright;
+	/*! \brief \ref talloc context */
 	void *tall_ctx;
+	/*! \brief call-back for returning to parent n ode */
 	enum node_type (*go_parent_cb)(struct vty *vty);
+	/*! \brief call-back to determine if node is config node */
 	int (*is_config_node)(struct vty *vty, int node);
 };
 
@@ -159,4 +178,7 @@ void *vty_current_index(struct vty *);
 int vty_current_node(struct vty *vty);
 
 extern void *tall_vty_ctx;
+
+/*! }@ */
+
 #endif

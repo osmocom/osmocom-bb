@@ -28,74 +28,80 @@
 #include "vector.h"
 #include "vty.h"
 
-/* Host configuration variable */
+/*! \addtogroup vty
+ *  @{
+ */
+/*! \file command.h */
+
+/*! \brief Host configuration variable */
 struct host {
-	/* Host name of this router. */
+	/*! \brief Host name of this router. */
 	char *name;
 
-	/* Password for vty interface. */
+	/*! \brief Password for vty interface. */
 	char *password;
 	char *password_encrypt;
 
-	/* Enable password */
+	/*! \brief Enable password */
 	char *enable;
 	char *enable_encrypt;
 
-	/* System wide terminal lines. */
+	/*! \brief System wide terminal lines. */
 	int lines;
 
-	/* Log filename. */
+	/*! \brief Log filename. */
 	char *logfile;
 
-	/* config file name of this host */
+	/*! \brief config file name of this host */
 	char *config;
 
-	/* Flags for services */
+	/*! \brief Flags for services */
 	int advanced;
 	int encrypt;
 
-	/* Banner configuration. */
+	/*! \brief Banner configuration. */
 	const char *motd;
 	char *motdfile;
 
+	/*! \brief VTY application information */
 	const struct vty_app_info *app_info;
 };
 
-/* There are some command levels which called from command node. */
+/*! \brief There are some command levels which called from command node. */
 enum node_type {
-	AUTH_NODE,		/* Authentication mode of vty interface. */
-	VIEW_NODE,		/* View node. Default mode of vty interface. */
-	AUTH_ENABLE_NODE,	/* Authentication mode for change enable. */
-	ENABLE_NODE,		/* Enable node. */
-	CONFIG_NODE,		/* Config node. Default mode of config file. */
-	SERVICE_NODE,		/* Service node. */
-	DEBUG_NODE,		/* Debug node. */
-	CFG_LOG_NODE,		/* Configure the logging */
+	AUTH_NODE,		/*!< \brief Authentication mode of vty interface. */
+	VIEW_NODE,		/*!< \brief View node. Default mode of vty interface. */
+	AUTH_ENABLE_NODE,	/*!< \brief Authentication mode for change enable. */
+	ENABLE_NODE,		/*!< \brief Enable node. */
+	CONFIG_NODE,		/*!< \brief Config node. Default mode of config file. */
+	SERVICE_NODE,		/*!< \brief Service node. */
+	DEBUG_NODE,		/*!< \brief Debug node. */
+	CFG_LOG_NODE,		/*!< \brief Configure the logging */
 
-	VTY_NODE,		/* Vty node. */
+	VTY_NODE,		/*!< \brief Vty node. */
 
-	L_E1INP_NODE,		/* E1 line in libosmo-abis. */
-	L_IPA_NODE,		/* IPA proxying commands in libosmo-abis. */
+	L_E1INP_NODE,		/*!< \brief E1 line in libosmo-abis. */
+	L_IPA_NODE,		/*!< \brief IPA proxying commands in libosmo-abis. */
 
 	_LAST_OSMOVTY_NODE
 };
 
-/* Node which has some commands and prompt string and configuration
-   function pointer . */
+/*! \brief Node which has some commands and prompt string and
+ * configuration function pointer . */
 struct cmd_node {
-	/* Node index. */
+	/*! \brief Node index */
 	enum node_type node;
 
-	/* Prompt character at vty interface. */
+	/*! \brief Prompt character at vty interface. */
 	const char *prompt;
 
-	/* Is this node's configuration goes to vtysh ? */
+	/*! \brief Is this node's configuration goes to vtysh ? */
 	int vtysh;
 
-	/* Node's configuration write function */
+	/*! \brief Node's configuration write function */
 	int (*func) (struct vty *);
 
-	/* Vector of this node's command list. */
+	/*! \brief Vector of this node's command list. */
 	vector cmd_vector;
 };
 
@@ -104,26 +110,26 @@ enum {
 	CMD_ATTR_HIDDEN,
 };
 
-/* Structure of command element. */
+/*! \brief Structure of a command element */
 struct cmd_element {
-	const char *string;	/* Command specification by string. */
+	const char *string;	/*!< \brief Command specification by string. */
 	int (*func) (struct cmd_element *, struct vty *, int, const char *[]);
-	const char *doc;	/* Documentation of this command. */
-	int daemon;		/* Daemon to which this command belong. */
-	vector strvec;		/* Pointing out each description vector. */
-	unsigned int cmdsize;	/* Command index count. */
-	char *config;		/* Configuration string */
-	vector subconfig;	/* Sub configuration string */
-	u_char attr;		/* Command attributes */
+	const char *doc;	/*!< \brief Documentation of this command. */
+	int daemon;		/*!< \brief Daemon to which this command belong. */
+	vector strvec;		/*!< \brief Pointing out each description vector. */
+	unsigned int cmdsize;	/*!< \brief Command index count. */
+	char *config;		/*!< \brief Configuration string */
+	vector subconfig;	/*!< \brief Sub configuration string */
+	u_char attr;		/*!< \brief Command attributes */
 };
 
-/* Command description structure. */
+/*! \brief Command description structure. */
 struct desc {
-	const char *cmd;	/* Command string. */
-	const char *str;	/* Command's description. */
+	const char *cmd;	/*!< \brief Command string. */
+	const char *str;	/*!< \brief Command's description. */
 };
 
-/* Return value of the commands. */
+/*! \brief Return value of the commands. */
 #define CMD_SUCCESS              0
 #define CMD_WARNING              1
 #define CMD_ERR_NO_MATCH         2
@@ -171,13 +177,23 @@ struct desc {
   static int funcname \
     (struct cmd_element *self, struct vty *vty, int argc, const char *argv[])
 
-/* DEFUN for vty command interafce. Little bit hacky ;-). */
+/*! \brief Macro for defining a VTY node and function
+ *  \param[in] funcname Name of the function implementing the node
+ *  \param[in] cmdname Name of the command node
+ *  \param[in] cmdstr String with syntax of node
+ *  \param[in] helpstr String with help message of node
+ */
 #define DEFUN(funcname, cmdname, cmdstr, helpstr) \
   DEFUN_CMD_FUNC_DECL(funcname) \
   DEFUN_CMD_ELEMENT(funcname, cmdname, cmdstr, helpstr, 0, 0) \
   DEFUN_CMD_FUNC_TEXT(funcname)
 
-/* global (non static) cmd_element */
+/*! \brief Macro for defining a non-static (global) VTY node and function
+ *  \param[in] funcname Name of the function implementing the node
+ *  \param[in] cmdname Name of the command node
+ *  \param[in] cmdstr String with syntax of node
+ *  \param[in] helpstr String with help message of node
+ */
 #define gDEFUN(funcname, cmdname, cmdstr, helpstr) \
   DEFUN_CMD_FUNC_DECL(funcname) \
   gDEFUN_CMD_ELEMENT(funcname, cmdname, cmdstr, helpstr, 0, 0) \
@@ -350,4 +366,5 @@ void print_version(int print_copyright);
 
 extern void *tall_vty_cmd_ctx;
 
+/*! }@ */
 #endif				/* _ZEBRA_COMMAND_H */

@@ -30,6 +30,17 @@
 
 #include <osmocom/vty/vty.h>
 
+/* \file utils.c */
+
+/*! \addtogroup rate_ctr
+ *  @{
+ */
+
+/*! \brief print a rate counter group to given VTY
+ *  \param[in] vty The VTY to which it should be printed
+ *  \param[in] prefix Any additional log prefix ahead of each line
+ *  \param[in] ctrg Rate counter group to be printed
+ */
 void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 			    struct rate_ctr_group *ctrg)
 {
@@ -48,3 +59,5 @@ void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 			VTY_NEWLINE);
 	};
 }
+
+/*! }@ */
