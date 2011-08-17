@@ -31,18 +31,22 @@ $(doc_html_DATA): $(top_builddir)/doc/core/html/index.html \
 
 $(top_builddir)/doc/core/html/index.html: $(SOURCES) Doxyfile
 	rm -rf doc/core
+	mkdir -p doc/core
 	$(DOXYGEN) Doxyfile
 
 $(top_builddir)/doc/gsm/html/index.html: $(SOURCES) Doxyfile.gsm
 	rm -rf doc/gsm
+	mkdir -p doc/gsm
 	$(DOXYGEN) Doxyfile.gsm
 
 $(top_builddir)/doc/vty/html/index.html: $(SOURCES) Doxyfile.vty
 	rm -rf doc/vty
+	mkdir -p doc/vty
 	$(DOXYGEN) Doxyfile.vty
 
 $(top_builddir)/doc/codec/html/index.html: $(SOURCES) Doxyfile.codec
-	rm -rf doc/vty
+	rm -rf doc/codec
+	mkdir -p doc/codec
 	$(DOXYGEN) Doxyfile.codec
 
 install-data-hook:
