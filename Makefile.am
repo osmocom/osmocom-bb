@@ -14,3 +14,41 @@ dist-hook:
 	echo $(VERSION) > $(distdir)/.tarball-version
 
 EXTRA_DIST = git-version-gen
+
+if HAVE_DOXYGEN
+
+docdir=$(datadir)/doc
+pkgdocdir=$(docdir)/$(PACKAGE)-$(VERSION)
+doc_htmldir=$(pkgdocdir)/html
+
+doc_html_DATA = $(top_builddir)/doc/html.tar
+
+$(doc_html_DATA): $(top_builddir)/doc/core/html/index.html \
+		  $(top_builddir)/doc/gsm/html/index.html \
+		  $(top_builddir)/doc/vty/html/index.html \
+		  $(top_builddir)/doc/codec/html/index.html
+	cd $(top_builddir)/doc && tar cf html.tar *
+
+$(top_builddir)/doc/core/html/index.html: $(SOURCES) Doxyfile
+	rm -rf doc/core
+	$(DOXYGEN) Doxyfile
+
+$(top_builddir)/doc/gsm/html/index.html: $(SOURCES) Doxyfile.gsm
+	rm -rf doc/gsm
+	$(DOXYGEN) Doxyfile.gsm
+
+$(top_builddir)/doc/vty/html/index.html: $(SOURCES) Doxyfile.vty
+	rm -rf doc/vty
+	$(DOXYGEN) Doxyfile.vty
+
+$(top_builddir)/doc/codec/html/index.html: $(SOURCES) Doxyfile.codec
+	rm -rf doc/vty
+	$(DOXYGEN) Doxyfile.codec
+
+install-data-hook:
+	cd $(DESTDIR)$(doc_htmldir) && tar xf html.tar && rm -f html.tar
+
+uninstall-hook:
+	cd $(DESTDIR)$(doc_htmldir) && rm -f *
+
+endif

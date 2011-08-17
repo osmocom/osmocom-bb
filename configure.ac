@@ -20,6 +20,9 @@ dnl checks for header files
 AC_HEADER_STDC
 AC_CHECK_HEADERS(execinfo.h sys/select.h sys/socket.h syslog.h ctype.h)
 
+AC_PATH_PROG(DOXYGEN,doxygen,false)
+AM_CONDITIONAL(HAVE_DOXYGEN, test $DOXYGEN != false)
+
 # The following test is taken from WebKit's webkit.m4
 saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -fvisibility=hidden "
