@@ -28,9 +28,18 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/gsm/rsl.h>
 
+/*! \addtogroup rsl
+ *  @{
+ */
+
+/*! \file rsl.c */
+
+/*! \brief Size for RSL \ref msgb_alloc */
 #define RSL_ALLOC_SIZE		200
+/*! \brief Headroom size for RSL \ref msgb_alloc */
 #define RSL_ALLOC_HEADROOM	56
 
+/*! \brief Initialize a RSL RLL header */
 void rsl_init_rll_hdr(struct abis_rsl_rll_hdr *dh, uint8_t msg_type)
 {
 	dh->c.msg_discr = ABIS_RSL_MDISC_RLL;
@@ -39,6 +48,7 @@ void rsl_init_rll_hdr(struct abis_rsl_rll_hdr *dh, uint8_t msg_type)
 	dh->ie_link_id = RSL_IE_LINK_IDENT;
 }
 
+/*! \brief Initialize a RSL Common Channel header */
 void rsl_init_cchan_hdr(struct abis_rsl_cchan_hdr *ch, uint8_t msg_type)
 {
 	ch->c.msg_discr = ABIS_RSL_MDISC_COM_CHAN;
@@ -46,6 +56,7 @@ void rsl_init_cchan_hdr(struct abis_rsl_cchan_hdr *ch, uint8_t msg_type)
 	ch->ie_chan = RSL_IE_CHAN_NR;
 }
 
+/* \brief TLV parser definition for RSL */
 const struct tlv_definition rsl_att_tlvdef = {
 	.def = {
 		[RSL_IE_CHAN_NR]		= { TLV_TYPE_TV },
@@ -126,7 +137,7 @@ const struct tlv_definition rsl_att_tlvdef = {
 	},
 };
 
-/* encode channel number as per Section 9.3.1 */
+/*! \brief Encode channel number as per Section 9.3.1 */
 uint8_t rsl_enc_chan_nr(uint8_t type, uint8_t subch, uint8_t timeslot)
 {
 	uint8_t ret;
@@ -153,6 +164,12 @@ uint8_t rsl_enc_chan_nr(uint8_t type, uint8_t subch, uint8_t timeslot)
 	return ret;
 }
 
+/*! \brief Decode RSL channel number
+ *  \param[in] chan_nr Channel Number
+ *  \param[out] type Channel Type
+ *  \param[out] subch Sub-channel Number
+ *  \param[out] timeslot Timeslot
+ */
 int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *timeslot)
 {
 	*timeslot = chan_nr & 0x7;
@@ -184,6 +201,7 @@ int rsl_dec_chan_nr(uint8_t chan_nr, uint8_t *type, uint8_t *subch, uint8_t *tim
 	return 0;
 }
 
+/*! \brief Get human-readable string for RSL channel number */
 const char *rsl_chan_nr_str(uint8_t chan_nr)
 {
 	static char str[20];
@@ -245,6 +263,7 @@ static const struct value_string rsl_err_vals[] = {
 	{ 0,				NULL }
 };
 
+/*! \brief Get human-readable name for RSL Error */
 const char *rsl_err_name(uint8_t err)
 {
 	return get_value_string(rsl_err_vals, err);
@@ -321,6 +340,7 @@ static const struct value_string rsl_msgt_names[] = {
 };
 
 
+/*! \brief Get human-readable string for RSL Message Type */
 const char *rsl_msg_name(uint8_t msg_type)
 {
 	return get_value_string(rsl_msgt_names, msg_type);
@@ -344,6 +364,7 @@ static const struct value_string rsl_rlm_cause_strs[] = {
 	{ 0,				NULL },
 };
 
+/*! \brief Get human-readable string for RLM cause */
 const char *rsl_rlm_cause_name(uint8_t err)
 {
 	return get_value_string(rsl_rlm_cause_strs, err);
@@ -387,7 +408,7 @@ int rsl_ccch_conf_to_bs_ccch_sdcch_comb(int ccch_conf)
 	}
 }
 
-/* Push a RSL RLL header */
+/*! \brief Push a RSL RLL header onto an existing msgb */
 void rsl_rll_push_hdr(struct msgb *msg, uint8_t msg_type, uint8_t chan_nr,
 		      uint8_t link_id, int transparent)
 {
@@ -404,7 +425,7 @@ void rsl_rll_push_hdr(struct msgb *msg, uint8_t msg_type, uint8_t chan_nr,
 	msg->l2h = (uint8_t *)rh;
 }
 
-/* Push a RSL RLL header with L3_INFO IE */
+/*! \brief Push a RSL RLL header with L3_INFO IE */
 void rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type, uint8_t chan_nr,
 		     uint8_t link_id, int transparent)
 {
@@ -420,6 +441,7 @@ void rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type, uint8_t chan_nr,
 	rsl_rll_push_hdr(msg, msg_type, chan_nr, link_id, transparent);
 }
 
+/*! \brief Create msgb with RSL RLL header */
 struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
 			    uint8_t link_id, int transparent)
 {
@@ -445,3 +467,5 @@ struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
 
 	return msg;
 }
+
+/*! }@ */
