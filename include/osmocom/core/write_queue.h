@@ -23,8 +23,11 @@
 #ifndef OSMO_WQUEUE_H
 #define OSMO_WQUEUE_H
 
+/*! \defgroup write_queue Osmocom msgb write queues
+ *  @{
+ */
+
 /*! \file write_queue.h
- *  \brief Osmocom write queues
  */
 
 #include <osmocom/core/select.h>
@@ -50,32 +53,11 @@ struct osmo_wqueue {
 	int (*except_cb)(struct osmo_fd *fd);
 };
 
-/*! \brief Initialize a \ref osmo_wqueue structure
- *  \param[in] queue Write queue to operate on
- *  \param[in] max_length Maximum length of write queue
- */
 void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length);
-
-/*! \brief Clear a \ref osmo_wqueue
- *  \param[in] queue Write queue to be cleared
- *
- *  This function will clear (remove/release) all messages in it.
- */
 void osmo_wqueue_clear(struct osmo_wqueue *queue);
-
-/*! \brief Enqueue a new \ref msgb into a write queue
- *  \param[in] queue Write queue to be used
- *  \param[in] data to-be-enqueued message buffer
- */
 int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data);
-
-/*! \brief Select loop function for write queue handling
- *  \param[in] fd osmocom file descriptor
- *  \param[in] what bit-mask of events that have happened
- *
- * This function is provided so that it can be registered with the
- * select loop abstraction code (\ref osmo_fd::cb).
- */
 int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what);
+
+/*! }@ */
 
 #endif
