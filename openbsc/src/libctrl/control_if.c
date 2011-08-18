@@ -115,10 +115,30 @@ struct ctrl_cmd *ctrl_cmd_trap(struct ctrl_cmd *cmd)
 	return trap;
 }
 
+static int get_num(vector vline, int i, long *num)
+{
+	char *token, *tmp;
+
+	if (i >= vector_active(vline))
+		return 0;
+	token = vector_slot(vline, i);
+
+	errno = 0;
+	if (token[0] == '\0')
+		return 0;
+
+	*num = strtol(token, &tmp, 10);
+	if (tmp[0] != '\0' || errno != 0)
+		return 0;
+
+	return 1;
+}
+
 int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 {
 	char *token, *request;
-	int num, i, j, ret, node;
+	long num;
+	int i, j, ret, node;
 	struct gsm_network *gsmnet = data;
 
 	struct gsm_network *net = NULL;
@@ -163,10 +183,9 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 			if (!net)
 				goto err_missing;
 			i++;
-			if (i >= vector_active(vline))
+			if (!get_num(vline, i, &num))
 				goto err_index;
-			token = vector_slot(vline, i);
-			num = atoi(token);
+
 			bts = gsm_bts_num(net, num);
 			if (!bts)
 				goto err_missing;
@@ -176,10 +195,9 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 			if (!bts)
 				goto err_missing;
 			i++;
-			if (i >= vector_active(vline))
+			if (!get_num(vline, i, &num))
 				goto err_index;
-			token = vector_slot(vline, i);
-			num = atoi(token);
+
 			trx = gsm_bts_trx_num(bts, num);
 			if (!trx)
 				goto err_missing;
@@ -189,10 +207,9 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 			if (!trx)
 				goto err_missing;
 			i++;
-			if (i >= vector_active(vline))
+			if (!get_num(vline, i, &num))
 				goto err_index;
-			token = vector_slot(vline, i);
-			num = atoi(token);
+
 			if ((num >= 0) && (num < TRX_NR_TS))
 				ts = &trx->ts[num];
 			if (!ts)
