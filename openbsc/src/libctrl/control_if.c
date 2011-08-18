@@ -157,28 +157,40 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 				break;
 			cmd->node = net;
 			node = CTRL_NODE_NET;
-		} else if (!strncmp(token, "bts", 3)) {
+		} else if (!strcmp(token, "bts")) {
 			if (!net)
 				break;
-			num = atoi(&token[3]);
+			i++;
+			if (i >= vector_active(vline))
+				break;
+			token = vector_slot(vline, i);
+			num = atoi(token);
 			bts = gsm_bts_num(net, num);
 			if (!bts)
 				break;
 			cmd->node = bts;
 			node = CTRL_NODE_BTS;
-		} else if (!strncmp(token, "trx", 3)) {
+		} else if (!strcmp(token, "trx")) {
 			if (!bts)
 				break;
-			num = atoi(&token[3]);
+			i++;
+			if (i >= vector_active(vline))
+				break;
+			token = vector_slot(vline, i);
+			num = atoi(token);
 			trx = gsm_bts_trx_num(bts, num);
 			if (!trx)
 				break;
 			cmd->node = trx;
 			node = CTRL_NODE_TRX;
-		} else if (!strncmp(token, "ts", 2)) {
+		} else if (!strcmp(token, "ts")) {
 			if (!trx)
 				break;
-			num = atoi(&token[2]);
+			i++;
+			if (i >= vector_active(vline))
+				break;
+			token = vector_slot(vline, i);
+			num = atoi(token);
 			if ((num >= 0) && (num < TRX_NR_TS))
 				ts = &trx->ts[num];
 			if (!ts)
