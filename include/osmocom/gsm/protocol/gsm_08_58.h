@@ -33,47 +33,54 @@
 
 /*! \brief RSL common header */
 struct abis_rsl_common_hdr {
-	uint8_t	msg_discr;
-	uint8_t	msg_type;
-	uint8_t	data[0];
+	uint8_t	msg_discr;	/*!< \brief message discriminator (ABIS_RSL_MDISC_*) */
+	uint8_t	msg_type;	/*!< \brief message type (\ref abis_rsl_msgtype) */
+	uint8_t	data[0];	/*!< \brief actual payload data */
 } __attribute__ ((packed));
 
 /* \brief RSL RLL header (Chapter 8.3) */
 struct abis_rsl_rll_hdr {
 	struct abis_rsl_common_hdr c;
-	uint8_t	ie_chan;
-	uint8_t	chan_nr;
-	uint8_t	ie_link_id;
-	uint8_t	link_id;
-	uint8_t	data[0];
+	uint8_t	ie_chan;	/*!< \brief \ref RSL_IE_CHAN_NR (tag) */
+	uint8_t	chan_nr;	/*!< \brief RSL channel number (value) */
+	uint8_t	ie_link_id;	/*!< \brief \ref RSL_IE_LINK_IDENT (tag) */
+	uint8_t	link_id;	/*!< \brief RSL link identifier (value) */
+	uint8_t	data[0];	/*!< \brief message payload data */
 } __attribute__ ((packed));
 
 /* \brief RSL Dedicated Channel header (Chapter 8.3 and 8.4) */
 struct abis_rsl_dchan_hdr {
 	struct abis_rsl_common_hdr c;
-	uint8_t	ie_chan;
-	uint8_t	chan_nr;
-	uint8_t	data[0];
+	uint8_t	ie_chan;	/*!< \brief \ref RSL_IE_CHAN_NR (tag) */
+	uint8_t	chan_nr;	/*!< \brief RSL channel number (value) */
+	uint8_t	data[0];	/*!< \brief message payload data */
 } __attribute__ ((packed));
 
 /* \brief RSL Common Channel header (Chapter 8.5) */
 struct abis_rsl_cchan_hdr {
 	struct abis_rsl_common_hdr c;
-	uint8_t	ie_chan;
-	uint8_t	chan_nr;
-	uint8_t	data[0];
+	uint8_t	ie_chan;	/*!< \brief \ref RSL_IE_CHAN_NR (tag) */
+	uint8_t	chan_nr;	/*!< \brief RSL channel number (value) */
+	uint8_t	data[0];	/*!< \brief message payload data */
 } __attribute__ ((packed));
 
 
 /* Chapter 9.1 */
+/* \brief RSL Message Discriminator: RLL */
 #define ABIS_RSL_MDISC_RLL		0x02
+/* \brief RSL Message Discriminator: Dedicated Channel */
 #define ABIS_RSL_MDISC_DED_CHAN		0x08
+/* \brief RSL Message Discriminator: Common Channel */
 #define ABIS_RSL_MDISC_COM_CHAN		0x0c
+/* \brief RSL Message Discriminator: TRX Management */
 #define ABIS_RSL_MDISC_TRX		0x10
+/* \brief RSL Message Discriminator: Location Service */
 #define ABIS_RSL_MDISC_LOC		0x20
+/* \brief RSL Message Discriminator: ip.access */
 #define ABIS_RSL_MDISC_IPACCESS		0x7e
 #define ABIS_RSL_MDISC_TRANSP		0x01
 
+/* \brief Check if given RSL message discriminator is transparent */
 #define ABIS_RSL_MDISC_IS_TRANSP(x)	(x & 0x01)
 
 /* \brief RSL Message Tyoe (Chapter 9.1) */
