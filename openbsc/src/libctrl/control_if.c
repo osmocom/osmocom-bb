@@ -143,8 +143,10 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 
 	vline = cmd_make_strvec(request);
 	talloc_free(request);
-	if (!vline)
+	if (!vline) {
+		cmd->reply = "cmd_make_strvec failed.";
 		goto err;
+	}
 
 	for (i=0;i<vector_active(vline);i++) {
 		token = vector_slot(vline, i);
@@ -154,47 +156,47 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 		if (!strcmp(token, "net")) {
 			net = gsmnet;
 			if (!net)
-				break;
+				goto err_missing;
 			cmd->node = net;
 			node = CTRL_NODE_NET;
 		} else if (!strcmp(token, "bts")) {
 			if (!net)
-				break;
+				goto err_missing;
 			i++;
 			if (i >= vector_active(vline))
-				break;
+				goto err_index;
 			token = vector_slot(vline, i);
 			num = atoi(token);
 			bts = gsm_bts_num(net, num);
 			if (!bts)
-				break;
+				goto err_missing;
 			cmd->node = bts;
 			node = CTRL_NODE_BTS;
 		} else if (!strcmp(token, "trx")) {
 			if (!bts)
-				break;
+				goto err_missing;
 			i++;
 			if (i >= vector_active(vline))
-				break;
+				goto err_index;
 			token = vector_slot(vline, i);
 			num = atoi(token);
 			trx = gsm_bts_trx_num(bts, num);
 			if (!trx)
-				break;
+				goto err_missing;
 			cmd->node = trx;
 			node = CTRL_NODE_TRX;
 		} else if (!strcmp(token, "ts")) {
 			if (!trx)
-				break;
+				goto err_missing;
 			i++;
 			if (i >= vector_active(vline))
-				break;
+				goto err_index;
 			token = vector_slot(vline, i);
 			num = atoi(token);
 			if ((num >= 0) && (num < TRX_NR_TS))
 				ts = &trx->ts[num];
 			if (!ts)
-				break;
+				goto err_missing;
 			cmd->node = ts;
 			node = CTRL_NODE_TS;
 		} else {
@@ -208,7 +210,7 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 			cmds_vec = vector_lookup(ctrl_node_vec, node);
 
 			if (!cmds_vec) {
-				cmd->reply = "Command not found";
+				cmd->reply = "Command not found.";
 				vector_free(cmdvec);
 				break;
 			}
@@ -218,6 +220,9 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 			vector_free(cmdvec);
 			break;
 		}
+
+		if (i+1 == vector_active(vline))
+			cmd->reply = "Command not present.";
 	}
 
 	cmd_free_strvec(vline);
@@ -225,6 +230,17 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 err:
 	if (ret == CTRL_CMD_ERROR)
 		cmd->type = CTRL_TYPE_ERROR;
+	return ret;
+
+err_missing:
+	cmd_free_strvec(vline);
+	cmd->type = CTRL_TYPE_ERROR;
+	cmd->reply = "Error while resolving object";
+	return ret;
+err_index:
+	cmd_free_strvec(vline);
+	cmd->type = CTRL_TYPE_ERROR;
+	cmd->reply = "Error while parsing the index.";
 	return ret;
 }
 
