@@ -23,7 +23,7 @@ stamp-h1
 libtool
 libosmocore-*.tar.*
 
-Doxyfile
+Doxyfile.core
 Doxyfile.gsm
 Doxyfile.vty
 Doxyfile.codec
