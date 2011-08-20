@@ -55,4 +55,7 @@ install-data-hook:
 uninstall-hook:
 	cd $(DESTDIR)$(doc_htmldir) && rm -rf {core,gsm,vty,codec}
 
+DX_CLEAN = doc/{core,gsm,vty,codec}/{html,latex}/* doc/html.tar
 endif
+
+MOSTLYCLEANFILES = $(DX_CLEAN)
