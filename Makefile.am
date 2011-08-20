@@ -29,10 +29,10 @@ $(doc_html_DATA): $(top_builddir)/doc/core/html/index.html \
 		  $(top_builddir)/doc/codec/html/index.html
 	cd $(top_builddir)/doc && tar cf html.tar */html
 
-$(top_builddir)/doc/core/html/index.html: $(SOURCES) Doxyfile
+$(top_builddir)/doc/core/html/index.html: $(SOURCES) Doxyfile.core
 	@rm -rf doc/core
 	mkdir -p doc/core
-	$(DOXYGEN) Doxyfile
+	$(DOXYGEN) Doxyfile.core
 
 $(top_builddir)/doc/gsm/html/index.html: $(SOURCES) Doxyfile.gsm
 	@rm -rf doc/gsm
@@ -53,6 +53,6 @@ install-data-hook:
 	cd $(DESTDIR)$(doc_htmldir) && tar xf html.tar && rm -f html.tar
 
 uninstall-hook:
-	cd $(DESTDIR)$(doc_htmldir) && rm -rf *
+	cd $(DESTDIR)$(doc_htmldir) && rm -rf {core,gsm,vty,codec}
 
 endif

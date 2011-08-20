@@ -124,7 +124,7 @@ AC_OUTPUT(
 	tests/ussd/Makefile
 	tests/smscb/Makefile
 	utils/Makefile
-	Doxyfile
+	Doxyfile.core
 	Doxyfile.gsm
 	Doxyfile.vty
 	Doxyfile.codec
