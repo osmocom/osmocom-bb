@@ -42,40 +42,40 @@ AC_ARG_ENABLE(talloc,
 		[--disable-talloc],
 		[Disable building talloc memory allocator]
 	)],
-	[enable_talloc=0], [enable_talloc=1])
-AM_CONDITIONAL(ENABLE_TALLOC, test "x$enable_talloc" = "x1")
+	[enable_talloc=$enableval], [enable_talloc="yes"])
+AM_CONDITIONAL(ENABLE_TALLOC, [test x"$enable_talloc" = x"yes"])
 
 AC_ARG_ENABLE(plugin,
 	[AS_HELP_STRING(
 		[--disable-plugin],
 		[Disable support for dlopen plugins],
 	)],
-	[enable_plugin=0], [enable_plugin=1])
-AM_CONDITIONAL(ENABLE_PLUGIN, test "x$enable_plugin" = "x1")
+	[enable_plugin=$enableval], [enable_plugin="yes"])
+AM_CONDITIONAL(ENABLE_PLUGIN, test x"$enable_plugin" = x"yes")
 
 AC_ARG_ENABLE(tests,
 	[AS_HELP_STRING(
 		[--disable-tests],
 		[Disable building test programs]
 	)],
-	[enable_tests=0], [enable_tests=1])
-AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "x1")
+	[enable_tests=$enableval], [enable_tests="yes"])
+AM_CONDITIONAL(ENABLE_TESTS, test x"$enable_tests" = x"yes")
 
 AC_ARG_ENABLE(vty,
 	[AS_HELP_STRING(
 		[--disable-vty],
 		[Disable building VTY telnet interface]
 	)],
-	[enable_vty=0], [enable_vty=1])
-AM_CONDITIONAL(ENABLE_VTY, test "x$enable_vty" = "x1")
+	[enable_vty=$enableval], [enable_vty="yes"])
+AM_CONDITIONAL(ENABLE_VTY, test x"$enable_vty" = x"yes")
 
 AC_ARG_ENABLE(panic_infloop,
 	[AS_HELP_STRING(
 		[--enable-panic-infloop],
 		[Trigger infinite loop on panic rather than fprintf/abort]
 	)],
-	[panic_infloop=1], [panic_infloop=0])
-if test "x$panic_infloop" = "x1"
+	[panic_infloop=$enableval], [panic_infloop="no"])
+if test x"$panic_infloop" = x"yes"
 then
 	AC_DEFINE([PANIC_INFLOOP],[1],[Use infinite loop on panic rather than fprintf/abort])
 fi
@@ -85,8 +85,8 @@ AC_ARG_ENABLE(bsc_fd_check,
 		[--enable-bsc-fd-check],
 		[Instrument bsc_register_fd to check that the fd is registered]
 	)],
-	[fd_check=1], [fd_check=0])
-if test "x$fd_check" = "x1"
+	[fd_check=$enableval], [fd_check="no"])
+if test x"$fd_check" = x"no"
 then
 	AC_DEFINE([BSC_FD_CHECK],[1],[Instrument the bsc_register_fd])
 fi
@@ -96,8 +96,8 @@ AC_ARG_ENABLE(msgfile,
 		[--disable-msgfile],
 		[Disable support for the msgfile],
 	)],
-	[enable_msgfile=0], [enable_msgfile=1])
-AM_CONDITIONAL(ENABLE_MSGFILE, test "x$enable_msgfile" = "x1")
+	[enable_msgfile=$enableval], [enable_msgfile="yes"])
+AM_CONDITIONAL(ENABLE_MSGFILE, test x"$enable_msgfile" = x"yes")
 
 
 AC_OUTPUT(
