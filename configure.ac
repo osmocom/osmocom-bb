@@ -99,6 +99,31 @@ AC_ARG_ENABLE(msgfile,
 	[enable_msgfile=$enableval], [enable_msgfile="yes"])
 AM_CONDITIONAL(ENABLE_MSGFILE, test x"$enable_msgfile" = x"yes")
 
+AC_ARG_ENABLE(utilities,
+        [AS_HELP_STRING(
+                [--disable-utilities],
+                [Disable building utility programs],
+        )],
+        [enable_utilities=$enableval], [enable_utilities="yes"])
+AM_CONDITIONAL(ENABLE_UTILITIES, test x"$enable_utilities" = x"yes")
+
+AC_ARG_ENABLE(embedded,
+	[AS_HELP_STRING(
+		[--enable-embedded],
+		[Enable building for embedded use and disable unsupported features]
+	)],
+	[embedded=$enableval], [embedded="no"])
+if test x"$embedded" = x"yes"
+then
+	AC_DEFINE([EMBEDDED],[1],[Select building for embedded use])
+	AM_CONDITIONAL(ENABLE_TESTS, false)
+	AM_CONDITIONAL(ENABLE_PLUGIN, false)
+	AM_CONDITIONAL(ENABLE_MSGFILE, false)
+	AM_CONDITIONAL(ENABLE_VTY, false)
+	AM_CONDITIONAL(ENABLE_TALLOC, false)
+	AM_CONDITIONAL(ENABLE_UTILITIES, false)
+	AC_DEFINE([PANIC_INFLOOP],[1],[Use infinite loop on panic rather than fprintf/abort])
+fi
 
 AC_OUTPUT(
 	libosmocore.pc
