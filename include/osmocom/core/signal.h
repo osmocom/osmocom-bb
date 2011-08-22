@@ -12,7 +12,7 @@
  * libraries: from 0 to UINT_MAX/2 for applications, from UINT_MAX/2 to
  * UINT_MAX for libraries. */
 #define OSMO_SIGNAL_SS_APPS		0
-#define OSMO_SIGNAL_SS_RESERVED		2147483648
+#define OSMO_SIGNAL_SS_RESERVED		2147483648u
 
 /*! \brief signal subsystems */
 enum {
@@ -22,7 +22,7 @@ enum {
 
 /* application-defined signal types. */
 #define OSMO_SIGNAL_T_APPS		0
-#define OSMO_SIGNAL_T_RESERVED		2147483648
+#define OSMO_SIGNAL_T_RESERVED		2147483648u
 
 /*! \brief signal types. */
 enum {
