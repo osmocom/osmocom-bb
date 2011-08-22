@@ -78,6 +78,7 @@ int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd);
 struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg);
 struct msgb *ctrl_cmd_make(struct ctrl_cmd *cmd);
 struct ctrl_cmd *ctrl_cmd_cpy(void *ctx, struct ctrl_cmd *cmd);
+struct ctrl_cmd *ctrl_cmd_create(void *ctx, enum ctrl_type);
 
 #define CTRL_CMD_DEFINE_RANGE(cmdname, cmdstr, dtype, element, min, max) \
 static int get_##cmdname(struct ctrl_cmd *cmd, void *data) \

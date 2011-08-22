@@ -239,6 +239,18 @@ int ctrl_cmd_install(enum ctrl_node_type node, struct ctrl_cmd_element *cmd)
 	return 0;
 }
 
+struct ctrl_cmd *ctrl_cmd_create(void *ctx, enum ctrl_type type)
+{
+	struct ctrl_cmd *cmd;
+
+	cmd = talloc_zero(ctx, struct ctrl_cmd);
+	if (!cmd)
+		return NULL;
+
+	cmd->type = type;
+	return cmd;
+}
+
 struct ctrl_cmd *ctrl_cmd_cpy(void *ctx, struct ctrl_cmd *cmd)
 {
 	struct ctrl_cmd *cmd2;
