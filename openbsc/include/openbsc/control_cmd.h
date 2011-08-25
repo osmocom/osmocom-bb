@@ -14,7 +14,6 @@ struct ctrl_handle;
 
 enum ctrl_node_type {
 	CTRL_NODE_ROOT,	/* Root elements */
-	CTRL_NODE_NET,	/* Network specific (net.) */
 	CTRL_NODE_BTS,	/* BTS specific (net.btsN.) */
 	CTRL_NODE_TRX,	/* TRX specific (net.btsN.trxM.) */
 	CTRL_NODE_TS,	/* TS specific (net.btsN.trxM.tsI.) */

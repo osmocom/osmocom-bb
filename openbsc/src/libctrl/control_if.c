@@ -139,9 +139,8 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 	char *token, *request;
 	long num;
 	int i, j, ret, node;
-	struct gsm_network *gsmnet = data;
 
-	struct gsm_network *net = NULL;
+	struct gsm_network *net = data;
 	struct gsm_bts *bts = NULL;
 	struct gsm_bts_trx *trx = NULL;
 	struct gsm_bts_trx_ts *ts = NULL;
@@ -149,8 +148,8 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 
 	ret = CTRL_CMD_ERROR;
 	cmd->reply = "Someone forgot to fill in the reply.";
-	cmd->node = NULL;
 	node = CTRL_NODE_ROOT;
+	cmd->node = net;
 
 	request = talloc_strdup(tall_bsc_ctx, cmd->variable);
 	if (!request)
@@ -173,13 +172,7 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 		/* TODO: We need to make sure that the following chars are digits
 		 * and/or use strtol to check if number conversion was successful
 		 * Right now something like net.bts_stats will not work */
-		if (!strcmp(token, "net")) {
-			net = gsmnet;
-			if (!net)
-				goto err_missing;
-			cmd->node = net;
-			node = CTRL_NODE_NET;
-		} else if (!strcmp(token, "bts")) {
+		if (!strcmp(token, "bts")) {
 			if (!net)
 				goto err_missing;
 			i++;
