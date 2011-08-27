@@ -257,8 +257,9 @@ err:
 	target->output(target, level, buf);
 }
 
-static void _logp(int subsys, int level, char *file, int line,
-		  int cont, const char *format, va_list ap)
+/*! \brief vararg version of logging function */
+void osmo_vlogp(int subsys, int level, char *file, int line,
+		int cont, const char *format, va_list ap)
 {
 	struct log_target *tar;
 
@@ -313,7 +314,7 @@ void logp(int subsys, char *file, int line, int cont,
 	va_list ap;
 
 	va_start(ap, format);
-	_logp(subsys, LOGL_DEBUG, file, line, cont, format, ap);
+	osmo_vlogp(subsys, LOGL_DEBUG, file, line, cont, format, ap);
 	va_end(ap);
 }
 
@@ -322,7 +323,7 @@ void logp2(int subsys, unsigned int level, char *file, int line, int cont, const
 	va_list ap;
 
 	va_start(ap, format);
-	_logp(subsys, level, file, line, cont, format, ap);
+	osmo_vlogp(subsys, level, file, line, cont, format, ap);
 	va_end(ap);
 }
 

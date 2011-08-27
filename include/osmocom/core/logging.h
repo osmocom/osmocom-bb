@@ -27,6 +27,9 @@
 #endif
 
 
+void osmo_vlogp(int subsys, int level, char *file, int line,
+		int cont, const char *format, va_list ap);
+
 void logp(int subsys, char *file, int line, int cont, const char *format, ...) __attribute__ ((format (printf, 5, 6)));
 
 /*! \brief Log a new message through the Osmocom logging framework
