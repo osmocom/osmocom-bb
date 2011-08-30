@@ -25,6 +25,41 @@
  *  \brief Routines for helping with the osmocom application setup.
  */
 
+/*! \mainpage libosmocore Documentation
+ * \section sec_intro Introduction
+ * This library is a collection of common code used in various
+ * sub-projects inside the Osmocom family of projects.  It includes a
+ * logging framework, select() loop abstraction, timers with callbacks,
+ * bit vectors, bit packing/unpacking, convolutional decoding, GSMTAP, a
+ * generic plugin interface, statistics counters, memory allocator,
+ * socket abstraction, message buffers, etc.
+ * \n\n
+ * Please note that C language projects inside Osmocom are typically
+ * single-threaded event-loop state machine designs.  As such,
+ * routines in libosmocore are not thread-safe.  If you must use them in
+ * a multi-threaded context, you have to add your own locking.
+ *
+ * \section sec_copyright Copyright and License
+ * Copyright © 2008-2011 - Harald Welte, Holger Freyther and contributors\n
+ * All rights reserved. \n\n
+ * The source code of libosmocore is licensed under the terms of the GNU
+ * General Public License as published by the Free Software Foundation;
+ * either version 2 of the License, or (at your option) any later
+ * version.\n
+ * See <http://www.gnu.org/licenses/> or COPYING included in the source
+ * code package istelf.\n
+ * The information detailed here is provided AS IS with NO WARRANTY OF
+ * ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE.
+ * \n\n
+ *
+ * \section sec_contact Contact and Support
+ * Community-based support is available at the OpenBSC mailing list
+ * <http://lists.osmocom.org/mailman/listinfo/openbsc>\n
+ * Commercial support options available upon request from
+ * <http://sysmocom.de/>
+ */
+
 #include <osmocom/core/application.h>
 #include <osmocom/core/logging.h>
 

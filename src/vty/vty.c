@@ -1,4 +1,42 @@
 
+/*! \mainpage libosmovty Documentation
+ *
+ * \section sec_intro Introduction
+ * This library is a collection of common code used in various
+ * GSM related sub-projects inside the Osmocom family of projects.  It
+ * has been imported/derived from the GNU Zebra project.
+ * \n\n
+ * libosmovty implements the interactive command-line on the VTY
+ * (Virtual TTY) as well as configuration file parsing.
+ * \n\n
+ * Please note that C language projects inside Osmocom are typically
+ * single-threaded event-loop state machine designs.  As such,
+ * routines in libosmovty are not thread-safe.  If you must use them in
+ * a multi-threaded context, you have to add your own locking.
+ *
+ * \section sec_copyright Copyright and License
+ * Copyright © 1997-2007 - Kuninhiro Ishiguro\n
+ * Copyright © 2008-2011 - Harald Welte, Holger Freyther and contributors\n
+ * All rights reserved. \n\n
+ * The source code of libosmovty is licensed under the terms of the GNU
+ * General Public License as published by the Free Software Foundation;
+ * either version 2 of the License, or (at your option) any later
+ * version.\n
+ * See <http://www.gnu.org/licenses/> or COPYING included in the source
+ * code package istelf.\n
+ * The information detailed here is provided AS IS with NO WARRANTY OF
+ * ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE.
+ * \n\n
+ *
+ * \section sec_contact Contact and Support
+ * Community-based support is available at the OpenBSC mailing list
+ * <http://lists.osmocom.org/mailman/listinfo/openbsc>\n
+ * Commercial support options available upon request from
+ * <http://sysmocom.de/>
+ */
+
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
