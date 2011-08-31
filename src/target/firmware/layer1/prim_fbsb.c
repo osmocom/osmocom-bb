@@ -480,7 +480,7 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 
 			int fn_offset = l1s.current_time.fn - last_fb->attempt + ntdma;
 			int delay = fn_offset + 11 - l1s.current_time.fn - 1;
-			printf("  fn_offset=%d (fn=%u + attempt=%u + ntdma = %d)\m",
+			printf("  fn_offset=%d (fn=%u + attempt=%u + ntdma = %d)\n",
 				fn_offset, l1s.current_time.fn, last_fb->attempt, ntdma);
 			printf("  delay=%d (fn_offset=%d + 11 - fn=%u - 1\n", delay,
 				fn_offset, l1s.current_time.fn);
