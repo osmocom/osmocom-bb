@@ -56,8 +56,8 @@ void *_talloc_zero(void *ctx, unsigned int size, const char *name)
 	for (i = 0; i < ARRAY_SIZE(msgs); i++) {
 		if (!msgs[i].allocated) {
 			msgs[i].allocated = 1;
-			memset(&msgs[i].msg, 0, sizeof(&msgs[i].msg));
-			memset(&msgs[i].buf, 0, sizeof(&msgs[i].buf));
+			memset(&msgs[i].msg, 0, sizeof(msgs[i].msg));
+			memset(&msgs[i].buf, 0, sizeof(msgs[i].buf));
 			local_irq_restore(flags);
 			return &msgs[i].msg;
 		}
