@@ -128,4 +128,61 @@ int osmo_pbit2ubit_ext(ubit_t *out, unsigned int out_ofs,
 	return out_ofs + num_bits;
 }
 
+/* generalized bit reversal function, Chapter 7 "Hackers Delight" */
+uint32_t osmo_bit_reversal(uint32_t x, enum osmo_br_mode k)
+{
+	if (k &  1) x = (x & 0x55555555) <<  1 | (x & 0xAAAAAAAA) >>  1;
+	if (k &  2) x = (x & 0x33333333) <<  2 | (x & 0xCCCCCCCC) >>  2;
+	if (k &  4) x = (x & 0x0F0F0F0F) <<  4 | (x & 0xF0F0F0F0) >>  4;
+	if (k &  8) x = (x & 0x00FF00FF) <<  8 | (x & 0xFF00FF00) >>  8;
+	if (k & 16) x = (x & 0x0000FFFF) << 16 | (x & 0xFFFF0000) >> 16;
+
+	return x;
+}
+
+/* generalized bit reversal function, Chapter 7 "Hackers Delight" */
+uint32_t osmo_revbytebits_32(uint32_t x)
+{
+	x = (x & 0x55555555) <<  1 | (x & 0xAAAAAAAA) >>  1;
+	x = (x & 0x33333333) <<  2 | (x & 0xCCCCCCCC) >>  2;
+	x = (x & 0x0F0F0F0F) <<  4 | (x & 0xF0F0F0F0) >>  4;
+
+	return x;
+}
+
+uint32_t osmo_revbytebits_8(uint8_t x)
+{
+	x = (x & 0x55) <<  1 | (x & 0xAA) >>  1;
+	x = (x & 0x33) <<  2 | (x & 0xCC) >>  2;
+	x = (x & 0x0F) <<  4 | (x & 0xF0) >>  4;
+
+	return x;
+}
+
+void osmo_revbytebits_buf(uint8_t *buf, int len)
+{
+	unsigned int i;
+	unsigned int unaligned_cnt;
+	int len_remain = len;
+
+	unaligned_cnt = ((unsigned long)buf & 3);
+	for (i = 0; i < unaligned_cnt; i++) {
+		buf[i] = osmo_revbytebits_8(buf[i]);
+		len_remain--;
+		if (len_remain <= 0)
+			return;
+	}
+
+	for (i = unaligned_cnt; i < len; i += 4) {
+		uint32_t *cur = (uint32_t *) (buf + i);
+		*cur = osmo_revbytebits_32(*cur);
+		len_remain -= 4;
+	}
+
+	for (i = len - len_remain; i < len; i++) {
+		buf[i] = osmo_revbytebits_8(buf[i]);
+		len_remain--;
+	}
+}
+
 /*! }@ */

@@ -46,6 +46,33 @@ int osmo_pbit2ubit_ext(ubit_t *out, unsigned int out_ofs,
                        const pbit_t *in, unsigned int in_ofs,
                        unsigned int num_bits, int lsb_mode);
 
+
+/* BIT REVERSAL */
+
+/*! \brief bit-reversal mode for osmo_bit_reversal() */
+enum osmo_br_mode {
+	/*! \brief reverse all bits in a 32bit dword */
+	OSMO_BR_BITS_IN_DWORD	= 31,
+	/*! \brief reverse byte order in a 32bit dword */
+	OSMO_BR_BYTES_IN_DWORD	= 24,
+	/*! \brief reverse bits of each byte in a 32bit dword */
+	OSMO_BR_BITS_IN_BYTE	= 7,
+	/*! \brief swap the two 16bit words in a 32bit dword */
+	OSMO_BR_WORD_SWAP	= 16,
+};
+
+/*! \brief generic bit reversal function */
+uint32_t osmo_bit_reversal(uint32_t x, enum osmo_br_mode k);
+
+/* \brief reverse the bits within each byte of a 32bit word */
+uint32_t osmo_revbytebits_32(uint32_t x);
+
+/* \brief reverse the bits within a byte */
+uint32_t osmo_revbytebits_8(uint8_t x);
+
+/* \brief reverse the bits of each byte in a given buffer */
+void osmo_revbytebits_buf(uint8_t *buf, int len);
+
 /*! }@ */
 
 #endif /* _OSMO_BITS_H */

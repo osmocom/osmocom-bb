@@ -123,6 +123,7 @@ AC_OUTPUT(
 	tests/msgfile/Makefile
 	tests/ussd/Makefile
 	tests/smscb/Makefile
+	tests/bits/Makefile
 	utils/Makefile
 	Doxyfile.core
 	Doxyfile.gsm
