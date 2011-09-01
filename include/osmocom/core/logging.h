@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <osmocom/core/linuxlist.h>
 
 /*! \brief Maximum number of logging contexts */
