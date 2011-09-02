@@ -19,6 +19,9 @@
 #include <stdint.h>
 #include <errno.h>
 #include <stdio.h>
+#include <time.h>
+
+#include <arpa/inet.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/rsl.h>
@@ -37,8 +40,24 @@
 
 #include <l1ctl_proto.h>
 
+enum dch_state_t {
+	DCH_NONE,
+	DCH_WAIT_EST,
+	DCH_ACTIVE,
+	DCH_WAIT_REL,
+};
+
 static struct {
-	int ccch_mode;
+	int			has_si1;
+	int			ccch_mode;
+
+	enum dch_state_t	dch_state;
+	uint8_t			dch_nr;
+	int			dch_badcnt;
+
+	FILE *			fh;
+
+	struct gsm_sysinfo_freq	cell_arfcns[1024];
 } app_state;
 
 static int bcch_check_tc(uint8_t si_type, uint8_t tc)
@@ -161,9 +180,14 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_imm_ass *ia = msgb_l3(msg);
 	uint8_t ch_type, ch_subch, ch_ts;
+	int rc;
 
 	/* Discard packet TBF assignment */
 	if (ia->page_mode & 0xf0)
+		return 0;
+
+	/* If we're not ready yet, or just busy ... */
+	if ((!app_state.has_si1) || (app_state.dch_state != DCH_NONE))
 		return 0;
 
 	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
@@ -179,9 +203,15 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 			ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
 			ia->chan_desc.h0.tsc);
 
+		/* request L1 to go to dedicated mode on assigned channel */
+		rc = l1ctl_tx_dm_est_req_h0(ms,
+			arfcn, ia->chan_desc.chan_nr, ia->chan_desc.h0.tsc,
+			GSM48_CMODE_SIGN, 0);
 	} else {
 		/* Hopping */
-		uint8_t maio, hsn;
+		uint8_t maio, hsn, ma_len;
+		uint16_t ma[64], arfcn;
+		int i, j, k;
 
 		hsn = ia->chan_desc.h1.hsn;
 		maio = ia->chan_desc.h1.maio_low | (ia->chan_desc.h1.maio_high << 2);
@@ -190,9 +220,33 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 			"HSN=%u, MAIO=%u, TS=%u, SS=%u, TSC=%u)\n", ia->req_ref.ra,
 			ia->chan_desc.chan_nr, hsn, maio, ch_ts, ch_subch,
 			ia->chan_desc.h1.tsc);
+
+		/* decode mobile allocation */
+		ma_len = 0;
+		for (i=1, j=0; i<=1024; i++) {
+			arfcn = i & 1023;
+			if (app_state.cell_arfcns[arfcn].mask & 0x01) {
+				k = ia->mob_alloc_len - (j>>3) - 1;
+				if (ia->mob_alloc[k] & (1 << (j&7))) {
+					ma[ma_len++] = arfcn;
+				}
+				j++;
+			}
+		}
+
+		/* request L1 to go to dedicated mode on assigned channel */
+		rc = l1ctl_tx_dm_est_req_h1(ms,
+			maio, hsn, ma, ma_len,
+			ia->chan_desc.chan_nr, ia->chan_desc.h1.tsc,
+			GSM48_CMODE_SIGN, 0);
 	}
 
-	return 0;
+	/* Set state */
+	app_state.dch_state = DCH_WAIT_EST;
+	app_state.dch_nr = ia->chan_desc.chan_nr;
+	app_state.dch_badcnt = 0;
+
+	return rc;
 }
 
 static const char *pag_print_mode(int mode)
@@ -405,6 +459,10 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
 	int rc = 0;
 
+	/* CCCH marks the end of WAIT_REL */
+	if (app_state.dch_state == DCH_WAIT_REL)
+		app_state.dch_state = DCH_NONE;
+
 	/* Skip frames with wrong length */
 	if (msgb_l3len(msg) != GSM_MACBLOCK_LEN) {
 		LOGP(DRR, LOGL_ERROR, "Rx CCCH message with odd length=%u: %s\n",
@@ -451,6 +509,10 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 
 int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 {
+	/* BCCH marks the end of WAIT_REL */
+	if (app_state.dch_state == DCH_WAIT_REL)
+		app_state.dch_state = DCH_NONE;
+
 	/* FIXME: we have lost the gsm frame time until here, need to store it
 	 * in some msgb context */
 	//dump_bcch(dl->time.tc, ccch->data);
@@ -459,21 +521,124 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 	return 0;
 }
 
+static char *
+gen_filename(struct osmocom_ms *ms, struct l1ctl_burst_ind *bi)
+{
+	static char buffer[256];
+	time_t d;
+	struct tm lt;
+
+	time(&d);
+	localtime_r(&d, &lt);
+
+	snprintf(buffer, 256, "bursts_%04d%02d%02d_%02d%02d_%d_%d_%02x.dat",
+		lt.tm_year + 1900, lt.tm_mon, lt.tm_mday,
+		lt.tm_hour, lt.tm_min,
+		ms->test_arfcn,
+		ntohl(bi->frame_nr),
+		bi->chan_nr
+	);
+
+	return buffer;
+}
+
+void layer3_rx_burst(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_burst_ind *bi;
+	uint16_t arfcn;
+	int ul, do_rel=0;
+
+	/* Header handling */
+	bi = (struct l1ctl_burst_ind *) msg->l1h;
+
+	arfcn = ntohs(bi->band_arfcn);
+	ul = !!(arfcn & ARFCN_UPLINK);
+
+	/* Check for channel start */
+	if (app_state.dch_state == DCH_WAIT_EST) {
+		if (bi->chan_nr == app_state.dch_nr) {
+			if (bi->snr > 64) {
+				/* Change state */
+				app_state.dch_state = DCH_ACTIVE;
+				app_state.dch_badcnt = 0;
+
+				/* Open output */
+				app_state.fh = fopen(gen_filename(ms, bi), "wb");
+			} else {
+				/* Abandon ? */
+				do_rel = (app_state.dch_badcnt++) >= 4;
+			}
+		}
+	}
+
+	/* Check for channel end */
+	if (app_state.dch_state == DCH_ACTIVE) {
+		if (!ul) {
+			/* Bad burst counting */
+			if (bi->snr < 64)
+				app_state.dch_badcnt++;
+			else if (app_state.dch_badcnt >= 2)
+				app_state.dch_badcnt -= 2;
+			else
+				app_state.dch_badcnt = 0;
+
+			/* Release condition */
+			do_rel = app_state.dch_badcnt >= 6;
+		}
+	}
+
+	/* Release ? */
+	if (do_rel) {
+		/* L1 release */
+		l1ctl_tx_dm_rel_req(ms);
+		l1ctl_tx_fbsb_req(ms, ms->test_arfcn, L1CTL_FBSB_F_FB01SB, 100, 0,
+				  app_state.ccch_mode, dbm2rxlev(-85));
+
+		/* Change state */
+		app_state.dch_state = DCH_WAIT_REL;
+		app_state.dch_badcnt = 0;
+
+		/* Close output */
+		if (app_state.fh) {
+			fclose(app_state.fh);
+			app_state.fh = NULL;
+		}
+	}
+
+	/* Save the burst */
+	if (app_state.dch_state == DCH_ACTIVE)
+		fwrite(bi, sizeof(*bi), 1, app_state.fh);
+}
+
 void layer3_app_reset(void)
 {
 	/* Reset state */
 	app_state.ccch_mode = CCCH_MODE_NONE;
+	app_state.dch_state = DCH_NONE;
+	app_state.dch_badcnt = 0;
+
+	if (app_state.fh)
+		fclose(app_state.fh);
+	app_state.fh = NULL;
+
+	memset(&app_state.cell_arfcns, 0x00, sizeof(app_state.cell_arfcns));
 }
 
 static int signal_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
+	struct osmobb_msg_ind *mi;
 
 	if (subsys != SS_L1CTL)
 		return 0;
 
 	switch (signal) {
+	case S_L1CTL_BURST_IND:
+		mi = signal_data;
+		layer3_rx_burst(mi->ms, mi->msg);
+		break;
+
 	case S_L1CTL_RESET:
 		ms = signal_data;
 		layer3_app_reset();
