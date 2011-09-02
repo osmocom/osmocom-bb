@@ -99,6 +99,14 @@ AC_ARG_ENABLE(msgfile,
 	[enable_msgfile=$enableval], [enable_msgfile="yes"])
 AM_CONDITIONAL(ENABLE_MSGFILE, test x"$enable_msgfile" = x"yes")
 
+AC_ARG_ENABLE(serial,
+	[AS_HELP_STRING(
+		[--disable-serial],
+		[Disable support for the serial helpers],
+	)],
+	[enable_serial=$enableval], [enable_serial="yes"])
+AM_CONDITIONAL(ENABLE_SERIAL, test x"$enable_serial" = x"yes")
+
 AC_ARG_ENABLE(utilities,
         [AS_HELP_STRING(
                 [--disable-utilities],
@@ -119,6 +127,7 @@ then
 	AM_CONDITIONAL(ENABLE_TESTS, false)
 	AM_CONDITIONAL(ENABLE_PLUGIN, false)
 	AM_CONDITIONAL(ENABLE_MSGFILE, false)
+	AM_CONDITIONAL(ENABLE_SERIAL, false)
 	AM_CONDITIONAL(ENABLE_VTY, false)
 	AM_CONDITIONAL(ENABLE_TALLOC, false)
 	AM_CONDITIONAL(ENABLE_UTILITIES, false)

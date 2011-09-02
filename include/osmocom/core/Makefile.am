@@ -17,4 +17,8 @@ if ENABLE_MSGFILE
 osmocore_HEADERS += msgfile.h
 endif
 
+if ENABLE_SERIAL
+osmocore_HEADERS += serial.h
+endif
+
 osmocoredir = $(includedir)/osmocom/core
