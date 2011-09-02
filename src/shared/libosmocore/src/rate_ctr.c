@@ -20,6 +20,13 @@
  *
  */
 
+/*! \addtogroup rate_ctr
+ *  @{
+ */
+
+/*! \file rate_ctr.c */
+
+
 #include <stdint.h>
 #include <string.h>
 
@@ -33,6 +40,11 @@ static LLIST_HEAD(rate_ctr_groups);
 
 static void *tall_rate_ctr_ctx;
 
+/*! \brief Allocate a new group of counters according to description
+ *  \param[in] ctx \ref talloc context
+ *  \param[in] desc Rate counter group description
+ *  \param[in] idx Index of new counter group
+ */
 struct rate_ctr_group *rate_ctr_group_alloc(void *ctx,
 					    const struct rate_ctr_group_desc *desc,
 					    unsigned int idx)
@@ -58,12 +70,14 @@ struct rate_ctr_group *rate_ctr_group_alloc(void *ctx,
 	return group;
 }
 
+/*! \brief Free the memory for the specified group of counters */
 void rate_ctr_group_free(struct rate_ctr_group *grp)
 {
 	llist_del(&grp->list);
 	talloc_free(grp);
 }
 
+/*! \brief Add a number to the counter */
 void rate_ctr_add(struct rate_ctr *ctr, int inc)
 {
 	ctr->current += inc;
@@ -117,6 +131,7 @@ static void rate_ctr_timer_cb(void *data)
 	osmo_timer_schedule(&rate_ctr_timer, 1, 0);
 }
 
+/*! \brief Initialize the counter module */
 int rate_ctr_init(void *tall_ctx)
 {
 	tall_rate_ctr_ctx = tall_ctx;
@@ -126,6 +141,7 @@ int rate_ctr_init(void *tall_ctx)
 	return 0;
 }
 
+/*! \brief Search for counter group based on group name and index */
 struct rate_ctr_group *rate_ctr_get_group_by_name_idx(const char *name, const unsigned int idx)
 {
 	struct rate_ctr_group *ctrg;
@@ -142,6 +158,7 @@ struct rate_ctr_group *rate_ctr_get_group_by_name_idx(const char *name, const un
 	return NULL;
 }
 
+/*! \brief Search for counter group based on group name */
 const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, const char *name)
 {
 	int i;
@@ -159,3 +176,5 @@ const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, c
 	}
 	return NULL;
 }
+
+/*! }@ */

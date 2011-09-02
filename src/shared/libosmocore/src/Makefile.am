@@ -30,3 +30,7 @@ endif
 if ENABLE_MSGFILE
 libosmocore_la_SOURCES += msgfile.c
 endif
+
+if ENABLE_SERIAL
+libosmocore_la_SOURCES += serial.c
+endif

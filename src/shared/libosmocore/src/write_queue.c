@@ -23,6 +23,19 @@
 
 #include <osmocom/core/write_queue.h>
 
+/*! \addtogroup write_queue
+ *  @{
+ */
+
+/*! \file write_queue.c */
+
+/*! \brief Select loop function for write queue handling
+ *  \param[in] fd osmocom file descriptor
+ *  \param[in] what bit-mask of events that have happened
+ *
+ * This function is provided so that it can be registered with the
+ * select loop abstraction code (\ref osmo_fd::cb).
+ */
 int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what)
 {
 	struct osmo_wqueue *queue;
@@ -56,6 +69,10 @@ int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what)
 	return 0;
 }
 
+/*! \brief Initialize a \ref osmo_wqueue structure
+ *  \param[in] queue Write queue to operate on
+ *  \param[in] max_length Maximum length of write queue
+ */
 void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length)
 {
 	queue->max_length = max_length;
@@ -66,6 +83,10 @@ void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length)
 	INIT_LLIST_HEAD(&queue->msg_queue);
 }
 
+/*! \brief Enqueue a new \ref msgb into a write queue
+ *  \param[in] queue Write queue to be used
+ *  \param[in] data to-be-enqueued message buffer
+ */
 int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data)
 {
 //	if (queue->current_length + 1 >= queue->max_length)
@@ -78,6 +99,11 @@ int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data)
 	return 0;
 }
 
+/*! \brief Clear a \ref osmo_wqueue
+ *  \param[in] queue Write queue to be cleared
+ *
+ * This function will clear (remove/release) all messages in it.
+ */
 void osmo_wqueue_clear(struct osmo_wqueue *queue)
 {
 	while (!llist_empty(&queue->msg_queue)) {
@@ -88,3 +114,5 @@ void osmo_wqueue_clear(struct osmo_wqueue *queue)
 	queue->current_length = 0;
 	queue->bfd.when &= ~BSC_FD_WRITE;
 }
+
+/*! }@ */

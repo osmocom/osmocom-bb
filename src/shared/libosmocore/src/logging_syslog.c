@@ -19,6 +19,12 @@
  *
  */
 
+/*! \addtogroup logging
+ *  @{
+ */
+
+/*! \file logging_syslog.c */
+
 #include "../config.h"
 
 #ifdef HAVE_SYSLOG_H
@@ -57,6 +63,12 @@ static void _syslog_output(struct log_target *target,
 	syslog(logp2syslog_level(level), "%s", log);
 }
 
+/*! \brief Create a new logging target for syslog logging
+ *  \param[in] ident syslog string identifier
+ *  \param[in] option syslog options
+ *  \param[in] facility syslog facility
+ *  \returns Log target in case of success, NULL in case of error
+ */
 struct log_target *log_target_create_syslog(const char *ident, int option,
 					    int facility)
 {
@@ -76,3 +88,5 @@ struct log_target *log_target_create_syslog(const char *ident, int option,
 }
 
 #endif /* HAVE_SYSLOG_H */
+
+/* }@ */

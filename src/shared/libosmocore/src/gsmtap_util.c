@@ -42,6 +42,17 @@
 #include <string.h>
 #include <errno.h>
 
+/*! \addtogroup gsmtap
+ *  @{
+ */
+/*! \file gsmtap_util.c */
+
+
+/*! \brief convert RSL channel number to GSMTAP channel type
+ *  \param[in] rsl_cantype RSL channel type
+ *  \param[in] link_id RSL link identifier
+ *  \returns GSMTAP channel type
+ */
 uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
 {
 	uint8_t ret = GSMTAP_CHANNEL_UNKNOWN;
@@ -77,7 +88,20 @@ uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
 	return ret;
 }
 
-/* receive a message from L1/L2 and put it in GSMTAP */
+/*! \brief create L1/L2 data and put it into GSMTAP
+ *  \param[in] arfcn GSM ARFCN (Channel Number)
+ *  \param[in] ts GSM time slot
+ *  \param[in] chan_type Channel Type
+ *  \param[in] ss Sub-slot
+ *  \param[in] fn GSM Frame Number
+ *  \param[in] signal_dbm Signal Strength (dBm)
+ *  \param[in] snr Signal/Noise Ratio (SNR)
+ *  \param[in] data Pointer to data buffer
+ *  \param[in] len Length of \ref data
+ *
+ * This function will allocate a new msgb and fill it with a GSMTAP
+ * header containing the information
+ */
 struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
 			    uint8_t ss, uint32_t fn, int8_t signal_dbm,
 			    uint8_t snr, const uint8_t *data, unsigned int len)
@@ -115,8 +139,15 @@ struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-/* Open a GSMTAP source (sending) socket, conncet it to host/port and
- * return resulting fd */
+/*! \brief Create a new (sending) GSMTAP source socket 
+ *  \param[in] host host name or IP address in string format
+ *  \param[in] port UDP port number in host byte order
+ *
+ * Opens a GSMTAP source (sending) socket, conncet it to host/port and
+ * return resulting fd.  If \a host is NULL, the destination address
+ * will be localhost.  If \a port is 0, the default \ref
+ * GSMTAP_UDP_PORT will be used.
+ * */
 int gsmtap_source_init_fd(const char *host, uint16_t port)
 {
 	if (port == 0)
@@ -128,6 +159,7 @@ int gsmtap_source_init_fd(const char *host, uint16_t port)
 				OSMO_SOCK_F_CONNECT);
 }
 
+/*! \brief Add a local sink to an existing GSMTAP source and return fd */
 int gsmtap_source_add_sink_fd(int gsmtap_fd)
 {
 	struct sockaddr_storage ss;
@@ -148,6 +180,10 @@ int gsmtap_source_add_sink_fd(int gsmtap_fd)
 	return -ENODEV;
 }
 
+/*! \brief Send a \ref msgb through a GSMTAP source
+ *  \param[in] gti GSMTAP instance
+ *  \param[in] msgb message buffer
+ */
 int gsmtap_sendmsg(struct gsmtap_inst *gti, struct msgb *msg)
 {
 	if (!gti)
@@ -172,7 +208,7 @@ int gsmtap_sendmsg(struct gsmtap_inst *gti, struct msgb *msg)
 	}
 }
 
-/* receive a message from L1/L2 and put it in GSMTAP */
+/*! \brief receive a message from L1/L2 and put it in GSMTAP */
 int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
 		uint8_t chan_type, uint8_t ss, uint32_t fn,
 		int8_t signal_dbm, uint8_t snr, const uint8_t *data,
@@ -228,7 +264,7 @@ static int gsmtap_sink_fd_cb(struct osmo_fd *fd, unsigned int flags)
 	return 0;
 }
 
-/* Add a local sink to an existing GSMTAP source instance */
+/*! \brief Add a local sink to an existing GSMTAP source instance */
 int gsmtap_source_add_sink(struct gsmtap_inst *gti)
 {
 	int fd;
@@ -251,7 +287,16 @@ int gsmtap_source_add_sink(struct gsmtap_inst *gti)
 	return fd;
 }
 
-/* like gsmtap_init2() but integrated with libosmocore select.c */
+
+/*! \brief Open GSMTAP source socket, connect and register osmo_fd
+ *  \param[in] host host name or IP address in string format
+ *  \param[in] port UDP port number in host byte order
+ *  \param[in] osmo_wq_mode Register \ref osmo_wqueue (1) or not (0)
+ *
+ * Open GSMTAP source (sending) socket, connect it to host/port,
+ * allocate 'struct gsmtap_inst' and optionally osmo_fd/osmo_wqueue
+ * registration.  This means it is like \ref gsmtap_init2 but integrated
+ * with libosmocore \ref select */
 struct gsmtap_inst *gsmtap_source_init(const char *host, uint16_t port,
 					int ofd_wq_mode)
 {

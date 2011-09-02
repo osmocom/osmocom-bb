@@ -21,6 +21,45 @@
  *
  */
 
+/*! \file application.c
+ *  \brief Routines for helping with the osmocom application setup.
+ */
+
+/*! \mainpage libosmocore Documentation
+ * \section sec_intro Introduction
+ * This library is a collection of common code used in various
+ * sub-projects inside the Osmocom family of projects.  It includes a
+ * logging framework, select() loop abstraction, timers with callbacks,
+ * bit vectors, bit packing/unpacking, convolutional decoding, GSMTAP, a
+ * generic plugin interface, statistics counters, memory allocator,
+ * socket abstraction, message buffers, etc.
+ * \n\n
+ * Please note that C language projects inside Osmocom are typically
+ * single-threaded event-loop state machine designs.  As such,
+ * routines in libosmocore are not thread-safe.  If you must use them in
+ * a multi-threaded context, you have to add your own locking.
+ *
+ * \section sec_copyright Copyright and License
+ * Copyright © 2008-2011 - Harald Welte, Holger Freyther and contributors\n
+ * All rights reserved. \n\n
+ * The source code of libosmocore is licensed under the terms of the GNU
+ * General Public License as published by the Free Software Foundation;
+ * either version 2 of the License, or (at your option) any later
+ * version.\n
+ * See <http://www.gnu.org/licenses/> or COPYING included in the source
+ * code package istelf.\n
+ * The information detailed here is provided AS IS with NO WARRANTY OF
+ * ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE.
+ * \n\n
+ *
+ * \section sec_contact Contact and Support
+ * Community-based support is available at the OpenBSC mailing list
+ * <http://lists.osmocom.org/mailman/listinfo/openbsc>\n
+ * Commercial support options available upon request from
+ * <http://sysmocom.de/>
+ */
+
 #include <osmocom/core/application.h>
 #include <osmocom/core/logging.h>
 
@@ -33,6 +72,7 @@
 
 struct log_target *osmo_stderr_target;
 
+/*! \brief Ignore \ref SIGPIPE, \ref SIGALRM, \ref SIGHUP and \ref SIGIO */
 void osmo_init_ignore_signals(void)
 {
 	/* Signals that by default would terminate */
@@ -42,6 +82,13 @@ void osmo_init_ignore_signals(void)
 	signal(SIGIO, SIG_IGN);
 }
 
+/*! \brief Initialize the osmocom logging framework
+ *  \param[in] log_info Array of available logging sub-systems
+ *  \returns 0 on success, -1 in case of error
+ *
+ * This function initializes the osmocom logging systems.  It also
+ * creates the default (stderr) logging target.
+ */
 int osmo_init_logging(const struct log_info *log_info)
 {
 	log_init(log_info, NULL);
@@ -54,6 +101,11 @@ int osmo_init_logging(const struct log_info *log_info)
 	return 0;
 }
 
+/*! \brief Turn the current process into a background daemon
+ *
+ * This function will fork the process, exit the parent and set umask,
+ * create a new session, close stdin/stdout/stderr and chdir to /tmp
+ */
 int osmo_daemonize(void)
 {
 	int rc;

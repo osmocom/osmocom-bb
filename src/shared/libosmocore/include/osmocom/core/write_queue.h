@@ -23,18 +23,33 @@
 #ifndef OSMO_WQUEUE_H
 #define OSMO_WQUEUE_H
 
+/*! \defgroup write_queue Osmocom msgb write queues
+ *  @{
+ */
+
+/*! \file write_queue.h
+ */
+
 #include <osmocom/core/select.h>
 #include <osmocom/core/msgb.h>
 
+/*! write queue instance */
 struct osmo_wqueue {
+	/*! \brief osmocom file descriptor */
 	struct osmo_fd bfd;
+	/*! \brief maximum length of write queue */
 	unsigned int max_length;
+	/*! \brief current length of write queue */
 	unsigned int current_length;
 
+	/*! \brief actual linked list implementing the queue */
 	struct llist_head msg_queue;
 
+	/*! \brief call-back in case qeueue is readable */
 	int (*read_cb)(struct osmo_fd *fd);
+	/*! \brief call-back in case qeueue is writable */
 	int (*write_cb)(struct osmo_fd *fd, struct msgb *msg);
+	/*! \brief call-back in case qeueue has exceptions */
 	int (*except_cb)(struct osmo_fd *fd);
 };
 
@@ -42,5 +57,7 @@ void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length);
 void osmo_wqueue_clear(struct osmo_wqueue *queue);
 int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data);
 int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what);
+
+/*! }@ */
 
 #endif

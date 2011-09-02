@@ -20,6 +20,12 @@
  *
  */
 
+/*! \addtogroup oml
+ *  @{
+ */
+
+/*! \file abis_nm.c */
+
 #include <stdint.h>
 #include <errno.h>
 
@@ -30,7 +36,7 @@
 #include <osmocom/gsm/protocol/gsm_12_21.h>
 #include <osmocom/gsm/abis_nm.h>
 
-/* unidirectional messages from BTS to BSC */
+/*! \brief unidirectional messages from BTS to BSC */
 const enum abis_nm_msgtype abis_nm_reports[4] = {
 	NM_MT_SW_ACTIVATED_REP,
 	NM_MT_TEST_REP,
@@ -38,14 +44,14 @@ const enum abis_nm_msgtype abis_nm_reports[4] = {
 	NM_MT_FAILURE_EVENT_REP,
 };
 
-/* messages without ACK/NACK */
+/*! \brief messages without ACK/NACK */
 const enum abis_nm_msgtype abis_nm_no_ack_nack[3] = {
 	NM_MT_MEAS_RES_REQ,
 	NM_MT_STOP_MEAS,
 	NM_MT_START_MEAS,
 };
 
-/* Messages related to software load */
+/*! \brief messages related to software load */
 const enum abis_nm_msgtype abis_nm_sw_load_msgs[9] = {
 	NM_MT_LOAD_INIT_ACK,
 	NM_MT_LOAD_INIT_NACK,
@@ -59,6 +65,7 @@ const enum abis_nm_msgtype abis_nm_sw_load_msgs[9] = {
 	NM_MT_SW_ACTIVATED_REP,
 };
 
+/*! \brief All NACKs (negative acknowledgements */
 const enum abis_nm_msgtype abis_nm_nacks[33] = {
 	NM_MT_LOAD_INIT_NACK,
 	NM_MT_LOAD_END_NACK,
@@ -133,6 +140,7 @@ static const struct value_string nack_names[] = {
 	{ 0,				NULL }
 };
 
+/*! \brief Get human-readable string for OML NACK message type */
 const char *abis_nm_nack_name(uint8_t nack)
 {
 	return get_value_string(nack_names, nack);
@@ -177,6 +185,7 @@ static const struct value_string nack_cause_names[] = {
 	{ 0,				NULL }
 };
 
+/*! \brief Get human-readable string for NACK cause */
 const char *abis_nm_nack_cause_name(uint8_t cause)
 {
 	return get_value_string(nack_cause_names, cause);
@@ -192,6 +201,7 @@ static const struct value_string event_type_names[] = {
 	{ 0,				NULL }
 };
 
+/*! \brief Get human-readable string for OML event type */
 const char *abis_nm_event_type_name(uint8_t cause)
 {
 	return get_value_string(event_type_names, cause);
@@ -208,12 +218,13 @@ static const struct value_string severity_names[] = {
 	{ 0,				NULL }
 };
 
+/*! \brief Get human-readable string for perceived OML severity */
 const char *abis_nm_severity_name(uint8_t cause)
 {
 	return get_value_string(severity_names, cause);
 }
 
-/* Attributes that the BSC can set, not only get, according to Section 9.4 */
+/*! \brief Attributes that the BSC can set, not only get, according to Section 9.4 */
 const enum abis_nm_attr abis_nm_att_settable[] = {
 	NM_ATT_ADD_INFO,
 	NM_ATT_ADD_TEXT,
@@ -242,6 +253,7 @@ const enum abis_nm_attr abis_nm_att_settable[] = {
 	NM_ATT_MEAS_TYPE,
 };
 
+/*! \brief GSM A-bis OML TLV parser definition */
 const struct tlv_definition abis_nm_att_tlvdef = {
 	.def = {
 		[NM_ATT_ABIS_CHANNEL] =		{ TLV_TYPE_FIXED, 3 },
@@ -311,6 +323,7 @@ const struct tlv_definition abis_nm_att_tlvdef = {
 	},
 };
 
+/*! \brief Human-readable strings for A-bis OML Object Class */
 const struct value_string abis_nm_obj_class_names[] = {
 	{ NM_OC_SITE_MANAGER,	"SITE-MANAGER" },
 	{ NM_OC_BTS,		"BTS" },
@@ -332,6 +345,7 @@ const struct value_string abis_nm_obj_class_names[] = {
 	{ 0,			NULL }
 };
 
+/*! \brief Get human-readable string for OML Operational State */
 const char *abis_nm_opstate_name(uint8_t os)
 {
 	switch (os) {
@@ -360,6 +374,7 @@ static const struct value_string avail_names[] = {
 	{ 0,	NULL }
 };
 
+/*! \brief Get human-readable string for OML Availability State */
 const char *abis_nm_avail_name(uint8_t avail)
 {
 	return get_value_string(avail_names, avail);
@@ -377,11 +392,13 @@ static struct value_string test_names[] = {
 	{ 0, NULL }
 };
 
+/*! \brief Get human-readable string for OML test */
 const char *abis_nm_test_name(uint8_t test)
 {
 	return get_value_string(test_names, test);
 }
 
+/*! \brief Human-readable names for OML administrative state */
 const struct value_string abis_nm_adm_state_names[] = {
 	{ NM_STATE_LOCKED,	"Locked" },
 	{ NM_STATE_UNLOCKED,	"Unlocked" },
@@ -390,6 +407,10 @@ const struct value_string abis_nm_adm_state_names[] = {
 	{ 0, NULL }
 };
 
+/*! \brief write a human-readable OML header to the debug log
+ *  \param[in] ss Logging sub-system
+ *  \param[in] foh A-bis OML FOM header
+ */
 void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh)
 {
 	DEBUGP(ss, "OC=%s(%02x) INST=(%02x,%02x,%02x) ",
@@ -411,6 +432,7 @@ static const enum abis_nm_chan_comb chcomb4pchan[] = {
 	/* FIXME: bounds check */
 };
 
+/*! \brief Obtain OML Channel Combination for phnsical channel config */
 int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan)
 {
 	if (pchan < ARRAY_SIZE(chcomb4pchan))
@@ -419,6 +441,7 @@ int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan)
 	return -EINVAL;
 }
 
+/*! \brief Obtain physical channel config for OML Channel Combination */
 enum abis_nm_chan_comb abis_nm_pchan4chcomb(uint8_t chcomb)
 {
 	int i;
@@ -428,3 +451,5 @@ enum abis_nm_chan_comb abis_nm_pchan4chcomb(uint8_t chcomb)
 	}
 	return GSM_PCHAN_NONE;
 }
+
+/*! }@ */

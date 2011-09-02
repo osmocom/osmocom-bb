@@ -25,51 +25,65 @@
 
 #include <stdint.h>
 
+/*! \addtogroup rsl
+ *  @{
+ */
+
+/*! \file gsm_08_58.h */
+
+/*! \brief RSL common header */
 struct abis_rsl_common_hdr {
-	uint8_t	msg_discr;
-	uint8_t	msg_type;
-	uint8_t	data[0];
+	uint8_t	msg_discr;	/*!< \brief message discriminator (ABIS_RSL_MDISC_*) */
+	uint8_t	msg_type;	/*!< \brief message type (\ref abis_rsl_msgtype) */
+	uint8_t	data[0];	/*!< \brief actual payload data */
 } __attribute__ ((packed));
 
-/* Chapter 8.3 */
+/* \brief RSL RLL header (Chapter 8.3) */
 struct abis_rsl_rll_hdr {
 	struct abis_rsl_common_hdr c;
-	uint8_t	ie_chan;
-	uint8_t	chan_nr;
-	uint8_t	ie_link_id;
-	uint8_t	link_id;
-	uint8_t	data[0];
+	uint8_t	ie_chan;	/*!< \brief \ref RSL_IE_CHAN_NR (tag) */
+	uint8_t	chan_nr;	/*!< \brief RSL channel number (value) */
+	uint8_t	ie_link_id;	/*!< \brief \ref RSL_IE_LINK_IDENT (tag) */
+	uint8_t	link_id;	/*!< \brief RSL link identifier (value) */
+	uint8_t	data[0];	/*!< \brief message payload data */
 } __attribute__ ((packed));
 
-/* Chapter 8.3 and 8.4 */
+/* \brief RSL Dedicated Channel header (Chapter 8.3 and 8.4) */
 struct abis_rsl_dchan_hdr {
 	struct abis_rsl_common_hdr c;
-	uint8_t	ie_chan;
-	uint8_t	chan_nr;
-	uint8_t	data[0];
+	uint8_t	ie_chan;	/*!< \brief \ref RSL_IE_CHAN_NR (tag) */
+	uint8_t	chan_nr;	/*!< \brief RSL channel number (value) */
+	uint8_t	data[0];	/*!< \brief message payload data */
 } __attribute__ ((packed));
 
-/* Chapter 8.5 */
+/* \brief RSL Common Channel header (Chapter 8.5) */
 struct abis_rsl_cchan_hdr {
 	struct abis_rsl_common_hdr c;
-	uint8_t	ie_chan;
-	uint8_t	chan_nr;
-	uint8_t	data[0];
+	uint8_t	ie_chan;	/*!< \brief \ref RSL_IE_CHAN_NR (tag) */
+	uint8_t	chan_nr;	/*!< \brief RSL channel number (value) */
+	uint8_t	data[0];	/*!< \brief message payload data */
 } __attribute__ ((packed));
 
 
 /* Chapter 9.1 */
+/* \brief RSL Message Discriminator: RLL */
 #define ABIS_RSL_MDISC_RLL		0x02
+/* \brief RSL Message Discriminator: Dedicated Channel */
 #define ABIS_RSL_MDISC_DED_CHAN		0x08
+/* \brief RSL Message Discriminator: Common Channel */
 #define ABIS_RSL_MDISC_COM_CHAN		0x0c
+/* \brief RSL Message Discriminator: TRX Management */
 #define ABIS_RSL_MDISC_TRX		0x10
+/* \brief RSL Message Discriminator: Location Service */
 #define ABIS_RSL_MDISC_LOC		0x20
+/* \brief RSL Message Discriminator: ip.access */
 #define ABIS_RSL_MDISC_IPACCESS		0x7e
 #define ABIS_RSL_MDISC_TRANSP		0x01
 
+/* \brief Check if given RSL message discriminator is transparent */
 #define ABIS_RSL_MDISC_IS_TRANSP(x)	(x & 0x01)
 
-/* Chapter 9.1 */
+/* \brief RSL Message Tyoe (Chapter 9.1) */
 enum abis_rsl_msgtype {
 	/* Radio Link Layer Management */
 	RSL_MT_DATA_REQ			= 0x01,
@@ -169,7 +183,7 @@ enum abis_rsl_msgtype {
 	RSL_MT_IPAC_DLCX_NACK,
 };
 
-/* Siemens vendor-specific */
+/*! \brief Siemens vendor-specific RSL message types */
 enum abis_rsl_msgtype_siemens {
 	RSL_MT_SIEMENS_MRPCI		= 0x41,
 	RSL_MT_SIEMENS_INTRAC_HO_COND_IND = 0x42,
@@ -189,7 +203,7 @@ enum abis_rsl_msgtype_siemens {
 	RSL_MT_SIEMENS_MODIF_COND_IND	= 0x50,
 };
 
-/* Chapter 9.3 */
+/*! \brief RSL Information Element Identifiers (Chapter 9.3) */
 enum abis_rsl_ie {
 	RSL_IE_CHAN_NR			= 0x01,
 	RSL_IE_LINK_IDENT,
@@ -302,7 +316,7 @@ enum abis_rsl_ie {
 #define RSL_ACT_SECOND_ADD	0x04
 #define RSL_ACT_SECOND_MULTI	0x05
 
-/* Chapter 9.3.6 */
+/*! \brief RSL Channel Mode IF (Chapter 9.3.6) */
 struct rsl_ie_chan_mode {
 	uint8_t dtx_dtu;
 	uint8_t spd_ind;
@@ -329,7 +343,7 @@ enum rsl_cmod_spd {
 #define RSL_CMOD_SP_NT_12k0	0x50
 #define RSL_CMOD_SP_NT_6k0	0x51
 
-/* Chapter 9.3.5 */
+/*! \brief RSL Channel Identification IE (Chapter 9.3.5) */
 struct rsl_ie_chan_ident {
 	/* GSM 04.08 10.5.2.5 */
 	struct {
@@ -441,7 +455,7 @@ struct rsl_ie_chan_ident {
 #define RSL_CHANNEED_TCH_F	0x02
 #define RSL_CHANNEED_TCH_ForH	0x03
 
-/* Chapter 9.3.45 */
+/*! \brief RSL Cell Broadcast Command (Chapter 9.3.45) */
 struct rsl_ie_cb_cmd_type {
 	uint8_t last_block:2;
 	uint8_t spare:1;
@@ -542,5 +556,6 @@ enum rsl_mrpci_phase {
 	RSL_MRPCI_PHASE_2PLUS	= 3,
 };
 
+/*! }@ */
 
 #endif /* PROTO_GSM_08_58_H */

@@ -1,4 +1,42 @@
 
+/*! \mainpage libosmovty Documentation
+ *
+ * \section sec_intro Introduction
+ * This library is a collection of common code used in various
+ * GSM related sub-projects inside the Osmocom family of projects.  It
+ * has been imported/derived from the GNU Zebra project.
+ * \n\n
+ * libosmovty implements the interactive command-line on the VTY
+ * (Virtual TTY) as well as configuration file parsing.
+ * \n\n
+ * Please note that C language projects inside Osmocom are typically
+ * single-threaded event-loop state machine designs.  As such,
+ * routines in libosmovty are not thread-safe.  If you must use them in
+ * a multi-threaded context, you have to add your own locking.
+ *
+ * \section sec_copyright Copyright and License
+ * Copyright © 1997-2007 - Kuninhiro Ishiguro\n
+ * Copyright © 2008-2011 - Harald Welte, Holger Freyther and contributors\n
+ * All rights reserved. \n\n
+ * The source code of libosmovty is licensed under the terms of the GNU
+ * General Public License as published by the Free Software Foundation;
+ * either version 2 of the License, or (at your option) any later
+ * version.\n
+ * See <http://www.gnu.org/licenses/> or COPYING included in the source
+ * code package istelf.\n
+ * The information detailed here is provided AS IS with NO WARRANTY OF
+ * ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE.
+ * \n\n
+ *
+ * \section sec_contact Contact and Support
+ * Community-based support is available at the OpenBSC mailing list
+ * <http://lists.osmocom.org/mailman/listinfo/openbsc>\n
+ * Commercial support options available upon request from
+ * <http://sysmocom.de/>
+ */
+
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -17,6 +55,11 @@
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/buffer.h>
 #include <osmocom/core/talloc.h>
+
+/* \addtogroup vty
+ * @{
+ */
+/*! \file vty.c */
 
 #define SYSCONFDIR "/usr/local/etc"
 
@@ -44,7 +87,7 @@ static void vty_clear_buf(struct vty *vty)
 	memset(vty->buf, 0, vty->max);
 }
 
-/* Allocate new vty struct. */
+/*! \brief Allocate a new vty interface structure */
 struct vty *vty_new(void)
 {
 	struct vty *new = talloc_zero(tall_vty_ctx, struct vty);
@@ -137,7 +180,7 @@ static void vty_auth(struct vty *vty, char *buf)
 	}
 }
 
-/* Close vty interface. */
+/*! \brief Close a given vty interface. */
 void vty_close(struct vty *vty)
 {
 	int i;
@@ -178,13 +221,17 @@ void vty_close(struct vty *vty)
 	talloc_free(vty);
 }
 
+/*! \brief Return if this VTY is a shell or not */
 int vty_shell(struct vty *vty)
 {
 	return vty->type == VTY_SHELL ? 1 : 0;
 }
 
 
-/* VTY standard output function. */
+/*! \brief VTY standard output function
+ *  \param[in] vty VTY to which we should print
+ *  \param[in] format variable-length format string
+ */
 int vty_out(struct vty *vty, const char *format, ...)
 {
 	va_list args;
@@ -241,6 +288,7 @@ int vty_out(struct vty *vty, const char *format, ...)
 	return len;
 }
 
+/*! \brief print a newline on the given VTY */
 int vty_out_newline(struct vty *vty)
 {
 	char *p = vty_newline(vty);
@@ -248,15 +296,24 @@ int vty_out_newline(struct vty *vty)
 	return 0;
 }
 
+/*! \brief return the current index of a given VTY */
 void *vty_current_index(struct vty *vty)
 {
 	return vty->index;
 }
+
+/*! \brief return the current node of a given VTY */
 int vty_current_node(struct vty *vty)
 {
 	return vty->node;
 }
 
+/*! \brief Lock the configuration to a given VTY
+ *  \param[in] vty VTY to which the config shall be locked
+ *  \returns 1 on success, 0 on error
+ *
+ * This shall be used to make sure only one VTY at a given time has
+ * access to modify the configuration */
 int vty_config_lock(struct vty *vty)
 {
 	if (vty_config == 0) {
@@ -266,6 +323,10 @@ int vty_config_lock(struct vty *vty)
 	return vty->config;
 }
 
+/*! \brief Unlock the configuration from a given VTY
+ *  \param[in] vty VTY from which the configuration shall be unlocked
+ *  \returns 0 in case of success
+ */
 int vty_config_unlock(struct vty *vty)
 {
 	if (vty_config == 1 && vty->config == 1) {
@@ -1182,7 +1243,7 @@ static void vty_buffer_reset(struct vty *vty)
 	vty_redraw_line(vty);
 }
 
-/* Read data via vty socket. */
+/*! \brief Read data via vty socket. */
 int vty_read(struct vty *vty)
 {
 	int i;
@@ -1401,7 +1462,7 @@ vty_read_file(FILE *confp, void *priv)
 	return 0;
 }
 
-/* Create new vty structure. */
+/*! \brief Create new vty structure. */
 struct vty *
 vty_create (int vty_sock, void *priv)
 {
@@ -1590,7 +1651,7 @@ struct cmd_node vty_node = {
 	1,
 };
 
-/* Reset all VTY status. */
+/*! \brief Reset all VTY status. */
 void vty_reset(void)
 {
 	unsigned int i;
@@ -1647,6 +1708,10 @@ void vty_init_vtysh(void)
 }
 
 extern void *tall_bsc_ctx;
+
+/*! \brief Initialize VTY layer
+ *  \param[in] app_info application information
+ */
 /* Install vty's own commands like `who' command. */
 void vty_init(struct vty_app_info *app_info)
 {
@@ -1680,6 +1745,10 @@ void vty_init(struct vty_app_info *app_info)
 	install_element(VTY_NODE, &no_vty_login_cmd);
 }
 
+/*! \brief Read the configuration file using the VTY code
+ *  \param[in] file_name file name of the configuration file
+ *  \param[in] priv private data to be passed to \ref vty_read_file
+ */
 int vty_read_config_file(const char *file_name, void *priv)
 {
 	FILE *cfile;
@@ -1696,3 +1765,5 @@ int vty_read_config_file(const char *file_name, void *priv)
 
 	return rc;
 }
+
+/*! }@ */

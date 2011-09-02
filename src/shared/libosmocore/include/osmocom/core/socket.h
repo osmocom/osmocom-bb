@@ -1,6 +1,14 @@
 #ifndef _OSMOCORE_SOCKET_H
 #define _OSMOCORE_SOCKET_H
 
+/*! \defgroup socket Socket convenience functions
+ *  @{
+ */
+
+/*! \file socket.h
+ *  \brief Osmocom socket convenience functions
+ */
+
 #include <stdint.h>
 
 struct sockaddr;
@@ -19,7 +27,8 @@ int osmo_sock_init_ofd(struct osmo_fd *ofd, int family, int type, int proto,
 int osmo_sock_init_sa(struct sockaddr *ss, uint16_t type,
 		      uint8_t proto, unsigned int flags);
 
-/* determine if the given address is a local address */
 int osmo_sockaddr_is_local(struct sockaddr *addr, unsigned int addrlen);
+
+/*! }@ */
 
 #endif /* _OSMOCORE_SOCKET_H */

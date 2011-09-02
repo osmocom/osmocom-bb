@@ -6,7 +6,19 @@
 
 #include <osmocom/core/utils.h>
 
+/*! \addtogroup utils
+ * @{
+ */
+
+/*! \file utils.c */
+
 static char namebuf[255];
+
+/*! \brief get human-readable string for given value
+ *  \param[in] vs Array of value_string tuples
+ *  \param[in] val Value to be converted
+ *  \returns pointer to human-readable string
+ */
 const char *get_value_string(const struct value_string *vs, uint32_t val)
 {
 	int i;
@@ -22,6 +34,11 @@ const char *get_value_string(const struct value_string *vs, uint32_t val)
 	return namebuf;
 }
 
+/*! \brief get numeric value for given human-readable string
+ *  \param[in] vs Array of value_string tuples
+ *  \param[in] str human-readable string
+ *  \returns numeric value (>0) or negative numer in case of error
+ */
 int get_string_value(const struct value_string *vs, const char *str)
 {
 	int i;
@@ -35,6 +52,10 @@ int get_string_value(const struct value_string *vs, const char *str)
 	return -EINVAL;
 }
 
+/*! \brief Convert BCD-encoded digit into printable character
+ *  \param[in] bcd A single BCD-encoded digit
+ *  \returns single printable character
+ */
 char osmo_bcd2char(uint8_t bcd)
 {
 	if (bcd < 0xa)
@@ -97,6 +118,10 @@ static char *_osmo_hexdump(const unsigned char *buf, int len, char *delim)
 	return hexd_buff;
 }
 
+/*! \brief Convert a sequence of unpacked bits to ASCII string
+ * \param[in] bits A sequence of unpacked bits
+ * \param[in] len Length of bits
+ */
 char *osmo_ubit_dump(const uint8_t *bits, unsigned int len)
 {
 	int i;
@@ -127,11 +152,27 @@ char *osmo_ubit_dump(const uint8_t *bits, unsigned int len)
 	return hexd_buff;
 }
 
+/*! \brief Convert binary sequence to hexadecimal ASCII string
+ *  \param[in] buf pointer to sequence of bytes
+ *  \param[in] len length of buf in number of bytes
+ *  \returns pointer to zero-terminated string
+ *
+ * This function will print a sequence of bytes as hexadecimal numbers,
+ * adding one space character between each byte (e.g. "1a ef d9")
+ */
 char *osmo_hexdump(const unsigned char *buf, int len)
 {
 	return _osmo_hexdump(buf, len, " ");
 }
 
+/*! \brief Convert binary sequence to hexadecimal ASCII string
+ *  \param[in] buf pointer to sequence of bytes
+ *  \param[in] len length of buf in number of bytes
+ *  \returns pointer to zero-terminated string
+ *
+ * This function will print a sequence of bytes as hexadecimal numbers,
+ * without any space character between each byte (e.g. "1aefd9")
+ */
 char *osmo_osmo_hexdump_nospc(const unsigned char *buf, int len)
 {
 	return _osmo_hexdump(buf, len, "");
@@ -140,6 +181,10 @@ char *osmo_osmo_hexdump_nospc(const unsigned char *buf, int len)
 #include "../config.h"
 #ifdef HAVE_CTYPE_H
 #include <ctype.h>
+/*! \brief Convert an entire string to lower case
+ *  \param[out] out output string, caller-allocated
+ *  \param[in] in input string
+ */
 void osmo_str2lower(char *out, const char *in)
 {
 	unsigned int i;
@@ -149,6 +194,10 @@ void osmo_str2lower(char *out, const char *in)
 	out[strlen(in)] = '\0';
 }
 
+/*! \brief Convert an entire string to upper case
+ *  \param[out] out output string, caller-allocated
+ *  \param[in] in input string
+ */
 void osmo_str2upper(char *out, const char *in)
 {
 	unsigned int i;
@@ -158,3 +207,5 @@ void osmo_str2upper(char *out, const char *in)
 	out[strlen(in)] = '\0';
 }
 #endif /* HAVE_CTYPE_H */
+
+/*! }@ */

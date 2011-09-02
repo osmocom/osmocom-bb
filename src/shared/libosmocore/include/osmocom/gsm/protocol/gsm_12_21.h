@@ -23,43 +23,66 @@
  *
  */
 
+/*! \addtogroup oml
+ *  @{
+ */
+
+/*! \file gsm_12_21.h */
+
 #include <stdint.h>
 #include <osmocom/gsm/tlv.h>
 
-/* generic header in front of every OML message according to TS 08.59 */
+/*! \brief generic header in front of every OML message according to TS 08.59 */
 struct abis_om_hdr {
+	/*! \brief Message Discriminator \ref abis_oml_mdisc */
 	uint8_t	mdisc;
+	/*! \brief Placement (like \ref ABIS_OM_PLACEMENT_ONLY) */
 	uint8_t	placement;
+	/*! \brief Sequence Number (if \ref ABIS_OM_PLACEMENT_MIDDLE) */
 	uint8_t	sequence;
+	/*! \brief Length in octets */
 	uint8_t	length;
+	/*! \brief actual payload data */
 	uint8_t	data[0];
 } __attribute__ ((packed));
 
+/*! \brief Message Discriminator for Formatted Object Messages */
 #define ABIS_OM_MDISC_FOM		0x80
+/*! \brief Message Discriminator for Man Machine Interface */
 #define ABIS_OM_MDISC_MMI		0x40
+/*! \brief Message Discriminator for TRAU management */
 #define ABIS_OM_MDISC_TRAU		0x20
+/*! \brief Message Discriminator for Manufacturer Specific Messages */
 #define ABIS_OM_MDISC_MANUF		0x10
+
+/*! \brief Entire OML message is in the L2 frame */
 #define ABIS_OM_PLACEMENT_ONLY		0x80
+/*! \brief First fragment of OML message is in this L2 frame */
 #define ABIS_OM_PLACEMENT_FIRST 	0x40
+/*! \brief Middle fragment of OML message is in this L2 frame */
 #define ABIS_OM_PLACEMENT_MIDDLE	0x20
+/*! \brief Last fragment of OML message is in this L2 frame */
 #define ABIS_OM_PLACEMENT_LAST		0x10
 
+/*! \brief OML Object Instance */
 struct abis_om_obj_inst {
-	uint8_t	bts_nr;
-	uint8_t	trx_nr;
-	uint8_t	ts_nr;
+	uint8_t	bts_nr;	/*!< \brief BTS Number */
+	uint8_t	trx_nr;	/*!< \brief TRX Number */
+	uint8_t	ts_nr;	/*!< \brief Timeslot Number */
 } __attribute__ ((packed));
 
+/*! \brief OML Object Instance */
 struct abis_om_fom_hdr {
-	uint8_t	msg_type;
-	uint8_t	obj_class;
-	struct abis_om_obj_inst	obj_inst;
-	uint8_t	data[0];
+	uint8_t	msg_type;	/*!< \brief Message Type (\ref abis_nm_msgtype) */
+	uint8_t	obj_class;	/*!< \brief Object Class (\ref abis_nm_obj_class) */
+	struct abis_om_obj_inst	obj_inst; /*!< \brief Object Instance */
+	uint8_t	data[0];	/*!< \brief Data */
 } __attribute__ ((packed));
 
+/*! \brief Size of the OML FOM header in octets */
 #define ABIS_OM_FOM_HDR_SIZE	(sizeof(struct abis_om_hdr) + sizeof(struct abis_om_fom_hdr))
 
-/* Section 9.1: Message Types */
+/*! \brief OML Message Type (Section 9.1) */
 enum abis_nm_msgtype {
 	/* SW Download Management Messages */
 	NM_MT_LOAD_INIT			= 0x01,
@@ -170,6 +193,7 @@ enum abis_nm_msgtype {
 	NM_MT_SET_ALARM_THRES_NACK,
 };
 
+/*! \brief Siemens specific OML Message Types */
 enum abis_nm_msgtype_bs11 {
 	NM_MT_BS11_RESET_RESOURCE	= 0x74,
 
@@ -205,6 +229,7 @@ enum abis_nm_msgtype_bs11 {
 	NM_MT_BS11_RECONNECT_ACK,
 };
 
+/*! \brief ip.access specific OML Message Types */
 enum abis_nm_msgtype_ipacc {
 	NM_MT_IPACC_RESTART		= 0x87,
 	NM_MT_IPACC_RESTART_ACK,
@@ -237,7 +262,7 @@ enum abis_nm_bs11_cell_alloc {
 	NM_BS11_CANR_DCS1800	= 0x01,
 };
 
-/* Section 9.2: Object Class */
+/*! \brief OML Object Class (Section 9.2) */
 enum abis_nm_obj_class {
 	NM_OC_SITE_MANAGER		= 0x00,
 	NM_OC_BTS,
@@ -268,7 +293,7 @@ enum abis_nm_obj_class {
 	NM_OC_NULL			= 0xff,
 };
 
-/* Section 9.4: Attributes */
+/*! \brief OML Attributes / IEs (Section 9.4) */
 enum abis_nm_attr {
 	NM_ATT_ABIS_CHANNEL	= 0x01,
 	NM_ATT_ADD_INFO,
@@ -464,7 +489,7 @@ enum abis_nm_attr {
 };
 #define NM_ATT_BS11_FILE_DATA	NM_ATT_EVENT_TYPE
 
-/* Section 9.4.4: Administrative State */
+/*! \brief OML Administrative State (Section 9.4.4) */
 enum abis_nm_adm_state {
 	NM_STATE_LOCKED		= 0x01,
 	NM_STATE_UNLOCKED	= 0x02,
@@ -472,7 +497,7 @@ enum abis_nm_adm_state {
 	NM_STATE_NULL		= 0xff,
 };
 
-/* Section 9.4.7: Administrative State */
+/*! \brief OML Availability State (Section 9.4.7) */
 enum abis_nm_avail_state {
 	NM_AVSTATE_IN_TEST	= 1,
 	NM_AVSTATE_POWER_OFF	= 2,
@@ -483,13 +508,14 @@ enum abis_nm_avail_state {
 	NM_AVSTATE_OK		= 0xff,
 };
 
+/*! \brief OML Operational State */
 enum abis_nm_op_state {
 	NM_OPSTATE_DISABLED	= 1,
 	NM_OPSTATE_ENABLED	= 2,
 	NM_OPSTATE_NULL		= 0xff,
 };
 
-/* Section 9.4.13: Channel Combination */
+/* \brief Channel Combination (Section 9.4.13) */
 enum abis_nm_chan_comb {
 	NM_CHANC_TCHFull	= 0x00,	/* TCH/F + TCH/H + SACCH/TF */
 	NM_CHANC_TCHHalf	= 0x01, /* TCH/H(0,1) + FACCH/H(0,1) +
@@ -512,7 +538,7 @@ enum abis_nm_chan_comb {
 	NM_CHANC_IPAC_TCHFull_TCHHalf = 0x81,
 };
 
-/* Section 9.4.16: Event Type */
+/*! \brief Event Type (Section 9.4.16) */
 enum abis_nm_event_type {
 	NM_EVT_COMM_FAIL	= 0x00,
 	NM_EVT_QOS_FAIL		= 0x01,
@@ -521,7 +547,7 @@ enum abis_nm_event_type {
 	NM_EVT_ENV_FAIL		= 0x04,
 };
 
-/* Section: 9.4.63: Perceived Severity */
+/*! \brief Perceived Severity (Section: 9.4.63) */
 enum abis_nm_severity {
 	NM_SEVER_CEASED		= 0x00,
 	NM_SEVER_CRITICAL	= 0x01,
@@ -531,14 +557,14 @@ enum abis_nm_severity {
 	NM_SEVER_INDETERMINATE	= 0x05,
 };
 
-/* Section 9.4.43: Probable Cause Type */
+/*! \brief Probable Cause Type (Section 9.4.43) */
 enum abis_nm_pcause_type {
 	NM_PCAUSE_T_X721	= 0x01,
 	NM_PCAUSE_T_GSM		= 0x02,
 	NM_PCAUSE_T_MANUF	= 0x03,
 };
 
-/* Section 9.4.36: NACK Causes */
+/*! \brief NACK causes (Section 9.4.36) */
 enum abis_nm_nack_cause {
 	/* General Nack Causes */
 	NM_NACK_INCORR_STRUCT		= 0x01,
@@ -576,15 +602,15 @@ enum abis_nm_nack_cause {
 	NM_NACK_MEAS_NOTSTART		= 0x2c,
 };
 
-/* Section 9.4.1 */
+/*! \brief Abis OML Channel (Section 9.4.1) */
 struct abis_nm_channel {
 	uint8_t	attrib;
-	uint8_t	bts_port;
-	uint8_t	timeslot;
-	uint8_t	subslot;
+	uint8_t	bts_port;	/*!< \brief BTS port number */
+	uint8_t	timeslot;	/*!< \brief E1 timeslot */
+	uint8_t	subslot;	/*!< \brief E1 sub-slot */
 } __attribute__ ((packed));
 
-/* Siemens BS-11 specific objects in the SienemsHW (0xA5) object class */
+/*! \brief Siemens BS-11 specific objects in the SienemsHW (0xA5) object class */
 enum abis_bs11_objtype {
 	BS11_OBJ_ALCO		= 0x01,
 	BS11_OBJ_BBSIG		= 0x02,	/* obj_class: 0,1 */
@@ -595,6 +621,7 @@ enum abis_bs11_objtype {
 	BS11_OBJ_PA		= 0x09,	/* obj_class: 0, 1*/
 };
 
+/*! \brief Siemens BS11 TRX power */
 enum abis_bs11_trx_power {
 	BS11_TRX_POWER_GSM_2W	= 0x06,
 	BS11_TRX_POWER_GSM_250mW= 0x07,
@@ -606,17 +633,20 @@ enum abis_bs11_trx_power {
 	BS11_TRX_POWER_DCS_160mW= 0x0d,
 };
 
+/*! \brief Siemens BS11 PLL mode */
 enum abis_bs11_li_pll_mode {
 	BS11_LI_PLL_LOCKED	= 2,
 	BS11_LI_PLL_STANDALONE	= 3,
 };
 
+/*! \brief Siemens BS11 E1 line configuration */
 enum abis_bs11_line_cfg {
 	BS11_LINE_CFG_STAR	= 0x00,
 	BS11_LINE_CFG_MULTIDROP	= 0x01,
 	BS11_LINE_CFG_LOOP	= 0x02,
 };
 
+/*! \brief Siemens BS11 boot phase */
 enum abis_bs11_phase {
 	BS11_STATE_SOFTWARE_RQD		= 0x01,
 	BS11_STATE_LOAD_SMU_INTENDED	= 0x11,
@@ -633,6 +663,7 @@ enum abis_bs11_phase {
 	BS11_STATE_ABIS_LOAD		= 0x13,
 };
 
+/*! \brief ip.access test number */
 enum abis_nm_ipacc_test_no {
 	NM_IPACC_TESTNO_RLOOP_ANT	= 0x01,
 	NM_IPACC_TESTNO_RLOOP_XCVR	= 0x02,
@@ -646,7 +677,7 @@ enum abis_nm_ipacc_test_no {
 	NM_IPACC_TESTNO_BCCCH_MONITOR	= 0x46,
 };
 
-/* first byte after length inside NM_ATT_TEST_REPORT */
+/*! \brief first byte after length inside NM_ATT_TEST_REPORT */
 enum abis_nm_ipacc_test_res {
 	NM_IPACC_TESTRES_SUCCESS	= 0,
 	NM_IPACC_TESTRES_TIMEOUT	= 1,
@@ -655,7 +686,7 @@ enum abis_nm_ipacc_test_res {
 	NM_IPACC_TESTRES_STOPPED	= 4,
 };
 
-/* internal IE inside NM_ATT_TEST_REPORT */
+/*! \brief internal IE inside NM_ATT_TEST_REPORT */
 enum abis_nm_ipacc_testres_ie {
 	NM_IPACC_TR_IE_FREQ_ERR_LIST	= 3,
 	NM_IPACC_TR_IE_CHAN_USAGE	= 4,
@@ -664,6 +695,7 @@ enum abis_nm_ipacc_testres_ie {
 	NM_IPACC_TR_IE_FREQ_ERR		= 18,
 };
 
+/*! \brief ip.access IEI */
 enum ipac_eie {
 	NM_IPAC_EIE_ARFCN_WHITE		= 0x01,
 	NM_IPAC_EIE_ARFCH_BLACK		= 0x02,
@@ -696,6 +728,7 @@ enum ipac_eie {
 	NM_IPAC_EIE_BTS_ID		= 0x25,
 };
 
+/*! \brief ip.access NWL BCCH information type */
 enum ipac_bcch_info_type {
 	IPAC_BINF_RXLEV			= (1 << 8),
 	IPAC_BINF_RXQUAL		= (1 << 9),
@@ -709,5 +742,7 @@ enum ipac_bcch_info_type {
 	IPAC_BINF_NEIGH_BA_SI2ter	= (1 << 1),
 	IPAC_BINF_CELL_ALLOC		= (1 << 2),
 };
+
+/*! }@ */
 
 #endif /* PROTO_GSM_12_21_H */

@@ -21,6 +21,12 @@ ltmain.sh
 install-sh
 stamp-h1
 libtool
+libosmocore-*.tar.*
+
+Doxyfile.core
+Doxyfile.gsm
+Doxyfile.vty
+Doxyfile.codec
 
 .tarball-version
 .version
@@ -30,3 +36,11 @@ tests/timer/timer_test
 tests/msgfile/msgfile_test
 tests/ussd/ussd_test
 tests/smscb/smscb_test
+
+utils/osmo-arfcn
+
+doc/codec
+doc/core
+doc/vty
+doc/gsm
+doc/html.tar

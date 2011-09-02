@@ -18,6 +18,12 @@
  *
  */
 
+/*! \addtogroup msgb
+ *  @{
+ */
+
+/*! \file msgb.c
+ */
 
 #include <unistd.h>
 #include <string.h>
@@ -30,6 +36,14 @@
 
 void *tall_msgb_ctx;
 
+/*! \brief Allocate a new message buffer
+ * \param[in] size Length in octets, including headroom
+ * \param[in] name Human-readable name to be associated with msgb
+ *
+ * This function allocates a 'struct msgb' as well as the underlying
+ * memory buffer for the actual message data (size specified by \a size)
+ * using the talloc memory context previously set by \ref msgb_set_talloc_ctx
+ */
 struct msgb *msgb_alloc(uint16_t size, const char *name)
 {
 	struct msgb *msg;
@@ -50,16 +64,33 @@ struct msgb *msgb_alloc(uint16_t size, const char *name)
 	return msg;
 }
 
+/*! \brief Release given message buffer
+ * \param[in] m Message buffer to be free'd
+ */
 void msgb_free(struct msgb *m)
 {
 	talloc_free(m);
 }
 
+/*! \brief Enqueue message buffer to tail of a queue
+ * \param[in] queue linked list header of queue
+ * \param[in] msgb message buffer to be added to the queue
+ *
+ * The function will append the specified message buffer \a msg to the
+ * queue implemented by \ref llist_head \a queue
+ */
 void msgb_enqueue(struct llist_head *queue, struct msgb *msg)
 {
 	llist_add_tail(&msg->list, queue);
 }
 
+/*! \brief Dequeue message buffer from head of queue
+ * \param[in] queue linked list header of queue
+ * \returns message buffer (if any) or NULL if queue empty
+ *
+ * The function will remove the first message buffer from the queue
+ * implemented by 'ref llist_head \a queue.
+ */
 struct msgb *msgb_dequeue(struct llist_head *queue)
 {
 	struct llist_head *lh;
@@ -73,6 +104,13 @@ struct msgb *msgb_dequeue(struct llist_head *queue)
 	return llist_entry(lh, struct msgb, list);
 }
 
+/*! \brief Re-set all message buffer pointers
+ *  \param[in] m message buffer that is to be resetted
+ *
+ * This will re-set the various internal pointers into the underlying
+ * message buffer, i.e. remvoe all headroom and treat the msgb as
+ * completely empty.  It also initializes the control buffer to zero.
+ */
 void msgb_reset(struct msgb *msg)
 {
 	msg->len = 0;
@@ -89,17 +127,30 @@ void msgb_reset(struct msgb *msg)
 	memset(&msg->cb, 0, sizeof(msg->cb));
 }
 
+/*! \brief get pointer to data section of message buffer
+ *  \param[in] msg message buffer
+ *  \returns pointer to data section of message buffer
+ */
 uint8_t *msgb_data(const struct msgb *msg)
 {
 	return msg->data;
 }
 
+/*! \brief get length of message buffer
+ *  \param[in] msg message buffer
+ *  \returns length of data section in message buffer
+ */
 uint16_t msgb_length(const struct msgb *msg)
 {
 	return msg->len;
 }
 
+/*! \brief Set the talloc context for \ref msgb_alloc
+ *  \param[in] ctx talloc context to be used as root for msgb allocations
+ */
 void msgb_set_talloc_ctx(void *ctx)
 {
 	tall_msgb_ctx = ctx;
 }
+
+/*! }@ */

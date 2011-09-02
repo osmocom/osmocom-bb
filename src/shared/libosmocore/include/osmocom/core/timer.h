@@ -18,6 +18,14 @@
  *
  */
 
+/*! \defgroup timer Osmocom timers
+ *  @{
+ */
+
+/*! \file timer.h
+ *  \brief Osmocom timer handling routines
+ */
+
 #ifndef TIMER_H
 #define TIMER_H
 
@@ -41,32 +49,39 @@
  *        the timers.
  *
  */
+/*! \brief A structure representing a single instance of a timer */
 struct osmo_timer_list {
-	struct llist_head entry;
-	struct timeval timeout;
-	unsigned int active  : 1;
-	unsigned int handled : 1;
-	unsigned int in_list : 1;
+	struct llist_head entry;  /*!< \brief linked list header */
+	struct timeval timeout;   /*!< \brief expiration time */
+	unsigned int active  : 1; /*!< \brief is it active? */
+	unsigned int handled : 1; /*!< \brief did we already handle it */
+	unsigned int in_list : 1; /*!< \brief is it in the global list? */
 
-	void (*cb)(void*);
-	void *data;
+	void (*cb)(void*);	  /*!< \brief call-back called at timeout */
+	void *data;		  /*!< \brief user data for callback */
 };
 
 /**
  * timer management
  */
+
 void osmo_timer_add(struct osmo_timer_list *timer);
+
 void osmo_timer_schedule(struct osmo_timer_list *timer, int seconds, int microseconds);
+
 void osmo_timer_del(struct osmo_timer_list *timer);
+
 int osmo_timer_pending(struct osmo_timer_list *timer);
 
 
-/**
+/*
  * internal timer list management
  */
 struct timeval *osmo_timers_nearest(void);
 void osmo_timers_prepare(void);
 int osmo_timers_update(void);
 int osmo_timers_check(void);
+
+/*! }@ */
 
 #endif

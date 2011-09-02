@@ -22,6 +22,46 @@
  *
  */
 
+/*! \mainpage libosmogsm Documentation
+ *
+ * \section sec_intro Introduction
+ * This library is a collection of common code used in various
+ * GSM related sub-projects inside the Osmocom family of projects.  It
+ * includes A5/1 and A5/2 ciphers, COMP128v1, a LAPDm implementation,
+ * a GSM TLV parser, SMS utility routines as well as 
+ * protocol definitions for a series of protocols:
+ * 	* Um L2 (04.06)
+ * 	* Um L3 (04.08)
+ * 	* A-bis RSL (08.58)
+ * 	* A-bis OML (08.59, 12.21)
+ * 	* A (08.08)
+ * \n\n
+ * Please note that C language projects inside Osmocom are typically
+ * single-threaded event-loop state machine designs.  As such,
+ * routines in libosmogsm are not thread-safe.  If you must use them in
+ * a multi-threaded context, you have to add your own locking.
+ *
+ * \section sec_copyright Copyright and License
+ * Copyright © 2008-2011 - Harald Welte, Holger Freyther and contributors\n
+ * All rights reserved. \n\n
+ * The source code of libosmogsm is licensed under the terms of the GNU
+ * General Public License as published by the Free Software Foundation;
+ * either version 2 of the License, or (at your option) any later
+ * version.\n
+ * See <http://www.gnu.org/licenses/> or COPYING included in the source
+ * code package istelf.\n
+ * The information detailed here is provided AS IS with NO WARRANTY OF
+ * ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE.
+ * \n\n
+ *
+ * \section sec_contact Contact and Support
+ * Community-based support is available at the OpenBSC mailing list
+ * <http://lists.osmocom.org/mailman/listinfo/openbsc>\n
+ * Commercial support options available upon request from
+ * <http://sysmocom.de/>
+ */
+
 //#include <openbsc/gsm_data.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/gsm_utils.h>

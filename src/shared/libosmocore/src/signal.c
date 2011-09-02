@@ -25,6 +25,12 @@
 #include <string.h>
 #include <errno.h>
 
+/*! \addtogroup signal
+ *  @{
+ */
+/*! \file signal.c */
+
+
 void *tall_sigh_ctx;
 static LLIST_HEAD(signal_handler_list);
 
@@ -36,6 +42,11 @@ struct signal_handler {
 };
 
 
+/*! \brief Register a new signal handler
+ *  \param[in] subsys Subsystem number
+ *  \param[in] cbfn Callback function
+ *  \param[in] data Data passed through to callback
+ */
 int osmo_signal_register_handler(unsigned int subsys,
 				 osmo_signal_cbfn *cbfn, void *data)
 {
@@ -58,6 +69,11 @@ int osmo_signal_register_handler(unsigned int subsys,
 	return 0;
 }
 
+/*! \brief Unregister signal handler
+ *  \param[in] subsys Subsystem number
+ *  \param[in] cbfn Callback function
+ *  \param[in] data Data passed through to callback
+ */
 void osmo_signal_unregister_handler(unsigned int subsys,
 				    osmo_signal_cbfn *cbfn, void *data)
 {
@@ -73,7 +89,11 @@ void osmo_signal_unregister_handler(unsigned int subsys,
 	}
 }
 
-
+/*! \brief dispatch (deliver) a new signal to all registered handlers
+ *  \param[in] subsys Subsystem number
+ *  \param[in] signal Signal number,
+ *  \param[in] signal_data Data to be passed along to handlers
+ */
 void osmo_signal_dispatch(unsigned int subsys, unsigned int signal,
 			  void *signal_data)
 {
@@ -85,3 +105,5 @@ void osmo_signal_dispatch(unsigned int subsys, unsigned int signal,
 		(*handler->cbfn)(subsys, signal, handler->data, signal_data);
 	}
 }
+
+/*! }@ */

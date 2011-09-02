@@ -33,6 +33,11 @@
 #include <osmocom/vty/buffer.h>
 #include <osmocom/vty/command.h>
 
+/*! \addtogroup telnet_interface
+ *  @{
+ */
+/*! \file telnet_interface.c */
+
 /* per connection data */
 LLIST_HEAD(active_connections);
 
@@ -47,6 +52,11 @@ static struct osmo_fd server_socket = {
 	.priv_nr    = 0,
 };
 
+/*! \brief Initialize telnet based VTY interface
+ *  \param[in] tall_ctx \ref talloc context
+ *  \param[in] priv private data to be passed to callback
+ *  \param[in] port UDP port number
+ */
 int telnet_init(void *tall_ctx, void *priv, int port)
 {
 	struct sockaddr_in sock_addr;
@@ -55,6 +65,7 @@ int telnet_init(void *tall_ctx, void *priv, int port)
 	tall_telnet_ctx = talloc_named_const(tall_ctx, 1,
 					     "telnet_connection");
 
+	/* FIXME: use new socket.c code of libosmocore */
 	fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	if (fd < 0) {
@@ -109,6 +120,7 @@ static void print_welcome(int fd)
 		write(fd, host.app_info->copyright, strlen(host.app_info->copyright));
 }
 
+/*! \brief close a telnet connection */
 int telnet_close_client(struct osmo_fd *fd)
 {
 	struct telnet_connection *conn = (struct telnet_connection*)fd->data;
@@ -183,7 +195,7 @@ static int telnet_new_connection(struct osmo_fd *fd, unsigned int what)
 	return 0;
 }
 
-/* callback from VTY code */
+/*! \brief callback from core VTY code about VTY related events */
 void vty_event(enum event event, int sock, struct vty *vty)
 {
 	struct telnet_connection *connection = vty->priv;
@@ -209,3 +221,4 @@ void vty_event(enum event event, int sock, struct vty *vty)
 	}
 }
 
+/*! }@ */
