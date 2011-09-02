@@ -54,6 +54,9 @@ struct gsmtap_inst *gsmtap_inst = NULL;
 unsigned short vty_port = 4247;
 int debug_set = 0;
 char *config_dir = NULL;
+int use_mncc_sock = 0;
+
+int mncc_recv_socket(struct osmocom_ms *ms, int msg_type, void *arg);
 
 int mobile_delete(struct osmocom_ms *ms, int force);
 int mobile_signal_cb(unsigned int subsys, unsigned int signal,
@@ -83,6 +86,8 @@ static void print_help()
 	printf("  -v --vty-port		The VTY port number to telnet to. "
 		"(default %u)\n", vty_port);
 	printf("  -d --debug		Change debug flags.\n");
+	printf("  -m --mncc-sock	Disable built-in MNCC handler and "
+		"offer socket\n");
 }
 
 static void handle_options(int argc, char **argv)
@@ -94,10 +99,11 @@ static void handle_options(int argc, char **argv)
 			{"gsmtap-ip", 1, 0, 'i'},
 			{"vty-port", 1, 0, 'v'},
 			{"debug", 1, 0, 'd'},
+			{"mncc-sock", 0, 0, 'm'},
 			{0, 0, 0, 0},
 		};
 
-		c = getopt_long(argc, argv, "hi:v:d:",
+		c = getopt_long(argc, argv, "hi:v:d:m",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -117,6 +123,9 @@ static void handle_options(int argc, char **argv)
 		case 'd':
 			log_parse_category_mask(stderr_target, optarg);
 			debug_set = 1;
+			break;
+		case 'm':
+			use_mncc_sock = 1;
 			break;
 		default:
 			break;
@@ -187,7 +196,10 @@ int main(int argc, char **argv)
 	config_dir = talloc_strdup(l23_ctx, config_file);
 	config_dir = dirname(config_dir);
 
-	rc = l23_app_init(NULL, config_file, vty_port);
+	if (use_mncc_sock)
+		rc = l23_app_init(mncc_recv_socket, config_file, vty_port);
+	else
+		rc = l23_app_init(NULL, config_file, vty_port);
 	if (rc)
 		exit(rc);
 

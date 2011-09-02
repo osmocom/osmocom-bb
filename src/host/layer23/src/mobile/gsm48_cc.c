@@ -76,9 +76,10 @@ int gsm48_cc_exit(struct osmocom_ms *ms)
 	LOGP(DCC, LOGL_INFO, "exit Call Control processes for %s\n", ms->name);
 
 	llist_for_each_entry_safe(trans, trans2, &ms->trans_list, entry) {
-		if (trans->protocol == GSM48_PDISC_CC)
+		if (trans->protocol == GSM48_PDISC_CC) {
 			LOGP(DCC, LOGL_NOTICE, "Free pendig CC-transaction.\n");
 			trans_free(trans);
+		}
 	}
 
 	while ((msg = msgb_dequeue(&cc->mncc_upqueue)))
@@ -1916,11 +1917,28 @@ static struct downstate {
 #define DOWNSLLEN \
 	(sizeof(downstatelist) / sizeof(struct downstate))
 
-int mncc_send(struct osmocom_ms *ms, int msg_type, void *arg)
+int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 {
+	struct osmocom_ms *ms = (struct osmocom_ms *) inst;
 	struct gsm_mncc *data = arg;
 	struct gsm_trans *trans;
 	int i, rc;
+
+	if (!ms->started || ms->shutdown) {
+		LOGP(DCC, LOGL_NOTICE, "Phone is down!\n");
+		if (ms->mncc_entity.mncc_recv && msg_type != MNCC_REL_REQ) {
+			struct gsm_mncc rel;
+
+			memset(&rel, 0, sizeof(rel));
+			rel.callref = data->callref;
+			mncc_set_cause(&rel, GSM48_CAUSE_LOC_PRN_S_LU,
+			GSM48_CC_CAUSE_DEST_OOO);
+			ms->mncc_entity.mncc_recv(ms, MNCC_REL_IND, &rel);
+		}
+		return -EBUSY;
+	}
+
+	data->msg_type = msg_type;
 
 	/* Find callref */
 	trans = trans_find_by_callref(ms, data->callref);
@@ -2177,5 +2195,28 @@ int gsm48_rcv_cc(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	return rc;
+}
+
+int mncc_clear_trans(void *inst, uint8_t protocol)
+{
+	struct osmocom_ms *ms = (struct osmocom_ms *) inst;
+	struct gsm_mncc rel;
+	struct gsm_trans *trans, *trans2;
+
+	memset(&rel, 0, sizeof(struct gsm_mncc));
+
+	/* safe, in case the release process will destroy transaction node */
+	llist_for_each_entry_safe(trans, trans2, &ms->trans_list, entry) {
+		if (trans->protocol == protocol) {
+			LOGP(DCC, LOGL_NOTICE, "Release CC-transaction.\n");
+			rel.callref = trans->callref;
+			mncc_set_cause(&rel, GSM48_CAUSE_LOC_PRN_S_LU,
+				GSM48_CC_CAUSE_TEMP_FAILURE);
+			mncc_tx_to_cc(ms, MNCC_REL_REQ, &rel);
+		}
+	}
+
+	return 0;
+
 }
 

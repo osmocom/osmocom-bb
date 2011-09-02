@@ -18,6 +18,7 @@ struct osmocom_ms;
 #include <osmocom/bb/mobile/gsm322.h>
 #include <osmocom/bb/mobile/gsm48_mm.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
+#include <osmocom/bb/mobile/mncc_sock.h>
 #include <osmocom/bb/common/sim.h>
 #include <osmocom/bb/common/l1ctl.h>
 
@@ -31,6 +32,7 @@ struct osmol1_entity {
 
 struct osmomncc_entity {
 	int (*mncc_recv)(struct osmocom_ms *ms, int msg_type, void *arg);
+	struct mncc_sock_state *sock_state;
 	uint32_t ref;
 };
 

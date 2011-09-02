@@ -5,7 +5,7 @@ LDADD = ../common/liblayer23.a $(LIBOSMOCORE_LIBS) $(LIBOSMOVTY_LIBS) $(LIBOSMOG
 noinst_LIBRARIES = libmobile.a
 libmobile_a_SOURCES = gsm322.c gsm48_cc.c gsm48_mm.c gsm48_rr.c	\
 	mnccms.c settings.c subscriber.c support.c \
-	transaction.c vty_interface.c voice.c
+	transaction.c vty_interface.c voice.c mncc_sock.c
 
 bin_PROGRAMS = mobile
 

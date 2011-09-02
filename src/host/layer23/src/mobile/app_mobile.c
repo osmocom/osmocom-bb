@@ -233,16 +233,13 @@ struct osmocom_ms *mobile_new(char *name)
 	ms->shutdown = 2; /* being down */
 
 	if (mncc_recv_app) {
-		struct msgb *msg;
+		char name[32];
 
-		msg = msgb_alloc(sizeof(struct gsm_mncc), "MNCC");
-		if (msg) {
-			struct gsm_mncc *mncc = (struct gsm_mncc *)msg->data;
+		sprintf(name, "/tmp/ms_mncc_%s", ms->name);
 
-			mncc->msg_type = MS_NEW;
-			mncc_recv_app(ms, mncc->msg_type, mncc);
-		}
 		ms->mncc_entity.mncc_recv = mncc_recv_app;
+		ms->mncc_entity.sock_state = mncc_sock_init(ms, name, l23_ctx);
+
 	} else if (ms->settings.ch_cap == GSM_CAP_SDCCH)
 		ms->mncc_entity.mncc_recv = mncc_recv_dummy;
 	else
@@ -266,15 +263,8 @@ int mobile_delete(struct osmocom_ms *ms, int force)
 	}
 
 	if (mncc_recv_app) {
-		struct msgb *msg;
-
-		msg = msgb_alloc(sizeof(struct gsm_mncc), "MNCC");
-		if (msg) {
-			struct gsm_mncc *mncc = (struct gsm_mncc *)msg->data;
-
-			mncc->msg_type = MS_DELETE;
-			mncc_recv_app(ms, mncc->msg_type, mncc);
-		}
+		mncc_sock_exit(ms->mncc_entity.sock_state);
+		ms->mncc_entity.sock_state = NULL;
 	}
 
 	return 0;

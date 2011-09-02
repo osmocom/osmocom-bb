@@ -216,7 +216,43 @@ int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg)
 	mncc_set_cause(&rel, GSM48_CAUSE_LOC_USER,
 		GSM48_CC_CAUSE_INCOMPAT_DEST);
 
-	return mncc_send(ms, MNCC_REL_REQ, &rel);
+	return mncc_tx_to_cc(ms, MNCC_REL_REQ, &rel);
+}
+
+/*
+ * MNCCms call application via socket
+ */
+int mncc_recv_socket(struct osmocom_ms *ms, int msg_type, void *arg)
+{
+	struct mncc_sock_state *state = ms->mncc_entity.sock_state;
+	struct gsm_mncc *mncc = arg;
+	struct msgb *msg;
+	unsigned char *data;
+
+	if (!state) {
+		if (msg_type != MNCC_REL_IND && msg_type != MNCC_REL_CNF) {
+			struct gsm_mncc rel;
+
+			/* reject */
+			memset(&rel, 0, sizeof(struct gsm_mncc));
+			rel.callref = mncc->callref;
+			mncc_set_cause(&rel, GSM48_CAUSE_LOC_USER,
+				GSM48_CC_CAUSE_TEMP_FAILURE);
+			return mncc_tx_to_cc(ms, MNCC_REL_REQ, &rel);
+		}
+		return 0;
+	}
+
+	mncc->msg_type = msg_type;
+
+	msg = msgb_alloc(sizeof(struct gsm_mncc), "MNCC");
+	if (!msg)
+		return -ENOMEM;
+
+	data = msgb_put(msg, sizeof(struct gsm_mncc));
+	memcpy(data, mncc, sizeof(struct gsm_mncc));
+
+	return mncc_sock_from_cc(state, msg);
 }
 
 /*
@@ -244,7 +280,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = data->callref;
 		mncc_set_cause(&mncc, GSM48_CAUSE_LOC_USER, cause);
-		return mncc_send(ms, MNCC_REL_REQ, &mncc);
+		return mncc_tx_to_cc(ms, MNCC_REL_REQ, &mncc);
 	}
 
 	/* setup without call */
@@ -439,7 +475,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 			mncc.fields |= MNCC_F_CCCAP;
 			mncc.cccap.dtmf = 1;
 		}
-		mncc_send(ms, MNCC_CALL_CONF_REQ, &mncc);
+		mncc_tx_to_cc(ms, MNCC_CALL_CONF_REQ, &mncc);
 		if (first_call)
 			LOGP(DMNCC, LOGL_INFO, "Ring!\n");
 		else {
@@ -449,7 +485,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		call->ring = 1;
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
-		mncc_send(ms, MNCC_ALERT_REQ, &mncc);
+		mncc_tx_to_cc(ms, MNCC_ALERT_REQ, &mncc);
 		if (ms->settings.auto_answer) {
 			LOGP(DMNCC, LOGL_INFO, "Auto-answering call\n");
 			mncc_answer(ms);
@@ -558,7 +594,7 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 		}
 	}
 
-	return mncc_send(ms, MNCC_SETUP_REQ, &setup);
+	return mncc_tx_to_cc(ms, MNCC_SETUP_REQ, &setup);
 }
 
 int mncc_hangup(struct osmocom_ms *ms)
@@ -583,7 +619,7 @@ int mncc_hangup(struct osmocom_ms *ms)
 	disc.callref = found->callref;
 	mncc_set_cause(&disc, GSM48_CAUSE_LOC_USER,
 		GSM48_CC_CAUSE_NORM_CALL_CLEAR);
-	return mncc_send(ms, (call->init) ? MNCC_REL_REQ : MNCC_DISC_REQ,
+	return mncc_tx_to_cc(ms, (call->init) ? MNCC_REL_REQ : MNCC_DISC_REQ,
 		&disc);
 }
 
@@ -616,7 +652,7 @@ int mncc_answer(struct osmocom_ms *ms)
 
 	memset(&rsp, 0, sizeof(struct gsm_mncc));
 	rsp.callref = alerting->callref;
-	return mncc_send(ms, MNCC_SETUP_RSP, &rsp);
+	return mncc_tx_to_cc(ms, MNCC_SETUP_RSP, &rsp);
 }
 
 int mncc_hold(struct osmocom_ms *ms)
@@ -639,7 +675,7 @@ int mncc_hold(struct osmocom_ms *ms)
 
 	memset(&hold, 0, sizeof(struct gsm_mncc));
 	hold.callref = found->callref;
-	return mncc_send(ms, MNCC_HOLD_REQ, &hold);
+	return mncc_tx_to_cc(ms, MNCC_HOLD_REQ, &hold);
 }
 
 int mncc_retrieve(struct osmocom_ms *ms, int number)
@@ -687,7 +723,7 @@ int mncc_retrieve(struct osmocom_ms *ms, int number)
 
 	memset(&retr, 0, sizeof(struct gsm_mncc));
 	retr.callref = call->callref;
-	return mncc_send(ms, MNCC_RETRIEVE_REQ, &retr);
+	return mncc_tx_to_cc(ms, MNCC_RETRIEVE_REQ, &retr);
 }
 
 /*
@@ -714,7 +750,7 @@ static int dtmf_statemachine(struct gsm_call *call, struct gsm_mncc *mncc)
 		call->dtmf_state = DTMF_ST_START;
 		LOGP(DMNCC, LOGL_INFO, "start DTMF (keypad %c)\n",
 			dtmf.keypad);
-		return mncc_send(ms, MNCC_START_DTMF_REQ, &dtmf);
+		return mncc_tx_to_cc(ms, MNCC_START_DTMF_REQ, &dtmf);
 	case DTMF_ST_START:
 		if (mncc->msg_type != MNCC_START_DTMF_RSP) {
 			LOGP(DMNCC, LOGL_INFO, "DTMF was rejected\n");
@@ -729,7 +765,7 @@ static int dtmf_statemachine(struct gsm_call *call, struct gsm_mncc *mncc)
 		dtmf.callref = call->callref;
 		call->dtmf_state = DTMF_ST_STOP;
 		LOGP(DMNCC, LOGL_INFO, "stop DTMF\n");
-		return mncc_send(ms, MNCC_STOP_DTMF_REQ, &dtmf);
+		return mncc_tx_to_cc(ms, MNCC_STOP_DTMF_REQ, &dtmf);
 	case DTMF_ST_STOP:
 		start_dtmf_timer(call, 120);
 		call->dtmf_state = DTMF_ST_SPACE;
