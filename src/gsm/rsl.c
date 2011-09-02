@@ -346,6 +346,42 @@ const char *rsl_msg_name(uint8_t msg_type)
 	return get_value_string(rsl_msgt_names, msg_type);
 }
 
+/*! \brief ip.access specific */
+static const struct value_string rsl_ipac_msgt_names[] = {
+	{ RSL_MT_IPAC_PDCH_ACT,		"IPAC_PDCH_ACT" },
+	{ RSL_MT_IPAC_PDCH_ACT_ACK,	"IPAC_PDCH_ACT_ACK" },
+	{ RSL_MT_IPAC_PDCH_ACT_NACK,	"IPAC_PDCH_ACT_NACK" },
+	{ RSL_MT_IPAC_PDCH_DEACT,	"IPAC_PDCH_DEACT" },
+	{ RSL_MT_IPAC_PDCH_DEACT_ACK,	"IPAC_PDCH_DEACT_ACK" },
+	{ RSL_MT_IPAC_PDCH_DEACT_NACK,	"IPAC_PDCH_DEACT_NACK" },
+	{ RSL_MT_IPAC_CONNECT_MUX,	"IPAC_CONNECT_MUX" },
+	{ RSL_MT_IPAC_CONNECT_MUX_ACK,	"IPAC_CONNECT_MUX_ACK" },
+	{ RSL_MT_IPAC_CONNECT_MUX_NACK,	"IPAC_CONNECT_MUX_NACK" },
+	{ RSL_MT_IPAC_BIND_MUX,		"IPAC_BIND_MUX" },
+	{ RSL_MT_IPAC_BIND_MUX_ACK,	"IPAC_BIND_MUX_ACK" },
+	{ RSL_MT_IPAC_BIND_MUX_NACK,	"IPAC_BIND_MUX_NACK" },
+	{ RSL_MT_IPAC_DISC_MUX,		"IPAC_DISC_MUX" },
+	{ RSL_MT_IPAC_DISC_MUX_ACK,	"IPAC_DISC_MUX_ACK" },
+	{ RSL_MT_IPAC_DISC_MUX_NACK,	"IPAC_DISC_MUX_NACK" },
+	{ RSL_MT_IPAC_CRCX,		"IPAC_CRCX" },
+	{ RSL_MT_IPAC_CRCX_ACK,		"IPAC_CRCX_ACK" },
+	{ RSL_MT_IPAC_CRCX_NACK,	"IPAC_CRCX_NACK" },
+	{ RSL_MT_IPAC_MDCX,		"IPAC_MDCX" },
+	{ RSL_MT_IPAC_MDCX_ACK,		"IPAC_MDCX_ACK" },
+	{ RSL_MT_IPAC_MDCX_NACK,	"IPAC_MDCX_NACK" },
+	{ RSL_MT_IPAC_DLCX_IND,		"IPAC_DLCX_IND" },
+	{ RSL_MT_IPAC_DLCX,		"IPAC_DLCX" },
+	{ RSL_MT_IPAC_DLCX_ACK,		"IPAC_DLCX_ACK" },
+	{ RSL_MT_IPAC_DLCX_NACK,	"IPAC_DLCX_NACK" },
+	{ 0, NULL }
+};
+
+/*! \brief Get human-readable name of ip.access RSL msg type */
+const char *rsl_ipac_msg_name(uint8_t msg_type)
+{
+	return get_value_string(rsl_ipac_msgt_names, msg_type);
+}
+
 static const struct value_string rsl_rlm_cause_strs[] = {
 	{ RLL_CAUSE_T200_EXPIRED,	"Timer T200 expired (N200+1) times" },
 	{ RLL_CAUSE_REEST_REQ,		"Re-establishment request" },
