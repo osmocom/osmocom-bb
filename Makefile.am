@@ -17,7 +17,6 @@ EXTRA_DIST = git-version-gen
 
 if HAVE_DOXYGEN
 
-#docdir=$(datadir)/doc
 pkgdocdir=$(docdir)/$(PACKAGE)-$(VERSION)
 doc_htmldir=$(pkgdocdir)/html
 
