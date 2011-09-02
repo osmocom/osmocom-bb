@@ -41,6 +41,7 @@
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/select.h>
+#include <osmocom/core/serial.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
 
@@ -214,69 +215,6 @@ static const uint8_t romload_param[] = { 0x3c, 0x70, 0x00, 0x00, 0x00, 0x04,
 static const uint8_t mtk_init_cmd[] =	{ 0xa0, 0x0a, 0x50, 0x05 };
 static const uint8_t mtk_init_resp[] =	{ 0x5f, 0xf5, 0xaf, 0xfa };
 static const uint8_t mtk_command[] =	{ 0xa1, 0xa2, 0xa4, 0xa8 };
-
-/* FIXME: this routine is more or less what openbsc/src/rs232:rs232_setup()
- * does, we should move it to libosmocore at some point */
-static int serial_init(const char *serial_port)
-{
-	int rc, serial_fd, v24;
-	struct termios tio;
-
-	serial_fd = open(serial_port, O_RDWR | O_NOCTTY | O_NDELAY);
-	if (serial_fd < 0) {
-		perror("cannot open serial port");
-		return serial_fd;
-	}
-
-	//fcntl(serial_fd, F_SETFL, 0);
-
-	/* Configure serial interface */
-	rc = tcgetattr(serial_fd, &tio);
-	if (rc < 0) {
-		perror("tcgetattr()");
-		return rc;
-	}
-	cfsetispeed(&tio, MODEM_BAUDRATE);
-	cfsetospeed(&tio, MODEM_BAUDRATE);
-	tio.c_cflag &= ~(PARENB | CSTOPB | CSIZE | CRTSCTS);
-	tio.c_cflag |=  (CREAD | CLOCAL | CS8);
-	tio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-	tio.c_iflag |=  (INPCK | ISTRIP);
-	tio.c_iflag &= ~(ISTRIP | IXON | IXOFF | IGNBRK | INLCR | ICRNL | IGNCR);
-	tio.c_oflag &= ~(OPOST | ONLCR);
-	rc = tcsetattr(serial_fd, TCSANOW, &tio);
-	if (rc < 0) {
-		perror("tcsetattr()");
-		return rc;
-	}
-
-	/* set ready to read/write */
-	v24 = TIOCM_DTR | TIOCM_RTS;
-	rc = ioctl(serial_fd, TIOCMBIS, &v24);
-	if (rc < 0) {
-		perror("ioctl(TIOCMBIS)");
-		return rc;
-	}
-
-	return serial_fd;
-}
-
-static int serial_set_baudrate(speed_t baudrate)
-{
-	int rc;
-	struct termios tio;
-
-	rc = tcgetattr(dnload.serial_fd.fd, &tio);
-	if (rc < 0) {
-		perror("tcgetattr()");
-		return rc;
-	}
-	cfsetispeed(&tio, baudrate);
-	cfsetospeed(&tio, baudrate);
-
-	rc = tcsetattr(dnload.serial_fd.fd, TCSANOW, &tio);
-	return rc;
-}
 
 static void beacon_timer_cb(void *p)
 {
@@ -882,7 +820,7 @@ static int handle_read(void)
 			bufptr = buffer;
 			dnload.filename = dnload.chainload_filename;
 			dnload.mode = MODE_ROMLOAD;
-			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
+			osmo_serial_set_baudrate(dnload.serial_fd.fd, ROMLOAD_INIT_BAUDRATE);
 			tick_timer.cb = &beacon_timer_cb;
 			tick_timer.data = &tick_timer;
 			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
@@ -963,7 +901,7 @@ static int handle_read_romload(void)
 
 		printf("Received parameter ack from phone, "
 			"starting download\n");
-		serial_set_baudrate(ROMLOAD_DL_BAUDRATE);
+		osmo_serial_set_baudrate(dnload.serial_fd.fd, ROMLOAD_DL_BAUDRATE);
 
 		/* using the max blocksize the phone tells us */
 		dnload.block_payload_size = ((buffer[3] << 8) + buffer[2]);
@@ -998,7 +936,7 @@ static int handle_read_romload(void)
 				   sizeof(romload_block_nack))) {
 			printf("Received block nack from phone, "
 				"something went wrong, aborting\n");
-			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
+			osmo_serial_set_baudrate(dnload.serial_fd.fd, ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
 			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 		}
@@ -1020,7 +958,7 @@ static int handle_read_romload(void)
 				   sizeof(romload_checksum_nack))) {
 			printf("Checksum on phone side (0x%02x) doesn't "
 				"match ours, aborting\n", ~buffer[2]);
-			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
+			osmo_serial_set_baudrate(dnload.serial_fd.fd, ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
 			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 			bufptr -= 1;
@@ -1037,7 +975,7 @@ static int handle_read_romload(void)
 		} else if (!memcmp(buffer, romload_branch_nack,
 			   sizeof(romload_branch_nack))) {
 			printf("Received branch nack, aborting\n");
-			serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
+			osmo_serial_set_baudrate(dnload.serial_fd.fd, ROMLOAD_INIT_BAUDRATE);
 			dnload.romload_state = WAITING_IDENTIFICATION;
 			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 		}
@@ -1174,7 +1112,7 @@ static int handle_read_mtk(void)
 			    sizeof(dnload.load_address)))
 			break;
 		printf("Received branch address ack, code should run now\n");
-		serial_set_baudrate(MODEM_BAUDRATE);
+		osmo_serial_set_baudrate(dnload.serial_fd.fd, MODEM_BAUDRATE);
 		dnload.serial_fd.when = BSC_FD_READ;
 		dnload.mtk_state = MTK_FINISHED;
 		dnload.write_ptr = dnload.data;
@@ -1493,7 +1431,7 @@ int main(int argc, char **argv)
 		dnload.filename = argv[optind];
 	}
 
-	dnload.serial_fd.fd = serial_init(serial_dev);
+	dnload.serial_fd.fd = osmo_serial_init(serial_dev, MODEM_BAUDRATE);
 	if (dnload.serial_fd.fd < 0) {
 		fprintf(stderr, "Cannot open serial device %s\n", serial_dev);
 		exit(1);
@@ -1529,14 +1467,14 @@ int main(int argc, char **argv)
 	/* if in romload mode, start our beacon timer */
 	if (dnload.mode == MODE_ROMLOAD) {
 		tmp_load_address = ROMLOAD_ADDRESS;
-		serial_set_baudrate(ROMLOAD_INIT_BAUDRATE);
+		osmo_serial_set_baudrate(dnload.serial_fd.fd, ROMLOAD_INIT_BAUDRATE);
 		tick_timer.cb = &beacon_timer_cb;
 		tick_timer.data = &tick_timer;
 		osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 	}
 	else if (dnload.mode == MODE_MTK) {
 		tmp_load_address = MTK_ADDRESS;
-		serial_set_baudrate(MTK_INIT_BAUDRATE);
+		osmo_serial_set_baudrate(dnload.serial_fd.fd, MTK_INIT_BAUDRATE);
 		tick_timer.cb = &mtk_timer_cb;
 		tick_timer.data = &tick_timer;
 		osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
