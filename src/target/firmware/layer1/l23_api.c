@@ -262,7 +262,7 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	}
 
 	/* figure out which MF tasks to enable */
-	l1a_mftask_set(chan_nr2mf_task_mask(ul->chan_nr, NEIGH_MODE_PM));
+	l1a_mftask_set(chan_nr2mf_task_mask(ul->chan_nr, 0));
 }
 
 /* receive a L1CTL_DM_FREQ_REQ from L23 */
