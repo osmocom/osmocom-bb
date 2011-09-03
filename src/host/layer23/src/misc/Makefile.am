@@ -5,7 +5,7 @@ LDADD = ../common/liblayer23.a $(LIBOSMOCORE_LIBS) $(LIBOSMOGSM_LIBS) $(LIBOSMOC
 bin_PROGRAMS = bcch_scan ccch_scan echo_test cell_log cbch_sniff
 
 bcch_scan_SOURCES = ../common/main.c app_bcch_scan.c bcch_scan.c
-ccch_scan_SOURCES   = ../common/main.c app_ccch_scan.c rslms.c
+ccch_scan_SOURCES   = ../common/main.c app_ccch_scan.c rslms.c xcch.c
 echo_test_SOURCES = ../common/main.c app_echo_test.c
 cell_log_LDADD = $(LDADD) -lm
 cell_log_SOURCES = ../common/main.c app_cell_log.c cell_log.c \
