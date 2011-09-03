@@ -23,7 +23,9 @@
 #include <stdint.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
+#include <getopt.h>
 
 #include <arpa/inet.h>
 
@@ -36,6 +38,7 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/bits.h>
+#include <osmocom/gsm/a5.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/misc/rslms.h>
@@ -64,6 +67,7 @@ static struct {
 	enum dch_state_t	dch_state;
 	uint8_t			dch_nr;
 	int			dch_badcnt;
+	int			dch_ciph;
 
 	FILE *			fh;
 
@@ -71,6 +75,8 @@ static struct {
 	sbit_t			bursts_ul[116 * 4];
 
 	struct gsm_sysinfo_freq	cell_arfcns[1024];
+
+	uint8_t			kc[8];
 } app_state;
 
 
@@ -509,6 +515,7 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 {
 	int16_t rx_dbm;
 	uint16_t arfcn;
+	uint32_t fn;
 	uint8_t cbits, tn, lch_idx;
 	int ul, bid, i;
 	sbit_t *bursts;
@@ -518,6 +525,7 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 	arfcn  = ntohs(bi->band_arfcn);
 	rx_dbm = rxlev2dbm(bi->rx_level);
 
+	fn     = ntohl(bi->frame_nr);
 	ul     = !!(arfcn & ARFCN_UPLINK);
 	bursts = ul ? app_state.bursts_ul : app_state.bursts_dl;
 
@@ -530,7 +538,7 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 		lch_idx = 0;
 		if (bi->flags & BI_FLG_SACCH) {
 			uint32_t fn_report;
-			fn_report = (ntohl(bi->frame_nr) - (tn * 13) + 104) % 104;
+			fn_report = (fn - (tn * 13) + 104) % 104;
 			bid = (fn_report - 12) / 26;
 		}
 	} else if ((cbits & 0x1e) == 0x02) {	/* TCH/H */
@@ -538,7 +546,7 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 		if (bi->flags & BI_FLG_SACCH) {
 			uint32_t fn_report;
 			uint8_t tn_report = (tn & ~1) | lch_idx;
-			fn_report = (ntohl(bi->frame_nr) - (tn_report * 13) + 104) % 104;
+			fn_report = (fn - (tn_report * 13) + 104) % 104;
 			bid = (fn_report - 12) / 26;
 		}
 	} else if ((cbits & 0x1c) == 0x04) {	/* SDCCH/4 */
@@ -561,6 +569,15 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 	osmo_pbit2ubit_ext(bt, 59, bi->bits, 57, 57, 0);
 	bt[57] = bt[58] = 1;
 
+	/* A5/x */
+	if (app_state.dch_ciph) {
+		ubit_t ks_dl[114], ks_ul[114], *ks = ul ? ks_ul : ks_dl;
+		osmo_a5(app_state.dch_ciph, app_state.kc, fn, ks_dl, ks_ul);
+		for (i= 0; i< 57; i++)  bt[i] ^= ks[i];
+		for (i=59; i<116; i++)  bt[i] ^= ks[i-2];
+	}
+
+	/* Convert to softbits */
 	for (i=0; i<116; i++)
 		bursts[(116*bid)+i] = bt[i] ? - (bi->snr >> 1) : (bi->snr >> 1);
 
@@ -576,6 +593,7 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 			uint8_t chan_type, chan_ts, chan_ss;
 			uint8_t gsmtap_chan_type;
 
+			/* Send to GSMTAP */
 			rsl_dec_chan_nr(bi->chan_nr, &chan_type, &chan_ss, &chan_ts);
 			gsmtap_chan_type = chantype_rsl2gsmtap(
 				chan_type,
@@ -586,6 +604,10 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 				ntohl(bi->frame_nr), bi->rx_level, bi->snr,
 				l2, sizeof(l2)
 			);
+
+			/* Crude CIPH.MOD.COMMAND detect */
+			if ((l2[3] == 0x06) && (l2[4] == 0x35) && (l2[5] & 1))
+				app_state.dch_ciph = 1 + ((l2[5] >> 1) & 7);
 		}
 	}
 }
@@ -669,6 +691,7 @@ void layer3_rx_burst(struct osmocom_ms *ms, struct msgb *msg)
 		/* Change state */
 		app_state.dch_state = DCH_WAIT_REL;
 		app_state.dch_badcnt = 0;
+		app_state.dch_ciph = 0;
 
 		/* Close output */
 		if (app_state.fh) {
@@ -693,6 +716,7 @@ void layer3_app_reset(void)
 	app_state.ccch_mode = CCCH_MODE_NONE;
 	app_state.dch_state = DCH_NONE;
 	app_state.dch_badcnt = 0;
+	app_state.dch_ciph = 0;
 
 	if (app_state.fh)
 		fclose(app_state.fh);
@@ -735,9 +759,52 @@ int l23_app_init(struct osmocom_ms *ms)
 	return layer3_init(ms);
 }
 
+static int l23_cfg_supported()
+{
+	return L23_OPT_TAP | L23_OPT_DBG;
+}
+
+static int l23_getopt_options(struct option **options)
+{
+	static struct option opts [] = {
+		{"kc", 1, 0, 'k'},
+	};
+
+	*options = opts;
+	return ARRAY_SIZE(opts);
+}
+
+static int l23_cfg_print_help()
+{
+	printf("\nApplication specific\n");
+	printf("  -k --kc KEY           Key to use to try to decipher DCCHs\n");
+
+	return 0;
+}
+
+static int l23_cfg_handle(int c, const char *optarg)
+{
+	switch (c) {
+	case 'k':
+		if (osmo_hexparse(optarg, app_state.kc, 8) != 8) {
+			fprintf(stderr, "Invalid Kc\n");
+			exit(-1);
+		}
+		break;
+	default:
+		return -1;
+	}
+	return 0;
+}
+
 static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Harald Welte <laforge@gnumonks.org>\n",
 	.contribution	= "Contributions by Holger Hans Peter Freyther\n",
+	.getopt_string	= "k:",
+	.cfg_supported	= l23_cfg_supported,
+	.cfg_getopt_opt = l23_getopt_options,
+	.cfg_handle_opt	= l23_cfg_handle,
+	.cfg_print_help	= l23_cfg_print_help,
 };
 
 struct l23_app_info *l23_app_info()
