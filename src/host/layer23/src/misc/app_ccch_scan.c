@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <time.h>
 
+#include <arpa/inet.h>
+
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/tlv.h>
@@ -32,6 +34,8 @@
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/bits.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/misc/rslms.h>
@@ -41,6 +45,10 @@
 #include <osmocom/bb/common/l23_app.h>
 
 #include <l1ctl_proto.h>
+
+#include <osmocom/bb/misc/xcch.h>
+
+extern struct gsmtap_inst *gsmtap_inst;
 
 enum dch_state_t {
 	DCH_NONE,
@@ -58,6 +66,9 @@ static struct {
 	int			dch_badcnt;
 
 	FILE *			fh;
+
+	sbit_t			bursts_dl[116 * 4];
+	sbit_t			bursts_ul[116 * 4];
 
 	struct gsm_sysinfo_freq	cell_arfcns[1024];
 } app_state;
@@ -492,6 +503,93 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 	return 0;
 }
 
+
+static void
+local_burst_decode(struct l1ctl_burst_ind *bi)
+{
+	int16_t rx_dbm;
+	uint16_t arfcn;
+	uint8_t cbits, tn, lch_idx;
+	int ul, bid, i;
+	sbit_t *bursts;
+	ubit_t bt[116];
+
+	/* Get params (Only for SDCCH and SACCH/{4,8,F,H}) */
+	arfcn  = ntohs(bi->band_arfcn);
+	rx_dbm = rxlev2dbm(bi->rx_level);
+
+	ul     = !!(arfcn & ARFCN_UPLINK);
+	bursts = ul ? app_state.bursts_ul : app_state.bursts_dl;
+
+	cbits  = bi->chan_nr >> 3;
+	tn     = bi->chan_nr & 7;
+
+	bid    = -1;
+
+	if (cbits == 0x01) {			/* TCH/F */
+		lch_idx = 0;
+		if (bi->flags & BI_FLG_SACCH) {
+			uint32_t fn_report;
+			fn_report = (ntohl(bi->frame_nr) - (tn * 13) + 104) % 104;
+			bid = (fn_report - 12) / 26;
+		}
+	} else if ((cbits & 0x1e) == 0x02) {	/* TCH/H */
+		lch_idx = cbits & 1;
+		if (bi->flags & BI_FLG_SACCH) {
+			uint32_t fn_report;
+			uint8_t tn_report = (tn & ~1) | lch_idx;
+			fn_report = (ntohl(bi->frame_nr) - (tn_report * 13) + 104) % 104;
+			bid = (fn_report - 12) / 26;
+		}
+	} else if ((cbits & 0x1c) == 0x04) {	/* SDCCH/4 */
+		lch_idx = cbits & 3;
+		bid = bi->flags & 3;
+	} else if ((cbits & 0x18) == 0x08) {	/* SDCCH/8 */
+		lch_idx = cbits & 7;
+		bid = bi->flags & 3;
+	}
+
+	if (bid == -1)
+		return;
+
+	/* Clear if new set */
+	if (bid == 0)
+		memset(bursts, 0x00, 116 * 4);
+
+	/* Unpack (ignore hu/hl) */
+	osmo_pbit2ubit_ext(bt,  0, bi->bits,  0, 57, 0);
+	osmo_pbit2ubit_ext(bt, 59, bi->bits, 57, 57, 0);
+	bt[57] = bt[58] = 1;
+
+	for (i=0; i<116; i++)
+		bursts[(116*bid)+i] = bt[i] ? - (bi->snr >> 1) : (bi->snr >> 1);
+
+	/* If last, decode */
+	if (bid == 3)
+	{
+		uint8_t l2[23];
+		int rv;
+		rv = xcch_decode(l2, bursts);
+
+		if (rv == 0)
+		{
+			uint8_t chan_type, chan_ts, chan_ss;
+			uint8_t gsmtap_chan_type;
+
+			rsl_dec_chan_nr(bi->chan_nr, &chan_type, &chan_ss, &chan_ts);
+			gsmtap_chan_type = chantype_rsl2gsmtap(
+				chan_type,
+				bi->flags & BI_FLG_SACCH ? 0x40 : 0x00
+			);
+			gsmtap_send(gsmtap_inst,
+				arfcn, chan_ts, gsmtap_chan_type, chan_ss,
+				ntohl(bi->frame_nr), bi->rx_level, bi->snr,
+				l2, sizeof(l2)
+			);
+		}
+	}
+}
+
 static char *
 gen_filename(struct osmocom_ms *ms, struct l1ctl_burst_ind *bi)
 {
@@ -583,6 +681,9 @@ void layer3_rx_burst(struct osmocom_ms *ms, struct msgb *msg)
 	if (app_state.dch_state == DCH_ACTIVE)
 		fwrite(bi, sizeof(*bi), 1, app_state.fh);
 
+	/* Try local decoding */
+	if (app_state.dch_state == DCH_ACTIVE)
+		local_burst_decode(bi);
 }
 
 void layer3_app_reset(void)
