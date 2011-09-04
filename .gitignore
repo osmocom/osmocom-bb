@@ -36,6 +36,7 @@ tests/timer/timer_test
 tests/msgfile/msgfile_test
 tests/ussd/ussd_test
 tests/smscb/smscb_test
+tests/bits/bitrev_test
 
 utils/osmo-arfcn
 
