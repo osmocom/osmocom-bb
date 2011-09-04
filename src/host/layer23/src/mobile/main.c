@@ -30,6 +30,7 @@
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/signal.h>
+#include <osmocom/core/application.h>
 
 #include <arpa/inet.h>
 
@@ -55,6 +56,7 @@ unsigned short vty_port = 4247;
 int debug_set = 0;
 char *config_dir = NULL;
 int use_mncc_sock = 0;
+int daemonize = 0;
 
 int mncc_recv_socket(struct osmocom_ms *ms, int msg_type, void *arg);
 
@@ -86,6 +88,7 @@ static void print_help()
 	printf("  -v --vty-port		The VTY port number to telnet to. "
 		"(default %u)\n", vty_port);
 	printf("  -d --debug		Change debug flags.\n");
+	printf("  -D --daemonize	Run as daemon\n");
 	printf("  -m --mncc-sock	Disable built-in MNCC handler and "
 		"offer socket\n");
 }
@@ -99,11 +102,12 @@ static void handle_options(int argc, char **argv)
 			{"gsmtap-ip", 1, 0, 'i'},
 			{"vty-port", 1, 0, 'v'},
 			{"debug", 1, 0, 'd'},
+			{"daemonize", 0, 0, 'D'},
 			{"mncc-sock", 0, 0, 'm'},
 			{0, 0, 0, 0},
 		};
 
-		c = getopt_long(argc, argv, "hi:v:d:m",
+		c = getopt_long(argc, argv, "hi:v:d:Dm",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -123,6 +127,9 @@ static void handle_options(int argc, char **argv)
 		case 'd':
 			log_parse_category_mask(stderr_target, optarg);
 			debug_set = 1;
+			break;
+		case 'D':
+			daemonize = 1;
 			break;
 		case 'm':
 			use_mncc_sock = 1;
@@ -207,6 +214,13 @@ int main(int argc, char **argv)
 	signal(SIGHUP, sighandler);
 	signal(SIGTERM, sighandler);
 	signal(SIGPIPE, sighandler);
+
+	if (daemonize) {
+		printf("Running as daemon\n");
+		rc = osmo_daemonize();
+		if (rc)
+			fprintf(stderr, "Failed to run as daemon\n");
+	}
 
 	while (1) {
 		l23_app_work(&quit);
