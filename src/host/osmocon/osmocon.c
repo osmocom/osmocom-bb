@@ -129,9 +129,9 @@ struct dnload {
 	enum dnload_state state;
 	enum romload_state romload_state;
 	enum mtk_state mtk_state;
-	enum dnload_mode mode;
+	enum dnload_mode mode, previous_mode;
 	struct osmo_fd serial_fd;
-	char *filename;
+	char *filename, *previous_filename;
 	char *chainload_filename;
 
 	int expect_hdlc;
@@ -818,7 +818,9 @@ static int handle_read(void)
 			printf("Enabled Compal ramloader -> Calypso romloader"
 				" chainloading mode\n");
 			bufptr = buffer;
+			dnload.previous_filename = dnload.filename;
 			dnload.filename = dnload.chainload_filename;
+			dnload.previous_mode = dnload.mode;
 			dnload.mode = MODE_ROMLOAD;
 			osmo_serial_set_baudrate(dnload.serial_fd.fd, ROMLOAD_INIT_BAUDRATE);
 			tick_timer.cb = &beacon_timer_cb;
@@ -972,6 +974,18 @@ static int handle_read_romload(void)
 			dnload.romload_state = FINISHED;
 			dnload.write_ptr = dnload.data;
 			dnload.expect_hdlc = 1;
+
+			if (dnload.chainload_filename == NULL)
+				break;
+
+			/* if using chainloading mode, switch back to the Compal
+			 * ramloader settings to make sure the auto-reload
+			 * feature works */
+			bufptr = buffer;
+			dnload.romload_state = WAITING_IDENTIFICATION;
+			dnload.filename = dnload.previous_filename;
+			dnload.mode = dnload.previous_mode;
+			osmo_serial_set_baudrate(dnload.serial_fd.fd, MODEM_BAUDRATE);
 		} else if (!memcmp(buffer, romload_branch_nack,
 			   sizeof(romload_branch_nack))) {
 			printf("Received branch nack, aborting\n");
@@ -1388,6 +1402,7 @@ int main(int argc, char **argv)
 
 	dnload.mode = MODE_C123;
 	dnload.chainload_filename = NULL;
+	dnload.previous_filename = NULL;
 	dnload.beacon_interval = DEFAULT_BEACON_INTERVAL;
 
 	while ((opt = getopt(argc, argv, "d:hl:p:m:c:s:i:v")) != -1) {
