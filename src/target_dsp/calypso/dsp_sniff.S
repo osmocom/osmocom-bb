@@ -2,6 +2,7 @@
 
 ;
 ; (C) 2010 by Sylvain Munaut <tnt@246tNt.com>
+; (C) 2011 by Steve Markgraf <steve@steve-m.de>
 ;
 ; All Rights Reserved
 ;
@@ -39,6 +40,20 @@ fq_4320_push		.equ	0xAA9F
 fq_4330_push		.equ	0xAA6C
 fq_4340_push		.equ	0xAAC3
 
+; ----------------------------------------------------------------------------
+; MCSI (Multi-Channel Serial Interface)
+; ----------------------------------------------------------------------------
+
+	; MCSI registers
+MCSI_CONTROL_REG	.equ	0x800
+MCSI_MAIN_PARAM_REG	.equ	0x801
+MCSI_CLOCK_REG		.equ	0x805
+MCSI_STATUS_REG		.equ	0x806
+MCSI_TX0_REG		.equ	0x820
+
+	; MCSI STATUS_REG bits
+MCSI_TX_READY		.equ	0x10
+MCSI_TX_UNFLOW		.equ	0x20
 
 ; ----------------------------------------------------------------------------
 ; Our double buffer API
@@ -51,6 +66,9 @@ sniff_db1		.ds	138
 sniff_db_ptr		.ds	1
 sniff_burst_ptr		.ds	1
 
+	; Variables for MCSI
+mcsi_tmp			.ds	1
+mcsi_cnt			.ds	1
 
 ; ----------------------------------------------------------------------------
 ; The code itself
@@ -133,6 +151,105 @@ sniff_task:
 			ret
 
 ;
+; MCSI clear status
+;
+;  Clears the MCSI status register, needs AR1 to be set to point to a temp word
+;
+mcsi_clear_status:
+			; The MCSI_TX_READY bit is cleared with a 1
+			st	#MCSI_TX_READY, *AR1
+			portw	*AR1, MCSI_STATUS_REG
+			ret
+
+;
+; MCSI initialisation
+;
+;  Initializes and enables the MCSI
+;
+mcsi_init:
+			stm	#mcsi_tmp, AR1
+
+			; Use a clock divider of 2 -> 13MHz/2 = 6.5MHz
+			st	#2, *AR1
+			portw	*AR1, MCSI_CLOCK_REG
+
+			; Set MCSI parameters: 16 bit framesize, master mode
+			st	#0x4F, *AR1
+			portw	*AR1, MCSI_MAIN_PARAM_REG
+
+			; Enable MCSI clock
+			st	#1, *AR1
+			portw	*AR1, MCSI_CONTROL_REG
+
+			call mcsi_clear_status
+
+			; Done
+			ret
+
+;
+; MCSI send word
+;
+;  Sends a word of 16 bits over the MCSI and increases the source address
+;  Parameter: the address of the word has to be stored in AR4
+;
+mcsi_send_word:
+			stm	#mcsi_tmp, AR1
+			call	mcsi_clear_status
+
+			; Write TX word and increase address
+			portw	*AR4+, MCSI_TX0_REG
+
+			; Loop until TX_READY bit of MCSI_STATUS_REG
+			; has been set (happens around the 4th transmitted bit)
+1:
+			portr	MCSI_STATUS_REG, *AR1
+			bitf	*AR1, #MCSI_TX_READY
+			bc	1b, ntc
+
+			; Done
+			ret
+
+;
+; MCSI send burst
+;
+;  Sends a burst of *AR2 words, beginning at the address of AR4
+;  Parameters: the number of words to send at *AR2, start-address in AR4
+;
+mcsi_send_burst:
+			; Load word-count in A
+			ldu	*AR2, A
+
+			; Loop over all words
+1:
+			call	mcsi_send_word
+			sub	#1, A
+			bc	1b, aneq
+
+			; Done
+			ret
+
+;
+; MCSI disable
+;
+;  waits until the last word has been sent and disables the MCSI
+;
+mcsi_disable:
+			stm	#mcsi_tmp, AR1
+
+1:			; Loop until TX_UNFLOW bit of MCSI_STATUS_REG
+			; has been set (can only be reset with SW_RESET)
+			portr	MCSI_STATUS_REG, *AR1
+			bitf	*AR1, #MCSI_TX_UNFLOW
+			bc	1b, ntc
+
+			; disable MCSI clock and set SW_RESET
+			st	#2, *AR1
+			portw	*AR1, MCSI_CONTROL_REG
+
+			; Done
+			ret
+
+;
 ; Burst data handler
 ;
 ;  Called once the DMA transfer is done and the IQ bits are received.
@@ -140,6 +257,20 @@ sniff_task:
 ;  done for us. Only real work goes here.
 ;
 burst_handler:
+			; Store address of I/Q data
+			stm	#0x0CCE, AR4
+
+			; Initialize MCSI
+			call	mcsi_init
+
+			; Send the I/Q data over MCSI
+			stm	#mcsi_cnt, AR2
+			stm	#380, *AR2		; 190 samples, 380 words
+			call	mcsi_send_burst
+
+			; Disable MCSI
+			call	mcsi_disable
+
 			; NB demodulation
 			ld	#0x34, A
 			call	jt4387_exec
@@ -162,8 +293,22 @@ burst_handler:
 			rpt	*(AR1)
 			mvdd	*AR2+, *AR3+
 
+			; Backup the old burst begin address
+			mvdm	@sniff_burst_ptr, AR4
+
 			; Store the new pointer
 			mvmd	AR3, @sniff_burst_ptr
+
+			; Initialize MCSI
+			call	mcsi_init
+
+			; Send the demodulated burst data over MCSI
+			stm	#mcsi_cnt, AR2
+			stm	#34, *AR2		; 5 + 29 words
+			call	mcsi_send_burst
+
+			; Disable MCSI
+			call	mcsi_disable
 
 			; Increment received bursts count
 			mvdm	@sniff_db_ptr, AR1
