@@ -14,7 +14,8 @@ libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c bits.c \
 			 write_queue.c utils.c socket.c \
 			 logging.c logging_syslog.c rate_ctr.c \
 			 gsmtap_util.c crc16.c panic.c backtrace.c \
-			 conv.c application.c
+			 conv.c application.c \
+			 crc8gen.c crc16gen.c crc32gen.c crc64gen.c
 
 if ENABLE_PLUGIN
 libosmocore_la_SOURCES += plugin.c
@@ -34,3 +35,7 @@ endif
 if ENABLE_SERIAL
 libosmocore_la_SOURCES += serial.c
 endif
+
+crc%gen.c: crcXXgen.c.tpl
+	@echo "  SED    $< -> $@"
+	@sed -e's/XX/$*/g' $< > $@

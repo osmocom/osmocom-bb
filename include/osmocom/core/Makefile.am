@@ -3,7 +3,8 @@ osmocore_HEADERS = signal.h linuxlist.h timer.h select.h msgb.h bits.h \
 		   gsmtap.h write_queue.h prim.h \
 		   logging.h rate_ctr.h gsmtap_util.h \
 		   crc16.h panic.h process.h \
-		   backtrace.h conv.h application.h
+		   backtrace.h conv.h application.h \
+		   crcgen.h crc8gen.h crc16gen.h crc32gen.h crc64gen.h
 
 if ENABLE_PLUGIN
 osmocore_HEADERS += plugin.h
@@ -22,3 +23,7 @@ osmocore_HEADERS += serial.h
 endif
 
 osmocoredir = $(includedir)/osmocom/core
+
+crc%gen.h: crcXXgen.h.tpl
+	@echo "  SED    $< -> $@"
+	@sed -e's/XX/$*/g' $< > $@
