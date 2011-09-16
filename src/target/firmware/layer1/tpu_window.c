@@ -145,19 +145,26 @@ void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr, uint
 	offset -= l1s.ta << 2;
 
 #ifdef CONFIG_TX_ENABLE
-	/* window open for TRF6151 and RFFE */
-	rffe_mode(gsm_arfcn2band(arfcn), 1);
+	/* window open for TRF6151 */
 	trf6151_tx_window(offset, arfcn);
 #endif
 
 	/* Window open for ABB */
 	twl3025_uplink(1, offset);
 
+#ifdef CONFIG_TX_ENABLE
+	/* Window open for RFFE */
+	rffe_mode(gsm_arfcn2band(arfcn), 1);
+#endif
+
 	/* Window close for ABB */
 	twl3025_uplink(0, tx_burst_duration[wtype] + offset + 2); // TODO: "+ 2"
 
-	/* window close for TRF6151 and RFFE */
+	/* window close for TRF6151 */
 	trf6151_set_mode(TRF6151_IDLE);
+
+	/* Window close for RFFE */
+	rffe_mode(gsm_arfcn2band(arfcn), 0);
 }
 
 void tpu_end_scenario(void)
