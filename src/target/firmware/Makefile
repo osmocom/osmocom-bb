@@ -43,9 +43,9 @@ e88loader_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/excep
 e88flash_LDS=board/compal_e88/flash.lds
 e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/exceptions_redirected.o board/compal/handlers.o
 
-# Compal E86
+# Compal E86 (has a different RFFE configuration)
 
-compal_e86_OBJS=$(compal_COMMON_OBJS) board/compal_e86/init.o
+compal_e86_OBJS=$(calypso_COMMON_OBJS) board/compal_e86/rffe_dualband_e86.o board/compal/rf_power.o board/compal_e86/init.o
 compal_e86_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 # Compal E99
