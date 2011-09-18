@@ -1,7 +1,7 @@
 
 
 # List of all supported boards (meant to be overridden on command line)
-BOARDS?=compal_e88 compal_e86 compal_e99 gta0x pirelli_dpl10
+BOARDS?=compal_e88 compal_e86 compal_e99 se_j100 gta0x pirelli_dpl10
 
 # List of all applications (meant to be overridden on command line)
 APPLICATIONS?=hello_world compal_dsp_dump layer1 loader simtest chainload
@@ -56,6 +56,11 @@ compal_e99_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 e99loader_LDS=board/compal_e99/loader.lds
 e99loader_OBJS=board/compal/header.o
 e99flash_LDS=board/compal_e99/flash.lds
+
+# Sony Ericsson J100 (made by Compal)
+
+se_j100_OBJS=$(compal_COMMON_OBJS) board/se_j100/init.o
+se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 # Global include path
 INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
