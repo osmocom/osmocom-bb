@@ -91,11 +91,6 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[33m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
-	[DLAPDM] = {
-		.name = "DLAPDM",
-		.description = "LAPDm Layer2",
-		.enabled = 1, .loglevel = LOGL_NOTICE,
-	},
 	[DL1C]	= {
 		.name = "DL1C",
 		.description = "Layer 1 Control",

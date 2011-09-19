@@ -33,7 +33,6 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <osmocom/bb/common/logging.h>
-#include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/misc/rslms.h>
 #include <osmocom/bb/misc/layer3.h>
 #include <osmocom/bb/common/osmocom_data.h>

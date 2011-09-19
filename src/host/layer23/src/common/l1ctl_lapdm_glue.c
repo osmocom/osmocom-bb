@@ -27,7 +27,7 @@
 #include <osmocom/gsm/prim.h>
 
 #include <osmocom/bb/common/l1ctl.h>
-#include <osmocom/bb/common/lapdm.h>
+#include <osmocom/gsm/lapdm.h>
 
 /* LAPDm wants to send a PH-* primitive to the physical layer (L1) */
 int l1ctl_ph_prim_cb(struct osmo_prim_hdr *oph, void *ctx)

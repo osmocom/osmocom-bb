@@ -16,7 +16,6 @@ enum {
 	DMNCC,
 	DMEAS,
 	DPAG,
-	DLAPDM,
 	DL1C,
 	DSAP,
 	DSUM,
