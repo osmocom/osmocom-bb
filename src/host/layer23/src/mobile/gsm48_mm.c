@@ -1117,8 +1117,9 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* selected cell equals the registered LAI */
-	if (subscr->lac /* valid */
+	/* if we are attached and selected cell equals the registered LAI */
+	if (subscr->imsi_attached
+	 && subscr->lac /* valid */
 	 && cs->sel_mcc == subscr->mcc
 	 && cs->sel_mnc == subscr->mnc
 	 && cs->sel_lac == subscr->lac) {
