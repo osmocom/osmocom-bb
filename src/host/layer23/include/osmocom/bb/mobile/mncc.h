@@ -161,6 +161,7 @@ struct gsm_mncc {
 	int		emergency;
 	char		imsi[16];
 
+	unsigned char	lchan_type;
 	unsigned char	lchan_mode;
 };
 
