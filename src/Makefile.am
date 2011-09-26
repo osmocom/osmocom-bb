@@ -14,7 +14,7 @@ libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c bits.c \
 			 write_queue.c utils.c socket.c \
 			 logging.c logging_syslog.c rate_ctr.c \
 			 gsmtap_util.c crc16.c panic.c backtrace.c \
-			 conv.c application.c \
+			 conv.c application.c rbtree.c \
 			 crc8gen.c crc16gen.c crc32gen.c crc64gen.c
 
 if ENABLE_PLUGIN
