@@ -10,6 +10,6 @@ lib_LTLIBRARIES = libosmogsm.la
 libosmogsm_la_SOURCES = a5.c rxlev_stat.c tlv_parser.c comp128.c gsm_utils.c \
                         rsl.c gsm48.c gsm48_ie.c gsm0808.c sysinfo.c \
 			gprs_cipher_core.c gsm0480.c abis_nm.c gsm0502.c \
-			lapdm.c
+			lapd_core.c lapdm.c
 libosmogsm_la_LDFLAGS = -version-info $(LIBVERSION)
 libosmogsm_la_LIBADD = $(top_builddir)/src/libosmocore.la
