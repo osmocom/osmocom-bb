@@ -88,7 +88,8 @@ uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
 	return ret;
 }
 
-/*! \brief create L1/L2 data and put it into GSMTAP
+/*! \brief create an arbitrary type GSMTAP message
+ *  \param[in] type The GSMTAP_TYPE_xxx constant of the message to create
  *  \param[in] arfcn GSM ARFCN (Channel Number)
  *  \param[in] ts GSM time slot
  *  \param[in] chan_type Channel Type
@@ -134,6 +135,20 @@ struct msgb *gsmtap_makemsg_ex(uint8_t type, uint16_t arfcn, uint8_t ts, uint8_t
 	return msg;
 }
 
+/*! \brief create L1/L2 data and put it into GSMTAP
+ *  \param[in] arfcn GSM ARFCN (Channel Number)
+ *  \param[in] ts GSM time slot
+ *  \param[in] chan_type Channel Type
+ *  \param[in] ss Sub-slot
+ *  \param[in] fn GSM Frame Number
+ *  \param[in] signal_dbm Signal Strength (dBm)
+ *  \param[in] snr Signal/Noise Ratio (SNR)
+ *  \param[in] data Pointer to data buffer
+ *  \param[in] len Length of \ref data
+ *
+ * This function will allocate a new msgb and fill it with a GSMTAP
+ * header containing the information
+ */
 struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
 			    uint8_t ss, uint32_t fn, int8_t signal_dbm,
 			    uint8_t snr, const uint8_t *data, unsigned int len)
@@ -216,7 +231,9 @@ int gsmtap_sendmsg(struct gsmtap_inst *gti, struct msgb *msg)
 	}
 }
 
-/*! \brief receive a message from L1/L2 and put it in GSMTAP */
+/*! \brief send an arbitrary type through GSMTAP.
+ *  See \ref gsmtap_makemsg_ex for arguments
+ */
 int gsmtap_send_ex(struct gsmtap_inst *gti, uint8_t type, uint16_t arfcn, uint8_t ts,
 		uint8_t chan_type, uint8_t ss, uint32_t fn,
 		int8_t signal_dbm, uint8_t snr, const uint8_t *data,
@@ -235,6 +252,9 @@ int gsmtap_send_ex(struct gsmtap_inst *gti, uint8_t type, uint16_t arfcn, uint8_
 	return gsmtap_sendmsg(gti, msg);
 }
 
+/*! \brief send a message from L1/L2 through GSMTAP.
+ *  See \ref gsmtap_makemsg for arguments
+ */
 int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
 		uint8_t chan_type, uint8_t ss, uint32_t fn,
 		int8_t signal_dbm, uint8_t snr, const uint8_t *data,
