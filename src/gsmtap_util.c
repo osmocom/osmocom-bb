@@ -102,7 +102,7 @@ uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
  * This function will allocate a new msgb and fill it with a GSMTAP
  * header containing the information
  */
-struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
+struct msgb *gsmtap_makemsg_ex(uint8_t type, uint16_t arfcn, uint8_t ts, uint8_t chan_type,
 			    uint8_t ss, uint32_t fn, int8_t signal_dbm,
 			    uint8_t snr, const uint8_t *data, unsigned int len)
 {
@@ -118,7 +118,7 @@ struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
 
 	gh->version = GSMTAP_VERSION;
 	gh->hdr_len = sizeof(*gh)/4;
-	gh->type = GSMTAP_TYPE_UM;
+	gh->type = type;
 	gh->timeslot = ts;
 	gh->sub_slot = ss;
 	gh->arfcn = htons(arfcn);
@@ -132,6 +132,14 @@ struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
 	memcpy(dst, data, len);
 
 	return msg;
+}
+
+struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
+			    uint8_t ss, uint32_t fn, int8_t signal_dbm,
+			    uint8_t snr, const uint8_t *data, unsigned int len)
+{
+	return gsmtap_makemsg_ex(GSMTAP_TYPE_UM, arfcn, ts, chan_type,
+		ss, fn, signal_dbm, snr, data, len);
 }
 
 #ifdef HAVE_SYS_SOCKET_H
@@ -209,7 +217,7 @@ int gsmtap_sendmsg(struct gsmtap_inst *gti, struct msgb *msg)
 }
 
 /*! \brief receive a message from L1/L2 and put it in GSMTAP */
-int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
+int gsmtap_send_ex(struct gsmtap_inst *gti, uint8_t type, uint16_t arfcn, uint8_t ts,
 		uint8_t chan_type, uint8_t ss, uint32_t fn,
 		int8_t signal_dbm, uint8_t snr, const uint8_t *data,
 		unsigned int len)
@@ -219,12 +227,21 @@ int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
 	if (!gti)
 		return -ENODEV;
 
-	msg = gsmtap_makemsg(arfcn, ts, chan_type, ss, fn, signal_dbm,
+	msg = gsmtap_makemsg_ex(type, arfcn, ts, chan_type, ss, fn, signal_dbm,
 			     snr, data, len);
 	if (!msg)
 		return -ENOMEM;
 
 	return gsmtap_sendmsg(gti, msg);
+}
+
+int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
+		uint8_t chan_type, uint8_t ss, uint32_t fn,
+		int8_t signal_dbm, uint8_t snr, const uint8_t *data,
+		unsigned int len)
+{
+	return gsmtap_send_ex(gti, GSMTAP_TYPE_UM, arfcn, ts, chan_type, ss, fn,
+		signal_dbm, snr, data, len);
 }
 
 /* Callback from select layer if we can write to the socket */
