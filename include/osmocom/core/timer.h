@@ -32,6 +32,7 @@
 #include <sys/time.h>
 
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/core/linuxrbtree.h>
 
 /**
  * Timer management:
@@ -51,11 +52,10 @@
  */
 /*! \brief A structure representing a single instance of a timer */
 struct osmo_timer_list {
-	struct llist_head entry;  /*!< \brief linked list header */
+	struct rb_node node;	  /*!< \brief rb-tree node header */
+	struct llist_head list;   /*!< \brief internal list header */
 	struct timeval timeout;   /*!< \brief expiration time */
 	unsigned int active  : 1; /*!< \brief is it active? */
-	unsigned int handled : 1; /*!< \brief did we already handle it */
-	unsigned int in_list : 1; /*!< \brief is it in the global list? */
 
 	void (*cb)(void*);	  /*!< \brief call-back called at timeout */
 	void *data;		  /*!< \brief user data for callback */
