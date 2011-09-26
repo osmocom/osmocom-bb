@@ -62,7 +62,7 @@ void logp(int subsys, char *file, int line, int cont, const char *format, ...) _
 
 /* logging levels defined by the library itself */
 #define DLGLOBAL	-1
-#define DLLAPDM		-2
+#define DLLAPD		-2
 #define DLINP		-3
 #define DLMUX		-4
 #define DLMI		-5
