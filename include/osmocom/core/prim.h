@@ -10,6 +10,9 @@
 #include <stdint.h>
 #include <osmocom/core/msgb.h>
 
+#define OSMO_PRIM(prim, op)	((prim << 8) | (op & 0xFF))
+#define OSMO_PRIM_HDR(oph)	OSMO_PRIM((oph)->primitive, (oph)->operation)
+
 /*! \brief primitive operation */
 enum osmo_prim_operation {
 	PRIM_OP_REQUEST,	/*!< \brief request */

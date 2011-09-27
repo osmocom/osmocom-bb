@@ -405,70 +405,32 @@ static int send_rslms_dlsap(struct osmo_dlsap_prim *dp,
 	struct lapdm_msg_ctx *mctx = &mdl->mctx;
 	uint8_t rll_msg = 0;
 
-	switch (dp->oph.primitive) {
-	case PRIM_DL_EST:
-		switch (dp->oph.operation) {
-		case PRIM_OP_INDICATION:
-			rll_msg = RSL_MT_EST_IND;
-			break;
-		case PRIM_OP_CONFIRM:
-			rll_msg = RSL_MT_EST_CONF;
-			break;
-		default:
-			;
-		}
+	switch (OSMO_PRIM_HDR(&dp->oph)) {
+	case OSMO_PRIM(PRIM_DL_EST, PRIM_OP_INDICATION):
+		rll_msg = RSL_MT_EST_IND;
 		break;
-	case PRIM_DL_DATA:
-		switch (dp->oph.operation) {
-		case PRIM_OP_INDICATION:
-			rll_msg = RSL_MT_DATA_IND;
-			break;
-		default:
-			;
-		}
+	case OSMO_PRIM(PRIM_DL_EST, PRIM_OP_CONFIRM):
+		rll_msg = RSL_MT_EST_CONF;
 		break;
-	case PRIM_DL_UNIT_DATA:
-		switch (dp->oph.operation) {
-		case PRIM_OP_INDICATION:
-			return send_rslms_rll_l3_ui(mctx, dp->oph.msg);
-		default:
-			;
-		}
+	case OSMO_PRIM(PRIM_DL_DATA, PRIM_OP_INDICATION):
+		rll_msg = RSL_MT_DATA_IND;
 		break;
-	case PRIM_DL_REL:
-		switch (dp->oph.operation) {
-		case PRIM_OP_INDICATION:
-			rll_msg = RSL_MT_REL_IND;
-			break;
-		case PRIM_OP_CONFIRM:
-			rll_msg = RSL_MT_REL_CONF;
-			break;
-		default:
-			;
-		}
+	case OSMO_PRIM(PRIM_DL_UNIT_DATA, PRIM_OP_INDICATION):
+		return send_rslms_rll_l3_ui(mctx, dp->oph.msg);
+	case OSMO_PRIM(PRIM_DL_REL, PRIM_OP_INDICATION):
+		rll_msg = RSL_MT_REL_IND;
 		break;
-	case PRIM_DL_SUSP:
-		switch (dp->oph.operation) {
-		case PRIM_OP_CONFIRM:
-			rll_msg = RSL_MT_SUSP_CONF;
-			break;
-		default:
-			;
-		}
+	case OSMO_PRIM(PRIM_DL_REL, PRIM_OP_CONFIRM):
+		rll_msg = RSL_MT_REL_CONF;
 		break;
-	case PRIM_MDL_ERROR:
-		switch (dp->oph.operation) {
-		case PRIM_OP_INDICATION:
-			rsl_rll_error(dp->u.error_ind.cause, mctx);
-			if (dp->oph.msg)
-				msgb_free(dp->oph.msg);
-			return 0;
-		default:
-			;
-		}
+	case OSMO_PRIM(PRIM_DL_SUSP, PRIM_OP_CONFIRM):
+		rll_msg = RSL_MT_SUSP_CONF;
 		break;
-	default:
-		;
+	case OSMO_PRIM(PRIM_MDL_ERROR, PRIM_OP_INDICATION):
+		rsl_rll_error(dp->u.error_ind.cause, mctx);
+		if (dp->oph.msg)
+			msgb_free(dp->oph.msg);
+		return 0;
 	}
 
 	if (!rll_msg) {
