@@ -106,6 +106,11 @@
 #define SBIT(a) (1 << a)
 #define ALL_STATES 0xffffffff
 
+static void lapd_t200_cb(void *data);
+static void lapd_t203_cb(void *data);
+static int lapd_send_i(struct lapd_msg_ctx *lctx, int line);
+static int lapd_est_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx);
+
 /* UTILITY FUNCTIONS */
 
 struct msgb *lapd_msgb_alloc(int length, const char *name)
@@ -186,6 +191,38 @@ const char *lapd_state_names[] = {
 
 };
 
+static void lapd_start_t200(struct lapd_datalink *dl)
+{
+	if (osmo_timer_pending(&dl->t200))
+		return;
+	LOGP(DLLAPD, LOGL_INFO, "start T200\n");
+	osmo_timer_schedule(&dl->t200, dl->t200_sec, dl->t200_usec);
+}
+
+static void lapd_start_t203(struct lapd_datalink *dl)
+{
+	if (osmo_timer_pending(&dl->t203))
+		return;
+	LOGP(DLLAPD, LOGL_INFO, "start T203\n");
+	osmo_timer_schedule(&dl->t203, dl->t203_sec, dl->t203_usec);
+}
+
+static void lapd_stop_t200(struct lapd_datalink *dl)
+{
+	if (!osmo_timer_pending(&dl->t200))
+		return;
+	LOGP(DLLAPD, LOGL_INFO, "stop T200\n");
+	osmo_timer_del(&dl->t200);
+}
+
+static void lapd_stop_t203(struct lapd_datalink *dl)
+{
+	if (!osmo_timer_pending(&dl->t203))
+		return;
+	LOGP(DLLAPD, LOGL_INFO, "stop T203\n");
+	osmo_timer_del(&dl->t203);
+}
+
 static void lapd_dl_newstate(struct lapd_datalink *dl, uint32_t state)
 {
 	LOGP(DLLAPD, LOGL_INFO, "new state %s -> %s\n",
@@ -193,10 +230,7 @@ static void lapd_dl_newstate(struct lapd_datalink *dl, uint32_t state)
 
 	if (state != LAPD_STATE_MF_EST && dl->state == LAPD_STATE_MF_EST) {
 		/* stop T203 on leaving MF EST state, if running */
-		if (osmo_timer_pending(&dl->t203)) {
-			LOGP(DLLAPD, LOGL_INFO, "stop T203\n");
-			osmo_timer_del(&dl->t203);
-		}
+		lapd_stop_t203(dl);
 		/* remove content res. (network side) on leaving MF EST state */
 		if (dl->cont_res) {
 			msgb_free(dl->cont_res);
@@ -206,18 +240,11 @@ static void lapd_dl_newstate(struct lapd_datalink *dl, uint32_t state)
 
 	/* start T203 on entering MF EST state, if enabled */
 	if ((dl->t203_sec || dl->t203_usec)
-	 && state == LAPD_STATE_MF_EST && dl->state != LAPD_STATE_MF_EST) {
-		LOGP(DLLAPD, LOGL_INFO, "start T203\n");
-		osmo_timer_schedule(&dl->t203, dl->t203_sec, dl->t203_usec);
-	}
+	 && state == LAPD_STATE_MF_EST && dl->state != LAPD_STATE_MF_EST)
+		lapd_start_t203(dl);
 
 	dl->state = state;
 }
-
-static void lapd_t200_cb(void *data);
-static void lapd_t203_cb(void *data);
-static int lapd_send_i(struct lapd_msg_ctx *lctx, int line);
-static int lapd_est_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx);
 
 static void *tall_lapd_ctx = NULL;
 
@@ -288,9 +315,9 @@ void lapd_dl_reset(struct lapd_datalink *dl)
 		msgb_free(dl->rcv_buffer);
 		dl->rcv_buffer = NULL;
 	}
-	/* reset Timers */
-	osmo_timer_del(&dl->t200);
-	osmo_timer_del(&dl->t203);
+	/* stop Timers */
+	lapd_stop_t200(dl);
+	lapd_stop_t203(dl);
 }
 
 /* reset and de-allocate history buffer */
@@ -519,7 +546,7 @@ static void lapd_t200_cb(void *data)
 {
 	struct lapd_datalink *dl = data;
 
-	LOGP(DLLAPD, LOGL_INFO, "lapd_t200_cb(%p) state=%d\n", dl,
+	LOGP(DLLAPD, LOGL_INFO, "Timeout T200 (%p) state=%d\n", dl,
 		(int) dl->state);
 
 	switch (dl->state) {
@@ -546,7 +573,7 @@ static void lapd_t200_cb(void *data)
 		/* increment re-transmission counter */
 		dl->retrans_ctr++;
 		/* restart T200 (PH-READY-TO-SEND) */
-		osmo_timer_schedule(&dl->t200, dl->t200_sec, dl->t200_usec);
+		lapd_start_t200(dl);
 		break;
 	case LAPD_STATE_DISC_SENT:
 		/* 5.4.4.3 */
@@ -570,7 +597,7 @@ static void lapd_t200_cb(void *data)
 		/* increment re-transmission counter */
 		dl->retrans_ctr++;
 		/* restart T200 (PH-READY-TO-SEND) */
-		osmo_timer_schedule(&dl->t200, dl->t200_sec, dl->t200_usec);
+		lapd_start_t200(dl);
 		break;
 	case LAPD_STATE_MF_EST:
 		/* 5.5.7 */
@@ -625,8 +652,7 @@ static void lapd_t200_cb(void *data)
 				}
 			}
 			/* restart T200 (PH-READY-TO-SEND) */
-			osmo_timer_schedule(&dl->t200, dl->t200_sec,
-				dl->t200_usec);
+			lapd_start_t200(dl);
 		} else {
 			/* send MDL ERROR INIDCATION to L3 */
 			mdl_error(MDL_CAUSE_T200_EXPIRED, &dl->lctx);
@@ -649,7 +675,7 @@ static void lapd_t203_cb(void *data)
 {
 	struct lapd_datalink *dl = data;
 
-	LOGP(DLLAPD, LOGL_INFO, "lapd_t203_cb(%p) state=%d\n", dl,
+	LOGP(DLLAPD, LOGL_INFO, "Timeout T203 (%p) state=%d\n", dl,
 		(int) dl->state);
 
 	if (dl->state != LAPD_STATE_MF_EST) {
@@ -673,7 +699,7 @@ static void lapd_t203_cb(void *data)
 		lapd_send_rnr(&dl->lctx, 1, 1);
 	}
 	/* start T200 */
-	osmo_timer_schedule(&dl->t200, dl->t200_sec, dl->t200_usec);
+	lapd_start_t200(dl);
 }
 
 /* 5.5.3.1: Common function to acknowlege frames up to the given N(R) value */
@@ -708,9 +734,8 @@ static void lapd_acknowledge(struct lapd_msg_ctx *lctx)
 		 * or an REJ with an N(R) equal to V(A). */
 		if ((!rej && nr != dl->v_ack)
 		 || (rej && nr == dl->v_ack)) {
-			LOGP(DLLAPD, LOGL_INFO, "reset t200\n");
 		 	t200_reset = 1;
-			osmo_timer_del(&dl->t200);
+			lapd_stop_t200(dl);
 			/* 5.5.3.1 Note 1 + 2 imply timer recovery cond. */
 		}
 		/* 5.7.4: N(R) sequence error
@@ -727,31 +752,26 @@ static void lapd_acknowledge(struct lapd_msg_ctx *lctx)
 	/* V(A) shall be set to the value of N(R) */
 	dl->v_ack = nr;
 
-	/* If T200 has been reset by the receipt of an I, RR or RNR frame,
+	/* If T200 has been stopped by the receipt of an I, RR or RNR frame,
 	 * and if there are outstanding I frames, restart T200 */
 	if (t200_reset && !rej) {
 		if (dl->tx_hist[sub_mod(dl->v_send, 1, dl->range_hist)].msg) {
 			LOGP(DLLAPD, LOGL_INFO, "start T200, due to unacked I "
 				"frame(s)\n");
 			t200_start = 1;
-			osmo_timer_schedule(&dl->t200, dl->t200_sec,
-				dl->t200_usec);
+			lapd_start_t200(dl);
 		}
 	}
 
 	/* This also does a restart, when I or S frame is received */
 
 	/* Stop T203, if running */
-	if (osmo_timer_pending(&dl->t203)) {
-		osmo_timer_del(&dl->t203);
-		LOGP(DLLAPD, LOGL_INFO, "stop T203\n");
-	}
+	lapd_stop_t203(dl);
 	/* Start T203, if T200 is not running in MF EST state, if enabled */
 	if (!osmo_timer_pending(&dl->t200)
 	 && (dl->t203_sec || dl->t203_usec)
 	 && (dl->state == LAPD_STATE_MF_EST)) {
-		LOGP(DLLAPD, LOGL_INFO, "start T203\n");
-		osmo_timer_schedule(&dl->t203, dl->t203_sec, dl->t203_usec);
+		lapd_start_t203(dl);
 	}
 }
 
@@ -827,8 +847,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		case LAPD_STATE_DISC_SENT:
 			/* 5.4.6.2 send DM with F=P */
 			lapd_send_dm(lctx);
-			/* reset Timer T200 */
-			osmo_timer_del(&dl->t200);
+			/* stop Timer T200 */
+			lapd_stop_t200(dl);
 			msgb_free(msg);
 			return send_dl_simple(prim, op, lctx);
 		default:
@@ -934,8 +954,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			}
 			break;
 		case LAPD_STATE_DISC_SENT:
-			/* reset Timer T200 */
-			osmo_timer_del(&dl->t200);
+			/* stop Timer T200 */
+			lapd_stop_t200(dl);
 			/* go to idle state */
 			lapd_dl_flush_tx(dl);
 			lapd_dl_flush_send(dl);
@@ -951,8 +971,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			msgb_free(msg);
 			return 0;
 		}
-		/* reset T200 */
-		osmo_timer_del(&dl->t200);
+		/* stop timer T200 */
+		lapd_stop_t200(dl);
 		/* go to idle state */
 		lapd_dl_newstate(dl, LAPD_STATE_IDLE);
 		rc = send_dl_simple(PRIM_DL_REL, PRIM_OP_INDICATION, lctx);
@@ -1033,8 +1053,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			LOGP(DLLAPD, LOGL_INFO, "DISC in SABM state\n");
 			/* 5.4.6.2 send DM with F=P */
 			lapd_send_dm(lctx);
-			/* reset Timer T200 */
-			osmo_timer_del(&dl->t200);
+			/* stop Timer T200 */
+			lapd_stop_t200(dl);
 			/* go to idle state */
 			lapd_dl_newstate(dl, LAPD_STATE_IDLE);
 			msgb_free(msg);
@@ -1056,8 +1076,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		}
 		/* send UA response */
 		lapd_send_ua(lctx, length, msg->l3h);
-		/* reset Timer T200 */
-		osmo_timer_del(&dl->t200);
+		/* stop Timer T200 */
+		lapd_stop_t200(dl);
 		/* enter idle state, keep tx-buffer with UA response */
 		lapd_dl_newstate(dl, LAPD_STATE_IDLE);
 		/* send notification to L3 */
@@ -1106,8 +1126,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			return 0;
 		case LAPD_STATE_DISC_SENT:
 			LOGP(DLLAPD, LOGL_INFO, "UA in disconnect state\n");
-			/* reset Timer T200 */
-			osmo_timer_del(&dl->t200);
+			/* stop Timer T200 */
+			lapd_stop_t200(dl);
 			/* go to idle state */
 			lapd_dl_flush_tx(dl);
 			lapd_dl_flush_send(dl);
@@ -1124,8 +1144,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			return 0;
 		}
 		LOGP(DLLAPD, LOGL_INFO, "UA in SABM state\n");
-		/* reset Timer T200 */
-		osmo_timer_del(&dl->t200);
+		/* stop Timer T200 */
+		lapd_stop_t200(dl);
 		/* compare UA with SABME if contention resolution is applied */
 		if (dl->tx_hist[0].msg->len) {
 			if (length != (dl->tx_hist[0].msg->len)
@@ -1250,8 +1270,8 @@ static int lapd_rx_s(struct msgb *msg, struct lapd_msg_ctx *lctx)
 				"we leave that state\n");
 			/* V(S) to the N(R) in the RR frame */
 			dl->v_send = lctx->n_recv;
-			/* reset Timer T200 */
-			osmo_timer_del(&dl->t200);
+			/* stop Timer T200 */
+			lapd_stop_t200(dl);
 			/* 5.5.7 Clear timer recovery condition */
 			lapd_dl_newstate(dl, LAPD_STATE_MF_EST);
 		}
@@ -1315,8 +1335,8 @@ static int lapd_rx_s(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			dl->peer_busy = 0;
 			/* V(S) and V(A) to the N(R) in the REJ frame */
 			dl->v_send = dl->v_ack = lctx->n_recv;
-			/* reset Timer T200 */
-			osmo_timer_del(&dl->t200);
+			/* stop Timer T200 */
+			lapd_stop_t200(dl);
 			/* 5.5.3.2 */
 			if (lctx->cr == dl->cr.rem2loc.cmd && lctx->p_f) {
 				if (!dl->own_busy && !dl->seq_err_cond) {
@@ -1358,8 +1378,8 @@ static int lapd_rx_s(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			dl->peer_busy = 0;
 			/* V(S) and V(A) to the N(R) in the REJ frame */
 			dl->v_send = dl->v_ack = lctx->n_recv;
-			/* reset Timer T200 */
-			osmo_timer_del(&dl->t200);
+			/* stop Timer T200 */
+			lapd_stop_t200(dl);
 			/* 5.5.7 Clear timer recovery condition */
 			lapd_dl_newstate(dl, LAPD_STATE_MF_EST);
 		} else {
@@ -1682,7 +1702,7 @@ static int lapd_est_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 
 	/* Tramsmit and start T200 */
 	dl->send_ph_data_req(&nctx, msg);
-	osmo_timer_schedule(&dl->t200, dl->t200_sec, dl->t200_usec);
+	lapd_start_t200(dl);
 
 	return 0;
 }
@@ -1840,12 +1860,10 @@ static int lapd_send_i(struct lapd_msg_ctx *lctx, int line)
 	 * frame, when the PH-READY-TO-SEND primitive is received from the
 	 * physical layer., it shall be set. */
 	if (!osmo_timer_pending(&dl->t200)) {
-		osmo_timer_schedule(&dl->t200, dl->t200_sec, dl->t200_usec);
-		/* reset Timer T203, if running */
-		if (osmo_timer_pending(&dl->t203)) {
-			LOGP(DLLAPD, LOGL_INFO, "stop T203\n");
-			osmo_timer_del(&dl->t203);
-		}
+		/* stop Timer T203, if running */
+		lapd_stop_t203(dl);
+		/* start Timer T200 */
+		lapd_start_t200(dl);
 	}
 
 	dl->send_ph_data_req(&nctx, msg);
@@ -1873,12 +1891,9 @@ static int lapd_susp_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 
 	/* Clear transmit buffer, but keep send buffer */
 	lapd_dl_flush_tx(dl);
-	/* Stop timers */
-	if (osmo_timer_pending(&dl->t203)) {
-		LOGP(DLLAPD, LOGL_INFO, "stop T203\n");
-		osmo_timer_del(&dl->t203);
-	}
-	osmo_timer_del(&dl->t200);
+	/* Stop timers (there is no state change, so we must stop all timers */
+	lapd_stop_t200(dl);
+	lapd_stop_t203(dl);
 
 	msgb_free(msg);
 
@@ -1946,7 +1961,7 @@ static int lapd_res_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 
 	/* Tramsmit and start T200 */
 	dl->send_ph_data_req(&nctx, msg);
-	osmo_timer_schedule(&dl->t200, dl->t200_sec, dl->t200_usec);
+	lapd_start_t200(dl);
 
 	return 0;
 }
@@ -1962,9 +1977,9 @@ static int lapd_rel_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	if (dp->u.rel_req.mode) {
 		LOGP(DLLAPD, LOGL_INFO, "perform local release\n");
 		msgb_free(msg);
-		/* reset Timer T200 */
-		osmo_timer_del(&dl->t200);
-		/* enter idle state */
+		/* stop Timer T200 */
+		lapd_stop_t200(dl);
+		/* enter idle state, T203 is stopped here, if running */
 		lapd_dl_newstate(dl, LAPD_STATE_IDLE);
 		/* flush buffers */
 		lapd_dl_flush_tx(dl);
@@ -2010,7 +2025,7 @@ static int lapd_rel_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 
 	/* Tramsmit and start T200 */
 	dl->send_ph_data_req(&nctx, msg);
-	osmo_timer_schedule(&dl->t200, dl->t200_sec, dl->t200_usec);
+	lapd_start_t200(dl);
 
 	return 0;
 }
