@@ -185,7 +185,7 @@ osmo_serial_set_custom_baudrate(int fd, int baudrate)
 	unsigned int speed = baudrate;
 	rc = ioctl(fd, IOSSIOSPEED, &speed);
 	if (rc < 0) {
-		dbg.perror("ioctl(IOSSIOSPEED)");
+		dbg_perror("ioctl(IOSSIOSPEED)");
 		return -errno;
 	}
 	return 0;
