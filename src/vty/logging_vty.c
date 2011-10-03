@@ -390,7 +390,16 @@ static struct value_string sysl_level_names[] = {
 
 DEFUN(cfg_log_syslog, cfg_log_syslog_cmd,
       "log syslog (authpriv|cron|daemon|ftp|lpr|mail|news|user|uucp)",
-	LOG_STR "Logging via syslog\n")
+	LOG_STR "Logging via syslog\n"
+	"Security/authorization messages facility\n"
+	"Clock daemon (cron/at) facility\n"
+	"General system daemon facility\n"
+	"Ftp daemon facility\n"
+	"Line printer facility\n"
+	"Mail facility\n"
+	"News facility\n"
+	"Generic facility\n"
+	"UUCP facility\n")
 {
 	int facility = get_string_value(sysl_level_names, argv[0]);
 
