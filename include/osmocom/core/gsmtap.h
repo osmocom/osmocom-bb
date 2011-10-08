@@ -14,6 +14,21 @@
 
 #include <stdint.h>
 
+/* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
+
+/* The GSMTAP format definition is maintained in libosmocore,
+ * specifically the latest version can always be obtained from
+ * http://cgit.osmocom.org/cgit/libosmocore/tree/include/osmocom/core/gsmtap.h
+ *
+ * If you want to introduce new protocol/burst/channel types or extend
+ * GSMTAP in any way, please contact the GSMTAP maintainer at either the
+ * public openbsc@lists.osmocom.org mailing list, or privately at
+ * Harald Welte <laforge@gnumonks.org>.
+ *
+ * Your cooperation ensures that all projects will use the same GSMTAP
+ * definitions and remain compatible with each other.
+ */
+
 #define GSMTAP_VERSION		0x02
 
 #define GSMTAP_TYPE_UM		0x01
@@ -25,6 +40,8 @@
 #define GSMTAP_TYPE_WMX_BURST	0x07    /* WiMAX burst */
 #define GSMTAP_TYPE_GB_LLC	0x08 /* GPRS Gb interface: LLC */
 #define GSMTAP_TYPE_GB_SNDCP	0x09 /* GPRS Gb interface: SNDCP */
+
+/* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
 /* sub-types for TYPE_UM_BURST */
 #define GSMTAP_BURST_UNKNOWN		0x00
@@ -45,6 +62,8 @@
 #define GSMTAP_BURST_HACK		0x14	/* WiMAX HARQ ACK burst */
 #define GSMTAP_BURST_PHY_ATTRIBUTES	0x15	/* WiMAX PHY Attributes burst */
 
+/* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
+
 /* sub-types for TYPE_UM */
 #define GSMTAP_CHANNEL_UNKNOWN	0x00
 #define GSMTAP_CHANNEL_BCCH	0x01
@@ -64,6 +83,8 @@
 #define GSMTAP_CHANNEL_PACCH	0x0f
 #define GSMTAP_CHANNEL_ACCH	0x80
 
+/* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
+
 /* sub-types for TYPE_TETRA_AIR */
 #define GSMTAP_TETRA_BSCH	0x01
 #define GSMTAP_TETRA_AACH	0x02
@@ -74,6 +95,8 @@
 #define GSMTAP_TETRA_STCH	0x07
 #define GSMTAP_TETRA_TCH_F	0x08
 
+/* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
+
 /* flags for the ARFCN */
 #define GSMTAP_ARFCN_F_PCS	0x8000
 #define GSMTAP_ARFCN_F_UPLINK	0x4000
@@ -82,6 +105,7 @@
 /* IANA-assigned well-known UDP port for GSMTAP messages */
 #define GSMTAP_UDP_PORT			4729
 
+/* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 struct gsmtap_hdr {
 	uint8_t version;	/* version, set to 0x01 currently */
 	uint8_t hdr_len;	/* length in number of 32bit words */
