@@ -22,6 +22,9 @@
 #define GSMTAP_TYPE_SIM		0x04
 #define GSMTAP_TYPE_TETRA_I1		0x05	/* tetra air interface */
 #define GSMTAP_TYPE_TETRA_I1_BURST	0x06	/* tetra air interface */
+#define GSMTAP_TYPE_WMX_BURST	0x07    /* WiMAX burst */
+#define GSMTAP_TYPE_GB_LLC	0x08 /* GPRS Gb interface: LLC */
+#define GSMTAP_TYPE_GB_SNDCP	0x09 /* GPRS Gb interface: SNDCP */
 
 /* sub-types for TYPE_UM_BURST */
 #define GSMTAP_BURST_UNKNOWN		0x00
@@ -34,6 +37,13 @@
 #define GSMTAP_BURST_DUMMY		0x07
 #define GSMTAP_BURST_ACCESS		0x08
 #define GSMTAP_BURST_NONE		0x09
+/* WiMAX bursts */
+#define GSMTAP_BURST_CDMA_CODE		0x10	/* WiMAX CDMA Code Attribute burst */
+#define GSMTAP_BURST_FCH		0x11	/* WiMAX FCH burst */
+#define GSMTAP_BURST_FFB		0x12	/* WiMAX Fast Feedback burst */
+#define GSMTAP_BURST_PDU		0x13	/* WiMAX PDU burst */
+#define GSMTAP_BURST_HACK		0x14	/* WiMAX HARQ ACK burst */
+#define GSMTAP_BURST_PHY_ATTRIBUTES	0x15	/* WiMAX PHY Attributes burst */
 
 /* sub-types for TYPE_UM */
 #define GSMTAP_CHANNEL_UNKNOWN	0x00
@@ -51,6 +61,7 @@
 #define GSMTAP_CHANNEL_CBCH52	0x0c
 #define GSMTAP_CHANNEL_PDCH	0x0d
 #define GSMTAP_CHANNEL_PTCCH	0x0e
+#define GSMTAP_CHANNEL_PACCH	0x0f
 #define GSMTAP_CHANNEL_ACCH	0x80
 
 /* sub-types for TYPE_TETRA_AIR */
