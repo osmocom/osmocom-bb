@@ -40,6 +40,7 @@
 #define GSMTAP_TYPE_WMX_BURST	0x07    /* WiMAX burst */
 #define GSMTAP_TYPE_GB_LLC	0x08 /* GPRS Gb interface: LLC */
 #define GSMTAP_TYPE_GB_SNDCP	0x09 /* GPRS Gb interface: SNDCP */
+#define GSMTAP_TYPE_GMR1_UM	0x0a	/* GMR-1 L2 packets */
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
@@ -94,6 +95,28 @@
 #define GSMTAP_TETRA_BNCH	0x06
 #define GSMTAP_TETRA_STCH	0x07
 #define GSMTAP_TETRA_TCH_F	0x08
+
+/* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
+
+/* sub-types for TYPE_GMR1_UM */
+#define GSMTAP_GMR1_UNKNOWN	0x00
+#define GSMTAP_GMR1_BCCH	0x01
+#define GSMTAP_GMR1_CCCH	0x02	/* either AGCH or PCH */
+#define GSMTAP_GMR1_PCH		0x03
+#define GSMTAP_GMR1_AGCH	0x04
+#define GSMTAP_GMR1_BACH	0x05
+#define GSMTAP_GMR1_RACH	0x06
+#define GSMTAP_GMR1_CBCH	0x07
+#define GSMTAP_GMR1_SDCCH	0x08
+#define GSMTAP_GMR1_TACCH	0x09
+#define GSMTAP_GMR1_GBCH	0x0a
+
+#define GSMTAP_GMR1_SACCH	0x01	/* to be combined with _TCH{6,9}   */
+#define GSMTAP_GMR1_FACCH	0x02	/* to be combines with _TCH{3,6,9} */
+#define GSMTAP_GMR1_DKAB	0x03	/* to be combined with _TCH3 */
+#define GSMTAP_GMR1_TCH3	0x10
+#define GSMTAP_GMR1_TCH6	0x14
+#define GSMTAP_GMR1_TCH9	0x18
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
