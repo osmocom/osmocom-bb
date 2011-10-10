@@ -7,6 +7,8 @@ Makefile.in
 *.la
 *.pc
 aclocal.m4
+acinclude.m4
+aminclude.am
 m4/*.m4
 autom4te.cache
 config.h*
@@ -45,3 +47,6 @@ doc/core
 doc/vty
 doc/gsm
 doc/html.tar
+
+src/crc*gen.c
+include/osmocom/core/crc*gen.h
