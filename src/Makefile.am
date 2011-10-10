@@ -26,6 +26,8 @@ endif
 
 if ENABLE_TALLOC
 libosmocore_la_SOURCES += talloc.c
+else
+libosmocore_la_LIBADD = -ltalloc
 endif
 
 if ENABLE_MSGFILE
