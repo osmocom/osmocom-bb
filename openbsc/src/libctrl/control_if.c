@@ -208,7 +208,7 @@ static int handle_control_read(struct osmo_fd * bfd)
 	struct ctrl_connection *ccon;
 	struct ipaccess_head *iph;
 	struct ipaccess_head_ext *iph_ext;
-	struct msgb *msg;
+	struct msgb *msg = NULL;
 	struct ctrl_cmd *cmd;
 	struct ctrl_handle *ctrl = bfd->data;
 
