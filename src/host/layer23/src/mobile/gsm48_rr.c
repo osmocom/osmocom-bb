@@ -1239,7 +1239,8 @@ static int gsm48_rr_rx_cm_enq(struct osmocom_ms *ms, struct msgb *msg)
  */
 
 /* start random access */
-static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging)
+static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
+	int paging_mi_type)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
@@ -1449,6 +1450,9 @@ rel_ind:
 	/* store establishment cause, so 'choose cell' selects the last cell
 	 * after location updating */
 	rr->est_cause = cause;
+
+	/* store paging mobile identity type, if we respond to paging */
+	rr->paging_mi_type = paging_mi_type;
 
 	/* if channel is already active somehow */
 	if (cs->ccch_state == GSM322_CCCH_ST_DATA)
@@ -2037,7 +2041,7 @@ static int gsm48_rr_chan2cause[4] = {
 };
 
 /* given LV of mobile identity is checked agains ms */
-static int gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
+static uint8_t gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	char imsi[16];
@@ -2059,7 +2063,7 @@ static int gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 			LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
 				ntohl(tmsi));
 
-			return 1;
+			return mi_type;
 		} else
 			LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 				ntohl(tmsi));
@@ -2069,7 +2073,7 @@ static int gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 		if (!strcmp(imsi, ms->subscr.imsi)) {
 			LOGP(DPAG, LOGL_INFO, " IMSI %s matches\n", imsi);
 
-			return 1;
+			return mi_type;
 		} else
 			LOGP(DPAG, LOGL_INFO, " IMSI %s (not for us)\n", imsi);
 		break;
@@ -2089,7 +2093,7 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_paging1 *pa = msgb_l3(msg);
 	int payload_len = msgb_l3len(msg) - sizeof(*pa);
 	int chan_1, chan_2;
-	uint8_t *mi;
+	uint8_t *mi, mi_type;
 
 	/* empty paging request */
 	if (payload_len >= 2 && (pa->data[1] & GSM_MI_TYPE_MASK) == 0)
@@ -2121,8 +2125,9 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 	mi = pa->data;
 	if (payload_len < mi[0] + 1)
 		goto short_read;
-	if (gsm_match_mi(ms, mi) > 0)
-		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
+	if ((mi_type = gsm_match_mi(ms, mi)) > 0)
+		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
+			mi_type);
 	/* second MI */
 	payload_len -= mi[0] + 1;
 	mi = pa->data + mi[0] + 1;
@@ -2132,8 +2137,9 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	if (payload_len < mi[1] + 2)
 		goto short_read;
-	if (gsm_match_mi(ms, mi + 1) > 0)
-		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
+	if ((mi_type = gsm_match_mi(ms, mi + 1)) > 0)
+		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
+			mi_type);
 
 	return 0;
 }
@@ -2145,7 +2151,7 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_paging2 *pa = msgb_l3(msg);
 	int payload_len = msgb_l3len(msg) - sizeof(*pa);
-	uint8_t *mi;
+	uint8_t *mi, mi_type;
 	int chan_1, chan_2, chan_3;
 
 	/* 3.3.1.1.2: ignore paging while not camping on a cell */
@@ -2176,7 +2182,8 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
-		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
+		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
+			GSM_MI_TYPE_TMSI);
 	} else
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi1));
@@ -2186,7 +2193,8 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
-		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
+		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
+			GSM_MI_TYPE_TMSI);
 	} else
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi2));
@@ -2199,8 +2207,9 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	if (payload_len < mi[1] + 2 + 1) /* must include "channel needed" */
 		goto short_read;
 	chan_3 = mi[mi[1] + 2] & 0x03; /* channel needed */
-	if (gsm_match_mi(ms, mi + 1) > 0)
-		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1);
+	if ((mi_type = gsm_match_mi(ms, mi + 1)) > 0)
+		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1,
+			mi_type);
 
 	return 0;
 }
@@ -2243,7 +2252,8 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
-		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1);
+		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
+			GSM_MI_TYPE_TMSI);
 	} else
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi1));
@@ -2253,7 +2263,8 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
-		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1);
+		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
+			GSM_MI_TYPE_TMSI);
 	} else
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi2));
@@ -2263,7 +2274,8 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi3));
-		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1);
+		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1,
+			GSM_MI_TYPE_TMSI);
 	} else
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi3));
@@ -2273,7 +2285,8 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi4));
-		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1);
+		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1,
+			GSM_MI_TYPE_TMSI);
 	} else
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi4));
@@ -3180,7 +3193,8 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		if (ms->subscr.tmsi != 0xffffffff
 		 && ms->subscr.mcc == cs->sel_mcc
 		 && ms->subscr.mnc == cs->sel_mnc
-		 && ms->subscr.lac == cs->sel_lac) {
+		 && ms->subscr.lac == cs->sel_lac
+		 && rr->paging_mi_type == GSM_MI_TYPE_TMSI) {
 			gsm48_generate_mid_from_tmsi(mi, subscr->tmsi);
 			LOGP(DRR, LOGL_INFO, "sending paging response with "
 				"TMSI\n");
@@ -4475,7 +4489,7 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_l3(msg), msgb_l3len(msg));
 
 	/* request channel */
-	return gsm48_rr_chan_req(ms, rrh->cause, 0);
+	return gsm48_rr_chan_req(ms, rrh->cause, 0, 0);
 }
 
 /* 3.4.2 transfer data in dedicated mode */

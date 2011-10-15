@@ -133,6 +133,7 @@ struct gsm48_rrlayer {
 	uint8_t			rr_est_req;
 	struct msgb		*rr_est_msg;
 	uint8_t			est_cause; /* cause used for establishment */
+	uint8_t			paging_mi_type; /* how did we got paged? */
 
 	/* channel request states */
 	uint8_t			wait_assign; /* waiting for assignment state */
