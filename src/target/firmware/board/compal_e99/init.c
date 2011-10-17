@@ -129,8 +129,7 @@ void board_init(void)
 	/* Initialize LCD driver (uses UWire) and backlight */
 	display = &ssd1783_display;
 	display_init();
-	bl_mode_pwl(1);
-	bl_level(50);
+	bl_mode_pwl(0);
 
 	/* Initialize keypad driver */
 	keypad_init(1);
