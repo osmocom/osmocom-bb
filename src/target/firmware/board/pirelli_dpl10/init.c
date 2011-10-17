@@ -143,8 +143,8 @@ void board_init(int with_irq)
 	timer_init();
 
 	/* Initialize LCD driver and backlight (0 is max, 255 min brightness) */
-	bl_mode_pwl(1);
-	bl_level(50);
+	bl_mode_pwl(0);
+	//bl_level(50);
 
 	fb_init();
 
