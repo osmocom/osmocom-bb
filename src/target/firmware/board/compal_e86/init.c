@@ -132,7 +132,7 @@ void board_init(int with_irq)
 
 	/* Initialize LCD driver (uses UWire) */
 	fb_init();
-	bl_mode_pwl(1);
+	bl_mode_pwl(0);
 	bl_level(0);
 
 	/* Initialize keypad driver */

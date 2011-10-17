@@ -128,8 +128,8 @@ void board_init(int with_irq)
 	/* Initialize LCD driver (uses I2C) and backlight */
 	fb_init();
 
-	bl_mode_pwl(1);
-	bl_level(50);
+	bl_mode_pwl(0);
+	//bl_level(50);
 
 	/* Initialize keypad driver */
 	keypad_init(keymap, with_irq);
