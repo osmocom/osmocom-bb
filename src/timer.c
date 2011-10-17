@@ -132,12 +132,10 @@ int osmo_timer_pending(struct osmo_timer_list *timer)
  */
 struct timeval *osmo_timers_nearest(void)
 {
-	static struct timeval no_timers = { 0, 0 };
-
-	if (nearest_p != NULL && !timerisset(nearest_p))
+	if (nearest_p != NULL)
 		return nearest_p;
 	else
-		return &no_timers;
+		return NULL;
 }
 
 static void update_nearest(struct timeval *cand, struct timeval *current)
