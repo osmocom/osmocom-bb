@@ -132,10 +132,10 @@ int osmo_timer_pending(struct osmo_timer_list *timer)
  */
 struct timeval *osmo_timers_nearest(void)
 {
-	if (nearest_p != NULL)
-		return nearest_p;
-	else
-		return NULL;
+	/* nearest_p is exactly what we need already: NULL if nothing is
+	 * waiting, {0,0} if we must dispatch immediately, and the correct
+	 * delay if we need to wait */
+	return nearest_p;
 }
 
 static void update_nearest(struct timeval *cand, struct timeval *current)
