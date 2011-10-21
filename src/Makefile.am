@@ -4,7 +4,7 @@ SUBDIRS=. vty codec gsm
 # Please read Chapter 6 "Library interface versions" of the libtool documentation before making any modification
 LIBVERSION=3:0:0
 
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
+INCLUDES = $(all_includes) -I$(top_srcdir)/include -I$(top_builddir)/include
 AM_CFLAGS = -fPIC -Wall
 
 lib_LTLIBRARIES = libosmocore.la
