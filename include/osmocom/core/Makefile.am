@@ -6,6 +6,8 @@ osmocore_HEADERS = signal.h linuxlist.h timer.h select.h msgb.h bits.h \
 		   backtrace.h conv.h application.h \
 		   crcgen.h crc8gen.h crc16gen.h crc32gen.h crc64gen.h
 
+noinst_HEADERS = timer_compat.h
+
 if ENABLE_PLUGIN
 osmocore_HEADERS += plugin.h
 endif

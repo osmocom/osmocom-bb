@@ -38,6 +38,7 @@ static struct timeval *nearest_p;
 #include <string.h>
 #include <limits.h>
 #include <osmocom/core/timer.h>
+#include <osmocom/core/timer_compat.h>
 #include <osmocom/core/linuxlist.h>
 
 static struct rb_root timer_root = RB_ROOT;
