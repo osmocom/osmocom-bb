@@ -38,8 +38,9 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef __linux__
 #include <linux/serial.h>
-
+#endif
 
 #include <osmocom/core/serial.h>
 
@@ -155,6 +156,7 @@ osmo_serial_set_baudrate(int fd, speed_t baudrate)
 int
 osmo_serial_set_custom_baudrate(int fd, int baudrate)
 {
+#ifdef __linux__
 	int rc;
 	struct serial_struct ser_info;
 
@@ -174,6 +176,23 @@ osmo_serial_set_custom_baudrate(int fd, int baudrate)
 	}
 
 	return _osmo_serial_set_baudrate(fd, B38400); /* 38400 is a kind of magic ... */
+#elif defined(__APPLE__)
+#ifndef IOSSIOSPEED
+#define IOSSIOSPEED    _IOW('T', 2, speed_t)
+#endif
+	int rc;
+
+	unsigned int speed = baudrate;
+	rc = ioctl(fd, IOSSIOSPEED, &speed);
+	if (rc < 0) {
+		dbg_perror("ioctl(IOSSIOSPEED)");
+		return -errno;
+	}
+	return 0;
+#else
+#warning osmo_serial_set_custom_baudrate: unsupported platform
+	return 0;
+#endif
 }
 
 /*! \brief Clear any custom baudrate
@@ -186,6 +205,7 @@ int
 osmo_serial_clear_custom_baudrate(int fd)
 {
 	int rc;
+#ifdef __linux__
 	struct serial_struct ser_info;
 
 	rc = ioctl(fd, TIOCGSERIAL, &ser_info);
@@ -202,7 +222,7 @@ osmo_serial_clear_custom_baudrate(int fd)
 		dbg_perror("ioctl(TIOCSSERIAL)");
 		return -errno;
 	}
-
+#endif
 	return 0;
 }
 

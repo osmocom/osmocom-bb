@@ -1,6 +1,11 @@
 /*
  * (C) 2008,2009 by Holger Hans Peter Freyther <zecke@selfish.org>
+ * (C) 2011 by Harald Welte <laforge@gnumonks.org>
  * All Rights Reserved
+ *
+ * Authors: Holger Hans Peter Freyther <zecke@selfish.org>
+ *	    Harald Welte <laforge@gnumonks.org>
+ *	    Pablo Neira Ayuso <pablo@gnumonks.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +23,10 @@
  *
  */
 
+/* These store the amount of time that we wait until next timer expires. */
+static struct timeval nearest;
+static struct timeval *nearest_p;
+
 /*! \addtogroup timer
  *  @{
  */
@@ -27,35 +36,42 @@
 
 #include <assert.h>
 #include <string.h>
+#include <limits.h>
 #include <osmocom/core/timer.h>
+#include <osmocom/core/timer_compat.h>
+#include <osmocom/core/linuxlist.h>
 
-static LLIST_HEAD(timer_list);
-static struct timeval s_nearest_time;
-static struct timeval s_select_time;
+static struct rb_root timer_root = RB_ROOT;
 
-#define MICRO_SECONDS  1000000LL
+static void __add_timer(struct osmo_timer_list *timer)
+{
+	struct rb_node **new = &(timer_root.rb_node);
+	struct rb_node *parent = NULL;
 
-#define TIME_SMALLER(left, right) \
-        (left.tv_sec*MICRO_SECONDS+left.tv_usec) <= (right.tv_sec*MICRO_SECONDS+right.tv_usec)
+	while (*new) {
+		struct osmo_timer_list *this;
 
+		this = container_of(*new, struct osmo_timer_list, node);
+
+		parent = *new;
+		if (timercmp(&timer->timeout, &this->timeout, <))
+			new = &((*new)->rb_left);
+		else
+			new = &((*new)->rb_right);
+        }
+
+        rb_link_node(&timer->node, parent, new);
+        rb_insert_color(&timer->node, &timer_root);
+}
 
 /*! \brief add a new timer to the timer management
  *  \param[in] timer the timer that should be added
  */
 void osmo_timer_add(struct osmo_timer_list *timer)
 {
-	struct osmo_timer_list *list_timer;
-
-	/* TODO: Optimize and remember the closest item... */
 	timer->active = 1;
-
-	/* this might be called from within update_timers */
-	llist_for_each_entry(list_timer, &timer_list, entry)
-		if (timer == list_timer)
-			return;
-
-	timer->in_list = 1;
-	llist_add(&timer->entry, &timer_list);
+	INIT_LLIST_HEAD(&timer->list);
+	__add_timer(timer);
 }
 
 /*! \brief schedule a timer at a given future relative time
@@ -74,10 +90,9 @@ osmo_timer_schedule(struct osmo_timer_list *timer, int seconds, int microseconds
 	struct timeval current_time;
 
 	gettimeofday(&current_time, NULL);
-	unsigned long long currentTime = current_time.tv_sec * MICRO_SECONDS + current_time.tv_usec;
-	currentTime += seconds * MICRO_SECONDS + microseconds;
-	timer->timeout.tv_sec = currentTime / MICRO_SECONDS;
-	timer->timeout.tv_usec = currentTime % MICRO_SECONDS;
+	timer->timeout.tv_sec = seconds;
+	timer->timeout.tv_usec = microseconds;
+	timeradd(&timer->timeout, &current_time, &timer->timeout);
 	osmo_timer_add(timer);
 }
 
@@ -89,10 +104,12 @@ osmo_timer_schedule(struct osmo_timer_list *timer, int seconds, int microseconds
  */
 void osmo_timer_del(struct osmo_timer_list *timer)
 {
-	if (timer->in_list) {
+	if (timer->active) {
 		timer->active = 0;
-		timer->in_list = 0;
-		llist_del(&timer->entry);
+		rb_erase(&timer->node, &timer_root);
+		/* make sure this is not already scheduled for removal. */
+		if (!llist_empty(&timer->list))
+			llist_del_init(&timer->list);
 	}
 }
 
@@ -116,26 +133,26 @@ int osmo_timer_pending(struct osmo_timer_list *timer)
  */
 struct timeval *osmo_timers_nearest(void)
 {
-	struct timeval current_time;
+	/* nearest_p is exactly what we need already: NULL if nothing is
+	 * waiting, {0,0} if we must dispatch immediately, and the correct
+	 * delay if we need to wait */
+	return nearest_p;
+}
 
-	if (s_nearest_time.tv_sec == 0 && s_nearest_time.tv_usec == 0)
-		return NULL;
-
-	if (gettimeofday(&current_time, NULL) == -1)
-		return NULL;
-
-	unsigned long long nearestTime = s_nearest_time.tv_sec * MICRO_SECONDS + s_nearest_time.tv_usec;
-	unsigned long long currentTime = current_time.tv_sec * MICRO_SECONDS + current_time.tv_usec;
-
-	if (nearestTime < currentTime) {
-		s_select_time.tv_sec = 0;
-		s_select_time.tv_usec = 0;
+static void update_nearest(struct timeval *cand, struct timeval *current)
+{
+	if (cand->tv_sec != LONG_MAX) {
+		if (timercmp(cand, current, >))
+			timersub(cand, current, &nearest);
+		else {
+			/* loop again inmediately */
+			nearest.tv_sec = 0;
+			nearest.tv_usec = 0;
+		}
+		nearest_p = &nearest;
 	} else {
-		s_select_time.tv_sec = (nearestTime - currentTime) / MICRO_SECONDS;
-		s_select_time.tv_usec = (nearestTime - currentTime) % MICRO_SECONDS;
+		nearest_p = NULL;
 	}
-
-	return &s_select_time;
 }
 
 /*
@@ -143,17 +160,18 @@ struct timeval *osmo_timers_nearest(void)
  */
 void osmo_timers_prepare(void)
 {
-	struct osmo_timer_list *timer, *nearest_timer = NULL;
-	llist_for_each_entry(timer, &timer_list, entry) {
-		if (!nearest_timer || TIME_SMALLER(timer->timeout, nearest_timer->timeout)) {
-			nearest_timer = timer;
-		}
-	}
+	struct rb_node *node;
+	struct timeval current;
 
-	if (nearest_timer) {
-		s_nearest_time = nearest_timer->timeout;
+	gettimeofday(&current, NULL);
+
+	node = rb_first(&timer_root);
+	if (node) {
+		struct osmo_timer_list *this;
+		this = container_of(node, struct osmo_timer_list, node);
+		update_nearest(&this->timeout, &current);
 	} else {
-		memset(&s_nearest_time, 0, sizeof(struct timeval));
+		nearest_p = NULL;
 	}
 }
 
@@ -163,46 +181,41 @@ void osmo_timers_prepare(void)
 int osmo_timers_update(void)
 {
 	struct timeval current_time;
-	struct osmo_timer_list *timer, *tmp;
+	struct rb_node *node;
+	struct llist_head timer_eviction_list;
+	struct osmo_timer_list *this;
 	int work = 0;
 
 	gettimeofday(&current_time, NULL);
 
+	INIT_LLIST_HEAD(&timer_eviction_list);
+	for (node = rb_first(&timer_root); node; node = rb_next(node)) {
+		this = container_of(node, struct osmo_timer_list, node);
+
+		if (timercmp(&this->timeout, &current_time, >))
+			break;
+
+		llist_add(&this->list, &timer_eviction_list);
+	}
+
 	/*
 	 * The callbacks might mess with our list and in this case
 	 * even llist_for_each_entry_safe is not safe to use. To allow
-	 * del_timer, add_timer, schedule_timer to be called from within
-	 * the callback we jump through some loops.
+	 * osmo_timer_del to be called from within the callback we need
+	 * to restart the iteration for each element scheduled for removal.
 	 *
-	 * First we set the handled flag of each active timer to zero,
-	 * then we iterate over the list and execute the callbacks. As the
-	 * list might have been changed (specially the next) from within
-	 * the callback we have to start over again. Once every callback
-	 * is dispatched we will remove the non-active from the list.
-	 *
-	 * TODO: If this is a performance issue we can poison a global
-	 * variable in add_timer and del_timer and only then restart.
+	 * The problematic scenario is the following: Given two timers A
+	 * and B that have expired at the same time. Thus, they are both
+	 * in the eviction list in this order: A, then B. If we remove
+	 * timer B from the A's callback, we continue with B in the next
+	 * iteration step, leading to an access-after-release.
 	 */
-	llist_for_each_entry(timer, &timer_list, entry) {
-		timer->handled = 0;
-	}
-
 restart:
-	llist_for_each_entry(timer, &timer_list, entry) {
-		if (!timer->handled && TIME_SMALLER(timer->timeout, current_time)) {
-			timer->handled = 1;
-			timer->active = 0;
-			(*timer->cb)(timer->data);
-			work = 1;
-			goto restart;
-		}
-	}
-
-	llist_for_each_entry_safe(timer, tmp, &timer_list, entry) {
-		timer->handled = 0;
-		if (!timer->active) {
-			osmo_timer_del(timer);
-		}
+	llist_for_each_entry(this, &timer_eviction_list, list) {
+		osmo_timer_del(this);
+		this->cb(this->data);
+		work = 1;
+		goto restart;
 	}
 
 	return work;
@@ -210,10 +223,10 @@ restart:
 
 int osmo_timers_check(void)
 {
-	struct osmo_timer_list *timer;
+	struct rb_node *node;
 	int i = 0;
 
-	llist_for_each_entry(timer, &timer_list, entry) {
+	for (node = rb_first(&timer_root); node; node = rb_next(node)) {
 		i++;
 	}
 	return i;

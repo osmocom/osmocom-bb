@@ -88,6 +88,53 @@ uint8_t chantype_rsl2gsmtap(uint8_t rsl_chantype, uint8_t link_id)
 	return ret;
 }
 
+/*! \brief create an arbitrary type GSMTAP message
+ *  \param[in] type The GSMTAP_TYPE_xxx constant of the message to create
+ *  \param[in] arfcn GSM ARFCN (Channel Number)
+ *  \param[in] ts GSM time slot
+ *  \param[in] chan_type Channel Type
+ *  \param[in] ss Sub-slot
+ *  \param[in] fn GSM Frame Number
+ *  \param[in] signal_dbm Signal Strength (dBm)
+ *  \param[in] snr Signal/Noise Ratio (SNR)
+ *  \param[in] data Pointer to data buffer
+ *  \param[in] len Length of \ref data
+ *
+ * This function will allocate a new msgb and fill it with a GSMTAP
+ * header containing the information
+ */
+struct msgb *gsmtap_makemsg_ex(uint8_t type, uint16_t arfcn, uint8_t ts, uint8_t chan_type,
+			    uint8_t ss, uint32_t fn, int8_t signal_dbm,
+			    uint8_t snr, const uint8_t *data, unsigned int len)
+{
+	struct msgb *msg;
+	struct gsmtap_hdr *gh;
+	uint8_t *dst;
+
+	msg = msgb_alloc(sizeof(*gh) + len, "gsmtap_tx");
+	if (!msg)
+		return NULL;
+
+	gh = (struct gsmtap_hdr *) msgb_put(msg, sizeof(*gh));
+
+	gh->version = GSMTAP_VERSION;
+	gh->hdr_len = sizeof(*gh)/4;
+	gh->type = type;
+	gh->timeslot = ts;
+	gh->sub_slot = ss;
+	gh->arfcn = htons(arfcn);
+	gh->snr_db = snr;
+	gh->signal_dbm = signal_dbm;
+	gh->frame_number = htonl(fn);
+	gh->sub_type = chan_type;
+	gh->antenna_nr = 0;
+
+	dst = msgb_put(msg, len);
+	memcpy(dst, data, len);
+
+	return msg;
+}
+
 /*! \brief create L1/L2 data and put it into GSMTAP
  *  \param[in] arfcn GSM ARFCN (Channel Number)
  *  \param[in] ts GSM time slot
@@ -106,32 +153,8 @@ struct msgb *gsmtap_makemsg(uint16_t arfcn, uint8_t ts, uint8_t chan_type,
 			    uint8_t ss, uint32_t fn, int8_t signal_dbm,
 			    uint8_t snr, const uint8_t *data, unsigned int len)
 {
-	struct msgb *msg;
-	struct gsmtap_hdr *gh;
-	uint8_t *dst;
-
-	msg = msgb_alloc(sizeof(*gh) + len, "gsmtap_tx");
-	if (!msg)
-		return NULL;
-
-	gh = (struct gsmtap_hdr *) msgb_put(msg, sizeof(*gh));
-
-	gh->version = GSMTAP_VERSION;
-	gh->hdr_len = sizeof(*gh)/4;
-	gh->type = GSMTAP_TYPE_UM;
-	gh->timeslot = ts;
-	gh->sub_slot = ss;
-	gh->arfcn = htons(arfcn);
-	gh->snr_db = snr;
-	gh->signal_dbm = signal_dbm;
-	gh->frame_number = htonl(fn);
-	gh->sub_type = chan_type;
-	gh->antenna_nr = 0;
-
-	dst = msgb_put(msg, len);
-	memcpy(dst, data, len);
-
-	return msg;
+	return gsmtap_makemsg_ex(GSMTAP_TYPE_UM, arfcn, ts, chan_type,
+		ss, fn, signal_dbm, snr, data, len);
 }
 
 #ifdef HAVE_SYS_SOCKET_H
@@ -208,8 +231,10 @@ int gsmtap_sendmsg(struct gsmtap_inst *gti, struct msgb *msg)
 	}
 }
 
-/*! \brief receive a message from L1/L2 and put it in GSMTAP */
-int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
+/*! \brief send an arbitrary type through GSMTAP.
+ *  See \ref gsmtap_makemsg_ex for arguments
+ */
+int gsmtap_send_ex(struct gsmtap_inst *gti, uint8_t type, uint16_t arfcn, uint8_t ts,
 		uint8_t chan_type, uint8_t ss, uint32_t fn,
 		int8_t signal_dbm, uint8_t snr, const uint8_t *data,
 		unsigned int len)
@@ -219,12 +244,24 @@ int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
 	if (!gti)
 		return -ENODEV;
 
-	msg = gsmtap_makemsg(arfcn, ts, chan_type, ss, fn, signal_dbm,
+	msg = gsmtap_makemsg_ex(type, arfcn, ts, chan_type, ss, fn, signal_dbm,
 			     snr, data, len);
 	if (!msg)
 		return -ENOMEM;
 
 	return gsmtap_sendmsg(gti, msg);
+}
+
+/*! \brief send a message from L1/L2 through GSMTAP.
+ *  See \ref gsmtap_makemsg for arguments
+ */
+int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
+		uint8_t chan_type, uint8_t ss, uint32_t fn,
+		int8_t signal_dbm, uint8_t snr, const uint8_t *data,
+		unsigned int len)
+{
+	return gsmtap_send_ex(gti, GSMTAP_TYPE_UM, arfcn, ts, chan_type, ss, fn,
+		signal_dbm, snr, data, len);
 }
 
 /* Callback from select layer if we can write to the socket */

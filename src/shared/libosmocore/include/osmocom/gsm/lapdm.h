@@ -1,11 +1,7 @@
 #ifndef _OSMOCOM_LAPDM_H
 #define _OSMOCOM_LAPDM_H
 
-#include <stdint.h>
-
-#include <osmocom/core/timer.h>
-#include <osmocom/core/msgb.h>
-#include <osmocom/gsm/prim.h>
+#include <osmocom/gsm/lapd_core.h>
 
 /*! \defgroup lapdm LAPDm implementation according to GSM TS 04.06
  *  @{
@@ -15,7 +11,7 @@
 
 /* primitive related sutff */
 
-/*! \brief LAPDm related primitives */
+/*! \brief LAPDm related primitives (L1<->L2 SAP) */
 enum osmo_ph_prim {
 	PRIM_PH_DATA,		/*!< \brief PH-DATA */
 	PRIM_PH_RACH,		/*!< \brief PH-RANDOM_ACCESS */
@@ -68,52 +64,22 @@ enum lapdm_mode {
 	LAPDM_MODE_BTS,		/*!< \brief behave like a BTS (network) */
 };
 
-/*! \brief LAPDm state */
-enum lapdm_state {
-	LAPDm_STATE_NULL = 0,
-	LAPDm_STATE_IDLE,
-	LAPDm_STATE_SABM_SENT,
-	LAPDm_STATE_MF_EST,
-	LAPDm_STATE_TIMER_RECOV,
-	LAPDm_STATE_DISC_SENT,
-};
-
 struct lapdm_entity;
 
 /*! \brief LAPDm message context */
 struct lapdm_msg_ctx {
 	struct lapdm_datalink *dl;
 	int lapdm_fmt;
-	uint8_t n201;
 	uint8_t chan_nr;
 	uint8_t link_id;
-	uint8_t addr;
-	uint8_t ctrl;
 	uint8_t ta_ind;
 	uint8_t tx_power_ind;
 };
 
 /*! \brief LAPDm datalink like TS 04.06 / Section 3.5.2 */
 struct lapdm_datalink {
-	uint8_t V_send;	/*!< \brief seq nr of next I frame to be transmitted */
-	uint8_t V_ack;	/*!< \brief last frame ACKed by peer */
-	uint8_t N_send;	/*!< \brief ? set to V_send at Tx time*/
-	uint8_t V_recv;	/*!< \brief seq nr of next I frame expected to be received */
-	uint8_t N_recv;	/*!< \brief expected send seq nr of the next received I frame */
-	uint32_t state; /*!< \brief LAPDm state (\ref lapdm_state) */
-	int seq_err_cond; /*!< \brief condition of sequence error */
-	uint8_t own_busy; /*!< \brief receiver busy on our side */
-	uint8_t peer_busy; /*!< \brief receiver busy on remote side */
-	struct osmo_timer_list t200; /*!< \brief T200 timer */
-	uint8_t retrans_ctr; /*!< \brief re-transmission counter */
-	struct llist_head send_queue; /*!< \brief frames from L3 */
-	struct msgb *send_buffer; /*!< \brief current frame transmitting */
-	int send_out; /*!< \brief how much was sent from send_buffer */
-	uint8_t tx_hist[8][200]; /*!< \brief tx history buffer */
-	int tx_length[8]; /*!< \brief length in history buffer */
-	struct llist_head tx_queue; /*!< \brief frames to L1 */
+	struct lapd_datalink dl; /* \brief common LAPD */
 	struct lapdm_msg_ctx mctx; /*!< \brief context of established connection */
-	struct msgb *rcv_buffer; /*!< \brief buffer to assemble the received message */
 
 	struct lapdm_entity *entity; /*!< \brief LAPDm entity we are part of */
 };
@@ -127,11 +93,6 @@ enum lapdm_dl_sapi {
 
 typedef int (*lapdm_cb_t)(struct msgb *msg, struct lapdm_entity *le, void *ctx);
 
-struct lapdm_cr_ent {
-	uint8_t cmd;
-	uint8_t resp;
-};
-
 #define LAPDM_ENT_F_EMPTY_FRAME		0x0001
 #define LAPDM_ENT_F_POLLING_ONLY	0x0002
 
@@ -143,12 +104,6 @@ struct lapdm_entity {
 	int tx_pending; /*!< \brief currently a pending frame not confirmed by L1 */
 	enum lapdm_mode mode; /*!< \brief are we in BTS mode or MS mode */
 	unsigned int flags;
-
-	struct {
-		/*! \brief filled-in once we set the lapdm_mode above */
-		struct lapdm_cr_ent loc2rem;
-		struct lapdm_cr_ent rem2loc;
-	} cr;
 
 	void *l1_ctx;	/*!< \brief context for layer1 instance */
 	void *l3_ctx;	/*!< \brief context for layer3 instance */

@@ -179,6 +179,9 @@ int vty_current_node(struct vty *vty);
 
 extern void *tall_vty_ctx;
 
+extern struct cmd_element cfg_description_cmd;
+extern struct cmd_element cfg_no_description_cmd;
+
 /*! }@ */
 
 #endif

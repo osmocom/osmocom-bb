@@ -185,9 +185,10 @@ DEFUN(logging_level,
 
 DEFUN(logging_set_category_mask,
       logging_set_category_mask_cmd,
-      "logging set log mask MASK",
+      "logging set-log-mask MASK",
 	LOGGING_STR
-      "Decide which categories to output.\n")
+      "Set the logmask of this logging target\n"
+      "The logmask to use\n")
 {
 	struct log_target *tgt = osmo_log_vty2tgt(vty);
 
@@ -197,6 +198,14 @@ DEFUN(logging_set_category_mask,
 	log_parse_category_mask(tgt, argv[0]);
 	return CMD_SUCCESS;
 }
+
+ALIAS_DEPRECATED(logging_set_category_mask,
+		 logging_set_category_mask_old_cmd,
+		 "logging set log mask MASK",
+		 LOGGING_STR
+		 "Decide which categories to output.\n"
+		 "Log commands\n" "Mask commands\n" "The logmask to use\n");
+
 
 DEFUN(diable_logging,
       disable_logging_cmd,
@@ -381,7 +390,16 @@ static struct value_string sysl_level_names[] = {
 
 DEFUN(cfg_log_syslog, cfg_log_syslog_cmd,
       "log syslog (authpriv|cron|daemon|ftp|lpr|mail|news|user|uucp)",
-	LOG_STR "Logging via syslog\n")
+	LOG_STR "Logging via syslog\n"
+	"Security/authorization messages facility\n"
+	"Clock daemon (cron/at) facility\n"
+	"General system daemon facility\n"
+	"Ftp daemon facility\n"
+	"Line printer facility\n"
+	"Mail facility\n"
+	"News facility\n"
+	"Generic facility\n"
+	"UUCP facility\n")
 {
 	int facility = get_string_value(sysl_level_names, argv[0]);
 
@@ -560,6 +578,7 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	install_element_ve(&logging_use_clr_cmd);
 	install_element_ve(&logging_prnt_timestamp_cmd);
 	install_element_ve(&logging_set_category_mask_cmd);
+	install_element_ve(&logging_set_category_mask_old_cmd);
 
 	/* Logging level strings are generated dynamically. */
 	logging_level_cmd.string = log_vty_command_string(cat);
