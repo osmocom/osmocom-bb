@@ -5,7 +5,7 @@
 
 /* GSM TS 04.11  definitions */
 
-/* Chapter 5.2.3: SMC-CS states at the network side */
+/* Chapter 5.2.3: SMC-CS states at the user/network side */
 enum gsm411_cp_state {
 	GSM411_CPS_IDLE 		= 0,
 	GSM411_CPS_MM_CONN_PENDING	= 1,	/* only MT ! */
@@ -13,11 +13,12 @@ enum gsm411_cp_state {
 	GSM411_CPS_MM_ESTABLISHED	= 3,
 };
 
-/* Chapter 6.2.2: SMR states at the network side */
+/* Chapter 6.2.2: SMR states at the user/network side */
 enum gsm411_rp_state {
 	GSM411_RPS_IDLE			= 0,
 	GSM411_RPS_WAIT_FOR_RP_ACK	= 1,
 	GSM411_RPS_WAIT_TO_TX_RP_ACK	= 3,
+	GSM411_RPS_WAIT_FOR_RETRANS_T	= 4,
 };
 
 /* Chapter 8.1.2 (refers to GSM 04.07 Chapter 11.2.3.1.1 */
@@ -95,7 +96,7 @@ enum gsm411_rp_cause {
 #define GSM411_TMR_TRAM		30, 0	/* 25 < x < 35 seconds */
 #define GSM411_TMR_TR2M		15, 0	/* 12 < x < 20 seconds */
 
-#define GSM411_TMR_TC1A		30, 0
+#define GSM411_TMR_TC1A		30	/* TR1M - 10 */
 
 /* Chapter 8.2.1 */
 struct gsm411_rp_hdr {
