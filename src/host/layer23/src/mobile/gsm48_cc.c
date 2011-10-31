@@ -173,6 +173,7 @@ static int gsm48_cc_to_mm(struct msgb *msg, struct gsm_trans *trans,
 	mmh->msg_type = msg_type;
 	mmh->ref = trans->callref;
 	mmh->transaction_id = trans->transaction_id;
+	mmh->sapi = 0;
 	mmh->emergency = emergency;
 
 	/* send message to MM */
@@ -392,7 +393,7 @@ static int gsm48_rel_null_free(struct gsm_trans *trans)
 
 	/* release MM connection */
 	nmsg = gsm48_mmxx_msgb_alloc(GSM48_MMCC_REL_REQ, trans->callref,
-					trans->transaction_id);
+					trans->transaction_id, 0);
 	if (!nmsg)
 		return -ENOMEM;
 	LOGP(DCC, LOGL_INFO, "Sending MMCC_REL_REQ\n");
@@ -497,7 +498,7 @@ static int gsm48_cc_init_mm(struct gsm_trans *trans, void *arg)
 
 	/* establish MM connection */
 	nmsg = gsm48_mmxx_msgb_alloc(GSM48_MMCC_EST_REQ, trans->callref,
-					trans->transaction_id);
+					trans->transaction_id, 0);
 	if (!nmsg)
 		return -ENOMEM;
 	nmmh = (struct gsm48_mmxx_hdr *) nmsg->data;
@@ -514,7 +515,7 @@ static int gsm48_cc_abort_mm(struct gsm_trans *trans, void *arg)
 
 	/* abort MM connection */
 	nmsg = gsm48_mmxx_msgb_alloc(GSM48_MMCC_REL_REQ, trans->callref,
-			trans->transaction_id);
+			trans->transaction_id, 0);
 	if (!nmsg)
 		return -ENOMEM;
 	LOGP(DCC, LOGL_INFO, "Sending MMCC_REL_REQ\n");

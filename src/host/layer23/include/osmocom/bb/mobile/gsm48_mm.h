@@ -58,6 +58,7 @@ struct gsm48_mmxx_hdr {
 	int		msg_type; /* MMxx_* primitive */
 	uint32_t	ref; /* reference to transaction */
 	uint32_t	transaction_id; /* transaction identifier */
+	uint8_t		sapi; /* sapi */
 	uint8_t		emergency; /* emergency type of call */
 	uint8_t		cause; /* cause used for release */
 };
@@ -193,6 +194,9 @@ struct gsm48_mmlayer {
 	uint8_t			est_cause; /* cause of establishment msg */
 	int			mr_substate;	/* rem most recent substate */
 	uint8_t			power_off_idle; /* waits for IDLE before po */
+
+	/* sapi 3 */
+	int			sapi3_link;
 };
 
 /* MM connection entry */
@@ -204,6 +208,7 @@ struct gsm48_mm_conn {
 	uint32_t		ref; /* reference to trans */
 	uint8_t			protocol;
 	uint8_t			transaction_id;
+	uint8_t			sapi;
 
 	int			state;
 };
@@ -221,7 +226,7 @@ int gsm48_mmr_dequeue(struct osmocom_ms *ms);
 int gsm48_mmevent_dequeue(struct osmocom_ms *ms);
 int gsm48_mmxx_downmsg(struct osmocom_ms *ms, struct msgb *msg);
 struct msgb *gsm48_mmxx_msgb_alloc(int msg_type, uint32_t ref,
-	uint8_t transaction_id);
+	uint8_t transaction_id, uint8_t sapi);
 const char *get_mmr_name(int value);
 const char *get_mmxx_name(int value);
 extern const char *gsm48_mm_state_names[];

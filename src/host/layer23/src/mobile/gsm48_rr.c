@@ -422,6 +422,26 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 	}
 }
 
+const char *gsm48_sapi3_state_names[] = {
+	"idle",
+	"wait establishment",
+	"established",
+	"wait release",
+};
+
+static void new_sapi3_state(struct gsm48_rrlayer *rr, int state)
+{
+	if (state < 0 || state >=
+		(sizeof(gsm48_sapi3_state_names) / sizeof(char *)))
+		return;
+
+	LOGP(DRR, LOGL_INFO, "new SAPI 3 link state %s -> %s\n",
+		gsm48_sapi3_state_names[rr->sapi3_state],
+		gsm48_sapi3_state_names[state]);
+
+	rr->sapi3_state = state;
+}
+
 /*
  * messages
  */
@@ -504,7 +524,7 @@ int gsm48_rr_upmsg(struct osmocom_ms *ms, struct msgb *msg)
 
 /* push rsl header and send (RSL-SAP) */
 static int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
-				struct msgb *msg)
+				struct msgb *msg, uint8_t link_id)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
@@ -512,20 +532,19 @@ static int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
 		LOGP(DRR, LOGL_ERROR, "FIX l3h\n");
 		return -EINVAL;
 	}
-	rsl_rll_push_l3(msg, msg_type, rr->cd_now.chan_nr,
-		rr->cd_now.link_id, 1);
+	rsl_rll_push_l3(msg, msg_type, rr->cd_now.chan_nr, link_id, 1);
 
 	return lapdm_rslms_recvmsg(msg, &ms->lapdm_channel);
 }
 
-/* push rsl header + release mode and send (RSL-SAP) */
-static int gsm48_send_rsl_rel(struct osmocom_ms *ms, uint8_t msg_type,
-				struct msgb *msg)
+/* push rsl header without L3 info and send (RSL-SAP) */
+static int gsm48_send_rsl_nol3(struct osmocom_ms *ms, uint8_t msg_type,
+				struct msgb *msg, uint8_t link_id)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	rsl_rll_push_hdr(msg, msg_type, rr->cd_now.chan_nr,
-		rr->cd_now.link_id, 1);
+		link_id, 1);
 
 	return lapdm_rslms_recvmsg(msg, &ms->lapdm_channel);
 }
@@ -567,6 +586,43 @@ int gsm48_rr_start_monitor(struct osmocom_ms *ms)
 int gsm48_rr_stop_monitor(struct osmocom_ms *ms)
 {
 	ms->rrlayer.monitor = 0;
+
+	return 0;
+}
+
+/* release L3 link in both directions in case of main link release */
+static int gsm48_release_sapi3_link(struct osmocom_ms *ms)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_rr_hdr *nrrh;
+	struct msgb *nmsg;
+	uint8_t *mode;
+
+	if (rr->sapi3_state == GSM48_RR_SAPI3ST_IDLE)
+		return 0;
+
+	LOGP(DRR, LOGL_INFO, "Main signallin link is down, so release SAPI 3 "
+		"link locally.\n");
+
+	new_sapi3_state(rr, GSM48_RR_SAPI3ST_IDLE);
+
+	/* disconnect the SAPI 3 signalling link */
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	mode = msgb_put(nmsg, 2);
+	mode[0] = RSL_IE_RELEASE_MODE;
+	mode[1] = 1; /* local release */
+	gsm48_send_rsl_nol3(ms, RSL_MT_REL_REQ, nmsg, rr->sapi3_link_id);
+
+	/* send inication to upper layer */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->cause = RR_REL_CAUSE_NORMAL;
+	nrrh->sapi = rr->sapi3_link_id & 7;
+	gsm48_rr_upmsg(ms, nmsg);
 
 	return 0;
 }
@@ -646,7 +702,11 @@ static void timeout_rr_t_starting(void *arg)
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return;
-	gsm48_send_rsl(rr->ms, RSL_MT_SUSP_REQ, nmsg);
+	gsm48_send_rsl(rr->ms, RSL_MT_SUSP_REQ, nmsg, 0);
+
+	/* release SAPI 3 link, if exits
+	 * FIXME: suspend and resume afterward */
+	gsm48_release_sapi3_link(rr->ms);
 }
 
 /* special timer to ensure that UA is sent before disconnecting channel */
@@ -679,7 +739,10 @@ static void timeout_rr_t3110(void *arg)
 	mode = msgb_put(nmsg, 2);
 	mode[0] = RSL_IE_RELEASE_MODE;
 	mode[1] = 1; /* local release */
-	gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
+	gsm48_send_rsl_nol3(ms, RSL_MT_REL_REQ, nmsg, 0);
+
+	/* release SAPI 3 link, if exits */
+	gsm48_release_sapi3_link(ms);
 
 	return;
 }
@@ -857,7 +920,7 @@ static int gsm48_rr_tx_rr_status(struct osmocom_ms *ms, uint8_t cause)
 	/* rr cause */
 	st->rr_cause = cause;
 
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg, 0);
 }
 
 /*
@@ -892,7 +955,7 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 		memcpy(tlv, buf, 2 + buf[1]);
 	}
 
-	gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+	gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg, 0);
 
 	/* send RR_SYNC_IND(ciphering) */
 	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_SYNC_IND);
@@ -1224,7 +1287,7 @@ static int gsm48_rr_tx_cm_change(struct osmocom_ms *ms)
 		memcpy(tlv, cm3, 2 + cm3[1]);
 	}
 
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg, 0);
 }
 
 /* receiving classmark enquiry */
@@ -2863,7 +2926,10 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 		mode[0] = RSL_IE_RELEASE_MODE;
 		mode[1] = 1; /* local release */
 		/* start release */
-		return gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
+		gsm48_send_rsl_nol3(ms, RSL_MT_REL_REQ, nmsg, 0);
+		/* release SAPI 3 link, if exits */
+		gsm48_release_sapi3_link(ms);
+		return 0;
 	case GSM48_RR_ST_REL_PEND:
 		LOGP(DRR, LOGL_INFO, "LOS during RR release procedure, release "
 			"locally\n");
@@ -3230,7 +3296,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 #endif
 
 	/* start establishmnet */
-	return gsm48_send_rsl(ms, RSL_MT_EST_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_EST_REQ, nmsg, 0);
 }
 
 /* the link is established */
@@ -3251,7 +3317,7 @@ static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 		mode[0] = RSL_IE_RELEASE_MODE;
 		mode[1] = 0; /* normal release */
 		/* start release */
-		return gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
+		return gsm48_send_rsl_nol3(ms, RSL_MT_REL_REQ, nmsg, 0);
 	}
 
 	/* 3.3.1.1.4 */
@@ -3299,6 +3365,9 @@ static int gsm48_rr_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* pending release */
 	new_rr_state(rr, GSM48_RR_ST_REL_PEND);
+
+	/* also release SAPI 3 link, if exists */
+	gsm48_release_sapi3_link(ms);
 
 	return 0;
 }
@@ -3348,7 +3417,11 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 	mode = msgb_put(nmsg, 2);
 	mode[0] = RSL_IE_RELEASE_MODE;
 	mode[1] = 0; /* normal release */
-	return gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
+	gsm48_send_rsl_nol3(ms, RSL_MT_REL_REQ, nmsg, 0);
+
+	/* release SAPI 3 link, if exits */
+	gsm48_release_sapi3_link(ms);
+	return 0;
 }
 
 /*
@@ -3483,7 +3556,7 @@ static int gsm48_rr_tx_chan_modify_ack(struct osmocom_ms *ms,
 	/* mode */
 	cm->mode = mode;
 
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg, 0);
 }
 
 /* 9.1.5 CHANNEL MODE MODIFY is received */
@@ -3561,7 +3634,7 @@ static int gsm48_rr_tx_ass_cpl(struct osmocom_ms *ms, uint8_t cause)
 	/* RR_CAUSE */
 	ac->rr_cause = cause;
 
-	return gsm48_send_rsl(ms, RSL_MT_RES_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_RES_REQ, nmsg, 0);
 }
 
 /* 9.1.4 sending ASSIGNMENT FAILURE */
@@ -3586,7 +3659,7 @@ static int gsm48_rr_tx_ass_fail(struct osmocom_ms *ms, uint8_t cause,
 	/* RR_CAUSE */
 	af->rr_cause = cause;
 
-	return gsm48_send_rsl(ms, rsl_prim, nmsg);
+	return gsm48_send_rsl(ms, rsl_prim, nmsg, 0);
 }
 
 /* 9.1.2 ASSIGNMENT COMMAND is received */
@@ -3896,7 +3969,11 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
-	gsm48_send_rsl(ms, RSL_MT_SUSP_REQ, nmsg);
+	gsm48_send_rsl(ms, RSL_MT_SUSP_REQ, nmsg, 0);
+
+	/* release SAPI 3 link, if exits
+	 * FIXME: suspend and resume afterward */
+	gsm48_release_sapi3_link(ms);
 
 	return 0;
 }
@@ -3924,7 +4001,7 @@ static int gsm48_rr_tx_hando_cpl(struct osmocom_ms *ms, uint8_t cause)
 
 	// FIXME: mobile observed time
 
-	return gsm48_send_rsl(ms, RSL_MT_RES_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_RES_REQ, nmsg, 0);
 }
 
 /* 9.1.4 sending HANDOVER FAILURE */
@@ -3949,7 +4026,7 @@ static int gsm48_rr_tx_hando_fail(struct osmocom_ms *ms, uint8_t cause,
 	/* RR_CAUSE */
 	hf->rr_cause = cause;
 
-	return gsm48_send_rsl(ms, rsl_prim, nmsg);
+	return gsm48_send_rsl(ms, rsl_prim, nmsg, 0);
 }
 
 /* receiving HANDOVER COMMAND message (9.1.15) */
@@ -4282,7 +4359,11 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
-	gsm48_send_rsl(ms, RSL_MT_SUSP_REQ, nmsg);
+	gsm48_send_rsl(ms, RSL_MT_SUSP_REQ, nmsg, 0);
+
+	/* release SAPI 3 link, if exits
+	 * FIXME: suspend and resume afterward */
+	gsm48_release_sapi3_link(ms);
 
 	return 0;
 }
@@ -4294,8 +4375,16 @@ static int gsm48_rr_dequeue_down(struct osmocom_ms *ms)
 	struct msgb *msg;
 
 	while((msg = msgb_dequeue(&rr->downqueue))) {
+		struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *) msg->data;
+		uint8_t sapi = rrh->sapi;
+
 		LOGP(DRR, LOGL_INFO, "Sending queued message.\n");
-		gsm48_send_rsl(ms, RSL_MT_DATA_REQ, msg);
+		if (sapi && rr->sapi3_state != GSM48_RR_SAPI3ST_ESTAB) {
+			LOGP(DRR, LOGL_INFO, "Dropping SAPI 3 msg, no link!\n");
+			msgb_free(msg);
+			return 0;
+		}
+		gsm48_send_rsl(ms, RSL_MT_DATA_REQ, msg, 0);
 	}
 
 	return 0;
@@ -4496,6 +4585,8 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_data_req(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *) msg->data;
+	uint8_t sapi = rrh->sapi;
 
 	if (rr->state != GSM48_RR_ST_DEDICATED) {
 		msgb_free(msg);
@@ -4516,8 +4607,15 @@ static int gsm48_rr_data_req(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
+	if (sapi && rr->sapi3_state != GSM48_RR_SAPI3ST_ESTAB) {
+		LOGP(DRR, LOGL_INFO, "Dropping SAPI 3 msg, no link!\n");
+		msgb_free(msg);
+		return 0;
+	}
+
 	/* forward message */
-	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, msg);
+	return gsm48_send_rsl(ms, RSL_MT_DATA_REQ, msg,
+					sapi ? rr->sapi3_link_id : 0);
 }
 
 /*
@@ -4779,7 +4877,11 @@ static int gsm48_rr_abort_req(struct osmocom_ms *ms, struct msgb *msg)
 		mode = msgb_put(nmsg, 2);
 		mode[0] = RSL_IE_RELEASE_MODE;
 		mode[1] = 0; /* normal release */
-		return gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
+		gsm48_send_rsl_nol3(ms, RSL_MT_REL_REQ, nmsg, 0);
+
+		/* release SAPI 3 link, if exits */
+		gsm48_release_sapi3_link(ms);
+		return 0;
 	}
 
 	LOGP(DRR, LOGL_INFO, "Abort in connection pending state, return to "
@@ -4867,6 +4969,7 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rr_hdr *nrrh;
 	uint8_t *mode;
 	uint8_t cause = rllh->data[2];
+	uint8_t link_id = rllh->link_id;
 
 	switch (cause) {
 	case RLL_CAUSE_SEQ_ERR:
@@ -4879,14 +4982,14 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DRR, LOGL_NOTICE, "MDL-Error (cause %d) aborting\n", cause);
 
-	/* disconnect the main signalling link */
+	/* disconnect the (main) signalling link */
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
 	mode = msgb_put(nmsg, 2);
 	mode[0] = RSL_IE_RELEASE_MODE;
 	mode[1] = 1; /* local release */
-	gsm48_send_rsl_rel(ms, RSL_MT_REL_REQ, nmsg);
+	gsm48_send_rsl_nol3(ms, RSL_MT_REL_REQ, nmsg, link_id);
 
 	/* in case of modify/hando: wait for confirm */
 	if (rr->modify_state)
@@ -4898,11 +5001,189 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return -ENOMEM;
 	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
 	nrrh->cause = RR_REL_CAUSE_LINK_FAILURE;
+	nrrh->sapi = link_id & 7;
 	gsm48_rr_upmsg(ms, nmsg);
 
-	/* return idle */
-	new_rr_state(rr, GSM48_RR_ST_IDLE);
+	/* only for main signalling link */
+	if ((link_id & 7) == 0) {
+		/* return idle */
+		new_rr_state(rr, GSM48_RR_ST_IDLE);
+		/* release SAPI 3 link, if exits */
+		gsm48_release_sapi3_link(ms);
+	} else {
+		new_sapi3_state(rr, GSM48_RR_SAPI3ST_IDLE);
+		LOGP(DSUM, LOGL_INFO, "Radio link SAPI3 failed\n");
+	}
 	return 0;
+}
+
+static int gsm48_rr_estab_ind_sapi3(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
+	uint8_t link_id = rllh->link_id;
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
+
+	if (rr->state != GSM48_RR_ST_DEDICATED) {
+		/* disconnect sapi 3 link */
+		gsm48_release_sapi3_link(ms);
+		return -EINVAL;
+	}
+
+	new_sapi3_state(rr, GSM48_RR_SAPI3ST_ESTAB);
+	rr->sapi3_link_id = link_id; /* set link ID */
+
+	LOGP(DSUM, LOGL_INFO, "Radio link SAPI3 is established\n");
+
+	/* send inication to upper layer */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_EST_IND);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->sapi = link_id & 7;
+
+	return gsm48_rr_upmsg(ms, nmsg);
+}
+
+static int gsm48_rr_estab_cnf_sapi3(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
+	uint8_t link_id = rllh->link_id;
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
+
+	if (rr->state != GSM48_RR_ST_DEDICATED) {
+		gsm48_release_sapi3_link(ms);
+		return -EINVAL;
+	}
+
+	new_sapi3_state(rr, GSM48_RR_SAPI3ST_ESTAB);
+	rr->sapi3_link_id = link_id; /* set link ID, just to be sure */
+
+	LOGP(DSUM, LOGL_INFO, "Radio link SAPI3 is established\n");
+
+	/* send inication to upper layer */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_EST_CNF);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->sapi = link_id & 7;
+
+	return gsm48_rr_upmsg(ms, nmsg);
+}
+
+/* 3.4.2 data from layer 2 to RR and upper layer (sapi 3)*/
+static int gsm48_rr_data_ind_sapi3(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
+	uint8_t sapi = rllh->link_id & 7;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	struct gsm48_rr_hdr *rrh;
+	uint8_t pdisc = gh->proto_discr & 0x0f;
+
+	if (pdisc == GSM48_PDISC_RR) {
+		msgb_free(msg);
+		return -EINVAL;
+	}
+
+	/* pull off RSL header up to L3 message */
+	msgb_pull(msg, (long)msgb_l3(msg) - (long)msg->data);
+
+	/* push RR header */
+	msgb_push(msg, sizeof(struct gsm48_rr_hdr));
+	rrh = (struct gsm48_rr_hdr *)msg->data;
+	rrh->msg_type = GSM48_RR_DATA_IND;
+	rrh->sapi = sapi;
+
+	return gsm48_rr_upmsg(ms, msg);
+}
+
+static int gsm48_rr_rel_ind_sapi3(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
+	uint8_t link_id = rllh->link_id;
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
+
+	new_sapi3_state(rr, GSM48_RR_SAPI3ST_IDLE);
+
+	LOGP(DSUM, LOGL_INFO, "Radio link SAPI3 is released\n");
+
+	/* send inication to upper layer */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->cause = RR_REL_CAUSE_NORMAL;
+	nrrh->sapi = link_id & 7;
+
+	return gsm48_rr_upmsg(ms, nmsg);
+}
+
+/* request SAPI 3 establishment */
+static int gsm48_rr_est_req_sapi3(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	uint8_t ch_type, ch_subch, ch_ts;
+	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *) msg->data;
+	uint8_t sapi = rrh->sapi;
+	struct msgb *nmsg;
+
+	if (rr->state != GSM48_RR_ST_DEDICATED) {
+		struct gsm48_rr_hdr *nrrh;
+
+		/* send inication to upper layer */
+		nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
+		if (!nmsg)
+			return -ENOMEM;
+		nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+		nrrh->cause = RR_REL_CAUSE_NORMAL;
+		nrrh->sapi = sapi;
+		return gsm48_rr_upmsg(ms, nmsg);
+	}
+
+	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (ch_type != RSL_CHAN_Bm_ACCHs
+	 && ch_type != RSL_CHAN_Lm_ACCHs) {
+		LOGP(DRR, LOGL_INFO, "Requesting DCCH link, because no TCH "
+			"(sapi %d)\n", sapi);
+		rr->sapi3_link_id = 0x00 | sapi; /* SAPI 3, DCCH */
+	} else {
+		LOGP(DRR, LOGL_INFO, "Requesting ACCH link, because TCH "
+			"(sapi %d)\n", sapi);
+		rr->sapi3_link_id = 0x40 | sapi; /* SAPI 3, ACCH */
+	}
+
+	/* already established */
+	new_sapi3_state(rr, GSM48_RR_SAPI3ST_WAIT_EST);
+
+	/* send message */
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+	return gsm48_send_rsl_nol3(ms, RSL_MT_EST_REQ, nmsg, rr->sapi3_link_id);
+}
+
+static int gsm48_rr_est_req_estab_sapi3(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *) msg->data;
+	uint8_t sapi = rrh->sapi;
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
+
+	LOGP(DRR, LOGL_INFO, "Radio link SAPI3 already established\n");
+
+	/* send inication to upper layer */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_EST_CNF);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->sapi = sapi;
+
+	return gsm48_rr_upmsg(ms, nmsg);
 }
 
 /*
@@ -4915,6 +5196,8 @@ static struct dldatastate {
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
 } dldatastatelist[] = {
+	/* SAPI 0 on DCCH */
+
 	/* data transfer */
 	{SBIT(GSM48_RR_ST_IDLE) |
 	 SBIT(GSM48_RR_ST_CONN_PEND) |
@@ -4964,35 +5247,79 @@ static struct dldatastate {
 #define DLDATASLLEN \
 	(sizeof(dldatastatelist) / sizeof(struct dldatastate))
 
+static struct dldatastate dldatastatelists3[] = {
+	/* SAPI 3 on DCCH */
+
+	/* establish */
+	{SBIT(GSM48_RR_SAPI3ST_IDLE),
+	 RSL_MT_EST_IND, gsm48_rr_estab_ind_sapi3},
+
+	/* establish */
+	{SBIT(GSM48_RR_SAPI3ST_IDLE) | SBIT(GSM48_RR_SAPI3ST_WAIT_EST),
+	 RSL_MT_EST_CONF, gsm48_rr_estab_cnf_sapi3},
+
+	/* data transfer */
+	{SBIT(GSM48_RR_SAPI3ST_ESTAB),
+	 RSL_MT_DATA_IND, gsm48_rr_data_ind_sapi3},
+
+	/* release */
+	{SBIT(GSM48_RR_SAPI3ST_WAIT_EST) | SBIT(GSM48_RR_SAPI3ST_ESTAB),
+	 RSL_MT_REL_IND, gsm48_rr_rel_ind_sapi3},
+
+	{ALL_STATES,
+	 RSL_MT_ERROR_IND, gsm48_rr_mdl_error_ind},
+};
+
+#define DLDATASLLENS3 \
+	(sizeof(dldatastatelists3) / sizeof(struct dldatastate))
+
 static int gsm48_rcv_rll(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	int msg_type = rllh->c.msg_type;
+	int link_id = rllh->link_id;
 	int i;
 	int rc;
 
-	if (msg_type != RSL_MT_UNIT_DATA_IND) {
-		LOGP(DRSL, LOGL_INFO, "(ms %s) Received '%s' from L2 in state "
-			"%s\n", ms->name, rsl_msg_name(msg_type),
-			gsm48_rr_state_names[rr->state]);
-	}
+	LOGP(DRSL, LOGL_INFO, "(ms %s) Received '%s' from L2 in state "
+		"%s (link_id 0x%x)\n", ms->name, rsl_msg_name(msg_type),
+		gsm48_rr_state_names[rr->state], link_id);
 
 	/* find function for current state and message */
-	for (i = 0; i < DLDATASLLEN; i++)
-		if ((msg_type == dldatastatelist[i].type)
-		 && ((1 << rr->state) & dldatastatelist[i].states))
-			break;
-	if (i == DLDATASLLEN) {
-		LOGP(DRSL, LOGL_NOTICE, "RSLms message unhandled\n");
-		msgb_free(msg);
-		return 0;
+	if (!(link_id & 7)) {
+		/* SAPI 0 */
+		for (i = 0; i < DLDATASLLEN; i++)
+			if ((msg_type == dldatastatelist[i].type)
+			 && ((1 << rr->state) & dldatastatelist[i].states))
+				break;
+		if (i == DLDATASLLEN) {
+			LOGP(DRSL, LOGL_NOTICE, "RSLms message '%s' "
+				"unhandled\n", rsl_msg_name(msg_type));
+			msgb_free(msg);
+			return 0;
+		}
+
+		rc = dldatastatelist[i].rout(ms, msg);
+	} else {
+		/* SAPI 3 */
+		for (i = 0; i < DLDATASLLENS3; i++)
+			if ((msg_type == dldatastatelists3[i].type)
+			 && ((1 << rr->sapi3_state) &
+			     dldatastatelists3[i].states))
+				break;
+		if (i == DLDATASLLENS3) {
+			LOGP(DRSL, LOGL_NOTICE, "RSLms message '%s' "
+				"unhandled\n", rsl_msg_name(msg_type));
+			msgb_free(msg);
+			return 0;
+		}
+
+		rc = dldatastatelists3[i].rout(ms, msg);
 	}
 
-	rc = dldatastatelist[i].rout(ms, msg);
-
 	/* free msgb unless it is forwarded */
-	if (dldatastatelist[i].rout != gsm48_rr_data_ind)
+	if (msg_type != RSL_MT_DATA_IND)
 		msgb_free(msg);
 
 	return rc;
@@ -5047,12 +5374,14 @@ static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 	return rc;
 }
 
-/* state trasitions for RR-SAP messages from up */
+/* state trasitions for RR-SAP messages from up (main link) */
 static struct rrdownstate {
 	uint32_t	states;
 	int		type;
 	int		(*rout) (struct osmocom_ms *ms, struct msgb *msg);
 } rrdownstatelist[] = {
+	/* SAPI 0 */
+
 	/* NOTE: If not IDLE, it is rejected there. */
 	{ALL_STATES, /* 3.3.1.1 */
 	 GSM48_RR_EST_REQ, gsm48_rr_est_req},
@@ -5068,33 +5397,69 @@ static struct rrdownstate {
 #define RRDOWNSLLEN \
 	(sizeof(rrdownstatelist) / sizeof(struct rrdownstate))
 
+/* state trasitions for RR-SAP messages from up with (SAPI 3) */
+static struct rrdownstate rrdownstatelists3[] = {
+	/* SAPI 3 */
+
+	{SBIT(GSM48_RR_SAPI3ST_IDLE),
+	 GSM48_RR_EST_REQ, gsm48_rr_est_req_sapi3},
+
+	{SBIT(GSM48_RR_SAPI3ST_ESTAB),
+	 GSM48_RR_EST_REQ, gsm48_rr_est_req_estab_sapi3},
+
+	{SBIT(GSM48_RR_SAPI3ST_ESTAB),
+	 GSM48_RR_DATA_REQ, gsm48_rr_data_req}, /* handles SAPI 3 too */
+};
+
+#define RRDOWNSLLENS3 \
+	(sizeof(rrdownstatelists3) / sizeof(struct rrdownstate))
+
 int gsm48_rr_downmsg(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *) msg->data;
 	int msg_type = rrh->msg_type;
+	int sapi = rrh->sapi;
 	int i;
 	int rc;
 
-	LOGP(DRR, LOGL_INFO, "(ms %s) Message '%s' received in state %s\n",
-		ms->name, get_rr_name(msg_type),
-		gsm48_rr_state_names[rr->state]);
+	LOGP(DRR, LOGL_INFO, "(ms %s) Message '%s' received in state %s "
+		"(sapi %d)\n", ms->name, get_rr_name(msg_type),
+		gsm48_rr_state_names[rr->state], sapi);
 
-	/* find function for current state and message */
-	for (i = 0; i < RRDOWNSLLEN; i++)
-		if ((msg_type == rrdownstatelist[i].type)
-		 && ((1 << rr->state) & rrdownstatelist[i].states))
-			break;
-	if (i == RRDOWNSLLEN) {
-		LOGP(DRR, LOGL_NOTICE, "Message unhandled at this state.\n");
-		msgb_free(msg);
-		return 0;
+	if (!sapi) {
+		/* SAPI 0: find function for current state and message */
+		for (i = 0; i < RRDOWNSLLEN; i++)
+			if ((msg_type == rrdownstatelist[i].type)
+			 && ((1 << rr->state) & rrdownstatelist[i].states))
+				break;
+		if (i == RRDOWNSLLEN) {
+			LOGP(DRR, LOGL_NOTICE, "Message unhandled at this "
+				"state.\n");
+			msgb_free(msg);
+			return 0;
+		}
+
+		rc = rrdownstatelist[i].rout(ms, msg);
+	} else {
+		/* SAPI 3: find function for current state and message */
+		for (i = 0; i < RRDOWNSLLENS3; i++)
+			if ((msg_type == rrdownstatelists3[i].type)
+			 && ((1 << rr->sapi3_state)
+			     & rrdownstatelists3[i].states))
+				break;
+		if (i == RRDOWNSLLENS3) {
+			LOGP(DRR, LOGL_NOTICE, "Message unhandled at this "
+				"state.\n");
+			msgb_free(msg);
+			return 0;
+		}
+
+		rc = rrdownstatelists3[i].rout(ms, msg);
 	}
 
-	rc = rrdownstatelist[i].rout(ms, msg);
-
-	/* free msgb uless it is forwarded */
-	if (rrdownstatelist[i].rout != gsm48_rr_data_req)
+	/* free msgb unless it is forwarded */
+	if (msg_type != GSM48_RR_DATA_REQ)
 		msgb_free(msg);
 
 	return rc;
@@ -5180,7 +5545,7 @@ static void timeout_rr_t3124(void *arg)
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
 		return -ENOMEM;
-	return gsm48_send_rsl(ms, RSL_MT_REEST_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_REEST_REQ, nmsg, 0);
 
 	todo
 }
@@ -5193,7 +5558,7 @@ static int gsm48_rr_tx_hando_access(struct osmocom_ms *ms)
 		return -ENOMEM;
 	*msgb_put(nmsg, 1) = rr->hando_ref;
 	todo burst
-	return gsm48_send_rsl(ms, RSL_MT_RAND_ACC_REQ, nmsg);
+	return gsm48_send_rsl(ms, RSL_MT_RAND_ACC_REQ, nmsg, 0);
 }
 
 /* send next channel request in dedicated state */
@@ -5253,8 +5618,7 @@ int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
 		return -ENOTSUP;
 	}
 
-	return l1ctl_tx_traffic_req(ms, msg, rr->cd_now.chan_nr,
-		rr->cd_now.link_id);
+	return l1ctl_tx_traffic_req(ms, msg, rr->cd_now.chan_nr, 0);
 }
 
 int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode)

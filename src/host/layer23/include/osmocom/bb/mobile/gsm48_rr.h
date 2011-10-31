@@ -54,6 +54,7 @@
 /* GSM 04.08 RR-SAP header */
 struct gsm48_rr_hdr {
 	uint32_t		msg_type; /* RR-* primitive */
+	uint8_t			sapi;
 	uint8_t			cause;
 };
 
@@ -62,6 +63,12 @@ struct gsm48_rr_hdr {
 #define GSM48_RR_ST_CONN_PEND		1
 #define GSM48_RR_ST_DEDICATED		2
 #define GSM48_RR_ST_REL_PEND		3
+
+/* special states for SAPI 3 link */
+#define GSM48_RR_SAPI3ST_IDLE		0
+#define GSM48_RR_SAPI3ST_WAIT_EST	1
+#define GSM48_RR_SAPI3ST_ESTAB		2
+#define GSM48_RR_SAPI3ST_WAIT_REL	3
 
 /* modify state */
 #define GSM48_RR_MOD_NONE		0
@@ -79,7 +86,6 @@ struct gsm48_rr_cd {
 	uint8_t			maio;
 	uint8_t			hsn;
 	uint8_t			chan_nr; /* type, slot, sub slot */
-	uint8_t			link_id;
 	uint8_t			ind_tx_power; /* last indicated power */
 	uint8_t			ind_ta; /* last indicated ta */
 	uint8_t			mob_alloc_lv[9]; /* len + up to 64 bits */
@@ -176,6 +182,10 @@ struct gsm48_rrlayer {
 
 	/* audio flow */
 	uint8_t                 audio_mode;
+
+	/* sapi 3 */
+	uint8_t			sapi3_state;
+	uint8_t			sapi3_link_id;
 };
 
 const char *get_rr_name(int value);
