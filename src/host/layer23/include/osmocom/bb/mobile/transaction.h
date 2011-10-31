@@ -2,6 +2,8 @@
 #define _TRANSACT_H
 
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/gsm/gsm0411_smc.h>
+#include <osmocom/gsm/gsm0411_smr.h>
 
 /* One transaction */
 struct gsm_trans {
@@ -38,18 +40,14 @@ struct gsm_trans {
 			struct osmo_timer_list timer;
 			struct gsm_mncc msg;	/* stores setup/disconnect/release message */
 		} cc;
-#if 0
 		struct {
-			uint8_t link_id;	/* RSL Link ID to be used for this trans */
-			int is_mt;	/* is this a MO (0) or MT (1) transfer */
-			enum gsm411_cp_state cp_state;
-			struct osmo_timer_list cp_timer;
+			uint8_t sapi;	/* SAPI to be used for this trans */
 
-			enum gsm411_rp_state rp_state;
+			struct gsm411_smc_inst smc_inst;
+			struct gsm411_smr_inst smr_inst;
 
 			struct gsm_sms *sms;
 		} sms;
-#endif
 	};
 };
 

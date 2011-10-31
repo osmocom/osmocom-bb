@@ -33,6 +33,7 @@
 extern void *l23_ctx;
 
 void _gsm48_cc_trans_free(struct gsm_trans *trans);
+void _gsm411_sms_trans_free(struct gsm_trans *trans);
 
 struct gsm_trans *trans_find_by_id(struct osmocom_ms *ms,
 				   uint8_t proto, uint8_t trans_id)
@@ -94,10 +95,10 @@ void trans_free(struct gsm_trans *trans)
 	case GSM48_PDISC_SS:
 		_gsm411_ss_trans_free(trans);
 		break;
+#endif
 	case GSM48_PDISC_SMS:
 		_gsm411_sms_trans_free(trans);
 		break;
-#endif
 	}
 
 	DEBUGP(DCC, "ms %s frees transaction (mem %p)\n", trans->ms->name,

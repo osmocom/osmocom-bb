@@ -36,6 +36,7 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
+#include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/vty.h>
 
@@ -760,10 +761,10 @@ int gsm48_mmxx_dequeue(struct osmocom_ms *ms)
 		case GSM48_MMSS_CLASS:
 			gsm48_rcv_ss(ms, msg);
 			break;
+#endif
 		case GSM48_MMSMS_CLASS:
 			gsm411_rcv_sms(ms, msg);
 			break;
-#endif
 		}
 		msgb_free(msg);
 		work = 1; /* work done */
@@ -4055,11 +4056,11 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_free(msg);
 		return rc;
 
+#endif
 	case GSM48_PDISC_SMS:
 		rc = gsm411_rcv_sms(ms, msg);
 		msgb_free(msg);
 		return rc;
-#endif
 
 	default:
 		LOGP(DMM, LOGL_NOTICE, "Protocol type 0x%02x unsupported.\n",

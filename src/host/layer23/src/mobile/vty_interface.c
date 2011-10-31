@@ -37,6 +37,7 @@
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
+#include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/vty/telnet_interface.h>
 
 void *l23_ctx;
@@ -837,6 +838,50 @@ DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS",
 	return CMD_SUCCESS;
 }
 
+DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
+	"Send an SMS\nName of MS (see \"show ms\")\nPhone number to send SMS "
+	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
+	"SMS text\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct gsm_settings_abbrev *abbrev;
+	char *number;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+
+	if (!set->sms_ptp) {
+		vty_out(vty, "SMS not supported by this mobile, please enable "
+			"SMS support%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (!set->sms_sca[0]) {
+		vty_out(vty, "SMS sms-service-center not defined in settings%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	number = (char *)argv[1];
+	llist_for_each_entry(abbrev, &set->abbrev, list) {
+		if (!strcmp(number, abbrev->abbrev)) {
+			number = abbrev->number;
+			vty_out(vty, "Using number '%s'%s", number,
+				VTY_NEWLINE);
+			break;
+		}
+	}
+	if (vty_check_number(vty, number))
+		return CMD_WARNING;
+
+	sms_send(ms, number, argv_concat(argv, argc, 2));
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(test_reselection, test_reselection_cmd, "test re-selection NAME",
 	"Manually trigger cell re-selection\nName of MS (see \"show ms\")")
 {
@@ -1208,6 +1253,12 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	else
 		if (!hide_default)
 			vty_out(vty, " no emergency-imsi%s", VTY_NEWLINE);
+	if (set->sms_sca[0])
+		vty_out(vty, " sms-service-center %s%s", set->sms_sca,
+			VTY_NEWLINE);
+	else
+		if (!hide_default)
+			vty_out(vty, " no sms-service-center%s", VTY_NEWLINE);
 	if (!hide_default || set->cw)
 		vty_out(vty, " %scall-waiting%s", (set->cw) ? "" : "no ",
 			VTY_NEWLINE);
@@ -1565,6 +1616,37 @@ DEFUN(cfg_ms_no_emerg_imsi, cfg_ms_no_emerg_imsi_cmd, "no emergency-imsi",
 	struct gsm_settings *set = &ms->settings;
 
 	set->emergency_imsi[0] = '\0';
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sms_sca, cfg_ms_sms_sca_cmd, "sms-service-center NUMBER",
+	"Use Service center address for outgoing SMS\nNumber of service center "
+	"(Use digits '0123456789*#abc', and '+' to dial international)")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	const char *number = argv[0];
+
+	if ((strlen(number) > 20 && number[0] != '+') || strlen(number) > 21) {
+		vty_out(vty, "Number too long%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (vty_check_number(vty, number))
+		return CMD_WARNING;
+
+	strcpy(set->sms_sca, number);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_sms_sca, cfg_ms_no_sms_sca_cmd, "no sms-service-center",
+	NO_STR "Use Service center address for outgoing SMS")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->sms_sca[0] = '\0';
 
 	return CMD_SUCCESS;
 }
@@ -2624,6 +2706,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
+	install_element(ENABLE_NODE, &sms_cmd);
 	install_element(ENABLE_NODE, &test_reselection_cmd);
 	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
 
@@ -2657,6 +2740,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_imei_random_cmd);
 	install_element(MS_NODE, &cfg_ms_no_emerg_imsi_cmd);
 	install_element(MS_NODE, &cfg_ms_emerg_imsi_cmd);
+	install_element(MS_NODE, &cfg_ms_no_sms_sca_cmd);
+	install_element(MS_NODE, &cfg_ms_sms_sca_cmd);
 	install_element(MS_NODE, &cfg_ms_cw_cmd);
 	install_element(MS_NODE, &cfg_ms_no_cw_cmd);
 	install_element(MS_NODE, &cfg_ms_auto_answer_cmd);

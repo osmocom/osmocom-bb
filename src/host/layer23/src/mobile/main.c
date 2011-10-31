@@ -67,6 +67,9 @@ int mobile_work(struct osmocom_ms *ms);
 int mobile_exit(struct osmocom_ms *ms, int force);
 
 
+const char *debug_default =
+	"DCS:DNB:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DLSMS:DPAG:DSUM";
+
 const char *openbsc_copyright =
 	"Copyright (C) 2008-2010 ...\n"
 	"Contributions by ...\n\n"
@@ -87,7 +90,8 @@ static void print_help()
 	printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
 	printf("  -v --vty-port		The VTY port number to telnet to. "
 		"(default %u)\n", vty_port);
-	printf("  -d --debug		Change debug flags.\n");
+	printf("  -d --debug		Change debug flags. default: %s\n",
+		debug_default);
 	printf("  -D --daemonize	Run as daemon\n");
 	printf("  -m --mncc-sock	Disable built-in MNCC handler and "
 		"offer socket\n");
@@ -198,7 +202,7 @@ int main(int argc, char **argv)
 	handle_options(argc, argv);
 
 	if (!debug_set)
-		log_parse_category_mask(stderr_target, "DCS:DNB:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DPAG:DSUM");
+		log_parse_category_mask(stderr_target, debug_default);
 	log_set_log_level(stderr_target, LOGL_DEBUG);
 
 	if (gsmtap_ip) {

@@ -23,6 +23,9 @@ struct gsm_settings {
 	int			sim_type; /* selects card on power on */
 	char 			emergency_imsi[16];
 
+	/* SMS */
+	char			sms_sca[12];
+
 	/* test card simulator settings */
 	char 			test_imsi[16];
 	uint32_t		test_tmsi;

@@ -41,7 +41,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	/* support of VBS */
 	sup->vbs = 0; /* no */
 	/* support of SMS */
-	sup->sms_ptp = 0; /* no */
+	sup->sms_ptp = 1; /* no */
 	/* screening indicator */
 	sup->ss_ind = 1; /* phase 2 error handling */
 	/* pseudo synchronised capability */
