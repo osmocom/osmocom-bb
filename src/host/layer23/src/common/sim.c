@@ -1045,8 +1045,25 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 				ntohs(ef->file_id), sim->file);
 			goto sim_error;
 		}
-		/* get length of file */
-		ef_len = ntohs(ef->file_size);
+		/* check for record */
+		if (length >= 15 && ef->length >= 2 && ef->structure != 0x00) {
+			/* get length of record */
+			ef_len = ntohs(ef->file_size);
+			if (ef_len < data[14]) {
+				LOGP(DSIM, LOGL_NOTICE, "total length is "
+					"smaller (%d) than record size (%d)\n",
+					ef_len, data[14]);
+				goto request_error;
+			}
+			ef_len = data[14];
+			LOGP(DSIM, LOGL_NOTICE, "selected record (len %d "
+				"structure %d)\n", ef_len, ef->structure);
+		} else {
+			/* get length of file */
+			ef_len = ntohs(ef->file_size);
+			LOGP(DSIM, LOGL_NOTICE, "selected file (len %d)\n",
+				ef_len);
+		}
 		/* do file command */
 		sim->job_state = SIM_JST_WAIT_FILE;
 		switch (sh->job_type) {
