@@ -24,7 +24,7 @@ struct gsm_settings {
 	char 			emergency_imsi[16];
 
 	/* SMS */
-	char			sms_sca[12];
+	char			sms_sca[22];
 
 	/* test card simulator settings */
 	char 			test_imsi[16];

@@ -77,6 +77,9 @@ struct gsm_subscriber {
 	uint32_t		sim_handle_query;
 	uint32_t		sim_handle_update;
 	uint32_t		sim_handle_key;
+
+	/* SMS */
+	char			sms_sca[22];
 };
 
 int gsm_subscr_init(struct osmocom_ms *ms);

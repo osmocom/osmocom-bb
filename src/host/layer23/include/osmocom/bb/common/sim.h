@@ -266,6 +266,16 @@ struct gsm1111_ef_adn {
 	uint8_t ext_id;
 } __attribute__ ((packed));
 
+/* Section 10.5.6 */
+struct gsm1111_ef_smsp {
+	uint8_t par_ind;
+	uint8_t tp_da[12];
+	uint8_t ts_sca[12];
+	uint8_t tp_proto;
+	uint8_t tp_dcs;
+	uint8_t tp_vp;
+} __attribute__ ((packed));
+
 int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg);
 int gsm_sim_init(struct osmocom_ms *ms);
 int gsm_sim_exit(struct osmocom_ms *ms);

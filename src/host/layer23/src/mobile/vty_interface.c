@@ -846,7 +846,7 @@ DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
 	struct gsm_settings_abbrev *abbrev;
-	char *number;
+	char *number, *sms_sca = NULL;
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
@@ -859,9 +859,14 @@ DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 		return CMD_WARNING;
 	}
 
-	if (!set->sms_sca[0]) {
-		vty_out(vty, "SMS sms-service-center not defined in settings%s",
-			VTY_NEWLINE);
+	if (ms->subscr.sms_sca[0])
+		sms_sca = ms->subscr.sms_sca;
+	else if (set->sms_sca[0])
+		sms_sca = set->sms_sca;
+
+	if (!sms_sca) {
+		vty_out(vty, "SMS sms-service-center not defined on SIM card, "
+			"please define one at settings.%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -877,7 +882,7 @@ DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 	if (vty_check_number(vty, number))
 		return CMD_WARNING;
 
-	sms_send(ms, number, argv_concat(argv, argc, 2));
+	sms_send(ms, sms_sca, number, argv_concat(argv, argc, 2));
 
 	return CMD_SUCCESS;
 }

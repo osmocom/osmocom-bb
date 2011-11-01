@@ -26,8 +26,8 @@ int gsm411_sms_exit(struct osmocom_ms *ms);
 struct gsm_sms *sms_alloc(void);
 void sms_free(struct gsm_sms *sms);
 struct gsm_sms *sms_from_text(const char *receiver, int dcs, const char *text);
-int gsm411_tx_sms_submit(struct osmocom_ms *ms, struct gsm_sms *sms);
 int gsm411_rcv_sms(struct osmocom_ms *ms, struct msgb *msg);
-int sms_send(struct osmocom_ms *ms, const char *number, const char *text);
+int sms_send(struct osmocom_ms *ms, const char *sms_sca, const char *number,
+	const char *text);
 
 #endif /* _GSM411_SMS_H */

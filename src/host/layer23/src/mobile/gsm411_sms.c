@@ -210,7 +210,7 @@ fail:
 	fp = fopen(sms_file, "a");
 	if (!fp)
 		goto fail;
-	fprintf(fp, "[SMS %s]\n%s\n", gsms->address, gsms->text);
+	fprintf(fp, "[SMS from %s]\n%s\n", gsms->address, gsms->text);
 	fclose(fp);
 
 	talloc_free(sms_file);
@@ -617,9 +617,9 @@ static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms)
 }
 
 /* Take a SMS in gsm_sms structure and send it. */
-int gsm411_tx_sms_submit(struct osmocom_ms *ms, struct gsm_sms *sms)
+static int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
+	struct gsm_sms *sms)
 {
-	struct gsm_settings *set = &ms->settings;
 	struct msgb *msg;
 	struct gsm_trans *trans;
 	uint8_t *data, *rp_ud_len;
@@ -668,11 +668,11 @@ int gsm411_tx_sms_submit(struct osmocom_ms *ms, struct gsm_sms *sms)
 
 	/* Destination Address */
         sca[1] = 0x80; /* no extension */
-	sca[1] |= ((set->sms_sca[0] == '+') ? 0x01 : 0x00) << 4; /* type */
+	sca[1] |= ((sms_sca[0] == '+') ? 0x01 : 0x00) << 4; /* type */
 	sca[1] |= 0x1; /* plan*/
 
 	rc = gsm48_encode_bcd_number(sca, sizeof(sca), 1,
-				set->sms_sca + (set->sms_sca[0] == '+'));
+				sms_sca + (sms_sca[0] == '+'));
 	if (rc < 0) {
 error:
 		gsm411_sms_report(ms, sms, GSM411_RP_CAUSE_SEMANT_INC_MSG);
@@ -700,14 +700,15 @@ error:
 }
 
 /* create and send SMS */
-int sms_send(struct osmocom_ms *ms, const char *number, const char *text)
+int sms_send(struct osmocom_ms *ms, const char *sms_sca, const char *number,
+	const char *text)
 {
 	struct gsm_sms *sms = sms_from_text(number, 0, text);
 
 	if (!sms)
 		return -ENOMEM;
 
-	return gsm411_tx_sms_submit(ms, sms);
+	return gsm411_tx_sms_submit(ms, sms_sca, sms);
 }
 
 /*

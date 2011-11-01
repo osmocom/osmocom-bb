@@ -320,14 +320,44 @@ static int subscr_sim_msisdn(struct osmocom_ms *ms, uint8_t *data,
 		return 0;
 
 	/* number */
-	if (adn->ton_npi == 1)
+	if (((adn->ton_npi & 0x70) >> 4) == 1)
 		strcpy(subscr->msisdn, "+");
-	if (adn->ton_npi == 2)
+	if (((adn->ton_npi & 0x70) >> 4) == 2)
 		strcpy(subscr->msisdn, "0");
 	strncat(subscr->msisdn, sim_decode_bcd(adn->number, adn->len_bcd - 1),
 		sizeof(subscr->msisdn) - 2);
 
 	LOGP(DMM, LOGL_INFO, "received MSISDN %s from SIM\n", subscr->msisdn);
+
+	return 0;
+}
+
+static int subscr_sim_smsp(struct osmocom_ms *ms, uint8_t *data,
+	uint8_t length)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm1111_ef_smsp *smsp;
+
+	if (length < sizeof(*smsp))
+		return -EINVAL;
+	smsp = (struct gsm1111_ef_smsp *) (data + length - sizeof(*smsp));
+
+	/* empty */
+	subscr->sms_sca[0] = '\0';
+
+	/* TS-Service Centre Address */
+	if (!(smsp->par_ind & 0x02) && smsp->ts_sca[0] <= 11) {
+		if (((smsp->ts_sca[1] & 0x70) >> 4) == 1)
+			strcpy(subscr->sms_sca, "+");
+		if (((smsp->ts_sca[1] & 0x70) >> 4) == 2)
+			strcpy(subscr->sms_sca, "0");
+		gsm48_decode_bcd_number(subscr->sms_sca +
+			strlen(subscr->sms_sca), sizeof(subscr->sms_sca)
+			- strlen(subscr->sms_sca), smsp->ts_sca, 1);
+	}
+
+	LOGP(DMM, LOGL_INFO, "received SMSP from SIM (sca=%s)\n",
+		subscr->sms_sca);
 
 	return 0;
 }
@@ -497,20 +527,22 @@ static struct subscr_sim_file {
 	uint8_t         mandatory;
 	uint16_t	path[MAX_SIM_PATH_LENGTH];
 	uint16_t	file;
+	uint8_t		sim_job;
 	int		(*func)(struct osmocom_ms *ms, uint8_t *data,
 				uint8_t length);
 } subscr_sim_files[] = {
-	{ 1, { 0 },         0x2fe2, subscr_sim_iccid },
-	{ 1, { 0x7f20, 0 }, 0x6f07, subscr_sim_imsi },
-	{ 1, { 0x7f20, 0 }, 0x6f7e, subscr_sim_loci },
-	{ 0, { 0x7f10, 0 }, 0x6f40, subscr_sim_msisdn },
-	{ 0, { 0x7f20, 0 }, 0x6f20, subscr_sim_kc },
-	{ 0, { 0x7f20, 0 }, 0x6f30, subscr_sim_plmnsel },
-	{ 0, { 0x7f20, 0 }, 0x6f31, subscr_sim_hpplmn },
-	{ 0, { 0x7f20, 0 }, 0x6f46, subscr_sim_spn },
-	{ 0, { 0x7f20, 0 }, 0x6f78, subscr_sim_acc },
-	{ 0, { 0x7f20, 0 }, 0x6f7b, subscr_sim_fplmn },
-	{ 0, { 0 },         0,      NULL }
+	{ 1, { 0 },         0x2fe2, SIM_JOB_READ_BINARY, subscr_sim_iccid },
+	{ 1, { 0x7f20, 0 }, 0x6f07, SIM_JOB_READ_BINARY, subscr_sim_imsi },
+	{ 1, { 0x7f20, 0 }, 0x6f7e, SIM_JOB_READ_BINARY, subscr_sim_loci },
+	{ 0, { 0x7f20, 0 }, 0x6f20, SIM_JOB_READ_BINARY, subscr_sim_kc },
+	{ 0, { 0x7f20, 0 }, 0x6f30, SIM_JOB_READ_BINARY, subscr_sim_plmnsel },
+	{ 0, { 0x7f20, 0 }, 0x6f31, SIM_JOB_READ_BINARY, subscr_sim_hpplmn },
+	{ 0, { 0x7f20, 0 }, 0x6f46, SIM_JOB_READ_BINARY, subscr_sim_spn },
+	{ 0, { 0x7f20, 0 }, 0x6f78, SIM_JOB_READ_BINARY, subscr_sim_acc },
+	{ 0, { 0x7f20, 0 }, 0x6f7b, SIM_JOB_READ_BINARY, subscr_sim_fplmn },
+	{ 0, { 0x7f10, 0 }, 0x6f40, SIM_JOB_READ_RECORD, subscr_sim_msisdn },
+	{ 0, { 0x7f10, 0 }, 0x6f42, SIM_JOB_READ_RECORD, subscr_sim_smsp },
+	{ 0, { 0 },         0,      0,                   NULL }
 };
 
 /* request file from SIM */
@@ -553,7 +585,7 @@ static int subscr_sim_request(struct osmocom_ms *ms)
 
 	/* trigger SIM reading */
 	nmsg = gsm_sim_msgb_alloc(subscr->sim_handle_query,
-		SIM_JOB_READ_BINARY);
+		sf->sim_job);
 	if (!nmsg)
 		return -ENOMEM;
 	nsh = (struct sim_hdr *) nmsg->data;
@@ -564,6 +596,8 @@ static int subscr_sim_request(struct osmocom_ms *ms)
 	}
 	nsh->path[i] = 0; /* end of path */
 	nsh->file = sf->file;
+	nsh->rec_no = 1;
+	nsh->rec_mode = 0x04;
 	LOGP(DMM, LOGL_INFO, "Requesting SIM file 0x%04x\n", nsh->file);
 	sim_job(ms, nmsg);
 
@@ -1148,6 +1182,9 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		print(priv, " Service Provider Name: %s\n", subscr->sim_spn);
 	if (subscr->msisdn[0])
 		print(priv, " MSISDN: %s\n", subscr->msisdn);
+	if (subscr->sms_sca[0])
+		print(priv, " SMS Service Center Address: %s\n",
+			subscr->sms_sca);
 	print(priv, " Status: %s  IMSI %s", subscr_ustate_names[subscr->ustate],
 		(subscr->imsi_attached) ? "attached" : "detached");
 	if (subscr->tmsi != 0xffffffff)
