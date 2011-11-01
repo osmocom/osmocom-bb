@@ -1920,10 +1920,11 @@ static int lapd_res_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	if (dl->send_buffer)
 		msgb_free(dl->send_buffer);
 	dl->send_out = 0;
-	if (msg && msg->len) {
+	if (msg && msg->len)
 		/* Write data into the send buffer, to be sent first */
 		dl->send_buffer = msg;
-	}
+	else
+		dl->send_buffer = NULL;
 
 	/* Discard partly received L3 message */
 	if (dl->rcv_buffer) {
