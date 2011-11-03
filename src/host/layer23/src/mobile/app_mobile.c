@@ -31,6 +31,7 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
+#include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
@@ -145,6 +146,7 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	gsm48_rr_exit(ms);
 	gsm_subscr_exit(ms);
 	gsm48_cc_exit(ms);
+	gsm480_ss_exit(ms);
 	gsm411_sms_exit(ms);
 	gsm_sim_exit(ms);
 	lapdm_channel_exit(&ms->lapdm_channel);
@@ -169,6 +171,7 @@ int mobile_init(struct osmocom_ms *ms)
 
 	gsm_sim_init(ms);
 	gsm48_cc_init(ms);
+	gsm480_ss_init(ms);
 	gsm411_sms_init(ms);
 	gsm_voice_init(ms);
 	gsm_subscr_init(ms);

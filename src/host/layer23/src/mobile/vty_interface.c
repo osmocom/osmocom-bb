@@ -37,6 +37,7 @@
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
+#include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/vty/telnet_interface.h>
 
@@ -883,6 +884,35 @@ DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 		return CMD_WARNING;
 
 	sms_send(ms, sms_sca, number, argv_concat(argv, argc, 2));
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(service, service_cmd, "service MS_NAME (*#06#|*#21#|*#67#|*#61#|*#62#"
+	"|*#002#|*#004#|*xx*number#|*xx#|#xx#|##xx#|STRING|hangup)",
+	"Send a Supplementary Service request\nName of MS (see \"show ms\")\n"
+	"Query IMSI\n"
+	"Query Call Forwarding Unconditional (CFU)\n"
+	"Query Call Forwarding when Busy (CFB)\n"
+	"Query Call Forwarding when No Response (CFNR)\n"
+	"Query Call Forwarding when Not Reachable\n"
+	"Query all Call Forwardings\n"
+	"Query all conditional Call Forwardings\n"
+	"Set and activate Call Forwarding (xx = Service Code, see above)\n"
+	"Activate Call Forwarding (xx = Service Code, see above)\n"
+	"Deactivate Call Forwarding (xx = Service Code, see above)\n"
+	"Erase and deactivate Call Forwarding (xx = Service Code, see above)\n"
+	"Service string "
+	"(Example: '*100#' requests account balace on some networks.)\n"
+	"Hangup existing service connection")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	ss_send(ms, argv[1], 0);
 
 	return CMD_SUCCESS;
 }
@@ -2712,6 +2742,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
 	install_element(ENABLE_NODE, &sms_cmd);
+	install_element(ENABLE_NODE, &service_cmd);
 	install_element(ENABLE_NODE, &test_reselection_cmd);
 	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
 

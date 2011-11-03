@@ -41,6 +41,13 @@ struct gsm_trans {
 			struct gsm_mncc msg;	/* stores setup/disconnect/release message */
 		} cc;
 		struct {
+			/* current supp.serv. state */
+			int state;
+
+			uint8_t invoke_id;
+			struct msgb *msg;
+		} ss;
+		struct {
 			uint8_t sapi;	/* SAPI to be used for this trans */
 
 			struct gsm411_smc_inst smc_inst;

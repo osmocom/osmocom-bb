@@ -33,6 +33,7 @@
 extern void *l23_ctx;
 
 void _gsm48_cc_trans_free(struct gsm_trans *trans);
+void _gsm480_ss_trans_free(struct gsm_trans *trans);
 void _gsm411_sms_trans_free(struct gsm_trans *trans);
 
 struct gsm_trans *trans_find_by_id(struct osmocom_ms *ms,
@@ -91,11 +92,9 @@ void trans_free(struct gsm_trans *trans)
 	case GSM48_PDISC_CC:
 		_gsm48_cc_trans_free(trans);
 		break;
-#if 0
-	case GSM48_PDISC_SS:
-		_gsm411_ss_trans_free(trans);
+	case GSM48_PDISC_NC_SS:
+		_gsm480_ss_trans_free(trans);
 		break;
-#endif
 	case GSM48_PDISC_SMS:
 		_gsm411_sms_trans_free(trans);
 		break;
