@@ -1991,11 +1991,11 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 		if ((msg_type == downstatelist[i].type)
 		 && ((1 << trans->cc.state) & downstatelist[i].states))
 			break;
-		if (i == DOWNSLLEN) {
-			LOGP(DCC, LOGL_NOTICE, "Message %d unhandled at state "
-				"%d\n", msg_type, trans->cc.state);
-			return 0;
-		}
+	if (i == DOWNSLLEN) {
+		LOGP(DCC, LOGL_NOTICE, "Message %d unhandled at state %d\n",
+			msg_type, trans->cc.state);
+		return 0;
+	}
 		
 	rc = downstatelist[i].rout(trans, arg);
 
