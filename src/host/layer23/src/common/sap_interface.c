@@ -150,6 +150,7 @@ int sap_close(struct osmocom_ms *ms)
 	close(ms->sap_wq.bfd.fd);
 	ms->sap_wq.bfd.fd = -1;
 	osmo_fd_unregister(&ms->sap_wq.bfd);
+	osmo_wqueue_clear(&ms->sap_wq);
 
 	return 0;
 }
