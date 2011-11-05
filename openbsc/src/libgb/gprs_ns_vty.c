@@ -478,7 +478,8 @@ DEFUN(cfg_frgre_enable, cfg_frgre_enable_cmd,
 DEFUN(nsvc_nsei, nsvc_nsei_cmd,
 	"nsvc nsei <0-65535> (block|unblock|reset)",
 	"Perform an operation on a NSVC\n"
-	"NS-VC Identifier (NS-VCI)\n"
+	"NSEI to identify NS-VC Identifier (NS-VCI)\n"
+	"The NSEI\n"
 	"Initiate BLOCK procedure\n"
 	"Initiate UNBLOCK procedure\n"
 	"Initiate RESET procedure\n")

@@ -90,6 +90,8 @@ enum ns_cause {
 	"Reset Timer (Tns-reset) timeout\n"			\
 	"Reset Timer (Tns-reset) number of retries\n"		\
 	"Test Timer (Tns-test) timeout\n"			\
+	"Alive Timer (Tns-alive) timeout\n"			\
+	"Alive Timer (Tns-alive) number of retries\n"
 
 enum ns_timeout {
 	NS_TOUT_TNS_BLOCK,
