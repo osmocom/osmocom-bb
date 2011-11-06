@@ -531,7 +531,7 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 		} else {
 			mctx.lapdm_fmt = LAPDm_FMT_B;
 			LOGP(DLLAPD, LOGL_INFO, "fmt=B\n");
-			n201 = 20; // FIXME: select correct size by chan.
+			n201 = N201_AB_SDCCH;
 			sapi = (msg->l2h[0] >> 2) & 7;
 		}
 	}
@@ -743,7 +743,7 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	uint8_t sapi = rllh->link_id & 7;
 	struct tlv_parsed tv;
 	uint8_t length;
-	int n201 = 20; //FIXME
+	uint8_t n201 = (rllh->link_id & 0x40) ? N201_AB_SACCH : N201_AB_SDCCH;
 	struct osmo_dlsap_prim dp;
 
 	/* Set LAPDm context for established connection */
@@ -771,9 +771,9 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	}
 
 	/* check if the layer3 message length exceeds N201 */
-	if (length + 3 > 21) { /* FIXME: do we know the channel N201? */
+	if (length > n201) {
 		LOGP(DLLAPD, LOGL_ERROR, "frame too large: %d > N201(%d) "
-			"(discarding)\n", length + 3, 21);
+			"(discarding)\n", length, n201);
 		msgb_free(msg);
 		return send_rll_simple(RSL_MT_REL_IND, &dl->mctx);
 	}
@@ -908,7 +908,7 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	uint8_t sapi = rllh->link_id & 7;
 	struct tlv_parsed tv;
 	uint8_t length;
-	uint8_t n201 = 20; //FIXME
+	uint8_t n201 = (rllh->link_id & 0x40) ? N201_AB_SACCH : N201_AB_SDCCH;
 	struct osmo_dlsap_prim dp;
 
 	/* Set LAPDm context for established connection */
