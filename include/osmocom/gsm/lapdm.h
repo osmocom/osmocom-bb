@@ -127,7 +127,7 @@ const char *get_rsl_name(int value);
 extern const char *lapdm_state_names[];
 
 /* initialize a LAPDm entity */
-void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode);
+void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode, int t200);
 void lapdm_channel_init(struct lapdm_channel *lc, enum lapdm_mode mode);
 
 /* deinitialize a LAPDm entity */

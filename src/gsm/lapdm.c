@@ -116,7 +116,7 @@ static int send_rslms_dlsap(struct osmo_dlsap_prim *dp,
 	struct lapd_msg_ctx *lctx);
 
 static void lapdm_dl_init(struct lapdm_datalink *dl,
-			  struct lapdm_entity *entity)
+			  struct lapdm_entity *entity, int t200)
 {
 	memset(dl, 0, sizeof(*dl));
 	dl->entity = entity;
@@ -127,18 +127,19 @@ static void lapdm_dl_init(struct lapdm_datalink *dl,
 	dl->dl.n200_est_rel = N200_EST_REL;
 	dl->dl.n200 = N200;
 	dl->dl.t203_sec = 0; dl->dl.t203_usec = 0;
+	dl->dl.t200_sec = t200; dl->dl.t200_usec = 0;
 }
 
 /*! \brief initialize a LAPDm entity and all datalinks inside
  *  \param[in] le LAPDm entity
  *  \param[in] mode \ref lapdm_mode (BTS/MS)
  */
-void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode)
+void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode, int t200)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(le->datalink); i++)
-		lapdm_dl_init(&le->datalink[i], le);
+		lapdm_dl_init(&le->datalink[i], le, t200);
 
 	lapdm_entity_set_mode(le, mode);
 }
@@ -152,9 +153,9 @@ void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode)
  */
 void lapdm_channel_init(struct lapdm_channel *lc, enum lapdm_mode mode)
 {
-	lapdm_entity_init(&lc->lapdm_acch, mode);
+	lapdm_entity_init(&lc->lapdm_acch, mode, 2);
 	/* FIXME: this depends on chan type */
-	lapdm_entity_init(&lc->lapdm_dcch, mode);
+	lapdm_entity_init(&lc->lapdm_dcch, mode, 1);
 }
 
 /*! \brief flush and release all resoures in LAPDm entity */
