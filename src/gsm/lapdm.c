@@ -1033,6 +1033,7 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 
 	if (msgb_l2len(msg) < sizeof(*rllh)) {
 		LOGP(DLLAPD, LOGL_ERROR, "Message too short for RLL hdr!\n");
+		msgb_free(msg);
 		return -EINVAL;
 	}
 
@@ -1047,6 +1048,7 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 	dl = datalink_for_sapi(le, sapi);
 	if (!dl) {
 		LOGP(DLLAPD, LOGL_ERROR, "No instance for SAPI %d!\n", sapi);
+		msgb_free(msg);
 		return -EINVAL;
 	}
 
