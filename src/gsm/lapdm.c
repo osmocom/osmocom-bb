@@ -520,8 +520,10 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 		if (mctx.link_id & 0x40) {
 			/* It was received from network on SACCH */
 
-			/* If sent by BTS, lapdm_fmt must be B4 */
-			if (le->mode == LAPDM_MODE_MS) {
+			/* If UI on SACCH sent by BTS, lapdm_fmt must be B4 */
+			if (le->mode == LAPDM_MODE_MS
+			 && LAPDm_CTRL_is_U(msg->l2h[3])
+			 && LAPDm_CTRL_U_BITS(msg->l2h[3]) == 0) {
 				mctx.lapdm_fmt = LAPDm_FMT_B4;
 				n201 = N201_B4;
 				LOGP(DLLAPD, LOGL_INFO, "fmt=B4\n");
@@ -802,6 +804,8 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 /* L3 requests transfer of unnumbered information */
 static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 {
+	struct lapdm_entity *le = dl->entity;
+	int ui_bts = (le->mode == LAPDM_MODE_BTS);
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	uint8_t chan_nr = rllh->chan_nr;
 	uint8_t link_id = rllh->link_id;
@@ -828,9 +832,9 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->l3h = (uint8_t *) TLVP_VAL(&tv, RSL_IE_L3_INFO);
 	length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 	/* check if the layer3 message length exceeds N201 */
-	if (length + 5 > 23) { /* FIXME: do we know the channel N201? */
+	if (length + 4 + !ui_bts > 23) {
 		LOGP(DLLAPD, LOGL_ERROR, "frame too large: %d > N201(%d) "
-			"(discarding)\n", length + 5, 23);
+			"(discarding)\n", length, 18 + ui_bts);
 		msgb_free(msg);
 		return -EIO;
 	}
@@ -844,13 +848,13 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->tail = msg->data + length;
 
 	/* Push L1 + LAPDm header on msgb */
-	msg->l2h = msgb_push(msg, 2 + 3);
+	msg->l2h = msgb_push(msg, 4 + !ui_bts);
 	msg->l2h[0] = le->tx_power;
 	msg->l2h[1] = le->ta;
 	msg->l2h[2] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, dl->dl.cr.loc2rem.cmd);
 	msg->l2h[3] = LAPDm_CTRL_U(LAPDm_U_UI, 0);
-	msg->l2h[4] = LAPDm_LEN(length);
-	// FIXME: short L2 header support
+	if (!ui_bts)
+		msg->l2h[4] = LAPDm_LEN(length);
 
 	/* Tramsmit */
 	return tx_ph_data_enqueue(dl, msg, chan_nr, link_id, 23);
