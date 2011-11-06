@@ -1065,8 +1065,8 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 		return -EINVAL;
 	}
 
-	LOGP(DLLAPD, LOGL_INFO, "(%p) RLL Message '%s' received.\n",
-		lc->name, rsl_msg_name(msg_type));
+	LOGP(DLLAPD, LOGL_INFO, "(%p) RLL Message '%s' received. (sapi %d)\n",
+		lc->name, rsl_msg_name(msg_type), sapi);
 
 	switch (msg_type) {
 	case RSL_MT_UNIT_DATA_REQ:
