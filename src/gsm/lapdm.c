@@ -479,6 +479,15 @@ static int lapdm_send_ph_data_req(struct lapd_msg_ctx *lctx, struct msgb *msg)
 	if (lctx->more)
 		msg->l2h[2] |= LAPDm_MORE;
 
+	/* add ACCH header with last indicated tx-power and TA */
+	if ((mctx->link_id & 0x40)) {
+		struct lapdm_entity *le = mdl->entity;
+
+		msg->l2h = msgb_push(msg, 2);
+		msg->l2h[0] = le->tx_power;
+		msg->l2h[1] = le->ta;
+	}
+
 	return tx_ph_data_enqueue(mctx->dl, msg, mctx->chan_nr, mctx->link_id,
 			23);
 }
@@ -799,17 +808,16 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	uint8_t sapi = link_id & 7;
 	struct tlv_parsed tv;
 	int length;
-	uint8_t ta = 0, tx_power = 0;
 
 	/* check if the layer3 message length exceeds N201 */
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 
 	if (TLVP_PRESENT(&tv, RSL_IE_TIMING_ADVANCE)) {
-		ta = *TLVP_VAL(&tv, RSL_IE_TIMING_ADVANCE);
+		le->ta = *TLVP_VAL(&tv, RSL_IE_TIMING_ADVANCE);
 	}
 	if (TLVP_PRESENT(&tv, RSL_IE_MS_POWER)) {
-		tx_power = *TLVP_VAL(&tv, RSL_IE_MS_POWER);
+		le->tx_power = *TLVP_VAL(&tv, RSL_IE_MS_POWER);
 	}
 	if (!TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
 		LOGP(DLLAPD, LOGL_ERROR, "unit data request without message "
@@ -828,7 +836,7 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	}
 
 	LOGP(DLLAPD, LOGL_INFO, "sending unit data (tx_power=%d, ta=%d)\n",
-		tx_power, ta);
+		le->tx_power, le->ta);
 
 	/* Remove RLL header from msgb and set length to L3-info */
 	msgb_pull_l2h(msg);
@@ -837,8 +845,8 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 
 	/* Push L1 + LAPDm header on msgb */
 	msg->l2h = msgb_push(msg, 2 + 3);
-	msg->l2h[0] = tx_power;
-	msg->l2h[1] = ta;
+	msg->l2h[0] = le->tx_power;
+	msg->l2h[1] = le->ta;
 	msg->l2h[2] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, dl->dl.cr.loc2rem.cmd);
 	msg->l2h[3] = LAPDm_CTRL_U(LAPDm_U_UI, 0);
 	msg->l2h[4] = LAPDm_LEN(length);
