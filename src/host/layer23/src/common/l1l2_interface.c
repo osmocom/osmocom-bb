@@ -45,7 +45,7 @@
 static int layer2_read(struct osmo_fd *fd)
 {
 	struct msgb *msg;
-	u_int16_t len;
+	uint16_t len;
 	int rc;
 
 	msg = msgb_alloc_headroom(GSM_L2_LENGTH+GSM_L2_HEADROOM, GSM_L2_HEADROOM, "Layer2");

@@ -43,7 +43,7 @@ extern void *l23_ctx;
 static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg);
 static int gsm48_rel_null_free(struct gsm_trans *trans);
 int mncc_release_ind(struct osmocom_ms *ms, struct gsm_trans *trans,
-		     u_int32_t callref, int location, int value);
+		     uint32_t callref, int location, int value);
 static int gsm48_cc_tx_disconnect(struct gsm_trans *trans, void *arg);
 static int gsm48_cc_tx_connect_ack(struct gsm_trans *trans, void *arg);
 
@@ -416,7 +416,7 @@ void mncc_set_cause(struct gsm_mncc *data, int loc, int val)
 
 /* send release indication to upper layer */
 int mncc_release_ind(struct osmocom_ms *ms, struct gsm_trans *trans,
-		     u_int32_t callref, int location, int value)
+		     uint32_t callref, int location, int value)
 {
 	struct gsm_mncc rel;
 
@@ -1846,7 +1846,7 @@ static int gsm48_cc_rx_release_compl(struct gsm_trans *trans, struct msgb *msg)
 
 /* state trasitions for MNCC messages (upper layer) */
 static struct downstate {
-	u_int32_t	states;
+	uint32_t	states;
 	int		type;
 	int		(*rout) (struct gsm_trans *trans, void *arg);
 } downstatelist[] = {
@@ -2004,7 +2004,7 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 
 /* state trasitions for call control messages (lower layer) */
 static struct datastate {
-	u_int32_t	states;
+	uint32_t	states;
 	int		type;
 	int		(*rout) (struct gsm_trans *trans, struct msgb *msg);
 } datastatelist[] = {

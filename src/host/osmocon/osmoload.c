@@ -186,7 +186,7 @@ static void osmoload_osmo_hexdump(const uint8_t *data, unsigned int len)
 static void
 loader_send_request(struct msgb *msg) {
 	int rc;
-	u_int16_t len = htons(msg->len);
+	uint16_t len = htons(msg->len);
 
 	if(osmoload.print_requests) {
 		printf("Sending %d bytes:\n", msg->len);
@@ -453,7 +453,7 @@ loader_handle_reply(struct msgb *msg) {
 static int
 loader_read_cb(struct osmo_fd *fd, unsigned int flags) {
 	struct msgb *msg;
-	u_int16_t len;
+	uint16_t len;
 	int rc;
 
 	msg = msgb_alloc(MSGB_MAX, "loader");

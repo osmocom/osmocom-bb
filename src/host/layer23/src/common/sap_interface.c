@@ -45,7 +45,7 @@
 static int sap_read(struct osmo_fd *fd)
 {
 	struct msgb *msg;
-	u_int16_t len;
+	uint16_t len;
 	int rc;
 	struct osmocom_ms *ms = (struct osmocom_ms *) fd->data;
 

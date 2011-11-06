@@ -130,11 +130,11 @@ struct gsm_call {
 
 struct gsm_mncc {
 	/* context based information */
-	u_int32_t	msg_type;
-	u_int32_t	callref;
+	uint32_t	msg_type;
+	uint32_t	callref;
 
 	/* which fields are present */
-	u_int32_t	fields;
+	uint32_t	fields;
 
 	/* data derived informations (MNCC_F_ based) */
 	struct gsm_mncc_bearer_cap	bearer_cap;
@@ -165,8 +165,8 @@ struct gsm_mncc {
 };
 
 struct gsm_data_frame {
-	u_int32_t	msg_type;
-	u_int32_t	callref;
+	uint32_t	msg_type;
+	uint32_t	callref;
 	unsigned char	data[0];
 };
 
