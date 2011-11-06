@@ -1236,7 +1236,8 @@ static int un_tool_read(struct osmo_fd *fd, unsigned int flags)
 		c += rc;
 	}
 
-	length = ntohs(*(uint16_t*)buf);
+	memcpy(&length, buf, sizeof length);
+	length = ntohs(length);
 
 	c = 0;
 	while(c < length) {
