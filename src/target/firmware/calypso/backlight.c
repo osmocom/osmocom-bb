@@ -50,7 +50,7 @@ void bl_mode_pwl(int on)
 		writew(reg, ASIC_CONF_REG);
 	} else {
 		/* Switch pin from PWL to LT */
-		reg |= ~ASCONF_PWL_ENA;
+		reg &= ~ASCONF_PWL_ENA;
 		writew(reg, ASIC_CONF_REG);
 		/* Disable pwl */
 		writeb(0x00, PWL_REG(PWL_CTRL));
