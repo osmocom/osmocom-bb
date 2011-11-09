@@ -19,7 +19,7 @@ libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c bits.c \
 
 if ENABLE_PLUGIN
 libosmocore_la_SOURCES += plugin.c
-libosmocore_la_LDFLAGS = -version-info $(LIBVERSION) -ldl
+libosmocore_la_LDFLAGS = -version-info $(LIBVERSION) $(LIBRARY_DL)
 else
 libosmocore_la_LDFLAGS = -version-info $(LIBVERSION)
 endif
