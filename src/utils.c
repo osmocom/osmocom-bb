@@ -173,7 +173,7 @@ char *osmo_hexdump(const unsigned char *buf, int len)
  * This function will print a sequence of bytes as hexadecimal numbers,
  * without any space character between each byte (e.g. "1aefd9")
  */
-char *osmo_osmo_hexdump_nospc(const unsigned char *buf, int len)
+char *osmo_hexdump_nospc(const unsigned char *buf, int len)
 {
 	return _osmo_hexdump(buf, len, "");
 }
