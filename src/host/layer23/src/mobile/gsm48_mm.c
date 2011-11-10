@@ -748,7 +748,7 @@ int gsm48_mmxx_dequeue(struct osmocom_ms *ms)
 	struct msgb *msg;
 	struct gsm48_mmxx_hdr *mmh;
 	int work = 0;
-	
+
 	while ((msg = msgb_dequeue(&mm->mmxx_upqueue))) {
 		mmh = (struct gsm48_mmxx_hdr *) msg->data;
 		switch (mmh->msg_type & GSM48_MMXX_MASK) {
@@ -767,7 +767,7 @@ int gsm48_mmxx_dequeue(struct osmocom_ms *ms)
 		msgb_free(msg);
 		work = 1; /* work done */
 	}
-	
+
 	return work;
 }
 
@@ -778,14 +778,14 @@ int gsm48_mmr_dequeue(struct osmocom_ms *ms)
 	struct msgb *msg;
 	struct gsm48_mmr *mmr;
 	int work = 0;
-	
+
 	while ((msg = msgb_dequeue(&mm->mmr_downqueue))) {
 		mmr = (struct gsm48_mmr *) msg->data;
 		gsm48_rcv_mmr(ms, msg);
 		msgb_free(msg);
 		work = 1; /* work done */
 	}
-	
+
 	return work;
 }
 
@@ -795,13 +795,13 @@ int gsm48_rr_dequeue(struct osmocom_ms *ms)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct msgb *msg;
 	int work = 0;
-	
+
 	while ((msg = msgb_dequeue(&mm->rr_upqueue))) {
 		/* msg is freed there */
 		gsm48_rcv_rr(ms, msg);
 		work = 1; /* work done */
 	}
-	
+
 	return work;
 }
 
@@ -812,14 +812,14 @@ int gsm48_mmevent_dequeue(struct osmocom_ms *ms)
 	struct gsm48_mm_event *mme;
 	struct msgb *msg;
 	int work = 0;
-	
+
 	while ((msg = msgb_dequeue(&mm->event_queue))) {
 		mme = (struct gsm48_mm_event *) msg->data;
 		gsm48_mm_ev(ms, mme->msg_type, msg);
 		msgb_free(msg);
 		work = 1; /* work done */
 	}
-	
+
 	return work;
 }
 
@@ -927,7 +927,7 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 		switch (substate) {
 		case GSM48_MM_SST_NORMAL_SERVICE:
 			vty_notify(ms, NULL);
-			vty_notify(ms, "On Network, normal service: %s, %s\n", 
+			vty_notify(ms, "On Network, normal service: %s, %s\n",
 				gsm_get_mcc(plmn->mcc),
 				gsm_get_mnc(plmn->mcc, plmn->mnc));
 			break;
@@ -1337,7 +1337,7 @@ int gsm48_mm_exit(struct osmocom_ms *ms)
 
 	/* flush lists */
 	while (!llist_empty(&mm->mm_conn)) {
-		conn = llist_entry(mm->mm_conn.next, 
+		conn = llist_entry(mm->mm_conn.next,
 			struct gsm48_mm_conn, list);
 		mm_conn_free(conn);
 	}
@@ -1349,7 +1349,7 @@ int gsm48_mm_exit(struct osmocom_ms *ms)
 		msgb_free(msg);
 	while ((msg = msgb_dequeue(&mm->event_queue)))
 		msgb_free(msg);
-		
+
 	/* stop timers */
 	stop_mm_t3210(mm);
 	stop_mm_t3211(mm);
@@ -1892,7 +1892,7 @@ static int gsm48_mm_imsi_detach_sent(struct osmocom_ms *ms, struct msgb *msg)
 
 	return 0;
 }
-	
+
 /* release MM connection and proceed with IMSI detach */
 static int gsm48_mm_imsi_detach_release(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -1976,7 +1976,7 @@ static int gsm48_mm_rx_abort(struct osmocom_ms *ms, struct msgb *msg)
 		gsm48_mm_release_mm_conn(ms, 1, 16, 0);
 	}
 
-	if (reject_cause == GSM48_REJECT_ILLEGAL_ME) { 
+	if (reject_cause == GSM48_REJECT_ILLEGAL_ME) {
 		/* SIM invalid */
 		subscr->sim_valid = 0;
 
@@ -2039,7 +2039,7 @@ static int gsm48_mm_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 
-	/* t3212 not changed in these states */ 
+	/* t3212 not changed in these states */
 	if (mm->state == GSM48_MM_ST_MM_IDLE
 	 && (mm->substate == GSM48_MM_SST_NO_CELL_AVAIL
 	  || mm->substate == GSM48_MM_SST_LIMITED_SERVICE
@@ -2075,7 +2075,7 @@ static int gsm48_mm_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 		}
 		mm->t3212_value = s->t3212;
 	}
-	
+
 	return 0;
 }
 
@@ -2096,7 +2096,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 	int msg_type;
-	
+
 	/* (re)start only if we still require location update */
 	if (!mm->lupd_pending) {
 		LOGP(DMM, LOGL_INFO, "No loc. upd. pending.\n");
@@ -2512,7 +2512,7 @@ static int gsm48_mm_rx_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	start_mm_t3240(mm);
 
 	new_mm_state(mm, GSM48_MM_ST_LOC_UPD_REJ, 0);
-	
+
 	return 0;
 }
 
@@ -2523,7 +2523,7 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 	struct gsm322_msg *ngm;
-	
+
 	LOGP(DMM, LOGL_INFO, "Loc. upd. rejected (cause %d)\n",
 		mm->lupd_rej_cause);
 
@@ -3199,7 +3199,7 @@ static int gsm48_mm_init_mm_reject(struct osmocom_ms *ms, struct msgb *msg)
  *
  * this function is called:
  * - when ciphering command is received
- * - when cm service is accepted 
+ * - when cm service is accepted
  */
 static int gsm48_mm_conn_go_dedic(struct osmocom_ms *ms)
 {
@@ -3398,7 +3398,7 @@ static int gsm48_mm_data(struct osmocom_ms *ms, struct msgb *msg)
 		/* mirror message with REL_IND + cause */
 		return gsm48_mmxx_upmsg(ms, msg);
 	}
-	
+
 	/* pull MM header */
 	msgb_pull(msg, sizeof(struct gsm48_mmxx_hdr));
 
@@ -3821,7 +3821,7 @@ static int gsm48_rcv_rr(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	rc = rrdatastatelist[i].rout(ms, msg);
-	
+
 	if (rrdatastatelist[i].rout != gsm48_mm_data_ind)
 		msgb_free(msg);
 

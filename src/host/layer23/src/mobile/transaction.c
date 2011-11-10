@@ -108,7 +108,7 @@ void trans_free(struct gsm_trans *trans)
 	talloc_free(trans);
 }
 
-/* allocate an unused transaction ID 
+/* allocate an unused transaction ID
  * in the given protocol using the ti_flag specified */
 int trans_assign_trans_id(struct osmocom_ms *ms,
 			  uint8_t protocol, uint8_t ti_flag)

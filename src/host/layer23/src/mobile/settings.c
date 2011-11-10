@@ -183,7 +183,7 @@ int gsm_random_imei(struct gsm_settings *set)
 
 	strcpy(set->imei + 15 - digits, rand + 15 - digits);
 	strncpy(set->imeisv, set->imei, 15);
-	
+
 	return 0;
 }
 

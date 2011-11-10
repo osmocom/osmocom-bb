@@ -187,7 +187,7 @@ static void mncc_set_bearer(struct osmocom_ms *ms, int8_t speech_ver,
 			LOGP(DMNCC, LOGL_INFO, " support half rate v1\n");
 		}
 	/* if specific speech_ver is given (it must be supported) */
-	} else 
+	} else
 		mncc->bearer_cap.speech_ver[i++] = speech_ver;
 	mncc->bearer_cap.speech_ver[i] = -1; /* end of list */
 	mncc->bearer_cap.transfer = 0;
@@ -579,7 +579,7 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 		setup.called.plan = 1; /* ISDN */
 		strncpy(setup.called.number, number,
 			sizeof(setup.called.number) - 1);
-		
+
 		/* bearer capability (mandatory) */
 		mncc_set_bearer(ms, -1, &setup);
 		if (ms->settings.clir)

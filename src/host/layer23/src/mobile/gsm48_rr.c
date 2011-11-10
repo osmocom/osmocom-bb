@@ -145,7 +145,7 @@ static int gsm48_decode_ba_range(const uint8_t *ba, uint8_t ba_len,
 	 */
 	uint16_t lower, higher;
 	int i, n, required_octets;
-	
+
 	/* find out how much ba ranges will be decoded */
 	n = *ba++;
 	ba_len --;
@@ -351,7 +351,7 @@ const char *gsm48_rr_state_names[] = {
 
 static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 {
-	if (state < 0 || state >= 
+	if (state < 0 || state >=
 		(sizeof(gsm48_rr_state_names) / sizeof(char *)))
 		return;
 
@@ -547,13 +547,13 @@ int gsm48_rsl_dequeue(struct osmocom_ms *ms)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct msgb *msg;
 	int work = 0;
-	
+
 	while ((msg = msgb_dequeue(&rr->rsl_upqueue))) {
 		/* msg is freed there */
 		gsm48_rcv_rsl(ms, msg);
 		work = 1; /* work done */
 	}
-	
+
 	return work;
 }
 
@@ -598,7 +598,7 @@ static void timeout_rr_meas(void *arg)
 		snr = (meas->snr + meas->frames / 2) / meas->frames;
 		sprintf(text, "MON: f=%d lev=%s snr=%2d ber=%3d "
 			"LAI=%s %s %04x ID=%04x", cs->sel_arfcn,
-			gsm_print_rxlev(rxlev), berr, snr, 
+			gsm_print_rxlev(rxlev), berr, snr,
 			gsm_print_mcc(cs->sel_mcc),
 			gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
 		if (rr->state == GSM48_RR_ST_DEDICATED) {
@@ -2428,7 +2428,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		/* timing advance */
 		rr->cd_now.ind_ta = ia->timing_advance;
 		/* mobile allocation */
-		memcpy(&rr->cd_now.mob_alloc_lv, &ia->mob_alloc_len, 
+		memcpy(&rr->cd_now.mob_alloc_lv, &ia->mob_alloc_len,
 			ia->mob_alloc_len + 1);
 		rr->wait_assign = 2;
 		/* reset scheduler */
@@ -3004,7 +3004,7 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 	/* decode mobile allocation */
 	if (cd->mob_alloc_lv[0]) {
 		struct gsm_sysinfo_freq *freq = s->freq;
-	
+
 		LOGP(DRR, LOGL_INFO, "decoding mobile allocation\n");
 
 		if (cd->cell_desc_lv[0]) {
@@ -3425,7 +3425,7 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* mobile allocation */
-	memcpy(rr->cd_now.mob_alloc_lv, &fr->mob_alloc_len, 
+	memcpy(rr->cd_now.mob_alloc_lv, &fr->mob_alloc_len,
 		fr->mob_alloc_len + 1);
 
 	/* starting time */
@@ -3677,8 +3677,8 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	cda->start_tm.fn = (ms->meas.last_fn + TEST_STARTING_TIMER) % 42432;
 	LOGP(DRR, LOGL_INFO, " TESTING: starting time ahead\n");
 #else
-	if (TLVP_PRESENT(&tp, GSM48_IE_START_TIME)) {	
-		gsm48_decode_start_time(cda, (struct gsm48_start_time *) 
+	if (TLVP_PRESENT(&tp, GSM48_IE_START_TIME)) {
+		gsm48_decode_start_time(cda, (struct gsm48_start_time *)
 			TLVP_VAL(&tp, GSM48_IE_START_TIME));
 		/* 9.1.2.5 "... before time IE is not present..." */
 		if (!before_time) {
@@ -3998,8 +3998,8 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	tlv_parse(&tp, &gsm48_rr_att_tlvdef, ho->data, payload_len, 0, 0);
 
 	/* sync ind */
-	if (TLVP_PRESENT(&tp, GSM48_IE_SYNC_IND)) {	
-		gsm48_decode_sync_ind(rr, (struct gsm48_sync_ind *) 
+	if (TLVP_PRESENT(&tp, GSM48_IE_SYNC_IND)) {
+		gsm48_decode_sync_ind(rr, (struct gsm48_sync_ind *)
 			TLVP_VAL(&tp, GSM48_IE_SYNC_IND));
 		LOGP(DRR, LOGL_INFO, " (sync_ind=%d rot=%d nci=%d)\n",
 			rr->hando_sync_ind, rr->hando_rot, rr->hando_nci);
@@ -4057,8 +4057,8 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	cda->start_tm.fn = (ms->meas.last_fn + TEST_STARTING_TIMER) % 42432;
 	LOGP(DRR, LOGL_INFO, " TESTING: starting time ahead\n");
 #else
-	if (TLVP_PRESENT(&tp, GSM48_IE_START_TIME)) {	
-		gsm48_decode_start_time(cda, (struct gsm48_start_time *) 
+	if (TLVP_PRESENT(&tp, GSM48_IE_START_TIME)) {
+		gsm48_decode_start_time(cda, (struct gsm48_start_time *)
 			TLVP_VAL(&tp, GSM48_IE_START_TIME));
 		/* 9.1.2.5 "... before time IE is not present..." */
 		if (!before_time) {
@@ -4384,7 +4384,7 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /*
- * radio ressource requests 
+ * radio ressource requests
  */
 
 /* establish request for dedicated mode */
@@ -4501,7 +4501,7 @@ static int gsm48_rr_data_req(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_free(msg);
 		return -EINVAL;
 	}
-	
+
 	/* pull RR header */
 	msgb_pull(msg, sizeof(struct gsm48_rr_hdr));
 
@@ -4698,7 +4698,7 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct tlv_parsed tv;
 	uint8_t ch_type, ch_subch, ch_ts;
-	
+
 	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
 		rllh->chan_nr, rllh->link_id);
 
