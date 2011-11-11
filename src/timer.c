@@ -69,8 +69,12 @@ static void __add_timer(struct osmo_timer_list *timer)
  */
 void osmo_timer_add(struct osmo_timer_list *timer)
 {
-	timer->active = 1;
-	INIT_LLIST_HEAD(&timer->list);
+	if (timer->active) {
+		rb_erase(&timer->node, &timer_root);
+	} else {
+		timer->active = 1;
+		INIT_LLIST_HEAD(&timer->list);
+	}
 	__add_timer(timer);
 }
 
