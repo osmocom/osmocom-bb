@@ -178,6 +178,10 @@ char *osmo_hexdump_nospc(const unsigned char *buf, int len)
 	return _osmo_hexdump(buf, len, "");
 }
 
+	/* Compat with previous typo to preserve abi */
+char *osmo_osmo_hexdump_nospc(const unsigned char *buf, int len)
+	__attribute__((alias("osmo_hexdump_nospc")));
+
 #include "../config.h"
 #ifdef HAVE_CTYPE_H
 #include <ctype.h>
