@@ -61,7 +61,7 @@
 
 static void cp_timer_expired(void *data);
 
-#define MAX_SMS_RETRY 2;
+#define MAX_SMS_RETRY 2
 
 /* init a new instance */
 void gsm411_smc_init(struct gsm411_smc_inst *inst, int network,
