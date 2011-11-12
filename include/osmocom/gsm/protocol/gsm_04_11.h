@@ -96,7 +96,8 @@ enum gsm411_rp_cause {
 #define GSM411_TMR_TRAM		30, 0	/* 25 < x < 35 seconds */
 #define GSM411_TMR_TR2M		15, 0	/* 12 < x < 20 seconds */
 
-#define GSM411_TMR_TC1A		30	/* TR1M - 10 */
+#define GSM411_TMR_TC1A		30, 0	/* TR1M - 10 */
+#define GSM411_TMR_TC1A_SEC	30	/* TR1M - 10 */
 
 /* Chapter 8.2.1 */
 struct gsm411_rp_hdr {

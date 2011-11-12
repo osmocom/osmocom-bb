@@ -73,7 +73,7 @@ void gsm411_smc_init(struct gsm411_smc_inst *inst, int network,
 	memset(inst, 0, sizeof(*inst));
 	inst->network = network;
 	inst->cp_max_retr = MAX_SMS_RETRY;
-	inst->cp_tc1 = GSM411_TMR_TC1A / (inst->cp_max_retr + 1);
+	inst->cp_tc1 = GSM411_TMR_TC1A_SEC / (inst->cp_max_retr + 1);
 	inst->cp_state = GSM411_CPS_IDLE;
 	inst->mn_recv = mn_recv;
 	inst->mm_send = mm_send;
