@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
@@ -60,6 +61,7 @@ struct test_timer {
 #define TIMER_PRES_SECS		0
 #define TIMER_PRES_USECS	10000
 
+static int timer_nsteps = MAIN_TIMER_NSTEPS;
 static unsigned int expired_timers = 0;
 static unsigned int total_timers = 0;
 static unsigned int too_late = 0;
@@ -70,7 +72,7 @@ static void main_timer_fired(void *data)
 	unsigned int add_in_this_step;
 	int i;
 
-	if (*step == MAIN_TIMER_NSTEPS) {
+	if (*step == timer_nsteps) {
 		printf("Main timer has finished, please, wait a bit for the "
 		       "final report.\n");
 		return;
@@ -134,11 +136,28 @@ static void secondary_timer_fired(void *data)
 	}
 }
 
-int main(int argc, char** argv)
+int main(int argc, char *argv[])
 {
+	int c;
+
+	while ((c = getopt_long(argc, argv, "s:", NULL, NULL)) != -1) {
+	switch(c) {
+		case 's':
+			timer_nsteps = atoi(optarg);
+			if (timer_nsteps <= 0) {
+				fprintf(stderr, "%s: steps must be > 0\n",
+					argv[0]);
+				exit(EXIT_FAILURE);
+			}
+			break;
+		default:
+			exit(EXIT_FAILURE);
+		}
+	}
+
 	printf("Running timer test for %u steps, accepting imprecision "
 	       "of %u.%.6u seconds\n",
-		MAIN_TIMER_NSTEPS, TIMER_PRES_SECS, TIMER_PRES_USECS);
+		timer_nsteps, TIMER_PRES_SECS, TIMER_PRES_USECS);
 
 	osmo_timer_schedule(&main_timer, 1, 0);
 
