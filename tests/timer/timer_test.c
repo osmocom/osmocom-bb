@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <getopt.h>
 
 #include <osmocom/core/talloc.h>
@@ -137,9 +138,21 @@ static void secondary_timer_fired(void *data)
 	}
 }
 
+static void alarm_handler(int signum)
+{
+	fprintf(stderr, "ERROR: We took too long to run the timer test, "
+			"something seems broken, aborting.\n");
+	exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[])
 {
 	int c;
+
+	if (signal(SIGALRM, alarm_handler) == SIG_ERR) {
+		perror("cannot register signal handler");
+		exit(EXIT_FAILURE);
+	}
 
 	while ((c = getopt_long(argc, argv, "s:", NULL, NULL)) != -1) {
 	switch(c) {
@@ -161,6 +174,12 @@ int main(int argc, char *argv[])
 		timer_nsteps, TIMER_PRES_SECS, TIMER_PRES_USECS);
 
 	osmo_timer_schedule(&main_timer, 1, 0);
+
+	/* if the test takes too long, we may consider that the timer scheduler
+	 * has hung. We set some maximum wait time which is the double of the
+	 * maximum timeout randomly set (10 seconds, worst case) plus the
+	 * number of steps (since some of them are reset each step). */
+	alarm(2 * (10 + timer_nsteps));
 
 #ifdef HAVE_SYS_SELECT_H
 	while (1) {
