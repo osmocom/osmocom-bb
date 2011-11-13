@@ -1,0 +1,19 @@
+Running timer test for 16 steps, accepting imprecision of 0.010000 seconds
+added 1 timers in step 0 (expired=0)
+added 2 timers in step 1 (expired=0)
+added 4 timers in step 2 (expired=0)
+added 8 timers in step 3 (expired=0)
+added 16 timers in step 4 (expired=1)
+added 32 timers in step 5 (expired=4)
+added 64 timers in step 6 (expired=33)
+added 128 timers in step 7 (expired=87)
+added 256 timers in step 8 (expired=183)
+added 512 timers in step 9 (expired=466)
+added 1024 timers in step 10 (expired=970)
+added 2048 timers in step 11 (expired=1968)
+added 4096 timers in step 12 (expired=3994)
+added 8192 timers in step 13 (expired=8035)
+added 16384 timers in step 14 (expired=16324)
+added 32768 timers in step 15 (expired=32641)
+Main timer has finished, please, wait a bit for the final report.
+test over: added=65535 expired=65535 too_late=0 

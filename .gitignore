@@ -33,6 +33,16 @@ Doxyfile.codec
 .tarball-version
 .version
 
+#gnu autotest
+tests/package.m4
+tests/atconfig
+tests/atlocal
+tests/osmo-test
+tests/package.m4
+tests/testsuite
+tests/testsuite.dir/
+tests/testsuite.log
+
 tests/sms/sms_test
 tests/timer/timer_test
 tests/msgfile/msgfile_test
