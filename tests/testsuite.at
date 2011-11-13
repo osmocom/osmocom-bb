@@ -41,5 +41,5 @@ AT_CLEANUP
 AT_SETUP([ussd])
 AT_KEYWORDS([ussd])
 cat $abs_srcdir/ussd/ussd_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/ussd/ussd_test], [], [expout])
+AT_CHECK([$abs_top_builddir/tests/ussd/ussd_test], [], [expout], [ignore])
 AT_CLEANUP
