@@ -73,8 +73,8 @@ static void main_timer_fired(void *data)
 	int i;
 
 	if (*step == timer_nsteps) {
-		printf("Main timer has finished, please, wait a bit for the "
-		       "final report.\n");
+		fprintf(stderr, "Main timer has finished, please, "
+				"wait a bit for the final report.\n");
 		return;
 	}
 	/* add 2^step pair of timers per step. */
@@ -96,7 +96,7 @@ static void main_timer_fired(void *data)
 		osmo_timer_schedule(&v->timer, seconds, 0);
 		llist_add(&v->head, &timer_test_list);
 	}
-	printf("added %d timers in step %u (expired=%u)\n",
+	fprintf(stderr, "added %d timers in step %u (expired=%u)\n",
 		add_in_this_step, *step, expired_timers);
 	total_timers += add_in_this_step;
 	osmo_timer_schedule(&main_timer, TIME_BETWEEN_STEPS, 0);
@@ -112,7 +112,8 @@ static void secondary_timer_fired(void *data)
 
 	timersub(&current, &v->stop, &res);
 	if (timercmp(&res, &precision, >)) {
-		printf("ERROR: timer %p has expired too late!\n", v->timer);
+		fprintf(stderr, "ERROR: timer %p has expired too late!\n",
+			v->timer);
 		too_late++;
 	}
 
@@ -120,7 +121,7 @@ static void secondary_timer_fired(void *data)
 	talloc_free(data);
 	expired_timers++;
 	if (expired_timers == total_timers) {
-		printf("test over: added=%u expired=%u too_late=%u \n",
+		fprintf(stdout, "test over: added=%u expired=%u too_late=%u \n",
 			total_timers, expired_timers, too_late);
 		exit(EXIT_SUCCESS);
 	}
@@ -155,8 +156,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	printf("Running timer test for %u steps, accepting imprecision "
-	       "of %u.%.6u seconds\n",
+	fprintf(stdout, "Running timer test for %u steps, accepting "
+		"imprecision of %u.%.6u seconds\n",
 		timer_nsteps, TIMER_PRES_SECS, TIMER_PRES_USECS);
 
 	osmo_timer_schedule(&main_timer, 1, 0);
@@ -166,6 +167,6 @@ int main(int argc, char *argv[])
 		osmo_select_main(0);
 	}
 #else
-	printf("Select not supported on this platform!\n");
+	fprintf(stdout, "Select not supported on this platform!\n");
 #endif
 }
