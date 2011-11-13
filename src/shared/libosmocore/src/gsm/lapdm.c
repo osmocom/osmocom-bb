@@ -116,7 +116,7 @@ static int send_rslms_dlsap(struct osmo_dlsap_prim *dp,
 	struct lapd_msg_ctx *lctx);
 
 static void lapdm_dl_init(struct lapdm_datalink *dl,
-			  struct lapdm_entity *entity)
+			  struct lapdm_entity *entity, int t200)
 {
 	memset(dl, 0, sizeof(*dl));
 	dl->entity = entity;
@@ -127,18 +127,19 @@ static void lapdm_dl_init(struct lapdm_datalink *dl,
 	dl->dl.n200_est_rel = N200_EST_REL;
 	dl->dl.n200 = N200;
 	dl->dl.t203_sec = 0; dl->dl.t203_usec = 0;
+	dl->dl.t200_sec = t200; dl->dl.t200_usec = 0;
 }
 
 /*! \brief initialize a LAPDm entity and all datalinks inside
  *  \param[in] le LAPDm entity
  *  \param[in] mode \ref lapdm_mode (BTS/MS)
  */
-void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode)
+void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode, int t200)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(le->datalink); i++)
-		lapdm_dl_init(&le->datalink[i], le);
+		lapdm_dl_init(&le->datalink[i], le, t200);
 
 	lapdm_entity_set_mode(le, mode);
 }
@@ -152,9 +153,9 @@ void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode)
  */
 void lapdm_channel_init(struct lapdm_channel *lc, enum lapdm_mode mode)
 {
-	lapdm_entity_init(&lc->lapdm_acch, mode);
+	lapdm_entity_init(&lc->lapdm_acch, mode, 2);
 	/* FIXME: this depends on chan type */
-	lapdm_entity_init(&lc->lapdm_dcch, mode);
+	lapdm_entity_init(&lc->lapdm_dcch, mode, 1);
 }
 
 /*! \brief flush and release all resoures in LAPDm entity */
@@ -478,6 +479,15 @@ static int lapdm_send_ph_data_req(struct lapd_msg_ctx *lctx, struct msgb *msg)
 	if (lctx->more)
 		msg->l2h[2] |= LAPDm_MORE;
 
+	/* add ACCH header with last indicated tx-power and TA */
+	if ((mctx->link_id & 0x40)) {
+		struct lapdm_entity *le = mdl->entity;
+
+		msg->l2h = msgb_push(msg, 2);
+		msg->l2h[0] = le->tx_power;
+		msg->l2h[1] = le->ta;
+	}
+
 	return tx_ph_data_enqueue(mctx->dl, msg, mctx->chan_nr, mctx->link_id,
 			23);
 }
@@ -510,8 +520,10 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 		if (mctx.link_id & 0x40) {
 			/* It was received from network on SACCH */
 
-			/* If sent by BTS, lapdm_fmt must be B4 */
-			if (le->mode == LAPDM_MODE_MS) {
+			/* If UI on SACCH sent by BTS, lapdm_fmt must be B4 */
+			if (le->mode == LAPDM_MODE_MS
+			 && LAPDm_CTRL_is_U(msg->l2h[3])
+			 && LAPDm_CTRL_U_BITS(msg->l2h[3]) == 0) {
 				mctx.lapdm_fmt = LAPDm_FMT_B4;
 				n201 = N201_B4;
 				LOGP(DLLAPD, LOGL_INFO, "fmt=B4\n");
@@ -530,7 +542,7 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 		} else {
 			mctx.lapdm_fmt = LAPDm_FMT_B;
 			LOGP(DLLAPD, LOGL_INFO, "fmt=B\n");
-			n201 = 20; // FIXME: select correct size by chan.
+			n201 = N201_AB_SDCCH;
 			sapi = (msg->l2h[0] >> 2) & 7;
 		}
 	}
@@ -742,7 +754,7 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	uint8_t sapi = rllh->link_id & 7;
 	struct tlv_parsed tv;
 	uint8_t length;
-	int n201 = 20; //FIXME
+	uint8_t n201 = (rllh->link_id & 0x40) ? N201_AB_SACCH : N201_AB_SDCCH;
 	struct osmo_dlsap_prim dp;
 
 	/* Set LAPDm context for established connection */
@@ -770,9 +782,9 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	}
 
 	/* check if the layer3 message length exceeds N201 */
-	if (length + 3 > 21) { /* FIXME: do we know the channel N201? */
+	if (length > n201) {
 		LOGP(DLLAPD, LOGL_ERROR, "frame too large: %d > N201(%d) "
-			"(discarding)\n", length + 3, 21);
+			"(discarding)\n", length, n201);
 		msgb_free(msg);
 		return send_rll_simple(RSL_MT_REL_IND, &dl->mctx);
 	}
@@ -792,23 +804,24 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 /* L3 requests transfer of unnumbered information */
 static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 {
+	struct lapdm_entity *le = dl->entity;
+	int ui_bts = (le->mode == LAPDM_MODE_BTS);
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	uint8_t chan_nr = rllh->chan_nr;
 	uint8_t link_id = rllh->link_id;
 	uint8_t sapi = link_id & 7;
 	struct tlv_parsed tv;
 	int length;
-	uint8_t ta = 0, tx_power = 0;
 
 	/* check if the layer3 message length exceeds N201 */
 
 	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
 
 	if (TLVP_PRESENT(&tv, RSL_IE_TIMING_ADVANCE)) {
-		ta = *TLVP_VAL(&tv, RSL_IE_TIMING_ADVANCE);
+		le->ta = *TLVP_VAL(&tv, RSL_IE_TIMING_ADVANCE);
 	}
 	if (TLVP_PRESENT(&tv, RSL_IE_MS_POWER)) {
-		tx_power = *TLVP_VAL(&tv, RSL_IE_MS_POWER);
+		le->tx_power = *TLVP_VAL(&tv, RSL_IE_MS_POWER);
 	}
 	if (!TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
 		LOGP(DLLAPD, LOGL_ERROR, "unit data request without message "
@@ -819,15 +832,15 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->l3h = (uint8_t *) TLVP_VAL(&tv, RSL_IE_L3_INFO);
 	length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 	/* check if the layer3 message length exceeds N201 */
-	if (length + 5 > 23) { /* FIXME: do we know the channel N201? */
+	if (length + 4 + !ui_bts > 23) {
 		LOGP(DLLAPD, LOGL_ERROR, "frame too large: %d > N201(%d) "
-			"(discarding)\n", length + 5, 23);
+			"(discarding)\n", length, 18 + ui_bts);
 		msgb_free(msg);
 		return -EIO;
 	}
 
 	LOGP(DLLAPD, LOGL_INFO, "sending unit data (tx_power=%d, ta=%d)\n",
-		tx_power, ta);
+		le->tx_power, le->ta);
 
 	/* Remove RLL header from msgb and set length to L3-info */
 	msgb_pull_l2h(msg);
@@ -835,13 +848,13 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->tail = msg->data + length;
 
 	/* Push L1 + LAPDm header on msgb */
-	msg->l2h = msgb_push(msg, 2 + 3);
-	msg->l2h[0] = tx_power;
-	msg->l2h[1] = ta;
+	msg->l2h = msgb_push(msg, 4 + !ui_bts);
+	msg->l2h[0] = le->tx_power;
+	msg->l2h[1] = le->ta;
 	msg->l2h[2] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, dl->dl.cr.loc2rem.cmd);
 	msg->l2h[3] = LAPDm_CTRL_U(LAPDm_U_UI, 0);
-	msg->l2h[4] = LAPDm_LEN(length);
-	// FIXME: short L2 header support
+	if (!ui_bts)
+		msg->l2h[4] = LAPDm_LEN(length);
 
 	/* Tramsmit */
 	return tx_ph_data_enqueue(dl, msg, chan_nr, link_id, 23);
@@ -907,7 +920,7 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	uint8_t sapi = rllh->link_id & 7;
 	struct tlv_parsed tv;
 	uint8_t length;
-	uint8_t n201 = 20; //FIXME
+	uint8_t n201 = (rllh->link_id & 0x40) ? N201_AB_SACCH : N201_AB_SDCCH;
 	struct osmo_dlsap_prim dp;
 
 	/* Set LAPDm context for established connection */
@@ -1033,6 +1046,7 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 
 	if (msgb_l2len(msg) < sizeof(*rllh)) {
 		LOGP(DLLAPD, LOGL_ERROR, "Message too short for RLL hdr!\n");
+		msgb_free(msg);
 		return -EINVAL;
 	}
 
@@ -1047,11 +1061,12 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 	dl = datalink_for_sapi(le, sapi);
 	if (!dl) {
 		LOGP(DLLAPD, LOGL_ERROR, "No instance for SAPI %d!\n", sapi);
+		msgb_free(msg);
 		return -EINVAL;
 	}
 
-	LOGP(DLLAPD, LOGL_INFO, "(%p) RLL Message '%s' received.\n",
-		lc->name, rsl_msg_name(msg_type));
+	LOGP(DLLAPD, LOGL_INFO, "(%p) RLL Message '%s' received. (sapi %d)\n",
+		lc->name, rsl_msg_name(msg_type), sapi);
 
 	switch (msg_type) {
 	case RSL_MT_UNIT_DATA_REQ:

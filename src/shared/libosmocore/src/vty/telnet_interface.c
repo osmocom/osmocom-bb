@@ -221,4 +221,16 @@ void vty_event(enum event event, int sock, struct vty *vty)
 	}
 }
 
+void telnet_exit(void) 
+{
+	struct telnet_connection *tc, *tc2;
+
+	llist_for_each_entry_safe(tc, tc2, &active_connections, entry)
+		telnet_close_client(&tc->fd);
+
+	osmo_fd_unregister(&server_socket);
+	close(server_socket.fd);
+	talloc_free(tall_telnet_ctx);
+}
+
 /*! }@ */

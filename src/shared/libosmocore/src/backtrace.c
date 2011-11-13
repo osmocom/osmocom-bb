@@ -57,4 +57,8 @@ void osmo_generate_backtrace(void)
 
 	free(strings);
 }
+#else
+void osmo_generate_backtrace(void)
+{
+}
 #endif

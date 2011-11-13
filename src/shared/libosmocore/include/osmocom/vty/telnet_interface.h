@@ -48,6 +48,8 @@ struct telnet_connection {
 
 int telnet_init(void *tall_ctx, void *priv, int port);
 
+void telnet_exit(void);
+
 /*! }@ */
 
 #endif /* TELNET_INTERFACE_H */

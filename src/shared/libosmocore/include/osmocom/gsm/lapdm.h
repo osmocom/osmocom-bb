@@ -72,8 +72,8 @@ struct lapdm_msg_ctx {
 	int lapdm_fmt;
 	uint8_t chan_nr;
 	uint8_t link_id;
-	uint8_t ta_ind;
-	uint8_t tx_power_ind;
+	uint8_t ta_ind;		/* TA indicated by network */
+	uint8_t tx_power_ind;	/* MS power indicated by network */
 };
 
 /*! \brief LAPDm datalink like TS 04.06 / Section 3.5.2 */
@@ -113,6 +113,9 @@ struct lapdm_entity {
 
 	/*! \brief pointer to \ref lapdm_channel of which we're part */
 	struct lapdm_channel *lapdm_ch;
+
+	uint8_t ta;		/* TA used and indicated to network */
+	uint8_t tx_power;	/* MS power used and indicated to network */
 };
 
 /*! \brief the two lapdm_entities that form a GSM logical channel (ACCH + DCCH) */
@@ -127,7 +130,7 @@ const char *get_rsl_name(int value);
 extern const char *lapdm_state_names[];
 
 /* initialize a LAPDm entity */
-void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode);
+void lapdm_entity_init(struct lapdm_entity *le, enum lapdm_mode mode, int t200);
 void lapdm_channel_init(struct lapdm_channel *lc, enum lapdm_mode mode);
 
 /* deinitialize a LAPDm entity */
