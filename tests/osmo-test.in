@@ -1,0 +1,2 @@
+abs_top_builddir=@abs_top_builddir@
+: ${LIBTOOL=$abs_top_builddir/libtool

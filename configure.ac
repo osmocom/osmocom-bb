@@ -3,6 +3,7 @@ AC_INIT([libosmocore],
 	[openbsc-devel@lists.openbsc.org])
 
 AM_INIT_AUTOMAKE([dist-bzip2])
+AC_CONFIG_TESTDIR(tests)
 
 dnl kernel style compile messages
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
@@ -137,6 +138,10 @@ then
 	AM_CONDITIONAL(ENABLE_UTILITIES, false)
 	AC_DEFINE([PANIC_INFLOOP],[1],[Use infinite loop on panic rather than fprintf/abort])
 fi
+
+
+AC_CONFIG_FILES(tests/osmo-test, chmod +x tests/osmo-test)
+dnl AC_CONFIG_FILES(tests/atlocal)
 
 AC_OUTPUT(
 	libosmocore.pc
