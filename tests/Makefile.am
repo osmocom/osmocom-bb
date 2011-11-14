@@ -36,6 +36,7 @@ installcheck-local: atconfig $(TESTSUITE)
 clean-local:
 	test ! -f '$(TESTSUITE)' || \
 		$(SHELL) '$(TESTSUITE)' --clean
+	$(RM) -f atconfig
      
 AUTOM4TE = $(SHELL) $(srcdir)/missing --run autom4te
 AUTOTEST = $(AUTOM4TE) --language=autotest

@@ -1,6 +1,4 @@
 AT_INIT
-AT_TESTED(osmo-test)
-
 AT_BANNER([Regression tests.])
 
 

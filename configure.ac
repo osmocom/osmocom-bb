@@ -140,9 +140,6 @@ then
 fi
 
 
-AC_CONFIG_FILES(tests/osmo-test, chmod +x tests/osmo-test)
-dnl AC_CONFIG_FILES(tests/atlocal)
-
 AC_OUTPUT(
 	libosmocore.pc
 	libosmocodec.pc
