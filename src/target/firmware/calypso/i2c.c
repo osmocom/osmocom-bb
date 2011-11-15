@@ -67,7 +67,7 @@ int i2c_write(uint8_t chip, uint32_t addr, int alen, const uint8_t *buffer, int 
 	if (len > 16)
 		return -1;
 
-	printd("i2c_write(chip=0x%02u, addr=0x%02u): ", chip, addr)
+	printd("i2c_write(chip=0x%02u, addr=0x%02u): ", chip, addr);
 
 	writeb(chip & 0x3f, I2C_REG(DEVICE_REG));
 	writeb(addr & 0xff, I2C_REG(ADDRESS_REG));
@@ -91,7 +91,7 @@ int i2c_write(uint8_t chip, uint32_t addr, int alen, const uint8_t *buffer, int 
 	/* wait until transfer completes */
 	while (1) {
 		uint8_t reg = readb(I2C_REG(STATUS_ACTIVITY_REG));
-		printd("I2C Status: 0x%02x\n", rerg & 0xf);
+		printd("I2C Status: 0x%02x\n", reg & 0xf);
 		if (!(reg & I2C_STATUS_IDLE)) // 0: idle 1: not idle
 			break;
 	}
