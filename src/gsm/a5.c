@@ -26,10 +26,28 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/*! \addtogroup a5
+ *  @{
+ */
+
+/*! \file gsm/a5.c
+ *  \brief Osmocom GSM A5 ciphering algorithm implementation
+ */
+
 #include <string.h>
 
 #include <osmocom/gsm/a5.h>
 
+/*! \brief Main method to generate a A5/x cipher stream
+ *  \param[in] n Which A5/x method to use
+ *  \param[in] key 8 byte array for the key (as received from the SIM)
+ *  \param[in] fn Frame number
+ *  \param[out] dl Pointer to array of ubits to return Downlink cipher stream
+ *  \param[out] ul Pointer to array of ubits to return Uplink cipher stream
+ *
+ * Currently A5/[0-2] are supported.
+ * Either (or both) of dl/ul can be NULL if not needed.
+ */
 void
 osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 {
@@ -76,6 +94,10 @@ osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 #define A5_R3_TAPS	0x700080 /* x^23 + x^15 + x^2 + x + 1 */
 #define A5_R4_TAPS	0x010800 /* x^17 + x^5 + 1 */
 
+/*! \brief Computes parity of a 32-bit word
+ *  \param[in] x 32 bit word
+ *  \return Parity bit (xor of all bits) as 0 or 1
+ */
 static inline uint32_t
 _a5_12_parity(uint32_t x)
 {
@@ -87,12 +109,24 @@ _a5_12_parity(uint32_t x)
 	return x & 1;
 }
 
+/*! \brief Compute majority bit from 3 taps
+ *  \param[in] v1 LFSR state ANDed with tap-bit
+ *  \param[in] v2 LFSR state ANDed with tap-bit
+ *  \param[in] v3 LFSR state ANDed with tap-bit
+ *  \return The majority bit (0 or 1)
+ */
 static inline uint32_t
 _a5_12_majority(uint32_t v1, uint32_t v2, uint32_t v3)
 {
 	return (!!v1 + !!v2 + !!v3) >= 2;
 }
 
+/*! \brief Compute the next LFSR state
+ *  \param[in] r Current state
+ *  \param[in] mask LFSR mask
+ *  \param[in] taps LFSR taps
+ *  \return Next state
+ */
 static inline uint32_t
 _a5_12_clock(uint32_t r, uint32_t mask, uint32_t taps)
 {
@@ -108,6 +142,10 @@ _a5_12_clock(uint32_t r, uint32_t mask, uint32_t taps)
 #define A51_R2_CLKBIT	0x000400
 #define A51_R3_CLKBIT	0x000400
 
+/*! \brief GSM A5/1 Clocking function
+ *  \param[in] r Register state
+ *  \param[in] force Non-zero value disable conditional clocking
+ */
 static inline void
 _a5_1_clock(uint32_t r[], int force)
 {
@@ -129,6 +167,10 @@ _a5_1_clock(uint32_t r[], int force)
 		r[2] = _a5_12_clock(r[2], A5_R3_MASK, A5_R3_TAPS);
 }
 
+/*! \brief GSM A5/1 Output function
+ *  \param[in] r Register state
+ *  \return The A5/1 output function bit
+ */
 static inline uint8_t
 _a5_1_get_output(uint32_t r[])
 {
@@ -137,6 +179,14 @@ _a5_1_get_output(uint32_t r[])
 		(r[2] >> (A5_R3_LEN-1));
 }
 
+/*! \brief Generate a GSM A5/1 cipher stream
+ *  \param[in] key 8 byte array for the key (as received from the SIM)
+ *  \param[in] fn Frame number
+ *  \param[out] dl Pointer to array of ubits to return Downlink cipher stream
+ *  \param[out] ul Pointer to array of ubits to return Uplink cipher stream
+ *
+ * Either (or both) of dl/ul can be NULL if not needed.
+ */
 void
 osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 {
@@ -200,6 +250,10 @@ osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 #define A52_R4_CLKBIT1	0x000008
 #define A52_R4_CLKBIT2	0x000080
 
+/*! \brief GSM A5/2 Clocking function
+ *  \param[in] r Register state
+ *  \param[in] force Non-zero value disable conditional clocking
+ */
 static inline void
 _a5_2_clock(uint32_t r[], int force)
 {
@@ -223,6 +277,10 @@ _a5_2_clock(uint32_t r[], int force)
 	r[3] = _a5_12_clock(r[3], A5_R4_MASK, A5_R4_TAPS);
 }
 
+/*! \brief GSM A5/2 Output function
+ *  \param[in] r Register state
+ *  \return The A5/2 output function bit
+ */
 static inline uint8_t
 _a5_2_get_output(uint32_t r[])
 {
@@ -238,6 +296,14 @@ _a5_2_get_output(uint32_t r[])
 	return b;
 }
 
+/*! \brief Generate a GSM A5/1 cipher stream
+ *  \param[in] key 8 byte array for the key (as received from the SIM)
+ *  \param[in] fn Frame number
+ *  \param[out] dl Pointer to array of ubits to return Downlink cipher stream
+ *  \param[out] ul Pointer to array of ubits to return Uplink cipher stream
+ *
+ * Either (or both) of dl/ul can be NULL if not needed.
+ */
 void
 osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 {
@@ -298,3 +364,5 @@ osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 			ul[i] = _a5_2_get_output(r);
 	}
 }
+
+/*! }@ */

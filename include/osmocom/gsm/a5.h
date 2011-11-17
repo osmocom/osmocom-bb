@@ -27,6 +27,18 @@
 
 #include <osmocom/core/bits.h>
 
+/*! \defgroup a5 GSM A5 ciphering algorithm
+ *  @{
+ */
+
+/*! \file gsm/a5.h
+ *  \brief Osmocom GSM A5 ciphering algorithm header
+ */
+
+/*! \brief Converts a frame number into the 22 bit number used in A5/x
+ *  \param[in] fn The true framenumber
+ *  \return 22 bit word
+ */
 static inline uint32_t
 osmo_a5_fn_count(uint32_t fn)
 {
@@ -45,5 +57,7 @@ osmo_a5_fn_count(uint32_t fn)
 void osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
 void osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
 void osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
+
+/*! }@ */
 
 #endif /* __OSMO_A5_H__ */
