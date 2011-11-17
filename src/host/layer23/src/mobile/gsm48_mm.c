@@ -1841,7 +1841,6 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 	/* stop IMSI detach timer (if running) */
 	stop_mm_t3220(mm);
 
-
 	/* SIM invalid */
 	subscr->sim_valid = 0;
 
@@ -1866,6 +1865,24 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* return to MM IDLE */
 	return gsm48_mm_return_idle(ms, NULL);
+}
+
+/* abort radio connection */
+static int gsm48_mm_imsi_detach_abort(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
+
+	/* abort RR if timer fired */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_ABORT_REQ);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *) nmsg->data;
+	nrrh->cause = GSM48_RR_CAUSE_NORMAL;
+	gsm48_rr_downmsg(ms, nmsg);
+
+	/* imsi detach has ended now */
+	return gsm48_mm_imsi_detach_end(ms, msg);
 }
 
 /* start an IMSI detach in MM IDLE */
@@ -4233,8 +4250,8 @@ static struct eventstate {
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_delay},
 
-	{GSM48_MM_ST_IMSI_DETACH_INIT, ALL_STATES,
-	 GSM48_MM_EVENT_TIMEOUT_T3220, gsm48_mm_imsi_detach_end},
+	{SBIT(GSM48_MM_ST_IMSI_DETACH_INIT), ALL_STATES,
+	 GSM48_MM_EVENT_TIMEOUT_T3220, gsm48_mm_imsi_detach_abort},
 
 	/* location update in other cases */
 	{SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES,
