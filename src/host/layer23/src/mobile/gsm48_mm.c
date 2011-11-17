@@ -4280,7 +4280,8 @@ static struct eventstate {
 	 GSM48_MM_EVENT_TIMEOUT_T3240, gsm48_mm_abort_rr},
 
 	/* T3230 timed out */
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	{SBIT(GSM48_MM_ST_WAIT_OUT_MM_CONN) |
+	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), ALL_STATES,
 	 GSM48_MM_EVENT_TIMEOUT_T3230, gsm48_mm_timeout_mm_con},
 
 	/* SIM reports SRES */
