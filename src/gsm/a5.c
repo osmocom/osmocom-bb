@@ -224,23 +224,18 @@ _a5_2_clock(uint32_t r[], int force)
 }
 
 static inline uint8_t
-_a5_2_get_output(uint32_t r[], uint8_t *db)
+_a5_2_get_output(uint32_t r[])
 {
-	uint8_t cb, tb;
+	uint8_t b;
 
-	tb =	(r[0] >> (A5_R1_LEN-1)) ^
-		(r[1] >> (A5_R2_LEN-1)) ^
-		(r[2] >> (A5_R3_LEN-1));
+	b = (r[0] >> (A5_R1_LEN-1)) ^
+	    (r[1] >> (A5_R2_LEN-1)) ^
+	    (r[2] >> (A5_R3_LEN-1)) ^
+	    _a5_12_majority( r[0] & 0x08000, ~r[0] & 0x04000,  r[0] & 0x1000) ^
+	    _a5_12_majority(~r[1] & 0x10000,  r[1] & 0x02000,  r[1] & 0x0200) ^
+	    _a5_12_majority( r[2] & 0x40000,  r[2] & 0x10000, ~r[2] & 0x2000);
 
-	cb = *db;
-
-	*db = (	tb ^
-		_a5_12_majority( r[0] & 0x08000, ~r[0] & 0x04000,  r[0] & 0x1000) ^
-		_a5_12_majority(~r[1] & 0x10000,  r[1] & 0x02000,  r[1] & 0x0200) ^
-		_a5_12_majority( r[2] & 0x40000,  r[2] & 0x10000, ~r[2] & 0x2000)
-	);
-
-	return cb;
+	return b;
 }
 
 void
@@ -249,7 +244,6 @@ osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 	uint32_t r[4] = {0, 0, 0, 0};
 	uint32_t fn_count;
 	uint32_t b;
-	uint8_t db = 0, o;
 	int i;
 
 	/* Key load */
@@ -286,26 +280,21 @@ osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 	r[3] |= 1 << 10;
 
 	/* Mix */
-	for (i=0; i<100; i++)
+	for (i=0; i<99; i++)
 	{
 		_a5_2_clock(r, 0);
 	}
 
-	_a5_2_get_output(r, &db);
-
-
 	/* Output */
 	for (i=0; i<114; i++) {
 		_a5_2_clock(r, 0);
-		o = _a5_2_get_output(r, &db);
 		if (dl)
-			dl[i] = o;
+			dl[i] = _a5_2_get_output(r);
 	}
 
 	for (i=0; i<114; i++) {
 		_a5_2_clock(r, 0);
-		o = _a5_2_get_output(r, &db);
 		if (ul)
-			ul[i] = o;
+			ul[i] = _a5_2_get_output(r);
 	}
 }
