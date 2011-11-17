@@ -31,7 +31,7 @@
 #include <osmocom/gsm/a5.h>
 
 void
-osmo_a5(int n, uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
+osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 {
 	switch (n)
 	{
@@ -138,7 +138,7 @@ _a5_1_get_output(uint32_t r[])
 }
 
 void
-osmo_a5_1(uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
+osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 {
 	uint32_t r[3] = {0, 0, 0};
 	uint32_t fn_count;
@@ -244,7 +244,7 @@ _a5_2_get_output(uint32_t r[], uint8_t *db)
 }
 
 void
-osmo_a5_2(uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
+osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 {
 	uint32_t r[4] = {0, 0, 0, 0};
 	uint32_t fn_count;
