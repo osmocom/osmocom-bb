@@ -6,7 +6,7 @@ AT_BANNER([Regression tests.])
 AT_SETUP([a5])
 AT_KEYWORDS([a5])
 cat $abs_srcdir/a5/a5_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/a5/bitrev_test], [], [expout])
+AT_CHECK([$abs_top_builddir/tests/a5/a5_test], [], [expout])
 AT_CLEANUP
 
 AT_SETUP([bits])
