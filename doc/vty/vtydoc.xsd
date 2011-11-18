@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+    xmlns="urn:osmocom:xml:libosmocore:vty:doc:1.0"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="urn:osmocom:xml:libosmocore:vty:doc:1.0"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified">
+
+    <xs:complexType name="ParamType">
+        <xs:attribute name="name" type="xs:string" use="required" />
+        <xs:attribute name="doc" type="xs:string" use="required" />
+    </xs:complexType>
+
+    <xs:complexType name="ParamsType">
+        <xs:sequence>
+            <xs:element name="param" type="ParamType" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="CommandType">
+        <xs:sequence>
+            <xs:element name="doc" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="params" type="ParamsType" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="enter" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required" />
+    </xs:complexType>
+
+    <xs:complexType name="NodeType">
+	<xs:sequence>
+		<xs:element name="command" type="CommandType" minOccurs="0" maxOccurs="unbounded"/>
+	</xs:sequence>
+        <xs:attribute name="id" type="xs:anyURI"/>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- the main entry -->
+    <xs:element name="vtydoc">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="node" type="NodeType" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
+

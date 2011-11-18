@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vtydoc xmlns="urn:osmocom:xml:libosmocore:vty:doc:1.0">
+    <!-- test a nested hierachy -->
+    <node id="mgcp" name="MGCP Node">
+	<!-- define a command -->
+	<command id="foo_cmd">
+		<doc>General docs</doc>
+		<params>
+			<param name="do" doc="Explain do" />
+			<param name="fo" doc="Explain foo" />
+		</params>
+	</command>
+	<command id="foo_cmd">
+		<doc>General docs</doc>
+		<params>
+			<param name="do" doc="Explain do" />
+			<param name="fo" doc="Explain foo" />
+		</params>
+	</command>
+
+    </node>
+</vtydoc>

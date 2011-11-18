@@ -61,7 +61,8 @@ utils/osmo-auc-gen
 
 doc/codec
 doc/core
-doc/vty
+doc/vty/latex
+doc/vty/html
 doc/gsm
 doc/html.tar
 

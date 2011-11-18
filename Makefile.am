@@ -36,8 +36,7 @@ $(top_builddir)/doc/gsm/html/index.html: $(SOURCES) Doxyfile.gsm
 	$(DOXYGEN) Doxyfile.gsm
 
 $(top_builddir)/doc/vty/html/index.html: $(SOURCES) Doxyfile.vty
-	@rm -rf doc/vty
-	mkdir -p doc/vty
+	@rm -rf doc/vty/{html,latex}
 	$(DOXYGEN) Doxyfile.vty
 
 $(top_builddir)/doc/codec/html/index.html: $(SOURCES) Doxyfile.codec
