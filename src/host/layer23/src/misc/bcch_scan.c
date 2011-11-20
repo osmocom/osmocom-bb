@@ -274,7 +274,7 @@ static int bscan_sig_cb(unsigned int subsys, unsigned int signal,
 			rc = get_next_arfcn(&fps);
 			if (rc < 0) {
 				fps.state = BSCAN_S_DONE;
-				return;
+				return 0;
 			}
 			_cinfo_start_arfcn(rc);
 			break;
