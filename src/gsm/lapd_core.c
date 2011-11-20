@@ -782,7 +782,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 {
 	struct lapd_datalink *dl = lctx->dl;
 	int length = lctx->length;
-	int rc;
+	int rc = 0;
 	uint8_t prim, op;
 
 	switch (lctx->s_u) {
