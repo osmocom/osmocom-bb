@@ -39,13 +39,13 @@ static void mt6139_compute_pll(uint32_t f_vco_100khz,
 	/* To compute Nint, we assume Nfrac is zero */
 	*nint = (fvco_100khz / (10 * 2 * 26)) - (0 / 130);
 
-	if (nint > 127)
+	if (*nint > 127)
 		printf("VCO Frequency %u kHz is out of spec\n", f_vco_100khz);
 
 	/* Compute Nfract using the pre-computed Nint */
 	/* Nfrac = ( (Fvco/2*26) - Nint) * 130 */
 	/* Nfrac = ( (Fvco*130)/(2*26) - (Nint * 130) */
-	*nfrac = (f_vco_100khz*130)/(52*10) - (nint * 130);
+	*nfrac = (f_vco_100khz*130)/(52*10) - (*nint * 130);
 }
 
 /* Set ARFCN.  Takes 2 reg_write, i.e. 8 TPU instructions */
