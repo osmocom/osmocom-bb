@@ -230,6 +230,14 @@ static void dsp_set_params(int16_t *param_tab, int param_size)
 
 	dsp_api.param->d_gprs_install_address = DSP_SNIFF_PATCH_START;
 
+	/* Set MCSI burst start magic, stored in unused holes.
+	 * The sniffing task will send those over MCSI at the begin
+	 * of each burst, in this case ASCII "IQDATAv1" */
+	dsp_api.param->d_hole2_param[0] = 0x4951;
+	dsp_api.param->d_hole2_param[1] = 0x4441;
+	dsp_api.param->d_hole2_param[2] = 0x5441;
+	dsp_api.param->d_hole2_param[3] = 0x7631;
+
 	dsp_dump_version();
 
 	dputs("Finishing download phase\n");
@@ -566,6 +574,12 @@ void dsp_load_tch_param(struct gsm_time *next_time,
 	dsp_api.db_w->a_a5fn[0]   = a5fn0;      /* ciphering FN part 1 */
 	dsp_api.db_w->a_a5fn[1]   = a5fn1;      /* ciphering FN part 2 */
 	dsp_api.db_w->d_ctrl_tch  = d_ctrl_tch; /* Channel config.     */
+}
+
+void dsp_load_sniff_fn(struct gsm_time *next_time)
+{
+	dsp_api.db_w->a_a5fn[0] = (next_time->fn >> 16);
+	dsp_api.db_w->a_a5fn[1] = (next_time->fn & 0xffff);
 }
 
 void dsp_load_ciph_param(int mode, uint8_t *key)

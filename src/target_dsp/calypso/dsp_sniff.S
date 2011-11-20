@@ -68,7 +68,7 @@ sniff_burst_ptr		.ds	1
 
 	; Variables for MCSI
 mcsi_tmp			.ds	1
-mcsi_cnt			.ds	1
+mcsi_dat			.ds	1
 
 ; ----------------------------------------------------------------------------
 ; The code itself
@@ -181,8 +181,6 @@ mcsi_init:
 			st	#1, *AR1
 			portw	*AR1, MCSI_CONTROL_REG
 
-			call mcsi_clear_status
-
 			; Done
 			ret
 
@@ -195,6 +193,9 @@ mcsi_init:
 mcsi_send_word:
 			stm	#mcsi_tmp, AR1
 			call	mcsi_clear_status
+
+			; perform XOR LRC
+			xor	*AR4, B
 
 			; Write TX word and increase address
 			portw	*AR4+, MCSI_TX0_REG
@@ -212,13 +213,10 @@ mcsi_send_word:
 ;
 ; MCSI send burst
 ;
-;  Sends a burst of *AR2 words, beginning at the address of AR4
-;  Parameters: the number of words to send at *AR2, start-address in AR4
+;  Sends a burst of A words, beginning at the address of AR4
+;  Parameters: the number of words to send in A, start-address in AR4
 ;
 mcsi_send_burst:
-			; Load word-count in A
-			ldu	*AR2, A
-
 			; Loop over all words
 1:
 			call	mcsi_send_word
@@ -257,16 +255,28 @@ mcsi_disable:
 ;  done for us. Only real work goes here.
 ;
 burst_handler:
-			; Store address of I/Q data
-			stm	#0x0CCE, AR4
-
 			; Initialize MCSI
 			call	mcsi_init
 
-			; Send the I/Q data over MCSI
-			stm	#mcsi_cnt, AR2
-			stm	#380, *AR2		; 190 samples, 380 words
+			; Initialize B used for XOR LRC
+			ld	#0, B
+
+			; Send magic string, stored in ndb param section
+			stm	#0x0C39, AR4		; d_hole2_param[1]
+			ld	#4, A			; 4 words
 			call	mcsi_send_burst
+
+			; Store address of I/Q data
+			stm	#0x0CCE, AR4
+
+			; Send the NB I/Q data over MCSI
+			ld	#302, A			; 151 samples, 302 words
+			call	mcsi_send_burst
+
+			; Store and send XOR LRC
+			stm	#mcsi_dat, AR4
+			stl	B, *AR4
+			call	mcsi_send_word
 
 			; Disable MCSI
 			call	mcsi_disable
@@ -302,10 +312,35 @@ burst_handler:
 			; Initialize MCSI
 			call	mcsi_init
 
+			; Initialize B used for XOR LRC
+			ld	#0, B
+
 			; Send the demodulated burst data over MCSI
-			stm	#mcsi_cnt, AR2
-			stm	#34, *AR2		; 5 + 29 words
+			ld	#34, A			; 5 + 29 words
 			call	mcsi_send_burst
+
+			stm	#mcsi_dat, AR4
+
+			; Store address of a_a5fn[1] @ DSP page 0
+			stm	#0x080C, AR4
+
+			; Check DSP page
+			bitf	*(dsp_page), #1
+			bc	1f, ntc
+
+			; Store address of a_a5fn[1] @ DSP page 1
+			stm	#0x0820, AR4
+1:
+			; Send FN and d_ctrl_system via MCSI (contains the TSC)
+			call	mcsi_send_word		; send a_a5fn[0]
+			call	mcsi_send_word		; send a_a5fn[1]
+			addm	#2, AR4			; AR4 = 0x0810/0x0824
+			call	mcsi_send_word		; send d_ctrl_system
+
+			; Store and send XOR LRC
+			stm	#mcsi_dat, AR4
+			stl	B, *AR4
+			call	mcsi_send_word
 
 			; Disable MCSI
 			call	mcsi_disable

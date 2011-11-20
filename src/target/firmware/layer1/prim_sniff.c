@@ -236,6 +236,10 @@ l1s_sniff_cmd(uint8_t ul, __unused uint8_t burst_id, __unused uint16_t p3)
 
 	rfch_get_params(&l1s.next_time, &arfcn, &tsc, &tn);
 
+	/* Load the frame number (which is dumped via MCSI and used for
+	 * MCSI/serial synchronization */
+	dsp_load_sniff_fn(&l1s.next_time);
+
 	dsp_load_rx_task(SNIFF_DSP_TASK, 0, tsc);
 
 		/* enable dummy bursts detection */
