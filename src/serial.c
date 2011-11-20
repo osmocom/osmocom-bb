@@ -204,8 +204,8 @@ osmo_serial_set_custom_baudrate(int fd, int baudrate)
 int
 osmo_serial_clear_custom_baudrate(int fd)
 {
-	int rc;
 #ifdef __linux__
+	int rc;
 	struct serial_struct ser_info;
 
 	rc = ioctl(fd, TIOCGSERIAL, &ser_info);
