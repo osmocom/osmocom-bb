@@ -104,9 +104,8 @@ _a5_12_parity(uint32_t x)
 	x ^= x >> 16;
 	x ^= x >> 8;
 	x ^= x >> 4;
-	x ^= x >> 2;
-	x ^= x >> 1;
-	return x & 1;
+	x &= 0xf;
+	return (0x6996 >> x) & 1;
 }
 
 /*! \brief Compute majority bit from 3 taps
