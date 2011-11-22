@@ -161,7 +161,8 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 	case GSM48_MT_RR_SYSINFO_5ter:
 		break;
 	default:
-		fprintf(stderr, "\tUnknown SI");
+		LOGP(DRR, LOGL_ERROR, "Unknown SI: %d\n",
+		     si_hdr->system_information);
 		break;
 	};
 }
