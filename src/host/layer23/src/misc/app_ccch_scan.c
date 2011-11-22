@@ -351,7 +351,7 @@ static int gsm48_rx_paging_p2(struct msgb *msg, struct osmocom_ms *ms)
 		     chan_need(pag->cneed1), pag->tmsi1);
 	LOGP(DRR, LOGL_NOTICE, "Paging2: %s chan %s to TMSI M(0x%x) \n",
 		     pag_print_mode(pag->pag_mode),
-		     chan_need(pag->cneed1), pag->tmsi2);
+		     chan_need(pag->cneed2), pag->tmsi2);
 
 	/* no optional element */
 	if (msgb_l3len(msg) < sizeof(*pag) + 3)
