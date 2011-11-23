@@ -7,12 +7,19 @@
  * 3GPP TS 08.16 version 8.0.1 Release 1999 / ETSI TS 101 299 V8.0.1 (2002-05)
  * 3GPP TS 48.016 version 6.5.0 Release 6 / ETSI TS 148 016 V6.5.0 (2005-11) */
 
+/*! \addtogroup libgb
+ *  @{
+ */
+
+/*! \file gprs_ns.h */
+
+/*! \brief Common header of GPRS NS */
 struct gprs_ns_hdr {
-	uint8_t pdu_type;
-	uint8_t data[0];
+	uint8_t pdu_type;	/*!< NS PDU type */
+	uint8_t data[0];	/*!< variable-length payload */
 } __attribute__((packed));
 
-/* TS 08.16, Section 10.3.7, Table 14 */
+/*! \brief NS PDU Type (TS 08.16, Section 10.3.7, Table 14) */
 enum ns_pdu_type {
 	NS_PDUT_UNITDATA	= 0x00,
 	NS_PDUT_RESET		= 0x02,
@@ -35,7 +42,7 @@ enum ns_pdu_type {
 	SNS_PDUT_SIZE_ACK	= 0x13,
 };
 
-/* TS 08.16, Section 10.3, Table 12 */
+/*! \brief NS Control IE (TS 08.16, Section 10.3, Table 12) */
 enum ns_ctrl_ie {
 	NS_IE_CAUSE		= 0x00,
 	NS_IE_VCI		= 0x01,
@@ -52,7 +59,7 @@ enum ns_ctrl_ie {
 	NS_IE_IP_ADDR		= 0x0b,
 };
 
-/* TS 08.16, Section 10.3.2, Table 13 */
+/*! \brief NS Cause (TS 08.16, Section 10.3.2, Table 13) */
 enum ns_cause {
 	NS_CAUSE_TRANSIT_FAIL		= 0x00,
 	NS_CAUSE_OM_INTERVENTION	= 0x01,
@@ -106,40 +113,44 @@ enum ns_timeout {
 #define NSE_S_BLOCKED	0x0001
 #define NSE_S_ALIVE	0x0002
 
+/*! \brief Osmocom NS link layer types */
 enum gprs_ns_ll {
-	GPRS_NS_LL_UDP,
-	GPRS_NS_LL_E1,
-	GPRS_NS_LL_FR_GRE,
+	GPRS_NS_LL_UDP,		/*!< NS/UDP/IP */
+	GPRS_NS_LL_E1,		/*!< NS/E1 */
+	GPRS_NS_LL_FR_GRE,	/*!< NS/FR/GRE/IP */
 };
 
+/*! \brief Osmoco NS events */
 enum gprs_ns_evt {
 	GPRS_NS_EVT_UNIT_DATA,
 };
 
 struct gprs_nsvc;
+/*! \brief Osmocom GPRS callback function type */
 typedef int gprs_ns_cb_t(enum gprs_ns_evt event, struct gprs_nsvc *nsvc,
 			 struct msgb *msg, uint16_t bvci);
 
-/* An instance of the NS protocol stack */
+/*! \brief An instance of the NS protocol stack */
 struct gprs_ns_inst {
-	/* callback to the user for incoming UNIT DATA IND */
+	/*! \brief callback to the user for incoming UNIT DATA IND */
 	gprs_ns_cb_t *cb;
 
-	/* linked lists of all NSVC in this instance */
+	/*! \brief linked lists of all NSVC in this instance */
 	struct llist_head gprs_nsvcs;
 
-	/* a NSVC object that's needed to deal with packets for unknown NSVC */
+	/*! \brief a NSVC object that's needed to deal with packets for
+	 * 	   unknown NSVC */
 	struct gprs_nsvc *unknown_nsvc;
 
 	uint16_t timeout[NS_TIMERS_COUNT];
 
-	/* NS-over-IP specific bits */
+	/*! \brief NS-over-IP specific bits */
 	struct {
 		struct osmo_fd fd;
 		uint32_t local_ip;
 		uint16_t local_port;
 	} nsip;
-	/* NS-over-FR-over-GRE-over-IP specific bits */
+	/*! \brief NS-over-FR-over-GRE-over-IP specific bits */
 	struct {
 		struct osmo_fd fd;
 		uint32_t local_ip;
@@ -155,12 +166,15 @@ enum nsvc_timer_mode {
 	_NSVC_TIMER_NR,
 };
 
+/*! \brief Structure representing a single NS-VC */
 struct gprs_nsvc {
+	/*! \brief list of NS-VCs within NS Instance */
 	struct llist_head list;
+	/*! \brief pointer to NS Instance */
 	struct gprs_ns_inst *nsi;
 
-	uint16_t nsei;		/* end-to-end significance */
-	uint16_t nsvci;	/* uniquely identifies NS-VC at SGSN */
+	uint16_t nsei;	/*! \brief end-to-end significance */
+	uint16_t nsvci;	/*! \brief uniquely identifies NS-VC at SGSN */
 
 	uint32_t state;
 	uint32_t remote_state;
@@ -174,7 +188,7 @@ struct gprs_nsvc {
 
 	struct rate_ctr_group *ctrg;
 
-	/* which link-layer are we based on? */
+	/*! \brief which link-layer are we based on? */
 	enum gprs_ns_ll ll;
 
 	union {
@@ -230,5 +244,7 @@ static inline struct msgb *gprs_ns_msgb_alloc(void)
 {
 	return msgb_alloc_headroom(NS_ALLOC_SIZE, NS_ALLOC_HEADROOM, "GPRS/NS");
 }
+
+/*! }@ */
 
 #endif

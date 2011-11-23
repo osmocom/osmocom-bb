@@ -1,4 +1,4 @@
-/* GPRS Networks Service (NS) messages on the Gb interfacebvci = msgb_bvci(msg);
+/* GPRS Networks Service (NS) messages on the Gb interface
  * 3GPP TS 08.16 version 8.0.1 Release 1999 / ETSI TS 101 299 V8.0.1 (2002-05) */
 
 /* (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
@@ -20,7 +20,17 @@
  *
  */
 
-/* Some introduction into NS:  NS is used typically on top of frame relay,
+/*! \addtogroup libgb
+ *  @{
+ */
+
+/*! \file gprs_ns.c */
+
+/*!
+ * GPRS Networks Service (NS) messages on the Gb interface
+ * 3GPP TS 08.16 version 8.0.1 Release 1999 / ETSI TS 101 299 V8.0.1 (2002-05) 
+ *
+ * Some introduction into NS:  NS is used typically on top of frame relay,
  * but in the ip.access world it is encapsulated in UDP packets.  It serves
  * as an intermediate shim betwen BSSGP and the underlying medium.  It doesn't
  * do much, apart from providing congestion notification and status indication.
@@ -106,7 +116,11 @@ static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
 	.ctr_desc = nsvc_ctr_description,
 };
 
-/* Lookup struct gprs_nsvc based on NSVCI */
+/*! \brief Lookup struct gprs_nsvc based on NSVCI
+ *  \param[in] nsi NS instance in which to search
+ *  \param[in] nsvci NSVCI to be searched
+ *  \returns gprs_nsvc of respective NSVCI
+ */
 struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci)
 {
 	struct gprs_nsvc *nsvc;
@@ -117,7 +131,11 @@ struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci)
 	return NULL;
 }
 
-/* Lookup struct gprs_nsvc based on NSVCI */
+/*! \brief Lookup struct gprs_nsvc based on NSEI
+ *  \param[in] nsi NS instance in which to search
+ *  \param[in] nsei NSEI to be searched
+ *  \returns gprs_nsvc of respective NSEI
+ */
 struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei)
 {
 	struct gprs_nsvc *nsvc;
@@ -164,6 +182,9 @@ struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 	return nsvc;
 }
 
+/*! \brief Delete given NS-VC
+ *  \param[in] nsvc gprs_nsvc to be deleted
+ */
 void nsvc_delete(struct gprs_nsvc *nsvc)
 {
 	if (osmo_timer_pending(&nsvc->timer))
@@ -199,6 +220,7 @@ static const struct value_string ns_cause_str[] = {
 	{ 0, NULL }
 };
 
+/*! \brief Obtain a human-readable string for NS cause value */
 const char *gprs_ns_cause_str(enum ns_cause cause)
 {
 	return get_value_string(ns_cause_str, cause);
@@ -251,6 +273,10 @@ static int gprs_ns_tx_simple(struct gprs_nsvc *nsvc, uint8_t pdu_type)
 	return gprs_ns_tx(nsvc, msg);
 }
 
+/*! \brief Transmit a NS-RESET on a given NSVC
+ *  \param[in] nsvc NS-VC used for transmission
+ *  \paam[in] cause Numeric NS cause value
+ */
 int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 {
 	struct msgb *msg = gprs_ns_msgb_alloc();
@@ -278,6 +304,11 @@ int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 
 }
 
+/*! \brief Transmit a NS-STATUS on a given NSVC
+ *  \param[in] nsvc NS-VC to be used for transmission
+ *  \param[in] cause Numeric NS cause value
+ *  \param[in] bvci BVCI to be reset within NSVC
+ *  \param[in] orig_msg message causing the STATUS */
 int gprs_ns_tx_status(struct gprs_nsvc *nsvc, uint8_t cause,
 		      uint16_t bvci, struct msgb *orig_msg)
 {
@@ -327,6 +358,11 @@ int gprs_ns_tx_status(struct gprs_nsvc *nsvc, uint8_t cause,
 	return gprs_ns_tx(nsvc, msg);
 }
 
+/*! \brief Transmit a NS-BLOCK on a tiven NS-VC
+ *  \param[in] nsvc NS-VC on which the NS-BLOCK is to be transmitted
+ *  \param[in] cause Numeric NS Cause value
+ *  \returns 0 in case of success
+ */
 int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
 {
 	struct msgb *msg = gprs_ns_msgb_alloc();
@@ -355,6 +391,10 @@ int gprs_ns_tx_block(struct gprs_nsvc *nsvc, uint8_t cause)
 	return gprs_ns_tx(nsvc, msg);
 }
 
+/*! \brief Transmit a NS-UNBLOCK on a given NS-VC
+ *  \param[in] nsvc NS-VC on which the NS-UNBLOCK is to be transmitted
+ *  \returns 0 in case of success
+ */
 int gprs_ns_tx_unblock(struct gprs_nsvc *nsvc)
 {
 	log_set_context(BSC_CTX_NSVC, nsvc);
@@ -364,6 +404,10 @@ int gprs_ns_tx_unblock(struct gprs_nsvc *nsvc)
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK);
 }
 
+/*! \brief Transmit a NS-ALIVE on a given NS-VC
+ *  \param[in] nsvc NS-VC on which the NS-ALIVE is to be transmitted
+ *  \returns 0 in case of success
+ */
 int gprs_ns_tx_alive(struct gprs_nsvc *nsvc)
 {
 	log_set_context(BSC_CTX_NSVC, nsvc);
@@ -373,6 +417,10 @@ int gprs_ns_tx_alive(struct gprs_nsvc *nsvc)
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
 }
 
+/*! \brief Transmit a NS-ALIVE-ACK on a given NS-VC
+ *  \param[in] nsvc NS-VC on which the NS-ALIVE-ACK is to be transmitted
+ *  \returns 0 in case of success
+ */
 int gprs_ns_tx_alive_ack(struct gprs_nsvc *nsvc)
 {
 	log_set_context(BSC_CTX_NSVC, nsvc);
@@ -493,7 +541,16 @@ static int gprs_ns_tx_reset_ack(struct gprs_nsvc *nsvc)
 	return gprs_ns_tx(nsvc, msg);
 }
 
-/* Section 9.2.10: transmit side / NS-UNITDATA-REQUEST primitive */
+/*! \brief High-level function for transmitting a NS-UNITDATA messsage
+ *  \param[in] nsi NS-instance on which we shall transmit
+ *  \param[in] msg struct msgb to be trasnmitted
+ *
+ * This function obtains the NS-VC by the msgb_nsei(msg) and then checks
+ * if the NS-VC is ALIVEV and not BLOCKED.  After that, it adds a NS
+ * header for the NS-UNITDATA message type and sends it off.
+ *
+ * Section 9.2.10: transmit side / NS-UNITDATA-REQUEST primitive 
+ */
 int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 {
 	struct gprs_nsvc *nsvc;
@@ -671,7 +728,16 @@ static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_BLOCK_ACK);
 }
 
-/* main entry point, here incoming NS frames enter */
+/*! \brief Receive incoming NS message from underlying transport layer
+ *  \param nsi NS instance to which the data belongs
+ *  \param[in] msg message buffer containing newly-received data
+ *  \param[in] saddr socketaddr from which data was received
+ *  \param[in] ll link-layer type in which data was received
+ *  \returns 0 in case of success, < 0 in case of error
+ *
+ * This is the main entry point int othe NS imlementation where frames
+ * from the underlying transport (normally UDP) enter.
+ */
 int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		   struct sockaddr_in *saddr, enum gprs_ns_ll ll)
 {
@@ -823,6 +889,10 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 	return rc;
 }
 
+/*! \brief Create a new GPRS NS instance
+ *  \param[in] cb Call-back function for incoming BSSGP data
+ *  \returns dynamically allocated gprs_ns_inst
+ */
 struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb)
 {
 	struct gprs_ns_inst *nsi = talloc_zero(tall_bsc_ctx, struct gprs_ns_inst);
@@ -845,6 +915,12 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb)
 	return nsi;
 }
 
+/*! \brief Destroy an entire NS instance
+ *  \param nsi gprs_ns_inst that is to be destroyed
+ *
+ *  This function SHOULD release all resources associated with the
+ *  NS-instance but is actually not completely implemented!
+ */
 void gprs_ns_destroy(struct gprs_ns_inst *nsi)
 {
 	/* FIXME: clear all timers */
@@ -940,7 +1016,14 @@ static int nsip_fd_cb(struct osmo_fd *bfd, unsigned int what)
 	return rc;
 }
 
-/* Listen for incoming GPRS packets */
+/*! \brief Create a listening socket for GPRS NS/UDP/IP
+ *  \param[in] nsi NS protocol instance to listen
+ *  \returns >=0 (fd) in case of success, negative in case of error
+ *
+ *  A call to this function will create a UDP socket bound to the port
+ *  number and IP address specified in the NS protocol instance. The
+ *  file descriptor of the socket will be stored in nsi->nsip.fd.
+ */
 int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi)
 {
 	int ret;
@@ -955,7 +1038,14 @@ int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi)
 	return ret;
 }
 
-/* Initiate a RESET procedure */
+/*! \brief Initiate a RESET procedure
+ *  \param[in] nsvc NS-VC in which to start the procedure
+ *  \param[in] cause Numeric NS cause value
+ *
+ * This is a high-level function initiating a NS-RESET procedure. It
+ * will not only send a NS-RESET, but also set the state to BLOCKED and
+ * start the Tns-reset timer.
+ */
 void gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 {
 	LOGP(DNS, LOGL_INFO, "NSEI=%u RESET procedure based on API request\n",
@@ -972,7 +1062,16 @@ void gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
 }
 
-/* Establish a connection (from the BSS) to the SGSN */
+/*! \brief Establish a NS connection (from the BSS) to the SGSN
+ *  \param nsi NS-instance
+ *  \param[in] dest Destination IP/Port
+ *  \param[in] nsei NSEI of the to-be-established NS-VC
+ *  \param[in] nsvci NSVCI of the to-be-established NS-VC
+ *  \returns struct gprs_nsvc representing the new NS-VC
+ *
+ * This function will establish a single NS/UDP/IP connection in uplink
+ * (BSS to SGSN) direction.
+ */
 struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 				struct sockaddr_in *dest, uint16_t nsei,
 				uint16_t nsvci)
@@ -990,3 +1089,5 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 	gprs_nsvc_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
 	return nsvc;
 }
+
+/*! }@ */
