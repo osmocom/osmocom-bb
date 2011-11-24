@@ -57,6 +57,19 @@ osmo_conv_encode_init(struct osmo_conv_encoder *encoder,
 	encoder->code = code;
 }
 
+void
+osmo_conv_encode_load_state(struct osmo_conv_encoder *encoder,
+                            const ubit_t *input)
+{
+	int i;
+	uint8_t state = 0;
+
+	for (i=0; i<(encoder->code->K-1); i++)
+		state = (state << 1) | input[i];
+
+	encoder->state = state;
+}
+
 static inline int
 _conv_encode_do_output(struct osmo_conv_encoder *encoder,
                        uint8_t out, ubit_t *output)
@@ -117,8 +130,8 @@ osmo_conv_encode_raw(struct osmo_conv_encoder *encoder,
 }
 
 int
-osmo_conv_encode_finish(struct osmo_conv_encoder *encoder,
-                        ubit_t *output)
+osmo_conv_encode_flush(struct osmo_conv_encoder *encoder,
+                       ubit_t *output)
 {
 	const struct osmo_conv_code *code = encoder->code;
 	uint8_t state;
@@ -159,8 +172,8 @@ osmo_conv_encode_finish(struct osmo_conv_encoder *encoder,
  *  \return Number of produced output bits
  *
  * This is an all-in-one function, taking care of
- * \ref osmo_conv_init, \ref osmo_conv_encode_raw and
- * \ref osmo_conv_encode_finish.
+ * \ref osmo_conv_init, \ref osmo_conv_encode_load_state,
+ * \ref osmo_conv_encode_raw and \ref osmo_conv_encode_flush as needed.
  */
 int
 osmo_conv_encode(const struct osmo_conv_code *code,
@@ -170,8 +183,16 @@ osmo_conv_encode(const struct osmo_conv_code *code,
 	int l;
 
 	osmo_conv_encode_init(&encoder, code);
-	l  = osmo_conv_encode_raw(&encoder, input, output, code->len);
-	l += osmo_conv_encode_finish(&encoder, &output[l]);
+
+	if (code->term == CONV_TERM_TAIL_BITING) {
+		int eidx = code->len - code->K + 1;
+		osmo_conv_encode_load_state(&encoder, &input[eidx]);
+	}
+
+	l = osmo_conv_encode_raw(&encoder, input, output, code->len);
+
+	if (code->term == CONV_TERM_FLUSH)
+		l += osmo_conv_encode_flush(&encoder, &output[l]);
 
 	return l;
 }
@@ -185,7 +206,7 @@ osmo_conv_encode(const struct osmo_conv_code *code,
 
 void
 osmo_conv_decode_init(struct osmo_conv_decoder *decoder,
-                      const struct osmo_conv_code *code, int len)
+                      const struct osmo_conv_code *code, int len, int start_state)
 {
 	int n_states;
 
@@ -208,11 +229,11 @@ osmo_conv_decode_init(struct osmo_conv_decoder *decoder,
 	decoder->state_history = malloc(sizeof(uint8_t) * n_states * (len + decoder->code->K - 1));
 
 	/* Classic reset */
-	osmo_conv_decode_reset(decoder);
+	osmo_conv_decode_reset(decoder, start_state);
 }
 
 void
-osmo_conv_decode_reset(struct osmo_conv_decoder *decoder)
+osmo_conv_decode_reset(struct osmo_conv_decoder *decoder, int start_state)
 {
 	int i;
 
@@ -220,11 +241,36 @@ osmo_conv_decode_reset(struct osmo_conv_decoder *decoder)
 	decoder->o_idx = 0;
 	decoder->p_idx = 0;
 
-	/* Initial error (only state 0 is valid) */
-	decoder->ae[0] = 0;
-	for (i=1; i<decoder->n_states; i++) {
-		decoder->ae[i] = MAX_AE;
+	/* Initial error */
+	if (start_state < 0) {
+		/* All states possible */
+		memset(decoder->ae, 0x00, sizeof(unsigned int) * decoder->n_states);
+	} else {
+		/* Fixed start state */
+		for (i=0; i<decoder->n_states; i++) {
+			decoder->ae[i] = (i == start_state) ? 0 : MAX_AE;
+		}
 	}
+}
+
+void
+osmo_conv_decode_rewind(struct osmo_conv_decoder *decoder)
+{
+	int i;
+	unsigned int min_ae = MAX_AE;
+
+	/* Reset indexes */
+	decoder->o_idx = 0;
+	decoder->p_idx = 0;
+
+	/* Initial error normalize (remove constant) */
+	for (i=0; i<decoder->n_states; i++) {
+		if (decoder->ae[i] < min_ae)
+			min_ae = decoder->ae[i];
+	}
+
+	for (i=0; i<decoder->n_states; i++)
+		decoder->ae[i] -= min_ae;
 }
 
 void
@@ -339,8 +385,8 @@ osmo_conv_decode_scan(struct osmo_conv_decoder *decoder,
 }
 
 int
-osmo_conv_decode_finish(struct osmo_conv_decoder *decoder,
-                        const sbit_t *input)
+osmo_conv_decode_flush(struct osmo_conv_decoder *decoder,
+                       const sbit_t *input)
 {
 	const struct osmo_conv_code *code = decoder->code;
 
@@ -445,7 +491,7 @@ osmo_conv_decode_finish(struct osmo_conv_decoder *decoder,
 
 int
 osmo_conv_decode_get_output(struct osmo_conv_decoder *decoder,
-                            ubit_t *output, int has_finish)
+                            ubit_t *output, int has_flush, int end_state)
 {
 	const struct osmo_conv_code *code = decoder->code;
 
@@ -455,20 +501,26 @@ osmo_conv_decode_get_output(struct osmo_conv_decoder *decoder,
 
 	uint8_t *sh_ptr;
 
-	/* Find state with least error */
-	min_ae = MAX_AE;
-	min_state = 0xff;
+	/* End state ? */
+	if (end_state < 0) {
+		/* Find state with least error */
+		min_ae = MAX_AE;
+		min_state = 0xff;
 
-	for (s=0; s<decoder->n_states; s++)
-	{
-		if (decoder->ae[s] < min_ae) {
-			min_ae = decoder->ae[s];
-			min_state = s;
+		for (s=0; s<decoder->n_states; s++)
+		{
+			if (decoder->ae[s] < min_ae) {
+				min_ae = decoder->ae[s];
+				min_state = s;
+			}
 		}
-	}
 
-	if (min_state == 0xff)
-		return -1;
+		if (min_state == 0xff)
+			return -1;
+	} else {
+		min_state = (uint8_t) end_state;
+		min_ae = decoder->ae[end_state];
+	}
 
 	/* Traceback */
 	cur_state = min_state;
@@ -478,7 +530,7 @@ osmo_conv_decode_get_output(struct osmo_conv_decoder *decoder,
 	sh_ptr = &decoder->state_history[decoder->n_states * (n-1)];
 
 		/* No output for the K-1 termination input bits */
-	if (has_finish) {
+	if (has_flush) {
 		for (i=0; i<code->K-1; i++) {
 			cur_state = sh_ptr[cur_state];
 			sh_ptr -= decoder->n_states;
@@ -510,7 +562,7 @@ osmo_conv_decode_get_output(struct osmo_conv_decoder *decoder,
  *
  * This is an all-in-one function, taking care of
  * \ref osmo_conv_decode_init, \ref osmo_conv_decode_scan,
- * \ref osmo_conv_decode_finish, \ref osmo_conv_decode_get_output and
+ * \ref osmo_conv_decode_flush, \ref osmo_conv_decode_get_output and
  * \ref osmo_conv_decode_deinit.
  */
 int
@@ -520,12 +572,22 @@ osmo_conv_decode(const struct osmo_conv_code *code,
 	struct osmo_conv_decoder decoder;
 	int rv, l;
 
-	osmo_conv_decode_init(&decoder, code, 0);
+	osmo_conv_decode_init(&decoder, code, 0, 0);
+
+	if (code->term == CONV_TERM_TAIL_BITING) {
+		osmo_conv_decode_scan(&decoder, input, code->len);
+		osmo_conv_decode_rewind(&decoder);
+	}
 
 	l = osmo_conv_decode_scan(&decoder, input, code->len);
-	l = osmo_conv_decode_finish(&decoder, &input[l]);
 
-	rv = osmo_conv_decode_get_output(&decoder, output, 1);
+	if (code->term == CONV_TERM_FLUSH)
+		l = osmo_conv_decode_flush(&decoder, &input[l]);
+
+	rv = osmo_conv_decode_get_output(&decoder, output,
+		code->term == CONV_TERM_FLUSH,		/* has_flush */
+		code->term == CONV_TERM_FLUSH ? 0 : -1	/* end_state */
+	);
 
 	osmo_conv_decode_deinit(&decoder);
 
