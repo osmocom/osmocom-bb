@@ -232,6 +232,18 @@ uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf)
 	return ntohs(*(uint16_t *) (buf+6));
 }
 
+int bssgp_create_cell_id(uint8_t *buf, const struct gprs_ra_id *raid,
+			 uint16_t cid)
+{
+	uint16_t *out_cid = (uint16_t *) (buf + 6);
+	/* 6 octets RAC */
+	gsm48_construct_ra(buf, raid);
+	/* 2 octets CID */
+	*out_cid = htons(cid);
+
+	return 8;
+}
+
 /* Chapter 8.4 BVC-Reset Procedure */
 static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,	
 			      uint16_t ns_bvci)
