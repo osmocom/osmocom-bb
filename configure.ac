@@ -165,6 +165,7 @@ AC_OUTPUT(
 	tests/smscb/Makefile
 	tests/bits/Makefile
 	tests/a5/Makefile
+	tests/conv/Makefile
 	utils/Makefile
 	Doxyfile.core
 	Doxyfile.gsm

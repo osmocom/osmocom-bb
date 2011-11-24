@@ -15,6 +15,12 @@ cat $abs_srcdir/bits/bitrev_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/bits/bitrev_test], [], [expout])
 AT_CLEANUP
 
+AT_SETUP([conv])
+AT_KEYWORDS([conv])
+cat $abs_srcdir/conv/conv_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/conv/conv_test], [], [expout])
+AT_CLEANUP
+
 if ENABLE_MSGFILE
 AT_SETUP([msgfile])
 AT_KEYWORDS([msgfile])
