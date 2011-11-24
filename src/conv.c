@@ -310,9 +310,12 @@ osmo_conv_decode_scan(struct osmo_conv_decoder *decoder,
 				m = 1 << (code->N - 1);		/* mask for 'out' bit selection */
 
 				for (j=0; j<code->N; j++) {
-					ov = (out & m) ? -127 : 127; /* sbit_t value for it */
-					e = ((int)in_sym[j]) - ov;   /* raw error for this bit */
-					nae += (e * e) >> 9;         /* acc the squared/scaled value */
+					int is = (int)in_sym[j];
+					if (is) {
+						ov = (out & m) ? -127 : 127; /* sbit_t value for it */
+						e = is - ov;                 /* raw error for this bit */
+						nae += (e * e) >> 9;         /* acc the squared/scaled value */
+					}
 					m >>= 1;                     /* next mask bit */
 				}
 
