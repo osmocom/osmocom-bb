@@ -42,6 +42,40 @@
 
 
 /* ------------------------------------------------------------------------ */
+/* Common                                                                   */
+/* ------------------------------------------------------------------------ */
+
+int
+osmo_conv_get_input_length(const struct osmo_conv_code *code, int len)
+{
+	return len <= 0 ? code->len : len;
+}
+
+int
+osmo_conv_get_output_length(const struct osmo_conv_code *code, int len)
+{
+	int pbits, in_len, out_len;
+
+	/* Input length */
+	in_len = osmo_conv_get_input_length(code, len);
+
+	/* Output length */
+	out_len = in_len * code->N;
+
+	if (code->term == CONV_TERM_FLUSH)
+		out_len += code->N * (code->K - 1);
+
+	/* Count punctured bits */
+	if (code->puncture) {
+		for (pbits=0; code->puncture[pbits] >= 0; pbits++);
+		out_len -= pbits;
+	}
+
+	return out_len;
+}
+
+
+/* ------------------------------------------------------------------------ */
 /* Encoding                                                                 */
 /* ------------------------------------------------------------------------ */
 

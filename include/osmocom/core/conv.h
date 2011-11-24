@@ -71,6 +71,12 @@ struct osmo_conv_code {
 };
 
 
+/* Common */
+
+int osmo_conv_get_input_length(const struct osmo_conv_code *code, int len);
+int osmo_conv_get_output_length(const struct osmo_conv_code *code, int len);
+
+
 /* Encoding */
 
 	/* Low level API */
