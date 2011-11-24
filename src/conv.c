@@ -156,6 +156,7 @@ osmo_conv_encode_finish(struct osmo_conv_encoder *encoder,
  *  \param[in] code description of convolutional code to be used
  *  \param[in] input array of unpacked bits (uncoded)
  *  \param[out] output array of unpacked bits (encoded)
+ *  \return Number of produced output bits
  *
  * This is an all-in-one function, taking care of
  * \ref osmo_conv_init, \ref osmo_conv_encode_raw and
