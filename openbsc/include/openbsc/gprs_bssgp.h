@@ -3,11 +3,11 @@
 
 #include <stdint.h>
 
-/* Section 5.4.1 */
+/*! \brief Fixed BVCI definitions (Section 5.4.1) */
 #define BVCI_SIGNALLING	0x0000
 #define BVCI_PTM	0x0001
 
-/* Section 11.3.26 / Table 11.27 */
+/*! \brief BSSGP PDU types (Section 11.3.26 / Table 11.27) */
 enum bssgp_pdu_type {
 	/* PDUs between RL and BSSGP SAPs */
 	BSSGP_PDUT_DL_UNITDATA		= 0x00,
@@ -53,19 +53,21 @@ enum bssgp_pdu_type {
 	BSSGP_PDUT_DELETE_BSS_PFC_ACK	= 0x57,
 };
 
-/* Section 10.2.1 and 10.2.2 */
+/*! \brief BSSGP User-Data header (Section 10.2.1 and 10.2.2) */
 struct bssgp_ud_hdr {
-	uint8_t pdu_type;
-	uint32_t tlli;
-	uint8_t qos_profile[3];
-	uint8_t data[0];	/* TLV's */
+	uint8_t pdu_type;	/*!< BSSGP PDU type */
+	uint32_t tlli;		/*!< Temporary Link-Local Identifier */
+	uint8_t qos_profile[3];	/*!< QoS profile */
+	uint8_t data[0];	/* optional/conditional IEs as TLVs */
 } __attribute__((packed));
 
+/*! \brief BSSGP normal header */
 struct bssgp_normal_hdr {
-	uint8_t pdu_type;
-	uint8_t data[0];	/* TLV's */
+	uint8_t pdu_type;	/*!< BSSGP PDU type */
+	uint8_t data[0];	/*!< optional/conditional IEs as TLVs */
 };
 
+/*! \brief BSSGP Information Element Identifiers */
 enum bssgp_iei_type {
 	BSSGP_IE_ALIGNMENT		= 0x00,
 	BSSGP_IE_BMAX_DEFAULT_MS	= 0x01,
@@ -115,7 +117,7 @@ enum bssgp_iei_type {
 	BSSGP_IE_SERVICE_UTRAN_CCO	= 0x3d,
 };
 
-/* Section 11.3.8 / Table 11.10: Cause coding */
+/*! \brief Cause coding (Section 11.3.8 / Table 11.10) */
 enum gprs_bssgp_cause {
 	BSSGP_CAUSE_PROC_OVERLOAD	= 0x00,
 	BSSGP_CAUSE_EQUIP_FAIL		= 0x01,
@@ -159,9 +161,8 @@ int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg);
 struct bssgp_bvc_ctx {
 	struct llist_head list;
 
-	/* parsed RA ID and Cell ID of the remote BTS */
-	struct gprs_ra_id ra_id;
-	uint16_t cell_id;
+	struct gprs_ra_id ra_id; /*!< parsed RA ID of the remote BTS */
+	uint16_t cell_id; /*!< Cell ID of the remote BTS */
 
 	/* NSEI and BVCI of underlying Gb link.  Together they
 	 * uniquely identify a link to a BTS (5.4.4) */
@@ -199,27 +200,30 @@ static inline int bssgp_tlv_parse(struct tlv_parsed *tp, uint8_t *buf, int len)
 	return tlv_parse(tp, &tvlv_att_def, buf, len, 0, 0);
 }
 
+/*! \brief BSSGP Paging mode */
 enum bssgp_paging_mode {
 	BSSGP_PAGING_PS,
 	BSSGP_PAGING_CS,
 };
 
+/*! \brief BSSGP Paging scope */
 enum bssgp_paging_scope {
-	BSSGP_PAGING_BSS_AREA,		/* all cells in BSS */
-	BSSGP_PAGING_LOCATION_AREA,	/* all cells in LA */
-	BSSGP_PAGING_ROUTEING_AREA,	/* all cells in RA */
-	BSSGP_PAGING_BVCI,		/* one cell */
+	BSSGP_PAGING_BSS_AREA,		/*!< all cells in BSS */
+	BSSGP_PAGING_LOCATION_AREA,	/*!< all cells in LA */
+	BSSGP_PAGING_ROUTEING_AREA,	/*!< all cells in RA */
+	BSSGP_PAGING_BVCI,		/*!< one cell */
 };
 
+/*! \brief BSSGP paging information */
 struct bssgp_paging_info {
-	enum bssgp_paging_mode mode;
-	enum bssgp_paging_scope scope;
-	struct gprs_ra_id raid;
-	uint16_t bvci;
-	const char *imsi;
-	uint32_t *ptmsi;
-	uint16_t drx_params;
-	uint8_t qos[3];
+	enum bssgp_paging_mode mode;	/*!< CS or PS paging */
+	enum bssgp_paging_scope scope;	/*!< bssgp_paging_scope */
+	struct gprs_ra_id raid;		/*!< RA Identifier */
+	uint16_t bvci;			/*!< BVCI */
+	const char *imsi;		/*!< IMSI, if any */
+	uint32_t *ptmsi;		/*!< P-TMSI, if any */
+	uint16_t drx_params;		/*!< DRX parameters */
+	uint8_t qos[3];			/*!< QoS parameters */
 };
 
 /* Send a single GMM-PAGING.req to a given NSEI/NS-BVCI */
