@@ -49,6 +49,8 @@ tests/msgfile/msgfile_test
 tests/ussd/ussd_test
 tests/smscb/smscb_test
 tests/bits/bitrev_test
+tests/a5/a5_test
+tests/conv/conv_test
 
 utils/osmo-arfcn
 
