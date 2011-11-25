@@ -43,17 +43,6 @@
 
 void *bssgp_tall_ctx = NULL;
 
-#define BVC_F_BLOCKED	0x0001
-
-enum bssgp_ctr {
-	BSSGP_CTR_PKTS_IN,
-	BSSGP_CTR_PKTS_OUT,
-	BSSGP_CTR_BYTES_IN,
-	BSSGP_CTR_BYTES_OUT,
-	BSSGP_CTR_BLOCKED,
-	BSSGP_CTR_DISCARDED,
-};
-
 static const struct rate_ctr_desc bssgp_ctr_description[] = {
 	{ "packets.in",	"Packets at BSSGP Level ( In)" },
 	{ "packets.out","Packets at BSSGP Level (Out)" },

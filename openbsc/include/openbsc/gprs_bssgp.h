@@ -183,6 +183,18 @@ struct bssgp_bvc_ctx *btsctx_by_raid_cid(const struct gprs_ra_id *raid, uint16_t
 /* Find a BTS context based on BVCI+NSEI tuple */
 struct bssgp_bvc_ctx *btsctx_by_bvci_nsei(uint16_t bvci, uint16_t nsei);
 
+#define BVC_F_BLOCKED	0x0001
+
+enum bssgp_ctr {
+	BSSGP_CTR_PKTS_IN,
+	BSSGP_CTR_PKTS_OUT,
+	BSSGP_CTR_BYTES_IN,
+	BSSGP_CTR_BYTES_OUT,
+	BSSGP_CTR_BLOCKED,
+	BSSGP_CTR_DISCARDED,
+};
+
+
 #include <osmocom/gsm/tlv.h>
 
 /* BSSGP-UL-UNITDATA.ind */
@@ -193,6 +205,8 @@ struct sgsn_mm_ctx;
 int gprs_bssgp_tx_dl_ud(struct msgb *msg, struct sgsn_mm_ctx *mmctx);
 
 uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf);
+int bssgp_create_cell_id(uint8_t *buf, const struct gprs_ra_id *raid,
+			 uint16_t cid);
 
 /* Wrapper around TLV parser to parse BSSGP IEs */
 static inline int bssgp_tlv_parse(struct tlv_parsed *tp, uint8_t *buf, int len)
@@ -220,7 +234,7 @@ struct bssgp_paging_info {
 	enum bssgp_paging_scope scope;	/*!< bssgp_paging_scope */
 	struct gprs_ra_id raid;		/*!< RA Identifier */
 	uint16_t bvci;			/*!< BVCI */
-	const char *imsi;		/*!< IMSI, if any */
+	char *imsi;			/*!< IMSI, if any */
 	uint32_t *ptmsi;		/*!< P-TMSI, if any */
 	uint16_t drx_params;		/*!< DRX parameters */
 	uint8_t qos[3];			/*!< QoS parameters */
