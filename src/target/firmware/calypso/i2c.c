@@ -69,7 +69,7 @@ int i2c_write(uint8_t chip, uint32_t addr, int alen, const uint8_t *buffer, int 
 
 	printd("i2c_write(chip=0x%02u, addr=0x%02u): ", chip, addr);
 
-	writeb(chip & 0x3f, I2C_REG(DEVICE_REG));
+	writeb(chip & 0x7f, I2C_REG(DEVICE_REG));
 	writeb(addr & 0xff, I2C_REG(ADDRESS_REG));
 	
 	/* we have to tell the controller how many bits we'll put into the fifo ?!? */
