@@ -23,7 +23,7 @@ $(srcdir)/package.m4: $(top_srcdir)/configure.ac
                echo '  [$(PACKAGE_URL)])'; \
              } >'$(srcdir)/package.m4'
      
-EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE) missing
+EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)
 TESTSUITE = $(srcdir)/testsuite
      
 check-local: atconfig $(TESTSUITE)
@@ -38,7 +38,7 @@ clean-local:
 		$(SHELL) '$(TESTSUITE)' --clean
 	$(RM) -f atconfig
      
-AUTOM4TE = $(SHELL) $(srcdir)/missing --run autom4te
+AUTOM4TE = $(SHELL) $(top_srcdir)/missing --run autom4te
 AUTOTEST = $(AUTOM4TE) --language=autotest
 $(TESTSUITE): $(srcdir)/testsuite.at $(srcdir)/package.m4
 	$(AUTOTEST) -I '$(srcdir)' -o $@.tmp $@.at
