@@ -1,1 +1,1 @@
-SUBDIRS = common misc mobile
+SUBDIRS = common misc ui mobile

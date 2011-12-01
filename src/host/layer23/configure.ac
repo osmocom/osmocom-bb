@@ -30,11 +30,13 @@ AC_OUTPUT(
     src/Makefile
     src/common/Makefile
     src/misc/Makefile
+    src/ui/Makefile
     src/mobile/Makefile
     include/Makefile
     include/osmocom/Makefile
     include/osmocom/bb/Makefile
     include/osmocom/bb/common/Makefile
     include/osmocom/bb/misc/Makefile
+    include/osmocom/bb/ui/Makefile
     include/osmocom/bb/mobile/Makefile
     Makefile)
