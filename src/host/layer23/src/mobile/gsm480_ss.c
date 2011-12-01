@@ -266,6 +266,7 @@ void _gsm480_ss_trans_free(struct gsm_trans *trans)
 	}
 	l23_vty_ms_notify(trans->ms, NULL);
 	l23_vty_ms_notify(trans->ms, "Service connection terminated.\n");
+	gui_notify_ss(trans->ms, NULL); /* end of SS processing */
 }
 
 /* release MM connection, free transaction */
@@ -428,6 +429,8 @@ static int return_imei(struct osmocom_ms *ms)
 	sprintf(text, "IMEI: %s SV: %s", set->imei,
 		set->imeisv + strlen(set->imei));
 	gsm480_ss_result(ms, text, 0);
+	gui_notify_ss(ms, "%s\n", text);
+	gui_notify_ss(ms, NULL); /* end of SS processing */
 
 	return 0;
 }
@@ -581,6 +584,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 	/* if there is an old transaction, check if we can send data */
 	if (trans) {
 		if (trans->ss.state != GSM480_SS_ST_ACTIVE) {
+			//FIXME: process hangup in pending state
 			LOGP(DSS, LOGL_INFO, "Pending trans not active.\n");
 			gsm480_ss_result(trans->ms, "Current service pending",
 				0);
@@ -787,6 +791,7 @@ static int gsm480_rx_ussd(struct gsm_trans *trans, const uint8_t *data,
 	if (text[0] && text[strlen(text) - 1] == '\n')
 		text[strlen(text) - 1] = '\0';
 	gsm480_ss_result(trans->ms, text, 0);
+	gui_notify_ss(trans->ms, "%s\n", text);
 
 	return 0;
 }
@@ -810,10 +815,13 @@ static int gsm480_rx_cf(struct gsm_trans *trans, const uint8_t *data,
 		return -EINVAL;
 	}
 	if (data[0] == 0x80) {
-		if ((tag_data[0] & 0x01))
+		if ((tag_data[0] & 0x01)) {
 			l23_vty_ms_notify(ms, "Status: activated\n");
-		else
+			gui_notify_ss(ms, "activated\n");
+		} else {
 			l23_vty_ms_notify(ms, "Status: deactivated\n");
+			gui_notify_ss(ms, "deactivated\n");
+		}
 		return 0;
 	}
 
@@ -849,6 +857,7 @@ static int gsm480_rx_cf(struct gsm_trans *trans, const uint8_t *data,
 		break;
 	default:
 		l23_vty_ms_notify(ms, "Call Forwarding reply unsupported.\n");
+		gui_notify_ss(ms, "reply unsupported\n");
 		return 0;
 	}
 
@@ -883,17 +892,26 @@ static int gsm480_rx_cf(struct gsm_trans *trans, const uint8_t *data,
 				l23_vty_ms_notify(ms, "Bearer Service: %s\n",
 					get_value_string(Bearerservice_vals,
 								tag_data[0]));
+				gui_notify_ss(ms, "Bearer: %s\n",
+					get_value_string(Bearerservice_vals,
+								tag_data[0]));
 				break;
 			case 0x83:
 				l23_vty_ms_notify(ms, "Teleservice: %s\n",
 					get_value_string(Teleservice_vals,
 								tag_data[0]));
+				gui_notify_ss(ms, "Tele: %s\n",
+					get_value_string(Teleservice_vals,
+								tag_data[0]));
 				break;
 			case 0x84:
-				if ((tag_data[0] & 0x01))
+				if ((tag_data[0] & 0x01)) {
 					l23_vty_ms_notify(ms, "Status: activated\n");
-				else
+					gui_notify_ss(ms, "activated\n");
+				} else {
 					l23_vty_ms_notify(ms, "Status: deactivated\n");
+					gui_notify_ss(ms, "deactivated\n");
+				}
 				break;
 			case 0x85:
 				if (((tag_data[0] & 0x70) >> 4) == 1)
@@ -906,6 +924,7 @@ static int gsm480_rx_cf(struct gsm_trans *trans, const uint8_t *data,
 					sizeof(number) - strlen(number),
 					tag_data - 1, tag_len + 1, 1);
 				l23_vty_ms_notify(ms, "Destination: %s\n", number);
+				gui_notify_ss(ms, "Dest: %s\n", number);
 				break;
 			}
 			len2 -= tag_data - data2 + tag_len;

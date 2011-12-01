@@ -261,6 +261,8 @@ int main(int argc, char **argv)
 
 	srand(time(NULL));
 
+	gui_init_status_config();
+
 	INIT_LLIST_HEAD(&ms_list);
 
 	l23_ctx = talloc_named_const(NULL, 1, "layer2 context");

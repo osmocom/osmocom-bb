@@ -17,6 +17,7 @@
 #include <osmocom/bb/mobile/gsm48_mm.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
 #include <osmocom/bb/mobile/mncc_sock.h>
+#include <osmocom/bb/mobile/gui.h>
 #include <osmocom/bb/common/sim.h>
 #include <osmocom/bb/common/l1ctl.h>
 
@@ -99,6 +100,7 @@ struct osmocom_ms {
 	struct gsm48_cclayer cclayer;
 	struct osmomncc_entity mncc_entity;
 	struct llist_head trans_list;
+	struct gsm_ui gui;
 
 	/* GPRS */
 	struct gprs_settings gprs;

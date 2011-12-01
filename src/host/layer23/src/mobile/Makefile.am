@@ -37,6 +37,7 @@ libmobile_a_SOURCES = \
 	tch_voice.c \
 	transaction.c \
 	vty_interface.c \
+	gui.c \
 	$(NULL)
 
 bin_PROGRAMS = mobile

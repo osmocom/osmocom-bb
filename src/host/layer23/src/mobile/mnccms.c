@@ -754,9 +754,11 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		 && data->progress.descr == 8) {
 			l23_vty_ms_notify(ms, "Please hang up!\n");
 			call->call_state = CALL_ST_DISC_RX;
+			gui_notify_call(ms);
 		 	break;
 		}
 		free_call(call);
+		gui_notify_call(ms);
 		cause = GSM48_CC_CAUSE_NORM_CALL_CLEAR;
 		goto release;
 	case MNCC_REL_IND:
@@ -769,11 +771,13 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		LOGP(DMNCC, LOGL_INFO, "Call has been released (cause %d)\n",
 			data->cause.value);
 		free_call(call);
+		gui_notify_call(ms);
 		break;
 	case MNCC_CALL_PROC_IND:
 		l23_vty_ms_notify(ms, NULL);
 		l23_vty_ms_notify(ms, "Call is proceeding\n");
 		call->call_state = CALL_ST_MO_PROC;
+		gui_notify_call(ms);
 		LOGP(DMNCC, LOGL_INFO, "Call is proceeding\n");
 		if ((data->fields & MNCC_F_BEARER_CAP)
 		 && data->bearer_cap.speech_ver[0] >= 0) {
@@ -784,12 +788,14 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		l23_vty_ms_notify(ms, NULL);
 		l23_vty_ms_notify(ms, "Call is alerting\n");
 		call->call_state = CALL_ST_MO_ALERT;
+		gui_notify_call(ms);
 		LOGP(DMNCC, LOGL_INFO, "Call is alerting\n");
 		break;
 	case MNCC_SETUP_CNF:
 		l23_vty_ms_notify(ms, NULL);
 		l23_vty_ms_notify(ms, "Call is answered\n");
 		call->call_state = CALL_ST_ACTIVE;
+		gui_notify_call(ms);
 		LOGP(DMNCC, LOGL_INFO, "Call is answered\n");
 		break;
 	case MNCC_SETUP_IND:
@@ -861,6 +867,7 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 			call->call_state = CALL_ST_MT_KNOCK;
 		}
 		update_ringer(call);
+		gui_notify_call(ms);
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		mncc_tx_to_cc(ms, MNCC_ALERT_REQ, &mncc);
@@ -879,24 +886,28 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		l23_vty_ms_notify(ms, "Call is on hold\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is on hold\n");
 		call->call_state = CALL_ST_HOLD;
+		gui_notify_call(ms);
 		break;
 	case MNCC_HOLD_REJ:
 		l23_vty_ms_notify(ms, NULL);
 		l23_vty_ms_notify(ms, "Call hold was rejected\n");
 		LOGP(DMNCC, LOGL_INFO, "Call hold was rejected\n");
 		call->call_state = CALL_ST_ACTIVE;
+		gui_notify_call(ms);
 		break;
 	case MNCC_RETRIEVE_CNF:
 		l23_vty_ms_notify(ms, NULL);
 		l23_vty_ms_notify(ms, "Call is retrieved\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is retrieved\n");
 		call->call_state = CALL_ST_ACTIVE;
+		gui_notify_call(ms);
 		break;
 	case MNCC_RETRIEVE_REJ:
 		l23_vty_ms_notify(ms, NULL);
 		l23_vty_ms_notify(ms, "Call retrieve was rejected\n");
 		LOGP(DMNCC, LOGL_INFO, "Call retrieve was rejected\n");
 		call->call_state = CALL_ST_HOLD;
+		gui_notify_call(ms);
 		break;
 	case MNCC_FACILITY_IND:
 		LOGP(DMNCC, LOGL_INFO, "Facility info not displayed, "
@@ -987,6 +998,7 @@ int mncc_call(struct osmocom_ms *ms, const char *number,
 		}
 	}
 	call->call_state = CALL_ST_MO_INIT;
+	gui_notify_call(ms);
 
 	return mncc_tx_to_cc(ms, MNCC_SETUP_REQ, &setup);
 }
@@ -1025,6 +1037,7 @@ int mncc_hangup(struct osmocom_ms *ms, int index)
 	}
 		
 	call->call_state = CALL_ST_DISC_TX;
+	gui_notify_call(ms);
 
 	memset(&disc, 0, sizeof(struct gsm_mncc));
 	disc.callref = call->callref;
@@ -1081,6 +1094,7 @@ int mncc_answer(struct osmocom_ms *ms, int index)
 	}
 	call->call_state = CALL_ST_ACTIVE;
 	update_ringer(call);
+	gui_notify_call(ms);
 
 	memset(&rsp, 0, sizeof(struct gsm_mncc));
 	rsp.callref = call->callref;
