@@ -14,6 +14,7 @@ enum ms_vty_node {
 	TCH_DATA_NODE,
 	VGCS_NODE,
 	VBS_NODE,
+	UI_NODE,
 };
 
 int ms_vty_init(void);
