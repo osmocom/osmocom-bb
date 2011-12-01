@@ -1,1 +1,1 @@
-SUBDIRS = common misc mobile modem
+SUBDIRS = common misc mobile modem ui
