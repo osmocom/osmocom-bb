@@ -32,6 +32,7 @@
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
+#include <osmocom/bb/mobile/mnccms.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/mncc_ms.h>
 #include <osmocom/bb/mobile/transaction.h>
@@ -553,12 +554,13 @@ DEFUN(call_num, call_num_cmd,
 }
 
 DEFUN(call, call_cmd,
-      CALL_CMD " (emergency|answer|hangup|hold)",
+      CALL_CMD " (emergency|list)",
       CALL_CMD_DESC
       "Make an emergency call\n"
       "Answer an incoming call\n"
       "Hangup a call\n"
-      "Hold current active call\n")
+      "Hold current active call\n"
+      "List all calls\n")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -578,14 +580,61 @@ DEFUN(call, call_cmd,
 	number = argv[1];
 	if (!strcmp(number, "emergency"))
 		mncc_call(ms, number, GSM_CALL_T_VOICE);
-	else if (!strcmp(number, "answer"))
-		mncc_answer(ms);
-	else if (!strcmp(number, "hangup"))
-		mncc_hangup(ms);
-	else if (!strcmp(number, "hold"))
-		mncc_hold(ms);
+	else if (!strcmp(number, "list"))
+		mncc_list(ms);
 	else /* shall not happen */
 		OSMO_ASSERT(0);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_answer, call_answer_cmd,
+      CALL_CMD " answer [NUMBER]",
+      CALL_CMD_DESC
+      "Answer incomming call\n"
+      "Number of call to answer\n")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	mncc_answer(ms, (argc > 1) ? atoi(argv[1]) : 0);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_hangup, call_hangup_cmd,
+      CALL_CMD " hangup [NUMBER]",
+      CALL_CMD_DESC
+      "Hangup call\n"
+      "Number of call to hangup\n")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	mncc_hangup(ms, (argc > 1) ? atoi(argv[1]) : 0);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_hold, call_hold_cmd,
+      CALL_CMD " hold [NUMBER]",
+      CALL_CMD_DESC
+      "Hold an active call\n"
+      "Number of call to hold\n")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	mncc_hold(ms, (argc > 1) ? atoi(argv[1]) : 0);
 
 	return CMD_SUCCESS;
 }
@@ -608,10 +657,11 @@ DEFUN(call_retr, call_retr_cmd,
 }
 
 DEFUN(call_dtmf, call_dtmf_cmd,
-      CALL_CMD " dtmf DIGITS",
+      CALL_CMD " dtmf DIGITS [NUMBER} ",
       CALL_CMD_DESC
       "Send DTMF (Dual-Tone Multi-Frequency) tones\n"
-      "One or more DTMF digits to transmit\n")
+      "One or more DTMF digits to transmit\n"
+      "Number of call\n")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -627,7 +677,7 @@ DEFUN(call_dtmf, call_dtmf_cmd,
 		return CMD_WARNING;
 	}
 
-	mncc_dtmf(ms, (char *)argv[1]);
+	mncc_dtmf(ms, (argc > 2) ? atoi(argv[2]) : 0, (char *)argv[1]);
 
 	return CMD_SUCCESS;
 }
@@ -3005,6 +3055,9 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &network_select_cmd);
 	install_element(ENABLE_NODE, &call_num_cmd);
 	install_element(ENABLE_NODE, &call_cmd);
+	install_element(ENABLE_NODE, &call_answer_cmd);
+	install_element(ENABLE_NODE, &call_hangup_cmd);
+	install_element(ENABLE_NODE, &call_hold_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
 	install_element(ENABLE_NODE, &call_params_data_type_rate_cmd);
@@ -3087,6 +3140,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_uplink_release_local_cmd);
 	install_element(MS_NODE, &cfg_ms_asci_allow_any_cmd);
 	install_element(MS_NODE, &cfg_ms_no_asci_allow_any_cmd);
+	install_element(MS_NODE, &cfg_ms_ringtone_cmd);
+	install_element(MS_NODE, &cfg_ms_no_ringtone_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
 	install_element(SUPPORT_NODE, &cfg_ms_set_en_cc_dtmf_cmd);

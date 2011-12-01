@@ -23,12 +23,6 @@
 
 #include <osmocom/gsm/mncc.h>
 
-#define DTMF_ST_IDLE		0	/* no DTMF active */
-#define DTMF_ST_START		1	/* DTMF started, waiting for resp. */
-#define DTMF_ST_MARK		2	/* wait tone duration */
-#define DTMF_ST_STOP		3	/* DTMF stopped, waiting for resp. */
-#define DTMF_ST_SPACE		4	/* wait space between tones */
-
 #define MNCC_SETUP_REQ		0x0101
 #define MNCC_SETUP_IND		0x0102
 #define MNCC_SETUP_RSP		0x0103
