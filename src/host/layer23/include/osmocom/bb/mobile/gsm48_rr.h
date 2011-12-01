@@ -205,6 +205,7 @@ struct gsm48_rrlayer {
 	struct osmo_timer_list	t_meas;
 	struct gsm48_rr_meas	meas;
 	uint8_t			monitor;
+	uint8_t			rxlev, berr, snr; /* a summary */
 
 	/* audio flow */
 	uint8_t                 audio_mode;

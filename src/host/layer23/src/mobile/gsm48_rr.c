@@ -630,7 +630,6 @@ static void timeout_rr_meas(void *arg)
 	struct gsm322_cellsel *cs = &rr->ms->cellsel;
 	struct rx_meas_stat *meas = &rr->ms->meas;
 	struct gsm_settings *set = &rr->ms->settings;
-	int rxlev, berr, snr;
 	uint8_t ch_type, ch_subch, ch_ts;
 	char text[256];
 
@@ -640,14 +639,17 @@ static void timeout_rr_meas(void *arg)
 		goto restart;
 	} else if (!meas->frames) {
 		sprintf(text, "MON: no cell info");
+		rr->rxlev = 255; /* no value */
+		rr->berr = 0;
+		rr->snr = 0;
 	} else {
-		rxlev = (meas->rxlev + meas->frames / 2) / meas->frames;
-		berr = (meas->berr + meas->frames / 2) / meas->frames;
-		snr = (meas->snr + meas->frames / 2) / meas->frames;
+		rr->rxlev = (meas->rxlev + meas->frames / 2) / meas->frames;
+		rr->berr = (meas->berr + meas->frames / 2) / meas->frames;
+		rr->snr = (meas->snr + meas->frames / 2) / meas->frames;
 		sprintf(text, "MON: BCCH=%s lev=%s snr=%2d ber=%3d "
 			"LAI=%s %s %04x ID=%04x",
 			gsm_print_arfcn(cs->sel_arfcn),
-			gsm_print_rxlev(rxlev), berr, snr,
+			gsm_print_rxlev(rr->rxlev), rr->berr, rr->snr,
 			gsm_print_mcc(cs->sel_mcc),
 			gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
 		if (rr->state == GSM48_RR_ST_DEDICATED) {
@@ -661,7 +663,7 @@ static void timeout_rr_meas(void *arg)
 			 || ch_type == RSL_CHAN_SDCCH4_ACCH)
 				sprintf(text + strlen(text), "/%d", ch_subch);
 		} else
-			gsm322_meas(rr->ms, rxlev);
+			gsm322_meas(rr->ms, rr->rxlev);
 	}
 	LOGP(DRR, LOGL_INFO, "%s\n", text);
 	if (rr->monitor)
@@ -5876,6 +5878,8 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 	/* downqueue is handled here, so don't add_work */
 
 	lapdm_channel_set_l3(&ms->lapdm_channel, &rcv_rsl, ms);
+
+	rr->rxlev = 255; /* no value */
 
 	start_rr_t_meas(rr, 1, 0);
 
