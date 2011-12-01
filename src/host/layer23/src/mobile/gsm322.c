@@ -2249,6 +2249,7 @@ static int gsm322_cs_store(struct osmocom_ms *ms)
 	struct msgb *nmsg;
 	struct gsm322_msg *ngm;
 	int found, any = 0;
+	int i;
 
 	if (cs->state != GSM322_C2_STORED_CELL_SEL
 	 && cs->state != GSM322_C1_NORMAL_CELL_SEL
@@ -2401,6 +2402,10 @@ indicate_plmn_avail:
 			gsm_get_mcc(cs->sel_cgi.lai.plmn.mcc),
 			gsm_get_mnc(&cs->sel_cgi.lai.plmn));
 	}
+
+	/* flush summary list of neighbour cells */
+	for (i = 0; i < 6; i++)
+		cs->nb_summary[i].valid = 0;
 
 	/* tell CS process about available cell */
 	LOGP(DCS, LOGL_INFO, "Cell available.\n");
@@ -4710,7 +4715,7 @@ static int gsm322_nb_new_rxlev(struct gsm322_cellsel *cs)
 	INIT_LLIST_HEAD(&sorted);
 
 	/* detach up to 6 of the strongest neighbour cells from list and put
-	 * them in the "sorted" list */
+	 * them in the "sorted" list, also put them in the nb_summary list */
 	while (!llist_empty(&cs->nb_list)) {
 		strongest = -128;
 		strongest_nb = NULL;
@@ -4726,11 +4731,16 @@ static int gsm322_nb_new_rxlev(struct gsm322_cellsel *cs)
 			break;
 		LOGP(DNB, LOGL_INFO, "#%d ARFCN=%d RLA_C=%d\n",
 			i+1, strongest_nb->arfcn, strongest_nb->rla_c_dbm);
+		cs->nb_summary[i].valid = 1;;
+		cs->nb_summary[i].arfcn = strongest_nb->arfcn;;
+		cs->nb_summary[i].rxlev_dbm = strongest_nb->rla_c_dbm;;
 		llist_del(&strongest_nb->entry);
 		llist_add(&strongest_nb->entry, &sorted);
 		if (++i == GSM58_NB_NUMBER)
 			break;
 	}
+	for (; i < 6; i++)
+		cs->nb_summary[i].valid = 0;
 
 	/* take the sorted list and attat it to the head of the neighbour cell
 	 * list */

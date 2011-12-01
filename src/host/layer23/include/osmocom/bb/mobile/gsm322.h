@@ -153,6 +153,13 @@ struct gsm322_neighbour {
 	uint8_t			prio_low;
 };
 
+/* a summary of the 6 strongest neighbour cells */
+struct gsm322_nb_summary {
+	uint8_t			valid;
+	int8_t			rxlev_dbm;
+	uint16_t		arfcn;
+};
+
 #define GSM322_NB_NEW		0	/* new NB instance */
 #define GSM322_NB_NOT_SUP	1	/* ARFCN not supported */
 #define GSM322_NB_RLA_C		2	/* valid measurement available */
@@ -196,6 +203,7 @@ struct gsm322_cellsel {
 	uint16_t		last_serving_arfcn; /* the ARFCN of last cell */
 	uint8_t			last_serving_valid; /* there is a last cell */
 	struct gsm322_neighbour	*neighbour; /* when selecting neighbour cell */
+	struct gsm322_nb_summary nb_summary[6];
 	time_t			resel_when; /* timestamp of last re-selection */
 	int8_t			nb_meas_set;
 	int16_t			rxlev_sum_dbm; /* sum of received levels */
