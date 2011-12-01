@@ -660,7 +660,8 @@ static void timeout_rr_meas(void *arg)
 			(set->alter_tx_power) ? set->alter_tx_power_value
 					: rr->cd_now.ind_tx_power, ch_ts);
 			if (ch_type == RSL_CHAN_SDCCH8_ACCH
-			 || ch_type == RSL_CHAN_SDCCH4_ACCH)
+			 || ch_type == RSL_CHAN_SDCCH4_ACCH
+			 || ch_type == RSL_CHAN_Lm_ACCHs)
 				sprintf(text + strlen(text), "/%d", ch_subch);
 		} else
 			gsm322_meas(rr->ms, rr->rxlev);
