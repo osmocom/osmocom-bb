@@ -209,6 +209,8 @@ int main(int argc, char **argv)
 
 	srand(time(NULL));
 
+	gui_init_status_config();
+
 	INIT_LLIST_HEAD(&ms_list);
 	log_init(&log_info, NULL);
 	stderr_target = log_target_create_stderr();

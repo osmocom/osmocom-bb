@@ -66,6 +66,12 @@ struct cmd_node support_node = {
 	1
 };
 
+struct cmd_node ui_node = {
+	UI_NODE,
+	"%s(user-interface)#",
+	1
+};
+
 static void print_vty(void *priv, const char *fmt, ...)
 {
 	char buffer[1000];
@@ -149,6 +155,10 @@ static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
 
 	return NULL;
 }
+
+/*
+ * show things
+ */
 
 static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 {
@@ -467,6 +477,10 @@ DEFUN(no_monitor_network, no_monitor_network_cmd, "no monitor network MS_NAME",
 	return CMD_SUCCESS;
 }
 
+/*
+ * SIM functions
+ */
+
 static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 	int attached)
 {
@@ -744,6 +758,10 @@ DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 	return CMD_SUCCESS;
 }
 
+/*
+ * network functions
+ */
+
 DEFUN(network_select, network_select_cmd,
 	"network select MS_NAME MCC MNC [force]",
 	"Select ...\nSelect Network\nName of MS (see \"show ms\")\n"
@@ -932,6 +950,10 @@ DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS [NUMBER]",
 	return CMD_SUCCESS;
 }
 
+/*
+ * SMS functions
+ */
+
 DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 	"Send an SMS\nName of MS (see \"show ms\")\nPhone number to send SMS "
 	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
@@ -981,6 +1003,10 @@ DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 	return CMD_SUCCESS;
 }
 
+/*
+ * SS functions
+ */
+
 DEFUN(service, service_cmd, "service MS_NAME (*#06#|*#21#|*#67#|*#61#|*#62#"
 	"|*#002#|*#004#|*xx*number#|*xx#|#xx#|##xx#|STRING|hangup)",
 	"Send a Supplementary Service request\nName of MS (see \"show ms\")\n"
@@ -1011,6 +1037,10 @@ DEFUN(service, service_cmd, "service MS_NAME (*#06#|*#21#|*#67#|*#61#|*#62#"
 }
 
 #define TEST_STR "Test functions\n"
+
+/*
+ * other functions
+ */
 
 DEFUN(test_reselection, test_reselection_cmd, "test re-selection NAME",
 	TEST_STR "Manually trigger cell re-selection\n"
@@ -1147,6 +1177,10 @@ DEFUN(network_search, network_search_cmd, "network search MS_NAME",
 	return CMD_SUCCESS;
 }
 
+/*
+ * global configuration
+ */
+
 DEFUN(cfg_gps_enable, cfg_gps_enable_cmd, "gps enable",
 	"GPS receiver")
 {
@@ -1257,7 +1291,10 @@ DEFUN(cfg_no_hide_default, cfg_no_hide_default_cmd, "no hide-default",
 	return CMD_SUCCESS;
 }
 
-/* per MS config */
+/*
+ * per MS config
+ */
+
 DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 	"Select a mobile station to configure\nName of MS (see \"show ms\")")
 {
@@ -1384,6 +1421,7 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_support *sup = &ms->support;
 	struct gsm_settings_abbrev *abbrev;
+	int i;
 
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
 	if (set->ringtone)
@@ -1499,6 +1537,24 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 				abbrev->number, (abbrev->name[0]) ? " " : "",
 				abbrev->name, VTY_NEWLINE);
 	}
+	vty_out(vty, " user-interface%s", VTY_NEWLINE);
+	if (set->ui_port)
+		vty_out(vty, "  telnet-port %d%s", set->ui_port, VTY_NEWLINE);
+	else
+		if (!hide_default)
+			vty_out(vty, "  no telnet-port%s", VTY_NEWLINE);
+	for (i = 0; i < GUI_NUM_STATUS; i++) {
+		if (hide_default && ((set->status_enable >> i) & 1)
+						== status_screen[i].default_en)
+		 	continue;
+		if (((set->status_enable >> i) & 1))
+			vty_out(vty, "  %s show%s",
+				status_screen[i].feature, VTY_NEWLINE);
+		else
+			vty_out(vty, "  %s hide%s",
+				status_screen[i].feature, VTY_NEWLINE);
+	}
+	vty_out(vty, " exit%s", VTY_NEWLINE);
 	vty_out(vty, " support%s", VTY_NEWLINE);
 	SUP_WRITE(sms_ptp, "sms");
 	SUP_WRITE(a5_1, "a5/1");
@@ -2303,7 +2359,86 @@ static int config_write_dummy(struct vty *vty)
 	return CMD_SUCCESS;
 }
 
-/* per support config */
+/*
+ * per user interface config
+ */
+
+DEFUN(cfg_ms_ui, cfg_ms_ui_cmd, "user-interface",
+	"Configure user interface")
+{
+	vty->node = UI_NODE;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_ui_telnet_port, cfg_ms_ui_telnet_port_cmd, "telnet-port <1-65534>",
+	"Enable telnet interface of UI\nTCP Port number")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->ui_port = atoi(argv[0]);
+
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_ui_no_telnet_port, cfg_ms_ui_no_telnet_port_cmd, "no telnet-port",
+	NO_STR "Disable telnet interface of UI")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->ui_port = 0;
+
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+static struct cmd_element *cfg_ms_ui_status_cmd = NULL;
+
+DEFUN_CMD_FUNC_TEXT(cfg_ms_ui_status)
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	int i;
+
+	for (i = 0; i < GUI_NUM_STATUS; i++) {
+		if (!strcmp(self->string, status_screen[i].feature_vty))
+			break;
+	}
+	if (i == GUI_NUM_STATUS) {
+		vty_out(vty, "cmdstr %s does not exist!%s", self->string,
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	set->status_enable &= ~(1 << i);
+
+	if (argv[0][0] == 's') {
+		int lines = 0, j;
+
+		for (j = 0; j < GUI_NUM_STATUS; j++) {
+			if ((set->status_enable & (1 << i)) || i == j)
+				lines += status_screen[j].lines;
+		}
+		if (lines > UI_ROWS)
+			vty_out(vty, "There are not enough lines left to "
+				"display this status info. Please disable "
+				"other info(s).%s", VTY_NEWLINE);
+		else
+			set->status_enable |= (1 << i);
+	}
+
+	return CMD_SUCCESS;
+}
+
+/*
+ * per support config
+ */
+
 DEFUN(cfg_ms_support, cfg_ms_support_cmd, "support",
 	"Define supported features")
 {
@@ -2622,7 +2757,10 @@ DEFUN(cfg_ms_sup_no_skip_max_per_band, cfg_ms_sup_no_skip_max_per_band_cmd,
 	return CMD_SUCCESS;
 }
 
-/* per testsim config */
+/*
+ * per testsim config
+ */
+
 DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	"Configure test SIM emulation")
 {
@@ -2914,6 +3052,7 @@ gDEFUN(ournode_exit,
 		break;
 	case TESTSIM_NODE:
 	case SUPPORT_NODE:
+	case UI_NODE:
 		vty->node = MS_NODE;
 		break;
 	default:
@@ -2936,6 +3075,7 @@ gDEFUN(ournode_end,
 	case MS_NODE:
 	case TESTSIM_NODE:
 	case SUPPORT_NODE:
+	case UI_NODE:
 		vty_config_unlock(vty);
 		vty->node = ENABLE_NODE;
 		vty->index = NULL;
@@ -2958,8 +3098,10 @@ DEFUN(off, off_cmd, "off",
 #define SUP_NODE(item) \
 	install_element(SUPPORT_NODE, &cfg_ms_sup_item_cmd);
 
-int ms_vty_init(void)
+int ms_vty_init(void *tall_ctx)
 {
+	int i;
+
 	install_element_ve(&show_ms_cmd);
 	install_element_ve(&show_subscr_cmd);
 	install_element_ve(&show_support_cmd);
@@ -3062,6 +3204,23 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_nb_dedicated_cmd);
 	install_element(MS_NODE, &cfg_ms_ringtone_cmd);
 	install_element(MS_NODE, &cfg_ms_no_ringtone_cmd);
+	install_element(MS_NODE, &cfg_ms_ui_cmd);
+	install_node(&ui_node, config_write_dummy);
+	install_default(UI_NODE);
+	install_element(UI_NODE, &ournode_exit_cmd);
+	install_element(UI_NODE, &ournode_end_cmd);
+	install_element(UI_NODE, &cfg_ms_ui_telnet_port_cmd);
+	install_element(UI_NODE, &cfg_ms_ui_no_telnet_port_cmd);
+	cfg_ms_ui_status_cmd =
+		talloc_zero_array(tall_ctx, struct cmd_element, GUI_NUM_STATUS);
+	for (i = 0; i < GUI_NUM_STATUS; i++) {
+		cfg_ms_ui_status_cmd[i].string = status_screen[i].feature_vty;
+		cfg_ms_ui_status_cmd[i].func = cfg_ms_ui_status;
+		cfg_ms_ui_status_cmd[i].doc = status_screen[i].feature_help;
+		cfg_ms_ui_status_cmd[i].attr = 0;
+		cfg_ms_ui_status_cmd[i].daemon = 0;
+		install_element(UI_NODE, &cfg_ms_ui_status_cmd[i]);
+	}
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
 	install_default(SUPPORT_NODE);
@@ -3121,6 +3280,7 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_skip_max_per_band_cmd);
+	install_element(MS_NODE, &cfg_ms_testsim_cmd);
 	install_node(&testsim_node, config_write_dummy);
 	install_default(TESTSIM_NODE);
 	install_element(TESTSIM_NODE, &ournode_exit_cmd);
@@ -3139,6 +3299,13 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);
 
 	return 0;
+}
+
+void ms_vty_exit(void)
+{
+	if (cfg_ms_ui_status_cmd)
+		talloc_free(cfg_ms_ui_status_cmd);
+	cfg_ms_ui_status_cmd = NULL;
 }
 
 void vty_notify(struct osmocom_ms *ms, const char *fmt, ...)

@@ -10,10 +10,12 @@ enum ms_vty_node {
 	MS_NODE = _LAST_OSMOVTY_NODE + 1,
 	TESTSIM_NODE,
 	SUPPORT_NODE,
+	UI_NODE,
 };
 
 enum node_type ms_vty_go_parent(struct vty *vty);
-int ms_vty_init(void);
+int ms_vty_init(void *tall_ctx);
+void ms_vty_exit(void);
 extern void vty_notify(struct osmocom_ms *ms, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
 
 #endif

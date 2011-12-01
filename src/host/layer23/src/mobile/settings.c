@@ -35,6 +35,7 @@ int gsm_settings_init(struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_support *sup = &ms->support;
+	int i;
 
 	strcpy(set->layer2_socket_path, layer2_socket_path);
 	strcpy(set->sap_socket_path, sap_socket_path);
@@ -85,9 +86,13 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	if (sup->half_v1 || sup->half_v3)
 		set->half = 1;
 
-
 	/* software features */
 	set->cc_dtmf = 1;
+
+	/* display status feature */
+	set->status_enable = 0;
+	for (i = 0; i < GUI_NUM_STATUS; i++)
+		set->status_enable |= (status_screen[i].default_en << i);
 
 	INIT_LLIST_HEAD(&set->abbrev);
 
