@@ -2254,6 +2254,7 @@ static int gsm48_mm_rx_abort(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_mm_rx_info(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
@@ -2271,12 +2272,18 @@ static int gsm48_mm_rx_info(struct osmocom_ms *ms, struct msgb *msg)
 	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_LONG)) {
 		decode_network_name(mm->name_long, sizeof(mm->name_long),
 				TLVP_VAL(&tp, GSM48_IE_NAME_LONG)-1);
-	}
+		mm->name_mcc = cs->sel_mcc;
+		mm->name_mnc = cs->sel_mnc;
+	} else
+		mm->name_long[0] = '\0';
 	/* short name */
 	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_SHORT)) {
 		decode_network_name(mm->name_short, sizeof(mm->name_short),
 				TLVP_VAL(&tp, GSM48_IE_NAME_SHORT)-1);
-	}
+		mm->name_mcc = cs->sel_mcc;
+		mm->name_mnc = cs->sel_mnc;
+	} else
+		mm->name_short[0] = '\0';
 
 	return 0;
 }
