@@ -24,6 +24,7 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/mobile/app_mobile.h>
+#include <osmocom/bb/mobile/mnccms.h>
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/linuxlist.h>
@@ -58,8 +59,6 @@ int debug_set = 0;
 char *config_dir = NULL;
 int use_mncc_sock = 0;
 int daemonize = 0;
-
-int mncc_recv_socket(struct osmocom_ms *ms, int msg_type, void *arg);
 
 int mobile_delete(struct osmocom_ms *ms, int force);
 int mobile_signal_cb(unsigned int subsys, unsigned int signal,

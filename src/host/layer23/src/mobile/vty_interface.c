@@ -34,6 +34,7 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
+#include <osmocom/bb/mobile/mnccms.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/vty.h>
@@ -43,13 +44,6 @@
 #include <osmocom/vty/telnet_interface.h>
 
 void *l23_ctx;
-
-int mncc_call(struct osmocom_ms *ms, char *number);
-int mncc_hangup(struct osmocom_ms *ms);
-int mncc_answer(struct osmocom_ms *ms);
-int mncc_hold(struct osmocom_ms *ms);
-int mncc_retrieve(struct osmocom_ms *ms, int number);
-int mncc_dtmf(struct osmocom_ms *ms, char *dtmf);
 
 extern struct llist_head ms_list;
 extern struct llist_head active_connections;
@@ -808,11 +802,14 @@ DEFUN(network_select, network_select_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
+/*
+ * call functions
+ */
+
+DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|list)",
 	"Make a call\nName of MS (see \"show ms\")\nPhone number to call "
 	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
-	"Make an emergency call\nAnswer an incomming call\nHangup a call\n"
-	"Hold current active call\n")
+	"Make an emergency call\nList all calls")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -833,12 +830,8 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 	number = (char *)argv[1];
 	if (!strcmp(number, "emergency"))
 		mncc_call(ms, number);
-	else if (!strcmp(number, "answer"))
-		mncc_answer(ms);
-	else if (!strcmp(number, "hangup"))
-		mncc_hangup(ms);
-	else if (!strcmp(number, "hold"))
-		mncc_hold(ms);
+	else if (!strcmp(number, "list"))
+		mncc_list(ms);
 	else {
 		llist_for_each_entry(abbrev, &set->abbrev, list) {
 			if (!strcmp(number, abbrev->abbrev)) {
@@ -852,6 +845,51 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 			return CMD_WARNING;
 		mncc_call(ms, number);
 	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_answer, call_answer_cmd, "call MS_NAME answer [NUMBER]",
+	"Make a call\nName of MS (see \"show ms\")\n"
+	"Answer incomming call\nNumber of call to answer")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	mncc_answer(ms, (argc > 1) ? atoi(argv[1]) : 0);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_hangup, call_hangup_cmd, "call MS_NAME hangup [NUMBER]",
+	"Make a call\nName of MS (see \"show ms\")\n"
+	"Hangup call\nNumber of call to hangup")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	mncc_hangup(ms, (argc > 1) ? atoi(argv[1]) : 0);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_hold, call_hold_cmd, "call MS_NAME hold [NUMBER]",
+	"Make a call\nName of MS (see \"show ms\")\n"
+	"Hold an active call\nNumber of call to hold")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	mncc_hold(ms, (argc > 1) ? atoi(argv[1]) : 0);
 
 	return CMD_SUCCESS;
 }
@@ -871,9 +909,9 @@ DEFUN(call_retr, call_retr_cmd, "call MS_NAME retrieve [NUMBER]",
 	return CMD_SUCCESS;
 }
 
-DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS",
+DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS [NUMBER]",
 	"Make a call\nName of MS (see \"show ms\")\n"
-	"One or more DTMF digits to transmit")
+	"One or more DTMF digits to transmit\nNumber of call")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -889,7 +927,7 @@ DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS",
 		return CMD_WARNING;
 	}
 
-	mncc_dtmf(ms, (char *)argv[1]);
+	mncc_dtmf(ms, (argc > 2) ? atoi(argv[2]) : 0, (char *)argv[1]);
 
 	return CMD_SUCCESS;
 }
@@ -2950,6 +2988,9 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &network_show_cmd);
 	install_element(ENABLE_NODE, &network_select_cmd);
 	install_element(ENABLE_NODE, &call_cmd);
+	install_element(ENABLE_NODE, &call_answer_cmd);
+	install_element(ENABLE_NODE, &call_hangup_cmd);
+	install_element(ENABLE_NODE, &call_hold_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
 	install_element(ENABLE_NODE, &sms_cmd);
@@ -3015,7 +3056,6 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_codec_half_cmd);
 	install_element(MS_NODE, &cfg_ms_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_no_abbrev_cmd);
-	install_element(MS_NODE, &cfg_ms_testsim_cmd);
 	install_element(MS_NODE, &cfg_ms_nb_idle_cmd);
 	install_element(MS_NODE, &cfg_ms_no_nb_idle_cmd);
 	install_element(MS_NODE, &cfg_ms_nb_dedicated_cmd);

@@ -30,17 +30,16 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/mobile/mncc.h>
+#include <osmocom/bb/mobile/mnccms.h>
 #include <osmocom/bb/mobile/vty.h>
 
 void *l23_ctx;
 static uint32_t new_callref = 1;
-static LLIST_HEAD(call_list);
 
 void mncc_set_cause(struct gsm_mncc *data, int loc, int val);
 static int dtmf_statemachine(struct gsm_call *call, struct gsm_mncc *mncc);
 static void timeout_dtmf(void *arg);
 static void timeout_ringer(void *arg);
-int mncc_answer(struct osmocom_ms *ms);
 
 /*
  * support functions
@@ -68,7 +67,8 @@ static void update_ringer(struct gsm_call *call)
 {
 	struct osmocom_ms *ms = call->ms;
 
-	if (call->ring) {
+	if (call->call_state == CALL_ST_MT_RING
+	 || call->call_state == CALL_ST_MT_KNOCK) {
 		struct gsm_settings *set = &ms->settings;
 
 		/* ringer on */
@@ -119,7 +119,7 @@ static void free_call(struct gsm_call *call)
 {
 	stop_dtmf_timer(call);
 
-	call->ring = 0;
+	call->call_state = CALL_ST_IDLE;
 	update_ringer(call);
 
 	llist_del(&call->entry);
@@ -127,12 +127,11 @@ static void free_call(struct gsm_call *call)
 	talloc_free(call);
 }
 
-
-struct gsm_call *get_call_ref(uint32_t callref)
+static struct gsm_call *get_call_ref(struct osmocom_ms *ms, uint32_t callref)
 {
 	struct gsm_call *callt;
 
-	llist_for_each_entry(callt, &call_list, entry) {
+	llist_for_each_entry(callt, &ms->mncc_entity.call_list, entry) {
 		if (callt->callref == callref)
 			return callt;
 	}
@@ -318,7 +317,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_mncc *data = arg;
-	struct gsm_call *call = get_call_ref(data->callref);
+	struct gsm_call *call = get_call_ref(ms, data->callref);
 	struct gsm_mncc mncc;
 	uint8_t cause;
 	int8_t	speech_ver = -1, speech_ver_half = -1, temp;
@@ -340,18 +339,15 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 
 	/* setup without call */
 	if (!call) {
-		if (llist_empty(&call_list))
+		if (llist_empty(&ms->mncc_entity.call_list))
 			first_call = 1;
 		call = talloc_zero(l23_ctx, struct gsm_call);
 		if (!call)
 			return -ENOMEM;
 		call->ms = ms;
 		call->callref = data->callref;
-		llist_add_tail(&call->entry, &call_list);
+		llist_add_tail(&call->entry, &ms->mncc_entity.call_list);
 	}
-
-	/* not in initiated state anymore */
-	call->init = 0;
 
 	switch (msg_type) {
 	case MNCC_DISC_IND:
@@ -411,6 +407,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		if ((data->fields & MNCC_F_PROGRESS)
 		 && data->progress.descr == 8) {
 			vty_notify(ms, "Please hang up!\n");
+			call->call_state = CALL_ST_DISC_RX;
 		 	break;
 		}
 		free_call(call);
@@ -430,6 +427,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 	case MNCC_CALL_PROC_IND:
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is proceeding\n");
+		call->call_state = CALL_ST_MO_PROC;
 		LOGP(DMNCC, LOGL_INFO, "Call is proceeding\n");
 		if ((data->fields & MNCC_F_BEARER_CAP)
 		 && data->bearer_cap.speech_ver[0] >= 0) {
@@ -439,11 +437,13 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 	case MNCC_ALERT_IND:
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is alerting\n");
+		call->call_state = CALL_ST_MO_ALERT;
 		LOGP(DMNCC, LOGL_INFO, "Call is alerting\n");
 		break;
 	case MNCC_SETUP_CNF:
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is answered\n");
+		call->call_state = CALL_ST_ACTIVE;
 		LOGP(DMNCC, LOGL_INFO, "Call is answered\n");
 		break;
 	case MNCC_SETUP_IND:
@@ -502,17 +502,28 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		/* presentation allowed if present == 0 */
 		if (data->calling.present || !data->calling.number[0])
 			vty_notify(ms, "Incoming call (anonymous)\n");
-		else if (data->calling.type == 1)
+		else if (data->calling.type == 1) {
 			vty_notify(ms, "Incoming call (from +%s)\n",
 				data->calling.number);
-		else if (data->calling.type == 2)
+			call->number[0] = '+';
+			strncpy(call->number + 1, data->calling.number,
+				sizeof(call->number) - 2);
+		} else if (data->calling.type == 2) {
 			vty_notify(ms, "Incoming call (from 0-%s)\n",
 				data->calling.number);
-		else
+			call->number[0] = '0';
+			call->number[1] = '-';
+			strncpy(call->number + 2, data->calling.number,
+				sizeof(call->number) - 3);
+		} else {
 			vty_notify(ms, "Incoming call (from %s)\n",
 				data->calling.number);
+			strncpy(call->number, data->calling.number,
+				sizeof(call->number) - 1);
+		}
+		call->number[sizeof(call->number) - 1] = '\0';
 		LOGP(DMNCC, LOGL_INFO, "Incoming call (from %s callref %x)\n",
-			data->calling.number, call->callref);
+			call->number, call->callref);
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		/* only include bearer cap, if not given in setup
@@ -531,20 +542,20 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 			mncc.cccap.dtmf = 1;
 		}
 		mncc_tx_to_cc(ms, MNCC_CALL_CONF_REQ, &mncc);
-		if (first_call)
+		if (first_call) {
 			LOGP(DMNCC, LOGL_INFO, "Ring!\n");
-		else {
+			call->call_state = CALL_ST_MT_RING;
+		} else {
 			LOGP(DMNCC, LOGL_INFO, "Knock!\n");
-			call->hold = 1;
+			call->call_state = CALL_ST_MT_KNOCK;
 		}
-		call->ring = 1;
 		update_ringer(call);
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		mncc_tx_to_cc(ms, MNCC_ALERT_REQ, &mncc);
 		if (ms->settings.auto_answer) {
 			LOGP(DMNCC, LOGL_INFO, "Auto-answering call\n");
-			mncc_answer(ms);
+			mncc_answer(ms, 0);
 		}
 		break;
 	case MNCC_SETUP_COMPL_IND:
@@ -556,26 +567,32 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is on hold\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is on hold\n");
-		call->hold = 1;
+		call->call_state = CALL_ST_HOLD;
 		break;
 	case MNCC_HOLD_REJ:
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call hold was rejected\n");
 		LOGP(DMNCC, LOGL_INFO, "Call hold was rejected\n");
+		call->call_state = CALL_ST_ACTIVE;
 		break;
 	case MNCC_RETRIEVE_CNF:
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is retrieved\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is retrieved\n");
-		call->hold = 0;
+		call->call_state = CALL_ST_ACTIVE;
 		break;
 	case MNCC_RETRIEVE_REJ:
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call retrieve was rejected\n");
 		LOGP(DMNCC, LOGL_INFO, "Call retrieve was rejected\n");
+		call->call_state = CALL_ST_HOLD;
 		break;
 	case MNCC_FACILITY_IND:
 		LOGP(DMNCC, LOGL_INFO, "Facility info not displayed, "
+			"unsupported\n");
+		break;
+	case MNCC_NOTIFY_IND:
+		LOGP(DMNCC, LOGL_INFO, "Notify info not displayed, "
 			"unsupported\n");
 		break;
 	case MNCC_START_DTMF_RSP:
@@ -597,8 +614,8 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 	struct gsm_call *call;
 	struct gsm_mncc setup;
 
-	llist_for_each_entry(call, &call_list, entry) {
-		if (!call->hold) {
+	llist_for_each_entry(call, &ms->mncc_entity.call_list, entry) {
+		if (call->call_state != CALL_ST_HOLD) {
 			vty_notify(ms, NULL);
 			vty_notify(ms, "Please put active call on hold "
 				"first!\n");
@@ -612,18 +629,20 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 		return -ENOMEM;
 	call->ms = ms;
 	call->callref = new_callref++;
-	call->init = 1;
-	llist_add_tail(&call->entry, &call_list);
+	llist_add_tail(&call->entry, &ms->mncc_entity.call_list);
 
 	memset(&setup, 0, sizeof(struct gsm_mncc));
 	setup.callref = call->callref;
 
 	if (!strncasecmp(number, "emerg", 5)) {
 		LOGP(DMNCC, LOGL_INFO, "Make emergency call\n");
+		strcpy(call->number, "emergency");
 		/* emergency */
 		setup.emergency = 1;
 	} else {
 		LOGP(DMNCC, LOGL_INFO, "Make call to %s\n", number);
+		strncpy(call->number, number, sizeof(call->number) - 1);
+		call->number[sizeof(call->number) - 1] = '\0';
 		/* called number */
 		setup.fields |= MNCC_F_CALLED;
 		if (number[0] == '+') {
@@ -651,133 +670,193 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 			setup.cccap.dtmf = 1;
 		}
 	}
+	call->call_state = CALL_ST_MO_INIT;
 
 	return mncc_tx_to_cc(ms, MNCC_SETUP_REQ, &setup);
 }
 
-int mncc_hangup(struct osmocom_ms *ms)
+int mncc_hangup(struct osmocom_ms *ms, int index)
 {
-	struct gsm_call *call, *found = NULL;
+	struct gsm_call *search, *first = NULL, *call = NULL;
+	int calls = 0;
 	struct gsm_mncc disc;
 
-	llist_for_each_entry(call, &call_list, entry) {
-		if (!call->hold) {
-			found = call;
-			break;
-		}
+	llist_for_each_entry(search, &ms->mncc_entity.call_list, entry) {
+		calls++;
+		if (calls == 1)
+			first = search;
+		if (calls == index)
+			call = search;
 	}
-	if (!found) {
+	if (calls == 0) {
 		LOGP(DMNCC, LOGL_INFO, "No active call to hangup\n");
 		vty_notify(ms, NULL);
 		vty_notify(ms, "No active call\n");
 		return -EINVAL;
 	}
+	if (calls == 1 && index == 0)
+		call = first;
+	if (calls > 1 && index == 0) {
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Select call 1..%d\n", calls);
+		return -EINVAL;
+	}
+	if (!call) {
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Given number %d out of range!\n", index);
+		vty_notify(ms, "Select call 1..%d\n", calls);
+		return -EINVAL;
+	}
+		
+	call->call_state = CALL_ST_DISC_TX;
 
 	memset(&disc, 0, sizeof(struct gsm_mncc));
-	disc.callref = found->callref;
+	disc.callref = call->callref;
 	mncc_set_cause(&disc, GSM48_CAUSE_LOC_USER,
 		GSM48_CC_CAUSE_NORM_CALL_CLEAR);
-	return mncc_tx_to_cc(ms, (call->init) ? MNCC_REL_REQ : MNCC_DISC_REQ,
-		&disc);
+	return mncc_tx_to_cc(ms, (call->call_state == CALL_ST_MO_INIT) ?
+					MNCC_REL_REQ : MNCC_DISC_REQ, &disc);
 }
 
-int mncc_answer(struct osmocom_ms *ms)
+int mncc_answer(struct osmocom_ms *ms, int index)
 {
-	struct gsm_call *call, *alerting = NULL;
+	struct gsm_call *search, *first = NULL, *call = NULL;
+	int calls = 0, alerting = 0, active = 0;
 	struct gsm_mncc rsp;
-	int active = 0;
 
-	llist_for_each_entry(call, &call_list, entry) {
-		if (call->ring)
-			alerting = call;
-		else if (!call->hold)
-			active = 1;
+	llist_for_each_entry(search, &ms->mncc_entity.call_list, entry) {
+		calls++;
+		if (search->call_state == CALL_ST_MT_RING
+		 || search->call_state == CALL_ST_MT_KNOCK) {
+		 	alerting++;
+			if (alerting == 1)
+				first = search;
+			if (calls == index)
+				call = search;
+		} else
+		if (search->call_state != CALL_ST_HOLD)
+			active = calls;
 	}
-	if (!alerting) {
+	if (active) {
+		LOGP(DMNCC, LOGL_INFO, "Answer but we have an active call\n");
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Please put active call %d on hold first!\n",
+			active);
+		return -EBUSY;
+	}
+	if (alerting == 0) {
 		LOGP(DMNCC, LOGL_INFO, "No call alerting\n");
 		vty_notify(ms, NULL);
 		vty_notify(ms, "No alerting call\n");
 		return -EBUSY;
 	}
-	if (active) {
-		LOGP(DMNCC, LOGL_INFO, "Answer but we have an active call\n");
+	if (alerting == 1 && index == 0)
+		call = first;
+	if (alerting > 1 && index == 0) {
 		vty_notify(ms, NULL);
-		vty_notify(ms, "Please put active call on hold first!\n");
-		return -EBUSY;
+		vty_notify(ms, "Select call 1..%d\n", calls);
+		return -EINVAL;
 	}
-	alerting->ring = 0;
-	update_ringer(alerting);
-	alerting->hold = 0;
+	if (!call) {
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Given number %d out of range!\n", index);
+		vty_notify(ms, "Select call 1..%d\n", calls);
+		return -EINVAL;
+	}
+	call->call_state = CALL_ST_ACTIVE;
+	update_ringer(call);
 
 	memset(&rsp, 0, sizeof(struct gsm_mncc));
-	rsp.callref = alerting->callref;
+	rsp.callref = call->callref;
 	return mncc_tx_to_cc(ms, MNCC_SETUP_RSP, &rsp);
 }
 
-int mncc_hold(struct osmocom_ms *ms)
+int mncc_hold(struct osmocom_ms *ms, int index)
 {
-	struct gsm_call *call, *found = NULL;
+	struct gsm_call *search, *first = NULL, *call = NULL;
+	int calls = 0, active = 0;
 	struct gsm_mncc hold;
 
-	llist_for_each_entry(call, &call_list, entry) {
-		if (!call->hold) {
-			found = call;
-			break;
+	/* normally the selection should not happen, because only one call can
+	 * be active.
+	 */
+	llist_for_each_entry(search, &ms->mncc_entity.call_list, entry) {
+		calls++;
+		if (search->call_state == CALL_ST_ACTIVE) {
+		 	active++;
+			if (active == 1)
+				first = search;
+			if (calls == index)
+				call = search;
 		}
 	}
-	if (!found) {
-		LOGP(DMNCC, LOGL_INFO, "No active call to hold\n");
+	if (active == 0) {
+		LOGP(DMNCC, LOGL_INFO, "No call to hold\n");
 		vty_notify(ms, NULL);
 		vty_notify(ms, "No active call\n");
+		return -EBUSY;
+	}
+	if (active == 1 && index == 0)
+		call = first;
+	if (active > 1 && index == 0) {
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Select call 1..%d\n", calls);
+		return -EINVAL;
+	}
+	if (!call) {
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Given number %d out of range!\n", index);
+		vty_notify(ms, "Select call 1..%d\n", calls);
 		return -EINVAL;
 	}
 
 	memset(&hold, 0, sizeof(struct gsm_mncc));
-	hold.callref = found->callref;
+	hold.callref = call->callref;
 	return mncc_tx_to_cc(ms, MNCC_HOLD_REQ, &hold);
 }
 
-int mncc_retrieve(struct osmocom_ms *ms, int number)
+int mncc_retrieve(struct osmocom_ms *ms, int index)
 {
-	struct gsm_call *call;
+	struct gsm_call *search, *first = NULL, *call = NULL;
+	int calls = 0, hold = 0, active = 0;
 	struct gsm_mncc retr;
-	int holdnum = 0, active = 0, i = 0;
 
-	llist_for_each_entry(call, &call_list, entry) {
-		if (call->hold)
-			holdnum++;
-		if (!call->hold)
-			active = 1;
+	llist_for_each_entry(search, &ms->mncc_entity.call_list, entry) {
+		calls++;
+		if (search->call_state == CALL_ST_HOLD) {
+		 	hold++;
+			if (hold == 1)
+				first = search;
+			if (calls == index)
+				call = search;
+		} else
+		if (search->call_state != CALL_ST_MT_KNOCK)
+			active = calls;
 	}
 	if (active) {
 		LOGP(DMNCC, LOGL_INFO, "Cannot retrieve during active call\n");
 		vty_notify(ms, NULL);
-		vty_notify(ms, "Hold active call first!\n");
+		vty_notify(ms, "Hold or release active call first!\n");
 		return -EINVAL;
 	}
-	if (holdnum == 0) {
+	if (hold == 0) {
+		LOGP(DMNCC, LOGL_INFO, "No call to hold\n");
 		vty_notify(ms, NULL);
 		vty_notify(ms, "No call on hold!\n");
 		return -EINVAL;
 	}
-	if (holdnum > 1 && number <= 0) {
+	if (hold == 1 && index == 0)
+		call = first;
+	if (hold > 1 && index == 0) {
 		vty_notify(ms, NULL);
-		vty_notify(ms, "Select call 1..%d\n", holdnum);
+		vty_notify(ms, "Select call 1..%d\n", calls);
 		return -EINVAL;
 	}
-	if (holdnum == 1 && number <= 0)
-		number = 1;
-	if (number > holdnum) {
+	if (!call) {
 		vty_notify(ms, NULL);
-		vty_notify(ms, "Given number %d out of range!\n", number);
-		vty_notify(ms, "Select call 1..%d\n", holdnum);
+		vty_notify(ms, "Given number %d out of range!\n", index);
+		vty_notify(ms, "Select call 1..%d\n", calls);
 		return -EINVAL;
-	}
-
-	llist_for_each_entry(call, &call_list, entry) {
-		i++;
-		if (i == number)
-			break;
 	}
 
 	memset(&retr, 0, sizeof(struct gsm_mncc));
@@ -843,20 +922,41 @@ static void timeout_dtmf(void *arg)
 	dtmf_statemachine(call, NULL);
 }
 
-int mncc_dtmf(struct osmocom_ms *ms, char *dtmf)
+int mncc_dtmf(struct osmocom_ms *ms, int index, char *dtmf)
 {
-	struct gsm_call *call, *found = NULL;
+	struct gsm_call *search, *first = NULL, *call = NULL;
+	int calls = 0, active = 0;
 
-	llist_for_each_entry(call, &call_list, entry) {
-		if (!call->hold) {
-			found = call;
-			break;
+	/* normally the selection should not happen, because only one call can
+	 * be active.
+	 */
+	llist_for_each_entry(search, &ms->mncc_entity.call_list, entry) {
+		calls++;
+		if (search->call_state == CALL_ST_ACTIVE) {
+		 	active++;
+			if (active == 1)
+				first = search;
+			if (calls == index)
+				call = search;
 		}
 	}
-	if (!found) {
-		LOGP(DMNCC, LOGL_INFO, "No active call to send DTMF\n");
+	if (active == 0) {
+		LOGP(DMNCC, LOGL_INFO, "No call to send dtmf to\n");
 		vty_notify(ms, NULL);
 		vty_notify(ms, "No active call\n");
+		return -EBUSY;
+	}
+	if (active == 1 && index == 0)
+		call = first;
+	if (active > 1 && index == 0) {
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Select call 1..%d\n", calls);
+		return -EINVAL;
+	}
+	if (!call) {
+		vty_notify(ms, NULL);
+		vty_notify(ms, "Given number %d out of range!\n", index);
+		vty_notify(ms, "Select call 1..%d\n", calls);
 		return -EINVAL;
 	}
 
@@ -868,5 +968,76 @@ int mncc_dtmf(struct osmocom_ms *ms, char *dtmf)
 	call->dtmf_index = 0;
 	strncpy(call->dtmf, dtmf, sizeof(call->dtmf) - 1);
 	return dtmf_statemachine(call, NULL);
+}
+
+int mncc_list(struct osmocom_ms *ms)
+{
+	struct gsm_call *call;
+	int calls = 0;
+	const char *state;
+
+	vty_notify(ms, NULL);
+	llist_for_each_entry(call, &ms->mncc_entity.call_list, entry) {
+		calls++;
+		switch (call->call_state) {
+		case CALL_ST_MO_INIT:
+			state = "Dialing";
+			break;
+		case CALL_ST_MO_PROC:
+			state = "Proceeding";
+			break;
+		case CALL_ST_MO_ALERT:
+			state = "Ringing";
+			break;
+		case CALL_ST_MT_RING:
+			state = "Incomming";
+			break;
+		case CALL_ST_MT_KNOCK:
+			state = "Knocking";
+			break;
+		case CALL_ST_ACTIVE:
+			state = "Connected";
+			break;
+		case CALL_ST_HOLD:
+			state = "On Hold";
+			break;
+		case CALL_ST_DISC_TX:
+			state = "Releasing";
+			break;
+		case CALL_ST_DISC_RX:
+			state = "Hung Up";
+			break;
+		default:
+			continue;
+		}
+		if (call->number[0])
+			vty_notify(ms, "%s (%s)\n", state, call->number);
+		else
+			vty_notify(ms, "%s\n", state);
+
+	}
+	if (calls == 0)
+		vty_notify(ms, "No call\n");
+
+	return 0;
+}
+
+/*
+ * init / exit
+ */
+
+int mnccms_init(struct osmocom_ms *ms)
+{
+	INIT_LLIST_HEAD(&ms->mncc_entity.call_list);
+
+	return 0;
+}
+
+void mnccms_exit(struct osmocom_ms *ms)
+{
+	struct gsm_call *c, *c2;
+
+	llist_for_each_entry_safe(c, c2, &ms->mncc_entity.call_list, entry)
+		free_call(c);
 }
 

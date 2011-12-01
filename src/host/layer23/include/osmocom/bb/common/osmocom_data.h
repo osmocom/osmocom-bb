@@ -36,6 +36,7 @@ struct osmomncc_entity {
 	int (*mncc_recv)(struct osmocom_ms *ms, int msg_type, void *arg);
 	struct mncc_sock_state *sock_state;
 	uint32_t ref;
+	struct llist_head call_list;
 };
 
 
