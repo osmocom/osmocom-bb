@@ -5,6 +5,11 @@ LIBVERSION=2:0:1
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
 AM_CFLAGS = -fPIC -Wall
 
+# FIXME: this should eventually go into a milenage/Makefile.am
+noinst_HEADERS = milenage/aes.h milenage/aes_i.h milenage/aes_wrap.h \
+		 milenage/common.h milenage/crypto.h milenage/includes.h \
+		 milenage/milenage.h
+
 lib_LTLIBRARIES = libosmogsm.la
 
 libosmogsm_la_SOURCES = a5.c rxlev_stat.c tlv_parser.c comp128.c gsm_utils.c \
