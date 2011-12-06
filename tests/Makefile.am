@@ -1,5 +1,5 @@
 if ENABLE_TESTS
-SUBDIRS = timer sms ussd smscb bits a5 conv
+SUBDIRS = timer sms ussd smscb bits a5 conv auth
 if ENABLE_MSGFILE
 SUBDIRS += msgfile
 endif

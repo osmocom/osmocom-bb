@@ -53,3 +53,9 @@ AT_KEYWORDS([ussd])
 cat $abs_srcdir/ussd/ussd_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/ussd/ussd_test], [], [expout], [ignore])
 AT_CLEANUP
+
+AT_SETUP([auth])
+AT_KEYWORDS([auth])
+cat $abs_srcdir/auth/milenage_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/auth/milenage_test], [], [expout], [ignore])
+AT_CLEANUP
