@@ -71,7 +71,7 @@ int osmo_auth_gen_vec(struct osmo_auth_vector *vec,
 		      struct osmo_sub_auth_data *aud,
 		      const uint8_t *_rand)
 {
-	struct osmo_auth_impl *impl = selected_auths[aud->type];
+	struct osmo_auth_impl *impl = selected_auths[aud->algo];
 
 	if (!impl)
 		return -ENOENT;
@@ -84,7 +84,7 @@ int osmo_auth_gen_vec_auts(struct osmo_auth_vector *vec,
 			   const uint8_t *rand_auts, const uint8_t *auts,
 			   const uint8_t *_rand)
 {
-	struct osmo_auth_impl *impl = selected_auths[aud->type];
+	struct osmo_auth_impl *impl = selected_auths[aud->algo];
 
 	if (!impl || !impl->gen_vec_auts)
 		return -ENOENT;
