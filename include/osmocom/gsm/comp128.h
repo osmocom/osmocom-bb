@@ -16,7 +16,7 @@
  * sres  : uint8_t [4]
  * kc    : uint8_t [8]
  */
-void comp128(uint8_t *ki, uint8_t *srand, uint8_t *sres, uint8_t *kc);
+void comp128(const uint8_t *ki, const uint8_t *srand, uint8_t *sres, uint8_t *kc);
 
 #endif /* __COMP128_H__ */
 
