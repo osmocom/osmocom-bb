@@ -27,7 +27,7 @@ static void dump_auth_vec(struct osmo_auth_vector *vec)
 static struct osmo_sub_auth_data test_aud = {
 	.type = OSMO_AUTH_TYPE_UMTS,
 	.algo = OSMO_AUTH_ALG_MILENAGE,
-	.umts = {
+	.u.umts = {
 		.opc = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 			 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f },
 		.k =   { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	if (rc < 0) {
 		printf("AUTS failed\n");
 	} else {
-		printf("AUTS success: SEQ.MS = %lu\n", test_aud.umts.sqn);
+		printf("AUTS success: SEQ.MS = %lu\n", test_aud.u.umts.sqn);
 	}
 
 	exit(0);

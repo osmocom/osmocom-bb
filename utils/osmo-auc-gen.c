@@ -102,12 +102,12 @@ int main(int argc, char **argv)
 		case 'k':
 			switch (test_aud.type) {
 			case OSMO_AUTH_TYPE_GSM:
-				rc = osmo_hexparse(optarg, test_aud.gsm.ki,
-						   sizeof(test_aud.gsm.ki));
+				rc = osmo_hexparse(optarg, test_aud.u.gsm.ki,
+						   sizeof(test_aud.u.gsm.ki));
 				break;
 			case OSMO_AUTH_TYPE_UMTS:
-				rc = osmo_hexparse(optarg, test_aud.umts.k,
-						   sizeof(test_aud.umts.k));
+				rc = osmo_hexparse(optarg, test_aud.u.umts.k,
+						   sizeof(test_aud.u.umts.k));
 				break;
 			default:
 				fprintf(stderr, "please specify 2g/3g first!\n");
@@ -118,16 +118,16 @@ int main(int argc, char **argv)
 				fprintf(stderr, "Only UMTS has OPC\n");
 				exit(2);
 			}
-			rc = osmo_hexparse(optarg, test_aud.umts.opc,
-					   sizeof(test_aud.umts.opc));
+			rc = osmo_hexparse(optarg, test_aud.u.umts.opc,
+					   sizeof(test_aud.u.umts.opc));
 			break;
 		case 'f':
 			if (test_aud.type != OSMO_AUTH_TYPE_UMTS) {
 				fprintf(stderr, "Only UMTS has AMF\n");
 				exit(2);
 			}
-			rc = osmo_hexparse(optarg, test_aud.umts.amf,
-					   sizeof(test_aud.umts.amf));
+			rc = osmo_hexparse(optarg, test_aud.u.umts.amf,
+					   sizeof(test_aud.u.umts.amf));
 			break;
 		case 's':
 			if (test_aud.type != OSMO_AUTH_TYPE_UMTS) {
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 				exit(2);
 			}
 			ul = strtoul(optarg, 0, 10);
-			test_aud.umts.sqn = ul;
+			test_aud.u.umts.sqn = ul;
 			break;
 		case 'r':
 			rc = osmo_hexparse(optarg, _rand, sizeof(_rand));
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 	if (rc < 0) {
 		printf("AUTS failed\n");
 	} else {
-		printf("AUTS success: SEQ.MS = %lu\n", test_aud.umts.sqn);
+		printf("AUTS success: SEQ.MS = %lu\n", test_aud.u.umts.sqn);
 	}
 #endif
 	exit(0);

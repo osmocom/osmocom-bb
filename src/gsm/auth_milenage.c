@@ -62,17 +62,17 @@ static int milenage_gen_vec(struct osmo_auth_vector *vec,
 	uint8_t sqn[6];
 	int rc;
 
-	sqn_u64_to_48bit(sqn, aud->umts.sqn);
-	milenage_generate(aud->umts.opc, aud->umts.amf, aud->umts.k,
+	sqn_u64_to_48bit(sqn, aud->u.umts.sqn);
+	milenage_generate(aud->u.umts.opc, aud->u.umts.amf, aud->u.umts.k,
 			  sqn, _rand,
 			  vec->autn, vec->ik, vec->ck, vec->res, &res_len);
 	vec->res_len = res_len;
-	rc = gsm_milenage(aud->umts.opc, aud->umts.k, _rand, vec->sres, vec->kc);
+	rc = gsm_milenage(aud->u.umts.opc, aud->u.umts.k, _rand, vec->sres, vec->kc);
 	if (rc < 0)
 		return rc;
 
 	vec->auth_types = OSMO_AUTH_TYPE_UMTS | OSMO_AUTH_TYPE_GSM;
-	aud->umts.sqn++;
+	aud->u.umts.sqn++;
 
 	return 0;
 }
@@ -85,12 +85,12 @@ static int milenage_gen_vec_auts(struct osmo_auth_vector *vec,
 	uint8_t sqn_out[6];
 	int rc;
 
-	rc = milenage_auts(aud->umts.opc, aud->umts.k,
+	rc = milenage_auts(aud->u.umts.opc, aud->u.umts.k,
 			   rand_auts, auts, sqn_out);
 	if (rc < 0)
 		return rc;
 
-	aud->umts.sqn = sqn_48bit_to_u64(sqn_out) + 1;
+	aud->u.umts.sqn = sqn_48bit_to_u64(sqn_out) + 1;
 
 	return milenage_gen_vec(vec, aud, _rand);
 }
