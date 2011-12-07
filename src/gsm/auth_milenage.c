@@ -72,7 +72,6 @@ static int milenage_gen_vec(struct osmo_auth_vector *vec,
 		return rc;
 
 	vec->auth_types = OSMO_AUTH_TYPE_UMTS | OSMO_AUTH_TYPE_GSM;
-	memcpy(vec->rand, _rand, sizeof(vec->rand));
 	aud->umts.sqn++;
 
 	return 0;
