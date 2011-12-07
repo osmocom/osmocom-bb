@@ -22,6 +22,7 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
