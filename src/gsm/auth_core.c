@@ -91,3 +91,23 @@ int osmo_auth_gen_vec_auts(struct osmo_auth_vector *vec,
 
 	return impl->gen_vec_auts(vec, aud, rand_auts, auts, _rand);
 }
+
+const struct value_string auth_alg_vals[] = {
+	{ OSMO_AUTH_ALG_NONE, "None" },
+	{ OSMO_AUTH_ALG_COMP128v1, "COMP128v1" },
+	{ OSMO_AUTH_ALG_COMP128v2, "COMP128v2" },
+	{ OSMO_AUTH_ALG_COMP128v3, "COMP128v3" },
+	{ OSMO_AUTH_ALG_XOR, "XOR" },
+	{ OSMO_AUTH_ALG_MILENAGE, "MILENAGE" },
+	{ 0, NULL }
+};
+
+const char *osmo_auth_alg_name(enum osmo_auth_algo alg)
+{
+	return get_value_string(auth_alg_vals, alg);
+}
+
+enum osmo_auth_algo osmo_auth_alg_parse(const char *name)
+{
+	return get_string_value(auth_alg_vals, name);
+}
