@@ -761,7 +761,7 @@ static int gsm480_rx_ussd(struct gsm_trans *trans, const uint8_t *data,
 	}
 	if (tag_data[0] != 0x0f) {
 		LOGP(DSS, LOGL_NOTICE, "DSC not 0x0f\n");
-		return -EINVAL;
+//		return -EINVAL;
 	}
 	len -= tag_data - data + tag_len;
 	data = tag_data + tag_len;
