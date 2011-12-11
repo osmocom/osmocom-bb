@@ -256,11 +256,8 @@ int main(int argc, char **argv)
 
 	l23_app_exit();
 
-	if (config_file)
-		talloc_free(config_file);
-	if (config_dir)
-		talloc_free(config_dir);
-
+	talloc_free(config_file);
+	talloc_free(config_dir);
 	talloc_report_full(l23_ctx, stderr);
 
 	return 0;
