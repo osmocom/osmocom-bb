@@ -58,14 +58,32 @@ static struct msgb *msgb_from_array(const uint8_t *data, int len)
 	return msg;
 }
 
+/*
+ * Test data is below...
+ */
+static const uint8_t cm[] = {
+	0x05, 0x24, 0x31, 0x03, 0x50, 0x18, 0x93, 0x08,
+	0x29, 0x47, 0x80, 0x00, 0x00, 0x00, 0x00, 0x80,
+};
+
+static const uint8_t cm_padded[] = {
+	0x05, 0x24, 0x31, 0x03, 0x50, 0x18, 0x93, 0x08,
+	0x29, 0x47, 0x80, 0x00, 0x00, 0x00, 0x00, 0x80,
+	0x2b, 0x2b, 0x2b, 0x2b
+};
+
+static const uint8_t mm[] = {
+	0x05, 0x24, 0x31, 0x03, 0x50, 0x18, 0x93, 0x08,
+	0x29, 0x47, 0x80, 0x00,
+};
+
+static const uint8_t dummy1[] = {
+	0xab, 0x03, 0x30, 0x60, 0x06,
+};
 
 static struct msgb *create_cm_serv_req(void)
 {
 	struct msgb *msg;
-	static const uint8_t cm[] = {
-		0x05, 0x24, 0x31, 0x03, 0x50, 0x18, 0x93, 0x08,
-		0x29, 0x47, 0x80, 0x00, 0x00, 0x00, 0x00, 0x80,
-	};
 
 	msg = msgb_from_array(cm, sizeof(cm));
 	rsl_rll_push_l3(msg, RSL_MT_EST_REQ, 0, 0, 1);
@@ -75,11 +93,6 @@ static struct msgb *create_cm_serv_req(void)
 static struct msgb *create_mm_id_req(void)
 {
 	struct msgb *msg;
-	/* okay... not an identity request */
-	static const uint8_t mm[] = {
-		0x05, 0x24, 0x31, 0x03, 0x50, 0x18, 0x93, 0x08,
-		0x29, 0x47, 0x80, 0x00,
-	};
 
 	msg = msgb_from_array(mm, sizeof(mm));
 	rsl_rll_push_l3(msg, RSL_MT_DATA_REQ, 0, 0, 1);
@@ -89,10 +102,6 @@ static struct msgb *create_mm_id_req(void)
 static struct msgb *create_dummy_data_req(void)
 {
 	struct msgb *msg;
-	/* okay... not an identity request */
-	static const uint8_t dummy1[] = {
-		0xab, 0x03, 0x30, 0x60, 0x06,
-	};
 
 	msg = msgb_from_array(dummy1, sizeof(dummy1));
 	rsl_rll_push_l3(msg, RSL_MT_DATA_REQ, 0, 0, 1);
@@ -128,9 +137,23 @@ static int bts_to_ms_tx_cb(struct msgb *in_msg, struct lapdm_entity *le, void *_
 {
 	struct lapdm_polling_state *state = _ctx;
 
-	state->bts_read += 1;
 
 	printf("%s: MS->BTS(us) message %d\n", __func__, msgb_length(in_msg));
+
+
+	if (state->bts_read == 0) {
+		printf("BTS: Verifying CM request.\n");
+		ASSERT(msgb_l3len(in_msg) == ARRAY_SIZE(cm_padded));
+		ASSERT(memcmp(in_msg->l3h, cm_padded, ARRAY_SIZE(cm_padded)) == 0);
+	} else if (state->bts_read == 1) {
+		printf("BTS: Verifying dummy message.\n");
+		ASSERT(msgb_l3len(in_msg) == ARRAY_SIZE(dummy1));
+		ASSERT(memcmp(in_msg->l3h, dummy1, ARRAY_SIZE(dummy1)) == 0);
+	} else {
+		printf("BTS: Do not know to verify: %d\n", state->bts_read);
+	}
+
+	state->bts_read += 1;
 	msgb_free(in_msg);
 
 	return 0;
@@ -154,9 +177,27 @@ static int ms_to_bts_tx_cb(struct msgb *msg, struct lapdm_entity *le, void *_ctx
 	printf("%s: BTS->MS(us) message %d\n", __func__, msgb_length(msg));
 
 	if (state->ms_read == 0) {
-		/* TODO: Verify that this is a: PRIM_DL_EST, PRIM_OP_CONFIRM */
+		struct abis_rsl_rll_hdr hdr;
+
+		printf("MS: Verifying incoming primitive.\n");
+		ASSERT(msg->len == sizeof(struct abis_rsl_rll_hdr) + 3);
+
+		/* verify the header */
+		memset(&hdr, 0, sizeof(hdr));
+		rsl_init_rll_hdr(&hdr, RSL_MT_EST_CONF);
+		hdr.c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
+		ASSERT(memcmp(msg->data, &hdr, sizeof(hdr)) == 0);
+
+		/* Verify the added RSL_IE_L3_INFO but we have a bug here */
+		ASSERT(msg->data[6] == RSL_IE_L3_INFO);
+		ASSERT(msg->data[7] == 0x0 && msg->data[8] == 0x9c);
+		/* this should be 0x0 and 0x0... but we have a bug */
 	} else if (state->ms_read == 1) {
-		/* TODO: Verify that this is: create_mm_id_req() */
+		printf("MS: Verifying incoming MM message.\n");
+		ASSERT(msgb_l3len(msg) == ARRAY_SIZE(mm));
+		ASSERT(memcmp(msg->l3h, mm, msgb_l3len(msg)) == 0);
+	} else {
+		printf("MS: Do not know to verify: %d\n", state->ms_read);
 	}
 
 	state->ms_read += 1;
