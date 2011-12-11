@@ -59,3 +59,9 @@ AT_KEYWORDS([auth])
 cat $abs_srcdir/auth/milenage_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/auth/milenage_test], [], [expout], [ignore])
 AT_CLEANUP
+
+AT_SETUP([lapd])
+AT_KEYWORDS([lapd])
+cat $abs_srcdir/lapd/lapd_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/lapd/lapd_test], [], [expout], [ignore])
+AT_CLEANUP
