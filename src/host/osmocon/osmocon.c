@@ -123,6 +123,7 @@ enum dnload_mode {
 	MODE_C155,
 	MODE_ROMLOAD,
 	MODE_MTK,
+	MODE_INVALID,
 };
 
 struct dnload {
@@ -1184,7 +1185,7 @@ static int parse_mode(const char *arg)
 	else if (!strcasecmp(arg, "mtk"))
 		return MODE_MTK;
 
-	return -1;
+	return MODE_INVALID;
 }
 
 #define HELP_TEXT \
@@ -1413,7 +1414,7 @@ int main(int argc, char **argv)
 			break;
 		case 'm':
 			dnload.mode = parse_mode(optarg);
-			if (dnload.mode < 0)
+			if (dnload.mode == MODE_INVALID)
 				usage(argv[0]);
 			break;
 		case 's':
