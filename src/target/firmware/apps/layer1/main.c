@@ -140,6 +140,9 @@ static void key_handler(enum key_codes code, enum key_states state)
 	if (state != PRESSED)
 		return;
 
+	l1ctl_tx_keypad_ind(code);
+	return;
+
 	switch (code) {
 	case KEY_4:
 		tspact_toggle(6);	/* TRENA (RFFE) */
@@ -169,7 +172,7 @@ static void key_handler(enum key_codes code, enum key_states state)
 	}
 	/* power down SIM, TODO:  this will happen with every key pressed,
        put it somewhere else ! */
-	calypso_sim_powerdown();
+//	calypso_sim_powerdown();
 }
 
 

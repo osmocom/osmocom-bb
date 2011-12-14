@@ -97,6 +97,7 @@ enum osmobb_l1ctl_sig {
 	S_L1CTL_TCH_MODE_CONF,
 	S_L1CTL_LOSS_IND,
 	S_L1CTL_NEIGH_PM_IND,
+	S_L1CTL_KEYPAD,
 };
 
 enum osmobb_global_sig {
@@ -132,6 +133,11 @@ struct osmobb_neigh_pm_ind {
 	uint16_t band_arfcn;
 	uint8_t rx_lev;
 	uint8_t bsic;
+};
+
+struct osmobb_keypad {
+	struct osmocom_ms *ms;
+	uint8_t key;
 };
 
 #endif

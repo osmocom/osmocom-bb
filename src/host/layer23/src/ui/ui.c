@@ -25,6 +25,7 @@
 #include <osmocom/core/select.h>
 #include <osmocom/bb/ui/ui.h>
 #include <osmocom/bb/ui/telnet_interface.h>
+#include <osmocom/bb/common/l1ctl.h>
 
 static char *ui_center(const char *text)
 {
@@ -101,6 +102,12 @@ int ui_flush(struct ui_inst *ui)
 	ui_telnet_puts(ui, frame);
 	for (i = 0; i < UI_ROWS; i++) {
 		sprintf(line, "|%s|\r\n", ui->buffer + (UI_COLS + 1) * i);
+		{
+			// HACK
+			struct gsm_ui *gui = container_of(ui, struct gsm_ui, ui);
+			struct osmocom_ms *ms = container_of(gui, struct osmocom_ms, gui);
+			l1ctl_tx_display_req(ms, 0, i, ui->buffer + (UI_COLS + 1) * i);
+		}
 		ui_telnet_puts(ui, line);
 	}
 	ui_telnet_puts(ui, frame);

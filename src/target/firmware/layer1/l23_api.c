@@ -47,6 +47,9 @@
 #include <calypso/sim.h>
 #include <calypso/dsp.h>
 #include <calypso/buzzer.h>
+#include <fb/framebuffer.h>
+#include <keypad.h>
+#include <display.h>
 
 #include <l1ctl_proto.h>
 
@@ -627,6 +630,54 @@ static void l1ctl_ringer_req(struct msgb *msg)
 	buzzer_note(NOTE(NOTE_C, OCTAVE_4));
 }
 
+/* Transmit a L1CTL_KEYPAD_IND */
+void l1ctl_tx_keypad_ind(uint8_t key)
+{
+	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_KEYPAD_IND);
+	struct l1ctl_keypad_ind *kp_ind;
+	kp_ind = (struct l1ctl_keypad_ind *)
+				msgb_put(msg, sizeof(*kp_ind));
+
+	switch (key) {
+	case KEY_0: kp_ind->key = '0'; break;
+	case KEY_1: kp_ind->key = '1'; break;
+	case KEY_2: kp_ind->key = '2'; break;
+	case KEY_3: kp_ind->key = '3'; break;
+	case KEY_4: kp_ind->key = '4'; break;
+	case KEY_5: kp_ind->key = '5'; break;
+	case KEY_6: kp_ind->key = '6'; break;
+	case KEY_7: kp_ind->key = '7'; break;
+	case KEY_8: kp_ind->key = '8'; break;
+	case KEY_9: kp_ind->key = '9'; break;
+	case KEY_STAR: kp_ind->key = '*'; break;
+	case KEY_HASH: kp_ind->key = '#'; break;
+	case KEY_MENU: kp_ind->key = 25; break;
+	case KEY_LEFT_SB: kp_ind->key = 1; break;
+	case KEY_RIGHT_SB: kp_ind->key = 2; break;
+	case KEY_UP: kp_ind->key = 28; break;
+	case KEY_DOWN: kp_ind->key = 29; break;
+	case KEY_LEFT: kp_ind->key = 30; break;
+	case KEY_RIGHT: kp_ind->key = 31; break;
+	case KEY_OK: kp_ind->key = 26; break;
+	case KEY_POWER: kp_ind->key = 27; break;
+	case KEY_MINUS: kp_ind->key = '-'; break;
+	case KEY_PLUS: kp_ind->key = '+'; break;
+	default: kp_ind->key = 0xFF;
+	}
+
+	l1_queue_for_l2(msg);
+}
+
+static void l1ctl_display_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_display_req *dr = (struct l1ctl_display_req *) l1h->data;
+
+	printf("DISPLAY (%d) %s\n", dr->y, dr->text);
+//	display_goto_xy(dr->x, dr->y);
+	display_puts(dr->text);
+}
+
 static struct llist_head l23_rx_queue = LLIST_HEAD_INIT(l23_rx_queue);
 
 /* callback from SERCOMM when L2 sends a message to L1 */
@@ -715,11 +766,14 @@ void l1a_l23_handler(void)
 		l1ctl_rx_traffic_req(msg);
 		/* we have to keep the msgb, not free it! */
 		goto exit_nofree;
+	case L1CTL_RINGER_REQ:
+		l1ctl_ringer_req(msg);
+		break;
 	case L1CTL_SIM_REQ:
 		l1ctl_sim_req(msg);
 		break;
-	case L1CTL_RINGER_REQ:
-		l1ctl_ringer_req(msg);
+	case L1CTL_DISPLAY_REQ:
+		l1ctl_display_req(msg);
 		break;
 	}
 

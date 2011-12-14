@@ -950,6 +950,38 @@ int l1ctl_tx_ringer_req(struct osmocom_ms *ms, uint8_t volume)
 	return osmo_send_l1(ms, msg);
 }
 
+static int rx_l1_keypad_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_keypad_ind *kp_ind;
+	struct osmobb_keypad kp;
+
+	kp_ind = (struct l1ctl_keypad_ind *) msg->l1h;
+
+	kp.ms = ms;
+	kp.key = kp_ind->key;
+	osmo_signal_dispatch(SS_L1CTL, S_L1CTL_KEYPAD, &kp);
+
+	return 0;
+}
+
+/* Transmit L1CTL_NEIGH_PM_REQ */
+int l1ctl_tx_display_req(struct osmocom_ms *ms, int x, int y, char *text)
+{
+	struct msgb *msg;
+	struct l1ctl_display_req *dr;
+
+	msg = osmo_l1_alloc(L1CTL_DISPLAY_REQ);
+	if (!msg)
+		return -1;
+
+	dr = (struct l1ctl_display_req *) msgb_put(msg, sizeof(*dr));
+	dr->x = x;
+	dr->y = y;
+	strncpy(dr->text, text, sizeof(dr->text) - 1);
+
+	return osmo_send_l1(ms, msg);
+}
+
 /* Receive incoming data from L1 using L1CTL format */
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -1014,6 +1046,10 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		rc = rx_l1_traffic_ind(ms, msg);
 		break;
 	case L1CTL_TRAFFIC_CONF:
+		msgb_free(msg);
+		break;
+	case L1CTL_KEYPAD_IND:
+		rc = rx_l1_keypad_ind(ms, msg);
 		msgb_free(msg);
 		break;
 	default:

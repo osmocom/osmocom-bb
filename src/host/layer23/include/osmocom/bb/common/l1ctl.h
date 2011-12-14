@@ -77,4 +77,6 @@ int l1ctl_tx_neigh_pm_req(struct osmocom_ms *ms, int num, uint16_t *arfcn);
 /* Transmit L1CTL_RINGER_REQ */
 int l1ctl_tx_ringer_req(struct osmocom_ms *ms, uint8_t volume);
 
+int l1ctl_tx_display_req(struct osmocom_ms *ms, int x, int y, char *text);
+
 #endif

@@ -43,6 +43,8 @@ static key_handler_t key_handler = NULL;
 
 void emit_key(uint8_t key, uint8_t state)
 {
+	static int power_count = 0;
+
 	printf("key=%u %s\n", key, state == PRESSED ? "pressed" : "released");
 
 	if(key_handler) {
