@@ -106,8 +106,7 @@ int ui_flush(struct ui_inst *ui)
 			// HACK
 			struct gsm_ui *gui = container_of(ui, struct gsm_ui, ui);
 			struct osmocom_ms *ms = container_of(gui, struct osmocom_ms, gui);
-			l1ctl_tx_display_req(ms, 0, 8 + i * 8, 0, 0, 0, i == 0, i == UI_ROWS - 1, ui->buffer + (UI_COLS + 1) * i);
-			printf("%s\n", ui->buffer + (UI_COLS + 1) * i);
+			l1ctl_tx_display_req(ms, 1, 8 + i * 8, 0, 1, 0, i == 0, i == UI_ROWS - 1 && !ui->cursor_on, ui->buffer + (UI_COLS + 1) * i);
 		}
 		ui_telnet_puts(ui, line);
 	}
@@ -123,6 +122,14 @@ int ui_flush(struct ui_inst *ui)
 	if (ui->cursor_on) {
 		sprintf(cursor, "\033[%d;%dH", ui->cursor_y + 2,
 			ui->cursor_x + 2);
+		{
+			char c[] = "x";
+			// HACK
+			struct gsm_ui *gui = container_of(ui, struct gsm_ui, ui);
+			struct osmocom_ms *ms = container_of(gui, struct osmocom_ms, gui);
+			c[0] = ui->buffer[(UI_COLS + 1) * ui->cursor_y + ui->cursor_x];
+			l1ctl_tx_display_req(ms, 1 + 8 * ui->cursor_x, 8 + 8 * ui->cursor_y, 1, 0, 0, 0, 1, c);
+		}
 		ui_telnet_puts(ui, cursor);
 	}
 
