@@ -687,8 +687,15 @@ static void l1ctl_display_req(struct msgb *msg)
 	struct l1ctl_display_req *dr = (struct l1ctl_display_req *) l1h->data;
 
 	printf("DISPLAY (%d) %s\n", dr->y, dr->text);
-//	display_goto_xy(dr->x, dr->y);
-	display_puts(dr->text);
+	if (dr->clear)
+		fb_clear();
+	fb_setfg(FB_COLOR_GREEN);
+	fb_setbg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_C64);
+	fb_gotoxy(dr->x, dr->y);
+	fb_putstr(dr->text, 100);
+	if (dr->flush)
+		fb_flush();
 }
 
 static struct llist_head l23_rx_queue = LLIST_HEAD_INIT(l23_rx_queue);

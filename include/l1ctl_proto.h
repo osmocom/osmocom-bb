@@ -423,6 +423,8 @@ struct l1ctl_keypad_ind {
 
 struct l1ctl_display_req {
 	uint8_t x, y;
+	uint8_t fg, bg, font;
+	uint8_t clear, flush;
 	char text[32];
 } __attribute__((packed));
 
