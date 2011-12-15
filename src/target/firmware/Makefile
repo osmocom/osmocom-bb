@@ -9,7 +9,7 @@ APPLICATIONS?=hello_world compal_dsp_dump layer1 loader chainload
 # Framebuffer support, board specific drivers
 # 	
 
-FB_OBJS=fb/framebuffer.o fb/font.o fb/helvR08.o fb/helvB14.o
+FB_OBJS=fb/framebuffer.o fb/font.o fb/helvR08.o fb/helvB14.o fb/c64.o
 
 FB_e88_OBJS=$(FB_OBJS) fb/fb_bw8.o fb/fb_st7558.o
 FB_e99_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_ssd1783.o

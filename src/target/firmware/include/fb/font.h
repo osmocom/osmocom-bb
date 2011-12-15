@@ -68,7 +68,8 @@ enum fb_font_id {
 //	FB_FONT_HELVR24,
 //	FB_FONT_HELVB08,
 	FB_FONT_HELVB14,
-//	FB_FONT_HELVB24
+//	FB_FONT_HELVB24,
+	FB_FONT_C64,
 };
 
 extern const struct fb_font *fb_fonts[]; // note: has to match fb_font_id enum!
