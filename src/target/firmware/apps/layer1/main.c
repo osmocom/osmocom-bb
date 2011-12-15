@@ -95,6 +95,7 @@ int main(void)
 		l1a_compl_execute();
 		update_timers();
 		sim_handler();
+		l1a_l23_handler();
 	}
 
 	/* NOT REACHED */
