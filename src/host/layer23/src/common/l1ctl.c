@@ -965,7 +965,9 @@ static int rx_l1_keypad_ind(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* Transmit L1CTL_NEIGH_PM_REQ */
-int l1ctl_tx_display_req(struct osmocom_ms *ms, int x, int y, char *text)
+int l1ctl_tx_display_req(struct osmocom_ms *ms, uint8_t x, uint8_t y,
+	uint8_t fg, uint8_t bg, uint8_t font, uint8_t clear, uint8_t flush,
+	char *text)
 {
 	struct msgb *msg;
 	struct l1ctl_display_req *dr;
@@ -977,6 +979,11 @@ int l1ctl_tx_display_req(struct osmocom_ms *ms, int x, int y, char *text)
 	dr = (struct l1ctl_display_req *) msgb_put(msg, sizeof(*dr));
 	dr->x = x;
 	dr->y = y;
+	dr->fg = fg;
+	dr->bg = bg;
+	dr->font = font;
+	dr->clear = clear;
+	dr->flush = flush;
 	strncpy(dr->text, text, sizeof(dr->text) - 1);
 
 	return osmo_send_l1(ms, msg);
