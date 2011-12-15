@@ -205,6 +205,26 @@ int fb_rgb332_putstr(char *str,int maxwidth){
 	int byte_per_line;		// depending on character width in font
 	int bitmap_offs,bitmap_bit;	// offset inside bitmap, bit number of pixel
 	uint8_t *p,fgpixel,bgpixel;	// pointer into framebuffer memory
+	int total_w;			// total width
+
+	/* center, if maxwidth < 0 */
+	if (maxwidth < 0) {
+		total_w = 0;
+		/* count width of string */
+		for(p=str;*p;p++){
+			fchr = fb_font_get_char(font,*p);
+			if(!fchr)  /* FIXME: Does '?' exist in every font? */
+				fchr = fb_font_get_char(font,'?');
+			total_w += fchr->width;
+
+		} // str
+		if (total_w <= framebuffer->width)
+			framebuffer->cursor_x =
+				(framebuffer->width - total_w) >> 1;
+		else
+			framebuffer->cursor_x = 1;
+		maxwidth = framebuffer->width;
+	}
 
 	x1 = framebuffer->cursor_x;	// first col (incl!)
 	x2 = x1 + maxwidth - 1;		// last col (incl!)

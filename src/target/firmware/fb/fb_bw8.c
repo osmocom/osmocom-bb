@@ -189,7 +189,25 @@ fb_bw8_putstr(char *str,int maxwidth){
 	int bitmap_offs,bitmap_bit;	// offset inside bitmap, bit number of pixel
 	int fb8_offs;			// offset to current pixel in framebuffer
 	uint8_t and_mask,or_mask;	// to draw on framebuffer
-	uint8_t *p;			// pointer into framebuffer memory
+	uint8_t *p;			// pointer into framebuffer memorya
+	int total_w;			// total width
+
+	/* center, if maxwidth < 0 */
+	if (maxwidth < 0) {
+		total_w = 0;
+		/* count width of string */
+		for(p=str;*p;p++){
+			fchr = fb_font_get_char(font,*p);
+			if(!fchr)  /* FIXME: Does '?' exist in every font? */
+				fchr = fb_font_get_char(font,'?');
+			total_w += fchr->width;
+
+		} // str
+		if (total_w <= framebuffer->width)
+			framebuffer->cursor_x =
+				(framebuffer->width - total_w) >> 1;
+		maxwidth = framebuffer->width;
+	}
 
 	x1 = framebuffer->cursor_x;	// first col (incl!)
 	x2 = x1 + maxwidth - 1;		// last col (incl!)
