@@ -10,7 +10,7 @@ struct gsm_networks {
 };
 
 int gsm_match_mcc(uint16_t mcc, char *imsi);
-int gsm_match_mnc(uint16_t mcc, uint8_t mnc, char *imsi);
+int gsm_match_mnc(uint16_t mcc, uint16_t mnc, char *imsi);
 const char *gsm_print_mcc(uint16_t mcc);
 const char *gsm_print_mnc(uint16_t mcc);
 const char *gsm_get_mcc(uint16_t mcc);
