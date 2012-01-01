@@ -3391,7 +3391,7 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 	}
 	tlv_parse(&tp, &gsm48_rr_att_tlvdef, cr->data, payload_len, 0, 0);
 
-	LOGP(DRR, LOGL_INFO, "channel release request with cause 0x%02x)\n",
+	LOGP(DRR, LOGL_INFO, "channel release request with cause 0x%02x\n",
 		cr->rr_cause);
 
 	/* BA range */
