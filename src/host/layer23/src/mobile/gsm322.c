@@ -3024,9 +3024,10 @@ int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		cs = &ms->cellsel;
 		LOGP(DCS, LOGL_INFO, "Loss of CCCH.\n");
 		if (cs->selected && cs->sel_arfcn == cs->arfcn) {
-			LOGP(DCS, LOGL_INFO, "Unselect cell due to loss\n");
-			/* unset selected cell */
-			gsm322_unselect_cell(cs);
+			/* do not unselect cell */
+			LOGP(DCS, LOGL_INFO, "Keep cell selected after loss, "
+				"so we can use the Neighbour cell information "
+				"for cell re-selection.\n");
 		}
 		stop_cs_timer(cs);
 		gsm322_cs_loss(cs);
