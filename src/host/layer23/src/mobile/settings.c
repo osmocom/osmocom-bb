@@ -47,8 +47,7 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	sprintf(set->imeisv, "0000000000000000");
 
 	/* SIM type */
-#warning TODO: Enable after SIM reader is available in master branch.
-//	set->sim_type = SIM_TYPE_READER;
+	set->sim_type = GSM_SIM_TYPE_READER;
 
 	/* test SIM */
 	strcpy(set->test_imsi, "001010000000000");
