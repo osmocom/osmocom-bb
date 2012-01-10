@@ -782,7 +782,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 {
 	struct lapd_datalink *dl = lctx->dl;
 	int length = lctx->length;
-	int rc;
+	int rc = 0;
 	uint8_t prim, op;
 
 	switch (lctx->s_u) {
@@ -1497,14 +1497,32 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		     "V(R)=%u\n", ns, dl->v_recv);
 		/* discard data */
 		msgb_free(msg);
-		if (!dl->seq_err_cond) {
+		if (dl->seq_err_cond != 1) {
 			/* FIXME: help me understand what exactly todo here
-			dl->seq_err_cond = 1;
 			*/
+			dl->seq_err_cond = 1;
 			lapd_send_rej(lctx, lctx->p_f);
 		} else {
+			/* If there are two subsequent sequence errors received,
+			 * ignore it. (Ignore every second subsequent error.)
+			 * This happens if our reply with the REJ is too slow,
+			 * so the remote gets a T200 timeout and sends another
+			 * frame with a sequence error.
+			 * Test showed that replying with two subsequent REJ
+			 * messages could the remote L2 process to abort.
+			 * Replying too slow shouldn't happen, but may happen
+			 * over serial link between BB and LAPD.
+			 */
+			dl->seq_err_cond = 2;
 		}
-		return -EIO;
+		/* Even if N(s) sequence error, acknowledge to N(R)-1 */
+		/* 5.5.3.1: Acknowlege all transmitted frames up the N(R)-1 */
+		lapd_acknowledge(lctx); /* V(A) is also set here */
+
+		/* Send message, if possible due to acknowledged data */
+		lapd_send_i(lctx, __LINE__);
+
+		return 0;
 	}
 	dl->seq_err_cond = 0;
 

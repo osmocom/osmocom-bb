@@ -43,7 +43,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/logging.h>
 
-static const int logp2syslog_level(unsigned int level)
+static int logp2syslog_level(unsigned int level)
 {
 	if (level >= LOGL_FATAL)
 		return LOG_CRIT;

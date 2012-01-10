@@ -1,6 +1,12 @@
 #ifndef _GSM0411_UTILS_H
 #define _GSM0411_UTILS_H
 
+/* Turn int into semi-octet representation: 98 => 0x89 */
+uint8_t gsm411_bcdify(uint8_t value);
+
+/* Turn semi-octet representation into int: 0x89 => 98 */
+uint8_t gsm411_unbcdify(uint8_t value);
+
 struct msgb *gsm411_msgb_alloc(void);
 
 /* Generate 03.40 TP-SCTS */

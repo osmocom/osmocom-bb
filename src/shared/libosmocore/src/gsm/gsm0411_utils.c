@@ -44,7 +44,7 @@ struct msgb *gsm411_msgb_alloc(void)
 }
 
 /* Turn int into semi-octet representation: 98 => 0x89 */
-static uint8_t bcdify(uint8_t value)
+uint8_t gsm411_bcdify(uint8_t value)
 {
 	uint8_t ret;
 
@@ -55,13 +55,13 @@ static uint8_t bcdify(uint8_t value)
 }
 
 /* Turn semi-octet representation into int: 0x89 => 98 */
-static uint8_t unbcdify(uint8_t value)
+uint8_t gsm411_unbcdify(uint8_t value)
 {
 	uint8_t ret;
 
 	if ((value & 0x0F) > 9 || (value >> 4) > 9)
 		LOGP(DLSMS, LOGL_ERROR,
-		     "unbcdify got too big nibble: 0x%02X\n", value);
+		     "gsm411_unbcdify got too big nibble: 0x%02X\n", value);
 
 	ret = (value&0x0F)*10;
 	ret += value>>4;
@@ -74,20 +74,20 @@ void gsm340_gen_scts(uint8_t *scts, time_t time)
 {
 	struct tm *tm = gmtime(&time);
 
-	*scts++ = bcdify(tm->tm_year % 100);
-	*scts++ = bcdify(tm->tm_mon + 1);
-	*scts++ = bcdify(tm->tm_mday);
-	*scts++ = bcdify(tm->tm_hour);
-	*scts++ = bcdify(tm->tm_min);
-	*scts++ = bcdify(tm->tm_sec);
-	*scts++ = bcdify(0); /* GMT */
+	*scts++ = gsm411_bcdify(tm->tm_year % 100);
+	*scts++ = gsm411_bcdify(tm->tm_mon + 1);
+	*scts++ = gsm411_bcdify(tm->tm_mday);
+	*scts++ = gsm411_bcdify(tm->tm_hour);
+	*scts++ = gsm411_bcdify(tm->tm_min);
+	*scts++ = gsm411_bcdify(tm->tm_sec);
+	*scts++ = gsm411_bcdify(0); /* GMT */
 }
 
 /* Decode 03.40 TP-SCTS (into utc/gmt timestamp) */
 time_t gsm340_scts(uint8_t *scts)
 {
 	struct tm tm;
-	uint8_t yr = unbcdify(*scts++);
+	uint8_t yr = gsm411_unbcdify(*scts++);
 	int ofs;
 
 	memset(&tm, 0x00, sizeof(struct tm));
@@ -96,15 +96,15 @@ time_t gsm340_scts(uint8_t *scts)
 		tm.tm_year = 100 + yr;
 	else
 		tm.tm_year = yr;
-	tm.tm_mon  = unbcdify(*scts++) - 1;
-	tm.tm_mday = unbcdify(*scts++);
-	tm.tm_hour = unbcdify(*scts++);
-	tm.tm_min  = unbcdify(*scts++);
-	tm.tm_sec  = unbcdify(*scts++);
+	tm.tm_mon  = gsm411_unbcdify(*scts++) - 1;
+	tm.tm_mday = gsm411_unbcdify(*scts++);
+	tm.tm_hour = gsm411_unbcdify(*scts++);
+	tm.tm_min  = gsm411_unbcdify(*scts++);
+	tm.tm_sec  = gsm411_unbcdify(*scts++);
 
 	/* according to gsm 03.40 time zone is
 	   "expressed in quarters of an hour" */
-	ofs = unbcdify(*scts++) * 15*60;
+	ofs = gsm411_unbcdify(*scts++) * 15*60;
 
 	return mktime(&tm) - ofs;
 }
@@ -172,9 +172,9 @@ static unsigned long gsm340_vp_relative_integer(uint8_t *sms_vp)
 static unsigned long gsm340_vp_relative_semioctet(uint8_t *sms_vp)
 {
 	unsigned long minutes;
-	minutes = unbcdify(*sms_vp++)*60;  /* hours */
-	minutes += unbcdify(*sms_vp++);    /* minutes */
-	minutes += unbcdify(*sms_vp++)/60; /* seconds */
+	minutes = gsm411_unbcdify(*sms_vp++)*60;  /* hours */
+	minutes += gsm411_unbcdify(*sms_vp++);    /* minutes */
+	minutes += gsm411_unbcdify(*sms_vp++)/60; /* seconds */
 	return minutes;
 }
 

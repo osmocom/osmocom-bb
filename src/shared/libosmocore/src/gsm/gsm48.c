@@ -406,7 +406,7 @@ int gsm48_construct_ra(uint8_t *buf, const struct gprs_ra_id *raid)
 		buf[2] = ((mnc / 10) % 10) | ((mnc % 10) << 4);
 	} else {
 		buf[1] |= (mnc % 10) << 4;
-		buf[2] = ((mnc / 100) % 10) | (((mcc / 10) % 10) << 4);
+		buf[2] = ((mnc / 100) % 10) | (((mnc / 10) % 10) << 4);
 	}
 
 	*(uint16_t *)(buf+3) = htons(raid->lac);

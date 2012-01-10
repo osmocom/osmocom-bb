@@ -33,14 +33,29 @@ Doxyfile.codec
 .tarball-version
 .version
 
+#gnu autotest
+tests/package.m4
+tests/atconfig
+tests/atlocal
+tests/osmo-test
+tests/package.m4
+tests/testsuite
+tests/testsuite.dir/
+tests/testsuite.log
+
 tests/sms/sms_test
 tests/timer/timer_test
 tests/msgfile/msgfile_test
 tests/ussd/ussd_test
 tests/smscb/smscb_test
 tests/bits/bitrev_test
+tests/a5/a5_test
+tests/auth/milenage_test
+tests/conv/conv_test
+tests/lapd/lapd_test
 
 utils/osmo-arfcn
+utils/osmo-auc-gen
 
 doc/codec
 doc/core
@@ -50,3 +65,7 @@ doc/html.tar
 
 src/crc*gen.c
 include/osmocom/core/crc*gen.h
+
+
+# vi files
+*.sw?

@@ -24,6 +24,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <getopt.h>
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
@@ -60,6 +62,7 @@ struct test_timer {
 #define TIMER_PRES_SECS		0
 #define TIMER_PRES_USECS	10000
 
+static int timer_nsteps = MAIN_TIMER_NSTEPS;
 static unsigned int expired_timers = 0;
 static unsigned int total_timers = 0;
 static unsigned int too_late = 0;
@@ -70,9 +73,9 @@ static void main_timer_fired(void *data)
 	unsigned int add_in_this_step;
 	int i;
 
-	if (*step == MAIN_TIMER_NSTEPS) {
-		printf("Main timer has finished, please, wait a bit for the "
-		       "final report.\n");
+	if (*step == timer_nsteps) {
+		fprintf(stderr, "Main timer has finished, please, "
+				"wait a bit for the final report.\n");
 		return;
 	}
 	/* add 2^step pair of timers per step. */
@@ -94,7 +97,7 @@ static void main_timer_fired(void *data)
 		osmo_timer_schedule(&v->timer, seconds, 0);
 		llist_add(&v->head, &timer_test_list);
 	}
-	printf("added %d timers in step %u (expired=%u)\n",
+	fprintf(stderr, "added %d timers in step %u (expired=%u)\n",
 		add_in_this_step, *step, expired_timers);
 	total_timers += add_in_this_step;
 	osmo_timer_schedule(&main_timer, TIME_BETWEEN_STEPS, 0);
@@ -110,7 +113,8 @@ static void secondary_timer_fired(void *data)
 
 	timersub(&current, &v->stop, &res);
 	if (timercmp(&res, &precision, >)) {
-		printf("ERROR: timer %p has expired too late!\n", v->timer);
+		fprintf(stderr, "ERROR: timer %p has expired too late!\n",
+			v->timer);
 		too_late++;
 	}
 
@@ -118,7 +122,7 @@ static void secondary_timer_fired(void *data)
 	talloc_free(data);
 	expired_timers++;
 	if (expired_timers == total_timers) {
-		printf("test over: added=%u expired=%u too_late=%u \n",
+		fprintf(stdout, "test over: added=%u expired=%u too_late=%u \n",
 			total_timers, expired_timers, too_late);
 		exit(EXIT_SUCCESS);
 	}
@@ -134,19 +138,54 @@ static void secondary_timer_fired(void *data)
 	}
 }
 
-int main(int argc, char** argv)
+static void alarm_handler(int signum)
 {
-	printf("Running timer test for %u steps, accepting imprecision "
-	       "of %u.%.6u seconds\n",
-		MAIN_TIMER_NSTEPS, TIMER_PRES_SECS, TIMER_PRES_USECS);
+	fprintf(stderr, "ERROR: We took too long to run the timer test, "
+			"something seems broken, aborting.\n");
+	exit(EXIT_FAILURE);
+}
+
+int main(int argc, char *argv[])
+{
+	int c;
+
+	if (signal(SIGALRM, alarm_handler) == SIG_ERR) {
+		perror("cannot register signal handler");
+		exit(EXIT_FAILURE);
+	}
+
+	while ((c = getopt_long(argc, argv, "s:", NULL, NULL)) != -1) {
+	switch(c) {
+		case 's':
+			timer_nsteps = atoi(optarg);
+			if (timer_nsteps <= 0) {
+				fprintf(stderr, "%s: steps must be > 0\n",
+					argv[0]);
+				exit(EXIT_FAILURE);
+			}
+			break;
+		default:
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	fprintf(stdout, "Running timer test for %u steps, accepting "
+		"imprecision of %u.%.6u seconds\n",
+		timer_nsteps, TIMER_PRES_SECS, TIMER_PRES_USECS);
 
 	osmo_timer_schedule(&main_timer, 1, 0);
+
+	/* if the test takes too long, we may consider that the timer scheduler
+	 * has hung. We set some maximum wait time which is the double of the
+	 * maximum timeout randomly set (10 seconds, worst case) plus the
+	 * number of steps (since some of them are reset each step). */
+	alarm(2 * (10 + timer_nsteps));
 
 #ifdef HAVE_SYS_SELECT_H
 	while (1) {
 		osmo_select_main(0);
 	}
 #else
-	printf("Select not supported on this platform!\n");
+	fprintf(stdout, "Select not supported on this platform!\n");
 #endif
 }
