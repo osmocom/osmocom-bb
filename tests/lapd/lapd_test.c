@@ -99,6 +99,16 @@ static struct msgb *create_mm_id_req(void)
 	return msg;
 }
 
+static struct msgb *create_empty_msg(void)
+{
+	struct msgb *msg;
+
+	msg = msgb_from_array(NULL, 0);
+	ASSERT(msgb_l3len(msg) == 0);
+	rsl_rll_push_l3(msg, RSL_MT_DATA_REQ, 0, 0, 1);
+	return msg;
+}
+
 static struct msgb *create_dummy_data_req(void)
 {
 	struct msgb *msg;
@@ -283,6 +293,11 @@ static void test_lapdm_polling()
 	/* verify that there is nothing more to poll */
 	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
 	ASSERT(rc < 0);
+
+	/* check sending an empty L3 message fails */
+	rc = lapdm_rslms_recvmsg(create_empty_msg(), &bts_to_ms_channel);
+	ASSERT(rc == -1);
+	ASSERT(test_state.ms_read == 2);
 
 	/* clean up */
 	lapdm_channel_exit(&bts_to_ms_channel);
