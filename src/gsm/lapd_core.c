@@ -1731,7 +1731,8 @@ static int lapd_data_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	struct lapd_datalink *dl = lctx->dl;
 	struct msgb *msg = dp->oph.msg;
 
-	LOGP(DLLAPD, LOGL_INFO, "writing message to send-queue\n");
+	LOGP(DLLAPD, LOGL_INFO,
+	     "writing message to send-queue: l3len: %d\n", msgb_l3len(msg));
 
 	/* Write data into the send queue */
 	msgb_enqueue(&dl->send_queue, msg);
