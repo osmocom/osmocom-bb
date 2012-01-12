@@ -73,8 +73,8 @@ static const uint8_t cm_padded[] = {
 };
 
 static const uint8_t mm[] = {
-	0x05, 0x24, 0x31, 0x03, 0x50, 0x18, 0x93, 0x08,
-	0x29, 0x47, 0x80, 0x00,
+	0x00, 0x0c, 0x00, 0x03, 0x01, 0x01, 0x20, 0x02,
+	0x00, 0x0b, 0x00, 0x03, 0x05, 0x04, 0x0d
 };
 
 static const uint8_t dummy1[] = {
@@ -95,7 +95,11 @@ static struct msgb *create_mm_id_req(void)
 	struct msgb *msg;
 
 	msg = msgb_from_array(mm, sizeof(mm));
-	rsl_rll_push_l3(msg, RSL_MT_DATA_REQ, 0, 0, 1);
+	msg->l2h = msg->data + 3;
+	ASSERT(msgb_l2len(msg) == 12);
+	msg->l3h = msg->l2h + 6;
+	ASSERT(msgb_l3len(msg) == 6);
+
 	return msg;
 }
 
@@ -204,9 +208,9 @@ static int ms_to_bts_tx_cb(struct msgb *msg, struct lapdm_entity *le, void *_ctx
 		/* ASSERT(msg->data[7] == 0x0 && msg->data[8] == 0x9c); */
 		/* this should be 0x0 and 0x0... but we have a bug */
 	} else if (state->ms_read == 1) {
-		printf("MS: Verifying incoming MM message.\n");
-		ASSERT(msgb_l3len(msg) == ARRAY_SIZE(mm));
-		ASSERT(memcmp(msg->l3h, mm, msgb_l3len(msg)) == 0);
+		printf("MS: Verifying incoming MM message: %d\n", msgb_l3len(msg));
+		ASSERT(msgb_l3len(msg) == 3);
+		ASSERT(memcmp(msg->l3h, &mm[12], msgb_l3len(msg)) == 0);
 	} else {
 		printf("MS: Do not know to verify: %d\n", state->ms_read);
 	}
@@ -281,7 +285,7 @@ static void test_lapdm_polling()
 	lapdm_rslms_recvmsg(create_dummy_data_req(), &ms_to_bts_channel);
 
 
-	/* 4. And back to the MS */
+	/* 4. And back to the MS, but let's move data/l2h apart */
 	ASSERT(test_state.bts_read == 2)
 	ASSERT(test_state.ms_read == 2);
 	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
