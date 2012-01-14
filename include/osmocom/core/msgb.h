@@ -319,13 +319,11 @@ static inline void msgb_reserve(struct msgb *msg, int len)
  */
 static inline int msgb_trim(struct msgb *msg, int len)
 {
-	if (msg->len < len)
+	if (len > msg->data_len)
 		return -1;
 
-	msg->len -= len;
-	msg->tail -= len;
-	if (msg->tail < msg->data)
-		msg->tail = msg->data;
+	msg->len = len;
+	msg->tail = msg->data + len;
 
 	return 0;
 }
