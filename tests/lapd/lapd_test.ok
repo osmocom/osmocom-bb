@@ -9,8 +9,8 @@ ms_to_bts_tx_cb: BTS->MS(us) message 9
 MS: Verifying incoming primitive.
 
 Sending back to MS
-ms_to_bts_tx_cb: BTS->MS(us) message 21
-MS: Verifying incoming MM message.
+ms_to_bts_tx_cb: BTS->MS(us) message 12
+MS: Verifying incoming MM message: 3
 ms_to_bts_l1_cb: MS(us) -> BTS prim message
 
 Sending back to BTS
