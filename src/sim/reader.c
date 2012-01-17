@@ -1,0 +1,224 @@
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#include <osmocom/sim/sim.h>
+
+
+#include "sim_int.h"
+
+static int get_sw(struct msgb *resp)
+{
+	int ret;
+
+	if (!msgb_apdu_de(resp) || msgb_apdu_le(resp) < 2)
+		return -EIO;
+
+	ret = resp->data[resp->len-2] << 8;
+	ret |= resp->data[resp->len-1];
+
+	return ret;
+}
+
+/* According to ISO7816-4 Annex A */
+static int transceive_apdu_t0(struct osim_card_hdl *st, struct msgb *amsg)
+{
+	struct osim_reader_hdl *rh = st->reader;
+	struct msgb *tmsg = msgb_alloc(1024, "TPDU");
+	struct osim_apdu_cmd_hdr *tpduh;
+	uint8_t *cur;
+	uint16_t sw;
+	int rc, num_resp = 0;
+
+	/* create TPDU header from APDU header */
+	tpduh = (struct osim_apdu_cmd_hdr *) msgb_put(tmsg, sizeof(*tpduh));
+	memcpy(tpduh, msgb_apdu_h(amsg), sizeof(*tpduh));
+
+	switch (msgb_apdu_case(amsg)) {
+	case APDU_CASE_1:
+		tpduh->p3 = 0x00;
+		break;
+	case APDU_CASE_2:
+		tpduh->p3 = msgb_apdu_le(amsg);
+		break;
+	case APDU_CASE_2_EXT:
+		if (msgb_apdu_le(amsg) <= 256) {
+			/* case 2E.1 */
+			tpduh->p3 = msgb_apdu_le(amsg) & 0xff;
+		} else {
+			/* case 2E.2 */
+			tpduh->p3 = 0;
+			msgb_put_u16(tmsg, msgb_apdu_le(amsg));
+		}
+		break;
+	case APDU_CASE_3:
+	case APDU_CASE_4:
+		tpduh->p3 = msgb_apdu_lc(amsg);
+		cur = msgb_put(tmsg, tpduh->p3);
+		memcpy(cur, msgb_apdu_dc(amsg), tpduh->p3);
+		break;
+	case APDU_CASE_3_EXT:
+	case APDU_CASE_4_EXT:
+		if (msgb_apdu_lc(amsg) < 256) {
+			/* Case 3E.1 */
+			tpduh->p3 = msgb_apdu_lc(amsg);
+		} else {
+			/* Case 3E.2 */
+			/* FXIME: Split using ENVELOPE! */
+			return -1;
+		}
+		break;
+	}
+
+transceive_again:
+
+	/* store pointer to start of response */
+	tmsg->l3h = tmsg->tail;
+
+	/* transceive */
+	rc = rh->ops->transceive(st->reader, tmsg);
+	if (rc < 0) {
+		msgb_free(tmsg);
+		return rc;
+	}
+	msgb_apdu_sw(tmsg) = get_sw(tmsg);
+
+	/* increase number of responsese received */
+	num_resp++;
+
+	/* save SW */
+	sw = msgb_apdu_sw(tmsg);
+	printf("sw = 0x%04x\n", sw);
+	msgb_apdu_sw(amsg) = sw;
+
+	switch (msgb_apdu_case(amsg)) {
+	case APDU_CASE_1:
+	case APDU_CASE_3:
+		/* just copy SW */
+		break;
+	case APDU_CASE_2:
+case_2s:
+		switch (sw >> 8) {
+		case 0x67: /* Case 2S.2: Le definitely not accepted */
+			break;
+		case 0x6c: /* Case 2S.3: Le not accepted, La indicated */
+			tpduh->p3 = sw & 0xff;
+			/* re-issue the command with La as */
+			goto transceive_again;
+			break;
+		case 0x90:
+			/* Case 2S.1, fall-through */
+		case 0x91: case 0x92: case 0x93: case 0x94: case 0x95:
+		case 0x96: case 0x97: case 0x98: case 0x99: case 0x9a:
+		case 0x9b: case 0x9c: case 0x9d: case 0x9e: case 0x9f:
+			/* Case 2S.4 */
+			/* copy response data over */
+			cur = msgb_put(amsg, msgb_l3len(tmsg));
+			memcpy(cur, tmsg->l3h, msgb_l3len(tmsg));
+		}
+		break;
+	case APDU_CASE_4:
+		/* FIXME: this is 4S.2 only for 2nd... response: */
+		if (num_resp >= 2)
+			goto case_2s;
+
+		switch (sw >> 8) {
+		case 0x60: case 0x62: case 0x63: case 0x64: case 0x65:
+		case 0x66: case 0x67: case 0x68: case 0x69: case 0x6a:
+		case 0x6b: case 0x6c: case 0x6d: case 0x6e: case 0x6f:
+			/* Case 4S.1: Command not accepted: just copy SW */
+			break;
+		case 0x90:
+			/* case 4S.2: Command accepted */
+			tpduh->ins = 0xC0;
+			tpduh->p1 = tpduh->p2 = 0;
+			tpduh->p3 = msgb_apdu_le(amsg);
+			/* strip off current result */
+			msgb_get(tmsg, msgb_length(tmsg)-sizeof(*tpduh));
+			goto transceive_again;
+			break;
+		case 0x61: /* Case 4S.3: command accepted with info added */
+			tpduh->ins = 0xC0;
+			tpduh->p1 = tpduh->p2 = 0;
+			tpduh->p3 = OSMO_MIN(msgb_apdu_le(amsg), sw & 0xff);
+			/* strip off current result */
+			msgb_get(tmsg, msgb_length(tmsg)-sizeof(*tpduh));
+			goto transceive_again;
+			break;
+		}
+		/* Case 4S.2: Command accepted: just copy SW */
+		/* Case 4S.4: Just copy SW */
+		break;
+	case APDU_CASE_2_EXT:
+		if (msgb_apdu_le(amsg) <= 256) {
+			/* Case 2E.1: Le <= 256 */
+			goto case_2s;
+		}
+		switch (sw >> 8) {
+		case 0x67:
+			/* Case 2E.2a: wrong length, abort */
+			break;
+		case 0x6c:
+			/* Case 2E.2b: wrong length, La given */
+			tpduh->p3 = sw & 0xff;
+			/* re-issue the command with La as given */
+			goto transceive_again;
+			break;
+		case 0x90:
+			/* Case 2E.2c: */
+			break;
+		case 0x61:
+			/* Case 2E.2d: more data available */
+			/* FIXME: issue yet another GET RESPONSE */
+			break;
+		}
+		break;
+	case APDU_CASE_3_EXT:
+		/* FIXME: handling for ENVELOPE splitting */
+		break;
+	case APDU_CASE_4_EXT:
+		break;
+	}
+
+	msgb_free(tmsg);
+
+	/* compute total length of response data */
+	msgb_apdu_le(amsg) = amsg->tail - msgb_apdu_de(amsg);
+
+	return sw;
+}
+
+/* According to ISO7816-4 Annex B */
+static int transceive_apdu_t1(struct osim_card_hdl *st, struct msgb *amsg)
+{
+	return -1;
+}
+
+int osim_transceive_apdu(struct osim_chan_hdl *st, struct msgb *amsg)
+{
+	/* FIXME: check for protocol */
+	return transceive_apdu_t0(st->card, amsg);
+}
+
+
+
+struct osim_reader_hdl *osim_reader_open(int idx, const char *name)
+{
+	/* FIXME: support multiple drivers */
+	const struct osim_reader_ops *ops = &pcsc_reader_ops;
+	struct osim_reader_hdl *rh;
+
+	rh = ops->reader_open(idx, name);
+	if (!rh)
+		return NULL;
+	rh->ops = ops;
+
+	return rh;
+}
+
+struct osim_card_hdl *osim_card_open(struct osim_reader_hdl *rh)
+{
+	return rh->ops->card_open(rh);
+}

@@ -83,7 +83,8 @@ nobase_include_HEADERS = \
                        osmocom/gsm/rsl.h \
                        osmocom/gsm/rxlev_stat.h \
                        osmocom/gsm/sysinfo.h \
-                       osmocom/gsm/tlv.h
+                       osmocom/gsm/tlv.h \
+		       osmocom/sim/sim.h
 
 if ENABLE_PLUGIN
 nobase_include_HEADERS += osmocom/core/plugin.h

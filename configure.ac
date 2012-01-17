@@ -187,10 +187,12 @@ AC_OUTPUT(
 	libosmogsm.pc
 	libosmogb.pc
 	libosmoctrl.pc
+	libosmosim.pc
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile
 	src/codec/Makefile
+	src/sim/Makefile
 	src/gsm/Makefile
 	src/gb/Makefile
 	src/ctrl/Makefile
