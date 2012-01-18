@@ -2180,10 +2180,18 @@ int gsm48_rcv_cc(struct osmocom_ms *ms, struct msgb *msg)
 			 GSM48_CAUSE_LOC_PRN_S_LU, mmh->cause);
 		/* release without sending MMCC_REL_REQ */
 		new_cc_state(trans, GSM_CSTATE_NULL);
+
+		vty_notify(ms, "Release received\n");
+		stop_tcatcher(ms);
+		ms->catch_stat.release++;
+		ms->catch_stat.current = CATCH_IDLE;
+
 		trans->callref = 0;
 		trans_free(trans);
 		break;
 	case GSM48_MMCC_DATA_IND:
+		ms->catch_stat.current = CATCH_SERV;
+		stop_tcatcher(ms);
 		rc = gsm48_cc_data_ind(trans, msg);
 		break;
 	case GSM48_MMCC_UNIT_DATA_IND:

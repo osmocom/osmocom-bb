@@ -567,6 +567,12 @@ int gsm48_rsl_dequeue(struct osmocom_ms *ms)
 	struct msgb *msg;
 	int work = 0;
 
+	if (ms->catch_stat.current == CATCH_EST) {
+		ms->catch_stat.current = CATCH_DATA;
+		stop_tcatcher(ms);
+		start_tcatcher(ms);
+	}
+
 	while ((msg = msgb_dequeue(&rr->rsl_upqueue))) {
 		/* msg is freed there */
 		gsm48_rcv_rsl(ms, msg);
@@ -935,6 +941,7 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 	struct gsm48_hdr *gh;
 	struct gsm48_rr_hdr *nrrh;
 	uint8_t buf[11], *tlv;
+	uint8_t resp_delta;
 
 	LOGP(DRR, LOGL_INFO, "CIPHERING MODE COMPLETE (cr %d)\n", cr);
 
@@ -947,6 +954,7 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 	gh->msg_type = GSM48_MT_RR_CIPH_M_COMPL;
 
 	/* MI */
+	vty_notify(ms, NULL);
 	if (cr) {
 		gsm48_generate_mid_from_imsi(buf, set->imeisv);
 		/* alter MI type */
@@ -956,6 +964,16 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 	}
 
 	gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg, 0);
+
+	ms->catch_stat.cipher_resp++;
+	resp_delta = ms->catch_stat.cipher_resp - ms->catch_stat.cipher_req;
+	if (resp_delta > 3) {
+		if (ms->catch_stat.flag < 2)
+			ms->catch_stat.flag = 2;
+	} else if (resp_delta > 1) {
+		if (ms->catch_stat.flag < 1)
+			ms->catch_stat.flag = 1;
+	}
 
 	/* send RR_SYNC_IND(ciphering) */
 	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_SYNC_IND);
@@ -990,12 +1008,36 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	/* cipher mode response */
 	cr = cm->cr;
 
-	if (!sc)
+	vty_notify(ms, NULL);
+	if (!sc) {
 		LOGP(DRR, LOGL_INFO, "CIPHERING MODE COMMAND (sc=%u, cr=%u)\n",
 			sc, cr);
-	else
+		vty_notify(ms, "Required NO ciphering\n");
+		if (!ms->catch_stat.cipher_req)
+			ms->catch_stat.first_cipher = 0;
+		ms->catch_stat.last_cipher = 0;
+		ms->catch_stat.cipher_no_sc++;
+	} else {
 		LOGP(DRR, LOGL_INFO, "CIPHERING MODE COMMAND (sc=%u, "
 			"algo=A5/%d cr=%u)\n", sc, alg_id + 1, cr);
+		vty_notify(ms, "Required ciphering with algo A5/%d\n", alg_id + 1);
+		if (!ms->catch_stat.cipher_req)
+			ms->catch_stat.first_cipher = alg_id + 1;
+		ms->catch_stat.last_cipher = alg_id + 1;
+	}
+	if (!cr) {
+		ms->catch_stat.cipher_no_cr++;
+		vty_notify(ms, "Answer with NO IMEISV");
+		if (ms->catch_stat.flag < 1)
+			ms->catch_stat.flag = 1;
+	} else {
+		vty_notify(ms, "Answer with IMEISV");
+	}
+	ms->catch_stat.cipher_req++;
+	if (ms->catch_stat.last_cipher < ms->catch_stat.first_cipher) {
+		if (ms->catch_stat.flag < 2)
+			ms->catch_stat.flag = 2;
+	}
 
 	/* 3.4.7.2 */
 	if (rr->cipher_on && sc) {
@@ -1314,6 +1356,9 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 	uint8_t chan_req_val, chan_req_mask;
 	int rc;
 
+	if (paging)
+		ms->catch_stat.paging++;
+
 	LOGP(DSUM, LOGL_INFO, "Establish radio link due to %s request\n",
 		(paging) ? "paging" : "mobility management");
 
@@ -1517,6 +1562,11 @@ rel_ind:
 	/* store paging mobile identity type, if we respond to paging */
 	rr->paging_mi_type = paging_mi_type;
 
+	if (paging) {
+		ms->catch_stat.current = CATCH_TRY;
+		start_tcatcher(ms);
+	}
+
 	/* if channel is already active somehow */
 	if (cs->ccch_state == GSM322_CCCH_ST_DATA)
 		return gsm48_rr_tx_rand_acc(ms, NULL);
@@ -1540,6 +1590,8 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 	/* already assigned */
 	if (rr->wait_assign == 2)
 		return 0;
+
+	ms->catch_stat.rach++;
 
 	/* store frame number */
 	if (msg) {
@@ -1915,10 +1967,43 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si3_msg, MIN(msgb_l3len(msg), sizeof(s->si3_msg))))
+	if (!memcmp(si, s->si3_msg, MIN(msgb_l3len(msg), sizeof(s->si3_msg)))) {
 		return 0;
+	} else {
+		/* SI3 changed */
+		ms->catch_stat.old_mcc = ms->catch_stat.mcc;
+		ms->catch_stat.old_mnc = ms->catch_stat.mnc;
+		ms->catch_stat.old_lac = ms->catch_stat.lac;
+		ms->catch_stat.old_cid = ms->catch_stat.cid;
+	}
 
 	gsm48_decode_sysinfo3(s, si, msgb_l3len(msg));
+
+	if (ms->catch_stat.old_mcc && ms->catch_stat.old_mcc) {
+		if (s->lac || s->cell_id) {
+			if (ms->catch_stat.old_lac != s->lac) {
+				ms->catch_stat.lac = s->lac;
+				ms->catch_stat.lac_change++;
+			}
+			if (ms->catch_stat.old_cid != s->cell_id) {
+				ms->catch_stat.cid = s->cell_id;
+				ms->catch_stat.cid_change++;
+			}
+			if (ms->catch_stat.lac_change > 1) {
+				if (ms->catch_stat.flag < 2)
+					ms->catch_stat.flag = 2;
+			} else if (ms->catch_stat.lac_change == 1) {
+				if (ms->catch_stat.flag < 1)
+					ms->catch_stat.flag = 1;
+			}
+		}
+	} else {
+		/* first time */
+		ms->catch_stat.mcc = s->mcc;
+		ms->catch_stat.mnc = s->mnc;
+		ms->catch_stat.lac = s->lac;
+		ms->catch_stat.cid = s->cell_id;
+	}
 
 	if (cs->ccch_mode == CCCH_MODE_NONE) {
 		cs->ccch_mode = (s->ccch_conf == 1) ? CCCH_MODE_COMBINED :
@@ -2498,6 +2583,8 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_INFO, "resetting scheduler\n");
 		l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
 
+		ms->catch_stat.imm_ass++;
+
 		return gsm48_rr_dl_est(ms);
 	}
 	LOGP(DRR, LOGL_INFO, "Request, but not for us.\n");
@@ -2636,6 +2723,8 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_INFO, "resetting scheduler\n");
 		l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
 
+		ms->catch_stat.imm_ass++;
+
 		return gsm48_rr_dl_est(ms);
 	}
 	/* request ref 2 */
@@ -2651,6 +2740,8 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 		/* reset scheduler */
 		LOGP(DRR, LOGL_INFO, "resetting scheduler\n");
 		l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
+
+		ms->catch_stat.imm_ass++;
 
 		return gsm48_rr_dl_est(ms);
 	}
@@ -2813,6 +2904,14 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 
 	/* use indicated tx-power and TA (not the altered ones) */
 	tx_power = rr->cd_now.ind_tx_power;
+	ms->catch_stat.power_count++;
+	if (tx_power > 5) {
+		ms->catch_stat.high_power_count++;
+		if (10*ms->catch_stat.high_power_count/ms->catch_stat.power_count > 7) {
+			if (ms->catch_stat.flag < 1)
+				ms->catch_stat.flag = 1;
+		}
+	}
 	// FIXME: degrade power to the max supported level
 	ta = rr->cd_now.ind_ta;
 
@@ -2900,9 +2999,12 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 	struct gsm48_rr_hdr *nrrh;
 
 	LOGP(DSUM, LOGL_INFO, "Radio link lost signal\n");
+	stop_tcatcher(ms);
 
 	/* stop T3211 if running */
 	stop_rr_t3110(rr);
+
+	ms->catch_stat.failure++;
 
 	switch(rr->state) {
 	case GSM48_RR_ST_CONN_PEND:
@@ -3003,6 +3105,9 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	stop_rr_t_meas(rr);
 	start_rr_t_meas(rr, 1, 0);
 	gsm48_rr_tx_meas_rep(ms);
+
+	ms->catch_stat.tune++;
+	ms->catch_stat.current = CATCH_TRY;
 
 	/* establish */
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
@@ -3328,6 +3433,15 @@ static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 		(rr->rr_est_req) ? GSM48_RR_EST_CNF : GSM48_RR_EST_IND);
 	if (!nmsg)
 		return -ENOMEM;
+
+	vty_notify(ms, "Link established\n");
+	ms->catch_stat.power_count = 0;
+	ms->catch_stat.high_power_count = 0;
+	ms->catch_stat.current = CATCH_EST;
+
+	stop_tcatcher(ms);
+	start_tcatcher(ms);
+
 	return gsm48_rr_upmsg(ms, nmsg);
 }
 
@@ -3404,6 +3518,12 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 		 * (see new_rr_state)
 		 */
 	}
+
+	vty_notify(ms, NULL);
+	vty_notify(ms, "Release received\n");
+	stop_tcatcher(ms);
+	ms->catch_stat.release++;
+	ms->catch_stat.current = CATCH_IDLE;
 
 	new_rr_state(rr, GSM48_RR_ST_REL_PEND);
 
@@ -3975,6 +4095,8 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	 * FIXME: suspend and resume afterward */
 	gsm48_release_sapi3_link(ms);
 
+	ms->catch_stat.ass++;
+
 	return 0;
 }
 
@@ -4365,6 +4487,9 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	 * FIXME: suspend and resume afterward */
 	gsm48_release_sapi3_link(ms);
 
+	ms->catch_stat.ho++;
+	gettimeofday(&ms->catch_stat.start_time, 0);
+
 	return 0;
 }
 
@@ -4576,6 +4701,8 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 		return -ENOMEM;
 	memcpy(msgb_put(rr->rr_est_msg, msgb_l3len(msg)),
 		msgb_l3(msg), msgb_l3len(msg));
+
+	vty_notify(ms, "Channel request\n");
 
 	/* request channel */
 	return gsm48_rr_chan_req(ms, rrh->cause, 0, 0);

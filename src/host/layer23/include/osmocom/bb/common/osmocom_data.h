@@ -19,6 +19,7 @@ struct osmocom_ms;
 #include <osmocom/bb/mobile/gsm48_mm.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
 #include <osmocom/bb/mobile/mncc_sock.h>
+#include <osmocom/bb/mobile/catcher.h>
 #include <osmocom/bb/common/sim.h>
 #include <osmocom/bb/common/l1ctl.h>
 
@@ -68,6 +69,7 @@ struct osmocom_ms {
 	struct lapdm_channel lapdm_channel;
 	struct osmosap_entity sap_entity;
 	struct rx_meas_stat meas;
+	struct catcher_status catch_stat;
 	struct gsm48_rrlayer rrlayer;
 	struct gsm322_plmn plmn;
 	struct gsm322_cellsel cellsel;

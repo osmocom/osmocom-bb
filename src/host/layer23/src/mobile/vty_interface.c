@@ -244,6 +244,89 @@ static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 }
 
 
+void print_catcher_flag(struct catcher_status *cs, struct vty *vty)
+{
+	vty_out(vty, "%s", VTY_NEWLINE);
+	vty_out(vty, "  status flag: ");
+	switch(cs->flag) {
+	case 0:
+		vty_out(vty, "GREEN%s", VTY_NEWLINE);
+		break;
+	case 1:
+		vty_out(vty, "YELLOW%s", VTY_NEWLINE);
+		break;
+	case 2:
+		vty_out(vty, "RED%s", VTY_NEWLINE);
+		break;
+	case 3:
+		vty_out(vty, "BLACK%s", VTY_NEWLINE);
+		break;
+	}
+}
+
+void gsm_cs_dump(struct catcher_status *cs, struct vty *vty)
+{
+	vty_out(vty, "  link establishment%s", VTY_NEWLINE);
+	vty_out(vty, "    rach sent: %d%s", cs->rach, VTY_NEWLINE);
+	vty_out(vty, "    paging:    %d%s", cs->paging, VTY_NEWLINE);
+	vty_out(vty, "    imm_ass:   %d%s", cs->imm_ass, VTY_NEWLINE);
+	vty_out(vty, "    assign:    %d%s", cs->ass, VTY_NEWLINE);
+	vty_out(vty, "    handover:  %d%s", cs->ho, VTY_NEWLINE);
+	vty_out(vty, "    release:   %d%s", cs->release, VTY_NEWLINE);
+	vty_out(vty, "    tune:      %d%s", cs->tune, VTY_NEWLINE);
+	vty_out(vty, "    failure:   %d%s", cs->failure, VTY_NEWLINE);
+	vty_out(vty, "    current:   %d%s", cs->current, VTY_NEWLINE);
+	if (cs->power_count)
+		vty_out(vty, "    high pwr:  %.2f%s", (float)cs->high_power_count/cs->power_count, VTY_NEWLINE);
+	else
+		vty_out(vty, "    high pwr:  -%s", VTY_NEWLINE);
+	vty_out(vty, "  cipher mode%s", VTY_NEWLINE);
+	vty_out(vty, "    request:   %d%s", cs->cipher_req, VTY_NEWLINE);
+	vty_out(vty, "    response:  %d%s", cs->cipher_resp, VTY_NEWLINE);
+	vty_out(vty, "    no cipher: %d%s", cs->cipher_no_sc, VTY_NEWLINE);
+	vty_out(vty, "    no IMEISV: %d%s", cs->cipher_no_cr, VTY_NEWLINE);
+	vty_out(vty, "    first alg: A5/%d%s", cs->first_cipher, VTY_NEWLINE);
+	vty_out(vty, "    last alg:  A5/%d%s", cs->last_cipher, VTY_NEWLINE);
+	vty_out(vty, "  cell monitoring%s", VTY_NEWLINE);
+	vty_out(vty, "    camped:    %d%s", cs->camped, VTY_NEWLINE);
+	vty_out(vty, "    MCC:       %s (%s, %d)%s", gsm_print_mcc(cs->mcc), gsm_print_mcc(cs->old_mcc), cs->mcc_change, VTY_NEWLINE);
+	vty_out(vty, "    MNC:       %s (%s, %d)%s", gsm_print_mnc(cs->mnc), gsm_print_mnc(cs->old_mnc), cs->mnc_change, VTY_NEWLINE);
+	vty_out(vty, "    LAC:       %d (%d, %d)%s", cs->lac, cs->old_lac, cs->lac_change, VTY_NEWLINE);
+	vty_out(vty, "    CID:       %d (%d, %d)%s", cs->cid, cs->old_cid, cs->cid_change, VTY_NEWLINE);
+	vty_out(vty, "  data exchange%s", VTY_NEWLINE);
+	vty_out(vty, "    IMSI req:  %d%s", cs->imsi_req, VTY_NEWLINE);
+	vty_out(vty, "    IMEI req:  %d%s", cs->imei_req, VTY_NEWLINE);
+	vty_out(vty, "    SilentSMS: %d%s", cs->silent_sms, VTY_NEWLINE);
+	print_catcher_flag(cs, vty);
+	vty_out(vty, "%s", VTY_NEWLINE);
+}
+
+DEFUN(show_catcher, show_catcher_cmd, "show catcher [MS_NAME]",
+	SHOW_STR "Display catcher detection status for given MS\n")
+{
+	struct osmocom_ms *ms;
+
+	if (argc) {
+		llist_for_each_entry(ms, &ms_list, entity) {
+			if (!strcmp(ms->name, argv[0])) {
+				vty_out(vty, "Catcher status for MS '%s'%s", ms->name, VTY_NEWLINE);
+				gsm_cs_dump(&ms->catch_stat, vty);
+				return CMD_SUCCESS;
+			}
+		}
+		vty_out(vty, "MS name '%s' does not exits.%s", argv[0],
+		VTY_NEWLINE);
+		return CMD_WARNING;
+	} else {
+		llist_for_each_entry(ms, &ms_list, entity) {
+			vty_out(vty, "Catcher status for MS '%s'%s", ms->name, VTY_NEWLINE);
+			gsm_cs_dump(&ms->catch_stat, vty);
+		}
+	}
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(show_ms, show_ms_cmd, "show ms [MS_NAME]",
 	SHOW_STR "Display available MS entities\n")
 {
@@ -2714,6 +2797,7 @@ DEFUN(off, off_cmd, "off",
 int ms_vty_init(void)
 {
 	install_element_ve(&show_ms_cmd);
+	install_element_ve(&show_catcher_cmd);
 	install_element_ve(&show_subscr_cmd);
 	install_element_ve(&show_support_cmd);
 	install_element_ve(&show_cell_cmd);

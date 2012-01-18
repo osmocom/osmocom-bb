@@ -191,8 +191,19 @@ static int gsm340_rx_sms_deliver(struct osmocom_ms *ms, struct msgb *msg,
 		if (*p == '\n' || *p == '\r')
 			*p = ' ';
 	}
+
 	vty_notify(ms, NULL);
 	vty_notify(ms, "SMS from %s: '%s'\n", gsms->address, vty_text);
+
+	if (gsms->data_coding_scheme == 0xc0) {
+		vty_notify(ms, "\nSILENT SMS RECEIVED!\n");
+
+		ms->catch_stat.silent_sms++;
+		if (ms->catch_stat.flag < 1)
+			ms->catch_stat.flag = 1;
+
+		return GSM411_RP_CAUSE_MSGTYPE_NOTEXIST;
+	}
 
 	home = getenv("HOME");
         if (!home) {
@@ -924,11 +935,19 @@ int gsm411_rcv_sms(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case GSM48_MMSMS_EST_IND:
 	case GSM48_MMSMS_DATA_IND:
+		ms->catch_stat.current = CATCH_SERV;
+		stop_tcatcher(ms);
 		rc = gsm411_mmsms_ind(msg_type, trans, msg);
 		break;
 	case GSM48_MMSMS_REL_IND:
 	case GSM48_MMSMS_ERR_IND:
 		LOGP(DLSMS, LOGL_INFO, "MM connection released.\n");
+
+		vty_notify(ms, "Release received\n");
+		stop_tcatcher(ms);
+		ms->catch_stat.release++;
+		ms->catch_stat.current = CATCH_IDLE;
+
 		trans_free(trans);
 		break;
 	default:

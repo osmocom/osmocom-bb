@@ -752,6 +752,9 @@ int gsm48_mmxx_dequeue(struct osmocom_ms *ms)
 	struct gsm48_mmxx_hdr *mmh;
 	int work = 0;
 
+	if (ms->catch_stat.current == CATCH_EST)
+		ms->catch_stat.current = CATCH_DATA;
+
 	while ((msg = msgb_dequeue(&mm->mmxx_upqueue))) {
 		mmh = (struct gsm48_mmxx_hdr *) msg->data;
 		switch (mmh->msg_type & GSM48_MMXX_MASK) {
@@ -1764,7 +1767,7 @@ static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, uint8_t mi_type)
 	struct gsm48_hdr *ngh;
 	uint8_t buf[11];
 
-	LOGP(DMM, LOGL_INFO, "IDENTITY RESPONSE\n");
+	LOGP(DMM, LOGL_INFO, "IDENTITY RESPONSE (mi_type %d)\n", mi_type);
 
 	nmsg = gsm48_l3_msgb_alloc();
 	if (!nmsg)
@@ -1776,6 +1779,17 @@ static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, uint8_t mi_type)
 
 	/* MI */
 	gsm48_encode_mi(buf, nmsg, ms, mi_type);
+
+	if (mi_type == GSM_MI_TYPE_IMEI) {
+		ms->catch_stat.imei_req++;
+		if (ms->catch_stat.flag < 1)
+			ms->catch_stat.flag = 1;
+	}
+	if (mi_type == GSM_MI_TYPE_IMSI) {
+		ms->catch_stat.imsi_req++;
+		if (ms->catch_stat.flag < 1)
+			ms->catch_stat.flag = 1;
+	}
 
 	/* push RR header and send down */
 	return gsm48_mm_to_rr(ms, nmsg, GSM48_RR_DATA_REQ, 0, 0);
@@ -2398,6 +2412,10 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 	struct msgb *nmsg;
+
+	ms->catch_stat.current = CATCH_SERV;
+	stop_tcatcher(ms);
+	start_tcatcher(ms);
 
 	if (payload_len < sizeof(struct gsm48_loc_area_id)) {
 		short_read:
