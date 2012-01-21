@@ -27,69 +27,52 @@
 #define BSSMAP_MSG_SIZE 512
 #define BSSMAP_MSG_HEADROOM 128
 
-static void put_data_16(uint8_t *data, const uint16_t val)
-{
-	memcpy(data, &val, sizeof(val));
-}
-
 struct msgb *gsm0808_create_layer3(struct msgb *msg_l3, uint16_t nc, uint16_t cc, int lac, uint16_t _ci)
 {
-	uint8_t *data;
-	uint8_t *ci;
 	struct msgb* msg;
-	struct gsm48_loc_area_id *lai;
+	struct {
+		uint8_t ident;
+		struct gsm48_loc_area_id lai;
+		uint16_t ci;
+	} __attribute__ ((packed)) lai_ci;
 
 	msg  = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
 				   "bssmap cmpl l3");
 	if (!msg)
 		return NULL;
 
-	/* create the bssmap header */
-	msg->l3h = msgb_put(msg, 2);
-	msg->l3h[0] = 0x0;
-
 	/* create layer 3 header */
-	data = msgb_put(msg, 1);
-	data[0] = BSS_MAP_MSG_COMPLETE_LAYER_3;
+	msgb_v_put(msg, BSS_MAP_MSG_COMPLETE_LAYER_3);
 
 	/* create the cell header */
-	data = msgb_put(msg, 3);
-	data[0] = GSM0808_IE_CELL_IDENTIFIER;
-	data[1] = 1 + sizeof(*lai) + 2;
-	data[2] = CELL_IDENT_WHOLE_GLOBAL;
-
-	lai = (struct gsm48_loc_area_id *) msgb_put(msg, sizeof(*lai));
-	gsm48_generate_lai(lai, cc, nc, lac);
-
-	ci = msgb_put(msg, 2);
-	put_data_16(ci, htons(_ci));
+	lai_ci.ident = CELL_IDENT_WHOLE_GLOBAL;
+	gsm48_generate_lai(&lai_ci.lai, cc, nc, lac);
+	lai_ci.ci = htons(_ci);
+	msgb_tlv_put(msg, GSM0808_IE_CELL_IDENTIFIER, sizeof(lai_ci),
+		     (uint8_t *) &lai_ci);
 
 	/* copy the layer3 data */
-	data = msgb_put(msg, msgb_l3len(msg_l3) + 2);
-	data[0] = GSM0808_IE_LAYER_3_INFORMATION;
-	data[1] = msgb_l3len(msg_l3);
-	memcpy(&data[2], msg_l3->l3h, data[1]);
+	msgb_tlv_put(msg, GSM0808_IE_LAYER_3_INFORMATION,
+		     msgb_l3len(msg_l3), msg_l3->l3h);
 
-	/* update the size */
-	msg->l3h[1] = msgb_l3len(msg) - 2;
+	/* push the bssmap header */
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
 
 	return msg;
 }
 
 struct msgb *gsm0808_create_reset(void)
 {
+	uint8_t cause = GSM0808_CAUSE_EQUIPMENT_FAILURE;
 	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
 					       "bssmap: reset");
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_put(msg, 6);
-	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
-	msg->l3h[1] = 0x04;
-	msg->l3h[2] = 0x30;
-	msg->l3h[3] = 0x04;
-	msg->l3h[4] = 0x01;
-	msg->l3h[5] = 0x20;
+	msgb_v_put(msg, BSS_MAP_MSG_RESET);
+	msgb_tlv_put(msg, GSM0808_IE_CAUSE, 1, &cause);
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
+
 	return msg;
 }
 
@@ -97,13 +80,12 @@ struct msgb *gsm0808_create_clear_complete(void)
 {
 	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
 					       "bssmap: clear complete");
+	uint8_t val = BSS_MAP_MSG_CLEAR_COMPLETE;
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_put(msg, 3);
-	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
-	msg->l3h[1] = 1;
-	msg->l3h[2] = BSS_MAP_MSG_CLEAR_COMPLETE;
+	msg->l3h = msg->data;
+	msgb_tlv_put(msg, BSSAP_MSG_BSS_MANAGEMENT, 1, &val);
 
 	return msg;
 }
@@ -118,6 +100,7 @@ struct msgb *gsm0808_create_clear_command(uint8_t reason)
 	msg->l3h = msgb_tv_put(msg, BSSAP_MSG_BSS_MANAGEMENT, 4);
 	msgb_v_put(msg, BSS_MAP_MSG_CLEAR_CMD);
 	msgb_tlv_put(msg, GSM0808_IE_CAUSE, 1, &reason);
+
 	return msg;
 }
 
@@ -129,26 +112,20 @@ struct msgb *gsm0808_create_cipher_complete(struct msgb *layer3, uint8_t alg_id)
 		return NULL;
 
         /* send response with BSS override for A5/1... cheating */
-	msg->l3h = msgb_put(msg, 3);
-	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
-	msg->l3h[1] = 0xff;
-	msg->l3h[2] = BSS_MAP_MSG_CIPHER_MODE_COMPLETE;
+	msgb_v_put(msg, BSS_MAP_MSG_CIPHER_MODE_COMPLETE);
 
 	/* include layer3 in case we have at least two octets */
 	if (layer3 && msgb_l3len(layer3) > 2) {
-		msg->l4h = msgb_put(msg, msgb_l3len(layer3) + 2);
-		msg->l4h[0] = GSM0808_IE_LAYER_3_MESSAGE_CONTENTS;
-		msg->l4h[1] = msgb_l3len(layer3);
-		memcpy(&msg->l4h[2], layer3->l3h, msgb_l3len(layer3));
+		msg->l4h = msgb_tlv_put(msg, GSM0808_IE_LAYER_3_MESSAGE_CONTENTS,
+					msgb_l3len(layer3), layer3->l3h);
 	}
 
 	/* and the optional BSS message */
-	msg->l4h = msgb_put(msg, 2);
-	msg->l4h[0] = GSM0808_IE_CHOSEN_ENCR_ALG;
-	msg->l4h[1] = alg_id;
+	msgb_tv_put(msg, GSM0808_IE_CHOSEN_ENCR_ALG, alg_id);
 
-	/* update the size */
-	msg->l3h[1] = msgb_l3len(msg) - 2;
+	/* pre-pend the header */
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
+
 	return msg;
 }
 
@@ -159,11 +136,9 @@ struct msgb *gsm0808_create_cipher_reject(uint8_t cause)
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_put(msg, 4);
-	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
-	msg->l3h[1] = 2;
-	msg->l3h[2] = BSS_MAP_MSG_CIPHER_MODE_REJECT;
-	msg->l3h[3] = cause;
+	msgb_tv_put(msg, BSS_MAP_MSG_CIPHER_MODE_REJECT, cause);
+
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
 
 	return msg;
 }
@@ -175,16 +150,12 @@ struct msgb *gsm0808_create_classmark_update(const uint8_t *classmark_data, uint
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_put(msg, 3);
-	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
-	msg->l3h[1] = 0xff;
-	msg->l3h[2] = BSS_MAP_MSG_CLASSMARK_UPDATE;
-
+	msgb_v_put(msg, BSS_MAP_MSG_CLASSMARK_UPDATE);
 	msg->l4h = msgb_put(msg, length);
 	memcpy(msg->l4h, classmark_data, length);
 
-	/* update the size */
-	msg->l3h[1] = msgb_l3len(msg) - 2;
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
+
 	return msg;
 }
 
@@ -195,12 +166,11 @@ struct msgb *gsm0808_create_sapi_reject(uint8_t link_id)
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_put(msg, 5);
-	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
-	msg->l3h[1] = 3;
-	msg->l3h[2] = BSS_MAP_MSG_SAPI_N_REJECT;
-	msg->l3h[3] = link_id;
-	msg->l3h[4] = GSM0808_CAUSE_BSS_NOT_EQUIPPED;
+	msgb_v_put(msg, BSS_MAP_MSG_SAPI_N_REJECT);
+	msgb_v_put(msg, link_id);
+	msgb_v_put(msg, GSM0808_CAUSE_BSS_NOT_EQUIPPED);
+
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
 
 	return msg;
 }
@@ -209,78 +179,56 @@ struct msgb *gsm0808_create_assignment_completed(uint8_t rr_cause,
 						 uint8_t chosen_channel, uint8_t encr_alg_id,
 						 uint8_t speech_mode)
 {
-	uint8_t *data;
-
-	struct msgb *msg = msgb_alloc(35, "bssmap: ass compl");
+	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
+						"bssmap: ass compl");
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_put(msg, 3);
-	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
-	msg->l3h[1] = 0xff;
-	msg->l3h[2] = BSS_MAP_MSG_ASSIGMENT_COMPLETE;
+	msgb_v_put(msg, BSS_MAP_MSG_ASSIGMENT_COMPLETE);
 
 	/* write 3.2.2.22 */
-	data = msgb_put(msg, 2);
-	data[0] = GSM0808_IE_RR_CAUSE;
-	data[1] = rr_cause;
+	msgb_tv_put(msg, GSM0808_IE_RR_CAUSE, rr_cause);
 
 	/* write cirtcuit identity  code 3.2.2.2 */
 	/* write cell identifier 3.2.2.17 */
 	/* write chosen channel 3.2.2.33 when BTS picked it */
-	data = msgb_put(msg, 2);
-	data[0] = GSM0808_IE_CHOSEN_CHANNEL;
-	data[1] = chosen_channel;
+	msgb_tv_put(msg, GSM0808_IE_CHOSEN_CHANNEL, chosen_channel);
 
 	/* write chosen encryption algorithm 3.2.2.44 */
-	data = msgb_put(msg, 2);
-	data[0] = GSM0808_IE_CHOSEN_ENCR_ALG;
-	data[1] = encr_alg_id;
+	msgb_tv_put(msg, GSM0808_IE_CHOSEN_ENCR_ALG, encr_alg_id);
 
 	/* write circuit pool 3.2.2.45 */
 	/* write speech version chosen: 3.2.2.51 when BTS picked it */
-	if (speech_mode != 0) {
-		data = msgb_put(msg, 2);
-		data[0] = GSM0808_IE_SPEECH_VERSION;
-		data[1] = speech_mode;
-	}
+	if (speech_mode != 0)
+		msgb_tv_put(msg, GSM0808_IE_SPEECH_VERSION, speech_mode);
 
 	/* write LSA identifier 3.2.2.15 */
 
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
 
-	/* update the size */
-	msg->l3h[1] = msgb_l3len(msg) - 2;
 	return msg;
 }
 
 struct msgb *gsm0808_create_assignment_failure(uint8_t cause, uint8_t *rr_cause)
 {
-	uint8_t *data;
 	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
 					       "bssmap: ass fail");
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_put(msg, 6);
-	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
-	msg->l3h[1] = 0xff;
-	msg->l3h[2] = BSS_MAP_MSG_ASSIGMENT_FAILURE;
-	msg->l3h[3] = GSM0808_IE_CAUSE;
-	msg->l3h[4] = 1;
-	msg->l3h[5] = cause;
+	msgb_v_put(msg, BSS_MAP_MSG_ASSIGMENT_FAILURE);
+	msgb_tlv_put(msg, GSM0808_IE_CAUSE, 1, &cause);
 
 	/* RR cause 3.2.2.22 */
-	if (rr_cause) {
-		data = msgb_put(msg, 2);
-		data[0] = GSM0808_IE_RR_CAUSE;
-		data[1] = *rr_cause;
-	}
+	if (rr_cause)
+		msgb_tv_put(msg, GSM0808_IE_RR_CAUSE, *rr_cause);
 
 	/* Circuit pool 3.22.45 */
 	/* Circuit pool list 3.2.2.46 */
 
 	/* update the size */
-	msg->l3h[1] = msgb_l3len(msg) - 2;
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
+
 	return msg;
 }
 
@@ -293,14 +241,10 @@ struct msgb *gsm0808_create_clear_rqst(uint8_t cause)
 	if (!msg)
 		return NULL;
 
-	msg->l3h = msgb_put(msg, 2 + 4);
-	msg->l3h[0] = BSSAP_MSG_BSS_MANAGEMENT;
-	msg->l3h[1] = 4;
+	msgb_v_put(msg, BSS_MAP_MSG_CLEAR_RQST);
+	msgb_tlv_put(msg, GSM0808_IE_CAUSE, 1, &cause);
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
 
-	msg->l3h[2] = BSS_MAP_MSG_CLEAR_RQST;
-	msg->l3h[3] = GSM0808_IE_CAUSE;
-	msg->l3h[4] = 1;
-	msg->l3h[5] = cause;
 	return msg;
 }
 
