@@ -143,7 +143,8 @@ struct msgb *gsm0808_create_cipher_reject(uint8_t cause)
 	return msg;
 }
 
-struct msgb *gsm0808_create_classmark_update(const uint8_t *classmark_data, uint8_t length)
+struct msgb *gsm0808_create_classmark_update(const uint8_t *cm2, uint8_t cm2_len,
+					     const uint8_t *cm3, uint8_t cm3_len)
 {
 	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
 					       "classmark-update");
@@ -151,8 +152,10 @@ struct msgb *gsm0808_create_classmark_update(const uint8_t *classmark_data, uint
 		return NULL;
 
 	msgb_v_put(msg, BSS_MAP_MSG_CLASSMARK_UPDATE);
-	msg->l4h = msgb_put(msg, length);
-	memcpy(msg->l4h, classmark_data, length);
+	msgb_tlv_put(msg, GSM0808_IE_CLASSMARK_INFORMATION_T2, cm2_len, cm2);
+	if (cm3)
+		msgb_tlv_put(msg, GSM0808_IE_CLASSMARK_INFORMATION_T3,
+			     cm3_len, cm3);
 
 	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
 

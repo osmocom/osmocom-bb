@@ -136,13 +136,21 @@ static void test_create_cipher_reject()
 
 static void test_create_cm_u()
 {
-	static const uint8_t res[] = { 0x00, 0x02, 0x54, 0x23 };
+	static const uint8_t res[] = {
+		0x00, 0x07, 0x54, 0x12, 0x01, 0x23, 0x13, 0x01, 0x42 };
+	static const uint8_t res2o[] = {
+		0x00, 0x04, 0x54, 0x12, 0x01, 0x23 };
 	struct msgb *msg;
-	const uint8_t cm = 0x23;
+	const uint8_t cm2 = 0x23;
+	const uint8_t cm3 = 0x42;
 
 	printf("Testing creating CM U\n");
-	msg = gsm0808_create_classmark_update(&cm, 1);
+	msg = gsm0808_create_classmark_update(&cm2, 1, &cm3, 1);
 	VERIFY(msg, res, ARRAY_SIZE(res));
+
+	msg = gsm0808_create_classmark_update(&cm2, 1, NULL, 0);
+	VERIFY(msg, res2o, ARRAY_SIZE(res2o));
+
 	msgb_free(msg);
 }
 
