@@ -1,0 +1,5 @@
+#!/bin/bash
+for arfcn in `ls *.dat|cut -f7 -d_|sort -g|uniq`; do
+ mkdir -p $arfcn;
+ mv *_${arfcn}_* $arfcn;
+done

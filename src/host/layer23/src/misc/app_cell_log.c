@@ -40,8 +40,12 @@
 extern struct log_target *stderr_target;
 extern void *l23_ctx;
 
-char *logname = "/var/log/osmocom.log";
+char *logname = "./osmocom.log";
 int RACH_MAX = 2;
+char *scan_band = 0;
+int wait_time = 300;
+int log_gprs = 0;
+int scan_only = 0;
 
 int _scan_work(struct osmocom_ms *ms)
 {
@@ -99,7 +103,11 @@ static int l23_getopt_options(struct option **options)
 		{"gpsd-port", 1, 0, 'p'},
 #endif
 		{"gps", 1, 0, 'g'},
-		{"baud", 1, 0, 'b'}
+		{"baud", 1, 0, 'b'},
+		{"band", 1, 0, 'B'},
+		{"log-gprs", 0, 0, 'G'},
+		{"only-scan", 0, 0, 'O'},
+		{"wait-time", 1, 0, 'w'}
 	};
 
 	*options = opts;
@@ -116,6 +124,10 @@ static int l23_cfg_print_help()
 	printf("  -p --port PORT	2947. gpsd port\n");
 	printf("  -f --gps DEVICE	/dev/ttyACM0. GPS serial device.\n");
 	printf("  -b --baud BAUDRAT	The baud rate of the GPS device\n");
+	printf("  -B --band BAND	Select scan band, one of: all (default), 900, 1800, 850, 1900.\n");
+	printf("  -G --log-gprs		Log some GPRS if available\n");
+	printf("  -O --only-scan	Do a scan and show available ARFCNs, no data logging\n");
+	printf("  -w --wait-time TIME	Time to wait in each cell\n");
 
 	return 0;
 }
@@ -172,6 +184,18 @@ static int l23_cfg_handle(int c, const char *optarg)
 		g.gps_type = GPS_TYPE_SERIAL;
 		LOGP(DGPS, LOGL_INFO, "Setting GPS baudrate to %u\n", g.baud);
 		break;
+	case 'B':
+		scan_band = strdup(optarg);
+		break;
+	case 'G':
+		log_gprs = 1;
+		break;
+	case 'O':
+		scan_only = 1;
+		break;
+	case 'w':
+		wait_time = atoi(optarg);
+		break;
 	}
 	return 0;
 
@@ -182,7 +206,7 @@ cmd_line_error:
 
 static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
-	.getopt_string	= "g:p:l:r:nf:b:",
+	.getopt_string	= "g:p:l:r:nf:b:B:w:GO",
 	.cfg_supported	= l23_cfg_supported,
 	.cfg_getopt_opt = l23_getopt_options,
 	.cfg_handle_opt	= l23_cfg_handle,

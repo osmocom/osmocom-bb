@@ -45,10 +45,19 @@
 #include <osmocom/bb/misc/cell_log.h>
 #include "../../../gsmmap/geo.h"
 
-#define READ_WAIT	2, 0
+#define READ_WAIT	5, 0
+#define IMM_WAIT	60, 0
 #define RACH_WAIT	0, 900000
-#define MIN_RXLEV	-106
+#define MIN_RXLEV	-90
 #define MAX_DIST	2000
+#define NUM_SYSINFO	30
+
+extern int wait_time;
+extern int log_gprs;
+extern int scan_only;
+extern char *scan_band;
+
+#include "cellid.c"
 
 enum {
 	SCAN_STATE_PM,
@@ -58,7 +67,12 @@ enum {
 };
 
 /* ranges of bands */
-static uint16_t band_range[][2] = {{0, 124}, {512, 885}, {955, 1023}, {0, 0}};
+static uint16_t *band_range = 0;
+static uint16_t range_all[] = {0, 124, 128, 251, 512, 885, 955, 1023, 0, 0};
+static uint16_t range_900[] = {0, 124, 955, 1023, 0, 0};
+static uint16_t range_1800[] = {512, 885, 0, 0};
+static uint16_t range_850[] = {128, 251, 0, 0};
+static uint16_t range_1900[] = {512|ARFCN_PCS, 810|ARFCN_PCS, 0, 0};
 
 #define INFO_FLG_PM	1
 #define INFO_FLG_SYNC	2
@@ -77,10 +91,36 @@ static struct pm_info {
 	int8_t rxlev;
 } pm[1024];
 
+enum dch_state_t {
+	DCH_NONE,
+	DCH_WAIT_EST,
+	DCH_ACTIVE,
+	DCH_WAIT_REL,
+};
+
+static struct {
+	uint8_t *		si[NUM_SYSINFO];
+	int			ccch_mode;
+
+	enum dch_state_t	dch_state;
+	uint8_t			dch_nr;
+	int			dch_badcnt;
+
+	FILE *			fh;
+
+	struct gsm_sysinfo_freq	cell_arfcns[1024];
+} app_state;
+
+static int sdcch = 0;
+static int got_data = 0;
+static int stop_raw = 0;
+static int collecting = 0;
+static int short_count;
 static int started = 0;
 static int state;
 static int8_t min_rxlev = MIN_RXLEV;
 static int sync_count;
+static int sync_retry;
 static int pm_index, pm_gps_valid;
 static double pm_gps_x, pm_gps_y, pm_gps_z;
 static int arfcn;
@@ -115,6 +155,8 @@ struct rach_ref {
 static void start_sync(void);
 static void start_rach(void);
 static void start_pm(void);
+
+static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms);
 
 static void log_gps(void)
 {
@@ -185,8 +227,9 @@ static void log_sysinfo(void)
 	if (log_si.ta != 0xff)
 		sprintf(ta_str, " TA=%d", log_si.ta);
 
-	LOGP(DSUM, LOGL_INFO, "Cell: ARFCN=%d MCC=%s MNC=%s (%s, %s)%s\n",
-		arfcn, gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc),
+	rxlev = meas->rxlev / meas->frames - 110;
+	LOGP(DSUM, LOGL_INFO, "Cell: ARFCN=%d PWR=%ddB MCC=%s MNC=%s (%s, %s)%s\n",
+		arfcn, rxlev, gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc),
 		gsm_get_mcc(s->mcc), gsm_get_mnc(s->mcc, s->mnc), ta_str);
 
 	LOGFILE("[sysinfo]\n");
@@ -194,8 +237,8 @@ static void log_sysinfo(void)
 	log_time();
 	log_gps();
 	LOGFILE("bsic %d,%d\n", s->bsic >> 3, s->bsic & 7);
-	rxlev = meas->rxlev / meas->frames - 110;
 	LOGFILE("rxlev %d\n", rxlev);
+	LOGFILE("mcc %s mnc %s\n", gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc));
 	if (s->si1)
 		log_frame("si1", s->si1_msg);
 	if (s->si2)
@@ -217,9 +260,13 @@ static void log_sysinfo(void)
 
 static void timeout_cb(void *arg)
 {
+	if (sdcch) {
+		stop_raw = 1;
+	}
 	switch (state) {
 	case SCAN_STATE_READ:
 		LOGP(DRR, LOGL_INFO, "Timeout reading BCCH\n");
+		printf("Timeout\n");
 		start_sync();
 		break;
 	case SCAN_STATE_RACH:
@@ -266,7 +313,7 @@ static void start_rach(void)
 			"(OTHER with NECI)\n", chan_req_val);
 	} else {
 		chan_req_mask = 0x1f;
-		chan_req_val = 0xe0;
+		chan_req_val = 0xf0;
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (OTHER no NECI)\n",
 			chan_req_val);
 	}
@@ -305,6 +352,8 @@ static void start_sync(void)
 	int i, dist = 0;
 	char dist_str[32] = "";
 
+	if (sdcch)
+		return;
 	arfcn = 0xffff;
 	for (i = 0; i <= 1023; i++) {
 		if ((pm[i].flags & INFO_FLG_PM)
@@ -329,19 +378,30 @@ static void start_sync(void)
 		sprintf(dist_str, "  dist %d", (int)dist);
 	}
 	if (dist > MAX_DIST || arfcn == 0xffff || rxlev < min_rxlev) {
+		if (scan_only) {
+			scan_exit();
+			exit(0);
+		}
 		memset(pm, 0, sizeof(pm));
 		pm_index = 0;
-		sync_count = 0;
+		printf("end of sync\n");
+		wait_time *= 2;
 		start_pm();
 		return;
 	}
 	pm[arfcn].flags |= INFO_FLG_SYNC;
-	LOGP(DSUM, LOGL_INFO, "Sync ARFCN %d (rxlev %d, %d syncs "
-		"left)%s\n", arfcn, pm[arfcn].rxlev, sync_count--, dist_str);
 	memset(&sysinfo, 0, sizeof(sysinfo));
 	sysinfo.arfcn = arfcn;
 	state = SCAN_STATE_SYNC;
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	stop_raw = 0;
+	collecting = 0;
+	sync_retry = 0;
+	reset_cid();
+	memset(&app_state.cell_arfcns, 0x00, sizeof(app_state.cell_arfcns));
+	got_data = (log_gprs ? 0 : 1);
+	if (!scan_only)
+		printf("\nARFCN %d: tuning\n", arfcn);
 	l1ctl_tx_fbsb_req(ms, arfcn, L1CTL_FBSB_F_FB01SB, 100, 0,
 		CCCH_MODE_NONE);
 }
@@ -351,8 +411,8 @@ static void start_pm(void)
 	uint16_t from, to;
 
 	state = SCAN_STATE_PM;
-	from = band_range[pm_index][0];
-	to = band_range[pm_index][1];
+	from = band_range[2*pm_index+0];
+	to = band_range[2*pm_index+1];
 
 	if (from == 0 && to == 0) {
 		LOGP(DSUM, LOGL_INFO, "Measurement done\n");
@@ -374,6 +434,10 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 {
 	struct osmobb_meas_res *mr;
 	struct osmobb_fbsb_res *fr;
+        struct osmobb_msg_ind *mi;
+	struct osmocom_ms *ms;
+	static unsigned loss_count = 0;
+
 	uint16_t index;
 
 	if (subsys != SS_L1CTL)
@@ -389,149 +453,80 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 			sync_count++;
 //		printf("rxlev %d = %d (sync_count %d)\n", index, pm[index].rxlev, sync_count);
 		break;
+        case S_L1CTL_BURST_IND:
+                mi = signal_data;
+                layer3_rx_burst(mi->ms, mi->msg);
+                break;
 	case S_L1CTL_PM_DONE:
 		pm_index++;
 		start_pm();
 		break;
 	case S_L1CTL_FBSB_RESP:
-		fr = signal_data;
-		sysinfo.bsic = fr->bsic;
+		if (sdcch)
+			break;
+		if (!scan_only)
+			printf("ARFCN %d: got sync\n", arfcn);
 		state = SCAN_STATE_READ;
+		fr = signal_data;
+		ms = fr->ms;
+		sysinfo.bsic = fr->bsic;
 		memset(&ms->meas, 0, sizeof(ms->meas));
 		memset(&log_si, 0, sizeof(log_si));
+		loss_count = 0;
 		log_si.flags |= INFO_FLG_SYNC;
 		log_si.ta = 0xff; /* invalid */
-		start_timer(READ_WAIT);
+		if (!collecting) {
+			start_timer(READ_WAIT);
+		}
 		LOGP(DRR, LOGL_INFO, "Synchronized, start reading\n");
 		break;
 	case S_L1CTL_FBSB_ERR:
-		LOGP(DRR, LOGL_INFO, "Sync failed\n");
-		start_sync();
+		if (scan_only || (sync_retry > wait_time/60)) {
+			start_sync();
+		} else {
+			printf("ARFCN %d: resync\n", arfcn);
+			fr = signal_data;
+			ms = fr->ms;
+			sync_retry++;
+			l1ctl_tx_dm_rel_req(ms);
+			sleep(1);
+			return l1ctl_tx_fbsb_req(ms, arfcn,
+		                         L1CTL_FBSB_F_FB01SB, 100, 0,
+		                         CCCH_MODE_NONE);
+		}
 		break;
 	case S_L1CTL_RESET:
-		if (started)
-			break;
-		started = 1;
-		memset(pm, 0, sizeof(pm));
-		pm_index = 0;
-		sync_count = 0;
-		start_pm();
-	}
-	return 0;
-}
-
-static int ta_result(uint8_t ta)
-{
-	stop_timer();
-
-	if (ta == 0xff)
-		LOGP(DSUM, LOGL_INFO, "Got assignment reject\n");
-	else {
-		LOGP(DSUM, LOGL_DEBUG, "Got assignment TA = %d\n", ta);
-		log_si.ta = ta;
-	}
-
-	log_sysinfo();
-	start_sync();
-
-	return 0;
-}
-
-/* match request reference agains request */
-static int match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref)
-{
-	uint8_t ia_t1, ia_t2, ia_t3;
-
-	/* filter confirmed RACH requests only */
-	if (rach_ref.valid && ref->ra == rach_ref.cr) {
-	 	ia_t1 = ref->t1;
-	 	ia_t2 = ref->t2;
-	 	ia_t3 = (ref->t3_high << 3) | ref->t3_low;
-		if (ia_t1 == rach_ref.t1 && ia_t2 == rach_ref.t2
-			 && ia_t3 == rach_ref.t3) {
-	 		LOGP(DRR, LOGL_INFO, "request %02x matches "
-				"(fn=%d,%d,%d)\n", ref->ra, ia_t1, ia_t2,
-					ia_t3);
-			return 1;
-		} else
-	 		LOGP(DRR, LOGL_INFO, "request %02x matches but not "
-				"frame number (IMM.ASS fn=%d,%d,%d != RACH "
-				"fn=%d,%d,%d)\n", ref->ra, ia_t1, ia_t2, ia_t3,
-				rach_ref.t1, rach_ref.t2, rach_ref.t3);
-	}
-
-	return 0;
-}
-
-/* 9.1.18 IMMEDIATE ASSIGNMENT is received */
-static int imm_ass(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_imm_ass *ia = msgb_l3(msg);
-
-	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT:\n");
-
-	if (state != SCAN_STATE_RACH) {
-		LOGP(DRR, LOGL_INFO, "Not for us, no request.\n");
-		return 0;
-	}
-
-	/* request ref */
-	if (match_ra(ms, &ia->req_ref)) {
-		return ta_result(ia->timing_advance);
-	}
-	LOGP(DRR, LOGL_INFO, "Request, but not for us.\n");
-
-	return 0;
-}
-
-/* 9.1.19 IMMEDIATE ASSIGNMENT EXTENDED is received */
-static int imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_imm_ass_ext *ia = msgb_l3(msg);
-
-	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT EXTENDED:\n");
-
-	if (state != SCAN_STATE_RACH) {
-		LOGP(DRR, LOGL_INFO, "Not for us, no request.\n");
-		return 0;
-	}
-
-	/* request ref 1 */
-	if (match_ra(ms, &ia->req_ref1)) {
-		return ta_result(ia->timing_advance1);
-	}
-	/* request ref 2 */
-	if (match_ra(ms, &ia->req_ref2)) {
-		return ta_result(ia->timing_advance2);
-	}
-	LOGP(DRR, LOGL_INFO, "Request, but not for us.\n");
-
-	return 0;
-}
-
-/* 9.1.20 IMMEDIATE ASSIGNMENT REJECT is received */
-static int imm_ass_rej(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_imm_ass_rej *ia = msgb_l3(msg);
-	int i;
-	struct gsm48_req_ref *req_ref;
-
-	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT REJECT:\n");
-
-	if (state != SCAN_STATE_RACH) {
-		LOGP(DRR, LOGL_INFO, "Not for us, no request.\n");
-		return 0;
-	}
-
-	for (i = 0; i < 4; i++) {
-		/* request reference */
-		req_ref = (struct gsm48_req_ref *)
-				(((uint8_t *)&ia->req_ref1) + i * 4);
-		LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT REJECT "
-			"(ref 0x%02x)\n", req_ref->ra);
-		if (match_ra(ms, req_ref)) {
-			return ta_result(0xff);
+		if (sdcch) {
+			printf("RESET! while sdcch\n");
+		} else {
+			if (started)
+				break;
+			started = 1;
+			loss_count = 0;
+			memset(pm, 0, sizeof(pm));
+			pm_index = 0;
+			start_pm();
 		}
+		break;
+        case S_L1CTL_LOSS_IND:
+		if (sdcch)
+			break;
+		loss_count++;
+                ms = signal_data;
+		if (loss_count > 10) {
+			loss_count = 0;
+			if (sync_retry > 3) {
+				start_sync();
+			} else {
+				sync_retry++;
+				l1ctl_tx_dm_rel_req(ms);
+				sleep(1);
+				return l1ctl_tx_fbsb_req(ms, arfcn,
+						L1CTL_FBSB_F_FB01SB, 100, 0,
+						CCCH_MODE_NONE);
+			}
+                }
+                break;
 	}
 
 	return 0;
@@ -548,11 +543,12 @@ static int pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_MT_RR_PAG_REQ_3:
 		return 0;
 	case GSM48_MT_RR_IMM_ASS:
-		return imm_ass(ms, msg);
+//		return imm_ass(ms, msg);
+		return gsm48_rx_imm_ass(msg, ms);
 	case GSM48_MT_RR_IMM_ASS_EXT:
-		return imm_ass_ext(ms, msg);
+//		return imm_ass_ext(ms, msg);
 	case GSM48_MT_RR_IMM_ASS_REJ:
-		return imm_ass_rej(ms, msg);
+//		return imm_ass_rej(ms, msg);
 	default:
 		return -EINVAL;
 	}
@@ -564,7 +560,12 @@ static int new_sysinfo(void)
 	struct gsm48_sysinfo *s = &sysinfo;
 
 	/* restart timer */
-	start_timer(READ_WAIT);
+	//start_timer(READ_WAIT);
+
+	if (s->si3 && scan_only) {
+		log_sysinfo();
+		start_sync();
+	}
 
 	/* mandatory */
 	if (!s->si1 || !s->si2 || !s->si3 || !s->si4) {
@@ -586,10 +587,9 @@ static int new_sysinfo(void)
 
 	LOGP(DRR, LOGL_INFO, "Sysinfo complete\n");
 
-	stop_timer();
+	log_sysinfo();
 
-	rach_count = 0;
-	start_rach();
+	start_timer(IMM_WAIT);
 
 	return 0;
 }
@@ -599,6 +599,10 @@ static int bcch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_sysinfo *s = &sysinfo;
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
+	struct gsm48_system_information_type_1 *si1 =
+		(struct gsm48_system_information_type_1 *) msgb_l3(msg);
+        struct gsm48_system_information_type_3 *si3 =
+                (struct gsm48_system_information_type_3 *) msgb_l3(msg);
 	uint8_t ccch_mode;
 
 	if (msgb_l3len(msg) != 23) {
@@ -613,6 +617,10 @@ static int bcch(struct osmocom_ms *ms, struct msgb *msg)
 		gsm48_decode_sysinfo1(s,
 			(struct gsm48_system_information_type_1 *) sih,
 			msgb_l3len(msg));
+                gsm48_decode_freq_list(app_state.cell_arfcns,
+                                       si1->cell_channel_description,
+                                       sizeof(si1->cell_channel_description),
+                                       0xff, 0x01);
 		return new_sysinfo();
 	case GSM48_MT_RR_SYSINFO_2:
 		if (!memcmp(sih, s->si2_msg, sizeof(s->si2_msg)))
@@ -649,6 +657,7 @@ static int bcch(struct osmocom_ms *ms, struct msgb *msg)
 			CCCH_MODE_NON_COMBINED;
 		LOGP(DRR, LOGL_INFO, "Changing CCCH_MODE to %d\n", ccch_mode);
 		l1ctl_tx_ccch_mode_req(ms, ccch_mode);
+		set_cid(si3->lai.digits, si3->lai.lac, si3->cell_identity);
 		return new_sysinfo();
 	case GSM48_MT_RR_SYSINFO_4:
 		if (!memcmp(sih, s->si4_msg, sizeof(s->si4_msg)))
@@ -780,6 +789,32 @@ static int rcv_rsl(struct msgb *msg, struct lapdm_entity *le, void *l3ctx)
 	return rc;
 }
 
+void set_freq_range()
+{
+	if (!scan_band) {
+		band_range = range_all;
+		return;
+	}
+	if (!strcmp(scan_band, "900")) {
+		band_range = range_900;
+		return;
+	}
+	if (!strcmp(scan_band, "1800")) {
+		band_range = range_1800;
+		return;
+	}
+	if (!strcmp(scan_band, "850")) {
+		band_range = range_850;
+		return;
+	}
+	if (!strcmp(scan_band, "1900")) {
+		band_range = range_1900;
+		return;
+	}
+	printf("Bad frequency range\n");
+	exit(-1);
+}
+
 int scan_init(struct osmocom_ms *_ms)
 {
 	ms = _ms;
@@ -787,6 +822,8 @@ int scan_init(struct osmocom_ms *_ms)
 	memset(&timer, 0, sizeof(timer));
 	lapdm_channel_set_l3(&ms->lapdm_channel, &rcv_rsl, ms);
 	g.enable = 1;
+	sdcch = 0;
+	set_freq_range();
 	osmo_gps_init();
 	if (osmo_gps_open())
 		g.enable = 0;
@@ -817,3 +854,235 @@ int scan_exit(void)
 
 	return 0;
 }
+
+static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
+{
+	struct gsm48_imm_ass *ia = msgb_l3(msg);
+	uint8_t ch_type, ch_subch, ch_ts;
+	int rv;
+
+	if (sdcch)
+		return 0;
+
+	/* If we're busy ... */
+	if (app_state.dch_state != DCH_NONE)
+		return 0;
+
+	/* Discard packet TBF assignement */
+	if (ia->page_mode & 0xf0) {
+		if (got_data) {
+			return 0;
+		} else {
+			got_data = 1;
+			printf("ARFCN %d: got DATA assignment\n", arfcn);
+		}
+	} else {
+		printf("ARFCN %d: got SDCCH assignment\n", arfcn);
+	}
+
+	layer3_app_reset();
+
+	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
+
+	if (!ia->chan_desc.h0.h) {
+		/* Non-hopping */
+		uint16_t _arfcn;
+
+		_arfcn = ia->chan_desc.h0.arfcn_low | (ia->chan_desc.h0.arfcn_high << 8);
+		if (arfcn != _arfcn)
+			printf("ARFCN %d: not jumping to ARFCN %d!\n", arfcn, _arfcn);
+
+		DEBUGP(DRR, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
+			"ARFCN=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
+			ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
+			ia->chan_desc.h0.tsc);
+
+		/* request L1 to go to dedicated mode on assigned channel */
+		rv = l1ctl_tx_dm_est_req_h0(ms,
+			arfcn, ia->chan_desc.chan_nr, ia->chan_desc.h0.tsc,
+			GSM48_CMODE_SIGN, 0);
+	} else {
+		/* Hopping */
+		uint8_t maio, hsn, ma_len;
+		uint16_t ma[64], arfcn;
+		int i, j, k;
+
+		hsn = ia->chan_desc.h1.hsn;
+		maio = ia->chan_desc.h1.maio_low | (ia->chan_desc.h1.maio_high << 2);
+
+		DEBUGP(DRR, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
+			"HSN=%u, MAIO=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
+			ia->chan_desc.chan_nr, hsn, maio, ch_ts, ch_subch,
+			ia->chan_desc.h1.tsc);
+
+		/* decode mobile allocation */
+		ma_len = 0;
+		for (i=1, j=0; i<=1024; i++) {
+			arfcn = i & 1023;
+			if (app_state.cell_arfcns[arfcn].mask & 0x01) {
+				k = ia->mob_alloc_len - (j>>3) - 1;
+				if (ia->mob_alloc[k] & (1 << (j&7))) {
+					ma[ma_len++] = arfcn;
+				}
+				j++;
+			}
+		}
+
+		if (!ma_len) {
+			if (ia->page_mode & 0xf0)
+				got_data = 0;
+			return;
+		}
+
+		/* request L1 to go to dedicated mode on assigned channel */
+		rv = l1ctl_tx_dm_est_req_h1(ms,
+			maio, hsn, ma, ma_len,
+			ia->chan_desc.chan_nr, ia->chan_desc.h1.tsc,
+			GSM48_CMODE_SIGN, 0);
+	}
+
+	DEBUGPC(DRR, "\n");
+
+	/* Set state */
+	app_state.dch_state = DCH_WAIT_EST;
+	app_state.dch_nr = ia->chan_desc.chan_nr;
+	app_state.dch_badcnt = 0;
+
+	sdcch = 1;
+	if (!collecting) {
+		collecting = 1;
+		short_count = 0;
+		start_timer(wait_time, 0);
+	}
+
+	return rv;
+}
+
+static char *
+gen_filename(struct osmocom_ms *ms, struct l1ctl_burst_ind *bi)
+{
+	static char buffer[256];
+	time_t d;
+	struct tm lt;
+
+	time(&d);
+	localtime_r(&d, &lt);
+
+	snprintf(buffer, 256, "%s_%04d%02d%02d_%02d%02d_%d_%d_%02x.dat",
+		get_cid_str(),
+		lt.tm_year + 1900, lt.tm_mon, lt.tm_mday,
+		lt.tm_hour, lt.tm_min,
+		arfcn,
+		ntohl(bi->frame_nr),
+		bi->chan_nr
+	);
+
+	return buffer;
+}
+
+void layer3_rx_burst(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_burst_ind *bi;
+	int16_t rx_dbm;
+	uint16_t l_arfcn;
+	int ul, do_rel=0;
+	static unsigned rcv_frames;
+	static unsigned rcv_snr;
+
+	if (!sdcch)
+		return;
+
+	/* Header handling */
+	bi = (struct l1ctl_burst_ind *) msg->l1h;
+
+	l_arfcn = ntohs(bi->band_arfcn);
+	rx_dbm = rxlev2dbm(bi->rx_level);
+	ul = !!(l_arfcn & ARFCN_UPLINK);
+
+	/* Check for channel start */
+	if (app_state.dch_state == DCH_WAIT_EST) {
+		if (bi->chan_nr == app_state.dch_nr) {
+			if (bi->snr > 100) {
+				/* Change state */
+				app_state.dch_state = DCH_ACTIVE;
+				app_state.dch_badcnt = 0;
+				rcv_frames = 0;
+				rcv_snr = 0;
+				printf("ARFCN %d: session begin\n", arfcn);
+
+				/* Open output */
+				app_state.fh = fopen(gen_filename(ms, bi), "wb");
+			} else {
+				/* Abandon ? */
+				//do_rel = (app_state.dch_badcnt++) >= 8;
+			}
+		}
+	}
+
+	/* Check for channel end */
+	if (app_state.dch_state == DCH_ACTIVE) {
+		if (!ul) {
+			/* Bad burst counting */
+			if (bi->snr < 100)
+				app_state.dch_badcnt++;
+			else if (app_state.dch_badcnt >= 2)
+				app_state.dch_badcnt -= 2;
+			else
+				app_state.dch_badcnt = 0;
+
+			/* Release condition */
+			if (bi->chan_nr & 0xe0)
+				do_rel = app_state.dch_badcnt >= 4;
+		}
+
+		if (!ul) {
+			rcv_frames++;
+			rcv_snr += bi->snr;
+
+			/* capture up to 3 minutes */
+			if (rcv_frames >= 40000)
+				do_rel = 1;
+		}
+
+		/* Save the burst */
+		fwrite(bi, sizeof(*bi), 1, app_state.fh);
+	}
+
+	/* SNR check */
+	if (do_rel) {
+		printf("ARFCN %d: session end, frames=%d SNR_avg=%d\n", arfcn, rcv_frames, rcv_snr/rcv_frames);
+		if ((bi->chan_nr & 0xe0) && (rcv_frames < 20))
+			short_count++;
+		rcv_frames = 0;
+		rcv_snr = 0;
+		app_state.dch_state = DCH_NONE;
+		app_state.dch_badcnt = 0;
+		if (app_state.fh) {
+			fclose(app_state.fh);
+			app_state.fh = NULL;
+		}
+		sdcch = 0;
+		if (stop_raw || (short_count > 3)) {
+			collecting = 0;
+			pm[arfcn].flags |= INFO_FLG_SYNC;
+			start_sync();
+		} else {
+			l1ctl_tx_dm_rel_req(ms);
+			l1ctl_tx_fbsb_req(ms, arfcn, L1CTL_FBSB_F_FB01SB, 100, 0, CCCH_MODE_NON_COMBINED);
+		}
+	}
+}
+
+void layer3_app_reset(void)
+{
+	/* Reset state */
+	memset(app_state.si, 0, NUM_SYSINFO*sizeof(uint8_t*));
+	app_state.ccch_mode = CCCH_MODE_NONE;
+	app_state.dch_state = DCH_NONE;
+	app_state.dch_badcnt = 0;
+
+	if (app_state.fh)
+		fclose(app_state.fh);
+	app_state.fh = NULL;
+}
+

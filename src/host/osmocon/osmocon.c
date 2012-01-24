@@ -130,9 +130,9 @@ struct dnload {
 	enum dnload_state state;
 	enum romload_state romload_state;
 	enum mtk_state mtk_state;
-	enum dnload_mode mode, previous_mode;
+	enum dnload_mode mode;
 	struct osmo_fd serial_fd;
-	char *filename, *previous_filename;
+	char *filename;
 	char *chainload_filename;
 
 	int expect_hdlc;
@@ -216,6 +216,45 @@ static const uint8_t romload_param[] = { 0x3c, 0x70, 0x00, 0x00, 0x00, 0x04,
 static const uint8_t mtk_init_cmd[] =	{ 0xa0, 0x0a, 0x50, 0x05 };
 static const uint8_t mtk_init_resp[] =	{ 0x5f, 0xf5, 0xaf, 0xfa };
 static const uint8_t mtk_command[] =	{ 0xa1, 0xa2, 0xa4, 0xa8 };
+
+
+static int cable_type = 0;
+
+int serial_up_to_eleven(void)
+{
+	int rv;
+
+	/* Attempt custom baudrate */
+	switch(cable_type) {
+	case 0:
+		rv = osmo_serial_set_baudrate(dnload.serial_fd.fd, B115200);
+		break;
+	case 1:
+		rv = osmo_serial_set_baudrate(dnload.serial_fd.fd, B460800);
+		break;
+	case 2:
+		rv = osmo_serial_set_custom_baudrate(dnload.serial_fd.fd, 406250);
+	}
+	if (rv == 0)
+		return 0;
+
+#ifdef I_HAVE_A_CP210x /* and I know what I'm doing, I swear ! */
+	/* Try closest standard baudrate (CP210x reprogrammed adapters) */
+	rv = osmo_serial_set_baudrate(dnload.serial_fd.fd, B460800);
+	if (rv == 0)
+		return 0;
+#endif
+
+	/* Everything failed */
+	fprintf(stderr, "!!!\n");
+	fprintf(stderr, "!!! ERROR !!!\n");
+	fprintf(stderr, "!!!\n");
+	fprintf(stderr, "!!! Unable to set custom baudrate, please use appropriate cable\n");
+	fprintf(stderr, "!!! ( see wiki http://bb.osmocom.org/trac/wiki/Sniffing )\n");
+	fprintf(stderr, "!!!\n");
+
+	exit(-1);
+}
 
 static void beacon_timer_cb(void *p)
 {
@@ -813,21 +852,22 @@ static int handle_read(void)
 		dnload.write_ptr = dnload.data;
 		dnload.expect_hdlc = 1;
 
+
 		/* check for romloader chainloading mode used as a workaround
 		 * for the magic on the C139/C140 and J100i */
 		if (dnload.chainload_filename != NULL) {
 			printf("Enabled Compal ramloader -> Calypso romloader"
 				" chainloading mode\n");
 			bufptr = buffer;
-			dnload.previous_filename = dnload.filename;
 			dnload.filename = dnload.chainload_filename;
-			dnload.previous_mode = dnload.mode;
 			dnload.mode = MODE_ROMLOAD;
 			osmo_serial_set_baudrate(dnload.serial_fd.fd, ROMLOAD_INIT_BAUDRATE);
 			tick_timer.cb = &beacon_timer_cb;
 			tick_timer.data = &tick_timer;
 			osmo_timer_schedule(&tick_timer, 0, dnload.beacon_interval);
 		}
+		else
+			serial_up_to_eleven();
 	} else if (!memcmp(buffer, phone_nack, sizeof(phone_nack))) {
 		printf("Received DOWNLOAD NACK from phone, something went"
 			" wrong :(\n");
@@ -971,22 +1011,11 @@ static int handle_read_romload(void)
 		if (!memcmp(buffer, romload_branch_ack,
 			    sizeof(romload_branch_ack))) {
 			printf("Received branch ack, your code is running now!\n");
+			serial_up_to_eleven();
 			dnload.serial_fd.when = BSC_FD_READ;
 			dnload.romload_state = FINISHED;
 			dnload.write_ptr = dnload.data;
 			dnload.expect_hdlc = 1;
-
-			if (dnload.chainload_filename == NULL)
-				break;
-
-			/* if using chainloading mode, switch back to the Compal
-			 * ramloader settings to make sure the auto-reload
-			 * feature works */
-			bufptr = buffer;
-			dnload.romload_state = WAITING_IDENTIFICATION;
-			dnload.filename = dnload.previous_filename;
-			dnload.mode = dnload.previous_mode;
-			osmo_serial_set_baudrate(dnload.serial_fd.fd, MODEM_BAUDRATE);
 		} else if (!memcmp(buffer, romload_branch_nack,
 			   sizeof(romload_branch_nack))) {
 			printf("Received branch nack, aborting\n");
@@ -1398,16 +1427,15 @@ int main(int argc, char **argv)
 {
 	int opt, flags;
 	uint32_t tmp_load_address = ROMLOAD_ADDRESS;
-	const char *serial_dev = "/dev/ttyUSB1";
-	const char *layer2_un_path = "/tmp/osmocom_l2";
+	const char *serial_dev = "/dev/ttyUSB0";
+	const char *layer2_un_path = "/tmp/osmocom_log";
 	const char *loader_un_path = "/tmp/osmocom_loader";
 
-	dnload.mode = MODE_C123;
+	dnload.mode = MODE_C123xor;
 	dnload.chainload_filename = NULL;
-	dnload.previous_filename = NULL;
 	dnload.beacon_interval = DEFAULT_BEACON_INTERVAL;
 
-	while ((opt = getopt(argc, argv, "d:hl:p:m:c:s:i:v")) != -1) {
+	while ((opt = getopt(argc, argv, "d:hl:p:m:c:s:i:vCF")) != -1) {
 		switch (opt) {
 		case 'p':
 			serial_dev = optarg;
@@ -1434,6 +1462,12 @@ int main(int argc, char **argv)
 			break;
 		case 'i':
 			dnload.beacon_interval = atoi(optarg) * 1000;
+			break;
+		case 'C':
+			cable_type = 1;
+			break;
+		case 'F':
+			cable_type = 2;
 			break;
 		case 'h':
 		default:

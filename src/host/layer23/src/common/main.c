@@ -51,7 +51,7 @@ struct log_target *stderr_target;
 
 void *l23_ctx = NULL;
 
-static char *layer2_socket_path = "/tmp/osmocom_l2";
+static char *layer2_socket_path = "/tmp/osmocom_log";
 static char *sap_socket_path = "/tmp/osmocom_sap";
 struct llist_head ms_list;
 static struct osmocom_ms *ms = NULL;

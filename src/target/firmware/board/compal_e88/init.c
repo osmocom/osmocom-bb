@@ -103,6 +103,7 @@ void board_init(void)
 
 	/* initialize MODEM UART to be used for sercomm*/
 	uart_init(SERCOMM_UART_NR, 1);
+	//uart_baudrate(SERCOMM_UART_NR, UART_460800);
 	uart_baudrate(SERCOMM_UART_NR, UART_115200);
 
 	/* Initialize IRDA UART to be used for old-school console code.
@@ -125,8 +126,7 @@ void board_init(void)
 	/* Initialize LCD driver (uses I2C) and backlight */
 	display = &st7558_display;
 	display_init();
-	bl_mode_pwl(1);
-	bl_level(50);
+	bl_mode_pwl(0);
 
 	/* Initialize keypad driver */
 	keypad_init(1);

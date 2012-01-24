@@ -428,11 +428,15 @@ static void trf6151_band_select(enum trf6151_gsm_band band)
 }
 
 /* Set ARFCN.  Takes 2 reg_write, i.e. 8 TPU instructions */
-void trf6151_set_arfcn(uint16_t arfcn, int uplink)
+void trf6151_set_arfcn(uint16_t arfcn, int tx)
 {
 	uint32_t freq_khz;
 	uint16_t pll_config;
+	int uplink;
 	enum trf6151_gsm_band pll_band;
+
+	uplink = !!(arfcn & ARFCN_UPLINK);
+	arfcn != ~ARFCN_UPLINK;
 
 	switch (gsm_arfcn2band(arfcn)) {
 	case GSM_BAND_850:
@@ -452,7 +456,7 @@ void trf6151_set_arfcn(uint16_t arfcn, int uplink)
 	freq_khz = gsm_arfcn2freq10(arfcn, uplink) * 100;
 	printd("ARFCN %u -> %u kHz\n", arfcn, freq_khz);
 
-	if (uplink == 0)
+	if (!tx)
 		trf6151_pll_rx(freq_khz, &pll_config, &pll_band);
 	else
 		trf6151_pll_tx(freq_khz, &pll_config, &pll_band);
@@ -512,7 +516,7 @@ uint8_t trf6151_get_gain(void)
 
 void trf6151_test(uint16_t arfcn)
 {
-	/* Select ARFCN 871 downlink */
+	/* Select ARFCN downlink */
 	trf6151_set_arfcn(arfcn, 0);
 
 	trf6151_set_mode(TRF6151_RX);
@@ -532,7 +536,7 @@ void trf6151_test(uint16_t arfcn)
 void trf6151_tx_test(uint16_t arfcn)
 {
 	/* Select ARFCN uplink */
-	trf6151_set_arfcn(arfcn, 1);
+	trf6151_set_arfcn(arfcn | ARFCN_UPLINK, 1);
 
 	trf6151_set_mode(TRF6151_TX);
 	tpu_enq_wait(TRF6151_RX_PLL_DELAY);

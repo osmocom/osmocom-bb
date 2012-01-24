@@ -793,6 +793,7 @@ struct gsm48_rr_status {
 
 #define GSM48_MT_RR_SYSINFO_2bis	0x02
 #define GSM48_MT_RR_SYSINFO_2ter	0x03
+#define GSM48_MT_RR_SYSINFO_2quater	0x07
 #define GSM48_MT_RR_SYSINFO_5bis	0x05
 #define GSM48_MT_RR_SYSINFO_5ter	0x06
 #define GSM48_MT_RR_SYSINFO_9		0x04

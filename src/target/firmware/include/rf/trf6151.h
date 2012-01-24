@@ -22,7 +22,9 @@ int trf6151_set_gain(uint8_t dbm);
 uint8_t trf6151_get_gain(void);
 
 /* Request the PLL to be tuned to the given frequency */
-void trf6151_set_arfcn(uint16_t arfcn, int uplink);
+/*  arfcn must have ARFCN_UPLINK flag set if you want uplink ! */
+/*  tx selects the TX path only and doesn't set UL band ! */
+void trf6151_set_arfcn(uint16_t arfcn, int tx);
 
 enum trf6151_mode {
 	TRF6151_IDLE,
