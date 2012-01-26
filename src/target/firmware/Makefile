@@ -4,7 +4,7 @@
 BOARDS?=compal_e88 compal_e86 compal_e99 se_j100 gta0x pirelli_dpl10
 
 # List of all applications (meant to be overridden on command line)
-APPLICATIONS?=hello_world compal_dsp_dump layer1 loader chainload
+APPLICATIONS?=hello_world compal_dsp_dump layer1 loader chainload monitor
 
 # Framebuffer support, board specific drivers
 # 	
