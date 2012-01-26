@@ -49,8 +49,14 @@
 #define L3_MSG_HEAD 4
 #define L3_MSG_SIZE (sizeof(struct l1ctl_hdr)+sizeof(struct l1ctl_info_dl)+sizeof(struct l1ctl_traffic_ind) + L3_MSG_HEAD)
 
+void (*l1a_l23_tx_cb)(struct msgb *msg) = NULL;
+
 void l1_queue_for_l2(struct msgb *msg)
 {
+	if (l1a_l23_tx_cb) {
+		l1a_l23_tx_cb(msg);
+		return;
+	}
 	/* forward via serial for now */
 	sercomm_sendmsg(SC_DLCI_L1A_L23, msg);
 }
@@ -574,7 +580,7 @@ static void l1ctl_sim_req(struct msgb *msg)
 }
 
 /* callback from SERCOMM when L2 sends a message to L1 */
-static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
+void l1a_l23_rx(uint8_t dlci, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 
@@ -653,5 +659,6 @@ exit_nofree:
 
 void l1a_l23api_init(void)
 {
-	sercomm_register_rx_cb(SC_DLCI_L1A_L23, l1a_l23_rx_cb);
+	sercomm_register_rx_cb(SC_DLCI_L1A_L23, l1a_l23_rx);
 }
+
