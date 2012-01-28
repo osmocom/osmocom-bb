@@ -118,10 +118,11 @@ static int l1s_pm_resp(uint8_t num_meas, __unused uint8_t p2,
 		pmr->pm[1] = 0;
 
 	if (l1s.pm.mode == 1) {
-		if (l1s.pm.range.arfcn_next <= l1s.pm.range.arfcn_end) {
+		if (l1s.pm.range.arfcn_next != l1s.pm.range.arfcn_end) {
 			/* schedule PM for next ARFCN in range */
+			l1s.pm.range.arfcn_next =
+				(l1s.pm.range.arfcn_next+1) & 0xfbff;
 			l1s_pm_test(1, l1s.pm.range.arfcn_next);
-			l1s.pm.range.arfcn_next++;
 		} else {
 			/* we have finished, flush the msgb to L2 */
 			struct l1ctl_hdr *l1h = l1s.pm.msg->l1h;

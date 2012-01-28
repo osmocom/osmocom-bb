@@ -404,7 +404,7 @@ static void l1ctl_rx_pm_req(struct msgb *msg)
 			l1s.pm.range.arfcn_start, l1s.pm.range.arfcn_end);
 		break;
 	}
-
+	l1s_reset_hw(); /* must reset, otherwise measurement results are delayed */
 	l1s_pm_test(1, l1s.pm.range.arfcn_next);
 }
 
