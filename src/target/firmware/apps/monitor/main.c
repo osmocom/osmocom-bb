@@ -49,11 +49,17 @@
 #include <layer1/l23_api.h>
 
 enum key_codes key_code = KEY_INV;
+int key_pressed = 0;
+enum key_codes key_pressed_code;
+unsigned long key_pressed_when;
+unsigned int key_pressed_delay;
 
 enum mode {
 	MODE_MAIN,
+	MODE_SPECTRUM,
 	MODE_ARFCN,
 } mode = MODE_MAIN;
+enum mode last_mode; /* where to return after entering ARFCN */
 
 static uint16_t arfcn = 0;
 int pcs = 0;
@@ -84,6 +90,8 @@ struct band *band;
 enum pm_mode {
 	PM_IDLE,
 	PM_SENT,
+	PM_RANGE_SENT,
+	PM_RANGE_RESULT,
 	PM_RESULT,
 } pm_mode = PM_IDLE;
 
@@ -92,6 +100,8 @@ enum pm_mode {
 int pm_meas[NUM_PM_UL];
 int pm_count = 0;
 int pm_max = 2;
+uint8_t pm_spectrum[1024];
+int pm_scale = 1; /* scale measured power level */
 
 #define TONE_JIFFIES 4
 int tone = 0;
@@ -107,15 +117,17 @@ static void refresh_display(void)
 	fb_clear();
 
 	/* header */
-	fb_setfg(FB_COLOR_BLUE);
 	fb_setbg(FB_COLOR_WHITE);
-	fb_setfont(FB_FONT_HELVR08);
-	fb_gotoxy(0,6);
-	fb_putstr("Osmocom Montitor Tool",-1);
-	fb_gotoxy(0,10);
+	if (mode != MODE_SPECTRUM) {
+		fb_setfg(FB_COLOR_BLUE);
+		fb_setfont(FB_FONT_HELVR08);
+		fb_gotoxy(0,6);
+		fb_putstr("Osmocom Monitor Tool",-1);
+		fb_gotoxy(0,10);
+		fb_setfg(FB_COLOR_BLACK);
+		fb_boxto(framebuffer->width-1,10);
+	}
 	fb_setfg(FB_COLOR_BLACK);
-	fb_boxto(framebuffer->width-1,10);
-
 	fb_setfont(FB_FONT_C64);
 
 	/* ARFCN */
@@ -169,12 +181,67 @@ static void refresh_display(void)
 			fb_putstr("max",framebuffer->width);
 			fb_setfont(FB_FONT_C64);
 		}
+		fb_setbg(FB_COLOR_BLACK);
 		fb_gotoxy(0,45);
-		fb_boxto(framebuffer->width * power / 64, 46);
-		fb_gotoxy(0,47);
-		fb_boxto(framebuffer->width * power / 64, 48);
-		fb_gotoxy(0,49);
 		fb_boxto(framebuffer->width * power / 64, 50);
+		if (max) {
+			fb_gotoxy(framebuffer->width * max_power / 64 ,45);
+			fb_boxto(framebuffer->width * max_power / 64, 50);
+		}
+		fb_setbg(FB_COLOR_WHITE);
+	}
+
+	/* spectrum */
+	if (mode == MODE_SPECTRUM) {
+		int i;
+		uint16_t a, e, p;
+
+		fb_gotoxy(0,8);
+		if (pcs && arfcn >= PCS_MIN && arfcn <= PCS_MAX)
+			sprintf(text, "%4dP", arfcn);
+		else if (arfcn >= DCS_MIN && arfcn <= DCS_MAX)
+			sprintf(text, "%4dD", arfcn);
+		else
+			sprintf(text, "%4d ", arfcn);
+		sprintf(text + 5, "   %d", pm_spectrum[arfcn & 1023] - 110);
+		fb_putstr(text,framebuffer->width);
+		if (max) {
+			fb_setfont(FB_FONT_HELVR08);
+			fb_gotoxy(80,15);
+			fb_putstr("max",framebuffer->width);
+			fb_setfont(FB_FONT_C64);
+		}
+		if (pm_scale != 1) {
+			fb_setfont(FB_FONT_HELVR08);
+			fb_gotoxy(1,15);
+			sprintf(text, "x%d", pm_scale);
+			fb_putstr(text,framebuffer->width);
+			fb_setfont(FB_FONT_C64);
+		}
+		if (pcs && arfcn >= PCS_MIN && arfcn <= PCS_MAX) {
+			a = PCS_MIN;
+			e = PCS_MAX;
+		} else {
+			a = band->min;
+			e = band->max;
+		}
+		for (i = 0; i < framebuffer->width - 1; i++) {
+			p = (arfcn + i - (framebuffer->width >> 1)) & 1023;
+			if ((((p - a) & 1023) & 512))
+				continue;
+			if ((((e - p) & 1023) & 512))
+				continue;
+			p = (pm_spectrum[p] * pm_scale * 40 / 64);
+			if (p > 40)
+				p = 40;
+			fb_gotoxy(i, 50 - p);
+			fb_boxto(i, 50);
+		}
+		i = framebuffer->width >> 1;
+		fb_gotoxy(i, 0);
+		fb_boxto(i, 4);
+		fb_gotoxy(i, 50);
+		fb_boxto(i, 54);
 	}
 
 	/* footer */
@@ -198,7 +265,7 @@ static void refresh_display(void)
 
 static void exit_arfcn(void)
 {
-	mode = MODE_MAIN;
+	mode = last_mode;
 	refresh_display();
 }
 
@@ -206,6 +273,7 @@ static void enter_arfcn(enum key_codes code)
 {
 	/* enter mode */
 	if (mode != MODE_ARFCN) {
+		last_mode = mode;
 		mode = MODE_ARFCN;
 		input[0] = code - KEY_0 + '0';
 		input[1] = '\0';
@@ -250,13 +318,13 @@ static void enter_arfcn(enum key_codes code)
 					break;
 			}
 		}
-		if (!temp->max)
+		if (!bands[i].max)
 			return;
 		if (check > 1023)
 			return;
 		arfcn = check;
 		band = temp;
-		mode = MODE_MAIN;
+		mode = last_mode;
 		refresh_display();
 		return;
 	}
@@ -285,7 +353,7 @@ static int inc_dec_arfcn(int inc)
 				break;
 		}
 	}
-	if (!band->max)
+	if (!bands[i].max)
 		return -EINVAL;
 
 	if (inc) {
@@ -314,7 +382,7 @@ static int inc_dec_arfcn(int inc)
 				break;
 		}
 	}
-	if (!band->max)
+	if (!bands[i].max)
 		return -EINVAL;
 
 	refresh_display();
@@ -331,6 +399,21 @@ static void toggle_dcs_pcs(void)
 static void toggle_up_down(void)
 {
 	uplink = !uplink;
+	refresh_display();
+}
+
+static void toggle_spectrum(void)
+{
+	if (mode == MODE_MAIN) {
+		mode = MODE_SPECTRUM;
+		pm_mode = PM_IDLE;
+	} else if (mode == MODE_SPECTRUM) {
+		mode = MODE_MAIN;
+		pm_mode = PM_IDLE;
+	}
+	l1s_reset();
+	l1s_reset_hw();
+	pm_count = 0;
 	refresh_display();
 }
 
@@ -351,10 +434,41 @@ static void hold_max(void)
 {
 	max = !max;
 	max_power = power;
+	refresh_display();
+}
+
+static int inc_dec_spectrum(int inc)
+{
+	if (inc) {
+		pm_scale <<= 1;
+		if (pm_scale > 8)
+			pm_scale = 8;
+	} else {
+		pm_scale >>= 1;
+		if (pm_scale < 1)
+			pm_scale = 1;
+	}
+
+	refresh_display();
+
+	return 0;
 }
 
 static void handle_key_code()
 {
+	/* key repeat */
+	if (key_pressed) {
+		unsigned long elapsed = jiffies - key_pressed_when;
+		if (elapsed > key_pressed_delay) {
+			key_pressed_when = jiffies;
+			key_pressed_delay = 10;
+			/* only repeat these keys */
+			if (key_pressed_code == KEY_LEFT
+			 || key_pressed_code == KEY_RIGHT)
+				key_code = key_pressed_code;
+		}
+	}
+
 	if (key_code == KEY_INV)
 		return;
 
@@ -373,31 +487,37 @@ static void handle_key_code()
 	case KEY_7:
 	case KEY_8:
 	case KEY_9:
-		if (mode == MODE_MAIN || mode == MODE_ARFCN)
+		if (mode == MODE_MAIN || mode == MODE_SPECTRUM || mode == MODE_ARFCN)
 			enter_arfcn(key_code);
 		break;
 	case KEY_UP:
-		tone_inc_dec(1);
+		if (mode == MODE_MAIN)
+			tone_inc_dec(1);
+		else if (mode == MODE_SPECTRUM)
+			inc_dec_spectrum(1);
 		break;
 	case KEY_DOWN:
-		tone_inc_dec(0);
+		if (mode == MODE_MAIN)
+			tone_inc_dec(0);
+		else if (mode == MODE_SPECTRUM)
+			inc_dec_spectrum(0);
 		break;
 	case KEY_RIGHT:
-		if (mode == MODE_MAIN)
+		if (mode == MODE_MAIN || mode == MODE_SPECTRUM)
 			inc_dec_arfcn(1);
 		break;
 	case KEY_LEFT:
-		if (mode == MODE_MAIN)
+		if (mode == MODE_MAIN || mode == MODE_SPECTRUM)
 			inc_dec_arfcn(0);
 		break;
 	case KEY_LEFT_SB:
-		if (mode == MODE_MAIN)
+		if (mode == MODE_MAIN || mode == MODE_SPECTRUM)
 			toggle_dcs_pcs();
 		else if (mode == MODE_ARFCN)
 			enter_arfcn(key_code);
 		break;
 	case KEY_RIGHT_SB:
-		if (mode == MODE_MAIN)
+		if (mode == MODE_MAIN || mode == MODE_SPECTRUM)
 			toggle_up_down();
 		else if (mode == MODE_ARFCN)
 			enter_arfcn(key_code);
@@ -408,6 +528,12 @@ static void handle_key_code()
 	case KEY_POWER:
 		if (mode == MODE_ARFCN)
 			exit_arfcn();
+		else if (mode == MODE_SPECTRUM)
+			toggle_spectrum();
+		break;
+	case KEY_STAR:
+		if (mode == MODE_MAIN || mode == MODE_SPECTRUM)
+			toggle_spectrum();
 		break;
 	default:
 		break;
@@ -445,23 +571,41 @@ static void handle_tone(void)
 static void handle_pm(void)
 {
 	/* start power measurement */
-	if (pm_mode == PM_IDLE && mode == MODE_MAIN) {
+	if (pm_mode == PM_IDLE && (mode == MODE_MAIN || mode == MODE_SPECTRUM)) {
 		struct msgb *msg = l1ctl_msgb_alloc(L1CTL_PM_REQ);
 		struct l1ctl_pm_req *pm;
-		unsigned short a = arfcn;
+		uint16_t a, e;
 
 		pm = (struct l1ctl_pm_req *) msgb_put(msg, sizeof(*pm));
 		pm->type = 1;
-		if (pcs && arfcn >= PCS_MIN && arfcn <= PCS_MAX)
-			a |= ARFCN_PCS;
-		if (uplink)
+		if (mode == MODE_MAIN) {
+			a = arfcn;
+			if (pcs && arfcn >= PCS_MIN && arfcn <= PCS_MAX)
+				a |= ARFCN_PCS;
+			if (uplink)
+				a |= ARFCN_UPLINK;
+			e = a;
+			pm_mode = PM_SENT;
+		}
+		if (mode == MODE_SPECTRUM) {
+			if (pcs && arfcn >= PCS_MIN && arfcn <= PCS_MAX) {
+				a = PCS_MIN | ARFCN_PCS;
+				e = PCS_MAX | ARFCN_PCS;
+			} else {
+				a = band->min;
+				e = band->max;
+			}
+			pm_mode = PM_RANGE_SENT;
+		}
+		if (uplink) {
 			a |= ARFCN_UPLINK;
+			e |= ARFCN_UPLINK;
+		}
 		pm->range.band_arfcn_from = htons(a);
-		pm->range.band_arfcn_to = htons(a);
+		pm->range.band_arfcn_to = htons(e);
 
 		l1a_l23_rx(SC_DLCI_L1A_L23, msg);
 
-		pm_mode = PM_SENT;
 		return;
 	}
 
@@ -492,6 +636,16 @@ static void handle_pm(void)
 		}
 		return;
 	}
+
+	if (pm_mode == PM_RANGE_RESULT) {
+		pm_mode = PM_IDLE;
+		refresh_display();
+		buzzer_volume(tone);
+		buzzer_note(NOTE(NOTE_C, OCTAVE_5));
+		tone_time = jiffies;
+		tone_on = 1;
+		return;
+	}
 }
 
 /* Main Program */
@@ -505,10 +659,21 @@ static void l1a_l23_tx(struct msgb *msg)
 
 	switch (l1h->msg_type) {
 	case L1CTL_PM_CONF:
-		pmr = (struct l1ctl_pm_conf *) l1h->data;
-		pm_meas[pm_count] = pmr->pm[0];
-		pm_count++;
-		pm_mode = PM_RESULT;
+		if (pm_mode == PM_SENT) {
+			pmr = (struct l1ctl_pm_conf *) l1h->data;
+			pm_meas[pm_count] = pmr->pm[0];
+			pm_count++;
+			pm_mode = PM_RESULT;
+		}
+		if (pm_mode == PM_RANGE_SENT) {
+			for (pmr = (struct l1ctl_pm_conf *) l1h->data;
+				(uint8_t *) pmr < msg->tail; pmr++) {
+				if (!max || pm_spectrum[ntohs(pmr->band_arfcn) & 1023] < pmr->pm[0])
+					pm_spectrum[ntohs(pmr->band_arfcn) & 1023] = pmr->pm[0];
+			}
+			if ((l1h->flags & L1CTL_F_DONE))
+				pm_mode = PM_RANGE_RESULT;
+		}
 		l1s.tpu_offset_correction += 5000 / NUM_PM_UL;
 		break;
 	}
@@ -539,8 +704,17 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 
 static void key_handler(enum key_codes code, enum key_states state)
 {
-	if (state != PRESSED)
+	if (state != PRESSED) {
+		key_pressed = 0;
 		return;
+	}
+	/* key repeat */
+	if (!key_pressed) {
+		key_pressed = 1;
+		key_pressed_when = jiffies;
+		key_pressed_code = code;
+		key_pressed_delay = 60;
+	}
 
 	key_code = code;
 }
@@ -578,6 +752,8 @@ int main(void)
 
 	buzzer_mode_pwt(1);
 	buzzer_volume(0);
+
+	memset(pm_spectrum, 0, sizeof(pm_spectrum));
 
 	/* inc 0 to 1 and refresh */
 	inc_dec_arfcn(1);
