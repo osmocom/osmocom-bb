@@ -56,7 +56,7 @@ int main(void)
 	dsp_dump();
 
 	while (1) {
-		update_timers();
+		osmo_timers_update();
 	}
 }
 

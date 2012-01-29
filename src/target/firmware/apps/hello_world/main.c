@@ -106,7 +106,7 @@ int main(void)
 	/* beyond this point we only react to interrupts */
 	puts("entering interrupt loop\n");
 	while (1) {
-		update_timers();
+		osmo_timers_update();
 	}
 
 	twl3025_power_off();

@@ -93,7 +93,7 @@ int main(void)
 
 	while (1) {
 		l1a_compl_execute();
-		update_timers();
+		osmo_timers_update();
 		sim_handler();
 		l1a_l23_handler();
 	}
