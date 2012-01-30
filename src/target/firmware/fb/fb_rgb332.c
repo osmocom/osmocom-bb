@@ -90,7 +90,7 @@ fb_rgb332_update_damage(
 static uint8_t rgb_to_pixel(uint32_t color){
 	uint8_t ret;
 	ret  = (FB_COLOR_TO_R(color) & 0xe0);      /* 765 = RRR */
-	ret |= (FB_COLOR_TO_G(color) & 0xe0) >> 2; /* 432 = GGG */
+	ret |= (FB_COLOR_TO_G(color) & 0xe0) >> 3; /* 432 = GGG */
 	ret |= (FB_COLOR_TO_B(color) & 0xc0) >> 6; /*  10 =  BB */
 	return ret;
 }
