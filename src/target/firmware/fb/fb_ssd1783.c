@@ -64,16 +64,26 @@ ssd1783_initdata[] = {
 /*-->*/ { DATA, 0x01 }, /* DATA: 8 bit per pixel mode MSB <RRRGGGBB> LSB */
 /* --------- /DIFFERENT ---------- */
 	{ CMD,  0xce }, /* CMD   Set 256 Color Look Up Table LUT */
-	{ DATA, 0x00 }, /* DATA: R[000], G[000], B[00] 3-bit R and G have     */
-	{ DATA, 0x09 }, /* DATA: R[001], G[001]        eight levels defined   */
-	{ DATA, 0x12 }, /* DATA: R[010], G[010]        of which the first and */
-	{ DATA, 0x1b }, /* DATA: R[011], G[011]        the last are shared    */
-	{ DATA, 0x24 }, /* DATA: R[100], G[100]        by 2-bit blue          */
-	{ DATA, 0x2d }, /* DATA: R[101], G[101]        The intermediate two   */
-	{ DATA, 0x36 }, /* DATA: R[110], G[110]        steps are defined      */
-	{ DATA, 0x3f }, /* DATA: R[111], G[111], B[11] separately             */
-	{ DATA, 0x12 }, /* DATA:                 B[01] */
-	{ DATA, 0x24 }, /* DATA:                 B[10] */
+	{ DATA, 0x00 },	/* DATA red 000 */
+	{ DATA, 0x03 },	/* DATA red 001 */
+	{ DATA, 0x05 },	/* DATA red 010 */
+	{ DATA, 0x07 },	/* DATA red 011 */
+	{ DATA, 0x09 },	/* DATA red 100 */
+	{ DATA, 0x0b },	/* DATA red 101 */
+	{ DATA, 0x0d },	/* DATA red 110 */
+	{ DATA, 0x0f },	/* DATA red 111 */
+	{ DATA, 0x00 },	/* DATA green 000 */
+	{ DATA, 0x03 },	/* DATA green 001 */
+	{ DATA, 0x05 },	/* DATA green 010 */
+	{ DATA, 0x07 },	/* DATA green 011 */
+	{ DATA, 0x09 },	/* DATA green 100 */
+	{ DATA, 0x0b },	/* DATA green 101 */
+	{ DATA, 0x0d },	/* DATA green 110 */
+	{ DATA, 0x0f },	/* DATA green 111 */
+	{ DATA, 0x00 },	/* DATA blue 00 */
+	{ DATA, 0x05 },	/* DATA blue 01 */
+	{ DATA, 0x0a },	/* DATA blue 10 */
+	{ DATA, 0x0f },	/* DATA blue 11 */
 	{ CMD,  0xca }, /* CMD   Set Display Control - Driver Duty Selection */
 	{ DATA, 0xff }, // can't find description of the values in the original
 	{ DATA, 0x10 }, // display/ssd1783.c in my datasheet :-(
