@@ -14,6 +14,7 @@ FB_OBJS=fb/framebuffer.o fb/font.o fb/helvR08.o fb/helvB14.o fb/c64.o
 FB_e88_OBJS=$(FB_OBJS) fb/fb_bw8.o fb/fb_st7558.o
 FB_e99_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_ssd1783.o
 FB_e86_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_td014.o
+FB_j100_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_ssd1963.o
 FB_dummy_OBJS=$(FB_OBJS) fb/fb_dummy.o
 
 # TI Calypso
@@ -68,7 +69,7 @@ e99flash_LDS=board/compal_e99/flash.lds
 
 # Sony Ericsson J100 (made by Compal)
 
-se_j100_OBJS=$(compal_COMMON_OBJS) board/se_j100/init.o $(FB_dummy_OBJS)
+se_j100_OBJS=$(compal_COMMON_OBJS) board/se_j100/init.o $(FB_j100_OBJS)
 se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 # Global include path
