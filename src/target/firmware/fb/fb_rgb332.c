@@ -204,7 +204,7 @@ int fb_rgb332_putstr(char *str,int maxwidth){
 	int bitmap_x,bitmap_y;		// coordinates in character's bitmap
 	int byte_per_line;		// depending on character width in font
 	int bitmap_offs,bitmap_bit;	// offset inside bitmap, bit number of pixel
-	uint8_t *p,fgpixel,bgpixel;	// pointer into framebuffer memory
+	uint8_t *p,fgpixel,bgpixel,trans; // pointer into framebuffer memory
 	int total_w;			// total width
 
 	/* center, if maxwidth < 0 */
@@ -236,6 +236,7 @@ int fb_rgb332_putstr(char *str,int maxwidth){
 
 	fgpixel = rgb_to_pixel(framebuffer->fg_color);
 	bgpixel = rgb_to_pixel(framebuffer->bg_color);
+	trans = (framebuffer->bg_color == FB_COLOR_TRANSP);
 
 	if(y1 < 0)			// sanitize in case of overflow
 		y1 = 0;
@@ -288,7 +289,8 @@ int fb_rgb332_putstr(char *str,int maxwidth){
 					*p = fgpixel;
 				} else { // unset, or outside bitmap
 outside_char_bitmap:
-					*p = bgpixel;
+					if (!trans)
+						*p = bgpixel;
 				}
 				p++;
 			} // for(x...)
