@@ -13,6 +13,7 @@ FB_OBJS=fb/framebuffer.o fb/font.o fb/helvR08.o fb/helvB14.o fb/c64.o
 
 FB_e88_OBJS=$(FB_OBJS) fb/fb_bw8.o fb/fb_st7558.o
 FB_e99_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_ssd1783.o
+FB_e86_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_td014.o
 FB_dummy_OBJS=$(FB_OBJS) fb/fb_dummy.o
 
 # TI Calypso
@@ -53,7 +54,7 @@ e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/except
 
 # Compal E86 (has a different RFFE configuration)
 
-compal_e86_OBJS=$(calypso_COMMON_OBJS) board/compal_e86/rffe_dualband_e86.o board/compal/rf_power.o board/compal_e86/init.o $(FB_dummy_OBJS)
+compal_e86_OBJS=$(calypso_COMMON_OBJS) board/compal_e86/rffe_dualband_e86.o board/compal/rf_power.o board/compal_e86/init.o $(FB_e86_OBJS)
 compal_e86_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 # Compal E99
