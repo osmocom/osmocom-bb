@@ -75,15 +75,13 @@ int main(void)
 	puts(hr);
 
 	/* initialize SIM */
-        calypso_sim_init();
+	calypso_sim_init();
 
-        puts("Power up simcard:\n");
-        memset(atr,0,sizeof(atr));
-        atrLength = calypso_sim_powerup(atr);
+	puts("Power up simcard:\n");
+	memset(atr,0,sizeof(atr));
+	atrLength = calypso_sim_powerup(atr);
 
 	layer1_init();
-
-	display_unset_attr(DISP_ATTR_INVERT);
 
 	tpu_frame_irq_en(1, 1);
 
