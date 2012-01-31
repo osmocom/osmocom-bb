@@ -31,6 +31,7 @@
 #include <calypso/tsp.h>
 #include <calypso/tpu.h>
 #include <abb/twl3025.h>
+#include <asm/system.h>
 
 /* TWL3025 */
 #define REG_PAGE(n)	(n >> 7)
@@ -186,6 +187,13 @@ static void twl3025_wait_ibic_access(void)
 
 void twl3025_power_off(void)
 {
+	unsigned long flags;
+
+	/* turn off all IRQs, since received frames cannot be
+	 * handled form here. (otherwise the message allocation
+	 * runs out of memory) */
+	local_firq_save(flags);
+
 	/* poll PWON status and power off the phone when the
 	 * powerbutton has been released (otherwise it will
 	 * poweron immediately again) */
