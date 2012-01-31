@@ -200,7 +200,7 @@ int fb_rgb332_putstr(char *str,int maxwidth){
 
 	int x1,y1,x2,y2; 		// will become bounding box
 	int y;				// coordinates in display
-	int char_x,char_y;		// coordinates in font character
+	int char_x=0,char_y;		// coordinates in font character
 	int bitmap_x,bitmap_y;		// coordinates in character's bitmap
 	int byte_per_line;		// depending on character width in font
 	int bitmap_offs,bitmap_bit;	// offset inside bitmap, bit number of pixel
@@ -211,7 +211,7 @@ int fb_rgb332_putstr(char *str,int maxwidth){
 	if (maxwidth < 0) {
 		total_w = 0;
 		/* count width of string */
-		for(p=str;*p;p++){
+		for(p=(uint8_t *)str;*p;p++){
 			fchr = fb_font_get_char(font,*p);
 			if(!fchr)  /* FIXME: Does '?' exist in every font? */
 				fchr = fb_font_get_char(font,'?');

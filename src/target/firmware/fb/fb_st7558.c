@@ -80,7 +80,6 @@ fb_st7558_flush(){
 	int page,chunksize,nbytes;
 	uint8_t *p;
 	uint8_t cmd[2];
-	int i;
 
 	if(fb_bw8->damage_y1 == fb_bw8->damage_y2 ||
 		fb_bw8->damage_x1 == fb_bw8->damage_x2)

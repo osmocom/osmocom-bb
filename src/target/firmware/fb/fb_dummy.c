@@ -24,6 +24,7 @@
  */
 
 #include <fb/framebuffer.h>
+#include <defines.h>
 
 static void
 fb_dummy_init(){
@@ -46,7 +47,7 @@ fb_dummy_lineto(uint16_t x,uint16_t y){
 }
 
 static int
-fb_dummy_putstr(char *c,int maxwidth){
+fb_dummy_putstr(__unused char *c, __unused int maxwidth){
 	return 0;
 }
 
