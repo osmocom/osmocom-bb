@@ -62,6 +62,7 @@ enum mode {
 	MODE_SPECTRUM,
 	MODE_ARFCN,
 	MODE_SYNC,
+	MODE_RACH,
 } mode = MODE_MAIN;
 enum mode last_mode; /* where to return after entering ARFCN */
 
@@ -110,7 +111,7 @@ int pm_max = 2;
 uint8_t pm_spectrum[1024];
 int pm_scale = 1; /* scale measured power level */
 
-#define TONE_JIFFIES 4
+#define TONE_JIFFIES ((HZ < 25) ? 1 : HZ / 25)
 int tone = 0;
 unsigned long tone_time;
 int tone_on = 0;
@@ -125,6 +126,7 @@ uint8_t si_3[23];
 uint8_t si_4[23];
 uint16_t si_new = 0, ul_new;
 uint16_t mcc, mnc, lac, cell_id;
+int ccch_conf;
 int nb_num;
 struct gsm_sysinfo_freq freq[1024];
 #define NEIGH_LINES	((framebuffer->height - 25) / 8)
@@ -134,6 +136,20 @@ struct gsm_sysinfo_freq freq[1024];
 #define FREQ_TYPE_NCELL_2	0x04 /* sub channel of SI 2 */
 #define FREQ_TYPE_NCELL_2bis	0x08 /* sub channel of SI 2bis */
 #define FREQ_TYPE_NCELL_2ter	0x10 /* sub channel of SI 2ter */
+
+int rach = 0;
+struct gsm48_req_ref rach_ref;
+uint8_t rach_ra;
+unsigned long rach_when;
+uint8_t ta;
+
+enum assign {
+	ASSIGN_NONE,
+	ASSIGN_NO_TX,
+	ASSIGN_RESULT,
+	ASSIGN_REJECT,
+	ASSIGN_TIMEOUT,
+} assign;
 
 /* UI */
 
@@ -163,13 +179,51 @@ static void refresh_display(void)
 		fb_setfg(FB_COLOR_BLUE);
 		fb_setfont(FB_FONT_HELVR08);
 		fb_gotoxy(0, 7);
-		fb_putstr("Osmocom Monitor Tool",-1);
+		fb_putstr("Osmocom Monitor Tool", -1);
 		fb_gotoxy(0, 10);
 		fb_setfg(FB_COLOR_GREEN);
 		fb_boxto(framebuffer->width - 1, 10);
 	}
 	fb_setfg(FB_COLOR_BLACK);
 	fb_setfont(FB_FONT_C64);
+
+	/* RACH */
+	if (mode == MODE_RACH) {
+		unsigned long elapsed = jiffies - rach_when;
+
+		fb_gotoxy(0,28);
+		switch (assign) {
+		case ASSIGN_NONE:
+			fb_putstr("Rach sent...", -1);
+			break;
+		case ASSIGN_RESULT:
+			sprintf(text, "TA = %d", ta);
+			fb_putstr(text, -1);
+			fb_gotoxy(0,36);
+			sprintf(text, "(%dm)", ta * 554);
+			fb_putstr(text, -1);
+			break;
+		case ASSIGN_REJECT:
+			fb_putstr("Rejected!", -1);
+			break;
+		case ASSIGN_NO_TX:
+			fb_putstr("TX disabled", -1);
+			break;
+		case ASSIGN_TIMEOUT:
+			fb_putstr("Timeout", -1);
+			break;
+		}
+		switch (assign) {
+		case ASSIGN_RESULT:
+		case ASSIGN_REJECT:
+			fb_gotoxy(0,44);
+			sprintf(text, "Delay:%ldms", elapsed * 1000 / HZ);
+			fb_putstr(text, -1);
+			break;
+		default:
+			break;
+		}
+	}
 
 	/* SYNC / UL levels */
 	if (mode == MODE_SYNC && cursor < 0) {
@@ -190,7 +244,7 @@ static void refresh_display(void)
 			if (l >= 100)
 				l -= 100;
 			sprintf(text, "%02d", l);
-			fb_putstr(text,framebuffer->width);
+			fb_putstr(text, framebuffer->width);
 			fb_setbg(FB_COLOR_BLACK);
 			fb_gotoxy(offset + 3 + 12 * i, height + 10);
 			fb_boxto(offset + 3 + 12 * i + 5, height + 10 - ul_levels[tn] * height / 64);
@@ -434,7 +488,7 @@ static void refresh_display(void)
 	else if (mode == MODE_SYNC && cursor < 0)
 		sprintf(text, "%s      %s", "back",
 			(uplink) ? "UL" : "DL");
-	else if (mode == MODE_SYNC)
+	else if (mode == MODE_SYNC || mode == MODE_RACH)
 		sprintf(text, "%s        ", "back");
 	else
 		sprintf(text, "%s       %s", (pcs) ? "PCS" : "DCS",
@@ -692,6 +746,9 @@ static int inc_dec_spectrum(int inc)
 static void enter_sync(void);
 static void exit_sync(void);
 
+static void enter_rach(void);
+static void exit_rach(void);
+
 static void handle_key_code()
 {
 	/* key repeat */
@@ -699,7 +756,7 @@ static void handle_key_code()
 		unsigned long elapsed = jiffies - key_pressed_when;
 		if (elapsed > key_pressed_delay) {
 			key_pressed_when = jiffies;
-			key_pressed_delay = 10;
+			key_pressed_delay = HZ / 10;
 			/* only repeat these keys */
 			if (key_pressed_code == KEY_LEFT
 			 || key_pressed_code == KEY_RIGHT)
@@ -763,6 +820,8 @@ static void handle_key_code()
 			enter_arfcn(key_code);
 		else if (mode == MODE_SYNC)
 			exit_sync();
+		else if (mode == MODE_RACH)
+			exit_rach();
 		break;
 	case KEY_RIGHT_SB:
 		if (mode == MODE_MAIN || mode == MODE_SPECTRUM)
@@ -775,8 +834,8 @@ static void handle_key_code()
 	case KEY_OK:
 		if (mode == MODE_MAIN || mode == MODE_SPECTRUM)
 			enter_sync();
-		else if (mode == MODE_SYNC)
-			exit_sync();
+		else if (mode == MODE_SYNC || mode == MODE_RACH)
+			enter_rach();
 		break;
 	case KEY_MENU:
 		hold_max();
@@ -786,6 +845,8 @@ static void handle_key_code()
 			exit_arfcn();
 		else if (mode == MODE_SYNC)
 			exit_sync();
+		else if (mode == MODE_RACH)
+			exit_rach();
 		else if (mode == MODE_SPECTRUM)
 			toggle_spectrum();
 		break;
@@ -947,6 +1008,7 @@ static void enter_sync(void)
 	si_3[2] = 0;
 	si_4[2] = 0;
 	mcc = mnc = lac = 0;
+	ccch_conf = -1;
 	memset(freq, 0, sizeof(freq));
 	cursor = 0;
 	nb_num = 0;
@@ -1069,6 +1131,21 @@ static void handle_sync(void)
 		si3 = (struct gsm48_system_information_type_3 *)si_3;
 		gsm48_decode_lai(&si3->lai, &mcc, &mnc, &lac);
 		cell_id = ntohs(si3->cell_identity);
+		if (ccch_conf < 0) {
+			struct msgb *msg =
+				l1ctl_msgb_alloc(L1CTL_CCCH_MODE_REQ);
+			struct l1ctl_ccch_mode_req *req =
+				(struct l1ctl_ccch_mode_req *)
+					msgb_put(msg, sizeof(*req));
+
+			ccch_conf = si3->control_channel_desc.ccch_conf;
+			req->ccch_mode = (ccch_conf == 1)
+					? CCCH_MODE_COMBINED
+					: CCCH_MODE_NON_COMBINED;
+			printf("ccch_mode=%d\n", ccch_conf);
+
+			l1a_l23_rx(SC_DLCI_L1A_L23, msg);
+		}
 		break;
 	case GSM48_MT_RR_SYSINFO_4:
 		si4 = (struct gsm48_system_information_type_4 *)si_4;
@@ -1090,8 +1167,199 @@ static void handle_sync(void)
 	si_new = 0;
 }
 
+static void enter_rach(void)
+{
+	if (ccch_conf < 0)
+		return;
+
+	if (rach)
+		return;
+
+#ifndef CONFIG_TX_ENABLE
+	assign = ASSIGN_NO_TX;
+	mode = MODE_RACH;
+	/* display refresh is done by rach handler */
+#else
+	struct msgb *msg1 = l1ctl_msgb_alloc(L1CTL_NEIGH_PM_REQ);
+	struct msgb *msg2 = l1ctl_msgb_alloc(L1CTL_RACH_REQ);
+	struct l1ctl_neigh_pm_req *pm_req = (struct l1ctl_neigh_pm_req *)
+			msgb_put(msg1, sizeof(*pm_req));
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)
+			msgb_put(msg2, sizeof(*ul));;
+	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *)
+			msgb_put(msg2, sizeof(*rach_req));
+
+	l1s.tx_power = 0;
+
+	pm_req->n = 0; /* disable */
+
+	rach_ra = 0x00;
+	rach_req->ra = rach_ra;
+	rach_req->offset = 0;
+	rach_req->combined = (ccch_conf == 1);
+
+	l1a_l23_rx(SC_DLCI_L1A_L23, msg1);
+	l1a_l23_rx(SC_DLCI_L1A_L23, msg2);
+	rach = 1;
+	rach_when = jiffies;
+	assign = ASSIGN_NONE;
+	mode = MODE_RACH;
+	refresh_display();
+#endif
+
+}
+
+static void exit_rach(void)
+{
+	rach = 0;
+
+	request_ul_levels(ul_arfcn);
+
+	mode = MODE_SYNC;
+	refresh_display();
+}
+
+static void handle_assign(void)
+{
+	if (mode != MODE_RACH)
+		return;
+
+	if (assign == ASSIGN_NONE) {
+		unsigned long elapsed = jiffies - rach_when;
+
+		if (!rach)
+			return;
+		if (elapsed < HZ * 2)
+			return;
+		assign = ASSIGN_TIMEOUT;
+		rach = 0;
+	}
+
+	refresh_display();
+	assign = ASSIGN_NONE;
+}
+
 /* Main Program */
 const char *hr = "======================================================================\n";
+
+/* match request reference agains request history */
+static int gsm48_match_ra(struct gsm48_req_ref *ref)
+{
+	uint8_t ia_t1, ia_t2, ia_t3;
+	uint8_t cr_t1, cr_t2, cr_t3;
+
+	if (rach && ref->ra == rach_ra) {
+		ia_t1 = ref->t1;
+		ia_t2 = ref->t2;
+		ia_t3 = (ref->t3_high << 3) | ref->t3_low;
+		ref = &rach_ref;
+		cr_t1 = ref->t1;
+		cr_t2 = ref->t2;
+		cr_t3 = (ref->t3_high << 3) | ref->t3_low;
+		if (ia_t1 == cr_t1 && ia_t2 == cr_t2 && ia_t3 == cr_t3)
+			return 1;
+	}
+
+	return 0;
+}
+
+
+/* note: called from IRQ context */
+static void rx_imm_ass(struct msgb *msg)
+{
+	struct gsm48_imm_ass *ia = msgb_l3(msg);
+
+	if (gsm48_match_ra(&ia->req_ref)) {
+		assign = ASSIGN_RESULT;
+		ta = ia->timing_advance;
+		rach = 0;
+	}
+}
+
+/* note: called from IRQ context */
+static void rx_imm_ass_ext(struct msgb *msg)
+{
+	struct gsm48_imm_ass_ext *ia = msgb_l3(msg);
+
+	if (gsm48_match_ra(&ia->req_ref1)) {
+		assign = ASSIGN_RESULT;
+		ta = ia->timing_advance1;
+		rach = 0;
+	}
+	if (gsm48_match_ra(&ia->req_ref2)) {
+		assign = ASSIGN_RESULT;
+		ta = ia->timing_advance2;
+		rach = 0;
+	}
+}
+
+/* note: called from IRQ context */
+static void rx_imm_ass_rej(struct msgb *msg)
+{
+	struct gsm48_imm_ass_rej *ia = msgb_l3(msg);
+	struct gsm48_req_ref *req_ref;
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		/* request reference */
+		req_ref = (struct gsm48_req_ref *)
+			(((uint8_t *)&ia->req_ref1) + i * 4);
+		if (gsm48_match_ra(req_ref)) {
+			assign = ASSIGN_REJECT;
+			rach = 0;
+		}
+	}
+}
+
+/* note: called from IRQ context */
+static void rx_pch_agch(struct msgb *msg)
+{
+	struct gsm48_system_information_type_header *sih;
+
+	/* store SI */
+	sih = msgb_l3(msg);
+	switch (sih->system_information) {
+	case GSM48_MT_RR_IMM_ASS:
+		rx_imm_ass(msg);
+		break;
+	case GSM48_MT_RR_IMM_ASS_EXT:
+		rx_imm_ass_ext(msg);
+		break;
+	case GSM48_MT_RR_IMM_ASS_REJ:
+		rx_imm_ass_rej(msg);
+		break;
+	}
+}
+
+/* note: called from IRQ context */
+static void rx_bcch(struct msgb *msg)
+{
+	struct gsm48_system_information_type_header *sih;
+
+	/* store SI */
+	sih = msgb_l3(msg);
+	switch (sih->system_information) {
+	case GSM48_MT_RR_SYSINFO_1:
+		memcpy(si_1, msgb_l3(msg), msgb_l3len(msg));
+		break;
+	case GSM48_MT_RR_SYSINFO_2:
+		memcpy(si_2, msgb_l3(msg), msgb_l3len(msg));
+		break;
+	case GSM48_MT_RR_SYSINFO_2bis:
+		memcpy(si_2bis, msgb_l3(msg), msgb_l3len(msg));
+		break;
+	case GSM48_MT_RR_SYSINFO_2ter:
+		memcpy(si_2ter, msgb_l3(msg), msgb_l3len(msg));
+		break;
+	case GSM48_MT_RR_SYSINFO_3:
+		memcpy(si_3, msgb_l3(msg), msgb_l3len(msg));
+		break;
+	case GSM48_MT_RR_SYSINFO_4:
+		memcpy(si_4, msgb_l3(msg), msgb_l3len(msg));
+		break;
+	}
+	si_new = sih->system_information | 0x100;
+}
 
 /* note: called from IRQ context */
 static void l1a_l23_tx(struct msgb *msg)
@@ -1101,8 +1369,8 @@ static void l1a_l23_tx(struct msgb *msg)
 	struct l1ctl_info_dl *dl;
 	struct l1ctl_fbsb_conf *sb;
 	uint8_t chan_type, chan_ts, chan_ss;
-	struct gsm48_system_information_type_header *sih;
 	struct l1ctl_neigh_pm_ind *pm_ind;
+	struct gsm_time tm;
 
 	switch (l1h->msg_type) {
 	case L1CTL_PM_CONF:
@@ -1136,39 +1404,24 @@ static void l1a_l23_tx(struct msgb *msg)
 		dl = (struct l1ctl_info_dl *) l1h->data;
 		msg->l2h = dl->payload;
 		rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
-		if (chan_type != RSL_CHAN_BCCH)
-			break;
-		msg->l3h = msg->l2h;
 
 		power = dl->rx_level;
 		if (dl->fire_crc >= 2) {
-			si_new = 0x1ff; /* error frame indication */
-			break;
+			if (chan_type == RSL_CHAN_BCCH)
+				si_new = 0x1ff; /* error frame indication */
+			break; /* free, but don't send to sercom */
 		}
 
-		/* store SI */
-		sih = msgb_l3(msg);
-		switch (sih->system_information) {
-		case GSM48_MT_RR_SYSINFO_1:
-			memcpy(si_1, msgb_l3(msg), msgb_l3len(msg));
+		switch (chan_type) {
+		case RSL_CHAN_BCCH:
+			msg->l3h = msg->l2h;
+			rx_bcch(msg);
 			break;
-		case GSM48_MT_RR_SYSINFO_2:
-			memcpy(si_2, msgb_l3(msg), msgb_l3len(msg));
-			break;
-		case GSM48_MT_RR_SYSINFO_2bis:
-			memcpy(si_2bis, msgb_l3(msg), msgb_l3len(msg));
-			break;
-		case GSM48_MT_RR_SYSINFO_2ter:
-			memcpy(si_2ter, msgb_l3(msg), msgb_l3len(msg));
-			break;
-		case GSM48_MT_RR_SYSINFO_3:
-			memcpy(si_3, msgb_l3(msg), msgb_l3len(msg));
-			break;
-		case GSM48_MT_RR_SYSINFO_4:
-			memcpy(si_4, msgb_l3(msg), msgb_l3len(msg));
+		case RSL_CHAN_PCH_AGCH:
+			msg->l3h = msg->l2h;
+			rx_pch_agch(msg);
 			break;
 		}
-		si_new = sih->system_information | 0x100;
 		sercomm_sendmsg(SC_DLCI_L1A_L23, msg);
 		return; /* msg is freed by sercom */
 	case L1CTL_NEIGH_PM_IND:
@@ -1181,6 +1434,14 @@ static void l1a_l23_tx(struct msgb *msg)
 			if (pm_ind->tn == 7)
 				ul_new = 1;
 		}
+		break;
+	case L1CTL_RACH_CONF:
+		dl = (struct l1ctl_info_dl *) l1h->data;
+		gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
+		rach_ref.t1 = tm.t1;
+		rach_ref.t2 = tm.t2;
+		rach_ref.t3_low = tm.t3 & 0x7;
+		rach_ref.t3_high = tm.t3 >> 3;
 		break;
 	}
 
@@ -1219,7 +1480,7 @@ static void key_handler(enum key_codes code, enum key_states state)
 		key_pressed = 1;
 		key_pressed_when = jiffies;
 		key_pressed_code = code;
-		key_pressed_delay = 60;
+		key_pressed_delay = HZ * 6 / 10;
 	}
 
 	key_code = code;
@@ -1272,6 +1533,7 @@ int main(void)
 		l1a_l23_handler();
 		handle_pm();
 		handle_sync();
+		handle_assign();
 		handle_tone();
 	}
 
