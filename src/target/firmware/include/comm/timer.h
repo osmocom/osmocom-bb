@@ -25,6 +25,8 @@
 
 #include <osmocom/core/linuxlist.h>
 
+#define HZ 100
+
 /**
  * Timer management:
  *      - Create a struct osmo_timer_list
