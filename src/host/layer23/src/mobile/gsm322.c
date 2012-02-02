@@ -1840,10 +1840,11 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int index, uint16_t mcc,
 
 	/* loop through all scanned frequencies and select cell.
 	 * if an index is given (arfci), we just check this cell only */
-	if (index >= 0)
+	if (index >= 0) {
 		start = end = index;
-	else
+	} else {
 		start = 0; end = 1023+299;
+	}
 	for (i = start; i <= end; i++) {
 		cs->list[i].flags &= ~GSM322_CS_FLAG_TEMP_AA;
 		s = cs->list[i].sysinfo;
