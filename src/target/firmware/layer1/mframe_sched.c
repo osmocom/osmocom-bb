@@ -200,7 +200,11 @@ static const struct mframe_sched_item mf_sdcch8_7[] = {
 
 /* Measurement for MF 51 */
 static const struct mframe_sched_item mf_neigh_pm51[] = {
-	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 50 },
+	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 0 },
+	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 10 },
+	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 20 },
+	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 30 },
+	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 40 },
 	{ .sched_set = NULL }
 };
 

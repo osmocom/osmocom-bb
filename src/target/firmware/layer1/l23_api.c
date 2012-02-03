@@ -49,7 +49,8 @@
 
 /* the size we will allocate struct msgb* for HDLC */
 #define L3_MSG_HEAD 4
-#define L3_MSG_SIZE (sizeof(struct l1ctl_hdr)+sizeof(struct l1ctl_info_dl)+sizeof(struct l1ctl_traffic_ind) + L3_MSG_HEAD)
+#define L3_MSG_DATA 200
+#define L3_MSG_SIZE (L3_MSG_HEAD + sizeof(struct l1ctl_hdr) + L3_MSG_DATA)
 
 void (*l1a_l23_tx_cb)(struct msgb *msg) = NULL;
 
@@ -529,8 +530,10 @@ static void l1ctl_rx_neigh_pm_req(struct msgb *msg)
 	/* now reset pointer and fill list */
 	l1s.neigh_pm.pos = 0;
 	l1s.neigh_pm.running = 0;
-	for (i = 0; i < pm_req->n; i++)
+	for (i = 0; i < pm_req->n; i++) {
 		l1s.neigh_pm.band_arfcn[i] = ntohs(pm_req->band_arfcn[i]);
+		l1s.neigh_pm.tn[i] = pm_req->tn[i];
+	}
 	printf("L1CTL_NEIGH_PM_REQ new list with %u entries\n", pm_req->n);
 	l1s.neigh_pm.n = pm_req->n; /* atomic */
 
