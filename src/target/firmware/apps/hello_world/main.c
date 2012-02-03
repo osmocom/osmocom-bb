@@ -90,7 +90,7 @@ int main(void)
 
 	fb_clear();
 
-	fb_setfg(FB_COLOR_GREEN);
+	fb_setfg(FB_COLOR_BLACK);
 	fb_setbg(FB_COLOR_WHITE);
 	fb_setfont(FB_FONT_HELVB14);
 

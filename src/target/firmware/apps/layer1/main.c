@@ -48,6 +48,8 @@
 #include <layer1/async.h>
 #include <layer1/tpu_window.h>
 
+#include <fb/framebuffer.h>
+
 const char *hr = "======================================================================\n";
 
 /* MAIN program **************************************************************/
@@ -73,6 +75,28 @@ int main(void)
 	/* Dump clock config after PLL set */
 	calypso_clk_dump();
 	puts(hr);
+
+	fb_clear();
+
+	fb_setfg(FB_COLOR_BLACK);
+	fb_setbg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVB14);
+
+	fb_gotoxy(2,20);
+	fb_putstr("Layer 1",framebuffer->width-4);
+
+	fb_setfg(FB_COLOR_RED);
+	fb_setbg(FB_COLOR_BLUE);
+
+	fb_gotoxy(2,25);
+	fb_boxto(framebuffer->width-3,38);
+
+	fb_setfg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVR08);
+	fb_gotoxy(8,33);
+	fb_putstr("osmocom-bb",framebuffer->width-4);
+
+	fb_flush();
 
 	/* initialize SIM */
 	calypso_sim_init();
