@@ -56,7 +56,12 @@ static struct osmo_fd gps_bfd;
 
 #ifdef _HAVE_GPSD
 
-static struct gps_data_t* gdata;
+static struct gps_data_t* gdata = NULL;
+
+#if GPSD_API_MAJOR_VERSION >= 5
+static struct gps_data_t _gdata;
+#define gps_poll gps_read
+#endif
 
 int osmo_gpsd_cb(struct osmo_fd *bfd, unsigned int what)
 {
@@ -69,9 +74,15 @@ int osmo_gpsd_cb(struct osmo_fd *bfd, unsigned int what)
 	if (gdata->online)
 	    goto gps_not_ready;
 
+#if GPSD_API_MAJOR_VERSION >= 5
+	/* gps has no data */
+	if (gps_waiting(gdata, 500))
+	    goto gps_not_ready;
+#else
 	/* gps has no data */
 	if (gps_waiting(gdata))
 	    goto gps_not_ready;
+#endif
 
 	/* polling returned an error */
 	if (gps_poll(gdata))
@@ -111,7 +122,14 @@ int osmo_gpsd_open(void)
 	gps_bfd.when = BSC_FD_READ;
 	gps_bfd.cb = osmo_gpsd_cb;
 
+#if GPSD_API_MAJOR_VERSION >= 5
+	if (gps_open(g.gpsd_host, g.gpsd_port, &_gdata) == -1)
+		gdata = NULL;
+	else
+		gdata = &_gdata;
+#else
 	gdata = gps_open(g.gpsd_host, g.gpsd_port);
+#endif
 	if (gdata == NULL) {
 		LOGP(DGPS, LOGL_ERROR, "Can't connect to gpsd\n");
 		return -1;
@@ -139,6 +157,9 @@ void osmo_gpsd_close(void)
 
 	osmo_fd_unregister(&gps_bfd);
 
+#if GPSD_API_MAJOR_VERSION >= 5
+	gps_stream(gdata, WATCH_DISABLE, NULL);
+#endif
 	gps_close(gdata);
 	gps_bfd.fd = -1; /* -1 or 0 indicates: 'close' */
 }

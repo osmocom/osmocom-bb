@@ -123,7 +123,7 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 
 	dsp_load_tx_task(DUL_DSP_TASK, burst_id, tsc);
 
-	l1s_tx_win_ctrl(arfcn, L1_TXWIN_NB, 0, 3);
+	l1s_tx_win_ctrl(arfcn | ARFCN_UPLINK, L1_TXWIN_NB, 0, 3);
 
 	return 0;
 }

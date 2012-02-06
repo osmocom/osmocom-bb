@@ -108,7 +108,7 @@ int gsm48_encode_more(struct msgb *msg);
 struct gsm_sysinfo_freq {
 	/* if the frequency included in the sysinfo */
 	uint8_t	mask;
-};
+} __attribute__ ((packed));
 
 /* decode "Cell Channel Description" (10.5.2.1b) and other frequency lists */
 int gsm48_decode_freq_list(struct gsm_sysinfo_freq *f, uint8_t *cd,

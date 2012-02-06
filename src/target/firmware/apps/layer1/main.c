@@ -32,7 +32,6 @@
 #include <board.h>
 
 #include <abb/twl3025.h>
-#include <display.h>
 #include <rf/trf6151.h>
 
 #include <comm/sercomm.h>
@@ -48,6 +47,8 @@
 #include <layer1/sync.h>
 #include <layer1/async.h>
 #include <layer1/tpu_window.h>
+
+#include <fb/framebuffer.h>
 
 const char *hr = "======================================================================\n";
 
@@ -75,26 +76,44 @@ int main(void)
 	calypso_clk_dump();
 	puts(hr);
 
-	display_puts("layer1.bin");
+	fb_clear();
+
+	fb_setfg(FB_COLOR_BLACK);
+	fb_setbg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVB14);
+
+	fb_gotoxy(2,20);
+	fb_putstr("Layer 1",framebuffer->width-4);
+
+	fb_setfg(FB_COLOR_RED);
+	fb_setbg(FB_COLOR_BLUE);
+
+	fb_gotoxy(2,25);
+	fb_boxto(framebuffer->width-3,38);
+
+	fb_setfg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVR08);
+	fb_gotoxy(8,33);
+	fb_putstr("osmocom-bb",framebuffer->width-4);
+
+	fb_flush();
 
 	/* initialize SIM */
-        calypso_sim_init();
+	calypso_sim_init();
 
-        puts("Power up simcard:\n");
-        memset(atr,0,sizeof(atr));
-        atrLength = calypso_sim_powerup(atr);
-
+	puts("Power up simcard:\n");
+	memset(atr,0,sizeof(atr));
+	atrLength = calypso_sim_powerup(atr);
 
 	layer1_init();
-
-	display_unset_attr(DISP_ATTR_INVERT);
 
 	tpu_frame_irq_en(1, 1);
 
 	while (1) {
 		l1a_compl_execute();
-		update_timers();
+		osmo_timers_update();
 		sim_handler();
+		l1a_l23_handler();
 	}
 
 	/* NOT REACHED */

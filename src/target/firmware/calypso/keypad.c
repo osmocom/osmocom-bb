@@ -31,6 +31,7 @@
 
 #include <calypso/irq.h>
 #include <abb/twl3025.h>
+#include <comm/timer.h>
 
 
 #define KBR_LATCH_REG	0xfffe480a
@@ -44,16 +45,13 @@ void emit_key(uint8_t key, uint8_t state)
 {
 	printf("key=%u %s\n", key, state == PRESSED ? "pressed" : "released");
 
-	if (state == RELEASED)
-		if (key == KEY_POWER)
-			twl3025_power_off();
-
 	if(key_handler) {
 		key_handler(key, state);
 	}
 }
 
 volatile uint32_t lastbuttons = 0;
+unsigned long power_hold = 0;
 
 #define BTN_TO_KEY(name) \
 	((diff & BTN_##name) == BTN_##name)	\
@@ -66,6 +64,17 @@ volatile uint32_t lastbuttons = 0;
 void dispatch_buttons(uint32_t buttons)
 {
 	uint8_t state;
+
+	if ((buttons & BTN_POWER)) {
+		/* hold button 500ms to shut down */
+		if ((lastbuttons & BTN_POWER)) {
+			unsigned long elapsed = jiffies - power_hold;
+			if (elapsed > 50)
+				twl3025_power_off();
+			power_hold++;
+		} else
+		power_hold = jiffies;
+	}
 
 	if (buttons == lastbuttons)
 		return;

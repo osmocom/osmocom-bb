@@ -151,6 +151,7 @@ struct l1s_state {
 		uint8_t pos;
 		uint8_t running;
 		uint16_t band_arfcn[64];
+		uint8_t tn[64];
 		uint8_t	level[64];
 	} neigh_pm;
 };
