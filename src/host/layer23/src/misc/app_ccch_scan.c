@@ -794,8 +794,6 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		break;
 
 	case S_L1CTL_FBSB_ERR:
-		layer3_app_reset();
-		sleep(1);
 		return l1ctl_tx_fbsb_req(app_state.ms, app_state.ms->test_arfcn,
 		                         L1CTL_FBSB_F_FB01SB, 100, 0,
 		                         CCCH_MODE_NONE);
@@ -804,7 +802,6 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		loss_count++;
 		if (loss_count > 10) {
 			loss_count = 0;
-			layer3_app_reset();
 			return l1ctl_tx_fbsb_req(app_state.ms, app_state.ms->test_arfcn,
 		                         L1CTL_FBSB_F_FB01SB, 100, 0,
 		                         CCCH_MODE_NONE);

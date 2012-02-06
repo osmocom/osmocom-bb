@@ -62,7 +62,8 @@ extern char *scan_band;
 enum {
 	SCAN_STATE_PM,
 	SCAN_STATE_SYNC,
-	SCAN_STATE_READ,
+	SCAN_STATE_BCCH,
+	SCAN_STATE_READY,
 	SCAN_STATE_RACH,
 };
 
@@ -264,8 +265,9 @@ static void timeout_cb(void *arg)
 		stop_raw = 1;
 	}
 	switch (state) {
-	case SCAN_STATE_READ:
+	case SCAN_STATE_BCCH:
 		LOGP(DRR, LOGL_INFO, "Timeout reading BCCH\n");
+	case SCAN_STATE_READY:
 		printf("Timeout\n");
 		start_sync();
 		break;
@@ -462,34 +464,37 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		start_pm();
 		break;
 	case S_L1CTL_FBSB_RESP:
+		loss_count = 0;
 		if (sdcch)
 			break;
 		if (!scan_only)
 			printf("ARFCN %d: got sync\n", arfcn);
-		state = SCAN_STATE_READ;
-		fr = signal_data;
-		ms = fr->ms;
-		sysinfo.bsic = fr->bsic;
-		memset(&ms->meas, 0, sizeof(ms->meas));
-		memset(&log_si, 0, sizeof(log_si));
-		loss_count = 0;
-		log_si.flags |= INFO_FLG_SYNC;
-		log_si.ta = 0xff; /* invalid */
+		if (state < SCAN_STATE_BCCH) {
+			state = SCAN_STATE_BCCH;
+			fr = signal_data;
+			ms = fr->ms;
+			sysinfo.bsic = fr->bsic;
+			memset(&ms->meas, 0, sizeof(ms->meas));
+			memset(&log_si, 0, sizeof(log_si));
+			log_si.flags |= INFO_FLG_SYNC;
+			log_si.ta = 0xff; /* invalid */
+		}
 		if (!collecting) {
 			start_timer(READ_WAIT);
 		}
 		LOGP(DRR, LOGL_INFO, "Synchronized, start reading\n");
 		break;
 	case S_L1CTL_FBSB_ERR:
-		if (scan_only || (sync_retry > wait_time/60)) {
+		if (scan_only || (state < SCAN_STATE_BCCH)) {
 			start_sync();
-		} else {
+			break;
+		}
+		if (sync_retry < wait_time/60) {
 			printf("ARFCN %d: resync\n", arfcn);
+			sync_retry++;
 			fr = signal_data;
 			ms = fr->ms;
-			sync_retry++;
 			l1ctl_tx_dm_rel_req(ms);
-			sleep(1);
 			return l1ctl_tx_fbsb_req(ms, arfcn,
 		                         L1CTL_FBSB_F_FB01SB, 100, 0,
 		                         CCCH_MODE_NONE);
@@ -536,6 +541,9 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 static int pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
+
+	if (sdcch || (state != SCAN_STATE_READY))
+		return 0;
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_PAG_REQ_1:
@@ -588,6 +596,8 @@ static int new_sysinfo(void)
 	LOGP(DRR, LOGL_INFO, "Sysinfo complete\n");
 
 	log_sysinfo();
+
+	state = SCAN_STATE_READY;
 
 	start_timer(IMM_WAIT);
 
@@ -688,7 +698,7 @@ static int unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	}
 	msg->l3h = (uint8_t *) TLVP_VAL(&tv, RSL_IE_L3_INFO);
 
-	if (state != SCAN_STATE_READ && state != SCAN_STATE_RACH) {
+	if (state < SCAN_STATE_BCCH && state != SCAN_STATE_RACH) {
 	 	return -EINVAL;
 	}
 
@@ -861,9 +871,6 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	uint8_t ch_type, ch_subch, ch_ts;
 	int rv;
 
-	if (sdcch)
-		return 0;
-
 	/* If we're busy ... */
 	if (app_state.dch_state != DCH_NONE)
 		return 0;
@@ -879,8 +886,6 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	} else {
 		printf("ARFCN %d: got SDCCH assignment\n", arfcn);
 	}
-
-	layer3_app_reset();
 
 	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
 
@@ -931,7 +936,7 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 		if (!ma_len) {
 			if (ia->page_mode & 0xf0)
 				got_data = 0;
-			return;
+			return -1;
 		}
 
 		/* request L1 to go to dedicated mode on assigned channel */
