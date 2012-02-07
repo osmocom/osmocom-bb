@@ -228,7 +228,7 @@ static void refresh_display(void)
 	/* SYNC / UL levels */
 	if (mode == MODE_SYNC && cursor < 0) {
 		int i, tn, l;
-		int offset = (framebuffer->width - 96) >> 2;
+		int offset = (framebuffer->width - 96) >> 1;
 		int height = framebuffer->height - 25;
 
 		fb_setfont(FB_FONT_HELVR08);
