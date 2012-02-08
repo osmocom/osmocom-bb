@@ -1731,7 +1731,15 @@ static int lapd_data_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	struct lapd_datalink *dl = lctx->dl;
 	struct msgb *msg = dp->oph.msg;
 
-	LOGP(DLLAPD, LOGL_INFO, "writing message to send-queue\n");
+	if (msgb_l3len(msg) == 0) {
+		LOGP(DLLAPD, LOGL_ERROR,
+			"writing an empty message is not possible.\n");
+		msgb_free(msg);
+		return -1;
+	}
+
+	LOGP(DLLAPD, LOGL_INFO,
+	     "writing message to send-queue: l3len: %d\n", msgb_l3len(msg));
 
 	/* Write data into the send queue */
 	msgb_enqueue(&dl->send_queue, msg);

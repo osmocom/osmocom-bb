@@ -178,28 +178,32 @@ static inline uint8_t *tv16_put(uint8_t *buf, uint8_t tag,
 	return buf;
 }
 
-/*! \brief put (append) a LV field to a \ref msgb */
+/*! \brief put (append) a LV field to a \ref msgb
+ *  \returns pointer to first byte after newly-put information */
 static inline uint8_t *msgb_lv_put(struct msgb *msg, uint8_t len, const uint8_t *val)
 {
 	uint8_t *buf = msgb_put(msg, LV_GROSS_LEN(len));
 	return lv_put(buf, len, val);
 }
 
-/*! \brief put (append) a TLV field to a \ref msgb */
+/*! \brief put (append) a TLV field to a \ref msgb
+ *  \returns pointer to first byte after newly-put information */
 static inline uint8_t *msgb_tlv_put(struct msgb *msg, uint8_t tag, uint8_t len, const uint8_t *val)
 {
 	uint8_t *buf = msgb_put(msg, TLV_GROSS_LEN(len));
 	return tlv_put(buf, tag, len, val);
 }
 
-/*! \brief put (append) a TV field to a \ref msgb */
+/*! \brief put (append) a TV field to a \ref msgb
+ *  \returns pointer to first byte after newly-put information */
 static inline uint8_t *msgb_tv_put(struct msgb *msg, uint8_t tag, uint8_t val)
 {
 	uint8_t *buf = msgb_put(msg, 2);
 	return tv_put(buf, tag, val);
 }
 
-/*! \brief put (append) a TVfixed field to a \ref msgb */
+/*! \brief put (append) a TVfixed field to a \ref msgb
+ *  \returns pointer to first byte after newly-put information */
 static inline uint8_t *msgb_tv_fixed_put(struct msgb *msg, uint8_t tag,
 					unsigned int len, const uint8_t *val)
 {
@@ -207,47 +211,57 @@ static inline uint8_t *msgb_tv_fixed_put(struct msgb *msg, uint8_t tag,
 	return tv_fixed_put(buf, tag, len, val);
 }
 
-/*! \brief put (append) a V field to a \ref msgb */
+/*! \brief put (append) a V field to a \ref msgb
+ *  \returns pointer to first byte after newly-put information */
 static inline uint8_t *msgb_v_put(struct msgb *msg, uint8_t val)
 {
 	uint8_t *buf = msgb_put(msg, 1);
 	return v_put(buf, val);
 }
 
-/*! \brief put (append) a TV16 field to a \ref msgb */
+/*! \brief put (append) a TV16 field to a \ref msgb
+ *  \returns pointer to first byte after newly-put information */
 static inline uint8_t *msgb_tv16_put(struct msgb *msg, uint8_t tag, uint16_t val)
 {
 	uint8_t *buf = msgb_put(msg, 3);
 	return tv16_put(buf, tag, val);
 }
 
-/*! \brief push (prepend) a TLV field to a \ref msgb */
+/*! \brief push (prepend) a TLV field to a \ref msgb
+ *  \returns pointer to first byte of newly-pushed information */
 static inline uint8_t *msgb_tlv_push(struct msgb *msg, uint8_t tag, uint8_t len, const uint8_t *val)
 {
 	uint8_t *buf = msgb_push(msg, TLV_GROSS_LEN(len));
-	return tlv_put(buf, tag, len, val);
+	tlv_put(buf, tag, len, val);
+	return buf;
 }
 
-/*! \brief push (prepend) a TV field to a \ref msgb */
+/*! \brief push (prepend) a TV field to a \ref msgb
+ *  \returns pointer to first byte of newly-pushed information */
 static inline uint8_t *msgb_tv_push(struct msgb *msg, uint8_t tag, uint8_t val)
 {
 	uint8_t *buf = msgb_push(msg, 2);
-	return tv_put(buf, tag, val);
+	tv_put(buf, tag, val);
+	return buf;
 }
 
-/*! \brief push (prepend) a TV16 field to a \ref msgb */
+/*! \brief push (prepend) a TV16 field to a \ref msgb
+ *  \returns pointer to first byte of newly-pushed information */
 static inline uint8_t *msgb_tv16_push(struct msgb *msg, uint8_t tag, uint16_t val)
 {
 	uint8_t *buf = msgb_push(msg, 3);
-	return tv16_put(buf, tag, val);
+	tv16_put(buf, tag, val);
+	return buf;
 }
 
-/*! \brief push (prepend) a TvLV field to a \ref msgb */
+/*! \brief push (prepend) a TvLV field to a \ref msgb
+ *  \returns pointer to first byte of newly-pushed information */
 static inline uint8_t *msgb_tvlv_push(struct msgb *msg, uint8_t tag, uint16_t len,
 				      const uint8_t *val)
 {
 	uint8_t *buf = msgb_push(msg, TVLV_GROSS_LEN(len));
-	return tvlv_put(buf, tag, len, val);
+	tvlv_put(buf, tag, len, val);
+	return buf;
 }
 
 /* TLV parsing */

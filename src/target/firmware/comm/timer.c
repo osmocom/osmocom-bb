@@ -33,8 +33,6 @@ static LLIST_HEAD(timer_list);
 
 unsigned long volatile jiffies;
 
-#define TIMER_HZ	100
-
 #define time_after(a,b)         \
 	(typecheck(unsigned long, a) && \
 	 typecheck(unsigned long, b) && \
@@ -59,7 +57,7 @@ void osmo_timer_add(struct osmo_timer_list *timer)
 
 void osmo_timer_schedule(struct osmo_timer_list *timer, int milliseconds)
 {
-	timer->expires = jiffies + ((milliseconds * TIMER_HZ) / 1000);
+	timer->expires = jiffies + ((milliseconds * HZ) / 1000);
 	osmo_timer_add(timer);
 }
 
@@ -200,10 +198,10 @@ void timer_init(void)
 	/* configure TIMER2 for our purpose */
 	hwtimer_enable(2, 1);
 	/* The timer runs at 13MHz / 32, i.e. 406.25kHz */
-#if (TIMER_HZ == 100)
+#if (HZ == 100)
 	hwtimer_load(2, 4062);
 	hwtimer_config(2, 0, 1);
-#elif (TIMER_HZ == 10)
+#elif (HZ == 10)
 	/* prescaler 4, 1015 ticks until expiry */
 	hwtimer_load(2, 1015);
 	hwtimer_config(2, 4, 1);

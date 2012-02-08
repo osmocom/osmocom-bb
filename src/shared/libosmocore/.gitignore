@@ -53,6 +53,7 @@ tests/a5/a5_test
 tests/auth/milenage_test
 tests/conv/conv_test
 tests/lapd/lapd_test
+tests/gsm0808/gsm0808_test
 
 utils/osmo-arfcn
 utils/osmo-auc-gen

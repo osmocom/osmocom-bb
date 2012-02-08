@@ -104,7 +104,6 @@ static void set_pixel(uint8_t *and_mask,
 		      int bitnum,
 		      uint32_t color
 ){
-	uint16_t v;
 	if(color == FB_COLOR_TRANSP)
 		return;
 	if(color == FB_COLOR_WHITE)
@@ -180,7 +179,6 @@ fb_bw8_putstr(char *str,int maxwidth){
 	const struct fb_char *fchr;
 
 	int x1,y1,x2,y2; 		// will become bounding box
-	int dy;          		// char_y = screen_y + dy
 	int w;				// 0..7 while building bits per byte
 	int y;				// coordinates in display
 	int char_x,char_y;		// coordinates in font character
@@ -196,7 +194,7 @@ fb_bw8_putstr(char *str,int maxwidth){
 	if (maxwidth < 0) {
 		total_w = 0;
 		/* count width of string */
-		for(p=str;*p;p++){
+		for(p=(uint8_t *)str;*p;p++){
 			fchr = fb_font_get_char(font,*p);
 			if(!fchr)  /* FIXME: Does '?' exist in every font? */
 				fchr = fb_font_get_char(font,'?');
@@ -217,7 +215,9 @@ fb_bw8_putstr(char *str,int maxwidth){
 	y1 = framebuffer->cursor_y - font->ascent + 1; // first row
 	y2 = y1 + font->height - 1;	// last row
 
+#if 0
 	printf("%s: %d %d %d %d\n",__FUNCTION__,x1,y1,x2,y2);
+#endif
 
 	if(y1 < 0)			// sanitize in case of overflow
 		y1 = 0;

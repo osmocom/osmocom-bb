@@ -168,6 +168,7 @@ AC_OUTPUT(
 	tests/auth/Makefile
 	tests/conv/Makefile
 	tests/lapd/Makefile
+	tests/gsm0808/Makefile
 	utils/Makefile
 	Doxyfile.core
 	Doxyfile.gsm
