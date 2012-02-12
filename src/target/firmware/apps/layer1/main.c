@@ -47,6 +47,7 @@
 #include <layer1/sync.h>
 #include <layer1/async.h>
 #include <layer1/tpu_window.h>
+#include <layer1/l23_api.h>
 
 #include <fb/framebuffer.h>
 

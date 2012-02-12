@@ -40,10 +40,12 @@
 #include <layer1/mframe_sched.h>
 #include <layer1/prim.h>
 #include <layer1/tpu_window.h>
+#include <layer1/sched_gsmtime.h>
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
 #include <calypso/sim.h>
+#include <calypso/dsp.h>
 
 #include <l1ctl_proto.h>
 
@@ -563,8 +565,6 @@ static void l1ctl_rx_traffic_req(struct msgb *msg)
 
 	l1a_txq_msgb_enq(&l1s.tx_queue[L1S_CHAN_TRAFFIC], msg);
 }
-
-void sim_apdu(uint16_t len, uint8_t *data);
 
 static void l1ctl_sim_req(struct msgb *msg)
 {

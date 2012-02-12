@@ -46,6 +46,7 @@
 #include <layer1/tdma_sched.h>
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
+#include <layer1/sched_gsmtime.h>
 
 #include <l1ctl_proto.h>
 

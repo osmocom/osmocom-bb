@@ -45,6 +45,7 @@
 #include <calypso/tsp.h>
 #include <calypso/irq.h>
 #include <calypso/misc.h>
+#include <calypso/backlight.h>
 #include <uart.h>
 #include <calypso/timer.h>
 

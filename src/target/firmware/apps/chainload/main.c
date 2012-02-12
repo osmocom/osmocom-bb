@@ -29,6 +29,7 @@
 #include <delay.h>
 
 #include <calypso/clock.h>
+#include <calypso/timer.h>
 
 /* Main Program */
 
