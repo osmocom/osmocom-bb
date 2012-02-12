@@ -15,6 +15,7 @@ FB_e88_OBJS=$(FB_OBJS) fb/fb_bw8.o fb/fb_st7558.o
 FB_e99_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_ssd1783.o
 FB_e86_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_td014.o
 FB_j100_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_ssd1963.o
+FB_dpl10_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_s6b33b1x.o
 FB_dummy_OBJS=$(FB_OBJS) fb/fb_dummy.o
 
 # TI Calypso
@@ -28,7 +29,7 @@ gta0x_ENVIRONMENTS=highram
 
 # Pirelli DP-L10
 
-pirelli_dpl10_OBJS=$(calypso_COMMON_OBJS) board/pirelli_dpl10/rffe_dpl10_triband.o board/pirelli_dpl10/init.o board/pirelli_dpl10/rf_power.o $(FB_dummy_OBJS)
+pirelli_dpl10_OBJS=$(calypso_COMMON_OBJS) board/pirelli_dpl10/rffe_dpl10_triband.o board/pirelli_dpl10/init.o board/pirelli_dpl10/rf_power.o $(FB_dpl10_OBJS)
 pirelli_dpl10_ENVIRONMENTS=highram
 
 # Compal Generic
