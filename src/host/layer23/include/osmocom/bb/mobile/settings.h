@@ -87,6 +87,7 @@ struct gsm_settings {
 
 	/* radio */
 	uint16_t		dsc_max;
+	uint8_t			force_rekey;
 
 	/* dialing */
 	struct llist_head	abbrev;

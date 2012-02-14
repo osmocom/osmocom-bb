@@ -1144,6 +1144,14 @@ int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 	return 0;
 }
 
+int gsm_subscr_get_key_seq(struct osmocom_ms *ms, struct gsm_subscriber *subscr)
+{
+	if (ms->settings.force_rekey)
+		return 7;
+	else
+		return subscr->key_seq;
+}
+
 int gsm_subscr_dump_forbidden_plmn(struct osmocom_ms *ms,
 			void (*print)(void *, const char *, ...), void *priv)
 {

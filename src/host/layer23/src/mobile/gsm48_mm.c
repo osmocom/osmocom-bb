@@ -2344,7 +2344,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	/* location updating type */
 	nlu->type = mm->lupd_type;
 	/* cipering key */
-	nlu->key_seq = subscr->key_seq;
+	nlu->key_seq = gsm_subscr_get_key_seq(ms, subscr);
 	/* LAI (last SIM stored LAI)
 	 *
 	 * NOTE: The TMSI is only valid within a LAI!
@@ -2806,7 +2806,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 
 	/* type and key */
 	nsr->cm_service_type = cm_serv;
-	nsr->cipher_key_seq = subscr->key_seq;
+	nsr->cipher_key_seq = gsm_subscr_get_key_seq(ms, subscr);
 	/* classmark 2 */
 	cm2lv[0] = sizeof(struct gsm48_classmark2);
 	gsm48_rr_enc_cm2(ms, (struct gsm48_classmark2 *)(cm2lv + 1),
