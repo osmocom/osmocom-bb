@@ -16,22 +16,22 @@
  */
 
 
-enum osmocom_battery_flags {
+enum battery_flags {
 	BATTERY_CHG_CONNECTED = 1 << 0,  /* AC adapter is connected */
 	BATTERY_CHG_ENABLED   = 1 << 1,  /* if needed charger could charge */
 	BATTERY_CHARGING      = 1 << 2,  /* charger is actively charging */
 	BATTERY_FAILURE       = 1 << 3,  /* problem exists preventing charge */
 };
 
-struct osmocom_battery_info {
-	enum osmocom_battery_flags flags;
+struct battery_info {
+	enum battery_flags flags;
 	int charger_volt_mV; /* charger connection voltage */
 	int bat_volt_mV;     /* battery terminal voltage */
 	int bat_chg_curr_mA; /* battery charging current */
 	int battery_percent; /* 0(empty) .. 100(full) */
 };
 
-extern struct osmocom_battery_info
-osmocom_battery_info;
+extern struct battery_info
+battery_info;
 
 #endif

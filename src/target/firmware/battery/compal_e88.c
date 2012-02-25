@@ -59,37 +59,47 @@
 #define VCHG_LSB_uV 8545  /* VCHG = 8.75V FS --> 8.545 mV/LSB */
 #define ICHG_LSB_uA 854   /* ICHG = 875mA FS --> 0.854 mA/LSB */
 
-/* charger is considered plugged in/removed when over/under... */
-#define VCHG_thr_on  PHYSICAL_TO_ADC(4500,VCHG_LSB_uV)
-#define VCHG_thr_off PHYSICAL_TO_ADC(3200,VCHG_LSB_uV)
-
 /* battery is considered full/empty at these thresholds... */
-#define VBAT_full   PHYSICAL_TO_ADC(4100,VBAT_LSB_uV)
+#define VBAT_full   PHYSICAL_TO_ADC(4000,VBAT_LSB_uV)
 #define VBAT_empty  PHYSICAL_TO_ADC(3200,VBAT_LSB_uV)
 
 /* we declare overvoltage at this point... */
 #define VBAT_fail   PHYSICAL_TO_ADC(4250,VBAT_LSB_uV)
 
-/* charging current in ADC LSBs */
-#define ICHG_set    PHYSICAL_TO_ADC(200,ICHG_LSB_uA)
-#define VCHG_set    VBAT_full
+/* DAC to ADC offsets in CC mode with my C123 
+   IMEI 358317015976471, P329431014
 
-/* global battery info */
-struct osmocom_battery_info osmocom_battery_info;
+   I/mA DAC     ADC
+   ----------------
+   100	117	108
+   150	176	168
+   200	234	227
+   250	293	291
+   300	351	349
+   350	410	410
+*/
 
-/* internal bookkeeping */
-static uint16_t compal_e88_madc[8];	/* remembering last ADC values */
+#define CHGDAC_GAIN   967  /* times 0.001 */
+#define CHGDAC_OFFS    13
 
-enum battery_compal_e88_status {
-	ADC_CONVERSION = 1 << 0
-};
-static uint32_t battery_compal_e88_status;
+/* convert ADC reading to DAC value, according to calibration values
+   given above */
+#define CHGDAC_ADJ(x)   (CHGDAC_GAIN*(x)/1000+CHGDAC_OFFS)
+
+/* charging current in DAC LSBs, same ref. and # of bits, but keep
+   the correction specified above in mind!  */
+
+#define ICHG_set    CHGDAC_ADJ(PHYSICAL_TO_ADC(200,ICHG_LSB_uA))
+#define VCHG_set    CHGDAC_ADJ(VBAT_full)
+
+struct battery_info battery_info;	/* global battery info */
+uint16_t bat_compal_e88_madc[MADC_NUM_CHANNELS];	/* MADC measurements */
 
 static const int BATTERY_TIMER_DELAY=5000; /* 5000ms for control loop */
 static const int ADC_TIMER_DELAY=100;      /*  100ms for ADC conversion */
 
 /* thermistor sense current, turn it up to eleven! */
-#define  TH_SENS	       (THSENS0|THSENS1|THSENS2|THEN)
+#define  TH_SENS               (THSENS0|THSENS1|THSENS2|THEN)
 #define  BATTERY_ALL_SENSE     (TH_SENS|MESBAT|TYPEN)
 
 /*
@@ -110,108 +120,178 @@ static const int ADC_TIMER_DELAY=100;      /*  100ms for ADC conversion */
  *
  *  Failure modes currently detected:
  *          + high battery voltage
+ *  Failure modes TODO:
  *          + high battery temperature
  */
-enum charger_state {
+enum bat_compal_e88_chg_state {
 	CHARG_OFF,
 	CHARG_CONST_CURR,
 	CHARG_CONST_VOLT,
 	CHARG_FAIL
 };
-static enum charger_state charger_state;
+static enum bat_compal_e88_chg_state bat_compal_e88_chg_state;
+
+static const char *bat_compal_e88_chg_state_names[]={
+	"Off",
+	"Constant Current",
+	"Constant Voltage",
+	"Battery Failure"
+};
 
 static void
-charger_goto_state(enum charger_state newstate){
-	charger_state=newstate;
+bat_compal_e88_goto_state(enum bat_compal_e88_chg_state newstate){
+
+	if(bat_compal_e88_chg_state == newstate) /* already there? */
+		return;
+
+	printf("\033[34;1mCHARGER: %s --> %s.\033[0m\n",
+			bat_compal_e88_chg_state_names[bat_compal_e88_chg_state],
+			bat_compal_e88_chg_state_names[newstate]);
+
+	/* update user visible flags, set registers */
+	switch(newstate){
+	case CHARG_CONST_CURR:
+		battery_info.flags &= ~BATTERY_FAILURE;
+		battery_info.flags |= (BATTERY_CHG_ENABLED|
+						BATTERY_CHARGING);
+		twl3025_reg_write(BCICTL2,0);
+		twl3025_reg_write(CHGREG,0);
+		twl3025_reg_write(BCICTL2,CHEN|LEDC|CHIV);
+		twl3025_reg_write(CHGREG,ICHG_set);
+
+		break;
+
+	case CHARG_CONST_VOLT:
+		battery_info.flags &= ~( BATTERY_CHARGING |
+						BATTERY_FAILURE );
+		battery_info.flags |= BATTERY_CHG_ENABLED;
+		twl3025_reg_write(BCICTL2,0);
+		twl3025_reg_write(CHGREG,0);
+		twl3025_reg_write(BCICTL2,CHEN|LEDC);
+		twl3025_reg_write(CHGREG,VCHG_set);
+		break;
+
+	case CHARG_FAIL:
+	case CHARG_OFF:
+	default:
+		battery_info.flags &= ~( BATTERY_CHG_ENABLED |
+			BATTERY_CHARGING | BATTERY_FAILURE );
+		twl3025_reg_write(BCICTL2,0); /* turn off charger */
+		twl3025_reg_write(CHGREG,0);
+		break;
+	}
+
+	printf("BCICTL2 is 0x%03x, CHGREG=%d\n",
+			twl3025_reg_read(BCICTL2),
+			twl3025_reg_read(CHGREG));
+
+	bat_compal_e88_chg_state = newstate;
 }
 
 static void
-battery_charger_control(){
+bat_compal_e88_chg_control(){
 	/* with AC power disconnected, always go to off state */
-	if(!osmocom_battery_info.flags & BATTERY_CHG_CONNECTED){
-		charger_goto_state(CHARG_OFF);
+	if(!(battery_info.flags & BATTERY_CHG_CONNECTED)){
+		bat_compal_e88_goto_state(CHARG_OFF);
 		return;
 	}
-#if 0
+
 	/* if failure condition is detected, always goto failure state */
-	if(){
-		charger_goto_state(CHARG_FAIL);
+	if(bat_compal_e88_madc[MADC_VBAT] > VBAT_fail){
+		bat_compal_e88_goto_state(CHARG_FAIL);
+		return;
 	}
 
-	switch(charger_state){
+	/* now AC power is present and battery is not over failure
+	   thresholds */
+	switch(bat_compal_e88_chg_state){
 	case CHARG_OFF:
+		if(bat_compal_e88_madc[MADC_VBAT] >= VBAT_full)
+			bat_compal_e88_goto_state(CHARG_CONST_VOLT);
+		else
+			bat_compal_e88_goto_state(CHARG_CONST_CURR);
+		break;
 	case CHARG_CONST_CURR:
+		if(bat_compal_e88_madc[MADC_VBAT] >= VBAT_full)
+			bat_compal_e88_goto_state(CHARG_CONST_VOLT);
+		break;
 	case CHARG_CONST_VOLT:
-	case CHARG_FAIL:
+		break;
 	default:
-#endif		
+	case CHARG_FAIL:
+		if(bat_compal_e88_madc[MADC_VBAT] < VBAT_full)
+			bat_compal_e88_goto_state(CHARG_CONST_CURR);
+		break;
+	}
 }
 
 /*
- * Charging voltage connection - state machine:
+ * Charging voltage connection - state machine, remembers
+ * state in battery_info.flags.
  *
  *                     VCHG > VCHG_thr_on
  * +-----------------+ ------------------> +---------------+
  * | ! CHG_CONNECTED |                     | CHG_CONNECTED |
  * +-----------------+ <------------------ +---------------+
  *                     VCHG < VCHG_thr_off
- *
  */
 static void
-check_charg_volt_presence(){
+bat_compal_e88_chk_ac_presence(){
+	int vrpcsts = twl3025_reg_read(VRPCSTS);
+
 	/* check for presence of charging voltage */
-	if(!(osmocom_battery_info.flags & BATTERY_CHG_CONNECTED)){
-		if(compal_e88_madc[MADC_VCHG] > VCHG_thr_on){
-			printf("CHARGER: external voltage connected!\n");
-			osmocom_battery_info.flags |= BATTERY_CHG_CONNECTED;
+	if(!(battery_info.flags & BATTERY_CHG_CONNECTED)){
+		if(vrpcsts & CHGPRES){
+			puts("\033[34;1mCHARGER: external voltage connected!\033[0m\n");
+			battery_info.flags |= BATTERY_CHG_CONNECTED;
 
 			/* always keep ADC, voltage dividers and bias voltages on */
 			twl3025_unit_enable(TWL3025_UNIT_MAD,1);
 			twl3025_reg_write(BCICTL1,BATTERY_ALL_SENSE);
 		}
 	} else {
-		if(compal_e88_madc[MADC_VCHG] < VCHG_thr_off){
+		if(!(vrpcsts & CHGPRES)){
 			/* we'll only run ADC on demand */
 			twl3025_unit_enable(TWL3025_UNIT_MAD,0);
 			twl3025_reg_write(BCICTL1,0);
 
-			osmocom_battery_info.flags &= ~ BATTERY_CHG_CONNECTED;
-			printf("CHARGER: external voltage disconnected!\n");
+			battery_info.flags &= ~ BATTERY_CHG_CONNECTED;
+			puts("\033[34;1mCHARGER: external voltage disconnected!\033[0m\n");
 		}
 	}
 }
 
 /* ---- update voltages visible to the user ---- */
 static void
-battery_update_measurements(){
+bat_compal_e88_upd_measurements(){
 	int adc,i;
 
-	osmocom_battery_info.charger_volt_mV=
-		ADC_TO_PHYSICAL(compal_e88_madc[MADC_VCHG],VCHG_LSB_uV);
-	osmocom_battery_info.bat_volt_mV=
-		ADC_TO_PHYSICAL(compal_e88_madc[MADC_VBAT],VBAT_LSB_uV);
-	osmocom_battery_info.bat_chg_curr_mA=
-		ADC_TO_PHYSICAL(compal_e88_madc[MADC_ICHG],ICHG_LSB_uA);
+	battery_info.charger_volt_mV=
+		ADC_TO_PHYSICAL(bat_compal_e88_madc[MADC_VCHG],VCHG_LSB_uV);
+	battery_info.bat_volt_mV=
+		ADC_TO_PHYSICAL(bat_compal_e88_madc[MADC_VBAT],VBAT_LSB_uV);
+	battery_info.bat_chg_curr_mA=
+		ADC_TO_PHYSICAL(bat_compal_e88_madc[MADC_ICHG],ICHG_LSB_uA);
 
-	adc = compal_e88_madc[MADC_VBAT];
-	if(adc <= VBAT_empty){
-		osmocom_battery_info.battery_percent = 0;
+	adc = bat_compal_e88_madc[MADC_VBAT];
+	if(adc <= VBAT_empty){			/* battery 0..100% */
+		battery_info.battery_percent = 0;
 	} else if (adc >= VBAT_full){
-		osmocom_battery_info.battery_percent = 100;
+		battery_info.battery_percent = 100;
 	} else {
-		osmocom_battery_info.battery_percent =
+		battery_info.battery_percent =
 			(50+100*(adc-VBAT_empty))/(VBAT_full-VBAT_empty);
 	}
 
         /* DEBUG */
         printf("BAT-ADC: ");
         for(i=0;i<MADC_NUM_CHANNELS;i++)
-                printf("%3d ",compal_e88_madc[i]);
-        printf("%c\n\n",32);
-        printf("\tCharger at %u mV.\n",osmocom_battery_info.charger_volt_mV);
-        printf("\tBattery at %u mV.\n",osmocom_battery_info.bat_volt_mV);
-        printf("\tCharging at %u mA.\n",osmocom_battery_info.bat_chg_curr_mA);
-        printf("\tBattery capacity is %u%%.\n",osmocom_battery_info.battery_percent);
+                printf("%3d ",bat_compal_e88_madc[i]);
+        printf("%c\n",32);
+        printf("\tCharger at %u mV.\n",battery_info.charger_volt_mV);
+        printf("\tBattery at %u mV.\n",battery_info.bat_volt_mV);
+        printf("\tCharging at %u mA.\n",battery_info.bat_chg_curr_mA);
+        printf("\tBattery capacity is %u%%.\n",battery_info.battery_percent);
 	printf("\tBattery range is %d..%d mV.\n",
 		ADC_TO_PHYSICAL(VBAT_empty,VBAT_LSB_uV),
 		ADC_TO_PHYSICAL(VBAT_full,VBAT_LSB_uV));
@@ -219,47 +299,56 @@ battery_update_measurements(){
         printf("\tCharging at %d LSB (%d mA).\n",ICHG_set,
                 ADC_TO_PHYSICAL(ICHG_set,ICHG_LSB_uA));
         i = twl3025_reg_read(BCICTL2);
-        printf("\tBattery charger thresholds in ADC LSBs: on %d and off %d\n",
-                        VCHG_thr_on,VCHG_thr_off);
         printf("\tBCICTL2=0x%03x\n",i);      
-	printf("\tosmocom-battery-info.flags=0x%08x\n",osmocom_battery_info.flags);
+	printf("\tbattery-info.flags=0x%08x\n",battery_info.flags);
+	printf("\tbat_compal_e88_chg_state=%d\n",bat_compal_e88_chg_state);
 }
 
-/* battery_adc_read() starts a conversion on all ADC channels
-   if battery_compal_e88_status & ADC_CONVERSION is not set and
-   tries to read back values (and reset ADC_CONVERSION) if it currently
-   is set. If it returns zero, conversion data is available, if it
-   returns non-zero a conversion has been triggered and data should
-   be available "soon". */
+/* bat_compal_e88_adc_read() :
+ *
+ * Schedule a ADC conversion or read values from ADC. If we are
+ * running on battery, bias currents/voltage dividers are turned
+ * on on demand.
+ *
+ * Return 0 if new ADC values have been acquired, 1 if ADC
+ * has been scheduled for a new conversion or is not yet finished.
+ * 
+ */
+
+enum bat_compal_e88_madc_stat {
+	ADC_CONVERSION = 1 << 0
+};
+static uint32_t bat_compal_e88_madc_stat=0;
 
 static int
-battery_adc_read(){
+bat_compal_e88_adc_read(){
 	int i;
 
-	if(battery_compal_e88_status & ADC_CONVERSION){
+	if(bat_compal_e88_madc_stat & ADC_CONVERSION){
 		i = twl3025_reg_read(MADCSTAT);
 		if(i & ADCBUSY)
 			return 1;
 		for(i=0;i<MADC_NUM_CHANNELS;i++)
-			compal_e88_madc[i]=twl3025_reg_read(VBATREG+i);
+			bat_compal_e88_madc[i]=twl3025_reg_read(VBATREG+i);
 		/* if charger is connected, we keep the ADC and BIAS on
 		   continuously, if running on battery, we try to save power */
-		if(!osmocom_battery_info.flags & BATTERY_CHG_CONNECTED){
+		if(!(battery_info.flags & BATTERY_CHG_CONNECTED)){
 			twl3025_reg_write(BCICTL1,0x00); /* turn off bias */
 			twl3025_unit_enable(TWL3025_UNIT_MAD,0); /* & ADC */
 		}
-		battery_compal_e88_status &= ~ ADC_CONVERSION;
+		bat_compal_e88_madc_stat &= ~ ADC_CONVERSION;
 		return 0;
 	} else {
 		/* if running on battery, turn on ADC & BIAS on demand */
-		if(!osmocom_battery_info.flags & BATTERY_CHG_CONNECTED){
+		if(!(battery_info.flags & BATTERY_CHG_CONNECTED)){
 			twl3025_unit_enable(TWL3025_UNIT_MAD,1);
 			twl3025_reg_write(BCICTL1,BATTERY_ALL_SENSE);
 		}
+
 		twl3025_reg_write(MADCTRL,0xff); /* convert all channels */
 		twl3025_reg_write(VBATREG,0);    /* trigger conversion */
 
-		battery_compal_e88_status |= ADC_CONVERSION;
+		bat_compal_e88_madc_stat |= ADC_CONVERSION;
 		return 1;
 	}
 }
@@ -269,15 +358,14 @@ battery_compal_e88_timer_cb(void *p){
 	struct osmo_timer_list *tmr = (struct osmo_timer_list*)p;
 	int i;
 
-	if(battery_adc_read()){ /* read back ADCs after a brief delay */
+	if(bat_compal_e88_adc_read()){ /* read back ADCs after a brief delay */
 		osmo_timer_schedule(tmr,ADC_TIMER_DELAY);
 		return;
 	}
 
-	battery_update_measurements();
-
-	check_charg_volt_presence();
-	battery_charger_control();
+	bat_compal_e88_upd_measurements();	/* convert user-accessible information */
+	bat_compal_e88_chk_ac_presence();	/* detect AC charger presence */
+	bat_compal_e88_chg_control();	/* battery charger state machine */
 
 	osmo_timer_schedule(tmr,BATTERY_TIMER_DELAY);
 }
