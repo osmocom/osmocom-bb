@@ -352,7 +352,7 @@ static struct vty_app_info vty_info = {
 
 /* global init */
 int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
-	const char *config_file, uint16_t vty_port)
+	const char *config_file, const char *vty_ip, uint16_t vty_port)
 {
 	struct telnet_connection dummy_conn;
 	int rc = 0;
@@ -376,7 +376,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 		}
 	}
 	vty_reading = 0;
-	telnet_init(l23_ctx, NULL, vty_port);
+	telnet_init_dynif(l23_ctx, NULL, vty_ip, vty_port);
 	if (rc < 0)
 		return rc;
 	printf("VTY available on port %u.\n", vty_port);
