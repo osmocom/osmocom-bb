@@ -998,7 +998,7 @@ static int nsip_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg)
 	rc = sendto(nsi->nsip.fd.fd, msg->data, msg->len, 0,
 		  (struct sockaddr *)daddr, sizeof(*daddr));
 
-	talloc_free(msg);
+	msgb_free(msg);
 
 	return rc;
 }

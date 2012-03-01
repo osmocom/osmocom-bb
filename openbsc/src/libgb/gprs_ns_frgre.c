@@ -263,7 +263,7 @@ int gprs_ns_frgre_sendmsg(struct gprs_nsvc *nsvc, struct msgb *msg)
 	rc = sendto(nsi->frgre.fd.fd, msg->data, msg->len, 0,
 		  (struct sockaddr *)&daddr, sizeof(daddr));
 
-	talloc_free(msg);
+	msgb_free(msg);
 
 	return rc;
 }
