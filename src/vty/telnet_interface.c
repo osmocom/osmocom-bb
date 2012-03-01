@@ -20,12 +20,14 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/socket.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
 
@@ -52,53 +54,38 @@ static struct osmo_fd server_socket = {
 	.priv_nr    = 0,
 };
 
-/*! \brief Initialize telnet based VTY interface
+/*! \brief Initialize telnet based VTY interface listening to 127.0.0.1
  *  \param[in] tall_ctx \ref talloc context
  *  \param[in] priv private data to be passed to callback
  *  \param[in] port UDP port number
  */
 int telnet_init(void *tall_ctx, void *priv, int port)
 {
-	struct sockaddr_in sock_addr;
-	int fd, rc, on = 1;
+	return telnet_init_dynif(tall_ctx, priv, "127.0.0.1", port);
+}
+
+/*! \brief Initialize telnet based VTY interface
+ *  \param[in] tall_ctx \ref talloc context
+ *  \param[in] priv private data to be passed to callback
+ *  \param[in] ip IP to listen to ('::1' for localhost, '::0' for all, ...)
+ *  \param[in] port UDP port number
+ */
+int telnet_init_dynif(void *tall_ctx, void *priv, const char *ip, int port)
+{
+	int rc;
 
 	tall_telnet_ctx = talloc_named_const(tall_ctx, 1,
-					     "telnet_connection");
+			"telnet_connection");
 
-	/* FIXME: use new socket.c code of libosmocore */
-	fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-	if (fd < 0) {
-		LOGP(0, LOGL_ERROR, "Telnet interface socket creation failed\n");
-		return fd;
-	}
-
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-
-	memset(&sock_addr, 0, sizeof(sock_addr));
-	sock_addr.sin_family = AF_INET;
-	sock_addr.sin_port = htons(port);
-	sock_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-	rc = bind(fd, (struct sockaddr*)&sock_addr, sizeof(sock_addr));
-	if (rc < 0) {
-		LOGP(0, LOGL_ERROR, "Telnet interface failed to bind\n");
-		close(fd);
-		return rc;
-	}
-
-	rc = listen(fd, 0);
-	if (rc < 0) {
-		LOGP(0, LOGL_ERROR, "Telnet interface failed to listen\n");
-		close(fd);
-		return rc;
-	}
+	rc = osmo_sock_init_ofd(
+			&server_socket,
+			AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP,
+			ip, port, OSMO_SOCK_F_BIND
+			);
 
 	server_socket.data = priv;
-	server_socket.fd = fd;
-	osmo_fd_register(&server_socket);
 
-	return 0;
+	return (rc < 0) ? -1 : 0;
 }
 
 extern struct host host;
