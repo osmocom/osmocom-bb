@@ -154,7 +154,7 @@ struct gprs_ns_inst {
 	struct {
 		struct osmo_fd fd;
 		uint32_t local_ip;
-		int enabled:1;
+		unsigned int enabled:1;
 	} frgre;
 };
 
