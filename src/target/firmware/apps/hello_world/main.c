@@ -41,6 +41,7 @@
 #include <comm/sercomm.h>
 #include <comm/timer.h>
 #include <fb/framebuffer.h>
+#include <battery/battery.h>
 
 /* Main Program */
 const char *hr = "======================================================================\n";
@@ -66,6 +67,36 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 		printf("%02x ", msg->data[i]);
 	puts("\n");
 }
+
+void
+write_battery_info(void *p){
+	char buf[128];
+
+	fb_setfg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_C64);
+
+	snprintf(buf,sizeof(buf),"B: %04d mV",battery_info.bat_volt_mV);
+	fb_gotoxy(8,41);
+	fb_putstr(buf,framebuffer->width-8);
+
+	snprintf(buf,sizeof(buf),"C: %04d mV",battery_info.charger_volt_mV);
+	fb_gotoxy(8,49);
+	fb_putstr(buf,framebuffer->width-8);
+
+	snprintf(buf,sizeof(buf),"F: %08x",battery_info.flags);
+	fb_gotoxy(8,57);
+	fb_putstr(buf,framebuffer->width-8);
+
+	fb_flush();
+	osmo_timer_schedule((struct osmo_timer_list*)p,100);
+
+}
+
+/* timer that fires the charging loop regularly */
+static struct osmo_timer_list write_battery_info_timer = {
+	.cb = &write_battery_info,
+	.data = &write_battery_info_timer
+};
 
 int main(void)
 {
@@ -122,6 +153,8 @@ int main(void)
 
 	sercomm_register_rx_cb(SC_DLCI_CONSOLE, console_rx_cb);
 	sercomm_register_rx_cb(SC_DLCI_L1A_L23, l1a_l23_rx_cb);
+
+	osmo_timer_schedule(&write_battery_info_timer,100);
 
 	/* beyond this point we only react to interrupts */
 	puts("entering interrupt loop\n");
