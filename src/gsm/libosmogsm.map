@@ -44,6 +44,7 @@ gsm0480_create_notifySS;
 gsm0480_create_unstructuredSS_Notify;
 gsm0480_create_ussd_resp;
 gsm0480_decode_ussd_request;
+gsm0480_decode_ss_request;
 gsm0480_wrap_facility;
 gsm0480_wrap_invoke;
 
