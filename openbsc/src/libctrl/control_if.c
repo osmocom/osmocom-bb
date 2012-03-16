@@ -518,7 +518,7 @@ static int get_rate_ctr(struct ctrl_cmd *cmd, void *data)
 
 	talloc_free(dup);
 
-	cmd->reply = talloc_asprintf(cmd, "%lu", get_rate_ctr_value(ctr, intv));
+	cmd->reply = talloc_asprintf(cmd, "%"PRIu64, get_rate_ctr_value(ctr, intv));
 	if (!cmd->reply)
 		goto oom;
 
