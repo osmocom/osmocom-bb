@@ -31,6 +31,7 @@
 #include <osmocom/bb/common/lapdm.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/gps.h>
+#include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
@@ -161,6 +162,7 @@ int mobile_init(struct osmocom_ms *ms)
 
 	lapdm_init(&ms->l2_entity.lapdm_dcch, ms);
 	lapdm_init(&ms->l2_entity.lapdm_acch, ms);
+	osmosap_init(ms);
 	gsm_sim_init(ms);
 	gsm48_cc_init(ms);
 	gsm_subscr_init(ms);

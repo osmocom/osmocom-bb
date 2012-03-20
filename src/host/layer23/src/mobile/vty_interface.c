@@ -652,37 +652,6 @@ DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 	return CMD_SUCCESS;
 }
 
-DEFUN(sim_sapsocket, sim_sapsocket_cmd, "sim sap-socket MS_NAME SOCKET_PATH",
-	"SIM actions\nEnter SAP socket used instead of SIM driver for card\nName of MS (see \"show ms\")\n"
-	"socket path")
-{
-	struct osmocom_ms *ms;
-	struct gsm_settings *set;
-
-	ms = get_ms(argv[0], vty);
-	if (!ms)
-		return CMD_WARNING;
-
-	if(!argv[1]){
-		vty_out(vty, "You must specify a SAP socket path%s", VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-
-	osmosap_sapsocket(ms, (char *)argv[1]);
-	set = &ms->settings;
-
-	if(access(set->sap_socket_path, F_OK) == 0){
-		if(osmosap_init(ms) != 0){
-			return CMD_WARNING;
-		}
-	} else {
-		/* this is only so we can check the first byte to be null in l1ctl_tx_sim_req */
-		set->sap_socket_path[0] = 0;
-	}
-
-	return CMD_SUCCESS;
-}
 
 DEFUN(network_select, network_select_cmd, "network select MS_NAME MCC MNC",
 	"Select ...\nSelect Network\nName of MS (see \"show ms\")\n"
@@ -1088,7 +1057,8 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
 	vty_out(vty, " layer2-socket %s%s", set->layer2_socket_path,
 		VTY_NEWLINE);
-	vty_out(vty, " sap-socket %s%s", set->sap_socket_path, VTY_NEWLINE);
+	vty_out(vty, " sap-socket %s%s", set->sap_socket_path,
+		VTY_NEWLINE);
 	switch(set->sim_type) {
 		case GSM_SIM_TYPE_NONE:
 		vty_out(vty, " sim none%s", VTY_NEWLINE);
@@ -2328,7 +2298,6 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &sim_enable_pin_cmd);
 	install_element(ENABLE_NODE, &sim_change_pin_cmd);
 	install_element(ENABLE_NODE, &sim_unblock_pin_cmd);
-	install_element(ENABLE_NODE, &sim_sapsocket_cmd);
 	install_element(ENABLE_NODE, &sim_lai_cmd);
 	install_element(ENABLE_NODE, &network_search_cmd);
 	install_element(ENABLE_NODE, &network_show_cmd);

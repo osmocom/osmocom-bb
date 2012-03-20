@@ -29,6 +29,7 @@
 #include <osmocom/bb/common/networks.h>
 
 static char *layer2_socket_path = "/tmp/osmocom_l2";
+static char *sap_socket_path = "/tmp/osmocom_sap";
 
 int gsm_settings_init(struct osmocom_ms *ms)
 {
@@ -36,6 +37,7 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	struct gsm_support *sup = &ms->support;
 
 	strcpy(set->layer2_socket_path, layer2_socket_path);
+	strcpy(set->sap_socket_path, sap_socket_path);
 
 	/* IMEI */
 	sprintf(set->imei,   "000000000000000");

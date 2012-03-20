@@ -584,7 +584,7 @@ int osmosap_init(struct osmocom_ms *ms)
 	if(ms->settings.sap_socket_path){
 		rc = sap_open(ms, ms->settings.sap_socket_path);
 		if (rc < 0) {
-			fprintf(stderr, "Failed during sap_open(), no SIM reader\n");
+			fprintf(stderr, "Failed during sap_open(), no SAP-based SIM reader\n");
 			ms->sap_wq.bfd.fd = -1;
 			return rc;
 		}
