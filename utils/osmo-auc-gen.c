@@ -59,6 +59,7 @@ static void help()
 		"-a  --algorithm\tSpecify name of the algorithm\n"
 		"-k  --key\tSpecify Ki / K\n"
 		"-o  --opc\tSpecify OPC (only for 3G)\n"
+		"-O  --op\tSpecify OP (only for 3G)\n"
 		"-a  --amf\tSpecify AMF (only for 3G)\n"
 		"-s  --sqn\tSpecify SQN (only for 3G)\n"
 		"-r  --rand\tSpecify random value\n");
@@ -84,6 +85,7 @@ int main(int argc, char **argv)
 			{ "algorithm", 1, 0, 'a' },
 			{ "key", 1, 0, 'k' },
 			{ "opc", 1, 0, 'o' },
+			{ "op", 1, 0, 'O' },
 			{ "amf", 1, 0, 'f' },
 			{ "sqn", 1, 0, 's' },
 			{ "rand", 1, 0, 'r' },
@@ -133,6 +135,16 @@ int main(int argc, char **argv)
 			}
 			rc = osmo_hexparse(optarg, test_aud.u.umts.opc,
 					   sizeof(test_aud.u.umts.opc));
+			test_aud.u.umts.opc_is_op = 0;
+			break;
+		case 'O':
+			if (test_aud.type != OSMO_AUTH_TYPE_UMTS) {
+				fprintf(stderr, "Only UMTS has OP\n");
+				exit(2);
+			}
+			rc = osmo_hexparse(optarg, test_aud.u.umts.opc,
+					   sizeof(test_aud.u.umts.opc));
+			test_aud.u.umts.opc_is_op = 1;
 			break;
 		case 'f':
 			if (test_aud.type != OSMO_AUTH_TYPE_UMTS) {
