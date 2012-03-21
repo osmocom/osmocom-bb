@@ -52,6 +52,18 @@ static struct osmo_sub_auth_data test_aud = {
 	.algo = OSMO_AUTH_ALG_NONE,
 };
 
+static void help()
+{
+	printf( "-2  --2g\tUse 2G (GSM) authentication\n"
+		"-3  --3g\tUse 3G (UMTS) authentication\n"
+		"-a  --algorithm\tSpecify name of the algorithm\n"
+		"-k  --key\tSpecify Ki / K\n"
+		"-o  --opc\tSpecify OPC (only for 3G)\n"
+		"-a  --amf\tSpecify AMF (only for 3G)\n"
+		"-s  --sqn\tSpecify SQN (only for 3G)\n"
+		"-r  --rand\tSpecify random value\n");
+}
+
 int main(int argc, char **argv)
 {
 	struct osmo_auth_vector _vec;
@@ -75,12 +87,13 @@ int main(int argc, char **argv)
 			{ "amf", 1, 0, 'f' },
 			{ "sqn", 1, 0, 's' },
 			{ "rand", 1, 0, 'r' },
+			{ "help", 0, 0, 'h' },
 			{ 0, 0, 0, 0 }
 		};
 
 		rc = 0;
 
-		c = getopt_long(argc, argv, "23a:k:o:f:s:r:", long_options,
+		c = getopt_long(argc, argv, "23a:k:o:f:s:r:h", long_options,
 				&option_index);
 
 		if (c == -1)
@@ -141,6 +154,12 @@ int main(int argc, char **argv)
 			rc = osmo_hexparse(optarg, _rand, sizeof(_rand));
 			rand_is_set = 1;
 			break;
+		case 'h':
+			help();
+			exit(0);
+		default:
+			help();
+			exit(1);
 		}
 
 		if (rc < 0) {
@@ -156,6 +175,12 @@ int main(int argc, char **argv)
 		*(uint32_t *)(&_rand[4]) = rand();
 		*(uint32_t *)(&_rand[8]) = rand();
 		*(uint32_t *)(&_rand[12]) = rand();
+	}
+
+	if (test_aud.type == OSMO_AUTH_TYPE_NONE ||
+	    test_aud.algo == OSMO_AUTH_ALG_NONE) {
+		help();
+		exit(2);
 	}
 
 	memset(vec, 0, sizeof(*vec));
