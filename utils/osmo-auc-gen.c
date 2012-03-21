@@ -1,6 +1,6 @@
 /* GSM/GPRS/3G authentication testing tool */
 
-/* (C) 2010-2011 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2010-2012 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 	int rc, option_index;
 	int rand_is_set = 0;
 
-	printf("osmo-auc-gen (C) 2011 by Harald Welte\n");
+	printf("osmo-auc-gen (C) 2011-2012 by Harald Welte\n");
 	printf("This is FREE SOFTWARE with ABSOLUTELY NO WARRANTY\n\n");
 
 	while (1) {
