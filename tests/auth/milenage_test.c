@@ -37,6 +37,24 @@ static struct osmo_sub_auth_data test_aud = {
 	},
 };
 
+static int opc_test(const struct osmo_sub_auth_data *aud)
+{
+	int rc;
+	uint8_t opc[16];
+#if 0
+	const uint8_t op[16] = { 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+				 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f };
+#else
+	const uint8_t op[16] = { 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0 };
+#endif
+
+	rc = milenage_opc_gen(opc, aud->u.umts.k, op);
+
+	printf("OP:\t%s\n", osmo_hexdump(op, sizeof(op)));
+	printf("OPC:\t%s\n", osmo_hexdump(opc, sizeof(opc)));
+	return rc;
+}
+
 int main(int argc, char **argv)
 {
 	struct osmo_auth_vector _vec;
@@ -72,6 +90,8 @@ int main(int argc, char **argv)
 	} else {
 		printf("AUTS success: SEQ.MS = %lu\n", test_aud.u.umts.sqn);
 	}
+
+	opc_test(&test_aud);
 
 	exit(0);
 
