@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 
 		rc = 0;
 
-		c = getopt_long(argc, argv, "23a:k:o:f:s:r:h", long_options,
+		c = getopt_long(argc, argv, "23a:k:o:f:s:r:hO:", long_options,
 				&option_index);
 
 		if (c == -1)
