@@ -26,6 +26,7 @@
 
 #include <debug.h>
 #include <delay.h>
+#include <console.h>
 
 #include <osmocom/core/msgb.h>
 

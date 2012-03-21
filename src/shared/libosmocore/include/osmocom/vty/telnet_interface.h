@@ -47,6 +47,7 @@ struct telnet_connection {
 };
 
 int telnet_init(void *tall_ctx, void *priv, int port);
+int telnet_init_dynif(void *tall_ctx, void *priv, const char *ip, int port);
 
 void telnet_exit(void);
 

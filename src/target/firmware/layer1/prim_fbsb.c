@@ -30,6 +30,7 @@
 #include <debug.h>
 #include <memory.h>
 #include <byteorder.h>
+#include <rffe.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/msgb.h>
 #include <calypso/dsp_api.h>
@@ -47,6 +48,7 @@
 #include <layer1/mframe_sched.h>
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
+#include <layer1/agc.h>
 
 #include <l1ctl_proto.h>
 

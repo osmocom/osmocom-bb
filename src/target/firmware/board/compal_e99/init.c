@@ -41,6 +41,7 @@
 #include <calypso/backlight.h>
 
 #include <comm/sercomm.h>
+#include <comm/timer.h>
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>

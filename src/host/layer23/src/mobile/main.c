@@ -52,6 +52,7 @@ void *l23_ctx = NULL;
 struct llist_head ms_list;
 static char *gsmtap_ip = 0;
 struct gsmtap_inst *gsmtap_inst = NULL;
+static char *vty_ip = "127.0.0.1";
 unsigned short vty_port = 4247;
 int debug_set = 0;
 char *config_dir = NULL;
@@ -88,6 +89,8 @@ static void print_help()
 	printf(" Some help...\n");
 	printf("  -h --help		this text\n");
 	printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
+	printf("  -u --vty-ip           The VTY IP to telnet to. "
+		"(default %s)\n", vty_ip);
 	printf("  -v --vty-port		The VTY port number to telnet to. "
 		"(default %u)\n", vty_port);
 	printf("  -d --debug		Change debug flags. default: %s\n",
@@ -104,6 +107,7 @@ static void handle_options(int argc, char **argv)
 		static struct option long_options[] = {
 			{"help", 0, 0, 'h'},
 			{"gsmtap-ip", 1, 0, 'i'},
+			{"vty-ip", 1, 0, 'u'},
 			{"vty-port", 1, 0, 'v'},
 			{"debug", 1, 0, 'd'},
 			{"daemonize", 0, 0, 'D'},
@@ -111,7 +115,7 @@ static void handle_options(int argc, char **argv)
 			{0, 0, 0, 0},
 		};
 
-		c = getopt_long(argc, argv, "hi:v:d:Dm",
+		c = getopt_long(argc, argv, "hi:u:v:d:Dm",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -124,6 +128,9 @@ static void handle_options(int argc, char **argv)
 			break;
 		case 'i':
 			gsmtap_ip = optarg;
+			break;
+		case 'u':
+			vty_ip = optarg;
 			break;
 		case 'v':
 			vty_port = atoi(optarg);
@@ -226,9 +233,9 @@ int main(int argc, char **argv)
 	config_dir = dirname(config_dir);
 
 	if (use_mncc_sock)
-		rc = l23_app_init(mncc_recv_socket, config_file, vty_port);
+		rc = l23_app_init(mncc_recv_socket, config_file, vty_ip, vty_port);
 	else
-		rc = l23_app_init(NULL, config_file, vty_port);
+		rc = l23_app_init(NULL, config_file, vty_ip, vty_port);
 	if (rc)
 		exit(rc);
 
