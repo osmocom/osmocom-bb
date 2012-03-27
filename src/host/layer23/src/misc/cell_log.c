@@ -69,11 +69,11 @@ enum {
 
 /* ranges of bands */
 static uint16_t *band_range = 0;
-static uint16_t range_all[] = {0, 124, 128, 251, 512, 885, 955, 1023, 0, 0};
+static uint16_t range_all[] = {0, 124, 128, 251, 512, 885, 955, 1023, 1024, 1322, 0, 0};
 static uint16_t range_900[] = {0, 124, 955, 1023, 0, 0};
 static uint16_t range_1800[] = {512, 885, 0, 0};
 static uint16_t range_850[] = {128, 251, 0, 0};
-static uint16_t range_1900[] = {512|ARFCN_PCS, 810|ARFCN_PCS, 0, 0};
+static uint16_t range_1900[] = {1024, 1322, 0, 0};
 
 #define INFO_FLG_PM	1
 #define INFO_FLG_SYNC	2
@@ -90,7 +90,7 @@ static struct osmo_timer_list timer;
 static struct pm_info {
 	uint16_t flags;
 	int8_t rxlev;
-} pm[1024];
+} pm[1024+299];
 
 enum dch_state_t {
 	DCH_NONE,
@@ -159,6 +159,20 @@ static void start_pm(void);
 
 static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms);
 
+uint16_t index2arfcn(int index)
+{
+	if (index >= 1024)
+		return (index-1024+512) | ARFCN_PCS;
+	return index;
+}
+
+int arfcn2index(uint16_t arfcn)
+{
+	if ((arfcn & ARFCN_PCS) && arfcn >= 512 && arfcn <= 810)
+		return (arfcn & 1023)-512+1024;
+	return arfcn & 1023;
+}
+
 static void log_gps(void)
 {
 	if (!g.enable || !g.valid)
@@ -194,7 +208,7 @@ static void log_pm(void)
 	LOGFILE("[power]\n");
 	log_time();
 	log_gps();
-	for (i = 0; i <= 1023; i++) {
+	for (i = 0; i <= 1023+299; i++) {
 		if ((pm[i].flags & INFO_FLG_PM)) {
 			if (!count)
 				LOGFILE("arfcn %d", i);
@@ -357,7 +371,7 @@ static void start_sync(void)
 	if (sdcch)
 		return;
 	arfcn = 0xffff;
-	for (i = 0; i <= 1023; i++) {
+	for (i = 0; i <= 1023+299; i++) {
 		if ((pm[i].flags & INFO_FLG_PM)
 		 && !(pm[i].flags & INFO_FLG_SYNC)) {
 			if (pm[i].rxlev > rxlev) {
@@ -428,7 +442,7 @@ static void start_pm(void)
 	}
 	LOGP(DSUM, LOGL_INFO, "Measure from %d to %d\n", from, to);
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
-	l1ctl_tx_pm_req_range(ms, from, to);
+	l1ctl_tx_pm_req_range(ms, index2arfcn(from), index2arfcn(to));
 }
 
 static int signal_cb(unsigned int subsys, unsigned int signal,
