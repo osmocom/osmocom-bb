@@ -738,7 +738,7 @@ static int l1s_tch_a_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
 
 	dsp_load_tx_task(TCHA_DSP_TASK, 0, tsc); /* burst_id unused for TCHA */
-	l1s_tx_win_ctrl(arfcn, L1_TXWIN_NB | ARFCN_UPLINK, 0, 3);
+	l1s_tx_win_ctrl(arfcn | ARFCN_UPLINK, L1_TXWIN_NB, 0, 3);
 
 	return 0;
 }
