@@ -228,8 +228,8 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u)\n",
 		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc);
 
-	/* disable neighbour cell measurement */
-	mframe_disable(MF_TASK_NEIGH_PM51);
+	/* disable neighbour cell measurement of C0 TS 0 */
+	mframe_disable(MF_TASK_NEIGH_PM51_C0T0);
 
 	/* configure dedicated channel state */
 	l1s.dedicated.type = chan_nr2dchan_type(ul->chan_nr);
@@ -539,9 +539,9 @@ static void l1ctl_rx_neigh_pm_req(struct msgb *msg)
 	printf("L1CTL_NEIGH_PM_REQ new list with %u entries\n", pm_req->n);
 	l1s.neigh_pm.n = pm_req->n; /* atomic */
 
-	/* on BCCH enable PM on frame 51 */
+	/* on C0 enable PM on frame 51 */
 	if (l1s.dedicated.type == GSM_DCHAN_NONE)
-		mframe_enable(MF_TASK_NEIGH_PM51);
+		mframe_enable(MF_TASK_NEIGH_PM51_C0T0);
 }
 
 /* receive a L1CTL_TRAFFIC_REQ from L23 */
