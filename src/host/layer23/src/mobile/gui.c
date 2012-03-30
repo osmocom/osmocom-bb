@@ -1723,6 +1723,10 @@ int gui_notify_call(struct osmocom_ms *ms)
 	int last_call_j_last = 0, selected_call_j_last = 0;
 	struct gsm_call *last_call = NULL, *selected_call = NULL;
 
+	/* gui disabled */
+	if (!ms->settings.ui_port)
+		return 0;
+
 	if (gui->menu != MENU_STATUS
 	 && gui->menu != MENU_CALL)
 	 	return 0;

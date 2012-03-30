@@ -136,6 +136,9 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 	case S_L1CTL_KEYPAD:
 		kp = signal_data;
 		ms = kp->ms;
+		/* gui disabled */
+		if (!ms->settings.ui_port)
+			break;
 		ui_inst_keypad(&ms->gui.ui, kp->key);				
 		break;
 	}
