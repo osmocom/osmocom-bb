@@ -283,15 +283,15 @@ int mobile_delete(struct osmocom_ms *ms, int force)
 
 	ms->deleting = 1;
 
+	if (mncc_recv_app) {
+		mncc_sock_exit(ms->mncc_entity.sock_state);
+		ms->mncc_entity.sock_state = NULL;
+	}
+
 	if (ms->shutdown == 0 || (ms->shutdown == 1 && force)) {
 		rc = mobile_exit(ms, force);
 		if (rc < 0)
 			return rc;
-	}
-
-	if (mncc_recv_app) {
-		mncc_sock_exit(ms->mncc_entity.sock_state);
-		ms->mncc_entity.sock_state = NULL;
 	}
 
 	return 0;
