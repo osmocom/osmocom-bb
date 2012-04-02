@@ -1,6 +1,6 @@
 /* GSM/GPRS/3G authentication testing tool */
 
-/* (C) 2010-2011 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2010-2012 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -52,16 +52,33 @@ static struct osmo_sub_auth_data test_aud = {
 	.algo = OSMO_AUTH_ALG_NONE,
 };
 
+static void help()
+{
+	printf( "-2  --2g\tUse 2G (GSM) authentication\n"
+		"-3  --3g\tUse 3G (UMTS) authentication\n"
+		"-a  --algorithm\tSpecify name of the algorithm\n"
+		"-k  --key\tSpecify Ki / K\n"
+		"-o  --opc\tSpecify OPC (only for 3G)\n"
+		"-O  --op\tSpecify OP (only for 3G)\n"
+		"-a  --amf\tSpecify AMF (only for 3G)\n"
+		"-s  --sqn\tSpecify SQN (only for 3G)\n"
+		"-A  --auts\tSpecify AUTS (only for 3G)\n"
+		"-r  --rand\tSpecify random value\n");
+}
+
 int main(int argc, char **argv)
 {
 	struct osmo_auth_vector _vec;
 	struct osmo_auth_vector *vec = &_vec;
-	uint8_t _rand[16];
+	uint8_t _rand[16], _auts[16];
 	int rc, option_index;
 	int rand_is_set = 0;
+	int auts_is_set = 0;
 
-	printf("osmo-auc-gen (C) 2011 by Harald Welte\n");
+	printf("osmo-auc-gen (C) 2011-2012 by Harald Welte\n");
 	printf("This is FREE SOFTWARE with ABSOLUTELY NO WARRANTY\n\n");
+
+	memset(_auts, 0, sizeof(_auts));
 
 	while (1) {
 		int c;
@@ -72,15 +89,18 @@ int main(int argc, char **argv)
 			{ "algorithm", 1, 0, 'a' },
 			{ "key", 1, 0, 'k' },
 			{ "opc", 1, 0, 'o' },
+			{ "op", 1, 0, 'O' },
 			{ "amf", 1, 0, 'f' },
 			{ "sqn", 1, 0, 's' },
 			{ "rand", 1, 0, 'r' },
+			{ "auts", 1, 0, 'A' },
+			{ "help", 0, 0, 'h' },
 			{ 0, 0, 0, 0 }
 		};
 
 		rc = 0;
 
-		c = getopt_long(argc, argv, "23a:k:o:f:s:r:", long_options,
+		c = getopt_long(argc, argv, "23a:k:o:f:s:r:hO:A:", long_options,
 				&option_index);
 
 		if (c == -1)
@@ -120,6 +140,24 @@ int main(int argc, char **argv)
 			}
 			rc = osmo_hexparse(optarg, test_aud.u.umts.opc,
 					   sizeof(test_aud.u.umts.opc));
+			test_aud.u.umts.opc_is_op = 0;
+			break;
+		case 'O':
+			if (test_aud.type != OSMO_AUTH_TYPE_UMTS) {
+				fprintf(stderr, "Only UMTS has OP\n");
+				exit(2);
+			}
+			rc = osmo_hexparse(optarg, test_aud.u.umts.opc,
+					   sizeof(test_aud.u.umts.opc));
+			test_aud.u.umts.opc_is_op = 1;
+			break;
+		case 'A':
+			if (test_aud.type != OSMO_AUTH_TYPE_UMTS) {
+				fprintf(stderr, "Only UMTS has AUTS\n");
+				exit(2);
+			}
+			rc = osmo_hexparse(optarg, _auts, sizeof(_auts));
+			auts_is_set = 1;
 			break;
 		case 'f':
 			if (test_aud.type != OSMO_AUTH_TYPE_UMTS) {
@@ -141,6 +179,12 @@ int main(int argc, char **argv)
 			rc = osmo_hexparse(optarg, _rand, sizeof(_rand));
 			rand_is_set = 1;
 			break;
+		case 'h':
+			help();
+			exit(0);
+		default:
+			help();
+			exit(1);
 		}
 
 		if (rc < 0) {
@@ -158,26 +202,30 @@ int main(int argc, char **argv)
 		*(uint32_t *)(&_rand[12]) = rand();
 	}
 
+	if (test_aud.type == OSMO_AUTH_TYPE_NONE ||
+	    test_aud.algo == OSMO_AUTH_ALG_NONE) {
+		help();
+		exit(2);
+	}
+
 	memset(vec, 0, sizeof(*vec));
 
-	rc = osmo_auth_gen_vec(vec, &test_aud, _rand);
+	if (!auts_is_set)
+		rc = osmo_auth_gen_vec(vec, &test_aud, _rand);
+	else
+		rc = osmo_auth_gen_vec_auts(vec, &test_aud, _auts, _rand, _rand);
 	if (rc < 0) {
-		fprintf(stderr, "error generating auth vector\n");
+		if (!auts_is_set)
+			fprintf(stderr, "error generating auth vector\n");
+		else
+			fprintf(stderr, "AUTS from MS seems incorrect\n");
 		exit(1);
 	}
 
 	dump_auth_vec(vec);
-#if 0
-	const uint8_t auts[14] = { 0x87, 0x11, 0xa0, 0xec, 0x9e, 0x16, 0x37, 0xdf,
-			     0x17, 0xf8, 0x0b, 0x38, 0x4e, 0xe4 };
 
-	rc = osmo_auth_gen_vec_auts(vec, &test_aud, auts, _rand, _rand);
-	if (rc < 0) {
-		printf("AUTS failed\n");
-	} else {
+	if (auts_is_set)
 		printf("AUTS success: SEQ.MS = %lu\n", test_aud.u.umts.sqn);
-	}
-#endif
-	exit(0);
 
+	exit(0);
 }

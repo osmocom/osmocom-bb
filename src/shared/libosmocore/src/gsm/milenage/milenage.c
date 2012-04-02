@@ -327,3 +327,18 @@ int milenage_check(const u8 *opc, const u8 *k, const u8 *sqn, const u8 *_rand,
 
 	return 0;
 }
+
+int milenage_opc_gen(u8 *opc, const u8 *k, const u8 *op)
+{
+	int i;
+
+	/* Encrypt OP using K */
+	if (aes_128_encrypt_block(k, op, opc))
+		return -1;
+
+	/* XOR the resulting Ek(OP) with OP */
+	for (i = 0; i < 16; i++)
+		opc[i] = opc[i] ^ op[i];
+
+	return 0;
+}
