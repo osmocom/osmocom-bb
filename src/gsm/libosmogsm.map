@@ -225,6 +225,7 @@ tlv_def_patch;
 tlv_dump;
 tlv_parse;
 tlv_parse_one;
+tvlv_att_def;
 
 local: *;
 };
