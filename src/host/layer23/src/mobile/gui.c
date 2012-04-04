@@ -27,6 +27,9 @@
 #include <osmocom/bb/ui/telnet_interface.h>
 #include <osmocom/bb/mobile/mnccms.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
+#include <osmocom/vty/misc.h>
+
+#define SAVE_CNF osmo_vty_save_config_file()
 
 /*
  * status screen generation
@@ -489,6 +492,7 @@ static void *config_knocking_query(struct osmocom_ms *ms)
 static int config_knocking_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.cw = *(int *)value;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -504,6 +508,7 @@ static void *config_autoanswer_query(struct osmocom_ms *ms)
 static int config_autoanswer_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.auto_answer = *(int *)value;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -521,6 +526,7 @@ static int config_clip_cmd(struct osmocom_ms *ms, void *value)
 	ms->settings.clip = *(int *)value;
 	if (value)
 		ms->settings.clir = 0;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -538,6 +544,7 @@ static int config_clir_cmd(struct osmocom_ms *ms, void *value)
 	ms->settings.clir = *(int *)value;
 	if (value)
 		ms->settings.clip = 0;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -549,6 +556,7 @@ static void *config_sca_query(struct osmocom_ms *ms)
 static int config_sca_cmd(struct osmocom_ms *ms, void *value)
 {
 	strncpy(ms->settings.sms_sca, value, sizeof(ms->settings.sms_sca) - 1);
+	SAVE_CNF;
 
 	return 0;
 }
@@ -564,6 +572,7 @@ static void *config_sim_type_query(struct osmocom_ms *ms)
 static int config_sim_type_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.sim_type = *(int *)value;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -590,6 +599,7 @@ static int config_network_cmd(struct osmocom_ms *ms, void *value)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
 	}
+	SAVE_CNF;
 
 	return 0;
 }
@@ -606,6 +616,7 @@ static int config_imei_cmd(struct osmocom_ms *ms, void *value)
 	strncpy(ms->settings.imei, value, sizeof(ms->settings.imei) - 1);
 	/* only copy the number of digits in imei */
 	strncpy(ms->settings.imeisv, value, strlen(ms->settings.imei));
+	SAVE_CNF;
 
 	return 0;
 }
@@ -621,6 +632,7 @@ static int config_imeisv_cmd(struct osmocom_ms *ms, void *value)
 
 	/* only copy the sv */
 	strncpy(ms->settings.imeisv + strlen(ms->settings.imei), value, 1);
+	SAVE_CNF;
 
 	return 0;
 }
@@ -636,6 +648,7 @@ static void *config_imei_random_query(struct osmocom_ms *ms)
 static int config_imei_random_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.imei_random = *(int *)value;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -650,6 +663,7 @@ static int config_emerg_imsi_cmd(struct osmocom_ms *ms, void *value)
 		return -EINVAL;
 
 	strcpy(ms->settings.emergency_imsi, value);
+	SAVE_CNF;
 
 	return 0;
 }
@@ -666,6 +680,7 @@ static int config_tx_power_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.alter_tx_power_value = *(int *)value;
 	ms->settings.alter_tx_power = 1;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -673,6 +688,7 @@ static int config_tx_power_cmd(struct osmocom_ms *ms, void *value)
 static int config_tx_power_auto_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.alter_tx_power = 0;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -689,6 +705,7 @@ static int config_sim_delay_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.alter_delay = *(int *)value;
 	gsm48_rr_alter_delay(ms);
+	SAVE_CNF;
 
 	return 0;
 }
@@ -704,6 +721,7 @@ static void *config_stick_query(struct osmocom_ms *ms)
 static int config_stick_disable_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.stick = 0;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -712,6 +730,7 @@ static int config_stick_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.stick_arfcn = *(int *)value;
 	ms->settings.stick = 1;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -720,6 +739,7 @@ static int config_stick_pcs_cmd(struct osmocom_ms *ms, void *value)
 {
 	ms->settings.stick_arfcn = *(int *)value | ARFCN_PCS;
 	ms->settings.stick = 1;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -742,6 +762,7 @@ static int config_support_half_cmd(struct osmocom_ms *ms, void *value)
 	ms->settings.half = *(int *)value;
 	if (ms->settings.half == 0)
 		ms->settings.half_prefer = 0;
+	SAVE_CNF;
 
 	return 0;
 }
@@ -771,6 +792,7 @@ static int config_prefer_codec_cmd(struct osmocom_ms *ms, void *value)
 		ms->settings.half = 1;
 		ms->settings.half_prefer = 1;
 	}
+	SAVE_CNF;
 
 	return 0;
 }
@@ -803,6 +825,7 @@ static int config_status_cmd(struct osmocom_ms *ms, void *value)
 		ms->settings.status_enable |= (1 << i);
 	else
 		ms->settings.status_enable &= ~(1 << i);
+	SAVE_CNF;
 
 	return 0;
 }
