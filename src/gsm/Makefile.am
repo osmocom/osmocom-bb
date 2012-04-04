@@ -3,7 +3,7 @@
 LIBVERSION=2:0:1
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -fPIC -Wall
+AM_CFLAGS = -fPIC -Wall ${GCC_FVISIBILITY_HIDDEN}
 
 # FIXME: this should eventually go into a milenage/Makefile.am
 noinst_HEADERS = milenage/aes.h milenage/aes_i.h milenage/aes_wrap.h \
@@ -21,5 +21,5 @@ libosmogsm_la_SOURCES = a5.c rxlev_stat.c tlv_parser.c comp128.c gsm_utils.c \
 			milenage/aes-encblock.c milenage/aes-internal.c \
 			milenage/aes-internal-enc.c milenage/milenage.c
 
-libosmogsm_la_LDFLAGS = -version-info $(LIBVERSION)
+libosmogsm_la_LDFLAGS = -Wl,--version-script=$(srcdir)/libosmogsm.map -version-info $(LIBVERSION)
 libosmogsm_la_LIBADD = $(top_builddir)/src/libosmocore.la

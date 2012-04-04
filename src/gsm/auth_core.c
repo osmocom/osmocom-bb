@@ -100,7 +100,7 @@ int osmo_auth_gen_vec_auts(struct osmo_auth_vector *vec,
 	return impl->gen_vec_auts(vec, aud, rand_auts, auts, _rand);
 }
 
-const struct value_string auth_alg_vals[] = {
+static const struct value_string auth_alg_vals[] = {
 	{ OSMO_AUTH_ALG_NONE, "None" },
 	{ OSMO_AUTH_ALG_COMP128v1, "COMP128v1" },
 	{ OSMO_AUTH_ALG_COMP128v2, "COMP128v2" },
