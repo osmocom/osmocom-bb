@@ -419,6 +419,7 @@ static void l1ctl_rx_pm_req(struct msgb *msg)
 
 	switch (pm_req->type) {
 	case 1:
+		l1s.pm.first = 1;
 		l1s.pm.mode = 1;
 		l1s.pm.range.arfcn_start =
 				ntohs(pm_req->range.band_arfcn_from);

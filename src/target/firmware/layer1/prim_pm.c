@@ -94,6 +94,15 @@ static int l1s_pm_resp(uint8_t num_meas, __unused uint8_t p2,
 	printf("PM MEAS: ARFCN=%u, %-4d dBm at baseband, %-4d dBm at RF\n",
 		arfcn, pm_level[0]/8, agc_inp_dbm8_by_pm(pm_level[0])/8);
 
+	/* If the first measurement seems to fail, try once again */
+	if (l1s.pm.first) {
+		l1s.pm.first = 0;
+		if (pm_level[0] == 0) {
+			l1s_pm_test(1, l1s.pm.range.arfcn_next);
+			return 0;
+		}
+	}
+
 	printd("PM MEAS: %-4d dBm, %-4d dBm ARFCN=%u\n",
 		agc_inp_dbm8_by_pm(pm_level[0])/8,
 		agc_inp_dbm8_by_pm(pm_level[1])/8, arfcn);

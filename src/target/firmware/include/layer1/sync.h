@@ -101,6 +101,7 @@ struct l1s_state {
 	struct {
 		/* power measurement l1 task */
 		unsigned int mode;
+		unsigned int first;
 		union {
 			struct {
 				uint16_t arfcn_start;
