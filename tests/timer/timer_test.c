@@ -60,7 +60,7 @@ struct test_timer {
 
 /* timer imprecision that we accept for this test: 10 milliseconds. */
 #define TIMER_PRES_SECS		0
-#define TIMER_PRES_USECS	10000
+#define TIMER_PRES_USECS	20000
 
 static int timer_nsteps = MAIN_TIMER_NSTEPS;
 static unsigned int expired_timers = 0;
