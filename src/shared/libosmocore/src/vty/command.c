@@ -2268,31 +2268,19 @@ gDEFUN(config_list, config_list_cmd, "list", "Print command list\n")
 	return CMD_SUCCESS;
 }
 
-/* Write current configuration into file. */
-DEFUN(config_write_file,
-      config_write_file_cmd,
-      "write file",
-      "Write running configuration to memory, network, or terminal\n"
-      "Write to configuration file\n")
+static int write_config_file(const char *config_file, char **outpath)
 {
 	unsigned int i;
 	int fd;
 	struct cmd_node *node;
-	char *config_file;
 	char *config_file_tmp = NULL;
 	char *config_file_sav = NULL;
 	struct vty *file_vty;
+	struct stat st;
+
+	*outpath = NULL;
 
 	/* Check and see if we are operating under vtysh configuration */
-	if (host.config == NULL) {
-		vty_out(vty, "Can't save to configuration file, using vtysh.%s",
-			VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	/* Get filename. */
-	config_file = host.config;
-
 	config_file_sav =
 	    _talloc_zero(tall_vty_cmd_ctx,
 			 strlen(config_file) + strlen(CONF_BACKUP_EXT) + 1,
@@ -2307,11 +2295,10 @@ DEFUN(config_write_file,
 	/* Open file to configuration write. */
 	fd = mkstemp(config_file_tmp);
 	if (fd < 0) {
-		vty_out(vty, "Can't open configuration file %s.%s",
-			config_file_tmp, VTY_NEWLINE);
+		*outpath = talloc_strdup(tall_vty_cmd_ctx, config_file_tmp);
 		talloc_free(config_file_tmp);
 		talloc_free(config_file_sav);
-		return CMD_WARNING;
+		return -1;
 	}
 
 	/* Make vty for configuration file. */
@@ -2334,38 +2321,37 @@ DEFUN(config_write_file,
 
 	if (unlink(config_file_sav) != 0)
 		if (errno != ENOENT) {
-			vty_out(vty,
-				"Can't unlink backup configuration file %s.%s",
-				config_file_sav, VTY_NEWLINE);
+			*outpath = talloc_strdup(tall_vty_cmd_ctx, config_file_sav);
 			talloc_free(config_file_sav);
 			talloc_free(config_file_tmp);
 			unlink(config_file_tmp);
-			return CMD_WARNING;
+			return -2;
 		}
-	if (link(config_file, config_file_sav) != 0) {
-		vty_out(vty, "Can't backup old configuration file %s.%s",
-			config_file_sav, VTY_NEWLINE);
-		talloc_free(config_file_sav);
-		talloc_free(config_file_tmp);
-		unlink(config_file_tmp);
-		return CMD_WARNING;
-	}
-	sync();
-	if (unlink(config_file) != 0) {
-		vty_out(vty, "Can't unlink configuration file %s.%s",
-			config_file, VTY_NEWLINE);
-		talloc_free(config_file_sav);
-		talloc_free(config_file_tmp);
-		unlink(config_file_tmp);
-		return CMD_WARNING;
+
+	/* Only link the .sav file if the original file exists */
+	if (stat(config_file, &st) == 0) {
+		if (link(config_file, config_file_sav) != 0) {
+			*outpath = talloc_strdup(tall_vty_cmd_ctx, config_file_sav);
+			talloc_free(config_file_sav);
+			talloc_free(config_file_tmp);
+			unlink(config_file_tmp);
+			return -3;
+		}
+		sync();
+		if (unlink(config_file) != 0) {
+			*outpath = talloc_strdup(tall_vty_cmd_ctx, config_file);
+			talloc_free(config_file_sav);
+			talloc_free(config_file_tmp);
+			unlink(config_file_tmp);
+			return -4;
+		}
 	}
 	if (link(config_file_tmp, config_file) != 0) {
-		vty_out(vty, "Can't save configuration file %s.%s", config_file,
-			VTY_NEWLINE);
+		*outpath = talloc_strdup(tall_vty_cmd_ctx, config_file);
 		talloc_free(config_file_sav);
 		talloc_free(config_file_tmp);
 		unlink(config_file_tmp);
-		return CMD_WARNING;
+		return -5;
 	}
 	unlink(config_file_tmp);
 	sync();
@@ -2374,13 +2360,70 @@ DEFUN(config_write_file,
 	talloc_free(config_file_tmp);
 
 	if (chmod(config_file, 0666 & ~CONFIGFILE_MASK) != 0) {
-		vty_out(vty, "Can't chmod configuration file %s: %s (%d).%s",
-			config_file, strerror(errno), errno, VTY_NEWLINE);
+		*outpath = talloc_strdup(tall_vty_cmd_ctx, config_file);
+		return -6;
+	}
+
+	return 0;
+}
+
+
+/* Write current configuration into file. */
+DEFUN(config_write_file,
+      config_write_file_cmd,
+      "write file",
+      "Write running configuration to memory, network, or terminal\n"
+      "Write to configuration file\n")
+{
+	char *failed_file;
+	int rc;
+
+	if (host.config == NULL) {
+		vty_out(vty, "Can't save to configuration file, using vtysh.%s",
+			VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	vty_out(vty, "Configuration saved to %s%s", config_file, VTY_NEWLINE);
-	return CMD_SUCCESS;
+	rc = write_config_file(host.config, &failed_file);
+	switch (rc) {
+	case -1:
+		vty_out(vty, "Can't open configuration file %s.%s",
+			failed_file, VTY_NEWLINE);
+		rc = CMD_WARNING;
+		break;
+	case -2:
+		vty_out(vty, "Can't unlink backup configuration file %s.%s",
+			failed_file, VTY_NEWLINE);
+		rc = CMD_WARNING;
+		break;
+	case -3:
+		vty_out(vty, "Can't backup old configuration file %s.%s",
+			failed_file, VTY_NEWLINE);
+		rc = CMD_WARNING;
+		break;
+	case -4:
+		vty_out(vty, "Can't unlink configuration file %s.%s",
+			failed_file, VTY_NEWLINE);
+		rc = CMD_WARNING;
+		break;
+	case -5:
+		vty_out(vty, "Can't save configuration file %s.%s", failed_file,
+			VTY_NEWLINE);
+		rc = CMD_WARNING;
+		break;
+	case -6:
+		vty_out(vty, "Can't chmod configuration file %s: %s (%d).%s",
+			failed_file, strerror(errno), errno, VTY_NEWLINE);
+		rc = CMD_WARNING;
+		break;
+	default:
+		vty_out(vty, "Configuration saved to %s%s", host.config, VTY_NEWLINE);
+		rc = CMD_SUCCESS;
+		break;
+	}
+
+	talloc_free(failed_file);
+	return rc;
 }
 
 ALIAS(config_write_file,
@@ -3158,6 +3201,47 @@ void install_default(enum node_type node)
 	install_element(node, &config_write_memory_cmd);
 	install_element(node, &config_write_cmd);
 	install_element(node, &show_running_config_cmd);
+}
+
+/**
+ * \brief Write the current running config to a given file
+ * \param[in] vty the vty of the code
+ * \param[in] filename where to store the file
+ * \return 0 in case of success.
+ *
+ * If the filename already exists create a filename.sav
+ * version with the current code.
+ *
+ */
+int osmo_vty_write_config_file(const char *filename)
+{
+	char *failed_file;
+	int rc;
+
+	rc = write_config_file(filename, &failed_file);
+	talloc_free(failed_file);
+	return rc;
+}
+
+/**
+ * \brief Save the current state to the config file
+ * \return 0 in case of success.
+ *
+ * If the filename already exists create a filename.sav
+ * version with the current code.
+ *
+ */
+int osmo_vty_save_config_file(void)
+{
+	char *failed_file;
+	int rc;
+
+	if (host.config == NULL)
+		return -7;
+
+	rc = write_config_file(host.config, &failed_file);
+	talloc_free(failed_file);
+	return rc;
 }
 
 /* Initialize command interface. Install basic nodes and commands. */

@@ -89,10 +89,10 @@ osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 #define A5_R3_MASK	((1<<A5_R3_LEN)-1)
 #define A5_R4_MASK	((1<<A5_R4_LEN)-1)
 
-#define A5_R1_TAPS	0x072000 /* x^19 + x^5 + x^2 + x + 1 */
-#define A5_R2_TAPS	0x300000 /* x^22 + x + 1 */
-#define A5_R3_TAPS	0x700080 /* x^23 + x^15 + x^2 + x + 1 */
-#define A5_R4_TAPS	0x010800 /* x^17 + x^5 + 1 */
+#define A5_R1_TAPS	0x072000 /* x^19 + x^18 + x^17 + x^14 + 1 */
+#define A5_R2_TAPS	0x300000 /* x^22 + x^21 + 1 */
+#define A5_R3_TAPS	0x700080 /* x^23 + x^22 + x^21 + x^8 + 1 */
+#define A5_R4_TAPS	0x010800 /* x^17 + x^12 + 1 */
 
 /*! \brief Computes parity of a 32-bit word
  *  \param[in] x 32 bit word

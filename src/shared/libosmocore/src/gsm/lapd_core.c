@@ -707,7 +707,7 @@ static void lapd_acknowledge(struct lapd_msg_ctx *lctx)
 {
 	struct lapd_datalink *dl = lctx->dl;
 	uint8_t nr = lctx->n_recv;
-	int s = 0, rej = 0, t200_reset = 0, t200_start = 0;
+	int s = 0, rej = 0, t200_reset = 0;
 	int i, h;
 
 	/* supervisory frame ? */
@@ -758,7 +758,6 @@ static void lapd_acknowledge(struct lapd_msg_ctx *lctx)
 		if (dl->tx_hist[sub_mod(dl->v_send, 1, dl->range_hist)].msg) {
 			LOGP(DLLAPD, LOGL_INFO, "start T200, due to unacked I "
 				"frame(s)\n");
-			t200_start = 1;
 			lapd_start_t200(dl);
 		}
 	}

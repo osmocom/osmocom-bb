@@ -198,13 +198,19 @@ static const struct mframe_sched_item mf_sdcch8_7[] = {
 	{ .sched_set = NULL }
 };
 
-/* Measurement for MF 51 */
-static const struct mframe_sched_item mf_neigh_pm51[] = {
+/* Measurement for MF 51 C0 */
+static const struct mframe_sched_item mf_neigh_pm51_c0t0[] = {
 	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 0 },
 	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 10 },
 	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 20 },
 	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 30 },
 	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 40 },
+	{ .sched_set = NULL }
+};
+
+/* Measurement for MF 51 */
+static const struct mframe_sched_item mf_neigh_pm51[] = {
+	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 50 },
 	{ .sched_set = NULL }
 };
 
@@ -326,6 +332,7 @@ static const struct mframe_sched_item *sched_set_for_task[32] = {
 	[MF_TASK_TCH_H_0]    = mf_tch_h_0,
 	[MF_TASK_TCH_H_1]    = mf_tch_h_1,
 
+	[MF_TASK_NEIGH_PM51_C0T0] = mf_neigh_pm51_c0t0,
 	[MF_TASK_NEIGH_PM51] = mf_neigh_pm51,
 	[MF_TASK_NEIGH_PM26E] = mf_neigh_pm26_even,
 	[MF_TASK_NEIGH_PM26O] = mf_neigh_pm26_odd,

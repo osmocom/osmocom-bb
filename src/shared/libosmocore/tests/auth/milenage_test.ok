@@ -6,3 +6,5 @@ RES:	e9 fc 88 cc c8 a3 53 81
 SRES:	21 5f db 4d 
 Kc:	6d e8 16 a7 59 a4 29 12 
 AUTS success: SEQ.MS = 33
+OP:	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+OPC:	c6 a1 3b 37 87 8f 5b 82 6f 4f 81 62 a1 c8 d8 79 

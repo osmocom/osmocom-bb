@@ -864,8 +864,10 @@ int l1ctl_tx_neigh_pm_req(struct osmocom_ms *ms, int num, uint16_t *arfcn)
 	LOGP(DL1C, LOGL_INFO, "Tx NEIGH PM Req (num %u)\n", num);
 	pm_req = (struct l1ctl_neigh_pm_req *) msgb_put(msg, sizeof(*pm_req));
 	pm_req->n = num;
-	for (i = 0; i < num; i++)
+	for (i = 0; i < num; i++) {
 		pm_req->band_arfcn[i] = htons(*arfcn++);
+		pm_req->tn[i] = 0;
+	}
 
 	return osmo_send_l1(ms, msg);
 }

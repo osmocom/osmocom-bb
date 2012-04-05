@@ -30,4 +30,6 @@ int milenage_f1(const u8 *opc, const u8 *k, const u8 *_rand,
 int milenage_f2345(const u8 *opc, const u8 *k, const u8 *_rand,
 		   u8 *res, u8 *ck, u8 *ik, u8 *ak, u8 *akstar);
 
+int milenage_opc_gen(u8 *opc, const u8 *k, const u8 *op);
+
 #endif /* MILENAGE_H */
