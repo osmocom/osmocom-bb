@@ -225,7 +225,7 @@ static int sockaddr_equal(const struct sockaddr *a,
  *  \param[in] addrlen Length of socket address in bytes
  *  \returns 1 if address is local, 0 otherwise.
  */
-int osmo_sockaddr_is_local(struct sockaddr *addr, socklen_t addrlen)
+int osmo_sockaddr_is_local(struct sockaddr *addr, unsigned int addrlen)
 {
 	struct ifaddrs *ifaddr, *ifa;
 
