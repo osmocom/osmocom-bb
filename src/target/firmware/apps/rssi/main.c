@@ -50,6 +50,7 @@
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/gsm48_ie.h>
+#include <battery/battery.h>
 
 enum key_codes key_code = KEY_INV;
 int key_pressed = 0;
@@ -170,6 +171,7 @@ static void print_display(char *text, int *y, int c)
 static void refresh_display(void)
 {
 	char text[16];
+	int bat = battery_info.battery_percent;
 
 	fb_clear();
 
@@ -179,9 +181,25 @@ static void refresh_display(void)
 		fb_setfg(FB_COLOR_BLUE);
 		fb_setfont(FB_FONT_HELVR08);
 		fb_gotoxy(0, 7);
-		fb_putstr("Osmocom Monitor Tool", -1);
-		fb_gotoxy(0, 10);
+		fb_putstr("Osmocom RSSI", -1);
+		fb_setfg(FB_COLOR_RGB(0xc0, 0xc0, 0x00));
+		fb_setfont(FB_FONT_SYMBOLS);
+		fb_gotoxy(framebuffer->width - 15, 8);
+		if (bat >= 100 && (battery_info.flags & BATTERY_CHG_ENABLED)
+		 && !(battery_info.flags & BATTERY_CHARGING))
+			fb_putstr("@HHBC", framebuffer->width);
+		else {
+			sprintf(text, "@%c%c%cC", (bat >= 30) ? 'B':'A',
+				(bat >= 60) ? 'B':'A', (bat >= 90) ? 'B':'A');
+			fb_putstr(text, framebuffer->width);
+		}
+		fb_gotoxy(0, 8);
+		sprintf(text, "%c%cE%c%c", (power >= 40) ? 'D':'G',
+			(power >= 10) ? 'D':'G', (power >= 10) ? 'F':'G',
+			(power >= 40) ? 'F':'G');
+		fb_putstr(text, framebuffer->width);
 		fb_setfg(FB_COLOR_GREEN);
+		fb_gotoxy(0, 10);
 		fb_boxto(framebuffer->width - 1, 10);
 	}
 	fb_setfg(FB_COLOR_BLACK);
