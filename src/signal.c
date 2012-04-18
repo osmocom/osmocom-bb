@@ -106,4 +106,4 @@ void osmo_signal_dispatch(unsigned int subsys, unsigned int signal,
 	}
 }
 
-/*! }@ */
+/*! @} */

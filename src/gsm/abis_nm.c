@@ -452,4 +452,4 @@ enum abis_nm_chan_comb abis_nm_pchan4chcomb(uint8_t chcomb)
 	return GSM_PCHAN_NONE;
 }
 
-/*! }@ */
+/*! @} */

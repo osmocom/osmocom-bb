@@ -628,4 +628,4 @@ osmo_conv_decode(const struct osmo_conv_code *code,
 	return rv;
 }
 
-/*! }@ */
+/*! @} */

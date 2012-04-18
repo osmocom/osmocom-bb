@@ -314,6 +314,6 @@ void tlv_def_patch(struct tlv_definition *dst, const struct tlv_definition *src)
 #define TLVP_LEN(x, y)		(x)->lv[y].len
 #define TLVP_VAL(x, y)		(x)->lv[y].val
 
-/*! }@ */
+/*! @} */
 
 #endif /* _TLV_H */

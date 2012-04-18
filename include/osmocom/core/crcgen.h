@@ -36,6 +36,6 @@
 #include <osmocom/core/crc32gen.h>
 #include <osmocom/core/crc64gen.h>
 
-/*! }@ */
+/*! @} */
 
 #endif /* __OSMO_CRCGEN_H__ */

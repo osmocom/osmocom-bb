@@ -40,6 +40,6 @@ void osmo_signal_unregister_handler(unsigned int subsys, osmo_signal_cbfn *cbfn,
 /* Dispatch */
 void osmo_signal_dispatch(unsigned int subsys, unsigned int signal, void *signal_data);
 
-/*! }@ */
+/*! @} */
 
 #endif /* OSMO_SIGNAL_H */

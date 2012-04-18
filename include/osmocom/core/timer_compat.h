@@ -74,6 +74,6 @@
 #endif
 
 
-/*! }@ */
+/*! @} */
 
 #endif /* TIMER_COMPAT_H */

@@ -754,4 +754,4 @@ int log_init(const struct log_info *inf, void *ctx)
 	return 0;
 }
 
-/*! }@ */
+/*! @} */

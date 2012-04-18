@@ -261,4 +261,4 @@ int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n,
 	return -1;
 }
 
-/*! }@ */
+/*! @} */

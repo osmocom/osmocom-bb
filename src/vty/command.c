@@ -3322,4 +3322,4 @@ void cmd_init(int terminal)
 	srand(time(NULL));
 }
 
-/*! }@ */
+/*! @} */

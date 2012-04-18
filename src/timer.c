@@ -233,4 +233,4 @@ int osmo_timers_check(void)
 	return i;
 }
 
-/*! }@ */
+/*! @} */

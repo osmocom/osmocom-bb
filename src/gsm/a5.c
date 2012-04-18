@@ -364,4 +364,4 @@ osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 	}
 }
 
-/*! }@ */
+/*! @} */

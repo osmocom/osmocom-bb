@@ -556,6 +556,6 @@ enum rsl_mrpci_phase {
 	RSL_MRPCI_PHASE_2PLUS	= 3,
 };
 
-/*! }@ */
+/*! @} */
 
 #endif /* PROTO_GSM_08_58_H */

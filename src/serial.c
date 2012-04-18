@@ -226,4 +226,4 @@ osmo_serial_clear_custom_baudrate(int fd)
 	return 0;
 }
 
-/*! }@ */
+/*! @} */

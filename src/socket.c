@@ -246,4 +246,4 @@ int osmo_sockaddr_is_local(struct sockaddr *addr, unsigned int addrlen)
 
 #endif /* HAVE_SYS_SOCKET_H */
 
-/*! }@ */
+/*! @} */

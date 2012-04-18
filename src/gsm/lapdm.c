@@ -1241,4 +1241,4 @@ void lapdm_channel_set_flags(struct lapdm_channel *lc, unsigned int flags)
 	lapdm_entity_set_flags(&lc->lapdm_acch, flags);
 }
 
-/*! }@ */
+/*! @} */

@@ -141,6 +141,6 @@ int osmo_conv_decode(const struct osmo_conv_code *code,
                      const sbit_t *input, ubit_t *output);
 
 
-/*! }@ */
+/*! @} */
 
 #endif /* __OSMO_CONV_H__ */

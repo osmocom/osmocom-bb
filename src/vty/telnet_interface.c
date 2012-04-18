@@ -220,4 +220,4 @@ void telnet_exit(void)
 	talloc_free(tall_telnet_ctx);
 }
 
-/*! }@ */
+/*! @} */

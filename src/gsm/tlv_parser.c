@@ -186,4 +186,4 @@ static __attribute__((constructor)) void on_dso_load_tlv(void)
 		tvlv_att_def.def[i].type = TLV_TYPE_TvLV;
 }
 
-/*! }@ */
+/*! @} */

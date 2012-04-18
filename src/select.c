@@ -167,6 +167,6 @@ restart:
 	return work;
 }
 
-/*! }@ */
+/*! @} */
 
 #endif /* _HAVE_SYS_SELECT_H */

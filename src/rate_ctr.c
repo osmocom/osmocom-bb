@@ -177,4 +177,4 @@ const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, c
 	return NULL;
 }
 
-/*! }@ */
+/*! @} */

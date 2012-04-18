@@ -65,6 +65,6 @@ int bitvec_get_uint(struct bitvec *bv, int num_bits);
 int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value val);
 int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit);
 
-/*! }@ */
+/*! @} */
 
 #endif /* _BITVEC_H */

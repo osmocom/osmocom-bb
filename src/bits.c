@@ -185,4 +185,4 @@ void osmo_revbytebits_buf(uint8_t *buf, int len)
 	}
 }
 
-/*! }@ */
+/*! @} */

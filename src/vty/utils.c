@@ -60,4 +60,4 @@ void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 	};
 }
 
-/*! }@ */
+/*! @} */

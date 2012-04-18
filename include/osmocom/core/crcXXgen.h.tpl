@@ -52,7 +52,7 @@ void osmo_crcXXgen_set_bits(const struct osmo_crcXXgen_code *code,
                             const ubit_t *in, int len, ubit_t *crc_bits);
 
 
-/*! }@ */
+/*! @} */
 
 #endif /* __OSMO_CRCXXGEN_H__ */
 

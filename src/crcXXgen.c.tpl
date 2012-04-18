@@ -115,6 +115,6 @@ osmo_crcXXgen_set_bits(const struct osmo_crcXXgen_code *code,
 		crc_bits[i] = ((crc >> (code->bits-i-1)) & 1);
 }
 
-/*! }@ */
+/*! @} */
 
 /* vim: set syntax=c: */

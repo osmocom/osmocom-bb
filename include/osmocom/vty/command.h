@@ -366,5 +366,5 @@ void print_version(int print_copyright);
 
 extern void *tall_vty_cmd_ctx;
 
-/*! }@ */
+/*! @} */
 #endif				/* _ZEBRA_COMMAND_H */

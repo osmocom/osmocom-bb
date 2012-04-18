@@ -1768,4 +1768,4 @@ int vty_read_config_file(const char *file_name, void *priv)
 	return rc;
 }
 
-/*! }@ */
+/*! @} */

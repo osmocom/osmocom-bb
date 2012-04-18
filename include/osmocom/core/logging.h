@@ -206,6 +206,6 @@ const char *log_vty_command_description(const struct log_info *info);
 struct log_target *log_target_find(int type, const char *fname);
 extern struct llist_head osmo_log_target_list;
 
-/*! }@ */
+/*! @} */
 
 #endif /* _OSMOCORE_LOGGING_H */

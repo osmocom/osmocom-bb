@@ -82,6 +82,6 @@ void osmo_timers_prepare(void);
 int osmo_timers_update(void);
 int osmo_timers_check(void);
 
-/*! }@ */
+/*! @} */
 
 #endif
