@@ -959,7 +959,12 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 		mode = rllh->data[1] & 1;
 
 	/* Pull rllh */
-	msgb_pull(msg, msg->tail - msg->l2h);
+	msgb_pull_l2h(msg);
+
+	/* 04.06 3.8.3: No information field is permitted with the DISC
+	 * command. */
+	msg->len = 0;
+	msg->tail = msg->l3h = msg->data;
 
 	/* prepare prim */
 	osmo_prim_init(&dp.oph, 0, PRIM_DL_REL, PRIM_OP_REQUEST, msg);
