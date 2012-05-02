@@ -283,6 +283,7 @@ bat_compal_e88_upd_measurements(){
 			(50+100*(adc-VBAT_empty))/(VBAT_full-VBAT_empty);
 	}
 
+#if 0
         /* DEBUG */
         printf("BAT-ADC: ");
         for(i=0;i<MADC_NUM_CHANNELS;i++)
@@ -302,6 +303,7 @@ bat_compal_e88_upd_measurements(){
         printf("\tBCICTL2=0x%03x\n",i);      
 	printf("\tbattery-info.flags=0x%08x\n",battery_info.flags);
 	printf("\tbat_compal_e88_chg_state=%d\n",bat_compal_e88_chg_state);
+#endif
 }
 
 /* bat_compal_e88_adc_read() :
