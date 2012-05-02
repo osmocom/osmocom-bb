@@ -45,6 +45,7 @@
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
 #include <fb/framebuffer.h>
+#include <battery/compal_e88.h>
 
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define IO_CNTL_REG	0xfffe4804
@@ -133,4 +134,7 @@ void board_init(void)
 
 	/* Initialize ABB driver (uses SPI) */
 	twl3025_init();
+
+	/* Initialize the charging controller */
+	battery_compal_e88_init();
 }

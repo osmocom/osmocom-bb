@@ -32,6 +32,7 @@ extern const struct fb_font font_helvR14;
 extern const struct fb_font font_helvB14;
 // extern const struct fb_font font_helvB24;
 extern const struct fb_font font_c64;
+extern const struct fb_font font_symbols;
 
 const struct fb_font *fb_fonts[]={
 //	&font_4x6,
@@ -43,6 +44,7 @@ const struct fb_font *fb_fonts[]={
 	&font_helvB14,
 //	&font_helvB24,
 	&font_c64,
+	&font_symbols,
 };
 
 const struct fb_char *
