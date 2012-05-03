@@ -213,15 +213,15 @@ struct gsm48_chan_desc {
 				 tsc:3;
 			uint8_t hsn:6,
 				 maio_low:2;
-		} h1;
+		} __attribute__ ((packed)) h1;
 		struct {
 			uint8_t arfcn_high:2,
 				 spare:2,
 				 h:1,
 				 tsc:3;
 			uint8_t arfcn_low;
-		} h0;
-	};
+		} __attribute__ ((packed)) h0;
+	} __attribute__ ((packed));
 } __attribute__ ((packed));
 
 /* Chapter 10.5.2.20 */

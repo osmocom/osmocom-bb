@@ -83,10 +83,21 @@ static int milenage_gen_vec_auts(struct osmo_auth_vector *vec,
 				 const uint8_t *_rand)
 {
 	uint8_t sqn_out[6];
+	uint8_t gen_opc[16];
+	uint8_t *opc;
 	int rc;
 
-	rc = milenage_auts(aud->u.umts.opc, aud->u.umts.k,
-			   rand_auts, auts, sqn_out);
+	/* Check if we only know OP and compute OPC if required */
+	if (aud->type == OSMO_AUTH_TYPE_UMTS && aud->u.umts.opc_is_op) {
+		rc = milenage_opc_gen(gen_opc, aud->u.umts.k,
+				      aud->u.umts.opc);
+		if (rc < 0)
+			return rc;
+		opc = gen_opc;
+	} else
+		opc = aud->u.umts.opc;
+
+	rc = milenage_auts(opc, aud->u.umts.k, rand_auts, auts, sqn_out);
 	if (rc < 0)
 		return rc;
 

@@ -707,7 +707,7 @@ static void lapd_acknowledge(struct lapd_msg_ctx *lctx)
 {
 	struct lapd_datalink *dl = lctx->dl;
 	uint8_t nr = lctx->n_recv;
-	int s = 0, rej = 0, t200_reset = 0, t200_start = 0;
+	int s = 0, rej = 0, t200_reset = 0;
 	int i, h;
 
 	/* supervisory frame ? */
@@ -758,7 +758,6 @@ static void lapd_acknowledge(struct lapd_msg_ctx *lctx)
 		if (dl->tx_hist[sub_mod(dl->v_send, 1, dl->range_hist)].msg) {
 			LOGP(DLLAPD, LOGL_INFO, "start T200, due to unacked I "
 				"frame(s)\n");
-			t200_start = 1;
 			lapd_start_t200(dl);
 		}
 	}
@@ -1731,7 +1730,15 @@ static int lapd_data_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	struct lapd_datalink *dl = lctx->dl;
 	struct msgb *msg = dp->oph.msg;
 
-	LOGP(DLLAPD, LOGL_INFO, "writing message to send-queue\n");
+	if (msgb_l3len(msg) == 0) {
+		LOGP(DLLAPD, LOGL_ERROR,
+			"writing an empty message is not possible.\n");
+		msgb_free(msg);
+		return -1;
+	}
+
+	LOGP(DLLAPD, LOGL_INFO,
+	     "writing message to send-queue: l3len: %d\n", msgb_l3len(msg));
 
 	/* Write data into the send queue */
 	msgb_enqueue(&dl->send_queue, msg);

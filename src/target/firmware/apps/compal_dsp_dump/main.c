@@ -37,6 +37,7 @@
 #include <calypso/irq.h>
 #include <calypso/misc.h>
 #include <comm/timer.h>
+#include <fb/framebuffer.h>
 
 /* Main Program */
 const char *hr = "======================================================================\n";
@@ -52,11 +53,33 @@ int main(void)
 	dump_dev_id();
 	puts(hr);
 
+	fb_clear();
+
+	fb_setfg(FB_COLOR_BLACK);
+	fb_setbg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVB14);
+
+	fb_gotoxy(2,20);
+	fb_putstr("DSP Dump",framebuffer->width-4);
+
+	fb_setfg(FB_COLOR_RED);
+	fb_setbg(FB_COLOR_BLUE);
+
+	fb_gotoxy(2,25);
+	fb_boxto(framebuffer->width-3,38);
+
+	fb_setfg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVR08);
+	fb_gotoxy(8,33);
+	fb_putstr("osmocom-bb",framebuffer->width-4);
+
+	fb_flush();
+
 	/* Dump DSP content */
 	dsp_dump();
 
 	while (1) {
-		update_timers();
+		osmo_timers_update();
 	}
 }
 

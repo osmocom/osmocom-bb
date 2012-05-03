@@ -298,12 +298,15 @@ struct l1ctl_neigh_pm_req {
 	uint8_t n;
 	uint8_t padding[1];
 	uint16_t band_arfcn[64];
+	uint8_t tn[64];
 } __attribute__((packed));
 
 /* neighbour cell measurement results */
 struct l1ctl_neigh_pm_ind {
 	uint16_t band_arfcn;
 	uint8_t pm[2];
+	uint8_t tn;
+	uint8_t padding;
 } __attribute__((packed));
 
 /* traffic data to network */

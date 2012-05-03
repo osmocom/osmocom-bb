@@ -69,7 +69,7 @@ enum {
 
 /* ranges of bands */
 static uint16_t *band_range = 0;
-static uint16_t range_all[] = {0, 124, 128, 251, 512, 885, 955, 1023, 1024, 1322, 0, 0};
+static uint16_t range_all[] = {0, 124, 512, 885, 955, 1023, 0, 0};
 static uint16_t range_900[] = {0, 124, 955, 1023, 0, 0};
 static uint16_t range_1800[] = {512, 885, 0, 0};
 static uint16_t range_850[] = {128, 251, 0, 0};

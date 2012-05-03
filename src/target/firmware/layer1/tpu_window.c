@@ -33,6 +33,7 @@
 
 #include <layer1/sync.h>
 #include <layer1/tpu_window.h>
+#include <layer1/rfch.h>
 
 /* all units in GSM quarter-bits (923.1ns) */
 #define L1_TDMA_LENGTH_Q	5000

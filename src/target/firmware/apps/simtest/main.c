@@ -31,7 +31,6 @@
 #include <keypad.h>
 #include <board.h>
 #include <abb/twl3025.h>
-#include <display.h>
 #include <rf/trf6151.h>
 #include <calypso/clock.h>
 #include <calypso/tpu.h>
@@ -337,9 +336,6 @@ int main(void)
 	memdump_range((void *)0x00000000, 0x2000);
 	puts(hr);
 #endif
-
-	display_set_attr(DISP_ATTR_INVERT);
-	display_puts("SIM-TEST");
 
 	sercomm_register_rx_cb(SC_DLCI_CONSOLE, console_rx_cb);
 

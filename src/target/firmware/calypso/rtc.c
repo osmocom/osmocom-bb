@@ -26,7 +26,6 @@
 #include <defines.h>
 #include <debug.h>
 #include <memory.h>
-#include <display.h>
 #include <calypso/irq.h>
 
 #define BASE_ADDR_RTC	0xfffe1800
@@ -61,10 +60,6 @@ static int tick_ctr;
 
 static void rtc_irq_tick(__unused enum irq_nr nr)
 {
-	if (tick_ctr & 1)
-		display_set_attr(DISP_ATTR_INVERT);
-	else
-		display_unset_attr(DISP_ATTR_INVERT);
 	tick_ctr++;
 }
 

@@ -312,6 +312,32 @@ static inline void msgb_reserve(struct msgb *msg, int len)
 	msg->tail += len;
 }
 
+/*! \brief Trim the msgb to a given absolute length
+ *  \param[in] msg message buffer
+ *  \param[in] len new total length of buffer
+ *  \returns 0 in case of success, negative in case of error
+ */
+static inline int msgb_trim(struct msgb *msg, int len)
+{
+	if (len > msg->data_len)
+		return -1;
+
+	msg->len = len;
+	msg->tail = msg->data + len;
+
+	return 0;
+}
+
+/*! \brief Trim the msgb to a given layer3 length
+ *  \pram[in] msg message buffer
+ *  \param[in] l3len new layer3 length
+ *  \returns 0 in case of success, negative in case of error
+ */
+static inline int msgb_l3trim(struct msgb *msg, int l3len)
+{
+	return msgb_trim(msg, (msg->l3h - msg->data) + l3len);
+}
+
 /*! \brief Allocate message buffer with specified headroom
  *  \param[in] size size in bytes, including headroom
  *  \param[in] headroom headroom in bytes

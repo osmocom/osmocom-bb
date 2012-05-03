@@ -10,6 +10,7 @@ enum {
 	L23_OPT_TAP	= 4,
 	L23_OPT_VTY	= 8,
 	L23_OPT_DBG	= 16,
+	L23_OPT_VTYIP	= 32,
 };
 
 /* initialization, called once when starting the app, before entering

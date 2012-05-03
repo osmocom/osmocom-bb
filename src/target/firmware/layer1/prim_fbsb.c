@@ -30,6 +30,7 @@
 #include <debug.h>
 #include <memory.h>
 #include <byteorder.h>
+#include <rffe.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/msgb.h>
 #include <calypso/dsp_api.h>
@@ -47,6 +48,7 @@
 #include <layer1/mframe_sched.h>
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
+#include <layer1/agc.h>
 
 #include <l1ctl_proto.h>
 
@@ -82,6 +84,9 @@ struct l1a_fb_state {
 
 static struct l1a_fb_state fbs;
 static struct mon_state *last_fb = &fbs.mon;
+
+static uint32_t fbsb_last_fn;
+static uint8_t fbsb_seq;
 
 static void dump_mon_state(struct mon_state *fb)
 {
@@ -485,6 +490,19 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 			printf("  delay=%d (fn_offset=%d + 11 - fn=%u - 1\n", delay,
 				fn_offset, l1s.current_time.fn);
 			printf("  scheduling next FB/SB detection task with delay %u\n", delay);
+
+			if ((fn_offset-fbsb_last_fn) < 30)
+				fbsb_seq++;
+			fbsb_last_fn = fn_offset;
+
+			if (fbsb_seq > 1) {
+					printf("-- Forcing DSP reset --\n\n");
+					last_fb->attempt = 13;
+					l1s_compl_sched(L1_COMPL_FB);
+					dsp_power_on();
+					l1s_reset();
+			}
+
 			if (abs(last_fb->freq_diff) < fbs.req.freq_err_thresh2 &&
 			    last_fb->snr > FB1_SNR_THRESH) {
 				/* synchronize before reading SB */
@@ -551,6 +569,8 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 	fbs.initial_freq_err = 0;
 	fbs.fb_retries = 0;
 	fbs.afc_retries = 0;
+	fbsb_seq = 0;
+	fbsb_last_fn = 0;
 
 	/* Make sure we start at a 'center' AFCDAC output value */
 	afc_reset();

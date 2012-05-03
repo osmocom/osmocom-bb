@@ -16,9 +16,9 @@ MEMORY
     /* lowram: could be anything, we place exception vectors here */
 	XRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00020000
     /* highram binary: our text, initialized data */
-    LRAM (rw) : ORIGIN = 0x00820000, LENGTH = 0x00010000
+    LRAM (rw) : ORIGIN = 0x00820000, LENGTH = 0x00014000
     /* highram binary: our unitialized data, stacks, heap */
-    IRAM (rw) : ORIGIN = 0x00830000, LENGTH = 0x00010000
+    IRAM (rw) : ORIGIN = 0x00834000, LENGTH = 0x0000c000
 }
 SECTIONS
 {

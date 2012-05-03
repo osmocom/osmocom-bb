@@ -65,3 +65,9 @@ AT_KEYWORDS([lapd])
 cat $abs_srcdir/lapd/lapd_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/lapd/lapd_test], [], [expout], [ignore])
 AT_CLEANUP
+
+AT_SETUP([gsm0808])
+AT_KEYWORDS([gsm0808])
+cat $abs_srcdir/gsm0808/gsm0808_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gsm0808/gsm0808_test], [], [expout], [ignore])
+AT_CLEANUP

@@ -69,6 +69,56 @@ enum twl3025_reg {
 };
 #define BULDATA2	BULDATA1
 
+/* available ADC inputs on IOTA */
+enum twl3025_dac_inputs {/* === Signal ============================= */
+	MADC_VBAT=0,	/* battery voltage / 4                      */
+	MADC_VCHG=1,	/* charger voltage / 5                      */
+	MADC_ICHG=2,	/* I-sense amp or CHGREG DAC output         */
+	MADC_VBKP=3,	/* backup battery voltage / 4               */
+	MADC_ADIN1=4,	/* VADCID, sense battery type, not used     */
+	MADC_ADIN2=5,	/* Temperature sensor in Battery            */
+	MADC_ADIN3=6,	/* Mode_detect: sense 2.5mm jack insertion  */
+	MADC_ADIN4=7,	/* RITA: TEMP_SEN                           */
+	MADC_NUM_CHANNELS=8
+};
+
+enum madcstat_reg_bits { /* monitoring ADC status register */
+	ADCBUSY = 0x01  /* if set, a conversion is currently going on */
+};
+
+/* BCICTL1 register bits */
+enum bcictl1_reg_bits {
+	MESBAT	= 1<<0,	/* connect resistive divider for bat voltage */
+	DACNBUF	= 1<<1,	/* bypass DAC buffer */
+	THSENS0	= 1<<3,	/* thermal sensor bias current (ADIN2), bit 0 */
+	THSENS1	= 1<<4,	/* "" bit 1 */
+	THSENS2	= 1<<5,	/* "" bit 2 */
+	THEN	= 1<<6,	/* enable thermal sensor bias current (ADIN1) */ 
+	TYPEN	= 1<<7	/* enable bias current for battery type reading */
+};
+
+/* BCICTL1 register bits */
+enum bcictl2_reg_bits {
+	CHEN	= 1<<0,	/* enable charger */
+	CHIV	= 1<<1,	/* 1=constant current, 0=constant voltage */
+	CHBPASSPA=1<<2,	/* full charging of the battery during pulse radio */
+	CLIB	= 1<<3,	/* calibrate I-to-V amp (short input pins) */
+	CHDISPA	= 1<<4,	/* disabel charging during pulse radio (???) */
+	LEDC	= 1<<5,	/* enable LED during charge */
+	CGAIN4	= 1<<6,	/* if set, I-to-V amp gain is reduced from 10 to 4 */
+	PREOFF	= 1<<7	/* disable battery precharge */
+};
+
+enum vrpcsts_reg_bits {
+	ONBSTS = 1<<0,	/* button push switched on the mobile */
+	ONRSTS = 1<<1,	/* RPWON terminal switched on the mobile */
+	ITWSTS = 1<<2,	/* ITWAKEUP terminal switched on the mobile */
+	CHGSTS = 1<<3,	/* plugging in charger has switched on the mobile */
+	ONREFLT= 1<<4,	/* state of PWON terminal after debouncing */
+	ONMRFLT= 1<<5,	/* state of RPWON terminal after debouncing */
+	CHGPRES= 1<<6	/* charger is connected */
+};
+
 enum togbr2_bits {
 	TOGBR2_KEEPR	= (1 << 0),	/* Clear KEEPON bit */
 	TOGBR2_KEEPS	= (1 << 1),	/* Set KEEPON bit */

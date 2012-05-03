@@ -33,22 +33,20 @@ static LLIST_HEAD(timer_list);
 
 unsigned long volatile jiffies;
 
-#define TIMER_HZ	100
-
 #define time_after(a,b)         \
 	(typecheck(unsigned long, a) && \
 	 typecheck(unsigned long, b) && \
 	 ((long)(b) - (long)(a) < 0))
 #define time_before(a,b)        time_after(b,a)
 
-void add_timer(struct osmo_timer_list *timer)
+void osmo_timer_add(struct osmo_timer_list *timer)
 {
 	struct osmo_timer_list *list_timer;
 
 	/* TODO: Optimize and remember the closest item... */
 	timer->active = 1;
 
-	/* this might be called from within update_timers */
+	/* this might be called from within osmo_timers_update */
 	llist_for_each_entry(list_timer, &timer_list, entry)
 		if (timer == list_timer)
 			return;
@@ -57,13 +55,13 @@ void add_timer(struct osmo_timer_list *timer)
 	llist_add(&timer->entry, &timer_list);
 }
 
-void schedule_timer(struct osmo_timer_list *timer, int milliseconds)
+void osmo_timer_schedule(struct osmo_timer_list *timer, int milliseconds)
 {
-	timer->expires = jiffies + ((milliseconds * TIMER_HZ) / 1000);
-	add_timer(timer);
+	timer->expires = jiffies + ((milliseconds * HZ) / 1000);
+	osmo_timer_add(timer);
 }
 
-void del_timer(struct osmo_timer_list *timer)
+void osmo_timer_del(struct osmo_timer_list *timer)
 {
 	if (timer->in_list) {
 		timer->active = 0;
@@ -72,7 +70,7 @@ void del_timer(struct osmo_timer_list *timer)
 	}
 }
 
-int timer_pending(struct osmo_timer_list *timer)
+int osmo_timer_pending(struct osmo_timer_list *timer)
 {
 	return timer->active;
 }
@@ -131,7 +129,7 @@ void prepare_timers()
 /*
  * fire all timers... and remove them
  */
-int update_timers(void)
+int osmo_timers_update(void)
 {
 	struct osmo_timer_list *timer, *tmp;
 	int work = 0;
@@ -139,7 +137,7 @@ int update_timers(void)
 	/*
 	 * The callbacks might mess with our list and in this case
 	 * even llist_for_each_entry_safe is not safe to use. To allow
-	 * del_timer, add_timer, schedule_timer to be called from within
+	 * osmo_timer_del, osmo_timer_add, osmo_timer_schedule to be called from within
 	 * the callback we jump through some loops.
 	 *
 	 * First we set the handled flag of each active timer to zero,
@@ -149,7 +147,7 @@ int update_timers(void)
 	 * is dispatched we will remove the non-active from the list.
 	 *
 	 * TODO: If this is a performance issue we can poison a global
-	 * variable in add_timer and del_timer and only then restart.
+	 * variable in osmo_timer_add and osmo_timer_del and only then restart.
 	 */
 	llist_for_each_entry(timer, &timer_list, entry) {
 		timer->handled = 0;
@@ -169,14 +167,14 @@ restart:
 	llist_for_each_entry_safe(timer, tmp, &timer_list, entry) {
 		timer->handled = 0;
 		if (!timer->active) {
-			del_timer(timer);
+			osmo_timer_del(timer);
 		}
 	}
 
 	return work;
 }
 
-int timer_check(void)
+int osmo_timers_check(void)
 {
 	struct osmo_timer_list *timer;
 	int i = 0;
@@ -200,10 +198,10 @@ void timer_init(void)
 	/* configure TIMER2 for our purpose */
 	hwtimer_enable(2, 1);
 	/* The timer runs at 13MHz / 32, i.e. 406.25kHz */
-#if (TIMER_HZ == 100)
+#if (HZ == 100)
 	hwtimer_load(2, 4062);
 	hwtimer_config(2, 0, 1);
-#elif (TIMER_HZ == 10)
+#elif (HZ == 10)
 	/* prescaler 4, 1015 ticks until expiry */
 	hwtimer_load(2, 1015);
 	hwtimer_config(2, 4, 1);

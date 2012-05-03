@@ -56,6 +56,7 @@ static char *sap_socket_path = "/tmp/osmocom_sap";
 struct llist_head ms_list;
 static struct osmocom_ms *ms = NULL;
 static char *gsmtap_ip = NULL;
+static char *vty_ip = "127.0.0.1";
 
 unsigned short vty_port = 4247;
 int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
@@ -106,6 +107,10 @@ static void print_help()
 	if (options & L23_OPT_DBG)
 		printf("  -d --debug		Change debug flags.\n");
 
+	if (options & L23_OPT_VTYIP)
+		printf("  -u --vty-ip		The VTY IP to bind telnet to. "
+			"(default %s)\n", vty_ip);
+
 	if (app && app->cfg_print_help)
 		app->cfg_print_help();
 }
@@ -122,13 +127,14 @@ static void build_config(char **opt, struct option **option)
 		{"sap", 1, 0, 'S'},
 		{"arfcn", 1, 0, 'a'},
 		{"gsmtap-ip", 1, 0, 'i'},
+		{"vty-ip", 1, 0, 'u'},
 		{"vty-port", 1, 0, 'v'},
 		{"debug", 1, 0, 'd'},
 	};
 
 
 	app = l23_app_info();
-	*opt = talloc_asprintf(l23_ctx, "hs:S:a:i:v:d:%s",
+	*opt = talloc_asprintf(l23_ctx, "hs:S:a:i:v:d:u:%s",
 			       app && app->getopt_string ? app->getopt_string : "");
 
 	len = ARRAY_SIZE(long_options);
@@ -173,6 +179,9 @@ static void handle_options(int argc, char **argv)
 			break;
 		case 'i':
 			gsmtap_ip = optarg;
+			break;
+		case 'u':
+			vty_ip = optarg;
 			break;
 		case 'v':
 			vty_port = atoi(optarg);

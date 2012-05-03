@@ -33,6 +33,7 @@ struct osmo_sub_auth_data {
 			uint8_t k[16];
 			uint8_t amf[2];
 			uint64_t sqn;
+			int opc_is_op;
 		} umts;
 		struct {
 			uint8_t ki[16];

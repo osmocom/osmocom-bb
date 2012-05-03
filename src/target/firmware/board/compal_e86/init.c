@@ -41,10 +41,12 @@
 #include <calypso/backlight.h>
 
 #include <comm/sercomm.h>
+#include <comm/timer.h>
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
-#include <display.h>
+
+#include <fb/framebuffer.h>
 
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define IO_CNTL_REG	0xfffe4804
@@ -128,9 +130,9 @@ void board_init(void)
 	timer_init();
 
 	/* Initialize LCD driver (uses UWire) */
-	display = &td014_display;
-	display_init();
-	bl_mode_pwl(0);
+	fb_init();
+	bl_mode_pwl(1);
+	bl_level(0);
 
 	/* Initialize keypad driver */
 	keypad_init(1);

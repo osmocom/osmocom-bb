@@ -31,6 +31,7 @@
 #include <calypso/tsp.h>
 #include <calypso/tpu.h>
 #include <abb/twl3025.h>
+#include <asm/system.h>
 
 /* TWL3025 */
 #define REG_PAGE(n)	(n >> 7)
@@ -105,13 +106,6 @@ static void twl3025_irq(enum irq_nr nr)
 	case IRQ_EXTERNAL: // charger in/out, pwrbtn, adc done
 		src = twl3025_reg_read(ITSTATREG);
 //		printd("itstatreg 0x%02x\n", src);
-		if (src & 0x04) {
-			/* poll PWON status and power off the phone when the
-			 * powerbutton has been released (otherwise it will
-			 * poweron immediately again) */
-			while (!(twl3025_reg_read(VRPCSTS) & 0x10)) { };
-			twl3025_power_off();
-		}
 		if (src & 0x08)
 			handle_charger();
 		if (src & 0x20)
@@ -193,6 +187,17 @@ static void twl3025_wait_ibic_access(void)
 
 void twl3025_power_off(void)
 {
+	unsigned long flags;
+
+	/* turn off all IRQs, since received frames cannot be
+	 * handled form here. (otherwise the message allocation
+	 * runs out of memory) */
+	local_firq_save(flags);
+
+	/* poll PWON status and power off the phone when the
+	 * powerbutton has been released (otherwise it will
+	 * poweron immediately again) */
+	while (!(twl3025_reg_read(VRPCSTS) & 0x10)) { };
 	twl3025_reg_write(VRPCDEV, 0x01);
 }
 

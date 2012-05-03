@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 struct sockaddr;
+struct osmo_fd;
 
 /* flags for osmo_sock_init. */
 #define OSMO_SOCK_F_CONNECT	(1 << 0)

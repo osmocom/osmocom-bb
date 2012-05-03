@@ -118,10 +118,11 @@ static int l1s_pm_resp(uint8_t num_meas, __unused uint8_t p2,
 		pmr->pm[1] = 0;
 
 	if (l1s.pm.mode == 1) {
-		if (l1s.pm.range.arfcn_next <= l1s.pm.range.arfcn_end) {
+		if (l1s.pm.range.arfcn_next != l1s.pm.range.arfcn_end) {
 			/* schedule PM for next ARFCN in range */
+			l1s.pm.range.arfcn_next =
+				(l1s.pm.range.arfcn_next+1) & 0xfbff;
 			l1s_pm_test(1, l1s.pm.range.arfcn_next);
-			l1s.pm.range.arfcn_next++;
 		} else {
 			/* we have finished, flush the msgb to L2 */
 			struct l1ctl_hdr *l1h = l1s.pm.msg->l1h;
@@ -174,7 +175,8 @@ static int l1s_neigh_pm_cmd(uint8_t num_meas,
 	 * num_meas > 1 */
 	/* do measurement dummy, in case l1s.neigh_pm.n == 0 */
 	l1s_rx_win_ctrl((l1s.neigh_pm.n) ?
-		l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] : 0, L1_RXWIN_PW, 0);
+			l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] : 0,
+		L1_RXWIN_PW, l1s.neigh_pm.tn[l1s.neigh_pm.pos]);
 
 	/* restore last gain */
 	rffe_set_gain(last_gain);
@@ -217,6 +219,7 @@ static int l1s_neigh_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 			mi = (struct l1ctl_neigh_pm_ind *)
 				msgb_put(msg, sizeof(*mi));
 			mi->band_arfcn = htons(l1s.neigh_pm.band_arfcn[i]);
+			mi->tn = l1s.neigh_pm.tn[i];
 			mi->pm[0] = l1s.neigh_pm.level[i];
 			mi->pm[1] = 0;
 		}
