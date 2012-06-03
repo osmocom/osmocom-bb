@@ -339,6 +339,17 @@ int vty_config_unlock(struct vty *vty)
 /* Say hello to vty interface. */
 void vty_hello(struct vty *vty)
 {
+	const char *app_name = "<unnamed>";
+
+	if (host.app_info->name)
+		app_name = host.app_info->name;
+
+	vty_out(vty, "Welcome to the %s control interface%s",
+		app_name, VTY_NEWLINE);
+
+	if (host.app_info->copyright)
+		vty_out(vty, host.app_info->copyright);
+
 	if (host.motdfile) {
 		FILE *f;
 		char buf[4096];
