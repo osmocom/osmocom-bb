@@ -31,7 +31,7 @@
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gprs/gprs_ns.h>
 
-#include <openbsc/debug.h>
+#include "common_vty.h"
 
 uint8_t *bssgp_msgb_tlli_put(struct msgb *msg, uint32_t tlli)
 {

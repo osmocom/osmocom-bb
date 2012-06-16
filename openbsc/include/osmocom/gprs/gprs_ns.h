@@ -258,6 +258,8 @@ struct ns_signal_data {
 	uint8_t cause;
 };
 
+void gprs_ns_set_log_ss(int ss);
+
 /*! }@ */
 
 #endif

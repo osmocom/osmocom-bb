@@ -32,12 +32,12 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/rate_ctr.h>
 
-#include <openbsc/debug.h>
-
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gprs/gprs_ns.h>
 
 #include <openbsc/gprs_gmm.h>
+
+#include "common_vty.h"
 
 void *bssgp_tall_ctx = NULL;
 
@@ -683,7 +683,7 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 	}
 
 	if (bctx) {
-		log_set_context(BSC_CTX_BVC, bctx);
+		log_set_context(GPRS_CTX_BVC, bctx);
 		rate_ctr_inc(&bctx->ctrg->ctr[BSSGP_CTR_PKTS_IN]);
 		rate_ctr_add(&bctx->ctrg->ctr[BSSGP_CTR_BYTES_IN],
 			     msgb_bssgp_len(msg));
@@ -852,4 +852,9 @@ int gprs_bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
 	}
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
+}
+
+void gprs_bssgp_set_log_ss(int ss)
+{
+	DBSSGP = ss;
 }

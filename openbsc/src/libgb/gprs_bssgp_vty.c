@@ -40,8 +40,6 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
-#include <openbsc/debug.h>
-
 #include "common_vty.h"
 
 /* FIXME: this should go to some common file as it is copied

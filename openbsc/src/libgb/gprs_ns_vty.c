@@ -40,8 +40,6 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
-#include <openbsc/debug.h>
-
 #include "common_vty.h"
 
 static struct gprs_ns_inst *vty_nsi = NULL;

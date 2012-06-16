@@ -61,3 +61,5 @@ gDEFUN(libgb_end,
 	}
 	return CMD_SUCCESS;
 }
+
+int DNS, DBSSGP;

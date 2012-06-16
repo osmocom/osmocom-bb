@@ -249,5 +249,6 @@ int gprs_bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
 
 /* gprs_bssgp_vty.c */
 int gprs_bssgp_vty_init(void);
+void gprs_bssgp_set_log_ss(int ss);
 
 #endif /* _GPRS_BSSGP_H */

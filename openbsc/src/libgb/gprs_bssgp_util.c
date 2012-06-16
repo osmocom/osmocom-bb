@@ -30,7 +30,7 @@
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gprs/gprs_ns.h>
 
-#include <openbsc/debug.h>
+#include "common_vty.h"
 
 struct gprs_ns_inst *bssgp_nsi;
 

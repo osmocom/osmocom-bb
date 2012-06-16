@@ -37,7 +37,7 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/gprs/gprs_ns.h>
 
-#include <openbsc/debug.h>
+#include "common_vty.h"
 
 #define GRE_PTYPE_FR	0x6559
 #define GRE_PTYPE_IPv4	0x0800

@@ -27,4 +27,8 @@ struct libgb_msgb_cb {
 #define msgb_bcid(__x)		LIBGB_MSGB_CB(__x)->bssgp_cell_id
 #define msgb_llch(__x)		LIBGB_MSGB_CB(__x)->llch
 
+/* logging contexts */
+#define GPRS_CTX_NSVC	0
+#define GPRS_CTX_BVC	1
+
 #endif
