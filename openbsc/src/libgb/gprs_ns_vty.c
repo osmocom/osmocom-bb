@@ -40,9 +40,9 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
-#include <openbsc/gsm_data.h>
 #include <openbsc/debug.h>
-#include <openbsc/vty.h>
+
+#include "common_vty.h"
 
 static struct gprs_ns_inst *vty_nsi = NULL;
 
@@ -60,7 +60,7 @@ static const struct value_string gprs_ns_timer_strs[] = {
 };
 
 static struct cmd_node ns_node = {
-	NS_NODE,
+	L_NS_NODE,
 	"%s(ns)#",
 	1,
 };
@@ -137,7 +137,7 @@ DEFUN(cfg_ns, cfg_ns_cmd,
       "ns",
       "Configure the GPRS Network Service")
 {
-	vty->node = NS_NODE;
+	vty->node = L_NS_NODE;
 	return CMD_SUCCESS;
 }
 
@@ -549,21 +549,21 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 
 	install_element(CONFIG_NODE, &cfg_ns_cmd);
 	install_node(&ns_node, config_write_ns);
-	install_default(NS_NODE);
-	install_element(NS_NODE, &ournode_exit_cmd);
-	install_element(NS_NODE, &ournode_end_cmd);
-	install_element(NS_NODE, &cfg_nse_nsvci_cmd);
-	install_element(NS_NODE, &cfg_nse_remoteip_cmd);
-	install_element(NS_NODE, &cfg_nse_remoteport_cmd);
-	install_element(NS_NODE, &cfg_nse_fr_dlci_cmd);
-	install_element(NS_NODE, &cfg_nse_encaps_cmd);
-	install_element(NS_NODE, &cfg_nse_remoterole_cmd);
-	install_element(NS_NODE, &cfg_no_nse_cmd);
-	install_element(NS_NODE, &cfg_ns_timer_cmd);
-	install_element(NS_NODE, &cfg_nsip_local_ip_cmd);
-	install_element(NS_NODE, &cfg_nsip_local_port_cmd);
-	install_element(NS_NODE, &cfg_frgre_enable_cmd);
-	install_element(NS_NODE, &cfg_frgre_local_ip_cmd);
+	install_default(L_NS_NODE);
+	install_element(L_NS_NODE, &libgb_exit_cmd);
+	install_element(L_NS_NODE, &libgb_end_cmd);
+	install_element(L_NS_NODE, &cfg_nse_nsvci_cmd);
+	install_element(L_NS_NODE, &cfg_nse_remoteip_cmd);
+	install_element(L_NS_NODE, &cfg_nse_remoteport_cmd);
+	install_element(L_NS_NODE, &cfg_nse_fr_dlci_cmd);
+	install_element(L_NS_NODE, &cfg_nse_encaps_cmd);
+	install_element(L_NS_NODE, &cfg_nse_remoterole_cmd);
+	install_element(L_NS_NODE, &cfg_no_nse_cmd);
+	install_element(L_NS_NODE, &cfg_ns_timer_cmd);
+	install_element(L_NS_NODE, &cfg_nsip_local_ip_cmd);
+	install_element(L_NS_NODE, &cfg_nsip_local_port_cmd);
+	install_element(L_NS_NODE, &cfg_frgre_enable_cmd);
+	install_element(L_NS_NODE, &cfg_frgre_local_ip_cmd);
 
 	install_element(ENABLE_NODE, &nsvc_nsei_cmd);
 

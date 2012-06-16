@@ -5,5 +5,5 @@ AM_CFLAGS=-Wall -fno-strict-aliasing $(LIBOSMOCORE_CFLAGS) \
 noinst_LIBRARIES = libgb.a
 
 libgb_a_SOURCES = gprs_ns.c gprs_ns_frgre.c gprs_ns_vty.c \
-		  gprs_bssgp.c gprs_bssgp_util.c gprs_bssgp_vty.c gprs_bssgp_bss.c
-#gprs_llc.c gprs_llc_vty.c crc24.c
+		  gprs_bssgp.c gprs_bssgp_util.c gprs_bssgp_vty.c \
+		  gprs_bssgp_bss.c common_vty.c

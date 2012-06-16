@@ -40,10 +40,9 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
-#include <openbsc/vty.h>
-#include <openbsc/gsm_data.h>
 #include <openbsc/debug.h>
 
+#include "common_vty.h"
 
 /* FIXME: this should go to some common file as it is copied
  * in vty_interface.c of the BSC */
@@ -52,7 +51,7 @@ static const struct value_string gprs_bssgp_timer_strs[] = {
 };
 
 static struct cmd_node bssgp_node = {
-	BSSGP_NODE,
+	L_BSSGP_NODE,
 	"%s(bssgp)#",
 	1,
 };
@@ -68,7 +67,7 @@ DEFUN(cfg_bssgp, cfg_bssgp_cmd,
       "bssgp",
       "Configure the GPRS BSS Gateway Protocol")
 {
-	vty->node = BSSGP_NODE;
+	vty->node = L_BSSGP_NODE;
 	return CMD_SUCCESS;
 }
 
@@ -169,10 +168,10 @@ int gprs_bssgp_vty_init(void)
 
 	install_element(CONFIG_NODE, &cfg_bssgp_cmd);
 	install_node(&bssgp_node, config_write_bssgp);
-	install_default(BSSGP_NODE);
-	install_element(BSSGP_NODE, &ournode_exit_cmd);
-	install_element(BSSGP_NODE, &ournode_end_cmd);
-	//install_element(BSSGP_NODE, &cfg_bssgp_timer_cmd);
+	install_default(L_BSSGP_NODE);
+	install_element(L_BSSGP_NODE, &libgb_exit_cmd);
+	install_element(L_BSSGP_NODE, &libgb_end_cmd);
+	//install_element(L_BSSGP_NODE, &cfg_bssgp_timer_cmd);
 
 	return 0;
 }
