@@ -18,6 +18,7 @@
 enum {
 	SS_L_GLOBAL		= OSMO_SIGNAL_SS_RESERVED,
 	SS_L_INPUT,
+	SS_L_NS,
 };
 
 /* application-defined signal types. */
