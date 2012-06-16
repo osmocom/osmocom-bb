@@ -34,10 +34,10 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/socket.h>
+#include <osmocom/gprs/gprs_ns.h>
 
-#include <openbsc/socket.h>
 #include <openbsc/debug.h>
-#include <openbsc/gprs_ns.h>
 
 #define GRE_PTYPE_FR	0x6559
 #define GRE_PTYPE_IPv4	0x0800
@@ -282,7 +282,10 @@ static int nsfrgre_fd_cb(struct osmo_fd *bfd, unsigned int what)
 
 int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi)
 {
+	struct in_addr in;
 	int rc;
+
+	in.s_addr = htonl(nsi->frgre.local_ip);
 
 	/* Make sure we close any existing socket before changing it */
 	if (nsi->frgre.fd.fd)
@@ -291,8 +294,11 @@ int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi)
 	if (!nsi->frgre.enabled)
 		return 0;
 
-	rc = make_sock(&nsi->frgre.fd, IPPROTO_GRE, nsi->frgre.local_ip,
-			0, 0, nsfrgre_fd_cb, NULL);
+	nsi->frgre.fd.cb = nsfrgre_fd_cb;
+	nsi->frgre.fd.data = nsi;
+	rc = osmo_sock_init_ofd(&nsi->frgre.fd, AF_INET, SOCK_RAW,
+				IPPROTO_GRE, inet_ntoa(in), 0,
+				OSMO_SOCK_F_BIND);
 	if (rc < 0) {
 		LOGP(DNS, LOGL_ERROR, "Error creating GRE socket (%s)\n",
 			strerror(errno));

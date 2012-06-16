@@ -28,11 +28,11 @@
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/core/talloc.h>
+#include <osmocom/gprs/gprs_bssgp.h>
+#include <osmocom/gprs/gprs_ns.h>
 
 #include <openbsc/debug.h>
 #include <openbsc/gsm_data.h>
-#include <openbsc/gprs_bssgp.h>
-#include <openbsc/gprs_ns.h>
 
 uint8_t *bssgp_msgb_tlli_put(struct msgb *msg, uint32_t tlli)
 {

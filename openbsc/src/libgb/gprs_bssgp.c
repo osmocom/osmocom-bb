@@ -35,10 +35,10 @@
 #include <openbsc/debug.h>
 #include <openbsc/gsm_data.h>
 #include <openbsc/gsm_04_08_gprs.h>
-#include <openbsc/gprs_bssgp.h>
-#include <openbsc/gprs_llc.h>
-#include <openbsc/gprs_ns.h>
-#include <openbsc/gprs_sgsn.h>
+
+#include <osmocom/gprs/gprs_bssgp.h>
+#include <osmocom/gprs/gprs_ns.h>
+
 #include <openbsc/gprs_gmm.h>
 
 void *bssgp_tall_ctx = NULL;

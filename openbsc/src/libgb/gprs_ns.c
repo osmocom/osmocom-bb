@@ -68,18 +68,18 @@
 
 #include <arpa/inet.h>
 
-#include <openbsc/gsm_data.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/socket.h>
+#include <osmocom/gprs/gprs_ns.h>
+#include <osmocom/gprs/gprs_bssgp.h>
+#include <osmocom/gprs/gprs_ns_frgre.h>
+
 #include <openbsc/debug.h>
 #include <openbsc/signal.h>
-#include <openbsc/gprs_ns.h>
-#include <openbsc/gprs_bssgp.h>
-#include <openbsc/gprs_ns_frgre.h>
-#include <openbsc/socket.h>
 
 static const struct tlv_definition ns_att_tlvdef = {
 	.def = {
@@ -1026,14 +1026,19 @@ static int nsip_fd_cb(struct osmo_fd *bfd, unsigned int what)
  */
 int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi)
 {
+	struct in_addr in;
 	int ret;
 
-	ret = make_sock(&nsi->nsip.fd, IPPROTO_UDP, nsi->nsip.local_ip,
-			nsi->nsip.local_port, 0, nsip_fd_cb, NULL);
+	in.s_addr = htonl(nsi->nsip.local_ip);
+
+	nsi->nsip.fd.cb = nsip_fd_cb;
+	nsi->nsip.fd.data = nsi;
+	ret = osmo_sock_init_ofd(&nsi->nsip.fd, AF_INET, SOCK_DGRAM,
+				 IPPROTO_UDP, inet_ntoa(in),
+				 nsi->nsip.local_port, OSMO_SOCK_F_BIND);
 	if (ret < 0)
 		return ret;
 
-	nsi->nsip.fd.data = nsi;
 
 	return ret;
 }

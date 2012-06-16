@@ -143,6 +143,8 @@ enum gprs_bssgp_cause {
 
 /* Our implementation */
 
+#include <osmocom/gsm/gsm48.h>
+
 /* gprs_bssgp_util.c */
 extern struct gprs_ns_inst *bssgp_nsi;
 struct msgb *bssgp_msgb_alloc(void);
