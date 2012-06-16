@@ -74,12 +74,12 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/signal.h>
 #include <osmocom/gprs/gprs_ns.h>
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gprs/gprs_ns_frgre.h>
 
 #include <openbsc/debug.h>
-#include <openbsc/signal.h>
 
 static const struct tlv_definition ns_att_tlvdef = {
 	.def = {
@@ -201,7 +201,7 @@ static void ns_osmo_signal_dispatch(struct gprs_nsvc *nsvc, unsigned int signal,
 	nssd.nsvc = nsvc;
 	nssd.cause = cause;
 
-	osmo_signal_dispatch(SS_NS, signal, &nssd);
+	osmo_signal_dispatch(SS_L_NS, signal, &nssd);
 }
 
 /* Section 10.3.2, Table 13 */
@@ -893,9 +893,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
  *  \param[in] cb Call-back function for incoming BSSGP data
  *  \returns dynamically allocated gprs_ns_inst
  */
-struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb)
+struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb, void *ctx)
 {
-	struct gprs_ns_inst *nsi = talloc_zero(tall_bsc_ctx, struct gprs_ns_inst);
+	struct gprs_ns_inst *nsi = talloc_zero(ctx, struct gprs_ns_inst);
 
 	nsi->cb = cb;
 	INIT_LLIST_HEAD(&nsi->gprs_nsvcs);

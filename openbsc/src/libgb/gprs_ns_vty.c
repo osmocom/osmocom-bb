@@ -42,7 +42,6 @@
 
 #include <openbsc/gsm_data.h>
 #include <openbsc/debug.h>
-#include <openbsc/signal.h>
 #include <openbsc/vty.h>
 
 static struct gprs_ns_inst *vty_nsi = NULL;

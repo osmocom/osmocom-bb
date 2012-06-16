@@ -33,7 +33,6 @@
 #include <osmocom/core/rate_ctr.h>
 
 #include <openbsc/debug.h>
-#include <openbsc/gsm_04_08_gprs.h>
 
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gprs/gprs_ns.h>

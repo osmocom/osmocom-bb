@@ -203,7 +203,7 @@ struct gprs_nsvc {
 };
 
 /* Create a new NS protocol instance */
-struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb);
+struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb, void *ctx);
 
 /* Destroy a NS protocol instance */
 void gprs_ns_destroy(struct gprs_ns_inst *nsi);
@@ -245,6 +245,18 @@ static inline struct msgb *gprs_ns_msgb_alloc(void)
 {
 	return msgb_alloc_headroom(NS_ALLOC_SIZE, NS_ALLOC_HEADROOM, "GPRS/NS");
 }
+
+enum signal_ns {
+	S_NS_RESET,
+	S_NS_BLOCK,
+	S_NS_UNBLOCK,
+	S_NS_ALIVE_EXP,	/* Tns-alive expired more than N times */
+};
+
+struct ns_signal_data {
+	struct gprs_nsvc *nsvc;
+	uint8_t cause;
+};
 
 /*! }@ */
 
