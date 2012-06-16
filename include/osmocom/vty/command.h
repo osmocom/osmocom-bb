@@ -82,6 +82,8 @@ enum node_type {
 
 	L_E1INP_NODE,		/*!< \brief E1 line in libosmo-abis. */
 	L_IPA_NODE,		/*!< \brief IPA proxying commands in libosmo-abis. */
+	L_NS_NODE,		/*!< \brief NS node in libosmo-gb. */
+	L_BSSGP_NODE,		/*!< \brief BSSGP node in libosmo-gb. */
 
 	_LAST_OSMOVTY_NODE
 };
