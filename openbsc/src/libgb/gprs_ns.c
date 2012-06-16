@@ -1,7 +1,7 @@
 /* GPRS Networks Service (NS) messages on the Gb interface
  * 3GPP TS 08.16 version 8.0.1 Release 1999 / ETSI TS 101 299 V8.0.1 (2002-05) */
 
-/* (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2009-2012 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *

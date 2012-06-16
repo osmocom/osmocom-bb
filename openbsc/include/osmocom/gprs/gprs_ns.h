@@ -88,6 +88,7 @@ enum ns_cause {
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/select.h>
+#include <osmocom/gprs/gprs_msgb.h>
 
 #define NS_TIMERS_COUNT 7
 #define NS_TIMERS "(tns-block|tns-block-retries|tns-reset|tns-reset-retries|tns-test|tns-alive|tns-alive-retries)"

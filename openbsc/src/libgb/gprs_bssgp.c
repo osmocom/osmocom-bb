@@ -1,6 +1,6 @@
 /* GPRS BSSGP protocol implementation as per 3GPP TS 08.18 */
 
-/* (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2009-2012 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -33,7 +33,6 @@
 #include <osmocom/core/rate_ctr.h>
 
 #include <openbsc/debug.h>
-#include <openbsc/gsm_data.h>
 #include <openbsc/gsm_04_08_gprs.h>
 
 #include <osmocom/gprs/gprs_bssgp.h>

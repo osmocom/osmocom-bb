@@ -1,6 +1,6 @@
 /* GPRS BSSGP protocol implementation as per 3GPP TS 08.18 */
 
-/* (C) 2009-2011 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2009-2012 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -32,7 +32,6 @@
 #include <osmocom/gprs/gprs_ns.h>
 
 #include <openbsc/debug.h>
-#include <openbsc/gsm_data.h>
 
 uint8_t *bssgp_msgb_tlli_put(struct msgb *msg, uint32_t tlli)
 {

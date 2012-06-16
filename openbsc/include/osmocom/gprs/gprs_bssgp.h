@@ -198,6 +198,7 @@ enum bssgp_ctr {
 
 
 #include <osmocom/gsm/tlv.h>
+#include <osmocom/gprs/gprs_msgb.h>
 
 /* BSSGP-UL-UNITDATA.ind */
 int gprs_bssgp_rcvmsg(struct msgb *msg);
