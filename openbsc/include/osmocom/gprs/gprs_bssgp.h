@@ -204,8 +204,21 @@ enum bssgp_ctr {
 int gprs_bssgp_rcvmsg(struct msgb *msg);
 
 /* BSSGP-DL-UNITDATA.req */
-struct sgsn_mm_ctx;
-int gprs_bssgp_tx_dl_ud(struct msgb *msg, struct sgsn_mm_ctx *mmctx);
+struct bssgp_lv {
+	uint16_t len;
+	uint8_t *v;
+};
+/* parameters for BSSGP downlink userdata transmission */
+struct bssgp_dl_ud_par {
+	uint32_t *tlli;
+	char *imsi;
+	uint16_t drx_parms;
+	/* FIXME: priority */
+	struct bssgp_lv ms_ra_cap;
+	uint8_t qos_profile[3];
+};
+int gprs_bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
+			struct bssgp_dl_ud_par *dup);
 
 uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf);
 int bssgp_create_cell_id(uint8_t *buf, const struct gprs_ra_id *raid,

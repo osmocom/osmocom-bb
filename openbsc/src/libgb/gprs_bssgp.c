@@ -35,8 +35,6 @@
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gprs/gprs_ns.h>
 
-#include <openbsc/gprs_gmm.h>
-
 #include "common_vty.h"
 
 void *bssgp_tall_ctx = NULL;
@@ -699,19 +697,17 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 	return rc;
 }
 
-/* Entry function from upper level (LLC), asking us to transmit a BSSGP PDU
- * to a remote MS (identified by TLLI) at a BTS identified by its BVCI and NSEI */
-int gprs_bssgp_tx_dl_ud(struct msgb *msg, struct sgsn_mm_ctx *mmctx)
+int gprs_bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
+			struct bssgp_dl_ud_par *dup)
 {
 	struct bssgp_bvc_ctx *bctx;
 	struct bssgp_ud_hdr *budh;
 	uint8_t llc_pdu_tlv_hdr_len = 2;
-	uint8_t *llc_pdu_tlv, *qos_profile;
-	uint16_t pdu_lifetime = 1000; /* centi-seconds */
-	uint8_t qos_profile_default[3] = { 0x00, 0x00, 0x20 };
+	uint8_t *llc_pdu_tlv;
 	uint16_t msg_len = msg->len;
 	uint16_t bvci = msgb_bvci(msg);
 	uint16_t nsei = msgb_nsei(msg);
+	uint16_t _pdu_lifetime = htons(pdu_lifetime); /* centi-seconds */
 	uint16_t drx_params;
 
 	/* Identifiers from UP: TLLI, BVCI, NSEI (all in msgb->cb) */
@@ -743,43 +739,42 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg, struct sgsn_mm_ctx *mmctx)
 
 	/* FIXME: optional elements: Alignment, UTRAN CCO, LSA, PFI */
 
-	if (mmctx) {
+	if (dup) {
 		/* Old TLLI to help BSS map from old->new */
-#if 0
-		if (mmctx->tlli_old)
-			msgb_tvlv_push(msg, BSSGP_IE_TLLI, 4, htonl(*tlli_old));
-#endif
+		if (dup->tlli) {
+			uint32_t tlli = htonl(*dup->tlli);
+			msgb_tvlv_push(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &tlli);
+		}
 
 		/* IMSI */
-		if (strlen(mmctx->imsi)) {
+		if (strlen(dup->imsi)) {
 			uint8_t mi[10];
-			int imsi_len = gsm48_generate_mid_from_imsi(mi, mmctx->imsi);
+			int imsi_len = gsm48_generate_mid_from_imsi(mi, dup->imsi);
 			if (imsi_len > 2)
 				msgb_tvlv_push(msg, BSSGP_IE_IMSI,
-							imsi_len-2, mi+2);
+						imsi_len-2, mi+2);
 		}
 
 		/* DRX parameters */
-		drx_params = htons(mmctx->drx_parms);
+		drx_params = htons(dup->drx_parms);
 		msgb_tvlv_push(msg, BSSGP_IE_DRX_PARAMS, 2,
 				(uint8_t *) &drx_params);
 
 		/* FIXME: Priority */
 
 		/* MS Radio Access Capability */
-		if (mmctx->ms_radio_access_capa.len)
+		if (dup->ms_ra_cap.len)
 			msgb_tvlv_push(msg, BSSGP_IE_MS_RADIO_ACCESS_CAP,
-					mmctx->ms_radio_access_capa.len,
-					mmctx->ms_radio_access_capa.buf);
+					dup->ms_ra_cap.len, dup->ms_ra_cap.v);
+
 	}
 
 	/* prepend the pdu lifetime */
-	pdu_lifetime = htons(pdu_lifetime);
-	msgb_tvlv_push(msg, BSSGP_IE_PDU_LIFETIME, 2, (uint8_t *)&pdu_lifetime);
+	msgb_tvlv_push(msg, BSSGP_IE_PDU_LIFETIME, 2, (uint8_t *)&_pdu_lifetime);
 
 	/* prepend the QoS profile, TLLI and pdu type */
 	budh = (struct bssgp_ud_hdr *) msgb_push(msg, sizeof(*budh));
-	memcpy(budh->qos_profile, qos_profile_default, sizeof(qos_profile_default));
+	memcpy(budh->qos_profile, dup->qos_profile, sizeof(budh->qos_profile));
 	budh->tlli = htonl(msgb_tlli(msg));
 	budh->pdu_type = BSSGP_PDUT_DL_UNITDATA;
 
