@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/logging.h>
 
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/command.h>
@@ -70,7 +71,7 @@ int gprs_log_filter_fn(const struct log_context *ctx,
 			struct log_target *tar)
 {
 	const struct gprs_nsvc *nsvc = ctx->ctx[GPRS_CTX_NSVC];
-	const struct gprs_nsvc *bvc = ctx->ctx[GPRS_CTX_BVC];
+	const struct gprs_bvc *bvc = ctx->ctx[GPRS_CTX_BVC];
 
 	/* Filter on the NS Virtual Connection */
 	if ((tar->filter_map & (1 << FLT_NSVC)) != 0
