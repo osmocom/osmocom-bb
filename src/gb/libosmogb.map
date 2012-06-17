@@ -23,12 +23,12 @@ bssgp_tx_suspend;
 bssgp_tx_suspend_ack;
 bssgp_tx_suspend_nack;
 bssgp_tx_ul_ud;
-bssgp_rcvmsg
-bssgp_rx_paging
-bssgp_set_log_ss
-bssgp_tx_dl_ud
-bssgp_tx_paging
-bssgp_vty_init
+bssgp_rcvmsg;
+bssgp_rx_paging;
+bssgp_set_log_ss;
+bssgp_tx_dl_ud;
+bssgp_tx_paging;
+bssgp_vty_init;
 
 gprs_ns_cause_str;
 gprs_ns_destroy;

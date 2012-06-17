@@ -1,5 +1,5 @@
 if ENABLE_VTY
-SUBDIRS = vty codec crypt gsm core
+SUBDIRS = vty codec crypt gsm gprs core
 else
-SUBDIRS = codec crypt gsm core
+SUBDIRS = codec crypt gsm gprs core
 endif

@@ -146,18 +146,22 @@ AC_OUTPUT(
 	libosmocodec.pc
 	libosmovty.pc
 	libosmogsm.pc
+	libosmogb.pc
 	include/osmocom/Makefile
 	include/osmocom/vty/Makefile
 	include/osmocom/codec/Makefile
 	include/osmocom/crypt/Makefile
 	include/osmocom/gsm/Makefile
 	include/osmocom/gsm/protocol/Makefile
+	include/osmocom/gprs/Makefile
+	include/osmocom/gprs/protocol/Makefile
 	include/osmocom/core/Makefile
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile
 	src/codec/Makefile
 	src/gsm/Makefile
+	src/gb/Makefile
 	tests/Makefile
 	tests/timer/Makefile
 	tests/sms/Makefile

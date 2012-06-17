@@ -5,7 +5,8 @@ INCLUDES = $(all_includes) -I$(top_srcdir)/include
 SUBDIRS = include src tests utils
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libosmocore.pc libosmocodec.pc libosmovty.pc libosmogsm.pc
+pkgconfig_DATA = libosmocore.pc libosmocodec.pc libosmovty.pc libosmogsm.pc \
+		 libosmogb.pc
 
 BUILT_SOURCES = $(top_srcdir)/.version
 $(top_srcdir)/.version:
