@@ -144,6 +144,7 @@ enum gprs_bssgp_cause {
 /* Our implementation */
 
 #include <osmocom/gsm/gsm48.h>
+#include <osmocom/gsm/prim.h>
 
 /* gprs_bssgp_util.c */
 extern struct gprs_ns_inst *bssgp_nsi;
@@ -154,6 +155,40 @@ int bssgp_tx_simple_bvci(uint8_t pdu_type, uint16_t nsei,
 			 uint16_t bvci, uint16_t ns_bvci);
 /* Chapter 10.4.14: Status */
 int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg);
+
+enum bssgp_prim {
+	PRIM_BSSGP_DL_UD,
+	PRIM_BSSGP_UL_UD,
+	PRIM_BSSGP_PTM_UD,
+
+	PRIM_BSSGP_GMM_SUSPEND,
+	PRIM_BSSGP_GMM_RESUME,
+	PRIM_BSSGP_GMM_PAGING,
+
+	PRIM_NM_FLUSH_LL,
+	PRIM_NM_LLC_DISCARDED,
+	PRIM_NM_BVC_RESET,
+	PRIM_NM_BVC_BLOCK,
+	PRIM_NM_BVC_UNBLOCK,
+};
+
+struct osmo_bssgp_prim {
+	struct osmo_prim_hdr oph;
+
+	/* common fields */
+	uint16_t nsei;
+	uint16_t bvci;
+	uint32_t tlli;
+	struct tlv_parsed *tp;
+	struct gprs_ra_id *ra_id;
+
+	/* specific fields */
+	union {
+		struct {
+			uint8_t *suspend_ref;
+		} resume;
+	} u;
+};
 
 /* gprs_bssgp.c */
 
@@ -263,5 +298,7 @@ int gprs_bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
 /* gprs_bssgp_vty.c */
 int gprs_bssgp_vty_init(void);
 void gprs_bssgp_set_log_ss(int ss);
+
+int bssgp_prim_cb(struct osmo_prim_hdr *oph, void *ctx);
 
 #endif /* _GPRS_BSSGP_H */

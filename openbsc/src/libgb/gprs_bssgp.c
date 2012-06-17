@@ -233,6 +233,7 @@ int bssgp_create_cell_id(uint8_t *buf, const struct gprs_ra_id *raid,
 static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,	
 			      uint16_t ns_bvci)
 {
+	struct osmo_bssgp_prim nmp;
 	struct bssgp_bvc_ctx *bctx;
 	uint16_t nsei = msgb_nsei(msg);
 	uint16_t bvci;
@@ -266,6 +267,16 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 			bctx->ra_id.rac, bctx->cell_id, bvci);
 	}
 
+	/* Send NM_BVC_RESET.ind to NM */
+	memset(&nmp, 0, sizeof(nmp));
+	nmp.nsei = nsei;
+	nmp.bvci = bvci;
+	nmp.tp = tp;
+	nmp.ra_id = &bctx->ra_id;
+	osmo_prim_init(&nmp.oph, SAP_BSSGP_NM, PRIM_NM_BVC_RESET,
+			PRIM_OP_INDICATION, msg);
+	bssgp_prim_cb(&nmp.oph, NULL);
+
 	/* Acknowledge the RESET to the BTS */
 	rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_RESET_ACK,
 				  nsei, bvci, ns_bvci);
@@ -274,6 +285,7 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 
 static int bssgp_rx_bvc_block(struct msgb *msg, struct tlv_parsed *tp)
 {
+	struct osmo_bssgp_prim nmp;
 	uint16_t bvci;
 	struct bssgp_bvc_ctx *ptp_ctx;
 
@@ -295,7 +307,14 @@ static int bssgp_rx_bvc_block(struct msgb *msg, struct tlv_parsed *tp)
 	ptp_ctx->state |= BVC_S_BLOCKED;
 	rate_ctr_inc(&ptp_ctx->ctrg->ctr[BSSGP_CTR_BLOCKED]);
 
-	/* FIXME: Send NM_BVC_BLOCK.ind to NM */
+	/* Send NM_BVC_BLOCK.ind to NM */
+	memset(&nmp, 0, sizeof(nmp));
+	nmp.nsei = msgb_nsei(msg);
+	nmp.bvci = bvci;
+	nmp.tp = tp;
+	osmo_prim_init(&nmp.oph, SAP_BSSGP_NM, PRIM_NM_BVC_BLOCK,
+			PRIM_OP_INDICATION, msg);
+	bssgp_prim_cb(&nmp.oph, NULL);
 
 	/* We always acknowledge the BLOCKing */
 	return bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK_ACK, msgb_nsei(msg),
@@ -304,6 +323,7 @@ static int bssgp_rx_bvc_block(struct msgb *msg, struct tlv_parsed *tp)
 
 static int bssgp_rx_bvc_unblock(struct msgb *msg, struct tlv_parsed *tp)
 {
+	struct osmo_bssgp_prim nmp;
 	uint16_t bvci;
 	struct bssgp_bvc_ctx *ptp_ctx;
 
@@ -324,7 +344,14 @@ static int bssgp_rx_bvc_unblock(struct msgb *msg, struct tlv_parsed *tp)
 
 	ptp_ctx->state &= ~BVC_S_BLOCKED;
 
-	/* FIXME: Send NM_BVC_UNBLOCK.ind to NM */
+	/* Send NM_BVC_UNBLOCK.ind to NM */
+	memset(&nmp, 0, sizeof(nmp));
+	nmp.nsei = msgb_nsei(msg);
+	nmp.bvci = bvci;
+	nmp.tp = tp;
+	osmo_prim_init(&nmp.oph, SAP_BSSGP_NM, PRIM_NM_BVC_UNBLOCK,
+			PRIM_OP_INDICATION, msg);
+	bssgp_prim_cb(&nmp.oph, NULL);
 
 	/* We always acknowledge the unBLOCKing */
 	return bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_UNBLOCK_ACK, msgb_nsei(msg),
@@ -335,6 +362,7 @@ static int bssgp_rx_bvc_unblock(struct msgb *msg, struct tlv_parsed *tp)
 static int bssgp_rx_ul_ud(struct msgb *msg, struct tlv_parsed *tp,
 			  struct bssgp_bvc_ctx *ctx)
 {
+	struct osmo_bssgp_prim gbp;
 	struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
 
 	/* extract TLLI and parse TLV IEs */
@@ -354,12 +382,21 @@ static int bssgp_rx_ul_ud(struct msgb *msg, struct tlv_parsed *tp,
 	msgb_llch(msg) = (uint8_t *) TLVP_VAL(tp, BSSGP_IE_LLC_PDU);
 	msgb_bcid(msg) = (uint8_t *) TLVP_VAL(tp, BSSGP_IE_CELL_ID);
 
-	return gprs_llc_rcvmsg(msg, tp);
+	/* Send BSSGP_UL_UD.ind to NM */
+	memset(&gbp, 0, sizeof(gbp));
+	gbp.nsei = ctx->nsei;
+	gbp.bvci = ctx->bvci;
+	gbp.tlli = msgb_tlli(msg);
+	gbp.tp = tp;
+	osmo_prim_init(&gbp.oph, SAP_BSSGP_LL, PRIM_BSSGP_UL_UD,
+			PRIM_OP_INDICATION, msg);
+	return bssgp_prim_cb(&gbp.oph, NULL);
 }
 
 static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 			    struct bssgp_bvc_ctx *ctx)
 {
+	struct osmo_bssgp_prim gbp;
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct gprs_ra_id raid;
@@ -381,7 +418,15 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
 
 	/* Inform GMM about the SUSPEND request */
-	rc = gprs_gmm_rx_suspend(&raid, tlli);
+	memset(&gbp, 0, sizeof(gbp));
+	gbp.nsei = msgb_nsei(msg);
+	gbp.bvci = ctx->bvci;
+	gbp.tlli = tlli;
+	gbp.ra_id = &raid;
+	osmo_prim_init(&gbp.oph, SAP_BSSGP_GMM, PRIM_BSSGP_GMM_SUSPEND,
+			PRIM_OP_REQUEST, msg);
+
+	rc = bssgp_prim_cb(&gbp.oph, NULL);
 	if (rc < 0)
 		return bssgp_tx_suspend_nack(msgb_nsei(msg), tlli, &raid, NULL);
 
@@ -393,6 +438,7 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 			   struct bssgp_bvc_ctx *ctx)
 {
+	struct osmo_bssgp_prim gbp;
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct gprs_ra_id raid;
@@ -416,7 +462,16 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
 
 	/* Inform GMM about the RESUME request */
-	rc = gprs_gmm_rx_resume(&raid, tlli, suspend_ref);
+	memset(&gbp, 0, sizeof(gbp));
+	gbp.nsei = msgb_nsei(msg);
+	gbp.bvci = ctx->bvci;
+	gbp.tlli = tlli;
+	gbp.ra_id = &raid;
+	gbp.u.resume.suspend_ref = suspend_ref;
+	osmo_prim_init(&gbp.oph, SAP_BSSGP_GMM, PRIM_BSSGP_GMM_RESUME,
+			PRIM_OP_REQUEST, msg);
+
+	rc = bssgp_prim_cb(&gbp.oph, NULL);
 	if (rc < 0)
 		return bssgp_tx_resume_nack(msgb_nsei(msg), tlli, &raid,
 					    NULL);
@@ -429,6 +484,7 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 static int bssgp_rx_llc_disc(struct msgb *msg, struct tlv_parsed *tp,
 			     struct bssgp_bvc_ctx *ctx)
 {
+	struct osmo_bssgp_prim nmp;
 	uint32_t tlli = 0;
 
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TLLI) ||
@@ -447,8 +503,16 @@ static int bssgp_rx_llc_disc(struct msgb *msg, struct tlv_parsed *tp,
 
 	rate_ctr_inc(&ctx->ctrg->ctr[BSSGP_CTR_DISCARDED]);
 
-	/* FIXME: send NM_LLC_DISCARDED to NM */
-	return 0;
+	/* send NM_LLC_DISCARDED to NM */
+	memset(&nmp, 0, sizeof(nmp));
+	nmp.nsei = msgb_nsei(msg);
+	nmp.bvci = ctx->bvci;
+	nmp.tlli = tlli;
+	nmp.tp = tp;
+	osmo_prim_init(&nmp.oph, SAP_BSSGP_NM, PRIM_NM_LLC_DISCARDED,
+			PRIM_OP_INDICATION, msg);
+
+	return bssgp_prim_cb(&nmp.oph, NULL);
 }
 
 static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
