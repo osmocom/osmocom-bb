@@ -29,6 +29,7 @@ bssgp_set_log_ss;
 bssgp_tx_dl_ud;
 bssgp_tx_paging;
 bssgp_vty_init;
+bssgp_nsi;
 
 gprs_ns_cause_str;
 gprs_ns_destroy;
@@ -54,6 +55,7 @@ gprs_nsvc_reset;
 gprs_nsvc_by_nsvci;
 gprs_nsvc_by_nsei;
 
+gprs_log_filter_fn;
 
 local: *;
 };
