@@ -211,6 +211,12 @@ void gprs_ns_destroy(struct gprs_ns_inst *nsi);
 /* Listen for incoming GPRS packets via NS/UDP */
 int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi);
 
+/* Establish a connection (from the BSS) to the SGSN */
+struct gprs_nsvc *gprs_ns_nsip_connect(struct gprs_ns_inst *nsi,
+					struct sockaddr_in *dest,
+					uint16_t nsei, uint16_t nsvci);
+
+
 struct sockaddr_in;
 
 /* main function for higher layers (BSSGP) to send NS messages */
@@ -223,15 +229,10 @@ int gprs_ns_tx_unblock(struct gprs_nsvc *nsvc);
 /* Listen for incoming GPRS packets via NS/FR/GRE */
 int gprs_ns_frgre_listen(struct gprs_ns_inst *nsi);
 
-/* Establish a connection (from the BSS) to the SGSN */
-struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
-				struct sockaddr_in *dest, uint16_t nsei,
-				uint16_t nsvci);
-
-struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci);
-void nsvc_delete(struct gprs_nsvc *nsvc);
-struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei);
-struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci);
+struct gprs_nsvc *gprs_nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci);
+void gprs_nsvc_delete(struct gprs_nsvc *nsvc);
+struct gprs_nsvc *gprs_nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei);
+struct gprs_nsvc *gprs_nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci);
 
 /* Initiate a RESET procedure (including timer start, ...)*/
 void gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause);

@@ -28,6 +28,10 @@
 #include <osmocom/vty/buffer.h>
 #include <osmocom/vty/vty.h>
 
+#include <osmocom/gprs/gprs_msgb.h>
+
+#include "common_vty.h"
+
 /* Down vty node level. */
 gDEFUN(libgb_exit,
        libgb_exit_cmd, "exit", "Exit current mode and down to previous mode\n")
@@ -61,5 +65,25 @@ gDEFUN(libgb_end,
 	}
 	return CMD_SUCCESS;
 }
+
+int gprs_log_filter_fn(const struct log_context *ctx,
+			struct log_target *tar)
+{
+	const struct gprs_nsvc *nsvc = ctx->ctx[GPRS_CTX_NSVC];
+	const struct gprs_nsvc *bvc = ctx->ctx[GPRS_CTX_BVC];
+
+	/* Filter on the NS Virtual Connection */
+	if ((tar->filter_map & (1 << FLT_NSVC)) != 0
+	    && nsvc && (nsvc == tar->filter_data[FLT_NSVC]))
+		return 1;
+
+	/* Filter on the NS Virtual Connection */
+	if ((tar->filter_map & (1 << FLT_BVC)) != 0
+	    && bvc && (bvc == tar->filter_data[FLT_BVC]))
+		return 1;
+
+	return 0;
+}
+
 
 int DNS, DBSSGP;

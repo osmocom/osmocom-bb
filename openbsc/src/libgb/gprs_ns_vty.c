@@ -57,6 +57,18 @@ static const struct value_string gprs_ns_timer_strs[] = {
 	{ 0, NULL }
 };
 
+static void log_set_nsvc_filter(struct log_target *target,
+				struct gprs_nsvc *nsvc)
+{
+	if (nsvc) {
+		target->filter_map |= (1 << FLT_NSVC);
+		target->filter_data[FLT_NSVC] = nsvc;
+	} else if (target->filter_data[FLT_NSVC]) {
+		target->filter_map = ~(1 << FLT_NSVC);
+		target->filter_data[FLT_NSVC] = NULL;
+	}
+}
+
 static struct cmd_node ns_node = {
 	L_NS_NODE,
 	"%s(ns)#",
@@ -207,9 +219,9 @@ DEFUN(show_nse, show_nse_cmd, "show ns (nsei|nsvc) <0-65535> [stats]",
 	int show_stats = 0;
 
 	if (!strcmp(argv[0], "nsei"))
-		nsvc = nsvc_by_nsei(nsi, id);
+		nsvc = gprs_nsvc_by_nsei(nsi, id);
 	else
-		nsvc = nsvc_by_nsvci(nsi, id);
+		nsvc = gprs_nsvc_by_nsvci(nsi, id);
 
 	if (!nsvc) {
 		vty_out(vty, "No such NS Entity%s", VTY_NEWLINE);
@@ -236,9 +248,9 @@ DEFUN(cfg_nse_nsvc, cfg_nse_nsvci_cmd,
 	uint16_t nsvci = atoi(argv[1]);
 	struct gprs_nsvc *nsvc;
 
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsei);
 	if (!nsvc) {
-		nsvc = nsvc_create(vty_nsi, nsvci);
+		nsvc = gprs_nsvc_create(vty_nsi, nsvci);
 		nsvc->nsei = nsei;
 	}
 	nsvc->nsvci = nsvci;
@@ -259,7 +271,7 @@ DEFUN(cfg_nse_remoteip, cfg_nse_remoteip_cmd,
 	uint16_t nsei = atoi(argv[0]);
 	struct gprs_nsvc *nsvc;
 
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsei);
 	if (!nsvc) {
 		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -280,7 +292,7 @@ DEFUN(cfg_nse_remoteport, cfg_nse_remoteport_cmd,
 	uint16_t port = atoi(argv[1]);
 	struct gprs_nsvc *nsvc;
 
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsei);
 	if (!nsvc) {
 		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -307,7 +319,7 @@ DEFUN(cfg_nse_fr_dlci, cfg_nse_fr_dlci_cmd,
 	uint16_t dlci = atoi(argv[1]);
 	struct gprs_nsvc *nsvc;
 
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsei);
 	if (!nsvc) {
 		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -333,7 +345,7 @@ DEFUN(cfg_nse_encaps, cfg_nse_encaps_cmd,
 	uint16_t nsei = atoi(argv[0]);
 	struct gprs_nsvc *nsvc;
 
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsei);
 	if (!nsvc) {
 		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -358,7 +370,7 @@ DEFUN(cfg_nse_remoterole, cfg_nse_remoterole_cmd,
 	uint16_t nsei = atoi(argv[0]);
 	struct gprs_nsvc *nsvc;
 
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsei);
 	if (!nsvc) {
 		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -380,7 +392,7 @@ DEFUN(cfg_no_nse, cfg_no_nse_cmd,
 	uint16_t nsei = atoi(argv[0]);
 	struct gprs_nsvc *nsvc;
 
-	nsvc = nsvc_by_nsei(vty_nsi, nsei);
+	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsei);
 	if (!nsvc) {
 		vty_out(vty, "No such NSE (%u)%s", nsei, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -486,7 +498,7 @@ DEFUN(nsvc_nsei, nsvc_nsei_cmd,
 	const char *operation = argv[1];
 	struct gprs_nsvc *nsvc;
 
-	nsvc = nsvc_by_nsei(vty_nsi, nsvci);
+	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsvci);
 	if (!nsvc) {
 		vty_out(vty, "No such NSVCI (%u)%s", nsvci, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -521,9 +533,9 @@ DEFUN(logging_fltr_nsvc,
 		return CMD_WARNING;
 
 	if (!strcmp(argv[0], "nsei"))
-		nsvc = nsvc_by_nsei(vty_nsi, id);
+		nsvc = gprs_nsvc_by_nsei(vty_nsi, id);
 	else
-		nsvc = nsvc_by_nsvci(vty_nsi, id);
+		nsvc = gprs_nsvc_by_nsvci(vty_nsi, id);
 
 	if (!nsvc) {
 		vty_out(vty, "No NS-VC by that identifier%s", VTY_NEWLINE);

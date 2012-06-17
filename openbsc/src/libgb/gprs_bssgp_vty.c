@@ -48,6 +48,18 @@ static const struct value_string gprs_bssgp_timer_strs[] = {
 	{ 0, NULL }
 };
 
+static void log_set_bvc_filter(struct log_target *target,
+				struct bssgp_bvc_ctx *bctx)
+{
+	if (bctx) {
+		target->filter_map |= (1 << FLT_BVC);
+		target->filter_data[FLT_BVC] = bctx;
+	} else if (target->filter_data[FLT_NSVC]) {
+		target->filter_map = ~(1 << FLT_BVC);
+		target->filter_data[FLT_BVC] = NULL;
+	}
+}
+
 static struct cmd_node bssgp_node = {
 	L_BSSGP_NODE,
 	"%s(bssgp)#",

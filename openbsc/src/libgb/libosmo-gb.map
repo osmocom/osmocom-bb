@@ -37,6 +37,7 @@ gprs_ns_frgre_listen;
 gprs_ns_frgre_sendmsg;
 gprs_ns_instantiate;
 gprs_ns_nsip_listen;
+gprs_ns_nsip_connect;
 gprs_ns_rcvmsg;
 gprs_ns_sendmsg;
 gprs_ns_set_log_ss;
@@ -48,9 +49,12 @@ gprs_ns_tx_status;
 gprs_ns_tx_unblock;
 gprs_ns_vty_init;
 
+gprs_nsvc_create;
+gprs_nsvc_delete;
 gprs_nsvc_reset;
+gprs_nsvc_by_nsvci;
+gprs_nsvc_by_nsei;
 
-nsip_connect;
 
 local: *;
 };

@@ -121,7 +121,7 @@ static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
  *  \param[in] nsvci NSVCI to be searched
  *  \returns gprs_nsvc of respective NSVCI
  */
-struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci)
+struct gprs_nsvc *gprs_nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci)
 {
 	struct gprs_nsvc *nsvc;
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
@@ -136,7 +136,7 @@ struct gprs_nsvc *nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci)
  *  \param[in] nsei NSEI to be searched
  *  \returns gprs_nsvc of respective NSEI
  */
-struct gprs_nsvc *nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei)
+struct gprs_nsvc *gprs_nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei)
 {
 	struct gprs_nsvc *nsvc;
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
@@ -162,7 +162,7 @@ static struct gprs_nsvc *nsvc_by_rem_addr(struct gprs_ns_inst *nsi,
 
 static void gprs_ns_timer_cb(void *data);
 
-struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
+struct gprs_nsvc *gprs_nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 {
 	struct gprs_nsvc *nsvc;
 
@@ -185,7 +185,7 @@ struct gprs_nsvc *nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 /*! \brief Delete given NS-VC
  *  \param[in] nsvc gprs_nsvc to be deleted
  */
-void nsvc_delete(struct gprs_nsvc *nsvc)
+void gprs_nsvc_delete(struct gprs_nsvc *nsvc)
 {
 	if (osmo_timer_pending(&nsvc->timer))
 		osmo_timer_del(&nsvc->timer);
@@ -557,7 +557,7 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 	struct gprs_ns_hdr *nsh;
 	uint16_t bvci = msgb_bvci(msg);
 
-	nsvc = nsvc_by_nsei(nsi, msgb_nsei(msg));
+	nsvc = gprs_nsvc_by_nsei(nsi, msgb_nsei(msg));
 	if (!nsvc) {
 		LOGP(DNS, LOGL_ERROR, "Unable to resolve NSEI %u "
 			"to NS-VC!\n", msgb_nsei(msg));
@@ -795,9 +795,9 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		nsei = ntohs(*(uint16_t *)TLVP_VAL(&tp, NS_IE_NSEI));
 		/* Check if we already know this NSEI, the remote end might
 		 * simply have changed addresses, or it is a SGSN */
-		nsvc = nsvc_by_nsei(nsi, nsei);
+		nsvc = gprs_nsvc_by_nsei(nsi, nsei);
 		if (!nsvc) {
-			nsvc = nsvc_create(nsi, 0xffff);
+			nsvc = gprs_nsvc_create(nsi, 0xffff);
 			nsvc->ll = ll;
 			log_set_context(GPRS_CTX_NSVC, nsvc);
 			LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s:%u\n",
@@ -909,7 +909,7 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb, void *ctx)
 
 	/* Create the dummy NSVC that we use for sending
 	 * messages to non-existant/unknown NS-VC's */
-	nsi->unknown_nsvc = nsvc_create(nsi, 0xfffe);
+	nsi->unknown_nsvc = gprs_nsvc_create(nsi, 0xfffe);
 	llist_del(&nsi->unknown_nsvc->list);
 
 	return nsi;
@@ -1077,7 +1077,7 @@ void gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
  * This function will establish a single NS/UDP/IP connection in uplink
  * (BSS to SGSN) direction.
  */
-struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
+struct gprs_nsvc *gprs_ns_nsip_connect(struct gprs_ns_inst *nsi,
 				struct sockaddr_in *dest, uint16_t nsei,
 				uint16_t nsvci)
 {
@@ -1085,7 +1085,7 @@ struct gprs_nsvc *nsip_connect(struct gprs_ns_inst *nsi,
 
 	nsvc = nsvc_by_rem_addr(nsi, dest);
 	if (!nsvc)
-		nsvc = nsvc_create(nsi, nsvci);
+		nsvc = gprs_nsvc_create(nsi, nsvci);
 	nsvc->ip.bts_addr = *dest;
 	nsvc->nsei = nsei;
 	nsvc->nsvci = nsvci;
