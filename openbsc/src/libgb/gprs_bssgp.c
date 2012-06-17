@@ -540,8 +540,8 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 }
 
 /* Receive a BSSGP PDU from a BSS on a PTP BVCI */
-static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
-			     struct bssgp_bvc_ctx *bctx)
+static int bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
+			struct bssgp_bvc_ctx *bctx)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
@@ -619,8 +619,8 @@ static int gprs_bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 }
 
 /* Receive a BSSGP PDU from a BSS on a SIGNALLING BVCI */
-static int gprs_bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
-				struct bssgp_bvc_ctx *bctx)
+static int bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
+			 struct bssgp_bvc_ctx *bctx)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
@@ -710,7 +710,7 @@ err_mand_ie:
 }
 
 /* We expect msgb_bssgph() to point to the BSSGP header */
-int gprs_bssgp_rcvmsg(struct msgb *msg)
+int bssgp_rcvmsg(struct msgb *msg)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
@@ -752,17 +752,17 @@ int gprs_bssgp_rcvmsg(struct msgb *msg)
 	}
 
 	if (ns_bvci == BVCI_SIGNALLING)
-		rc = gprs_bssgp_rx_sign(msg, &tp, bctx);
+		rc = bssgp_rx_sign(msg, &tp, bctx);
 	else if (ns_bvci == BVCI_PTM)
 		rc = bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_FEAT, NULL, msg);
 	else
-		rc = gprs_bssgp_rx_ptp(msg, &tp, bctx);
+		rc = bssgp_rx_ptp(msg, &tp, bctx);
 
 	return rc;
 }
 
-int gprs_bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
-			struct bssgp_dl_ud_par *dup)
+int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
+		   struct bssgp_dl_ud_par *dup)
 {
 	struct bssgp_bvc_ctx *bctx;
 	struct bssgp_ud_hdr *budh;
@@ -851,8 +851,8 @@ int gprs_bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 }
 
 /* Send a single GMM-PAGING.req to a given NSEI/NS-BVCI */
-int gprs_bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
-			 struct bssgp_paging_info *pinfo)
+int bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
+		     struct bssgp_paging_info *pinfo)
 {
 	struct msgb *msg = bssgp_msgb_alloc();
 	struct bssgp_normal_hdr *bgph =
@@ -913,7 +913,7 @@ int gprs_bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
-void gprs_bssgp_set_log_ss(int ss)
+void bssgp_set_log_ss(int ss)
 {
 	DBSSGP = ss;
 }

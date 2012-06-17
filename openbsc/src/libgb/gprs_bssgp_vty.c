@@ -167,7 +167,7 @@ DEFUN(logging_fltr_bvc,
 	return CMD_SUCCESS;
 }
 
-int gprs_bssgp_vty_init(void)
+int bssgp_vty_init(void)
 {
 	install_element_ve(&show_bssgp_cmd);
 	install_element_ve(&show_bssgp_stats_cmd);

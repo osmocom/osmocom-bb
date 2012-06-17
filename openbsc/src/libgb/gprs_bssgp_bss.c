@@ -336,8 +336,8 @@ int bssgp_tx_ul_ud(struct bssgp_bvc_ctx *bctx, uint32_t tlli,
 }
 
 /* Parse a single GMM-PAGING.req to a given NSEI/NS-BVCI */
-int gprs_bssgp_rx_paging(struct bssgp_paging_info *pinfo,
-			 struct msgb *msg)
+int bssgp_rx_paging(struct bssgp_paging_info *pinfo,
+		    struct msgb *msg)
 {
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_bssgph(msg);

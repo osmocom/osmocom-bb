@@ -236,7 +236,7 @@ enum bssgp_ctr {
 #include <osmocom/gprs/gprs_msgb.h>
 
 /* BSSGP-UL-UNITDATA.ind */
-int gprs_bssgp_rcvmsg(struct msgb *msg);
+int bssgp_rcvmsg(struct msgb *msg);
 
 /* BSSGP-DL-UNITDATA.req */
 struct bssgp_lv {
@@ -252,8 +252,8 @@ struct bssgp_dl_ud_par {
 	struct bssgp_lv ms_ra_cap;
 	uint8_t qos_profile[3];
 };
-int gprs_bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
-			struct bssgp_dl_ud_par *dup);
+int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
+		   struct bssgp_dl_ud_par *dup);
 
 uint16_t bssgp_parse_cell_id(struct gprs_ra_id *raid, const uint8_t *buf);
 int bssgp_create_cell_id(uint8_t *buf, const struct gprs_ra_id *raid,
@@ -292,12 +292,12 @@ struct bssgp_paging_info {
 };
 
 /* Send a single GMM-PAGING.req to a given NSEI/NS-BVCI */
-int gprs_bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
-			 struct bssgp_paging_info *pinfo);
+int bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
+		    struct bssgp_paging_info *pinfo);
 
 /* gprs_bssgp_vty.c */
-int gprs_bssgp_vty_init(void);
-void gprs_bssgp_set_log_ss(int ss);
+int bssgp_vty_init(void);
+void bssgp_set_log_ss(int ss);
 
 int bssgp_prim_cb(struct osmo_prim_hdr *oph, void *ctx);
 
