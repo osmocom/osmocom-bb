@@ -57,5 +57,9 @@ gprs_nsvc_by_nsei;
 
 gprs_log_filter_fn;
 
+btsctx_alloc;
+btsctx_by_bvci_nsei;
+btsctx_by_raid_cid;
+
 local: *;
 };
