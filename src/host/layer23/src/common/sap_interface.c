@@ -498,6 +498,7 @@ int sap_open(struct osmocom_ms *ms, const char *socket_path)
 {
 	ssize_t rc;
 	struct sockaddr_un local;
+	struct gsm_settings *set = &ms->settings;
 
 	ms->sap_wq.bfd.fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (ms->sap_wq.bfd.fd < 0) {
@@ -512,6 +513,7 @@ int sap_open(struct osmocom_ms *ms, const char *socket_path)
 	rc = connect(ms->sap_wq.bfd.fd, (struct sockaddr *) &local, sizeof(local));
 	if (rc < 0) {
 		fprintf(stderr, "Failed to connect to '%s'\n", local.sun_path);
+		set->sap_socket_path[0] = 0;
 		close(ms->sap_wq.bfd.fd);
 		return rc;
 	}
