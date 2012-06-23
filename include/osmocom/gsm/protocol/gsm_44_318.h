@@ -5,6 +5,13 @@
 
 /* Definitions according to 3GPP TS 44.318 6.8.0 Release 6 */
 
+/* Table 11.1.1.2.1: Protocol Discriminator */
+enum gan_pdisc {
+	GA_PDISC_RC			= 0,
+	GA_PDISC_CSR			= 1,
+	GA_PDISC_PSR			= 2,
+};
+
 /* Table 11.1.1.4.1: Message types for URR */
 
 enum gan_msg_type {
@@ -148,6 +155,7 @@ struct gan_rc_csr_hdr {
 	uint8_t pdisc:4,
 		skip_ind:4;
 	uint8_t msg_type;
+	uint8_t data[0];
 } __attribute__((packed));
 
 #endif /* PROTO_GSM_44_318_H */
