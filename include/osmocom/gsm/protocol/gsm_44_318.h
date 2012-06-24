@@ -89,7 +89,7 @@ enum gan_iei {
 	GA_IE_REG_REJ_CAUSE	= 21,
 	GA_IE_TU3906_TIMER	= 22,
 	GA_IE_TU3910_TIMER	= 23,
-	GA_IE_TU3902_TIMER	= 24,
+	GA_IE_TU3920_TIMER	= 24,
 	GA_IE_L3_MSG		= 26,
 	GA_IE_CHAN_MODE		= 27,
 	GA_IE_MS_CLASSMARK2	= 28,
@@ -160,6 +160,14 @@ struct gan_rc_csr_hdr {
 
 /* 11.2.14.1: GAN Control Channel Description IE */
 struct gan_cch_desc_ie {
+	uint8_t spare:1,
+		ecmc:1,
+		nmo:2,
+		gprs:1,
+		dtm:1,
+		att:1,
+		mscr:1;
+#if 0
 	uint8_t mscr:1,
 		att:1,
 		dtm:1,
@@ -167,14 +175,23 @@ struct gan_cch_desc_ie {
 		nmo:2,
 		ecmc:1,
 		spare:1;
-	uint16_t t3212;
+#endif
+	uint8_t t3212;
 	uint8_t rac;
+	uint8_t sgsnr:1,
+		ecmp:1,
+		re:1,
+		pfcfm:1,
+		tgecs:2,
+		spare2:2;
+#if 0
 	uint8_t spare2:2,
 		tgecs:2,
 		pfcfm:1,
 		re:1,
 		ecmp:1,
 		sgsnr:1;
+#endif
 	uint8_t access_class[2];
 } __attribute__((packed));
 #endif /* PROTO_GSM_44_318_H */
