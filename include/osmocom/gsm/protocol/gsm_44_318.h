@@ -158,4 +158,23 @@ struct gan_rc_csr_hdr {
 	uint8_t data[0];
 } __attribute__((packed));
 
+/* 11.2.14.1: GAN Control Channel Description IE */
+struct gan_cch_desc_ie {
+	uint8_t mscr:1,
+		att:1,
+		dtm:1,
+		gprs:1,
+		nmo:2,
+		ecmc:1,
+		spare:1;
+	uint16_t t3212;
+	uint8_t rac;
+	uint8_t spare2:2,
+		tgecs:2,
+		pfcfm:1,
+		re:1,
+		ecmp:1,
+		sgsnr:1;
+	uint8_t access_class[2];
+} __attribute__((packed));
 #endif /* PROTO_GSM_44_318_H */
