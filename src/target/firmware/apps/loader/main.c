@@ -152,7 +152,7 @@ int main(void)
 	sercomm_init();
 
 	/* Say hi */
-	puts("\n\nOSMOCOM Loader (revision " GIT_REVISION ")\n");
+	puts("\n\nOsmocomBB Loader (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Identify environment */

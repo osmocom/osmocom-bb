@@ -46,7 +46,7 @@ int main(void)
 {
 	board_init();
 
-	puts("\n\nOSMOCOM Compal DSP Dumper (revision " GIT_REVISION ")\n");
+	puts("\n\nOsmocomBB Compal DSP Dumper (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Dump device identification */

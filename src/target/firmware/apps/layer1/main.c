@@ -64,7 +64,7 @@ int main(void)
 
 	board_init();
 
-	puts("\n\nOSMOCOM Layer 1 (revision " GIT_REVISION ")\n");
+	puts("\n\nOsmocomBB Layer 1 (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Dump device identification */

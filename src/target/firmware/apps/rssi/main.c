@@ -1508,7 +1508,7 @@ int main(void)
 {
 	board_init();
 
-	puts("\n\nOSMOCOM Monitor Tool (revision " GIT_REVISION ")\n");
+	puts("\n\nOsmocomBB Monitor Tool (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Dump device identification */

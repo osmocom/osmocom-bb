@@ -102,7 +102,7 @@ int main(void)
 {
 	board_init();
 
-	puts("\n\nOSMOCOM Hello World (revision " GIT_REVISION ")\n");
+	puts("\n\nOsmocomBB Hello World (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Dump device identification */

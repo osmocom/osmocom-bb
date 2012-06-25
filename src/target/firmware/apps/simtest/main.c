@@ -312,7 +312,7 @@ int main(void)
 {
 	board_init();
 
-	puts("\n\nOSMOCOM SIM Test (revision " GIT_REVISION ")\n");
+	puts("\n\nOsmocomBB SIM Test (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Dump device identification */
