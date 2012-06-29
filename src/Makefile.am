@@ -17,6 +17,8 @@ libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c bits.c \
 			 conv.c application.c rbtree.c \
 			 crc8gen.c crc16gen.c crc32gen.c crc64gen.c
 
+BUILT_SOURCES = crc8gen.c crc16gen.c crc32gen.c crc64gen.c
+
 if ENABLE_PLUGIN
 libosmocore_la_SOURCES += plugin.c
 libosmocore_la_LDFLAGS = -version-info $(LIBVERSION) $(LIBRARY_DL)
