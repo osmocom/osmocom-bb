@@ -17,12 +17,9 @@ EXTRA_DIST = git-version-gen
 
 if HAVE_DOXYGEN
 
-pkgdocdir=$(docdir)/$(PACKAGE)-$(VERSION)
-doc_htmldir=$(pkgdocdir)/html
+html_DATA = $(top_builddir)/doc/html.tar
 
-doc_html_DATA = $(top_builddir)/doc/html.tar
-
-$(doc_html_DATA): $(top_builddir)/doc/core/html/index.html \
+$(html_DATA): $(top_builddir)/doc/core/html/index.html \
 		  $(top_builddir)/doc/gsm/html/index.html \
 		  $(top_builddir)/doc/vty/html/index.html \
 		  $(top_builddir)/doc/codec/html/index.html
@@ -49,10 +46,10 @@ $(top_builddir)/doc/codec/html/index.html: $(SOURCES) Doxyfile.codec
 	$(DOXYGEN) Doxyfile.codec
 
 install-data-hook:
-	cd $(DESTDIR)$(doc_htmldir) && tar xf html.tar && rm -f html.tar
+	cd $(DESTDIR)$(htmldir) && tar xf html.tar && rm -f html.tar
 
 uninstall-hook:
-	cd $(DESTDIR)$(doc_htmldir) && rm -rf {core,gsm,vty,codec}
+	cd $(DESTDIR)$(htmldir) && rm -rf {core,gsm,vty,codec}
 
 DX_CLEAN = doc/{core,gsm,vty,codec}/{html,latex}/* doc/html.tar
 endif
