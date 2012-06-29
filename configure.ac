@@ -10,6 +10,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl checks for programs
 AC_PROG_MAKE_SET
+AC_PROG_MKDIR_P
 AC_PROG_CC
 AC_PROG_INSTALL
 LT_INIT
@@ -138,15 +139,6 @@ AC_OUTPUT(
 	libosmovty.pc
 	libosmogsm.pc
 	libosmogb.pc
-	include/osmocom/Makefile
-	include/osmocom/vty/Makefile
-	include/osmocom/codec/Makefile
-	include/osmocom/crypt/Makefile
-	include/osmocom/gsm/Makefile
-	include/osmocom/gsm/protocol/Makefile
-	include/osmocom/gprs/Makefile
-	include/osmocom/gprs/protocol/Makefile
-	include/osmocom/core/Makefile
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile
