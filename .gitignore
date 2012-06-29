@@ -1,6 +1,7 @@
 Makefile
 Makefile.in
 .deps
+.dirstamp
 .libs
 *.o
 *.lo

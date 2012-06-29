@@ -59,14 +59,6 @@ AC_ARG_ENABLE(plugin,
 	[enable_plugin=$enableval], [enable_plugin="yes"])
 AM_CONDITIONAL(ENABLE_PLUGIN, test x"$enable_plugin" = x"yes")
 
-AC_ARG_ENABLE(tests,
-	[AS_HELP_STRING(
-		[--disable-tests],
-		[Disable building test programs]
-	)],
-	[enable_tests=$enableval], [enable_tests="yes"])
-AM_CONDITIONAL(ENABLE_TESTS, test x"$enable_tests" = x"yes")
-
 AC_ARG_ENABLE(vty,
 	[AS_HELP_STRING(
 		[--disable-vty],
@@ -130,7 +122,6 @@ AC_ARG_ENABLE(embedded,
 if test x"$embedded" = x"yes"
 then
 	AC_DEFINE([EMBEDDED],[1],[Select building for embedded use])
-	AM_CONDITIONAL(ENABLE_TESTS, false)
 	AM_CONDITIONAL(ENABLE_PLUGIN, false)
 	AM_CONDITIONAL(ENABLE_MSGFILE, false)
 	AM_CONDITIONAL(ENABLE_SERIAL, false)
@@ -163,17 +154,6 @@ AC_OUTPUT(
 	src/gsm/Makefile
 	src/gb/Makefile
 	tests/Makefile
-	tests/timer/Makefile
-	tests/sms/Makefile
-	tests/msgfile/Makefile
-	tests/ussd/Makefile
-	tests/smscb/Makefile
-	tests/bits/Makefile
-	tests/a5/Makefile
-	tests/auth/Makefile
-	tests/conv/Makefile
-	tests/lapd/Makefile
-	tests/gsm0808/Makefile
 	utils/Makefile
 	Doxyfile.core
 	Doxyfile.gsm
