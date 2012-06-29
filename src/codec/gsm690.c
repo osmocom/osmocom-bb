@@ -33,7 +33,7 @@
 	/* This array encodes GSM 05.03 Table 7
 	 * It's also TS 26.101 Table B.8
 	 */
-uint16_t gsm690_12_2_bitorder[244] = {
+const uint16_t gsm690_12_2_bitorder[244] = {
 	  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,
 	 10,  11,  12,  13,  14,  23,  15,  16,  17,  18,
 	 19,  20,  21,  22,  24,  25,  26,  27,  28,  38,
@@ -65,7 +65,7 @@ uint16_t gsm690_12_2_bitorder[244] = {
 	/* This array encodes GSM 05.03 Table 8
 	 * It's also TS 26.101 Table B.7
 	 */
-uint16_t gsm690_10_2_bitorder[204] = {
+const uint16_t gsm690_10_2_bitorder[204] = {
 	  7,   6,   5,   4,   3,   2,   1,   0,  16,  15,
 	 14,  13,  12,  11,  10,   9,   8,  26,  27,  28,
 	 29,  30,  31, 115, 116, 117, 118, 119, 120,  72,
@@ -93,7 +93,7 @@ uint16_t gsm690_10_2_bitorder[204] = {
 	/* This array encodes GSM 05.03 Table 9
 	 * It's also TS 26.101 Table B.6
 	 */
-uint16_t gsm690_7_95_bitorder[159] = {
+const uint16_t gsm690_7_95_bitorder[159] = {
 	  8,   7,   6,   5,   4,   3,   2,  14,  16,   9,
 	 10,  12,  13,  15,  11,  17,  20,  22,  24,  23,
 	 19,  18,  21,  56,  88, 122, 154,  57,  89, 123,
@@ -116,7 +116,7 @@ uint16_t gsm690_7_95_bitorder[159] = {
 	/* This array encodes GSM 05.03 Table 10
 	 * It's also TS 26.101 Table B.5
 	 */
-uint16_t gsm690_7_4_bitorder[148] = {
+const uint16_t gsm690_7_4_bitorder[148] = {
 	  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,
 	 10,  11,  12,  13,  14,  15,  16,  26,  87,  27,
 	 88,  28,  89,  29,  90,  30,  91,  51,  80, 112,
@@ -138,7 +138,7 @@ uint16_t gsm690_7_4_bitorder[148] = {
 	/* This array encodes GSM 05.03 Table 11
 	 * It's also TS 26.101 Table B.4
 	 */
-uint16_t gsm690_6_7_bitorder[134] = {
+const uint16_t gsm690_6_7_bitorder[134] = {
 	  0,   1,   4,   3,   5,   6,  13,   7,   2,   8,
 	  9,  11,  15,  12,  14,  10,  28,  82,  29,  83,
 	 27,  81,  26,  80,  30,  84,  16,  55, 109,  56,
@@ -159,7 +159,7 @@ uint16_t gsm690_6_7_bitorder[134] = {
 	/* This array encodes GSM 05.03 Table 12
 	 * It's also TS 26.101 Table B.3
 	 */
-uint16_t gsm690_5_9_bitorder[118] = {
+const uint16_t gsm690_5_9_bitorder[118] = {
 	  0,   1,   4,   5,   3,   6,   7,   2,  13,  15,
 	  8,   9,  11,  12,  14,  10,  16,  28,  74,  29,
 	 75,  27,  73,  26,  72,  30,  76,  51,  97,  50,
@@ -178,7 +178,7 @@ uint16_t gsm690_5_9_bitorder[118] = {
 	/* This array encodes GSM 05.03 Table 13
 	 * It's also TS 26.101 Table B.2
 	 */
-uint16_t gsm690_5_15_bitorder[103] = {
+const uint16_t gsm690_5_15_bitorder[103] = {
 	  7,   6,   5,   4,   3,   2,   1,   0,  15,  14,
 	 13,  12,  11,  10,   9,   8,  23,  24,  25,  26,
 	 27,  46,  65,  84,  45,  44,  43,  64,  63,  62,
@@ -196,7 +196,7 @@ uint16_t gsm690_5_15_bitorder[103] = {
 	/* This array encodes GSM 05.03 Table 14
 	 * It's also TS 26.101 Table B.1
 	 */
-uint16_t gsm690_4_75_bitorder[95] = {
+const uint16_t gsm690_4_75_bitorder[95] = {
 	  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,
 	 10,  11,  12,  13,  14,  15,  23,  24,  25,  26,
 	 27,  28,  48,  49,  61,  62,  82,  83,  47,  46,
