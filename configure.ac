@@ -2,7 +2,7 @@ AC_INIT([libosmocore],
 	m4_esyscmd([./git-version-gen .tarball-version]),
 	[openbsc@lists.osmocom.org])
 
-AM_INIT_AUTOMAKE([dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip 1.6])
 AC_CONFIG_TESTDIR(tests)
 
 dnl kernel style compile messages
