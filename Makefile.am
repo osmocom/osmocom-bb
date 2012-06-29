@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-SUBDIRS = include src tests utils
+SUBDIRS = include src src/vty src/codec src/gsm src/gb tests utils
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libosmocore.pc libosmocodec.pc libosmovty.pc libosmogsm.pc \
