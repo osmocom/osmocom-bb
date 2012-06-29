@@ -100,5 +100,4 @@ noinst_HEADERS = osmocom/core/timer_compat.h
 
 osmocom/core/crc%gen.h: osmocom/core/crcXXgen.h.tpl
 	$(AM_V_GEN)$(MKDIR_P) $(notdir $@)
-	@echo "  SED    $< -> $@"
-	@sed -e's/XX/$*/g' $< > $@
+	$(AM_V_GEN)sed -e's/XX/$*/g' $< > $@

@@ -39,5 +39,4 @@ libosmocore_la_SOURCES += serial.c
 endif
 
 crc%gen.c: crcXXgen.c.tpl
-	@echo "  SED    $< -> $@"
-	@sed -e's/XX/$*/g' $< > $@
+	$(AM_V_GEN)sed -e's/XX/$*/g' $< > $@
