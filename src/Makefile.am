@@ -3,7 +3,7 @@
 LIBVERSION=4:0:0
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include -I$(top_builddir)/include
-AM_CFLAGS = -fPIC -Wall
+AM_CFLAGS = -Wall
 
 lib_LTLIBRARIES = libosmocore.la
 

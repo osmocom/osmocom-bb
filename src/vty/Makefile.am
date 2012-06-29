@@ -3,7 +3,7 @@
 LIBVERSION=0:0:0
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -fPIC -Wall
+AM_CFLAGS = -Wall
 
 if ENABLE_VTY
 lib_LTLIBRARIES = libosmovty.la

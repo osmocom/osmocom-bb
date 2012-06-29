@@ -3,7 +3,7 @@
 LIBVERSION=2:0:1
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -fPIC -Wall ${GCC_FVISIBILITY_HIDDEN}
+AM_CFLAGS = -Wall ${GCC_FVISIBILITY_HIDDEN}
 
 # FIXME: this should eventually go into a milenage/Makefile.am
 noinst_HEADERS = milenage/aes.h milenage/aes_i.h milenage/aes_wrap.h \
