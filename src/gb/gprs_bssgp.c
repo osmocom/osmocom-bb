@@ -811,7 +811,7 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 		}
 
 		/* IMSI */
-		if (strlen(dup->imsi)) {
+		if (dup->imsi && strlen(dup->imsi)) {
 			uint8_t mi[10];
 			int imsi_len = gsm48_generate_mid_from_imsi(mi, dup->imsi);
 			if (imsi_len > 2)
