@@ -1650,7 +1650,7 @@ static int vty_config_write(struct vty *vty)
 	vty_out(vty, "line vty%s", VTY_NEWLINE);
 
 	/* login */
-	if (password_check)
+	if (!password_check)
 		vty_out(vty, " no login%s", VTY_NEWLINE);
 
 	vty_out(vty, "!%s", VTY_NEWLINE);
