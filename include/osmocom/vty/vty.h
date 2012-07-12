@@ -40,6 +40,13 @@ enum event {
 #endif				/* VTYSH */
 };
 
+enum vty_type {
+	VTY_TERM,
+	VTY_FILE,
+	VTY_SHELL,
+	VTY_SHELL_SERV
+};
+
 /*! Internal representation of a single VTY */
 struct vty {
 	/*! \brief underlying file (if any) */
@@ -52,7 +59,7 @@ struct vty {
 	int fd;
 
 	/*! \brief Is this vty connect to file or not */
-	enum { VTY_TERM, VTY_FILE, VTY_SHELL, VTY_SHELL_SERV } type;
+	enum vty_type type;
 
 	/*! \brief Node status of this vty */
 	int node;
@@ -134,7 +141,7 @@ struct vty {
 /* Small macro to determine newline is newline only or linefeed needed. */
 #define VTY_NEWLINE  ((vty->type == VTY_TERM) ? "\r\n" : "\n")
 
-static inline char *vty_newline(struct vty *vty)
+static inline const char *vty_newline(struct vty *vty)
 {
 	return VTY_NEWLINE;
 }

@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "vector.h"
-#include "vty.h"
 
 /*! \defgroup command VTY Command
  *  @{
@@ -87,6 +86,8 @@ enum node_type {
 
 	_LAST_OSMOVTY_NODE
 };
+
+#include "vty.h"
 
 /*! \brief Node which has some commands and prompt string and
  * configuration function pointer . */
