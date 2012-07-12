@@ -533,7 +533,7 @@ static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si,
 	/* Optional Power Offset */
 	if (bitvec_get_bit_high(&bv) == H) {
 		s->po = 1;
-		s->po_value = bitvec_get_uint(&bv, 3);
+		s->po_value = bitvec_get_uint(&bv, 2);
 	} else
 		s->po = 0;
 	/* System Onformation 2ter Indicator */
