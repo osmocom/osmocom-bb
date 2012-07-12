@@ -214,7 +214,7 @@ static const char* color(int subsys)
 }
 
 static void _output(struct log_target *target, unsigned int subsys,
-		    unsigned int level, char *file, int line, int cont,
+		    unsigned int level, const char *file, int line, int cont,
 		    const char *format, va_list ap)
 {
 	char buf[4096];
@@ -264,7 +264,7 @@ err:
 }
 
 /*! \brief vararg version of logging function */
-void osmo_vlogp(int subsys, int level, char *file, int line,
+void osmo_vlogp(int subsys, int level, const char *file, int line,
 		int cont, const char *format, va_list ap)
 {
 	struct log_target *tar;
@@ -314,7 +314,7 @@ void osmo_vlogp(int subsys, int level, char *file, int line,
 	}
 }
 
-void logp(int subsys, char *file, int line, int cont,
+void logp(int subsys, const char *file, int line, int cont,
 	  const char *format, ...)
 {
 	va_list ap;
@@ -324,7 +324,7 @@ void logp(int subsys, char *file, int line, int cont,
 	va_end(ap);
 }
 
-void logp2(int subsys, unsigned int level, char *file, int line, int cont, const char *format, ...)
+void logp2(int subsys, unsigned int level, const char *file, int line, int cont, const char *format, ...)
 {
 	va_list ap;
 
