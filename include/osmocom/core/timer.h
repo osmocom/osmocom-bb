@@ -73,7 +73,9 @@ void osmo_timer_del(struct osmo_timer_list *timer);
 
 int osmo_timer_pending(struct osmo_timer_list *timer);
 
-
+int osmo_timer_remaining(const struct osmo_timer_list *timer,
+			 const struct timeval *now,
+			 struct timeval *remaining);
 /*
  * internal timer list management
  */
