@@ -9,6 +9,7 @@
 /*! \file tlv.c */
 
 struct tlv_definition tvlv_att_def;
+struct tlv_definition vtvlv_gan_att_def;
 
 /*! \brief Dump pasred TLV structure to stdout */
 int tlv_dump(struct tlv_parsed *dec)
@@ -69,7 +70,7 @@ int tlv_parse_one(uint8_t *o_tag, uint16_t *o_len, const uint8_t **o_val,
 		len = def->def[tag].fixed_len + 1;
 		break;
 	case TLV_TYPE_TLV:
-		/* GSM TS 04.07 11.2.4: Type 4 TLV */
+tlv:		/* GSM TS 04.07 11.2.4: Type 4 TLV */
 		if (buf + 1 > buf + buf_len)
 			return -1;
 		*o_val = buf+2;
@@ -77,6 +78,22 @@ int tlv_parse_one(uint8_t *o_tag, uint16_t *o_len, const uint8_t **o_val,
 		len = *o_len + 2;
 		if (len > buf_len)
 			return -2;
+		break;
+	case TLV_TYPE_vTvLV_GAN:	/* 44.318 / 11.1.4 */
+		/* FIXME: variable-length TAG! */
+		if (*(buf+1) & 0x80) {
+			/* like TL16Vbut without highest bit of len */
+			if (2 > buf_len)
+				return -1;
+			*o_val = buf+3;
+			*o_len = (*(buf+1) & 0x7F) << 8 | *(buf+2);
+			len = *o_len + 3;
+			if (len > buf_len)
+				return -2;
+		} else {
+			/* like TLV */
+			goto tlv;
+		}
 		break;
 	case TLV_TYPE_TvLV:
 		if (*(buf+1) & 0x80) {
@@ -184,6 +201,9 @@ static __attribute__((constructor)) void on_dso_load_tlv(void)
 	int i;
 	for (i = 0; i < ARRAY_SIZE(tvlv_att_def.def); i++)
 		tvlv_att_def.def[i].type = TLV_TYPE_TvLV;
+
+	for (i = 0; i < ARRAY_SIZE(vtvlv_gan_att_def.def); i++)
+		vtvlv_gan_att_def.def[i].type = TLV_TYPE_vTvLV_GAN;
 }
 
 /*! @} */

@@ -20,6 +20,7 @@
 	TL16V	8	16		N * 8
 	TLV16	8	8		N * 16
 	 TvLV	8	8/16		N * 8
+	vTvLV	8/16	8/16		N * 8
 
 */
 
@@ -44,6 +45,36 @@ static inline uint16_t TVLV_GROSS_LEN(uint16_t len)
 		return TLV_GROSS_LEN(len);
 	else
 		return TL16V_GROSS_LEN(len);
+}
+
+/*! \brief gross length of vTvL header (tag+len) */
+static inline uint16_t VTVL_GAN_GROSS_LEN(uint16_t tag, uint16_t len)
+{
+	uint16_t ret = 2;
+
+	if (tag > TVLV_MAX_ONEBYTE)
+		ret++;
+
+	if (len > TVLV_MAX_ONEBYTE)
+		ret++;
+
+	return ret;
+}
+
+/*! \brief gross length of vTvLV (tag+len+val) */
+static inline uint16_t VTVLV_GAN_GROSS_LEN(uint16_t tag, uint16_t len)
+{
+	uint16_t ret;
+
+	if (len <= TVLV_MAX_ONEBYTE)
+		return TLV_GROSS_LEN(len);
+	else
+		return TL16V_GROSS_LEN(len);
+
+	if (tag > TVLV_MAX_ONEBYTE)
+		ret += 1;
+
+	return ret;
 }
 
 /* TLV generation */
@@ -103,6 +134,42 @@ static inline uint8_t *tvlv_put(uint8_t *buf, uint8_t tag, uint16_t len,
 	return ret;
 }
 
+/*! \brief put (append) a variable-length tag or variable-length length * */
+static inline uint8_t *vt_gan_put(uint8_t *buf, uint16_t tag)
+{
+	if (tag > TVLV_MAX_ONEBYTE) {
+		/* two-byte TAG */
+		*buf++ = 0x80 | (tag >> 8);
+		*buf++ = (tag & 0xff);
+	} else
+		*buf++ = tag;
+
+	return buf;
+}
+
+/* \brief put (append) vTvL (GAN) field (tag + length)*/
+static inline uint8_t *vtvl_gan_put(uint8_t *buf, uint16_t tag, uint16_t len)
+{
+	uint8_t *ret;
+
+	ret = vt_gan_put(buf, tag);
+	return vt_gan_put(ret, len);
+}
+
+/* \brief put (append) vTvLV (GAN) field (tag + length + val) */
+static inline uint8_t *vtvlv_gan_put(uint8_t *buf, uint16_t tag, uint16_t len,
+				      const uint8_t *val)
+{
+	uint8_t *ret;
+
+	ret = vtvl_gan_put(buf, tag, len );
+
+	memcpy(ret, val, len);
+	ret = buf + len;
+
+	return ret;
+}
+
 /*! \brief put (append) a TLV16 field to \ref msgb */
 static inline uint8_t *msgb_tlv16_put(struct msgb *msg, uint8_t tag, uint8_t len, const uint16_t *val)
 {
@@ -124,6 +191,14 @@ static inline uint8_t *msgb_tvlv_put(struct msgb *msg, uint8_t tag, uint16_t len
 {
 	uint8_t *buf = msgb_put(msg, TVLV_GROSS_LEN(len));
 	return tvlv_put(buf, tag, len, val);
+}
+
+/*! \brief put (append) a vTvLV field to \ref msgb */
+static inline uint8_t *msgb_vtvlv_gan_put(struct msgb *msg, uint16_t tag,
+					  uint16_t len, const uint8_t *val)
+{
+	uint8_t *buf = msgb_put(msg, VTVLV_GAN_GROSS_LEN(tag, len));
+	return vtvlv_gan_put(buf, tag, len, val);
 }
 
 /*! \brief put (append) a L16TV field to \ref msgb */
@@ -264,6 +339,25 @@ static inline uint8_t *msgb_tvlv_push(struct msgb *msg, uint8_t tag, uint16_t le
 	return buf;
 }
 
+/* \brief push (prepend) a vTvL header to a \ref msgb
+ */
+static inline uint8_t *msgb_vtvl_gan_push(struct msgb *msg, uint16_t tag,
+					   uint16_t len)
+{
+	uint8_t *buf = msgb_push(msg, VTVL_GAN_GROSS_LEN(tag, len));
+	vtvl_gan_put(buf, tag, len);
+	return buf;
+}
+
+
+static inline uint8_t *msgb_vtvlv_gan_push(struct msgb *msg, uint16_t tag,
+					   uint16_t len, const uint8_t *val)
+{
+	uint8_t *buf = msgb_push(msg, VTVLV_GAN_GROSS_LEN(tag, len));
+	vtvlv_gan_put(buf, tag, len, val);
+	return buf;
+}
+
 /* TLV parsing */
 
 /*! \brief Entry in a TLV parser array */
@@ -281,7 +375,8 @@ enum tlv_type {
 	TLV_TYPE_TLV,		/*!< \brief tag-length-value */
 	TLV_TYPE_TL16V,		/*!< \brief tag, 16 bit length, value */
 	TLV_TYPE_TvLV,		/*!< \brief tag, variable length, value */
-	TLV_TYPE_SINGLE_TV	/*!< \brief tag and value (both 4 bit) in 1 byte */
+	TLV_TYPE_SINGLE_TV,	/*!< \brief tag and value (both 4 bit) in 1 byte */
+	TLV_TYPE_vTvLV_GAN,	/*!< \brief variable-length tag, variable-length length */
 };
 
 /*! \brief Definition of a single IE (Information Element) */
@@ -301,6 +396,7 @@ struct tlv_parsed {
 };
 
 extern struct tlv_definition tvlv_att_def;
+extern struct tlv_definition vtvlv_gan_att_def;
 
 int tlv_parse_one(uint8_t *o_tag, uint16_t *o_len, const uint8_t **o_val,
                   const struct tlv_definition *def,

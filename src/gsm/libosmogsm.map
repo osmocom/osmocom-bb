@@ -227,6 +227,7 @@ tlv_dump;
 tlv_parse;
 tlv_parse_one;
 tvlv_att_def;
+vtvlv_gan_att_def;
 
 gan_msgt_vals;
 gan_pdisc_vals;
