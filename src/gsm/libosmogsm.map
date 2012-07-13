@@ -98,6 +98,7 @@ gsm48_decode_connected;
 gsm48_decode_facility;
 gsm48_decode_freq_list;
 gsm48_decode_keypad;
+gsm48_decode_lai;
 gsm48_decode_notify;
 gsm48_decode_progress;
 gsm48_decode_redirecting;
