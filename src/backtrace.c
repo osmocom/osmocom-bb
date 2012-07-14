@@ -1,8 +1,6 @@
 /*
- * (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
  * (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
- * (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
- * (C) 2010 by Nico Golde <nico@ngolde.de>
+ * (C) 2012 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
