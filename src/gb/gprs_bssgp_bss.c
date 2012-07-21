@@ -230,7 +230,7 @@ int bssgp_tx_llc_discarded(struct bssgp_bvc_ctx *bctx, uint32_t tlli,
 
 	msgb_tvlv_put(msg, BSSGP_IE_LLC_FRAMES_DISCARDED, 1, &num_frames);
 	msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (uint8_t *) &_bvci);
-	msgb_tvlv_put(msg, BSSGP_IE_NUM_OCT_AFF, 3, (uint8_t *) &_oct_aff);
+	msgb_tvlv_put(msg, BSSGP_IE_NUM_OCT_AFF, 3, ((uint8_t *) &_oct_aff) + 1);
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
