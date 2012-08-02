@@ -348,7 +348,7 @@ void vty_hello(struct vty *vty)
 		app_name, VTY_NEWLINE, VTY_NEWLINE);
 
 	if (host.app_info->copyright)
-		vty_out(vty, host.app_info->copyright);
+		vty_out(vty, "%s", host.app_info->copyright);
 
 	if (host.motdfile) {
 		FILE *f;
