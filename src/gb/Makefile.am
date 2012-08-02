@@ -11,7 +11,10 @@ noinst_HEADERS = common_vty.h
 lib_LTLIBRARIES = libosmogb.la
 
 libosmogb_la_LDFLAGS = -Wl,--version-script=$(srcdir)/libosmogb.map -version-info $(LIBVERSION)
-libosmogb_la_LIBADD = $(top_builddir)/src/libosmocore.la
+libosmogb_la_LIBADD = \
+		$(top_builddir)/src/libosmocore.la \
+		$(top_builddir)/src/vty/libosmovty.la \
+		$(top_builddir)/src/gsm/libosmogsm.la
 
 libosmogb_la_SOURCES = gprs_ns.c gprs_ns_frgre.c gprs_ns_vty.c \
 		  gprs_bssgp.c gprs_bssgp_util.c gprs_bssgp_vty.c \
