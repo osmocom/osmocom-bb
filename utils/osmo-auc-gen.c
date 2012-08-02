@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <string.h>
 #include <getopt.h>
+#include <unistd.h>
 
 #include <osmocom/crypt/auth.h>
 #include <osmocom/core/utils.h>

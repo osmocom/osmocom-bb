@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <getopt.h>
+#include <unistd.h>
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
