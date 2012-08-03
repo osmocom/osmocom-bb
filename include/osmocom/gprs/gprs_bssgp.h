@@ -47,7 +47,7 @@ struct osmo_bssgp_prim {
 	/* specific fields */
 	union {
 		struct {
-			uint8_t *suspend_ref;
+			uint8_t suspend_ref;
 		} resume;
 	} u;
 };
