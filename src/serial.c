@@ -63,7 +63,7 @@ osmo_serial_init(const char *dev, speed_t baudrate)
 	struct termios tio;
 
 	/* Open device */
-	fd = open(dev, O_RDWR | O_NOCTTY | O_NDELAY);
+	fd = open(dev, O_RDWR | O_NOCTTY);
 	if (fd < 0) {
 		dbg_perror("open");
 		return -errno;
