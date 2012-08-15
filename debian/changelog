@@ -1,3 +1,9 @@
+libosmocore (0.5.3+git1) precise; urgency=low
+
+  * Updated debian package.
+
+ -- Eric Butler <eric@codebutler.com>  Tue, 14 Aug 2012 16:53:56 -0700
+
 libosmocore (0.3.0) natty; urgency=low
 
   * New upstream version of libosmocore
