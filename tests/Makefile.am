@@ -3,7 +3,7 @@ INCLUDES = $(all_includes) -I$(top_srcdir)/include
 check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
                  smscb/smscb_test bits/bitrev_test a5/a5_test		\
                  conv/conv_test auth/milenage_test lapd/lapd_test	\
-                 gsm0808/gsm0808_test
+                 gsm0808/gsm0808_test gsm0408/gsm0408_test
 if ENABLE_MSGFILE
 check_PROGRAMS += msgfile/msgfile_test
 endif
@@ -22,6 +22,9 @@ conv_conv_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 gsm0808_gsm0808_test_SOURCES = gsm0808/gsm0808_test.c
 gsm0808_gsm0808_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+gsm0408_gsm0408_test_SOURCES = gsm0408/gsm0408_test.c
+gsm0408_gsm0408_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 lapd_lapd_test_SOURCES = lapd/lapd_test.c
 lapd_lapd_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la

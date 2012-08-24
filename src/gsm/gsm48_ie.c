@@ -128,7 +128,8 @@ int gsm48_decode_bearer_cap(struct gsm_mncc_bearer_cap *bcap,
 	bcap->coding = (lv[1] & 0x10) >> 4;
 	bcap->radio = (lv[1] & 0x60) >> 5;
 
-	if (bcap->transfer == GSM_MNCC_BCAP_SPEECH) {
+	switch (bcap->transfer) {
+	case GSM_MNCC_BCAP_SPEECH:
 		i = 1;
 		s = 0;
 		while(!(lv[i] & 0x80)) {
@@ -142,7 +143,68 @@ int gsm48_decode_bearer_cap(struct gsm_mncc_bearer_cap *bcap,
 			if (s == 7) /* maximum speech versions + end of list */
 				return 0;
 		}
-	} else {
+		break;
+	case GSM_MNCC_BCAP_UNR_DIG:
+	case GSM_MNCC_BCAP_FAX_G3:
+		i = 1;
+		while(!(lv[i] & 0x80)) {
+			i++; /* octet 3a etc */
+			if (in_len < i)
+				return 0;
+			/* ignore them */
+		}
+		/* octet 4: skip */
+		i++;
+		/* octet 5 */
+		i++;
+		if (in_len < i)
+			return 0;
+		bcap->data.rate_adaption = (lv[i] >> 3) & 3;
+		bcap->data.sig_access = lv[i] & 7;
+		while(!(lv[i] & 0x80)) {
+			i++; /* octet 5a etc */
+			if (in_len < i)
+				return 0;
+			/* ignore them */
+		}
+		/* octet 6 */
+		i++;
+		if (in_len < i)
+			return 0;
+		bcap->data.async = lv[i] & 1;
+		if (!(lv[i] & 0x80)) {
+			i++;
+			if (in_len < i)
+				return 0;
+			/* octet 6a */
+			bcap->data.nr_stop_bits = ((lv[i] >> 7) & 1) + 1;
+			if (lv[i] & 0x10)
+				bcap->data.nr_data_bits = 8;
+			else
+				bcap->data.nr_data_bits = 7;
+			bcap->data.user_rate = lv[i]  & 0xf;
+
+			if (!(lv[i] & 0x80)) {
+				i++;
+				if (in_len < i)
+					return 0;
+				/* octet 6b */
+				bcap->data.parity = lv[i] & 7;
+				bcap->data.interm_rate = (lv[i] >> 5) & 3;
+
+				/* octet 6c */
+				if (!(lv[i] & 0x80)) {
+					i++;
+					if (in_len < i)
+						return 0;
+					bcap->data.transp = (lv[i] >> 5) & 3;
+					bcap->data.modem_type = lv[i] & 0x1F;
+				}
+			}
+
+		}
+		break;
+	default:
 		i = 1;
 		while (!(lv[i] & 0x80)) {
 			i++; /* octet 3a etc */
@@ -151,6 +213,7 @@ int gsm48_decode_bearer_cap(struct gsm_mncc_bearer_cap *bcap,
 			/* ignore them */
 		}
 		/* FIXME: implement OCTET 4+ parsing */
+		break;
 	}
 
 	return 0;
@@ -168,7 +231,8 @@ int gsm48_encode_bearer_cap(struct msgb *msg, int lv_only,
 	lv[1] |= bcap->coding << 4;
 	lv[1] |= bcap->radio << 5;
 
-	if (bcap->transfer == GSM_MNCC_BCAP_SPEECH) {
+	switch (bcap->transfer) {
+	case GSM_MNCC_BCAP_SPEECH:
 		for (s = 0; bcap->speech_ver[s] >= 0; s++) {
 			i++; /* octet 3a etc */
 			lv[i] = bcap->speech_ver[s];
@@ -176,8 +240,29 @@ int gsm48_encode_bearer_cap(struct msgb *msg, int lv_only,
 				lv[i] |= bcap->speech_ctm << 5;
 		}
 		lv[i] |= 0x80; /* last IE of octet 3 etc */
-	} else {
-		/* FIXME: implement OCTET 4+ encoding */
+		break;
+	case GSM48_BCAP_ITCAP_UNR_DIG_INF:
+	case GSM48_BCAP_ITCAP_FAX_G3:
+		lv[i++] |= 0x80; /* last IE of octet 3 etc */
+		/* octet 4 */
+		lv[i++] = 0xb8;
+		/* octet 5 */
+		lv[i++] = 0x80 | ((bcap->data.rate_adaption & 3) << 3)
+			  | (bcap->data.sig_access & 7);
+		/* octet 6 */
+		lv[i++] = 0x20 | (bcap->data.async & 1);
+		/* octet 6a */
+		lv[i++] = (bcap->data.user_rate & 0xf) |
+			  (bcap->data.nr_data_bits == 8 ? 0x10 : 0x00) |
+			  (bcap->data.nr_stop_bits == 2 ? 0x40 : 0x00);
+		/* octet 6b */
+		lv[i++] = (bcap->data.parity & 7) |
+			  ((bcap->data.interm_rate & 3) << 5);
+		/* octet 6c */
+		lv[i] = 0x80 | (bcap->data.modem_type & 0x1f);
+		break;
+	default:
+		return -EINVAL;
 	}
 
 	lv[0] = i;
