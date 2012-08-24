@@ -110,7 +110,7 @@ int gsm48_encode_bcd_number(uint8_t *bcd_lv, uint8_t max_len,
 	return (bcd_cur - bcd_lv);
 }
 
-/* decode 'bearer capability' */
+/* TS 04.08 10.5.4.5: decode 'bearer capability' */
 int gsm48_decode_bearer_cap(struct gsm_mncc_bearer_cap *bcap,
 			     const uint8_t *lv)
 {
@@ -156,7 +156,7 @@ int gsm48_decode_bearer_cap(struct gsm_mncc_bearer_cap *bcap,
 	return 0;
 }
 
-/* encode 'bearer capability' */
+/* TS 04.08 10.5.4.5: encode 'bearer capability' */
 int gsm48_encode_bearer_cap(struct msgb *msg, int lv_only,
 			     const struct gsm_mncc_bearer_cap *bcap)
 {
@@ -189,7 +189,7 @@ int gsm48_encode_bearer_cap(struct msgb *msg, int lv_only,
 	return 0;
 }
 
-/* decode 'call control cap' */
+/* TS 04.08 10.5.4.5a: decode 'call control cap' */
 int gsm48_decode_cccap(struct gsm_mncc_cccap *ccap, const uint8_t *lv)
 {
 	uint8_t in_len = lv[0];
@@ -204,7 +204,7 @@ int gsm48_decode_cccap(struct gsm_mncc_cccap *ccap, const uint8_t *lv)
 	return 0;
 }
 
-/* encode 'call control cap' */
+/* TS 04.08 10.5.4.5a: encode 'call control cap' */
 int gsm48_encode_cccap(struct msgb *msg,
 			const struct gsm_mncc_cccap *ccap)
 {
@@ -222,7 +222,7 @@ int gsm48_encode_cccap(struct msgb *msg,
 	return 0;
 }
 
-/* decode 'called party BCD number' */
+/* TS 04.08 10.5.4.7: decode 'called party BCD number' */
 int gsm48_decode_called(struct gsm_mncc_number *called,
 			 const uint8_t *lv)
 {
@@ -241,7 +241,7 @@ int gsm48_decode_called(struct gsm_mncc_number *called,
 	return 0;
 }
 
-/* encode 'called party BCD number' */
+/* TS 04.08 10.5.4.7: encode 'called party BCD number' */
 int gsm48_encode_called(struct msgb *msg,
 			 const struct gsm_mncc_number *called)
 {
@@ -321,7 +321,7 @@ int gsm48_encode_callerid(struct msgb *msg, int ie, int max_len,
 	return 0;
 }
 
-/* decode 'cause' */
+/* TS 04.08 10.5.4.11: decode 'cause' */
 int gsm48_decode_cause(struct gsm_mncc_cause *cause,
 			const uint8_t *lv)
 {
@@ -364,7 +364,7 @@ int gsm48_decode_cause(struct gsm_mncc_cause *cause,
 	return 0;
 }
 
-/* encode 'cause' */
+/* TS 04.08 10.5.4.11: encode 'cause' */
 int gsm48_encode_cause(struct msgb *msg, int lv_only,
 			const struct gsm_mncc_cause *cause)
 {
@@ -404,49 +404,49 @@ int gsm48_encode_cause(struct msgb *msg, int lv_only,
 	return 0;
 }
 
-/* decode 'calling number' */
+/* TS 04.08 10.5.4.9: decode 'calling number' */
 int gsm48_decode_calling(struct gsm_mncc_number *calling,
 			 const uint8_t *lv)
 {
 	return gsm48_decode_callerid(calling, lv);
 }
 
-/* encode 'calling number' */
+/* TS 04.08 10.5.4.9: encode 'calling number' */
 int gsm48_encode_calling(struct msgb *msg, 
 			  const struct gsm_mncc_number *calling)
 {
 	return gsm48_encode_callerid(msg, GSM48_IE_CALLING_BCD, 14, calling);
 }
 
-/* decode 'connected number' */
+/* TS 04.08 10.5.4.13: decode 'connected number' */
 int gsm48_decode_connected(struct gsm_mncc_number *connected,
 			 const uint8_t *lv)
 {
 	return gsm48_decode_callerid(connected, lv);
 }
 
-/* encode 'connected number' */
+/* TS 04.08 10.5.4.13: encode 'connected number' */
 int gsm48_encode_connected(struct msgb *msg,
 			    const struct gsm_mncc_number *connected)
 {
 	return gsm48_encode_callerid(msg, GSM48_IE_CONN_BCD, 14, connected);
 }
 
-/* decode 'redirecting number' */
+/* TS 04.08 10.5.4.21b: decode 'redirecting number' */
 int gsm48_decode_redirecting(struct gsm_mncc_number *redirecting,
 			 const uint8_t *lv)
 {
 	return gsm48_decode_callerid(redirecting, lv);
 }
 
-/* encode 'redirecting number' */
+/* TS 04.08 10.5.4.21b: encode 'redirecting number' */
 int gsm48_encode_redirecting(struct msgb *msg,
 			      const struct gsm_mncc_number *redirecting)
 {
 	return gsm48_encode_callerid(msg, GSM48_IE_REDIR_BCD, 19, redirecting);
 }
 
-/* decode 'facility' */
+/* TS 04.08 10.5.4.15: decode 'facility' */
 int gsm48_decode_facility(struct gsm_mncc_facility *facility,
 			   const uint8_t *lv)
 {
@@ -464,7 +464,7 @@ int gsm48_decode_facility(struct gsm_mncc_facility *facility,
 	return 0;
 }
 
-/* encode 'facility' */
+/* TS 04.08 10.5.4.15: encode 'facility' */
 int gsm48_encode_facility(struct msgb *msg, int lv_only,
 			   const struct gsm_mncc_facility *facility)
 {
@@ -483,7 +483,7 @@ int gsm48_encode_facility(struct msgb *msg, int lv_only,
 	return 0;
 }
 
-/* decode 'notify' */
+/* TS 04.08 10.5.4.20: decode 'notify' */
 int gsm48_decode_notify(int *notify, const uint8_t *v)
 {
 	*notify = v[0] & 0x7f;
@@ -491,7 +491,7 @@ int gsm48_decode_notify(int *notify, const uint8_t *v)
 	return 0;
 }
 
-/* encode 'notify' */
+/* TS 04.08 10.5.4.20: encode 'notify' */
 int gsm48_encode_notify(struct msgb *msg, int notify)
 {
 	msgb_v_put(msg, notify | 0x80);
@@ -499,7 +499,7 @@ int gsm48_encode_notify(struct msgb *msg, int notify)
 	return 0;
 }
 
-/* decode 'signal' */
+/* TS 04.08 10.5.4.23: decode 'signal' */
 int gsm48_decode_signal(int *signal, const uint8_t *v)
 {
 	*signal = v[0];
@@ -507,7 +507,7 @@ int gsm48_decode_signal(int *signal, const uint8_t *v)
 	return 0;
 }
 
-/* encode 'signal' */
+/* TS 04.08 10.5.4.23: encode 'signal' */
 int gsm48_encode_signal(struct msgb *msg, int signal)
 {
 	msgb_tv_put(msg, GSM48_IE_SIGNAL, signal);
@@ -515,7 +515,7 @@ int gsm48_encode_signal(struct msgb *msg, int signal)
 	return 0;
 }
 
-/* decode 'keypad' */
+/* TS 04.08 10.5.4.17: decode 'keypad' */
 int gsm48_decode_keypad(int *keypad, const uint8_t *lv)
 {
 	uint8_t in_len = lv[0];
@@ -528,7 +528,7 @@ int gsm48_decode_keypad(int *keypad, const uint8_t *lv)
 	return 0;
 }
 
-/* encode 'keypad' */
+/* TS 04.08 10.5.4.17: encode 'keypad' */
 int gsm48_encode_keypad(struct msgb *msg, int keypad)
 {
 	msgb_tv_put(msg, GSM48_IE_KPD_FACILITY, keypad);
@@ -536,7 +536,7 @@ int gsm48_encode_keypad(struct msgb *msg, int keypad)
 	return 0;
 }
 
-/* decode 'progress' */
+/* TS 04.08 10.5.4.21: decode 'progress' */
 int gsm48_decode_progress(struct gsm_mncc_progress *progress,
 			   const uint8_t *lv)
 {
@@ -552,7 +552,7 @@ int gsm48_decode_progress(struct gsm_mncc_progress *progress,
 	return 0;
 }
 
-/* encode 'progress' */
+/* TS 04.08 10.5.4.21: encode 'progress' */
 int gsm48_encode_progress(struct msgb *msg, int lv_only,
 			   const struct gsm_mncc_progress *p)
 {
@@ -569,7 +569,7 @@ int gsm48_encode_progress(struct msgb *msg, int lv_only,
 	return 0;
 }
 
-/* decode 'user-user' */
+/* TS 04.08 10.5.4.25: decode 'user-user' */
 int gsm48_decode_useruser(struct gsm_mncc_useruser *uu,
 			   const uint8_t *lv)
 {
@@ -595,7 +595,7 @@ int gsm48_decode_useruser(struct gsm_mncc_useruser *uu,
 	return 0;
 }
 
-/* encode 'useruser' */
+/* TS 04.08 10.5.4.25: encode 'useruser' */
 int gsm48_encode_useruser(struct msgb *msg, int lv_only,
 			   const struct gsm_mncc_useruser *uu)
 {
@@ -615,7 +615,7 @@ int gsm48_encode_useruser(struct msgb *msg, int lv_only,
 	return 0;
 }
 
-/* decode 'ss version' */
+/* TS 04.08 10.5.4.24: decode 'ss version' */
 int gsm48_decode_ssversion(struct gsm_mncc_ssversion *ssv,
 			    const uint8_t *lv)
 {
@@ -630,7 +630,7 @@ int gsm48_decode_ssversion(struct gsm_mncc_ssversion *ssv,
 	return 0;
 }
 
-/* encode 'ss version' */
+/* TS 04.08 10.5.4.24: encode 'ss version' */
 int gsm48_encode_ssversion(struct msgb *msg,
 			   const struct gsm_mncc_ssversion *ssv)
 {
@@ -648,7 +648,7 @@ int gsm48_encode_ssversion(struct msgb *msg,
 
 /* decode 'more data' does not require a function, because it has no value */
 
-/* encode 'more data' */
+/* TS 04.08 10.5.4.19: encode 'more data' */
 int gsm48_encode_more(struct msgb *msg)
 {
 	uint8_t *ie;
