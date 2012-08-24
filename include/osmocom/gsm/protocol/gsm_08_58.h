@@ -338,10 +338,26 @@ enum rsl_cmod_spd {
 #define RSL_CMOD_SP_GSM1	0x01
 #define RSL_CMOD_SP_GSM2	0x11
 #define RSL_CMOD_SP_GSM3	0x21
-/* Data */
-#define RSL_CMOD_SP_NT_14k5	0x58
-#define RSL_CMOD_SP_NT_12k0	0x50
-#define RSL_CMOD_SP_NT_6k0	0x51
+/* non-transparent data */
+#define RSL_CMOD_CSD_NT_43k5	0x74
+#define RSL_CMOD_CSD_NT_28k8	0x71
+#define RSL_CMOD_CSD_NT_14k5	0x58
+#define RSL_CMOD_CSD_NT_12k0	0x50
+#define RSL_CMOD_CSD_NT_6k0	0x51
+/* legacy #defines with wrong name */
+#define RSL_CMOD_SP_NT_14k5	RSL_CMOD_CSD_NT_14k5
+#define RSL_CMOD_SP_NT_12k0	RSL_CMOD_CSD_NT_12k0
+#define RSL_CMOD_SP_NT_6k0	RSL_CMOD_CSD_NT_6k0
+/* transparent data */
+#define RSL_CMOD_CSD_T_32000	0x38
+#define RSL_CMOD_CSD_T_29000	0x39
+#define RSL_CMOD_CSD_T_14400	0x18
+#define RSL_CMOD_CSD_T_9600	0x10
+#define RSL_CMOD_CSD_T_4800	0x11
+#define RSL_CMOD_CSD_T_2400	0x12
+#define RSL_CMOD_CSD_T_1200	0x13
+#define RSL_CMOD_CSD_T_600	0x14
+#define RSL_CMOD_CSD_T_1200_75	0x15
 
 /*! \brief RSL Channel Identification IE (Chapter 9.3.5) */
 struct rsl_ie_chan_ident {
