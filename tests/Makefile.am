@@ -66,7 +66,8 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
              timer/timer_test.ok sms/sms_test.ok ussd/ussd_test.ok	\
              smscb/smscb_test.ok bits/bitrev_test.ok a5/a5_test.ok	\
              conv/conv_test.ok auth/milenage_test.ok			\
-             lapd/lapd_test.ok gsm0808/gsm0808_test.ok			\
+             lapd/lapd_test.ok gsm0408/gsm0408_test.ok			\
+             gsm0808/gsm0808_test.ok					\
              msgfile/msgfile_test.ok msgfile/msgconfig.cfg
 TESTSUITE = $(srcdir)/testsuite
 
