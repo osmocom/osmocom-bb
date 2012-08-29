@@ -39,6 +39,31 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([char foo;])],
 CFLAGS="$saved_CFLAGS"
 AC_SUBST(SYMBOL_VISIBILITY)
 
+AC_DEFUN([CHECK_TM_INCLUDES_TM_GMTOFF], [
+  AC_CACHE_CHECK(
+    [whether struct tm has tm_gmtoff member],
+    osmo_cv_tm_includes_tm_gmtoff,
+    [AC_LINK_IFELSE([
+      AC_LANG_PROGRAM([
+        #include <time.h>
+      ], [
+        time_t t = time(NULL);
+        struct tm* lt = localtime(&t);
+        int off = lt->tm_gmtoff;
+      ])
+    ],
+    osmo_cv_tm_includes_tm_gmtoff=yes,
+    osmo_cv_tm_includes_tm_gmtoff=no
+    )]
+  )
+  if test "x$osmo_cv_tm_includes_tm_gmtoff" = xyes; then
+    AC_DEFINE(HAVE_TM_GMTOFF_IN_TM, 1,
+              [Define if struct tm has tm_gmtoff member.])
+  fi
+])
+
+CHECK_TM_INCLUDES_TM_GMTOFF
+
 dnl Generate the output
 AM_CONFIG_HEADER(config.h)
 
