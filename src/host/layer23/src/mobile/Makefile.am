@@ -1,6 +1,6 @@
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS)
-LDADD = ../common/liblayer23.a $(LIBOSMOCORE_LIBS) $(LIBOSMOVTY_LIBS) $(LIBOSMOGSM_LIBS) $(LIBOSMOCODEC_LIBS)
+AM_CFLAGS = -Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS) $(LIBGPS_CFLAGS)
+LDADD = ../common/liblayer23.a $(LIBOSMOCORE_LIBS) $(LIBOSMOVTY_LIBS) $(LIBOSMOGSM_LIBS) $(LIBOSMOCODEC_LIBS) $(LIBGPS_LIBS)
 
 noinst_LIBRARIES = libmobile.a
 libmobile_a_SOURCES = gsm322.c gsm480_ss.c gsm411_sms.c gsm48_cc.c gsm48_mm.c \
