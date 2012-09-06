@@ -2,6 +2,8 @@
 #define _GPRS_BSSGP_H
 
 #include <stdint.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/linuxlist.h>
 
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/prim.h>
@@ -54,6 +56,25 @@ struct osmo_bssgp_prim {
 
 /* gprs_bssgp.c */
 
+/*! \brief BSSGP flow control (SGSN side) According to Section 8.2 */
+struct bssgp_flow_control {
+	uint32_t bucket_size_max;	/*!< maximum size of the bucket */
+	uint32_t bucket_leak_rate; 	/*!< leak rate of the bucket */
+
+	uint32_t bucket_counter;	/*!< number of tokens in the bucket */
+	struct timeval time_last_pdu;	/*!< timestamp of last PDU sent */
+
+	/* the built-in queue */
+	uint32_t max_queue_depth;	/*!< how many packets to queue */
+	uint32_t queue_depth;		/*!< current length of queue */
+	struct llist_head queue;	/*!< linked list of msgb's */
+	struct osmo_timer_list timer;	/*!< timer-based dequeueing */
+
+	/*! callback to be called at output of flow control */
+	int (*out_cb)(struct bssgp_flow_control *fc, struct msgb *msg,
+			uint32_t llc_pdu_len, void *priv);
+};
+
 #define BVC_S_BLOCKED	0x0001
 
 /* The per-BTS context that we keep on the SGSN side of the BSSGP link */
@@ -71,6 +92,10 @@ struct bssgp_bvc_ctx {
 	uint32_t state;
 
 	struct rate_ctr_group *ctrg;
+
+	struct bssgp_flow_control fc;
+	uint32_t bmax_default_ms;
+	uint32_t r_default_ms;
 
 	/* we might want to add this as a shortcut later, avoiding the NSVC
 	 * lookup for every packet, similar to a routing cache */
@@ -109,6 +134,7 @@ struct bssgp_lv {
 struct bssgp_dl_ud_par {
 	uint32_t *tlli;
 	char *imsi;
+	struct bssgp_flow_control *fc;
 	uint16_t drx_parms;
 	/* FIXME: priority */
 	struct bssgp_lv ms_ra_cap;
@@ -156,6 +182,17 @@ struct bssgp_paging_info {
 /* Send a single GMM-PAGING.req to a given NSEI/NS-BVCI */
 int bssgp_tx_paging(uint16_t nsei, uint16_t ns_bvci,
 		    struct bssgp_paging_info *pinfo);
+
+/* input function of the flow control implementation, called first
+ * for the MM flow control, and then as the MM flow control output
+ * callback in order to perform BVC flow control */
+int bssgp_fc_in(struct bssgp_flow_control *fc, struct msgb *msg,
+		uint32_t llc_pdu_len, void *priv);
+
+/* Initialize the Flow Control parameters for a new MS according to
+ * default values for the BVC specified by BVCI and NSEI */
+int bssgp_fc_ms_init(struct bssgp_flow_control *fc_ms, uint16_t bvci,
+		     uint16_t nsei);
 
 /* gprs_bssgp_vty.c */
 int bssgp_vty_init(void);

@@ -2,6 +2,8 @@ LIBOSMOGB_1.0 {
 global:
 bssgp_cause_str;
 bssgp_create_cell_id;
+bssgp_fc_in;
+bssgp_fc_ms_init;
 bssgp_msgb_alloc;
 bssgp_msgb_tlli_put;
 bssgp_parse_cell_id;
