@@ -686,6 +686,13 @@ int bssgp_fc_in(struct bssgp_flow_control *fc, struct msgb *msg,
 {
 	struct timeval time_now;
 
+	if (llc_pdu_len > fc->bucket_size_max) {
+		LOGP(DBSSGP, LOGL_NOTICE, "Single PDU (size=%u) is larger "
+		     "than maximum bucket size (%u)!\n", llc_pdu_len,
+		     fc->bucket_size_max);
+		return -EIO;
+	}
+
 	if (bssgp_fc_needs_queueing(fc, llc_pdu_len)) {
 		return fc_enqueue(fc, msg, llc_pdu_len, priv);
 	} else {
@@ -696,18 +703,36 @@ int bssgp_fc_in(struct bssgp_flow_control *fc, struct msgb *msg,
 	}
 }
 
+
+/* Initialize the Flow Control structure */
+void bssgp_fc_init(struct bssgp_flow_control *fc,
+		   uint32_t bucket_size_max, uint32_t bucket_leak_rate,
+		   uint32_t max_queue_depth,
+		   int (*out_cb)(struct bssgp_flow_control *fc, struct msgb *msg,
+				 uint32_t llc_pdu_len, void *priv))
+{
+	fc->out_cb = out_cb;
+	fc->bucket_size_max = bucket_size_max;
+	fc->bucket_leak_rate = bucket_leak_rate;
+	fc->max_queue_depth = max_queue_depth;
+	INIT_LLIST_HEAD(&fc->queue);
+	gettimeofday(&fc->time_last_pdu, NULL);
+}
+
 /* Initialize the Flow Control parameters for a new MS according to
  * default values for the BVC specified by BVCI and NSEI */
 int bssgp_fc_ms_init(struct bssgp_flow_control *fc_ms, uint16_t bvci,
-		     uint16_t nsei)
+		     uint16_t nsei, uint32_t max_queue_depth)
 {
 	struct bssgp_bvc_ctx *ctx;
 
 	ctx = btsctx_by_bvci_nsei(bvci, nsei);
 	if (!ctx)
 		return -ENODEV;
-	fc_ms->bucket_size_max = ctx->bmax_default_ms;
-	fc_ms->bucket_leak_rate = ctx->r_default_ms;
+
+	/* output call-back of per-MS FC is per-CTX FC */
+	bssgp_fc_init(fc_ms, ctx->bmax_default_ms, ctx->r_default_ms,
+			max_queue_depth, bssgp_fc_in);
 
 	return 0;
 }
@@ -729,18 +754,18 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 	}
 
-	/* 11.3.5 */
+	/* 11.3.5 Bucket Size in 100 octets unit */
 	bctx->fc.bucket_size_max = 100 *
 		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVC_BUCKET_SIZE));
-	/* 11.3.4 */
+	/* 11.3.4 Bucket Leak Rate in 100 bits/sec unit */
 	bctx->fc.bucket_leak_rate = 100 *
-		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BUCKET_LEAK_RATE));
-	/* 11.3.2 */
-	bctx->bmax_default_ms = 100 *
+		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BUCKET_LEAK_RATE)) / 8;
+	/* 11.3.2 in octets */
+	bctx->bmax_default_ms =
 		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BMAX_DEFAULT_MS));
-	/* 11.3.32 */
+	/* 11.3.32 Bucket Leak rate in 100bits/sec unit */
 	bctx->r_default_ms = 100 *
-		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_R_DEFAULT_MS));
+		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_R_DEFAULT_MS)) / 8;
 
 	/* Send FLOW_CONTROL_BVC_ACK */
 	return bssgp_tx_fc_bvc_ack(msgb_nsei(msg), *TLVP_VAL(tp, BSSGP_IE_TAG),
