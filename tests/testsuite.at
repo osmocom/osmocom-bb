@@ -9,6 +9,13 @@ cat $abs_srcdir/a5/a5_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/a5/a5_test], [], [expout])
 AT_CLEANUP
 
+AT_SETUP([bssgp-fc])
+AT_KEYWORDS([bssgp-fc])
+cat $abs_srcdir/gb/bssgp_fc_tests.ok > expout
+cat $abs_srcdir/gb/bssgp_fc_tests.err > experr
+AT_CHECK([$abs_top_builddir/tests/gb/bssgp_fc_tests.sh $abs_top_builddir/tests/gb], [], [expout], [experr])
+AT_CLEANUP
+
 AT_SETUP([bits])
 AT_KEYWORDS([bits])
 cat $abs_srcdir/bits/bitrev_test.ok > expout
