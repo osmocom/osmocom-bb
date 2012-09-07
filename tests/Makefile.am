@@ -3,7 +3,8 @@ INCLUDES = $(all_includes) -I$(top_srcdir)/include
 check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
                  smscb/smscb_test bits/bitrev_test a5/a5_test		\
                  conv/conv_test auth/milenage_test lapd/lapd_test	\
-                 gsm0808/gsm0808_test gsm0408/gsm0408_test
+                 gsm0808/gsm0808_test gsm0408/gsm0408_test		\
+		 gb/bssgp_fc_test
 if ENABLE_MSGFILE
 check_PROGRAMS += msgfile/msgfile_test
 endif
@@ -43,6 +44,9 @@ timer_timer_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 ussd_ussd_test_SOURCES = ussd/ussd_test.c
 ussd_ussd_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+gb_bssgp_fc_test_SOURCES = gb/bssgp_fc_test.c
+gb_bssgp_fc_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la
 
 # The `:;' works around a Bash 3.2 bug when the output is not writeable.
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac
