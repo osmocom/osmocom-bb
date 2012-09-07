@@ -96,7 +96,9 @@ struct bssgp_bvc_ctx *btsctx_alloc(uint16_t bvci, uint16_t nsei)
 	ctx->nsei = nsei;
 	/* FIXME: BVCI is not unique, only BVCI+NSEI ?!? */
 	ctx->ctrg = rate_ctr_group_alloc(ctx, &bssgp_ctrg_desc, bvci);
-	ctx->fc.out_cb = &_bssgp_tx_dl_ud;
+	ctx->fc = talloc_zero(ctx, struct bssgp_flow_control);
+	/* cofigure for 2Mbit, 30 packets in queue */
+	bssgp_fc_init(ctx->fc, 100000, 2*1024*1024/8, 30, &_bssgp_tx_dl_ud);
 
 	llist_add(&ctx->list, &bssgp_bvc_ctxts);
 
@@ -755,10 +757,10 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 	}
 
 	/* 11.3.5 Bucket Size in 100 octets unit */
-	bctx->fc.bucket_size_max = 100 *
+	bctx->fc->bucket_size_max = 100 *
 		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVC_BUCKET_SIZE));
 	/* 11.3.4 Bucket Leak Rate in 100 bits/sec unit */
-	bctx->fc.bucket_leak_rate = 100 *
+	bctx->fc->bucket_leak_rate = 100 *
 		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BUCKET_LEAK_RATE)) / 8;
 	/* 11.3.2 in octets */
 	bctx->bmax_default_ms =
@@ -1083,9 +1085,9 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 	/* check if we have to go through per-ms flow control or can go
 	 * directly to the per-BSS flow control */
 	if (dup->fc)
-		return bssgp_fc_in(dup->fc, msg, msg_len, &bctx->fc);
+		return bssgp_fc_in(dup->fc, msg, msg_len, bctx->fc);
 	else
-		return bssgp_fc_in(&bctx->fc, msg, msg_len, NULL);
+		return bssgp_fc_in(bctx->fc, msg, msg_len, NULL);
 }
 
 /* Send a single GMM-PAGING.req to a given NSEI/NS-BVCI */

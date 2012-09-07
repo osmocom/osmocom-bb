@@ -93,7 +93,7 @@ struct bssgp_bvc_ctx {
 
 	struct rate_ctr_group *ctrg;
 
-	struct bssgp_flow_control fc;
+	struct bssgp_flow_control *fc;
 	/*! default maximum size of per-MS bucket in octets */
 	uint32_t bmax_default_ms;
 	/*! default bucket leak rate of per-MS bucket in octests/s */
