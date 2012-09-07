@@ -3,7 +3,7 @@
 LIBVERSION=2:0:0
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -Wall ${GCC_FVISIBILITY_HIDDEN}
+AM_CFLAGS = -Wall ${GCC_FVISIBILITY_HIDDEN} -fno-strict-aliasing
 
 # FIXME: this should eventually go into a milenage/Makefile.am
 noinst_HEADERS = common_vty.h
