@@ -57,6 +57,9 @@ static const struct rate_ctr_group_desc bssgp_ctrg_desc = {
 
 LLIST_HEAD(bssgp_bvc_ctxts);
 
+static int _bssgp_tx_dl_ud(struct bssgp_flow_control *fc, struct msgb *msg,
+			   uint32_t llc_pdu_len, void *priv);
+
 /* Find a BTS Context based on parsed RA ID and Cell ID */
 struct bssgp_bvc_ctx *btsctx_by_raid_cid(const struct gprs_ra_id *raid, uint16_t cid)
 {
@@ -93,6 +96,9 @@ struct bssgp_bvc_ctx *btsctx_alloc(uint16_t bvci, uint16_t nsei)
 	ctx->nsei = nsei;
 	/* FIXME: BVCI is not unique, only BVCI+NSEI ?!? */
 	ctx->ctrg = rate_ctr_group_alloc(ctx, &bssgp_ctrg_desc, bvci);
+	ctx->fc = talloc_zero(ctx, struct bssgp_flow_control);
+	/* cofigure for 2Mbit, 30 packets in queue */
+	bssgp_fc_init(ctx->fc, 100000, 2*1024*1024/8, 30, &_bssgp_tx_dl_ud);
 
 	llist_add(&ctx->list, &bssgp_bvc_ctxts);
 
@@ -510,6 +516,229 @@ static int bssgp_rx_llc_disc(struct msgb *msg, struct tlv_parsed *tp,
 	return bssgp_prim_cb(&nmp.oph, NULL);
 }
 
+/* One element (msgb) in a BSSGP Flow Control queue */
+struct bssgp_fc_queue_element {
+	/* linked list of queue elements */
+	struct llist_head list;
+	/* The message that we have enqueued */
+	struct msgb *msg;
+	/* Length of the LLC PDU part of the contained message */
+	uint32_t llc_pdu_len;
+	/* private pointer passed to the flow control out_cb function */
+	void *priv;
+};
+
+static int fc_queue_timer_cfg(struct bssgp_flow_control *fc);
+static int bssgp_fc_needs_queueing(struct bssgp_flow_control *fc, uint32_t pdu_len);
+
+static void fc_timer_cb(void *data)
+{
+	struct bssgp_flow_control *fc = data;
+	struct bssgp_fc_queue_element *fcqe;
+	struct timeval time_now;
+
+	/* if the queue is empty, we return without sending something
+	 * and without re-starting the timer */
+	if (llist_empty(&fc->queue))
+		return;
+
+	/* get the first entry from the queue */
+	fcqe = llist_entry(fc->queue.next, struct bssgp_fc_queue_element,
+			   list);
+
+	if (bssgp_fc_needs_queueing(fc, fcqe->llc_pdu_len)) {
+		LOGP(DBSSGP, LOGL_NOTICE, "BSSGP-FC: fc_timer_cb() but still "
+			"not able to send PDU of %u bytes\n", fcqe->llc_pdu_len);
+		/* make sure we re-start the timer */
+		fc_queue_timer_cfg(fc);
+		return;
+	}
+
+	/* remove from the queue */
+	llist_del(&fcqe->list);
+
+	fc->queue_depth--;
+
+	/* record the time we transmitted this PDU */
+	gettimeofday(&time_now, NULL);
+	fc->time_last_pdu = time_now;
+
+	/* call the output callback for this FC instance */
+	fc->out_cb(fcqe->priv, fcqe->msg, fcqe->llc_pdu_len, NULL);
+
+	/* we expect that out_cb will in the end free the msgb once
+	 * it is no longer needed */
+
+	/* but we have to free the queue element ourselves */
+	talloc_free(fcqe);
+
+	/* re-configure the timer for the next PDU */
+	fc_queue_timer_cfg(fc);
+}
+
+/* configure/schedule the flow control timer to expire once the bucket
+ * will have leaked a sufficient number of bytes to transmit the next
+ * PDU in the queue */
+static int fc_queue_timer_cfg(struct bssgp_flow_control *fc)
+{
+	struct bssgp_fc_queue_element *fcqe;
+	uint32_t msecs;
+
+	if (llist_empty(&fc->queue))
+		return 0;
+
+	fcqe = llist_entry(&fc->queue.next, struct bssgp_fc_queue_element,
+			   list);
+
+	/* Calculate the point in time at which we will have leaked
+	 * a sufficient number of bytes from the bucket to transmit
+	 * the first PDU in the queue */
+	msecs = (fcqe->llc_pdu_len * 1000) / fc->bucket_leak_rate;
+	/* FIXME: add that time to fc->time_last_pdu and subtract it from
+	 * current time */
+
+	fc->timer.data = fc;
+	fc->timer.cb = &fc_timer_cb;
+	osmo_timer_schedule(&fc->timer, msecs / 1000, (msecs % 1000) * 1000);
+
+	return 0;
+}
+
+/* Enqueue a PDU in the flow control queue for delayed transmission */
+static int fc_enqueue(struct bssgp_flow_control *fc, struct msgb *msg,
+		      uint32_t llc_pdu_len, void *priv)
+{
+	struct bssgp_fc_queue_element *fcqe;
+
+	if (fc->queue_depth >= fc->max_queue_depth)
+		return -ENOSPC;
+
+	fcqe = talloc_zero(fc, struct bssgp_fc_queue_element);
+	if (!fcqe)
+		return -ENOMEM;
+	fcqe->msg = msg;
+	fcqe->llc_pdu_len = llc_pdu_len;
+	fcqe->priv = priv;
+
+	llist_add_tail(&fcqe->list, &fc->queue);
+
+	fc->queue_depth++;
+
+	/* re-configure the timer for dequeueing the pdu */
+	fc_queue_timer_cfg(fc);
+
+	return 0;
+}
+
+/* According to Section 8.2 */
+static int bssgp_fc_needs_queueing(struct bssgp_flow_control *fc, uint32_t pdu_len)
+{
+	struct timeval time_now, time_diff;
+	int64_t bucket_predicted;
+	uint32_t csecs_elapsed, leaked;
+
+	/* B' = B + L(p) - (Tc - Tp)*R */
+
+	/* compute number of centi-seconds that have elapsed since transmitting
+	 * the last PDU (Tc - Tp) */
+	gettimeofday(&time_now, NULL);
+	timersub(&time_now, &fc->time_last_pdu, &time_diff);
+	csecs_elapsed = time_diff.tv_sec*100 + time_diff.tv_usec/10000;
+
+	/* compute number of bytes that have leaked in the elapsed number
+	 * of centi-seconds */
+	leaked = csecs_elapsed * (fc->bucket_leak_rate / 100);
+	/* add the current PDU length to the last bucket level */
+	bucket_predicted = fc->bucket_counter + pdu_len;
+	/* ... and subtract the number of leaked bytes */
+	bucket_predicted -= leaked;
+
+	if (bucket_predicted < pdu_len) {
+		/* this is just to make sure the bucket doesn't underflow */
+		bucket_predicted = pdu_len;
+		goto pass;
+	}
+
+	if (bucket_predicted <= fc->bucket_size_max) {
+		/* the bucket is not full yet, we can pass the packet */
+		fc->bucket_counter = bucket_predicted;
+		goto pass;
+	}
+
+	/* bucket is full, PDU needs to be delayed */
+	return 1;
+
+pass:
+	/* if we reach here, the PDU can pass */
+	return 0;
+}
+
+/* output callback for BVC flow control */
+static int _bssgp_tx_dl_ud(struct bssgp_flow_control *fc, struct msgb *msg,
+			   uint32_t llc_pdu_len, void *priv)
+{
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
+}
+
+/* input function of the flow control implementation, called first
+ * for the MM flow control, and then as the MM flow control output
+ * callback in order to perform BVC flow control */
+int bssgp_fc_in(struct bssgp_flow_control *fc, struct msgb *msg,
+		uint32_t llc_pdu_len, void *priv)
+{
+	struct timeval time_now;
+
+	if (llc_pdu_len > fc->bucket_size_max) {
+		LOGP(DBSSGP, LOGL_NOTICE, "Single PDU (size=%u) is larger "
+		     "than maximum bucket size (%u)!\n", llc_pdu_len,
+		     fc->bucket_size_max);
+		return -EIO;
+	}
+
+	if (bssgp_fc_needs_queueing(fc, llc_pdu_len)) {
+		return fc_enqueue(fc, msg, llc_pdu_len, priv);
+	} else {
+		/* record the time we transmitted this PDU */
+		gettimeofday(&time_now, NULL);
+		fc->time_last_pdu = time_now;
+		return fc->out_cb(priv, msg, llc_pdu_len, NULL);
+	}
+}
+
+
+/* Initialize the Flow Control structure */
+void bssgp_fc_init(struct bssgp_flow_control *fc,
+		   uint32_t bucket_size_max, uint32_t bucket_leak_rate,
+		   uint32_t max_queue_depth,
+		   int (*out_cb)(struct bssgp_flow_control *fc, struct msgb *msg,
+				 uint32_t llc_pdu_len, void *priv))
+{
+	fc->out_cb = out_cb;
+	fc->bucket_size_max = bucket_size_max;
+	fc->bucket_leak_rate = bucket_leak_rate;
+	fc->max_queue_depth = max_queue_depth;
+	INIT_LLIST_HEAD(&fc->queue);
+	gettimeofday(&fc->time_last_pdu, NULL);
+}
+
+/* Initialize the Flow Control parameters for a new MS according to
+ * default values for the BVC specified by BVCI and NSEI */
+int bssgp_fc_ms_init(struct bssgp_flow_control *fc_ms, uint16_t bvci,
+		     uint16_t nsei, uint32_t max_queue_depth)
+{
+	struct bssgp_bvc_ctx *ctx;
+
+	ctx = btsctx_by_bvci_nsei(bvci, nsei);
+	if (!ctx)
+		return -ENODEV;
+
+	/* output call-back of per-MS FC is per-CTX FC */
+	bssgp_fc_init(fc_ms, ctx->bmax_default_ms, ctx->r_default_ms,
+			max_queue_depth, bssgp_fc_in);
+
+	return 0;
+}
+
 static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 			   struct bssgp_bvc_ctx *bctx)
 {
@@ -527,7 +756,18 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 	}
 
-	/* FIXME: actually implement flow control */
+	/* 11.3.5 Bucket Size in 100 octets unit */
+	bctx->fc->bucket_size_max = 100 *
+		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVC_BUCKET_SIZE));
+	/* 11.3.4 Bucket Leak Rate in 100 bits/sec unit */
+	bctx->fc->bucket_leak_rate = 100 *
+		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BUCKET_LEAK_RATE)) / 8;
+	/* 11.3.2 in octets */
+	bctx->bmax_default_ms =
+		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BMAX_DEFAULT_MS));
+	/* 11.3.32 Bucket Leak rate in 100bits/sec unit */
+	bctx->r_default_ms = 100 *
+		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_R_DEFAULT_MS)) / 8;
 
 	/* Send FLOW_CONTROL_BVC_ACK */
 	return bssgp_tx_fc_bvc_ack(msgb_nsei(msg), *TLVP_VAL(tp, BSSGP_IE_TAG),
@@ -777,8 +1017,9 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 
 	bctx = btsctx_by_bvci_nsei(bvci, nsei);
 	if (!bctx) {
-		/* FIXME: don't simply create missing context, but reject message */
-		bctx = btsctx_alloc(bvci, nsei);
+		LOGP(DBSSGP, LOGL_ERROR, "Cannot send DL-UD to unknown BVCI %u\n",
+			bvci);
+		return -ENODEV;
 	}
 
 	if (msg->len > TVLV_MAX_ONEBYTE)
@@ -841,7 +1082,12 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 
 	/* Identifiers down: BVCI, NSEI (in msgb->cb) */
 
-	return gprs_ns_sendmsg(bssgp_nsi, msg);
+	/* check if we have to go through per-ms flow control or can go
+	 * directly to the per-BSS flow control */
+	if (dup->fc)
+		return bssgp_fc_in(dup->fc, msg, msg_len, bctx->fc);
+	else
+		return bssgp_fc_in(bctx->fc, msg, msg_len, NULL);
 }
 
 /* Send a single GMM-PAGING.req to a given NSEI/NS-BVCI */
