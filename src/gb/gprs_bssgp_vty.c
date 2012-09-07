@@ -88,8 +88,19 @@ static void dump_bvc(struct vty *vty, struct bssgp_bvc_ctx *bvc, int stats)
 		bvc->ra_id.mnc, bvc->ra_id.lac, bvc->ra_id.rac, bvc->cell_id,
 		bvc->state & BVC_S_BLOCKED ? "BLOCKED" : "UNBLOCKED",
 		VTY_NEWLINE);
-	if (stats)
+
+	if (stats) {
+		struct bssgp_flow_control *fc = bvc->fc;
+
 		vty_out_rate_ctr_group(vty, " ", bvc->ctrg);
+
+		if (fc)
+			vty_out(vty, "FC-BVC(bucket_max: %uoct, leak_rate: "
+				"%uoct/s, cur_tokens: %uoct, max_q_d: %u, "
+				"cur_q_d: %u)\n", fc->bucket_size_max,
+				fc->bucket_leak_rate, fc->bucket_counter,
+				fc->max_queue_depth, fc->queue_depth);
+	}
 }
 
 static void dump_bssgp(struct vty *vty, int stats)
