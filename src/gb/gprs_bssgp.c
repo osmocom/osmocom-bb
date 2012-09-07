@@ -237,7 +237,6 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 	struct bssgp_bvc_ctx *bctx;
 	uint16_t nsei = msgb_nsei(msg);
 	uint16_t bvci;
-	int rc;
 
 	bvci = ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_BVCI));
 	DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx RESET cause=%s\n", bvci,
@@ -278,8 +277,8 @@ static int bssgp_rx_bvc_reset(struct msgb *msg, struct tlv_parsed *tp,
 	bssgp_prim_cb(&nmp.oph, NULL);
 
 	/* Acknowledge the RESET to the BTS */
-	rc = bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_RESET_ACK,
-				  nsei, bvci, ns_bvci);
+	bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_RESET_ACK,
+			     nsei, bvci, ns_bvci);
 	return 0;
 }
 
@@ -397,8 +396,6 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 			    struct bssgp_bvc_ctx *ctx)
 {
 	struct osmo_bssgp_prim gbp;
-	struct bssgp_normal_hdr *bgph =
-			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct gprs_ra_id raid;
 	uint32_t tlli;
 	int rc;
@@ -439,8 +436,6 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
 			   struct bssgp_bvc_ctx *ctx)
 {
 	struct osmo_bssgp_prim gbp;
-	struct bssgp_normal_hdr *bgph =
-			(struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	struct gprs_ra_id raid;
 	uint32_t tlli;
 	uint8_t suspend_ref;
@@ -627,7 +622,6 @@ static int bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
 	uint8_t pdu_type = bgph->pdu_type;
 	int rc = 0;
 	uint16_t ns_bvci = msgb_bvci(msg);
-	uint16_t bvci;
 
 	switch (bgph->pdu_type) {
 	case BSSGP_PDUT_SUSPEND:
