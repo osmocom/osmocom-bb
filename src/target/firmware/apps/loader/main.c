@@ -203,7 +203,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 		return;
 	}
 
-	uint8_t command = msgb_get_u8(msg);
+	uint8_t command = msgb_pull_u8(msg);
 
 	int res;
 
@@ -251,8 +251,8 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_MEM_READ:
 
-		nbytes = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
+		nbytes = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
 
 		crc = osmo_crc16(0, (void *)address, nbytes);
 
@@ -269,11 +269,11 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_MEM_WRITE:
 
-		nbytes = msgb_get_u8(msg);
-		crc = msgb_get_u16(msg);
-		address = msgb_get_u32(msg);
+		nbytes = msgb_pull_u8(msg);
+		crc = msgb_pull_u16(msg);
+		address = msgb_pull_u32(msg);
 
-		data = msgb_get(msg, nbytes);
+		data = msgb_pull(msg, nbytes);
 
 		mycrc = osmo_crc16(0, data, nbytes);
 
@@ -292,7 +292,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_JUMP:
 
-		address = msgb_get_u32(msg);
+		address = msgb_pull_u32(msg);
 
 		msgb_put_u8(reply, LOADER_JUMP);
 		msgb_put_u32(reply, address);
@@ -328,8 +328,8 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 	case LOADER_FLASH_LOCK:
 	case LOADER_FLASH_LOCKDOWN:
 
-		chip = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
+		chip = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
 
 		if (command == LOADER_FLASH_ERASE) {
 			res = flash_block_erase(&the_flash, address);
@@ -355,8 +355,8 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_FLASH_GETLOCK:
 
-		chip = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
+		chip = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
 
 		lock = flash_block_getlock(&the_flash, address);
 
@@ -385,13 +385,13 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_FLASH_PROGRAM:
 
-		nbytes = msgb_get_u8(msg);
-		crc = msgb_get_u16(msg);
-		msgb_get_u8(msg);	// XXX align
-		chip = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
+		nbytes = msgb_pull_u8(msg);
+		crc = msgb_pull_u16(msg);
+		msgb_pull_u8(msg);	// XXX align
+		chip = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
 
-		data = msgb_get(msg, nbytes);
+		data = msgb_pull(msg, nbytes);
 
 		mycrc = osmo_crc16(0, data, nbytes);
 

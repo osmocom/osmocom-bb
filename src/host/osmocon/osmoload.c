@@ -228,7 +228,7 @@ static void
 loader_parse_flash_info(struct msgb *msg) {
 	uint8_t nchips;
 
-	nchips = msgb_get_u8(msg);
+	nchips = msgb_pull_u8(msg);
 
 	osmoload.numblocks = 0;
 
@@ -236,21 +236,21 @@ loader_parse_flash_info(struct msgb *msg) {
 	for(chip = 0; chip < nchips; chip++) {
 
 		uint32_t address;
-		address = msgb_get_u32(msg);
+		address = msgb_pull_u32(msg);
 
 		uint32_t chipsize;
-		chipsize = msgb_get_u32(msg);
+		chipsize = msgb_pull_u32(msg);
 
 		uint8_t nregions;
-		nregions = msgb_get_u8(msg);
+		nregions = msgb_pull_u8(msg);
 
 		printf("    chip %d at 0x%8.8x of %d bytes in %d regions\n", chip, address, chipsize, nregions);
 
 		uint32_t curoffset = 0;
 		int region;
 		for(region = 0; region < nregions; region++) {
-			uint16_t blockcount = msgb_get_u32(msg);
-			uint32_t blocksize = msgb_get_u32(msg);
+			uint16_t blockcount = msgb_pull_u32(msg);
+			uint32_t blocksize = msgb_pull_u32(msg);
 
 			printf("      region %d with %d blocks of %d bytes each\n", region, blockcount, blocksize);
 
@@ -280,7 +280,7 @@ loader_handle_reply(struct msgb *msg) {
 		osmoload_osmo_hexdump(msg->data, msg->len);
 	}
 
-	uint8_t cmd = msgb_get_u8(msg);
+	uint8_t cmd = msgb_pull_u8(msg);
 
 	uint8_t chip;
 	uint8_t length;
@@ -293,8 +293,8 @@ loader_handle_reply(struct msgb *msg) {
 
 	switch(cmd) {
 	case LOADER_INIT:
-		address = msgb_get_u32(msg);
-		entrypoint = msgb_get_u32(msg);
+		address = msgb_pull_u32(msg);
+		entrypoint = msgb_pull_u32(msg);
 		printf("Loader at entry %x has been started, requesting load to %x\n", entrypoint, address);
 		break;
 	case LOADER_PING:
@@ -304,18 +304,18 @@ loader_handle_reply(struct msgb *msg) {
 	case LOADER_ENTER_FLASH_LOADER:
 		break;
 	case LOADER_MEM_READ:
-		length = msgb_get_u8(msg);
-		crc = msgb_get_u16(msg);
-		address = msgb_get_u32(msg);
-		data = msgb_get(msg, length);
+		length = msgb_pull_u8(msg);
+		crc = msgb_pull_u16(msg);
+		address = msgb_pull_u32(msg);
+		data = msgb_pull(msg, length);
 		break;
 	case LOADER_MEM_WRITE:
-		length = msgb_get_u8(msg);
-		crc = msgb_get_u16(msg);
-		address = msgb_get_u32(msg);
+		length = msgb_pull_u8(msg);
+		crc = msgb_pull_u16(msg);
+		address = msgb_pull_u32(msg);
 		break;
 	case LOADER_JUMP:
-		address = msgb_get_u32(msg);
+		address = msgb_pull_u32(msg);
 		break;
 	case LOADER_FLASH_INFO:
 		break;
@@ -324,17 +324,17 @@ loader_handle_reply(struct msgb *msg) {
 	case LOADER_FLASH_UNLOCK:
 	case LOADER_FLASH_LOCK:
 	case LOADER_FLASH_LOCKDOWN:
-		chip = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
-		status = msgb_get_u32(msg);
+		chip = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
+		status = msgb_pull_u32(msg);
 		break;
 	case LOADER_FLASH_PROGRAM:
-		length = msgb_get_u8(msg);
-		crc = msgb_get_u16(msg);
-		msgb_get_u8(msg); // XXX align
-		chip = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
-		status = msgb_get_u32(msg);
+		length = msgb_pull_u8(msg);
+		crc = msgb_pull_u16(msg);
+		msgb_pull_u8(msg); // XXX align
+		chip = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
+		status = msgb_pull_u32(msg);
 		break;
 	default:
 		printf("Received unknown reply %d:\n", cmd);
