@@ -269,7 +269,8 @@ DEFUN(show_logging_vty,
 
 gDEFUN(cfg_description, cfg_description_cmd,
 	"description .TEXT",
-	"Save human-readable decription of the object\n")
+	"Save human-readable decription of the object\n"
+	"Text until the end of the line\n")
 {
 	char **dptr = vty->index_sub;
 

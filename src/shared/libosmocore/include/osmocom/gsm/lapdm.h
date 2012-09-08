@@ -157,6 +157,6 @@ void lapdm_channel_set_flags(struct lapdm_channel *lc, unsigned int flags);
 
 int lapdm_phsap_dequeue_prim(struct lapdm_entity *le, struct osmo_phsap_prim *pp);
 
-/*! }@ */
+/*! @} */
 
 #endif /* _OSMOCOM_LAPDM_H */

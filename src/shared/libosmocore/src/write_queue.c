@@ -115,4 +115,4 @@ void osmo_wqueue_clear(struct osmo_wqueue *queue)
 	queue->bfd.when &= ~BSC_FD_WRITE;
 }
 
-/*! }@ */
+/*! @} */

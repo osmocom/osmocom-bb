@@ -743,6 +743,6 @@ enum ipac_bcch_info_type {
 	IPAC_BINF_CELL_ALLOC		= (1 << 2),
 };
 
-/*! }@ */
+/*! @} */
 
 #endif /* PROTO_GSM_12_21_H */

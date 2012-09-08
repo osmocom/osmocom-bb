@@ -50,6 +50,6 @@ void rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type, uint8_t chan_nr,
 struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
 			    uint8_t link_id, int transparent);
 
-/*! }@ */
+/*! @} */
 
 #endif /* _OSMOCORE_RSL_H */

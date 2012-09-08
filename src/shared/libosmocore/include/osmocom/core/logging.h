@@ -28,10 +28,10 @@
 #endif
 
 
-void osmo_vlogp(int subsys, int level, char *file, int line,
+void osmo_vlogp(int subsys, int level, const char *file, int line,
 		int cont, const char *format, va_list ap);
 
-void logp(int subsys, char *file, int line, int cont, const char *format, ...) __attribute__ ((format (printf, 5, 6)));
+void logp(int subsys, const char *file, int line, int cont, const char *format, ...) __attribute__ ((format (printf, 5, 6)));
 
 /*! \brief Log a new message through the Osmocom logging framework
  *  \param[in] ss logging subsystem (e.g. \ref DLGLOBAL)
@@ -165,7 +165,7 @@ struct log_target {
 };
 
 /* use the above macros */
-void logp2(int subsys, unsigned int level, char *file,
+void logp2(int subsys, unsigned int level, const char *file,
 	   int line, int cont, const char *format, ...)
 				__attribute__ ((format (printf, 6, 7)));
 int log_init(const struct log_info *inf, void *talloc_ctx);
@@ -206,6 +206,6 @@ const char *log_vty_command_description(const struct log_info *info);
 struct log_target *log_target_find(int type, const char *fname);
 extern struct llist_head osmo_log_target_list;
 
-/*! }@ */
+/*! @} */
 
 #endif /* _OSMOCORE_LOGGING_H */

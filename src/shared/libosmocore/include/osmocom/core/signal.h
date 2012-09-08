@@ -18,6 +18,7 @@
 enum {
 	SS_L_GLOBAL		= OSMO_SIGNAL_SS_RESERVED,
 	SS_L_INPUT,
+	SS_L_NS,
 };
 
 /* application-defined signal types. */
@@ -40,6 +41,6 @@ void osmo_signal_unregister_handler(unsigned int subsys, osmo_signal_cbfn *cbfn,
 /* Dispatch */
 void osmo_signal_dispatch(unsigned int subsys, unsigned int signal, void *signal_data);
 
-/*! }@ */
+/*! @} */
 
 #endif /* OSMO_SIGNAL_H */

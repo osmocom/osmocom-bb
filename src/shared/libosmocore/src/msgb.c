@@ -153,4 +153,4 @@ void msgb_set_talloc_ctx(void *ctx)
 	tall_msgb_ctx = ctx;
 }
 
-/*! }@ */
+/*! @} */

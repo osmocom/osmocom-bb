@@ -212,4 +212,4 @@ void osmo_str2upper(char *out, const char *in)
 }
 #endif /* HAVE_CTYPE_H */
 
-/*! }@ */
+/*! @} */

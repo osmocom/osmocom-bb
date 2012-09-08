@@ -1,6 +1,8 @@
 #ifndef _OSMOCORE_MNCC_H
 #define _OSMOCORE_MNCC_H
 
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+
 #define GSM_MAX_FACILITY       128
 #define GSM_MAX_SSVERSION      128
 #define GSM_MAX_USERUSER       128
@@ -13,6 +15,18 @@ struct gsm_mncc_bearer_cap {
 	int		radio;		/* Radio Channel Requirement */
 	int		speech_ctm;	/* CTM text telephony indication */
 	int		speech_ver[8];	/* Speech version indication */
+	struct {
+		enum gsm48_bcap_ra		rate_adaption;
+		enum gsm48_bcap_sig_access	sig_access;
+		int				async;
+		int				nr_stop_bits;
+		int				nr_data_bits;
+		enum gsm48_bcap_user_rate	user_rate;
+		enum gsm48_bcap_parity		parity;
+		enum gsm48_bcap_interm_rate	interm_rate;
+		enum gsm48_bcap_transp		transp;
+		enum gsm48_bcap_modem_type	modem_type;
+	} data;
 };
 
 struct gsm_mncc_number {

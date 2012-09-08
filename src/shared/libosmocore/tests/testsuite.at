@@ -9,6 +9,13 @@ cat $abs_srcdir/a5/a5_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/a5/a5_test], [], [expout])
 AT_CLEANUP
 
+AT_SETUP([bssgp-fc])
+AT_KEYWORDS([bssgp-fc])
+cat $abs_srcdir/gb/bssgp_fc_tests.ok > expout
+cat $abs_srcdir/gb/bssgp_fc_tests.err > experr
+AT_CHECK([$abs_top_builddir/tests/gb/bssgp_fc_tests.sh $abs_top_builddir/tests/gb], [], [expout], [experr])
+AT_CLEANUP
+
 AT_SETUP([bits])
 AT_KEYWORDS([bits])
 cat $abs_srcdir/bits/bitrev_test.ok > expout
@@ -70,4 +77,10 @@ AT_SETUP([gsm0808])
 AT_KEYWORDS([gsm0808])
 cat $abs_srcdir/gsm0808/gsm0808_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/gsm0808/gsm0808_test], [], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([gsm0408])
+AT_KEYWORDS([gsm0408])
+cat $abs_srcdir/gsm0408/gsm0408_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gsm0408/gsm0408_test], [], [expout], [ignore])
 AT_CLEANUP

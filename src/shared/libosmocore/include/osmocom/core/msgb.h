@@ -72,6 +72,7 @@ extern void msgb_free(struct msgb *m);
 extern void msgb_enqueue(struct llist_head *queue, struct msgb *msg);
 extern struct msgb *msgb_dequeue(struct llist_head *queue);
 extern void msgb_reset(struct msgb *m);
+uint16_t msgb_length(const struct msgb *msg);
 
 #ifdef MSGB_DEBUG
 #include <osmocom/core/panic.h>
@@ -226,8 +227,11 @@ static inline void msgb_put_u32(struct msgb *msgb, uint32_t word)
  */
 static inline unsigned char *msgb_get(struct msgb *msgb, unsigned int len)
 {
-	unsigned char *tmp = msgb->data;
-	msgb->data += len;
+	unsigned char *tmp = msgb->data - len;
+	if (msgb_length(msgb) < len)
+		MSGB_ABORT(msgb, "msgb too small to get %u (len %u)\n",
+			   len, msgb_length(msgb));
+	msgb->tail -= len;
 	msgb->len -= len;
 	return tmp;
 }
@@ -293,6 +297,34 @@ static inline unsigned char *msgb_pull(struct msgb *msgb, unsigned int len)
 {
 	msgb->len -= len;
 	return msgb->data += len;
+}
+
+/*! \brief remove uint8 from front of message
+ *  \param[in] msgb message buffer
+ *  \returns 8bit value taken from end of msgb
+ */
+static inline uint8_t msgb_pull_u8(struct msgb *msgb)
+{
+	uint8_t *space = msgb_pull(msgb, 1);
+	return space[0];
+}
+/*! \brief remove uint16 from front of message
+ *  \param[in] msgb message buffer
+ *  \returns 16bit value taken from end of msgb
+ */
+static inline uint16_t msgb_pull_u16(struct msgb *msgb)
+{
+	uint8_t *space = msgb_pull(msgb, 2);
+	return space[0] << 8 | space[1];
+}
+/*! \brief remove uint32 from front of message
+ *  \param[in] msgb message buffer
+ *  \returns 32bit value taken from end of msgb
+ */
+static inline uint32_t msgb_pull_u32(struct msgb *msgb)
+{
+	uint8_t *space = msgb_pull(msgb, 4);
+	return space[0] << 24 | space[1] << 16 | space[2] << 8 | space[3];
 }
 
 /*! \brief Increase headroom of empty msgb, reducing the tailroom
@@ -362,9 +394,8 @@ static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 /* non inline functions to ease binding */
 
 uint8_t *msgb_data(const struct msgb *msg);
-uint16_t msgb_length(const struct msgb *msg);
 void msgb_set_talloc_ctx(void *ctx);
 
-/*! }@ */
+/*! @} */
 
 #endif /* _MSGB_H */

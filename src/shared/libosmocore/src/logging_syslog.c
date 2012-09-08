@@ -89,4 +89,4 @@ struct log_target *log_target_create_syslog(const char *ident, int option,
 
 #endif /* HAVE_SYSLOG_H */
 
-/* }@ */
+/* @} */

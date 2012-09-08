@@ -1,6 +1,7 @@
 Makefile
 Makefile.in
 .deps
+.dirstamp
 .libs
 *.o
 *.lo
@@ -60,7 +61,8 @@ utils/osmo-auc-gen
 
 doc/codec
 doc/core
-doc/vty
+doc/vty/latex
+doc/vty/html
 doc/gsm
 doc/html.tar
 

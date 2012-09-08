@@ -126,6 +126,34 @@ int osmo_timer_pending(struct osmo_timer_list *timer)
 	return timer->active;
 }
 
+/*! \brief compute the remaining time of a timer
+ *  \param[in] timer the to-be-checked timer
+ *  \param[in] the current time (NULL if not known)
+ *  \param[out] remaining remaining time until timer fires
+ *  \return 0 if timer has not expired yet, -1 if it has
+ *
+ *  This function can be used to determine the amount of time
+ *  remaining until the expiration of the timer.
+ */
+int osmo_timer_remaining(const struct osmo_timer_list *timer,
+			 const struct timeval *now,
+			 struct timeval *remaining)
+{
+	struct timeval current_time;
+
+	if (!now) {
+		gettimeofday(&current_time, NULL);
+		now = &current_time;
+	}
+
+	timersub(&timer->timeout, &current_time, remaining);
+
+	if (remaining->tv_sec < 0)
+		return -1;
+
+	return 0;
+}
+
 /*
  * if we have a nearest time return the delta between the current
  * time and the time of the nearest timer.
@@ -233,4 +261,4 @@ int osmo_timers_check(void)
 	return i;
 }
 
-/*! }@ */
+/*! @} */

@@ -35,6 +35,6 @@ void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh);
 int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan);
 enum abis_nm_chan_comb abis_nm_pchan4chcomb(uint8_t chcomb);
 
-/*! }@ */
+/*! @} */
 
 #endif /* _OSMO_GSM_ABIS_NM_H */

@@ -504,4 +504,4 @@ struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
 	return msg;
 }
 
-/*! }@ */
+/*! @} */

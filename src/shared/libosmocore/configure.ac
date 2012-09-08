@@ -2,7 +2,7 @@ AC_INIT([libosmocore],
 	m4_esyscmd([./git-version-gen .tarball-version]),
 	[openbsc@lists.osmocom.org])
 
-AM_INIT_AUTOMAKE([dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip 1.6])
 AC_CONFIG_TESTDIR(tests)
 
 dnl kernel style compile messages
@@ -10,10 +10,10 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl checks for programs
 AC_PROG_MAKE_SET
+AC_PROG_MKDIR_P
 AC_PROG_CC
 AC_PROG_INSTALL
-LT_INIT
-AC_PROG_LIBTOOL
+LT_INIT([pic-only])
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -39,6 +39,31 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([char foo;])],
 CFLAGS="$saved_CFLAGS"
 AC_SUBST(SYMBOL_VISIBILITY)
 
+AC_DEFUN([CHECK_TM_INCLUDES_TM_GMTOFF], [
+  AC_CACHE_CHECK(
+    [whether struct tm has tm_gmtoff member],
+    osmo_cv_tm_includes_tm_gmtoff,
+    [AC_LINK_IFELSE([
+      AC_LANG_PROGRAM([
+        #include <time.h>
+      ], [
+        time_t t = time(NULL);
+        struct tm* lt = localtime(&t);
+        int off = lt->tm_gmtoff;
+      ])
+    ],
+    osmo_cv_tm_includes_tm_gmtoff=yes,
+    osmo_cv_tm_includes_tm_gmtoff=no
+    )]
+  )
+  if test "x$osmo_cv_tm_includes_tm_gmtoff" = xyes; then
+    AC_DEFINE(HAVE_TM_GMTOFF_IN_TM, 1,
+              [Define if struct tm has tm_gmtoff member.])
+  fi
+])
+
+CHECK_TM_INCLUDES_TM_GMTOFF
+
 dnl Generate the output
 AM_CONFIG_HEADER(config.h)
 
@@ -57,14 +82,6 @@ AC_ARG_ENABLE(plugin,
 	)],
 	[enable_plugin=$enableval], [enable_plugin="yes"])
 AM_CONDITIONAL(ENABLE_PLUGIN, test x"$enable_plugin" = x"yes")
-
-AC_ARG_ENABLE(tests,
-	[AS_HELP_STRING(
-		[--disable-tests],
-		[Disable building test programs]
-	)],
-	[enable_tests=$enableval], [enable_tests="yes"])
-AM_CONDITIONAL(ENABLE_TESTS, test x"$enable_tests" = x"yes")
 
 AC_ARG_ENABLE(vty,
 	[AS_HELP_STRING(
@@ -129,7 +146,6 @@ AC_ARG_ENABLE(embedded,
 if test x"$embedded" = x"yes"
 then
 	AC_DEFINE([EMBEDDED],[1],[Select building for embedded use])
-	AM_CONDITIONAL(ENABLE_TESTS, false)
 	AM_CONDITIONAL(ENABLE_PLUGIN, false)
 	AM_CONDITIONAL(ENABLE_MSGFILE, false)
 	AM_CONDITIONAL(ENABLE_SERIAL, false)
@@ -145,30 +161,14 @@ AC_OUTPUT(
 	libosmocodec.pc
 	libosmovty.pc
 	libosmogsm.pc
-	include/osmocom/Makefile
-	include/osmocom/vty/Makefile
-	include/osmocom/codec/Makefile
-	include/osmocom/crypt/Makefile
-	include/osmocom/gsm/Makefile
-	include/osmocom/gsm/protocol/Makefile
-	include/osmocom/core/Makefile
+	libosmogb.pc
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile
 	src/codec/Makefile
 	src/gsm/Makefile
+	src/gb/Makefile
 	tests/Makefile
-	tests/timer/Makefile
-	tests/sms/Makefile
-	tests/msgfile/Makefile
-	tests/ussd/Makefile
-	tests/smscb/Makefile
-	tests/bits/Makefile
-	tests/a5/Makefile
-	tests/auth/Makefile
-	tests/conv/Makefile
-	tests/lapd/Makefile
-	tests/gsm0808/Makefile
 	utils/Makefile
 	Doxyfile.core
 	Doxyfile.gsm

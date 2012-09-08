@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "vector.h"
-#include "vty.h"
 
 /*! \defgroup command VTY Command
  *  @{
@@ -82,9 +81,13 @@ enum node_type {
 
 	L_E1INP_NODE,		/*!< \brief E1 line in libosmo-abis. */
 	L_IPA_NODE,		/*!< \brief IPA proxying commands in libosmo-abis. */
+	L_NS_NODE,		/*!< \brief NS node in libosmo-gb. */
+	L_BSSGP_NODE,		/*!< \brief BSSGP node in libosmo-gb. */
 
 	_LAST_OSMOVTY_NODE
 };
+
+#include "vty.h"
 
 /*! \brief Node which has some commands and prompt string and
  * configuration function pointer . */
@@ -366,5 +369,5 @@ void print_version(int print_copyright);
 
 extern void *tall_vty_cmd_ctx;
 
-/*! }@ */
+/*! @} */
 #endif				/* _ZEBRA_COMMAND_H */

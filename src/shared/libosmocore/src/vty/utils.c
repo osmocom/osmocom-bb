@@ -22,11 +22,13 @@
 
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/utils.h>
 
 #include <osmocom/vty/vty.h>
 
@@ -60,4 +62,56 @@ void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 	};
 }
 
-/*! }@ */
+/*! \brief Generate a VTY command string from value_string */
+char *vty_cmd_string_from_valstr(void *ctx, const struct value_string *vals,
+				 const char *prefix, const char *sep,
+				 const char *end, int do_lower)
+{
+	int len = 0, offset = 0, ret, rem;
+	int size = strlen(prefix);
+	const struct value_string *vs;
+	char *str;
+
+	for (vs = vals; vs->value || vs->str; vs++)
+		size += strlen(vs->str) + 1;
+
+	rem = size;
+	str = talloc_zero_size(ctx, size);
+	if (!str)
+		return NULL;
+
+	ret = snprintf(str + offset, rem, prefix);
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
+
+	for (vs = vals; vs->value || vs->str; vs++) {
+		if (vs->str) {
+			int j, name_len = strlen(vs->str)+1;
+			char name[name_len];
+
+			for (j = 0; j < name_len; j++)
+				name[j] = do_lower ?
+					tolower(vs->str[j]) : vs->str[j];
+
+			name[name_len-1] = '\0';
+			ret = snprintf(str + offset, rem, "%s%s", name, sep);
+			if (ret < 0)
+				goto err;
+			OSMO_SNPRINTF_RET(ret, rem, offset, len);
+		}
+	}
+	offset--;	/* to remove the trailing | */
+	rem++;
+
+	ret = snprintf(str + offset, rem, end);
+	if (ret < 0)
+		goto err;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
+err:
+	str[size-1] = '\0';
+	return str;
+}
+
+
+/*! @} */

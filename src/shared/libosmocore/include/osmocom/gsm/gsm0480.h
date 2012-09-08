@@ -8,7 +8,7 @@
 #define MAX_LEN_USSD_STRING	31
 
 struct ussd_request {
-	uint8_t text[MAX_LEN_USSD_STRING + 1];
+	char text[MAX_LEN_USSD_STRING + 1];
 	uint8_t transaction_id;
 	uint8_t invoke_id;
 };

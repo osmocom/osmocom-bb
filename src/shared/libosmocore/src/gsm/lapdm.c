@@ -391,7 +391,6 @@ static int rsl_rll_error(uint8_t cause, struct lapdm_msg_ctx *mctx)
 
 	LOGP(DLLAPD, LOGL_NOTICE, "sending MDL-ERROR-IND %d\n", cause);
 	msg = rsl_rll_simple(RSL_MT_ERROR_IND, mctx->chan_nr, mctx->link_id, 1);
-	msg->l2h = msgb_put(msg, sizeof(struct abis_rsl_rll_hdr));
 	msgb_tlv_put(msg, RSL_IE_RLM_CAUSE, 1, &cause);
 	return rslms_sendmsg(msg, mctx->dl->entity);
 }
@@ -960,7 +959,12 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 		mode = rllh->data[1] & 1;
 
 	/* Pull rllh */
-	msgb_pull(msg, msg->tail - msg->l2h);
+	msgb_pull_l2h(msg);
+
+	/* 04.06 3.8.3: No information field is permitted with the DISC
+	 * command. */
+	msg->len = 0;
+	msg->tail = msg->l3h = msg->data;
 
 	/* prepare prim */
 	osmo_prim_init(&dp.oph, 0, PRIM_DL_REL, PRIM_OP_REQUEST, msg);
@@ -1242,4 +1246,4 @@ void lapdm_channel_set_flags(struct lapdm_channel *lc, unsigned int flags)
 	lapdm_entity_set_flags(&lc->lapdm_acch, flags);
 }
 
-/*! }@ */
+/*! @} */

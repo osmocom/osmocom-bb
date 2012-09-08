@@ -285,6 +285,27 @@ void gsm48_generate_lai(struct gsm48_loc_area_id *lai48, uint16_t mcc,
 	lai48->lac = htons(lac);
 }
 
+/* Attention: this function retunrs true integers, not hex! */
+int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
+		     uint16_t *mnc, uint16_t *lac)
+{
+	*mcc = (lai->digits[0] & 0x0f) * 100
+	     + (lai->digits[0] >> 4) * 10
+	     + (lai->digits[1] & 0x0f);
+
+	if ((lai->digits[1] & 0xf0) == 0xf0) {
+		*mnc = (lai->digits[2] & 0x0f) * 10
+		     + (lai->digits[2] >> 4);
+	} else {
+		*mnc = (lai->digits[2] & 0x0f) * 100
+		     + (lai->digits[2] >> 4) * 10
+		     + (lai->digits[1] >> 4);
+	}
+	*lac = ntohs(lai->lac);
+
+	return 0;
+}
+
 int gsm48_generate_mid_from_tmsi(uint8_t *buf, uint32_t tmsi)
 {
 	uint32_t *tptr = (uint32_t *) &buf[3];
