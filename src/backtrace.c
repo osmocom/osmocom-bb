@@ -81,7 +81,7 @@ void osmo_log_backtrace(int subsys, int level)
 #else
 void osmo_generate_backtrace(void)
 {
-	fprintf(stderr, "This platform has no backtrace function\n");
+	printf("This platform has no backtrace function\n");
 }
 void osmo_log_backtrace(int subsys, int level)
 {
