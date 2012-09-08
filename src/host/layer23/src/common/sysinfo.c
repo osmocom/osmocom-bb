@@ -306,20 +306,6 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
  * decoding
  */
 
-int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
-	uint16_t *mnc, uint16_t *lac)
-{
-	*mcc = ((lai->digits[0] & 0x0f) << 8)
-	     | (lai->digits[0] & 0xf0)
-	     | (lai->digits[1] & 0x0f);
-	*mnc = ((lai->digits[2] & 0x0f) << 8)
-	     | (lai->digits[2] & 0xf0)
-	     | ((lai->digits[1] & 0xf0) >> 4);
-	*lac = ntohs(lai->lac);
-
-	return 0;
-}
-
 int gsm48_decode_chan_h0(struct gsm48_chan_desc *cd, uint8_t *tsc, 
 	uint16_t *arfcn)
 {
