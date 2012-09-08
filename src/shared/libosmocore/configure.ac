@@ -137,6 +137,14 @@ AC_ARG_ENABLE(utilities,
         [enable_utilities=$enableval], [enable_utilities="yes"])
 AM_CONDITIONAL(ENABLE_UTILITIES, test x"$enable_utilities" = x"yes")
 
+AC_ARG_ENABLE(gb,
+        [AS_HELP_STRING(
+                [--disable-gb],
+                [Disable building Gb library],
+        )],
+        [enable_gb=$enableval], [enable_gb="yes"])
+AM_CONDITIONAL(ENABLE_GB, test x"$enable_gb" = x"yes")
+
 AC_ARG_ENABLE(embedded,
 	[AS_HELP_STRING(
 		[--enable-embedded],
@@ -152,6 +160,7 @@ then
 	AM_CONDITIONAL(ENABLE_VTY, false)
 	AM_CONDITIONAL(ENABLE_TALLOC, false)
 	AM_CONDITIONAL(ENABLE_UTILITIES, false)
+	AM_CONDITIONAL(ENABLE_GB, false)
 	AC_DEFINE([PANIC_INFLOOP],[1],[Use infinite loop on panic rather than fprintf/abort])
 fi
 
