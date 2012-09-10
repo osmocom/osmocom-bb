@@ -1,8 +1,58 @@
+/* Core routines for SIM/UICC/USIM access */
+/*
+ * (C) 2012 by Harald Welte <laforge@gnumonks.org>
+ *
+ * All Rights Reserved
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ */
+
+
 #include <stdlib.h>
 #include <stdint.h>
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/sim/sim.h>
+
+struct osim_decoded_data *osim_file_decode(struct osim_file *file,
+					   int len, uint8_t *data)
+{
+	struct osim_decoded_data *dd;
+
+	if (!file->desc->ops.parse)
+		return NULL;
+
+	dd = talloc_zero(file, struct osim_decoded_data);
+	dd->file = file;
+
+	if (file->desc->ops.parse(dd, file->desc, len, data) < 0) {
+		talloc_free(dd);
+		return NULL;
+	} else
+		return dd;
+}
+
+struct msgb *osim_file_encode(const struct osim_file_desc *desc,
+				const struct osim_decoded_data *data)
+{
+	if (!desc->ops.encode)
+		return NULL;
+
+	return desc->ops.encode(desc, data);
+}
 
 static struct osim_decoded_element *
 __element_alloc(void *ctx, const char *name, enum osim_element_type type,
@@ -166,7 +216,3 @@ struct msgb *osim_new_apdumsg(uint8_t cla, uint8_t ins, uint8_t p1,
 
 	return msg;
 }
-
-
-
-

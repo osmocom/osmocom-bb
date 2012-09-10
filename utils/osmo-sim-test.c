@@ -1,3 +1,23 @@
+/* libosmosim test application - currently simply dumps a USIM */
+/* (C) 2012 by Harald Welte <laforge@gnumonks.org>
+ * All Rights Reserved
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -9,10 +29,7 @@
 #include <osmocom/gsm/tlv.h>
 
 
-
-
-
-
+/* FIXME: this needs to be moved to card_fs_uicc.c */
 
 /* 11.1.1 */
 static struct msgb *_select_file(struct osim_chan_hdl *st, uint8_t p1, uint8_t p2,
@@ -125,6 +142,8 @@ static struct msgb *update_binary(struct osim_chan_hdl *st, uint16_t offset,
 
 	return msg;
 }
+
+
 
 static int dump_fcp_template(struct tlv_parsed *tp)
 {
@@ -379,7 +398,6 @@ int main(int argc, char **argv)
 	dump_fcp_template_msg(msg);
 	msgb_free(msg);
 
-#if 1
 	{
 		struct osim_file_desc *ofd;
 		llist_for_each_entry(ofd, &chan->cwd->child_list, list) {
@@ -393,7 +411,6 @@ int main(int argc, char **argv)
 			dump_file(chan, ofd->fid);
 		}
 	}
-#endif
 
 	exit(0);
 }
