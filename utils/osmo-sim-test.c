@@ -270,42 +270,71 @@ static int dump_file(struct osim_chan_hdl *chan, uint16_t fid)
 {
 	struct tlv_parsed tp;
 	struct osim_fcp_fd_decoded ffdd;
-	struct msgb *msg;
-	int rc, i;
+	struct msgb *msg, *rmsg;
+	int rc, i, offset;
 
 	msg = select_file(chan, fid);
-	if (!msg)
+	if (!msg) {
+		printf("Unable to select file\n");
 		return -EIO;
-	if (msgb_apdu_sw(msg) != 0x9000)
+	}
+	if (msgb_apdu_sw(msg) != 0x9000) {
+		printf("status 0x%04x selecting file\n", msgb_apdu_sw(msg));
 		goto out;
+	}
 
 	rc = tlv_parse(&tp, &ts102221_fcp_tlv_def, msgb_apdu_de(msg)+2, msgb_apdu_le(msg)-4, 0, 0);
-	if (rc < 0)
+	if (rc < 0) {
+		printf("Unable to parse FCP\n");
 		goto out;
+	}
 
 	if (!TLVP_PRESENT(&tp, UICC_FCP_T_FILE_DESC) ||
-	    TLVP_LEN(&tp, UICC_FCP_T_FILE_DESC) < 5)
+	    TLVP_LEN(&tp, UICC_FCP_T_FILE_DESC) < 2) {
+		printf("No file descriptor present ?!?\n");
 		goto out;
+	}
 
 	rc = osim_fcp_fd_decode(&ffdd, TLVP_VAL(&tp, UICC_FCP_T_FILE_DESC),
 				TLVP_LEN(&tp, UICC_FCP_T_FILE_DESC));
-	if (rc < 0)
+	if (rc < 0) {
+		printf("Unable to decode File Descriptor\n");
 		goto out;
+	}
 
-	if (ffdd.type != TYPE_EF)
+	if (ffdd.type != TYPE_EF) {
+		printf("File Type != EF\n");
 		goto out;
+	}
+
+	printf("EF type: %u\n", ffdd.ef_type);
 
 	switch (ffdd.ef_type) {
 	case EF_TYPE_RECORD_FIXED:
 		for (i = 0; i < ffdd.num_rec; i++) {
-			struct msgb *rmsg = read_record_nr(chan, i+1, ffdd.rec_len);
+			rmsg = read_record_nr(chan, i+1, ffdd.rec_len);
 			if (!msg)
-				return NULL;
+				return -EIO;
 			printf("Rec %03u: %s\n", i+1,
 				osmo_hexdump(msgb_apdu_de(rmsg), msgb_apdu_le(rmsg)));
 		}
 		break;
 	case EF_TYPE_TRANSP:
+		if (!TLVP_PRESENT(&tp, UICC_FCP_T_FILE_SIZE))
+			goto out;
+		i = ntohs(*(uint16_t *)TLVP_VAL(&tp, UICC_FCP_T_FILE_SIZE));
+		printf("File size: %d bytes\n", i);
+
+		for (offset = 0; offset < i-1; ) {
+			uint16_t remain_len = i - offset;
+			uint16_t read_len = OSMO_MIN(remain_len, 256);
+			rmsg = read_binary(chan, offset, read_len);
+			if (!msg)
+				return -EIO;
+			offset += read_len;
+			printf("Content: %s\n",
+				osmo_hexdump(msgb_apdu_de(rmsg), msgb_apdu_le(rmsg)));
+		}
 		break;
 	default:
 		goto out;
