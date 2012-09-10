@@ -303,6 +303,111 @@ int bssgp_tx_bvc_reset(struct bssgp_bvc_ctx *bctx, uint16_t bvci, uint8_t cause)
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
+/*! \brief Transmit a FLOW_CONTROL-BVC (Chapter 10.4.4)
+ *  \param[in] bctx BVC Context
+ *  \param[in] bucket_size Maximum bucket size in octets
+ *  \param[in] bucket_leak_rate Bucket leak rate in octets/sec
+ *  \param[in] bmax_default_ms Maximum bucket size default for MS
+ *  \param[in] r_default_ms Bucket leak rate default for MS in octets/sec
+ *  \param[in] bucket_full_ratio Ratio (in percent) of queue filling
+ *  \param[in] queue_delay_ms Average queuing delay in milliseconds
+ */
+int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint32_t tag,
+		    uint32_t bucket_size, uint32_t bucket_leak_rate,
+		    uint16_t bmax_default_ms, uint32_t r_default_ms,
+		    uint8_t *bucket_full_ratio, uint32_t *queue_delay_ms)
+{
+	struct msgb *msg;
+	struct bssgp_normal_hdr *bgph;
+	uint16_t e_bucket_size, e_leak_rate, e_r_default_ms;
+	uint16_t e_queue_delay = 0; /* to make gcc happy */
+
+	if ((bucket_size / 100) > 0xffff)
+		return -EINVAL;
+	e_bucket_size = bucket_size / 100;
+
+	if ((bucket_leak_rate * 8 / 100) > 0xffff)
+		return -EINVAL;
+	e_leak_rate = (bucket_leak_rate * 8) / 100;
+
+	if ((r_default_ms * 8 / 100) > 0xffff)
+		return -EINVAL;
+	e_r_default_ms = (r_default_ms * 8) / 100;
+
+	if (queue_delay_ms) {
+		if ((*queue_delay_ms / 10) > 60000)
+			return -EINVAL;
+		else if (*queue_delay_ms == 0xFFFFFFFF)
+			e_queue_delay = 0xFFFF;
+		else
+			e_queue_delay = *queue_delay_ms / 10;
+	}
+
+	msg = bssgp_msgb_alloc();
+	bgph = (struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
+	msgb_nsei(msg) = bctx->nsei;
+	msgb_bvci(msg) = 0; /* Signalling */
+	bgph->pdu_type = BSSGP_PDUT_FLOW_CONTROL_BVC;
+
+	msgb_tvlv_put(msg, BSSGP_IE_TAG, sizeof(tag), (uint8_t *)&tag);
+	msgb_tvlv_put(msg, BSSGP_IE_BVC_BUCKET_SIZE,
+		      sizeof(e_bucket_size), (uint8_t *) &e_bucket_size);
+	msgb_tvlv_put(msg, BSSGP_IE_BUCKET_LEAK_RATE,
+		      sizeof(e_leak_rate), (uint8_t *) &e_leak_rate);
+	msgb_tvlv_put(msg, BSSGP_IE_BMAX_DEFAULT_MS,
+		      sizeof(bmax_default_ms), (uint8_t *) &bmax_default_ms);
+	msgb_tvlv_put(msg, BSSGP_IE_R_DEFAULT_MS,
+		      sizeof(e_r_default_ms), (uint8_t *) &e_r_default_ms);
+	if (bucket_full_ratio)
+		msgb_tvlv_put(msg, BSSGP_IE_BUCKET_FULL_RATIO,
+			      1, bucket_full_ratio);
+	if (queue_delay_ms)
+		msgb_tvlv_put(msg, BSSGP_IE_BVC_MEASUREMENT,
+			      sizeof(e_queue_delay),
+			      (uint8_t *) &e_queue_delay);
+
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
+}
+
+/*! \brief Transmit a FLOW_CONTROL-MS (Chapter 10.4.6)
+ *  \param[in] bctx BVC Context
+ *  \param[in] ms_bucket_size Maximum bucket size in octets
+ *  \param[in] bucket_leak_rate Bucket leak rate in octets/sec
+ *  \param[in] bucket_full_ratio Ratio (in percent) of queue filling
+ */
+int bssgp_tx_fc_ms(struct bssgp_bvc_ctx *bctx, uint32_t tag,
+		   uint32_t ms_bucket_size, uint32_t bucket_leak_rate,
+		   uint8_t *bucket_full_ratio)
+{
+	struct msgb *msg;
+	struct bssgp_normal_hdr *bgph;
+	uint16_t e_bucket_size, e_leak_rate;
+
+	if ((ms_bucket_size / 100) > 0xffff)
+		return -EINVAL;
+	e_bucket_size = ms_bucket_size / 100;
+
+	if ((bucket_leak_rate * 8 / 100) > 0xffff)
+		return -EINVAL;
+	e_leak_rate = (bucket_leak_rate * 8) / 100;
+
+	msg = bssgp_msgb_alloc();
+	bgph = (struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
+	msgb_nsei(msg) = bctx->nsei;
+	msgb_bvci(msg) = 0; /* Signalling */
+	bgph->pdu_type = BSSGP_PDUT_FLOW_CONTROL_MS;
+
+	msgb_tvlv_put(msg, BSSGP_IE_TAG, sizeof(tag), (uint8_t *)&tag);
+	msgb_tvlv_put(msg, BSSGP_IE_MS_BUCKET_SIZE,
+		      sizeof(e_bucket_size), (uint8_t *) &e_bucket_size);
+	msgb_tvlv_put(msg, BSSGP_IE_BUCKET_LEAK_RATE,
+		      sizeof(e_leak_rate), (uint8_t *) &e_leak_rate);
+	if (bucket_full_ratio)
+		msgb_tvlv_put(msg, BSSGP_IE_BUCKET_FULL_RATIO,
+			      1, bucket_full_ratio);
+
+	return gprs_ns_sendmsg(bssgp_nsi, msg);
+}
 
 /*! \brief RL-UL-UNITDATA.req (Chapter 10.2.2) */
 int bssgp_tx_ul_ud(struct bssgp_bvc_ctx *bctx, uint32_t tlli,
