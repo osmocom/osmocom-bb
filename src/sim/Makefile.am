@@ -3,14 +3,18 @@
 LIBVERSION=0:0:0
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -fPIC -Wall
+AM_CFLAGS = -fPIC -Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS) $(PCSC_CFLAGS)
+AM_LDFLAGS = $(COVERAGE_LDFLAGS)
+
+if ENABLE_PCSC
+# FIXME: only build the PC/SC dependent part conditional, but always build other parts
 
 noinst_HEADERS = sim_int.h gsm_int.h
 
 lib_LTLIBRARIES = libosmosim.la
 
 libosmosim_la_SOURCES = core.c card_fs_sim.c card_fs_usim.c card_fs_uicc.c reader.c reader_pcsc.c
-# FIXME: use autoconf to determine pcsc include path / library name
-libosmosim_la_LDFLAGS = -version-info $(LIBVERSION) -lpcsclite
-libosmosim_la_CFLAGS = -I/usr/include/PCSC
+libosmosim_la_LDFLAGS = -version-info $(LIBVERSION)
+libosmosim_la_LIBADD = $(LIBOSMOCORE_LIBS) $(LIBOSMOGSM_LIBS) $(PCSC_LIBS)
 
+endif
