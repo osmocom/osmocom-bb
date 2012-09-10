@@ -27,11 +27,15 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <netinet/in.h>
+
+#include <osmocom/core/msgb.h>
 #include <osmocom/sim/sim.h>
 
 
 #include "sim_int.h"
 
+/* remove the SW from end of the message */
 static int get_sw(struct msgb *resp)
 {
 	int ret;
@@ -39,8 +43,7 @@ static int get_sw(struct msgb *resp)
 	if (!msgb_apdu_de(resp) || msgb_apdu_le(resp) < 2)
 		return -EIO;
 
-	ret = resp->data[resp->len-2] << 8;
-	ret |= resp->data[resp->len-1];
+	ret = msgb_get_u16(resp);
 
 	return ret;
 }

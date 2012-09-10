@@ -164,7 +164,7 @@ static int dump_fcp_template_msg(struct msgb *msg)
 	struct tlv_parsed tp;
 	int rc;
 
-	rc = tlv_parse(&tp, &ts102221_fcp_tlv_def, msgb_apdu_de(msg)+2, msgb_apdu_le(msg)-4, 0, 0);
+	rc = tlv_parse(&tp, &ts102221_fcp_tlv_def, msgb_apdu_de(msg)+2, msgb_apdu_le(msg)-2, 0, 0);
 	if (rc < 0)
 		return rc;
 
@@ -223,7 +223,7 @@ static struct msgb *try_select_adf_usim(struct osim_chan_hdl *st)
 	int rc, i;
 
 	msg = select_file(st, 0x2f00);
-	rc = tlv_parse(&tp, &ts102221_fcp_tlv_def, msgb_apdu_de(msg)+2, msgb_apdu_le(msg)-4, 0, 0);
+	rc = tlv_parse(&tp, &ts102221_fcp_tlv_def, msgb_apdu_de(msg)+2, msgb_apdu_le(msg)-2, 0, 0);
 	if (rc < 0)
 		return NULL;
 
@@ -302,7 +302,7 @@ static int dump_file(struct osim_chan_hdl *chan, uint16_t fid)
 		goto out;
 	}
 
-	rc = tlv_parse(&tp, &ts102221_fcp_tlv_def, msgb_apdu_de(msg)+2, msgb_apdu_le(msg)-4, 0, 0);
+	rc = tlv_parse(&tp, &ts102221_fcp_tlv_def, msgb_apdu_de(msg)+2, msgb_apdu_le(msg)-2, 0, 0);
 	if (rc < 0) {
 		printf("Unable to parse FCP\n");
 		goto out;
