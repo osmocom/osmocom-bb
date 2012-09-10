@@ -29,6 +29,7 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/gprs/gprs_bssgp.h>
+#include <osmocom/gprs/gprs_bssgp_bss.h>
 #include <osmocom/gprs/gprs_ns.h>
 
 #include "common_vty.h"
