@@ -17,12 +17,13 @@ enum osim_apdu_case {
 	APDU_CASE_4E /* command header, command data field (extended), response data field (extended) */
 };
 
+/* command header, as specified in ISO/IEC 7816-3:2006(E) §12.2 */
 struct osim_apdu_cmd_hdr {
-	uint8_t cla;
-	uint8_t ins;
-	uint8_t p1;
-	uint8_t p2;
-	uint8_t p3;
+	uint8_t cla; /* CLASS byte */
+	uint8_t ins; /* INSTRUCTION byte */
+	uint8_t p1; /* Parameter 1 byte */
+	uint8_t p2; /* Parameter 2 byte */
+	uint8_t p3; /* Parameter 3 byte, used for TPDU */
 } __attribute__ ((packed));
 
 #define msgb_apdu_dr(__x)
