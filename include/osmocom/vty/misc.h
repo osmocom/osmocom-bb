@@ -3,6 +3,7 @@
 
 #include <osmocom/vty/vty.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/utils.h>
 
 #define VTY_DO_LOWER		1
 char *vty_cmd_string_from_valstr(void *ctx, const struct value_string *vals,
