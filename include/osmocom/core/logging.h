@@ -134,6 +134,8 @@ struct log_target {
 	unsigned int use_color:1;
 	/*! \brief should log messages be prefixed with a timestamp? */
 	unsigned int print_timestamp:1;
+	/*! \brief should log messages be prefixed with a filename? */
+	unsigned int print_filename:1;
 
 	/*! \brief the type of this log taget */
 	enum log_target_type type;
@@ -179,6 +181,7 @@ void log_set_all_filter(struct log_target *target, int);
 
 void log_set_use_color(struct log_target *target, int);
 void log_set_print_timestamp(struct log_target *target, int);
+void log_set_print_filename(struct log_target *target, int);
 void log_set_log_level(struct log_target *target, int log_level);
 void log_parse_category_mask(struct log_target *target, const char* mask);
 int log_parse_level(const char *lvl);
