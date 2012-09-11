@@ -31,6 +31,16 @@ Doxyfile.gsm
 Doxyfile.vty
 Doxyfile.codec
 
+debian/autoreconf.after
+debian/autoreconf.before
+debian/files
+debian/libosmocore-dev/
+debian/libosmocore*.log
+debian/tmp/
+debian/libosmocore*.substvars
+debian/libosmocore/
+debian/libosmocore.post*.debhelper
+
 .tarball-version
 .version
 
