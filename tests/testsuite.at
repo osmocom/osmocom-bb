@@ -13,7 +13,7 @@ AT_SETUP([bssgp-fc])
 AT_KEYWORDS([bssgp-fc])
 cat $abs_srcdir/gb/bssgp_fc_tests.ok > expout
 cat $abs_srcdir/gb/bssgp_fc_tests.err > experr
-AT_CHECK([$abs_top_builddir/tests/gb/bssgp_fc_tests.sh $abs_top_builddir/tests/gb], [], [expout], [experr])
+AT_CHECK([$abs_top_srcdir/tests/gb/bssgp_fc_tests.sh $abs_top_builddir/tests/gb], [], [expout], [experr])
 AT_CLEANUP
 
 AT_SETUP([bits])
