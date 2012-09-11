@@ -28,11 +28,12 @@ struct osim_apdu_cmd_hdr {
 
 #define msgb_apdu_dr(__x)
 
+/* command body, as specified in ISO/IEC 7816-3:2006(E) §12.1 */
 struct osim_msgb_cb {
-	enum osim_apdu_case apduc;
-	uint16_t lc;
-	uint16_t le;
-	uint16_t sw;
+	enum osim_apdu_case apduc; /* command-response pairs case, defining the encoding of Lc and Le */
+	uint16_t lc; /* number of bytes in the command data field Nc, which will encoded in 0, 1 or 3 bytes into Lc */
+	uint16_t le; /* maximum number of bytes expected in the response data field,  which will encoded in 0, 1, 2 or 3 bytes into Le */
+	uint16_t sw; /* status word, composed of SW1 and SW2 bytes */
 };
 #define OSIM_MSGB_CB(__msgb)	((struct osim_msgb_cb *)&((__msgb)->cb[0]))
 /*! \brief status word from msgb->cb */
