@@ -250,16 +250,17 @@ int gsm_septets2octets(uint8_t *result, uint8_t *rdata, uint8_t septet_len, uint
 /* GSM 03.38 6.2.1 Character packing */
 int gsm_7bit_encode(uint8_t *result, const char *data)
 {
-	int y = 0, z = 0;
+	int y = 0;
+
 	/* prepare for the worst case, every character expanding to two bytes */
 	uint8_t *rdata = calloc(strlen(data) * 2, sizeof(uint8_t));
 	y = gsm_septet_encode(rdata, data);
-	z = gsm_septets2octets(result, rdata, y, 0);
+	gsm_septets2octets(result, rdata, y, 0);
 
 	free(rdata);
 
 	/*
-	 * We don't care about the number of octets (z), because they are not
+	 * We don't care about the number of octets, because they are not
 	 * unique. E.g.:
 	 *  1.) 46 non-extension characters + 1 extension character
 	 *         => (46 * 7 bit + (1 * (2 * 7 bit))) / 8 bit =  42 octets
