@@ -291,7 +291,7 @@ int vty_out(struct vty *vty, const char *format, ...)
 /*! \brief print a newline on the given VTY */
 int vty_out_newline(struct vty *vty)
 {
-	char *p = vty_newline(vty);
+	const char *p = vty_newline(vty);
 	buffer_put(vty->obuf, p, strlen(p));
 	return 0;
 }
