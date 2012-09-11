@@ -101,7 +101,7 @@ struct log_info {
 	log_filter *filter_fn;
 
 	/*! \brief per-category information */
-	struct log_info_cat *cat;
+	const struct log_info_cat *cat;
 	/*! \brief total number of categories */
 	unsigned int num_cat;
 	/*! \brief total number of user categories (not library) */

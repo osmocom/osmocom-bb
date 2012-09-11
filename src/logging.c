@@ -740,14 +740,15 @@ int log_init(const struct log_info *inf, void *ctx)
 
 	/* copy over the user part */
 	for (i = 0; i < inf->num_cat; i++) {
-		memcpy(&osmo_log_info->cat[i], &inf->cat[i],
+		memcpy((struct log_info_cat *) &osmo_log_info->cat[i],
+			&inf->cat[i],
 			sizeof(struct log_info_cat));
 	}
 
 	/* copy over the library part */
 	for (i = 0; i < ARRAY_SIZE(internal_cat); i++) {
 		unsigned int cn = osmo_log_info->num_cat_user + i;
-		memcpy(&osmo_log_info->cat[cn],
+		memcpy((struct log_info_cat *) &osmo_log_info->cat[cn],
 			&internal_cat[i], sizeof(struct log_info_cat));
 	}
 
