@@ -66,10 +66,10 @@ static int transceive_apdu_t0(struct osim_card_hdl *st, struct msgb *amsg)
 	case APDU_CASE_1:
 		tpduh->p3 = 0x00;
 		break;
-	case APDU_CASE_2:
+	case APDU_CASE_2S:
 		tpduh->p3 = msgb_apdu_le(amsg);
 		break;
-	case APDU_CASE_2_EXT:
+	case APDU_CASE_2E:
 		if (msgb_apdu_le(amsg) <= 256) {
 			/* case 2E.1 */
 			tpduh->p3 = msgb_apdu_le(amsg) & 0xff;
@@ -79,14 +79,14 @@ static int transceive_apdu_t0(struct osim_card_hdl *st, struct msgb *amsg)
 			msgb_put_u16(tmsg, msgb_apdu_le(amsg));
 		}
 		break;
-	case APDU_CASE_3:
-	case APDU_CASE_4:
+	case APDU_CASE_3S:
+	case APDU_CASE_4S:
 		tpduh->p3 = msgb_apdu_lc(amsg);
 		cur = msgb_put(tmsg, tpduh->p3);
 		memcpy(cur, msgb_apdu_dc(amsg), tpduh->p3);
 		break;
-	case APDU_CASE_3_EXT:
-	case APDU_CASE_4_EXT:
+	case APDU_CASE_3E:
+	case APDU_CASE_4E:
 		if (msgb_apdu_lc(amsg) < 256) {
 			/* Case 3E.1 */
 			tpduh->p3 = msgb_apdu_lc(amsg);
@@ -121,10 +121,10 @@ transceive_again:
 
 	switch (msgb_apdu_case(amsg)) {
 	case APDU_CASE_1:
-	case APDU_CASE_3:
+	case APDU_CASE_3S:
 		/* just copy SW */
 		break;
-	case APDU_CASE_2:
+	case APDU_CASE_2S:
 case_2s:
 		switch (sw >> 8) {
 		case 0x67: /* Case 2S.2: Le definitely not accepted */
@@ -145,7 +145,7 @@ case_2s:
 			memcpy(cur, tmsg->l3h, msgb_l3len(tmsg));
 		}
 		break;
-	case APDU_CASE_4:
+	case APDU_CASE_4S:
 		/* FIXME: this is 4S.2 only for 2nd... response: */
 		if (num_resp >= 2)
 			goto case_2s;
@@ -177,7 +177,7 @@ case_2s:
 		/* Case 4S.2: Command accepted: just copy SW */
 		/* Case 4S.4: Just copy SW */
 		break;
-	case APDU_CASE_2_EXT:
+	case APDU_CASE_2E:
 		if (msgb_apdu_le(amsg) <= 256) {
 			/* Case 2E.1: Le <= 256 */
 			goto case_2s;
@@ -201,10 +201,10 @@ case_2s:
 			break;
 		}
 		break;
-	case APDU_CASE_3_EXT:
+	case APDU_CASE_3E:
 		/* FIXME: handling for ENVELOPE splitting */
 		break;
-	case APDU_CASE_4_EXT:
+	case APDU_CASE_4E:
 		break;
 	}
 

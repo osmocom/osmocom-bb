@@ -9,12 +9,12 @@
 /* command-response pairs cases, as specified in ISO/IEC 7816-3:2006(E) §12.1 */
 enum osim_apdu_case {
 	APDU_CASE_1, /* command header, no command data field, no response data field */
-	APDU_CASE_2, /* command header, no command data field, response data field (short) */
-	APDU_CASE_2_EXT, /* command header, no command data field, response data field (extended) */
-	APDU_CASE_3, /* command header, command data field (short), no response data field */
-	APDU_CASE_3_EXT, /* command header, command data field (extended), no response data field */
-	APDU_CASE_4, /* command header, command data field (short), response data field (short) */
-	APDU_CASE_4_EXT /* command header, command data field (extended), response data field (extended) */
+	APDU_CASE_2S, /* command header, no command data field, response data field (short) */
+	APDU_CASE_2E, /* command header, no command data field, response data field (extended) */
+	APDU_CASE_3S, /* command header, command data field (short), no response data field */
+	APDU_CASE_3E, /* command header, command data field (extended), no response data field */
+	APDU_CASE_4S, /* command header, command data field (short), response data field (short) */
+	APDU_CASE_4E /* command header, command data field (extended), response data field (extended) */
 };
 
 struct osim_apdu_cmd_hdr {

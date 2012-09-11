@@ -206,19 +206,19 @@ struct msgb *osim_new_apdumsg(uint8_t cla, uint8_t ins, uint8_t p1,
 		msgb_apdu_case(msg) = APDU_CASE_1;
 	else if (lc == 0 && le >= 1) {
 		if (le <= 256)
-			msgb_apdu_case(msg) = APDU_CASE_2;
+			msgb_apdu_case(msg) = APDU_CASE_2S;
 		else
-			msgb_apdu_case(msg) = APDU_CASE_2_EXT;
+			msgb_apdu_case(msg) = APDU_CASE_2E;
 	} else if (le == 0 && lc >= 1) {
 		if (lc <= 255)
-			msgb_apdu_case(msg) = APDU_CASE_3;
+			msgb_apdu_case(msg) = APDU_CASE_3S;
 		else
-			msgb_apdu_case(msg) = APDU_CASE_3_EXT;
+			msgb_apdu_case(msg) = APDU_CASE_3E;
 	} else if (lc >= 1 && le >= 1) {
 		if (lc <= 255 & le <= 256)
-			msgb_apdu_case(msg) = APDU_CASE_4;
+			msgb_apdu_case(msg) = APDU_CASE_4S;
 		else
-			msgb_apdu_case(msg) = APDU_CASE_4_EXT;
+			msgb_apdu_case(msg) = APDU_CASE_4E;
 	}
 
 	return msg;
