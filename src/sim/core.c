@@ -174,14 +174,18 @@ osim_file_find_name(struct osim_file_desc *parent, const char *name)
 	return NULL;
 }
 
-/* create an APDU header
- * APDU format as defined in ISO/IEC 7816-4:2005(E) §5.1
- * - cla: CLASS byte
- * - ins: INSTRUCTION byte
- * - p1: Parameter 1 byte
- * - p2: Parameter 2 byte
- * - lc: number of bytes in the command data field Nc, which will encoded in 0, 1 or 3 bytes into Lc
- * - le: maximum number of bytes expected in the response data field,  which will encoded in 0, 1, 2 or 3 bytes into Le
+/*! \brief Generate an APDU message and initialize APDU command header
+ *  \param[in] cla CLASS byte
+ *  \param[in] ins INSTRUCTION byte
+ *  \param[in] p1 Parameter 1 byte
+ *  \param[in] p2 Parameter 2 byte
+ *  \param[in] lc number of bytes in the command data field Nc, which will encoded in 0, 1 or 3 bytes into Lc
+ *  \param[in] le maximum number of bytes expected in the response data field,  which will encoded in 0, 1, 2 or 3 bytes into Le
+ *  \returns an APDU message generated using provided APDU parameters
+ * 
+ * This function generates an APDU message, as defined in ISO/IEC 7816-4:2005(E) §5.1.
+ * The APDU command header, command and response fields lengths are initialized using the parameters.
+ * The APDU case is determined by the command and response fields lengths.
  */
 struct msgb *osim_new_apdumsg(uint8_t cla, uint8_t ins, uint8_t p1,
 			      uint8_t p2, uint16_t lc, uint16_t le)

@@ -6,34 +6,54 @@
 
 #define APDU_HDR_LEN	5
 
-/* command-response pairs cases, as specified in ISO/IEC 7816-3:2006(E) §12.1 */
+/*!
+ * \file sim.h
+ * \brief Routines for helping with SIM (ISO/IEC 7816-4 more generally) communication.
+ */
+
+/*! \brief command-response pairs cases
+ *
+ * Enumeration used to identify the APDU structure based on command-response pair case , as specified in ISO/IEC 7816-3:2006(E) §12.1.
+ */
 enum osim_apdu_case {
-	APDU_CASE_1, /* command header, no command data field, no response data field */
-	APDU_CASE_2S, /* command header, no command data field, response data field (short) */
-	APDU_CASE_2E, /* command header, no command data field, response data field (extended) */
-	APDU_CASE_3S, /* command header, command data field (short), no response data field */
-	APDU_CASE_3E, /* command header, command data field (extended), no response data field */
-	APDU_CASE_4S, /* command header, command data field (short), response data field (short) */
-	APDU_CASE_4E /* command header, command data field (extended), response data field (extended) */
+	APDU_CASE_1, /*!< command header, no command data field, no response data field */
+	APDU_CASE_2S, /*!< command header, no command data field, response data field (short) */
+	APDU_CASE_2E, /*!< command header, no command data field, response data field (extended) */
+	APDU_CASE_3S, /*!< command header, command data field (short), no response data field */
+	APDU_CASE_3E, /*!< command header, command data field (extended), no response data field */
+	APDU_CASE_4S, /*!< command header, command data field (short), response data field (short) */
+	APDU_CASE_4E /*!< command header, command data field (extended), response data field (extended) */
 };
 
-/* command header, as specified in ISO/IEC 7816-3:2006(E) §12.2 */
+/*! \brief APDU/TPDU command header
+ *
+ * This structure encode an APDU/TPDU command header, as specified in ISO/IEC 7816-3:2006(E) §12.2 and §12.3.
+ * The APDU (application layer) can be encoded as different TPDUs (transport layer), depending on the transport protocol used.
+ * The TPDU encoding by T=1 of the APDU command header is identical to the APDU.
+ * The TPDU encoding by T=0 of the APDU command header adds a Parameter 3 field, generally used instead of Lc/Le.
+ * 
+ * @todo have different structures for APDU, TPDU by T=0, and TPDU by T=1.
+ */
 struct osim_apdu_cmd_hdr {
-	uint8_t cla; /* CLASS byte */
-	uint8_t ins; /* INSTRUCTION byte */
-	uint8_t p1; /* Parameter 1 byte */
-	uint8_t p2; /* Parameter 2 byte */
-	uint8_t p3; /* Parameter 3 byte, used for TPDU */
+	uint8_t cla; /*!< CLASS byte */
+	uint8_t ins; /*!< INSTRUCTION byte */
+	uint8_t p1; /*!< Parameter 1 byte */
+	uint8_t p2; /*!< Parameter 2 byte */
+	uint8_t p3; /*!< Parameter 3 byte, used for TPDU by T=0 */
 } __attribute__ ((packed));
 
 #define msgb_apdu_dr(__x)
 
-/* command body, as specified in ISO/IEC 7816-3:2006(E) §12.1 */
+/*! \brief APDU command body
+ *
+ * This structure encode a command body, as specified in ISO/IEC 7816-3:2006(E) §12.1.
+ * The data and response contents should be provided along with this structure.
+ */
 struct osim_msgb_cb {
-	enum osim_apdu_case apduc; /* command-response pairs case, defining the encoding of Lc and Le */
-	uint16_t lc; /* number of bytes in the command data field Nc, which will encoded in 0, 1 or 3 bytes into Lc */
-	uint16_t le; /* maximum number of bytes expected in the response data field,  which will encoded in 0, 1, 2 or 3 bytes into Le */
-	uint16_t sw; /* status word, composed of SW1 and SW2 bytes */
+	enum osim_apdu_case apduc; /*!< command-response pair case, defining the encoding of Lc and Le */
+	uint16_t lc; /*!< number of bytes in the command data field Nc, which will encoded in 0, 1 or 3 bytes into Lc, depending on the case */
+	uint16_t le; /*!< maximum number of bytes expected in the response data field,  which will encoded in 0, 1, 2 or 3 bytes into Le, depending on the case */
+	uint16_t sw; /*!< status word, composed of SW1 and SW2 bytes */
 };
 #define OSIM_MSGB_CB(__msgb)	((struct osim_msgb_cb *)&((__msgb)->cb[0]))
 /*! \brief status word from msgb->cb */
