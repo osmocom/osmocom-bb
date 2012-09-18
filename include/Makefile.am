@@ -100,5 +100,5 @@ endif
 noinst_HEADERS = osmocom/core/timer_compat.h
 
 osmocom/core/crc%gen.h: osmocom/core/crcXXgen.h.tpl
-	$(AM_V_GEN)$(MKDIR_P) $(notdir $@)
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@)
 	$(AM_V_GEN)sed -e's/XX/$*/g' $< > $@
