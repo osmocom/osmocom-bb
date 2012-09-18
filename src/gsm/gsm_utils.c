@@ -2,7 +2,7 @@
  * (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
  * (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
  * (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
- * (C) 2010 by Nico Golde <nico@ngolde.de>
+ * (C) 2010-2012 by Nico Golde <nico@ngolde.de>
  *
  * All Rights Reserved
  *
@@ -127,9 +127,8 @@ int gsm_7bit_decode_hdr(char *text, const uint8_t *user_data, uint8_t septet_l, 
 {
 	int i = 0;
 	int shift = 0;
-
-	uint8_t *rtext = calloc(septet_l, sizeof(uint8_t));
-	uint8_t tmp;
+	uint8_t c;
+	uint8_t next_is_ext = 0;
 
 	/* skip the user data header */
 	if (ud_hdr_ind) {
@@ -141,29 +140,29 @@ int gsm_7bit_decode_hdr(char *text, const uint8_t *user_data, uint8_t septet_l, 
 	}
 
 	for (i = 0; i < septet_l; i++) {
-		rtext[i] =
+		c =
 			((user_data[((i + shift) * 7 + 7) >> 3] <<
 			  (7 - (((i + shift) * 7 + 7) & 7))) |
 			 (user_data[((i + shift) * 7) >> 3] >>
 			  (((i + shift) * 7) & 7))) & 0x7f;
-	}
 
-	for (i = 0; i < septet_l; i++) {
-		/* this is an extension character */
-		if(rtext[i] == 0x1b && i + 1 < septet_l){
-			tmp = rtext[i+1];
-			*(text++) = gsm_7bit_alphabet[0x7f + tmp];
-			i++;
+		if(c == 0x1b && i + 1 < septet_l){
+			next_is_ext = 1;
 			continue;
 		}
 
-		*(text++) = gsm_septet_lookup(rtext[i]);
+		/* this is an extension character */
+		if(next_is_ext){
+			next_is_ext = 0;
+			*(text++) = gsm_7bit_alphabet[0x7f + c];
+		} else {
+			*(text++) = gsm_septet_lookup(c);
+		}
 	}
 
 	if (ud_hdr_ind)
 		i += shift;
 	*text = '\0';
-	free(rtext);
 
 	return i;
 }
