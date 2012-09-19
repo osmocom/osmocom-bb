@@ -218,7 +218,7 @@ struct osim_card_sw {
 	} u;
 };
 
-#define OSIM_CARD_SW_LAST	{			\
+#define OSIM_CARD_SW_LAST	(const struct osim_card_sw) {	\
 	.code = 0, .mask = 0, .type = SW_TYPE_NONE,	\
 	.class = SW_CLS_NONE, .u.str = NULL		\
 }
@@ -226,8 +226,14 @@ struct osim_card_sw {
 struct osim_card_profile {
 	const char *name;
 	struct osim_file_desc *mf;
-	struct osim_card_sw **sws;
+	const struct osim_card_sw **sws;
 };
+
+const struct osim_card_sw *osim_find_sw(const struct osim_card_profile *cp,
+					uint16_t sw);
+
+struct osim_card_hdl;
+char *osim_print_sw(const struct osim_card_hdl *ch, uint16_t sw_in);
 
 extern const struct tlv_definition ts102221_fcp_tlv_def;
 const struct value_string ts102221_fcp_vals[14];

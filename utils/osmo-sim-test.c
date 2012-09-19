@@ -297,6 +297,7 @@ static int dump_file(struct osim_chan_hdl *chan, uint16_t fid)
 		printf("Unable to select file\n");
 		return -EIO;
 	}
+	printf("SW: %s\n", osim_print_sw(chan->card, msgb_apdu_sw(msg)));
 	if (msgb_apdu_sw(msg) != 0x9000) {
 		printf("status 0x%04x selecting file\n", msgb_apdu_sw(msg));
 		goto out;
@@ -334,6 +335,7 @@ static int dump_file(struct osim_chan_hdl *chan, uint16_t fid)
 			rmsg = read_record_nr(chan, i+1, ffdd.rec_len);
 			if (!msg)
 				return -EIO;
+			printf("SW: %s\n", osim_print_sw(chan->card, msgb_apdu_sw(msg)));
 			printf("Rec %03u: %s\n", i+1,
 				osmo_hexdump(msgb_apdu_de(rmsg), msgb_apdu_le(rmsg)));
 		}
@@ -390,6 +392,7 @@ int main(int argc, char **argv)
 
 	msg = select_file(chan, 0x6fc5);
 	dump_fcp_template_msg(msg);
+	printf("SW: %s\n", osim_print_sw(chan->card, msgb_apdu_sw(msg)));
 	msgb_free(msg);
 
 	verify_pin(chan, 1, "1653");

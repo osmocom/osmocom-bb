@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/sim/sim.h>
@@ -196,7 +197,7 @@ struct msgb *osim_new_apdumsg(uint8_t cla, uint8_t ins, uint8_t p1,
 		return NULL;
 
 	ch = (struct osim_apdu_cmd_hdr *) msgb_put(msg, sizeof(*ch));
-	msg->l2h = (char *) ch;
+	msg->l2h = (uint8_t *) ch;
 
 	ch->cla = cla;
 	ch->ins = ins;
@@ -219,11 +220,62 @@ struct msgb *osim_new_apdumsg(uint8_t cla, uint8_t ins, uint8_t p1,
 		else
 			msgb_apdu_case(msg) = APDU_CASE_3E;
 	} else if (lc >= 1 && le >= 1) {
-		if (lc <= 255 & le <= 256)
+		if (lc <= 255 && le <= 256)
 			msgb_apdu_case(msg) = APDU_CASE_4S;
 		else
 			msgb_apdu_case(msg) = APDU_CASE_4E;
 	}
 
 	return msg;
+}
+
+/* FIXME: do we want to mark this as __thread? */
+static char sw_print_buf[256];
+
+char *osim_print_sw(const struct osim_card_hdl *ch, uint16_t sw_in)
+{
+	const struct osim_card_sw *csw;
+
+	if (!ch || !ch->prof)
+		goto ret_def;
+
+	csw = osim_find_sw(ch->prof, sw_in);
+	if (!csw)
+		goto ret_def;
+
+	switch (csw->type) {
+	case SW_TYPE_STR:
+		snprintf(sw_print_buf, sizeof(sw_print_buf),
+			 "%04x (%s)", sw_in, csw->u.str);
+		break;
+	default:
+		goto ret_def;
+	}
+
+	sw_print_buf[sizeof(sw_print_buf)-1] = '\0';
+
+	return sw_print_buf;
+
+ret_def:
+	snprintf(sw_print_buf, sizeof(sw_print_buf),
+		 "%04x (Unknown)", sw_in);
+	sw_print_buf[sizeof(sw_print_buf)-1] = '\0';
+
+	return sw_print_buf;
+}
+
+
+const struct osim_card_sw *osim_find_sw(const struct osim_card_profile *cp,
+					uint16_t sw_in)
+{
+	const struct osim_card_sw **sw_lists = cp->sws;
+	const struct osim_card_sw *sw_list, *sw;
+
+	for (sw_list = *sw_lists++; sw_list != NULL; sw = sw_list = *sw_lists++) {
+		for (sw = sw_list; sw->code != 0 && sw->mask != 0; sw++) {
+			if ((sw_in & sw->mask) == sw->code)
+				return sw;
+		}
+	}
+	return NULL;
 }
