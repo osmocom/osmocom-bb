@@ -146,13 +146,13 @@ int gsm_7bit_decode_hdr(char *text, const uint8_t *user_data, uint8_t septet_l, 
 			 (user_data[((i + shift) * 7) >> 3] >>
 			  (((i + shift) * 7) & 7))) & 0x7f;
 
-		if(c == 0x1b && i + 1 < septet_l){
+		if (c == 0x1b && i + 1 < septet_l) {
 			next_is_ext = 1;
 			continue;
 		}
 
 		/* this is an extension character */
-		if(next_is_ext){
+		if (next_is_ext) {
 			next_is_ext = 0;
 			*(text++) = gsm_7bit_alphabet[0x7f + c];
 		} else {
