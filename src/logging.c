@@ -175,16 +175,18 @@ void log_parse_category_mask(struct log_target* target, const char *_mask)
 	category_token = strtok(mask, ":");
 	do {
 		for (i = 0; i < osmo_log_info->num_cat; ++i) {
+			size_t length, cat_length;
 			char* colon = strstr(category_token, ",");
-			int length = strlen(category_token);
-			int cat_length = strlen(osmo_log_info->cat[i].name);
+
+			if (!osmo_log_info->cat[i].name)
+				continue;
+
+			length = strlen(category_token);
+			cat_length = strlen(osmo_log_info->cat[i].name);
 
 			/* Use longest length not to match subocurrences. */
 			if (cat_length > length)
 				length = cat_length;
-
-			if (!osmo_log_info->cat[i].name)
-				continue;
 
 			if (colon)
 			    length = colon - category_token;
