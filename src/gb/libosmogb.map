@@ -11,6 +11,8 @@ bssgp_parse_cell_id;
 bssgp_tx_bvc_block;
 bssgp_tx_bvc_reset;
 bssgp_tx_bvc_unblock;
+bssgp_tx_fc_bvc;
+bssgp_tx_fc_ms;
 bssgp_tx_flush_ll_ack;
 bssgp_tx_llc_discarded;
 bssgp_tx_ra_capa_upd;

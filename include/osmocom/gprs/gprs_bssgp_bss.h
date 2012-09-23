@@ -64,12 +64,12 @@ int bssgp_tx_ul_ud(struct bssgp_bvc_ctx *bctx, uint32_t tlli,
 int bssgp_rx_paging(struct bssgp_paging_info *pinfo,
 		    struct msgb *msg);
 
-int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint32_t tag,
+int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 		    uint32_t bucket_size, uint32_t bucket_leak_rate,
 		    uint16_t bmax_default_ms, uint32_t r_default_ms,
 		    uint8_t *bucket_full_ratio, uint32_t *queue_delay_ms);
 
-int bssgp_tx_fc_ms(struct bssgp_bvc_ctx *bctx, uint32_t tag,
+int bssgp_tx_fc_ms(struct bssgp_bvc_ctx *bctx, uint32_t tlli, uint8_t tag,
 		   uint32_t ms_bucket_size, uint32_t bucket_leak_rate,
 		   uint8_t *bucket_full_ratio);
 #endif
