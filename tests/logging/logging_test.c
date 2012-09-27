@@ -41,7 +41,7 @@ static const struct log_info_cat default_categories[] = {
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
 	[DMM] = {
-		.name = "DMM",
+		.name = NULL,
 		.description = "Layer3 Mobility Management (MM)",
 		.color = "\033[1;33m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
