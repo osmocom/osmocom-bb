@@ -920,14 +920,24 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb, void *ctx)
 /*! \brief Destroy an entire NS instance
  *  \param nsi gprs_ns_inst that is to be destroyed
  *
- *  This function SHOULD release all resources associated with the
- *  NS-instance but is actually not completely implemented!
+ *  This function releases all resources associated with the
+ *  NS-instance.
  */
 void gprs_ns_destroy(struct gprs_ns_inst *nsi)
 {
-	/* FIXME: clear all timers */
+	struct gprs_nsvc *nsvc, *nsvc2;
 
-	/* recursively free the NSI and all its NSVCs */
+	/* delete all NSVCs and clear their timers */
+	llist_for_each_entry_safe(nsvc, nsvc2, &nsi->gprs_nsvcs, list)
+		gprs_nsvc_delete(nsvc);
+
+	/* close socket and unregister */
+	if (nsi->nsip.fd.data) {
+		close(nsi->nsip.fd.fd);
+		osmo_fd_unregister(&nsi->nsip.fd);
+	}
+
+	/* free the NSI */
 	talloc_free(nsi);
 }
 
