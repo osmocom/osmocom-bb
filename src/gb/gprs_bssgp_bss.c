@@ -305,6 +305,7 @@ int bssgp_tx_bvc_reset(struct bssgp_bvc_ctx *bctx, uint16_t bvci, uint8_t cause)
 
 /*! \brief Transmit a FLOW_CONTROL-BVC (Chapter 10.4.4)
  *  \param[in] bctx BVC Context
+ *  \param[in] tag Additional tag to identify acknowledge
  *  \param[in] bucket_size Maximum bucket size in octets
  *  \param[in] bucket_leak_rate Bucket leak rate in octets/sec
  *  \param[in] bmax_default_ms Maximum bucket size default for MS
@@ -376,6 +377,8 @@ int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 
 /*! \brief Transmit a FLOW_CONTROL-MS (Chapter 10.4.6)
  *  \param[in] bctx BVC Context
+ *  \param[in] tlli TLLI to identify MS
+ *  \param[in] tag Additional tag to identify acknowledge
  *  \param[in] ms_bucket_size Maximum bucket size in octets
  *  \param[in] bucket_leak_rate Bucket leak rate in octets/sec
  *  \param[in] bucket_full_ratio Ratio (in percent) of queue filling
@@ -417,7 +420,12 @@ int bssgp_tx_fc_ms(struct bssgp_bvc_ctx *bctx, uint32_t tlli, uint8_t tag,
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
 
-/*! \brief RL-UL-UNITDATA.req (Chapter 10.2.2) */
+/*! \brief RL-UL-UNITDATA.req (Chapter 10.2.2)
+ *  \param[in] bctx BVC Context
+ *  \param[in] tlli TLLI to identify MS
+ *  \param[in] qos_profile Pointer to three octests of QoS profile
+ *  \param[in] llc_pdu msgb pointer containing UL Unitdata IE payload
+ */
 int bssgp_tx_ul_ud(struct bssgp_bvc_ctx *bctx, uint32_t tlli,
 		   const uint8_t *qos_profile, struct msgb *llc_pdu)
 {
