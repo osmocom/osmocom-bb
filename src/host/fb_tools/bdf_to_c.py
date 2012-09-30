@@ -27,7 +27,6 @@ selected glyphs in the format defined by the <fb/font.h> header.
 from optparse import OptionParser
 import sys
 import os
-import string
 
 def unique_name(thisname,existingnames) :
 	# return first of thisname, thisname_1, thisname_2, ...
