@@ -175,16 +175,18 @@ void log_parse_category_mask(struct log_target* target, const char *_mask)
 	category_token = strtok(mask, ":");
 	do {
 		for (i = 0; i < osmo_log_info->num_cat; ++i) {
+			size_t length, cat_length;
 			char* colon = strstr(category_token, ",");
-			int length = strlen(category_token);
-			int cat_length = strlen(osmo_log_info->cat[i].name);
+
+			if (!osmo_log_info->cat[i].name)
+				continue;
+
+			length = strlen(category_token);
+			cat_length = strlen(osmo_log_info->cat[i].name);
 
 			/* Use longest length not to match subocurrences. */
 			if (cat_length > length)
 				length = cat_length;
-
-			if (!osmo_log_info->cat[i].name)
-				continue;
 
 			if (colon)
 			    length = colon - category_token;
@@ -242,11 +244,13 @@ static void _output(struct log_target *target, unsigned int subsys,
 				goto err;
 			OSMO_SNPRINTF_RET(ret, rem, offset, len);
 		}
-		ret = snprintf(buf + offset, rem, "<%4.4x> %s:%d ",
-				subsys, file, line);
-		if (ret < 0)
-			goto err;
-		OSMO_SNPRINTF_RET(ret, rem, offset, len);
+		if (target->print_filename) {
+			ret = snprintf(buf + offset, rem, "<%4.4x> %s:%d ",
+					subsys, file, line);
+			if (ret < 0)
+				goto err;
+			OSMO_SNPRINTF_RET(ret, rem, offset, len);
+		}
 	}
 	ret = vsnprintf(buf + offset, rem, format, ap);
 	if (ret < 0)
@@ -409,6 +413,15 @@ void log_set_print_timestamp(struct log_target *target, int print_timestamp)
 	target->print_timestamp = print_timestamp;
 }
 
+/*! \brief Enable or disable printing of the filename while logging
+ *  \param[in] target Log target to be affected
+ *  \param[in] print_filename Enable (1) or disable (0) filenames
+ */
+void log_set_print_filename(struct log_target *target, int print_filename)
+{
+	target->print_filename = print_filename;
+}
+
 /*! \brief Set the global log level for a given log target
  *  \param[in] target Log target to be affected
  *  \param[in] log_level New global log level
@@ -464,6 +477,7 @@ struct log_target *log_target_create(void)
 	/* global settings */
 	target->use_color = 1;
 	target->print_timestamp = 0;
+	target->print_filename = 1;
 
 	/* global log level */
 	target->loglevel = 0;
@@ -740,14 +754,15 @@ int log_init(const struct log_info *inf, void *ctx)
 
 	/* copy over the user part */
 	for (i = 0; i < inf->num_cat; i++) {
-		memcpy(&osmo_log_info->cat[i], &inf->cat[i],
+		memcpy((struct log_info_cat *) &osmo_log_info->cat[i],
+			&inf->cat[i],
 			sizeof(struct log_info_cat));
 	}
 
 	/* copy over the library part */
 	for (i = 0; i < ARRAY_SIZE(internal_cat); i++) {
 		unsigned int cn = osmo_log_info->num_cat_user + i;
-		memcpy(&osmo_log_info->cat[cn],
+		memcpy((struct log_info_cat *) &osmo_log_info->cat[cn],
 			&internal_cat[i], sizeof(struct log_info_cat));
 	}
 

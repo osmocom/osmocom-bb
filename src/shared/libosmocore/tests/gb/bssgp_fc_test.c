@@ -8,6 +8,7 @@
 #include <string.h>
 #include <getopt.h>
 
+#include <osmocom/core/application.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/talloc.h>
@@ -121,6 +122,8 @@ int main(int argc, char **argv)
 	};
 
 	osmo_init_logging(&info);
+	log_set_use_color(osmo_stderr_target, 0);
+	log_set_print_filename(osmo_stderr_target, 0);
 
 	while ((c = getopt_long(argc, argv, "s:r:d:l:c:",
 				long_options, NULL)) != -1) {

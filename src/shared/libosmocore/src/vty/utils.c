@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/talloc.h>

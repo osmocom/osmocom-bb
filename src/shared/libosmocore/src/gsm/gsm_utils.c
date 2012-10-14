@@ -2,7 +2,7 @@
  * (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
  * (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
  * (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
- * (C) 2010 by Nico Golde <nico@ngolde.de>
+ * (C) 2010-2012 by Nico Golde <nico@ngolde.de>
  *
  * All Rights Reserved
  *
@@ -127,9 +127,8 @@ int gsm_7bit_decode_hdr(char *text, const uint8_t *user_data, uint8_t septet_l, 
 {
 	int i = 0;
 	int shift = 0;
-
-	uint8_t *rtext = calloc(septet_l, sizeof(uint8_t));
-	uint8_t tmp;
+	uint8_t c;
+	uint8_t next_is_ext = 0;
 
 	/* skip the user data header */
 	if (ud_hdr_ind) {
@@ -141,29 +140,29 @@ int gsm_7bit_decode_hdr(char *text, const uint8_t *user_data, uint8_t septet_l, 
 	}
 
 	for (i = 0; i < septet_l; i++) {
-		rtext[i] =
+		c =
 			((user_data[((i + shift) * 7 + 7) >> 3] <<
 			  (7 - (((i + shift) * 7 + 7) & 7))) |
 			 (user_data[((i + shift) * 7) >> 3] >>
 			  (((i + shift) * 7) & 7))) & 0x7f;
-	}
 
-	for (i = 0; i < septet_l; i++) {
 		/* this is an extension character */
-		if(rtext[i] == 0x1b && i + 1 < septet_l){
-			tmp = rtext[i+1];
-			*(text++) = gsm_7bit_alphabet[0x7f + tmp];
-			i++;
+		if (next_is_ext) {
+			next_is_ext = 0;
+			*(text++) = gsm_7bit_alphabet[0x7f + c];
 			continue;
 		}
 
-		*(text++) = gsm_septet_lookup(rtext[i]);
+		if (c == 0x1b && i + 1 < septet_l) {
+			next_is_ext = 1;
+		} else {
+			*(text++) = gsm_septet_lookup(c);
+		}
 	}
 
 	if (ud_hdr_ind)
 		i += shift;
 	*text = '\0';
-	free(rtext);
 
 	return i;
 }
@@ -250,16 +249,17 @@ int gsm_septets2octets(uint8_t *result, uint8_t *rdata, uint8_t septet_len, uint
 /* GSM 03.38 6.2.1 Character packing */
 int gsm_7bit_encode(uint8_t *result, const char *data)
 {
-	int y = 0, z = 0;
+	int y = 0;
+
 	/* prepare for the worst case, every character expanding to two bytes */
 	uint8_t *rdata = calloc(strlen(data) * 2, sizeof(uint8_t));
 	y = gsm_septet_encode(rdata, data);
-	z = gsm_septets2octets(result, rdata, y, 0);
+	gsm_septets2octets(result, rdata, y, 0);
 
 	free(rdata);
 
 	/*
-	 * We don't care about the number of octets (z), because they are not
+	 * We don't care about the number of octets, because they are not
 	 * unique. E.g.:
 	 *  1.) 46 non-extension characters + 1 extension character
 	 *         => (46 * 7 bit + (1 * (2 * 7 bit))) / 8 bit =  42 octets

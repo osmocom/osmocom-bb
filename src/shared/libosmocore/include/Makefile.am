@@ -31,6 +31,7 @@ nobase_include_HEADERS = \
                        osmocom/crypt/auth.h \
                        osmocom/crypt/gprs_cipher.h \
                        osmocom/gprs/gprs_bssgp.h \
+                       osmocom/gprs/gprs_bssgp_bss.h \
                        osmocom/gprs/gprs_msgb.h \
                        osmocom/gprs/gprs_ns.h \
                        osmocom/gprs/gprs_ns_frgre.h \
@@ -99,5 +100,5 @@ endif
 noinst_HEADERS = osmocom/core/timer_compat.h
 
 osmocom/core/crc%gen.h: osmocom/core/crcXXgen.h.tpl
-	$(AM_V_GEN)$(MKDIR_P) $(notdir $@)
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@)
 	$(AM_V_GEN)sed -e's/XX/$*/g' $< > $@
