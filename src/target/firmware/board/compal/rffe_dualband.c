@@ -55,6 +55,12 @@ uint32_t rffe_get_tx_ports(void)
 	return (1 << PORT_LO) | (1 << PORT_HI);
 }
 
+/* Returns need for IQ swap */
+int rffe_iq_swapped(uint16_t band_arfcn, int tx)
+{
+	return trf6151_iq_swapped(band_arfcn, tx);
+}
+
 
 #define MCU_SW_TRACE	0xfffef00e
 #define ARM_CONF_REG	0xfffef006

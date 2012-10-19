@@ -2,6 +2,7 @@
 #define _CALYPSO_DSP_H
 
 #include <calypso/dsp_api.h>
+#include <rffe.h>
 
 #define CAL_DSP_TGT_BB_LVL	80
 
@@ -37,5 +38,13 @@ void dsp_end_scenario(void);
 
 void dsp_load_rx_task(uint16_t task, uint8_t burst_id, uint8_t tsc);
 void dsp_load_tx_task(uint16_t task, uint8_t burst_id, uint8_t tsc);
+
+static inline uint16_t
+dsp_task_iq_swap(uint16_t dsp_task, uint16_t band_arfcn, int tx)
+{
+	if (rffe_iq_swapped(band_arfcn, tx))
+		dsp_task |= 0x8000;
+	return dsp_task;
+}
 
 #endif

@@ -121,7 +121,10 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 		dsp_load_tch_param(&l1s.next_time,
 		                   SIG_ONLY_MODE, SDCCH_4, 0, 0, 0, tn);
 
-	dsp_load_tx_task(DUL_DSP_TASK, burst_id, tsc);
+	dsp_load_tx_task(
+		dsp_task_iq_swap(DUL_DSP_TASK, arfcn, 1),
+		burst_id, tsc
+	);
 
 	l1s_tx_win_ctrl(arfcn | ARFCN_UPLINK, L1_TXWIN_NB, 0, 3);
 

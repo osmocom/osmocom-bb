@@ -25,6 +25,9 @@ enum rffe_port
 uint32_t rffe_get_rx_ports(void);
 uint32_t rffe_get_tx_ports(void);
 
+/* IQ swap requirements */
+int rffe_iq_swapped(uint16_t band_arfcn, int tx);
+
 /* get current gain of RF frontend (anything between antenna and baseband in dBm */
 uint8_t rffe_get_gain(void);
 
