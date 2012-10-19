@@ -48,4 +48,7 @@ void trf6151_tx_window(int16_t start_qbits, uint16_t arfcn);
  * dBm, configure the RF Frontend with the respective gain */
 void trf6151_compute_gain(int16_t exp_inp, int16_t target_bb);
 
+/* Need for IQ swap */
+int trf6151_iq_swapped(uint16_t band_arfcn, int tx);
+
 #endif /* TRF6151_H */

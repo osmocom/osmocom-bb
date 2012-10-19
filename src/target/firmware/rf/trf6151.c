@@ -603,3 +603,17 @@ void trf6151_compute_gain(int16_t exp_inp, int16_t target_bb)
 	trf6151_set_gain(delta);
 }
 
+int trf6151_iq_swapped(uint16_t band_arfcn, int tx)
+{
+	if (!tx)
+		return 0;
+
+	switch (gsm_arfcn2band(band_arfcn)) {
+		case GSM_BAND_850:
+			return 1;
+		default:
+			break;
+	}
+
+	return 0;
+}

@@ -199,7 +199,10 @@ static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 	dsp_load_tch_param(&l1s.next_time,
 	                   SIG_ONLY_MODE, SDCCH_4, 0, 0, 0, tn);
 
-	dsp_load_rx_task(ALLC_DSP_TASK, burst_id, tsc);
+	dsp_load_rx_task(
+		dsp_task_iq_swap(ALLC_DSP_TASK, arfcn, 0),
+		burst_id, tsc
+	);
 
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
 
