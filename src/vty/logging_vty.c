@@ -535,6 +535,10 @@ static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 		break;
 	}
 
+	vty_out(vty, "  logging filter all %u%s",
+		tgt->filter_map & LOG_FILTER_ALL ? 1 : 0, VTY_NEWLINE);
+	/* FIXME: how to do this for filters outside of libosmocore? */
+
 	vty_out(vty, "  logging color %u%s", tgt->use_color ? 1 : 0,
 		VTY_NEWLINE);
 	vty_out(vty, "  logging timestamp %u%s", tgt->print_timestamp ? 1 : 0,
