@@ -11,7 +11,7 @@ noinst_HEADERS = common_vty.h
 if ENABLE_GB
 lib_LTLIBRARIES = libosmogb.la
 
-libosmogb_la_LDFLAGS = -Wl,--version-script=$(srcdir)/libosmogb.map -version-info $(LIBVERSION)
+libosmogb_la_LDFLAGS = $(LTLDFLAGS_OSMOGB) -version-info $(LIBVERSION)
 libosmogb_la_LIBADD = \
 		$(top_builddir)/src/libosmocore.la \
 		$(top_builddir)/src/vty/libosmovty.la \
