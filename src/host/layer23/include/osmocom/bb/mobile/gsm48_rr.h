@@ -5,6 +5,11 @@
 
 #define GSM_TA_CM			55385
 
+#define	T200_DCCH			1	/* SDCCH/FACCH */
+#define	T200_DCCH_SHARED		2	/* SDCCH shares SAPI 0 and 3 */
+#define	T200_ACCH			2	/* SACCH SAPI 3 */
+
+
 /* GSM 04.07 9.1.2 */
 #define	GSM48_RR_EST_REQ		0x10
 #define	GSM48_RR_EST_IND		0x12

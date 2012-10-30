@@ -167,6 +167,12 @@ int mobile_init(struct osmocom_ms *ms)
 	gsm_settings_arfcn(ms);
 
 	lapdm_channel_init(&ms->lapdm_channel, LAPDM_MODE_MS);
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI3].dl.t200_sec =
+		T200_DCCH_SHARED;
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI3].dl.t200_usec = 0;
+	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_sec =
+		T200_ACCH;
+	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_usec = 0;
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
 	gsm_sim_init(ms);
