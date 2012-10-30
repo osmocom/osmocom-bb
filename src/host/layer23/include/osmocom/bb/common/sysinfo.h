@@ -154,5 +154,9 @@ int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
 int gsm48_decode_mobile_alloc(struct gsm_sysinfo_freq *freq,
 	uint8_t *ma, uint8_t len, uint16_t *hopping, uint8_t *hopp_len,
 	int si4);
+int gsm48_encode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t mcc,
+	uint16_t mnc, uint16_t lac);
+int gsm48_decode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t *mcc,
+	uint16_t *mnc, uint16_t *lac);
 
 #endif /* _SYSINFO_H */

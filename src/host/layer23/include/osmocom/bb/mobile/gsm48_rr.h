@@ -195,10 +195,6 @@ int gsm48_rsl_dequeue(struct osmocom_ms *ms);
 int gsm48_rr_downmsg(struct osmocom_ms *ms, struct msgb *msg);
 struct msgb *gsm48_l3_msgb_alloc(void);
 struct msgb *gsm48_rr_msgb_alloc(int msg_type);
-int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
-	uint16_t *mnc, uint16_t *lac);
-int gsm48_encode_lai(struct gsm48_loc_area_id *lai, uint16_t mcc,
-	uint16_t mnc, uint16_t lac);
 int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm,
 	uint16_t arfcn);
 int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg);

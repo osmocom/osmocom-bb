@@ -282,7 +282,8 @@ static int subscr_sim_loci(struct osmocom_ms *ms, uint8_t *data,
 	subscr->tmsi = ntohl(loci->tmsi);
 
 	/* LAI */
-	gsm48_decode_lai(&loci->lai, &subscr->mcc, &subscr->mnc, &subscr->lac);
+	gsm48_decode_lai_hex(&loci->lai, &subscr->mcc, &subscr->mnc,
+		&subscr->lac);
 
 	/* location update status */
 	switch (loci->lupd_status & 0x07) {
@@ -408,8 +409,8 @@ static int subscr_sim_plmnsel(struct osmocom_ms *ms, uint8_t *data,
 		lai[0] = data[0];
 		lai[1] = data[1];
 		lai[2] = data[2];
-		gsm48_decode_lai((struct gsm48_loc_area_id *)lai, &plmn->mcc,
-			&plmn->mnc, &dummy_lac);
+		gsm48_decode_lai_hex((struct gsm48_loc_area_id *)lai,
+			&plmn->mcc, &plmn->mnc, &dummy_lac);
 		llist_add_tail(&plmn->entry, &subscr->plmn_list);
 
 		LOGP(DMM, LOGL_INFO, "received PLMN selector (mcc=%s mnc=%s) "
@@ -512,8 +513,10 @@ static int subscr_sim_fplmn(struct osmocom_ms *ms, uint8_t *data,
 		lai[0] = data[0];
 		lai[1] = data[1];
 		lai[2] = data[2];
-		gsm48_decode_lai((struct gsm48_loc_area_id *)lai, &na->mcc,
+		gsm48_decode_lai_hex((struct gsm48_loc_area_id *)lai, &na->mcc,
 			&na->mnc, &dummy_lac);
+		LOGP(DMM, LOGL_INFO, "received Forbidden PLMN %s %s from SIM\n",
+			gsm_print_mcc(na->mcc), gsm_print_mnc(na->mnc));
 		na->cause = -1; /* must have a value, but SIM stores no cause */
 		llist_add_tail(&na->entry, &subscr->plmn_na);
 
@@ -821,7 +824,7 @@ static int subscr_write_plmn_na(struct osmocom_ms *ms)
 	nsh->file = 0x6f7b;
 	for (i = 0; i < 4; i++) {
 		if (nas[i]) {
-			gsm48_encode_lai((struct gsm48_loc_area_id *)lai,
+			gsm48_encode_lai_hex((struct gsm48_loc_area_id *)lai,
 			nas[i]->mcc, nas[i]->mnc, 0);
 			*data++ = lai[0];
 			*data++ = lai[1];
@@ -866,7 +869,7 @@ int gsm_subscr_write_loci(struct osmocom_ms *ms)
 	loci->tmsi = htonl(subscr->tmsi);
 
 	/* LAI */
-	gsm48_encode_lai(&loci->lai, subscr->mcc, subscr->mnc, subscr->lac);
+	gsm48_encode_lai_hex(&loci->lai, subscr->mcc, subscr->mnc, subscr->lac);
 
 	/* TMSI time */
 	loci->tmsi_time = 0xff;

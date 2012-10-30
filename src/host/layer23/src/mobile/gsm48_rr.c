@@ -98,17 +98,6 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg);
 
 #define MIN(a, b) ((a < b) ? a : b)
 
-int gsm48_encode_lai(struct gsm48_loc_area_id *lai, uint16_t mcc,
-	uint16_t mnc, uint16_t lac)
-{
-	lai->digits[0] = (mcc >> 8) | (mcc & 0xf0);
-	lai->digits[1] = (mcc & 0x0f) | (mnc << 4);
-	lai->digits[2] = (mnc >> 8) | (mnc & 0xf0);
-	lai->lac = htons(lac);
-
-	return 0;
-}
-
 /* decode "Power Command" (10.5.2.28) and (10.5.2.28a) */
 static int gsm48_decode_power_cmd_acc(struct gsm48_power_cmd *pc,
 	uint8_t *power_level, uint8_t *atc)
