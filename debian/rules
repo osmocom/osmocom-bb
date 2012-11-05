@@ -13,8 +13,6 @@ DEBIAN  := $(shell dpkg-parsechangelog | grep ^Version: | cut -d' ' -f2)
 DEBVERS := $(shell echo '$(DEBIAN)' | cut -d- -f1)
 VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
 
-CFLAGS = -Wall -g
-
 %:
 	dh --with autoreconf $@ --fail-missing
 
@@ -24,7 +22,4 @@ CFLAGS = -Wall -g
 override_dh_autoreconf:
 	echo $(VERSION) > .tarball-version
 	dh_autoreconf
-
-override_dh_auto_test:
-#	tests are broken...
 
