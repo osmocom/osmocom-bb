@@ -416,6 +416,7 @@ int gsm48_construct_ra(uint8_t *buf, const struct gprs_ra_id *raid)
 {
 	uint16_t mcc = raid->mcc;
 	uint16_t mnc = raid->mnc;
+	uint16_t _lac;
 
 	buf[0] = ((mcc / 100) % 10) | (((mcc / 10) % 10) << 4);
 	buf[1] = (mcc % 10);
@@ -430,7 +431,8 @@ int gsm48_construct_ra(uint8_t *buf, const struct gprs_ra_id *raid)
 		buf[2] = ((mnc / 100) % 10) | (((mnc / 10) % 10) << 4);
 	}
 
-	*(uint16_t *)(buf+3) = htons(raid->lac);
+	_lac = htons(raid->lac);
+	memcpy(buf + 3, &_lac, 2);
 
 	buf[5] = raid->rac;
 
