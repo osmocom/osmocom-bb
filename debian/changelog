@@ -1,3 +1,9 @@
+libosmocore (0.5.3+git1-2) unstable; urgency=low
+
+  * New upstream version 
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Mon, 05 Nov 2012 21:35:57 +0100
+
 libosmocore (0.5.3+git1-1) precise; urgency=low
 
   * Fix issue with package version.
