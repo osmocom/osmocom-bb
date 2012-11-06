@@ -410,6 +410,30 @@ void tlv_def_patch(struct tlv_definition *dst, const struct tlv_definition *src)
 #define TLVP_LEN(x, y)		(x)->lv[y].len
 #define TLVP_VAL(x, y)		(x)->lv[y].val
 
+/*! \brief Align given TLV element with 16 bit value to an even address
+ *  \param[in] tp pointer to \ref tlv_parsed
+ *  \param[in] pos element to return
+ *  \returns aligned 16 bit value
+ */
+static inline uint16_t tlvp_val16_unal(const struct tlv_parsed *tp, int pos)
+{
+	uint16_t res;
+	memcpy(&res, TLVP_VAL(tp, pos), sizeof(res));
+	return res;
+}
+
+/*! \brief Align given TLV element with 32 bit value to an address that is a multiple of 4
+ *  \param[in] tp pointer to \ref tlv_parsed
+ *  \param[in] pos element to return
+ *  \returns aligned 32 bit value
+ */
+static inline uint32_t tlvp_val32_unal(const struct tlv_parsed *tp, int pos)
+{
+	uint32_t res;
+	memcpy(&res, TLVP_VAL(tp, pos), sizeof(res));
+	return res;
+}
+
 /*! @} */
 
 #endif /* _TLV_H */
