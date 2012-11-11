@@ -4,7 +4,7 @@ check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
                  smscb/smscb_test bits/bitrev_test a5/a5_test		\
                  conv/conv_test auth/milenage_test lapd/lapd_test	\
                  gsm0808/gsm0808_test gsm0408/gsm0408_test		\
-		 gb/bssgp_fc_test logging/logging_test
+		 gb/bssgp_fc_test logging/logging_test fr/fr_test
 if ENABLE_MSGFILE
 check_PROGRAMS += msgfile/msgfile_test
 endif
@@ -51,6 +51,10 @@ gb_bssgp_fc_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/
 logging_logging_test_SOURCES = logging/logging_test.c
 logging_logging_test_LDADD = $(top_builddir)/src/libosmocore.la
 
+fr_fr_test_SOURCES = fr/fr_test.c
+fr_fr_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la
+
+
 # The `:;' works around a Bash 3.2 bug when the output is not writeable.
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac
 	:;{ \
@@ -77,7 +81,8 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
              gsm0808/gsm0808_test.ok gb/bssgp_fc_tests.err		\
              gb/bssgp_fc_tests.ok gb/bssgp_fc_tests.sh			\
              msgfile/msgfile_test.ok msgfile/msgconfig.cfg		\
-             logging/logging_test.ok logging/logging_test.err
+             logging/logging_test.ok logging/logging_test.err		\
+             fr/fr_test.ok
 
 DISTCLEANFILES = atconfig
 

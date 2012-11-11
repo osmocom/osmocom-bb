@@ -91,3 +91,11 @@ cat $abs_srcdir/logging/logging_test.ok > expout
 cat $abs_srcdir/logging/logging_test.err > experr
 AT_CHECK([$abs_top_builddir/tests/logging/logging_test], [], [expout], [experr])
 AT_CLEANUP
+
+AT_SETUP([fr])
+AT_KEYWORDS([fr])
+cat $abs_srcdir/fr/fr_test.ok > expout
+cat $abs_srcdir/fr/fr_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/fr/fr_test], [], [expout], [experr])
+
+AT_CLEANUP

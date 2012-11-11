@@ -68,6 +68,7 @@ tests/gsm0808/gsm0808_test
 tests/gb/bssgp_fc_test
 tests/gsm0408/gsm0408_test
 tests/logging/logging_test
+tests/fr/fr_test
 
 utils/osmo-arfcn
 utils/osmo-auc-gen
