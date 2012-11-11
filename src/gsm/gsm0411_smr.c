@@ -172,7 +172,7 @@ static int gsm411_send_release(struct gsm411_smr_inst *inst)
 {
 	struct msgb *msg = gsm411_msgb_alloc();
 
-	LOGP(DLSMS, LOGL_NOTICE, "TX: MNSMS-REL-REQ\n");
+	LOGP(DLSMS, LOGL_DEBUG, "TX: MNSMS-REL-REQ\n");
 
 	return inst->mn_send(inst, GSM411_MNSMS_REL_REQ, msg);
 }
@@ -182,7 +182,7 @@ static int gsm411_send_abort(struct gsm411_smr_inst *inst)
 	struct msgb *msg = gsm411_msgb_alloc();
 
 	msgb_tv_put(msg, 1, 111); //FIXME: better idea ? */
-	LOGP(DLSMS, LOGL_NOTICE, "TX: MNSMS-ABORT-REQ\n");
+	LOGP(DLSMS, LOGL_DEBUG, "TX: MNSMS-ABORT-REQ\n");
 
 	return inst->mn_send(inst, GSM411_MNSMS_ABORT_REQ, msg);
 }
@@ -191,7 +191,7 @@ static int gsm411_send_report(struct gsm411_smr_inst *inst)
 {
 	struct msgb *msg = gsm411_msgb_alloc();
 
-	LOGP(DLSMS, LOGL_NOTICE, "send empty SM_RL_REPORT_IND\n");
+	LOGP(DLSMS, LOGL_DEBUG, "Sending empty SM_RL_REPORT_IND\n");
 
 	return inst->rl_recv(inst, GSM411_SM_RL_REPORT_IND, msg);
 }
