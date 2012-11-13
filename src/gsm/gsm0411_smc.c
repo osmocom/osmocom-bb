@@ -140,7 +140,7 @@ static int gsm411_tx_cp_error(struct gsm411_smc_inst *inst, uint8_t cause)
 		GSM411_MT_CP_ERROR);
 }
 
-/* etablish SMC connection */
+/* establish SMC connection */
 static int gsm411_mnsms_est_req(struct gsm411_smc_inst *inst, struct msgb *msg)
 {
 	struct msgb *nmsg;
