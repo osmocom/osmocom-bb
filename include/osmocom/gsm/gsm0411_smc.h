@@ -1,6 +1,7 @@
 #ifndef _GSM0411_SMC_H
 #define _GSM0411_SMC_H
 
+#include <osmocom/core/timer.h>
 #include <osmocom/gsm/protocol/gsm_04_11.h>
 
 #define GSM411_MMSMS_EST_REQ		0x310
