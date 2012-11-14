@@ -24,6 +24,7 @@
 #define GSM411_MNSMS_REL_REQ		0x107
 
 struct gsm411_smc_inst {
+	uint64_t id;		/* a unique id for the SMS */
 	int network;		/* is this a MO (0) or MT (1) transfer */
 	int (*mn_recv) (struct gsm411_smc_inst *inst, int msg_type,
 			struct msgb *msg);
@@ -43,7 +44,7 @@ struct gsm411_smc_inst {
 extern const struct value_string gsm411_cp_cause_strs[];
 
 /* init a new instance */
-void gsm411_smc_init(struct gsm411_smc_inst *inst, int network,
+void gsm411_smc_init(struct gsm411_smc_inst *inst, uint64_t id, int network,
 	int (*mn_recv) (struct gsm411_smc_inst *inst, int msg_type,
 			struct msgb *msg),
 	int (*mm_send) (struct gsm411_smc_inst *inst, int msg_type,
