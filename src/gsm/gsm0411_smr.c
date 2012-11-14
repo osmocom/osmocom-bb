@@ -49,6 +49,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/timer.h>
@@ -59,16 +60,19 @@
 #include <osmocom/gsm/gsm0411_smr.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
+#define SMR_LOG_STR "SMR(%" PRIu64 ") "
+
 static void rp_timer_expired(void *data);
 
 /* init a new instance */
-void gsm411_smr_init(struct gsm411_smr_inst *inst, int network,
+void gsm411_smr_init(struct gsm411_smr_inst *inst, uint64_t id, int network,
 	int (*rl_recv) (struct gsm411_smr_inst *inst, int msg_type,
 			struct msgb *msg),
 	int (*mn_send) (struct gsm411_smr_inst *inst, int msg_type,
 			struct msgb *msg))
 {
 	memset(inst, 0, sizeof(*inst));
+	inst->id = id;
 	inst->network = network;
 	inst->rp_state = GSM411_RPS_IDLE;
 	inst->rl_recv = rl_recv;
@@ -76,13 +80,16 @@ void gsm411_smr_init(struct gsm411_smr_inst *inst, int network,
 	inst->rp_timer.data = inst;
 	inst->rp_timer.cb = rp_timer_expired;
 
-	LOGP(DLSMS, LOGL_INFO, "New SMR instance created\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMR_LOG_STR "instance created for %d\n",
+		inst->id, inst->network);
 }
 
 /* clear instance */
 void gsm411_smr_clear(struct gsm411_smr_inst *inst)
 {
-	LOGP(DLSMS, LOGL_INFO, "Clear SMR instance\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMR_LOG_STR "clearing SMR instance\n", inst->id);
 
 	osmo_timer_del(&inst->rp_timer);
 }
@@ -127,7 +134,8 @@ const struct value_string gsm411_rp_cause_strs[] = {
 static void new_rp_state(struct gsm411_smr_inst *inst,
 	enum gsm411_rp_state state)
 {
-	LOGP(DLSMS, LOGL_INFO, "New RP state %s -> %s\n",
+	LOGP(DLSMS, LOGL_INFO,
+		SMR_LOG_STR "new RP state %s -> %s\n", inst->id,
 		smr_state_names[inst->rp_state], smr_state_names[state]);
 	inst->rp_state = state;
 
@@ -160,8 +168,9 @@ static int gsm411_send_rp_error(struct gsm411_smr_inst *inst,
 
 	msgb_tv_put(msg, 1, cause);
 
-	LOGP(DLSMS, LOGL_NOTICE, "TX: SMS RP ERROR, cause %d (%s)\n", cause,
-		get_value_string(gsm411_rp_cause_strs, cause));
+	LOGP(DLSMS, LOGL_NOTICE,
+		SMR_LOG_STR "TX: SMS RP ERROR, cause %d (%s)\n", inst->id,
+		cause, get_value_string(gsm411_rp_cause_strs, cause));
 
 	return gsm411_rp_sendmsg(inst, msg,
 		(inst->network) ? GSM411_MT_RP_ERROR_MT : GSM411_MT_RP_ERROR_MO,
@@ -172,7 +181,8 @@ static int gsm411_send_release(struct gsm411_smr_inst *inst)
 {
 	struct msgb *msg = gsm411_msgb_alloc();
 
-	LOGP(DLSMS, LOGL_DEBUG, "TX: MNSMS-REL-REQ\n");
+	LOGP(DLSMS, LOGL_DEBUG,
+		SMR_LOG_STR "TX: MNSMS-REL-REQ\n", inst->id);
 
 	return inst->mn_send(inst, GSM411_MNSMS_REL_REQ, msg);
 }
@@ -181,8 +191,10 @@ static int gsm411_send_abort(struct gsm411_smr_inst *inst)
 {
 	struct msgb *msg = gsm411_msgb_alloc();
 
+	LOGP(DLSMS, LOGL_DEBUG,
+		SMR_LOG_STR "TX: MNSMS-ABORT-REQ\n", inst->id);
+
 	msgb_tv_put(msg, 1, 111); //FIXME: better idea ? */
-	LOGP(DLSMS, LOGL_DEBUG, "TX: MNSMS-ABORT-REQ\n");
 
 	return inst->mn_send(inst, GSM411_MNSMS_ABORT_REQ, msg);
 }
@@ -191,14 +203,16 @@ static int gsm411_send_report(struct gsm411_smr_inst *inst)
 {
 	struct msgb *msg = gsm411_msgb_alloc();
 
-	LOGP(DLSMS, LOGL_DEBUG, "Sending empty SM_RL_REPORT_IND\n");
+	LOGP(DLSMS, LOGL_DEBUG,
+		SMR_LOG_STR "Sending empty SM_RL_REPORT_IND\n", inst->id);
 
 	return inst->rl_recv(inst, GSM411_SM_RL_REPORT_IND, msg);
 }
 
 static int gsm411_rl_data_req(struct gsm411_smr_inst *inst, struct msgb *msg)
 {
-	LOGP(DLSMS, LOGL_DEBUG,  "TX SMS RP-DATA\n");
+	LOGP(DLSMS, LOGL_DEBUG,
+		SMR_LOG_STR "TX SMS RP-DATA\n", inst->id);
 	/* start TR1N and enter 'wait for RP-ACK state' */
 	osmo_timer_schedule(&inst->rp_timer, GSM411_TMR_TR1M);
 	new_rp_state(inst, GSM411_RPS_WAIT_FOR_RP_ACK);
@@ -208,7 +222,8 @@ static int gsm411_rl_data_req(struct gsm411_smr_inst *inst, struct msgb *msg)
 
 static int gsm411_rl_report_req(struct gsm411_smr_inst *inst, struct msgb *msg)
 {
-	LOGP(DLSMS, LOGL_DEBUG,  "TX SMS REPORT\n");
+	LOGP(DLSMS, LOGL_DEBUG,
+		SMR_LOG_STR "TX SMS REPORT\n", inst->id);
 	new_rp_state(inst, GSM411_RPS_IDLE);
 
 	inst->mn_send(inst, GSM411_MNSMS_DATA_REQ, msg);
@@ -225,7 +240,9 @@ static int gsm411_mnsms_est_ind(struct gsm411_smr_inst *inst, struct msgb *msg)
 
 	/* check direction */
 	if (inst->network == (msg_type & 1)) {
-		LOGP(DLSMS, LOGL_NOTICE, "Invalid RP type 0x%02x\n", msg_type);
+		LOGP(DLSMS, LOGL_NOTICE,
+			SMR_LOG_STR "Invalid RP type 0x%02x\n",
+			inst->id, msg_type);
 		gsm411_send_rp_error(inst, rp_data->msg_ref,
 					  GSM411_RP_CAUSE_MSG_INCOMP_STATE);
 		new_rp_state(inst, GSM411_RPS_IDLE);
@@ -236,21 +253,25 @@ static int gsm411_mnsms_est_ind(struct gsm411_smr_inst *inst, struct msgb *msg)
 	switch (msg_type) {
 	case GSM411_MT_RP_DATA_MT:
 	case GSM411_MT_RP_DATA_MO:
-		LOGP(DLSMS, LOGL_DEBUG,  "RX SMS RP-DATA\n");
+		LOGP(DLSMS, LOGL_DEBUG,
+			SMR_LOG_STR "RX SMS RP-DATA\n", inst->id);
 		/* start TR2N and enter 'wait to send RP-ACK state' */
 		osmo_timer_schedule(&inst->rp_timer, GSM411_TMR_TR2M);
 		new_rp_state(inst, GSM411_RPS_WAIT_TO_TX_RP_ACK);
 		rc = inst->rl_recv(inst, GSM411_SM_RL_DATA_IND, msg);
 		break;
 	case GSM411_MT_RP_SMMA_MO:
-		LOGP(DLSMS, LOGL_DEBUG,  "RX SMS RP-SMMA\n");
+		LOGP(DLSMS, LOGL_DEBUG,
+			SMR_LOG_STR "RX SMS RP-SMMA\n", inst->id);
 		/* start TR2N and enter 'wait to send RP-ACK state' */
 		osmo_timer_schedule(&inst->rp_timer, GSM411_TMR_TR2M);
 		new_rp_state(inst, GSM411_RPS_WAIT_TO_TX_RP_ACK);
 		rc = inst->rl_recv(inst, GSM411_SM_RL_DATA_IND, msg);
 		break;
 	default:
-		LOGP(DLSMS, LOGL_NOTICE, "Invalid RP type 0x%02x\n", msg_type);
+		LOGP(DLSMS, LOGL_NOTICE,
+			SMR_LOG_STR "invalid RP type 0x%02x\n",
+			inst->id, msg_type);
 		gsm411_send_rp_error(inst, rp_data->msg_ref,
 					  GSM411_RP_CAUSE_MSGTYPE_NOTEXIST);
 		new_rp_state(inst, GSM411_RPS_IDLE);
@@ -271,7 +292,9 @@ static int gsm411_mnsms_data_ind_tx(struct gsm411_smr_inst *inst,
 
 	/* check direction */
 	if (inst->network == (msg_type & 1)) {
-		LOGP(DLSMS, LOGL_NOTICE, "Invalid RP type 0x%02x\n", msg_type);
+		LOGP(DLSMS, LOGL_NOTICE,
+			SMR_LOG_STR "invalid RP type 0x%02x\n",
+			inst->id, msg_type);
 		gsm411_send_rp_error(inst, rp_data->msg_ref,
 					  GSM411_RP_CAUSE_MSG_INCOMP_STATE);
 		new_rp_state(inst, GSM411_RPS_IDLE);
@@ -282,20 +305,24 @@ static int gsm411_mnsms_data_ind_tx(struct gsm411_smr_inst *inst,
 	switch (msg_type) {
 	case GSM411_MT_RP_ACK_MO:
 	case GSM411_MT_RP_ACK_MT:
-		LOGP(DLSMS, LOGL_DEBUG, "RX SMS RP-ACK\n");
+		LOGP(DLSMS, LOGL_DEBUG,
+			SMR_LOG_STR "RX SMS RP-ACK\n", inst->id);
 		new_rp_state(inst, GSM411_RPS_IDLE);
 		inst->rl_recv(inst, GSM411_SM_RL_REPORT_IND, msg);
 		gsm411_send_release(inst);
 		return 0;
 	case GSM411_MT_RP_ERROR_MO:
 	case GSM411_MT_RP_ERROR_MT:
-		LOGP(DLSMS, LOGL_DEBUG, "RX SMS RP-ERROR\n");
+		LOGP(DLSMS, LOGL_DEBUG,
+			SMR_LOG_STR "RX SMS RP-ERROR\n", inst->id);
 		new_rp_state(inst, GSM411_RPS_IDLE);
 		inst->rl_recv(inst, GSM411_SM_RL_REPORT_IND, msg);
 		gsm411_send_release(inst);
 		return 0;
 	default:
-		LOGP(DLSMS, LOGL_NOTICE, "Invalid RP type 0x%02x\n", msg_type);
+		LOGP(DLSMS, LOGL_NOTICE,
+			SMR_LOG_STR "Invalid RP type 0x%02x\n",
+			inst->id, msg_type);
 		gsm411_send_rp_error(inst, rp_data->msg_ref,
 					  GSM411_RP_CAUSE_MSGTYPE_NOTEXIST);
 		new_rp_state(inst, GSM411_RPS_IDLE);
@@ -309,7 +336,8 @@ static int gsm411_mnsms_data_ind_tx(struct gsm411_smr_inst *inst,
 static int gsm411_mnsms_error_ind_tx(struct gsm411_smr_inst *inst,
 	struct msgb *msg)
 {
-	LOGP(DLSMS, LOGL_DEBUG, "RX SMS MNSMS-ERROR-IND\n");
+	LOGP(DLSMS, LOGL_DEBUG,
+		SMR_LOG_STR "RX SMS MNSMS-ERROR-IND\n", inst->id);
 	new_rp_state(inst, GSM411_RPS_IDLE);
 	inst->rl_recv(inst, GSM411_SM_RL_REPORT_IND, msg);
 	gsm411_send_release(inst);
@@ -319,7 +347,8 @@ static int gsm411_mnsms_error_ind_tx(struct gsm411_smr_inst *inst,
 static int gsm411_mnsms_error_ind_rx(struct gsm411_smr_inst *inst,
 	struct msgb *msg)
 {
-	LOGP(DLSMS, LOGL_DEBUG, "RX SMS MNSMS-ERROR-IND\n");
+	LOGP(DLSMS, LOGL_DEBUG,
+		SMR_LOG_STR "RX SMS MNSMS-ERROR-IND\n", inst->id);
 	new_rp_state(inst, GSM411_RPS_IDLE);
 	return inst->rl_recv(inst, GSM411_SM_RL_REPORT_IND, msg);
 }
@@ -328,11 +357,13 @@ static int gsm411_mnsms_error_ind_rx(struct gsm411_smr_inst *inst,
 static void rp_timer_expired(void *data)
 {
 	struct gsm411_smr_inst *inst = data;
+	const char *str;
 
-	if (inst->rp_state == GSM411_RPS_WAIT_TO_TX_RP_ACK)
-		LOGP(DLSMS, LOGL_DEBUG, "TR2N\n");
-	else
-		LOGP(DLSMS, LOGL_DEBUG, "TR1N\n");
+	str = inst->rp_state == GSM411_RPS_WAIT_TO_TX_RP_ACK
+		? "TR2N" : "TR1N";
+
+	LOGP(DLSMS, LOGL_DEBUG,
+		SMR_LOG_STR "%s expired\n", inst->id, str);
 	gsm411_send_report(inst);
 	gsm411_send_abort(inst);
 }
@@ -372,13 +403,16 @@ int gsm411_smr_send(struct gsm411_smr_inst *inst, int msg_type,
 				break;
 	}
 	if (i == SMRDOWNSLLEN) {
-		LOGP(DLSMS, LOGL_NOTICE, "Message %u unhandled at this state "
-			"%s.\n", msg_type, smr_state_names[inst->rp_state]);
+		LOGP(DLSMS, LOGL_NOTICE,
+			SMR_LOG_STR "message %u unhandled at this state "
+			"%s.\n", inst->id, msg_type,
+			smr_state_names[inst->rp_state]);
 		msgb_free(msg);
 		return 0;
 	}
 
-	LOGP(DLSMS, LOGL_INFO, "Message %s received in state %s\n",
+	LOGP(DLSMS, LOGL_INFO,
+		SMR_LOG_STR "message %s received in state %s\n", inst->id,
 		smrdownstatelist[i].name, smr_state_names[inst->rp_state]);
 
 	rc = smrdownstatelist[i].rout(inst, msg);
@@ -437,12 +471,15 @@ int gsm411_smr_recv(struct gsm411_smr_inst *inst, int msg_type,
 			break;
 	}
 	if (i == SMRDATASLLEN) {
-		LOGP(DLSMS, LOGL_NOTICE, "Message %u unhandled at this state "
-			"%s.\n", msg_type, smr_state_names[inst->rp_state]);
+		LOGP(DLSMS, LOGL_NOTICE,
+			SMR_LOG_STR "message %u unhandled at this state "
+			"%s.\n", inst->id, msg_type,
+			smr_state_names[inst->rp_state]);
 		return 0;
 	}
 
-	LOGP(DLSMS, LOGL_INFO, "Message %s received in state %s\n",
+	LOGP(DLSMS, LOGL_INFO,
+		SMR_LOG_STR "message %s received in state %s\n", inst->id,
 		smrdatastatelist[i].name, smr_state_names[inst->rp_state]);
 
 	rc = smrdatastatelist[i].rout(inst, msg);
