@@ -17,6 +17,18 @@ LT_INIT([pic-only])
 
 AC_CONFIG_MACRO_DIR([m4])
 
+dnl check os: some linker flags not available on osx
+case $host in
+*-darwin*)
+	;;
+*)
+	LTLDFLAGS_OSMOGB='-Wl,--version-script=$(srcdir)/libosmogb.map'
+	LTLDFLAGS_OSMOGSM='-Wl,--version-script=$(srcdir)/libosmogsm.map'
+	;;
+esac
+AC_SUBST(LTLDFLAGS_OSMOGB)
+AC_SUBST(LTLDFLAGS_OSMOGSM)
+
 dnl checks for header files
 AC_HEADER_STDC
 AC_CHECK_HEADERS(execinfo.h sys/select.h sys/socket.h syslog.h ctype.h)

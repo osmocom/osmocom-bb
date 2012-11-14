@@ -305,7 +305,7 @@ static inline unsigned char *msgb_pull(struct msgb *msgb, unsigned int len)
  */
 static inline uint8_t msgb_pull_u8(struct msgb *msgb)
 {
-	uint8_t *space = msgb_pull(msgb, 1);
+	uint8_t *space = msgb_pull(msgb, 1) - 1;
 	return space[0];
 }
 /*! \brief remove uint16 from front of message
@@ -314,7 +314,7 @@ static inline uint8_t msgb_pull_u8(struct msgb *msgb)
  */
 static inline uint16_t msgb_pull_u16(struct msgb *msgb)
 {
-	uint8_t *space = msgb_pull(msgb, 2);
+	uint8_t *space = msgb_pull(msgb, 2) - 2;
 	return space[0] << 8 | space[1];
 }
 /*! \brief remove uint32 from front of message
@@ -323,7 +323,7 @@ static inline uint16_t msgb_pull_u16(struct msgb *msgb)
  */
 static inline uint32_t msgb_pull_u32(struct msgb *msgb)
 {
-	uint8_t *space = msgb_pull(msgb, 4);
+	uint8_t *space = msgb_pull(msgb, 4) - 4;
 	return space[0] << 24 | space[1] << 16 | space[2] << 8 | space[3];
 }
 

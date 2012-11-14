@@ -140,7 +140,7 @@ static int gsm411_tx_cp_error(struct gsm411_smc_inst *inst, uint8_t cause)
 		GSM411_MT_CP_ERROR);
 }
 
-/* etablish SMC connection */
+/* establish SMC connection */
 static int gsm411_mnsms_est_req(struct gsm411_smc_inst *inst, struct msgb *msg)
 {
 	struct msgb *nmsg;
@@ -303,7 +303,9 @@ static int gsm411_mnsms_rel_req(struct gsm411_smc_inst *inst, struct msgb *msg)
 
 	/* store release, until established or released */
 	if (inst->cp_state != GSM411_CPS_MM_ESTABLISHED) {
-		LOGP(DLSMS, LOGL_NOTICE, "Cannot release yet.\n");
+		LOGP(DLSMS, LOGL_NOTICE,
+			"Cannot release yet current state: %s\n",
+			smc_state_names[inst->cp_state]);
 		inst->cp_rel = 1;
 		return 0;
 	}
