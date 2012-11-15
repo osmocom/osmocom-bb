@@ -300,10 +300,13 @@ uint16_t index2arfcn(int index)
 
 int arfcn2index(uint16_t arfcn)
 {
-	if ((arfcn & ARFCN_PCS) && arfcn >= 512 && arfcn <= 810)
+	int is_pcs = arfcn & ARFCN_PCS;
+	arfcn &= ~ARFCN_FLAG_MASK;
+	if ((is_pcs) && (arfcn >= 512) && (arfcn <= 810))
 		return (arfcn & 1023)-512+1024;
 	return arfcn & 1023;
 }
+
 
 static char *bargraph(int value, int min, int max)
 {
