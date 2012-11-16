@@ -83,6 +83,8 @@ static int gsm322_nb_meas_ind(struct osmocom_ms *ms, uint16_t arfcn,
 /* wait before doing neighbour cell reselecton due to a better cell again */
 #define GSM58_RESEL_THRESHOLD	15
 
+#define ARFCN_TEXT_LEN	10
+
 //#define TEST_INCLUDE_SERV
 
 /*
@@ -2768,6 +2770,7 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm_settings *set = &ms->settings;
 	int i, s = -1, e;
+	char s_text[ARFCN_TEXT_LEN], e_text[ARFCN_TEXT_LEN];
 	uint8_t mask, flags;
 
 	again:
@@ -2850,9 +2853,11 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 		}
 	}
 
+	strncpy(s_text, gsm_print_arfcn(index2arfcn(s)), ARFCN_TEXT_LEN);
+	strncpy(e_text, gsm_print_arfcn(index2arfcn(e)), ARFCN_TEXT_LEN);
 	LOGP(DCS, LOGL_DEBUG, "Scanning frequencies. (%s..%s)\n",
-		gsm_print_arfcn(index2arfcn(s)),
-		gsm_print_arfcn(index2arfcn(e)));
+		s_text,
+		e_text);
 
 	/* start scan on radio interface */
 	if (!cs->powerscan) {
@@ -3448,6 +3453,7 @@ struct gsm322_ba_list *gsm322_cs_ba_range(struct osmocom_ms *ms,
 {
 	static struct gsm322_ba_list ba;
 	int lower, higher;
+	char lower_text[ARFCN_TEXT_LEN], higher_text[ARFCN_TEXT_LEN];
 
 	memset(&ba, 0, sizeof(ba));
 
@@ -3465,9 +3471,11 @@ struct gsm322_ba_list *gsm322_cs_ba_range(struct osmocom_ms *ms,
 			higher += 1024-512;
 		}
 		range++;
+		strncpy(lower_text,  gsm_print_arfcn(index2arfcn(lower)),  ARFCN_TEXT_LEN);
+		strncpy(higher_text, gsm_print_arfcn(index2arfcn(higher)), ARFCN_TEXT_LEN);
 		LOGP(DCS, LOGL_INFO, "Use BA range: %s..%s\n",
-			gsm_print_arfcn(index2arfcn(lower)),
-			gsm_print_arfcn(index2arfcn(higher)));
+			lower_text,
+			higher_text);
 		/* GSM 05.08 6.3 */
 		while (1) {
 			ba.freq[lower >> 3] |= 1 << (lower & 7);
