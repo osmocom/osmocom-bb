@@ -42,7 +42,7 @@ int l1ctl_tx_dm_rel_req(struct osmocom_ms *ms);
 /* Transmit FBSB_REQ */
 int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 		      uint8_t flags, uint16_t timeout, uint8_t sync_info_idx,
-		      uint8_t ccch_mode);
+		      uint8_t ccch_mode, uint8_t rxlev_exp);
 
 /* Transmit CCCH_MODE_REQ */
 int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode);

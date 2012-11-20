@@ -328,7 +328,7 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 /* Transmit FBSB_REQ */
 int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 		      uint8_t flags, uint16_t timeout, uint8_t sync_info_idx,
-		      uint8_t ccch_mode)
+		      uint8_t ccch_mode, uint8_t rxlev_exp)
 {
 	struct msgb *msg;
 	struct l1ctl_fbsb_req *req;
@@ -351,6 +351,7 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 	req->flags = flags;
 	req->sync_info_idx = sync_info_idx;
 	req->ccch_mode = ccch_mode;
+	req->rxlev_exp = rxlev_exp;
 
 	return osmo_send_l1(ms, msg);
 }
