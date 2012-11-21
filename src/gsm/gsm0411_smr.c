@@ -42,7 +42,7 @@
  *
  * Sending Abort/Release (MNSMS-ABORT-REQ or MNSMS-REL-REQ) may cause the
  * lower layer to become IDLE. Then it is allowed to destroy this instance,
- * so sending this this MUST be the last thing that is done.
+ * so sending this MUST be the last thing that is done.
  *
  */
 
@@ -337,7 +337,7 @@ static int gsm411_mnsms_error_ind_tx(struct gsm411_smr_inst *inst,
 	struct msgb *msg)
 {
 	LOGP(DLSMS, LOGL_DEBUG,
-		SMR_LOG_STR "RX SMS MNSMS-ERROR-IND\n", inst->id);
+		SMR_LOG_STR "TX SMS MNSMS-ERROR-IND\n", inst->id);
 	new_rp_state(inst, GSM411_RPS_IDLE);
 	inst->rl_recv(inst, GSM411_SM_RL_REPORT_IND, msg);
 	gsm411_send_release(inst);
@@ -463,7 +463,7 @@ int gsm411_smr_recv(struct gsm411_smr_inst *inst, int msg_type,
 
 	/* find function for current state and message */
 	for (i = 0; i < SMRDATASLLEN; i++) {
-		/* state must machtch, MM message must match
+		/* state must match, MM message must match
 		 * CP msg must match only in case of MMSMS_DATA_IND
 		 */
 		if ((msg_type == smrdatastatelist[i].type)

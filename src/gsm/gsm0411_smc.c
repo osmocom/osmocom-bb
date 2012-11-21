@@ -44,7 +44,7 @@
  * MMSMS-REL-REQ. It is allowed to destroy this process while processing
  * this message.
  *
- * There is expeption, if MMSMS-REL-IND is received from lower layer, the
+ * There is an exception, if MMSMS-REL-IND is received from lower layer, the
  * process returns to IDLE without sending MMSMS-REL-REQ.
  *
  */
@@ -523,7 +523,7 @@ int gsm411_smc_recv(struct gsm411_smc_inst *inst, int msg_type,
 
 	/* find function for current state and message */
 	for (i = 0; i < SMCDATASLLEN; i++) {
-		/* state must machtch, MM message must match
+		/* state must match, MM message must match
 		 * CP msg must match only in case of MMSMS_DATA_IND
 		 */
 		if ((msg_type == smcdatastatelist[i].type)
