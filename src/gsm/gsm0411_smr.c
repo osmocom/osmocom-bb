@@ -369,7 +369,7 @@ static void rp_timer_expired(void *data)
 }
 
 /* statefull handling for SM-RL SAP messages */
-static struct smrdownstate {
+static const struct smrdownstate {
 	uint32_t	states;
 	int		type;
 	const char 	*name;
@@ -421,7 +421,7 @@ int gsm411_smr_send(struct gsm411_smr_inst *inst, int msg_type,
 }
 
 /* statefull handling for MMSMS SAP messages */
-static struct smrdatastate {
+static const struct smrdatastate {
 	uint32_t	states;
 	int		type;
 	const char 	*name;

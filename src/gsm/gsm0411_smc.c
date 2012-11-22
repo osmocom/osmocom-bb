@@ -410,7 +410,7 @@ static int gsm411_mnsms_abort_req(struct gsm411_smc_inst *inst,
 }
 
 /* statefull handling for MNSMS SAP messages */
-static struct smcdownstate {
+static const struct smcdownstate {
 	uint32_t	states;
 	int		type;
 	const char 	*name;
@@ -471,7 +471,7 @@ int gsm411_smc_send(struct gsm411_smc_inst *inst, int msg_type,
 }
 
 /* statefull handling for MMSMS SAP messages */
-static struct smcdatastate {
+static const struct smcdatastate {
 	uint32_t	states;
 	int		type, cp_type;
 	const char 	*name;
