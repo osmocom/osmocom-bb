@@ -492,7 +492,7 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs,
 	return l1ctl_tx_fbsb_req(ms, cs->arfcn,
 			L1CTL_FBSB_F_FB01SB, 100, 0,
 			cs->ccch_mode,
-			cs->list[cs->arfci].rxlev);
+			dbm2rxlev(cs->list[cs->arfci].rxlev));
 }
 
 /* this is called whenever the serving cell is unselectied */

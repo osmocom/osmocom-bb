@@ -343,7 +343,7 @@ static void start_sync(void)
 	state = SCAN_STATE_SYNC;
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	l1ctl_tx_fbsb_req(ms, arfcn, L1CTL_FBSB_F_FB01SB, 100, 0,
-		CCCH_MODE_NONE, pm[arfcn].rxlev);
+		CCCH_MODE_NONE, dbm2rxlev(pm[arfcn].rxlev));
 }
 
 static void start_pm(void)
