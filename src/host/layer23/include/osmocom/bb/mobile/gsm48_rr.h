@@ -112,7 +112,7 @@ struct gsm48_cr_hist {
 struct gsm48_rr_meas {
 	/* note: must be sorted by arfcn 1..1023,0 according to SI5* */
 	uint8_t nc_num; /* number of measured cells (32 max) */
-	int8_t nc_rxlev[32]; /* -128 = no value */
+	int8_t nc_rxlev_dbm[32]; /* -128 = no value */
 	uint8_t nc_bsic[32];
 	uint16_t nc_arfcn[32];
 };

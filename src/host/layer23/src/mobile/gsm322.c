@@ -476,7 +476,7 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs,
 	}
 
 	meas->frames = meas->snr = meas->berr = meas->rxlev = 0;
-	cs->rxlev_dbm = cs->rxlev_count = 0;
+	cs->rxlev_sum_dbm = cs->rxlev_count = 0;
 
 	cs->neighbour = neighbour;
 
@@ -492,7 +492,7 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs,
 	return l1ctl_tx_fbsb_req(ms, cs->arfcn,
 			L1CTL_FBSB_F_FB01SB, 100, 0,
 			cs->ccch_mode,
-			dbm2rxlev(cs->list[cs->arfci].rxlev));
+			cs->list[cs->arfci].rxlev);
 }
 
 /* this is called whenever the serving cell is unselectied */
@@ -876,7 +876,7 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 	struct gsm322_plmn_list *temp, *found;
 	struct llist_head *lh, *lh2;
 	int i, entries, move;
-	int8_t search = 0;
+	uint8_t search = 0;
 
 	/* flush list */
 	llist_for_each_safe(lh, lh2, &plmn->sorted_plmn) {
@@ -2901,7 +2901,7 @@ int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 		cs->list[i].flags |= GSM322_CS_FLAG_POWER;
 		cs->list[i].flags &= ~GSM322_CS_FLAG_SIGNAL;
 		/* if minimum level is reached or if we stick to a cell */
-		if (rxlev2dbm(rxlev) >= ms->settings.min_rxlev_db
+		if (rxlev2dbm(rxlev) >= ms->settings.min_rxlev_dbm
 		 || ms->settings.stick) {
 			cs->list[i].flags |= GSM322_CS_FLAG_SIGNAL;
 			LOGP(DCS, LOGL_INFO, "Found signal (ARFCN %s "
@@ -4546,7 +4546,7 @@ static int gsm322_nb_trigger_event(struct gsm322_cellsel *cs)
 
 	/* check the list for reading neighbour cell's BCCH */
 	llist_for_each_entry(nb, &cs->nb_list, entry) {
-		if (nb->rla_c_dbm >= cs->ms->settings.min_rxlev_db) {
+		if (nb->rla_c_dbm >= cs->ms->settings.min_rxlev_dbm) {
 			/* select the strongest unsynced cell */
 			if (nb->state == GSM322_NB_RLA_C) {
 				nb_sync = nb;
@@ -4696,9 +4696,9 @@ static int gsm322_nb_new_rxlev(struct gsm322_cellsel *cs)
 
 	/* calculate the RAL_C of serving cell */
 	if (cs->rxlev_count) {
-		cs->rla_c_dbm = (cs->rxlev_dbm + (cs->rxlev_count / 2))
+		cs->rla_c_dbm = (cs->rxlev_sum_dbm + (cs->rxlev_count / 2))
 					/ cs->rxlev_count;
-		cs->rxlev_dbm = 0;
+		cs->rxlev_sum_dbm = 0;
 		cs->rxlev_count = 0;
 	}
 
@@ -4730,10 +4730,10 @@ static int gsm322_nb_new_rxlev(struct gsm322_cellsel *cs)
 			}
 		}
 		nb->rla_c_dbm =
-			(nb->rxlev_dbm + (nb->rxlev_count / 2))
+			(nb->rxlev_sum_dbm + (nb->rxlev_count / 2))
 				/ nb->rxlev_count;
 		nb->rxlev_count = 0;
-		nb->rxlev_dbm = 0;
+		nb->rxlev_sum_dbm = 0;
 		if (nb->state == GSM322_NB_NEW)
 			nb->state = GSM322_NB_RLA_C;
 	}
@@ -4791,7 +4791,7 @@ static int gsm322_nb_meas_ind(struct osmocom_ms *ms, uint16_t arfcn,
 				enough_results = 0;
 			continue;
 		}
-		nb->rxlev_dbm += rx_lev - 110;
+		nb->rxlev_sum_dbm += rx_lev - 110;
 		nb->rxlev_count++;
 		LOGP(DNB, LOGL_INFO, "Measurement result for ARFCN %s: %d\n",
 			gsm_print_arfcn(arfcn), rx_lev - 110);
@@ -4819,7 +4819,7 @@ int gsm322_meas(struct osmocom_ms *ms, uint8_t rx_lev)
 	if (cs->neighbour)
 		return -EINVAL;
 
-	cs->rxlev_dbm += rx_lev - 110;
+	cs->rxlev_sum_dbm += rx_lev - 110;
 	cs->rxlev_count++;
 
 	return 0;

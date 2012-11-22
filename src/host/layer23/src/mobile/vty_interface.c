@@ -1418,8 +1418,8 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(full_v3, "full-speech-v3");
 	SUP_WRITE(half_v1, "half-speech-v1");
 	SUP_WRITE(half_v3, "half-speech-v3");
-	if (!hide_default || sup->min_rxlev_db != set->min_rxlev_db)
-		vty_out(vty, "  min-rxlev %d%s", set->min_rxlev_db,
+	if (!hide_default || sup->min_rxlev_dbm != set->min_rxlev_dbm)
+		vty_out(vty, "  min-rxlev %d%s", set->min_rxlev_dbm,
 			VTY_NEWLINE);
 	if (!hide_default || sup->dsc_max != set->dsc_max)
 		vty_out(vty, "  dsc-max %d%s", set->dsc_max, VTY_NEWLINE);
@@ -2378,7 +2378,7 @@ DEFUN(cfg_ms_sup_min_rxlev, cfg_ms_sup_min_rxlev_cmd, "min-rxlev <-110--47>",
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	set->min_rxlev_db = atoi(argv[0]);
+	set->min_rxlev_dbm = atoi(argv[0]);
 
 	return CMD_SUCCESS;
 }

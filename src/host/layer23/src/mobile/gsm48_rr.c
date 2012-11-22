@@ -1736,7 +1736,7 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 					rrmeas->nc_arfcn[n] = i | ARFCN_PCS;
 				else
 					rrmeas->nc_arfcn[n] = i & 1023;
-				rrmeas->nc_rxlev[n] = -128;
+				rrmeas->nc_rxlev_dbm[n] = -128;
 				LOGP(DRR, LOGL_NOTICE, "SI5* report arfcn %s\n",
 					gsm_print_arfcn(rrmeas->nc_arfcn[n]));
 				n++;
@@ -2782,15 +2782,15 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 				/* only check if NCC is permitted */
 				ncc = rrmeas->nc_bsic[i] >> 3;
 				if ((s->nb_ncc_permitted_si6 & (1 << ncc))
-				 && rrmeas->nc_rxlev[i] > current
-				 && rrmeas->nc_rxlev[i] < strongest) {
-					current = rrmeas->nc_rxlev[i];
+				 && rrmeas->nc_rxlev_dbm[i] > current
+				 && rrmeas->nc_rxlev_dbm[i] < strongest) {
+					current = rrmeas->nc_rxlev_dbm[i];
 					index = i;
 				}
 			}
 			if (current == -128) /* no more found */
 				break;
-			rxlev_nc[n] = rrmeas->nc_rxlev[index] + 110;
+			rxlev_nc[n] = rrmeas->nc_rxlev_dbm[index] + 110;
 			bsic_nc[n] = rrmeas->nc_bsic[index];
 			bcch_f_nc[n] = index;
 		}

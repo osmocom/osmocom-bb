@@ -79,7 +79,7 @@ struct gsm_support {
 
 	/* radio */
 	uint8_t ch_cap; /* channel capability */
-	int8_t min_rxlev_db;
+	int8_t min_rxlev_dbm;
 	uint8_t scan_to;
 	uint8_t sync_to;
 	uint16_t dsc_max; /* maximum dl signal failure counter */
