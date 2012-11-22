@@ -380,7 +380,7 @@ const char *abis_nm_avail_name(uint8_t avail)
 	return get_value_string(avail_names, avail);
 }
 
-static struct value_string test_names[] = {
+static const struct value_string test_names[] = {
 	/* FIXME: standard test names */
 	{ NM_IPACC_TESTNO_CHAN_USAGE, "Channel Usage" },
 	{ NM_IPACC_TESTNO_BCCH_CHAN_USAGE, "BCCH Channel Usage" },

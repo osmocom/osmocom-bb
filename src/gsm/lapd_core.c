@@ -2070,7 +2070,7 @@ static int lapd_rel_req_idle(struct osmo_dlsap_prim *dp,
 }
 
 /* statefull handling for DL SAP messages from L3 */
-static struct l2downstate {
+static const struct l2downstate {
 	uint32_t	states;
 	int		prim, op;
 	const char 	*name;
