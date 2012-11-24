@@ -34,9 +34,8 @@ enum program_mode {
 	MODE_F2A,
 };
 
-static int arfcn2freq(char *arfcn_str)
+static int arfcn2freq(int arfcn)
 {
-	int arfcn = atoi(arfcn_str);
 	uint16_t freq10u, freq10d;
 
 	if (arfcn < 0 || arfcn > 0xffff) {
@@ -53,25 +52,30 @@ static int arfcn2freq(char *arfcn_str)
 	}
 
 	printf("ARFCN %4d: Uplink %4u.%1u MHz / Downlink %4u.%1u MHz\n",
-		arfcn, freq10u/10, freq10u%10, freq10d/10, freq10d%10);
+		arfcn & ~ARFCN_FLAG_MASK,
+		freq10u/10, freq10u%10, freq10d/10, freq10d%10);
 
 	return 0;
 }
 
 static void help(const char *progname)
 {
-	printf("Usage: %s [-h] [-a arfcn] [-f freq] [-u|-d]\n",
+	printf("Usage: %s [-h] [-p] [-a arfcn] [-f freq] [-u|-d]\n",
 		progname);
 }
 
 int main(int argc, char **argv)
 {
+	int arfcn, pcs = 0;
 	int opt;
 	char *param;
 	enum program_mode mode = MODE_NONE;
 
-	while ((opt = getopt(argc, argv, "a:f:ud")) != -1) {
+	while ((opt = getopt(argc, argv, "pa:f:ud")) != -1) {
 		switch (opt) {
+		case 'p':
+			pcs = 1;
+			break;
 		case 'a':
 			mode = MODE_A2F;
 			param = optarg;
@@ -95,7 +99,10 @@ int main(int argc, char **argv)
 		exit(2);
 		break;
 	case MODE_A2F:
-		arfcn2freq(param);
+		arfcn = atoi(param);
+		if (pcs)
+			arfcn |= ARFCN_PCS;
+		arfcn2freq(arfcn);
 		break;
 	}
 
