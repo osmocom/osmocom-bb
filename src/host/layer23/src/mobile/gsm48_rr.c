@@ -98,6 +98,33 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg);
 
 #define MIN(a, b) ((a < b) ? a : b)
 
+static int calc_rxqual(struct rx_meas_stat *stat)
+{
+	uint32_t qual;
+
+	/* no bits transferred, so no error */
+	if (stat->bits == 0)
+		return 0;
+
+	qual = (stat->berr * 500) / stat->bits;
+	if (qual == 0)
+		return 0;
+	if (qual == 1)
+		return 1;
+	if (qual < 4)
+		return 2;
+	if (qual < 8)
+		return 3;
+	if (qual < 16)
+		return 4;
+	if (qual < 32)
+		return 5;
+	if (qual < 64)
+		return 6;
+
+	return 7;
+}
+
 /* decode "Power Command" (10.5.2.28) and (10.5.2.28a) */
 static int gsm48_decode_power_cmd_acc(struct gsm48_power_cmd *pc,
 	uint8_t *power_level, uint8_t *atc)
@@ -667,7 +694,7 @@ static void timeout_rr_meas(void *arg)
 		gsm48_rr_tx_meas_rep(rr->ms);
 
 restart:
-	meas->frames = meas->snr = meas->berr = meas->rxlev = 0;
+	meas->frames = meas->snr = meas->berr = meas->bits = meas->rxlev = 0;
 	start_rr_t_meas(rr, 1, 0);
 }
 
@@ -2757,7 +2784,8 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 		meas_valid = 1;
 		serv_rxlev_full = serv_rxlev_sub =
 			(meas->rxlev + (meas->frames / 2)) / meas->frames;
-		serv_rxqual_full = serv_rxqual_sub = 0; // FIXME
+		serv_rxqual_full = calc_rxqual(meas);
+		serv_rxqual_sub = 0; // FIXME
 	}
 
 	memset(&rxlev_nc, 0, sizeof(rxlev_nc));
@@ -2987,7 +3015,7 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 		memset(s->si5b_msg, 0, sizeof(s->si5b_msg));
 		memset(s->si5t_msg, 0, sizeof(s->si5t_msg));
 	}
-	meas->frames = meas->snr = meas->berr = meas->rxlev = 0;
+	meas->frames = meas->snr = meas->berr = meas->bits = meas->rxlev = 0;
 	rr->meas.nc_num = 0;
 	stop_rr_t_meas(rr);
 	start_rr_t_meas(rr, 1, 0);

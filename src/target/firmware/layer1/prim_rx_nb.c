@@ -53,6 +53,9 @@
 
 #include <l1ctl_proto.h>
 
+/* From GSM 05.01 7 Coding and interleaving. Coded bits per block */
+#define BIT_LEN_SDCCH			456 /* and for BIT_LEN_SACCH */
+
 struct l1s_rxnb_state {
 	struct l1s_meas_hdr meas[4];
 
@@ -112,7 +115,6 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 	/* 4th burst, get frame data */
 	if (dsp_api.db_r->d_burst_d == 3) {
 		uint8_t i;
-		uint16_t num_biterr;
 		uint32_t avg_snr = 0;
 		int32_t avg_dbm8 = 0;
 
@@ -141,11 +143,8 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 		rxnb.dl->snr = avg_snr / 4;
 		rxnb.dl->rx_level = dbm2rxlev(avg_dbm8 / (8*4));
 
-		num_biterr = dsp_api.ndb->a_cd[2] & 0xffff;
-		if (num_biterr > 0xff)
-			rxnb.dl->num_biterr = 0xff;
-		else
-			rxnb.dl->num_biterr = num_biterr;
+		rxnb.dl->num_biterr = dsp_api.ndb->a_cd[2] & 0xffff;
+		rxnb.dl->num_bits = BIT_LEN_SDCCH;
 
 		rxnb.dl->fire_crc = ((dsp_api.ndb->a_cd[0] & 0xffff) & ((1 << B_FIRE1) | (1 << B_FIRE0))) >> B_FIRE0;
 

@@ -45,6 +45,7 @@ struct rx_meas_stat {
 	uint32_t frames;
 	uint32_t snr;
 	uint32_t berr;
+	uint32_t bits;
 	uint32_t rxlev;
 
 	/* counters loss criterion */

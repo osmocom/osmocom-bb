@@ -55,6 +55,12 @@
 
 #include <l1ctl_proto.h>
 
+/* From GSM 05.01 7 Coding and interleaving. Coded bits per block */
+#define BIT_LEN_FACCHF			456
+#define BIT_LEN_SACCH			456 /* and for BIT_LEN_SDCCH */
+#define BIT_LEN_TCHFS			378
+#define BIT_LEN_TCHHS			211
+
 
 /* This computes various parameters both for the DSP and for
  * our logic. Not all are used all the time, but it's easier
@@ -211,7 +217,6 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		struct msgb *msg;
 		struct l1ctl_info_dl *dl;
 		struct l1ctl_data_ind *di;
-		uint16_t num_biterr;
 		uint32_t avg_snr = 0;
 		int32_t avg_dbm8 = 0;
 		int i, n;
@@ -245,12 +250,8 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		dl->rx_level = dbm2rxlev(avg_dbm8 / (8*n));
 
 		/* Errors & CRC status */
-		num_biterr = dsp_api.ndb->a_fd[2] & 0xffff;
-		if (num_biterr > 0xff)
-			dl->num_biterr = 0xff;
-		else
-			dl->num_biterr = num_biterr;
-
+		dl->num_biterr = dsp_api.ndb->a_fd[2] & 0xffff;
+		dl->num_bits = BIT_LEN_FACCHF;
 		dl->fire_crc = ((dsp_api.ndb->a_fd[0] & 0xffff) & ((1 << B_FIRE1) | (1 << B_FIRE0))) >> B_FIRE0;
 
 		/* Update rx level for pm report */
@@ -309,6 +310,9 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 				}
 
 				dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
+				/* FIXE: verify this for different audio modes */
+				dl->num_biterr = traffic_buf[2] & 0xffff;
+				dl->num_bits = tch_f_hn ? BIT_LEN_TCHFS : BIT_LEN_TCHHS;
 				ti = (struct l1ctl_traffic_ind *) msgb_put(msg, sizeof(*ti));
 
 				/* Copy actual data, skipping the information block [0,1,2] */
@@ -618,7 +622,6 @@ static int l1s_tch_a_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 	/* Last burst, read data & send to the up layer */
 	if ((burst_id == 3) && (dsp_api.ndb->a_cd[0] & (1<<B_BLUD))) {
 		unsigned int i;
-		uint16_t num_biterr;
 		uint32_t avg_snr = 0;
 		int32_t avg_dbm8 = 0;
 
@@ -630,12 +633,8 @@ static int l1s_tch_a_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		rx_tch_a.dl->snr = avg_snr / 4;
 		rx_tch_a.dl->rx_level = dbm2rxlev(avg_dbm8 / (8*4));
 
-		num_biterr = dsp_api.ndb->a_cd[2];
-		if (num_biterr > 0xff)
-			rx_tch_a.dl->num_biterr = 0xff;
-		else
-			rx_tch_a.dl->num_biterr = num_biterr;
-
+		rx_tch_a.dl->num_biterr = dsp_api.ndb->a_cd[2] & 0xffff;
+		rx_tch_a.dl->num_bits = BIT_LEN_SACCH;
 		rx_tch_a.dl->fire_crc = ((dsp_api.ndb->a_cd[0] & 0xffff) & ((1 << B_FIRE1) | (1 << B_FIRE0))) >> B_FIRE0;
 
 		/* Update rx level for pm report */
