@@ -100,10 +100,14 @@ struct l1ctl_info_dl {
 
 	uint32_t frame_nr;
 
+	uint16_t num_biterr;	/* number of estimated bit errors (BER) */
+	uint16_t num_bits;	/* number of transfered bits */
+
 	uint8_t rx_level;	/* 0 .. 63 in typical GSM notation (dBm+110) */
 	uint8_t snr;		/* Signal/Noise Ration (dB) */
-	uint8_t num_biterr;
+
 	uint8_t fire_crc;
+	uint8_t padding[1];
 
 	uint8_t payload[0];
 } __attribute__((packed));

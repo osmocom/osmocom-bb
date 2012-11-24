@@ -186,6 +186,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	meas->frames++;
 	meas->snr += dl->snr;
 	meas->berr += dl->num_biterr;
+	meas->bits += dl->num_bits;
 	meas->rxlev += dl->rx_level;
 
 	/* counting loss criteria */

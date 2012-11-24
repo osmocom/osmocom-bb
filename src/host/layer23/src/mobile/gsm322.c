@@ -475,7 +475,7 @@ static int gsm322_sync_to_cell(struct gsm322_cellsel *cs,
 		cs->ccch_mode = CCCH_MODE_NONE;
 	}
 
-	meas->frames = meas->snr = meas->berr = meas->rxlev = 0;
+	meas->frames = meas->snr = meas->berr = meas->bits = meas->rxlev = 0;
 	cs->rxlev_sum_dbm = cs->rxlev_count = 0;
 
 	cs->neighbour = neighbour;
