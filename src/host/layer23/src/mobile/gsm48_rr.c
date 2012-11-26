@@ -5003,16 +5003,8 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t cause = rllh->data[2];
 	uint8_t link_id = rllh->link_id;
 
-	switch (cause) {
-	case RLL_CAUSE_SEQ_ERR:
-	case RLL_CAUSE_UNSOL_DM_RESP_MF:
-		break;
-	default:
-		LOGP(DRR, LOGL_NOTICE, "MDL-Error (cause %d) ignoring\n",
-			cause);
-	}
-
-	LOGP(DRR, LOGL_NOTICE, "MDL-Error (cause %d) aborting\n", cause);
+	LOGP(DRR, LOGL_NOTICE, "MDL-Error (cause %s/%d) aborting\n",
+		rsl_err_name(cause), cause);
 
 	/* disconnect the (main) signalling link */
 	nmsg = gsm48_l3_msgb_alloc();
