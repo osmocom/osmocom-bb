@@ -2358,7 +2358,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	gsm48_encode_classmark1(&nlu->classmark1, sup->rev_lev, sup->es_ind,
 		set->a5_1, pwr_lev);
 	/* MI */
-	if (subscr->tmsi != 0xffffffff) { /* have TMSI ? */
+	if (0 && subscr->tmsi != 0xffffffff) { /* have TMSI ? */
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 		LOGP(DMM, LOGL_INFO, " using TMSI 0x%08x\n", subscr->tmsi);
 	} else {
