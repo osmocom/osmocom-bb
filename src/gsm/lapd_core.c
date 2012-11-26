@@ -796,7 +796,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		dl->seq_err_cond = 0;
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.resp) {
-			LOGP(DLLAPD, LOGL_NOTICE, "SABM response error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "SABM response error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 			return -EINVAL;
@@ -806,7 +806,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * set, AN MDL-ERROR-INDICATION is sent to MM.
 		 */
 		if (lctx->more || length > lctx->n201) {
-			LOGP(DLLAPD, LOGL_NOTICE, "SABM too large error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "SABM too large error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_UFRM_INC_PARAM, lctx);
 			return -EIO;
@@ -900,7 +900,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			lapd_state_names[dl->state]);
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.cmd) {
-			LOGP(DLLAPD, LOGL_NOTICE, "DM command error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "DM command error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 			return -EINVAL;
@@ -981,7 +981,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		LOGP(DLLAPD, LOGL_INFO, "UI received\n");
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.resp) {
-			LOGP(DLLAPD, LOGL_NOTICE, "UI indicates response "
+			LOGP(DLLAPD, LOGL_ERROR, "UI indicates response "
 				"error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
@@ -992,7 +992,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * set, AN MDL-ERROR-INDICATION is sent to MM.
 		 */
 		if (length > lctx->n201 || lctx->more) {
-			LOGP(DLLAPD, LOGL_NOTICE, "UI too large error "
+			LOGP(DLLAPD, LOGL_ERROR, "UI too large error "
 				"(%d > N201(%d) or M=%d)\n", length,
 				lctx->n201, lctx->more);
 			msgb_free(msg);
@@ -1025,7 +1025,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		dl->seq_err_cond = 0;
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.resp) {
-			LOGP(DLLAPD, LOGL_NOTICE, "DISC response error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "DISC response error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 			return -EINVAL;
@@ -1036,7 +1036,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			 * primitive with cause "U frame with incorrect
 			 * parameters" is sent to the mobile management entity.
 			 */
-			LOGP(DLLAPD, LOGL_NOTICE,
+			LOGP(DLLAPD, LOGL_ERROR,
 				"U frame iwth incorrect parameters ");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_UFRM_INC_PARAM, lctx);
@@ -1088,7 +1088,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			lapd_state_names[dl->state]);
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.cmd) {
-			LOGP(DLLAPD, LOGL_NOTICE, "UA indicates command "
+			LOGP(DLLAPD, LOGL_ERROR, "UA indicates command "
 				"error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
@@ -1099,7 +1099,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * set, AN MDL-ERROR-INDICATION is sent to MM.
 		 */
 		if (lctx->more || length > lctx->n201) {
-			LOGP(DLLAPD, LOGL_NOTICE, "UA too large error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "UA too large error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_UFRM_INC_PARAM, lctx);
 			return -EIO;
@@ -1206,7 +1206,7 @@ static int lapd_rx_s(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * with the M bit set to "1", an MDL-ERROR-INDICATION
 		 * primitive with cause "S frame with incorrect
 		 * parameters" is sent to the mobile management entity. */
-		LOGP(DLLAPD, LOGL_NOTICE,
+		LOGP(DLLAPD, LOGL_ERROR,
 				"S frame with incorrect parameters\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_SFRM_INC_PARAM, lctx);
@@ -1425,7 +1425,7 @@ static int lapd_rx_s(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		break;
 	default:
 		/* G.3.1 */
-		LOGP(DLLAPD, LOGL_NOTICE, "Supervisory frame not allowed.\n");
+		LOGP(DLLAPD, LOGL_ERROR, "Supervisory frame not allowed.\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 		return -EINVAL;
@@ -1448,7 +1448,7 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		
 	/* G.2.2 Wrong value of the C/R bit */
 	if (lctx->cr == dl->cr.rem2loc.resp) {
-		LOGP(DLLAPD, LOGL_NOTICE, "I frame response not allowed\n");
+		LOGP(DLLAPD, LOGL_ERROR, "I frame response not allowed\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 		return -EINVAL;
@@ -1459,7 +1459,7 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * to a numerical value L>N201 or L=0, an MDL-ERROR-INDICATION
 		 * primitive with cause "I frame with incorrect length"
 		 * is sent to the mobile management entity. */
-		LOGP(DLLAPD, LOGL_NOTICE, "I frame length not allowed\n");
+		LOGP(DLLAPD, LOGL_ERROR, "I frame length not allowed\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_IFRM_INC_LEN, lctx);
 		return -EIO;
@@ -1470,7 +1470,7 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 	 * cause "I frame with incorrect use of M bit" is sent to the
 	 * mobile management entity. */
 	if (lctx->more && length < lctx->n201) {
-		LOGP(DLLAPD, LOGL_NOTICE, "I frame with M bit too short\n");
+		LOGP(DLLAPD, LOGL_ERROR, "I frame with M bit too short\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_IFRM_INC_MBITS, lctx);
 		return -EIO;
