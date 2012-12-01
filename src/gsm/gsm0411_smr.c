@@ -81,8 +81,8 @@ void gsm411_smr_init(struct gsm411_smr_inst *inst, uint64_t id, int network,
 	inst->rp_timer.cb = rp_timer_expired;
 
 	LOGP(DLSMS, LOGL_INFO,
-		SMR_LOG_STR "instance created for %d\n",
-		inst->id, inst->network);
+		SMR_LOG_STR "instance created for %s.\n",
+		inst->id, inst->network ? "network" : "mobile");
 }
 
 /* clear instance */

@@ -83,7 +83,8 @@ void gsm411_smc_init(struct gsm411_smc_inst *inst, uint64_t id, int network,
 	inst->mm_send = mm_send;
 
 	LOGP(DLSMS, LOGL_INFO,
-		SMC_LOG_STR "instance created\n", inst->id);
+		SMC_LOG_STR "instance created for %s\n",
+		inst->id, inst->network ? "network" : "mobile");
 }
 
 /* clear instance */
