@@ -64,12 +64,20 @@ char osmo_bcd2char(uint8_t bcd)
 		return 'A' + (bcd - 0xa);
 }
 
-/* only works for numbers in ascii */
+/*! \brief Convert number in ASCII to BCD value
+ *  \param[in] c ASCII character
+ *  \returns BCD encoded value of character
+ */
 uint8_t osmo_char2bcd(char c)
 {
 	return c - 0x30;
 }
 
+/*! \brief Parse a string ocntaining hexadecimal digits
+ *  \param[in] str string containing ASCII encoded hexadecimal digits
+ *  \param[out] b output buffer
+ *  \param[in] max_len maximum space in output buffer
+ */
 int osmo_hexparse(const char *str, uint8_t *b, int max_len)
 
 {

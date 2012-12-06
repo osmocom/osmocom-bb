@@ -154,7 +154,9 @@ int osmo_timer_remaining(const struct osmo_timer_list *timer,
 	return 0;
 }
 
-/*
+/*! \brief Determine time between now and the nearest timer
+ *  \returns pointer to timeval of nearest timer, NULL if there is none
+ *
  * if we have a nearest time return the delta between the current
  * time and the time of the nearest timer.
  * If the nearest timer timed out return NULL and then we will
@@ -184,9 +186,7 @@ static void update_nearest(struct timeval *cand, struct timeval *current)
 	}
 }
 
-/*
- * Find the nearest time and update s_nearest_time
- */
+/*! \brief Find the nearest time and update nearest_p */
 void osmo_timers_prepare(void)
 {
 	struct rb_node *node;
@@ -204,9 +204,7 @@ void osmo_timers_prepare(void)
 	}
 }
 
-/*
- * fire all timers... and remove them
- */
+/*! \brief fire all timers... and remove them */
 int osmo_timers_update(void)
 {
 	struct timeval current_time;

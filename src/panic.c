@@ -80,3 +80,4 @@ void osmo_set_panic_handler(osmo_panic_handler_t h)
 	osmo_panic_handler = h;
 }
 
+/*! @} */

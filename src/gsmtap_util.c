@@ -182,7 +182,18 @@ int gsmtap_source_init_fd(const char *host, uint16_t port)
 				OSMO_SOCK_F_CONNECT);
 }
 
-/*! \brief Add a local sink to an existing GSMTAP source and return fd */
+/*! \brief Add a local sink to an existing GSMTAP source and return fd
+ *  \param[in] gsmtap_fd file descriptor of the gsmtap socket
+ *  \returns file descriptor of locally bound receive socket
+ *
+ *  In case the GSMTAP socket is connected to a local destination
+ *  IP/port, this function creates a corresponding receiving socket
+ *  bound to that destination IP + port.
+ *
+ *  In case the gsmtap socket is not connected to a local IP/port, or
+ *  creation of the receiving socket fails, a negative error code is
+ *  returned.
+ */
 int gsmtap_source_add_sink_fd(int gsmtap_fd)
 {
 	struct sockaddr_storage ss;
@@ -360,3 +371,5 @@ struct gsmtap_inst *gsmtap_source_init(const char *host, uint16_t port,
 }
 
 #endif /* HAVE_SYS_SOCKET_H */
+
+/*! @} */

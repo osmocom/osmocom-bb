@@ -128,7 +128,16 @@ int osmo_pbit2ubit_ext(ubit_t *out, unsigned int out_ofs,
 	return out_ofs + num_bits;
 }
 
-/* generalized bit reversal function, Chapter 7 "Hackers Delight" */
+/*! \brief generalized bit reversal function
+ *  \param[in] x the 32bit value to be reversed
+ *  \param[in] k the type of reversal requested
+ *  \returns the reversed 32bit dword
+ *
+ * This function reverses the bit order within a 32bit word. Depending
+ * on "k", it either reverses all bits in a 32bit dword, or the bytes in
+ * the dword, or the bits in each byte of a dword, or simply swaps the
+ * two 16bit words in a dword.  See Chapter 7 "Hackers Delight"
+ */
 uint32_t osmo_bit_reversal(uint32_t x, enum osmo_br_mode k)
 {
 	if (k &  1) x = (x & 0x55555555) <<  1 | (x & 0xAAAAAAAA) >>  1;
@@ -140,7 +149,12 @@ uint32_t osmo_bit_reversal(uint32_t x, enum osmo_br_mode k)
 	return x;
 }
 
-/* generalized bit reversal function, Chapter 7 "Hackers Delight" */
+/*! \brief reverse the bit-order in each byte of a dword
+ *  \param[in] x 32bit input value
+ *  \returns 32bit value where bits of each byte have been reversed
+ *
+ * See Chapter 7 "Hackers Delight"
+ */
 uint32_t osmo_revbytebits_32(uint32_t x)
 {
 	x = (x & 0x55555555) <<  1 | (x & 0xAAAAAAAA) >>  1;
@@ -150,6 +164,12 @@ uint32_t osmo_revbytebits_32(uint32_t x)
 	return x;
 }
 
+/*! \brief reverse the bit order in a byte
+ *  \param[in] x 8bit input value
+ *  \returns 8bit value where bits order has been reversed
+ *
+ * See Chapter 7 "Hackers Delight"
+ */
 uint32_t osmo_revbytebits_8(uint8_t x)
 {
 	x = (x & 0x55) <<  1 | (x & 0xAA) >>  1;
@@ -159,6 +179,12 @@ uint32_t osmo_revbytebits_8(uint8_t x)
 	return x;
 }
 
+/*! \brief reverse bit-order of each byte in a buffer
+ *  \param buf buffer containing bytes to be bit-reversed
+ *  \param[in] length of buffer in bytes
+ *
+ *  This function reverses the bits in each byte of the buffer
+ */
 void osmo_revbytebits_buf(uint8_t *buf, int len)
 {
 	unsigned int i;

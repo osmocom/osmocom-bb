@@ -108,6 +108,7 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 	},
 };
 
+/*! \brief descriptive string for each log level */
 /* You have to keep this in sync with the structure loglevel_strs. */
 const char *loglevel_descriptions[LOGLEVEL_DEFS+1] = {
 	"Log simply everything",
@@ -318,6 +319,7 @@ void osmo_vlogp(int subsys, int level, const char *file, int line,
 	}
 }
 
+/*! \brief logging function used by DEBUGP() macro */
 void logp(int subsys, const char *file, int line, int cont,
 	  const char *format, ...)
 {
@@ -328,6 +330,7 @@ void logp(int subsys, const char *file, int line, int cont,
 	va_end(ap);
 }
 
+/*! \brief logging function used by LOGP() macro */
 void logp2(int subsys, unsigned int level, const char *file, int line, int cont, const char *format, ...)
 {
 	va_list ap;
@@ -431,6 +434,12 @@ void log_set_log_level(struct log_target *target, int log_level)
 	target->loglevel = log_level;
 }
 
+/*! \brief Set a category filter on a given log target
+ *  \param[in] target Log target to be affected
+ *  \param[in] category Log category to be affected
+ *  \param[in] enable whether to enable or disable the filter
+ *  \param[in] level Log level of the filter
+ */
 void log_set_category_filter(struct log_target *target, int category,
 			       int enable, int level)
 {
