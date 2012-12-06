@@ -572,6 +572,12 @@ enum rsl_mrpci_phase {
 	RSL_MRPCI_PHASE_2PLUS	= 3,
 };
 
+/* 9.3.20 Release Mode */
+enum rsl_rel_mode {
+	RSL_REL_NORMAL		= 0,
+	RSL_REL_LOCAL_END	= 1,
+};
+
 /*! @} */
 
 #endif /* PROTO_GSM_08_58_H */
