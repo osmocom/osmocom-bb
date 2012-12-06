@@ -34,6 +34,7 @@
  *  \brief Osmocom GSM A5 ciphering algorithm implementation
  */
 
+#include <errno.h>
 #include <string.h>
 
 #include <osmocom/gsm/a5.h>
@@ -44,11 +45,12 @@
  *  \param[in] fn Frame number
  *  \param[out] dl Pointer to array of ubits to return Downlink cipher stream
  *  \param[out] ul Pointer to array of ubits to return Uplink cipher stream
+ *  \returns 0 for success, -ENOTSUP for invalid cipher selection.
  *
  * Currently A5/[0-2] are supported.
  * Either (or both) of dl/ul can be NULL if not needed.
  */
-void
+int
 osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 {
 	switch (n)
@@ -70,8 +72,10 @@ osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 
 	default:
 		/* a5/[3..7] not supported here/yet */
-		break;
+		return -ENOTSUP;
 	}
+
+	return 0;
 }
 
 

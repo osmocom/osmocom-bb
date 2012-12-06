@@ -54,7 +54,7 @@ osmo_a5_fn_count(uint32_t fn)
 	 *  - fn is the _real_ GSM frame number.
 	 *    (converted internally to fn_count)
 	 */
-void osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
+int osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
 void osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
 void osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
 
