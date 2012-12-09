@@ -653,10 +653,10 @@ static int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
 		sms_free(sms);
 		return -ENOMEM;
 	}
-	gsm411_smc_init(&trans->sms.smc_inst, 0, gsm411_mn_recv,
-		gsm411_mm_send);
-	gsm411_smr_init(&trans->sms.smr_inst, 0, gsm411_rl_recv,
-		gsm411_mn_send);
+	gsm411_smc_init(&trans->sms.smc_inst, transaction_id, 0,
+		gsm411_mn_recv, gsm411_mm_send);
+	gsm411_smr_init(&trans->sms.smr_inst, transaction_id, 0,
+		gsm411_rl_recv, gsm411_mn_send);
 	trans->sms.sms = sms;
 	trans->sms.sapi = UM_SAPI_SMS;
 
@@ -907,10 +907,10 @@ int gsm411_rcv_sms(struct osmocom_ms *ms, struct msgb *msg)
 					mmh->ref);
 		if (!trans)
 			return -ENOMEM;
-		gsm411_smc_init(&trans->sms.smc_inst, 0, gsm411_mn_recv,
-			gsm411_mm_send);
-		gsm411_smr_init(&trans->sms.smr_inst, 0, gsm411_rl_recv,
-			gsm411_mn_send);
+		gsm411_smc_init(&trans->sms.smc_inst, trans->transaction_id, 0,
+			gsm411_mn_recv, gsm411_mm_send);
+		gsm411_smr_init(&trans->sms.smr_inst, trans->transaction_id, 0,
+			gsm411_rl_recv, gsm411_mn_send);
 		trans->sms.sapi = mmh->sapi;
 	}
 
