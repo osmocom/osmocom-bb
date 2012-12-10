@@ -134,7 +134,7 @@ $(foreach app,$(APPLICATIONS), \
 
 $(foreach app,$(APPLICATIONS),                \
 	$(foreach brd,$(BOARDS),                  \
-		$(foreach env,$(BOARD_$(brd)_ENVIRONMENTS), \
+		$(foreach env,$(shell ./solve_envs.py "$(BOARD_$(brd)_ENVIRONMENTS)" "$(APP_$(app)_ENVIRONMENTS)"), \
 			$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
 
 
