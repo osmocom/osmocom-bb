@@ -78,7 +78,7 @@ default: all
 define APPLICATION_BOARD_ENVIRONMENT_template
 
 # define set of objects for this binary
-$(1)_$(2)_$(3)_OBJS := apps/$(1)/main.o $(ANY_APP_OBJS) $$($(2)_OBJS)
+$(1)_$(2)_$(3)_OBJS := apps/$(1)/main.o $(ANY_APP_OBJS) $$($(1)_OBJS) $$($(2)_OBJS) $$($(3)_OBJS)
 $(1)_$(2)_$(3)_LIBS := $(ANY_APP_LIBS)
 
 # define manifest compilation
@@ -90,7 +90,7 @@ board/$(2)/$(1).$(3).manifest.p: board/manifest.c
 	@touch board/$(2)/$(1).$(3).manifest.p
 
 # add manifest object to object list
-$(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o $$($(3)_OBJS)
+$(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o
 
 # define compilation rule, also generates map file
 board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map: $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) $$($(3)_LDS)
