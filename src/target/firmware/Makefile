@@ -6,17 +6,17 @@
 # Environments
 #
 
-compalram_LDS=board/compal/ram.lds
-compalram_OBJS=board/compal/start.ram.o board/compal/exceptions_redirected.o board/compal/handlers.o
+ENV_compalram_LDS=board/compal/ram.lds
+ENV_compalram_OBJS=board/compal/start.ram.o board/compal/exceptions_redirected.o board/compal/handlers.o
 
-highram_LDS=board/compal/highram.lds
-highram_OBJS=board/compal/start.ram.o board/compal/exceptions_redirected.o board/compal/handlers.o
+ENV_highram_LDS=board/compal/highram.lds
+ENV_highram_OBJS=board/compal/start.ram.o board/compal/exceptions_redirected.o board/compal/handlers.o
 
-e88loader_LDS=board/compal_e88/loader.lds
-e88loader_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/exceptions_redirect.o
+ENV_e88loader_LDS=board/compal_e88/loader.lds
+ENV_e88loader_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/exceptions_redirect.o
 
-e88flash_LDS=board/compal_e88/flash.lds
-e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/exceptions_redirected.o board/compal/handlers.o
+ENV_e88flash_LDS=board/compal_e88/flash.lds
+ENV_e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/exceptions_redirected.o board/compal/handlers.o
 
 
 #
@@ -41,16 +41,16 @@ FB_dummy_OBJS=$(FB_OBJS) fb/fb_dummy.o
 calypso_COMMON_OBJS=board/common/calypso_uart.o board/common/calypso_pwl.o
 
 # OpenMoko GTA0x
-gta0x_OBJS=$(calypso_COMMON_OBJS) board/gta0x/init.o \
+BOARD_gta0x_OBJS=$(calypso_COMMON_OBJS) board/gta0x/init.o \
 	board/gta0x/rffe_gta0x_triband.o board/gta0x/rf_power.o \
 	battery/dummy.o $(FB_dummy_OBJS)
-gta0x_ENVIRONMENTS=highram
+BOARD_gta0x_ENVIRONMENTS=highram
 
 # Pirelli DP-L10
-pirelli_dpl10_OBJS=$(calypso_COMMON_OBJS) board/pirelli_dpl10/init.o \
+BOARD_pirelli_dpl10_OBJS=$(calypso_COMMON_OBJS) board/pirelli_dpl10/init.o \
 	board/pirelli_dpl10/rffe_dpl10_triband.o board/pirelli_dpl10/rf_power.o \
 	battery/dummy.o $(FB_dpl10_OBJS)
-pirelli_dpl10_ENVIRONMENTS=highram
+BOARD_pirelli_dpl10_ENVIRONMENTS=highram
 
 # Compal Generic
 compal_COMMON_OBJS=$(calypso_COMMON_OBJS) \
@@ -58,25 +58,25 @@ compal_COMMON_OBJS=$(calypso_COMMON_OBJS) \
 compal_COMMON_ENVIRONMENTS=compalram highram
 
 # Compal E88
-compal_e88_OBJS=$(compal_COMMON_OBJS) board/compal_e88/init.o \
+BOARD_compal_e88_OBJS=$(compal_COMMON_OBJS) board/compal_e88/init.o \
 	battery/compal_e88.o $(FB_e88_OBJS)
-compal_e88_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS) e88loader e88flash
+BOARD_compal_e88_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS) e88loader e88flash
 
 # Compal E86 (has a different RFFE configuration)
-compal_e86_OBJS=$(calypso_COMMON_OBJS) board/compal_e86/init.o \
+BOARD_compal_e86_OBJS=$(calypso_COMMON_OBJS) board/compal_e86/init.o \
 	board/compal_e86/rffe_dualband_e86.o board/compal/rf_power.o \
 	battery/dummy.o $(FB_e86_OBJS)
-compal_e86_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
+BOARD_compal_e86_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 # Compal E99
-compal_e99_OBJS=$(compal_COMMON_OBJS) board/compal_e99/init.o \
+BOARD_compal_e99_OBJS=$(compal_COMMON_OBJS) board/compal_e99/init.o \
 	battery/dummy.o $(FB_e99_OBJS)
-compal_e99_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
+BOARD_compal_e99_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 # Sony Ericsson J100 (made by Compal)
-se_j100_OBJS=$(compal_COMMON_OBJS) board/se_j100/init.o \
+BOARD_se_j100_OBJS=$(compal_COMMON_OBJS) board/se_j100/init.o \
 	battery/dummy.o $(FB_j100_OBJS)
-se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
+BOARD_se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
 
 #
