@@ -124,11 +124,6 @@ ALL_OBJS+=$$($(1)_OBJS) apps/$(1)/main.o
 endef
 
 # define rules for all defined applications
-$(foreach app,$(APPLICATIONS),                \
-	$(foreach brd,$(BOARDS),                  \
-		$(foreach env,$($(brd)_ENVIRONMENTS), \
-			$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
-
 $(foreach brd,$(BOARDS), \
 	$(eval $(call BOARD_template,$(brd)) \
     $(foreach env,$($(brd)_ENVIRONMENTS), \
@@ -136,6 +131,11 @@ $(foreach brd,$(BOARDS), \
 
 $(foreach app,$(APPLICATIONS), \
 	$(eval $(call APPLICATION_template,$(app))))
+
+$(foreach app,$(APPLICATIONS),                \
+	$(foreach brd,$(BOARDS),                  \
+		$(foreach env,$($(brd)_ENVIRONMENTS), \
+			$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
 
 
 # add common things to global lists
