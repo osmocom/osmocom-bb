@@ -34,6 +34,7 @@ Q_CC = $(if $(V:1=),@echo "  CC     $@";)
 Q_LD = $(if $(V:1=),@echo "  LD     $@";)
 Q_AR = $(if $(V:1=),@echo "  AR     $@";)
 Q_OBJ = $(if $(V:1=),@echo "  OBJ    $@";)
+Q_SIZE = $(if $(V:1=),@echo "  SIZE   $@";)
 
 #### GIT VERSION ####
 
@@ -99,7 +100,7 @@ board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map: $$($(1)_$(2)_$(3)_OBJS) $$($(
 
 # define size rule
 board/$(2)/$(1).$(3).size: board/$(2)/$(1).$(3).elf
-	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
+	$$(Q_SIZE)$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
 
 ALL_APPS+=board/$(2)/$(1).$(3).elf
 ALL_OBJS+=board/$(2)/$(1).$(3).manifest.o
