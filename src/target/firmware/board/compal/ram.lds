@@ -3,7 +3,6 @@
  *
  * This script is tailored specifically to the requirements imposed
  * on us by the Compal bootloader.
- *
  */
 OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
@@ -11,9 +10,10 @@ ENTRY(_start)
 MEMORY
 {
     /* compal-loaded binary: our text, initialized data */
-    LRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00014000
+    /* (only this zone can contain loaded data since loader is 64k limit) */
+    LRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00010000
     /* compal-loaded binary: our unitialized data, stacks, heap */
-    IRAM (rw) : ORIGIN = 0x00814000, LENGTH = 0x0000c000
+    IRAM (rw) : ORIGIN = 0x00810000, LENGTH = 0x00030000
 }
 SECTIONS
 {
