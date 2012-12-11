@@ -58,6 +58,27 @@ static int arfcn2freq(int arfcn)
 	return 0;
 }
 
+static int freq2arfcn(int freq10, int uplink)
+{
+	uint16_t arfcn;
+
+	if (uplink != 0 && uplink != 1) {
+		fprintf(stderr, "Need to specify uplink or downlink\n");
+		return -EINVAL;
+	}
+
+	arfcn = gsm_freq102arfcn(freq10, uplink);
+
+	if (arfcn == 0xffff) {
+		fprintf(stderr, "Unable to find matching ARFCN\n");
+		return -EINVAL;
+	}
+
+	printf("%s: ARFCN %4d\n",
+		gsm_band_name(gsm_arfcn2band(arfcn)),
+		arfcn & ~ARFCN_FLAG_MASK);
+}
+
 static void help(const char *progname)
 {
 	printf("Usage: %s [-h] [-p] [-a arfcn] [-f freq] [-u|-d]\n",
@@ -66,7 +87,7 @@ static void help(const char *progname)
 
 int main(int argc, char **argv)
 {
-	int arfcn, pcs = 0;
+	int arfcn, freq, pcs = 0, uplink = -1;
 	int opt;
 	char *param;
 	enum program_mode mode = MODE_NONE;
@@ -83,6 +104,12 @@ int main(int argc, char **argv)
 		case 'f':
 			mode = MODE_F2A;
 			param = optarg;
+			break;
+		case 'u':
+			uplink = 1;
+			break;
+		case 'd':
+			uplink = 0;
 			break;
 		case 'h':
 			help(argv[0]);
@@ -103,6 +130,10 @@ int main(int argc, char **argv)
 		if (pcs)
 			arfcn |= ARFCN_PCS;
 		arfcn2freq(arfcn);
+		break;
+	case MODE_F2A:
+		freq = (int)(atof(param) * 10.0f);
+		freq2arfcn(freq, uplink);
 		break;
 	}
 
