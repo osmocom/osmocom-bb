@@ -137,6 +137,7 @@ gsm_7bit_encode;
 
 gsm_arfcn2band;
 gsm_arfcn2freq10;
+gsm_freq102arfcn;
 gsm_band_name;
 gsm_band_parse;
 gsm_fn2gsmtime;

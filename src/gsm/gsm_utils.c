@@ -503,59 +503,79 @@ enum gsm_band gsm_arfcn2band(uint16_t arfcn)
 		return GSM_BAND_1800;
 }
 
+struct gsm_freq_range {
+	uint16_t arfcn_first;
+	uint16_t arfcn_last;
+	uint16_t freq_ul_first;
+	uint16_t freq_dl_offset;
+	uint16_t flags;
+};
+
+static struct gsm_freq_range gsm_ranges[] = {
+	{ 512,  810, 18502, 800, ARFCN_PCS },	/* PCS 1900 */
+	{   0,  124,  8900, 450, 0 },		/* P-GSM + E-GSM ARFCN 0 */
+	{ 955, 1023,  8762, 450, 0 },		/* E-GSM + R-GSM */
+	{ 128,  251,  8242, 450, 0 },		/* GSM 850  */
+	{ 512,  885, 17102, 950, 0 },		/* DCS 1800 */
+	{ 259,  293,  4506, 100, 0 },		/* GSM 450  */
+	{ 306,  340,  4790, 100, 0 },		/* GSM 480  */
+	{ 350,  425,  8060, 450, 0 },		/* GSM 810  */
+	{ 438,  511,  7472, 300, 0 },		/* GSM 750  */
+	{ /* Guard */ }
+};
+
 /* Convert an ARFCN to the frequency in MHz * 10 */
 uint16_t gsm_arfcn2freq10(uint16_t arfcn, int uplink)
 {
-	uint16_t freq10_ul;
-	uint16_t freq10_dl;
-	int is_pcs = arfcn & ARFCN_PCS;
+	struct gsm_freq_range *r;
+	uint16_t flags = arfcn & ARFCN_FLAG_MASK;
+	uint16_t freq10_ul = 0xffff;
+	uint16_t freq10_dl = 0xffff;
 
 	arfcn &= ~ARFCN_FLAG_MASK;
 
-	if (is_pcs) {
-		/* DCS 1900 */
-		arfcn &= ~ARFCN_PCS;
-		freq10_ul = 18502 + 2 * (arfcn-512);
-		freq10_dl = freq10_ul + 800;
-	} else if (arfcn <= 124) {
-		/* Primary GSM + ARFCN 0 of E-GSM */
-		freq10_ul = 8900 + 2 * arfcn;
-		freq10_dl = freq10_ul + 450;
-	} else if (arfcn >= 955 && arfcn <= 1023) {
-		/* E-GSM and R-GSM */
-		freq10_ul = 8900 + 2 * (arfcn - 1024);
-		freq10_dl = freq10_ul + 450;
-	} else if (arfcn >= 128 && arfcn <= 251) {
-		/* GSM 850 */
-		freq10_ul = 8242 + 2 * (arfcn - 128);
-		freq10_dl = freq10_ul + 450;
-	} else if (arfcn >= 512 && arfcn <= 885) {
-		/* DCS 1800 */
-		freq10_ul = 17102 + 2 * (arfcn - 512);
-		freq10_dl = freq10_ul + 950;
-	} else if (arfcn >= 259 && arfcn <= 293) {
-		/* GSM 450 */
-		freq10_ul = 4506 + 2 * (arfcn - 259);
-		freq10_dl = freq10_ul + 100;
-	} else if (arfcn >= 306 && arfcn <= 340) {
-		/* GSM 480 */
-		freq10_ul = 4790 + 2 * (arfcn - 306);
-		freq10_dl = freq10_ul + 100;
-	} else if (arfcn >= 350 && arfcn <= 425) {
-		/* GSM 810 */
-		freq10_ul = 8060 + 2 * (arfcn - 350);
-		freq10_dl = freq10_ul + 450;
-	} else if (arfcn >= 438 && arfcn <= 511) {
-		/* GSM 750 */
-		freq10_ul = 7472 + 2 * (arfcn - 438);
-		freq10_dl = freq10_ul + 300;
-	} else
-		return 0xffff;
+	for (r=gsm_ranges; r->freq_ul_first>0; r++) {
+		if ((flags == r->flags) &&
+		    (arfcn >= r->arfcn_first) &&
+		    (arfcn <= r->arfcn_last))
+		{
+			freq10_ul = r->freq_ul_first + 2 * (arfcn - r->arfcn_first);
+			freq10_dl = freq10_ul + r->freq_dl_offset;
+			break;
+		}
+	}
+
+	return uplink ? freq10_ul : freq10_dl;
+}
+
+/* Convert a Frequency in MHz * 10 to ARFCN */
+uint16_t gsm_freq102arfcn(uint16_t freq10, int uplink)
+{
+	struct gsm_freq_range *r;
+	uint16_t freq10_lo, freq10_hi;
+	uint16_t arfcn = 0xffff;
+
+	for (r=gsm_ranges; r->freq_ul_first>0; r++) {
+		/* Generate frequency limits */
+		freq10_lo = r->freq_ul_first;
+		freq10_hi = freq10_lo + 2 * (r->arfcn_last - r->arfcn_first);
+		if (!uplink) {
+			freq10_lo += r->freq_dl_offset;
+			freq10_hi += r->freq_dl_offset;
+		}
+
+		/* Check if this fits */
+		if (freq10 >= freq10_lo && freq10 <= freq10_hi) {
+			arfcn  = r->arfcn_first + ((freq10 - freq10_lo) >> 1);
+			arfcn |= r->flags;
+			break;
+		}
+	}
 
 	if (uplink)
-		return freq10_ul;
-	else
-		return freq10_dl;
+		arfcn |= ARFCN_UPLINK;
+
+	return arfcn;
 }
 
 void gsm_fn2gsmtime(struct gsm_time *time, uint32_t fn)

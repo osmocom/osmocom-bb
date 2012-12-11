@@ -101,6 +101,9 @@ enum gsm_band gsm_arfcn2band(uint16_t arfcn);
 /* Convert an ARFCN to the frequency in MHz * 10 */
 uint16_t gsm_arfcn2freq10(uint16_t arfcn, int uplink);
 
+/* Convert a Frequency in MHz * 10 to ARFCN */
+uint16_t gsm_freq102arfcn(uint16_t freq10, int uplink);
+
 /* Convert from frame number to GSM time */
 void gsm_fn2gsmtime(struct gsm_time *time, uint32_t fn);
 
