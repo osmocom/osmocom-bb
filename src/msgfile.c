@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 
 static struct osmo_config_entry *
 alloc_entry(struct osmo_config_list *entries,
