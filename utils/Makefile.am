@@ -1,5 +1,6 @@
 if ENABLE_UTILITIES
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
+AM_CFLAGS = -Wall $(all_includes) -I$(top_srcdir)/include
+
 bin_PROGRAMS = osmo-arfcn osmo-auc-gen
 
 osmo_arfcn_SOURCES = osmo-arfcn.c

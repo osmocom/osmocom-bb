@@ -2,8 +2,7 @@
 # Please read Chapter 6 "Library interface versions" of the libtool documentation before making any modification
 LIBVERSION=0:0:0
 
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -Wall
+AM_CFLAGS = -Wall $(all_includes) -I$(top_srcdir)/include
 
 lib_LTLIBRARIES = libosmocodec.la
 

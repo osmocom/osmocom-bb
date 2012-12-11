@@ -2,8 +2,7 @@
 # Please read Chapter 6 "Library interface versions" of the libtool documentation before making any modification
 LIBVERSION=3:0:0
 
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -Wall ${GCC_FVISIBILITY_HIDDEN}
+AM_CFLAGS = -Wall ${GCC_FVISIBILITY_HIDDEN} $(all_includes) -I$(top_srcdir)/include
 
 # FIXME: this should eventually go into a milenage/Makefile.am
 noinst_HEADERS = milenage/aes.h milenage/aes_i.h milenage/aes_wrap.h \

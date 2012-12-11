@@ -1,4 +1,4 @@
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
+AM_CFLAGS = -Wall $(all_includes) -I$(top_srcdir)/include
 
 check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
                  smscb/smscb_test bits/bitrev_test a5/a5_test		\
