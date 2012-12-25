@@ -1069,8 +1069,24 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 		return -EINVAL;
 	}
 
-	LOGP(DLLAPD, LOGL_INFO, "(%p) RLL Message '%s' received. (sapi %d)\n",
-		lc->name, rsl_msg_name(msg_type), sapi);
+	switch (msg_type) {
+	case RSL_MT_UNIT_DATA_REQ:
+	case RSL_MT_DATA_REQ:
+	case RSL_MT_SUSP_REQ:
+	case RSL_MT_REL_REQ:
+		/* This is triggered in abnormal error conditions where
+		 * set_lapdm_context() was not called for the channel earlier. */
+		if (!dl->dl.lctx.dl) {
+			LOGP(DLLAPD, LOGL_NOTICE, "(%p) RLL Message '%s' received without LAPDm context. (sapi %d)\n",
+					lc->name, rsl_msg_name(msg_type), sapi);
+			msgb_free(msg);
+			return -EINVAL;
+		}
+		break;
+	default:
+		LOGP(DLLAPD, LOGL_INFO, "(%p) RLL Message '%s' received. (sapi %d)\n",
+			lc->name, rsl_msg_name(msg_type), sapi);
+	}
 
 	switch (msg_type) {
 	case RSL_MT_UNIT_DATA_REQ:

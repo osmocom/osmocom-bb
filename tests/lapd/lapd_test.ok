@@ -17,4 +17,5 @@ Sending back to BTS
 ms_to_bts_l1_cb: MS(us) -> BTS prim message
 bts_to_ms_tx_cb: MS->BTS(us) message 14
 BTS: Verifying dummy message.
+I test RF channel release of an unestablished channel.
 Success.

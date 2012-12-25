@@ -81,6 +81,10 @@ static const uint8_t dummy1[] = {
 	0xab, 0x03, 0x30, 0x60, 0x06,
 };
 
+static const uint8_t rel_req[] = {
+	0x02, 0x07, 0x01, 0x0a, 0x02, 0x40, 0x14, 0x01
+};
+
 static struct msgb *create_cm_serv_req(void)
 {
 	struct msgb *msg;
@@ -119,6 +123,16 @@ static struct msgb *create_dummy_data_req(void)
 
 	msg = msgb_from_array(dummy1, sizeof(dummy1));
 	rsl_rll_push_l3(msg, RSL_MT_DATA_REQ, 0, 0, 1);
+	return msg;
+}
+
+static struct msgb *create_rel_req(void)
+{
+	struct msgb *msg;
+
+	msg = msgb_from_array(rel_req, sizeof(rel_req));
+	msg->l2h = msg->data;
+	msg->l3h = msg->l2h + sizeof(struct abis_rsl_rll_hdr);
 	return msg;
 }
 
@@ -308,11 +322,40 @@ static void test_lapdm_polling()
 	lapdm_channel_exit(&ms_to_bts_channel);
 }
 
+static void test_lapdm_early_release()
+{
+	printf("I test RF channel release of an unestablished channel.\n");
+
+	int rc;
+	struct lapdm_polling_state test_state;
+
+	/* Configure LAPDm on both sides */
+	struct lapdm_channel bts_to_ms_channel;
+	memset(&bts_to_ms_channel, 0, sizeof(bts_to_ms_channel));
+
+	memset(&test_state, 0, sizeof(test_state));
+	test_state.bts = &bts_to_ms_channel;
+
+	/* BTS to MS in polling mode */
+	lapdm_channel_init(&bts_to_ms_channel, LAPDM_MODE_BTS);
+	lapdm_channel_set_flags(&bts_to_ms_channel, LAPDM_ENT_F_POLLING_ONLY);
+	lapdm_channel_set_l1(&bts_to_ms_channel, NULL, &test_state);
+	lapdm_channel_set_l3(&bts_to_ms_channel, bts_to_ms_tx_cb, &test_state);
+
+	/* Send the release request */
+	rc = lapdm_rslms_recvmsg(create_rel_req(), &bts_to_ms_channel);
+	ASSERT(rc == -EINVAL);
+
+	/* clean up */
+	lapdm_channel_exit(&bts_to_ms_channel);
+}
+
 int main(int argc, char **argv)
 {
 	osmo_init_logging(&info);
 
 	test_lapdm_polling();
+	test_lapdm_early_release();
 	printf("Success.\n");
 
 	return 0;
