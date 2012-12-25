@@ -79,6 +79,8 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
              msgfile/msgfile_test.ok msgfile/msgconfig.cfg		\
              logging/logging_test.ok logging/logging_test.err
 
+DISTCLEANFILES = atconfig
+
 TESTSUITE = $(srcdir)/testsuite
 
 check-local: atconfig $(TESTSUITE)
@@ -91,7 +93,6 @@ installcheck-local: atconfig $(TESTSUITE)
 clean-local:
 	test ! -f '$(TESTSUITE)' || \
 		$(SHELL) '$(TESTSUITE)' --clean
-	$(RM) -f atconfig
 
 AUTOM4TE = $(SHELL) $(top_srcdir)/missing --run autom4te
 AUTOTEST = $(AUTOM4TE) --language=autotest
