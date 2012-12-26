@@ -222,7 +222,6 @@ static void beacon_timer_cb(void *p)
 	int rc;
 
 	if (dnload.romload_state == WAITING_IDENTIFICATION) {
-		printf("Sending Calypso romloader beacon...\n");
 		rc = write(dnload.serial_fd.fd, romload_ident_cmd,
 			   sizeof(romload_ident_cmd));
 
@@ -449,13 +448,10 @@ static int romload_prepare_block(void)
 
 	if (remaining_bytes <= dnload.block_payload_size) {
 		fill_bytes = (dnload.block_payload_size - remaining_bytes);
-		printf("Preparing the last block, filling %i bytes,",
-			fill_bytes);
 		memset(block_data + remaining_bytes, 0x00, fill_bytes);
 		dnload.romload_state = SENDING_LAST_BLOCK;
 	} else {
-			dnload.romload_state = SENDING_BLOCKS;
-			printf("Preparing block %i,", dnload.block_number+1);
+		dnload.romload_state = SENDING_BLOCKS;
 	}
 
 	/* block checksum is lsb of ~(5 + block_size_lsb +  all bytes of
@@ -464,7 +460,6 @@ static int romload_prepare_block(void)
 		block_checksum += dnload.block[i];
 
 	/* checksum is lsb of ~(sum of LSBs of all block checksums) */
-	printf(" block checksum is 0x%02x \n", ~(block_checksum) & 0xff);
 	dnload.romload_dl_checksum += ~(block_checksum) & 0xff;
 
 	/* initialize block pointer to start of block */
@@ -551,11 +546,12 @@ static int mtk_prepare_block(void)
 static int handle_write_block(void)
 {
 	int bytes_left, write_len, rc;
-
-	printf("handle_write_block(): ");
+	int progress = 100 * (dnload.block_number * dnload.block_payload_size)
+		       / dnload.data_len;
 
 	if (dnload.block_ptr >= dnload.block + dnload.block_len) {
-		printf("Block %i finished\n", dnload.block_number);
+		printf("Progress: %i%%\r", progress);
+		fflush(stdout);
 		dnload.write_ptr = dnload.data;
 		dnload.serial_fd.when &= ~BSC_FD_WRITE;
 		if (dnload.romload_state == SENDING_LAST_BLOCK) {
@@ -582,9 +578,6 @@ static int handle_write_block(void)
 	}
 
 	dnload.block_ptr += rc;
-
-	printf("%u bytes (%tu/%u)\n", rc, dnload.block_ptr - dnload.block,
-		dnload.block_len);
 
 	return 0;
 }
@@ -908,8 +901,6 @@ static int handle_read_romload(void)
 
 		/* using the max blocksize the phone tells us */
 		dnload.block_payload_size = ((buffer[3] << 8) + buffer[2]);
-		printf("Used blocksize for download is %i bytes\n",
-			dnload.block_payload_size);
 		dnload.block_payload_size -= ROMLOAD_BLOCK_HDR_LEN;
 		dnload.romload_state = SENDING_BLOCKS;
 		dnload.block_number = 0;
@@ -920,13 +911,10 @@ static int handle_read_romload(void)
 	case LAST_BLOCK_SENT:
 		if (!memcmp(buffer, romload_block_ack,
 			    sizeof(romload_block_ack))) {
-			printf("Received block ack from phone\n");
 			if (dnload.romload_state == LAST_BLOCK_SENT) {
 				/* send the checksum */
 				uint8_t final_checksum =
 					(~(dnload.romload_dl_checksum) & 0xff);
-				printf("Sending checksum: 0x%02x \n",
-					final_checksum);
 				rc = write(dnload.serial_fd.fd,
 					   romload_checksum_cmd,
 					   sizeof(romload_checksum_cmd));
@@ -947,9 +935,6 @@ static int handle_read_romload(void)
 	case WAITING_CHECKSUM_ACK:
 		if (!memcmp(buffer, romload_checksum_ack,
 			    sizeof(romload_checksum_ack))) {
-			printf("Checksum on phone side matches, "
-				"let's branch to your code\n");
-			printf("Branching to 0x%08x\n", ROMLOAD_ADDRESS);
 
 			rc = write(dnload.serial_fd.fd, romload_branch_cmd,
 				   sizeof(romload_branch_cmd));
