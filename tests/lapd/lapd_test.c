@@ -19,6 +19,7 @@
  *
  */
 
+#include <osmocom/core/application.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/gsm/lapdm.h>
 #include <osmocom/gsm/rsl.h>
@@ -196,6 +197,7 @@ static int ms_to_bts_l1_cb(struct osmo_prim_hdr *oph, void *_ctx)
 	/* i stuff it into the LAPDm channel of the BTS */
 	rc = send(oph->msg, state->bts);
 	msgb_free(oph->msg);
+	return rc;
 }
 
 static int ms_to_bts_tx_cb(struct msgb *msg, struct lapdm_entity *le, void *_ctx)
