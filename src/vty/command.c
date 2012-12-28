@@ -24,6 +24,7 @@ Boston, MA 02111-1307, USA.  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <syslog.h>
 #include <errno.h>
 #define _XOPEN_SOURCE
@@ -652,7 +653,8 @@ static vector cmd_node_vector(vector v, enum node_type ntype)
 
 /* Completion match types. */
 enum match_type {
-	no_match,
+	no_match = 0,
+	any_match,
 	extend_match,
 	ipv4_prefix_match,
 	ipv4_match,
@@ -661,7 +663,7 @@ enum match_type {
 	range_match,
 	vararg_match,
 	partly_match,
-	exact_match
+	exact_match,
 };
 
 static enum match_type cmd_ipv4_match(const char *str)
@@ -1103,139 +1105,100 @@ static int cmd_range_match(const char *range, const char *str)
 	return 1;
 }
 
-/* Make completion match and return match type flag. */
-static enum match_type
-cmd_filter_by_completion(char *command, vector v, unsigned int index)
+/* helper to retrieve the 'real' argument string from an optional argument */
+static char *
+cmd_deopt(const char *str)
 {
-	unsigned int i;
-	const char *str;
-	struct cmd_element *cmd_element;
-	enum match_type match_type;
-	vector descvec;
-	struct desc *desc;
+	/* we've got "[blah]". We want to strip off the []s and redo the
+	 * match check for "blah"
+	 */
+	size_t len = strlen(str);
+	char *tmp;
 
-	match_type = no_match;
+	if (len < 3)
+		return NULL;
 
-	/* If command and cmd_element string does not match set NULL to vector */
-	for (i = 0; i < vector_active(v); i++)
-		if ((cmd_element = vector_slot(v, i)) != NULL) {
-			if (index >= vector_active(cmd_element->strvec))
-				vector_slot(v, i) = NULL;
-			else {
-				unsigned int j;
-				int matched = 0;
+	/* tmp will hold a string of len-2 chars, so 'len' size is fine */
+	tmp = talloc_size(NULL, len);
 
-				descvec =
-				    vector_slot(cmd_element->strvec, index);
+	memcpy(tmp, (str + 1), len - 2);
+	tmp[len - 2] = '\0';
 
-				for (j = 0; j < vector_active(descvec); j++)
-					if ((desc = vector_slot(descvec, j))) {
-						str = desc->cmd;
-
-						if (CMD_VARARG(str)) {
-							if (match_type <
-							    vararg_match)
-								match_type =
-								    vararg_match;
-							matched++;
-						} else if (CMD_RANGE(str)) {
-							if (cmd_range_match
-							    (str, command)) {
-								if (match_type <
-								    range_match)
-									match_type
-									    =
-									    range_match;
-
-								matched++;
-							}
-						}
-#ifdef HAVE_IPV6
-						else if (CMD_IPV6(str)) {
-							if (cmd_ipv6_match
-							    (command)) {
-								if (match_type <
-								    ipv6_match)
-									match_type
-									    =
-									    ipv6_match;
-
-								matched++;
-							}
-						} else if (CMD_IPV6_PREFIX(str)) {
-							if (cmd_ipv6_prefix_match(command)) {
-								if (match_type <
-								    ipv6_prefix_match)
-									match_type
-									    =
-									    ipv6_prefix_match;
-
-								matched++;
-							}
-						}
-#endif				/* HAVE_IPV6  */
-						else if (CMD_IPV4(str)) {
-							if (cmd_ipv4_match
-							    (command)) {
-								if (match_type <
-								    ipv4_match)
-									match_type
-									    =
-									    ipv4_match;
-
-								matched++;
-							}
-						} else if (CMD_IPV4_PREFIX(str)) {
-							if (cmd_ipv4_prefix_match(command)) {
-								if (match_type <
-								    ipv4_prefix_match)
-									match_type
-									    =
-									    ipv4_prefix_match;
-								matched++;
-							}
-						} else
-							/* Check is this point's argument optional ? */
-						if (CMD_OPTION(str)
-							    ||
-							    CMD_VARIABLE(str)) {
-							if (match_type <
-							    extend_match)
-								match_type =
-								    extend_match;
-							matched++;
-						} else
-						    if (strncmp
-							(command, str,
-							 strlen(command)) ==
-							0) {
-							if (strcmp(command, str)
-							    == 0)
-								match_type =
-								    exact_match;
-							else {
-								if (match_type <
-								    partly_match)
-									match_type
-									    =
-									    partly_match;
-							}
-							matched++;
-						}
-					}
-				if (!matched)
-					vector_slot(v, i) = NULL;
-			}
-		}
-	return match_type;
+	return tmp;
 }
 
-/* Filter vector by command character with index. */
 static enum match_type
-cmd_filter_by_string(char *command, vector v, unsigned int index)
+cmd_match(const char *str, const char *command,
+          enum match_type min, bool recur)
+{
+
+	if (recur && CMD_OPTION(str))
+	{
+		enum match_type ret;
+		char *tmp = cmd_deopt(str);
+
+		/* this would be a bug in a command, however handle it gracefully
+		 * as it we only discover it if a user tries to run it
+		 */
+		if (tmp == NULL)
+			return no_match;
+
+		ret = cmd_match(tmp, command, min, false);
+
+		talloc_free(tmp);
+
+		return ret;
+	}
+	else if (CMD_VARARG(str))
+		return vararg_match;
+	else if (CMD_RANGE(str))
+	{
+		if (cmd_range_match(str, command))
+			return range_match;
+	}
+#ifdef HAVE_IPV6
+	else if (CMD_IPV6(str))
+	{
+		if (cmd_ipv6_match(command) >= min)
+			return ipv6_match;
+	}
+	else if (CMD_IPV6_PREFIX(str))
+	{
+		if (cmd_ipv6_prefix_match(command) >= min)
+			return ipv6_prefix_match;
+	}
+#endif /* HAVE_IPV6  */
+	else if (CMD_IPV4(str))
+	{
+		if (cmd_ipv4_match(command) >= min)
+			return ipv4_match;
+	}
+	else if (CMD_IPV4_PREFIX(str))
+	{
+		if (cmd_ipv4_prefix_match(command) >= min)
+			return ipv4_prefix_match;
+	}
+	else if (CMD_VARIABLE(str))
+		return extend_match;
+	else if (strncmp(command, str, strlen(command)) == 0)
+	{
+		if (strcmp(command, str) == 0)
+			return  exact_match;
+		else if (partly_match >= min)
+			return partly_match;
+	}
+
+	return no_match;
+}
+
+/* Filter vector at the specified index and by the given command string, to
+ * the desired matching level (thus allowing part matches), and return match
+ * type flag.
+ */
+static enum match_type
+cmd_filter(char *command, vector v, unsigned int index, enum match_type level)
 {
 	unsigned int i;
-	const char *str;
 	struct cmd_element *cmd_element;
 	enum match_type match_type;
 	vector descvec;
@@ -1246,8 +1209,6 @@ cmd_filter_by_string(char *command, vector v, unsigned int index)
 	/* If command and cmd_element string does not match set NULL to vector */
 	for (i = 0; i < vector_active(v); i++)
 		if ((cmd_element = vector_slot(v, i)) != NULL) {
-			/* If given index is bigger than max string vector of command,
-			   set NULL */
 			if (index >= vector_active(cmd_element->strvec))
 				vector_slot(v, i) = NULL;
 			else {
@@ -1259,89 +1220,63 @@ cmd_filter_by_string(char *command, vector v, unsigned int index)
 
 				for (j = 0; j < vector_active(descvec); j++)
 					if ((desc = vector_slot(descvec, j))) {
-						str = desc->cmd;
+						enum match_type ret;
 
-						if (CMD_VARARG(str)) {
-							if (match_type <
-							    vararg_match)
-								match_type =
-								    vararg_match;
+						ret = cmd_match (desc->cmd, command, level, true);
+
+						if (ret != no_match)
 							matched++;
-						} else if (CMD_RANGE(str)) {
-							if (cmd_range_match
-							    (str, command)) {
-								if (match_type <
-								    range_match)
-									match_type
-									    =
-									    range_match;
-								matched++;
-							}
-						}
-#ifdef HAVE_IPV6
-						else if (CMD_IPV6(str)) {
-							if (cmd_ipv6_match
-							    (command) ==
-							    exact_match) {
-								if (match_type <
-								    ipv6_match)
-									match_type
-									    =
-									    ipv6_match;
-								matched++;
-							}
-						} else if (CMD_IPV6_PREFIX(str)) {
-							if (cmd_ipv6_prefix_match(command) == exact_match) {
-								if (match_type <
-								    ipv6_prefix_match)
-									match_type
-									    =
-									    ipv6_prefix_match;
-								matched++;
-							}
-						}
-#endif				/* HAVE_IPV6  */
-						else if (CMD_IPV4(str)) {
-							if (cmd_ipv4_match
-							    (command) ==
-							    exact_match) {
-								if (match_type <
-								    ipv4_match)
-									match_type
-									    =
-									    ipv4_match;
-								matched++;
-							}
-						} else if (CMD_IPV4_PREFIX(str)) {
-							if (cmd_ipv4_prefix_match(command) == exact_match) {
-								if (match_type <
-								    ipv4_prefix_match)
-									match_type
-									    =
-									    ipv4_prefix_match;
-								matched++;
-							}
-						} else if (CMD_OPTION(str)
-							   || CMD_VARIABLE(str))
-						{
-							if (match_type <
-							    extend_match)
-								match_type =
-								    extend_match;
-							matched++;
-						} else {
-							if (strcmp(command, str)
-							    == 0) {
-								match_type =
-								    exact_match;
-								matched++;
-							}
-						}
+
+						if (match_type < ret)
+							match_type = ret;
 					}
 				if (!matched)
 					vector_slot(v, i) = NULL;
 			}
 		}
+
+	if (match_type == no_match)
+		return no_match;
+
+	/* 2nd pass: We now know the 'strongest' match type for the index, so we
+	 * go again and filter out commands whose argument (at this index) is
+	 * 'weaker'. E.g., if we have 2 commands:
+	 *
+	 *   foo bar <1-255>
+	 *   foo bar BLAH
+	 *
+	 * and the command string is 'foo bar 10', then we will get here with with
+	 * 'range_match' being the strongest match.  However, if 'BLAH' came
+	 * earlier, it won't have been filtered out (as a CMD_VARIABLE allows "10").
+	 *
+	 * If we don't do a 2nd pass and filter it out, the higher-layers will
+	 * consider this to be ambiguous.
+	 */
+	for (i = 0; i < vector_active(v); i++)
+		if ((cmd_element = vector_slot(v, i)) != NULL) {
+			if (index >= vector_active(cmd_element->strvec))
+				vector_slot(v, i) = NULL;
+			else {
+				unsigned int j;
+				int matched = 0;
+
+				descvec =
+				    vector_slot(cmd_element->strvec, index);
+
+				for (j = 0; j < vector_active(descvec); j++)
+					if ((desc = vector_slot(descvec, j))) {
+						enum match_type ret;
+
+						ret = cmd_match(desc->cmd, command, any_match, true);
+
+						if (ret >= match_type)
+							matched++;
+					}
+				if (!matched)
+					vector_slot(v, i) = NULL;
+			}
+		}
+
 	return match_type;
 }
 
@@ -1351,7 +1286,6 @@ is_cmd_ambiguous(char *command, vector v, int index, enum match_type type)
 {
 	unsigned int i;
 	unsigned int j;
-	const char *str = NULL;
 	struct cmd_element *cmd_element;
 	const char *matched = NULL;
 	vector descvec;
@@ -1366,22 +1300,22 @@ is_cmd_ambiguous(char *command, vector v, int index, enum match_type type)
 			for (j = 0; j < vector_active(descvec); j++)
 				if ((desc = vector_slot(descvec, j))) {
 					enum match_type ret;
+					const char *str = desc->cmd;
 
-					str = desc->cmd;
+					if (CMD_OPTION(str))
+						if ((str = cmd_deopt(str)) == NULL)
+							continue;
 
 					switch (type) {
 					case exact_match:
-						if (!
-						    (CMD_OPTION(str)
-						     || CMD_VARIABLE(str))
-&& strcmp(command, str) == 0)
+						if (!(CMD_VARIABLE (str))
+						   && strcmp(command, str) == 0)
 							match++;
 						break;
 					case partly_match:
-						if (!
-						    (CMD_OPTION(str)
-						     || CMD_VARIABLE(str))
-&& strncmp(command, str, strlen(command)) == 0) {
+						if (!(CMD_VARIABLE (str))
+						   && strncmp(command, str, strlen (command)) == 0)
+						{
 							if (matched
 							    && strcmp(matched,
 								      str) != 0)
@@ -1434,14 +1368,16 @@ is_cmd_ambiguous(char *command, vector v, int index, enum match_type type)
 						}
 						break;
 					case extend_match:
-						if (CMD_OPTION(str)
-						    || CMD_VARIABLE(str))
+						if (CMD_VARIABLE (str))
 							match++;
 						break;
 					case no_match:
 					default:
 						break;
 					}
+
+					if (CMD_OPTION(desc->cmd))
+						talloc_free((void*)str);
 				}
 			if (!match)
 				vector_slot(v, i) = NULL;
@@ -1598,7 +1534,7 @@ cmd_describe_command_real(vector vline, struct vty *vty, int *status)
 	for (i = 0; i < index; i++)
 		if ((command = vector_slot(vline, i))) {
 			match =
-			    cmd_filter_by_completion(command, cmd_vector, i);
+			    cmd_filter(command, cmd_vector, i, any_match);
 
 			if (match == vararg_match) {
 				struct cmd_element *cmd_element;
@@ -1653,7 +1589,7 @@ cmd_describe_command_real(vector vline, struct vty *vty, int *status)
 	/* Make sure that cmd_vector is filtered based on current word */
 	command = vector_slot(vline, index);
 	if (command)
-		match = cmd_filter_by_completion(command, cmd_vector, index);
+		match = cmd_filter(command, cmd_vector, index, any_match);
 
 	/* Make description vector. */
 	for (i = 0; i < vector_active(cmd_vector); i++)
@@ -1798,7 +1734,7 @@ static char **cmd_complete_command_real(vector vline, struct vty *vty,
 
 			/* First try completion match, if there is exactly match return 1 */
 			match =
-			    cmd_filter_by_completion(command, cmd_vector, i);
+			    cmd_filter(command, cmd_vector, i, any_match);
 
 			/* If there is exact match then filter ambiguous match else check
 			   ambiguousness. */
@@ -1980,9 +1916,8 @@ cmd_execute_command_real(vector vline, struct vty *vty,
 		if ((command = vector_slot(vline, index))) {
 			int ret;
 
-			match =
-			    cmd_filter_by_completion(command, cmd_vector,
-						     index);
+			match = cmd_filter(command, cmd_vector, index,
+			                   any_match);
 
 			if (match == vararg_match)
 				break;
@@ -2152,8 +2087,8 @@ cmd_execute_command_strict(vector vline, struct vty *vty,
 		if ((command = vector_slot(vline, index))) {
 			int ret;
 
-			match = cmd_filter_by_string(vector_slot(vline, index),
-						     cmd_vector, index);
+			match = cmd_filter(vector_slot(vline, index),
+			                   cmd_vector, index, exact_match);
 
 			/* If command meets '.VARARG' then finish matching. */
 			if (match == vararg_match)
