@@ -1081,6 +1081,7 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY
 	 && cs->state != GSM322_C7_CAMPED_ANY_CELL) {
@@ -1152,6 +1153,14 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 				cs->sel_lac)) {
 			/* location update not allowed */
 			LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed LA.\n");
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
+				GSM48_MM_SST_LIMITED_SERVICE);
+		} else
+		/* 4.4.4.9 if cell is barred, don't start */
+		if ((!subscr->acc_barr && s->cell_barr)
+		 || (!subscr->acc_barr && !((subscr->acc_class & 0xfbff) &
+					(s->class_barr ^ 0xffff)))) {
+			LOGP(DMM, LOGL_INFO, "Loc. upd. no access.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
 				GSM48_MM_SST_LIMITED_SERVICE);
 		} else {
