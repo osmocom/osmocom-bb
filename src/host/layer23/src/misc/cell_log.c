@@ -58,7 +58,8 @@ enum {
 };
 
 /* ranges of bands */
-static uint16_t band_range[][2] = {{0, 124}, {512, 885}, {955, 1023}, {0, 0}};
+static uint16_t basic_band_range[][2] = {{0, 124}, {512, 885}, {955, 1023}, {0, 0}};
+uint16_t (*band_range)[][2] = &basic_band_range;
 
 #define INFO_FLG_PM	1
 #define INFO_FLG_SYNC	2
@@ -351,8 +352,8 @@ static void start_pm(void)
 	uint16_t from, to;
 
 	state = SCAN_STATE_PM;
-	from = band_range[pm_index][0];
-	to = band_range[pm_index][1];
+	from = (*band_range)[pm_index][0];
+	to = (*band_range)[pm_index][1];
 
 	if (from == 0 && to == 0) {
 		LOGP(DSUM, LOGL_INFO, "Measurement done\n");
