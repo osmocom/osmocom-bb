@@ -110,14 +110,13 @@ static int l23_getopt_options(struct option **options)
 	return ARRAY_SIZE(opts);
 }
 
-static char* print_band_range(uint16_t range[][2], char* buf)
+static char* print_band_range(uint16_t range[][2], char* buf, size_t buf_len)
 {
 	int i = 0;
 	int idx = 0;
-	while(range[i][0] != 0 || range[i][1] != 0) {
-		sprintf(buf + idx, "%u-%u,", range[i][0], range[i][1]);
+	while (idx < buf_len && (range[i][0] != 0 || range[i][1] != 0)) {
+		idx += snprintf(&buf[idx], buf_len - idx, "%u-%u,", range[i][0], range[i][1]);
 		i++;
-		idx = strlen(buf);
 	}
 	buf[idx-1] = '\0';
 	return buf;
@@ -223,7 +222,7 @@ static int l23_cfg_handle(int c, const char *optarg)
 		break;
 	case 'A':
 		parse_band_range((char*)optarg);
-		printf("New frequencies range: %s\n", print_band_range(*band_range, buf));
+		printf("New frequencies range: %s\n", print_band_range(*band_range, buf, sizeof(buf)));
 		break;
 	}
 	return 0;
