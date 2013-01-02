@@ -753,6 +753,7 @@ short_read:
 			LOGP(DRR, LOGL_NOTICE, "Ignoring CBCH allocation of "
 				"SYSTEM INFORMATION 4 until SI 1 is "
 				"received.\n");
+		} else {
 			gsm48_decode_mobile_alloc(s->freq, data + 2, data[1],
 				s->hopping, &s->hopp_len, 1);
 		}
