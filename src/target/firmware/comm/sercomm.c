@@ -70,6 +70,7 @@ enum rx_state {
 
 static struct {
 	int initialized;
+	int uart_id;
 
 	/* transmit side */
 	struct {
@@ -89,6 +90,18 @@ static struct {
 	} rx;
 	
 } sercomm;
+
+#ifndef HOST_BUILD
+void sercomm_bind_uart(int uart)
+{
+	sercomm.uart_id = uart;
+}
+
+int sercomm_get_uart(void)
+{
+	return sercomm.uart_id;
+}
+#endif
 
 void sercomm_init(void)
 {
@@ -127,7 +140,7 @@ void sercomm_sendmsg(uint8_t dlci, struct msgb *msg)
 
 #ifndef HOST_BUILD
 	/* tell UART that we have something to send */
-	uart_irq_enable(SERCOMM_UART_NR, UART_IRQ_TX_EMPTY, 1);
+	uart_irq_enable(sercomm.uart_id, UART_IRQ_TX_EMPTY, 1);
 #endif
 }
 

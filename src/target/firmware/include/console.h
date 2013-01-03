@@ -10,9 +10,8 @@ int cons_puts(const char *s);
 int cons_putchar(char c);
 int cons_rb_flush(void);
 void cons_init(void);
-
-/* We want the console on UART 0 (IRDA UART) */
-#define CONS_UART_NR	0
+void cons_bind_uart(int uart);
+int cons_get_uart(void);
 
 /* Size of the static ring-buffer that we keep for console print messages */
 #define CONS_RB_SIZE	4096

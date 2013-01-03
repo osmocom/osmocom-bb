@@ -40,8 +40,9 @@ static struct {
 static void raw_puts(const char *s)
 {
 	int i = strlen(s);
+	int uart_id = sercomm_get_uart();
 	while (i--)
-		uart_putchar_wait(SERCOMM_UART_NR, *s++);
+		uart_putchar_wait(uart_id, *s++);
 }
 
 #ifdef DEBUG

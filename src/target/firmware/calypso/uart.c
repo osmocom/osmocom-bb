@@ -193,7 +193,7 @@ static uint8_t uart_reg_read(int uart, enum uart_reg reg)
 
 static void uart_irq_handler_cons(__unused enum irq_nr irqnr)
 {
-	const uint8_t uart = CONS_UART_NR;
+	const uint8_t uart = cons_get_uart();
 	uint8_t iir;
 
 	//uart_putchar_nb(uart, 'U');
@@ -226,7 +226,7 @@ static void uart_irq_handler_cons(__unused enum irq_nr irqnr)
 
 static void uart_irq_handler_sercomm(__unused enum irq_nr irqnr)
 {
-	const uint8_t uart = SERCOMM_UART_NR;
+	const uint8_t uart = sercomm_get_uart();
 	uint8_t iir, ch;
 
 	//uart_putchar_nb(uart, 'U');
@@ -281,14 +281,14 @@ void uart_init(uint8_t uart, uint8_t interrupts)
 	uint8_t irq = uart2irq[uart];
 
 	uart_reg_write(uart, IER, 0x00);
-	if (uart == CONS_UART_NR) {
+	if (uart == cons_get_uart()) {
 		cons_init();
 		if(interrupts) {
 			irq_register_handler(irq, &uart_irq_handler_cons);
 			irq_config(irq, 0, 0, 0xff);
 			irq_enable(irq);
 		}
-	} else {
+	} else if (uart == sercomm_get_uart()) {
 		sercomm_init();
 		if(interrupts) {
 			irq_register_handler(irq, &uart_irq_handler_sercomm);
@@ -296,6 +296,8 @@ void uart_init(uint8_t uart, uint8_t interrupts)
 			irq_enable(irq);
 		}
 		uart_irq_enable(uart, UART_IRQ_RX_CHAR, 1);
+	} else {
+		return;
 	}
 #if 0
 	if (uart == 1) {
@@ -331,7 +333,7 @@ void uart_init(uint8_t uart, uint8_t interrupts)
 }
 
 void uart_poll(uint8_t uart) {
-	if(uart == CONS_UART_NR) {
+	if(uart == cons_get_uart()) {
 		uart_irq_handler_cons(0);
 	} else {
 		uart_irq_handler_sercomm(0);

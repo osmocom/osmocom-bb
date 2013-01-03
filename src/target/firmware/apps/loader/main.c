@@ -61,12 +61,13 @@ static void key_handler(enum key_codes code, enum key_states state);
 static void cmd_handler(uint8_t dlci, struct msgb *msg);
 
 int flag = 0;
+static int sercomm_uart;
 
 static void flush_uart(void)
 {
 	unsigned i;
 	for (i = 0; i < 500; i++) {
-		uart_poll(SERCOMM_UART_NR);
+		uart_poll(sercomm_uart);
 		delay_ms(1);
 	}
 }
@@ -133,6 +134,7 @@ int main(void)
 
 	/* initialize board without interrupts */
 	board_init(0);
+	sercomm_uart = sercomm_get_uart();
 
 	/* Say hi */
 	puts("\n\nOsmocomBB Loader (revision " GIT_REVISION ")\n");
@@ -172,7 +174,7 @@ int main(void)
 	/* Wait for events */
 	while (1) {
 		keypad_poll();
-		uart_poll(SERCOMM_UART_NR);
+		uart_poll(sercomm_uart);
 	}
 
 	/* NOT REACHED */

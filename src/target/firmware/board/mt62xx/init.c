@@ -133,7 +133,9 @@ void board_init(int with_irq)
 	pll_init();
 	memory_init();
 
-	/* Initialize UART without interrupts */
-	uart_init(SERCOMM_UART_NR, with_irq);
-	uart_baudrate(SERCOMM_UART_NR, UART_115200);
+	/* Initialize UART */
+	sercomm_bind_uart(UART_MODEM);
+	cons_bind_uart(UART_IRDA);
+	uart_init(UART_MODEM, with_irq);
+	uart_baudrate(UART_MODEM, UART_115200);
 }

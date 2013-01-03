@@ -56,12 +56,13 @@ const char *hr =
 static void cmd_handler(uint8_t dlci, struct msgb *msg);
 
 int flag = 0;
+static int sercomm_uart;
 
 static void flush_uart(void)
 {
 	unsigned i;
 	for (i = 0; i < 500; i++) {
-		uart_poll(SERCOMM_UART_NR);
+		uart_poll(sercomm_uart);
 		delay_ms(1);
 	}
 }
@@ -112,6 +113,7 @@ static const uint8_t phone_ack[] = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x03, 0x42 };
 int main(void)
 {
 	board_init(0);
+	sercomm_uart = sercomm_get_uart();
 
 	/* Initialize HDLC subsystem */
 	sercomm_init();
@@ -132,7 +134,7 @@ int main(void)
 	/* Wait for events */
 
 	while (1) {
-		uart_poll(SERCOMM_UART_NR);
+		uart_poll(sercomm_uart);
 	}
 
 }

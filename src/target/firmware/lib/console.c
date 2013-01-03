@@ -32,8 +32,19 @@ struct cons {
 	char *next_inbyte;
 	char *next_outbyte;
 	int initialized;
+	int uart_id;
 };
 static struct cons cons;
+
+void cons_bind_uart(int uart)
+{
+	cons.uart_id = uart;
+}
+
+int cons_get_uart(void)
+{
+	return cons.uart_id;
+}
 
 void cons_init(void)
 {
@@ -89,19 +100,19 @@ static void __rb_flush_wait(void)
 {
 	char ch;
 	while (cons_rb_pull(&ch) >= 0)
-		uart_putchar_wait(CONS_UART_NR, ch);
+		uart_putchar_wait(cons.uart_id, ch);
 }
 
 /* returns if everything was flushed (1) or if there's more to flush (0) */
 static int __rb_flush(void)
 {
-	while (!uart_tx_busy(CONS_UART_NR)) {
+	while (!uart_tx_busy(cons.uart_id)) {
 		char ch;
 		if (cons_rb_pull(&ch) < 0) {
 			/* no more data to write, disable interest in Tx FIFO interrupts */
 			return 1;
 		}
-		uart_putchar_nb(CONS_UART_NR, ch);
+		uart_putchar_nb(cons.uart_id, ch);
 	}
 
 	/* if we reach here, UART Tx FIFO is busy again */
@@ -158,7 +169,7 @@ int cons_rb_append(const char *data, int len)
 	__cons_rb_append(data_cur, len);
 
 	/* we want to get Tx FIFO interrupts */
-	uart_irq_enable(CONS_UART_NR, UART_IRQ_TX_EMPTY, 1);
+	uart_irq_enable(cons.uart_id, UART_IRQ_TX_EMPTY, 1);
 
 	local_irq_restore(flags);
 
@@ -173,7 +184,7 @@ int cons_puts(const char *s)
 		/* if the console is not active yet, we need to fall back */
 		int i = strlen(s);
 		while (i--)
-			uart_putchar_wait(CONS_UART_NR, *s++);
+			uart_putchar_wait(cons.uart_id, *s++);
 		return i;
 	}
 }
@@ -184,7 +195,7 @@ int cons_putchar(char c)
 		return cons_rb_append(&c, 1);
 	else {
 		/* if the console is not active yet, we need to fall back */
-		uart_putchar_wait(CONS_UART_NR, c);
+		uart_putchar_wait(cons.uart_id, c);
 		return 0;
 	}
 }

@@ -1,11 +1,7 @@
 #ifndef _SERCOMM_H
 #define _SERCOMM_H
 
-/* SERCOMM layer on UART1 (modem UART) */
-
 #include <osmocom/core/msgb.h>
-
-#define SERCOMM_UART_NR	1
 
 #define HDLC_FLAG	0x7E
 #define HDLC_ESCAPE	0x7D
@@ -24,6 +20,12 @@ enum sercomm_dlci {
 	SC_DLCI_ECHO    = 128,
 	_SC_DLCI_MAX
 };
+
+#ifndef HOST_BUILD
+/* helper functions for target */
+void sercomm_bind_uart(int uart);
+int sercomm_get_uart(void);
+#endif
 
 void sercomm_init(void);
 int sercomm_initialized(void);
