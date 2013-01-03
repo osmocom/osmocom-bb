@@ -111,7 +111,7 @@ static const uint8_t phone_ack[] = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x03, 0x42 };
 
 int main(void)
 {
-	board_init ();
+	board_init(0);
 
 	/* Initialize HDLC subsystem */
 	sercomm_init();

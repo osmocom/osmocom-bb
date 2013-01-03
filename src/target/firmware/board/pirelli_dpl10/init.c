@@ -84,7 +84,7 @@ static void board_io_init(void)
 	writew(reg, ARMIO_LATCH_OUT);
 }
 
-void board_init(void)
+void board_init(int with_irq)
 {
 	/* Configure the memory interface */
 	calypso_mem_cfg(CALYPSO_nCS0, 4, CALYPSO_MEM_16bit, 1);
@@ -105,19 +105,20 @@ void board_init(void)
 	board_io_init();
 
 	/* Enable bootrom mapping to route exception vectors to RAM */
-	calypso_bootrom(1);
+	calypso_bootrom(with_irq);
 	calypso_exceptions_install();
 
 	/* Initialize interrupt controller */
-	irq_init();
+	if (with_irq)
+		irq_init();
 
 	/* initialize MODEM UART to be used for sercomm*/
-	uart_init(SERCOMM_UART_NR, 1);
+	uart_init(SERCOMM_UART_NR, with_irq);
 	uart_baudrate(SERCOMM_UART_NR, UART_115200);
 
 	/* Initialize IRDA UART to be used for old-school console code.
 	 * note: IRDA uart only accessible on C115 and C117 PCB */
-	uart_init(CONS_UART_NR, 1);
+	uart_init(CONS_UART_NR, with_irq);
 	uart_baudrate(CONS_UART_NR, UART_115200);
 
 	/* Initialize hardware timers */
@@ -139,7 +140,7 @@ void board_init(void)
 	fb_init();
 
 	/* Initialize keypad driver */
-	keypad_init(1);
+	keypad_init(with_irq);
 
 	/* Initialize ABB driver (uses SPI) */
 	twl3025_init();

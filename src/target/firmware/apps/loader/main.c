@@ -131,25 +131,8 @@ int main(void)
 		putchar_asm(phone_ack[i]);
 	}
 
-	/* Always disable wdt (some platforms enable it on boot) */
-	wdog_enable(0);
-
-	/* Disable the bootrom mapping */
-	calypso_bootrom(0);
-
-	/* Initialize TWL3025 for power control */
-	twl3025_init();
-
-	/* Backlight */
-	bl_mode_pwl(1);
-	bl_level(50);
-
-	/* Initialize UART without interrupts */
-	uart_init(SERCOMM_UART_NR, 0);
-	uart_baudrate(SERCOMM_UART_NR, UART_115200);
-
-	/* Initialize HDLC subsystem */
-	sercomm_init();
+	/* initialize board without interrupts */
+	board_init(0);
 
 	/* Say hi */
 	puts("\n\nOsmocomBB Loader (revision " GIT_REVISION ")\n");

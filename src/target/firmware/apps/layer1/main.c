@@ -62,7 +62,7 @@ int main(void)
 	uint8_t atr[20];
 	uint8_t atrLength = 0;
 
-	board_init();
+	board_init(1);
 
 	puts("\n\nOsmocomBB Layer 1 (revision " GIT_REVISION ")\n");
 	puts(hr);

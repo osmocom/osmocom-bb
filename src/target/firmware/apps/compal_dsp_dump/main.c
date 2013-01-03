@@ -44,7 +44,7 @@ const char *hr = "==============================================================
 
 int main(void)
 {
-	board_init();
+	board_init(1);
 
 	puts("\n\nOsmocomBB Compal DSP Dumper (revision " GIT_REVISION ")\n");
 	puts(hr);

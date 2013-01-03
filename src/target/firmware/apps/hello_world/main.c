@@ -100,7 +100,7 @@ static struct osmo_timer_list write_battery_info_timer = {
 
 int main(void)
 {
-	board_init();
+	board_init(1);
 
 	puts("\n\nOsmocomBB Hello World (revision " GIT_REVISION ")\n");
 	puts(hr);
