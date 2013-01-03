@@ -44,6 +44,7 @@
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
+#include "../compal/keymap.h"
 
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define IO_CNTL_REG	0xfffe4804
@@ -130,7 +131,7 @@ void board_init(int with_irq)
 	bl_level(50);
 
 	/* Initialize keypad driver */
-	keypad_init(with_irq);
+	keypad_init(keymap, with_irq);
 
 	/* Initialize ABB driver (uses SPI) */
 	twl3025_init();
