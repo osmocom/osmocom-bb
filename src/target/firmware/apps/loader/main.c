@@ -48,6 +48,7 @@
 #include <calypso/backlight.h>
 #include <uart.h>
 #include <calypso/timer.h>
+#include <fb/framebuffer.h>
 
 #include <flash/cfi_flash.h>
 
@@ -139,6 +140,28 @@ int main(void)
 	/* Say hi */
 	puts("\n\nOsmocomBB Loader (revision " GIT_REVISION ")\n");
 	puts(hr);
+
+	fb_clear();
+
+	fb_setfg(FB_COLOR_BLACK);
+	fb_setbg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVB14);
+
+	fb_gotoxy(2,20);
+	fb_putstr("loader",framebuffer->width-4);
+
+	fb_setfg(FB_COLOR_RED);
+	fb_setbg(FB_COLOR_BLUE);
+
+	fb_gotoxy(2,25);
+	fb_boxto(framebuffer->width-3,38);
+
+	fb_setfg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVR08);
+	fb_gotoxy(8,33);
+	fb_putstr("osmocom-bb",framebuffer->width-4);
+
+	fb_flush();
 
 	/* Identify environment */
 	printf("Running on %s in environment %s\n", manifest_board,
