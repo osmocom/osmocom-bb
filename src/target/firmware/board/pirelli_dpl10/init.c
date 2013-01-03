@@ -51,6 +51,7 @@
 
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define IO_CNTL_REG	0xfffe4804
+#define ARM_CONF_REG	0xfffef006
 #define ASIC_CONF_REG	0xfffef008
 #define IO_CONF_REG	0xfffef00a
 
@@ -83,6 +84,11 @@ static void board_io_init(void)
 	reg &= ~(1 << 7);
 	reg |= (1 << 4) | (1 << 1);
 	writew(reg, ARMIO_LATCH_OUT);
+
+	/* configure ADD(22), needed for second half of flash */
+	reg = readw(ARM_CONF_REG);
+	reg |= (1 << 3);
+	writew(reg, ARM_CONF_REG);
 }
 
 void board_init(int with_irq)
