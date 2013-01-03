@@ -2990,10 +2990,10 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
 			ma, ma_len, cd->chan_nr, cd->tsc, cd->mode,
-			rr->audio_mode);
+			rr->audio_mode, 0);
 	else
 		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc,
-			cd->mode, rr->audio_mode);
+			cd->mode, rr->audio_mode, 0);
 	rr->dm_est = 1;
 
 	/* old SI 5/6 are not valid on a new dedicated channel */
