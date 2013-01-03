@@ -72,7 +72,7 @@ enum mf_type {
 	MF26ODD,
 	MF26EVEN
 };
-static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
+static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode, uint8_t cbch)
 {
 	uint8_t cbits = chan_nr >> 3;
 	uint8_t tn = chan_nr & 0x7;
@@ -90,11 +90,11 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 		master_task = MF_TASK_TCH_H_0 + lch_idx;
 	} else if ((cbits & 0x1c) == 0x04) {
 		lch_idx = cbits & 0x3;
-		master_task = MF_TASK_SDCCH4_0 + lch_idx;
+		master_task = cbch ? MF_TASK_SDCCH4_CBCH : (MF_TASK_SDCCH4_0 + lch_idx);
 		multiframe = MF51;
 	} else if ((cbits & 0x18) == 0x08) {
 		lch_idx = cbits & 0x7;
-		master_task = MF_TASK_SDCCH8_0 + lch_idx;
+		master_task = cbch ? MF_TASK_SDCCH8_CBCH : (MF_TASK_SDCCH8_0 + lch_idx);
 		multiframe = MF51;
 #if 0
 	} else if (cbits == 0x10) {
@@ -225,8 +225,9 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_dm_est_req *est_req = (struct l1ctl_dm_est_req *) ul->payload;
 
-	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u)\n",
-		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc);
+	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u, flags=0x%x)\n",
+		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc,
+		est_req->dm_flags);
 
 	/* disable neighbour cell measurement of C0 TS 0 */
 	mframe_disable(MF_TASK_NEIGH_PM51_C0T0);
@@ -262,7 +263,8 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	}
 
 	/* figure out which MF tasks to enable */
-	l1a_mftask_set(chan_nr2mf_task_mask(ul->chan_nr, NEIGH_MODE_PM));
+	l1a_mftask_set(chan_nr2mf_task_mask(ul->chan_nr, NEIGH_MODE_PM,
+		est_req->dm_flags & L1CTL_DM_F_CBCH));
 }
 
 /* receive a L1CTL_DM_FREQ_REQ from L23 */

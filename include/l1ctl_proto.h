@@ -233,7 +233,10 @@ struct l1ctl_dm_est_req {
 	};
 	uint8_t tch_mode;
 	uint8_t audio_mode;
+	uint8_t dm_flags;
 } __attribute__((packed));
+
+#define L1CTL_DM_F_CBCH		(1 << 0)
 
 struct l1ctl_dm_freq_req {
 	uint16_t fn;
