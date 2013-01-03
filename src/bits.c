@@ -173,7 +173,7 @@ void osmo_revbytebits_buf(uint8_t *buf, int len)
 			return;
 	}
 
-	for (i = unaligned_cnt; i < len; i += 4) {
+	for (i = unaligned_cnt; i + 3 < len; i += 4) {
 		uint32_t *cur = (uint32_t *) (buf + i);
 		*cur = osmo_revbytebits_32(*cur);
 		len_remain -= 4;
