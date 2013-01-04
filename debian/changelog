@@ -1,3 +1,10 @@
+libosmocore (0.5.3+git1-5) UNRELEASED; urgency=low
+
+  * Build new package with the new API required for osmo-bts/openbsc
+  * Package the arfcn utility
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Fri, 04 Jan 2013 09:54:55 +0100
+
 libosmocore (0.5.3+git1-2) unstable; urgency=low
 
   * New upstream version 

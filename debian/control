@@ -20,6 +20,12 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libosmocore
 Description: Development headers for Open Source MObile COMmunications CORE library
 
+Package: libosmocore-utils
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libosmocore
+Description: Utilities for gsm
+
+
 #Package: libosmocore-dbg
 #Section: libdevel
 #Architecture: any
