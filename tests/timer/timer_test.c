@@ -33,7 +33,7 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/linuxlist.h>
 
-#include "../../config.h"
+#include "../config.h"
 
 static void main_timer_fired(void *data);
 static void secondary_timer_fired(void *data);
