@@ -32,6 +32,15 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/vty.h>
 
+/* FIXME: move this to libosmocore gsm_04_08.h */
+#define GSM48_PI_NOT_END_TO_END_ISDN	1
+#define GSM48_PI_DEST_ADDR_NOT_ISDN	2
+#define GSM48_PI_ORIG_ADDR_NOT_ISDN	3
+#define GSM48_PI_CALL_RETURNED_ISDN	4
+#define GSM48_PI_INBAND_INFO		8
+#define GSM48_PI_END_TO_END_ISDN	32
+#define GSM48_PI_QUEUEING		64
+
 void *l23_ctx;
 static uint32_t new_callref = 1;
 static LLIST_HEAD(call_list);
@@ -372,6 +381,42 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		LOGP(DMNCC, LOGL_INFO, "Call has been released (cause %d)\n",
 			data->cause.value);
 		free_call(call);
+		break;
+	case MNCC_PROGRESS_IND:
+		vty_notify(ms, NULL);
+		switch (data->progress.descr) {
+		case GSM48_PI_NOT_END_TO_END_ISDN:
+			vty_notify(ms, "Call is in progress: "
+				"Not end-to-end PLMN/ISDN\n");
+			break;
+		case GSM48_PI_DEST_ADDR_NOT_ISDN:
+			vty_notify(ms, "Call is in progress: "
+				"Destination address not PLMN/ISDN\n");
+			break;
+		case GSM48_PI_ORIG_ADDR_NOT_ISDN:
+			vty_notify(ms, "Call is in progress: "
+				"Originating address not PLMN/ISDN\n");
+			break;
+		case GSM48_PI_CALL_RETURNED_ISDN:
+			vty_notify(ms, "Call is in progress: "
+				"Returned to PLMN/ISDN\n");
+			break;
+		case GSM48_PI_INBAND_INFO:
+			vty_notify(ms, "Call is in progress: "
+				"Inband information available\n");
+			break;
+		case GSM48_PI_END_TO_END_ISDN:
+			vty_notify(ms, "Call is in progress: "
+				"End-to-end PLMN/ISDN\n");
+			break;
+		case GSM48_PI_QUEUEING:
+			vty_notify(ms, "Call is in progress: Queueing\n");
+			break;
+		default:
+			vty_notify(ms, "Call is in progress\n");
+		}
+		LOGP(DMNCC, LOGL_INFO, "Call is in progress (descr=%d)\n",
+			data->progress.descr);
 		break;
 	case MNCC_CALL_PROC_IND:
 		vty_notify(ms, NULL);
