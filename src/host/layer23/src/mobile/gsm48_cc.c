@@ -1320,8 +1320,10 @@ static int gsm48_cc_tx_userinfo(struct gsm_trans *trans, void *arg)
 	gh->msg_type = GSM48_MT_CC_USER_INFO;
 
 	/* user-user */
-	if (user->fields & MNCC_F_USERUSER)
+	if (user->fields & MNCC_F_USERUSER) {
+		user->useruser.info[32] = '\0'; /* only up to 32 chars */
 		gsm48_encode_useruser(nmsg, 1, &user->useruser);
+	}
 	/* more data */
 	if (user->more)
 		gsm48_encode_more(nmsg);
@@ -1349,8 +1351,11 @@ static int gsm48_cc_rx_userinfo(struct gsm_trans *trans, struct msgb *msg)
 	tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len,
 		GSM48_IE_USER_USER, 0);
 	/* user-user */
-	gsm48_decode_useruser(&user.useruser,
-			TLVP_VAL(&tp, GSM48_IE_USER_USER)-1);
+	if (TLVP_PRESENT(&tp, GSM48_IE_USER_USER)) {
+		user.fields |= MNCC_F_USERUSER;
+		gsm48_decode_useruser(&user.useruser,
+				TLVP_VAL(&tp, GSM48_IE_USER_USER)-1);
+	}
 	/* more data */
 	if (TLVP_PRESENT(&tp, GSM48_IE_MORE_DATA))
 		user.more = 1;
