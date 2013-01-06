@@ -363,6 +363,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		goto release;
 	case MNCC_REL_IND:
 	case MNCC_REL_CNF:
+	case MNCC_REJ_IND:
 		vty_notify(ms, NULL);
 		if (data->cause.value == GSM48_CC_CAUSE_CALL_REJECTED)
 			vty_notify(ms, "Call has been rejected\n");
