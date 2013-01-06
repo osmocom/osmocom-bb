@@ -39,6 +39,7 @@ struct gsm_call {
 	uint8_t			init; /* call initiated, no response yet */
 	uint8_t			hold; /* call on hold */
 	uint8_t			ring; /* call ringing/knocking */
+	uint8_t			connect; /* call connected (answered) */
 
 	struct osmo_timer_list	dtmf_timer;
 	uint8_t			dtmf_state;

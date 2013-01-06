@@ -49,6 +49,7 @@ int mncc_answer(struct osmocom_ms *ms);
 int mncc_hold(struct osmocom_ms *ms);
 int mncc_retrieve(struct osmocom_ms *ms, int number);
 int mncc_dtmf(struct osmocom_ms *ms, char *dtmf);
+int mncc_useruser(struct osmocom_ms *ms);
 
 extern struct llist_head ms_list;
 extern struct llist_head active_connections;
@@ -753,11 +754,12 @@ DEFUN(network_select, network_select_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
+DEFUN(call, call_cmd,
+	"call MS_NAME (NUMBER|emergency|answer|hangup|hold|useruser)",
 	"Make a call\nName of MS (see \"show ms\")\nPhone number to call "
 	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
 	"Make an emergency call\nAnswer an incomming call\nHangup a call\n"
-	"Hold current active call\n")
+	"Hold current active call\nSend user-user-message")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -784,6 +786,8 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 		mncc_hangup(ms);
 	else if (!strcmp(number, "hold"))
 		mncc_hold(ms);
+	else if (!strcmp(number, "useruser"))
+		mncc_useruser(ms);
 	else {
 		llist_for_each_entry(abbrev, &set->abbrev, list) {
 			if (!strcmp(number, abbrev->abbrev)) {
@@ -835,6 +839,49 @@ DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS",
 	}
 
 	mncc_dtmf(ms, (char *)argv[1]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_set_user, call_set_user_cmd, "call MS_NAME set-useruser .LINE",
+	"Make a call\nName of MS (see \"show ms\")\n"
+	"Set next user-user message\nUser-user message")
+{
+	struct osmocom_ms *ms;
+	struct gsm48_cclayer *cc;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	cc = &ms->cclayer;
+
+	strncpy(cc->useruser, argv_concat(argv, argc, 1),
+		sizeof(cc->useruser) - 1);
+	vty_out(vty, "Message will be sent with next "
+		"setup/ringing/answer/hangup/useruser command%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_unset_user, call_unset_user_cmd,
+	"call MS_NAME unset-useruser",
+	"Make a call\nName of MS (see \"show ms\")\n"
+	"Remove current user-user message")
+{
+	struct osmocom_ms *ms;
+	struct gsm48_cclayer *cc;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	cc = &ms->cclayer;
+
+	if (cc->useruser[0]) {
+		cc->useruser[0] = '\0';
+		vty_out(vty, "User-user message deleted%s", VTY_NEWLINE);
+	} else {
+		vty_out(vty, "No message deleted%s", VTY_NEWLINE);
+	}
 
 	return CMD_SUCCESS;
 }
@@ -2765,6 +2812,8 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &network_select_cmd);
 	install_element(ENABLE_NODE, &call_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
+	install_element(ENABLE_NODE, &call_set_user_cmd);
+	install_element(ENABLE_NODE, &call_unset_user_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
 	install_element(ENABLE_NODE, &sms_cmd);
 	install_element(ENABLE_NODE, &service_cmd);

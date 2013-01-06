@@ -203,6 +203,38 @@ static void mncc_set_bearer(struct osmocom_ms *ms, int8_t speech_ver,
 	mncc->bearer_cap.mode = 0;
 }
 
+static void display_useruser(struct osmocom_ms *ms, struct gsm_mncc *data)
+{
+	const char *text;
+
+	/* if not user-user message is present, we are done */
+	if (!(data->fields & MNCC_F_USERUSER))
+		return;
+
+	if (data->useruser.proto == 4)
+		text = data->useruser.info;
+	else
+		text = osmo_hexdump((unsigned char *)data->useruser.info,
+					strlen(data->useruser.info));
+
+	vty_notify(ms, "User info: %s\n", text);
+	LOGP(DMNCC, LOGL_INFO, "User info: %s\n", text);
+}
+
+static void include_useruser(struct osmocom_ms *ms, struct gsm_mncc *data)
+{
+	struct gsm48_cclayer *cc = &ms->cclayer;
+
+	if (!cc->useruser[0])
+		return;
+
+	data->fields |= MNCC_F_USERUSER;
+	data->useruser.proto = 4;
+	strncpy(data->useruser.info, cc->useruser,
+		sizeof(data->useruser.info) - 1);
+	cc->useruser[0] = '\0';
+}
+
 /*
  * MNCCms dummy application
  */
@@ -289,6 +321,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = data->callref;
 		mncc_set_cause(&mncc, GSM48_CAUSE_LOC_USER, cause);
+		include_useruser(ms, &mncc);
 		return mncc_tx_to_cc(ms, MNCC_REL_REQ, &mncc);
 	}
 
@@ -362,6 +395,8 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		}
 		LOGP(DMNCC, LOGL_INFO, "Call has been disconnected "
 			"(cause %d)\n", data->cause.value);
+		display_useruser(ms, data);
+		call->connect = 0;
 		if ((data->fields & MNCC_F_PROGRESS)
 		 && data->progress.descr == 8) {
 			vty_notify(ms, "Please hang up!\n");
@@ -380,6 +415,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 			vty_notify(ms, "Call has been released\n");
 		LOGP(DMNCC, LOGL_INFO, "Call has been released (cause %d)\n",
 			data->cause.value);
+		display_useruser(ms, data);
 		free_call(call);
 		break;
 	case MNCC_PROGRESS_IND:
@@ -417,6 +453,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		}
 		LOGP(DMNCC, LOGL_INFO, "Call is in progress (descr=%d)\n",
 			data->progress.descr);
+		display_useruser(ms, data);
 		break;
 	case MNCC_CALL_PROC_IND:
 		vty_notify(ms, NULL);
@@ -431,17 +468,20 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is alerting\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is alerting\n");
+		display_useruser(ms, data);
 		break;
 	case MNCC_SETUP_CNF:
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is answered\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is answered\n");
+		display_useruser(ms, data);
 		break;
 	case MNCC_SETUP_IND:
 		vty_notify(ms, NULL);
 		if (!first_call && !ms->settings.cw) {
 			vty_notify(ms, "Incoming call rejected while busy\n");
 			LOGP(DMNCC, LOGL_INFO, "Incoming call but busy\n");
+			display_useruser(ms, data);
 			cause = GSM48_CC_CAUSE_USER_BUSY;
 			goto release;
 		}
@@ -504,6 +544,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 				data->calling.number);
 		LOGP(DMNCC, LOGL_INFO, "Incoming call (from %s callref %x)\n",
 			data->calling.number, call->callref);
+		display_useruser(ms, data);
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		/* only include bearer cap, if not given in setup
@@ -528,19 +569,23 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 			LOGP(DMNCC, LOGL_INFO, "Knock!\n");
 			call->hold = 1;
 		}
-		call->ring = 1;
-		memset(&mncc, 0, sizeof(struct gsm_mncc));
-		mncc.callref = call->callref;
-		mncc_tx_to_cc(ms, MNCC_ALERT_REQ, &mncc);
 		if (ms->settings.auto_answer) {
 			LOGP(DMNCC, LOGL_INFO, "Auto-answering call\n");
 			mncc_answer(ms);
+		} else {
+			call->ring = 1;
+			memset(&mncc, 0, sizeof(struct gsm_mncc));
+			mncc.callref = call->callref;
+			include_useruser(ms, &mncc);
+			mncc_tx_to_cc(ms, MNCC_ALERT_REQ, &mncc);
 		}
 		break;
 	case MNCC_SETUP_COMPL_IND:
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is connected\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is connected\n");
+		display_useruser(ms, data);
+		call->connect = 1;
 		break;
 	case MNCC_HOLD_CNF:
 		vty_notify(ms, NULL);
@@ -572,6 +617,10 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 	case MNCC_START_DTMF_REJ:
 	case MNCC_STOP_DTMF_RSP:
 		dtmf_statemachine(call, data);
+		break;
+	case MNCC_USERINFO_IND:
+		vty_notify(ms, NULL);
+		display_useruser(ms, data);
 		break;
 	default:
 		LOGP(DMNCC, LOGL_INFO, "Message 0x%02x unsupported\n",
@@ -638,6 +687,9 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 			setup.fields |= MNCC_F_CCCAP;
 			setup.cccap.dtmf = 1;
 		}
+
+		/* USER-USER (optional) */
+		include_useruser(ms, &setup);
 	}
 
 	return mncc_tx_to_cc(ms, MNCC_SETUP_REQ, &setup);
@@ -661,10 +713,12 @@ int mncc_hangup(struct osmocom_ms *ms)
 		return -EINVAL;
 	}
 
+	found->connect = 0;
 	memset(&disc, 0, sizeof(struct gsm_mncc));
 	disc.callref = found->callref;
 	mncc_set_cause(&disc, GSM48_CAUSE_LOC_USER,
 		GSM48_CC_CAUSE_NORM_CALL_CLEAR);
+	include_useruser(ms, &disc);
 	return mncc_tx_to_cc(ms, (call->init) ? MNCC_REL_REQ : MNCC_DISC_REQ,
 		&disc);
 }
@@ -695,9 +749,11 @@ int mncc_answer(struct osmocom_ms *ms)
 	}
 	alerting->ring = 0;
 	alerting->hold = 0;
+	alerting->connect = 1;
 
 	memset(&rsp, 0, sizeof(struct gsm_mncc));
 	rsp.callref = alerting->callref;
+	include_useruser(ms, &rsp);
 	return mncc_tx_to_cc(ms, MNCC_SETUP_RSP, &rsp);
 }
 
@@ -770,6 +826,38 @@ int mncc_retrieve(struct osmocom_ms *ms, int number)
 	memset(&retr, 0, sizeof(struct gsm_mncc));
 	retr.callref = call->callref;
 	return mncc_tx_to_cc(ms, MNCC_RETRIEVE_REQ, &retr);
+}
+
+int mncc_useruser(struct osmocom_ms *ms)
+{
+	struct gsm48_cclayer *cc = &ms->cclayer;
+	struct gsm_call *call, *found = NULL;
+	struct gsm_mncc user;
+
+	llist_for_each_entry(call, &call_list, entry) {
+		if (!call->hold && call->connect) {
+			found = call;
+			break;
+		}
+	}
+	if (!found) {
+		LOGP(DMNCC, LOGL_INFO, "No connected call to sent user-user "
+			"message\n");
+		vty_notify(ms, NULL);
+		vty_notify(ms, "No connected call\n");
+		return -EINVAL;
+	}
+
+	if (!cc->useruser[0]) {
+		LOGP(DMNCC, LOGL_INFO, "No user-user message set\n");
+		vty_notify(ms, NULL);
+		vty_notify(ms, "No user-user message set\n");
+		return -EINVAL;
+	}
+	memset(&user, 0, sizeof(struct gsm_mncc));
+	user.callref = call->callref;
+	include_useruser(ms, &user);
+	return mncc_tx_to_cc(ms, MNCC_USERINFO_REQ, &user);
 }
 
 /*

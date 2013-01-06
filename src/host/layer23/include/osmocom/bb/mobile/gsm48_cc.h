@@ -5,6 +5,8 @@ struct gsm48_cclayer {
         struct osmocom_ms       *ms;
 
 	struct llist_head	mncc_upqueue;
+
+	char			useruser[129]; /* 128 + EOL */
 };
 
 int gsm48_cc_init(struct osmocom_ms *ms);
