@@ -93,6 +93,13 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 		ms = signal_data;
 		set = &ms->settings;
 
+		/* waiting for reset after shutdown */
+		if (ms->shutdown == 2) {
+			printf("MS '%s' has been resetted\n", ms->name);
+			ms->shutdown = 3;
+			break;
+		}
+
 		if (ms->started)
 			break;
 
@@ -129,6 +136,10 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 
+	/* if shutdown is already performed */
+	if (ms->shutdown >= 2)
+		return 0;
+
 	if (!force && ms->started) {
 		struct msgb *nmsg;
 
@@ -151,7 +162,12 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	gsm_sim_exit(ms);
 	lapdm_channel_exit(&ms->lapdm_channel);
 
-	ms->shutdown = 2; /* being down */
+	if (ms->started) {
+		ms->shutdown = 2; /* being down, wait for reset */
+		l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	} else {
+		ms->shutdown = 3; /* being down */
+	}
 	vty_notify(ms, NULL);
 	vty_notify(ms, "Power off!\n");
 	printf("Power off! (MS %s)\n", ms->name);
@@ -241,7 +257,7 @@ struct osmocom_ms *mobile_new(char *name)
 	gsm_support_init(ms);
 	gsm_settings_init(ms);
 
-	ms->shutdown = 2; /* being down */
+	ms->shutdown = 3; /* being down */
 
 	if (mncc_recv_app) {
 		char name[32];
@@ -292,10 +308,14 @@ int global_signal_cb(unsigned int subsys, unsigned int signal,
 
 	switch (signal) {
 	case S_GLOBAL_SHUTDOWN:
+		/* force to exit, if signalled */
+		if (signal_data && *((uint8_t *)signal_data))
+			quit = 1;
+
 		llist_for_each_entry_safe(ms, ms2, &ms_list, entity)
 			mobile_delete(ms, quit);
 
-		/* if second signal is received, force to exit */
+		/* quit, after all MS processes are gone */
 		quit = 1;
 		break;
 	}
@@ -309,9 +329,9 @@ int l23_app_work(int *_quit)
 	int work = 0;
 
 	llist_for_each_entry_safe(ms, ms2, &ms_list, entity) {
-		if (ms->shutdown != 2)
+		if (ms->shutdown != 3)
 			work |= mobile_work(ms);
-		if (ms->shutdown == 2) {
+		if (ms->shutdown == 3) {
 			if (ms->l2_wq.bfd.fd > -1) {
 				layer2_close(ms);
 				ms->l2_wq.bfd.fd = -1;

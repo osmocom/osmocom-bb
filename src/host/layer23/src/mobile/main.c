@@ -153,25 +153,38 @@ static void handle_options(int argc, char **argv)
 
 void sighandler(int sigset)
 {
+	static uint8_t _quit = 1, count_int = 0;
+
 	if (sigset == SIGHUP || sigset == SIGPIPE)
 		return;
 
-	fprintf(stderr, "Signal %d received.\n", sigset);
+	fprintf(stderr, "\nSignal %d received.\n", sigset);
 
 	switch (sigset) {
 	case SIGINT:
-		/* If another signal is received afterwards, the program
-		 * is terminated without finishing shutdown process.
+		/* The first signal causes initiating of shutdown with detach
+		 * procedure. The second signal causes initiating of shutdown
+		 * without detach procedure. The third signal will exit process
+		 * immidiately. (in case it hangs)
 		 */
-		signal(SIGINT, SIG_DFL);
-		signal(SIGHUP, SIG_DFL);
-		signal(SIGTERM, SIG_DFL);
-		signal(SIGPIPE, SIG_DFL);
-		signal(SIGABRT, SIG_DFL);
-		signal(SIGUSR1, SIG_DFL);
-		signal(SIGUSR2, SIG_DFL);
-
-		osmo_signal_dispatch(SS_GLOBAL, S_GLOBAL_SHUTDOWN, NULL);
+		if (count_int == 0) {
+			fprintf(stderr, "Performing shutdown with clean "
+				"detach, if possible...\n");
+			osmo_signal_dispatch(SS_GLOBAL, S_GLOBAL_SHUTDOWN,
+				NULL);
+			count_int = 1;
+			break;
+		}
+		if (count_int == 2) {
+			fprintf(stderr, "Unclean exit, please turn off phone "
+				"to be sure it is not transmitting!\n");
+			exit(0);
+		}
+		/* fall through */
+	case SIGTSTP:
+		count_int = 2;
+		fprintf(stderr, "Performing shutdown without detach...\n");
+		osmo_signal_dispatch(SS_GLOBAL, S_GLOBAL_SHUTDOWN, &_quit);
 		break;
 	case SIGABRT:
 		/* in case of abort, we want to obtain a talloc report
@@ -240,6 +253,7 @@ int main(int argc, char **argv)
 		exit(rc);
 
 	signal(SIGINT, sighandler);
+	signal(SIGTSTP, sighandler);
 	signal(SIGHUP, sighandler);
 	signal(SIGTERM, sighandler);
 	signal(SIGPIPE, sighandler);
@@ -266,6 +280,15 @@ int main(int argc, char **argv)
 	talloc_free(config_file);
 	talloc_free(config_dir);
 	talloc_report_full(l23_ctx, stderr);
+
+	signal(SIGINT, SIG_DFL);
+	signal(SIGTSTP, SIG_DFL);
+	signal(SIGHUP, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGPIPE, SIG_DFL);
+	signal(SIGABRT, SIG_DFL);
+	signal(SIGUSR1, SIG_DFL);
+	signal(SIGUSR2, SIG_DFL);
 
 	return 0;
 }

@@ -2607,11 +2607,11 @@ DEFUN(cfg_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
 	struct osmocom_ms *ms = vty->index, *tmp;
 	int rc;
 
-	if (ms->shutdown != 2)
+	if (ms->shutdown != 3)
 		return CMD_SUCCESS;
 
 	llist_for_each_entry(tmp, &ms_list, entity) {
-		if (tmp->shutdown == 2)
+		if (tmp->shutdown == 3)
 			continue;
 		if (!strcmp(ms->settings.layer2_socket_path,
 				tmp->settings.layer2_socket_path)) {
