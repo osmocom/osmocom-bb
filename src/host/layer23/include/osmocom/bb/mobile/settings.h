@@ -35,6 +35,7 @@ struct gsm_settings {
 	uint8_t			test_rplmn_valid;
 	uint16_t		test_rplmn_mcc, test_rplmn_mnc;
 	uint16_t		test_lac;
+	uint8_t			test_imsi_attached;
 	uint8_t			test_always; /* ...search hplmn... */
 
 	/* call related settings */

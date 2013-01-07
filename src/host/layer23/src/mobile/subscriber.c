@@ -161,7 +161,7 @@ int gsm_subscr_exit(struct osmocom_ms *ms)
 
 /* Attach test card, no SIM must be currently attached */
 int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
-	uint16_t lac, uint32_t tmsi)
+	uint16_t lac, uint32_t tmsi, uint8_t imsi_attached)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
@@ -187,7 +187,11 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	subscr->sim_type = GSM_SIM_TYPE_TEST;
 	sprintf(subscr->sim_name, "test");
 	subscr->sim_valid = 1;
-	subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
+	if (imsi_attached && set->test_rplmn_valid) {
+		subscr->imsi_attached = imsi_attached;
+		subscr->ustate = GSM_SIM_U1_UPDATED;
+	} else
+		subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
 	subscr->acc_barr = set->test_barr; /* we may access barred cell */
 	subscr->acc_class = 0xffff; /* we have any access class */
 	subscr->plmn_valid = set->test_rplmn_valid;
@@ -212,6 +216,8 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 			gsm_get_mnc(mcc, mnc));
 	else
 		LOGP(DMM, LOGL_INFO, "-> Test card not registered\n");
+	if (subscr->imsi_attached)
+		LOGP(DMM, LOGL_INFO, "-> Test card attached\n");
 
 	/* insert card */
 	nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_REG_REQ);

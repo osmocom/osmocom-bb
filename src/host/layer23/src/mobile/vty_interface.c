@@ -467,10 +467,8 @@ DEFUN(no_monitor_network, no_monitor_network_cmd, "no monitor network MS_NAME",
 	return CMD_SUCCESS;
 }
 
-DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
-	"SIM actions\nAttach bulit in test SIM\nName of MS (see \"show ms\")\n"
-	"Mobile Country Code of RPLMN\nMobile Network Code of RPLMN\n"
-	"Optionally location area code\nOptionally current assigned TMSI")
+static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
+	int attached)
 {
 	struct osmocom_ms *ms;
 	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
@@ -486,6 +484,10 @@ DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
 		return CMD_WARNING;
 	}
 
+	if (argc == 2) {
+		vty_out(vty, "Give MNC together with MCC%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 	if (argc >= 3) {
 		mcc = gsm_input_mcc((char *)argv[1]);
 		mnc = gsm_input_mnc((char *)argv[2]);
@@ -505,9 +507,30 @@ DEFUN(sim_test, sim_test_cmd, "sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
 	if (argc >= 5)
 		tmsi = strtoul(argv[4], NULL, 16);
 
-	gsm_subscr_testcard(ms, mcc, mnc, lac, tmsi);
+	gsm_subscr_testcard(ms, mcc, mnc, lac, tmsi, attached);
 
 	return CMD_SUCCESS;
+}
+
+DEFUN(sim_test, sim_test_cmd,
+	"sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
+	"SIM actions\nAttach bulit in test SIM\nName of MS (see \"show ms\")\n"
+	"Optionally set mobile Country Code of RPLMN\n"
+	"Optionally set mobile Network Code of RPLMN\n"
+	"Optionally set location area code of RPLMN\n"
+	"Optionally set current assigned TMSI")
+{
+	return _sim_test_cmd(vty, argc, argv, 0);
+}
+
+DEFUN(sim_test_att, sim_test_att_cmd,
+	"sim testcard MS_NAME MCC MNC LAC TMSI attached",
+	"SIM actions\nAttach bulit in test SIM\nName of MS (see \"show ms\")\n"
+	"Set mobile Country Code of RPLMN\nSet mobile Network Code of RPLMN\n"
+	"Set location area code\nSet current assigned TMSI\n"
+	"Indicate to MM that card is already attached")
+{
+	return _sim_test_cmd(vty, argc, argv, 1);
 }
 
 DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
@@ -1446,10 +1469,14 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, "  rplmn %s %s",
 			gsm_print_mcc(set->test_rplmn_mcc),
 			gsm_print_mnc(set->test_rplmn_mnc));
-		if (set->test_lac > 0x0000 && set->test_lac < 0xfffe)
+		if (set->test_lac > 0x0000 && set->test_lac < 0xfffe) {
 			vty_out(vty, " 0x%04x", set->test_lac);
-		if (set->test_tmsi != 0xffffffff)
-			vty_out(vty, " 0x%08x", set->test_tmsi);
+			if (set->test_tmsi != 0xffffffff) {
+				vty_out(vty, " 0x%08x", set->test_tmsi);
+				if (set->test_imsi_attached)
+					vty_out(vty, " attached");
+			}
+		}
 		vty_out(vty, "%s", VTY_NEWLINE);
 	} else
 		if (!hide_default)
@@ -2542,10 +2569,8 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC [LAC] [TMSI]",
-	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
-	"Optionally set locatio area code\n"
-	"Optionally set current assigned TMSI")
+static int _test_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
+	int attached)
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
@@ -2574,9 +2599,32 @@ DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd, "rplmn MCC MNC [LAC] [TMSI]",
 	else
 		set->test_tmsi = 0xffffffff;
 
+	if (attached)
+		set->test_imsi_attached = 1;
+	else
+		set->test_imsi_attached = 0;
+
 	vty_restart_if_started(vty, ms);
 
 	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd,
+	"rplmn MCC MNC [LAC] [TMSI]",
+	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
+	"Optionally set location area code\n"
+	"Optionally set current assigned TMSI")
+{
+	return _test_rplmn_cmd(vty, argc, argv, 0);
+}
+
+DEFUN(cfg_test_rplmn_att, cfg_test_rplmn_att_cmd,
+	"rplmn MCC MNC LAC TMSI attached",
+	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
+	"Set location area code\nSet current assigned TMSI\n"
+	"Indicate to MM that card is already attached")
+{
+	return _test_rplmn_cmd(vty, argc, argv, 1);
 }
 
 DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-country)",
@@ -2752,6 +2800,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &off_cmd);
 
 	install_element(ENABLE_NODE, &sim_test_cmd);
+	install_element(ENABLE_NODE, &sim_test_att_cmd);
 	install_element(ENABLE_NODE, &sim_reader_cmd);
 	install_element(ENABLE_NODE, &sim_remove_cmd);
 	install_element(ENABLE_NODE, &sim_pin_cmd);
@@ -2901,6 +2950,7 @@ int ms_vty_init(void)
 	install_element(TESTSIM_NODE, &cfg_test_no_barr_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_no_rplmn_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_rplmn_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_rplmn_att_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_hplmn_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
