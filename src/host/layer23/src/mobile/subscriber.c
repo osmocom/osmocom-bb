@@ -1205,7 +1205,7 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 	print(priv, " Status: %s  IMSI %s", subscr_ustate_names[subscr->ustate],
 		(subscr->imsi_attached) ? "attached" : "detached");
 	if (subscr->tmsi != 0xffffffff)
-		print(priv, "  TSMI 0x%08x", subscr->tmsi);
+		print(priv, "  TMSI 0x%08x", subscr->tmsi);
 	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
 		print(priv, "\n");
 		print(priv, "         LAI: MCC %s  MNC %s  LAC 0x%04x  "
