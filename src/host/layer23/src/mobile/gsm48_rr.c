@@ -4982,6 +4982,7 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	default:
 		LOGP(DRR, LOGL_NOTICE, "MDL-Error (cause %d) ignoring\n",
 			cause);
+		return 0;
 	}
 
 	LOGP(DRR, LOGL_NOTICE, "MDL-Error (cause %d) aborting\n", cause);
