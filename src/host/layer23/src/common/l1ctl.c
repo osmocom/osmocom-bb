@@ -192,6 +192,13 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	if (!(dl->link_id & 0x40)) {
 		switch (chan_type) {
 		case RSL_CHAN_PCH_AGCH:
+			/* only look at one CCCH frame in each 51 multiframe.
+			 * FIXME: implement DRX
+			 * - select correct paging block that is for us.
+			 * - initialize ds_fail according to BS_PA_MFRMS.
+			 */
+			if ((dl->frame_nr % 51) != 6)
+				break;
 			if (!meas->ds_fail)
 				break;
 			if (dl->fire_crc >= 2)
