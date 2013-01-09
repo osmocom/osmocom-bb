@@ -87,9 +87,9 @@ struct ctrl_cmd *ctrl_cmd_create(void *ctx, enum ctrl_type);
 struct ctrl_cmd *ctrl_cmd_trap(struct ctrl_cmd *cmd);
 
 #define CTRL_CMD_DEFINE_RANGE(cmdname, cmdstr, dtype, element, min, max) \
-static int get_##cmdname(struct ctrl_cmd *cmd, void *data) \
+static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
-	dtype *node = data; \
+	dtype *node = cmd->node; \
 	cmd->reply = talloc_asprintf(cmd, "%i", node->element); \
 	if (!cmd->reply) { \
 		cmd->reply = "OOM"; \
@@ -97,14 +97,14 @@ static int get_##cmdname(struct ctrl_cmd *cmd, void *data) \
 	} \
 	return CTRL_CMD_REPLY; \
 } \
-static int set_##cmdname(struct ctrl_cmd *cmd, void *data) \
+static int set_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
-	dtype *node = data; \
+	dtype *node = cmd->node; \
 	int tmp = atoi(cmd->value); \
 	node->element = tmp; \
-	return get_##cmdname(cmd, data); \
+	return get_##cmdname(cmd, _data); \
 } \
-static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *data) \
+static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *_data) \
 { \
 	int tmp = atoi(value); \
 	if ((tmp >= min)&&(tmp <= max)) { \
@@ -123,7 +123,7 @@ struct ctrl_cmd_element cmd_##cmdname = { \
 #define CTRL_CMD_DEFINE_STRING(cmdname, cmdstr, dtype, element) \
 static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
-	dtype *data = _data; \
+	dtype *data = cmd->node; \
 	cmd->reply = talloc_asprintf(cmd, "%s", data->element); \
 	if (!cmd->reply) { \
 		cmd->reply = "OOM"; \
@@ -133,9 +133,9 @@ static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 } \
 static int set_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
-	dtype *data = _data; \
+	dtype *data = cmd->node; \
 	bsc_replace_string(cmd->node, &data->element, cmd->value); \
-	return get_##cmdname(cmd, data); \
+	return get_##cmdname(cmd, _data); \
 } \
 struct ctrl_cmd_element cmd_##cmdname = { \
 	.name = cmdstr, \
