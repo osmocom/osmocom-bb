@@ -677,10 +677,12 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 
 		/* bearer capability (mandatory) */
 		mncc_set_bearer(ms, -1, &setup);
+
+		/* CLIR */
 		if (ms->settings.clir)
-			setup.clir.sup = 1;
-		else if (ms->settings.clip)
 			setup.clir.inv = 1;
+		else if (ms->settings.clip)
+			setup.clir.sup = 1;
 
 		/* CC capabilities (optional) */
 		if (ms->settings.cc_dtmf) {
