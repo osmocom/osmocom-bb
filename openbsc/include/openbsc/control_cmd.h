@@ -2,9 +2,12 @@
 #define _CONTROL_CMD_H
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/talloc.h>
 #include <osmocom/core/write_queue.h>
 
 #include <osmocom/vty/vector.h>
+
+#include <openbsc/vty.h>
 
 #define CTRL_CMD_ERROR		-1
 #define CTRL_CMD_HANDLED	0
@@ -118,8 +121,9 @@ struct ctrl_cmd_element cmd_##cmdname = { \
 }
 
 #define CTRL_CMD_DEFINE_STRING(cmdname, cmdstr, dtype, element) \
-static int get_##cmdname(struct ctrl_cmd *cmd, dtype *data) \
+static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
+	dtype *data = _data; \
 	cmd->reply = talloc_asprintf(cmd, "%s", data->element); \
 	if (!cmd->reply) { \
 		cmd->reply = "OOM"; \
@@ -127,8 +131,9 @@ static int get_##cmdname(struct ctrl_cmd *cmd, dtype *data) \
 	} \
 	return CTRL_CMD_REPLY; \
 } \
-static int set_##cmdname(struct ctrl_cmd *cmd, dtype *data) \
+static int set_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
+	dtype *data = _data; \
 	bsc_replace_string(cmd->node, &data->element, cmd->value); \
 	return get_##cmdname(cmd, data); \
 } \
