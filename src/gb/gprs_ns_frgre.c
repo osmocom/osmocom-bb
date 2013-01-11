@@ -43,12 +43,16 @@
 #define GRE_PTYPE_IPv4	0x0800
 #define GRE_PTYPE_KAR	0x0000	/* keepalive response */
 
+#ifndef IPPROTO_GRE
+# define IPPROTO_GRE 47
+#endif
+
 struct gre_hdr {
 	uint16_t flags;
 	uint16_t ptype;
 } __attribute__ ((packed));
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__CYGWIN__)
 /**
  * On BSD the IPv4 struct is called struct ip and instead of iXX
  * the members are called ip_XX. One could change this code to use
