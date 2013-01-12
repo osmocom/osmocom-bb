@@ -37,6 +37,7 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/gsmtap.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/gsm/rsl.h>
@@ -49,6 +50,9 @@
 #include <osmocom/codec/codec.h>
 
 extern struct gsmtap_inst *gsmtap_inst;
+
+static int apdu_len = -1;
+static uint8_t apdu_data[256 + 7];
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {
@@ -630,6 +634,12 @@ int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 	struct msgb *msg;
 	uint8_t *dat;
 
+	if (length <= sizeof(apdu_data)) {
+		memcpy(apdu_data, data, length);
+		apdu_len = length;
+	} else
+		apdu_len = -1;
+
 	msg = osmo_l1_alloc(L1CTL_SIM_REQ);
 	if (!msg)
 		return -1;
@@ -645,7 +655,14 @@ static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
-	
+
+	if (apdu_len > -1 && apdu_len + len <= sizeof(apdu_data)) {
+		memcpy(apdu_data + apdu_len, data, len);
+		apdu_len += len;
+		gsmtap_send_ex(gsmtap_inst, GSMTAP_TYPE_SIM, 0, 0, 0, 0, 0, 0,
+			0, apdu_data, apdu_len);
+	}
+
 	LOGP(DL1C, LOGL_INFO, "SIM %s\n", osmo_hexdump(data, len));
 	
 	/* pull the L1 header from the msgb */
