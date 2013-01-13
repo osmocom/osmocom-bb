@@ -54,9 +54,16 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 	sprintf(portbuf, "%u", port);
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = family;
-	hints.ai_socktype = type;
-	hints.ai_flags = 0;
-	hints.ai_protocol = proto;
+	if (type == SOCK_RAW) {
+		/* Workaround for glibc, that returns EAI_SERVICE (-8) if
+		 * SOCK_RAW and IPPROTO_GRE is used.
+		 */
+		hints.ai_socktype = SOCK_DGRAM;
+		hints.ai_protocol = IPPROTO_UDP;
+	} else {
+		hints.ai_socktype = type;
+		hints.ai_protocol = proto;
+	}
 
 	if (flags & OSMO_SOCK_F_BIND)
 		hints.ai_flags |= AI_PASSIVE;
@@ -68,6 +75,12 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 	}
 
 	for (rp = result; rp != NULL; rp = rp->ai_next) {
+		/* Workaround for glibc again */
+		if (type == SOCK_RAW) {
+			rp->ai_socktype = SOCK_RAW;
+			rp->ai_protocol = proto;
+		}
+
 		sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (sfd == -1)
 			continue;
