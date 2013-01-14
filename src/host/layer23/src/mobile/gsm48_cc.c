@@ -477,6 +477,17 @@ static int gsm48_cc_rx_status(struct gsm_trans *trans, struct msgb *msg)
 
 	LOGP(DCC, LOGL_INFO, "received STATUS (cause %d)\n", cause.value);
 
+	/* process cause 43 (user-user mesage could not be delivered) */
+	if (cause.value == 43) {
+		struct gsm_mncc user;
+
+		memset(&user, 0, sizeof(struct gsm_mncc));
+		user.callref = trans->callref;
+		user.fields |= MNCC_F_CAUSE;
+		memcpy(&user.cause, &cause, sizeof(user.cause));
+		mncc_recvmsg(trans->ms, trans, MNCC_USERINFO_IND, &user);
+	}
+
 	return 0;
 }
 

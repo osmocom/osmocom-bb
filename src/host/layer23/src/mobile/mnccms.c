@@ -207,6 +207,15 @@ static void display_useruser(struct osmocom_ms *ms, struct gsm_mncc *data)
 {
 	const char *text;
 
+	/* if a status message is received with cause 43 */
+	if ((data->fields & MNCC_F_CAUSE) && data->cause.value == 43) {
+		vty_notify(ms, "Network say that user-user message cannot be "
+			"delivered\n");
+		LOGP(DMNCC, LOGL_INFO, "Network say that user-user message "
+			"cannot be delivered\n");
+		return;
+	}
+
 	/* if not user-user message is present, we are done */
 	if (!(data->fields & MNCC_F_USERUSER))
 		return;
@@ -475,6 +484,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		vty_notify(ms, "Call is answered\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is answered\n");
 		display_useruser(ms, data);
+		call->connect = 1;
 		break;
 	case MNCC_SETUP_IND:
 		vty_notify(ms, NULL);
