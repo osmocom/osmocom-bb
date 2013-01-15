@@ -22,6 +22,9 @@
 
 #include <osmocom/gprs/gprs_ns.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 
