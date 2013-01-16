@@ -168,6 +168,51 @@ void l1s_tx_win_ctrl(uint16_t arfcn, enum l1_txwin_type wtype, uint8_t pwr, uint
 	rffe_mode(gsm_arfcn2band(arfcn), 0);
 }
 
+void l1s_tx_multi_win_ctrl(uint16_t arfcn, uint8_t pwr, uint8_t tn_ofs, int width)
+{
+	uint16_t offset;
+	int wait, i;
+
+	/* TN offset & TA adjust */
+	offset = 28; /* ("+ 32" gives a TA of 1) */
+	offset += L1_BURST_LENGTH_Q * tn_ofs;
+	offset -= l1s.ta << 2;
+
+#ifdef CONFIG_TX_ENABLE
+	/* window open for TRF6151 */
+	trf6151_tx_window(offset, arfcn);
+#endif
+
+	/* Window open for ABB */
+	twl3025_uplink(1, offset);
+
+#ifdef CONFIG_TX_ENABLE
+	/* Window open for RFFE */
+	rffe_mode(gsm_arfcn2band(arfcn), 1);
+#endif
+
+	/* Multi slot int generation */
+	wait = 200;
+
+	for (i=1; i<width; i++) {
+		tpu_enq_wait(wait);
+		tpu_enq_dsp_irq();
+		wait = tx_burst_duration[L1_TXWIN_NB];
+	}
+
+	/* Total width */
+	offset += width * tx_burst_duration[L1_TXWIN_NB] + 2;     // TODO: "+ 2"
+
+	/* Window close for ABB */
+	twl3025_uplink(0, offset);
+
+	/* window close for TRF6151 and RFFE */
+	trf6151_set_mode(TRF6151_IDLE);
+
+	/* Window close for RFFE */
+	rffe_mode(gsm_arfcn2band(arfcn), 0);
+}
+
 void tpu_end_scenario(void)
 {
 	tpu_enq_sleep();
