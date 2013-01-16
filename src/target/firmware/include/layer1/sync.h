@@ -160,6 +160,12 @@ struct l1s_state {
 		uint8_t tn[64];
 		uint8_t	level[64];
 	} neigh_pm;
+
+	/* bts mode */
+	struct {
+		uint16_t arfcn;
+		uint8_t bsic;
+	} bts;
 };
 
 extern struct l1s_state l1s;

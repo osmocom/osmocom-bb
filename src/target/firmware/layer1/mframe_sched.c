@@ -357,6 +357,12 @@ static const struct mframe_sched_item mf_gprs_ptcch[] = {
 	{ .sched_set = NULL }
 };
 
+/* BTS */
+static const struct mframe_sched_item mf_bts[] = {
+	{ .sched_set = bts_sched_set, .modulo = 1, .frame_nr =  0 },
+	{ .sched_set = NULL }
+};
+
 /* Test TX */
 static const struct mframe_sched_item mf_tx_all_nb[] = {
 	{ .sched_set = NB_QUAD_FH_UL, .modulo = 4, .frame_nr = 0 },
@@ -398,6 +404,8 @@ static const struct mframe_sched_item *sched_set_for_task[32] = {
 	[MF_TASK_NEIGH_PM51] = mf_neigh_pm51,
 	[MF_TASK_NEIGH_PM26E] = mf_neigh_pm26_even,
 	[MF_TASK_NEIGH_PM26O] = mf_neigh_pm26_odd,
+
+	[MF_TASK_BTS] = mf_bts,
 
 	[MF_TASK_UL_ALL_NB] = mf_tx_all_nb,
 };
