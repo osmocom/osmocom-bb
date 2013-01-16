@@ -145,6 +145,18 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[1;32m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DTRX] = {
+		.name = "TRX",
+		.description = "TRX interface",
+		.color = "\033[1;36m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
+	[DAPP] = {
+		.name = "APP",
+		.description = "Application",
+		.color = "\033[1;35m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
 };
 
 const struct log_info log_info = {

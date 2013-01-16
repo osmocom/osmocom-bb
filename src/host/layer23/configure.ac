@@ -47,6 +47,13 @@ AC_CHECK_LIB(gps, gps_waiting, LIBGPS_CFLAGS=" -D_HAVE_GPSD" LIBGPS_LIBS=" -lgps
 AC_SUBST([LIBGPS_CFLAGS])
 AC_SUBST([LIBGPS_LIBS])
 
+dnl Optional transceiver
+AC_ARG_ENABLE([transceiver], [AS_HELP_STRING([--enable-transceiver], [Build the transceiver application])],
+	[osmo_ac_build_transceiver="$enableval"])
+if test "$osmo_ac_build_transceiver" = "yes" ; then
+	PKG_CHECK_MODULES(LIBOSMODSP, libosmodsp)
+fi
+AM_CONDITIONAL(BUILD_TRANSCEIVER, test "x$osmo_ac_build_transceiver" = "xyes")
 
 dnl optional dependencies
 PKG_CHECK_MODULES(LIBLUA, lua53, [
@@ -65,6 +72,7 @@ AC_OUTPUT(
     src/common/Makefile
     src/misc/Makefile
     src/mobile/Makefile
+    src/transceiver/Makefile
     include/Makefile
     include/osmocom/Makefile
     include/osmocom/bb/Makefile
