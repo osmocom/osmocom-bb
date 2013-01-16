@@ -398,7 +398,7 @@ static void dsp_ndb_init(void)
 	ndb->d_afcctladd= ABB_VAL_T(AFCCTLADD, 0x000);  // Value at reset
 	ndb->d_vbuctrl	= ABB_VAL_T(VBUCTRL, 0x0C9);	// Uplink gain amp 0dB, Sidetone gain to mute
 	ndb->d_vbdctrl	= ABB_VAL_T(VBDCTRL, 0x006);	// Downlink gain amp 0dB, Volume control 0 dB
-	ndb->d_bbctrl	= ABB_VAL_T(BBCTRL,  0x2C1);	// value at reset
+	ndb->d_bbctrl	= ABB_VAL_T(BBCTRL,  0x2E1);	// value at reset
 	ndb->d_bulgcal	= ABB_VAL_T(BULGCAL, 0x000);	// value at reset
 	ndb->d_apcoff	= ABB_VAL_T(APCOFF,  0x040);	// value at reset
 	ndb->d_bulioff	= ABB_VAL_T(BULIOFF, 0x0FF);	// value at reset
