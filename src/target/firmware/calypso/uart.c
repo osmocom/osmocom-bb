@@ -313,7 +313,6 @@ void uart_init(uint8_t uart, uint8_t interrupts)
 	uart_reg_write(uart,  XON2, 0x00); /* Xon2/Addr Register */
 	uart_reg_write(uart, XOFF1, 0x00); /* Xoff1 Register */
 	uart_reg_write(uart, XOFF2, 0x00); /* Xoff2 Register */
-	uart_reg_write(uart,   EFR, 0x00); /* Enhanced Features Register */
 
 	/* select  UART mode */
 	uart_reg_write(uart, MDR1, 0);
@@ -322,6 +321,9 @@ void uart_init(uint8_t uart, uint8_t interrupts)
 	/* enable Tx/Rx FIFO, Tx trigger at 56 spaces, Rx trigger at 60 chars */
 	uart_reg_write(uart, FCR, FIFO_EN | RX_FIFO_CLEAR | TX_FIFO_CLEAR |
 			(3 << TX_FIFO_TRIG_SHIFT) | (3 << RX_FIFO_TRIG_SHIFT));
+
+	/* Override RX irq threshold */
+	uart_reg_write(uart, TLR, (8 << 4) | (0 << 0));
 
 	/* THR interrupt only when TX FIFO and TX shift register are empty */
 	uart_reg_write(uart, SCR, (1 << 0));// | (1 << 3));
