@@ -56,6 +56,10 @@ enum {
 	L1CTL_TRAFFIC_REQ,
 	L1CTL_TRAFFIC_CONF,
 	L1CTL_TRAFFIC_IND,
+	L1CTL_BTS_MODE,
+	L1CTL_BTS_BURST_REQ,
+	L1CTL_BTS_BURST_NB_IND,
+	L1CTL_BTS_BURST_AB_IND,
 };
 
 enum ccch_mode {
@@ -301,6 +305,35 @@ struct l1ctl_neigh_pm_ind {
 /* traffic data to network */
 struct l1ctl_traffic_req {
 	uint8_t data[TRAFFIC_DATA_LEN];
+} __attribute__((packed));
+
+/* BTS mode: config */
+struct l1ctl_bts_mode {
+	uint8_t enabled;
+	uint8_t bsic;
+	uint16_t band_arfcn;
+} __attribute__((packed));
+
+/* BTS mode: Burst Request */
+struct l1ctl_bts_burst_req {
+	uint32_t fn;
+	uint8_t tn : 4;
+	uint8_t type : 4;
+	uint8_t data[0];	/* 15 for NB, 0 for others */
+} __attribute__((packed));
+
+/* BTS mode: NB Burst Indication */
+struct l1ctl_bts_burst_nb_ind {
+	uint32_t fn;
+	uint8_t tn;
+	uint8_t toa;
+	uint8_t data[15];
+} __attribute__((packed));
+
+/* BTS mode: AB Burst Indication */
+struct l1ctl_bts_burst_ab_ind {
+	uint32_t fn;
+	uint8_t iq[2*88];
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */
