@@ -84,7 +84,7 @@ BOARD_se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 #
 
 # List of all applications (meant to be overridden on command line)
-APPLICATIONS?=hello_world compal_dsp_dump layer1 loader chainload rssi
+APPLICATIONS?=hello_world compal_dsp_dump layer1 loader chainload rssi trx
 
 # Applications specific env requirements
 APP_chainload_ENVIRONMENTS=compalram
@@ -105,6 +105,8 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 		../../shared/libosmocore/build-target/src/.libs/libosmocore.a \
 		../../shared/libosmocore/build-target/src/gsm/.libs/libosmogsm.a
 
+# Applications specific rules
+-include apps/trx/Makefile
 
 #
 # Build rules
