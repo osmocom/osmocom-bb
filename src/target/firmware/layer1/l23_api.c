@@ -22,6 +22,7 @@
 
 #define DEBUG
 
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -41,6 +42,7 @@
 #include <layer1/prim.h>
 #include <layer1/tpu_window.h>
 #include <layer1/sched_gsmtime.h>
+#include <layer1/trx.h>
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
@@ -586,6 +588,45 @@ static void l1ctl_sim_req(struct msgb *msg)
    sim_apdu(len, data);
 }
 
+static int l1ctl_bts_mode(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_bts_mode *bm = (struct l1ctl_bts_mode *) l1h->data;
+
+	if (msg->len < (sizeof(*l1h) + sizeof(*bm))) {
+		printf("l1ctl_bts_mode: Short message. %u\n", msg->len);
+		return -EINVAL;
+	}
+
+	l1s.bts.bsic  = bm->bsic;
+	l1s.bts.arfcn = ntohs(bm->band_arfcn);
+
+	l1s.tx_power = ms_pwr_ctl_lvl(gsm_arfcn2band(l1s.bts.arfcn), 15);
+
+	printf("BTS MODE: %u %u\n", l1s.bts.bsic, l1s.bts.arfcn);
+
+	if (bm->enabled) {
+		mframe_enable(MF_TASK_BTS);
+	} else {
+		mframe_disable(MF_TASK_BTS);
+	}
+
+	return 0;
+}
+
+static int l1ctl_bts_burst_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_bts_burst_req *br = (struct l1ctl_bts_burst_req *) l1h->data;
+
+	if (msg->len < sizeof(*l1h) + sizeof(*br)) {
+		printf("l1ctl_bts_burst_req: Short message. %u\n", msg->len);
+		return -EINVAL;
+	}
+
+	return trx_put_burst(ntohl(br->fn), br->tn, br->type, br->data);
+}
+
 static struct llist_head l23_rx_queue = LLIST_HEAD_INIT(l23_rx_queue);
 
 /* callback from SERCOMM when L2 sends a message to L1 */
@@ -676,6 +717,12 @@ void l1a_l23_handler(void)
 		goto exit_nofree;
 	case L1CTL_SIM_REQ:
 		l1ctl_sim_req(msg);
+		break;
+	case L1CTL_BTS_MODE:
+		l1ctl_bts_mode(msg);
+		break;
+	case L1CTL_BTS_BURST_REQ:
+		l1ctl_bts_burst_req(msg);
 		break;
 	}
 
