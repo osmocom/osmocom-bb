@@ -84,10 +84,9 @@ BOARD_se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 #
 
 # List of all applications (meant to be overridden on command line)
-APPLICATIONS?=hello_world compal_dsp_dump layer1 loader chainload rssi trx
+APPLICATIONS?=hello_world compal_dsp_dump layer1 loader rssi trx
 
 # Applications specific env requirements
-APP_chainload_ENVIRONMENTS=compalram
 APP_loader_ENVIRONMENTS=compalram highram
 APP_rssi_ENVIRONMENTS=* -compalram
 
