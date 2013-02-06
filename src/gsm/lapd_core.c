@@ -820,7 +820,12 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 				"frame established state\n");
 			/* If link is lost on the remote side, we start over
 			 * and send DL-ESTABLISH indication again. */
-			if (dl->v_send != dl->v_recv) {
+			/* Additionally, continue in case of content resoltion
+			 * (GSM network). This happens, if the mobile has not
+			 * yet received UA or another mobile (collision) tries
+			 * to establish connection. The mobile must receive
+			 * UA again. */
+			if (!dl->cont_res && dl->v_send != dl->v_recv) {
 				LOGP(DLLAPD, LOGL_INFO, "Remote reestablish\n");
 				mdl_error(MDL_CAUSE_SABM_MF, lctx);
 				break;
@@ -831,7 +836,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 #ifdef TEST_CONTENT_RESOLUTION_NETWORK
 				dl->cont_res->data[0] ^= 0x01;
 #endif
-				if (memcmp(dl->cont_res, msg->data, length)) {
+				if (memcmp(dl->cont_res->data, msg->data,
+								length)) {
 					LOGP(DLLAPD, LOGL_INFO, "Another SABM "
 						"with diffrent content - "
 						"ignoring!\n");
