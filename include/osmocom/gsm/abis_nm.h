@@ -37,9 +37,9 @@ const char *abis_nm_test_name(uint8_t test);
  */
 #define abis_nm_debugp_foh(ss, foh)					    \
 	DEBUGP(ss, "OC=%s(%02x) INST=(%02x,%02x,%02x) ",		    \
-		get_value_string(abis_nm_obj_class_names, foh->obj_class),  \
-		foh->obj_class, foh->obj_inst.bts_nr, foh->obj_inst.trx_nr, \
-		foh->obj_inst.ts_nr)
+		get_value_string(abis_nm_obj_class_names, (foh)->obj_class),  \
+		(foh)->obj_class, (foh)->obj_inst.bts_nr, (foh)->obj_inst.trx_nr, \
+		(foh)->obj_inst.ts_nr)
 
 
 int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan);
