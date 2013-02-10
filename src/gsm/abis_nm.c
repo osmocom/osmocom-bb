@@ -407,18 +407,6 @@ const struct value_string abis_nm_adm_state_names[] = {
 	{ 0, NULL }
 };
 
-/*! \brief write a human-readable OML header to the debug log
- *  \param[in] ss Logging sub-system
- *  \param[in] foh A-bis OML FOM header
- */
-void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh)
-{
-	DEBUGP(ss, "OC=%s(%02x) INST=(%02x,%02x,%02x) ",
-		get_value_string(abis_nm_obj_class_names, foh->obj_class),
-		foh->obj_class, foh->obj_inst.bts_nr, foh->obj_inst.trx_nr,
-		foh->obj_inst.ts_nr);
-}
-
 static const enum abis_nm_chan_comb chcomb4pchan[] = {
 	[GSM_PCHAN_NONE]	= 0xff,
 	[GSM_PCHAN_CCCH]	= NM_CHANC_mainBCCH,
@@ -450,6 +438,16 @@ enum abis_nm_chan_comb abis_nm_pchan4chcomb(uint8_t chcomb)
 			return i;
 	}
 	return GSM_PCHAN_NONE;
+}
+
+/* this is just for compatibility reasons, it is now a macro */
+#undef abis_nm_debugp_foh
+void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh)
+{
+	DEBUGP(ss, "OC=%s(%02x) INST=(%02x,%02x,%02x) ",
+		get_value_string(abis_nm_obj_class_names, foh->obj_class),
+		foh->obj_class, foh->obj_inst.bts_nr, foh->obj_inst.trx_nr,
+		foh->obj_inst.ts_nr);
 }
 
 /*! @} */
