@@ -1600,6 +1600,9 @@ cmd_describe_command_real(vector vline, struct vty *vty, int *status)
 		if (!cmd_element)
 			continue;
 
+		if (cmd_element->attr & (CMD_ATTR_DEPRECATED|CMD_ATTR_HIDDEN))
+			continue;
+
 		strvec = cmd_element->strvec;
 
 		/* if command is NULL, index may be equal to vector_active */
