@@ -1531,57 +1531,57 @@ cmd_describe_command_real(vector vline, struct vty *vty, int *status)
 
 	/* Filter commands. */
 	/* Only words precedes current word will be checked in this loop. */
-	for (i = 0; i < index; i++)
-		if ((command = vector_slot(vline, i))) {
-			match =
-			    cmd_filter(command, cmd_vector, i, any_match);
+	for (i = 0; i < index; i++) {
+		command = vector_slot(vline, i);
+		if (!command)
+			continue;
 
-			if (match == vararg_match) {
-				struct cmd_element *cmd_element;
-				vector descvec;
-				unsigned int j, k;
+		match = cmd_filter(command, cmd_vector, i, any_match);
 
-				for (j = 0; j < vector_active(cmd_vector); j++)
-					if ((cmd_element =
-					     vector_slot(cmd_vector, j)) != NULL
-					    &&
-					    (vector_active
-					     (cmd_element->strvec))) {
-						descvec =
-						    vector_slot(cmd_element->
-								strvec,
-								vector_active
-								(cmd_element->
-								 strvec) - 1);
-						for (k = 0;
-						     k < vector_active(descvec);
-						     k++) {
-							struct desc *desc =
-							    vector_slot(descvec,
-									k);
-							vector_set(matchvec,
-								   desc);
-						}
+		if (match == vararg_match) {
+			struct cmd_element *cmd_element;
+			vector descvec;
+			unsigned int j, k;
+
+			for (j = 0; j < vector_active(cmd_vector); j++)
+				if ((cmd_element =
+				     vector_slot(cmd_vector, j)) != NULL
+				    &&
+				    (vector_active(cmd_element->strvec))) {
+					descvec =
+					    vector_slot(cmd_element->
+							strvec,
+							vector_active
+							(cmd_element->
+							 strvec) - 1);
+					for (k = 0;
+					     k < vector_active(descvec);
+					     k++) {
+						struct desc *desc =
+						    vector_slot(descvec,
+								k);
+						vector_set(matchvec,
+							   desc);
 					}
+				}
 
-				vector_set(matchvec, &desc_cr);
-				vector_free(cmd_vector);
+			vector_set(matchvec, &desc_cr);
+			vector_free(cmd_vector);
 
-				return matchvec;
-			}
-
-			if ((ret =
-			     is_cmd_ambiguous(command, cmd_vector, i,
-					      match)) == 1) {
-				vector_free(cmd_vector);
-				*status = CMD_ERR_AMBIGUOUS;
-				return NULL;
-			} else if (ret == 2) {
-				vector_free(cmd_vector);
-				*status = CMD_ERR_NO_MATCH;
-				return NULL;
-			}
+			return matchvec;
 		}
+
+		if ((ret = is_cmd_ambiguous(command, cmd_vector, i,
+					    match)) == 1) {
+			vector_free(cmd_vector);
+			*status = CMD_ERR_AMBIGUOUS;
+			return NULL;
+		} else if (ret == 2) {
+			vector_free(cmd_vector);
+			*status = CMD_ERR_NO_MATCH;
+			return NULL;
+		}
+	}
 
 	/* Prepare match vector */
 	/*  matchvec = vector_init (INIT_MATCHVEC_SIZE); */
@@ -1592,47 +1592,46 @@ cmd_describe_command_real(vector vline, struct vty *vty, int *status)
 		match = cmd_filter(command, cmd_vector, index, any_match);
 
 	/* Make description vector. */
-	for (i = 0; i < vector_active(cmd_vector); i++)
-		if ((cmd_element = vector_slot(cmd_vector, i)) != NULL) {
-			const char *string = NULL;
-			vector strvec = cmd_element->strvec;
+	for (i = 0; i < vector_active(cmd_vector); i++) {
+		const char *string = NULL;
+		vector strvec;
 
-			/* if command is NULL, index may be equal to vector_active */
-			if (command && index >= vector_active(strvec))
-				vector_slot(cmd_vector, i) = NULL;
-			else {
-				/* Check if command is completed. */
-				if (command == NULL
-				    && index == vector_active(strvec)) {
-					string = "<cr>";
-					if (!desc_unique_string
-					    (matchvec, string))
-						vector_set(matchvec, &desc_cr);
-				} else {
-					unsigned int j;
-					vector descvec =
-					    vector_slot(strvec, index);
-					struct desc *desc;
+		cmd_element = vector_slot(cmd_vector, i);
+		if (!cmd_element)
+			continue;
 
-					for (j = 0; j < vector_active(descvec);
-					     j++)
-						if ((desc =
-						     vector_slot(descvec, j))) {
-							string =
-							    cmd_entry_function_desc
-							    (command,
-							     desc->cmd);
-							if (string) {
-								/* Uniqueness check */
-								if (!desc_unique_string(matchvec, string))
-									vector_set
-									    (matchvec,
-									     desc);
-							}
-						}
+		strvec = cmd_element->strvec;
+
+		/* if command is NULL, index may be equal to vector_active */
+		if (command && index >= vector_active(strvec))
+			vector_slot(cmd_vector, i) = NULL;
+		else {
+			/* Check if command is completed. */
+			if (command == NULL
+			    && index == vector_active(strvec)) {
+				string = "<cr>";
+				if (!desc_unique_string(matchvec, string))
+					vector_set(matchvec, &desc_cr);
+			} else {
+				unsigned int j;
+				vector descvec = vector_slot(strvec, index);
+				struct desc *desc;
+
+				for (j = 0; j < vector_active(descvec); j++) {
+					desc = vector_slot(descvec, j);
+					if (!desc)
+						continue;
+					string = cmd_entry_function_desc
+							(command, desc->cmd);
+					if (!string)
+						continue;
+					/* Uniqueness check */
+					if (!desc_unique_string(matchvec, string))
+						vector_set(matchvec, desc);
 				}
 			}
 		}
+	}
 	vector_free(cmd_vector);
 
 	if (vector_slot(matchvec, 0) == NULL) {
