@@ -3,6 +3,7 @@ libosmocore (0.5.3+git1-6) UNRELEASED; urgency=low
   * Build new package with the new API required for osmo-bts/openbsc
   * Package the arfcn utility.
   * Add the SOCK_RAW work-around for glibc.
+  * Re-enable the debug packages thanks to Jan.
 
  -- Holger Hans Peter Freyther <holger@freyther.de>  Fri, 04 Jan 2013 09:54:55 +0100
 

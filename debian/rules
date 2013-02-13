@@ -16,10 +16,9 @@ VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
 %:
 	dh --with autoreconf $@ --fail-missing
 
-#override_dh_strip:
-#	dh_strip --dbg-package=libosmocore-dbg
+override_dh_strip:
+	dh_strip --dbg-package=libosmocore-dbg
 
 override_dh_autoreconf:
 	echo $(VERSION) > .tarball-version
 	dh_autoreconf
-
