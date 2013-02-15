@@ -129,7 +129,7 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 }
 
 /*! \brief Initialize a socket and fill \ref osmo_fd
- *  \param[out] osmocom file descriptor (will be filled in)
+ *  \param[out] ofd file descriptor (will be filled in)
  *  \param[in] family Address Family like AF_INET, AF_INET6, AF_UNSPEC
  *  \param[in] type Socket type like SOCK_DGRAM, SOCK_STREAM
  *  \param[in] proto Protocol like IPPROTO_TCP, IPPROTO_UDP

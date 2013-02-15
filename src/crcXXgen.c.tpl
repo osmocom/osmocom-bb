@@ -27,7 +27,7 @@
  */
 
 /*! \file crcXXgen.c
- *  \file Osmocom generic CRC routines (for max XX bits poly)
+ * Osmocom generic CRC routines (for max XX bits poly)
  */
 
 #include <stdint.h>

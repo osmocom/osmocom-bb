@@ -180,8 +180,8 @@ uint32_t osmo_revbytebits_8(uint8_t x)
 }
 
 /*! \brief reverse bit-order of each byte in a buffer
- *  \param buf buffer containing bytes to be bit-reversed
- *  \param[in] length of buffer in bytes
+ *  \param[in] buf buffer containing bytes to be bit-reversed
+ *  \param[in] len length of buffer in bytes
  *
  *  This function reverses the bits in each byte of the buffer
  */

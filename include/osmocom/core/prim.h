@@ -5,7 +5,7 @@
  *  @{
  */
 
-/*! \file prim.c */
+/*! \file prim.h */
 
 #include <stdint.h>
 #include <osmocom/core/msgb.h>
@@ -37,7 +37,7 @@ struct osmo_prim_hdr {
 /*! \brief initialize a primitive header
  *  \param[in,out] oph primitive header
  *  \param[in] sap Service Access Point
- *  \param[in] primtive Primitive Number
+ *  \param[in] primitive Primitive Number
  *  \param[in] operation Primitive Operation (REQ/RESP/IND/CONF)
  *  \param[in] msg Message
  */
@@ -54,5 +54,7 @@ osmo_prim_init(struct osmo_prim_hdr *oph, unsigned int sap,
 
 /*! \brief primitive handler callback type */
 typedef int (*osmo_prim_cb)(struct osmo_prim_hdr *oph, void *ctx);
+
+/*! @} */
 
 #endif /* OSMO_PRIMITIVE_H */

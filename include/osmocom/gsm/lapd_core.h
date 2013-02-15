@@ -11,9 +11,9 @@
  *  @{
  */
 
-/*! \file lapd.h */
-
-/* primitive related sutff */
+/*! \file lapd_core.h
+ * primitive related stuff
+ */
 
 /*! \brief LAPD related primitives (L2<->L3 SAP)*/
 enum osmo_dl_prim {
@@ -167,5 +167,7 @@ void lapd_dl_reset(struct lapd_datalink *dl);
 int lapd_set_mode(struct lapd_datalink *dl, enum lapd_mode mode);
 int lapd_ph_data_ind(struct msgb *msg, struct lapd_msg_ctx *lctx);
 int lapd_recv_dlsap(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx);
+
+/*! @} */
 
 #endif /* _OSMOCOM_LAPD_H */

@@ -25,7 +25,7 @@
  */
 
 /*! \file conv.h
- *  \file Osmocom convolutional encoder and decoder
+ * Osmocom convolutional encoder and decoder
  */
 
 #ifndef __OSMO_CONV_H__

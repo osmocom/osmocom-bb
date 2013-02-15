@@ -28,7 +28,7 @@
  */
 
 /*! \file crcgen.h
- *  \file Osmocom generic CRC routines global header
+ * Osmocom generic CRC routines global header
  */
 
 #include <osmocom/core/crc8gen.h>

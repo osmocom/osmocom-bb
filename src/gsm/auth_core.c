@@ -93,7 +93,7 @@ int osmo_auth_supported(enum osmo_auth_algo algo)
 /*! \brief Generate authentication vector
  *  \param[out] vec Generated authentication vector
  *  \param[in] aud Subscriber-specific key material
- *  \param[in] rand Random challenge to be used
+ *  \param[in] _rand Random challenge to be used
  *
  * This function performs the core cryptographic function of the AUC,
  * computing authentication triples/quintuples based on the permanent
@@ -125,7 +125,7 @@ int osmo_auth_gen_vec(struct osmo_auth_vector *vec,
  *  \param[in] aud Subscriber-specific key material
  *  \param[in] rand_auts RAND value sent by the SIM/MS
  *  \param[in] auts AUTS value sent by the SIM/MS
- *  \param[in] rand Random challenge to be used to generate vector
+ *  \param[in] _rand Random challenge to be used to generate vector
  *
  * This function performs a special variant of the  core cryptographic
  * function of the AUC: computing authentication triples/quintuples

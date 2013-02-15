@@ -49,7 +49,7 @@
 
 
 /*! \brief convert RSL channel number to GSMTAP channel type
- *  \param[in] rsl_cantype RSL channel type
+ *  \param[in] rsl_chantype RSL channel type
  *  \param[in] link_id RSL link identifier
  *  \returns GSMTAP channel type
  */
@@ -216,7 +216,7 @@ int gsmtap_source_add_sink_fd(int gsmtap_fd)
 
 /*! \brief Send a \ref msgb through a GSMTAP source
  *  \param[in] gti GSMTAP instance
- *  \param[in] msgb message buffer
+ *  \param[in] msg message buffer
  */
 int gsmtap_sendmsg(struct gsmtap_inst *gti, struct msgb *msg)
 {
@@ -339,7 +339,7 @@ int gsmtap_source_add_sink(struct gsmtap_inst *gti)
 /*! \brief Open GSMTAP source socket, connect and register osmo_fd
  *  \param[in] host host name or IP address in string format
  *  \param[in] port UDP port number in host byte order
- *  \param[in] osmo_wq_mode Register \ref osmo_wqueue (1) or not (0)
+ *  \param[in] ofd_wq_mode Register \ref osmo_wqueue (1) or not (0)
  *
  * Open GSMTAP source (sending) socket, connect it to host/port,
  * allocate 'struct gsmtap_inst' and optionally osmo_fd/osmo_wqueue

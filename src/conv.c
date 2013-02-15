@@ -27,7 +27,7 @@
  */
 
 /*! \file conv.c
- *  \file Osmocom convolutional encoder and decoder
+ * Osmocom convolutional encoder and decoder
  */
 #include "config.h"
 #ifdef HAVE_ALLOCA_H

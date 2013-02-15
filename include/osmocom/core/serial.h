@@ -25,7 +25,7 @@
  */
 
 /*! \file serial.h
- *  \file Osmocom serial port helpers
+ * Osmocom serial port helpers
  */
 
 #ifndef __OSMO_SERIAL_H__

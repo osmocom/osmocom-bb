@@ -6,7 +6,7 @@
 /*! \addtogroup tlv
  *  @{
  */
-/*! \file tlv.c */
+/*! \file tlv_parser.c */
 
 struct tlv_definition tvlv_att_def;
 struct tlv_definition vtvlv_gan_att_def;

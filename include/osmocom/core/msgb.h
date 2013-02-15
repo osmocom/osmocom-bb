@@ -361,7 +361,7 @@ static inline int msgb_trim(struct msgb *msg, int len)
 }
 
 /*! \brief Trim the msgb to a given layer3 length
- *  \pram[in] msg message buffer
+ *  \param[in] msg message buffer
  *  \param[in] l3len new layer3 length
  *  \returns 0 in case of success, negative in case of error
  */

@@ -34,7 +34,7 @@ static inline void osmo_counter_reset(struct osmo_counter *ctr)
 struct osmo_counter *osmo_counter_alloc(const char *name);
 
 /*! \brief Free the specified counter
- *  \param[ctr] Counter
+ *  \param[in] ctr Counter
  */
 void osmo_counter_free(struct osmo_counter *ctr);
 

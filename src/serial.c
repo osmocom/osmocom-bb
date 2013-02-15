@@ -27,7 +27,7 @@
  */
 
 /*! \file serial.c
- *  \file Osmocom serial port helpers
+ * Osmocom serial port helpers
  */
 
 #include <errno.h>

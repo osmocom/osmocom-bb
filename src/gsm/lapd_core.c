@@ -25,7 +25,7 @@
  *  @{
  */
 
-/*! \file lapd.c */
+/*! \file lapd_core.c */
 
 /*!
  * Notes on Buffering: rcv_buffer, tx_queue, tx_hist, send_buffer, send_queue
@@ -2167,3 +2167,4 @@ int lapd_recv_dlsap(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	return rc;
 }
 
+/*! @} */

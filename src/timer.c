@@ -128,7 +128,7 @@ int osmo_timer_pending(struct osmo_timer_list *timer)
 
 /*! \brief compute the remaining time of a timer
  *  \param[in] timer the to-be-checked timer
- *  \param[in] the current time (NULL if not known)
+ *  \param[in] now the current time (NULL if not known)
  *  \param[out] remaining remaining time until timer fires
  *  \return 0 if timer has not expired yet, -1 if it has
  *

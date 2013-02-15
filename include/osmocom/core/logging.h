@@ -158,7 +158,7 @@ struct log_target {
 
 	/*! \brief call-back function to be called when the logging framework
 	 *	   wants to log somethnig.
-	 *  \param[[in] target logging target
+	 *  \param[in] target logging target
 	 *  \param[in] level log level of currnet message
 	 *  \param[in] string the string that is to be written to the log
 	 */

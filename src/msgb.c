@@ -74,7 +74,7 @@ void msgb_free(struct msgb *m)
 
 /*! \brief Enqueue message buffer to tail of a queue
  * \param[in] queue linked list header of queue
- * \param[in] msgb message buffer to be added to the queue
+ * \param[in] msg message buffer to be added to the queue
  *
  * The function will append the specified message buffer \a msg to the
  * queue implemented by \ref llist_head \a queue
@@ -89,7 +89,7 @@ void msgb_enqueue(struct llist_head *queue, struct msgb *msg)
  * \returns message buffer (if any) or NULL if queue empty
  *
  * The function will remove the first message buffer from the queue
- * implemented by 'ref llist_head \a queue.
+ * implemented by \ref llist_head \a queue.
  */
 struct msgb *msgb_dequeue(struct llist_head *queue)
 {
@@ -105,7 +105,7 @@ struct msgb *msgb_dequeue(struct llist_head *queue)
 }
 
 /*! \brief Re-set all message buffer pointers
- *  \param[in] m message buffer that is to be resetted
+ *  \param[in] msg message buffer that is to be resetted
  *
  * This will re-set the various internal pointers into the underlying
  * message buffer, i.e. remvoe all headroom and treat the msgb as

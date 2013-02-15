@@ -132,7 +132,7 @@ unsigned int bitvec_get_nth_set_bit(const struct bitvec *bv, unsigned int n)
 
 /*! \brief set a bit at given position in a bit vector
  *  \param[in] bv bit vector on which to operate
- *  \param[in] bitnum number of bit to be set
+ *  \param[in] bitnr number of bit to be set
  *  \param[in] bit value to which the bit is to be set
  */
 int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnr,
