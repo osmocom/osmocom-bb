@@ -69,6 +69,9 @@ tests/gb/bssgp_fc_test
 tests/gsm0408/gsm0408_test
 tests/logging/logging_test
 tests/fr/fr_test
+tests/loggingrb/loggingrb_test
+tests/ringbuf/ringbuf_test
+tests/strrb/strrb_test
 
 utils/osmo-arfcn
 utils/osmo-auc-gen
