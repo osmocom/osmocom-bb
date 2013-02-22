@@ -112,7 +112,7 @@ static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *_data
 	} \
 	return -1; \
 } \
-struct ctrl_cmd_element cmd_##cmdname = { \
+static struct ctrl_cmd_element cmd_##cmdname = { \
 	.name = cmdstr, \
 	.param = NULL, \
 	.get = &get_##cmdname, \
@@ -137,7 +137,7 @@ static int set_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 	bsc_replace_string(cmd->node, &data->element, cmd->value); \
 	return get_##cmdname(cmd, _data); \
 } \
-struct ctrl_cmd_element cmd_##cmdname = { \
+static struct ctrl_cmd_element cmd_##cmdname = { \
 	.name = cmdstr, \
 	.param = NULL, \
 	.get = &get_##cmdname, \
@@ -149,7 +149,7 @@ struct ctrl_cmd_element cmd_##cmdname = { \
 static int get_##cmdname(struct ctrl_cmd *cmd, void *data); \
 static int set_##cmdname(struct ctrl_cmd *cmd, void *data); \
 static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *data); \
-struct ctrl_cmd_element cmd_##cmdname = { \
+static struct ctrl_cmd_element cmd_##cmdname = { \
 	.name = cmdstr, \
 	.param = NULL, \
 	.get = &get_##cmdname, \
