@@ -129,7 +129,7 @@ static struct ctrl_cmd_element cmd_##cmdname = { \
 	.verify = &verify_##cmdname, \
 }
 
-#define CTRL_CMD_DEFINE_STRING(cmdname, cmdstr, dtype, element) \
+#define CTRL_HELPER_GET_STRING(cmdname, dtype, element) \
 static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
 	dtype *data = cmd->node; \
@@ -139,13 +139,17 @@ static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 		return CTRL_CMD_ERROR; \
 	} \
 	return CTRL_CMD_REPLY; \
-} \
+}
+#define CTRL_HELPER_SET_STRING(cmdname, dtype, element) \
 static int set_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
 	dtype *data = cmd->node; \
 	bsc_replace_string(cmd->node, &data->element, cmd->value); \
 	return get_##cmdname(cmd, _data); \
-} \
+}
+#define CTRL_CMD_DEFINE_STRING(cmdname, cmdstr, dtype, element) \
+	CTRL_HELPER_GET_STRING(cmdname, dtype, element) \
+	CTRL_HELPER_SET_STRING(cmdname, dtype, element) \
 static struct ctrl_cmd_element cmd_##cmdname = { \
 	.name = cmdstr, \
 	.param = NULL, \
