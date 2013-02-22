@@ -86,7 +86,8 @@ struct ctrl_cmd *ctrl_cmd_cpy(void *ctx, struct ctrl_cmd *cmd);
 struct ctrl_cmd *ctrl_cmd_create(void *ctx, enum ctrl_type);
 struct ctrl_cmd *ctrl_cmd_trap(struct ctrl_cmd *cmd);
 
-#define CTRL_CMD_DEFINE_RANGE(cmdname, cmdstr, dtype, element, min, max) \
+
+#define CTRL_HELPER_GET_INT(cmdname, dtype, element) \
 static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
 	dtype *node = cmd->node; \
@@ -96,14 +97,16 @@ static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 		return CTRL_CMD_ERROR; \
 	} \
 	return CTRL_CMD_REPLY; \
-} \
+}
+#define CTRL_HELPER_SET_INT(cmdname, dtype, element) \
 static int set_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
 	dtype *node = cmd->node; \
 	int tmp = atoi(cmd->value); \
 	node->element = tmp; \
 	return get_##cmdname(cmd, _data); \
-} \
+}
+#define CTRL_HELPER_VERIFY_RANGE(cmdname, min, max) \
 static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *_data) \
 { \
 	int tmp = atoi(value); \
@@ -112,7 +115,12 @@ static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *_data
 	} \
 	cmd->reply = "Input not within the range"; \
 	return -1; \
-} \
+}
+
+#define CTRL_CMD_DEFINE_RANGE(cmdname, cmdstr, dtype, element, min, max) \
+	CTRL_HELPER_GET_INT(cmdname, dtype, element) \
+	CTRL_HELPER_SET_INT(cmdname, dtype, element) \
+	CTRL_HELPER_VERIFY_RANGE(cmdname, min, max) \
 static struct ctrl_cmd_element cmd_##cmdname = { \
 	.name = cmdstr, \
 	.param = NULL, \
