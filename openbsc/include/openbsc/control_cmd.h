@@ -110,6 +110,7 @@ static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *_data
 	if ((tmp >= min)&&(tmp <= max)) { \
 		return 0; \
 	} \
+	cmd->reply = "Input not within the range"; \
 	return -1; \
 } \
 static struct ctrl_cmd_element cmd_##cmdname = { \
