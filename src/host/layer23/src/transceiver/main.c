@@ -23,9 +23,12 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 
 #include <osmocom/core/select.h>
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/application.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 #include <osmocom/bb/common/logging.h>
 
@@ -38,6 +41,69 @@
 
 
 void *l23_ctx = NULL;
+static int arfcn_sync = 0;
+static int daemonize = 0;
+
+static void print_help(char *argv[])
+{
+	fprintf(stderr, "Usage: %s -a arfcn_sync\n", argv[0]);
+
+	printf( "Some useful options:\n"
+		"  -h   --help             this text\n"
+		"  -d   --debug MASK       Enable debugging (e.g. -d DL1C:DTRX)\n"
+		"  -D   --daemonize        For the process into a background daemon\n"
+		"  -s   --disable-color    Don't use colors in stderr log output\n"
+		"  -a   --arfcn-sync ARFCN Set ARFCN to sync to\n"
+		"  -p   --arfcn-sync-pcs   The ARFCN above is PCS\n"
+		);
+}
+
+static void handle_options(int argc, char **argv, struct app_state *as)
+{
+	while (1) {
+		int option_idx = 0, c;
+		static const struct option long_options[] = {
+			{ "help", 0, 0, 'h' },
+			{ "debug", 1, 0, 'd' },
+			{ "daemonize", 0, 0, 'D' },
+			{ "disable-color", 0, 0, 's' },
+			{ "arfcn-sync", 1, 0, 'a' },
+			{ "arfcn-sync-pcs", 0, 0, 'p' },
+		};
+
+		c = getopt_long(argc, argv, "hd:Dsa:p",
+			long_options, &option_idx);
+
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 'h':
+			print_help(argv);
+			exit(0);
+			break;
+		case 'd':
+			log_parse_category_mask(as->stderr_target, optarg);
+			break;
+		case 'D':
+			daemonize = 1;
+			break;
+		case 's':
+			log_set_use_color(as->stderr_target, 0);
+			break;
+		case 'a':
+			as->arfcn_sync |= atoi(optarg);
+			arfcn_sync = 1;
+			break;
+		case 'p':
+			as->arfcn_sync |= ARFCN_PCS;
+			break;
+		default:
+			fprintf(stderr, "Unknow option %s\n", optarg);
+			exit(0);
+		}
+	}
+}
 
 
 int main(int argc, char *argv[])
@@ -45,17 +111,7 @@ int main(int argc, char *argv[])
 	struct app_state _as, *as = &_as;
 	int rv;
 
-	/* Options */
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s arfcn_sync\n", argv[0]);
-		return -1;
-	}
-
-	/* App state init */
 	memset(as, 0x00, sizeof(struct app_state));
-
-	as->arfcn_sync = atoi(argv[1]);
-	printf("%d\n", as->arfcn_sync);
 
 	/* Init talloc */
 	l23_ctx = talloc_named_const(NULL, 1, "l23 app context");
@@ -67,6 +123,20 @@ int main(int argc, char *argv[])
 
 	log_add_target(as->stderr_target);
 	log_set_all_filter(as->stderr_target, 1);
+
+	/* Options */
+	if (argc < 2) {
+		print_help(argv);
+		return -1;
+	}
+	handle_options(argc, argv, as);
+	if (!arfcn_sync) {
+		fprintf(stderr, "Use --arfcn-sync <ARFCN>\n");
+		exit(0);
+	}
+
+	/* App state init */
+	printf("%d\n", as->arfcn_sync);
 
 	/* Init signal processing */
 		/* Init GMSK tables */
@@ -91,6 +161,15 @@ int main(int argc, char *argv[])
 
 	/* Reset phone */
 	l1ctl_tx_reset_req(&as->l1l, L1CTL_RES_T_FULL);
+
+	if (daemonize) {
+		rv = osmo_daemonize();
+		if (rv < 0) {
+			perror("Error during daemonize");
+			exit(1);
+		}
+	}
+
 
 	/* Main loop */
 	while (1) {
