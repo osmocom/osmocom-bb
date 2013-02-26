@@ -128,6 +128,7 @@ trx_alloc(const char *addr, uint16_t base_port, struct l1ctl_link *l1l)
 	/* Init */
 	trx->arfcn = ARFCN_INVAL;
 	trx->bsic = BSIC_INVAL;
+	trx->gain = 0; /* Best test results for broadest range of RX levels */
 
 	/* L1 link */
 	trx->l1l = l1l;
@@ -227,7 +228,7 @@ _trx_ctrl_send_resp(struct trx *trx, const char *cmd, const char *fmt, ...)
 static int
 _trx_ctrl_cmd_poweroff(struct trx *trx, const char *cmd, const char *args)
 {
-	l1ctl_tx_bts_mode(trx->l1l, 0, 0, 0);
+	l1ctl_tx_bts_mode(trx->l1l, 0, 0, 0, 0);
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d", 0);
 }
@@ -242,7 +243,7 @@ _trx_ctrl_cmd_poweron(struct trx *trx, const char *cmd, const char *args)
 			"TRX received POWERON when not fully configured\n");
 		rv = -EINVAL;
 	} else {
-		rv = l1ctl_tx_bts_mode(trx->l1l, 1, trx->bsic, trx->arfcn);
+		rv = l1ctl_tx_bts_mode(trx->l1l, 1, trx->bsic, trx->arfcn, trx->gain);
 	}
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d", rv);
@@ -277,6 +278,15 @@ static int
 _trx_ctrl_cmd_setrxgain(struct trx *trx, const char *cmd, const char *args)
 {
 	int db = atoi(args);
+
+	if (db < 0 || db > 63) {
+		LOGP(DTRX, LOGL_ERROR, "Invalid gain received\n");
+		return _trx_ctrl_send_resp(trx, cmd, "%d %d", -1, db);
+	}
+
+	trx->gain = db;
+
+	l1ctl_tx_bts_mode(trx->l1l, 1, trx->bsic, trx->arfcn, trx->gain);
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, db);
 }
