@@ -264,8 +264,16 @@ l1s_bts_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 		/* Enable task */
 		dsp_api.db_w->d_task_d = 23;
 
+		/* store current gain */
+		uint8_t last_gain = rffe_get_gain();
+
+		rffe_compute_gain(-47 - l1s.bts.gain, CAL_DSP_TGT_BB_LVL);
+
 		/* Open RX window */
 		l1s_rx_win_ctrl(l1s.bts.arfcn | ARFCN_UPLINK, L1_RXWIN_NB, 0);
+
+		/* restore last gain */
+		rffe_set_gain(last_gain);
 	}
 
 
