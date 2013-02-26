@@ -113,7 +113,8 @@ l1ctl_tx_fbsb_req(struct l1ctl_link *l1l,
 
 int
 l1ctl_tx_bts_mode(struct l1ctl_link *l1l,
-                  uint8_t enabled, uint8_t bsic, uint16_t band_arfcn)
+                  uint8_t enabled, uint8_t bsic, uint16_t band_arfcn,
+                  int gain)
 {
 	struct msgb *msg;
 	struct l1ctl_bts_mode *be;
@@ -122,13 +123,14 @@ l1ctl_tx_bts_mode(struct l1ctl_link *l1l,
 	if (!msg)
 		return -1;
 
-	LOGP(DL1C, LOGL_INFO, "BTS Mode (enabled=%u, bsic=%u, arfcn=%u)\n",
-		enabled, bsic, band_arfcn);
+	LOGP(DL1C, LOGL_INFO, "BTS Mode (enabled=%u, bsic=%u, arfcn=%u "
+		"gain=%d)\n", enabled, bsic, band_arfcn, gain);
 
 	be = (struct l1ctl_bts_mode *) msgb_put(msg, sizeof(*be));
 	be->enabled = enabled;
 	be->bsic = bsic;
 	be->band_arfcn = htons(band_arfcn);
+	be->gain = gain;
 
 	return l1l_send(l1l, msg);
 }

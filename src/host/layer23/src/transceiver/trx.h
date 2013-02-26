@@ -50,6 +50,7 @@ struct trx {
 	/* TRX configuration */
 	uint16_t arfcn;
 	uint8_t  bsic;
+	int gain;
 };
 
 
