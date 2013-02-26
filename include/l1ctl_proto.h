@@ -312,6 +312,7 @@ struct l1ctl_bts_mode {
 	uint8_t enabled;
 	uint8_t bsic;
 	uint16_t band_arfcn;
+	uint8_t gain;
 } __attribute__((packed));
 
 /* BTS mode: Burst Request */

@@ -607,6 +607,7 @@ static int l1ctl_bts_mode(struct msgb *msg)
 
 	if (bm->enabled) {
 		mframe_enable(MF_TASK_BTS);
+		l1s.bts.gain = bm->gain;
 	} else {
 		mframe_disable(MF_TASK_BTS);
 	}

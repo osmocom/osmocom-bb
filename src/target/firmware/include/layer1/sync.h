@@ -159,6 +159,7 @@ struct l1s_state {
 	struct {
 		uint16_t arfcn;
 		uint8_t bsic;
+		uint8_t gain;
 	} bts;
 };
 
