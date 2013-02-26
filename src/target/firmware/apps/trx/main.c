@@ -41,6 +41,25 @@
 
 #include <fb/framebuffer.h>
 
+#include <uart.h>
+#include <delay.h>
+static int sercomm_uart;
+static void flush_uart(void)
+{
+	unsigned i;
+	for (i = 0; i < 500; i++) {
+		uart_poll(sercomm_uart);
+		delay_ms(1);
+	}
+}
+
+
+static void device_poweroff(void)
+{
+	flush_uart();
+	twl3025_power_off();
+}
+
 
 static void
 key_handler(enum key_codes code, enum key_states state)
@@ -49,6 +68,10 @@ key_handler(enum key_codes code, enum key_states state)
 		return;
 
 	switch (code) {
+	case KEY_POWER:
+		puts("Powering off due to keypress.\n");
+		device_poweroff();
+		break;
 	default:
 		break;
 	}
@@ -63,6 +86,7 @@ int main(void)
 
 	/* Init board */
 	board_init(1);
+	sercomm_uart = sercomm_get_uart();
 
 	/* Register keypad handler */
 	keypad_set_handler(&key_handler);
