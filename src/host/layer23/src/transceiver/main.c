@@ -51,6 +51,7 @@ static void print_help(char *argv[])
 	printf( "Some useful options:\n"
 		"  -h   --help             this text\n"
 		"  -d   --debug MASK       Enable debugging (e.g. -d DL1C:DTRX)\n"
+		"  -e   --log-level LOGL   Set log level (1=debug, 3=info, 5=notice)\n"
 		"  -D   --daemonize        For the process into a background daemon\n"
 		"  -s   --disable-color    Don't use colors in stderr log output\n"
 		"  -a   --arfcn-sync ARFCN Set ARFCN to sync to\n"
@@ -65,13 +66,14 @@ static void handle_options(int argc, char **argv, struct app_state *as)
 		static const struct option long_options[] = {
 			{ "help", 0, 0, 'h' },
 			{ "debug", 1, 0, 'd' },
+			{ "log-level", 1, 0, 'e' },
 			{ "daemonize", 0, 0, 'D' },
 			{ "disable-color", 0, 0, 's' },
 			{ "arfcn-sync", 1, 0, 'a' },
 			{ "arfcn-sync-pcs", 0, 0, 'p' },
 		};
 
-		c = getopt_long(argc, argv, "hd:Dsa:p",
+		c = getopt_long(argc, argv, "hd:e:Dsa:p",
 			long_options, &option_idx);
 
 		if (c == -1)
@@ -97,6 +99,9 @@ static void handle_options(int argc, char **argv, struct app_state *as)
 			break;
 		case 'p':
 			as->arfcn_sync |= ARFCN_PCS;
+			break;
+		case 'e':
+			log_set_log_level(as->stderr_target, atoi(optarg));
 			break;
 		default:
 			fprintf(stderr, "Unknow option %s\n", optarg);
