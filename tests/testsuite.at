@@ -99,16 +99,3 @@ cat $abs_srcdir/fr/fr_test.err > experr
 AT_CHECK([$abs_top_builddir/tests/fr/fr_test], [], [expout], [experr])
 
 AT_CLEANUP
-
-AT_SETUP([loggingrb])
-AT_KEYWORDS([loggingrb])
-cat $abs_srcdir/loggingrb/logging_test.ok > expout
-cat $abs_srcdir/loggingrb/logging_test.err > experr
-AT_CHECK([$abs_top_builddir/tests/loggingrb/loggingrb_test], [], [expout], [experr])
-AT_CLEANUP
-
-AT_SETUP([strrb])
-AT_KEYWORDS([strrb])
-cat $abs_srcdir/strrb/strrb_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/strrb/strrb_test], [], [expout], [ignore])
-AT_CLEANUP

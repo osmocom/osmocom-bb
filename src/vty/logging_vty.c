@@ -27,8 +27,8 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
-#include <osmocom/core/strrb.h>
-#include <osmocom/core/loggingrb.h>
+
+//#include <openbsc/vty.h>
 
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/buffer.h>
@@ -252,8 +252,8 @@ static void vty_print_logtarget(struct vty *vty, const struct log_info *info,
 #define SHOW_LOG_STR "Show current logging configuration\n"
 
 DEFUN(show_logging_vty,
-	show_logging_vty_cmd,
-	"show logging vty",
+      show_logging_vty_cmd,
+      "show logging vty",
 	SHOW_STR SHOW_LOG_STR
 	"Show current logging configuration for this vty\n")
 {
@@ -263,33 +263,6 @@ DEFUN(show_logging_vty,
 		return CMD_WARNING;
 
 	vty_print_logtarget(vty, osmo_log_info, tgt);
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(show_alarms,
-	show_alarms_cmd,
-	"show alarms",
-	SHOW_STR SHOW_LOG_STR
-	"Show the contents of the logging ringbuffer\n")
-{
-	int i, num_alarms;
-	struct osmo_strrb *rb;
-	struct log_target *tgt = log_target_find(LOG_TGT_TYPE_STRRB, NULL);
-	if (!tgt) {
-		vty_out(vty, "%% No alarms, run 'log alarms <2-32700>'%s",
-			VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	rb = tgt->tgt_rb.rb;
-	num_alarms = osmo_strrb_elements(rb);
-
-	vty_out(vty, "%% Showing %i alarms%s", num_alarms, VTY_NEWLINE);
-
-	for (i = 0; i < num_alarms; i++)
-		vty_out(vty, "%% %s%s", osmo_strrb_get_nth(rb, i),
-			VTY_NEWLINE);
 
 	return CMD_SUCCESS;
 }
@@ -537,49 +510,6 @@ DEFUN(cfg_no_log_file, cfg_no_log_file_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_log_alarms, cfg_log_alarms_cmd,
-	"log alarms <2-32700>",
-	LOG_STR "Logging alarms to osmo_strrb\n"
-	"Maximum number of messages to log\n")
-{
-	struct log_target *tgt;
-	unsigned int rbsize = atoi(argv[0]);
-
-	tgt = log_target_find(LOG_TGT_TYPE_STRRB, NULL);
-	if (tgt)
-		log_target_destroy(tgt);
-
-	tgt = log_target_create_rb(rbsize);
-	if (!tgt) {
-		vty_out(vty, "%% Unable to create osmo_strrb (size %u)%s",
-			rbsize, VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-	log_add_target(tgt);
-
-	vty->index = tgt;
-	vty->node = CFG_LOG_NODE;
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_no_log_alarms, cfg_no_log_alarms_cmd,
-	"no log alarms",
-	NO_STR LOG_STR "Logging alarms to osmo_strrb\n")
-{
-	struct log_target *tgt;
-
-	tgt = log_target_find(LOG_TGT_TYPE_STRRB, NULL);
-	if (!tgt) {
-		vty_out(vty, "%% No osmo_strrb target found%s", VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	log_target_destroy(tgt);
-
-	return CMD_SUCCESS;
-}
-
 static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 {
 	int i;
@@ -602,10 +532,6 @@ static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 		break;
 	case LOG_TGT_TYPE_FILE:
 		vty_out(vty, "log file %s%s", tgt->tgt_file.fname, VTY_NEWLINE);
-		break;
-	case LOG_TGT_TYPE_STRRB:
-		vty_out(vty, "log alarms %zu%s",
-			log_target_rb_avail_size(tgt), VTY_NEWLINE);
 		break;
 	}
 
@@ -664,7 +590,6 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	logging_level_cmd.doc = log_vty_command_description(cat);
 	install_element_ve(&logging_level_cmd);
 	install_element_ve(&show_logging_vty_cmd);
-	install_element_ve(&show_alarms_cmd);
 
 	install_node(&cfg_log_node, config_write_log);
 	install_default(CFG_LOG_NODE);
@@ -678,8 +603,6 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	install_element(CONFIG_NODE, &cfg_no_log_stderr_cmd);
 	install_element(CONFIG_NODE, &cfg_log_file_cmd);
 	install_element(CONFIG_NODE, &cfg_no_log_file_cmd);
-	install_element(CONFIG_NODE, &cfg_log_alarms_cmd);
-	install_element(CONFIG_NODE, &cfg_no_log_alarms_cmd);
 #ifdef HAVE_SYSLOG_H
 	install_element(CONFIG_NODE, &cfg_log_syslog_cmd);
 	install_element(CONFIG_NODE, &cfg_log_syslog_local_cmd);
