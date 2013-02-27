@@ -173,7 +173,7 @@ _l1ctl_rx_bts_burst_nb_ind(struct app_state *as, struct msgb *msg)
 	struct l1ctl_bts_burst_nb_ind *bi;
 	uint32_t fn;
 	int rc, i;
-	sbit_t data[148];
+	sbit_t data[148], steal[2];
 	float toa;
 
 	bi = (struct l1ctl_bts_burst_nb_ind *) msg->l1h;
@@ -193,7 +193,9 @@ _l1ctl_rx_bts_burst_nb_ind(struct app_state *as, struct msgb *msg)
 
 	osmo_pbit2ubit_ext((ubit_t*)data,  3, bi->data,  0, 57, 0);
 	osmo_pbit2ubit_ext((ubit_t*)data, 88, bi->data, 57, 57, 0);
-	data[60] = data[87] = 1;
+	osmo_pbit2ubit_ext((ubit_t*)steal, 0, bi->data, 114, 2, 0);
+	data[60] = steal[1];
+	data[87] = steal[0];
 
 	for (i=0; i<148; i++)
 		data[i] = data[i] ? -127 : 127;
