@@ -142,7 +142,7 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 			struct msgb *msg;
 			struct l1ctl_bts_burst_ab_ind *bi;
 			uint16_t *iq = &db->data[32];
-			int i;
+			int i, j;
 
 			printf("### RACH ### (%04x %04x - %04x)\n",
 				db->rx[0].data, energy_avg, db->rx[1].cmd);
@@ -158,8 +158,11 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 			bi->fn = htonl(rx_time.fn);
 
 			/* Data (cut to 8 bits */
-			for (i=0; i<2*88; i++)
-				bi->iq[i] = iq[i] >> 8;
+			bi->toa = db->rx[1].cmd;
+			if (bi->toa > 68)
+				goto exit;
+			for (i=0,j=(db->rx[1].cmd)<<1; i<2*88; i++,j++)
+				bi->iq[i] = iq[j] >> 8;
 
 			/* Send it ! */
 			l1_queue_for_l2(msg);
@@ -172,6 +175,7 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 	{
 		uint16_t *d = &db->data[32];
 		int rssi = agc_inp_dbm8_by_pm(d[1] >> 3) / 8;
+		int16_t toa = (int16_t)d[0] - 3;
 
 		if (d[3] > 0x1000) {
 			struct msgb *msg;
@@ -194,7 +198,8 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 			bi->tn = 0;
 
 			/* TOA */
-			bi->toa = d[0];
+			if (toa > -32 && toa < 32)
+				bi->toa = toa;
 
 			/* RSSI */
 			if (rssi < -110)
