@@ -27,6 +27,7 @@
 #include <defines.h>
 #include <asm/system.h>
 #include <layer1/trx.h>
+#include <layer1/sync.h>
 
 #include "burst_queue.h"
 
@@ -35,31 +36,43 @@
 BURST_QUEUE_STATIC(g_bq, 8, 512, static)
 
 /* Filler table */
-static struct burst_data fill_tn0[51];
+static struct burst_data fill[8][52];
+static uint8_t fill_size[8];
 
 
 /* TRX Helpers **************************************************************/
 
 static void
-trx_init_filler(void)
+trx_init_filler(uint8_t tn, uint8_t type)
 {
 	int i;
 
-	for (i=0; i<51; i++) {
-		if ((i % 51) == 50)
-			fill_tn0[i].type = BURST_DUMMY;
-		else if (((i % 51) % 10) == 0)
-			fill_tn0[i].type = BURST_FB;
-		else if (((i % 51) % 10) == 1)
-			fill_tn0[i].type = BURST_SB;
-		else
-			fill_tn0[i].type = BURST_DUMMY;
+	if ((type >> 1) == 2) {
+		for (i=0; i<51; i++) {
+			if ((i % 51) == 50)
+				fill[tn][i].type = BURST_DUMMY;
+			else if (((i % 51) % 10) == 0)
+				fill[tn][i].type = BURST_FB;
+			else if (((i % 51) % 10) == 1)
+				fill[tn][i].type = BURST_SB;
+			else
+				fill[tn][i].type = BURST_DUMMY;
+		}
+		fill_size[tn] = 51;
+	} else if ((type >> 1) == 3) {
+		for (i=0; i<51; i++)
+			fill[tn][i].type = BURST_DUMMY;
+		fill_size[tn] = 51;
+	} else {
+		for (i=0; i<52; i++)
+			fill[tn][i].type = BURST_DUMMY;
+		fill_size[tn] = 52;
 	}
 }
 
 static void
 trx_discarded_burst(struct burst_data *burst,
-                    int head, uint32_t fn, __unused void *data)
+                    int head, uint32_t fn, uint8_t tn, __unused void *data)
 {
 	/* Only TN=0 */
 	if (head)
@@ -69,7 +82,7 @@ trx_discarded_burst(struct burst_data *burst,
 	printf("STALE BURST %" PRIu32 "\n", fn);
 
 	/* Still copy to the filler table */
-	memcpy(&fill_tn0[fn % 51], burst, sizeof(struct burst_data));
+	memcpy(&fill[tn][fn % fill_size[tn]], burst, sizeof(struct burst_data));
 }
 
 
@@ -78,12 +91,15 @@ trx_discarded_burst(struct burst_data *burst,
 void
 trx_init(void)
 {
+	int i;
+
 	/* Init burst queue */
 	bq_reset(&g_bq);
 	bq_set_discard_fn(&g_bq, trx_discarded_burst, NULL);
 
 	/* Init filler table */
-	trx_init_filler();
+	for (i = 0; i < 8; i++)
+		trx_init_filler(i, l1s.bts.type[i]);
 }
 
 int
@@ -119,12 +135,13 @@ trx_get_burst(uint32_t fn, uint8_t tn, uint8_t *data)
 
 	if (burst) {
 		/* New burst: Copy to fill table & use it */
-		memcpy(&fill_tn0[fn % 51], burst, sizeof(struct burst_data));
+		memcpy(&fill[tn][fn % fill_size[tn]], burst,
+			sizeof(struct burst_data));
 
 		// printf("O %d %d %p\n", fn, g_bq.used, burst);
 	} else {
 		/* No data, just use the one from fill table */
-		burst = &fill_tn0[fn % 51];
+		burst = &fill[tn][fn % fill_size[tn]];
 	}
 
 	rc = burst->type;

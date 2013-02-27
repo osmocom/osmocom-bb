@@ -163,6 +163,7 @@ struct l1s_state {
 
 	/* bts mode */
 	struct {
+		uint8_t type[8];
 		uint16_t arfcn;
 		uint8_t bsic;
 		uint8_t gain;

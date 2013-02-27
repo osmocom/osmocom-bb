@@ -40,3 +40,8 @@ trx_put_burst(uint32_t fn, uint8_t tn, uint8_t type, uint8_t *data)
 {
 	return 0;
 }
+
+void
+trx_init(void)
+{
+}
