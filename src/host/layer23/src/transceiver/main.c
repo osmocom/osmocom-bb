@@ -43,6 +43,7 @@
 void *l23_ctx = NULL;
 static int arfcn_sync = 0;
 static int daemonize = 0;
+static int second_phone = 0;
 
 static void print_help(char *argv[])
 {
@@ -56,6 +57,7 @@ static void print_help(char *argv[])
 		"  -s   --disable-color    Don't use colors in stderr log output\n"
 		"  -a   --arfcn-sync ARFCN Set ARFCN to sync to\n"
 		"  -p   --arfcn-sync-pcs   The ARFCN above is PCS\n"
+		"  -2   --second-phone     Use second phone for TS 1\n"
 		);
 }
 
@@ -71,9 +73,10 @@ static void handle_options(int argc, char **argv, struct app_state *as)
 			{ "disable-color", 0, 0, 's' },
 			{ "arfcn-sync", 1, 0, 'a' },
 			{ "arfcn-sync-pcs", 0, 0, 'p' },
+			{ "second-phone", 0, 0, '2' },
 		};
 
-		c = getopt_long(argc, argv, "hd:e:Dsa:p",
+		c = getopt_long(argc, argv, "hd:e:Dsa:p2",
 			long_options, &option_idx);
 
 		if (c == -1)
@@ -102,6 +105,9 @@ static void handle_options(int argc, char **argv, struct app_state *as)
 			break;
 		case 'e':
 			log_set_log_level(as->stderr_target, atoi(optarg));
+			break;
+		case '2':
+			second_phone = 1;
 			break;
 		default:
 			fprintf(stderr, "Unknow option %s\n", optarg);
@@ -171,6 +177,23 @@ int main(int argc, char *argv[])
 
 	/* Reset phone */
 	l1ctl_tx_reset_req(&as->l1l[0], L1CTL_RES_T_FULL);
+
+	if (second_phone) {
+		/* Establish l1ctl link */
+		rv = l1l_open(&as->l1l[1], "/tmp/osmocom_l2.2", l1ctl_recv, &as->l1l[1]);
+		if (rv)
+			exit(-1);
+		as->l1l[1].trx = as->trx[0];
+		as->l1l[1].as = as;
+		as->l1l[1].tx_mask = 0x02; /* TS 1 */
+		as->l1l[1].rx_mask = 0x02; /* TS 1 */
+		as->l1l[0].tx_mask = 0xe1; /* TS 5,6,7,0 */
+		as->l1l[0].rx_mask = 0x01; /* TS 0 */
+		as->trx[0]->l1l[1] = &as->l1l[1];
+
+		/* Reset phone */
+		l1ctl_tx_reset_req(&as->l1l[1], L1CTL_RES_T_FULL);
+	}
 
 	if (daemonize) {
 		rv = osmo_daemonize();
