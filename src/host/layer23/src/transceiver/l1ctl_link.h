@@ -42,6 +42,8 @@ struct l1ctl_link
 	struct trx *trx;
 
 	uint8_t tx_mask, rx_mask;
+
+	int sync;
 };
 
 
