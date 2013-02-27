@@ -356,6 +356,7 @@ _trx_ctrl_cmd_rxtune(struct trx *trx, const char *cmd, const char *args)
 	if ( arfcn == ARFCN_INVAL ||
 	    (trx->arfcn != ARFCN_INVAL && trx->arfcn != arfcn)) {
 		LOGP(DTRX, LOGL_ERROR, "RXTUNE called with invalid/inconsistent frequency\n");
+		rv = -1;
 		goto done;
 	}
 
@@ -381,6 +382,7 @@ _trx_ctrl_cmd_txtune(struct trx *trx, const char *cmd, const char *args)
 	if ( arfcn == ARFCN_INVAL ||
 	    (trx->arfcn != ARFCN_INVAL && trx->arfcn != arfcn)) {
 		LOGP(DTRX, LOGL_ERROR, "TXTUNE called with invalid/inconsistent frequency\n");
+		rv = -1;
 		goto done;
 	}
 
