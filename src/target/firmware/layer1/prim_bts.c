@@ -171,6 +171,7 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 	else if (db->rx[0].cmd == DSP_EXT_RX_CMD_NB)
 	{
 		uint16_t *d = &db->data[32];
+		int rssi = agc_inp_dbm8_by_pm(d[1] >> 3) / 8;
 
 		if (d[3] > 0x1000) {
 			struct msgb *msg;
@@ -194,6 +195,12 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 
 			/* TOA */
 			bi->toa = d[0];
+
+			/* RSSI */
+			if (rssi < -110)
+				bi->rssi = -110;
+			else if (rssi < 0)
+				bi->rssi = rssi;
 
 			/* Pack bits */
 			memset(bi->data, 0x00, sizeof(bi->data));

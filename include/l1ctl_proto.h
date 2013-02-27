@@ -329,6 +329,7 @@ struct l1ctl_bts_burst_nb_ind {
 	uint32_t fn;
 	uint8_t tn;
 	uint8_t toa;
+	int8_t rssi;
 	uint8_t data[15];
 } __attribute__((packed));
 
