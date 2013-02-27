@@ -175,6 +175,7 @@ _l1ctl_rx_bts_burst_nb_ind(struct app_state *as, struct msgb *msg)
 	int rc, i;
 	sbit_t data[148], steal[2];
 	float toa;
+	int8_t rssi;
 
 	bi = (struct l1ctl_bts_burst_nb_ind *) msg->l1h;
 
@@ -189,6 +190,8 @@ _l1ctl_rx_bts_burst_nb_ind(struct app_state *as, struct msgb *msg)
 
 	LOGP(DL1C, LOGL_INFO, "Normal Burst Indication (fn=%d)\n", fn);
 
+	rssi = bi->rssi;
+
 	memset(data, 0x00, 148);
 
 	osmo_pbit2ubit_ext((ubit_t*)data,  3, bi->data,  0, 57, 0);
@@ -200,7 +203,7 @@ _l1ctl_rx_bts_burst_nb_ind(struct app_state *as, struct msgb *msg)
 	for (i=0; i<148; i++)
 		data[i] = data[i] ? -127 : 127;
 
-	trx_data_ind(as->trx, fn, bi->tn, data, 0.0f);
+	trx_data_ind(as->trx, fn, bi->tn, data, 0x0f, rssi);
 
 exit:
 	msgb_free(msg);
@@ -231,7 +234,7 @@ _l1ctl_rx_bts_burst_ab_ind(struct app_state *as, struct msgb *msg)
 	LOGP(DL1C, LOGL_INFO, "Access Burst Indication (fn=%d)\n", fn);
 
 	gsm_ab_ind_process(as, bi, data, &toa);
-	trx_data_ind(as->trx, fn, 0, data, toa);
+	trx_data_ind(as->trx, fn, 0, data, toa, 0);
 
 exit:
 	msgb_free(msg);
