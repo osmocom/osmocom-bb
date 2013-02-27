@@ -135,39 +135,54 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 	/* Access Burst ? */
 	if (db->rx[0].cmd == DSP_EXT_RX_CMD_AB)
 	{
-		static int energy_avg = 0x8000;
+		static struct l1ctl_bts_burst_ab_ind _bi[51];
+		static int energy[51];
+		struct l1ctl_bts_burst_ab_ind *bi = &_bi[rx_time.t3];
+		int i, j;
+		uint16_t *iq = &db->data[32];
 
-		if (db->rx[0].data > (energy_avg << 1))
-		{
+		energy[rx_time.t3] = 0;
+
+		/* Frame number */
+		bi->fn = htonl(rx_time.fn);
+
+		/* Data (cut to 8 bits */
+		bi->toa = db->rx[1].cmd;
+		if (bi->toa > 68)
+			goto exit;
+		for (i=0,j=(db->rx[1].cmd)<<1; i<2*88; i++,j++)
+			bi->iq[i] = iq[j] >> 8;
+
+		/* energy */
+		energy[rx_time.t3] = db->rx[0].data;
+
+		if (rx_time.t3 == 46) {
 			struct msgb *msg;
-			struct l1ctl_bts_burst_ab_ind *bi;
-			uint16_t *iq = &db->data[32];
-			int i, j;
+			int energy_max = 0, energy_avg = 0;
 
-			printf("### RACH ### (%04x %04x - %04x)\n",
-				db->rx[0].data, energy_avg, db->rx[1].cmd);
+			/* find strongest burst */
+			j = 0;
+			for (i = 0; i < 51; i++) {
+				energy_avg += energy[i];
+				if (energy[i] > energy_max) {
+					energy_max = energy[i];
+					j = i;
+				}
+				energy[i] = 0;
+			}
+
+			printf("### RACH ### (%04x %04x)\n", energy_max, energy_avg);
 
 			/* Create message */
 			msg = l1ctl_msgb_alloc(L1CTL_BTS_BURST_AB_IND);
 			if (!msg)
 				goto exit;
 
-			bi = (struct l1ctl_bts_burst_ab_ind *) msgb_put(msg, sizeof(*bi));
-
-			/* Frame number */
-			bi->fn = htonl(rx_time.fn);
-
-			/* Data (cut to 8 bits */
-			bi->toa = db->rx[1].cmd;
-			if (bi->toa > 68)
-				goto exit;
-			for (i=0,j=(db->rx[1].cmd)<<1; i<2*88; i++,j++)
-				bi->iq[i] = iq[j] >> 8;
+			memcpy(msgb_put(msg, sizeof(*bi)), &_bi[j], sizeof(*bi));
 
 			/* Send it ! */
 			l1_queue_for_l2(msg);
-		} else
-			energy_avg = ((energy_avg * 7) + db->rx[0].data) >> 3;
+		}
 	}
 
 	/* Normal Burst ? */
