@@ -36,6 +36,12 @@ struct l1ctl_link
 
 	l1ctl_cb_t cb;
 	void      *cb_data;
+
+	struct app_state *as;
+
+	struct trx *trx;
+
+	uint8_t tx_mask, rx_mask;
 };
 
 

@@ -44,6 +44,7 @@
 
 #include <osmocom/bb/common/logging.h>
 
+#include "app.h"
 #include "l1ctl.h"
 #include "l1ctl_link.h"
 #include "trx.h"
@@ -115,7 +116,7 @@ err:
 }
 
 struct trx *
-trx_alloc(const char *addr, uint16_t base_port, struct l1ctl_link *l1l)
+trx_alloc(const char *addr, uint16_t base_port, struct app_state *as, int clock)
 {
 	struct trx *trx;
 	int rv;
@@ -131,20 +132,22 @@ trx_alloc(const char *addr, uint16_t base_port, struct l1ctl_link *l1l)
 	trx->gain = 0; /* Best test results for broadest range of RX levels */
 
 	/* L1 link */
-	trx->l1l = l1l;
+	trx->as = as;
 
 	/* Clock */
-	rv = _trx_udp_init(trx, &trx->ofd_clk, addr, base_port, _trx_clk_read_cb);
-	if (rv)
-		goto err;
+	if (clock) {
+		rv = _trx_udp_init(trx, &trx->ofd_clk, addr, base_port++, _trx_clk_read_cb);
+		if (rv)
+			goto err;
+	}
 
 	/* Control */
-	rv = _trx_udp_init(trx, &trx->ofd_ctrl, addr, base_port+1, _trx_ctrl_read_cb);
+	rv = _trx_udp_init(trx, &trx->ofd_ctrl, addr, base_port++, _trx_ctrl_read_cb);
 	if (rv)
 		goto err;
 
 	/* Data */
-	rv = _trx_udp_init(trx, &trx->ofd_data, addr, base_port+2, _trx_data_read_cb);
+	rv = _trx_udp_init(trx, &trx->ofd_data, addr, base_port++, _trx_data_read_cb);
 	if (rv)
 		goto err;
 
@@ -228,8 +231,12 @@ _trx_ctrl_send_resp(struct trx *trx, const char *cmd, const char *fmt, ...)
 static int
 _trx_ctrl_cmd_poweroff(struct trx *trx, const char *cmd, const char *args)
 {
-	l1ctl_tx_bts_mode(trx->l1l, 0, trx->type, 0, 0, 0);
+	int i;
+
 	trx->power = 0;
+	for (i = 0; i < 8; i++)
+		if (trx->l1l[i])
+			l1ctl_tx_bts_mode(trx->l1l[i], 0, trx->type, 0, 0, 0, 0, 0);
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d", 0);
 }
@@ -237,15 +244,18 @@ _trx_ctrl_cmd_poweroff(struct trx *trx, const char *cmd, const char *args)
 static int
 _trx_ctrl_cmd_poweron(struct trx *trx, const char *cmd, const char *args)
 {
-	int rv;
+	int rv = 0;
+	int i;
 
 	if (trx->bsic == BSIC_INVAL || trx->arfcn == ARFCN_INVAL) {
 		LOGP(DTRX, LOGL_ERROR,
 			"TRX received POWERON when not fully configured\n");
 		rv = -EINVAL;
 	} else {
-		rv = l1ctl_tx_bts_mode(trx->l1l, 1, trx->type, trx->bsic, trx->arfcn, trx->gain);
 		trx->power = 1;
+		for (i = 0; i < 8; i++)
+			if (trx->l1l[i])
+				l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask);
 	}
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d", rv);
@@ -280,6 +290,7 @@ static int
 _trx_ctrl_cmd_setrxgain(struct trx *trx, const char *cmd, const char *args)
 {
 	int db = atoi(args);
+	int i;
 
 	if (db < 0 || db > 63) {
 		LOGP(DTRX, LOGL_ERROR, "Invalid gain received\n");
@@ -288,9 +299,11 @@ _trx_ctrl_cmd_setrxgain(struct trx *trx, const char *cmd, const char *args)
 
 	trx->gain = db;
 
-	if (trx->power)
-		l1ctl_tx_bts_mode(trx->l1l, 1, trx->type, trx->bsic, trx->arfcn,
-			trx->gain);
+	if (trx->power) {
+		for (i = 0; i < 8; i++)
+			if (trx->l1l[i])
+				l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask);
+	}
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, db);
 }
@@ -315,6 +328,7 @@ static int
 _trx_ctrl_cmd_setslot(struct trx *trx, const char *cmd, const char *args)
 {
 	int n, tn, type;
+	int i;
 
 	n = sscanf(args, "%d %d", &tn, &type);
 
@@ -323,9 +337,8 @@ _trx_ctrl_cmd_setslot(struct trx *trx, const char *cmd, const char *args)
 
 	trx->type[tn] = type;
 
-	if (trx->power)
-		l1ctl_tx_bts_mode(trx->l1l, 1, trx->type, trx->bsic, trx->arfcn,
-			trx->gain);
+	if (trx->l1l[i])
+		l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask);
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, type);
 }
@@ -505,6 +518,10 @@ _trx_data_read_cb(struct osmo_fd *ofd, unsigned int what)
 	pwr_att = buf[5];
 	data = buf+6;
 
+	/* Ignore unallocated time slots */
+	if (!trx->l1l[tn])
+		goto skip;
+
 	/* Ignore FCCH and SCH completely, they're handled internally */
 	if ((trx->type[tn] >> 1) == 2 && ((fn % 51) % 10) < 2)
 		goto skip;
@@ -523,13 +540,11 @@ _trx_data_read_cb(struct osmo_fd *ofd, unsigned int what)
 	osmo_ubit2pbit_ext(burst->data, 58, data, 87, 58, 0);
 
 	/* Send to L1 */
-	if (tn == 0)
-		l1ctl_tx_bts_burst_req(trx->l1l, fn, tn, burst);
+	l1ctl_tx_bts_burst_req(trx->l1l[tn], fn, tn, burst);
 
 	/* Debug */
-	if (tn == 0)
-		LOGP(DTRX, LOGL_DEBUG, "TRX Data %u:%d:%d:%s\n",
-			fn, tn, pwr_att, osmo_hexdump_nospc(burst->data, 15));
+	LOGP(DTRX, LOGL_DEBUG, "TRX Data %u:%d:%d:%s\n",
+		fn, tn, pwr_att, osmo_hexdump_nospc(burst->data, 15));
 
 	/* Done ! */
 skip:
