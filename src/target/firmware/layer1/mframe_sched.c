@@ -363,6 +363,12 @@ static const struct mframe_sched_item mf_bts[] = {
 	{ .sched_set = NULL }
 };
 
+/* BTS Sync */
+static const struct mframe_sched_item mf_bts_sync[] = {
+	{ .sched_set = bts_sync_sched_set, .modulo = 51, .frame_nr = 2 },
+	{ .sched_set = NULL }
+};
+
 /* Test TX */
 static const struct mframe_sched_item mf_tx_all_nb[] = {
 	{ .sched_set = NB_QUAD_FH_UL, .modulo = 4, .frame_nr = 0 },
@@ -406,6 +412,7 @@ static const struct mframe_sched_item *sched_set_for_task[32] = {
 	[MF_TASK_NEIGH_PM26O] = mf_neigh_pm26_odd,
 
 	[MF_TASK_BTS] = mf_bts,
+	[MF_TASK_BTS_SYNC] = mf_bts_sync,
 
 	[MF_TASK_UL_ALL_NB] = mf_tx_all_nb,
 };

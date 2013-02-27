@@ -40,6 +40,7 @@ enum mframe_task {
 	MF_TASK_NEIGH_PM26O,
 
 	MF_TASK_BTS,
+	MF_TASK_BTS_SYNC,
 
 	/* Test task: send Normal Burst in all timeslots */
 	MF_TASK_UL_ALL_NB,

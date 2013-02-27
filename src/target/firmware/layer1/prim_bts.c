@@ -245,7 +245,7 @@ l1s_bts_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 
 	t3 = l1s.next_time.t3;
 
-	if ((t3 < 2) || (t3 > 5))
+	if (t3 != 2)
 	{
 		/* We're really a frame in advance since we RX in the next frame ! */
 		t3 = t3 - 1;
