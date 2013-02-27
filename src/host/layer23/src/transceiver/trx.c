@@ -541,7 +541,7 @@ inval:
 }
 
 int
-trx_data_ind(struct trx *trx, uint32_t fn, uint8_t tn, sbit_t *data, float toa)
+trx_data_ind(struct trx *trx, uint32_t fn, uint8_t tn, sbit_t *data, float toa, int8_t rssi)
 {
 	char buf[158];
 	short toa_int = (short)(toa * 256.0f);
@@ -557,7 +557,7 @@ trx_data_ind(struct trx *trx, uint32_t fn, uint8_t tn, sbit_t *data, float toa)
 	buf[4] = (fn >>  0) & 0xff;
 
 	/* RSSI */
-	buf[5] = 0x80;
+	buf[5] = -rssi;
 
 	/* TOA */
 	buf[6] = (toa_int >> 8) & 0xff;

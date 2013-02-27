@@ -61,7 +61,7 @@ struct trx *trx_alloc(const char *addr, uint16_t base_port,
 void trx_free(struct trx *trx);
 
 int trx_clk_ind(struct trx *trx, uint32_t fn);
-int trx_data_ind(struct trx *trx, uint32_t fn, uint8_t tn, sbit_t *data, float toa);
+int trx_data_ind(struct trx *trx, uint32_t fn, uint8_t tn, sbit_t *data, float toa, int8_t rssi);
 
 
 #endif /* __TRX_TRX_H__ */
