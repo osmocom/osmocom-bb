@@ -605,11 +605,13 @@ static int l1ctl_bts_mode(struct msgb *msg)
 
 	printf("BTS MODE: %u %u\n", l1s.bts.bsic, l1s.bts.arfcn);
 
+	l1a_mftask_set(0);
 	if (bm->enabled) {
+		mframe_enable(MF_TASK_BTS_SYNC);
 		mframe_enable(MF_TASK_BTS);
 		l1s.bts.gain = bm->gain;
 	} else {
-		mframe_disable(MF_TASK_BTS);
+		mframe_enable(MF_TASK_BCCH_NORM);
 	}
 
 	return 0;
