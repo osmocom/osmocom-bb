@@ -90,6 +90,7 @@ APPLICATIONS?=hello_world compal_dsp_dump layer1 loader chainload rssi trx
 APP_chainload_ENVIRONMENTS=compalram
 APP_loader_ENVIRONMENTS=compalram highram
 APP_rssi_ENVIRONMENTS=* -compalram
+APP_trx_ENVIRONMENTS=* -compalram
 
 # Various objects that are currently linked into all applications
 FLASH_OBJS=flash/cfi_flash.o
