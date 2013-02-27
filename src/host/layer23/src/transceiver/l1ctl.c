@@ -89,6 +89,9 @@ l1ctl_tx_fbsb_req(struct l1ctl_link *l1l,
 	struct msgb *msg;
 	struct l1ctl_fbsb_req *req;
 
+	if (l1l->sync)
+		return -EIO;
+
 	LOGP(DL1C, LOGL_INFO, "Sync Req\n");
 
 	msg = _l1ctl_alloc(L1CTL_FBSB_REQ);
@@ -120,6 +123,9 @@ l1ctl_tx_bts_mode(struct l1ctl_link *l1l, uint8_t enabled, uint8_t *type,
 	struct l1ctl_bts_mode *be;
 	int i;
 
+	if (!l1l->sync)
+		return -EIO;
+
 	msg = _l1ctl_alloc(L1CTL_BTS_MODE);
 	if (!msg)
 		return -1;
@@ -146,6 +152,9 @@ l1ctl_tx_bts_burst_req(struct l1ctl_link *l1l,
 {
 	struct msgb *msg;
 	struct l1ctl_bts_burst_req *br;
+
+	if (!l1l->sync)
+		return -EIO;
 
 	msg = _l1ctl_alloc(L1CTL_BTS_BURST_REQ);
 	if (!msg)
@@ -325,7 +334,9 @@ _l1ctl_rx_fbsb_conf(struct l1ctl_link *l1l, struct msgb *msg)
 		LOGP(DAPP, LOGL_INFO, "Sync failed, retrying ... \n");
 		rc = l1ctl_tx_fbsb_req(l1l, l1l->as->arfcn_sync, L1CTL_FBSB_F_FB01SB, 100, 0, CCCH_MODE_NONE);
 	} else {
-		LOGP(DAPP, LOGL_INFO, "Sync acquired, wait for BCCH ...\n");
+		LOGP(DAPP, LOGL_INFO, "Sync acquired, setting BTS mode ...\n");
+		l1l->sync = 1;
+		l1ctl_tx_bts_mode(l1l, l1l->trx->power, l1l->trx->type, l1l->trx->bsic, l1l->trx->arfcn, l1l->trx->gain, l1l->tx_mask, l1l->rx_mask);
 	}
 
 	rc = 0;
