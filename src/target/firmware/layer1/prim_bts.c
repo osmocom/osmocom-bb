@@ -278,8 +278,10 @@ l1s_bts_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 		t3 = t3 - 1;
 
 		/* Select which type of burst */
-		if ((l1s.bts.type[0] >> 1) != 2)
+		if ((l1s.bts.type[0] >> 1) != 2) /* not type 4,5 */
 			db->rx[0].cmd = DSP_EXT_RX_CMD_NB;
+		else if (l1s.bts.type[0] == 4) /* type 4 */
+			db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
 		else if ((t3 >= 14) && (t3 <= 36))
 			db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
 		else if ((t3 == 4) || (t3 == 5))
