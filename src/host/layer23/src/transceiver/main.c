@@ -155,17 +155,22 @@ int main(int argc, char *argv[])
 		exit(-1);
 
 	/* TRX interface with OpenBTS */
-	as->trx = trx_alloc("127.0.0.1", 5700, &as->l1l);
+	as->trx[0] = trx_alloc("127.0.0.1", 5700, as, 1);
 	if (!as->trx)
 		exit(-1);
 
 	/* Establish l1ctl link */
-	rv = l1l_open(&as->l1l, "/tmp/osmocom_l2", l1ctl_recv, as);
+	rv = l1l_open(&as->l1l[0], "/tmp/osmocom_l2", l1ctl_recv, &as->l1l[0]);
 	if (rv)
 		exit(-1);
+	as->l1l[0].trx = as->trx[0];
+	as->l1l[0].as = as;
+	as->l1l[0].tx_mask = 0xe3; /* TS 5,6,7,0,1 */
+	as->l1l[0].rx_mask = 0x01; /* TS 0 */
+	as->trx[0]->l1l[0] = &as->l1l[0];
 
 	/* Reset phone */
-	l1ctl_tx_reset_req(&as->l1l, L1CTL_RES_T_FULL);
+	l1ctl_tx_reset_req(&as->l1l[0], L1CTL_RES_T_FULL);
 
 	if (daemonize) {
 		rv = osmo_daemonize();
