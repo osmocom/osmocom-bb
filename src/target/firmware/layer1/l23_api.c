@@ -603,12 +603,18 @@ static int l1ctl_bts_mode(struct msgb *msg)
 
 	l1s.tx_power = ms_pwr_ctl_lvl(gsm_arfcn2band(l1s.bts.arfcn), 15);
 
-	printf("BTS MODE: %u %u\n", l1s.bts.bsic, l1s.bts.arfcn);
+	printf("BTS MODE: %u %u {%u}\n", l1s.bts.bsic, l1s.bts.arfcn,
+		bm->type[0]);
 
 	l1a_mftask_set(0);
 	if (bm->enabled) {
+		int i;
+
 		mframe_enable(MF_TASK_BTS_SYNC);
 		mframe_enable(MF_TASK_BTS);
+		for (i = 0; i < 8; i++)
+			l1s.bts.type[i] = bm->type[i];
+		trx_init();
 		l1s.bts.gain = bm->gain;
 	} else {
 		mframe_enable(MF_TASK_BCCH_NORM);
