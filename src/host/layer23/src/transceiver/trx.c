@@ -228,7 +228,8 @@ _trx_ctrl_send_resp(struct trx *trx, const char *cmd, const char *fmt, ...)
 static int
 _trx_ctrl_cmd_poweroff(struct trx *trx, const char *cmd, const char *args)
 {
-	l1ctl_tx_bts_mode(trx->l1l, 0, 0, 0, 0);
+	l1ctl_tx_bts_mode(trx->l1l, 0, trx->type, 0, 0, 0);
+	trx->power = 0;
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d", 0);
 }
@@ -243,7 +244,8 @@ _trx_ctrl_cmd_poweron(struct trx *trx, const char *cmd, const char *args)
 			"TRX received POWERON when not fully configured\n");
 		rv = -EINVAL;
 	} else {
-		rv = l1ctl_tx_bts_mode(trx->l1l, 1, trx->bsic, trx->arfcn, trx->gain);
+		rv = l1ctl_tx_bts_mode(trx->l1l, 1, trx->type, trx->bsic, trx->arfcn, trx->gain);
+		trx->power = 1;
 	}
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d", rv);
@@ -286,7 +288,9 @@ _trx_ctrl_cmd_setrxgain(struct trx *trx, const char *cmd, const char *args)
 
 	trx->gain = db;
 
-	l1ctl_tx_bts_mode(trx->l1l, 1, trx->bsic, trx->arfcn, trx->gain);
+	if (trx->power)
+		l1ctl_tx_bts_mode(trx->l1l, 1, trx->type, trx->bsic, trx->arfcn,
+			trx->gain);
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, db);
 }
@@ -314,8 +318,14 @@ _trx_ctrl_cmd_setslot(struct trx *trx, const char *cmd, const char *args)
 
 	n = sscanf(args, "%d %d", &tn, &type);
 
-	if ((n != 2) || (tn < 0) || (tn > 7) || (type < 0) || (type > 8))
+	if ((n != 2) || (tn < 0) || (tn > 7) || (type < 0) || ((type > 8) && (type != 13)))
 		return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", -1, tn, type);
+
+	trx->type[tn] = type;
+
+	if (trx->power)
+		l1ctl_tx_bts_mode(trx->l1l, 1, trx->type, trx->bsic, trx->arfcn,
+			trx->gain);
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, type);
 }
@@ -496,7 +506,7 @@ _trx_data_read_cb(struct osmo_fd *ofd, unsigned int what)
 	data = buf+6;
 
 	/* Ignore FCCH and SCH completely, they're handled internally */
-	if (((fn % 51) % 10) < 2)
+	if ((trx->type[tn] >> 1) == 2 && ((fn % 51) % 10) < 2)
 		goto skip;
 
 	/* Detect dummy bursts */

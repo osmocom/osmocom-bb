@@ -39,7 +39,8 @@ int l1ctl_tx_fbsb_req(struct l1ctl_link *l1l,
 	uint16_t arfcn, uint8_t flags, uint16_t timeout,
 	uint8_t sync_info_idx, uint8_t ccch_mode);
 int l1ctl_tx_bts_mode(struct l1ctl_link *l1l,
-	uint8_t enabled, uint8_t bsic, uint16_t band_arfcn, int gain);
+	uint8_t enabled, uint8_t *type, uint8_t bsic, uint16_t band_arfcn,
+	int gain);
 int l1ctl_tx_bts_burst_req(struct l1ctl_link *l1l,
 	uint32_t fn, uint8_t tn, struct burst_data *burst);
 

@@ -48,9 +48,11 @@ struct trx {
 	struct l1ctl_link *l1l;
 
 	/* TRX configuration */
+	int power;
 	uint16_t arfcn;
 	uint8_t  bsic;
 	int gain;
+	uint8_t type[8];
 };
 
 

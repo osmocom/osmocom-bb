@@ -113,11 +113,12 @@ l1ctl_tx_fbsb_req(struct l1ctl_link *l1l,
 
 int
 l1ctl_tx_bts_mode(struct l1ctl_link *l1l,
-                  uint8_t enabled, uint8_t bsic, uint16_t band_arfcn,
-                  int gain)
+                  uint8_t enabled, uint8_t *type, uint8_t bsic,
+                  uint16_t band_arfcn, int gain)
 {
 	struct msgb *msg;
 	struct l1ctl_bts_mode *be;
+	int i;
 
 	msg = _l1ctl_alloc(L1CTL_BTS_MODE);
 	if (!msg)
@@ -128,6 +129,8 @@ l1ctl_tx_bts_mode(struct l1ctl_link *l1l,
 
 	be = (struct l1ctl_bts_mode *) msgb_put(msg, sizeof(*be));
 	be->enabled = enabled;
+	for (i = 0; i < 8; i++)
+		be->type[i] = type[i];
 	be->bsic = bsic;
 	be->band_arfcn = htons(band_arfcn);
 	be->gain = gain;
@@ -195,7 +198,7 @@ _l1ctl_rx_bts_burst_nb_ind(struct app_state *as, struct msgb *msg)
 	for (i=0; i<148; i++)
 		data[i] = data[i] ? -127 : 127;
 
-	trx_data_ind(as->trx, fn, 0, data, 0.0f);
+	trx_data_ind(as->trx, fn, bi->tn, data, 0.0f);
 
 exit:
 	msgb_free(msg);
