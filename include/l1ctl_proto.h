@@ -395,6 +395,8 @@ struct l1ctl_tbf_cfg_req {
 /* BTS mode: config */
 struct l1ctl_bts_mode {
 	uint8_t enabled;
+	uint8_t tx_mask;
+	uint8_t rx_mask;
 	uint8_t type[8];
 	uint8_t bsic;
 	uint16_t band_arfcn;
