@@ -603,9 +603,6 @@ static int l1ctl_bts_mode(struct msgb *msg)
 
 	l1s.tx_power = ms_pwr_ctl_lvl(gsm_arfcn2band(l1s.bts.arfcn), 15);
 
-	printf("BTS MODE: %u %u {%u}\n", l1s.bts.bsic, l1s.bts.arfcn,
-		bm->type[0]);
-
 	l1a_mftask_set(0);
 	if (bm->enabled) {
 		int i;
@@ -616,11 +613,54 @@ static int l1ctl_bts_mode(struct msgb *msg)
 			l1s.bts.type[i] = bm->type[i];
 		trx_init();
 		l1s.bts.gain = bm->gain;
+
+		/* Calculate TX and RX windows by bit masks */
+		for (i = 0; i < 8; i++) {
+			if (!(bm->tx_mask & (1 << ((i-1) & 7)))
+			 && (bm->tx_mask & (1 << i))) {
+				l1s.bts.tx_start = i;
+				break;
+			}
+		}
+		if (i == 8)
+			goto error;
+		l1s.bts.tx_num = 0;
+		while ((bm->tx_mask & (1 << i))) {
+			l1s.bts.tx_num++;
+			i = (i+1) & 7;
+		}
+		for (i = 0; i < 8; i++) {
+			if (!(bm->rx_mask & (1 << ((i-1) & 7)))
+			 && (bm->rx_mask & (1 << i))) {
+				l1s.bts.rx_start = i;
+				break;
+			}
+		}
+		if (i == 8)
+			goto error;
+		l1s.bts.rx_num = 0;
+		while ((bm->rx_mask & (1 << i))) {
+			l1s.bts.rx_num++;
+			i = (i+1) & 7;
+		}
 	} else {
 		mframe_enable(MF_TASK_BCCH_NORM);
 	}
 
+	printf("BTS MODE: %u %u {%u,%u,%u,%u,%u,%u,%u,%u} "
+		"TX %d..%d RX %d..%d\n", l1s.bts.bsic, l1s.bts.arfcn,
+		bm->type[0], bm->type[1], bm->type[2], bm->type[3],
+		bm->type[4], bm->type[5], bm->type[6], bm->type[7],
+		l1s.bts.tx_start, (l1s.bts.tx_start + l1s.bts.tx_num - 1) & 7,
+		l1s.bts.rx_start, (l1s.bts.rx_start + l1s.bts.rx_num - 1) & 7);
+
 	return 0;
+
+error:
+		printf("BTS MODE: invalid bit masks 0x%02x, 0x%02x\n",
+			bm->tx_mask, bm->rx_mask);
+
+	return -EINVAL;
 }
 
 static int l1ctl_bts_burst_req(struct msgb *msg)

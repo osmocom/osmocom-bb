@@ -157,6 +157,8 @@ struct l1s_state {
 
 	/* bts mode */
 	struct {
+		uint8_t tx_start, tx_num;
+		uint8_t rx_start, rx_num;
 		uint8_t type[8];
 		uint16_t arfcn;
 		uint8_t bsic;

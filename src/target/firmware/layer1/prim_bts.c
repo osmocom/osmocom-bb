@@ -171,7 +171,7 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 				energy[i] = 0;
 			}
 
-			printf("### RACH ### (%04x %04x)\n", energy_max, energy_avg);
+//			printf("### RACH ### (%04x %04x)\n", energy_max, energy_avg);
 
 			/* Create message */
 			msg = l1ctl_msgb_alloc(L1CTL_BTS_BURST_AB_IND);
@@ -197,7 +197,7 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 			struct l1ctl_bts_burst_nb_ind *bi;
 			int i;
 
-			printf("### NB ### (%04x %04x)\n", d[1], d[3]);
+//			printf("### NB ### (%04x %04x)\n", d[1], d[3]);
 
 			/* Create message */
 			msg = l1ctl_msgb_alloc(L1CTL_BTS_BURST_NB_IND);
@@ -210,7 +210,7 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 			bi->fn = htonl(rx_time.fn);
 
 			/* Timeslot */
-			bi->tn = 0;
+			bi->tn = l1s.bts.rx_start;
 
 			/* TOA */
 			if (toa > -32 && toa < 32)
@@ -278,7 +278,7 @@ l1s_bts_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 		t3 = t3 - 1;
 
 		/* Select which type of burst */
-		if ((l1s.bts.type[0] >> 1) != 2) /* not type 4,5 */
+		if ((l1s.bts.type[l1s.bts.rx_start] >> 1) != 2) /* not type 4,5 */
 			db->rx[0].cmd = DSP_EXT_RX_CMD_NB;
 		else if (l1s.bts.type[0] == 4) /* type 4 */
 			db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
@@ -303,7 +303,7 @@ l1s_bts_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 		rffe_compute_gain(-47 - l1s.bts.gain, CAL_DSP_TGT_BB_LVL);
 
 		/* Open RX window */
-		l1s_rx_win_ctrl(l1s.bts.arfcn | ARFCN_UPLINK, L1_RXWIN_NB, 0);
+		l1s_rx_win_ctrl(l1s.bts.arfcn | ARFCN_UPLINK, L1_RXWIN_NB, l1s.bts.rx_start);
 
 		/* restore last gain */
 		rffe_set_gain(last_gain);
@@ -313,16 +313,28 @@ l1s_bts_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 	/* TX side */
 	/* ------- */
 
-	#define SLOT 3
+	// FIXME put that in a loop over all TX bursts
+	static uint8_t SLOT, tn;
+	if (l1s.bts.tx_start == 5) {
+		SLOT = 3;
+		tn = 0;
+	} else {
+		SLOT = 0;
+		tn = 1;
+	}
 
 	/* Reset all commands to dummy burst */
 	for (i=0; i<8; i++)
 		db->tx[i].cmd = DSP_EXT_TX_CMD_DUMMY;
 
 	/* Get the next burst */
-	type = trx_get_burst(l1s.next_time.fn, 0, data);
+	type = trx_get_burst(l1s.next_time.fn, tn, data);
 
 	/* Program the TX commands */
+	if (t3 == 2 && (l1s.bts.type[tn] >> 1) != 2) {
+		// FIXME use dummy until TSC will be set individually
+		db->tx[SLOT].cmd = DSP_EXT_TX_CMD_DUMMY;
+	} else
 	switch (type) {
 	case BURST_FB:
 		db->tx[SLOT].cmd = DSP_EXT_TX_CMD_FB;
@@ -366,7 +378,10 @@ l1s_bts_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 
 	/* Open TX window */
 	l1s_tx_apc_helper(l1s.bts.arfcn);
-	l1s_tx_multi_win_ctrl(l1s.bts.arfcn, 0, 2, 5);
+	if (l1s.bts.tx_num > 1)
+		l1s_tx_multi_win_ctrl(l1s.bts.arfcn, 0, (l1s.bts.tx_start + 5) & 7, l1s.bts.tx_num);
+	else
+		l1s_tx_win_ctrl(l1s.bts.arfcn, L1_TXWIN_NB, 0, (l1s.bts.tx_start + 5) & 7);
 
 	return 0;
 }
