@@ -380,6 +380,7 @@ l1ctl_recv(void *data, struct msgb *msg)
 	case L1CTL_RESET_IND:
 	case L1CTL_RESET_CONF:
 		LOGP(DAPP, LOGL_INFO, "Reset received: Starting sync.\n");
+		l1l->sync = 0;
 		l1ctl_tx_fbsb_req(l1l, l1l->as->arfcn_sync, L1CTL_FBSB_F_FB01SB, 100, 0, CCCH_MODE_NONE);
 		msgb_free(msg);
 		break;
