@@ -35,54 +35,15 @@
 /* Burst queue */
 BURST_QUEUE_STATIC(g_bq, 8, 512, static)
 
-/* Filler table */
-static struct burst_data fill[8][52];
-static uint8_t fill_size[8];
-
 
 /* TRX Helpers **************************************************************/
 
 static void
-trx_init_filler(uint8_t tn, uint8_t type)
+trx_discarded_burst(__unused struct burst_data *burst,
+                    __unused int head, uint32_t fn, __unused void *data)
 {
-	int i;
-
-	if ((type >> 1) == 2) {
-		for (i=0; i<51; i++) {
-			if ((i % 51) == 50)
-				fill[tn][i].type = BURST_DUMMY;
-			else if (((i % 51) % 10) == 0)
-				fill[tn][i].type = BURST_FB;
-			else if (((i % 51) % 10) == 1)
-				fill[tn][i].type = BURST_SB;
-			else
-				fill[tn][i].type = BURST_DUMMY;
-		}
-		fill_size[tn] = 51;
-	} else if ((type >> 1) == 3) {
-		for (i=0; i<51; i++)
-			fill[tn][i].type = BURST_DUMMY;
-		fill_size[tn] = 51;
-	} else {
-		for (i=0; i<52; i++)
-			fill[tn][i].type = BURST_DUMMY;
-		fill_size[tn] = 52;
-	}
-}
-
-static void
-trx_discarded_burst(struct burst_data *burst,
-                    int head, uint32_t fn, uint8_t tn, __unused void *data)
-{
-	/* Only TN=0 */
-	if (head)
-		return;
-
 	/* Debug */
 	printf("STALE BURST %" PRIu32 "\n", fn);
-
-	/* Still copy to the filler table */
-	memcpy(&fill[tn][fn % fill_size[tn]], burst, sizeof(struct burst_data));
 }
 
 
@@ -91,15 +52,9 @@ trx_discarded_burst(struct burst_data *burst,
 void
 trx_init(void)
 {
-	int i;
-
 	/* Init burst queue */
 	bq_reset(&g_bq);
 	bq_set_discard_fn(&g_bq, trx_discarded_burst, NULL);
-
-	/* Init filler table */
-	for (i = 0; i < 8; i++)
-		trx_init_filler(i, l1s.bts.type[i]);
 }
 
 int
@@ -134,19 +89,25 @@ trx_get_burst(uint32_t fn, uint8_t tn, uint8_t *data)
 	burst = bq_pop_head(&g_bq, tn, fn);
 
 	if (burst) {
-		/* New burst: Copy to fill table & use it */
-		memcpy(&fill[tn][fn % fill_size[tn]], burst,
-			sizeof(struct burst_data));
+		rc = burst->type;
+		if (burst->type == BURST_NB)
+			memcpy(data, burst->data, 15);
 
-		// printf("O %d %d %p\n", fn, g_bq.used, burst);
-	} else {
-		/* No data, just use the one from fill table */
-		burst = &fill[tn][fn % fill_size[tn]];
+		return rc;
 	}
 
-	rc = burst->type;
-	if (burst->type == BURST_NB)
-		memcpy(data, burst->data, 15);
+	/* no burst, use dummy on non BCCH */
+	if ((l1s.bts.type[tn] >> 1) != 2)
+		return BURST_DUMMY;
 
-	return rc;
+	/* no burst, use dummy,FCCH,SCH on BCCH */
+	fn = fn % 51;
+	if (fn == 50)
+		return BURST_DUMMY;
+	fn = fn % 10;
+	if (fn == 0)
+		return BURST_FB;
+	if (fn == 1)
+		return BURST_SB;
+	return BURST_DUMMY;
 }
