@@ -51,6 +51,13 @@ do {								\
 	rem -= ret;						\
 } while (0)
 
+#define OSMO_ASSERT(exp)    \
+	if (!(exp)) { \
+		printf("Assert failed %s %s:%d\n", #exp, __FILE__, __LINE__); \
+		abort(); \
+	}
+
+
 /*! @} */
 
 #endif

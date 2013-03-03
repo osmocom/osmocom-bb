@@ -21,6 +21,7 @@
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/utils.h>
 #include <osmocom/gsm/lapdm.h>
 #include <osmocom/gsm/rsl.h>
 
@@ -33,13 +34,6 @@
 		printf("Operation failed rc=%d on %s:%d\n", rc, __FILE__, __LINE__); \
 		abort(); \
 	}
-
-#define ASSERT(exp)    \
-	if (!(exp)) { \
-		printf("Assert failed %s %s:%d\n", #exp, __FILE__, __LINE__); \
-		abort(); \
-	}
-
 
 static struct log_info info = {};
 
@@ -101,9 +95,9 @@ static struct msgb *create_mm_id_req(void)
 
 	msg = msgb_from_array(mm, sizeof(mm));
 	msg->l2h = msg->data + 3;
-	ASSERT(msgb_l2len(msg) == 12);
+	OSMO_ASSERT(msgb_l2len(msg) == 12);
 	msg->l3h = msg->l2h + 6;
-	ASSERT(msgb_l3len(msg) == 6);
+	OSMO_ASSERT(msgb_l3len(msg) == 6);
 
 	return msg;
 }
@@ -113,7 +107,7 @@ static struct msgb *create_empty_msg(void)
 	struct msgb *msg;
 
 	msg = msgb_from_array(NULL, 0);
-	ASSERT(msgb_l3len(msg) == 0);
+	OSMO_ASSERT(msgb_l3len(msg) == 0);
 	rsl_rll_push_l3(msg, RSL_MT_DATA_REQ, 0, 0, 1);
 	return msg;
 }
@@ -155,7 +149,7 @@ static int send(struct msgb *in_msg, struct lapdm_channel *chan)
 	pp.u.data.link_id = 0;
         /* feed into the LAPDm code of libosmogsm */
         rc = lapdm_phsap_up(&pp.oph, &chan->lapdm_dcch);
-	ASSERT(rc == 0 || rc == -EBUSY);
+	OSMO_ASSERT(rc == 0 || rc == -EBUSY);
 	return 0;
 }
 
@@ -172,12 +166,14 @@ static int bts_to_ms_tx_cb(struct msgb *in_msg, struct lapdm_entity *le, void *_
 
 	if (state->bts_read == 0) {
 		printf("BTS: Verifying CM request.\n");
-		ASSERT(msgb_l3len(in_msg) == ARRAY_SIZE(cm_padded));
-		ASSERT(memcmp(in_msg->l3h, cm_padded, ARRAY_SIZE(cm_padded)) == 0);
+		OSMO_ASSERT(msgb_l3len(in_msg) == ARRAY_SIZE(cm_padded));
+		OSMO_ASSERT(memcmp(in_msg->l3h, cm_padded,
+			ARRAY_SIZE(cm_padded)) == 0);
 	} else if (state->bts_read == 1) {
 		printf("BTS: Verifying dummy message.\n");
-		ASSERT(msgb_l3len(in_msg) == ARRAY_SIZE(dummy1));
-		ASSERT(memcmp(in_msg->l3h, dummy1, ARRAY_SIZE(dummy1)) == 0);
+		OSMO_ASSERT(msgb_l3len(in_msg) == ARRAY_SIZE(dummy1));
+		OSMO_ASSERT(memcmp(in_msg->l3h, dummy1,
+			ARRAY_SIZE(dummy1)) == 0);
 	} else {
 		printf("BTS: Do not know to verify: %d\n", state->bts_read);
 	}
@@ -210,23 +206,23 @@ static int ms_to_bts_tx_cb(struct msgb *msg, struct lapdm_entity *le, void *_ctx
 		struct abis_rsl_rll_hdr hdr;
 
 		printf("MS: Verifying incoming primitive.\n");
-		ASSERT(msg->len == sizeof(struct abis_rsl_rll_hdr) + 3);
+		OSMO_ASSERT(msg->len == sizeof(struct abis_rsl_rll_hdr) + 3);
 
 		/* verify the header */
 		memset(&hdr, 0, sizeof(hdr));
 		rsl_init_rll_hdr(&hdr, RSL_MT_EST_CONF);
 		hdr.c.msg_discr |= ABIS_RSL_MDISC_TRANSP;
-		ASSERT(memcmp(msg->data, &hdr, sizeof(hdr)) == 0);
+		OSMO_ASSERT(memcmp(msg->data, &hdr, sizeof(hdr)) == 0);
 
 		/* Verify the added RSL_IE_L3_INFO but we have a bug here */
-		ASSERT(msg->data[6] == RSL_IE_L3_INFO);
+		OSMO_ASSERT(msg->data[6] == RSL_IE_L3_INFO);
 		#warning "RSL_IE_L3_INFO 16 bit length is wrong"
 		/* ASSERT(msg->data[7] == 0x0 && msg->data[8] == 0x9c); */
 		/* this should be 0x0 and 0x0... but we have a bug */
 	} else if (state->ms_read == 1) {
 		printf("MS: Verifying incoming MM message: %d\n", msgb_l3len(msg));
-		ASSERT(msgb_l3len(msg) == 3);
-		ASSERT(memcmp(msg->l3h, &mm[12], msgb_l3len(msg)) == 0);
+		OSMO_ASSERT(msgb_l3len(msg) == 3);
+		OSMO_ASSERT(memcmp(msg->l3h, &mm[12], msgb_l3len(msg)) == 0);
 	} else {
 		printf("MS: Do not know to verify: %d\n", state->ms_read);
 	}
@@ -274,13 +270,13 @@ static void test_lapdm_polling()
 
 	/* 2. Poll on the BTS for sending out a confirmation */
 	printf("\nConfirming\n");
-	ASSERT(test_state.bts_read == 1)
+	OSMO_ASSERT(test_state.bts_read == 1);
 	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
 	CHECK_RC(rc);
-	ASSERT(pp.oph.msg->data == pp.oph.msg->l2h);
+	OSMO_ASSERT(pp.oph.msg->data == pp.oph.msg->l2h);
 	send(pp.oph.msg, &ms_to_bts_channel);
 	msgb_free(pp.oph.msg);
-	ASSERT(test_state.ms_read == 1);
+	OSMO_ASSERT(test_state.ms_read == 1);
 
 	/* 3. Send some data to the MS */
 	printf("\nSending back to MS\n");
@@ -289,35 +285,35 @@ static void test_lapdm_polling()
 	CHECK_RC(rc);
 	send(pp.oph.msg, &ms_to_bts_channel);
 	msgb_free(pp.oph.msg);
-	ASSERT(test_state.ms_read == 2);
+	OSMO_ASSERT(test_state.ms_read == 2);
 
 	/* verify that there is nothing more to poll */
 	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
-	ASSERT(rc < 0);
+	OSMO_ASSERT(rc < 0);
 
 	/* 3. And back to the BTS */
 	printf("\nSending back to BTS\n");
-	ASSERT(test_state.ms_read == 2);
+	OSMO_ASSERT(test_state.ms_read == 2);
 	lapdm_rslms_recvmsg(create_dummy_data_req(), &ms_to_bts_channel);
 
 
 	/* 4. And back to the MS, but let's move data/l2h apart */
-	ASSERT(test_state.bts_read == 2)
-	ASSERT(test_state.ms_read == 2);
+	OSMO_ASSERT(test_state.bts_read == 2);
+	OSMO_ASSERT(test_state.ms_read == 2);
 	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
 	CHECK_RC(rc);
 	send(pp.oph.msg, &ms_to_bts_channel);
-	ASSERT(test_state.ms_read == 2);
+	OSMO_ASSERT(test_state.ms_read == 2);
 	msgb_free(pp.oph.msg);
 
 	/* verify that there is nothing more to poll */
 	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
-	ASSERT(rc < 0);
+	OSMO_ASSERT(rc < 0);
 
 	/* check sending an empty L3 message fails */
 	rc = lapdm_rslms_recvmsg(create_empty_msg(), &bts_to_ms_channel);
-	ASSERT(rc == -1);
-	ASSERT(test_state.ms_read == 2);
+	OSMO_ASSERT(rc == -1);
+	OSMO_ASSERT(test_state.ms_read == 2);
 
 	/* clean up */
 	lapdm_channel_exit(&bts_to_ms_channel);
@@ -346,7 +342,7 @@ static void test_lapdm_early_release()
 
 	/* Send the release request */
 	rc = lapdm_rslms_recvmsg(create_rel_req(), &bts_to_ms_channel);
-	ASSERT(rc == -EINVAL);
+	OSMO_ASSERT(rc == -EINVAL);
 
 	/* clean up */
 	lapdm_channel_exit(&bts_to_ms_channel);

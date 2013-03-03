@@ -18,12 +18,12 @@
  */
 
 #include <stdio.h>
-#include <assert.h>
 #include <string.h>
 
 #include <osmocom/core/strrb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/utils.h>
 
 struct osmo_strrb *rb0, *rb1, *rb2, *rb3, *rb4, *rb5;
 
@@ -77,98 +77,98 @@ void free_rbs(void)
 
 void test_offset_valid(void)
 {
-	assert(_osmo_strrb_is_bufindex_valid(rb1, 0));
-	assert(!_osmo_strrb_is_bufindex_valid(rb1, 1));
-	assert(!_osmo_strrb_is_bufindex_valid(rb1, 2));
+	OSMO_ASSERT(_osmo_strrb_is_bufindex_valid(rb1, 0));
+	OSMO_ASSERT(!_osmo_strrb_is_bufindex_valid(rb1, 1));
+	OSMO_ASSERT(!_osmo_strrb_is_bufindex_valid(rb1, 2));
 
-	assert(!_osmo_strrb_is_bufindex_valid(rb3, 0));
-	assert(_osmo_strrb_is_bufindex_valid(rb3, 1));
-	assert(_osmo_strrb_is_bufindex_valid(rb3, 2));
+	OSMO_ASSERT(!_osmo_strrb_is_bufindex_valid(rb3, 0));
+	OSMO_ASSERT(_osmo_strrb_is_bufindex_valid(rb3, 1));
+	OSMO_ASSERT(_osmo_strrb_is_bufindex_valid(rb3, 2));
 
-	assert(_osmo_strrb_is_bufindex_valid(rb4, 0));
-	assert(!_osmo_strrb_is_bufindex_valid(rb4, 1));
-	assert(_osmo_strrb_is_bufindex_valid(rb4, 2));
+	OSMO_ASSERT(_osmo_strrb_is_bufindex_valid(rb4, 0));
+	OSMO_ASSERT(!_osmo_strrb_is_bufindex_valid(rb4, 1));
+	OSMO_ASSERT(_osmo_strrb_is_bufindex_valid(rb4, 2));
 
-	assert(_osmo_strrb_is_bufindex_valid(rb5, 0));
-	assert(_osmo_strrb_is_bufindex_valid(rb5, 1));
-	assert(!_osmo_strrb_is_bufindex_valid(rb5, 2));
+	OSMO_ASSERT(_osmo_strrb_is_bufindex_valid(rb5, 0));
+	OSMO_ASSERT(_osmo_strrb_is_bufindex_valid(rb5, 1));
+	OSMO_ASSERT(!_osmo_strrb_is_bufindex_valid(rb5, 2));
 }
 
 void test_elems(void)
 {
-	assert(osmo_strrb_elements(rb0) == 0);
-	assert(osmo_strrb_elements(rb1) == 1);
-	assert(osmo_strrb_elements(rb2) == 2);
-	assert(osmo_strrb_elements(rb3) == 2);
+	OSMO_ASSERT(osmo_strrb_elements(rb0) == 0);
+	OSMO_ASSERT(osmo_strrb_elements(rb1) == 1);
+	OSMO_ASSERT(osmo_strrb_elements(rb2) == 2);
+	OSMO_ASSERT(osmo_strrb_elements(rb3) == 2);
 }
 
 void test_getn(void)
 {
-	assert(!osmo_strrb_get_nth(rb0, 0));
-	assert(!strcmp(STR0, osmo_strrb_get_nth(rb2, 0)));
-	assert(!strcmp(STR1, osmo_strrb_get_nth(rb2, 1)));
-	assert(!strcmp(STR1, osmo_strrb_get_nth(rb3, 0)));
-	assert(!strcmp(STR2, osmo_strrb_get_nth(rb3, 1)));
-	assert(!osmo_strrb_get_nth(rb3, 2));
+	OSMO_ASSERT(!osmo_strrb_get_nth(rb0, 0));
+	OSMO_ASSERT(!strcmp(STR0, osmo_strrb_get_nth(rb2, 0)));
+	OSMO_ASSERT(!strcmp(STR1, osmo_strrb_get_nth(rb2, 1)));
+	OSMO_ASSERT(!strcmp(STR1, osmo_strrb_get_nth(rb3, 0)));
+	OSMO_ASSERT(!strcmp(STR2, osmo_strrb_get_nth(rb3, 1)));
+	OSMO_ASSERT(!osmo_strrb_get_nth(rb3, 2));
 }
 
 void test_getn_wrap(void)
 {
-	assert(!strcmp(STR2, osmo_strrb_get_nth(rb4, 0)));
-	assert(!strcmp(STR3, osmo_strrb_get_nth(rb4, 1)));
+	OSMO_ASSERT(!strcmp(STR2, osmo_strrb_get_nth(rb4, 0)));
+	OSMO_ASSERT(!strcmp(STR3, osmo_strrb_get_nth(rb4, 1)));
 
-	assert(!strcmp(STR3, osmo_strrb_get_nth(rb5, 0)));
-	assert(!strcmp(STR4, osmo_strrb_get_nth(rb5, 1)));
+	OSMO_ASSERT(!strcmp(STR3, osmo_strrb_get_nth(rb5, 0)));
+	OSMO_ASSERT(!strcmp(STR4, osmo_strrb_get_nth(rb5, 1)));
 }
 
 void test_add(void)
 {
 	struct osmo_strrb *rb = osmo_strrb_create(NULL, 4);
-	assert(rb->start == 0);
-	assert(rb->end == 0);
+	OSMO_ASSERT(rb->start == 0);
+	OSMO_ASSERT(rb->end == 0);
 
 	osmo_strrb_add(rb, "a");
 	osmo_strrb_add(rb, "b");
 	osmo_strrb_add(rb, "c");
-	assert(rb->start == 0);
-	assert(rb->end == 3);
-	assert(osmo_strrb_elements(rb) == 3);
+	OSMO_ASSERT(rb->start == 0);
+	OSMO_ASSERT(rb->end == 3);
+	OSMO_ASSERT(osmo_strrb_elements(rb) == 3);
 
 	osmo_strrb_add(rb, "d");
-	assert(rb->start == 1);
-	assert(rb->end == 0);
-	assert(osmo_strrb_elements(rb) == 3);
-	assert(!strcmp("b", osmo_strrb_get_nth(rb, 0)));
-	assert(!strcmp("c", osmo_strrb_get_nth(rb, 1)));
-	assert(!strcmp("d", osmo_strrb_get_nth(rb, 2)));
+	OSMO_ASSERT(rb->start == 1);
+	OSMO_ASSERT(rb->end == 0);
+	OSMO_ASSERT(osmo_strrb_elements(rb) == 3);
+	OSMO_ASSERT(!strcmp("b", osmo_strrb_get_nth(rb, 0)));
+	OSMO_ASSERT(!strcmp("c", osmo_strrb_get_nth(rb, 1)));
+	OSMO_ASSERT(!strcmp("d", osmo_strrb_get_nth(rb, 2)));
 
 	osmo_strrb_add(rb, "e");
-	assert(rb->start == 2);
-	assert(rb->end == 1);
-	assert(!strcmp("c", osmo_strrb_get_nth(rb, 0)));
-	assert(!strcmp("d", osmo_strrb_get_nth(rb, 1)));
-	assert(!strcmp("e", osmo_strrb_get_nth(rb, 2)));
+	OSMO_ASSERT(rb->start == 2);
+	OSMO_ASSERT(rb->end == 1);
+	OSMO_ASSERT(!strcmp("c", osmo_strrb_get_nth(rb, 0)));
+	OSMO_ASSERT(!strcmp("d", osmo_strrb_get_nth(rb, 1)));
+	OSMO_ASSERT(!strcmp("e", osmo_strrb_get_nth(rb, 2)));
 
 	osmo_strrb_add(rb, "f");
-	assert(rb->start == 3);
-	assert(rb->end == 2);
-	assert(!strcmp("d", osmo_strrb_get_nth(rb, 0)));
-	assert(!strcmp("e", osmo_strrb_get_nth(rb, 1)));
-	assert(!strcmp("f", osmo_strrb_get_nth(rb, 2)));
+	OSMO_ASSERT(rb->start == 3);
+	OSMO_ASSERT(rb->end == 2);
+	OSMO_ASSERT(!strcmp("d", osmo_strrb_get_nth(rb, 0)));
+	OSMO_ASSERT(!strcmp("e", osmo_strrb_get_nth(rb, 1)));
+	OSMO_ASSERT(!strcmp("f", osmo_strrb_get_nth(rb, 2)));
 
 	osmo_strrb_add(rb, "g");
-	assert(rb->start == 0);
-	assert(rb->end == 3);
-	assert(!strcmp("e", osmo_strrb_get_nth(rb, 0)));
-	assert(!strcmp("f", osmo_strrb_get_nth(rb, 1)));
-	assert(!strcmp("g", osmo_strrb_get_nth(rb, 2)));
+	OSMO_ASSERT(rb->start == 0);
+	OSMO_ASSERT(rb->end == 3);
+	OSMO_ASSERT(!strcmp("e", osmo_strrb_get_nth(rb, 0)));
+	OSMO_ASSERT(!strcmp("f", osmo_strrb_get_nth(rb, 1)));
+	OSMO_ASSERT(!strcmp("g", osmo_strrb_get_nth(rb, 2)));
 
 	osmo_strrb_add(rb, "h");
-	assert(rb->start == 1);
-	assert(rb->end == 0);
-	assert(!strcmp("f", osmo_strrb_get_nth(rb, 0)));
-	assert(!strcmp("g", osmo_strrb_get_nth(rb, 1)));
-	assert(!strcmp("h", osmo_strrb_get_nth(rb, 2)));
+	OSMO_ASSERT(rb->start == 1);
+	OSMO_ASSERT(rb->end == 0);
+	OSMO_ASSERT(!strcmp("f", osmo_strrb_get_nth(rb, 0)));
+	OSMO_ASSERT(!strcmp("g", osmo_strrb_get_nth(rb, 1)));
+	OSMO_ASSERT(!strcmp("h", osmo_strrb_get_nth(rb, 2)));
 
 	talloc_free(rb);
 }
@@ -184,8 +184,8 @@ void test_long_msg(void)
 	tests1 = malloc(test_size);
 	tests2 = malloc(test_size);
 	/* Be certain allocating memory worked before continuing */
-	assert(tests1);
-	assert(tests2);
+	OSMO_ASSERT(tests1);
+	OSMO_ASSERT(tests2);
 
 	for (i = 0; i < RB_MAX_MESSAGE_SIZE; i += 2) {
 		tests1[i] = 'a';
@@ -201,9 +201,9 @@ void test_long_msg(void)
 	free(tests1);
 
 	rb_content = osmo_strrb_get_nth(rb, 0);
-	assert(!strncmp(tests2, rb_content, RB_MAX_MESSAGE_SIZE - 1));
-	assert(!rb_content[RB_MAX_MESSAGE_SIZE - 1]);
-	assert(strlen(rb_content) == RB_MAX_MESSAGE_SIZE - 1);
+	OSMO_ASSERT(!strncmp(tests2, rb_content, RB_MAX_MESSAGE_SIZE - 1));
+	OSMO_ASSERT(!rb_content[RB_MAX_MESSAGE_SIZE - 1]);
+	OSMO_ASSERT(strlen(rb_content) == RB_MAX_MESSAGE_SIZE - 1);
 
 	free(tests2);
 	talloc_free(rb);

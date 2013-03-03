@@ -18,7 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <assert.h>
 
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
@@ -77,7 +76,7 @@ int main(int argc, char **argv)
 	DEBUGP(DMM, "You should not see this\n");
 	fprintf(stderr, ringbuffer_get_nth(ringbuf_target->tgt_rbvty.rb, 0));
 	fprintf(stderr, ringbuffer_get_nth(ringbuf_target->tgt_rbvty.rb, 1));
-	assert(!ringbuffer_get_nth(ringbuf_target->tgt_rbvty.rb, 2));
+	OSMO_ASSERT(!ringbuffer_get_nth(ringbuf_target->tgt_rbvty.rb, 2));
 
 	return 0;
 }
