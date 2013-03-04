@@ -231,6 +231,8 @@ struct osim_card_profile {
 
 const struct osim_card_sw *osim_find_sw(const struct osim_card_profile *cp,
 					uint16_t sw);
+enum osim_card_sw_class osim_sw_class(const struct osim_card_profile *cp,
+					uint16_t sw_in);
 
 struct osim_card_hdl;
 char *osim_print_sw(const struct osim_card_hdl *ch, uint16_t sw_in);
@@ -291,6 +293,6 @@ struct osim_chan_hdl {
 
 /* reader.c */
 int osim_transceive_apdu(struct osim_chan_hdl *st, struct msgb *amsg);
-struct osim_reader_hdl *osim_reader_open(int idx, const char *name);
+struct osim_reader_hdl *osim_reader_open(int idx, const char *name, void *ctx);
 struct osim_card_hdl *osim_card_open(struct osim_reader_hdl *rh);
 #endif /* _OSMOCOM_SIM_H */

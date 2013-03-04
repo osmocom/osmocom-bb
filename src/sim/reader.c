@@ -166,6 +166,7 @@ case_2s:
 			goto transceive_again;
 			break;
 		case 0x61: /* Case 4S.3: command accepted with info added */
+		case 0x9F: /* FIXME: This is specific to SIM cards */
 			tpduh->ins = 0xC0;
 			tpduh->p1 = tpduh->p2 = 0;
 			tpduh->p3 = OSMO_MIN(msgb_apdu_le(amsg), sw & 0xff);
@@ -230,13 +231,13 @@ int osim_transceive_apdu(struct osim_chan_hdl *st, struct msgb *amsg)
 
 
 
-struct osim_reader_hdl *osim_reader_open(int idx, const char *name)
+struct osim_reader_hdl *osim_reader_open(int idx, const char *name, void *ctx)
 {
 	/* FIXME: support multiple drivers */
 	const struct osim_reader_ops *ops = &pcsc_reader_ops;
 	struct osim_reader_hdl *rh;
 
-	rh = ops->reader_open(idx, name);
+	rh = ops->reader_open(idx, name, ctx);
 	if (!rh)
 		return NULL;
 	rh->ops = ops;

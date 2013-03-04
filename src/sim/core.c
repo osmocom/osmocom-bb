@@ -279,3 +279,14 @@ const struct osim_card_sw *osim_find_sw(const struct osim_card_profile *cp,
 	}
 	return NULL;
 }
+
+enum osim_card_sw_class osim_sw_class(const struct osim_card_profile *cp,
+				      uint16_t sw_in)
+{
+	const struct osim_card_sw *csw = osim_find_sw(cp, sw_in);
+
+	if (!csw)
+		return SW_CLS_NONE;
+
+	return csw->class;
+}
