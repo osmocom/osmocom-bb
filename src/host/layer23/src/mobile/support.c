@@ -53,7 +53,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	/* location service support */
 	sup->lcsva = 0; /* no */
 	sup->loc_serv = 0; /* no */
-	/* codec supprot */
+	/* cipher support */
 	sup->a5_1 = 1;
 	sup->a5_2 = 1;
 	sup->a5_3 = 0;
