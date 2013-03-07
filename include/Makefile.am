@@ -54,6 +54,7 @@ nobase_include_HEADERS = \
                        osmocom/gsm/gsm_utils.h \
                        osmocom/gsm/lapd_core.h \
                        osmocom/gsm/lapdm.h \
+                       osmocom/gsm/meas_rep.h \
                        osmocom/gsm/mncc.h \
                        osmocom/gsm/prim.h \
                        osmocom/gsm/protocol/gsm_03_41.h \
