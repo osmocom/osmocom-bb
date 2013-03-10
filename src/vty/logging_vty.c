@@ -247,6 +247,12 @@ static void vty_print_logtarget(struct vty *vty, const struct log_info *info,
  			info->cat[i].description,
 			VTY_NEWLINE);
 	}
+
+	vty_out(vty, " Log Filter 'ALL': %s%s",
+		tgt->filter_map & LOG_FILTER_ALL ? "Enabled" : "Disabled",
+		VTY_NEWLINE);
+
+	/* FIXME: print application specific filters */
 }
 
 #define SHOW_LOG_STR "Show current logging configuration\n"
