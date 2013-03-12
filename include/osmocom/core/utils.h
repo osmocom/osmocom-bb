@@ -53,7 +53,8 @@ do {								\
 
 #define OSMO_ASSERT(exp)    \
 	if (!(exp)) { \
-		printf("Assert failed %s %s:%d\n", #exp, __FILE__, __LINE__); \
+		fprintf(stderr, "Assert failed %s %s:%d\n", #exp, __FILE__, __LINE__); \
+		osmo_generate_backtrace(); \
 		abort(); \
 	}
 
