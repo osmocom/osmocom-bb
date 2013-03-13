@@ -202,7 +202,8 @@ int gsm_septet_encode(uint8_t *result, const char *data)
 }
 
 /* 7bit to octet packing */
-int gsm_septets2octets(uint8_t *result, uint8_t *rdata, uint8_t septet_len, uint8_t padding){
+int gsm_septets2octets(uint8_t *result, const uint8_t *rdata, uint8_t septet_len, uint8_t padding)
+{
 	int i = 0, z = 0;
 	uint8_t cb, nb;
 	int shift = 0;
