@@ -66,6 +66,7 @@ nobase_include_HEADERS = \
                        osmocom/gsm/protocol/gsm_12_21.h \
                        osmocom/gsm/protocol/gsm_44_318.h \
                        osmocom/gsm/protocol/ipaccess.h \
+                       osmocom/gsm/protocol/smpp34_osmocom.h \
                        osmocom/gsm/rsl.h \
                        osmocom/gsm/rxlev_stat.h \
                        osmocom/gsm/sysinfo.h \
