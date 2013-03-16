@@ -47,12 +47,14 @@ struct ph_data_param {
 	uint8_t link_id;	/*!< \brief Link Identifier (Like RSL) */
 	uint8_t chan_nr;	/*!< \brief Channel Number (Like RSL) */
 	uint32_t fn;		/*!< \brief GSM Frame Number */
+	int8_t rssi;		/*!< \brief RSSI of receivedindication */
 };
 
 /*! \brief for TCH.{req,ind} | TCH-RTS.ind */
 struct ph_tch_param {
 	uint8_t chan_nr;	/*!< \brief Channel Number (Like RSL) */
 	uint32_t fn;		/*!< \brief GSM Frame Number */
+	int8_t rssi;		/*!< \brief RSSI of received indication */
 };
 
 /*! \brief for PH-CONN.ind */
