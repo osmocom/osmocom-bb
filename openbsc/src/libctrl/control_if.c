@@ -256,6 +256,7 @@ err_index:
 
 static void control_close_conn(struct ctrl_connection *ccon)
 {
+	osmo_wqueue_clear(&ccon->write_queue);
 	close(ccon->write_queue.bfd.fd);
 	osmo_fd_unregister(&ccon->write_queue.bfd);
 	llist_del(&ccon->list_entry);
