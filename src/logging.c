@@ -597,6 +597,26 @@ int log_target_file_reopen(struct log_target *target)
 	return 0;
 }
 
+/*! \brief close and re-open a log file (for log file rotation) */
+int log_targets_reopen(void)
+{
+	struct log_target *tar;
+	int rc = 0;
+
+	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
+		switch (tar->type) {
+		case LOG_TGT_TYPE_FILE:
+			if (log_target_file_reopen(tar) < 0)
+				rc = -1;
+			break;
+		default:
+			break;
+		}
+	}
+
+	return rc;
+}
+
 /*! \brief Generates the logging command string for VTY
  *  \param[in] unused_info Deprecated parameter, no longer used!
  */

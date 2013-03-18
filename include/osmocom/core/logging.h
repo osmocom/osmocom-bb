@@ -203,6 +203,7 @@ struct log_target *log_target_create_file(const char *fname);
 struct log_target *log_target_create_syslog(const char *ident, int option,
 					    int facility);
 int log_target_file_reopen(struct log_target *tgt);
+int log_targets_reopen(void);
 
 void log_add_target(struct log_target *target);
 void log_del_target(struct log_target *target);
