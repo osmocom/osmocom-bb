@@ -72,13 +72,18 @@
 
 struct log_target *osmo_stderr_target;
 
+static void sighup_hdlr(int signal)
+{
+	log_targets_reopen();
+}
+
 /*! \brief Ignore \ref SIGPIPE, \ref SIGALRM, \ref SIGHUP and \ref SIGIO */
 void osmo_init_ignore_signals(void)
 {
 	/* Signals that by default would terminate */
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGALRM, SIG_IGN);
-	signal(SIGHUP, SIG_IGN);
+	signal(SIGHUP, &sighup_hdlr);
 	signal(SIGIO, SIG_IGN);
 }
 
