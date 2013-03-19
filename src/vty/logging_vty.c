@@ -632,6 +632,10 @@ static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 		const struct log_category *cat = &tgt->categories[i];
 		char cat_lower[32];
 
+		/* skip empty entries in the array */
+		if (!osmo_log_info->cat[i].name)
+			continue;
+
 		/* stupid old osmo logging API uses uppercase strings... */
 		osmo_str2lower(cat_lower, osmo_log_info->cat[i].name+1);
 		osmo_str2lower(level_lower, log_level_str(cat->loglevel));
