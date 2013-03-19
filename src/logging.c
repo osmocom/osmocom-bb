@@ -135,9 +135,6 @@ int log_parse_level(const char *lvl)
 /*! \brief convert a numeric log level into human-readable string */
 const char *log_level_str(unsigned int lvl)
 {
-	/* backwards compatibility */
-	if (lvl == 0)
-		return loglevel_strs[0].str;
 	return get_value_string(loglevel_strs, lvl);
 }
 
