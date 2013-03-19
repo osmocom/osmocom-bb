@@ -55,7 +55,7 @@ LLIST_HEAD(osmo_log_target_list);
 #define LOGLEVEL_DEFS	6	/* Number of loglevels.*/
 
 static const struct value_string loglevel_strs[LOGLEVEL_DEFS+1] = {
-	{ LOGL_DEBUG,	"EVERYTHING" },	/* backwards compatibility */
+	{ 0,		"EVERYTHING" },
 	{ LOGL_DEBUG,	"DEBUG" },
 	{ LOGL_INFO,	"INFO" },
 	{ LOGL_NOTICE,	"NOTICE" },
