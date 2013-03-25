@@ -131,6 +131,9 @@ static int config_write_ns(struct vty *vty)
 	if (vty_nsi->nsip.local_port)
 		vty_out(vty, " encapsulation udp local-port %u%s",
 			vty_nsi->nsip.local_port, VTY_NEWLINE);
+	if (vty_nsi->nsip.dscp)
+		vty_out(vty, " encapsulation udp dscp %d%s",
+			vty_nsi->nsip.dscp, VTY_NEWLINE);
 
 	vty_out(vty, " encapsulation framerelay-gre enabled %u%s",
 		vty_nsi->frgre.enabled ? 1 : 0, VTY_NEWLINE);
@@ -454,6 +457,16 @@ DEFUN(cfg_nsip_local_port, cfg_nsip_local_port_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_nsip_dscp, cfg_nsip_dscp_cmd,
+      "encapsulation udp dscp <0-255>",
+	ENCAPS_STR "NS over UDP Encapsulation\n"
+	"Set DSCP/TOS on the UDP socket\n" "DSCP Value\n")
+{
+	int dscp = atoi(argv[0]);
+	vty_nsi->nsip.dscp = dscp;
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_frgre_local_ip, cfg_frgre_local_ip_cmd,
       "encapsulation framerelay-gre local-ip A.B.C.D",
 	ENCAPS_STR "NS over Frame Relay over GRE Encapsulation\n"
@@ -572,6 +585,7 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	install_element(L_NS_NODE, &cfg_ns_timer_cmd);
 	install_element(L_NS_NODE, &cfg_nsip_local_ip_cmd);
 	install_element(L_NS_NODE, &cfg_nsip_local_port_cmd);
+	install_element(L_NS_NODE, &cfg_nsip_dscp_cmd);
 	install_element(L_NS_NODE, &cfg_frgre_enable_cmd);
 	install_element(L_NS_NODE, &cfg_frgre_local_ip_cmd);
 

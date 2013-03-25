@@ -1051,6 +1051,13 @@ int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi)
 	if (ret < 0)
 		return ret;
 
+	ret = setsockopt(nsi->nsip.fd.fd, IPPROTO_IP, IP_TOS,
+				&nsi->nsip.dscp, sizeof(nsi->nsip.dscp));
+	if (ret < 0)
+		LOGP(DNS, LOGL_ERROR,
+			"Failed to set the DSCP to %d with ret(%d) errno(%d)\n",
+			nsi->nsip.dscp, ret, errno);
+
 
 	return ret;
 }
