@@ -22,6 +22,7 @@
  *
  */
 
+#include <stdlib.h>
 #include <fb/framebuffer.h>
 #include <fb/fb_bw8.h>
 
@@ -51,7 +52,7 @@ static void fb_bw8_update_damage(
 	uint16_t x2,uint16_t y2  /* right lower corner (inclusive) */
 ){
 	fb_sanitize_box(&x1,&y1,&x2,&y2);
-	
+
 	x2++; /* see definition of fb_bw8->damage_x2/y2 */
 	y2++;
 
@@ -84,17 +85,6 @@ static void fb_bw8_update_damage(
 	       __FUNCTION__,fb_bw8->damage_x1,fb_bw8->damage_y1,
 	       fb_bw8->damage_x2,fb_bw8->damage_y2);
 #endif
-}
-
-static void fb_bw8_line(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2){
-	fb_sanitize_box(&x1,&y1,&x2,&y2);
-	/* FIXME : this is currently unimplemented! */
-}
-
-void fb_bw8_lineto(uint16_t x,uint16_t y){
-	fb_bw8_line(framebuffer->cursor_x,framebuffer->cursor_y,x,y);
-	framebuffer->cursor_x = x;
-	framebuffer->cursor_y = y;	
 }
 
 /* depending on color set (add to or_mask) or clear
@@ -166,13 +156,56 @@ fb_bw8_boxto(uint16_t x,uint16_t y){
 	framebuffer->cursor_y = y;
 }
 
+/* Just set the given pixel to the current front ground color.
+ * This function does not update the damage rectangle! */
+void fb_bw8_set_pixel(uint16_t x,uint16_t y){
+	uint8_t *p = fb_bw8->mem + (y/8)*framebuffer->width + x;
+	uint8_t and_mask = 0xff, or_mask = 0x00;
+	set_fg_pixel(&and_mask, &or_mask, y % 8);
+	*p = (*p & and_mask)|or_mask;
+	/* printf("fb_bw8_set_pixel: set: (%u|%u)\n", x, y); */
+}
+
+/* Copy Paste from
+ * http://de.wikipedia.org/wiki/Bresenham-Algorithmus#Kompakte_Variante */
+static void fb_bw8_line(int16_t x1,int16_t y1,int16_t x2,int16_t y2){
+	fb_limit_fb_range(&x1, &y1);
+	fb_limit_fb_range(&x2, &y2);
+	fb_bw8_update_damage(x1,y1,x2,y2);
+	/* printf("fb_bw8_line from (%u|%u) -> (%u|%u)\n", x1, y1, x2, y2); */
+	int16_t dx =  abs(x2-x1), dy = -abs(y2-y1);
+	int16_t sx = x1<x2 ? 1 : -1, sy = y1<y2 ? 1 : -1;
+	int16_t err = dx+dy, e2; /* error value e_xy */
+
+	while (1) {
+		fb_bw8_set_pixel(x1,y1);
+		if (x1==x2 && y1==y2) break;
+		e2 = 2*err;
+		if (e2 > dy) { err += dy; x1 += sx; } /* e_xy+e_x > 0 */
+		if (e2 < dx) { err += dx; y1 += sy; } /* e_xy+e_y < 0 */
+	}
+}
+
+/* Set the given pixel to the current front ground color and update the damage
+ * rectangle. */
+void fb_bw8_set_p(uint16_t x,uint16_t y){
+	fb_bw8_update_damage(x,y,x+1,y+1);
+	fb_bw8_set_pixel(x,y);
+}
+
+void fb_bw8_lineto(uint16_t x,uint16_t y){
+	fb_bw8_line(framebuffer->cursor_x,framebuffer->cursor_y,x,y);
+	framebuffer->cursor_x = x;
+	framebuffer->cursor_y = y;
+}
+
+
 /* this is the most ridiculous function ever, because it has to
    fiddle with two braindead bitmaps at once, both being
    organized differently */
 
 /* draw text at current position, with current font and colours up
    to a width of maxwidth pixels, return pixelwidth consumed */
-
 int
 fb_bw8_putstr(char *str,int maxwidth){
 	const struct fb_font *font = fb_fonts[framebuffer->font];
@@ -187,7 +220,7 @@ fb_bw8_putstr(char *str,int maxwidth){
 	int bitmap_offs,bitmap_bit;	// offset inside bitmap, bit number of pixel
 	int fb8_offs;			// offset to current pixel in framebuffer
 	uint8_t and_mask,or_mask;	// to draw on framebuffer
-	uint8_t *p;			// pointer into framebuffer memorya
+	uint8_t *p;			// pointer into framebuffer memory
 	int total_w;			// total width
 
 	/* center, if maxwidth < 0 */
@@ -251,7 +284,7 @@ fb_bw8_putstr(char *str,int maxwidth){
 				bitmap_y = fchr->bbox_h -
 					(char_y - fchr->bbox_y) - 1;
 
-				fb8_offs = framebuffer->cursor_x + 
+				fb8_offs = framebuffer->cursor_x +
 					char_x + (y/8)*framebuffer->width;
 
 				and_mask = 0xff;

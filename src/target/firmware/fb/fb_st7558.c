@@ -118,6 +118,7 @@ static struct framebuffer fb_st7558_framebuffer = {
 	.clear = fb_bw8_clear,
 	.boxto = fb_bw8_boxto,
 	.lineto = fb_bw8_lineto,
+	.set_p = fb_bw8_set_p,
 	.putstr = fb_bw8_putstr,
 	.flush = fb_st7558_flush,
 	.width = ST7558_WIDTH,

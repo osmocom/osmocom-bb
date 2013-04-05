@@ -8,7 +8,7 @@
 /* if a color is "special", then the RGB components most likely
    don't make sense. Use "special" colours when you have to
    mask out bits with transparency or you have to encode
-   colours in a fixed color palette... */
+   colours in a fixed color palette ... */
 
 #define FB_COLOR_WHITE		0x00ffffffU
 #define FB_COLOR_BLACK		0x00000000U
@@ -31,6 +31,7 @@ struct framebuffer {
 	char name[8];				// keep it short!
 	void (*init)();				// (re)initialize
 	void (*clear)();			// clear display
+	void (*set_p)(uint16_t x,uint16_t y);	// set pixel to fg color
 	void (*boxto)(uint16_t x,uint16_t y);	// draw box to xy
 	void (*lineto)(uint16_t x,uint16_t y);	// draw line to xy
 	int (*putstr)(char *c,int maxwidth);	// put text in current font to fb
@@ -64,6 +65,11 @@ fb_boxto(uint16_t x,uint16_t y){
 static inline void
 fb_lineto(uint16_t x,uint16_t y){
 	framebuffer->lineto(x,y);
+}
+
+static inline void
+fb_set_p(uint16_t x,uint16_t y){
+	framebuffer->set_p(x,y);
 }
 
 static inline int

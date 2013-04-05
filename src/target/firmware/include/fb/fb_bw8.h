@@ -6,9 +6,9 @@
    are common to similar organized displays. */
 
 /*
-	Sketch of Memory Layout 
+	Sketch of Memory Layout
 	Left Upper Corner of Display
-     
+
 			col0  col2
 			   col1
 		      +-------------
@@ -22,7 +22,7 @@
 			...
 
 	Backing store (and internal display memory?) looks like...
-	
+
 	uint8_t mem[] = { A, B, C, .... Q, R, S, ... }
 
    We work on a in-memory copy of the framebuffer and only
@@ -45,6 +45,7 @@ extern struct fb_bw8 *fb_bw8; /* symbol defined by the specific LCD driver */
 extern void fb_bw8_clear();
 extern void fb_bw8_boxto(uint16_t x,uint16_t y); /* draw a box from cursor to x,y */
 extern void fb_bw8_lineto(uint16_t x,uint16_t y); /* draw a line from cursor to x,y */
+extern void fb_bw8_set_p(uint16_t x,uint16_t y);
 
 extern int fb_bw8_putstr(char *str,int maxwidth);
 
