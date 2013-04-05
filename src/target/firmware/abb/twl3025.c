@@ -229,6 +229,15 @@ void twl3025_power_off(void)
 	twl3025_reg_write(VRPCDEV, 0x01);
 }
 
+void twl3025_power_off_now(void)
+{
+	/* The phone will restart if the power butten has not been released.
+	 * This can be useful for development. */
+	unsigned long flags;
+	local_firq_save(flags);
+	twl3025_reg_write(VRPCDEV, 0x01);
+}
+
 void twl3025_clk13m(int enable)
 {
 	if (enable) {
