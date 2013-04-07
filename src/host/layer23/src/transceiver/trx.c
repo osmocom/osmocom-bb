@@ -437,9 +437,11 @@ _trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 		goto inval;
 
 	/* Check length */
-	buf[l] = '\0';	/* Safety */
-
-	if (strlen(buf) != (l-1))
+	if (buf[l-1] == '\0')
+		l--;
+	else
+		buf[l] = '\0';	/* Safety */
+	if (strlen(buf) != l)
 		goto inval;
 
 	/* Split command name and arguments */
