@@ -328,7 +328,6 @@ static int
 _trx_ctrl_cmd_setslot(struct trx *trx, const char *cmd, const char *args)
 {
 	int n, tn, type;
-	int i;
 
 	n = sscanf(args, "%d %d", &tn, &type);
 
@@ -337,8 +336,8 @@ _trx_ctrl_cmd_setslot(struct trx *trx, const char *cmd, const char *args)
 
 	trx->type[tn] = type;
 
-	if (trx->l1l[i])
-		l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask);
+	if (trx->l1l[tn])
+		l1ctl_tx_bts_mode(trx->l1l[tn], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[tn]->tx_mask, trx->l1l[tn]->rx_mask);
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, type);
 }
