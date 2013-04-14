@@ -160,7 +160,6 @@ void gsm_support_dump(struct osmocom_ms *ms,
 	print(priv, " A5/5         : %s\n", SUP_SET(a5_5));
 	print(priv, " A5/6         : %s\n", SUP_SET(a5_6));
 	print(priv, " A5/7         : %s\n", SUP_SET(a5_7));
-	print(priv, " A5/1         : %s\n", SUP_SET(a5_1));
 	switch (set->ch_cap) {
 		case GSM_CAP_SDCCH:
 		print(priv, " Channels     : SDCCH only\n");
