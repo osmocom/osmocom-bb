@@ -37,7 +37,7 @@ struct gsm_support {
 	uint8_t solsa;
 	/* location service support */
 	uint8_t lcsva;
-	/* codec supprot */
+	/* codec support */
 	uint8_t a5_1;
 	uint8_t a5_2;
 	uint8_t a5_3;
