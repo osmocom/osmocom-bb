@@ -77,6 +77,7 @@ static int freq2arfcn(int freq10, int uplink)
 	printf("%s: ARFCN %4d\n",
 		gsm_band_name(gsm_arfcn2band(arfcn)),
 		arfcn & ~ARFCN_FLAG_MASK);
+	return 0;
 }
 
 static void help(const char *progname)
