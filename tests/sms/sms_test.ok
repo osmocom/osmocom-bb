@@ -12,4 +12,10 @@ Decode case 5: return value 40 (expected 40)
 Encoding some tests and printing number of septets/octets
 SEPTETS: 8 OCTETS: 7
 Done
+Testing gsm340_gen_oa
+Result: len(12) data(14 81 21 43 65 87 09 21 43 65 87 19 )
+Result: len(12) data(14 a1 21 43 65 87 09 21 43 65 87 19 )
+Result: len(2) data(00 91 )
+Result: len(9) data(0e d0 4f 78 d9 2d 9c 0e 01 )
+Result: len(12) data(14 d0 4f 78 d9 2d 9c 0e c3 e2 31 19 )
 OK
