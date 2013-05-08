@@ -327,6 +327,7 @@ void lapd_dl_exit(struct lapd_datalink *dl)
 	lapd_dl_reset(dl);
 	/* free history buffer list */
 	talloc_free(dl->tx_hist);
+	dl->tx_hist = NULL;
 }
 
 /*! \brief Set the \ref lapdm_mode of a LAPDm entity */
