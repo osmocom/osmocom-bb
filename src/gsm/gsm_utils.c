@@ -401,7 +401,7 @@ int ms_pwr_dbm(enum gsm_band band, uint8_t lvl)
 	return -EINVAL;
 }
 
-/* According to TS 08.05 Chapter 8.1.4 */
+/* According to TS 05.08 Chapter 8.1.4 */
 int rxlev2dbm(uint8_t rxlev)
 {
 	if (rxlev > 63)
@@ -410,7 +410,7 @@ int rxlev2dbm(uint8_t rxlev)
 	return -110 + rxlev;
 }
 
-/* According to TS 08.05 Chapter 8.1.4 */
+/* According to TS 05.08 Chapter 8.1.4 */
 uint8_t dbm2rxlev(int dbm)
 {
 	int rxlev = dbm + 110;

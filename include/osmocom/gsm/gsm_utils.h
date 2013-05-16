@@ -69,7 +69,7 @@ unsigned int ms_class_gmsk_dbm(enum gsm_band band, int ms_class);
 int ms_pwr_ctl_lvl(enum gsm_band band, unsigned int dbm);
 int ms_pwr_dbm(enum gsm_band band, uint8_t lvl);
 
-/* According to TS 08.05 Chapter 8.1.4 */
+/* According to TS 05.08 Chapter 8.1.4 */
 int rxlev2dbm(uint8_t rxlev);
 uint8_t dbm2rxlev(int dbm);
 
