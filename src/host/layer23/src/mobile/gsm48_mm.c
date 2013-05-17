@@ -2042,7 +2042,7 @@ static int gsm48_mm_rx_info(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_hdr *gh = msgb_l3(msg);
-	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
+	int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 
 	if (payload_len < 0) {
