@@ -228,6 +228,7 @@ int gsm48_mmxx_downmsg(struct osmocom_ms *ms, struct msgb *msg);
 struct msgb *gsm48_mmxx_msgb_alloc(int msg_type, uint32_t ref,
 	uint8_t transaction_id, uint8_t sapi);
 const char *get_mmr_name(int value);
+const char *get_mm_name(int value);
 const char *get_mmxx_name(int value);
 extern const char *gsm48_mm_state_names[];
 extern const char *gsm48_mm_substate_names[];
