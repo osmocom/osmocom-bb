@@ -625,7 +625,7 @@ static int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
 	uint8_t *data, *rp_ud_len;
 	uint8_t msg_ref = 42;
 	int rc;
-	uint8_t transaction_id;
+	int transaction_id;
 	uint8_t sca[11];	/* max len per 03.40 */
 
 	LOGP(DLSMS, LOGL_INFO, "..._sms_submit()\n");

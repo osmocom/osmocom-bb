@@ -564,7 +564,7 @@ static int gsm480_tx_ussd(struct gsm_trans *trans, uint8_t msg_type,
 int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 {
 	struct gsm_trans *trans = NULL, *transt;
-	uint8_t transaction_id;
+	int transaction_id;
 
 	/* look for an old transaction */
 	if (!new_trans) {
