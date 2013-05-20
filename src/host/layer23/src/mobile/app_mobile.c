@@ -402,7 +402,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 		}
 	}
 	vty_reading = 0;
-	telnet_init_dynif(l23_ctx, NULL, vty_ip, vty_port);
+	rc = telnet_init_dynif(l23_ctx, NULL, vty_ip, vty_port);
 	if (rc < 0)
 		return rc;
 	printf("VTY available on port %u.\n", vty_port);
@@ -416,8 +416,11 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 
 		printf("No Mobile Station defined, creating: MS '1'\n");
 		ms = mobile_new("1");
-		if (ms)
-			mobile_init(ms);
+		if (ms) {
+			rc = mobile_init(ms);
+			if (rc < 0)
+				return rc;
+		}
 	}
 
 	quit = 0;
