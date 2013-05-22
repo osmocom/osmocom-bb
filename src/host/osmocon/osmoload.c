@@ -307,7 +307,7 @@ loader_handle_reply(struct msgb *msg) {
 		length = msgb_pull_u8(msg);
 		crc = msgb_pull_u16(msg);
 		address = msgb_pull_u32(msg);
-		data = msgb_pull(msg, length);
+		data = msgb_pull(msg, length) - length;
 		break;
 	case LOADER_MEM_WRITE:
 		length = msgb_pull_u8(msg);
