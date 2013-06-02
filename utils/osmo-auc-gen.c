@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
 #include <getopt.h>
 #include <unistd.h>
 #include <inttypes.h>
