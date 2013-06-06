@@ -95,6 +95,17 @@ struct log_target;
 typedef int log_filter(const struct log_context *ctx,
 		       struct log_target *target);
 
+struct log_info;
+struct vty;
+
+typedef void log_print_filters(struct vty *vty,
+			       const struct log_info *info,
+			       const struct log_target *tgt);
+
+typedef void log_save_filters(struct vty *vty,
+			      const struct log_info *info,
+			      const struct log_target *tgt);
+
 /*! \brief Logging configuration, passed to \ref log_init */
 struct log_info {
 	/* \brief filter callback function */
@@ -106,6 +117,11 @@ struct log_info {
 	unsigned int num_cat;
 	/*! \brief total number of user categories (not library) */
 	unsigned int num_cat_user;
+
+	/* \brief filter saving function */
+	log_save_filters *save_fn;
+	/* \brief filter saving function */
+	log_print_filters *print_fn;
 };
 
 /*! \brief Type of logging target */
