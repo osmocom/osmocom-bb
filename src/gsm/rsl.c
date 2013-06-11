@@ -394,7 +394,7 @@ static const struct value_string rsl_rlm_cause_strs[] = {
 	{ RLL_CAUSE_SFRM_INC_PARAM,	"S-Frame with incorrect parameters" },
 	{ RLL_CAUSE_IFRM_INC_MBITS,	"I-Frame with incorrect use of M bit" },
 	{ RLL_CAUSE_IFRM_INC_LEN,	"I-Frame with incorrect length" },
-	{ RLL_CAUSE_FRM_UNIMPL,		"Fraeme not implemented" },
+	{ RLL_CAUSE_FRM_UNIMPL,		"Frame not implemented" },
 	{ RLL_CAUSE_SABM_MF,		"SABM command, multiple frame established state" },
 	{ RLL_CAUSE_SABM_INFO_NOTALL,	"SABM frame with information not allowed in this state" },
 	{ 0,				NULL },
