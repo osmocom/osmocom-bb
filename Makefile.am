@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
+AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include
 SUBDIRS = include src src/vty src/codec src/gsm src/gb tests utils
 
 pkgconfigdir = $(libdir)/pkgconfig
