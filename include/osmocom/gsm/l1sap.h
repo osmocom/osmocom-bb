@@ -37,6 +37,7 @@ struct ph_rach_req_param {
 
 /*! \brief for PH-RANDOM_ACCESS.ind */
 struct ph_rach_ind_param {
+	uint8_t chan_nr;	/*!< \brief Channel Number (Like RSL) */
 	uint8_t ra;		/*!< \brief Random Access */
 	uint8_t acc_delay;	/*!< \brief Delay in bit periods */
 	uint32_t fn;		/*!< \brief GSM Frame Number at time of RA */
