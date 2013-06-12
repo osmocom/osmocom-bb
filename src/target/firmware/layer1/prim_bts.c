@@ -117,6 +117,20 @@ sb_build(uint8_t bsic, uint16_t t1, uint8_t t2, uint8_t t3p)
 		((bsic & 0x3f) <<  2);
 }
 
+static uint8_t tchh_subslot[26] =
+	{ 0,1,0,1,0,1,0,1,0,1,0,1,0,0,1,0,1,0,1,0,1,0,1,0,1,1 };
+static uint8_t sdcch4_subslot[102] =
+	{ 3,3,3,3,0,0,2,2,2,2,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,
+	  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,2,2,2,2,
+	  3,3,3,3,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
+	  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,2,2,2,2 };
+static uint8_t sdcch8_subslot[102] =
+	{ 5,5,5,5,6,6,6,6,7,7,7,7,0,0,0,0,0,0,0,1,1,1,1,2,2,2,
+	  2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,0,0,0,0,
+	  1,1,1,1,2,2,2,2,3,3,3,3,0,0,0,0,0,0,0,1,1,1,1,2,2,2,
+	  2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,4,4,4,4 };
+
+
 
 static int
 l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
@@ -135,16 +149,20 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 	/* Access Burst ? */
 	if (db->rx[0].cmd == DSP_EXT_RX_CMD_AB)
 	{
-		static struct l1ctl_bts_burst_ab_ind _bi[51];
-		static int energy[51];
-		struct l1ctl_bts_burst_ab_ind *bi = &_bi[rx_time.t3];
+		static int burst_count = 0;
+		static struct l1ctl_bts_burst_ab_ind _bi[10];
+		static int energy[10];
+		struct l1ctl_bts_burst_ab_ind *bi = &_bi[burst_count];
 		int i, j;
 		uint16_t *iq = &db->data[32];
 
-		energy[rx_time.t3] = 0;
+		energy[burst_count] = 0;
 
 		/* Frame number */
 		bi->fn = htonl(rx_time.fn);
+
+		/* Timeslot */
+		bi->tn = l1s.bts.rx_start;
 
 		/* Data (cut to 8 bits */
 		bi->toa = db->rx[1].cmd;
@@ -154,15 +172,17 @@ l1s_bts_resp(uint8_t p1, uint8_t p2, uint16_t p3)
 			bi->iq[i] = iq[j] >> 8;
 
 		/* energy */
-		energy[rx_time.t3] = db->rx[0].data;
+		energy[burst_count] = db->rx[0].data;
 
-		if (rx_time.t3 == 46) {
+		if (++burst_count == 10) {
 			struct msgb *msg;
 			int energy_max = 0, energy_avg = 0;
 
-			/* find strongest burst */
+			burst_count = 0;
+
+			/* find strongest burst out of 10 */
 			j = 0;
-			for (i = 0; i < 51; i++) {
+			for (i = 0; i < 10; i++) {
 				energy_avg += energy[i];
 				if (energy[i] > energy_max) {
 					energy_max = energy[i];
@@ -255,7 +275,7 @@ l1s_bts_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 
 	uint32_t sb;
 	uint8_t data[15];
-	int type, i, t3;
+	int type, i, t3, fn_mod_26, fn_mod_102;
 
 	/* Enable extensions */
 	dsp_ext_api.ndb->active = 1;
@@ -276,20 +296,52 @@ l1s_bts_cmd(uint8_t p1, uint8_t p2, uint16_t p3)
 	{
 		/* We're really a frame in advance since we RX in the next frame ! */
 		t3 = t3 - 1;
+		fn_mod_26 = (l1s.next_time.fn + 2715648 - 1) % 26;
+		fn_mod_102 = (l1s.next_time.fn + 2715648 - 1) % 102;
 
 		/* Select which type of burst */
-		if ((l1s.bts.type[l1s.bts.rx_start] >> 1) != 2) /* not type 4,5 */
+		switch (l1s.bts.type[l1s.bts.rx_start]) {
+		case 1: /* TCH/F */
+			if (l1s.bts.handover[l1s.bts.rx_start] & (1 << 0))
+				db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
+			else
+				db->rx[0].cmd = DSP_EXT_RX_CMD_NB;
+			break;
+		case 2: /* TCH/H */
+		case 3:
+			if ((l1s.bts.handover[l1s.bts.rx_start]
+					& (1 << tchh_subslot[fn_mod_26])))
+				db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
+			else
+				db->rx[0].cmd = DSP_EXT_RX_CMD_NB;
+			break;
+		case 4:
+		case 6:
+			db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
+			break;
+		case 5: /* BCCH+SDCCH/4 */
+			if ((t3 >= 14) && (t3 <= 36))
+				db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
+			else if ((t3 == 4) || (t3 == 5))
+				db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
+			else if ((t3 == 45) || (t3 == 46))
+				db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
+			else if ((l1s.bts.handover[l1s.bts.rx_start]
+					& (1 << sdcch4_subslot[fn_mod_102])))
+				db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
+			else
+				db->rx[0].cmd = DSP_EXT_RX_CMD_NB;
+			break;
+		case 7: /* SDCCH/8 */
+			if ((l1s.bts.handover[l1s.bts.rx_start]
+					& (1 << sdcch8_subslot[fn_mod_102])))
+				db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
+			else
+				db->rx[0].cmd = DSP_EXT_RX_CMD_NB;
+			break;
+		default:
 			db->rx[0].cmd = DSP_EXT_RX_CMD_NB;
-		else if (l1s.bts.type[0] == 4) /* type 4 */
-			db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
-		else if ((t3 >= 14) && (t3 <= 36))
-			db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
-		else if ((t3 == 4) || (t3 == 5))
-			db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
-		else if ((t3 == 45) || (t3 == 46))
-			db->rx[0].cmd = DSP_EXT_RX_CMD_AB;
-		else
-			db->rx[0].cmd = DSP_EXT_RX_CMD_NB;
+		}
 
 		/* Enable dummy bursts detection */
 		dsp_api.db_w->d_ctrl_system |= (1 << B_BCCH_FREQ_IND);

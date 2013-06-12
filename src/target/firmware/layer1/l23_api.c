@@ -609,8 +609,10 @@ static int l1ctl_bts_mode(struct msgb *msg)
 
 		mframe_enable(MF_TASK_BTS_SYNC);
 		mframe_enable(MF_TASK_BTS);
-		for (i = 0; i < 8; i++)
+		for (i = 0; i < 8; i++) {
 			l1s.bts.type[i] = bm->type[i];
+			l1s.bts.handover[i] = bm->handover[i];
+		}
 		l1s.bts.gain = bm->gain;
 
 		/* Calculate TX and RX windows by bit masks */

@@ -117,7 +117,7 @@ l1ctl_tx_fbsb_req(struct l1ctl_link *l1l,
 int
 l1ctl_tx_bts_mode(struct l1ctl_link *l1l, uint8_t enabled, uint8_t *type,
 	uint8_t bsic, uint16_t band_arfcn, int gain, uint8_t tx_mask,
-	uint8_t rx_mask)
+	uint8_t rx_mask, uint8_t *handover)
 {
 	struct msgb *msg;
 	struct l1ctl_bts_mode *be;
@@ -142,6 +142,7 @@ l1ctl_tx_bts_mode(struct l1ctl_link *l1l, uint8_t enabled, uint8_t *type,
 	be->gain = gain;
 	be->tx_mask = tx_mask;
 	be->rx_mask = rx_mask;
+	memcpy(be->handover, handover, sizeof(be->handover));
 
 	return l1l_send(l1l, msg);
 }
@@ -252,7 +253,7 @@ _l1ctl_rx_bts_burst_ab_ind(struct l1ctl_link *l1l, struct msgb *msg)
 
 	LOGP(DL1C, LOGL_INFO, "Access Burst Indication (fn=%d iq toa=%f)\n", fn, toa);
 
-	trx_data_ind(l1l->trx, fn, 0, data, toa, 0);
+	trx_data_ind(l1l->trx, fn, bi->tn, data, toa, 0);
 exit:
 	msgb_free(msg);
 
@@ -336,7 +337,7 @@ _l1ctl_rx_fbsb_conf(struct l1ctl_link *l1l, struct msgb *msg)
 	} else {
 		LOGP(DAPP, LOGL_INFO, "Sync acquired, setting BTS mode ...\n");
 		l1l->sync = 1;
-		l1ctl_tx_bts_mode(l1l, l1l->trx->power, l1l->trx->type, l1l->trx->bsic, l1l->trx->arfcn, l1l->trx->gain, l1l->tx_mask, l1l->rx_mask);
+		l1ctl_tx_bts_mode(l1l, l1l->trx->power, l1l->trx->type, l1l->trx->bsic, l1l->trx->arfcn, l1l->trx->gain, l1l->tx_mask, l1l->rx_mask, l1l->trx->handover);
 	}
 
 	rc = 0;

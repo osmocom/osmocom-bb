@@ -160,6 +160,7 @@ struct l1s_state {
 		uint8_t tx_start, tx_num;
 		uint8_t rx_start, rx_num;
 		uint8_t type[8];
+		uint8_t handover[8];
 		uint16_t arfcn;
 		uint8_t bsic;
 		uint8_t gain;
