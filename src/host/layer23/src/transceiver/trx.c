@@ -236,7 +236,7 @@ _trx_ctrl_cmd_poweroff(struct trx *trx, const char *cmd, const char *args)
 	trx->power = 0;
 	for (i = 0; i < 8; i++)
 		if (trx->l1l[i])
-			l1ctl_tx_bts_mode(trx->l1l[i], 0, trx->type, 0, 0, 0, 0, 0);
+			l1ctl_tx_bts_mode(trx->l1l[i], 0, trx->type, 0, 0, 0, 0, 0, trx->handover);
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d", 0);
 }
@@ -253,9 +253,10 @@ _trx_ctrl_cmd_poweron(struct trx *trx, const char *cmd, const char *args)
 		rv = -EINVAL;
 	} else {
 		trx->power = 1;
+		memset(trx->handover, 0, sizeof(trx->handover));
 		for (i = 0; i < 8; i++)
 			if (trx->l1l[i])
-				l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask);
+				l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask, trx->handover);
 	}
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d", rv);
@@ -302,7 +303,7 @@ _trx_ctrl_cmd_setrxgain(struct trx *trx, const char *cmd, const char *args)
 	if (trx->power) {
 		for (i = 0; i < 8; i++)
 			if (trx->l1l[i])
-				l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask);
+				l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask, trx->handover);
 	}
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, db);
@@ -337,7 +338,7 @@ _trx_ctrl_cmd_setslot(struct trx *trx, const char *cmd, const char *args)
 	trx->type[tn] = type;
 
 	if (trx->l1l[tn])
-		l1ctl_tx_bts_mode(trx->l1l[tn], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[tn]->tx_mask, trx->l1l[tn]->rx_mask);
+		l1ctl_tx_bts_mode(trx->l1l[tn], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[tn]->tx_mask, trx->l1l[tn]->rx_mask, trx->handover);
 
 	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, type);
 }
@@ -395,6 +396,42 @@ done:
 	return _trx_ctrl_send_resp(trx, cmd, "%d %d", rv, freq_khz);
 }
 
+static int
+_trx_ctrl_cmd_handover(struct trx *trx, const char *cmd, const char *args)
+{
+	int n, tn, ss = 0;
+
+	n = sscanf(args, "%d %d", &tn, &ss);
+
+	if ((n < 1) || (tn < 0) || (tn > 7) || (ss < 0) || ((ss > 8)))
+		return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", -1, tn, ss);
+
+	trx->handover[tn] |= (1 << ss);
+
+	if (trx->l1l[tn])
+		l1ctl_tx_bts_mode(trx->l1l[tn], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[tn]->tx_mask, trx->l1l[tn]->rx_mask, trx->handover);
+
+	return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", 0, tn, ss);
+}
+
+static int
+_trx_ctrl_cmd_nohandover(struct trx *trx, const char *cmd, const char *args)
+{
+	int n, tn, ss = 0;
+
+	n = sscanf(args, "%d %d", &tn, &ss);
+
+	if ((n < 1) || (tn < 0) || (tn > 7) || (ss < 0) || ((ss > 8)))
+		return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", -1, tn, ss);
+
+	trx->handover[tn] &= ~(1 << ss);
+
+	if (trx->l1l[tn])
+		l1ctl_tx_bts_mode(trx->l1l[tn], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[tn]->tx_mask, trx->l1l[tn]->rx_mask, trx->handover);
+
+	return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", 0, tn, ss);
+}
+
 struct trx_cmd_handler {
 	const char *cmd;
 	int (*handler)(struct trx *trx, const char *cmd, const char *args);
@@ -409,8 +446,11 @@ static const struct trx_cmd_handler trx_handlers[] = {
 	{ "SETRXGAIN",	_trx_ctrl_cmd_setrxgain },
 	{ "SETMAXDLY",	_trx_ctrl_cmd_setmaxdly },
 	{ "SETSLOT",	_trx_ctrl_cmd_setslot },
+	{ "SETSLOT",	_trx_ctrl_cmd_setslot },
 	{ "RXTUNE",	_trx_ctrl_cmd_rxtune },
 	{ "TXTUNE",	_trx_ctrl_cmd_txtune },
+	{ "HANDOVER",	_trx_ctrl_cmd_handover },
+	{ "NOHANDOVER",	_trx_ctrl_cmd_nohandover },
 	{ NULL, NULL }
 };
 

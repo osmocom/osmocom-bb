@@ -112,6 +112,7 @@ APPLICATIONS?=hello_world compal_dsp_dump layer1 loader rssi menu trx
 APP_loader_ENVIRONMENTS=compalram highram
 APP_rssi_ENVIRONMENTS=* -compalram
 APP_menu_ENVIRONMENTS=* -highram
+APP_layer1_ENVIRONMENTS=* -compalram
 APP_trx_ENVIRONMENTS=* -compalram
 
 # Various objects that are currently linked into all applications

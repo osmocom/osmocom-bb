@@ -54,6 +54,7 @@ struct trx {
 	uint8_t  bsic;
 	int gain;
 	uint8_t type[8];
+	uint8_t handover[8];
 };
 
 

@@ -398,6 +398,7 @@ struct l1ctl_bts_mode {
 	uint8_t tx_mask;
 	uint8_t rx_mask;
 	uint8_t type[8];
+	uint8_t handover[8];
 	uint8_t bsic;
 	uint16_t band_arfcn;
 	uint8_t gain;
@@ -423,6 +424,7 @@ struct l1ctl_bts_burst_nb_ind {
 /* BTS mode: AB Burst Indication */
 struct l1ctl_bts_burst_ab_ind {
 	uint32_t fn;
+	uint8_t tn;
 	uint8_t toa;
 	uint8_t iq[2*88];
 } __attribute__((packed));
