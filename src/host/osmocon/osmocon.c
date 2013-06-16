@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <termios.h>
+#include <sched.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1202,6 +1203,7 @@ static int parse_mode(const char *arg)
 	"\t\t [ -l /tmp/osmocom_loader ]\n" \
 	"\t\t [ -m {c123,c123xor,c140,c140xor,c155,romload,mtk} ]\n" \
 	"\t\t [ -i beacon-interval (mS) ]\n" \
+	"\t\t [ -r PRIO ] (set realtime scheduler with given prio)\n" \
 	"\t\t  file.bin\n\n" \
 	"* Open serial port /dev/ttyXXXX (connected to your phone)\n" \
 	"* Perform handshaking with the ramloader in the phone\n" \
@@ -1408,12 +1410,13 @@ int main(int argc, char **argv)
 	const char *serial_dev = "/dev/ttyUSB1";
 	const char *layer2_un_path = "/tmp/osmocom_l2";
 	const char *loader_un_path = "/tmp/osmocom_loader";
+	int rt_prio = -1;
 
 	dnload.mode = MODE_C123;
 	dnload.beacon_interval = DEFAULT_BEACON_INTERVAL;
 	dnload.do_chainload = 0;
 
-	while ((opt = getopt(argc, argv, "d:hl:p:m:cs:i:v")) != -1) {
+	while ((opt = getopt(argc, argv, "d:hl:p:m:cs:i:r:v")) != -1) {
 		switch (opt) {
 		case 'p':
 			serial_dev = optarg;
@@ -1440,6 +1443,9 @@ int main(int argc, char **argv)
 			break;
 		case 'i':
 			dnload.beacon_interval = atoi(optarg) * 1000;
+			break;
+		case 'r':
+			rt_prio = atoi(optarg);
 			break;
 		case 'h':
 		default:
@@ -1507,6 +1513,20 @@ int main(int argc, char **argv)
 	dnload.load_address[1] = (tmp_load_address >> 16) & 0xff;
 	dnload.load_address[2] = (tmp_load_address >> 8) & 0xff;
 	dnload.load_address[3] = tmp_load_address & 0xff;
+
+	if (rt_prio != -1) {
+		struct sched_param schedp;
+		int rc;
+
+		/* high priority scheduling required for handling bursts */
+		memset(&schedp, 0, sizeof(schedp));
+		schedp.sched_priority = rt_prio;
+		rc = sched_setscheduler(0, SCHED_RR, &schedp);
+		if (rc) {
+			fprintf(stderr, "Error setting SCHED_RR with prio %d\n",
+				rt_prio);
+		}
+	}
 
 	while (1) {
 		if (osmo_select_main(0) < 0)
