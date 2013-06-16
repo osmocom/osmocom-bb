@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <sched.h>
 
 #include <osmocom/core/select.h>
 #include <osmocom/core/talloc.h>
@@ -43,6 +44,7 @@
 void *l23_ctx = NULL;
 static int arfcn_sync = 0;
 static int daemonize = 0;
+static int rt_prio = -1;
 static int second_phone = 0;
 
 static void print_help(char *argv[])
@@ -58,6 +60,7 @@ static void print_help(char *argv[])
 		"  -a   --arfcn-sync ARFCN Set ARFCN to sync to\n"
 		"  -p   --arfcn-sync-pcs   The ARFCN above is PCS\n"
 		"  -2   --second-phone     Use second phone for TS 1\n"
+		"  -r	--realtime PRIO	   Set realtime scheduler with given prio\n"
 		);
 }
 
@@ -74,9 +77,10 @@ static void handle_options(int argc, char **argv, struct app_state *as)
 			{ "arfcn-sync", 1, 0, 'a' },
 			{ "arfcn-sync-pcs", 0, 0, 'p' },
 			{ "second-phone", 0, 0, '2' },
+			{ "realtime", 1, 0, 'r' },
 		};
 
-		c = getopt_long(argc, argv, "hd:e:Dsa:p2",
+		c = getopt_long(argc, argv, "hd:e:Dsa:p2r:",
 			long_options, &option_idx);
 
 		if (c == -1)
@@ -108,6 +112,9 @@ static void handle_options(int argc, char **argv, struct app_state *as)
 			break;
 		case '2':
 			second_phone = 1;
+			break;
+		case 'r':
+			rt_prio = atoi(optarg);
 			break;
 		default:
 			fprintf(stderr, "Unknow option %s\n", optarg);
@@ -203,6 +210,19 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	if (rt_prio != -1) {
+		struct sched_param schedp;
+		int rc;
+
+		/* high priority scheduling required for handling bursts */
+		memset(&schedp, 0, sizeof(schedp));
+		schedp.sched_priority = rt_prio;
+		rc = sched_setscheduler(0, SCHED_RR, &schedp);
+		if (rc) {
+			fprintf(stderr, "Error setting SCHED_RR with prio %d\n",
+				rt_prio);
+		}
+	}
 
 	/* Main loop */
 	while (1) {
