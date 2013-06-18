@@ -899,6 +899,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			msgb_free(msg);
 		} else {
 			/* 5.4.1.4 Contention resolution establishment */
+			msgb_trim(msg, length);
 			rc = send_dl_l3(prim, op, lctx, msg);
 		}
 		break;
@@ -1016,6 +1017,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			msgb_free(msg);
 			return 0;
 		}
+		msgb_trim(msg, length);
 		rc = send_dl_l3(PRIM_DL_UNIT_DATA, PRIM_OP_INDICATION, lctx,
 				msg);
 		break;
@@ -1545,8 +1547,7 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		if (!lctx->more && !dl->rcv_buffer) {
 			LOGP(DLLAPD, LOGL_INFO, "message in single I frame\n");
 			/* send a DATA INDICATION to L3 */
-			msg->len = length;
-			msg->tail = msg->data + length;
+			msgb_trim(msg, length);
 			rc = send_dl_l3(PRIM_DL_DATA, PRIM_OP_INDICATION, lctx,
 				msg);
 		} else {
