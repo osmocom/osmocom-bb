@@ -76,6 +76,19 @@ struct msgb *gsm0808_create_reset(void)
 	return msg;
 }
 
+struct msgb *gsm0808_create_reset_ack(void)
+{
+	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
+					       "bssmap: reset ack");
+	if (!msg)
+		return NULL;
+
+	msgb_v_put(msg, BSS_MAP_MSG_RESET_ACKNOWLEDGE);
+	msg->l3h = msgb_tv_push(msg, BSSAP_MSG_BSS_MANAGEMENT, msgb_length(msg));
+
+	return msg;
+}
+
 struct msgb *gsm0808_create_clear_complete(void)
 {
 	struct msgb *msg = msgb_alloc_headroom(BSSMAP_MSG_SIZE, BSSMAP_MSG_HEADROOM,
