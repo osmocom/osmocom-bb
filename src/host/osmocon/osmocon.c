@@ -656,13 +656,24 @@ static int handle_write_dnload(void)
 
 static int handle_sercomm_write(void)
 {
-	uint8_t c;
+	uint8_t buffer[256];
+	int i, count = 0, end = 0;
 
-	if (sercomm_drv_pull(&c) != 0) {
-		if (write(dnload.serial_fd.fd, &c, 1) != 1)
+	for (i = 0; i < sizeof(buffer); i++) {
+		if (sercomm_drv_pull(&buffer[i]) == 0) {
+			end = 1;
+			break;
+		}
+		count++;
+	}
+
+	if (count) {
+		if (write(dnload.serial_fd.fd, buffer, count) != count)
 			perror("short write");
-		} else
-			dnload.serial_fd.when &= ~BSC_FD_WRITE;
+	}
+
+	if (end)
+		dnload.serial_fd.when &= ~BSC_FD_WRITE;
 
 	return 0;
 }
@@ -1155,13 +1166,13 @@ static int serial_read(struct osmo_fd *fd, unsigned int flags)
 	if (flags & BSC_FD_READ) {
 		switch (dnload.mode) {
 			case MODE_ROMLOAD:
-				rc = handle_read_romload();
+				while ((rc = handle_read_romload()) > 0);
 				break;
 			case MODE_MTK:
-				rc = handle_read_mtk();
+				while ((rc = handle_read_mtk()) > 0);
 				break;
 			default:
-				rc = handle_read();
+				while ((rc = handle_read()) > 0);
 				break;
 		}
 		if (rc == 0)
