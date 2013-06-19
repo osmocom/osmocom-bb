@@ -61,12 +61,6 @@ static const uint8_t cm[] = {
 	0x29, 0x47, 0x80, 0x00, 0x00, 0x00, 0x00, 0x80,
 };
 
-static const uint8_t cm_padded[] = {
-	0x05, 0x24, 0x31, 0x03, 0x50, 0x18, 0x93, 0x08,
-	0x29, 0x47, 0x80, 0x00, 0x00, 0x00, 0x00, 0x80,
-	0x2b, 0x2b, 0x2b, 0x2b
-};
-
 static const uint8_t ua[] = {
 	0x01, 0x73, 0x41, 0x05, 0x24, 0x31, 0x03, 0x50,
 	0x18, 0x93, 0x08, 0x29, 0x47, 0x80, 0x00, 0x00,
@@ -173,7 +167,7 @@ static int send_sabm(struct lapdm_channel *chan, int second_ms)
 	msg->l2h[0] = 0x01;
 	msg->l2h[1] = 0x3f;
 	msg->l2h[2] = 0x01 | (sizeof(cm) << 2);
-	memcpy(msg->l2h + 3, cm_padded, sizeof(cm_padded));
+	memcpy(msg->l2h + 3, cm, sizeof(cm));
 	msg->l2h[3] += second_ms; /* alter message, for second mobile */
 
 	/* LAPDm requires those... */
@@ -198,9 +192,9 @@ static int bts_to_ms_tx_cb(struct msgb *in_msg, struct lapdm_entity *le, void *_
 
 	if (state->bts_read == 0) {
 		printf("BTS: Verifying CM request.\n");
-		OSMO_ASSERT(msgb_l3len(in_msg) == ARRAY_SIZE(cm_padded));
-		OSMO_ASSERT(memcmp(in_msg->l3h, cm_padded,
-			ARRAY_SIZE(cm_padded)) == 0);
+		OSMO_ASSERT(msgb_l3len(in_msg) == ARRAY_SIZE(cm));
+		OSMO_ASSERT(memcmp(in_msg->l3h, cm,
+			ARRAY_SIZE(cm)) == 0);
 	} else if (state->bts_read == 1) {
 		printf("BTS: Verifying dummy message.\n");
 		OSMO_ASSERT(msgb_l3len(in_msg) == ARRAY_SIZE(dummy1));
@@ -249,7 +243,7 @@ static int ms_to_bts_tx_cb(struct msgb *msg, struct lapdm_entity *le, void *_ctx
 		/* Verify the added RSL_IE_L3_INFO but we have a bug here */
 		OSMO_ASSERT(msg->data[6] == RSL_IE_L3_INFO);
 		#warning "RSL_IE_L3_INFO 16 bit length is wrong"
-		/* ASSERT(msg->data[7] == 0x0 && msg->data[8] == 0x9c); */
+		/* ASSERT(msg->data[7] == 0x0 && msg->data[8] == 0x0c); */
 		/* this should be 0x0 and 0x0... but we have a bug */
 	} else if (state->ms_read == 1) {
 		printf("MS: Verifying incoming MM message: %d\n", msgb_l3len(msg));

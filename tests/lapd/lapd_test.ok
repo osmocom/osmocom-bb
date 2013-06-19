@@ -1,7 +1,7 @@
 I do some very simple LAPDm test.
 Establishing link.
 ms_to_bts_l1_cb: MS(us) -> BTS prim message
-bts_to_ms_tx_cb: MS->BTS(us) message 29
+bts_to_ms_tx_cb: MS->BTS(us) message 25
 BTS: Verifying CM request.
 
 Confirming
@@ -19,6 +19,6 @@ bts_to_ms_tx_cb: MS->BTS(us) message 14
 BTS: Verifying dummy message.
 I test RF channel release of an unestablished channel.
 I test contention resultion by having two mobiles collide and first mobile repeating SABM.
-bts_to_ms_tx_cb: MS->BTS(us) message 29
+bts_to_ms_tx_cb: MS->BTS(us) message 25
 BTS: Verifying CM request.
 Success.
