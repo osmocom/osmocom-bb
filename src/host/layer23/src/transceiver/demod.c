@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <errno.h>
 
 #include <osmocom/dsp/cxvec.h>
 #include <osmocom/dsp/cxvec_math.h>
@@ -65,16 +67,20 @@ gsm_ab_ind_process(struct app_state *as,
 		goto err;
 
 	/* Check for a significant peak */
-	if (cabsf(chan) < 0.5)
+	if (cabsf(chan) < 0.5) {
+		rv = -EINVAL;
 		goto err;
+	}
 
 	printf("TOA  : %f\n", toa);
 	printf("chan : (%f %f) => %f\n", crealf(chan), cimagf(chan), cabsf(chan));
 
 	/* Demodulate */
 	bits = gsm_ab_demodulate(as->gs, burst, chan, toa);
-	if (!bits)
+	if (!bits) {
+		rv = -ENOMEM;
 		goto err;
+	}
 
 	/* Copy */
 	memset(data, 0x00, 148);
@@ -87,8 +93,12 @@ gsm_ab_ind_process(struct app_state *as,
 
 	*toa_p = toa;
 
-	return 0;
+	rv = 0;
 
+	/* Cleanup */
 err:
-	return -1;
+	free(bits);
+	osmo_cxvec_free(burst);
+
+	return rv;
 }
