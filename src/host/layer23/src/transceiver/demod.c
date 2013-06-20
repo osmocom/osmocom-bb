@@ -21,8 +21,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <osmocom/dsp/cxvec.h>
@@ -69,8 +71,10 @@ gsm_ab_ind_process(struct app_state *as,
 
 	/* Demodulate */
 	bits = gsm_ab_demodulate(as->gs, burst, chan, toa);
-	if (!bits)
+	if (!bits) {
+		rv = -ENOMEM;
 		goto err;
+	}
 
 	/* Copy */
 	memset(data, 0x00, 148);
@@ -83,8 +87,12 @@ gsm_ab_ind_process(struct app_state *as,
 
 	*toa_p = toa;
 
-	return 0;
+	rv = 0;
 
+	/* Cleanup */
 err:
-	return -1;
+	free(bits);
+	osmo_cxvec_free(burst);
+
+	return rv;
 }
