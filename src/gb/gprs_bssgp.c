@@ -590,16 +590,20 @@ static int fc_queue_timer_cfg(struct bssgp_flow_control *fc)
 	fcqe = llist_entry(&fc->queue.next, struct bssgp_fc_queue_element,
 			   list);
 
-	/* Calculate the point in time at which we will have leaked
-	 * a sufficient number of bytes from the bucket to transmit
-	 * the first PDU in the queue */
-	msecs = (fcqe->llc_pdu_len * 1000) / fc->bucket_leak_rate;
-	/* FIXME: add that time to fc->time_last_pdu and subtract it from
-	 * current time */
-
-	fc->timer.data = fc;
-	fc->timer.cb = &fc_timer_cb;
-	osmo_timer_schedule(&fc->timer, msecs / 1000, (msecs % 1000) * 1000);
+	if (fc->bucket_leak_rate != 0) {
+		/* Calculate the point in time at which we will have leaked
+		 * a sufficient number of bytes from the bucket to transmit
+		 * the first PDU in the queue */
+		msecs = (fcqe->llc_pdu_len * 1000) / fc->bucket_leak_rate;
+		/* FIXME: add that time to fc->time_last_pdu and subtract it from
+		 * current time */
+		fc->timer.data = fc;
+		fc->timer.cb = &fc_timer_cb;
+		osmo_timer_schedule(&fc->timer, msecs / 1000, (msecs % 1000) * 1000);
+	} else {
+		/* If the PCU is telling us to not send any more data at all,
+		* there's no point starting a timer. */
+	}
 
 	return 0;
 }
@@ -742,6 +746,8 @@ int bssgp_fc_ms_init(struct bssgp_flow_control *fc_ms, uint16_t bvci,
 static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 			   struct bssgp_bvc_ctx *bctx)
 {
+	uint32_t old_leak_rate = bctx->fc->bucket_leak_rate;
+	uint32_t old_r_def_ms = bctx->r_default_ms;
 
 	DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx Flow Control BVC\n",
 		bctx->bvci);
@@ -768,6 +774,23 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 	/* 11.3.32 Bucket Leak rate in 100bits/sec unit */
 	bctx->r_default_ms = 100 *
 		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_R_DEFAULT_MS)) / 8;
+
+	if (old_leak_rate != 0 && bctx->fc->bucket_leak_rate == 0)
+		LOGP(DBSSGP, LOGL_NOTICE, "BSS instructs us to bucket leak "
+			"rate of 0, stopping all DL GPRS!\n");
+	else if (old_leak_rate == 0 && bctx->fc->bucket_leak_rate != 0)
+		LOGP(DBSSGP, LOGL_NOTICE, "BSS instructs us to bucket leak "
+			"rate of != 0, restarting all DL GPRS!\n");
+
+	if (old_r_def_ms != 0 && bctx->r_default_ms == 0)
+		LOGP(DBSSGP, LOGL_NOTICE, "BSS instructs us to MS default "
+			"bucket leak rate of 0, stopping DL GPRS!\n");
+	else if (old_r_def_ms == 0 && bctx->r_default_ms != 0)
+		LOGP(DBSSGP, LOGL_NOTICE, "BSS instructs us to MS default "
+			"bucket leak rate != 0, restarting DL GPRS!\n");
+
+	/* reconfigure the timer for flow control based on new values */
+	fc_queue_timer_cfg(bctx->fc);
 
 	/* Send FLOW_CONTROL_BVC_ACK */
 	return bssgp_tx_fc_bvc_ack(msgb_nsei(msg), *TLVP_VAL(tp, BSSGP_IE_TAG),
