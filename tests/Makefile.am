@@ -54,7 +54,7 @@ logging_logging_test_SOURCES = logging/logging_test.c
 logging_logging_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 fr_fr_test_SOURCES = fr/fr_test.c
-fr_fr_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la
+fr_fr_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL)
 
 loggingrb_loggingrb_test_SOURCES = logging/logging_test.c
 loggingrb_loggingrb_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/vty/libosmovty.la
