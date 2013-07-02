@@ -129,7 +129,10 @@ struct gprs_nsvc {
 /* Create a new NS protocol instance */
 struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb, void *ctx);
 
-/* Destroy a NS protocol instance */
+/* Close a NS protocol instance */
+void gprs_ns_close(struct gprs_ns_inst *nsi);
+
+/* Close and Destroy a NS protocol instance */
 void gprs_ns_destroy(struct gprs_ns_inst *nsi);
 
 /* Listen for incoming GPRS packets via NS/UDP */

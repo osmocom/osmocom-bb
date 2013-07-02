@@ -38,6 +38,7 @@ bssgp_nsi;
 
 gprs_ns_cause_str;
 gprs_ns_destroy;
+gprs_ns_close;
 gprs_ns_frgre_listen;
 gprs_ns_frgre_sendmsg;
 gprs_ns_instantiate;
