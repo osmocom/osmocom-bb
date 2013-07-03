@@ -118,7 +118,7 @@ bool _osmo_strrb_is_bufindex_valid(const struct osmo_strrb *rb,
 {
 	if (osmo_strrb_is_empty(rb))
 		return 0;
-	if ((bufi >= rb->size) || (bufi < 0))
+	if (bufi >= rb->size)
 		return 0;
 	if (rb->start < rb->end)
 		return (bufi >= rb->start) && (bufi < rb->end);
