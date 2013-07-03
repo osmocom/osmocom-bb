@@ -308,12 +308,12 @@ int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 
 int gsm48_generate_mid_from_tmsi(uint8_t *buf, uint32_t tmsi)
 {
-	uint32_t *tptr = (uint32_t *) &buf[3];
+	uint32_t tmsi_be = htonl(tmsi);
 
 	buf[0] = GSM48_IE_MOBILE_ID;
 	buf[1] = GSM48_TMSI_LEN;
 	buf[2] = 0xf0 | GSM_MI_TYPE_TMSI;
-	*tptr = htonl(tmsi);
+	memcpy(&buf[3], &tmsi_be, sizeof(tmsi_be));
 
 	return 7;
 }
