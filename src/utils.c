@@ -31,6 +31,7 @@ const char *get_value_string(const struct value_string *vs, uint32_t val)
 	}
 
 	snprintf(namebuf, sizeof(namebuf), "unknown 0x%x", val);
+	namebuf[sizeof(namebuf) - 1] = '\0';
 	return namebuf;
 }
 
