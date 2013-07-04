@@ -85,7 +85,7 @@ struct msgb *gsm0480_create_unstructuredSS_Notify(int alertPattern, const char *
 {
 	struct msgb *msg;
 	uint8_t *seq_len_ptr, *ussd_len_ptr, *data;
-	int len;
+	int len, octet_len;
 
 	msg = msgb_alloc_headroom(1024, 128, "GSM 04.80");
 	if (!msg)
@@ -106,8 +106,13 @@ struct msgb *gsm0480_create_unstructuredSS_Notify(int alertPattern, const char *
 	ussd_len_ptr = msgb_put(msg, 1);
 	data = msgb_put(msg, 0);
 	len = gsm_7bit_encode(data, text);
-	msgb_put(msg, len);
-	ussd_len_ptr[0] = len;
+	octet_len = len*7/8;
+	if (len*7%8 != 0)
+		octet_len++;
+	/* Warning, len indicates the amount of septets
+	 * (characters), we need amount of octets occupied */
+	msgb_put(msg, octet_len);
+	ussd_len_ptr[0] = octet_len;
 	/* USSD-String } */
 
 	/* alertingPattern { */
@@ -127,7 +132,7 @@ struct msgb *gsm0480_create_notifySS(const char *text)
 	struct msgb *msg;
 	uint8_t *data, *tmp_len;
 	uint8_t *seq_len_ptr, *cal_len_ptr, *opt_len_ptr, *nam_len_ptr;
-	int len;
+	int len, octet_len;
 
 	len = strlen(text);
 	if (len < 1 || len > 160)
@@ -173,12 +178,17 @@ struct msgb *gsm0480_create_notifySS(const char *text)
 	tmp_len = msgb_put(msg, 1);
 	data = msgb_put(msg, 0);
 	len = gsm_7bit_encode(data, text);
-	tmp_len[0] = len;
-	msgb_put(msg, len);
+	octet_len = len*7/8;
+	if (len*7%8 != 0)
+		octet_len++;
+	/* Warning, len indicates the amount of septets
+	 * (characters), we need amount of octets occupied */
+	tmp_len[0] = octet_len;
+	msgb_put(msg, octet_len);
 
 	/* }; namePresentationAllowed */
 
-	cal_len_ptr[0] = 3 + 3 + 2 + len;
+	cal_len_ptr[0] = 3 + 3 + 2 + octet_len;
 	opt_len_ptr[0] = cal_len_ptr[0] + 2;
 	/* }; callingName */
 
@@ -415,7 +425,7 @@ struct msgb *gsm0480_create_ussd_resp(uint8_t invoke_id, uint8_t trans_id, const
 	struct msgb *msg;
 	struct gsm48_hdr *gh;
 	uint8_t *ptr8;
-	int response_len;
+	int response_len, octet_len;
 
 	msg = msgb_alloc_headroom(1024, 128, "GSM 04.80");
 	if (!msg)
@@ -424,7 +434,12 @@ struct msgb *gsm0480_create_ussd_resp(uint8_t invoke_id, uint8_t trans_id, const
 	/* First put the payload text into the message */
 	ptr8 = msgb_put(msg, 0);
 	response_len = gsm_7bit_encode(ptr8, text);
-	msgb_put(msg, response_len);
+	octet_len = response_len*7/8;
+	if (response_len*7%8 != 0)
+		octet_len++;
+	/* Warning, response_len indicates the amount of septets
+	 * (characters), we need amount of octets occupied */
+	msgb_put(msg, octet_len);
 
 	/* Then wrap it as an Octet String */
 	msgb_wrap_with_TL(msg, ASN1_OCTET_STRING_TAG);
