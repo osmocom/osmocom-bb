@@ -179,6 +179,32 @@ static int send_sabm(struct lapdm_channel *chan, int second_ms)
 	return 0;
 }
 
+static int send_sabm(struct lapdm_channel *chan, int second_ms)
+{
+	struct osmo_phsap_prim pp;
+	struct msgb *msg;
+	int rc;
+
+	msg = msgb_alloc_headroom(128, 64, "PH-DATA.ind");
+	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
+			PRIM_OP_INDICATION, msg);
+	/* copy over actual MAC block */
+	msg->l2h = msgb_put(msg, 23);
+	msg->l2h[0] = 0x01;
+	msg->l2h[1] = 0x3f;
+	msg->l2h[2] = 0x01 | (sizeof(cm) << 2);
+	memcpy(msg->l2h + 3, cm_padded, sizeof(cm_padded));
+	msg->l2h[3] += second_ms; /* alter message, for second mobile */
+
+	/* LAPDm requires those... */
+	pp.u.data.chan_nr = 0;
+	pp.u.data.link_id = 0;
+        /* feed into the LAPDm code of libosmogsm */
+        rc = lapdm_phsap_up(&pp.oph, &chan->lapdm_dcch);
+	ASSERT(rc == 0 || rc == -EBUSY);
+	return 0;
+}
+
 /*
  * I get called from the LAPDm code when something was sent my way...
  */
@@ -412,6 +438,49 @@ static void test_lapdm_contention_resolution()
 	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
 	CHECK_RC(rc);
 	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, ua, ARRAY_SIZE(ua)) == 0);
+
+	/* clean up */
+	lapdm_channel_exit(&bts_to_ms_channel);
+}
+
+static void test_lapdm_contention_resolution()
+{
+	printf("I test contention resultion by having two mobiles collide and "
+		"first mobile repeating SABM.\n");
+
+	int rc;
+	struct lapdm_polling_state test_state;
+	struct osmo_phsap_prim pp;
+
+	/* Configure LAPDm on both sides */
+	struct lapdm_channel bts_to_ms_channel;
+	memset(&bts_to_ms_channel, 0, sizeof(bts_to_ms_channel));
+
+	memset(&test_state, 0, sizeof(test_state));
+	test_state.bts = &bts_to_ms_channel;
+
+	/* BTS to MS in polling mode */
+	lapdm_channel_init(&bts_to_ms_channel, LAPDM_MODE_BTS);
+	lapdm_channel_set_flags(&bts_to_ms_channel, LAPDM_ENT_F_POLLING_ONLY);
+	lapdm_channel_set_l1(&bts_to_ms_channel, NULL, &test_state);
+	lapdm_channel_set_l3(&bts_to_ms_channel, bts_to_ms_tx_cb, &test_state);
+
+	/* Send SABM MS 1, we must get UA */
+	send_sabm(&bts_to_ms_channel, 0);
+	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	CHECK_RC(rc);
+	ASSERT(memcmp(pp.oph.msg->l2h, ua, ARRAY_SIZE(ua)) == 0);
+
+	/* Send SABM MS 2, we must get nothing, due to collision */
+	send_sabm(&bts_to_ms_channel, 1);
+	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	ASSERT(rc == -ENODEV);
+
+	/* Send SABM MS 1 again, we must get UA gain */
+	send_sabm(&bts_to_ms_channel, 0);
+	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	CHECK_RC(rc);
+	ASSERT(memcmp(pp.oph.msg->l2h, ua, ARRAY_SIZE(ua)) == 0);
 
 	/* clean up */
 	lapdm_channel_exit(&bts_to_ms_channel);

@@ -917,13 +917,7 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb, void *ctx)
 	return nsi;
 }
 
-/*! \brief Destroy an entire NS instance
- *  \param nsi gprs_ns_inst that is to be destroyed
- *
- *  This function releases all resources associated with the
- *  NS-instance.
- */
-void gprs_ns_destroy(struct gprs_ns_inst *nsi)
+void gprs_ns_close(struct gprs_ns_inst *nsi)
 {
 	struct gprs_nsvc *nsvc, *nsvc2;
 
@@ -935,8 +929,19 @@ void gprs_ns_destroy(struct gprs_ns_inst *nsi)
 	if (nsi->nsip.fd.data) {
 		close(nsi->nsip.fd.fd);
 		osmo_fd_unregister(&nsi->nsip.fd);
+		nsi->nsip.fd.data = NULL;
 	}
+}
 
+/*! \brief Destroy an entire NS instance
+ *  \param nsi gprs_ns_inst that is to be destroyed
+ *
+ *  This function releases all resources associated with the
+ *  NS-instance.
+ */
+void gprs_ns_destroy(struct gprs_ns_inst *nsi)
+{
+	gprs_ns_close(nsi);
 	/* free the NSI */
 	talloc_free(nsi);
 }

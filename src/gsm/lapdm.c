@@ -407,6 +407,11 @@ static int send_rslms_dlsap(struct osmo_dlsap_prim *dp,
 
 	switch (OSMO_PRIM_HDR(&dp->oph)) {
 	case OSMO_PRIM(PRIM_DL_EST, PRIM_OP_INDICATION):
+		if (dp->oph.msg && dp->oph.msg->len == 0) {
+			/* omit L3 info by freeing message */
+			msgb_free(dp->oph.msg);
+			dp->oph.msg = NULL;
+		}
 		rll_msg = RSL_MT_EST_IND;
 		break;
 	case OSMO_PRIM(PRIM_DL_EST, PRIM_OP_CONFIRM):
@@ -817,10 +822,10 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 {
 	struct lapdm_entity *le = dl->entity;
-	int ui_bts = (le->mode == LAPDM_MODE_BTS);
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	uint8_t chan_nr = rllh->chan_nr;
 	uint8_t link_id = rllh->link_id;
+	int ui_bts = (le->mode == LAPDM_MODE_BTS && (link_id & 0x40));
 	uint8_t sapi = link_id & 7;
 	struct tlv_parsed tv;
 	int length;
@@ -844,9 +849,10 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->l3h = (uint8_t *) TLVP_VAL(&tv, RSL_IE_L3_INFO);
 	length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 	/* check if the layer3 message length exceeds N201 */
-	if (length + 4 + !ui_bts > 23) {
+	if (length + ((link_id & 0x40) ? 4 : 2) + !ui_bts > 23) {
 		LOGP(DLLAPD, LOGL_ERROR, "frame too large: %d > N201(%d) "
-			"(discarding)\n", length, 18 + ui_bts);
+			"(discarding)\n", length,
+			((link_id & 0x40) ? 18 : 20) + ui_bts);
 		msgb_free(msg);
 		return -EIO;
 	}
@@ -860,13 +866,16 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 	msg->tail = msg->l3h + length;
 
 	/* Push L1 + LAPDm header on msgb */
-	msg->l2h = msgb_push(msg, 4 + !ui_bts);
-	msg->l2h[0] = le->tx_power;
-	msg->l2h[1] = le->ta;
-	msg->l2h[2] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, dl->dl.cr.loc2rem.cmd);
-	msg->l2h[3] = LAPDm_CTRL_U(LAPDm_U_UI, 0);
+	msg->l2h = msgb_push(msg, 2 + !ui_bts);
+	msg->l2h[0] = LAPDm_ADDR(LAPDm_LPD_NORMAL, sapi, dl->dl.cr.loc2rem.cmd);
+	msg->l2h[1] = LAPDm_CTRL_U(LAPDm_U_UI, 0);
 	if (!ui_bts)
-		msg->l2h[4] = LAPDm_LEN(length);
+		msg->l2h[2] = LAPDm_LEN(length);
+	if (link_id & 0x40) {
+		msg->l2h = msgb_push(msg, 2);
+		msg->l2h[0] = le->tx_power;
+		msg->l2h[1] = le->ta;
+	}
 
 	/* Tramsmit */
 	return tx_ph_data_enqueue(dl, msg, chan_nr, link_id, 23);
@@ -1083,7 +1092,6 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 	}
 
 	switch (msg_type) {
-	case RSL_MT_UNIT_DATA_REQ:
 	case RSL_MT_DATA_REQ:
 	case RSL_MT_SUSP_REQ:
 	case RSL_MT_REL_REQ:

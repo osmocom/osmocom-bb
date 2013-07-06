@@ -826,14 +826,23 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			 * yet received UA or another mobile (collision) tries
 			 * to establish connection. The mobile must receive
 			 * UA again. */
-			if (!dl->cont_res && dl->v_send != dl->v_recv) {
-				LOGP(DLLAPD, LOGL_INFO, "Remote reestablish\n");
-				mdl_error(MDL_CAUSE_SABM_MF, lctx);
+			/* 5.4.2.1 */
+			if (!length) {
+				/* If no content resolution, this is a
+				 * re-establishment. */
+				LOGP(DLLAPD, LOGL_INFO,
+					"Remote reestablish\n");
 				break;
 			}
+			if (!dl->cont_res) {
+				LOGP(DLLAPD, LOGL_INFO, "SABM command not "
+						"allowed in this state\n");
+				mdl_error(MDL_CAUSE_SABM_MF, lctx);
+				msgb_free(msg);
+				return 0;
+			}
 			/* Ignore SABM if content differs from first SABM. */
-			if (dl->mode == LAPD_MODE_NETWORK && length
-			 && dl->cont_res) {
+			if (dl->mode == LAPD_MODE_NETWORK && length) {
 #ifdef TEST_CONTENT_RESOLUTION_NETWORK
 				dl->cont_res->data[0] ^= 0x01;
 #endif
