@@ -1,6 +1,8 @@
 #ifndef OSMOCORE_UTIL_H
 #define OSMOCORE_UTIL_H
 
+#include <osmocom/core/backtrace.h>
+
 /*! \defgroup utils General-purpose utility functions
  *  @{
  */
