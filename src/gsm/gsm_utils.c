@@ -241,12 +241,6 @@ int gsm_septets2octets(uint8_t *result, const uint8_t *rdata, uint8_t septet_len
 		result[z++] = cb;
 		shift++;
 	}
-	/* To avoid the situation where the receiving entity confuses 7 binary
-	 * zero pad bits as the @ character, the carriage return or <CR>
-	 * character (defined in subclause 7.1.1) shall be used for padding in
-	 * this situation. */
-	if (shift == 7)
-		result[z - 1] |= 0x1a;
 
 	free(data);
 
