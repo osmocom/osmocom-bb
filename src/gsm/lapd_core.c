@@ -150,10 +150,8 @@ static void lapd_dl_flush_send(struct lapd_datalink *dl)
 		msgb_free(msg);
 
 	/* Clear send-buffer */
-	if (dl->send_buffer) {
-		msgb_free(dl->send_buffer);
-		dl->send_buffer = NULL;
-	}
+	msgb_free(dl->send_buffer);
+	dl->send_buffer = NULL;
 }
 
 static void lapd_dl_flush_hist(struct lapd_datalink *dl)
@@ -232,10 +230,8 @@ static void lapd_dl_newstate(struct lapd_datalink *dl, uint32_t state)
 		/* stop T203 on leaving MF EST state, if running */
 		lapd_stop_t203(dl);
 		/* remove content res. (network side) on leaving MF EST state */
-		if (dl->cont_res) {
-			msgb_free(dl->cont_res);
-			dl->cont_res = NULL;
-		}
+		msgb_free(dl->cont_res);
+		dl->cont_res = NULL;
 	}
 
 	/* start T203 on entering MF EST state, if enabled */
@@ -311,10 +307,8 @@ void lapd_dl_reset(struct lapd_datalink *dl)
 	lapd_dl_flush_tx(dl);
 	lapd_dl_flush_send(dl);
 	/* Discard partly received L3 message */
-	if (dl->rcv_buffer) {
-		msgb_free(dl->rcv_buffer);
-		dl->rcv_buffer = NULL;
-	}
+	msgb_free(dl->rcv_buffer);
+	dl->rcv_buffer = NULL;
 	/* stop Timers */
 	lapd_stop_t200(dl);
 	lapd_stop_t203(dl);
@@ -1703,10 +1697,8 @@ static int lapd_est_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	memcpy(&dl->lctx, lctx, sizeof(dl->lctx));
 
 	/* Discard partly received L3 message */
-	if (dl->rcv_buffer) {
-		msgb_free(dl->rcv_buffer);
-		dl->rcv_buffer = NULL;
-	}
+	msgb_free(dl->rcv_buffer);
+	dl->rcv_buffer = NULL;
 
 	/* assemble message */
 	memcpy(&nctx, &dl->lctx, sizeof(nctx));
@@ -1959,8 +1951,9 @@ static int lapd_res_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	memcpy(&dl->lctx, lctx, sizeof(dl->lctx));
 
 	/* Replace message in the send-buffer (reconnect) */
-	if (dl->send_buffer)
-		msgb_free(dl->send_buffer);
+	msgb_free(dl->send_buffer);
+	dl->send_buffer = NULL;
+
 	dl->send_out = 0;
 	if (msg->len) {
 		/* Write data into the send buffer, to be sent first */
@@ -1972,10 +1965,8 @@ static int lapd_res_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	}
 
 	/* Discard partly received L3 message */
-	if (dl->rcv_buffer) {
-		msgb_free(dl->rcv_buffer);
-		dl->rcv_buffer = NULL;
-	}
+	msgb_free(dl->rcv_buffer);
+	dl->rcv_buffer = NULL;
 
 	/* Create new msgb (old one is now free) */
 	msg = lapd_msgb_alloc(0, "LAPD SABM");
