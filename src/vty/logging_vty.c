@@ -315,7 +315,7 @@ gDEFUN(cfg_description, cfg_description_cmd,
 	if (*dptr)
 		talloc_free(*dptr);
 	*dptr = argv_concat(argv, argc, 0);
-	if (!dptr)
+	if (!*dptr)
 		return CMD_WARNING;
 
 	return CMD_SUCCESS;
