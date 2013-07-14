@@ -27,6 +27,8 @@
 #include <string.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <inttypes.h>
+#include <time.h>
 
 #include <osmocom/crypt/auth.h>
 #include <osmocom/core/utils.h>
@@ -246,7 +248,7 @@ int main(int argc, char **argv)
 		dump_auth_vec(vec);
 
 	if (auts_is_set)
-		printf("AUTS success: SEQ.MS = %lu\n", test_aud.u.umts.sqn);
+		printf("AUTS success: SEQ.MS = %" PRIu64 "\n", test_aud.u.umts.sqn);
 
 	exit(0);
 }
