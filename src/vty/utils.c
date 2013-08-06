@@ -69,12 +69,13 @@ char *vty_cmd_string_from_valstr(void *ctx, const struct value_string *vals,
 				 const char *end, int do_lower)
 {
 	int len = 0, offset = 0, ret, rem;
-	int size = strlen(prefix);
+	int size = strlen(prefix) + strlen(end);
+	int sep_len = strlen(sep);
 	const struct value_string *vs;
 	char *str;
 
 	for (vs = vals; vs->value || vs->str; vs++)
-		size += strlen(vs->str) + 1;
+		size += strlen(vs->str) + sep_len;
 
 	rem = size;
 	str = talloc_zero_size(ctx, size);
@@ -102,8 +103,8 @@ char *vty_cmd_string_from_valstr(void *ctx, const struct value_string *vals,
 			OSMO_SNPRINTF_RET(ret, rem, offset, len);
 		}
 	}
-	offset--;	/* to remove the trailing | */
-	rem++;
+	offset -= sep_len;	/* to remove the trailing sep */
+	rem += sep_len;
 
 	ret = snprintf(str + offset, rem, "%s", end);
 	if (ret < 0)
