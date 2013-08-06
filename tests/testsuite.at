@@ -112,3 +112,9 @@ AT_KEYWORDS([strrb])
 cat $abs_srcdir/strrb/strrb_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/strrb/strrb_test], [0], [expout], [ignore])
 AT_CLEANUP
+
+AT_SETUP([vty])
+AT_KEYWORDS([vty])
+cat $abs_srcdir/vty/vty_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/vty/vty_test], [0], [expout], [ignore])
+AT_CLEANUP

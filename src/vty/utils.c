@@ -81,7 +81,7 @@ char *vty_cmd_string_from_valstr(void *ctx, const struct value_string *vals,
 	if (!str)
 		return NULL;
 
-	ret = snprintf(str + offset, rem, prefix);
+	ret = snprintf(str + offset, rem, "%s", prefix);
 	if (ret < 0)
 		goto err;
 	OSMO_SNPRINTF_RET(ret, rem, offset, len);
@@ -105,7 +105,7 @@ char *vty_cmd_string_from_valstr(void *ctx, const struct value_string *vals,
 	offset--;	/* to remove the trailing | */
 	rem++;
 
-	ret = snprintf(str + offset, rem, end);
+	ret = snprintf(str + offset, rem, "%s", end);
 	if (ret < 0)
 		goto err;
 	OSMO_SNPRINTF_RET(ret, rem, offset, len);

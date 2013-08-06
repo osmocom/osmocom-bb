@@ -72,6 +72,7 @@ tests/fr/fr_test
 tests/loggingrb/loggingrb_test
 tests/ringbuf/ringbuf_test
 tests/strrb/strrb_test
+tests/vty/vty_test
 
 utils/osmo-arfcn
 utils/osmo-auc-gen
