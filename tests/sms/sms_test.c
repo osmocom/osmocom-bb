@@ -209,6 +209,19 @@ static const struct test_case test_decode[] =
 	},
 };
 
+static void test_octet_return()
+{
+	char out[256];
+	int oct, septets;
+
+	printf("Encoding some tests and printing number of septets/octets\n");
+
+	septets = gsm_7bit_encode_oct((uint8_t *) out, "test1234", &oct);
+	printf("SEPTETS: %d OCTETS: %d\n", septets, oct);
+
+	printf("Done\n");
+}
+
 int main(int argc, char** argv)
 {
 	printf("SMS testing\n");
@@ -313,6 +326,8 @@ int main(int argc, char** argv)
 			return -1;
 		}
 	}
+
+	test_octet_return();
 
 	printf("OK\n");
 	return 0;

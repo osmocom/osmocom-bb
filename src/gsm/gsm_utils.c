@@ -1,6 +1,6 @@
 /*
  * (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
- * (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
+ * (C) 2009,2013 by Holger Hans Peter Freyther <zecke@selfish.org>
  * (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
  * (C) 2010-2012 by Nico Golde <nico@ngolde.de>
  *
@@ -250,12 +250,18 @@ int gsm_septets2octets(uint8_t *result, const uint8_t *rdata, uint8_t septet_len
 /* GSM 03.38 6.2.1 Character packing */
 int gsm_7bit_encode(uint8_t *result, const char *data)
 {
+	int out;
+	return gsm_7bit_encode_oct(result, data, &out);
+}
+
+int gsm_7bit_encode_oct(uint8_t *result, const char *data, int *octets)
+{
 	int y = 0;
 
 	/* prepare for the worst case, every character expanding to two bytes */
 	uint8_t *rdata = calloc(strlen(data) * 2, sizeof(uint8_t));
 	y = gsm_septet_encode(rdata, data);
-	gsm_septets2octets(result, rdata, y, 0);
+	*octets = gsm_septets2octets(result, rdata, y, 0);
 
 	free(rdata);
 
