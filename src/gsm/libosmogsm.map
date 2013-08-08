@@ -132,8 +132,10 @@ gsm48_parse_ra;
 gsm48_rr_att_tlvdef;
 
 gsm_7bit_decode;
+gsm_7bit_decode_ussd;
 gsm_7bit_decode_hdr;
 gsm_7bit_encode;
+gsm_7bit_encode_ussd;
 gsm_7bit_encode_oct;
 
 gsm_arfcn2band;

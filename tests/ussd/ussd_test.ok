@@ -51,3 +51,24 @@ Result for 0 is 8
 Result for 0 is 7
 Result for 0 is 6
 Result for 1 is 5
+<CR> case test for 7 bit encode
+original = 30 31 32 33 34 35 36 37 
+encoded = b0 98 6c 46 ab d9 6e 
+decoded = 30 31 32 33 34 35 36 37 
+
+original = 30 31 32 33 34 35 36 
+encoded = b0 98 6c 46 ab d9 1a 
+decoded = 30 31 32 33 34 35 36 
+
+original = 30 31 32 33 34 35 36 37 0d 
+encoded = b0 98 6c 46 ab d9 6e 0d 
+decoded = 30 31 32 33 34 35 36 37 0d 
+
+original = 30 31 32 33 34 35 36 0d 
+encoded = b0 98 6c 46 ab d9 1a 0d 
+decoded = 30 31 32 33 34 35 36 0d 0d 
+
+original = 30 31 32 33 34 35 0d 
+encoded = b0 98 6c 46 ab 35 1a 
+decoded = 30 31 32 33 34 35 0d 
+

@@ -172,6 +172,19 @@ int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t septet_l)
 	return gsm_7bit_decode_hdr(text, user_data, septet_l, 0);
 }
 
+int gsm_7bit_decode_ussd(char *text, const uint8_t *user_data, uint8_t length)
+{
+	int i;
+
+	gsm_7bit_decode_hdr(text, user_data, length, 0);
+	i = strlen(text);
+	/* remove last <CR>, if it fits up to the end of last octet */
+	if (i && (user_data[gsm_get_octet_len(length) - 1] >> 1) == '\r')
+		text[--i] = '\0';
+
+	return i;
+}
+
 /* GSM 03.38 6.2.1 Prepare character packing */
 int gsm_septet_encode(uint8_t *result, const char *data)
 {
@@ -252,6 +265,24 @@ int gsm_7bit_encode(uint8_t *result, const char *data)
 {
 	int out;
 	return gsm_7bit_encode_oct(result, data, &out);
+}
+
+int gsm_7bit_encode_ussd(uint8_t *result, const char *data, int *octets)
+{
+	int y;
+
+	y = gsm_7bit_encode_oct(result, data, octets);
+	/* if last octet contains only one bit, add <CR> */
+	if (((y * 7) & 7) == 1)
+		result[(*octets) - 1] |= ('\r' << 1);
+	/* if last character is <CR> and completely fills last octet, add
+	 * another <CR>. */
+	if (y && ((y * 7) & 7) == 0 && (result[(*octets) - 1] >> 1) == '\r') {
+		result[(*octets)++] = '\r';
+		y++;
+	}
+
+	return y;
 }
 
 int gsm_7bit_encode_oct(uint8_t *result, const char *data, int *octets)

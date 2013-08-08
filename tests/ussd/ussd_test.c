@@ -22,6 +22,7 @@
 #include <osmocom/core/application.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/gsm/gsm0480.h>
+#include <osmocom/gsm/gsm_utils.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,6 +69,20 @@ static int parse_mangle_ussd(const uint8_t *_data, int len)
 
 struct log_info info = {};
 
+void gsm_7bit_ussd(char *text)
+{
+	uint8_t coded[256];
+	char decoded[256];
+	int y;
+
+	printf("original = %s\n", osmo_hexdump((uint8_t *)text, strlen(text)));
+	gsm_7bit_encode_ussd(coded, text, &y);
+	printf("encoded = %s\n", osmo_hexdump(coded, y));
+	gsm_7bit_decode_ussd(decoded, coded, y * 8 / 7);
+	y = strlen(decoded);
+	printf("decoded = %s\n\n", osmo_hexdump((uint8_t *)decoded, y));
+}
+
 int main(int argc, char **argv)
 {
 	struct ussd_request req;
@@ -92,6 +107,13 @@ int main(int argc, char **argv)
 		int rc = parse_mangle_ussd(&ussd_request[0], i);
 		printf("Result for %d is %d\n", rc, i);
 	}
+
+	printf("<CR> case test for 7 bit encode\n");
+	gsm_7bit_ussd("01234567");
+	gsm_7bit_ussd("0123456");
+	gsm_7bit_ussd("01234567\r");
+	gsm_7bit_ussd("0123456\r");
+	gsm_7bit_ussd("012345\r");
 
 	return 0;
 }

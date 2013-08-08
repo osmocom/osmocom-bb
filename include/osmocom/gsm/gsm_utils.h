@@ -57,8 +57,10 @@ const char *gsm_band_name(enum gsm_band band);
 enum gsm_band gsm_band_parse(const char *mhz);
 
 int gsm_7bit_decode(char *decoded, const uint8_t *user_data, uint8_t length);
+int gsm_7bit_decode_ussd(char *decoded, const uint8_t *user_data, uint8_t length);
 int gsm_7bit_decode_hdr(char *decoded, const uint8_t *user_data, uint8_t length, uint8_t ud_hdr_ind);
 int gsm_7bit_encode(uint8_t *result, const char *data);
+int gsm_7bit_encode_ussd(uint8_t *result, const char *data, int *octets_written);
 int gsm_7bit_encode_oct(uint8_t *result, const char *data, int *octets_written);
 
 /* the three functions below are helper functions and here for the unit test */
