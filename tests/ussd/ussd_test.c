@@ -69,7 +69,7 @@ static int parse_mangle_ussd(const uint8_t *_data, int len)
 
 struct log_info info = {};
 
-void gsm_7bit_ussd(char *text)
+static void test_7bit_ussd(const char *text, const char *encoded_hex, const char *appended_after_decode)
 {
 	uint8_t coded[256];
 	char decoded[256];
@@ -78,9 +78,15 @@ void gsm_7bit_ussd(char *text)
 	printf("original = %s\n", osmo_hexdump((uint8_t *)text, strlen(text)));
 	gsm_7bit_encode_ussd(coded, text, &y);
 	printf("encoded = %s\n", osmo_hexdump(coded, y));
+
+	OSMO_ASSERT(strcmp(encoded_hex, osmo_hexdump_nospc(coded, y)) == 0);
+
 	gsm_7bit_decode_ussd(decoded, coded, y * 8 / 7);
 	y = strlen(decoded);
 	printf("decoded = %s\n\n", osmo_hexdump((uint8_t *)decoded, y));
+
+	OSMO_ASSERT(strncmp(text, decoded, strlen(text)) == 0);
+	OSMO_ASSERT(strcmp(appended_after_decode, decoded + strlen(text)) == 0);
 }
 
 int main(int argc, char **argv)
@@ -109,11 +115,12 @@ int main(int argc, char **argv)
 	}
 
 	printf("<CR> case test for 7 bit encode\n");
-	gsm_7bit_ussd("01234567");
-	gsm_7bit_ussd("0123456");
-	gsm_7bit_ussd("01234567\r");
-	gsm_7bit_ussd("0123456\r");
-	gsm_7bit_ussd("012345\r");
+	test_7bit_ussd("01234567",   "b0986c46abd96e",   "");
+	test_7bit_ussd("0123456",    "b0986c46abd91a",   "");
+	test_7bit_ussd("01234567\r", "b0986c46abd96e0d", "");
+        /* The appended \r is compliant to GSM 03.38 section 6.1.2.3.1: */
+	test_7bit_ussd("0123456\r",  "b0986c46abd91a0d", "\r");
+	test_7bit_ussd("012345\r",   "b0986c46ab351a",   "");
 
 	return 0;
 }
