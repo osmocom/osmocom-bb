@@ -1,3 +1,9 @@
+libosmocore (0.6.3) UNRELEASED; urgency=low
+
+  * New upstream release with new primitives, USSD fixes.
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Fri, 09 Aug 2013 17:47:30 +0200
+
 libosmocore (0.6.2) unstable; urgency=low
 
   * New upstream release with NS UDP DSCP ABI changes
