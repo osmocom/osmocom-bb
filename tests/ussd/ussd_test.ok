@@ -72,3 +72,14 @@ original = 30 31 32 33 34 35 0d
 encoded = b0 98 6c 46 ab 35 1a 
 decoded = 30 31 32 33 34 35 0d 
 
+Checking GSM 04.80 USSD message generation.
+original = 
+encoded = 
+decoded = 
+
+Created unstructuredSS_Notify (0x00): 30 08 04 01 0f 04 00 04 01 00 
+original = 66 6f 72 74 79 2d 74 77 6f 
+encoded = e6 b7 9c 9e 6f d1 ef 6f 
+decoded = 66 6f 72 74 79 2d 74 77 6f 
+
+Created unstructuredSS_Notify (0x42): 30 10 04 01 0f 04 08 e6 b7 9c 9e 6f d1 ef 6f 04 01 42 

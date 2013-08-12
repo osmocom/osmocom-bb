@@ -1,4 +1,14 @@
 SMS testing
+Encode case 0: Octet length 8 (expected 8, computed 8), septet length 9 (expected 9)
+Encode case 1: Octet length 36 (expected 36, computed 36), septet length 41 (expected 41)
+Encode case 2: Octet length 35 (expected 35, computed 35), septet length 39 (expected 39)
+Encode case 3: Octet length 35 (expected 35, computed 35), septet length 40 (expected 40)
+Decode case 0: return value 9 (expected 9)
+Decode case 1: return value 40 (expected 40)
+Decode case 2: return value 31 (expected 31)
+Decode case 3: return value 32 (expected 32)
+Decode case 4: return value 153 (expected 153)
+Decode case 5: return value 40 (expected 40)
 Encoding some tests and printing number of septets/octets
 SEPTETS: 8 OCTETS: 7
 Done

@@ -116,14 +116,14 @@ static const uint8_t concatenated_part2_enc[] = {
 static const struct test_case test_multiple_encode[] =
 {
 	{
-		.input = concatenated_text,
+		.input = (const uint8_t *) concatenated_text,
 		.expected = concatenated_part1_enc,
 		.expected_octet_length = sizeof(concatenated_part1_enc),
 		.expected_septet_length = concatenated_part1_septet_length,
 		.ud_hdr_ind = 1,
 	},
 	{
-		.input = concatenated_text,
+		.input = (const uint8_t *) concatenated_text,
 		.expected = concatenated_part2_enc,
 		.expected_octet_length = sizeof(concatenated_part2_enc),
 		.expected_septet_length = concatenated_part2_septet_length,
@@ -134,28 +134,28 @@ static const struct test_case test_multiple_encode[] =
 static const struct test_case test_encode[] =
 {
 	{
-		.input = simple_text,
+		.input = (const uint8_t *) simple_text,
 		.expected = simple_enc,
 		.expected_octet_length = sizeof(simple_enc),
 		.expected_septet_length = simple_septet_length,
 		.ud_hdr_ind = 0,
 	},
 	{
-		.input = escape_text,
+		.input = (const uint8_t *) escape_text,
 		.expected = escape_enc,
 		.expected_octet_length = sizeof(escape_enc),
 		.expected_septet_length = escape_septet_length,
 		.ud_hdr_ind = 0,
 	},
 	{
-		.input = enhanced_text,
+		.input = (const uint8_t *) enhanced_text,
 		.expected = enhanced_enc,
 		.expected_octet_length = sizeof(enhanced_enc),
 		.expected_septet_length = enhanced_septet_length,
 		.ud_hdr_ind = 0,
 	},
 	{
-		.input = enhancedV2_text,
+		.input = (const uint8_t *) enhancedV2_text,
 		.expected = enhancedV2_enc,
 		.expected_octet_length = sizeof(enhancedV2_enc),
 		.expected_septet_length = enhancedV2_septet_length,
@@ -168,42 +168,42 @@ static const struct test_case test_decode[] =
 	{
 		.input = simple_enc,
 		.input_length = sizeof(simple_enc),
-		.expected = simple_text,
+		.expected = (const uint8_t *) simple_text,
 		.expected_septet_length = simple_septet_length,
 		.ud_hdr_ind = 0,
 	},
 	{
 		.input = escape_enc,
 		.input_length = sizeof(escape_enc),
-		.expected = escape_text,
+		.expected = (const uint8_t *) escape_text,
 		.expected_septet_length = escape_septet_length,
 		.ud_hdr_ind = 0,
 	},
 	{
 		.input = enhanced_enc,
 		.input_length = sizeof(enhanced_enc),
-		.expected = enhanced_text,
+		.expected = (const uint8_t *) enhanced_text,
 		.expected_septet_length = enhanced_septet_length,
 		.ud_hdr_ind = 0,
 	},
 	{
 		.input = enhancedV2_enc,
 		.input_length = sizeof(enhancedV2_enc),
-		.expected = enhancedV2_text,
+		.expected = (const uint8_t *) enhancedV2_text,
 		.expected_septet_length = enhancedV2_septet_length,
 		.ud_hdr_ind = 0,
 	},
 	{
 		.input = concatenated_part1_enc,
 		.input_length = sizeof(concatenated_part1_enc),
-		.expected = splitted_text_part1,
+		.expected = (const uint8_t *) splitted_text_part1,
 		.expected_septet_length = concatenated_part1_septet_length_with_header,
 		.ud_hdr_ind = 1,
 	},
 	{
 		.input = concatenated_part2_enc,
 		.input_length = sizeof(concatenated_part2_enc),
-		.expected = splitted_text_part2,
+		.expected = (const uint8_t *) splitted_text_part2,
 		.expected_septet_length = concatenated_part2_septet_length_with_header,
 		.ud_hdr_ind = 1,
 	},
@@ -216,7 +216,7 @@ static void test_octet_return()
 
 	printf("Encoding some tests and printing number of septets/octets\n");
 
-	septets = gsm_7bit_encode_oct((uint8_t *) out, "test1234", &oct);
+	septets = gsm_7bit_encode_n((uint8_t *) out, sizeof(out), "test1234", &oct);
 	printf("SEPTETS: %d OCTETS: %d\n", septets, oct);
 
 	printf("Done\n");
@@ -227,43 +227,58 @@ int main(int argc, char** argv)
 	printf("SMS testing\n");
 	struct msgb *msg;
 	uint8_t i;
-
+	uint16_t buffer_size;
 	uint8_t octet_length;
+	int octets_written;
+	uint8_t computed_octet_length;
 	uint8_t septet_length;
 	uint8_t gsm_septet_length;
 	uint8_t coded[256];
 	uint8_t tmp[160];
 	uint8_t septet_data[256];
 	uint8_t ud_header[6];
+	int nchars;
 	char result[256];
 
 	/* test 7-bit encoding */
 	for (i = 0; i < ARRAY_SIZE(test_encode); ++i) {
 		memset(coded, 0x42, sizeof(coded));
-		septet_length = gsm_7bit_encode(coded, test_encode[i].input);
-		octet_length = gsm_get_octet_len(septet_length);
-		if (octet_length != test_encode[i].expected_octet_length) {
-			fprintf(stderr, "Encode case %d: Octet length failure. Got %d, expected %d\n",
-				i, octet_length, test_encode[i].expected_octet_length);
-			return -1;
-		}
+		septet_length = gsm_7bit_encode_n(coded, sizeof(coded),
+			       			  (const char *) test_encode[i].input,
+						  &octets_written);
+		computed_octet_length = gsm_get_octet_len(septet_length);
+		printf("Encode case %d: "
+		       "Octet length %d (expected %d, computed %d), "
+		       "septet length %d (expected %d)\n"
+		       , i
+		       , octets_written, test_encode[i].expected_octet_length, computed_octet_length
+		       , septet_length, test_encode[i].expected_septet_length
+		      );
 
-		if (septet_length != test_encode[i].expected_septet_length){
-			fprintf(stderr, "Encode case %d: Septet length failure. Got %d, expected %d\n",
-				i, septet_length, test_encode[i].expected_septet_length);
-			return -1;
-		}
+		OSMO_ASSERT (octets_written == test_encode[i].expected_octet_length);
+		OSMO_ASSERT (octets_written == computed_octet_length);
+		OSMO_ASSERT (memcmp(coded, test_encode[i].expected, octets_written) == 0);
 
-		if (memcmp(coded, test_encode[i].expected, octet_length) != 0) {
-			fprintf(stderr, "Encoded content does not match for case %d\n",
-				i);
-			return -1;
+		/* check buffer limiting */
+		memset(coded, 0xaa, sizeof(coded));
+
+		for (buffer_size = 0;
+		     buffer_size < test_encode[i].expected_octet_length + 1
+		     && buffer_size < sizeof(coded) - 1;
+		     ++buffer_size)
+		{
+			gsm_7bit_encode_n(coded, buffer_size,
+				       	  (const char *) test_encode[i].input,
+					  &octets_written);
+
+			OSMO_ASSERT(octets_written <= buffer_size);
+			OSMO_ASSERT(coded[buffer_size] == 0xaa);
 		}
 	}
 
 
 	/* Test: encode multiple SMS */
-	int number_of_septets = gsm_septet_encode(septet_data, test_multiple_encode[0].input);
+	int number_of_septets = gsm_septet_encode(septet_data, (const char *) test_multiple_encode[0].input);
 
 	/* SMS part 1 */
 	memset(tmp, 0x42, sizeof(tmp));
@@ -281,11 +296,7 @@ int main(int argc, char** argv)
 	memset(coded, 0x42, sizeof(coded));
 	memcpy(coded, tmp, octet_length + 6);
 
-	if (memcmp(coded, test_multiple_encode[0].expected, octet_length) != 0) {
-		fprintf(stderr, "Multiple-SMS encoded content does not match for part 1\n");
-		return -1;
-	}
-
+	OSMO_ASSERT(memcmp(coded, test_multiple_encode[0].expected, octet_length) == 0);
 
 	/* SMS part 2 */
 	memset(tmp, 0x42, sizeof(tmp));
@@ -303,27 +314,32 @@ int main(int argc, char** argv)
 	memset(coded, 0x42, sizeof(coded));
 	memcpy(coded, tmp, octet_length + 6);
 
-	if (memcmp(coded, test_multiple_encode[1].expected, octet_length) != 0) {
-		fprintf(stderr, "Multiple-SMS encoded content does not match for part 2\n");
-		return -1;
-	}
-
-
+	OSMO_ASSERT(memcmp(coded, test_multiple_encode[1].expected, octet_length) == 0);
 
 	/* test 7-bit decoding */
 	for (i = 0; i < ARRAY_SIZE(test_decode); ++i) {
-		memset(result, 0x42, sizeof(coded));
-		septet_length = gsm_7bit_decode_hdr(result, test_decode[i].input,
+		memset(result, 0x42, sizeof(result));
+		nchars = gsm_7bit_decode_n_hdr(result, sizeof(result), test_decode[i].input,
 				test_decode[i].expected_septet_length, test_decode[i].ud_hdr_ind);
+		printf("Decode case %d: return value %d (expected %d)\n", i, nchars, strlen(result));
 
-		if (strcmp(result, test_decode[i].expected) != 0) {
-			fprintf(stderr, "Test case %d failed to decode.\n", i);
-			return -1;
-		}
-		if (septet_length != test_decode[i].expected_septet_length) {
-			fprintf(stderr, "Decode case %d: Septet length failure. Got %d, expected %d\n",
-				i, septet_length, test_decode[i].expected_septet_length);
-			return -1;
+		OSMO_ASSERT(strcmp(result, (const char *) test_decode[i].expected) == 0);
+		OSMO_ASSERT(nchars == strlen(result));
+
+		/* check buffer limiting */
+		memset(result, 0xaa, sizeof(result));
+
+		for (buffer_size = 1;
+		     buffer_size < test_encode[i].expected_septet_length + 1
+		     && buffer_size < sizeof(result) - 1;
+		     ++buffer_size)
+		{
+			nchars = gsm_7bit_decode_n_hdr(result, buffer_size, test_decode[i].input,
+					test_decode[i].expected_septet_length, test_decode[i].ud_hdr_ind);
+
+			OSMO_ASSERT(nchars <= buffer_size);
+			OSMO_ASSERT(result[buffer_size] == (char)0xaa);
+			OSMO_ASSERT(result[nchars] == '\0');
 		}
 	}
 
