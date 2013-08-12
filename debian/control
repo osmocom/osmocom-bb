@@ -2,8 +2,8 @@ Source: libosmocore
 Section: libs
 Priority: optional
 Maintainer: Harald Welte <laforge@gnumonks.org>
-Build-Depends: debhelper (>= 7.0.50), autotools-dev, autoconf, automake, libtool, dh-autoreconf, libdpkg-perl, git, doxygen
-Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, autoconf, automake, libtool, dh-autoreconf, libdpkg-perl, git, doxygen
+Standards-Version: 3.9.3
 Homepage: http://bb.osmocom.org/trac/wiki/libosmocore
 Vcs-Git: git://git.osmocom.org/libosmocore.git
 Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmocore.git;a=summary
@@ -11,13 +11,43 @@ Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmocore.git;a=summary
 Package: libosmocore
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: libosmocodec0, libosmocore4, libosmogb2, libosmogsm4, libosmovty0, ${misc:Depends}
 Description: Open Source MObile COMmunications CORE library
+
+Package: libosmocodec0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Osmo codec library
+
+Package: libosmocore4
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Osmo Core library
+
+Package: libosmogb2
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Osmo GPRS GB library
+
+Package: libosmogsm4
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Osmo GSM utility library
+
+Package: libosmovty0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Osmo VTY library
 
 Package: libosmocore-dev
 Section: libdevel
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libosmocore
+Depends: ${misc:Depends}, libosmocore
 Description: Development headers for Open Source MObile COMmunications CORE library
 
 Package: libosmocore-utils

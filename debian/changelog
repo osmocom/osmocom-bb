@@ -1,6 +1,7 @@
-libosmocore (0.6.3) UNRELEASED; urgency=low
+libosmocore (0.6.3+git1-1) UNRELEASED; urgency=low
 
   * New upstream release with new primitives, USSD fixes.
+  * Split libosmocore into several package. One lib per package.
 
  -- Holger Hans Peter Freyther <holger@freyther.de>  Fri, 09 Aug 2013 17:47:30 +0200
 
@@ -51,6 +52,6 @@ libosmocore (0.1.27) natty; urgency=low
 
 libosmocore (0.1.17-1) unstable; urgency=low
 
-  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+  * Initial release
 
  -- Harald Welte <laforge@gnumonks.org>  Tue, 24 Aug 2010 10:55:04 +0200

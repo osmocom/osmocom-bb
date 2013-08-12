@@ -14,10 +14,14 @@ DEBVERS := $(shell echo '$(DEBIAN)' | cut -d- -f1)
 VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
 
 %:
-	dh --with autoreconf $@ --fail-missing
+	dh $@ --with autoreconf --fail-missing
 
 override_dh_strip:
 	dh_strip --dbg-package=libosmocore-dbg
+
+override_dh_install:
+	sed -i "/dependency_libs/ s/'.*'/''/" `find . -name '*.la'`
+	dh_install
 
 override_dh_autoreconf:
 	echo $(VERSION) > .tarball-version
