@@ -28,12 +28,26 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <osmocom/gsm/gsm_utils.h>
+
 #define ADD_MODULO(sum, delta, modulo) do {	\
 	if ((sum += delta) >= modulo)		\
 		sum -= modulo;			\
 	} while (0)
 
 #define GSM_MAX_FN	(26*51*2048)
+
+/*! \brief Set the deprecated attribute with a message.
+ *
+ * \todo Move this to a global header utility file.
+ * \todo Check for compiler version to selectivly enable the message.
+ */
+#if 0
+#define OSMO_DEPRECATED(text)  __attribute__((deprecated(text)))
+#else
+#define OSMO_DEPRECATED(text)  __attribute__((__deprecated__))
+#endif
+
 
 struct gsm_time {
 	uint32_t	fn;	/* FN count */
@@ -79,7 +93,7 @@ int gsm_7bit_decode_n(char *decoded, size_t n, const uint8_t *user_data, uint8_t
  */
 int gsm_7bit_decode_n_ussd(char *decoded, size_t n, const uint8_t *user_data, uint8_t length);
 
-/**
+/*!
  * \brief Encode a text string into GSM 03.38 encoded 7 bit characters.
  *
  * \param result	The destination buffer for the packed 7 bit sequence.
@@ -193,11 +207,11 @@ enum gsm_chan_t {
 };
 
 /* Deprectated functions */
-int gsm_7bit_decode(char *decoded, const uint8_t *user_data, uint8_t length) __attribute__((deprecated ("Use gsm_7bit_decode_n() instead")));
-int gsm_7bit_decode_ussd(char *decoded, const uint8_t *user_data, uint8_t length) __attribute__((deprecated ("Use gsm_7bit_decode_n_ussd() instead")));
-int gsm_7bit_encode(uint8_t *result, const char *data) __attribute__((deprecated ("Use gsm_7bit_encode_n() instead")));
-int gsm_7bit_encode_ussd(uint8_t *result, const char *data, int *octets_written) __attribute__((deprecated ("Use gsm_7bit_encode_n_ussd() instead")));
-int gsm_7bit_encode_oct(uint8_t *result, const char *data, int *octets_written) __attribute__((deprecated ("Use gsm_7bit_encode_n() instead")));
+int gsm_7bit_decode(char *decoded, const uint8_t *user_data, uint8_t length) OSMO_DEPRECATED("Use gsm_7bit_decode_n() instead");
+int gsm_7bit_decode_ussd(char *decoded, const uint8_t *user_data, uint8_t length) OSMO_DEPRECATED("Use gsm_7bit_decode_n_ussd() instead");
+int gsm_7bit_encode(uint8_t *result, const char *data) OSMO_DEPRECATED("Use gsm_7bit_encode_n() instead");
+int gsm_7bit_encode_ussd(uint8_t *result, const char *data, int *octets_written) OSMO_DEPRECATED("Use gsm_7bit_encode_n_ussd() instead");
+int gsm_7bit_encode_oct(uint8_t *result, const char *data, int *octets_written) OSMO_DEPRECATED("Use gsm_7bit_encode_n() instead");
 
 
 #endif
