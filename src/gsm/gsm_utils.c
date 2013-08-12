@@ -80,8 +80,12 @@
  * left out as they can't be handled with a char and
  * since most phones don't display or write these
  * characters this would only needlessly make the code
- * more complex
-*/
+ * more complex.
+ *
+ * Note that this table contains the latin1->7bit mapping _and_ has
+ * been merged with the reverse mapping (7bit->latin1) for the
+ * extended characters at offset 0x7f.
+ */
 static unsigned char gsm_7bit_alphabet[] = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0a, 0xff, 0xff, 0x0d, 0xff,
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
