@@ -11,6 +11,7 @@ nobase_include_HEADERS = \
                        osmocom/core/crc64gen.h \
                        osmocom/core/crc8gen.h \
                        osmocom/core/crcgen.h \
+                       osmocom/core/defs.h \
                        osmocom/core/gsmtap.h \
                        osmocom/core/gsmtap_util.h \
                        osmocom/core/linuxlist.h \

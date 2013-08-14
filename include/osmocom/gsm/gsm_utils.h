@@ -28,7 +28,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/core/defs.h>
 
 #define ADD_MODULO(sum, delta, modulo) do {	\
 	if ((sum += delta) >= modulo)		\
@@ -36,18 +36,6 @@
 	} while (0)
 
 #define GSM_MAX_FN	(26*51*2048)
-
-/*! \brief Set the deprecated attribute with a message.
- *
- * \todo Move this to a global header utility file.
- * \todo Check for compiler version to selectivly enable the message.
- */
-#if 0
-#define OSMO_DEPRECATED(text)  __attribute__((deprecated(text)))
-#else
-#define OSMO_DEPRECATED(text)  __attribute__((__deprecated__))
-#endif
-
 
 struct gsm_time {
 	uint32_t	fn;	/* FN count */
