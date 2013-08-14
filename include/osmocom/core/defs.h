@@ -27,11 +27,17 @@
 /*! \brief Set the deprecated attribute with a message.
  */
 #if defined(__clang__)
-# define _OSMO_HAS_ATTRIBUTE_DEPRECATED __has_attribute(deprecated)
-# define _OSMO_HAS_ATTRIBUTE_DEPRECATED_WITH_MESSAGE __has_extension(attribute_deprecated_with_message)
+# if __has_attribute(deprecated)
+#   define _OSMO_HAS_ATTRIBUTE_DEPRECATED 1
+# endif
+# if __has_extension(attribute_deprecated_with_message)
+#   define _OSMO_HAS_ATTRIBUTE_DEPRECATED_WITH_MESSAGE 1
+# endif
 #elif defined(__GNUC__)
 # define _OSMO_HAS_ATTRIBUTE_DEPRECATED 1
-# define _OSMO_HAS_ATTRIBUTE_DEPRECATED_WITH_MESSAGE OSMO_GNUC_PREREQ(4,5)
+# if OSMO_GNUC_PREREQ(4,5)
+#   define _OSMO_HAS_ATTRIBUTE_DEPRECATED_WITH_MESSAGE 1
+# endif
 #endif
 
 #if defined(_OSMO_HAS_ATTRIBUTE_DEPRECATED_WITH_MESSAGE)
