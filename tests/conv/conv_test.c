@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include <osmocom/core/bits.h>
@@ -355,7 +356,7 @@ sbit_to_ubit(ubit_t *dst, sbit_t *src, int n)
 }
 
 
-int main(int argc, char argv[])
+int main(int argc, char *argv[])
 {
 	const struct conv_test_vector *tst;
 	ubit_t *bu0, *bu1;
