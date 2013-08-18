@@ -160,6 +160,16 @@ struct l1s_state {
 		uint16_t arfcn;
 		uint8_t bsic;
 	} bts;
+
+	/* emi mode */
+	struct {
+		uint16_t arfcn;
+		uint8_t slots;
+		uint32_t *burst_map;
+		int32_t burst_num;
+		int32_t burst_curr;
+		uint8_t tone;
+	} emi;
 };
 
 extern struct l1s_state l1s;
