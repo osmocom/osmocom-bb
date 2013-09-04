@@ -1,6 +1,8 @@
 #ifndef _GSM0411_UTILS_H
 #define _GSM0411_UTILS_H
 
+#include <time.h>
+
 /* Turn int into semi-octet representation: 98 => 0x89 */
 uint8_t gsm411_bcdify(uint8_t value);
 
