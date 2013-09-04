@@ -22,8 +22,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <osmocom/core/msgb.h>
+
+#include <osmocom/gsm/protocol/gsm_03_40.h>
+
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/gsm0411_utils.h>
+
+#include <osmocom/core/msgb.h>
 #include <osmocom/core/utils.h>
 
 struct test_case {
@@ -222,6 +227,42 @@ static void test_octet_return()
 	printf("Done\n");
 }
 
+static void test_gen_oa(void)
+{
+	uint8_t oa[12];
+	int len;
+
+	printf("Testing gsm340_gen_oa\n");
+
+	/* first try... */
+	len = gsm340_gen_oa(oa, ARRAY_SIZE(oa), GSM340_TYPE_UNKNOWN,
+			GSM340_PLAN_ISDN, "12345678901234567891");
+	OSMO_ASSERT(len == 12);
+	printf("Result: len(%d) data(%s)\n", len, osmo_hexdump(oa, len));
+	len = gsm340_gen_oa(oa, ARRAY_SIZE(oa), GSM340_TYPE_NATIONAL,
+			GSM340_PLAN_ISDN, "12345678901234567891");
+	OSMO_ASSERT(len == 12);
+	printf("Result: len(%d) data(%s)\n", len, osmo_hexdump(oa, len));
+
+	/* long input.. will fail and just prints the header*/
+	len = gsm340_gen_oa(oa, ARRAY_SIZE(oa), GSM340_TYPE_INTERNATIONAL,
+			GSM340_PLAN_ISDN, "123456789123456789120");
+	OSMO_ASSERT(len == 2);
+	printf("Result: len(%d) data(%s)\n", len, osmo_hexdump(oa, len));
+
+	/* try the alpha numeric encoding */
+	len = gsm340_gen_oa(oa, ARRAY_SIZE(oa), GSM340_TYPE_ALPHA_NUMERIC,
+			GSM340_PLAN_UNKNOWN, "OpenBSC");
+	OSMO_ASSERT(len == 9);
+	printf("Result: len(%d) data(%s)\n", len, osmo_hexdump(oa, len));
+
+	/* long alpha numeric text */
+	len = gsm340_gen_oa(oa, ARRAY_SIZE(oa), GSM340_TYPE_ALPHA_NUMERIC,
+			GSM340_PLAN_UNKNOWN, "OpenBSCabcdefghijklm");
+	OSMO_ASSERT(len == 12);
+	printf("Result: len(%d) data(%s)\n", len, osmo_hexdump(oa, len));
+}
+
 int main(int argc, char** argv)
 {
 	printf("SMS testing\n");
@@ -344,6 +385,7 @@ int main(int argc, char** argv)
 	}
 
 	test_octet_return();
+	test_gen_oa();
 
 	printf("OK\n");
 	return 0;

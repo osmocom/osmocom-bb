@@ -4,7 +4,7 @@
 
 /* (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
  * (C) 2009 by Harald Welte <laforge@gnumonks.org>
- * (C) 2010 by Holger Hans Peter Freyther <zecke@selfish.org>
+ * (C) 2010-2013 by Holger Hans Peter Freyther <zecke@selfish.org>
  * (C) 2010 by On-Waves
  * (C) 2011 by Andreas Eversberg <jolly@eversberg.eu>
  *
@@ -33,6 +33,8 @@
 #include <osmocom/core/logging.h>
 
 #include <osmocom/gsm/gsm48.h>
+#include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/protocol/gsm_03_40.h>
 #include <osmocom/gsm/protocol/gsm_04_11.h>
 
 #define GSM411_ALLOC_SIZE	1024
@@ -269,16 +271,26 @@ int gsm340_gen_oa(uint8_t *oa, unsigned int oa_len, uint8_t type,
 {
 	int len_in_bytes;
 
-	/* prevent buffer overflows */
-	if (strlen(number) > 20)
-		number = "";
-
 	oa[1] = 0x80 | (type << 4) | plan;
 
-	len_in_bytes = gsm48_encode_bcd_number(oa, oa_len, 1, number);
-
-	/* GSM 03.40 tells us the length is in 'useful semi-octets' */
-	oa[0] = strlen(number) & 0xff;
+	if (type == GSM340_TYPE_ALPHA_NUMERIC) {
+		/*
+		 * TODO/FIXME: what is the 'useful semi-octets' excluding any
+		 * semi octet containing only fill bits.
+		 * The current code picks the number of bytes written by the
+		 * 7bit encoding routines and multiplies it by two.
+		 */
+		gsm_7bit_encode_n(&oa[2], oa_len - 2, number, &len_in_bytes);
+		oa[0] = len_in_bytes * 2;
+		len_in_bytes += 2;
+	} else {
+		/* prevent buffer overflows */
+		if (strlen(number) > 20)
+			number = "";
+		len_in_bytes = gsm48_encode_bcd_number(oa, oa_len, 1, number);
+		/* GSM 03.40 tells us the length is in 'useful semi-octets' */
+		oa[0] = strlen(number) & 0xff;
+	}
 
 	return len_in_bytes;
 }
