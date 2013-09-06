@@ -147,7 +147,7 @@ static int cmp_desc(const void *p, const void *q)
 	return strcmp(a->cmd, b->cmd);
 }
 
-static int is_config(struct vty *vty)
+static int is_config_child(struct vty *vty)
 {
 	if (vty->node <= CONFIG_NODE)
 		return 0;
@@ -2050,7 +2050,7 @@ cmd_execute_command(vector vline, struct vty *vty, struct cmd_element **cmd,
 
 	/* Go to parent for config nodes to attempt to find the right command */
 	while (ret != CMD_SUCCESS && ret != CMD_WARNING
-	       && is_config(vty)) {
+	       && is_config_child(vty)) {
 		vty_go_parent(vty);
 		ret = cmd_execute_command_real(vline, vty, cmd);
 		tried = 1;
@@ -2198,7 +2198,7 @@ int config_from_file(struct vty *vty, FILE * fp)
 		/* Try again with setting node to CONFIG_NODE */
 		while (ret != CMD_SUCCESS && ret != CMD_WARNING
 		       && ret != CMD_ERR_NOTHING_TODO
-		       && vty->node != CONFIG_NODE && is_config(vty)) {
+		       && is_config_child(vty)) {
 			vty_go_parent(vty);
 			ret = cmd_execute_command_strict(vline, vty, NULL);
 		}
