@@ -1753,7 +1753,7 @@ void vty_init(struct vty_app_info *app_info)
 	install_element(ENABLE_NODE, &terminal_monitor_cmd);
 	install_element(ENABLE_NODE, &terminal_no_monitor_cmd);
 
-	install_default(VTY_NODE);
+	vty_install_default(VTY_NODE);
 	install_element(VTY_NODE, &vty_login_cmd);
 	install_element(VTY_NODE, &no_vty_login_cmd);
 }

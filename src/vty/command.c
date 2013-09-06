@@ -3302,6 +3302,18 @@ void install_default(enum node_type node)
 	install_element(node, &show_running_config_cmd);
 }
 
+void vty_install_default(enum node_type node)
+{
+	install_default(node);
+
+	install_element(node, &config_exit_cmd);
+
+	if (node >= CONFIG_NODE) {
+		/* It's not a top node. */
+		install_element(node, &config_end_cmd);
+	}
+}
+
 /**
  * \brief Write the current running config to a given file
  * \param[in] vty the vty of the code
@@ -3380,8 +3392,7 @@ void cmd_init(int terminal)
 	}
 
 	if (terminal) {
-		install_element(ENABLE_NODE, &config_exit_cmd);
-		install_default(ENABLE_NODE);
+		vty_install_default(ENABLE_NODE);
 		install_element(ENABLE_NODE, &config_disable_cmd);
 		install_element(ENABLE_NODE, &config_terminal_cmd);
 		install_element (ENABLE_NODE, &copy_runningconfig_startupconfig_cmd);
@@ -3395,8 +3406,7 @@ void cmd_init(int terminal)
 		install_element(ENABLE_NODE, &config_terminal_no_length_cmd);
 		install_element(ENABLE_NODE, &echo_cmd);
 
-		install_default(CONFIG_NODE);
-		install_element(CONFIG_NODE, &config_exit_cmd);
+		vty_install_default(CONFIG_NODE);
 	}
 
 	install_element(CONFIG_NODE, &hostname_cmd);

@@ -340,6 +340,11 @@ void install_element(enum node_type, struct cmd_element *);
 void install_element_ve(struct cmd_element *cmd);
 void sort_node(void);
 
+/* This is similar to install_default() but it also creates
+ * 'exit' and 'end' commands.
+ */
+void vty_install_default(enum node_type);
+
 /* Concatenates argv[shift] through argv[argc-1] into a single NUL-terminated
    string with a space between each element (allocated using
    XMALLOC(MTYPE_TMP)).  Returns NULL if shift >= argc. */

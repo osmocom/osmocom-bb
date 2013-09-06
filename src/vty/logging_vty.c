@@ -677,8 +677,7 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	install_element_ve(&show_alarms_cmd);
 
 	install_node(&cfg_log_node, config_write_log);
-	install_default(CFG_LOG_NODE);
-	install_element(CFG_LOG_NODE, &config_end_cmd);
+	vty_install_default(CFG_LOG_NODE);
 	install_element(CFG_LOG_NODE, &logging_fltr_all_cmd);
 	install_element(CFG_LOG_NODE, &logging_use_clr_cmd);
 	install_element(CFG_LOG_NODE, &logging_prnt_timestamp_cmd);
