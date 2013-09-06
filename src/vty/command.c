@@ -1889,10 +1889,22 @@ enum node_type vty_go_parent(struct vty *vty)
 {
 	assert(vty->node > CONFIG_NODE);
 
-	if (host.app_info->go_parent_cb)
-		host.app_info->go_parent_cb(vty);
-	else
-		vty->node = CONFIG_NODE;
+	switch (vty->node) {
+		case CONFIG_NODE:
+			break;
+
+		case CFG_LOG_NODE:
+		case VTY_NODE:
+			vty->node = CONFIG_NODE;
+			break;
+
+		default:
+			if (host.app_info->go_parent_cb)
+				host.app_info->go_parent_cb(vty);
+			else
+				vty->node = CONFIG_NODE;
+			break;
+	}
 
 	return vty->node;
 }
@@ -2266,13 +2278,9 @@ gDEFUN(config_exit,
 		vty->node = ENABLE_NODE;
 		vty_config_unlock(vty);
 		break;
-	case VTY_NODE:
-		vty->node = CONFIG_NODE;
-		break;
-	case CFG_LOG_NODE:
-		vty->node = CONFIG_NODE;
-		break;
 	default:
+		if (vty->node > CONFIG_NODE)
+			vty_go_parent (vty);
 		break;
 	}
 	return CMD_SUCCESS;
@@ -2282,19 +2290,24 @@ gDEFUN(config_exit,
     gDEFUN(config_end,
       config_end_cmd, "end", "End current mode and change to enable mode.")
 {
-	switch (vty->node) {
-	case VIEW_NODE:
-	case ENABLE_NODE:
-		/* Nothing to do. */
-		break;
-	case CFG_LOG_NODE:
-	case CONFIG_NODE:
-	case VTY_NODE:
+	if (vty->node > ENABLE_NODE) {
+		enum node_type last_node = CONFIG_NODE;
+
+		/* Repeatedly call go_parent until a top node is reached. */
+		while (vty->node > CONFIG_NODE) {
+			if (vty->node == last_node) {
+				/* Ensure termination, this shouldn't happen. */
+				break;
+			}
+			last_node = vty->node;
+			vty_go_parent(vty);
+		}
+
 		vty_config_unlock(vty);
-		vty->node = ENABLE_NODE;
-		break;
-	default:
-		break;
+		if (vty->node > ENABLE_NODE)
+			vty->node = ENABLE_NODE;
+		vty->index = NULL;
+		vty->index_sub = NULL;
 	}
 	return CMD_SUCCESS;
 }
