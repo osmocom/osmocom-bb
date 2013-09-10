@@ -24,6 +24,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include <osmocom/core/application.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
@@ -31,6 +32,7 @@
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/buffer.h>
+#include <osmocom/vty/logging.h>
 
 static enum event last_vty_connection_event = -1;
 
@@ -90,7 +92,6 @@ static void test_node_tree_structure(void)
 	};
 
 	struct vty *vty;
-	vector vline;
 	int sock[2];
 
 	printf("Going to test VTY node tree structure\n");
