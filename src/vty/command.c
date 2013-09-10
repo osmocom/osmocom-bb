@@ -29,7 +29,6 @@ Boston, MA 02111-1307, USA.  */
 #include <errno.h>
 #define _XOPEN_SOURCE
 #include <unistd.h>
-#include <assert.h>
 #include <ctype.h>
 #include <time.h>
 #include <sys/time.h>
@@ -1884,13 +1883,31 @@ char **cmd_complete_command(vector vline, struct vty *vty, int *status)
 }
 
 /* return parent node */
-/* MUST eventually converge on CONFIG_NODE */
+/*
+ * This function MUST eventually converge on a node when called repeatedly,
+ * there must not be any cycles.
+ * All 'config' nodes shall converge on CONFIG_NODE.
+ * All other 'enable' nodes shall converge on ENABLE_NODE.
+ * All 'view' only nodes shall converge on VIEW_NODE.
+ * All other nodes shall converge on themselves or it must be ensured,
+ * that the user's rights are not extended anyhow by calling this function.
+ *
+ * Note that these requirements also apply to all functions that are used
+ * as go_parent_cb.
+ * Note also that this function relies on the is_config_child callback to
+ * recognize non-config nodes if go_parent_cb is not set.
+ */
 enum node_type vty_go_parent(struct vty *vty)
 {
-	assert(vty->node > CONFIG_NODE);
-
 	switch (vty->node) {
+		case AUTH_NODE:
+		case VIEW_NODE:
+		case ENABLE_NODE:
 		case CONFIG_NODE:
+			break;
+
+		case AUTH_ENABLE_NODE:
+			vty->node = VIEW_NODE;
 			break;
 
 		case CFG_LOG_NODE:
@@ -1901,8 +1918,10 @@ enum node_type vty_go_parent(struct vty *vty)
 		default:
 			if (host.app_info->go_parent_cb)
 				host.app_info->go_parent_cb(vty);
-			else
+			else if (is_config_child(vty))
 				vty->node = CONFIG_NODE;
+			else
+				vty->node = VIEW_NODE;
 			break;
 	}
 
@@ -2267,6 +2286,7 @@ gDEFUN(config_exit,
       config_exit_cmd, "exit", "Exit current mode and down to previous mode\n")
 {
 	switch (vty->node) {
+	case AUTH_NODE:
 	case VIEW_NODE:
 	case ENABLE_NODE:
 		if (0)		//vty_shell (vty))
