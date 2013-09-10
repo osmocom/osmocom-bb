@@ -2291,7 +2291,7 @@ gDEFUN(config_exit,
       config_end_cmd, "end", "End current mode and change to enable mode.")
 {
 	if (vty->node > ENABLE_NODE) {
-		enum node_type last_node = CONFIG_NODE;
+		int last_node = CONFIG_NODE;
 
 		/* Repeatedly call go_parent until a top node is reached. */
 		while (vty->node > CONFIG_NODE) {
