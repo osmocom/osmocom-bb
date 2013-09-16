@@ -147,7 +147,7 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 	vector vline, cmdvec, cmds_vec;
 
 	ret = CTRL_CMD_ERROR;
-	cmd->reply = "Someone forgot to fill in the reply.";
+	cmd->reply = NULL;
 	node = CTRL_NODE_ROOT;
 	cmd->node = net;
 
@@ -238,6 +238,14 @@ int ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data)
 	cmd_free_strvec(vline);
 
 err:
+	if (!cmd->reply) {
+		LOGP(DCTRL, LOGL_ERROR, "cmd->reply has not been set.\n");
+		if (ret == CTRL_CMD_ERROR)
+			cmd->reply = "An error has occured.";
+		else
+			cmd->reply = "Command has been handled.";
+	}
+
 	if (ret == CTRL_CMD_ERROR)
 		cmd->type = CTRL_TYPE_ERROR;
 	return ret;
