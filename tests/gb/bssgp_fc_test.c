@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <getopt.h>
+#include <unistd.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/utils.h>
@@ -43,6 +44,7 @@ static int fc_out_cb(struct bssgp_flow_control *fc, struct msgb *msg,
 	csecs = round_decisec(csecs);
 
 	printf("%u: FC OUT Nr %lu\n", csecs, (unsigned long) msg);
+	return 0;
 }
 
 static int fc_in(struct bssgp_flow_control *fc, unsigned int pdu_len)
@@ -53,6 +55,7 @@ static int fc_in(struct bssgp_flow_control *fc, unsigned int pdu_len)
 	printf("%u: FC IN Nr %lu\n", csecs, in_ctr);
 	bssgp_fc_in(fc, (struct msgb *) in_ctr, pdu_len, NULL);
 	in_ctr++;
+	return 0;
 }
 
 
