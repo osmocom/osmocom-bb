@@ -925,6 +925,7 @@ struct gsm48_rr_status {
 #define GSM48_IE_UTC		0x46	/* 10.5.3.8 */
 #define GSM48_IE_NET_TIME_TZ	0x47	/* 10.5.3.9 */
 #define GSM48_IE_LSA_IDENT	0x48	/* 10.5.3.11 */
+#define GSM48_IE_NET_DST	0x49	/* 10.5.3.12 [24.008] */
 
 #define GSM48_IE_BEARER_CAP	0x04	/* 10.5.4.5 */
 #define GSM48_IE_CAUSE		0x08	/* 10.5.4.11 */

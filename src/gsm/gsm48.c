@@ -131,6 +131,7 @@ const struct tlv_definition gsm48_mm_att_tlvdef = {
 		[GSM48_IE_UTC]			= { TLV_TYPE_TV },
 		[GSM48_IE_NET_TIME_TZ]		= { TLV_TYPE_FIXED, 7 },
 		[GSM48_IE_LSA_IDENT]		= { TLV_TYPE_TLV },
+		[GSM48_IE_NET_DST]		= { TLV_TYPE_TLV },
 
 		[GSM48_IE_LOCATION_AREA]	= { TLV_TYPE_FIXED, 5 },
 		[GSM48_IE_PRIORITY_LEV]		= { TLV_TYPE_SINGLE_TV },
