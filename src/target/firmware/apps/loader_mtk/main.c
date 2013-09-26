@@ -215,7 +215,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 		crc = msgb_pull_u16(msg);
 		address = msgb_pull_u32(msg);
 
-		data = msgb_pull(msg, nbytes);
+		data = msgb_pull(msg, nbytes) - nbytes;
 
 		mycrc = osmo_crc16(0, data, nbytes);
 
@@ -333,7 +333,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 		chip = msgb_pull_u8(msg);
 		address = msgb_pull_u32(msg);
 
-		data = msgb_pull(msg, nbytes);
+		data = msgb_pull(msg, nbytes) - nbytes;
 
 		mycrc = osmo_crc16(0, data, nbytes);
 
