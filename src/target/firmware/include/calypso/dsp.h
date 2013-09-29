@@ -21,7 +21,7 @@ struct dsp_api {
 
 extern struct dsp_api dsp_api;
 
-void dsp_power_on(void);
+void dsp_power_on(int load_extcode);
 void dsp_dump_version(void);
 void dsp_dump(void);
 void dsp_checksum_task(void);
