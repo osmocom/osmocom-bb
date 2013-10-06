@@ -234,7 +234,7 @@ static int parse_ussd(const struct gsm48_hdr *hdr, uint16_t len, struct ussd_req
 	case GSM0480_MTYPE_RELEASE_COMPLETE:
 		LOGP(0, LOGL_DEBUG, "USS Release Complete\n");
 		/* could also parse out the optional Cause/Facility data */
-		req->text[0] = 0xFF;
+		req->text[0] = '\0';
 		break;
 	case GSM0480_MTYPE_REGISTER:
 	case GSM0480_MTYPE_FACILITY:
