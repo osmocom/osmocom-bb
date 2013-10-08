@@ -49,6 +49,15 @@ enum gprs_ns_evt {
 	GPRS_NS_EVT_UNIT_DATA,
 };
 
+/*! \brief Osmocom NS VC create status */
+enum gprs_ns_cs {
+	GPRS_NS_CS_CREATED,     /*!< A NSVC object has been created */
+	GPRS_NS_CS_FOUND,       /*!< A NSVC object has been found */
+	GPRS_NS_CS_REJECTED,    /*!< Rejected and answered message */
+	GPRS_NS_CS_SKIPPED,     /*!< Skipped message */
+	GPRS_NS_CS_ERROR,       /*!< Failed to process message */
+};
+
 struct gprs_nsvc;
 /*! \brief Osmocom GPRS callback function type */
 typedef int gprs_ns_cb_t(enum gprs_ns_evt event, struct gprs_nsvc *nsvc,

@@ -730,6 +730,13 @@ static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
 	return gprs_ns_tx_simple(nsvc, NS_PDUT_BLOCK_ACK);
 }
 
+int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
+		      struct gprs_nsvc *fallback_nsvc,
+		      struct gprs_nsvc **new_nsvc);
+
+int gprs_ns_process_msg(struct gprs_ns_inst *nsi, struct msgb *msg,
+		      struct gprs_nsvc *nsvc);
+
 /*! \brief Receive incoming NS message from underlying transport layer
  *  \param nsi NS instance to which the data belongs
  *  \param[in] msg message buffer containing newly-received data
@@ -743,72 +750,154 @@ static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)
 int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		   struct sockaddr_in *saddr, enum gprs_ns_ll ll)
 {
-	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
 	struct gprs_nsvc *nsvc;
 	int rc = 0;
 
 	/* look up the NSVC based on source address */
 	nsvc = nsvc_by_rem_addr(nsi, saddr);
+
 	if (!nsvc) {
-		struct tlv_parsed tp;
-		uint16_t nsei;
-		if (nsh->pdu_type == NS_PDUT_STATUS) {
-			LOGP(DNS, LOGL_INFO, "Ignoring NS STATUS from %s:%u "
-			     "for non-existing NS-VC\n",
-			     inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
-			return 0;
-		}
-		/* Only the RESET procedure creates a new NSVC */
-		if (nsh->pdu_type != NS_PDUT_RESET) {
-			/* Since we have no NSVC, we have to use a fake */
-			nsvc = nsi->unknown_nsvc;
-			log_set_context(GPRS_CTX_NSVC, nsvc);
-			LOGP(DNS, LOGL_INFO, "Rejecting NS PDU type 0x%0x "
-				"from %s:%u for non-existing NS-VC\n",
-				nsh->pdu_type, inet_ntoa(saddr->sin_addr),
-				ntohs(saddr->sin_port));
-			nsvc->nsvci = nsvc->nsei = 0xfffe;
-			nsvc->ip.bts_addr = *saddr;
-			nsvc->state = NSE_S_ALIVE;
+		struct gprs_nsvc *fallback_nsvc;
+
+		fallback_nsvc = nsi->unknown_nsvc;
+		log_set_context(GPRS_CTX_NSVC, fallback_nsvc);
+		fallback_nsvc->ip.bts_addr = *saddr;
+		fallback_nsvc->ll = ll;
+
+		rc = gprs_ns_vc_create(nsi, msg, fallback_nsvc, &nsvc);
+
+		switch (rc) {
+		case GPRS_NS_CS_CREATED:
+		case GPRS_NS_CS_FOUND:
 			nsvc->ll = ll;
-#if 0
-			return gprs_ns_tx_reset(nsvc, NS_CAUSE_PDU_INCOMP_PSTATE);
-#else
-			return gprs_ns_tx_status(nsvc,
-						NS_CAUSE_PDU_INCOMP_PSTATE, 0,
-						msg);
-#endif
-		}
-		rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data,
-				msgb_l2len(msg) - sizeof(*nsh), 0, 0);
-		if (rc < 0) {
-			LOGP(DNS, LOGL_ERROR, "Rx NS RESET Error %d during "
-				"TLV Parse\n", rc);
+			break;
+		case GPRS_NS_CS_SKIPPED:
+		case GPRS_NS_CS_REJECTED:
+			break;
+		default:
 			return rc;
 		}
-		if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
-		    !TLVP_PRESENT(&tp, NS_IE_VCI) ||
-		    !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
-			LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
-			gprs_ns_tx_status(nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0,
-					  msg);
-			return -EINVAL;
-		}
-		nsei = ntohs(*(uint16_t *)TLVP_VAL(&tp, NS_IE_NSEI));
-		/* Check if we already know this NSEI, the remote end might
-		 * simply have changed addresses, or it is a SGSN */
-		nsvc = gprs_nsvc_by_nsei(nsi, nsei);
-		if (!nsvc) {
-			nsvc = gprs_nsvc_create(nsi, 0xffff);
-			nsvc->ll = ll;
-			log_set_context(GPRS_CTX_NSVC, nsvc);
-			LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s:%u\n",
-				inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
-		}
-		/* Update the remote peer IP address/port */
+
+		rc = 0;
+	}
+
+	if (nsvc) {
 		nsvc->ip.bts_addr = *saddr;
-	} else
-		msgb_nsei(msg) = nsvc->nsei;
+		rc = gprs_ns_process_msg(nsi, msg, nsvc);
+	}
+
+	return rc;
+}
+
+const char *gprs_ns_format_peer(struct gprs_nsvc *nsvc)
+{
+	static char buf[80];
+	snprintf(buf, sizeof(buf), "%s:%u",
+		 inet_ntoa(nsvc->ip.bts_addr.sin_addr),
+		 ntohs(nsvc->ip.bts_addr.sin_port));
+
+	return buf;
+}
+
+/*! \brief Create/get NS-VC independently from underlying transport layer
+ *  \param nsi NS instance to which the data belongs
+ *  \param[in] msg message buffer containing newly-received data
+ *  \param[in] fallback_nsvc is used to send error messages back to the peer
+ *  \param[out] new_nsvc contains a pointer to a NS-VC object if one has
+ *              been created or found
+ *  \returns < 0 in case of error, GPRS_NS_CS_SKIPPED if a message has been
+ *           skipped, GPRS_NS_CS_REJECTED if a message has been rejected and
+ *           answered accordingly, GPRS_NS_CS_CREATED if a new NS-VC object
+ *           has been created and registered, and GPRS_NS_CS_FOUND if an
+ *           existing NS-VC object has been found with the same NSEI.
+ *
+ * This contains the initial NS automaton state (NS-VC not yet attached).
+ */
+int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
+		      struct gprs_nsvc *fallback_nsvc,
+		      struct gprs_nsvc **new_nsvc)
+{
+	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *)msg->l2h;
+	struct gprs_nsvc *existing_nsvc;
+
+	struct tlv_parsed tp;
+	uint16_t nsei;
+
+	int rc;
+
+	if (nsh->pdu_type == NS_PDUT_STATUS) {
+		LOGP(DNS, LOGL_INFO, "Ignoring NS STATUS from %s "
+		     "for non-existing NS-VC\n",
+		     gprs_ns_format_peer(fallback_nsvc));
+		return GPRS_NS_CS_SKIPPED;
+	}
+
+	/* Only the RESET procedure creates a new NSVC */
+	if (nsh->pdu_type != NS_PDUT_RESET) {
+		/* Since we have no NSVC, we have to use a fake */
+		log_set_context(GPRS_CTX_NSVC, fallback_nsvc);
+		LOGP(DNS, LOGL_INFO, "Rejecting NS PDU type 0x%0x "
+		     "from %s for non-existing NS-VC\n",
+		     nsh->pdu_type, gprs_ns_format_peer(fallback_nsvc));
+		fallback_nsvc->nsvci = fallback_nsvc->nsei = 0xfffe;
+		fallback_nsvc->state = NSE_S_ALIVE;
+
+		rc = gprs_ns_tx_status(fallback_nsvc,
+				       NS_CAUSE_PDU_INCOMP_PSTATE, 0, msg);
+		if (rc < 0) {
+			LOGP(DNS, LOGL_ERROR, "TX failed (%d) to peer %s\n",
+				rc, gprs_ns_format_peer(fallback_nsvc));
+			return rc;
+		}
+		return GPRS_NS_CS_REJECTED;
+	}
+
+	rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data,
+		       msgb_l2len(msg) - sizeof(*nsh), 0, 0);
+	if (rc < 0) {
+		LOGP(DNS, LOGL_ERROR, "Rx NS RESET Error %d during "
+		     "TLV Parse\n", rc);
+		return rc;
+	}
+	if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
+	    !TLVP_PRESENT(&tp, NS_IE_VCI) || !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
+		LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
+		gprs_ns_tx_status(fallback_nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0,
+				  msg);
+		return -EINVAL;
+	}
+	nsei = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_NSEI));
+	/* Check if we already know this NSEI, the remote end might
+	 * simply have changed addresses, or it is a SGSN */
+	existing_nsvc = gprs_nsvc_by_nsei(nsi, nsei);
+	if (!existing_nsvc) {
+		*new_nsvc = gprs_nsvc_create(nsi, 0xffff);
+		log_set_context(GPRS_CTX_NSVC, *new_nsvc);
+		LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s\n",
+		     gprs_ns_format_peer(fallback_nsvc));
+
+		return GPRS_NS_CS_CREATED;
+	}
+
+	*new_nsvc = existing_nsvc;
+	return GPRS_NS_CS_FOUND;
+}
+
+/*! \brief Process NS message independently from underlying transport layer
+ *  \param nsi NS instance to which the data belongs
+ *  \param[in] msg message buffer containing newly-received data
+ *  \param[in] nsvc refers to the virtual connection
+ *  \returns 0 in case of success, < 0 in case of error
+ *
+ * This contains the main NS automaton.
+ */
+int gprs_ns_process_msg(struct gprs_ns_inst *nsi, struct msgb *msg,
+			struct gprs_nsvc *nsvc)
+{
+	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
+	int rc = 0;
+
+	msgb_nsei(msg) = nsvc->nsei;
 
 	log_set_context(GPRS_CTX_NSVC, nsvc);
 
