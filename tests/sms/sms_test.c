@@ -266,18 +266,15 @@ static void test_gen_oa(void)
 int main(int argc, char** argv)
 {
 	printf("SMS testing\n");
-	struct msgb *msg;
 	uint8_t i;
 	uint16_t buffer_size;
 	uint8_t octet_length;
 	int octets_written;
 	uint8_t computed_octet_length;
 	uint8_t septet_length;
-	uint8_t gsm_septet_length;
 	uint8_t coded[256];
 	uint8_t tmp[160];
 	uint8_t septet_data[256];
-	uint8_t ud_header[6];
 	int nchars;
 	char result[256];
 
@@ -320,6 +317,7 @@ int main(int argc, char** argv)
 
 	/* Test: encode multiple SMS */
 	int number_of_septets = gsm_septet_encode(septet_data, (const char *) test_multiple_encode[0].input);
+	(void) number_of_septets;
 
 	/* SMS part 1 */
 	memset(tmp, 0x42, sizeof(tmp));

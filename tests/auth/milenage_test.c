@@ -7,6 +7,8 @@
 #include <osmocom/crypt/auth.h>
 #include <osmocom/core/utils.h>
 
+int milenage_opc_gen(uint8_t *opc, const uint8_t *k, const uint8_t *op);
+
 static void dump_auth_vec(struct osmo_auth_vector *vec)
 {
 	printf("RAND:\t%s\n", osmo_hexdump(vec->rand, sizeof(vec->rand)));
@@ -88,7 +90,7 @@ int main(int argc, char **argv)
 	if (rc < 0) {
 		printf("AUTS failed\n");
 	} else {
-		printf("AUTS success: SEQ.MS = %lu\n", test_aud.u.umts.sqn);
+		printf("AUTS success: SEQ.MS = %llu\n", (unsigned long long)test_aud.u.umts.sqn);
 	}
 
 	opc_test(&test_aud);

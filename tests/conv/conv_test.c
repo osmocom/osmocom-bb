@@ -347,6 +347,8 @@ ubit_to_sbit(sbit_t *dst, ubit_t *src, int n)
 		dst[i] = src[i] ? -127 : 127;
 }
 
+static void sbit_to_ubit(ubit_t *dst, sbit_t *src, int n) __attribute__((unused));
+
 static void
 sbit_to_ubit(ubit_t *dst, sbit_t *src, int n)
 {

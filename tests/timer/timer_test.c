@@ -115,7 +115,7 @@ static void secondary_timer_fired(void *data)
 	timersub(&current, &v->stop, &res);
 	if (timercmp(&res, &precision, >)) {
 		fprintf(stderr, "ERROR: timer %p has expired too late!\n",
-			v->timer);
+			&v->timer);
 		too_late++;
 	}
 
