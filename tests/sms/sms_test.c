@@ -371,7 +371,7 @@ int main(int argc, char** argv)
 		memset(result, 0xaa, sizeof(result));
 
 		for (buffer_size = 1;
-		     buffer_size < test_encode[i].expected_septet_length + 1
+		     buffer_size < test_decode[i].expected_septet_length + 1
 		     && buffer_size < sizeof(result) - 1;
 		     ++buffer_size)
 		{
