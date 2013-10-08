@@ -823,7 +823,7 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 	struct gprs_nsvc *existing_nsvc;
 
 	struct tlv_parsed tp;
-	uint16_t nsei;
+	uint16_t nsvci;
 
 	int rc;
 
@@ -868,10 +868,10 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 				  msg);
 		return -EINVAL;
 	}
-	nsei = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_NSEI));
-	/* Check if we already know this NSEI, the remote end might
+	nsvci = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_VCI));
+	/* Check if we already know this NSVCI, the remote end might
 	 * simply have changed addresses, or it is a SGSN */
-	existing_nsvc = gprs_nsvc_by_nsei(nsi, nsei);
+	existing_nsvc = gprs_nsvc_by_nsvci(nsi, nsvci);
 	if (!existing_nsvc) {
 		*new_nsvc = gprs_nsvc_create(nsi, 0xffff);
 		log_set_context(GPRS_CTX_NSVC, *new_nsvc);
