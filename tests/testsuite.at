@@ -106,6 +106,12 @@ cat $abs_srcdir/vty/vty_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/vty/vty_test], [0], [expout], [ignore])
 AT_CLEANUP
 
+AT_SETUP([gprs-ns])
+AT_KEYWORDS([gprs-ns])
+cat $abs_srcdir/gb/gprs_ns_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gb/gprs_ns_test], [0], [expout], [ignore])
+AT_CLEANUP
+
 AT_SETUP([bssgp-fc])
 AT_KEYWORDS([bssgp-fc])
 cat $abs_srcdir/gb/bssgp_fc_tests.ok > expout
