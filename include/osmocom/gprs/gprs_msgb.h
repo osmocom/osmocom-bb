@@ -16,7 +16,7 @@ struct libgb_msgb_cb {
 
 	/* Identifier of a MS (inside BTS), equal to 'struct sgsn_mm_ctx' */
 	uint32_t tlli;
-} __attribute__((packed));
+} __attribute__((packed, may_alias));
 #define LIBGB_MSGB_CB(__msgb)	((struct libgb_msgb_cb *)&((__msgb)->cb[0]))
 #define msgb_tlli(__x)		LIBGB_MSGB_CB(__x)->tlli
 #define msgb_nsei(__x)		LIBGB_MSGB_CB(__x)->nsei
