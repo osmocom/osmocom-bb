@@ -684,15 +684,17 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	nsvc->nsei = ntohs(*nsei);
 	nsvc->nsvci = ntohs(*nsvci);
 
-	/* start the test procedure */
-	gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
-	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_TEST);
-
 	/* inform interested parties about the fact that this NSVC
 	 * has received RESET */
 	ns_osmo_signal_dispatch(nsvc, S_NS_RESET, *cause);
 
-	return gprs_ns_tx_reset_ack(nsvc);
+	rc = gprs_ns_tx_reset_ack(nsvc);
+
+	/* start the test procedure */
+	gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
+	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_TEST);
+
+	return rc;
 }
 
 static int gprs_ns_rx_block(struct gprs_nsvc *nsvc, struct msgb *msg)

@@ -2,11 +2,11 @@
 PROCESSING RESET from 0x01020304:1111
 02 00 81 01 01 82 11 22 04 82 11 22 
 
-RESPONSE, msg length 1
-0a 
-
 RESPONSE, msg length 9
 03 01 82 11 22 04 82 11 22 
+
+RESPONSE, msg length 1
+0a 
 
 result (RESET) = 9
 
@@ -42,11 +42,11 @@ result (BSSGP RESET) = 0
 PROCESSING RESET from 0x01020304:2222
 02 00 81 01 01 82 11 22 04 82 11 22 
 
-RESPONSE, msg length 1
-0a 
-
 RESPONSE, msg length 9
 03 01 82 11 22 04 82 11 22 
+
+RESPONSE, msg length 1
+0a 
 
 result (RESET) = 9
 
@@ -58,11 +58,11 @@ Current NS-VCIs:
 PROCESSING RESET from 0x01020304:3333
 02 00 81 01 01 82 33 44 04 82 11 22 
 
-RESPONSE, msg length 1
-0a 
-
 RESPONSE, msg length 9
 03 01 82 33 44 04 82 11 22 
+
+RESPONSE, msg length 1
+0a 
 
 result (RESET) = 9
 
@@ -74,11 +74,11 @@ Current NS-VCIs:
 PROCESSING RESET from 0x01020304:4444
 02 00 81 01 01 82 11 22 04 82 33 44 
 
-RESPONSE, msg length 1
-0a 
-
 RESPONSE, msg length 9
 03 01 82 11 22 04 82 33 44 
+
+RESPONSE, msg length 1
+0a 
 
 result (RESET) = 9
 
@@ -91,11 +91,11 @@ Current NS-VCIs:
 PROCESSING RESET from 0x01020304:3333
 02 00 81 01 01 82 11 22 04 82 11 22 
 
-RESPONSE, msg length 1
-0a 
-
 RESPONSE, msg length 9
 03 01 82 11 22 04 82 11 22 
+
+RESPONSE, msg length 1
+0a 
 
 result (RESET) = 9
 
@@ -108,11 +108,11 @@ Current NS-VCIs:
 PROCESSING RESET from 0x01020304:4444
 02 00 81 01 01 82 11 22 04 82 11 22 
 
-RESPONSE, msg length 1
-0a 
-
 RESPONSE, msg length 9
 03 01 82 11 22 04 82 11 22 
+
+RESPONSE, msg length 1
+0a 
 
 result (RESET) = 9
 
