@@ -20,10 +20,10 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/signal.h>
 #include <osmocom/gprs/gprs_msgb.h>
 #include <osmocom/gprs/gprs_ns.h>
 #include <osmocom/gprs/gprs_bssgp.h>
-
 
 /* GPRS Network Service, PDU type: NS_RESET,
  * Cause: O&M intervention, NS VCI: 0x1122, NSEI 0x1122
@@ -119,6 +119,50 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 	printf("RESPONSE, msg length %d\n%s\n\n", len, osmo_hexdump(buf, len));
 
 	return len;
+}
+
+/* Signal handler for signals from NS layer */
+static int test_signal(unsigned int subsys, unsigned int signal,
+		  void *handler_data, void *signal_data)
+{
+	struct ns_signal_data *nssd = signal_data;
+
+	if (subsys != SS_L_NS)
+		return 0;
+
+	switch (signal) {
+	case S_NS_RESET:
+		printf("==> got signal NS_RESET, NS-VC 0x%04x/%s\n",
+		       nssd->nsvc->nsvci,
+		       gprs_ns_format_peer(nssd->nsvc));
+		break;
+
+	case S_NS_ALIVE_EXP:
+		printf("==> got signal NS_ALIVE_EXP, NS-VC 0x%04x/%s\n",
+		       nssd->nsvc->nsvci,
+		       gprs_ns_format_peer(nssd->nsvc));
+		break;
+
+	case S_NS_BLOCK:
+		printf("==> got signal NS_BLOCK, NS-VC 0x%04x/%s\n",
+		       nssd->nsvc->nsvci,
+		       gprs_ns_format_peer(nssd->nsvc));
+		break;
+
+	case S_NS_UNBLOCK:
+		printf("==> got signal NS_UNBLOCK, NS-VC 0x%04x/%s\n",
+		       nssd->nsvc->nsvci,
+		       gprs_ns_format_peer(nssd->nsvc));
+		break;
+
+	default:
+		printf("==> got signal %d, NS-VC 0x%04x/%s\n", signal,
+		       nssd->nsvc->nsvci,
+		       gprs_ns_format_peer(nssd->nsvc));
+		break;
+	}
+
+	return 0;
 }
 
 static int gprs_process_message(struct gprs_ns_inst *nsi, const char *text, struct sockaddr_in *peer, const unsigned char* data, size_t data_len)
@@ -238,6 +282,7 @@ int main(int argc, char **argv)
 	osmo_init_logging(&info);
 	log_set_use_color(osmo_stderr_target, 0);
 	log_set_print_filename(osmo_stderr_target, 0);
+	osmo_signal_register_handler(SS_L_NS, &test_signal, NULL);
 
 	printf("===== NS protocol test START\n");
 	test_ns();
