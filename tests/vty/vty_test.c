@@ -28,6 +28,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/signal.h>
 #include <osmocom/vty/misc.h>
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
@@ -67,12 +68,22 @@ static int do_vty_command(struct vty *vty, const char *cmd)
 	return ret;
 }
 
-/* Override the implementation from telnet_interface.c */
-void vty_event(enum event event, int sock, struct vty *vty)
+/* Handle the events from telnet_interface.c */
+static int vty_event_cb(unsigned int subsys, unsigned int signal,
+			void *handler_data, void *_signal_data)
 {
-	last_vty_connection_event = event;
+	struct vty_signal_data *signal_data;
 
-	fprintf(stderr, "Got VTY event: %d\n", event);
+	if (subsys != SS_L_VTY)
+		return 0;
+	if (signal != S_VTY_EVENT)
+		return 0;
+
+	signal_data = _signal_data;
+	last_vty_connection_event = signal_data->event;
+
+	fprintf(stderr, "Got VTY event: %d\n", signal_data->event);
+	return 0;
 }
 
 static void test_node_tree_structure(void)
@@ -169,6 +180,8 @@ static void test_node_tree_structure(void)
 
 int main(int argc, char **argv)
 {
+	osmo_signal_register_handler(SS_L_VTY, vty_event_cb, NULL);
+
 	test_cmd_string_from_valstr();
 	test_node_tree_structure();
 	printf("All tests passed\n");

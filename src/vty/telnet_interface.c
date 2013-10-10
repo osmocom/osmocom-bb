@@ -30,6 +30,7 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/signal.h>
 
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/buffer.h>
@@ -166,11 +167,22 @@ static int telnet_new_connection(struct osmo_fd *fd, unsigned int what)
 /*! \brief callback from core VTY code about VTY related events */
 void vty_event(enum event event, int sock, struct vty *vty)
 {
+	struct vty_signal_data sig_data = { 0, };
 	struct telnet_connection *connection = vty->priv;
-	struct osmo_fd *bfd = &connection->fd;
+	struct osmo_fd *bfd;
 
 	if (vty->type != VTY_TERM)
 		return;
+
+	sig_data.event = event;
+	sig_data.sock = sock;
+	sig_data.vty = vty;
+	osmo_signal_dispatch(SS_L_VTY, S_VTY_EVENT, &sig_data);
+
+	if (!connection)
+		return;
+
+	bfd = &connection->fd;
 
 	switch (event) {
 	case VTY_READ:

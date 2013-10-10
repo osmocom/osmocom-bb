@@ -190,6 +190,20 @@ extern void *tall_vty_ctx;
 extern struct cmd_element cfg_description_cmd;
 extern struct cmd_element cfg_no_description_cmd;
 
+
+/**
+ * signal handling
+ */
+enum signal_vty {
+	S_VTY_EVENT,
+};
+
+struct vty_signal_data {
+	enum event event;
+	int sock;
+	struct vty *vty;
+};
+
 /*! @} */
 
 #endif
