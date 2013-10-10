@@ -23,6 +23,10 @@ override_dh_install:
 	sed -i "/dependency_libs/ s/'.*'/''/" `find . -name '*.la'`
 	dh_install
 
+# Print test results in case of a failure
+override_dh_auto_test:
+	dh_auto_test || (find . -name testsuite.log -exec cat {} \; ; false)
+
 override_dh_autoreconf:
 	echo $(VERSION) > .tarball-version
 	dh_autoreconf
