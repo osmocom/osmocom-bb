@@ -1,4 +1,10 @@
-libosmocore (0.6.3+git1-1) UNRELEASED; urgency=low
+libosmocore (0.6.4) UNRELEASED; urgency=low
+
+  * GPRS related changes, some GSM encoding/decoding changes
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Thu, 10 Oct 2013 14:16:37 +0200
+
+libosmocore (0.6.3+git1-1) unstable; urgency=low
 
   * New upstream release with new primitives, USSD fixes.
   * Split libosmocore into several package. One lib per package.
