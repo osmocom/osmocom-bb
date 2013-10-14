@@ -100,15 +100,19 @@ enum ns_ctr {
 	NS_CTR_BYTES_OUT,
 	NS_CTR_BLOCKED,
 	NS_CTR_DEAD,
+	NS_CTR_REPLACED,
+	NS_CTR_NSEI_CHG,
 };
 
 static const struct rate_ctr_desc nsvc_ctr_description[] = {
-	{ "packets.in", "Packets at NS Level ( In)" },
-	{ "packets.out","Packets at NS Level (Out)" },
-	{ "bytes.in",	"Bytes at NS Level   ( In)" },
-	{ "bytes.out",	"Bytes at NS Level   (Out)" },
-	{ "blocked",	"NS-VC Block count        " },
-	{ "dead",	"NS-VC gone dead count    " },
+	{ "packets.in", "Packets at NS Level  ( In)" },
+	{ "packets.out","Packets at NS Level  (Out)" },
+	{ "bytes.in",	"Bytes at NS Level    ( In)" },
+	{ "bytes.out",	"Bytes at NS Level    (Out)" },
+	{ "blocked",	"NS-VC Block count         " },
+	{ "dead",	"NS-VC gone dead count     " },
+	{ "replaced",	"NS-VC replaced other count" },
+	{ "nsei-chg",	"NS-VC changed NSEI        " },
 };
 
 static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
@@ -212,12 +216,22 @@ void gprs_nsvc_delete(struct gprs_nsvc *nsvc)
 static void ns_osmo_signal_dispatch(struct gprs_nsvc *nsvc, unsigned int signal,
 			       uint8_t cause)
 {
-	struct ns_signal_data nssd;
+	struct ns_signal_data nssd = {0};
 
 	nssd.nsvc = nsvc;
 	nssd.cause = cause;
 
 	osmo_signal_dispatch(SS_L_NS, signal, &nssd);
+}
+
+static void ns_osmo_signal_dispatch_replaced(struct gprs_nsvc *nsvc, struct gprs_nsvc *old_nsvc)
+{
+	struct ns_signal_data nssd = {0};
+
+	nssd.nsvc = nsvc;
+	nssd.old_nsvc = old_nsvc;
+
+	osmo_signal_dispatch(SS_L_NS, S_NS_REPLACED, &nssd);
 }
 
 /* Section 10.3.2, Table 13 */
@@ -658,19 +672,20 @@ static int gprs_ns_rx_status(struct gprs_nsvc *nsvc, struct msgb *msg)
 }
 
 /* Section 7.3 */
-static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
+static int gprs_ns_rx_reset(struct gprs_nsvc **nsvc, struct msgb *msg)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
 	struct tlv_parsed tp;
-	uint8_t *cause;
-	uint16_t *nsvci, *nsei;
+	uint8_t cause;
+	uint16_t nsvci, nsei;
+	struct gprs_nsvc *other_nsvc = NULL;
 	int rc;
 
 	rc = tlv_parse(&tp, &ns_att_tlvdef, nsh->data,
 			msgb_l2len(msg) - sizeof(*nsh), 0, 0);
 	if (rc < 0) {
 		LOGP(DNS, LOGL_ERROR, "NSEI=%u Rx NS RESET "
-			"Error during TLV Parse\n", nsvc->nsei);
+			"Error during TLV Parse\n", (*nsvc)->nsei);
 		return rc;
 	}
 
@@ -678,32 +693,84 @@ static int gprs_ns_rx_reset(struct gprs_nsvc *nsvc, struct msgb *msg)
 	    !TLVP_PRESENT(&tp, NS_IE_VCI) ||
 	    !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
 		LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
-		gprs_ns_tx_status(nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0, msg);
+		gprs_ns_tx_status(*nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0, msg);
 		return -EINVAL;
 	}
 
-	cause = (uint8_t *) TLVP_VAL(&tp, NS_IE_CAUSE);
-	nsvci = (uint16_t *) TLVP_VAL(&tp, NS_IE_VCI);
-	nsei = (uint16_t *) TLVP_VAL(&tp, NS_IE_NSEI);
+	cause = *(uint8_t  *) TLVP_VAL(&tp, NS_IE_CAUSE);
+	nsvci = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_VCI));
+	nsei  = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_NSEI));
 
-	LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS RESET (NSVCI=%u, cause=%s)\n",
-		nsvc->nsvci, nsvc->nsei, gprs_ns_cause_str(*cause));
+	LOGP(DNS, LOGL_INFO, "NSVCI=%u%s Rx NS RESET (NSEI=%u, NSVCI=%u, cause=%s)\n",
+	     (*nsvc)->nsvci, (*nsvc)->nsvci_is_valid ? "" : "(invalid)",
+	     nsei, nsvci, gprs_ns_cause_str(cause));
+
+	if ((*nsvc)->nsvci_is_valid && (*nsvc)->nsvci != nsvci) {
+		/* NS-VCI has changed */
+		other_nsvc = gprs_nsvc_by_nsvci((*nsvc)->nsi, nsvci);
+
+		if (other_nsvc) {
+			/* The NS-VCI is already used by this NS-VC */
+
+			struct gprs_nsvc *tmp_nsvc;
+			char *old_peer;
+
+			/* Exchange the NS-VC objects */
+			tmp_nsvc = *nsvc;
+			*nsvc = other_nsvc;
+			other_nsvc = tmp_nsvc;
+
+			/* Do logging */
+			old_peer = talloc_strdup(other_nsvc,
+						 gprs_ns_ll_str(other_nsvc));
+			LOGP(DNS, LOGL_INFO,
+			     "NS-VC changed link (NSVCI=%u) from %s to %s\n",
+			     nsvci, old_peer, gprs_ns_ll_str(*nsvc));
+
+			talloc_free(old_peer);
+
+			/* Do statistics */
+			rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_REPLACED]);
+		}
+	}
 
 	/* Mark NS-VC as blocked and alive */
-	nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
+	(*nsvc)->state = NSE_S_BLOCKED | NSE_S_ALIVE;
 
-	nsvc->nsei = ntohs(*nsei);
-	nsvc->nsvci = ntohs(*nsvci);
+	if (other_nsvc) {
+		/* Check NSEI */
+		if ((*nsvc)->nsei != nsei) {
+			LOGP(DNS, LOGL_NOTICE,
+			     "NS-VC changed NSEI (NSVCI=%u) from %u to %u\n",
+			     nsvci, (*nsvc)->nsei, nsei);
+
+			/* Override old NSEI */
+			(*nsvc)->nsei  = nsei;
+
+			/* Do statistics */
+			rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_NSEI_CHG]);
+		}
+
+		ns_osmo_signal_dispatch_replaced(*nsvc, other_nsvc);
+
+		/* Update the ll info fields */
+		gprs_ns_ll_copy(*nsvc, other_nsvc);
+		gprs_ns_ll_clear(other_nsvc);
+	} else {
+		(*nsvc)->nsei  = nsei;
+		(*nsvc)->nsvci = nsvci;
+		(*nsvc)->nsvci_is_valid = 1;
+	}
 
 	/* inform interested parties about the fact that this NSVC
 	 * has received RESET */
-	ns_osmo_signal_dispatch(nsvc, S_NS_RESET, *cause);
+	ns_osmo_signal_dispatch(*nsvc, S_NS_RESET, cause);
 
-	rc = gprs_ns_tx_reset_ack(nsvc);
+	rc = gprs_ns_tx_reset_ack(*nsvc);
 
 	/* start the test procedure */
-	gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
-	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_TEST);
+	gprs_ns_tx_simple((*nsvc), NS_PDUT_ALIVE);
+	nsvc_start_timer((*nsvc), NSVC_TIMER_TNS_TEST);
 
 	return rc;
 }
@@ -748,7 +815,7 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 		      struct gprs_nsvc **new_nsvc);
 
 int gprs_ns_process_msg(struct gprs_ns_inst *nsi, struct msgb *msg,
-		      struct gprs_nsvc *nsvc);
+		      struct gprs_nsvc **nsvc);
 
 /*! \brief Receive incoming NS message from underlying transport layer
  *  \param nsi NS instance to which the data belongs
@@ -779,25 +846,14 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 
 		rc = gprs_ns_vc_create(nsi, msg, fallback_nsvc, &nsvc);
 
-		switch (rc) {
-		case GPRS_NS_CS_CREATED:
-		case GPRS_NS_CS_FOUND:
-			nsvc->ll = ll;
-			break;
-		case GPRS_NS_CS_SKIPPED:
-		case GPRS_NS_CS_REJECTED:
-			break;
-		default:
+		if (rc < 0)
 			return rc;
-		}
 
 		rc = 0;
 	}
 
-	if (nsvc) {
-		nsvc->ip.bts_addr = *saddr;
-		rc = gprs_ns_process_msg(nsi, msg, nsvc);
-	}
+	if (nsvc)
+		rc = gprs_ns_process_msg(nsi, msg, &nsvc);
 
 	return rc;
 }
@@ -848,6 +904,7 @@ void gprs_ns_ll_clear(struct gprs_nsvc *nsvc)
  *  \param nsi NS instance to which the data belongs
  *  \param[in] msg message buffer containing newly-received data
  *  \param[in] fallback_nsvc is used to send error messages back to the peer
+ *             and to initialise the ll info of a created NS-VC object
  *  \param[out] new_nsvc contains a pointer to a NS-VC object if one has
  *              been created or found
  *  \returns < 0 in case of error, GPRS_NS_CS_SKIPPED if a message has been
@@ -867,6 +924,7 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 
 	struct tlv_parsed tp;
 	uint16_t nsvci;
+	uint16_t nsei;
 
 	int rc;
 
@@ -912,43 +970,60 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 		return -EINVAL;
 	}
 	nsvci = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_VCI));
+	nsei  = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_NSEI));
 	/* Check if we already know this NSVCI, the remote end might
 	 * simply have changed addresses, or it is a SGSN */
 	existing_nsvc = gprs_nsvc_by_nsvci(nsi, nsvci);
 	if (!existing_nsvc) {
 		*new_nsvc = gprs_nsvc_create(nsi, 0xffff);
 		log_set_context(GPRS_CTX_NSVC, *new_nsvc);
+		gprs_ns_ll_copy(*new_nsvc, fallback_nsvc);
 		LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s\n",
 		     gprs_ns_ll_str(fallback_nsvc));
 
 		return GPRS_NS_CS_CREATED;
 	}
 
+	/* Check NSEI */
+	if (existing_nsvc->nsei != nsei) {
+		LOGP(DNS, LOGL_NOTICE,
+			"NS-VC changed NSEI (NSVCI=%u) from %u to %u\n",
+			nsvci, existing_nsvc->nsei, nsei);
+
+		/* Override old NSEI */
+		existing_nsvc->nsei  = nsei;
+
+		/* Do statistics */
+		rate_ctr_inc(&existing_nsvc->ctrg->ctr[NS_CTR_NSEI_CHG]);
+	}
+
 	*new_nsvc = existing_nsvc;
+	gprs_ns_ll_copy(*new_nsvc, fallback_nsvc);
 	return GPRS_NS_CS_FOUND;
 }
 
 /*! \brief Process NS message independently from underlying transport layer
  *  \param nsi NS instance to which the data belongs
  *  \param[in] msg message buffer containing newly-received data
- *  \param[in] nsvc refers to the virtual connection
+ *  \param[inout] nsvc refers to the virtual connection, may be modified when
+ *                     processing a NS_RESET
  *  \returns 0 in case of success, < 0 in case of error
  *
  * This contains the main NS automaton.
  */
 int gprs_ns_process_msg(struct gprs_ns_inst *nsi, struct msgb *msg,
-			struct gprs_nsvc *nsvc)
+			struct gprs_nsvc **nsvc)
 {
 	struct gprs_ns_hdr *nsh = (struct gprs_ns_hdr *) msg->l2h;
 	int rc = 0;
 
-	msgb_nsei(msg) = nsvc->nsei;
+	msgb_nsei(msg) = (*nsvc)->nsei;
 
-	log_set_context(GPRS_CTX_NSVC, nsvc);
+	log_set_context(GPRS_CTX_NSVC, *nsvc);
 
 	/* Increment number of Incoming bytes */
-	rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_PKTS_IN]);
-	rate_ctr_add(&nsvc->ctrg->ctr[NS_CTR_BYTES_IN], msgb_l2len(msg));
+	rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_PKTS_IN]);
+	rate_ctr_add(&(*nsvc)->ctrg->ctr[NS_CTR_BYTES_IN], msgb_l2len(msg));
 
 	switch (nsh->pdu_type) {
 	case NS_PDUT_ALIVE:
@@ -956,69 +1031,69 @@ int gprs_ns_process_msg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		 * NS-ALIVE out of the blue, we might have been re-started
 		 * and should send a NS-RESET to make sure everything recovers
 		 * fine. */
-		if (nsvc->state == NSE_S_BLOCKED)
-			rc = gprs_ns_tx_reset(nsvc, NS_CAUSE_PDU_INCOMP_PSTATE);
+		if ((*nsvc)->state == NSE_S_BLOCKED)
+			rc = gprs_ns_tx_reset((*nsvc), NS_CAUSE_PDU_INCOMP_PSTATE);
 		else
-			rc = gprs_ns_tx_alive_ack(nsvc);
+			rc = gprs_ns_tx_alive_ack(*nsvc);
 		break;
 	case NS_PDUT_ALIVE_ACK:
 		/* stop Tns-alive and start Tns-test */
-		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_TEST);
-		if (nsvc->remote_end_is_sgsn) {
+		nsvc_start_timer(*nsvc, NSVC_TIMER_TNS_TEST);
+		if ((*nsvc)->remote_end_is_sgsn) {
 			/* FIXME: this should be one level higher */
-			if (nsvc->state & NSE_S_BLOCKED)
-				rc = gprs_ns_tx_unblock(nsvc);
+			if ((*nsvc)->state & NSE_S_BLOCKED)
+				rc = gprs_ns_tx_unblock(*nsvc);
 		}
 		break;
 	case NS_PDUT_UNITDATA:
 		/* actual user data */
-		rc = gprs_ns_rx_unitdata(nsvc, msg);
+		rc = gprs_ns_rx_unitdata(*nsvc, msg);
 		break;
 	case NS_PDUT_STATUS:
-		rc = gprs_ns_rx_status(nsvc, msg);
+		rc = gprs_ns_rx_status(*nsvc, msg);
 		break;
 	case NS_PDUT_RESET:
 		rc = gprs_ns_rx_reset(nsvc, msg);
 		break;
 	case NS_PDUT_RESET_ACK:
-		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS RESET ACK\n", nsvc->nsei);
+		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS RESET ACK\n", (*nsvc)->nsei);
 		/* mark NS-VC as blocked + active */
-		nsvc->state = NSE_S_BLOCKED | NSE_S_ALIVE;
-		nsvc->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
-		rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_BLOCKED]);
-		if (nsvc->persistent || nsvc->remote_end_is_sgsn) {
+		(*nsvc)->state = NSE_S_BLOCKED | NSE_S_ALIVE;
+		(*nsvc)->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
+		rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_BLOCKED]);
+		if ((*nsvc)->persistent || (*nsvc)->remote_end_is_sgsn) {
 			/* stop RESET timer */
-			osmo_timer_del(&nsvc->timer);
+			osmo_timer_del(&(*nsvc)->timer);
 		}
 		/* Initiate TEST proc.: Send ALIVE and start timer */
-		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_ALIVE);
-		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_TEST);
+		rc = gprs_ns_tx_simple(*nsvc, NS_PDUT_ALIVE);
+		nsvc_start_timer(*nsvc, NSVC_TIMER_TNS_TEST);
 		break;
 	case NS_PDUT_UNBLOCK:
 		/* Section 7.2: unblocking procedure */
-		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS UNBLOCK\n", nsvc->nsei);
-		nsvc->state &= ~NSE_S_BLOCKED;
-		ns_osmo_signal_dispatch(nsvc, S_NS_UNBLOCK, 0);
-		rc = gprs_ns_tx_simple(nsvc, NS_PDUT_UNBLOCK_ACK);
+		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS UNBLOCK\n", (*nsvc)->nsei);
+		(*nsvc)->state &= ~NSE_S_BLOCKED;
+		ns_osmo_signal_dispatch(*nsvc, S_NS_UNBLOCK, 0);
+		rc = gprs_ns_tx_simple(*nsvc, NS_PDUT_UNBLOCK_ACK);
 		break;
 	case NS_PDUT_UNBLOCK_ACK:
-		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS UNBLOCK ACK\n", nsvc->nsei);
+		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS UNBLOCK ACK\n", (*nsvc)->nsei);
 		/* mark NS-VC as unblocked + active */
-		nsvc->state = NSE_S_ALIVE;
-		nsvc->remote_state = NSE_S_ALIVE;
-		ns_osmo_signal_dispatch(nsvc, S_NS_UNBLOCK, 0);
+		(*nsvc)->state = NSE_S_ALIVE;
+		(*nsvc)->remote_state = NSE_S_ALIVE;
+		ns_osmo_signal_dispatch(*nsvc, S_NS_UNBLOCK, 0);
 		break;
 	case NS_PDUT_BLOCK:
-		rc = gprs_ns_rx_block(nsvc, msg);
+		rc = gprs_ns_rx_block(*nsvc, msg);
 		break;
 	case NS_PDUT_BLOCK_ACK:
-		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS BLOCK ACK\n", nsvc->nsei);
+		LOGP(DNS, LOGL_INFO, "NSEI=%u Rx NS BLOCK ACK\n", (*nsvc)->nsei);
 		/* mark remote NS-VC as blocked + active */
-		nsvc->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
+		(*nsvc)->remote_state = NSE_S_BLOCKED | NSE_S_ALIVE;
 		break;
 	default:
 		LOGP(DNS, LOGL_NOTICE, "NSEI=%u Rx Unknown NS PDU type 0x%02x\n",
-			nsvc->nsei, nsh->pdu_type);
+			(*nsvc)->nsei, nsh->pdu_type);
 		rc = -EINVAL;
 		break;
 	}

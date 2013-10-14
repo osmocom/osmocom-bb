@@ -119,6 +119,7 @@ struct gprs_nsvc {
 
 	unsigned int remote_end_is_sgsn:1;
 	unsigned int persistent:1;
+	unsigned int nsvci_is_valid:1;
 
 	struct rate_ctr_group *ctrg;
 
@@ -197,10 +198,12 @@ enum signal_ns {
 	S_NS_BLOCK,
 	S_NS_UNBLOCK,
 	S_NS_ALIVE_EXP,	/* Tns-alive expired more than N times */
+	S_NS_REPLACED, /* nsvc object is replaced (sets old_nsvc) */
 };
 
 struct ns_signal_data {
 	struct gprs_nsvc *nsvc;
+	struct gprs_nsvc *old_nsvc;
 	uint8_t cause;
 };
 

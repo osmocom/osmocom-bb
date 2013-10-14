@@ -21,6 +21,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/signal.h>
+#include <osmocom/core/rate_ctr.h>
 #include <osmocom/gprs/gprs_msgb.h>
 #include <osmocom/gprs/gprs_ns.h>
 #include <osmocom/gprs/gprs_bssgp.h>
@@ -113,12 +114,27 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 	if (!real_sendto)
 		real_sendto = dlsym(RTLD_NEXT, "sendto");
 
-	if (sockfd != 0xdead && ((struct sockaddr_in *)dest_addr)->sin_addr.s_addr != htonl(0x01020304))
+	if (((struct sockaddr_in *)dest_addr)->sin_addr.s_addr != htonl(0x01020304))
 		return real_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 
 	printf("RESPONSE, msg length %d\n%s\n\n", len, osmo_hexdump(buf, len));
 
 	return len;
+}
+
+static void dump_rate_ctr_group(FILE *stream, const char *prefix,
+			    struct rate_ctr_group *ctrg)
+{
+	unsigned int i;
+
+	for (i = 0; i < ctrg->desc->num_ctr; i++) {
+		struct rate_ctr *ctr = &ctrg->ctr[i];
+		if (ctr->current && !strchr(ctrg->desc->ctr_desc[i].name, '.'))
+			fprintf(stream, " %s%s: %llu%s",
+				prefix, ctrg->desc->ctr_desc[i].description,
+				(long long)ctr->current,
+				"\n");
+	};
 }
 
 /* Signal handler for signals from NS layer */
@@ -153,6 +169,15 @@ static int test_signal(unsigned int subsys, unsigned int signal,
 		printf("==> got signal NS_UNBLOCK, NS-VC 0x%04x/%s\n",
 		       nssd->nsvc->nsvci,
 		       gprs_ns_ll_str(nssd->nsvc));
+		break;
+
+	case S_NS_REPLACED:
+		printf("==> got signal NS_REPLACED: 0x%04x/%s",
+		       nssd->nsvc->nsvci,
+		       gprs_ns_ll_str(nssd->nsvc));
+		printf(" -> 0x%04x/%s\n",
+		       nssd->old_nsvc->nsvci,
+		       gprs_ns_ll_str(nssd->old_nsvc));
 		break;
 
 	default:
@@ -203,6 +228,7 @@ static void gprs_dump_nsi(struct gprs_ns_inst *nsi)
 		       nsvc->nsvci, nsvc->nsei,
 		       ntohl(peer->sin_addr.s_addr), ntohs(peer->sin_port)
 		      );
+		dump_rate_ctr_group(stdout, "        ", nsvc->ctrg);
 	}
 	printf("\n");
 }

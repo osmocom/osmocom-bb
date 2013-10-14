@@ -91,12 +91,14 @@ result (RESET) = 9
 Current NS-VCIs:
     VCI 0x3344, NSEI 0x1122, peer 0x01020304:3333
     VCI 0x1122, NSEI 0x3344, peer 0x01020304:4444
+         NS-VC changed NSEI        : 1
 
 --- Peer port 3333, RESET, VCI is changed back ---
 
 PROCESSING RESET from 0x01020304:3333
 02 00 81 01 01 82 11 22 04 82 11 22 
 
+==> got signal NS_REPLACED: 0x1122/1.2.3.4:4444 -> 0x3344/1.2.3.4:3333
 ==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:3333
 RESPONSE, msg length 9
 03 01 82 11 22 04 82 11 22 
@@ -107,8 +109,10 @@ RESPONSE, msg length 1
 result (RESET) = 9
 
 Current NS-VCIs:
+    VCI 0x3344, NSEI 0x1122, peer 0x00000000:0
     VCI 0x1122, NSEI 0x1122, peer 0x01020304:3333
-    VCI 0x1122, NSEI 0x3344, peer 0x01020304:4444
+         NS-VC replaced other count: 1
+         NS-VC changed NSEI        : 2
 
 --- Peer port 4444, RESET, NSEI is changed back ---
 
@@ -125,8 +129,10 @@ RESPONSE, msg length 1
 result (RESET) = 9
 
 Current NS-VCIs:
-    VCI 0x1122, NSEI 0x1122, peer 0x01020304:3333
+    VCI 0x3344, NSEI 0x1122, peer 0x00000000:0
     VCI 0x1122, NSEI 0x1122, peer 0x01020304:4444
+         NS-VC replaced other count: 1
+         NS-VC changed NSEI        : 2
 
 ===== NS protocol test END
 
