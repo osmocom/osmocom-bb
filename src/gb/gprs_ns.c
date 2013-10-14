@@ -136,7 +136,7 @@ struct gprs_nsvc *gprs_nsvc_by_nsvci(struct gprs_ns_inst *nsi, uint16_t nsvci)
 /*! \brief Lookup struct gprs_nsvc based on NSEI
  *  \param[in] nsi NS instance in which to search
  *  \param[in] nsei NSEI to be searched
- *  \returns gprs_nsvc of respective NSEI
+ *  \returns first gprs_nsvc of respective NSEI
  */
 struct gprs_nsvc *gprs_nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei)
 {
@@ -144,6 +144,20 @@ struct gprs_nsvc *gprs_nsvc_by_nsei(struct gprs_ns_inst *nsi, uint16_t nsei)
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
 		if (nsvc->nsei == nsei)
 			return nsvc;
+	}
+	return NULL;
+}
+
+static struct gprs_nsvc *gprs_active_nsvc_by_nsei(struct gprs_ns_inst *nsi,
+						  uint16_t nsei)
+{
+	struct gprs_nsvc *nsvc;
+	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
+		if (nsvc->nsei == nsei) {
+			if (nsvc->state & NSE_S_BLOCKED ||
+			    !(nsvc->state & NSE_S_ALIVE))
+				return nsvc;
+		}
 	}
 	return NULL;
 }
@@ -559,27 +573,24 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 	struct gprs_ns_hdr *nsh;
 	uint16_t bvci = msgb_bvci(msg);
 
-	nsvc = gprs_nsvc_by_nsei(nsi, msgb_nsei(msg));
+	nsvc = gprs_active_nsvc_by_nsei(nsi, msgb_nsei(msg));
 	if (!nsvc) {
-		LOGP(DNS, LOGL_ERROR, "Unable to resolve NSEI %u "
-			"to NS-VC!\n", msgb_nsei(msg));
+		int rc;
+		if (gprs_nsvc_by_nsei(nsi, msgb_nsei(msg))) {
+		    LOGP(DNS, LOGL_ERROR,
+			 "All NS-VCs for NSEI %u are either dead or blocked!\n",
+			 msgb_nsei(msg));
+		    rc = -EBUSY;
+		} else {
+		    LOGP(DNS, LOGL_ERROR, "Unable to resolve NSEI %u "
+			 "to NS-VC!\n", msgb_nsei(msg));
+		    rc = -EINVAL;
+		}
+
 		msgb_free(msg);
-		return -EINVAL;
+		return rc;
 	}
 	log_set_context(GPRS_CTX_NSVC, nsvc);
-
-	if (!(nsvc->state & NSE_S_ALIVE)) {
-		LOGP(DNS, LOGL_ERROR, "NSEI=%u is not alive, cannot send\n",
-			nsvc->nsei);
-		msgb_free(msg);
-		return -EBUSY;
-	}
-	if (nsvc->state & NSE_S_BLOCKED) {
-		LOGP(DNS, LOGL_ERROR, "NSEI=%u is blocked, cannot send\n",
-			nsvc->nsei);
-		msgb_free(msg);
-		return -EBUSY;
-	}
 
 	msg->l2h = msgb_push(msg, sizeof(*nsh) + 3);
 	nsh = (struct gprs_ns_hdr *) msg->l2h;
