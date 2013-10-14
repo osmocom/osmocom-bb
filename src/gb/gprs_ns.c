@@ -802,7 +802,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 	return rc;
 }
 
-const char *gprs_ns_format_peer(struct gprs_nsvc *nsvc)
+const char *gprs_ns_ll_str(struct gprs_nsvc *nsvc)
 {
 	static char buf[80];
 	snprintf(buf, sizeof(buf), "%s:%u",
@@ -810,6 +810,38 @@ const char *gprs_ns_format_peer(struct gprs_nsvc *nsvc)
 		 ntohs(nsvc->ip.bts_addr.sin_port));
 
 	return buf;
+}
+
+void gprs_ns_ll_copy(struct gprs_nsvc *nsvc, struct gprs_nsvc *other)
+{
+	nsvc->ll = other->ll;
+
+	switch (nsvc->ll) {
+	case GPRS_NS_LL_UDP:
+		nsvc->ip = other->ip;
+		break;
+	case GPRS_NS_LL_FR_GRE:
+		nsvc->frgre = other->frgre;
+		break;
+	default:
+		break;
+	}
+}
+
+void gprs_ns_ll_clear(struct gprs_nsvc *nsvc)
+{
+	switch (nsvc->ll) {
+	case GPRS_NS_LL_UDP:
+		nsvc->ip.bts_addr.sin_addr.s_addr = INADDR_ANY;
+		nsvc->ip.bts_addr.sin_port        = 0;
+		break;
+	case GPRS_NS_LL_FR_GRE:
+		nsvc->frgre.bts_addr.sin_addr.s_addr = INADDR_ANY;
+		nsvc->frgre.bts_addr.sin_port        = 0;
+		break;
+	default:
+		break;
+	}
 }
 
 /*! \brief Create/get NS-VC independently from underlying transport layer
@@ -841,7 +873,7 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 	if (nsh->pdu_type == NS_PDUT_STATUS) {
 		LOGP(DNS, LOGL_INFO, "Ignoring NS STATUS from %s "
 		     "for non-existing NS-VC\n",
-		     gprs_ns_format_peer(fallback_nsvc));
+		     gprs_ns_ll_str(fallback_nsvc));
 		return GPRS_NS_CS_SKIPPED;
 	}
 
@@ -851,7 +883,7 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 		log_set_context(GPRS_CTX_NSVC, fallback_nsvc);
 		LOGP(DNS, LOGL_INFO, "Rejecting NS PDU type 0x%0x "
 		     "from %s for non-existing NS-VC\n",
-		     nsh->pdu_type, gprs_ns_format_peer(fallback_nsvc));
+		     nsh->pdu_type, gprs_ns_ll_str(fallback_nsvc));
 		fallback_nsvc->nsvci = fallback_nsvc->nsei = 0xfffe;
 		fallback_nsvc->state = NSE_S_ALIVE;
 
@@ -859,7 +891,7 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 				       NS_CAUSE_PDU_INCOMP_PSTATE, 0, msg);
 		if (rc < 0) {
 			LOGP(DNS, LOGL_ERROR, "TX failed (%d) to peer %s\n",
-				rc, gprs_ns_format_peer(fallback_nsvc));
+				rc, gprs_ns_ll_str(fallback_nsvc));
 			return rc;
 		}
 		return GPRS_NS_CS_REJECTED;
@@ -887,7 +919,7 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 		*new_nsvc = gprs_nsvc_create(nsi, 0xffff);
 		log_set_context(GPRS_CTX_NSVC, *new_nsvc);
 		LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s\n",
-		     gprs_ns_format_peer(fallback_nsvc));
+		     gprs_ns_ll_str(fallback_nsvc));
 
 		return GPRS_NS_CS_CREATED;
 	}

@@ -134,31 +134,31 @@ static int test_signal(unsigned int subsys, unsigned int signal,
 	case S_NS_RESET:
 		printf("==> got signal NS_RESET, NS-VC 0x%04x/%s\n",
 		       nssd->nsvc->nsvci,
-		       gprs_ns_format_peer(nssd->nsvc));
+		       gprs_ns_ll_str(nssd->nsvc));
 		break;
 
 	case S_NS_ALIVE_EXP:
 		printf("==> got signal NS_ALIVE_EXP, NS-VC 0x%04x/%s\n",
 		       nssd->nsvc->nsvci,
-		       gprs_ns_format_peer(nssd->nsvc));
+		       gprs_ns_ll_str(nssd->nsvc));
 		break;
 
 	case S_NS_BLOCK:
 		printf("==> got signal NS_BLOCK, NS-VC 0x%04x/%s\n",
 		       nssd->nsvc->nsvci,
-		       gprs_ns_format_peer(nssd->nsvc));
+		       gprs_ns_ll_str(nssd->nsvc));
 		break;
 
 	case S_NS_UNBLOCK:
 		printf("==> got signal NS_UNBLOCK, NS-VC 0x%04x/%s\n",
 		       nssd->nsvc->nsvci,
-		       gprs_ns_format_peer(nssd->nsvc));
+		       gprs_ns_ll_str(nssd->nsvc));
 		break;
 
 	default:
 		printf("==> got signal %d, NS-VC 0x%04x/%s\n", signal,
 		       nssd->nsvc->nsvci,
-		       gprs_ns_format_peer(nssd->nsvc));
+		       gprs_ns_ll_str(nssd->nsvc));
 		break;
 	}
 

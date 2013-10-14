@@ -177,7 +177,13 @@ void gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause);
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi);
 
 /* Resturn peer info as string (NOTE: the buffer is allocated statically) */
-const char *gprs_ns_format_peer(struct gprs_nsvc *nsvc);
+const char *gprs_ns_ll_str(struct gprs_nsvc *nsvc);
+
+/* Copy the link layer info from other into nsvc */
+void gprs_ns_ll_copy(struct gprs_nsvc *nsvc, struct gprs_nsvc *other);
+
+/* Clear the link layer info (will never match a real link then) */
+void gprs_ns_ll_clear(struct gprs_nsvc *nsvc);
 
 #define NS_ALLOC_SIZE	2048
 #define NS_ALLOC_HEADROOM 20

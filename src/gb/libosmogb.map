@@ -54,7 +54,9 @@ gprs_ns_tx_reset;
 gprs_ns_tx_status;
 gprs_ns_tx_unblock;
 gprs_ns_vty_init;
-gprs_ns_format_peer;
+gprs_ns_ll_str;
+gprs_ns_ll_copy;
+gprs_ns_ll_clear;
 
 gprs_nsvc_create;
 gprs_nsvc_delete;
