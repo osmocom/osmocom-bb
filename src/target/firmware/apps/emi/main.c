@@ -99,6 +99,7 @@ static int tone_on = 0;
 
 struct templates {
 	char *name;		/* name of template */
+	char *cli;		/* cli parameter */
 	uint8_t slots;		/* number of slots used (multislot) */
 	int burst_num;		/* number of bits in burstmap */
 	uint32_t *burst_map;
@@ -149,22 +150,22 @@ static uint32_t template_pdch[] = {
 };
 
 static struct templates templates[] = {
-	{ "SDCCH",		1,	102,	template_sdcch },
-	{ "TCH/F",		1,	26,	template_tchf },
-	{ "TCH/F (2 TS)",	2,	26,	template_tchf },
-	{ "TCH/F (3 TS)",	3,	26,	template_tchf },
-	{ "TCH/F (4 TS)",	4,	26,	template_tchf },
-	{ "TCH/F (5 TS)",	5,	26,	template_tchf },
-	{ "TCH/H",		1,	26,	template_tchh },
-	{ "TCH/F(H) DTX",	1,	26,	template_tchf_h_dtx },
-	{ "PDCH (ack)",		1,	1664,	template_pdch_ack },
-	{ "PDCH",		1,	416,	template_pdch },
-	{ "PDCH (2 TS)",	2,	416,	template_pdch },
-	{ "PDCH (3 TS)",	3,	416,	template_pdch },
-	{ "PDCH (4 TS)",	4,	416,	template_pdch },
-	{ "PDCH (5 TS)",	5,	416,	template_pdch },
-	{ "RACH",		1,	217,	NULL },
-	{ 0,			0,	0,	NULL }
+	{ "SDCCH",	  "sdcch",	1,	102,	template_sdcch },
+	{ "TCH/F",	  "tchf",	1,	26,	template_tchf },
+	{ "TCH/F (2 TS)", "tchf2",	2,	26,	template_tchf },
+	{ "TCH/F (3 TS)", "tchf3",	3,	26,	template_tchf },
+	{ "TCH/F (4 TS)", "tchf4",	4,	26,	template_tchf },
+	{ "TCH/F (5 TS)", "tchf5",	5,	26,	template_tchf },
+	{ "TCH/H",	  "tchh",	1,	26,	template_tchh },
+	{ "TCH/F(H) DTX", "dtx",	1,	26,	template_tchf_h_dtx },
+	{ "PDCH (ack)",	  "pdchack",	1,	1664,	template_pdch_ack },
+	{ "PDCH",	  "pdch",	1,	416,	template_pdch },
+	{ "PDCH (2 TS)",  "pdch2",	2,	416,	template_pdch },
+	{ "PDCH (3 TS)",  "pdch3",	3,	416,	template_pdch },
+	{ "PDCH (4 TS)",  "pdch4",	4,	416,	template_pdch },
+	{ "PDCH (5 TS)",  "pdch5",	5,	416,	template_pdch },
+	{ "RACH",	  "rach",	1,	217,	NULL },
+	{ 0,	 	  0,		0,	0,	NULL }
 };
 
 static int sel_template = 0, scroll_template = 0;
@@ -326,6 +327,31 @@ static void exit_arfcn(void)
 	refresh_display();
 }
 
+static int check_arfcn(int check)
+{
+	struct band *temp = NULL;
+	int i;
+
+	for (i = 0; bands[i].max; i++) {
+		temp = &bands[i];
+		if (temp->min < temp->max) {
+			if (check >= temp->min && check <= temp->max)
+				break;
+		} else {
+			if (check >= temp->min || check <= temp->max)
+				break;
+		}
+	}
+	if (!bands[i].max)
+		return -EINVAL;
+	if (check > 1023)
+		return -EINVAL;
+	arfcn = check;
+	band = temp;
+
+	return 0;
+}
+
 static void enter_arfcn(enum key_codes code)
 {
 	/* enter mode */
@@ -354,7 +380,6 @@ static void enter_arfcn(enum key_codes code)
 	if (code == KEY_RIGHT_SB) {
 		int check = 0;
 		int i;
-		struct band *temp = NULL;
 
 		/* nothing entered */
 		if (cursor == 0) {
@@ -364,22 +389,8 @@ static void enter_arfcn(enum key_codes code)
 			check = (check << 3) + (check << 1) + input[i] - '0';
 
 		/* check */
-		for (i = 0; bands[i].max; i++) {
-			temp = &bands[i];
-			if (temp->min < temp->max) {
-				if (check >= temp->min && check <= temp->max)
-					break;
-			} else {
-				if (check >= temp->min || check <= temp->max)
-					break;
-			}
-		}
-		if (!bands[i].max)
+		if (check_arfcn(check))
 			return;
-		if (check > 1023)
-			return;
-		arfcn = check;
-		band = temp;
 		mode = MODE_MAIN;
 		refresh_display();
 		refresh_template();
@@ -724,6 +735,153 @@ static void refresh_template(void)
 	}
 }
 
+/* non conform strcmp hack */
+static int _strcmp(char *s1, char *s2)
+{
+	int i;
+
+	if (strlen(s1) != strlen(s2))
+		return 1;
+	for (i = 0; i < (int)strlen(s1); i++)
+		if (s1[i] != s2[i])
+			return 1;
+	return 0;
+}
+
+/* non conform atoi hack */
+static int _atoi(const char *s)
+{
+	int i = 0;
+
+	while (*s >= '0' && *s <= '9')
+		i = i*10 + *s++ - '0';
+	return i;
+}
+
+static void cli(char *command)
+{
+	char *param = "";
+	int i;
+
+	for (i = 0; i < (int)strlen(command); i++) {
+		if (command[i] == ' ') {
+			command[i] = '\0';
+			param = command + i + 1;
+			break;
+		}
+	}
+
+	if (command[0] == '\0')
+		return;
+
+	if (!_strcmp(command, "help")) {
+		printf("Available commands:\n\n");
+		printf("help                this text\n\n");
+		printf("arfcn <ARFCN>       Absolute radio frequency number\n\n");
+		printf("dcs                 Use DCS1800 for ARFCN 512..810\n\n");
+		printf("pcs                 Use PCS1900 for ARFCN 512..810\n\n");
+		printf("uplink              Use uplink bands\n\n");
+		printf("downlink            Use downlink bands\n\n");
+		printf("template <template> Select template, use 'template help' for a list.\n\n");
+		printf("power <dBm> | off   Set transmitter power 0..30\n\n");
+		printf("volume 0..10        Set buzzer volume\n\n");
+		return;
+	}
+
+	if (!_strcmp(command, "arfcn")) {
+		if (check_arfcn(_atoi(param))) {
+			printf("Invalid ARFCN!\n\n");
+			return;
+		}
+		refresh_display();
+		refresh_template();
+		return;
+	}
+
+	if (!_strcmp(command, "dcs")) {
+		pcs = 0;
+		refresh_display();
+		refresh_template();
+		return;
+	}
+
+	if (!_strcmp(command, "pcs")) {
+		pcs = 1;
+		refresh_display();
+		refresh_template();
+		return;
+	}
+
+	if (!_strcmp(command, "uplink")) {
+		uplink = 1;
+		refresh_display();
+		refresh_template();
+		return;
+	}
+
+	if (!_strcmp(command, "downlink")) {
+		uplink = 0;
+		refresh_display();
+		refresh_template();
+		return;
+	}
+
+	if (!_strcmp(command, "template")) {
+		if (!_strcmp(param, "help")) {
+			printf("Available templates:\n\n");
+			for (i = 0; templates[i].name; i++)
+				printf("template %s - %s\n", templates[i].cli,
+					templates[i].name);
+			return;
+		}
+		for (i = 0; templates[i].name; i++) {
+			if (!_strcmp(param, templates[i].cli)) {
+				sel_template = i;
+				refresh_template();
+				refresh_display();
+				return;
+			}
+		}
+		printf("Unknwon template \"%s\"\n", param);
+		return;
+	}
+
+	if (!_strcmp(command, "power")) {
+		if (!_strcmp(param, "off")) {
+			transmitter_on = 0;
+			refresh_template();
+			refresh_display();
+			return;
+		}
+		power = _atoi(param);
+		if (power > 30) {
+			printf("Invalid power \"%s\"\n", param);
+			return;
+		}
+		if (!templates[sel_template].burst_map) {
+			send_rach();
+		} else
+			transmitter_on = 1;
+		refresh_template();
+		refresh_display();
+		return;
+	}
+
+	if (!_strcmp(command, "volume")) {
+		uint8_t volume = _atoi(param);
+		if (volume > 10) {
+			printf("Invalid volume \"%s\"\n", param);
+			return;
+		}
+		l1s.emi.tone = volume * 25;
+		refresh_template();
+		refresh_display();
+		return;
+	}
+
+	printf("Unknown command \"%s\", try \"help\".\n", command);
+}
+
 static void console_rx_cb(uint8_t dlci, struct msgb *msg)
 {
 	if (dlci != SC_DLCI_CONSOLE) {
@@ -731,7 +889,7 @@ static void console_rx_cb(uint8_t dlci, struct msgb *msg)
 		return;
 	}
 
-	printf("Message on console DLCI: '%s'\n", msg->data);
+	cli((char *)msg->data);
 	msgb_free(msg);
 }
 
