@@ -18,6 +18,7 @@ config.log
 config.status
 config.guess
 configure
+compile
 depcomp
 missing
 ltmain.sh
@@ -66,6 +67,7 @@ tests/conv/conv_test
 tests/lapd/lapd_test
 tests/gsm0808/gsm0808_test
 tests/gb/bssgp_fc_test
+tests/gb/gprs_ns_test
 tests/gsm0408/gsm0408_test
 tests/logging/logging_test
 tests/fr/fr_test
