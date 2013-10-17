@@ -1,23 +1,24 @@
 ===== NS protocol test START
+--- Setup, send BSSGP RESET ---
+
+Setup NS-VC: remote 0x01020304:1111, NSVCI 0x1122(4386), NSEI 0x1122(4386)
+
 PROCESSING RESET from 0x01020304:1111
 02 00 81 01 01 82 11 22 04 82 11 22 
 
 ==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:1111
-RESPONSE, msg length 9
+MESSAGE to BSS, msg length 9
 03 01 82 11 22 04 82 11 22 
 
-RESPONSE, msg length 1
+MESSAGE to BSS, msg length 1
 0a 
 
 result (RESET) = 9
 
-Current NS-VCIs:
-    VCI 0x1122, NSEI 0x1122, peer 0x01020304:1111
-
 PROCESSING ALIVE from 0x01020304:1111
 0a 
 
-RESPONSE, msg length 1
+MESSAGE to BSS, msg length 1
 0b 
 
 result (ALIVE) = 1
@@ -26,10 +27,18 @@ PROCESSING UNBLOCK from 0x01020304:1111
 06 
 
 ==> got signal NS_UNBLOCK, NS-VC 0x1122/1.2.3.4:1111
-RESPONSE, msg length 1
+MESSAGE to BSS, msg length 1
 07 
 
 result (UNBLOCK) = 1
+
+PROCESSING ALIVE_ACK from 0x01020304:1111
+0b 
+
+result (ALIVE_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:1111
 
 PROCESSING BSSGP RESET from 0x01020304:1111
 00 00 00 00 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
@@ -45,16 +54,16 @@ PROCESSING RESET from 0x01020304:2222
 02 00 81 01 01 82 11 22 04 82 11 22 
 
 ==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:2222
-RESPONSE, msg length 9
+MESSAGE to BSS, msg length 9
 03 01 82 11 22 04 82 11 22 
 
-RESPONSE, msg length 1
+MESSAGE to BSS, msg length 1
 0a 
 
 result (RESET) = 9
 
 Current NS-VCIs:
-    VCI 0x1122, NSEI 0x1122, peer 0x01020304:2222
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:2222, blocked
 
 --- Peer port changes, RESET, VCI changes ---
 
@@ -62,17 +71,17 @@ PROCESSING RESET from 0x01020304:3333
 02 00 81 01 01 82 33 44 04 82 11 22 
 
 ==> got signal NS_RESET, NS-VC 0x3344/1.2.3.4:3333
-RESPONSE, msg length 9
+MESSAGE to BSS, msg length 9
 03 01 82 33 44 04 82 11 22 
 
-RESPONSE, msg length 1
+MESSAGE to BSS, msg length 1
 0a 
 
 result (RESET) = 9
 
 Current NS-VCIs:
-    VCI 0x3344, NSEI 0x1122, peer 0x01020304:3333
-    VCI 0x1122, NSEI 0x1122, peer 0x01020304:2222
+    VCI 0x3344, NSEI 0x1122, peer 0x01020304:3333, blocked
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:2222, blocked
 
 --- Peer port changes, RESET, NSEI changes ---
 
@@ -80,17 +89,17 @@ PROCESSING RESET from 0x01020304:4444
 02 00 81 01 01 82 11 22 04 82 33 44 
 
 ==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:4444
-RESPONSE, msg length 9
+MESSAGE to BSS, msg length 9
 03 01 82 11 22 04 82 33 44 
 
-RESPONSE, msg length 1
+MESSAGE to BSS, msg length 1
 0a 
 
 result (RESET) = 9
 
 Current NS-VCIs:
-    VCI 0x3344, NSEI 0x1122, peer 0x01020304:3333
-    VCI 0x1122, NSEI 0x3344, peer 0x01020304:4444
+    VCI 0x3344, NSEI 0x1122, peer 0x01020304:3333, blocked
+    VCI 0x1122, NSEI 0x3344, peer 0x01020304:4444, blocked
          NS-VC changed NSEI        : 1
 
 --- Peer port 3333, RESET, VCI is changed back ---
@@ -100,17 +109,17 @@ PROCESSING RESET from 0x01020304:3333
 
 ==> got signal NS_REPLACED: 0x1122/1.2.3.4:4444 -> 0x3344/1.2.3.4:3333
 ==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:3333
-RESPONSE, msg length 9
+MESSAGE to BSS, msg length 9
 03 01 82 11 22 04 82 11 22 
 
-RESPONSE, msg length 1
+MESSAGE to BSS, msg length 1
 0a 
 
 result (RESET) = 9
 
 Current NS-VCIs:
-    VCI 0x3344, NSEI 0x1122, peer 0x00000000:0
-    VCI 0x1122, NSEI 0x1122, peer 0x01020304:3333
+    VCI 0x3344, NSEI 0x1122, peer 0x00000000:0, blocked
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:3333, blocked
          NS-VC replaced other count: 1
          NS-VC changed NSEI        : 2
 
@@ -120,19 +129,117 @@ PROCESSING RESET from 0x01020304:4444
 02 00 81 01 01 82 11 22 04 82 11 22 
 
 ==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:4444
-RESPONSE, msg length 9
+MESSAGE to BSS, msg length 9
 03 01 82 11 22 04 82 11 22 
 
-RESPONSE, msg length 1
+MESSAGE to BSS, msg length 1
 0a 
 
 result (RESET) = 9
 
 Current NS-VCIs:
-    VCI 0x3344, NSEI 0x1122, peer 0x00000000:0
-    VCI 0x1122, NSEI 0x1122, peer 0x01020304:4444
+    VCI 0x3344, NSEI 0x1122, peer 0x00000000:0, blocked
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:4444, blocked
          NS-VC replaced other count: 1
          NS-VC changed NSEI        : 2
+
+Current NS-VCIs:
+
+--- Send message to SGSN ---
+
+SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
+22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = -22
+
+--- Setup dead connection to SGSN ---
+
+MESSAGE to SGSN, msg length 12
+02 00 81 01 01 82 01 01 04 82 01 00 
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked, dead
+
+--- Send message to SGSN ---
+
+SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
+22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+MESSAGE to SGSN, msg length 22
+00 00 00 00 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = 22
+
+--- Make connection to SGSN alive ---
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 01 01 04 82 01 00 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+PROCESSING ALIVE_ACK from 0x05060708:32000
+0b 
+
+MESSAGE to SGSN, msg length 1
+06 
+
+result (ALIVE_ACK) = 1
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked
+         NS-VC Block count         : 1
+
+--- Send message to SGSN ---
+
+SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
+22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+MESSAGE to SGSN, msg length 22
+00 00 00 00 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = 22
+
+--- Unblock connection to SGSN ---
+
+PROCESSING UNBLOCK_ACK from 0x05060708:32000
+07 
+
+==> got signal NS_UNBLOCK, NS-VC 0x0101/5.6.7.8:32000
+result (UNBLOCK_ACK) = 0
+
+PROCESSING ALIVE from 0x05060708:32000
+0a 
+
+MESSAGE to SGSN, msg length 1
+0b 
+
+result (ALIVE) = 1
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000
+         NS-VC Block count         : 1
+
+--- Send message to SGSN ---
+
+SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
+22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = -16
+
+--- Send empty message with BVCI to SGSN ---
+
+SENDING [empty] to NSEI 0x0100, BVCI 0x0102
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0102, msg length 0
+
+
+result ([empty]) = -16
 
 ===== NS protocol test END
 

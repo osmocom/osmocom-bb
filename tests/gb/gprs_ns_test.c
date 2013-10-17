@@ -26,6 +26,155 @@
 #include <osmocom/gprs/gprs_ns.h>
 #include <osmocom/gprs/gprs_bssgp.h>
 
+#define REMOTE_BSS_ADDR 0x01020304
+#define REMOTE_SGSN_ADDR 0x05060708
+
+#define SGSN_NSEI 0x0100
+
+static int gprs_process_message(struct gprs_ns_inst *nsi, const char *text,
+				struct sockaddr_in *peer, const unsigned char* data,
+				size_t data_len);
+
+static void send_ns_reset(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr,
+			  enum ns_cause cause, uint16_t nsvci, uint16_t nsei)
+{
+	/* GPRS Network Service, PDU type: NS_RESET,
+	 */
+	unsigned char msg[12] = {
+		0x02, 0x00, 0x81, 0x01, 0x01, 0x82, 0x11, 0x22,
+		0x04, 0x82, 0x11, 0x22
+	};
+
+	msg[3] = cause;
+	msg[6] = nsvci / 256;
+	msg[7] = nsvci % 256;
+	msg[10] = nsei / 256;
+	msg[11] = nsei % 256;
+
+	gprs_process_message(nsi, "RESET", src_addr, msg, sizeof(msg));
+}
+
+static void send_ns_reset_ack(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr,
+			      uint16_t nsvci, uint16_t nsei)
+{
+	/* GPRS Network Service, PDU type: NS_RESET_ACK,
+	 */
+	unsigned char msg[9] = {
+		0x03, 0x01, 0x82, 0x11, 0x22,
+		0x04, 0x82, 0x11, 0x22
+	};
+
+	msg[3] = nsvci / 256;
+	msg[4] = nsvci % 256;
+	msg[7] = nsei / 256;
+	msg[8] = nsei % 256;
+
+	gprs_process_message(nsi, "RESET_ACK", src_addr, msg, sizeof(msg));
+}
+
+static void send_ns_alive(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr)
+{
+	/* GPRS Network Service, PDU type: NS_ALIVE */
+	unsigned char msg[1] = {
+		0x0a
+	};
+
+	gprs_process_message(nsi, "ALIVE", src_addr, msg, sizeof(msg));
+}
+
+static void send_ns_alive_ack(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr)
+{
+	/* GPRS Network Service, PDU type: NS_ALIVE_ACK */
+	unsigned char msg[1] = {
+		0x0b
+	};
+
+	gprs_process_message(nsi, "ALIVE_ACK", src_addr, msg, sizeof(msg));
+}
+
+static void send_ns_unblock(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr)
+{
+	/* GPRS Network Service, PDU type: NS_UNBLOCK */
+	unsigned char msg[1] = {
+		0x06
+	};
+
+	gprs_process_message(nsi, "UNBLOCK", src_addr, msg, sizeof(msg));
+}
+
+static void send_ns_unblock_ack(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr)
+{
+	/* GPRS Network Service, PDU type: NS_UNBLOCK_ACK */
+	unsigned char msg[1] = {
+		0x07
+	};
+
+	gprs_process_message(nsi, "UNBLOCK_ACK", src_addr, msg, sizeof(msg));
+}
+
+static void send_ns_unitdata(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr,
+			     uint16_t nsbvci,
+			     const unsigned char *bssgp_msg, size_t bssgp_msg_size)
+{
+	/* GPRS Network Service, PDU type: NS_UNITDATA */
+	unsigned char msg[4096] = {
+		0x00, 0x00, 0x00, 0x00
+	};
+
+	OSMO_ASSERT(bssgp_msg_size <= sizeof(msg) - 4);
+
+	msg[2] = nsbvci / 256;
+	msg[3] = nsbvci % 256;
+	memcpy(msg + 4, bssgp_msg, bssgp_msg_size);
+
+	gprs_process_message(nsi, "UNITDATA", src_addr, msg, bssgp_msg_size + 4);
+}
+
+static void send_bssgp_reset(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr,
+			     uint16_t bvci)
+{
+	/* GPRS Network Service, PDU type: NS_UNITDATA, BVCI 0
+	 * BSSGP RESET */
+	unsigned char msg[22] = {
+		0x22, 0x04, 0x82, 0x4a,
+		0x2e, 0x07, 0x81, 0x08, 0x08, 0x88, 0x10, 0x20,
+		0x30, 0x40, 0x50, 0x60, 0x10, 0x00
+	};
+
+	msg[3] = bvci / 256;
+	msg[4] = bvci % 256;
+
+	send_ns_unitdata(nsi, src_addr, 0, msg, sizeof(msg));
+}
+
+static void setup_ns(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr,
+		     uint16_t nsvci, uint16_t nsei)
+{
+	printf("Setup NS-VC: remote 0x%08x:%d, "
+	       "NSVCI 0x%04x(%d), NSEI 0x%04x(%d)\n\n",
+	       ntohl(src_addr->sin_addr.s_addr), ntohs(src_addr->sin_port),
+	       nsvci, nsvci, nsei, nsei);
+
+	send_ns_reset(nsi, src_addr, NS_CAUSE_OM_INTERVENTION, nsvci, nsei);
+	send_ns_alive(nsi, src_addr);
+	send_ns_unblock(nsi, src_addr);
+	send_ns_alive_ack(nsi, src_addr);
+}
+
+static void setup_bssgp(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr,
+			uint16_t bvci) __attribute__((__unused__));
+
+static void setup_bssgp(struct gprs_ns_inst *nsi, struct sockaddr_in *src_addr,
+			uint16_t bvci)
+{
+	printf("Setup BSSGP: remote 0x%08x:%d, "
+	       "BVCI 0x%04x(%d)\n\n",
+	       ntohl(src_addr->sin_addr.s_addr), ntohs(src_addr->sin_port),
+	       bvci, bvci);
+
+	send_bssgp_reset(nsi, src_addr, bvci);
+}
+
 /* GPRS Network Service, PDU type: NS_RESET,
  * Cause: O&M intervention, NS VCI: 0x1122, NSEI 0x1122
  */
@@ -110,16 +259,43 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 	typedef ssize_t (*sendto_t)(int, const void *, size_t, int,
 			const struct sockaddr *, socklen_t);
 	static sendto_t real_sendto = NULL;
+	uint32_t dest_host = htonl(((struct sockaddr_in *)dest_addr)->sin_addr.s_addr);
 
 	if (!real_sendto)
 		real_sendto = dlsym(RTLD_NEXT, "sendto");
 
-	if (((struct sockaddr_in *)dest_addr)->sin_addr.s_addr != htonl(0x01020304))
+	if (dest_host == REMOTE_BSS_ADDR)
+		printf("MESSAGE to BSS, msg length %d\n%s\n\n", len, osmo_hexdump(buf, len));
+	else if (dest_host == REMOTE_SGSN_ADDR)
+		printf("MESSAGE to SGSN, msg length %d\n%s\n\n", len, osmo_hexdump(buf, len));
+	else
 		return real_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 
-	printf("RESPONSE, msg length %d\n%s\n\n", len, osmo_hexdump(buf, len));
-
 	return len;
+}
+
+/* override */
+int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
+{
+	typedef int (*gprs_ns_sendmsg_t)(struct gprs_ns_inst *nsi, struct msgb *msg);
+	static gprs_ns_sendmsg_t real_gprs_ns_sendmsg = NULL;
+	uint16_t bvci = msgb_bvci(msg);
+	uint16_t nsei = msgb_nsei(msg);
+
+	unsigned char *buf = msg->data;
+	size_t len = msg->len;
+
+	if (!real_gprs_ns_sendmsg)
+		real_gprs_ns_sendmsg = dlsym(RTLD_NEXT, "gprs_ns_sendmsg");
+
+	if (nsei == SGSN_NSEI)
+		printf("NS UNITDATA MESSAGE to SGSN, BVCI 0x%04x, msg length %d\n%s\n\n",
+		       bvci, len, osmo_hexdump(buf, len));
+	else
+		printf("NS UNITDATA MESSAGE to BSS, BVCI 0x%04x, msg length %d\n%s\n\n",
+		       bvci, len, osmo_hexdump(buf, len));
+
+	return real_gprs_ns_sendmsg(nsi, msg);
 }
 
 static void dump_rate_ctr_group(FILE *stream, const char *prefix,
@@ -217,6 +393,34 @@ static int gprs_process_message(struct gprs_ns_inst *nsi, const char *text, stru
 	return ret;
 }
 
+static int gprs_send_message(struct gprs_ns_inst *nsi, const char *text,
+			     uint16_t nsei, uint16_t bvci,
+			     const unsigned char* data, size_t data_len)
+{
+	struct msgb *msg;
+	int ret;
+	if (data_len > NS_ALLOC_SIZE - NS_ALLOC_HEADROOM) {
+		fprintf(stderr, "message too long: %d\n", data_len);
+		return -1;
+	}
+
+	msg = gprs_ns_msgb_alloc();
+	memmove(msg->data, data, data_len);
+	msg->l2h = msg->data;
+	msgb_put(msg, data_len);
+
+	msgb_nsei(msg) = nsei;
+	msgb_bvci(msg) = bvci;
+
+	printf("SENDING %s to NSEI 0x%04x, BVCI 0x%04x\n", text, nsei, bvci);
+
+	ret = gprs_ns_sendmsg(nsi, msg);
+
+	printf("result (%s) = %d\n\n", text, ret);
+
+	return ret;
+}
+
 static void gprs_dump_nsi(struct gprs_ns_inst *nsi)
 {
 	struct gprs_nsvc *nsvc;
@@ -224,72 +428,125 @@ static void gprs_dump_nsi(struct gprs_ns_inst *nsi)
 	printf("Current NS-VCIs:\n");
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
 		struct sockaddr_in *peer = &(nsvc->ip.bts_addr);
-		printf("    VCI 0x%04x, NSEI 0x%04x, peer 0x%08x:%d\n",
+		printf("    VCI 0x%04x, NSEI 0x%04x, peer 0x%08x:%d%s%s\n",
 		       nsvc->nsvci, nsvc->nsei,
-		       ntohl(peer->sin_addr.s_addr), ntohs(peer->sin_port)
+		       ntohl(peer->sin_addr.s_addr), ntohs(peer->sin_port),
+		       nsvc->state & NSE_S_BLOCKED ? ", blocked" : "",
+		       nsvc->state & NSE_S_ALIVE   ? "" : ", dead"
 		      );
 		dump_rate_ctr_group(stdout, "        ", nsvc->ctrg);
 	}
 	printf("\n");
 }
 
-static void test_ns()
+static void test_bss_port_changes()
 {
 	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
 	struct sockaddr_in peer[4] = {{0},};
 
 	peer[0].sin_family = AF_INET;
 	peer[0].sin_port = htons(1111);
-	peer[0].sin_addr.s_addr = htonl(0x01020304);
+	peer[0].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
 	peer[1].sin_family = AF_INET;
 	peer[1].sin_port = htons(2222);
-	peer[1].sin_addr.s_addr = htonl(0x01020304);
+	peer[1].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
 	peer[2].sin_family = AF_INET;
 	peer[2].sin_port = htons(3333);
-	peer[2].sin_addr.s_addr = htonl(0x01020304);
+	peer[2].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
 	peer[3].sin_family = AF_INET;
 	peer[3].sin_port = htons(4444);
-	peer[3].sin_addr.s_addr = htonl(0x01020304);
+	peer[3].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
 
-	gprs_process_message(nsi, "RESET", &peer[0],
-			     gprs_ns_reset, sizeof(gprs_ns_reset));
+	printf("--- Setup, send BSSGP RESET ---\n\n");
+
+	setup_ns(nsi, &peer[0], 0x1122, 0x1122);
 	gprs_dump_nsi(nsi);
-	gprs_process_message(nsi, "ALIVE", &peer[0],
-			     gprs_ns_alive, sizeof(gprs_ns_alive));
-	gprs_process_message(nsi, "UNBLOCK", &peer[0],
-			     gprs_ns_unblock, sizeof(gprs_ns_unblock));
 	gprs_process_message(nsi, "BSSGP RESET", &peer[0],
 			     gprs_bssgp_reset, sizeof(gprs_bssgp_reset));
 
 	printf("--- Peer port changes, RESET, message remains unchanged ---\n\n");
 
-	gprs_process_message(nsi, "RESET", &peer[1],
-			     gprs_ns_reset, sizeof(gprs_ns_reset));
+	send_ns_reset(nsi, &peer[1], NS_CAUSE_OM_INTERVENTION, 0x1122, 0x1122);
 	gprs_dump_nsi(nsi);
 
 	printf("--- Peer port changes, RESET, VCI changes ---\n\n");
 
-	gprs_process_message(nsi, "RESET", &peer[2],
-			     gprs_ns_reset_vci2, sizeof(gprs_ns_reset_vci2));
+	send_ns_reset(nsi, &peer[2], NS_CAUSE_OM_INTERVENTION, 0x3344, 0x1122);
 	gprs_dump_nsi(nsi);
 
 	printf("--- Peer port changes, RESET, NSEI changes ---\n\n");
 
-	gprs_process_message(nsi, "RESET", &peer[3],
-			     gprs_ns_reset_nsei2, sizeof(gprs_ns_reset_nsei2));
+	send_ns_reset(nsi, &peer[3], NS_CAUSE_OM_INTERVENTION, 0x1122, 0x3344);
 	gprs_dump_nsi(nsi);
 
 	printf("--- Peer port 3333, RESET, VCI is changed back ---\n\n");
 
-	gprs_process_message(nsi, "RESET", &peer[2],
-			     gprs_ns_reset, sizeof(gprs_ns_reset));
+	send_ns_reset(nsi, &peer[2], NS_CAUSE_OM_INTERVENTION, 0x1122, 0x1122);
 	gprs_dump_nsi(nsi);
 
 	printf("--- Peer port 4444, RESET, NSEI is changed back ---\n\n");
 
-	gprs_process_message(nsi, "RESET", &peer[3],
-			     gprs_ns_reset, sizeof(gprs_ns_reset));
+	send_ns_reset(nsi, &peer[3], NS_CAUSE_OM_INTERVENTION, 0x1122, 0x1122);
 	gprs_dump_nsi(nsi);
+
+	gprs_ns_destroy(nsi);
+	nsi = NULL;
+}
+
+
+static void test_sgsn_output()
+{
+	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
+	struct sockaddr_in sgsn_peer= {0};
+
+	sgsn_peer.sin_family = AF_INET;
+	sgsn_peer.sin_port = htons(32000);
+	sgsn_peer.sin_addr.s_addr = htonl(REMOTE_SGSN_ADDR);
+
+	gprs_dump_nsi(nsi);
+
+	printf("--- Send message to SGSN ---\n\n");
+
+	gprs_send_message(nsi, "BSSGP RESET", SGSN_NSEI, 0,
+			     gprs_bssgp_reset+4, sizeof(gprs_bssgp_reset)-4);
+
+	printf("--- Setup dead connection to SGSN ---\n\n");
+
+	gprs_ns_nsip_connect(nsi, &sgsn_peer, SGSN_NSEI, SGSN_NSEI+1);
+	gprs_dump_nsi(nsi);
+
+	printf("--- Send message to SGSN ---\n\n");
+
+	gprs_send_message(nsi, "BSSGP RESET", SGSN_NSEI, 0,
+			     gprs_bssgp_reset+4, sizeof(gprs_bssgp_reset)-4);
+
+	printf("--- Make connection to SGSN alive ---\n\n");
+
+	send_ns_reset_ack(nsi, &sgsn_peer, SGSN_NSEI+1, SGSN_NSEI);
+	send_ns_alive_ack(nsi, &sgsn_peer);
+	gprs_dump_nsi(nsi);
+
+	printf("--- Send message to SGSN ---\n\n");
+
+	gprs_send_message(nsi, "BSSGP RESET", SGSN_NSEI, 0,
+			     gprs_bssgp_reset+4, sizeof(gprs_bssgp_reset)-4);
+
+	printf("--- Unblock connection to SGSN ---\n\n");
+
+	send_ns_unblock_ack(nsi, &sgsn_peer);
+	send_ns_alive(nsi, &sgsn_peer);
+	gprs_dump_nsi(nsi);
+
+	printf("--- Send message to SGSN ---\n\n");
+
+	gprs_send_message(nsi, "BSSGP RESET", SGSN_NSEI, 0,
+			     gprs_bssgp_reset+4, sizeof(gprs_bssgp_reset)-4);
+
+	printf("--- Send empty message with BVCI to SGSN ---\n\n");
+
+	gprs_send_message(nsi, "[empty]", SGSN_NSEI, 0x0102,
+			     gprs_bssgp_reset, 0);
+
 
 	gprs_ns_destroy(nsi);
 	nsi = NULL;
@@ -311,7 +568,8 @@ int main(int argc, char **argv)
 	osmo_signal_register_handler(SS_L_NS, &test_signal, NULL);
 
 	printf("===== NS protocol test START\n");
-	test_ns();
+	test_bss_port_changes();
+	test_sgsn_output();
 	printf("===== NS protocol test END\n\n");
 
 	exit(EXIT_SUCCESS);
