@@ -1,6 +1,7 @@
-libosmocore (0.6.4) UNRELEASED; urgency=low
+libosmocore (0.6.4+git1) UNRELEASED; urgency=low
 
   * GPRS related changes, some GSM encoding/decoding changes
+  * GPRS correctly determine routable NSVC.
 
  -- Holger Hans Peter Freyther <holger@freyther.de>  Thu, 10 Oct 2013 14:16:37 +0200
 
