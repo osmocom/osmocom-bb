@@ -167,10 +167,7 @@ SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
 NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
 
-MESSAGE to SGSN, msg length 22
-00 00 00 00 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
-
-result (BSSGP RESET) = 22
+result (BSSGP RESET) = -16
 
 --- Make connection to SGSN alive ---
 
@@ -200,10 +197,7 @@ SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
 NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
 
-MESSAGE to SGSN, msg length 22
-00 00 00 00 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
-
-result (BSSGP RESET) = 22
+result (BSSGP RESET) = -16
 
 --- Unblock connection to SGSN ---
 
@@ -231,7 +225,10 @@ SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
 NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
 
-result (BSSGP RESET) = -16
+MESSAGE to SGSN, msg length 22
+00 00 00 00 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = 22
 
 --- Send empty message with BVCI to SGSN ---
 
@@ -239,7 +236,10 @@ SENDING [empty] to NSEI 0x0100, BVCI 0x0102
 NS UNITDATA MESSAGE to SGSN, BVCI 0x0102, msg length 0
 
 
-result ([empty]) = -16
+MESSAGE to SGSN, msg length 4
+00 00 01 02 
+
+result ([empty]) = 4
 
 ===== NS protocol test END
 

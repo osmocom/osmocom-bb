@@ -158,8 +158,8 @@ static struct gprs_nsvc *gprs_active_nsvc_by_nsei(struct gprs_ns_inst *nsi,
 	struct gprs_nsvc *nsvc;
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
 		if (nsvc->nsei == nsei) {
-			if (nsvc->state & NSE_S_BLOCKED ||
-			    !(nsvc->state & NSE_S_ALIVE))
+			if (!(nsvc->state & NSE_S_BLOCKED) &&
+			    nsvc->state & NSE_S_ALIVE)
 				return nsvc;
 		}
 	}
