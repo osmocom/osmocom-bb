@@ -499,21 +499,31 @@ DEFUN(cfg_frgre_enable, cfg_frgre_enable_cmd,
 }
 
 DEFUN(nsvc_nsei, nsvc_nsei_cmd,
-	"nsvc nsei <0-65535> (block|unblock|reset)",
+	"nsvc (nsei|nsvci) <0-65535> (block|unblock|reset)",
 	"Perform an operation on a NSVC\n"
 	"NSEI to identify NS-VC Identifier (NS-VCI)\n"
+	"NS-VC Identifier (NS-VCI)\n"
 	"The NSEI\n"
 	"Initiate BLOCK procedure\n"
 	"Initiate UNBLOCK procedure\n"
 	"Initiate RESET procedure\n")
 {
-	uint16_t nsvci = atoi(argv[0]);
-	const char *operation = argv[1];
+	const char *id_type = argv[0];
+	uint16_t id = atoi(argv[1]);
+	const char *operation = argv[2];
 	struct gprs_nsvc *nsvc;
 
-	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsvci);
+	if (!strcmp(id_type, "nsei"))
+		nsvc = gprs_nsvc_by_nsei(vty_nsi, id);
+	else if (!strcmp(id_type, "nsvci"))
+		nsvc = gprs_nsvc_by_nsvci(vty_nsi, id);
+	else {
+		vty_out(vty, "%%No such id_type '%s'%s", id_type, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
 	if (!nsvc) {
-		vty_out(vty, "No such NSVCI (%u)%s", nsvci, VTY_NEWLINE);
+		vty_out(vty, "No such %s (%u)%s", id_type, id, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
