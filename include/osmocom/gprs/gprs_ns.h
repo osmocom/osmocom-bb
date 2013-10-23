@@ -36,6 +36,7 @@ enum ns_timeout {
 
 #define NSE_S_BLOCKED	0x0001
 #define NSE_S_ALIVE	0x0002
+#define NSE_S_RESET	0x0004
 
 /*! \brief Osmocom NS link layer types */
 enum gprs_ns_ll {
@@ -199,12 +200,16 @@ enum signal_ns {
 	S_NS_UNBLOCK,
 	S_NS_ALIVE_EXP,	/* Tns-alive expired more than N times */
 	S_NS_REPLACED, /* nsvc object is replaced (sets old_nsvc) */
+	S_NS_MISMATCH, /* got an unexpected IE (sets msg, pdu_type, ie_type) */
 };
 
 struct ns_signal_data {
 	struct gprs_nsvc *nsvc;
 	struct gprs_nsvc *old_nsvc;
 	uint8_t cause;
+	uint8_t pdu_type;
+	uint8_t ie_type;
+	struct msgb *msg;
 };
 
 void gprs_ns_set_log_ss(int ss);

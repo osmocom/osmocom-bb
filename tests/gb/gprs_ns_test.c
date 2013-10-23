@@ -357,6 +357,12 @@ static int test_signal(unsigned int subsys, unsigned int signal,
 		       gprs_ns_ll_str(nssd->old_nsvc));
 		break;
 
+	case S_NS_MISMATCH:
+		printf("==> got signal NS_MISMATCH: 0x%04x/%s pdu=%d, ie=%d\n",
+		       nssd->nsvc->nsvci, gprs_ns_ll_str(nssd->nsvc),
+		       nssd->pdu_type, nssd->ie_type);
+		break;
+
 	default:
 		printf("==> got signal %d, NS-VC 0x%04x/%s\n", signal,
 		       nssd->nsvc->nsvci,
