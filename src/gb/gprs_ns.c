@@ -114,7 +114,7 @@ static const struct rate_ctr_desc nsvc_ctr_description[] = {
 	{ "blocked",	"NS-VC Block count         " },
 	{ "dead",	"NS-VC gone dead count     " },
 	{ "replaced",	"NS-VC replaced other count" },
-	{ "nsei-chg",	"NS-VC changed NSEI        " },
+	{ "nsei-chg",	"NS-VC changed NSEI count  " },
 	{ "inv-nsvci",	"NS-VCI was invalid count  " },
 	{ "inv-nsei",	"NSEI was invalid count    " },
 };
@@ -769,10 +769,8 @@ static int gprs_ns_rx_reset(struct gprs_nsvc **nsvc, struct msgb *msg)
 	     (*nsvc)->nsvci, (*nsvc)->nsvci_is_valid ? "" : "(invalid)",
 	     nsei, nsvci, gprs_ns_cause_str(cause));
 
-	if (!(*nsvc)->nsvci_is_valid) {
-		/* It's a new uninitialised NS-VC, nothing to check here */
-	} else if ((*nsvc)->nsvci != nsvci) {
-		if ((*nsvc)->remote_end_is_sgsn) {
+	if ((*nsvc)->nsvci_is_valid && (*nsvc)->nsvci != nsvci) {
+		if ((*nsvc)->persistent || (*nsvc)->remote_end_is_sgsn) {
 			/* The incoming RESET doesn't match the NSVCI. Send an
 			 * appropriate RESET_ACK and ignore the RESET.
 			 * See 3GPP TS 08.16, 7.3.1, 2nd paragraph.
@@ -787,18 +785,25 @@ static int gprs_ns_rx_reset(struct gprs_nsvc **nsvc, struct msgb *msg)
 
 		/* NS-VCI has changed */
 		gprs_nsvc_replace_if_found(nsvci, nsvc, &orig_nsvc);
+	}
 
-	} else if ((*nsvc)->nsei != nsei) {
-		/* The incoming RESET doesn't match the NSEI. Send an
-		 * appropriate RESET_ACK and ignore the RESET.
-		 * See 3GPP TS 08.16, 7.3.1, 3rd paragraph.
-		 */
-		ns_osmo_signal_dispatch_mismatch(*nsvc, msg,
-						 NS_PDUT_RESET,
-						 NS_IE_NSEI);
-		rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_INV_NSEI]);
-		gprs_ns_tx_reset_ack(*nsvc);
-		return 0;
+	if ((*nsvc)->nsvci_is_valid && (*nsvc)->nsei != nsei) {
+		if ((*nsvc)->persistent || (*nsvc)->remote_end_is_sgsn) {
+			/* The incoming RESET doesn't match the NSEI. Send an
+			 * appropriate RESET_ACK and ignore the RESET.
+			 * See 3GPP TS 08.16, 7.3.1, 3rd paragraph.
+			 */
+			ns_osmo_signal_dispatch_mismatch(*nsvc, msg,
+							 NS_PDUT_RESET,
+							 NS_IE_NSEI);
+			rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_INV_NSEI]);
+			gprs_ns_tx_reset_ack(*nsvc);
+			return 0;
+		}
+
+		/* NSEI has changed */
+		rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_NSEI_CHG]);
+		(*nsvc)->nsei = nsei;
 	}
 
 	/* Mark NS-VC as blocked and alive */
@@ -885,7 +890,8 @@ static int gprs_ns_rx_reset_ack(struct gprs_nsvc **nsvc, struct msgb *msg)
 		int use_other_nsvc;
 
 		/* Only do this with BSS peers */
-		use_other_nsvc = !(*nsvc)->remote_end_is_sgsn;
+		use_other_nsvc = !(*nsvc)->remote_end_is_sgsn &&
+			!(*nsvc)->persistent;
 
 		if (use_other_nsvc)
 			/* Update *nsvc to point to the right NSVC object */
@@ -916,17 +922,23 @@ static int gprs_ns_rx_reset_ack(struct gprs_nsvc **nsvc, struct msgb *msg)
 		gprs_ns_ll_copy(*nsvc, orig_nsvc);
 		gprs_ns_ll_clear(orig_nsvc);
 	} else if ((*nsvc)->nsei != nsei) {
-		/* The incoming RESET_ACK doesn't match the NSEI.
-		 * See 3GPP TS 08.16, 7.3.1, 4th paragraph.
-		 */
-		ns_osmo_signal_dispatch_mismatch(*nsvc, msg,
-						 NS_PDUT_RESET_ACK,
-						 NS_IE_NSEI);
-		rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_INV_NSEI]);
-		LOGP(DNS, LOGL_ERROR,
-		     "NS RESET ACK Unknown NSEI %d (NS-VCI=%u) from %s\n",
-		     nsei, nsvci, gprs_ns_ll_str(*nsvc));
-		return -EINVAL;
+		if ((*nsvc)->persistent || (*nsvc)->remote_end_is_sgsn) {
+			/* The incoming RESET_ACK doesn't match the NSEI.
+			 * See 3GPP TS 08.16, 7.3.1, 4th paragraph.
+			 */
+			ns_osmo_signal_dispatch_mismatch(*nsvc, msg,
+							 NS_PDUT_RESET_ACK,
+							 NS_IE_NSEI);
+			rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_INV_NSEI]);
+			LOGP(DNS, LOGL_ERROR,
+			     "NS RESET ACK Unknown NSEI %d (NS-VCI=%u) from %s\n",
+			     nsei, nsvci, gprs_ns_ll_str(*nsvc));
+			return -EINVAL;
+		}
+
+		/* NSEI has changed */
+		rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_NSEI_CHG]);
+		(*nsvc)->nsei = nsei;
 	}
 
 	/* Mark NS-VC as blocked and alive */
