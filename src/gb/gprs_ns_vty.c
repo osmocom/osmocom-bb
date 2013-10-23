@@ -71,7 +71,7 @@ static void log_set_nsvc_filter(struct log_target *target,
 
 static struct cmd_node ns_node = {
 	L_NS_NODE,
-	"%s(ns)#",
+	"%s(config-ns)# ",
 	1,
 };
 
