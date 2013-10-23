@@ -729,9 +729,6 @@ static int gprs_nsvc_replace_if_found(uint16_t nsvci,
 
 	talloc_free(old_peer);
 
-	/* Do statistics */
-	rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_REPLACED]);
-
 	return 1;
 }
 
@@ -784,7 +781,16 @@ static int gprs_ns_rx_reset(struct gprs_nsvc **nsvc, struct msgb *msg)
 		}
 
 		/* NS-VCI has changed */
-		gprs_nsvc_replace_if_found(nsvci, nsvc, &orig_nsvc);
+		if (!gprs_nsvc_replace_if_found(nsvci, nsvc, &orig_nsvc)) {
+			LOGP(DNS, LOGL_INFO, "Creating NS-VC %d replacing %d "
+			     "at %s\n",
+			     nsvci, (*nsvc)->nsvci,
+			     gprs_ns_ll_str(*nsvc));
+			orig_nsvc = *nsvc;
+			*nsvc = gprs_nsvc_create((*nsvc)->nsi, nsvci);
+			(*nsvc)->nsvci_is_valid = 1;
+			(*nsvc)->nsei  = nsei;
+		}
 	}
 
 	if ((*nsvc)->nsvci_is_valid && (*nsvc)->nsei != nsei) {
@@ -810,6 +816,7 @@ static int gprs_ns_rx_reset(struct gprs_nsvc **nsvc, struct msgb *msg)
 	(*nsvc)->state = NSE_S_BLOCKED | NSE_S_ALIVE;
 
 	if (orig_nsvc) {
+		rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_REPLACED]);
 		ns_osmo_signal_dispatch_replaced(*nsvc, orig_nsvc);
 
 		/* Update the ll info fields */
@@ -916,6 +923,7 @@ static int gprs_ns_rx_reset_ack(struct gprs_nsvc **nsvc, struct msgb *msg)
 		}
 
 		/* Notify others */
+		rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_REPLACED]);
 		ns_osmo_signal_dispatch_replaced(*nsvc, orig_nsvc);
 
 		/* Update the ll info fields */

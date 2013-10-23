@@ -435,11 +435,12 @@ static void gprs_dump_nsi(struct gprs_ns_inst *nsi)
 	printf("Current NS-VCIs:\n");
 	llist_for_each_entry(nsvc, &nsi->gprs_nsvcs, list) {
 		struct sockaddr_in *peer = &(nsvc->ip.bts_addr);
-		printf("    VCI 0x%04x, NSEI 0x%04x, peer 0x%08x:%d%s%s\n",
+		printf("    VCI 0x%04x, NSEI 0x%04x, peer 0x%08x:%d%s%s%s\n",
 		       nsvc->nsvci, nsvc->nsei,
 		       ntohl(peer->sin_addr.s_addr), ntohs(peer->sin_port),
 		       nsvc->state & NSE_S_BLOCKED ? ", blocked" : "",
-		       nsvc->state & NSE_S_ALIVE   ? "" : ", dead"
+		       nsvc->state & NSE_S_ALIVE   ? "" : ", dead",
+		       nsvc->nsvci_is_valid   ? "" : ", invalid VCI"
 		      );
 		dump_rate_ctr_group(stdout, "        ", nsvc->ctrg);
 	}
