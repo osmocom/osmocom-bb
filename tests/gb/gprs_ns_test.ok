@@ -1,4 +1,90 @@
 ===== NS protocol test START
+--- Create via RESET (round 0) ---
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111, blocked
+
+--- Delete nsvc object (round 0)---
+
+Current NS-VCIs:
+
+--- Create via RESET (round 1) ---
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111, blocked
+
+--- Delete nsvc object (round 1)---
+
+Current NS-VCIs:
+
+--- Create via RESET (round 2) ---
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111, blocked
+
+--- Delete nsvc object (round 2)---
+
+Current NS-VCIs:
+
+--- Create via RESET (round 3) ---
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111, blocked
+
+--- Delete nsvc object (round 3)---
+
+Current NS-VCIs:
+
+--- Process timers ---
+
 --- Setup, send BSSGP RESET ---
 
 Setup NS-VC: remote 0x01020304:1111, NSVCI 0x1122(4386), NSEI 0x1122(4386)

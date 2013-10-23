@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdint.h>
 #include <string.h>
 #include <getopt.h>
@@ -439,6 +440,45 @@ static void gprs_dump_nsi(struct gprs_ns_inst *nsi)
 	printf("\n");
 }
 
+static void test_nsvc()
+{
+	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
+	struct sockaddr_in peer[1] = {{0},};
+	struct gprs_nsvc *nsvc;
+	int i;
+
+	peer[0].sin_family = AF_INET;
+	peer[0].sin_port = htons(1111);
+	peer[0].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
+
+	for (i=0; i<4; ++i) {
+		printf("--- Create via RESET (round %d) ---\n\n", i);
+
+		send_ns_reset(nsi, &peer[0], NS_CAUSE_OM_INTERVENTION,
+			      0x1001, 0x1000);
+		gprs_dump_nsi(nsi);
+
+		printf("--- Delete nsvc object (round %d)---\n\n", i);
+
+		nsvc = gprs_nsvc_by_nsvci(nsi, 0x1001);
+		OSMO_ASSERT(nsvc != NULL);
+		gprs_nsvc_delete(nsvc);
+
+		gprs_dump_nsi(nsi);
+	}
+
+	gprs_ns_destroy(nsi);
+	nsi = NULL;
+
+	printf("--- Process timers ---\n\n");
+	/* wait for rate_ctr_timer expiry */
+	usleep(1100000);
+	/* ensure termination */
+	alarm(2);
+	osmo_timers_update();
+	alarm(0);
+}
+
 static void test_bss_port_changes()
 {
 	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
@@ -568,6 +608,7 @@ int main(int argc, char **argv)
 	osmo_signal_register_handler(SS_L_NS, &test_signal, NULL);
 
 	printf("===== NS protocol test START\n");
+	test_nsvc();
 	test_bss_port_changes();
 	test_sgsn_output();
 	printf("===== NS protocol test END\n\n");
