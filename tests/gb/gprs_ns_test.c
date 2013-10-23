@@ -533,6 +533,217 @@ static void test_bss_port_changes()
 	nsi = NULL;
 }
 
+static void test_bss_reset_ack()
+{
+	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
+	struct sockaddr_in peer[4] = {{0},};
+	struct gprs_nsvc *nsvc;
+	struct sockaddr_in *nse[4];
+	int rc;
+
+	peer[0].sin_family = AF_INET;
+	peer[0].sin_port = htons(1111);
+	peer[0].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
+	peer[1].sin_family = AF_INET;
+	peer[1].sin_port = htons(2222);
+	peer[1].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
+	peer[2].sin_family = AF_INET;
+	peer[2].sin_port = htons(3333);
+	peer[2].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
+	peer[3].sin_family = AF_INET;
+	peer[3].sin_port = htons(4444);
+	peer[3].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
+
+	nse[0] = &peer[0];
+	nse[1] = &peer[1];
+
+	printf("--- Setup VC 1 BSS -> SGSN ---\n\n");
+
+	setup_ns(nsi, nse[0], 0x1001, 0x1000);
+	gprs_dump_nsi(nsi);
+
+	printf("--- Setup VC 2 BSS -> SGSN ---\n\n");
+
+	setup_ns(nsi, nse[1], 0x2001, 0x2000);
+	gprs_dump_nsi(nsi);
+
+	printf("--- Setup VC 1 SGSN -> BSS ---\n\n");
+
+	nsvc = gprs_nsvc_by_nsvci(nsi, 0x1001);
+	gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	send_ns_reset_ack(nsi, nse[0], 0x1001, 0x1000);
+	gprs_dump_nsi(nsi);
+
+	printf("--- Exchange NSEI 1 + 2 links ---\n\n");
+
+	nse[1] = &peer[0];
+	nse[0] = &peer[1];
+
+	printf("--- Setup VC 2 SGSN -> BSS (hits NSEI 1) ---\n\n");
+
+	nsvc = gprs_nsvc_by_nsvci(nsi, 0x2001);
+	gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	send_ns_reset_ack(nsi, nse[0], 0x1001, 0x1000);
+	gprs_dump_nsi(nsi);
+
+	printf("--- Setup VC 2 SGSN -> BSS (hits NSEI 2) ---\n\n");
+
+	nsvc = gprs_nsvc_by_nsvci(nsi, 0x2001);
+	rc = gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	if (rc < 0)
+		printf("Failed to send RESET to %s\n\n", gprs_ns_ll_str(nsvc));
+	else {
+		send_ns_reset_ack(nsi, nse[1], 0x2001, 0x2000);
+		gprs_dump_nsi(nsi);
+	}
+
+	printf("--- Setup VC 1 SGSN -> BSS (hits NSEI 1) ---\n\n");
+
+	nsvc = gprs_nsvc_by_nsvci(nsi, 0x1001);
+	gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	send_ns_reset_ack(nsi, nse[0], 0x1001, 0x1000);
+	gprs_dump_nsi(nsi);
+
+	printf("--- Setup VC 2 BSS -> SGSN ---\n\n");
+
+	setup_ns(nsi, nse[1], 0x2001, 0x2000);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 3rd paragraph. */
+	/* This is not rejected because the NSEI has been
+	 * assigned dynamically and not by configuration.
+	 * This is not strictly spec conformant. */
+
+	printf("--- RESET with invalid NSEI, BSS -> SGSN ---\n\n");
+
+	send_ns_reset(nsi, nse[0], NS_CAUSE_OM_INTERVENTION,
+		      0x1001, 0xf000);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 2nd paragraph. */
+	/* This is not rejected because the NSEI has been
+	 * assigned dynamically and not by configuration.
+	 * This is not strictly spec conformant. */
+
+	printf("--- RESET with invalid NSVCI, BSS -> SGSN ---\n\n");
+
+	send_ns_reset(nsi, nse[0], NS_CAUSE_OM_INTERVENTION,
+		      0xf001, 0x1000);
+	gprs_dump_nsi(nsi);
+
+	printf("--- RESET with old NSEI, NSVCI, BSS -> SGSN ---\n\n");
+
+	send_ns_reset(nsi, nse[0], NS_CAUSE_OM_INTERVENTION,
+		      0x1001, 0x1000);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 5th paragraph. */
+
+	printf("--- Unexpected RESET_ACK VC 1, BSS -> SGSN ---\n\n");
+
+	send_ns_reset_ack(nsi, nse[0], 0x1001, 0x1000);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 4th paragraph. */
+
+	printf("---  RESET_ACK with invalid NSEI, BSS -> SGSN ---\n\n");
+
+	nsvc = gprs_nsvc_by_nsvci(nsi, 0x1001);
+	gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	send_ns_reset_ack(nsi, nse[0], 0x1001, 0xf000);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 4th paragraph. */
+
+	printf("---  RESET_ACK with invalid NSVCI, BSS -> SGSN ---\n\n");
+
+	nsvc = gprs_nsvc_by_nsvci(nsi, 0x1001);
+	gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	send_ns_reset_ack(nsi, nse[0], 0xf001, 0x1000);
+	gprs_dump_nsi(nsi);
+
+	gprs_ns_destroy(nsi);
+	nsi = NULL;
+}
+
+
+static void test_sgsn_reset()
+{
+	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
+	struct sockaddr_in sgsn_peer= {0};
+	struct gprs_nsvc *nsvc;
+
+	sgsn_peer.sin_family = AF_INET;
+	sgsn_peer.sin_port = htons(32000);
+	sgsn_peer.sin_addr.s_addr = htonl(REMOTE_SGSN_ADDR);
+
+	gprs_dump_nsi(nsi);
+
+	printf("--- Setup SGSN connection, BSS -> SGSN ---\n\n");
+
+	gprs_ns_nsip_connect(nsi, &sgsn_peer, SGSN_NSEI, SGSN_NSEI+1);
+	send_ns_reset_ack(nsi, &sgsn_peer, SGSN_NSEI+1, SGSN_NSEI);
+	send_ns_alive_ack(nsi, &sgsn_peer);
+	send_ns_unblock_ack(nsi, &sgsn_peer);
+	gprs_dump_nsi(nsi);
+
+	printf("--- RESET, SGSN -> BSS ---\n\n");
+
+	send_ns_reset(nsi, &sgsn_peer, NS_CAUSE_OM_INTERVENTION,
+		      SGSN_NSEI+1, SGSN_NSEI);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 3rd paragraph. */
+
+	printf("--- RESET with invalid NSEI, SGSN -> BSS ---\n\n");
+
+	send_ns_reset(nsi, &sgsn_peer, NS_CAUSE_OM_INTERVENTION,
+		      SGSN_NSEI+1, 0xf000);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 2nd paragraph. */
+
+	printf("--- RESET with invalid NSVCI, SGSN -> BSS ---\n\n");
+
+	send_ns_reset(nsi, &sgsn_peer, NS_CAUSE_OM_INTERVENTION,
+		      0xf001, SGSN_NSEI);
+	gprs_dump_nsi(nsi);
+
+	printf("--- RESET, SGSN -> BSS ---\n\n");
+
+	send_ns_reset(nsi, &sgsn_peer, NS_CAUSE_OM_INTERVENTION,
+		      SGSN_NSEI+1, SGSN_NSEI);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 5th paragraph. */
+
+	printf("--- Unexpected RESET_ACK VC 1, BSS -> SGSN ---\n\n");
+
+	send_ns_reset_ack(nsi, &sgsn_peer, SGSN_NSEI+1, SGSN_NSEI);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 4th paragraph. */
+
+	printf("---  RESET_ACK with invalid NSEI, BSS -> SGSN ---\n\n");
+
+	nsvc = gprs_nsvc_by_nsvci(nsi, SGSN_NSEI+1);
+	gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	send_ns_reset_ack(nsi, &sgsn_peer, SGSN_NSEI+1, 0xe000);
+	gprs_dump_nsi(nsi);
+
+	/* Test 3GPP TS 08.16, 7.3.1, 4th paragraph. */
+
+	printf("---  RESET_ACK with invalid NSVCI, BSS -> SGSN ---\n\n");
+
+	nsvc = gprs_nsvc_by_nsvci(nsi, SGSN_NSEI+1);
+	gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	send_ns_reset_ack(nsi, &sgsn_peer, 0xe001, SGSN_NSEI);
+	gprs_dump_nsi(nsi);
+
+
+	gprs_ns_destroy(nsi);
+	nsi = NULL;
+}
 
 static void test_sgsn_output()
 {
@@ -607,9 +818,16 @@ int main(int argc, char **argv)
 	log_set_print_filename(osmo_stderr_target, 0);
 	osmo_signal_register_handler(SS_L_NS, &test_signal, NULL);
 
+	log_set_print_filename(osmo_stderr_target, 0);
+	log_set_log_level(osmo_stderr_target, LOGL_INFO);
+
+	setlinebuf(stdout);
+
 	printf("===== NS protocol test START\n");
 	test_nsvc();
 	test_bss_port_changes();
+	test_bss_reset_ack();
+	test_sgsn_reset();
 	test_sgsn_output();
 	printf("===== NS protocol test END\n\n");
 
