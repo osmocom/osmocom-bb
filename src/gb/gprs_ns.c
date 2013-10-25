@@ -803,7 +803,11 @@ static int gprs_ns_rx_reset(struct gprs_nsvc **nsvc, struct msgb *msg)
 							 NS_PDUT_RESET,
 							 NS_IE_NSEI);
 			rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_INV_NSEI]);
-			gprs_ns_tx_reset_ack(*nsvc);
+			rc = gprs_ns_tx_reset_ack(*nsvc);
+			if (rc < 0)
+				LOGP(DNS, LOGL_ERROR, "TX failed (%d) to peer %s\n",
+					rc, gprs_ns_ll_str(*nsvc));
+
 			return 0;
 		}
 
