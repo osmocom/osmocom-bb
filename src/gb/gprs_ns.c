@@ -1053,6 +1053,7 @@ const char *gprs_ns_ll_str(struct gprs_nsvc *nsvc)
 	snprintf(buf, sizeof(buf), "%s:%u",
 		 inet_ntoa(nsvc->ip.bts_addr.sin_addr),
 		 ntohs(nsvc->ip.bts_addr.sin_port));
+	buf[sizeof(buf) - 1] = '\0';
 
 	return buf;
 }
