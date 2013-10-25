@@ -126,6 +126,12 @@ static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
 	.ctr_desc = nsvc_ctr_description,
 };
 
+#define CHECK_TX_RC(rc, nsvc) \
+		if (rc < 0)							\
+			LOGP(DNS, LOGL_ERROR, "TX failed (%d) to peer %s\n",	\
+				rc, gprs_ns_ll_str(nsvc));
+
+
 /*! \brief Lookup struct gprs_nsvc based on NSVCI
  *  \param[in] nsi NS instance in which to search
  *  \param[in] nsvci NSVCI to be searched
@@ -804,10 +810,7 @@ static int gprs_ns_rx_reset(struct gprs_nsvc **nsvc, struct msgb *msg)
 							 NS_IE_NSEI);
 			rate_ctr_inc(&(*nsvc)->ctrg->ctr[NS_CTR_INV_NSEI]);
 			rc = gprs_ns_tx_reset_ack(*nsvc);
-			if (rc < 0)
-				LOGP(DNS, LOGL_ERROR, "TX failed (%d) to peer %s\n",
-					rc, gprs_ns_ll_str(*nsvc));
-
+			CHECK_TX_RC(rc, *nsvc);
 			return 0;
 		}
 
@@ -865,9 +868,7 @@ static int gprs_ns_rx_reset_ack(struct gprs_nsvc **nsvc, struct msgb *msg)
 	    !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
 		LOGP(DNS, LOGL_ERROR, "NS RESET ACK Missing mandatory IE\n");
 		rc = gprs_ns_tx_status(*nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0, msg);
-		if (rc < 0)
-			LOGP(DNS, LOGL_ERROR, "TX failed (%d) to peer %s\n",
-				rc, gprs_ns_ll_str(*nsvc));
+		CHECK_TX_RC(rc, *nsvc);
 		return -EINVAL;
 	}
 
@@ -1163,8 +1164,9 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 	if (!TLVP_PRESENT(&tp, NS_IE_CAUSE) ||
 	    !TLVP_PRESENT(&tp, NS_IE_VCI) || !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
 		LOGP(DNS, LOGL_ERROR, "NS RESET Missing mandatory IE\n");
-		gprs_ns_tx_status(fallback_nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0,
+		rc = gprs_ns_tx_status(fallback_nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0,
 				  msg);
+		CHECK_TX_RC(rc, fallback_nsvc);
 		return -EINVAL;
 	}
 	nsvci = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_VCI));
