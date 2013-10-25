@@ -860,7 +860,10 @@ static int gprs_ns_rx_reset_ack(struct gprs_nsvc **nsvc, struct msgb *msg)
 	if (!TLVP_PRESENT(&tp, NS_IE_VCI) ||
 	    !TLVP_PRESENT(&tp, NS_IE_NSEI)) {
 		LOGP(DNS, LOGL_ERROR, "NS RESET ACK Missing mandatory IE\n");
-		gprs_ns_tx_status(*nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0, msg);
+		rc = gprs_ns_tx_status(*nsvc, NS_CAUSE_MISSING_ESSENT_IE, 0, msg);
+		if (rc < 0)
+			LOGP(DNS, LOGL_ERROR, "TX failed (%d) to peer %s\n",
+				rc, gprs_ns_ll_str(*nsvc));
 		return -EINVAL;
 	}
 
