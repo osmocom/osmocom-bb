@@ -344,6 +344,10 @@ static void test_lapdm_polling()
 	/* clean up */
 	lapdm_channel_exit(&bts_to_ms_channel);
 	lapdm_channel_exit(&ms_to_bts_channel);
+
+	/* Check if exit is idempotent */
+	lapdm_channel_exit(&bts_to_ms_channel);
+	lapdm_channel_exit(&ms_to_bts_channel);
 }
 
 static void test_lapdm_early_release()
@@ -371,6 +375,9 @@ static void test_lapdm_early_release()
 	OSMO_ASSERT(rc == -EINVAL);
 
 	/* clean up */
+	lapdm_channel_exit(&bts_to_ms_channel);
+
+	/* Check if exit is idempotent */
 	lapdm_channel_exit(&bts_to_ms_channel);
 }
 
@@ -414,6 +421,9 @@ static void test_lapdm_contention_resolution()
 	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, ua, ARRAY_SIZE(ua)) == 0);
 
 	/* clean up */
+	lapdm_channel_exit(&bts_to_ms_channel);
+
+	/* idempotent */
 	lapdm_channel_exit(&bts_to_ms_channel);
 }
 
