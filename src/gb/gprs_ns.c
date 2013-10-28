@@ -1127,7 +1127,24 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 	int rc;
 
 	if (nsh->pdu_type == NS_PDUT_STATUS) {
+		/* Do not respond, see 3GPP TS 08.16, 7.5.1 */
 		LOGP(DNS, LOGL_INFO, "Ignoring NS STATUS from %s "
+		     "for non-existing NS-VC\n",
+		     gprs_ns_ll_str(fallback_nsvc));
+		return GPRS_NS_CS_SKIPPED;
+	}
+
+	if (nsh->pdu_type == NS_PDUT_ALIVE_ACK) {
+		/* Ignore this, see 3GPP TS 08.16, 7.4.1 */
+		LOGP(DNS, LOGL_INFO, "Ignoring NS ALIVE ACK from %s "
+		     "for non-existing NS-VC\n",
+		     gprs_ns_ll_str(fallback_nsvc));
+		return GPRS_NS_CS_SKIPPED;
+	}
+
+	if (nsh->pdu_type == NS_PDUT_RESET_ACK) {
+		/* Ignore this, see 3GPP TS 08.16, 7.3.1 */
+		LOGP(DNS, LOGL_INFO, "Ignoring NS RESET ACK from %s "
 		     "for non-existing NS-VC\n",
 		     gprs_ns_ll_str(fallback_nsvc));
 		return GPRS_NS_CS_SKIPPED;

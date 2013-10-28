@@ -97,18 +97,12 @@ result (STATUS) = 0
 PROCESSING ALIVE_ACK from 0x01020304:1111
 0b 
 
-MESSAGE to BSS, msg length 7
-08 00 81 0a 02 81 0b 
-
 result (ALIVE_ACK) = 0
 
 --- Send unexpected NS RESET ACK (should not be answered)---
 
 PROCESSING RESET_ACK from 0x01020304:1111
 03 01 82 e0 01 04 82 e0 00 
-
-MESSAGE to BSS, msg length 15
-08 00 81 0a 02 89 03 01 82 e0 01 04 82 e0 00 
 
 result (RESET_ACK) = 0
 
