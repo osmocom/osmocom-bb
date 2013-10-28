@@ -486,6 +486,33 @@ static void test_nsvc()
 	alarm(0);
 }
 
+static void test_ignored_messages()
+{
+	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
+	struct sockaddr_in peer[1] = {{0},};
+
+	peer[0].sin_family = AF_INET;
+	peer[0].sin_port = htons(1111);
+	peer[0].sin_addr.s_addr = htonl(REMOTE_BSS_ADDR);
+
+	printf("--- Send unexpected NS STATUS (should not be answered)---\n\n");
+	/* Do not respond, see 3GPP TS 08.16, 7.5.1 */
+	gprs_process_message(nsi, "STATUS", &peer[0],
+			     gprs_ns_status_invalid_alive,
+			     sizeof(gprs_ns_status_invalid_alive));
+
+	printf("--- Send unexpected NS ALIVE ACK (should not be answered)---\n\n");
+	/* Ignore this, see 3GPP TS 08.16, 7.4.1 */
+	send_ns_alive_ack(nsi, &peer[0]);
+
+	printf("--- Send unexpected NS RESET ACK (should not be answered)---\n\n");
+	/* Ignore this, see 3GPP TS 08.16, 7.3.1 */
+	send_ns_reset_ack(nsi, &peer[0], 0xe001, 0xe000);
+
+	gprs_ns_destroy(nsi);
+	nsi = NULL;
+}
+
 static void test_bss_port_changes()
 {
 	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
@@ -832,6 +859,7 @@ int main(int argc, char **argv)
 
 	printf("===== NS protocol test START\n");
 	test_nsvc();
+	test_ignored_messages();
 	test_bss_port_changes();
 	test_bss_reset_ack();
 	test_sgsn_reset();
