@@ -43,6 +43,7 @@ nobase_include_HEADERS = \
                        osmocom/gsm/a5.h \
                        osmocom/gsm/abis_nm.h \
                        osmocom/gsm/comp128.h \
+                       osmocom/gsm/comp128v23.h \
                        osmocom/gsm/gan.h \
                        osmocom/gsm/gsm0411_smc.h \
                        osmocom/gsm/gsm0411_smr.h \
