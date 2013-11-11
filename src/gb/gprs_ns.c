@@ -200,6 +200,7 @@ struct gprs_nsvc *gprs_nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 
 	nsvc = talloc_zero(nsi, struct gprs_nsvc);
 	nsvc->nsvci = nsvci;
+	nsvc->nsvci_is_valid = 1;
 	/* before RESET procedure: BLOCKED and DEAD */
 	nsvc->state = NSE_S_BLOCKED;
 	nsvc->nsi = nsi;
@@ -794,7 +795,6 @@ static int gprs_ns_rx_reset(struct gprs_nsvc **nsvc, struct msgb *msg)
 			     gprs_ns_ll_str(*nsvc));
 			orig_nsvc = *nsvc;
 			*nsvc = gprs_nsvc_create((*nsvc)->nsi, nsvci);
-			(*nsvc)->nsvci_is_valid = 1;
 			(*nsvc)->nsei  = nsei;
 		}
 	}
@@ -1193,6 +1193,7 @@ int gprs_ns_vc_create(struct gprs_ns_inst *nsi, struct msgb *msg,
 	existing_nsvc = gprs_nsvc_by_nsvci(nsi, nsvci);
 	if (!existing_nsvc) {
 		*new_nsvc = gprs_nsvc_create(nsi, 0xffff);
+		(*new_nsvc)->nsvci_is_valid = 0;
 		log_set_context(GPRS_CTX_NSVC, *new_nsvc);
 		gprs_ns_ll_copy(*new_nsvc, fallback_nsvc);
 		LOGP(DNS, LOGL_INFO, "Creating NS-VC for BSS at %s\n",
@@ -1327,6 +1328,7 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb, void *ctx)
 	/* Create the dummy NSVC that we use for sending
 	 * messages to non-existant/unknown NS-VC's */
 	nsi->unknown_nsvc = gprs_nsvc_create(nsi, 0xfffe);
+	nsi->unknown_nsvc->nsvci_is_valid = 0;
 	llist_del(&nsi->unknown_nsvc->list);
 
 	return nsi;
@@ -1527,8 +1529,6 @@ struct gprs_nsvc *gprs_ns_nsip_connect(struct gprs_ns_inst *nsi,
 		nsvc = gprs_nsvc_create(nsi, nsvci);
 	nsvc->ip.bts_addr = *dest;
 	nsvc->nsei = nsei;
-	nsvc->nsvci = nsvci;
-	nsvc->nsvci_is_valid = 1;
 	nsvc->remote_end_is_sgsn = 1;
 
 	gprs_nsvc_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
