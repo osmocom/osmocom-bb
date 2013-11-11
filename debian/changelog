@@ -1,4 +1,10 @@
-libosmocore (0.6.4+git2) UNRELEASED; urgency=low
+libosmocore (0.6.4+git3) UNRELEASED; urgency=low
+
+  * GPRS fix NS connections to a SGSN when configured via VTY
+
+ -- Jacob Erlbeck <jerlbeck@sysmocom.de>  Thu, 07 Nov 2013 16:07:20 +0100
+
+libosmocore (0.6.4+git2) unstable; urgency=low
 
   * GPRS related changes, some GSM encoding/decoding changes
   * GPRS correctly determine routable NSVC.
