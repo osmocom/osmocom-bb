@@ -64,21 +64,17 @@ static const uint8_t table0[256] = {
 	218, 160, 187, 106, 35, 87, 105, 96, 145, 199, 159, 12, 121, 103, 112
 };
 
-#define RAND_SIZE 16
-#define KI_SIZE 16
-#define SRES_SIZE 4
-#define KC_SIZE 8
 
 static void
 _comp128v23_internal(uint8_t *output, const uint8_t *kxor, const uint8_t *rand)
 {
-	uint8_t temp[RAND_SIZE];
-	uint8_t km_rm[RAND_SIZE+KI_SIZE];
+	uint8_t temp[16];
+	uint8_t km_rm[32];
 	uint8_t i,j,k,z;
 
-	memset(temp,0,sizeof(temp)/sizeof(uint8_t));
-	memcpy(km_rm,rand,RAND_SIZE);
-	memcpy(km_rm+RAND_SIZE,kxor,KI_SIZE);
+	memset(temp, 0, sizeof(temp));
+	memcpy(km_rm, rand, 16);
+	memcpy(km_rm + 16, kxor, 16);
 
 	for (i=0; i<5; i++) {
 		for (z=0; z<16; z++) {
@@ -106,21 +102,18 @@ _comp128v23_internal(uint8_t *output, const uint8_t *kxor, const uint8_t *rand)
 }
 
 int
-comp128v23(const uint8_t *ki, const uint8_t *rand, uint8_t version, uint8_t *sres, uint8_t *kc)
+comp128v3(const uint8_t *ki, const uint8_t *rand, uint8_t *sres, uint8_t *kc)
 {
-	uint8_t k_mix[KI_SIZE];
-	uint8_t rand_mix[RAND_SIZE];
-	uint8_t katyvasz[KI_SIZE];
-	uint8_t output[KI_SIZE];
-	uint8_t i,s;
+	uint8_t k_mix[16];
+	uint8_t rand_mix[16];
+	uint8_t katyvasz[16];
+	uint8_t output[16];
+	uint8_t i;
 
-	if (!(version==2 || version==3))
-		return 1;
-
-	memset(k_mix,0,sizeof(k_mix)/sizeof(uint8_t));
-	memset(rand_mix,0,sizeof(rand_mix)/sizeof(uint8_t));
-	memset(katyvasz,0,sizeof(katyvasz)/sizeof(uint8_t));
-	memset(output,0,sizeof(output)/sizeof(uint8_t));
+	memset(k_mix, 0, sizeof(k_mix));
+	memset(rand_mix, 0, sizeof(rand_mix));
+	memset(katyvasz, 0, sizeof(katyvasz));
+	memset(output, 0, sizeof(output));
 
 	for (i=0; i<8; i++) {
 		k_mix[i] = ki[15 - i];
@@ -144,23 +137,21 @@ comp128v23(const uint8_t *ki, const uint8_t *rand, uint8_t version, uint8_t *sre
 		output[i] = rand_mix[15-i];
 	}
 
-	if (version==2) {
-		output[15] = 0;
-		output[14] = 4*(output[14]>>2);
-	}
-
-	s = 8;
-	i = 0;
-	while (i<4) {
-		output[s+i-4] = output[s+i];
-		output[s+i] = output[s+i+4];
-		i++;
-	}
+	memmove(output + 4, output + 8, 8); /* ignore bytes 4..7 */
 
 	/* the algorithm uses 16 bytes until this point, but only 12 bytes are effective
 	 * also 12 bytes coming out from the SIM card */
-	memcpy(sres,output,SRES_SIZE*sizeof(uint8_t));
-	memcpy(kc,&output[SRES_SIZE],KC_SIZE*sizeof(uint8_t));
+	memcpy(sres, output, 4);
+	memcpy(kc, output + 4, 8);
 
 	return 0;
+}
+
+int
+comp128v2(const uint8_t *ki, const uint8_t *rand, uint8_t *sres, uint8_t *kc)
+{
+	int r = comp128v3(ki, rand, sres, kc);
+	kc[7] = 0; /* 10 last bits of Kc forced to 0 */
+	kc[6] &= 0xfc;
+	return r;
 }

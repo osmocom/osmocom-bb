@@ -54,6 +54,12 @@ cat $abs_srcdir/auth/milenage_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/auth/milenage_test], [0], [expout], [ignore])
 AT_CLEANUP
 
+AT_SETUP([comp128])
+AT_KEYWORDS([comp128])
+cat $abs_srcdir/comp128/comp128_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/comp128/comp128_test], [0], [expout])
+AT_CLEANUP
+
 AT_SETUP([lapd])
 AT_KEYWORDS([lapd])
 cat $abs_srcdir/lapd/lapd_test.ok > expout

@@ -7,7 +7,7 @@ check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
 		 gb/bssgp_fc_test gb/gprs_ns_test                       \
 		 logging/logging_test fr/fr_test	                \
 		 loggingrb/loggingrb_test strrb/strrb_test              \
-		 vty/vty_test
+		 vty/vty_test comp128/comp128_test
 
 if ENABLE_MSGFILE
 check_PROGRAMS += msgfile/msgfile_test
@@ -15,6 +15,9 @@ endif
 
 a5_a5_test_SOURCES = a5/a5_test.c
 a5_a5_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+comp128_comp128_test_SOURCES = comp128/comp128_test.c
+comp128_comp128_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 auth_milenage_test_SOURCES = auth/milenage_test.c
 auth_milenage_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
@@ -101,7 +104,7 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
              logging/logging_test.ok logging/logging_test.err		\
              fr/fr_test.ok loggingrb/logging_test.ok			\
              loggingrb/logging_test.err	strrb/strrb_test.ok		\
-	     vty/vty_test.ok
+	     vty/vty_test.ok comp128/comp128_test.ok
 
 DISTCLEANFILES = atconfig
 
