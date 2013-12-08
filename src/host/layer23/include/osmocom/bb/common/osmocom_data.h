@@ -148,6 +148,8 @@ struct osmobb_neigh_pm_ind {
 	struct osmocom_ms *ms;
 	uint16_t band_arfcn;
 	uint8_t rx_lev;
+	uint8_t bsic;
+	int16_t toa;
 };
 
 #endif

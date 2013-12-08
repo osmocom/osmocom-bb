@@ -346,12 +346,15 @@ struct l1ctl_neigh_pm_req {
 	uint8_t tn[64];
 } __attribute__((packed));
 
+#define L1CTL_BSIC_INVAL 255
+
 /* neighbour cell measurement results */
 struct l1ctl_neigh_pm_ind {
 	uint16_t band_arfcn;
 	uint8_t pm[2];
 	uint8_t tn;
-	uint8_t padding;
+	uint8_t bsic;
+	int16_t toa;
 } __attribute__((packed));
 
 /* traffic data to network */
