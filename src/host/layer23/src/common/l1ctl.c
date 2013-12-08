@@ -905,11 +905,13 @@ static int rx_l1_neigh_pm_ind(struct osmocom_ms *ms, struct msgb *msg)
 	for (pm_ind = (struct l1ctl_neigh_pm_ind *) msg->l1h;
 	     (uint8_t *) pm_ind < msg->tail; pm_ind++) {
 		struct osmobb_neigh_pm_ind mi;
-		DEBUGP(DL1C, "NEIGH_PM IND: ARFCN: %4u RxLev: %3d %3d\n",
+		DEBUGP(DL1C, "NEIGH_PM IND: ARFCN: %4u RxLev: %3d BSIC: %3d\n",
 			ntohs(pm_ind->band_arfcn), pm_ind->pm[0],
-			pm_ind->pm[1]);
+			pm_ind->bsic);
 		mi.band_arfcn = ntohs(pm_ind->band_arfcn);
 		mi.rx_lev = pm_ind->pm[0];
+		mi.bsic = pm_ind->bsic;
+		mi.toa = pm_ind->toa;
 		mi.ms = ms;
 		osmo_signal_dispatch(SS_L1CTL, S_L1CTL_NEIGH_PM_IND, &mi);
 	}
