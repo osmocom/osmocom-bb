@@ -292,7 +292,7 @@ struct l1ctl_neigh_pm_ind {
 	uint16_t band_arfcn;
 	uint8_t pm[2];
 	uint8_t tn;
-	uint8_t padding;
+	uint8_t bsic;
 } __attribute__((packed));
 
 /* traffic data to network */
