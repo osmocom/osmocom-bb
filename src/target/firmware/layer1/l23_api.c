@@ -69,8 +69,8 @@ void l1_queue_for_l2(struct msgb *msg)
 enum mf_type {
 	MFNONE,
 	MF51,
-	MF26ODD,
-	MF26EVEN
+	MF26EVEN,
+	MF26ODD
 };
 static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 {
@@ -245,11 +245,12 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	mframe_disable(MF_TASK_NEIGH_PM51_C0T0);
 
 	/* configure dedicated channel state */
-	l1s.dedicated.type = chan_nr2dchan_type(ul->chan_nr);
-	l1s.dedicated.tsc  = est_req->tsc;
+	l1s.dedicated.chan_nr = ul->chan_nr;
+	l1s.dedicated.type    = chan_nr2dchan_type(ul->chan_nr);
+	l1s.dedicated.tsc     = est_req->tsc;
 	old_tn = l1s.dedicated.tn;
-	l1s.dedicated.tn   = ul->chan_nr & 0x7;
-	l1s.dedicated.h    = est_req->h;
+	l1s.dedicated.tn      = ul->chan_nr & 0x7;
+	l1s.dedicated.h       = est_req->h;
 
 	if (est_req->h) {
 		int i;
@@ -276,6 +277,7 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	}
 
 	/* figure out which MF tasks to enable */
+	l1s.neigh_pm.n = 0;
 	l1a_mftask_set(chan_nr2mf_task_mask(ul->chan_nr, NEIGH_MODE_PM));
 
 	/* shift TPU according to chnage in TN */
@@ -551,20 +553,30 @@ static void l1ctl_rx_neigh_pm_req(struct msgb *msg)
 
 	/* reset list in order to prevent race condition */
 	l1s.neigh_pm.n = 0; /* atomic */
-	l1s.neigh_pm.second = 0;
 	/* now reset pointer and fill list */
 	l1s.neigh_pm.pos = 0;
+	l1s.neigh_pm.valid = 0;
+	l1s.neigh_pm.rounds = 0;
 	l1s.neigh_pm.running = 0;
+	if (pm_req->n > 64)
+		pm_req->n = 64;
 	for (i = 0; i < pm_req->n; i++) {
 		l1s.neigh_pm.band_arfcn[i] = ntohs(pm_req->band_arfcn[i]);
 		l1s.neigh_pm.tn[i] = pm_req->tn[i];
+		l1s.neigh_pm.level[i] = 0;
 	}
 	printf("L1CTL_NEIGH_PM_REQ new list with %u entries\n", pm_req->n);
 	l1s.neigh_pm.n = pm_req->n; /* atomic */
 
-	/* on C0 enable PM on frame 51 */
+	/*
+	 * IDLE: on C0 enable PM on frame 51
+	 * DEDICATED: add neighbor cell task
+	 */
 	if (l1s.dedicated.type == GSM_DCHAN_NONE)
 		mframe_enable(MF_TASK_NEIGH_PM51_C0T0);
+	else
+		l1a_mftask_set(chan_nr2mf_task_mask(l1s.dedicated.chan_nr,
+			NEIGH_MODE_PM));
 }
 
 /* receive a L1CTL_TRAFFIC_REQ from L23 */
