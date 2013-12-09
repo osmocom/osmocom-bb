@@ -50,7 +50,8 @@ struct mframe_sched_item {
 #define NB_QUAD_FH_DL	NB_QUAD_DL
 #define NB_QUAD_UL	nb_sched_set_ul
 #define NB_QUAD_FH_UL	NB_QUAD_UL
-#define NEIGH_PM	neigh_pm_sched_set
+#define NEIGH_PM_IDLE	neigh_pm_idle_sched_set
+#define NEIGH_PM_TCH	neigh_pm_tch_sched_set
 
 /* BCCH Normal */
 static const struct mframe_sched_item mf_bcch_norm[] = {
@@ -200,17 +201,17 @@ static const struct mframe_sched_item mf_sdcch8_7[] = {
 
 /* Measurement for MF 51 C0 */
 static const struct mframe_sched_item mf_neigh_pm51_c0t0[] = {
-	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 0 },
-	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 10 },
-	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 20 },
-	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 30 },
-	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 40 },
+	{ .sched_set = NEIGH_PM_IDLE, .modulo = 51, .frame_nr = 0 },
+	{ .sched_set = NEIGH_PM_IDLE, .modulo = 51, .frame_nr = 10 },
+	{ .sched_set = NEIGH_PM_IDLE, .modulo = 51, .frame_nr = 20 },
+	{ .sched_set = NEIGH_PM_IDLE, .modulo = 51, .frame_nr = 30 },
+	{ .sched_set = NEIGH_PM_IDLE, .modulo = 51, .frame_nr = 40 },
 	{ .sched_set = NULL }
 };
 
 /* Measurement for MF 51 */
 static const struct mframe_sched_item mf_neigh_pm51[] = {
-	{ .sched_set = NEIGH_PM   , .modulo = 51, .frame_nr = 50 },
+	{ .sched_set = NEIGH_PM_IDLE, .modulo = 51, .frame_nr = 50 },
 	{ .sched_set = NULL }
 };
 
@@ -291,13 +292,27 @@ static const struct mframe_sched_item mf_tch_h_1[] = {
 	{ .sched_set = NULL }
 };
 
-/* Measurement for MF 26 */
+/*
+ * Measurement for MF 26
+ * Note: PM will be read 2 frames, later, so we can only measure every second
+ * frame.
+ */
 static const struct mframe_sched_item mf_neigh_pm26_even[] = {
-	{ .sched_set = NEIGH_PM   , .modulo = 26, .frame_nr = 25 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 0 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 2 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 4 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 6 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 8 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 10 },
 	{ .sched_set = NULL }
 };
 static const struct mframe_sched_item mf_neigh_pm26_odd[] = {
-	{ .sched_set = NEIGH_PM   , .modulo = 26, .frame_nr = 12 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 0 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 2 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 4 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 6 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 8 },
+	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 10 },
 	{ .sched_set = NULL }
 };
 

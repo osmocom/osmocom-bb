@@ -125,6 +125,7 @@ struct l1s_state {
 			GSM_DCHAN_UNKNOWN,
 		} type;
 
+		uint8_t chan_nr;
 		uint8_t scn;
 		uint8_t tsc;
 		uint8_t tn;
@@ -145,14 +146,18 @@ struct l1s_state {
 		};
 	} dedicated;
 
-	/* neighbour cell power measurement process */
+	/* neighbor cell power measurement process */
 	struct {
-		uint8_t n, second;
-		uint8_t pos;
-		uint8_t running;
-		uint16_t band_arfcn[64];
-		uint8_t tn[64];
-		uint8_t	level[64];
+		uint32_t start_fn; /* frame number of measumrement start */
+		uint8_t valid; /* we have a complete set of measurements */
+		uint8_t rounds; /* current rounds of complete measurements */
+		uint8_t pos; /* current neighbor to measure */
+		uint8_t running; /* DSP task running */
+		uint8_t n; /* number of neighbors to measure */
+		uint16_t band_arfcn[64]; /* list of ARFCNs */
+		uint8_t tn[64]; /* list of TS offset for each measurement */
+		uint16_t level_sum[64]; /* sum while processing rounds */
+		uint8_t level[64]; /* latest results */
 	} neigh_pm;
 };
 
