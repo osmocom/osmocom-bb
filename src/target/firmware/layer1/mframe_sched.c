@@ -52,6 +52,7 @@ struct mframe_sched_item {
 #define NB_QUAD_FH_UL	NB_QUAD_UL
 #define NEIGH_PM_IDLE	neigh_pm_idle_sched_set
 #define NEIGH_PM_TCH	neigh_pm_tch_sched_set
+#define NEIGH_SYNC	neigh_sync_sched_set
 
 /* BCCH Normal */
 static const struct mframe_sched_item mf_bcch_norm[] = {
@@ -304,6 +305,7 @@ static const struct mframe_sched_item mf_neigh_pm26_even[] = {
 	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 6 },
 	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 8 },
 	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 10 },
+	{ .sched_set = NEIGH_SYNC,   .modulo = 26, .frame_nr = 24 },
 	{ .sched_set = NULL }
 };
 static const struct mframe_sched_item mf_neigh_pm26_odd[] = {
@@ -313,6 +315,7 @@ static const struct mframe_sched_item mf_neigh_pm26_odd[] = {
 	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 6 },
 	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 8 },
 	{ .sched_set = NEIGH_PM_TCH, .modulo = 13, .frame_nr = 10 },
+	{ .sched_set = NEIGH_SYNC,   .modulo = 26, .frame_nr = 11 },
 	{ .sched_set = NULL }
 };
 

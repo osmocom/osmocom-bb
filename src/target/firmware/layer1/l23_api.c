@@ -552,7 +552,9 @@ static void l1ctl_rx_neigh_pm_req(struct msgb *msg)
 		l1s.neigh_pm.band_arfcn[i] = ntohs(pm_req->band_arfcn[i]);
 		l1s.neigh_pm.tn[i] = pm_req->tn[i];
 		l1s.neigh_pm.level[i] = 0;
+		l1s.neigh_sb.flags_bsic[i] = 0;
 	}
+	l1s.neigh_sb.count = 0;
 	printf("L1CTL_NEIGH_PM_REQ new list with %u entries\n", pm_req->n);
 	l1s.neigh_pm.n = pm_req->n; /* atomic */
 

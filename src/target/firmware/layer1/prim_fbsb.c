@@ -570,6 +570,165 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 
 }
 
+
+/* SB for Neighbours in dedicated mode
+ *
+ * Only when number of neighbor cells is > 0, perform synchronization.
+ *
+ * For each synchronization, l1s.neigh_pm.running is set. In case of an update
+ * of neighbor cell list, this state is cleared, so a pending sync result would
+ * be ignored.
+ *
+ * After a (new) list of neighbor cells are received, the measurements are not
+ * yet valid. A valid state flag is used to indicate valid measurements. Until
+ * there are no valid measurements, the synchronization is not performed.
+ *
+ * The task is to scan the 6 strongest neighbor cells by trying to synchronize
+ * to it. This is done by selecting the strongest unscanned neighbor cell.
+ * If 6 cells have been scanned or all cells (if less than 6) have been
+ * scanned, the process clears all 'scanned' flags and starts over with the
+ * strongest (now the strongest unscanned) cell.
+ *
+ * Each synchronization attempt is performed during the "search frame" (IDLE
+ * frame). The process attempts to sync 11 times to ensure that it hits the
+ * SCH of the neighbor's BCCH. (The alignment of BCCH shifts after every two
+ * 26-multiframe in a way that the "search frame" is aligned with the SCH, at
+ * least once for 11 successive "search frames".)
+ *
+ * If the synchronization attempt is successful, the BSIC and neighbor cell
+ * offset is stored. These are indicated to layer23 with the measurement
+ * results.
+ *
+ * When performing handover to a neighbor cell, the stored offset is used to
+ * calculate new GSM time and tpu_offset.
+ */
+
+static void select_neigh_cell(void)
+{
+	uint8_t strongest = 0, strongest_unscanned = 0;
+	int strongest_i = 0, strongest_unscanned_i = -1;
+	int num_scanned = 0;
+	int i;
+
+	/* find strongest cell and strongest unscanned cell and count */
+	for (i = 0; i < l1s.neigh_pm.n; i++) {
+		if (l1s.neigh_pm.level[i] > strongest) {
+			strongest = l1s.neigh_pm.level[i];
+			strongest_i = i;
+		}
+		if (!(l1s.neigh_sb.flags_bsic[i] & NEIGH_PM_FLAG_SCANNED)) {
+			if (l1s.neigh_pm.level[i] > strongest_unscanned) {
+				strongest_unscanned = l1s.neigh_pm.level[i];
+				strongest_unscanned_i = i;
+			}
+		} else
+			num_scanned++;
+	}
+
+	/* no unscanned cell or we have scanned enough */
+	if (strongest_unscanned_i < 0 || num_scanned >= 6) {
+		/* flag all cells unscanned */
+		for (i = 0; i < l1s.neigh_pm.n; i++)
+			l1s.neigh_sb.flags_bsic[i] &= ~NEIGH_PM_FLAG_SCANNED;
+		/* use strongest cell to begin scanning with */
+		l1s.neigh_sb.index = strongest_i;
+	} else {
+		/* use strongest unscanned cell to begin scanning with */
+		l1s.neigh_sb.index = strongest_unscanned_i;
+	}
+}
+
+static int l1s_neigh_sb_cmd(__unused uint8_t p1, __unused uint8_t p2,
+                            __unused uint16_t p3)
+{
+	int index = l1s.neigh_sb.index;
+	uint8_t last_gain;
+
+	if (l1s.neigh_pm.n == 0)
+		return 0;
+
+	/* if measurements are not yet valid, wait */
+	if (!l1s.neigh_pm.valid)
+		return 0;
+
+	/* check for cell to sync to */
+	if (l1s.neigh_sb.count == 0) {
+		/* there is no cell selected, search for cell */
+		select_neigh_cell();
+	}
+
+	printf("detect SB arfcn %d (#%d) %d dbm\n", l1s.neigh_pm.band_arfcn[index], l1s.neigh_sb.count, rxlev2dbm(l1s.neigh_pm.level[index]));
+
+	last_gain = rffe_get_gain();
+
+	/* Tell the RF frontend to set the gain appropriately */
+	rffe_compute_gain(rxlev2dbm(l1s.neigh_pm.level[index]), CAL_DSP_TGT_BB_LVL);
+
+	/* Program DSP */
+	dsp_api.db_w->d_task_md = TCH_SB_DSP_TASK;  /* maybe with I/Q swap? */
+//	dsp_api.db_w->d_task_md = dsp_task_iq_swap(TCH_SB_DSP_TASK, l1s.neigh_pm.band_arfcn[index], 0);
+	dsp_api.ndb->d_fb_mode = 0;
+
+	/* Program TPU */
+	l1s_rx_win_ctrl(l1s.neigh_pm.band_arfcn[index], L1_RXWIN_SB26, 5);
+
+	/* restore last gain */
+	rffe_set_gain(last_gain);
+
+	l1s.neigh_sb.running = 1;
+
+	return 0;
+}
+
+static int l1s_neigh_sb_resp(__unused uint8_t p1, __unused uint8_t p2,
+                             __unused uint16_t p3)
+{
+	int index = l1s.neigh_sb.index;
+	uint32_t sb;
+
+	if (l1s.neigh_pm.n == 0 || !l1s.neigh_sb.running)
+		goto out;
+
+	/* check if sync was successful */
+	if (dsp_api.db_r->a_sch[0] & (1<<B_SCH_CRC)) {
+		printf("SB error arfcn %d\n", l1s.neigh_pm.band_arfcn[index]);
+
+		/* next sync */
+		if (++l1s.neigh_sb.count == 11) {
+			l1s.neigh_sb.count = 0;
+			l1s.neigh_sb.flags_bsic[index] |= NEIGH_PM_FLAG_SCANNED;
+		}
+	} else {
+		l1s.neigh_sb.count = 0;
+
+		read_sb_result(last_fb, 1);
+		sb = dsp_api.db_r->a_sch[3] | dsp_api.db_r->a_sch[4] << 16;
+		l1s.neigh_sb.flags_bsic[index] =
+			l1s_decode_sb(&fbs.mon.time, sb)
+				| NEIGH_PM_FLAG_BSIC | NEIGH_PM_FLAG_SCANNED;
+		printf("SB OK!!!!!! arfcn %d\n", l1s.neigh_pm.band_arfcn[index]);
+
+		/* store time offset */
+	}
+
+out:
+	l1s.neigh_sb.running = 0;
+
+	dsp_api.r_page_used = 1;
+
+	return 0;
+
+}
+
+/* NOTE: Prio 1 is below TCH's RX+TX prio 0 */
+const struct tdma_sched_item neigh_sync_sched_set[] = {
+	SCHED_ITEM_DT(l1s_neigh_sb_cmd, 1, 0, 1),	SCHED_END_FRAME(),
+							SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_neigh_sb_resp, -4, 0, 1),	SCHED_END_FRAME(),
+	SCHED_END_SET()
+};
+
+
 static __attribute__ ((constructor)) void l1s_prim_fbsb_init(void)
 {
 	l1s.completion[L1_COMPL_FB] = &l1a_fb_compl;

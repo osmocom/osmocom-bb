@@ -161,7 +161,19 @@ struct l1s_state {
 		uint16_t level_sum[64]; /* sum while processing rounds */
 		uint8_t level[64]; /* latest results */
 	} neigh_pm;
+
+	/* neighbor cell SCH sync process */
+	struct {
+		uint8_t flags_bsic[64]; /* flags + bsic */
+		int16_t toa[64]; /* time difference */
+		uint8_t count; /* counter for sync process */
+		uint8_t index; /* cell of current sync process (0..63) */
+		uint8_t running; /* DSP task running */
+	} neigh_sb;
 };
+
+#define NEIGH_PM_FLAG_SCANNED	0x80
+#define NEIGH_PM_FLAG_BSIC	0x40
 
 extern struct l1s_state l1s;
 
