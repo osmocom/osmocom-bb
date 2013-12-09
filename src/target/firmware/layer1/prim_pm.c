@@ -182,6 +182,10 @@ static void neigh_pm_ind(void)
 			  / l1s.neigh_pm.rounds;
 		mi->pm[0] = l1s.neigh_pm.level[i];
 		l1s.neigh_pm.level_sum[i] = 0;
+		if ((l1s.neigh_sb.flags_bsic[i] & NEIGH_PM_FLAG_BSIC))
+			mi->bsic = l1s.neigh_sb.flags_bsic[i] & 0x3f;
+		else
+			mi->bsic = 255;
 	}
 	l1_queue_for_l2(msg);
 }
