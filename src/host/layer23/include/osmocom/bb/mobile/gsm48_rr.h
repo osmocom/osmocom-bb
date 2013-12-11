@@ -195,6 +195,8 @@ struct gsm48_rrlayer {
 					/* counter for access bursts */
 	uint16_t		hando_new_cell_arfcn;
 	uint8_t			hando_new_cell_bsic;
+	int			hando_fake_report; /* perform fake reporting */
+	uint16_t		hando_fake_report_arfcn; /* good cell */
 
 	/* BA range */
 	uint8_t			ba_ranges;
@@ -233,5 +235,6 @@ int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg);
 int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode);
 int gsm48_rr_meas_ind(struct osmocom_ms *ms, uint16_t band_arfcn,
 	uint8_t rx_lev, uint8_t bsic, int16_t toa);
+const char *gsm48_rr_force_handover(struct osmocom_ms *ms, uint16_t arfcn);
 
 #endif /* _GSM48_RR_H */
