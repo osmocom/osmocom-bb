@@ -363,6 +363,8 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		stop_rr_t_starting(rr);
 		/* stop handover timer */
 		stop_rr_t3124(rr);
+		/* stop faking measurement report */
+		rr->hando_fake_report = 0;
 	}
 
 	rr->state = state;
@@ -2830,6 +2832,17 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 		serv_rxqual_full = serv_rxqual_sub = 0; // FIXME
 	}
 
+	/* fake serving cell, if wanted */
+	if (rr->hando_fake_report) {
+		struct gsm322_cellsel *cs = &ms->cellsel;
+
+		if (rr->hando_fake_report_arfcn == cs->sel_arfcn)
+			serv_rxlev_full = serv_rxlev_sub = 63; /* -47 dBm */
+		else
+			serv_rxlev_full = serv_rxlev_sub = 10; /* -100 dBm */
+		serv_rxqual_full = serv_rxqual_sub = 0; // quality is ok
+	}
+
 	memset(&rxlev_nc, 0, sizeof(rxlev_nc));
 	memset(&bsic_nc, 0, sizeof(bsic_nc));
 	memset(&bcch_f_nc, 0, sizeof(bcch_f_nc));
@@ -2870,6 +2883,15 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 			rxlev_nc[n] = rrmeas->nc_rxlev_dbm[index] + 110;
 			bsic_nc[n] = rrmeas->nc_bsic[index];
 			bcch_f_nc[n] = index;
+
+			/* fake neighbor cell, if wanted */
+			if (rr->hando_fake_report) {
+				if (rr->hando_fake_report_arfcn
+				 == rrmeas->nc_arfcn[index])
+					rxlev_nc[n] = 63; /* -47 dBm */
+				else
+					rxlev_nc[n] = 10; /* -100 dBm */
+			}
 		}
 	}
 
@@ -4728,6 +4750,30 @@ static int gsm48_rr_rx_phys_info(struct osmocom_ms *ms, struct msgb *msg)
 	stop_rr_t3124(rr);
 
 	return gsm48_rr_resume_after_handover(ms);
+}
+
+/* force handover to given ARFCN, by faking measurement report */
+const char *gsm48_rr_force_handover(struct osmocom_ms *ms, uint16_t arfcn)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_rr_meas *rrmeas = &rr->meas;
+	int i;
+
+	if (rr->state != GSM48_RR_ST_DEDICATED)
+		return "No dedicated connection";
+
+	if (rrmeas->nc_num == 0)
+		return "No Neighbor cells given by BTS";
+
+	for (i = 0; i < rrmeas->nc_num; i++) {
+		if (rrmeas->nc_arfcn[i] == arfcn) {
+			rr->hando_fake_report = 1;
+			rr->hando_fake_report_arfcn = arfcn;
+			return 0;
+		}
+	}
+
+	return "Given ARFCN is not a neighbor cell";
 }
 
 /*
