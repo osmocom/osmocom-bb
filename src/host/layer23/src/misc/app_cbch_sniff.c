@@ -57,12 +57,12 @@ static int try_cbch(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
 		return l1ctl_tx_dm_est_req_h1(ms,
 			s->maio, s->hsn, s->hopping, s->hopp_len,
 			s->chan_nr, s->tsc,
-			GSM48_CMODE_SIGN, 0);
+			GSM48_CMODE_SIGN, 0, 1, 0, 0);
 	} else {
 		LOGP(DRR, LOGL_INFO, "chan_nr = 0x%02x TSC = %d  ARFCN = %d\n",
 			s->chan_nr, s->tsc, s->arfcn);
 		return l1ctl_tx_dm_est_req_h0(ms, s->arfcn,
-			s->chan_nr, s->tsc, GSM48_CMODE_SIGN, 0);
+			s->chan_nr, s->tsc, GSM48_CMODE_SIGN, 0, 1, 0, 0);
 	}
 }
 

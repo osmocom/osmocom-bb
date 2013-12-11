@@ -233,7 +233,13 @@ struct l1ctl_dm_est_req {
 	};
 	uint8_t tch_mode;
 	uint8_t audio_mode;
+	uint8_t flags;
+	uint8_t neighbor;
 } __attribute__((packed));
+
+#define L1CTL_EST_F_RXONLY	(1<<0)	/* TX disabled */
+#define L1CTL_EST_F_NBSYNC	(1<<1)	/* use neighbor cell's sync info */
+#define L1CTL_EST_F_LASTSYNC	(1<<2)	/* use sync of last cell */
 
 struct l1ctl_dm_freq_req {
 	uint16_t fn;
