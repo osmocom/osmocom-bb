@@ -266,6 +266,12 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 		audio_set_enabled(est_req->tch_mode, est_req->audio_mode);
 	}
 
+	/* Handover config */
+	if ((est_req->flags & L1CTL_EST_F_RXONLY))
+		l1s.dedicated.rx_only = 1;
+	else
+		l1s.dedicated.rx_only = 0;
+
 	/* figure out which MF tasks to enable */
 	l1s.neigh_pm.n = 0;
 	l1a_mftask_set(chan_nr2mf_task_mask(ul->chan_nr, NEIGH_MODE_PM));
@@ -355,6 +361,7 @@ static void l1ctl_rx_param_req(struct msgb *msg)
 
 	l1s.ta = par_req->ta;
 	l1s.tx_power = par_req->tx_power;
+	l1s.dedicated.rx_only = 0;
 }
 
 /* receive a L1CTL_RACH_REQ from L23 */
