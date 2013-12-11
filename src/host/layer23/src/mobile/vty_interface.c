@@ -975,8 +975,11 @@ DEFUN(service, service_cmd, "service MS_NAME (*#06#|*#21#|*#67#|*#61#|*#62#"
 	return CMD_SUCCESS;
 }
 
+#define TEST_STR "Test functions\n"
+
 DEFUN(test_reselection, test_reselection_cmd, "test re-selection NAME",
-	"Manually trigger cell re-selection\nName of MS (see \"show ms\")")
+	TEST_STR "Manually trigger cell re-selection\n"
+	"Name of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -998,6 +1001,38 @@ DEFUN(test_reselection, test_reselection_cmd, "test re-selection NAME",
 		return CMD_WARNING;
 	gsm322_c_event(ms, nmsg);
 
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(test_handover, test_handover_cmd, "test handover NAME <0-1024> [pcs]",
+	TEST_STR "Force handover by faking measurement report\n"
+	"Name of MS (see \"show ms\")\nARFCN to be reported best cell\n"
+	"Given frequency is PCS band (1900) rather than DCS band.")
+{
+	struct osmocom_ms *ms;
+	uint16_t arfcn = atoi(argv[1]);
+	const char *err_msg;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (argc > 2) {
+		if (arfcn < 512 || arfcn > 810) {
+			vty_out(vty, "Given ARFCN not in PCS band%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		arfcn |= ARFCN_PCS;
+	}
+
+	err_msg = gsm48_rr_force_handover(ms, arfcn);
+	if (err_msg) {
+		vty_out(vty, "Cannot force handover: %s%s", err_msg,
+			 VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	return CMD_SUCCESS;
 }
@@ -2862,6 +2897,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &sms_cmd);
 	install_element(ENABLE_NODE, &service_cmd);
 	install_element(ENABLE_NODE, &test_reselection_cmd);
+	install_element(ENABLE_NODE, &test_handover_cmd);
 	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
 
 #ifdef _HAVE_GPSD
