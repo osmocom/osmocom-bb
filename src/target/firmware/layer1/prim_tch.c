@@ -535,6 +535,10 @@ skip_tx_traffic:
 	);
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
 
+	/* stop here, if TX is disabled */
+	if (l1s.dedicated.rx_only)
+		return 0;
+
 	dsp_load_tx_task(
 		dsp_task_iq_swap(TCHT_DSP_TASK, arfcn, 1),
 		0, tsc		/* burst_id unused for TCH */
@@ -799,6 +803,10 @@ static int l1s_tch_a_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		0, tsc		/* burst_id unused for TCHA */
 	);
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
+
+	/* stop here, if TX is disabled */
+	if (l1s.dedicated.rx_only)
+		return 0;
 
 	dsp_load_tx_task(
 		dsp_task_iq_swap(TCHA_DSP_TASK, arfcn, 1),
