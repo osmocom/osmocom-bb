@@ -3052,12 +3052,11 @@ int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 	case S_L1CTL_NEIGH_PM_IND:
 		ni = signal_data;
 		ms = ni->ms;
-#ifdef COMMING_LATE_R
 		/* in dedicated mode */
 		if (ms->rrlayer.dm_est)
-			gsm48_rr_meas_ind(ms, ni->band_arfcn, ni->rx_lev);
+			gsm48_rr_meas_ind(ms, ni->band_arfcn, ni->rx_lev,
+				ni->bsic, ni->toa);
 		else
-#endif
 		/* in camping mode */
 		if ((ms->cellsel.state == GSM322_C3_CAMPED_NORMALLY
 		  || ms->cellsel.state == GSM322_C7_CAMPED_ANY_CELL)

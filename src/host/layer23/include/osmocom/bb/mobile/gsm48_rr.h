@@ -9,6 +9,9 @@
 #define	T200_DCCH_SHARED		2	/* SDCCH shares SAPI 0 and 3 */
 #define	T200_ACCH			2	/* SACCH SAPI 3 */
 
+/* add some extra time due to async nature of L1CTL */
+#define GSM_T3124_675			0, 975000
+#define GSM_T3124_320			0, 620000
 
 /* GSM 04.07 9.1.2 */
 #define	GSM48_RR_EST_REQ		0x10
@@ -83,6 +86,12 @@ struct gsm48_rr_hdr {
 #define GSM48_RR_MOD_ASSIGN_RESUME	4
 #define GSM48_RR_MOD_HANDO_RESUME	5
 
+/* handover sync indications (TS 04.08 10.5.2.39) */
+#define GSM48_RR_HO_NON_SYNC		0
+#define GSM48_RR_HO_SYNC		1
+#define GSM48_RR_HO_PRE_SYNC		2
+#define GSM48_RR_HO_PSEUDO_SYNC		3
+
 /* channel description */
 struct gsm48_rr_cd {
 	uint8_t			tsc;
@@ -113,7 +122,8 @@ struct gsm48_rr_meas {
 	/* note: must be sorted by arfcn 1..1023,0 according to SI5* */
 	uint8_t nc_num; /* number of measured cells (32 max) */
 	int8_t nc_rxlev_dbm[32]; /* -128 = no value */
-	uint8_t nc_bsic[32];
+	uint8_t nc_bsic[32]; /* 255 = no value */
+	int16_t nc_toa[32]; /* valid for (pseudo/pre) synchronized cells */
 	uint16_t nc_arfcn[32];
 };
 
@@ -171,10 +181,20 @@ struct gsm48_rrlayer {
 
 	/* special states when assigning channel */
 	uint8_t			modify_state;
-	uint8_t			hando_sync_ind, hando_rot, hando_nci, hando_act;
 	struct gsm48_rr_cd	cd_last; /* store last cd in case of failure */
 	struct gsm48_rr_cd	cd_before; /* before start time */
 	struct gsm48_rr_cd	cd_after; /* after start time */
+
+	/* handover */
+	int			hando_meas_index;
+					/* handover refers to this neighbor */
+	int32_t			hando_otd; /* observed time difference */
+	uint8_t			hando_sync_ind, hando_rot, hando_nci, hando_act;
+	uint8_t			hando_ref; /* handover reference */
+	uint8_t			hando_acc_pending;
+					/* counter for access bursts */
+	uint16_t		hando_new_cell_arfcn;
+	uint8_t			hando_new_cell_bsic;
 
 	/* BA range */
 	uint8_t			ba_ranges;
@@ -211,5 +231,7 @@ int gsm48_rr_stop_monitor(struct osmocom_ms *ms);
 int gsm48_rr_alter_delay(struct osmocom_ms *ms);
 int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg);
 int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode);
+int gsm48_rr_meas_ind(struct osmocom_ms *ms, uint16_t band_arfcn,
+	uint8_t rx_lev, uint8_t bsic, int16_t toa);
 
 #endif /* _GSM48_RR_H */
