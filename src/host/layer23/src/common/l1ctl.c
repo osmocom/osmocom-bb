@@ -472,7 +472,7 @@ int l1ctl_tx_rach_req(struct osmocom_ms *ms, uint8_t ra, uint16_t offset,
 /* Transmit L1CTL_DM_EST_REQ */
 int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
                            uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode,
-			   uint8_t audio_mode)
+			   uint8_t audio_mode, int tx, int sync, int index)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -495,6 +495,14 @@ int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	req->h0.band_arfcn = htons(band_arfcn);
 	req->tch_mode = tch_mode;
 	req->audio_mode = audio_mode;
+	req->flags = (tx) ? 0 : L1CTL_EST_F_RXONLY;
+	if (sync) {
+		if (index >= 0) {
+			req->flags |= L1CTL_EST_F_NBSYNC;
+			req->neighbor = index;
+		} else
+			req->flags |= L1CTL_EST_F_LASTSYNC;
+	}
 
 	return osmo_send_l1(ms, msg);
 }
@@ -502,7 +510,7 @@ int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
                            uint16_t *ma, uint8_t ma_len,
                            uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode,
-			   uint8_t audio_mode)
+			   uint8_t audio_mode, int tx, int sync, int index)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -530,6 +538,14 @@ int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 		req->h1.ma[i] = htons(ma[i]);
 	req->tch_mode = tch_mode;
 	req->audio_mode = audio_mode;
+	req->flags = (tx) ? 0 : L1CTL_EST_F_RXONLY;
+	if (sync) {
+		if (index >= 0) {
+			req->flags |= L1CTL_EST_F_NBSYNC;
+			req->neighbor = index;
+		} else
+			req->flags |= L1CTL_EST_F_LASTSYNC;
+	}
 
 	return osmo_send_l1(ms, msg);
 }

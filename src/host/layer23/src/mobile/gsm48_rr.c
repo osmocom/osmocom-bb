@@ -2949,7 +2949,8 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 
 /* activation of channel in dedicated mode */
 static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
-	struct gsm48_rr_cd *cd, uint16_t *ma, uint8_t ma_len)
+	struct gsm48_rr_cd *cd, uint16_t *ma, uint8_t ma_len, int tx,
+	int sync, int index)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
@@ -2958,11 +2959,17 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
  	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t ch_type, ch_subch, ch_ts;
 	uint8_t timeout = 64;
+	int ta = cd->ind_ta;
 
 	/* setting (new) timing advance */
-	LOGP(DRR, LOGL_INFO, "setting indicated TA %d (actual TA %d)\n",
-		cd->ind_ta, cd->ind_ta - set->alter_delay);
-	l1ctl_tx_param_req(ms, cd->ind_ta - set->alter_delay,
+	if (!tx) {
+		ta = 0;
+		LOGP(DRR, LOGL_INFO, "setting TA 0 for access bursts "
+			"(actual TA %d)\n", ta - set->alter_delay);
+	} else
+		LOGP(DRR, LOGL_INFO, "setting indicated TA %d "
+			"(actual TA %d)\n", cd->ind_ta, ta - set->alter_delay);
+	l1ctl_tx_param_req(ms, ta - set->alter_delay,
 			(set->alter_tx_power) ? set->alter_tx_power_value
 						: cd->ind_tx_power);
 
@@ -2997,15 +3004,17 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
 	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
 	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d, "
-		"audio-mode %d, cipher %d\n", ch_type, ch_subch, ch_ts,
-		cd->mode, rr->audio_mode, rr->cipher_type + 1);
+		"audio-mode %d, cipher %d, tsc %d, ARFCN %s, hopping=%s\n",
+		ch_type, ch_subch, ch_ts, cd->mode, rr->audio_mode,
+		rr->cipher_type + 1, cd->tsc, gsm_print_arfcn(cd->arfcn),
+		(cd->h) ? "yes":"no");
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
 			ma, ma_len, cd->chan_nr, cd->tsc, cd->mode,
-			rr->audio_mode);
+			rr->audio_mode, tx, sync, index);
 	else
 		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc,
-			cd->mode, rr->audio_mode);
+			cd->mode, rr->audio_mode, tx, sync, index);
 	rr->dm_est = 1;
 
 	/* old SI 5/6 are not valid on a new dedicated channel */
@@ -3273,7 +3282,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	rr->cd_before.h = 0;
 	rr->cd_before.arfcn = 0;
 	/* activate channel */
-	gsm48_rr_activate_channel(ms, &rr->cd_before, ma, ma_len);
+	gsm48_rr_activate_channel(ms, &rr->cd_before, ma, ma_len, 1, 0, 0);
 	/* render channel "after time" */
 	gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
 	/* schedule change of channel */
@@ -3281,7 +3290,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		rr->cd_now.start_tm.fn);
 #else
 	/* activate channel */
-	gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len);
+	gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len, 1, 0, 0);
 #endif
 
 	/* set T200 of SAPI 0 */
@@ -4438,7 +4447,7 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 
 			/* activate channel */
 			gsm48_rr_activate_channel(ms, &rr->cd_before, ma,
-				ma_len);
+				ma_len, enable_tx, sync, rr->hando_meas_index);
 
 			/* render channel "after time" */
 			gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
