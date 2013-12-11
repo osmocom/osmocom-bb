@@ -146,6 +146,8 @@ struct l1s_state {
 			struct l1s_h0 st_h0;
 			struct l1s_h1 st_h1;
 		};
+
+		uint8_t rx_only;
 	} dedicated;
 
 	/* neighbor cell power measurement process */
