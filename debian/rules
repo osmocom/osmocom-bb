@@ -13,6 +13,8 @@ DEBIAN  := $(shell dpkg-parsechangelog | grep ^Version: | cut -d' ' -f2)
 DEBVERS := $(shell echo '$(DEBIAN)' | cut -d- -f1)
 VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
 
+export DEB_BUILD_HARDENING=1
+
 %:
 	dh $@ --with autoreconf --fail-missing
 
