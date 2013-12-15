@@ -3646,12 +3646,12 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 
 		LOGP(DRR, LOGL_INFO, " using cell channel description)\n");
 		cd.cell_desc_lv[0] = 16;
-		memcpy(cd.cell_desc_lv + 1, v, 17);
+		memcpy(cd.cell_desc_lv + 1, v, 16);
 		sprintf(cd.cell_desc_origin, "last FREQUENCY REDIFINITION");
 	}
 
 	/* render channel "after time" */
-	cause = gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
+	cause = gsm48_rr_render_ma(ms, &cd, ma, &ma_len);
 	if (cause)
 		return gsm48_rr_tx_rr_status(ms, cause);
 
