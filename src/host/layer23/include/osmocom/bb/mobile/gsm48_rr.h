@@ -106,6 +106,7 @@ struct gsm48_rr_cd {
 	uint8_t			freq_list_lv[131]; /* len + 130 octets */
 	uint8_t			freq_seq_lv[10]; /* len + 9 octets */
 	uint8_t			cell_desc_lv[17]; /* len + 16 octets */
+	char			cell_desc_origin[64]; /* description of IE origin */
 	uint8_t			start; /* start time available */
 	struct gsm_time		start_tm; /* start time */
 	uint8_t			mode; /* mode of channel */
