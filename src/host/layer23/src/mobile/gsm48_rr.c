@@ -3131,8 +3131,8 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d, "
 		"audio-mode %d, cipher %d, tsc %d, ARFCN %s, hopping=%s\n",
 		ch_type, ch_subch, ch_ts, cd->mode, rr->audio_mode,
-		rr->cipher_type + 1, cd->tsc, gsm_print_arfcn(cd->arfcn),
-		(cd->h) ? "yes":"no");
+		(rr->cipher_on) ? rr->cipher_type + 1 : 0, cd->tsc,
+		gsm_print_arfcn(cd->arfcn), (cd->h) ? "yes":"no");
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
 			ma, ma_len, cd->chan_nr, cd->tsc, cd->mode,
