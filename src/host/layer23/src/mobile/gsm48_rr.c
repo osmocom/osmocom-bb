@@ -2568,6 +2568,12 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		/* mobile allocation */
 		memcpy(&rr->cd_now.mob_alloc_lv, &ia->mob_alloc_len,
 			ia->mob_alloc_len + 1);
+		/* get cell channel description of current cell */
+		rr->cd_now.cell_desc_lv[0] = 16;
+		memcpy(rr->cd_now.cell_desc_lv + 1, s->si1_msg + 3, 16);
+		sprintf(rr->cd_now.cell_desc_origin, "SI1 of cell %s",
+			gsm_print_arfcn(cs->sel_arfcn));
+		/* ignore RACH confirm and other assignments */
 		rr->wait_assign = 2;
 		/* reset scheduler */
 		LOGP(DRR, LOGL_INFO, "resetting scheduler\n");
@@ -2703,9 +2709,16 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 		memcpy(&rr->cd_now, &cd1, sizeof(rr->cd_now));
 		/* timing advance */
 		rr->cd_now.ind_ta = ia->timing_advance1;
+proceed_est:
 		/* mobile allocation */
 		memcpy(&rr->cd_now.mob_alloc_lv, &ia->mob_alloc_len,
 			ia->mob_alloc_len + 1);
+		/* get cell channel description of current cell */
+		rr->cd_now.cell_desc_lv[0] = 16;
+		memcpy(rr->cd_now.cell_desc_lv + 1, s->si1_msg + 3, 16);
+		sprintf(rr->cd_now.cell_desc_origin, "SI1 of cell %s",
+			gsm_print_arfcn(cs->sel_arfcn));
+		/* ignore RACH confirm and other assignments */
 		rr->wait_assign = 2;
 		/* reset scheduler */
 		LOGP(DRR, LOGL_INFO, "resetting scheduler\n");
@@ -2719,15 +2732,8 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 		memcpy(&rr->cd_now, &cd2, sizeof(rr->cd_now));
 		/* timing advance */
 		rr->cd_now.ind_ta = ia->timing_advance2;
-		/* mobile allocation */
-		memcpy(&rr->cd_now.mob_alloc_lv, &ia->mob_alloc_len,
-			ia->mob_alloc_len + 1);
-		rr->wait_assign = 2;
-		/* reset scheduler */
-		LOGP(DRR, LOGL_INFO, "resetting scheduler\n");
-		l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
 
-		return gsm48_rr_dl_est(ms);
+		goto proceed_est;
 	}
 	LOGP(DRR, LOGL_INFO, "Request, but not for us.\n");
 
@@ -3186,22 +3192,28 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 
 	/* decode mobile allocation */
 	if (cd->mob_alloc_lv[0]) {
-		struct gsm_sysinfo_freq *freq = s->freq;
+		struct gsm_sysinfo_freq freq;
+
+		memset(&freq, 0, sizeof(freq));
 
 		LOGP(DRR, LOGL_INFO, "decoding mobile allocation\n");
 
-		if (cd->cell_desc_lv[0]) {
-			LOGP(DRR, LOGL_INFO, "using cell channel descr.\n");
-			if (cd->cell_desc_lv[0] != 16) {
-				LOGP(DRR, LOGL_ERROR, "cell channel descr. "
-					"has invalid lenght\n");
-				return GSM48_RR_CAUSE_ABNORMAL_UNSPEC;
-			}
-			gsm48_decode_freq_list(freq, cd->cell_desc_lv + 1, 16,
-				0xce, FREQ_TYPE_SERV);
+		if (!cd->cell_desc_lv[0]) {
+			LOGP(DRR, LOGL_ERROR, "Software error: we have no "
+				"cell channel description.\n");
+			return GSM48_RR_CAUSE_ABNORMAL_UNSPEC;
 		}
+		LOGP(DRR, LOGL_INFO, "using cell channel descr from %s.\n",
+			cd->cell_desc_origin);
+		if (cd->cell_desc_lv[0] != 16) {
+			LOGP(DRR, LOGL_ERROR, "cell channel descr. "
+				"has invalid lenght\n");
+			return GSM48_RR_CAUSE_ABNORMAL_UNSPEC;
+		}
+		gsm48_decode_freq_list(&freq, cd->cell_desc_lv + 1, 16,
+			0xce, FREQ_TYPE_SERV);
 
-		gsm48_decode_mobile_alloc(freq, cd->mob_alloc_lv + 1,
+		gsm48_decode_mobile_alloc(&freq, cd->mob_alloc_lv + 1,
 			cd->mob_alloc_lv[0], ma, ma_len, 0);
 		if (*ma_len < 1) {
 			LOGP(DRR, LOGL_NOTICE, "mobile allocation with no "
@@ -3635,6 +3647,7 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_INFO, " using cell channel description)\n");
 		cd.cell_desc_lv[0] = 16;
 		memcpy(cd.cell_desc_lv + 1, v, 17);
+		sprintf(cd.cell_desc_origin, "last FREQUENCY REDIFINITION");
 	}
 
 	/* render channel "after time" */
@@ -4000,14 +4013,18 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		}
 		cdb->cell_desc_lv[0] = len;
 		memcpy(cdb->cell_desc_lv + 1, v, len);
-		cda->cell_desc_lv[0] = len;
-		memcpy(cda->cell_desc_lv + 1, v, len);
+		sprintf(cdb->cell_desc_origin, "last ASSIGNMENT COMMAND");
+		memcpy(cda->cell_desc_lv, rr->cd_now.cell_desc_lv,
+			sizeof(cda->cell_desc_lv));
+		strcpy(cda->cell_desc_origin, cdb->cell_desc_origin);
 	} else {
 		/* keep old */
 		memcpy(cdb->cell_desc_lv, rr->cd_now.cell_desc_lv,
 			sizeof(cdb->cell_desc_lv));
+		strcpy(cdb->cell_desc_origin, rr->cd_now.cell_desc_origin);
 		memcpy(cda->cell_desc_lv, rr->cd_now.cell_desc_lv,
 			sizeof(cda->cell_desc_lv));
+		strcpy(cda->cell_desc_origin, rr->cd_now.cell_desc_origin);
 	}
 
 	/* channel mode */
@@ -4456,14 +4473,18 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		}
 		cdb->cell_desc_lv[0] = len;
 		memcpy(cdb->cell_desc_lv + 1, v, len);
-		cda->cell_desc_lv[0] = len;
-		memcpy(cda->cell_desc_lv + 1, v, len);
+		sprintf(cdb->cell_desc_origin, "last ASSIGNMENT COMMAND");
+		memcpy(cda->cell_desc_lv, rr->cd_now.cell_desc_lv,
+			sizeof(cda->cell_desc_lv));
+		strcpy(cda->cell_desc_origin, cdb->cell_desc_origin);
 	} else {
 		/* keep old */
 		memcpy(cdb->cell_desc_lv, rr->cd_now.cell_desc_lv,
 			sizeof(cdb->cell_desc_lv));
+		strcpy(cdb->cell_desc_origin, rr->cd_now.cell_desc_origin);
 		memcpy(cda->cell_desc_lv, rr->cd_now.cell_desc_lv,
 			sizeof(cda->cell_desc_lv));
+		strcpy(cda->cell_desc_origin, rr->cd_now.cell_desc_origin);
 	}
 
 	/* channel mode */
