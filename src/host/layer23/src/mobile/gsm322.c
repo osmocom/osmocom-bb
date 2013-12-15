@@ -504,8 +504,6 @@ static void gsm322_unselect_cell(struct gsm322_cellsel *cs)
 	LOGP(DCS, LOGL_INFO, "Unselecting serving cell.\n");
 
 	cs->selected = 0;
-	if (cs->si)
-		cs->si->si5 = 0; /* unset SI5* */
 	cs->si = NULL;
 	memset(&cs->sel_si, 0, sizeof(cs->sel_si));
 	cs->sel_mcc = cs->sel_mnc = cs->sel_lac = cs->sel_id = 0;
@@ -4849,8 +4847,12 @@ int gsm322_dump_sorted_plmn(struct osmocom_ms *ms)
 int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 			void (*print)(void *, const char *, ...), void *priv)
 {
-	int i;
 	struct gsm48_sysinfo *s;
+	char arfcn_str[9];
+	int i, arfci = -1;
+
+	if (cs->selected)
+		arfci = arfcn2index(cs->sel_arfcn);
 
 	print(priv, "ARFCN  |MCC    |MNC    |LAC    |cell ID|forb.LA|prio   |"
 		"min-db |max-pwr|rx-lev\n");
@@ -4861,11 +4863,14 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 		if (!s || !(cs->list[i].flags & flags))
 			continue;
 		if (i >= 1024)
-			print(priv, "%4dPCS|", i-1024+512);
+			sprintf(arfcn_str, "%4dPCS|", i-1024+512);
 		else if (i >= 512 && i <= 885)
-			print(priv, "%4dDCS|", i);
+			sprintf(arfcn_str, "%4dDCS|", i);
 		else
-			print(priv, "%4d   |", i);
+			sprintf(arfcn_str, "%4d   |", i);
+		if (i == arfci)
+			arfcn_str[6] = '*';
+			print(priv, arfcn_str);
 		if (s->mcc) {
 			print(priv, "%s    |%s%s    |", gsm_print_mcc(s->mcc),
 				gsm_print_mnc(s->mnc),
@@ -4896,6 +4901,8 @@ int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 			print(priv, "n/a    |n/a    |n/a\n");
 	}
 	print(priv, "\n");
+	if (arfci >= 0)
+		print(priv, "* = Selected cell\n");
 
 	return 0;
 }

@@ -200,7 +200,7 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 		sprintf(buffer + 69, " %d", i + 63);
 		print(priv, "%s\n", buffer);
 	}
-	print(priv, " 'S' = serv. cell  'n' = SI2 (neigh.)  'r' = SI5 (rep.)  "
+	print(priv, " 'S' = serv. cell  'n' = SI2 (neigh.)  'r' = last SI5 (rep.)  "
 		"'b' = SI2+SI5\n\n");
 
 	/* serving cell */

@@ -1306,7 +1306,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 	struct gsm_settings *set = &ms->settings;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct msgb *nmsg;
 	struct gsm48_rr_hdr *nrrh;
 	uint8_t chan_req_val, chan_req_mask;
@@ -1676,22 +1676,22 @@ fail:
 		tx_power = set->alter_tx_power_value;
 		LOGP(DRR, LOGL_INFO, "Use alternative tx-power %d (%d dBm)\n",
 			tx_power,
-			ms_pwr_dbm(gsm_arfcn2band(cs->arfcn), tx_power));
+			ms_pwr_dbm(gsm_arfcn2band(cs->sel_arfcn), tx_power));
 	} else {
 		tx_power = s->ms_txpwr_max_cch;
 		/* power offset in case of DCS1800 */
-		if (s->po && (cs->arfcn & 1023) >= 512
-		 && (cs->arfcn & 1023) <= 885) {
+		if (s->po && (cs->sel_arfcn & 1023) >= 512
+		 && (cs->sel_arfcn & 1023) <= 885) {
 			LOGP(DRR, LOGL_INFO, "Use MS-TXPWR-MAX-CCH power value "
 				"%d (%d dBm) with offset %d dBm\n", tx_power,
-				ms_pwr_dbm(gsm_arfcn2band(cs->arfcn), tx_power),
-				s->po_value * 2);
+				ms_pwr_dbm(gsm_arfcn2band(cs->sel_arfcn),
+					   tx_power), s->po_value * 2);
 			/* use reserved bits 7,8 for offset (+ X * 2dB) */
 			tx_power |= s->po_value << 6;
 		} else
 			LOGP(DRR, LOGL_INFO, "Use MS-TXPWR-MAX-CCH power value "
 				"%d (%d dBm)\n", tx_power,
-				ms_pwr_dbm(gsm_arfcn2band(cs->arfcn),
+				ms_pwr_dbm(gsm_arfcn2band(cs->sel_arfcn),
 							tx_power));
 	}
 	ncch->data[7] = tx_power;
@@ -1713,14 +1713,14 @@ fail:
 /* generate list from SI5 and send to L1 to start SB measurement */
 static int gsm48_new_si5(struct osmocom_ms *ms)
 {
-	struct gsm48_sysinfo *s = ms->cellsel.si;
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm48_rr_meas *rrmeas = &rr->meas;
 	int n = 0, i, refer_pcs;
 
 	rrmeas->nc_num = 0;
-	refer_pcs = gsm_refer_pcs(cs->arfcn, s);
+	refer_pcs = gsm_refer_pcs(cs->sel_arfcn, s);
 
 	/* collect channels from freq list (1..1023,0) */
 	for (i = 1; i <= 1024; i++) {
@@ -1801,13 +1801,13 @@ int gsm48_rr_meas_ind(struct osmocom_ms *ms, uint16_t band_arfcn,
 /* send sysinfo event to other layers */
 static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 {
-	struct gsm48_sysinfo *s = ms->cellsel.si;
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct msgb *nmsg;
 	struct gsm322_msg *em;
 
 	/* update list of measurements, if BA(SACCH) is complete and new */
-	if (s
-	 && (type == GSM48_MT_RR_SYSINFO_5
+	if ((type == GSM48_MT_RR_SYSINFO_5
 	  || type == GSM48_MT_RR_SYSINFO_5bis
 	  || type == GSM48_MT_RR_SYSINFO_5ter)
 	 && s->si5
@@ -1815,6 +1815,14 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 		LOGP(DRR, LOGL_NOTICE, "Complete set of SI5* for BA(%d)\n",
 			s->nb_ba_ind_si5);
 		gsm48_new_si5(ms);
+	}
+
+	/* update stuff from SI 6 */
+	if (type == GSM48_MT_RR_SYSINFO_6 && s->si6) {
+		cs->sel_mcc = s->mcc;
+		cs->sel_mnc = s->mnc;
+		cs->sel_lac = s->lac;
+		cs->sel_id = s->cell_id;
 	}
 
 	/* send sysinfo event to other layers */
@@ -2029,7 +2037,8 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_5 *si = msgb_l3(msg) + 1;
-	struct gsm48_sysinfo *s = ms->cellsel.si;
+	/* Note: Only store SI5* / SI6 in temporary sel_si */
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (!s) {
@@ -2059,7 +2068,8 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_5bis *si = msgb_l3(msg) + 1;
-	struct gsm48_sysinfo *s = ms->cellsel.si;
+	/* Note: Only store SI5* / SI6 in temporary sel_si */
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (!s) {
@@ -2090,7 +2100,8 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_5ter *si = msgb_l3(msg) + 1;
-	struct gsm48_sysinfo *s = ms->cellsel.si;
+	/* Note: Only store SI5* / SI6 in temporary sel_si */
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (!s) {
@@ -2121,7 +2132,8 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_6 *si = msgb_l3(msg) + 1;
-	struct gsm48_sysinfo *s = ms->cellsel.si;
+	/* Note: Only store SI5* / SI6 in temporary sel_si */
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 	struct rx_meas_stat *meas = &ms->meas;
 	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
@@ -2464,7 +2476,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm48_imm_ass *ia = msgb_l3(msg);
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	int ma_len = msgb_l3len(msg) - sizeof(*ia);
 	uint8_t ch_type, ch_subch, ch_ts;
 	struct gsm48_rr_cd cd;
@@ -2524,7 +2536,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc, &cd.tsc, &cd.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd.arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " (ta %d/%dm ra 0x%02x chan_nr 0x%02x "
 			"ARFCN %s TS %u SS %u TSC %u)\n",
@@ -2571,7 +2583,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_imm_ass_ext *ia = msgb_l3(msg);
 	int ma_len = msgb_l3len(msg) - sizeof(*ia);
 	uint8_t ch_type, ch_subch, ch_ts;
@@ -2638,7 +2650,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd1.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc1, &cd1.tsc, &cd1.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd1.arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " assignment 1 (ta %d/%dm ra 0x%02x "
 			"chan_nr 0x%02x ARFCN %s TS %u SS %u TSC %u)\n",
@@ -2662,7 +2674,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd2.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc2, &cd2.tsc, &cd2.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd2.arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " assignment 2 (ta %d/%dm ra 0x%02x "
 			"chan_nr 0x%02x ARFCN %s TS %u SS %u TSC %u)\n",
@@ -2796,7 +2808,7 @@ static int gsm48_rr_rx_add_ass(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct gsm48_sysinfo *s = ms->cellsel.si;
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 	struct rx_meas_stat *meas = &rr->ms->meas;
 	struct gsm48_rr_meas *rrmeas = &rr->meas;
 	struct msgb *nmsg;
@@ -3060,8 +3072,8 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_settings *set = &ms->settings;
- 	struct gsm48_sysinfo *s = ms->cellsel.si;
- 	struct rx_meas_stat *meas = &ms->meas;
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
+	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t ch_type, ch_subch, ch_ts;
 	uint8_t timeout = 64;
 	int ta = cd->ind_ta;
@@ -3157,12 +3169,12 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 	uint16_t *ma, uint8_t *ma_len)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm_settings *set = &ms->settings;
 	int i, pcs, index;
 	uint16_t arfcn;
 
-	pcs = gsm_refer_pcs(cs->arfcn, s) ? ARFCN_PCS : 0;
+	pcs = gsm_refer_pcs(cs->sel_arfcn, s) ? ARFCN_PCS : 0;
 
 	/* no hopping (no MA), channel description is valid */
 	if (!cd->h) {
@@ -3562,7 +3574,7 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_frq_redef *fr = msgb_l3(msg);
 	int mob_al_len = msgb_l3len(msg) - sizeof(*fr);
 	uint8_t ch_type, ch_subch, ch_ts;
@@ -3599,7 +3611,7 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd.h = 0;
 		gsm48_decode_chan_h0(&fr->chan_desc, &cd.tsc, &cd.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd.arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " (ARFCN %s TS %u SS %u TSC %u)\n",
 			gsm_print_arfcn(cd.arfcn), ch_ts, ch_subch, cd.tsc);
@@ -3672,7 +3684,7 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_chan_mode_modify *cm =
 		(struct gsm48_chan_mode_modify *)gh->data;
@@ -3704,7 +3716,7 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd->h = 0;
 		gsm48_decode_chan_h0(&cm->chan_desc, &cd->tsc, &cd->arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd->arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " (chan_nr 0x%02x ARFCN %s TS %u SS %u "
 			"TSC %u mode %u)\n", cm->chan_desc.chan_nr,
@@ -3780,7 +3792,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_ass_cmd *ac = (struct gsm48_ass_cmd *)gh->data;
 	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*ac);
@@ -3827,7 +3839,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		} else {
 			cdb->h = 0;
 			gsm48_decode_chan_h0(ccd, &cdb->tsc, &cdb->arfcn);
-			if (gsm_refer_pcs(cs->arfcn, s))
+			if (gsm_refer_pcs(cs->sel_arfcn, s))
 				cdb->arfcn |= ARFCN_PCS;
 			LOGP(DRR, LOGL_INFO, " before: (chan_nr 0x%02x "
 				"ARFCN %s TS %u SS %u TSC %u)\n", ccd->chan_nr,
@@ -3850,7 +3862,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cda->h = 0;
 		gsm48_decode_chan_h0(&ac->chan_desc, &cda->tsc, &cda->arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cda->arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " after: (chan_nr 0x%02x ARFCN %s TS %u "
 			"SS %u TSC %u)\n", ac->chan_desc.chan_nr,
@@ -4184,7 +4196,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_ho_cmd *ho = (struct gsm48_ho_cmd *)gh->data;
 	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*ho);
@@ -4264,7 +4276,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		} else {
 			cdb->h = 0;
 			gsm48_decode_chan_h0(ccd, &cdb->tsc, &cdb->arfcn);
-			if (gsm_refer_pcs(cs->arfcn, s))
+			if (gsm_refer_pcs(cs->sel_arfcn, s))
 				cdb->arfcn |= ARFCN_PCS;
 			LOGP(DRR, LOGL_INFO, " before: (chan_nr 0x%02x "
 				"ARFCN %s TS %u SS %u TSC %u)\n", ccd->chan_nr,
@@ -4287,7 +4299,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cda->h = 0;
 		gsm48_decode_chan_h0(&ho->chan_desc, &cda->tsc, &cda->arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cda->arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " after: (chan_nr 0x%02x ARFCN %s TS %u "
 			"SS %u TSC %u)\n", ho->chan_desc.chan_nr,

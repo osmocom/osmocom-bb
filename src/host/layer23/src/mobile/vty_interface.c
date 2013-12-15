@@ -336,12 +336,14 @@ DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023> [pcs]",
 	"Given frequency is PCS band (1900) rather than DCS band.")
 {
 	struct osmocom_ms *ms;
+	struct gsm322_cellsel *cs;
 	struct gsm48_sysinfo *s;
 	uint16_t arfcn = atoi(argv[1]);
 
 	ms = get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
+	cs = &ms->cellsel;
 
 	if (argc > 2) {
 		if (arfcn < 512 || arfcn > 810) {
@@ -352,7 +354,10 @@ DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023> [pcs]",
 		arfcn |= ARFCN_PCS;
 	}
 
-	s = ms->cellsel.list[arfcn2index(arfcn)].sysinfo;
+	if (cs->selected && cs->sel_arfcn == arfcn)
+		s = &cs->sel_si;
+	else
+		s = cs->list[arfcn2index(arfcn)].sysinfo;
 	if (!s) {
 		vty_out(vty, "Given ARFCN '%s' has no sysinfo available%s",
 			argv[1], VTY_NEWLINE);
