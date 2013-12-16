@@ -75,7 +75,6 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 {
 	uint16_t arfcn;
 	uint8_t tsc, tn;
-	uint8_t mf_task_id = p3 & 0xff;
 	uint8_t mf_task_flags = p3 >> 8;
 
 	putchart('T');

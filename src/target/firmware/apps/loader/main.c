@@ -115,7 +115,7 @@ static void loader_send_init(uint8_t dlci)
 	struct msgb *msg = sercomm_alloc_msgb(9);
 	msgb_put_u8(msg, LOADER_INIT);
 	msgb_put_u32(msg, 0);
-	msgb_put_u32(msg, &_start);
+	msgb_put_u32(msg, (uint32_t)&_start);
 	sercomm_sendmsg(dlci, msg);
 }
 
@@ -128,7 +128,7 @@ static const uint8_t phone_ack[] = { 0x1b, 0xf6, 0x02, 0x00, 0x41, 0x03, 0x42 };
 int main(void)
 {
 	/* Simulate a compal loader saying "ACK" */
-	int i = 0;
+	unsigned i = 0;
 	for (i = 0; i < sizeof(phone_ack); i++) {
 		putchar_asm(phone_ack[i]);
 	}
@@ -171,13 +171,12 @@ int main(void)
 	if (flash_init(&the_flash, 0)) {
 		puts("Failed to initialize flash!\n");
 	} else {
-		printf("Found flash of %d bytes at 0x%x with %d regions\n",
+		printf("Found flash of %zu bytes at 0x%p with %zu regions\n",
 		       the_flash.f_size, the_flash.f_base,
 		       the_flash.f_nregions);
 
-		int i;
 		for (i = 0; i < the_flash.f_nregions; i++) {
-			printf("  Region %d of %d pages with %d bytes each.\n",
+			printf("  Region %d of %zu pages with %zu bytes each.\n",
 			       i,
 			       the_flash.f_regions[i].fr_bnum,
 			       the_flash.f_regions[i].fr_bsize);
@@ -213,7 +212,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	uint8_t command = msgb_pull_u8(msg);
 
-	int res;
+	int res = 0;
 
 	flash_lock_t lock;
 
@@ -317,11 +316,11 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 		msgb_put_u8(reply, 1);	// nchips
 
 		// chip 1
-		msgb_put_u32(reply, the_flash.f_base);
+		msgb_put_u32(reply, (uint32_t)the_flash.f_base);
 		msgb_put_u32(reply, the_flash.f_size);
 		msgb_put_u8(reply, the_flash.f_nregions);
 
-		int i;
+		unsigned i;
 		for (i = 0; i < the_flash.f_nregions; i++) {
 			msgb_put_u32(reply, the_flash.f_regions[i].fr_bnum);
 			msgb_put_u32(reply, the_flash.f_regions[i].fr_bsize);

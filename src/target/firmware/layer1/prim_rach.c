@@ -58,7 +58,6 @@ struct {
 /* p1: type of operation (0: one NB, 1: one RACH burst, 2: four NB */
 static int l1s_tx_rach_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused uint16_t p3)
 {
-	int i;
 	uint16_t  *info_ptr;
 	uint16_t arfcn;
 	uint8_t data[2];

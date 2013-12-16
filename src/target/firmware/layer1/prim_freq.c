@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <inttypes.h>
 #include <defines.h>
 #include <debug.h>
 #include <memory.h>
@@ -103,7 +103,7 @@ void l1a_freq_req(uint32_t fn_sched)
 	fn_sched = l1s.current_time.fn + diff;
 	if (fn_sched >= GSM_MAX_FN)
 		fn_sched -= GSM_MAX_FN;
-	printf("Scheduling frequency change at fn=%u, currently fn=%u\n",
+	printf("Scheduling frequency change at fn=%"PRIu32", currently fn=%"PRIu32"\n",
 		fn_sched, l1s.current_time.fn);
 
 	local_firq_save(flags);

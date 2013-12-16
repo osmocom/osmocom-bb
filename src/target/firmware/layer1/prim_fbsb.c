@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-
+#include <inttypes.h>
 #include <defines.h>
 #include <debug.h>
 #include <memory.h>
@@ -88,14 +88,14 @@ static struct mon_state *last_fb = &fbs.mon;
 static void dump_mon_state(struct mon_state *fb)
 {
 #if 0
-	printf("(%u:%u): TOA=%5u, Power=%4ddBm, Angle=%5dHz, "
+	printf("(%"PRIu32":%u): TOA=%5u, Power=%4ddBm, Angle=%5dHz, "
 		"SNR=%04x(%d.%u) OFFSET=%u SYNCHRO=%u\n",
 		fb->fnr_report, fb->attempt, fb->toa,
 		agc_inp_dbm8_by_pm(fb->pm)/8, ANGLE_TO_FREQ(fb->angle),
 		fb->snr, l1s_snr_int(fb->snr), l1s_snr_fract(fb->snr),
 		tpu_get_offset(), tpu_get_synchro());
 #else
-	printf("(%u:%u): TOA=%5u, Power=%4ddBm, Angle=%5dHz\n",
+	printf("(%"PRIu32":%u): TOA=%5u, Power=%4ddBm, Angle=%5dHz\n",
 		fb->fnr_report, fb->attempt, fb->toa,
 		agc_inp_dbm8_by_pm(fb->pm)/8, ANGLE_TO_FREQ(fb->angle));
 #endif
@@ -179,8 +179,6 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	int qbits, fn_offset;
 	struct l1_cell_info *cinfo = &l1s.serving_cell;
 	int fnr_delta, bits_delta;
-	struct l1ctl_sync_new_ccch_resp *l1;
-	struct msgb *msg;
 
 	putchart('s');
 
@@ -203,7 +201,7 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 
 	sb = dsp_api.db_r->a_sch[3] | dsp_api.db_r->a_sch[4] << 16;
 	fbs.mon.bsic = l1s_decode_sb(&fbs.mon.time, sb);
-	printf("=> SB 0x%08x: BSIC=%u ", sb, fbs.mon.bsic);
+	printf("=> SB 0x%08"PRIx32": BSIC=%u ", sb, fbs.mon.bsic);
 	l1s_time_dump(&fbs.mon.time);
 
 	l1s.serving_cell.bsic = fbs.mon.bsic;
@@ -482,9 +480,9 @@ static int l1s_fbdet_resp(__unused uint8_t p1, uint8_t attempt,
 
 			int fn_offset = l1s.current_time.fn - last_fb->attempt + ntdma;
 			int delay = fn_offset + 11 - l1s.current_time.fn - 1;
-			printf("  fn_offset=%d (fn=%u + attempt=%u + ntdma = %d)\n",
+			printf("  fn_offset=%d (fn=%"PRIu32" + attempt=%u + ntdma = %d)\n",
 				fn_offset, l1s.current_time.fn, last_fb->attempt, ntdma);
-			printf("  delay=%d (fn_offset=%d + 11 - fn=%u - 1\n", delay,
+			printf("  delay=%d (fn_offset=%d + 11 - fn=%"PRIu32" - 1\n", delay,
 				fn_offset, l1s.current_time.fn);
 			printf("  scheduling next FB/SB detection task with delay %u\n", delay);
 			if (abs(last_fb->freq_diff) < fbs.req.freq_err_thresh2 &&
@@ -524,11 +522,10 @@ static const struct tdma_sched_item fb_sched_set[] = {
 /* Asynchronous completion handler for FB detection */
 static void l1a_fb_compl(__unused enum l1_compl c)
 {
-	struct l1_cell_info *cinfo = &l1s.serving_cell;
-
 	if (last_fb->attempt >= 13) {
 		/* FB detection failed, signal this via L1CTL */
-		return l1ctl_fbsb_resp(255);
+		l1ctl_fbsb_resp(255);
+		return;
 	}
 
 	/* FIME: use l1s.neigh_cell[fbs.cinfo_idx] */

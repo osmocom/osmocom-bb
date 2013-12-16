@@ -317,7 +317,6 @@ static void l1ctl_rx_crypto_req(struct msgb *msg)
 static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 
 	printd("L1CTL_DM_REL_REQ\n");
 	l1a_mftask_set(0);
