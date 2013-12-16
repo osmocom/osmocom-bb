@@ -46,7 +46,8 @@ struct gsm_settings {
 	uint16_t		stick_arfcn;
 	uint8_t			skip_max_per_band;
 	uint8_t			no_lupd;
-	uint8_t			no_neighbour;
+	uint8_t			no_nb_idle;
+	uint8_t			no_nb_dedicated;
 
 	/* supported by configuration */
 	uint8_t			cc_dtmf;
