@@ -1768,8 +1768,11 @@ static int gsm48_new_si5(struct osmocom_ms *ms)
 		return -EIO;
 
 	/* start neigbour cell measurement and sync task */
-	LOGP(DRR, LOGL_INFO, "Sending list of neighbour cells to layer1.\n");
-	l1ctl_tx_neigh_pm_req(ms, n, rrmeas->nc_arfcn);
+	if (!ms->settings.no_nb_dedicated) {
+		LOGP(DNB, LOGL_INFO, "Sending list of neighbour cells to "
+			"layer1.\n");
+		l1ctl_tx_neigh_pm_req(ms, n, rrmeas->nc_arfcn);
+	}
 
 	return n;
 }
@@ -1781,7 +1784,7 @@ int gsm48_rr_meas_ind(struct osmocom_ms *ms, uint16_t band_arfcn,
 	struct gsm48_rr_meas *rrmeas = &rr->meas;
 	int i;
 
-	LOGP(DRR, LOGL_INFO, "Measurement result: arfcn=%s lev=%s bsic=",
+	LOGP(DNB, LOGL_INFO, "Measurement result: arfcn=%s lev=%s bsic=",
 		gsm_print_arfcn(band_arfcn), gsm_print_rxlev(rx_lev));
 	if (bsic == L1CTL_BSIC_INVAL)
 		LOGPC(DNB, LOGL_INFO, "<unknown>\n");

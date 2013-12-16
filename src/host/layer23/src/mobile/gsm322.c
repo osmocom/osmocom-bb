@@ -4451,7 +4451,7 @@ static int gsm322_nb_start(struct osmocom_ms *ms, int synced)
 	int refer_pcs, index;
 	uint16_t arfcn;
 
-	if (cs->ms->settings.no_neighbour)
+	if (cs->ms->settings.no_nb_idle)
 		return 0;
 
 	if (synced)
