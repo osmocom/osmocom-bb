@@ -1397,9 +1397,12 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	if (!hide_default || set->no_lupd)
 		vty_out(vty, " %slocation-updating%s",
 			(set->no_lupd) ? "no " : "", VTY_NEWLINE);
-	if (!hide_default || set->no_neighbour)
-		vty_out(vty, " %sneighbour-measurement%s",
-			(set->no_neighbour) ? "no " : "", VTY_NEWLINE);
+	if (!hide_default || set->no_nb_idle)
+		vty_out(vty, " %sneighbor-measurement idle%s",
+			(set->no_nb_idle) ? "no " : "", VTY_NEWLINE);
+	if (!hide_default || set->no_nb_dedicated)
+		vty_out(vty, " %sneighbor-measurement dedicated%s",
+			(set->no_nb_dedicated) ? "no " : "", VTY_NEWLINE);
 	if (set->full_v1 || set->full_v2 || set->full_v3) {
 		/* mandatory anyway */
 		vty_out(vty, " codec full-speed%s%s",
@@ -2137,27 +2140,58 @@ DEFUN(cfg_no_abbrev, cfg_ms_no_abbrev_cmd, "no abbrev [ABBREVIATION]",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_neighbour, cfg_ms_neighbour_cmd, "neighbour-measurement",
-	"Allow neighbour cell measurement in idle mode")
+#define MS_NB_STR "Allow neighbor cell measurement\n"
+#define NO_MS_NB_STR NO_STR "Do not allow neighbor cell measurement\n"
+
+DEFUN(cfg_ms_nb_idle, cfg_ms_nb_idle_cmd, "neighbor-measurement idle",
+	MS_NB_STR "Idle mode")
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	set->no_neighbour = 0;
+	set->no_nb_idle = 0;
 
 	vty_restart_if_started(vty, ms);
-
 
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_no_neighbour, cfg_ms_no_neighbour_cmd, "no neighbour-measurement",
-	NO_STR "Do not allow neighbour cell measurement in idle mode")
+DEFUN(cfg_ms_no_nb_idle, cfg_ms_no_nb_idle_cmd,
+	"no neighbor-measurement idle",
+	NO_MS_NB_STR "Idle mode")
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	set->no_neighbour = 1;
+	set->no_nb_idle = 1;
+
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_nb_dedicated, cfg_ms_nb_dedicated_cmd,
+	"neighbor-measurement dedicated",
+	MS_NB_STR "Dedicated mode")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->no_nb_dedicated = 0;
+
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_nb_dedicated, cfg_ms_no_nb_dedicated_cmd,
+	"no neighbor-measurement dedicated",
+	NO_MS_NB_STR "Dedicated mode")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->no_nb_dedicated = 1;
 
 	vty_restart_if_started(vty, ms);
 
@@ -2919,8 +2953,10 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_no_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
-	install_element(MS_NODE, &cfg_ms_neighbour_cmd);
-	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
+	install_element(MS_NODE, &cfg_ms_nb_idle_cmd);
+	install_element(MS_NODE, &cfg_ms_no_nb_idle_cmd);
+	install_element(MS_NODE, &cfg_ms_nb_dedicated_cmd);
+	install_element(MS_NODE, &cfg_ms_no_nb_dedicated_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
 	install_default(SUPPORT_NODE);
