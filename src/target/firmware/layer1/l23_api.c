@@ -19,8 +19,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  */
-
-#define DEBUG
+/* Uncomment to debug */
+/* #define DEBUG */
 
 #include <stdint.h>
 #include <stdio.h>
@@ -571,7 +571,7 @@ static void l1ctl_sim_req(struct msgb *msg)
 	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
 
-#if 1 /* for debugging only */
+#ifdef DEBUG /* for debugging only */
 	{
 		int i;
 		printf("SIM Request (%u): ", len);

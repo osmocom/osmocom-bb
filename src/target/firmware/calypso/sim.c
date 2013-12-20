@@ -43,6 +43,7 @@
 	/* Class that contains the following instructions */
 #define SIM_GET_RESPONSE	0xC0
 	/* Get the response of a command from the card */
+#define SIM_FETCH		0x12
 #define SIM_READ_BINARY		0xB0	/* Read file in binary mode */
 #define SIM_READ_RECORD		0xB2	/* Read record in binary mode */
 
@@ -347,7 +348,7 @@ void calypso_sim_regdump(void)
 /* Receive raw data through the sim interface */
 int calypso_sim_receive(uint8_t *data, uint8_t len)
 {
-	printd("Triggering SIM reception\n");
+	printd("Triggering SIM reception, len = %d bytes\n", len);
 
 	/* Prepare buffers and flags */
 	rx_buffer = data;
@@ -396,12 +397,12 @@ void sim_irq_handler(enum irq_nr irq)
 {
 	int regVal = readw(REG_SIM_IT);
 
-
 	/* Display interrupt information */
 	printd("SIM-ISR: ");
 
 	if(regVal & REG_SIM_IT_SIM_NATR) {
-		printd(" No answer to reset!\n");
+		puts("SIM: No answer to reset!\n");
+		rxDoneFlag = 1;
 	}
 
 	/* Used by: calypso_sim_receive() to determine when the transmission
@@ -444,31 +445,36 @@ void sim_irq_handler(enum irq_nr irq)
 
 	/* Used by: calypso_sim_receive() to receive the incoming data */
 	if(regVal & REG_SIM_IT_SIM_RX) {
-		uint8_t ch = (uint8_t) (readw(REG_SIM_DRX) & 0xFF);
+		/* read while FIFO is not empty otherwise we can get FIFO full
+		   if we wait for REG_SIM_IT_SIM_RX for each char */
+		while ((readw(REG_SIM_STAT) & REG_SIM_STAT_STATFIFOEMPTY) == 0) {
+			uint8_t ch = (uint8_t) (readw(REG_SIM_DRX) & 0xFF);
 
-		/* ignore NULL procedure byte */
-		if(ch == 0x60 && sim_ignore_waiting_char) {
-			printd(" 0x60 received...\n");
-			return;
-		}
+			/* ignore NULL procedure byte */
+			if(ch == 0x60 && sim_ignore_waiting_char) {
+				printd(" 0x60 received...\n");
+				return;
+			}
 
-		printd(" Waiting for read (%02X)...\n", ch);
+			printd(" Waiting for read (%02X)...\n", ch);
 
-		/* Increment character count - this is what
-		 * calypso_sim_receive() hands back
-		 */
-		sim_rx_character_count++;
+			/* Increment character count - this is what
+			 * calypso_sim_receive() hands back
+			 */
+			sim_rx_character_count++;
 
-		/* Read byte from rx-fifo and write it to the issued buffer */
-		*rx_buffer = ch;
-		rx_buffer++;
+			/* Read byte from rx-fifo and write it to the issued buffer */
+			*rx_buffer = ch;
+			rx_buffer++;
 
-		/* to maximise SIM access speed, stop waiting after
-		   all the expected characters have been received. */
-		if (sim_rx_max_character_count
-		 && sim_rx_character_count >= sim_rx_max_character_count) {
-			printd(" Max characters received!\n");
-			rxDoneFlag = 1;
+			/* to maximise SIM access speed, stop waiting after
+			   all the expected characters have been received. */
+			if (sim_rx_max_character_count
+			 && sim_rx_character_count >= sim_rx_max_character_count) {
+				printd(" Max characters received!\n");
+				rxDoneFlag = 1;
+				break;
+			}
 		}
 	}
 }
@@ -477,7 +483,7 @@ void sim_irq_handler(enum irq_nr irq)
 void sim_apdu(uint16_t len, uint8_t *data)
 {
 	if (sim_state != SIM_STATE_IDLE) {
-		puts("Sim reader currently busy...\n");
+		puts("SIM: reader currently busy...\n");
 		return;
 	}
 	memcpy(sim_data, data, len);
@@ -500,7 +506,7 @@ void sim_handler(void)
 		/* check if instructions expects a response */
 		if (/* GET RESPONSE needs SIM_APDU_GET */
 		    (sim_len == 5 && sim_data[0] == SIM_CLASS &&
-		     sim_data[1] == SIM_GET_RESPONSE && sim_data[2] == 0x00 &&
+		    (sim_data[1] == SIM_GET_RESPONSE || sim_data[1] == SIM_FETCH) && sim_data[2] == 0x00 &&
 		     sim_data[3] == 0x00) ||
 		    /* READ BINARY/RECORD needs SIM_APDU_GET */
 		     (sim_len >= 5 && sim_data[0] == SIM_CLASS &&
@@ -659,6 +665,10 @@ void calypso_sim_init(void)
 /* Apply power to the simcard (use nullpointer to ignore atr) */
 int calypso_sim_powerup(uint8_t *atr)
 {
+	/* put state machine back into idle */
+	sim_len = 0;
+	sim_state = SIM_STATE_IDLE;
+
 	/* Enable level shifters and voltage regulator */
 #if 1  // 2.9V
 	twl3025_reg_write(VRPCSIM, VRPCSIM_SIMLEN | VRPCSIM_RSIMEN
@@ -687,14 +697,19 @@ int calypso_sim_powerup(uint8_t *atr)
 			;
 	}
 
-	return 0;
+	/* Disable all interrupt driven functions */
+	writew(0xFF, REG_SIM_MASKIT);
+
+	return sim_rx_character_count;
 }
 
 
 /* Powerdown simcard */
 void calypso_sim_powerdown(void)
 {
-	writew(readw(REG_SIM_CONF1) & ~REG_SIM_CONF1_CONFBYPASS, REG_SIM_CONF1);
+	// according to the specification CONFTXRX | CONFSCLKEN is a default reset value of conf1 register
+	// if CONFSVCCLEV or CONFSRSTLEV remains enabled even without CONFBYPASS, SIM is never properly powered down
+	writew(REG_SIM_CONF1_CONFTXRX | REG_SIM_CONF1_CONFSCLKEN, REG_SIM_CONF1);
 	printd(" * Reset pulled down!\n");
 	delay_ms(SIM_OPERATION_DELAY);
 
@@ -725,6 +740,10 @@ int calypso_sim_reset(uint8_t *atr)
 
 	delay_ms(SIM_OPERATION_DELAY);
 
+	/* put state machine back into idle */
+	sim_len = 0;
+	sim_state = SIM_STATE_IDLE;
+
 	/* Pull reset down */
 	writew(readw(REG_SIM_CONF1) | REG_SIM_CONF1_CONFSRSTLEV, REG_SIM_CONF1);
 	printd(" * Reset released!\n");
@@ -736,6 +755,9 @@ int calypso_sim_reset(uint8_t *atr)
 			;
 	}
 
-	return 0;
+	/* Disable all interrupt driven functions */
+	writew(0xFF, REG_SIM_MASKIT);
+
+	return sim_rx_character_count;
 }
 
