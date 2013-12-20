@@ -93,6 +93,13 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 		ms = signal_data;
 		set = &ms->settings;
 
+		/* waiting for reset after shutdown */
+		if (ms->shutdown == 2) {
+			printf("MS '%s' has been resetted\n", ms->name);
+			ms->shutdown = 3;
+			break;
+		}
+
 		if (ms->started)
 			break;
 
@@ -105,7 +112,7 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 		case GSM_SIM_TYPE_TEST:
 			gsm_subscr_testcard(ms, set->test_rplmn_mcc,
 				set->test_rplmn_mnc, set->test_lac,
-				set->test_tmsi);
+				set->test_tmsi, set->test_imsi_attached);
 			break;
 		default:
 			/* no SIM, trigger PLMN selection process */
@@ -129,6 +136,10 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 
+	/* if shutdown is already performed */
+	if (ms->shutdown >= 2)
+		return 0;
+
 	if (!force && ms->started) {
 		struct msgb *nmsg;
 
@@ -151,7 +162,12 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	gsm_sim_exit(ms);
 	lapdm_channel_exit(&ms->lapdm_channel);
 
-	ms->shutdown = 2; /* being down */
+	if (ms->started) {
+		ms->shutdown = 2; /* being down, wait for reset */
+		l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	} else {
+		ms->shutdown = 3; /* being down */
+	}
 	vty_notify(ms, NULL);
 	vty_notify(ms, "Power off!\n");
 	printf("Power off! (MS %s)\n", ms->name);
@@ -167,6 +183,12 @@ int mobile_init(struct osmocom_ms *ms)
 	gsm_settings_arfcn(ms);
 
 	lapdm_channel_init(&ms->lapdm_channel, LAPDM_MODE_MS);
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI3].dl.t200_sec =
+		T200_DCCH_SHARED;
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI3].dl.t200_usec = 0;
+	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_sec =
+		T200_ACCH;
+	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_usec = 0;
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
 	gsm_sim_init(ms);
@@ -235,7 +257,7 @@ struct osmocom_ms *mobile_new(char *name)
 	gsm_support_init(ms);
 	gsm_settings_init(ms);
 
-	ms->shutdown = 2; /* being down */
+	ms->shutdown = 3; /* being down */
 
 	if (mncc_recv_app) {
 		char name[32];
@@ -261,15 +283,15 @@ int mobile_delete(struct osmocom_ms *ms, int force)
 
 	ms->deleting = 1;
 
+	if (mncc_recv_app) {
+		mncc_sock_exit(ms->mncc_entity.sock_state);
+		ms->mncc_entity.sock_state = NULL;
+	}
+
 	if (ms->shutdown == 0 || (ms->shutdown == 1 && force)) {
 		rc = mobile_exit(ms, force);
 		if (rc < 0)
 			return rc;
-	}
-
-	if (mncc_recv_app) {
-		mncc_sock_exit(ms->mncc_entity.sock_state);
-		ms->mncc_entity.sock_state = NULL;
 	}
 
 	return 0;
@@ -286,10 +308,14 @@ int global_signal_cb(unsigned int subsys, unsigned int signal,
 
 	switch (signal) {
 	case S_GLOBAL_SHUTDOWN:
+		/* force to exit, if signalled */
+		if (signal_data && *((uint8_t *)signal_data))
+			quit = 1;
+
 		llist_for_each_entry_safe(ms, ms2, &ms_list, entity)
 			mobile_delete(ms, quit);
 
-		/* if second signal is received, force to exit */
+		/* quit, after all MS processes are gone */
 		quit = 1;
 		break;
 	}
@@ -303,9 +329,9 @@ int l23_app_work(int *_quit)
 	int work = 0;
 
 	llist_for_each_entry_safe(ms, ms2, &ms_list, entity) {
-		if (ms->shutdown != 2)
+		if (ms->shutdown != 3)
 			work |= mobile_work(ms);
-		if (ms->shutdown == 2) {
+		if (ms->shutdown == 3) {
 			if (ms->l2_wq.bfd.fd > -1) {
 				layer2_close(ms);
 				ms->l2_wq.bfd.fd = -1;
@@ -376,7 +402,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 		}
 	}
 	vty_reading = 0;
-	telnet_init_dynif(l23_ctx, NULL, vty_ip, vty_port);
+	rc = telnet_init_dynif(l23_ctx, NULL, vty_ip, vty_port);
 	if (rc < 0)
 		return rc;
 	printf("VTY available on port %u.\n", vty_port);
@@ -390,8 +416,11 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 
 		printf("No Mobile Station defined, creating: MS '1'\n");
 		ms = mobile_new("1");
-		if (ms)
-			mobile_init(ms);
+		if (ms) {
+			rc = mobile_init(ms);
+			if (rc < 0)
+				return rc;
+		}
 	}
 
 	quit = 0;

@@ -70,7 +70,7 @@ enum {
 struct gsm322_plmn_list {
 	struct llist_head	entry;
 	uint16_t		mcc, mnc;
-	int8_t			rxlev; /* rx level in range format */
+	uint8_t			rxlev; /* rx level in range format */
 	uint8_t			cause; /* cause value, if PLMN is not allowed */
 };
 
@@ -103,7 +103,7 @@ struct gsm322_ba_list {
 /* Cell selection list */
 struct gsm322_cs_list {
 	uint8_t			flags; /* see GSM322_CS_FLAG_* */
-	int8_t			rxlev; /* rx level range format */
+	uint8_t			rxlev; /* rx level range format */
 	struct gsm48_sysinfo	*sysinfo;
 };
 
@@ -137,7 +137,7 @@ struct gsm322_neighbour {
 	uint8_t			state; /* GSM322_NB_* */
 	time_t			created; /* when was this neighbour created */
 	time_t			when; /* when did we sync / read */
-	int16_t			rxlev_dbm; /* sum of received levels */
+	int16_t			rxlev_sum_dbm; /* sum of received levels */
 	uint8_t			rxlev_count; /* number of received levels */
 	int8_t			rla_c_dbm; /* average of the reveive level */
 	uint8_t			c12_valid; /* both C1 and C2 are calculated */
@@ -192,7 +192,7 @@ struct gsm322_cellsel {
 	struct gsm322_neighbour	*neighbour; /* when selecting neighbour cell */
 	time_t			resel_when; /* timestamp of last re-selection */
 	int8_t			nb_meas_set;
-	int16_t			rxlev_dbm; /* sum of received levels */
+	int16_t			rxlev_sum_dbm; /* sum of received levels */
 	uint8_t			rxlev_count; /* number of received levels */
 	int8_t			rla_c_dbm; /* average of received level */
 	uint8_t			c12_valid; /* both C1 and C2 values are

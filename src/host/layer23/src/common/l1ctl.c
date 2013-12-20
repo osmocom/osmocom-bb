@@ -37,6 +37,7 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/gsmtap.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/gsm/rsl.h>
@@ -49,6 +50,9 @@
 #include <osmocom/codec/codec.h>
 
 extern struct gsmtap_inst *gsmtap_inst;
+
+static int apdu_len = -1;
+static uint8_t apdu_data[256 + 7];
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {
@@ -192,6 +196,13 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	if (!(dl->link_id & 0x40)) {
 		switch (chan_type) {
 		case RSL_CHAN_PCH_AGCH:
+			/* only look at one CCCH frame in each 51 multiframe.
+			 * FIXME: implement DRX
+			 * - select correct paging block that is for us.
+			 * - initialize ds_fail according to BS_PA_MFRMS.
+			 */
+			if ((dl->frame_nr % 51) != 6)
+				break;
 			if (!meas->ds_fail)
 				break;
 			if (dl->fire_crc >= 2)
@@ -328,7 +339,7 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 /* Transmit FBSB_REQ */
 int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 		      uint8_t flags, uint16_t timeout, uint8_t sync_info_idx,
-		      uint8_t ccch_mode)
+		      uint8_t ccch_mode, uint8_t rxlev_exp)
 {
 	struct msgb *msg;
 	struct l1ctl_fbsb_req *req;
@@ -351,6 +362,7 @@ int l1ctl_tx_fbsb_req(struct osmocom_ms *ms, uint16_t arfcn,
 	req->flags = flags;
 	req->sync_info_idx = sync_info_idx;
 	req->ccch_mode = ccch_mode;
+	req->rxlev_exp = rxlev_exp;
 
 	return osmo_send_l1(ms, msg);
 }
@@ -622,6 +634,12 @@ int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 	struct msgb *msg;
 	uint8_t *dat;
 
+	if (length <= sizeof(apdu_data)) {
+		memcpy(apdu_data, data, length);
+		apdu_len = length;
+	} else
+		apdu_len = -1;
+
 	msg = osmo_l1_alloc(L1CTL_SIM_REQ);
 	if (!msg)
 		return -1;
@@ -637,7 +655,14 @@ static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
-	
+
+	if (apdu_len > -1 && apdu_len + len <= sizeof(apdu_data)) {
+		memcpy(apdu_data + apdu_len, data, len);
+		apdu_len += len;
+		gsmtap_send_ex(gsmtap_inst, GSMTAP_TYPE_SIM, 0, 0, 0, 0, 0, 0,
+			0, apdu_data, apdu_len);
+	}
+
 	LOGP(DL1C, LOGL_INFO, "SIM %s\n", osmo_hexdump(data, len));
 	
 	/* pull the L1 header from the msgb */

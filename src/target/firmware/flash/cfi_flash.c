@@ -71,6 +71,7 @@ struct cfi_query {
 
 /* manufacturer ids */
 enum cfi_manuf {
+	CFI_MANUF_ST    = 0x0020,
 	CFI_MANUF_INTEL = 0x0089,
 };
 
@@ -532,8 +533,7 @@ int flash_init(flash_t * flash, void *base_addr)
 	if (res) {
 		return res;
 	}
-	if (m_id != CFI_MANUF_INTEL) {
-		/* we only support intel devices */
+	if (m_id != CFI_MANUF_INTEL && m_id != CFI_MANUF_ST) {
 		return -ENOTSUP;
 	}
 

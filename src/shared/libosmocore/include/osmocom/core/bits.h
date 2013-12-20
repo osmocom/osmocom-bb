@@ -73,6 +73,6 @@ uint32_t osmo_revbytebits_8(uint8_t x);
 /* \brief reverse the bits of each byte in a given buffer */
 void osmo_revbytebits_buf(uint8_t *buf, int len);
 
-/*! }@ */
+/*! @} */
 
 #endif /* _OSMO_BITS_H */

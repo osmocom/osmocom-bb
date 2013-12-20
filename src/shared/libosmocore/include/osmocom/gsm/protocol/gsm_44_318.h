@@ -5,6 +5,13 @@
 
 /* Definitions according to 3GPP TS 44.318 6.8.0 Release 6 */
 
+/* Table 11.1.1.2.1: Protocol Discriminator */
+enum gan_pdisc {
+	GA_PDISC_RC			= 0,
+	GA_PDISC_CSR			= 1,
+	GA_PDISC_PSR			= 2,
+};
+
 /* Table 11.1.1.4.1: Message types for URR */
 
 enum gan_msg_type {
@@ -51,6 +58,9 @@ enum gan_msg_type {
 	GA_MT_RC_KEEPALIVE		= 0x74,
 	GA_MT_CSR_CM_ENQ		= 0x75,
 	GA_MT_CSR_CM_CHANGE		= 0x76,
+	GA_MT_PSR_GPRS_SUSPEND_REQ	= 0x77,
+	GA_RC_SYNC_INFO			= 0x78,
+	GA_CSR_UTRAN_CM_CHG		= 0x79,
 
 	GA_MT_CSR_REQUEST		= 0x80,
 	GA_MT_CSR_REQUEST_ACCEPT	= 0x81,
@@ -94,9 +104,9 @@ enum gan_iei {
 	GA_IE_TLLI		= 34,
 	GA_IE_PFI		= 35,
 	GA_IE_SUSP_CAUSE	= 36,
-	GA_IE_TU3820_TIMER	= 37,
+	GA_IE_TU3920_TIMER	= 37,
 	GA_IE_REQD_QOS		= 38,
-	GA_IE_P_DEACT_CAUSE	= 39
+	GA_IE_P_DEACT_CAUSE	= 39,
 	GA_IE_REQD_UL_RATE	= 40,
 	GA_IE_RAC		= 41,
 	GA_IE_AP_LOCATION	= 42,
@@ -134,7 +144,7 @@ enum gan_iei {
 	GA_IE_DEF_GANC_IP	= 97,
 	GA_IE_DEF_GANC_FQDN	= 98,
 	GA_IE_GPRS_IP_ADDR	= 99,
-	GA_IE_GPRS_UDP_PORT	= 100
+	GA_IE_GPRS_UDP_PORT	= 100,
 	GA_IE_GANC_TCP_PORT	= 103,
 	GA_IE_RTP_UDP_PORT	= 104,
 	GA_IE_RTCP_UDP_PORT	= 105,
@@ -148,6 +158,43 @@ struct gan_rc_csr_hdr {
 	uint8_t pdisc:4,
 		skip_ind:4;
 	uint8_t msg_type;
+	uint8_t data[0];
 } __attribute__((packed));
 
+/* 11.2.14.1: GAN Control Channel Description IE */
+struct gan_cch_desc_ie {
+	uint8_t spare:1,
+		ecmc:1,
+		nmo:2,
+		gprs:1,
+		dtm:1,
+		att:1,
+		mscr:1;
+#if 0
+	uint8_t mscr:1,
+		att:1,
+		dtm:1,
+		gprs:1,
+		nmo:2,
+		ecmc:1,
+		spare:1;
+#endif
+	uint8_t t3212;
+	uint8_t rac;
+	uint8_t sgsnr:1,
+		ecmp:1,
+		re:1,
+		pfcfm:1,
+		tgecs:2,
+		spare2:2;
+#if 0
+	uint8_t spare2:2,
+		tgecs:2,
+		pfcfm:1,
+		re:1,
+		ecmp:1,
+		sgsnr:1;
+#endif
+	uint8_t access_class[2];
+} __attribute__((packed));
 #endif /* PROTO_GSM_44_318_H */

@@ -47,7 +47,7 @@
 
 #define READ_WAIT	2, 0
 #define RACH_WAIT	0, 900000
-#define MIN_RXLEV	-106
+#define MIN_RXLEV_DBM	-106
 #define MAX_DIST	2000
 
 enum {
@@ -58,7 +58,8 @@ enum {
 };
 
 /* ranges of bands */
-static uint16_t band_range[][2] = {{0, 124}, {512, 885}, {955, 1023}, {0, 0}};
+static uint16_t basic_band_range[][2] = {{0, 124}, {512, 885}, {955, 1023}, {0, 0}};
+uint16_t (*band_range)[][2] = &basic_band_range;
 
 #define INFO_FLG_PM	1
 #define INFO_FLG_SYNC	2
@@ -74,12 +75,12 @@ static struct osmo_timer_list timer;
 
 static struct pm_info {
 	uint16_t flags;
-	int8_t rxlev;
+	int8_t rxlev_dbm;
 } pm[1024];
 
 static int started = 0;
 static int state;
-static int8_t min_rxlev = MIN_RXLEV;
+static int8_t min_rxlev_dbm = MIN_RXLEV_DBM;
 static int sync_count;
 static int pm_index, pm_gps_valid;
 static double pm_gps_x, pm_gps_y, pm_gps_z;
@@ -95,7 +96,7 @@ static struct gsm48_sysinfo sysinfo;
 static struct log_si {
 	uint16_t flags;
 	uint8_t bsic;
-	int8_t rxlev;
+	int8_t rxlev_dbm;
 	uint16_t mcc, mnc, lac, cellid;
 	uint8_t ta;
 	double latitude, longitude;
@@ -155,7 +156,7 @@ static void log_pm(void)
 		if ((pm[i].flags & INFO_FLG_PM)) {
 			if (!count)
 				LOGFILE("arfcn %d", i);
-			LOGFILE(" %d", pm[i].rxlev);
+			LOGFILE(" %d", pm[i].rxlev_dbm);
 			count++;
 			if (count == 12) {
 				LOGFILE("\n");
@@ -179,7 +180,7 @@ static void log_sysinfo(void)
 {
 	struct rx_meas_stat *meas = &ms->meas;
 	struct gsm48_sysinfo *s = &sysinfo;
-	int8_t rxlev;
+	int8_t rxlev_dbm;
 	char ta_str[32] = "";
 
 	if (log_si.ta != 0xff)
@@ -194,8 +195,8 @@ static void log_sysinfo(void)
 	log_time();
 	log_gps();
 	LOGFILE("bsic %d,%d\n", s->bsic >> 3, s->bsic & 7);
-	rxlev = meas->rxlev / meas->frames - 110;
-	LOGFILE("rxlev %d\n", rxlev);
+	rxlev_dbm = meas->rxlev / meas->frames - 110;
+	LOGFILE("rxlev %d\n", rxlev_dbm);
 	if (s->si1)
 		log_frame("si1", s->si1_msg);
 	if (s->si2)
@@ -301,7 +302,7 @@ static void start_rach(void)
 
 static void start_sync(void)
 {
-	int rxlev = -128;
+	int rxlev_dbm = -128;
 	int i, dist = 0;
 	char dist_str[32] = "";
 
@@ -309,8 +310,8 @@ static void start_sync(void)
 	for (i = 0; i <= 1023; i++) {
 		if ((pm[i].flags & INFO_FLG_PM)
 		 && !(pm[i].flags & INFO_FLG_SYNC)) {
-			if (pm[i].rxlev > rxlev) {
-				rxlev = pm[i].rxlev;
+			if (pm[i].rxlev_dbm > rxlev_dbm) {
+				rxlev_dbm = pm[i].rxlev_dbm;
 				arfcn = i;
 			}
 		}
@@ -328,7 +329,7 @@ static void start_sync(void)
 		dist = distinspace(pm_gps_x, pm_gps_y, pm_gps_z, x, y, z);
 		sprintf(dist_str, "  dist %d", (int)dist);
 	}
-	if (dist > MAX_DIST || arfcn == 0xffff || rxlev < min_rxlev) {
+	if (dist > MAX_DIST || arfcn == 0xffff || rxlev_dbm < min_rxlev_dbm) {
 		memset(pm, 0, sizeof(pm));
 		pm_index = 0;
 		sync_count = 0;
@@ -336,14 +337,14 @@ static void start_sync(void)
 		return;
 	}
 	pm[arfcn].flags |= INFO_FLG_SYNC;
-	LOGP(DSUM, LOGL_INFO, "Sync ARFCN %d (rxlev %d, %d syncs "
-		"left)%s\n", arfcn, pm[arfcn].rxlev, sync_count--, dist_str);
+	LOGP(DSUM, LOGL_INFO, "Sync ARFCN %d (rxlev %d, %d syncs left)%s\n",
+		arfcn, pm[arfcn].rxlev_dbm, sync_count--, dist_str);
 	memset(&sysinfo, 0, sizeof(sysinfo));
 	sysinfo.arfcn = arfcn;
 	state = SCAN_STATE_SYNC;
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	l1ctl_tx_fbsb_req(ms, arfcn, L1CTL_FBSB_F_FB01SB, 100, 0,
-		CCCH_MODE_NONE);
+		CCCH_MODE_NONE, dbm2rxlev(pm[arfcn].rxlev_dbm));
 }
 
 static void start_pm(void)
@@ -351,8 +352,8 @@ static void start_pm(void)
 	uint16_t from, to;
 
 	state = SCAN_STATE_PM;
-	from = band_range[pm_index][0];
-	to = band_range[pm_index][1];
+	from = (*band_range)[pm_index][0];
+	to = (*band_range)[pm_index][1];
 
 	if (from == 0 && to == 0) {
 		LOGP(DSUM, LOGL_INFO, "Measurement done\n");
@@ -384,10 +385,10 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		mr = signal_data;
 		index = mr->band_arfcn & 0x3ff;
 		pm[index].flags |= INFO_FLG_PM;
-		pm[index].rxlev = mr->rx_lev - 110;
-		if (pm[index].rxlev >= min_rxlev)
+		pm[index].rxlev_dbm = mr->rx_lev - 110;
+		if (pm[index].rxlev_dbm >= min_rxlev_dbm)
 			sync_count++;
-//		printf("rxlev %d = %d (sync_count %d)\n", index, pm[index].rxlev, sync_count);
+//		printf("rxlev %d = %d (sync_count %d)\n", index, pm[index].rxlev_dbm, sync_count);
 		break;
 	case S_L1CTL_PM_DONE:
 		pm_index++;

@@ -475,10 +475,16 @@ skip_tx_traffic:
 		0, sync, tn
 	);
 
-	dsp_load_rx_task(TCHT_DSP_TASK, 0, tsc); /* burst_id unused for TCH */
+	dsp_load_rx_task(
+		dsp_task_iq_swap(TCHT_DSP_TASK, arfcn, 0),
+		0, tsc		/* burst_id unused for TCH */
+	);
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
 
-	dsp_load_tx_task(TCHT_DSP_TASK, 0, tsc); /* burst_id unused for TCH */
+	dsp_load_tx_task(
+		dsp_task_iq_swap(TCHT_DSP_TASK, arfcn, 1),
+		0, tsc		/* burst_id unused for TCH */
+	);
 	l1s_tx_win_ctrl(arfcn | ARFCN_UPLINK, L1_TXWIN_NB, 0, 3);
 
 	return 0;
@@ -734,10 +740,16 @@ static int l1s_tch_a_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		0, 0, tn
 	);
 
-	dsp_load_rx_task(TCHA_DSP_TASK, 0, tsc); /* burst_id unused for TCHA */
+	dsp_load_rx_task(
+		dsp_task_iq_swap(TCHA_DSP_TASK, arfcn, 0),
+		0, tsc		/* burst_id unused for TCHA */
+	);
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
 
-	dsp_load_tx_task(TCHA_DSP_TASK, 0, tsc); /* burst_id unused for TCHA */
+	dsp_load_tx_task(
+		dsp_task_iq_swap(TCHA_DSP_TASK, arfcn, 1),
+		0, tsc		/* burst_id unused for TCHA */
+	);
 	l1s_tx_win_ctrl(arfcn | ARFCN_UPLINK, L1_TXWIN_NB, 0, 3);
 
 	return 0;

@@ -269,7 +269,8 @@ DEFUN(show_logging_vty,
 
 gDEFUN(cfg_description, cfg_description_cmd,
 	"description .TEXT",
-	"Save human-readable decription of the object\n")
+	"Save human-readable decription of the object\n"
+	"Text until the end of the line\n")
 {
 	char **dptr = vty->index_sub;
 
@@ -534,6 +535,10 @@ static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 		break;
 	}
 
+	vty_out(vty, "  logging filter all %u%s",
+		tgt->filter_map & LOG_FILTER_ALL ? 1 : 0, VTY_NEWLINE);
+	/* FIXME: how to do this for filters outside of libosmocore? */
+
 	vty_out(vty, "  logging color %u%s", tgt->use_color ? 1 : 0,
 		VTY_NEWLINE);
 	vty_out(vty, "  logging timestamp %u%s", tgt->print_timestamp ? 1 : 0,
@@ -587,6 +592,8 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	install_element_ve(&show_logging_vty_cmd);
 
 	install_node(&cfg_log_node, config_write_log);
+	install_default(CFG_LOG_NODE);
+	install_element(CFG_LOG_NODE, &config_end_cmd);
 	install_element(CFG_LOG_NODE, &logging_fltr_all_cmd);
 	install_element(CFG_LOG_NODE, &logging_use_clr_cmd);
 	install_element(CFG_LOG_NODE, &logging_prnt_timestamp_cmd);

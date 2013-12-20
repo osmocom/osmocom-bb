@@ -98,17 +98,6 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg);
 
 #define MIN(a, b) ((a < b) ? a : b)
 
-int gsm48_encode_lai(struct gsm48_loc_area_id *lai, uint16_t mcc,
-	uint16_t mnc, uint16_t lac)
-{
-	lai->digits[0] = (mcc >> 8) | (mcc & 0xf0);
-	lai->digits[1] = (mcc & 0x0f) | (mnc << 4);
-	lai->digits[2] = (mnc >> 8) | (mnc & 0xf0);
-	lai->lac = htons(lac);
-
-	return 0;
-}
-
 /* decode "Power Command" (10.5.2.28) and (10.5.2.28a) */
 static int gsm48_decode_power_cmd_acc(struct gsm48_power_cmd *pc,
 	uint8_t *power_level, uint8_t *atc)
@@ -1799,7 +1788,7 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 					rrmeas->nc_arfcn[n] = i | ARFCN_PCS;
 				else
 					rrmeas->nc_arfcn[n] = i & 1023;
-				rrmeas->nc_rxlev[n] = -128;
+				rrmeas->nc_rxlev_dbm[n] = -128;
 				LOGP(DRR, LOGL_NOTICE, "SI5* report arfcn %s\n",
 					gsm_print_arfcn(rrmeas->nc_arfcn[n]));
 				n++;
@@ -2884,15 +2873,15 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 				/* only check if NCC is permitted */
 				ncc = rrmeas->nc_bsic[i] >> 3;
 				if ((s->nb_ncc_permitted_si6 & (1 << ncc))
-				 && rrmeas->nc_rxlev[i] > current
-				 && rrmeas->nc_rxlev[i] < strongest) {
-					current = rrmeas->nc_rxlev[i];
+				 && rrmeas->nc_rxlev_dbm[i] > current
+				 && rrmeas->nc_rxlev_dbm[i] < strongest) {
+					current = rrmeas->nc_rxlev_dbm[i];
 					index = i;
 				}
 			}
 			if (current == -128) /* no more found */
 				break;
-			rxlev_nc[n] = rrmeas->nc_rxlev[index] + 110;
+			rxlev_nc[n] = rrmeas->nc_rxlev_dbm[index] + 110;
 			bsic_nc[n] = rrmeas->nc_bsic[index];
 			bcch_f_nc[n] = index;
 		}
@@ -3400,6 +3389,11 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len);
 #endif
 
+	/* set T200 of SAPI 0 */
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_sec =
+		T200_DCCH;
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_usec = 0;
+
 	/* start establishmnet */
 	return gsm48_send_rsl(ms, RSL_MT_EST_REQ, nmsg, 0);
 }
@@ -3753,6 +3747,11 @@ static int gsm48_rr_tx_ass_cpl(struct osmocom_ms *ms, uint8_t cause)
 
 	/* RR_CAUSE */
 	ac->rr_cause = cause;
+
+	/* set T200 of SAPI 0 */
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_sec =
+		T200_DCCH;
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_usec = 0;
 
 	return gsm48_send_rsl(ms, RSL_MT_RES_REQ, nmsg, 0);
 }
@@ -4122,6 +4121,11 @@ static int gsm48_rr_tx_hando_cpl(struct osmocom_ms *ms, uint8_t cause)
 	hc->rr_cause = cause;
 
 	// FIXME: mobile observed time
+
+	/* set T200 of SAPI 0 */
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_sec =
+		T200_DCCH;
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_usec = 0;
 
 	return gsm48_send_rsl(ms, RSL_MT_RES_REQ, nmsg, 0);
 }
@@ -5105,6 +5109,7 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	default:
 		LOGP(DRR, LOGL_NOTICE, "MDL-Error (cause %d) ignoring\n",
 			cause);
+		return 0;
 	}
 
 	LOGP(DRR, LOGL_NOTICE, "MDL-Error (cause %d) aborting\n", cause);
@@ -5162,6 +5167,13 @@ static int gsm48_rr_estab_ind_sapi3(struct osmocom_ms *ms, struct msgb *msg)
 	rr->sapi3_link_id = link_id; /* set link ID */
 
 	LOGP(DSUM, LOGL_INFO, "Radio link SAPI3 is established\n");
+
+	if ((link_id & 0xf8) == 0x00) {
+		/* raise T200 of SAPI 0 */
+		ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_sec =
+			T200_DCCH_SHARED;
+		ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_usec= 0;
+	}
 
 	/* send inication to upper layer */
 	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_EST_IND);
@@ -5239,6 +5251,11 @@ static int gsm48_rr_rel_ind_sapi3(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DSUM, LOGL_INFO, "Radio link SAPI3 is released\n");
 
+	/* lower T200 of SAPI 0 */
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_sec =
+		T200_DCCH;
+	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_usec = 0;
+
 	/* send inication to upper layer */
 	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
 	if (!nmsg)
@@ -5278,6 +5295,10 @@ static int gsm48_rr_est_req_sapi3(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_INFO, "Requesting DCCH link, because no TCH "
 			"(sapi %d)\n", sapi);
 		rr->sapi3_link_id = 0x00 | sapi; /* SAPI 3, DCCH */
+		/* raise T200 of SAPI 0 */
+		ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_sec =
+			T200_DCCH_SHARED;
+		ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI0].dl.t200_usec= 0;
 	} else {
 		LOGP(DRR, LOGL_INFO, "Requesting ACCH link, because TCH "
 			"(sapi %d)\n", sapi);

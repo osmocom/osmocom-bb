@@ -310,9 +310,9 @@ static void *console_rx_cb(uint8_t dlci, struct msgb *msg)
 
 int main(void)
 {
-	board_init();
+	board_init(1);
 
-	puts("\n\nOSMOCOM SIM Test (revision " GIT_REVISION ")\n");
+	puts("\n\nOsmocomBB SIM Test (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Dump device identification */

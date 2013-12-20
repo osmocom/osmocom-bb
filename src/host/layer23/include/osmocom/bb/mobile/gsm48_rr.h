@@ -5,6 +5,11 @@
 
 #define GSM_TA_CM			55385
 
+#define	T200_DCCH			1	/* SDCCH/FACCH */
+#define	T200_DCCH_SHARED		2	/* SDCCH shares SAPI 0 and 3 */
+#define	T200_ACCH			2	/* SACCH SAPI 3 */
+
+
 /* GSM 04.07 9.1.2 */
 #define	GSM48_RR_EST_REQ		0x10
 #define	GSM48_RR_EST_IND		0x12
@@ -107,7 +112,7 @@ struct gsm48_cr_hist {
 struct gsm48_rr_meas {
 	/* note: must be sorted by arfcn 1..1023,0 according to SI5* */
 	uint8_t nc_num; /* number of measured cells (32 max) */
-	int8_t nc_rxlev[32]; /* -128 = no value */
+	int8_t nc_rxlev_dbm[32]; /* -128 = no value */
 	uint8_t nc_bsic[32];
 	uint16_t nc_arfcn[32];
 };
@@ -195,10 +200,6 @@ int gsm48_rsl_dequeue(struct osmocom_ms *ms);
 int gsm48_rr_downmsg(struct osmocom_ms *ms, struct msgb *msg);
 struct msgb *gsm48_l3_msgb_alloc(void);
 struct msgb *gsm48_rr_msgb_alloc(int msg_type);
-int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
-	uint16_t *mnc, uint16_t *lac);
-int gsm48_encode_lai(struct gsm48_loc_area_id *lai, uint16_t mcc,
-	uint16_t mnc, uint16_t lac);
 int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm,
 	uint16_t arfcn);
 int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg);

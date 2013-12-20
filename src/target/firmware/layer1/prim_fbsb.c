@@ -375,7 +375,7 @@ static int l1s_fbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 	l1s.fb.mode = fb_mode;
 
 	/* Tell the RF frontend to set the gain appropriately */
-	rffe_compute_gain(-85, CAL_DSP_TGT_BB_LVL);
+	rffe_compute_gain(rxlev2dbm(fbs.req.rxlev_exp), CAL_DSP_TGT_BB_LVL);
 
 	/* Program DSP */
 	dsp_api.db_w->d_task_md = FB_DSP_TASK;	/* maybe with I/Q swap? */
@@ -548,6 +548,7 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 	fbs.req.num_freqerr_avg = req->num_freqerr_avg;
 	fbs.req.flags = req->flags;
 	fbs.req.sync_info_idx = req->sync_info_idx;
+	fbs.req.rxlev_exp = req->rxlev_exp;
 
 	/* clear initial frequency error */
 	fbs.initial_freq_err = 0;

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from collections import namedtuple
 import re
 import sys
 import struct

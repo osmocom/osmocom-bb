@@ -7,18 +7,26 @@ GNU/Linux.  Successful builds have also been reported using MacOS X
 and the Cygwin environment for MS Windows, but we do not officially support
 this.
 
- # Get a GNU toolchain (gcc/binutils) for ARM (e.g. from http://gnuarm.com/)
- # Set your path to include the arm-elf-* executables of your toolchain
- # call 'make' in this (the src) subdirectory
+ * Make sure you have compiled and installed a recent version of
+   libosmocore. See http://bb.osmocom.org/trac/wiki/libosmocore
+
+   DO NOT USE the libosmocore version embedded in this git tree. This
+   is a special version used internally and MUST NOT be used as
+   system-wide libosmocore.
+
+ * Get a GNU toolchain (gcc/binutils) for ARM (e.g. from http://gnuarm.com/)
+ * Set your path to include the arm-elf-* executables of your toolchain
+
+ * call 'make' in this (the src) subdirectory
 
 === Details ===
 
 The master Makefile will build:
 
- * libosmocore for the host (x86 or whatever you use)
  * libosmocore for the target (ARM)
  * osmocon and layer23 executables for the host (linking libosmocore)
  * the actual target firmware images (in src/target/firmware/board/*/*.bin)
+
 
 == Transmitting ==
 

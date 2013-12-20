@@ -132,10 +132,10 @@ struct dnload {
 	enum mtk_state mtk_state;
 	enum dnload_mode mode, previous_mode;
 	struct osmo_fd serial_fd;
-	char *filename, *previous_filename;
-	char *chainload_filename;
+	char *filename;
 
 	int expect_hdlc;
+	int do_chainload;
 
 	int dump_rx;
 	int dump_tx;
@@ -190,6 +190,23 @@ static const uint8_t data_hdr_c123[]    = { 0xee, 0x4c, 0x9f, 0x63 };
  */
 static const uint8_t data_hdr_c155[]    = { 0x78, 0x47, 0xc0, 0x46 };
 
+/* small loader that enables the bootrom and executes the TI romloader:
+ * _start:
+ *	ldr	r1, =0x000a0000
+ * wait:
+ *	subs	r1, r1, #1
+ *	bne	wait
+ *	ldr	r1, =0xfffffb10
+ *	ldr	r2, =0x100
+ *	strh	r2, [r1]
+ *	ldr	pc, =0x0
+ */
+static const uint8_t chainloader[] = {
+	0x0a, 0x18, 0xa0, 0xe3, 0x01, 0x10, 0x51, 0xe2, 0xfd, 0xff, 0xff,
+	0x1a, 0x08, 0x10, 0x9f, 0xe5, 0x01, 0x2c, 0xa0, 0xe3, 0xb0, 0x20,
+	0xc1, 0xe1, 0x00, 0xf0, 0xa0, 0xe3, 0x10, 0xfb, 0xff, 0xff,
+};
+
 /* Calypso romloader specific */
 static const uint8_t romload_ident_cmd[] =	{ 0x3c, 0x69 };	/* <i */
 static const uint8_t romload_abort_cmd[] =	{ 0x3c, 0x61 };	/* <a */
@@ -222,7 +239,6 @@ static void beacon_timer_cb(void *p)
 	int rc;
 
 	if (dnload.romload_state == WAITING_IDENTIFICATION) {
-		printf("Sending Calypso romloader beacon...\n");
 		rc = write(dnload.serial_fd.fd, romload_ident_cmd,
 			   sizeof(romload_ident_cmd));
 
@@ -249,7 +265,7 @@ static void mtk_timer_cb(void *p)
 }
 
 /* Read the to-be-downloaded file, prepend header and length, append XOR sum */
-int read_file(const char *filename)
+int read_file(const char *filename, int chainload)
 {
 	int fd, rc, i;
 	struct stat st;
@@ -261,17 +277,21 @@ int read_file(const char *filename)
 	uint8_t nibble;
 	uint8_t running_xor = 0x02;
 
-	fd = open(filename, O_RDONLY);
-	if (fd < 0) {
-		perror("opening file");
-		exit(1);
-	}
+	if (!chainload) {
+		fd = open(filename, O_RDONLY);
+		if (fd < 0) {
+			perror("opening file");
+			exit(1);
+		}
 
-	rc = fstat(fd, &st);
-	if ((st.st_size > MAX_DNLOAD_SIZE) && (dnload.mode != MODE_ROMLOAD)) {
-		fprintf(stderr, "The maximum file size is 64kBytes (%u bytes)\n",
-			MAX_DNLOAD_SIZE);
-		return -EFBIG;
+		rc = fstat(fd, &st);
+		if ((st.st_size > MAX_DNLOAD_SIZE) && (dnload.mode != MODE_ROMLOAD)) {
+			fprintf(stderr, "The maximum file size is 64kBytes (%u bytes)\n",
+				MAX_DNLOAD_SIZE);
+			return -EFBIG;
+		}
+	} else {
+		st.st_size = sizeof(chainloader);
 	}
 
 	free(dnload.data);
@@ -339,24 +359,27 @@ int read_file(const char *filename)
 			running_xor ^= hdr[i];
 	}
 
-	rc = read(fd, file_data, st.st_size);
-	if (rc < 0) {
-		perror("error reading file\n");
-		free(dnload.data);
-		dnload.data = NULL;
+	if (!chainload) {
+		rc = read(fd, file_data, st.st_size);
+		if (rc < 0) {
+			perror("error reading file\n");
+			free(dnload.data);
+			dnload.data = NULL;
+			close(fd);
+			return -EIO;
+		}
+		if (rc < st.st_size) {
+			free(dnload.data);
+			dnload.data = NULL;
+			close(fd);
+			fprintf(stderr, "Short read of file (%d < %d)\n",
+				rc, (int)st.st_size);
+			return -EIO;
+		}
 		close(fd);
-		return -EIO;
+	} else {
+		memcpy(file_data, chainloader, st.st_size);
 	}
-	if (rc < st.st_size) {
-		free(dnload.data);
-		dnload.data = NULL;
-		close(fd);
-		fprintf(stderr, "Short read of file (%d < %d)\n",
-			rc, (int)st.st_size);
-		return -EIO;
-	}
-
-	close(fd);
 
 	dnload.data_len = (file_data+payload_size) - dnload.data;
 
@@ -379,7 +402,8 @@ int read_file(const char *filename)
 	dnload.write_ptr = dnload.data;
 
 	printf("read_file(%s): file_size=%u, hdr_len=%u, dnload_len=%u\n",
-		filename, (int)st.st_size, hdr_len, dnload.data_len);
+		chainload ? "chainloader" : filename, (int)st.st_size,
+		hdr_len, dnload.data_len);
 
 	return 0;
 }
@@ -449,13 +473,10 @@ static int romload_prepare_block(void)
 
 	if (remaining_bytes <= dnload.block_payload_size) {
 		fill_bytes = (dnload.block_payload_size - remaining_bytes);
-		printf("Preparing the last block, filling %i bytes,",
-			fill_bytes);
 		memset(block_data + remaining_bytes, 0x00, fill_bytes);
 		dnload.romload_state = SENDING_LAST_BLOCK;
 	} else {
-			dnload.romload_state = SENDING_BLOCKS;
-			printf("Preparing block %i,", dnload.block_number+1);
+		dnload.romload_state = SENDING_BLOCKS;
 	}
 
 	/* block checksum is lsb of ~(5 + block_size_lsb +  all bytes of
@@ -464,7 +485,6 @@ static int romload_prepare_block(void)
 		block_checksum += dnload.block[i];
 
 	/* checksum is lsb of ~(sum of LSBs of all block checksums) */
-	printf(" block checksum is 0x%02x \n", ~(block_checksum) & 0xff);
 	dnload.romload_dl_checksum += ~(block_checksum) & 0xff;
 
 	/* initialize block pointer to start of block */
@@ -551,11 +571,12 @@ static int mtk_prepare_block(void)
 static int handle_write_block(void)
 {
 	int bytes_left, write_len, rc;
-
-	printf("handle_write_block(): ");
+	int progress = 100 * (dnload.block_number * dnload.block_payload_size)
+		       / dnload.data_len;
 
 	if (dnload.block_ptr >= dnload.block + dnload.block_len) {
-		printf("Block %i finished\n", dnload.block_number);
+		printf("Progress: %i%%\r", progress);
+		fflush(stdout);
 		dnload.write_ptr = dnload.data;
 		dnload.serial_fd.when &= ~BSC_FD_WRITE;
 		if (dnload.romload_state == SENDING_LAST_BLOCK) {
@@ -582,9 +603,6 @@ static int handle_write_block(void)
 	}
 
 	dnload.block_ptr += rc;
-
-	printf("%u bytes (%tu/%u)\n", rc, dnload.block_ptr - dnload.block,
-		dnload.block_len);
 
 	return 0;
 }
@@ -629,7 +647,7 @@ static int handle_write_dnload(void)
 
 	dnload.write_ptr += rc;
 
-	printf("%u bytes (%tu/%u)\n", rc, dnload.write_ptr - dnload.data,
+	printf("%u bytes (%u/%u)\n", rc, dnload.write_ptr - dnload.data,
 		dnload.data_len);
 
 	return 0;
@@ -637,13 +655,24 @@ static int handle_write_dnload(void)
 
 static int handle_sercomm_write(void)
 {
-	uint8_t c;
+	uint8_t buffer[256];
+	int i, count = 0, end = 0;
 
-	if (sercomm_drv_pull(&c) != 0) {
-		if (write(dnload.serial_fd.fd, &c, 1) != 1)
+	for (i = 0; i < sizeof(buffer); i++) {
+		if (sercomm_drv_pull(&buffer[i]) == 0) {
+			end = 1;
+			break;
+		}
+		count++;
+	}
+
+	if (count) {
+		if (write(dnload.serial_fd.fd, buffer, count) != count)
 			perror("short write");
-		} else
-			dnload.serial_fd.when &= ~BSC_FD_WRITE;
+	}
+
+	if (end)
+		dnload.serial_fd.when &= ~BSC_FD_WRITE;
 
 	return 0;
 }
@@ -794,7 +823,7 @@ static int handle_read(void)
 			rc = write(dnload.serial_fd.fd, dnload_cmd, sizeof(dnload_cmd));
 
 			/* re-read file */
-			rc = read_file(dnload.filename);
+			rc = read_file(dnload.filename, dnload.do_chainload);
 			if (rc < 0) {
 				fprintf(stderr, "read_file(%s) failed with %d\n",
 						dnload.filename, rc);
@@ -815,12 +844,10 @@ static int handle_read(void)
 
 		/* check for romloader chainloading mode used as a workaround
 		 * for the magic on the C139/C140 and J100i */
-		if (dnload.chainload_filename != NULL) {
+		if (dnload.do_chainload) {
 			printf("Enabled Compal ramloader -> Calypso romloader"
 				" chainloading mode\n");
 			bufptr = buffer;
-			dnload.previous_filename = dnload.filename;
-			dnload.filename = dnload.chainload_filename;
 			dnload.previous_mode = dnload.mode;
 			dnload.mode = MODE_ROMLOAD;
 			osmo_serial_set_baudrate(dnload.serial_fd.fd, ROMLOAD_INIT_BAUDRATE);
@@ -890,7 +917,7 @@ static int handle_read_romload(void)
 		rc = write(dnload.serial_fd.fd, romload_param,
 			   sizeof(romload_param));
 		/* re-read file */
-		rc = read_file(dnload.filename);
+		rc = read_file(dnload.filename, 0);
 		if (rc < 0) {
 			fprintf(stderr, "read_file(%s) failed with %d\n",
 				dnload.filename, rc);
@@ -908,8 +935,6 @@ static int handle_read_romload(void)
 
 		/* using the max blocksize the phone tells us */
 		dnload.block_payload_size = ((buffer[3] << 8) + buffer[2]);
-		printf("Used blocksize for download is %i bytes\n",
-			dnload.block_payload_size);
 		dnload.block_payload_size -= ROMLOAD_BLOCK_HDR_LEN;
 		dnload.romload_state = SENDING_BLOCKS;
 		dnload.block_number = 0;
@@ -920,13 +945,10 @@ static int handle_read_romload(void)
 	case LAST_BLOCK_SENT:
 		if (!memcmp(buffer, romload_block_ack,
 			    sizeof(romload_block_ack))) {
-			printf("Received block ack from phone\n");
 			if (dnload.romload_state == LAST_BLOCK_SENT) {
 				/* send the checksum */
 				uint8_t final_checksum =
 					(~(dnload.romload_dl_checksum) & 0xff);
-				printf("Sending checksum: 0x%02x \n",
-					final_checksum);
 				rc = write(dnload.serial_fd.fd,
 					   romload_checksum_cmd,
 					   sizeof(romload_checksum_cmd));
@@ -947,9 +969,6 @@ static int handle_read_romload(void)
 	case WAITING_CHECKSUM_ACK:
 		if (!memcmp(buffer, romload_checksum_ack,
 			    sizeof(romload_checksum_ack))) {
-			printf("Checksum on phone side matches, "
-				"let's branch to your code\n");
-			printf("Branching to 0x%08x\n", ROMLOAD_ADDRESS);
 
 			rc = write(dnload.serial_fd.fd, romload_branch_cmd,
 				   sizeof(romload_branch_cmd));
@@ -976,16 +995,15 @@ static int handle_read_romload(void)
 			dnload.write_ptr = dnload.data;
 			dnload.expect_hdlc = 1;
 
-			if (dnload.chainload_filename == NULL)
+			if (!dnload.do_chainload)
 				break;
 
 			/* if using chainloading mode, switch back to the Compal
 			 * ramloader settings to make sure the auto-reload
 			 * feature works */
 			bufptr = buffer;
-			dnload.romload_state = WAITING_IDENTIFICATION;
-			dnload.filename = dnload.previous_filename;
 			dnload.mode = dnload.previous_mode;
+			dnload.romload_state = WAITING_IDENTIFICATION;
 			osmo_serial_set_baudrate(dnload.serial_fd.fd, MODEM_BAUDRATE);
 		} else if (!memcmp(buffer, romload_branch_nack,
 			   sizeof(romload_branch_nack))) {
@@ -1069,7 +1087,7 @@ static int handle_read_mtk(void)
 			break;
 		printf("Received address ack from phone, sending loadsize\n");
 		/* re-read file */
-		rc = read_file(dnload.filename);
+		rc = read_file(dnload.filename, 0);
 		if (rc < 0) {
 			fprintf(stderr, "read_file(%s) failed with %d\n",
 				dnload.filename, rc);
@@ -1147,13 +1165,13 @@ static int serial_read(struct osmo_fd *fd, unsigned int flags)
 	if (flags & BSC_FD_READ) {
 		switch (dnload.mode) {
 			case MODE_ROMLOAD:
-				rc = handle_read_romload();
+				while ((rc = handle_read_romload()) > 0);
 				break;
 			case MODE_MTK:
-				rc = handle_read_mtk();
+				while ((rc = handle_read_mtk()) > 0);
 				break;
 			default:
-				rc = handle_read();
+				while ((rc = handle_read()) > 0);
 				break;
 		}
 		if (rc == 0)
@@ -1190,10 +1208,10 @@ static int parse_mode(const char *arg)
 
 #define HELP_TEXT \
 	"[ -v | -h ] [ -d [t][r] ] [ -p /dev/ttyXXXX ]\n" \
+	"\t\t [ -c ] (enable chainloading of highram-images)\n" \
 	"\t\t [ -s /tmp/osmocom_l2 ]\n" \
 	"\t\t [ -l /tmp/osmocom_loader ]\n" \
 	"\t\t [ -m {c123,c123xor,c140,c140xor,c155,romload,mtk} ]\n" \
-	"\t\t [ -c /to-be-chainloaded-file.bin ]\n" \
 	"\t\t [ -i beacon-interval (mS) ]\n" \
 	"\t\t  file.bin\n\n" \
 	"* Open serial port /dev/ttyXXXX (connected to your phone)\n" \
@@ -1403,11 +1421,10 @@ int main(int argc, char **argv)
 	const char *loader_un_path = "/tmp/osmocom_loader";
 
 	dnload.mode = MODE_C123;
-	dnload.chainload_filename = NULL;
-	dnload.previous_filename = NULL;
 	dnload.beacon_interval = DEFAULT_BEACON_INTERVAL;
+	dnload.do_chainload = 0;
 
-	while ((opt = getopt(argc, argv, "d:hl:p:m:c:s:i:v")) != -1) {
+	while ((opt = getopt(argc, argv, "d:hl:p:m:cs:i:v")) != -1) {
 		switch (opt) {
 		case 'p':
 			serial_dev = optarg;
@@ -1430,7 +1447,7 @@ int main(int argc, char **argv)
 			parse_debug(optarg);
 			break;
 		case 'c':
-			dnload.chainload_filename = optarg;
+			dnload.do_chainload = 1;
 			break;
 		case 'i':
 			dnload.beacon_interval = atoi(optarg) * 1000;

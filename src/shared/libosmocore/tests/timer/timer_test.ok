@@ -1,2 +1,2 @@
-Running timer test for 5 steps, accepting imprecision of 0.010000 seconds
+Running timer test for 5 steps, accepting imprecision of 0.020000 seconds
 test over: added=31 expired=31 too_late=0 

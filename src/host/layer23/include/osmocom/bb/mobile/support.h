@@ -37,7 +37,7 @@ struct gsm_support {
 	uint8_t solsa;
 	/* location service support */
 	uint8_t lcsva;
-	/* codec supprot */
+	/* codec support */
 	uint8_t a5_1;
 	uint8_t a5_2;
 	uint8_t a5_3;
@@ -79,7 +79,7 @@ struct gsm_support {
 
 	/* radio */
 	uint8_t ch_cap; /* channel capability */
-	int8_t min_rxlev_db;
+	int8_t min_rxlev_dbm;
 	uint8_t scan_to;
 	uint8_t sync_to;
 	uint16_t dsc_max; /* maximum dl signal failure counter */

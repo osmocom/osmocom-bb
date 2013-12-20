@@ -10,9 +10,9 @@
 /*! \brief Determine number of elements in an array of static size */
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 /*! \brief Return the maximum of two specified values */
-#define OSMO_MAX(a, b) (a) >= (b) ? (a) : (b)
+#define OSMO_MAX(a, b) ((a) >= (b) ? (a) : (b))
 /*! \brief Return the minimum of two specified values */
-#define OSMO_MIN(a, b) (a) >= (b) ? (b) : (a)
+#define OSMO_MIN(a, b) ((a) >= (b) ? (b) : (a))
 
 #include <stdint.h>
 
@@ -51,6 +51,6 @@ do {								\
 	rem -= ret;						\
 } while (0)
 
-/*! }@ */
+/*! @} */
 
 #endif

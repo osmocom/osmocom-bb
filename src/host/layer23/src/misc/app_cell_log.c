@@ -40,6 +40,9 @@
 extern struct log_target *stderr_target;
 extern void *l23_ctx;
 
+extern uint16_t basic_band_range[][2];
+extern uint16_t (*band_range)[][2];
+
 char *logname = "/var/log/osmocom.log";
 int RACH_MAX = 2;
 
@@ -99,11 +102,53 @@ static int l23_getopt_options(struct option **options)
 		{"gpsd-port", 1, 0, 'p'},
 #endif
 		{"gps", 1, 0, 'g'},
-		{"baud", 1, 0, 'b'}
+		{"baud", 1, 0, 'b'},
+		{"arfcns", 1, 0, 'A'}
 	};
 
 	*options = opts;
 	return ARRAY_SIZE(opts);
+}
+
+static char* print_band_range(uint16_t range[][2], char* buf, size_t buf_len)
+{
+	int i = 0;
+	int idx = 0;
+	while (idx < buf_len && (range[i][0] != 0 || range[i][1] != 0)) {
+		idx += snprintf(&buf[idx], buf_len - idx, "%u-%u,", range[i][0], range[i][1]);
+		i++;
+	}
+	buf[idx-1] = '\0';
+	return buf;
+}
+
+static void parse_band_range(char* s)
+{
+	unsigned i = 0;
+	char* idx = strtok(s, ",");
+	unsigned single_range_size = sizeof(uint16_t) * 2;
+	unsigned start;
+	unsigned end;
+
+	band_range = (uint16_t(*)[][2])calloc(single_range_size, i + 1);
+	while (idx != NULL) {
+		start = 0;
+		end = 0;
+		sscanf(idx, "%u-%u", &start, &end);
+		if (end == 0)
+			end = start;
+		if (end < start) {
+			fprintf(stderr, "Starting frequency must me lower than ending.\n\n");
+			exit(1);
+		}
+		(*band_range)[i][0] = start;
+		(*band_range)[i][1] = end;
+		idx = strtok(NULL, ",");
+		i++;
+		band_range = realloc(band_range, (i+1) * single_range_size);
+	}
+	(*band_range)[i][0] = 0;
+	(*band_range)[i][1] = 0;
 }
 
 static int l23_cfg_print_help()
@@ -116,12 +161,15 @@ static int l23_cfg_print_help()
 	printf("  -p --port PORT	2947. gpsd port\n");
 	printf("  -f --gps DEVICE	/dev/ttyACM0. GPS serial device.\n");
 	printf("  -b --baud BAUDRAT	The baud rate of the GPS device\n");
+	printf("  -A --arfcns ARFCNS    The list of arfcns to be monitored\n");
 
 	return 0;
 }
 
 static int l23_cfg_handle(int c, const char *optarg)
 {
+	char buf[1000];
+
 	switch (c) {
 	case 'l':
 		logname = talloc_strdup(l23_ctx, optarg);
@@ -172,6 +220,10 @@ static int l23_cfg_handle(int c, const char *optarg)
 		g.gps_type = GPS_TYPE_SERIAL;
 		LOGP(DGPS, LOGL_INFO, "Setting GPS baudrate to %u\n", g.baud);
 		break;
+	case 'A':
+		parse_band_range((char*)optarg);
+		printf("New frequencies range: %s\n", print_band_range(*band_range, buf, sizeof(buf)));
+		break;
 	}
 	return 0;
 
@@ -182,7 +234,7 @@ cmd_line_error:
 
 static struct l23_app_info info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
-	.getopt_string	= "g:p:l:r:nf:b:",
+	.getopt_string	= "g:p:l:r:nf:b:A:",
 	.cfg_supported	= l23_cfg_supported,
 	.cfg_getopt_opt = l23_getopt_options,
 	.cfg_handle_opt	= l23_cfg_handle,

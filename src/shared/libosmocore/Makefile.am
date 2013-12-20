@@ -1,11 +1,11 @@
-AUTOMAKE_OPTIONS = foreign dist-bzip2 1.6
 ACLOCAL_AMFLAGS = -I m4
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-SUBDIRS = include src tests utils
+SUBDIRS = include src src/vty src/codec src/gsm src/gb tests utils
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libosmocore.pc libosmocodec.pc libosmovty.pc libosmogsm.pc
+pkgconfig_DATA = libosmocore.pc libosmocodec.pc libosmovty.pc libosmogsm.pc \
+		 libosmogb.pc
 
 BUILT_SOURCES = $(top_srcdir)/.version
 $(top_srcdir)/.version:
@@ -17,12 +17,9 @@ EXTRA_DIST = git-version-gen
 
 if HAVE_DOXYGEN
 
-pkgdocdir=$(docdir)/$(PACKAGE)-$(VERSION)
-doc_htmldir=$(pkgdocdir)/html
+html_DATA = $(top_builddir)/doc/html.tar
 
-doc_html_DATA = $(top_builddir)/doc/html.tar
-
-$(doc_html_DATA): $(top_builddir)/doc/core/html/index.html \
+$(html_DATA): $(top_builddir)/doc/core/html/index.html \
 		  $(top_builddir)/doc/gsm/html/index.html \
 		  $(top_builddir)/doc/vty/html/index.html \
 		  $(top_builddir)/doc/codec/html/index.html
@@ -39,8 +36,7 @@ $(top_builddir)/doc/gsm/html/index.html: $(SOURCES) Doxyfile.gsm
 	$(DOXYGEN) Doxyfile.gsm
 
 $(top_builddir)/doc/vty/html/index.html: $(SOURCES) Doxyfile.vty
-	@rm -rf doc/vty
-	mkdir -p doc/vty
+	@rm -rf doc/vty/{html,latex}
 	$(DOXYGEN) Doxyfile.vty
 
 $(top_builddir)/doc/codec/html/index.html: $(SOURCES) Doxyfile.codec
@@ -49,10 +45,10 @@ $(top_builddir)/doc/codec/html/index.html: $(SOURCES) Doxyfile.codec
 	$(DOXYGEN) Doxyfile.codec
 
 install-data-hook:
-	cd $(DESTDIR)$(doc_htmldir) && tar xf html.tar && rm -f html.tar
+	cd $(DESTDIR)$(htmldir) && tar xf html.tar && rm -f html.tar
 
 uninstall-hook:
-	cd $(DESTDIR)$(doc_htmldir) && rm -rf {core,gsm,vty,codec}
+	cd $(DESTDIR)$(htmldir) && rm -rf {core,gsm,vty,codec}
 
 DX_CLEAN = doc/{core,gsm,vty,codec}/{html,latex}/* doc/html.tar
 endif

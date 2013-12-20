@@ -53,7 +53,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	/* location service support */
 	sup->lcsva = 0; /* no */
 	sup->loc_serv = 0; /* no */
-	/* codec supprot */
+	/* cipher support */
 	sup->a5_1 = 1;
 	sup->a5_2 = 1;
 	sup->a5_3 = 0;
@@ -89,7 +89,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 
 	/* radio */
 	sup->ch_cap = GSM_CAP_SDCCH_TCHF_TCHH;
-	sup->min_rxlev_db = -106; // TODO
+	sup->min_rxlev_dbm = -106; // TODO
 	sup->sync_to = 6; /* how long to wait sync (0.9 s) */
 	sup->scan_to = 4; /* how long to wait for all sysinfos (>=4 s) */
 	sup->dsc_max = 90; /* the specs defines 90 */
@@ -160,7 +160,6 @@ void gsm_support_dump(struct osmocom_ms *ms,
 	print(priv, " A5/5         : %s\n", SUP_SET(a5_5));
 	print(priv, " A5/6         : %s\n", SUP_SET(a5_6));
 	print(priv, " A5/7         : %s\n", SUP_SET(a5_7));
-	print(priv, " A5/1         : %s\n", SUP_SET(a5_1));
 	switch (set->ch_cap) {
 		case GSM_CAP_SDCCH:
 		print(priv, " Channels     : SDCCH only\n");
@@ -177,6 +176,6 @@ void gsm_support_dump(struct osmocom_ms *ms,
 	print(priv, " Full-Rate V3 : %s\n", SUP_SET(full_v3));
 	print(priv, " Half-Rate V1 : %s\n", SUP_SET(half_v1));
 	print(priv, " Half-Rate V3 : %s\n", SUP_SET(half_v3));
-	print(priv, " Min RXLEV    : %d\n", set->min_rxlev_db);
+	print(priv, " Min RXLEV    : %d\n", set->min_rxlev_dbm);
 }
 

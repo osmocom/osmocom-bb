@@ -153,7 +153,8 @@ static int _cinfo_start_arfcn(unsigned int band_arfcn)
 	/* ask L1 to try to tune to new ARFCN */
 	/* FIXME: decode band */
 	rc = l1ctl_tx_fbsb_req(fps.ms, band_arfcn,
-	                       L1CTL_FBSB_F_FB01SB, 100, 0, CCCH_MODE_COMBINED);
+	                       L1CTL_FBSB_F_FB01SB, 100, 0, CCCH_MODE_COMBINED,
+			       fps.arfcn_state[band_arfcn].rxlev);
 	if (rc < 0)
 		return rc;
 

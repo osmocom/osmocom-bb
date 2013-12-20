@@ -48,6 +48,7 @@
 #include <calypso/backlight.h>
 #include <uart.h>
 #include <calypso/timer.h>
+#include <fb/framebuffer.h>
 
 #include <flash/cfi_flash.h>
 
@@ -61,12 +62,13 @@ static void key_handler(enum key_codes code, enum key_states state);
 static void cmd_handler(uint8_t dlci, struct msgb *msg);
 
 int flag = 0;
+static int sercomm_uart;
 
 static void flush_uart(void)
 {
 	unsigned i;
 	for (i = 0; i < 500; i++) {
-		uart_poll(SERCOMM_UART_NR);
+		uart_poll(sercomm_uart);
 		delay_ms(1);
 	}
 }
@@ -131,29 +133,35 @@ int main(void)
 		putchar_asm(phone_ack[i]);
 	}
 
-	/* Always disable wdt (some platforms enable it on boot) */
-	wdog_enable(0);
-
-	/* Disable the bootrom mapping */
-	calypso_bootrom(0);
-
-	/* Initialize TWL3025 for power control */
-	twl3025_init();
-
-	/* Backlight */
-	bl_mode_pwl(1);
-	bl_level(50);
-
-	/* Initialize UART without interrupts */
-	uart_init(SERCOMM_UART_NR, 0);
-	uart_baudrate(SERCOMM_UART_NR, UART_115200);
-
-	/* Initialize HDLC subsystem */
-	sercomm_init();
+	/* initialize board without interrupts */
+	board_init(0);
+	sercomm_uart = sercomm_get_uart();
 
 	/* Say hi */
-	puts("\n\nOSMOCOM Loader (revision " GIT_REVISION ")\n");
+	puts("\n\nOsmocomBB Loader (revision " GIT_REVISION ")\n");
 	puts(hr);
+
+	fb_clear();
+
+	fb_setfg(FB_COLOR_BLACK);
+	fb_setbg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVB14);
+
+	fb_gotoxy(2,20);
+	fb_putstr("loader",framebuffer->width-4);
+
+	fb_setfg(FB_COLOR_RED);
+	fb_setbg(FB_COLOR_BLUE);
+
+	fb_gotoxy(2,25);
+	fb_boxto(framebuffer->width-3,38);
+
+	fb_setfg(FB_COLOR_WHITE);
+	fb_setfont(FB_FONT_HELVR08);
+	fb_gotoxy(8,33);
+	fb_putstr("osmocom-bb",framebuffer->width-4);
+
+	fb_flush();
 
 	/* Identify environment */
 	printf("Running on %s in environment %s\n", manifest_board,
@@ -189,7 +197,7 @@ int main(void)
 	/* Wait for events */
 	while (1) {
 		keypad_poll();
-		uart_poll(SERCOMM_UART_NR);
+		uart_poll(sercomm_uart);
 	}
 
 	/* NOT REACHED */
@@ -203,7 +211,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 		return;
 	}
 
-	uint8_t command = msgb_get_u8(msg);
+	uint8_t command = msgb_pull_u8(msg);
 
 	int res;
 
@@ -251,8 +259,8 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_MEM_READ:
 
-		nbytes = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
+		nbytes = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
 
 		crc = osmo_crc16(0, (void *)address, nbytes);
 
@@ -269,11 +277,11 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_MEM_WRITE:
 
-		nbytes = msgb_get_u8(msg);
-		crc = msgb_get_u16(msg);
-		address = msgb_get_u32(msg);
+		nbytes = msgb_pull_u8(msg);
+		crc = msgb_pull_u16(msg);
+		address = msgb_pull_u32(msg);
 
-		data = msgb_get(msg, nbytes);
+		data = msgb_pull(msg, nbytes) - nbytes;
 
 		mycrc = osmo_crc16(0, data, nbytes);
 
@@ -292,7 +300,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_JUMP:
 
-		address = msgb_get_u32(msg);
+		address = msgb_pull_u32(msg);
 
 		msgb_put_u8(reply, LOADER_JUMP);
 		msgb_put_u32(reply, address);
@@ -328,8 +336,8 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 	case LOADER_FLASH_LOCK:
 	case LOADER_FLASH_LOCKDOWN:
 
-		chip = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
+		chip = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
 
 		if (command == LOADER_FLASH_ERASE) {
 			res = flash_block_erase(&the_flash, address);
@@ -355,8 +363,8 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_FLASH_GETLOCK:
 
-		chip = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
+		chip = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
 
 		lock = flash_block_getlock(&the_flash, address);
 
@@ -385,13 +393,13 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 
 	case LOADER_FLASH_PROGRAM:
 
-		nbytes = msgb_get_u8(msg);
-		crc = msgb_get_u16(msg);
-		msgb_get_u8(msg);	// XXX align
-		chip = msgb_get_u8(msg);
-		address = msgb_get_u32(msg);
+		nbytes = msgb_pull_u8(msg);
+		crc = msgb_pull_u16(msg);
+		msgb_pull_u8(msg);	// XXX align
+		chip = msgb_pull_u8(msg);
+		address = msgb_pull_u32(msg);
 
-		data = msgb_get(msg, nbytes);
+		data = msgb_pull(msg, nbytes) - nbytes;
 
 		mycrc = osmo_crc16(0, data, nbytes);
 

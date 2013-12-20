@@ -383,7 +383,7 @@ static int gsm411_rx_rp_ud(struct msgb *msg, struct gsm_trans *trans,
 
 	LOGP(DLSMS, LOGL_INFO, "DST(%u,%s)\n", src_len,
 		osmo_hexdump(src, src_len));
-	LOGP(DLSMS, LOGL_INFO, "TPDU(%u,%s)\n", msg->tail-msg->l4h,
+	LOGP(DLSMS, LOGL_INFO, "TPDU(%li,%s)\n", msg->tail-msg->l4h,
 		osmo_hexdump(msg->l4h, msg->tail-msg->l4h));
 
 	rc = gsm340_rx_tpdu(trans, msg);
@@ -636,7 +636,7 @@ static int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
 	uint8_t *data, *rp_ud_len;
 	uint8_t msg_ref = 42;
 	int rc;
-	uint8_t transaction_id;
+	int transaction_id;
 	uint8_t sca[11];	/* max len per 03.40 */
 
 	LOGP(DLSMS, LOGL_INFO, "..._sms_submit()\n");
@@ -664,10 +664,10 @@ static int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
 		sms_free(sms);
 		return -ENOMEM;
 	}
-	gsm411_smc_init(&trans->sms.smc_inst, 0, gsm411_mn_recv,
-		gsm411_mm_send);
-	gsm411_smr_init(&trans->sms.smr_inst, 0, gsm411_rl_recv,
-		gsm411_mn_send);
+	gsm411_smc_init(&trans->sms.smc_inst, transaction_id, 0,
+		gsm411_mn_recv, gsm411_mm_send);
+	gsm411_smr_init(&trans->sms.smr_inst, transaction_id, 0,
+		gsm411_rl_recv, gsm411_mn_send);
 	trans->sms.sms = sms;
 	trans->sms.sapi = UM_SAPI_SMS;
 
@@ -918,10 +918,10 @@ int gsm411_rcv_sms(struct osmocom_ms *ms, struct msgb *msg)
 					mmh->ref);
 		if (!trans)
 			return -ENOMEM;
-		gsm411_smc_init(&trans->sms.smc_inst, 0, gsm411_mn_recv,
-			gsm411_mm_send);
-		gsm411_smr_init(&trans->sms.smr_inst, 0, gsm411_rl_recv,
-			gsm411_mn_send);
+		gsm411_smc_init(&trans->sms.smc_inst, trans->transaction_id, 0,
+			gsm411_mn_recv, gsm411_mm_send);
+		gsm411_smr_init(&trans->sms.smr_inst, trans->transaction_id, 0,
+			gsm411_rl_recv, gsm411_mn_send);
 		trans->sms.sapi = mmh->sapi;
 	}
 

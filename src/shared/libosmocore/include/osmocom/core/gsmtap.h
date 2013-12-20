@@ -41,6 +41,9 @@
 #define GSMTAP_TYPE_GB_LLC	0x08 /* GPRS Gb interface: LLC */
 #define GSMTAP_TYPE_GB_SNDCP	0x09 /* GPRS Gb interface: SNDCP */
 #define GSMTAP_TYPE_GMR1_UM	0x0a	/* GMR-1 L2 packets */
+#define GSMTAP_TYPE_UMTS_RLC_MAC	0x0b
+#define GSMTAP_TYPE_UMTS_RRC	0x0c
+
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
@@ -127,6 +130,10 @@
 #define GSMTAP_GMR1_TCH9	0x18
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
+
+#define GSMTAP_UMTS_CH_PCCH	0x01
+#define GSMTAP_UMTS_CH_CCCH	0x02
+#define GSMTAP_UMTS_CH_DCCH	0x03
 
 /* flags for the ARFCN */
 #define GSMTAP_ARFCN_F_PCS	0x8000

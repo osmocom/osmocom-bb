@@ -484,7 +484,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 		layer3_app_reset();
 		return l1ctl_tx_fbsb_req(ms, ms->test_arfcn,
 		                         L1CTL_FBSB_F_FB01SB, 100, 0,
-		                         CCCH_MODE_NONE);
+		                         CCCH_MODE_NONE, dbm2rxlev(-85));
 		break;
 	}
 	return 0;

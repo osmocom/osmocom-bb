@@ -1506,9 +1506,9 @@ static void key_handler(enum key_codes code, enum key_states state)
 
 int main(void)
 {
-	board_init();
+	board_init(1);
 
-	puts("\n\nOSMOCOM Monitor Tool (revision " GIT_REVISION ")\n");
+	puts("\n\nOsmocomBB Monitor Tool (revision " GIT_REVISION ")\n");
 	puts(hr);
 
 	/* Dump device identification */

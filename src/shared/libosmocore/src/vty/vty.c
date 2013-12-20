@@ -78,7 +78,7 @@ char *vty_cwd = NULL;
 /* Configure lock. */
 static int vty_config;
 
-static int no_password_check = 1;
+static int password_check;
 
 void *tall_vty_ctx;
 
@@ -291,7 +291,7 @@ int vty_out(struct vty *vty, const char *format, ...)
 /*! \brief print a newline on the given VTY */
 int vty_out_newline(struct vty *vty)
 {
-	char *p = vty_newline(vty);
+	const char *p = vty_newline(vty);
 	buffer_put(vty->obuf, p, strlen(p));
 	return 0;
 }
@@ -339,6 +339,17 @@ int vty_config_unlock(struct vty *vty)
 /* Say hello to vty interface. */
 void vty_hello(struct vty *vty)
 {
+	const char *app_name = "<unnamed>";
+
+	if (host.app_info->name)
+		app_name = host.app_info->name;
+
+	vty_out(vty, "Welcome to the %s control interface%s%s",
+		app_name, VTY_NEWLINE, VTY_NEWLINE);
+
+	if (host.app_info->copyright)
+		vty_out(vty, "%s", host.app_info->copyright);
+
 	if (host.motdfile) {
 		FILE *f;
 		char buf[4096];
@@ -1481,7 +1492,7 @@ vty_create (int vty_sock, void *priv)
   vty->fd = vty_sock;
   vty->priv = priv;
   vty->type = VTY_TERM;
-  if (no_password_check)
+  if (!password_check)
     {
       if (host.advanced)
 	vty->node = ENABLE_NODE;
@@ -1504,7 +1515,7 @@ vty_create (int vty_sock, void *priv)
   else
     vty->lines = -1;
 
-  if (! no_password_check)
+  if (password_check)
     {
       /* Vty is not available if password isn't set. */
       if (host.password == NULL && host.password_encrypt == NULL)
@@ -1518,7 +1529,7 @@ vty_create (int vty_sock, void *priv)
 
   /* Say hello to the world. */
   vty_hello (vty);
-  if (! no_password_check)
+  if (password_check)
     vty_out (vty, "%sUser Access Verification%s%s", VTY_NEWLINE, VTY_NEWLINE, VTY_NEWLINE);
 
   /* Setting up terminal. */
@@ -1562,14 +1573,14 @@ DEFUN(line_vty,
 /* vty login. */
 DEFUN(vty_login, vty_login_cmd, "login", "Enable password checking\n")
 {
-	no_password_check = 0;
+	password_check = 1;
 	return CMD_SUCCESS;
 }
 
 DEFUN(no_vty_login,
       no_vty_login_cmd, "no login", NO_STR "Enable password checking\n")
 {
-	no_password_check = 1;
+	password_check = 0;
 	return CMD_SUCCESS;
 }
 
@@ -1639,7 +1650,7 @@ static int vty_config_write(struct vty *vty)
 	vty_out(vty, "line vty%s", VTY_NEWLINE);
 
 	/* login */
-	if (no_password_check)
+	if (!password_check)
 		vty_out(vty, " no login%s", VTY_NEWLINE);
 
 	vty_out(vty, "!%s", VTY_NEWLINE);
@@ -1768,4 +1779,4 @@ int vty_read_config_file(const char *file_name, void *priv)
 	return rc;
 }
 
-/*! }@ */
+/*! @} */

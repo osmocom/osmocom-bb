@@ -34,6 +34,7 @@ Q_CC = $(if $(V:1=),@echo "  CC     $@";)
 Q_LD = $(if $(V:1=),@echo "  LD     $@";)
 Q_AR = $(if $(V:1=),@echo "  AR     $@";)
 Q_OBJ = $(if $(V:1=),@echo "  OBJ    $@";)
+Q_SIZE = $(if $(V:1=),@echo "  SIZE   $@";)
 
 #### GIT VERSION ####
 
@@ -77,7 +78,7 @@ default: all
 define APPLICATION_BOARD_ENVIRONMENT_template
 
 # define set of objects for this binary
-$(1)_$(2)_$(3)_OBJS := apps/$(1)/main.o $(ANY_APP_OBJS) $$($(2)_OBJS)
+$(1)_$(2)_$(3)_OBJS := apps/$(1)/main.o $(ANY_APP_OBJS) $$(APP_$(1)_OBJS) $$(BOARD_$(2)_OBJS) $$(ENV_$(3)_OBJS)
 $(1)_$(2)_$(3)_LIBS := $(ANY_APP_LIBS)
 
 # define manifest compilation
@@ -89,17 +90,17 @@ board/$(2)/$(1).$(3).manifest.p: board/manifest.c
 	@touch board/$(2)/$(1).$(3).manifest.p
 
 # add manifest object to object list
-$(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o $$($(3)_OBJS)
+$(1)_$(2)_$(3)_OBJS+=board/$(2)/$(1).$(3).manifest.o
 
 # define compilation rule, also generates map file
-board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map: $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) $$($(3)_LDS)
-	$$(Q_LD)$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$($(3)_LDS) -Bstatic \
+board/$(2)/$(1).$(3).elf board/$(2)/$(1).$(3).map: $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) $$(ENV_$(3)_LDS)
+	$$(Q_LD)$(CROSS_COMPILE)$(LD) $(LDFLAGS) -T $$(ENV_$(3)_LDS) -Bstatic \
 		-Map board/$(2)/$(1).$(3).map -o board/$(2)/$(1).$(3).elf \
 		--start-group $$($(1)_$(2)_$(3)_OBJS) $$($(1)_$(2)_$(3)_LIBS) --end-group
 
 # define size rule
 board/$(2)/$(1).$(3).size: board/$(2)/$(1).$(3).elf
-	$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
+	$$(Q_SIZE)$(CROSS_COMPILE)$(SIZE) board/$(2)/$(1).$(3).elf | tee board/$(2)/$(1).$(3).size
 
 ALL_APPS+=board/$(2)/$(1).$(3).elf
 ALL_OBJS+=board/$(2)/$(1).$(3).manifest.o
@@ -107,34 +108,34 @@ ALL_OBJS+=board/$(2)/$(1).$(3).manifest.o
 endef
 
 define BOARD_template
-ALL_OBJS+=$$($(1)_OBJS)
+ALL_OBJS+=$$(BOARD_$(1)_OBJS)
 endef
 
 define BOARD_ENVIRONMENT_template
-ALL_OBJS+=$$($(1)_OBJS)
+ALL_OBJS+=$$(ENV_$(1)_OBJS)
 endef
 
 define APPLICATION_template
-$(1)_SRCS_REL=$$(patsubst %,$$($(1)_DIR)/%,$$($(1)_SRCS))
-$(1)_OBJS:=$$($(1)_SRCS_REL:.c=.o)
-$(1)_OBJS:=$$($(1)_OBJS:.S=.o)
+APP_$(1)_SRCS_REL=$$(patsubst %,$$(APP_$(1)_DIR)/%,$$(APP_$(1)_SRCS))
+APP_$(1)_OBJS:=$$(APP_$(1)_SRCS_REL:.c=.o)
+APP_$(1)_OBJS:=$$(APP_$(1)_OBJS:.S=.o)
 
-ALL_OBJS+=$$($(1)_OBJS) apps/$(1)/main.o
+ALL_OBJS+=$$(APP_$(1)_OBJS) apps/$(1)/main.o
 endef
 
 # define rules for all defined applications
-$(foreach app,$(APPLICATIONS),                \
-	$(foreach brd,$(BOARDS),                  \
-		$(foreach env,$($(brd)_ENVIRONMENTS), \
-			$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
-
 $(foreach brd,$(BOARDS), \
 	$(eval $(call BOARD_template,$(brd)) \
-    $(foreach env,$($(brd)_ENVIRONMENTS), \
-	    $(eval $(call BOARD_ENVIRONMENT_template,$(env))))))
+	$(foreach env,$(BOARD_$(brd)_ENVIRONMENTS), \
+		$(eval $(call BOARD_ENVIRONMENT_template,$(env))))))
 
 $(foreach app,$(APPLICATIONS), \
 	$(eval $(call APPLICATION_template,$(app))))
+
+$(foreach app,$(APPLICATIONS),                \
+	$(foreach brd,$(BOARDS),                  \
+		$(foreach env,$(shell ./solve_envs.py "$(BOARD_$(brd)_ENVIRONMENTS)" "$(APP_$(app)_ENVIRONMENTS)"), \
+			$(eval $(call APPLICATION_BOARD_ENVIRONMENT_template,$(app),$(brd),$(env))))))
 
 
 # add common things to global lists
@@ -145,16 +146,16 @@ ALL_OBJS+=$(ANY_APP_OBJS)
 # template for library rules
 define LIBRARY_template
 
-$(1)_SRCS_REL=$$(patsubst %,$$($(1)_DIR)/%,$$($(1)_SRCS))
-$(1)_OBJS:=$$($(1)_SRCS_REL:.c=.o)
-$(1)_OBJS:=$$($(1)_OBJS:.S=.o)
+LIB_$(1)_SRCS_REL=$$(patsubst %,$$(LIB_$(1)_DIR)/%,$$(LIB_$(1)_SRCS))
+LIB_$(1)_OBJS:=$$(LIB_$(1)_SRCS_REL:.c=.o)
+LIB_$(1)_OBJS:=$$(LIB_$(1)_OBJS:.S=.o)
 
-$$($(1)_DIR)/lib$(1).a: $$($(1)_OBJS)
-	$$(Q_AR)$(CROSS_COMPILE)$(AR) cru $$($(1)_DIR)/lib$(1).a $$($(1)_OBJS)
+$$(LIB_$(1)_DIR)/lib$(1).a: $$(LIB_$(1)_OBJS)
+	$$(Q_AR)$(CROSS_COMPILE)$(AR) cru $$(LIB_$(1)_DIR)/lib$(1).a $$(LIB_$(1)_OBJS)
 
-ALL_LIBS+=$$($(1)_DIR)/lib$(1).a
+ALL_LIBS+=$$(LIB_$(1)_DIR)/lib$(1).a
 
-ALL_OBJS+=$$($(1)_OBJS)
+ALL_OBJS+=$$(LIB_$(1)_OBJS)
 
 endef
 

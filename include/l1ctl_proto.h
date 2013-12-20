@@ -167,6 +167,7 @@ struct l1ctl_fbsb_req {
 	uint8_t flags;		/* L1CTL_FBSB_F_* */
 	uint8_t sync_info_idx;
 	uint8_t ccch_mode;	/* enum ccch_mode */
+	uint8_t rxlev_exp;	/* expected signal level */
 } __attribute__((packed));
 
 #define L1CTL_FBSB_F_FB0	(1 << 0)

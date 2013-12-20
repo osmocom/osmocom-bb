@@ -90,23 +90,6 @@ int telnet_init_dynif(void *tall_ctx, void *priv, const char *ip, int port)
 
 extern struct host host;
 
-static void print_welcome(int fd)
-{
-	static const char *msg1 = "Welcome to the ";
-	static const char *msg2 = " control interface\r\n";
-	const char *app_name = "<unnamed>";
-
-	if (host.app_info->name)
-		app_name = host.app_info->name;
-
-	write(fd, msg1, strlen(msg1));
-	write(fd, app_name, strlen(app_name));
-	write(fd, msg2, strlen(msg2));
-
-	if (host.app_info->copyright)
-		write(fd, host.app_info->copyright, strlen(host.app_info->copyright));
-}
-
 /*! \brief close a telnet connection */
 int telnet_close_client(struct osmo_fd *fd)
 {
@@ -169,8 +152,6 @@ static int telnet_new_connection(struct osmo_fd *fd, unsigned int what)
 	osmo_fd_register(&connection->fd);
 	llist_add_tail(&connection->entry, &active_connections);
 
-	print_welcome(new_connection);
-
 	connection->vty = vty_create(new_connection, connection);
 	if (!connection->vty) {
 		LOGP(0, LOGL_ERROR, "couldn't create VTY\n");
@@ -220,4 +201,4 @@ void telnet_exit(void)
 	talloc_free(tall_telnet_ctx);
 }
 
-/*! }@ */
+/*! @} */

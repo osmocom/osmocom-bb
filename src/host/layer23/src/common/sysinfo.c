@@ -306,20 +306,6 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
  * decoding
  */
 
-int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
-	uint16_t *mnc, uint16_t *lac)
-{
-	*mcc = ((lai->digits[0] & 0x0f) << 8)
-	     | (lai->digits[0] & 0xf0)
-	     | (lai->digits[1] & 0x0f);
-	*mnc = ((lai->digits[2] & 0x0f) << 8)
-	     | (lai->digits[2] & 0xf0)
-	     | ((lai->digits[1] & 0xf0) >> 4);
-	*lac = ntohs(lai->lac);
-
-	return 0;
-}
-
 int gsm48_decode_chan_h0(struct gsm48_chan_desc *cd, uint8_t *tsc, 
 	uint16_t *arfcn)
 {
@@ -533,7 +519,7 @@ static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si,
 	/* Optional Power Offset */
 	if (bitvec_get_bit_high(&bv) == H) {
 		s->po = 1;
-		s->po_value = bitvec_get_uint(&bv, 3);
+		s->po_value = bitvec_get_uint(&bv, 2);
 	} else
 		s->po = 0;
 	/* System Onformation 2ter Indicator */
@@ -701,7 +687,7 @@ int gsm48_decode_sysinfo3(struct gsm48_sysinfo *s,
 	/* Cell Identity */
 	s->cell_id = ntohs(si->cell_identity);
 	/* LAI */
-	gsm48_decode_lai(&si->lai, &s->mcc, &s->mnc, &s->lac);
+	gsm48_decode_lai_hex(&si->lai, &s->mcc, &s->mnc, &s->lac);
 	/* Control Channel Description */
 	gsm48_decode_ccd(s, &si->control_channel_desc);
 	/* Cell Options (BCCH) */
@@ -734,7 +720,7 @@ int gsm48_decode_sysinfo4(struct gsm48_sysinfo *s,
 	memcpy(s->si4_msg, si, MIN(len, sizeof(s->si4_msg)));
 
 	/* LAI */
-	gsm48_decode_lai(&si->lai, &s->mcc, &s->mnc, &s->lac);
+	gsm48_decode_lai_hex(&si->lai, &s->mcc, &s->mnc, &s->lac);
 	/* Cell Selection Parameters */
 	gsm48_decode_cell_sel_param(s, &si->cell_sel_par);
 	/* RACH Control Parameter */
@@ -767,6 +753,7 @@ short_read:
 			LOGP(DRR, LOGL_NOTICE, "Ignoring CBCH allocation of "
 				"SYSTEM INFORMATION 4 until SI 1 is "
 				"received.\n");
+		} else {
 			gsm48_decode_mobile_alloc(s->freq, data + 2, data[1],
 				s->hopping, &s->hopp_len, 1);
 		}
@@ -843,7 +830,7 @@ int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
 			"read.\n");
 	s->cell_id = ntohs(si->cell_identity);
 	/* LAI */
-	gsm48_decode_lai(&si->lai, &s->mcc, &s->mnc, &s->lac);
+	gsm48_decode_lai_hex(&si->lai, &s->mcc, &s->mnc, &s->lac);
 	/* Cell Options (SACCH) */
 	gsm48_decode_cellopt_sacch(s, &si->cell_options);
 	/* NCC Permitted */
@@ -854,6 +841,31 @@ int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
 
 	s->si6 = 1;
 
+	return 0;
+}
+
+int gsm48_encode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t mcc,
+	uint16_t mnc, uint16_t lac)
+{
+	lai->digits[0] = (mcc >> 8) | (mcc & 0xf0);
+	lai->digits[1] = (mcc & 0x0f) | (mnc << 4);
+	lai->digits[2] = (mnc >> 8) | (mnc & 0xf0);
+	lai->lac = htons(lac);
+
+	return 0;
+}
+
+ int gsm48_decode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t *mcc,
+       	uint16_t *mnc, uint16_t *lac)
+{
+	*mcc = ((lai->digits[0] & 0x0f) << 8)
+		| (lai->digits[0] & 0xf0)
+		| (lai->digits[1] & 0x0f);
+	*mnc = ((lai->digits[2] & 0x0f) << 8)
+		| (lai->digits[2] & 0xf0)
+		| ((lai->digits[1] & 0xf0) >> 4);
+	*lac = ntohs(lai->lac);
+			        
 	return 0;
 }
 

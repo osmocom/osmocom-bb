@@ -3,6 +3,6 @@
 
 extern const char *target_board;
 
-void board_init(void);
+void board_init(int with_irq);
 
 #endif /* _BOARD_H */

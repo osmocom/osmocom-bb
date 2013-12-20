@@ -13,6 +13,11 @@ enum uart_baudrate {
 	UART_921600,
 };
 
+enum uart_id {
+	UART_IRDA,
+	UART_MODEM,
+};
+
 void uart_init(uint8_t uart, uint8_t interrupts);
 void uart_putchar_wait(uint8_t uart, int c);
 int uart_putchar_nb(uint8_t uart, int c);

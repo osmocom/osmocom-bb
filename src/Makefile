@@ -10,34 +10,14 @@ CROSS_HOST ?= $(shell which arm-elf-gcc >/dev/null 2>&1 && echo arm-elf || echo 
 CROSS_TOOL_PREFIX=$(CROSS_HOST)-
 
 TOPDIR=$(shell pwd)
-OSMOCORE_CONFIGURE_ENV= LIBOSMOCORE_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/.libs/libosmocore.a \
-                        LIBOSMOVTY_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/vty/.libs/libosmovty.a \
-			LIBOSMOGSM_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/gsm/.libs/libosmogsm.a \
-			LIBOSMOCODEC_LIBS=$(TOPDIR)/shared/libosmocore/build-host/src/codec/.libs/libosmocodec.a \
-	 	    	LIBOSMOCORE_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
-	 	    	LIBOSMOVTY_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
-			LIBOSMOGSM_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include \
-			LIBOSMOCODEC_CFLAGS=-I$(TOPDIR)/shared/libosmocore/include
 
 all: libosmocore-target nofirmware firmware mtk-firmware
-nofirmware: libosmocore-host layer23 osmocon gsmmap
-
-libosmocore-host: shared/libosmocore/build-host/src/.libs/libosmocore.la
-
-shared/libosmocore/build-host:
-	mkdir $@
-
-shared/libosmocore/configure: shared/libosmocore/configure.ac
-	cd shared/libosmocore && autoreconf -i
-
-shared/libosmocore/build-host/Makefile: shared/libosmocore/configure shared/libosmocore/build-host
-	cd shared/libosmocore/build-host && ../configure $(HOST_CONFARGS)
-
-shared/libosmocore/build-host/src/.libs/libosmocore.la: shared/libosmocore/build-host/Makefile
-	cd shared/libosmocore/build-host && make
-
+nofirmware: layer23 osmocon gsmmap
 
 libosmocore-target: shared/libosmocore/build-target/src/.libs/libosmocore.a
+
+shared/libosmocore/configure: shared/libosmocore/configure.ac
+	cd shared/libosmocore && autoreconf -fi
 
 shared/libosmocore/build-target:
 	mkdir $@
@@ -60,9 +40,9 @@ host/osmocon/configure: host/osmocon/configure.ac
 	cd host/osmocon && autoreconf -i
 
 host/osmocon/Makefile: host/osmocon/configure
-	cd host/osmocon && $(OSMOCORE_CONFIGURE_ENV) ./configure $(HOST_CONFARGS)
+	cd host/osmocon && ./configure $(HOST_CONFARGS)
 
-host/osmocon/osmocon: host/osmocon/Makefile libosmocore-host
+host/osmocon/osmocon: host/osmocon/Makefile
 	make -C host/osmocon
 
 
@@ -73,9 +53,9 @@ host/gsmmap/configure: host/gsmmap/configure.ac
 	cd host/gsmmap && autoreconf -i
 
 host/gsmmap/Makefile: host/gsmmap/configure
-	cd host/gsmmap && $(OSMOCORE_CONFIGURE_ENV) ./configure $(HOST_CONFARGS)
+	cd host/gsmmap && ./configure $(HOST_CONFARGS)
 
-host/gsmmap/gsmmap: host/gsmmap/Makefile libosmocore-host
+host/gsmmap/gsmmap: host/gsmmap/Makefile
 	make -C host/gsmmap
 
 
@@ -86,9 +66,9 @@ host/layer23/configure: host/layer23/configure.ac
 	cd host/layer23 && autoreconf -i
 
 host/layer23/Makefile: host/layer23/configure
-	cd host/layer23 && $(OSMOCORE_CONFIGURE_ENV) ./configure $(HOST_CONFARGS)
+	cd host/layer23 && ./configure $(HOST_CONFARGS)
 
-host/layer23/layer23: host/layer23/Makefile libosmocore-host
+host/layer23/layer23: host/layer23/Makefile
 	make -C host/layer23
 
 
@@ -102,7 +82,6 @@ mtk-firmware: libosmocore-target
 
 
 clean:
-	make -C shared/libosmocore/build-host $@
 	make -C shared/libosmocore/build-target $@
 	make -C host/layer23 $@
 	make -C host/osmocon $@
@@ -110,7 +89,6 @@ clean:
 	make -C target/firmware -f Makefile.mtk $@
 
 distclean:
-	rm -rf shared/libosmocore/build-host
 	rm -rf shared/libosmocore/build-target
 	make -C host/layer23 $@
 	make -C host/osmocon $@

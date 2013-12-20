@@ -25,6 +25,7 @@
  *
  */
 
+#include "../../config.h"
 
 #include <time.h>
 #include <string.h>
@@ -80,7 +81,12 @@ void gsm340_gen_scts(uint8_t *scts, time_t time)
 	*scts++ = gsm411_bcdify(tm->tm_hour);
 	*scts++ = gsm411_bcdify(tm->tm_min);
 	*scts++ = gsm411_bcdify(tm->tm_sec);
-	*scts++ = gsm411_bcdify(0); /* GMT */
+#ifdef HAVE_TM_GMTOFF_IN_TM
+	*scts++ = gsm411_bcdify(tm->tm_gmtoff/(60*15));
+#else
+#warning find a portable way to obtain timezone offset
+	*scts++ = 0;
+#endif
 }
 
 /* Decode 03.40 TP-SCTS (into utc/gmt timestamp) */
@@ -101,6 +107,9 @@ time_t gsm340_scts(uint8_t *scts)
 	tm.tm_hour = gsm411_unbcdify(*scts++);
 	tm.tm_min  = gsm411_unbcdify(*scts++);
 	tm.tm_sec  = gsm411_unbcdify(*scts++);
+#ifdef HAVE_TM_GMTOFF_IN_TM
+	tm.tm_gmtoff = gsm411_unbcdify(*scts++) * 15*60;
+#endif
 
 	/* according to gsm 03.40 time zone is
 	   "expressed in quarters of an hour" */
@@ -264,7 +273,6 @@ int gsm340_gen_oa(uint8_t *oa, unsigned int oa_len, uint8_t type,
 	if (strlen(number) > 20)
 		number = "";
 
-//	oa[1] = 0xb9; /* networks-specific number, private numbering plan */
 	oa[1] = 0x80 | (type << 4) | plan;
 
 	len_in_bytes = gsm48_encode_bcd_number(oa, oa_len, 1, number);

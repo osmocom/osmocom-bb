@@ -1084,6 +1084,7 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY
 	 && cs->state != GSM322_C7_CAMPED_ANY_CELL) {
@@ -1155,6 +1156,14 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 				cs->sel_lac)) {
 			/* location update not allowed */
 			LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed LA.\n");
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
+				GSM48_MM_SST_LIMITED_SERVICE);
+		} else
+		/* 4.4.4.9 if cell is barred, don't start */
+		if ((!subscr->acc_barr && s->cell_barr)
+		 || (!subscr->acc_barr && !((subscr->acc_class & 0xfbff) &
+					(s->class_barr ^ 0xffff)))) {
+			LOGP(DMM, LOGL_INFO, "Loc. upd. no access.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
 				GSM48_MM_SST_LIMITED_SERVICE);
 		} else {
@@ -1580,7 +1589,7 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 	/* LAI */
-	gsm48_decode_lai(lai, &subscr->mcc, &subscr->mnc, &subscr->lac);
+	gsm48_decode_lai_hex(lai, &subscr->mcc, &subscr->mnc, &subscr->lac);
 	/* MI */
 	mi = gh->data + sizeof(struct gsm48_loc_area_id);
 	mi_type = mi[1] & GSM_MI_TYPE_MASK;
@@ -2047,7 +2056,7 @@ static int gsm48_mm_rx_info(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_hdr *gh = msgb_l3(msg);
-	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
+	int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct tlv_parsed tp;
 
 	if (payload_len < 0) {
@@ -2363,7 +2372,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	 *
 	 * NOTE: The TMSI is only valid within a LAI!
 	 */
-	gsm48_encode_lai(&nlu->lai, subscr->mcc, subscr->mnc, subscr->lac);
+	gsm48_encode_lai_hex(&nlu->lai, subscr->mcc, subscr->mnc, subscr->lac);
 	LOGP(DMM, LOGL_INFO, " using LAI (mcc %s mnc %s " "lac 0x%04x)\n",
 		gsm_print_mcc(subscr->mcc),
 		gsm_print_mnc(subscr->mnc), subscr->lac);
@@ -2437,7 +2446,7 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	stop_mm_t3212(mm); /* 4.4.2 */
 
 	/* LAI */
-	gsm48_decode_lai(lai, &subscr->mcc, &subscr->mnc, &subscr->lac);
+	gsm48_decode_lai_hex(lai, &subscr->mcc, &subscr->mnc, &subscr->lac);
 
 	/* stop location update timer */
 	stop_mm_t3210(mm);

@@ -161,7 +161,7 @@ int gsm_subscr_exit(struct osmocom_ms *ms)
 
 /* Attach test card, no SIM must be currently attached */
 int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
-	uint16_t lac, uint32_t tmsi)
+	uint16_t lac, uint32_t tmsi, uint8_t imsi_attached)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
@@ -187,7 +187,11 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	subscr->sim_type = GSM_SIM_TYPE_TEST;
 	sprintf(subscr->sim_name, "test");
 	subscr->sim_valid = 1;
-	subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
+	if (imsi_attached && set->test_rplmn_valid) {
+		subscr->imsi_attached = imsi_attached;
+		subscr->ustate = GSM_SIM_U1_UPDATED;
+	} else
+		subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
 	subscr->acc_barr = set->test_barr; /* we may access barred cell */
 	subscr->acc_class = 0xffff; /* we have any access class */
 	subscr->plmn_valid = set->test_rplmn_valid;
@@ -212,6 +216,8 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 			gsm_get_mnc(mcc, mnc));
 	else
 		LOGP(DMM, LOGL_INFO, "-> Test card not registered\n");
+	if (subscr->imsi_attached)
+		LOGP(DMM, LOGL_INFO, "-> Test card attached\n");
 
 	/* insert card */
 	nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_REG_REQ);
@@ -282,7 +288,8 @@ static int subscr_sim_loci(struct osmocom_ms *ms, uint8_t *data,
 	subscr->tmsi = ntohl(loci->tmsi);
 
 	/* LAI */
-	gsm48_decode_lai(&loci->lai, &subscr->mcc, &subscr->mnc, &subscr->lac);
+	gsm48_decode_lai_hex(&loci->lai, &subscr->mcc, &subscr->mnc,
+		&subscr->lac);
 
 	/* location update status */
 	switch (loci->lupd_status & 0x07) {
@@ -408,8 +415,8 @@ static int subscr_sim_plmnsel(struct osmocom_ms *ms, uint8_t *data,
 		lai[0] = data[0];
 		lai[1] = data[1];
 		lai[2] = data[2];
-		gsm48_decode_lai((struct gsm48_loc_area_id *)lai, &plmn->mcc,
-			&plmn->mnc, &dummy_lac);
+		gsm48_decode_lai_hex((struct gsm48_loc_area_id *)lai,
+			&plmn->mcc, &plmn->mnc, &dummy_lac);
 		llist_add_tail(&plmn->entry, &subscr->plmn_list);
 
 		LOGP(DMM, LOGL_INFO, "received PLMN selector (mcc=%s mnc=%s) "
@@ -512,8 +519,10 @@ static int subscr_sim_fplmn(struct osmocom_ms *ms, uint8_t *data,
 		lai[0] = data[0];
 		lai[1] = data[1];
 		lai[2] = data[2];
-		gsm48_decode_lai((struct gsm48_loc_area_id *)lai, &na->mcc,
+		gsm48_decode_lai_hex((struct gsm48_loc_area_id *)lai, &na->mcc,
 			&na->mnc, &dummy_lac);
+		LOGP(DMM, LOGL_INFO, "received Forbidden PLMN %s %s from SIM\n",
+			gsm_print_mcc(na->mcc), gsm_print_mnc(na->mnc));
 		na->cause = -1; /* must have a value, but SIM stores no cause */
 		llist_add_tail(&na->entry, &subscr->plmn_na);
 
@@ -821,7 +830,7 @@ static int subscr_write_plmn_na(struct osmocom_ms *ms)
 	nsh->file = 0x6f7b;
 	for (i = 0; i < 4; i++) {
 		if (nas[i]) {
-			gsm48_encode_lai((struct gsm48_loc_area_id *)lai,
+			gsm48_encode_lai_hex((struct gsm48_loc_area_id *)lai,
 			nas[i]->mcc, nas[i]->mnc, 0);
 			*data++ = lai[0];
 			*data++ = lai[1];
@@ -866,7 +875,7 @@ int gsm_subscr_write_loci(struct osmocom_ms *ms)
 	loci->tmsi = htonl(subscr->tmsi);
 
 	/* LAI */
-	gsm48_encode_lai(&loci->lai, subscr->mcc, subscr->mnc, subscr->lac);
+	gsm48_encode_lai_hex(&loci->lai, subscr->mcc, subscr->mnc, subscr->lac);
 
 	/* TMSI time */
 	loci->tmsi_time = 0xff;
@@ -1196,7 +1205,7 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 	print(priv, " Status: %s  IMSI %s", subscr_ustate_names[subscr->ustate],
 		(subscr->imsi_attached) ? "attached" : "detached");
 	if (subscr->tmsi != 0xffffffff)
-		print(priv, "  TSMI 0x%08x", subscr->tmsi);
+		print(priv, "  TMSI 0x%08x", subscr->tmsi);
 	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
 		print(priv, "\n");
 		print(priv, "         LAI: MCC %s  MNC %s  LAC 0x%04x  "

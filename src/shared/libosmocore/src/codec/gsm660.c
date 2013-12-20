@@ -32,7 +32,7 @@
 	 * applied prior to this table, as in GSM 05.03 3.1.1, to get 260
 	 * bits from a 244 bits raw EFR frame.
 	 */
-uint16_t gsm660_bitorder[260] = {
+const uint16_t gsm660_bitorder[260] = {
 	 38,  39,  40,  41,  42,  43,		/*   0 -> LTP-LAG 1: b8..b3 */
 	145, 146, 147, 148, 149, 150,		/*   6 -> LTP-LAG 3: b8..b3 */
 	 93,  94,				/*  12 -> LTP-LAG 2: b5..b4 */

@@ -38,6 +38,6 @@ int osmo_serial_set_baudrate(int fd, speed_t baudrate);
 int osmo_serial_set_custom_baudrate(int fd, int baudrate);
 int osmo_serial_clear_custom_baudrate(int fd);
 
-/*! }@ */
+/*! @} */
 
 #endif /* __OSMO_SERIAL_H__ */

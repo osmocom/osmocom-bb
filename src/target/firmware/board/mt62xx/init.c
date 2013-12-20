@@ -117,7 +117,7 @@ void memory_init(void)
 #endif
 }
 
-void board_init(void)
+void board_init(int with_irq)
 {
 	/* powerup the baseband */
 	writew(POWERKEY1_MAGIC, MTK_RTC_POWERKEY1);
@@ -133,7 +133,9 @@ void board_init(void)
 	pll_init();
 	memory_init();
 
-	/* Initialize UART without interrupts */
-	uart_init(SERCOMM_UART_NR, 0);
-	uart_baudrate(SERCOMM_UART_NR, UART_115200);
+	/* Initialize UART */
+	sercomm_bind_uart(UART_MODEM);
+	cons_bind_uart(UART_IRDA);
+	uart_init(UART_MODEM, with_irq);
+	uart_baudrate(UART_MODEM, UART_115200);
 }

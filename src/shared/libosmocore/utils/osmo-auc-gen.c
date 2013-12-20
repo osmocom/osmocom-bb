@@ -26,9 +26,22 @@
 #include <errno.h>
 #include <string.h>
 #include <getopt.h>
+#include <unistd.h>
 
 #include <osmocom/crypt/auth.h>
 #include <osmocom/core/utils.h>
+
+static void dump_triplets_dat(struct osmo_auth_vector *vec)
+{
+	if (vec->auth_types & OSMO_AUTH_TYPE_UMTS) {
+		fprintf(stderr, "triplets.dat doesn't support UMTS!\n");
+		return;
+	}
+	printf("imsi,");
+	printf("%s,", osmo_hexdump_nospc(vec->rand, sizeof(vec->rand)));
+	printf("%s,", osmo_hexdump_nospc(vec->sres, sizeof(vec->sres)));
+	printf("%s\n", osmo_hexdump_nospc(vec->kc, sizeof(vec->kc)));
+}
 
 static void dump_auth_vec(struct osmo_auth_vector *vec)
 {
@@ -63,7 +76,8 @@ static void help()
 		"-a  --amf\tSpecify AMF (only for 3G)\n"
 		"-s  --sqn\tSpecify SQN (only for 3G)\n"
 		"-A  --auts\tSpecify AUTS (only for 3G)\n"
-		"-r  --rand\tSpecify random value\n");
+		"-r  --rand\tSpecify random value\n"
+		"-I  --ipsec\tOutput in triplets.dat format for strongswan\n");
 }
 
 int main(int argc, char **argv)
@@ -74,6 +88,7 @@ int main(int argc, char **argv)
 	int rc, option_index;
 	int rand_is_set = 0;
 	int auts_is_set = 0;
+	int fmt_triplets_dat = 0;
 
 	printf("osmo-auc-gen (C) 2011-2012 by Harald Welte\n");
 	printf("This is FREE SOFTWARE with ABSOLUTELY NO WARRANTY\n\n");
@@ -100,7 +115,7 @@ int main(int argc, char **argv)
 
 		rc = 0;
 
-		c = getopt_long(argc, argv, "23a:k:o:f:s:r:hO:A:", long_options,
+		c = getopt_long(argc, argv, "23a:k:o:f:s:r:hO:A:I", long_options,
 				&option_index);
 
 		if (c == -1)
@@ -179,6 +194,9 @@ int main(int argc, char **argv)
 			rc = osmo_hexparse(optarg, _rand, sizeof(_rand));
 			rand_is_set = 1;
 			break;
+		case 'I':
+			fmt_triplets_dat = 1;
+			break;
 		case 'h':
 			help();
 			exit(0);
@@ -222,7 +240,10 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	dump_auth_vec(vec);
+	if (fmt_triplets_dat)
+		dump_triplets_dat(vec);
+	else
+		dump_auth_vec(vec);
 
 	if (auts_is_set)
 		printf("AUTS success: SEQ.MS = %lu\n", test_aud.u.umts.sqn);

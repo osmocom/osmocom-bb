@@ -30,7 +30,7 @@
 	 * It converts between serial parameter output by the encoder and the
 	 * order needed before channel encoding.
 	 */
-uint16_t gsm610_bitorder[260] = {
+const uint16_t gsm610_bitorder[260] = {
 	0,	/* LARc0:5 */
 	47,	/* Xmaxc0:5 */
 	103,	/* Xmaxc1:5 */

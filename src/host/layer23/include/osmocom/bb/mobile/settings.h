@@ -35,6 +35,7 @@ struct gsm_settings {
 	uint8_t			test_rplmn_valid;
 	uint16_t		test_rplmn_mcc, test_rplmn_mnc;
 	uint16_t		test_lac;
+	uint8_t			test_imsi_attached;
 	uint8_t			test_always; /* ...search hplmn... */
 
 	/* call related settings */
@@ -83,7 +84,7 @@ struct gsm_settings {
 	uint8_t			half_v1;
 	uint8_t			half_v3;
 	uint8_t			ch_cap; /* channel capability */
-	int8_t			min_rxlev_db; /* min DB to access */
+	int8_t			min_rxlev_dbm; /* min dBm to access */
 
 	/* radio */
 	uint16_t		dsc_max;

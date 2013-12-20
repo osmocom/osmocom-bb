@@ -27,7 +27,7 @@
 	/* This array encode mapping between GSM 05.03 Table 3a (bits
 	 * ordering before channel coding on TCH) and GSM 06.20 Table B.1
 	 * (bit ordering on A-bis */
-uint16_t gsm620_unvoiced_bitorder[112] = {
+const uint16_t gsm620_unvoiced_bitorder[112] = {
 	3,	/* R0:1 */
 	25,	/* LPC 3:7 */
 	52,	/* GSP 0-1:2 */
@@ -146,7 +146,7 @@ uint16_t gsm620_unvoiced_bitorder[112] = {
 	/* This array encode mapping between GSM 05.03 Table 3b (bits
 	 * ordering before channel coding on TCH) and GSM 06.20 Table B.2
 	 * (bit ordering on A-bis */
-uint16_t gsm620_voiced_bitorder[112] = {
+const uint16_t gsm620_voiced_bitorder[112] = {
 	13,	/* LPC 1:2 */
 	14,	/* LPC 1:1 */
 	20,	/* LPC 2:4 */

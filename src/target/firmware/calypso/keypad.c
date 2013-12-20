@@ -1,6 +1,7 @@
 /* Driver for the keypad attached to the TI Calypso */
 
 /* (C) 2010 by roh <roh@hyte.de>
+ * (C) 2013 by Steve Markgraf <steve@steve-m.de>
  *
  * All Rights Reserved
  *
@@ -33,7 +34,6 @@
 #include <abb/twl3025.h>
 #include <comm/timer.h>
 
-
 #define KBR_LATCH_REG	0xfffe480a
 #define KBC_REG		0xfffe480c
 #define KBD_GPIO_INT	0xfffe4816
@@ -51,23 +51,17 @@ void emit_key(uint8_t key, uint8_t state)
 }
 
 volatile uint32_t lastbuttons = 0;
+static const uint8_t *btn_map;
 unsigned long power_hold = 0;
-
-#define BTN_TO_KEY(name) \
-	((diff & BTN_##name) == BTN_##name)	\
-	{					\
-		key = KEY_##name;		\
-		diff = diff & ~BTN_##name;	\
-		state = (buttons & BTN_##name) ? PRESSED : RELEASED;	\
-	}
 
 void dispatch_buttons(uint32_t buttons)
 {
+	int i;
 	uint8_t state;
 
-	if ((buttons & BTN_POWER)) {
+	if ((buttons & (1 << btn_map[KEY_POWER]))) {
 		/* hold button 500ms to shut down */
-		if ((lastbuttons & BTN_POWER)) {
+		if ((lastbuttons & (1 << btn_map[KEY_POWER]))) {
 			unsigned long elapsed = jiffies - power_hold;
 			if (elapsed > 50)
 				twl3025_power_off();
@@ -80,37 +74,11 @@ void dispatch_buttons(uint32_t buttons)
 		return;
 
 	uint32_t diff = buttons ^ lastbuttons;
-	uint8_t key=KEY_INV;
-
-	while (diff != 0)
-	{
-		if BTN_TO_KEY(POWER)
-		else if BTN_TO_KEY(0)
-		else if BTN_TO_KEY(1)
-		else if BTN_TO_KEY(2)
-		else if BTN_TO_KEY(3)
-		else if BTN_TO_KEY(4)
-		else if BTN_TO_KEY(5)
-		else if BTN_TO_KEY(6)
-		else if BTN_TO_KEY(7)
-		else if BTN_TO_KEY(8)
-		else if BTN_TO_KEY(9)
-		else if BTN_TO_KEY(STAR)
-		else if BTN_TO_KEY(HASH)
-		else if BTN_TO_KEY(MENU)
-		else if BTN_TO_KEY(LEFT_SB)
-		else if BTN_TO_KEY(RIGHT_SB)
-		else if BTN_TO_KEY(UP)
-		else if BTN_TO_KEY(DOWN)
-		else if BTN_TO_KEY(LEFT)
-		else if BTN_TO_KEY(RIGHT)
-		else if BTN_TO_KEY(OK)
-		else
-		{
-			printf("\nunknown keycode: 0x%08x\n", diff);
-			break;
+	for (i = 0; i < BUTTON_CNT; i++) {
+		if (diff & (1 << btn_map[i])) {
+			state = (buttons & (1 << btn_map[i])) ? PRESSED : RELEASED;
+			emit_key(i, state);
 		}
-		emit_key(key, state);
 	}
 	lastbuttons = buttons;
 }
@@ -125,8 +93,9 @@ static void keypad_irq(__unused enum irq_nr nr)
 	irq_disable(IRQ_KEYPAD_GPIO);
 }
 
-void keypad_init(uint8_t interrupts)
+void keypad_init(const uint8_t *keymap, uint8_t interrupts)
 {
+	btn_map = keymap;
 	lastbuttons = 0;
 	polling = 0;
 	writew(0, KBD_GPIO_MASKIT);
@@ -184,13 +153,14 @@ void keypad_poll()
 	}
 
 	col++;
-	if (col > 4) {
+	if (col > 5) {
+		uint32_t pwr_mask = (1 << btn_map[KEY_POWER]);
 		col = 0;
 		/* if power button, ignore other states */
-		if (buttons & BTN_POWER)
-			buttons = lastbuttons | BTN_POWER;
-		else if (lastbuttons & BTN_POWER)
-			buttons = lastbuttons & ~BTN_POWER;
+		if (buttons & pwr_mask)
+			buttons = lastbuttons | pwr_mask;
+		else if (lastbuttons & pwr_mask)
+			buttons = lastbuttons & ~pwr_mask;
 		dispatch_buttons(buttons);
 		if (buttons == 0) {
 			writew(0x0, KBC_REG);
@@ -198,10 +168,9 @@ void keypad_poll()
 			return;
 		}
 	}
-	if (col == 4)
+	if (col == 5)
 		writew(0xff, KBC_REG);
 	else
 		writew(0x1f & ~(0x1 << col ), KBC_REG);
 
 }
-

@@ -60,6 +60,7 @@ static int l1s_tx_rach_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused ui
 {
 	int i;
 	uint16_t  *info_ptr;
+	uint16_t arfcn;
 	uint8_t data[2];
 
 	putchart('T');
@@ -72,9 +73,11 @@ static int l1s_tx_rach_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused ui
 	info_ptr = &dsp_api.ndb->d_rach;
 	info_ptr[0] = ((uint16_t)(data[0])) | ((uint16_t)(data[1])<<8);
 
-	dsp_api.db_w->d_task_ra = RACH_DSP_TASK;
+	arfcn = l1s.serving_cell.arfcn;
 
-	l1s_tx_win_ctrl(l1s.serving_cell.arfcn | ARFCN_UPLINK, L1_TXWIN_AB, 0, 3);
+	dsp_api.db_w->d_task_ra = dsp_task_iq_swap(RACH_DSP_TASK, arfcn, 1);
+
+	l1s_tx_win_ctrl(arfcn | ARFCN_UPLINK, L1_TXWIN_AB, 0, 3);
 
 	return 0;
 }

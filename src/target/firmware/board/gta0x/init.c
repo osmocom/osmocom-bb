@@ -44,6 +44,7 @@
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
+#include "../compal/keymap.h"
 
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define IO_CNTL_REG	0xfffe4804
@@ -73,7 +74,7 @@ static void board_io_init(void)
 	writew(reg, ARMIO_LATCH_OUT);
 }
 
-void board_init(void)
+void board_init(int with_irq)
 {
 	/* Configure the memory interface */
 	calypso_mem_cfg(CALYPSO_nCS0, 3, CALYPSO_MEM_16bit, 1);
@@ -94,20 +95,24 @@ void board_init(void)
 	board_io_init();
 
 	/* Enable bootrom mapping to route exception vectors to RAM */
-	calypso_bootrom(1);
+	calypso_bootrom(with_irq);
 	calypso_exceptions_install();
 
 	/* Initialize interrupt controller */
-	irq_init();
+	if (with_irq)
+		irq_init();
 
-	/* initialize MODEM UART to be used for sercomm*/
-	uart_init(SERCOMM_UART_NR, 1);
-	uart_baudrate(SERCOMM_UART_NR, UART_115200);
+	sercomm_bind_uart(UART_MODEM);
+	cons_bind_uart(UART_IRDA);
+
+	/* initialize MODEM UART to be used for sercomm */
+	uart_init(UART_MODEM, with_irq);
+	uart_baudrate(UART_MODEM, UART_115200);
 
 	/* Initialize IRDA UART to be used for old-school console code.
 	 * note: IRDA uart only accessible on C115 and C117 PCB */
-	uart_init(CONS_UART_NR, 1);
-	uart_baudrate(CONS_UART_NR, UART_115200);
+	uart_init(UART_IRDA, with_irq);
+	uart_baudrate(UART_IRDA, UART_115200);
 
 	/* Initialize hardware timers */
 	hwtimer_init();
@@ -126,7 +131,7 @@ void board_init(void)
 	bl_level(50);
 
 	/* Initialize keypad driver */
-	keypad_init(1);
+	keypad_init(keymap, with_irq);
 
 	/* Initialize ABB driver (uses SPI) */
 	twl3025_init();
