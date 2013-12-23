@@ -56,6 +56,7 @@ enum {
 	L1CTL_TRAFFIC_REQ,
 	L1CTL_TRAFFIC_CONF,
 	L1CTL_TRAFFIC_IND,
+	L1CTL_RINGER_REQ,
 };
 
 enum ccch_mode {
@@ -307,6 +308,10 @@ struct l1ctl_neigh_pm_ind {
 /* traffic data to network */
 struct l1ctl_traffic_req {
 	uint8_t data[TRAFFIC_DATA_LEN];
+} __attribute__((packed));
+
+struct l1ctl_ringer_req {
+	uint8_t volume;
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */

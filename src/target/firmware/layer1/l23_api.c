@@ -46,6 +46,7 @@
 #include <rf/trf6151.h>
 #include <calypso/sim.h>
 #include <calypso/dsp.h>
+#include <calypso/buzzer.h>
 
 #include <l1ctl_proto.h>
 
@@ -616,6 +617,17 @@ static void l1ctl_sim_req(struct msgb *msg)
    sim_apdu(len, data);
 }
 
+static void l1ctl_ringer_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_ringer_req *ring_req =
+		(struct l1ctl_ringer_req *) l1h->data;
+
+	printf("Ringtone Request: %u\n", ring_req->volume);
+	buzzer_volume(ring_req->volume);
+	buzzer_note(NOTE(NOTE_C, OCTAVE_4));
+}
+
 static struct llist_head l23_rx_queue = LLIST_HEAD_INIT(l23_rx_queue);
 
 /* callback from SERCOMM when L2 sends a message to L1 */
@@ -706,6 +718,9 @@ void l1a_l23_handler(void)
 		goto exit_nofree;
 	case L1CTL_SIM_REQ:
 		l1ctl_sim_req(msg);
+		break;
+	case L1CTL_RINGER_REQ:
+		l1ctl_ringer_req(msg);
 		break;
 	}
 
