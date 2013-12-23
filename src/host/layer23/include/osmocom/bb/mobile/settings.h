@@ -107,6 +107,9 @@ struct gsm_settings {
 	uint8_t			class_dtm;
 	uint8_t			dtm_mac;
 	uint8_t			dtm_egprs;
+
+	/* Ring tone */
+	uint8_t			ringtone; /* 0 = off */
 };
 
 struct gsm_settings_abbrev {
