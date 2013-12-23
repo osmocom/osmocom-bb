@@ -98,6 +98,8 @@ int main(void)
 	/* initialize SIM */
 	calypso_sim_init();
 
+	buzzer_mode_pwt(1);
+
 	puts("Power up simcard:\n");
 	memset(atr,0,sizeof(atr));
 	calypso_sim_powerup(atr);

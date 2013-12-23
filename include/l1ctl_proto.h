@@ -61,6 +61,7 @@ enum {
 	L1CTL_EXT_RACH_REQ		= 0x24,
 	L1CTL_GPRS_RTS_IND		= 0x25,
 	L1CTL_GPRS_UL_BLOCK_CNF		= 0x26,
+	L1CTL_RINGER_REQ,		= 0x27,
 };
 
 enum ccch_mode {
@@ -407,6 +408,11 @@ struct l1ctl_gprs_ul_block_cnf {
 	uint32_t fn;
 	uint8_t tn;
 	uint8_t data[0];
+} __attribute__((packed));
+
+/* payload of L1CTL_RINGER_REQ */
+struct l1ctl_ringer_req {
+	uint8_t volume;
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */
