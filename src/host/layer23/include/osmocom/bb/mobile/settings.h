@@ -107,6 +107,8 @@ struct gsm_settings {
 
 	/* Timeout for GSM 03.22 C7 state */
 	uint8_t			any_timeout;
+	/* Ring tone */
+	uint8_t			ringtone; /* 0 = off */
 };
 
 struct gsm_settings_abbrev {

@@ -38,6 +38,8 @@ static LLIST_HEAD(call_list);
 
 static int dtmf_statemachine(struct gsm_call *call, struct gsm_mncc *mncc);
 static void timeout_dtmf(void *arg);
+static void timeout_ringer(void *arg);
+int mncc_answer(struct osmocom_ms *ms);
 
 /*
  * support functions
@@ -60,10 +62,64 @@ static void stop_dtmf_timer(struct gsm_call *call)
 	}
 }
 
+/* Ringer */
+static void update_ringer(struct gsm_call *call)
+{
+	struct osmocom_ms *ms = call->ms;
+
+	if (call->ring) {
+		struct gsm_settings *set = &ms->settings;
+
+		/* ringer on */
+		if (set->ringtone == 0) {
+			LOGP(DCC, LOGL_INFO, "Ringer disabled\n");
+			return;
+		}
+		if (osmo_timer_pending(&call->ringer_timer))
+			return;
+		LOGP(DCC, LOGL_INFO, "starting Ringer\n");
+		call->ringer_timer.cb = timeout_ringer;
+		call->ringer_timer.data = call;
+		osmo_timer_schedule(&call->ringer_timer, RINGER_MARK);
+		l1ctl_tx_ringer_req(ms, set->ringtone);
+		call->ringer_state = 1;
+	} else {
+		/* ringer off */
+		if (!osmo_timer_pending(&call->ringer_timer))
+			return;
+		LOGP(DCC, LOGL_INFO, "stop Ringer\n");
+		osmo_timer_del(&call->ringer_timer);
+		if (call->ringer_state)
+			l1ctl_tx_ringer_req(ms, 0);
+	}
+}
+
+static void timeout_ringer(void *arg)
+{
+	struct gsm_call *call = arg;
+	struct osmocom_ms *ms = call->ms;
+
+	/* on <-> off */
+	call->ringer_state = 1 - call->ringer_state;
+
+	if (call->ringer_state) {
+		struct gsm_settings *set = &ms->settings;
+
+		osmo_timer_schedule(&call->ringer_timer, RINGER_MARK);
+		l1ctl_tx_ringer_req(ms, set->ringtone);
+	} else {
+		osmo_timer_schedule(&call->ringer_timer, RINGER_SPACE);
+		l1ctl_tx_ringer_req(ms, 0);
+	}
+}
+
 /* free call instance */
 static void free_call(struct gsm_call *call)
 {
 	stop_dtmf_timer(call);
+
+	call->ring = 0;
+	update_ringer(call);
 
 	llist_del(&call->entry);
 	DEBUGP(DMNCC, "(call %x) Call removed.\n", call->callref);
@@ -481,6 +537,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 			call->hold = true;
 		}
 		call->ring = true;
+		update_ringer(call);
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		mncc_tx_to_cc(ms, MNCC_ALERT_REQ, &mncc);
@@ -647,6 +704,7 @@ int mncc_answer(struct osmocom_ms *ms)
 		return -EBUSY;
 	}
 	alerting->ring = false;
+	update_ringer(alerting);
 	alerting->hold = false;
 
 	memset(&rsp, 0, sizeof(struct gsm_mncc));

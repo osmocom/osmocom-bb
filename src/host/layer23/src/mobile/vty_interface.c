@@ -1356,6 +1356,11 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	struct gsm_settings_abbrev *abbrev;
 
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
+	if (set->ringtone)
+		vty_out(vty, " ringtone %d%s", set->ringtone, VTY_NEWLINE);
+	else
+		if (!hide_default)
+			vty_out(vty, " no ringtone%s", VTY_NEWLINE);
 	vty_out(vty, " layer2-socket %s%s", set->layer2_socket_path,
 		VTY_NEWLINE);
 	vty_out(vty, " sap-socket %s%s", set->sap_socket_path, VTY_NEWLINE);
@@ -2260,6 +2265,30 @@ DEFUN(cfg_ms_no_nb_dedicated, cfg_ms_no_nb_dedicated_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_ringtone, cfg_ms_ringtone_cmd,
+	"ringtone <0-255>",
+	"Enable ring tone\nVolume of ring tone")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->ringtone = atoi(argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_ringtone, cfg_ms_no_ringtone_cmd,
+	"no ringtone",
+	NO_MS_NB_STR "Disable Ring tone")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->ringtone = 0;
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_ms_any_timeout, cfg_ms_any_timeout_cmd, "c7-any-timeout <0-255>",
 	"Seconds to wait in C7 before doing a PLMN search")
 {
@@ -2997,6 +3026,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_nb_idle_cmd);
 	install_element(MS_NODE, &cfg_ms_nb_dedicated_cmd);
 	install_element(MS_NODE, &cfg_ms_no_nb_dedicated_cmd);
+	install_element(MS_NODE, &cfg_ms_ringtone_cmd);
+	install_element(MS_NODE, &cfg_ms_no_ringtone_cmd);
 	install_element(MS_NODE, &cfg_ms_any_timeout_cmd);
 	install_element(MS_NODE, &cfg_ms_sms_store_cmd);
 	install_element(MS_NODE, &cfg_ms_no_sms_store_cmd);

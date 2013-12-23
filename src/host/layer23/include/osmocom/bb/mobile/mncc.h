@@ -44,6 +44,9 @@ struct gsm_call {
 	uint8_t			dtmf_state;
 	uint8_t			dtmf_index;
 	char			dtmf[32]; /* dtmf sequence */
+
+	struct osmo_timer_list	ringer_timer;
+	uint8_t			ringer_state;
 };
 
 #define DTMF_ST_IDLE		0	/* no DTMF active */
@@ -51,6 +54,9 @@ struct gsm_call {
 #define DTMF_ST_MARK		2	/* wait tone duration */
 #define DTMF_ST_STOP		3	/* DTMF stopped, waiting for resp. */
 #define DTMF_ST_SPACE		4	/* wait space between tones */
+
+#define RINGER_MARK		0, 500000
+#define RINGER_SPACE		0, 250000
 
 #define MNCC_SETUP_REQ		0x0101
 #define MNCC_SETUP_IND		0x0102
