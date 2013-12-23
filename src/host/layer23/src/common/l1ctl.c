@@ -902,6 +902,23 @@ static int rx_l1_neigh_pm_ind(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* Transmit L1CTL_RINGER_REQ */
+int l1ctl_tx_ringer_req(struct osmocom_ms *ms, uint8_t volume)
+{
+	struct msgb *msg;
+	struct l1ctl_ringer_req *ring_req;
+
+	msg = osmo_l1_alloc(L1CTL_RINGER_REQ);
+	if (!msg)
+		return -1;
+
+	LOGP(DL1C, LOGL_INFO, "Tx RINGER Req (volume %u)\n", volume);
+	ring_req = (struct l1ctl_ringer_req *) msgb_put(msg, sizeof(*ring_req));
+	ring_req->volume = volume;
+
+	return osmo_send_l1(ms, msg);
+}
+
 /* Receive incoming data from L1 using L1CTL format */
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {

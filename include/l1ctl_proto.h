@@ -67,6 +67,7 @@ enum {
 
 	/* Extended (11-bit) RACH (see 3GPP TS 05.02, section 5.2.7) */
 	L1CTL_EXT_RACH_REQ,
+	L1CTL_RINGER_REQ,
 };
 
 enum ccch_mode {
@@ -377,6 +378,10 @@ struct l1ctl_tbf_cfg_req {
 
 	/* one USF for each TN, or 255 for invalid/unused */
 	uint8_t usf[8];
+} __attribute__((packed));
+
+struct l1ctl_ringer_req {
+	uint8_t volume;
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */
