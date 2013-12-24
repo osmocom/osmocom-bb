@@ -637,7 +637,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 		uint8_t ss_code = 0;
 
 		ss_code_by_char(code + 2, &ss_code);
-		if (code)
+		if (ss_code)
 			return gsm480_tx_cf(trans, GSM0480_MTYPE_REGISTER,
 				GSM0480_OP_CODE_INTERROGATE_SS, ss_code, NULL);
 	} else
@@ -654,7 +654,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 		to = ss_code_by_char(code + 1, &ss_code);
 	
 		/* register */
-		if (code && to && to[0] == '*') {
+		if (ss_code && to && to[0] == '*') {
 			strncpy(dest, to + 1, sizeof(dest) - 1);
 			dest[sizeof(dest) - 1] = '\0';
 			dest[strlen(dest) - 1] = '\0';
@@ -662,7 +662,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 				GSM0480_OP_CODE_REGISTER_SS, ss_code, dest);
 		}
 		/* activate */
-		if (code && to && to[0] == '#') {
+		if (ss_code && to && to[0] == '#') {
 			return gsm480_tx_cf(trans, GSM0480_MTYPE_REGISTER,
 				GSM0480_OP_CODE_ACTIVATE_SS, ss_code, NULL);
 		}
@@ -673,7 +673,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 
 		ss_code_by_char(code + 2, &ss_code);
 	
-		if (code)
+		if (ss_code)
 			return gsm480_tx_cf(trans, GSM0480_MTYPE_REGISTER,
 				GSM0480_OP_CODE_ERASE_SS, ss_code, NULL);
 	} else
@@ -683,7 +683,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 
 		ss_code_by_char(code + 1, &ss_code);
 	
-		if (code)
+		if (ss_code)
 			return gsm480_tx_cf(trans, GSM0480_MTYPE_REGISTER,
 				GSM0480_OP_CODE_DEACTIVATE_SS, ss_code, NULL);
 	}
