@@ -49,6 +49,8 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/codec/codec.h>
 
+extern void osmosim_sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg);
+extern void osmosim_sim_up_resp(struct osmocom_ms *ms, struct msgb *msg);
 extern struct gsmtap_inst *gsmtap_inst;
 
 static int apdu_len = -1;
@@ -650,6 +652,39 @@ int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 	return osmo_send_l1(ms, msg);
 }
 
+int l1ctl_tx_sim_powerup(struct osmocom_ms *ms)
+{
+        struct msgb *msg;
+
+        msg = osmo_l1_alloc(L1CTL_SIM_POWERUP);
+        if (!msg)
+                return -1;
+
+        return osmo_send_l1(ms, msg);
+}
+
+int l1ctl_tx_sim_powerdown(struct osmocom_ms *ms)
+{
+        struct msgb *msg;
+
+        msg = osmo_l1_alloc(L1CTL_SIM_POWERDOWN);
+        if (!msg)
+                return -1;
+
+        return osmo_send_l1(ms, msg);
+}
+
+int l1ctl_tx_sim_reset(struct osmocom_ms *ms)
+{
+        struct msgb *msg;
+
+        msg = osmo_l1_alloc(L1CTL_SIM_RESET);
+        if (!msg)
+                return -1;
+
+        return osmo_send_l1(ms, msg);
+}
+
 /* just forward the SIM response to the SIM handler */
 static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -669,9 +704,26 @@ static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 	msgb_pull(msg, sizeof(struct l1ctl_hdr));
 	msg->l1h = NULL;
 
-	sim_apdu_resp(ms, msg);
+	osmosim_sim_apdu_resp(ms, msg);
 	
 	return 0;
+}
+
+static int rx_l1_sim_atr(struct osmocom_ms *ms, struct msgb *msg)
+{
+        uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
+        uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
+
+        LOGP(DL1C, LOGL_INFO, "SIM ATR (len=%d) : %s\n", len, osmo_hexdump(data, len));
+
+        /* pull the L1 header from the msgb */
+        msgb_pull(msg, sizeof(struct l1ctl_hdr));
+        msg->l1h = NULL;
+
+        osmosim_sim_up_resp(ms, msg);
+
+        msgb_free(msg);
+        return 0;
 }
 
 /* Transmit L1CTL_PM_REQ */
@@ -971,6 +1023,9 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_SIM_CONF:
 		rc = rx_l1_sim_conf(ms, msg);
+		break;
+	case L1CTL_SIM_ATR:
+		rc = rx_l1_sim_atr(ms, msg);
 		break;
 	case L1CTL_NEIGH_PM_IND:
 		rc = rx_l1_neigh_pm_ind(ms, msg);

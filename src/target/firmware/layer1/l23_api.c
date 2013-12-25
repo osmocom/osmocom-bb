@@ -20,7 +20,8 @@
  *
  */
 
-#define DEBUG
+/* Uncomment to debug */
+/* #define DEBUG */
 
 #include <stdint.h>
 #include <stdio.h>
@@ -571,7 +572,7 @@ static void l1ctl_sim_req(struct msgb *msg)
 	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
 
-#if 1 /* for debugging only */
+#ifdef DEBUG /* for debugging only */
 	{
 		int i;
 		printf("SIM Request (%u): ", len);
@@ -582,6 +583,53 @@ static void l1ctl_sim_req(struct msgb *msg)
 #endif
 
    sim_apdu(len, data);
+}
+
+void l1ctl_tx_sim_up(uint8_t* atr, uint8_t atrLength)
+{
+        struct msgb *msg = l1ctl_msgb_alloc(L1CTL_SIM_ATR);
+        uint8_t *data;
+        data = (uint8_t*) msgb_put(msg, atrLength);
+        memcpy(data, atr, atrLength);
+        msg->len += atrLength;
+
+        l1_queue_for_l2(msg);
+}
+
+static int powered_up = 0;
+
+static void l1ctl_rx_sim_powerup()
+{
+        uint8_t atr[20];
+        uint8_t atrLength = 0;
+
+	if (powered_up) {
+		puts("SIM: sim is already powered up, calling power down first!\n");
+		calypso_sim_powerdown();
+	}
+
+        memset(atr,0,sizeof(atr));
+
+        atrLength = calypso_sim_powerup(atr);
+        l1ctl_tx_sim_up(atr, atrLength);
+	powered_up = 1;
+}
+
+static void l1ctl_rx_sim_powerdown()
+{
+        calypso_sim_powerdown();
+	powered_up = 0;
+}
+
+static void l1ctl_rx_sim_reset()
+{
+        uint8_t atr[20];
+        uint8_t atrLength = 0;
+
+        memset(atr,0,sizeof(atr));
+
+	atrLength = calypso_sim_reset(atr);
+        l1ctl_tx_sim_up(atr, atrLength);
 }
 
 static struct llist_head l23_rx_queue = LLIST_HEAD_INIT(l23_rx_queue);
@@ -674,6 +722,15 @@ void l1a_l23_handler(void)
 		goto exit_nofree;
 	case L1CTL_SIM_REQ:
 		l1ctl_sim_req(msg);
+		break;
+	case L1CTL_SIM_POWERUP:
+		l1ctl_rx_sim_powerup();
+		break;
+	case L1CTL_SIM_POWERDOWN:
+		l1ctl_rx_sim_powerdown();
+		break;
+	case L1CTL_SIM_RESET:
+		l1ctl_rx_sim_reset();
 		break;
 	}
 

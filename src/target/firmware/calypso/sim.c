@@ -43,6 +43,7 @@
 	/* Class that contains the following instructions */
 #define SIM_GET_RESPONSE	0xC0
 	/* Get the response of a command from the card */
+#define SIM_FETCH			0x12
 #define SIM_READ_BINARY		0xB0	/* Read file in binary mode */
 #define SIM_READ_RECORD		0xB2	/* Read record in binary mode */
 
@@ -347,7 +348,7 @@ void calypso_sim_regdump(void)
 /* Receive raw data through the sim interface */
 int calypso_sim_receive(uint8_t *data, uint8_t len)
 {
-	printd("Triggering SIM reception\n");
+	printd("Triggering SIM reception, len = %d bytes\n", len);
 
 	/* Prepare buffers and flags */
 	rx_buffer = data;
@@ -396,12 +397,12 @@ void sim_irq_handler(enum irq_nr irq)
 {
 	int regVal = readw(REG_SIM_IT);
 
-
 	/* Display interrupt information */
 	printd("SIM-ISR: ");
 
 	if(regVal & REG_SIM_IT_SIM_NATR) {
-		printd(" No answer to reset!\n");
+		puts("SIM: No answer to reset!\n");
+		rxDoneFlag = 1;
 	}
 
 	/* Used by: calypso_sim_receive() to determine when the transmission
@@ -410,7 +411,6 @@ void sim_irq_handler(enum irq_nr irq)
 	if(regVal & REG_SIM_IT_SIM_WT) {
 		printd(" Character underflow!\n");
 		rxDoneFlag = 1;
-
 	}
 
 	if(regVal & REG_SIM_IT_SIM_OV) {
@@ -444,31 +444,36 @@ void sim_irq_handler(enum irq_nr irq)
 
 	/* Used by: calypso_sim_receive() to receive the incoming data */
 	if(regVal & REG_SIM_IT_SIM_RX) {
-		uint8_t ch = (uint8_t) (readw(REG_SIM_DRX) & 0xFF);
+		/* read while FIFO is not empty
+		   otherwise we can get FIFO full if we wait for REG_SIM_IT_SIM_RX for each char */
+		while ((readw(REG_SIM_STAT) & REG_SIM_STAT_STATFIFOEMPTY) == 0) {
+			uint8_t ch = (uint8_t) (readw(REG_SIM_DRX) & 0xFF);
 
-		/* ignore NULL procedure byte */
-		if(ch == 0x60 && sim_ignore_waiting_char) {
-			printd(" 0x60 received...\n");
-			return;
-		}
+			/* ignore NULL procedure byte */
+			if(ch == 0x60 && sim_ignore_waiting_char) {
+				printd(" 0x60 received...\n");
+				return;
+			}
 
-		printd(" Waiting for read (%02X)...\n", ch);
+			printd(" Waiting for read (%02X)...\n", ch);
 
-		/* Increment character count - this is what
-		 * calypso_sim_receive() hands back
-		 */
-		sim_rx_character_count++;
+			/* Increment character count - this is what
+			 * calypso_sim_receive() hands back
+			 */
+			sim_rx_character_count++;
 
-		/* Read byte from rx-fifo and write it to the issued buffer */
-		*rx_buffer = ch;
-		rx_buffer++;
+			/* Read byte from rx-fifo and write it to the issued buffer */
+			*rx_buffer = ch;
+			rx_buffer++;
 
-		/* to maximise SIM access speed, stop waiting after
-		   all the expected characters have been received. */
-		if (sim_rx_max_character_count
-		 && sim_rx_character_count >= sim_rx_max_character_count) {
-			printd(" Max characters received!\n");
-			rxDoneFlag = 1;
+			/* to maximise SIM access speed, stop waiting after
+			   all the expected characters have been received. */
+			if (sim_rx_max_character_count
+					&& sim_rx_character_count >= sim_rx_max_character_count) {
+				printd(" Max characters received!\n");
+				rxDoneFlag = 1;
+				break;
+			}
 		}
 	}
 }
@@ -477,7 +482,7 @@ void sim_irq_handler(enum irq_nr irq)
 void sim_apdu(uint16_t len, uint8_t *data)
 {
 	if (sim_state != SIM_STATE_IDLE) {
-		puts("Sim reader currently busy...\n");
+		puts("SIM: reader currently busy...\n");
 		return;
 	}
 	memcpy(sim_data, data, len);
@@ -494,139 +499,141 @@ void sim_handler(void)
 	static uint16_t length;
 
 	switch (sim_state) {
-	case SIM_STATE_IDLE:
-		if (!sim_len)
-			break; /* wait for SIM command */
-		/* check if instructions expects a response */
-		if (/* GET RESPONSE needs SIM_APDU_GET */
-		    (sim_len == 5 && sim_data[0] == SIM_CLASS &&
-		     sim_data[1] == SIM_GET_RESPONSE && sim_data[2] == 0x00 &&
-		     sim_data[3] == 0x00) ||
-		    /* READ BINARY/RECORD needs SIM_APDU_GET */
-		     (sim_len >= 5 && sim_data[0] == SIM_CLASS &&
-		      (sim_data[1] == SIM_READ_BINARY ||
-		       sim_data[1] == SIM_READ_RECORD)))
-			mode = SIM_APDU_GET;
-		else
-			mode = SIM_APDU_PUT;
+		case SIM_STATE_IDLE:
+			if (!sim_len)
+				break; /* wait for SIM command */
+			/* check if instructions expects a response */
+			if (/* GET RESPONSE needs SIM_APDU_GET */
+					(sim_len == 5 && sim_data[0] == SIM_CLASS &&
+					 (sim_data[1] == SIM_GET_RESPONSE || sim_data[1] == SIM_FETCH) && sim_data[2] == 0x00 &&
+					 sim_data[3] == 0x00) ||
+					/* READ BINARY/RECORD needs SIM_APDU_GET */
+					(sim_len >= 5 && sim_data[0] == SIM_CLASS &&
+					 (sim_data[1] == SIM_READ_BINARY ||
+					  sim_data[1] == SIM_READ_RECORD)))
+				mode = SIM_APDU_GET;
+			else
+				mode = SIM_APDU_PUT;
 
-		length = sim_data[4];
+			length = sim_data[4];
 
-		/* allocate space for expected response */
-		msg = msgb_alloc_headroom(256, L3_MSG_HEAD
+			/* allocate space for expected response */
+			msg = msgb_alloc_headroom(256, L3_MSG_HEAD
 					+ sizeof(struct l1ctl_hdr), "l1ctl1");
-		response = msgb_put(msg, length + 2 + 1);
+			response = msgb_put(msg, length + 2 + 1);
 
-		sim_state = SIM_STATE_TX_HEADER;
+			sim_state = SIM_STATE_TX_HEADER;
 
-		/* send APDU header */
-		calypso_sim_transmit(sim_data, 5);
-		break;
-	case SIM_STATE_TX_HEADER:
-		if (!txDoneFlag)
-			break; /* wait until header is transmitted */
-		/* Disable all interrupt driven functions */
-		writew(0xFF, REG_SIM_MASKIT);
-		/* Case 1: No input, No Output */
-		if (length == 0) {
+			/* send APDU header */
+			calypso_sim_transmit(sim_data, 5);
+			break;
+		case SIM_STATE_TX_HEADER:
+			if (!txDoneFlag)
+				break; /* wait until header is transmitted */
+			/* Disable all interrupt driven functions */
+			writew(0xFF, REG_SIM_MASKIT);
+			/* Case 1: No input, No Output */
+			if (length == 0) {
+				sim_state = SIM_STATE_RX_STATUS;
+				calypso_sim_receive(response + 1, 2);
+				break;
+			}
+			/* Case 2: No input / Output of known length */
+			if (mode == SIM_APDU_PUT) {
+				sim_state = SIM_STATE_RX_ACK;
+				calypso_sim_receive(response, 1);
+				break;
+				/* Case 4: Input / No output */
+			} else {
+				sim_state = SIM_STATE_RX_ACK_DATA;
+				calypso_sim_receive(response, length + 1 + 2);
+			}
+			break;
+		case SIM_STATE_RX_STATUS:
+			if (!rxDoneFlag)
+				break; /* wait until data is received */
+			/* Disable all interrupt driven functions */
+			writew(0xFF, REG_SIM_MASKIT);
+			/* disable special ignore case */
+			sim_ignore_waiting_char = 0;
+			/* wrong number of bytes received */
+			if (sim_rx_character_count != 2) {
+				puts("SIM: Failed to read status\n");
+				goto error;
+			}
+			msgb_pull(msg, length + 1); /* pull up to status info */
+			goto queue;
+		case SIM_STATE_RX_ACK:
+			if (!rxDoneFlag)
+				break; /* wait until data is received */
+			/* Disable all interrupt driven functions */
+			writew(0xFF, REG_SIM_MASKIT);
+			/* error received */
+			if (sim_rx_character_count == 2) {
+				puts("SIM: command failed\n");
+				msgb_pull(msg, msg->len - 2);
+				msg->data[0] = response[0];
+				msg->data[1] = response[1];
+				goto queue;
+			}
+			/* wrong number of bytes received */
+			if (sim_rx_character_count != 1) {
+				puts("SIM: ACK read failed\n");
+				goto error;
+			}
+			if (response[0] != sim_data[1]) {
+				puts("SIM: ACK does not match request\n");
+				goto error;
+			}
+			sim_state = SIM_STATE_TX_DATA;
+			calypso_sim_transmit(sim_data + 5, length);
+			break;
+		case SIM_STATE_TX_DATA:
+			if (!txDoneFlag)
+				break; /* wait until data is transmitted */
+			/* Disable all interrupt driven functions */
+			writew(0xFF, REG_SIM_MASKIT);
+			/* Ignore waiting char for RUN GSM ALGORITHM */
+			/* TODO: implement proper handling of the "Procedure Bytes"
+			   than this is no longer needed */
+			if(sim_data[1] == 0x88)
+				sim_ignore_waiting_char = 1;
 			sim_state = SIM_STATE_RX_STATUS;
-			calypso_sim_receive(response + 1, 2);
+			calypso_sim_receive(response + length + 1, 2);
 			break;
-		}
-		/* Case 2: No input / Output of known length */
-		if (mode == SIM_APDU_PUT) {
-			sim_state = SIM_STATE_RX_ACK;
-			calypso_sim_receive(response, 1);
-			break;
-		/* Case 4: Input / No output */
-		} else {
-			sim_state = SIM_STATE_RX_ACK_DATA;
-			calypso_sim_receive(response, length + 1 + 2);
-		}
-		break;
-	case SIM_STATE_RX_STATUS:
-		if (!rxDoneFlag)
-			break; /* wait until data is received */
-		/* Disable all interrupt driven functions */
-		writew(0xFF, REG_SIM_MASKIT);
-		/* disable special ignore case */
-		sim_ignore_waiting_char = 0;
-		/* wrong number of bytes received */
-		if (sim_rx_character_count != 2) {
-			puts("SIM: Failed to read status\n");
-			goto error;
-		}
-		msgb_pull(msg, length + 1); /* pull up to status info */
-		goto queue;
-	case SIM_STATE_RX_ACK:
-		if (!rxDoneFlag)
-			break; /* wait until data is received */
-		/* Disable all interrupt driven functions */
-		writew(0xFF, REG_SIM_MASKIT);
-		/* error received */
-		if (sim_rx_character_count == 2) {
-			puts("SIM: command failed\n");
-			msgb_pull(msg, msg->len - 2);
-			msg->data[0] = response[0];
-			msg->data[1] = response[1];
+		case SIM_STATE_RX_ACK_DATA:
+			if (!rxDoneFlag)
+				break; /* wait until data is received */
+			/* Disable all interrupt driven functions */
+			writew(0xFF, REG_SIM_MASKIT);
+			/* error received */
+			if (sim_rx_character_count == 2) {
+				puts("SIM: command failed\n");
+				msgb_pull(msg, msg->len - 2);
+				msg->data[0] = response[0];
+				msg->data[1] = response[1];
+				goto queue;
+			}
+			/* wrong number of bytes received */
+			if (sim_rx_character_count != length + 1 + 2) {
+				puts("SIM: Failed to read data\n");
+				goto error;
+			}
+			msgb_pull(msg, 1); /* pull ACK byte */
 			goto queue;
-		}
-		/* wrong number of bytes received */
-		if (sim_rx_character_count != 1) {
-			puts("SIM: ACK read failed\n");
-			goto error;
-		}
-		if (response[0] != sim_data[1]) {
-			puts("SIM: ACK does not match request\n");
-			goto error;
-		}
-		sim_state = SIM_STATE_TX_DATA;
-		calypso_sim_transmit(sim_data + 5, length);
-		break;
-	case SIM_STATE_TX_DATA:
-		if (!txDoneFlag)
-			break; /* wait until data is transmitted */
-		/* Disable all interrupt driven functions */
-		writew(0xFF, REG_SIM_MASKIT);
-		/* Ignore waiting char for RUN GSM ALGORITHM */
-		/* TODO: implement proper handling of the "Procedure Bytes"
-		   than this is no longer needed */
-		if(sim_data[1] == 0x88)
-			sim_ignore_waiting_char = 1;
-		sim_state = SIM_STATE_RX_STATUS;
-		calypso_sim_receive(response + length + 1, 2);
-		break;
-	case SIM_STATE_RX_ACK_DATA:
-		if (!rxDoneFlag)
-			break; /* wait until data is received */
-		/* Disable all interrupt driven functions */
-		writew(0xFF, REG_SIM_MASKIT);
-		/* error received */
-		if (sim_rx_character_count == 2) {
-			puts("SIM: command failed\n");
-			msgb_pull(msg, msg->len - 2);
-			msg->data[0] = response[0];
-			msg->data[1] = response[1];
-			goto queue;
-		}
-		/* wrong number of bytes received */
-		if (sim_rx_character_count != length + 1 + 2) {
-			puts("SIM: Failed to read data\n");
-			goto error;
-		}
-		msgb_pull(msg, 1); /* pull ACK byte */
-		goto queue;
 	}
 
 	return;
 
 error:
 	msgb_pull(msg, msg->len - 2);
-	msg->data[0] = 0;
-	msg->data[1] = 0;
+	msg->data[0] = 0xba;
+	msg->data[1] = 0xad;
 queue:
+#ifdef DEBUG /* for debugging only */
 	printf("SIM Response (%d): %s\n", msg->len,
-		osmo_hexdump(msg->data, msg->len));
+			osmo_hexdump(msg->data, msg->len));
+#endif
 	l1h = (struct l1ctl_hdr *) msgb_push(msg, sizeof(*l1h));
 	l1h->msg_type = L1CTL_SIM_CONF;
 	l1h->flags = 0;
@@ -659,10 +666,14 @@ void calypso_sim_init(void)
 /* Apply power to the simcard (use nullpointer to ignore atr) */
 int calypso_sim_powerup(uint8_t *atr)
 {
+	/* put state machine back into idle */
+	sim_len = 0;
+	sim_state = SIM_STATE_IDLE;
+
 	/* Enable level shifters and voltage regulator */
 #if 1  // 2.9V
 	twl3025_reg_write(VRPCSIM, VRPCSIM_SIMLEN | VRPCSIM_RSIMEN
-					| VRPCSIM_SIMSEL);
+			| VRPCSIM_SIMSEL);
 #else // 1.8V
 	twl3025_reg_write(VRPCSIM, VRPCSIM_SIMLEN | VRPCSIM_RSIMEN);
 #endif
@@ -676,8 +687,8 @@ int calypso_sim_powerup(uint8_t *atr)
 
 	/* Release reset */
 	writew(readw(REG_SIM_CONF1) | REG_SIM_CONF1_CONFBYPASS
-				| REG_SIM_CONF1_CONFSRSTLEV
-				| REG_SIM_CONF1_CONFSVCCLEV, REG_SIM_CONF1);
+			| REG_SIM_CONF1_CONFSRSTLEV
+			| REG_SIM_CONF1_CONFSVCCLEV, REG_SIM_CONF1);
 	printd(" * Reset released!\n");
 
 	/* Catch ATR */
@@ -687,14 +698,19 @@ int calypso_sim_powerup(uint8_t *atr)
 			;
 	}
 
-	return 0;
+	/* Disable all interrupt driven functions */
+	writew(0xFF, REG_SIM_MASKIT);
+
+	return sim_rx_character_count;
 }
 
 
 /* Powerdown simcard */
 void calypso_sim_powerdown(void)
 {
-	writew(readw(REG_SIM_CONF1) & ~REG_SIM_CONF1_CONFBYPASS, REG_SIM_CONF1);
+	// according to the specification CONFTXRX | CONFSCLKEN is a default reset value of conf1 register
+	// if CONFSVCCLEV or CONFSRSTLEV remains enabled even without CONFBYPASS, SIM is never properly powered down
+	writew(REG_SIM_CONF1_CONFTXRX | REG_SIM_CONF1_CONFSCLKEN, REG_SIM_CONF1);
 	printd(" * Reset pulled down!\n");
 	delay_ms(SIM_OPERATION_DELAY);
 
@@ -710,20 +726,23 @@ void calypso_sim_powerdown(void)
 	twl3025_reg_write(VRPCSIM, 0);
 	printd(" * Power disabled!\n");
 	delay_ms(SIM_OPERATION_DELAY);
-
+	
 	return;
 }
 
 /* reset the simcard (see note 1) */
 int calypso_sim_reset(uint8_t *atr)
 {
-
 	/* Pull reset down */
 	writew(readw(REG_SIM_CONF1) & ~REG_SIM_CONF1_CONFSRSTLEV,
 		REG_SIM_CONF1);
 	printd(" * Reset pulled down!\n");
 
 	delay_ms(SIM_OPERATION_DELAY);
+
+	/* put state machine back into idle */
+	sim_len = 0;
+	sim_state = SIM_STATE_IDLE;
 
 	/* Pull reset down */
 	writew(readw(REG_SIM_CONF1) | REG_SIM_CONF1_CONFSRSTLEV, REG_SIM_CONF1);
@@ -736,6 +755,9 @@ int calypso_sim_reset(uint8_t *atr)
 			;
 	}
 
-	return 0;
+	/* Disable all interrupt driven functions */
+	writew(0xFF, REG_SIM_MASKIT);
+
+	return sim_rx_character_count;
 }
 

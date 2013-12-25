@@ -10,7 +10,9 @@ dnl checks for programs
 AC_PROG_MAKE_SET
 AC_PROG_CC
 AC_PROG_INSTALL
-AC_PROG_RANLIB
+dnl AC_PROG_RANLIB
+LT_INIT
+AC_PROG_LIBTOOL
 
 dnl checks for libraries
 PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore)
@@ -30,8 +32,9 @@ dnl Checks for typedefs, structures and compiler characteristics
 AC_OUTPUT(
     src/Makefile
     src/common/Makefile
-    src/misc/Makefile
-    src/mobile/Makefile
+    dnl src/misc/Makefile
+    dnl src/mobile/Makefile
+    src/libosmosim/Makefile
     include/Makefile
     include/osmocom/Makefile
     include/osmocom/bb/Makefile

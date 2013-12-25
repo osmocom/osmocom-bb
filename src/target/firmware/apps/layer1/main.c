@@ -102,9 +102,11 @@ int main(void)
 	/* initialize SIM */
 	calypso_sim_init();
 
+#if 0
 	puts("Power up simcard:\n");
 	memset(atr,0,sizeof(atr));
 	atrLength = calypso_sim_powerup(atr);
+#endif
 
 	layer1_init();
 
@@ -167,7 +169,7 @@ static void key_handler(enum key_codes code, enum key_states state)
 	}
 	/* power down SIM, TODO:  this will happen with every key pressed,
        put it somewhere else ! */
-	calypso_sim_powerdown();
+	//calypso_sim_powerdown();
 }
 
 
