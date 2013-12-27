@@ -108,7 +108,7 @@ int main(void)
 	atrLength = calypso_sim_powerup(atr);
 
 	read_factory_rf_calibration();
-	layer1_init();
+	layer1_init(0);
 
 	tpu_frame_irq_en(1, 1);
 

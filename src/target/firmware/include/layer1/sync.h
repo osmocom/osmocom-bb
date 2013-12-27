@@ -198,7 +198,7 @@ void l1s_init(void);
 void l1s_reset(void);
 
 /* init.c */
-void layer1_init(void);
+void layer1_init(int load_extcode);
 
 /* A debug macro to print every TDMA frame */
 #ifdef DEBUG_EVERY_TDMA

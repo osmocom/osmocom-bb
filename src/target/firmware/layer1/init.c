@@ -36,7 +36,7 @@
 #include <layer1/async.h>
 #include <layer1/l23_api.h>
 
-void layer1_init(void)
+void layer1_init(int load_extcode)
 {
 #ifndef CONFIG_TX_ENABLE
 	printf("\n\nTHIS FIRMWARE WAS COMPILED WITHOUT TX SUPPORT!!!\n\n");
@@ -47,7 +47,7 @@ void layer1_init(void)
 	/* initialize TDMA Frame IRQ driven synchronous L1 */
 	l1s_init();
 	/* power up the DSP */
-	dsp_power_on();
+	dsp_power_on(load_extcode);
 
 	/* Initialize TPU, TSP and TRF drivers */
 	tpu_init();
