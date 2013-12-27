@@ -130,8 +130,8 @@ int main(void)
 	/* Init TRX */
 	trx_init();
 
-	/* Init layer 1 */
-	layer1_init();
+	/* Init layer 1 with dsp_extcpde */
+	layer1_init(1);
 
 	tpu_frame_irq_en(1, 1);
 

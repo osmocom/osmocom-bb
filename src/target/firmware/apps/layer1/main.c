@@ -106,7 +106,7 @@ int main(void)
 	memset(atr,0,sizeof(atr));
 	atrLength = calypso_sim_powerup(atr);
 
-	layer1_init();
+	layer1_init(0);
 
 	tpu_frame_irq_en(1, 1);
 

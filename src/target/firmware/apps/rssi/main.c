@@ -1528,7 +1528,7 @@ int main(void)
 	sercomm_register_rx_cb(SC_DLCI_CONSOLE, console_rx_cb);
 	sercomm_register_rx_cb(SC_DLCI_L1A_L23, l1a_l23_rx_cb);
 
-	layer1_init();
+	layer1_init(0);
 	l1a_l23_tx_cb = l1a_l23_tx;
 
 //	display_unset_attr(DISP_ATTR_INVERT);

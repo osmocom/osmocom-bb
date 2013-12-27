@@ -197,7 +197,7 @@ static void dsp_pre_boot(const struct dsp_section *bootcode)
 	dsp_bl_wait_ready();
 }
 
-static void dsp_set_params(int16_t *param_tab, int param_size)
+static void dsp_set_params(int16_t *param_tab, int param_size, int load_extcode)
 {
 	int i;
 	int16_t *param_ptr = (int16_t *) BASE_API_PARAM;
@@ -205,9 +205,11 @@ static void dsp_set_params(int16_t *param_tab, int param_size)
 	/* Start DSP up to bootloader */
 	dsp_pre_boot(dsp_bootcode);
 
-	/* Load our DSP extensions */
-	dputs("Installing DSP extensions patch\n");
-	dsp_bl_upload_sections(dsp_extcode);
+	if (load_extcode) {
+		/* Load our DSP extensions */
+		dputs("Installing DSP extensions patch\n");
+		dsp_bl_upload_sections(dsp_extcode);
+	}
 
 	/* Configure API params */
 	dputs("Setting some dsp_api.ndb values\n");
@@ -230,8 +232,10 @@ static void dsp_set_params(int16_t *param_tab, int param_size)
 	for (i = 0; i < param_size; i ++)
 		*param_ptr++ = param_tab[i];
 
-	/* Init address for the extensions */
-	dsp_api.param->d_gprs_install_address = DSP_EXT_START;
+	if (load_extcode) {
+		/* Init address for the extensions */
+		dsp_api.param->d_gprs_install_address = DSP_EXT_START;
+	}
 
 	/* Perform actual boot */
 	dputs("Finishing download phase\n");
@@ -450,12 +454,12 @@ static void dsp_db_init(void)
 	dsp_api_memset((uint16_t *)BASE_API_R_PAGE_1, sizeof(T_DB_DSP_TO_MCU));
 }
 
-void dsp_power_on(void)
+void dsp_power_on(int load_extcode)
 {
 	/* probably a good idea to initialize the whole API area to a known value */
 	dsp_api_memset((uint16_t *)BASE_API_RAM, API_SIZE * 2); // size is in words
 
-	dsp_set_params((int16_t *)&dsp_params, sizeof(dsp_params)/2);
+	dsp_set_params((int16_t *)&dsp_params, sizeof(dsp_params)/2, load_extcode);
 	dsp_ndb_init();
 	dsp_db_init();
 	dsp_api.frame_ctr = 0;
