@@ -51,6 +51,7 @@ SECTIONS
         LONG(SIZEOF(.ctors) / 4 - 2)
         /* ctor pointers */
         KEEP(*(SORT(.ctors)))
+        KEEP(*(SORT(.init_array)))
         /* end of list */
         LONG(0)
     } > LRAM
