@@ -21,11 +21,15 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
 
+#include <stdlib.h>
+
 enum {
 	DRLL,
 	DCC,
 	DMM,
 };
+
+static int filter_called = 0;
 
 static const struct log_info_cat default_categories[] = {
 	[DRLL] = {
@@ -48,9 +52,17 @@ static const struct log_info_cat default_categories[] = {
 	},
 };
 
+static int test_filter(const struct log_context *ctx, struct log_target *target)
+{
+	filter_called += 1;
+	/* omit everything */
+	return 0;
+}
+
 const struct log_info log_info = {
 	.cat = default_categories,
 	.num_cat = ARRAY_SIZE(default_categories),
+	.filter_fn = test_filter,
 };
 
 int main(int argc, char **argv)
@@ -71,6 +83,11 @@ int main(int argc, char **argv)
 	DEBUGP(DRLL, "You should see this\n");
 	DEBUGP(DCC, "You should see this\n");
 	DEBUGP(DMM, "You should not see this\n");
+	OSMO_ASSERT(filter_called == 0);
+
+	log_set_all_filter(stderr_target, 0);
+	DEBUGP(DRLL, "You should not see this and filter is called\n");
+	OSMO_ASSERT(filter_called == 1);
 
 	return 0;
 }

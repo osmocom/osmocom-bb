@@ -768,6 +768,7 @@ int log_init(const struct log_info *inf, void *ctx)
 	if (!osmo_log_info)
 		return -ENOMEM;
 
+	osmo_log_info->filter_fn = inf->filter_fn;
 	osmo_log_info->num_cat_user = inf->num_cat;
 	/* total number = number of user cat + library cat */
 	osmo_log_info->num_cat = inf->num_cat + ARRAY_SIZE(internal_cat);
