@@ -430,7 +430,7 @@ int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan)
 }
 
 /*! \brief Obtain physical channel config for OML Channel Combination */
-enum abis_nm_chan_comb abis_nm_pchan4chcomb(uint8_t chcomb)
+enum gsm_phys_chan_config abis_nm_pchan4chcomb(uint8_t chcomb)
 {
 	int i;
 	for (i = 0; i < ARRAY_SIZE(chcomb4pchan); i++) {
