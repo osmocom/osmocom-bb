@@ -107,6 +107,7 @@ int osmo_hexparse(const char *str, uint8_t *b, int max_len)
 }
 
 static char hexd_buff[4096];
+static const char hex_chars[] = "0123456789abcdef";
 
 static char *_osmo_hexdump(const unsigned char *buf, int len, char *delim)
 {
@@ -115,13 +116,20 @@ static char *_osmo_hexdump(const unsigned char *buf, int len, char *delim)
 
 	hexd_buff[0] = 0;
 	for (i = 0; i < len; i++) {
+		const char *delimp = delim;
 		int len_remain = sizeof(hexd_buff) - (cur - hexd_buff);
-		if (len_remain <= 0)
+		if (len_remain < 3)
 			break;
-		int rc = snprintf(cur, len_remain, "%02x%s", buf[i], delim);
-		if (rc <= 0)
-			break;
-		cur += rc;
+
+		*cur++ = hex_chars[buf[i] >> 4];
+		*cur++ = hex_chars[buf[i] & 0xf];
+
+		while (len_remain > 1 && *delimp) {
+			*cur++ = *delimp++;
+			len_remain--;
+		}
+
+		*cur = 0;
 	}
 	hexd_buff[sizeof(hexd_buff)-1] = 0;
 	return hexd_buff;
