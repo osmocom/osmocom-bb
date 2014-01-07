@@ -273,7 +273,7 @@ int gsm_7bit_encode_n(uint8_t *result, size_t n, const char *data, int *octets)
 {
 	int y = 0;
 	int o;
-	int max_septets = n * 8 / 7;
+	size_t max_septets = n * 8 / 7;
 
 	/* prepare for the worst case, every character expanding to two bytes */
 	uint8_t *rdata = calloc(strlen(data) * 2, sizeof(uint8_t));
@@ -683,7 +683,8 @@ uint32_t gprs_tmsi2tlli(uint32_t p_tmsi, enum gprs_tlli_type type)
 
 int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t septet_l)
 {
-	gsm_7bit_decode_n(text, SIZE_MAX, user_data, septet_l);
+	gsm_7bit_decode_n(text, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+			  user_data, septet_l);
 
 	/* Mimic the original behaviour. */
 	return septet_l;
@@ -691,21 +692,25 @@ int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t septet_l)
 
 int gsm_7bit_decode_ussd(char *text, const uint8_t *user_data, uint8_t length)
 {
-	return gsm_7bit_decode_n_ussd(text, SIZE_MAX, user_data, length);
+	return gsm_7bit_decode_n_ussd(text, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+				      user_data, length);
 }
 
 int gsm_7bit_encode(uint8_t *result, const char *data)
 {
 	int out;
-	return gsm_7bit_encode_n(result, SIZE_MAX, data, &out);
+	return gsm_7bit_encode_n(result, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+				 data, &out);
 }
 
 int gsm_7bit_encode_ussd(uint8_t *result, const char *data, int *octets)
 {
-	return gsm_7bit_encode_n_ussd(result, SIZE_MAX, data, octets);
+	return gsm_7bit_encode_n_ussd(result, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+				      data, octets);
 }
 
 int gsm_7bit_encode_oct(uint8_t *result, const char *data, int *octets)
 {
-	return gsm_7bit_encode_n(result, SIZE_MAX, data, octets);
+	return gsm_7bit_encode_n(result, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+				 data, octets);
 }

@@ -195,6 +195,9 @@ enum gsm_chan_t {
 };
 
 /* Deprectated functions */
+/* Limit encoding and decoding to use no more than this amount of buffer bytes */
+#define GSM_7BIT_LEGACY_MAX_BUFFER_SIZE  0x10000
+
 int gsm_7bit_decode(char *decoded, const uint8_t *user_data, uint8_t length) OSMO_DEPRECATED("Use gsm_7bit_decode_n() instead");
 int gsm_7bit_decode_ussd(char *decoded, const uint8_t *user_data, uint8_t length) OSMO_DEPRECATED("Use gsm_7bit_decode_n_ussd() instead");
 int gsm_7bit_encode(uint8_t *result, const char *data) OSMO_DEPRECATED("Use gsm_7bit_encode_n() instead");
