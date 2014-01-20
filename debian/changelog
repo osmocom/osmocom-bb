@@ -1,4 +1,10 @@
-libosmocore (0.6.4+git3) UNRELEASED; urgency=low
+libosmocore (0.6.5) UNRELEASED; urgency=medium
+
+  * New upstream release of libosmocore
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Mon, 20 Jan 2014 10:37:23 +0100
+
+libosmocore (0.6.4+git3) unstable; urgency=low
 
   * GPRS fix NS connections to a SGSN when configured via VTY
 
