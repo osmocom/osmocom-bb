@@ -1081,7 +1081,7 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 	else
 		le = &lc->lapdm_dcch;
 
-	/* G.2.1 No action schall be taken on frames containing an unallocated
+	/* G.2.1 No action shall be taken on frames containing an unallocated
 	 * SAPI.
 	 */
 	dl = datalink_for_sapi(le, sapi);
