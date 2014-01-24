@@ -80,6 +80,14 @@ static const uint8_t rel_req[] = {
 	0x02, 0x07, 0x01, 0x0a, 0x02, 0x40, 0x14, 0x01
 };
 
+static const uint8_t est_req_sdcch_sapi3[] = {
+	0x02, 0x04, 0x01, 0x20, 0x02, 0x03
+};
+
+static const uint8_t est_req_sacch_sapi3[] = {
+	0x02, 0x04, 0x01, 0x0b, 0x02, 0x43
+};
+
 static struct msgb *create_cm_serv_req(void)
 {
 	struct msgb *msg;
@@ -126,6 +134,16 @@ static struct msgb *create_rel_req(void)
 	struct msgb *msg;
 
 	msg = msgb_from_array(rel_req, sizeof(rel_req));
+	msg->l2h = msg->data;
+	msg->l3h = msg->l2h + sizeof(struct abis_rsl_rll_hdr);
+	return msg;
+}
+
+static struct msgb *create_est_req(const uint8_t *est_req, size_t est_req_size)
+{
+	struct msgb *msg;
+
+	msg = msgb_from_array(est_req, est_req_size);
 	msg->l2h = msg->data;
 	msg->l3h = msg->l2h + sizeof(struct abis_rsl_rll_hdr);
 	return msg;
@@ -350,37 +368,6 @@ static void test_lapdm_polling()
 	lapdm_channel_exit(&ms_to_bts_channel);
 }
 
-static void test_lapdm_early_release()
-{
-	printf("I test RF channel release of an unestablished channel.\n");
-
-	int rc;
-	struct lapdm_polling_state test_state;
-
-	/* Configure LAPDm on both sides */
-	struct lapdm_channel bts_to_ms_channel;
-	memset(&bts_to_ms_channel, 0, sizeof(bts_to_ms_channel));
-
-	memset(&test_state, 0, sizeof(test_state));
-	test_state.bts = &bts_to_ms_channel;
-
-	/* BTS to MS in polling mode */
-	lapdm_channel_init(&bts_to_ms_channel, LAPDM_MODE_BTS);
-	lapdm_channel_set_flags(&bts_to_ms_channel, LAPDM_ENT_F_POLLING_ONLY);
-	lapdm_channel_set_l1(&bts_to_ms_channel, NULL, &test_state);
-	lapdm_channel_set_l3(&bts_to_ms_channel, bts_to_ms_tx_cb, &test_state);
-
-	/* Send the release request */
-	rc = lapdm_rslms_recvmsg(create_rel_req(), &bts_to_ms_channel);
-	OSMO_ASSERT(rc == -EINVAL);
-
-	/* clean up */
-	lapdm_channel_exit(&bts_to_ms_channel);
-
-	/* Check if exit is idempotent */
-	lapdm_channel_exit(&bts_to_ms_channel);
-}
-
 static void test_lapdm_contention_resolution()
 {
 	printf("I test contention resultion by having two mobiles collide and "
@@ -427,6 +414,108 @@ static void test_lapdm_contention_resolution()
 	lapdm_channel_exit(&bts_to_ms_channel);
 }
 
+static void test_lapdm_early_release()
+{
+	printf("I test RF channel release of an unestablished channel.\n");
+
+	int rc;
+	struct lapdm_polling_state test_state;
+
+	/* Configure LAPDm on both sides */
+	struct lapdm_channel bts_to_ms_channel;
+	memset(&bts_to_ms_channel, 0, sizeof(bts_to_ms_channel));
+
+	memset(&test_state, 0, sizeof(test_state));
+	test_state.bts = &bts_to_ms_channel;
+
+	/* BTS to MS in polling mode */
+	lapdm_channel_init(&bts_to_ms_channel, LAPDM_MODE_BTS);
+	lapdm_channel_set_flags(&bts_to_ms_channel, LAPDM_ENT_F_POLLING_ONLY);
+	lapdm_channel_set_l1(&bts_to_ms_channel, NULL, &test_state);
+	lapdm_channel_set_l3(&bts_to_ms_channel, bts_to_ms_tx_cb, &test_state);
+
+	/* Send the release request */
+	rc = lapdm_rslms_recvmsg(create_rel_req(), &bts_to_ms_channel);
+	OSMO_ASSERT(rc == -EINVAL);
+
+	/* clean up */
+	lapdm_channel_exit(&bts_to_ms_channel);
+
+	/* Check if exit is idempotent */
+	lapdm_channel_exit(&bts_to_ms_channel);
+}
+
+static void lapdm_establish(const uint8_t *est_req, size_t est_req_size)
+{
+	int rc;
+	struct lapdm_polling_state test_state;
+	struct osmo_phsap_prim pp;
+	struct msgb *msg;
+	const char *queue_name;
+
+	/* Configure LAPDm on both sides */
+	struct lapdm_channel bts_to_ms_channel;
+	memset(&bts_to_ms_channel, 0, sizeof(bts_to_ms_channel));
+
+	memset(&test_state, 0, sizeof(test_state));
+	test_state.bts = &bts_to_ms_channel;
+
+	/* BTS to MS in polling mode */
+	lapdm_channel_init(&bts_to_ms_channel, LAPDM_MODE_BTS);
+	lapdm_channel_set_flags(&bts_to_ms_channel, LAPDM_ENT_F_POLLING_ONLY);
+	lapdm_channel_set_l1(&bts_to_ms_channel, NULL, &test_state);
+	lapdm_channel_set_l3(&bts_to_ms_channel, bts_to_ms_tx_cb, &test_state);
+
+	/* Send the release request */
+	msg = create_est_req(est_req, est_req_size);
+	rc = lapdm_rslms_recvmsg(msg, &bts_to_ms_channel);
+	fprintf(stderr, "recvmsg: got rc %d: %s\n", rc, rc <= 0 ? strerror(-rc) : "???");
+	OSMO_ASSERT(rc == 0);
+
+	/* Take message from queue */
+	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	if (rc >= 0)
+		queue_name = "DCCH";
+	else {
+		rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_acch, &pp);
+		if (rc >= 0)
+			queue_name = "ACCH";
+	}
+
+	fprintf(stderr, "dequeue: got rc %d: %s\n", rc,
+		rc <= 0 ? strerror(-rc) : "-");
+	CHECK_RC(rc);
+
+	printf("Took message from %s queue: L2 header size %d, "
+	       "SAP %#x, %d/%d, Link 0x%02x\n",
+	       queue_name, msgb_l2len(pp.oph.msg) - msgb_l3len(pp.oph.msg),
+	       pp.oph.sap, pp.oph.primitive, pp.oph.operation,
+	       pp.u.data.link_id);
+	printf("Message: %s\n", osmo_hexdump(pp.oph.msg->data, pp.oph.msg->len));
+
+	OSMO_ASSERT(pp.oph.msg->data == msgb_l2(pp.oph.msg));
+
+	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	OSMO_ASSERT(rc < 0);
+	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_acch, &pp);
+	OSMO_ASSERT(rc < 0);
+
+	/* clean up */
+	lapdm_channel_exit(&bts_to_ms_channel);
+
+	/* idempotent */
+	lapdm_channel_exit(&bts_to_ms_channel);
+}
+
+static void test_lapdm_establishment()
+{
+	printf("I test RF channel establishment.\n");
+	printf("Testing SAPI3/SDCCH\n");
+	lapdm_establish(est_req_sdcch_sapi3, sizeof(est_req_sdcch_sapi3));
+	printf("Testing SAPI3/SACCH\n");
+	lapdm_establish(est_req_sacch_sapi3, sizeof(est_req_sacch_sapi3));
+}
+
 int main(int argc, char **argv)
 {
 	osmo_init_logging(&info);
@@ -434,6 +523,7 @@ int main(int argc, char **argv)
 	test_lapdm_polling();
 	test_lapdm_early_release();
 	test_lapdm_contention_resolution();
+	test_lapdm_establishment();
 	printf("Success.\n");
 
 	return 0;

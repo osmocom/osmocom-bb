@@ -21,4 +21,11 @@ I test RF channel release of an unestablished channel.
 I test contention resultion by having two mobiles collide and first mobile repeating SABM.
 bts_to_ms_tx_cb: MS->BTS(us) message 25
 BTS: Verifying CM request.
+I test RF channel establishment.
+Testing SAPI3/SDCCH
+Took message from DCCH queue: L2 header size 3, SAP 0x1000000, 0/0, Link 0x03
+Message: 0f 3f 01 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+Testing SAPI3/SACCH
+Took message from ACCH queue: L2 header size 5, SAP 0x1000000, 0/0, Link 0x43
+Message: 00 00 0f 3f 01 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
 Success.
