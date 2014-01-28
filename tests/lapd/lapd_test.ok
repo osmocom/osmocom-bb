@@ -33,9 +33,9 @@ Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, 
 Message: [L2]> 01 73 41 [L3]> 05 24 31 03 50 18 93 08 29 47 80 00 00 00 00 80 2b 2b 2b 2b 
 I test RF channel establishment.
 Testing SAPI3/SDCCH
-Took message from DCCH queue: L2 header size 6, L3 size 17, SAP 0x1000000, 0/0, Link 0x03
-Message: [L2]> 0f 3f 0d 20 02 03 [L3]> 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, Link 0x03
+Message: [L2]> 0f 3f 01 [L3]> 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
 Testing SAPI3/SACCH
-Took message from ACCH queue: L2 header size 8, L3 size 15, SAP 0x1000000, 0/0, Link 0x43
-Message: [L2]> 00 00 0f 3f 0d 0b 02 43 [L3]> 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+Took message from ACCH queue: L2 header size 5, L3 size 18, SAP 0x1000000, 0/0, Link 0x43
+Message: [L2]> 00 00 0f 3f 01 [L3]> 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
 Success.

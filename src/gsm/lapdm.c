@@ -193,14 +193,6 @@ static struct lapdm_datalink *datalink_for_sapi(struct lapdm_entity *le, uint8_t
 	}
 }
 
-/* remove the L2 header from a MSGB */
-static inline unsigned char *msgb_pull_l2h(struct msgb *msg)
-{
-	unsigned char *ret = msgb_pull(msg, msg->l3h - msg->l2h);
-	msg->l2h = NULL;
-	return ret;
-}
-
 /* Append padding (if required) */
 static void lapdm_pad_msgb(struct msgb *msg, uint8_t n201)
 {
@@ -611,7 +603,7 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 			lctx.length = n201;
 			lctx.more = 0;
 			msg->l3h = msg->l2h + 2;
-			msgb_pull_l2h(msg);
+			msgb_pull_to_l3(msg);
 		} else {
 			/* length field */
 			if (!(msg->l2h[2] & LAPDm_EL)) {
@@ -629,7 +621,7 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 			lctx.length = msg->l2h[2] >> 2;
 			lctx.more = !!(msg->l2h[2] & LAPDm_MORE);
 			msg->l3h = msg->l2h + 3;
-			msgb_pull_l2h(msg);
+			msgb_pull_to_l3(msg);
 		}
 		/* store context for messages from lapd */
 		memcpy(&mctx.dl->mctx, &mctx, sizeof(mctx.dl->mctx));
@@ -644,7 +636,7 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 		/* directly pass up to layer3 */
 		LOGP(DLLAPD, LOGL_INFO, "fmt=Bbis UI\n");
 		msg->l3h = msg->l2h;
-		msgb_pull_l2h(msg);
+		msgb_pull_to_l3(msg);
 		rc = send_rslms_rll_l3(RSL_MT_UNIT_DATA_IND, &mctx, msg);
 		break;
 	default:
@@ -807,9 +799,8 @@ static int rslms_rx_rll_est_req(struct msgb *msg, struct lapdm_datalink *dl)
 	}
 
 	/* Remove RLL header from msgb and set length to L3-info */
-	msgb_pull_l2h(msg);
-	msg->len = length;
-	msg->tail = msg->l3h + length;
+	msgb_pull_to_l3(msg);
+	msgb_trim(msg, length);
 
 	/* prepare prim */
 	osmo_prim_init(&dp.oph, 0, PRIM_DL_EST, PRIM_OP_REQUEST, msg);
@@ -861,9 +852,8 @@ static int rslms_rx_rll_udata_req(struct msgb *msg, struct lapdm_datalink *dl)
 		le->tx_power, le->ta);
 
 	/* Remove RLL header from msgb and set length to L3-info */
-	msgb_pull_l2h(msg);
-	msg->len = length;
-	msg->tail = msg->l3h + length;
+	msgb_pull_to_l3(msg);
+	msgb_trim(msg, length);
 
 	/* Push L1 + LAPDm header on msgb */
 	msg->l2h = msgb_push(msg, 2 + !ui_bts);
@@ -900,9 +890,8 @@ static int rslms_rx_rll_data_req(struct msgb *msg, struct lapdm_datalink *dl)
 	length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 
 	/* Remove RLL header from msgb and set length to L3-info */
-	msgb_pull_l2h(msg);
-	msg->len = length;
-	msg->tail = msg->l3h + length;
+	msgb_pull_to_l3(msg);
+	msgb_trim(msg, length);
 
 	/* prepare prim */
 	osmo_prim_init(&dp.oph, 0, PRIM_DL_DATA, PRIM_OP_REQUEST, msg);
@@ -957,9 +946,8 @@ static int rslms_rx_rll_res_req(struct msgb *msg, struct lapdm_datalink *dl)
 	length = TLVP_LEN(&tv, RSL_IE_L3_INFO);
 
 	/* Remove RLL header from msgb and set length to L3-info */
-	msgb_pull_l2h(msg);
-	msg->len = length;
-	msg->tail = msg->l3h + length;
+	msgb_pull_to_l3(msg);
+	msgb_trim(msg, length);
 
 	/* prepare prim */
 	osmo_prim_init(&dp.oph, 0, (msg_type == RSL_MT_RES_REQ) ? PRIM_DL_RES
@@ -981,12 +969,11 @@ static int rslms_rx_rll_rel_req(struct msgb *msg, struct lapdm_datalink *dl)
 		mode = rllh->data[1] & 1;
 
 	/* Pull rllh */
-	msgb_pull_l2h(msg);
+	msgb_pull_to_l3(msg);
 
 	/* 04.06 3.8.3: No information field is permitted with the DISC
 	 * command. */
-	msg->len = 0;
-	msg->tail = msg->l3h = msg->data;
+	msgb_trim(msg, 0);
 
 	/* prepare prim */
 	osmo_prim_init(&dp.oph, 0, PRIM_DL_REL, PRIM_OP_REQUEST, msg);
@@ -1045,7 +1032,7 @@ static int l2_ph_chan_conf(struct msgb *msg, struct lapdm_entity *le, uint32_t f
 
 	gsm_fn2gsmtime(&tm, frame_nr);
 
-	msgb_pull_l2h(msg);
+	msgb_pull_to_l3(msg);
 	msg->l2h = msgb_push(msg, sizeof(*ch) + sizeof(*ref));
 	ch = (struct abis_rsl_cchan_hdr *)msg->l2h;
 	rsl_init_cchan_hdr(ch, RSL_MT_CHAN_CONF);
