@@ -36,6 +36,7 @@
 	}
 
 static struct log_info info = {};
+static int dummy_l1_header_len = 0;
 
 struct lapdm_polling_state {
 	struct lapdm_channel *bts;
@@ -94,6 +95,7 @@ static struct msgb *create_cm_serv_req(void)
 
 	msg = msgb_from_array(cm, sizeof(cm));
 	rsl_rll_push_l3(msg, RSL_MT_EST_REQ, 0, 0, 1);
+	msgb_push(msg, dummy_l1_header_len);
 	return msg;
 }
 
@@ -106,6 +108,7 @@ static struct msgb *create_mm_id_req(void)
 	OSMO_ASSERT(msgb_l2len(msg) == 12);
 	msg->l3h = msg->l2h + 6;
 	OSMO_ASSERT(msgb_l3len(msg) == 6);
+	msgb_push(msg, dummy_l1_header_len);
 
 	return msg;
 }
@@ -117,6 +120,7 @@ static struct msgb *create_empty_msg(void)
 	msg = msgb_from_array(NULL, 0);
 	OSMO_ASSERT(msgb_l3len(msg) == 0);
 	rsl_rll_push_l3(msg, RSL_MT_DATA_REQ, 0, 0, 1);
+	msgb_push(msg, dummy_l1_header_len);
 	return msg;
 }
 
@@ -126,6 +130,7 @@ static struct msgb *create_dummy_data_req(void)
 
 	msg = msgb_from_array(dummy1, sizeof(dummy1));
 	rsl_rll_push_l3(msg, RSL_MT_DATA_REQ, 0, 0, 1);
+	msgb_push(msg, dummy_l1_header_len);
 	return msg;
 }
 
@@ -135,6 +140,7 @@ static struct msgb *create_rel_req(void)
 
 	msg = msgb_from_array(rel_req, sizeof(rel_req));
 	msg->l2h = msg->data;
+	msgb_push(msg, dummy_l1_header_len);
 	msg->l3h = msg->l2h + sizeof(struct abis_rsl_rll_hdr);
 	return msg;
 }
@@ -145,6 +151,7 @@ static struct msgb *create_est_req(const uint8_t *est_req, size_t est_req_size)
 
 	msg = msgb_from_array(est_req, est_req_size);
 	msg->l2h = msg->data;
+	msgb_push(msg, dummy_l1_header_len);
 	msg->l3h = msg->l2h + sizeof(struct abis_rsl_rll_hdr);
 	return msg;
 }
@@ -550,10 +557,15 @@ int main(int argc, char **argv)
 {
 	osmo_init_logging(&info);
 
+	/* Prevent the test from segfaulting */
+	dummy_l1_header_len = 0;
 	test_lapdm_polling();
+
+	dummy_l1_header_len = 3;
 	test_lapdm_early_release();
 	test_lapdm_contention_resolution();
 	test_lapdm_establishment();
+
 	printf("Success.\n");
 
 	return 0;
