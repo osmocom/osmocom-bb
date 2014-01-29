@@ -322,7 +322,8 @@ static char *bargraph(int value, int min, int max)
 	else
 		value -= min;
 
-	memset(bar, '=', value);
+	if (value)
+		memset(bar, '=', value);
 	bar[value] = '\0';
 
 	return bar;
