@@ -156,7 +156,7 @@ static int gsm411_rp_sendmsg(struct gsm411_smr_inst *inst, struct msgb *msg,
 	rp = (struct gsm411_rp_hdr *)msgb_push(msg, sizeof(*rp));
 	rp->len = len + 2;
 	rp->msg_type = rp_msg_type;
-	rp->msg_ref = rp_msg_ref; /* FIXME: Choose randomly */
+	rp->msg_ref = rp_msg_ref;
 
 	return inst->mn_send(inst, mnsms_msg_type, msg);
 }
