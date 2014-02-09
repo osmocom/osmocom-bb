@@ -291,8 +291,8 @@ void lapd_dl_init(struct lapd_datalink *dl, uint8_t k, uint8_t v_range,
 
 	if (!tall_lapd_ctx)
 		tall_lapd_ctx = talloc_named_const(NULL, 1, "lapd context");
-	dl->tx_hist = (struct lapd_history *) talloc_zero_array(tall_lapd_ctx,
-					struct log_info, dl->range_hist);
+	dl->tx_hist = talloc_zero_array(tall_lapd_ctx,
+					struct lapd_history, dl->range_hist);
 }
 
 /* reset to IDLE state */
