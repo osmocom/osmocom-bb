@@ -5,10 +5,14 @@ bts_to_ms_tx_cb: MS->BTS(us) message 25
 BTS: Verifying CM request.
 
 Confirming
+Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, Link 0x00
+Message: [L2]> 01 73 41 [L3]> 05 24 31 03 50 18 93 08 29 47 80 00 00 00 00 80 2b 2b 2b 2b 
 ms_to_bts_tx_cb: BTS->MS(us) message 9
 MS: Verifying incoming primitive.
 
 Sending back to MS
+Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, Link 0x00
+Message: [L2]> 03 00 0d [L3]> 05 04 0d 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
 ms_to_bts_tx_cb: BTS->MS(us) message 12
 MS: Verifying incoming MM message: 3
 ms_to_bts_l1_cb: MS(us) -> BTS prim message
@@ -17,15 +21,21 @@ Sending back to BTS
 ms_to_bts_l1_cb: MS(us) -> BTS prim message
 bts_to_ms_tx_cb: MS->BTS(us) message 14
 BTS: Verifying dummy message.
+Took message from DCCH queue: L2 header size 23, L3 size 0, SAP 0x1000000, 0/0, Link 0x00
+Message: [L2]> 01 21 01 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
 I test RF channel release of an unestablished channel.
 I test contention resultion by having two mobiles collide and first mobile repeating SABM.
 bts_to_ms_tx_cb: MS->BTS(us) message 25
 BTS: Verifying CM request.
+Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, Link 0x00
+Message: [L2]> 01 73 41 [L3]> 05 24 31 03 50 18 93 08 29 47 80 00 00 00 00 80 2b 2b 2b 2b 
+Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, Link 0x00
+Message: [L2]> 01 73 41 [L3]> 05 24 31 03 50 18 93 08 29 47 80 00 00 00 00 80 2b 2b 2b 2b 
 I test RF channel establishment.
 Testing SAPI3/SDCCH
-Took message from DCCH queue: L2 header size 3, SAP 0x1000000, 0/0, Link 0x03
-Message: 0f 3f 01 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, Link 0x03
+Message: [L2]> 0f 3f 01 [L3]> 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
 Testing SAPI3/SACCH
-Took message from ACCH queue: L2 header size 5, SAP 0x1000000, 0/0, Link 0x43
-Message: 00 00 0f 3f 01 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+Took message from ACCH queue: L2 header size 5, L3 size 18, SAP 0x1000000, 0/0, Link 0x43
+Message: [L2]> 00 00 0f 3f 01 [L3]> 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
 Success.

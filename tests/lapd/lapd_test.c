@@ -240,6 +240,51 @@ static int ms_to_bts_l1_cb(struct osmo_prim_hdr *oph, void *_ctx)
 	return rc;
 }
 
+static int dequeue_prim(struct lapdm_entity *le, struct osmo_phsap_prim *pp,
+			const char *queue_name)
+{
+	int rc;
+	int l2_header_len;
+	int l3_len = 0;
+
+	/* Take message from queue */
+	rc = lapdm_phsap_dequeue_prim(le, pp);
+
+	fprintf(stderr, "dequeue: got rc %d: %s\n", rc,
+		rc <= 0 ? strerror(-rc) : "-");
+
+	if (rc < 0)
+		return rc;
+
+	l2_header_len = msgb_l2len(pp->oph.msg);
+	if (msgb_l3(pp->oph.msg)) {
+		l3_len = msgb_l3len(pp->oph.msg);
+		l2_header_len -= l3_len;
+	} else
+		fprintf(stderr, "MSGB: L3 is undefined\n");
+
+	if (l2_header_len < 0 || l2_header_len > pp->oph.msg->data_len) {
+		fprintf(stderr,
+			"MSGB inconsistent: data = %p, l2 = %p, l3 = %p, tail = %p\n",
+			pp->oph.msg->data,
+			pp->oph.msg->l2h,
+			pp->oph.msg->l3h,
+			pp->oph.msg->tail);
+		l2_header_len = -1;
+	}
+
+	printf("Took message from %s queue: "
+	       "L2 header size %d, L3 size %d, "
+	       "SAP %#x, %d/%d, Link 0x%02x\n",
+	       queue_name,
+	       l2_header_len, l3_len,
+	       pp->oph.sap, pp->oph.primitive, pp->oph.operation,
+	       pp->u.data.link_id);
+	printf("Message: %s\n", msgb_hexdump(pp->oph.msg));
+
+	return rc;
+}
+
 static int ms_to_bts_tx_cb(struct msgb *msg, struct lapdm_entity *le, void *_ctx)
 {
 	struct lapdm_polling_state *state = _ctx;
@@ -315,7 +360,7 @@ static void test_lapdm_polling()
 	/* 2. Poll on the BTS for sending out a confirmation */
 	printf("\nConfirming\n");
 	OSMO_ASSERT(test_state.bts_read == 1);
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	CHECK_RC(rc);
 	OSMO_ASSERT(pp.oph.msg->data == pp.oph.msg->l2h);
 	send(pp.oph.msg, &ms_to_bts_channel);
@@ -325,14 +370,14 @@ static void test_lapdm_polling()
 	/* 3. Send some data to the MS */
 	printf("\nSending back to MS\n");
 	lapdm_rslms_recvmsg(create_mm_id_req(), &bts_to_ms_channel);
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	CHECK_RC(rc);
 	send(pp.oph.msg, &ms_to_bts_channel);
 	msgb_free(pp.oph.msg);
 	OSMO_ASSERT(test_state.ms_read == 2);
 
 	/* verify that there is nothing more to poll */
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	OSMO_ASSERT(rc < 0);
 
 	/* 3. And back to the BTS */
@@ -344,14 +389,14 @@ static void test_lapdm_polling()
 	/* 4. And back to the MS, but let's move data/l2h apart */
 	OSMO_ASSERT(test_state.bts_read == 2);
 	OSMO_ASSERT(test_state.ms_read == 2);
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	CHECK_RC(rc);
 	send(pp.oph.msg, &ms_to_bts_channel);
 	OSMO_ASSERT(test_state.ms_read == 2);
 	msgb_free(pp.oph.msg);
 
 	/* verify that there is nothing more to poll */
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	OSMO_ASSERT(rc < 0);
 
 	/* check sending an empty L3 message fails */
@@ -392,18 +437,18 @@ static void test_lapdm_contention_resolution()
 
 	/* Send SABM MS 1, we must get UA */
 	send_sabm(&bts_to_ms_channel, 0);
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	CHECK_RC(rc);
 	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, ua, ARRAY_SIZE(ua)) == 0);
 
 	/* Send SABM MS 2, we must get nothing, due to collision */
 	send_sabm(&bts_to_ms_channel, 1);
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	OSMO_ASSERT(rc == -ENODEV);
 
 	/* Send SABM MS 1 again, we must get UA gain */
 	send_sabm(&bts_to_ms_channel, 0);
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	CHECK_RC(rc);
 	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, ua, ARRAY_SIZE(ua)) == 0);
 
@@ -451,7 +496,6 @@ static void lapdm_establish(const uint8_t *est_req, size_t est_req_size)
 	struct lapdm_polling_state test_state;
 	struct osmo_phsap_prim pp;
 	struct msgb *msg;
-	const char *queue_name;
 
 	/* Configure LAPDm on both sides */
 	struct lapdm_channel bts_to_ms_channel;
@@ -473,31 +517,17 @@ static void lapdm_establish(const uint8_t *est_req, size_t est_req_size)
 	OSMO_ASSERT(rc == 0);
 
 	/* Take message from queue */
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
-	if (rc >= 0)
-		queue_name = "DCCH";
-	else {
-		rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_acch, &pp);
-		if (rc >= 0)
-			queue_name = "ACCH";
-	}
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
+	if (rc < 0)
+		rc = dequeue_prim(&bts_to_ms_channel.lapdm_acch, &pp, "ACCH");
 
-	fprintf(stderr, "dequeue: got rc %d: %s\n", rc,
-		rc <= 0 ? strerror(-rc) : "-");
 	CHECK_RC(rc);
-
-	printf("Took message from %s queue: L2 header size %d, "
-	       "SAP %#x, %d/%d, Link 0x%02x\n",
-	       queue_name, msgb_l2len(pp.oph.msg) - msgb_l3len(pp.oph.msg),
-	       pp.oph.sap, pp.oph.primitive, pp.oph.operation,
-	       pp.u.data.link_id);
-	printf("Message: %s\n", osmo_hexdump(pp.oph.msg->data, pp.oph.msg->len));
 
 	OSMO_ASSERT(pp.oph.msg->data == msgb_l2(pp.oph.msg));
 
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	OSMO_ASSERT(rc < 0);
-	rc = lapdm_phsap_dequeue_prim(&bts_to_ms_channel.lapdm_acch, &pp);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_acch, &pp, "ACCH");
 	OSMO_ASSERT(rc < 0);
 
 	/* clean up */
