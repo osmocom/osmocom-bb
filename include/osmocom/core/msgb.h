@@ -73,6 +73,7 @@ extern void msgb_enqueue(struct llist_head *queue, struct msgb *msg);
 extern struct msgb *msgb_dequeue(struct llist_head *queue);
 extern void msgb_reset(struct msgb *m);
 uint16_t msgb_length(const struct msgb *msg);
+extern const char *msgb_hexdump(const struct msgb *msg);
 
 #ifdef MSGB_DEBUG
 #include <osmocom/core/panic.h>

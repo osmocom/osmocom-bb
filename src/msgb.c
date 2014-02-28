@@ -153,4 +153,53 @@ void msgb_set_talloc_ctx(void *ctx)
 	tall_msgb_ctx = ctx;
 }
 
+/*! \brief Return a (static) buffer containing a hexdump of the msg
+ * \param[in] msg message buffer
+ * \returns a pointer to a static char array
+ */
+const char *msgb_hexdump(const struct msgb *msg)
+{
+	static char buf[4100];
+	int buf_offs = 0;
+	int nchars;
+	const unsigned char *start = msg->data;
+	const unsigned char *lxhs[4];
+	int i;
+
+	lxhs[0] = msg->l1h;
+	lxhs[1] = msg->l2h;
+	lxhs[2] = msg->l3h;
+	lxhs[3] = msg->l4h;
+
+	for (i = 0; i < ARRAY_SIZE(lxhs); i++) {
+		if (!lxhs[i])
+			continue;
+
+		if (lxhs[i] < msg->data)
+			goto out_of_range;
+		if (lxhs[i] > msg->tail)
+			goto out_of_range;
+		nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
+				  "%s[L%d]> ",
+				  osmo_hexdump(start, lxhs[i] - start),
+				  i+1);
+		if (nchars < 0 || nchars + buf_offs >= sizeof(buf))
+			return "ERROR";
+
+		buf_offs += nchars;
+		start = lxhs[i];
+	}
+	nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
+			  "%s", osmo_hexdump(start, msg->tail - start));
+	if (nchars < 0 || nchars + buf_offs >= sizeof(buf))
+		return "ERROR";
+
+	return buf;
+
+out_of_range:
+	nchars = snprintf(buf, sizeof(buf) - buf_offs,
+			  "!!! L%d out of range", i+1);
+	return buf;
+}
+
 /*! @} */
