@@ -405,6 +405,8 @@ static void test_lapdm_polling()
 	/* verify that there is nothing more to poll */
 	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	OSMO_ASSERT(rc < 0);
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_acch, &pp, "ACCH");
+	OSMO_ASSERT(rc < 0);
 
 	/* check sending an empty L3 message fails */
 	rc = lapdm_rslms_recvmsg(create_empty_msg(), &bts_to_ms_channel);
