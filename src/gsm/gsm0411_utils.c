@@ -138,13 +138,13 @@ static unsigned long gsm340_vp_relative(uint8_t *sms_vp)
 
 	vp = *(sms_vp);
 	if (vp <= 143)
-		minutes = vp + 1 * 5;
+		minutes = (vp + 1) * 5;
 	else if (vp <= 167)
 		minutes = 12*60 + (vp-143) * 30;
 	else if (vp <= 196)
-		minutes = vp-166 * 60 * 24;
+		minutes = (vp-166) * 60 * 24;
 	else
-		minutes = vp-192 * 60 * 24 * 7;
+		minutes = (vp-192) * 60 * 24 * 7;
 	return minutes;
 }
 
