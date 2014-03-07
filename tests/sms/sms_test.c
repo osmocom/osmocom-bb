@@ -31,6 +31,11 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/utils.h>
 
+#include <osmocom/core/logging.h>
+#include <osmocom/core/application.h>
+
+struct log_info fake_log_info = {};
+
 struct test_case {
 	const uint8_t *input;
 	const uint16_t input_length;
@@ -277,6 +282,9 @@ int main(int argc, char** argv)
 	uint8_t septet_data[256];
 	int nchars;
 	char result[256];
+
+	/* Fake logging. */
+	osmo_init_logging(&fake_log_info);
 
 	/* test 7-bit encoding */
 	for (i = 0; i < ARRAY_SIZE(test_encode); ++i) {
