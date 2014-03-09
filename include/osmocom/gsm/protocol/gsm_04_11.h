@@ -122,7 +122,7 @@ enum sms_alphabet {
 #define GSM340_SMS_COMMAND_MS2SC	0x02
 #define GSM340_SMS_SUBMIT_MS2SC		0x01
 #define GSM340_SMS_SUBMIT_REP_SC2MS	0x01
-#define GSM340_SMS_RESSERVED		0x03
+#define GSM340_SMS_RESERVED		0x03
 
 /* GSM 03.40 / Chapter 9.2.3.2: TP-More-Messages-to-Send */
 #define GSM340_TP_MMS_MORE		0
