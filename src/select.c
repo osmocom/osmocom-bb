@@ -21,6 +21,8 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/select.h>
 
 #include <osmocom/core/select.h>
 #include <osmocom/core/linuxlist.h>
