@@ -73,6 +73,7 @@ extern void msgb_enqueue(struct llist_head *queue, struct msgb *msg);
 extern struct msgb *msgb_dequeue(struct llist_head *queue);
 extern void msgb_reset(struct msgb *m);
 uint16_t msgb_length(const struct msgb *msg);
+extern const char *msgb_hexdump(const struct msgb *msg);
 
 #ifdef MSGB_DEBUG
 #include <osmocom/core/panic.h>
@@ -297,6 +298,21 @@ static inline unsigned char *msgb_pull(struct msgb *msgb, unsigned int len)
 {
 	msgb->len -= len;
 	return msgb->data += len;
+}
+
+/*! \brief remove (pull) all headers in front of l3h from the message buffer.
+ *  \param[in] msgb message buffer with a valid l3h
+ *  \returns pointer to new start of msgb (l3h)
+ *
+ * This function moves the \a data pointer of the \ref msgb further back
+ * in the message, thereby shrinking the size of the message.
+ * l1h and l2h will be cleared.
+ */
+static inline unsigned char *msgb_pull_to_l3(struct msgb *msg)
+{
+	unsigned char *ret = msgb_pull(msg, msg->l3h - msg->data);
+	msg->l1h = msg->l2h = NULL;
+	return ret;
 }
 
 /*! \brief remove uint8 from front of message
