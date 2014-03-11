@@ -623,11 +623,11 @@ vty_telnet_option (struct vty *vty, unsigned char *buf, int nbytes)
 	    if (vty->sb_len != TELNET_NAWS_SB_LEN)
 	      vty_out(vty,"RFC 1073 violation detected: telnet NAWS option "
 			"should send %d characters, but we received %lu",
-			TELNET_NAWS_SB_LEN, (u_long)vty->sb_len);
+			TELNET_NAWS_SB_LEN, (unsigned long)vty->sb_len);
 	    else if (sizeof(vty->sb_buf) < TELNET_NAWS_SB_LEN)
 	      vty_out(vty, "Bug detected: sizeof(vty->sb_buf) %lu < %d, "
 		       "too small to handle the telnet NAWS option",
-		       (u_long)sizeof(vty->sb_buf), TELNET_NAWS_SB_LEN);
+		       (unsigned long)sizeof(vty->sb_buf), TELNET_NAWS_SB_LEN);
 	    else
 	      {
 		vty->width = ((vty->sb_buf[1] << 8)|vty->sb_buf[2]);

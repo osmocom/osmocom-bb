@@ -299,7 +299,7 @@ buffer_flush_window(struct buffer * b, int fd, int width, int height,
 				zlog_warn("%s: growing iov array to %d; "
 					  "width %d, height %d, size %lu",
 					  __func__, iov_alloc, width, height,
-					  (u_long) b->size);
+					  (unsigned long) b->size);
 				iov =
 				    XREALLOC(MTYPE_TMP, iov,
 					     iov_alloc * sizeof(*iov));
