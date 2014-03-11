@@ -39,7 +39,7 @@ void buffer_free(struct buffer *);
 /* Add the given data to the end of the buffer. */
 extern void buffer_put(struct buffer *, const void *, size_t);
 /* Add a single character to the end of the buffer. */
-extern void buffer_putc(struct buffer *, u_char);
+extern void buffer_putc(struct buffer *, unsigned char);
 /* Add a NUL-terminated string to the end of the buffer. */
 extern void buffer_putstr(struct buffer *, const char *);
 

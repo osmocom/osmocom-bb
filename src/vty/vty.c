@@ -276,7 +276,7 @@ int vty_out(struct vty *vty, const char *format, ...)
 			p = buf;
 
 		/* Pointer p must point out buffer. */
-		buffer_put(vty->obuf, (u_char *) p, len);
+		buffer_put(vty->obuf, (unsigned char *) p, len);
 
 		/* If p is not different with buf, it is allocated buffer.  */
 		if (p != buf)
