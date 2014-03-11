@@ -25,7 +25,7 @@
 #include <osmocom/vty/vector.h>
 #include <osmocom/vty/vty.h>
 #include <osmocom/core/talloc.h>
-#include <memory.h>
+#include <string.h>
 
 void *tall_vty_vec_ctx;
 
