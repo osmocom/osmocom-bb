@@ -1455,8 +1455,8 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 	int length = lctx->length;
 	int rc;
 
-	LOGP(DLLAPD, LOGL_INFO, "I received in state %s\n",
-		lapd_state_names[dl->state]);
+	LOGP(DLLAPD, LOGL_INFO, "I received in state %s on SAPI(%u)\n",
+		lapd_state_names[dl->state], lctx->sapi);
 		
 	/* G.2.2 Wrong value of the C/R bit */
 	if (lctx->cr == dl->cr.rem2loc.resp) {
