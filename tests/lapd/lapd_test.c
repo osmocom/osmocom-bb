@@ -621,17 +621,13 @@ const uint8_t gprs_susp[] = {
 	0xd2, 0x6f, 0x09, 0xf1, 0x07, 0x00, 0x01, 0x00, 0x02
 };
 
-const uint8_t gprs_susp_ack[] = {
-	0x01, 0x41, 0x01
-};
-
 const uint8_t cipher_cmd[] = {
 	0x06, 0x35, 0x01
 };
 
-/* The cipher command we send to the MS */
+/* The cipher command we send to the MS after updating our N(R) */
 const uint8_t cipher_cmd_out[] = {
-	0x03, 0x20, 0x0d, 0x06, 0x35, 0x01
+	0x03, 0x40, 0x0d, 0x06, 0x35, 0x01
 };
 
 uint8_t cipher_compl[] = {
@@ -730,7 +726,7 @@ static void test_lapdm_desync()
 
 	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	CHECK_RC(rc);
-	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, gprs_susp_ack, ARRAY_SIZE(gprs_susp_ack)) == 0);
+	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, cipher_compl_ack, ARRAY_SIZE(cipher_compl_ack)) == 0);
 
 	printf("\nEstablishing SAPI=3\n");
 	send_sabm(&bts_to_ms_channel, 3, NULL, 0);
@@ -746,7 +742,7 @@ static void test_lapdm_desync()
 
 	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	CHECK_RC(rc);
-	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, cipher_compl_ack, ARRAY_SIZE(cipher_compl_ack)) == 0);
+	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, cp_data_1_ack, ARRAY_SIZE(cp_data_1_ack)) == 0);
 
 	/* clean up */
 	lapdm_channel_exit(&bts_to_ms_channel);

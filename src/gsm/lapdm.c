@@ -114,6 +114,7 @@ enum lapdm_format {
 static int lapdm_send_ph_data_req(struct lapd_msg_ctx *lctx, struct msgb *msg);
 static int send_rslms_dlsap(struct osmo_dlsap_prim *dp,
 	struct lapd_msg_ctx *lctx);
+static int update_pending_frames(struct lapd_msg_ctx *lctx);
 
 static void lapdm_dl_init(struct lapdm_datalink *dl,
 			  struct lapdm_entity *entity, int t200)
@@ -124,6 +125,7 @@ static void lapdm_dl_init(struct lapdm_datalink *dl,
 	dl->dl.reestablish = 0; /* GSM uses no reestablish */
 	dl->dl.send_ph_data_req = lapdm_send_ph_data_req;
 	dl->dl.send_dlsap = send_rslms_dlsap;
+	dl->dl.update_pending_frames = update_pending_frames;
 	dl->dl.n200_est_rel = N200_EST_REL;
 	dl->dl.n200 = N200;
 	dl->dl.t203_sec = 0; dl->dl.t203_usec = 0;
@@ -486,6 +488,25 @@ static int lapdm_send_ph_data_req(struct lapd_msg_ctx *lctx, struct msgb *msg)
 
 	return tx_ph_data_enqueue(mctx->dl, msg, mctx->chan_nr, mctx->link_id,
 			23);
+}
+
+static int update_pending_frames(struct lapd_msg_ctx *lctx)
+{
+	struct lapd_datalink *dl = lctx->dl;
+	struct msgb *msg;
+	int rc = -1;
+
+	llist_for_each_entry(msg, &dl->tx_queue, list) {
+		if (LAPDm_CTRL_is_I(msg->l2h[1])) {
+			msg->l2h[1] = LAPDm_CTRL_I(dl->v_recv, LAPDm_CTRL_I_Ns(msg->l2h[1]),
+					LAPDm_CTRL_PF_BIT(msg->l2h[1]));
+			rc = 0;
+		} else if (LAPDm_CTRL_is_S(msg->l2h[1])) {
+			LOGP(DLLAPD, LOGL_ERROR, "Supervisory frame in queue, this shouldn't happen\n");
+		}
+	}
+
+	return rc;
 }
 
 /* input into layer2 (from layer 1) */

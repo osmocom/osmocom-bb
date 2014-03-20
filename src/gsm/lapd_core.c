@@ -1607,6 +1607,12 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		if (!dl->own_busy) {
 			/* NOTE: V(R) is already set above */
 			rc = lapd_send_i(lctx, __LINE__);
+
+			/* if update_pending_iframe returns 0 it updated
+			 * the lapd header of an iframe in the tx queue */
+			if (rc && dl->update_pending_frames)
+				rc = dl->update_pending_frames(lctx);
+
 			if (rc) {
 				LOGP(DLLAPD, LOGL_INFO, "we are not busy and "
 					"have no pending data, send RR\n");
