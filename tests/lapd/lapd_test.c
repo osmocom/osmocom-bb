@@ -1,6 +1,7 @@
 /*
  * (C) 2011 by Holger Hans Peter Freyther
  * (C) 2011 by On-Waves
+ * (C) 2014 by Daniel Willmann <dwillmann@sysmocom.de>
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -178,22 +179,66 @@ static int send(struct msgb *in_msg, struct lapdm_channel *chan)
 	return 0;
 }
 
-static int send_sabm(struct lapdm_channel *chan, int second_ms)
+/* Receive from L1 */
+static int send_buf(const uint8_t *buf, size_t len, struct lapdm_channel *chan)
 {
 	struct osmo_phsap_prim pp;
 	struct msgb *msg;
 	int rc;
 
+	msg = msgb_from_array(buf, len);
+	msg->l2h = msg->l3h;
+	msg->l3h = NULL;
+	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
+			PRIM_OP_INDICATION, msg);
+
+	/* LAPDm requires those... */
+	pp.u.data.chan_nr = 0;
+	pp.u.data.link_id = 0;
+        /* feed into the LAPDm code of libosmogsm */
+        rc = lapdm_phsap_up(&pp.oph, &chan->lapdm_dcch);
+	OSMO_ASSERT(rc == 0 || rc == -EBUSY);
+	return 0;
+}
+
+/* Receive from L3 */
+static int enqueue_buf(const uint8_t *buf, size_t len, int sapi, struct lapdm_channel *chan)
+{
+	struct osmo_dlsap_prim dp;
+	struct msgb *msg;
+	int rc;
+	struct lapdm_datalink *dl;
+
+	dl = lapdm_datalink_for_sapi(&chan->lapdm_dcch, sapi);
+	OSMO_ASSERT(dl);
+
+	msg = msgb_from_array(buf, len);
+	osmo_prim_init(&dp.oph, 0, PRIM_DL_DATA, PRIM_OP_REQUEST, msg);
+
+	rc = lapd_recv_dlsap(&dp, &dl->dl.lctx);
+	OSMO_ASSERT(rc == 0 || rc == -EBUSY);
+	return 0;
+}
+
+static int send_sabm(struct lapdm_channel *chan, int sapi, const uint8_t *data, size_t len)
+{
+	struct osmo_phsap_prim pp;
+	struct msgb *msg;
+	int rc;
+
+	OSMO_ASSERT(sapi == 0 || sapi == 3);
+
 	msg = msgb_alloc_headroom(128, 64, "PH-DATA.ind");
 	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
 			PRIM_OP_INDICATION, msg);
 	/* copy over actual MAC block */
-	msg->l2h = msgb_put(msg, 23);
-	msg->l2h[0] = 0x01;
+	msg->l2h = msgb_put(msg, 3 + len);
+	msg->l2h[0] = 0x01 | (sapi << 2);
 	msg->l2h[1] = 0x3f;
-	msg->l2h[2] = 0x01 | (sizeof(cm) << 2);
-	memcpy(msg->l2h + 3, cm, sizeof(cm));
-	msg->l2h[3] += second_ms; /* alter message, for second mobile */
+	msg->l2h[2] = 0x01 | (len << 2);
+
+	if (len > 0)
+		memcpy(msg->l2h + 3, data, len);
 
 	/* LAPDm requires those... */
 	pp.u.data.chan_nr = 0;
@@ -430,6 +475,7 @@ static void test_lapdm_contention_resolution()
 	int rc;
 	struct lapdm_polling_state test_state;
 	struct osmo_phsap_prim pp;
+	uint8_t *cm2;
 
 	/* Configure LAPDm on both sides */
 	struct lapdm_channel bts_to_ms_channel;
@@ -445,18 +491,22 @@ static void test_lapdm_contention_resolution()
 	lapdm_channel_set_l3(&bts_to_ms_channel, bts_to_ms_tx_cb, &test_state);
 
 	/* Send SABM MS 1, we must get UA */
-	send_sabm(&bts_to_ms_channel, 0);
+	send_sabm(&bts_to_ms_channel, 0, cm, sizeof(cm));
 	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	CHECK_RC(rc);
 	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, ua, ARRAY_SIZE(ua)) == 0);
 
 	/* Send SABM MS 2, we must get nothing, due to collision */
-	send_sabm(&bts_to_ms_channel, 1);
+	cm2 = malloc(sizeof(cm));
+	memcpy(cm2, cm, sizeof(cm));
+	cm2[0] += 1;
+	send_sabm(&bts_to_ms_channel, 0, cm2, sizeof(cm2));
+	free(cm2);
 	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	OSMO_ASSERT(rc == -ENODEV);
 
 	/* Send SABM MS 1 again, we must get UA gain */
-	send_sabm(&bts_to_ms_channel, 0);
+	send_sabm(&bts_to_ms_channel, 0, cm, sizeof(cm));
 	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
 	CHECK_RC(rc);
 	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, ua, ARRAY_SIZE(ua)) == 0);
@@ -555,6 +605,156 @@ static void test_lapdm_establishment()
 	lapdm_establish(est_req_sacch_sapi3, sizeof(est_req_sacch_sapi3));
 }
 
+
+const uint8_t cm_chg[] = {
+	0x01, 0x00, 0x49, 0x06, 0x16, 0x03, 0x33,
+	0x59, 0xa6, 0x20, 0x0a, 0x20, 0x04, 0x04,
+	0x2f, 0x65, 0x23, 0x02, 0x00, 0x24, 0x04
+};
+
+const uint8_t cm_chg_ack[] = {
+	0x01, 0x21, 0x01
+};
+
+const uint8_t gprs_susp[] = {
+	0x01, 0x02, 0x35, 0x06, 0x34, 0xe3, 0xd4,
+	0xd2, 0x6f, 0x09, 0xf1, 0x07, 0x00, 0x01, 0x00, 0x02
+};
+
+const uint8_t gprs_susp_ack[] = {
+	0x01, 0x41, 0x01
+};
+
+const uint8_t cipher_cmd[] = {
+	0x06, 0x35, 0x01
+};
+
+/* The cipher command we send to the MS */
+const uint8_t cipher_cmd_out[] = {
+	0x03, 0x20, 0x0d, 0x06, 0x35, 0x01
+};
+
+uint8_t cipher_compl[] = {
+	0x01, 0x24, 0x09, 0x06, 0x32
+};
+
+uint8_t cipher_compl_ack[] = {
+	0x01, 0x61, 0x01
+};
+
+static const uint8_t ua_sms[] = {
+	0x0d, 0x73, 0x01
+};
+
+const uint8_t cp_data_1[] = {
+	0x0d, 0x00, 0x53, 0x59, 0x01, 0x5c, 0x00,
+	0x4c, 0x00, 0x06, 0x91, 0x86, 0x77, 0x07,
+	0x00, 0xf9, 0x51, 0x11, 0x76, 0x05, 0x81, 0x29, 0x32
+};
+
+const uint8_t cp_data_1_ack[] = {
+	0x0d, 0x21, 0x01
+};
+
+static int bts_to_ms_dummy_tx_cb(struct msgb *in_msg, struct lapdm_entity *le, void *_ctx)
+{
+	printf("%s: MS->BTS(us) message %d\n", __func__, msgb_length(in_msg));
+	msgb_free(in_msg);
+
+	return 0;
+}
+
+static void dump_queue(struct llist_head *head)
+{
+	struct msgb* msg;
+
+	printf("\nDumping queue:\n");
+	llist_for_each_entry(msg, head, list)
+		printf("%s\n", msgb_hexdump(msg));
+	printf("\n");
+}
+
+static void test_lapdm_desync()
+{
+	printf("I test if desync problems exist in LAPDm\n");
+
+	int rc;
+	struct osmo_phsap_prim pp;
+
+	/* Configure LAPDm on both sides */
+	struct lapdm_channel bts_to_ms_channel;
+	memset(&bts_to_ms_channel, 0, sizeof(bts_to_ms_channel));
+
+	/* BTS to MS in polling mode */
+	lapdm_channel_init(&bts_to_ms_channel, LAPDM_MODE_BTS);
+	lapdm_channel_set_flags(&bts_to_ms_channel, LAPDM_ENT_F_POLLING_ONLY);
+	lapdm_channel_set_l1(&bts_to_ms_channel, NULL, NULL);
+	lapdm_channel_set_l3(&bts_to_ms_channel, bts_to_ms_dummy_tx_cb, NULL);
+	struct lapdm_datalink *dl = lapdm_datalink_for_sapi(&bts_to_ms_channel.lapdm_dcch, 0);
+	dl->mctx.dl = dl;
+	dl->dl.lctx.dl = &dl->dl;
+
+	/* Send SABM MS 1, we must get UA */
+	printf("\nEstablishing SAPI=0\n");
+	send_sabm(&bts_to_ms_channel, 0, cm, sizeof(cm));
+
+	dump_queue(&dl->dl.tx_queue);
+
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
+	CHECK_RC(rc);
+	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, ua, ARRAY_SIZE(ua)) == 0);
+
+	printf("\nSending Classmark Change\n");
+	send_buf(cm_chg, sizeof(cm_chg), &bts_to_ms_channel);
+	dump_queue(&dl->dl.tx_queue);
+
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
+	CHECK_RC(rc);
+	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, cm_chg_ack, ARRAY_SIZE(cm_chg_ack)) == 0);
+
+	printf("\nEnqueueing Ciphering Mode Command\n");
+	enqueue_buf(cipher_cmd, sizeof(cipher_cmd), 0, &bts_to_ms_channel);
+	dump_queue(&dl->dl.tx_queue);
+
+	printf("\nSending GPRS Suspend Request\n");
+	send_buf(gprs_susp, sizeof(gprs_susp), &bts_to_ms_channel);
+	dump_queue(&dl->dl.tx_queue);
+
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
+	CHECK_RC(rc);
+	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, cipher_cmd_out, ARRAY_SIZE(cipher_cmd_out)) == 0);
+
+	printf("\nSending Cipher Mode Complete\n");
+	send_buf(cipher_compl, sizeof(cipher_compl), &bts_to_ms_channel);
+	dump_queue(&dl->dl.tx_queue);
+
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
+	CHECK_RC(rc);
+	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, gprs_susp_ack, ARRAY_SIZE(gprs_susp_ack)) == 0);
+
+	printf("\nEstablishing SAPI=3\n");
+	send_sabm(&bts_to_ms_channel, 3, NULL, 0);
+	dump_queue(&dl->dl.tx_queue);
+
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
+	CHECK_RC(rc);
+	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, ua_sms, ARRAY_SIZE(ua_sms)) == 0);
+
+	printf("\nSending CP-DATA\n");
+	send_buf(cp_data_1, sizeof(cp_data_1), &bts_to_ms_channel);
+	dump_queue(&dl->dl.tx_queue);
+
+	rc = dequeue_prim(&bts_to_ms_channel.lapdm_dcch, &pp, "DCCH");
+	CHECK_RC(rc);
+	OSMO_ASSERT(memcmp(pp.oph.msg->l2h, cipher_compl_ack, ARRAY_SIZE(cipher_compl_ack)) == 0);
+
+	/* clean up */
+	lapdm_channel_exit(&bts_to_ms_channel);
+
+	/* Check if exit is idempotent */
+	lapdm_channel_exit(&bts_to_ms_channel);
+}
+
 int main(int argc, char **argv)
 {
 	osmo_init_logging(&info);
@@ -567,6 +767,7 @@ int main(int argc, char **argv)
 	test_lapdm_early_release();
 	test_lapdm_contention_resolution();
 	test_lapdm_establishment();
+	test_lapdm_desync();
 
 	printf("Success.\n");
 
