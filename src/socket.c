@@ -17,6 +17,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/un.h>
 
 #include <netinet/in.h>
 
@@ -255,6 +256,107 @@ int osmo_sockaddr_is_local(struct sockaddr *addr, unsigned int addrlen)
 	}
 
 	return 0;
+}
+
+/*! \brief Initialize a unix domain socket (including bind/connect)
+ *  \param[in] type Socket type like SOCK_DGRAM, SOCK_STREAM
+ *  \param[in] proto Protocol like IPPROTO_TCP, IPPROTO_UDP
+ *  \param[in] socket_path path to identify the socket
+ *  \param[in] flags flags like \ref OSMO_SOCK_F_CONNECT
+ *
+ * This function creates a new unix domain socket, \a
+ * type and \a proto and optionally binds or connects it, depending on
+ * the value of \a flags parameter.
+ */
+int osmo_sock_unix_init(uint16_t type, uint8_t proto,
+			const char *socket_path, unsigned int flags)
+{
+	struct sockaddr_un local;
+	int sfd, rc, on = 1;
+	unsigned int namelen;
+
+	if ((flags & (OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT)) ==
+		     (OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT))
+		return -EINVAL;
+
+	local.sun_family = AF_UNIX;
+	strncpy(local.sun_path, socket_path, sizeof(local.sun_path));
+	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
+
+#if defined(BSD44SOCKETS) || defined(__UNIXWARE__)
+	local.sun_len = strlen(local.sun_path);
+#endif
+#if defined(BSD44SOCKETS) || defined(SUN_LEN)
+	namelen = SUN_LEN(&local);
+#else
+	namelen = strlen(local.sun_path) +
+		  offsetof(struct sockaddr_un, sun_path);
+#endif
+
+	sfd = socket(AF_UNIX, type, proto);
+	if (sfd < 0)
+		return -1;
+
+	if (flags & OSMO_SOCK_F_CONNECT) {
+		rc = connect(sfd, (struct sockaddr *)&local, namelen);
+		if (rc < 0)
+			goto err;
+	} else {
+		unlink(local.sun_path);
+		rc = bind(sfd, (struct sockaddr *)&local, namelen);
+		if  (rc < 0)
+			goto err;
+	}
+
+	if (flags & OSMO_SOCK_F_NONBLOCK) {
+		if (ioctl(sfd, FIONBIO, (unsigned char *)&on) < 0) {
+			perror("cannot set this socket unblocking");
+			close(sfd);
+			return -EINVAL;
+		}
+	}
+
+	if (flags & OSMO_SOCK_F_BIND) {
+		rc = listen(sfd, 10);
+		if (rc < 0)
+			goto err;
+	}
+
+	return sfd;
+err:
+	close(sfd);
+	return -1;
+}
+
+/*! \brief Initialize a unix domain socket and fill \ref osmo_fd
+ *  \param[out] ofd file descriptor (will be filled in)
+ *  \param[in] type Socket type like SOCK_DGRAM, SOCK_STREAM
+ *  \param[in] proto Protocol like IPPROTO_TCP, IPPROTO_UDP
+ *  \param[in] socket_path path to identify the socket
+ *  \param[in] flags flags like \ref OSMO_SOCK_F_CONNECT
+ *
+ * This function creates (and optionall binds/connects) a socket using
+ * \ref osmo_sock_unix_init, but also fills the \a ofd structure.
+ */
+int osmo_sock_unix_init_ofd(struct osmo_fd *ofd, uint16_t type, uint8_t proto,
+			    const char *socket_path, unsigned int flags)
+{
+	int sfd, rc;
+
+	sfd = osmo_sock_unix_init(type, proto, socket_path, flags);
+	if (sfd < 0)
+		return sfd;
+
+	ofd->fd = sfd;
+	ofd->when = BSC_FD_READ;
+
+	rc = osmo_fd_register(ofd);
+	if (rc < 0) {
+		close(sfd);
+		return rc;
+	}
+
+	return sfd;
 }
 
 #endif /* HAVE_SYS_SOCKET_H */

@@ -30,6 +30,12 @@ int osmo_sock_init_sa(struct sockaddr *ss, uint16_t type,
 
 int osmo_sockaddr_is_local(struct sockaddr *addr, unsigned int addrlen);
 
+int osmo_sock_unix_init(uint16_t type, uint8_t proto,
+			const char *socket_path, unsigned int flags);
+
+int osmo_sock_unix_init_ofd(struct osmo_fd *ofd, uint16_t type, uint8_t proto,
+			    const char *socket_path, unsigned int flags);
+
 /*! @} */
 
 #endif /* _OSMOCORE_SOCKET_H */
