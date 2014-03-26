@@ -38,4 +38,62 @@ Message: [L2]> 0f 3f 01 [L3]> 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b
 Testing SAPI3/SACCH
 Took message from ACCH queue: L2 header size 5, L3 size 18, SAP 0x1000000, 0/0, Link 0x43
 Message: [L2]> 00 00 0f 3f 01 [L3]> 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+I test if desync problems exist in LAPDm
+
+Establishing SAPI=0
+bts_to_ms_dummy_tx_cb: MS->BTS(us) message 25
+
+Dumping queue:
+00 00 17 [L2]> 01 73 41 [L3]> 05 24 31 03 50 18 93 08 29 47 80 00 00 00 00 80 
+
+Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, Link 0x00
+Message: [L2]> 01 73 41 [L3]> 05 24 31 03 50 18 93 08 29 47 80 00 00 00 00 80 2b 2b 2b 2b 
+
+Sending Classmark Change
+bts_to_ms_dummy_tx_cb: MS->BTS(us) message 27
+
+Dumping queue:
+00 00 17 [L2]> 01 21 01 
+
+Took message from DCCH queue: L2 header size 23, L3 size 0, SAP 0x1000000, 0/0, Link 0x00
+Message: [L2]> 01 21 01 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+
+Enqueueing Ciphering Mode Command
+
+Dumping queue:
+00 00 17 [L2]> 03 20 0d [L3]> 06 35 01 
+
+
+Sending GPRS Suspend Request
+bts_to_ms_dummy_tx_cb: MS->BTS(us) message 22
+
+Dumping queue:
+00 00 17 [L2]> 03 40 0d [L3]> 06 35 01 
+
+Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, Link 0x00
+Message: [L2]> 03 40 0d [L3]> 06 35 01 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+
+Sending Cipher Mode Complete
+bts_to_ms_dummy_tx_cb: MS->BTS(us) message 11
+
+Dumping queue:
+00 00 17 [L2]> 01 61 01 
+
+Took message from DCCH queue: L2 header size 23, L3 size 0, SAP 0x1000000, 0/0, Link 0x00
+Message: [L2]> 01 61 01 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+
+Establishing SAPI=3
+bts_to_ms_dummy_tx_cb: MS->BTS(us) message 6
+
+Dumping queue:
+
+Took message from DCCH queue: L2 header size 3, L3 size 20, SAP 0x1000000, 0/0, Link 0x03
+Message: [L2]> 0d 73 01 [L3]> 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
+
+Sending CP-DATA
+
+Dumping queue:
+
+Took message from DCCH queue: L2 header size 23, L3 size 0, SAP 0x1000000, 0/0, Link 0x03
+Message: [L2]> 0d 21 01 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 2b 
 Success.

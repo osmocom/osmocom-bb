@@ -125,6 +125,7 @@ struct lapd_datalink {
 	int (*send_dlsap)(struct osmo_dlsap_prim *dp,
 	        struct lapd_msg_ctx *lctx);
 	int (*send_ph_data_req)(struct lapd_msg_ctx *lctx, struct msgb *msg);
+	int (*update_pending_frames)(struct lapd_msg_ctx *lctx);
 	struct {
 		/*! \brief filled-in once we set the lapd_mode above */
 		struct lapd_cr_ent loc2rem;

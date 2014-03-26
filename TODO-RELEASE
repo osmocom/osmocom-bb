@@ -1,0 +1,2 @@
+#library	what		description / commit summary line
+libosmogsm	abi-change	Prevent LAPD tx_queue from filling up in polling mode

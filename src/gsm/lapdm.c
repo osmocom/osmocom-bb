@@ -114,6 +114,7 @@ enum lapdm_format {
 static int lapdm_send_ph_data_req(struct lapd_msg_ctx *lctx, struct msgb *msg);
 static int send_rslms_dlsap(struct osmo_dlsap_prim *dp,
 	struct lapd_msg_ctx *lctx);
+static int update_pending_frames(struct lapd_msg_ctx *lctx);
 
 static void lapdm_dl_init(struct lapdm_datalink *dl,
 			  struct lapdm_entity *entity, int t200)
@@ -124,6 +125,7 @@ static void lapdm_dl_init(struct lapdm_datalink *dl,
 	dl->dl.reestablish = 0; /* GSM uses no reestablish */
 	dl->dl.send_ph_data_req = lapdm_send_ph_data_req;
 	dl->dl.send_dlsap = send_rslms_dlsap;
+	dl->dl.update_pending_frames = update_pending_frames;
 	dl->dl.n200_est_rel = N200_EST_REL;
 	dl->dl.n200 = N200;
 	dl->dl.t203_sec = 0; dl->dl.t203_usec = 0;
@@ -181,7 +183,7 @@ void lapdm_channel_exit(struct lapdm_channel *lc)
 	lapdm_entity_exit(&lc->lapdm_dcch);
 }
 
-static struct lapdm_datalink *datalink_for_sapi(struct lapdm_entity *le, uint8_t sapi)
+struct lapdm_datalink *lapdm_datalink_for_sapi(struct lapdm_entity *le, uint8_t sapi)
 {
 	switch (sapi) {
 	case LAPDm_SAPI_NORMAL:
@@ -488,6 +490,25 @@ static int lapdm_send_ph_data_req(struct lapd_msg_ctx *lctx, struct msgb *msg)
 			23);
 }
 
+static int update_pending_frames(struct lapd_msg_ctx *lctx)
+{
+	struct lapd_datalink *dl = lctx->dl;
+	struct msgb *msg;
+	int rc = -1;
+
+	llist_for_each_entry(msg, &dl->tx_queue, list) {
+		if (LAPDm_CTRL_is_I(msg->l2h[1])) {
+			msg->l2h[1] = LAPDm_CTRL_I(dl->v_recv, LAPDm_CTRL_I_Ns(msg->l2h[1]),
+					LAPDm_CTRL_PF_BIT(msg->l2h[1]));
+			rc = 0;
+		} else if (LAPDm_CTRL_is_S(msg->l2h[1])) {
+			LOGP(DLLAPD, LOGL_ERROR, "Supervisory frame in queue, this shouldn't happen\n");
+		}
+	}
+
+	return rc;
+}
+
 /* input into layer2 (from layer 1) */
 static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 	uint8_t chan_nr, uint8_t link_id)
@@ -543,7 +564,7 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 		}
 	}
 
-	mctx.dl = datalink_for_sapi(le, sapi);
+	mctx.dl = lapdm_datalink_for_sapi(le, sapi);
 	/* G.2.1 No action on frames containing an unallocated SAPI. */
 	if (!mctx.dl) {
 		LOGP(DLLAPD, LOGL_NOTICE, "Received frame for unsupported "
@@ -1071,7 +1092,7 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 	/* G.2.1 No action shall be taken on frames containing an unallocated
 	 * SAPI.
 	 */
-	dl = datalink_for_sapi(le, sapi);
+	dl = lapdm_datalink_for_sapi(le, sapi);
 	if (!dl) {
 		LOGP(DLLAPD, LOGL_ERROR, "No instance for SAPI %d!\n", sapi);
 		msgb_free(msg);
