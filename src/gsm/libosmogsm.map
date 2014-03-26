@@ -172,6 +172,7 @@ lapdm_channel_set_flags;
 lapdm_channel_set_l1;
 lapdm_channel_set_l3;
 lapdm_channel_set_mode;
+lapdm_datalink_for_sapi;
 lapdm_entity_exit;
 lapdm_entity_init;
 lapdm_entity_reset;

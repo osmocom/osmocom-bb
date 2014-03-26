@@ -181,7 +181,7 @@ void lapdm_channel_exit(struct lapdm_channel *lc)
 	lapdm_entity_exit(&lc->lapdm_dcch);
 }
 
-static struct lapdm_datalink *datalink_for_sapi(struct lapdm_entity *le, uint8_t sapi)
+struct lapdm_datalink *lapdm_datalink_for_sapi(struct lapdm_entity *le, uint8_t sapi)
 {
 	switch (sapi) {
 	case LAPDm_SAPI_NORMAL:
@@ -543,7 +543,7 @@ static int l2_ph_data_ind(struct msgb *msg, struct lapdm_entity *le,
 		}
 	}
 
-	mctx.dl = datalink_for_sapi(le, sapi);
+	mctx.dl = lapdm_datalink_for_sapi(le, sapi);
 	/* G.2.1 No action on frames containing an unallocated SAPI. */
 	if (!mctx.dl) {
 		LOGP(DLLAPD, LOGL_NOTICE, "Received frame for unsupported "
@@ -1071,7 +1071,7 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 	/* G.2.1 No action shall be taken on frames containing an unallocated
 	 * SAPI.
 	 */
-	dl = datalink_for_sapi(le, sapi);
+	dl = lapdm_datalink_for_sapi(le, sapi);
 	if (!dl) {
 		LOGP(DLLAPD, LOGL_ERROR, "No instance for SAPI %d!\n", sapi);
 		msgb_free(msg);
