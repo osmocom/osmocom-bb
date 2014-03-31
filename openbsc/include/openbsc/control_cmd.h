@@ -39,6 +39,9 @@ struct ctrl_connection {
 	/* The queue for sending data back */
 	struct osmo_wqueue write_queue;
 
+	/* Buffer for partial input data */
+	struct msgb *pending_msg;
+
 	/* Callback if the connection was closed */
 	void (*closed_cb)(struct ctrl_connection *conn);
 

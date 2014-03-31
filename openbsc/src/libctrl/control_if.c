@@ -123,6 +123,7 @@ static void control_close_conn(struct ctrl_connection *ccon)
 	llist_del(&ccon->list_entry);
 	if (ccon->closed_cb)
 		ccon->closed_cb(ccon);
+	msgb_free(ccon->pending_msg);
 	talloc_free(ccon);
 }
 
@@ -140,8 +141,10 @@ static int handle_control_read(struct osmo_fd * bfd)
 	queue = container_of(bfd, struct osmo_wqueue, bfd);
 	ccon = container_of(queue, struct ctrl_connection, write_queue);
 
-	ret = ipa_msg_recv(bfd->fd, &msg);
+	ret = ipa_msg_recv_buffered(bfd->fd, &msg, &ccon->pending_msg);
 	if (ret <= 0) {
+		if (ret == -EAGAIN)
+			return 0;
 		if (ret == 0)
 			LOGP(DCTRL, LOGL_INFO, "The control connection was closed\n");
 		else
