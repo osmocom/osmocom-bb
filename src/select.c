@@ -157,7 +157,7 @@ restart:
 			work = 1;
 			ufd->cb(ufd, flags);
 		}
-		/* ugly, ugly hack. If more than one filedescriptors were
+		/* ugly, ugly hack. If more than one filedescriptor was
 		 * unregistered, they might have been consecutive and
 		 * llist_for_each_entry_safe() is no longer safe */
 		/* this seems to happen with the last element of the list as well */
