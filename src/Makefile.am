@@ -6,6 +6,7 @@ AM_CFLAGS = -Wall $(all_includes) -I$(top_srcdir)/include -I$(top_builddir)/incl
 
 lib_LTLIBRARIES = libosmocore.la
 
+libosmocore_la_LIBADD = $(BACKTRACE_LIB)
 libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c bits.c \
 			 bitvec.c statistics.c \
 			 write_queue.c utils.c socket.c \
@@ -26,7 +27,7 @@ endif
 if ENABLE_TALLOC
 libosmocore_la_SOURCES += talloc.c
 else
-libosmocore_la_LIBADD = -ltalloc
+libosmocore_la_LIBADD += -ltalloc
 endif
 
 if ENABLE_MSGFILE

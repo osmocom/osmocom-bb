@@ -36,6 +36,9 @@ AC_CHECK_HEADERS(execinfo.h sys/select.h sys/socket.h syslog.h ctype.h)
 AC_FUNC_ALLOCA
 AC_SEARCH_LIBS([dlopen], [dl dld], [LIBRARY_DL="$LIBS";LIBS=""])
 AC_SUBST(LIBRARY_DL)
+# for src/backtrace.c
+AC_CHECK_LIB(execinfo, backtrace, BACKTRACE_LIB=-lexecinfo, BACKTRACE_LIB=)
+AC_SUBST(BACKTRACE_LIB)
 
 AC_PATH_PROG(DOXYGEN,doxygen,false)
 AM_CONDITIONAL(HAVE_DOXYGEN, test $DOXYGEN != false)
