@@ -138,6 +138,8 @@ enum osim_ef_type {
 
 #define F_OPTIONAL		0x0001
 
+#define SFI_NONE 		0xFF
+
 struct osim_file_desc {
 	struct llist_head list;		/*!< local element in list */
 	struct llist_head child_list;	/*!< list of children EF in DF */
@@ -172,9 +174,10 @@ struct osim_file {
 	struct osim_decoded_data *decoded_data;
 };
 
-#define EF(pfid, pns, pflags, pnl, ptype, smin, srec, pdec, penc)	\
+#define EF(pfid, sfi, pns, pflags, pnl, ptype, smin, srec, pdec, penc)	\
 	{								\
 		.fid		= pfid,					\
+		.sfid		= sfi,					\
 		.type		= TYPE_EF,				\
 		.ef_type	= ptype,				\
 		.short_name	= pns,					\
@@ -185,22 +188,22 @@ struct osim_file {
 	}
 
 
-#define EF_TRANSP(fid, ns, flags, smin, srec, nl, dec, enc)	\
-		EF(fid, ns, flags, nl, EF_TYPE_TRANSP,		\
+#define EF_TRANSP(fid, sfi, ns, flags, smin, srec, nl, dec, enc)	\
+		EF(fid, sfi, ns, flags, nl, EF_TYPE_TRANSP,		\
 		   smin, srec, dec, enc)
-#define EF_TRANSP_N(fid, ns, flags, smin, srec, nl)		\
-		EF_TRANSP(fid, ns, flags, smin, srec,		\
+#define EF_TRANSP_N(fid, sfi, ns, flags, smin, srec, nl)		\
+		EF_TRANSP(fid, sfi, ns, flags, smin, srec,		\
 			  nl, &default_decode, NULL)
 
-#define EF_CYCLIC(fid, ns, flags, smin, srec, nl, dec, enc)	\
-		EF(fid, ns, flags, nl, EF_TYPE_RECORD_CYCLIC,	\
+#define EF_CYCLIC(fid, sfi, ns, flags, smin, srec, nl, dec, enc)	\
+		EF(fid, sfi, ns, flags, nl, EF_TYPE_RECORD_CYCLIC,	\
 		   smin, srec, dec, enc)
-#define EF_CYCLIC_N(fid, ns, flags, smin, srec, nl)		\
-		EF_CYCLIC(fid, ns, flags, smin, srec, nl,	\
+#define EF_CYCLIC_N(fid, sfi, ns, flags, smin, srec, nl)		\
+		EF_CYCLIC(fid, sfi, ns, flags, smin, srec, nl,		\
 			  &default_decode, NULL)
 
-#define EF_LIN_FIX(fid, ns, flags, smin, srec, nl, dec, enc)	\
-		EF(fid, ns, flags, nl, EF_TYPE_RECORD_FIXED,	\
+#define EF_LIN_FIX(fid, sfi, ns, flags, smin, srec, nl, dec, enc)	\
+		EF(fid, sfi, ns, flags, nl, EF_TYPE_RECORD_FIXED,	\
 		   smin, srec, dec, enc)
 #define EF_LIN_FIX_N(fid, sfi, ns, flags, smin, srec, nl)		\
 		EF_LIN_FIX(fid, sfi, ns, flags, smin, srec, nl, 	\
