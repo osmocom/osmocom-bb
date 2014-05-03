@@ -156,6 +156,13 @@ struct osim_file_desc {
 	unsigned int flags;
 
 	struct osim_file_ops ops;
+
+	struct {
+		size_t min;		/*!< Minimum size of the file
+					  (transparent) or record in
+					  cyclic / linear file */
+		size_t rec;		/*!< Recommended size */
+	} size;
 };
 
 struct osim_file {
@@ -165,7 +172,7 @@ struct osim_file {
 	struct osim_decoded_data *decoded_data;
 };
 
-#define EF(pfid, pns, pflags, pnl, ptype, pdec, penc)	\
+#define EF(pfid, pns, pflags, pnl, ptype, smin, srec, pdec, penc)	\
 	{								\
 		.fid		= pfid,					\
 		.type		= TYPE_EF,				\
@@ -174,23 +181,30 @@ struct osim_file {
 		.long_name	= pnl,					\
 		.flags		= pflags,				\
 		.ops 		= { .encode = penc, .parse = pdec },	\
+		.size		= { .min = smin, .rec = srec},		\
 	}
 
 
-#define EF_TRANSP(fid, ns, flags, nl, dec, enc)	\
-		EF(fid, ns, flags, nl, EF_TYPE_TRANSP, dec, enc)
-#define EF_TRANSP_N(fid, ns, flags, nl) \
-		EF_TRANSP(fid, ns, flags, nl, &default_decode, NULL)
+#define EF_TRANSP(fid, ns, flags, smin, srec, nl, dec, enc)	\
+		EF(fid, ns, flags, nl, EF_TYPE_TRANSP,		\
+		   smin, srec, dec, enc)
+#define EF_TRANSP_N(fid, ns, flags, smin, srec, nl)		\
+		EF_TRANSP(fid, ns, flags, smin, srec,		\
+			  nl, &default_decode, NULL)
 
-#define EF_CYCLIC(fid, ns, flags, nl, dec, enc)	\
-		EF(fid, ns, flags, nl, EF_TYPE_RECORD_CYCLIC, dec, enc)
-#define EF_CYCLIC_N(fid, ns, flags, nl) \
-		EF_CYCLIC(fid, ns, flags, nl, &default_decode, NULL)
+#define EF_CYCLIC(fid, ns, flags, smin, srec, nl, dec, enc)	\
+		EF(fid, ns, flags, nl, EF_TYPE_RECORD_CYCLIC,	\
+		   smin, srec, dec, enc)
+#define EF_CYCLIC_N(fid, ns, flags, smin, srec, nl)		\
+		EF_CYCLIC(fid, ns, flags, smin, srec, nl,	\
+			  &default_decode, NULL)
 
-#define EF_LIN_FIX(fid, ns, flags, nl, dec, enc)	\
-		EF(fid, ns, flags, nl, EF_TYPE_RECORD_FIXED, dec, enc)
-#define EF_LIN_FIX_N(fid, ns, flags, nl)	\
-		EF_LIN_FIX(fid, ns, flags, nl, &default_decode, NULL)
+#define EF_LIN_FIX(fid, ns, flags, smin, srec, nl, dec, enc)	\
+		EF(fid, ns, flags, nl, EF_TYPE_RECORD_FIXED,	\
+		   smin, srec, dec, enc)
+#define EF_LIN_FIX_N(fid, sfi, ns, flags, smin, srec, nl)		\
+		EF_LIN_FIX(fid, sfi, ns, flags, smin, srec, nl, 	\
+			   &default_decode, NULL)
 
 struct osim_file_desc *
 osim_file_find_name(struct osim_file_desc *parent, const char *name);
