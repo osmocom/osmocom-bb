@@ -134,6 +134,7 @@ enum osim_ef_type {
 	EF_TYPE_TRANSP,
 	EF_TYPE_RECORD_FIXED,
 	EF_TYPE_RECORD_CYCLIC,
+	EF_TYPE_KEY,			/* TETRA */
 };
 
 #define F_OPTIONAL		0x0001
@@ -208,6 +209,14 @@ struct osim_file {
 #define EF_LIN_FIX_N(fid, sfi, ns, flags, smin, srec, nl)		\
 		EF_LIN_FIX(fid, sfi, ns, flags, smin, srec, nl, 	\
 			   &default_decode, NULL)
+
+#define EF_KEY(fid, sfi, ns, flags, smin, srec, nl, dec, enc)		\
+		EF(fid, sfi, ns, flags, nl, EF_TYPE_KEY,		\
+		   smin, srec, dec, enc)
+#define EF_KEY_N(fid, sfi, ns, flags, smin, srec, nl)			\
+		EF_KEY(fid, sfi, ns, flags, smin, srec, nl, 		\
+		       &default_decode, NULL)
+
 
 struct osim_file_desc *
 osim_file_find_name(struct osim_file_desc *parent, const char *name);
