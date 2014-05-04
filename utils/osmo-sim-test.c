@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 	struct msgb *msg;
 	int rc;
 
-	reader = osim_reader_open(0, NULL);
+	reader = osim_reader_open(0, "", NULL);
 	if (!reader)
 		exit(1);
 	card = osim_card_open(reader);
