@@ -54,7 +54,7 @@ struct osim_msgb_cb {
 	uint16_t lc; /*!< number of bytes in the command data field Nc, which will encoded in 0, 1 or 3 bytes into Lc, depending on the case */
 	uint16_t le; /*!< maximum number of bytes expected in the response data field,  which will encoded in 0, 1, 2 or 3 bytes into Le, depending on the case */
 	uint16_t sw; /*!< status word, composed of SW1 and SW2 bytes */
-};
+} __attribute__((__may_alias__));
 #define OSIM_MSGB_CB(__msgb)	((struct osim_msgb_cb *)&((__msgb)->cb[0]))
 /*! \brief status word from msgb->cb */
 #define msgb_apdu_case(__x)	OSIM_MSGB_CB(__x)->apduc
