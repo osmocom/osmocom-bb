@@ -67,14 +67,19 @@ struct osim_msgb_cb {
 #define msgb_apdu_dc(__x)	((__x)->l2h + sizeof(struct osim_apdu_cmd_hdr))
 #define msgb_apdu_de(__x)	((__x)->l2h + sizeof(struct osim_apdu_cmd_hdr) + msgb_apdu_lc(__x))
 
+/* FILES */
+
 struct osim_file;
 struct osim_file_desc;
 struct osim_decoded_data;
 
+/*! \brief Operations for a given File */
 struct osim_file_ops {
+	/*! Parse binary file data into osim_decoded_data */
 	int (*parse)(struct osim_decoded_data *dd,
 		     const struct osim_file_desc *desc,
 		     int len, uint8_t *data);
+	/*! Encode osim_decoded_data into binary file */
 	struct msgb * (*encode)(const struct osim_file *file,
 				const struct osim_decoded_data *decoded);
 };
@@ -97,6 +102,7 @@ enum osim_element_repr {
 	ELEM_REPR_HEX,
 };
 
+/*! \brief A single decoded element inside a file */
 struct osim_decoded_element {
 	struct llist_head list;
 
@@ -110,10 +116,12 @@ struct osim_decoded_element {
 		uint16_t u16;
 		uint32_t u32;
 		uint8_t *buf;
+		/*! A list of sibling decoded_items */
 		struct llist_head siblings;
 	} u;
 };
 
+/*! Decoded data for a single file, consisting of all decoded elements */
 struct osim_decoded_data {
 	/*! file to which we belong */
 	const struct osim_file *file;
@@ -124,17 +132,17 @@ struct osim_decoded_data {
 
 enum osim_file_type {
 	TYPE_NONE,
-	TYPE_DF,
-	TYPE_ADF,
-	TYPE_EF,
-	TYPE_EF_INT,
+	TYPE_DF,	/*!< Dedicated File */
+	TYPE_ADF,	/*!< Application Dedicated File */
+	TYPE_EF,	/*!< Entry File */
+	TYPE_EF_INT,	/*!< Internal Entry File */
 };
 
 enum osim_ef_type {
-	EF_TYPE_TRANSP,
-	EF_TYPE_RECORD_FIXED,
-	EF_TYPE_RECORD_CYCLIC,
-	EF_TYPE_KEY,			/* TETRA */
+	EF_TYPE_TRANSP,		/*!< Transparent EF */
+	EF_TYPE_RECORD_FIXED,	/*!< Fixed-Size Record EF */
+	EF_TYPE_RECORD_CYCLIC,	/*!< Cyclic Record EF */
+	EF_TYPE_KEY,		/*!< Key file as used in TETRA */
 };
 
 #define F_OPTIONAL		0x0001
@@ -146,19 +154,19 @@ struct osim_file_desc {
 	struct llist_head child_list;	/*!< list of children EF in DF */
 	struct osim_file_desc *parent;	/*!< parent DF */
 
-	enum osim_file_type type;
-	enum osim_ef_type ef_type;
+	enum osim_file_type type;	/*!< Type of the file (EF, DF, ...) */
+	enum osim_ef_type ef_type;	/*!< Type of the EF, if type == TYPE_EF */
 
 	uint16_t fid;			/*!< File Identifier */
 	uint8_t sfid;			/*!< Short File IDentifier */
-	const char *df_name;		
+	const char *df_name;
 	uint8_t df_name_len;
 
 	const char *short_name;		/*!< Short Name (like EF.ICCID) */
 	const char *long_name;		/*!< Long / description */
 	unsigned int flags;
 
-	struct osim_file_ops ops;
+	struct osim_file_ops ops;	/*!< Operations (parse/encode */
 
 	struct {
 		size_t min;		/*!< Minimum size of the file
@@ -168,13 +176,18 @@ struct osim_file_desc {
 	} size;
 };
 
+/*! \brief A single instance of a file: Descriptor and contents */
 struct osim_file {
+	/*! Descriptor for the file */
 	const struct osim_file_desc *desc;
 
+	/*! Encoded file contents */
 	struct msgb *encoded_data;
+	/*! Parsed/Decoded file contents */
 	struct osim_decoded_data *decoded_data;
 };
 
+/*! Convenience macros for defining EF */
 #define EF(pfid, sfi, pns, pflags, pnl, ptype, smin, srec, pdec, penc)	\
 	{								\
 		.fid		= pfid,					\
@@ -189,30 +202,38 @@ struct osim_file {
 	}
 
 
+/*! Convenience macros for defining EF */
 #define EF_TRANSP(fid, sfi, ns, flags, smin, srec, nl, dec, enc)	\
 		EF(fid, sfi, ns, flags, nl, EF_TYPE_TRANSP,		\
 		   smin, srec, dec, enc)
+/*! Convenience macros for defining EF */
 #define EF_TRANSP_N(fid, sfi, ns, flags, smin, srec, nl)		\
 		EF_TRANSP(fid, sfi, ns, flags, smin, srec,		\
 			  nl, &default_decode, NULL)
 
+/*! Convenience macros for defining EF */
 #define EF_CYCLIC(fid, sfi, ns, flags, smin, srec, nl, dec, enc)	\
 		EF(fid, sfi, ns, flags, nl, EF_TYPE_RECORD_CYCLIC,	\
 		   smin, srec, dec, enc)
+/*! Convenience macros for defining EF */
 #define EF_CYCLIC_N(fid, sfi, ns, flags, smin, srec, nl)		\
 		EF_CYCLIC(fid, sfi, ns, flags, smin, srec, nl,		\
 			  &default_decode, NULL)
 
+/*! Convenience macros for defining EF */
 #define EF_LIN_FIX(fid, sfi, ns, flags, smin, srec, nl, dec, enc)	\
 		EF(fid, sfi, ns, flags, nl, EF_TYPE_RECORD_FIXED,	\
 		   smin, srec, dec, enc)
+/*! Convenience macros for defining EF */
 #define EF_LIN_FIX_N(fid, sfi, ns, flags, smin, srec, nl)		\
 		EF_LIN_FIX(fid, sfi, ns, flags, smin, srec, nl, 	\
 			   &default_decode, NULL)
 
+/*! Convenience macros for defining EF */
 #define EF_KEY(fid, sfi, ns, flags, smin, srec, nl, dec, enc)		\
 		EF(fid, sfi, ns, flags, nl, EF_TYPE_KEY,		\
 		   smin, srec, dec, enc)
+/*! Convenience macros for defining EF */
 #define EF_KEY_N(fid, sfi, ns, flags, smin, srec, nl)			\
 		EF_KEY(fid, sfi, ns, flags, smin, srec, nl, 		\
 		       &default_decode, NULL)
@@ -220,6 +241,8 @@ struct osim_file {
 
 struct osim_file_desc *
 osim_file_find_name(struct osim_file_desc *parent, const char *name);
+
+/* STATUS WORDS */
 
 enum osim_card_sw_type {
 	SW_TYPE_NONE,
@@ -234,12 +257,16 @@ enum osim_card_sw_class {
 	SW_CLS_ERROR,
 };
 
+/*! A card status word (SW) */
 struct osim_card_sw {
+	/*! status word code (2 bytes) */
 	uint16_t code;
+	/*! status word mask (2 bytes), to match range/prefix of SW */
 	uint16_t mask;
 	enum osim_card_sw_type type;
 	enum osim_card_sw_class class;
 	union {
+		/*! Human-readable meaning of SW */
 		const char *str;
 	} u;
 };
@@ -249,9 +276,12 @@ struct osim_card_sw {
 	.class = SW_CLS_NONE, .u.str = NULL		\
 }
 
+/*! \brief A card profile (e.g. SIM card */
 struct osim_card_profile {
 	const char *name;
+	/*! Descriptor for the MF (root directory */
 	struct osim_file_desc *mf;
+	/*! Array of pointers to status words */
 	const struct osim_card_sw **sws;
 };
 
@@ -285,6 +315,8 @@ enum ts102221_fcp_tag {
 
 struct msgb *osim_new_apdumsg(uint8_t cla, uint8_t ins, uint8_t p1,
 			      uint8_t p2, uint16_t lc, uint16_t le);
+
+/* CARD READERS */
 
 struct osim_reader_ops;
 
