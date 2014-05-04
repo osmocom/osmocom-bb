@@ -1,6 +1,6 @@
 /* classic SIM card specific structures/routines */
 /*
- * (C) 2012 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2012-2014 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -29,7 +29,7 @@
 
 #include "sim_int.h"
 
-/* TS 11.11 / Chapter 9.4 */
+/* 3GPP TS 51.011 / Chapter 9.4 */
 static const struct osim_card_sw ts11_11_sw[] = {
 	{
 		0x9000, 0xffff, SW_TYPE_STR, SW_CLS_OK,
@@ -61,6 +61,9 @@ static const struct osim_card_sw ts11_11_sw[] = {
 	}, {
 		0x9404, 0xffff, SW_TYPE_STR, SW_CLS_ERROR,
 		.u.str = "Referencing management - file ID not found / pattern not found",
+	}, {
+		0x9408, 0xffff, SW_TYPE_STR, SW_CLS_ERROR,
+		.u.str = "Referencing management - file is inconsistent with the command",
 	}, {
 		0x9802, 0xffff, SW_TYPE_STR, SW_CLS_ERROR,
 		.u.str = "Security management - no CHV initialized",
@@ -241,138 +244,191 @@ int gsm_hpplmn_decode(struct osim_decoded_data *dd,
 	return 0;
 }
 
-/* Chapter 10.2.x */
+/* Chapter 10.1. Contents of the EFs at the MF level */
 static const struct osim_file_desc sim_ef_in_mf[] = {
-	EF_TRANSP(0x2FE2, "EF.ICCID", 0,
+	EF_TRANSP(0x2FE2, SFI_NONE, "EF.ICCID", 0, 10, 10,
 		  "ICC Identification", &iccid_decode, NULL),
-	EF_TRANSP(0x2F05, "EF.ELP", F_OPTIONAL,
-		  "Extended language preference", &elp_decode, NULL),
+	EF_TRANSP(0x2F05, SFI_NONE, "EF.PL", F_OPTIONAL, 2, 20,
+		  "Preferred language", &elp_decode, NULL),
 };
 
-/* Chapter 10.3.x */
-static const struct osim_file_desc sim_ef_in_gsm[] = {
-	EF_TRANSP(0x6F05, "EF.LP", 0,
+/* Chapter 10.3.x Contents of files at the GSM application level */
+const struct osim_file_desc sim_ef_in_gsm[] = {
+	EF_TRANSP(0x6F05, SFI_NONE, "EF.LP", 0, 1, 16,
 		  "Language preference", &gsm_lp_decode, NULL),
-	EF_TRANSP(0x6F07, "EF.IMSI", 0,
+	EF_TRANSP(0x6F07, SFI_NONE, "EF.IMSI", 0, 9, 9,
 		  "IMSI", &gsm_imsi_decode, NULL),
-	EF_TRANSP(0x6F20, "EF.Kc", 0,
+	EF_TRANSP(0x6F20, SFI_NONE, "EF.Kc", 0, 9, 9,
 		  "Ciphering key Kc", &gsm_kc_decode, NULL),
-	EF_TRANSP(0x6F30, "EF.PLMNsel", F_OPTIONAL,
+	EF_TRANSP(0x6F30, SFI_NONE, "EF.PLMNsel", F_OPTIONAL, 24, 72,
 		  "PLMN selector", &gsm_plmnsel_decode, NULL),
-	EF_TRANSP(0x6F31, "EF.HPPLMN", 0,
+	EF_TRANSP(0x6F31, SFI_NONE, "EF.HPPLMN", 0, 1, 1,
 		  "Higher Priority PLMN search period", &gsm_hpplmn_decode, NULL),
-	EF_TRANSP_N(0x6F37, "EF.ACMmax", F_OPTIONAL,
+	EF_TRANSP_N(0x6F37, SFI_NONE, "EF.ACMmax", F_OPTIONAL, 3, 3,
 		  "ACM maximum value"),
-	EF_TRANSP_N(0x6F38, "EF.SST", 0,
+	EF_TRANSP_N(0x6F38, SFI_NONE, "EF.SST", 0, 2, 16,
 		  "SIM service table"),
-	EF_CYCLIC_N(0x6F39, "EF.ACM", F_OPTIONAL,
+	EF_CYCLIC_N(0x6F39, SFI_NONE, "EF.ACM", F_OPTIONAL, 3, 3,
 		  "Accumulated call meter"),
-	EF_TRANSP_N(0x6F3E, "EF.GID1", F_OPTIONAL,
+	EF_TRANSP_N(0x6F3E, SFI_NONE, "EF.GID1", F_OPTIONAL, 1, 8,
 		  "Group Identifier Level 1"),
-	EF_TRANSP_N(0x6F3F, "EF.GID2", F_OPTIONAL,
+	EF_TRANSP_N(0x6F3F, SFI_NONE, "EF.GID2", F_OPTIONAL, 1, 8,
 		  "Group Identifier Level 2"),
-	EF_TRANSP_N(0x6F46, "EF.SPN", F_OPTIONAL,
+	EF_TRANSP_N(0x6F46, SFI_NONE, "EF.SPN", F_OPTIONAL, 17, 17,
 		  "Service Provider Name"),
-	EF_TRANSP_N(0x6F41, "EF.PUCT", F_OPTIONAL,
+	EF_TRANSP_N(0x6F41, SFI_NONE, "EF.PUCT", F_OPTIONAL, 5, 5,
 		  "Price per unit and currency table"),
-	EF_TRANSP_N(0x6F45, "EF.CBMI", F_OPTIONAL,
+	EF_TRANSP_N(0x6F45, SFI_NONE, "EF.CBMI", F_OPTIONAL, 2, 32,
 		  "Cell broadcast massage identifier selection"),
-	EF_TRANSP_N(0x6F74, "EF.BCCH", 0,
+	EF_TRANSP_N(0x6F74, SFI_NONE, "EF.BCCH", 0, 16, 16,
 		  "Broadcast control channels"),
-	EF_TRANSP_N(0x6F78, "EF.ACC", 0,
+	EF_TRANSP_N(0x6F78, SFI_NONE, "EF.ACC", 0, 2, 2,
 		  "Access control class"),
-	EF_TRANSP_N(0x6F7B, "EF.FPLMN", 0,
+	EF_TRANSP_N(0x6F7B, SFI_NONE, "EF.FPLMN", 0, 12, 12,
 		  "Forbidden PLMNs"),
-	EF_TRANSP_N(0x6F7E, "EF.LOCI", 0,
+	EF_TRANSP_N(0x6F7E, SFI_NONE, "EF.LOCI", 0, 11, 11,
 		  "Location information"),
-	EF_TRANSP_N(0x6FAD, "EF.AD", 0,
+	EF_TRANSP_N(0x6FAD, SFI_NONE, "EF.AD", 0, 3, 8,
 		  "Administrative data"),
-	EF_TRANSP_N(0x6FAE, "EF.Phase", 0,
+	EF_TRANSP_N(0x6FAE, SFI_NONE, "EF.Phase", 0, 1, 1,
 		  "Phase identification"),
-	EF_TRANSP_N(0x6FB1, "EF.VGCS", F_OPTIONAL,
+	EF_TRANSP_N(0x6FB1, SFI_NONE, "EF.VGCS", F_OPTIONAL, 4, 80,
 		  "Voice Group Call Service"),
-	EF_TRANSP_N(0x6FB2, "EF.VGCSS", F_OPTIONAL,
+	EF_TRANSP_N(0x6FB2, SFI_NONE, "EF.VGCSS", F_OPTIONAL, 7, 7,
 		  "Voice Group Call Service Status"),
-	EF_TRANSP_N(0x6FB3, "EF.VBS", F_OPTIONAL,
+	EF_TRANSP_N(0x6FB3, SFI_NONE, "EF.VBS", F_OPTIONAL, 4, 80,
 		  "Voice Broadcast Service"),
-	EF_TRANSP_N(0x6FB4, "EF.VBSS", F_OPTIONAL,
+	EF_TRANSP_N(0x6FB4, SFI_NONE, "EF.VBSS", F_OPTIONAL, 7, 7,
 		  "Voice Broadcast Service Status"),
-	EF_TRANSP_N(0x6FB5, "EF.eMLPP", F_OPTIONAL,
+	EF_TRANSP_N(0x6FB5, SFI_NONE, "EF.eMLPP", F_OPTIONAL, 2, 2,
 		  "enhanced Mult Level Pre-emption and Priority"),
-	EF_TRANSP_N(0x6FB6, "EF.AAeM", F_OPTIONAL,
+	EF_TRANSP_N(0x6FB6, SFI_NONE, "EF.AAeM", F_OPTIONAL, 1, 1,
 		  "Automatic Answer for eMLPP Service"),
-	EF_TRANSP_N(0x6F48, "EF.CBMID", F_OPTIONAL,
+	EF_TRANSP_N(0x6F48, SFI_NONE, "EF.CBMID", F_OPTIONAL, 2, 32,
 		  "Cell Broadcast Message Identifier for Data Download"),
-	EF_TRANSP_N(0x6FB7, "EF.ECC", F_OPTIONAL,
+	EF_TRANSP_N(0x6FB7, SFI_NONE, "EF.ECC", F_OPTIONAL, 3, 15,
 		  "Emergency Call Code"),
-	EF_TRANSP_N(0x6F50, "EF.CBMIR", F_OPTIONAL,
+	EF_TRANSP_N(0x6F50, SFI_NONE, "EF.CBMIR", F_OPTIONAL, 4, 64,
 		  "Cell broadcast message identifier range selection"),
-	EF_TRANSP_N(0x6F2C, "EF.DCK", F_OPTIONAL,
+	EF_TRANSP_N(0x6F2C, SFI_NONE, "EF.DCK", F_OPTIONAL, 16, 16,
 		  "De-personalization Control Keys"),
-	EF_TRANSP_N(0x6F32, "EF.CNL", F_OPTIONAL,
+	EF_TRANSP_N(0x6F32, SFI_NONE, "EF.CNL", F_OPTIONAL, 6, 60,
 		  "Co-operative Network List"),
-	EF_LIN_FIX_N(0x6F51, "EF.NIA", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F51, SFI_NONE, "EF.NIA", F_OPTIONAL, 1, 17,
 		   "Network's Indication of Alerting"),
-	EF_TRANSP_N(0x6F52, "EF.KcGPRS", F_OPTIONAL,
+	EF_TRANSP_N(0x6F52, SFI_NONE, "EF.KcGPRS", F_OPTIONAL, 9, 9,
 		  "GPRS Ciphering key KcGPRS"),
-	EF_TRANSP_N(0x6F53, "EF.LOCIGPRS", F_OPTIONAL,
+	EF_TRANSP_N(0x6F53, SFI_NONE, "EF.LOCIGPRS", F_OPTIONAL, 14, 14,
 		  "GPRS location information"),
-	EF_TRANSP_N(0x6F54, "EF.SUME", F_OPTIONAL,
+	EF_TRANSP_N(0x6F54, SFI_NONE, "EF.SUME", F_OPTIONAL, 1, 64,
 		  "SetUpMenu Elements"),
-	EF_TRANSP_N(0x6F60, "EF.PLMNwAcT", F_OPTIONAL,
+	EF_TRANSP_N(0x6F60, SFI_NONE, "EF.PLMNwAcT", F_OPTIONAL, 40, 80,
 		  "User controlled PLMN Selector with Access Technology"),
-	EF_TRANSP_N(0x6F61, "EF.OPLMNwAcT", F_OPTIONAL,
+	EF_TRANSP_N(0x6F61, SFI_NONE, "EF.OPLMNwAcT", F_OPTIONAL, 40, 80,
 		  "Operator controlled PLMN Selector with Access Technology"),
-	EF_TRANSP_N(0x6F62, "EF.HPLMNwAcT", F_OPTIONAL,
+	EF_TRANSP_N(0x6F62, SFI_NONE, "EF.HPLMNwAcT", F_OPTIONAL, 5, 20,
 		  "HPLMN Selector with Access Technology"),
-	EF_TRANSP_N(0x6F63, "EF.CPBCCH", F_OPTIONAL,
+	EF_TRANSP_N(0x6F63, SFI_NONE, "EF.CPBCCH", F_OPTIONAL, 2, 20,
 		  "CPBCCH Information"),
-	EF_TRANSP_N(0x6F64, "EF.InvScan", F_OPTIONAL,
+	EF_TRANSP_N(0x6F64, SFI_NONE, "EF.InvScan", F_OPTIONAL, 1, 1,
 		  "Investigation Scan"),
+	EF_LIN_FIX_N(0x6FC5, SFI_NONE, "EF.PNN", F_OPTIONAL, 3, 20,
+		  "PLMN Network Name"),
+	EF_LIN_FIX_N(0x6FC6, SFI_NONE, "EF.OPL", F_OPTIONAL, 8, 8,
+		  "PLMN Operator PLMN List"),
+	EF_LIN_FIX_N(0x6FC7, SFI_NONE, "EF.MBDN", F_OPTIONAL, 14, 30,
+		  "Mailbox Dialling Number"),
+	EF_LIN_FIX_N(0x6FC9, SFI_NONE, "EF.MBI", F_OPTIONAL, 4, 4,
+		  "Maibox Identifier"),
+	EF_LIN_FIX_N(0x6FCA, SFI_NONE, "EF.MWIS", F_OPTIONAL, 5, 5,
+		  "Message Waiting Indication Status"),
+	EF_LIN_FIX_N(0x6FCB, SFI_NONE, "EF.CFIS", F_OPTIONAL, 16, 16,
+		  "Call Forwarding Indication Status"),
+	EF_LIN_FIX_N(0x6FC8, SFI_NONE, "EF.EXT6", F_OPTIONAL, 13, 13,
+		  "Extension6 (MBDN)"),
+	EF_LIN_FIX_N(0x6FCC, SFI_NONE, "EF.EXT7", F_OPTIONAL, 13, 13,
+		  "Extension7 (CFIS)"),
+	EF_TRANSP_N(0x6FCD, SFI_NONE, "EF.SPDI", F_OPTIONAL, 1, 32,
+		  "Extension7 (CFIS)"),
+	EF_LIN_FIX_N(0x6FCE, SFI_NONE, "EF.MMSN", F_OPTIONAL, 4, 32,
+		  "MMS Notification"),
+	EF_LIN_FIX_N(0x6FCF, SFI_NONE, "EF.EXT8", F_OPTIONAL, 2, 18,
+		  "Extension8 (MMSN)"),
+	EF_TRANSP_N(0x6FD0, SFI_NONE, "EF.MMSICP", F_OPTIONAL, 1, 64,
+		  "MMS Issuer Connectivity Parameters"),
+	EF_LIN_FIX_N(0x6FD1, SFI_NONE, "EF.MMSUP", F_OPTIONAL, 1, 64,
+		  "MMS User Preferences"),
+	EF_TRANSP_N(0x6FD2, SFI_NONE, "EF.MMSUCP", F_OPTIONAL, 1, 64,
+		  "MMS User Connectivity Parameters"),
+};
+const size_t sim_ef_in_gsm_num = ARRAY_SIZE(sim_ef_in_gsm);
+
+/* 10.4.1 Contents of the files at the SoLSA level */
+static const struct osim_file_desc sim_ef_in_solsa[] = {
+	EF_TRANSP_N(0x4F30, SFI_NONE, "EF.SAI", F_OPTIONAL, 1, 32,
+		"SoLSA Access Indicator"),
+	EF_LIN_FIX_N(0x4F31, SFI_NONE, "EF.SLL", F_OPTIONAL, 1, 32,
+		"SoLSA LSA List"),
+	/* LSA Descriptor files */
 };
 
-/* 10.5. */
-static const struct osim_file_desc sim_ef_in_telecom[] = {
-	EF_LIN_FIX_N(0x6F3A, "EF.ADN", F_OPTIONAL,
+/* 10.4.2 Contents of files at the MExE level */
+static const struct osim_file_desc sim_ef_in_mexe[] = {
+	EF_TRANSP_N(0x4F40, SFI_NONE, "EF.MExE-ST", F_OPTIONAL, 1, 8,
+		"MExE Service table"),
+	EF_LIN_FIX_N(0x4F41, SFI_NONE, "EF.ORPK", F_OPTIONAL, 11, 32,
+		"Operator Root Public Key"),
+	EF_LIN_FIX_N(0x4F42, SFI_NONE, "EF.ARPK", F_OPTIONAL, 11, 32,
+		"Administrator Root Public Key"),
+	EF_LIN_FIX_N(0x4F43, SFI_NONE, "EF.TRPK", F_OPTIONAL, 11, 32,
+		"Third Party Root Public Key"),
+};
+
+/* 10.5 Contents of files at the telecom level */
+const struct osim_file_desc sim_ef_in_telecom[] = {
+	EF_LIN_FIX_N(0x6F3A, SFI_NONE, "EF.ADN", F_OPTIONAL, 14, 30,
 		"Abbreviated dialling numbers"),
-	EF_LIN_FIX_N(0x6F3B, "EF.FDN", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F3B, SFI_NONE, "EF.FDN", F_OPTIONAL, 14, 30,
 		"Fixed dialling numbers"),
-	EF_LIN_FIX_N(0x6F3C, "EF.SMS", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F3C, SFI_NONE, "EF.SMS", F_OPTIONAL, 176, 176,
 		"Short messages"),
-	EF_LIN_FIX_N(0x6F3D, "EF.CCP", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F3D, SFI_NONE, "EF.CCP", F_OPTIONAL, 14, 14,
 		"Capability configuration parameters"),
-	EF_LIN_FIX_N(0x6F4F, "EF.ECCP", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F4F, SFI_NONE, "EF.ECCP", F_OPTIONAL, 15, 15,
 		"Extended Capability configuration parameters"),
-	EF_LIN_FIX_N(0x6F40, "EF.MSISDN", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F40, SFI_NONE, "EF.MSISDN", F_OPTIONAL, 14, 30,
 		"MSISDN"),
-	EF_LIN_FIX_N(0x6F42, "EF.SMSP", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F42, SFI_NONE, "EF.SMSP", F_OPTIONAL, 28, 44,
 		"Short message service parameters"),
-	EF_TRANSP_N(0x6F43, "EF.SMSS", F_OPTIONAL,
+	EF_TRANSP_N(0x6F43, SFI_NONE, "EF.SMSS", F_OPTIONAL, 2, 3,
 		"SMS Status"),
-	EF_CYCLIC_N(0x6F44, "EF.LND", F_OPTIONAL,
+	EF_CYCLIC_N(0x6F44, SFI_NONE, "EF.LND", F_OPTIONAL, 14, 30,
 		"Last number dialled"),
-	EF_LIN_FIX_N(0x6F4A, "EF.EXT1", F_OPTIONAL,
-		"Extension 1"),
-	EF_LIN_FIX_N(0x6F4B, "EF.EXT2", F_OPTIONAL,
-		"Extension 2"),
-	EF_LIN_FIX_N(0x6F4C, "EF.EXT3", F_OPTIONAL,
-		"Extension 3"),
-	EF_LIN_FIX_N(0x6F4D, "EF.BDN", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F49, SFI_NONE, "EF.SDN", F_OPTIONAL, 14, 30,
+		"Service Dialling Numbers"),
+	EF_LIN_FIX_N(0x6F4A, SFI_NONE, "EF.EXT1", F_OPTIONAL, 13, 13,
+		"Extension 1 (ADN/SSC, MSISDN, LND)"),
+	EF_LIN_FIX_N(0x6F4B, SFI_NONE, "EF.EXT2", F_OPTIONAL, 13, 13,
+		"Extension 2 (FDN/SSC)"),
+	EF_LIN_FIX_N(0x6F4C, SFI_NONE, "EF.EXT3", F_OPTIONAL, 13, 13,
+		"Extension 3 (SDN)"),
+	EF_LIN_FIX_N(0x6F4D, SFI_NONE, "EF.BDN", F_OPTIONAL, 15, 31,
 		"Barred dialling numbers"),
-	EF_LIN_FIX_N(0x6F4E, "EF.EXT4", F_OPTIONAL,
-		"Extension 4"),
-	EF_LIN_FIX_N(0x6F47, "EF.SMSR", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F4E, SFI_NONE, "EF.EXT4", F_OPTIONAL, 13, 13,
+		"Extension 4 (BDN/SSC)"),
+	EF_LIN_FIX_N(0x6F47, SFI_NONE, "EF.SMSR", F_OPTIONAL, 30, 30,
 		"Short message status reports"),
-	EF_LIN_FIX_N(0x6F58, "EF.CMI", F_OPTIONAL,
+	EF_LIN_FIX_N(0x6F58, SFI_NONE, "EF.CMI", F_OPTIONAL, 1, 17,
 		"Comparison Method Information"),
 };
+const size_t sim_ef_in_telecom_num = ARRAY_SIZE(sim_ef_in_telecom);
 
-
-/* 10.6. */
-static const struct osim_file_desc sim_ef_in_graphics[] = {
-	EF_LIN_FIX_N(0x4F20, "EF.IMG", F_OPTIONAL,
+/* 10.6.1 Contents of files at the telecom graphics level */
+const struct osim_file_desc sim_ef_in_graphics[] = {
+	EF_LIN_FIX_N(0x4F20, SFI_NONE, "EF.IMG", F_OPTIONAL, 11, 38,
 		"Image"),
 };
+const size_t sim_ef_in_graphics_num = ARRAY_SIZE(sim_ef_in_graphics);
 
 struct osim_card_profile *osim_cprof_sim(void *ctx)
 {
@@ -387,20 +443,28 @@ struct osim_card_profile *osim_cprof_sim(void *ctx)
 
 	cprof->mf = mf;
 
+	/* According to Figure 8 */
 	add_filedesc(mf, sim_ef_in_mf, ARRAY_SIZE(sim_ef_in_mf));
 	gsm = add_df_with_ef(mf, 0x7F20, "DF.GSM", sim_ef_in_gsm,
 			ARRAY_SIZE(sim_ef_in_gsm));
+	/* Chapter 10.2: DFs at the GSM Application Level */
 	add_df_with_ef(gsm, 0x5F30, "DF.IRIDIUM", NULL, 0);
-	add_df_with_ef(gsm, 0x5F31, "DF.GLOBST", NULL, 0);
+	add_df_with_ef(gsm, 0x5F31, "DF.GLOBALSTAR", NULL, 0);
 	add_df_with_ef(gsm, 0x5F32, "DF.ICO", NULL, 0);
 	add_df_with_ef(gsm, 0x5F33, "DF.ACeS", NULL, 0);
-	add_df_with_ef(gsm, 0x5F40, "DF.ACeS", NULL, 0);
+	add_df_with_ef(gsm, 0x5F3C, "DF.MExE", sim_ef_in_mexe,
+			ARRAY_SIZE(sim_ef_in_mexe));
+	add_df_with_ef(gsm, 0x5F40, "DF.EIA/TIA-533", NULL, 0);
 	add_df_with_ef(gsm, 0x5F60, "DF.CTS", NULL, 0);
-	add_df_with_ef(gsm, 0x5F70, "DF.SoLSA", NULL, 0);
+	add_df_with_ef(gsm, 0x5F70, "DF.SoLSA", sim_ef_in_solsa,
+			ARRAY_SIZE(sim_ef_in_solsa));
+
 	tc = add_df_with_ef(mf, 0x7F10, "DF.TELECOM", sim_ef_in_telecom,
 			ARRAY_SIZE(sim_ef_in_telecom));
 	add_df_with_ef(tc, 0x5F50, "DF.GRAPHICS", sim_ef_in_graphics,
 			ARRAY_SIZE(sim_ef_in_graphics));
+	add_df_with_ef(mf, 0x7F22, "DF.IS-41", NULL, 0);
+	add_df_with_ef(mf, 0x7F23, "DF.FP-CTS", NULL, 0);	/* TS 11.19 */
 
 	return cprof;
 }
