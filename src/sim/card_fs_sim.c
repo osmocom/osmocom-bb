@@ -135,19 +135,6 @@ static int elp_decode(struct osim_decoded_data *dd,
 	return 0;
 }
 
-static int default_decode(struct osim_decoded_data *dd,
-			  const struct osim_file_desc *desc,
-			  int len, uint8_t *data)
-{
-	struct osim_decoded_element *elem;
-
-	elem = element_alloc(dd, "Unknown Payload", ELEM_T_BYTES, ELEM_REPR_HEX);
-	elem->u.buf = talloc_memdup(elem, data, len);
-
-	return 0;
-}
-
-
 /* 10.3.1 */
 int gsm_lp_decode(struct osim_decoded_data *dd,
 		 const struct osim_file_desc *desc,

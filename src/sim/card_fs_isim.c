@@ -46,17 +46,6 @@ static const struct osim_card_sw *isim_card_sws[] = {
 	NULL
 };
 
-static int default_decode(struct osim_decoded_data *dd,
-			  const struct osim_file_desc *desc,
-			  int len, uint8_t *data)
-{
-	struct osim_decoded_element *elem;
-
-	elem = element_alloc(dd, "Unknown Payload", ELEM_T_BYTES, ELEM_REPR_HEX);
-	elem->u.buf = talloc_memdup(elem, data, len);
-
-	return 0;
-}
 /* TS 31.103 Version 11.2.0 Release 11 / Chapoter 4.2 */
 static const struct osim_file_desc isim_ef_in_adf_isim[] = {
 	EF_TRANSP_N(0x6F02, 0x02, "EF.IMPI", 0, 1, 256,
