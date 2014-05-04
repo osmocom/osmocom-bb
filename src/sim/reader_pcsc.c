@@ -57,7 +57,7 @@ static struct osim_reader_hdl *pcsc_reader_open(int num, const char *id, void *c
 {
 	struct osim_reader_hdl *rh;
 	struct pcsc_reader_state *st;
-	long rc;
+	LONG rc;
 	LPSTR mszReaders = NULL;
 	DWORD dwReaders;
 	unsigned int num_readers;
@@ -102,7 +102,7 @@ static struct osim_card_hdl *pcsc_card_open(struct osim_reader_hdl *rh)
 	struct pcsc_reader_state *st = rh->priv;
 	struct osim_card_hdl *card;
 	struct osim_chan_hdl *chan;
-	int rc;
+	LONG rc;
 
 	rc = SCardConnect(st->hContext, st->name, SCARD_SHARE_SHARED,
 			  SCARD_PROTOCOL_T0, &st->hCard, &st->dwActiveProtocol);
@@ -131,7 +131,7 @@ static int pcsc_transceive(struct osim_reader_hdl *rh, struct msgb *msg)
 {
 	struct pcsc_reader_state *st = rh->priv;
 	DWORD rlen = msgb_tailroom(msg);
-	int rc;
+	LONG rc;
 
 	printf("TX: %s\n", osmo_hexdump(msg->data, msg->len));
 
