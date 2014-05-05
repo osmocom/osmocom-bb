@@ -486,6 +486,8 @@ enum abis_nm_attr {
 	NM_ATT_BS11_ANT_TYPE		= 0xf4,
 	NM_ATT_BS11_PLL_MODE		= 0xfc,
 	NM_ATT_BS11_PASSWORD		= 0xfd,
+
+	NM_ATT_O_REDUCEPOWER		= 0x01,
 };
 #define NM_ATT_BS11_FILE_DATA	NM_ATT_EVENT_TYPE
 
