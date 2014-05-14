@@ -172,6 +172,20 @@ static struct ctrl_cmd_element cmd_##cmdname = { \
 	.verify = &verify_##cmdname, \
 }
 
+#define CTRL_CMD_DEFINE_RO(cmdname, cmdstr) \
+static int get_##cmdname(struct ctrl_cmd *cmd, void *data);		\
+static int set_##cmdname(struct ctrl_cmd *cmd, void *data)	\
+{									\
+	cmd->reply = "Read Only attribute";				\
+	return CTRL_CMD_ERROR;						\
+}									\
+static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *data) \
+{									\
+	cmd->reply = "Read Only attribute";				\
+	return 1;							\
+}									\
+CTRL_CMD_DEFINE(cmdname, cmdstr)
+
 struct gsm_network;
 
 #endif /* _CONTROL_CMD_H */
