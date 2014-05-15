@@ -87,6 +87,13 @@ struct ctrl_cmd *ctrl_cmd_cpy(void *ctx, struct ctrl_cmd *cmd);
 struct ctrl_cmd *ctrl_cmd_create(void *ctx, enum ctrl_type);
 struct ctrl_cmd *ctrl_cmd_trap(struct ctrl_cmd *cmd);
 
+#define CTRL_CMD_DEFINE_STRUCT(cmdname, cmdstr, verify_name) \
+static struct ctrl_cmd_element cmd_##cmdname = { \
+	.name = cmdstr, \
+	.get = &get_##cmdname, \
+	.set = &set_##cmdname, \
+	.verify = verify_name, \
+}
 
 #define CTRL_HELPER_GET_INT(cmdname, dtype, element) \
 static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
@@ -150,23 +157,13 @@ static int set_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 #define CTRL_CMD_DEFINE_STRING(cmdname, cmdstr, dtype, element) \
 	CTRL_HELPER_GET_STRING(cmdname, dtype, element) \
 	CTRL_HELPER_SET_STRING(cmdname, dtype, element) \
-static struct ctrl_cmd_element cmd_##cmdname = { \
-	.name = cmdstr, \
-	.get = &get_##cmdname, \
-	.set = &set_##cmdname, \
-	.verify = NULL, \
-}
+CTRL_CMD_DEFINE_STRUCT(cmdname, cmdstr, NULL)
 
 #define CTRL_CMD_DEFINE(cmdname, cmdstr) \
 static int get_##cmdname(struct ctrl_cmd *cmd, void *data); \
 static int set_##cmdname(struct ctrl_cmd *cmd, void *data); \
 static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *data); \
-static struct ctrl_cmd_element cmd_##cmdname = { \
-	.name = cmdstr, \
-	.get = &get_##cmdname, \
-	.set = &set_##cmdname, \
-	.verify = &verify_##cmdname, \
-}
+CTRL_CMD_DEFINE_STRUCT(cmdname, cmdstr, verify_##cmdname)
 
 #define CTRL_CMD_DEFINE_RO(cmdname, cmdstr) \
 static int get_##cmdname(struct ctrl_cmd *cmd, void *data);		\
@@ -180,7 +177,7 @@ static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *data)
 	cmd->reply = "Read Only attribute";				\
 	return 1;							\
 }									\
-CTRL_CMD_DEFINE(cmdname, cmdstr)
+CTRL_CMD_DEFINE_STRUCT(cmdname, cmdstr, verify_##cmdname)
 
 struct gsm_network;
 
