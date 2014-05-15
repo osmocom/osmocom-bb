@@ -142,8 +142,6 @@ int ctrl_cmd_exec(vector vline, struct ctrl_cmd *command, vector node, void *dat
 					command->reply = "Value failed verification.";
 				goto out;
 			}
-		} else if (cmd_el->param) {
-			LOGP(DCTRL, LOGL_NOTICE, "Parameter verification unimplemented, continuing without\n");
 		}
 		ret =  cmd_el->set(command, data);
 		goto out;

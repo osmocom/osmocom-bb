@@ -66,7 +66,6 @@ struct ctrl_cmd_struct {
 
 struct ctrl_cmd_element {
 	const char *name;
-	const char *param;
 	struct ctrl_cmd_struct strcmd;
 	int (*set)(struct ctrl_cmd *cmd, void *data);
 	int (*get)(struct ctrl_cmd *cmd, void *data);
@@ -125,7 +124,6 @@ static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *_data
 	CTRL_HELPER_VERIFY_RANGE(cmdname, min, max) \
 static struct ctrl_cmd_element cmd_##cmdname = { \
 	.name = cmdstr, \
-	.param = NULL, \
 	.get = &get_##cmdname, \
 	.set = &set_##cmdname, \
 	.verify = &verify_##cmdname, \
@@ -154,7 +152,6 @@ static int set_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 	CTRL_HELPER_SET_STRING(cmdname, dtype, element) \
 static struct ctrl_cmd_element cmd_##cmdname = { \
 	.name = cmdstr, \
-	.param = NULL, \
 	.get = &get_##cmdname, \
 	.set = &set_##cmdname, \
 	.verify = NULL, \
@@ -166,7 +163,6 @@ static int set_##cmdname(struct ctrl_cmd *cmd, void *data); \
 static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *data); \
 static struct ctrl_cmd_element cmd_##cmdname = { \
 	.name = cmdstr, \
-	.param = NULL, \
 	.get = &get_##cmdname, \
 	.set = &set_##cmdname, \
 	.verify = &verify_##cmdname, \
