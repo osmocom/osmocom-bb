@@ -129,12 +129,7 @@ static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *_data
 	CTRL_HELPER_GET_INT(cmdname, dtype, element) \
 	CTRL_HELPER_SET_INT(cmdname, dtype, element) \
 	CTRL_HELPER_VERIFY_RANGE(cmdname, min, max) \
-static struct ctrl_cmd_element cmd_##cmdname = { \
-	.name = cmdstr, \
-	.get = &get_##cmdname, \
-	.set = &set_##cmdname, \
-	.verify = &verify_##cmdname, \
-}
+CTRL_CMD_DEFINE_STRUCT(cmdname, cmdstr, verify_##cmdname)
 
 #define CTRL_HELPER_GET_STRING(cmdname, dtype, element) \
 static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
