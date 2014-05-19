@@ -10,6 +10,7 @@ abis_nm_event_type_name;
 abis_nm_nack_cause_name;
 abis_nm_nack_name;
 abis_nm_att_tlvdef;
+abis_nm_osmo_att_tlvdef;
 abis_nm_obj_class_names;
 abis_nm_opstate_name;
 abis_nm_nacks;

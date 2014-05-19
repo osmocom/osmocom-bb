@@ -323,6 +323,13 @@ const struct tlv_definition abis_nm_att_tlvdef = {
 	},
 };
 
+/*! \brief org.osmocom GSM A-bis OML TLV parser definition */
+const struct tlv_definition abis_nm_osmo_att_tlvdef = {
+	.def = {
+		[NM_ATT_OSMO_REDUCEPOWER] =	{ TLV_TYPE_TV },
+	},
+};
+
 /*! \brief Human-readable strings for A-bis OML Object Class */
 const struct value_string abis_nm_obj_class_names[] = {
 	{ NM_OC_SITE_MANAGER,	"SITE-MANAGER" },
