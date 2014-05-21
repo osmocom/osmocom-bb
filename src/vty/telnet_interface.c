@@ -120,7 +120,7 @@ static int client_data(struct osmo_fd *fd, unsigned int what)
 	}
 
 	/* vty might have been closed from vithin vty_read() */
-	if (!conn->vty)
+	if (rc == -EBADFD)
 		return rc;
 
 	if (what & BSC_FD_WRITE) {
@@ -193,7 +193,6 @@ void vty_event(enum event event, int sock, struct vty *vty)
 		break;
 	case VTY_CLOSED:
 		/* vty layer is about to free() vty */
-		connection->vty = NULL;
 		telnet_close_client(bfd);
 		break;
 	default:
