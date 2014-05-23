@@ -141,10 +141,10 @@ int osmo_timer_remaining(const struct osmo_timer_list *timer,
 {
 	struct timeval current_time;
 
-	if (!now) {
+	if (!now)
 		gettimeofday(&current_time, NULL);
-		now = &current_time;
-	}
+	else
+		current_time = *now;
 
 	timersub(&timer->timeout, &current_time, remaining);
 
