@@ -97,7 +97,7 @@ void gsm411_smr_clear(struct gsm411_smr_inst *inst)
 static const char *smr_state_names[] = {
 	"IDLE",
 	"WAIT_FOR_RP_ACK",
-	"illegal state 2"
+	"illegal state 2",
 	"WAIT_TO_TX_RP_ACK",
 	"WAIT_FOR_RETRANS_T",
 };
