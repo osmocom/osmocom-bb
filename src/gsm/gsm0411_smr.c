@@ -94,7 +94,7 @@ void gsm411_smr_clear(struct gsm411_smr_inst *inst)
 	osmo_timer_del(&inst->rp_timer);
 }
 
-const char *smr_state_names[] = {
+static const char *smr_state_names[] = {
 	"IDLE",
 	"WAIT_FOR_RP_ACK",
 	"illegal state 2"
