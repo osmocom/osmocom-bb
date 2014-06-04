@@ -55,6 +55,7 @@ tests/testsuite
 tests/testsuite.dir/
 tests/testsuite.log
 
+tests/utils/utils_test
 tests/sms/sms_test
 tests/timer/timer_test
 tests/msgfile/msgfile_test
