@@ -1,6 +1,11 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
+
+#include <osmocom/core/bit16gen.h>
+#include <osmocom/core/bit32gen.h>
+#include <osmocom/core/bit64gen.h>
 
 /*! \defgroup bits soft, unpacked and packed bits
  *  @{

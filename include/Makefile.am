@@ -2,6 +2,9 @@ nobase_include_HEADERS = \
                        osmocom/codec/codec.h \
                        osmocom/core/application.h \
                        osmocom/core/backtrace.h \
+                       osmocom/core/bit16gen.h \
+                       osmocom/core/bit32gen.h \
+                       osmocom/core/bit64gen.h \
                        osmocom/core/bits.h \
                        osmocom/core/bitvec.h \
                        osmocom/core/conv.h \
@@ -106,6 +109,10 @@ nobase_include_HEADERS += \
 endif
 
 noinst_HEADERS = osmocom/core/timer_compat.h
+
+osmocom/core/bit%gen.h: osmocom/core/bitXXgen.h.tpl
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@)
+	$(AM_V_GEN)sed -e's/XX/$*/g' $< > $@
 
 osmocom/core/crc%gen.h: osmocom/core/crcXXgen.h.tpl
 	$(AM_V_GEN)$(MKDIR_P) $(dir $@)
