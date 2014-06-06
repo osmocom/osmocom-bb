@@ -29,6 +29,7 @@
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/signal.h>
+#include <osmocom/crypt/auth.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
@@ -1453,11 +1454,11 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
 	switch (set->test_ki_type) {
-	case GSM_SIM_KEY_XOR:
+	case OSMO_AUTH_ALG_XOR:
 		vty_out(vty, "  ki xor %s%s",
 			osmo_hexdump(set->test_ki, 12), VTY_NEWLINE);
 		break;
-	case GSM_SIM_KEY_COMP128:
+	case OSMO_AUTH_ALG_COMP128v1:
 		vty_out(vty, "  ki comp128 %s%s",
 			osmo_hexdump(set->test_ki, 16), VTY_NEWLINE);
 		break;
@@ -2500,7 +2501,7 @@ DEFUN(cfg_test_ki_xor, cfg_test_ki_xor_cmd, "ki xor HEX HEX HEX HEX HEX HEX "
 		ki[i] = strtoul(p, NULL, 16);
 	}
 
-	set->test_ki_type = GSM_SIM_KEY_XOR;
+	set->test_ki_type = OSMO_AUTH_ALG_XOR;
 	memcpy(set->test_ki, ki, 12);
 	return CMD_SUCCESS;
 }
@@ -2529,7 +2530,7 @@ DEFUN(cfg_test_ki_comp128, cfg_test_ki_comp128_cmd, "ki comp128 HEX HEX HEX "
 		ki[i] = strtoul(p, NULL, 16);
 	}
 
-	set->test_ki_type = GSM_SIM_KEY_COMP128;
+	set->test_ki_type = OSMO_AUTH_ALG_COMP128v1;
 	memcpy(set->test_ki, ki, 16);
 	return CMD_SUCCESS;
 }

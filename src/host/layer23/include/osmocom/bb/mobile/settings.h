@@ -1,12 +1,6 @@
 #ifndef _settings_h
 #define _settings_h
 
-/* type of test SIM key */
-enum {
-	GSM_SIM_KEY_XOR = 0,
-	GSM_SIM_KEY_COMP128
-};
-
 struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];

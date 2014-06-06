@@ -24,7 +24,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <osmocom/core/talloc.h>
-#include <osmocom/gsm/comp128.h>
+#include <osmocom/crypt/auth.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
@@ -79,16 +79,6 @@ static char *sim_decode_bcd(uint8_t *data, uint8_t length)
 	result[j] = '\0';
 
 	return result;
-}
-
-static void xor96(uint8_t *ki, uint8_t *rand, uint8_t *sres, uint8_t *kc)
-{
-        int i;
-
-        for (i=0; i < 4; i++)
-                sres[i] = rand[i] ^ ki[i];
-        for (i=0; i < 8; i++)
-                kc[i] = rand[i] ^ ki[i+4];
 }
 
 /*
@@ -262,7 +252,7 @@ static int subscr_sim_imsi(struct osmocom_ms *ms, uint8_t *data,
 	/* decode IMSI, skip first digit (parity) */
 	imsi = sim_decode_bcd(data + 1, length);
 	if (strlen(imsi) - 1 > GSM_IMSI_LENGTH - 1 || strlen(imsi) - 1 < 6) {
-		LOGP(DMM, LOGL_NOTICE, "IMSI invalid length = %d\n",
+		LOGP(DMM, LOGL_NOTICE, "IMSI invalid length = %zu\n",
 			strlen(imsi) - 1);
 		return -EINVAL;
 	}
@@ -940,22 +930,29 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 	/* test SIM */
 	if (subscr->sim_type == GSM_SIM_TYPE_TEST) {
 		struct gsm48_mm_event *nmme;
-		uint8_t sres[4];
 		struct gsm_settings *set = &ms->settings;
+		static struct osmo_sub_auth_data auth = {
+			.type = OSMO_AUTH_TYPE_GSM
+		};
+		struct osmo_auth_vector _vec;
+		struct osmo_auth_vector *vec = &_vec;
 
-		if (set->test_ki_type == GSM_SIM_KEY_COMP128)
-			comp128(set->test_ki, rand, sres, subscr->key);
-		else
-			xor96(set->test_ki, rand, sres, subscr->key);
+		auth.algo = set->test_ki_type;
+		memcpy(auth.u.gsm.ki, set->test_ki, sizeof(auth.u.gsm.ki));
+		int ret = osmo_auth_gen_vec(vec, &auth, rand);
+		if (ret < 0)
+			return ret;
+
 		/* store sequence */
 		subscr->key_seq = key_seq;
+		memcpy(subscr->key, vec->kc, 8);
 
 		LOGP(DMM, LOGL_INFO, "Sending authentication response\n");
 		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
 		if (!nmsg)
 			return -ENOMEM;
 		nmme = (struct gsm48_mm_event *) nmsg->data;
-		memcpy(nmme->sres, sres, 4);
+		memcpy(nmme->sres, vec->sres, 4);
 		gsm48_mmevent_msg(ms, nmsg);
 
 		return 0;
