@@ -25,8 +25,11 @@
 #define __TRX_L1CTL_LINK_H__
 
 
+#include <osmocom/core/socket.h>
 #include <osmocom/core/write_queue.h>
 
+
+/* Link */
 
 typedef int (*l1ctl_cb_t)(void *data, struct msgb *msgb);
 
@@ -36,6 +39,8 @@ struct l1ctl_link
 
 	l1ctl_cb_t cb;
 	void      *cb_data;
+
+	int to_free;
 };
 
 
@@ -45,6 +50,23 @@ int l1l_open(struct l1ctl_link *l1l,
 int l1l_close(struct l1ctl_link *l1l);
 
 int l1l_send(struct l1ctl_link *l1l, struct msgb *msg);
+
+
+/* Server */
+
+typedef int (*l1ctl_server_cb_t)(void *data, struct l1ctl_link *l1l);
+
+struct l1ctl_server
+{
+	struct osmo_fd bfd;
+
+	l1ctl_server_cb_t cb;
+	void             *cb_data;
+};
+
+int  l1l_start_server(struct l1ctl_server *l1s, const char *path,
+                      l1ctl_server_cb_t cb, void *cb_data);
+void l1l_stop_server (struct l1ctl_server *l1s);
 
 
 #endif /* __TRX_L1CTL_LINK_H__ */

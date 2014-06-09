@@ -56,10 +56,10 @@ static int _trx_data_read_cb(struct osmo_fd *ofd, unsigned int what);
 
 
 /* ------------------------------------------------------------------------ */
-/* Init                                                                     */
+/* Init / Cleanup                                                           */
 /* ------------------------------------------------------------------------ */
 
-int
+static int
 _trx_udp_init(struct trx *trx,
               struct osmo_fd *ofd, const char *addr, uint16_t port,
               int (*cb)(struct osmo_fd *fd, unsigned int what))
@@ -150,6 +150,7 @@ trx_alloc(const char *addr, uint16_t base_port, struct l1ctl_link *l1l)
 	return trx;
 
 err:
+	/* FIXME */
 
 	return NULL;
 }

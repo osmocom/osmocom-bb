@@ -175,7 +175,7 @@ _l1ctl_rx_bts_burst_nb_ind(struct app_state *as, struct msgb *msg)
 
 	if (msgb_l1len(msg) < sizeof(*bi)) {
 		LOGP(DL1C, LOGL_ERROR, "MSG too short Burst NB Ind: %u\n",
-		     msgb_l2len(msg));
+		     msgb_l1len(msg));
 		rc = -EINVAL;
 		goto exit;
 	}
@@ -214,7 +214,7 @@ _l1ctl_rx_bts_burst_ab_ind(struct app_state *as, struct msgb *msg)
 
 	if (msgb_l1len(msg) < sizeof(*bi)) {
 		LOGP(DL1C, LOGL_ERROR, "MSG too short Burst AB Ind: %u\n",
-		     msgb_l2len(msg));
+		     msgb_l1len(msg));
 		rc = -EINVAL;
 		goto exit;
 	}
@@ -245,14 +245,14 @@ _l1ctl_rx_data_ind(struct app_state *as, struct msgb *msg)
 
 	if (msgb_l1len(msg) < sizeof(*dl)) {
 		LOGP(DL1C, LOGL_ERROR, "Short Layer2 message: %u\n",
-		     msgb_l2len(msg));
+		     msgb_l1len(msg));
 		rc = -EINVAL;
 		goto exit;
 	}
 
 	if (msgb_l2len(msg) < sizeof(*di)) {
 		LOGP(DL1C, LOGL_ERROR, "MSG too short Data Ind: %u\n",
-		     msgb_l3len(msg));
+		     msgb_l2len(msg));
 		rc = -EINVAL;
 		goto exit;
 	}
@@ -289,14 +289,14 @@ _l1ctl_rx_fbsb_conf(struct app_state *as, struct msgb *msg)
 
 	if (msgb_l1len(msg) < sizeof(*dl)) {
 		LOGP(DL1C, LOGL_ERROR, "Short Layer2 message: %u\n",
-		     msgb_l2len(msg));
+		     msgb_l1len(msg));
 		rc = -EINVAL;
 		goto exit;
 	}
 
 	if (msgb_l2len(msg) < sizeof(*sc)) {
 		LOGP(DL1C, LOGL_ERROR, "MSG too short FBSB Conf: %u\n",
-		     msgb_l3len(msg));
+		     msgb_l2len(msg));
 		rc = -EINVAL;
 		goto exit;
 	}

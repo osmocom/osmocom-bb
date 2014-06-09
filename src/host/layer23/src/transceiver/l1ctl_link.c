@@ -29,6 +29,8 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 
+#include <osmocom/core/socket.h>
+#include <osmocom/core/talloc.h>
 #include <osmocom/core/write_queue.h>
 
 #include <osmocom/bb/common/logging.h>
@@ -103,44 +105,29 @@ _l1l_write(struct osmo_fd *fd, struct msgb *msg)
 
 int
 l1l_open(struct l1ctl_link *l1l,
-              const char *path, l1ctl_cb_t cb, void *cb_data)
+         const char *path, l1ctl_cb_t cb, void *cb_data)
 {
-	int rc, fd;
-	struct sockaddr_un local;
+	int rc;
+
+	memset(l1l, 0x00, sizeof(struct l1ctl_link));
 
 	l1l->cb = cb;
 	l1l->cb_data = cb_data;
 
-	fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (fd < 0) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to create unix domain socket.\n");
-		return fd;
-	}
-
-	l1l->wq.bfd.fd = fd;
-
-	local.sun_family = AF_UNIX;
-	strncpy(local.sun_path, path, sizeof(local.sun_path));
-	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
-
-	rc = connect(fd, (struct sockaddr *) &local, sizeof(local));
-	if (rc < 0) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to connect to '%s': %s\n",
-			local.sun_path, strerror(errno));
-		close(fd);
-		return rc;
-	}
-
 	osmo_wqueue_init(&l1l->wq, 100);
 	l1l->wq.bfd.data = l1l;
-	l1l->wq.bfd.when = BSC_FD_READ;
 	l1l->wq.read_cb  = _l1l_read;
 	l1l->wq.write_cb = _l1l_write;
 
-	rc = osmo_fd_register(&l1l->wq.bfd);
-	if (rc != 0) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to register fd.\n");
-		close(fd);
+	rc = osmo_sock_unix_init_ofd(
+		&l1l->wq.bfd,
+		SOCK_STREAM, 0,
+		path,
+		OSMO_SOCK_F_CONNECT
+	);
+
+	if (rc < 0) {
+		LOGP(DL1C, LOGL_ERROR, "Failed to create and init unix domain socket.\n");
 		return rc;
 	}
 
@@ -159,6 +146,9 @@ l1l_close(struct l1ctl_link *l1l)
 	l1l->wq.bfd.fd = -1;
 
 	osmo_wqueue_clear(&l1l->wq);
+
+	if (l1l->to_free)
+		talloc_free(l1l);
 
 	return 0;
 }
@@ -184,4 +174,94 @@ l1l_send(struct l1ctl_link *l1l, struct msgb *msg)
 	}
 
 	return 0;
+}
+
+
+static int
+_l1l_accept(struct osmo_fd *fd, unsigned int flags)
+{
+	struct l1ctl_server *l1s = fd->data;
+	struct l1ctl_link *l1l;
+	struct sockaddr_un un_addr;
+	socklen_t len;
+	int cfd, rc;
+
+	len = sizeof(un_addr);
+	cfd = accept(fd->fd, (struct sockaddr *) &un_addr, &len);
+	if (cfd < 0) {
+		LOGP(DL1C, LOGL_ERROR, "Failed to accept a new L1CTL connection.\n");
+		return cfd;
+	}
+
+	l1l = talloc_zero(NULL, struct l1ctl_link);
+	if (!l1l) {
+		LOGP(DL1C, LOGL_ERROR, "Failed to allocate a new L1CTL connection.\n");
+		return -ENOMEM;
+	}
+
+	l1l->to_free = 1;
+
+	osmo_wqueue_init(&l1l->wq, 100);
+	l1l->wq.bfd.fd   = cfd;
+	l1l->wq.bfd.data = l1l;
+	l1l->wq.bfd.when = BSC_FD_READ;
+	l1l->wq.read_cb  = _l1l_read;
+	l1l->wq.write_cb = _l1l_write;
+
+	INIT_LLIST_HEAD(&l1l->wq.bfd.list);
+
+	rc = l1s->cb(l1s->cb_data, l1l);
+	if (rc)
+		goto error;
+
+	if (!l1l->cb || !l1l->cb_data) {
+		LOGP(DL1C, LOGL_NOTICE, "New L1CTL callback didn't set message callback !\n");
+	}
+
+	rc = osmo_fd_register(&l1l->wq.bfd);
+	if (rc) {
+		LOGP(DL1C, LOGL_ERROR, "Failed to register fd of new L1CTL connection.\n");
+		goto error;
+	}
+
+	return 0;
+
+error:
+	if (l1l)
+		l1l_close(l1l);
+
+	return rc;
+}
+
+int
+l1l_start_server(struct l1ctl_server *l1s, const char *path,
+                 l1ctl_server_cb_t cb, void *cb_data)
+{
+	int rc;
+
+	memset(l1s, 0x00, sizeof(struct l1ctl_server));
+
+	l1s->cb = cb;
+	l1s->cb_data = cb_data;
+
+	l1s->bfd.cb   = _l1l_accept;
+	l1s->bfd.data = l1s;
+
+	rc = osmo_sock_unix_init_ofd(
+		&l1s->bfd,
+		SOCK_STREAM, 0,
+		path,
+		OSMO_SOCK_F_BIND
+	);
+	if (rc < 0)
+		return rc;
+
+	return 0;
+}
+
+void
+l1l_stop_server(struct l1ctl_server *l1s)
+{
+	/* FIXME */
+
 }

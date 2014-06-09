@@ -29,6 +29,11 @@ if test "$osmo_ac_build_transceiver" = "yes" ; then
 fi
 AM_CONDITIONAL(BUILD_TRANSCEIVER, test "x$osmo_ac_build_transceiver" = "xyes")
 
+dnl Optional transceiver_ms
+AC_ARG_ENABLE([transceiver-ms], [AS_HELP_STRING([--enable-transceiver-ms], [Build the MS transceiver application])],
+	[osmo_ac_build_transceiver_ms="$enableval"])
+AM_CONDITIONAL(BUILD_TRANSCEIVER_MS, test "x$osmo_ac_build_transceiver_ms" = "xyes")
+
 dnl checks for header files
 AC_HEADER_STDC
 
@@ -40,6 +45,7 @@ AC_OUTPUT(
     src/misc/Makefile
     src/mobile/Makefile
     src/transceiver/Makefile
+    src/transceiver_ms/Makefile
     include/Makefile
     include/osmocom/Makefile
     include/osmocom/bb/Makefile
