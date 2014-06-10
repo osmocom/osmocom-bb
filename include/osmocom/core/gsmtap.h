@@ -43,7 +43,7 @@
 #define GSMTAP_TYPE_GMR1_UM	0x0a	/* GMR-1 L2 packets */
 #define GSMTAP_TYPE_UMTS_RLC_MAC	0x0b
 #define GSMTAP_TYPE_UMTS_RRC	0x0c
-
+#define GSMTAP_TYPE_LTE_RRC	0x0d	/* LTE interface */
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
@@ -134,6 +134,15 @@
 #define GSMTAP_UMTS_CH_PCCH	0x01
 #define GSMTAP_UMTS_CH_CCCH	0x02
 #define GSMTAP_UMTS_CH_DCCH	0x03
+
+/* sub-types for TYPE_LTE_RRC */
+#define GSMTAP_LTE_CH_BCCH	0x01
+#define GSMTAP_LTE_CH_CCCH	0x02
+#define GSMTAP_LTE_CH_DCCH	0x03
+#define GSMTAP_LTE_CH_MCCH	0x04
+#define GSMTAP_LTE_CH_PCCH	0x05
+#define GSMTAP_LTE_CH_DTCH	0x06
+#define GSMTAP_LTE_CH_MTCH	0x07
 
 /* flags for the ARFCN */
 #define GSMTAP_ARFCN_F_PCS	0x8000
