@@ -4,7 +4,7 @@ check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
                  smscb/smscb_test bits/bitrev_test a5/a5_test		\
                  conv/conv_test auth/milenage_test lapd/lapd_test	\
                  gsm0808/gsm0808_test gsm0408/gsm0408_test		\
-		 gb/bssgp_fc_test gb/gprs_ns_test                       \
+		 gb/bssgp_fc_test gb/gprs_ns_test kasumi/kasumi_test    \
 		 logging/logging_test fr/fr_test	                \
 		 loggingrb/loggingrb_test strrb/strrb_test              \
 		 vty/vty_test comp128/comp128_test utils/utils_test
@@ -18,6 +18,10 @@ utils_utils_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 a5_a5_test_SOURCES = a5/a5_test.c
 a5_a5_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+kasumi_kasumi_test_SOURCES = kasumi/kasumi_test.c
+kasumi_kasumi_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+kasumi_kasumi_test_LDFLAGS = -static
 
 comp128_comp128_test_SOURCES = comp128/comp128_test.c
 comp128_comp128_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
@@ -102,7 +106,7 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
              lapd/lapd_test.ok gsm0408/gsm0408_test.ok			\
              gsm0808/gsm0808_test.ok gb/bssgp_fc_tests.err		\
              gb/bssgp_fc_tests.ok gb/bssgp_fc_tests.sh			\
-             gb/gprs_ns_test.ok						\
+             gb/gprs_ns_test.ok kasumi/kasumi_test.ok			\
              msgfile/msgfile_test.ok msgfile/msgconfig.cfg		\
              logging/logging_test.ok logging/logging_test.err		\
              fr/fr_test.ok loggingrb/logging_test.ok			\

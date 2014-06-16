@@ -108,7 +108,9 @@ nobase_include_HEADERS += \
                           osmocom/vty/vty.h
 endif
 
-noinst_HEADERS = osmocom/core/timer_compat.h
+noinst_HEADERS = \
+	osmocom/core/timer_compat.h \
+	osmocom/gsm/kasumi.h
 
 osmocom/core/bit%gen.h: osmocom/core/bitXXgen.h.tpl
 	$(AM_V_GEN)$(MKDIR_P) $(dir $@)

@@ -15,7 +15,7 @@ libosmogsm_la_SOURCES = a5.c rxlev_stat.c tlv_parser.c comp128.c comp128v23.c \
 			gsm_utils.c rsl.c gsm48.c gsm48_ie.c gsm0808.c sysinfo.c \
 			gprs_cipher_core.c gsm0480.c abis_nm.c gsm0502.c \
 			gsm0411_utils.c gsm0411_smc.c gsm0411_smr.c \
-			lapd_core.c lapdm.c \
+			lapd_core.c lapdm.c kasumi.c \
 			auth_core.c auth_comp128v1.c auth_comp128v23.c \
 			auth_milenage.c milenage/aes-encblock.c \
 			milenage/aes-internal.c milenage/aes-internal-enc.c \
