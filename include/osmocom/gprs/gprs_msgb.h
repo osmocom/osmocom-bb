@@ -1,5 +1,4 @@
-#ifndef _LIBGB_MSGB_H
-#define _LIBGB_MSGB_H
+#pragma once
 
 #include <stdint.h>
 /* the data structure stored in msgb->cb for libgb apps */
@@ -34,4 +33,3 @@ struct libgb_msgb_cb {
 #include <osmocom/core/logging.h>
 int gprs_log_filter_fn(const struct log_context *ctx,
 			struct log_target *tar);
-#endif

@@ -1,5 +1,4 @@
-#ifndef gsm0480_h
-#define gsm0480_h
+#pragma once
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
@@ -22,5 +21,3 @@ struct msgb *gsm0480_create_notifySS(const char *text);
 
 int gsm0480_wrap_invoke(struct msgb *msg, int op, int link_id);
 int gsm0480_wrap_facility(struct msgb *msg);
-
-#endif

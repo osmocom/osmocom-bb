@@ -1,6 +1,3 @@
-#ifndef _OSMO_PLUGIN_H
-#define _OSMO_PLUGIN_H
+#pragma once
 
 int osmo_plugin_load_all(const char *directory);
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef _OSMO_PROTO_IPACCESS_H
-#define _OSMO_PROTO_IPACCESS_H
+#pragma once
 
 #include <stdint.h>
 
@@ -90,5 +89,3 @@ struct sdp_header_entry {
 	uint32_t addr2;
 	uint32_t start;
 } __attribute__((packed));
-
-#endif /* _OSMO_PROTO_IPACCESS_H */

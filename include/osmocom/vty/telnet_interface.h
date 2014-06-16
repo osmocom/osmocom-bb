@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef TELNET_INTERFACE_H
-#define TELNET_INTERFACE_H
+#pragma once
 
 #include <osmocom/core/logging.h>
 #include <osmocom/core/select.h>
@@ -52,5 +51,3 @@ int telnet_init_dynif(void *tall_ctx, void *priv, const char *ip, int port);
 void telnet_exit(void);
 
 /*! @} */
-
-#endif /* TELNET_INTERFACE_H */

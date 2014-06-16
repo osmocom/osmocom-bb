@@ -1,5 +1,4 @@
-#ifndef _BSSGP_BSS_H
-#define _BSSGP_BSS_H
+#pragma once
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/gprs/gprs_bssgp.h>
@@ -72,4 +71,3 @@ int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 int bssgp_tx_fc_ms(struct bssgp_bvc_ctx *bctx, uint32_t tlli, uint8_t tag,
 		   uint32_t ms_bucket_size, uint32_t bucket_leak_rate,
 		   uint8_t *bucket_full_ratio);
-#endif

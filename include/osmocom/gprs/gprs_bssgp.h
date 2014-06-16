@@ -1,5 +1,4 @@
-#ifndef _GPRS_BSSGP_H
-#define _GPRS_BSSGP_H
+#pragma once
 
 #include <stdint.h>
 #include <osmocom/core/timer.h>
@@ -207,5 +206,3 @@ int bssgp_vty_init(void);
 void bssgp_set_log_ss(int ss);
 
 int bssgp_prim_cb(struct osmo_prim_hdr *oph, void *ctx);
-
-#endif /* _GPRS_BSSGP_H */

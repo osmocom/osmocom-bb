@@ -1,5 +1,4 @@
-#ifndef _OSMO_GSM_SYSINFO_H
-#define _OSMO_GSM_SYSINFO_H
+#pragma once
 
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
@@ -39,5 +38,3 @@ extern const struct value_string osmo_sitype_strs[_MAX_SYSINFO_TYPE];
 
 uint8_t osmo_sitype2rsl(enum osmo_sysinfo_type si_type);
 enum osmo_sysinfo_type osmo_rsl2sitype(uint8_t rsl_si);
-
-#endif /* _OSMO_GSM_SYSINFO_H */

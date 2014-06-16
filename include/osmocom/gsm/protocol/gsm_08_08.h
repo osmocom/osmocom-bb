@@ -1,7 +1,6 @@
 /* From GSM08.08 */
 
-#ifndef GSM_0808_H
-#define GSM_0808_H
+#pragma once
 
 #include <stdlib.h>
 
@@ -299,5 +298,3 @@ enum gsm0808_permitted_speech {
 	GSM0808_PERM_HR2	= GSM0808_PERM_FR2 | 0x4,
 	GSM0808_PERM_HR3	= GSM0808_PERM_FR3 | 0x4,
 };
-
-#endif

@@ -20,8 +20,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef _ZEBRA_BUFFER_H
-#define _ZEBRA_BUFFER_H
+#pragma once
 
 #include <sys/types.h>
 
@@ -98,5 +97,3 @@ extern buffer_status_t buffer_flush_all(struct buffer *, int fd);
 */
 extern buffer_status_t buffer_flush_window(struct buffer *, int fd, int width,
 					   int height, int erase, int no_more);
-
-#endif				/* _ZEBRA_BUFFER_H */

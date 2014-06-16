@@ -1,5 +1,4 @@
-#ifndef _MSGB_H
-#define _MSGB_H
+#pragma once
 
 /* (C) 2008 by Harald Welte <laforge@gnumonks.org>
  * All Rights Reserved
@@ -413,5 +412,3 @@ uint8_t *msgb_data(const struct msgb *msg);
 void msgb_set_talloc_ctx(void *ctx);
 
 /*! @} */
-
-#endif /* _MSGB_H */

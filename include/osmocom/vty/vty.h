@@ -1,5 +1,4 @@
-#ifndef _VTY_H
-#define _VTY_H
+#pragma once
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -205,5 +204,3 @@ struct vty_signal_data {
 };
 
 /*! @} */
-
-#endif

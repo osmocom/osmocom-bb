@@ -1,5 +1,4 @@
-#ifndef _STRRB_H
-#define _STRRB_H
+#pragma once
 
 /* (C) 2012-2013 by Katerina Barone-Adesi <kat.obsc@gmail.com>
  * All Rights Reserved
@@ -54,5 +53,3 @@ size_t osmo_strrb_elements(const struct osmo_strrb *rb);
 int osmo_strrb_add(struct osmo_strrb *rb, const char *data);
 
 /*! @} */
-
-#endif /* _STRRB_H */

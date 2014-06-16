@@ -26,8 +26,7 @@
  *  \brief Osmocom timer handling routines
  */
 
-#ifndef TIMER_H
-#define TIMER_H
+#pragma once
 
 #include <sys/time.h>
 
@@ -85,5 +84,3 @@ int osmo_timers_update(void);
 int osmo_timers_check(void);
 
 /*! @} */
-
-#endif

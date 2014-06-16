@@ -20,8 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __OSMO_A5_H__
-#define __OSMO_A5_H__
+#pragma once
 
 #include <stdint.h>
 
@@ -59,5 +58,3 @@ void osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
 void osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
 
 /*! @} */
-
-#endif /* __OSMO_A5_H__ */

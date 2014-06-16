@@ -1,5 +1,4 @@
-#ifndef _GPRS_NS_H
-#define _GPRS_NS_H
+#pragma once
 
 #include <stdint.h>
 
@@ -215,5 +214,3 @@ struct ns_signal_data {
 void gprs_ns_set_log_ss(int ss);
 
 /*! }@ */
-
-#endif

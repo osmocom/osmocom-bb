@@ -1,5 +1,4 @@
-#ifndef _OSMO_GSM_ABIS_NM_H
-#define _OSMO_GSM_ABIS_NM_H
+#pragma once
 
 /*! \defgroup oml A-bis OML
  *  @{
@@ -47,5 +46,3 @@ int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan);
 enum gsm_phys_chan_config abis_nm_pchan4chcomb(uint8_t chcomb);
 
 /*! @} */
-
-#endif /* _OSMO_GSM_ABIS_NM_H */

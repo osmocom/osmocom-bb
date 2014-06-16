@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_03_41_H
-#define PROTO_GSM_03_41_H
+#pragma once
 
 #include <stdint.h>
 
@@ -47,5 +46,3 @@ struct gsm341_etws_message {
 #define GSM341_GS_PLMN_WIDE		1
 #define GSM341_GS_LA_WIDE		2
 #define GSM341_GS_CELL_WIDE		3
-
-#endif /* PROTO_GSM_03_41_H */

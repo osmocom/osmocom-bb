@@ -1,5 +1,4 @@
-#ifndef _OSMO_MEAS_REP_H
-#define _OSMO_MEAS_REP_H
+#pragma once
 
 #include <stdint.h>
 
@@ -25,5 +24,3 @@ enum meas_rep_field {
 	MEAS_REP_UL_RXQUAL_FULL,
 	MEAS_REP_UL_RXQUAL_SUB,
 };
-
-#endif

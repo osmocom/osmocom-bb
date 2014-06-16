@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_08_58_H
-#define PROTO_GSM_08_58_H
+#pragma once
 
 /* GSM Radio Signalling Link messages on the A-bis interface 
  * 3GPP TS 08.58 version 8.6.0 Release 1999 / ETSI TS 100 596 V8.6.0 */
@@ -579,5 +578,3 @@ enum rsl_rel_mode {
 };
 
 /*! @} */
-
-#endif /* PROTO_GSM_08_58_H */

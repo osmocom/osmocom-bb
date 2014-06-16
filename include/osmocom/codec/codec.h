@@ -1,5 +1,4 @@
-#ifndef _OSMOCOM_CODEC_H
-#define _OSMOCOM_CODEC_H
+#pragma once
 
 #include <stdint.h>
 
@@ -16,5 +15,3 @@ extern const uint16_t gsm690_6_7_bitorder[];	/* AMR  6.7  kbits */
 extern const uint16_t gsm690_5_9_bitorder[];	/* AMR  5.9  kbits */
 extern const uint16_t gsm690_5_15_bitorder[];	/* AMR  5.15 kbits */
 extern const uint16_t gsm690_4_75_bitorder[];	/* AMR  4.75 kbits */
-
-#endif /* _OSMOCOM_CODEC_H */

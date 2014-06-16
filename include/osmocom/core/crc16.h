@@ -15,8 +15,7 @@
  * Version 2. See the file COPYING for more details.
  */
 
-#ifndef __CRC16_H
-#define __CRC16_H
+#pragma once
 
 #include <stdint.h>
 
@@ -30,5 +29,3 @@ static inline uint16_t osmo_crc16_byte(uint16_t crc, const uint8_t data)
 {
 	return (crc >> 8) ^ osmo_crc16_table[(crc ^ data) & 0xff];
 }
-
-#endif /* __CRC16_H */

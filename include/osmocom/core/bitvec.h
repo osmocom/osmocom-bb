@@ -1,5 +1,4 @@
-#ifndef _BITVEC_H
-#define _BITVEC_H
+#pragma once
 
 /* bit vector utility routines */
 
@@ -66,5 +65,3 @@ int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value 
 int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit);
 
 /*! @} */
-
-#endif /* _BITVEC_H */

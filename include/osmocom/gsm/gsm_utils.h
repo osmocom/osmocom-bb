@@ -22,8 +22,7 @@
  *
  */
 
-#ifndef GSM_UTILS_H
-#define GSM_UTILS_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -203,6 +202,3 @@ int gsm_7bit_decode_ussd(char *decoded, const uint8_t *user_data, uint8_t length
 int gsm_7bit_encode(uint8_t *result, const char *data) OSMO_DEPRECATED("Use gsm_7bit_encode_n() instead");
 int gsm_7bit_encode_ussd(uint8_t *result, const char *data, int *octets_written) OSMO_DEPRECATED("Use gsm_7bit_encode_n_ussd() instead");
 int gsm_7bit_encode_oct(uint8_t *result, const char *data, int *octets_written) OSMO_DEPRECATED("Use gsm_7bit_encode_n() instead");
-
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef OSMOCOM_GSM_0502_H
-#define OSMOCOM_GSM_0502_H
+#pragma once
 
 #include <stdint.h>
 
@@ -34,5 +33,3 @@ gsm0502_get_paging_group(uint64_t imsi, unsigned int bs_cc_chans,
 
 unsigned int
 gsm0502_calc_paging_group(struct gsm48_control_channel_descr *chan_desc, uint64_t imsi);
-
-#endif

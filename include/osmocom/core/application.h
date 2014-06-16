@@ -1,5 +1,4 @@
-#ifndef OSMO_APPLICATION_H
-#define OSMO_APPLICATION_H
+#pragma once
 
 /*!
  * \file application.h
@@ -19,5 +18,3 @@ void osmo_init_ignore_signals(void);
 int osmo_init_logging(const struct log_info *);
 
 int osmo_daemonize(void);
-
-#endif

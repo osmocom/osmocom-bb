@@ -1,5 +1,4 @@
-#ifndef OSMOCORE_UTIL_H
-#define OSMOCORE_UTIL_H
+#pragma once
 
 #include <osmocom/core/backtrace.h>
 
@@ -62,5 +61,3 @@ do {								\
 
 
 /*! @} */
-
-#endif

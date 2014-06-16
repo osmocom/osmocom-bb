@@ -1,5 +1,4 @@
-#ifndef _RATE_CTR_H
-#define _RATE_CTR_H
+#pragma once
 
 /*! \defgroup rate_ctr Rate counters
  *  @{
@@ -85,4 +84,3 @@ struct rate_ctr_group *rate_ctr_get_group_by_name_idx(const char *name, const un
 const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, const char *name);
 
 /*! @} */
-#endif /* RATE_CTR_H */

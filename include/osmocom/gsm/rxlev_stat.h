@@ -1,5 +1,4 @@
-#ifndef _OSMOCORE_RXLEV_STATS_H
-#define _OSMOCORE_RXLEV_STATS_H
+#pragma once
 
 #define NUM_RXLEVS 32
 #define NUM_ARFCNS 1024
@@ -18,5 +17,3 @@ int16_t rxlev_stat_get_next(const struct rxlev_stats *st, uint8_t rxlev, int16_t
 void rxlev_stat_reset(struct rxlev_stats *st);
 
 void rxlev_stat_dump(const struct rxlev_stats *st);
-
-#endif /* _OSMOCORE_RXLEV_STATS_H */

@@ -1,5 +1,4 @@
-#ifndef _SMPP34_OSMOCOM_H
-#define _SMPP34_OSMOCOM_H
+#pragma once
 /* Osmocom SMPP extensions */
 
 /* Osmocom specific new TLV definitions */
@@ -44,5 +43,3 @@
  * 	TLVID_osmo_rxqual_dl
  * 	TLVID_osmo_imei
  */
-
-#endif

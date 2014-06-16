@@ -1,5 +1,4 @@
-#ifndef _OSMOCORE_MNCC_H
-#define _OSMOCORE_MNCC_H
+#pragma once
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
@@ -81,5 +80,3 @@ enum {
 	GSM_MNCC_BCAP_OTHER_ITC = 5,
 	GSM_MNCC_BCAP_RESERVED	= 7,
 };
-
-#endif

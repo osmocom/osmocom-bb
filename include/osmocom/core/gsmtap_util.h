@@ -1,5 +1,4 @@
-#ifndef _GSMTAP_UTIL_H
-#define _GSMTAP_UTIL_H
+#pragma once
 
 #include <stdint.h>
 #include <osmocom/core/write_queue.h>
@@ -55,5 +54,3 @@ int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
 		unsigned int len);
 
 /*! @} */
-
-#endif /* _GSMTAP_UTIL_H */

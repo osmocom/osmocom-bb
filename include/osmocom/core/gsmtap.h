@@ -1,5 +1,4 @@
-#ifndef _GSMTAP_H
-#define _GSMTAP_H
+#pragma once
 
 /* gsmtap header, pseudo-header in front of the actua GSM payload */
 
@@ -239,5 +238,3 @@ struct gsmtap_hdr {
 	uint8_t res;		/* reserved for future use (RFU) */
 
 } __attribute__((packed));
-
-#endif /* _GSMTAP_H */

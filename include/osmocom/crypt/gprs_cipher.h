@@ -1,5 +1,4 @@
-#ifndef _GPRS_CIPHER_H
-#define _GPRS_CIPHER_H
+#pragma once
 
 #include <osmocom/core/linuxlist.h>
 
@@ -50,5 +49,3 @@ uint32_t gprs_cipher_gen_input_ui(uint32_t iov_ui, uint8_t sapi, uint32_t lfn, u
 
 /* GSM TS 04.64 / Section A.2.1 : Generation of 'input' */
 uint32_t gprs_cipher_gen_input_i(uint32_t iov_i, uint32_t lfn, uint32_t oc);
-
-#endif /* _GPRS_CIPHER_H */

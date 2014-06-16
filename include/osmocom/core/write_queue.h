@@ -20,8 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  */
-#ifndef OSMO_WQUEUE_H
-#define OSMO_WQUEUE_H
+#pragma once
 
 /*! \defgroup write_queue Osmocom msgb write queues
  *  @{
@@ -59,5 +58,3 @@ int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data);
 int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what);
 
 /*! @} */
-
-#endif

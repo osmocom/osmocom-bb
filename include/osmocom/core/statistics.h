@@ -1,5 +1,4 @@
-#ifndef _STATISTICS_H
-#define _STATISTICS_H
+#pragma once
 
 /*! \file statistics.h
  *  \brief Common routines regarding statistics */
@@ -49,5 +48,3 @@ int osmo_counters_for_each(int (*handle_counter)(struct osmo_counter *, void *),
  *  \returns pointer to counter (\ref osmo_counter) or NULL otherwise
  */
 struct osmo_counter *osmo_counter_get_by_name(const char *name);
-
-#endif /* _STATISTICS_H */

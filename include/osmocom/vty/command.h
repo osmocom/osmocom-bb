@@ -20,8 +20,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef _ZEBRA_COMMAND_H
-#define _ZEBRA_COMMAND_H
+#pragma once
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -376,4 +375,3 @@ void print_version(int print_copyright);
 extern void *tall_vty_cmd_ctx;
 
 /*! @} */
-#endif				/* _ZEBRA_COMMAND_H */

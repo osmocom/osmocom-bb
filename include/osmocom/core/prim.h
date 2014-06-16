@@ -1,5 +1,4 @@
-#ifndef OSMO_PRIMITIVE_H
-#define OSMO_PRIMITIVE_H
+#pragma once
 
 /*! \defgroup prim Osmocom primitives
  *  @{
@@ -56,5 +55,3 @@ osmo_prim_init(struct osmo_prim_hdr *oph, unsigned int sap,
 typedef int (*osmo_prim_cb)(struct osmo_prim_hdr *oph, void *ctx);
 
 /*! @} */
-
-#endif /* OSMO_PRIMITIVE_H */

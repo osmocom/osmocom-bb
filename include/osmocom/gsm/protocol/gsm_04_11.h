@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_04_11_H
-#define PROTO_GSM_04_11_H
+#pragma once
 
 #include <stdint.h>
 
@@ -186,5 +185,3 @@ enum sms_alphabet {
 #define GSM338_DCS_1111_CLASS1_ME	1
 #define GSM338_DCS_1111_CLASS2_SIM	2
 #define GSM338_DCS_1111_CLASS3_TE	3	/* See TS 07.05 */
-
-#endif /* PROTO_GSM_04_11_H */

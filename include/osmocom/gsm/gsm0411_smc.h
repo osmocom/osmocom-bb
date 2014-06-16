@@ -1,5 +1,4 @@
-#ifndef _GSM0411_SMC_H
-#define _GSM0411_SMC_H
+#pragma once
 
 #include <osmocom/core/timer.h>
 #include <osmocom/gsm/protocol/gsm_04_11.h>
@@ -60,5 +59,3 @@ int gsm411_smc_send(struct gsm411_smc_inst *inst, int msg_type,
 /* message from lower layer */
 int gsm411_smc_recv(struct gsm411_smc_inst *inst, int msg_type,
 	struct msgb *msg, int cp_msg_type);
-
-#endif /* _GSM0411_SMC_H */

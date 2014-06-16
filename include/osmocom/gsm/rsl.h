@@ -1,5 +1,4 @@
-#ifndef _OSMOCORE_RSL_H
-#define _OSMOCORE_RSL_H
+#pragma once
 
 #include <stdint.h>
 #include <osmocom/core/utils.h>
@@ -51,5 +50,3 @@ struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
 			    uint8_t link_id, int transparent);
 
 /*! @} */
-
-#endif /* _OSMOCORE_RSL_H */

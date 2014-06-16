@@ -1,5 +1,4 @@
-#ifndef _OSMOCORE_SOCKET_H
-#define _OSMOCORE_SOCKET_H
+#pragma once
 
 /*! \defgroup socket Socket convenience functions
  *  @{
@@ -37,5 +36,3 @@ int osmo_sock_unix_init_ofd(struct osmo_fd *ofd, uint16_t type, uint8_t proto,
 			    const char *socket_path, unsigned int flags);
 
 /*! @} */
-
-#endif /* _OSMOCORE_SOCKET_H */

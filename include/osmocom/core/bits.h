@@ -1,5 +1,4 @@
-#ifndef _OSMO_BITS_H
-#define _OSMO_BITS_H
+#pragma once
 
 #include <stdint.h>
 
@@ -74,5 +73,3 @@ uint32_t osmo_revbytebits_8(uint8_t x);
 void osmo_revbytebits_buf(uint8_t *buf, int len);
 
 /*! @} */
-
-#endif /* _OSMO_BITS_H */

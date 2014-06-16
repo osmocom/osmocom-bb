@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_44_318_H
-#define PROTO_GSM_44_318_H
+#pragma once
 
 #include <stdint.h>
 
@@ -197,4 +196,3 @@ struct gan_cch_desc_ie {
 #endif
 	uint8_t access_class[2];
 } __attribute__((packed));
-#endif /* PROTO_GSM_44_318_H */

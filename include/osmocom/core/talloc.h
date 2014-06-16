@@ -1,5 +1,4 @@
-#ifndef _TALLOC_H_
-#define _TALLOC_H_
+#pragma once
 /* 
    Unix SMB/CIFS implementation.
    Samba temporary memory allocation functions
@@ -188,5 +187,3 @@ char *talloc_asprintf_append(char *s, const char *fmt, ...) PRINTF_ATTRIBUTE(2,3
 char *talloc_asprintf_append_buffer(char *s, const char *fmt, ...) PRINTF_ATTRIBUTE(2,3);
 
 void talloc_set_abort_fn(void (*abort_fn)(const char *reason));
-
-#endif

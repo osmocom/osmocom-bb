@@ -4,8 +4,7 @@
  * See comp128v23.c for details
  */
 
-#ifndef __COMP128V23_H__
-#define __COMP128V23_H__
+#pragma once
 
 #include <stdint.h>
 
@@ -19,5 +18,3 @@
  */
 int comp128v2(const uint8_t *ki, const uint8_t *rand, uint8_t *sres, uint8_t *kc);
 int comp128v3(const uint8_t *ki, const uint8_t *rand, uint8_t *sres, uint8_t *kc);
-
-#endif /* __COMP128V23_H__ */

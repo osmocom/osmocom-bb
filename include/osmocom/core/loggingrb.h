@@ -1,5 +1,4 @@
-#ifndef _LOGGINGRB_H
-#define _LOGGINGRB_H
+#pragma once
 
 /* (C) 2012-2013 by Katerina Barone-Adesi <kat.obsc@gmail.com>
  * All Rights Reserved
@@ -36,5 +35,3 @@ const char *log_target_rb_get(struct log_target const *target, size_t logindex);
 struct log_target *log_target_create_rb(size_t size);
 
 /*! @} */
-
-#endif /* _LOGGINGRB_H  */

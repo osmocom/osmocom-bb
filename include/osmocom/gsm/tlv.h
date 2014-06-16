@@ -1,5 +1,4 @@
-#ifndef _TLV_H
-#define _TLV_H
+#pragma once
 
 #include <stdint.h>
 #include <string.h>
@@ -435,5 +434,3 @@ static inline uint32_t tlvp_val32_unal(const struct tlv_parsed *tp, int pos)
 }
 
 /*! @} */
-
-#endif /* _TLV_H */

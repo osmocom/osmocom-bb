@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_04_08_H
-#define PROTO_GSM_04_08_H
+#pragma once
 
 #include <stdint.h>
 
@@ -1336,5 +1335,3 @@ struct gsm48_ra_id {
 
 #define GSM_MACBLOCK_LEN	23
 #define GSM_MACBLOCK_PADDING	0x2b
-
-#endif /* PROTO_GSM_04_08_H */

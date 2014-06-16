@@ -1,5 +1,4 @@
-#ifndef _OSMOCRYPTO_AUTH_H
-#define _OSMOCRYPTO_AUTH_H
+#pragma once
 
 /*! \addtogroup auth
  *  @{
@@ -95,7 +94,5 @@ int osmo_auth_supported(enum osmo_auth_algo algo);
 
 const char *osmo_auth_alg_name(enum osmo_auth_algo alg);
 enum osmo_auth_algo osmo_auth_alg_parse(const char *name);
-
-#endif /* _OSMOCRYPTO_AUTH_H */
 
 /* @} */

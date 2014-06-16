@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_04_12_H
-#define PROTO_GSM_04_12_H
+#pragma once
 
 #include <stdint.h>
 
@@ -27,5 +26,3 @@ struct gsm412_sched_msg {
 	uint8_t cbsms_msg_map[6];
 	uint8_t data[0];
 } __attribute__((packed));
-
-#endif

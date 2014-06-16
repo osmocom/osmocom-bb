@@ -12,8 +12,7 @@
  * See README and COPYING for more details.
  */
 
-#ifndef AES_I_H
-#define AES_I_H
+#pragma once
 
 #include "aes.h"
 
@@ -118,5 +117,3 @@ static inline u32 rotr(u32 val, int bits)
 #define AES_PRIV_SIZE (4 * 44)
 
 void rijndaelKeySetupEnc(u32 rk[/*44*/], const u8 cipherKey[]);
-
-#endif /* AES_I_H */

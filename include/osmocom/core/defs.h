@@ -1,5 +1,4 @@
-#ifndef OSMOCORE_DEFS_H
-#define OSMOCORE_DEFS_H
+#pragma once
 
 /*! \defgroup utils General-purpose utility functions
  *  @{
@@ -46,5 +45,3 @@
 #undef _OSMO_HAS_ATTRIBUTE_DEPRECATED
 
 /*! @} */
-
-#endif

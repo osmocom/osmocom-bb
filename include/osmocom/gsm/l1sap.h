@@ -1,5 +1,4 @@
-#ifndef _OSMOCOM_L1SAP_H
-#define _OSMOCOM_L1SAP_H
+#pragma once
 
 #include <osmocom/core/prim.h>
 
@@ -121,5 +120,3 @@ struct osmo_phsap_prim {
 		struct mph_info_param info;
 	} u;			/*!< \brief request-specific data */
 };
-
-#endif /* _OSMOCOM_L1SAP_H */

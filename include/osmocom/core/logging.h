@@ -1,5 +1,4 @@
-#ifndef _OSMOCORE_LOGGING_H
-#define _OSMOCORE_LOGGING_H
+#pragma once
 
 /*! \defgroup logging Osmocom logging framework
  *  @{
@@ -216,5 +215,3 @@ struct log_target *log_target_find(int type, const char *fname);
 extern struct llist_head osmo_log_target_list;
 
 /*! @} */
-
-#endif /* _OSMOCORE_LOGGING_H */

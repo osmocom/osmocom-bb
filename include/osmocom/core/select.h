@@ -1,5 +1,4 @@
-#ifndef _BSC_SELECT_H
-#define _BSC_SELECT_H
+#pragma once
 
 #include <osmocom/core/linuxlist.h>
 
@@ -41,5 +40,3 @@ void osmo_fd_unregister(struct osmo_fd *fd);
 int osmo_select_main(int polling);
 
 /*! @} */
-
-#endif /* _BSC_SELECT_H */

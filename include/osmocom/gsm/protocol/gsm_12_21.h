@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_12_21_H
-#define PROTO_GSM_12_21_H
+#pragma once
 
 /* GSM Network Management messages on the A-bis interface 
  * 3GPP TS 12.21 version 8.0.0 Release 1999 / ETSI TS 100 623 V8.0.0 */
@@ -748,5 +747,3 @@ enum ipac_bcch_info_type {
 };
 
 /*! @} */
-
-#endif /* PROTO_GSM_12_21_H */

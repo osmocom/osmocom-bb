@@ -1,5 +1,4 @@
-#ifndef _LINUX_LLIST_H
-#define _LINUX_LLIST_H
+#pragma once
 
 #include <stddef.h>
 
@@ -355,6 +354,3 @@ static inline void llist_splice_init(struct llist_head *llist,
 #define llist_for_each_continue_rcu(pos, head) \
 	for ((pos) = (pos)->next, prefetch((pos)->next); (pos) != (head); \
         	(pos) = (pos)->next, ({ smp_read_barrier_depends(); 0;}), prefetch((pos)->next))
-
-
-#endif

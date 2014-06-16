@@ -1,5 +1,4 @@
-#ifndef _OSMO_08_18_H
-#define _OSMO_08_18_H
+#pragma once
 
 #include <stdint.h>
 
@@ -140,5 +139,3 @@ enum gprs_bssgp_cause {
 	BSSGP_CAUSE_PROTO_ERR_UNSPEC	= 0x27,
 	BSSGP_CAUSE_PDU_INCOMP_FEAT	= 0x28,
 };
-
-#endif

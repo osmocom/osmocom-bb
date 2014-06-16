@@ -1,5 +1,4 @@
-#ifndef OSMO_SIGNAL_H
-#define OSMO_SIGNAL_H
+#pragma once
 
 #include <stdint.h>
 
@@ -43,5 +42,3 @@ void osmo_signal_unregister_handler(unsigned int subsys, osmo_signal_cbfn *cbfn,
 void osmo_signal_dispatch(unsigned int subsys, unsigned int signal, void *signal_data);
 
 /*! @} */
-
-#endif /* OSMO_SIGNAL_H */
