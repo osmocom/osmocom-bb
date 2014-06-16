@@ -95,11 +95,11 @@ static inline uintXX_t osmo_loadXXbe(const void *p)
 /*! \brief store unaligned XX-bit integer (little-endian encoding) */
 static inline void osmo_storeXXle(uintXX_t x, void *p)
 {
-	return osmo_storeXXle_ext(x, p, XX / 8);
+	osmo_storeXXle_ext(x, p, XX / 8);
 }
 
 /*! \brief store unaligned XX-bit integer (big-endian encoding) */
 static inline void osmo_storeXXbe(uintXX_t x, void *p)
 {
-	return osmo_storeXXbe_ext(x, p, XX / 8);
+	osmo_storeXXbe_ext(x, p, XX / 8);
 }
