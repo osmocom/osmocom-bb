@@ -15,7 +15,9 @@ static char s[18];
 
 enum END {LE, BE};
 
-const char * end2str(enum END e) {
+static inline const char *
+end2str(enum END e)
+{
 	if (e == LE) return "LE";
 	return "BE";
 }
@@ -23,34 +25,47 @@ const char * end2str(enum END e) {
 
 /* convenience wrappers */
 
-inline uint64_t load64(enum END e, const uint8_t *buf, unsigned nbytes) {
+static inline uint64_t
+load64(enum END e, const uint8_t *buf, unsigned nbytes)
+{
 	return (e == BE) ? osmo_load64be_ext(buf, nbytes) : osmo_load64le_ext(buf, nbytes);
 }
 
-inline uint32_t load32(enum END e, const uint8_t *buf, unsigned nbytes) {
+static inline uint32_t
+load32(enum END e, const uint8_t *buf, unsigned nbytes)
+{
 	return (e == BE) ? osmo_load32be_ext(buf, nbytes) : osmo_load32le_ext(buf, nbytes);
 }
 
-inline uint16_t load16(enum END e, const uint8_t *buf) {
+static inline uint16_t
+load16(enum END e, const uint8_t *buf)
+{
 	return (e == BE) ? osmo_load16be(buf) : osmo_load16le(buf);
 }
 
-inline void store64(enum END e, uint64_t t, uint8_t *buf, unsigned nbytes) {
+static inline void
+store64(enum END e, uint64_t t, uint8_t *buf, unsigned nbytes)
+{
 	(e == BE) ? osmo_store64be_ext(t, buf, nbytes) : osmo_store64le_ext(t, buf, nbytes);
 }
 
-inline void store32(enum END e, uint64_t t, uint8_t *buf, unsigned nbytes) {
+static inline void
+store32(enum END e, uint64_t t, uint8_t *buf, unsigned nbytes)
+{
 	(e == BE) ? osmo_store32be_ext(t, buf, nbytes) : osmo_store32le_ext(t, buf, nbytes);
 }
 
-inline void store16(enum END e, uint64_t t, uint8_t *buf) {
+static inline void
+store16(enum END e, uint64_t t, uint8_t *buf)
+{
 	(e == BE) ? osmo_store16be(t, buf) : osmo_store16le(t, buf);
 }
 
 
 /* helper functions */
 
-inline bool printcheck(bool chk, unsigned nbytes, enum END e, bool b)
+static inline bool
+printcheck(bool chk, unsigned nbytes, enum END e, bool b)
 {
 	if (!chk) {
 		printf("%u %s FAILED", nbytes * 8, end2str(e));
@@ -60,7 +75,8 @@ inline bool printcheck(bool chk, unsigned nbytes, enum END e, bool b)
 	return b;
 }
 
-inline bool dumpcheck(const char *dump, const char *s, unsigned nbytes, bool chk, enum END e, bool b)
+static inline bool
+dumpcheck(const char *dump, const char *s, unsigned nbytes, bool chk, enum END e, bool b)
 {
 	bool x = printcheck(chk, nbytes, e, b);
 	if (!dump) return x;
@@ -78,7 +94,8 @@ inline bool dumpcheck(const char *dump, const char *s, unsigned nbytes, bool chk
 
 /* printcheckXX(): load/store 'test' and check against 'expected' value, compare to 'dump' buffer if given and print if necessary */
 
-inline void printcheck64(enum END e, unsigned nbytes, uint64_t test, uint64_t expected, const char *dump, bool print)
+static inline void
+printcheck64(enum END e, unsigned nbytes, uint64_t test, uint64_t expected, const char *dump, bool print)
 {
 	uint8_t buf[nbytes];
 
@@ -94,7 +111,8 @@ inline void printcheck64(enum END e, unsigned nbytes, uint64_t test, uint64_t ex
 	printf("\n");
 }
 
-inline void printcheck32(enum END e, unsigned nbytes, uint32_t test, uint32_t expected, const char *dump, bool print)
+static inline void
+printcheck32(enum END e, unsigned nbytes, uint32_t test, uint32_t expected, const char *dump, bool print)
 {
 	uint8_t buf[nbytes];
 
@@ -110,7 +128,8 @@ inline void printcheck32(enum END e, unsigned nbytes, uint32_t test, uint32_t ex
 	printf("\n");
 }
 
-inline void printcheck16(enum END e, uint32_t test, uint32_t expected, const char *dump, bool print)
+static inline void
+printcheck16(enum END e, uint32_t test, uint32_t expected, const char *dump, bool print)
 {
 	uint8_t buf[2];
 
@@ -129,13 +148,17 @@ inline void printcheck16(enum END e, uint32_t test, uint32_t expected, const cha
 
 /* compute expected value - zero excessive bytes */
 
-inline uint64_t exp64(enum END e, unsigned nbytes, uint64_t value) {
+static inline uint64_t
+exp64(enum END e, unsigned nbytes, uint64_t value)
+{
 	uint8_t adj = 64 - nbytes * 8;
 	uint64_t v = value << adj;
 	return (e == LE) ? v >> adj : v;
 }
 
-inline uint32_t exp32(enum END e, unsigned nbytes, uint32_t value) {
+static inline uint32_t
+exp32(enum END e, unsigned nbytes, uint32_t value)
+{
 	uint8_t adj = 32 - nbytes * 8;
 	uint32_t v = value << adj;
 	return (e == LE) ? v >> adj : v;
@@ -144,7 +167,8 @@ inline uint32_t exp32(enum END e, unsigned nbytes, uint32_t value) {
 
 /* run actual tests - if 'test' is 0 than generate random test value internally */
 
-inline void check64(uint64_t test, uint64_t expected, unsigned nbytes, enum END e)
+static inline void
+check64(uint64_t test, uint64_t expected, unsigned nbytes, enum END e)
 {
 	bool print = true;
 	if (0 == test && 0 == expected) {
@@ -156,7 +180,8 @@ inline void check64(uint64_t test, uint64_t expected, unsigned nbytes, enum END 
 	printcheck64(e, nbytes, test, expected, (BE == e) ? s : NULL, print);
 }
 
-inline void check32(uint32_t test, uint32_t expected, unsigned nbytes, enum END e)
+static inline void
+check32(uint32_t test, uint32_t expected, unsigned nbytes, enum END e)
 {
 	bool print = true;
 	if (0 == test && 0 == expected) {
@@ -168,7 +193,8 @@ inline void check32(uint32_t test, uint32_t expected, unsigned nbytes, enum END 
 	printcheck32(e, nbytes, test, expected, (BE == e) ? s : NULL, print);
 }
 
-inline void check16(uint16_t test, enum END e)
+static inline void
+check16(uint16_t test, enum END e)
 {
 	bool print = true;
 	if (0 == test) {
