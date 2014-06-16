@@ -56,10 +56,11 @@ static inline uintXX_t osmo_loadXXbe_ext(const void *p, uint8_t n)
  *  \param[out] p Buffer to store integer
  *  \param[in] n Number of bytes to store
  */
-static inline void osmo_storeXXle_ext(uintXX_t x, uint8_t *p, uint8_t n)
+static inline void osmo_storeXXle_ext(uintXX_t x, void *p, uint8_t n)
 {
 	uint8_t i;
-	for(i = 0; i < n; p[i] = (x >> i * 8) & 0xFF, i++);
+	uint8_t *q = (uint8_t *)p;
+	for(i = 0; i < n; q[i] = (x >> i * 8) & 0xFF, i++);
 }
 
 /*! \brief store unaligned n-byte integer (big-endian encoding) into uintXX_t
@@ -67,10 +68,11 @@ static inline void osmo_storeXXle_ext(uintXX_t x, uint8_t *p, uint8_t n)
  *  \param[out] p Buffer to store integer
  *  \param[in] n Number of bytes to store
  */
-static inline void osmo_storeXXbe_ext(uintXX_t x, uint8_t *p, uint8_t n)
+static inline void osmo_storeXXbe_ext(uintXX_t x, void *p, uint8_t n)
 {
 	uint8_t i;
-	for(i = 0; i < n; p[i] = (x >> ((n - 1 - i) * 8)) & 0xFF, i++);
+	uint8_t *q = (uint8_t *)p;
+	for(i = 0; i < n; q[i] = (x >> ((n - 1 - i) * 8)) & 0xFF, i++);
 }
 
 
