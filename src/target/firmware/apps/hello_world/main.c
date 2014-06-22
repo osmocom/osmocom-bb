@@ -68,8 +68,7 @@ static void l1a_l23_rx_cb(uint8_t dlci, struct msgb *msg)
 	puts("\n");
 }
 
-void
-write_battery_info(void *p){
+void write_battery_info(void *p){
 	char buf[128];
 
 	fb_setfg(FB_COLOR_WHITE);
