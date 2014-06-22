@@ -214,12 +214,15 @@ int main(int argc, char **argv)
 	}
 
 	if (!rand_is_set) {
+		int i;
 		printf("WARNING: We're using really weak random numbers!\n\n");
 		srand(time(NULL));
-		*(uint32_t *)&_rand[0] = rand();
-		*(uint32_t *)(&_rand[4]) = rand();
-		*(uint32_t *)(&_rand[8]) = rand();
-		*(uint32_t *)(&_rand[12]) = rand();
+
+		for (i = 0; i < 4; ++i) {
+			uint32_t r;
+			r = rand();
+			memcpy(&_rand[i*4], &r, 4);
+		}
 	}
 
 	if (test_aud.type == OSMO_AUTH_TYPE_NONE ||
