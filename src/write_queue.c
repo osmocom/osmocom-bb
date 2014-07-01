@@ -46,13 +46,13 @@ int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what)
 
 	if (what & BSC_FD_READ) {
 		rc = queue->read_cb(fd);
-		if (rc == -EBADFD)
+		if (rc == -EBADF)
 			goto err_badfd;
 	}
 
 	if (what & BSC_FD_EXCEPT) {
 		rc = queue->except_cb(fd);
-		if (rc == -EBADFD)
+		if (rc == -EBADF)
 			goto err_badfd;
 	}
 
@@ -69,7 +69,7 @@ int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what)
 			rc = queue->write_cb(fd, msg);
 			msgb_free(msg);
 
-			if (rc == -EBADFD)
+			if (rc == -EBADF)
 				goto err_badfd;
 
 			if (!llist_empty(&queue->msg_queue))

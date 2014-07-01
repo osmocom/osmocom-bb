@@ -120,7 +120,7 @@ static int client_data(struct osmo_fd *fd, unsigned int what)
 	}
 
 	/* vty might have been closed from vithin vty_read() */
-	if (rc == -EBADFD)
+	if (rc == -EBADF)
 		return rc;
 
 	if (what & BSC_FD_WRITE) {

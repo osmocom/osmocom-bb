@@ -1434,7 +1434,7 @@ int vty_read(struct vty *vty)
 	/* Check status. */
 	if (vty->status == VTY_CLOSE) {
 		vty_close(vty);
-		return -EBADFD;
+		return -EBADF;
 	} else {
 		vty_event(VTY_WRITE, vty_sock, vty);
 		vty_event(VTY_READ, vty_sock, vty);
