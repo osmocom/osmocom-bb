@@ -1330,6 +1330,7 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb, void *ctx)
 	nsi->unknown_nsvc = gprs_nsvc_create(nsi, 0xfffe);
 	nsi->unknown_nsvc->nsvci_is_valid = 0;
 	llist_del(&nsi->unknown_nsvc->list);
+	INIT_LLIST_HEAD(&nsi->unknown_nsvc->list);
 
 	return nsi;
 }
@@ -1337,6 +1338,8 @@ struct gprs_ns_inst *gprs_ns_instantiate(gprs_ns_cb_t *cb, void *ctx)
 void gprs_ns_close(struct gprs_ns_inst *nsi)
 {
 	struct gprs_nsvc *nsvc, *nsvc2;
+
+	gprs_nsvc_delete(nsi->unknown_nsvc);
 
 	/* delete all NSVCs and clear their timers */
 	llist_for_each_entry_safe(nsvc, nsvc2, &nsi->gprs_nsvcs, list)
