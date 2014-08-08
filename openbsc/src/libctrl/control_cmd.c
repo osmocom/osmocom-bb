@@ -343,7 +343,7 @@ struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg)
 			break;
 		case CTRL_TYPE_SET:
 			var = strtok_r(NULL, " ", &saveptr);
-			val = strtok_r(NULL, " ", &saveptr);
+			val = strtok_r(NULL, "\n", &saveptr);
 			if (!var || !val) {
 				cmd->type = CTRL_TYPE_ERROR;
 				cmd->reply = "SET incomplete";
