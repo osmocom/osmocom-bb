@@ -334,6 +334,15 @@ const struct tlv_definition abis_nm_osmo_att_tlvdef = {
 };
 
 /*! \brief Human-readable strings for A-bis OML Object Class */
+const struct value_string abis_nm_msg_disc_names[] = {
+	{ ABIS_OM_MDISC_FOM,	"FOM" },
+	{ ABIS_OM_MDISC_MMI,	"MMI" },
+	{ ABIS_OM_MDISC_TRAU,	"TRAU" },
+	{ ABIS_OM_MDISC_MANUF,	"MANUF" },
+	{ 0, NULL }
+};
+
+/*! \brief Human-readable strings for A-bis OML Object Class */
 const struct value_string abis_nm_obj_class_names[] = {
 	{ NM_OC_SITE_MANAGER,	"SITE-MANAGER" },
 	{ NM_OC_BTS,		"BTS" },

@@ -21,6 +21,7 @@ extern const enum abis_nm_msgtype abis_nm_no_ack_nack[3];
 extern const enum abis_nm_msgtype abis_nm_sw_load_msgs[9];
 extern const enum abis_nm_msgtype abis_nm_nacks[33];
 
+extern const struct value_string abis_nm_msg_disc_names[];
 extern const struct value_string abis_nm_obj_class_names[];
 extern const struct value_string abis_nm_adm_state_names[];
 
