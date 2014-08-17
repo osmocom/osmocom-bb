@@ -36,6 +36,9 @@
 #include <osmocom/gsm/protocol/gsm_12_21.h>
 #include <osmocom/gsm/abis_nm.h>
 
+const char abis_nm_ipa_magic[13] = "com.ipaccess";
+const char abis_nm_osmo_magic[12] = "org.osmocom";
+
 /*! \brief unidirectional messages from BTS to BSC */
 const enum abis_nm_msgtype abis_nm_reports[4] = {
 	NM_MT_SW_ACTIVATED_REP,

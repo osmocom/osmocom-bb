@@ -20,6 +20,8 @@ abis_nm_reports;
 abis_nm_severity_name;
 abis_nm_sw_load_msgs;
 abis_nm_test_name;
+abis_nm_osmo_magic;
+abis_nm_ipa_magic;
 
 osmo_sitype_strs;
 

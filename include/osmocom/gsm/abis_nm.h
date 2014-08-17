@@ -10,6 +10,9 @@
 
 /*! \file abis_nm.h */
 
+extern const char abis_nm_ipa_magic[13];
+extern const char abis_nm_osmo_magic[12];
+
 enum abis_nm_msgtype;
 enum gsm_phys_chan_config;
 
