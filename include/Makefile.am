@@ -21,6 +21,7 @@ nobase_include_HEADERS = \
                        osmocom/core/linuxrbtree.h \
                        osmocom/core/logging.h \
                        osmocom/core/loggingrb.h \
+                       osmocom/core/macaddr.h \
                        osmocom/core/msgb.h \
                        osmocom/core/panic.h \
                        osmocom/core/prim.h \
