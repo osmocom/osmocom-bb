@@ -409,6 +409,9 @@ void tlv_def_patch(struct tlv_definition *dst, const struct tlv_definition *src)
 #define TLVP_LEN(x, y)		(x)->lv[y].len
 #define TLVP_VAL(x, y)		(x)->lv[y].val
 
+#define TLVP_PRES_LEN(tp, tag, min_len) \
+	(TLVP_PRESENT(tp, tag) && TLVP_LEN(tp, tag) >= min_len)
+
 /*! \brief Align given TLV element with 16 bit value to an even address
  *  \param[in] tp pointer to \ref tlv_parsed
  *  \param[in] pos element to return
