@@ -188,7 +188,7 @@ static void create_cmd_struct(struct ctrl_cmd_struct *cmd, const char *name)
 	for (cur = name, word = NULL; cur[0] != '\0'; ++cur) {
 		/* warn about optionals */
 		if (cur[0] == '(' || cur[0] == ')' || cur[0] == '|') {
-			LOGP(DCTRL, LOGL_ERROR,
+			LOGP(DLCTRL, LOGL_ERROR,
 			     "Optionals are not supported in '%s'\n", name);
 			goto failure;
 		}
@@ -223,7 +223,7 @@ int ctrl_cmd_install(enum ctrl_node_type node, struct ctrl_cmd_element *cmd)
 	if (!cmds_vec) {
 		cmds_vec = vector_init(5);
 		if (!cmds_vec) {
-			LOGP(DCTRL, LOGL_ERROR, "vector_init failed.\n");
+			LOGP(DLCTRL, LOGL_ERROR, "vector_init failed.\n");
 			return -ENOMEM;
 		}
 		vector_set_index(ctrl_node_vec, node, cmds_vec);
@@ -291,7 +291,7 @@ struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg)
 
 	cmd = talloc_zero(ctx, struct ctrl_cmd);
 	if (!cmd) {
-		LOGP(DCTRL, LOGL_ERROR, "Failed to allocate.\n");
+		LOGP(DLCTRL, LOGL_ERROR, "Failed to allocate.\n");
 		return NULL;
 	}
 
@@ -333,11 +333,11 @@ struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg)
 			if (!var) {
 				cmd->type = CTRL_TYPE_ERROR;
 				cmd->reply = "GET incomplete";
-				LOGP(DCTRL, LOGL_NOTICE, "GET Command incomplete\n");
+				LOGP(DLCTRL, LOGL_NOTICE, "GET Command incomplete\n");
 				goto err;
 			}
 			cmd->variable = talloc_strdup(cmd, var);
-			LOGP(DCTRL, LOGL_DEBUG, "Command: GET %s\n", cmd->variable);
+			LOGP(DLCTRL, LOGL_DEBUG, "Command: GET %s\n", cmd->variable);
 			break;
 		case CTRL_TYPE_SET:
 			var = strtok_r(NULL, " ", &saveptr);
@@ -345,14 +345,14 @@ struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg)
 			if (!var || !val) {
 				cmd->type = CTRL_TYPE_ERROR;
 				cmd->reply = "SET incomplete";
-				LOGP(DCTRL, LOGL_NOTICE, "SET Command incomplete\n");
+				LOGP(DLCTRL, LOGL_NOTICE, "SET Command incomplete\n");
 				goto err;
 			}
 			cmd->variable = talloc_strdup(cmd, var);
 			cmd->value = talloc_strdup(cmd, val);
 			if (!cmd->variable || !cmd->value)
 				goto oom;
-			LOGP(DCTRL, LOGL_DEBUG, "Command: SET %s = %s\n", cmd->variable, cmd->value);
+			LOGP(DLCTRL, LOGL_DEBUG, "Command: SET %s = %s\n", cmd->variable, cmd->value);
 			break;
 		case CTRL_TYPE_GET_REPLY:
 		case CTRL_TYPE_SET_REPLY:
@@ -362,14 +362,14 @@ struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg)
 			if (!var || !val) {
 				cmd->type = CTRL_TYPE_ERROR;
 				cmd->reply = "Trap/Reply incomplete";
-				LOGP(DCTRL, LOGL_NOTICE, "Trap/Reply incomplete\n");
+				LOGP(DLCTRL, LOGL_NOTICE, "Trap/Reply incomplete\n");
 				goto err;
 			}
 			cmd->variable = talloc_strdup(cmd, var);
 			cmd->reply = talloc_strdup(cmd, val);
 			if (!cmd->variable || !cmd->reply)
 				goto oom;
-			LOGP(DCTRL, LOGL_DEBUG, "Command: TRAP/REPLY %s: %s\n", cmd->variable, cmd->reply);
+			LOGP(DLCTRL, LOGL_DEBUG, "Command: TRAP/REPLY %s: %s\n", cmd->variable, cmd->reply);
 			break;
 		case CTRL_TYPE_ERROR:
 			var = strtok_r(NULL, "\0", &saveptr);
@@ -380,7 +380,7 @@ struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg)
 			cmd->reply = talloc_strdup(cmd, var);
 			if (!cmd->reply)
 				goto oom;
-			LOGP(DCTRL, LOGL_DEBUG, "Command: ERROR %s\n", cmd->reply);
+			LOGP(DLCTRL, LOGL_DEBUG, "Command: ERROR %s\n", cmd->reply);
 			break;
 		case CTRL_TYPE_UNKNOWN:
 		default:
@@ -420,7 +420,7 @@ struct msgb *ctrl_cmd_make(struct ctrl_cmd *cmd)
 
 		tmp = talloc_asprintf(cmd, "%s %s %s", type, cmd->id, cmd->variable);
 		if (!tmp) {
-			LOGP(DCTRL, LOGL_ERROR, "Failed to allocate cmd.\n");
+			LOGP(DLCTRL, LOGL_ERROR, "Failed to allocate cmd.\n");
 			goto err;
 		}
 
@@ -435,7 +435,7 @@ struct msgb *ctrl_cmd_make(struct ctrl_cmd *cmd)
 		tmp = talloc_asprintf(cmd, "%s %s %s %s", type, cmd->id, cmd->variable,
 				cmd->value);
 		if (!tmp) {
-			LOGP(DCTRL, LOGL_ERROR, "Failed to allocate cmd.\n");
+			LOGP(DLCTRL, LOGL_ERROR, "Failed to allocate cmd.\n");
 			goto err;
 		}
 
@@ -452,7 +452,7 @@ struct msgb *ctrl_cmd_make(struct ctrl_cmd *cmd)
 		tmp = talloc_asprintf(cmd, "%s %s %s %s", type, cmd->id, cmd->variable,
 				cmd->reply);
 		if (!tmp) {
-			LOGP(DCTRL, LOGL_ERROR, "Failed to allocate cmd.\n");
+			LOGP(DLCTRL, LOGL_ERROR, "Failed to allocate cmd.\n");
 			goto err;
 		}
 
@@ -467,7 +467,7 @@ struct msgb *ctrl_cmd_make(struct ctrl_cmd *cmd)
 		tmp = talloc_asprintf(cmd, "%s %s %s", type, cmd->id,
 				cmd->reply);
 		if (!tmp) {
-			LOGP(DCTRL, LOGL_ERROR, "Failed to allocate cmd.\n");
+			LOGP(DLCTRL, LOGL_ERROR, "Failed to allocate cmd.\n");
 			goto err;
 		}
 
@@ -476,7 +476,7 @@ struct msgb *ctrl_cmd_make(struct ctrl_cmd *cmd)
 		talloc_free(tmp);
 		break;
 	default:
-		LOGP(DCTRL, LOGL_NOTICE, "Unknown command type %i\n", cmd->type);
+		LOGP(DLCTRL, LOGL_NOTICE, "Unknown command type %i\n", cmd->type);
 		goto err;
 		break;
 	}

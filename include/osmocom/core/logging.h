@@ -67,7 +67,8 @@ void logp(int subsys, const char *file, int line, int cont, const char *format, 
 #define DLMI		-5
 #define DLMIB		-6
 #define DLSMS		-7
-#define OSMO_NUM_DLIB	7
+#define DLCTRL		-8
+#define OSMO_NUM_DLIB	8
 
 struct log_category {
 	uint8_t loglevel;

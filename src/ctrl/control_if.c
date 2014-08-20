@@ -77,7 +77,7 @@ int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd)
 
 	msg = ctrl_cmd_make(cmd);
 	if (!msg) {
-		LOGP(DCTRL, LOGL_ERROR, "Could not generate msg\n");
+		LOGP(DLCTRL, LOGL_ERROR, "Could not generate msg\n");
 		return -1;
 	}
 
@@ -86,7 +86,7 @@ int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd)
 
 	ret = osmo_wqueue_enqueue(queue, msg);
 	if (ret != 0) {
-		LOGP(DCTRL, LOGL_ERROR, "Failed to enqueue the command.\n");
+		LOGP(DLCTRL, LOGL_ERROR, "Failed to enqueue the command.\n");
 		msgb_free(msg);
 	}
 	return ret;
@@ -136,27 +136,27 @@ static int handle_control_read(struct osmo_fd * bfd)
 		if (ret == -EAGAIN)
 			return 0;
 		if (ret == 0)
-			LOGP(DCTRL, LOGL_INFO, "The control connection was closed\n");
+			LOGP(DLCTRL, LOGL_INFO, "The control connection was closed\n");
 		else
-			LOGP(DCTRL, LOGL_ERROR, "Failed to parse ip access message: %d\n", ret);
+			LOGP(DLCTRL, LOGL_ERROR, "Failed to parse ip access message: %d\n", ret);
 
 		goto err;
 	}
 
 	if (msg->len < sizeof(*iph) + sizeof(*iph_ext)) {
-		LOGP(DCTRL, LOGL_ERROR, "The message is too short.\n");
+		LOGP(DLCTRL, LOGL_ERROR, "The message is too short.\n");
 		goto err;
 	}
 
 	iph = (struct ipaccess_head *) msg->data;
 	if (iph->proto != IPAC_PROTO_OSMO) {
-		LOGP(DCTRL, LOGL_ERROR, "Protocol mismatch. We got 0x%x\n", iph->proto);
+		LOGP(DLCTRL, LOGL_ERROR, "Protocol mismatch. We got 0x%x\n", iph->proto);
 		goto err;
 	}
 
 	iph_ext = (struct ipaccess_head_ext *) iph->data;
 	if (iph_ext->proto != IPAC_PROTO_EXT_CTRL) {
-		LOGP(DCTRL, LOGL_ERROR, "Extended protocol mismatch. We got 0x%x\n", iph_ext->proto);
+		LOGP(DLCTRL, LOGL_ERROR, "Extended protocol mismatch. We got 0x%x\n", iph_ext->proto);
 		goto err;
 	}
 
@@ -174,7 +174,7 @@ static int handle_control_read(struct osmo_fd * bfd)
 		cmd = talloc_zero(ccon, struct ctrl_cmd);
 		if (!cmd)
 			goto err;
-		LOGP(DCTRL, LOGL_ERROR, "Command parser error.\n");
+		LOGP(DLCTRL, LOGL_ERROR, "Command parser error.\n");
 		cmd->type = CTRL_TYPE_ERROR;
 		cmd->id = "err";
 		cmd->reply = "Command parser error.";
@@ -197,7 +197,7 @@ static int control_write_cb(struct osmo_fd *bfd, struct msgb *msg)
 
 	rc = write(bfd->fd, msg->data, msg->len);
 	if (rc != msg->len)
-		LOGP(DCTRL, LOGL_ERROR, "Failed to write message to the control connection.\n");
+		LOGP(DLCTRL, LOGL_ERROR, "Failed to write message to the control connection.\n");
 
 	return rc;
 }
@@ -232,19 +232,19 @@ static int listen_fd_cb(struct osmo_fd *listen_bfd, unsigned int what)
 		perror("accept");
 		return fd;
 	}
-	LOGP(DCTRL, LOGL_INFO, "accept()ed new control connection from %s\n",
+	LOGP(DLCTRL, LOGL_INFO, "accept()ed new control connection from %s\n",
 		inet_ntoa(sa.sin_addr));
 
 	on = 1;
 	ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
 	if (ret != 0) {
-		LOGP(DCTRL, LOGL_ERROR, "Failed to set TCP_NODELAY: %s\n", strerror(errno));
+		LOGP(DLCTRL, LOGL_ERROR, "Failed to set TCP_NODELAY: %s\n", strerror(errno));
 		close(fd);
 		return ret;
 	}
 	ccon = ctrl_connection_alloc(listen_bfd->data);
 	if (!ccon) {
-		LOGP(DCTRL, LOGL_ERROR, "Failed to allocate.\n");
+		LOGP(DLCTRL, LOGL_ERROR, "Failed to allocate.\n");
 		close(fd);
 		return -1;
 	}
@@ -258,7 +258,7 @@ static int listen_fd_cb(struct osmo_fd *listen_bfd, unsigned int what)
 
 	ret = osmo_fd_register(&ccon->write_queue.bfd);
 	if (ret < 0) {
-		LOGP(DCTRL, LOGL_ERROR, "Could not register FD.\n");
+		LOGP(DLCTRL, LOGL_ERROR, "Could not register FD.\n");
 		close(ccon->write_queue.bfd.fd);
 		talloc_free(ccon);
 	}

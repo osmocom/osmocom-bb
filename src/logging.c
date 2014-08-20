@@ -106,6 +106,11 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 		.color = "\033[1;38m",
 	},
+	[INT2IDX(DLCTRL)] = {
+		.name = "DLCTRL",
+		.description = "Control Interface",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 /*! \brief descriptive string for each log level */
