@@ -2,8 +2,10 @@
 #define _CONTROL_IF_H
 
 #include <osmocom/core/write_queue.h>
-#include <openbsc/control_cmd.h>
-#include <openbsc/gsm_data.h>
+#include <osmocom/ctrl/control_cmd.h>
+
+/* FIXME: this must go */
+struct gsm_network;
 
 typedef int (*ctrl_cmd_handler)(struct ctrl_cmd *, void *);
 

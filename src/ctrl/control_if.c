@@ -38,30 +38,20 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include <openbsc/control_cmd.h>
-#include <openbsc/control_if.h>
-#include <openbsc/debug.h>
-#include <openbsc/gsm_data.h>
-#include <openbsc/ipaccess.h>
-#include <openbsc/socket.h>
-#include <osmocom/abis/subchan_demux.h>
-
-#include <openbsc/abis_rsl.h>
-#include <openbsc/abis_nm.h>
+#include <osmocom/ctrl/control_cmd.h>
+#include <osmocom/ctrl/control_if.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/statistics.h>
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/socket.h>
 
-#include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/protocol/ipaccess.h>
 
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/vector.h>
-
-#include <osmocom/abis/e1_input.h>
-#include <osmocom/abis/ipa.h>
 
 vector ctrl_node_vec;
 
@@ -551,8 +541,10 @@ struct ctrl_handle *controlif_setup(struct gsm_network *gsmnet, uint16_t port,
 		goto err;
 
 	/* Listen for control connections */
-	ret = make_sock(&ctrl->listen_fd, IPPROTO_TCP, INADDR_LOOPBACK, port,
-			0, listen_fd_cb, ctrl);
+	ctrl->listen_fd.cb = listen_fd_cb;
+	ctrl->listen_fd.data = ctrl;
+	ret = osmo_sock_init_ofd(&ctrl->listen_fd, AF_INET, SOCK_STREAM, IPPROTO_TCP,
+				 "127.0.0.1", port, OSMO_SOCK_F_BIND);
 	if (ret < 0)
 		goto err_vec;
 

@@ -4,10 +4,9 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/write_queue.h>
+#include <osmocom/core/logging.h>
 
 #include <osmocom/vty/vector.h>
-
-#include <openbsc/vty.h>
 
 #define CTRL_CMD_ERROR		-1
 #define CTRL_CMD_HANDLED	0

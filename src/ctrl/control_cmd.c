@@ -29,9 +29,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <openbsc/control_cmd.h>
-#include <openbsc/debug.h>
-#include <openbsc/vty.h>
+#include <osmocom/ctrl/control_cmd.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
