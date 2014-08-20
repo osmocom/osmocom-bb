@@ -96,7 +96,7 @@ struct ctrl_cmd *ctrl_cmd_trap(struct ctrl_cmd *cmd)
 {
 	struct ctrl_cmd *trap;
 
-	trap = ctrl_cmd_cpy(tall_bsc_ctx, cmd);
+	trap = ctrl_cmd_cpy(cmd, cmd);
 	if (!trap)
 		return NULL;
 
@@ -281,10 +281,10 @@ static uint64_t get_rate_ctr_value(const struct rate_ctr *ctr, int intv)
 	}
 }
 
-static char *get_all_rate_ctr_in_group(const struct rate_ctr_group *ctrg, int intv)
+static char *get_all_rate_ctr_in_group(void *ctx, const struct rate_ctr_group *ctrg, int intv)
 {
 	int i;
-	char *counters = talloc_strdup(tall_bsc_ctx, "");
+	char *counters = talloc_strdup(ctx, "");
 	if (!counters)
 		return NULL;
 
@@ -314,7 +314,7 @@ static int get_rate_ctr_group(const char *ctr_group, int intv, struct ctrl_cmd *
 		if (!ctrg)
 			break;
 
-		counters = get_all_rate_ctr_in_group(ctrg, intv);
+		counters = get_all_rate_ctr_in_group(cmd, ctrg, intv);
 		if (!counters)
 			goto oom;
 
@@ -340,7 +340,7 @@ static int get_rate_ctr_group_idx(const struct rate_ctr_group *ctrg, int intv, s
 {
 	char *counters;
 
-	counters = get_all_rate_ctr_in_group(ctrg, intv);
+	counters = get_all_rate_ctr_in_group(cmd, ctrg, intv);
 	if (!counters)
 		goto oom;
 
@@ -527,7 +527,7 @@ struct ctrl_handle *controlif_setup(struct gsm_network *gsmnet, uint16_t port,
 	int ret;
 	struct ctrl_handle *ctrl;
 
-	ctrl = talloc_zero(tall_bsc_ctx, struct ctrl_handle);
+	ctrl = talloc_zero(gsmnet, struct ctrl_handle);
 	if (!ctrl)
 		return NULL;
 
