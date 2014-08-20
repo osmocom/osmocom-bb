@@ -1,6 +1,7 @@
 #pragma once
 
 #include <osmocom/core/backtrace.h>
+#include <osmocom/core/talloc.h>
 
 /*! \defgroup utils General-purpose utility functions
  *  @{
@@ -59,5 +60,11 @@ do {								\
 		abort(); \
 	}
 
+static inline void osmo_talloc_replace_string(void *ctx, char **dst, char *newstr)
+{
+	if (*dst)
+		talloc_free(*dst);
+	*dst = talloc_strdup(ctx, newstr);
+}
 
 /*! @} */

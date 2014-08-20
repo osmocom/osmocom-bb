@@ -145,7 +145,7 @@ static int get_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 static int set_##cmdname(struct ctrl_cmd *cmd, void *_data) \
 { \
 	dtype *data = cmd->node; \
-	bsc_replace_string(cmd->node, &data->element, cmd->value); \
+	osmo_talloc_replace_string(cmd->node, &data->element, cmd->value); \
 	return get_##cmdname(cmd, _data); \
 }
 #define CTRL_CMD_DEFINE_STRING(cmdname, cmdstr, dtype, element) \
