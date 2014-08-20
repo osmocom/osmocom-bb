@@ -49,6 +49,7 @@
 #include <osmocom/core/socket.h>
 
 #include <osmocom/gsm/protocol/ipaccess.h>
+#include <osmocom/gsm/ipa.h>
 
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/vector.h>
@@ -81,8 +82,8 @@ int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd)
 		return -1;
 	}
 
-	ipaccess_prepend_header_ext(msg, IPAC_PROTO_EXT_CTRL);
-	ipaccess_prepend_header(msg, IPAC_PROTO_OSMO);
+	ipa_prepend_header_ext(msg, IPAC_PROTO_EXT_CTRL);
+	ipa_prepend_header(msg, IPAC_PROTO_OSMO);
 
 	ret = osmo_wqueue_enqueue(queue, msg);
 	if (ret != 0) {
