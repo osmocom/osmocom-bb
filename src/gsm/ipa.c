@@ -36,7 +36,7 @@
 
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/gsm/protocol/ipaccess.h>
-#include <osmocom/gsm/ipaccess.h>
+#include <osmocom/gsm/ipa.h>
 
 #define IPA_ALLOC_SIZE 1200
 
@@ -79,7 +79,7 @@ static const char *idtag_names[] = {
 	[IPAC_IDTAG_UNIT]	= "Unit_ID",
 };
 
-const char *ipaccess_idtag_name(uint8_t tag)
+const char *ipa_ccm_idtag_name(uint8_t tag)
 {
 	if (tag >= ARRAY_SIZE(idtag_names))
 		return "unknown";
@@ -87,7 +87,7 @@ const char *ipaccess_idtag_name(uint8_t tag)
 	return idtag_names[tag];
 }
 
-int ipaccess_idtag_parse(struct tlv_parsed *dec, unsigned char *buf, int len)
+int ipa_ccm_idtag_parse(struct tlv_parsed *dec, unsigned char *buf, int len)
 {
 	uint8_t t_len;
 	uint8_t t_tag;
@@ -105,7 +105,7 @@ int ipaccess_idtag_parse(struct tlv_parsed *dec, unsigned char *buf, int len)
 			return -EINVAL;
 		}
 
-		DEBUGPC(DLMI, "%s='%s' ", ipaccess_idtag_name(t_tag), cur);
+		DEBUGPC(DLMI, "%s='%s' ", ipa_ccm_idtag_name(t_tag), cur);
 
 		dec->lv[t_tag].len = t_len;
 		dec->lv[t_tag].val = cur;
@@ -116,7 +116,7 @@ int ipaccess_idtag_parse(struct tlv_parsed *dec, unsigned char *buf, int len)
 	return 0;
 }
 
-int ipaccess_parse_unitid(const char *str, struct ipaccess_unit *unit_data)
+int ipa_parse_unitid(const char *str, struct ipaccess_unit *unit_data)
 {
 	unsigned long ul;
 	char *endptr;
@@ -149,7 +149,7 @@ int ipaccess_parse_unitid(const char *str, struct ipaccess_unit *unit_data)
 	return 0;
 }
 
-int ipaccess_tlv_to_unitdata(struct ipaccess_unit *ud,
+int ipa_ccm_tlv_to_unitdata(struct ipaccess_unit *ud,
 			     const struct tlv_parsed *tp)
 {
 	int rc = 0;
@@ -186,14 +186,14 @@ int ipaccess_tlv_to_unitdata(struct ipaccess_unit *ud,
 	}
 
 	if (TLVP_PRES_LEN(tp, IPAC_IDTAG_UNIT, 1))
-		rc = ipaccess_parse_unitid((char *)
+		rc = ipa_parse_unitid((char *)
 					TLVP_VAL(tp, IPAC_IDTAG_UNIT), ud);
 
 out:
 	return rc;
 }
 
-int ipaccess_send(int fd, const void *msg, size_t msglen)
+int ipa_send(int fd, const void *msg, size_t msglen)
 {
 	int ret;
 
@@ -201,36 +201,36 @@ int ipaccess_send(int fd, const void *msg, size_t msglen)
 	if (ret < 0)
 		return ret;
 	if (ret < msglen) {
-		LOGP(DLINP, LOGL_ERROR, "ipaccess_send: short write\n");
+		LOGP(DLINP, LOGL_ERROR, "ipa_send: short write\n");
 		return -EIO;
 	}
 	return ret;
 }
 
-int ipaccess_send_pong(int fd)
+int ipa_ccm_send_pong(int fd)
 {
-	return ipaccess_send(fd, ipa_pong_msg, sizeof(ipa_pong_msg));
+	return ipa_send(fd, ipa_pong_msg, sizeof(ipa_pong_msg));
 }
 
-int ipaccess_send_id_ack(int fd)
+int ipa_ccm_send_id_ack(int fd)
 {
-	return ipaccess_send(fd, ipa_id_ack_msg, sizeof(ipa_id_ack_msg));
+	return ipa_send(fd, ipa_id_ack_msg, sizeof(ipa_id_ack_msg));
 }
 
-int ipaccess_send_id_req(int fd)
+int ipa_ccm_send_id_req(int fd)
 {
-	return ipaccess_send(fd, ipa_id_req_msg, sizeof(ipa_id_req_msg));
+	return ipa_send(fd, ipa_id_req_msg, sizeof(ipa_id_req_msg));
 }
 
 /* base handling of the ip.access protocol */
-int ipaccess_rcvmsg_base(struct msgb *msg, struct osmo_fd *bfd)
+int ipa_ccm_rcvmsg_base(struct msgb *msg, struct osmo_fd *bfd)
 {
 	uint8_t msg_type = *(msg->l2h);
 	int ret;
 
 	switch (msg_type) {
 	case IPAC_MSGT_PING:
-		ret = ipaccess_send_pong(bfd->fd);
+		ret = ipa_ccm_send_pong(bfd->fd);
 		if (ret < 0) {
 			LOGP(DLINP, LOGL_ERROR, "Cannot send PING "
 			     "message. Reason: %s\n", strerror(errno));
@@ -244,7 +244,7 @@ int ipaccess_rcvmsg_base(struct msgb *msg, struct osmo_fd *bfd)
 		break;
 	case IPAC_MSGT_ID_ACK:
 		DEBUGP(DLMI, "ID_ACK? -> ACK!\n");
-		ret = ipaccess_send_id_ack(bfd->fd);
+		ret = ipa_ccm_send_id_ack(bfd->fd);
 		if (ret < 0) {
 			LOGP(DLINP, LOGL_ERROR, "Cannot send ID_ACK "
 			     "message. Reason: %s\n", strerror(errno));
@@ -261,15 +261,14 @@ int ipaccess_rcvmsg_base(struct msgb *msg, struct osmo_fd *bfd)
 }
 
 /* base handling of the ip.access protocol */
-int ipaccess_rcvmsg_bts_base(struct msgb *msg,
-			     struct osmo_fd *bfd)
+int ipa_ccm_rcvmsg_bts_base(struct msgb *msg, struct osmo_fd *bfd)
 {
 	uint8_t msg_type = *(msg->l2h);
 	int ret = 0;
 
 	switch (msg_type) {
 	case IPAC_MSGT_PING:
-		ret = ipaccess_send_pong(bfd->fd);
+		ret = ipa_ccm_send_pong(bfd->fd);
 		if (ret < 0) {
 			LOGP(DLINP, LOGL_ERROR, "Cannot send PONG "
 			     "message. Reason: %s\n", strerror(errno));
@@ -286,7 +285,7 @@ int ipaccess_rcvmsg_bts_base(struct msgb *msg,
 }
 
 
-void ipaccess_prepend_header_ext(struct msgb *msg, int proto)
+void ipa_prepend_header_ext(struct msgb *msg, int proto)
 {
 	struct ipaccess_head_ext *hh_ext;
 
@@ -295,7 +294,7 @@ void ipaccess_prepend_header_ext(struct msgb *msg, int proto)
 	hh_ext->proto = proto;
 }
 
-void ipaccess_prepend_header(struct msgb *msg, int proto)
+void ipa_prepend_header(struct msgb *msg, int proto)
 {
 	struct ipaccess_head *hh;
 
