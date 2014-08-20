@@ -248,7 +248,7 @@ static int listen_fd_cb(struct osmo_fd *listen_bfd, unsigned int what)
 	on = 1;
 	ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
 	if (ret != 0) {
-		LOGP(DNAT, LOGL_ERROR, "Failed to set TCP_NODELAY: %s\n", strerror(errno));
+		LOGP(DCTRL, LOGL_ERROR, "Failed to set TCP_NODELAY: %s\n", strerror(errno));
 		close(fd);
 		return ret;
 	}
