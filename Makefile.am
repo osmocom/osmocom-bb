@@ -1,11 +1,11 @@
 ACLOCAL_AMFLAGS = -I m4
 
 AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include
-SUBDIRS = include src src/vty src/codec src/gsm src/gb tests utils
+SUBDIRS = include src src/vty src/codec src/gsm src/gb src/ctrl tests utils
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libosmocore.pc libosmocodec.pc libosmovty.pc libosmogsm.pc \
-		 libosmogb.pc
+		 libosmogb.pc libosmoctrl.pc
 
 BUILT_SOURCES = $(top_srcdir)/.version
 $(top_srcdir)/.version:

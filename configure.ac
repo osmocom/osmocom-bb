@@ -186,12 +186,14 @@ AC_OUTPUT(
 	libosmovty.pc
 	libosmogsm.pc
 	libosmogb.pc
+	libosmoctrl.pc
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile
 	src/codec/Makefile
 	src/gsm/Makefile
 	src/gb/Makefile
+	src/ctrl/Makefile
 	tests/Makefile
 	utils/Makefile
 	Doxyfile.core

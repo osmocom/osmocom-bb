@@ -37,6 +37,8 @@ nobase_include_HEADERS = \
                        osmocom/core/write_queue.h \
                        osmocom/crypt/auth.h \
                        osmocom/crypt/gprs_cipher.h \
+		       osmocom/ctrl/control_cmd.h \
+		       osmocom/ctrl/control_if.h \
                        osmocom/gprs/gprs_bssgp.h \
                        osmocom/gprs/gprs_bssgp_bss.h \
                        osmocom/gprs/gprs_msgb.h \
