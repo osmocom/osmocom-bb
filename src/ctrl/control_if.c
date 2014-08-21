@@ -56,6 +56,25 @@
 
 vector ctrl_node_vec;
 
+int ctrl_parse_get_num(vector vline, int i, long *num)
+{
+	char *token, *tmp;
+
+	if (i >= vector_active(vline))
+		return 0;
+	token = vector_slot(vline, i);
+
+	errno = 0;
+	if (token[0] == '\0')
+		return 0;
+
+	*num = strtol(token, &tmp, 10);
+	if (tmp[0] != '\0' || errno != 0)
+		return 0;
+
+	return 1;
+}
+
 /* Send command to all  */
 int ctrl_cmd_send_to_all(struct ctrl_handle *ctrl, struct ctrl_cmd *cmd)
 {
@@ -118,6 +137,111 @@ static void control_close_conn(struct ctrl_connection *ccon)
 	talloc_free(ccon);
 }
 
+int ctrl_cmd_handle(struct ctrl_handle *ctrl, struct ctrl_cmd *cmd,
+		    void *data)
+{
+	char *request;
+	int i, j, ret, node;
+
+	vector vline, cmdvec, cmds_vec;
+
+	ret = CTRL_CMD_ERROR;
+	cmd->reply = NULL;
+	node = CTRL_NODE_ROOT;
+	cmd->node = data;
+
+	request = talloc_strdup(cmd, cmd->variable);
+	if (!request)
+		goto err;
+
+	for (i=0;i<strlen(request);i++) {
+		if (request[i] == '.')
+			request[i] = ' ';
+	}
+
+	vline = cmd_make_strvec(request);
+	talloc_free(request);
+	if (!vline) {
+		cmd->reply = "cmd_make_strvec failed.";
+		goto err;
+	}
+
+	for (i=0;i<vector_active(vline);i++) {
+		int rc;
+
+		if (ctrl->lookup)
+			rc = ctrl->lookup(data, vline, &node, &cmd->node, &i);
+		else
+			rc = 0;
+
+		if (rc == 1) {
+			/* do nothing */
+		} else if (rc == -ENODEV)
+			goto err_missing;
+		else if (rc == -ERANGE)
+			goto err_index;
+		else {
+			/* If we're here the rest must be the command */
+			cmdvec = vector_init(vector_active(vline)-i);
+			for (j=i; j<vector_active(vline); j++) {
+				vector_set(cmdvec, vector_slot(vline, j));
+			}
+
+			/* Get the command vector of the right node */
+			cmds_vec = vector_lookup(ctrl_node_vec, node);
+
+			if (!cmds_vec) {
+				cmd->reply = "Command not found.";
+				vector_free(cmdvec);
+				break;
+			}
+
+			ret = ctrl_cmd_exec(cmdvec, cmd, cmds_vec, data);
+
+			vector_free(cmdvec);
+			break;
+		}
+
+		if (i+1 == vector_active(vline))
+			cmd->reply = "Command not present.";
+	}
+
+	cmd_free_strvec(vline);
+
+err:
+	if (!cmd->reply) {
+		if (ret == CTRL_CMD_ERROR) {
+			cmd->reply = "An error has occured.";
+			LOGP(DLCTRL, LOGL_NOTICE,
+			     "%s: cmd->reply has not been set (ERROR).\n",
+			     cmd->variable);
+		} else if (ret == CTRL_CMD_REPLY) {
+			LOGP(DLCTRL, LOGL_NOTICE,
+			     "%s: cmd->reply has not been set (type = %d).\n",
+			     cmd->variable, cmd->type);
+			cmd->reply = "";
+		} else {
+			cmd->reply = "Command has been handled.";
+		}
+	}
+
+	if (ret == CTRL_CMD_ERROR)
+		cmd->type = CTRL_TYPE_ERROR;
+	return ret;
+
+err_missing:
+	cmd_free_strvec(vline);
+	cmd->type = CTRL_TYPE_ERROR;
+	cmd->reply = "Error while resolving object";
+	return ret;
+err_index:
+	cmd_free_strvec(vline);
+	cmd->type = CTRL_TYPE_ERROR;
+	cmd->reply = "Error while parsing the index.";
+	return ret;
+}
+
+
 static int handle_control_read(struct osmo_fd * bfd)
 {
 	int ret = -1;
@@ -167,7 +291,7 @@ static int handle_control_read(struct osmo_fd * bfd)
 
 	if (cmd) {
 		cmd->ccon = ccon;
-		if (ctrl->handler(cmd, ctrl->data) != CTRL_CMD_HANDLED) {
+		if (ctrl_cmd_handle(ctrl, cmd, ctrl->data) != CTRL_CMD_HANDLED) {
 			ctrl_cmd_send(queue, cmd);
 			talloc_free(cmd);
 		}
@@ -523,7 +647,7 @@ static int verify_counter(struct ctrl_cmd *cmd, const char *value, void *data)
 }
 
 struct ctrl_handle *controlif_setup(void *data, uint16_t port,
-					ctrl_cmd_handler handler)
+					ctrl_cmd_lookup lookup)
 {
 	int ret;
 	struct ctrl_handle *ctrl;
@@ -535,7 +659,7 @@ struct ctrl_handle *controlif_setup(void *data, uint16_t port,
 	INIT_LLIST_HEAD(&ctrl->ccon_list);
 
 	ctrl->data = data;
-	ctrl->handler = handler;
+	ctrl->lookup = lookup;
 
 	ctrl_node_vec = vector_init(5);
 	if (!ctrl_node_vec)
