@@ -39,6 +39,7 @@ nobase_include_HEADERS = \
                        osmocom/crypt/gprs_cipher.h \
 		       osmocom/ctrl/control_cmd.h \
 		       osmocom/ctrl/control_if.h \
+		       osmocom/ctrl/ports.h \
                        osmocom/gprs/gprs_bssgp.h \
                        osmocom/gprs/gprs_bssgp_bss.h \
                        osmocom/gprs/gprs_msgb.h \
