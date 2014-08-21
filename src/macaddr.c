@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 
 int osmo_macaddr_parse(uint8_t *out, const char *in)
