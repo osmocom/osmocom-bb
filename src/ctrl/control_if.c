@@ -128,6 +128,8 @@ struct ctrl_cmd *ctrl_cmd_trap(struct ctrl_cmd *cmd)
 
 static void control_close_conn(struct ctrl_connection *ccon)
 {
+	struct ctrl_cmd_def *cd, *cd2;
+
 	osmo_wqueue_clear(&ccon->write_queue);
 	close(ccon->write_queue.bfd.fd);
 	osmo_fd_unregister(&ccon->write_queue.bfd);
@@ -135,6 +137,19 @@ static void control_close_conn(struct ctrl_connection *ccon)
 	if (ccon->closed_cb)
 		ccon->closed_cb(ccon);
 	msgb_free(ccon->pending_msg);
+
+	/* clean up deferred commands */
+	llist_for_each_entry_safe(cd, cd2, &ccon->def_cmds, list) {
+		/* delete from list of def_cmds for this ccon */
+		llist_del(&cd->list);
+		/* not strictly needed as this is a slave to the ccon which we
+		 * are about to free anyway */
+		talloc_free(cd->cmd);
+		/* set the CMD to null, this is the indication to the user that
+		 * the connection for this command has gone */
+		cd->cmd = NULL;
+	}
+
 	talloc_free(ccon);
 }
 
@@ -338,6 +353,8 @@ static struct ctrl_connection *ctrl_connection_alloc(void *ctx)
 	/* Error handling here? */
 
 	INIT_LLIST_HEAD(&ccon->cmds);
+	INIT_LLIST_HEAD(&ccon->def_cmds);
+
 	return ccon;
 }
 

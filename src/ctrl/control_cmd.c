@@ -487,3 +487,63 @@ err:
 	msgb_free(msg);
 	return NULL;
 }
+
+struct ctrl_cmd_def *
+ctrl_cmd_def_make(const void *ctx, struct ctrl_cmd *cmd, void *data, unsigned int secs)
+{
+	struct ctrl_cmd_def *cd;
+
+	if (!cmd->ccon)
+		return NULL;
+
+	cd = talloc_zero(ctx, struct ctrl_cmd_def);
+
+	cd->cmd = cmd;
+	cd->data = data;
+
+	/* add to per-connection list of deferred commands */
+	llist_add(&cd->list, &cmd->ccon->def_cmds);
+
+	return cd;
+}
+
+int ctrl_cmd_def_is_zombie(struct ctrl_cmd_def *cd)
+{
+	/* luckily we're still alive */
+	if (cd->cmd)
+		return 0;
+
+	/* if we are a zombie, make sure we really die */
+	llist_del(&cd->list);
+	talloc_free(cd);
+
+	return 1;
+}
+
+int ctrl_cmd_def_send(struct ctrl_cmd_def *cd)
+{
+	struct ctrl_cmd *cmd = cd->cmd;
+
+	int rc;
+
+	/* Deferred commands can only be responses to GET/SET or ERROR, but
+	 * never TRAP or anything else */
+	switch (cmd->type) {
+	case CTRL_TYPE_GET:
+		cmd->type = CTRL_TYPE_GET_REPLY;
+		break;
+	case CTRL_TYPE_SET:
+		cmd->type = CTRL_TYPE_SET_REPLY;
+		break;
+	default:
+		cmd->type = CTRL_TYPE_ERROR;
+	}
+
+	rc = ctrl_cmd_send(&cmd->ccon->write_queue, cmd);
+
+	talloc_free(cmd);
+	llist_del(&cd->list);
+	talloc_free(cd);
+
+	return rc;
+}

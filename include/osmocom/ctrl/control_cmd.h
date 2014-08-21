@@ -45,6 +45,9 @@ struct ctrl_connection {
 
 	/* Pending commands for this connection */
 	struct llist_head cmds;
+
+	/* Pending deferred commands for this connection */
+	struct llist_head def_cmds;
 };
 
 struct ctrl_cmd {
@@ -74,6 +77,18 @@ struct ctrl_cmd_map {
 	char *cmd;
 	enum ctrl_type type;
 };
+
+/* deferred control command, i.e. responded asynchronously */
+struct ctrl_cmd_def {
+	struct llist_head list;		/* ctrl_connection.def_cmds */
+	struct ctrl_cmd *cmd;
+	void *data;			/* opaque user data */
+};
+
+struct ctrl_cmd_def *
+ctrl_cmd_def_make(const void *ctx, struct ctrl_cmd *cmd, void *data, unsigned int secs);
+int ctrl_cmd_def_is_zombie(struct ctrl_cmd_def *cd);
+int ctrl_cmd_def_send(struct ctrl_cmd_def *cd);
 
 int ctrl_cmd_exec(vector vline, struct ctrl_cmd *command, vector node, void *data);
 int ctrl_cmd_install(enum ctrl_node_type node, struct ctrl_cmd_element *cmd);
