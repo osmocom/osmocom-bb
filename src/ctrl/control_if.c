@@ -32,6 +32,7 @@
 #include <arpa/inet.h>
 
 #include <netinet/tcp.h>
+#include <netinet/in.h>
 
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
