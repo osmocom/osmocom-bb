@@ -25,6 +25,46 @@ int osmo_macaddr_parse(uint8_t *out, const char *in)
 	return 0;
 }
 
+#if defined(__FreeBSD__)
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <net/if_dl.h>
+#include <net/if_types.h>
+
+
+int osmo_get_macaddr(uint8_t *mac_out, const char *dev_name)
+{
+	int rc = -1;
+	struct ifaddrs *ifa, *ifaddr;
+
+	if (getifaddrs(&ifaddr) != 0)
+		return -1;
+
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		struct sockaddr_dl *sdl;
+
+		sdl = (struct sockaddr_dl *) ifa->ifa_addr;
+		if (!sdl)
+			continue;
+		if (sdl->sdl_family != AF_LINK)
+			continue;
+		if (sdl->sdl_type != IFT_ETHER)
+			continue;
+		if (strcmp(ifa->ifa_name, dev_name) != 0)
+			continue;
+
+		memcpy(mac_out, LLADDR(sdl), 6);
+		rc = 0;
+		break;
+	}
+
+	freeifaddrs(ifaddr);
+	return 0;
+}
+
+#else
+
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netinet/ip.h>
@@ -50,3 +90,4 @@ int osmo_get_macaddr(uint8_t *mac_out, const char *dev_name)
 
 	return 0;
 }
+#endif
