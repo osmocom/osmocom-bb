@@ -23,7 +23,6 @@ struct ctrl_handle {
 int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd);
 struct ctrl_handle *controlif_setup(struct gsm_network *, uint16_t port,
 					ctrl_cmd_handler handler);
-struct ctrl_handle *bsc_controlif_setup(struct gsm_network *gsmnet, uint16_t port);
 
 int bsc_ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data);
 
