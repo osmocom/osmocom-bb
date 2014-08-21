@@ -148,6 +148,7 @@ static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	dl = (struct l1ctl_info_dl *) msg->l1h;
+	msg->l2h = msg->l3h = dl->payload;
 
 	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_RACH,
 			PRIM_OP_CONFIRM, msg);
