@@ -1,3 +1,9 @@
+libosmocore (0.7.0) UNRELEASED; urgency=medium
+
+  * New upstream release of libosmocore.
+
+ -- Harald Welte <laforge@gnumonks.org>  Thu, 21 Aug 2014 15:52:00 +0200
+
 libosmocore (0.6.6) UNRELEASED; urgency=medium
 
   * New upstream release of libosmocore.
