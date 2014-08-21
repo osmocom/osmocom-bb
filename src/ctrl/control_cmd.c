@@ -49,7 +49,7 @@ static struct ctrl_cmd_map ccm[] = {
 	{NULL}
 };
 
-int ctrl_cmd_str2type(char *s)
+static int ctrl_cmd_str2type(char *s)
 {
 	int i;
 	for (i=0; ccm[i].cmd != NULL; i++) {
@@ -59,7 +59,7 @@ int ctrl_cmd_str2type(char *s)
 	return CTRL_TYPE_UNKNOWN;
 }
 
-char *ctrl_cmd_type2str(int type)
+static char *ctrl_cmd_type2str(int type)
 {
 	int i;
 	for (i=0; ccm[i].cmd != NULL; i++) {
