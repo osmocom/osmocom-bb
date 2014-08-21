@@ -167,7 +167,7 @@ static int handle_control_read(struct osmo_fd * bfd)
 
 	if (cmd) {
 		cmd->ccon = ccon;
-		if (ctrl->handler(cmd, ctrl->gsmnet) != CTRL_CMD_HANDLED) {
+		if (ctrl->handler(cmd, ctrl->data) != CTRL_CMD_HANDLED) {
 			ctrl_cmd_send(queue, cmd);
 			talloc_free(cmd);
 		}
@@ -522,19 +522,19 @@ static int verify_counter(struct ctrl_cmd *cmd, const char *value, void *data)
 	return 0;
 }
 
-struct ctrl_handle *controlif_setup(struct gsm_network *gsmnet, uint16_t port,
+struct ctrl_handle *controlif_setup(void *data, uint16_t port,
 					ctrl_cmd_handler handler)
 {
 	int ret;
 	struct ctrl_handle *ctrl;
 
-	ctrl = talloc_zero(gsmnet, struct ctrl_handle);
+	ctrl = talloc_zero(data, struct ctrl_handle);
 	if (!ctrl)
 		return NULL;
 
 	INIT_LLIST_HEAD(&ctrl->ccon_list);
 
-	ctrl->gsmnet = gsmnet;
+	ctrl->data = data;
 	ctrl->handler = handler;
 
 	ctrl_node_vec = vector_init(5);

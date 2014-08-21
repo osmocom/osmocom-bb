@@ -4,14 +4,11 @@
 #include <osmocom/core/write_queue.h>
 #include <osmocom/ctrl/control_cmd.h>
 
-/* FIXME: this must go */
-struct gsm_network;
-
 typedef int (*ctrl_cmd_handler)(struct ctrl_cmd *, void *);
 
 struct ctrl_handle {
 	struct osmo_fd listen_fd;
-	struct gsm_network *gsmnet;
+	void *data;
 
 	ctrl_cmd_handler handler;
 
@@ -21,7 +18,7 @@ struct ctrl_handle {
 
 
 int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd);
-struct ctrl_handle *controlif_setup(struct gsm_network *, uint16_t port,
+struct ctrl_handle *controlif_setup(void *data, uint16_t port,
 					ctrl_cmd_handler handler);
 
 int bsc_ctrl_cmd_handle(struct ctrl_cmd *cmd, void *data);
