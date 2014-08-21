@@ -355,7 +355,7 @@ int ipa_msg_recv_buffered(int fd, struct msgb **rmsg, struct msgb **tmp_msg)
 			}
 
 			LOGP(DLINP, LOGL_INFO,
-			     "Received part of IPA message header (%d/%d)\n",
+			     "Received part of IPA message header (%d/%lu)\n",
 			     msg->len, sizeof(*hh));
 			if (!tmp_msg) {
 				ret = -EIO;
