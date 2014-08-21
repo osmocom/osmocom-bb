@@ -1,5 +1,4 @@
-#ifndef _CONTROL_IF_H
-#define _CONTROL_IF_H
+#pragma once
 
 #include <osmocom/core/write_queue.h>
 #include <osmocom/ctrl/control_cmd.h>
@@ -25,6 +24,3 @@ struct ctrl_handle *ctrl_interface_setup(void *data, uint16_t port,
 					 ctrl_cmd_lookup lookup);
 
 int ctrl_cmd_handle(struct ctrl_handle *ctrl, struct ctrl_cmd *cmd, void *data);
-
-#endif /* _CONTROL_IF_H */
-

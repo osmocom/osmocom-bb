@@ -1,5 +1,4 @@
-#ifndef _CONTROL_CMD_H
-#define _CONTROL_CMD_H
+#pragma once
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
@@ -174,5 +173,3 @@ static int verify_##cmdname(struct ctrl_cmd *cmd, const char *value, void *data)
 CTRL_CMD_DEFINE_STRUCT(cmdname, cmdstr, verify_##cmdname)
 
 struct gsm_network;
-
-#endif /* _CONTROL_CMD_H */
