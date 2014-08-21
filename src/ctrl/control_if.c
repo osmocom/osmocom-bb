@@ -646,8 +646,8 @@ static int verify_counter(struct ctrl_cmd *cmd, const char *value, void *data)
 	return 0;
 }
 
-struct ctrl_handle *controlif_setup(void *data, uint16_t port,
-					ctrl_cmd_lookup lookup)
+struct ctrl_handle *ctrl_interface_setup(void *data, uint16_t port,
+					 ctrl_cmd_lookup lookup)
 {
 	int ret;
 	struct ctrl_handle *ctrl;
