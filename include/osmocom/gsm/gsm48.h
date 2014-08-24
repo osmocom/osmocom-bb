@@ -4,6 +4,9 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/gsm48_ie.h>
 
+/* reserved according to GSM 03.03 § 2.4 */
+#define GSM_RESERVED_TMSI   0xFFFFFFFF
+
 /* A parsed GPRS routing area */
 struct gprs_ra_id {
 	uint16_t	mnc;
