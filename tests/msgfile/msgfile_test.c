@@ -45,6 +45,7 @@ int main(int argc, char **argv)
 	/* todo use msgfile_test.c.in and replace the path */
 	entries = osmo_config_list_parse(NULL, "msgconfig.cfg");
 	dump_entries(entries);
+	talloc_free(entries);
 
 	return 0;
 }
