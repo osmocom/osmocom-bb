@@ -20,7 +20,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Osmo codec library
 
-Package: libosmocore4
+Package: libosmocore5
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -32,7 +32,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Osmo GPRS GB library
 
-Package: libosmogsm6
+Package: libosmogsm5
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -43,6 +43,12 @@ Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Osmo VTY library
+
+Package: libosmoctrl0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Osmo control library
 
 Package: libosmocore-dev
 Section: libdevel
