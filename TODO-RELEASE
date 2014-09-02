@@ -1,1 +1,2 @@
 #library	what		description / commit summary line
+libosmocore	abi-change	logging: Add ability to save/print current log filters
