@@ -116,10 +116,10 @@ static void test_bssgp_suspend_resume(void)
 	memset(&last_oph, 0, sizeof(last_oph));
 
 	send_bssgp_supend(BSSGP_PDUT_SUSPEND, tlli);
-	/* OSMO_ASSERT(last_oph.primitive == PRIM_BSSGP_GMM_SUSPEND); */
+	OSMO_ASSERT(last_oph.primitive == PRIM_BSSGP_GMM_SUSPEND);
 
 	send_bssgp_resume(BSSGP_PDUT_RESUME, tlli);
-	/* OSMO_ASSERT(last_oph.primitive == PRIM_BSSGP_GMM_RESUME); */
+	OSMO_ASSERT(last_oph.primitive == PRIM_BSSGP_GMM_RESUME);
 
 	printf("----- %s END\n", __func__);
 }

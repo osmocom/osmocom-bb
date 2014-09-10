@@ -1,5 +1,7 @@
 ===== BSSGP test START
 ----- test_bssgp_suspend_resume START
+BSSGP primitive, SAP 16777219, prim = 3, op = 0, msg = 0b 1f 84 f0 12 34 56 1b 86 0f f1 80 20 37 00 
+BSSGP primitive, SAP 16777219, prim = 4, op = 0, msg = 0e 1f 84 f0 12 34 56 1b 86 0f f1 80 20 37 00 1d 81 01 
 ----- test_bssgp_suspend_resume END
 ===== BSSGP test END
 
