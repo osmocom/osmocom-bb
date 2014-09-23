@@ -70,7 +70,9 @@ const char *bssgp_cause_str(enum gprs_bssgp_cause cause)
 
 struct msgb *bssgp_msgb_alloc(void)
 {
-	return msgb_alloc_headroom(4096, 128, "BSSGP");
+	struct msgb *msg = msgb_alloc_headroom(4096, 128, "BSSGP");
+	msgb_bssgph(msg) = msg->data;
+	return msg;
 }
 
 /* Transmit a simple response such as BLOCK/UNBLOCK/RESET ACK/NACK */
