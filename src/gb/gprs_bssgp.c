@@ -998,7 +998,7 @@ int bssgp_rcvmsg(struct msgb *msg)
 		LOGP(DBSSGP, LOGL_NOTICE, "NSEI=%u/BVCI=%u Rejecting PDU "
 			"type %u for unknown BVCI\n", msgb_nsei(msg), ns_bvci,
 			pdu_type);
-		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, NULL, msg);
+		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, &ns_bvci, msg);
 	}
 
 	if (bctx) {

@@ -99,6 +99,20 @@ int bssgp_tx_status(uint8_t cause, uint16_t *bvci, struct msgb *orig_msg)
 	struct bssgp_normal_hdr *bgph =
 			(struct bssgp_normal_hdr *) msgb_put(msg, sizeof(*bgph));
 
+	/* GSM 08.18, 10.4.14.1: The BVCI must be included if (and only if) the
+	   cause is either "BVCI blocked" or "BVCI unknown" */
+	if (cause == BSSGP_CAUSE_UNKNOWN_BVCI || cause == BSSGP_CAUSE_BVCI_BLOCKED) {
+		if (bvci == NULL)
+			LOGP(DBSSGP, LOGL_ERROR, "BSSGP Tx STATUS, cause=%s: "
+			     "missing conditional BVCI\n",
+			     bssgp_cause_str(cause));
+	} else {
+		if (bvci != NULL)
+			LOGP(DBSSGP, LOGL_ERROR, "BSSGP Tx STATUS, cause=%s: "
+			     "unexpected conditional BVCI\n",
+			     bssgp_cause_str(cause));
+	}
+
 	LOGP(DBSSGP, LOGL_NOTICE, "BSSGP BVCI=%u Tx STATUS, cause=%s\n",
 		bvci ? *bvci : 0, bssgp_cause_str(cause));
 	msgb_nsei(msg) = msgb_nsei(orig_msg);
