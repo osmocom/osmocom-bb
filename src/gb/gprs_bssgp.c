@@ -976,6 +976,7 @@ int bssgp_rcvmsg(struct msgb *msg)
 	struct bssgp_bvc_ctx *bctx;
 	uint8_t pdu_type = bgph->pdu_type;
 	uint16_t ns_bvci = msgb_bvci(msg);
+	uint16_t bvci = ns_bvci;
 	int data_len;
 	int rc = 0;
 
@@ -991,14 +992,17 @@ int bssgp_rcvmsg(struct msgb *msg)
 		rc = bssgp_tlv_parse(&tp, budh->data, data_len);
 	}
 
+	if (bvci == BVCI_SIGNALLING && TLVP_PRESENT(&tp, BSSGP_IE_BVCI))
+		bvci = ntohs(*(uint16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
+
 	/* look-up or create the BTS context for this BVC */
-	bctx = btsctx_by_bvci_nsei(ns_bvci, msgb_nsei(msg));
+	bctx = btsctx_by_bvci_nsei(bvci, msgb_nsei(msg));
 	/* Only a RESET PDU can create a new BVC context */
 	if (!bctx && pdu_type != BSSGP_PDUT_BVC_RESET) {
 		LOGP(DBSSGP, LOGL_NOTICE, "NSEI=%u/BVCI=%u Rejecting PDU "
-			"type %u for unknown BVCI\n", msgb_nsei(msg), ns_bvci,
+			"type %u for unknown BVCI\n", msgb_nsei(msg), bvci,
 			pdu_type);
-		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, &ns_bvci, msg);
+		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, &bvci, msg);
 	}
 
 	if (bctx) {
