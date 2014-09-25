@@ -2,7 +2,7 @@
 # Please read Chapter 6 "Library interface versions" of the libtool documentation before making any modification
 LIBVERSION=3:1:0
 
-AM_CFLAGS = -Wall ${GCC_FVISIBILITY_HIDDEN} -fno-strict-aliasing $(all_includes) -I$(top_srcdir)/include
+AM_CFLAGS = -Wall ${GCC_FVISIBILITY_HIDDEN} -fno-strict-aliasing $(all_includes) -I$(top_srcdir)/include -I$(top_builddir)/include
 
 # FIXME: this should eventually go into a milenage/Makefile.am
 noinst_HEADERS = common_vty.h
