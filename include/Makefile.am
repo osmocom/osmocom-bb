@@ -50,6 +50,7 @@ nobase_include_HEADERS = \
                        osmocom/gprs/protocol/gsm_08_18.h \
                        osmocom/gsm/a5.h \
                        osmocom/gsm/abis_nm.h \
+                       osmocom/gsm/apn.h \
                        osmocom/gsm/comp128.h \
                        osmocom/gsm/comp128v23.h \
                        osmocom/gsm/gan.h \

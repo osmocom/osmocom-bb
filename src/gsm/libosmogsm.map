@@ -265,5 +265,8 @@ ipa_prepend_header;
 ipa_prepend_header_ext;
 ipa_send;
 
+osmo_apn_qualify;
+osmo_apn_qualify_from_imsi;
+
 local: *;
 };
