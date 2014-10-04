@@ -20,6 +20,7 @@
  */
 
 #include <osmocom/core/msgfile.h>
+#include <osmocom/core/talloc.h>
 
 #include <stdio.h>
 
