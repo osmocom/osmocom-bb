@@ -722,6 +722,105 @@ Current NS-VCIs:
 
 Current NS-VCIs:
 
+=== test_sgsn_reset_invalid_state ===
+--- Setup SGSN connection, BSS -> SGSN ---
+
+MESSAGE to SGSN, msg length 12
+02 00 81 01 01 82 01 01 04 82 01 00 
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 01 01 04 82 01 00 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+PROCESSING ALIVE_ACK from 0x05060708:32000
+0b 
+
+MESSAGE to SGSN, msg length 1
+06 
+
+result (ALIVE_ACK) = 1
+
+PROCESSING UNBLOCK_ACK from 0x05060708:32000
+07 
+
+==> got signal NS_UNBLOCK, NS-VC 0x0101/5.6.7.8:32000
+result (UNBLOCK_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000
+         NS-VC Block count         : 1
+
+--- Time out local test procedure ---
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+==> got signal NS_ALIVE_EXP, NS-VC 0x0101/5.6.7.8:32000
+==> got signal NS_BLOCK, NS-VC 0x0101/5.6.7.8:32000
+--- Remote test procedure continues ---
+
+PROCESSING ALIVE from 0x05060708:32000
+0a 
+
+MESSAGE to SGSN, msg length 12
+02 00 81 0a 01 82 01 01 04 82 01 00 
+
+result (ALIVE) = 12
+
+--- Don't send a NS_RESET_ACK message (pretend it is lost) ---
+
+PROCESSING ALIVE from 0x05060708:32000
+0a 
+
+MESSAGE to SGSN, msg length 1
+0b 
+
+result (ALIVE) = 1
+
+PROCESSING UNITDATA from 0x05060708:32000
+00 00 12 34 01 02 03 04 
+
+MESSAGE to SGSN, msg length 8
+08 00 81 03 01 82 01 01 
+
+result (UNITDATA) = 8
+
+Current NS-VCIs:
+
 --- Send message to SGSN ---
 
 SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000

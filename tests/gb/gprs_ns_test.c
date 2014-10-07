@@ -791,6 +791,69 @@ static void test_sgsn_reset()
 	nsi = NULL;
 }
 
+static void test_sgsn_reset_invalid_state()
+{
+	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
+	struct sockaddr_in sgsn_peer= {0};
+	struct gprs_nsvc *nsvc;
+	int retry;
+	uint8_t dummy_sdu[] = {0x01, 0x02, 0x03, 0x04};
+
+	sgsn_peer.sin_family = AF_INET;
+	sgsn_peer.sin_port = htons(32000);
+	sgsn_peer.sin_addr.s_addr = htonl(REMOTE_SGSN_ADDR);
+
+	gprs_dump_nsi(nsi);
+
+	printf("=== %s ===\n", __func__);
+	printf("--- Setup SGSN connection, BSS -> SGSN ---\n\n");
+
+	gprs_ns_nsip_connect(nsi, &sgsn_peer, SGSN_NSEI, SGSN_NSEI+1);
+	OSMO_ASSERT(sent_pdu_type == NS_PDUT_RESET);
+	send_ns_reset_ack(nsi, &sgsn_peer, SGSN_NSEI+1, SGSN_NSEI);
+	OSMO_ASSERT(sent_pdu_type == NS_PDUT_ALIVE);
+	send_ns_alive_ack(nsi, &sgsn_peer);
+	OSMO_ASSERT(sent_pdu_type == NS_PDUT_UNBLOCK);
+	send_ns_unblock_ack(nsi, &sgsn_peer);
+	gprs_dump_nsi(nsi);
+	nsvc = gprs_nsvc_by_nsvci(nsi, SGSN_NSEI+1);
+	OSMO_ASSERT(nsvc->state == NSE_S_ALIVE);
+	OSMO_ASSERT(nsvc->remote_state == NSE_S_ALIVE);
+
+	printf("--- Time out local test procedure ---\n\n");
+
+	OSMO_ASSERT(expire_nsvc_timer(nsvc) == NSVC_TIMER_TNS_TEST);
+	OSMO_ASSERT(expire_nsvc_timer(nsvc) == NSVC_TIMER_TNS_ALIVE);
+
+	for (retry = 1; retry <= nsi->timeout[NS_TOUT_TNS_ALIVE_RETRIES]; ++retry)
+		OSMO_ASSERT(expire_nsvc_timer(nsvc) == NSVC_TIMER_TNS_ALIVE);
+
+	OSMO_ASSERT(nsvc->state == NSE_S_BLOCKED);
+
+	printf("--- Remote test procedure continues ---\n\n");
+
+	send_ns_alive(nsi, &sgsn_peer);
+	OSMO_ASSERT(sent_pdu_type == NS_PDUT_RESET);
+
+	printf("--- Don't send a NS_RESET_ACK message (pretend it is lost) ---\n\n");
+
+	sent_pdu_type = -1;
+	send_ns_alive(nsi, &sgsn_peer);
+	/* Disabled, since it is not yet fixed
+	OSMO_ASSERT(sent_pdu_type == -1);
+	send_ns_reset_ack(nsi, &sgsn_peer, SGSN_NSEI+1, SGSN_NSEI);
+	OSMO_ASSERT(sent_pdu_type == NS_PDUT_ALIVE);
+	send_ns_alive_ack(nsi, &sgsn_peer);
+	OSMO_ASSERT(sent_pdu_type == NS_PDUT_UNBLOCK);
+	send_ns_unblock_ack(nsi, &sgsn_peer);
+	*/
+
+	send_ns_unitdata(nsi, &sgsn_peer, 0x1234, dummy_sdu, sizeof(dummy_sdu));
+
+	gprs_ns_destroy(nsi);
+	nsi = NULL;
+}
+
 static void test_sgsn_output()
 {
 	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
@@ -875,6 +938,7 @@ int main(int argc, char **argv)
 	test_bss_port_changes();
 	test_bss_reset_ack();
 	test_sgsn_reset();
+	test_sgsn_reset_invalid_state();
 	test_sgsn_output();
 	printf("===== NS protocol test END\n\n");
 
