@@ -368,14 +368,12 @@ MESSAGE to BSS, msg length 1
 result (RESET_ACK) = 1
 
 Current NS-VCIs:
-    VCI 0x2001, NSEI 0x2000, peer 0x00000000:0
+    VCI 0x2001, NSEI 0x2000, peer 0x00000000:0, blocked, dead
     VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222, blocked
          NS-VC Block count         : 2
          NS-VC replaced other count: 1
 
 --- Setup VC 2 SGSN -> BSS (hits NSEI 2) ---
-
-Failed to send RESET to 0.0.0.0:0
 
 --- Setup VC 1 SGSN -> BSS (hits NSEI 1) ---
 
@@ -391,7 +389,7 @@ MESSAGE to BSS, msg length 1
 result (RESET_ACK) = 1
 
 Current NS-VCIs:
-    VCI 0x2001, NSEI 0x2000, peer 0x00000000:0
+    VCI 0x2001, NSEI 0x2000, peer 0x00000000:0, blocked, dead
     VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222, blocked
          NS-VC Block count         : 3
          NS-VC replaced other count: 1
@@ -566,7 +564,7 @@ Current NS-VCIs:
          NS-VC Block count         : 1
          NS-VC replaced other count: 2
     VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
-    VCI 0x1001, NSEI 0xf000, peer 0x00000000:0, blocked
+    VCI 0x1001, NSEI 0xf000, peer 0x00000000:0, blocked, dead
          NS-VC Block count         : 4
          NS-VC replaced other count: 2
          NS-VC changed NSEI count  : 3
@@ -700,7 +698,7 @@ PROCESSING RESET_ACK from 0x05060708:32000
 result (RESET_ACK) = -22
 
 Current NS-VCIs:
-    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked, dead
          NS-VC Block count         : 1
          NS-VCI was invalid count  : 1
          NSEI was invalid count    : 2
@@ -717,7 +715,7 @@ PROCESSING RESET_ACK from 0x05060708:32000
 result (RESET_ACK) = -22
 
 Current NS-VCIs:
-    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked, dead
          NS-VC Block count         : 1
          NS-VCI was invalid count  : 2
          NSEI was invalid count    : 2
