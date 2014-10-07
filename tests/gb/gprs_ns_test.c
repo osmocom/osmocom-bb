@@ -32,6 +32,8 @@
 
 #define SGSN_NSEI 0x0100
 
+static int sent_pdu_type = 0;
+
 static int gprs_process_message(struct gprs_ns_inst *nsi, const char *text,
 				struct sockaddr_in *peer, const unsigned char* data,
 				size_t data_len);
@@ -264,6 +266,8 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 
 	if (!real_sendto)
 		real_sendto = dlsym(RTLD_NEXT, "sendto");
+
+	sent_pdu_type = len > 0 ? ((uint8_t *)buf)[0] : -1;
 
 	if (dest_host == REMOTE_BSS_ADDR)
 		printf("MESSAGE to BSS, msg length %d\n%s\n\n", len, osmo_hexdump(buf, len));
