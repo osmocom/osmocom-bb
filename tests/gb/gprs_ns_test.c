@@ -451,6 +451,21 @@ static void gprs_dump_nsi(struct gprs_ns_inst *nsi)
 	printf("\n");
 }
 
+static int expire_nsvc_timer(struct gprs_nsvc *nsvc)
+{
+	int rc;
+
+	if (!osmo_timer_pending(&nsvc->timer))
+		return -1;
+
+	rc = nsvc->timer_mode;
+	osmo_timer_del(&nsvc->timer);
+
+	nsvc->timer.cb(nsvc->timer.data);
+
+	return rc;
+}
+
 static void test_nsvc()
 {
 	struct gprs_ns_inst *nsi = gprs_ns_instantiate(gprs_ns_callback, NULL);
