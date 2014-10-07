@@ -348,8 +348,6 @@ int gprs_ns_tx_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 	LOGP(DNS, LOGL_INFO, "NSEI=%u Tx NS RESET (NSVCI=%u, cause=%s)\n",
 		nsvc->nsei, nsvc->nsvci, gprs_ns_cause_str(cause));
 
-	nsvc->state |= NSE_S_RESET;
-
 	msg->l2h = msgb_put(msg, sizeof(*nsh));
 	nsh = (struct gprs_ns_hdr *) msg->l2h;
 	nsh->pdu_type = NS_PDUT_RESET;
@@ -1250,8 +1248,8 @@ int gprs_ns_process_msg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		 * and should send a NS-RESET to make sure everything recovers
 		 * fine. */
 		if ((*nsvc)->state == NSE_S_BLOCKED)
-			rc = gprs_ns_tx_reset((*nsvc), NS_CAUSE_PDU_INCOMP_PSTATE);
-		else
+			rc = gprs_nsvc_reset((*nsvc), NS_CAUSE_PDU_INCOMP_PSTATE);
+		else if (!((*nsvc)->state & NSE_S_RESET))
 			rc = gprs_ns_tx_alive_ack(*nsvc);
 		break;
 	case NS_PDUT_ALIVE_ACK:
@@ -1503,7 +1501,8 @@ int gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 		nsvc->nsei);
 
 	/* Mark NS-VC locally as blocked and dead */
-	nsvc->state = NSE_S_BLOCKED;
+	nsvc->state = NSE_S_BLOCKED | NSE_S_RESET;
+
 	/* Send NS-RESET PDU */
 	rc = gprs_ns_tx_reset(nsvc, cause);
 	if (rc < 0) {

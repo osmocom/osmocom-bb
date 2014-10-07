@@ -806,18 +806,37 @@ result (ALIVE) = 12
 PROCESSING ALIVE from 0x05060708:32000
 0a 
 
+result (ALIVE) = 0
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 01 01 04 82 01 00 
+
 MESSAGE to SGSN, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+PROCESSING ALIVE_ACK from 0x05060708:32000
 0b 
 
-result (ALIVE) = 1
+MESSAGE to SGSN, msg length 1
+06 
+
+result (ALIVE_ACK) = 1
+
+PROCESSING UNBLOCK_ACK from 0x05060708:32000
+07 
+
+==> got signal NS_UNBLOCK, NS-VC 0x0101/5.6.7.8:32000
+result (UNBLOCK_ACK) = 0
 
 PROCESSING UNITDATA from 0x05060708:32000
 00 00 12 34 01 02 03 04 
 
-MESSAGE to SGSN, msg length 8
-08 00 81 03 01 82 01 01 
+CALLBACK, event 0, msg length 4, bvci 0x1234
+01 02 03 04 
 
-result (UNITDATA) = 8
+result (UNITDATA) = 0
 
 Current NS-VCIs:
 
