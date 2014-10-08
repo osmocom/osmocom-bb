@@ -1495,20 +1495,25 @@ int gprs_ns_nsip_listen(struct gprs_ns_inst *nsi)
  * will not only send a NS-RESET, but also set the state to BLOCKED and
  * start the Tns-reset timer.
  */
-void gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
+int gprs_nsvc_reset(struct gprs_nsvc *nsvc, uint8_t cause)
 {
+	int rc;
+
 	LOGP(DNS, LOGL_INFO, "NSEI=%u RESET procedure based on API request\n",
 		nsvc->nsei);
 
 	/* Mark NS-VC locally as blocked and dead */
 	nsvc->state = NSE_S_BLOCKED;
 	/* Send NS-RESET PDU */
-	if (gprs_ns_tx_reset(nsvc, cause) < 0) {
+	rc = gprs_ns_tx_reset(nsvc, cause);
+	if (rc < 0) {
 		LOGP(DNS, LOGL_ERROR, "NSEI=%u, error resetting NS-VC\n",
 			nsvc->nsei);
 	}
 	/* Start Tns-reset */
 	nsvc_start_timer(nsvc, NSVC_TIMER_TNS_RESET);
+
+	return rc;
 }
 
 /*! \brief Establish a NS connection (from the BSS) to the SGSN
