@@ -842,11 +842,18 @@ static void test_sgsn_reset_invalid_state()
 	sent_pdu_type = -1;
 	send_ns_alive(nsi, &sgsn_peer);
 	OSMO_ASSERT(sent_pdu_type == -1);
+
 	send_ns_reset_ack(nsi, &sgsn_peer, SGSN_NSEI+1, SGSN_NSEI);
 	OSMO_ASSERT(sent_pdu_type == NS_PDUT_ALIVE);
+
 	send_ns_alive_ack(nsi, &sgsn_peer);
+	OSMO_ASSERT(nsvc->state == (NSE_S_ALIVE | NSE_S_BLOCKED));
+	OSMO_ASSERT(nsvc->remote_state == (NSE_S_ALIVE | NSE_S_BLOCKED));
 	OSMO_ASSERT(sent_pdu_type == NS_PDUT_UNBLOCK);
+
 	send_ns_unblock_ack(nsi, &sgsn_peer);
+	OSMO_ASSERT(nsvc->state == NSE_S_ALIVE);
+	OSMO_ASSERT(nsvc->remote_state == NSE_S_ALIVE);
 
 	send_ns_unitdata(nsi, &sgsn_peer, 0x1234, dummy_sdu, sizeof(dummy_sdu));
 
