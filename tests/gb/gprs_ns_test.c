@@ -592,6 +592,7 @@ static void test_bss_reset_ack()
 	struct sockaddr_in peer[4] = {{0},};
 	struct gprs_nsvc *nsvc;
 	struct sockaddr_in *nse[4];
+	int rc;
 
 	peer[0].sin_family = AF_INET;
 	peer[0].sin_port = htons(1111);
@@ -641,7 +642,8 @@ static void test_bss_reset_ack()
 	printf("--- Setup VC 2 SGSN -> BSS (hits NSEI 2) ---\n\n");
 
 	nsvc = gprs_nsvc_by_nsvci(nsi, 0x2001);
-	gprs_nsvc_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	rc = gprs_nsvc_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	OSMO_ASSERT(rc < 0);
 
 	printf("--- Setup VC 1 SGSN -> BSS (hits NSEI 1) ---\n\n");
 
