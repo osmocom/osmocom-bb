@@ -43,18 +43,22 @@ static int fc_out_cb(struct bssgp_flow_control *fc, struct msgb *msg,
 	unsigned int csecs = get_centisec_diff();
 	csecs = round_decisec(csecs);
 
-	printf("%u: FC OUT Nr %lu\n", csecs, (unsigned long) msg);
+	printf("%u: FC OUT Nr %lu\n", csecs, (unsigned long) msg->cb[0]);
+	msgb_free(msg);
 	return 0;
 }
 
 static int fc_in(struct bssgp_flow_control *fc, unsigned int pdu_len)
 {
+	struct msgb *msg;
 	unsigned int csecs = get_centisec_diff();
 	csecs = round_decisec(csecs);
 
-	printf("%u: FC IN Nr %lu\n", csecs, in_ctr);
-	bssgp_fc_in(fc, (struct msgb *) in_ctr, pdu_len, NULL);
-	in_ctr++;
+	msg = msgb_alloc(1, "fc test");
+	msg->cb[0] = in_ctr++;
+
+	printf("%u: FC IN Nr %lu\n", csecs, msg->cb[0]);
+	bssgp_fc_in(fc, msg, pdu_len, NULL);
 	return 0;
 }
 

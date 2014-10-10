@@ -696,6 +696,7 @@ int bssgp_fc_in(struct bssgp_flow_control *fc, struct msgb *msg,
 		LOGP(DBSSGP, LOGL_NOTICE, "Single PDU (size=%u) is larger "
 		     "than maximum bucket size (%u)!\n", llc_pdu_len,
 		     fc->bucket_size_max);
+		msgb_free(msg);
 		return -EIO;
 	}
 
@@ -1039,6 +1040,7 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 	if (bvci <= BVCI_PTM ) {
 		LOGP(DBSSGP, LOGL_ERROR, "Cannot send DL-UD to BVCI %u\n",
 			bvci);
+		msgb_free(msg);
 		return -EINVAL;
 	}
 
@@ -1046,6 +1048,7 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 	if (!bctx) {
 		LOGP(DBSSGP, LOGL_ERROR, "Cannot send DL-UD to unknown BVCI %u\n",
 			bvci);
+		msgb_free(msg);
 		return -ENODEV;
 	}
 
