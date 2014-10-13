@@ -150,6 +150,31 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 	return sfd;
 }
 
+/*! \brief fill \ref osmo_fd for a give sfd
+ *  \param[out] ofd file descriptor (will be filled in)
+ *  \param[in] sfd socket file descriptor
+ *
+ * This function fills the \a ofd structure.
+ */
+static inline int osmo_fd_init_ofd(struct osmo_fd *ofd, int sfd)
+{
+	int rc;
+
+	if (sfd < 0)
+		return sfd;
+
+	ofd->fd = sfd;
+	ofd->when = BSC_FD_READ;
+
+	rc = osmo_fd_register(ofd);
+	if (rc < 0) {
+		close(sfd);
+		return rc;
+	}
+
+	return sfd;
+}
+
 /*! \brief Initialize a socket and fill \ref osmo_fd
  *  \param[out] ofd file descriptor (will be filled in)
  *  \param[in] family Address Family like AF_INET, AF_INET6, AF_UNSPEC
@@ -165,22 +190,7 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 int osmo_sock_init_ofd(struct osmo_fd *ofd, int family, int type, int proto,
 			const char *host, uint16_t port, unsigned int flags)
 {
-	int sfd, rc;
-
-	sfd = osmo_sock_init(family, type, proto, host, port, flags);
-	if (sfd < 0)
-		return sfd;
-
-	ofd->fd = sfd;
-	ofd->when = BSC_FD_READ;
-
-	rc = osmo_fd_register(ofd);
-	if (rc < 0) {
-		close(sfd);
-		return rc;
-	}
-
-	return sfd;
+	return osmo_fd_init_ofd(ofd, osmo_sock_init(family, type, proto, host, port, flags));
 }
 
 /*! \brief Initialize a socket and fill \ref sockaddr
@@ -362,22 +372,7 @@ err:
 int osmo_sock_unix_init_ofd(struct osmo_fd *ofd, uint16_t type, uint8_t proto,
 			    const char *socket_path, unsigned int flags)
 {
-	int sfd, rc;
-
-	sfd = osmo_sock_unix_init(type, proto, socket_path, flags);
-	if (sfd < 0)
-		return sfd;
-
-	ofd->fd = sfd;
-	ofd->when = BSC_FD_READ;
-
-	rc = osmo_fd_register(ofd);
-	if (rc < 0) {
-		close(sfd);
-		return rc;
-	}
-
-	return sfd;
+	return osmo_fd_init_ofd(ofd, osmo_sock_unix_init(type, proto, socket_path, flags));
 }
 
 #endif /* HAVE_SYS_SOCKET_H */
