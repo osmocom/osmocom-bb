@@ -25,6 +25,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <netinet/ip.h>
+#include <sys/socket.h>
 #include <dlfcn.h>
 
 #define BSS_NSEI 0x0b55
