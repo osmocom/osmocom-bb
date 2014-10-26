@@ -242,7 +242,8 @@ static const struct osim_file_desc sim_ef_in_tetra[] = {
 struct osim_card_profile *osim_cprof_tsim(void *ctx)
 {
 	struct osim_card_profile *cprof;
-	struct osim_file_desc *mf, *tc;
+	struct osim_file_desc *mf;
+	int rc;
 
 	cprof = talloc_zero(ctx, struct osim_card_profile);
 	cprof->name = "TETRA SIM";
@@ -256,10 +257,11 @@ struct osim_card_profile *osim_cprof_tsim(void *ctx)
 	add_df_with_ef(mf, 0x7F20, "DF.TETRA", sim_ef_in_tetra,
 			ARRAY_SIZE(sim_ef_in_tetra));
 
-	tc = add_df_with_ef(mf, 0x7F10, "DF.TELECOM", sim_ef_in_telecom,
-			sim_ef_in_telecom_num);
-	add_df_with_ef(tc, 0x5F50, "DF.GRAPHICS", sim_ef_in_graphics,
-			sim_ef_in_graphics_num);
+	rc = osim_int_cprof_add_telecom(mf);
+	if (rc != 0) {
+		talloc_free(cprof);
+		return NULL;
+	}
 
 	return cprof;
 }

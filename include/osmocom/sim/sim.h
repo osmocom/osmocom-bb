@@ -80,7 +80,7 @@ struct osim_file_ops {
 		     const struct osim_file_desc *desc,
 		     int len, uint8_t *data);
 	/*! Encode osim_decoded_data into binary file */
-	struct msgb * (*encode)(const struct osim_file *file,
+	struct msgb * (*encode)(const struct osim_file_desc *desc,
 				const struct osim_decoded_data *decoded);
 };
 
@@ -159,7 +159,7 @@ struct osim_file_desc {
 
 	uint16_t fid;			/*!< File Identifier */
 	uint8_t sfid;			/*!< Short File IDentifier */
-	const char *df_name;
+	const uint8_t *df_name;
 	uint8_t df_name_len;
 
 	const char *short_name;		/*!< Short Name (like EF.ICCID) */

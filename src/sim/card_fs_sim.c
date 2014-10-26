@@ -240,7 +240,7 @@ static const struct osim_file_desc sim_ef_in_mf[] = {
 };
 
 /* Chapter 10.3.x Contents of files at the GSM application level */
-const struct osim_file_desc sim_ef_in_gsm[] = {
+static const struct osim_file_desc sim_ef_in_gsm[] = {
 	EF_TRANSP(0x6F05, SFI_NONE, "EF.LP", 0, 1, 16,
 		  "Language preference", &gsm_lp_decode, NULL),
 	EF_TRANSP(0x6F07, SFI_NONE, "EF.IMSI", 0, 9, 9,
@@ -348,7 +348,6 @@ const struct osim_file_desc sim_ef_in_gsm[] = {
 	EF_TRANSP_N(0x6FD2, SFI_NONE, "EF.MMSUCP", F_OPTIONAL, 1, 64,
 		  "MMS User Connectivity Parameters"),
 };
-const size_t sim_ef_in_gsm_num = ARRAY_SIZE(sim_ef_in_gsm);
 
 /* 10.4.1 Contents of the files at the SoLSA level */
 static const struct osim_file_desc sim_ef_in_solsa[] = {
@@ -372,7 +371,7 @@ static const struct osim_file_desc sim_ef_in_mexe[] = {
 };
 
 /* 10.5 Contents of files at the telecom level */
-const struct osim_file_desc sim_ef_in_telecom[] = {
+static const struct osim_file_desc sim_ef_in_telecom[] = {
 	EF_LIN_FIX_N(0x6F3A, SFI_NONE, "EF.ADN", F_OPTIONAL, 14, 30,
 		"Abbreviated dialling numbers"),
 	EF_LIN_FIX_N(0x6F3B, SFI_NONE, "EF.FDN", F_OPTIONAL, 14, 30,
@@ -408,30 +407,17 @@ const struct osim_file_desc sim_ef_in_telecom[] = {
 	EF_LIN_FIX_N(0x6F58, SFI_NONE, "EF.CMI", F_OPTIONAL, 1, 17,
 		"Comparison Method Information"),
 };
-const size_t sim_ef_in_telecom_num = ARRAY_SIZE(sim_ef_in_telecom);
 
 /* 10.6.1 Contents of files at the telecom graphics level */
 const struct osim_file_desc sim_ef_in_graphics[] = {
 	EF_LIN_FIX_N(0x4F20, SFI_NONE, "EF.IMG", F_OPTIONAL, 11, 38,
 		"Image"),
 };
-const size_t sim_ef_in_graphics_num = ARRAY_SIZE(sim_ef_in_graphics);
 
-struct osim_card_profile *osim_cprof_sim(void *ctx)
+int osim_int_cprof_add_gsm(struct osim_file_desc *mf)
 {
-	struct osim_card_profile *cprof;
-	struct osim_file_desc *mf, *gsm, *tc;
+	struct osim_file_desc *gsm;
 
-	cprof = talloc_zero(ctx, struct osim_card_profile);
-	cprof->name = "GSM SIM";
-	cprof->sws = sim_card_sws;
-
-	mf = alloc_df(cprof, 0x3f00, "MF");
-
-	cprof->mf = mf;
-
-	/* According to Figure 8 */
-	add_filedesc(mf, sim_ef_in_mf, ARRAY_SIZE(sim_ef_in_mf));
 	gsm = add_df_with_ef(mf, 0x7F20, "DF.GSM", sim_ef_in_gsm,
 			ARRAY_SIZE(sim_ef_in_gsm));
 	/* Chapter 10.2: DFs at the GSM Application Level */
@@ -446,12 +432,46 @@ struct osim_card_profile *osim_cprof_sim(void *ctx)
 	add_df_with_ef(gsm, 0x5F70, "DF.SoLSA", sim_ef_in_solsa,
 			ARRAY_SIZE(sim_ef_in_solsa));
 
+	return 0;
+}
+
+int osim_int_cprof_add_telecom(struct osim_file_desc *mf)
+{
+	struct osim_file_desc *tc;
+
 	tc = add_df_with_ef(mf, 0x7F10, "DF.TELECOM", sim_ef_in_telecom,
 			ARRAY_SIZE(sim_ef_in_telecom));
 	add_df_with_ef(tc, 0x5F50, "DF.GRAPHICS", sim_ef_in_graphics,
 			ARRAY_SIZE(sim_ef_in_graphics));
 	add_df_with_ef(mf, 0x7F22, "DF.IS-41", NULL, 0);
 	add_df_with_ef(mf, 0x7F23, "DF.FP-CTS", NULL, 0);	/* TS 11.19 */
+
+	return 0;
+}
+
+struct osim_card_profile *osim_cprof_sim(void *ctx)
+{
+	struct osim_card_profile *cprof;
+	struct osim_file_desc *mf;
+	int rc;
+
+	cprof = talloc_zero(ctx, struct osim_card_profile);
+	cprof->name = "GSM SIM";
+	cprof->sws = sim_card_sws;
+
+	mf = alloc_df(cprof, 0x3f00, "MF");
+
+	cprof->mf = mf;
+
+	/* According to Figure 8 */
+	add_filedesc(mf, sim_ef_in_mf, ARRAY_SIZE(sim_ef_in_mf));
+
+	rc = osim_int_cprof_add_gsm(mf);
+	rc |= osim_int_cprof_add_telecom(mf);
+	if (rc != 0) {
+		talloc_free(cprof);
+		return NULL;
+	}
 
 	return cprof;
 }

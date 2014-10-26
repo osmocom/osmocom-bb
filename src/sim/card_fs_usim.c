@@ -332,7 +332,8 @@ static const uint8_t adf_usim_aid[] = { 0xA0, 0x00, 0x00, 0x00, 0x87, 0x10, 0x02
 struct osim_card_profile *osim_cprof_usim(void *ctx)
 {
 	struct osim_card_profile *cprof;
-	struct osim_file_desc *mf, *gsm, *tc, *uadf;
+	struct osim_file_desc *mf, *uadf;
+	int rc;
 
 	cprof = talloc_zero(ctx, struct osim_card_profile);
 	cprof->name = "3GPP USIM";
@@ -367,16 +368,13 @@ struct osim_card_profile *osim_cprof_usim(void *ctx)
 	/* OMA BCAST Smart Card Profile */
 	add_df_with_ef(uadf, 0x5F80, "DF.BCAST", NULL, 0);
 
-	/* DF.TELECOM as sub-directory of MF */
-	tc = add_df_with_ef(mf, 0x7F10, "DF.TELECOM", sim_ef_in_telecom,
-			sim_ef_in_telecom_num);
-	add_df_with_ef(tc, 0x5F50, "DF.GRAPHICS", sim_ef_in_graphics,
-			sim_ef_in_graphics_num);
-
-	/* DF.GSM for backwards compatibility */
-	gsm = add_df_with_ef(mf, 0x7F20, "DF.GSM", sim_ef_in_gsm,
-			sim_ef_in_gsm_num);
-	/* FIXME: DF's below DF.GSM  (51.011) */
+	/* DF.GSM and DF.TELECOM hierarchy as sub-directory of MF */
+	rc = osim_int_cprof_add_gsm(mf);
+	rc |= osim_int_cprof_add_telecom(mf);
+	if (rc != 0) {
+		talloc_free(cprof);
+		return NULL;
+	}
 
 	return cprof;
 }
