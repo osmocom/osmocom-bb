@@ -82,6 +82,16 @@ CHECK_TM_INCLUDES_TM_GMTOFF
 dnl Generate the output
 AC_CONFIG_HEADER(config.h)
 
+AC_ARG_ENABLE([pcsc], [AS_HELP_STRING([--disable-pcsc], [Build without PC/SC support])],
+    [
+        osmo_ac_have_pcsc=$enableval
+    ],
+    [
+        PKG_CHECK_MODULES(PCSC, libpcsclite)
+        osmo_ac_have_pcsc="yes"
+    ])
+AM_CONDITIONAL(ENABLE_PCSC, test "x$osmo_ac_have_pcsc" = "xyes")
+
 AC_ARG_ENABLE(talloc,
 	[AS_HELP_STRING(
 		[--disable-talloc],
@@ -187,10 +197,12 @@ AC_OUTPUT(
 	libosmogsm.pc
 	libosmogb.pc
 	libosmoctrl.pc
+	libosmosim.pc
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile
 	src/codec/Makefile
+	src/sim/Makefile
 	src/gsm/Makefile
 	src/gb/Makefile
 	src/ctrl/Makefile

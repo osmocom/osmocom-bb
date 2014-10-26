@@ -1,6 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = include src src/vty src/codec src/gsm src/gb src/ctrl tests utils
+AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include
+SUBDIRS = include src src/vty src/codec src/gsm src/gb src/ctrl src/sim tests utils
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libosmocore.pc libosmocodec.pc libosmovty.pc libosmogsm.pc \
@@ -49,7 +50,7 @@ install-data-hook:
 uninstall-hook:
 	cd $(DESTDIR)$(htmldir) && rm -rf {core,gsm,vty,codec}
 
-DX_CLEAN = doc/{core,gsm,vty,codec}/{html,latex}/* doc/html.tar
+DX_CLEAN = doc/{core,gsm,vty,codec}/{html,latex}/* doc/html.tar doc/{core,gsm,vty,codec}/doxygen_sqlite3.db
 endif
 
 MOSTLYCLEANFILES = $(DX_CLEAN)
