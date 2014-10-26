@@ -334,7 +334,7 @@ enum osim_reader_driver {
 struct osim_reader_hdl {
 	/*! \brief member in global list of readers */
 	struct llist_head list;
-	struct osim_reader_ops *ops;
+	const struct osim_reader_ops *ops;
 	uint32_t proto_supported;
 	void *priv;
 	/*! \brief current card, if any */
