@@ -37,6 +37,8 @@ struct osim_decoded_data *osim_file_decode(struct osim_file *file,
 		return NULL;
 
 	dd = talloc_zero(file, struct osim_decoded_data);
+	if (!dd)
+		return NULL;
 	dd->file = file;
 
 	if (file->desc->ops.parse(dd, file->desc, len, data) < 0) {
@@ -121,6 +123,8 @@ struct osim_file_desc *alloc_df(void *ctx, uint16_t fid, const char *name)
 	struct osim_file_desc *mf;
 
 	mf = talloc_zero(ctx, struct osim_file_desc);
+	if (!mf)
+		return NULL;
 	mf->type = TYPE_DF;
 	mf->fid = fid;
 	mf->short_name = name;
@@ -137,6 +141,8 @@ add_df_with_ef(struct osim_file_desc *parent,
 	struct osim_file_desc *df;
 
 	df = alloc_df(parent, fid, name);
+	if (!df)
+		return NULL;
 	df->parent = parent;
 	llist_add_tail(&df->list, &parent->child_list);
 	add_filedesc(df, in, num);
@@ -153,6 +159,8 @@ add_adf_with_ef(struct osim_file_desc *parent,
 	struct osim_file_desc *df;
 
 	df = alloc_df(parent, 0xffff, name);
+	if (!df)
+		return NULL;
 	df->type = TYPE_ADF;
 	df->df_name = adf_name;
 	df->df_name_len = adf_name_len;
