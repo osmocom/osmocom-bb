@@ -320,10 +320,22 @@ struct msgb *osim_new_apdumsg(uint8_t cla, uint8_t ins, uint8_t p1,
 
 struct osim_reader_ops;
 
+enum osim_proto {
+	OSIM_PROTO_T0	= 0,
+	OSIM_PROTO_T1	= 1,
+};
+
+enum osim_reader_driver {
+	OSIM_READER_DRV_PCSC = 0,
+	OSIM_READER_DRV_OPENCT = 1,
+	OSIM_READER_DRV_SERIAL = 2,
+};
+
 struct osim_reader_hdl {
 	/*! \brief member in global list of readers */
 	struct llist_head list;
 	struct osim_reader_ops *ops;
+	uint32_t proto_supported;
 	void *priv;
 	/*! \brief current card, if any */
 	struct osim_card_hdl *card;
@@ -336,6 +348,8 @@ struct osim_card_hdl {
 	struct osim_reader_hdl *reader;
 	/*! \brief card profile */
 	struct osim_card_profile *prof;
+	/*! \brief card protocol */
+	enum osim_proto proto;
 
 	/*! \brief list of channels for this card */
 	struct llist_head channels;
@@ -351,6 +365,7 @@ struct osim_chan_hdl {
 
 /* reader.c */
 int osim_transceive_apdu(struct osim_chan_hdl *st, struct msgb *amsg);
-struct osim_reader_hdl *osim_reader_open(int idx, const char *name, void *ctx);
-struct osim_card_hdl *osim_card_open(struct osim_reader_hdl *rh);
+struct osim_reader_hdl *osim_reader_open(enum osim_reader_driver drv, int idx,
+					 const char *name, void *ctx);
+struct osim_card_hdl *osim_card_open(struct osim_reader_hdl *rh, enum osim_proto proto);
 #endif /* _OSMOCOM_SIM_H */

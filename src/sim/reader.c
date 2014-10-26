@@ -217,35 +217,55 @@ case_2s:
 	return sw;
 }
 
-/* According to ISO7816-4 Annex B */
-static int transceive_apdu_t1(struct osim_card_hdl *st, struct msgb *amsg)
-{
-	return -1;
-}
+/* FIXME: T=1 According to ISO7816-4 Annex B */
 
 int osim_transceive_apdu(struct osim_chan_hdl *st, struct msgb *amsg)
 {
-	/* FIXME: check for protocol */
-	return transceive_apdu_t0(st->card, amsg);
+	switch (st->card->proto) {
+	case OSIM_PROTO_T0:
+		return transceive_apdu_t0(st->card, amsg);
+	default:
+		return -ENOTSUP;
+	}
 }
 
-
-
-struct osim_reader_hdl *osim_reader_open(int idx, const char *name, void *ctx)
+struct osim_reader_hdl *osim_reader_open(enum osim_reader_driver driver, int idx,
+					 const char *name, void *ctx)
 {
-	/* FIXME: support multiple drivers */
-	const struct osim_reader_ops *ops = &pcsc_reader_ops;
+	const struct osim_reader_ops *ops;
 	struct osim_reader_hdl *rh;
+
+	switch (driver) {
+	case OSIM_READER_DRV_PCSC:
+		ops = &pcsc_reader_ops;
+		break;
+	default:
+		return NULL;
+	}
 
 	rh = ops->reader_open(idx, name, ctx);
 	if (!rh)
 		return NULL;
 	rh->ops = ops;
 
+	/* FIXME: for now we only do T=0 on all readers */
+	rh->proto_supported = (1 << OSIM_PROTO_T0);
+
 	return rh;
 }
 
-struct osim_card_hdl *osim_card_open(struct osim_reader_hdl *rh)
+struct osim_card_hdl *osim_card_open(struct osim_reader_hdl *rh, enum osim_proto proto)
 {
-	return rh->ops->card_open(rh);
+	struct osim_card_hdl *ch;
+
+	if (!(rh->proto_supported & (1 << proto)))
+		return NULL;
+
+	ch = rh->ops->card_open(rh, proto);
+	if (!ch)
+		return NULL;
+
+	ch->proto = proto;
+
+	return ch;
 }

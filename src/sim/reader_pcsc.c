@@ -97,12 +97,16 @@ end:
 	return NULL;
 }
 
-static struct osim_card_hdl *pcsc_card_open(struct osim_reader_hdl *rh)
+static struct osim_card_hdl *pcsc_card_open(struct osim_reader_hdl *rh,
+					    enum osim_proto proto)
 {
 	struct pcsc_reader_state *st = rh->priv;
 	struct osim_card_hdl *card;
 	struct osim_chan_hdl *chan;
 	LONG rc;
+
+	if (proto != OSIM_PROTO_T0)
+		return NULL;
 
 	rc = SCardConnect(st->hContext, st->name, SCARD_SHARE_SHARED,
 			  SCARD_PROTOCOL_T0, &st->hCard, &st->dwActiveProtocol);

@@ -374,10 +374,10 @@ int main(int argc, char **argv)
 	struct msgb *msg;
 	int rc;
 
-	reader = osim_reader_open(0, "", NULL);
+	reader = osim_reader_open(OSIM_READER_DRV_PCSC, 0, "", NULL);
 	if (!reader)
 		exit(1);
-	card = osim_card_open(reader);
+	card = osim_card_open(reader, OSIM_PROTO_T0);
 	if (!card)
 		exit(2);
 	chan = llist_entry(card->channels.next, struct osim_chan_hdl, list);
