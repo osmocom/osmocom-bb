@@ -350,7 +350,7 @@ static int dump_file(struct osim_chan_hdl *chan, uint16_t fid)
 			uint16_t remain_len = i - offset;
 			uint16_t read_len = OSMO_MIN(remain_len, 256);
 			rmsg = read_binary(chan, offset, read_len);
-			if (!msg)
+			if (!rmsg)
 				return -EIO;
 			offset += read_len;
 			printf("Content: %s\n",
