@@ -71,8 +71,6 @@ static struct osim_reader_hdl *pcsc_reader_open(int num, const char *id, void *c
 	rc = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL,
 				   &st->hContext);
 	PCSC_ERROR(rc, "SCardEstablishContext");
-	if (rc != SCARD_S_SUCCESS)
-		goto end;
 
 	dwReaders = SCARD_AUTOALLOCATE;
 	rc = SCardListReaders(st->hContext, NULL, (LPSTR)&mszReaders, &dwReaders);
