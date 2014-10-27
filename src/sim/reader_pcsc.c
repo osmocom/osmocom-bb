@@ -29,8 +29,8 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/sim/sim.h>
 
-#include <PCSC/wintypes.h>
-#include <PCSC/winscard.h>
+#include <wintypes.h>
+#include <winscard.h>
 
 #include "sim_int.h"
 
