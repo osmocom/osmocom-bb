@@ -50,6 +50,12 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Osmo control library
 
+Package: libosmosim0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Osmo SIM library
+
 Package: libosmocore-dev
 Section: libdevel
 Architecture: any
