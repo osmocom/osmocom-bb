@@ -135,7 +135,7 @@ DEFUN(show_bvc, show_bvc_cmd, "show bssgp nsei <0-65535> [stats]",
 	"The NSEI\n" "Include Statistics\n")
 {
 	struct bssgp_bvc_ctx *bvc;
-	uint16_t nsei = atoi(argv[1]);
+	uint16_t nsei = atoi(argv[0]);
 	int show_stats = 0;
 
 	if (argc >= 2)
