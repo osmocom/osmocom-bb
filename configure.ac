@@ -84,13 +84,15 @@ AC_CONFIG_HEADER(config.h)
 
 AC_ARG_ENABLE([pcsc], [AS_HELP_STRING([--disable-pcsc], [Build without PC/SC support])],
     [
-        osmo_ac_have_pcsc=$enableval
+        enable_pcsc=$enableval
     ],
     [
-        PKG_CHECK_MODULES(PCSC, libpcsclite)
-        osmo_ac_have_pcsc="yes"
+        enable_pcsc="yes"
     ])
-AM_CONDITIONAL(ENABLE_PCSC, test "x$osmo_ac_have_pcsc" = "xyes")
+if test "x$enable_pcsc" = "xyes" ; then
+	PKG_CHECK_MODULES(PCSC, libpcsclite)
+fi
+AM_CONDITIONAL(ENABLE_PCSC, test "x$enable_pcsc" = "xyes")
 
 AC_ARG_ENABLE(talloc,
 	[AS_HELP_STRING(
