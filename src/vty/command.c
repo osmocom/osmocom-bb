@@ -2497,6 +2497,15 @@ DEFUN(config_write_file,
 	char *failed_file;
 	int rc;
 
+	if (host.app_info->config_is_consistent) {
+		rc = host.app_info->config_is_consistent(vty);
+		if (!rc) {
+			vty_out(vty, "Configuration is not consistent%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
 	if (host.config == NULL) {
 		vty_out(vty, "Can't save to configuration file, using vtysh.%s",
 			VTY_NEWLINE);

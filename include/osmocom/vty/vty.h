@@ -159,6 +159,8 @@ struct vty_app_info {
 	enum node_type (*go_parent_cb)(struct vty *vty);
 	/*! \brief call-back to determine if node is config node */
 	int (*is_config_node)(struct vty *vty, int node);
+	/*! \brief Check if the config is consistent before write */
+	int (*config_is_consistent)(struct vty *vty);
 };
 
 /* Prototypes. */
