@@ -31,10 +31,12 @@
 
 #include <arpa/inet.h>
 
-#include <netinet/tcp.h>
 #include <netinet/in.h>
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
 
-#include <sys/fcntl.h>
+#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -378,6 +380,7 @@ static int listen_fd_cb(struct osmo_fd *listen_bfd, unsigned int what)
 	LOGP(DLCTRL, LOGL_INFO, "accept()ed new control connection from %s\n",
 		inet_ntoa(sa.sin_addr));
 
+#ifdef TCP_NODELAY
 	on = 1;
 	ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
 	if (ret != 0) {
@@ -385,6 +388,7 @@ static int listen_fd_cb(struct osmo_fd *listen_bfd, unsigned int what)
 		close(fd);
 		return ret;
 	}
+#endif
 	ccon = ctrl_connection_alloc(listen_bfd->data);
 	if (!ccon) {
 		LOGP(DLCTRL, LOGL_ERROR, "Failed to allocate.\n");

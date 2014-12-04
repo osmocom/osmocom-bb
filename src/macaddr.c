@@ -89,6 +89,7 @@ int osmo_get_macaddr(uint8_t *mac_out, const char *dev_name)
 
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 
 int osmo_get_macaddr(uint8_t *mac_out, const char *dev_name)

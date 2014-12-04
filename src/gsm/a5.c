@@ -39,6 +39,11 @@
 
 #include <osmocom/gsm/a5.h>
 
+/* Somme OS (like Nuttx) don't have ENOTSUP */
+#ifndef ENOTSUP
+#define ENOTSUP EINVAL
+#endif
+
 /*! \brief Main method to generate a A5/x cipher stream
  *  \param[in] n Which A5/x method to use
  *  \param[in] key 8 byte array for the key (as received from the SIM)

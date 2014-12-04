@@ -31,7 +31,7 @@ AC_SUBST(LTLDFLAGS_OSMOGSM)
 
 dnl checks for header files
 AC_HEADER_STDC
-AC_CHECK_HEADERS(execinfo.h sys/select.h sys/socket.h syslog.h ctype.h)
+AC_CHECK_HEADERS(execinfo.h sys/select.h sys/socket.h syslog.h ctype.h netinet/tcp.h)
 # for src/conv.c
 AC_FUNC_ALLOCA
 AC_SEARCH_LIBS([dlopen], [dl dld], [LIBRARY_DL="$LIBS";LIBS=""])
