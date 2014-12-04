@@ -111,6 +111,11 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 		.description = "Control Interface",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[INT2IDX(DLGTP)] = {
+		.name = "DLGTP",
+		.description = "GPRS GTP library",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 /*! \brief descriptive string for each log level */
