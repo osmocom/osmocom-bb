@@ -245,7 +245,7 @@ static void _output(struct log_target *target, unsigned int subsys,
 	if (target->use_color) {
 		const char *c = color(subsys);
 		if (c) {
-			ret = snprintf(buf + offset, rem, "%s", color(subsys));
+			ret = snprintf(buf + offset, rem, "%s", c);
 			if (ret < 0)
 				goto err;
 			OSMO_SNPRINTF_RET(ret, rem, offset, len);
