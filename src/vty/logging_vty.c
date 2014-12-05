@@ -1,6 +1,6 @@
 /* OpenBSC logging helper for the VTY */
 /* (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
- * (C) 2009-2010 by Holger Hans Peter Freyther
+ * (C) 2009-2014 by Holger Hans Peter Freyther
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -146,6 +146,40 @@ DEFUN(logging_prnt_timestamp,
 		return CMD_WARNING;
 
 	log_set_print_timestamp(tgt, atoi(argv[0]));
+	return CMD_SUCCESS;
+}
+
+DEFUN(logging_prnt_ext_timestamp,
+      logging_prnt_ext_timestamp_cmd,
+      "logging print extended-timestamp (0|1)",
+	LOGGING_STR "Log output settings\n"
+	"Configure log message timestamping\n"
+	"Don't prefix each log message\n"
+	"Prefix each log message with current timestamp with YYYYMMDDhhmmssnnn\n")
+{
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
+
+	if (!tgt)
+		return CMD_WARNING;
+
+	log_set_print_extended_timestamp(tgt, atoi(argv[0]));
+	return CMD_SUCCESS;
+}
+
+DEFUN(logging_prnt_cat,
+      logging_prnt_cat_cmd,
+      "logging print category (0|1)",
+	LOGGING_STR "Log output settings\n"
+	"Configure log message\n"
+	"Don't prefix each log message\n"
+	"Prefix each log message with category/subsystem name\n")
+{
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
+
+	if (!tgt)
+		return CMD_WARNING;
+
+	log_set_print_category(tgt, atoi(argv[0]));
 	return CMD_SUCCESS;
 }
 
@@ -625,8 +659,13 @@ static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 
 	vty_out(vty, "  logging color %u%s", tgt->use_color ? 1 : 0,
 		VTY_NEWLINE);
-	vty_out(vty, "  logging timestamp %u%s", tgt->print_timestamp ? 1 : 0,
-		VTY_NEWLINE);
+	vty_out(vty, "  logging print cateyory %d%s",
+		tgt->print_ext_timestamp ? 1 : 0, VTY_NEWLINE);
+	if (tgt->print_ext_timestamp)
+		vty_out(vty, "  logging print extended-timestamp 1%s", VTY_NEWLINE);
+	else
+		vty_out(vty, "  logging timestamp %u%s",
+			tgt->print_timestamp ? 1 : 0, VTY_NEWLINE);
 
 	/* stupid old osmo logging API uses uppercase strings... */
 	osmo_str2lower(level_lower, log_level_str(tgt->loglevel));
@@ -670,6 +709,8 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	install_element_ve(&logging_fltr_all_cmd);
 	install_element_ve(&logging_use_clr_cmd);
 	install_element_ve(&logging_prnt_timestamp_cmd);
+	install_element_ve(&logging_prnt_ext_timestamp_cmd);
+	install_element_ve(&logging_prnt_cat_cmd);
 	install_element_ve(&logging_set_category_mask_cmd);
 	install_element_ve(&logging_set_category_mask_old_cmd);
 
@@ -685,6 +726,8 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	install_element(CFG_LOG_NODE, &logging_fltr_all_cmd);
 	install_element(CFG_LOG_NODE, &logging_use_clr_cmd);
 	install_element(CFG_LOG_NODE, &logging_prnt_timestamp_cmd);
+	install_element(CFG_LOG_NODE, &logging_prnt_ext_timestamp_cmd);
+	install_element(CFG_LOG_NODE, &logging_prnt_cat_cmd);
 	install_element(CFG_LOG_NODE, &logging_level_cmd);
 
 	install_element(CONFIG_NODE, &cfg_log_stderr_cmd);

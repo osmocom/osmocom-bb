@@ -226,6 +226,14 @@ static const char* color(int subsys)
 	return NULL;
 }
 
+static const char* category_name(int subsys)
+{
+	if (subsys < osmo_log_info->num_cat)
+		return osmo_log_info->cat[subsys].name;
+
+	return NULL;
+}
+
 static void _output(struct log_target *target, unsigned int subsys,
 		    unsigned int level, const char *file, int line, int cont,
 		    const char *format, va_list ap)
@@ -244,13 +252,29 @@ static void _output(struct log_target *target, unsigned int subsys,
 		}
 	}
 	if (!cont) {
-		if (target->print_timestamp) {
+		if (target->print_ext_timestamp) {
+			struct tm tm;
+			time_t timep = time(NULL);
+			localtime_r(&timep, &tm);
+			ret = snprintf(buf + offset, rem, "%04d%02d%02d%02d%02d%02d000 ",
+					tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+					tm.tm_hour, tm.tm_min, tm.tm_sec);
+			if (ret < 0)
+				goto err;
+			OSMO_SNPRINTF_RET(ret, rem, offset, len);
+		} else if (target->print_timestamp) {
 			char *timestr;
 			time_t tm;
 			tm = time(NULL);
 			timestr = ctime(&tm);
 			timestr[strlen(timestr)-1] = '\0';
 			ret = snprintf(buf + offset, rem, "%s ", timestr);
+			if (ret < 0)
+				goto err;
+			OSMO_SNPRINTF_RET(ret, rem, offset, len);
+		}
+		if (target->print_category) {
+			ret = snprintf(buf + offset, rem, "%s ", category_name(subsys));
 			if (ret < 0)
 				goto err;
 			OSMO_SNPRINTF_RET(ret, rem, offset, len);
@@ -426,6 +450,19 @@ void log_set_print_timestamp(struct log_target *target, int print_timestamp)
 	target->print_timestamp = print_timestamp;
 }
 
+/*! \brief Enable or disable printing of extended timestamps while logging
+ *  \param[in] target Log target to be affected
+ *  \param[in] print_timestamp Enable (1) or disable (0) timestamps
+ *
+ * When both timestamp and extended timestamp is enabled then only
+ * the extended timestamp will be used. The format of the timestamp
+ * is YYYYMMDDhhmmssnnn.
+ */
+void log_set_print_extended_timestamp(struct log_target *target, int print_timestamp)
+{
+	target->print_ext_timestamp = print_timestamp;
+}
+
 /*! \brief Enable or disable printing of the filename while logging
  *  \param[in] target Log target to be affected
  *  \param[in] print_filename Enable (1) or disable (0) filenames
@@ -433,6 +470,17 @@ void log_set_print_timestamp(struct log_target *target, int print_timestamp)
 void log_set_print_filename(struct log_target *target, int print_filename)
 {
 	target->print_filename = print_filename;
+}
+
+/*! \brief Enable or disable printing of the category name
+ *  \param[in] target Log target to be affected
+ *  \param[in] print_catname Enable (1) or disable (0) filenames
+ *
+ *  Print the category/subsys name in front of every log message.
+ */
+void log_set_print_category(struct log_target *target, int print_category)
+{
+	target->print_category = print_category;
 }
 
 /*! \brief Set the global log level for a given log target
