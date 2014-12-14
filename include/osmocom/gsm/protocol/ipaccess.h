@@ -34,6 +34,7 @@ enum ipaccess_proto_ext {
 	IPAC_PROTO_EXT_LAC	= 0x02,
 	IPAC_PROTO_EXT_SMSC	= 0x03,
 	IPAC_PROTO_EXT_ORC	= 0x04,		/* OML Router Control */
+	IPAC_PROTO_EXT_GSUP	= 0x05,		/* GSUP GPRS extension */
 };
 
 enum ipaccess_msgtype {
