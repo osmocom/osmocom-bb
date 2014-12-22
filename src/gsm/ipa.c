@@ -199,7 +199,7 @@ int ipa_send(int fd, const void *msg, size_t msglen)
 
 	ret = write(fd, msg, msglen);
 	if (ret < 0)
-		return ret;
+		return -errno;
 	if (ret < msglen) {
 		LOGP(DLINP, LOGL_ERROR, "ipa_send: short write\n");
 		return -EIO;
