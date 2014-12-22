@@ -5,6 +5,8 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/tlv.h>
 
+struct osmo_fd;
+
 /* internal (host-only) data structure */
 struct ipaccess_unit {
 	uint16_t site_id;
