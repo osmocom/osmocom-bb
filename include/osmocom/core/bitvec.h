@@ -45,7 +45,7 @@ enum bit_value {
 
 /*! \brief structure describing a bit vector */
 struct bitvec {
-	unsigned int cur_bit;	/*!< \brief curser to the next unused bit */
+	unsigned int cur_bit;	/*!< \brief cursor to the next unused bit */
 	unsigned int data_len;	/*!< \brief length of data array in bytes */
 	uint8_t *data;		/*!< \brief pointer to data array */
 };
