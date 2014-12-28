@@ -121,7 +121,7 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 /*! \brief descriptive string for each log level */
 /* You have to keep this in sync with the structure loglevel_strs. */
 const char *loglevel_descriptions[LOGLEVEL_DEFS+1] = {
-	"Log simply everything",
+	"Don't use. It doesn't log anything",
 	"Log debug messages and higher levels",
 	"Log informational messages and higher levels",
 	"Log noticable messages and higher levels",
