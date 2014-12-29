@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <arpa/inet.h>
+
 #include <osmocom/core/talloc.h>
 #include <osmocom/gsm/protocol/gsm_03_41.h>
 
@@ -33,6 +35,8 @@ gsm0341_build_msg(void *ctx, uint8_t geo_scope, uint8_t msg_code,
 		  uint8_t *data, uint8_t len)
 {
 	struct gsm341_ms_message *cbmsg;
+
+	msg_id = htons(msg_id);
 
 	if (len > 88)
 		return NULL;
