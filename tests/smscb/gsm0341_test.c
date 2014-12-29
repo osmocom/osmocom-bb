@@ -37,8 +37,11 @@ struct gsm341_ms_message *gen_msg_from_text(uint16_t msg_id, const char *text)
 	uint8_t payload[text_len];
 	int payload_octets;
 
+	srand(time(NULL));
+
 	gsm_7bit_encode_n(payload, sizeof(payload), text, &payload_octets);
-	cbmsg = gsm0341_build_msg(NULL, 0, 23, 0, msg_id, 0xf0, 1, 1, payload, payload_octets);
+	//cbmsg = gsm0341_build_msg(NULL, 0, rand(), 0, msg_id, 0x0f, 1, 1, payload, payload_octets);
+	cbmsg = gsm0341_build_msg(NULL, 0, rand(), 0, msg_id, 0x00, 1, 1, payload, payload_octets);
 
 	printf("%s\n", osmo_hexdump_nospc((uint8_t *)cbmsg, sizeof(*cbmsg)+payload_octets));
 
