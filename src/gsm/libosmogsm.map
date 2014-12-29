@@ -38,6 +38,8 @@ gprs_cipher_supported;
 gprs_tlli_type;
 gprs_tmsi2tlli;
 
+gsm0341_build_msg;
+
 gsm0480_create_notifySS;
 gsm0480_create_unstructuredSS_Notify;
 gsm0480_create_ussd_resp;

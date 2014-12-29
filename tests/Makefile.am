@@ -8,7 +8,8 @@ check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
 		 gb/bssgp_fc_test gb/gprs_bssgp_test gb/gprs_ns_test	\
 		 kasumi/kasumi_test logging/logging_test fr/fr_test	\
 		 loggingrb/loggingrb_test strrb/strrb_test              \
-		 vty/vty_test comp128/comp128_test utils/utils_test
+		 vty/vty_test comp128/comp128_test utils/utils_test	\
+		 smscb/gsm0341_test
 
 if ENABLE_MSGFILE
 check_PROGRAMS += msgfile/msgfile_test
@@ -49,6 +50,9 @@ msgfile_msgfile_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 smscb_smscb_test_SOURCES = smscb/smscb_test.c
 smscb_smscb_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+smscb_gsm0341_test_SOURCES = smscb/gsm0341_test.c
+smscb_gsm0341_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 sms_sms_test_SOURCES = sms/sms_test.c
 sms_sms_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
