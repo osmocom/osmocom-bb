@@ -52,6 +52,7 @@ int main(int argc, char **argv)
 {
 	uint16_t msg_id = GSM341_MSGID_ETWS_CMAS_MONTHLY_TEST;
 	char *text = "Mahlzeit!";
+	char tbuf[94];
 
 	if (argc > 1)
 		msg_id = atoi(argv[1]);
@@ -59,7 +60,12 @@ int main(int argc, char **argv)
 	if (argc > 2)
 		text = argv[2];
 
-	gen_msg_from_text(msg_id, text);
+	strncpy(tbuf, text, 93);
+	if (strlen(text) < 93)
+		memset(tbuf+strlen(text), '\r', sizeof(tbuf)-strlen(text));
+	tbuf[93] = 0;
+
+	gen_msg_from_text(msg_id, tbuf);
 
 	return EXIT_SUCCESS;
 }
