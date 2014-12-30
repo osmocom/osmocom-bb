@@ -4,6 +4,9 @@
 
 /* GSM TS 04.12 definitions for Short Message Service Cell Broadcast */
 
+#define GSM412_MSG_LEN		88	/* TS 04.12 Section 3.1 */
+#define GSM412_BLOCK_LEN	22	/* TS 04.12 Section 3.1 */
+
 #define GSM412_SEQ_FST_BLOCK		0x0
 #define GSM412_SEQ_SND_BLOCK		0x1
 #define GSM412_SEQ_TRD_BLOCK		0x2

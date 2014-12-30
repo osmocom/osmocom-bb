@@ -2,7 +2,12 @@
 
 #include <stdint.h>
 
+#include <osmocom/gsm/protocol/gsm_04_12.h>
+
 /* GSM TS 03.41 definitions also TS 23.041*/
+
+#define GSM341_MAX_PAYLOAD	(GSM412_MSG_LEN-sizeof(struct gsm341_ms_message))
+#define GSM341_MAX_CHARS	(GSM341_MAX_PAYLOAD*8/7)
 
 /* Chapter 9.3.2 */
 struct gsm341_ms_message {
