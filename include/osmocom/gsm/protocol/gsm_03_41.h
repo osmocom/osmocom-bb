@@ -8,6 +8,7 @@
 
 #define GSM341_MAX_PAYLOAD	(GSM412_MSG_LEN-sizeof(struct gsm341_ms_message))
 #define GSM341_MAX_CHARS	(GSM341_MAX_PAYLOAD*8/7)
+#define GSM341_7BIT_PADDING	'\r'
 
 /* Chapter 9.3.2 */
 struct gsm341_ms_message {

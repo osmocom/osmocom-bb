@@ -62,8 +62,9 @@ int main(int argc, char **argv)
 
 	strncpy(tbuf, text, GSM341_MAX_CHARS);
 	if (strlen(text) < GSM341_MAX_CHARS)
-		memset(tbuf+strlen(text), '\r', sizeof(tbuf)-strlen(text));
-	tbuf[93] = 0;
+		memset(tbuf+strlen(text), GSM341_7BIT_PADDING,
+			sizeof(tbuf)-strlen(text));
+	tbuf[GSM341_MAX_CHARS] = 0;
 
 	gen_msg_from_text(msg_id, tbuf);
 
