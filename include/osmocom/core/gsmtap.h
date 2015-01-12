@@ -43,6 +43,7 @@
 #define GSMTAP_TYPE_UMTS_RLC_MAC	0x0b
 #define GSMTAP_TYPE_UMTS_RRC	0x0c
 #define GSMTAP_TYPE_LTE_RRC	0x0d	/* LTE interface */
+#define GSMTAP_TYPE_LTE_MAC	0x0e	/* LTE MAC interface */ 
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
@@ -217,6 +218,20 @@ enum {
 	GSMTAP_RRC_SUB_TargetRNC_ToSourceRNC_Container,
 
 	GSMTAP_RRC_SUB_MAX
+};
+
+/* LTE RRC message types */
+enum {
+    GSMTAP_LTE_RRC_SUB_DL_CCCH_Message = 0,
+    GSMTAP_LTE_RRC_SUB_DL_DCCH_Message,
+    GSMTAP_LTE_RRC_SUB_UL_CCCH_Message,
+    GSMTAP_LTE_RRC_SUB_UL_DCCH_Message,
+    GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message,
+    GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message,
+    GSMTAP_LTE_RRC_SUB_PCCH_Message,
+    GSMTAP_LTE_RRC_SUB_MCCH_Message,
+
+    GSMTAP_LTE_RRC_SUB_MAX
 };
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
