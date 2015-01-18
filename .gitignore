@@ -79,6 +79,7 @@ tests/ringbuf/ringbuf_test
 tests/strrb/strrb_test
 tests/vty/vty_test
 tests/gb/gprs_bssgp_test
+tests/smscb/gsm0341_test
 
 utils/osmo-arfcn
 utils/osmo-auc-gen
@@ -88,6 +89,7 @@ doc/codec
 doc/core
 doc/vty/latex
 doc/vty/html
+doc/vty/doxygen_sqlite3.db
 doc/gsm
 doc/html.tar
 
