@@ -1,4 +1,10 @@
-libosmocore (0.7.0) UNRELEASED; urgency=medium
+libosmocore (0.8.0) UNRELEASED; urgency=medium
+
+  * New upstream release of libosmocore.
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Sun, 18 Jan 2015 19:04:10 +0100
+
+libosmocore (0.7.0) unstable; urgency=medium
 
   * New upstream release of libosmocore.
 

@@ -1,4 +1,1 @@
 #library	what		description / commit summary line
-libosmocore	abi-change	logging: Add ability to save/print current log filters
-libosmocore	abi-change	gtp: Add a global region for the gtp library of OpenGGSN
-libosmovty	abi-change	vty: Check with the application before writing the config

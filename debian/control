@@ -11,7 +11,7 @@ Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmocore.git;a=summary
 Package: libosmocore
 Section: libs
 Architecture: any
-Depends: libosmocodec0, libosmocore5, libosmogb3, libosmogsm5, libosmovty0, ${misc:Depends}
+Depends: libosmocodec0, libosmocore6, libosmogb3, libosmogsm5, libosmovty1, ${misc:Depends}
 Description: Open Source MObile COMmunications CORE library
 
 Package: libosmocodec0
@@ -20,7 +20,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Osmo codec library
 
-Package: libosmocore5
+Package: libosmocore6
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -38,7 +38,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Osmo GSM utility library
 
-Package: libosmovty0
+Package: libosmovty1
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
