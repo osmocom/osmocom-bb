@@ -3,7 +3,7 @@
 LIBVERSION=0:0:0
 
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -fPIC -Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS) $(PCSC_CFLAGS)
+AM_CFLAGS = -fPIC -Wall $(PCSC_CFLAGS)
 AM_LDFLAGS = $(COVERAGE_LDFLAGS)
 
 if ENABLE_PCSC
@@ -16,6 +16,9 @@ lib_LTLIBRARIES = libosmosim.la
 libosmosim_la_SOURCES = core.c reader.c reader_pcsc.c \
 			card_fs_sim.c card_fs_usim.c card_fs_uicc.c card_fs_isim.c card_fs_tetra.c
 libosmosim_la_LDFLAGS = -version-info $(LIBVERSION)
-libosmosim_la_LIBADD = $(LIBOSMOCORE_LIBS) $(LIBOSMOGSM_LIBS) $(PCSC_LIBS)
+libosmosim_la_LIBADD = \
+	$(top_builddir)/src/libosmocore.la \
+	$(top_builddir)/src/gsm/libosmogsm.la \
+	$(PCSC_LIBS)
 
 endif
