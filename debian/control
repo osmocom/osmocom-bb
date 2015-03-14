@@ -3,7 +3,7 @@ Section: libs
 Priority: optional
 Maintainer: Harald Welte <laforge@gnumonks.org>
 Build-Depends: debhelper (>= 9), autotools-dev, autoconf, automake, libtool, dh-autoreconf, libdpkg-perl, git, doxygen, libpcsclite-dev, pkg-config
-Standards-Version: 3.9.3
+Standards-Version: 3.9.6
 Homepage: http://bb.osmocom.org/trac/wiki/libosmocore
 Vcs-Git: git://git.osmocom.org/libosmocore.git
 Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmocore.git;a=summary
