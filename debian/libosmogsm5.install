@@ -1,1 +1,1 @@
-usr/lib/libosmogsm*.so.*
+usr/lib/*/libosmogsm*.so.*

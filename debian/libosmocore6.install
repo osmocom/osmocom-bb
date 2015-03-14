@@ -1,1 +1,1 @@
-usr/lib/libosmocore*.so.*
+usr/lib/*/libosmocore*.so.*

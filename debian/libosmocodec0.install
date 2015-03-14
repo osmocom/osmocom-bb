@@ -1,1 +1,1 @@
-usr/lib/libosmocodec*.so.*
+usr/lib/*/libosmocodec*.so.*
