@@ -33,6 +33,7 @@ enum bssgp_prim {
 	PRIM_NM_BVC_RESET,
 	PRIM_NM_BVC_BLOCK,
 	PRIM_NM_BVC_UNBLOCK,
+	PRIM_NM_STATUS,
 };
 
 struct osmo_bssgp_prim {
@@ -117,6 +118,7 @@ enum bssgp_ctr {
 	BSSGP_CTR_BYTES_OUT,
 	BSSGP_CTR_BLOCKED,
 	BSSGP_CTR_DISCARDED,
+	BSSGP_CTR_STATUS,
 };
 
 

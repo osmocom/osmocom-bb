@@ -125,6 +125,40 @@ static void test_bssgp_suspend_resume(void)
 	printf("----- %s END\n", __func__);
 }
 
+static void send_bssgp_status(enum gprs_bssgp_cause cause, uint16_t *bvci)
+{
+	struct msgb *msg = bssgp_msgb_alloc();
+	uint8_t cause_ = cause;
+
+	msgb_v_put(msg, BSSGP_PDUT_STATUS);
+	msgb_tvlv_put(msg, BSSGP_IE_CAUSE, 1, &cause_);
+	if (bvci) {
+		uint16_t bvci_ = htons(*bvci);
+		msgb_tvlv_put(msg, BSSGP_IE_BVCI, 2, (uint8_t *) &bvci_);
+	}
+
+	msgb_bssgp_send_and_free(msg);
+}
+
+static void test_bssgp_status(void)
+{
+	uint16_t bvci;
+
+	printf("----- %s START\n", __func__);
+
+	send_bssgp_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL);
+	OSMO_ASSERT(last_oph.primitive == PRIM_NM_STATUS);
+
+	/* Enforce prim != PRIM_NM_STATUS */
+	last_oph.primitive = PRIM_NM_LLC_DISCARDED;
+
+	bvci = 1234;
+	send_bssgp_status(BSSGP_CAUSE_UNKNOWN_BVCI, &bvci);
+	OSMO_ASSERT(last_oph.primitive == PRIM_NM_STATUS);
+
+	printf("----- %s END\n", __func__);
+}
+
 static struct log_info info = {};
 
 int main(int argc, char **argv)
@@ -146,6 +180,7 @@ int main(int argc, char **argv)
 
 	printf("===== BSSGP test START\n");
 	test_bssgp_suspend_resume();
+	test_bssgp_status();
 	printf("===== BSSGP test END\n\n");
 
 	exit(EXIT_SUCCESS);
