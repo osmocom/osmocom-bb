@@ -845,7 +845,9 @@ static int bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 		break;
 	case BSSGP_PDUT_STATUS:
 		/* Some exception has occurred */
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PTP BVC STATUS\n", bctx->bvci);
 		/* FIXME: send NM_STATUS.ind to NM */
+		break;
 	case BSSGP_PDUT_DOWNLOAD_BSS_PFC:
 	case BSSGP_PDUT_CREATE_BSS_PFC_ACK:
 	case BSSGP_PDUT_CREATE_BSS_PFC_NACK:
