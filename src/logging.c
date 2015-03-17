@@ -38,6 +38,7 @@
 #include <strings.h>
 #endif
 #include <time.h>
+#include <sys/time.h>
 #include <errno.h>
 
 #include <osmocom/core/talloc.h>
@@ -254,11 +255,13 @@ static void _output(struct log_target *target, unsigned int subsys,
 	if (!cont) {
 		if (target->print_ext_timestamp) {
 			struct tm tm;
-			time_t timep = time(NULL);
-			localtime_r(&timep, &tm);
-			ret = snprintf(buf + offset, rem, "%04d%02d%02d%02d%02d%02d000 ",
+			struct timeval tv;
+			gettimeofday(&tv, NULL);
+			localtime_r(&tv.tv_sec, &tm);
+			ret = snprintf(buf + offset, rem, "%04d%02d%02d%02d%02d%02d%03d ",
 					tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-					tm.tm_hour, tm.tm_min, tm.tm_sec);
+					tm.tm_hour, tm.tm_min, tm.tm_sec,
+					(int)(tv.tv_usec / 1000));
 			if (ret < 0)
 				goto err;
 			OSMO_SNPRINTF_RET(ret, rem, offset, len);
