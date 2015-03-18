@@ -21,6 +21,8 @@
  *
  */
 
+#define _WITH_GETLINE
+
 #include <osmocom/core/msgfile.h>
 #include <osmocom/core/talloc.h>
 
