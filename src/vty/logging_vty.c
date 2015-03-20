@@ -660,7 +660,7 @@ static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 	vty_out(vty, "  logging color %u%s", tgt->use_color ? 1 : 0,
 		VTY_NEWLINE);
 	vty_out(vty, "  logging print category %d%s",
-		tgt->print_ext_timestamp ? 1 : 0, VTY_NEWLINE);
+		tgt->print_category ? 1 : 0, VTY_NEWLINE);
 	if (tgt->print_ext_timestamp)
 		vty_out(vty, "  logging print extended-timestamp 1%s", VTY_NEWLINE);
 	else
