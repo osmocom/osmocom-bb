@@ -36,23 +36,80 @@
 
 #include <errno.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <osmocom/gsm/a5.h>
+#include <osmocom/gsm/kasumi.h>
 
 /* Somme OS (like Nuttx) don't have ENOTSUP */
 #ifndef ENOTSUP
 #define ENOTSUP EINVAL
 #endif
 
+/* ------------------------------------------------------------------------ */
+/* A5/3&4                                                                   */
+/* ------------------------------------------------------------------------ */
+
+/*! \brief Generate a GSM A5/4 cipher stream
+ *  \param[in] key 16 byte array for the key (as received from the SIM)
+ *  \param[in] fn Frame number
+ *  \param[out] dl Pointer to array of ubits to return Downlink cipher stream
+ *  \param[out] ul Pointer to array of ubits to return Uplink cipher stream
+ *  \param[in] fn_correct true if fn is a real GSM frame number and thus requires internal conversion
+ *
+ * Either (or both) of dl/ul should be NULL if not needed.
+ *
+ * Implementation based on specifications from 3GPP TS 55.216, 3GPP TR 55.919 and ETSI TS 135 202
+ * with slight simplifications (CE hardcoded to 0).
+ */
+void
+_a5_4(const uint8_t *ck, uint32_t fn, ubit_t *dl, ubit_t *ul, bool fn_correct)
+{
+       uint8_t i, gamma[32], uplink[15];
+       uint32_t fn_count = (fn_correct) ? osmo_a5_fn_count(fn) : fn;
+
+       if (ul) {
+               _kasumi_kgcore(0xF, 0, fn_count, 0, ck, gamma, 228);
+               for(i = 0; i < 15; i++) uplink[i] = (gamma[i + 14] << 2) + (gamma[i + 15] >> 6);
+               osmo_pbit2ubit(ul, uplink, 114);
+       }
+       if (dl) {
+               _kasumi_kgcore(0xF, 0, fn_count, 0, ck, gamma, 114);
+               osmo_pbit2ubit(dl, gamma, 114);
+       }
+}
+
+/*! \brief Generate a GSM A5/3 cipher stream
+ *  \param[in] key 8 byte array for the key (as received from the SIM)
+ *  \param[in] fn Frame number
+ *  \param[out] dl Pointer to array of ubits to return Downlink cipher stream
+ *  \param[out] ul Pointer to array of ubits to return Uplink cipher stream
+ *  \param[in] fn_correct true if fn is a real GSM frame number and thus requires internal conversion
+ *
+ * Either (or both) of dl/ul should be NULL if not needed.
+ *
+ * Implementation based on specifications from 3GPP TS 55.216, 3GPP TR 55.919 and ETSI TS 135 202
+ * with slight simplifications (CE hardcoded to 0).
+ */
+void
+_a5_3(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul, bool fn_correct)
+{
+       uint8_t ck[16];
+       memcpy(ck, key, 8);
+       memcpy(ck + 8, key, 8);
+       /* internal function require 128 bit key so we expand by concatenating supplied 64 bit key */
+       _a5_4(ck, fn, dl, ul, fn_correct);
+}
+
 /*! \brief Main method to generate a A5/x cipher stream
  *  \param[in] n Which A5/x method to use
- *  \param[in] key 8 byte array for the key (as received from the SIM)
+ *  \param[in] key 8 or 16 (for a5/4) byte array for the key (as received from the SIM)
  *  \param[in] fn Frame number
  *  \param[out] dl Pointer to array of ubits to return Downlink cipher stream
  *  \param[out] ul Pointer to array of ubits to return Uplink cipher stream
  *  \returns 0 for success, -ENOTSUP for invalid cipher selection.
  *
- * Currently A5/[0-2] are supported.
+ * Currently A5/[0-4] are supported.
  * Either (or both) of dl/ul can be NULL if not needed.
  */
 int
@@ -75,8 +132,16 @@ osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 		osmo_a5_2(key, fn, dl, ul);
 		break;
 
+	case 3:
+		_a5_3(key, fn, dl, ul, true);
+		break;
+
+	case 4:
+		_a5_4(key, fn, dl, ul, true);
+		break;
+
 	default:
-		/* a5/[3..7] not supported here/yet */
+		/* a5/[5..7] not supported here/yet */
 		return -ENOTSUP;
 	}
 

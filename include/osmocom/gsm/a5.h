@@ -48,7 +48,7 @@ osmo_a5_fn_count(uint32_t fn)
 }
 
 	/* Notes:
-	 *  - key must be 8 bytes long (or NULL for A5/0)
+	 *  - key must be 8 or 16 (for a5/4) bytes long (or NULL for A5/0)
 	 *  - the dl and ul pointer must be either NULL or 114 bits long
 	 *  - fn is the _real_ GSM frame number.
 	 *    (converted internally to fn_count)
