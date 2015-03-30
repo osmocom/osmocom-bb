@@ -21,8 +21,7 @@
 
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
-#include <osmocom/core/ringb.h>
-#include <osmocom/vty/logging_rbvty.h>
+#include <osmocom/core/loggingrb.h>
 
 enum {
 	DRLL,
@@ -61,7 +60,7 @@ int main(int argc, char **argv)
 	struct log_target *ringbuf_target;
 
 	log_init(&log_info, NULL);
-	ringbuf_target = log_target_create_rbvty(NULL, 0x1000);
+	ringbuf_target = log_target_create_rb(0x1000);
 	log_add_target(ringbuf_target);
 	log_set_all_filter(ringbuf_target, 1);
 	log_set_print_filename(ringbuf_target, 0);
@@ -74,9 +73,9 @@ int main(int argc, char **argv)
 	DEBUGP(DRLL, "You should see this\n");
 	DEBUGP(DCC, "You should see this\n");
 	DEBUGP(DMM, "You should not see this\n");
-	fprintf(stderr, ringbuffer_get_nth(ringbuf_target->tgt_rbvty.rb, 0));
-	fprintf(stderr, ringbuffer_get_nth(ringbuf_target->tgt_rbvty.rb, 1));
-	OSMO_ASSERT(!ringbuffer_get_nth(ringbuf_target->tgt_rbvty.rb, 2));
+	fprintf(stderr, log_target_rb_get(ringbuf_target, 0));
+	fprintf(stderr, log_target_rb_get(ringbuf_target, 1));
+	OSMO_ASSERT(!log_target_rb_get(ringbuf_target, 2));
 
 	return 0;
 }
