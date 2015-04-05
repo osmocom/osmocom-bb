@@ -86,7 +86,7 @@ static struct ctrl_cmd_element *ctrl_cmd_get_element_match(vector vline, vector 
 			cmd_desc = &cmd_el->strcmd;
 			if (cmd_desc->nr_commands > vector_active(vline))
 				continue;
-			for (j =0; j < vector_active(vline); j++) {
+			for (j =0; j < vector_active(vline) && j < cmd_desc->nr_commands; j++) {
 				str = vector_slot(vline, j);
 				desc = cmd_desc->command[j];
 				if (desc[0] == '*')
