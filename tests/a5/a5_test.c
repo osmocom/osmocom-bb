@@ -8,6 +8,10 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/a5.h>
 
+// make compiler happy
+void _a5_3(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul, bool fn_correct);
+void _a5_4(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul, bool fn_correct);
+
 static const uint8_t key[] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef };
 static const uint32_t fn = 123456;
 static const uint8_t dl[] = {
