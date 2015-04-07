@@ -1092,6 +1092,8 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 	uint16_t _pdu_lifetime = htons(pdu_lifetime); /* centi-seconds */
 	uint16_t drx_params;
 
+	OSMO_ASSERT(dup != NULL);
+
 	/* Identifiers from UP: TLLI, BVCI, NSEI (all in msgb->cb) */
 	if (bvci <= BVCI_PTM ) {
 		LOGP(DBSSGP, LOGL_ERROR, "Cannot send DL-UD to BVCI %u\n",
@@ -1124,35 +1126,32 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 
 	/* FIXME: optional elements: Alignment, UTRAN CCO, LSA, PFI */
 
-	if (dup) {
-		/* Old TLLI to help BSS map from old->new */
-		if (dup->tlli) {
-			uint32_t tlli = htonl(*dup->tlli);
-			msgb_tvlv_push(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &tlli);
-		}
-
-		/* IMSI */
-		if (dup->imsi && strlen(dup->imsi)) {
-			uint8_t mi[10];
-			int imsi_len = gsm48_generate_mid_from_imsi(mi, dup->imsi);
-			if (imsi_len > 2)
-				msgb_tvlv_push(msg, BSSGP_IE_IMSI,
-						imsi_len-2, mi+2);
-		}
-
-		/* DRX parameters */
-		drx_params = htons(dup->drx_parms);
-		msgb_tvlv_push(msg, BSSGP_IE_DRX_PARAMS, 2,
-				(uint8_t *) &drx_params);
-
-		/* FIXME: Priority */
-
-		/* MS Radio Access Capability */
-		if (dup->ms_ra_cap.len)
-			msgb_tvlv_push(msg, BSSGP_IE_MS_RADIO_ACCESS_CAP,
-					dup->ms_ra_cap.len, dup->ms_ra_cap.v);
-
+	/* Old TLLI to help BSS map from old->new */
+	if (dup->tlli) {
+		uint32_t tlli = htonl(*dup->tlli);
+		msgb_tvlv_push(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &tlli);
 	}
+
+	/* IMSI */
+	if (dup->imsi && strlen(dup->imsi)) {
+		uint8_t mi[10];
+		int imsi_len = gsm48_generate_mid_from_imsi(mi, dup->imsi);
+		if (imsi_len > 2)
+			msgb_tvlv_push(msg, BSSGP_IE_IMSI,
+				imsi_len-2, mi+2);
+	}
+
+	/* DRX parameters */
+	drx_params = htons(dup->drx_parms);
+	msgb_tvlv_push(msg, BSSGP_IE_DRX_PARAMS, 2,
+		(uint8_t *) &drx_params);
+
+	/* FIXME: Priority */
+
+	/* MS Radio Access Capability */
+	if (dup->ms_ra_cap.len)
+		msgb_tvlv_push(msg, BSSGP_IE_MS_RADIO_ACCESS_CAP,
+			dup->ms_ra_cap.len, dup->ms_ra_cap.v);
 
 	/* prepend the pdu lifetime */
 	msgb_tvlv_push(msg, BSSGP_IE_PDU_LIFETIME, 2, (uint8_t *)&_pdu_lifetime);
