@@ -159,6 +159,22 @@ static void test_bssgp_status(void)
 	printf("----- %s END\n", __func__);
 }
 
+static void test_bssgp_bad_reset()
+{
+	struct msgb *msg = bssgp_msgb_alloc();
+	uint16_t bvci_be = htons(2);
+	uint8_t cause = BSSGP_CAUSE_OML_INTERV;
+
+	msgb_v_put(msg, BSSGP_PDUT_BVC_RESET);
+	msgb_tvlv_put(msg, BSSGP_IE_BVCI, sizeof(bvci_be), (uint8_t *)&bvci_be);
+	msgb_tvlv_put(msg, BSSGP_IE_CAUSE, sizeof(cause), &cause);
+
+	msgb_bvci(msg) = 0xbad;
+
+	msgb_bssgp_send_and_free(msg);
+}
+
+
 static struct log_info info = {};
 
 int main(int argc, char **argv)
@@ -181,6 +197,7 @@ int main(int argc, char **argv)
 	printf("===== BSSGP test START\n");
 	test_bssgp_suspend_resume();
 	test_bssgp_status();
+	test_bssgp_bad_reset();
 	printf("===== BSSGP test END\n\n");
 
 	exit(EXIT_SUCCESS);

@@ -1073,8 +1073,13 @@ int bssgp_rcvmsg(struct msgb *msg)
 		rc = bssgp_rx_sign(msg, &tp, bctx);
 	else if (ns_bvci == BVCI_PTM)
 		rc = bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_FEAT, NULL, msg);
-	else
+	else if (bctx)
 		rc = bssgp_rx_ptp(msg, &tp, bctx);
+	else
+		LOGP(DBSSGP, LOGL_NOTICE,
+			"NSEI=%u/BVCI=%u Cannot handle PDU type %u for "
+			"unknown BVCI, NS BVCI %u\n",
+			msgb_nsei(msg), bvci, pdu_type, ns_bvci);
 
 	return rc;
 }
