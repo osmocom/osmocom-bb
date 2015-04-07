@@ -131,6 +131,17 @@ static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
 			LOGP(DNS, LOGL_ERROR, "TX failed (%d) to peer %s\n",	\
 				rc, gprs_ns_ll_str(nsvc));
 
+struct msgb *gprs_ns_msgb_alloc(void)
+{
+	struct msgb *msg = msgb_alloc_headroom(NS_ALLOC_SIZE, NS_ALLOC_HEADROOM,
+		"GPRS/NS");
+	if (!msg) {
+		LOGP(DNS, LOGL_ERROR, "Failed to allocate NS message of size %d\n",
+			NS_ALLOC_SIZE);
+	}
+	return msg;
+}
+
 
 /*! \brief Lookup struct gprs_nsvc based on NSVCI
  *  \param[in] nsi NS instance in which to search
@@ -298,9 +309,17 @@ static int gprs_ns_tx(struct gprs_nsvc *nsvc, struct msgb *msg)
 	switch (nsvc->ll) {
 	case GPRS_NS_LL_UDP:
 		ret = nsip_sendmsg(nsvc, msg);
+		if (ret < 0)
+			LOGP(DNS, LOGL_INFO,
+				"failed to send NS message via UDP: %s\n",
+				strerror(-ret));
 		break;
 	case GPRS_NS_LL_FR_GRE:
 		ret = gprs_ns_frgre_sendmsg(nsvc, msg);
+		if (ret < 0)
+			LOGP(DNS, LOGL_INFO,
+				"failed to send NS message via FR/GRE: %s\n",
+				strerror(-ret));
 		break;
 	default:
 		LOGP(DNS, LOGL_ERROR, "unsupported NS linklayer %u\n", nsvc->ll);

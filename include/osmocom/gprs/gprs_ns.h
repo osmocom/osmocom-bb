@@ -23,6 +23,9 @@
 	"Alive Timer (Tns-alive) timeout\n"			\
 	"Alive Timer (Tns-alive) number of retries\n"
 
+#define NS_ALLOC_SIZE	2048
+#define NS_ALLOC_HEADROOM 20
+
 enum ns_timeout {
 	NS_TOUT_TNS_BLOCK,
 	NS_TOUT_TNS_BLOCK_RETRIES,
@@ -186,12 +189,7 @@ void gprs_ns_ll_copy(struct gprs_nsvc *nsvc, struct gprs_nsvc *other);
 /* Clear the link layer info (will never match a real link then) */
 void gprs_ns_ll_clear(struct gprs_nsvc *nsvc);
 
-#define NS_ALLOC_SIZE	2048
-#define NS_ALLOC_HEADROOM 20
-static inline struct msgb *gprs_ns_msgb_alloc(void)
-{
-	return msgb_alloc_headroom(NS_ALLOC_SIZE, NS_ALLOC_HEADROOM, "GPRS/NS");
-}
+struct msgb *gprs_ns_msgb_alloc(void);
 
 enum signal_ns {
 	S_NS_RESET,

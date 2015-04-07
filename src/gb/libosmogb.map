@@ -57,6 +57,7 @@ gprs_ns_vty_init;
 gprs_ns_ll_str;
 gprs_ns_ll_copy;
 gprs_ns_ll_clear;
+gprs_ns_msgb_alloc;
 
 gprs_nsvc_create;
 gprs_nsvc_delete;
