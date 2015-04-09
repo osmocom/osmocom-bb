@@ -675,6 +675,9 @@ static int l2_ph_rach_ind(struct lapdm_entity *le, uint8_t ra, uint32_t fn, uint
 	struct gsm_time gt;
 	struct msgb *msg = msgb_alloc_headroom(512, 64, "RSL CHAN RQD");
 
+	if (!msg)
+		return -ENOMEM;
+
 	msg->l2h = msgb_push(msg, sizeof(*ch));
 	ch = (struct abis_rsl_cchan_hdr *)msg->l2h;
 	rsl_init_cchan_hdr(ch, RSL_MT_CHAN_RQD);

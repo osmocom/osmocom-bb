@@ -58,6 +58,9 @@ static int transceive_apdu_t0(struct osim_card_hdl *st, struct msgb *amsg)
 	uint16_t sw;
 	int rc, num_resp = 0;
 
+	if (!tmsg)
+		return -ENOMEM;
+
 	/* create TPDU header from APDU header */
 	tpduh = (struct osim_apdu_cmd_hdr *) msgb_put(tmsg, sizeof(*tpduh));
 	memcpy(tpduh, msgb_apdu_h(amsg), sizeof(*tpduh));
