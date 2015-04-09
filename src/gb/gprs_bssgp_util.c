@@ -71,6 +71,10 @@ const char *bssgp_cause_str(enum gprs_bssgp_cause cause)
 struct msgb *bssgp_msgb_alloc(void)
 {
 	struct msgb *msg = msgb_alloc_headroom(4096, 128, "BSSGP");
+
+	/* TODO: Add handling of msg == NULL to this function and to all callers */
+	OSMO_ASSERT(msg != NULL);
+
 	msgb_bssgph(msg) = msg->data;
 	return msg;
 }
