@@ -218,9 +218,13 @@ char *osmo_hexdump_nospc(const unsigned char *buf, int len)
 	return _osmo_hexdump(buf, len, "");
 }
 
-	/* Compat with previous typo to preserve abi */
+/* Compat with previous typo to preserve abi */
 char *osmo_osmo_hexdump_nospc(const unsigned char *buf, int len)
+#if defined(__MACH__) && defined(__APPLE__)
+	;
+#else
 	__attribute__((weak, alias("osmo_hexdump_nospc")));
+#endif
 
 #include "../config.h"
 #ifdef HAVE_CTYPE_H
