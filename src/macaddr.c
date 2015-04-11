@@ -47,7 +47,7 @@ int osmo_macaddr_parse(uint8_t *out, const char *in)
 	return 0;
 }
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
