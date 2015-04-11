@@ -36,6 +36,6 @@ struct osim_reader_ops {
 	int (*transceive)(struct osim_reader_hdl *rh, struct msgb *msg);
 };
 
-const struct osim_reader_ops pcsc_reader_ops;
+extern const struct osim_reader_ops pcsc_reader_ops;
 
 #endif

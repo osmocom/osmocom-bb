@@ -294,7 +294,7 @@ struct osim_card_hdl;
 char *osim_print_sw(const struct osim_card_hdl *ch, uint16_t sw_in);
 
 extern const struct tlv_definition ts102221_fcp_tlv_def;
-const struct value_string ts102221_fcp_vals[14];
+extern const struct value_string ts102221_fcp_vals[14];
 
 /* 11.1.1.3 */
 enum ts102221_fcp_tag {
