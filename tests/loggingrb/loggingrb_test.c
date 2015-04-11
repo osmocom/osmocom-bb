@@ -73,8 +73,8 @@ int main(int argc, char **argv)
 	DEBUGP(DRLL, "You should see this\n");
 	DEBUGP(DCC, "You should see this\n");
 	DEBUGP(DMM, "You should not see this\n");
-	fprintf(stderr, log_target_rb_get(ringbuf_target, 0));
-	fprintf(stderr, log_target_rb_get(ringbuf_target, 1));
+	fprintf(stderr, "%s", log_target_rb_get(ringbuf_target, 0));
+	fprintf(stderr, "%s", log_target_rb_get(ringbuf_target, 1));
 	OSMO_ASSERT(!log_target_rb_get(ringbuf_target, 2));
 
 	return 0;
