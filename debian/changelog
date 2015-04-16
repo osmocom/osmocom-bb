@@ -1,4 +1,10 @@
-libosmocore (0.8.0) UNRELEASED; urgency=medium
+libosmocore (0.8.1) UNRELEASED; urgency=medium
+
+  * Add endian header
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Thu, 16 Apr 2015 21:23:24 +0200
+
+libosmocore (0.8.0) unstable; urgency=medium
 
   * New upstream release of libosmocore.
 
