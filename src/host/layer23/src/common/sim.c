@@ -185,7 +185,17 @@ static int sim_apdu_send(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 {
 	LOGP(DSIM, LOGL_INFO, "sending APDU (class 0x%02x, ins 0x%02x)\n",
 		data[0], data[1]);
-	l1ctl_tx_sim_req(ms, data, length);
+
+	/* adding SAP client support
+	 * it makes more sense to do it here then in L1CTL */
+	if(ms->settings.sap_socket_path[0] == 0) {
+		LOGP(DSIM, LOGL_INFO, "Using built-in SIM reader\n");
+		l1ctl_tx_sim_req(ms, data, length);
+	} else {
+		LOGP(DSIM, LOGL_INFO, "Using SAP backend\n");
+		osmosap_send_apdu(ms, data, length);
+	}
+
 	return 0;
 }
 
@@ -946,7 +956,7 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM1111_STAT_DL_ERROR:
 	case GSM1111_STAT_RESPONSE:
 	case GSM1111_STAT_RESPONSE_TOO:
-		LOGP(DSIM, LOGL_INFO, "command successfull\n");
+		LOGP(DSIM, LOGL_INFO, "command successful\n");
 		break;
 	default:
 		LOGP(DSIM, LOGL_INFO, "command failed\n");

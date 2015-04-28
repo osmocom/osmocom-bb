@@ -24,6 +24,8 @@ struct osmocom_ms;
 
 struct osmosap_entity {
 	osmosap_cb_t msg_handler;
+	uint8_t sap_state;
+	uint16_t max_msg_size;
 };
 
 struct osmol1_entity {

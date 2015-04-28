@@ -37,6 +37,7 @@
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
+#include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/vty/telnet_interface.h>
 
 #include <osmocom/core/msgb.h>
@@ -190,6 +191,9 @@ int mobile_init(struct osmocom_ms *ms)
 		T200_ACCH;
 	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_usec = 0;
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
+
+	/* init SAP client before SIM card starts up */
+	osmosap_init(ms);
 
 	gsm_sim_init(ms);
 	gsm48_cc_init(ms);

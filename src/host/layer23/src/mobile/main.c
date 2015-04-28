@@ -69,7 +69,7 @@ int mobile_exit(struct osmocom_ms *ms, int force);
 
 
 const char *debug_default =
-	"DCS:DNB:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DSS:DLSMS:DPAG:DSUM";
+	"DCS:DNB:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DSS:DLSMS:DPAG:DSUM:DSAP";
 
 const char *openbsc_copyright =
 	"Copyright (C) 2008-2010 ...\n"
