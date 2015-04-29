@@ -325,19 +325,19 @@ int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 
 	if ((bucket_size / 100) > 0xffff)
 		return -EINVAL;
-	e_bucket_size = bucket_size / 100;
+	e_bucket_size = htons(bucket_size / 100);
 
 	if ((bucket_leak_rate * 8 / 100) > 0xffff)
 		return -EINVAL;
-	e_leak_rate = (bucket_leak_rate * 8) / 100;
+	e_leak_rate = htons((bucket_leak_rate * 8) / 100);
 
 	if ((bmax_default_ms / 100) > 0xffff)
 		return -EINVAL;
-	e_bmax_default_ms = bmax_default_ms / 100;
+	e_bmax_default_ms = htons(bmax_default_ms / 100);
 
 	if ((r_default_ms * 8 / 100) > 0xffff)
 		return -EINVAL;
-	e_r_default_ms = (r_default_ms * 8) / 100;
+	e_r_default_ms = htons((r_default_ms * 8) / 100);
 
 	if (queue_delay_ms) {
 		if ((*queue_delay_ms / 10) > 60000)
@@ -345,7 +345,7 @@ int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 		else if (*queue_delay_ms == 0xFFFFFFFF)
 			e_queue_delay = 0xFFFF;
 		else
-			e_queue_delay = *queue_delay_ms / 10;
+			e_queue_delay = htons(*queue_delay_ms / 10);
 	}
 
 	msg = bssgp_msgb_alloc();
