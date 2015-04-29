@@ -97,9 +97,10 @@ static void dump_bvc(struct vty *vty, struct bssgp_bvc_ctx *bvc, int stats)
 		if (fc)
 			vty_out(vty, "FC-BVC(bucket_max: %uoct, leak_rate: "
 				"%uoct/s, cur_tokens: %uoct, max_q_d: %u, "
-				"cur_q_d: %u)\n", fc->bucket_size_max,
+				"cur_q_d: %u)%s", fc->bucket_size_max,
 				fc->bucket_leak_rate, fc->bucket_counter,
-				fc->max_queue_depth, fc->queue_depth);
+				fc->max_queue_depth, fc->queue_depth,
+				VTY_NEWLINE);
 	}
 }
 
