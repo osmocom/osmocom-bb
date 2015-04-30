@@ -628,7 +628,7 @@ static int fc_queue_timer_cfg(struct bssgp_flow_control *fc)
 	if (llist_empty(&fc->queue))
 		return 0;
 
-	fcqe = llist_entry(&fc->queue.next, struct bssgp_fc_queue_element,
+	fcqe = llist_entry(fc->queue.next, struct bssgp_fc_queue_element,
 			   list);
 
 	if (fc->bucket_leak_rate != 0) {
