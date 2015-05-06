@@ -17,6 +17,7 @@
 #include <osmocom/core/prim.h>
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gprs/gprs_ns.h>
+#include <osmocom/gprs/gprs_bssgp_bss.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +59,17 @@ int gprs_ns_callback(enum gprs_ns_evt event, struct gprs_nsvc *nsvc,
 			event, msgb_bssgp_len(msg), bvci,
 			osmo_hexdump(msgb_bssgph(msg), msgb_bssgp_len(msg)));
 	return 0;
+}
+
+struct msgb *last_ns_tx_msg = NULL;
+
+/* override */
+int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
+{
+	msgb_free(last_ns_tx_msg);
+	last_ns_tx_msg = msg;
+
+	return msgb_length(msg);
 }
 
 int bssgp_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
@@ -174,6 +186,68 @@ static void test_bssgp_bad_reset()
 	msgb_bssgp_send_and_free(msg);
 }
 
+static void test_bssgp_flow_control_bvc(void)
+{
+	struct bssgp_bvc_ctx bctx = {
+		.nsei = 0x1234,
+		.bvci = 0x5678,
+	};
+	const uint8_t  tag = 42;
+	const uint32_t bmax = 0x1022 * 100;
+	const uint32_t rate = 0xc040 / 8 * 100;
+	const uint32_t bmax_ms = bmax / 2;
+	const uint32_t rate_ms = rate / 2;
+	uint8_t  ratio = 0x78;
+	uint32_t qdelay = 0x1144 * 10;
+	int rc;
+
+	static uint8_t expected_simple_msg[] = {
+		0x26,
+		0x1e, 0x81, 0x2a,		/* tag */
+		0x05, 0x82, 0x10, 0x22,		/* Bmax */
+		0x03, 0x82, 0xc0, 0x40,		/* R */
+		0x01, 0x82, 0x08, 0x11,		/* Bmax_MS */
+		0x1c, 0x82, 0x60, 0x20,		/* R_MS */
+	};
+
+	static uint8_t expected_ext_msg[] = {
+		0x26,
+		0x1e, 0x81, 0x2a,		/* tag */
+		0x05, 0x82, 0x10, 0x22,		/* Bmax */
+		0x03, 0x82, 0xc0, 0x40,		/* R */
+		0x01, 0x82, 0x08, 0x11,		/* Bmax_MS */
+		0x1c, 0x82, 0x60, 0x20,		/* R_MS */
+		0x3c, 0x81, 0x78,		/* ratio */
+		0x06, 0x82, 0x11, 0x44,		/* Qdelay */
+	};
+
+	printf("----- %s START\n", __func__);
+
+	rc = bssgp_tx_fc_bvc(&bctx, tag, bmax, rate, bmax_ms, rate_ms,
+		NULL, NULL);
+
+	OSMO_ASSERT(rc >= 0);
+	OSMO_ASSERT(last_ns_tx_msg != NULL);
+	printf("Got message: %s\n", msgb_hexdump(last_ns_tx_msg));
+	OSMO_ASSERT(msgb_length(last_ns_tx_msg) == sizeof(expected_simple_msg));
+	OSMO_ASSERT(0 == memcmp(msgb_data(last_ns_tx_msg),
+			expected_simple_msg, sizeof(expected_simple_msg)));
+
+	rc = bssgp_tx_fc_bvc(&bctx, tag, bmax, rate, bmax_ms, rate_ms,
+		&ratio, &qdelay);
+
+	OSMO_ASSERT(rc >= 0);
+	OSMO_ASSERT(last_ns_tx_msg != NULL);
+	printf("Got message: %s\n", msgb_hexdump(last_ns_tx_msg));
+	OSMO_ASSERT(msgb_length(last_ns_tx_msg) == sizeof(expected_ext_msg));
+	OSMO_ASSERT(0 == memcmp(msgb_data(last_ns_tx_msg),
+			expected_ext_msg, sizeof(expected_ext_msg)));
+
+	msgb_free(last_ns_tx_msg);
+	last_ns_tx_msg = NULL;
+
+	printf("----- %s END\n", __func__);
+}
 
 static struct log_info info = {};
 
@@ -198,6 +272,7 @@ int main(int argc, char **argv)
 	test_bssgp_suspend_resume();
 	test_bssgp_status();
 	test_bssgp_bad_reset();
+	test_bssgp_flow_control_bvc();
 	printf("===== BSSGP test END\n\n");
 
 	exit(EXIT_SUCCESS);

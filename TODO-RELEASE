@@ -1,1 +1,2 @@
 #library	what		description / commit summary line
+libosmogb	abi-change	bssgp: Fix bssgp_tx_fc_bvc parameter type

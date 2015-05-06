@@ -315,7 +315,7 @@ int bssgp_tx_bvc_reset(struct bssgp_bvc_ctx *bctx, uint16_t bvci, uint8_t cause)
  */
 int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 		    uint32_t bucket_size, uint32_t bucket_leak_rate,
-		    uint16_t bmax_default_ms, uint32_t r_default_ms,
+		    uint32_t bmax_default_ms, uint32_t r_default_ms,
 		    uint8_t *bucket_full_ratio, uint32_t *queue_delay_ms)
 {
 	struct msgb *msg;
