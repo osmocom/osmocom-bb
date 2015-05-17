@@ -2,7 +2,7 @@
 # Please read Chapter 6 "Library interface versions" of the libtool documentation before making any modification
 LIBVERSION=0:0:0
 
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
+AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include -I$(top_builddir)/include
 AM_CFLAGS = -fPIC -Wall $(PCSC_CFLAGS)
 AM_LDFLAGS = $(COVERAGE_LDFLAGS)
 
