@@ -76,7 +76,7 @@ static void help()
 		"-k  --key\tSpecify Ki / K\n"
 		"-o  --opc\tSpecify OPC (only for 3G)\n"
 		"-O  --op\tSpecify OP (only for 3G)\n"
-		"-a  --amf\tSpecify AMF (only for 3G)\n"
+		"-f  --amf\tSpecify AMF (only for 3G)\n"
 		"-s  --sqn\tSpecify SQN (only for 3G)\n"
 		"-A  --auts\tSpecify AUTS (only for 3G)\n"
 		"-r  --rand\tSpecify random value\n"
