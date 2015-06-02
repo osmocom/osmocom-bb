@@ -89,6 +89,11 @@ const char *ipa_ccm_idtag_name(uint8_t tag)
 
 int ipa_ccm_idtag_parse(struct tlv_parsed *dec, unsigned char *buf, int len)
 {
+	return ipa_ccm_idtag_parse_off(dec, buf, len, 0);
+}
+
+int ipa_ccm_idtag_parse_off(struct tlv_parsed *dec, unsigned char *buf, int len, const int len_offset)
+{
 	uint8_t t_len;
 	uint8_t t_tag;
 	uint8_t *cur = buf;
@@ -100,6 +105,11 @@ int ipa_ccm_idtag_parse(struct tlv_parsed *dec, unsigned char *buf, int len)
 		t_len = *cur++;
 		t_tag = *cur++;
 
+		if (t_len < len_offset) {
+			LOGP(DLMI, LOGL_ERROR, "minimal offset not included: %d\n", t_len);
+			return -EINVAL;
+		}
+
 		if (t_len > len + 1) {
 			LOGP(DLMI, LOGL_ERROR, "The tag does not fit: %d\n", t_len);
 			return -EINVAL;
@@ -107,11 +117,11 @@ int ipa_ccm_idtag_parse(struct tlv_parsed *dec, unsigned char *buf, int len)
 
 		DEBUGPC(DLMI, "%s='%s' ", ipa_ccm_idtag_name(t_tag), cur);
 
-		dec->lv[t_tag].len = t_len;
+		dec->lv[t_tag].len = t_len - len_offset;
 		dec->lv[t_tag].val = cur;
 
-		cur += t_len;
-		len -= t_len;
+		cur += t_len - len_offset;
+		len -= t_len - len_offset;
 	}
 	return 0;
 }

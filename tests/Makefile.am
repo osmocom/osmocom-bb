@@ -16,7 +16,7 @@ check_PROGRAMS += msgfile/msgfile_test
 endif
 
 utils_utils_test_SOURCES = utils/utils_test.c
-utils_utils_test_LDADD = $(top_builddir)/src/libosmocore.la
+utils_utils_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 a5_a5_test_SOURCES = a5/a5_test.c ../src/gsm/a5.c
 a5_a5_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la

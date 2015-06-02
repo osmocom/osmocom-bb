@@ -27,6 +27,9 @@ const char *ipa_ccm_idtag_name(uint8_t tag);
 /* parse a buffer of ID tags into a osmocom TLV style representation */
 int ipa_ccm_idtag_parse(struct tlv_parsed *dec, unsigned char *buf, int len);
 
+/* Is the TAG included in the length field? */
+int ipa_ccm_idtag_parse_off(struct tlv_parsed *dec, unsigned char *buf, int len, const int len_offset);
+
 /* parse an Unit ID in string format into the 'ipaccess_unit' data structure */
 int ipa_parse_unitid(const char *str, struct ipaccess_unit *unit_data);
 
