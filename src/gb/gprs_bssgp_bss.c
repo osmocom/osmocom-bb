@@ -34,6 +34,8 @@
 
 #include "common_vty.h"
 
+#define GSM_IMSI_LENGTH 17
+
 uint8_t *bssgp_msgb_tlli_put(struct msgb *msg, uint32_t tlli)
 {
 	uint32_t _tlli = htonl(tlli);
@@ -498,8 +500,8 @@ int bssgp_rx_paging(struct bssgp_paging_info *pinfo,
 	if (!TLVP_PRESENT(&tp, BSSGP_IE_IMSI))
 		goto err_mand_ie;
 	if (!pinfo->imsi)
-		pinfo->imsi = talloc_zero_size(pinfo, 16);
-	gsm48_mi_to_string(pinfo->imsi, sizeof(pinfo->imsi),
+		pinfo->imsi = talloc_zero_size(pinfo, GSM_IMSI_LENGTH);
+	gsm48_mi_to_string(pinfo->imsi, GSM_IMSI_LENGTH,
 			   TLVP_VAL(&tp, BSSGP_IE_IMSI),
 			   TLVP_LEN(&tp, BSSGP_IE_IMSI));
 
