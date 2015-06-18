@@ -173,9 +173,12 @@ static void test_bssgp_status(void)
 
 static void test_bssgp_bad_reset()
 {
-	struct msgb *msg = bssgp_msgb_alloc();
+	struct msgb *msg;
 	uint16_t bvci_be = htons(2);
 	uint8_t cause = BSSGP_CAUSE_OML_INTERV;
+
+	printf("----- %s START\n", __func__);
+	msg = bssgp_msgb_alloc();
 
 	msgb_v_put(msg, BSSGP_PDUT_BVC_RESET);
 	msgb_tvlv_put(msg, BSSGP_IE_BVCI, sizeof(bvci_be), (uint8_t *)&bvci_be);
@@ -184,6 +187,8 @@ static void test_bssgp_bad_reset()
 	msgb_bvci(msg) = 0xbad;
 
 	msgb_bssgp_send_and_free(msg);
+
+	printf("----- %s END\n", __func__);
 }
 
 static void test_bssgp_flow_control_bvc(void)
