@@ -79,7 +79,7 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 	uint8_t lch_idx;
 	enum mframe_task master_task = 0;
 	uint32_t neigh_task = 0;
-	enum mf_type multiframe;
+	enum mf_type multiframe = 0;
 
 	if (cbits == 0x01) {
 		lch_idx = 0;
@@ -88,6 +88,7 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 	} else if ((cbits & 0x1e) == 0x02) {
 		lch_idx = cbits & 0x1;
 		master_task = MF_TASK_TCH_H_0 + lch_idx;
+		multiframe = (lch_idx & 1) ? MF26ODD : MF26EVEN;
 	} else if ((cbits & 0x1c) == 0x04) {
 		lch_idx = cbits & 0x3;
 		master_task = MF_TASK_SDCCH4_0 + lch_idx;
