@@ -1,1 +1,2 @@
 #library	what		description / commit summary line
+libosmovty	abi-change	vty: Change API to have node installation be done by int

@@ -156,7 +156,7 @@ struct vty_app_info {
 	/*! \brief \ref talloc context */
 	void *tall_ctx;
 	/*! \brief call-back for returning to parent n ode */
-	enum node_type (*go_parent_cb)(struct vty *vty);
+	int (*go_parent_cb)(struct vty *vty);
 	/*! \brief call-back to determine if node is config node */
 	int (*is_config_node)(struct vty *vty, int node);
 	/*! \brief Check if the config is consistent before write */
@@ -184,7 +184,7 @@ int vty_shell_serv (struct vty *);
 void vty_hello (struct vty *);
 void *vty_current_index(struct vty *);
 int vty_current_node(struct vty *vty);
-enum node_type vty_go_parent(struct vty *vty);
+int vty_go_parent(struct vty *vty);
 
 extern void *tall_vty_ctx;
 

@@ -548,7 +548,7 @@ static int vty_dump_nodes(struct vty *vty)
  *  \param[in] ntype Node Type
  *  \param[cmd] element to be installed
  */
-void install_element(enum node_type ntype, struct cmd_element *cmd)
+void install_element(int ntype, struct cmd_element *cmd)
 {
 	struct cmd_node *cnode;
 
@@ -1897,7 +1897,7 @@ char **cmd_complete_command(vector vline, struct vty *vty, int *status)
  * Note also that this function relies on the is_config_child callback to
  * recognize non-config nodes if go_parent_cb is not set.
  */
-enum node_type vty_go_parent(struct vty *vty)
+int vty_go_parent(struct vty *vty)
 {
 	switch (vty->node) {
 		case AUTH_NODE:
@@ -3319,7 +3319,7 @@ void host_config_set(const char *filename)
 	host.config = talloc_strdup(tall_vty_cmd_ctx, filename);
 }
 
-void install_default(enum node_type node)
+void install_default(int node)
 {
 	install_element(node, &config_help_cmd);
 	install_element(node, &config_list_cmd);
@@ -3331,7 +3331,7 @@ void install_default(enum node_type node)
 	install_element(node, &show_running_config_cmd);
 }
 
-void vty_install_default(enum node_type node)
+void vty_install_default(int node)
 {
 	install_default(node);
 

@@ -92,7 +92,7 @@ enum node_type {
  * configuration function pointer . */
 struct cmd_node {
 	/*! \brief Node index */
-	enum node_type node;
+	int node;
 
 	/*! \brief Prompt character at vty interface. */
 	const char *prompt;
@@ -334,15 +334,15 @@ struct desc {
 
 /* Prototypes. */
 void install_node(struct cmd_node *, int (*)(struct vty *));
-void install_default(enum node_type);
-void install_element(enum node_type, struct cmd_element *);
+void install_default(int node_type);
+void install_element(int node_type, struct cmd_element *);
 void install_element_ve(struct cmd_element *cmd);
 void sort_node(void);
 
 /* This is similar to install_default() but it also creates
  * 'exit' and 'end' commands.
  */
-void vty_install_default(enum node_type);
+void vty_install_default(int node_type);
 
 /* Concatenates argv[shift] through argv[argc-1] into a single NUL-terminated
    string with a space between each element (allocated using
