@@ -647,7 +647,7 @@ uint32_t gsm_gsmtime2fn(struct gsm_time *time)
 	return (51 * ((time->t3 - time->t2 + 26) % 26) + time->t3 + (26 * 51 * time->t1));
 }
 
-/* TS 03.03 Chapter 2.6 */
+/* TS 23.003 Chapter 2.6 */
 int gprs_tlli_type(uint32_t tlli)
 {
 	if ((tlli & 0xc0000000) == 0xc0000000)
@@ -658,6 +658,10 @@ int gprs_tlli_type(uint32_t tlli)
 		return TLLI_RANDOM;
 	else if ((tlli & 0xf8000000) == 0x70000000)
 		return TLLI_AUXILIARY;
+	else if ((tlli & 0xf0000000) == 0x00000000)
+		return TLLI_G_RNTI;
+	else if ((tlli & 0xf0000000) == 0x10000000)
+		return TLLI_RAND_G_RNTI;
 
 	return TLLI_RESERVED;
 }

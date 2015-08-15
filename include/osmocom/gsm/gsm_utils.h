@@ -160,6 +160,8 @@ enum gprs_tlli_type {
 	TLLI_RANDOM,
 	TLLI_AUXILIARY,
 	TLLI_RESERVED,
+	TLLI_G_RNTI,
+	TLLI_RAND_G_RNTI,
 };
 
 /* TS 03.03 Chapter 2.6 */
