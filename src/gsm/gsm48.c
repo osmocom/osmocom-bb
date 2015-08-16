@@ -254,6 +254,20 @@ const char *rr_cause_name(uint8_t cause)
 	return get_value_string(rr_cause_names, cause);
 }
 
+static const struct value_string mi_type_names[] = {
+	{ GSM_MI_TYPE_NONE,	"NONE" },
+	{ GSM_MI_TYPE_IMSI,	"IMSI" },
+	{ GSM_MI_TYPE_IMEI,	"IMEI" },
+	{ GSM_MI_TYPE_IMEISV,	"IMEI-SV" },
+	{ GSM_MI_TYPE_TMSI,	"TMSI" },
+	{ 0,			NULL }
+};
+
+const char *gsm48_mi_type_name(uint8_t mi)
+{
+	return get_value_string(mi_type_names, mi);
+}
+
 static void to_bcd(uint8_t *bcd, uint16_t val)
 {
 	bcd[2] = val % 10;

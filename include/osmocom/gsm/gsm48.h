@@ -32,6 +32,7 @@ int gsm48_generate_mid_from_imsi(uint8_t *buf, const char *imsi);
 /* Convert Mobile Identity (10.5.1.4) to string */
 int gsm48_mi_to_string(char *string, const int str_len,
 			const uint8_t *mi, const int mi_len);
+const char *gsm48_mi_type_name(uint8_t mi);
 
 /* Parse Routeing Area Identifier */
 void gsm48_parse_ra(struct gprs_ra_id *raid, const uint8_t *buf);
