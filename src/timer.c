@@ -23,9 +23,6 @@
  *
  */
 
-/* These store the amount of time that we wait until next timer expires. */
-static struct timeval nearest;
-static struct timeval *nearest_p;
 
 /*! \addtogroup timer
  *  @{
@@ -40,6 +37,10 @@ static struct timeval *nearest_p;
 #include <osmocom/core/timer.h>
 #include <osmocom/core/timer_compat.h>
 #include <osmocom/core/linuxlist.h>
+
+/* These store the amount of time that we wait until next timer expires. */
+static struct timeval nearest;
+static struct timeval *nearest_p;
 
 static struct rb_root timer_root = RB_ROOT;
 
