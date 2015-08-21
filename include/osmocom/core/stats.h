@@ -22,6 +22,8 @@
 #include <sys/socket.h>
 #include <osmocom/core/linuxlist.h>
 
+#include <stdint.h>
+
 struct msgb;
 struct osmo_stat_item_group;
 struct osmo_stat_item_desc;
