@@ -130,7 +130,7 @@ const char *loglevel_descriptions[LOGLEVEL_DEFS+1] = {
 	"Don't use. It doesn't log anything",
 	"Log debug messages and higher levels",
 	"Log informational messages and higher levels",
-	"Log noticable messages and higher levels",
+	"Log noticeable messages and higher levels",
 	"Log error messages and higher levels",
 	"Log only fatal messages",
 	NULL,

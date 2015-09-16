@@ -204,7 +204,7 @@ static const struct osim_file_desc sim_ef_in_tetra[] = {
 	EF_LIN_FIX_N(0x6F2B, SFI_NONE, "EF.MSGEXT", F_OPTIONAL, 16, 16,
 		"Message Extension"),
 	EF_LIN_FIX_N(0x6F2C, SFI_NONE, "EF.EADDR", 0, 17, 17,
-		"Emergency adresses"),
+		"Emergency addresses"),
 	EF_TRANSP_N(0x6F2D, SFI_NONE, "EF.EINFO", 0, 2, 2,
 		"Emergency call information"),
 	EF_LIN_FIX_N(0x6F2E, SFI_NONE, "EF.DMOCh", F_OPTIONAL, 4, 4,
