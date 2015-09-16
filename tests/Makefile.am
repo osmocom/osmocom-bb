@@ -19,12 +19,10 @@ utils_utils_test_SOURCES = utils/utils_test.c
 utils_utils_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 a5_a5_test_SOURCES = a5/a5_test.c
-a5_a5_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
-a5_a5_test_LDFLAGS = -static
+a5_a5_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libgsmint.la
 
 kasumi_kasumi_test_SOURCES = kasumi/kasumi_test.c
-kasumi_kasumi_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
-kasumi_kasumi_test_LDFLAGS = -static
+kasumi_kasumi_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libgsmint.la
 
 comp128_comp128_test_SOURCES = comp128/comp128_test.c
 comp128_comp128_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
