@@ -101,6 +101,7 @@ uint8_t osmo_char2bcd(char c)
  *  \param[in] str string containing ASCII encoded hexadecimal digits
  *  \param[out] b output buffer
  *  \param[in] max_len maximum space in output buffer
+ *  \returns number of parsed octets, or -1 on error
  */
 int osmo_hexparse(const char *str, uint8_t *b, int max_len)
 
