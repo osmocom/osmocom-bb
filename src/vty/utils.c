@@ -29,6 +29,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/stat_item.h>
 #include <osmocom/core/utils.h>
 
 #include <osmocom/vty/vty.h>
@@ -60,6 +61,27 @@ void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 			ctr->intv[RATE_CTR_INTV_HOUR].rate,
 			ctr->intv[RATE_CTR_INTV_DAY].rate,
 			VTY_NEWLINE);
+	};
+}
+
+/*! \brief print a stat item group to given VTY
+ *  \param[in] vty The VTY to which it should be printed
+ *  \param[in] prefix Any additional log prefix ahead of each line
+ *  \param[in] statg Stat item group to be printed
+ */
+void vty_out_stat_item_group(struct vty *vty, const char *prefix,
+			     struct stat_item_group *statg)
+{
+	unsigned int i;
+
+	vty_out(vty, "%s%s:%s", prefix, statg->desc->group_description,
+		VTY_NEWLINE);
+	for (i = 0; i < statg->desc->num_items; i++) {
+		struct stat_item *item = statg->items[i];
+		vty_out(vty, " %s%s: %8" PRIi32 " %s%s",
+			prefix, item->desc->description,
+			stat_item_get_last(item),
+			item->desc->unit, VTY_NEWLINE);
 	};
 }
 
