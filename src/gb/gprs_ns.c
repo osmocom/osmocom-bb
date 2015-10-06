@@ -75,6 +75,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/stat_item.h>
 #include <osmocom/core/socket.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/gprs/gprs_ns.h>
@@ -104,6 +105,8 @@ enum ns_ctr {
 	NS_CTR_NSEI_CHG,
 	NS_CTR_INV_VCI,
 	NS_CTR_INV_NSEI,
+	NS_CTR_LOST_ALIVE,
+	NS_CTR_LOST_RESET,
 };
 
 static const struct rate_ctr_desc nsvc_ctr_description[] = {
@@ -117,6 +120,8 @@ static const struct rate_ctr_desc nsvc_ctr_description[] = {
 	{ "nsei-chg",	"NS-VC changed NSEI count  " },
 	{ "inv-nsvci",	"NS-VCI was invalid count  " },
 	{ "inv-nsei",	"NSEI was invalid count    " },
+	{ "lost.alive",	"ALIVE ACK missing count   " },
+	{ "lost.reset",	"RESET ACK missing count   " },
 };
 
 static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
@@ -124,6 +129,21 @@ static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
 	.group_description = "NSVC Peer Statistics",
 	.num_ctr = ARRAY_SIZE(nsvc_ctr_description),
 	.ctr_desc = nsvc_ctr_description,
+};
+
+enum ns_stat {
+	NS_STAT_ALIVE_DELAY,
+};
+
+static const struct stat_item_desc nsvc_stat_description[] = {
+	{ "alive.delay", "ALIVE reponse time        ", "ms", 16, 0 },
+};
+
+static const struct stat_item_group_desc nsvc_statg_desc = {
+	.group_name_prefix = "ns.nsvc",
+	.group_description = "NSVC Peer Statistics",
+	.num_items = ARRAY_SIZE(nsvc_stat_description),
+	.item_desc = nsvc_stat_description,
 };
 
 #define CHECK_TX_RC(rc, nsvc) \
@@ -218,6 +238,7 @@ struct gprs_nsvc *gprs_nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 	nsvc->timer.cb = gprs_ns_timer_cb;
 	nsvc->timer.data = nsvc;
 	nsvc->ctrg = rate_ctr_group_alloc(nsvc, &nsvc_ctrg_desc, nsvci);
+	nsvc->statg = stat_item_group_alloc(nsvc, &nsvc_statg_desc, nsvci);
 
 	llist_add(&nsvc->list, &nsi->gprs_nsvcs);
 
@@ -531,8 +552,18 @@ static void nsvc_start_timer(struct gprs_nsvc *nsvc, enum nsvc_timer_mode mode)
 	if (osmo_timer_pending(&nsvc->timer))
 		osmo_timer_del(&nsvc->timer);
 
+	gettimeofday(&nsvc->timer_started, NULL);
 	nsvc->timer_mode = mode;
 	osmo_timer_schedule(&nsvc->timer, seconds, 0);
+}
+
+static int nsvc_timer_elapsed_ms(struct gprs_nsvc *nsvc)
+{
+	struct timeval now, elapsed;
+	gettimeofday(&now, NULL);
+	timersub(&now, &nsvc->timer_started, &elapsed);
+
+	return 1000 * elapsed.tv_sec + elapsed.tv_usec / 1000;
 }
 
 static void gprs_ns_timer_cb(void *data)
@@ -549,6 +580,7 @@ static void gprs_ns_timer_cb(void *data)
 	switch (nsvc->timer_mode) {
 	case NSVC_TIMER_TNS_ALIVE:
 		/* Tns-alive case: we expired without response ! */
+		rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_LOST_ALIVE]);
 		nsvc->alive_retries++;
 		if (nsvc->alive_retries >
 			nsvc->nsi->timeout[NS_TOUT_TNS_ALIVE_RETRIES]) {
@@ -578,6 +610,7 @@ static void gprs_ns_timer_cb(void *data)
 		nsvc_start_timer(nsvc, NSVC_TIMER_TNS_ALIVE);
 		break;
 	case NSVC_TIMER_TNS_RESET:
+		rate_ctr_inc(&nsvc->ctrg->ctr[NS_CTR_LOST_RESET]);
 		/* Chapter 7.3: Re-send the RESET */
 		gprs_ns_tx_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
 		/* Re-start Tns-reset timer */
@@ -1272,6 +1305,9 @@ int gprs_ns_process_msg(struct gprs_ns_inst *nsi, struct msgb *msg,
 			rc = gprs_ns_tx_alive_ack(*nsvc);
 		break;
 	case NS_PDUT_ALIVE_ACK:
+		if ((*nsvc)->timer_mode == NSVC_TIMER_TNS_ALIVE)
+			stat_item_set((*nsvc)->statg->items[NS_STAT_ALIVE_DELAY],
+				nsvc_timer_elapsed_ms(*nsvc));
 		/* stop Tns-alive and start Tns-test */
 		nsvc_start_timer(*nsvc, NSVC_TIMER_TNS_TEST);
 		if ((*nsvc)->remote_end_is_sgsn) {

@@ -167,8 +167,10 @@ static void dump_nse(struct vty *vty, struct gprs_nsvc *nsvc, int stats)
 			inet_ntoa(nsvc->ip.bts_addr.sin_addr),
 			ntohs(nsvc->ip.bts_addr.sin_port));
 	vty_out(vty, "%s", VTY_NEWLINE);
-	if (stats)
+	if (stats) {
 		vty_out_rate_ctr_group(vty, " ", nsvc->ctrg);
+		vty_out_stat_item_group(vty, " ", nsvc->statg);
+	}
 }
 
 static void dump_ns(struct vty *vty, struct gprs_ns_inst *nsi, int stats)
