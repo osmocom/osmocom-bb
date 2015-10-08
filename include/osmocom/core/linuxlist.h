@@ -294,7 +294,8 @@ static inline void llist_splice_init(struct llist_head *llist,
 		     prefetch(pos->member.next))
 
 /**
- * llist_for_each_entry_safe - iterate over llist of given type safe against removal of llist entry
+ * llist_for_each_entry_safe - iterate over llist of given type, safe against
+ *                             removal of non-consecutive(!) llist entries
  * @pos:	the type * to use as a loop counter.
  * @n:		another type * to use as temporary storage
  * @head:	the head for your llist.
