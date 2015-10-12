@@ -38,6 +38,7 @@
 #include <osmocom/core/stat_item.h>
 
 static LLIST_HEAD(stat_item_groups);
+static int32_t global_value_id = 0;
 
 static void *tall_stat_item_ctx;
 
@@ -74,7 +75,8 @@ struct stat_item_group *stat_item_group_alloc(void *ctx,
 	for (item_idx = 0; item_idx < desc->num_items; item_idx++) {
 		unsigned int size;
 		size = sizeof(struct stat_item) +
-			sizeof(int32_t) * desc->item_desc[item_idx].num_values;
+			sizeof(struct stat_item_value) *
+			desc->item_desc[item_idx].num_values;
 		/* Align to pointer size */
 		size = (size + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
 
@@ -101,8 +103,10 @@ struct stat_item_group *stat_item_group_alloc(void *ctx,
 		item->last_value_index = -1;
 		item->desc = &desc->item_desc[item_idx];
 
-		for (i = 0; i <= item->last_offs; i++)
-			item->values[i] = desc->item_desc[item_idx].default_value;
+		for (i = 0; i <= item->last_offs; i++) {
+			item->values[i].value = desc->item_desc[item_idx].default_value;
+			item->values[i].id = STAT_ITEM_NOVALUE_ID;
+		}
 	}
 
 	llist_add(&group->list, &stat_item_groups);
@@ -123,49 +127,68 @@ void stat_item_set(struct stat_item *item, int32_t value)
 	if (item->last_offs >= item->desc->num_values)
 		item->last_offs = 0;
 
-	item->last_value_index += 1;
+	global_value_id += 1;
+	if (global_value_id == STAT_ITEM_NOVALUE_ID)
+		global_value_id += 1;
 
-	item->values[item->last_offs] = value;
+	item->values[item->last_offs].value = value;
+	item->values[item->last_offs].id    = global_value_id;
 }
 
 int stat_item_get_next(const struct stat_item *item, int32_t *next_idx,
 	int32_t *value)
 {
-	int32_t delta = item->last_value_index + 1 - *next_idx;
-	int n_values = 0;
+	const struct stat_item_value *next_value;
+	const struct stat_item_value *item_value = NULL;
+	int idx_delta;
 	int next_offs;
 
-	if (delta == 0)
+	next_offs = item->last_offs;
+	next_value = &item->values[next_offs];
+
+	while (next_value->id - *next_idx >= 0 &&
+		next_value->id != STAT_ITEM_NOVALUE_ID)
+	{
+		item_value = next_value;
+
+		next_offs -= 1;
+		if (next_offs < 0)
+			next_offs = item->desc->num_values - 1;
+		if (next_offs == item->last_offs)
+			break;
+		next_value = &item->values[next_offs];
+	}
+
+	if (!item_value)
 		/* All items have been read */
 		return 0;
 
-	if (delta < 0 || delta > item->desc->num_values) {
-		n_values = delta - item->desc->num_values;
-		delta = item->desc->num_values;
-	}
+	*value = item_value->value;
 
-	next_offs = item->last_offs + 1 - delta;
-	if (next_offs < 0)
-		next_offs += item->desc->num_values;
+	idx_delta = item_value->id + 1 - *next_idx;
 
-	*value = item->values[next_offs];
+	*next_idx = item_value->id + 1;
 
-	n_values += 1;
-	delta -= 1;
-	*next_idx = item->last_value_index + 1 - delta;
-
-	return n_values;
+	return idx_delta;
 }
 
-/*! \brief Skip all values and update idx accordingly */
+/*! \brief Skip all values of this item and update idx accordingly */
 int stat_item_discard(const struct stat_item *item, int32_t *idx)
 {
-	int discarded = item->last_value_index + 1 - *idx;
-	*idx = item->last_value_index + 1;
+	int discarded = item->values[item->last_offs].id + 1 - *idx;
+	*idx = item->values[item->last_offs].id + 1;
 
 	return discarded;
 }
 
+/*! \brief Skip all values of all items and update idx accordingly */
+int stat_item_discard_all(int32_t *idx)
+{
+	int discarded = global_value_id + 1 - *idx;
+	*idx = global_value_id + 1;
+
+	return discarded;
+}
 
 /*! \brief Initialize the stat item module */
 int stat_item_init(void *tall_ctx)

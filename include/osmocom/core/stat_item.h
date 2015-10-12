@@ -12,6 +12,13 @@
 
 struct stat_item_desc;
 
+#define STAT_ITEM_NOVALUE_ID 0
+
+struct stat_item_value {
+	int32_t id;
+	int32_t value;
+};
+
 /*! \brief data we keep for each actual value */
 struct stat_item {
 	const struct stat_item_desc *desc;
@@ -20,7 +27,7 @@ struct stat_item {
 	/*! \brief offset to the freshest value in the value fifo */
 	int16_t last_offs;
 	/*! \brief value fifo */
-	int32_t values[0];
+	struct stat_item_value values[0];
 };
 
 /*! \brief statistics value description */
@@ -61,9 +68,9 @@ struct stat_item_group *stat_item_group_alloc(
 	const struct stat_item_group_desc *desc,
 	unsigned int idx);
 
-void stat_item_group_free(struct stat_item_group *grp);
+void stat_item_group_free(struct stat_item_group *statg);
 
-void stat_item_set(struct stat_item *val, int32_t value);
+void stat_item_set(struct stat_item *item, int32_t value);
 
 int stat_item_init(void *tall_ctx);
 
@@ -71,7 +78,7 @@ struct stat_item_group *stat_item_get_group_by_name_idx(
 	const char *name, const unsigned int idx);
 
 const struct stat_item *stat_item_get_by_name(
-	const struct stat_item_group *valg, const char *name);
+	const struct stat_item_group *statg, const char *name);
 
 /*! \brief Retrieve the next value from the stat_item object.
  * If a new value has been set, it is returned. The idx is used to decide
@@ -89,16 +96,19 @@ const struct stat_item *stat_item_get_by_name(
  *           1: one value has been taken,
  *           (1+n): n values have been skipped, one has been taken)
  */
-int stat_item_get_next(const struct stat_item *val, int32_t *idx, int32_t *value);
+int stat_item_get_next(const struct stat_item *item, int32_t *idx, int32_t *value);
 
 /*! \brief Get the last (freshest) value */
-static int32_t stat_item_get_last(const struct stat_item *val);
+static int32_t stat_item_get_last(const struct stat_item *item);
 
 /*! \brief Skip all values of the item and update idx accordingly */
-int stat_item_discard(const struct stat_item *val, int32_t *idx);
+int stat_item_discard(const struct stat_item *item, int32_t *idx);
 
-static inline int32_t stat_item_get_last(const struct stat_item *val)
+/*! \brief Skip all values of all items and update idx accordingly */
+int stat_item_discard_all(int32_t *idx);
+
+static inline int32_t stat_item_get_last(const struct stat_item *item)
 {
-	return val->values[val->last_offs];
+	return item->values[item->last_offs].value;
 }
 /*! @} */
