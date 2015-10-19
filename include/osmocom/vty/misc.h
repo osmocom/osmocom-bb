@@ -16,5 +16,7 @@ void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 void vty_out_stat_item_group(struct vty *vty, const char *prefix,
 			     struct stat_item_group *statg);
 
+void vty_out_statistics_full(struct vty *vty, const char *prefix);
+
 int osmo_vty_write_config_file(const char *filename);
 int osmo_vty_save_config_file(void);

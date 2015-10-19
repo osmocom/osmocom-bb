@@ -31,6 +31,7 @@
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/stat_item.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/statistics.h>
 
 #include <osmocom/vty/vty.h>
 
@@ -106,6 +107,63 @@ void vty_out_stat_item_group(struct vty *vty, const char *prefix,
 	vty_out(vty, "%s%s:%s", prefix, statg->desc->group_description,
 		VTY_NEWLINE);
 	stat_item_for_each_item(statg, stat_item_handler, &vctx);
+}
+
+static int stat_item_group_handler(struct stat_item_group *statg, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	if (statg->idx)
+		vty_out(vty, "%s%s (%d):%s", vctx->prefix,
+			statg->desc->group_description, statg->idx,
+			VTY_NEWLINE);
+	else
+		vty_out(vty, "%s%s:%s", vctx->prefix,
+			statg->desc->group_description, VTY_NEWLINE);
+
+	stat_item_for_each_item(statg, stat_item_handler, vctx);
+
+	return 0;
+}
+
+static int rate_ctr_group_handler(struct rate_ctr_group *ctrg, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	if (ctrg->idx)
+		vty_out(vty, "%s%s (%d):%s", vctx->prefix,
+			ctrg->desc->group_description, ctrg->idx, VTY_NEWLINE);
+	else
+		vty_out(vty, "%s%s:%s", vctx->prefix,
+			ctrg->desc->group_description, VTY_NEWLINE);
+
+	rate_ctr_for_each_counter(ctrg, rate_ctr_handler, vctx);
+
+	return 0;
+}
+
+static int handle_counter(struct osmo_counter *counter, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	vty_out(vty, " %s%s: %8lu%s",
+		vctx->prefix, counter->description,
+		osmo_counter_get(counter), VTY_NEWLINE);
+
+	return 0;
+}
+
+void vty_out_statistics_full(struct vty *vty, const char *prefix)
+{
+	struct vty_out_context vctx = {vty, prefix};
+
+	vty_out(vty, "%sUngrouped counters:%s", prefix, VTY_NEWLINE);
+	osmo_counters_for_each(handle_counter, &vctx);
+	rate_ctr_for_each_group(rate_ctr_group_handler, &vctx);
+	stat_item_for_each_group(stat_item_group_handler, &vctx);
 }
 
 /*! \brief Generate a VTY command string from value_string */
