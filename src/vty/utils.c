@@ -40,6 +40,30 @@
  *  @{
  */
 
+struct vty_out_context {
+	struct vty *vty;
+	const char *prefix;
+};
+
+static int rate_ctr_handler(
+	struct rate_ctr_group *ctrg, struct rate_ctr *ctr,
+	const struct rate_ctr_desc *desc, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	vty_out(vty, " %s%s: %8" PRIu64 " "
+		"(%" PRIu64 "/s %" PRIu64 "/m %" PRIu64 "/h %" PRIu64 "/d)%s",
+		vctx->prefix, desc->description, ctr->current,
+		ctr->intv[RATE_CTR_INTV_SEC].rate,
+		ctr->intv[RATE_CTR_INTV_MIN].rate,
+		ctr->intv[RATE_CTR_INTV_HOUR].rate,
+		ctr->intv[RATE_CTR_INTV_DAY].rate,
+		VTY_NEWLINE);
+
+	return 0;
+}
+
 /*! \brief print a rate counter group to given VTY
  *  \param[in] vty The VTY to which it should be printed
  *  \param[in] prefix Any additional log prefix ahead of each line
@@ -48,20 +72,25 @@
 void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 			    struct rate_ctr_group *ctrg)
 {
-	unsigned int i;
+	struct vty_out_context vctx = {vty, prefix};
 
 	vty_out(vty, "%s%s:%s", prefix, ctrg->desc->group_description, VTY_NEWLINE);
-	for (i = 0; i < ctrg->desc->num_ctr; i++) {
-		struct rate_ctr *ctr = &ctrg->ctr[i];
-		vty_out(vty, " %s%s: %8" PRIu64 " "
-			"(%" PRIu64 "/s %" PRIu64 "/m %" PRIu64 "/h %" PRIu64 "/d)%s",
-			prefix, ctrg->desc->ctr_desc[i].description, ctr->current,
-			ctr->intv[RATE_CTR_INTV_SEC].rate,
-			ctr->intv[RATE_CTR_INTV_MIN].rate,
-			ctr->intv[RATE_CTR_INTV_HOUR].rate,
-			ctr->intv[RATE_CTR_INTV_DAY].rate,
-			VTY_NEWLINE);
-	};
+
+	rate_ctr_for_each_counter(ctrg, rate_ctr_handler, &vctx);
+}
+
+static int stat_item_handler(
+	struct stat_item_group *statg, struct stat_item *item, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	vty_out(vty, " %s%s: %8" PRIi32 " %s%s",
+		vctx->prefix, item->desc->description,
+		stat_item_get_last(item),
+		item->desc->unit, VTY_NEWLINE);
+
+	return 0;
 }
 
 /*! \brief print a stat item group to given VTY
@@ -72,17 +101,11 @@ void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 void vty_out_stat_item_group(struct vty *vty, const char *prefix,
 			     struct stat_item_group *statg)
 {
-	unsigned int i;
+	struct vty_out_context vctx = {vty, prefix};
 
 	vty_out(vty, "%s%s:%s", prefix, statg->desc->group_description,
 		VTY_NEWLINE);
-	for (i = 0; i < statg->desc->num_items; i++) {
-		struct stat_item *item = statg->items[i];
-		vty_out(vty, " %s%s: %8" PRIi32 " %s%s",
-			prefix, item->desc->description,
-			stat_item_get_last(item),
-			item->desc->unit, VTY_NEWLINE);
-	};
+	stat_item_for_each_item(statg, stat_item_handler, &vctx);
 }
 
 /*! \brief Generate a VTY command string from value_string */
