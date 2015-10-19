@@ -113,6 +113,7 @@ nobase_include_HEADERS += \
                           osmocom/vty/buffer.h \
                           osmocom/vty/command.h \
                           osmocom/vty/logging.h \
+                          osmocom/vty/stats.h \
                           osmocom/vty/misc.h \
                           osmocom/vty/telnet_interface.h \
                           osmocom/vty/vector.h \
