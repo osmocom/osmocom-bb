@@ -235,4 +235,34 @@ const struct stat_item *stat_item_get_by_name(
 	return NULL;
 }
 
+int stat_item_for_each_item(struct stat_item_group *statg,
+	stat_item_handler_t handle_item, void *data)
+{
+	int rc = 0;
+	int i;
+
+	for (i = 0; i < statg->desc->num_items; i++) {
+		struct stat_item *item = statg->items[i];
+		rc = handle_item(statg, item, data);
+		if (rc < 0)
+			return rc;
+	}
+
+	return rc;
+}
+
+int stat_item_for_each_group(stat_item_group_handler_t handle_group, void *data)
+{
+	struct stat_item_group *statg;
+	int rc = 0;
+
+	llist_for_each_entry(statg, &stat_item_groups, list) {
+		rc = handle_group(statg, data);
+		if (rc < 0)
+			return rc;
+	}
+
+	return rc;
+}
+
 /*! @} */

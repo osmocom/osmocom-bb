@@ -107,6 +107,20 @@ int stat_item_discard(const struct stat_item *item, int32_t *idx);
 /*! \brief Skip all values of all items and update idx accordingly */
 int stat_item_discard_all(int32_t *idx);
 
+typedef int (*stat_item_handler_t)(
+	struct stat_item_group *, struct stat_item *, void *);
+
+typedef int (*stat_item_group_handler_t)(struct stat_item_group *, void *);
+
+/*! \brief Iteate over all items
+ *  \param[in] handle_item Call-back function, aborts if rc < 0
+ *  \param[in] data Private data handed through to \a handle_item
+ */
+int stat_item_for_each_item(struct stat_item_group *statg,
+	stat_item_handler_t handle_item, void *data);
+
+int stat_item_for_each_group(stat_item_group_handler_t handle_group, void *data);
+
 static inline int32_t stat_item_get_last(const struct stat_item *item)
 {
 	return item->values[item->last_offs].value;
