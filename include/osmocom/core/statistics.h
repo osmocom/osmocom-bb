@@ -37,8 +37,8 @@ struct osmo_counter *osmo_counter_alloc(const char *name);
  */
 void osmo_counter_free(struct osmo_counter *ctr);
 
-/*! \brief Iteate over all counters
- *  \param[in] handle_counter Call-back function
+/*! \brief Iterate over all counters
+ *  \param[in] handle_counter Call-back function, aborts if rc < 0
  *  \param[in] data Private dtata handed through to \a handle_counter
  */
 int osmo_counters_for_each(int (*handle_counter)(struct osmo_counter *, void *), void *data);
