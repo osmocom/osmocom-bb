@@ -1,1 +1,2 @@
 #library	what		description / commit summary line
+libosmovty	abi-change	stats/vty: Add stats configuration (enum node_type has changed)

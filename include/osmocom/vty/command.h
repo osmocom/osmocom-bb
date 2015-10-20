@@ -75,6 +75,7 @@ enum node_type {
 	SERVICE_NODE,		/*!< \brief Service node. */
 	DEBUG_NODE,		/*!< \brief Debug node. */
 	CFG_LOG_NODE,		/*!< \brief Configure the logging */
+	CFG_STATS_NODE,		/*!< \brief Configure the statistics */
 
 	VTY_NODE,		/*!< \brief Vty node. */
 
