@@ -74,3 +74,11 @@ struct osmo_counter *osmo_counter_get_by_name(const char *name)
 	}
 	return NULL;
 }
+
+int osmo_counter_difference(struct osmo_counter *ctr)
+{
+	int delta = ctr->value - ctr->previous;
+	ctr->previous = ctr->value;
+
+	return delta;
+}
