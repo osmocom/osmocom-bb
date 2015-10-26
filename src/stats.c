@@ -36,13 +36,24 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/stat_item.h>
+#include <osmocom/core/timer.h>
 
 /* TODO: register properly */
 #define DSTATS DLGLOBAL
 
+#define STATS_DEFAULT_INTERVAL 5 /* secs */
 
 static LLIST_HEAD(stats_reporter_list);
 static void *stats_ctx = NULL;
+static int is_initialised = 0;
+static int32_t current_stat_item_index = 0;
+
+static struct stats_config s_stats_config = {
+	.interval = STATS_DEFAULT_INTERVAL,
+};
+struct stats_config *stats_config = &s_stats_config;
+
+static struct osmo_timer_list stats_timer;
 
 static int stats_reporter_statsd_open(struct stats_reporter *srep);
 static int stats_reporter_statsd_close(struct stats_reporter *srep);
@@ -75,6 +86,27 @@ static int update_srep_config(struct stats_reporter *srep)
 	return rc;
 }
 
+static void stats_timer_cb(void *data)
+{
+	int interval = stats_config->interval;
+
+	if (!llist_empty(&stats_reporter_list))
+		stats_report();
+
+	osmo_timer_schedule(&stats_timer, interval, 0);
+}
+
+static int start_timer()
+{
+	if (!is_initialised)
+		return -ESRCH;
+
+	stats_timer.cb = stats_timer_cb;
+	osmo_timer_schedule(&stats_timer, 0, 1);
+
+	return 0;
+}
+
 struct stats_reporter *stats_reporter_alloc(enum stats_reporter_type type,
 	const char *name)
 {
@@ -101,6 +133,9 @@ void stats_reporter_free(struct stats_reporter *srep)
 void stats_init(void *ctx)
 {
 	stats_ctx = ctx;
+
+	is_initialised = 1;
+	start_timer();
 }
 
 struct stats_reporter *stats_reporter_find(enum stats_reporter_type type,
@@ -176,11 +211,16 @@ int stats_reporter_set_local_addr(struct stats_reporter *srep, const char *addr)
 	return update_srep_config(srep);
 }
 
-int stats_reporter_set_interval(struct stats_reporter *srep, int interval)
+int stats_set_interval(int interval)
 {
-	srep->interval = interval;
+	if (interval <= 0)
+		return -EINVAL;
 
-	return update_srep_config(srep);
+	stats_config->interval = interval;
+	if (is_initialised)
+		start_timer();
+
+	return 0;
 }
 
 int stats_reporter_set_name_prefix(struct stats_reporter *srep, const char *prefix)

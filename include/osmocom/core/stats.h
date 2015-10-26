@@ -32,7 +32,6 @@ struct stats_reporter {
 
 	/* config */
 	int enabled;
-	int interval;
 	char *name_prefix;
 	char *dest_addr_str;
 	char *bind_addr_str;
@@ -50,8 +49,16 @@ struct stats_reporter {
 	struct llist_head list;
 };
 
+struct stats_config {
+	int interval;
+};
+
+extern struct stats_config *stats_config;
+
 void stats_init(void *ctx);
 int stats_report();
+
+int stats_set_interval(int interval);
 
 struct stats_reporter *stats_reporter_alloc(enum stats_reporter_type type,
 	const char *name);
@@ -64,7 +71,6 @@ struct stats_reporter *stats_reporter_find(enum stats_reporter_type type,
 int stats_reporter_set_remote_addr(struct stats_reporter *srep, const char *addr);
 int stats_reporter_set_remote_port(struct stats_reporter *srep, int port);
 int stats_reporter_set_local_addr(struct stats_reporter *srep, const char *addr);
-int stats_reporter_set_interval(struct stats_reporter *srep, int interval);
 int stats_reporter_set_name_prefix(struct stats_reporter *srep, const char *prefix);
 int stats_reporter_enable(struct stats_reporter *srep);
 int stats_reporter_disable(struct stats_reporter *srep);

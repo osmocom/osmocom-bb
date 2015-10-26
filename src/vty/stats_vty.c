@@ -128,15 +128,6 @@ DEFUN(cfg_stats_reporter_remote_port, cfg_stats_reporter_remote_port_cmd,
 		argv[0], "remote port");
 }
 
-DEFUN(cfg_stats_reporter_interval, cfg_stats_reporter_interval_cmd,
-	"interval <1-65535>",
-	"Set the reporting interval\n"
-	"Interval in seconds\n")
-{
-	return set_srep_parameter_int(vty, stats_reporter_set_interval,
-		argv[0], "reporting interval");
-}
-
 DEFUN(cfg_stats_reporter_prefix, cfg_stats_reporter_prefix_cmd,
 	"prefix PREFIX",
 	"Set the item name prefix\n"
@@ -214,6 +205,24 @@ DEFUN(cfg_stats_reporter_statsd, cfg_stats_reporter_statsd_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_stats_interval, cfg_stats_interval_cmd,
+	"stats interval <1-65535>",
+	CFG_STATS_STR "Set the reporting interval\n"
+	"Interval in seconds\n")
+{
+	int rc;
+	int interval = atoi(argv[0]);
+	rc = stats_set_interval(interval);
+	if (rc < 0) {
+		vty_out(vty, "%% Unable to set interval: %s%s",
+			strerror(-rc), VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+
 DEFUN(cfg_no_stats_reporter_statsd, cfg_no_stats_reporter_statsd_cmd,
 	"no stats reporter statsd",
 	NO_STR CFG_STATS_STR CFG_REPORTER_STR "Report to a STATSD server\n")
@@ -264,9 +273,6 @@ static int config_write_stats_reporter(struct vty *vty, struct stats_reporter *s
 	if (srep->bind_addr_str)
 		vty_out(vty, "  local-ip %s%s",
 			srep->bind_addr_str, VTY_NEWLINE);
-	if (srep->interval)
-		vty_out(vty, "  interval %d%s",
-			srep->interval, VTY_NEWLINE);
 	if (srep->name_prefix && *srep->name_prefix)
 		vty_out(vty, "  prefix %s%s",
 			srep->name_prefix, VTY_NEWLINE);
@@ -286,6 +292,8 @@ static int config_write_stats(struct vty *vty)
 	srep = stats_reporter_find(STATS_REPORTER_STATSD, NULL);
 	config_write_stats_reporter(vty, srep);
 
+	vty_out(vty, "stats interval %d%s", stats_config->interval, VTY_NEWLINE);
+
 	return 1;
 }
 
@@ -295,6 +303,7 @@ void stats_vty_add_cmds()
 
 	install_element(CONFIG_NODE, &cfg_stats_reporter_statsd_cmd);
 	install_element(CONFIG_NODE, &cfg_no_stats_reporter_statsd_cmd);
+	install_element(CONFIG_NODE, &cfg_stats_interval_cmd);
 
 	install_node(&cfg_stats_node, config_write_stats);
 	vty_install_default(CFG_STATS_NODE);
@@ -303,7 +312,6 @@ void stats_vty_add_cmds()
 	install_element(CFG_STATS_NODE, &cfg_no_stats_reporter_local_ip_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_remote_ip_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_remote_port_cmd);
-	install_element(CFG_STATS_NODE, &cfg_stats_reporter_interval_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_prefix_cmd);
 	install_element(CFG_STATS_NODE, &cfg_no_stats_reporter_prefix_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_enable_cmd);
