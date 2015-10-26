@@ -133,6 +133,7 @@ void stats_reporter_free(struct stats_reporter *srep)
 void stats_init(void *ctx)
 {
 	stats_ctx = ctx;
+	stat_item_discard_all(&current_stat_item_index);
 
 	is_initialised = 1;
 	start_timer();
@@ -416,12 +417,60 @@ static int rate_ctr_group_handler(struct rate_ctr_group *ctrg, void *sctx_)
 	return 0;
 }
 
+/*** stat item support ***/
+
+static int stats_reporter_send_item(struct stats_reporter *srep,
+	const struct stat_item_group *statg,
+	const struct stat_item_desc *desc,
+	int32_t value)
+{
+	int rc;
+
+	switch (srep->type) {
+	case STATS_REPORTER_STATSD:
+		rc = stats_reporter_statsd_send_item(srep, statg, desc,
+			value);
+		break;
+	}
+
+	return rc;
+}
+
+static int stat_item_handler(
+	struct stat_item_group *statg, struct stat_item *item, void *sctx_)
+{
+	struct stats_reporter *srep;
+	int rc;
+	int32_t idx = current_stat_item_index;
+	int32_t value;
+
+	while (stat_item_get_next(item, &idx, &value) > 0) {
+		llist_for_each_entry(srep, &stats_reporter_list, list) {
+			if (!srep->running)
+				continue;
+
+			rc = stats_reporter_send_item(srep, statg,
+				item->desc, value);
+		}
+	}
+
+	return 0;
+}
+
+static int stat_item_group_handler(struct stat_item_group *statg, void *sctx_)
+{
+	stat_item_for_each_item(statg, stat_item_handler, sctx_);
+	stat_item_discard_all(&current_stat_item_index);
+
+	return 0;
+}
 
 /*** main reporting function ***/
 
 int stats_report()
 {
 	rate_ctr_for_each_group(rate_ctr_group_handler, NULL);
+	stat_item_for_each_group(stat_item_group_handler, NULL);
 
 	return 0;
 }
