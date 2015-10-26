@@ -37,6 +37,7 @@
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/stat_item.h>
 #include <osmocom/core/timer.h>
+#include <osmocom/core/statistics.h>
 
 /* TODO: register properly */
 #define DSTATS DLGLOBAL
@@ -465,10 +466,41 @@ static int stat_item_group_handler(struct stat_item_group *statg, void *sctx_)
 	return 0;
 }
 
+/*** osmo counter support ***/
+
+static int handle_counter(struct osmo_counter *counter, void *sctx_)
+{
+	struct stats_reporter *srep;
+	int rc;
+	struct rate_ctr_desc desc = {0};
+	/* Fake a rate counter description */
+	desc.name = counter->name;
+	desc.description = counter->description;
+
+	int delta = osmo_counter_difference(counter);
+
+	if (delta == 0)
+		return 0;
+
+	llist_for_each_entry(srep, &stats_reporter_list, list) {
+		if (!srep->running)
+			continue;
+
+		rc = stats_reporter_send_counter(srep, NULL, &desc,
+			counter->value, delta);
+
+		/* TODO: handle rc (log?, inc counter(!)?) */
+	}
+
+	return 0;
+}
+
+
 /*** main reporting function ***/
 
 int stats_report()
 {
+	osmo_counters_for_each(handle_counter, NULL);
 	rate_ctr_for_each_group(rate_ctr_group_handler, NULL);
 	stat_item_for_each_group(stat_item_group_handler, NULL);
 
