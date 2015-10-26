@@ -128,6 +128,23 @@ DEFUN(cfg_stats_reporter_remote_port, cfg_stats_reporter_remote_port_cmd,
 		argv[0], "remote port");
 }
 
+DEFUN(cfg_stats_reporter_mtu, cfg_stats_reporter_mtu_cmd,
+	"mtu <100-65535>",
+	"Set the maximum packet size\n"
+	"Size in byte\n")
+{
+	return set_srep_parameter_int(vty, stats_reporter_set_mtu,
+		argv[0], "mtu");
+}
+
+DEFUN(cfg_no_stats_reporter_mtu, cfg_no_stats_reporter_mtu_cmd,
+	"no mtu",
+	NO_STR "Set the maximum packet size\n")
+{
+	return set_srep_parameter_int(vty, stats_reporter_set_mtu,
+		0, "mtu");
+}
+
 DEFUN(cfg_stats_reporter_prefix, cfg_stats_reporter_prefix_cmd,
 	"prefix PREFIX",
 	"Set the item name prefix\n"
@@ -312,6 +329,8 @@ void stats_vty_add_cmds()
 	install_element(CFG_STATS_NODE, &cfg_no_stats_reporter_local_ip_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_remote_ip_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_remote_port_cmd);
+	install_element(CFG_STATS_NODE, &cfg_stats_reporter_mtu_cmd);
+	install_element(CFG_STATS_NODE, &cfg_no_stats_reporter_mtu_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_prefix_cmd);
 	install_element(CFG_STATS_NODE, &cfg_no_stats_reporter_prefix_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_enable_cmd);

@@ -22,6 +22,8 @@
 #include <sys/socket.h>
 #include <osmocom/core/linuxlist.h>
 
+struct msgb;
+
 enum stats_reporter_type {
 	STATS_REPORTER_STATSD,
 };
@@ -45,6 +47,8 @@ struct stats_reporter {
 	struct sockaddr bind_addr;
 	int bind_addr_len;
 	int fd;
+	struct msgb *buffer;
+	int agg_enabled;
 
 	struct llist_head list;
 };
@@ -71,6 +75,7 @@ struct stats_reporter *stats_reporter_find(enum stats_reporter_type type,
 int stats_reporter_set_remote_addr(struct stats_reporter *srep, const char *addr);
 int stats_reporter_set_remote_port(struct stats_reporter *srep, int port);
 int stats_reporter_set_local_addr(struct stats_reporter *srep, const char *addr);
+int stats_reporter_set_mtu(struct stats_reporter *srep, int mtu);
 int stats_reporter_set_name_prefix(struct stats_reporter *srep, const char *prefix);
 int stats_reporter_enable(struct stats_reporter *srep);
 int stats_reporter_disable(struct stats_reporter *srep);
