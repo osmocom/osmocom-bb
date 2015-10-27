@@ -166,6 +166,9 @@ int stats_reporter_set_remote_addr(struct stats_reporter *srep, const char *addr
 	struct sockaddr_in *sock_addr = (struct sockaddr_in *)&srep->dest_addr;
 	struct in_addr inaddr;
 
+	if (!srep->have_net_config)
+		return -ENOTSUP;
+
 	OSMO_ASSERT(addr != NULL);
 
 	rc = inet_pton(AF_INET, addr, &inaddr);
@@ -186,6 +189,9 @@ int stats_reporter_set_remote_port(struct stats_reporter *srep, int port)
 {
 	struct sockaddr_in *sock_addr = (struct sockaddr_in *)&srep->dest_addr;
 
+	if (!srep->have_net_config)
+		return -ENOTSUP;
+
 	srep->dest_port = port;
 	sock_addr->sin_port = htons(port);
 
@@ -197,6 +203,9 @@ int stats_reporter_set_local_addr(struct stats_reporter *srep, const char *addr)
 	int rc;
 	struct sockaddr_in *sock_addr = (struct sockaddr_in *)&srep->bind_addr;
 	struct in_addr inaddr;
+
+	if (!srep->have_net_config)
+		return -ENOTSUP;
 
 	if (addr) {
 		rc = inet_pton(AF_INET, addr, &inaddr);
@@ -218,6 +227,9 @@ int stats_reporter_set_local_addr(struct stats_reporter *srep, const char *addr)
 
 int stats_reporter_set_mtu(struct stats_reporter *srep, int mtu)
 {
+	if (!srep->have_net_config)
+		return -ENOTSUP;
+
 	if (mtu < 0)
 		return -EINVAL;
 
@@ -295,6 +307,8 @@ struct stats_reporter *stats_reporter_create_statsd(const char *name)
 {
 	struct stats_reporter *srep;
 	srep = stats_reporter_alloc(STATS_REPORTER_STATSD, name);
+
+	srep->have_net_config = 1;
 
 	return srep;
 }

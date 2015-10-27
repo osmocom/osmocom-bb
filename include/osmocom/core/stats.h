@@ -32,6 +32,8 @@ struct stats_reporter {
 	enum stats_reporter_type type;
 	char *name;
 
+	unsigned int have_net_config : 1;
+
 	/* config */
 	int enabled;
 	char *name_prefix;
