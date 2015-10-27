@@ -60,6 +60,14 @@ static struct osmo_timer_list stats_timer;
 
 static int stats_reporter_statsd_open(struct stats_reporter *srep);
 static int stats_reporter_statsd_close(struct stats_reporter *srep);
+static int stats_reporter_statsd_send_counter(struct stats_reporter *srep,
+	const struct rate_ctr_group *ctrg,
+	const struct rate_ctr_desc *desc,
+	int64_t value, int64_t delta);
+static int stats_reporter_statsd_send_item(struct stats_reporter *srep,
+	const struct stat_item_group *statg,
+	const struct stat_item_desc *desc, int value);
+
 static int stats_reporter_send(struct stats_reporter *srep, const char *data,
 	int data_len);
 static int stats_reporter_send_buffer(struct stats_reporter *srep);
@@ -68,20 +76,20 @@ static int update_srep_config(struct stats_reporter *srep)
 {
 	int rc = 0;
 
-	if (srep->type != STATS_REPORTER_STATSD) {
-		srep->enabled = 0;
-		return -ENOTSUP;
-	}
-
 	if (srep->running) {
-		rc = stats_reporter_statsd_close(srep);
+		if (srep->close)
+			rc = srep->close(srep);
 		srep->running = 0;
 	}
 
 	if (!srep->enabled)
 		return rc;
 
-	rc = stats_reporter_statsd_open(srep);
+	if (srep->open)
+		rc = srep->open(srep);
+	else
+		rc = 0;
+
 	if (rc < 0)
 		srep->enabled = 0;
 	else
@@ -310,6 +318,11 @@ struct stats_reporter *stats_reporter_create_statsd(const char *name)
 
 	srep->have_net_config = 1;
 
+	srep->open = stats_reporter_statsd_open;
+	srep->close = stats_reporter_statsd_close;
+	srep->send_counter = stats_reporter_statsd_send_counter;
+	srep->send_item = stats_reporter_statsd_send_item;
+
 	return srep;
 }
 
@@ -461,16 +474,10 @@ static int stats_reporter_send_counter(struct stats_reporter *srep,
 	const struct rate_ctr_desc *desc,
 	int64_t value, int64_t delta)
 {
-	int rc;
+	if (!srep->send_counter)
+		return 0;
 
-	switch (srep->type) {
-	case STATS_REPORTER_STATSD:
-		rc = stats_reporter_statsd_send_counter(srep, ctrg, desc,
-			value, delta);
-		break;
-	}
-
-	return rc;
+	return srep->send_counter(srep, ctrg, desc, value, delta);
 }
 
 static int rate_ctr_handler(
@@ -511,16 +518,10 @@ static int stats_reporter_send_item(struct stats_reporter *srep,
 	const struct stat_item_desc *desc,
 	int32_t value)
 {
-	int rc;
+	if (!srep->send_item)
+		return 0;
 
-	switch (srep->type) {
-	case STATS_REPORTER_STATSD:
-		rc = stats_reporter_statsd_send_item(srep, statg, desc,
-			value);
-		break;
-	}
-
-	return rc;
+	return srep->send_item(srep, statg, desc, value);
 }
 
 static int stat_item_handler(

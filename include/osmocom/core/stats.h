@@ -23,6 +23,10 @@
 #include <osmocom/core/linuxlist.h>
 
 struct msgb;
+struct stat_item_group;
+struct stat_item_desc;
+struct rate_ctr_group;
+struct rate_ctr_desc;
 
 enum stats_reporter_type {
 	STATS_REPORTER_STATSD,
@@ -53,6 +57,16 @@ struct stats_reporter {
 	int agg_enabled;
 
 	struct llist_head list;
+	int (*open)(struct stats_reporter *srep);
+	int (*close)(struct stats_reporter *srep);
+	int (*send_counter)(struct stats_reporter *srep,
+		const struct rate_ctr_group *ctrg,
+		const struct rate_ctr_desc *desc,
+		int64_t value, int64_t delta);
+	int (*send_item)(struct stats_reporter *srep,
+		const struct stat_item_group *statg,
+		const struct stat_item_desc *desc,
+		int32_t value);
 };
 
 struct stats_config {
