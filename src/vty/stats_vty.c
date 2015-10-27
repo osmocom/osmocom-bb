@@ -290,6 +290,9 @@ static int config_write_stats_reporter(struct vty *vty, struct stats_reporter *s
 	if (srep->bind_addr_str)
 		vty_out(vty, "  local-ip %s%s",
 			srep->bind_addr_str, VTY_NEWLINE);
+	if (srep->mtu)
+		vty_out(vty, "  mtu %d%s",
+			srep->mtu, VTY_NEWLINE);
 	if (srep->name_prefix && *srep->name_prefix)
 		vty_out(vty, "  prefix %s%s",
 			srep->name_prefix, VTY_NEWLINE);
