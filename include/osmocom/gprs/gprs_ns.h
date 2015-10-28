@@ -126,7 +126,7 @@ struct gprs_nsvc {
 	unsigned int nsvci_is_valid:1;
 
 	struct rate_ctr_group *ctrg;
-	struct stat_item_group *statg;
+	struct osmo_stat_item_group *statg;
 
 	/*! \brief which link-layer are we based on? */
 	enum gprs_ns_ll ll;

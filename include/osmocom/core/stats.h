@@ -23,18 +23,18 @@
 #include <osmocom/core/linuxlist.h>
 
 struct msgb;
-struct stat_item_group;
-struct stat_item_desc;
+struct osmo_stat_item_group;
+struct osmo_stat_item_desc;
 struct rate_ctr_group;
 struct rate_ctr_desc;
 
-enum stats_reporter_type {
-	STATS_REPORTER_STATSD,
-	STATS_REPORTER_LOG,
+enum osmo_stats_reporter_type {
+	OSMO_STATS_REPORTER_STATSD,
+	OSMO_STATS_REPORTER_LOG,
 };
 
-struct stats_reporter {
-	enum stats_reporter_type type;
+struct osmo_stats_reporter {
+	enum osmo_stats_reporter_type type;
 	char *name;
 
 	unsigned int have_net_config : 1;
@@ -58,43 +58,43 @@ struct stats_reporter {
 	int agg_enabled;
 
 	struct llist_head list;
-	int (*open)(struct stats_reporter *srep);
-	int (*close)(struct stats_reporter *srep);
-	int (*send_counter)(struct stats_reporter *srep,
+	int (*open)(struct osmo_stats_reporter *srep);
+	int (*close)(struct osmo_stats_reporter *srep);
+	int (*send_counter)(struct osmo_stats_reporter *srep,
 		const struct rate_ctr_group *ctrg,
 		const struct rate_ctr_desc *desc,
 		int64_t value, int64_t delta);
-	int (*send_item)(struct stats_reporter *srep,
-		const struct stat_item_group *statg,
-		const struct stat_item_desc *desc,
+	int (*send_item)(struct osmo_stats_reporter *srep,
+		const struct osmo_stat_item_group *statg,
+		const struct osmo_stat_item_desc *desc,
 		int32_t value);
 };
 
-struct stats_config {
+struct osmo_stats_config {
 	int interval;
 };
 
-extern struct stats_config *stats_config;
+extern struct osmo_stats_config *osmo_stats_config;
 
-void stats_init(void *ctx);
-int stats_report();
+void osmo_stats_init(void *ctx);
+int osmo_stats_report();
 
-int stats_set_interval(int interval);
+int osmo_stats_set_interval(int interval);
 
-struct stats_reporter *stats_reporter_alloc(enum stats_reporter_type type,
+struct osmo_stats_reporter *osmo_stats_reporter_alloc(enum osmo_stats_reporter_type type,
 	const char *name);
-void stats_reporter_free(struct stats_reporter *srep);
+void osmo_stats_reporter_free(struct osmo_stats_reporter *srep);
 
-struct stats_reporter *stats_reporter_create_statsd(const char *name);
-struct stats_reporter *stats_reporter_create_log(const char *name);
+struct osmo_stats_reporter *osmo_stats_reporter_create_statsd(const char *name);
+struct osmo_stats_reporter *osmo_stats_reporter_create_log(const char *name);
 
-struct stats_reporter *stats_reporter_find(enum stats_reporter_type type,
+struct osmo_stats_reporter *osmo_stats_reporter_find(enum osmo_stats_reporter_type type,
 	const char *name);
 
-int stats_reporter_set_remote_addr(struct stats_reporter *srep, const char *addr);
-int stats_reporter_set_remote_port(struct stats_reporter *srep, int port);
-int stats_reporter_set_local_addr(struct stats_reporter *srep, const char *addr);
-int stats_reporter_set_mtu(struct stats_reporter *srep, int mtu);
-int stats_reporter_set_name_prefix(struct stats_reporter *srep, const char *prefix);
-int stats_reporter_enable(struct stats_reporter *srep);
-int stats_reporter_disable(struct stats_reporter *srep);
+int osmo_stats_reporter_set_remote_addr(struct osmo_stats_reporter *srep, const char *addr);
+int osmo_stats_reporter_set_remote_port(struct osmo_stats_reporter *srep, int port);
+int osmo_stats_reporter_set_local_addr(struct osmo_stats_reporter *srep, const char *addr);
+int osmo_stats_reporter_set_mtu(struct osmo_stats_reporter *srep, int mtu);
+int osmo_stats_reporter_set_name_prefix(struct osmo_stats_reporter *srep, const char *prefix);
+int osmo_stats_reporter_enable(struct osmo_stats_reporter *srep);
+int osmo_stats_reporter_disable(struct osmo_stats_reporter *srep);

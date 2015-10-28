@@ -80,15 +80,15 @@ void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 	rate_ctr_for_each_counter(ctrg, rate_ctr_handler, &vctx);
 }
 
-static int stat_item_handler(
-	struct stat_item_group *statg, struct stat_item *item, void *vctx_)
+static int osmo_stat_item_handler(
+	struct osmo_stat_item_group *statg, struct osmo_stat_item *item, void *vctx_)
 {
 	struct vty_out_context *vctx = vctx_;
 	struct vty *vty = vctx->vty;
 
 	vty_out(vty, " %s%s: %8" PRIi32 " %s%s",
 		vctx->prefix, item->desc->description,
-		stat_item_get_last(item),
+		osmo_stat_item_get_last(item),
 		item->desc->unit, VTY_NEWLINE);
 
 	return 0;
@@ -100,16 +100,16 @@ static int stat_item_handler(
  *  \param[in] statg Stat item group to be printed
  */
 void vty_out_stat_item_group(struct vty *vty, const char *prefix,
-			     struct stat_item_group *statg)
+			     struct osmo_stat_item_group *statg)
 {
 	struct vty_out_context vctx = {vty, prefix};
 
 	vty_out(vty, "%s%s:%s", prefix, statg->desc->group_description,
 		VTY_NEWLINE);
-	stat_item_for_each_item(statg, stat_item_handler, &vctx);
+	osmo_stat_item_for_each_item(statg, osmo_stat_item_handler, &vctx);
 }
 
-static int stat_item_group_handler(struct stat_item_group *statg, void *vctx_)
+static int osmo_stat_item_group_handler(struct osmo_stat_item_group *statg, void *vctx_)
 {
 	struct vty_out_context *vctx = vctx_;
 	struct vty *vty = vctx->vty;
@@ -122,7 +122,7 @@ static int stat_item_group_handler(struct stat_item_group *statg, void *vctx_)
 		vty_out(vty, "%s%s:%s", vctx->prefix,
 			statg->desc->group_description, VTY_NEWLINE);
 
-	stat_item_for_each_item(statg, stat_item_handler, vctx);
+	osmo_stat_item_for_each_item(statg, osmo_stat_item_handler, vctx);
 
 	return 0;
 }
@@ -163,7 +163,7 @@ void vty_out_statistics_full(struct vty *vty, const char *prefix)
 	vty_out(vty, "%sUngrouped counters:%s", prefix, VTY_NEWLINE);
 	osmo_counters_for_each(handle_counter, &vctx);
 	rate_ctr_for_each_group(rate_ctr_group_handler, &vctx);
-	stat_item_for_each_group(stat_item_group_handler, &vctx);
+	osmo_stat_item_for_each_group(osmo_stat_item_group_handler, &vctx);
 }
 
 /*! \brief Generate a VTY command string from value_string */

@@ -33,23 +33,23 @@ static void stat_test(void)
 		TEST_B_ITEM,
 	};
 
-	static const struct stat_item_desc item_description[] = {
+	static const struct osmo_stat_item_desc item_description[] = {
 		{ "item.a", "The A value", "ma", 4, -1 },
 		{ "item.b", "The B value", "kb", 7, -1 },
 	};
 
-	static const struct stat_item_group_desc statg_desc = {
+	static const struct osmo_stat_item_group_desc statg_desc = {
 		.group_name_prefix = "test.one",
 		.group_description = "Test number 1",
 		.num_items = ARRAY_SIZE(item_description),
 		.item_desc = item_description,
 	};
 
-	struct stat_item_group *statg =
-		stat_item_group_alloc(NULL, &statg_desc, 0);
+	struct osmo_stat_item_group *statg =
+		osmo_stat_item_group_alloc(NULL, &statg_desc, 0);
 
-	struct stat_item_group *sgrp2;
-	const struct stat_item *sitem1, *sitem2;
+	struct osmo_stat_item_group *sgrp2;
+	const struct osmo_stat_item *sitem1, *sitem2;
 	int rc;
 	int32_t value;
 	int32_t rd_a = 0;
@@ -58,146 +58,146 @@ static void stat_test(void)
 
 	OSMO_ASSERT(statg != NULL);
 
-	sgrp2 = stat_item_get_group_by_name_idx("test.one", 0);
+	sgrp2 = osmo_stat_item_get_group_by_name_idx("test.one", 0);
 	OSMO_ASSERT(sgrp2 == statg);
 
-	sgrp2 = stat_item_get_group_by_name_idx("test.one", 1);
+	sgrp2 = osmo_stat_item_get_group_by_name_idx("test.one", 1);
 	OSMO_ASSERT(sgrp2 == NULL);
 
-	sgrp2 = stat_item_get_group_by_name_idx("test.two", 0);
+	sgrp2 = osmo_stat_item_get_group_by_name_idx("test.two", 0);
 	OSMO_ASSERT(sgrp2 == NULL);
 
-	sitem1 = stat_item_get_by_name(statg, "item.c");
+	sitem1 = osmo_stat_item_get_by_name(statg, "item.c");
 	OSMO_ASSERT(sitem1 == NULL);
 
-	sitem1 = stat_item_get_by_name(statg, "item.a");
+	sitem1 = osmo_stat_item_get_by_name(statg, "item.a");
 	OSMO_ASSERT(sitem1 != NULL);
 	OSMO_ASSERT(sitem1 == statg->items[TEST_A_ITEM]);
 
-	sitem2 = stat_item_get_by_name(statg, "item.b");
+	sitem2 = osmo_stat_item_get_by_name(statg, "item.b");
 	OSMO_ASSERT(sitem2 != NULL);
 	OSMO_ASSERT(sitem2 != sitem1);
 	OSMO_ASSERT(sitem2 == statg->items[TEST_B_ITEM]);
 
-	value = stat_item_get_last(statg->items[TEST_A_ITEM]);
+	value = osmo_stat_item_get_last(statg->items[TEST_A_ITEM]);
 	OSMO_ASSERT(value == -1);
 
-	rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 	OSMO_ASSERT(rc == 0);
 
-	stat_item_set(statg->items[TEST_A_ITEM], 1);
+	osmo_stat_item_set(statg->items[TEST_A_ITEM], 1);
 
-	value = stat_item_get_last(statg->items[TEST_A_ITEM]);
+	value = osmo_stat_item_get_last(statg->items[TEST_A_ITEM]);
 	OSMO_ASSERT(value == 1);
 
-	rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 	OSMO_ASSERT(rc > 0);
 	OSMO_ASSERT(value == 1);
 
-	rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 	OSMO_ASSERT(rc == 0);
 
 	for (i = 2; i <= 32; i++) {
-		stat_item_set(statg->items[TEST_A_ITEM], i);
-		stat_item_set(statg->items[TEST_B_ITEM], 1000 + i);
+		osmo_stat_item_set(statg->items[TEST_A_ITEM], i);
+		osmo_stat_item_set(statg->items[TEST_B_ITEM], 1000 + i);
 
-		rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+		rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 		OSMO_ASSERT(rc > 0);
 		OSMO_ASSERT(value == i);
 
-		rc = stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
+		rc = osmo_stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
 		OSMO_ASSERT(rc > 0);
 		OSMO_ASSERT(value == 1000 + i);
 	}
 
 	/* Keep 2 in FIFO */
-	stat_item_set(statg->items[TEST_A_ITEM], 33);
-	stat_item_set(statg->items[TEST_B_ITEM], 1000 + 33);
+	osmo_stat_item_set(statg->items[TEST_A_ITEM], 33);
+	osmo_stat_item_set(statg->items[TEST_B_ITEM], 1000 + 33);
 
 	for (i = 34; i <= 64; i++) {
-		stat_item_set(statg->items[TEST_A_ITEM], i);
-		stat_item_set(statg->items[TEST_B_ITEM], 1000 + i);
+		osmo_stat_item_set(statg->items[TEST_A_ITEM], i);
+		osmo_stat_item_set(statg->items[TEST_B_ITEM], 1000 + i);
 
-		rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+		rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 		OSMO_ASSERT(rc > 0);
 		OSMO_ASSERT(value == i-1);
 
-		rc = stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
+		rc = osmo_stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
 		OSMO_ASSERT(rc > 0);
 		OSMO_ASSERT(value == 1000 + i-1);
 	}
 
-	rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 	OSMO_ASSERT(rc > 0);
 	OSMO_ASSERT(value == 64);
 
-	rc = stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
 	OSMO_ASSERT(rc > 0);
 	OSMO_ASSERT(value == 1000 + 64);
 
 	/* Overrun FIFOs */
 	for (i = 65; i <= 96; i++) {
-		stat_item_set(statg->items[TEST_A_ITEM], i);
-		stat_item_set(statg->items[TEST_B_ITEM], 1000 + i);
+		osmo_stat_item_set(statg->items[TEST_A_ITEM], i);
+		osmo_stat_item_set(statg->items[TEST_B_ITEM], 1000 + i);
 	}
 
-	rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 	OSMO_ASSERT(rc > 0);
 	OSMO_ASSERT(value == 93);
 
 	for (i = 94; i <= 96; i++) {
-		rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+		rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 		OSMO_ASSERT(rc > 0);
 		OSMO_ASSERT(value == i);
 	}
 
-	rc = stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
 	OSMO_ASSERT(rc > 0);
 	OSMO_ASSERT(value == 1000 + 90);
 
 	for (i = 91; i <= 96; i++) {
-		rc = stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
+		rc = osmo_stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
 		OSMO_ASSERT(rc > 0);
 		OSMO_ASSERT(value == 1000 + i);
 	}
 
 	/* Test Discard (single item) */
-	stat_item_set(statg->items[TEST_A_ITEM], 97);
-	rc = stat_item_discard(statg->items[TEST_A_ITEM], &rd_a);
+	osmo_stat_item_set(statg->items[TEST_A_ITEM], 97);
+	rc = osmo_stat_item_discard(statg->items[TEST_A_ITEM], &rd_a);
 	OSMO_ASSERT(rc > 0);
 
-	rc = stat_item_discard(statg->items[TEST_A_ITEM], &rd_a);
+	rc = osmo_stat_item_discard(statg->items[TEST_A_ITEM], &rd_a);
 	OSMO_ASSERT(rc == 0);
 
-	rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 	OSMO_ASSERT(rc == 0);
 
-	stat_item_set(statg->items[TEST_A_ITEM], 98);
-	rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+	osmo_stat_item_set(statg->items[TEST_A_ITEM], 98);
+	rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 	OSMO_ASSERT(rc > 0);
 	OSMO_ASSERT(value == 98);
 
-	rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 	OSMO_ASSERT(rc == 0);
 
 	/* Test Discard (all items) */
-	stat_item_set(statg->items[TEST_A_ITEM], 99);
-	stat_item_set(statg->items[TEST_A_ITEM], 100);
-	stat_item_set(statg->items[TEST_A_ITEM], 101);
-	stat_item_set(statg->items[TEST_B_ITEM], 99);
-	stat_item_set(statg->items[TEST_B_ITEM], 100);
+	osmo_stat_item_set(statg->items[TEST_A_ITEM], 99);
+	osmo_stat_item_set(statg->items[TEST_A_ITEM], 100);
+	osmo_stat_item_set(statg->items[TEST_A_ITEM], 101);
+	osmo_stat_item_set(statg->items[TEST_B_ITEM], 99);
+	osmo_stat_item_set(statg->items[TEST_B_ITEM], 100);
 
-	rc = stat_item_discard_all(&rd_a);
-	rc = stat_item_discard_all(&rd_b);
+	rc = osmo_stat_item_discard_all(&rd_a);
+	rc = osmo_stat_item_discard_all(&rd_b);
 
-	rc = stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_A_ITEM], &rd_a, &value);
 	OSMO_ASSERT(rc == 0);
-	rc = stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
+	rc = osmo_stat_item_get_next(statg->items[TEST_B_ITEM], &rd_b, &value);
 	OSMO_ASSERT(rc == 0);
 
-	stat_item_group_free(statg);
+	osmo_stat_item_group_free(statg);
 
-	sgrp2 = stat_item_get_group_by_name_idx("test.one", 0);
+	sgrp2 = osmo_stat_item_get_group_by_name_idx("test.one", 0);
 	OSMO_ASSERT(sgrp2 == NULL);
 }
 
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 	static const struct log_info log_info = {};
 	log_init(&log_info, NULL);
 
-	stat_item_init(NULL);
+	osmo_stat_item_init(NULL);
 
 	stat_test();
 	return 0;

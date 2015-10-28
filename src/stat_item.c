@@ -21,7 +21,7 @@
  *
  */
 
-/*! \addtogroup stat_item
+/*! \addtogroup osmo_stat_item
  *  @{
  */
 
@@ -37,7 +37,7 @@
 #include <osmocom/core/timer.h>
 #include <osmocom/core/stat_item.h>
 
-static LLIST_HEAD(stat_item_groups);
+static LLIST_HEAD(osmo_stat_item_groups);
 static int32_t global_value_id = 0;
 
 static void *tall_stat_item_ctx;
@@ -47,8 +47,8 @@ static void *tall_stat_item_ctx;
  *  \param[in] desc Statistics item group description
  *  \param[in] idx Index of new stat item group
  */
-struct stat_item_group *stat_item_group_alloc(void *ctx,
-					    const struct stat_item_group_desc *desc,
+struct osmo_stat_item_group *osmo_stat_item_group_alloc(void *ctx,
+					    const struct osmo_stat_item_group_desc *desc,
 					    unsigned int idx)
 {
 	unsigned int group_size;
@@ -56,10 +56,10 @@ struct stat_item_group *stat_item_group_alloc(void *ctx,
 	unsigned int item_idx;
 	void *items;
 
-	struct stat_item_group *group;
+	struct osmo_stat_item_group *group;
 
-	group_size = sizeof(struct stat_item_group) +
-			desc->num_items * sizeof(struct stat_item *);
+	group_size = sizeof(struct osmo_stat_item_group) +
+			desc->num_items * sizeof(struct osmo_stat_item *);
 
 	if (!ctx)
 		ctx = tall_stat_item_ctx;
@@ -74,8 +74,8 @@ struct stat_item_group *stat_item_group_alloc(void *ctx,
 	/* Get combined size of all items */
 	for (item_idx = 0; item_idx < desc->num_items; item_idx++) {
 		unsigned int size;
-		size = sizeof(struct stat_item) +
-			sizeof(struct stat_item_value) *
+		size = sizeof(struct osmo_stat_item) +
+			sizeof(struct osmo_stat_item_value) *
 			desc->item_desc[item_idx].num_values;
 		/* Align to pointer size */
 		size = (size + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
@@ -94,7 +94,7 @@ struct stat_item_group *stat_item_group_alloc(void *ctx,
 
 	/* Update item pointers */
 	for (item_idx = 0; item_idx < desc->num_items; item_idx++) {
-		struct stat_item *item = (struct stat_item *)
+		struct osmo_stat_item *item = (struct osmo_stat_item *)
 			((uint8_t *)items + (int)group->items[item_idx]);
 		unsigned int i;
 
@@ -109,19 +109,19 @@ struct stat_item_group *stat_item_group_alloc(void *ctx,
 		}
 	}
 
-	llist_add(&group->list, &stat_item_groups);
+	llist_add(&group->list, &osmo_stat_item_groups);
 
 	return group;
 }
 
 /*! \brief Free the memory for the specified group of counters */
-void stat_item_group_free(struct stat_item_group *grp)
+void osmo_stat_item_group_free(struct osmo_stat_item_group *grp)
 {
 	llist_del(&grp->list);
 	talloc_free(grp);
 }
 
-void stat_item_set(struct stat_item *item, int32_t value)
+void osmo_stat_item_set(struct osmo_stat_item *item, int32_t value)
 {
 	item->last_offs += 1;
 	if (item->last_offs >= item->desc->num_values)
@@ -135,11 +135,11 @@ void stat_item_set(struct stat_item *item, int32_t value)
 	item->values[item->last_offs].id    = global_value_id;
 }
 
-int stat_item_get_next(const struct stat_item *item, int32_t *next_idx,
+int osmo_stat_item_get_next(const struct osmo_stat_item *item, int32_t *next_idx,
 	int32_t *value)
 {
-	const struct stat_item_value *next_value;
-	const struct stat_item_value *item_value = NULL;
+	const struct osmo_stat_item_value *next_value;
+	const struct osmo_stat_item_value *item_value = NULL;
 	int idx_delta;
 	int next_offs;
 
@@ -173,7 +173,7 @@ int stat_item_get_next(const struct stat_item *item, int32_t *next_idx,
 }
 
 /*! \brief Skip all values of this item and update idx accordingly */
-int stat_item_discard(const struct stat_item *item, int32_t *idx)
+int osmo_stat_item_discard(const struct osmo_stat_item *item, int32_t *idx)
 {
 	int discarded = item->values[item->last_offs].id + 1 - *idx;
 	*idx = item->values[item->last_offs].id + 1;
@@ -182,7 +182,7 @@ int stat_item_discard(const struct stat_item *item, int32_t *idx)
 }
 
 /*! \brief Skip all values of all items and update idx accordingly */
-int stat_item_discard_all(int32_t *idx)
+int osmo_stat_item_discard_all(int32_t *idx)
 {
 	int discarded = global_value_id + 1 - *idx;
 	*idx = global_value_id + 1;
@@ -191,7 +191,7 @@ int stat_item_discard_all(int32_t *idx)
 }
 
 /*! \brief Initialize the stat item module */
-int stat_item_init(void *tall_ctx)
+int osmo_stat_item_init(void *tall_ctx)
 {
 	tall_stat_item_ctx = tall_ctx;
 
@@ -199,12 +199,12 @@ int stat_item_init(void *tall_ctx)
 }
 
 /*! \brief Search for item group based on group name and index */
-struct stat_item_group *stat_item_get_group_by_name_idx(
+struct osmo_stat_item_group *osmo_stat_item_get_group_by_name_idx(
 	const char *name, const unsigned int idx)
 {
-	struct stat_item_group *statg;
+	struct osmo_stat_item_group *statg;
 
-	llist_for_each_entry(statg, &stat_item_groups, list) {
+	llist_for_each_entry(statg, &osmo_stat_item_groups, list) {
 		if (!statg->desc)
 			continue;
 
@@ -216,11 +216,11 @@ struct stat_item_group *stat_item_get_group_by_name_idx(
 }
 
 /*! \brief Search for item group based on group name */
-const struct stat_item *stat_item_get_by_name(
-	const struct stat_item_group *statg, const char *name)
+const struct osmo_stat_item *osmo_stat_item_get_by_name(
+	const struct osmo_stat_item_group *statg, const char *name)
 {
 	int i;
-	const struct stat_item_desc *item_desc;
+	const struct osmo_stat_item_desc *item_desc;
 
 	if (!statg->desc)
 		return NULL;
@@ -235,14 +235,14 @@ const struct stat_item *stat_item_get_by_name(
 	return NULL;
 }
 
-int stat_item_for_each_item(struct stat_item_group *statg,
-	stat_item_handler_t handle_item, void *data)
+int osmo_stat_item_for_each_item(struct osmo_stat_item_group *statg,
+	osmo_stat_item_handler_t handle_item, void *data)
 {
 	int rc = 0;
 	int i;
 
 	for (i = 0; i < statg->desc->num_items; i++) {
-		struct stat_item *item = statg->items[i];
+		struct osmo_stat_item *item = statg->items[i];
 		rc = handle_item(statg, item, data);
 		if (rc < 0)
 			return rc;
@@ -251,12 +251,12 @@ int stat_item_for_each_item(struct stat_item_group *statg,
 	return rc;
 }
 
-int stat_item_for_each_group(stat_item_group_handler_t handle_group, void *data)
+int osmo_stat_item_for_each_group(osmo_stat_item_group_handler_t handle_group, void *data)
 {
-	struct stat_item_group *statg;
+	struct osmo_stat_item_group *statg;
 	int rc = 0;
 
-	llist_for_each_entry(statg, &stat_item_groups, list) {
+	llist_for_each_entry(statg, &osmo_stat_item_groups, list) {
 		rc = handle_group(statg, data);
 		if (rc < 0)
 			return rc;

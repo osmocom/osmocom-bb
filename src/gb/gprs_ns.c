@@ -135,11 +135,11 @@ enum ns_stat {
 	NS_STAT_ALIVE_DELAY,
 };
 
-static const struct stat_item_desc nsvc_stat_description[] = {
+static const struct osmo_stat_item_desc nsvc_stat_description[] = {
 	{ "alive.delay", "ALIVE reponse time        ", "ms", 16, 0 },
 };
 
-static const struct stat_item_group_desc nsvc_statg_desc = {
+static const struct osmo_stat_item_group_desc nsvc_statg_desc = {
 	.group_name_prefix = "ns.nsvc",
 	.group_description = "NSVC Peer Statistics",
 	.num_items = ARRAY_SIZE(nsvc_stat_description),
@@ -238,7 +238,7 @@ struct gprs_nsvc *gprs_nsvc_create(struct gprs_ns_inst *nsi, uint16_t nsvci)
 	nsvc->timer.cb = gprs_ns_timer_cb;
 	nsvc->timer.data = nsvc;
 	nsvc->ctrg = rate_ctr_group_alloc(nsvc, &nsvc_ctrg_desc, nsvci);
-	nsvc->statg = stat_item_group_alloc(nsvc, &nsvc_statg_desc, nsvci);
+	nsvc->statg = osmo_stat_item_group_alloc(nsvc, &nsvc_statg_desc, nsvci);
 
 	llist_add(&nsvc->list, &nsi->gprs_nsvcs);
 
@@ -1306,7 +1306,7 @@ int gprs_ns_process_msg(struct gprs_ns_inst *nsi, struct msgb *msg,
 		break;
 	case NS_PDUT_ALIVE_ACK:
 		if ((*nsvc)->timer_mode == NSVC_TIMER_TNS_ALIVE)
-			stat_item_set((*nsvc)->statg->items[NS_STAT_ALIVE_DELAY],
+			osmo_stat_item_set((*nsvc)->statg->items[NS_STAT_ALIVE_DELAY],
 				nsvc_timer_elapsed_ms(*nsvc));
 		/* stop Tns-alive and start Tns-test */
 		nsvc_start_timer(*nsvc, NSVC_TIMER_TNS_TEST);

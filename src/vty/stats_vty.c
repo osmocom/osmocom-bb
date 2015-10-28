@@ -45,7 +45,7 @@ struct cmd_node cfg_stats_node = {
 	1
 };
 
-static struct stats_reporter *osmo_stats_vty2srep(struct vty *vty)
+static struct osmo_stats_reporter *osmo_stats_vty2srep(struct vty *vty)
 {
 	if (vty->node == CFG_STATS_NODE)
 		return vty->index;
@@ -54,11 +54,11 @@ static struct stats_reporter *osmo_stats_vty2srep(struct vty *vty)
 }
 
 static int set_srep_parameter_str(struct vty *vty,
-	int (*fun)(struct stats_reporter *, const char *),
+	int (*fun)(struct osmo_stats_reporter *, const char *),
 	const char *val, const char *param_name)
 {
 	int rc;
-	struct stats_reporter *srep = osmo_stats_vty2srep(vty);
+	struct osmo_stats_reporter *srep = osmo_stats_vty2srep(vty);
 	OSMO_ASSERT(srep);
 
 	rc = fun(srep, val);
@@ -72,12 +72,12 @@ static int set_srep_parameter_str(struct vty *vty,
 }
 
 static int set_srep_parameter_int(struct vty *vty,
-	int (*fun)(struct stats_reporter *, int),
+	int (*fun)(struct osmo_stats_reporter *, int),
 	const char *val, const char *param_name)
 {
 	int rc;
 	int int_val;
-	struct stats_reporter *srep = osmo_stats_vty2srep(vty);
+	struct osmo_stats_reporter *srep = osmo_stats_vty2srep(vty);
 	OSMO_ASSERT(srep);
 
 	int_val = atoi(val);
@@ -97,7 +97,7 @@ DEFUN(cfg_stats_reporter_local_ip, cfg_stats_reporter_local_ip_cmd,
 	"Set the IP address to which we bind locally\n"
 	"IP Address\n")
 {
-	return set_srep_parameter_str(vty, stats_reporter_set_local_addr,
+	return set_srep_parameter_str(vty, osmo_stats_reporter_set_local_addr,
 		argv[0], "local address");
 }
 
@@ -106,7 +106,7 @@ DEFUN(cfg_no_stats_reporter_local_ip, cfg_no_stats_reporter_local_ip_cmd,
 	NO_STR
 	"Set the IP address to which we bind locally\n")
 {
-	return set_srep_parameter_str(vty, stats_reporter_set_local_addr,
+	return set_srep_parameter_str(vty, osmo_stats_reporter_set_local_addr,
 		NULL, "local address");
 }
 
@@ -115,7 +115,7 @@ DEFUN(cfg_stats_reporter_remote_ip, cfg_stats_reporter_remote_ip_cmd,
 	"Set the remote IP address to which we connect\n"
 	"IP Address\n")
 {
-	return set_srep_parameter_str(vty, stats_reporter_set_remote_addr,
+	return set_srep_parameter_str(vty, osmo_stats_reporter_set_remote_addr,
 		argv[0], "remote address");
 }
 
@@ -124,7 +124,7 @@ DEFUN(cfg_stats_reporter_remote_port, cfg_stats_reporter_remote_port_cmd,
 	"Set the remote port to which we connect\n"
 	"Remote port number\n")
 {
-	return set_srep_parameter_int(vty, stats_reporter_set_remote_port,
+	return set_srep_parameter_int(vty, osmo_stats_reporter_set_remote_port,
 		argv[0], "remote port");
 }
 
@@ -133,7 +133,7 @@ DEFUN(cfg_stats_reporter_mtu, cfg_stats_reporter_mtu_cmd,
 	"Set the maximum packet size\n"
 	"Size in byte\n")
 {
-	return set_srep_parameter_int(vty, stats_reporter_set_mtu,
+	return set_srep_parameter_int(vty, osmo_stats_reporter_set_mtu,
 		argv[0], "mtu");
 }
 
@@ -141,7 +141,7 @@ DEFUN(cfg_no_stats_reporter_mtu, cfg_no_stats_reporter_mtu_cmd,
 	"no mtu",
 	NO_STR "Set the maximum packet size\n")
 {
-	return set_srep_parameter_int(vty, stats_reporter_set_mtu,
+	return set_srep_parameter_int(vty, osmo_stats_reporter_set_mtu,
 		0, "mtu");
 }
 
@@ -150,7 +150,7 @@ DEFUN(cfg_stats_reporter_prefix, cfg_stats_reporter_prefix_cmd,
 	"Set the item name prefix\n"
 	"The prefix string\n")
 {
-	return set_srep_parameter_str(vty, stats_reporter_set_name_prefix,
+	return set_srep_parameter_str(vty, osmo_stats_reporter_set_name_prefix,
 		argv[0], "prefix string");
 }
 
@@ -159,7 +159,7 @@ DEFUN(cfg_no_stats_reporter_prefix, cfg_no_stats_reporter_prefix_cmd,
 	NO_STR
 	"Set the item name prefix\n")
 {
-	return set_srep_parameter_str(vty, stats_reporter_set_name_prefix,
+	return set_srep_parameter_str(vty, osmo_stats_reporter_set_name_prefix,
 		"", "prefix string");
 }
 
@@ -168,10 +168,10 @@ DEFUN(cfg_stats_reporter_enable, cfg_stats_reporter_enable_cmd,
 	"Enable the reporter\n")
 {
 	int rc;
-	struct stats_reporter *srep = osmo_stats_vty2srep(vty);
+	struct osmo_stats_reporter *srep = osmo_stats_vty2srep(vty);
 	OSMO_ASSERT(srep);
 
-	rc = stats_reporter_enable(srep);
+	rc = osmo_stats_reporter_enable(srep);
 	if (rc < 0) {
 		vty_out(vty, "%% Unable to enable the reporter: %s%s",
 			strerror(-rc), VTY_NEWLINE);
@@ -186,10 +186,10 @@ DEFUN(cfg_stats_reporter_disable, cfg_stats_reporter_disable_cmd,
 	"Disable the reporter\n")
 {
 	int rc;
-	struct stats_reporter *srep = osmo_stats_vty2srep(vty);
+	struct osmo_stats_reporter *srep = osmo_stats_vty2srep(vty);
 	OSMO_ASSERT(srep);
 
-	rc = stats_reporter_disable(srep);
+	rc = osmo_stats_reporter_disable(srep);
 	if (rc < 0) {
 		vty_out(vty, "%% Unable to disable the reporter: %s%s",
 			strerror(-rc), VTY_NEWLINE);
@@ -203,17 +203,17 @@ DEFUN(cfg_stats_reporter_statsd, cfg_stats_reporter_statsd_cmd,
 	"stats reporter statsd",
 	CFG_STATS_STR CFG_REPORTER_STR "Report to a STATSD server\n")
 {
-	struct stats_reporter *srep;
+	struct osmo_stats_reporter *srep;
 
-	srep = stats_reporter_find(STATS_REPORTER_STATSD, NULL);
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_STATSD, NULL);
 	if (!srep) {
-		srep = stats_reporter_create_statsd(NULL);
+		srep = osmo_stats_reporter_create_statsd(NULL);
 		if (!srep) {
 			vty_out(vty, "%% Unable to create statsd reporter%s",
 				VTY_NEWLINE);
 			return CMD_WARNING;
 		}
-		/* TODO: if needed, add stats_add_reporter(srep); */
+		/* TODO: if needed, add osmo_stats_add_reporter(srep); */
 	}
 
 	vty->index = srep;
@@ -229,7 +229,7 @@ DEFUN(cfg_stats_interval, cfg_stats_interval_cmd,
 {
 	int rc;
 	int interval = atoi(argv[0]);
-	rc = stats_set_interval(interval);
+	rc = osmo_stats_set_interval(interval);
 	if (rc < 0) {
 		vty_out(vty, "%% Unable to set interval: %s%s",
 			strerror(-rc), VTY_NEWLINE);
@@ -244,16 +244,16 @@ DEFUN(cfg_no_stats_reporter_statsd, cfg_no_stats_reporter_statsd_cmd,
 	"no stats reporter statsd",
 	NO_STR CFG_STATS_STR CFG_REPORTER_STR "Report to a STATSD server\n")
 {
-	struct stats_reporter *srep;
+	struct osmo_stats_reporter *srep;
 
-	srep = stats_reporter_find(STATS_REPORTER_STATSD, NULL);
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_STATSD, NULL);
 	if (!srep) {
 		vty_out(vty, "%% No statsd logging active%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	stats_reporter_free(srep);
+	osmo_stats_reporter_free(srep);
 
 	return CMD_SUCCESS;
 }
@@ -262,17 +262,17 @@ DEFUN(cfg_stats_reporter_log, cfg_stats_reporter_log_cmd,
 	"stats reporter log",
 	CFG_STATS_STR CFG_REPORTER_STR "Report to the logger\n")
 {
-	struct stats_reporter *srep;
+	struct osmo_stats_reporter *srep;
 
-	srep = stats_reporter_find(STATS_REPORTER_LOG, NULL);
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_LOG, NULL);
 	if (!srep) {
-		srep = stats_reporter_create_log(NULL);
+		srep = osmo_stats_reporter_create_log(NULL);
 		if (!srep) {
 			vty_out(vty, "%% Unable to create log reporter%s",
 				VTY_NEWLINE);
 			return CMD_WARNING;
 		}
-		/* TODO: if needed, add stats_add_reporter(srep); */
+		/* TODO: if needed, add osmo_stats_add_reporter(srep); */
 	}
 
 	vty->index = srep;
@@ -285,16 +285,16 @@ DEFUN(cfg_no_stats_reporter_log, cfg_no_stats_reporter_log_cmd,
 	"no stats reporter log",
 	NO_STR CFG_STATS_STR CFG_REPORTER_STR "Report to the logger\n")
 {
-	struct stats_reporter *srep;
+	struct osmo_stats_reporter *srep;
 
-	srep = stats_reporter_find(STATS_REPORTER_LOG, NULL);
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_LOG, NULL);
 	if (!srep) {
 		vty_out(vty, "%% No log reporting active%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	stats_reporter_free(srep);
+	osmo_stats_reporter_free(srep);
 
 	return CMD_SUCCESS;
 }
@@ -309,16 +309,16 @@ DEFUN(show_stats,
 	return CMD_SUCCESS;
 }
 
-static int config_write_stats_reporter(struct vty *vty, struct stats_reporter *srep)
+static int config_write_stats_reporter(struct vty *vty, struct osmo_stats_reporter *srep)
 {
 	if (srep == NULL)
 		return 0;
 
 	switch (srep->type) {
-	case STATS_REPORTER_STATSD:
+	case OSMO_STATS_REPORTER_STATSD:
 		vty_out(vty, "stats reporter statsd%s", VTY_NEWLINE);
 		break;
-	case STATS_REPORTER_LOG:
+	case OSMO_STATS_REPORTER_LOG:
 		vty_out(vty, "stats reporter log%s", VTY_NEWLINE);
 		break;
 	}
@@ -354,20 +354,20 @@ static int config_write_stats_reporter(struct vty *vty, struct stats_reporter *s
 
 static int config_write_stats(struct vty *vty)
 {
-	struct stats_reporter *srep;
+	struct osmo_stats_reporter *srep;
 
 	/* TODO: loop through all reporters */
-	srep = stats_reporter_find(STATS_REPORTER_STATSD, NULL);
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_STATSD, NULL);
 	config_write_stats_reporter(vty, srep);
-	srep = stats_reporter_find(STATS_REPORTER_LOG, NULL);
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_LOG, NULL);
 	config_write_stats_reporter(vty, srep);
 
-	vty_out(vty, "stats interval %d%s", stats_config->interval, VTY_NEWLINE);
+	vty_out(vty, "stats interval %d%s", osmo_stats_config->interval, VTY_NEWLINE);
 
 	return 1;
 }
 
-void stats_vty_add_cmds()
+void osmo_stats_vty_add_cmds()
 {
 	install_element_ve(&show_stats_cmd);
 
