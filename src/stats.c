@@ -68,6 +68,14 @@ static int stats_reporter_statsd_send_item(struct stats_reporter *srep,
 	const struct stat_item_group *statg,
 	const struct stat_item_desc *desc, int value);
 
+static int stats_reporter_log_send_counter(struct stats_reporter *srep,
+	const struct rate_ctr_group *ctrg,
+	const struct rate_ctr_desc *desc,
+	int64_t value, int64_t delta);
+static int stats_reporter_log_send_item(struct stats_reporter *srep,
+	const struct stat_item_group *statg,
+	const struct stat_item_desc *desc, int value);
+
 static int stats_reporter_send(struct stats_reporter *srep, const char *data,
 	int data_len);
 static int stats_reporter_send_buffer(struct stats_reporter *srep);
@@ -307,6 +315,61 @@ static int stats_reporter_send_buffer(struct stats_reporter *srep)
 	msgb_trim(srep->buffer, 0);
 
 	return rc;
+}
+
+/*** log reporter ***/
+
+struct stats_reporter *stats_reporter_create_log(const char *name)
+{
+	struct stats_reporter *srep;
+	srep = stats_reporter_alloc(STATS_REPORTER_LOG, name);
+
+	srep->have_net_config = 0;
+
+	srep->send_counter = stats_reporter_log_send_counter;
+	srep->send_item = stats_reporter_log_send_item;
+
+	return srep;
+}
+
+static int stats_reporter_log_send(struct stats_reporter *srep,
+	const char *type,
+	const char *name1, int index1, const char *name2, int value,
+	const char *unit)
+{
+	LOGP(DSTATS, LOGL_INFO,
+		"stats t=%s p=%s g=%s i=%d n=%s v=%d u=%s\n",
+		type, srep->name_prefix ? srep->name_prefix : "",
+		name1 ? name1 : "", index1,
+		name2, value, unit ? unit : "");
+
+	return 0;
+}
+
+
+static int stats_reporter_log_send_counter(struct stats_reporter *srep,
+	const struct rate_ctr_group *ctrg,
+	const struct rate_ctr_desc *desc,
+	int64_t value, int64_t delta)
+{
+	if (ctrg)
+		return stats_reporter_log_send(srep, "c",
+			ctrg->desc->group_name_prefix,
+			ctrg->idx,
+			desc->name, value, NULL);
+	else
+		return stats_reporter_log_send(srep, "c",
+			NULL, -1,
+			desc->name, value, NULL);
+}
+
+static int stats_reporter_log_send_item(struct stats_reporter *srep,
+	const struct stat_item_group *statg,
+	const struct stat_item_desc *desc, int value)
+{
+	return stats_reporter_log_send(srep, "i",
+		statg->desc->group_name_prefix, statg->idx,
+		desc->name, value, desc->unit);
 }
 
 /*** statsd reporter ***/

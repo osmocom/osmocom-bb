@@ -258,6 +258,47 @@ DEFUN(cfg_no_stats_reporter_statsd, cfg_no_stats_reporter_statsd_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_stats_reporter_log, cfg_stats_reporter_log_cmd,
+	"stats reporter log",
+	CFG_STATS_STR CFG_REPORTER_STR "Report to the logger\n")
+{
+	struct stats_reporter *srep;
+
+	srep = stats_reporter_find(STATS_REPORTER_LOG, NULL);
+	if (!srep) {
+		srep = stats_reporter_create_log(NULL);
+		if (!srep) {
+			vty_out(vty, "%% Unable to create log reporter%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		/* TODO: if needed, add stats_add_reporter(srep); */
+	}
+
+	vty->index = srep;
+	vty->node = CFG_STATS_NODE;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_stats_reporter_log, cfg_no_stats_reporter_log_cmd,
+	"no stats reporter log",
+	NO_STR CFG_STATS_STR CFG_REPORTER_STR "Report to the logger\n")
+{
+	struct stats_reporter *srep;
+
+	srep = stats_reporter_find(STATS_REPORTER_LOG, NULL);
+	if (!srep) {
+		vty_out(vty, "%% No log reporting active%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	stats_reporter_free(srep);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(show_stats,
       show_stats_cmd,
       "show stats",
@@ -276,6 +317,9 @@ static int config_write_stats_reporter(struct vty *vty, struct stats_reporter *s
 	switch (srep->type) {
 	case STATS_REPORTER_STATSD:
 		vty_out(vty, "stats reporter statsd%s", VTY_NEWLINE);
+		break;
+	case STATS_REPORTER_LOG:
+		vty_out(vty, "stats reporter log%s", VTY_NEWLINE);
 		break;
 	}
 
@@ -312,7 +356,10 @@ static int config_write_stats(struct vty *vty)
 {
 	struct stats_reporter *srep;
 
+	/* TODO: loop through all reporters */
 	srep = stats_reporter_find(STATS_REPORTER_STATSD, NULL);
+	config_write_stats_reporter(vty, srep);
+	srep = stats_reporter_find(STATS_REPORTER_LOG, NULL);
 	config_write_stats_reporter(vty, srep);
 
 	vty_out(vty, "stats interval %d%s", stats_config->interval, VTY_NEWLINE);
@@ -326,6 +373,8 @@ void stats_vty_add_cmds()
 
 	install_element(CONFIG_NODE, &cfg_stats_reporter_statsd_cmd);
 	install_element(CONFIG_NODE, &cfg_no_stats_reporter_statsd_cmd);
+	install_element(CONFIG_NODE, &cfg_stats_reporter_log_cmd);
+	install_element(CONFIG_NODE, &cfg_no_stats_reporter_log_cmd);
 	install_element(CONFIG_NODE, &cfg_stats_interval_cmd);
 
 	install_node(&cfg_stats_node, config_write_stats);

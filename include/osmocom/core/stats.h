@@ -30,6 +30,7 @@ struct rate_ctr_desc;
 
 enum stats_reporter_type {
 	STATS_REPORTER_STATSD,
+	STATS_REPORTER_LOG,
 };
 
 struct stats_reporter {
@@ -83,7 +84,9 @@ int stats_set_interval(int interval);
 struct stats_reporter *stats_reporter_alloc(enum stats_reporter_type type,
 	const char *name);
 void stats_reporter_free(struct stats_reporter *srep);
+
 struct stats_reporter *stats_reporter_create_statsd(const char *name);
+struct stats_reporter *stats_reporter_create_log(const char *name);
 
 struct stats_reporter *stats_reporter_find(enum stats_reporter_type type,
 	const char *name);
