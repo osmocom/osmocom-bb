@@ -567,7 +567,6 @@ static int rate_ctr_handler(
 	const struct rate_ctr_desc *desc, void *sctx_)
 {
 	struct osmo_stats_reporter *srep;
-	int rc;
 	int64_t delta = rate_ctr_difference(ctr);
 
 	if (delta == 0)
@@ -581,10 +580,10 @@ static int rate_ctr_handler(
 			       ctrg->idx, ctrg->desc->class_id))
 			return 0;
 
-		rc = osmo_stats_reporter_send_counter(srep, ctrg, desc,
+		osmo_stats_reporter_send_counter(srep, ctrg, desc,
 			ctr->current, delta);
 
-		/* TODO: handle rc (log?, inc counter(!)?) or remove it */
+		/* TODO: handle result (log?, inc counter(!)?) or remove it */
 	}
 
 	return 0;
@@ -614,7 +613,6 @@ static int osmo_stat_item_handler(
 	struct osmo_stat_item_group *statg, struct osmo_stat_item *item, void *sctx_)
 {
 	struct osmo_stats_reporter *srep;
-	int rc;
 	int32_t idx = current_stat_item_index;
 	int32_t value;
 
@@ -627,7 +625,7 @@ static int osmo_stat_item_handler(
 					statg->idx, statg->desc->class_id))
 				return 0;
 
-			rc = osmo_stats_reporter_send_item(srep, statg,
+			osmo_stats_reporter_send_item(srep, statg,
 				item->desc, value);
 		}
 	}
@@ -648,7 +646,6 @@ static int osmo_stat_item_group_handler(struct osmo_stat_item_group *statg, void
 static int handle_counter(struct osmo_counter *counter, void *sctx_)
 {
 	struct osmo_stats_reporter *srep;
-	int rc;
 	struct rate_ctr_desc desc = {0};
 	/* Fake a rate counter description */
 	desc.name = counter->name;
@@ -663,10 +660,10 @@ static int handle_counter(struct osmo_counter *counter, void *sctx_)
 		if (!srep->running)
 			continue;
 
-		rc = osmo_stats_reporter_send_counter(srep, NULL, &desc,
+		osmo_stats_reporter_send_counter(srep, NULL, &desc,
 			counter->value, delta);
 
-		/* TODO: handle rc (log?, inc counter(!)?) */
+		/* TODO: handle result (log?, inc counter(!)?) */
 	}
 
 	return 0;
