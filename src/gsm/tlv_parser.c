@@ -70,7 +70,7 @@ int tlv_parse_one(uint8_t *o_tag, uint16_t *o_len, const uint8_t **o_val,
 		return 1;
 	}
 
-	/* FIXME: use tables for knwon IEI */
+	/* FIXME: use tables for known IEI */
 	switch (def->def[tag].type) {
 	case TLV_TYPE_T:
 		/* GSM TS 04.07 11.2.4: Type 1 TV or Type 2 T */
@@ -143,7 +143,7 @@ tlv:		/* GSM TS 04.07 11.2.4: Type 4 TLV */
 	return len;
 }
 
-/*! \brief Parse an entire buffer of TLV encoded Information Eleemnts
+/*! \brief Parse an entire buffer of TLV encoded Information Elements
  *  \param[out] dec caller-allocated pointer to \ref tlv_parsed
  *  \param[in] def structure defining the valid TLV tags / configurations
  *  \param[in] buf the input data buffer to be parsed

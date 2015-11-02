@@ -37,16 +37,16 @@
  * Timer management:
  *      - Create a struct osmo_timer_list
  *      - Fill out timeout and use add_timer or
- *        use schedule_timer to schedule a timer in
+ *        use osmo_timer_schedule to schedule a timer in
  *        x seconds and microseconds from now...
- *      - Use del_timer to remove the timer
+ *      - Use osmo_timer_del to remove the timer
  *
  *  Internally:
  *      - We hook into select.c to give a timeval of the
  *        nearest timer. On already passed timers we give
  *        it a 0 to immediately fire after the select
- *      - update_timers will call the callbacks and remove
- *        the timers.
+ *      - osmo_timers_update will call the callbacks and
+ *        remove the timers.
  *
  */
 /*! \brief A structure representing a single instance of a timer */
