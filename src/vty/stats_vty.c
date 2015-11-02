@@ -149,7 +149,7 @@ DEFUN(cfg_no_stats_reporter_mtu, cfg_no_stats_reporter_mtu_cmd,
 	NO_STR "Set the maximum packet size\n")
 {
 	return set_srep_parameter_int(vty, osmo_stats_reporter_set_mtu,
-		0, "mtu");
+		"0", "mtu");
 }
 
 DEFUN(cfg_stats_reporter_prefix, cfg_stats_reporter_prefix_cmd,
