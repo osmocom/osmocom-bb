@@ -28,6 +28,13 @@ struct osmo_stat_item_desc;
 struct rate_ctr_group;
 struct rate_ctr_desc;
 
+enum osmo_stats_class {
+	OSMO_STATS_CLASS_UNKNOWN,
+	OSMO_STATS_CLASS_GLOBAL,
+	OSMO_STATS_CLASS_PEER,
+	OSMO_STATS_CLASS_SUBSCRIBER,
+};
+
 enum osmo_stats_reporter_type {
 	OSMO_STATS_REPORTER_STATSD,
 	OSMO_STATS_REPORTER_LOG,
@@ -46,6 +53,7 @@ struct osmo_stats_reporter {
 	char *bind_addr_str;
 	int dest_port;
 	int mtu;
+	enum osmo_stats_class max_class;
 
 	/* state */
 	int running;
@@ -95,6 +103,8 @@ int osmo_stats_reporter_set_remote_addr(struct osmo_stats_reporter *srep, const 
 int osmo_stats_reporter_set_remote_port(struct osmo_stats_reporter *srep, int port);
 int osmo_stats_reporter_set_local_addr(struct osmo_stats_reporter *srep, const char *addr);
 int osmo_stats_reporter_set_mtu(struct osmo_stats_reporter *srep, int mtu);
+int osmo_stats_reporter_set_max_class(struct osmo_stats_reporter *srep,
+	enum osmo_stats_class class_id);
 int osmo_stats_reporter_set_name_prefix(struct osmo_stats_reporter *srep, const char *prefix);
 int osmo_stats_reporter_enable(struct osmo_stats_reporter *srep);
 int osmo_stats_reporter_disable(struct osmo_stats_reporter *srep);

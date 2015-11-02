@@ -76,6 +76,7 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/stat_item.h>
+#include <osmocom/core/stats.h>
 #include <osmocom/core/socket.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/gprs/gprs_ns.h>
@@ -144,6 +145,7 @@ static const struct osmo_stat_item_group_desc nsvc_statg_desc = {
 	.group_description = "NSVC Peer Statistics",
 	.num_items = ARRAY_SIZE(nsvc_stat_description),
 	.item_desc = nsvc_stat_description,
+	.class_id = OSMO_STATS_CLASS_PEER,
 };
 
 #define CHECK_TX_RC(rc, nsvc) \

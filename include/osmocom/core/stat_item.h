@@ -45,6 +45,8 @@ struct osmo_stat_item_group_desc {
 	const char *group_name_prefix;
 	/*! \brief The human-readable description of the group */
 	const char *group_description;
+	/*! \brief The class to which this group belongs */
+	int class_id;
 	/*! \brief The number of values in this group */
 	const unsigned int num_items;
 	/*! \brief Pointer to array of value names */

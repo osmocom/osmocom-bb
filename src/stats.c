@@ -254,6 +254,17 @@ int osmo_stats_reporter_set_mtu(struct osmo_stats_reporter *srep, int mtu)
 	return update_srep_config(srep);
 }
 
+int osmo_stats_reporter_set_max_class(struct osmo_stats_reporter *srep,
+	enum osmo_stats_class class_id)
+{
+	if (class_id == OSMO_STATS_CLASS_UNKNOWN)
+		return -EINVAL;
+
+	srep->max_class = class_id;
+
+	return 0;
+}
+
 int osmo_stats_set_interval(int interval)
 {
 	if (interval <= 0)
@@ -315,6 +326,16 @@ static int osmo_stats_reporter_send_buffer(struct osmo_stats_reporter *srep)
 	msgb_trim(srep->buffer, 0);
 
 	return rc;
+}
+
+static int osmo_stats_reporter_check_config(struct osmo_stats_reporter *srep,
+	unsigned int index, int class_id)
+{
+	if (class_id == OSMO_STATS_CLASS_UNKNOWN)
+		class_id = index != 0 ?
+			OSMO_STATS_CLASS_SUBSCRIBER : OSMO_STATS_CLASS_GLOBAL;
+
+	return class_id <= srep->max_class;
 }
 
 /*** log reporter ***/
@@ -559,6 +580,10 @@ static int rate_ctr_handler(
 		if (!srep->running)
 			continue;
 
+		if (!osmo_stats_reporter_check_config(srep,
+			       ctrg->idx, ctrg->desc->class_id))
+			return 0;
+
 		rc = osmo_stats_reporter_send_counter(srep, ctrg, desc,
 			ctr->current, delta);
 
@@ -600,6 +625,10 @@ static int osmo_stat_item_handler(
 		llist_for_each_entry(srep, &osmo_stats_reporter_list, list) {
 			if (!srep->running)
 				continue;
+
+			if (!osmo_stats_reporter_check_config(srep,
+					statg->idx, statg->desc->class_id))
+				return 0;
 
 			rc = osmo_stats_reporter_send_item(srep, statg,
 				item->desc, value);

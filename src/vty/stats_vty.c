@@ -45,6 +45,13 @@ struct cmd_node cfg_stats_node = {
 	1
 };
 
+static const struct value_string stats_class_strs[] = {
+	{ OSMO_STATS_CLASS_GLOBAL,     "global" },
+	{ OSMO_STATS_CLASS_PEER,       "peer" },
+	{ OSMO_STATS_CLASS_SUBSCRIBER, "subscriber" },
+	{ 0, NULL }
+};
+
 static struct osmo_stats_reporter *osmo_stats_vty2srep(struct vty *vty)
 {
 	if (vty->node == CFG_STATS_NODE)
@@ -163,6 +170,28 @@ DEFUN(cfg_no_stats_reporter_prefix, cfg_no_stats_reporter_prefix_cmd,
 		"", "prefix string");
 }
 
+DEFUN(cfg_stats_reporter_level, cfg_stats_reporter_level_cmd,
+	"level (global|peer|subscriber)",
+	"Set the maximum group level\n"
+	"Report global groups only\n"
+	"Report global and network peer related groups\n"
+	"Report global, peer, and subscriber groups\n")
+{
+	int level = get_string_value(stats_class_strs, argv[0]);
+	int rc;
+	struct osmo_stats_reporter *srep = osmo_stats_vty2srep(vty);
+
+	OSMO_ASSERT(srep);
+	rc = osmo_stats_reporter_set_max_class(srep, level);
+	if (rc < 0) {
+		vty_out(vty, "%% Unable to set level: %s%s",
+			strerror(-rc), VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return 0;
+}
+
 DEFUN(cfg_stats_reporter_enable, cfg_stats_reporter_enable_cmd,
 	"enable",
 	"Enable the reporter\n")
@@ -213,6 +242,7 @@ DEFUN(cfg_stats_reporter_statsd, cfg_stats_reporter_statsd_cmd,
 				VTY_NEWLINE);
 			return CMD_WARNING;
 		}
+		srep->max_class = OSMO_STATS_CLASS_GLOBAL;
 		/* TODO: if needed, add osmo_stats_add_reporter(srep); */
 	}
 
@@ -272,6 +302,7 @@ DEFUN(cfg_stats_reporter_log, cfg_stats_reporter_log_cmd,
 				VTY_NEWLINE);
 			return CMD_WARNING;
 		}
+		srep->max_class = OSMO_STATS_CLASS_GLOBAL;
 		/* TODO: if needed, add osmo_stats_add_reporter(srep); */
 	}
 
@@ -340,6 +371,11 @@ static int config_write_stats_reporter(struct vty *vty, struct osmo_stats_report
 				srep->mtu, VTY_NEWLINE);
 	}
 
+	if (srep->max_class)
+		vty_out(vty, "  level %s%s",
+			get_value_string(stats_class_strs, srep->max_class),
+			VTY_NEWLINE);
+
 	if (srep->name_prefix && *srep->name_prefix)
 		vty_out(vty, "  prefix %s%s",
 			srep->name_prefix, VTY_NEWLINE);
@@ -388,6 +424,7 @@ void osmo_stats_vty_add_cmds()
 	install_element(CFG_STATS_NODE, &cfg_no_stats_reporter_mtu_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_prefix_cmd);
 	install_element(CFG_STATS_NODE, &cfg_no_stats_reporter_prefix_cmd);
+	install_element(CFG_STATS_NODE, &cfg_stats_reporter_level_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_enable_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_disable_cmd);
 }

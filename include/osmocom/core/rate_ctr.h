@@ -47,6 +47,8 @@ struct rate_ctr_group_desc {
 	const char *group_name_prefix;
 	/*! \brief The human-readable description of the group */
 	const char *group_description;
+	/*! \brief The class to which this group belongs */
+	int class_id;
 	/*! \brief The number of counters in this group */
 	const unsigned int num_ctr;
 	/*! \brief Pointer to array of counter names */
