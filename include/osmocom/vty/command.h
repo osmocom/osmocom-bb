@@ -84,6 +84,15 @@ enum node_type {
 	L_NS_NODE,		/*!< \brief NS node in libosmo-gb. */
 	L_BSSGP_NODE,		/*!< \brief BSSGP node in libosmo-gb. */
 
+	/*
+	 * When adding new nodes to the libosmocore project, these nodes can be
+	 * used to avoid ABI changes for unrelated projects.
+	 */
+	RESERVED1_NODE,		/*!< \brief Reserved for later extensions */
+	RESERVED2_NODE,		/*!< \brief Reserved for later extensions */
+	RESERVED3_NODE,		/*!< \brief Reserved for later extensions */
+	RESERVED4_NODE,		/*!< \brief Reserved for later extensions */
+
 	_LAST_OSMOVTY_NODE
 };
 
