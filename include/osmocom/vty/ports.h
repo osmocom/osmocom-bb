@@ -13,3 +13,4 @@
 #define OSMO_VTY_PORT_BB	4247
 /* 4249-4251 used by control interface */
 #define OSMO_VTY_PORT_BTSMGR	4252
+#define OSMO_VTY_PORT_GTPHUB	4253
