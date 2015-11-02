@@ -31,6 +31,7 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/stats.h>
 
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gprs/gprs_ns.h>
@@ -54,6 +55,7 @@ static const struct rate_ctr_group_desc bssgp_ctrg_desc = {
 	.group_description = "BSSGP Peer Statistics",
 	.num_ctr = ARRAY_SIZE(bssgp_ctr_description),
 	.ctr_desc = bssgp_ctr_description,
+	.class_id = OSMO_STATS_CLASS_PEER,
 };
 
 LLIST_HEAD(bssgp_bvc_ctxts);

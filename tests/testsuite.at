@@ -136,6 +136,12 @@ cat $abs_srcdir/utils/utils_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/utils/utils_test], [0], [expout], [ignore])
 AT_CLEANUP
 
+AT_SETUP([stats])
+AT_KEYWORDS([stats])
+cat $abs_srcdir/stats/stats_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/stats/stats_test], [0], [expout], [ignore])
+AT_CLEANUP
+
 AT_SETUP([bssgp-fc])
 AT_KEYWORDS([bssgp-fc])
 cat $abs_srcdir/gb/bssgp_fc_tests.ok > expout

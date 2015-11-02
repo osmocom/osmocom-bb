@@ -83,6 +83,15 @@ void rate_ctr_add(struct rate_ctr *ctr, int inc)
 	ctr->current += inc;
 }
 
+/*! \brief Return the counter difference since the last call to this function */
+int64_t rate_ctr_difference(struct rate_ctr *ctr)
+{
+	int64_t result = ctr->current - ctr->previous;
+	ctr->previous = ctr->current;
+
+	return result;
+}
+
 static void interval_expired(struct rate_ctr *ctr, enum rate_ctr_intv intv)
 {
 	/* calculate rate over last interval */
@@ -176,5 +185,37 @@ const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, c
 	}
 	return NULL;
 }
+
+int rate_ctr_for_each_counter(struct rate_ctr_group *ctrg,
+	rate_ctr_handler_t handle_counter, void *data)
+{
+	int rc = 0;
+	int i;
+
+	for (i = 0; i < ctrg->desc->num_ctr; i++) {
+		struct rate_ctr *ctr = &ctrg->ctr[i];
+		rc = handle_counter(ctrg,
+			ctr, &ctrg->desc->ctr_desc[i], data);
+		if (rc < 0)
+			return rc;
+	}
+
+	return rc;
+}
+
+int rate_ctr_for_each_group(rate_ctr_group_handler_t handle_group, void *data)
+{
+	struct rate_ctr_group *statg;
+	int rc = 0;
+
+	llist_for_each_entry(statg, &rate_ctr_groups, list) {
+		rc = handle_group(statg, data);
+		if (rc < 0)
+			return rc;
+	}
+
+	return rc;
+}
+
 
 /*! @} */

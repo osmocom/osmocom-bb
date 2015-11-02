@@ -22,12 +22,14 @@ nobase_include_HEADERS = \
                        osmocom/core/linuxrbtree.h \
                        osmocom/core/logging.h \
                        osmocom/core/loggingrb.h \
+                       osmocom/core/stats.h \
                        osmocom/core/macaddr.h \
                        osmocom/core/msgb.h \
                        osmocom/core/panic.h \
                        osmocom/core/prim.h \
                        osmocom/core/process.h \
                        osmocom/core/rate_ctr.h \
+                       osmocom/core/stat_item.h \
                        osmocom/core/select.h \
                        osmocom/core/signal.h \
                        osmocom/core/socket.h \
@@ -112,6 +114,7 @@ nobase_include_HEADERS += \
                           osmocom/vty/buffer.h \
                           osmocom/vty/command.h \
                           osmocom/vty/logging.h \
+                          osmocom/vty/stats.h \
                           osmocom/vty/misc.h \
                           osmocom/vty/telnet_interface.h \
                           osmocom/vty/vector.h \

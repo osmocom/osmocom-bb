@@ -118,6 +118,7 @@ struct gprs_nsvc {
 
 	struct osmo_timer_list timer;
 	enum nsvc_timer_mode timer_mode;
+	struct timeval timer_started;
 	int alive_retries;
 
 	unsigned int remote_end_is_sgsn:1;
@@ -125,6 +126,7 @@ struct gprs_nsvc {
 	unsigned int nsvci_is_valid:1;
 
 	struct rate_ctr_group *ctrg;
+	struct osmo_stat_item_group *statg;
 
 	/*! \brief which link-layer are we based on? */
 	enum gprs_ns_ll ll;

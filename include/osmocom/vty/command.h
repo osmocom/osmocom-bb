@@ -75,6 +75,7 @@ enum node_type {
 	SERVICE_NODE,		/*!< \brief Service node. */
 	DEBUG_NODE,		/*!< \brief Debug node. */
 	CFG_LOG_NODE,		/*!< \brief Configure the logging */
+	CFG_STATS_NODE,		/*!< \brief Configure the statistics */
 
 	VTY_NODE,		/*!< \brief Vty node. */
 
@@ -82,6 +83,15 @@ enum node_type {
 	L_IPA_NODE,		/*!< \brief IPA proxying commands in libosmo-abis. */
 	L_NS_NODE,		/*!< \brief NS node in libosmo-gb. */
 	L_BSSGP_NODE,		/*!< \brief BSSGP node in libosmo-gb. */
+
+	/*
+	 * When adding new nodes to the libosmocore project, these nodes can be
+	 * used to avoid ABI changes for unrelated projects.
+	 */
+	RESERVED1_NODE,		/*!< \brief Reserved for later extensions */
+	RESERVED2_NODE,		/*!< \brief Reserved for later extensions */
+	RESERVED3_NODE,		/*!< \brief Reserved for later extensions */
+	RESERVED4_NODE,		/*!< \brief Reserved for later extensions */
 
 	_LAST_OSMOVTY_NODE
 };

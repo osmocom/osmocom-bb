@@ -9,6 +9,7 @@ struct osmo_counter {
 	const char *name;		/*!< \brief human-readable name */
 	const char *description;	/*!< \brief humn-readable description */
 	unsigned long value;		/*!< \brief current value */
+	unsigned long previous;		/*!< \brief previous value */
 };
 
 /*! \brief Increment counter */
@@ -37,8 +38,8 @@ struct osmo_counter *osmo_counter_alloc(const char *name);
  */
 void osmo_counter_free(struct osmo_counter *ctr);
 
-/*! \brief Iteate over all counters
- *  \param[in] handle_counter Call-back function
+/*! \brief Iterate over all counters
+ *  \param[in] handle_counter Call-back function, aborts if rc < 0
  *  \param[in] data Private dtata handed through to \a handle_counter
  */
 int osmo_counters_for_each(int (*handle_counter)(struct osmo_counter *, void *), void *data);
@@ -48,3 +49,6 @@ int osmo_counters_for_each(int (*handle_counter)(struct osmo_counter *, void *),
  *  \returns pointer to counter (\ref osmo_counter) or NULL otherwise
  */
 struct osmo_counter *osmo_counter_get_by_name(const char *name);
+
+/*! \brief Return the counter difference since the last call to this function */
+int osmo_counter_difference(struct osmo_counter *ctr);

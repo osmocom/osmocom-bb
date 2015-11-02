@@ -29,7 +29,9 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/stat_item.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/statistics.h>
 
 #include <osmocom/vty/vty.h>
 
@@ -39,6 +41,30 @@
  *  @{
  */
 
+struct vty_out_context {
+	struct vty *vty;
+	const char *prefix;
+};
+
+static int rate_ctr_handler(
+	struct rate_ctr_group *ctrg, struct rate_ctr *ctr,
+	const struct rate_ctr_desc *desc, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	vty_out(vty, " %s%s: %8" PRIu64 " "
+		"(%" PRIu64 "/s %" PRIu64 "/m %" PRIu64 "/h %" PRIu64 "/d)%s",
+		vctx->prefix, desc->description, ctr->current,
+		ctr->intv[RATE_CTR_INTV_SEC].rate,
+		ctr->intv[RATE_CTR_INTV_MIN].rate,
+		ctr->intv[RATE_CTR_INTV_HOUR].rate,
+		ctr->intv[RATE_CTR_INTV_DAY].rate,
+		VTY_NEWLINE);
+
+	return 0;
+}
+
 /*! \brief print a rate counter group to given VTY
  *  \param[in] vty The VTY to which it should be printed
  *  \param[in] prefix Any additional log prefix ahead of each line
@@ -47,20 +73,97 @@
 void vty_out_rate_ctr_group(struct vty *vty, const char *prefix,
 			    struct rate_ctr_group *ctrg)
 {
-	unsigned int i;
+	struct vty_out_context vctx = {vty, prefix};
 
 	vty_out(vty, "%s%s:%s", prefix, ctrg->desc->group_description, VTY_NEWLINE);
-	for (i = 0; i < ctrg->desc->num_ctr; i++) {
-		struct rate_ctr *ctr = &ctrg->ctr[i];
-		vty_out(vty, " %s%s: %8" PRIu64 " "
-			"(%" PRIu64 "/s %" PRIu64 "/m %" PRIu64 "/h %" PRIu64 "/d)%s",
-			prefix, ctrg->desc->ctr_desc[i].description, ctr->current,
-			ctr->intv[RATE_CTR_INTV_SEC].rate,
-			ctr->intv[RATE_CTR_INTV_MIN].rate,
-			ctr->intv[RATE_CTR_INTV_HOUR].rate,
-			ctr->intv[RATE_CTR_INTV_DAY].rate,
+
+	rate_ctr_for_each_counter(ctrg, rate_ctr_handler, &vctx);
+}
+
+static int osmo_stat_item_handler(
+	struct osmo_stat_item_group *statg, struct osmo_stat_item *item, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	vty_out(vty, " %s%s: %8" PRIi32 " %s%s",
+		vctx->prefix, item->desc->description,
+		osmo_stat_item_get_last(item),
+		item->desc->unit, VTY_NEWLINE);
+
+	return 0;
+}
+
+/*! \brief print a stat item group to given VTY
+ *  \param[in] vty The VTY to which it should be printed
+ *  \param[in] prefix Any additional log prefix ahead of each line
+ *  \param[in] statg Stat item group to be printed
+ */
+void vty_out_stat_item_group(struct vty *vty, const char *prefix,
+			     struct osmo_stat_item_group *statg)
+{
+	struct vty_out_context vctx = {vty, prefix};
+
+	vty_out(vty, "%s%s:%s", prefix, statg->desc->group_description,
+		VTY_NEWLINE);
+	osmo_stat_item_for_each_item(statg, osmo_stat_item_handler, &vctx);
+}
+
+static int osmo_stat_item_group_handler(struct osmo_stat_item_group *statg, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	if (statg->idx)
+		vty_out(vty, "%s%s (%d):%s", vctx->prefix,
+			statg->desc->group_description, statg->idx,
 			VTY_NEWLINE);
-	};
+	else
+		vty_out(vty, "%s%s:%s", vctx->prefix,
+			statg->desc->group_description, VTY_NEWLINE);
+
+	osmo_stat_item_for_each_item(statg, osmo_stat_item_handler, vctx);
+
+	return 0;
+}
+
+static int rate_ctr_group_handler(struct rate_ctr_group *ctrg, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	if (ctrg->idx)
+		vty_out(vty, "%s%s (%d):%s", vctx->prefix,
+			ctrg->desc->group_description, ctrg->idx, VTY_NEWLINE);
+	else
+		vty_out(vty, "%s%s:%s", vctx->prefix,
+			ctrg->desc->group_description, VTY_NEWLINE);
+
+	rate_ctr_for_each_counter(ctrg, rate_ctr_handler, vctx);
+
+	return 0;
+}
+
+static int handle_counter(struct osmo_counter *counter, void *vctx_)
+{
+	struct vty_out_context *vctx = vctx_;
+	struct vty *vty = vctx->vty;
+
+	vty_out(vty, " %s%s: %8lu%s",
+		vctx->prefix, counter->description,
+		osmo_counter_get(counter), VTY_NEWLINE);
+
+	return 0;
+}
+
+void vty_out_statistics_full(struct vty *vty, const char *prefix)
+{
+	struct vty_out_context vctx = {vty, prefix};
+
+	vty_out(vty, "%sUngrouped counters:%s", prefix, VTY_NEWLINE);
+	osmo_counters_for_each(handle_counter, &vctx);
+	rate_ctr_for_each_group(rate_ctr_group_handler, &vctx);
+	osmo_stat_item_for_each_group(osmo_stat_item_group_handler, &vctx);
 }
 
 /*! \brief Generate a VTY command string from value_string */
