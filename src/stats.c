@@ -334,11 +334,11 @@ struct osmo_stats_reporter *osmo_stats_reporter_create_log(const char *name)
 
 static int osmo_stats_reporter_log_send(struct osmo_stats_reporter *srep,
 	const char *type,
-	const char *name1, int index1, const char *name2, int value,
+	const char *name1, unsigned int index1, const char *name2, int value,
 	const char *unit)
 {
 	LOGP(DSTATS, LOGL_INFO,
-		"stats t=%s p=%s g=%s i=%d n=%s v=%d u=%s\n",
+		"stats t=%s p=%s g=%s i=%u n=%s v=%d u=%s\n",
 		type, srep->name_prefix ? srep->name_prefix : "",
 		name1 ? name1 : "", index1,
 		name2, value, unit ? unit : "");
@@ -359,7 +359,7 @@ static int osmo_stats_reporter_log_send_counter(struct osmo_stats_reporter *srep
 			desc->name, value, NULL);
 	else
 		return osmo_stats_reporter_log_send(srep, "c",
-			NULL, -1,
+			NULL, 0,
 			desc->name, value, NULL);
 }
 
@@ -442,7 +442,7 @@ static int osmo_stats_reporter_statsd_close(struct osmo_stats_reporter *srep)
 }
 
 static int osmo_stats_reporter_statsd_send(struct osmo_stats_reporter *srep,
-	const char *name1, int index1, const char *name2, int value,
+	const char *name1, unsigned int index1, const char *name2, int value,
 	const char *unit)
 {
 	char *buf;
@@ -452,8 +452,8 @@ static int osmo_stats_reporter_statsd_send(struct osmo_stats_reporter *srep,
 	int old_len = msgb_length(srep->buffer);
 
 	if (name1) {
-		if (index1 > 0)
-			fmt = "%1$s.%2$s.%6$d.%3$s:%4$d|%5$s";
+		if (index1 != 0)
+			fmt = "%1$s.%2$s.%6$u.%3$s:%4$d|%5$s";
 		else
 			fmt = "%1$s.%2$s.%3$s:%4$d|%5$s";
 	} else {
@@ -517,7 +517,7 @@ static int osmo_stats_reporter_statsd_send_counter(struct osmo_stats_reporter *s
 			desc->name, delta, "c");
 	else
 		return osmo_stats_reporter_statsd_send(srep,
-			NULL, -1,
+			NULL, 0,
 			desc->name, delta, "c");
 }
 
@@ -526,7 +526,8 @@ static int osmo_stats_reporter_statsd_send_item(struct osmo_stats_reporter *srep
 	const struct osmo_stat_item_desc *desc, int value)
 {
 	return osmo_stats_reporter_statsd_send(srep,
-		statg->desc->group_name_prefix, statg->idx,
+		statg->desc->group_name_prefix,
+		statg->idx,
 		desc->name, value, desc->unit);
 }
 
