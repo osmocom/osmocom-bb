@@ -40,9 +40,6 @@
 #include <osmocom/core/statistics.h>
 #include <osmocom/core/msgb.h>
 
-/* TODO: register properly */
-#define DSTATS DLGLOBAL
-
 #define STATS_DEFAULT_INTERVAL 5 /* secs */
 #define STATS_DEFAULT_STATSD_BUFLEN 256
 
@@ -358,7 +355,7 @@ static int osmo_stats_reporter_log_send(struct osmo_stats_reporter *srep,
 	const char *name1, unsigned int index1, const char *name2, int value,
 	const char *unit)
 {
-	LOGP(DSTATS, LOGL_INFO,
+	LOGP(DLSTATS, LOGL_INFO,
 		"stats t=%s p=%s g=%s i=%u n=%s v=%d u=%s\n",
 		type, srep->name_prefix ? srep->name_prefix : "",
 		name1 ? name1 : "", index1,
