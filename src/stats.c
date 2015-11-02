@@ -225,7 +225,7 @@ int osmo_stats_reporter_set_local_addr(struct osmo_stats_reporter *srep, const c
 		if (rc <= 0)
 			return -EINVAL;
 	} else {
-		addr = INADDR_ANY;
+		inaddr.s_addr = INADDR_ANY;
 	}
 
 	sock_addr->sin_addr = inaddr;
