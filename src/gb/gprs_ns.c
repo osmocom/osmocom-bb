@@ -130,6 +130,7 @@ static const struct rate_ctr_group_desc nsvc_ctrg_desc = {
 	.group_description = "NSVC Peer Statistics",
 	.num_ctr = ARRAY_SIZE(nsvc_ctr_description),
 	.ctr_desc = nsvc_ctr_description,
+	.class_id = OSMO_STATS_CLASS_PEER,
 };
 
 enum ns_stat {
