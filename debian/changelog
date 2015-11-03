@@ -1,3 +1,11 @@
+libosmocore (0.9.0) unstable; urgency=medium
+
+  * StatsD support
+  * Disable building of static libraries
+  * GTP Hub and OAP ports/identifiers assigned
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Tue, 03 Nov 2015 09:31:41 +0100
+
 libosmocore (0.8.3) unstable; urgency=medium
 
   * Prepare new release
