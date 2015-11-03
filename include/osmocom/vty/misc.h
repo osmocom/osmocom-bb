@@ -17,6 +17,8 @@ void vty_out_stat_item_group(struct vty *vty, const char *prefix,
 			     struct osmo_stat_item_group *statg);
 
 void vty_out_statistics_full(struct vty *vty, const char *prefix);
+void vty_out_statistics_partial(struct vty *vty, const char *prefix,
+	int max_level);
 
 int osmo_vty_write_config_file(const char *filename);
 int osmo_vty_save_config_file(void);

@@ -340,6 +340,20 @@ DEFUN(show_stats,
 	return CMD_SUCCESS;
 }
 
+DEFUN(show_stats_level,
+      show_stats_level_cmd,
+      "show stats level (global|peer|subscriber)",
+      SHOW_STR SHOW_STATS_STR
+      "Show global groups only\n"
+      "Show global and network peer related groups\n"
+      "Show global, peer, and subscriber groups\n")
+{
+	int level = get_string_value(stats_class_strs, argv[0]);
+	vty_out_statistics_partial(vty, "", level);
+
+	return CMD_SUCCESS;
+}
+
 static int config_write_stats_reporter(struct vty *vty, struct osmo_stats_reporter *srep)
 {
 	if (srep == NULL)
@@ -406,6 +420,7 @@ static int config_write_stats(struct vty *vty)
 void osmo_stats_vty_add_cmds()
 {
 	install_element_ve(&show_stats_cmd);
+	install_element_ve(&show_stats_level_cmd);
 
 	install_element(CONFIG_NODE, &cfg_stats_reporter_statsd_cmd);
 	install_element(CONFIG_NODE, &cfg_no_stats_reporter_statsd_cmd);

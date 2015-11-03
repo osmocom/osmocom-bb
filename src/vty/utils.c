@@ -24,6 +24,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/talloc.h>
@@ -44,6 +45,7 @@
 struct vty_out_context {
 	struct vty *vty;
 	const char *prefix;
+	int max_level;
 };
 
 static int rate_ctr_handler(
@@ -114,6 +116,9 @@ static int osmo_stat_item_group_handler(struct osmo_stat_item_group *statg, void
 	struct vty_out_context *vctx = vctx_;
 	struct vty *vty = vctx->vty;
 
+	if (statg->desc->class_id > vctx->max_level)
+		return 0;
+
 	if (statg->idx)
 		vty_out(vty, "%s%s (%d):%s", vctx->prefix,
 			statg->desc->group_description, statg->idx,
@@ -131,6 +136,9 @@ static int rate_ctr_group_handler(struct rate_ctr_group *ctrg, void *vctx_)
 {
 	struct vty_out_context *vctx = vctx_;
 	struct vty *vty = vctx->vty;
+
+	if (ctrg->desc->class_id > vctx->max_level)
+		return 0;
 
 	if (ctrg->idx)
 		vty_out(vty, "%s%s (%d):%s", vctx->prefix,
@@ -156,14 +164,20 @@ static int handle_counter(struct osmo_counter *counter, void *vctx_)
 	return 0;
 }
 
-void vty_out_statistics_full(struct vty *vty, const char *prefix)
+void vty_out_statistics_partial(struct vty *vty, const char *prefix,
+	int max_level)
 {
-	struct vty_out_context vctx = {vty, prefix};
+	struct vty_out_context vctx = {vty, prefix, max_level};
 
 	vty_out(vty, "%sUngrouped counters:%s", prefix, VTY_NEWLINE);
 	osmo_counters_for_each(handle_counter, &vctx);
 	rate_ctr_for_each_group(rate_ctr_group_handler, &vctx);
 	osmo_stat_item_for_each_group(osmo_stat_item_group_handler, &vctx);
+}
+
+void vty_out_statistics_full(struct vty *vty, const char *prefix)
+{
+	vty_out_statistics_partial(vty, prefix, INT_MAX);
 }
 
 /*! \brief Generate a VTY command string from value_string */
