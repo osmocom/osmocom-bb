@@ -27,6 +27,7 @@
 #include <osmocom/core/application.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/stats.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/vty/misc.h>
@@ -34,6 +35,7 @@
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/buffer.h>
 #include <osmocom/vty/logging.h>
+#include <osmocom/vty/stats.h>
 
 static enum event last_vty_connection_event = -1;
 
@@ -173,6 +175,121 @@ static void test_node_tree_structure(void)
 	destroy_test_vty(&test, vty);
 }
 
+static void check_srep_vty_config(struct vty* vty,
+	struct osmo_stats_reporter *srep)
+{
+	OSMO_ASSERT(srep->enabled == 0);
+
+	OSMO_ASSERT(do_vty_command(vty, "prefix myprefix") == CMD_SUCCESS);
+	OSMO_ASSERT(srep->name_prefix != NULL);
+	OSMO_ASSERT(strcmp(srep->name_prefix, "myprefix") == 0);
+	OSMO_ASSERT(do_vty_command(vty, "no prefix") == CMD_SUCCESS);
+	OSMO_ASSERT(srep->name_prefix == NULL || strlen(srep->name_prefix) == 0);
+
+	OSMO_ASSERT(srep->max_class == OSMO_STATS_CLASS_GLOBAL);
+	OSMO_ASSERT(do_vty_command(vty, "level peer") == CMD_SUCCESS);
+	OSMO_ASSERT(srep->max_class == OSMO_STATS_CLASS_PEER);
+	OSMO_ASSERT(do_vty_command(vty, "level subscriber") == CMD_SUCCESS);
+	OSMO_ASSERT(srep->max_class == OSMO_STATS_CLASS_SUBSCRIBER);
+	OSMO_ASSERT(do_vty_command(vty, "level global") == CMD_SUCCESS);
+	OSMO_ASSERT(srep->max_class == OSMO_STATS_CLASS_GLOBAL);
+	OSMO_ASSERT(do_vty_command(vty, "level foobar") == CMD_ERR_NO_MATCH);
+
+	if (srep->have_net_config) {
+		OSMO_ASSERT(do_vty_command(vty, "remote-ip 127.0.0.99") ==
+			CMD_SUCCESS);
+		OSMO_ASSERT(srep->dest_addr_str &&
+			strcmp(srep->dest_addr_str, "127.0.0.99") == 0);
+		OSMO_ASSERT(do_vty_command(vty, "remote-ip 678.0.0.99") ==
+			CMD_WARNING);
+		OSMO_ASSERT(srep->dest_addr_str &&
+			strcmp(srep->dest_addr_str, "127.0.0.99") == 0);
+
+		OSMO_ASSERT(do_vty_command(vty, "remote-port 12321") ==
+			CMD_SUCCESS);
+		OSMO_ASSERT(srep->dest_port == 12321);
+
+		OSMO_ASSERT(srep->bind_addr_str == NULL);
+		OSMO_ASSERT(do_vty_command(vty, "local-ip 127.0.0.98") ==
+			CMD_SUCCESS);
+		OSMO_ASSERT(srep->bind_addr_str &&
+			strcmp(srep->bind_addr_str, "127.0.0.98") == 0);
+		OSMO_ASSERT(do_vty_command(vty, "no local-ip") == CMD_SUCCESS);
+		OSMO_ASSERT(srep->bind_addr_str == NULL);
+
+		OSMO_ASSERT(srep->mtu == 0);
+		OSMO_ASSERT(do_vty_command(vty, "mtu 987") == CMD_SUCCESS);
+		OSMO_ASSERT(srep->mtu == 987);
+		OSMO_ASSERT(do_vty_command(vty, "no mtu") == CMD_SUCCESS);
+		OSMO_ASSERT(srep->mtu == 0);
+	};
+
+	OSMO_ASSERT(do_vty_command(vty, "enable") == CMD_SUCCESS);
+	OSMO_ASSERT(srep->enabled != 0);
+	OSMO_ASSERT(do_vty_command(vty, "disable") == CMD_SUCCESS);
+	OSMO_ASSERT(srep->enabled == 0);
+}
+
+static void test_stats_vty(void)
+{
+	struct osmo_stats_reporter *srep;
+	struct vty_test test;
+	struct vty *vty;
+
+	printf("Going to test VTY configuration of the stats subsystem\n");
+	vty = create_test_vty(&test);
+
+	/* Go to config node */
+	OSMO_ASSERT(do_vty_command(vty, "enable") == CMD_SUCCESS);
+	OSMO_ASSERT(vty->node == ENABLE_NODE);
+	OSMO_ASSERT(do_vty_command(vty, "configure terminal") == CMD_SUCCESS);
+	OSMO_ASSERT(vty->node == CONFIG_NODE);
+
+	/* Try to create invalid reporter */
+	OSMO_ASSERT(do_vty_command(vty, "stats reporter foobar") ==
+		CMD_ERR_NO_MATCH);
+
+	/* Set reporting interval */
+	OSMO_ASSERT(do_vty_command(vty, "stats interval 42") == CMD_SUCCESS);
+	OSMO_ASSERT(osmo_stats_config->interval == 42);
+
+	/* Create log reporter */
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_LOG, NULL);
+	OSMO_ASSERT(srep == NULL);
+	OSMO_ASSERT(do_vty_command(vty, "stats reporter log") == CMD_SUCCESS);
+	OSMO_ASSERT(vty->node == CFG_STATS_NODE);
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_LOG, NULL);
+	OSMO_ASSERT(srep != NULL);
+	OSMO_ASSERT(srep->type == OSMO_STATS_REPORTER_LOG);
+	check_srep_vty_config(vty, srep);
+	OSMO_ASSERT(do_vty_command(vty, "exit") == CMD_SUCCESS);
+	OSMO_ASSERT(vty->node == CONFIG_NODE);
+
+	/* Create statsd reporter */
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_STATSD, NULL);
+	OSMO_ASSERT(srep == NULL);
+	OSMO_ASSERT(do_vty_command(vty, "stats reporter statsd") == CMD_SUCCESS);
+	OSMO_ASSERT(vty->node == CFG_STATS_NODE);
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_STATSD, NULL);
+	OSMO_ASSERT(srep != NULL);
+	OSMO_ASSERT(srep->type == OSMO_STATS_REPORTER_STATSD);
+	check_srep_vty_config(vty, srep);
+	OSMO_ASSERT(do_vty_command(vty, "exit") == CMD_SUCCESS);
+	OSMO_ASSERT(vty->node == CONFIG_NODE);
+
+	/* Destroy log reporter */
+	OSMO_ASSERT(osmo_stats_reporter_find(OSMO_STATS_REPORTER_LOG, NULL));
+	OSMO_ASSERT(do_vty_command(vty, "no stats reporter log") == CMD_SUCCESS);
+	OSMO_ASSERT(!osmo_stats_reporter_find(OSMO_STATS_REPORTER_LOG, NULL));
+
+	/* Destroy statsd reporter */
+	OSMO_ASSERT(osmo_stats_reporter_find(OSMO_STATS_REPORTER_STATSD, NULL));
+	OSMO_ASSERT(do_vty_command(vty, "no stats reporter statsd") == CMD_SUCCESS);
+	OSMO_ASSERT(!osmo_stats_reporter_find(OSMO_STATS_REPORTER_STATSD, NULL));
+
+	destroy_test_vty(&test, vty);
+}
+
 int main(int argc, char **argv)
 {
 	struct vty_app_info vty_info = {
@@ -188,18 +305,28 @@ int main(int argc, char **argv)
 		.cat = default_categories,
 		.num_cat = ARRAY_SIZE(default_categories),
 	};
+	void *stats_ctx = talloc_named_const(NULL, 1, "stats test context");
+
 	osmo_signal_register_handler(SS_L_VTY, vty_event_cb, NULL);
 
 	/* Fake logging. */
 	osmo_init_logging(&log_info);
 
+	/* Init stats */
+	osmo_stats_init(stats_ctx);
+
 	vty_init(&vty_info);
 
 	/* Setup VTY commands */
 	logging_vty_add_cmds(&log_info);
+	osmo_stats_vty_add_cmds();
 
 	test_cmd_string_from_valstr();
 	test_node_tree_structure();
+	test_stats_vty();
+
+	/* Leak check */
+	OSMO_ASSERT(talloc_total_blocks(stats_ctx) == 1);
 
 	printf("All tests passed\n");
 
