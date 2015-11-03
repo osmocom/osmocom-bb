@@ -86,40 +86,36 @@ static int vty_event_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
+struct vty_test {
+	int sock[2];
+};
+
+static struct vty* create_test_vty(struct vty_test *data)
+{
+	struct vty *vty;
+	/* Fake connection. */
+	socketpair(AF_UNIX, SOCK_STREAM, 0, data->sock);
+
+	vty = vty_create(data->sock[0], NULL);
+	OSMO_ASSERT(vty != NULL);
+	OSMO_ASSERT(vty->status != VTY_CLOSE);
+
+	return vty;
+}
+
+static void destroy_test_vty(struct vty_test *data, struct vty *vty)
+{
+	vty_close(vty);
+	OSMO_ASSERT(last_vty_connection_event == VTY_CLOSED);
+}
+
 static void test_node_tree_structure(void)
 {
-	struct vty_app_info vty_info = {
-		.name 		= "VtyTest",
-		.version	= 0,
-		.go_parent_cb	= NULL,
-		.is_config_node	= NULL,
-	};
-
-	const struct log_info_cat default_categories[] = {};
-
-	const struct log_info log_info = {
-		.cat = default_categories,
-		.num_cat = ARRAY_SIZE(default_categories),
-	};
-
+	struct vty_test test;
 	struct vty *vty;
-	int sock[2];
 
 	printf("Going to test VTY node tree structure\n");
-
-	/* Fake logging. */
-	osmo_init_logging(&log_info);
-
-	vty_init(&vty_info);
-
-	logging_vty_add_cmds(&log_info);
-
-	/* Fake connection. */
-	socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
-
-	vty = vty_create(sock[0], NULL);
-
-	OSMO_ASSERT(vty != NULL);
+	vty = create_test_vty(&test);
 
 	OSMO_ASSERT(do_vty_command(vty, "enable") == CMD_SUCCESS);
 	OSMO_ASSERT(vty->node == ENABLE_NODE);
@@ -174,16 +170,37 @@ static void test_node_tree_structure(void)
 	OSMO_ASSERT(vty->node == ENABLE_NODE);
 	OSMO_ASSERT(vty->status == VTY_CLOSE);
 
-	vty_close(vty);
-	OSMO_ASSERT(last_vty_connection_event == VTY_CLOSED);
+	destroy_test_vty(&test, vty);
 }
 
 int main(int argc, char **argv)
 {
+	struct vty_app_info vty_info = {
+		.name		= "VtyTest",
+		.version	= 0,
+		.go_parent_cb	= NULL,
+		.is_config_node	= NULL,
+	};
+
+	const struct log_info_cat default_categories[] = {};
+
+	const struct log_info log_info = {
+		.cat = default_categories,
+		.num_cat = ARRAY_SIZE(default_categories),
+	};
 	osmo_signal_register_handler(SS_L_VTY, vty_event_cb, NULL);
+
+	/* Fake logging. */
+	osmo_init_logging(&log_info);
+
+	vty_init(&vty_info);
+
+	/* Setup VTY commands */
+	logging_vty_add_cmds(&log_info);
 
 	test_cmd_string_from_valstr();
 	test_node_tree_structure();
+
 	printf("All tests passed\n");
 
 	return 0;
