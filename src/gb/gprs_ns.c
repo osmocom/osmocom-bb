@@ -886,6 +886,8 @@ static int gprs_ns_rx_reset(struct gprs_nsvc **nsvc, struct msgb *msg)
 		(*nsvc)->nsei  = nsei;
 		(*nsvc)->nsvci = nsvci;
 		(*nsvc)->nsvci_is_valid = 1;
+		rate_ctr_group_upd_idx((*nsvc)->ctrg, nsvci);
+		osmo_stat_item_group_udp_idx((*nsvc)->statg, nsvci);
 	}
 
 	/* inform interested parties about the fact that this NSVC

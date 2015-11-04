@@ -70,6 +70,12 @@ struct osmo_stat_item_group *osmo_stat_item_group_alloc(
 	const struct osmo_stat_item_group_desc *desc,
 	unsigned int idx);
 
+static inline void osmo_stat_item_group_udp_idx(
+	struct osmo_stat_item_group *grp, unsigned int idx)
+{
+	grp->idx = idx;
+}
+
 void osmo_stat_item_group_free(struct osmo_stat_item_group *statg);
 
 void osmo_stat_item_set(struct osmo_stat_item *item, int32_t value);

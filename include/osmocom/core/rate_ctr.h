@@ -71,6 +71,11 @@ struct rate_ctr_group *rate_ctr_group_alloc(void *ctx,
 					    const struct rate_ctr_group_desc *desc,
 					    unsigned int idx);
 
+static inline void rate_ctr_group_upd_idx(struct rate_ctr_group *grp, unsigned int idx)
+{
+	grp->idx = idx;
+}
+
 void rate_ctr_group_free(struct rate_ctr_group *grp);
 
 void rate_ctr_add(struct rate_ctr *ctr, int inc);
