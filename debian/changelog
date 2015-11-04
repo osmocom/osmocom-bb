@@ -1,3 +1,9 @@
+libosmocore (0.9.2) unstable; urgency=medium
+
+  * Fix the counter index after the NS reset.
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Wed, 04 Nov 2015 14:47:48 +0100
+
 libosmocore (0.9.1) unstable; urgency=medium
 
   * Fix rate_ctr attribute for GPRS NS counters.
