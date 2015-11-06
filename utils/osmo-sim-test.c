@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <arpa/inet.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
