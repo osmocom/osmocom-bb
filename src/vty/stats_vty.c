@@ -344,6 +344,7 @@ DEFUN(show_stats_level,
       show_stats_level_cmd,
       "show stats level (global|peer|subscriber)",
       SHOW_STR SHOW_STATS_STR
+      "Set the maximum group level\n"
       "Show global groups only\n"
       "Show global and network peer related groups\n"
       "Show global, peer, and subscriber groups\n")
