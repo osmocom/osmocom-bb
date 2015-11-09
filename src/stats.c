@@ -593,7 +593,7 @@ static int rate_ctr_handler(
 
 		if (!osmo_stats_reporter_check_config(srep,
 			       ctrg->idx, ctrg->desc->class_id))
-			return 0;
+			continue;
 
 		osmo_stats_reporter_send_counter(srep, ctrg, desc,
 			ctr->current, delta);
@@ -647,7 +647,7 @@ static int osmo_stat_item_handler(
 
 			if (!osmo_stats_reporter_check_config(srep,
 					statg->idx, statg->desc->class_id))
-				return 0;
+				continue;
 
 			osmo_stats_reporter_send_item(srep, statg,
 				item->desc, value);
