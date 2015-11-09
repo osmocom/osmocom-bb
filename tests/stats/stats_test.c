@@ -23,28 +23,49 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/stat_item.h>
+#include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/stats.h>
 
 #include <stdio.h>
 
+enum test_ctr {
+	TEST_A_CTR,
+	TEST_B_CTR,
+};
+
+static const struct rate_ctr_desc ctr_description[] = {
+	[TEST_A_CTR] = { "ctr.a", "The A counter value"},
+	[TEST_B_CTR] = { "ctr.b", "The B counter value"},
+};
+
+static const struct rate_ctr_group_desc ctrg_desc = {
+	.group_name_prefix = "ctr-test.one",
+	.group_description = "Counter test number 1",
+	.num_ctr = ARRAY_SIZE(ctr_description),
+	.ctr_desc = ctr_description,
+	.class_id = OSMO_STATS_CLASS_SUBSCRIBER,
+};
+
+enum test_items {
+	TEST_A_ITEM,
+	TEST_B_ITEM,
+};
+
+static const struct osmo_stat_item_desc item_description[] = {
+	[TEST_A_ITEM] = { "item.a", "The A value", "ma", 4, -1 },
+	[TEST_B_ITEM] = { "item.b", "The B value", "kb", 7, -1 },
+};
+
+static const struct osmo_stat_item_group_desc statg_desc = {
+	.group_name_prefix = "test.one",
+	.group_description = "Test number 1",
+	.num_items = ARRAY_SIZE(item_description),
+	.item_desc = item_description,
+	.class_id = OSMO_STATS_CLASS_PEER,
+};
+
 static void stat_test(void)
 {
-	enum test_items {
-		TEST_A_ITEM,
-		TEST_B_ITEM,
-	};
-
-	static const struct osmo_stat_item_desc item_description[] = {
-		{ "item.a", "The A value", "ma", 4, -1 },
-		{ "item.b", "The B value", "kb", 7, -1 },
-	};
-
-	static const struct osmo_stat_item_group_desc statg_desc = {
-		.group_name_prefix = "test.one",
-		.group_description = "Test number 1",
-		.num_items = ARRAY_SIZE(item_description),
-		.item_desc = item_description,
-	};
-
 	struct osmo_stat_item_group *statg =
 		osmo_stat_item_group_alloc(NULL, &statg_desc, 0);
 
@@ -201,6 +222,228 @@ static void stat_test(void)
 	OSMO_ASSERT(sgrp2 == NULL);
 }
 
+/*** stats reporter tests ***/
+
+/* define a special stats reporter for testing */
+
+static int send_count;
+
+enum {
+	OSMO_STATS_REPORTER_TEST = OSMO_STATS_REPORTER_LOG + 1,
+};
+
+static int stats_reporter_test_send_counter(struct osmo_stats_reporter *srep,
+	const struct rate_ctr_group *ctrg,
+	const struct rate_ctr_desc *desc,
+	int64_t value, int64_t delta)
+{
+	const char *group_name = ctrg ? ctrg->desc->group_name_prefix : "";
+
+	printf("  %s: counter p=%s g=%s i=%u n=%s v=%lld d=%lld\n",
+		srep->name,
+		srep->name_prefix ? srep->name_prefix : "",
+		group_name, ctrg ? ctrg->idx : 0,
+		desc->name, (long long)value, (long long)delta);
+
+	send_count += 1;
+	return 0;
+}
+
+static int stats_reporter_test_send_item(struct osmo_stats_reporter *srep,
+	const struct osmo_stat_item_group *statg,
+	const struct osmo_stat_item_desc *desc, int value)
+{
+	printf("  %s: item p=%s g=%s i=%u n=%s v=%d u=%s\n",
+		srep->name,
+		srep->name_prefix ? srep->name_prefix : "",
+		statg->desc->group_name_prefix, statg->idx,
+		desc->name, value, desc->unit ? desc->unit : "");
+
+	send_count += 1;
+	return 0;
+}
+
+static int stats_reporter_test_open(struct osmo_stats_reporter *srep)
+{
+	printf("  %s: open\n", srep->name);
+	return 0;
+}
+
+static int stats_reporter_test_close(struct osmo_stats_reporter *srep)
+{
+	printf("  %s: close\n", srep->name);
+	return 0;
+}
+
+static struct osmo_stats_reporter *stats_reporter_create_test(const char *name)
+{
+	struct osmo_stats_reporter *srep;
+	srep = osmo_stats_reporter_alloc(OSMO_STATS_REPORTER_TEST, name);
+
+	srep->have_net_config = 0;
+
+	srep->open = stats_reporter_test_open;
+	srep->close = stats_reporter_test_close;
+	srep->send_counter = stats_reporter_test_send_counter;
+	srep->send_item = stats_reporter_test_send_item;
+
+	return srep;
+}
+
+
+static void test_reporting()
+{
+	struct osmo_stats_reporter *srep1, *srep2, *srep;
+	struct osmo_stat_item_group *statg1, *statg2;
+	struct rate_ctr_group *ctrg1, *ctrg2;
+
+	int rc;
+
+	printf("Start test: %s\n", __func__);
+
+	/* Allocate counters and items */
+	statg1 = osmo_stat_item_group_alloc(NULL, &statg_desc, 1);
+	OSMO_ASSERT(statg1 != NULL);
+	statg2 = osmo_stat_item_group_alloc(NULL, &statg_desc, 2);
+	OSMO_ASSERT(statg2 != NULL);
+	ctrg1 = rate_ctr_group_alloc(NULL, &ctrg_desc, 1);
+	OSMO_ASSERT(ctrg1 != NULL);
+	ctrg2 = rate_ctr_group_alloc(NULL, &ctrg_desc, 2);
+	OSMO_ASSERT(ctrg2 != NULL);
+
+	srep1 = stats_reporter_create_test("test1");
+	OSMO_ASSERT(srep1 != NULL);
+
+	srep2 = stats_reporter_create_test("test2");
+	OSMO_ASSERT(srep2 != NULL);
+
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_TEST, "test1");
+	OSMO_ASSERT(srep == srep1);
+	srep = osmo_stats_reporter_find(OSMO_STATS_REPORTER_TEST, "test2");
+	OSMO_ASSERT(srep == srep2);
+
+	rc = osmo_stats_reporter_enable(srep1);
+	OSMO_ASSERT(rc >= 0);
+	OSMO_ASSERT(srep1->force_single_flush);
+	rc = osmo_stats_reporter_set_max_class(srep1, OSMO_STATS_CLASS_SUBSCRIBER);
+	OSMO_ASSERT(rc >= 0);
+
+	rc = osmo_stats_reporter_enable(srep2);
+	OSMO_ASSERT(rc >= 0);
+	OSMO_ASSERT(srep2->force_single_flush);
+	rc = osmo_stats_reporter_set_max_class(srep2, OSMO_STATS_CLASS_SUBSCRIBER);
+	OSMO_ASSERT(rc >= 0);
+
+	printf("report (initial):\n");
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 16);
+
+	printf("report (srep1 global):\n");
+	/* force single flush */
+	osmo_stats_reporter_set_max_class(srep1, OSMO_STATS_CLASS_GLOBAL);
+	srep1->force_single_flush = 1;
+	srep2->force_single_flush = 1;
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 8);
+
+	printf("report (srep1 peer):\n");
+	/* force single flush */
+	osmo_stats_reporter_set_max_class(srep1, OSMO_STATS_CLASS_PEER);
+	srep1->force_single_flush = 1;
+	srep2->force_single_flush = 1;
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 12);
+
+	printf("report (srep1 subscriber):\n");
+	/* force single flush */
+	osmo_stats_reporter_set_max_class(srep1, OSMO_STATS_CLASS_SUBSCRIBER);
+	srep1->force_single_flush = 1;
+	srep2->force_single_flush = 1;
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 16);
+
+	printf("report (srep2 disabled):\n");
+	/* force single flush */
+	srep1->force_single_flush = 1;
+	srep2->force_single_flush = 1;
+	rc = osmo_stats_reporter_disable(srep2);
+	OSMO_ASSERT(rc >= 0);
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 8);
+
+	printf("report (srep2 enabled, no flush forced):\n");
+	rc = osmo_stats_reporter_enable(srep2);
+	OSMO_ASSERT(rc >= 0);
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 8);
+
+	printf("report (should be empty):\n");
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 0);
+
+	printf("report (group 1, counter 1 update):\n");
+	rate_ctr_inc(&ctrg1->ctr[TEST_A_CTR]);
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 2);
+
+	printf("report (group 1, item 1 update):\n");
+	osmo_stat_item_set(statg1->items[TEST_A_ITEM], 10);
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 2);
+
+	printf("report (remove statg1, ctrg1):\n");
+	/* force single flush */
+	srep1->force_single_flush = 1;
+	srep2->force_single_flush = 1;
+	osmo_stat_item_group_free(statg1);
+	rate_ctr_group_free(ctrg1);
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 8);
+
+	printf("report (remove srep1):\n");
+	/* force single flush */
+	srep1->force_single_flush = 1;
+	srep2->force_single_flush = 1;
+	osmo_stats_reporter_free(srep1);
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 4);
+
+	printf("report (remove statg2):\n");
+	/* force single flush */
+	srep2->force_single_flush = 1;
+	osmo_stat_item_group_free(statg2);
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 2);
+
+	printf("report (remove srep2):\n");
+	/* force single flush */
+	srep2->force_single_flush = 1;
+	osmo_stats_reporter_free(srep2);
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 0);
+
+	printf("report (remove ctrg2, should be empty):\n");
+	rate_ctr_group_free(ctrg2);
+	send_count = 0;
+	osmo_stats_report();
+	OSMO_ASSERT(send_count == 0);
+
+	printf("End test: %s\n", __func__);
+}
+
 int main(int argc, char **argv)
 {
 	static const struct log_info log_info = {};
@@ -209,5 +452,6 @@ int main(int argc, char **argv)
 	osmo_stat_item_init(NULL);
 
 	stat_test();
+	test_reporting();
 	return 0;
 }
