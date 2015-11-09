@@ -101,6 +101,8 @@ static int update_srep_config(struct osmo_stats_reporter *srep)
 	else
 		srep->running = 1;
 
+	srep->force_single_flush = 1;
+
 	return rc;
 }
 
@@ -582,11 +584,11 @@ static int rate_ctr_handler(
 	struct osmo_stats_reporter *srep;
 	int64_t delta = rate_ctr_difference(ctr);
 
-	if (delta == 0)
-		return 0;
-
 	llist_for_each_entry(srep, &osmo_stats_reporter_list, list) {
 		if (!srep->running)
+			continue;
+
+		if (delta == 0 && !srep->force_single_flush)
 			continue;
 
 		if (!osmo_stats_reporter_check_config(srep,
@@ -628,10 +630,19 @@ static int osmo_stat_item_handler(
 	struct osmo_stats_reporter *srep;
 	int32_t idx = current_stat_item_index;
 	int32_t value;
+	int have_value;
 
-	while (osmo_stat_item_get_next(item, &idx, &value) > 0) {
+	have_value = osmo_stat_item_get_next(item, &idx, &value) > 0;
+	if (!have_value)
+		/* Send the last value in case a flush is requested */
+		value = osmo_stat_item_get_last(item);
+
+	do {
 		llist_for_each_entry(srep, &osmo_stats_reporter_list, list) {
 			if (!srep->running)
+				continue;
+
+			if (!have_value && !srep->force_single_flush)
 				continue;
 
 			if (!osmo_stats_reporter_check_config(srep,
@@ -641,7 +652,12 @@ static int osmo_stat_item_handler(
 			osmo_stats_reporter_send_item(srep, statg,
 				item->desc, value);
 		}
-	}
+
+		if (!have_value)
+			break;
+
+		have_value = osmo_stat_item_get_next(item, &idx, &value) > 0;
+	} while (have_value);
 
 	return 0;
 }
@@ -666,11 +682,11 @@ static int handle_counter(struct osmo_counter *counter, void *sctx_)
 
 	int delta = osmo_counter_difference(counter);
 
-	if (delta == 0)
-		return 0;
-
 	llist_for_each_entry(srep, &osmo_stats_reporter_list, list) {
 		if (!srep->running)
+			continue;
+
+		if (delta == 0 && !srep->force_single_flush)
 			continue;
 
 		osmo_stats_reporter_send_counter(srep, NULL, &desc,
@@ -694,6 +710,7 @@ static void flush_all_reporters()
 			continue;
 
 		osmo_stats_reporter_send_buffer(srep);
+		srep->force_single_flush = 0;
 	}
 }
 

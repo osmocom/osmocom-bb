@@ -66,6 +66,7 @@ struct osmo_stats_reporter {
 	int fd;
 	struct msgb *buffer;
 	int agg_enabled;
+	int force_single_flush;
 
 	struct llist_head list;
 	int (*open)(struct osmo_stats_reporter *srep);
