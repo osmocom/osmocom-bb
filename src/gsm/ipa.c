@@ -27,6 +27,8 @@
 #include <stdlib.h>
 
 #include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
