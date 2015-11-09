@@ -1,3 +1,11 @@
+libosmocore (0.9.3) unstable; urgency=medium
+
+  * Send all stats values after re-configuration.
+  * Fix using an empty prefix.
+  * Fix sending timing values.
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Mon, 09 Nov 2015 21:34:37 +0100
+
 libosmocore (0.9.2) unstable; urgency=medium
 
   * Fix the counter index after the NS reset.
