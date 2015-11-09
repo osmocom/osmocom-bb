@@ -286,6 +286,60 @@ int osmo_stats_reporter_disable(struct osmo_stats_reporter *srep)
 	return update_srep_config(srep);
 }
 
+/*** i/o helper functions ***/
+
+int osmo_stats_reporter_udp_open(struct osmo_stats_reporter *srep)
+{
+	int sock;
+	int rc;
+	int buffer_size = STATS_DEFAULT_BUFLEN;
+
+	if (srep->fd != -1 && srep->close)
+		 srep->close(srep);
+
+	sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock == -1)
+		return -errno;
+
+	if (srep->bind_addr_len > 0) {
+		rc = bind(sock, &srep->bind_addr, srep->bind_addr_len);
+		if (rc == -1)
+			goto failed;
+	}
+
+	srep->fd = sock;
+
+	if (srep->mtu > 0) {
+		buffer_size = srep->mtu - 20 /* IP */ - 8 /* UDP */;
+		srep->agg_enabled = 1;
+	}
+
+	srep->buffer = msgb_alloc(buffer_size, "stats buffer");
+
+	return 0;
+
+failed:
+	rc = -errno;
+	close(sock);
+
+	return rc;
+}
+
+int osmo_stats_reporter_udp_close(struct osmo_stats_reporter *srep)
+{
+	int rc;
+	if (srep->fd == -1)
+		return -EBADF;
+
+	osmo_stats_reporter_send_buffer(srep);
+
+	rc = close(srep->fd);
+	srep->fd = -1;
+	msgb_free(srep->buffer);
+	srep->buffer = NULL;
+	return rc == -1 ? -errno : 0;
+}
+
 int osmo_stats_reporter_send(struct osmo_stats_reporter *srep, const char *data,
 	int data_len)
 {
@@ -313,16 +367,6 @@ int osmo_stats_reporter_send_buffer(struct osmo_stats_reporter *srep)
 	msgb_trim(srep->buffer, 0);
 
 	return rc;
-}
-
-static int osmo_stats_reporter_check_config(struct osmo_stats_reporter *srep,
-	unsigned int index, int class_id)
-{
-	if (class_id == OSMO_STATS_CLASS_UNKNOWN)
-		class_id = index != 0 ?
-			OSMO_STATS_CLASS_SUBSCRIBER : OSMO_STATS_CLASS_GLOBAL;
-
-	return class_id <= srep->max_class;
 }
 
 /*** log reporter ***/
@@ -380,58 +424,16 @@ static int osmo_stats_reporter_log_send_item(struct osmo_stats_reporter *srep,
 		desc->name, value, desc->unit);
 }
 
-/*** i/o helper functions ***/
+/*** helper for reporting ***/
 
-int osmo_stats_reporter_udp_open(struct osmo_stats_reporter *srep)
+static int osmo_stats_reporter_check_config(struct osmo_stats_reporter *srep,
+	unsigned int index, int class_id)
 {
-	int sock;
-	int rc;
-	int buffer_size = STATS_DEFAULT_BUFLEN;
+	if (class_id == OSMO_STATS_CLASS_UNKNOWN)
+		class_id = index != 0 ?
+			OSMO_STATS_CLASS_SUBSCRIBER : OSMO_STATS_CLASS_GLOBAL;
 
-	if (srep->fd != -1 && srep->close)
-		 srep->close(srep);
-
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock == -1)
-		return -errno;
-
-	if (srep->bind_addr_len > 0) {
-		rc = bind(sock, &srep->bind_addr, srep->bind_addr_len);
-		if (rc == -1)
-			goto failed;
-	}
-
-	srep->fd = sock;
-
-	if (srep->mtu > 0) {
-		buffer_size = srep->mtu - 20 /* IP */ - 8 /* UDP */;
-		srep->agg_enabled = 1;
-	}
-
-	srep->buffer = msgb_alloc(buffer_size, "stats buffer");
-
-	return 0;
-
-failed:
-	rc = -errno;
-	close(sock);
-
-	return rc;
-}
-
-int osmo_stats_reporter_udp_close(struct osmo_stats_reporter *srep)
-{
-	int rc;
-	if (srep->fd == -1)
-		return -EBADF;
-
-	osmo_stats_reporter_send_buffer(srep);
-
-	rc = close(srep->fd);
-	srep->fd = -1;
-	msgb_free(srep->buffer);
-	srep->buffer = NULL;
-	return rc == -1 ? -errno : 0;
+	return class_id <= srep->max_class;
 }
 
 /*** generic rate counter support ***/
