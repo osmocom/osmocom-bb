@@ -38,8 +38,8 @@ enum osmo_stats_class {
 };
 
 enum osmo_stats_reporter_type {
-	OSMO_STATS_REPORTER_STATSD,
 	OSMO_STATS_REPORTER_LOG,
+	OSMO_STATS_REPORTER_STATSD,
 };
 
 struct osmo_stats_reporter {
@@ -96,9 +96,6 @@ struct osmo_stats_reporter *osmo_stats_reporter_alloc(enum osmo_stats_reporter_t
 	const char *name);
 void osmo_stats_reporter_free(struct osmo_stats_reporter *srep);
 
-struct osmo_stats_reporter *osmo_stats_reporter_create_statsd(const char *name);
-struct osmo_stats_reporter *osmo_stats_reporter_create_log(const char *name);
-
 struct osmo_stats_reporter *osmo_stats_reporter_find(enum osmo_stats_reporter_type type,
 	const char *name);
 
@@ -111,3 +108,14 @@ int osmo_stats_reporter_set_max_class(struct osmo_stats_reporter *srep,
 int osmo_stats_reporter_set_name_prefix(struct osmo_stats_reporter *srep, const char *prefix);
 int osmo_stats_reporter_enable(struct osmo_stats_reporter *srep);
 int osmo_stats_reporter_disable(struct osmo_stats_reporter *srep);
+
+/* reporter creation */
+struct osmo_stats_reporter *osmo_stats_reporter_create_log(const char *name);
+struct osmo_stats_reporter *osmo_stats_reporter_create_statsd(const char *name);
+
+/* helper functions for reporter implementations */
+int osmo_stats_reporter_send(struct osmo_stats_reporter *srep, const char *data,
+	int data_len);
+int osmo_stats_reporter_send_buffer(struct osmo_stats_reporter *srep);
+int osmo_stats_reporter_udp_open(struct osmo_stats_reporter *srep);
+int osmo_stats_reporter_udp_close(struct osmo_stats_reporter *srep);

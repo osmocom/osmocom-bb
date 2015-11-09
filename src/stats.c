@@ -42,7 +42,7 @@
 #include <osmocom/core/msgb.h>
 
 #define STATS_DEFAULT_INTERVAL 5 /* secs */
-#define STATS_DEFAULT_STATSD_BUFLEN 256
+#define STATS_DEFAULT_BUFLEN 256
 
 static LLIST_HEAD(osmo_stats_reporter_list);
 static void *osmo_stats_ctx = NULL;
@@ -56,16 +56,6 @@ struct osmo_stats_config *osmo_stats_config = &s_stats_config;
 
 static struct osmo_timer_list osmo_stats_timer;
 
-static int osmo_stats_reporter_statsd_open(struct osmo_stats_reporter *srep);
-static int osmo_stats_reporter_statsd_close(struct osmo_stats_reporter *srep);
-static int osmo_stats_reporter_statsd_send_counter(struct osmo_stats_reporter *srep,
-	const struct rate_ctr_group *ctrg,
-	const struct rate_ctr_desc *desc,
-	int64_t value, int64_t delta);
-static int osmo_stats_reporter_statsd_send_item(struct osmo_stats_reporter *srep,
-	const struct osmo_stat_item_group *statg,
-	const struct osmo_stat_item_desc *desc, int value);
-
 static int osmo_stats_reporter_log_send_counter(struct osmo_stats_reporter *srep,
 	const struct rate_ctr_group *ctrg,
 	const struct rate_ctr_desc *desc,
@@ -73,10 +63,6 @@ static int osmo_stats_reporter_log_send_counter(struct osmo_stats_reporter *srep
 static int osmo_stats_reporter_log_send_item(struct osmo_stats_reporter *srep,
 	const struct osmo_stat_item_group *statg,
 	const struct osmo_stat_item_desc *desc, int value);
-
-static int osmo_stats_reporter_send(struct osmo_stats_reporter *srep, const char *data,
-	int data_len);
-static int osmo_stats_reporter_send_buffer(struct osmo_stats_reporter *srep);
 
 static int update_srep_config(struct osmo_stats_reporter *srep)
 {
@@ -300,7 +286,7 @@ int osmo_stats_reporter_disable(struct osmo_stats_reporter *srep)
 	return update_srep_config(srep);
 }
 
-static int osmo_stats_reporter_send(struct osmo_stats_reporter *srep, const char *data,
+int osmo_stats_reporter_send(struct osmo_stats_reporter *srep, const char *data,
 	int data_len)
 {
 	int rc;
@@ -314,7 +300,7 @@ static int osmo_stats_reporter_send(struct osmo_stats_reporter *srep, const char
 	return rc;
 }
 
-static int osmo_stats_reporter_send_buffer(struct osmo_stats_reporter *srep)
+int osmo_stats_reporter_send_buffer(struct osmo_stats_reporter *srep)
 {
 	int rc;
 
@@ -394,31 +380,16 @@ static int osmo_stats_reporter_log_send_item(struct osmo_stats_reporter *srep,
 		desc->name, value, desc->unit);
 }
 
-/*** statsd reporter ***/
+/*** i/o helper functions ***/
 
-struct osmo_stats_reporter *osmo_stats_reporter_create_statsd(const char *name)
-{
-	struct osmo_stats_reporter *srep;
-	srep = osmo_stats_reporter_alloc(OSMO_STATS_REPORTER_STATSD, name);
-
-	srep->have_net_config = 1;
-
-	srep->open = osmo_stats_reporter_statsd_open;
-	srep->close = osmo_stats_reporter_statsd_close;
-	srep->send_counter = osmo_stats_reporter_statsd_send_counter;
-	srep->send_item = osmo_stats_reporter_statsd_send_item;
-
-	return srep;
-}
-
-static int osmo_stats_reporter_statsd_open(struct osmo_stats_reporter *srep)
+int osmo_stats_reporter_udp_open(struct osmo_stats_reporter *srep)
 {
 	int sock;
 	int rc;
-	int buffer_size = STATS_DEFAULT_STATSD_BUFLEN;
+	int buffer_size = STATS_DEFAULT_BUFLEN;
 
-	if (srep->fd != -1)
-		osmo_stats_reporter_statsd_close(srep);
+	if (srep->fd != -1 && srep->close)
+		 srep->close(srep);
 
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock == -1)
@@ -448,7 +419,7 @@ failed:
 	return rc;
 }
 
-static int osmo_stats_reporter_statsd_close(struct osmo_stats_reporter *srep)
+int osmo_stats_reporter_udp_close(struct osmo_stats_reporter *srep)
 {
 	int rc;
 	if (srep->fd == -1)
@@ -461,107 +432,6 @@ static int osmo_stats_reporter_statsd_close(struct osmo_stats_reporter *srep)
 	msgb_free(srep->buffer);
 	srep->buffer = NULL;
 	return rc == -1 ? -errno : 0;
-}
-
-static int osmo_stats_reporter_statsd_send(struct osmo_stats_reporter *srep,
-	const char *name1, unsigned int index1, const char *name2, int value,
-	const char *unit)
-{
-	char *buf;
-	int buf_size;
-	int nchars, rc = 0;
-	char *fmt = NULL;
-	char *prefix = srep->name_prefix;
-	int old_len = msgb_length(srep->buffer);
-
-	if (prefix) {
-		if (name1) {
-			if (index1 != 0)
-				fmt = "%1$s.%2$s.%6$u.%3$s:%4$d|%5$s";
-			else
-				fmt = "%1$s.%2$s.%3$s:%4$d|%5$s";
-		} else {
-			fmt = "%1$s.%2$0.0s%3$s:%4$d|%5$s";
-		}
-	} else {
-		prefix = "";
-		if (name1) {
-			if (index1 != 0)
-				fmt = "%1$s%2$s.%6$u.%3$s:%4$d|%5$s";
-			else
-				fmt = "%1$s%2$s.%3$s:%4$d|%5$s";
-		} else {
-			fmt = "%1$s%2$0.0s%3$s:%4$d|%5$s";
-		}
-	}
-
-	if (srep->agg_enabled) {
-		if (msgb_length(srep->buffer) > 0 &&
-			msgb_tailroom(srep->buffer) > 0)
-		{
-			msgb_put_u8(srep->buffer, '\n');
-		}
-	}
-
-	buf = (char *)msgb_put(srep->buffer, 0);
-	buf_size = msgb_tailroom(srep->buffer);
-
-	nchars = snprintf(buf, buf_size, fmt,
-		prefix, name1, name2,
-		value, unit, index1);
-
-	if (nchars >= buf_size) {
-		/* Truncated */
-		/* Restore original buffer (without trailing LF) */
-		msgb_trim(srep->buffer, old_len);
-		/* Send it */
-		rc = osmo_stats_reporter_send_buffer(srep);
-
-		/* Try again */
-		buf = (char *)msgb_put(srep->buffer, 0);
-		buf_size = msgb_tailroom(srep->buffer);
-
-		nchars = snprintf(buf, buf_size, fmt,
-			prefix, name1, name2,
-			value, unit, index1);
-
-		if (nchars >= buf_size)
-			return -EMSGSIZE;
-	}
-
-	if (nchars > 0)
-		msgb_trim(srep->buffer, msgb_length(srep->buffer) + nchars);
-
-	if (!srep->agg_enabled)
-		rc = osmo_stats_reporter_send_buffer(srep);
-
-	return rc;
-}
-
-static int osmo_stats_reporter_statsd_send_counter(struct osmo_stats_reporter *srep,
-	const struct rate_ctr_group *ctrg,
-	const struct rate_ctr_desc *desc,
-	int64_t value, int64_t delta)
-{
-	if (ctrg)
-		return osmo_stats_reporter_statsd_send(srep,
-			ctrg->desc->group_name_prefix,
-			ctrg->idx,
-			desc->name, delta, "c");
-	else
-		return osmo_stats_reporter_statsd_send(srep,
-			NULL, 0,
-			desc->name, delta, "c");
-}
-
-static int osmo_stats_reporter_statsd_send_item(struct osmo_stats_reporter *srep,
-	const struct osmo_stat_item_group *statg,
-	const struct osmo_stat_item_desc *desc, int value)
-{
-	return osmo_stats_reporter_statsd_send(srep,
-		statg->desc->group_name_prefix,
-		statg->idx,
-		desc->name, value, desc->unit);
 }
 
 /*** generic rate counter support ***/
