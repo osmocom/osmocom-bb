@@ -278,7 +278,8 @@ int osmo_stats_set_interval(int interval)
 int osmo_stats_reporter_set_name_prefix(struct osmo_stats_reporter *srep, const char *prefix)
 {
 	talloc_free(srep->name_prefix);
-	srep->name_prefix = prefix ? talloc_strdup(srep, prefix) : NULL;
+	srep->name_prefix = prefix && strlen(prefix) > 0 ?
+		talloc_strdup(srep, prefix) : NULL;
 
 	return update_srep_config(srep);
 }
@@ -468,18 +469,29 @@ static int osmo_stats_reporter_statsd_send(struct osmo_stats_reporter *srep,
 	int buf_size;
 	int nchars, rc = 0;
 	char *fmt = NULL;
+	char *prefix = srep->name_prefix;
 	int old_len = msgb_length(srep->buffer);
 
-	if (name1) {
-		if (index1 != 0)
-			fmt = "%1$s.%2$s.%6$u.%3$s:%4$d|%5$s";
-		else
-			fmt = "%1$s.%2$s.%3$s:%4$d|%5$s";
+	if (prefix) {
+		if (name1) {
+			if (index1 != 0)
+				fmt = "%1$s.%2$s.%6$u.%3$s:%4$d|%5$s";
+			else
+				fmt = "%1$s.%2$s.%3$s:%4$d|%5$s";
+		} else {
+			fmt = "%1$s.%2$0.0s%3$s:%4$d|%5$s";
+		}
 	} else {
-		fmt = "%1$s.%2$0.0s%3$s:%4$d|%5$s";
+		prefix = "";
+		if (name1) {
+			if (index1 != 0)
+				fmt = "%1$s%2$s.%6$u.%3$s:%4$d|%5$s";
+			else
+				fmt = "%1$s%2$s.%3$s:%4$d|%5$s";
+		} else {
+			fmt = "%1$s%2$0.0s%3$s:%4$d|%5$s";
+		}
 	}
-	if (!srep->name_prefix)
-		fmt += 5; /* skip prefix part */
 
 	if (srep->agg_enabled) {
 		if (msgb_length(srep->buffer) > 0 &&
@@ -493,7 +505,7 @@ static int osmo_stats_reporter_statsd_send(struct osmo_stats_reporter *srep,
 	buf_size = msgb_tailroom(srep->buffer);
 
 	nchars = snprintf(buf, buf_size, fmt,
-		srep->name_prefix, name1, name2,
+		prefix, name1, name2,
 		value, unit, index1);
 
 	if (nchars >= buf_size) {
@@ -508,7 +520,7 @@ static int osmo_stats_reporter_statsd_send(struct osmo_stats_reporter *srep,
 		buf_size = msgb_tailroom(srep->buffer);
 
 		nchars = snprintf(buf, buf_size, fmt,
-			srep->name_prefix, name1, name2,
+			prefix, name1, name2,
 			value, unit, index1);
 
 		if (nchars >= buf_size)
