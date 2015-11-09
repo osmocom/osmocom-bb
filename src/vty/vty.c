@@ -982,7 +982,7 @@ static void vty_complete_command(struct vty *vty)
 
 	/* In case of 'help \t'. */
 	if (isspace((int)vty->buf[vty->length - 1]))
-		vector_set(vline, '\0');
+		vector_set(vline, NULL);
 
 	matched = cmd_complete_command(vline, vty, &ret);
 
@@ -1092,9 +1092,9 @@ static void vty_describe_command(struct vty *vty)
 	/* In case of '> ?'. */
 	if (vline == NULL) {
 		vline = vector_init(1);
-		vector_set(vline, '\0');
+		vector_set(vline, NULL);
 	} else if (isspace((int)vty->buf[vty->length - 1]))
-		vector_set(vline, '\0');
+		vector_set(vline, NULL);
 
 	describe = cmd_describe_command(vline, vty, &ret);
 
