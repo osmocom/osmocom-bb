@@ -76,24 +76,24 @@ static void test_msgb_api()
 	printf("Buffer: %s\n", msgb_hexdump(msg));
 	OSMO_ASSERT(msgb_test_invariant(msg));
 	cptr = msg->l1h = msgb_put(msg, 4);
-	printf("put(4) -> data%+d\n", cptr - msg->data);
+	printf("put(4) -> data%+td\n", cptr - msg->data);
 	printf("Buffer: %s\n", msgb_hexdump(msg));
 	OSMO_ASSERT(msgb_test_invariant(msg));
 	cptr = msg->l2h = msgb_put(msg, 4);
-	printf("put(4) -> data%+d\n", cptr - msg->data);
+	printf("put(4) -> data%+td\n", cptr - msg->data);
 	printf("Buffer: %s\n", msgb_hexdump(msg));
 	OSMO_ASSERT(msgb_test_invariant(msg));
 	cptr = msg->l3h = msgb_put(msg, 4);
-	printf("put(4) -> data%+d\n", cptr - msg->data);
+	printf("put(4) -> data%+td\n", cptr - msg->data);
 	printf("Buffer: %s\n", msgb_hexdump(msg));
 	OSMO_ASSERT(msgb_test_invariant(msg));
 	cptr = msg->l4h = msgb_put(msg, 4);
-	printf("put(4) -> data%+d\n", cptr - msg->data);
+	printf("put(4) -> data%+td\n", cptr - msg->data);
 	printf("Buffer: %s\n", msgb_hexdump(msg));
 	OSMO_ASSERT(msgb_test_invariant(msg));
 	OSMO_ASSERT(msgb_length(msg) == 16);
 	cptr = msgb_push(msg, 4);
-	printf("push(4) -> data%+d\n", cptr - msg->data);
+	printf("push(4) -> data%+td\n", cptr - msg->data);
 	printf("Buffer: %s\n", msgb_hexdump(msg));
 	OSMO_ASSERT(msgb_test_invariant(msg));
 	OSMO_ASSERT(msgb_length(msg) == 20);
@@ -105,7 +105,7 @@ static void test_msgb_api()
 	OSMO_ASSERT(msgb_length(msg) == 16);
 
 	cptr = msgb_get(msg, 4);
-	printf("get(4) -> data%+d\n", cptr - msg->data);
+	printf("get(4) -> data%+td\n", cptr - msg->data);
 	printf("Buffer: %s\n", msgb_hexdump(msg));
 	OSMO_ASSERT(msgb_test_invariant(msg));
 	OSMO_ASSERT(msgb_length(msg) == 12);

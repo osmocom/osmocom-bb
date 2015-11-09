@@ -249,7 +249,7 @@ int gprs_ns_rcvmsg(struct gprs_ns_inst *nsi, struct msgb *msg,
 int gprs_ns_callback(enum gprs_ns_evt event, struct gprs_nsvc *nsvc,
 			 struct msgb *msg, uint16_t bvci)
 {
-	printf("CALLBACK, event %d, msg length %d, bvci 0x%04x\n%s\n\n",
+	printf("CALLBACK, event %d, msg length %td, bvci 0x%04x\n%s\n\n",
 			event, msgb_bssgp_len(msg), bvci,
 			osmo_hexdump(msgb_bssgph(msg), msgb_bssgp_len(msg)));
 	return 0;
@@ -270,9 +270,9 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 	sent_pdu_type = len > 0 ? ((uint8_t *)buf)[0] : -1;
 
 	if (dest_host == REMOTE_BSS_ADDR)
-		printf("MESSAGE to BSS, msg length %d\n%s\n\n", len, osmo_hexdump(buf, len));
+		printf("MESSAGE to BSS, msg length %zu\n%s\n\n", len, osmo_hexdump(buf, len));
 	else if (dest_host == REMOTE_SGSN_ADDR)
-		printf("MESSAGE to SGSN, msg length %d\n%s\n\n", len, osmo_hexdump(buf, len));
+		printf("MESSAGE to SGSN, msg length %zu\n%s\n\n", len, osmo_hexdump(buf, len));
 	else
 		return real_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 
@@ -294,10 +294,10 @@ int gprs_ns_sendmsg(struct gprs_ns_inst *nsi, struct msgb *msg)
 		real_gprs_ns_sendmsg = dlsym(RTLD_NEXT, "gprs_ns_sendmsg");
 
 	if (nsei == SGSN_NSEI)
-		printf("NS UNITDATA MESSAGE to SGSN, BVCI 0x%04x, msg length %d\n%s\n\n",
+		printf("NS UNITDATA MESSAGE to SGSN, BVCI 0x%04x, msg length %zu\n%s\n\n",
 		       bvci, len, osmo_hexdump(buf, len));
 	else
-		printf("NS UNITDATA MESSAGE to BSS, BVCI 0x%04x, msg length %d\n%s\n\n",
+		printf("NS UNITDATA MESSAGE to BSS, BVCI 0x%04x, msg length %zu\n%s\n\n",
 		       bvci, len, osmo_hexdump(buf, len));
 
 	return real_gprs_ns_sendmsg(nsi, msg);
@@ -382,7 +382,7 @@ static int gprs_process_message(struct gprs_ns_inst *nsi, const char *text, stru
 	struct msgb *msg;
 	int ret;
 	if (data_len > NS_ALLOC_SIZE - NS_ALLOC_HEADROOM) {
-		fprintf(stderr, "message too long: %d\n", data_len);
+		fprintf(stderr, "message too long: %zu\n", data_len);
 		return -1;
 	}
 
@@ -411,7 +411,7 @@ static int gprs_send_message(struct gprs_ns_inst *nsi, const char *text,
 	struct msgb *msg;
 	int ret;
 	if (data_len > NS_ALLOC_SIZE - NS_ALLOC_HEADROOM) {
-		fprintf(stderr, "message too long: %d\n", data_len);
+		fprintf(stderr, "message too long: %zu\n", data_len);
 		return -1;
 	}
 

@@ -45,7 +45,7 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 	if (!real_sendto)
 		real_sendto = dlsym(RTLD_NEXT, "sendto");
 
-	fprintf(stderr, "MESSAGE to 0x%08x, msg length %d\n%s\n",
+	fprintf(stderr, "MESSAGE to 0x%08x, msg length %zu\n%s\n",
 		dest_host, len, osmo_hexdump(buf, len));
 
 	return len;
@@ -55,7 +55,7 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 int gprs_ns_callback(enum gprs_ns_evt event, struct gprs_nsvc *nsvc,
 			 struct msgb *msg, uint16_t bvci)
 {
-	fprintf(stderr, "CALLBACK, event %d, msg length %d, bvci 0x%04x\n%s\n\n",
+	fprintf(stderr, "CALLBACK, event %d, msg length %td, bvci 0x%04x\n%s\n\n",
 			event, msgb_bssgp_len(msg), bvci,
 			osmo_hexdump(msgb_bssgph(msg), msgb_bssgp_len(msg)));
 	return 0;

@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <osmocom/gsm/protocol/gsm_03_41.h>
 #include <osmocom/gsm/gsm0341.h>

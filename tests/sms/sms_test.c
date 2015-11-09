@@ -390,7 +390,7 @@ int main(int argc, char** argv)
 		memset(result, 0x42, sizeof(result));
 		nchars = gsm_7bit_decode_n_hdr(result, sizeof(result), test_decode[i].input,
 				test_decode[i].expected_septet_length, test_decode[i].ud_hdr_ind);
-		printf("Decode case %d: return value %d (expected %d)\n", i, nchars, strlen(result));
+		printf("Decode case %d: return value %d (expected %zu)\n", i, nchars, strlen(result));
 
 		OSMO_ASSERT(strcmp(result, (const char *) test_decode[i].expected) == 0);
 		OSMO_ASSERT(nchars == strlen(result));
