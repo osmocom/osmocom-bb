@@ -665,7 +665,6 @@ static int osmo_stat_item_handler(
 static int osmo_stat_item_group_handler(struct osmo_stat_item_group *statg, void *sctx_)
 {
 	osmo_stat_item_for_each_item(statg, osmo_stat_item_handler, sctx_);
-	osmo_stat_item_discard_all(&current_stat_item_index);
 
 	return 0;
 }
@@ -716,10 +715,13 @@ static void flush_all_reporters()
 
 int osmo_stats_report()
 {
+	/* per group actions */
 	osmo_counters_for_each(handle_counter, NULL);
 	rate_ctr_for_each_group(rate_ctr_group_handler, NULL);
 	osmo_stat_item_for_each_group(osmo_stat_item_group_handler, NULL);
 
+	/* global actions */
+	osmo_stat_item_discard_all(&current_stat_item_index);
 	flush_all_reporters();
 
 	return 0;
