@@ -92,6 +92,9 @@ int64_t rate_ctr_difference(struct rate_ctr *ctr)
 	return result;
 }
 
+/* TODO: support update intervals > 1s */
+/* TODO: implement this as a special stats reporter */
+
 static void interval_expired(struct rate_ctr *ctr, enum rate_ctr_intv intv)
 {
 	/* calculate rate over last interval */
