@@ -296,19 +296,20 @@ static void test_reporting()
 	struct osmo_stats_reporter *srep1, *srep2, *srep;
 	struct osmo_stat_item_group *statg1, *statg2;
 	struct rate_ctr_group *ctrg1, *ctrg2;
+	void *stats_ctx = talloc_named_const(NULL, 1, "stats test context");
 
 	int rc;
 
 	printf("Start test: %s\n", __func__);
 
 	/* Allocate counters and items */
-	statg1 = osmo_stat_item_group_alloc(NULL, &statg_desc, 1);
+	statg1 = osmo_stat_item_group_alloc(stats_ctx, &statg_desc, 1);
 	OSMO_ASSERT(statg1 != NULL);
-	statg2 = osmo_stat_item_group_alloc(NULL, &statg_desc, 2);
+	statg2 = osmo_stat_item_group_alloc(stats_ctx, &statg_desc, 2);
 	OSMO_ASSERT(statg2 != NULL);
-	ctrg1 = rate_ctr_group_alloc(NULL, &ctrg_desc, 1);
+	ctrg1 = rate_ctr_group_alloc(stats_ctx, &ctrg_desc, 1);
 	OSMO_ASSERT(ctrg1 != NULL);
-	ctrg2 = rate_ctr_group_alloc(NULL, &ctrg_desc, 2);
+	ctrg2 = rate_ctr_group_alloc(stats_ctx, &ctrg_desc, 2);
 	OSMO_ASSERT(ctrg2 != NULL);
 
 	srep1 = stats_reporter_create_test("test1");
@@ -440,6 +441,10 @@ static void test_reporting()
 	send_count = 0;
 	osmo_stats_report();
 	OSMO_ASSERT(send_count == 0);
+
+	/* Leak check */
+	OSMO_ASSERT(talloc_total_blocks(stats_ctx) == 1);
+	talloc_free(stats_ctx);
 
 	printf("End test: %s\n", __func__);
 }
