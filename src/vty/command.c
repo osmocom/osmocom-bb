@@ -39,6 +39,7 @@ Boston, MA  02110-1301, USA. */
 #include <osmocom/vty/command.h>
 
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/utils.h>
 
 /*! \addtogroup command
  * @{
@@ -323,11 +324,7 @@ static vector cmd_make_descvec(const char *string, const char *descstr)
 			cp++;
 		}
 		if (*cp == '|') {
-			if (!multiple) {
-				fprintf(stderr, "Command parse error!: %s\n",
-					string);
-				exit(1);
-			}
+			OSMO_ASSERT(multiple);
 			cp++;
 		}
 
@@ -554,12 +551,7 @@ void install_element(int ntype, struct cmd_element *cmd)
 
 	cnode = vector_slot(cmdvec, ntype);
 
-	if (cnode == NULL) {
-		fprintf(stderr,
-			"Command node %d doesn't exist, please check it\n",
-			ntype);
-		exit(1);
-	}
+	OSMO_ASSERT(cnode);
 
 	vector_set(cnode->cmd_vector, cmd);
 
@@ -2289,10 +2281,7 @@ gDEFUN(config_exit,
 	case AUTH_NODE:
 	case VIEW_NODE:
 	case ENABLE_NODE:
-		if (0)		//vty_shell (vty))
-			exit(0);
-		else
-			vty->status = VTY_CLOSE;
+		vty->status = VTY_CLOSE;
 		break;
 	case CONFIG_NODE:
 		vty->node = ENABLE_NODE;
