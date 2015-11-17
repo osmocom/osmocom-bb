@@ -19,8 +19,18 @@
 #define DEBUG
 
 #ifdef DEBUG
-#define DEBUGP(ss, fmt, args...) logp(ss, __FILE__, __LINE__, 0, fmt, ## args)
-#define DEBUGPC(ss, fmt, args...) logp(ss, __FILE__, __LINE__, 1, fmt, ## args)
+#define DEBUGP(ss, fmt, args...) \
+	do { \
+		if (log_check_level(ss, LOGL_DEBUG)) \
+			logp(ss, __FILE__, __LINE__, 0, fmt, ## args); \
+	} while(0)
+
+#define DEBUGPC(ss, fmt, args...) \
+	do { \
+		if (log_check_level(ss, LOGL_DEBUG)) \
+			logp(ss, __FILE__, __LINE__, 1, fmt, ## args); \
+	} while(0)
+
 #else
 #define DEBUGP(xss, fmt, args...)
 #define DEBUGPC(ss, fmt, args...)
@@ -39,7 +49,10 @@ void logp(int subsys, const char *file, int line, int cont, const char *format, 
  *  \param[in] args variable argument list
  */
 #define LOGP(ss, level, fmt, args...) \
-	logp2(ss, level, __FILE__, __LINE__, 0, fmt, ##args)
+	do { \
+		if (log_check_level(ss, level)) \
+			logp2(ss, level, __FILE__, __LINE__, 0, fmt, ##args); \
+	} while(0)
 
 /*! \brief Continue a log message through the Osmocom logging framework
  *  \param[in] ss logging subsystem (e.g. \ref DLGLOBAL)
@@ -48,7 +61,10 @@ void logp(int subsys, const char *file, int line, int cont, const char *format, 
  *  \param[in] args variable argument list
  */
 #define LOGPC(ss, level, fmt, args...) \
-	logp2(ss, level, __FILE__, __LINE__, 1, fmt, ##args)
+	do { \
+		if (log_check_level(ss, level)) \
+			logp2(ss, level, __FILE__, __LINE__, 1, fmt, ##args); \
+	} while(0)
 
 /*! \brief different log levels */
 #define LOGL_DEBUG	1	/*!< \brief debugging information */
