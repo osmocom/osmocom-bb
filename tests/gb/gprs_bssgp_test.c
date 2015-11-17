@@ -254,6 +254,39 @@ static void test_bssgp_flow_control_bvc(void)
 	printf("----- %s END\n", __func__);
 }
 
+static void test_bssgp_msgb_copy()
+{
+	struct msgb *msg, *msg2;
+	uint16_t bvci_be = htons(2);
+	uint8_t cause = BSSGP_CAUSE_OML_INTERV;
+
+	printf("----- %s START\n", __func__);
+	msg = bssgp_msgb_alloc();
+
+	msg->l3h = msgb_data(msg);
+	msgb_v_put(msg, BSSGP_PDUT_BVC_RESET);
+	msgb_tvlv_put(msg, BSSGP_IE_BVCI, sizeof(bvci_be), (uint8_t *)&bvci_be);
+	msgb_tvlv_put(msg, BSSGP_IE_CAUSE, sizeof(cause), &cause);
+
+	msgb_bvci(msg) = 0xbad;
+	msgb_nsei(msg) = 0xbee;
+
+	printf("Old msgb: %s\n", msgb_hexdump(msg));
+	msg2 = bssgp_msgb_copy(msg, "test");
+	printf("New msgb: %s\n", msgb_hexdump(msg2));
+
+	OSMO_ASSERT(msgb_bvci(msg2) == 0xbad);
+	OSMO_ASSERT(msgb_nsei(msg2) == 0xbee);
+	OSMO_ASSERT(msgb_l3(msg2) == msgb_data(msg2));
+	OSMO_ASSERT(msgb_bssgph(msg2) == msgb_data(msg2));
+	OSMO_ASSERT(msgb_bssgp_len(msg2) == msgb_length(msg2));
+
+	msgb_free(msg);
+	msgb_free(msg2);
+
+	printf("----- %s END\n", __func__);
+}
+
 static struct log_info info = {};
 
 int main(int argc, char **argv)
@@ -278,6 +311,7 @@ int main(int argc, char **argv)
 	test_bssgp_status();
 	test_bssgp_bad_reset();
 	test_bssgp_flow_control_bvc();
+	test_bssgp_msgb_copy();
 	printf("===== BSSGP test END\n\n");
 
 	exit(EXIT_SUCCESS);

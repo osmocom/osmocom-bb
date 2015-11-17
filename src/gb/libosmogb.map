@@ -6,6 +6,7 @@ bssgp_fc_in;
 bssgp_fc_init;
 bssgp_fc_ms_init;
 bssgp_msgb_alloc;
+bssgp_msgb_copy;
 bssgp_msgb_tlli_put;
 bssgp_parse_cell_id;
 bssgp_tx_bvc_block;

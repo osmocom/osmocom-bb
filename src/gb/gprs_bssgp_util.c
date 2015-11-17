@@ -79,6 +79,36 @@ struct msgb *bssgp_msgb_alloc(void)
 	return msg;
 }
 
+struct msgb *bssgp_msgb_copy(const struct msgb *msg, const char *name)
+{
+	struct libgb_msgb_cb *old_cb, *new_cb;
+	struct msgb *new_msg;
+
+	new_msg = msgb_copy(msg, name);
+	if (!new_msg)
+		return NULL;
+
+	/* copy GB specific data */
+	old_cb = LIBGB_MSGB_CB(msg);
+	new_cb = LIBGB_MSGB_CB(new_msg);
+
+	if (old_cb->bssgph)
+		new_cb->bssgph = new_msg->_data + (old_cb->bssgph - msg->_data);
+	if (old_cb->llch)
+		new_cb->llch = new_msg->_data + (old_cb->llch - msg->_data);
+
+	/* bssgp_cell_id is a pointer into the old msgb, so we need to make
+	 * it a pointer into the new msgb */
+	if (old_cb->bssgp_cell_id)
+		new_cb->bssgp_cell_id = new_msg->_data +
+			(old_cb->bssgp_cell_id - msg->_data);
+	new_cb->nsei = old_cb->nsei;
+	new_cb->bvci = old_cb->bvci;
+	new_cb->tlli = old_cb->tlli;
+
+	return new_msg;
+}
+
 /* Transmit a simple response such as BLOCK/UNBLOCK/RESET ACK/NACK */
 int bssgp_tx_simple_bvci(uint8_t pdu_type, uint16_t nsei,
 			 uint16_t bvci, uint16_t ns_bvci)

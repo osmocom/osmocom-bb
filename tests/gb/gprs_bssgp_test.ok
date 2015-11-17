@@ -13,5 +13,9 @@ BSSGP primitive, SAP 16777221, prim = 11, op = 2, msg = 41 07 81 05 04 82 04 d2
 Got message: 26 1e 81 2a 05 82 10 22 03 82 c0 40 01 82 08 11 1c 82 60 20 
 Got message: 26 1e 81 2a 05 82 10 22 03 82 c0 40 01 82 08 11 1c 82 60 20 3c 81 78 06 82 11 44 
 ----- test_bssgp_flow_control_bvc END
+----- test_bssgp_msgb_copy START
+Old msgb: [L3]> 22 04 82 00 02 07 81 08 
+New msgb: [L3]> 22 04 82 00 02 07 81 08 
+----- test_bssgp_msgb_copy END
 ===== BSSGP test END
 
