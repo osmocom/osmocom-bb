@@ -1,3 +1,3 @@
 [1;31mYou should see this
 [0;m[1;32mYou should see this
-[0;m
+[0;mlog_check_level did not catch this case (filter)

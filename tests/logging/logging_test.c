@@ -78,16 +78,26 @@ int main(int argc, char **argv)
 	log_parse_category_mask(stderr_target, "DRLL:DCC");
 	log_parse_category_mask(stderr_target, "DRLL");
 	DEBUGP(DCC, "You should not see this\n");
+	if (log_check_level(DMM, LOGL_DEBUG) != 0)
+		fprintf(stderr, "log_check_level did not catch this case\n");
 
 	log_parse_category_mask(stderr_target, "DRLL:DCC");
 	DEBUGP(DRLL, "You should see this\n");
+	OSMO_ASSERT(log_check_level(DRLL, LOGL_DEBUG) != 0);
 	DEBUGP(DCC, "You should see this\n");
+	OSMO_ASSERT(log_check_level(DCC, LOGL_DEBUG) != 0);
 	DEBUGP(DMM, "You should not see this\n");
+	if (log_check_level(DMM, LOGL_DEBUG) != 0)
+		fprintf(stderr, "log_check_level did not catch this case\n");
+
 	OSMO_ASSERT(filter_called == 0);
 
 	log_set_all_filter(stderr_target, 0);
 	DEBUGP(DRLL, "You should not see this and filter is called\n");
 	OSMO_ASSERT(filter_called == 1);
+	if (log_check_level(DRLL, LOGL_DEBUG) != 0)
+		fprintf(stderr,
+			"log_check_level did not catch this case (filter)\n");
 
 	return 0;
 }
