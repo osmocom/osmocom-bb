@@ -7,7 +7,8 @@ check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
                  conv/conv_test auth/milenage_test lapd/lapd_test	\
                  gsm0808/gsm0808_test gsm0408/gsm0408_test		\
 		 gb/bssgp_fc_test gb/gprs_bssgp_test gb/gprs_ns_test	\
-		 kasumi/kasumi_test logging/logging_test fr/fr_test	\
+		 gprs/gprs_test	kasumi/kasumi_test			\
+		 logging/logging_test fr/fr_test			\
 		 loggingrb/loggingrb_test strrb/strrb_test              \
 		 vty/vty_test comp128/comp128_test utils/utils_test	\
 		 smscb/gsm0341_test stats/stats_test
@@ -45,6 +46,9 @@ gsm0808_gsm0808_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/
 
 gsm0408_gsm0408_test_SOURCES = gsm0408/gsm0408_test.c
 gsm0408_gsm0408_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+gprs_gprs_test_SOURCES = gprs/gprs_test.c
+gprs_gprs_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 lapd_lapd_test_SOURCES = lapd/lapd_test.c
 lapd_lapd_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
@@ -117,8 +121,8 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
              lapd/lapd_test.ok gsm0408/gsm0408_test.ok			\
              gsm0808/gsm0808_test.ok gb/bssgp_fc_tests.err		\
              gb/bssgp_fc_tests.ok gb/bssgp_fc_tests.sh			\
-             gb/gprs_bssgp_test.ok					\
-             gb/gprs_ns_test.ok kasumi/kasumi_test.ok			\
+             gb/gprs_bssgp_test.ok gb/gprs_ns_test.ok			\
+             gprs/gprs_test.ok kasumi/kasumi_test.ok			\
              msgfile/msgfile_test.ok msgfile/msgconfig.cfg		\
              logging/logging_test.ok logging/logging_test.err		\
              fr/fr_test.ok loggingrb/logging_test.ok			\

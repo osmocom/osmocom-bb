@@ -14,3 +14,6 @@ char *osmo_apn_qualify(unsigned int mcc, unsigned int mnc, const char *ni);
  * static buffer. */
 char *osmo_apn_qualify_from_imsi(const char *imsi,
 				 const char *ni, int have_3dig_mnc);
+
+int osmo_apn_from_str(uint8_t *apn_enc, size_t max_apn_enc_len, const char *str);
+char * osmo_apn_to_str(char *out_str, const uint8_t *apn_enc, size_t apn_enc_len);

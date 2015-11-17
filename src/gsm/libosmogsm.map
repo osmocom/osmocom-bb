@@ -270,6 +270,8 @@ ipa_send;
 
 osmo_apn_qualify;
 osmo_apn_qualify_from_imsi;
+osmo_apn_to_str;
+osmo_apn_from_str;
 
 local: *;
 };
