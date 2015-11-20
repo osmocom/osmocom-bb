@@ -35,6 +35,7 @@ nobase_include_HEADERS = \
                        osmocom/core/socket.h \
                        osmocom/core/statistics.h \
                        osmocom/core/strrb.h \
+                       osmocom/core/talloc.h \
                        osmocom/core/timer.h \
                        osmocom/core/utils.h \
                        osmocom/core/write_queue.h \
@@ -97,7 +98,7 @@ nobase_include_HEADERS += osmocom/core/plugin.h
 endif
 
 if ENABLE_TALLOC
-nobase_include_HEADERS += osmocom/core/talloc.h
+nobase_include_HEADERS += osmocom/core/talloc-internal.h
 endif
 
 if ENABLE_MSGFILE
@@ -133,3 +134,15 @@ osmocom/core/bit%gen.h: osmocom/core/bitXXgen.h.tpl
 osmocom/core/crc%gen.h: osmocom/core/crcXXgen.h.tpl
 	$(AM_V_GEN)$(MKDIR_P) $(dir $@)
 	$(AM_V_GEN)sed -e's/XX/$*/g' $< > $@
+
+# regenerate talloc.h with config.status every time config.status changes
+osmocom/core/talloc.h: stamp-talloc
+	:
+
+stamp-talloc: $(top_builddir)/config.status
+	cd $(top_builddir) \
+		&& CONFIG_FILES= CONFIG_HEADERS= CONFIG_OTHER=osmocom/core/talloc.h \
+		$(SHELL) ./config.status
+	echo timestamp > $@
+
+DISTCLEANFILES = stamp-talloc
