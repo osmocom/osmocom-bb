@@ -52,7 +52,7 @@ struct osmo_stat_item_group *osmo_stat_item_group_alloc(void *ctx,
 					    unsigned int idx)
 {
 	unsigned int group_size;
-	unsigned int items_size = 0;
+	unsigned long items_size = 0;
 	unsigned int item_idx;
 	void *items;
 
@@ -95,7 +95,7 @@ struct osmo_stat_item_group *osmo_stat_item_group_alloc(void *ctx,
 	/* Update item pointers */
 	for (item_idx = 0; item_idx < desc->num_items; item_idx++) {
 		struct osmo_stat_item *item = (struct osmo_stat_item *)
-			((uint8_t *)items + (int)group->items[item_idx]);
+			((uint8_t *)items + (unsigned long)group->items[item_idx]);
 		unsigned int i;
 
 		group->items[item_idx] = item;
