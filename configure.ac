@@ -102,14 +102,14 @@ AC_ARG_ENABLE(talloc,
 	[enable_talloc=$enableval], [enable_talloc="yes"])
 AM_CONDITIONAL(ENABLE_TALLOC, [test x"$enable_talloc" = x"yes"])
 
-AC_ARG_ENABLE(system-talloc,
+AC_ARG_WITH(system-talloc,
 	[AS_HELP_STRING(
-		[--enable-system-talloc],
-		[Enable using a system-level talloc library]
+		[--with-system-talloc],
+		[Build using a system-level talloc library]
 	)],
-	[enable_system_talloc=$enableval], [enable_system_talloc="no"])
-AM_CONDITIONAL(ENABLE_SYSTEM_TALLOC, [test x"$enable_system_talloc" = x"yes"])
-AS_IF([test x"$enable_system_talloc" = x"yes"], [
+	[with_system_talloc=$withval], [with_system_talloc="no"])
+AM_CONDITIONAL(WITH_SYSTEM_TALLOC, [test x"$with_system_talloc" = x"yes"])
+AS_IF([test x"$with_system_talloc" = x"yes"], [
 	PKG_CHECK_MODULES(TALLOC, talloc)
 	if test x"$enable_talloc" = x"yes"; then
 		AC_MSG_ERROR([You cannot enable both internal and system talloc])
@@ -223,7 +223,7 @@ AC_OUTPUT_COMMANDS([
  */
 #pragma once
 _EOF_
-		if test x"$enable_system_talloc" = x"yes"; then
+		if test x"$with_system_talloc" = x"yes"; then
 			echo '#include <talloc.h>' >> $outfile
 		else
 			echo '#include <osmocom/core/talloc-internal.h>' >> $outfile
@@ -231,7 +231,7 @@ _EOF_
 	esac
 ],[
    srcdir=$srcdir
-   enable_system_talloc=$enable_system_talloc
+   with_system_talloc=$with_system_talloc
 ])
 
 
