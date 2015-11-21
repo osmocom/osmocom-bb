@@ -89,9 +89,9 @@ AC_ARG_ENABLE([pcsc], [AS_HELP_STRING([--disable-pcsc], [Build without PC/SC sup
     [
         enable_pcsc="yes"
     ])
-if test "x$enable_pcsc" = "xyes" ; then
+AS_IF([test "x$enable_pcsc" = "xyes"], [
 	PKG_CHECK_MODULES(PCSC, libpcsclite)
-fi
+])
 AM_CONDITIONAL(ENABLE_PCSC, test "x$enable_pcsc" = "xyes")
 
 AC_ARG_ENABLE(talloc,
@@ -109,12 +109,12 @@ AC_ARG_ENABLE(system-talloc,
 	)],
 	[enable_system_talloc=$enableval], [enable_system_talloc="no"])
 AM_CONDITIONAL(ENABLE_SYSTEM_TALLOC, [test x"$enable_system_talloc" = x"yes"])
-if test x"$enable_system_talloc" = x"yes"; then
+AS_IF([test x"$enable_system_talloc" = x"yes"], [
 	PKG_CHECK_MODULES(TALLOC, talloc)
 	if test x"$enable_talloc" = x"yes"; then
 		AC_MSG_ERROR([You cannot enable both internal and system talloc])
 	fi
-fi
+])
 
 AC_ARG_ENABLE(plugin,
 	[AS_HELP_STRING(
