@@ -23,6 +23,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/msgb.h>
+#include <setjmp.h>
 
 #include <errno.h>
 
@@ -33,6 +34,36 @@
 		printf("Operation failed rc=%d on %s:%d\n", rc, __FILE__, __LINE__); \
 		abort(); \
 	}
+
+static jmp_buf jmp_env;
+static int jmp_env_valid = 0;
+static void osmo_panic_raise(const char *fmt, va_list args)
+{
+	/*
+	 * The args can include pointer values which are not suitable for
+	 * regression testing. So just write the (hopefully constant) format
+	 * string to stdout and write the full message to stderr.
+	 */
+	printf("%s", fmt);
+	vfprintf(stderr, fmt, args);
+	if (!jmp_env_valid)
+		abort();
+	longjmp(jmp_env, 1);
+}
+
+/* Note that this does not nest */
+#define OSMO_PANIC_TRY(pE) (osmo_panic_try(pE, setjmp(jmp_env)))
+
+static int osmo_panic_try(volatile int *exception, int setjmp_result)
+{
+	jmp_env_valid = setjmp_result == 0;
+	*exception = setjmp_result;
+
+	if (setjmp_result)
+		fprintf(stderr, "Exception caught: %d\n", setjmp_result);
+
+	return *exception == 0;
+}
 
 static void test_msgb_api()
 {
