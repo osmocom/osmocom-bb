@@ -77,6 +77,7 @@ extern const char *msgb_hexdump(const struct msgb *msg);
 extern int msgb_resize_area(struct msgb *msg, uint8_t *area,
 	int old_size, int new_size);
 extern struct msgb *msgb_copy(const struct msgb *msg, const char *name);
+static int msgb_test_invariant(const struct msgb *msg) __attribute__((pure));
 
 #ifdef MSGB_DEBUG
 #include <osmocom/core/panic.h>
@@ -410,6 +411,45 @@ static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 	if (msg)
 		msgb_reserve(msg, headroom);
 	return msg;
+}
+
+/*! \brief Check a message buffer for consistency
+ *  \param[in] msg message buffer
+ *  \returns 0 (false) if inconsistent, != 0 (true) otherwise
+ */
+static inline int msgb_test_invariant(const struct msgb *msg)
+{
+	const unsigned char *lbound;
+	if (!msg || !msg->data || !msg->tail ||
+	    (msg->data + msg->len != msg->tail) ||
+	    (msg->data < msg->head) ||
+	    (msg->tail > msg->head + msg->data_len))
+		return 0;
+
+	lbound = msg->head;
+
+	if (msg->l1h) {
+		if (msg->l1h < lbound)
+			return 0;
+		lbound = msg->l1h;
+	}
+	if (msg->l2h) {
+		if (msg->l2h < lbound)
+			return 0;
+		lbound = msg->l2h;
+	}
+	if (msg->l3h) {
+		if (msg->l3h < lbound)
+			return 0;
+		lbound = msg->l3h;
+	}
+	if (msg->l4h) {
+		if (msg->l4h < lbound)
+			return 0;
+		lbound = msg->l4h;
+	}
+
+	return lbound <= msg->head +  msg->data_len;
 }
 
 /* non inline functions to ease binding */
