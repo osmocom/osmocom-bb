@@ -153,6 +153,97 @@ void msgb_set_talloc_ctx(void *ctx)
 	tall_msgb_ctx = ctx;
 }
 
+/*! \brief Copy an msgb.
+ *
+ *  This function allocates a new msgb, copies the data buffer of msg,
+ *  and adjusts the pointers (incl l1h-l4h) accordingly. The cb part
+ *  is not copied.
+ *  \param[in] msg  The old msgb object
+ *  \param[in] name Human-readable name to be associated with msgb
+ */
+struct msgb *msgb_copy(const struct msgb *msg, const char *name)
+{
+	struct msgb *new_msg;
+
+	new_msg = msgb_alloc(msg->data_len, name);
+	if (!new_msg)
+		return NULL;
+
+	/* copy data */
+	memcpy(new_msg->_data, msg->_data, new_msg->data_len);
+
+	/* copy header */
+	new_msg->len = msg->len;
+	new_msg->data += msg->data - msg->_data;
+	new_msg->head += msg->head - msg->_data;
+	new_msg->tail += msg->tail - msg->_data;
+
+	if (msg->l1h)
+		new_msg->l1h = new_msg->_data + (msg->l1h - msg->_data);
+	if (msg->l2h)
+		new_msg->l2h = new_msg->_data + (msg->l2h - msg->_data);
+	if (msg->l3h)
+		new_msg->l3h = new_msg->_data + (msg->l3h - msg->_data);
+	if (msg->l4h)
+		new_msg->l4h = new_msg->_data + (msg->l4h - msg->_data);
+
+	return new_msg;
+}
+
+/*! \brief Resize an area within an msgb
+ *
+ *  This resizes a sub area of the msgb data and adjusts the pointers (incl
+ *  l1h-l4h) accordingly. The cb part is not updated. If the area is extended,
+ *  the contents of the extension is undefined. The complete sub area must be a
+ *  part of [data,tail].
+ *
+ *  \param[inout] msg       The msgb object
+ *  \param[in]    area      A pointer to the sub-area
+ *  \param[in]    old_size  The old size of the sub-area
+ *  \param[in]    new_size  The new size of the sub-area
+ *  \returns 0 on success, -1 if there is not enough space to extend the area
+ */
+int msgb_resize_area(struct msgb *msg, uint8_t *area,
+			    int old_size, int new_size)
+{
+	int rc;
+	uint8_t *post_start = area + old_size;
+	int pre_len = area - msg->data;
+	int post_len = msg->len - old_size - pre_len;
+	int delta_size = new_size - old_size;
+
+	if (old_size < 0 || new_size < 0)
+		MSGB_ABORT(msg, "Negative sizes are not allowed\n");
+	if (area < msg->data || post_start > msg->tail)
+		MSGB_ABORT(msg, "Sub area is not fully contained in the msg data\n");
+
+	if (delta_size == 0)
+		return 0;
+
+	if (delta_size > 0) {
+		rc = msgb_trim(msg, msg->len + delta_size);
+		if (rc < 0)
+			return rc;
+	}
+
+	memmove(area + new_size, area + old_size, post_len);
+
+	if (msg->l1h >= post_start)
+		msg->l1h += delta_size;
+	if (msg->l2h >= post_start)
+		msg->l2h += delta_size;
+	if (msg->l3h >= post_start)
+		msg->l3h += delta_size;
+	if (msg->l4h >= post_start)
+		msg->l4h += delta_size;
+
+	if (delta_size < 0)
+		msgb_trim(msg, msg->len + delta_size);
+
+	return 0;
+}
+
+
 /*! \brief Return a (static) buffer containing a hexdump of the msg
  * \param[in] msg message buffer
  * \returns a pointer to a static char array
