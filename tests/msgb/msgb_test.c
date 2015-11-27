@@ -121,6 +121,27 @@ static void test_msgb_api()
 	msgb_free(msg);
 }
 
+static void test_msgb_api_errors()
+{
+	struct msgb *msg = msgb_alloc_headroom(4096, 128, "data");
+	volatile int e = 0;
+	int rc;
+
+	printf("Testing the msgb API error handling\n");
+
+	osmo_set_panic_handler(osmo_panic_raise);
+
+	if (OSMO_PANIC_TRY(&e))
+		msgb_trim(msg, -1);
+	OSMO_ASSERT(e != 0);
+
+	rc = msgb_trim(msg, 4096 + 500);
+	OSMO_ASSERT(rc == -1);
+
+	msgb_free(msg);
+	osmo_set_panic_handler(NULL);
+}
+
 static void test_msgb_copy()
 {
 	struct msgb *msg = msgb_alloc_headroom(4096, 128, "data");
@@ -263,6 +284,7 @@ int main(int argc, char **argv)
 	osmo_init_logging(&info);
 
 	test_msgb_api();
+	test_msgb_api_errors();
 	test_msgb_copy();
 	test_msgb_resize_area();
 
