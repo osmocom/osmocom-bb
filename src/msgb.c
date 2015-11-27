@@ -266,10 +266,25 @@ const char *msgb_hexdump(const struct msgb *msg)
 		if (!lxhs[i])
 			continue;
 
-		if (lxhs[i] < msg->data)
-			goto out_of_range;
+		if (lxhs[i] < msg->head)
+			continue;
+		if (lxhs[i] > msg->head + msg->data_len)
+			continue;
 		if (lxhs[i] > msg->tail)
-			goto out_of_range;
+			continue;
+		if (lxhs[i] < msg->data || lxhs[i] > msg->tail) {
+			nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
+					  "(L%d=data%+d) ",
+					  i+1, lxhs[i] - msg->data);
+			buf_offs += nchars;
+			continue;
+		}
+		if (lxhs[i] < start) {
+			nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
+					  "(L%d%+d) ", i+1, start - lxhs[i]);
+			buf_offs += nchars;
+			continue;
+		}
 		nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
 				  "%s[L%d]> ",
 				  osmo_hexdump(start, lxhs[i] - start),
@@ -285,11 +300,28 @@ const char *msgb_hexdump(const struct msgb *msg)
 	if (nchars < 0 || nchars + buf_offs >= sizeof(buf))
 		return "ERROR";
 
-	return buf;
+	buf_offs += nchars;
 
-out_of_range:
-	nchars = snprintf(buf, sizeof(buf) - buf_offs,
-			  "!!! L%d out of range", i+1);
+	for (i = 0; i < ARRAY_SIZE(lxhs); i++) {
+		if (!lxhs[i])
+			continue;
+
+		if (lxhs[i] < msg->head || lxhs[i] > msg->head + msg->data_len) {
+			nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
+					  "(L%d out of range) ", i+1);
+		} else if (lxhs[i] <= msg->data + msg->data_len &&
+			   lxhs[i] > msg->tail) {
+			nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
+					  "(L%d=tail%+d) ",
+					  i+1, lxhs[i] - msg->tail);
+		} else
+			continue;
+
+		if (nchars < 0 || nchars + buf_offs >= sizeof(buf))
+			return "ERROR";
+		buf_offs += nchars;
+	}
+
 	return buf;
 }
 
