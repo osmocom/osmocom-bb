@@ -373,6 +373,8 @@ static inline void msgb_reserve(struct msgb *msg, int len)
  */
 static inline int msgb_trim(struct msgb *msg, int len)
 {
+	if (len < 0)
+		MSGB_ABORT(msg, "Negative length is not allowed\n");
 	if (len > msg->data_len)
 		return -1;
 
