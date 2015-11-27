@@ -1,0 +1,21 @@
+Testing the msgb API
+Buffer: 
+put(4) -> data+0
+Buffer: [L1]> 00 00 00 00 
+put(4) -> data+4
+Buffer: [L1]> 00 00 00 00 [L2]> 00 00 00 00 
+put(4) -> data+8
+Buffer: [L1]> 00 00 00 00 [L2]> 00 00 00 00 [L3]> 00 00 00 00 
+put(4) -> data+12
+Buffer: [L1]> 00 00 00 00 [L2]> 00 00 00 00 [L3]> 00 00 00 00 [L4]> 00 00 00 00 
+push(4) -> data+0
+Buffer: 00 00 00 00 [L1]> 00 00 00 00 [L2]> 00 00 00 00 [L3]> 00 00 00 00 [L4]> 00 00 00 00 
+trim(16) -> 0
+Buffer: 00 00 00 00 [L1]> 00 00 00 00 [L2]> 00 00 00 00 [L3]> 00 00 00 00 [L4]> 
+get(4) -> data+12
+Buffer: 00 00 00 00 [L1]> 00 00 00 00 [L2]> 00 00 00 00 [L3]> (L4=tail+4) 
+Test msgb_hexdump
+Buffer: (L1=data-124) 00 00 00 00 00 00 00 00 [L2]> 00 00 00 00 [L3]> (L4=tail+4) 
+Buffer: (L1=data-124) 00 00 00 00 00 00 00 00 [L2]> (L3+8) 00 00 00 00 (L4=tail+4) 
+Buffer: (L1=data-124) 00 00 00 00 00 00 00 00 [L2]> 00 00 00 00 (L3 out of range) (L4=tail+4) 
+Success.

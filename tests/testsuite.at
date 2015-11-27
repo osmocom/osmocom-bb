@@ -33,6 +33,12 @@ cat $abs_srcdir/conv/conv_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/conv/conv_test], [0], [expout])
 AT_CLEANUP
 
+AT_SETUP([msgb])
+AT_KEYWORDS([msgb])
+cat $abs_srcdir/msgb/msgb_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/msgb/msgb_test], [0], [expout])
+AT_CLEANUP
+
 if ENABLE_MSGFILE
 AT_SETUP([msgfile])
 AT_KEYWORDS([msgfile])
