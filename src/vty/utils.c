@@ -87,11 +87,14 @@ static int osmo_stat_item_handler(
 {
 	struct vty_out_context *vctx = vctx_;
 	struct vty *vty = vctx->vty;
+	const char *unit =
+		item->desc->unit != OSMO_STAT_ITEM_NO_UNIT ?
+		item->desc->unit : "";
 
 	vty_out(vty, " %s%s: %8" PRIi32 " %s%s",
 		vctx->prefix, item->desc->description,
 		osmo_stat_item_get_last(item),
-		item->desc->unit, VTY_NEWLINE);
+		unit, VTY_NEWLINE);
 
 	return 0;
 }
