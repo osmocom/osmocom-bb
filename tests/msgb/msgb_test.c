@@ -121,6 +121,141 @@ static void test_msgb_api()
 	msgb_free(msg);
 }
 
+static void test_msgb_copy()
+{
+	struct msgb *msg = msgb_alloc_headroom(4096, 128, "data");
+	struct msgb *msg2;
+	int i;
+
+	printf("Testing msgb_copy\n");
+
+	msg->l1h = msgb_put(msg, 20);
+	msg->l2h = msgb_put(msg, 20);
+	msg->l3h = msgb_put(msg, 20);
+	msg->l4h = msgb_put(msg, 20);
+
+	OSMO_ASSERT(msgb_length(msg) == 80);
+	for (i = 0; i < msgb_length(msg); i++)
+		msg->data[i] = (uint8_t)i;
+
+	msg2 = msgb_copy(msg, "copy");
+
+	OSMO_ASSERT(msgb_length(msg) == msgb_length(msg2));
+	OSMO_ASSERT(msgb_l1len(msg) == msgb_l1len(msg2));
+	OSMO_ASSERT(msgb_l2len(msg) == msgb_l2len(msg2));
+	OSMO_ASSERT(msgb_l3len(msg) == msgb_l3len(msg2));
+	OSMO_ASSERT(msg->tail - msg->l4h == msg2->tail - msg2->l4h);
+
+	for (i = 0; i < msgb_length(msg2); i++)
+		OSMO_ASSERT(msg2->data[i] == (uint8_t)i);
+
+	printf("Src: %s\n", msgb_hexdump(msg));
+	printf("Dst: %s\n", msgb_hexdump(msg));
+
+	msgb_free(msg);
+	msgb_free(msg2);
+}
+
+static void test_msgb_resize_area()
+{
+	struct msgb *msg = msgb_alloc_headroom(4096, 128, "data");
+	int rc;
+	volatile int e = 0;
+	int i, saved_i;
+	uint8_t *cptr, *old_l3h;
+
+	osmo_set_panic_handler(osmo_panic_raise);
+
+	rc = msgb_resize_area(msg, msg->data, 0, 0);
+	OSMO_ASSERT(rc >= 0);
+
+	if (OSMO_PANIC_TRY(&e))
+		msgb_resize_area(msg, NULL, 0, 0);
+	OSMO_ASSERT(e != 0);
+
+	if (OSMO_PANIC_TRY(&e))
+		msgb_resize_area(msg, NULL, (int)msg->data, 0);
+	OSMO_ASSERT(e != 0);
+
+	if (OSMO_PANIC_TRY(&e))
+		msgb_resize_area(msg, msg->data, 20, 0);
+	OSMO_ASSERT(e != 0);
+
+	if (OSMO_PANIC_TRY(&e))
+		msgb_resize_area(msg, msg->data, -1, 0);
+	OSMO_ASSERT(e != 0);
+
+	if (OSMO_PANIC_TRY(&e))
+		msgb_resize_area(msg, msg->data, 0, -1);
+	OSMO_ASSERT(e != 0);
+
+	printf("Testing msgb_resize_area\n");
+
+	msg->l1h = msgb_put(msg, 20);
+	msg->l2h = msgb_put(msg, 20);
+	msg->l3h = msgb_put(msg, 20);
+	msg->l4h = msgb_put(msg, 20);
+
+	for (i = 0; i < msgb_length(msg); i++)
+		msg->data[i] = (uint8_t)i;
+
+	printf("Original: %s\n", msgb_hexdump(msg));
+
+	/* Extend area */
+	saved_i = msg->l3h[0];
+	old_l3h = msg->l3h;
+
+	rc = msgb_resize_area(msg, msg->l2h, 20, 20 + 30);
+
+	/* Reset the undefined part to allow printing the buffer to stdout */
+	memset(old_l3h, 0, msg->l3h - old_l3h);
+
+	printf("Extended: %s\n", msgb_hexdump(msg));
+
+	OSMO_ASSERT(rc >= 0);
+	OSMO_ASSERT(msgb_length(msg) == 80 + 30);
+	OSMO_ASSERT(msgb_l1len(msg) == 80 + 30);
+	OSMO_ASSERT(msgb_l2len(msg) == 60 + 30);
+	OSMO_ASSERT(msgb_l3len(msg) == 40);
+	OSMO_ASSERT(msg->tail - msg->l4h == 20);
+
+	for (cptr = msgb_data(msg), i = 0; cptr < old_l3h; cptr++, i++)
+		OSMO_ASSERT(*cptr == (uint8_t)i);
+
+	for (cptr = msg->l3h, i = saved_i; cptr < msg->tail; cptr++, i++)
+		OSMO_ASSERT(*cptr == (uint8_t)i);
+
+	rc = msgb_resize_area(msg, msg->l2h, 50, 8000);
+	OSMO_ASSERT(rc == -1);
+
+	/* Shrink area */
+	saved_i = msg->l4h[0];
+	OSMO_ASSERT(saved_i == (uint8_t)(msg->l4h[-1] + 1));
+
+	rc = msgb_resize_area(msg, msg->l3h, 20, 10);
+
+	printf("Shrinked: %s\n", msgb_hexdump(msg));
+
+	OSMO_ASSERT(rc >= 0);
+	OSMO_ASSERT(msgb_length(msg) == 80 + 30 - 10);
+	OSMO_ASSERT(msgb_l1len(msg) == 80 + 30 - 10);
+	OSMO_ASSERT(msgb_l2len(msg) == 60 + 30 - 10);
+	OSMO_ASSERT(msgb_l3len(msg) == 40 - 10);
+	OSMO_ASSERT(msg->tail - msg->l4h == 20);
+
+	OSMO_ASSERT(msg->l4h[0] != msg->l4h[-1] - 1);
+
+	for (cptr = msg->l4h, i = saved_i; cptr < msg->tail; cptr++, i++)
+		OSMO_ASSERT(*cptr == (uint8_t)i);
+
+	rc = msgb_resize_area(msg, msg->l2h, 50, 8000);
+	OSMO_ASSERT(rc == -1);
+
+	msgb_free(msg);
+
+	osmo_set_panic_handler(NULL);
+}
+
 static struct log_info info = {};
 
 int main(int argc, char **argv)
@@ -128,6 +263,8 @@ int main(int argc, char **argv)
 	osmo_init_logging(&info);
 
 	test_msgb_api();
+	test_msgb_copy();
+	test_msgb_resize_area();
 
 	printf("Success.\n");
 
