@@ -1,1 +1,2 @@
 #library	what		description / commit summary line
+libosmocore	change major	external talloc dependency / internal talloc removal
