@@ -3,8 +3,8 @@
 LIBVERSION=0:0:0
 
 AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include -I$(top_builddir)/include
-AM_CFLAGS = -fPIC -Wall $(PCSC_CFLAGS)
-AM_LDFLAGS = $(COVERAGE_LDFLAGS)
+AM_CFLAGS = -fPIC -Wall $(PCSC_CFLAGS) $(TALLOC_CFLAGS)
+AM_LDFLAGS = $(COVERAGE_LDFLAGS) $(TALLOC_LIBS)
 
 if ENABLE_PCSC
 # FIXME: only build the PC/SC dependent part conditional, but always build other parts

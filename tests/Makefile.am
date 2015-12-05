@@ -1,5 +1,6 @@
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include
-AM_CFLAGS = -Wall
+AM_CFLAGS = -Wall $(TALLOC_CFLAGS)
+AM_LDFLAGS = $(TALLOC_LIBS)
 
 check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
                  smscb/smscb_test bits/bitrev_test a5/a5_test		\

@@ -2,7 +2,7 @@
 # Please read Chapter 6 "Library interface versions" of the libtool documentation before making any modification
 LIBVERSION=6:0:1
 
-AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include $(TALLOC_CFLAGS)
 AM_CFLAGS = -Wall ${GCC_FVISIBILITY_HIDDEN}
 
 # FIXME: this should eventually go into a milenage/Makefile.am
@@ -26,7 +26,7 @@ libgsmint_la_LDFLAGS = -no-undefined
 libgsmint_la_LIBADD = ../libosmocore.la
 
 libosmogsm_la_SOURCES =
-libosmogsm_la_LDFLAGS = $(LTLDFLAGS_OSMOGSM) -version-info $(LIBVERSION) -no-undefined
+libosmogsm_la_LDFLAGS = $(LTLDFLAGS_OSMOGSM) -version-info $(LIBVERSION) -no-undefined $(TALLOC_LIBS)
 libosmogsm_la_LIBADD = libgsmint.la
 
 EXTRA_DIST = libosmogsm.map

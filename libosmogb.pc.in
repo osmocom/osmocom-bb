@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: Osmocom GPRS Gb Library
 Description: Osmocom GPRS Gb Interface (NS/BSSGP) Library
 Version: @VERSION@
-Libs: -L${libdir} -losmogb -losmovty
+Libs: -L${libdir} @TALLOC_LIBS@ -losmogb -losmovty -losmocore
 Cflags: -I${includedir}/ -fno-strict-aliasing
 

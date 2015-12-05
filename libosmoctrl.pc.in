@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: Osmocom Control Interface Library
 Description: C Utility Library
 Version: @VERSION@
-Libs: -L${libdir} -losmoctrl
+Libs: -L${libdir} @TALLOC_LIBS@ -losmoctrl -losmogsm -losmocore
 Cflags: -I${includedir}/
 
