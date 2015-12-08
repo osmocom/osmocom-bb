@@ -12,7 +12,7 @@
 
 struct osmo_stat_item_desc;
 
-#define STAT_ITEM_NOVALUE_ID 0
+#define OSMO_STAT_ITEM_NOVALUE_ID 0
 #define OSMO_STAT_ITEM_NO_UNIT NULL
 
 struct osmo_stat_item_value {

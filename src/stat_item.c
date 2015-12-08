@@ -105,7 +105,7 @@ struct osmo_stat_item_group *osmo_stat_item_group_alloc(void *ctx,
 
 		for (i = 0; i <= item->last_offs; i++) {
 			item->values[i].value = desc->item_desc[item_idx].default_value;
-			item->values[i].id = STAT_ITEM_NOVALUE_ID;
+			item->values[i].id = OSMO_STAT_ITEM_NOVALUE_ID;
 		}
 	}
 
@@ -128,7 +128,7 @@ void osmo_stat_item_set(struct osmo_stat_item *item, int32_t value)
 		item->last_offs = 0;
 
 	global_value_id += 1;
-	if (global_value_id == STAT_ITEM_NOVALUE_ID)
+	if (global_value_id == OSMO_STAT_ITEM_NOVALUE_ID)
 		global_value_id += 1;
 
 	item->values[item->last_offs].value = value;
@@ -147,7 +147,7 @@ int osmo_stat_item_get_next(const struct osmo_stat_item *item, int32_t *next_idx
 	next_value = &item->values[next_offs];
 
 	while (next_value->id - *next_idx >= 0 &&
-		next_value->id != STAT_ITEM_NOVALUE_ID)
+		next_value->id != OSMO_STAT_ITEM_NOVALUE_ID)
 	{
 		item_value = next_value;
 
