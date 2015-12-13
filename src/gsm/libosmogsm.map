@@ -219,6 +219,7 @@ osmo_sitype2rsl;
 rr_cause_name;
 
 rsl_att_tlvdef;
+rsl_ipac_eie_tlvdef;
 rsl_ccch_conf_to_bs_cc_chans;
 rsl_ccch_conf_to_bs_ccch_sdcch_comb;
 rsl_chan_nr_str;

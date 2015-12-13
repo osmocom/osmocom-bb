@@ -21,6 +21,12 @@ extern const struct tlv_definition rsl_att_tlvdef;
 #define rsl_tlv_parse(dec, buf, len)     \
 			tlv_parse(dec, &rsl_att_tlvdef, buf, len, 0, 0)
 
+extern const struct tlv_definition rsl_ipac_eie_tlvdef;
+
+/*! \brief Parse RSL IPAC EIE TLV structure using \ref tlv_parse */
+#define rsl_ipac_eie_tlv_parse(dec, buf, len)     \
+			tlv_parse(dec, &rsl_ipac_eie_tlvdef, buf, len, 0, 0)
+
 /* encode channel number as per Section 9.3.1 */
 uint8_t rsl_enc_chan_nr(uint8_t type, uint8_t subch, uint8_t timeslot);
 /* decode channel number as per Section 9.3.1 */
