@@ -1092,6 +1092,23 @@ static int rslms_rx_rll(struct msgb *msg, struct lapdm_channel *lc)
 	else
 		le = &lc->lapdm_dcch;
 
+	/* 4.1.1.5 / 4.1.1.6 / 4.1.1.7 all only exist on MS side, not
+	 * BTS side */
+	if (le->mode == LAPDM_MODE_BTS) {
+		switch (msg_type) {
+		case RSL_MT_SUSP_REQ:
+		case RSL_MT_RES_REQ:
+		case RSL_MT_RECON_REQ:
+			LOGP(DLLAPD, LOGL_NOTICE, "(%p) RLL Message '%s' unsupported in BTS side LAPDm\n",
+				lc->name, rsl_msg_name(msg_type));
+			msgb_free(msg);
+			return -EINVAL;
+			break;
+		default:
+			break;
+		}
+	}
+
 	/* G.2.1 No action shall be taken on frames containing an unallocated
 	 * SAPI.
 	 */
