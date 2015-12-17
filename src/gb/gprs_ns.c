@@ -257,6 +257,7 @@ void gprs_nsvc_delete(struct gprs_nsvc *nsvc)
 		osmo_timer_del(&nsvc->timer);
 	llist_del(&nsvc->list);
 	rate_ctr_group_free(nsvc->ctrg);
+	osmo_stat_item_group_free(nsvc->statg);
 	talloc_free(nsvc);
 }
 
