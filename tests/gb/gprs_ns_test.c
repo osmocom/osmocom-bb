@@ -710,6 +710,24 @@ static void test_bss_reset_ack()
 	send_ns_reset_ack(nsi, nse[0], 0xf001, 0x1000);
 	gprs_dump_nsi(nsi);
 
+	/* Test crossing RESET and UNBLOCK_ACK */
+
+	printf("---  RESET (BSS -> SGSN) crossing an UNBLOCK_ACK (SGSN -> BSS) ---\n\n");
+
+	setup_ns(nsi, nse[0], 0x1001, 0x1000);
+	nsvc = gprs_nsvc_by_nsvci(nsi, 0x1001);
+	gprs_nsvc_reset(nsvc, NS_CAUSE_OM_INTERVENTION);
+	OSMO_ASSERT(nsvc->state & NSE_S_BLOCKED);
+	OSMO_ASSERT(nsvc->state & NSE_S_RESET);
+	send_ns_unblock_ack(nsi, nse[0]);
+	gprs_dump_nsi(nsi);
+	send_ns_reset_ack(nsi, nse[0], 0x1001, 0x1000);
+	expire_nsvc_timer(nsvc);
+	OSMO_ASSERT(nsvc->state & NSE_S_BLOCKED);
+	OSMO_ASSERT(nsvc->state & NSE_S_RESET);
+	send_ns_reset_ack(nsi, nse[0], 0x1001, 0x1000);
+	gprs_dump_nsi(nsi);
+
 	gprs_ns_destroy(nsi);
 	nsi = NULL;
 }

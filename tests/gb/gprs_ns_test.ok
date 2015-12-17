@@ -569,6 +569,90 @@ Current NS-VCIs:
          NS-VC replaced other count: 2
          NS-VC changed NSEI count  : 3
 
+---  RESET (BSS -> SGSN) crossing an UNBLOCK_ACK (SGSN -> BSS) ---
+
+Setup NS-VC: remote 0x01020304:2222, NSVCI 0x1001(4097), NSEI 0x1000(4096)
+
+PROCESSING RESET from 0x01020304:2222
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_REPLACED: 0x1001/0.0.0.0:0 -> 0xf001/1.2.3.4:2222
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:2222
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+PROCESSING ALIVE from 0x01020304:2222
+0a 
+
+MESSAGE to BSS, msg length 1
+0b 
+
+result (ALIVE) = 1
+
+PROCESSING UNBLOCK from 0x01020304:2222
+06 
+
+==> got signal NS_UNBLOCK, NS-VC 0x1001/1.2.3.4:2222
+MESSAGE to BSS, msg length 1
+07 
+
+result (UNBLOCK) = 1
+
+PROCESSING ALIVE_ACK from 0x01020304:2222
+0b 
+
+result (ALIVE_ACK) = 0
+
+MESSAGE to BSS, msg length 12
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+PROCESSING UNBLOCK_ACK from 0x01020304:2222
+07 
+
+==> got signal NS_UNBLOCK, NS-VC 0x1001/1.2.3.4:2222
+result (UNBLOCK_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0xf001, NSEI 0x1000, peer 0x00000000:0, blocked
+         NS-VC Block count         : 1
+         NS-VC replaced other count: 2
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222
+         NS-VC Block count         : 4
+         NS-VC replaced other count: 3
+         NS-VC changed NSEI count  : 4
+
+PROCESSING RESET_ACK from 0x01020304:2222
+03 01 82 10 01 04 82 10 00 
+
+result (RESET_ACK) = 0
+
+MESSAGE to BSS, msg length 12
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+PROCESSING RESET_ACK from 0x01020304:2222
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+Current NS-VCIs:
+    VCI 0xf001, NSEI 0x1000, peer 0x00000000:0, blocked
+         NS-VC Block count         : 1
+         NS-VC replaced other count: 2
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 5
+         NS-VC replaced other count: 3
+         NS-VC changed NSEI count  : 4
+
 Current NS-VCIs:
 
 --- Setup SGSN connection, BSS -> SGSN ---
