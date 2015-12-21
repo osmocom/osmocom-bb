@@ -310,35 +310,52 @@ err:
 	target->output(target, level, buf);
 }
 
+static inline int map_subsys(int subsys)
+{
+	if (subsys < 0)
+		subsys = subsys_lib2index(subsys);
+
+	if (subsys > osmo_log_info->num_cat)
+		subsys = DLGLOBAL;
+	return subsys;
+}
+
+static inline int check_log_to_target(struct log_target *tar, int subsys, int level)
+{
+	struct log_category *category;
+
+	category = &tar->categories[subsys];
+
+	/* subsystem is not supposed to be logged */
+	if (!category->enabled)
+		return 0;
+
+	/* Check the global log level */
+	if (tar->loglevel != 0 && level < tar->loglevel)
+		return 0;
+
+	/* Check the category log level */
+	if (tar->loglevel == 0 && category->loglevel != 0 &&
+	    level < category->loglevel)
+		return 0;
+
+	/* TODO: Check the filter/selector too? */
+	return 1;
+}
+
 /*! \brief vararg version of logging function */
 void osmo_vlogp(int subsys, int level, const char *file, int line,
 		int cont, const char *format, va_list ap)
 {
 	struct log_target *tar;
 
-	if (subsys < 0)
-		subsys = subsys_lib2index(subsys);
-
-	if (subsys > osmo_log_info->num_cat)
-		subsys = DLGLOBAL;
+	subsys = map_subsys(subsys);
 
 	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
-		struct log_category *category;
 		int output = 0;
 		va_list bp;
 
-		category = &tar->categories[subsys];
-		/* subsystem is not supposed to be logged */
-		if (!category->enabled)
-			continue;
-
-		/* Check the global log level */
-		if (tar->loglevel != 0 && level < tar->loglevel)
-			continue;
-
-		/* Check the category log level */
-		if (tar->loglevel == 0 && category->loglevel != 0 &&
-		    level < category->loglevel)
+		if (!check_log_to_target(tar, subsys, level))
 			continue;
 
 		/* Apply filters here... if that becomes messy we will
@@ -871,29 +888,12 @@ int log_check_level(int subsys, unsigned int level)
 {
 	struct log_target *tar;
 
-	if (subsys < 0)
-		subsys = subsys_lib2index(subsys);
-
-	if (subsys > osmo_log_info->num_cat)
-		subsys = DLGLOBAL;
+	subsys = map_subsys(subsys);
 
 	/* TODO: The following could/should be cached (update on config) */
 
 	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
-		struct log_category *category;
-
-		category = &tar->categories[subsys];
-		/* subsystem is not supposed to be logged */
-		if (!category->enabled)
-			continue;
-
-		/* Check the global log level */
-		if (tar->loglevel != 0 && level < tar->loglevel)
-			continue;
-
-		/* Check the category log level */
-		if (tar->loglevel == 0 && category->loglevel != 0 &&
-		    level < category->loglevel)
+		if (!check_log_to_target(tar, subsys, level))
 			continue;
 
 		/* This might get logged (ignoring filters) */
