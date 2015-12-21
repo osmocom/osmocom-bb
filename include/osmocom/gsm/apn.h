@@ -9,5 +9,8 @@
 #define APN_MAXLEN	100
 
 char *osmo_apn_qualify(unsigned int mcc, unsigned int mnc, const char *ni);
+
+/* Compose a string of the form '<ni>.mnc001.mcc002.gprs\0', returned in a
+ * static buffer. */
 char *osmo_apn_qualify_from_imsi(const char *imsi,
 				 const char *ni, int have_3dig_mnc);

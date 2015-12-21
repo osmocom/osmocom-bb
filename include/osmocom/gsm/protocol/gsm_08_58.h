@@ -82,7 +82,7 @@ struct abis_rsl_cchan_hdr {
 /* \brief Check if given RSL message discriminator is transparent */
 #define ABIS_RSL_MDISC_IS_TRANSP(x)	(x & 0x01)
 
-/* \brief RSL Message Tyoe (Chapter 9.1) */
+/* \brief RSL Message Type (Chapter 9.1) */
 enum abis_rsl_msgtype {
 	/* Radio Link Layer Management */
 	RSL_MT_DATA_REQ			= 0x01,

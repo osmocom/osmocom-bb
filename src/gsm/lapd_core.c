@@ -1940,7 +1940,7 @@ static int lapd_susp_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	return send_dl_simple(PRIM_DL_SUSP, PRIM_OP_CONFIRM, &dl->lctx);
 }
 
-/* requesst resume or reconnect of link */
+/* request, resume or reconnect of link */
 static int lapd_res_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 {
 	struct lapd_datalink *dl = lctx->dl;

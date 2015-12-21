@@ -78,6 +78,7 @@ static inline void rate_ctr_group_upd_idx(struct rate_ctr_group *grp, unsigned i
 
 void rate_ctr_group_free(struct rate_ctr_group *grp);
 
+/*! \brief Increment the counter by \a inc */
 void rate_ctr_add(struct rate_ctr *ctr, int inc);
 
 /*! \brief Increment the counter by 1 */
