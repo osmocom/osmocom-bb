@@ -1,6 +1,7 @@
 /* bit vector utility routines */
 
 /* (C) 2009 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2015 by Sysmocom s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -30,6 +31,7 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <osmocom/core/bitvec.h>
 
@@ -261,4 +263,77 @@ int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n,
 	return -1;
 }
 
+/*! \brief get multiple bytes from current pos
+ *  Assumes MSB first encoding.
+ *  \param[in] bv bit vector
+ *  \param[in] bytes array
+ *  \param[in] count number of bytes to copy
+ */
+int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, int count)
+{
+	int byte_offs = bytenum_from_bitnum(bv->cur_bit);
+	int bit_offs = bv->cur_bit % 8;
+	uint8_t c, last_c;
+	int i;
+	uint8_t *src;
+
+	if (byte_offs + count + (bit_offs ? 1 : 0) > bv->data_len)
+		return -EINVAL;
+
+	if (bit_offs == 0) {
+		memcpy(bytes, bv->data + byte_offs, count);
+	} else {
+		src = bv->data + byte_offs;
+		last_c = *(src++);
+		for (i = count; i > 0; i--) {
+			c = *(src++);
+			*(bytes++) =
+				(last_c << bit_offs) |
+				(c >> (8 - bit_offs));
+			last_c = c;
+		}
+	}
+
+	bv->cur_bit += count * 8;
+	return 0;
+}
+
+/*! \brief set multiple bytes at current pos
+ *  Assumes MSB first encoding.
+ *  \param[in] bv bit vector
+ *  \param[in] bytes array
+ *  \param[in] count number of bytes to copy
+ */
+int bitvec_set_bytes(struct bitvec *bv, const uint8_t *bytes, int count)
+{
+	int byte_offs = bytenum_from_bitnum(bv->cur_bit);
+	int bit_offs = bv->cur_bit % 8;
+	uint8_t c, last_c;
+	int i;
+	uint8_t *dst;
+
+	if (byte_offs + count + (bit_offs ? 1 : 0) > bv->data_len)
+		return -EINVAL;
+
+	if (bit_offs == 0) {
+		memcpy(bv->data + byte_offs, bytes, count);
+	} else if (count > 0) {
+		dst = bv->data + byte_offs;
+		/* Get lower bits of first dst byte */
+		last_c = *dst >> (8 - bit_offs);
+		for (i = count; i > 0; i--) {
+			c = *(bytes++);
+			*(dst++) =
+				(last_c << (8 - bit_offs)) |
+				(c >> bit_offs);
+			last_c = c;
+		}
+		/* Overwrite lower bits of N+1 dst byte */
+		*dst = (*dst & ((1 << (8 - bit_offs)) - 1)) |
+			(last_c << (8 - bit_offs));
+	}
+
+	bv->cur_bit += count * 8;
+	return 0;
+}
 /*! @} */

@@ -28,6 +28,14 @@
 
 /*! \file bitvec.h
  *  \brief Osmocom bit vector abstraction
+ *
+ *  These functions assume a MSB (most significant bit) first layout of the
+ *  bits, so that for instance the 5 bit number abcde (a is MSB) can be
+ *  embedded into a byte sequence like in xxxxxxab cdexxxxx. The bit count
+ *  starts with the MSB, so the bits in a byte are numbered (MSB) 01234567 (LSB).
+ *  Note that there are other incompatible encodings, like it is used
+ *  for the EGPRS RLC data block headers (there the bits are numbered from LSB
+ *  to MSB).
  */
 
 #include <stdint.h>
@@ -63,5 +71,7 @@ int bitvec_set_uint(struct bitvec *bv, unsigned int in, int count);
 int bitvec_get_uint(struct bitvec *bv, int num_bits);
 int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value val);
 int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit);
+int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, int count);
+int bitvec_set_bytes(struct bitvec *bv, const uint8_t *bytes, int count);
 
 /*! @} */
