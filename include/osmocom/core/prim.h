@@ -20,10 +20,13 @@ enum osmo_prim_operation {
 	PRIM_OP_CONFIRM,	/*!< \brief cofirm */
 };
 
+const struct value_string osmo_prim_op_names[5];
+
 #define _SAP_GSM_SHIFT	24
 
 #define _SAP_GSM_BASE	(0x01 << _SAP_GSM_SHIFT)
 #define _SAP_TETRA_BASE	(0x02 << _SAP_GSM_SHIFT)
+#define _SAP_SS7_BASE	(0x03 << _SAP_GSM_SHIFT)
 
 /*! \brief primitive header */
 struct osmo_prim_hdr {
