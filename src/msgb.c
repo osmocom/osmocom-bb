@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include <osmocom/core/msgb.h>
 //#include <openbsc/gsm_data.h>
@@ -274,14 +275,15 @@ const char *msgb_hexdump(const struct msgb *msg)
 			continue;
 		if (lxhs[i] < msg->data || lxhs[i] > msg->tail) {
 			nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
-					  "(L%d=data%+d) ",
+					  "(L%d=data%+" PRIdPTR ") ",
 					  i+1, lxhs[i] - msg->data);
 			buf_offs += nchars;
 			continue;
 		}
 		if (lxhs[i] < start) {
 			nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
-					  "(L%d%+d) ", i+1, start - lxhs[i]);
+					  "(L%d%+" PRIdPTR ") ", i+1,
+					  start - lxhs[i]);
 			buf_offs += nchars;
 			continue;
 		}
@@ -312,7 +314,7 @@ const char *msgb_hexdump(const struct msgb *msg)
 		} else if (lxhs[i] <= msg->data + msg->data_len &&
 			   lxhs[i] > msg->tail) {
 			nchars = snprintf(buf + buf_offs, sizeof(buf) - buf_offs,
-					  "(L%d=tail%+d) ",
+					  "(L%d=tail%+" PRIdPTR ") ",
 					  i+1, lxhs[i] - msg->tail);
 		} else
 			continue;
