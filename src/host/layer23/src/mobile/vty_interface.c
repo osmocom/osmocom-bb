@@ -1102,6 +1102,34 @@ DEFUN(test_handover, test_handover_cmd, "test handover NAME <0-1024> [pcs]",
 	return CMD_SUCCESS;
 }
 
+DEFUN(add_forbidden_plmn, add_forbidden_plmn_cmd,
+	"add forbidden plmn NAME MCC MNC CAUSE",
+	"Delete\nForbidden\nplmn\nName of MS (see \"show ms\")\n"
+	"Mobile Country Code\nMobile Network Code\nCause value")
+{
+	struct osmocom_ms *ms;
+	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
+		 mnc = gsm_input_mnc((char *)argv[2]);
+	uint8_t cause = gsm_input_mnc((char *)argv[3]);
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (mcc == GSM_INPUT_INVALID) {
+		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (mnc == GSM_INPUT_INVALID) {
+		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_add_forbidden_plmn(&ms->subscr, mcc, mnc, cause);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(delete_forbidden_plmn, delete_forbidden_plmn_cmd,
 	"delete forbidden plmn NAME MCC MNC",
 	"Delete\nForbidden\nplmn\nName of MS (see \"show ms\")\n"
@@ -3139,6 +3167,7 @@ int ms_vty_init(void *tall_ctx)
 	install_element(ENABLE_NODE, &service_cmd);
 	install_element(ENABLE_NODE, &test_reselection_cmd);
 	install_element(ENABLE_NODE, &test_handover_cmd);
+	install_element(ENABLE_NODE, &add_forbidden_plmn_cmd);
 	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
 
 #ifdef _HAVE_GPSD
