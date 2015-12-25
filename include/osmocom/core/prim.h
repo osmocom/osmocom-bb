@@ -20,7 +20,7 @@ enum osmo_prim_operation {
 	PRIM_OP_CONFIRM,	/*!< \brief cofirm */
 };
 
-const struct value_string osmo_prim_op_names[5];
+extern const struct value_string osmo_prim_op_names[5];
 
 #define _SAP_GSM_SHIFT	24
 
