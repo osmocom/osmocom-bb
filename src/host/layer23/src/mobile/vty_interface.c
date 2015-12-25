@@ -1205,7 +1205,7 @@ DEFUN(cfg_no_gps_enable, cfg_no_gps_enable_cmd, "no gps enable",
 }
 
 #ifdef _HAVE_GPSD
-DEFUN(cfg_gps_host, cfg_gps_host_cmd, "gps host HOST:PORT",
+DEFUN(cfg_gpsd_host, cfg_gpsd_host_cmd, "gpsd host HOST:PORT",
 	"GPS receiver\nSelect gpsd host and port\n"
 	"IP and port (optional) of the host running gpsd")
 {
@@ -1670,7 +1670,7 @@ static int config_write(struct vty *vty)
 	struct osmocom_ms *ms;
 
 #ifdef _HAVE_GPSD
-	vty_out(vty, "gps host %s:%s%s", g.gpsd_host, g.gpsd_port, VTY_NEWLINE);
+	vty_out(vty, "gpsd host %s:%s%s", g.gpsd_host, g.gpsd_port, VTY_NEWLINE);
 #endif
 	vty_out(vty, "gps device %s%s", g.device, VTY_NEWLINE);
 	if (g.baud)
@@ -3142,7 +3142,7 @@ int ms_vty_init(void *tall_ctx)
 	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
 
 #ifdef _HAVE_GPSD
-	install_element(CONFIG_NODE, &cfg_gps_host_cmd);
+	install_element(CONFIG_NODE, &cfg_gpsd_host_cmd);
 #endif
 	install_element(CONFIG_NODE, &cfg_gps_device_cmd);
 	install_element(CONFIG_NODE, &cfg_gps_baud_cmd);
