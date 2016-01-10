@@ -1073,10 +1073,10 @@ DEFUN(cfg_gps_host, cfg_gps_host_cmd, "gps host HOST:PORT",
 {
 	char* colon = strstr(argv[0], ":");
 	if (colon != NULL) {
-		memcpy(g.gpsd_host, argv[0], colon - argv[0] - 1);
+		memcpy(g.gpsd_host, argv[0], colon - argv[0]);
 		g.gpsd_host[colon - argv[0]] = '\0';
-		memcpy(g.gpsd_port, colon, strlen(colon));
-		g.gpsd_port[strlen(colon)] = '\0';
+		memcpy(g.gpsd_port, colon+1, strlen(colon+1));
+		g.gpsd_port[strlen(colon+1)] = '\0';
 	} else {
 		snprintf(g.gpsd_host, ARRAY_SIZE(g.gpsd_host), "%s", argv[0]);
 		g.gpsd_host[ARRAY_SIZE(g.gpsd_host) - 1] = '\0';
@@ -1499,8 +1499,7 @@ static int config_write(struct vty *vty)
 	struct osmocom_ms *ms;
 
 #ifdef _HAVE_GPSD
-	vty_out(vty, "gpsd host %s%s", g.gpsd_host, VTY_NEWLINE);
-	vty_out(vty, "gpsd port %s%s", g.gpsd_port, VTY_NEWLINE);
+	vty_out(vty, "gps host %s:%s%s", g.gpsd_host, g.gpsd_port, VTY_NEWLINE);
 #endif
 	vty_out(vty, "gps device %s%s", g.device, VTY_NEWLINE);
 	if (g.baud)
