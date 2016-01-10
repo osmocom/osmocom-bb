@@ -23,7 +23,8 @@ struct gsm_sub_plmn_na {
 enum {
 	GSM_SIM_TYPE_NONE = 0,
 	GSM_SIM_TYPE_READER,
-	GSM_SIM_TYPE_TEST
+	GSM_SIM_TYPE_TEST,
+	GSM_SIM_TYPE_SAP
 };
 
 struct gsm_subscriber {
@@ -86,6 +87,8 @@ int gsm_subscr_init(struct osmocom_ms *ms);
 int gsm_subscr_exit(struct osmocom_ms *ms);
 int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	uint16_t lac, uint32_t tmsi, uint8_t imsi_attached);
+int gsm_subscr_sapcard(struct osmocom_ms *ms);
+int gsm_subscr_remove_sapcard(struct osmocom_ms *ms);
 int gsm_subscr_simcard(struct osmocom_ms *ms);
 void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
 	int8_t mode);

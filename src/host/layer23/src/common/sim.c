@@ -188,12 +188,12 @@ static int sim_apdu_send(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 
 	/* adding SAP client support
 	 * it makes more sense to do it here then in L1CTL */
-	if(ms->settings.sap_socket_path[0] == 0) {
-		LOGP(DSIM, LOGL_INFO, "Using built-in SIM reader\n");
-		l1ctl_tx_sim_req(ms, data, length);
-	} else {
+	if (ms->subscr.sim_type == GSM_SIM_TYPE_SAP) {
 		LOGP(DSIM, LOGL_INFO, "Using SAP backend\n");
 		osmosap_send_apdu(ms, data, length);
+	} else {
+		LOGP(DSIM, LOGL_INFO, "Using built-in SIM reader\n");
+		l1ctl_tx_sim_req(ms, data, length);
 	}
 
 	return 0;

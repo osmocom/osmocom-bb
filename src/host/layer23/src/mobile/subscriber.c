@@ -28,6 +28,7 @@
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/mobile/vty.h>
 
@@ -1256,3 +1257,55 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 	}
 }
 
+/*
+ * SAP interface integration
+ */
+
+/* Attach SIM card over SAP */
+int gsm_subscr_sapcard(struct osmocom_ms *ms)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct msgb *nmsg;
+	int rc;
+
+	if (subscr->sim_valid) {
+		LOGP(DMM, LOGL_ERROR, "Cannot insert card, until current card "
+			"is detached.\n");
+		return -EBUSY;
+	}
+
+	/* reset subscriber */
+	gsm_subscr_exit(ms);
+	gsm_subscr_init(ms);
+
+	subscr->sim_type = GSM_SIM_TYPE_SAP;
+	sprintf(subscr->sim_name, "sap");
+	subscr->sim_valid = 1;
+
+	/* Try to connect to the SAP interface */
+	vty_notify(ms, NULL);
+	vty_notify(ms, "Connecting to the SAP interface...\n");
+	rc = sap_open(ms, ms->settings.sap_socket_path);
+	if (rc < 0) {
+		LOGP(DSAP, LOGL_ERROR, "Failed during sap_open(), no SAP based SIM reader\n");
+		vty_notify(ms, "SAP connection error!\n");
+		ms->sap_wq.bfd.fd = -1;
+
+		/* Detach SIM */
+		subscr->sim_valid = 0;
+		nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_NREG_REQ);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm48_mmr_downmsg(ms, nmsg);
+
+		return rc;
+	}
+
+	return 0;
+}
+
+/* Deattach sapcard */
+int gsm_subscr_remove_sapcard(struct osmocom_ms *ms)
+{
+	return sap_close(ms);
+}

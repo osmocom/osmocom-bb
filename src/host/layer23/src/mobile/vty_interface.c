@@ -534,6 +534,29 @@ DEFUN(sim_test_att, sim_test_att_cmd,
 	return _sim_test_cmd(vty, argc, argv, 1);
 }
 
+DEFUN(sim_sap, sim_sap_cmd, "sim sap MS_NAME",
+	"SIM actions\nAttach SIM over SAP interface\n"
+	"Name of MS (see \"show ms\")\n")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (ms->subscr.sim_valid) {
+		vty_out(vty, "SIM already attached, remove first!%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (gsm_subscr_sapcard(ms) != 0) {
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
 	"SIM actions\nAttach SIM from reader\nName of MS (see \"show ms\")")
 {
@@ -568,8 +591,11 @@ DEFUN(sim_remove, sim_remove_cmd, "sim remove MS_NAME",
 		return CMD_WARNING;
 	}
 
-	gsm_subscr_remove(ms);
+	if (ms->subscr.sim_type == GSM_SIM_TYPE_SAP) {
+		gsm_subscr_remove_sapcard(ms);
+	}
 
+	gsm_subscr_remove(ms);
 	return CMD_SUCCESS;
 }
 
@@ -1295,6 +1321,9 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		case GSM_SIM_TYPE_TEST:
 		vty_out(vty, " sim test%s", VTY_NEWLINE);
 		break;
+		case GSM_SIM_TYPE_SAP:
+		vty_out(vty, " sim sap%s", VTY_NEWLINE);
+		break;
 	}
 	vty_out(vty, " network-selection-mode %s%s", (set->plmn_mode
 			== PLMN_MODE_AUTO) ? "auto" : "manual", VTY_NEWLINE);
@@ -1557,9 +1586,10 @@ DEFUN(cfg_ms_sap, cfg_ms_sap_cmd, "sap-socket PATH",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test)",
+DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test|sap)",
 	"Set SIM card to attach when powering on\nAttach no SIM\n"
-	"Attach SIM from reader\nAttach bulit in test SIM")
+	"Attach SIM from reader\nAttach bulit in test SIM\n"
+	"Attach SIM over SAP interface")
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
@@ -1573,6 +1603,9 @@ DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test)",
 		break;
 	case 't':
 		set->sim_type = GSM_SIM_TYPE_TEST;
+		break;
+	case 's':
+		set->sim_type = GSM_SIM_TYPE_SAP;
 		break;
 	default:
 		vty_out(vty, "unknown SIM type%s", VTY_NEWLINE);
@@ -2801,6 +2834,7 @@ int ms_vty_init(void)
 
 	install_element(ENABLE_NODE, &sim_test_cmd);
 	install_element(ENABLE_NODE, &sim_test_att_cmd);
+	install_element(ENABLE_NODE, &sim_sap_cmd);
 	install_element(ENABLE_NODE, &sim_reader_cmd);
 	install_element(ENABLE_NODE, &sim_remove_cmd);
 	install_element(ENABLE_NODE, &sim_pin_cmd);

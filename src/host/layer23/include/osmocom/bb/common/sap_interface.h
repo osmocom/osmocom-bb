@@ -11,6 +11,7 @@ int osmosap_sapsocket(struct osmocom_ms *ms, const char *path);
 int osmosap_init(struct osmocom_ms *ms);
 
 enum osmosap_state {
+	SAP_SOCKET_ERROR,
 	SAP_NOT_CONNECTED,
 	SAP_IDLE,
 	SAP_CONNECTION_UNDER_NEGOTIATION,

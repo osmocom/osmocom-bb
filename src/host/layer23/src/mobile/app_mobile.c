@@ -115,6 +115,9 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 				set->test_rplmn_mnc, set->test_lac,
 				set->test_tmsi, set->test_imsi_attached);
 			break;
+		case GSM_SIM_TYPE_SAP:
+			gsm_subscr_sapcard(ms);
+			break;
 		default:
 			/* no SIM, trigger PLMN selection process */
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_SWITCH_ON);

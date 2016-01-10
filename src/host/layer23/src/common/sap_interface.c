@@ -500,7 +500,6 @@ int sap_open(struct osmocom_ms *ms, const char *socket_path)
 {
 	ssize_t rc;
 	struct sockaddr_un local;
-	struct gsm_settings *set = &ms->settings;
 
 	ms->sap_wq.bfd.fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (ms->sap_wq.bfd.fd < 0) {
@@ -515,7 +514,7 @@ int sap_open(struct osmocom_ms *ms, const char *socket_path)
 	rc = connect(ms->sap_wq.bfd.fd, (struct sockaddr *) &local, sizeof(local));
 	if (rc < 0) {
 		fprintf(stderr, "Failed to connect to '%s'\n", local.sun_path);
-		set->sap_socket_path[0] = 0;
+		ms->sap_entity.sap_state = SAP_SOCKET_ERROR;
 		close(ms->sap_wq.bfd.fd);
 		return rc;
 	}
@@ -582,21 +581,10 @@ int osmosap_sapsocket(struct osmocom_ms *ms, const char *path)
 int osmosap_init(struct osmocom_ms *ms)
 {
 	struct osmosap_entity *sap = &ms->sap_entity;
-	int rc;
-
-	sap->sap_state = SAP_NOT_CONNECTED;
-	sap->max_msg_size = GSM_SAP_LENGTH;
 
 	LOGP(DSAP, LOGL_INFO, "init SAP client\n");
-
-	if(ms->settings.sap_socket_path){
-		rc = sap_open(ms, ms->settings.sap_socket_path);
-		if (rc < 0) {
-			fprintf(stderr, "Failed during sap_open(), no SAP based SIM reader\n");
-			ms->sap_wq.bfd.fd = -1;
-			return rc;
-		}
-	}
+	sap->sap_state = SAP_NOT_CONNECTED;
+	sap->max_msg_size = GSM_SAP_LENGTH;
 
 	return 0;
 }
