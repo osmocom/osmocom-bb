@@ -339,6 +339,15 @@ static inline int check_log_to_target(struct log_target *tar, int subsys, int le
 	    level < category->loglevel)
 		return 0;
 
+	/* Apply filters here... if that becomes messy we will
+	 * need to put filters in a list and each filter will
+	 * say stop, continue, output */
+	if ((tar->filter_map & LOG_FILTER_ALL) != 0)
+		return 1;
+
+	if (osmo_log_info->filter_fn)
+		return osmo_log_info->filter_fn(&log_context, tar);
+
 	/* TODO: Check the filter/selector too? */
 	return 1;
 }
@@ -356,17 +365,6 @@ void osmo_vlogp(int subsys, int level, const char *file, int line,
 		va_list bp;
 
 		if (!check_log_to_target(tar, subsys, level))
-			continue;
-
-		/* Apply filters here... if that becomes messy we will
-		 * need to put filters in a list and each filter will
-		 * say stop, continue, output */
-		if ((tar->filter_map & LOG_FILTER_ALL) != 0)
-			output = 1;
-		else if (osmo_log_info->filter_fn)
-			output = osmo_log_info->filter_fn(&log_context,
-						       tar);
-		if (!output)
 			continue;
 
 		/* According to the manpage, vsnprintf leaves the value of ap

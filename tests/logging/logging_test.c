@@ -30,6 +30,7 @@ enum {
 };
 
 static int filter_called = 0;
+static int select_output = 0;
 
 static const struct log_info_cat default_categories[] = {
 	[DRLL] = {
@@ -56,7 +57,7 @@ static int test_filter(const struct log_context *ctx, struct log_target *target)
 {
 	filter_called += 1;
 	/* omit everything */
-	return 0;
+	return select_output;
 }
 
 const struct log_info log_info = {
@@ -77,6 +78,9 @@ int main(int argc, char **argv)
 
 	log_parse_category_mask(stderr_target, "DRLL:DCC");
 	log_parse_category_mask(stderr_target, "DRLL");
+
+	select_output = 0;
+
 	DEBUGP(DCC, "You should not see this\n");
 	if (log_check_level(DMM, LOGL_DEBUG) != 0)
 		fprintf(stderr, "log_check_level did not catch this case\n");
@@ -87,17 +91,20 @@ int main(int argc, char **argv)
 	DEBUGP(DCC, "You should see this\n");
 	OSMO_ASSERT(log_check_level(DCC, LOGL_DEBUG) != 0);
 	DEBUGP(DMM, "You should not see this\n");
-	if (log_check_level(DMM, LOGL_DEBUG) != 0)
-		fprintf(stderr, "log_check_level did not catch this case\n");
 
+	OSMO_ASSERT(log_check_level(DMM, LOGL_DEBUG) == 0);
 	OSMO_ASSERT(filter_called == 0);
 
 	log_set_all_filter(stderr_target, 0);
 	DEBUGP(DRLL, "You should not see this and filter is called\n");
 	OSMO_ASSERT(filter_called == 1);
-	if (log_check_level(DRLL, LOGL_DEBUG) != 0)
-		fprintf(stderr,
-			"log_check_level did not catch this case (filter)\n");
+	OSMO_ASSERT(log_check_level(DRLL, LOGL_DEBUG) == 0);
+	OSMO_ASSERT(filter_called == 2);
 
+	DEBUGP(DRLL, "You should not see this\n");
+	OSMO_ASSERT(filter_called == 3);
+	select_output = 1;
+	DEBUGP(DRLL, "You should see this\n");
+	OSMO_ASSERT(filter_called == 5); /* called twice on output */
 	return 0;
 }
