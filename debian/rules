@@ -13,6 +13,9 @@ DEBIAN  := $(shell dpkg-parsechangelog | grep ^Version: | cut -d' ' -f2)
 DEBVERS := $(shell echo '$(DEBIAN)' | cut -d- -f1)
 VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
 
+# Our tests want to override symbols, make it possible on Ubuntu
+export LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS | sed -e 's/-Wl,-Bsymbolic-functions//')
+
 export DEB_BUILD_HARDENING=1
 
 %:
