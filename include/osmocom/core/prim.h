@@ -17,7 +17,7 @@ enum osmo_prim_operation {
 	PRIM_OP_REQUEST,	/*!< \brief request */
 	PRIM_OP_RESPONSE,	/*!< \brief response */
 	PRIM_OP_INDICATION,	/*!< \brief indication */
-	PRIM_OP_CONFIRM,	/*!< \brief cofirm */
+	PRIM_OP_CONFIRM,	/*!< \brief confirm */
 };
 
 extern const struct value_string osmo_prim_op_names[5];
