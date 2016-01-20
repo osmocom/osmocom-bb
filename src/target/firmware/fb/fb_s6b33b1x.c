@@ -99,6 +99,7 @@ static void fb_s6b33b1x_send_cmdlist(const struct s6b33b1x_cmdlist *p)
 static void fb_spca_write(uint16_t addr, uint16_t val)
 {
 	writew(addr, nCS4_ADDR);
+	delay_ms(1);
 	writew(val , nCS4_ADDR | 2);
 }
 
