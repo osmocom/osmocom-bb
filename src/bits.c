@@ -221,8 +221,7 @@ void osmo_revbytebits_buf(uint8_t *buf, int len)
 	}
 
 	for (i = unaligned_cnt; i + 3 < len; i += 4) {
-		uint32_t *cur = (uint32_t *) (buf + i);
-		*cur = osmo_revbytebits_32(*cur);
+		osmo_store32be(osmo_revbytebits_32(osmo_load32be(buf + i)), buf + i);
 		len_remain -= 4;
 	}
 
