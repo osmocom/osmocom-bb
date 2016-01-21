@@ -10,7 +10,7 @@
 
 /* Test vectors are taken from TS 135 202 */
 
-inline int _compare_mem(uint8_t * x, uint8_t * y, size_t len)
+inline static int _compare_mem(uint8_t * x, uint8_t * y, size_t len)
 {
 	if (0 != memcmp(x, y, len)) {
 		printf ("X: %s\t", osmo_hexdump_nospc(x, len));
