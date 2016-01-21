@@ -129,13 +129,11 @@ uint8_t gsm_get_octet_len(const uint8_t sept_len){
 /* GSM 03.38 6.2.1 Character unpacking */
 int gsm_7bit_decode_n_hdr(char *text, size_t n, const uint8_t *user_data, uint8_t septet_l, uint8_t ud_hdr_ind)
 {
-	int i = 0;
-	int shift = 0;
-	uint8_t c7, c8;
-	uint8_t next_is_ext = 0;
+	unsigned shift = 0;
+	uint8_t c7, c8, next_is_ext = 0, lu, ru;
+	const uint8_t maxlen = gsm_get_octet_len(septet_l);
 	const char *text_buf_begin = text;
 	const char *text_buf_end = text + n;
-	int nchars;
 
 	OSMO_ASSERT (n > 0);
 
@@ -148,12 +146,24 @@ int gsm_7bit_decode_n_hdr(char *text, size_t n, const uint8_t *user_data, uint8_
 		septet_l = septet_l - shift;
 	}
 
+	unsigned i, l, r;
 	for (i = 0; i < septet_l && text != text_buf_end - 1; i++) {
-		c7 =
-			((user_data[((i + shift) * 7 + 7) >> 3] <<
-			  (7 - (((i + shift) * 7 + 7) & 7))) |
-			 (user_data[((i + shift) * 7) >> 3] >>
-			  (((i + shift) * 7) & 7))) & 0x7f;
+
+		l = ((i + shift) * 7 + 7) >> 3;
+		r = ((i + shift) * 7) >> 3;
+
+		/* the left side index is always >= right side index
+		sometimes it even gets beyond array boundary
+		check for that explicitly and force 0 instead
+		 */
+		if (l >= maxlen)
+			lu = 0;
+		else
+			lu = user_data[l] << (7 - (((i + shift) * 7 + 7) & 7));
+
+		ru = user_data[r] >> (((i + shift) * 7) & 7);
+
+		c7 = (lu | ru) & 0x7f;
 
 		if (next_is_ext) {
 			/* this is an extension character */
@@ -169,11 +179,9 @@ int gsm_7bit_decode_n_hdr(char *text, size_t n, const uint8_t *user_data, uint8_
 		*(text++) = c8;
 	}
 
-	nchars = text - text_buf_begin;
-
 	*text = '\0';
 
-	return nchars;
+	return text - text_buf_begin;
 }
 
 int gsm_7bit_decode_n(char *text, size_t n, const uint8_t *user_data, uint8_t septet_l)
