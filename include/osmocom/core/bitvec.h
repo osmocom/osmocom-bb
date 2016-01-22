@@ -66,12 +66,12 @@ int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnum,
 			enum bit_value bit);
 int bitvec_set_bit(struct bitvec *bv, enum bit_value bit);
 int bitvec_get_bit_high(struct bitvec *bv);
-int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, int count);
-int bitvec_set_uint(struct bitvec *bv, unsigned int in, int count);
-int bitvec_get_uint(struct bitvec *bv, int num_bits);
+int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, unsigned int count);
+int bitvec_set_uint(struct bitvec *bv, uint32_t in, unsigned int count);
+int bitvec_get_uint(struct bitvec *bv, unsigned int num_bits);
 int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value val);
 int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit);
-int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, int count);
-int bitvec_set_bytes(struct bitvec *bv, const uint8_t *bytes, int count);
+int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, unsigned int count);
+int bitvec_set_bytes(struct bitvec *bv, const uint8_t *bytes, unsigned int count);
 
 /*! @} */

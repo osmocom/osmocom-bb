@@ -190,7 +190,7 @@ int bitvec_get_bit_high(struct bitvec *bv)
  *  \param[in] bits array of \ref bit_value
  *  \param[in] count number of bits to set
  */
-int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, int count)
+int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, unsigned int count)
 {
 	int i, rc;
 
@@ -204,10 +204,10 @@ int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, int count)
 }
 
 /*! \brief set multiple bits (based on numeric value) at current pos */
-int bitvec_set_uint(struct bitvec *bv, unsigned int ui, int num_bits)
+int bitvec_set_uint(struct bitvec *bv, unsigned int ui, unsigned int num_bits)
 {
-	int i, rc;
-
+	int rc;
+	unsigned i;
 	for (i = 0; i < num_bits; i++) {
 		int bit = 0;
 		if (ui & (1 << (num_bits - i - 1)))
@@ -221,7 +221,7 @@ int bitvec_set_uint(struct bitvec *bv, unsigned int ui, int num_bits)
 }
 
 /*! \brief get multiple bits (based on numeric value) from current pos */
-int bitvec_get_uint(struct bitvec *bv, int num_bits)
+int bitvec_get_uint(struct bitvec *bv, unsigned int num_bits)
 {
 	int i;
 	unsigned int ui = 0;
@@ -269,7 +269,7 @@ int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n,
  *  \param[in] bytes array
  *  \param[in] count number of bytes to copy
  */
-int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, int count)
+int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, unsigned int count)
 {
 	int byte_offs = bytenum_from_bitnum(bv->cur_bit);
 	int bit_offs = bv->cur_bit % 8;
@@ -304,7 +304,7 @@ int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, int count)
  *  \param[in] bytes array
  *  \param[in] count number of bytes to copy
  */
-int bitvec_set_bytes(struct bitvec *bv, const uint8_t *bytes, int count)
+int bitvec_set_bytes(struct bitvec *bv, const uint8_t *bytes, unsigned int count)
 {
 	int byte_offs = bytenum_from_bitnum(bv->cur_bit);
 	int bit_offs = bv->cur_bit % 8;
