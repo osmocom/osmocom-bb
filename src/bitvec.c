@@ -383,10 +383,12 @@ unsigned int bitvec_unpack(struct bitvec *bv, const uint8_t *buffer)
 
 int bitvec_unhex(struct bitvec *bv, const char *src)
 {
+	unsigned i;
 	unsigned val;
 	unsigned write_index = 0;
 	unsigned digits = bv->data_len * 2;
-	for (unsigned i = 0; i < digits; i++) {
+
+	for (i = 0; i < digits; i++) {
 		if (sscanf(src + i, "%1x", &val) < 1) {
 			return 1;
 		}
