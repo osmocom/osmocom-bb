@@ -138,6 +138,7 @@ unsigned int bitvec_get_nth_set_bit(const struct bitvec *bv, unsigned int n)
  *  \param[in] bv bit vector on which to operate
  *  \param[in] bitnr number of bit to be set
  *  \param[in] bit value to which the bit is to be set
+ *  \returns 0 on success, negative value on error
  */
 int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnr,
 			enum bit_value bit)
@@ -163,6 +164,7 @@ int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnr,
 /*! \brief set the next bit inside a bitvec
  *  \param[in] bv bit vector to be used
  *  \param[in] bit value of the bit to be set
+ *  \returns 0 on success, negative value on error
  */
 int bitvec_set_bit(struct bitvec *bv, enum bit_value bit)
 {
@@ -397,6 +399,12 @@ int bitvec_unhex(struct bitvec *bv, const char *src)
 	return 0;
 }
 
+/*! \brief read part of the vector
+ *  \param[in] bv The boolean vector to work on
+ *  \param[in] read_index Where reading supposed to start in the vector
+ *  \param[in] len How many bits to read from vector
+ *  \returns read bits or negative value on error
+ */
 uint64_t bitvec_read_field(struct bitvec *bv, unsigned int read_index, unsigned int len)
 {
 	unsigned int i;
@@ -415,7 +423,12 @@ uint64_t bitvec_read_field(struct bitvec *bv, unsigned int read_index, unsigned 
 	return ui;
 }
 
-
+/*! \brief write into the vector
+ *  \param[in] bv The boolean vector to work on
+ *  \param[in] write_index Where writing supposed to start in the vector
+ *  \param[in] len How many bits to write
+ *  \returns next write index or negative value on error
+ */
 int bitvec_write_field(struct bitvec *bv, unsigned int write_index, uint64_t val, unsigned int len)
 {
 	unsigned int i;
