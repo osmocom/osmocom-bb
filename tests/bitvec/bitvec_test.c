@@ -57,13 +57,17 @@ static void test_byte_ops()
 
 static void test_unhex(const char *hex)
 {
+	int rc;
 	struct bitvec b;
 	uint8_t d[64] = {0};
 	b.data = d;
 	b.data_len = sizeof(d);
 	b.cur_bit = 0;
-	printf("%d -=>\n", bitvec_unhex(&b, hex));
-	printf("%s\n%s\n", osmo_hexdump_nospc(d, 64), osmo_hexdump_nospc((const unsigned char *)hex, 23));
+
+	rc = bitvec_unhex(&b, hex);
+	printf("%d -=> cur_bit=%u\n", rc, b.cur_bit);
+	printf("%s\n", osmo_hexdump_nospc(d, 64));
+	printf("%s\n", hex);
 }
 
 int main(int argc, char **argv)
