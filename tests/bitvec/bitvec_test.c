@@ -55,8 +55,24 @@ static void test_byte_ops()
 	printf("=== end %s ===\n", __func__);
 }
 
+static void test_unhex(const char *hex)
+{
+	struct bitvec b;
+	uint8_t d[64] = {0};
+	b.data = d;
+	b.data_len = sizeof(d);
+	b.cur_bit = 0;
+	printf("%d -=>\n", bitvec_unhex(&b, hex));
+	printf("%s\n%s\n", osmo_hexdump_nospc(d, 64), osmo_hexdump_nospc((const unsigned char *)hex, 23));
+}
+
 int main(int argc, char **argv)
 {
 	test_byte_ops();
+	test_unhex("48282407a6a074227201000b2b2b2b2b2b2b2b2b2b2b2b");
+	test_unhex("47240c00400000000000000079eb2ac9402b2b2b2b2b2b");
+	test_unhex("47283c367513ba333004242b2b2b2b2b2b2b2b2b2b2b2b");
+	test_unhex("DEADFACE000000000000000000000000000000BEEFFEED");
+	test_unhex("FFFFFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
 	return 0;
 }

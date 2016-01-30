@@ -80,7 +80,7 @@ void bitvec_free(struct bitvec *bv);
 int bitvec_unhex(struct bitvec *bv, const char *src);
 unsigned int bitvec_pack(const struct bitvec *bv, uint8_t *buffer);
 unsigned int bitvec_unpack(struct bitvec *bv, const uint8_t *buffer);
-uint64_t bitvec_read_field(struct bitvec *bv, unsigned int read_index, unsigned int len);
-int bitvec_write_field(struct bitvec *bv, unsigned int write_index, uint64_t val, unsigned int len);
+uint64_t bitvec_read_field(struct bitvec *bv, unsigned int *read_index, unsigned int len);
+int bitvec_write_field(struct bitvec *bv, unsigned int *write_index, uint64_t val, unsigned int len);
 
 /*! @} */

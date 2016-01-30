@@ -394,22 +394,22 @@ int bitvec_unhex(struct bitvec *bv, const char *src)
 		if (sscanf(src + i, "%1x", &val) < 1) {
 			return 1;
 		}
-		bitvec_write_field(bv, write_index,val, 4);
+		bitvec_write_field(bv, &write_index, val, 4);
 	}
 	return 0;
 }
 
 /*! \brief read part of the vector
  *  \param[in] bv The boolean vector to work on
- *  \param[in] read_index Where reading supposed to start in the vector
+ *  \param[in,out] read_index Where reading supposed to start in the vector
  *  \param[in] len How many bits to read from vector
  *  \returns read bits or negative value on error
  */
-uint64_t bitvec_read_field(struct bitvec *bv, unsigned int read_index, unsigned int len)
+uint64_t bitvec_read_field(struct bitvec *bv, unsigned int *read_index, unsigned int len)
 {
 	unsigned int i;
 	uint64_t ui = 0;
-	bv->cur_bit = read_index;
+	bv->cur_bit = *read_index;
 
 	for (i = 0; i < len; i++) {
 		int bit = bitvec_get_bit_pos((const struct bitvec *)bv, bv->cur_bit);
@@ -419,21 +419,21 @@ uint64_t bitvec_read_field(struct bitvec *bv, unsigned int read_index, unsigned 
 			ui |= ((uint64_t)1 << (len - i - 1));
 		bv->cur_bit++;
 	}
-	read_index += len;
+	*read_index += len;
 	return ui;
 }
 
 /*! \brief write into the vector
  *  \param[in] bv The boolean vector to work on
- *  \param[in] write_index Where writing supposed to start in the vector
+ *  \param[in,out] write_index Where writing supposed to start in the vector
  *  \param[in] len How many bits to write
  *  \returns next write index or negative value on error
  */
-int bitvec_write_field(struct bitvec *bv, unsigned int write_index, uint64_t val, unsigned int len)
+int bitvec_write_field(struct bitvec *bv, unsigned int *write_index, uint64_t val, unsigned int len)
 {
 	unsigned int i;
 	int rc;
-	bv->cur_bit = write_index;
+	bv->cur_bit = *write_index;
 	for (i = 0; i < len; i++) {
 		int bit = 0;
 		if (val & ((uint64_t)1 << (len - i - 1)))
@@ -442,7 +442,7 @@ int bitvec_write_field(struct bitvec *bv, unsigned int write_index, uint64_t val
 		if (rc)
 			return rc;
 	}
-	write_index += len;
+	*write_index += len;
 	return 0;
 }
 
