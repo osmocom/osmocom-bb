@@ -4,6 +4,7 @@
 
 /* (C) 2009 by Harald Welte <laforge@gnumonks.org>
  * (C) 2012 Ivan Klyuchnikov
+ * (C) 2015 Sysmocom s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -41,6 +42,7 @@
 
 #include <stdint.h>
 #include <talloc.h>
+#include <stdbool.h>
 
 /*! \brief A single GSM bit
  *
@@ -82,5 +84,12 @@ unsigned int bitvec_pack(const struct bitvec *bv, uint8_t *buffer);
 unsigned int bitvec_unpack(struct bitvec *bv, const uint8_t *buffer);
 uint64_t bitvec_read_field(struct bitvec *bv, unsigned int *read_index, unsigned int len);
 int bitvec_write_field(struct bitvec *bv, unsigned int *write_index, uint64_t val, unsigned int len);
+int bitvec_fill(struct bitvec *bv, unsigned int num_bits, enum bit_value fill);
+char bit_value_to_char(enum bit_value v);
+void bitvec_to_string_r(const struct bitvec *bv, char *str);
+void bitvec_zero(struct bitvec *bv);
+unsigned bitvec_rl(const struct bitvec *bv, bool b);
+void bitvec_shiftl(struct bitvec *bv, unsigned int n);
+int16_t bitvec_get_int16_msb(const struct bitvec *bv, unsigned int num_bits);
 
 /*! @} */

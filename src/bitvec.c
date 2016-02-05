@@ -34,7 +34,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
+#include <osmocom/core/bits.h>
 #include <osmocom/core/bitvec.h>
 
 #define BITNUM_FROM_COMP(byte, bit)	((byte*8)+bit)
@@ -224,6 +226,18 @@ int bitvec_set_uint(struct bitvec *bv, unsigned int ui, unsigned int num_bits)
 	return 0;
 }
 
+/*! \brief get multiple bits (num_bits) from beginning of vector (MSB side) */
+int16_t bitvec_get_int16_msb(const struct bitvec *bv, unsigned int num_bits)
+{
+	if (num_bits > 15 || bv->cur_bit < num_bits)
+		return -EINVAL;
+
+	if (num_bits < 9)
+		return bv->data[0] >> (8 - num_bits);
+
+	return osmo_load16be(bv->data) >> (16 - num_bits);
+}
+
 /*! \brief get multiple bits (based on numeric value) from current pos */
 int bitvec_get_uint(struct bitvec *bv, unsigned int num_bits)
 {
@@ -242,15 +256,27 @@ int bitvec_get_uint(struct bitvec *bv, unsigned int num_bits)
 	return ui;
 }
 
+/*! \brief fill num_bits with \fill starting from the current position
+ * returns 0 on success, negative otherwise (out of vector boundary)
+ */
+int bitvec_fill(struct bitvec *bv, unsigned int num_bits, enum bit_value fill)
+{
+	unsigned i, stop = bv->cur_bit + num_bits;
+	for (i = bv->cur_bit; i < stop; i++)
+		if (bitvec_set_bit(bv, fill) < 0)
+			return -EINVAL;
+
+	return 0;
+}
+
 /*! \brief pad all remaining bits up to num_bits */
 int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit)
 {
-	unsigned int i;
+	int n = up_to_bit - bv->cur_bit + 1;
+	if (n < 1)
+		return 0;
 
-	for (i = bv->cur_bit; i <= up_to_bit; i++)
-		bitvec_set_bit(bv, L);
-
-	return 0;
+	return bitvec_fill(bv, n, L);
 }
 
 /*! \brief find first bit set in bit vector */
@@ -444,6 +470,104 @@ int bitvec_write_field(struct bitvec *bv, unsigned int *write_index, uint64_t va
 	}
 	*write_index += len;
 	return 0;
+}
+
+/*! \brief convert enum to corresponding character */
+char bit_value_to_char(enum bit_value v)
+{
+	switch (v) {
+	case ZERO: return '0';
+	case ONE: return '1';
+	case L: return 'L';
+	case H: return 'H';
+	default: abort();
+	}
+}
+
+/*! \brief prints bit vector to provided string
+ * It's caller's responsibility to ensure that we won't shoot him in the foot:
+ * the provided buffer should be at lest cur_bit + 1 bytes long
+ */
+void bitvec_to_string_r(const struct bitvec *bv, char *str)
+{
+	unsigned i, pos = 0;
+	char *cur = str;
+	for (i = 0; i < bv->cur_bit; i++) {
+		if (0 == i % 8)
+			*cur++ = ' ';
+		*cur++ = bit_value_to_char(bitvec_get_bit_pos(bv, i));
+		pos++;
+	}
+	*cur = 0;
+}
+
+/* we assume that x have at least 1 non-b bit */
+static inline unsigned leading_bits(uint8_t x, bool b)
+{
+	if (b) {
+		if (x < 0x80) return 0;
+		if (x < 0xC0) return 1;
+		if (x < 0xE0) return 2;
+		if (x < 0xF0) return 3;
+		if (x < 0xF8) return 4;
+		if (x < 0xFC) return 5;
+		if (x < 0xFE) return 6;
+	} else {
+		if (x > 0x7F) return 0;
+		if (x > 0x3F) return 1;
+		if (x > 0x1F) return 2;
+		if (x > 0xF) return 3;
+		if (x > 7) return 4;
+		if (x > 3) return 5;
+		if (x > 1) return 6;
+	}
+	return 7;
+}
+/*! \brief force bit vector to all 0 and current bit to the beginnig of the vector */
+void bitvec_zero(struct bitvec *bv)
+{
+	bv->cur_bit = 0;
+	memset(bv->data, 0, bv->data_len);
+}
+
+/*! \brief Return number (bits) of uninterrupted bit run in vector starting from the MSB
+ *  \param[in] bv The boolean vector to work on
+ *  \param[in] b The boolean, sequence of which is looked at from the vector start
+ *  \returns Number of consecutive bits of \p b in \p bv
+ */
+unsigned bitvec_rl(const struct bitvec *bv, bool b)
+{
+	unsigned i;
+	for (i = 0; i < (bv->cur_bit % 8 ? bv->cur_bit / 8 + 1 : bv->cur_bit / 8); i++) {
+		if ( (b ? 0xFF : 0) != bv->data[i])
+			return i * 8 + leading_bits(bv->data[i], b);
+	}
+
+	return bv->cur_bit;
+}
+
+/*! \brief Shifts bitvec to the left, n MSB bits lost */
+void bitvec_shiftl(struct bitvec *bv, unsigned n)
+{
+	if (0 == n)
+		return;
+	if (n >= bv->cur_bit) {
+		bitvec_zero(bv);
+		return;
+	}
+
+	memmove(bv->data, bv->data + n / 8, bv->data_len - n / 8);
+
+	uint8_t tmp[2];
+	unsigned i;
+	for (i = 0; i < bv->data_len - 2; i++) {
+		uint16_t t = osmo_load16be(bv->data + i);
+		osmo_store16be(t << (n % 8), &tmp);
+		bv->data[i] = tmp[0];
+	}
+
+	bv->data[bv->data_len - 1] <<= (n % 8);
+	bv->cur_bit -= n;
 }
 
 /*! @} */
