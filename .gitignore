@@ -82,6 +82,7 @@ tests/vty/vty_test
 tests/gb/gprs_bssgp_test
 tests/smscb/gsm0341_test
 tests/bitvec/bitvec_test
+tests/bits/bitcomp_test
 tests/gprs/gprs_test
 tests/msgb/msgb_test
 

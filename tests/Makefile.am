@@ -12,7 +12,7 @@ check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
 		 loggingrb/loggingrb_test strrb/strrb_test              \
 		 vty/vty_test comp128/comp128_test utils/utils_test	\
 		 smscb/gsm0341_test stats/stats_test			\
-		 bitvec/bitvec_test msgb/msgb_test
+		 bitvec/bitvec_test msgb/msgb_test bits/bitcomp_test
 
 if ENABLE_MSGFILE
 check_PROGRAMS += msgfile/msgfile_test
@@ -41,6 +41,9 @@ bits_bitrev_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 bitvec_bitvec_test_SOURCES = bitvec/bitvec_test.c
 bitvec_bitvec_test_LDADD = $(top_builddir)/src/libosmocore.la
+
+bits_bitcomp_test_SOURCES = bits/bitcomp_test.c
+bits_bitcomp_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 conv_conv_test_SOURCES = conv/conv_test.c
 conv_conv_test_LDADD = $(top_builddir)/src/libosmocore.la
@@ -136,7 +139,7 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
              loggingrb/logging_test.err	strrb/strrb_test.ok		\
 	     vty/vty_test.ok comp128/comp128_test.ok			\
 	     utils/utils_test.ok stats/stats_test.ok			\
-	     bitvec/bitvec_test.ok msgb/msgb_test.ok
+	     bitvec/bitvec_test.ok msgb/msgb_test.ok bits/bitcomp_test.ok
 
 DISTCLEANFILES = atconfig
 

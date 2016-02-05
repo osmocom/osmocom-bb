@@ -9,7 +9,7 @@ lib_LTLIBRARIES = libosmocore.la
 
 libosmocore_la_LIBADD = $(BACKTRACE_LIB) $(TALLOC_LIBS)
 libosmocore_la_SOURCES = timer.c select.c signal.c msgb.c bits.c \
-			 bitvec.c statistics.c \
+			 bitvec.c bitcomp.c statistics.c \
 			 write_queue.c utils.c socket.c \
 			 logging.c logging_syslog.c rate_ctr.c \
 			 gsmtap_util.c crc16.c panic.c backtrace.c \
