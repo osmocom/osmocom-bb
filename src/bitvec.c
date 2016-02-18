@@ -216,7 +216,7 @@ int bitvec_set_uint(struct bitvec *bv, unsigned int ui, unsigned int num_bits)
 	unsigned i;
 	for (i = 0; i < num_bits; i++) {
 		int bit = 0;
-		if (ui & (1 << (num_bits - i - 1)))
+		if (ui & (1u << (num_bits - i - 1)))
 			bit = 1;
 		rc = bitvec_set_bit(bv, bit);
 		if (rc)
