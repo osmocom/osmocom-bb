@@ -1,2 +1,3 @@
 #library	what		description / commit summary line
 libosmocore	change major	external talloc dependency / internal talloc removal
+libosmocore	change major	size of ph_data_param struct changed / Extend L1SAP PH-DATA with presence information

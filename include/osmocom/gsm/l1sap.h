@@ -25,6 +25,16 @@ enum osmo_mph_info_type {
 	PRIM_INFO_DEACT_CIPH,	/*!< \brief Deactivation of ciphering */
 };
 
+/*! \brief PH-DATA presence information */
+enum osmo_ph_pres_info_type {
+	PRES_INFO_INVALID = 0,	/*!< \brief Data is invalid */
+	PRES_INFO_HEADER  = 1,	/*!< \brief Only header is present and valid */
+	PRES_INFO_FIRST   = 3,	/*!< \brief First half of data + header are valid (2nd half may be present but invalid) */
+	PRES_INFO_SECOND  = 5,	/*!< \brief Second half of data + header are valid (1st halfmay be present but invalid) */
+	PRES_INFO_BOTH    = 7,	/*!< \brief Both parts + header are present and valid */
+	PRES_INFO_UNKNOWN
+};
+
 /*! \brief for PH-RANDOM_ACCESS.req */
 struct ph_rach_req_param {
 	uint8_t ra;		/*!< \brief Random Access */
@@ -48,6 +58,7 @@ struct ph_data_param {
 	uint8_t chan_nr;	/*!< \brief Channel Number (Like RSL) */
 	uint32_t fn;		/*!< \brief GSM Frame Number */
 	int8_t rssi;		/*!< \brief RSSI of receivedindication */
+	enum osmo_ph_pres_info_type pdch_presence_info; /*!< \brief Info regarding presence/validity of header and data parts */
 };
 
 /*! \brief for TCH.{req,ind} | TCH-RTS.ind */
