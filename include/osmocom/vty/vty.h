@@ -186,6 +186,9 @@ void *vty_current_index(struct vty *);
 int vty_current_node(struct vty *vty);
 int vty_go_parent(struct vty *vty);
 
+/* Return IP address passed to the 'line vty'/'bind' command, or "127.0.0.1" */
+const char *vty_get_bind_addr(void);
+
 extern void *tall_vty_ctx;
 
 extern struct cmd_element cfg_description_cmd;

@@ -75,6 +75,12 @@ vector Vvty_serv_thread;
 
 char *vty_cwd = NULL;
 
+/* IP address passed to the 'line vty'/'bind' command.
+ * Setting the default as vty_bind_addr = "127.0.0.1" doesn't allow freeing, so
+ * use NULL and VTY_BIND_ADDR_DEFAULT instead. */
+static const char *vty_bind_addr = NULL;
+#define VTY_BIND_ADDR_DEFAULT "127.0.0.1"
+
 /* Configure lock. */
 static int vty_config;
 
@@ -1585,6 +1591,23 @@ DEFUN(no_vty_login,
 	return CMD_SUCCESS;
 }
 
+/* vty bind */
+DEFUN(vty_bind, vty_bind_cmd, "bind A.B.C.D",
+      "Accept VTY telnet connections on local interface\n"
+      "Local interface IP address (default: " VTY_BIND_ADDR_DEFAULT ")\n")
+{
+	talloc_free((void*)vty_bind_addr);
+	vty_bind_addr = talloc_strdup(tall_vty_ctx, argv[0]);
+	return CMD_SUCCESS;
+}
+
+const char *vty_get_bind_addr(void)
+{
+	if (!vty_bind_addr)
+		return VTY_BIND_ADDR_DEFAULT;
+	return vty_bind_addr;
+}
+
 DEFUN(service_advanced_vty,
       service_advanced_vty_cmd,
       "service advanced-vty",
@@ -1653,6 +1676,10 @@ static int vty_config_write(struct vty *vty)
 	/* login */
 	if (!password_check)
 		vty_out(vty, " no login%s", VTY_NEWLINE);
+
+	/* bind */
+	if (vty_bind_addr && (strcmp(vty_bind_addr, "127.0.0.1") != 0))
+		vty_out(vty, " bind %s%s", vty_bind_addr, VTY_NEWLINE);
 
 	vty_out(vty, "!%s", VTY_NEWLINE);
 
@@ -1757,6 +1784,7 @@ void vty_init(struct vty_app_info *app_info)
 	vty_install_default(VTY_NODE);
 	install_element(VTY_NODE, &vty_login_cmd);
 	install_element(VTY_NODE, &no_vty_login_cmd);
+	install_element(VTY_NODE, &vty_bind_cmd);
 }
 
 /*! \brief Read the configuration file using the VTY code
