@@ -673,6 +673,14 @@ static int verify_counter(struct ctrl_cmd *cmd, const char *value, void *data)
 struct ctrl_handle *ctrl_interface_setup(void *data, uint16_t port,
 					 ctrl_cmd_lookup lookup)
 {
+	return ctrl_interface_setup_dynip(data, "127.0.0.1", port, lookup);
+}
+
+struct ctrl_handle *ctrl_interface_setup_dynip(void *data,
+					       const char *bind_addr,
+					       uint16_t port,
+					       ctrl_cmd_lookup lookup)
+{
 	int ret;
 	struct ctrl_handle *ctrl;
 
@@ -693,7 +701,7 @@ struct ctrl_handle *ctrl_interface_setup(void *data, uint16_t port,
 	ctrl->listen_fd.cb = listen_fd_cb;
 	ctrl->listen_fd.data = ctrl;
 	ret = osmo_sock_init_ofd(&ctrl->listen_fd, AF_INET, SOCK_STREAM, IPPROTO_TCP,
-				 "127.0.0.1", port, OSMO_SOCK_F_BIND);
+				 bind_addr, port, OSMO_SOCK_F_BIND);
 	if (ret < 0)
 		goto err_vec;
 
