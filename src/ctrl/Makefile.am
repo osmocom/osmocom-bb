@@ -13,3 +13,7 @@ libosmoctrl_la_LIBADD = \
 	$(top_builddir)/src/libosmocore.la \
 	$(top_builddir)/src/gsm/libosmogsm.la \
 	$(top_builddir)/src/vty/libosmovty.la
+
+if ENABLE_VTY
+libosmoctrl_la_SOURCES += control_vty.c
+endif

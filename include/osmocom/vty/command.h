@@ -83,6 +83,7 @@ enum node_type {
 	L_IPA_NODE,		/*!< \brief IPA proxying commands in libosmo-abis. */
 	L_NS_NODE,		/*!< \brief NS node in libosmo-gb. */
 	L_BSSGP_NODE,		/*!< \brief BSSGP node in libosmo-gb. */
+	L_CTRL_NODE,		/*!< \brief Control interface node. */
 
 	/*
 	 * When adding new nodes to the libosmocore project, these nodes can be
@@ -91,7 +92,6 @@ enum node_type {
 	RESERVED1_NODE,		/*!< \brief Reserved for later extensions */
 	RESERVED2_NODE,		/*!< \brief Reserved for later extensions */
 	RESERVED3_NODE,		/*!< \brief Reserved for later extensions */
-	RESERVED4_NODE,		/*!< \brief Reserved for later extensions */
 
 	_LAST_OSMOVTY_NODE
 };

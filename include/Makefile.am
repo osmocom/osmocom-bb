@@ -117,7 +117,8 @@ nobase_include_HEADERS += \
                           osmocom/vty/telnet_interface.h \
                           osmocom/vty/vector.h \
                           osmocom/vty/vty.h \
-                          osmocom/vty/ports.h
+                          osmocom/vty/ports.h \
+                          osmocom/ctrl/control_vty.h
 endif
 
 noinst_HEADERS = \
