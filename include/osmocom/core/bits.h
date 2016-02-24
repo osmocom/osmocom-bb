@@ -50,6 +50,27 @@ int osmo_pbit2ubit_ext(ubit_t *out, unsigned int out_ofs,
                        const pbit_t *in, unsigned int in_ofs,
                        unsigned int num_bits, int lsb_mode);
 
+#define OSMO_BIN_SPEC "%d%d%d%d%d%d%d%d"
+#define OSMO_BIN_PRINT(byte)  \
+  (byte & 0x80 ? 1 : 0), \
+  (byte & 0x40 ? 1 : 0), \
+  (byte & 0x20 ? 1 : 0), \
+  (byte & 0x10 ? 1 : 0), \
+  (byte & 0x08 ? 1 : 0), \
+  (byte & 0x04 ? 1 : 0), \
+  (byte & 0x02 ? 1 : 0), \
+  (byte & 0x01 ? 1 : 0)
+
+#define OSMO_BIT_SPEC "%c%c%c%c%c%c%c%c"
+#define OSMO_BIT_PRINT(byte)  \
+  (byte & 0x80 ? '1' : '.'), \
+  (byte & 0x40 ? '1' : '.'), \
+  (byte & 0x20 ? '1' : '.'), \
+  (byte & 0x10 ? '1' : '.'), \
+  (byte & 0x08 ? '1' : '.'), \
+  (byte & 0x04 ? '1' : '.'), \
+  (byte & 0x02 ? '1' : '.'), \
+  (byte & 0x01 ? '1' : '.')
 
 /* BIT REVERSAL */
 

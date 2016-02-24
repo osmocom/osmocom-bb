@@ -11,17 +11,6 @@
 #include <osmocom/core/bitvec.h>
 #include <osmocom/core/bits.h>
 
-#define BIN_PATTERN "%d%d%d%d%d%d%d%d"
-#define BIN(byte)  \
-  (byte & 0x80 ? 1 : 0), \
-  (byte & 0x40 ? 1 : 0), \
-  (byte & 0x20 ? 1 : 0), \
-  (byte & 0x10 ? 1 : 0), \
-  (byte & 0x08 ? 1 : 0), \
-  (byte & 0x04 ? 1 : 0), \
-  (byte & 0x02 ? 1 : 0), \
-  (byte & 0x01 ? 1 : 0)
-
 static char lol[1024]; // we pollute this with printed vectors
 static inline void test_rl(const struct bitvec *bv)
 {
@@ -45,7 +34,7 @@ static inline void test_get(struct bitvec *bv, unsigned n)
 	int16_t x = bitvec_get_int16_msb(bv, n);
 	uint8_t tmp[2];
 	osmo_store16be(x, &tmp);
-	printf(" -> %d (%u bit) ["BIN_PATTERN" "BIN_PATTERN"]:\n", x, n, BIN(tmp[0]), BIN(tmp[1]));
+	printf(" -> %d (%u bit) ["OSMO_BIN_SPEC" "OSMO_BIN_SPEC"]:\n", x, n, OSMO_BIN_PRINT(tmp[0]), OSMO_BIN_PRINT(tmp[1]));
 	bitvec_to_string_r(bv, lol);
 	printf("%s [%d]\n", lol, bv->cur_bit);
 }
