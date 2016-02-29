@@ -66,7 +66,8 @@ enum gsm_band gsm_band_parse(const char *mhz);
  * 			Requires n >= 1.
  * \param user_data	A pointer to the start of the packed 7bit character
  *			sequence.
- * \param length	The length of the input sequence (in octets).
+ * \param length	The length of the input sequence in septets, for
+ *			example pass octet_length*8/7.
  *
  * \returns the number of (8 bit) chars written excluding the terminating \0.
  * 	    This is the same like strlen(decoded).
