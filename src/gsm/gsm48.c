@@ -300,7 +300,7 @@ void gsm48_generate_lai(struct gsm48_loc_area_id *lai48, uint16_t mcc,
 	lai48->lac = htons(lac);
 }
 
-/* Attention: this function retunrs true integers, not hex! */
+/* Attention: this function returns true integers, not hex! */
 int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 		     uint16_t *mnc, uint16_t *lac)
 {
