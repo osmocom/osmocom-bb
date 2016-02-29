@@ -361,7 +361,6 @@ void osmo_vlogp(int subsys, int level, const char *file, int line,
 	subsys = map_subsys(subsys);
 
 	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
-		int output = 0;
 		va_list bp;
 
 		if (!check_log_to_target(tar, subsys, level))
