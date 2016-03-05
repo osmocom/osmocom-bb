@@ -67,7 +67,7 @@ Description: Osmo SIM library
 Package: libosmocore-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, libosmocore
+Depends: ${misc:Depends}, libosmocore, libtalloc-dev
 Multi-Arch: same
 Description: Development headers for Open Source MObile COMmunications CORE library
 
