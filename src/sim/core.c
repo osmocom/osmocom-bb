@@ -183,6 +183,31 @@ osim_file_find_name(struct osim_file_desc *parent, const char *name)
 	return NULL;
 }
 
+struct osim_file_desc *
+osim_file_find_fid(struct osim_file_desc *parent, uint16_t fid)
+{
+	struct osim_file_desc *ofd;
+	llist_for_each_entry(ofd, &parent->child_list, list) {
+		if (ofd->fid == fid) {
+			return ofd;
+		}
+	}
+	return NULL;
+}
+
+struct osim_file_desc *
+osim_file_find_sfid(struct osim_file_desc *parent, uint8_t sfid)
+{
+	struct osim_file_desc *ofd;
+	llist_for_each_entry(ofd, &parent->child_list, list) {
+		if (ofd->sfid == sfid) {
+			return ofd;
+		}
+	}
+	return NULL;
+}
+
+
 /*! \brief Generate an APDU message and initialize APDU command header
  *  \param[in] cla CLASS byte
  *  \param[in] ins INSTRUCTION byte
