@@ -514,6 +514,12 @@ struct gsm48_system_information_type_2ter {
 	uint8_t rest_octets[0];
 } __attribute__ ((packed));
 
+/* Section 9.1.34a System information Type 2quater */
+struct gsm48_system_information_type_2quater {
+	struct gsm48_system_information_type_header header;
+	uint8_t rest_octets[0];
+} __attribute__ ((packed));
+
 /* Section 9.1.35 System information Type 3 */
 struct gsm48_system_information_type_3 {
 	struct gsm48_system_information_type_header header;
@@ -792,6 +798,7 @@ struct gsm48_rr_status {
 
 #define GSM48_MT_RR_SYSINFO_2bis	0x02
 #define GSM48_MT_RR_SYSINFO_2ter	0x03
+#define GSM48_MT_RR_SYSINFO_2quater	0x07
 #define GSM48_MT_RR_SYSINFO_5bis	0x05
 #define GSM48_MT_RR_SYSINFO_5ter	0x06
 #define GSM48_MT_RR_SYSINFO_9		0x04
