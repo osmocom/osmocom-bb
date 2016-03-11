@@ -240,13 +240,13 @@ struct osim_file {
 
 
 struct osim_file_desc *
-osim_file_find_name(struct osim_file_desc *parent, const char *name);
+osim_file_desc_find_name(struct osim_file_desc *parent, const char *name);
 
 struct osim_file_desc *
-osim_file_find_fid(struct osim_file_desc *parent, uint16_t fid);
+osim_file_desc_find_fid(struct osim_file_desc *parent, uint16_t fid);
 
 struct osim_file_desc *
-osim_file_find_sfid(struct osim_file_desc *parent, uint8_t sfid);
+osim_file_desc_find_sfid(struct osim_file_desc *parent, uint8_t sfid);
 
 /* STATUS WORDS */
 

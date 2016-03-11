@@ -276,7 +276,7 @@ static struct msgb *try_select_adf_usim(struct osim_chan_hdl *st)
 
 		/* attach the USIM profile, FIXME: do this based on AID match */
 		st->card->prof = osim_cprof_usim(st->card);
-		st->cwd = osim_file_find_name(st->card->prof->mf, "ADF.USIM");
+		st->cwd = osim_file_desc_find_name(st->card->prof->mf, "ADF.USIM");
 
 		msgb_free(msg);
 

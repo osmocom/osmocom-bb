@@ -172,7 +172,7 @@ add_adf_with_ef(struct osim_file_desc *parent,
 }
 
 struct osim_file_desc *
-osim_file_find_name(struct osim_file_desc *parent, const char *name)
+osim_file_desc_find_name(struct osim_file_desc *parent, const char *name)
 {
 	struct osim_file_desc *ofd;
 	llist_for_each_entry(ofd, &parent->child_list, list) {
@@ -184,7 +184,7 @@ osim_file_find_name(struct osim_file_desc *parent, const char *name)
 }
 
 struct osim_file_desc *
-osim_file_find_fid(struct osim_file_desc *parent, uint16_t fid)
+osim_file_desc_find_fid(struct osim_file_desc *parent, uint16_t fid)
 {
 	struct osim_file_desc *ofd;
 	llist_for_each_entry(ofd, &parent->child_list, list) {
@@ -196,10 +196,12 @@ osim_file_find_fid(struct osim_file_desc *parent, uint16_t fid)
 }
 
 struct osim_file_desc *
-osim_file_find_sfid(struct osim_file_desc *parent, uint8_t sfid)
+osim_file_desc_find_sfid(struct osim_file_desc *parent, uint8_t sfid)
 {
 	struct osim_file_desc *ofd;
 	llist_for_each_entry(ofd, &parent->child_list, list) {
+		if (ofd->sfid == SFI_NONE)
+			continue;
 		if (ofd->sfid == sfid) {
 			return ofd;
 		}
