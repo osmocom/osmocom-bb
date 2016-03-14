@@ -220,7 +220,7 @@ int gsm0480_decode_ussd_request(const struct gsm48_hdr *hdr, uint16_t len,
 		return 0;
 	}
 
-	if ((hdr->proto_discr & 0x0f) == GSM48_PDISC_NC_SS) {
+	if (gsm48_hdr_pdisc(hdr) == GSM48_PDISC_NC_SS) {
 		req->transaction_id = hdr->proto_discr & 0x70;
 
 		ss.transaction_id = req->transaction_id;
@@ -254,7 +254,7 @@ int gsm0480_decode_ss_request(const struct gsm48_hdr *hdr, uint16_t len,
 		return 0;
 	}
 
-	if ((hdr->proto_discr & 0x0f) == GSM48_PDISC_NC_SS) {
+	if (gsm48_hdr_pdisc(hdr) == GSM48_PDISC_NC_SS) {
 		req->transaction_id = hdr->proto_discr & 0x70;
 		rc = parse_ss(hdr, len, req);
 	}

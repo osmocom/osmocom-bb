@@ -747,8 +747,64 @@ struct gsm48_rr_status {
 #define GSM48_PDISC_SM_GPRS	0x0a
 #define GSM48_PDISC_NC_SS	0x0b
 #define GSM48_PDISC_LOC		0x0c
+#define GSM48_PDISC_EXTEND	0x0e
 #define GSM48_PDISC_MASK	0x0f
 #define GSM48_PDISC_USSD	0x11
+
+static inline uint8_t gsm48_hdr_pdisc(const struct gsm48_hdr *hdr)
+{
+	/*
+	 * 3GPP TS 24.007 version 12.0.0 Release 12,
+	 * 11.2.3.1.1 Protocol discriminator
+	 */
+	uint8_t pdisc = hdr->proto_discr & GSM48_PDISC_MASK;
+	if (pdisc == GSM48_PDISC_EXTEND)
+		return hdr->proto_discr;
+	return pdisc;
+}
+
+static inline uint8_t gsm48_hdr_msg_type_r98(const struct gsm48_hdr *hdr)
+{
+	/*
+	 * 3GPP TS 24.007 version 12.0.0 Release 12,
+	 * 11.2.3.2.1 Message type octet (when accessing Release 98 and older
+	 * networks only)
+	 */
+	switch (gsm48_hdr_pdisc(hdr)) {
+	case GSM48_PDISC_MM:
+	case GSM48_PDISC_CC:
+	case GSM48_PDISC_NC_SS:
+	case GSM48_PDISC_GROUP_CC:
+	case GSM48_PDISC_BCAST_CC:
+	case GSM48_PDISC_LOC:
+		return hdr->msg_type & 0xbf;
+	default:
+		return hdr->msg_type;
+	}
+}
+
+static inline uint8_t gsm48_hdr_msg_type_r99(const struct gsm48_hdr *hdr)
+{
+	/*
+	 * 3GPP TS 24.007 version 12.0.0 Release 12,
+	 * 11.2.3.2.2 Message type octet (when accessing Release 99 and newer
+	 * networks)
+	 */
+	switch (gsm48_hdr_pdisc(hdr)) {
+	case GSM48_PDISC_MM:
+	case GSM48_PDISC_CC:
+		return hdr->msg_type & 0x3f;
+	case GSM48_PDISC_NC_SS:
+	case GSM48_PDISC_GROUP_CC:
+	case GSM48_PDISC_BCAST_CC:
+	case GSM48_PDISC_LOC:
+		return hdr->msg_type & 0xbf;
+	default:
+		return hdr->msg_type;
+	}
+}
+
+#define gsm48_hdr_msg_type gsm48_hdr_msg_type_r98
 
 /* Section 10.4 */
 #define GSM48_MT_RR_INIT_REQ		0x3c
