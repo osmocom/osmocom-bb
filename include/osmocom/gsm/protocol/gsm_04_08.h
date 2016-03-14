@@ -763,6 +763,25 @@ static inline uint8_t gsm48_hdr_pdisc(const struct gsm48_hdr *hdr)
 	return pdisc;
 }
 
+static inline uint8_t gsm48_hdr_trans_id(const struct gsm48_hdr *hdr)
+{
+	/*
+	 * 3GPP TS 24.007 version 12.0.0 Release 12,
+	 * 11.2.3.1.3 Transaction identifier
+	 */
+	return (hdr->proto_discr & 0xf0) >> 4;
+}
+
+static inline uint8_t gsm48_hdr_trans_id_flip_ti(const struct gsm48_hdr *hdr)
+{
+	return gsm48_hdr_trans_id(hdr) ^ 0x08;
+}
+
+static inline uint8_t gsm48_hdr_trans_id_no_ti(const struct gsm48_hdr *hdr)
+{
+	return gsm48_hdr_trans_id(hdr) & 0x07;
+}
+
 static inline uint8_t gsm48_hdr_msg_type_r98(const struct gsm48_hdr *hdr)
 {
 	/*
