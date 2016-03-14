@@ -173,6 +173,12 @@ cat $abs_srcdir/gb/bssgp_fc_tests.err > experr
 AT_CHECK([$abs_top_srcdir/tests/gb/bssgp_fc_tests.sh $abs_top_builddir/tests/gb], [0], [expout], [experr])
 AT_CLEANUP
 
+AT_SETUP([sim])
+AT_KEYWORDS([sim])
+cat $abs_srcdir/sim/sim_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/sim/sim_test], [0], [expout], [ignore])
+AT_CLEANUP
+
 AT_SETUP([timer])
 AT_KEYWORDS([timer])
 cat $abs_srcdir/timer/timer_test.ok > expout
