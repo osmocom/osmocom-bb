@@ -804,7 +804,7 @@ static inline uint8_t gsm48_hdr_msg_type_r99(const struct gsm48_hdr *hdr)
 	}
 }
 
-#define gsm48_hdr_msg_type gsm48_hdr_msg_type_r98
+#define gsm48_hdr_msg_type gsm48_hdr_msg_type_r99
 
 /* Section 10.4 */
 #define GSM48_MT_RR_INIT_REQ		0x3c
