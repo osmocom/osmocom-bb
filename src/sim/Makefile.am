@@ -13,8 +13,9 @@ noinst_HEADERS = sim_int.h gsm_int.h
 
 lib_LTLIBRARIES = libosmosim.la
 
-libosmosim_la_SOURCES = core.c reader.c reader_pcsc.c \
-			card_fs_sim.c card_fs_usim.c card_fs_uicc.c card_fs_isim.c card_fs_tetra.c
+libosmosim_la_SOURCES = core.c reader.c reader_pcsc.c class_tables.c \
+			card_fs_sim.c card_fs_usim.c card_fs_uicc.c \
+			card_fs_isim.c card_fs_tetra.c
 libosmosim_la_LDFLAGS = -version-info $(LIBVERSION)
 libosmosim_la_LIBADD = \
 	$(top_builddir)/src/libosmocore.la \

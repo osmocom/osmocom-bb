@@ -92,6 +92,7 @@ nobase_include_HEADERS = \
                        osmocom/gsm/rxlev_stat.h \
                        osmocom/gsm/sysinfo.h \
                        osmocom/gsm/tlv.h \
+		       osmocom/sim/class_tables.h \
 		       osmocom/sim/sim.h
 
 if ENABLE_PLUGIN
