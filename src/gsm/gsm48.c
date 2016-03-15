@@ -278,25 +278,50 @@ static void to_bcd(uint8_t *bcd, uint16_t val)
 	val = val / 10;
 }
 
-void gsm48_generate_lai(struct gsm48_loc_area_id *lai48, uint16_t mcc,
-			uint16_t mnc, uint16_t lac)
+/* Convert given mcc and mnc to BCD and write to *bcd_dst, which must be an
+ * allocated buffer of (at least) 3 bytes length. */
+void gsm48_mcc_mnc_to_bcd(uint8_t *bcd_dst, uint16_t mcc, uint16_t mnc)
 {
 	uint8_t bcd[3];
 
 	to_bcd(bcd, mcc);
-	lai48->digits[0] = bcd[0] | (bcd[1] << 4);
-	lai48->digits[1] = bcd[2];
+	bcd_dst[0] = bcd[0] | (bcd[1] << 4);
+	bcd_dst[1] = bcd[2];
 
 	to_bcd(bcd, mnc);
 	/* FIXME: do we need three-digit MNC? See Table 10.5.3 */
 	if (mnc > 99) {
-		lai48->digits[1] |= bcd[2] << 4;
-		lai48->digits[2] = bcd[0] | (bcd[1] << 4);
+		bcd_dst[1] |= bcd[2] << 4;
+		bcd_dst[2] = bcd[0] | (bcd[1] << 4);
 	} else {
-		lai48->digits[1] |= 0xf << 4;
-		lai48->digits[2] = bcd[1] | (bcd[2] << 4);
+		bcd_dst[1] |= 0xf << 4;
+		bcd_dst[2] = bcd[1] | (bcd[2] << 4);
 	}
+}
 
+/* Convert given 3-byte BCD buffer to integers and write results to *mcc and
+ * *mnc. The first three BCD digits result in the MCC and the remaining ones in
+ * the MNC. */
+void gsm48_mcc_mnc_from_bcd(uint8_t *bcd_src, uint16_t *mcc, uint16_t *mnc)
+{
+	*mcc = (bcd_src[0] & 0x0f) * 100
+	     + (bcd_src[0] >> 4) * 10
+	     + (bcd_src[1] & 0x0f);
+
+	if ((bcd_src[1] & 0xf0) == 0xf0) {
+		*mnc = (bcd_src[2] & 0x0f) * 10
+		     + (bcd_src[2] >> 4);
+	} else {
+		*mnc = (bcd_src[2] & 0x0f) * 100
+		     + (bcd_src[2] >> 4) * 10
+		     + (bcd_src[1] >> 4);
+	}
+}
+
+void gsm48_generate_lai(struct gsm48_loc_area_id *lai48, uint16_t mcc,
+			uint16_t mnc, uint16_t lac)
+{
+	gsm48_mcc_mnc_to_bcd(&lai48->digits[0], mcc, mnc);
 	lai48->lac = htons(lac);
 }
 
@@ -304,20 +329,8 @@ void gsm48_generate_lai(struct gsm48_loc_area_id *lai48, uint16_t mcc,
 int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 		     uint16_t *mnc, uint16_t *lac)
 {
-	*mcc = (lai->digits[0] & 0x0f) * 100
-	     + (lai->digits[0] >> 4) * 10
-	     + (lai->digits[1] & 0x0f);
-
-	if ((lai->digits[1] & 0xf0) == 0xf0) {
-		*mnc = (lai->digits[2] & 0x0f) * 10
-		     + (lai->digits[2] >> 4);
-	} else {
-		*mnc = (lai->digits[2] & 0x0f) * 100
-		     + (lai->digits[2] >> 4) * 10
-		     + (lai->digits[1] >> 4);
-	}
+	gsm48_mcc_mnc_from_bcd(&lai->digits[0], mcc, mnc);
 	*lac = ntohs(lai->lac);
-
 	return 0;
 }
 
