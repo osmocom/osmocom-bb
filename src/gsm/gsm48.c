@@ -394,7 +394,7 @@ int gsm48_mi_to_string(char *string, const int str_len, const uint8_t *mi,
 		if (mi_len == GSM48_TMSI_LEN && mi[0] == (0xf0 | GSM_MI_TYPE_TMSI)) {
 			memcpy(&tmsi, &mi[1], 4);
 			tmsi = ntohl(tmsi);
-			return snprintf(string, str_len, "%u", tmsi);
+			return snprintf(string, str_len, "0x%08x", tmsi);
 		}
 		break;
 	case GSM_MI_TYPE_IMSI:
