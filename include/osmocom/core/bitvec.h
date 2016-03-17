@@ -91,5 +91,8 @@ void bitvec_zero(struct bitvec *bv);
 unsigned bitvec_rl(const struct bitvec *bv, bool b);
 void bitvec_shiftl(struct bitvec *bv, unsigned int n);
 int16_t bitvec_get_int16_msb(const struct bitvec *bv, unsigned int num_bits);
+unsigned int bitvec_add_array(struct bitvec *bv, const uint32_t *array,
+			      unsigned int array_len, bool dry_run,
+			      unsigned int num_bits);
 
 /*! @} */

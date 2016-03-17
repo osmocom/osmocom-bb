@@ -132,6 +132,43 @@ static void test_unhex(const char *hex)
 	printf("%s\n", hex);
 }
 
+static inline void test_array_item(unsigned t, struct bitvec *b, unsigned int n,
+				   uint32_t *array, unsigned int p)
+{
+	unsigned int i, x, y;
+	bitvec_zero(b);
+	x = b->cur_bit;
+	i = bitvec_add_array(b, array, n, true, t);
+	y = b->cur_bit;
+	bitvec_add_array(b, array, n, false, t);
+	printf("\nbits: %u, est: %u, real: %u, x: %u, y: %u\n",
+	       t, i, b->cur_bit, x, y);
+	for (i = 0; i < p; i++) {
+		printf(OSMO_BIT_SPEC " ", OSMO_BIT_PRINT(b->data[i]));
+		if (0 == (i + 1) % 15)
+			printf("\n");
+	}
+}
+
+static void test_array()
+{
+	struct bitvec b;
+	uint8_t d[4096];
+	b.data = d;
+	b.data_len = sizeof(d);
+
+	unsigned int i, n = 64;
+	uint32_t array[n];
+	for (i = 0; i < n; i++) {
+		array[i] = i * i * i + i;
+		printf("0x%x ", array[i]);
+	}
+
+	test_array_item(3, &b, n, array, n);
+	test_array_item(9, &b, n, array, n * 2);
+	test_array_item(17, &b, n, array, n * 3);
+}
+
 int main(int argc, char **argv)
 {
 	struct bitvec bv;
@@ -203,6 +240,12 @@ int main(int argc, char **argv)
 	test_unhex("47283c367513ba333004242b2b2b2b2b2b2b2b2b2b2b2b");
 	test_unhex("DEADFACE000000000000000000000000000000BEEFFEED");
 	test_unhex("FFFFFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+
+	printf("arrr...\n");
+
+	test_array();
+
+	printf("\nbitvec ok.\n");
 
 	return 0;
 }

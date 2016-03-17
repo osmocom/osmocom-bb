@@ -570,4 +570,44 @@ void bitvec_shiftl(struct bitvec *bv, unsigned n)
 	bv->cur_bit -= n;
 }
 
+/*! \brief Add given array to bitvec
+ *  \param[in,out] bv bit vector to work with
+ *  \param[in] array elements to be added
+ *  \param[in] array_len length of array
+ *  \param[in] dry_run indicates whether to return number of bits required
+ *  instead of adding anything to bv for real
+ *  \param[in] num_bits number of bits to consider in each element of array
+ *  \returns number of bits necessary to add array elements if dry_run is true,
+ *  0 otherwise (only in this case bv is actually changed)
+ *
+ * N. B: no length checks are performed on bv - it's caller's job to ensure
+ * enough space is available - for example by calling with dry_run = true first.
+ *
+ * Useful for common pattern in CSN.1 spec which looks like:
+ * { 1 < XXX : bit (num_bits) > } ** 0
+ * which means repeat any times (between 0 and infinity),
+ * start each repetition with 1, mark end of repetitions with 0 bit
+ * see app. note in 3GPP TS 24.007 § B.2.1 Rule A2
+ */
+unsigned int bitvec_add_array(struct bitvec *bv, const uint32_t *array,
+			      unsigned int array_len, bool dry_run,
+			      unsigned int num_bits)
+{
+	unsigned i, bits = 1; /* account for stop bit */
+	for (i = 0; i < array_len; i++) {
+		if (dry_run) {
+			bits += (1 + num_bits);
+		} else {
+			bitvec_set_bit(bv, 1);
+			bitvec_set_uint(bv, array[i], num_bits);
+		}
+	}
+
+	if (dry_run)
+		return bits;
+
+	bitvec_set_bit(bv, 0); /* stop bit - end of the sequence */
+	return 0;
+}
+
 /*! @} */
