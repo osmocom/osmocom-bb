@@ -131,7 +131,7 @@ const struct value_string osmo_sitype_strs[_MAX_SYSINFO_TYPE] = {
  *  \param[in] meas_bw measurement bandwith value
  *  \returns 0 on success, error otherwise
  */
-int osmo_earfcn_add(struct earfcn *e, uint16_t arfcn, uint8_t meas_bw)
+int osmo_earfcn_add(struct osmo_earfcn_si2q *e, uint16_t arfcn, uint8_t meas_bw)
 {
 	size_t i;
 	for (i = 0; i < e->length; i++) {
@@ -150,7 +150,7 @@ int osmo_earfcn_add(struct earfcn *e, uint16_t arfcn, uint8_t meas_bw)
  *  \param[in] arfcn EARFCN value, 16 bits
  *  \returns 0 on success, error otherwise
  */
-int osmo_earfcn_del(struct earfcn *e, uint16_t arfcn)
+int osmo_earfcn_del(struct osmo_earfcn_si2q *e, uint16_t arfcn)
 {
 	size_t i;
 	for (i = 0; i < e->length; i++) {
@@ -166,7 +166,7 @@ int osmo_earfcn_del(struct earfcn *e, uint16_t arfcn)
 /*! \brief Initialize earfcn struct
  *  \param[in,out] e earfcn struct
  */
-void osmo_earfcn_init(struct earfcn *e)
+void osmo_earfcn_init(struct osmo_earfcn_si2q *e)
 {
 	size_t i;
 	for (i = 0; i < e->length; i++) {

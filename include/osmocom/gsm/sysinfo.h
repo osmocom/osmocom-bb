@@ -35,7 +35,7 @@ enum osmo_sysinfo_type {
 	_MAX_SYSINFO_TYPE
 };
 
-struct earfcn {
+struct osmo_earfcn_si2q {
 	/* EARFCN (16 bits) array */
 	uint16_t *arfcn;
 	/* Measurement Bandwidth (3 bits), might be absent
@@ -63,8 +63,8 @@ struct earfcn {
 typedef uint8_t sysinfo_buf_t[GSM_MACBLOCK_LEN];
 
 extern const struct value_string osmo_sitype_strs[_MAX_SYSINFO_TYPE];
-int osmo_earfcn_add(struct earfcn *e, uint16_t arfcn, uint8_t meas_bw);
-int osmo_earfcn_del(struct earfcn *e, uint16_t arfcn);
-void osmo_earfcn_init(struct earfcn *e);
+int osmo_earfcn_add(struct osmo_earfcn_si2q *e, uint16_t arfcn, uint8_t meas_bw);
+int osmo_earfcn_del(struct osmo_earfcn_si2q *e, uint16_t arfcn);
+void osmo_earfcn_init(struct osmo_earfcn_si2q *e);
 uint8_t osmo_sitype2rsl(enum osmo_sysinfo_type si_type);
 enum osmo_sysinfo_type osmo_rsl2sitype(uint8_t rsl_si);
