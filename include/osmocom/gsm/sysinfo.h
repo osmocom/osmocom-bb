@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
