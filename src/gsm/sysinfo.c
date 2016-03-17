@@ -125,6 +125,56 @@ const struct value_string osmo_sitype_strs[_MAX_SYSINFO_TYPE] = {
 	{ 0, NULL }
 };
 
+/*! \brief Add pair of arfcn and measurement bandwith value to earfcn struct
+ *  \param[in,out] e earfcn struct
+ *  \param[in] arfcn EARFCN value, 16 bits
+ *  \param[in] meas_bw measurement bandwith value
+ *  \returns 0 on success, error otherwise
+ */
+int osmo_earfcn_add(struct earfcn *e, uint16_t arfcn, uint8_t meas_bw)
+{
+	size_t i;
+	for (i = 0; i < e->length; i++) {
+		if (OSMO_EARFCN_INVALID == e->arfcn[i]) {
+			e->arfcn[i] = arfcn;
+			e->meas_bw[i] = meas_bw;
+			return 0;
+		}
+	}
+	return -ENOMEM;
+}
+
+/*! \brief Delete arfcn (and corresponding measurement bandwith) from earfcn
+ *  struct
+ *  \param[in,out] e earfcn struct
+ *  \param[in] arfcn EARFCN value, 16 bits
+ *  \returns 0 on success, error otherwise
+ */
+int osmo_earfcn_del(struct earfcn *e, uint16_t arfcn)
+{
+	size_t i;
+	for (i = 0; i < e->length; i++) {
+		if (arfcn == e->arfcn[i]) {
+			e->arfcn[i] = OSMO_EARFCN_INVALID;
+			e->meas_bw[i] = OSMO_EARFCN_MEAS_INVALID;
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+/*! \brief Initialize earfcn struct
+ *  \param[in,out] e earfcn struct
+ */
+void osmo_earfcn_init(struct earfcn *e)
+{
+	size_t i;
+	for (i = 0; i < e->length; i++) {
+		e->arfcn[i] = OSMO_EARFCN_INVALID;
+		e->meas_bw[i] = OSMO_EARFCN_MEAS_INVALID;
+	}
+}
+
 uint8_t osmo_sitype2rsl(enum osmo_sysinfo_type si_type)
 {
 	return sitype2rsl[si_type];
