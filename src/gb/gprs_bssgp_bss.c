@@ -135,7 +135,7 @@ static struct msgb *common_tx_radio_status(struct bssgp_bvc_ctx *bctx)
 static int common_tx_radio_status2(struct msgb *msg, uint8_t cause)
 {
 	msgb_tvlv_put(msg, BSSGP_IE_CAUSE, 1, &cause);
-	LOGPC(DBSSGP, LOGL_NOTICE, "CAUSE=%u\n", cause);
+	LOGPC(DBSSGP, LOGL_NOTICE, "CAUSE=%s\n", bssgp_cause_str(cause));
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
@@ -247,7 +247,7 @@ int bssgp_tx_bvc_block(struct bssgp_bvc_ctx *bctx, uint8_t cause)
 	uint16_t _bvci = htons(bctx->bvci);
 
 	LOGP(DBSSGP, LOGL_NOTICE, "BSSGP (BVCI=%u) Tx BVC-BLOCK "
-	     "CAUSE=%u\n", bctx->bvci, cause);
+		"CAUSE=%s\n", bctx->bvci, bssgp_cause_str(cause));
 
 	msgb_nsei(msg) = bctx->nsei;
 	msgb_bvci(msg) = 0; /* Signalling */
@@ -287,7 +287,7 @@ int bssgp_tx_bvc_reset(struct bssgp_bvc_ctx *bctx, uint16_t bvci, uint8_t cause)
 	uint16_t _bvci = htons(bvci);
 
 	LOGP(DBSSGP, LOGL_NOTICE, "BSSGP (BVCI=%u) Tx BVC-RESET "
-	     "CAUSE=%u\n", bvci, cause);
+		"CAUSE=%s\n", bvci, bssgp_cause_str(cause));
 
 	msgb_nsei(msg) = bctx->nsei;
 	msgb_bvci(msg) = 0; /* Signalling */

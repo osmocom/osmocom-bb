@@ -896,8 +896,8 @@ static int bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 	case BSSGP_PDUT_CREATE_BSS_PFC_NACK:
 	case BSSGP_PDUT_MODIFY_BSS_PFC:
 	case BSSGP_PDUT_DELETE_BSS_PFC_ACK:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type 0x%02x not [yet] "
-			"implemented\n", bctx->bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type %s not [yet] "
+		       "implemented\n", bctx->bvci, bssgp_pdu_str(pdu_type));
 		rc = bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_FEAT, NULL, msg);
 		break;
 	/* those only exist in the SGSN -> BSS direction */
@@ -907,14 +907,14 @@ static int bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 	case BSSGP_PDUT_RA_CAPA_UPDATE_ACK:
 	case BSSGP_PDUT_FLOW_CONTROL_BVC_ACK:
 	case BSSGP_PDUT_FLOW_CONTROL_MS_ACK:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type 0x%02x only exists "
-			"in DL\n", bctx->bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type %s only exists in DL\n",
+		       bctx->bvci, bssgp_pdu_str(pdu_type));
 		bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		rc = -EINVAL;
 		break;
 	default:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type 0x%02x unknown\n",
-			bctx->bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type %s unknown\n",
+		       bctx->bvci, bssgp_pdu_str(pdu_type));
 		rc = bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		break;
 	}
@@ -999,14 +999,14 @@ static int bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
 	case BSSGP_PDUT_BVC_BLOCK_ACK:
 	case BSSGP_PDUT_BVC_UNBLOCK_ACK:
 	case BSSGP_PDUT_SGSN_INVOKE_TRACE:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type 0x%02x only exists "
-			"in DL\n", bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type %s only exists in DL\n",
+		       bvci, bssgp_pdu_str(pdu_type));
 		bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		rc = -EINVAL;
 		break;
 	default:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type 0x%02x unknown\n",
-			bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type %s unknown\n",
+			bvci, bssgp_pdu_str(pdu_type));
 		rc = bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		break;
 	}
@@ -1066,8 +1066,8 @@ int bssgp_rcvmsg(struct msgb *msg)
 	if (!bctx && bvci != BVCI_SIGNALLING &&
 	    pdu_type != BSSGP_PDUT_BVC_RESET) {
 		LOGP(DBSSGP, LOGL_NOTICE, "NSEI=%u/BVCI=%u Rejecting PDU "
-			"type %u for unknown BVCI\n", msgb_nsei(msg), bvci,
-			pdu_type);
+			"type %s for unknown BVCI\n", msgb_nsei(msg), bvci,
+			bssgp_pdu_str(pdu_type));
 		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, &bvci, msg);
 	}
 
@@ -1079,9 +1079,9 @@ int bssgp_rcvmsg(struct msgb *msg)
 		rc = bssgp_rx_ptp(msg, &tp, bctx);
 	else
 		LOGP(DBSSGP, LOGL_NOTICE,
-			"NSEI=%u/BVCI=%u Cannot handle PDU type %u for "
+			"NSEI=%u/BVCI=%u Cannot handle PDU type %s for "
 			"unknown BVCI, NS BVCI %u\n",
-			msgb_nsei(msg), bvci, pdu_type, ns_bvci);
+			msgb_nsei(msg), bvci, bssgp_pdu_str(pdu_type), ns_bvci);
 
 	return rc;
 }
