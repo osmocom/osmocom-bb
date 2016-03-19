@@ -39,4 +39,6 @@ int osmo_fd_register(struct osmo_fd *fd);
 void osmo_fd_unregister(struct osmo_fd *fd);
 int osmo_select_main(int polling);
 
+struct osmo_fd *osmo_fd_get_by_fd(int fd);
+
 /*! @} */

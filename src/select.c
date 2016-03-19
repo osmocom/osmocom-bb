@@ -170,6 +170,18 @@ restart:
 	return work;
 }
 
+/*! \brief find an osmo_fd based on the integer fd */
+struct osmo_fd *osmo_fd_get_by_fd(int fd)
+{
+	struct osmo_fd *ofd;
+
+	llist_for_each_entry(ofd, &osmo_fds, list) {
+		if (ofd->fd == fd)
+			return ofd;
+	}
+	return NULL;
+}
+
 /*! @} */
 
 #endif /* _HAVE_SYS_SELECT_H */
