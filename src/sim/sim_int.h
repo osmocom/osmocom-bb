@@ -29,13 +29,6 @@ add_adf_with_ef(struct osim_file_desc *parent,
 		const char *name, const struct osim_file_desc *in,
 		int num);
 
-struct osim_reader_ops {
-	const char *name;
-	struct osim_reader_hdl *(*reader_open)(int idx, const char *name, void *ctx);
-	struct osim_card_hdl *(*card_open)(struct osim_reader_hdl *rh, enum osim_proto proto);
-	int (*transceive)(struct osim_reader_hdl *rh, struct msgb *msg);
-};
-
 extern const struct osim_reader_ops pcsc_reader_ops;
 
 #endif

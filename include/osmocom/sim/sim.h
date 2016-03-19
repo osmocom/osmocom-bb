@@ -324,8 +324,6 @@ struct msgb *osim_new_apdumsg(uint8_t cla, uint8_t ins, uint8_t p1,
 
 /* CARD READERS */
 
-struct osim_reader_ops;
-
 enum osim_proto {
 	OSIM_PROTO_T0	= 0,
 	OSIM_PROTO_T1	= 1,
@@ -335,6 +333,13 @@ enum osim_reader_driver {
 	OSIM_READER_DRV_PCSC = 0,
 	OSIM_READER_DRV_OPENCT = 1,
 	OSIM_READER_DRV_SERIAL = 2,
+};
+
+struct osim_reader_ops {
+	const char *name;
+	struct osim_reader_hdl *(*reader_open)(int idx, const char *name, void *ctx);
+	struct osim_card_hdl *(*card_open)(struct osim_reader_hdl *rh, enum osim_proto proto);
+	int (*transceive)(struct osim_reader_hdl *rh, struct msgb *msg);
 };
 
 struct osim_reader_hdl {
