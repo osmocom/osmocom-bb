@@ -54,4 +54,5 @@ static void test_cla_ins_tbl(void)
 int main(int argc, char **argv)
 {
 	test_cla_ins_tbl();
+	return EXIT_SUCCESS;
 }
