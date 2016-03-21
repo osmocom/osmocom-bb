@@ -41,4 +41,10 @@ int osmo_select_main(int polling);
 
 struct osmo_fd *osmo_fd_get_by_fd(int fd);
 
+/*
+ * foreign event loop integration
+ */
+int osmo_fd_fill_fds(void *readset, void *writeset, void *exceptset);
+int osmo_fd_disp_fds(void *readset, void *writeset, void *exceptset);
+
 /*! @} */

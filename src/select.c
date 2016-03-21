@@ -98,62 +98,49 @@ void osmo_fd_unregister(struct osmo_fd *fd)
 	llist_del(&fd->list);
 }
 
-/*! \brief select main loop integration
- *  \param[in] polling should we pollonly (1) or block on select (0)
- */
-int osmo_select_main(int polling)
+inline int osmo_fd_fill_fds(void *_rset, void *_wset, void *_eset)
 {
-	struct osmo_fd *ufd, *tmp;
-	fd_set readset, writeset, exceptset;
-	int work = 0, rc;
-	struct timeval no_time = {0, 0};
+	fd_set *readset = _rset, *writeset = _wset, *exceptset = _eset;
+	struct osmo_fd *ufd;
 
-	FD_ZERO(&readset);
-	FD_ZERO(&writeset);
-	FD_ZERO(&exceptset);
-
-	/* prepare read and write fdsets */
 	llist_for_each_entry(ufd, &osmo_fds, list) {
 		if (ufd->when & BSC_FD_READ)
-			FD_SET(ufd->fd, &readset);
+			FD_SET(ufd->fd, readset);
 
 		if (ufd->when & BSC_FD_WRITE)
-			FD_SET(ufd->fd, &writeset);
+			FD_SET(ufd->fd, writeset);
 
 		if (ufd->when & BSC_FD_EXCEPT)
-			FD_SET(ufd->fd, &exceptset);
+			FD_SET(ufd->fd, exceptset);
 	}
 
-	osmo_timers_check();
+	return maxfd;
+}
 
-	if (!polling)
-		osmo_timers_prepare();
-	rc = select(maxfd+1, &readset, &writeset, &exceptset, polling ? &no_time : osmo_timers_nearest());
-	if (rc < 0)
-		return 0;
+inline int osmo_fd_disp_fds(void *_rset, void *_wset, void *_eset)
+{
+	struct osmo_fd *ufd, *tmp;
+	int work = 0;
+	fd_set *readset = _rset, *writeset = _wset, *exceptset = _eset;
 
-	/* fire timers */
-	osmo_timers_update();
-
-	/* call registered callback functions */
 restart:
 	unregistered_count = 0;
 	llist_for_each_entry_safe(ufd, tmp, &osmo_fds, list) {
 		int flags = 0;
 
-		if (FD_ISSET(ufd->fd, &readset)) {
+		if (FD_ISSET(ufd->fd, readset)) {
 			flags |= BSC_FD_READ;
-			FD_CLR(ufd->fd, &readset);
+			FD_CLR(ufd->fd, readset);
 		}
 
-		if (FD_ISSET(ufd->fd, &writeset)) {
+		if (FD_ISSET(ufd->fd, writeset)) {
 			flags |= BSC_FD_WRITE;
-			FD_CLR(ufd->fd, &writeset);
+			FD_CLR(ufd->fd, writeset);
 		}
 
-		if (FD_ISSET(ufd->fd, &exceptset)) {
+		if (FD_ISSET(ufd->fd, exceptset)) {
 			flags |= BSC_FD_EXCEPT;
-			FD_CLR(ufd->fd, &exceptset);
+			FD_CLR(ufd->fd, exceptset);
 		}
 
 		if (flags) {
@@ -167,7 +154,39 @@ restart:
 		if (unregistered_count >= 1)
 			goto restart;
 	}
+
 	return work;
+}
+
+/*! \brief select main loop integration
+ *  \param[in] polling should we pollonly (1) or block on select (0)
+ */
+int osmo_select_main(int polling)
+{
+	fd_set readset, writeset, exceptset;
+	int rc;
+	struct timeval no_time = {0, 0};
+
+	FD_ZERO(&readset);
+	FD_ZERO(&writeset);
+	FD_ZERO(&exceptset);
+
+	/* prepare read and write fdsets */
+	osmo_fd_fill_fds(&readset, &writeset, &exceptset);
+
+	osmo_timers_check();
+
+	if (!polling)
+		osmo_timers_prepare();
+	rc = select(maxfd+1, &readset, &writeset, &exceptset, polling ? &no_time : osmo_timers_nearest());
+	if (rc < 0)
+		return 0;
+
+	/* fire timers */
+	osmo_timers_update();
+
+	/* call registered callback functions */
+	return osmo_fd_disp_fds(&readset, &writeset, &exceptset);
 }
 
 /*! \brief find an osmo_fd based on the integer fd */
