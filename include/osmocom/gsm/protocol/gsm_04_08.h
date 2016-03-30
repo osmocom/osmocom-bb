@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include <osmocom/core/utils.h>
+
 /* GSM TS 04.08  definitions */
 struct gsm_lchan;
 
@@ -346,6 +348,8 @@ enum gsm48_chan_mode {
 	GSM48_CMODE_DATA_6k0	= 0x0b,
 	GSM48_CMODE_DATA_3k6	= 0x13,
 };
+
+extern const struct value_string gsm48_chan_mode_names[];
 
 /* Chapter 9.1.2 */
 struct gsm48_ass_cmd {

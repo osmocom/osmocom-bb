@@ -28,6 +28,7 @@
 #include <stdint.h>
 
 #include <osmocom/core/defs.h>
+#include <osmocom/core/utils.h>
 
 #define ADD_MODULO(sum, delta, modulo) do {	\
 	if ((sum += delta) >= modulo)		\
@@ -198,6 +199,8 @@ enum gsm_chan_t {
 	GSM_LCHAN_CBCH,
 	_GSM_LCHAN_MAX
 };
+
+extern const struct value_string gsm_chan_t_names[];
 
 /* Deprectated functions */
 /* Limit encoding and decoding to use no more than this amount of buffer bytes */

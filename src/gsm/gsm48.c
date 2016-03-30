@@ -32,7 +32,7 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/gsm0502.h>
-
+#include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
@@ -253,6 +253,30 @@ const char *rr_cause_name(uint8_t cause)
 {
 	return get_value_string(rr_cause_names, cause);
 }
+
+const struct value_string gsm48_chan_mode_names[] = {
+	{ GSM48_CMODE_SIGN,		"SIGNALLING" },
+	{ GSM48_CMODE_SPEECH_V1,	"SPEECH_V1" },
+	{ GSM48_CMODE_SPEECH_EFR,	"SPEECH_EFR" },
+	{ GSM48_CMODE_SPEECH_AMR,	"SPEECH_AMR" },
+	{ GSM48_CMODE_DATA_14k5,	"DATA_14k5" },
+	{ GSM48_CMODE_DATA_12k0,	"DATA_12k0" },
+	{ GSM48_CMODE_DATA_6k0,		"DATA_6k0" },
+	{ GSM48_CMODE_DATA_3k6,		"DATA_3k6" },
+	{ 0,				NULL },
+};
+
+const struct value_string gsm_chan_t_names[] = {
+	{ GSM_LCHAN_NONE,	"NONE" },
+	{ GSM_LCHAN_SDCCH,	"SDCCH" },
+	{ GSM_LCHAN_TCH_F,	"TCH_F" },
+	{ GSM_LCHAN_TCH_H,	"TCH_H" },
+	{ GSM_LCHAN_UNKNOWN,	"UNKNOWN" },
+	{ GSM_LCHAN_CCCH,	"CCCH" },
+	{ GSM_LCHAN_PDTCH,	"PDTCH" },
+	{ GSM_LCHAN_CBCH,	"CBCH" },
+	{ 0,			NULL },
+};
 
 static const struct value_string mi_type_names[] = {
 	{ GSM_MI_TYPE_NONE,	"NONE" },

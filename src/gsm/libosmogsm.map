@@ -144,6 +144,8 @@ gsm48_rr_att_tlvdef;
 gsm48_mi_type_name;
 gsm48_mcc_mnc_to_bcd;
 gsm48_mcc_mnc_from_bcd;
+gsm48_chan_mode_names;
+gsm_chan_t_names;
 
 gsm_7bit_decode;
 gsm_7bit_decode_ussd;
