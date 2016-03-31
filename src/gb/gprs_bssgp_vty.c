@@ -33,6 +33,7 @@
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/gprs/gprs_ns.h>
 #include <osmocom/gprs/gprs_bssgp.h>
+#include <osmocom/gprs/gprs_bssgp_bss.h>
 
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
@@ -113,6 +114,24 @@ static void dump_bssgp(struct vty *vty, int stats)
 	}
 }
 
+DEFUN(bvc_reset, bvc_reset_cmd,
+	"bssgp bvc nsei <0-65535> bvci <0-65535> reset",
+	"Initiate BVC RESET procedure for a given NSEI and BVCI\n")
+{
+	int r;
+	uint16_t nsei = atoi(argv[0]), bvci = atoi(argv[1]);
+	struct bssgp_bvc_ctx *bvc = btsctx_by_bvci_nsei(bvci, nsei);
+	if (!bvc) {
+		vty_out(vty, "No BVC for NSEI %d BVCI %d%s", nsei, bvci,
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	r = bssgp_tx_bvc_reset(bvc, bvci, BSSGP_CAUSE_OML_INTERV);
+	vty_out(vty, "Sent BVC RESET for NSEI %d BVCI %d: %d%s", nsei, bvci, r,
+		VTY_NEWLINE);
+	return CMD_SUCCESS;
+}
+
 #define BSSGP_STR "Show information about the BSSGP protocol\n"
 
 DEFUN(show_bssgp, show_bssgp_cmd, "show bssgp",
@@ -185,6 +204,7 @@ int bssgp_vty_init(void)
 	install_element_ve(&show_bssgp_stats_cmd);
 	install_element_ve(&show_bvc_cmd);
 	install_element_ve(&logging_fltr_bvc_cmd);
+	install_element_ve(&bvc_reset_cmd);
 
 	install_element(CFG_LOG_NODE, &logging_fltr_bvc_cmd);
 
