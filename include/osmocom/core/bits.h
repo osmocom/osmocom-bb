@@ -42,6 +42,9 @@ int osmo_ubit2pbit(pbit_t *out, const ubit_t *in, unsigned int num_bits);
 
 int osmo_pbit2ubit(ubit_t *out, const pbit_t *in, unsigned int num_bits);
 
+void osmo_ubit2sbit(sbit_t *out, const ubit_t *in, unsigned int num_bits);
+void osmo_sbit2ubit(ubit_t *out, const sbit_t *in, unsigned int num_bits);
+
 int osmo_ubit2pbit_ext(pbit_t *out, unsigned int out_ofs,
                        const ubit_t *in, unsigned int in_ofs,
                        unsigned int num_bits, int lsb_mode);

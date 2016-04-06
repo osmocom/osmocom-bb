@@ -339,25 +339,6 @@ fill_random(ubit_t *b, int n)
 		b[i] = random() & 1;
 }
 
-static void
-ubit_to_sbit(sbit_t *dst, ubit_t *src, int n)
-{
-	int i;
-	for (i=0; i<n; i++)
-		dst[i] = src[i] ? -127 : 127;
-}
-
-static void sbit_to_ubit(ubit_t *dst, sbit_t *src, int n) __attribute__((unused));
-
-static void
-sbit_to_ubit(ubit_t *dst, sbit_t *src, int n)
-{
-	int i;
-	for (i=0; i<n; i++)
-		dst[i] = src[i] < 0;
-}
-
-
 int main(int argc, char *argv[])
 {
 	const struct conv_test_vector *tst;
@@ -424,7 +405,7 @@ int main(int argc, char *argv[])
 
 			printf("[..] Decoding: ");
 
-			ubit_to_sbit(bs, bu0, l);
+			osmo_ubit2sbit(bs, bu0, l);
 
 			l = osmo_conv_decode(tst->code, bs, bu1);
 			if (l != 0) {
@@ -459,7 +440,7 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 
-			ubit_to_sbit(bs, bu1, l);
+			osmo_ubit2sbit(bs, bu1, l);
 
 			l = osmo_conv_decode(tst->code, bs, bu1);
 			if (l != 0) {

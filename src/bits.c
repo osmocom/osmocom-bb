@@ -61,6 +61,30 @@ int osmo_ubit2pbit(pbit_t *out, const ubit_t *in, unsigned int num_bits)
 	return outptr - out;
 }
 
+/*! \brief convert unpacked bits to soft bits
+ *  \param[out] out output buffer of soft bits
+ *  \param[in] in input buffer of unpacked bits
+ *  \param[in] num_bits number of bits
+ */
+void osmo_ubit2sbit(sbit_t *out, const ubit_t *in, unsigned int num_bits)
+{
+	unsigned int i;
+	for (i = 0; i < num_bits; i++)
+		out[i] = in[i] ? -127 : 127;
+}
+
+/*! \brief convert soft bits to unpacked bits
+ *  \param[out] out output buffer of unpacked bits
+ *  \param[in] in input buffer of soft bits
+ *  \param[in] num_bits number of bits
+ */
+void osmo_sbit2ubit(ubit_t *out, const sbit_t *in, unsigned int num_bits)
+{
+	unsigned int i;
+	for (i = 0; i < num_bits; i++)
+		out[i] = in[i] < 0;
+}
+
 /*! \brief convert packed bits to unpacked bits, return length in bytes
  *  \param[out] out output buffer of unpacked bits
  *  \param[in] in input buffer of packed bits
