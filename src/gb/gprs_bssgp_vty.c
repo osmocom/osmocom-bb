@@ -115,8 +115,14 @@ static void dump_bssgp(struct vty *vty, int stats)
 }
 
 DEFUN(bvc_reset, bvc_reset_cmd,
-	"bssgp bvc nsei <0-65535> bvci <0-65535> reset",
-	"Initiate BVC RESET procedure for a given NSEI and BVCI\n")
+      "bssgp bvc nsei <0-65535> bvci <0-65535> reset",
+      "Initiate BVC RESET procedure for a given NSEI and BVCI\n"
+      "Filter based on BSSGP Virtual Connection\n"
+      "NSEI of the BVC to be filtered\n"
+      "Network Service Entity Identifier (NSEI)\n"
+      "BVCI of the BVC to be filtered\n"
+      "BSSGP Virtual Connection Identifier (BVCI)\n"
+      "Perform reset procedure\n")
 {
 	int r;
 	uint16_t nsei = atoi(argv[0]), bvci = atoi(argv[1]);
