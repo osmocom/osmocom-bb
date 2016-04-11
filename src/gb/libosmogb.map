@@ -2,6 +2,7 @@ LIBOSMOGB_1.0 {
 global:
 bssgp_cause_str;
 bssgp_create_cell_id;
+bssgp_pdu_str;
 bssgp_fc_in;
 bssgp_fc_init;
 bssgp_fc_ms_init;
