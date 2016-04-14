@@ -190,6 +190,7 @@ void log_parse_category_mask(struct log_target* target, const char *_mask)
 		target->categories[i].enabled = 0;
 
 	category_token = strtok(mask, ":");
+	OSMO_ASSERT(category_token);
 	do {
 		for (i = 0; i < osmo_log_info->num_cat; ++i) {
 			size_t length, cat_length;
