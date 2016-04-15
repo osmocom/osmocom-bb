@@ -31,6 +31,7 @@ dbm2rxlev;
 
 osmo_earfcn_add;
 osmo_earfcn_del;
+osmo_earfcn_bit_size;
 osmo_earfcn_init;
 
 gprs_cipher_gen_input_i;

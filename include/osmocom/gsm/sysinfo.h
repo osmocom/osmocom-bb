@@ -66,6 +66,7 @@ typedef uint8_t sysinfo_buf_t[GSM_MACBLOCK_LEN];
 extern const struct value_string osmo_sitype_strs[_MAX_SYSINFO_TYPE];
 int osmo_earfcn_add(struct osmo_earfcn_si2q *e, uint16_t arfcn, uint8_t meas_bw);
 int osmo_earfcn_del(struct osmo_earfcn_si2q *e, uint16_t arfcn);
+size_t osmo_earfcn_bit_size(const struct osmo_earfcn_si2q *e);
 void osmo_earfcn_init(struct osmo_earfcn_si2q *e);
 uint8_t osmo_sitype2rsl(enum osmo_sysinfo_type si_type);
 enum osmo_sysinfo_type osmo_rsl2sitype(uint8_t rsl_si);

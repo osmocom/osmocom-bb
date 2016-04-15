@@ -144,6 +144,30 @@ int osmo_earfcn_add(struct osmo_earfcn_si2q *e, uint16_t arfcn, uint8_t meas_bw)
 	return -ENOMEM;
 }
 
+/*! \brief Return number of bits necessary to represent earfcn struct as
+ *  Repeated E-UTRAN Neighbour Cells IE from 3GPP TS 44.018 Table 10.5.2.33b.1
+ *  \param[in,out] e earfcn struct
+ *  \returns number of bits
+ */
+size_t osmo_earfcn_bit_size(const struct osmo_earfcn_si2q *e)
+{
+	/* 1 stop bit + 5 bits for THRESH_E-UTRAN_high */
+	size_t i, bits = 6;
+	for (i = 0; i < e->length; i++) {
+		if (e->arfcn[i] != OSMO_EARFCN_INVALID) {
+			bits += 17;
+			if (OSMO_EARFCN_MEAS_INVALID == e->meas_bw[i])
+				bits++;
+			else
+				bits += 4;
+		}
+	}
+	bits += (e->prio_valid) ? 4 : 1;
+	bits += (e->thresh_lo_valid) ? 6 : 1;
+	bits += (e->qrxlm_valid) ? 6 : 1;
+	return bits;
+}
+
 /*! \brief Delete arfcn (and corresponding measurement bandwith) from earfcn
  *  struct
  *  \param[in,out] e earfcn struct
