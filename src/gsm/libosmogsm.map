@@ -231,6 +231,7 @@ osmo_auth_alg_name;
 osmo_auth_alg_parse;
 osmo_auth_gen_vec;
 osmo_auth_gen_vec_auts;
+osmo_auth_3g_from_2g;
 osmo_auth_load;
 osmo_auth_register;
 osmo_auth_supported;

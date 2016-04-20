@@ -90,6 +90,47 @@ int osmo_auth_supported(enum osmo_auth_algo algo)
 	return 0;
 }
 
+/* C5 function to derive UMTS IK from GSM Kc */
+static inline void c5_function(uint8_t *ik, const uint8_t *kc)
+{
+	unsigned int i;
+
+	for (i = 0; i < 4; i++)
+		ik[i] = kc[i] ^ kc[i+4];
+	memcpy(ik+4, kc, 8);
+	for (i = 12; i < 16; i++)
+		ik[i] = ik[i-12];
+}
+
+/* C4 function to derive UMTS CK from GSM Kc */
+static inline void c4_function(uint8_t *ck, const uint8_t *kc)
+{
+	memcpy(ck, kc, 8);
+	memcpy(ck+8, kc, 8);
+}
+
+/*! \brief Generate 3G CK + IK from 2G authentication vector
+ *  \param vec Authentication Vector to be modified
+ *
+ * This function performs the C5 and C4 functions to derive the UMTS key
+ * material from the GSM key material in the supplied vector, _if_ the input
+ * vector doesn't yet have UMTS authentication capability */
+int osmo_auth_3g_from_2g(struct osmo_auth_vector *vec)
+{
+	if ((vec->auth_types & OSMO_AUTH_TYPE_GSM) &&
+	    !(vec->auth_types & OSMO_AUTH_TYPE_UMTS)) {
+		c5_function(vec->ik, vec->kc);
+		c4_function(vec->ck, vec->kc);
+		/* We cannot actually set OSMO_AUTH_TYPE_UMTS as we have no
+		 * AUTN and no RES, and thus can only perform GSM
+		 * authentication with this tuple.
+		 * */
+		return 1;
+	}
+
+	return 0;
+}
+
 /*! \brief Generate authentication vector
  *  \param[out] vec Generated authentication vector
  *  \param[in] aud Subscriber-specific key material
