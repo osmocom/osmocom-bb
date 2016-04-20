@@ -214,6 +214,7 @@ void logp2(int subsys, unsigned int level, const char *file,
 	   int line, int cont, const char *format, ...)
 				__attribute__ ((format (printf, 6, 7)));
 int log_init(const struct log_info *inf, void *talloc_ctx);
+void log_fini(void);
 int log_check_level(int subsys, unsigned int level);
 
 /* context management */
