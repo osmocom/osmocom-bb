@@ -44,6 +44,13 @@ gprs_cipher_key_length;
 gprs_tlli_type;
 gprs_tmsi2tlli;
 
+gsm48_gmm_cause_names;
+gsm48_gsm_cause_names;
+gprs_att_t_strs;
+gprs_upd_t_strs;
+gprs_det_t_mo_strs;
+gprs_det_t_mt_strs;
+
 gsm0341_build_msg;
 
 gsm0480_create_notifySS;
