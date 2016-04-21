@@ -24,6 +24,7 @@
 
 #include <stdint.h>
 
+#include <osmocom/core/defs.h>
 #include <osmocom/core/bits.h>
 
 /*! \defgroup a5 GSM A5 ciphering algorithm
@@ -54,7 +55,7 @@ osmo_a5_fn_count(uint32_t fn)
 	 *    (converted internally to fn_count)
 	 */
 int osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
-void osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
-void osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
+void osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul) OSMO_DEPRECATED("Use generic osmo_a5() instead");
+void osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul) OSMO_DEPRECATED("Use generic osmo_a5() instead");
 
 /*! @} */

@@ -101,54 +101,6 @@ _a5_3(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul, bool fn_correct)
        _a5_4(ck, fn, dl, ul, fn_correct);
 }
 
-/*! \brief Main method to generate a A5/x cipher stream
- *  \param[in] n Which A5/x method to use
- *  \param[in] key 8 or 16 (for a5/4) byte array for the key (as received from the SIM)
- *  \param[in] fn Frame number
- *  \param[out] dl Pointer to array of ubits to return Downlink cipher stream
- *  \param[out] ul Pointer to array of ubits to return Uplink cipher stream
- *  \returns 0 for success, -ENOTSUP for invalid cipher selection.
- *
- * Currently A5/[0-4] are supported.
- * Either (or both) of dl/ul can be NULL if not needed.
- */
-int
-osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
-{
-	switch (n)
-	{
-	case 0:
-		if (dl)
-			memset(dl, 0x00, 114);
-		if (ul)
-			memset(ul, 0x00, 114);
-		break;
-
-	case 1:
-		osmo_a5_1(key, fn, dl, ul);
-		break;
-
-	case 2:
-		osmo_a5_2(key, fn, dl, ul);
-		break;
-
-	case 3:
-		_a5_3(key, fn, dl, ul, true);
-		break;
-
-	case 4:
-		_a5_4(key, fn, dl, ul, true);
-		break;
-
-	default:
-		/* a5/[5..7] not supported here/yet */
-		return -ENOTSUP;
-	}
-
-	return 0;
-}
-
-
 /* ------------------------------------------------------------------------ */
 /* A5/1&2 common stuff                                                                     */
 /* ------------------------------------------------------------------------ */
@@ -261,7 +213,7 @@ _a5_1_get_output(uint32_t r[])
  * Either (or both) of dl/ul can be NULL if not needed.
  */
 void
-osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
+_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 {
 	uint32_t r[3] = {0, 0, 0};
 	uint32_t fn_count;
@@ -314,6 +266,10 @@ osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 	}
 }
 
+void osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
+{
+	osmo_a5(1, key, fn, dl, ul);
+}
 
 /* ------------------------------------------------------------------------ */
 /* A5/2                                                                     */
@@ -378,7 +334,7 @@ _a5_2_get_output(uint32_t r[])
  * Either (or both) of dl/ul can be NULL if not needed.
  */
 void
-osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
+_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 {
 	uint32_t r[4] = {0, 0, 0, 0};
 	uint32_t fn_count;
@@ -436,6 +392,58 @@ osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
 		if (ul)
 			ul[i] = _a5_2_get_output(r);
 	}
+}
+
+void osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
+{
+	osmo_a5(2, key, fn, dl, ul);
+}
+
+/*! \brief Main method to generate a A5/x cipher stream
+ *  \param[in] n Which A5/x method to use
+ *  \param[in] key 8 or 16 (for a5/4) byte array for the key (as received from the SIM)
+ *  \param[in] fn Frame number
+ *  \param[out] dl Pointer to array of ubits to return Downlink cipher stream
+ *  \param[out] ul Pointer to array of ubits to return Uplink cipher stream
+ *  \returns 0 for success, -ENOTSUP for invalid cipher selection.
+ *
+ * Currently A5/[0-4] are supported.
+ * Either (or both) of dl/ul can be NULL if not needed.
+ */
+int
+osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul)
+{
+	switch (n)
+	{
+	case 0:
+		if (dl)
+			memset(dl, 0x00, 114);
+		if (ul)
+			memset(ul, 0x00, 114);
+		break;
+
+	case 1:
+		_a5_1(key, fn, dl, ul);
+		break;
+
+	case 2:
+		_a5_2(key, fn, dl, ul);
+		break;
+
+	case 3:
+		_a5_3(key, fn, dl, ul, true);
+		break;
+
+	case 4:
+		_a5_4(key, fn, dl, ul, true);
+		break;
+
+	default:
+		/* a5/[5..7] not supported here/yet */
+		return -ENOTSUP;
+	}
+
+	return 0;
 }
 
 /*! @} */
