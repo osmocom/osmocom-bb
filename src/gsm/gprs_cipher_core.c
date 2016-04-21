@@ -53,12 +53,14 @@ int gprs_cipher_register(struct gprs_cipher_impl *ciph)
 int gprs_cipher_load(const char *path)
 {
 	/* load all plugins available from path */
-	return osmo_plugin_load_all(path);
+	if (path)
+		return osmo_plugin_load_all(path);
+	return 0;
 }
 
 /* function to be called by core code */
 int gprs_cipher_run(uint8_t *out, uint16_t len, enum gprs_ciph_algo algo,
-		    uint64_t kc, uint32_t iv, enum gprs_cipher_direction dir)
+		    uint8_t *kc, uint32_t iv, enum gprs_cipher_direction dir)
 {
 	if (algo >= ARRAY_SIZE(selected_ciphers))
 		return -ERANGE;
@@ -71,6 +73,23 @@ int gprs_cipher_run(uint8_t *out, uint16_t len, enum gprs_ciph_algo algo,
 
 	/* run the actual cipher from the plugin */
 	return selected_ciphers[algo]->run(out, len, kc, iv, dir);
+}
+
+/*! \brief Obtain key lenght for given GPRS cipher
+ *  \param[in] algo Enum representive GPRS cipher
+ *  \returns unsigned integer key length for supported algorithms,
+ *  for GEA0 and unknown ciphers will return 0
+ */
+unsigned gprs_cipher_key_length(enum gprs_ciph_algo algo)
+{
+	switch (algo) {
+	case GPRS_ALGO_GEA0: return 0;
+	case GPRS_ALGO_GEA1:
+	case GPRS_ALGO_GEA2:
+	case GPRS_ALGO_GEA3: return 8;
+	case GPRS_ALGO_GEA4: return 16;
+	default: return 0;
+	}
 }
 
 int gprs_cipher_supported(enum gprs_ciph_algo algo)

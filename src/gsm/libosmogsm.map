@@ -40,6 +40,7 @@ gprs_cipher_load;
 gprs_cipher_register;
 gprs_cipher_run;
 gprs_cipher_supported;
+gprs_cipher_key_length;
 gprs_tlli_type;
 gprs_tmsi2tlli;
 
