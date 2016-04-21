@@ -185,7 +185,7 @@ _comp128_permutation(uint8_t *x, uint8_t *bits)
 }
 
 void
-comp128(const uint8_t *ki, const uint8_t *rand, uint8_t *sres, uint8_t *kc)
+comp128v1(const uint8_t *ki, const uint8_t *rand, uint8_t *sres, uint8_t *kc)
 {
 	int i;
 	uint8_t x[32], bits[128];
@@ -228,3 +228,8 @@ comp128(const uint8_t *ki, const uint8_t *rand, uint8_t *sres, uint8_t *kc)
 	kc[7] = 0;
 }
 
+void
+comp128(const uint8_t *ki, const uint8_t *rand, uint8_t *sres, uint8_t *kc)
+{
+    comp128v1(ki, rand, sres, kc);
+}
