@@ -64,7 +64,9 @@
 
 //#include <openbsc/gsm_data.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/bitvec.h>
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -653,6 +655,40 @@ uint32_t gsm_gsmtime2fn(struct gsm_time *time)
 {
 	/* TS 05.02 Chapter 4.3.3 TDMA frame number */
 	return (51 * ((time->t3 - time->t2 + 26) % 26) + time->t3 + (26 * 51 * time->t1));
+}
+
+/*! \brief append range1024 encoded data to bit vector */
+void bitvec_add_range1024(struct bitvec *bv, const struct gsm48_range_1024 *r)
+{
+	bitvec_set_uint(bv, r->w1_hi, 2);
+	bitvec_set_uint(bv, r->w1_lo, 8);
+	bitvec_set_uint(bv, r->w2_hi, 8);
+	bitvec_set_uint(bv, r->w2_lo, 1);
+	bitvec_set_uint(bv, r->w3_hi, 7);
+	bitvec_set_uint(bv, r->w3_lo, 2);
+	bitvec_set_uint(bv, r->w4_hi, 6);
+	bitvec_set_uint(bv, r->w4_lo, 2);
+	bitvec_set_uint(bv, r->w5_hi, 6);
+	bitvec_set_uint(bv, r->w5_lo, 2);
+	bitvec_set_uint(bv, r->w6_hi, 6);
+	bitvec_set_uint(bv, r->w6_lo, 2);
+	bitvec_set_uint(bv, r->w7_hi, 6);
+	bitvec_set_uint(bv, r->w7_lo, 2);
+	bitvec_set_uint(bv, r->w8_hi, 6);
+	bitvec_set_uint(bv, r->w8_lo, 1);
+	bitvec_set_uint(bv, r->w9, 7);
+	bitvec_set_uint(bv, r->w10, 7);
+	bitvec_set_uint(bv, r->w11_hi, 1);
+	bitvec_set_uint(bv, r->w11_lo, 6);
+	bitvec_set_uint(bv, r->w12_hi, 2);
+	bitvec_set_uint(bv, r->w12_lo, 5);
+	bitvec_set_uint(bv, r->w13_hi, 3);
+	bitvec_set_uint(bv, r->w13_lo, 4);
+	bitvec_set_uint(bv, r->w14_hi, 4);
+	bitvec_set_uint(bv, r->w14_lo, 3);
+	bitvec_set_uint(bv, r->w15_hi, 5);
+	bitvec_set_uint(bv, r->w15_lo, 2);
+	bitvec_set_uint(bv, r->w16, 6);
 }
 
 /* TS 23.003 Chapter 2.6 */
