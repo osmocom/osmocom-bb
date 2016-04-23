@@ -934,8 +934,8 @@ static int gprs_ns_rx_reset_ack(struct gprs_nsvc **nsvc, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	nsvci = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_VCI));
-	nsei  = ntohs(*(uint16_t *) TLVP_VAL(&tp, NS_IE_NSEI));
+	nsvci = ntohs(tlvp_val16_unal(&tp, NS_IE_VCI));
+	nsei  = ntohs(tlvp_val16_unal(&tp, NS_IE_NSEI));
 
 	LOGP(DNS, LOGL_INFO, "NSVCI=%u%s Rx NS RESET ACK (NSEI=%u, NSVCI=%u)\n",
 	     (*nsvc)->nsvci, (*nsvc)->nsvci_is_valid ? "" : "(invalid)",

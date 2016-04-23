@@ -416,7 +416,7 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp)
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 	}
 
-	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+	tlli = ntohl(tlvp_val32_unal(tp, BSSGP_IE_TLLI));
 
 	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%08x Rx SUSPEND\n",
 		ns_bvci, tlli);
@@ -458,7 +458,7 @@ static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp)
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 	}
 
-	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+	tlli = ntohl(tlvp_val32_unal(tp, BSSGP_IE_TLLI));
 	suspend_ref = *TLVP_VAL(tp, BSSGP_IE_SUSPEND_REF_NR);
 
 	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%08x Rx RESUME\n", ns_bvci, tlli);
