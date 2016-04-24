@@ -35,3 +35,6 @@ override_dh_auto_test:
 override_dh_autoreconf:
 	echo $(VERSION) > .tarball-version
 	dh_autoreconf
+
+override_dh_auto_configure:
+	dh_auto_configure -- --enable-static
