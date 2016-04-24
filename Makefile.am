@@ -50,7 +50,7 @@ install-data-hook:
 uninstall-hook:
 	cd $(DESTDIR)$(htmldir) && rm -rf {core,gsm,vty,codec}
 
-DX_CLEAN = doc/{core,gsm,vty,codec}/html/search/* doc/{core,gsm,vty,codec}/{html,latex}/* doc/html.tar doc/{core,gsm,vty,codec}/doxygen_sqlite3.db
+DX_CLEAN = doc/{core,gsm,vty,codec}/html/search/* doc/{core,gsm,vty,codec}/{html,latex}/* doc/html.tar doc/{core,gsm,vty,codec}/doxygen_sqlite3.db doc/*.tag
 endif
 
 MOSTLYCLEANFILES = $(DX_CLEAN)
