@@ -309,5 +309,8 @@ osmo_apn_qualify_from_imsi;
 osmo_apn_to_str;
 osmo_apn_from_str;
 
+osmo_gsup_encode;
+osmo_gsup_decode;
+
 local: *;
 };

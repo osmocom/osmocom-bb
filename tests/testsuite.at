@@ -190,3 +190,9 @@ AT_KEYWORDS([tlv])
 cat $abs_srcdir/tlv/tlv_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/tlv/tlv_test], [0], [expout], [ignore])
 AT_CLEANUP
+
+AT_SETUP([gsup])
+AT_KEYWORDS([gsup])
+cat $abs_srcdir/gsup/gsup_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gsup/gsup_test], [0], [expout], [ignore])
+AT_CLEANUP
