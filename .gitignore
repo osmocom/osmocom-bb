@@ -98,6 +98,7 @@ doc/vty/html
 doc/vty/doxygen_sqlite3.db
 doc/gsm
 doc/html.tar
+doc/*.tag
 
 src/crc*gen.c
 src/gsm/conv*gen.c
