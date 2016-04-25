@@ -436,4 +436,15 @@ static inline uint32_t tlvp_val32_unal(const struct tlv_parsed *tp, int pos)
 	return res;
 }
 
+int osmo_shift_v_fixed(uint8_t **data, size_t *data_len,
+		       size_t len, uint8_t **value);
+int osmo_match_shift_tv_fixed(uint8_t **data, size_t *data_len,
+			      uint8_t tag, size_t len, uint8_t **value);
+int osmo_shift_tlv(uint8_t **data, size_t *data_len,
+		   uint8_t *tag, uint8_t **value, size_t *value_len);
+int osmo_match_shift_tlv(uint8_t **data, size_t *data_len,
+		   uint8_t tag, uint8_t **value, size_t *value_len);
+int osmo_shift_lv(uint8_t **data, size_t *data_len,
+		  uint8_t **value, size_t *value_len);
+
 /*! @} */

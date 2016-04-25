@@ -225,4 +225,175 @@ static __attribute__((constructor)) void on_dso_load_tlv(void)
 		vtvlv_gan_att_def.def[i].type = TLV_TYPE_vTvLV_GAN;
 }
 
+/*! Advance the data pointer, subtract length and assign value pointer
+ *  \param data pointer to the pointer to data
+ *  \param data_len pointer to size_t containing \arg data length
+ *  \param[in] len the length that we expect the fixed IE to hav
+ *  \param[out] value pointer to pointer of value part of IE
+ *  \returns length of IE value; negative in case of error
+ */
+int osmo_shift_v_fixed(uint8_t **data, size_t *data_len,
+			size_t len, uint8_t **value)
+{
+	if (len > *data_len)
+		goto fail;
+
+	if (value)
+		*value = *data;
+
+	*data += len;
+	*data_len -= len;
+
+	return len;
+
+fail:
+	*data += *data_len;
+	*data_len = 0;
+	return -1;
+}
+
+/*! Match tag, check length and assign value pointer
+ *  \param data pointer to the pointer to data
+ *  \param data_len pointer to size_t containing \arg data length
+ *  \param[in] tag the tag (IEI) that we expect at \arg data
+ *  \param[in] len the length that we expect the fixed IE to have
+ *  \param[out] value pointer to pointer of value part of IE
+ *  \returns length of IE value; negative in case of error
+ */
+int osmo_match_shift_tv_fixed(uint8_t **data, size_t *data_len,
+			      uint8_t tag, size_t len,
+			      uint8_t **value)
+{
+	size_t ie_len;
+
+	if (*data_len == 0)
+		goto fail;
+
+	if ((*data)[0] != tag)
+		return 0;
+
+	if (len > *data_len - 1)
+		goto fail;
+
+	if (value)
+		*value = *data + 1;
+
+	ie_len = len + 1;
+	*data += ie_len;
+	*data_len -= ie_len;
+
+	return ie_len;
+
+fail:
+	*data += *data_len;
+	*data_len = 0;
+	return -1;
+}
+
+/*! Verify TLV header and advance data / subtract length
+ *  \param data pointer to the pointer to data
+ *  \param data_len pointer to size_t containing \arg data length
+ *  \param[in] expected_tag the tag (IEI) that we expect at \arg data
+ *  \param[out] value pointer to pointer of value part of IE
+ *  \param[out] value_len pointer to length of \arg value
+ *  \returns length of IE value; negative in case of error
+ */
+int osmo_match_shift_tlv(uint8_t **data, size_t *data_len,
+			 uint8_t expected_tag, uint8_t **value,
+			 size_t *value_len)
+{
+	int rc;
+	uint8_t tag;
+	uint8_t *old_data = *data;
+	size_t old_data_len = *data_len;
+
+	rc = osmo_shift_tlv(data, data_len, &tag, value, value_len);
+
+	if (rc > 0 && tag != expected_tag) {
+		*data = old_data;
+		*data_len = old_data_len;
+		return 0;
+	}
+
+	return rc;
+}
+
+/*! Extract TLV and advance data pointer + subtract length
+ *  \param data pointer to the pointer to data
+ *  \param data_len  pointer to size_t containing \arg data lengt
+ *  \param[out] tag extract the tag (IEI) at start of \arg data
+ *  \param[out] value extracted pointer to value part of TLV
+ *  \param[out] value_len extracted length of \arg value
+ *  \returns number of bytes subtracted
+ */
+int osmo_shift_tlv(uint8_t **data, size_t *data_len,
+	      uint8_t *tag, uint8_t **value, size_t *value_len)
+{
+	size_t len;
+	size_t ie_len;
+
+	if (*data_len < 2)
+		goto fail;
+
+	len = (*data)[1];
+	if (len > *data_len - 2)
+		goto fail;
+
+	if (tag)
+		*tag = (*data)[0];
+	if (value)
+		*value = *data + 2;
+	if (value_len)
+		*value_len = len;
+
+	ie_len = len + 2;
+
+	*data += ie_len;
+	*data_len -= ie_len;
+
+	return ie_len;
+
+fail:
+	*data += *data_len;
+	*data_len = 0;
+	return -1;
+}
+
+/*! Extract LV and advance data pointer + subtract length
+ *  \param data pointer to the pointer to data
+ *  \param data_len  pointer to size_t containing \arg data lengt
+ *  \param[out] value extracted pointer to value part of TLV
+ *  \param[out] value_len extracted length of \arg value
+ *  \returns number of bytes subtracted
+ */
+int osmo_shift_lv(uint8_t **data, size_t *data_len,
+		  uint8_t **value, size_t *value_len)
+{
+	size_t len;
+	size_t ie_len;
+
+	if (*data_len < 1)
+		goto fail;
+
+	len = (*data)[0];
+	if (len > *data_len - 1)
+		goto fail;
+
+	if (value)
+		*value = *data + 1;
+	if (value_len)
+		*value_len = len;
+
+	ie_len = len + 1;
+	*data += ie_len;
+	*data_len -= ie_len;
+
+	return ie_len;
+
+fail:
+	*data += *data_len;
+	*data_len = 0;
+	return -1;
+}
+
 /*! @} */
