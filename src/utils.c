@@ -28,6 +28,8 @@
 #include <stdio.h>
 
 #include <osmocom/core/utils.h>
+#include <osmocom/core/bit64gen.h>
+
 
 /*! \addtogroup utils
  * @{
@@ -257,4 +259,64 @@ void osmo_str2upper(char *out, const char *in)
 }
 #endif /* HAVE_CTYPE_H */
 
+/*! \brief Wishful thinking to generate a constant time compare
+ *  \param[in] exp Expected data
+ *  \param[in] rel Comparison value
+ *  \param[in] count Number of bytes to compare
+ *  \returns 1 in case \a exp equals \a rel; zero otherwise
+ *
+ * Compare count bytes of exp to rel. Return 0 if they are identical, 1
+ * otherwise. Do not return a mismatch on the first mismatching byte,
+ * but always compare all bytes, regardless. The idea is that the amount of
+ * matching bytes cannot be inferred from the time the comparison took. */
+int osmo_constant_time_cmp(const uint8_t *exp, const uint8_t *rel, const int count)
+{
+	int x = 0, i;
+
+	for (i = 0; i < count; ++i)
+		x |= exp[i] ^ rel[i];
+
+	/* if x is zero, all data was identical */
+	return x? 1 : 0;
+}
+
+/*! \brief Generic retrieval of 1..8 bytes as big-endian uint64_t
+ *  \param[in] data Input data as byte-array
+ *  \param[in] data_len Length of \a data in octets
+ *  \returns uint64_t of \a data interpreted as big-endian
+ *
+ * This is like osmo_load64be_ext, except that if data_len is less than
+ * sizeof(uint64_t), the data is interpreted as the least significant bytes
+ * (osmo_load64be_ext loads them as the most significant bytes into the
+ * returned uint64_t). In this way, any integer size up to 64 bits can be
+ * decoded conveniently by using sizeof(), without the need to call specific
+ * numbered functions (osmo_load16, 32, ...). */
+uint64_t osmo_decode_big_endian(const uint8_t *data, size_t data_len)
+{
+	uint64_t value = 0;
+
+	while (data_len > 0) {
+		value = (value << 8) + *data;
+		data += 1;
+		data_len -= 1;
+	}
+
+	return value;
+}
+
+/*! \brief Generic big-endian encoding of big endian number up to 64bit
+ *  \param[in] value unsigned integer value to be stored
+ *  \param[in] data_len number of octets 
+ *  \returns static buffer containing big-endian stored value
+ *
+ * This is like osmo_store64be_ext, except that this returns a static buffer of
+ * the result (for convenience, but not threadsafe). If data_len is less than
+ * sizeof(uint64_t), only the least significant bytes of value are encoded. */
+uint8_t *osmo_encode_big_endian(uint64_t value, size_t data_len)
+{
+	static uint8_t buf[sizeof(uint64_t)];
+	OSMO_ASSERT(data_len <= ARRAY_SIZE(buf));
+	osmo_store64be_ext(value, buf, data_len);
+	return buf;
+}
 /*! @} */

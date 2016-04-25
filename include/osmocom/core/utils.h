@@ -76,4 +76,8 @@ static inline void osmo_talloc_replace_string(void *ctx, char **dst, char *newst
 	*dst = talloc_strdup(ctx, newstr);
 }
 
+int osmo_constant_time_cmp(const uint8_t *exp, const uint8_t *rel, const int count);
+uint64_t osmo_decode_big_endian(const uint8_t *data, size_t data_len);
+uint8_t *osmo_encode_big_endian(uint64_t value, size_t data_len);
+
 /*! @} */
