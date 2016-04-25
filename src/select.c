@@ -47,6 +47,7 @@ static int unregistered_count;
 
 /*! \brief Register a new file descriptor with select loop abstraction
  *  \param[in] fd osmocom file descriptor to be registered
+ *  \returns 0 on success; negative in case of error
  */
 int osmo_fd_register(struct osmo_fd *fd)
 {
@@ -160,6 +161,7 @@ restart:
 
 /*! \brief select main loop integration
  *  \param[in] polling should we pollonly (1) or block on select (0)
+ *  \returns 0 if no fd handled; 1 if fd handled; negative in case of error
  */
 int osmo_select_main(int polling)
 {
@@ -189,7 +191,9 @@ int osmo_select_main(int polling)
 	return osmo_fd_disp_fds(&readset, &writeset, &exceptset);
 }
 
-/*! \brief find an osmo_fd based on the integer fd */
+/*! \brief find an osmo_fd based on the integer fd
+ *  \param[in] fd file descriptor to use as search key
+ *  \returns \ref osmo_fd for \ref fd; NULL in case it doesn't exist */
 struct osmo_fd *osmo_fd_get_by_fd(int fd)
 {
 	struct osmo_fd *ofd;

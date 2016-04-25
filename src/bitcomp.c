@@ -232,9 +232,9 @@ static const unsigned t4_make_up[2][15] = {
 
 /*! \brief Attempt to decode compressed bit vector
  *
- * Return length of RLE according to modified ITU-T T.4 from TS 44.060 Table 9.1.10.2
- * or -1 if no applicable RLE found
- * N. B: we need explicit bit length to make decoding unambiguous
+ *  \return length of RLE according to modified ITU-T T.4 from TS 44.060
+ *  Table 9.1.10.2 or -1 if no applicable RLE found N. B: we need
+ *  explicit bit length to make decoding unambiguous
 */
 static inline int t4_rle_term(unsigned w, bool b, unsigned bits)
 {
@@ -256,8 +256,9 @@ static inline int t4_rle_makeup(unsigned w, bool b, unsigned bits)
 
 /*! \brief Make-up codes for a given length
  *
- * Return proper make-up code word for an uninterrupted sequence of b bits
- * of length len according to modified ITU-T T.4 from TS 44.060 Table 9.1.10.2 */
+ *  \return Return proper make-up code word for an uninterrupted
+ *  sequence of b bits of length len according to modified ITU-T T.4
+ *  from TS 44.060 Table 9.1.10.2 */
 static inline int t4_rle(struct bitvec *bv, unsigned len, bool b)
 {
 	if (len >= 960) {
@@ -384,7 +385,7 @@ static inline enum dec_state _t4_step(struct bitvec *v, uint16_t w, bool b, unsi
  *  \param[in] in bit vector with encoded data
  *  \param[in] cc color code (whether decoding should start with 1 or 0)
  *  \param[out] out the bit vector to store result into
- * returns 0 on success, negative value otherwise
+ *  \return 0 on success, negative value otherwise
  */
 int osmo_t4_decode(const struct bitvec *in, bool cc, struct bitvec *out)
 {
@@ -437,7 +438,8 @@ int osmo_t4_decode(const struct bitvec *in, bool cc, struct bitvec *out)
 /*! \brief encode bit vector in-place using T4 encoding
  *  Assumes MSB first encoding.
  *  \param[in] bv bit vector to be encoded
- * returns color code (if the encoding started with 0 or 1) or -1 on failure (encoded is bigger than original)
+ *  \return color code (if the encoding started with 0 or 1) or -1 on
+ *  failure (encoded is bigger than original)
  */
 int osmo_t4_encode(struct bitvec *bv)
 {

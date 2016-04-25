@@ -78,10 +78,13 @@ static inline void rate_ctr_group_upd_idx(struct rate_ctr_group *grp, unsigned i
 
 void rate_ctr_group_free(struct rate_ctr_group *grp);
 
-/*! \brief Increment the counter by \a inc */
+/*! \brief Increment the counter by \a inc
+ *  \param ctr \ref rate_ctr to increment
+ *  \param inc quantity to increment \a ctr by */
 void rate_ctr_add(struct rate_ctr *ctr, int inc);
 
-/*! \brief Increment the counter by 1 */
+/*! \brief Increment the counter by 1
+ *  \param ctr \ref rate_ctr to increment */
 static inline void rate_ctr_inc(struct rate_ctr *ctr)
 {
 	rate_ctr_add(ctr, 1);

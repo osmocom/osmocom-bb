@@ -40,7 +40,7 @@
  * a multi-threaded context, you have to add your own locking.
  *
  * \section sec_copyright Copyright and License
- * Copyright © 2008-2011 - Harald Welte, Holger Freyther and contributors\n
+ * Copyright © 2008-2016 - Harald Welte, Holger Freyther and contributors\n
  * All rights reserved. \n\n
  * The source code of libosmocore is licensed under the terms of the GNU
  * General Public License as published by the Free Software Foundation;

@@ -249,6 +249,8 @@ restart:
 	return work;
 }
 
+/*! \brief Check how many timers we have in the system
+ *  \returns number of \ref osmo_timer_list registered */
 int osmo_timers_check(void)
 {
 	struct rb_node *node;

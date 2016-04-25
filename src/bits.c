@@ -89,6 +89,7 @@ void osmo_sbit2ubit(ubit_t *out, const sbit_t *in, unsigned int num_bits)
  *  \param[out] out output buffer of unpacked bits
  *  \param[in] in input buffer of packed bits
  *  \param[in] num_bits number of bits
+ *  \return number of bytes used in \ref out
  */
 int osmo_pbit2ubit(ubit_t *out, const pbit_t *in, unsigned int num_bits)
 {

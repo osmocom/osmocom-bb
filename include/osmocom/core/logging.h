@@ -19,6 +19,11 @@
 #define DEBUG
 
 #ifdef DEBUG
+/*! \brief Log a debug message through the Osmocom logging framework
+ *  \param[in] ss logging subsystem (e.g. \ref DLGLOBAL)
+ *  \param[in] fmt format string
+ *  \param[in] args variable argument list
+ */
 #define DEBUGP(ss, fmt, args...) \
 	do { \
 		if (log_check_level(ss, LOGL_DEBUG)) \
@@ -68,7 +73,7 @@ void logp(int subsys, const char *file, int line, int cont, const char *format, 
 
 /*! \brief different log levels */
 #define LOGL_DEBUG	1	/*!< \brief debugging information */
-#define LOGL_INFO	3
+#define LOGL_INFO	3	/*!< \brief general information */
 #define LOGL_NOTICE	5	/*!< \brief abnormal/unexpected condition */
 #define LOGL_ERROR	7	/*!< \brief error condition, requires user action */
 #define LOGL_FATAL	8	/*!< \brief fatal, program aborted */
@@ -76,21 +81,22 @@ void logp(int subsys, const char *file, int line, int cont, const char *format, 
 #define LOG_FILTER_ALL	0x0001
 
 /* logging levels defined by the library itself */
-#define DLGLOBAL	-1
-#define DLLAPD		-2
-#define DLINP		-3
-#define DLMUX		-4
-#define DLMI		-5
-#define DLMIB		-6
-#define DLSMS		-7
-#define DLCTRL		-8
-#define DLGTP		-9
-#define DLSTATS		-10
-#define OSMO_NUM_DLIB	10
+#define DLGLOBAL	-1	/*!< global logging */
+#define DLLAPD		-2	/*!< LAPD implementation */
+#define DLINP		-3	/*!< (A-bis) Input sub-system */
+#define DLMUX		-4	/*!< Osmocom Multiplex (Osmux) */
+#define DLMI		-5	/*!< ISDN-layer below input sub-system */
+#define DLMIB		-6	/*!< ISDN layer B-channel */
+#define DLSMS		-7	/*!< SMS sub-system */
+#define DLCTRL		-8	/*!< Control Interface */
+#define DLGTP		-9	/*!< GTP (GPRS Tunneling Protocol */
+#define DLSTATS		-10	/*!< Statistics */
+#define OSMO_NUM_DLIB	10	/*!< Number of logging sub-systems in libraries */
 
+/*! Configuration of singgle log category / sub-system */
 struct log_category {
-	uint8_t loglevel;
-	uint8_t enabled;
+	uint8_t loglevel;	/*!< configured log-level */
+	uint8_t enabled;	/*!< is logging enabled? */
 };
 
 /*! \brief Information regarding one logging category */
@@ -136,9 +142,9 @@ struct log_info {
 	/*! \brief total number of user categories (not library) */
 	unsigned int num_cat_user;
 
-	/* \brief filter saving function */
+	/*! \brief filter saving function */
 	log_save_filters *save_fn;
-	/* \brief filter saving function */
+	/*! \brief filter saving function */
 	log_print_filters *print_fn;
 };
 

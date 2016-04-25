@@ -14,8 +14,11 @@ struct sockaddr;
 struct osmo_fd;
 
 /* flags for osmo_sock_init. */
+/*! connect the socket to a remote peer */
 #define OSMO_SOCK_F_CONNECT	(1 << 0)
+/*! bind the socket to a local address/port */
 #define OSMO_SOCK_F_BIND	(1 << 1)
+/*! switch socket to non-blocking mode */
 #define OSMO_SOCK_F_NONBLOCK	(1 << 2)
 
 int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,

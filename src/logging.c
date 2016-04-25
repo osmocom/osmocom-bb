@@ -142,13 +142,19 @@ static int subsys_lib2index(int subsys)
 	return (subsys * -1) + (osmo_log_info->num_cat_user-1);
 }
 
-/*! \brief Parse a human-readable log level into a numeric value */
+/*! \brief Parse a human-readable log level into a numeric value
+ *  \param lvl[in] zero-terminated string containing log level name
+ *  \returns numeric log level
+ */
 int log_parse_level(const char *lvl)
 {
 	return get_string_value(loglevel_strs, lvl);
 }
 
-/*! \brief convert a numeric log level into human-readable string */
+/*! \brief convert a numeric log level into human-readable string
+ *  \param lvl[in] numeric log level
+ *  \returns zero-terminated string (log level name)
+ */
 const char *log_level_str(unsigned int lvl)
 {
 	return get_value_string(loglevel_strs, lvl);
@@ -353,7 +359,14 @@ static inline int check_log_to_target(struct log_target *tar, int subsys, int le
 	return 1;
 }
 
-/*! \brief vararg version of logging function */
+/*! \brief vararg version of logging function
+ *  \param[in] subsys Logging sub-system
+ *  \param[in] level Log level
+ *  \param[in] file name of source code file
+ *  \param[in] cont continuation (1) or new line (0)
+ *  \param[in] format format string
+ *  \param[in] ap vararg-list containing format string arguments
+ */
 void osmo_vlogp(int subsys, int level, const char *file, int line,
 		int cont, const char *format, va_list ap)
 {
@@ -376,7 +389,12 @@ void osmo_vlogp(int subsys, int level, const char *file, int line,
 	}
 }
 
-/*! \brief logging function used by DEBUGP() macro */
+/*! \brief logging function used by DEBUGP() macro
+ *  \param[in] subsys Logging sub-system
+ *  \param[in] file name of source code file
+ *  \param[in] cont continuation (1) or new line (0)
+ *  \param[in] format format string
+ */
 void logp(int subsys, const char *file, int line, int cont,
 	  const char *format, ...)
 {
@@ -387,7 +405,13 @@ void logp(int subsys, const char *file, int line, int cont,
 	va_end(ap);
 }
 
-/*! \brief logging function used by LOGP() macro */
+/*! \brief logging function used by LOGP() macro
+ *  \param[in] subsys Logging sub-system
+ *  \param[in] level Log level
+ *  \param[in] file name of source code file
+ *  \param[in] cont continuation (1) or new line (0)
+ *  \param[in] format format string
+ */
 void logp2(int subsys, unsigned int level, const char *file, int line, int cont, const char *format, ...)
 {
 	va_list ap;
@@ -422,6 +446,7 @@ void log_reset_context(void)
 /*! \brief Set the logging context
  *  \param[in] ctx_nr logging context number
  *  \param[in] value value to which the context is to be set
+ *  \returns 0 in case of success; negative otherwise
  *
  * A logging context is something like the subscriber identity to which
  * the currently processed message relates, or the BTS through which it
@@ -537,7 +562,12 @@ static void _file_output(struct log_target *target, unsigned int level,
 	fflush(target->tgt_file.out);
 }
 
-/*! \brief Create a new log target skeleton */
+/*! \brief Create a new log target skeleton
+ *  \returns dynamically-allocated log target
+ *  This funcition allocates a \ref log_target and initializes it
+ *  with some default values.  The newly created target is not
+ *  registered yet.
+ */
 struct log_target *log_target_create(void)
 {
 	struct log_target *target;
@@ -574,7 +604,8 @@ struct log_target *log_target_create(void)
 	return target;
 }
 
-/*! \brief Create the STDERR log target */
+/*! \brief Create the STDERR log target
+ *  \returns dynamically-allocated \ref log_target for STDERR */
 struct log_target *log_target_create_stderr(void)
 {
 /* since C89/C99 says stderr is a macro, we can safely do this! */
@@ -639,7 +670,8 @@ struct log_target *log_target_find(int type, const char *fname)
 	return NULL;
 }
 
-/*! \brief Unregister, close and delete a log target */
+/*! \brief Unregister, close and delete a log target
+ *  \param target[in] log target to unregister, close and delete */
 void log_target_destroy(struct log_target *target)
 {
 
@@ -661,7 +693,9 @@ void log_target_destroy(struct log_target *target)
 	talloc_free(target);
 }
 
-/*! \brief close and re-open a log file (for log file rotation) */
+/*! \brief close and re-open a log file (for log file rotation)
+ *  \param[in] target log target to re-open
+ *  \returns 0 in case of success; negative otherwise */
 int log_target_file_reopen(struct log_target *target)
 {
 	fclose(target->tgt_file.out);
@@ -675,7 +709,8 @@ int log_target_file_reopen(struct log_target *target)
 	return 0;
 }
 
-/*! \brief close and re-open a log file (for log file rotation) */
+/*! \brief close and re-open all log files (for log file rotation)
+ *  \returns 0 in case of success; negative otherwise */
 int log_targets_reopen(void)
 {
 	struct log_target *tar;
@@ -697,6 +732,7 @@ int log_targets_reopen(void)
 
 /*! \brief Generates the logging command string for VTY
  *  \param[in] unused_info Deprecated parameter, no longer used!
+ *  \returns vty command string for use by VTY command node
  */
 const char *log_vty_command_string(const struct log_info *unused_info)
 {
@@ -774,6 +810,7 @@ err:
 
 /*! \brief Generates the logging command description for VTY
  *  \param[in] unused_info Deprecated parameter, no longer used!
+ *  \returns logging command description for use by VTY command node
  */
 const char *log_vty_command_description(const struct log_info *unused_info)
 {

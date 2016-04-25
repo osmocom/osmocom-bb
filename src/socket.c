@@ -57,6 +57,7 @@
  *  \param[in] host remote host name or IP address in string form
  *  \param[in] port remote port number in host byte order
  *  \param[in] flags flags like \ref OSMO_SOCK_F_CONNECT
+ *  \returns socket file descriptor on success; negative on error
  *
  * This function creates a new socket of the designated \a family, \a
  * type and \a proto and optionally binds or connects it, depending on
@@ -153,6 +154,7 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 /*! \brief fill \ref osmo_fd for a give sfd
  *  \param[out] ofd file descriptor (will be filled in)
  *  \param[in] sfd socket file descriptor
+ *  \returns socket fd on success; negative on error
  *
  * This function fills the \a ofd structure.
  */
@@ -183,6 +185,7 @@ static inline int osmo_fd_init_ofd(struct osmo_fd *ofd, int sfd)
  *  \param[in] host remote host name or IP address in string form
  *  \param[in] port remote port number in host byte order
  *  \param[in] flags flags like \ref OSMO_SOCK_F_CONNECT
+ *  \returns socket fd on success; negative on error
  *
  * This function creates (and optionall binds/connects) a socket using
  * \ref osmo_sock_init, but also fills the \a ofd structure.
@@ -198,6 +201,7 @@ int osmo_sock_init_ofd(struct osmo_fd *ofd, int family, int type, int proto,
  *  \param[in] type Socket type like SOCK_DGRAM, SOCK_STREAM
  *  \param[in] proto Protocol like IPPROTO_TCP, IPPROTO_UDP
  *  \param[in] flags flags like \ref OSMO_SOCK_F_CONNECT
+ *  \returns socket fd on success; negative on error
  *
  * This function creates (and optionall binds/connects) a socket using
  * \ref osmo_sock_init, but also fills the \a ss structure.
@@ -294,6 +298,7 @@ int osmo_sockaddr_is_local(struct sockaddr *addr, unsigned int addrlen)
  *  \param[in] proto Protocol like IPPROTO_TCP, IPPROTO_UDP
  *  \param[in] socket_path path to identify the socket
  *  \param[in] flags flags like \ref OSMO_SOCK_F_CONNECT
+ *  \returns socket fd on success; negative on error
  *
  * This function creates a new unix domain socket, \a
  * type and \a proto and optionally binds or connects it, depending on
@@ -365,6 +370,7 @@ err:
  *  \param[in] proto Protocol like IPPROTO_TCP, IPPROTO_UDP
  *  \param[in] socket_path path to identify the socket
  *  \param[in] flags flags like \ref OSMO_SOCK_F_CONNECT
+ *  \returns socket fd on success; negative on error
  *
  * This function creates (and optionall binds/connects) a socket using
  * \ref osmo_sock_unix_init, but also fills the \a ofd structure.

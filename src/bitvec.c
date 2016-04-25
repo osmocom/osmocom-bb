@@ -75,7 +75,7 @@ static uint8_t bitval2mask(enum bit_value bit, uint8_t bitnum)
 /*! \brief check if the bit is 0 or 1 for a given position inside a bitvec
  *  \param[in] bv the bit vector on which to check
  *  \param[in] bitnr the bit number inside the bit vector to check
- *  \returns 
+ *  \return value of the requested bit
  */
 enum bit_value bitvec_get_bit_pos(const struct bitvec *bv, unsigned int bitnr)
 {
@@ -97,6 +97,7 @@ enum bit_value bitvec_get_bit_pos(const struct bitvec *bv, unsigned int bitnr)
 /*! \brief check if the bit is L or H for a given position inside a bitvec
  *  \param[in] bv the bit vector on which to check
  *  \param[in] bitnr the bit number inside the bit vector to check
+ *  \return value of the requested bit
  */
 enum bit_value bitvec_get_bit_pos_high(const struct bitvec *bv,
 					unsigned int bitnr)
@@ -179,7 +180,8 @@ int bitvec_set_bit(struct bitvec *bv, enum bit_value bit)
 	return rc;
 }
 
-/*! \brief get the next bit (low/high) inside a bitvec */
+/*! \brief get the next bit (low/high) inside a bitvec
+ *  \return value of th next bit in the vector */
 int bitvec_get_bit_high(struct bitvec *bv)
 {
 	int rc;
@@ -195,7 +197,7 @@ int bitvec_get_bit_high(struct bitvec *bv)
  *  \param[in] bv bit vector
  *  \param[in] bits array of \ref bit_value
  *  \param[in] count number of bits to set
- */
+ *  \return 0 on success; negative in case of error */
 int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, unsigned int count)
 {
 	int i, rc;
@@ -209,7 +211,8 @@ int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, unsigned int count)
 	return 0;
 }
 
-/*! \brief set multiple bits (based on numeric value) at current pos */
+/*! \brief set multiple bits (based on numeric value) at current pos
+ *  \return 0 in case of success; negative in case of error */
 int bitvec_set_uint(struct bitvec *bv, unsigned int ui, unsigned int num_bits)
 {
 	int rc;
@@ -226,7 +229,8 @@ int bitvec_set_uint(struct bitvec *bv, unsigned int ui, unsigned int num_bits)
 	return 0;
 }
 
-/*! \brief get multiple bits (num_bits) from beginning of vector (MSB side) */
+/*! \brief get multiple bits (num_bits) from beginning of vector (MSB side)
+ *  \return 16bit signed integer retrieved from bit vector */
 int16_t bitvec_get_int16_msb(const struct bitvec *bv, unsigned int num_bits)
 {
 	if (num_bits > 15 || bv->cur_bit < num_bits)
@@ -238,7 +242,8 @@ int16_t bitvec_get_int16_msb(const struct bitvec *bv, unsigned int num_bits)
 	return osmo_load16be(bv->data) >> (16 - num_bits);
 }
 
-/*! \brief get multiple bits (based on numeric value) from current pos */
+/*! \brief get multiple bits (based on numeric value) from current pos
+ *  \return integer value retrieved from bit vector */
 int bitvec_get_uint(struct bitvec *bv, unsigned int num_bits)
 {
 	int i;
@@ -257,7 +262,7 @@ int bitvec_get_uint(struct bitvec *bv, unsigned int num_bits)
 }
 
 /*! \brief fill num_bits with \fill starting from the current position
- * returns 0 on success, negative otherwise (out of vector boundary)
+ *  \return 0 on success; negative otherwise (out of vector boundary)
  */
 int bitvec_fill(struct bitvec *bv, unsigned int num_bits, enum bit_value fill)
 {
@@ -269,7 +274,8 @@ int bitvec_fill(struct bitvec *bv, unsigned int num_bits, enum bit_value fill)
 	return 0;
 }
 
-/*! \brief pad all remaining bits up to num_bits */
+/*! \brief pad all remaining bits up to num_bits
+ *  \return 0 on success; negative otherwise */
 int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit)
 {
 	int n = up_to_bit - bv->cur_bit + 1;
@@ -279,7 +285,8 @@ int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit)
 	return bitvec_fill(bv, n, L);
 }
 
-/*! \brief find first bit set in bit vector */
+/*! \brief find first bit set in bit vector
+ *  \return 0 on success; negative otherwise */
 int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n,
 			enum bit_value val)
 {
@@ -298,6 +305,7 @@ int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n,
  *  \param[in] bv bit vector
  *  \param[in] bytes array
  *  \param[in] count number of bytes to copy
+ *  \return 0 on success; negative otherwise
  */
 int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, unsigned int count)
 {
@@ -333,6 +341,7 @@ int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, unsigned int count)
  *  \param[in] bv bit vector
  *  \param[in] bytes array
  *  \param[in] count number of bytes to copy
+ *  \return 0 on success; negative otherwise
  */
 int bitvec_set_bytes(struct bitvec *bv, const uint8_t *bytes, unsigned int count)
 {
@@ -367,6 +376,10 @@ int bitvec_set_bytes(struct bitvec *bv, const uint8_t *bytes, unsigned int count
 	return 0;
 }
 
+/*! \brief Allocate a bit vector
+ *  \param[in] size Number of bits in the vector
+ *  \param[in] ctx Context from which to allocate
+ *  \return pointer to allocated vector; NULL in case of error */
 struct bitvec *bitvec_alloc(unsigned int size, TALLOC_CTX *ctx)
 {
 	struct bitvec *bv = talloc_zero(ctx, struct bitvec);
@@ -384,12 +397,18 @@ struct bitvec *bitvec_alloc(unsigned int size, TALLOC_CTX *ctx)
 	return bv;
 }
 
+/*! \brief Free a bit vector (release its memory)
+ *  \param[in] bit vector to free */
 void bitvec_free(struct bitvec *bv)
 {
 	talloc_free(bv->data);
 	talloc_free(bv);
 }
 
+/*! \brief Export a bit vector to a buffer
+ *  \param[in] bitvec (unpacked bits)
+ *  \param[out] buffer for the unpacked bits
+ *  \return number of bytes (= bits) copied */
 unsigned int bitvec_pack(const struct bitvec *bv, uint8_t *buffer)
 {
 	unsigned int i = 0;
@@ -399,6 +418,10 @@ unsigned int bitvec_pack(const struct bitvec *bv, uint8_t *buffer)
 	return i;
 }
 
+/*! \brief Copy buffer of unpacked bits into bit vector
+ *  \param[in] buffer unpacked input bits
+ *  \param[out] bv unpacked bit vector
+ *  \return number of bytes (= bits) copied */
 unsigned int bitvec_unpack(struct bitvec *bv, const uint8_t *buffer)
 {
 	unsigned int i = 0;
@@ -408,7 +431,11 @@ unsigned int bitvec_unpack(struct bitvec *bv, const uint8_t *buffer)
 	return i;
 }
 
-
+/*! \brief read hexadecimap string into a bit vector
+ *  \param[in] src string containing hex digits
+ *  \param[out] bv unpacked bit vector
+ *  \return 0 in case of success; 1 in case of error
+ */
 int bitvec_unhex(struct bitvec *bv, const char *src)
 {
 	unsigned i;
@@ -472,7 +499,9 @@ int bitvec_write_field(struct bitvec *bv, unsigned int *write_index, uint64_t va
 	return 0;
 }
 
-/*! \brief convert enum to corresponding character */
+/*! \brief convert enum to corresponding character
+ *  \param v input value (bit)
+ *  \return single character, either 0, 1, L or H */
 char bit_value_to_char(enum bit_value v)
 {
 	switch (v) {

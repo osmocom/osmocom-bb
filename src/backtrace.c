@@ -70,6 +70,8 @@ void osmo_generate_backtrace(void)
 }
 
 /*! \brief Generate and log a call back-trace
+ *  \param[in] subsys Logging sub-system
+ *  \param[in] level Logging level
  *
  * This function will generate a function call back-trace of the
  * current process and log it to the specified subsystem and

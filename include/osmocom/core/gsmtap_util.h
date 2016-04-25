@@ -26,7 +26,9 @@ struct gsmtap_inst {
 	struct osmo_fd sink_ofd;/*!< \brief file descriptor */
 };
 
-/*! \brief obtain the file descriptor associated with a gsmtap instance */
+/*! \brief obtain the file descriptor associated with a gsmtap instance
+ *  \param[in] gti GSMTAP instance
+ *  \returns file descriptor of GSMTAP instance */
 static inline int gsmtap_inst_fd(struct gsmtap_inst *gti)
 {
 	return gti->wq.bfd.fd;

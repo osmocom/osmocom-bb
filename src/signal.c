@@ -46,6 +46,7 @@ struct signal_handler {
  *  \param[in] subsys Subsystem number
  *  \param[in] cbfn Callback function
  *  \param[in] data Data passed through to callback
+ *  \returns 0 on success; negative in case of error
  */
 int osmo_signal_register_handler(unsigned int subsys,
 				 osmo_signal_cbfn *cbfn, void *data)

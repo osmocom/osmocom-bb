@@ -33,6 +33,7 @@
 /*! \brief Select loop function for write queue handling
  *  \param[in] fd osmocom file descriptor
  *  \param[in] what bit-mask of events that have happened
+ *  \returns 0 on success; negative on error
  *
  * This function is provided so that it can be registered with the
  * select loop abstraction code (\ref osmo_fd::cb).
@@ -99,6 +100,7 @@ void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length)
 /*! \brief Enqueue a new \ref msgb into a write queue
  *  \param[in] queue Write queue to be used
  *  \param[in] data to-be-enqueued message buffer
+ *  \returns 0 on success; negative on error
  */
 int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data)
 {

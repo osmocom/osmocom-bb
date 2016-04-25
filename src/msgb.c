@@ -40,6 +40,7 @@ void *tall_msgb_ctx;
 /*! \brief Allocate a new message buffer
  * \param[in] size Length in octets, including headroom
  * \param[in] name Human-readable name to be associated with msgb
+ * \returns dynamically-allocated \ref msgb
  *
  * This function allocates a 'struct msgb' as well as the underlying
  * memory buffer for the actual message data (size specified by \a size)

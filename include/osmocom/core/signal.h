@@ -7,9 +7,9 @@
  */
 /*! \file signal.h */
 
-/* subsystem signaling numbers: we split the numberspace for applications and
- * libraries: from 0 to UINT_MAX/2 for applications, from UINT_MAX/2 to
- * UINT_MAX for libraries. */
+/*! subsystem signaling numbers: we split the numberspace for
+ * applications and libraries: from 0 to UINT_MAX/2 for applications,
+ * from UINT_MAX/2 to UINT_MAX for libraries. */
 #define OSMO_SIGNAL_SS_APPS		0
 #define OSMO_SIGNAL_SS_RESERVED		2147483648u
 

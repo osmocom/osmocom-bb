@@ -53,6 +53,11 @@ do {								\
 	rem -= ret;						\
 } while (0)
 
+/*! Helper macro to terminate when an assertion failes
+ *  \param[in] exp Predicate to verify
+ *  This function will generate a backtrace and terminate the program if
+ *  the predicate evaluates to false (0).
+ */
 #define OSMO_ASSERT(exp)    \
 	if (!(exp)) { \
 		fprintf(stderr, "Assert failed %s %s:%d\n", #exp, __FILE__, __LINE__); \
@@ -60,6 +65,10 @@ do {								\
 		abort(); \
 	}
 
+/*! duplicate a string using talloc and release its prior content (if any)
+ * \param[in] ctx Talloc context to use for allocation
+ * \param[out] dst pointer to string, will be updated with ptr to new string
+ * \param[in] newstr String that will be copieed to newly allocated string */
 static inline void osmo_talloc_replace_string(void *ctx, char **dst, char *newstr)
 {
 	if (*dst)

@@ -13,20 +13,19 @@
 
 /*! \file bits.h
  *  \brief Osmocom bit level support code
+ *
+ *  NOTE on the endianess of pbit_t:
+ *  Bits in a pbit_t are ordered MSB first, i.e. 0x80 is the first bit.
+ *  Bit i in a pbit_t array is array[i/8] & (1<<(7-i%8))
  */
 
 typedef int8_t  sbit_t;		/*!< \brief soft bit (-127...127) */
 typedef uint8_t ubit_t;		/*!< \brief unpacked bit (0 or 1) */
 typedef uint8_t pbit_t;		/*!< \brief packed bis (8 bits in a byte) */
 
-/*
-   NOTE on the endianess of pbit_t:
-   Bits in a pbit_t are ordered MSB first, i.e. 0x80 is the first bit.
-   Bit i in a pbit_t array is array[i/8] & (1<<(7-i%8))
-*/
-
 /*! \brief determine how many bytes we would need for \a num_bits packed bits
  *  \param[in] num_bits Number of packed bits
+ *  \returns number of bytes needed for \a num_bits packed bits
  */
 static inline unsigned int osmo_pbit_bytesize(unsigned int num_bits)
 {

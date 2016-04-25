@@ -44,6 +44,7 @@
 #define GSMTAP_TYPE_UMTS_RRC	0x0c
 #define GSMTAP_TYPE_LTE_RRC	0x0d	/* LTE interface */
 #define GSMTAP_TYPE_LTE_MAC	0x0e	/* LTE MAC interface */ 
+#define GSMTAP_TYPE_LTE_MAC_FRAMED	0x0f	/* LTE MAC with context hdr */
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
@@ -235,21 +236,22 @@ enum {
 };
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
+/*! \brief Structure of the GTMTAP pseudo-header */
 struct gsmtap_hdr {
-	uint8_t version;	/* version, set to 0x01 currently */
-	uint8_t hdr_len;	/* length in number of 32bit words */
-	uint8_t type;		/* see GSMTAP_TYPE_* */
-	uint8_t timeslot;	/* timeslot (0..7 on Um) */
+	uint8_t version;	/*!< version, set to 0x01 currently */
+	uint8_t hdr_len;	/*!< length in number of 32bit words */
+	uint8_t type;		/*!< see GSMTAP_TYPE_* */
+	uint8_t timeslot;	/*!< timeslot (0..7 on Um) */
 
-	uint16_t arfcn;		/* ARFCN (frequency) */
-	int8_t signal_dbm;	/* signal level in dBm */
-	int8_t snr_db;		/* signal/noise ratio in dB */
+	uint16_t arfcn;		/*!< ARFCN (frequency) */
+	int8_t signal_dbm;	/*!< signal level in dBm */
+	int8_t snr_db;		/*!< signal/noise ratio in dB */
 
-	uint32_t frame_number;	/* GSM Frame Number (FN) */
+	uint32_t frame_number;	/*!< GSM Frame Number (FN) */
 
-	uint8_t sub_type;	/* Type of burst/channel, see above */
-	uint8_t antenna_nr;	/* Antenna Number */
-	uint8_t sub_slot;	/* sub-slot within timeslot */
-	uint8_t res;		/* reserved for future use (RFU) */
+	uint8_t sub_type;	/*!< Type of burst/channel, see above */
+	uint8_t antenna_nr;	/*!< Antenna Number */
+	uint8_t sub_slot;	/*!< sub-slot within timeslot */
+	uint8_t res;		/*!< reserved for future use (RFU) */
 
 } __attribute__((packed));
