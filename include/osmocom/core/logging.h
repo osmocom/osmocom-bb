@@ -93,7 +93,8 @@ void logp(int subsys, const char *file, int line, int cont, const char *format, 
 #define DLGTP		-9	/*!< GTP (GPRS Tunneling Protocol */
 #define DLSTATS		-10	/*!< Statistics */
 #define DLGSUP		-11	/*!< Generic Subscriber Update Protocol */
-#define OSMO_NUM_DLIB	11	/*!< Number of logging sub-systems in libraries */
+#define DLOAP		-12	/*!< Osmocom Authentication Protocol */
+#define OSMO_NUM_DLIB	12	/*!< Number of logging sub-systems in libraries */
 
 /*! Configuration of singgle log category / sub-system */
 struct log_category {

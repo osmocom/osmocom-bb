@@ -128,6 +128,11 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 		.description = "Generic Subscriber Update Protocol",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[INT2IDX(DLOAP)] = {
+		.name = "DLOAP",
+		.description = "Osmocom Authentication Protocol",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 /*! \brief descriptive string for each log level */

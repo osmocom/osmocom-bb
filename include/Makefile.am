@@ -82,6 +82,7 @@ nobase_include_HEADERS = \
                        osmocom/gsm/mncc.h \
                        osmocom/gsm/prim.h \
                        osmocom/gsm/l1sap.h \
+                       osmocom/gsm/oap.h \
                        osmocom/gsm/protocol/gsm_03_40.h \
                        osmocom/gsm/protocol/gsm_03_41.h \
                        osmocom/gsm/protocol/gsm_04_08.h \
