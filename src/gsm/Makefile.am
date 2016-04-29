@@ -37,4 +37,4 @@ libosmogsm_la_LIBADD = libgsmint.la
 EXTRA_DIST = libosmogsm.map
 
 conv%gen.c: ../../utils/conv_gen.py
-	$(AM_V_GEN)python ../../utils/conv_gen.py
+	$(AM_V_GEN)python2 ../../utils/conv_gen.py
