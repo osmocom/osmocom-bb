@@ -18,6 +18,11 @@ libgsmint_la_SOURCES =  a5.c rxlev_stat.c tlv_parser.c comp128.c comp128v23.c \
 			gprs_cipher_core.c gsm0480.c abis_nm.c gsm0502.c \
 			gsm0411_utils.c gsm0411_smc.c gsm0411_smr.c \
 			lapd_core.c lapdm.c kasumi.c \
+			conv_cs2_gen.c conv_cs3_gen.c conv_xcch_gen.c \
+			conv_tch_afs_12_2_gen.c conv_tch_afs_10_2_gen.c \
+			conv_tch_afs_7_95_gen.c conv_tch_afs_7_4_gen.c \
+			conv_tch_afs_6_7_gen.c conv_tch_afs_5_9_gen.c \
+			conv_tch_afs_5_15_gen.c conv_tch_afs_4_75_gen.c \
 			auth_core.c auth_comp128v1.c auth_comp128v23.c \
 			auth_milenage.c milenage/aes-encblock.c \
 			milenage/aes-internal.c milenage/aes-internal-enc.c \
@@ -30,3 +35,6 @@ libosmogsm_la_LDFLAGS = $(LTLDFLAGS_OSMOGSM) -version-info $(LIBVERSION) -no-und
 libosmogsm_la_LIBADD = libgsmint.la
 
 EXTRA_DIST = libosmogsm.map
+
+conv%gen.c: ../../utils/conv_gen.py
+	$(AM_V_GEN)python ../../utils/conv_gen.py

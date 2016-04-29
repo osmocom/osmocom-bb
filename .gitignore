@@ -100,6 +100,7 @@ doc/gsm
 doc/html.tar
 
 src/crc*gen.c
+src/gsm/conv*gen.c
 include/osmocom/core/crc*gen.h
 include/osmocom/core/bit*gen.h
 

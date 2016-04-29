@@ -47,7 +47,7 @@ bits_bitcomp_test_SOURCES = bits/bitcomp_test.c
 bits_bitcomp_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 conv_conv_test_SOURCES = conv/conv_test.c
-conv_conv_test_LDADD = $(top_builddir)/src/libosmocore.la
+conv_conv_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libgsmint.la
 
 gsm0808_gsm0808_test_SOURCES = gsm0808/gsm0808_test.c
 gsm0808_gsm0808_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la

@@ -56,6 +56,18 @@ gsm0480_wrap_invoke;
 
 gsm0502_calc_paging_group;
 
+gsm0503_xcch;
+gsm0503_cs2;
+gsm0503_cs3;
+gsm0503_tch_afs_12_2;
+gsm0503_tch_afs_10_2;
+gsm0503_tch_afs_7_95;
+gsm0503_tch_afs_7_4;
+gsm0503_tch_afs_6_7;
+gsm0503_tch_afs_5_9;
+gsm0503_tch_afs_5_15;
+gsm0503_tch_afs_4_75;
+
 gsm0808_att_tlvdef;
 gsm0808_bssap_name;
 gsm0808_bssmap_name;
