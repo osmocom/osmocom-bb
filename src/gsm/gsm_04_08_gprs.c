@@ -1,4 +1,4 @@
-/* (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2009-2016 by Harald Welte <laforge@gnumonks.org>
  * (C) 2010      by On-Waves
  * (C) 2014-2015 by Sysmocom s.f.m.c. GmbH
  *
@@ -30,6 +30,7 @@
 const struct value_string gsm48_gmm_cause_names_[] = {
 	{ GMM_CAUSE_IMSI_UNKNOWN,	"IMSI unknown in HLR" },
 	{ GMM_CAUSE_ILLEGAL_MS,		"Illegal MS" },
+	{ GMM_CAUSE_IMEI_NOT_ACCEPTED,	"IMEI not accepted" },
 	{ GMM_CAUSE_ILLEGAL_ME,		"Illegal ME" },
 	{ GMM_CAUSE_GPRS_NOTALLOWED,	"GPRS services not allowed" },
 	{ GMM_CAUSE_GPRS_OTHER_NOTALLOWED,
@@ -43,9 +44,16 @@ const struct value_string gsm48_gmm_cause_names_[] = {
 			"Roaming not allowed in this location area" },
 	{ GMM_CAUSE_NO_GPRS_PLMN,
 				"GPRS services not allowed in this PLMN" },
+	{ GMM_CAUSE_NO_SUIT_CELL_IN_LA,	"No suitable cell in LA" },
 	{ GMM_CAUSE_MSC_TEMP_NOTREACH,	"MSC temporarily not reachable" },
 	{ GMM_CAUSE_NET_FAIL,		"Network failure" },
+	{ GMM_CAUSE_MAC_FAIL,		"MAC failure" },
+	{ GMM_CAUSE_SYNC_FAIL,		"SYNC failure" },
 	{ GMM_CAUSE_CONGESTION,		"Congestion" },
+	{ GMM_CAUSE_GSM_AUTH_UNACCEPT,	"GSM authentication unacceptable" },
+	{ GMM_CAUSE_NOT_AUTH_FOR_CSG,	"Not authorized for this CSG" },
+	{ GMM_CAUSE_SMS_VIA_GPRS_IN_RA,	"SMS provided via GPRS in this RA" },
+	{ GMM_CAUSE_NO_PDP_ACTIVATED,	"No PDP context activated" },
 	{ GMM_CAUSE_SEM_INCORR_MSG,	"Semantically incorrect message" },
 	{ GMM_CAUSE_INV_MAND_INFO, "Invalid mandatory information" },
 	{ GMM_CAUSE_MSGT_NOTEXIST_NOTIMPL,

@@ -1272,6 +1272,7 @@ void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
 
 /* Additional MM elements */
 #define GSM48_IE_LOCATION_AREA	0x13
+#define GSM48_IE_AUTN		0x20
 #define GSM48_IE_PRIORITY_LEV	0x80
 #define GSM48_IE_FOLLOW_ON_PROC	0xa1
 #define GSM48_IE_CTS_PERMISSION	0xa2
