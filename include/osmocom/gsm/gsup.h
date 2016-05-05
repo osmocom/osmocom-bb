@@ -59,6 +59,7 @@ enum osmo_gsup_iei {
 	OSMO_GSUP_AUTN_IE			= 0x25,
 	OSMO_GSUP_AUTS_IE			= 0x26,
 	OSMO_GSUP_RES_IE			= 0x27,
+	OSMO_GSUP_CN_DOMAIN_IE			= 0x28,
 };
 
 /*! GSUP message type */
@@ -97,6 +98,11 @@ enum osmo_gsup_cancel_type {
 	OSMO_GSUP_CANCEL_TYPE_WITHDRAW		= 2, /* on wire: 1 */
 };
 
+enum osmo_gsup_cn_domain {
+	OSMO_GSUP_CN_DOMAIN_PS			= 1,
+	OSMO_GSUP_CN_DOMAIN_CS			= 2,
+};
+
 /*! parsed/decoded PDP context information */
 struct osmo_gsup_pdp_info {
 	unsigned int			context_id;
@@ -132,6 +138,7 @@ struct osmo_gsup_message {
 	const uint8_t			*hlr_enc;
 	size_t				hlr_enc_len;
 	const uint8_t			*auts;
+	enum osmo_gsup_cn_domain	cn_domain;
 };
 
 int osmo_gsup_decode(const uint8_t *data, size_t data_len,

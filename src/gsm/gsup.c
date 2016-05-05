@@ -329,6 +329,10 @@ int osmo_gsup_decode(const uint8_t *const_data, size_t data_len,
 			gsup_msg->hlr_enc_len = value_len;
 			break;
 
+		case OSMO_GSUP_CN_DOMAIN_IE:
+			gsup_msg->cn_domain = *value;
+			break;
+
 		default:
 			LOGP(DLGSUP, LOGL_NOTICE,
 			     "GSUP IE type %d unknown\n", iei);
@@ -469,4 +473,9 @@ void osmo_gsup_encode(struct msgb *msg, const struct osmo_gsup_message *gsup_msg
 
 	if (gsup_msg->auts)
 		msgb_tlv_put(msg, OSMO_GSUP_AUTS_IE, 16, gsup_msg->auts);
+
+	if (gsup_msg->cn_domain) {
+		uint8_t dn = gsup_msg->cn_domain;
+		msgb_tlv_put(msg, OSMO_GSUP_CN_DOMAIN_IE, 1, &dn);
+	}
 }
