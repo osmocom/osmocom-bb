@@ -138,6 +138,7 @@ struct osmo_gsup_message {
 	const uint8_t			*hlr_enc;
 	size_t				hlr_enc_len;
 	const uint8_t			*auts;
+	const uint8_t			*rand;
 	enum osmo_gsup_cn_domain	cn_domain;
 };
 

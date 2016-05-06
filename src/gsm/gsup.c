@@ -236,7 +236,6 @@ int osmo_gsup_decode(const uint8_t *const_data, size_t data_len,
 		case OSMO_GSUP_IMSI_IE:
 		case OSMO_GSUP_PDP_TYPE_IE:
 		case OSMO_GSUP_ACCESS_POINT_NAME_IE:
-		case OSMO_GSUP_RAND_IE:
 		case OSMO_GSUP_SRES_IE:
 		case OSMO_GSUP_KC_IE:
 			LOGP(DLGSUP, LOGL_NOTICE,
@@ -317,6 +316,15 @@ int osmo_gsup_decode(const uint8_t *const_data, size_t data_len,
 				return -GMM_CAUSE_COND_IE_ERR;
 			}
 			gsup_msg->auts = value;
+			break;
+
+		case OSMO_GSUP_RAND_IE:
+			if (value_len != 16) {
+				LOGP(DLGSUP, LOGL_ERROR,
+					"RAND length != 16 received\n");
+				return -GMM_CAUSE_COND_IE_ERR;
+			}
+			gsup_msg->rand = value;
 			break;
 
 		case OSMO_GSUP_MSISDN_IE:
@@ -473,6 +481,9 @@ void osmo_gsup_encode(struct msgb *msg, const struct osmo_gsup_message *gsup_msg
 
 	if (gsup_msg->auts)
 		msgb_tlv_put(msg, OSMO_GSUP_AUTS_IE, 16, gsup_msg->auts);
+
+	if (gsup_msg->rand)
+		msgb_tlv_put(msg, OSMO_GSUP_RAND_IE, 16, gsup_msg->rand);
 
 	if (gsup_msg->cn_domain) {
 		uint8_t dn = gsup_msg->cn_domain;
