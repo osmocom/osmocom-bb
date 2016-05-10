@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <stdbool.h>
 #include <arpa/inet.h>
 
 #include <osmocom/core/utils.h>
@@ -356,6 +356,50 @@ int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 	gsm48_mcc_mnc_from_bcd(&lai->digits[0], mcc, mnc);
 	*lac = ntohs(lai->lac);
 	return 0;
+}
+
+/*! \brief Set DTX mode in Cell Options IE (3GPP TS 44.018)
+ *  \param[in] op Cell Options structure in which DTX parameters will be set
+ *  \param[in] full Mode for full-rate channels
+ *  \param[in] half Mode for half-rate channels
+ *  \param[in] is_bcch Indicates if we should use 10.5.2.3.1 instead of
+ *             10.5.2.3a.2
+ *
+ * There is no space for separate DTX settings for Full and Half rate channels
+ * in BCCH - in this case full setting is used for both and half parameter is
+ * ignored.
+ */
+void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
+		   enum gsm48_dtx_mode half, bool is_bcch)
+{
+	if (is_bcch) {
+		switch (full) {
+		case GSM48_DTX_MAY_BE_USED:
+			op->dtx = 0;
+			return;
+		case GSM48_DTX_SHALL_BE_USED:
+			op->dtx = 1;
+			return;
+		case GSM48_DTX_SHALL_NOT_BE_USED:
+			op->dtx = 2;
+			return;
+		}
+	} else {
+		switch (full) {
+		case GSM48_DTX_MAY_BE_USED:
+			op->dtx = (half == GSM48_DTX_SHALL_BE_USED) ? 3 : 0;
+			op->d =   (half == GSM48_DTX_SHALL_NOT_BE_USED) ? 0 : 1;
+			return;
+		case GSM48_DTX_SHALL_BE_USED:
+			op->dtx = (half == GSM48_DTX_MAY_BE_USED) ? 3 : 1;
+			op->d =   (half == GSM48_DTX_SHALL_BE_USED) ? 1 : 0;
+			return;
+		case GSM48_DTX_SHALL_NOT_BE_USED:
+			op->dtx = 2;
+			op->d =   (half == GSM48_DTX_SHALL_BE_USED) ? 1 : 0;
+			return;
+		}
+	}
 }
 
 int gsm48_generate_mid_from_tmsi(uint8_t *buf, uint32_t tmsi)

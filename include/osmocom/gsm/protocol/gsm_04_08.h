@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <osmocom/core/utils.h>
 
@@ -469,11 +470,20 @@ struct gsm48_control_channel_descr {
 	uint8_t t3212;
 } __attribute__ ((packed));
 
+enum gsm48_dtx_mode {
+	GSM48_DTX_MAY_BE_USED,
+	GSM48_DTX_SHALL_BE_USED,
+	GSM48_DTX_SHALL_NOT_BE_USED
+};
+
+/* Cell Options for SI6, SACCH (10.5.2.3a.2) or SI3, BCCH (Table 10.5.2.3.1),
+   3GPP TS 44.018 */
 struct gsm48_cell_options {
 	uint8_t radio_link_timeout:4,
 		 dtx:2,
 		 pwrc:1,
-		 spare:1;
+	/* either DN-IND or top bit of DTX IND */
+		 d:1;
 } __attribute__ ((packed));
 
 /* Section 9.2.9 CM service request */
@@ -826,6 +836,9 @@ static inline uint8_t gsm48_hdr_msg_type_r99(const struct gsm48_hdr *hdr)
 		return hdr->msg_type;
 	}
 }
+
+void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
+		   enum gsm48_dtx_mode half, bool is_bcch);
 
 #define gsm48_hdr_msg_type gsm48_hdr_msg_type_r99
 

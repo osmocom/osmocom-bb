@@ -162,6 +162,8 @@ gsm48_mm_att_tlvdef;
 gsm48_number_of_paging_subchannels;
 gsm48_parse_ra;
 gsm48_rr_att_tlvdef;
+gsm48_set_dtx;
+gsm48_dtx_mode;
 gsm48_mi_type_name;
 gsm48_mcc_mnc_to_bcd;
 gsm48_mcc_mnc_from_bcd;
