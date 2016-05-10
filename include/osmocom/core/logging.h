@@ -27,13 +27,13 @@
 #define DEBUGP(ss, fmt, args...) \
 	do { \
 		if (log_check_level(ss, LOGL_DEBUG)) \
-			logp(ss, __FILE__, __LINE__, 0, fmt, ## args); \
+			logp(ss, __BASE_FILE__, __LINE__, 0, fmt, ## args); \
 	} while(0)
 
 #define DEBUGPC(ss, fmt, args...) \
 	do { \
 		if (log_check_level(ss, LOGL_DEBUG)) \
-			logp(ss, __FILE__, __LINE__, 1, fmt, ## args); \
+			logp(ss, __BASE_FILE__, __LINE__, 1, fmt, ## args); \
 	} while(0)
 
 #else
@@ -56,7 +56,7 @@ void logp(int subsys, const char *file, int line, int cont, const char *format, 
 #define LOGP(ss, level, fmt, args...) \
 	do { \
 		if (log_check_level(ss, level)) \
-			logp2(ss, level, __FILE__, __LINE__, 0, fmt, ##args); \
+			logp2(ss, level, __BASE_FILE__, __LINE__, 0, fmt, ##args); \
 	} while(0)
 
 /*! \brief Continue a log message through the Osmocom logging framework
@@ -68,7 +68,7 @@ void logp(int subsys, const char *file, int line, int cont, const char *format, 
 #define LOGPC(ss, level, fmt, args...) \
 	do { \
 		if (log_check_level(ss, level)) \
-			logp2(ss, level, __FILE__, __LINE__, 1, fmt, ##args); \
+			logp2(ss, level, __BASE_FILE__, __LINE__, 1, fmt, ##args); \
 	} while(0)
 
 /*! \brief different log levels */
