@@ -2,7 +2,7 @@ Source: libosmocore
 Section: libs
 Priority: optional
 Maintainer: Harald Welte <laforge@gnumonks.org>
-Build-Depends: debhelper (>= 9), autotools-dev, autoconf, automake, libtool, dh-autoreconf, libdpkg-perl, git, doxygen, libpcsclite-dev, pkg-config, libtalloc-dev
+Build-Depends: debhelper (>= 9), autotools-dev, autoconf, automake, libtool, dh-autoreconf, libdpkg-perl, git, doxygen, libpcsclite-dev, pkg-config, libtalloc-dev, python-minimal
 Standards-Version: 3.9.6
 Homepage: http://bb.osmocom.org/trac/wiki/libosmocore
 Vcs-Git: git://git.osmocom.org/libosmocore.git
