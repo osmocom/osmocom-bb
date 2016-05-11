@@ -67,6 +67,7 @@ nobase_include_HEADERS = \
                        osmocom/gsm/gsm0502.h \
                        osmocom/gsm/gsm0503.h \
                        osmocom/gsm/gsm0808.h \
+                       osmocom/gsm/gsm23003.h \
                        osmocom/gsm/gsm48.h \
                        osmocom/gsm/gsm48_ie.h \
                        osmocom/gsm/gsm_utils.h \
