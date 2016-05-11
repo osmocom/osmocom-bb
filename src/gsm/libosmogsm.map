@@ -92,6 +92,8 @@ gsm0808_create_reset;
 gsm0808_create_sapi_reject;
 gsm0808_prepend_dtap_header;
 
+gsm0858_rsl_ul_meas_enc;
+
 gsm338_get_sms_alphabet;
 
 gsm340_gen_oa;

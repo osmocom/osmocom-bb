@@ -66,11 +66,13 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/bitvec.h>
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/meas_rep.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
@@ -333,6 +335,24 @@ int gsm_7bit_encode_n_ussd(uint8_t *result, size_t n, const char *data, int *oct
 	}
 
 	return y;
+}
+
+/*! \brief Build the RSL uplink measurement IE (3GPP TS 08.58 § 9.3.25)
+ *  \param[in] mru Unidirectional measurement report structure
+ *  \param[in] dtxd_used Indicates if DTXd was used during measurement report
+ *             period
+ *  \param[out] buf Pre-allocated bufer for storing IE
+ *  \returns Number of bytes filled in buf
+ */
+size_t gsm0858_rsl_ul_meas_enc(struct gsm_meas_rep_unidir *mru, bool dtxd_used,
+			uint8_t *buf)
+{
+	buf[0] = dtxd_used ? (1 << 6) : 0;
+	buf[0] |= (mru->full.rx_lev & 0x3f);
+	buf[1] = (mru->sub.rx_lev & 0x3f);
+	buf[2] = ((mru->full.rx_qual & 7) << 3) | (mru->sub.rx_qual & 7);
+
+	return 3;
 }
 
 /* convert power class to dBm according to GSM TS 05.05 */
