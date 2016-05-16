@@ -379,6 +379,8 @@ extern struct cmd_element config_end_cmd;
 char *host_config_file();
 void host_config_set(const char *);
 
+char *osmo_asciidoc_escape(const char *inp);
+
 /* This is called from main when a daemon is invoked with -v or --version. */
 void print_version(int print_copyright);
 

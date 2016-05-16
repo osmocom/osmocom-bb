@@ -33,6 +33,8 @@
 #include <osmocom/vty/misc.h>
 
 #include <osmocom/core/stats.h>
+#include <osmocom/core/statistics.h>
+#include <osmocom/core/rate_ctr.h>
 
 #define CFG_STATS_STR "Configure stats sub-system\n"
 #define CFG_REPORTER_STR "Configure a stats reporter\n"
@@ -355,6 +357,144 @@ DEFUN(show_stats_level,
 	return CMD_SUCCESS;
 }
 
+static int asciidoc_handle_counter(struct osmo_counter *counter, void *sctx_)
+{
+	struct vty *vty = sctx_;
+	char *name = osmo_asciidoc_escape(counter->name);
+	char *description = osmo_asciidoc_escape(counter->description);
+
+	/* | name | This document & | description | */
+	vty_out(vty, "| %s | <<ungroup_counter_%s>> | %s%s",
+		name,
+		name,
+		description ? description : "",
+		VTY_NEWLINE);
+
+	talloc_free(name);
+	talloc_free(description);
+
+	return 0;
+}
+
+static void asciidoc_counter_generate(struct vty *vty)
+{
+	vty_out(vty, "// ungrouped osmo_counters%s", VTY_NEWLINE);
+	vty_out(vty, ".ungrouped osmo counters%s", VTY_NEWLINE);
+	vty_out(vty, "|===%s", VTY_NEWLINE);
+	vty_out(vty, "| name | This document & | description%s", VTY_NEWLINE);
+	osmo_counters_for_each(asciidoc_handle_counter, vty);
+	vty_out(vty, "|===%s", VTY_NEWLINE);
+}
+
+static int asciidoc_rate_ctr_handler(
+	struct rate_ctr_group *ctrg, struct rate_ctr *ctr,
+	const struct rate_ctr_desc *desc, void *sctx_)
+{
+	struct vty *vty = sctx_;
+	char *name = osmo_asciidoc_escape(desc->name);
+	char *description = osmo_asciidoc_escape(desc->description);
+	char *group_name_prefix = osmo_asciidoc_escape(ctrg->desc->group_name_prefix);
+
+	/* | name | This document & | description | */
+	vty_out(vty, "| %s | <<%s_%s>> | %s%s",
+		name,
+		group_name_prefix,
+		name,
+		description ? description : NULL,
+		VTY_NEWLINE);
+
+	/* description seems to be optional */
+	talloc_free(name);
+	talloc_free(group_name_prefix);
+	talloc_free(description);
+
+	return 0;
+}
+
+static int asciidoc_rate_ctr_group_handler(struct rate_ctr_group *ctrg, void *sctx_)
+{
+	struct vty *vty = sctx_;
+
+	char *group_description = osmo_asciidoc_escape(ctrg->desc->group_description);
+	char *group_name_prefix = osmo_asciidoc_escape(ctrg->desc->group_name_prefix);
+
+	vty_out(vty, "// rate_ctr_group table %s%s", group_description, VTY_NEWLINE);
+	vty_out(vty, ".%s - %s %s", group_name_prefix, group_description, VTY_NEWLINE);
+	vty_out(vty, "|===%s", VTY_NEWLINE);
+	vty_out(vty, "| name | This document & | description%s", VTY_NEWLINE);
+	rate_ctr_for_each_counter(ctrg, asciidoc_rate_ctr_handler, sctx_);
+	vty_out(vty, "|===%s", VTY_NEWLINE);
+
+	talloc_free(group_name_prefix);
+	talloc_free(group_description);
+
+	return 0;
+}
+
+static int asciidoc_osmo_stat_item_handler(
+	struct osmo_stat_item_group *statg, struct osmo_stat_item *item, void *sctx_)
+{
+	struct vty *vty = sctx_;
+
+	char *name = osmo_asciidoc_escape(item->desc->name);
+	char *description = osmo_asciidoc_escape(item->desc->description);
+	char *group_name_prefix = osmo_asciidoc_escape(statg->desc->group_name_prefix);
+	char *unit = osmo_asciidoc_escape(item->desc->unit);
+
+	/* | name | This document & | description | unit | */
+	vty_out(vty, "| %s | <<%s_%s>> | %s | %s%s",
+		name,
+		group_name_prefix,
+		name,
+		description ? description : "",
+		unit ? unit : "",
+		VTY_NEWLINE);
+
+	talloc_free(name);
+	talloc_free(group_name_prefix);
+	talloc_free(description);
+	talloc_free(unit);
+
+	return 0;
+}
+
+static int asciidoc_osmo_stat_item_group_handler(struct osmo_stat_item_group *statg, void *sctx_)
+{
+	char *group_name_prefix = osmo_asciidoc_escape(statg->desc->group_name_prefix);
+	char *group_description = osmo_asciidoc_escape(statg->desc->group_description);
+
+	struct vty *vty = sctx_;
+	vty_out(vty, "%s%s", group_description ? group_description : "" , VTY_NEWLINE);
+
+	vty_out(vty, "// osmo_stat_item_group table %s%s", group_description ? group_description : "", VTY_NEWLINE);
+	vty_out(vty, ".%s - %s %s", group_name_prefix, group_description ? group_description : "", VTY_NEWLINE);
+	vty_out(vty, "|===%s", VTY_NEWLINE);
+	vty_out(vty, "| name | This document & | description | unit%s", VTY_NEWLINE);
+	osmo_stat_item_for_each_item(statg, asciidoc_osmo_stat_item_handler, sctx_);
+	vty_out(vty, "|===%s", VTY_NEWLINE);
+
+	talloc_free(group_name_prefix);
+	talloc_free(group_description);
+
+	return 0;
+}
+
+DEFUN(show_stats_asciidoc_table,
+      show_stats_asciidoc_table_cmd,
+      "show asciidoc counters",
+      "Generate an ascii doc table of all registered counters.\n")
+{
+	vty_out(vty, "// generating tables for rate_ctr_group%s", VTY_NEWLINE);
+	rate_ctr_for_each_group(asciidoc_rate_ctr_group_handler, vty);
+
+	vty_out(vty, "// generating tables for osmo_stat_items%s", VTY_NEWLINE);
+	osmo_stat_item_for_each_group(asciidoc_osmo_stat_item_group_handler, vty);
+
+	vty_out(vty, "// generating tables for osmo_counters%s", VTY_NEWLINE);
+	asciidoc_counter_generate(vty);
+	return CMD_SUCCESS;
+}
+
 static int config_write_stats_reporter(struct vty *vty, struct osmo_stats_reporter *srep)
 {
 	if (srep == NULL)
@@ -443,4 +583,6 @@ void osmo_stats_vty_add_cmds()
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_level_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_enable_cmd);
 	install_element(CFG_STATS_NODE, &cfg_stats_reporter_disable_cmd);
+
+	install_element_ve(&show_stats_asciidoc_table_cmd);
 }

@@ -402,6 +402,59 @@ const char *cmd_prompt(enum node_type node)
 	return cnode->prompt;
 }
 
+/*!
+ * \brief escape all special asciidoc symbols
+ * \param unsafe string
+ * \return a new talloc char *
+ */
+char *osmo_asciidoc_escape(const char *inp)
+{
+	int _strlen;
+	char *out, *out_ptr;
+	int len = 0, i, j;
+
+	if (!inp)
+		return NULL;
+	_strlen = strlen(inp);
+
+	for (i = 0; i < _strlen; ++i) {
+		switch (inp[i]) {
+		case '|':
+			len += 2;
+			break;
+		default:
+			len += 1;
+			break;
+		}
+	}
+
+	out = talloc_size(NULL, len + 1);
+	if (!out)
+		return NULL;
+
+	out_ptr = out;
+
+#define ADD(out, str) \
+	for (j = 0; j < strlen(str); ++j) \
+		*(out++) = str[j];
+
+	for (i = 0; i < _strlen; ++i) {
+		switch (inp[i]) {
+		case '|':
+			ADD(out_ptr, "\\|");
+			break;
+		default:
+			*(out_ptr++) = inp[i];
+			break;
+		}
+	}
+
+#undef ADD
+
+	out_ptr[0] = '\0';
+	return out;
+}
+
 static char *xml_escape(const char *inp)
 {
 	int _strlen;
