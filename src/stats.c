@@ -301,6 +301,14 @@ int osmo_stats_reporter_udp_open(struct osmo_stats_reporter *srep)
 	if (sock == -1)
 		return -errno;
 
+#if defined(__APPLE__) && !defined(MSG_NOSIGNAL)
+	{
+		static int val = 1;
+
+		rc = setsockopt(sock, SOL_SOCKET, SO_NOSIGPIPE, (void*)&val, sizeof(val));
+		goto failed;
+	}
+#endif
 	if (srep->bind_addr_len > 0) {
 		rc = bind(sock, &srep->bind_addr, srep->bind_addr_len);
 		if (rc == -1)
@@ -345,7 +353,11 @@ int osmo_stats_reporter_send(struct osmo_stats_reporter *srep, const char *data,
 {
 	int rc;
 
-	rc = sendto(srep->fd, data, data_len, MSG_NOSIGNAL | MSG_DONTWAIT,
+	rc = sendto(srep->fd, data, data_len,
+#ifdef MSG_NOSIGNAL
+		MSG_NOSIGNAL |
+#endif
+		MSG_DONTWAIT,
 		&srep->dest_addr, srep->dest_addr_len);
 
 	if (rc == -1)
