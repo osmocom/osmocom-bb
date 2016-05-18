@@ -12,6 +12,7 @@ acinclude.m4
 aminclude.am
 m4/*.m4
 autom4te.cache
+config.cache
 config.h*
 config.sub
 config.log
