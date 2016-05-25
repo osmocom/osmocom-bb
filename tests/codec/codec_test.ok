@@ -1,0 +1,9 @@
+AMR RTP payload decoder test:
+[2] decode RTP 20 44 00 00 00 00 04 OK: FT AMR SID, CMR AMR 5,90 kbit/s, CMI is 2, SID type FIRST	[2] encode [0]
+[2] decode RTP 20 44 29 c2 92 91 f4 OK: FT AMR SID, CMR AMR 5,90 kbit/s, CMI is 2, SID type UPDATE	[2] encode [0]
+[2/2] No Data/NA, CMR: OK, FT: OK, BFI: OK, CMI: -1, STI: -1
+[2/2] No Data/NA, CMR: OK, FT: OK, BFI: OK, CMI: -1, STI: -1
+[33/33] AMR 12,2 kbit/s (GSM-EFR), CMR: OK, FT: OK, BFI: OK, CMI: -1, STI: -1
+[33/33] AMR 12,2 kbit/s (GSM-EFR), CMR: OK, FT: OK, BFI: OK, CMI: -1, STI: -1
+[21/21] AMR 7,40 kbit/s (TDMA-EFR), CMR: OK, FT: OK, BFI: OK, CMI: -1, STI: -1
+[21/21] AMR 7,40 kbit/s (TDMA-EFR), CMR: OK, FT: OK, BFI: OK, CMI: -1, STI: -1

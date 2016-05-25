@@ -115,12 +115,17 @@ cat $abs_srcdir/logging/logging_test.err > experr
 AT_CHECK([$abs_top_builddir/tests/logging/logging_test], [0], [expout], [experr])
 AT_CLEANUP
 
+AT_SETUP([codec])
+AT_KEYWORDS([codec])
+cat $abs_srcdir/codec/codec_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/codec/codec_test], [0], [expout], [ignore])
+AT_CLEANUP
+
 AT_SETUP([fr])
 AT_KEYWORDS([fr])
 cat $abs_srcdir/fr/fr_test.ok > expout
 cat $abs_srcdir/fr/fr_test.err > experr
 AT_CHECK([$abs_top_builddir/tests/fr/fr_test], [0], [expout], [experr])
-
 AT_CLEANUP
 
 AT_SETUP([loggingrb])

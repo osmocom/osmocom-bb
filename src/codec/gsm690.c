@@ -22,7 +22,12 @@
  */
 
 #include <stdint.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+#include <osmocom/core/utils.h>
+#include <osmocom/codec/codec.h>
 /*
  * These table map between the raw encoder parameter output and
  * the format used before channel coding. Both in GSM and in various
@@ -208,3 +213,104 @@ const uint16_t gsm690_4_75_bitorder[95] = {
 	 88,  90,  91,  34,  55,  68,  89,  37,  58,  71,
 	 92,  31,  52,  65,  86,
 };
+
+static const uint8_t amr_len_by_ft[16] = {
+	12, 13, 15, 17, 19, 20, 26, 31, 0,  0,  0,  0,  0,  0,  0,  0
+};
+
+const struct value_string osmo_amr_type_names[] = {
+	{ AMR_4_75,		"AMR 4,75 kbits/s" },
+	{ AMR_5_15,		"AMR 5,15 kbit/s" },
+	{ AMR_5_90,		"AMR 5,90 kbit/s" },
+	{ AMR_6_70,		"AMR 6,70 kbit/s (PDC-EFR)" },
+	{ AMR_7_40,		"AMR 7,40 kbit/s (TDMA-EFR)" },
+	{ AMR_7_95,		"AMR 7,95 kbit/s" },
+	{ AMR_10_2,		"AMR 10,2 kbit/s" },
+	{ AMR_12_2,		"AMR 12,2 kbit/s (GSM-EFR)" },
+	{ AMR_SID,		"AMR SID" },
+	{ AMR_GSM_EFR_SID,	"GSM-EFR SID" },
+	{ AMR_TDMA_EFR_SID,	"TDMA-EFR SID" },
+	{ AMR_PDC_EFR_SID,	"PDC-EFR SID" },
+	{ AMR_NO_DATA,		"No Data/NA" },
+	{ 0,			NULL },
+};
+
+/*! \brief Decode various AMR parameters from RTP payload (RFC 4867) acording to
+ *         3GPP TS 26.101
+ *  \param[in] rtppayload Payload from RTP packet
+ *  \param[in] payload_len length of rtppayload
+ *  \param[out] cmr AMR Codec Mode Request, not filled if NULL
+ *  \param[out] cmi AMR Codec Mode Indicator, -1 if not applicable for this type,
+ *              not filled if NULL
+ *  \param[out] ft AMR Frame Type, not filled if NULL
+ *  \param[out] bfi AMR Bad Frame Indicator, not filled if NULL
+ *  \param[out] sti AMR SID Type Indicator, -1 if not applicable for this type,
+ *              not filled if NULL
+ *  \returns length of AMR data or negative value on error
+ */
+int osmo_amr_rtp_dec(const uint8_t *rtppayload, int payload_len, uint8_t *cmr,
+		     int8_t *cmi, enum osmo_amr_type *ft,
+		     enum osmo_amr_quality *bfi, int8_t *sti)
+{
+	/* RFC 4867 § 4.4.2 ToC - compound payloads are not supported: F = 0 */
+	uint8_t type = (rtppayload[1] >> 3) & 0xf;
+
+	/* compound payloads are not supported */
+	if (rtppayload[1] >> 7)
+		return -ENOTSUP;
+
+	if (payload_len - 2 < amr_len_by_ft[type])
+		return -ENOTSUP;
+
+	if (payload_len < 2)
+		return -EINVAL;
+
+	if (ft)
+		*ft = type;
+
+	if (cmr)
+		*cmr = rtppayload[0] >> 4;
+
+	if (bfi)
+		*bfi = (rtppayload[1] >> 2) & 1;
+
+	/* Table 6 in 3GPP TS 26.101 */
+	if (cmi)
+		*cmi = (type == AMR_SID) ? ((rtppayload[6] >> 1) & 7) : -1;
+
+	if (sti)
+		*sti = (type == AMR_SID) ? (rtppayload[6] & 0x10) : -1;
+
+	return 2 + amr_len_by_ft[type];
+}
+
+/*! \brief Encode various AMR parameters from RTP payload (RFC 4867)
+ *  \param[out] payload Payload for RTP packet, contains speech data (if any)
+ *              except for have 2 first bytes where header will be built
+ *  \param[in] cmr AMR codec Mode Request
+ *  \param[in] ft AMR Frame Type
+ *  \param[in] bfi AMR Bad Frame Indicator
+ *  \returns length of AMR data (header + ToC + speech data) or negative value
+ *           on error
+ *
+ *  Note: only octet-aligned mode is supported so the header occupies 2 full
+ *  bytes. Optional interleaving header is not supported.
+ */
+int osmo_amr_rtp_enc(uint8_t *payload, uint8_t cmr, enum osmo_amr_type ft,
+		     enum osmo_amr_quality bfi)
+{
+	if (cmr > 15)
+		return -EINVAL;
+
+	if (ft > 15)
+		return -ENOTSUP;
+
+	/* RFC 4867 § 4.3.1 payload header */
+	payload[0] = cmr << 4;
+
+	/* RFC 4867 § 4.4.2 ToC - compound payloads are not supported: F = 0 */
+	payload[1] = (((uint8_t)ft) << 3) | (((uint8_t)bfi) << 2);
+
+	/* speech data */
+	return 2 + amr_len_by_ft[ft];
+}
