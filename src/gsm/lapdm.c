@@ -111,6 +111,18 @@ enum lapdm_format {
 	LAPDm_FMT_B4,
 };
 
+const struct value_string osmo_ph_prim_names[] = {
+	{ PRIM_PH_DATA,		"PH-DATA" },
+	{ PRIM_PH_RACH,		"PH-RANDOM_ACCESS" },
+	{ PRIM_PH_CONN,		"PH-CONNECT" },
+	{ PRIM_PH_EMPTY_FRAME,	"PH-EMPTY_FRAME" },
+	{ PRIM_PH_RTS,		"PH-RTS" },
+	{ PRIM_MPH_INFO,	"MPH-INFO" },
+	{ PRIM_TCH,		"TCH" },
+	{ PRIM_TCH_RTS,		"TCH-RTS" },
+	{ 0,			NULL }
+};
+
 static int lapdm_send_ph_data_req(struct lapd_msg_ctx *lctx, struct msgb *msg);
 static int send_rslms_dlsap(struct osmo_dlsap_prim *dp,
 	struct lapd_msg_ctx *lctx);

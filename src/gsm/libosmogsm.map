@@ -223,6 +223,8 @@ lapdm_phsap_dequeue_prim;
 lapdm_phsap_up;
 lapdm_rslms_recvmsg;
 
+osmo_ph_prim_names;
+
 milenage_auts;
 milenage_check;
 milenage_f1;

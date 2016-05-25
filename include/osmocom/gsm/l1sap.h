@@ -14,6 +14,8 @@ enum osmo_ph_prim {
 	PRIM_TCH_RTS,		/*!< \brief TCH */
 };
 
+extern const struct value_string osmo_ph_prim_names[];
+
 /*! \brief PH-SAP related primitives (L1<->L2 SAP) */
 enum osmo_mph_info_type {
 	PRIM_INFO_TIME,		/*!< \brief Current GSM time */
