@@ -4,6 +4,8 @@
 #include <stdbool.h>
 
 #include <osmocom/core/utils.h>
+#include <osmocom/core/endian.h>
+
 
 /* GSM TS 04.08  definitions */
 struct gsm_lchan;
@@ -42,6 +44,7 @@ struct gsm48_classmark2 {
 } __attribute__ ((packed));
 
 /* Chapter 10.5.2.1b.3 */
+#if OSMO_IS_LITTLE_ENDIAN == 1
 struct gsm48_range_1024 {
 	uint8_t	w1_hi:2,
 		 f0:1,
@@ -75,8 +78,44 @@ struct gsm48_range_1024 {
 	uint8_t	w16:6,
 		 w15_lo:2;
 } __attribute__ ((packed));
+#else
+struct gsm48_range_1024 {
+	uint8_t	 form_id:5,
+		f0:1,
+		w1_hi:2;
+	uint8_t	w1_lo;
+	uint8_t	w2_hi;
+	uint8_t	 w2_lo:1,
+		w3_hi:7;
+	uint8_t	 w3_lo:2,
+		w4_hi:6;
+	uint8_t	 w4_lo:2,
+		w5_hi:6;
+	uint8_t	 w5_lo:2,
+		w6_hi:6;
+	uint8_t	 w6_lo:2,
+		w7_hi:6;
+	uint8_t	 w7_lo:2,
+		w8_hi:6;
+	uint8_t	 w8_lo:1,
+		w9:7;
+	uint8_t	 w10:7,
+		w11_hi:1;
+	uint8_t	 w11_lo:6,
+		w12_hi:2;
+	uint8_t	 w12_lo:5,
+		w13_hi:3;
+	uint8_t	 w13_lo:4,
+		w14_hi:4;
+	uint8_t	 w14_lo:3,
+		w15_hi:5;
+	uint8_t	 w15_lo:2,
+		w16:6;
+} __attribute__ ((packed));
+#endif
 
 /* Chapter 10.5.2.1b.4 */
+#if OSMO_IS_LITTLE_ENDIAN == 1
 struct gsm48_range_512 {
 	uint8_t	orig_arfcn_hi:1,
 		 form_id:7;
@@ -110,8 +149,44 @@ struct gsm48_range_512 {
 	uint8_t	w17:5,
 		 w16_lo:3;
 } __attribute__ ((packed));
+#else
+struct gsm48_range_512 {
+	uint8_t	 form_id:7,
+		orig_arfcn_hi:1;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	 orig_arfcn_lo:1,
+		w1_hi:7;
+	uint8_t	 w1_lo:2,
+		w2_hi:6;
+	uint8_t	 w2_lo:2,
+		w3_hi:6;
+	uint8_t	 w3_lo:2,
+		w4_hi:6;
+	uint8_t	 w4_lo:1,
+		w5:7;
+	uint8_t	 w6:7,
+		w7_hi:1;
+	uint8_t	 w7_lo:6,
+		w8_hi:2;
+	uint8_t	 w8_lo:4,
+		w9_hi:4;
+	uint8_t	 w9_lo:2,
+		w10:6;
+	uint8_t	 w11:6,
+		w12_hi:2;
+	uint8_t	 w12_lo:4,
+		w13_hi:4;
+	uint8_t	 w13_lo:2,
+		w14:6;
+	uint8_t	 w15:6,
+		w16_hi:2;
+	uint8_t	 w16_lo:3,
+		w17:5;
+} __attribute__ ((packed));
+#endif
 
 /* Chapter 10.5.2.1b.5 */
+#if OSMO_IS_LITTLE_ENDIAN == 1
 struct gsm48_range_256 {
 	uint8_t	orig_arfcn_hi:1,
 		 form_id:7;
@@ -151,8 +226,50 @@ struct gsm48_range_256 {
 		 w21:4,
 		 w20_lo:3;
 } __attribute__ ((packed));
+#else
+struct gsm48_range_256 {
+	uint8_t	 form_id:7,
+		orig_arfcn_hi:1;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	 orig_arfcn_lo:1,
+		w1_hi:7;
+	uint8_t	 w1_lo:1,
+		w2:7;
+	uint8_t	 w3:7,
+		w4_hi:1;
+	uint8_t	 w4_lo:5,
+		w5_hi:3;
+	uint8_t	 w5_lo:3,
+		w6_hi:5;
+	uint8_t	 w6_lo:1,
+		 w7:6,
+		w8_hi:1;
+	uint8_t	 w8_lo:4,
+		w9_hi:4;
+	uint8_t	 w9_lo:1,
+		 w10:5,
+		w11_hi:2;
+	uint8_t	 w11_lo:3,
+		w12:5;
+	uint8_t	 w13:5,
+		w14_hi:3;
+	uint8_t	 w14_lo:2,
+		 w15:5,
+		w16_hi:1;
+	uint8_t	 w16_lo:3,
+		 w17:4,
+		w18_hi:1;
+	uint8_t	 w18_lo:3,
+		 w19:4,
+		w20_hi:1;
+	uint8_t	 w20_lo:3,
+		 w21:4,
+		spare:1;
+} __attribute__ ((packed));
+#endif
 
 /* Chapter 10.5.2.1b.6 */
+#if OSMO_IS_LITTLE_ENDIAN == 1
 struct gsm48_range_128 {
 	uint8_t	orig_arfcn_hi:1,
 		 form_id:7;
@@ -194,6 +311,49 @@ struct gsm48_range_128 {
 		 w27:3,
 		 w26_lo:1;
 } __attribute__ ((packed));
+#else
+struct gsm48_range_128 {
+	uint8_t	 form_id:7,
+		orig_arfcn_hi:1;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	 orig_arfcn_lo:1,
+		w1:7;
+	uint8_t	 w2:6,
+		w3_hi:2;
+	uint8_t	 w3_lo:4,
+		w4_hi:4;
+	uint8_t	 w4_lo:1,
+		 w5:5,
+		w6_hi:2;
+	uint8_t	 w6_lo:3,
+		w7:5;
+	uint8_t	 w8:4,
+		w9:4;
+	uint8_t	 w10:4,
+		w11:4;
+	uint8_t	 w12:4,
+		w13:4;
+	uint8_t	 w14:4,
+		w15:4;
+	uint8_t	 w16:3,
+		 w17:3,
+		w18_hi:2;
+	uint8_t	 w18_lo:1,
+		 w19:3,
+		 w20:3,
+		w21_hi:1;
+	uint8_t	 w21_lo:2,
+		 w22:3,
+		w23:3;
+	uint8_t	 w24:3,
+		 w25:3,
+		w26_hi:2;
+	uint8_t	 w26_lo:1,
+		 w27:3,
+		 w28:3,
+		spare:1;
+} __attribute__ ((packed));
+#endif
 
 /* Chapter 10.5.2.1b.7 */
 struct gsm48_var_bit {
