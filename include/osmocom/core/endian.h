@@ -28,7 +28,7 @@
 	#if defined(__DARWIN_LITTLE_ENDIAN)
 		#define OSMO_IS_LITTLE_ENDIAN		1
 		#define OSMO_IS_BIG_ENDIAN		0
-	#elif define(__DARWIN_BIG_ENDIAN)
+	#elif defined(__DARWIN_BIG_ENDIAN)
 		#define OSMO_IS_LITTLE_ENDIAN		0
 		#define OSMO_IS_BIG_ENDIAN		1
 	#else
