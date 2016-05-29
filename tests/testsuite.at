@@ -201,3 +201,10 @@ AT_KEYWORDS([gsup])
 cat $abs_srcdir/gsup/gsup_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/gsup/gsup_test], [0], [expout], [ignore])
 AT_CLEANUP
+
+AT_SETUP([fsm])
+AT_KEYWORDS([fsm])
+cat $abs_srcdir/fsm/fsm_test.ok > expout
+cat $abs_srcdir/fsm/fsm_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/fsm/fsm_test], [0], [expout], [experr])
+AT_CLEANUP

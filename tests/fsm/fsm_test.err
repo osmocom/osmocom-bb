@@ -1,0 +1,11 @@
+Checking FSM allocation
+[0;mTest FSM{NULL}: Allocated
+[0;mTest FSM{NULL}: Received Event 1
+[0;mTest FSM(NULL): Event 1 not permitted
+[0;mTest FSM{NULL}: Received Event 0
+[0;mTest FSM{NULL}: state_chg to ONE
+[0;mTest FSM{ONE}: Received Event 1
+[0;mTest FSM{ONE}: state_chg to TWO
+[0;mTest FSM{TWO}: Timeout of T2342
+[0;mTimer
+[0;m
