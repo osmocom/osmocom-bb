@@ -22,6 +22,10 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include <osmocom/core/bitvec.h>
+#include <osmocom/core/utils.h>
 
 /* GSM FR - subjective importance bit ordering */
 	/* This array encodes GSM 05.03 Table 2.
@@ -292,3 +296,38 @@ const uint16_t gsm610_bitorder[260] = {
 	11,	/* LARc1:0 */
 	29,	/* LARc5:0 */
 };
+
+/*! \brief Check whether RTP frame contains FR SID code word according to
+ *  TS 101 318 §5.1.2
+ *  \param[in] rtp_payload Buffer with RTP payload
+ *  \param[in] payload_len Length of payload
+ *  \returns true if code word is found, false otherwise
+ */
+bool osmo_fr_check_sid(uint8_t *rtp_payload, size_t payload_len)
+{
+	struct bitvec bv;
+	uint16_t i, z_bits[] = { 59, 60, 62, 63, 65, 66, 68, 69, 71, 72, 74, 75,
+				 77, 78, 80, 81, 83, 84, 86, 87, 89, 90, 92, 93,
+				 95, 96, 115, 116, 118, 119, 121, 122, 124, 125,
+				 127, 128, 130, 131, 133, 134, 136, 137, 139,
+				 140, 142, 143, 145, 146, 148, 149, 151, 152,
+				 171, 172, 174, 175, 177, 178, 180, 181, 183,
+				 184, 186, 187, 189, 190, 192, 193, 195, 196,
+				 198, 199, 201, 202, 204, 205, 207, 208, 227,
+				 228, 230, 231, 233, 234, 236, 237, 239, 242,
+				 245, 248, 251, 254, 257, 260, 263 };
+
+	/* signature does not match Full Rate SID */
+	if ((rtp_payload[0] >> 4) != 0xD)
+		return false;
+
+	bv.data = rtp_payload;
+	bv.data_len = payload_len;
+
+	/* code word is all 0 at given bits, numbered from 1 */
+	for (i = 0; i < ARRAY_SIZE(z_bits); i++)
+		if (bitvec_get_bit_pos(&bv, z_bits[i]) != ZERO)
+			return false;
+
+	return true;
+}

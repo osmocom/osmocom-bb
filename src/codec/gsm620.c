@@ -22,6 +22,10 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include <osmocom/core/bitvec.h>
+#include <osmocom/core/utils.h>
 
 /* GSM HR unvoiced (mode=0) frames - subjective importance bit ordering */
 	/* This array encode mapping between GSM 05.03 Table 3a (bits
@@ -260,3 +264,31 @@ const uint16_t gsm620_voiced_bitorder[112] = {
 	82,	/* Code 3:6 */
 	81,	/* Code 3:7 */
 };
+
+static inline uint16_t mask(const uint8_t msb)
+{
+	const uint16_t m = (uint16_t)1  << (msb - 1);
+	return (m - 1) ^ m;
+}
+
+/*! \brief Check whether RTP frame contains HR SID code word according to
+ *  TS 101 318 §5.2.2
+ *  \param[in] rtp_payload Buffer with RTP payload
+ *  \param[in] payload_len Length of payload
+ *  \returns true if code word is found, false otherwise
+ */
+bool osmo_hr_check_sid(uint8_t *rtp_payload, size_t payload_len)
+{
+	uint8_t i, bits[] = { 1, 2, 8, 9, 5, 4, 9, 5, 4, 9, 5, 4, 9, 5 };
+	struct bitvec bv;
+	bv.data = rtp_payload;
+	bv.data_len = payload_len;
+	bv.cur_bit = 33;
+
+	/* code word is all 1 at given bits, numbered from 1, MODE is always 3 */
+	for (i = 0; i < ARRAY_SIZE(bits); i++)
+		if (bitvec_get_uint(&bv, bits[i]) != mask(bits[i]))
+			return false;
+
+	return true;
+}

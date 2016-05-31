@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <osmocom/core/utils.h>
 
@@ -41,6 +42,8 @@ enum osmo_amr_quality {
        AMR_GOOD = 1
 };
 
+bool osmo_fr_check_sid(uint8_t *rtp_payload, size_t payload_len);
+bool osmo_hr_check_sid(uint8_t *rtp_payload, size_t payload_len);
 int osmo_amr_rtp_enc(uint8_t *payload, uint8_t cmr, enum osmo_amr_type ft,
 		     enum osmo_amr_quality bfi);
 int osmo_amr_rtp_dec(const uint8_t *payload, int payload_len, uint8_t *cmr,

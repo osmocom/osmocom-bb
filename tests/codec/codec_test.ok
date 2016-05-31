@@ -7,3 +7,9 @@ AMR RTP payload decoder test:
 [33/33] AMR 12,2 kbit/s (GSM-EFR), CMR: OK, FT: OK, BFI: OK, CMI: -1, STI: -1
 [21/21] AMR 7,40 kbit/s (TDMA-EFR), CMR: OK, FT: OK, BFI: OK, CMI: -1, STI: -1
 [21/21] AMR 7,40 kbit/s (TDMA-EFR), CMR: OK, FT: OK, BFI: OK, CMI: -1, STI: -1
+FR RTP payload SID test:
+FR SID ? d7 27 93 e5 e3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 :: 1
+FR SID ? d8 a9 b5 1d da a8 82 cc ec 52 29 05 a8 c3 e3 0e b0 89 7a ee 42 ca c4 97 22 e6 9e a8 b8 ec 52 26 bd :: 0
+HR RTP payload SID test:
+HR SID ? 03 8e b6 cb ff ff ff ff ff ff ff ff ff ff :: 1
+HR SID ? 06 46 76 b1 8e 48 9a 2f 5e 4c 22 2b 62 25 :: 0
