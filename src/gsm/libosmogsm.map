@@ -266,6 +266,7 @@ rsl_init_cchan_hdr;
 rsl_init_rll_hdr;
 rsl_ipac_msg_name;
 rsl_msg_name;
+rsl_or_ipac_msg_name;
 rsl_rll_push_hdr;
 rsl_rll_push_l3;
 rsl_rll_simple;

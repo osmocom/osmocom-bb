@@ -382,6 +382,17 @@ const char *rsl_ipac_msg_name(uint8_t msg_type)
 	return get_value_string(rsl_ipac_msgt_names, msg_type);
 }
 
+/*! \brief Get human-readable name of standard or ip.access RSL msg type.
+ * If msg_type is a standard RSL message type, return its human-readable name.
+ * Otherwise return rsl_ipac_msg_name(msg_type). */
+const char *rsl_or_ipac_msg_name(uint8_t msg_type)
+{
+	const char *str = get_value_string_or_null(rsl_msgt_names, msg_type);
+	if (str)
+		return str;
+	return rsl_ipac_msg_name(msg_type);
+}
+
 static const struct value_string rsl_rlm_cause_strs[] = {
 	{ RLL_CAUSE_T200_EXPIRED,	"Timer T200 expired (N200+1) times" },
 	{ RLL_CAUSE_REEST_REQ,		"Re-establishment request" },

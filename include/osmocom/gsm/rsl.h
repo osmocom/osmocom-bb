@@ -39,6 +39,7 @@ const char *rsl_err_name(uint8_t err);
 const char *rsl_rlm_cause_name(uint8_t err);
 const char *rsl_msg_name(uint8_t err);
 const char *rsl_ipac_msg_name(uint8_t msg_type);
+const char *rsl_or_ipac_msg_name(uint8_t msg_type);
 
 /* Section 3.3.2.3 TS 05.02. I think this looks like a table */
 int rsl_ccch_conf_to_bs_cc_chans(int ccch_conf);
