@@ -394,14 +394,30 @@ static void encode_auth_info(struct msgb *msg, enum osmo_gsup_iei iei,
 	len_field = msgb_tlv_put(msg, iei, 0, NULL) - 1;
 	old_len = msgb_length(msg);
 
-	msgb_tlv_put(msg, OSMO_GSUP_RAND_IE,
-		     sizeof(auth_vector->rand), auth_vector->rand);
+	if (auth_vector->auth_types & OSMO_AUTH_TYPE_GSM) {
+		msgb_tlv_put(msg, OSMO_GSUP_RAND_IE,
+			     sizeof(auth_vector->rand), auth_vector->rand);
 
-	msgb_tlv_put(msg, OSMO_GSUP_SRES_IE,
-		     sizeof(auth_vector->sres), auth_vector->sres);
+		msgb_tlv_put(msg, OSMO_GSUP_SRES_IE,
+			     sizeof(auth_vector->sres), auth_vector->sres);
 
-	msgb_tlv_put(msg, OSMO_GSUP_KC_IE,
-		     sizeof(auth_vector->kc), auth_vector->kc);
+		msgb_tlv_put(msg, OSMO_GSUP_KC_IE,
+			     sizeof(auth_vector->kc), auth_vector->kc);
+	}
+
+	if (auth_vector->auth_types & OSMO_AUTH_TYPE_UMTS) {
+		msgb_tlv_put(msg, OSMO_GSUP_IK_IE,
+			     sizeof(auth_vector->ik), auth_vector->ik);
+
+		msgb_tlv_put(msg, OSMO_GSUP_CK_IE,
+			     sizeof(auth_vector->ck), auth_vector->ck);
+
+		msgb_tlv_put(msg, OSMO_GSUP_AUTN_IE,
+			     sizeof(auth_vector->autn), auth_vector->autn);
+
+		msgb_tlv_put(msg, OSMO_GSUP_RES_IE,
+			     auth_vector->res_len, auth_vector->res);
+	}
 
 	/* Update length field */
 	*len_field = msgb_length(msg) - old_len;
