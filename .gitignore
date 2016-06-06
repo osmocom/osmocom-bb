@@ -88,6 +88,8 @@ tests/bits/bitcomp_test
 tests/gprs/gprs_test
 tests/msgb/msgb_test
 tests/sim/sim_test
+tests/gsup/gsup_test
+tests/tlv/tlv_test
 
 utils/osmo-arfcn
 utils/osmo-auc-gen
