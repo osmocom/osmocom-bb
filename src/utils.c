@@ -43,6 +43,10 @@ static char namebuf[255];
  *  \param[in] vs Array of value_string tuples
  *  \param[in] val Value to be converted
  *  \returns pointer to human-readable string
+ *
+ * If val is found in vs, the array's string entry is returned. Otherwise, an
+ * "unknown" string containing the actual value is composed in a static buffer
+ * that is reused across invocations.
  */
 const char *get_value_string(const struct value_string *vs, uint32_t val)
 {
