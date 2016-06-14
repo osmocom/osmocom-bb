@@ -552,35 +552,29 @@ static int get_rate_ctr(struct ctrl_cmd *cmd, void *data)
 	}
 
 	ctr_group = strtok_r(NULL, ".", &saveptr);
-	tmp = strtok_r(NULL, ".", &saveptr);
-	if (!ctr_group || !tmp) {
+	ctr_idx = strtok_r(NULL, ".", &saveptr);
+	if (!ctr_group || !ctr_idx) {
 		talloc_free(dup);
-		cmd->reply = "Counter group must be of form a.b";
+		cmd->reply = "Counter group must be of name.index form e. g. "
+			"e1inp.0";
 		goto err;
 	}
-	ctr_group[strlen(ctr_group)] = '.';
 
-	ctr_idx = strtok_r(NULL, ".", &saveptr);
-	if (!ctr_idx) {
-		talloc_free(dup);
-		return get_rate_ctr_group(ctr_group, intv, cmd);
-	}
 	idx = atoi(ctr_idx);
 
 	ctrg = rate_ctr_get_group_by_name_idx(ctr_group, idx);
 	if (!ctrg) {
 		talloc_free(dup);
-		cmd->reply = "Counter group not found.";
+		cmd->reply = "Counter group with given name and index not found";
 		goto err;
 	}
 
-	ctr_name = strtok_r(NULL, "\0", &saveptr);
-	if (!ctr_name) {
+	if (!strlen(saveptr)) {
 		talloc_free(dup);
 		return get_rate_ctr_group_idx(ctrg, intv, cmd);
 	}
 
-	ctr = rate_ctr_get_by_name(ctrg, ctr_name);
+	ctr = rate_ctr_get_by_name(ctrg, saveptr);
 	if (!ctr) {
 		cmd->reply = "Counter name not found.";
 		talloc_free(dup);
