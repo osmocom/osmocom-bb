@@ -482,7 +482,7 @@ static int asciidoc_osmo_stat_item_group_handler(struct osmo_stat_item_group *st
 DEFUN(show_stats_asciidoc_table,
       show_stats_asciidoc_table_cmd,
       "show asciidoc counters",
-      "Generate an ascii doc table of all registered counters.\n")
+      SHOW_STR "Asciidoc generation\n" "Generate table of all registered counters\n")
 {
 	vty_out(vty, "// generating tables for rate_ctr_group%s", VTY_NEWLINE);
 	rate_ctr_for_each_group(asciidoc_rate_ctr_group_handler, vty);
