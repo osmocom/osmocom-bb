@@ -53,3 +53,108 @@ running random tests...
 24 LE OK
 16 BE OK, storage OK
 16 LE OK
+running nibble tests...
+[8] R IN: f00dcafedeadbeef, nibble 0:
+     OUT: 
+[8] L IN: f00dcafedeadbeef, nibble 0:
+     OUT: 
+[6] R IN: b00bbabeface, nibble 0:
+     OUT: 
+[6] L IN: b00bbabeface, nibble 0:
+     OUT: 
+[8] R IN: f00dcafedeadbeef, nibble 1:
+     OUT: 
+[8] L IN: f00dcafedeadbeef, nibble 1:
+     OUT: 
+[6] R IN: b00bbabeface, nibble 1:
+     OUT: 
+[6] L IN: b00bbabeface, nibble 1:
+     OUT: 
+[8] R IN: f00dcafedeadbeef, nibble 2:
+     OUT: 0f
+[8] L IN: f00dcafedeadbeef, nibble 2:
+     OUT: 00
+[6] R IN: b00bbabeface, nibble 2:
+     OUT: 0b
+[6] L IN: b00bbabeface, nibble 2:
+     OUT: 00
+[8] R IN: f00dcafedeadbeef, nibble 3:
+     OUT: 0f
+[8] L IN: f00dcafedeadbeef, nibble 3:
+     OUT: 00
+[6] R IN: b00bbabeface, nibble 3:
+     OUT: 0b
+[6] L IN: b00bbabeface, nibble 3:
+     OUT: 00
+[8] R IN: f00dcafedeadbeef, nibble 4:
+     OUT: 0f00
+[8] L IN: f00dcafedeadbeef, nibble 4:
+     OUT: 00dc
+[6] R IN: b00bbabeface, nibble 4:
+     OUT: 0b00
+[6] L IN: b00bbabeface, nibble 4:
+     OUT: 00bb
+[8] R IN: f00dcafedeadbeef, nibble 5:
+     OUT: 0f00
+[8] L IN: f00dcafedeadbeef, nibble 5:
+     OUT: 00dc
+[6] R IN: b00bbabeface, nibble 5:
+     OUT: 0b00
+[6] L IN: b00bbabeface, nibble 5:
+     OUT: 00bb
+[8] R IN: f00dcafedeadbeef, nibble 6:
+     OUT: 0f00dc
+[8] L IN: f00dcafedeadbeef, nibble 6:
+     OUT: 00dcaf
+[6] R IN: b00bbabeface, nibble 6:
+     OUT: 0b00bb
+[6] L IN: b00bbabeface, nibble 6:
+     OUT: 00bbab
+[8] R IN: f00dcafedeadbeef, nibble 7:
+     OUT: 0f00dc
+[8] L IN: f00dcafedeadbeef, nibble 7:
+     OUT: 00dcaf
+[6] R IN: b00bbabeface, nibble 7:
+     OUT: 0b00bb
+[6] L IN: b00bbabeface, nibble 7:
+     OUT: 00bbab
+[8] R IN: f00dcafedeadbeef, nibble 8:
+     OUT: 0f00dcaf
+[8] L IN: f00dcafedeadbeef, nibble 8:
+     OUT: 00dcafed
+[6] R IN: b00bbabeface, nibble 8:
+     OUT: 0b00bbab
+[6] L IN: b00bbabeface, nibble 8:
+     OUT: 00bbabef
+[8] R IN: f00dcafedeadbeef, nibble 9:
+     OUT: 0f00dcaf
+[8] L IN: f00dcafedeadbeef, nibble 9:
+     OUT: 00dcafed
+[6] R IN: b00bbabeface, nibble 9:
+     OUT: 0b00bbab
+[6] L IN: b00bbabeface, nibble 9:
+     OUT: 00bbabef
+[8] R IN: f00dcafedeadbeef, nibble 10:
+     OUT: 0f00dcafed
+[8] L IN: f00dcafedeadbeef, nibble 10:
+     OUT: 00dcafedea
+[6] R IN: b00bbabeface, nibble 10:
+     OUT: 0b00bbabef
+[6] L IN: b00bbabeface, nibble 10:
+     OUT: 00bbabefac
+[8] R IN: f00dcafedeadbeef, nibble 11:
+     OUT: 0f00dcafed
+[8] L IN: f00dcafedeadbeef, nibble 11:
+     OUT: 00dcafedea
+[6] R IN: b00bbabeface, nibble 11:
+     OUT: 0b00bbabef
+[6] L IN: b00bbabeface, nibble 11:
+     OUT: 00bbabefac
+[8] R IN: f00dcafedeadbeef, nibble 12:
+     OUT: 0f00dcafedea
+[8] L IN: f00dcafedeadbeef, nibble 12:
+     OUT: 00dcafedeadb
+[6] R IN: b00bbabeface, nibble 12:
+     OUT: 0b00bbabefac
+[6] L IN: b00bbabeface, nibble 12:
+     OUT: 00bbabeface0

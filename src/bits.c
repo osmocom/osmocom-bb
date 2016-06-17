@@ -61,6 +61,54 @@ int osmo_ubit2pbit(pbit_t *out, const ubit_t *in, unsigned int num_bits)
 	return outptr - out;
 }
 
+/*! \brief Shift unaligned input to octet-aligned output
+ *  \param[out] out output buffer, unaligned
+ *  \param[in] in input buffer, octet-aligned
+ *  \param[in] num_nibbles number of nibbles
+ */
+void osmo_nibble_shift_right(uint8_t *out, const uint8_t *in,
+			     unsigned int num_nibbles)
+{
+	unsigned int i, num_whole_bytes = num_nibbles / 2;
+	if (!num_whole_bytes)
+		return;
+
+	/* first byte: upper nibble empty, lower nibble from src */
+	out[0] = (in[0] >> 4);
+
+	/* bytes 1.. */
+	for (i = 1; i < num_whole_bytes; i++)
+		out[i] = ((in[i - 1] & 0xF) << 4) | (in[i] >> 4);
+
+	/* shift the last nibble, in case there's an odd count */
+	i = num_whole_bytes;
+	if (num_nibbles & 1)
+		out[i] = ((in[i - 1] & 0xF) << 4) | (in[i] >> 4);
+	else
+		out[i] = (in[i - 1] & 0xF) << 4;
+}
+
+/*! \brief Shift unaligned input to octet-aligned output
+ *  \param[out] out output buffer, octet-aligned
+ *  \param[in] in input buffer, unaligned
+ *  \param[in] num_nibbles number of nibbles
+ */
+void osmo_nibble_shift_left_unal(uint8_t *out, const uint8_t *in,
+				unsigned int num_nibbles)
+{
+	unsigned int i, num_whole_bytes = num_nibbles / 2;
+	if (!num_whole_bytes)
+		return;
+
+	for (i = 0; i < num_whole_bytes; i++)
+		out[i] = ((in[i] & 0xF) << 4) | (in[i + 1] >> 4);
+
+	/* shift the last nibble, in case there's an odd count */
+	i = num_whole_bytes;
+	if (num_nibbles & 1)
+		out[i] = (in[i] & 0xF) << 4;
+}
+
 /*! \brief convert unpacked bits to soft bits
  *  \param[out] out output buffer of soft bits
  *  \param[in] in input buffer of unpacked bits

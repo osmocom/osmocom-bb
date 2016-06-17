@@ -41,6 +41,11 @@ int osmo_ubit2pbit(pbit_t *out, const ubit_t *in, unsigned int num_bits);
 
 int osmo_pbit2ubit(ubit_t *out, const pbit_t *in, unsigned int num_bits);
 
+void osmo_nibble_shift_right(uint8_t *out, const uint8_t *in,
+			     unsigned int num_nibbles);
+void osmo_nibble_shift_left_unal(uint8_t *out, const uint8_t *in,
+				 unsigned int num_nibbles);
+
 void osmo_ubit2sbit(sbit_t *out, const ubit_t *in, unsigned int num_bits);
 void osmo_sbit2ubit(ubit_t *out, const sbit_t *in, unsigned int num_bits);
 
