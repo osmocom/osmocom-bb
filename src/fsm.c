@@ -136,10 +136,20 @@ static void fsm_tmr_cb(void *data)
 {
 	struct osmo_fsm_inst *fi = data;
 	struct osmo_fsm *fsm = fi->fsm;
+	uint32_t T = fi->T;
 
 	LOGPFSM(fi, "Timeout of T%u\n", fi->T);
 
-	fsm->timer_cb(fi);
+	if (fsm->timer_cb) {
+		int rc = fsm->timer_cb(fi);
+		if (rc != 1)
+			return;
+		LOGPFSM(fi, "timer_cb requested termination\n");
+	} else
+		LOGPFSM(fi, "No timer_cb, automatic termination\n");
+
+	/* if timer_cb returns 1 or there is no timer_cb */
+	osmo_fsm_inst_term(fi, OSMO_FSM_TERM_TIMEOUT, &T);
 }
 
 /*! \brief allocate a new instance of a specified FSM
@@ -317,13 +327,8 @@ int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
 		st->onenter(fi, old_state);
 
 	if (timeout_secs) {
-		if (!fsm->timer_cb)
-			LOGP(fsm->log_subsys, LOGL_ERROR, "cannot start "
-			     "timer for FSM without timer call-back\n");
-		else {
-			fi->T = T;
-			osmo_timer_schedule(&fi->timer, timeout_secs, 0);
-		}
+		fi->T = T;
+		osmo_timer_schedule(&fi->timer, timeout_secs, 0);
 	}
 
 	return 0;

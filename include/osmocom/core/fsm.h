@@ -26,6 +26,8 @@ enum osmo_fsm_term_cause {
 	OSMO_FSM_TERM_REGULAR,
 	/*! \brief erroneous termination of process */
 	OSMO_FSM_TERM_ERROR,
+	/*! \brief termination due to time-out */
+	OSMO_FSM_TERM_TIMEOUT,
 };
 
 /*! \brief description of a rule in the FSM */
@@ -63,7 +65,7 @@ struct osmo_fsm {
 	/*! \breif clean-up function, called during termination */
 	void (*cleanup)(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause);
 	/*! \brief timer call-back for states with time-out */
-	void (*timer_cb)(struct osmo_fsm_inst *fi);
+	int (*timer_cb)(struct osmo_fsm_inst *fi);
 	/*! \brief logging sub-system for this FSM */
 	int log_subsys;
 	/*! \brief human-readable names of events */
