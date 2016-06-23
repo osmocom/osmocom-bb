@@ -101,9 +101,12 @@ struct msgb *msgb_dequeue(struct llist_head *queue)
 		return NULL;
 
 	lh = queue->next;
-	llist_del(lh);
-	
-	return llist_entry(lh, struct msgb, list);
+
+	if (lh) {
+		llist_del(lh);
+		return llist_entry(lh, struct msgb, list);
+	} else
+		return NULL;
 }
 
 /*! \brief Re-set all message buffer pointers
