@@ -66,8 +66,10 @@ void test_comp128v2(char *rand, char *res)
 
 int main(int argc, char **argv)
 {
-	printf("COMP128v2 support: %d\n", osmo_auth_alg_parse("COMP128v2"));
-	printf("COMP128v3 support: %d\n", osmo_auth_alg_parse("COMP128v3"));
+	printf("COMP128v2 support: %d\n",
+	       osmo_auth_supported(osmo_auth_alg_parse("COMP128v2")));
+	printf("COMP128v3 support: %d\n",
+	       osmo_auth_supported(osmo_auth_alg_parse("COMP128v3")));
 
 test_comp128v2("00000000000000000000000000000000", "34B4225BF16B96E118A85800");
 test_comp128v2("00102030405060708090A0B0C0D0E0F0", "A892A8EFD6D33E3650372C00");

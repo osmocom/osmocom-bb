@@ -50,6 +50,9 @@ static int opc_test(const struct osmo_sub_auth_data *aud)
 	const uint8_t op[16] = { 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0 };
 #endif
 
+	printf("MILENAGE supported: %d\n",
+	       osmo_auth_supported(osmo_auth_alg_parse("MILENAGE")));
+
 	rc = milenage_opc_gen(opc, aud->u.umts.k, op);
 
 	printf("OP:\t%s\n", osmo_hexdump(op, sizeof(op)));
