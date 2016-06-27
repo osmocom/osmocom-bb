@@ -40,6 +40,7 @@
 
 #include <osmocom/gsm/a5.h>
 #include <osmocom/gsm/kasumi.h>
+#include <osmocom/crypt/auth.h>
 
 /* Somme OS (like Nuttx) don't have ENOTSUP */
 #ifndef ENOTSUP
@@ -95,8 +96,7 @@ void
 _a5_3(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul, bool fn_correct)
 {
        uint8_t ck[16];
-       memcpy(ck, key, 8);
-       memcpy(ck + 8, key, 8);
+       osmo_c4(ck, key);
        /* internal function require 128 bit key so we expand by concatenating supplied 64 bit key */
        _a5_4(ck, fn, dl, ul, fn_correct);
 }

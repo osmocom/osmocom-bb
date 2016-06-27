@@ -106,7 +106,7 @@ static inline void c5_function(uint8_t *ik, const uint8_t *kc)
 }
 
 /* C4 function to derive UMTS CK from GSM Kc */
-static inline void c4_function(uint8_t *ck, const uint8_t *kc)
+void osmo_c4(uint8_t *ck, const uint8_t *kc)
 {
 	memcpy(ck, kc, 8);
 	memcpy(ck+8, kc, 8);
@@ -125,7 +125,7 @@ int osmo_auth_3g_from_2g(struct osmo_auth_vector *vec)
 	if ((vec->auth_types & OSMO_AUTH_TYPE_GSM) &&
 	    !(vec->auth_types & OSMO_AUTH_TYPE_UMTS)) {
 		c5_function(vec->ik, vec->kc);
-		c4_function(vec->ck, vec->kc);
+		osmo_c4(vec->ck, vec->kc);
 		/* We cannot actually set OSMO_AUTH_TYPE_UMTS as we have no
 		 * AUTN and no RES, and thus can only perform GSM
 		 * authentication with this tuple.
