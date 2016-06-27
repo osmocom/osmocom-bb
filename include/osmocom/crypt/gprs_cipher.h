@@ -14,9 +14,10 @@ enum gprs_ciph_algo {
 	_GPRS_ALGO_NUM
 };
 
+/* 3GPP TS 04.64 Table A.1: */
 enum gprs_cipher_direction {
-	GPRS_CIPH_MS2SGSN,
-	GPRS_CIPH_SGSN2MS,
+	GPRS_CIPH_MS2SGSN = 0,
+	GPRS_CIPH_SGSN2MS = 1,
 };
 
 extern const struct value_string gprs_cipher_names[];
