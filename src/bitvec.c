@@ -198,7 +198,7 @@ int bitvec_get_bit_high(struct bitvec *bv)
  *  \param[in] bits array of \ref bit_value
  *  \param[in] count number of bits to set
  *  \return 0 on success; negative in case of error */
-int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, unsigned int count)
+int bitvec_set_bits(struct bitvec *bv, const enum bit_value *bits, unsigned int count)
 {
 	int i, rc;
 

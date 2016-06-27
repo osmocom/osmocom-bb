@@ -70,7 +70,7 @@ int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnum,
 			enum bit_value bit);
 int bitvec_set_bit(struct bitvec *bv, enum bit_value bit);
 int bitvec_get_bit_high(struct bitvec *bv);
-int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, unsigned int count);
+int bitvec_set_bits(struct bitvec *bv, const enum bit_value *bits, unsigned int count);
 int bitvec_set_uint(struct bitvec *bv, uint32_t in, unsigned int count);
 int bitvec_get_uint(struct bitvec *bv, unsigned int num_bits);
 int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value val);
