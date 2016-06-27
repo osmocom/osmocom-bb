@@ -2,7 +2,9 @@
 #define _GSM48_GPRS_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/crypt/gprs_cipher.h>
 
 /* Table 10.4 / 10.4a, GPRS Mobility Management (GMM) */
 #define GSM48_MT_GMM_ATTACH_REQ		0x01
@@ -361,6 +363,9 @@ enum gsm48_qos_sdu_err {
 	GSM48_QOS_SERR_1e_6		= 0x06,
 	GSM48_QOS_SERR_1e_1		= 0x07,
 };
+
+bool gprs_ms_net_cap_gea_supported(const uint8_t *ms_net_cap, uint8_t cap_len,
+				   enum gprs_ciph_algo gea);
 
 /* Figure 10.5.138/24.008 / Chapter 10.5.6.5 */
 struct gsm48_qos {

@@ -44,6 +44,7 @@ gprs_cipher_supported;
 gprs_cipher_key_length;
 gprs_tlli_type;
 gprs_tmsi2tlli;
+gprs_ms_net_cap_gea_supported;
 
 gsm48_gmm_cause_names;
 gsm48_gsm_cause_names;

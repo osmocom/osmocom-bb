@@ -21,8 +21,10 @@
 
 
 #include <osmocom/gsm/protocol/gsm_04_08_gprs.h>
-
+#include <osmocom/crypt/gprs_cipher.h>
 #include <osmocom/core/utils.h>
+
+#include <stdbool.h>
 
 /* Protocol related stuff, should go into libosmocore */
 
@@ -107,6 +109,33 @@ const struct value_string gsm48_gsm_cause_names_[] = {
 };
 
 const struct value_string *gsm48_gsm_cause_names = gsm48_gsm_cause_names_;
+
+/*! \brief Check if MS supports particular version of GEA by inspecting
+ *         MS network capability IE specified in 3GPP TS 24.008
+ *  \param[in] ms_net_cap Buffer with raw MS network capability IE value,
+ *                        3 - 10 bytes
+ *  \param[in] cap_len Length of ms_net_cap, in bytes
+ *  \param[in] gea Version of GEA to check
+ *  \returns true if given version is supported by MS, false otherwise
+ */
+bool gprs_ms_net_cap_gea_supported(const uint8_t *ms_net_cap, uint8_t cap_len,
+				   enum gprs_ciph_algo gea)
+{
+	switch (gea) {
+	case GPRS_ALGO_GEA0:
+		return true;
+	case GPRS_ALGO_GEA1: /* 1st bit is GEA1: */
+		return 0x80 & ms_net_cap[0];
+	case GPRS_ALGO_GEA2: /* extended GEA bits start from 2nd bit */
+		return 0x40 & ms_net_cap[1]; /* of the next byte */
+	case GPRS_ALGO_GEA3:
+		return 0x20 & ms_net_cap[1];
+	case GPRS_ALGO_GEA4:
+		return 0x10 & ms_net_cap[1];
+	default:
+		return false;
+	}
+}
 
 /* 10.5.5.2 */
 const struct value_string gprs_att_t_strs_[] = {
