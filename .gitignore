@@ -28,6 +28,9 @@ stamp-h1
 libtool
 libosmocore-*.tar.*
 
+# libtool for different platforms like arm-poky-linux-gnueabi-libtool
+*-libtool
+
 Doxyfile.core
 Doxyfile.gsm
 Doxyfile.vty
