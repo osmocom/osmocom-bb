@@ -1,6 +1,7 @@
 #pragma once
 
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/core/utils.h>
 
 #define GSM0464_CIPH_MAX_BLOCK	1523
 
@@ -17,6 +18,8 @@ enum gprs_cipher_direction {
 	GPRS_CIPH_MS2SGSN,
 	GPRS_CIPH_SGSN2MS,
 };
+
+extern const struct value_string gprs_cipher_names[];
 
 /* An implementation of a GPRS cipher */
 struct gprs_cipher_impl {

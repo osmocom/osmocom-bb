@@ -33,6 +33,15 @@ static LLIST_HEAD(gprs_ciphers);
 
 static struct gprs_cipher_impl *selected_ciphers[_GPRS_ALGO_NUM];
 
+const struct value_string gprs_cipher_names[] = {
+	{ GPRS_ALGO_GEA0, "GEA0" },
+	{ GPRS_ALGO_GEA1, "GEA1" },
+	{ GPRS_ALGO_GEA2, "GEA2" },
+	{ GPRS_ALGO_GEA3, "GEA3" },
+	{ GPRS_ALGO_GEA4, "GEA4" },
+	{ 0, NULL },
+};
+
 /* register a cipher with the core */
 int gprs_cipher_register(struct gprs_cipher_impl *ciph)
 {

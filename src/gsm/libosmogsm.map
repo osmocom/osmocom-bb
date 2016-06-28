@@ -39,6 +39,7 @@ gprs_cipher_gen_input_ui;
 gprs_cipher_load;
 gprs_cipher_register;
 gprs_cipher_run;
+gprs_cipher_names;
 gprs_cipher_supported;
 gprs_cipher_key_length;
 gprs_tlli_type;
