@@ -1,0 +1,26 @@
+# autoreconf by-products
+*.in
+
+aclocal.m4
+autom4te.cache/
+configure
+depcomp
+install-sh
+missing
+compile
+
+# configure by-products
+.deps/
+Makefile
+
+config.status
+version.h
+
+# build by-products
+*.o
+
+trxcon
+
+# various
+.version
+.tarball-version
