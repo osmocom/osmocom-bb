@@ -1,0 +1,15 @@
+GEA3 support: 1
+GEA4 support: 1
+len 59, dir 0, INPUT 0x8E9421A3 -> OK 
+len 59, dir 0, INPUT 0x5064DB71 -> OK 
+len 59, dir 1, INPUT 0x4BDBD5E5 -> OK 
+len 59, dir 0, INPUT 0x893FE14F -> OK 
+len 59, dir 1, INPUT 0x8FE17885 -> OK 
+len 59, dir 0, INPUT 0x4F7BC3B5 -> OK 
+len 51, dir 0, INPUT 0xA3A59B4 -> OK 
+len 59, dir 0, INPUT 0x48571AB9 -> OK 
+len 59, dir 1, INPUT 0xEB04ADE2 -> OK 
+len 199, dir 1, INPUT 0x9800001A -> OK 
+len 77, dir 1, INPUT 0x98000019 -> OK 
+len 134, dir 0, INPUT 0x98000014 -> OK 
+len 65, dir 0, INPUT 0x98000015 -> OK 

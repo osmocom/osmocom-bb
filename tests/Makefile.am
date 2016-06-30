@@ -7,7 +7,7 @@ check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
                  conv/conv_test auth/milenage_test lapd/lapd_test	\
                  gsm0808/gsm0808_test gsm0408/gsm0408_test		\
 		 gb/bssgp_fc_test gb/gprs_bssgp_test gb/gprs_ns_test	\
-		 gprs/gprs_test	kasumi/kasumi_test			\
+		 gprs/gprs_test	kasumi/kasumi_test gea/gea_test		\
 		 logging/logging_test fr/fr_test codec/codec_test	\
 		 loggingrb/loggingrb_test strrb/strrb_test              \
 		 vty/vty_test comp128/comp128_test utils/utils_test	\
@@ -36,6 +36,9 @@ comp128_comp128_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/
 
 auth_milenage_test_SOURCES = auth/milenage_test.c
 auth_milenage_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+gea_gea_test_SOURCES = gea/gea_test.c
+gea_gea_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 bits_bitrev_test_SOURCES = bits/bitrev_test.c
 bits_bitrev_test_LDADD = $(top_builddir)/src/libosmocore.la
@@ -146,7 +149,7 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
              lapd/lapd_test.ok gsm0408/gsm0408_test.ok			\
              gsm0808/gsm0808_test.ok gb/bssgp_fc_tests.err		\
              gb/bssgp_fc_tests.ok gb/bssgp_fc_tests.sh			\
-             gb/gprs_bssgp_test.ok gb/gprs_ns_test.ok			\
+             gb/gprs_bssgp_test.ok gb/gprs_ns_test.ok gea/gea_test.ok	\
              gprs/gprs_test.ok kasumi/kasumi_test.ok codec/codec_test.ok \
              msgfile/msgfile_test.ok msgfile/msgconfig.cfg		\
              logging/logging_test.ok logging/logging_test.err		\

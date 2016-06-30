@@ -24,10 +24,10 @@ libgsmint_la_SOURCES =  a5.c rxlev_stat.c tlv_parser.c comp128.c comp128v23.c \
 			conv_tch_afs_6_7_gen.c conv_tch_afs_5_9_gen.c \
 			conv_tch_afs_5_15_gen.c conv_tch_afs_4_75_gen.c \
 			auth_core.c auth_comp128v1.c auth_comp128v23.c \
-			auth_milenage.c milenage/aes-encblock.c \
+			auth_milenage.c milenage/aes-encblock.c gea.c \
 			milenage/aes-internal.c milenage/aes-internal-enc.c \
 			milenage/milenage.c gan.c ipa.c gsm0341.c apn.c \
-			gsup.c
+			gsup.c gprs_gea.c
 libgsmint_la_LDFLAGS = -no-undefined
 libgsmint_la_LIBADD = ../libosmocore.la
 

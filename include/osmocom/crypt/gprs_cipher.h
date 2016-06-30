@@ -3,6 +3,8 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/utils.h>
 
+#include <stdint.h>
+
 #define GSM0464_CIPH_MAX_BLOCK	1523
 
 /* 3GPP TS 24.008 § 10.5.5.3 */

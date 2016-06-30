@@ -45,6 +45,12 @@ cat $abs_srcdir/msgb/msgb_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/msgb/msgb_test], [0], [expout], [ignore])
 AT_CLEANUP
 
+AT_SETUP([gea])
+AT_KEYWORDS([gea])
+cat $abs_srcdir/gea/gea_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gea/gea_test], [0], [expout])
+AT_CLEANUP
+
 if ENABLE_MSGFILE
 AT_SETUP([msgfile])
 AT_KEYWORDS([msgfile])
