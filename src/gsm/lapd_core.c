@@ -158,6 +158,9 @@ static void lapd_dl_flush_hist(struct lapd_datalink *dl)
 {
 	unsigned int i;
 
+	if (!dl->range_hist)
+		return;
+
 	for (i = 0; i < dl->range_hist; i++) {
 		if (dl->tx_hist[i].msg) {
 			msgb_free(dl->tx_hist[i].msg);
