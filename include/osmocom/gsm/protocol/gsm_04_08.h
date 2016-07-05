@@ -6,7 +6,6 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/endian.h>
 
-
 /* GSM TS 04.08  definitions */
 struct gsm_lchan;
 
@@ -924,6 +923,8 @@ struct gsm48_rr_status {
 #define GSM48_PDISC_EXTEND	0x0e
 #define GSM48_PDISC_MASK	0x0f
 #define GSM48_PDISC_USSD	0x11
+
+bool gsm48_hdr_gmm_cipherable(const struct gsm48_hdr *hdr);
 
 static inline uint8_t gsm48_hdr_pdisc(const struct gsm48_hdr *hdr)
 {

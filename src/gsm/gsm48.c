@@ -35,6 +35,7 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
+#include <osmocom/gsm/protocol/gsm_04_08_gprs.h>
 
 const struct tlv_definition gsm48_att_tlvdef = {
 	.def = {
@@ -300,6 +301,30 @@ static void to_bcd(uint8_t *bcd, uint16_t val)
 	val = val / 10;
 	bcd[0] = val % 10;
 	val = val / 10;
+}
+
+/*! \brief Checks is particular message is cipherable in A/Gb mode according to
+ *         3GPP TS 24.008 § 4.7.1.2
+ *  \param[in] hdr Message header
+ *  \return true if message can be encrypted, false otherwise
+ */
+bool gsm48_hdr_gmm_cipherable(const struct gsm48_hdr *hdr)
+{
+	switch(hdr->msg_type) {
+	case GSM48_MT_GMM_ATTACH_REQ:
+	case GSM48_MT_GMM_ATTACH_REJ:
+	case GSM48_MT_GMM_AUTH_CIPH_REQ:
+	case GSM48_MT_GMM_AUTH_CIPH_RESP:
+	case GSM48_MT_GMM_AUTH_CIPH_REJ:
+	case GSM48_MT_GMM_AUTH_CIPH_FAIL:
+	case GSM48_MT_GMM_ID_REQ:
+	case GSM48_MT_GMM_ID_RESP:
+	case GSM48_MT_GMM_RA_UPD_REQ:
+	case GSM48_MT_GMM_RA_UPD_REJ:
+		return false;
+	default:
+		return true;
+	}
 }
 
 /* Convert given mcc and mnc to BCD and write to *bcd_dst, which must be an
