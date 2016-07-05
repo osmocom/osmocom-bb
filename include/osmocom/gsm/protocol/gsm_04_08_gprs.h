@@ -51,6 +51,7 @@
 #define GPRS_ATT_T_COMBINED		3
 
 extern const struct value_string *gprs_att_t_strs;
+extern const struct value_string gprs_msgt_gmm_names[];
 
 /* Chapter 10.5.5.5 / Table 10.5.138 */
 #define GPRS_DET_T_MO_GPRS		1
