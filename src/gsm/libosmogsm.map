@@ -25,6 +25,7 @@ abis_nm_osmo_magic;
 abis_nm_ipa_magic;
 
 osmo_sitype_strs;
+osmo_c4;
 bitvec_add_range1024;
 comp128;
 dbm2rxlev;
