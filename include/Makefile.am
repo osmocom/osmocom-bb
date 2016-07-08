@@ -51,6 +51,7 @@ nobase_include_HEADERS = \
                        osmocom/gprs/gprs_msgb.h \
                        osmocom/gprs/gprs_ns.h \
                        osmocom/gprs/gprs_ns_frgre.h \
+                       osmocom/gprs/protocol/gsm_04_60.h \
                        osmocom/gprs/protocol/gsm_08_16.h \
                        osmocom/gprs/protocol/gsm_08_18.h \
                        osmocom/gsm/a5.h \
