@@ -169,7 +169,8 @@ struct osmo_fsm_inst *osmo_fsm_inst_alloc(struct osmo_fsm *fsm, void *ctx, void 
 	fi->log_level = log_level;
 	fi->timer.data = fi;
 	fi->timer.cb = fsm_tmr_cb;
-	fi->id = id;
+	if (id)
+		fi->id = talloc_strdup(fi, id);
 
 	if (!fsm_log_addr) {
 		if (id)
