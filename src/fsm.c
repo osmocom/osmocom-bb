@@ -323,13 +323,14 @@ int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
 	LOGPFSM(fi, "state_chg to %s\n", osmo_fsm_state_name(fsm, new_state));
 	fi->state = new_state;
 
-	if (st->onenter)
-		st->onenter(fi, old_state);
-
 	if (timeout_secs) {
 		fi->T = T;
 		osmo_timer_schedule(&fi->timer, timeout_secs, 0);
 	}
+
+	/* Call 'onenter' last, user might terminate FSM from there */
+	if (st->onenter)
+		st->onenter(fi, old_state);
 
 	return 0;
 }
