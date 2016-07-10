@@ -318,6 +318,9 @@ int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
 		return -EPERM;
 	}
 
+	/* delete the old timer */
+	osmo_timer_del(&fi->timer);
+
 	if (st->onleave)
 		st->onleave(fi, new_state);
 
