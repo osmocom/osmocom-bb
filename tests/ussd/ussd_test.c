@@ -34,6 +34,12 @@ static const uint8_t ussd_request[] = {
 	0x01, 0x7f, 0x01, 0x00
 };
 
+static const uint8_t interrogate_ss[] = {
+	0x0b, 0x7b, 0x1c, 0x0d, 0xa1, 0x0b, 0x02, 0x01,
+	0x03, 0x02, 0x01, 0x0e, 0x30, 0x03, 0x04, 0x01,
+	0x21, 0x7f, 0x01, 0x00
+};
+
 static int parse_ussd(const uint8_t *_data, int len)
 {
 	uint8_t *data;
@@ -120,9 +126,15 @@ int main(int argc, char **argv)
 
 	osmo_init_logging(&info);
 
+	memset(&req, 0, sizeof(req));
 	gsm0480_decode_ss_request((struct gsm48_hdr *) ussd_request, size, &req);
 	printf("Tested if it still works. Text was: %s\n", req.ussd_text);
 
+	memset(&req, 0, sizeof(req));
+	gsm0480_decode_ss_request((struct gsm48_hdr *) interrogate_ss, size, &req);
+	OSMO_ASSERT(strlen((char *) req.ussd_text) == 0);
+	OSMO_ASSERT(req.ss_code == 33);
+	printf("interrogateSS CFU text..'%s' code %d\n", req.ussd_text, req.ss_code);
 
 	printf("Testing parsing a USSD request and truncated versions\n");
 
