@@ -190,7 +190,7 @@ int osmo_gsup_decode(const uint8_t *const_data, size_t data_len,
 	uint8_t *value;
 	size_t value_len;
 	static const struct osmo_gsup_pdp_info empty_pdp_info = {0};
-	static const struct osmo_auth_vector empty_auth_info = {0};
+	static const struct osmo_auth_vector empty_auth_info = {{0}};
 	static const struct osmo_gsup_message empty_gsup_message = {0};
 
 	*gsup_msg = empty_gsup_message;
