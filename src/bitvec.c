@@ -143,7 +143,7 @@ unsigned int bitvec_get_nth_set_bit(const struct bitvec *bv, unsigned int n)
  *  \param[in] bit value to which the bit is to be set
  *  \returns 0 on success, negative value on error
  */
-int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnr,
+inline int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnr,
 			enum bit_value bit)
 {
 	unsigned int bytenum = bytenum_from_bitnum(bitnr);
@@ -169,7 +169,7 @@ int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnr,
  *  \param[in] bit value of the bit to be set
  *  \returns 0 on success, negative value on error
  */
-int bitvec_set_bit(struct bitvec *bv, enum bit_value bit)
+inline int bitvec_set_bit(struct bitvec *bv, enum bit_value bit)
 {
 	int rc;
 
