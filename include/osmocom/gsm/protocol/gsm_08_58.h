@@ -305,6 +305,7 @@ enum abis_rsl_ie {
 #define RSL_CHAN_BCCH		0x80
 #define RSL_CHAN_RACH		0x88
 #define RSL_CHAN_PCH_AGCH	0x90
+#define RSL_CHAN_OSMO_PDCH	0xc0	/*< non-standard, for dyn TS */
 
 /* Chapter 9.3.3 */
 #define RSL_ACT_TYPE_INITIAL	0x00
@@ -315,6 +316,7 @@ enum abis_rsl_ie {
 #define RSL_ACT_INTER_SYNC	0x03
 #define RSL_ACT_SECOND_ADD	0x04
 #define RSL_ACT_SECOND_MULTI	0x05
+#define RSL_ACT_OSMO_PDCH	0x0f	/*< non-standard, for dyn TS */
 
 /*! \brief RSL Channel Mode IF (Chapter 9.3.6) */
 struct rsl_ie_chan_mode {

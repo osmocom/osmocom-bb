@@ -438,6 +438,7 @@ static const enum abis_nm_chan_comb chcomb4pchan[] = {
 	[GSM_PCHAN_UNKNOWN]	= 0xff,
 	[GSM_PCHAN_CCCH_SDCCH4_CBCH]	= NM_CHANC_BCCH_CBCH,
 	[GSM_PCHAN_SDCCH8_SACCH8C_CBCH] = NM_CHANC_SDCCH_CBCH,
+	[GSM_PCHAN_TCH_F_TCH_H_PDCH]	= NM_CHANC_OSMO_TCHFull_TCHHalf_PDCH,
 	/* FIXME: bounds check */
 };
 
