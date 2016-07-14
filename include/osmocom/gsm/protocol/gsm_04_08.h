@@ -947,6 +947,16 @@ static inline uint8_t gsm48_hdr_trans_id(const struct gsm48_hdr *hdr)
 	return (hdr->proto_discr & 0xf0) >> 4;
 }
 
+/*! \brief Check if TA is valid according to 3GPP TS 44.018 § 10.5.2.40
+ *  \param[in] ta Timing Advance value
+ *  \returns true if ta is valid, false otherwise
+ *  Note: Rules for GSM400 band are ignored as it's not implemented in practice.
+ */
+static inline bool gsm48_ta_is_valid(uint8_t ta)
+{
+	return (ta < 64);
+}
+
 static inline uint8_t gsm48_hdr_trans_id_flip_ti(const struct gsm48_hdr *hdr)
 {
 	return gsm48_hdr_trans_id(hdr) ^ 0x08;
