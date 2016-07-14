@@ -46,12 +46,22 @@ struct ph_rach_req_param {
 	uint16_t offset;	/*!< \brief Timing Offset */
 };
 
+/*! \brief for PH_RA_IND burstType inforamtion */
+enum ph_burst_type {
+	GSM_L1_BURST_TYPE_NONE = 0,
+	GSM_L1_BURST_TYPE_ACCESS_0,
+	GSM_L1_BURST_TYPE_ACCESS_1,
+	GSM_L1_BURST_TYPE_ACCESS_2
+};
+
 /*! \brief for PH-RANDOM_ACCESS.ind */
 struct ph_rach_ind_param {
 	uint8_t chan_nr;	/*!< \brief Channel Number (Like RSL) */
-	uint8_t ra;		/*!< \brief Random Access */
+	uint16_t ra;		/*!< \brief Random Access */
 	uint8_t acc_delay;	/*!< \brief Delay in bit periods */
 	uint32_t fn;		/*!< \brief GSM Frame Number at time of RA */
+	uint8_t is_11bit;	/*!< \brief no.of bits in RACH*/
+	enum ph_burst_type burst_type; /*!< \brief type of burst*/
 };
 
 /*! \brief for PH-[UNIT]DATA.{req,ind} | PH-RTS.ind */
