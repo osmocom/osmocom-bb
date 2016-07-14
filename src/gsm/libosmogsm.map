@@ -48,6 +48,8 @@ gprs_tmsi2tlli;
 gprs_ms_net_cap_gea_supported;
 gprs_msgt_gmm_names;
 
+egprs_get_cps;
+
 gsm48_gmm_cause_names;
 gsm48_gsm_cause_names;
 gprs_att_t_strs;
