@@ -947,6 +947,8 @@ static inline uint8_t gsm48_hdr_trans_id(const struct gsm48_hdr *hdr)
 	return (hdr->proto_discr & 0xf0) >> 4;
 }
 
+#define GSM48_TA_INVALID 220
+
 /*! \brief Check if TA is valid according to 3GPP TS 44.018 § 10.5.2.40
  *  \param[in] ta Timing Advance value
  *  \returns true if ta is valid, false otherwise
