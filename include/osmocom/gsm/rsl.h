@@ -56,4 +56,12 @@ void rsl_rll_push_l3(struct msgb *msg, uint8_t msg_type, uint8_t chan_nr,
 struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
 			    uint8_t link_id, int transparent);
 
+extern const struct value_string rsl_act_type_names[];
+
+/*! \brief Return a human readable name for GSM 08.58 RSL_ACT_* constants. */
+static inline const char *rsl_act_type_name(uint8_t act_type)
+{
+	return get_value_string(rsl_act_type_names, act_type);
+}
+
 /*! @} */

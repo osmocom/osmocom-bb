@@ -276,6 +276,7 @@ rsl_rll_push_hdr;
 rsl_rll_push_l3;
 rsl_rll_simple;
 rsl_rlm_cause_name;
+rsl_act_type_names;
 
 rxlev2dbm;
 rxlev_stat_dump;

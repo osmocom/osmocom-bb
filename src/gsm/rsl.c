@@ -541,4 +541,17 @@ const struct tlv_definition rsl_ipac_eie_tlvdef = {
 	},
 };
 
+const struct value_string rsl_act_type_names[] = {
+	{ RSL_ACT_TYPE_INITIAL,	"INITIAL" },
+	{ RSL_ACT_TYPE_REACT,	"REACT" },
+	{ RSL_ACT_INTRA_IMM_ASS,	"INTRA_IMM_ASS" },
+	{ RSL_ACT_INTRA_NORM_ASS,	"INTRA_NORM_ASS" },
+	{ RSL_ACT_INTER_ASYNC,	"INTER_ASYNC" },
+	{ RSL_ACT_INTER_SYNC,	"INTER_SYNC" },
+	{ RSL_ACT_SECOND_ADD,	"SECOND_ADD" },
+	{ RSL_ACT_SECOND_MULTI,	"SECOND_MULTI" },
+	{ RSL_ACT_OSMO_PDCH,	"OSMO_PDCH" },
+	{ 0, NULL }
+};
+
 /*! @} */
