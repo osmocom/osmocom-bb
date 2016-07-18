@@ -297,6 +297,7 @@ enum abis_rsl_ie {
 
 /* Chapter 9.3.1 */
 #define RSL_CHAN_NR_MASK	0xf8
+#define RSL_CHAN_NR_1		0x08	/*< bit to add for 2nd,... lchan */
 #define RSL_CHAN_Bm_ACCHs	0x08
 #define RSL_CHAN_Lm_ACCHs	0x10	/* .. 0x18 */
 #define RSL_CHAN_SDCCH4_ACCH	0x20	/* .. 0x38 */
