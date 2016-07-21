@@ -70,6 +70,9 @@ struct ph_data_param {
 	uint8_t chan_nr;	/*!< \brief Channel Number (Like RSL) */
 	uint32_t fn;		/*!< \brief GSM Frame Number */
 	int8_t rssi;		/*!< \brief RSSI of receivedindication */
+	uint16_t ber10k;	/*!< \brief BER in units of 0.01% */
+	int16_t ta_offs_qbits;	/* !< \brief Burst TA Offset in quarter bits */
+	int16_t lqual_cb;	/* !< \brief Link quality in centiBel */
 	enum osmo_ph_pres_info_type pdch_presence_info; /*!< \brief Info regarding presence/validity of header and data parts */
 };
 
