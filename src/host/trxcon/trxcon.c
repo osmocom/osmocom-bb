@@ -36,6 +36,7 @@
 #include <osmocom/core/application.h>
 
 #include "logging.h"
+#include "l1ctl_link.h"
 
 #define COPYRIGHT \
 	"Copyright (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
@@ -49,9 +50,12 @@ static struct {
 	int daemonize;
 	int quit;
 
+	/* L1CTL specific */
+	struct l1ctl_link *l1l;
+	const char *bind_socket;
+
 	const char *trx_ip;
 	uint16_t trx_base_port;
-	const char *bind_socket;
 } app_data;
 
 void *tall_trx_ctx = NULL;
@@ -168,10 +172,12 @@ int main(int argc, char **argv)
 	/* Init logging system */
 	trx_log_init(app_data.debug_mask);
 
-	/* Currently nothing to do */
-	print_usage(argv[0]);
-	print_help();
-	goto exit;
+	/* Init L1CTL server */
+	rc = l1ctl_link_init(&app_data.l1l, app_data.bind_socket);
+	if (rc)
+		goto exit;
+
+	LOGP(DAPP, LOGL_NOTICE, "Init complete\n");
 
 	if (app_data.daemonize) {
 		rc = osmo_daemonize();
@@ -185,6 +191,9 @@ int main(int argc, char **argv)
 		osmo_select_main(0);
 
 exit:
+	/* Close active connections */
+	l1ctl_link_shutdown(app_data.l1l);
+
 	/* Make Valgrind happy */
 	log_fini();
 	talloc_free(tall_trx_ctx);

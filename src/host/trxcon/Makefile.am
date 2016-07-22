@@ -20,6 +20,7 @@ AM_CFLAGS = \
 bin_PROGRAMS = trxcon
 
 trxcon_SOURCES = \
+	l1ctl_link.c \
 	logging.c \
 	trxcon.c \
 	$(NULL)

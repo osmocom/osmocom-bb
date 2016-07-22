@@ -34,6 +34,12 @@ static struct log_info_cat trx_log_info_cat[] = {
 		.color = "\033[1;35m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[DL1C] = {
+		.name = "DL1C",
+		.description = "Layer 1 control interface",
+		.color = "\033[1;31m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 static const struct log_info trx_log_info = {
