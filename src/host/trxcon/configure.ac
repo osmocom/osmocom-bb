@@ -13,6 +13,7 @@ AC_PROG_INSTALL
 dnl checks for libraries
 PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore)
 PKG_CHECK_MODULES(LIBOSMOCODING, libosmocoding)
+PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm)
 
 dnl checks for header files
 AC_HEADER_STDC

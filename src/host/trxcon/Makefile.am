@@ -15,16 +15,19 @@ AM_CPPFLAGS = \
 AM_CFLAGS = \
 	-Wall \
 	$(LIBOSMOCORE_CFLAGS) \
+	$(LIBOSMOGSM_CFLAGS) \
 	$(NULL)
 
 bin_PROGRAMS = trxcon
 
 trxcon_SOURCES = \
 	l1ctl_link.c \
+	trx_if.c \
 	logging.c \
 	trxcon.c \
 	$(NULL)
 
 trxcon_LDADD = \
 	$(LIBOSMOCORE_LIBS) \
+	$(LIBOSMOGSM_LIBS) \
 	$(NULL)

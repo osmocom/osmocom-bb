@@ -35,6 +35,7 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/application.h>
 
+#include "trx_if.h"
 #include "logging.h"
 #include "l1ctl_link.h"
 
@@ -54,6 +55,8 @@ static struct {
 	struct l1ctl_link *l1l;
 	const char *bind_socket;
 
+	/* TRX specific */
+	struct trx_instance *trx;
 	const char *trx_ip;
 	uint16_t trx_base_port;
 } app_data;
@@ -177,6 +180,11 @@ int main(int argc, char **argv)
 	if (rc)
 		goto exit;
 
+	/* Init transceiver interface */
+	rc = trx_if_open(&app_data.trx, app_data.trx_ip, app_data.trx_base_port);
+	if (rc)
+		goto exit;
+
 	LOGP(DAPP, LOGL_NOTICE, "Init complete\n");
 
 	if (app_data.daemonize) {
@@ -193,6 +201,7 @@ int main(int argc, char **argv)
 exit:
 	/* Close active connections */
 	l1ctl_link_shutdown(app_data.l1l);
+	trx_if_close(app_data.trx);
 
 	/* Make Valgrind happy */
 	log_fini();

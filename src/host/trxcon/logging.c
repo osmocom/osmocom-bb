@@ -40,6 +40,12 @@ static struct log_info_cat trx_log_info_cat[] = {
 		.color = "\033[1;31m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[DTRX] = {
+		.name = "DTRX",
+		.description = "Transceiver interface",
+		.color = "\033[1;33m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 static const struct log_info trx_log_info = {
