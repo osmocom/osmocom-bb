@@ -22,6 +22,7 @@ bin_PROGRAMS = trxcon
 
 trxcon_SOURCES = \
 	l1ctl_link.c \
+	l1ctl.c \
 	trx_if.c \
 	logging.c \
 	trxcon.c \

@@ -43,6 +43,7 @@
 #include "trxcon.h"
 #include "logging.h"
 #include "l1ctl_link.h"
+#include "l1ctl.h"
 
 extern void *tall_trx_ctx;
 extern struct osmo_fsm_inst *trxcon_fsm;
@@ -112,8 +113,8 @@ static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 	LOGP(DL1C, LOGL_DEBUG, "RX: '%s'\n",
 		osmo_hexdump(msg->data, msg->len));
 
-	/* TODO: call L1CTL handler here */
-	msgb_free(msg);
+	/* Call L1CTL handler */
+	l1ctl_rx_cb(l1l, msg);
 
 	return 0;
 }
