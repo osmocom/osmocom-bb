@@ -71,7 +71,7 @@ do {								\
  * \param[in] ctx Talloc context to use for allocation
  * \param[out] dst pointer to string, will be updated with ptr to new string
  * \param[in] newstr String that will be copieed to newly allocated string */
-static inline void osmo_talloc_replace_string(void *ctx, char **dst, char *newstr)
+static inline void osmo_talloc_replace_string(void *ctx, char **dst, const char *newstr)
 {
 	if (*dst)
 		talloc_free(*dst);
