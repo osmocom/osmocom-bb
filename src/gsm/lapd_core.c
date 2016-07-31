@@ -158,7 +158,7 @@ static void lapd_dl_flush_hist(struct lapd_datalink *dl)
 {
 	unsigned int i;
 
-	if (!dl->range_hist)
+	if (!dl->range_hist || !dl->tx_hist)
 		return;
 
 	for (i = 0; i < dl->range_hist; i++) {
