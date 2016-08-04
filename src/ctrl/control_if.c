@@ -117,6 +117,27 @@ int ctrl_cmd_send(struct osmo_wqueue *queue, struct ctrl_cmd *cmd)
 	return ret;
 }
 
+/*! \brief Send TRAP over given Control Interface
+ *  \param[in] ctrl Control Interface over which TRAP will be sent
+ *  \param[in] name Name of the TRAP variable
+ *  \param[in] value Value of the TRAP variable
+ *  \return Negative value on error, result of ctrl_cmd_send_to_all() otherwise
+ */
+int ctrl_cmd_send_trap(struct ctrl_handle *ctrl, const char *name, char *value)
+{
+	int r;
+	struct ctrl_cmd *cmd = ctrl_cmd_create(NULL, CTRL_TYPE_TRAP);
+	if (!cmd)
+		return -ENOMEM;
+
+	cmd->id = "0"; /* It's a TRAP! */
+	cmd->variable = name;
+	cmd->reply = value;
+	r = ctrl_cmd_send_to_all(ctrl, cmd);
+	talloc_free(cmd);
+	return r;
+}
+
 struct ctrl_cmd *ctrl_cmd_trap(struct ctrl_cmd *cmd)
 {
 	struct ctrl_cmd *trap;
