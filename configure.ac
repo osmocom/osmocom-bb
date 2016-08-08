@@ -17,6 +17,21 @@ LT_INIT([pic-only disable-static])
 
 AC_CONFIG_MACRO_DIR([m4])
 
+dnl check for pkg-config
+dnl * If pkg-config is missing, we get a "syntax error" for PKG_CHECK_MODULES.
+dnl   Instead, we want to say that pkg-config and pkg.m4 are missing.
+dnl * The proper way is PKG_PROG_PKG_CONFIG() but unfortunately that does not
+dnl   produce an intelligible error message if pkg-config is missing entirely
+dnl   ("syntax error near unexpected token `0.20'").
+dnl * To produce a hint that pkg-config is missing, check for the pkg-config
+dnl   binary; but AC_PATH_PROG breaks if the distribution provides only
+dnl   prefixed (<arch>-pkg-config) versions, so just print a warning.
+AC_PATH_PROG(PKG_CONFIG_INSTALLED, pkg-config, no)
+if test "x$PKG_CONFIG_INSTALLED" = "xno"; then
+        AC_MSG_WARN([You need to install pkg-config])
+fi
+PKG_PROG_PKG_CONFIG([0.20])
+
 dnl check os: some linker flags not available on osx
 case $host in
 *-darwin*)
