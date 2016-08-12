@@ -81,6 +81,7 @@ struct ph_tch_param {
 	uint8_t chan_nr;	/*!< \brief Channel Number (Like RSL) */
 	uint32_t fn;		/*!< \brief GSM Frame Number */
 	int8_t rssi;		/*!< \brief RSSI of received indication */
+	uint8_t marker;		/*!< \brief RTP Marker bit (speech onset indicator) */
 };
 
 /*! \brief for PH-CONN.ind */
