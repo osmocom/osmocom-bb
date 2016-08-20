@@ -1678,7 +1678,7 @@ static int vty_config_write(struct vty *vty)
 		vty_out(vty, " no login%s", VTY_NEWLINE);
 
 	/* bind */
-	if (vty_bind_addr && (strcmp(vty_bind_addr, "127.0.0.1") != 0))
+	if (vty_bind_addr && (strcmp(vty_bind_addr, VTY_BIND_ADDR_DEFAULT) != 0))
 		vty_out(vty, " bind %s%s", vty_bind_addr, VTY_NEWLINE);
 
 	vty_out(vty, "!%s", VTY_NEWLINE);
