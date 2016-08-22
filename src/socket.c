@@ -71,8 +71,11 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 	char portbuf[16];
 
 	if ((flags & (OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT)) ==
-		     (OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT))
+		     (OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT)) {
+		fprintf(stderr, "invalid: both bind and connect flags set:"
+			" %s:%u: %s\n", host, port);
 		return -EINVAL;
+	}
 
 	sprintf(portbuf, "%u", port);
 	memset(&hints, 0, sizeof(struct addrinfo));
@@ -93,7 +96,8 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 
 	rc = getaddrinfo(host, portbuf, &hints, &result);
 	if (rc != 0) {
-		perror("getaddrinfo returned NULL");
+		fprintf(stderr, "getaddrinfo returned NULL: %s:%u: %s\n",
+			host, port, strerror(errno));
 		return -EINVAL;
 	}
 
@@ -109,7 +113,10 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 			continue;
 		if (flags & OSMO_SOCK_F_NONBLOCK) {
 			if (ioctl(sfd, FIONBIO, (unsigned char *)&on) < 0) {
-				perror("cannot set this socket unblocking");
+				fprintf(stderr,
+					"cannot set this socket unblocking:"
+					" %s:%u: %s\n",
+					host, port, strerror(errno));
 				close(sfd);
 				return -EINVAL;
 			}
@@ -122,7 +129,10 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 			rc = setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR,
 							&on, sizeof(on));
 			if (rc < 0) {
-				perror("cannot setsockopt socket");
+				fprintf(stderr,
+					"cannot setsockopt socket:"
+					" %s:%u: %s\n",
+					host, port, strerror(errno));
 				break;
 			}
 			if (bind(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
@@ -133,7 +143,8 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 	freeaddrinfo(result);
 
 	if (rp == NULL) {
-		perror("unable to connect/bind socket");
+		fprintf(stderr, "unable to connect/bind socket: %s:%u: %s\n",
+			host, port, strerror(errno));
 		return -ENODEV;
 	}
 
