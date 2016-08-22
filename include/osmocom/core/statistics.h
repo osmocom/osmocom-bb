@@ -12,6 +12,12 @@ struct osmo_counter {
 	unsigned long previous;		/*!< \brief previous value */
 };
 
+/*! \brief Decrement counter */
+static inline void osmo_counter_dec(struct osmo_counter *ctr)
+{
+	ctr->value--;
+}
+
 /*! \brief Increment counter */
 static inline void osmo_counter_inc(struct osmo_counter *ctr)
 {
