@@ -199,3 +199,14 @@ const struct value_string gprs_det_t_mt_strs_[] = {
 };
 
 const struct value_string *gprs_det_t_mt_strs = gprs_det_t_mt_strs_;
+
+const struct value_string gprs_service_t_strs_[] = {
+	{ GPRS_SERVICE_T_SIGNALLING,	"signalling" },
+	{ GPRS_SERVICE_T_DATA,		"data" },
+	{ GPRS_SERVICE_T_PAGING_RESP,	"paging response" },
+	{ GPRS_SERVICE_T_MBMS_MC_SERV,	"MBMS multicast service" },
+	{ GPRS_SERVICE_T_MBMS_BC_SERV,	"MBMS broadcast service" },
+	{ 0, NULL }
+};
+
+const struct value_string *gprs_service_t_strs = gprs_service_t_strs_;

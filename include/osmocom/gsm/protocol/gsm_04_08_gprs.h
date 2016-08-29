@@ -73,6 +73,11 @@ extern const struct value_string *gprs_det_t_mt_strs;
 
 extern const struct value_string *gprs_upd_t_strs;
 
+/* Table 10.4 in 3GPP TS 24.008 (successor to 04.08) */
+#define GSM48_MT_GMM_SERVICE_REQ	0x0c
+#define GSM48_MT_GMM_SERVICE_ACK	0x0d
+#define GSM48_MT_GMM_SERVICE_REJ	0x0e
+
 enum gsm48_gprs_ie_mm {
 	GSM48_IE_GMM_CIPH_CKSN		= 0x08, /* 10.5.1.2 */
 	GSM48_IE_GMM_TIMER_READY	= 0x17,	/* 10.5.7.3 */
@@ -364,6 +369,17 @@ enum gsm48_qos_sdu_err {
 	GSM48_QOS_SERR_1e_6		= 0x06,
 	GSM48_QOS_SERR_1e_1		= 0x07,
 };
+
+/* 3GPP 24.008 / Chapter 10.5.5.20 / Table 10.5.153a */
+enum gsm48_gmm_service_type {
+	GPRS_SERVICE_T_SIGNALLING	= 0x00,
+	GPRS_SERVICE_T_DATA		= 0x01,
+	GPRS_SERVICE_T_PAGING_RESP	= 0x02,
+	GPRS_SERVICE_T_MBMS_MC_SERV	= 0x03,
+	GPRS_SERVICE_T_MBMS_BC_SERV	= 0x04,
+};
+
+extern const struct value_string *gprs_service_t_strs;
 
 bool gprs_ms_net_cap_gea_supported(const uint8_t *ms_net_cap, uint8_t cap_len,
 				   enum gprs_ciph_algo gea);

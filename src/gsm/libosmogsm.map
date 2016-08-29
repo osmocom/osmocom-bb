@@ -56,6 +56,7 @@ gprs_att_t_strs;
 gprs_upd_t_strs;
 gprs_det_t_mo_strs;
 gprs_det_t_mt_strs;
+gprs_service_t_strs;
 
 gsm0341_build_msg;
 
