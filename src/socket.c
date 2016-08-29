@@ -73,7 +73,7 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 	if ((flags & (OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT)) ==
 		     (OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT)) {
 		fprintf(stderr, "invalid: both bind and connect flags set:"
-			" %s:%u: %s\n", host, port);
+			" %s:%u\n", host, port);
 		return -EINVAL;
 	}
 
