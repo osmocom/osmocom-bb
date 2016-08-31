@@ -9,3 +9,4 @@ lib_LTLIBRARIES = libosmocodec.la
 
 libosmocodec_la_SOURCES = gsm610.c gsm620.c gsm660.c gsm690.c
 libosmocodec_la_LDFLAGS = -version-info $(LIBVERSION) -no-undefined
+libosmocodec_la_LIBADD = $(top_builddir)/src/libosmocore.la
