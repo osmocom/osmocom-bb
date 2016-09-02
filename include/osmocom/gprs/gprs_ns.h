@@ -23,7 +23,8 @@
 	"Alive Timer (Tns-alive) timeout\n"			\
 	"Alive Timer (Tns-alive) number of retries\n"
 
-#define NS_ALLOC_SIZE	2048
+/* Educated guess - LLC user payload is 1500 bytes plus possible headers */
+#define NS_ALLOC_SIZE	3072
 #define NS_ALLOC_HEADROOM 20
 
 enum ns_timeout {
