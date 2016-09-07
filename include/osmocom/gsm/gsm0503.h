@@ -36,10 +36,26 @@
  */
 extern const struct osmo_conv_code gsm0503_xcch;
 
+/*! \brief structure describing convolutional code RACH
+ */
+extern const struct osmo_conv_code gsm0503_rach;
+
+/*! \brief structure describing convolutional code SCH
+ */
+extern const struct osmo_conv_code gsm0503_sch;
+
 /*! \brief structures describing convolutional codes CS2/3
  */
 extern const struct osmo_conv_code gsm0503_cs2;
 extern const struct osmo_conv_code gsm0503_cs3;
+
+/*! \brief structure describing convolutional code TCH/FR
+ */
+extern const struct osmo_conv_code gsm0503_tch_fr;
+
+/*! \brief structure describing convolutional code TCH/HR
+ */
+extern const struct osmo_conv_code gsm0503_tch_hr;
 
 /*! \brief structure describing convolutional code TCH/AFS 12.2
  */
@@ -72,3 +88,27 @@ extern const struct osmo_conv_code gsm0503_tch_afs_5_15;
 /*! \brief structure describing convolutional code TCH/AFS 4.75
  */
 extern const struct osmo_conv_code gsm0503_tch_afs_4_75;
+
+/*! \brief structure describing convolutional code TCH/AHS 7.95
+ */
+extern const struct osmo_conv_code gsm0503_tch_ahs_7_95;
+
+/*! \brief structure describing convolutional code TCH/AHS 7.4
+ */
+extern const struct osmo_conv_code gsm0503_tch_ahs_7_4;
+
+/*! \brief structure describing convolutional code TCH/AHS 6.7
+ */
+extern const struct osmo_conv_code gsm0503_tch_ahs_6_7;
+
+/*! \brief structure describing convolutional code TCH/AHS 5.9
+ */
+extern const struct osmo_conv_code gsm0503_tch_ahs_5_9;
+
+/*! \brief structure describing convolutional code TCH/AHS 5.15
+ */
+extern const struct osmo_conv_code gsm0503_tch_ahs_5_15;
+
+/*! \brief structure describing convolutional code TCH/AHS 4.75
+ */
+extern const struct osmo_conv_code gsm0503_tch_ahs_4_75;
