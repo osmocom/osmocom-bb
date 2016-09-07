@@ -129,17 +129,22 @@ class ConvolutionalCode(object):
 		return ns, nb
 
 	def _print_term(self, fi, num_states, pack = False):
-		d = []
+		items = []
+
 		for state in range(num_states):
 			if pack:
 				x = pack(self.next_term_output(state))
 			else:
 				x = self.next_term_state(state)
 
-			d.append("%d, " % x)
-		print >>fi, "\t%s" % ''.join(d)
+			items.append(x)
+
+		# Up to 12 numbers should be placed per line
+		print_formatted(items, "%3d, ", 12, fi)
 
 	def _print_x(self, fi, num_states, pack = False):
+		items = []
+
 		for state in range(num_states):
 			if pack:
 				x0 = pack(self.next_output(state, 0))
@@ -148,7 +153,14 @@ class ConvolutionalCode(object):
 				x0 = self.next_state(state, 0)
 				x1 = self.next_state(state, 1)
 
-			print >>fi, "\t{ %2d, %2d }," % (x0, x1)
+			items.append((x0, x1))
+
+		# Up to 4 blocks should be placed per line
+		print_formatted(items, "{ %2d, %2d }, ", 4, fi)
+
+	def _print_puncture(self, fi):
+		# Up to 12 numbers should be placed per line
+		print_formatted(self.puncture, "%3d, ", 12, fi)
 
 	def gen_tables(self, pref, fi):
 		pack = lambda n: \
@@ -175,8 +187,7 @@ class ConvolutionalCode(object):
 
 		if len(self.puncture):
 			print >>fi, "\nstatic const int %s_puncture[] = {" % self.name
-			for p in self.puncture:
-				print >>fi, "\t%d," % p
+			self._print_puncture(fi)
 			print >>fi, "};"
 
 		# Write description as a multi-line comment
@@ -206,6 +217,21 @@ def combine(src, sel, nb):
 	x = src & sel
 	fn_xor = lambda x, y: x ^ y
 	return reduce(fn_xor, [(x >> n) & 1 for n in range(nb)])
+
+def print_formatted(items, format, count, fi):
+	counter = 0
+
+	# Print initial indent
+	fi.write("\t")
+
+	for item in items:
+		if counter > 0 and counter % count == 0:
+			fi.write("\n\t")
+
+		fi.write(format % item)
+		counter += 1
+
+	fi.write("\n")
 
 # Polynomials according to 3GPP TS 05.03 Annex B
 G0 = poly(0, 3, 4)
