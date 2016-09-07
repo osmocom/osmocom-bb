@@ -26,7 +26,7 @@
 
 #include <osmocom/core/conv.h>
 
-/*! \file conv_gen.h
+/*! \file gsm0503.h
  * Osmocom convolutional encoder/decoder for xCCH channels, see 3GPP TS 05.03
  */
 
