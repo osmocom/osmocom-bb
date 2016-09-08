@@ -23,3 +23,4 @@
 #define OSMO_VTY_PORT_CSCN	4254
 /* 4255 used by control interface */
 #define OSMO_VTY_PORT_MNCC_SIP	4256
+/* 4257 used by control interface */
