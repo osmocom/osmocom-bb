@@ -112,3 +112,63 @@ extern const struct osmo_conv_code gsm0503_tch_ahs_5_15;
 /*! \brief structure describing convolutional code TCH/AHS 4.75
  */
 extern const struct osmo_conv_code gsm0503_tch_ahs_4_75;
+
+/*! \brief structure describing convolutional code EDGE MCS-1 DL HDR
+ */
+extern const struct osmo_conv_code gsm0503_mcs1_dl_hdr;
+
+/*! \brief structure describing convolutional code EDGE MCS-1 UL HDR
+ */
+extern const struct osmo_conv_code gsm0503_mcs1_ul_hdr;
+
+/*! \brief structure describing convolutional code EDGE MCS-1
+ */
+extern const struct osmo_conv_code gsm0503_mcs1;
+
+/*! \brief structure describing convolutional code EDGE MCS-2
+ */
+extern const struct osmo_conv_code gsm0503_mcs2;
+
+/*! \brief structure describing convolutional code EDGE MCS-3
+ */
+extern const struct osmo_conv_code gsm0503_mcs3;
+
+/*! \brief structure describing convolutional code EDGE MCS-4
+ */
+extern const struct osmo_conv_code gsm0503_mcs4;
+
+/*! \brief structure describing convolutional code EDGE MCS-5 DL HDR
+ */
+extern const struct osmo_conv_code gsm0503_mcs5_dl_hdr;
+
+/*! \brief structure describing convolutional code EDGE MCS-5 UL HDR
+ */
+extern const struct osmo_conv_code gsm0503_mcs5_ul_hdr;
+
+/*! \brief structure describing convolutional code EDGE MCS-5
+ */
+extern const struct osmo_conv_code gsm0503_mcs5;
+
+/*! \brief structure describing convolutional code EDGE MCS-6
+ */
+extern const struct osmo_conv_code gsm0503_mcs6;
+
+/*! \brief structure describing convolutional code EDGE MCS-7 DL HDR
+ */
+extern const struct osmo_conv_code gsm0503_mcs7_dl_hdr;
+
+/*! \brief structure describing convolutional code EDGE MCS-7 UL HDR
+ */
+extern const struct osmo_conv_code gsm0503_mcs7_ul_hdr;
+
+/*! \brief structure describing convolutional code EDGE MCS-7
+ */
+extern const struct osmo_conv_code gsm0503_mcs7;
+
+/*! \brief structure describing convolutional code EDGE MCS-8
+ */
+extern const struct osmo_conv_code gsm0503_mcs8;
+
+/*! \brief structure describing convolutional code EDGE MCS-9
+ */
+extern const struct osmo_conv_code gsm0503_mcs9;

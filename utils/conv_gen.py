@@ -28,12 +28,13 @@ import sys, os, math
 class ConvolutionalCode(object):
 
 	def __init__(self, block_len, polys, name,
-			description = None, puncture = []):
+			description = None, puncture = [], term_type = None):
 		# Save simple params
 		self.block_len = block_len
 		self.k = 1
 		self.puncture = puncture
 		self.rate_inv = len(polys)
+		self.term_type = term_type
 
 		# Infos
 		self.name = name
@@ -202,6 +203,8 @@ class ConvolutionalCode(object):
 		print >>fi, "\t.N = %d," % self.rate_inv
 		print >>fi, "\t.K = %d," % self.k
 		print >>fi, "\t.len = %d," % self.block_len
+		if self.term_type is not None:
+			print >>fi, "\t.term = %s," % self.term_type
 		print >>fi, "\t.next_output = %s_output," % self.name
 		print >>fi, "\t.next_state = %s_state," % self.name
 		if self.recursive:
@@ -246,6 +249,12 @@ G7 = poly(0, 1, 2, 3, 6)
 CCH_poly = [
 	( G0, 1 ),
 	( G1, 1 ),
+]
+
+MCS_poly = [
+	( G4, 1 ),
+	( G7, 1 ),
+	( G5, 1 ),
 ]
 
 conv_codes = [
@@ -707,6 +716,222 @@ conv_codes = [
 		],
 		name = "tch_ahs_4_75",
 		description = ["TCH/AHS 4.75 kbits convolutional code"]
+	),
+
+	# EDGE MCS1_DL_HDR definition
+	ConvolutionalCode(
+		36,
+		MCS_poly,
+		name = "mcs1_dl_hdr",
+		term_type = "CONV_TERM_TAIL_BITING",
+		description = [
+			"EDGE MCS-1 DL header convolutional code:",
+			"42 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS1_UL_HDR definition
+	ConvolutionalCode(
+		39,
+		MCS_poly,
+		name = "mcs1_ul_hdr",
+		term_type = "CONV_TERM_TAIL_BITING",
+		description = [
+			"EDGE MCS-1 UL header convolutional code:",
+			"45 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS1 definition
+	ConvolutionalCode(
+		190,
+		MCS_poly,
+		name = "mcs1",
+		description = [
+			"EDGE MCS-1 data convolutional code:",
+			"196 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS2 definition
+	ConvolutionalCode(
+		238,
+		MCS_poly,
+		name = "mcs2",
+		description = [
+			"EDGE MCS-2 data convolutional code:",
+			"244 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS3 definition
+	ConvolutionalCode(
+		310,
+		MCS_poly,
+		name = "mcs3",
+		description = [
+			"EDGE MCS-3 data convolutional code:",
+			"316 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS4 definition
+	ConvolutionalCode(
+		366,
+		MCS_poly,
+		name = "mcs4",
+		description = [
+			"EDGE MCS-4 data convolutional code:",
+			"372 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS5_DL_HDR definition
+	ConvolutionalCode(
+		33,
+		MCS_poly,
+		name = "mcs5_dl_hdr",
+		term_type = "CONV_TERM_TAIL_BITING",
+		description = [
+			"EDGE MCS-5 DL header convolutional code:",
+			"39 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS5_UL_HDR definition
+	ConvolutionalCode(
+		45,
+		MCS_poly,
+		name = "mcs5_ul_hdr",
+		term_type = "CONV_TERM_TAIL_BITING",
+		description = [
+			"EDGE MCS-5 UL header convolutional code:",
+			"51 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS5 definition
+	ConvolutionalCode(
+		462,
+		MCS_poly,
+		name = "mcs5",
+		description = [
+			"EDGE MCS-5 data convolutional code:",
+			"468 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS6 definition
+	ConvolutionalCode(
+		606,
+		MCS_poly,
+		name = "mcs6",
+		description = [
+			"EDGE MCS-6 data convolutional code:",
+			"612 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS7_DL_HDR definition
+	ConvolutionalCode(
+		45,
+		MCS_poly,
+		name = "mcs7_dl_hdr",
+		term_type = "CONV_TERM_TAIL_BITING",
+		description = [
+			"EDGE MCS-7 DL header convolutional code:",
+			"51 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS7_UL_HDR definition
+	ConvolutionalCode(
+		54,
+		MCS_poly,
+		name = "mcs7_ul_hdr",
+		term_type = "CONV_TERM_TAIL_BITING",
+		description = [
+			"EDGE MCS-7 UL header convolutional code:",
+			"60 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS7 definition
+	ConvolutionalCode(
+		462,
+		MCS_poly,
+		name = "mcs7",
+		description = [
+			"EDGE MCS-7 data convolutional code:",
+			"468 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS8 definition
+	ConvolutionalCode(
+		558,
+		MCS_poly,
+		name = "mcs8",
+		description = [
+			"EDGE MCS-8 data convolutional code:",
+			"564 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
+	),
+
+	# EDGE MCS9 definition
+	ConvolutionalCode(
+		606,
+		MCS_poly,
+		name = "mcs9",
+		description = [
+			"EDGE MCS-9 data convolutional code:",
+			"612 bits blocks, rate 1/3, k = 7",
+			"G4 = 1 + D2 + D3 + D5 + D6",
+			"G7 = 1 + D + D2 + D3 + D6",
+			"G5 = 1 + D + D4 + D6"
+		]
 	),
 ]
 
