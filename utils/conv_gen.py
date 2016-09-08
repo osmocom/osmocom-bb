@@ -39,7 +39,7 @@ class ConvolutionalCode(object):
 		self.name = name
 		self.description = description
 
-		# Handle polynoms (and check for recursion)
+		# Handle polynomials (and check for recursion)
 		self.polys = [(1, 1) if x[0] == x[1] else x for x in polys]
 
 		# Determine the polynomial degree
@@ -51,11 +51,11 @@ class ConvolutionalCode(object):
 		rp = [x[1] for x in self.polys if x[1] != 1]
 		if rp:
 			if not all([x == rp[0] for x in rp]):
-				raise ValueError("Bad polynoms: "
-					"Can't have multiple different divider polynoms!")
+				raise ValueError("Bad polynomials: "
+					"Can't have multiple different divider polynomials!")
 
 			if not all([x[0] == 1 for x in polys if x[1] == 1]):
-				raise ValueError("Bad polynoms: "
+				raise ValueError("Bad polynomials: "
 					"Can't have a '1' divider with a non '1' dividend "
 					"in a recursive code")
 
@@ -87,7 +87,7 @@ class ConvolutionalCode(object):
 
 		src = (ns & 1) | (state << 1)
 
-		# Scan polynoms
+		# Scan polynomials
 		rv = []
 		for p_n, p_d in self.polys:
 			if self.recursive and p_d == 1:
@@ -106,7 +106,7 @@ class ConvolutionalCode(object):
 
 		src = (ns & 1) | (state << 1)
 
-		# Scan polynoms
+		# Scan polynomials
 		rv = []
 		for p_n, p_d in self.polys:
 			if self.recursive and p_d == 1:
