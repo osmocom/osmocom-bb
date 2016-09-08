@@ -1,6 +1,12 @@
 #pragma once
 
-/* TCP port numbers used for VTY interfaces in osmocom projects */
+/*
+ * TCP port numbers used for VTY interfaces in osmocom projects. See also the
+ * osmocom wiki as well as the osmo-gsm-manuals, which should all be kept in
+ * sync with this file:
+ * https://osmocom.org/projects/cellular-infrastructure/wiki/PortNumbers
+ * https://git.osmocom.org/osmo-gsm-manuals/tree/common/chapters/port_numbers.adoc
+ */
 
 /* 4238 used by osmo-bts control interface */
 #define OSMO_VTY_PORT_PCU	4240	/* also: osmo_pcap_client */
