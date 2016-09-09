@@ -86,19 +86,23 @@ ussd_ussd_test_SOURCES = ussd/ussd_test.c
 ussd_ussd_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 gb_bssgp_fc_test_SOURCES = gb/bssgp_fc_test.c
-gb_bssgp_fc_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la
+gb_bssgp_fc_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la \
+			 $(top_builddir)/src/gsm/libosmogsm.la
 
 gb_gprs_bssgp_test_SOURCES = gb/gprs_bssgp_test.c
-gb_gprs_bssgp_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL)
+gb_gprs_bssgp_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL) \
+			   $(top_builddir)/src/gsm/libosmogsm.la
 
 gb_gprs_ns_test_SOURCES = gb/gprs_ns_test.c
-gb_gprs_ns_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL)
+gb_gprs_ns_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL) \
+			$(top_builddir)/src/gsm/libosmogsm.la
 
 logging_logging_test_SOURCES = logging/logging_test.c
 logging_logging_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 fr_fr_test_SOURCES = fr/fr_test.c
-fr_fr_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL)
+fr_fr_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL) \
+		   $(top_builddir)/src/gsm/libosmogsm.la
 
 codec_codec_test_SOURCES = codec/codec_test.c
 codec_codec_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/codec/libosmocodec.la
@@ -113,7 +117,8 @@ vty_vty_test_SOURCES = vty/vty_test.c
 vty_vty_test_LDADD = $(top_builddir)/src/vty/libosmovty.la $(top_builddir)/src/libosmocore.la
 
 sim_sim_test_SOURCES = sim/sim_test.c
-sim_sim_test_LDADD = $(top_builddir)/src/sim/libosmosim.la $(top_builddir)/src/libosmocore.la
+sim_sim_test_LDADD = $(top_builddir)/src/sim/libosmosim.la $(top_builddir)/src/libosmocore.la \
+		     $(top_builddir)/src/gsm/libosmogsm.la
 
 tlv_tlv_test_SOURCES = tlv/tlv_test.c
 tlv_tlv_test_LDADD = $(top_builddir)/src/gsm/libosmogsm.la $(top_builddir)/src/libosmocore.la
