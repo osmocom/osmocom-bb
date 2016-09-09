@@ -185,7 +185,7 @@ static inline unsigned char *msgb_put(struct msgb *msgb, unsigned int len)
 {
 	unsigned char *tmp = msgb->tail;
 	if (msgb_tailroom(msgb) < (int) len)
-		MSGB_ABORT(msgb, "Not enough tailroom msgb_push (%u < %u)\n",
+		MSGB_ABORT(msgb, "Not enough tailroom msgb_put (%u < %u)\n",
 			   msgb_tailroom(msgb), len);
 	msgb->tail += len;
 	msgb->len += len;
