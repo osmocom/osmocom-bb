@@ -23,6 +23,7 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/bits.h>
+#include <osmocom/core/defs.h>
 
 /*! \defgroup msgb Message buffers
  *  @{
@@ -457,6 +458,8 @@ static inline int msgb_test_invariant(const struct msgb *msg)
 /* non inline functions to ease binding */
 
 uint8_t *msgb_data(const struct msgb *msg);
-void msgb_set_talloc_ctx(void *ctx);
+
+void *msgb_talloc_ctx_init(void *root_ctx, unsigned int pool_size);
+void msgb_set_talloc_ctx(void *ctx) OSMO_DEPRECATED("Use msgb_talloc_ctx_init() instead");
 
 /*! @} */

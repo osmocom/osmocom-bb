@@ -35,7 +35,7 @@
 #include <osmocom/core/talloc.h>
 //#include <openbsc/debug.h>
 
-void *tall_msgb_ctx;
+void *tall_msgb_ctx = NULL;
 
 /*! \brief Allocate a new message buffer
  * \param[in] size Length in octets, including headroom
@@ -151,11 +151,30 @@ uint16_t msgb_length(const struct msgb *msg)
 }
 
 /*! \brief Set the talloc context for \ref msgb_alloc
+ * Deprecated, use msgb_talloc_ctx_init() instead.
  *  \param[in] ctx talloc context to be used as root for msgb allocations
  */
 void msgb_set_talloc_ctx(void *ctx)
 {
 	tall_msgb_ctx = ctx;
+}
+
+/*! \brief Initialize a msgb talloc context for \ref msgb_alloc.
+ * Create a talloc context called "msgb". If \a pool_size is 0, create a named
+ * const as msgb talloc context. If \a pool_size is nonzero, create a talloc
+ * pool, possibly for faster msgb allocations (see talloc_pool()).
+ *  \param[in] root_ctx talloc context used as parent for the new "msgb" ctx.
+ *  \param[in] pool_size if nonzero, create a talloc pool of this size.
+ *  \returns the new msgb talloc context, e.g. for reporting
+ */
+void *msgb_talloc_ctx_init(void *root_ctx, unsigned int pool_size)
+{
+	if (!pool_size)
+		tall_msgb_ctx = talloc_size(root_ctx, 0);
+	else
+		tall_msgb_ctx = talloc_pool(root_ctx, pool_size);
+	talloc_set_name_const(tall_msgb_ctx, "msgb");
+	return tall_msgb_ctx;
 }
 
 /*! \brief Copy an msgb.
