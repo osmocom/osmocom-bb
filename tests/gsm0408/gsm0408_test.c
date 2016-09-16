@@ -149,6 +149,7 @@ static void test_mid_from_tmsi(void)
 
 int main(int argc, char **argv)
 {
+	msgb_talloc_ctx_init(NULL, 0);
 	test_bearer_cap();
 	test_mid_from_tmsi();
 
