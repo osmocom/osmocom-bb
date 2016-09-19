@@ -474,7 +474,7 @@ static int get_rate_ctr(struct ctrl_cmd *cmd, void *data)
 {
 	int intv;
 	unsigned int idx;
-	char *ctr_group, *ctr_idx, *ctr_name, *tmp, *dup, *saveptr, *interval;
+	char *ctr_group, *ctr_idx, *tmp, *dup, *saveptr, *interval;
 	struct rate_ctr_group *ctrg;
 	const struct rate_ctr *ctr;
 
