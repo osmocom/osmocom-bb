@@ -448,43 +448,6 @@ static char *get_all_rate_ctr_in_group(void *ctx, const struct rate_ctr_group *c
 	return counters;
 }
 
-static int get_rate_ctr_group(const char *ctr_group, int intv, struct ctrl_cmd *cmd)
-{
-	int i;
-	char *counters;
-	struct rate_ctr_group *ctrg;
-
-	cmd->reply = talloc_asprintf(cmd, "All counters in group %s", ctr_group);
-	if (!cmd->reply)
-		goto oom;
-
-	for (i=0;;i++) {
-		ctrg = rate_ctr_get_group_by_name_idx(ctr_group, i);
-		if (!ctrg)
-			break;
-
-		counters = get_all_rate_ctr_in_group(cmd, ctrg, intv);
-		if (!counters)
-			goto oom;
-
-		cmd->reply = talloc_asprintf_append(cmd->reply, "%s", counters);
-		talloc_free(counters);
-		if (!cmd->reply)
-			goto oom;
-	}
-
-	/* We found no counter group by that name */
-	if (i == 0) {
-		cmd->reply = talloc_asprintf(cmd, "No counter group with name %s.", ctr_group);
-		return CTRL_CMD_ERROR;
-	}
-
-	return CTRL_CMD_REPLY;
-oom:
-	cmd->reply = "OOM.";
-	return CTRL_CMD_ERROR;
-}
-
 static int get_rate_ctr_group_idx(const struct rate_ctr_group *ctrg, int intv, struct ctrl_cmd *cmd)
 {
 	char *counters;
