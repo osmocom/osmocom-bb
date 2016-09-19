@@ -669,11 +669,14 @@ struct ctrl_handle *ctrl_interface_setup_dynip(void *data,
 	if (ret)
 		goto err_vec;
 
+	LOGP(DLCTRL, LOGL_NOTICE, "CTRL at %s %u\n", bind_addr, port);
 	return ctrl;
 err_vec:
 	vector_free(ctrl_node_vec);
 	ctrl_node_vec = NULL;
 err:
+	LOGP(DLCTRL, LOGL_ERROR, "Cannot bind CTRL at %s %u\n",
+	     bind_addr, port);
 	talloc_free(ctrl);
 	return NULL;
 }
