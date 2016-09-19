@@ -86,7 +86,14 @@ int telnet_init_dynif(void *tall_ctx, void *priv, const char *ip, int port)
 
 	server_socket.data = priv;
 
-	return (rc < 0) ? -1 : 0;
+	if (rc < 0) {
+		LOGP(DLGLOBAL, LOGL_ERROR, "Cannot bind telnet at %s %d\n",
+		     ip, port);
+		return -1;
+	}
+
+	LOGP(DLGLOBAL, LOGL_NOTICE, "telnet at %s %d\n", ip, port);
+	return 0;
 }
 
 extern struct host host;
