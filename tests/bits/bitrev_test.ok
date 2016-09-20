@@ -156,5 +156,3 @@ running nibble tests...
      OUT: 00dcafedeadb
 [6] R IN: b00bbabeface, nibble 12:
      OUT: 0b00bbabefac
-[6] L IN: b00bbabeface, nibble 12:
-     OUT: 00bbabeface0
