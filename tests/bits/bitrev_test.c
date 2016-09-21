@@ -208,6 +208,9 @@ check16(uint16_t test, enum END e)
 static void sh_chk(const uint8_t *in, uint8_t len, unsigned int nib, bool r)
 {
 	uint8_t x[len];
+	int bytes = nib/2 + (nib & 1);
+	OSMO_ASSERT(len >= bytes);
+	memset(x, 0xcc, len);
 	if (r)
 		osmo_nibble_shift_right(x, in, nib);
 	else
@@ -217,7 +220,7 @@ static void sh_chk(const uint8_t *in, uint8_t len, unsigned int nib, bool r)
 	       osmo_hexdump_nospc(in, len), nib);
 	/* do NOT combine those printfs: osmo_hexdump* use static buffer which
 	   WILL screw things up in that case */
-	printf("\n     OUT: %s\n", osmo_hexdump_nospc(x, nib/2));
+	printf("\n     OUT: %s\n", osmo_hexdump_nospc(x, bytes));
 }
 
 int main(int argc, char **argv)

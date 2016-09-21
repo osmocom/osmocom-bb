@@ -63,13 +63,13 @@ running nibble tests...
 [6] L IN: b00bbabeface, nibble 0:
      OUT: 
 [8] R IN: f00dcafedeadbeef, nibble 1:
-     OUT: 
+     OUT: cc
 [8] L IN: f00dcafedeadbeef, nibble 1:
-     OUT: 
+     OUT: cc
 [6] R IN: b00bbabeface, nibble 1:
-     OUT: 
+     OUT: cc
 [6] L IN: b00bbabeface, nibble 1:
-     OUT: 
+     OUT: cc
 [8] R IN: f00dcafedeadbeef, nibble 2:
      OUT: 0f
 [8] L IN: f00dcafedeadbeef, nibble 2:
@@ -79,13 +79,13 @@ running nibble tests...
 [6] L IN: b00bbabeface, nibble 2:
      OUT: 00
 [8] R IN: f00dcafedeadbeef, nibble 3:
-     OUT: 0f
+     OUT: 0f00
 [8] L IN: f00dcafedeadbeef, nibble 3:
-     OUT: 00
+     OUT: 00d0
 [6] R IN: b00bbabeface, nibble 3:
-     OUT: 0b
+     OUT: 0b00
 [6] L IN: b00bbabeface, nibble 3:
-     OUT: 00
+     OUT: 00b0
 [8] R IN: f00dcafedeadbeef, nibble 4:
      OUT: 0f00
 [8] L IN: f00dcafedeadbeef, nibble 4:
@@ -95,13 +95,13 @@ running nibble tests...
 [6] L IN: b00bbabeface, nibble 4:
      OUT: 00bb
 [8] R IN: f00dcafedeadbeef, nibble 5:
-     OUT: 0f00
+     OUT: 0f00dc
 [8] L IN: f00dcafedeadbeef, nibble 5:
-     OUT: 00dc
+     OUT: 00dca0
 [6] R IN: b00bbabeface, nibble 5:
-     OUT: 0b00
+     OUT: 0b00bb
 [6] L IN: b00bbabeface, nibble 5:
-     OUT: 00bb
+     OUT: 00bba0
 [8] R IN: f00dcafedeadbeef, nibble 6:
      OUT: 0f00dc
 [8] L IN: f00dcafedeadbeef, nibble 6:
@@ -111,13 +111,13 @@ running nibble tests...
 [6] L IN: b00bbabeface, nibble 6:
      OUT: 00bbab
 [8] R IN: f00dcafedeadbeef, nibble 7:
-     OUT: 0f00dc
+     OUT: 0f00dcaf
 [8] L IN: f00dcafedeadbeef, nibble 7:
-     OUT: 00dcaf
+     OUT: 00dcafe0
 [6] R IN: b00bbabeface, nibble 7:
-     OUT: 0b00bb
+     OUT: 0b00bbab
 [6] L IN: b00bbabeface, nibble 7:
-     OUT: 00bbab
+     OUT: 00bbabe0
 [8] R IN: f00dcafedeadbeef, nibble 8:
      OUT: 0f00dcaf
 [8] L IN: f00dcafedeadbeef, nibble 8:
@@ -127,13 +127,13 @@ running nibble tests...
 [6] L IN: b00bbabeface, nibble 8:
      OUT: 00bbabef
 [8] R IN: f00dcafedeadbeef, nibble 9:
-     OUT: 0f00dcaf
+     OUT: 0f00dcafed
 [8] L IN: f00dcafedeadbeef, nibble 9:
-     OUT: 00dcafed
+     OUT: 00dcafede0
 [6] R IN: b00bbabeface, nibble 9:
-     OUT: 0b00bbab
+     OUT: 0b00bbabef
 [6] L IN: b00bbabeface, nibble 9:
-     OUT: 00bbabef
+     OUT: 00bbabefa0
 [8] R IN: f00dcafedeadbeef, nibble 10:
      OUT: 0f00dcafed
 [8] L IN: f00dcafedeadbeef, nibble 10:
@@ -143,13 +143,13 @@ running nibble tests...
 [6] L IN: b00bbabeface, nibble 10:
      OUT: 00bbabefac
 [8] R IN: f00dcafedeadbeef, nibble 11:
-     OUT: 0f00dcafed
+     OUT: 0f00dcafedea
 [8] L IN: f00dcafedeadbeef, nibble 11:
-     OUT: 00dcafedea
+     OUT: 00dcafedead0
 [6] R IN: b00bbabeface, nibble 11:
-     OUT: 0b00bbabef
+     OUT: 0b00bbabefac
 [6] L IN: b00bbabeface, nibble 11:
-     OUT: 00bbabefac
+     OUT: 00bbabeface0
 [8] R IN: f00dcafedeadbeef, nibble 12:
      OUT: 0f00dcafedea
 [8] L IN: f00dcafedeadbeef, nibble 12:
