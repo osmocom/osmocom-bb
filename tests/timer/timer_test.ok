@@ -1,4 +1,4 @@
-Running timer test for 5 iterations, 85 steps of 423 msecs each
+Running timer test for 8 iterations, 66 steps of 423 msecs each
 23.424242
 23.847452
 24.270662
@@ -72,34 +72,299 @@ timer fired on time: 30.233132 (+ 0.385680)
 early deleted 4 timers, 13 still active
 31.042022
 main_timer_fired()
-Main timer has finished, please, wait a bit for the final report.
+scheduled timer at 32.042022
+scheduled timer at 33.042022
+scheduled timer at 34.042022
+scheduled timer at 35.042022
+scheduled timer at 36.042022
+scheduled timer at 37.042022
+scheduled timer at 38.042022
+scheduled timer at 39.042022
+scheduled timer at 32.042022
+scheduled timer at 33.042022
+scheduled timer at 34.042022
+scheduled timer at 35.042022
+scheduled timer at 36.042022
+scheduled timer at 37.042022
+scheduled timer at 38.042022
+scheduled timer at 39.042022
+scheduled timer at 32.042022
+scheduled timer at 33.042022
+scheduled timer at 34.042022
+scheduled timer at 35.042022
+scheduled timer at 36.042022
+scheduled timer at 37.042022
+scheduled timer at 38.042022
+scheduled timer at 39.042022
+scheduled timer at 32.042022
+scheduled timer at 33.042022
+scheduled timer at 34.042022
+scheduled timer at 35.042022
+scheduled timer at 36.042022
+scheduled timer at 37.042022
+scheduled timer at 38.042022
+scheduled timer at 39.042022
+added 32 timers in step 5 (expired=18)
 31.465232
 timer fired on time: 31.233132 (+ 0.232100)
-early deleted 3 timers, 9 still active
+early deleted 11 timers, 33 still active
 31.888442
 timer fired on time: 31.772392 (+ 0.116050)
-early deleted 2 timers, 6 still active
+early deleted 8 timers, 24 still active
 32.311652
+main_timer_fired()
+scheduled timer at 33.311652
+scheduled timer at 34.311652
+scheduled timer at 35.311652
+scheduled timer at 36.311652
+scheduled timer at 37.311652
+scheduled timer at 38.311652
+scheduled timer at 39.311652
+scheduled timer at 40.311652
+scheduled timer at 33.311652
+scheduled timer at 34.311652
+scheduled timer at 35.311652
+scheduled timer at 36.311652
+scheduled timer at 37.311652
+scheduled timer at 38.311652
+scheduled timer at 39.311652
+scheduled timer at 40.311652
+scheduled timer at 33.311652
+scheduled timer at 34.311652
+scheduled timer at 35.311652
+scheduled timer at 36.311652
+scheduled timer at 37.311652
+scheduled timer at 38.311652
+scheduled timer at 39.311652
+scheduled timer at 40.311652
+scheduled timer at 33.311652
+scheduled timer at 34.311652
+scheduled timer at 35.311652
+scheduled timer at 36.311652
+scheduled timer at 37.311652
+scheduled timer at 38.311652
+scheduled timer at 39.311652
+scheduled timer at 40.311652
+scheduled timer at 33.311652
+scheduled timer at 34.311652
+scheduled timer at 35.311652
+scheduled timer at 36.311652
+scheduled timer at 37.311652
+scheduled timer at 38.311652
+scheduled timer at 39.311652
+scheduled timer at 40.311652
+scheduled timer at 33.311652
+scheduled timer at 34.311652
+scheduled timer at 35.311652
+scheduled timer at 36.311652
+scheduled timer at 37.311652
+scheduled timer at 38.311652
+scheduled timer at 39.311652
+scheduled timer at 40.311652
+scheduled timer at 33.311652
+scheduled timer at 34.311652
+scheduled timer at 35.311652
+scheduled timer at 36.311652
+scheduled timer at 37.311652
+scheduled timer at 38.311652
+scheduled timer at 39.311652
+scheduled timer at 40.311652
+scheduled timer at 33.311652
+scheduled timer at 34.311652
+scheduled timer at 35.311652
+scheduled timer at 36.311652
+scheduled timer at 37.311652
+scheduled timer at 38.311652
+scheduled timer at 39.311652
+scheduled timer at 40.311652
+added 64 timers in step 6 (expired=39)
 32.734862
 33.158072
-timer fired on time: 32.772392 (+ 0.385680)
-early deleted 1 timers, 4 still active
+timer fired on time: 33.042022 (+ 0.116050)
+early deleted 21 timers, 66 still active
+timer fired on time: 33.042022 (+ 0.116050)
+early deleted 16 timers, 49 still active
 33.581282
+main_timer_fired()
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+scheduled timer at 34.581282
+scheduled timer at 35.581282
+scheduled timer at 36.581282
+scheduled timer at 37.581282
+scheduled timer at 38.581282
+scheduled timer at 39.581282
+scheduled timer at 40.581282
+scheduled timer at 41.581282
+added 128 timers in step 7 (expired=78)
 34.004492
 34.427702
+timer fired on time: 34.311652 (+ 0.116050)
+early deleted 44 timers, 132 still active
+timer fired on time: 34.311652 (+ 0.116050)
+early deleted 32 timers, 99 still active
+timer fired on time: 34.311652 (+ 0.116050)
+early deleted 24 timers, 74 still active
 34.850912
+main_timer_fired()
+Main timer has finished, please, wait a bit for the final report.
 35.274122
 35.697332
+timer fired on time: 35.581282 (+ 0.116050)
+early deleted 18 timers, 55 still active
+timer fired on time: 35.581282 (+ 0.116050)
+early deleted 13 timers, 41 still active
+timer fired on time: 35.581282 (+ 0.116050)
+early deleted 10 timers, 30 still active
 36.120542
-timer fired on time: 35.772392 (+ 0.348150)
-early deleted 0 timers, 3 still active
 36.543752
-timer fired on time: 36.502762 (+ 0.040990)
-early deleted 0 timers, 2 still active
+timer fired on time: 36.311652 (+ 0.232100)
+early deleted 7 timers, 22 still active
+timer fired on time: 36.311652 (+ 0.232100)
+early deleted 5 timers, 16 still active
 36.966962
-timer fired on time: 36.772392 (+ 0.194570)
-early deleted 0 timers, 1 still active
+timer fired on time: 36.581282 (+ 0.385680)
+early deleted 3 timers, 12 still active
 37.390172
+timer fired on time: 37.042022 (+ 0.348150)
+early deleted 2 timers, 9 still active
 37.813382
-timer fired on time: 37.772392 (+ 0.040990)
-test over: added=31 expired=31 too_soon=0 too_late=0
+timer fired on time: 37.581282 (+ 0.232100)
+early deleted 2 timers, 6 still active
+38.236592
+38.659802
+39.083012
+39.506222
+timer fired on time: 39.311652 (+ 0.194570)
+early deleted 1 timers, 4 still active
+39.929432
+timer fired on time: 39.581282 (+ 0.348150)
+early deleted 0 timers, 3 still active
+40.352642
+40.775852
+timer fired on time: 40.581282 (+ 0.194570)
+early deleted 0 timers, 2 still active
+41.199062
+41.622272
+timer fired on time: 41.581282 (+ 0.040990)
+early deleted 0 timers, 1 still active
+timer fired on time: 41.581282 (+ 0.040990)
+test over: added=255 expired=255 too_soon=0 too_late=0

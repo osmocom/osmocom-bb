@@ -193,7 +193,7 @@ AT_CLEANUP
 AT_SETUP([timer])
 AT_KEYWORDS([timer])
 cat $abs_srcdir/timer/timer_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/timer/timer_test -s 5], [0], [expout], [ignore])
+AT_CHECK([$abs_top_builddir/tests/timer/timer_test], [0], [expout], [ignore])
 AT_CLEANUP
 
 AT_SETUP([tlv])

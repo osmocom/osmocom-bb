@@ -54,7 +54,7 @@ struct test_timer {
 };
 
 /* number of test steps. We add fact(steps) timers in the whole test. */
-#define MAIN_TIMER_NSTEPS	16
+#define MAIN_TIMER_NSTEPS	8
 
 /* time between two steps, in secs. */
 #define TIME_BETWEEN_STEPS	1
