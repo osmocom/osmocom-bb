@@ -67,6 +67,7 @@ static int timer_nsteps = MAIN_TIMER_NSTEPS;
 static unsigned int expired_timers = 0;
 static unsigned int total_timers = 0;
 static unsigned int too_late = 0;
+static unsigned int too_soon = 0;
 
 static void main_timer_fired(void *data)
 {
@@ -115,17 +116,30 @@ static void secondary_timer_fired(void *data)
 
 	timersub(&current, &v->stop, &res);
 	if (timercmp(&res, &precision, >)) {
-		fprintf(stderr, "ERROR: timer %p has expired too late!\n",
-			&v->timer);
+		fprintf(stderr, "ERROR: timer has expired too late:"
+			" wanted %d.%06d now %d.%06d diff %d.%06d\n",
+			(int)v->stop.tv_sec, (int)v->stop.tv_usec,
+			(int)current.tv_sec, (int)current.tv_usec,
+			(int)res.tv_sec, (int)res.tv_usec
+		       );
 		too_late++;
+	}
+	else if (timercmp(&current, &v->stop, <)) {
+		fprintf(stderr, "ERROR: timer has expired too soon:"
+			" wanted %d.%06d now %d.%06d diff %d.%06d\n",
+			(int)v->stop.tv_sec, (int)v->stop.tv_usec,
+			(int)current.tv_sec, (int)current.tv_usec,
+			(int)res.tv_sec, (int)res.tv_usec
+		       );
+		too_soon++;
 	}
 
 	llist_del(&v->head);
 	talloc_free(data);
 	expired_timers++;
 	if (expired_timers == total_timers) {
-		fprintf(stdout, "test over: added=%u expired=%u too_late=%u \n",
-			total_timers, expired_timers, too_late);
+		fprintf(stdout, "test over: added=%u expired=%u too_soon=%u too_late=%u\n",
+			total_timers, expired_timers, too_soon, too_late);
 		exit(EXIT_SUCCESS);
 	}
 
