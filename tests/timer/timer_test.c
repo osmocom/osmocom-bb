@@ -95,6 +95,7 @@ static void main_timer_fired(void *data)
 		v->timer.data = v;
 		unsigned int seconds = (random() % 10) + 1;
 		v->stop.tv_sec = v->start.tv_sec + seconds;
+		v->stop.tv_usec = v->start.tv_usec;
 		osmo_timer_schedule(&v->timer, seconds, 0);
 		llist_add(&v->head, &timer_test_list);
 	}
