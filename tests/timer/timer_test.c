@@ -87,7 +87,7 @@ static void main_timer_fired(void *data)
 			fprintf(stderr, "timer_test: OOM!\n");
 			return;
 		}
-		gettimeofday(&v->start, NULL);
+		osmo_gettimeofday(&v->start, NULL);
 		v->timer.cb = secondary_timer_fired;
 		v->timer.data = v;
 		unsigned int seconds = (random() % 10) + 1;
@@ -108,7 +108,7 @@ static void secondary_timer_fired(void *data)
 	struct test_timer *v = data, *this, *tmp;
 	struct timeval current, res, precision = { 1, 0 };
 
-	gettimeofday(&current, NULL);
+	osmo_gettimeofday(&current, NULL);
 
 	timersub(&current, &v->stop, &res);
 	if (timercmp(&res, &precision, >)) {

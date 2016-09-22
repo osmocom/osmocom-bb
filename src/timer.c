@@ -91,7 +91,7 @@ osmo_timer_schedule(struct osmo_timer_list *timer, int seconds, int microseconds
 {
 	struct timeval current_time;
 
-	gettimeofday(&current_time, NULL);
+	osmo_gettimeofday(&current_time, NULL);
 	timer->timeout.tv_sec = seconds;
 	timer->timeout.tv_usec = microseconds;
 	timeradd(&timer->timeout, &current_time, &timer->timeout);
@@ -143,7 +143,7 @@ int osmo_timer_remaining(const struct osmo_timer_list *timer,
 	struct timeval current_time;
 
 	if (!now)
-		gettimeofday(&current_time, NULL);
+		osmo_gettimeofday(&current_time, NULL);
 	else
 		current_time = *now;
 
@@ -193,7 +193,7 @@ void osmo_timers_prepare(void)
 	struct rb_node *node;
 	struct timeval current;
 
-	gettimeofday(&current, NULL);
+	osmo_gettimeofday(&current, NULL);
 
 	node = rb_first(&timer_root);
 	if (node) {
@@ -214,7 +214,7 @@ int osmo_timers_update(void)
 	struct osmo_timer_list *this;
 	int work = 0;
 
-	gettimeofday(&current_time, NULL);
+	osmo_gettimeofday(&current_time, NULL);
 
 	INIT_LLIST_HEAD(&timer_eviction_list);
 	for (node = rb_first(&timer_root); node; node = rb_next(node)) {

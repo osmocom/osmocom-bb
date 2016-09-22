@@ -556,7 +556,7 @@ static void nsvc_start_timer(struct gprs_nsvc *nsvc, enum nsvc_timer_mode mode)
 	if (osmo_timer_pending(&nsvc->timer))
 		osmo_timer_del(&nsvc->timer);
 
-	gettimeofday(&nsvc->timer_started, NULL);
+	osmo_gettimeofday(&nsvc->timer_started, NULL);
 	nsvc->timer_mode = mode;
 	osmo_timer_schedule(&nsvc->timer, seconds, 0);
 }
@@ -564,7 +564,7 @@ static void nsvc_start_timer(struct gprs_nsvc *nsvc, enum nsvc_timer_mode mode)
 static int nsvc_timer_elapsed_ms(struct gprs_nsvc *nsvc)
 {
 	struct timeval now, elapsed;
-	gettimeofday(&now, NULL);
+	osmo_gettimeofday(&now, NULL);
 	timersub(&now, &nsvc->timer_started, &elapsed);
 
 	return 1000 * elapsed.tv_sec + elapsed.tv_usec / 1000;

@@ -603,7 +603,7 @@ static void fc_timer_cb(void *data)
 	fc->queue_depth--;
 
 	/* record the time we transmitted this PDU */
-	gettimeofday(&time_now, NULL);
+	osmo_gettimeofday(&time_now, NULL);
 	fc->time_last_pdu = time_now;
 
 	/* call the output callback for this FC instance */
@@ -688,7 +688,7 @@ static int bssgp_fc_needs_queueing(struct bssgp_flow_control *fc, uint32_t pdu_l
 
 	/* compute number of centi-seconds that have elapsed since transmitting
 	 * the last PDU (Tc - Tp) */
-	gettimeofday(&time_now, NULL);
+	osmo_gettimeofday(&time_now, NULL);
 	timersub(&time_now, &fc->time_last_pdu, &time_diff);
 	csecs_elapsed = time_diff.tv_sec*100 + time_diff.tv_usec/10000;
 
@@ -747,7 +747,7 @@ int bssgp_fc_in(struct bssgp_flow_control *fc, struct msgb *msg,
 		return fc_enqueue(fc, msg, llc_pdu_len, priv);
 	} else {
 		/* record the time we transmitted this PDU */
-		gettimeofday(&time_now, NULL);
+		osmo_gettimeofday(&time_now, NULL);
 		fc->time_last_pdu = time_now;
 		return fc->out_cb(priv, msg, llc_pdu_len, NULL);
 	}
@@ -766,7 +766,7 @@ void bssgp_fc_init(struct bssgp_flow_control *fc,
 	fc->bucket_leak_rate = bucket_leak_rate;
 	fc->max_queue_depth = max_queue_depth;
 	INIT_LLIST_HEAD(&fc->queue);
-	gettimeofday(&fc->time_last_pdu, NULL);
+	osmo_gettimeofday(&fc->time_last_pdu, NULL);
 }
 
 /* Initialize the Flow Control parameters for a new MS according to

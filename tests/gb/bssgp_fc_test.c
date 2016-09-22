@@ -22,7 +22,7 @@ int get_centisec_diff(void)
 {
 	struct timeval tv;
 	struct timeval now;
-	gettimeofday(&now, NULL);
+	osmo_gettimeofday(&now, NULL);
 
 	timersub(&now, &tv_start, &tv);
 
@@ -73,7 +73,7 @@ static void test_fc(uint32_t bucket_size_max, uint32_t bucket_leak_rate,
 	bssgp_fc_init(fc, bucket_size_max, bucket_leak_rate, max_queue_depth,
 		      fc_out_cb);
 
-	gettimeofday(&tv_start, NULL);
+	osmo_gettimeofday(&tv_start, NULL);
 
 	for (i = 0; i < pdu_count; i++) {
 		fc_in(fc, pdu_len);

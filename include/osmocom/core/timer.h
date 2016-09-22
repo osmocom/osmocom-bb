@@ -29,6 +29,7 @@
 #pragma once
 
 #include <sys/time.h>
+#include <stdbool.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/linuxrbtree.h>
@@ -82,5 +83,15 @@ struct timeval *osmo_timers_nearest(void);
 void osmo_timers_prepare(void);
 int osmo_timers_update(void);
 int osmo_timers_check(void);
+
+int osmo_gettimeofday(struct timeval *tv, struct timezone *tz);
+
+/**
+ * timer override
+ */
+
+extern bool osmo_gettimeofday_override;
+extern struct timeval osmo_gettimeofday_override_time;
+void osmo_gettimeofday_override_add(time_t secs, suseconds_t usecs);
 
 /*! @} */

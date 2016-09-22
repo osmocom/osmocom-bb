@@ -637,7 +637,7 @@ static char *zencrypt(const char *passwd)
 	struct timeval tv;
 	char *crypt(const char *, const char *);
 
-	gettimeofday(&tv, 0);
+	osmo_gettimeofday(&tv, 0);
 
 	to64(&salt[0], random(), 3);
 	to64(&salt[3], tv.tv_usec, 3);

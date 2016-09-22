@@ -44,6 +44,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/timer.h>
 
 #include <osmocom/vty/logging.h>	/* for LOGGING_STR. */
 
@@ -268,7 +269,7 @@ static void _output(struct log_target *target, unsigned int subsys,
 		if (target->print_ext_timestamp) {
 			struct tm tm;
 			struct timeval tv;
-			gettimeofday(&tv, NULL);
+			osmo_gettimeofday(&tv, NULL);
 			localtime_r(&tv.tv_sec, &tm);
 			ret = snprintf(buf + offset, rem, "%04d%02d%02d%02d%02d%02d%03d ",
 					tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
