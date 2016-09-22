@@ -75,8 +75,8 @@ static void main_timer_fired(void *data)
 	int i;
 
 	if (*step == timer_nsteps) {
-		fprintf(stderr, "Main timer has finished, please, "
-				"wait a bit for the final report.\n");
+		printf("Main timer has finished, please, "
+		       "wait a bit for the final report.\n");
 		return;
 	}
 	/* add 2^step pair of timers per step. */
@@ -87,7 +87,7 @@ static void main_timer_fired(void *data)
 
 		v = talloc_zero(NULL, struct test_timer);
 		if (v == NULL) {
-			fprintf(stderr, "timer_test: OOM!\n");
+			printf("timer_test: OOM!\n");
 			return;
 		}
 		osmo_gettimeofday(&v->start, NULL);
@@ -99,7 +99,7 @@ static void main_timer_fired(void *data)
 		osmo_timer_schedule(&v->timer, seconds, 0);
 		llist_add(&v->head, &timer_test_list);
 	}
-	fprintf(stderr, "added %d timers in step %u (expired=%u)\n",
+	printf("added %d timers in step %u (expired=%u)\n",
 		add_in_this_step, *step, expired_timers);
 	total_timers += add_in_this_step;
 	osmo_timer_schedule(&main_timer, TIME_BETWEEN_STEPS, 0);
@@ -117,21 +117,19 @@ static void secondary_timer_fired(void *data)
 
 	timersub(&current, &v->stop, &res);
 	if (timercmp(&res, &precision, >)) {
-		fprintf(stderr, "ERROR: timer has expired too late:"
-			" wanted %d.%06d now %d.%06d diff %d.%06d\n",
-			(int)v->stop.tv_sec, (int)v->stop.tv_usec,
-			(int)current.tv_sec, (int)current.tv_usec,
-			(int)res.tv_sec, (int)res.tv_usec
-		       );
+		printf("ERROR: timer has expired too late:"
+		       " wanted %d.%06d now %d.%06d diff %d.%06d\n",
+		       (int)v->stop.tv_sec, (int)v->stop.tv_usec,
+		       (int)current.tv_sec, (int)current.tv_usec,
+		       (int)res.tv_sec, (int)res.tv_usec);
 		too_late++;
 	}
 	else if (timercmp(&current, &v->stop, <)) {
-		fprintf(stderr, "ERROR: timer has expired too soon:"
-			" wanted %d.%06d now %d.%06d diff %d.%06d\n",
-			(int)v->stop.tv_sec, (int)v->stop.tv_usec,
-			(int)current.tv_sec, (int)current.tv_usec,
-			(int)res.tv_sec, (int)res.tv_usec
-		       );
+		printf("ERROR: timer has expired too soon:"
+		       " wanted %d.%06d now %d.%06d diff %d.%06d\n",
+		       (int)v->stop.tv_sec, (int)v->stop.tv_usec,
+		       (int)current.tv_sec, (int)current.tv_usec,
+		       (int)res.tv_sec, (int)res.tv_usec);
 		too_soon++;
 	}
 
@@ -139,8 +137,8 @@ static void secondary_timer_fired(void *data)
 	talloc_free(data);
 	expired_timers++;
 	if (expired_timers == total_timers) {
-		fprintf(stdout, "test over: added=%u expired=%u too_soon=%u too_late=%u\n",
-			total_timers, expired_timers, too_soon, too_late);
+		printf("test over: added=%u expired=%u too_soon=%u too_late=%u\n",
+		       total_timers, expired_timers, too_soon, too_late);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -182,7 +180,7 @@ int main(int argc, char *argv[])
 	steps = ((MAIN_TIMER_NSTEPS * TIME_BETWEEN_STEPS + 20) * 1e6)
 		/ TIME_BETWEEN_TIMER_CHECKS;
 
-	fprintf(stdout, "Running timer test for %u steps\n", timer_nsteps);
+	printf("Running timer test for %u steps\n", timer_nsteps);
 
 	osmo_timer_schedule(&main_timer, 1, 0);
 
@@ -193,7 +191,7 @@ int main(int argc, char *argv[])
 		osmo_gettimeofday_override_add(0, TIME_BETWEEN_TIMER_CHECKS);
 	}
 #else
-	fprintf(stdout, "Select not supported on this platform!\n");
+	printf("Select not supported on this platform!\n");
 #endif
 	return 0;
 }
