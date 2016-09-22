@@ -1,8 +1,105 @@
-Running timer test for 5 steps
+Running timer test for 5 iterations, 85 steps of 423 msecs each
+23.424242
+23.847452
+24.270662
+24.693872
+main_timer_fired()
+scheduled timer at 25.693872
 added 1 timers in step 0 (expired=0)
+25.117082
+25.540292
+25.963502
+main_timer_fired()
+scheduled timer at 26.963502
+scheduled timer at 27.963502
 added 2 timers in step 1 (expired=0)
+timer fired on time: 25.693872 (+ 0.269630)
+early deleted 0 timers, 2 still active
+26.386712
+26.809922
+27.233132
+main_timer_fired()
+scheduled timer at 28.233132
+scheduled timer at 29.233132
+scheduled timer at 30.233132
+scheduled timer at 31.233132
 added 4 timers in step 2 (expired=1)
+timer fired on time: 26.963502 (+ 0.269630)
+early deleted 1 timers, 4 still active
+27.656342
+28.079552
+timer fired on time: 27.963502 (+ 0.116050)
+early deleted 0 timers, 3 still active
+28.502762
+main_timer_fired()
+scheduled timer at 29.502762
+scheduled timer at 30.502762
+scheduled timer at 31.502762
+scheduled timer at 32.502762
+scheduled timer at 33.502762
+scheduled timer at 34.502762
+scheduled timer at 35.502762
+scheduled timer at 36.502762
 added 8 timers in step 3 (expired=4)
+28.925972
+29.349182
+timer fired on time: 29.233132 (+ 0.116050)
+early deleted 2 timers, 8 still active
+29.772392
+main_timer_fired()
+scheduled timer at 30.772392
+scheduled timer at 31.772392
+scheduled timer at 32.772392
+scheduled timer at 33.772392
+scheduled timer at 34.772392
+scheduled timer at 35.772392
+scheduled timer at 36.772392
+scheduled timer at 37.772392
+scheduled timer at 30.772392
+scheduled timer at 31.772392
+scheduled timer at 32.772392
+scheduled timer at 33.772392
+scheduled timer at 34.772392
+scheduled timer at 35.772392
+scheduled timer at 36.772392
+scheduled timer at 37.772392
 added 16 timers in step 4 (expired=7)
+30.195602
+30.618812
+timer fired on time: 30.502762 (+ 0.116050)
+early deleted 5 timers, 18 still active
+timer fired on time: 30.233132 (+ 0.385680)
+early deleted 4 timers, 13 still active
+31.042022
+main_timer_fired()
 Main timer has finished, please, wait a bit for the final report.
+31.465232
+timer fired on time: 31.233132 (+ 0.232100)
+early deleted 3 timers, 9 still active
+31.888442
+timer fired on time: 31.772392 (+ 0.116050)
+early deleted 2 timers, 6 still active
+32.311652
+32.734862
+33.158072
+timer fired on time: 32.772392 (+ 0.385680)
+early deleted 1 timers, 4 still active
+33.581282
+34.004492
+34.427702
+34.850912
+35.274122
+35.697332
+36.120542
+timer fired on time: 35.772392 (+ 0.348150)
+early deleted 0 timers, 3 still active
+36.543752
+timer fired on time: 36.502762 (+ 0.040990)
+early deleted 0 timers, 2 still active
+36.966962
+timer fired on time: 36.772392 (+ 0.194570)
+early deleted 0 timers, 1 still active
+37.390172
+37.813382
+timer fired on time: 37.772392 (+ 0.040990)
 test over: added=31 expired=31 too_soon=0 too_late=0
