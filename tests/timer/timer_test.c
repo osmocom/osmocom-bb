@@ -59,10 +59,6 @@ struct test_timer {
 /* time between two steps, in secs. */
 #define TIME_BETWEEN_STEPS	1
 
-/* timer imprecision that we accept for this test: 10 milliseconds. */
-#define TIMER_PRES_SECS		0
-#define TIMER_PRES_USECS	20000
-
 static int timer_nsteps = MAIN_TIMER_NSTEPS;
 static unsigned int expired_timers = 0;
 static unsigned int total_timers = 0;
@@ -185,9 +181,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	fprintf(stdout, "Running timer test for %u steps, accepting "
-		"imprecision of %u.%.6u seconds\n",
-		timer_nsteps, TIMER_PRES_SECS, TIMER_PRES_USECS);
+	fprintf(stdout, "Running timer test for %u steps\n", timer_nsteps);
 
 	osmo_timer_schedule(&main_timer, 1, 0);
 
