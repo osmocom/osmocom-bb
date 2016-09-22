@@ -176,8 +176,6 @@ int osmo_select_main(int polling)
 	/* prepare read and write fdsets */
 	osmo_fd_fill_fds(&readset, &writeset, &exceptset);
 
-	osmo_timers_check();
-
 	if (!polling)
 		osmo_timers_prepare();
 	rc = select(maxfd+1, &readset, &writeset, &exceptset, polling ? &no_time : osmo_timers_nearest());
