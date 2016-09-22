@@ -59,6 +59,9 @@ struct test_timer {
 /* time between two steps, in secs. */
 #define TIME_BETWEEN_STEPS	1
 
+/* how much time elapses between checks, in microsecs */
+#define TIME_BETWEEN_TIMER_CHECKS 423210
+
 static int timer_nsteps = MAIN_TIMER_NSTEPS;
 static unsigned int expired_timers = 0;
 static unsigned int total_timers = 0;
@@ -106,7 +109,8 @@ static void main_timer_fired(void *data)
 static void secondary_timer_fired(void *data)
 {
 	struct test_timer *v = data, *this, *tmp;
-	struct timeval current, res, precision = { 1, 0 };
+	struct timeval current, res;
+	struct timeval precision = { 0, TIME_BETWEEN_TIMER_CHECKS + 1};
 
 	osmo_gettimeofday(&current, NULL);
 
@@ -150,21 +154,12 @@ static void secondary_timer_fired(void *data)
 	}
 }
 
-static void alarm_handler(int signum)
-{
-	fprintf(stderr, "ERROR: We took too long to run the timer test, "
-			"something seems broken, aborting.\n");
-	exit(EXIT_FAILURE);
-}
-
 int main(int argc, char *argv[])
 {
 	int c;
+	int steps;
 
-	if (signal(SIGALRM, alarm_handler) == SIG_ERR) {
-		perror("cannot register signal handler");
-		exit(EXIT_FAILURE);
-	}
+	osmo_gettimeofday_override = true;
 
 	while ((c = getopt_long(argc, argv, "s:", NULL, NULL)) != -1) {
 	switch(c) {
@@ -181,21 +176,21 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	steps = ((MAIN_TIMER_NSTEPS * TIME_BETWEEN_STEPS + 20) * 1e6)
+		/ TIME_BETWEEN_TIMER_CHECKS;
+
 	fprintf(stdout, "Running timer test for %u steps\n", timer_nsteps);
 
 	osmo_timer_schedule(&main_timer, 1, 0);
 
-	/* if the test takes too long, we may consider that the timer scheduler
-	 * has hung. We set some maximum wait time which is the double of the
-	 * maximum timeout randomly set (10 seconds, worst case) plus the
-	 * number of steps (since some of them are reset each step). */
-	alarm(2 * (10 + timer_nsteps));
-
 #ifdef HAVE_SYS_SELECT_H
-	while (1) {
-		osmo_select_main(0);
+	while (steps--) {
+		osmo_timers_prepare();
+		osmo_timers_update();
+		osmo_gettimeofday_override_add(0, TIME_BETWEEN_TIMER_CHECKS);
 	}
 #else
 	fprintf(stdout, "Select not supported on this platform!\n");
 #endif
+	return 0;
 }
