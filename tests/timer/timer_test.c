@@ -93,7 +93,7 @@ static void main_timer_fired(void *data)
 		osmo_gettimeofday(&v->start, NULL);
 		v->timer.cb = secondary_timer_fired;
 		v->timer.data = v;
-		unsigned int seconds = (random() % 10) + 1;
+		unsigned int seconds = (i & 0x7) + 1;
 		v->stop.tv_sec = v->start.tv_sec + seconds;
 		v->stop.tv_usec = v->start.tv_usec;
 		osmo_timer_schedule(&v->timer, seconds, 0);
@@ -111,6 +111,7 @@ static void secondary_timer_fired(void *data)
 	struct test_timer *v = data, *this, *tmp;
 	struct timeval current, res;
 	struct timeval precision = { 0, TIME_BETWEEN_TIMER_CHECKS + 1};
+	int i;
 
 	osmo_gettimeofday(&current, NULL);
 
@@ -143,9 +144,11 @@ static void secondary_timer_fired(void *data)
 		exit(EXIT_SUCCESS);
 	}
 
-	/* randomly (10%) deletion of timers. */
+	/* "random" deletion of timers. */
+	i = 0;
 	llist_for_each_entry_safe(this, tmp, &timer_test_list, head) {
-		if ((random() % 100) < 10) {
+		i ++;
+		if (!(i & 0x3)) {
 			osmo_timer_del(&this->timer);
 			llist_del(&this->head);
 			talloc_free(this);
