@@ -37,7 +37,7 @@ static char *ui_center(const char *text)
 	len = strlen(line);
 	if (len + 1 < UI_COLS) {
 		shift = (UI_COLS - len) / 2;
-		memcpy(line + shift, line, len + 1);
+		memmove(line + shift, line, len + 1);
 		memset(line, ' ', shift);
 	}
 
@@ -146,7 +146,7 @@ static int bottom_puts(struct ui_inst *ui, const char *text)
 	if ((p = strchr(bottom_line, ' '))
 	 && (space = UI_COLS - strlen(bottom_line))) {
 	 	p++;
-	 	memcpy(p + space, p, strlen(p));
+	 	memmove(p + space, p, strlen(p));
 		memset(p, ' ', space);
 	}
 
@@ -410,7 +410,7 @@ static int keypad_stringview(struct ui_inst *ui, struct ui_view *uv,
 			ud->stringview.number[ud->stringview.pos] = '\0';
 		} else {
 			/* insert digit */
-			memcpy(ud->stringview.number + ud->stringview.pos + 1,
+			memmove(ud->stringview.number + ud->stringview.pos + 1,
 				ud->stringview.number + ud->stringview.pos,
 				strlen(ud->stringview.number +
 							ud->stringview.pos)
@@ -447,7 +447,7 @@ static int keypad_stringview(struct ui_inst *ui, struct ui_view *uv,
 			ud->stringview.number[ud->stringview.pos] = '\0';
 		} else {
 			/* remove digit */
-			memcpy(ud->stringview.number + ud->stringview.pos - 1,
+			memmove(ud->stringview.number + ud->stringview.pos - 1,
 				ud->stringview.number + ud->stringview.pos,
 				strlen(ud->stringview.number +
 							ud->stringview.pos)

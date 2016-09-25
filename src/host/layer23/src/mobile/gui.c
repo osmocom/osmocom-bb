@@ -117,7 +117,7 @@ static int status_netname(struct osmocom_ms *ms, char *text)
 	len = strlen(text);
 	if (len + 1 < UI_COLS) {
 		shift = (UI_COLS - len) / 2;
-		memcpy(text + shift, text, len + 1);
+		memmove(text + shift, text, len + 1);
 		memset(text, ' ', shift);
 	}
 
@@ -150,7 +150,7 @@ static int status_imsi(struct osmocom_ms *ms, char *text)
 	len = strlen(text);
 	/* wrap */
 	if (len > UI_COLS) {
-		memcpy(text + UI_COLS + 1, text + UI_COLS, len - UI_COLS + 1);
+		memmove(text + UI_COLS + 1, text + UI_COLS, len - UI_COLS + 1);
 		text[UI_COLS] = '\0';
 		text[2 * UI_COLS + 1] = '\0';
 
@@ -169,7 +169,7 @@ static int status_imei(struct osmocom_ms *ms, char *text)
 	len = strlen(text);
 	/* wrap */
 	if (len > UI_COLS) {
-		memcpy(text + UI_COLS + 1, text + UI_COLS, len - UI_COLS + 1);
+		memmove(text + UI_COLS + 1, text + UI_COLS, len - UI_COLS + 1);
 		text[UI_COLS] = '\0';
 		text[2 * UI_COLS + 1] = '\0';
 
@@ -1812,7 +1812,7 @@ int gui_notify_call(struct osmocom_ms *ms)
 		len = strlen(p);
 		if (len + 1 < UI_COLS) {
 			shift = (UI_COLS - len) / 2;
-			memcpy(p + shift, p, len + 1);
+			memmove(p + shift, p, len + 1);
 			memset(p, ' ', shift);
 		}
 		gui->status_lines[j] = p;
@@ -1888,13 +1888,13 @@ int gui_notify_call(struct osmocom_ms *ms)
 	/* if only one call */
 	if (calls == 1) {
 		/* insert space above call state */
-		memcpy(gui->status_lines + 1, gui->status_lines,
+		memmove(gui->status_lines + 1, gui->status_lines,
 			j * sizeof(char *));
 		gui->status_lines[0] = "";
 		j++;
 		if (j > 2) {
 			/* insert space below call state */
-			memcpy(gui->status_lines + 3, gui->status_lines + 2,
+			memmove(gui->status_lines + 3, gui->status_lines + 2,
 				(j - 2) * sizeof(char *));
 			gui->status_lines[2] = "";
 			j++;
