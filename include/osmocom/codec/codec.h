@@ -42,6 +42,27 @@ enum osmo_amr_quality {
        AMR_GOOD = 1
 };
 
+/*! \brief Check if given AMR Frame Type is a speech frame
+ *  \param[in] ft AMR Frame Type
+ *  \returns true if AMR with given Frame Type contains voice, false otherwise
+ */
+inline bool osmo_amr_is_speech(enum osmo_amr_type ft)
+{
+	switch (ft) {
+	case AMR_4_75:
+	case AMR_5_15:
+	case AMR_5_90:
+	case AMR_6_70:
+	case AMR_7_40:
+	case AMR_7_95:
+	case AMR_10_2:
+	case AMR_12_2:
+		return true;
+	default:
+		return false;
+	}
+}
+
 bool osmo_fr_check_sid(uint8_t *rtp_payload, size_t payload_len);
 bool osmo_hr_check_sid(uint8_t *rtp_payload, size_t payload_len);
 int osmo_amr_rtp_enc(uint8_t *payload, uint8_t cmr, enum osmo_amr_type ft,
