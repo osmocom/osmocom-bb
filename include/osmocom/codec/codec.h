@@ -46,7 +46,7 @@ enum osmo_amr_quality {
  *  \param[in] ft AMR Frame Type
  *  \returns true if AMR with given Frame Type contains voice, false otherwise
  */
-inline bool osmo_amr_is_speech(enum osmo_amr_type ft)
+static inline bool osmo_amr_is_speech(enum osmo_amr_type ft)
 {
 	switch (ft) {
 	case AMR_4_75:
