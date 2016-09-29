@@ -202,6 +202,18 @@ then
 	AC_DEFINE([PANIC_INFLOOP],[1],[Use infinite loop on panic rather than fprintf/abort])
 fi
 
+AC_ARG_ENABLE(sanitize,
+	[AS_HELP_STRING(
+		[--enable-sanitize],
+		[Compile with address sanitizer enabled],
+	)],
+	[sanitize=$enableval], [sanitize="no"])
+if test x"$sanitize" = x"yes"
+then
+	CFLAGS+=" -fsanitize=address -fsanitize=undefined"
+	CPPFLAGS+=" -fsanitize=address -fsanitize=undefined"
+fi
+
 AC_OUTPUT(
 	libosmocore.pc
 	libosmocodec.pc
