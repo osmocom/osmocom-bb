@@ -2,6 +2,9 @@ AC_INIT([libosmocore],
 	m4_esyscmd([./git-version-gen .tarball-version]),
 	[openbsc@lists.osmocom.org])
 
+dnl *This* is the root dir, even if an install-sh exists in ../ or ../../
+AC_CONFIG_AUX_DIR([.])
+
 AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip 1.6 subdir-objects])
 AC_CONFIG_TESTDIR(tests)
 
