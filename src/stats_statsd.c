@@ -39,7 +39,7 @@ static int osmo_stats_reporter_statsd_send_counter(struct osmo_stats_reporter *s
 	int64_t value, int64_t delta);
 static int osmo_stats_reporter_statsd_send_item(struct osmo_stats_reporter *srep,
 	const struct osmo_stat_item_group *statg,
-	const struct osmo_stat_item_desc *desc, int value);
+	const struct osmo_stat_item_desc *desc, int64_t value);
 
 struct osmo_stats_reporter *osmo_stats_reporter_create_statsd(const char *name)
 {
@@ -57,7 +57,7 @@ struct osmo_stats_reporter *osmo_stats_reporter_create_statsd(const char *name)
 }
 
 static int osmo_stats_reporter_statsd_send(struct osmo_stats_reporter *srep,
-	const char *name1, unsigned int index1, const char *name2, int value,
+	const char *name1, unsigned int index1, const char *name2, int64_t value,
 	const char *unit)
 {
 	char *buf;
@@ -149,7 +149,7 @@ static int osmo_stats_reporter_statsd_send_counter(struct osmo_stats_reporter *s
 
 static int osmo_stats_reporter_statsd_send_item(struct osmo_stats_reporter *srep,
 	const struct osmo_stat_item_group *statg,
-	const struct osmo_stat_item_desc *desc, int value)
+	const struct osmo_stat_item_desc *desc, int64_t value)
 {
 	const char *unit = desc->unit;
 
