@@ -159,9 +159,13 @@ static int handle_counter(struct osmo_counter *counter, void *vctx_)
 {
 	struct vty_out_context *vctx = vctx_;
 	struct vty *vty = vctx->vty;
+	const char *description = counter->description;
+
+	if (!counter->description)
+		description = counter->name;
 
 	vty_out(vty, " %s%s: %8lu%s",
-		vctx->prefix, counter->description,
+		vctx->prefix, description,
 		osmo_counter_get(counter), VTY_NEWLINE);
 
 	return 0;
