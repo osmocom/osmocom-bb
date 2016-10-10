@@ -268,7 +268,7 @@ int gsm0480_decode_ss_request(const struct gsm48_hdr *hdr, uint16_t len,
 static int parse_ss(const struct gsm48_hdr *hdr, uint16_t len, struct ss_request *req)
 {
 	int rc = 1;
-	uint8_t msg_type = hdr->msg_type & 0xBF;  /* message-type - section 3.4 */
+	uint8_t msg_type = hdr->msg_type & 0x3F;  /* message-type - section 3.4 */
 
 	switch (msg_type) {
 	case GSM0480_MTYPE_RELEASE_COMPLETE:
