@@ -1052,6 +1052,11 @@ void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
 #define GSM48_MT_RR_NOTIF_FACCH		0x25
 #define GSM48_MT_RR_NOTIF_RESP		0x26
 
+#define GSM48_MT_RR_UTRAN_CLSM_CHG	0x60
+#define GSM48_MT_RR_CDMA2K_CLSM_CHG	0x62
+#define GSM48_MT_RR_IS_TO_UTRAN_HANDO	0x63
+#define GSM48_MT_RR_IS_TO_CDMA2K_HANDO	0x64
+
 #define GSM48_MT_RR_SYSINFO_8		0x18
 #define GSM48_MT_RR_SYSINFO_1		0x19
 #define GSM48_MT_RR_SYSINFO_2		0x1a
