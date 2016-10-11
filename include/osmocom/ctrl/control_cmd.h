@@ -53,10 +53,10 @@ struct ctrl_connection {
 struct ctrl_cmd {
 	struct ctrl_connection *ccon;
 	enum ctrl_type type;
-	char *id;
+	const char *id;
 	void *node;
-	char *variable;
-	char *value;
+	const char *variable;
+	const char *value;
 	char *reply;
 };
 
