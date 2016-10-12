@@ -29,7 +29,7 @@ libgsmint_la_SOURCES =  a5.c rxlev_stat.c tlv_parser.c comp128.c comp128v23.c \
 			milenage/milenage.c gan.c ipa.c gsm0341.c apn.c \
 			gsup.c gprs_gea.c
 libgsmint_la_LDFLAGS = -no-undefined
-libgsmint_la_LIBADD = ../libosmocore.la
+libgsmint_la_LIBADD = $(top_builddir)/src/libosmocore.la
 
 libosmogsm_la_SOURCES =
 libosmogsm_la_LDFLAGS = $(LTLDFLAGS_OSMOGSM) -version-info $(LIBVERSION) -no-undefined $(TALLOC_LIBS)
@@ -37,5 +37,5 @@ libosmogsm_la_LIBADD = libgsmint.la
 
 EXTRA_DIST = libosmogsm.map
 
-conv%gen.c: ../../utils/conv_gen.py
-	$(AM_V_GEN)python2 ../../utils/conv_gen.py
+conv%gen.c: $(top_srcdir)/utils/conv_gen.py
+	$(AM_V_GEN)python2 $(top_srcdir)/utils/conv_gen.py
