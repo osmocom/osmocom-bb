@@ -383,8 +383,9 @@ static void asciidoc_counter_generate(struct vty *vty)
 {
 	vty_out(vty, "// ungrouped osmo_counters%s", VTY_NEWLINE);
 	vty_out(vty, ".ungrouped osmo counters%s", VTY_NEWLINE);
+	vty_out(vty, "[options=\"header\"]%s", VTY_NEWLINE);
 	vty_out(vty, "|===%s", VTY_NEWLINE);
-	vty_out(vty, "| name | This document & | description%s", VTY_NEWLINE);
+	vty_out(vty, "| Name | Reference | Description%s", VTY_NEWLINE);
 	osmo_counters_for_each(asciidoc_handle_counter, vty);
 	vty_out(vty, "|===%s", VTY_NEWLINE);
 }
@@ -398,7 +399,7 @@ static int asciidoc_rate_ctr_handler(
 	char *description = osmo_asciidoc_escape(desc->description);
 	char *group_name_prefix = osmo_asciidoc_escape(ctrg->desc->group_name_prefix);
 
-	/* | name | This document & | description | */
+	/* | Name | This document & | Description | */
 	vty_out(vty, "| %s | <<%s_%s>> | %s%s",
 		name,
 		group_name_prefix,
@@ -423,8 +424,9 @@ static int asciidoc_rate_ctr_group_handler(struct rate_ctr_group *ctrg, void *sc
 
 	vty_out(vty, "// rate_ctr_group table %s%s", group_description, VTY_NEWLINE);
 	vty_out(vty, ".%s - %s %s", group_name_prefix, group_description, VTY_NEWLINE);
+	vty_out(vty, "[options=\"header\"]%s", VTY_NEWLINE);
 	vty_out(vty, "|===%s", VTY_NEWLINE);
-	vty_out(vty, "| name | This document & | description%s", VTY_NEWLINE);
+	vty_out(vty, "| Name | Reference | Description%s", VTY_NEWLINE);
 	rate_ctr_for_each_counter(ctrg, asciidoc_rate_ctr_handler, sctx_);
 	vty_out(vty, "|===%s", VTY_NEWLINE);
 
@@ -444,7 +446,7 @@ static int asciidoc_osmo_stat_item_handler(
 	char *group_name_prefix = osmo_asciidoc_escape(statg->desc->group_name_prefix);
 	char *unit = osmo_asciidoc_escape(item->desc->unit);
 
-	/* | name | This document & | description | unit | */
+	/* | Name | Reference | Description | Unit | */
 	vty_out(vty, "| %s | <<%s_%s>> | %s | %s%s",
 		name,
 		group_name_prefix,
@@ -471,8 +473,9 @@ static int asciidoc_osmo_stat_item_group_handler(struct osmo_stat_item_group *st
 
 	vty_out(vty, "// osmo_stat_item_group table %s%s", group_description ? group_description : "", VTY_NEWLINE);
 	vty_out(vty, ".%s - %s %s", group_name_prefix, group_description ? group_description : "", VTY_NEWLINE);
+	vty_out(vty, "[options=\"header\"]%s", VTY_NEWLINE);
 	vty_out(vty, "|===%s", VTY_NEWLINE);
-	vty_out(vty, "| name | This document & | description | unit%s", VTY_NEWLINE);
+	vty_out(vty, "| Name | Reference | Description | Unit%s", VTY_NEWLINE);
 	osmo_stat_item_for_each_item(statg, asciidoc_osmo_stat_item_handler, sctx_);
 	vty_out(vty, "|===%s", VTY_NEWLINE);
 
