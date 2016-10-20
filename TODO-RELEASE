@@ -4,4 +4,3 @@ libosmocore	change major	external talloc dependency / internal talloc removal
 libosmocore	change major	size of ph_data_param struct changed / Extend L1SAP PH-DATA with presence information
 libosmocore	change major	size of ph_data_param struct changed / Extend L1SAP PH-DATA with measurement information
 libosmocore	change major	size of ph_tch_param struct changed / Extend with RTP Marker
-libosmocore	change minor	mark as const id, variable & value fields of ctrl_cmd struct
