@@ -168,51 +168,53 @@ class ConvolutionalCode(object):
 			sum([x << (self.rate_inv - i - 1) for i, x in enumerate(n)])
 		num_states = 1 << (self.k - 1)
 
-		print >>fi, \
-			"\nstatic const uint8_t %s_state[][2] = {" % self.name
+		fi.write("static const uint8_t %s_state[][2] = {\n" % self.name)
 		self._print_x(fi, num_states)
-		print >>fi, \
-			"};\n\nstatic const uint8_t %s_output[][2] = {" % self.name
+		fi.write("};\n\n")
+
+		fi.write("static const uint8_t %s_output[][2] = {\n" % self.name)
 		self._print_x(fi, num_states, pack)
-		print >>fi, "};"
+		fi.write("};\n\n")
 
 		if self.recursive:
-			print >>fi, \
-				"\nstatic const uint8_t %s_term_state[] = {" % self.name
+			fi.write("static const uint8_t %s_term_state[] = {\n" % self.name)
 			self._print_term(fi, num_states)
+			fi.write("};\n\n")
 
-			print >>fi, \
-				"};\n\nstatic const uint8_t %s_term_output[] = {" % self.name
+			fi.write("static const uint8_t %s_term_output[] = {\n" % self.name)
 			self._print_term(fi, num_states, pack)
-			print >>fi, "};"
+			fi.write("};\n\n")
 
 		if len(self.puncture):
-			print >>fi, "\nstatic const int %s_puncture[] = {" % self.name
+			fi.write("static const int %s_puncture[] = {\n" % self.name)
 			self._print_puncture(fi)
-			print >>fi, "};"
+			fi.write("};\n\n")
 
 		# Write description as a multi-line comment
 		if self.description is not None:
-			print >>fi, "\n/**"
+			fi.write("/**\n")
 			for line in self.description:
-				print >>fi, " * %s" % line
-			print >>fi, " */"
+				fi.write(" * %s\n" % line)
+			fi.write(" */\n")
 
 		# Print a final convolutional code definition
-		print >>fi, "const struct osmo_conv_code %s_%s = {" % (pref, self.name)
-		print >>fi, "\t.N = %d," % self.rate_inv
-		print >>fi, "\t.K = %d," % self.k
-		print >>fi, "\t.len = %d," % self.block_len
+		fi.write("const struct osmo_conv_code %s_%s = {\n" % (pref, self.name))
+		fi.write("\t.N = %d,\n" % self.rate_inv)
+		fi.write("\t.K = %d,\n" % self.k)
+		fi.write("\t.len = %d,\n" % self.block_len)
+		fi.write("\t.next_output = %s_output,\n" % self.name)
+		fi.write("\t.next_state = %s_state,\n" % self.name)
+
 		if self.term_type is not None:
-			print >>fi, "\t.term = %s," % self.term_type
-		print >>fi, "\t.next_output = %s_output," % self.name
-		print >>fi, "\t.next_state = %s_state," % self.name
+			fi.write("\t.term = %s,\n" % self.term_type)
+
 		if self.recursive:
-			print >>fi, "\t.next_term_output = %s_term_output," % self.name
-			print >>fi, "\t.next_term_state = %s_term_state," % self.name
+			fi.write("\t.next_term_output = %s_term_output,\n" % self.name)
+			fi.write("\t.next_term_state = %s_term_state,\n" % self.name)
+
 		if len(self.puncture):
-			print >>fi, "\t.puncture = %s_puncture," % self.name
-		print >>fi, "};"
+			fi.write("\t.puncture = %s_puncture,\n" % self.name)
+		fi.write("};\n\n")
 
 poly = lambda *args: sum([(1 << x) for x in args])
 
@@ -939,17 +941,17 @@ if __name__ == '__main__':
 	path = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
 	prefix = "gsm0503"
 
-	print >>sys.stderr, "Generating convolutional codes..."
+	sys.stderr.write("Generating convolutional codes...\n")
 
 	# Open a new file for writing
 	f = open(os.path.join(path, "gsm0503_conv.c"), 'w')
-	print >>f, mod_license
-	print >>f, "#include <stdint.h>"
-	print >>f, "#include <osmocom/core/conv.h>"
+	f.write(mod_license + "\n")
+	f.write("#include <stdint.h>\n")
+	f.write("#include <osmocom/core/conv.h>\n\n")
 
 	# Generate the tables one by one
 	for code in conv_codes:
-		print >>sys.stderr, "Generate '%s' definition" % code.name
+		sys.stderr.write("Generate '%s' definition\n" % code.name)
 		code.gen_tables(prefix, f)
 
-	print >>sys.stderr, "Generation complete."
+	sys.stderr.write("Generation complete.\n")
