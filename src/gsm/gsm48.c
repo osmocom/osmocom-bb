@@ -162,6 +162,11 @@ static const struct value_string rr_cause_names[] = {
 	{ 0,					NULL },
 };
 
+const char *rr_cause_name(uint8_t cause)
+{
+	return get_value_string(rr_cause_names, cause);
+}
+
 /* FIXME: convert to value_string */
 static const char *cc_state_names[32] = {
 	"NULL",
@@ -248,11 +253,6 @@ static const struct value_string cc_msg_names[] = {
 const char *gsm48_cc_msg_name(uint8_t msgtype)
 {
 	return get_value_string(cc_msg_names, msgtype);
-}
-
-const char *rr_cause_name(uint8_t cause)
-{
-	return get_value_string(rr_cause_names, cause);
 }
 
 const struct value_string gsm48_chan_mode_names[] = {
