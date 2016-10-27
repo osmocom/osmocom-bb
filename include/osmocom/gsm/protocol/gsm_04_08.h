@@ -1021,6 +1021,10 @@ void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
 #define GSM48_MT_RR_IMM_ASS		0x3f
 #define GSM48_MT_RR_IMM_ASS_EXT		0x39
 #define GSM48_MT_RR_IMM_ASS_REJ		0x3a
+#define GSM48_MT_RR_DTM_ASS_FAIL	0x48
+#define GSM48_MT_RR_DTM_REJECT		0x49
+#define GSM48_MT_RR_DTM_REQUEST		0x4A
+#define GSM48_MT_RR_PACKET_ASS		0x4B
 
 #define GSM48_MT_RR_CIPH_M_CMD		0x35
 #define GSM48_MT_RR_CIPH_M_COMPL	0x32
@@ -1036,6 +1040,8 @@ void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
 #define GSM48_MT_RR_HANDO_COMPL		0x2c
 #define GSM48_MT_RR_HANDO_FAIL		0x28
 #define GSM48_MT_RR_HANDO_INFO		0x2d
+#define GSM48_MT_RR_HANDO_INFO		0x2d
+#define GSM48_MT_RR_DTM_ASS_CMD		0x4c
 
 #define GSM48_MT_RR_CELL_CHG_ORDER	0x08
 #define GSM48_MT_RR_PDCH_ASS_CMD	0x23
@@ -1049,9 +1055,9 @@ void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
 #define GSM48_MT_RR_PAG_REQ_3		0x24
 #define GSM48_MT_RR_PAG_RESP		0x27
 #define GSM48_MT_RR_NOTIF_NCH		0x20
-#define GSM48_MT_RR_NOTIF_FACCH		0x25
+#define GSM48_MT_RR_NOTIF_FACCH		0x25 /* (Reserved) */
 #define GSM48_MT_RR_NOTIF_RESP		0x26
-
+#define GSM48_MT_RR_PACKET_NOTIF	0x4e
 #define GSM48_MT_RR_UTRAN_CLSM_CHG	0x60
 #define GSM48_MT_RR_CDMA2K_CLSM_CHG	0x62
 #define GSM48_MT_RR_IS_TO_UTRAN_HANDO	0x63
@@ -1077,6 +1083,10 @@ void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
 #define GSM48_MT_RR_SYSINFO_16		0x3d
 #define GSM48_MT_RR_SYSINFO_17		0x3e
 
+#define GSM48_MT_RR_SYSINFO_18		0x40
+#define GSM48_MT_RR_SYSINFO_19		0x41
+#define GSM48_MT_RR_SYSINFO_20		0x42
+
 #define GSM48_MT_RR_CHAN_MODE_MODIF	0x10
 #define GSM48_MT_RR_STATUS		0x12
 #define GSM48_MT_RR_CHAN_MODE_MODIF_ACK	0x17
@@ -1087,6 +1097,7 @@ void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
 #define GSM48_MT_RR_EXT_MEAS_REP	0x36
 #define GSM48_MT_RR_EXT_MEAS_REP_ORD	0x37
 #define GSM48_MT_RR_GPRS_SUSP_REQ	0x34
+#define GSM48_MT_RR_DTM_INFO		0x4d
 
 #define GSM48_MT_RR_VGCS_UPL_GRANT	0x09
 #define GSM48_MT_RR_UPLINK_RELEASE	0x0e

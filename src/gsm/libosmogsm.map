@@ -151,6 +151,7 @@ gsm411_rp_cause_strs;
 
 gsm48_att_tlvdef;
 gsm48_cc_msg_name;
+gsm48_rr_msg_name;
 gsm48_cc_state_name;
 gsm48_construct_ra;
 gsm48_hdr_gmm_cipherable;
