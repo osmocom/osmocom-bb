@@ -164,7 +164,7 @@ class ConvolutionalCode(object):
 		# Up to 12 numbers should be placed per line
 		print_formatted(self.puncture, "%3d, ", 12, fi)
 
-	def gen_tables(self, pref, fi):
+	def print_state_and_output(self, fi):
 		pack = lambda n: \
 			sum([x << (self.rate_inv - i - 1) for i, x in enumerate(n)])
 		num_states = 1 << (self.k - 1)
@@ -186,6 +186,14 @@ class ConvolutionalCode(object):
 			self._print_term(fi, num_states, pack)
 			fi.write("};\n\n")
 
+	def gen_tables(self, pref, fi, shared_tables = None):
+		# Do not print shared tables
+		if shared_tables is None:
+			self.print_state_and_output(fi)
+			table_pref = self.name
+		else:
+			table_pref = shared_tables
+
 		if len(self.puncture):
 			fi.write("static const int %s_puncture[] = {\n" % self.name)
 			self._print_puncture(fi)
@@ -203,15 +211,15 @@ class ConvolutionalCode(object):
 		fi.write("\t.N = %d,\n" % self.rate_inv)
 		fi.write("\t.K = %d,\n" % self.k)
 		fi.write("\t.len = %d,\n" % self.block_len)
-		fi.write("\t.next_output = %s_output,\n" % self.name)
-		fi.write("\t.next_state = %s_state,\n" % self.name)
+		fi.write("\t.next_output = %s_output,\n" % table_pref)
+		fi.write("\t.next_state = %s_state,\n" % table_pref)
 
 		if self.term_type is not None:
 			fi.write("\t.term = %s,\n" % self.term_type)
 
 		if self.recursive:
-			fi.write("\t.next_term_output = %s_term_output,\n" % self.name)
-			fi.write("\t.next_term_state = %s_term_state,\n" % self.name)
+			fi.write("\t.next_term_output = %s_term_output,\n" % table_pref)
+			fi.write("\t.next_term_state = %s_term_state,\n" % table_pref)
 
 		if len(self.puncture):
 			fi.write("\t.puncture = %s_puncture,\n" % self.name)
@@ -239,6 +247,12 @@ def print_formatted(items, format, count, fi):
 
 	fi.write("\n")
 
+def print_shared(fi):
+	for (name, polys) in shared_polys.items():
+		# HACK
+		code = ConvolutionalCode(0, polys, name = name)
+		code.print_state_and_output(fi)
+
 # Polynomials according to 3GPP TS 05.03 Annex B
 G0 = poly(0, 3, 4)
 G1 = poly(0, 1, 3, 4)
@@ -249,22 +263,23 @@ G5 = poly(0, 1, 4, 6)
 G6 = poly(0, 1, 2, 3, 4, 6)
 G7 = poly(0, 1, 2, 3, 6)
 
-CCH_poly = [
-	( G0, 1 ),
-	( G1, 1 ),
-]
-
-MCS_poly = [
-	( G4, 1 ),
-	( G7, 1 ),
-	( G5, 1 ),
-]
+shared_polys = {
+	"xcch" : [
+		( G0, 1 ),
+		( G1, 1 ),
+	],
+	"mcs" : [
+		( G4, 1 ),
+		( G7, 1 ),
+		( G5, 1 ),
+	],
+}
 
 conv_codes = [
 	# xCCH definition
 	ConvolutionalCode(
 		224,
-		CCH_poly,
+		shared_polys["xcch"],
 		name = "xcch",
 		description = [
 			"xCCH convolutional code:",
@@ -277,7 +292,7 @@ conv_codes = [
 	# RACH definition
 	ConvolutionalCode(
 		14,
-		CCH_poly,
+		shared_polys["xcch"],
 		name = "rach",
 		description = ["RACH convolutional code"]
 	),
@@ -285,7 +300,7 @@ conv_codes = [
 	# SCH definition
 	ConvolutionalCode(
 		35,
-		CCH_poly,
+		shared_polys["xcch"],
 		name = "sch",
 		description = ["SCH convolutional code"]
 	),
@@ -293,7 +308,7 @@ conv_codes = [
 	# CS2 definition
 	ConvolutionalCode(
 		290,
-		CCH_poly,
+		shared_polys["xcch"],
 		puncture = [
 			 15,  19,  23,  27,  31,  35,  43,  47,  51,  55,  59,  63,  67,  71,
 			 75,  79,  83,  91,  95,  99, 103, 107, 111, 115, 119, 123, 127, 131,
@@ -317,7 +332,7 @@ conv_codes = [
 	# CS3 definition
 	ConvolutionalCode(
 		334,
-		CCH_poly,
+		shared_polys["xcch"],
 		puncture = [
 			 15,  17,  21,  23,  27,  29,  33,  35,  39,  41,  45,  47,  51,  53,
 			 57,  59,  63,  65,  69,  71,  75,  77,  81,  83,  87,  89,  93,  95,
@@ -579,7 +594,7 @@ conv_codes = [
 	# TCH_FR definition
 	ConvolutionalCode(
 		185,
-		CCH_poly,
+		shared_polys["xcch"],
 		name = "tch_fr",
 		description = ["TCH/F convolutional code"]
 	),
@@ -724,7 +739,7 @@ conv_codes = [
 	# EDGE MCS1_DL_HDR definition
 	ConvolutionalCode(
 		36,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs1_dl_hdr",
 		term_type = "CONV_TERM_TAIL_BITING",
 		description = [
@@ -739,7 +754,7 @@ conv_codes = [
 	# EDGE MCS1_UL_HDR definition
 	ConvolutionalCode(
 		39,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs1_ul_hdr",
 		term_type = "CONV_TERM_TAIL_BITING",
 		description = [
@@ -754,7 +769,7 @@ conv_codes = [
 	# EDGE MCS1 definition
 	ConvolutionalCode(
 		190,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs1",
 		description = [
 			"EDGE MCS-1 data convolutional code:",
@@ -768,7 +783,7 @@ conv_codes = [
 	# EDGE MCS2 definition
 	ConvolutionalCode(
 		238,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs2",
 		description = [
 			"EDGE MCS-2 data convolutional code:",
@@ -782,7 +797,7 @@ conv_codes = [
 	# EDGE MCS3 definition
 	ConvolutionalCode(
 		310,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs3",
 		description = [
 			"EDGE MCS-3 data convolutional code:",
@@ -796,7 +811,7 @@ conv_codes = [
 	# EDGE MCS4 definition
 	ConvolutionalCode(
 		366,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs4",
 		description = [
 			"EDGE MCS-4 data convolutional code:",
@@ -810,7 +825,7 @@ conv_codes = [
 	# EDGE MCS5_DL_HDR definition
 	ConvolutionalCode(
 		33,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs5_dl_hdr",
 		term_type = "CONV_TERM_TAIL_BITING",
 		description = [
@@ -825,7 +840,7 @@ conv_codes = [
 	# EDGE MCS5_UL_HDR definition
 	ConvolutionalCode(
 		45,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs5_ul_hdr",
 		term_type = "CONV_TERM_TAIL_BITING",
 		description = [
@@ -840,7 +855,7 @@ conv_codes = [
 	# EDGE MCS5 definition
 	ConvolutionalCode(
 		462,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs5",
 		description = [
 			"EDGE MCS-5 data convolutional code:",
@@ -854,7 +869,7 @@ conv_codes = [
 	# EDGE MCS6 definition
 	ConvolutionalCode(
 		606,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs6",
 		description = [
 			"EDGE MCS-6 data convolutional code:",
@@ -868,7 +883,7 @@ conv_codes = [
 	# EDGE MCS7_DL_HDR definition
 	ConvolutionalCode(
 		45,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs7_dl_hdr",
 		term_type = "CONV_TERM_TAIL_BITING",
 		description = [
@@ -883,7 +898,7 @@ conv_codes = [
 	# EDGE MCS7_UL_HDR definition
 	ConvolutionalCode(
 		54,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs7_ul_hdr",
 		term_type = "CONV_TERM_TAIL_BITING",
 		description = [
@@ -898,7 +913,7 @@ conv_codes = [
 	# EDGE MCS7 definition
 	ConvolutionalCode(
 		462,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs7",
 		description = [
 			"EDGE MCS-7 data convolutional code:",
@@ -912,7 +927,7 @@ conv_codes = [
 	# EDGE MCS8 definition
 	ConvolutionalCode(
 		558,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs8",
 		description = [
 			"EDGE MCS-8 data convolutional code:",
@@ -926,7 +941,7 @@ conv_codes = [
 	# EDGE MCS9 definition
 	ConvolutionalCode(
 		606,
-		MCS_poly,
+		shared_polys["mcs"],
 		name = "mcs9",
 		description = [
 			"EDGE MCS-9 data convolutional code:",
@@ -949,10 +964,19 @@ if __name__ == '__main__':
 	f.write(mod_license + "\n")
 	f.write("#include <stdint.h>\n")
 	f.write("#include <osmocom/core/conv.h>\n\n")
+	print_shared(f)
 
 	# Generate the tables one by one
 	for code in conv_codes:
 		sys.stderr.write("Generate '%s' definition\n" % code.name)
-		code.gen_tables(prefix, f)
+
+		# Check whether shared polynomials are used
+		shared = None
+		for (name, polys) in shared_polys.items():
+			if code.polys == polys:
+				shared = name
+				break
+
+		code.gen_tables(prefix, f, shared_tables = shared)
 
 	sys.stderr.write("Generation complete.\n")
