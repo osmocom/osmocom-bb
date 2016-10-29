@@ -180,18 +180,10 @@ static const unsigned t4_term_length[2][64] = {
 	{8, 6, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8}
 };
 
-static const unsigned t4_min_term_length[] = {2, 4};
-static const unsigned t4_min_make_up_length[] = {10, 5};
-
-static const unsigned t4_max_term_length[] = {12, 8};
-static const unsigned t4_max_make_up_length[] = {13, 9};
-
 static const unsigned t4_make_up_length[2][15] = {
 	{10, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13},
 	{5, 5, 6, 7, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9}
 };
-
-static const unsigned t4_make_up_ind[15] = {64, 128, 192, 256, 320, 384, 448, 512, 576, 640, 704, 768, 832, 896, 960};
 
 static const unsigned t4_make_up[2][15] = {
 	{
@@ -229,30 +221,6 @@ static const unsigned t4_make_up[2][15] = {
 		0b011010100
 	 }
 };
-
-/*! \brief Attempt to decode compressed bit vector
- *
- *  \return length of RLE according to modified ITU-T T.4 from TS 44.060
- *  Table 9.1.10.2 or -1 if no applicable RLE found N. B: we need
- *  explicit bit length to make decoding unambiguous
-*/
-static inline int t4_rle_term(unsigned w, bool b, unsigned bits)
-{
-	unsigned i;
-	for (i = 0; i < 64; i++)
-		if (w == t4_term[b][i] && bits == t4_term_length[b][i])
-			return i;
-	return -1;
-}
-
-static inline int t4_rle_makeup(unsigned w, bool b, unsigned bits)
-{
-	unsigned i;
-	for (i = 0; i < 15; i++)
-		if (w == t4_make_up[b][i] && bits == t4_make_up_length[b][i])
-			return t4_make_up_ind[i];
-	return -1;
-}
 
 /*! \brief Make-up codes for a given length
  *
@@ -337,102 +305,6 @@ static inline int t4_rle(struct bitvec *bv, unsigned len, bool b)
 	}
 
 	return bitvec_set_uint(bv, t4_term[b][len], t4_term_length[b][len]);
-}
-
-enum dec_state {
-	EXPECT_TERM,
-	TOO_LONG,
-	NEED_MORE_BITS,
-	CORRUPT,
-	OK
-};
-
-static inline enum dec_state _t4_step(struct bitvec *v, uint16_t w, bool b, unsigned bits, bool term_only)
-{
-	if (bits > t4_max_make_up_length[b])
-		return TOO_LONG;
-	if (bits < t4_min_term_length[b])
-		return NEED_MORE_BITS;
-
-	if (term_only) {
-		if (bits > t4_max_term_length[b])
-			return CORRUPT;
-		int t = t4_rle_term(w, b, bits);
-		if (-1 != t) {
-			bitvec_fill(v, t, b ? ONE : ZERO);
-			return OK;
-		}
-		return NEED_MORE_BITS;
-	}
-
-	int m = t4_rle_makeup(w, b, bits);
-	if (-1 != m) {
-		bitvec_fill(v, m, b ? ONE : ZERO);
-		return EXPECT_TERM;
-	}
-
-	m = t4_rle_term(w, b, bits);
-	if (-1 != m) {
-		bitvec_fill(v, m, b ? ONE : ZERO);
-		return OK;
-	}
-
-	return NEED_MORE_BITS;
-}
-
-/*! \brief decode T4-encoded bit vector
- *  Assumes MSB first encoding.
- *  \param[in] in bit vector with encoded data
- *  \param[in] cc color code (whether decoding should start with 1 or 0)
- *  \param[out] out the bit vector to store result into
- *  \return 0 on success, negative value otherwise
- */
-int osmo_t4_decode(const struct bitvec *in, bool cc, struct bitvec *out)
-{
-	uint8_t orig[in->data_len];
-	struct bitvec vec;
-	vec.data = orig;
-	vec.data_len = in->data_len;
-	bitvec_zero(&vec);
-	memcpy(vec.data, in->data, in->data_len);
-	vec.cur_bit = in->cur_bit;
-
-	/* init decoder using known color code: */
-	unsigned bits = t4_min_term_length[cc];
-	enum dec_state d;
-	int16_t w = bitvec_get_int16_msb(&vec, bits);
-	bool b = cc;
-	bool term_only = false;
-
-	while (vec.cur_bit > 0) {
-		d = _t4_step(out, w, b, bits, term_only);
-
-		switch (d) {
-		case EXPECT_TERM:
-			bitvec_shiftl(&vec, bits);
-			bits = t4_min_term_length[b];
-			w = bitvec_get_int16_msb(&vec, bits);
-			term_only = true;
-			break;
-		case OK:
-			bitvec_shiftl(&vec, bits);
-			bits = t4_min_term_length[!b];
-			w = bitvec_get_int16_msb(&vec, bits);
-			b = !b;
-			term_only = false;
-			break;
-		case NEED_MORE_BITS:
-			bits++;
-			w = bitvec_get_int16_msb(&vec, bits);
-			break;
-		case TOO_LONG:
-			return -E2BIG;
-		case CORRUPT:
-			return -EINVAL;
-		}
-	}
-
-	return 0;
 }
 
 /*! \brief encode bit vector in-place using T4 encoding

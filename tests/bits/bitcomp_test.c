@@ -41,11 +41,6 @@ int main(int argc, char **argv)
 	bitvec_set_uint(&bv, 4, 3);
 	bitvec_to_string_r(&bv, lol);
 	printf(" %s [%d]\n", lol, bv.cur_bit);
-	int d = osmo_t4_decode(&bv, 0, &out);
-	printf("\nDecoded:\n%d", d);
-	bitvec_to_string_r(&out, lol);
-	printf("%s [%d]\n", lol, out.cur_bit);
-	printf("Expected:\n  00110111 01000111 10000001 1111 \n");
 
 	printf("\nTEST2:\n 11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111 00000000 00\n");
 	bitvec_zero(&bv);
@@ -54,13 +49,6 @@ int main(int argc, char **argv)
 	bitvec_set_uint(&bv, 0xFFFFFC00, 26); bitvec_to_string_r(&bv, lol); printf("%s", lol);
 	printf("\nEncoded:\n%d", osmo_t4_encode(&bv)); bitvec_to_string_r(&bv, lol); printf("%s", lol);
 	printf(" [%d]\nExpected:\n1 11011101 01000001 00 [18]\n", bv.cur_bit);
-
-	bitvec_zero(&out);
-	d = osmo_t4_decode(&bv, 1, &out);
-	printf("\nDecoded:\n%d", d);
-	bitvec_to_string_r(&out, lol);
-	printf("%s [%d]\n", lol, out.cur_bit);
-	printf("Expected:\n  11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111 00000000 00\n");
 
 	return 0;
 }

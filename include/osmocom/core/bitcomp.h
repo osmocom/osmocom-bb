@@ -37,6 +37,5 @@
 
 
 int osmo_t4_encode(struct bitvec *bv);
-int osmo_t4_decode(const struct bitvec *in, bool cc, struct bitvec *out);
 
 /*! @} */
