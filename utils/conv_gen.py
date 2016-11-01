@@ -24,6 +24,7 @@ mod_license = """
 """
 
 import sys, os, math
+from functools import reduce
 
 class ConvolutionalCode(object):
 
