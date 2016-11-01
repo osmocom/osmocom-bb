@@ -115,7 +115,7 @@ void osmo_fsm_log_addr(bool log_addr);
 			osmo_fsm_state_name((fi)->fsm, (fi)->state), ## args)
 
 int osmo_fsm_register(struct osmo_fsm *fsm);
-
+void osmo_fsm_unregister(struct osmo_fsm *fsm);
 struct osmo_fsm_inst *osmo_fsm_inst_alloc(struct osmo_fsm *fsm, void *ctx, void *priv,
 					  int log_level, const char *id);
 struct osmo_fsm_inst *osmo_fsm_inst_alloc_child(struct osmo_fsm *fsm,

@@ -151,5 +151,6 @@ int main(int argc, char **argv)
 		osmo_select_main(0);
 	}
 
+	osmo_fsm_unregister(&fsm);
 	exit(0);
 }
