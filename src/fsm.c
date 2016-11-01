@@ -99,7 +99,7 @@ static bool fsm_log_addr = true;
  */
 void osmo_fsm_log_addr(bool log_addr)
 {
-	fsm_log_addr = false;
+	fsm_log_addr = log_addr;
 }
 
 /*! \brief register a FSM with the core
