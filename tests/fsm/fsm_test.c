@@ -89,7 +89,7 @@ static struct osmo_fsm fsm = {
 	.log_subsys = DMAIN,
 };
 
-static int foo(void)
+static struct osmo_fsm_inst *foo(void)
 {
 	struct osmo_fsm_inst *fi;
 
@@ -115,7 +115,7 @@ static int foo(void)
 	OSMO_ASSERT(fi->state == ST_TWO);
 
 
-	return 0;
+	return fi;
 }
 
 static const struct log_info_cat default_categories[] = {
@@ -134,6 +134,7 @@ static const struct log_info log_info = {
 int main(int argc, char **argv)
 {
 	struct log_target *stderr_target;
+	struct osmo_fsm_inst *finst;
 
 	osmo_fsm_log_addr(false);
 
@@ -145,12 +146,12 @@ int main(int argc, char **argv)
 	g_ctx = NULL;
 	osmo_fsm_register(&fsm);
 
-	foo();
+	finst = foo();
 
 	while (1) {
 		osmo_select_main(0);
 	}
-
+	osmo_fsm_inst_free(finst);
 	osmo_fsm_unregister(&fsm);
 	exit(0);
 }

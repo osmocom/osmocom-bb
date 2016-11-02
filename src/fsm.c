@@ -233,6 +233,7 @@ struct osmo_fsm_inst *osmo_fsm_inst_alloc_child(struct osmo_fsm *fsm,
  */
 void osmo_fsm_inst_free(struct osmo_fsm_inst *fi)
 {
+	LOGPFSM(fi, "Deallocated\n");
 	osmo_timer_del(&fi->timer);
 	llist_del(&fi->list);
 	talloc_free(fi);
