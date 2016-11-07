@@ -252,6 +252,9 @@ int osmo_amr_rtp_dec(const uint8_t *rtppayload, int payload_len, uint8_t *cmr,
 		     int8_t *cmi, enum osmo_amr_type *ft,
 		     enum osmo_amr_quality *bfi, int8_t *sti)
 {
+	if (payload_len < 2 || !rtppayload)
+		return -EINVAL;
+
 	/* RFC 4867 § 4.4.2 ToC - compound payloads are not supported: F = 0 */
 	uint8_t type = (rtppayload[1] >> 3) & 0xf;
 
@@ -261,9 +264,6 @@ int osmo_amr_rtp_dec(const uint8_t *rtppayload, int payload_len, uint8_t *cmr,
 
 	if (payload_len - 2 < amr_len_by_ft[type])
 		return -ENOTSUP;
-
-	if (payload_len < 2)
-		return -EINVAL;
 
 	if (ft)
 		*ft = type;

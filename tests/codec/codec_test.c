@@ -38,12 +38,17 @@ static const char * cmpr(int a, int b)
 
 static void test_sid_dec(const uint8_t *t, size_t len)
 {
-	uint8_t cmr, tmp[SID_LEN];
+	uint8_t cmr, tmp[SID_LEN], *t2 = NULL;
 	enum osmo_amr_type ft;
 	enum osmo_amr_quality bfi;
 	int8_t sti, cmi;
-	memcpy(tmp, t, SID_LEN);
-	int rc = osmo_amr_rtp_dec(tmp, len, &cmr, &cmi, &ft, &bfi, &sti);
+	if (t) {
+		memcpy(tmp, t, SID_LEN);
+		t2 = tmp;
+	}
+	int rc = osmo_amr_rtp_dec(t2, len, &cmr, &cmi, &ft, &bfi, &sti);
+	if (rc < 0)
+		return;
 	printf("[%d] decode RTP %s%s: FT %s, CMR %s, CMI is %d, SID type %s\t",
 	       rc, osmo_hexdump(tmp, len), cmpr(bfi, AMR_GOOD),
 	       get_value_string(osmo_amr_type_names, ft),
@@ -94,6 +99,7 @@ int main(int argc, char **argv)
 	printf("AMR RTP payload decoder test:\n");
 	test_sid_dec(sid_first, 7);
 	test_sid_dec(sid_update, 7);
+	test_sid_dec(NULL, 7);
 	test_amr_rt(0, AMR_NO_DATA, AMR_BAD);
 	test_amr_rt(0, AMR_NO_DATA, AMR_GOOD);
 	test_amr_rt(AMR_12_2, AMR_12_2, AMR_BAD);
