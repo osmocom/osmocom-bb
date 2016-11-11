@@ -68,7 +68,7 @@ const struct value_string gan_msgt_vals[] = {
 	{ 0, NULL }
 };
 
-static const struct value_string gan_pdisc_vals[] = {
+const struct value_string gan_pdisc_vals[] = {
 	{ GA_PDISC_RC,			"RC" },
 	{ GA_PDISC_CSR,			"CSR" },
 	{ GA_PDISC_PSR,			"PSR" },
