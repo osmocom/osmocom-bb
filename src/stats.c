@@ -62,7 +62,7 @@ static int osmo_stats_reporter_log_send_counter(struct osmo_stats_reporter *srep
 	int64_t value, int64_t delta);
 static int osmo_stats_reporter_log_send_item(struct osmo_stats_reporter *srep,
 	const struct osmo_stat_item_group *statg,
-	const struct osmo_stat_item_desc *desc, int value);
+	const struct osmo_stat_item_desc *desc, int64_t value);
 
 static int update_srep_config(struct osmo_stats_reporter *srep)
 {
@@ -429,7 +429,7 @@ static int osmo_stats_reporter_log_send_counter(struct osmo_stats_reporter *srep
 
 static int osmo_stats_reporter_log_send_item(struct osmo_stats_reporter *srep,
 	const struct osmo_stat_item_group *statg,
-	const struct osmo_stat_item_desc *desc, int value)
+	const struct osmo_stat_item_desc *desc, int64_t value)
 {
 	return osmo_stats_reporter_log_send(srep, "i",
 		statg->desc->group_name_prefix, statg->idx,

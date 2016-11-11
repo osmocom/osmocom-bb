@@ -78,7 +78,7 @@ struct osmo_stats_reporter {
 	int (*send_item)(struct osmo_stats_reporter *srep,
 		const struct osmo_stat_item_group *statg,
 		const struct osmo_stat_item_desc *desc,
-		int32_t value);
+		int64_t value);
 };
 
 struct osmo_stats_config {

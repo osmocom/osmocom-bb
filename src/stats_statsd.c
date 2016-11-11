@@ -32,6 +32,7 @@
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/stat_item.h>
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/stats.h>
 
 static int osmo_stats_reporter_statsd_send_counter(struct osmo_stats_reporter *srep,
 	const struct rate_ctr_group *ctrg,
