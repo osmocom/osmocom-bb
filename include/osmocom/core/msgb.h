@@ -290,6 +290,36 @@ static inline unsigned char *msgb_push(struct msgb *msgb, unsigned int len)
 	return msgb->data;
 }
 
+/*! \brief prepend a uint8 value to the head of the message
+ *  \param[in] msgb message buffer
+ *  \param[in] word unsigned 8bit byte to be prepended
+ */
+static inline void msgb_push_u8(struct msgb *msg, uint8_t word)
+{
+	uint8_t *space = msgb_push(msg, 1);
+	space[0] = word;
+}
+
+/*! \brief prepend a uint16 value to the head of the message
+ *  \param[in] msgb message buffer
+ *  \param[in] word unsigned 16bit byte to be prepended
+ */
+static inline void msgb_push_u16(struct msgb *msg, uint16_t word)
+{
+	uint16_t *space = (uint16_t *) msgb_push(msg, 2);
+	osmo_store16be(word, space);
+}
+
+/*! \brief prepend a uint32 value to the head of the message
+ *  \param[in] msgb message buffer
+ *  \param[in] word unsigned 32bit byte to be prepended
+ */
+static inline void msgb_push_u32(struct msgb *msg, uint32_t word)
+{
+	uint32_t *space = (uint32_t *) msgb_push(msg, 4);
+	osmo_store32be(word, space);
+}
+
 /*! \brief remove (pull) a header from the front of the message buffer
  *  \param[in] msgb message buffer
  *  \param[in] len number of octets to be pulled
