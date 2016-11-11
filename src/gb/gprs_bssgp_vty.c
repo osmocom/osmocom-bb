@@ -43,12 +43,6 @@
 
 #include "common_vty.h"
 
-/* FIXME: this should go to some common file as it is copied
- * in vty_interface.c of the BSC */
-static const struct value_string gprs_bssgp_timer_strs[] = {
-	{ 0, NULL }
-};
-
 static void log_set_bvc_filter(struct log_target *target,
 				struct bssgp_bvc_ctx *bctx)
 {
@@ -219,7 +213,6 @@ int bssgp_vty_init(void)
 	install_default(L_BSSGP_NODE);
 	install_element(L_BSSGP_NODE, &libgb_exit_cmd);
 	install_element(L_BSSGP_NODE, &libgb_end_cmd);
-	//install_element(L_BSSGP_NODE, &cfg_bssgp_timer_cmd);
 
 	return 0;
 }
