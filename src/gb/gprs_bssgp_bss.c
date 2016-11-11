@@ -542,11 +542,12 @@ int bssgp_rx_paging(struct bssgp_paging_info *pinfo,
 
 	/* Optional (P-)TMSI */
 	if (TLVP_PRESENT(&tp, BSSGP_IE_TMSI) &&
-	    TLVP_LEN(&tp, BSSGP_IE_TMSI) >= 4)
+	    TLVP_LEN(&tp, BSSGP_IE_TMSI) >= 4) {
 		if (!pinfo->ptmsi)
 			pinfo->ptmsi = talloc_zero_size(pinfo, sizeof(uint32_t));
 		*(pinfo->ptmsi) = ntohl(*(uint32_t *)
 					TLVP_VAL(&tp, BSSGP_IE_TMSI));
+	}
 
 	return 0;
 
