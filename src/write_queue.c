@@ -1,6 +1,6 @@
 /* Generic write queue implementation */
 /*
- * (C) 2010 by Holger Hans Peter Freyther
+ * (C) 2010-2016 by Holger Hans Peter Freyther
  * (C) 2010 by On-Waves
  *
  * All Rights Reserved
@@ -23,6 +23,7 @@
 
 #include <errno.h>
 #include <osmocom/core/write_queue.h>
+#include <osmocom/core/logging.h>
 
 /*! \addtogroup write_queue
  *  @{
@@ -93,6 +94,7 @@ void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length)
 	queue->current_length = 0;
 	queue->read_cb = NULL;
 	queue->write_cb = NULL;
+	queue->except_cb = NULL;
 	queue->bfd.cb = osmo_wqueue_bfd_cb;
 	INIT_LLIST_HEAD(&queue->msg_queue);
 }
@@ -104,8 +106,11 @@ void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length)
  */
 int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data)
 {
-//	if (queue->current_length + 1 >= queue->max_length)
-//		LOGP(DMSC, LOGL_ERROR, "The queue is full. Dropping not yet implemented.\n");
+	if (queue->current_length >= queue->max_length) {
+		LOGP(DLGLOBAL, LOGL_ERROR,
+			"wqueue(%p) is full. Rejecting msgb\n", queue);
+		return -ENOSPC;
+	}
 
 	++queue->current_length;
 	msgb_enqueue(&queue->msg_queue, data);

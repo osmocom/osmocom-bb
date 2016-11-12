@@ -95,6 +95,7 @@ tests/sim/sim_test
 tests/gsup/gsup_test
 tests/tlv/tlv_test
 tests/fsm/fsm_test
+tests/write_queue/wqueue_test
 
 utils/osmo-arfcn
 utils/osmo-auc-gen
