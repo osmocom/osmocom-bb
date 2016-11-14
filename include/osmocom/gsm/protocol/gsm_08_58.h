@@ -293,6 +293,9 @@ enum abis_rsl_ie {
 	RSL_IE_IPAC_RTP_PAYLOAD2= 0xfc,
 	RSL_IE_IPAC_RTP_MPLEX	= 0xfd,
 	RSL_IE_IPAC_RTP_MPLEX_ID= 0xfe,
+
+	/* Ericsson */
+	RSL_IE_ERIC_BCCH_MAPPING= 0xf2,
 };
 
 /* Chapter 9.3.1 */
@@ -461,6 +464,7 @@ struct rsl_ie_chan_ident {
 #define RSL_EXT_MEAS_ORDER	0x47
 #define RSL_MEAS_INFO		0x48
 #define RSL_SYSTEM_INFO_13	0x28
+#define RSL_ERIC_SYSTEM_INFO_13	0x0C
 #define RSL_SYSTEM_INFO_2quater	0x29
 #define RSL_SYSTEM_INFO_9	0x2a
 #define RSL_SYSTEM_INFO_18	0x2b
