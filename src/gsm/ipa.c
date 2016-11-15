@@ -108,12 +108,12 @@ int ipa_ccm_idtag_parse_off(struct tlv_parsed *dec, unsigned char *buf, int len,
 		t_tag = *cur++;
 
 		if (t_len < len_offset) {
-			LOGP(DLMI, LOGL_ERROR, "minimal offset not included: %d\n", t_len);
+			LOGP(DLMI, LOGL_ERROR, "minimal offset not included: %d < %d\n", t_len, len_offset);
 			return -EINVAL;
 		}
 
 		if (t_len > len + 1) {
-			LOGP(DLMI, LOGL_ERROR, "The tag does not fit: %d\n", t_len);
+			LOGP(DLMI, LOGL_ERROR, "The tag does not fit: %d > %d\n", t_len, len + 1);
 			return -EINVAL;
 		}
 
