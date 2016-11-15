@@ -275,6 +275,9 @@ static void vty_print_logtarget(struct vty *vty, const struct log_info *info,
 
 	for (i = 0; i < info->num_cat; i++) {
 		const struct log_category *cat = &tgt->categories[i];
+		/* Skip categories that were not initialized */
+		if (!info->cat[i].name)
+			continue;
 		vty_out(vty, "  %-10s %-10s %-8s %s%s",
 			info->cat[i].name+1, log_level_str(cat->loglevel),
 			cat->enabled ? "Enabled" : "Disabled",
