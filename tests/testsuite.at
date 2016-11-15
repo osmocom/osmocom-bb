@@ -186,6 +186,7 @@ AT_CLEANUP
 
 AT_SETUP([sim])
 AT_KEYWORDS([sim])
+AT_CHECK([test "x$enable_sim_test" = xyes || exit 77])
 cat $abs_srcdir/sim/sim_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/sim/sim_test], [0], [expout], [ignore])
 AT_CLEANUP

@@ -104,15 +104,16 @@ PKG_CHECK_MODULES(TALLOC, [talloc >= 2.0.1])
 
 AC_ARG_ENABLE([pcsc], [AS_HELP_STRING([--disable-pcsc], [Build without PC/SC support])],
     [
-        enable_pcsc=$enableval
+        ENABLE_PCSC=$enableval
     ],
     [
-        enable_pcsc="yes"
+        ENABLE_PCSC="yes"
     ])
-AS_IF([test "x$enable_pcsc" = "xyes"], [
+AS_IF([test "x$ENABLE_PCSC" = "xyes"], [
 	PKG_CHECK_MODULES(PCSC, libpcsclite)
 ])
-AM_CONDITIONAL(ENABLE_PCSC, test "x$enable_pcsc" = "xyes")
+AM_CONDITIONAL(ENABLE_PCSC, test "x$ENABLE_PCSC" = "xyes")
+AC_SUBST(ENABLE_PCSC)
 
 AC_ARG_ENABLE(plugin,
 	[AS_HELP_STRING(
@@ -231,6 +232,7 @@ AC_OUTPUT(
 	src/gb/Makefile
 	src/ctrl/Makefile
 	tests/Makefile
+	tests/atlocal
 	utils/Makefile
 	Doxyfile.core
 	Doxyfile.gsm

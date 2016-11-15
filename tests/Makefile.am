@@ -13,10 +13,14 @@ check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
 		 vty/vty_test comp128/comp128_test utils/utils_test	\
 		 smscb/gsm0341_test stats/stats_test			\
 		 bitvec/bitvec_test msgb/msgb_test bits/bitcomp_test	\
-		 sim/sim_test tlv/tlv_test gsup/gsup_test fsm/fsm_test
+		 tlv/tlv_test gsup/gsup_test fsm/fsm_test
 
 if ENABLE_MSGFILE
 check_PROGRAMS += msgfile/msgfile_test
+endif
+
+if ENABLE_PCSC
+check_PROGRAMS += sim/sim_test
 endif
 
 utils_utils_test_SOURCES = utils/utils_test.c
@@ -166,7 +170,7 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
 	     sim/sim_test.ok tlv/tlv_test.ok gsup/gsup_test.ok		\
 	     fsm/fsm_test.ok fsm/fsm_test.err
 
-DISTCLEANFILES = atconfig
+DISTCLEANFILES = atconfig atlocal
 
 TESTSUITE = $(srcdir)/testsuite
 
