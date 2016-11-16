@@ -293,10 +293,29 @@ enum abis_rsl_ie {
 	RSL_IE_IPAC_RTP_PAYLOAD2= 0xfc,
 	RSL_IE_IPAC_RTP_MPLEX	= 0xfd,
 	RSL_IE_IPAC_RTP_MPLEX_ID= 0xfe,
-
-	/* Ericsson */
-	RSL_IE_ERIC_BCCH_MAPPING= 0xf2,
 };
+
+/* Ericsson specific IEs, clash with above partially, so they're not
+ * part of the enum */
+#define RSL_IE_ERIC_INST_NR		0x48
+#define RSL_IE_ERIC_PGSL_TIMERS		0x49
+#define RSL_IE_ERIC_REPEAT_DL_FACCH	0x4a
+#define RSL_IE_ERIC_POWER_INFO		0xf0
+#define RSL_IE_ERIC_MOBILE_ID		0xf1
+#define RSL_IE_ERIC_BCCH_MAPPING	0xf2
+#define RSL_IE_ERIC_PACKET_PAG_IND	0xf3
+#define RSL_IE_ERIC_CNTR_CTRL		0xf4
+#define RSL_IE_ERIC_CNTR_CTRL_ACK	0xf5
+#define RSL_IE_ERIC_CNTR_REPORT		0xf6
+#define RSL_IE_ERIC_ICP_CONN		0xf7
+#define RSL_IE_ERIC_EMR_SUPPORT		0xf8
+#define RSL_IE_ERIC_EGPRS_REQ_REF	0xf9
+#define RSL_IE_ERIC_VGCS_REL		0xfa
+#define RSL_IE_ERIC_REP_PER_NCH		0xfb
+#define RSL_IE_ERIC_NY2			0xfc
+#define RSL_IE_ERIC_T3115		0xfd
+#define RSL_IE_ERIC_ACTIVATE_FLAG	0xfe
+#define RSL_IE_ERIC_FULL_NCH_INFO	0xff
 
 /* Chapter 9.3.1 */
 #define RSL_CHAN_NR_MASK	0xf8
