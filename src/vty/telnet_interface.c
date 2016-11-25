@@ -145,6 +145,7 @@ static int telnet_new_connection(struct osmo_fd *fd, unsigned int what)
 	struct sockaddr_in sockaddr;
 	socklen_t len = sizeof(sockaddr);
 	int new_connection = accept(fd->fd, (struct sockaddr*)&sockaddr, &len);
+	int rc;
 
 	if (new_connection < 0) {
 		LOGP(0, LOGL_ERROR, "telnet accept failed\n");
@@ -157,7 +158,11 @@ static int telnet_new_connection(struct osmo_fd *fd, unsigned int what)
 	connection->fd.fd = new_connection;
 	connection->fd.when = BSC_FD_READ;
 	connection->fd.cb = client_data;
-	osmo_fd_register(&connection->fd);
+	rc = osmo_fd_register(&connection->fd);
+	if (rc < 0) {
+		talloc_free(connection);
+		return rc;
+	}
 	llist_add_tail(&connection->entry, &active_connections);
 
 	connection->vty = vty_create(new_connection, connection);
