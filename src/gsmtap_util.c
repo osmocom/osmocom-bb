@@ -333,7 +333,7 @@ static int gsmtap_sink_fd_cb(struct osmo_fd *fd, unsigned int flags)
  */
 int gsmtap_source_add_sink(struct gsmtap_inst *gti)
 {
-	int fd;
+	int fd, rc;
 
 	fd = gsmtap_source_add_sink_fd(gsmtap_inst_fd(gti));
 	if (fd < 0)
@@ -347,7 +347,11 @@ int gsmtap_source_add_sink(struct gsmtap_inst *gti)
 		sink_ofd->when = BSC_FD_READ;
 		sink_ofd->cb = gsmtap_sink_fd_cb;
 
-		osmo_fd_register(sink_ofd);
+		rc = osmo_fd_register(sink_ofd);
+		if (rc < 0) {
+			close(fd);
+			return rc;
+		}
 	}
 
 	return fd;
@@ -368,7 +372,7 @@ struct gsmtap_inst *gsmtap_source_init(const char *host, uint16_t port,
 					int ofd_wq_mode)
 {
 	struct gsmtap_inst *gti;
-	int fd;
+	int fd, rc;
 
 	fd = gsmtap_source_init_fd(host, port);
 	if (fd < 0)
@@ -383,7 +387,11 @@ struct gsmtap_inst *gsmtap_source_init(const char *host, uint16_t port,
 		osmo_wqueue_init(&gti->wq, 64);
 		gti->wq.write_cb = &gsmtap_wq_w_cb;
 
-		osmo_fd_register(&gti->wq.bfd);
+		rc = osmo_fd_register(&gti->wq.bfd);
+		if (rc < 0) {
+			close(fd);
+			return NULL;
+		}
 	}
 
 	return gti;
