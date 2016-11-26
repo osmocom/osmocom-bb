@@ -82,4 +82,6 @@ int osmo_constant_time_cmp(const uint8_t *exp, const uint8_t *rel, const int cou
 uint64_t osmo_decode_big_endian(const uint8_t *data, size_t data_len);
 uint8_t *osmo_encode_big_endian(uint64_t value, size_t data_len);
 
+size_t osmo_strlcpy(char *dst, const char *src, size_t siz);
+
 /*! @} */

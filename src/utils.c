@@ -339,3 +339,25 @@ uint8_t *osmo_encode_big_endian(uint64_t value, size_t data_len)
 	return buf;
 }
 /*! @} */
+
+/*! \brief Copy a C-string into a sized buffer
+ *  \param[in] src source string
+ *  \param[out] dst destination string
+ *  \param[in] siz size of the \a dst string
+ *  \returns length of source string
+ *
+ *  Copies up to \a siz characters from \a src to \a dst, but ensures
+ *  that the last character of \a dst is always a NUL character.  May
+ *  truncate \a src to do achieve this.
+ */
+size_t osmo_strlcpy(char *dst, const char *src, size_t siz)
+{
+	size_t ret = strlen(src);
+
+	if (siz) {
+		size_t len = (ret >= siz) ? siz - 1 : ret;
+		memcpy(dst, src, len);
+		dst[len] = '\0';
+	}
+	return ret;
+}
