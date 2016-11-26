@@ -334,7 +334,7 @@ static int dump_file(struct osim_chan_hdl *chan, uint16_t fid)
 	case EF_TYPE_RECORD_FIXED:
 		for (i = 0; i < ffdd.num_rec; i++) {
 			rmsg = read_record_nr(chan, i+1, ffdd.rec_len);
-			if (!msg)
+			if (!rmsg)
 				return -EIO;
 			printf("SW: %s\n", osim_print_sw(chan->card, msgb_apdu_sw(msg)));
 			printf("Rec %03u: %s\n", i+1,
