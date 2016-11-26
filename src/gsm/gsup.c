@@ -442,6 +442,7 @@ void osmo_gsup_encode(struct msgb *msg, const struct osmo_gsup_message *gsup_msg
 					  gsup_msg->imsi);
 
 	OSMO_ASSERT(bcd_len > 1);
+	OSMO_ASSERT(bcd_len <= sizeof(bcd_buf));
 
 	/* Note that gsm48_encode_bcd_number puts the length into the first
 	 * octet. Since msgb_tlv_put will add this length byte, we'll have to
