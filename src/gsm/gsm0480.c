@@ -540,3 +540,32 @@ struct gsm48_hdr *gsm0480_l3hdr_push(struct msgb *msg, uint8_t proto_discr,
 	gh->msg_type = msg_type;
 	return gh;
 }
+
+struct msgb *gsm0480_create_ussd_notify(int level, const char *text)
+{
+	struct msgb *msg;
+
+	msg = gsm0480_create_unstructuredSS_Notify(level, text);
+	if (!msg)
+		return NULL;
+
+	gsm0480_wrap_invoke(msg, GSM0480_OP_CODE_USS_NOTIFY, 0);
+	gsm0480_wrap_facility(msg);
+
+	gsm0480_l3hdr_push(msg, GSM48_PDISC_NC_SS, GSM0480_MTYPE_REGISTER);
+	return msg;
+}
+
+struct msgb *gsm0480_create_ussd_release_complete(void)
+{
+	struct msgb *msg;
+
+	msg = msgb_alloc_headroom(1024, 128, "GSM 04.80 USSD REL COMPL");
+	if (!msg)
+		return NULL;
+
+	/* FIXME: should this set trans_id and TI direction flag? */
+	gsm0480_l3hdr_push(msg, GSM48_PDISC_NC_SS,
+			   GSM0480_MTYPE_RELEASE_COMPLETE);
+	return msg;
+}
