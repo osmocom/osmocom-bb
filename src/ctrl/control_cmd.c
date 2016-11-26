@@ -299,6 +299,7 @@ struct ctrl_cmd *ctrl_cmd_parse(void *ctx, struct msgb *msg)
 	msgb_put_u8(msg, 0);
 	str = (char *) msg->l2h;
 
+	OSMO_ASSERT(str);
 	tmp = strtok_r(str, " ",  &saveptr);
 	if (!tmp) {
 		cmd->type = CTRL_TYPE_ERROR;
