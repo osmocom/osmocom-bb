@@ -315,12 +315,7 @@ int gsm411_push_rp_header(struct msgb *msg, uint8_t rp_msg_type,
 int gsm411_push_cp_header(struct msgb *msg, uint8_t proto, uint8_t trans,
 			     uint8_t msg_type)
 {
-	struct gsm48_hdr *gh;
-
-	gh = (struct gsm48_hdr *) msgb_push(msg, sizeof(*gh));
-	/* Outgoing needs the highest bit set */
-	gh->proto_discr = proto | (trans << 4);
-	gh->msg_type = msg_type;
-
+	/* Outgoing proto_discr needs the highest bit set */
+	gsm0480_l3hdr_push(msg, proto | (trans << 4), msg_type);
 	return 0;
 }

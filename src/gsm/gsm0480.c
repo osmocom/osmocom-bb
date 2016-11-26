@@ -486,7 +486,6 @@ static int parse_ss_for_bs_req(const uint8_t *ss_req_data,
 struct msgb *gsm0480_create_ussd_resp(uint8_t invoke_id, uint8_t trans_id, const char *text)
 {
 	struct msgb *msg;
-	struct gsm48_hdr *gh;
 	uint8_t *ptr8;
 	int response_len;
 
@@ -525,10 +524,19 @@ struct msgb *gsm0480_create_ussd_resp(uint8_t invoke_id, uint8_t trans_id, const
 	msgb_wrap_with_TL(msg, GSM0480_IE_FACILITY);
 
 	/* And finally pre-pend the L3 header */
-	gh = (struct gsm48_hdr *) msgb_push(msg, sizeof(*gh));
-	gh->proto_discr = GSM48_PDISC_NC_SS | trans_id
-					| (1<<7);  /* TI direction = 1 */
-	gh->msg_type = GSM0480_MTYPE_RELEASE_COMPLETE;
-
+	gsm0480_l3hdr_push(msg,
+			   GSM48_PDISC_NC_SS | trans_id
+			   | (1<<7) /* TI direction = 1 */,
+			   GSM0480_MTYPE_RELEASE_COMPLETE);
 	return msg;
+}
+
+struct gsm48_hdr *gsm0480_l3hdr_push(struct msgb *msg, uint8_t proto_discr,
+				     uint8_t msg_type)
+{
+	struct gsm48_hdr *gh;
+	gh = (struct gsm48_hdr *) msgb_push(msg, sizeof(*gh));
+	gh->proto_discr = proto_discr;
+	gh->msg_type = msg_type;
+	return gh;
 }
