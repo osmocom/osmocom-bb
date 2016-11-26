@@ -118,6 +118,7 @@ int osmo_sock_init(uint16_t family, uint16_t type, uint8_t proto,
 					" %s:%u: %s\n",
 					host, port, strerror(errno));
 				close(sfd);
+				freeaddrinfo(result);
 				return -EINVAL;
 			}
 		}
