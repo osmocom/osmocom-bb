@@ -241,7 +241,8 @@ int osmo_timers_update(void)
 restart:
 	llist_for_each_entry(this, &timer_eviction_list, list) {
 		osmo_timer_del(this);
-		this->cb(this->data);
+		if (this->cb)
+			this->cb(this->data);
 		work = 1;
 		goto restart;
 	}
