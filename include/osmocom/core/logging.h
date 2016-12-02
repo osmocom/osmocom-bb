@@ -207,13 +207,29 @@ struct log_target {
 	};
 
 	/*! \brief call-back function to be called when the logging framework
-	 *	   wants to log somethnig.
+	 *	   wants to log a fully formatted string
 	 *  \param[in] target logging target
 	 *  \param[in] level log level of currnet message
 	 *  \param[in] string the string that is to be written to the log
 	 */
         void (*output) (struct log_target *target, unsigned int level,
 			const char *string);
+
+	/*! \brief alternative call-back function to which the logging
+	 *	   framework passes the unfortmatted input arguments,
+	 *	   i.e. bypassing the internal string formatter
+	 *  \param[in] target logging target
+	 *  \param[in] subsys logging sub-system
+	 *  \param[in] level logging level
+	 *  \param[in] file soure code file name
+	 *  \param[in] line source code file line number
+	 *  \param[in] cont continuation of previous statement?
+	 *  \param[in] format format string
+	 *  \param[in] ap vararg list of printf arguments
+	 */
+	void (*raw_output)(struct log_target *target, int subsys,
+			   unsigned int level, const char *file, int line,
+			   int cont, const char *format, va_list ap);
 };
 
 /* use the above macros */

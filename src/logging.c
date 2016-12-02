@@ -385,7 +385,10 @@ void osmo_vlogp(int subsys, int level, const char *file, int line,
 		 * in undefined state. Since _output uses vsnprintf and it may
 		 * be called several times, we have to pass a copy of ap. */
 		va_copy(bp, ap);
-		_output(tar, subsys, level, file, line, cont, format, bp);
+		if (tar->raw_output)
+			tar->raw_output(tar, subsys, level, file, line, cont, format, bp);
+		else
+			_output(tar, subsys, level, file, line, cont, format, bp);
 		va_end(bp);
 	}
 }
