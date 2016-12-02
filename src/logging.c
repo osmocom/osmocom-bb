@@ -240,7 +240,7 @@ static const char* color(int subsys)
 	return NULL;
 }
 
-static const char* category_name(int subsys)
+const char* log_category_name(int subsys)
 {
 	if (subsys < osmo_log_info->num_cat)
 		return osmo_log_info->cat[subsys].name;
@@ -290,7 +290,7 @@ static void _output(struct log_target *target, unsigned int subsys,
 			OSMO_SNPRINTF_RET(ret, rem, offset, len);
 		}
 		if (target->print_category) {
-			ret = snprintf(buf + offset, rem, "%s ", category_name(subsys));
+			ret = snprintf(buf + offset, rem, "%s ", log_category_name(subsys));
 			if (ret < 0)
 				goto err;
 			OSMO_SNPRINTF_RET(ret, rem, offset, len);

@@ -11,7 +11,7 @@ libosmocore_la_LIBADD = $(BACKTRACE_LIB) $(TALLOC_LIBS)
 libosmocore_la_SOURCES = timer.c timer_gettimeofday.c select.c signal.c msgb.c bits.c \
 			 bitvec.c bitcomp.c statistics.c fsm.c \
 			 write_queue.c utils.c socket.c \
-			 logging.c logging_syslog.c rate_ctr.c \
+			 logging.c logging_syslog.c logging_gsmtap.c rate_ctr.c \
 			 gsmtap_util.c crc16.c panic.c backtrace.c \
 			 conv.c application.c rbtree.c strrb.c \
 			 loggingrb.c crc8gen.c crc16gen.c crc32gen.c crc64gen.c \

@@ -29,6 +29,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/strrb.h>
 #include <osmocom/core/loggingrb.h>
+#include <osmocom/core/gsmtap.h>
 
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/buffer.h>
@@ -498,6 +499,32 @@ DEFUN(cfg_no_log_syslog, cfg_no_log_syslog_cmd,
 }
 #endif /* HAVE_SYSLOG_H */
 
+DEFUN(cfg_log_gsmtap, cfg_log_gsmtap_cmd,
+	"log gsmtap [HOSTNAME]",
+	LOG_STR "Logging via GSMTAP\n")
+{
+	const char *hostname = argv[0];
+	struct log_target *tgt;
+
+	tgt = log_target_find(LOG_TGT_TYPE_GSMTAP, hostname);
+	if (!tgt) {
+		tgt = log_target_create_gsmtap(hostname, GSMTAP_UDP_PORT,
+					       host.app_info->name, false,
+					       true);
+		if (!tgt) {
+			vty_out(vty, "%% Unable to create GSMTAP log%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		log_add_target(tgt);
+	}
+
+	vty->index = tgt;
+	vty->node = CFG_LOG_NODE;
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_log_stderr, cfg_log_stderr_cmd,
 	"log stderr",
 	LOG_STR "Logging via STDERR of the process\n")
@@ -652,6 +679,10 @@ static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 		vty_out(vty, "log alarms %zu%s",
 			log_target_rb_avail_size(tgt), VTY_NEWLINE);
 		break;
+	case LOG_TGT_TYPE_GSMTAP:
+		vty_out(vty, "log gsmtap %s%s",
+			tgt->tgt_gsmtap.hostname, VTY_NEWLINE);
+		break;
 	}
 
 	vty_out(vty, "  logging filter all %u%s",
@@ -744,4 +775,5 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	install_element(CONFIG_NODE, &cfg_log_syslog_local_cmd);
 	install_element(CONFIG_NODE, &cfg_no_log_syslog_cmd);
 #endif
+	install_element(CONFIG_NODE, &cfg_log_gsmtap_cmd);
 }

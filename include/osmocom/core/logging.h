@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <osmocom/core/linuxlist.h>
 
 /*! \brief Maximum number of logging contexts */
@@ -122,6 +123,7 @@ typedef int log_filter(const struct log_context *ctx,
 
 struct log_info;
 struct vty;
+struct gsmtap_inst;
 
 typedef void log_print_filters(struct vty *vty,
 			       const struct log_info *info,
@@ -156,6 +158,7 @@ enum log_target_type {
 	LOG_TGT_TYPE_FILE,	/*!< \brief text file logging */
 	LOG_TGT_TYPE_STDERR,	/*!< \brief stderr logging */
 	LOG_TGT_TYPE_STRRB,	/*!< \brief osmo_strrb-backed logging */
+	LOG_TGT_TYPE_GSMTAP,	/*!< \brief GSMTAP network logging */
 };
 
 /*! \brief structure representing a logging target */
@@ -204,6 +207,12 @@ struct log_target {
 		struct {
 			void *rb;
 		} tgt_rb;
+
+		struct {
+			struct gsmtap_inst *gsmtap_inst;
+			const char *ident;
+			const char *hostname;
+		} tgt_gsmtap;
 	};
 
 	/*! \brief call-back function to be called when the logging framework
@@ -254,6 +263,7 @@ void log_set_print_filename(struct log_target *target, int);
 void log_set_print_category(struct log_target *target, int);
 void log_set_log_level(struct log_target *target, int log_level);
 void log_parse_category_mask(struct log_target *target, const char* mask);
+const char* log_category_name(int subsys);
 int log_parse_level(const char *lvl);
 const char *log_level_str(unsigned int lvl);
 int log_parse_category(const char *category);
@@ -267,6 +277,10 @@ struct log_target *log_target_create_stderr(void);
 struct log_target *log_target_create_file(const char *fname);
 struct log_target *log_target_create_syslog(const char *ident, int option,
 					    int facility);
+struct log_target *log_target_create_gsmtap(const char *host, uint16_t port,
+					    const char *ident,
+					    bool ofd_wq_mode,
+					    bool add_sink);
 int log_target_file_reopen(struct log_target *tgt);
 int log_targets_reopen(void);
 
