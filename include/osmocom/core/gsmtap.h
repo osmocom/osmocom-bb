@@ -45,6 +45,7 @@
 #define GSMTAP_TYPE_LTE_RRC	0x0d	/* LTE interface */
 #define GSMTAP_TYPE_LTE_MAC	0x0e	/* LTE MAC interface */ 
 #define GSMTAP_TYPE_LTE_MAC_FRAMED	0x0f	/* LTE MAC with context hdr */
+#define GSMTAP_TYPE_OSMOCORE_LOG	0x10	/* libosmocore logging */
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
@@ -254,4 +255,22 @@ struct gsmtap_hdr {
 	uint8_t sub_slot;	/*!< sub-slot within timeslot */
 	uint8_t res;		/*!< reserved for future use (RFU) */
 
+} __attribute__((packed));
+
+/*! \brief Structure of the GTMTAP libosmocore logging header */
+struct gsmtap_osmocore_log_hdr {
+	struct {
+		uint32_t sec;
+		uint32_t usec;
+	} ts;
+	char proc_name[16];	/*!< name of process */
+	uint32_t pid;		/*!< process ID */
+	uint8_t level;		/*!< logging level */
+	uint8_t _pad[3];
+	/* TODO: color */
+	char subsys[16];	/*!< logging sub-system */
+	struct {
+		char name[32];	/*!< source file name */
+		uint32_t line_nr;/*!< line number */
+	} src_file;
 } __attribute__((packed));
