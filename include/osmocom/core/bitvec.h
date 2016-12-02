@@ -89,6 +89,7 @@ char bit_value_to_char(enum bit_value v);
 void bitvec_to_string_r(const struct bitvec *bv, char *str);
 void bitvec_zero(struct bitvec *bv);
 unsigned bitvec_rl(const struct bitvec *bv, bool b);
+unsigned bitvec_rl_curbit(struct bitvec *bv, bool b, int max_bits);
 void bitvec_shiftl(struct bitvec *bv, unsigned int n);
 int16_t bitvec_get_int16_msb(const struct bitvec *bv, unsigned int num_bits);
 unsigned int bitvec_add_array(struct bitvec *bv, const uint32_t *array,

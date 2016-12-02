@@ -575,6 +575,51 @@ unsigned bitvec_rl(const struct bitvec *bv, bool b)
 	return bv->cur_bit;
 }
 
+/*! \brief Return number (bits) of uninterrupted bit run in vector
+ *   starting from the current bit
+ *  \param[in] bv The boolean vector to work on
+ *  \param[in] b The boolean, sequence of 1's or 0's to be checked
+ *  \param[in] max_bits Total Number of Uncmopresed bits
+ *  \returns Number of consecutive bits of \p b in \p bv and cur_bit will
+ *  \go to cur_bit + number of consecutive bit
+ */
+unsigned bitvec_rl_curbit(struct bitvec *bv, bool b, int max_bits)
+{
+	unsigned i = 0;
+	unsigned j = 8;
+	int temp_res = 0;
+	int count = 0;
+	unsigned readIndex = bv->cur_bit;
+	unsigned remaining_bits = max_bits % 8;
+	unsigned remaining_bytes = max_bits / 8;
+	unsigned byte_mask = 0xFF;
+
+	if (readIndex % 8) {
+		for (j -= (readIndex % 8) ; j > 0 ; j--) {
+			if (readIndex < max_bits && bitvec_read_field(bv, &readIndex, 1) == b)
+				temp_res++;
+			else {
+				bv->cur_bit--;
+				return temp_res;
+			}
+		}
+	}
+	for (i = (readIndex / 8);
+			i < (remaining_bits ? remaining_bytes + 1 : remaining_bytes);
+			i++, count++) {
+		if ((b ? byte_mask : 0) != bv->data[i]) {
+			bv->cur_bit = (count * 8 +
+					leading_bits(bv->data[i], b) + readIndex);
+			return count * 8 +
+				leading_bits(bv->data[i], b) + temp_res;
+		}
+	}
+	bv->cur_bit = (temp_res + (count * 8)) + readIndex;
+	if (bv->cur_bit > max_bits)
+		bv->cur_bit = max_bits;
+	return (bv->cur_bit - readIndex + temp_res);
+}
+
 /*! \brief Shifts bitvec to the left, n MSB bits lost */
 void bitvec_shiftl(struct bitvec *bv, unsigned n)
 {

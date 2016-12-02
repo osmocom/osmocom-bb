@@ -150,6 +150,18 @@ static inline void test_array_item(unsigned t, struct bitvec *b, unsigned int n,
 	}
 }
 
+static inline void test_bitvec_rl_curbit(struct bitvec *bv, bool b, int max_bits,
+						int result )
+{
+	int num = 0;
+	int readIndex = bv->cur_bit;
+	OSMO_ASSERT(bv->cur_bit < max_bits);
+	num = bitvec_rl_curbit(bv, b, max_bits);
+	readIndex += num;
+	OSMO_ASSERT(bv->cur_bit == readIndex);
+	OSMO_ASSERT(num == result);
+}
+
 static void test_array()
 {
 	struct bitvec b;
@@ -245,7 +257,35 @@ int main(int argc, char **argv)
 
 	test_array();
 
-	printf("\nbitvec ok.\n");
+	printf("\nbitvec_runlength....\n");
 
+	bitvec_zero(&bv);
+	bitvec_set_uint(&bv, 0xff, 8);
+	bv.cur_bit -= 8;
+	test_bitvec_rl_curbit(&bv, 1, 64, 8);
+
+	bitvec_zero(&bv);
+	bitvec_set_uint(&bv, 0xfc, 8);
+	bv.cur_bit -= 8;
+	test_bitvec_rl_curbit(&bv, 1, 64, 6);
+
+	bitvec_zero(&bv);
+	test_bitvec_rl_curbit(&bv, 0, 52, 52);
+
+	bitvec_zero(&bv);
+	bitvec_set_uint(&bv, 0xfc, 8);
+	bv.cur_bit -= 2;
+	test_bitvec_rl_curbit(&bv, 0, 64, 58);
+
+	bitvec_zero(&bv);
+	bitvec_set_uint(&bv, 0x07, 8);
+	bitvec_set_uint(&bv, 0xf8, 8);
+	bv.cur_bit -= 11;
+	test_bitvec_rl_curbit(&bv, 1, 64, 8);
+
+	bitvec_zero(&bv);
+	test_bitvec_rl_curbit(&bv, 1, 64, 0);
+
+	printf("\nbitvec ok.\n");
 	return 0;
 }
