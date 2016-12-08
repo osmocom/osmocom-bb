@@ -13,7 +13,7 @@ check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
 		 vty/vty_test comp128/comp128_test utils/utils_test	\
 		 smscb/gsm0341_test stats/stats_test			\
 		 bitvec/bitvec_test msgb/msgb_test bits/bitcomp_test	\
-		 tlv/tlv_test gsup/gsup_test fsm/fsm_test	\
+		 tlv/tlv_test gsup/gsup_test oap/oap_test fsm/fsm_test	\
 		 write_queue/wqueue_test
 
 if ENABLE_MSGFILE
@@ -131,6 +131,9 @@ tlv_tlv_test_LDADD = $(top_builddir)/src/gsm/libosmogsm.la $(top_builddir)/src/l
 gsup_gsup_test_SOURCES = gsup/gsup_test.c
 gsup_gsup_test_LDADD = $(top_builddir)/src/gsm/libosmogsm.la $(top_builddir)/src/libosmocore.la
 
+oap_oap_test_SOURCES = oap/oap_test.c
+oap_oap_test_LDADD = $(top_builddir)/src/gsm/libosmogsm.la $(top_builddir)/src/libosmocore.la
+
 fsm_fsm_test_SOURCES = fsm/fsm_test.c
 fsm_fsm_test_LDADD = $(top_builddir)/src/libosmocore.la
 
@@ -172,7 +175,8 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
 	     utils/utils_test.ok stats/stats_test.ok			\
 	     bitvec/bitvec_test.ok msgb/msgb_test.ok bits/bitcomp_test.ok \
 	     sim/sim_test.ok tlv/tlv_test.ok gsup/gsup_test.ok		\
-	     fsm/fsm_test.ok fsm/fsm_test.err write_queue/wqueue_test.ok
+	     oap/oap_test.ok fsm/fsm_test.ok fsm/fsm_test.err		\
+	     write_queue/wqueue_test.ok
 
 DISTCLEANFILES = atconfig atlocal
 

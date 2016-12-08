@@ -221,3 +221,10 @@ cat $abs_srcdir/fsm/fsm_test.ok > expout
 cat $abs_srcdir/fsm/fsm_test.err > experr
 AT_CHECK([$abs_top_builddir/tests/fsm/fsm_test], [0], [expout], [experr])
 AT_CLEANUP
+
+AT_SETUP([oap])
+AT_KEYWORDS([oap])
+cat $abs_srcdir/oap/oap_test.ok > expout
+touch experr
+AT_CHECK([$abs_top_builddir/tests/oap/oap_test], [0], [expout], [experr])
+AT_CLEANUP
