@@ -1,7 +1,7 @@
 /* Osmocom Subscriber Update Protocol message encoder/decoder */
 
 /*
- * (C) 2014 by Sysmocom s.f.m.c. GmbH
+ * (C) 2014 by sysmocom s.f.m.c. GmbH
  * (C) 2015 by Holger Hans Peter Freyther
  * (C) 2016 by Harald Welte <laforge@gnumonks.org>
  * All Rights Reserved
@@ -9,16 +9,16 @@
  * Author: Jacob Erlbeck
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
