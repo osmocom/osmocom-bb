@@ -92,7 +92,7 @@ int osmo_oap_decode(struct osmo_oap_message *oap_msg,
 				return -GMM_CAUSE_PROTO_ERR_UNSPEC;
 			}
 			memcpy(oap_msg->autn, value, value_len);
-			oap_msg->autn_present = value_len;
+			oap_msg->autn_present = value_len ? 1 : 0;
 			break;
 
 		case OAP_RAND_IE:
@@ -103,7 +103,7 @@ int osmo_oap_decode(struct osmo_oap_message *oap_msg,
 				return -GMM_CAUSE_PROTO_ERR_UNSPEC;
 			}
 			memcpy(oap_msg->rand, value, value_len);
-			oap_msg->rand_present = value_len;
+			oap_msg->rand_present = value_len ? 1 : 0;
 			break;
 
 		case OAP_XRES_IE:
@@ -114,7 +114,7 @@ int osmo_oap_decode(struct osmo_oap_message *oap_msg,
 				return -GMM_CAUSE_PROTO_ERR_UNSPEC;
 			}
 			memcpy(oap_msg->xres, value, value_len);
-			oap_msg->xres_present = value_len;
+			oap_msg->xres_present = value_len ? 1 : 0;
 			break;
 
 		case OAP_AUTS_IE:
@@ -125,7 +125,7 @@ int osmo_oap_decode(struct osmo_oap_message *oap_msg,
 				return -GMM_CAUSE_PROTO_ERR_UNSPEC;
 			}
 			memcpy(oap_msg->auts, value, value_len);
-			oap_msg->auts_present = value_len;
+			oap_msg->auts_present = value_len ? 1 : 0;
 			break;
 
 		case OAP_CAUSE_IE:
