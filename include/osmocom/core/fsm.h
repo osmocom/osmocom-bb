@@ -64,7 +64,8 @@ struct osmo_fsm {
 	void (*allstate_action)(struct osmo_fsm_inst *fi, uint32_t event, void *data);
 	/*! \breif clean-up function, called during termination */
 	void (*cleanup)(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause);
-	/*! \brief timer call-back for states with time-out */
+	/*! \brief timer call-back for states with time-out.
+	 * \returns 1 to request termination, 0 to keep running. */
 	int (*timer_cb)(struct osmo_fsm_inst *fi);
 	/*! \brief logging sub-system for this FSM */
 	int log_subsys;
