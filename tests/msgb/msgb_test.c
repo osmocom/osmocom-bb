@@ -195,7 +195,7 @@ static void test_msgb_resize_area()
 	OSMO_ASSERT(e != 0);
 
 	if (OSMO_PANIC_TRY(&e))
-		msgb_resize_area(msg, NULL, (int)msg->data, 0);
+		msgb_resize_area(msg, NULL, 0, 0);
 	OSMO_ASSERT(e != 0);
 
 	if (OSMO_PANIC_TRY(&e))
