@@ -123,6 +123,11 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 		.description = "Statistics messages and logging",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[INT2IDX(DLGSUP)] = {
+		.name = "DLGSUP",
+		.description = "Generic Subscriber Update Protocol",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 /*! \brief descriptive string for each log level */

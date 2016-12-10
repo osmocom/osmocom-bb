@@ -241,11 +241,6 @@ static void test_gsup_messages_dec_enc(void)
 }
 
 const struct log_info_cat default_categories[] = {
-	[DLGSUP] = {
-		.name = "DLGSUP",
-		.description = "Generic Subscriber Update Protocol",
-		.enabled = 0, .loglevel = LOGL_DEBUG,
-	},
 };
 
 static struct log_info info = {
