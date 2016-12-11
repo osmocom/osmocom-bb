@@ -501,7 +501,8 @@ DEFUN(cfg_no_log_syslog, cfg_no_log_syslog_cmd,
 
 DEFUN(cfg_log_gsmtap, cfg_log_gsmtap_cmd,
 	"log gsmtap [HOSTNAME]",
-	LOG_STR "Logging via GSMTAP\n")
+	LOG_STR "Logging via GSMTAP\n"
+	"Host name to send the GSMTAP logging to (UDP port 4729)\n")
 {
 	const char *hostname = argv[0];
 	struct log_target *tgt;
