@@ -66,6 +66,8 @@ const struct log_info log_info = {
 	.filter_fn = test_filter,
 };
 
+extern struct log_info *osmo_log_info;
+
 int main(int argc, char **argv)
 {
 	struct log_target *stderr_target;
@@ -108,5 +110,11 @@ int main(int argc, char **argv)
 	select_output = 1;
 	DEBUGP(DRLL, "You should see this\n");
 	OSMO_ASSERT(filter_called == 5); /* called twice on output */
+
+	/* Make sure out-of-bounds category maps to DLGLOBAL */
+	log_parse_category_mask(stderr_target, "DLGLOBAL,1");
+	DEBUGP(osmo_log_info->num_cat + 1, "You should see this on DLGLOBAL (a)\n");
+	DEBUGP(osmo_log_info->num_cat + 100, "You should see this on DLGLOBAL (b)\n");
+
 	return 0;
 }
