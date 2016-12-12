@@ -75,6 +75,8 @@ int main(int argc, char **argv)
 	log_add_target(stderr_target);
 	log_set_all_filter(stderr_target, 1);
 	log_set_print_filename(stderr_target, 0);
+	log_set_print_category(stderr_target, 1);
+	log_set_use_color(stderr_target, 0);
 
 	log_parse_category_mask(stderr_target, "DRLL:DCC");
 	log_parse_category_mask(stderr_target, "DRLL");
