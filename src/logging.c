@@ -339,8 +339,10 @@ static inline int map_subsys(int subsys)
 	if (subsys < 0)
 		subsys = subsys_lib2index(subsys);
 
-	if (subsys > osmo_log_info->num_cat)
+	if (subsys < 0 || subsys >= osmo_log_info->num_cat)
 		subsys = subsys_lib2index(DLGLOBAL);
+
+	OSMO_ASSERT(!(subsys < 0 || subsys >= osmo_log_info->num_cat));
 
 	return subsys;
 }
