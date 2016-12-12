@@ -328,13 +328,20 @@ err:
 	target->output(target, level, buf);
 }
 
+/* Catch internal logging category indexes as well as out-of-bounds indexes.
+ * For internal categories, the ID is negative starting with -1; and internal
+ * logging categories are added behind the user categories. For out-of-bounds
+ * indexes, return the index of DLGLOBAL. The returned category index is
+ * guaranteed to exist in osmo_log_info, otherwise the program would abort,
+ * which should never happen unless even the DLGLOBAL category is missing. */
 static inline int map_subsys(int subsys)
 {
 	if (subsys < 0)
 		subsys = subsys_lib2index(subsys);
 
 	if (subsys > osmo_log_info->num_cat)
-		subsys = DLGLOBAL;
+		subsys = subsys_lib2index(DLGLOBAL);
+
 	return subsys;
 }
 
