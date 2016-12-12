@@ -115,6 +115,7 @@ int main(int argc, char **argv)
 	log_parse_category_mask(stderr_target, "DLGLOBAL,1");
 	DEBUGP(osmo_log_info->num_cat + 1, "You should see this on DLGLOBAL (a)\n");
 	DEBUGP(osmo_log_info->num_cat + 100, "You should see this on DLGLOBAL (b)\n");
+	DEBUGP(osmo_log_info->num_cat, "You should see this on DLGLOBAL (c)\n");
 
 	return 0;
 }
