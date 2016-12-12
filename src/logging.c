@@ -577,8 +577,9 @@ void log_set_log_level(struct log_target *target, int log_level)
 void log_set_category_filter(struct log_target *target, int category,
 			       int enable, int level)
 {
-	if (category >= osmo_log_info->num_cat)
+	if (!target)
 		return;
+	category = map_subsys(category);
 	target->categories[category].enabled = !!enable;
 	target->categories[category].loglevel = level;
 }
