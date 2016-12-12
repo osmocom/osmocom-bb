@@ -336,6 +336,11 @@ err:
  * which should never happen unless even the DLGLOBAL category is missing. */
 static inline int map_subsys(int subsys)
 {
+	/* Note: comparing signed and unsigned integers */
+
+	if (subsys > 0 && ((unsigned int)subsys) >= osmo_log_info->num_cat_user)
+		subsys = DLGLOBAL;
+
 	if (subsys < 0)
 		subsys = subsys_lib2index(subsys);
 
