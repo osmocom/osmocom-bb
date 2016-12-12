@@ -113,9 +113,13 @@ int main(int argc, char **argv)
 
 	/* Make sure out-of-bounds category maps to DLGLOBAL */
 	log_parse_category_mask(stderr_target, "DLGLOBAL,1");
+	/* For IDs out of bounds of the overall osmo_log_info array */
 	DEBUGP(osmo_log_info->num_cat + 1, "You should see this on DLGLOBAL (a)\n");
 	DEBUGP(osmo_log_info->num_cat + 100, "You should see this on DLGLOBAL (b)\n");
 	DEBUGP(osmo_log_info->num_cat, "You should see this on DLGLOBAL (c)\n");
+	/* For IDs out of bounds of the user categories part */
+	DEBUGP(log_info.num_cat + 1, "You should see this on DLGLOBAL (d)\n");
+	DEBUGP(log_info.num_cat, "You should see this on DLGLOBAL (e)\n");
 
 	return 0;
 }
