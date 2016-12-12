@@ -121,5 +121,11 @@ int main(int argc, char **argv)
 	DEBUGP(log_info.num_cat + 1, "You should see this on DLGLOBAL (d)\n");
 	DEBUGP(log_info.num_cat, "You should see this on DLGLOBAL (e)\n");
 
+	/* Check log_set_category_filter() with internal categories */
+	log_parse_category_mask(stderr_target, "DLGLOBAL,3");
+	DEBUGP(DLGLOBAL, "You should not see this (DLGLOBAL not on DEBUG)\n");
+	log_set_category_filter(stderr_target, DLGLOBAL, 1, LOGL_DEBUG);
+	DEBUGP(DLGLOBAL, "You should see this (DLGLOBAL on DEBUG)\n");
+
 	return 0;
 }
