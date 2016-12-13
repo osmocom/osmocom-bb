@@ -1,6 +1,7 @@
 # This is _NOT_ the library release version, it's an API version.
-# Please read Chapter 6 "Library interface versions" of the libtool documentation before making any modification
-LIBVERSION=6:0:1
+# Please read chapter "Library interface versions" of the libtool documentation
+# before making any modifications: https://www.gnu.org/software/libtool/manual/html_node/Versioning.html
+LIBVERSION=7:0:1
 
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include $(TALLOC_CFLAGS)
 AM_CFLAGS = -Wall ${GCC_FVISIBILITY_HIDDEN}

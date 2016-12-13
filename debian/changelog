@@ -1,3 +1,29 @@
+libosmocore (0.9.6) unstable; urgency=medium
+
+  * doc: osmocom-authn-protocol.txt: fix numbering, mark unused sync msgs
+  * New upstream release of libosmocore.
+
+ -- Max <msuraev@sysmocom.de>  Tue, 13 Dec 2016 18:23:56 +0100
+
+libosmocore (0.9.5) unstable; urgency=medium
+
+  * fix: DLGSUP logging category "unusable"
+  * New upstream release of libosmocore.
+  * ph_data_param struct changed / Extend L1SAP PH-DATA with measurement information
+  * size of ph_tch_param struct changed / Extend with RTP Marker
+  * size of struct log_target changed / Extend with GSMTAP
+
+ -- Max <msuraev@sysmocom.de>  Tue, 13 Dec 2016 18:22:56 +0100
+
+libosmocore (0.9.4) unstable; urgency=medium
+
+  * New upstream release of libosmocore.
+  * Internal API for GPRS cipher implementors updated to accommodate for arbitrary key lengths
+  * external talloc dependency / internal talloc removal
+  * size of ph_data_param struct changed / Extend L1SAP PH-DATA with presence information
+
+ -- Max <msuraev@sysmocom.de>  Tue, 13 Dec 2016 18:21:56 +0100
+
 libosmocore (0.9.3) unstable; urgency=medium
 
   * Send all stats values after re-configuration.

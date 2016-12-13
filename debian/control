@@ -11,7 +11,7 @@ Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmocore.git;a=summary
 Package: libosmocore
 Section: libs
 Architecture: any
-Depends: libosmocodec0, libosmocore7, libosmogb4, libosmogsm5, libosmovty3, libosmoctrl0, ${misc:Depends}
+Depends: libosmocodec0, libosmocore8, libosmogb4, libosmogsm7, libosmovty3, libosmoctrl0, ${misc:Depends}
 Multi-Arch: foreign
 Description: Open Source MObile COMmunications CORE library
 
@@ -22,7 +22,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Multi-Arch: same
 Description: Osmo codec library
 
-Package: libosmocore7
+Package: libosmocore8
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -36,7 +36,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Multi-Arch: same
 Description: Osmo GPRS GB library
 
-Package: libosmogsm5
+Package: libosmogsm7
 Section: libs
 Architecture: any
 Build-Depends: python (>= 2.7.6)
