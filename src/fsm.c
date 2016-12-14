@@ -92,7 +92,7 @@ static bool fsm_log_addr = true;
 /*! \brief specify if FSM instance addresses should be logged or not
  *
  *  By default, the FSM name includes the pointer address of the \ref
- *  osmo_fsm_inst.  This behaviro can be disabled (and re-enabled)
+ *  osmo_fsm_inst.  This behavior can be disabled (and re-enabled)
  *  using this function.
  *
  *  \param[in] log_addr Indicate if FSM instance address shall be logged
