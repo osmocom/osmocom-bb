@@ -110,10 +110,13 @@ struct osmo_fsm_inst {
 
 void osmo_fsm_log_addr(bool log_addr);
 
-#define LOGPFSM(fi, fmt, args...) \
-		LOGP((fi)->fsm->log_subsys, (fi)->log_level, "%s{%s}: " fmt, \
+#define LOGPFSML(fi, level, fmt, args...) \
+		LOGP((fi)->fsm->log_subsys, level, "%s{%s}: " fmt, \
 			osmo_fsm_inst_name(fi),				    \
 			osmo_fsm_state_name((fi)->fsm, (fi)->state), ## args)
+
+#define LOGPFSM(fi, fmt, args...) \
+		LOGPFSML(fi, (fi)->log_level, fmt, ## args)
 
 int osmo_fsm_register(struct osmo_fsm *fsm);
 void osmo_fsm_unregister(struct osmo_fsm *fsm);

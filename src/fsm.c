@@ -311,11 +311,9 @@ int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
 
 	/* validate if new_state is a valid state */
 	if (!(st->out_state_mask & (1 << new_state))) {
-		LOGP(fsm->log_subsys, LOGL_ERROR, "%s(%s): transition to "
-		     "state %s not permitted!\n",
-		     osmo_fsm_inst_name(fi),
-		     osmo_fsm_state_name(fsm, fi->state),
-		     osmo_fsm_state_name(fsm, new_state));
+		LOGPFSML(fi, LOGL_ERROR,
+			 "transition to state %s not permitted!\n",
+			 osmo_fsm_state_name(fsm, new_state));
 		return -EPERM;
 	}
 
@@ -376,10 +374,9 @@ int osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	}
 
 	if (!((1 << event) & fs->in_event_mask)) {
-		LOGP(fsm->log_subsys, LOGL_ERROR, "%s(%s): Event %s not "
-		     "permitted\n", osmo_fsm_inst_name(fi),
-		     osmo_fsm_state_name(fsm, fi->state),
-		     osmo_fsm_event_name(fsm, event));
+		LOGPFSML(fi, LOGL_ERROR,
+			 "Event %s not permitted\n",
+			 osmo_fsm_event_name(fsm, event));
 		return -1;
 	}
 	fs->action(fi, event, data);
