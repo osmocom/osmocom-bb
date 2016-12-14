@@ -131,11 +131,40 @@ const char *osmo_fsm_event_name(struct osmo_fsm *fsm, uint32_t event);
 const char *osmo_fsm_inst_name(struct osmo_fsm_inst *fi);
 const char *osmo_fsm_state_name(struct osmo_fsm *fsm, uint32_t state);
 
-int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
-			    unsigned long timeout_secs, int T);
-int osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data);
+/*! \brief perform a state change of the given FSM instance
+ *
+ *  This is a macro that calls _osmo_fsm_inst_state_chg() with the given
+ *  parameters as well as the caller's source file and line number for logging
+ *  purposes. See there for documentation.
+ */
+#define osmo_fsm_inst_state_chg(fi, new_state, timeout_secs, T) \
+	_osmo_fsm_inst_state_chg(fi, new_state, timeout_secs, T, \
+				 __BASE_FILE__, __LINE__)
+int _osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
+			     unsigned long timeout_secs, int T,
+			     const char *file, int line);
 
-void osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
-			enum osmo_fsm_term_cause cause, void *data);
+/*! \brief dispatch an event to an osmocom finite state machine instance
+ *
+ *  This is a macro that calls _osmo_fsm_inst_dispatch() with the given
+ *  parameters as well as the caller's source file and line number for logging
+ *  purposes. See there for documentation.
+ */
+#define osmo_fsm_inst_dispatch(fi, event, data) \
+	_osmo_fsm_inst_dispatch(fi, event, data, __BASE_FILE__, __LINE__)
+int _osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data,
+			    const char *file, int line);
+
+/*! \brief Terminate FSM instance with given cause
+ *
+ *  This is a macro that calls _osmo_fsm_inst_term() with the given parameters
+ *  as well as the caller's source file and line number for logging purposes.
+ *  See there for documentation.
+ */
+#define osmo_fsm_inst_term(fi, cause, data) \
+	_osmo_fsm_inst_term(fi, cause, data, __BASE_FILE__, __LINE__)
+void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
+			 enum osmo_fsm_term_cause cause, void *data,
+			 const char *file, int line);
 
 /*! @} */

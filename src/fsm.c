@@ -284,7 +284,24 @@ const char *osmo_fsm_state_name(struct osmo_fsm *fsm, uint32_t state)
 		return fsm->states[state].name;
 }
 
+#define LOGPFSMLSRC(fi, level, caller_file, caller_line, fmt, args...) \
+		LOGPSRC((fi)->fsm->log_subsys, level, \
+			caller_file, caller_line, \
+			"%s{%s}: " fmt, \
+			osmo_fsm_inst_name(fi), \
+			osmo_fsm_state_name((fi)->fsm, (fi)->state), \
+			## args)
+
+#define LOGPFSMSRC(fi, caller_file, caller_line, fmt, args...) \
+		LOGPFSMLSRC(fi, (fi)->log_level, \
+			    caller_file, caller_line, \
+			    fmt, ## args)
+
 /*! \brief perform a state change of the given FSM instance
+ *
+ *  Best invoke via the osmo_fsm_inst_state_chg() macro which logs the source
+ *  file where the state change was effected. Alternatively, you may pass \a
+ *  file as NULL to use the normal file/line indication instead.
  *
  *  All changes to the FSM instance state must be made via this
  *  function.  It verifies that the existing state actually permits a
@@ -302,8 +319,9 @@ const char *osmo_fsm_state_name(struct osmo_fsm *fsm, uint32_t state)
  *  \param[in] T Timer number (if \ref timeout_secs != 0)
  *  \returns 0 on success; negative on error
  */
-int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
-			    unsigned long timeout_secs, int T)
+int _osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
+			     unsigned long timeout_secs, int T,
+			     const char *file, int line)
 {
 	struct osmo_fsm *fsm = fi->fsm;
 	uint32_t old_state = fi->state;
@@ -311,9 +329,9 @@ int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
 
 	/* validate if new_state is a valid state */
 	if (!(st->out_state_mask & (1 << new_state))) {
-		LOGPFSML(fi, LOGL_ERROR,
-			 "transition to state %s not permitted!\n",
-			 osmo_fsm_state_name(fsm, new_state));
+		LOGPFSMLSRC(fi, LOGL_ERROR, file, line,
+			    "transition to state %s not permitted!\n",
+			    osmo_fsm_state_name(fsm, new_state));
 		return -EPERM;
 	}
 
@@ -323,7 +341,8 @@ int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
 	if (st->onleave)
 		st->onleave(fi, new_state);
 
-	LOGPFSM(fi, "state_chg to %s\n", osmo_fsm_state_name(fsm, new_state));
+	LOGPFSMSRC(fi, file, line, "state_chg to %s\n",
+		   osmo_fsm_state_name(fsm, new_state));
 	fi->state = new_state;
 	st = &fsm->states[new_state];
 
@@ -341,6 +360,10 @@ int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
 
 /*! \brief dispatch an event to an osmocom finite state machine instance
  *
+ *  Best invoke via the osmo_fsm_inst_dispatch() macro which logs the source
+ *  file where the event was effected. Alternatively, you may pass \a file as
+ *  NULL to use the normal file/line indication instead.
+ *
  *  Any incoming events to \ref osmo_fsm instances must be dispatched to
  *  them via this function.  It verifies, whether the event is permitted
  *  based on the current state of the FSM.  If not, -1 is returned.
@@ -350,7 +373,8 @@ int osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
  *  \param[in] data Data to pass along with the event
  *  \returns 0 in case of success; negative on error
  */
-int osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+int _osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data,
+			    const char *file, int line)
 {
 	struct osmo_fsm *fsm;
 	const struct osmo_fsm_state *fs;
@@ -366,7 +390,8 @@ int osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	OSMO_ASSERT(fi->state < fsm->num_states);
 	fs = &fi->fsm->states[fi->state];
 
-	LOGPFSM(fi, "Received Event %s\n", osmo_fsm_event_name(fsm, event));
+	LOGPFSMSRC(fi, file, line,
+		   "Received Event %s\n", osmo_fsm_event_name(fsm, event));
 
 	if (((1 << event) & fsm->allstate_event_mask) && fsm->allstate_action) {
 		fsm->allstate_action(fi, event, data);
@@ -374,9 +399,9 @@ int osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	}
 
 	if (!((1 << event) & fs->in_event_mask)) {
-		LOGPFSML(fi, LOGL_ERROR,
-			 "Event %s not permitted\n",
-			 osmo_fsm_event_name(fsm, event));
+		LOGPFSMLSRC(fi, LOGL_ERROR, file, line,
+			    "Event %s not permitted\n",
+			    osmo_fsm_event_name(fsm, event));
 		return -1;
 	}
 	fs->action(fi, event, data);
@@ -398,19 +423,21 @@ int osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data)
  *  \param[in] cause Cause / reason for termination
  *  \param[in] data Opaqueevent data to be passed to parent
  */
-void osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
-			enum osmo_fsm_term_cause cause, void *data)
+void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
+			 enum osmo_fsm_term_cause cause, void *data,
+			 const char *file, int line)
 {
 	struct osmo_fsm_inst *child, *child2;
 	struct osmo_fsm_inst *parent = fi->proc.parent;
 	uint32_t parent_term_event = fi->proc.parent_term_event;
 
-	LOGPFSM(fi, "Terminating (cause = %u)\n", cause);
+	LOGPFSMSRC(fi, file, line, "Terminating (cause = %u)\n", cause);
 
 	/* iterate over all children */
 	llist_for_each_entry_safe(child, child2, &fi->proc.children, proc.child) {
 		/* terminate child */
-		osmo_fsm_inst_term(child, OSMO_FSM_TERM_PARENT, NULL);
+		_osmo_fsm_inst_term(child, OSMO_FSM_TERM_PARENT, NULL,
+				    file, line);
 	}
 
 	/* delete ourselves from the parent */
@@ -420,12 +447,13 @@ void osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 	if (fi->fsm->cleanup)
 		fi->fsm->cleanup(fi, cause);
 
-	LOGPFSM(fi, "Release\n");
+	LOGPFSMSRC(fi, file, line, "Release\n");
 	osmo_fsm_inst_free(fi);
 
 	/* indicate our termination to the parent */
 	if (parent && cause != OSMO_FSM_TERM_PARENT)
-		osmo_fsm_inst_dispatch(parent, parent_term_event, data);
+		_osmo_fsm_inst_dispatch(parent, parent_term_event, data,
+					file, line);
 }
 
 /*! @} */
