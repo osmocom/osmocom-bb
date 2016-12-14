@@ -30,6 +30,13 @@ enum osmo_fsm_term_cause {
 	OSMO_FSM_TERM_TIMEOUT,
 };
 
+extern const struct value_string osmo_fsm_term_cause_names[];
+static inline const char *osmo_fsm_term_cause_name(enum osmo_fsm_term_cause cause)
+{
+	return get_value_string(osmo_fsm_term_cause_names, cause);
+}
+
+
 /*! \brief description of a rule in the FSM */
 struct osmo_fsm_state {
 	/*! \brief bit-mask of permitted input events for this state */

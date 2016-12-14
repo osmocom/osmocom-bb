@@ -431,7 +431,8 @@ void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 	struct osmo_fsm_inst *parent = fi->proc.parent;
 	uint32_t parent_term_event = fi->proc.parent_term_event;
 
-	LOGPFSMSRC(fi, file, line, "Terminating (cause = %u)\n", cause);
+	LOGPFSMSRC(fi, file, line, "Terminating (cause = %s)\n",
+		   osmo_fsm_term_cause_name(cause));
 
 	/* iterate over all children */
 	llist_for_each_entry_safe(child, child2, &fi->proc.children, proc.child) {
@@ -455,5 +456,16 @@ void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 		_osmo_fsm_inst_dispatch(parent, parent_term_event, data,
 					file, line);
 }
+
+#define ENUM_VAL_TO_VALUE_STRING(X) { X, #X }
+
+const struct value_string osmo_fsm_term_cause_names[] = {
+	ENUM_VAL_TO_VALUE_STRING(OSMO_FSM_TERM_PARENT),
+	ENUM_VAL_TO_VALUE_STRING(OSMO_FSM_TERM_REQUEST),
+	ENUM_VAL_TO_VALUE_STRING(OSMO_FSM_TERM_REGULAR),
+	ENUM_VAL_TO_VALUE_STRING(OSMO_FSM_TERM_ERROR),
+	ENUM_VAL_TO_VALUE_STRING(OSMO_FSM_TERM_TIMEOUT),
+	{ 0, NULL }
+};
 
 /*! @} */
