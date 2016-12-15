@@ -442,6 +442,9 @@ void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 	}
 
 	/* delete ourselves from the parent */
+	if (parent)
+		LOGPFSMSRC(fi, file, line, "Removing from parent %s\n",
+			   osmo_fsm_inst_name(parent));
 	llist_del(&fi->proc.child);
 
 	/* call destructor / clean-up function */
