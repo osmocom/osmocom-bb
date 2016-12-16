@@ -15,6 +15,10 @@
 #define OSMO_MAX(a, b) ((a) >= (b) ? (a) : (b))
 /*! \brief Return the minimum of two specified values */
 #define OSMO_MIN(a, b) ((a) >= (b) ? (b) : (a))
+/*! \brief Stringify the contents of a macro, e.g. a port number */
+#define OSMO_STRINGIFY(x) #x
+/*! \brief Make a value_string entry from an enum value name */
+#define OSMO_VALUE_STRING(x) { x, OSMO_STRINGIFY(x) }
 
 #include <stdint.h>
 
