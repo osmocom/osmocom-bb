@@ -467,7 +467,7 @@ void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 	if (fi->fsm->cleanup)
 		fi->fsm->cleanup(fi, cause);
 
-	LOGPFSMSRC(fi, file, line, "Release\n");
+	LOGPFSMSRC(fi, file, line, "Freeing instance\n");
 	osmo_fsm_inst_free(fi);
 
 	/* indicate our termination to the parent */
