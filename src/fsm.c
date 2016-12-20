@@ -427,17 +427,33 @@ void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 			 enum osmo_fsm_term_cause cause, void *data,
 			 const char *file, int line)
 {
-	struct osmo_fsm_inst *child, *child2;
+	struct osmo_fsm_inst *first_child, *last_seen_first_child;
 	struct osmo_fsm_inst *parent = fi->proc.parent;
 	uint32_t parent_term_event = fi->proc.parent_term_event;
 
 	LOGPFSMSRC(fi, file, line, "Terminating (cause = %s)\n",
 		   osmo_fsm_term_cause_name(cause));
 
-	/* iterate over all children */
-	llist_for_each_entry_safe(child, child2, &fi->proc.children, proc.child) {
+	/* iterate over all children, starting from the beginning every time:
+	 * terminating an FSM may emit events that cause other FSMs to also
+	 * terminate and remove themselves from this list. */
+	last_seen_first_child = NULL;
+	while (!llist_empty(&fi->proc.children)) {
+		first_child = llist_entry(fi->proc.children.next,
+					  typeof(*first_child),
+					  proc.child);
+
+		/* paranoia: do not loop forever */
+		if (first_child == last_seen_first_child) {
+			LOGPFSMLSRC(fi, LOGL_ERROR, file, line,
+				    "Internal error while terminating child"
+				    " FSMs: a child FSM is stuck\n");
+			break;
+		}
+		last_seen_first_child = first_child;
+
 		/* terminate child */
-		_osmo_fsm_inst_term(child, OSMO_FSM_TERM_PARENT, NULL,
+		_osmo_fsm_inst_term(first_child, OSMO_FSM_TERM_PARENT, NULL,
 				    file, line);
 	}
 
