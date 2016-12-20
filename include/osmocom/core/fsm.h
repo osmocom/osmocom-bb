@@ -69,7 +69,7 @@ struct osmo_fsm {
 	uint32_t allstate_event_mask;
 	/*! \brief function pointer to be called for allstate events */
 	void (*allstate_action)(struct osmo_fsm_inst *fi, uint32_t event, void *data);
-	/*! \breif clean-up function, called during termination */
+	/*! \brief clean-up function, called during termination */
 	void (*cleanup)(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause);
 	/*! \brief timer call-back for states with time-out.
 	 * \returns 1 to request termination, 0 to keep running. */
