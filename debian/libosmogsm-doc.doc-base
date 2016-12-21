@@ -1,0 +1,7 @@
+Document: libosmogsm-doc
+Title: Documentation for the libosmogsm library
+Section: Programming
+
+Format: HTML
+Index: /usr/share/doc/libosmocore/gsm/html/index.html
+Files: /usr/share/doc/libosmocore/gsm/html/*.html

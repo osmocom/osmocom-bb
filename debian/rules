@@ -1,10 +1,4 @@
 #!/usr/bin/make -f
-# -*- makefile -*-
-# Sample debian/rules that uses debhelper.
-# This file was originally written by Joey Hess and Craig Small.
-# As a special exception, when this file is copied by dh-make into a
-# dh-make output file, you may use that output file without restriction.
-# This special exception was added by Craig Small in version 0.37 of dh-make.
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
@@ -13,10 +7,9 @@ DEBIAN  := $(shell dpkg-parsechangelog | grep ^Version: | cut -d' ' -f2)
 DEBVERS := $(shell echo '$(DEBIAN)' | cut -d- -f1)
 VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
 
-# Our tests want to override symbols, make it possible on Ubuntu
-export LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS | sed -e 's/-Wl,-Bsymbolic-functions//')
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
-export DEB_BUILD_HARDENING=1
+export DEB_LDFLAGS_MAINT_STRIP = -Wl,-Bsymbolic-functions
 
 %:
 	dh $@ --with autoreconf --fail-missing
@@ -38,3 +31,27 @@ override_dh_autoreconf:
 
 override_dh_auto_configure:
 	dh_auto_configure -- --enable-static
+
+override_dh_clean:
+	dh_clean
+	$(RM) .version
+	$(RM) debian/man/osmo-arfcn.1
+	$(RM) debian/man/osmo-auc-gen.1
+	$(RM) include/osmocom/core/bit16gen.h
+	$(RM) include/osmocom/core/bit32gen.h
+	$(RM) include/osmocom/core/bit64gen.h
+	$(RM) include/osmocom/core/crc16gen.h
+	$(RM) include/osmocom/core/crc32gen.h
+	$(RM) include/osmocom/core/crc64gen.h
+	$(RM) include/osmocom/core/crc8gen.h
+	$(RM) src/crc16gen.c
+	$(RM) src/crc32gen.c
+	$(RM) src/crc64gen.c
+	$(RM) src/crc8gen.c
+	$(RM) tests/package.m4
+	$(RM) tests/testsuite
+	$(RM) -r doc/codec/
+	$(RM) -r doc/core/
+	$(RM) -r doc/gsm/
+	$(RM) -r doc/vty/html/
+	$(RM) -r doc/vty/latex/
