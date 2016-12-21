@@ -118,7 +118,7 @@ uint8_t osmo_char2bcd(char c)
 	return c - 0x30;
 }
 
-/*! \brief Parse a string ocntaining hexadecimal digits
+/*! \brief Parse a string containing hexadecimal digits
  *  \param[in] str string containing ASCII encoded hexadecimal digits
  *  \param[out] b output buffer
  *  \param[in] max_len maximum space in output buffer
