@@ -384,8 +384,9 @@ int _osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data
 	const struct osmo_fsm_state *fs;
 
 	if (!fi) {
-		LOGP(DLGLOBAL, LOGL_ERROR, "Trying to dispatch event %u to "
-		     "non-existing FSM Instance!\n", event);
+		LOGPSRC(DLGLOBAL, LOGL_ERROR, file, line,
+			"Trying to dispatch event %u to non-existent"
+			" FSM instance!\n", event);
 		osmo_log_backtrace(DLGLOBAL, LOGL_ERROR);
 		return -ENODEV;
 	}
