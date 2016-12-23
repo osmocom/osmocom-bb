@@ -284,19 +284,6 @@ const char *osmo_fsm_state_name(struct osmo_fsm *fsm, uint32_t state)
 		return fsm->states[state].name;
 }
 
-#define LOGPFSMLSRC(fi, level, caller_file, caller_line, fmt, args...) \
-		LOGPSRC((fi)->fsm->log_subsys, level, \
-			caller_file, caller_line, \
-			"%s{%s}: " fmt, \
-			osmo_fsm_inst_name(fi), \
-			osmo_fsm_state_name((fi)->fsm, (fi)->state), \
-			## args)
-
-#define LOGPFSMSRC(fi, caller_file, caller_line, fmt, args...) \
-		LOGPFSMLSRC(fi, (fi)->log_level, \
-			    caller_file, caller_line, \
-			    fmt, ## args)
-
 /*! \brief perform a state change of the given FSM instance
  *
  *  Best invoke via the osmo_fsm_inst_state_chg() macro which logs the source

@@ -125,6 +125,19 @@ void osmo_fsm_log_addr(bool log_addr);
 #define LOGPFSM(fi, fmt, args...) \
 		LOGPFSML(fi, (fi)->log_level, fmt, ## args)
 
+#define LOGPFSMLSRC(fi, level, caller_file, caller_line, fmt, args...) \
+		LOGPSRC((fi)->fsm->log_subsys, level, \
+			caller_file, caller_line, \
+			"%s{%s}: " fmt, \
+			osmo_fsm_inst_name(fi), \
+			osmo_fsm_state_name((fi)->fsm, (fi)->state), \
+			## args)
+
+#define LOGPFSMSRC(fi, caller_file, caller_line, fmt, args...) \
+		LOGPFSMLSRC(fi, (fi)->log_level, \
+			    caller_file, caller_line, \
+			    fmt, ## args)
+
 int osmo_fsm_register(struct osmo_fsm *fsm);
 void osmo_fsm_unregister(struct osmo_fsm *fsm);
 struct osmo_fsm_inst *osmo_fsm_inst_alloc(struct osmo_fsm *fsm, void *ctx, void *priv,
