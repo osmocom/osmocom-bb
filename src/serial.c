@@ -113,8 +113,8 @@ osmo_serial_init(const char *dev, speed_t baudrate)
 	rc = ioctl(fd, TIOCMBIS, &v24);
 	if (rc < 0) {
 		dbg_perror("ioctl(TIOCMBIS)");
-		rc = -errno;
-		goto error;
+		/* some serial porst don't support this, so let's not
+		 * return an error here */
 	}
 
 	return fd;
