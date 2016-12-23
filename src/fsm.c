@@ -317,6 +317,8 @@ const char *osmo_fsm_state_name(struct osmo_fsm *fsm, uint32_t state)
  *  \param[in] new_state The new state into which we should change
  *  \param[in] timeout_secs Timeout in seconds (if !=0)
  *  \param[in] T Timer number (if \ref timeout_secs != 0)
+ *  \param[in] file Calling source file (from osmo_fsm_inst_state_chg macro)
+ *  \param[in] line Calling source line (from osmo_fsm_inst_state_chg macro)
  *  \returns 0 on success; negative on error
  */
 int _osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
@@ -371,6 +373,8 @@ int _osmo_fsm_inst_state_chg(struct osmo_fsm_inst *fi, uint32_t new_state,
  *  \param[in] fi FSM instance
  *  \param[in] event Event to send to FSM instance
  *  \param[in] data Data to pass along with the event
+ *  \param[in] file Calling source file (from osmo_fsm_inst_dispatch macro)
+ *  \param[in] line Calling source line (from osmo_fsm_inst_dispatch macro)
  *  \returns 0 in case of success; negative on error
  */
 int _osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data,
@@ -421,7 +425,9 @@ int _osmo_fsm_inst_dispatch(struct osmo_fsm_inst *fi, uint32_t event, void *data
  *
  *  \param[in] fi FSM instance to be terminated
  *  \param[in] cause Cause / reason for termination
- *  \param[in] data Opaqueevent data to be passed to parent
+ *  \param[in] data Opaque event data to be passed with the parent term event
+ *  \param[in] file Calling source file (from osmo_fsm_inst_term macro)
+ *  \param[in] line Calling source line (from osmo_fsm_inst_term macro)
  */
 void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 			 enum osmo_fsm_term_cause cause, void *data,
