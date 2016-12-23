@@ -53,7 +53,7 @@ static void test_fsm_one(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	}
 }
 
-static void test_fsm_tmr_cb(struct osmo_fsm_inst *fi)
+static int test_fsm_tmr_cb(struct osmo_fsm_inst *fi)
 {
 	OSMO_ASSERT(fi->T == 2342);
 	OSMO_ASSERT(fi->state == ST_TWO);
