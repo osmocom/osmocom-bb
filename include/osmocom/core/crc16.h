@@ -29,3 +29,15 @@ static inline uint16_t osmo_crc16_byte(uint16_t crc, const uint8_t data)
 {
 	return (crc >> 8) ^ osmo_crc16_table[(crc ^ data) & 0xff];
 }
+
+
+/* CCITT polynome 0x8408. This corresponds to x^0 + x^5 + x^12 */
+
+extern uint16_t const osmo_crc16_ccitt_table[256];
+
+extern uint16_t osmo_crc16_ccitt(uint16_t crc, const uint8_t *buffer, size_t len);
+
+static inline uint16_t osmo_crc16_ccitt_byte(uint16_t crc, const uint8_t data)
+{
+	return (crc >> 8) ^ osmo_crc16_ccitt_table[(crc ^ data) & 0xff];
+}
