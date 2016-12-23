@@ -59,14 +59,28 @@
 int
 osmo_serial_init(const char *dev, speed_t baudrate)
 {
-	int rc, fd=0, v24;
+	int rc, fd=0, v24, flags;
 	struct termios tio;
 
-	/* Open device */
-	fd = open(dev, O_RDWR | O_NOCTTY);
+	/* Use nonblock as the device might block otherwise */
+	fd = open(dev, O_RDWR | O_NOCTTY | O_SYNC | O_NONBLOCK);
 	if (fd < 0) {
 		dbg_perror("open");
 		return -errno;
+	}
+
+	/* now put it into blcoking mode */
+	flags = fcntl(fd, F_GETFL, 0);
+	if (flags < 0) {
+		dbg_perror("fcntl get flags");
+		return -1;
+	}
+
+	flags &= ~O_NONBLOCK;
+	rc = fcntl(fd, F_SETFL, flags);
+	if (rc != 0) {
+		dbg_perror("fcntl set flags");
+		return -1;
 	}
 
 	/* Configure serial interface */
