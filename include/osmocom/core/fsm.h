@@ -187,4 +187,17 @@ void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 			 enum osmo_fsm_term_cause cause, void *data,
 			 const char *file, int line);
 
+/*! \brief Terminate all child FSM instances of an FSM instance.
+ *
+ *  This is a macro that calls _osmo_fsm_inst_term_children() with the given
+ *  parameters as well as the caller's source file and line number for logging
+ *  purposes. See there for documentation.
+ */
+#define osmo_fsm_inst_term_children(fi, cause, data) \
+	_osmo_fsm_inst_term_children(fi, cause, data, __BASE_FILE__, __LINE__)
+void _osmo_fsm_inst_term_children(struct osmo_fsm_inst *fi,
+				  enum osmo_fsm_term_cause cause,
+				  void *data,
+				  const char *file, int line);
+
 /*! @} */

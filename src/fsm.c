@@ -421,12 +421,52 @@ void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 			 enum osmo_fsm_term_cause cause, void *data,
 			 const char *file, int line)
 {
-	struct osmo_fsm_inst *first_child, *last_seen_first_child;
 	struct osmo_fsm_inst *parent = fi->proc.parent;
 	uint32_t parent_term_event = fi->proc.parent_term_event;
 
 	LOGPFSMSRC(fi, file, line, "Terminating (cause = %s)\n",
 		   osmo_fsm_term_cause_name(cause));
+
+	_osmo_fsm_inst_term_children(fi, OSMO_FSM_TERM_PARENT, NULL,
+				     file, line);
+
+	/* delete ourselves from the parent */
+	if (parent)
+		LOGPFSMSRC(fi, file, line, "Removing from parent %s\n",
+			   osmo_fsm_inst_name(parent));
+	llist_del(&fi->proc.child);
+
+	/* call destructor / clean-up function */
+	if (fi->fsm->cleanup)
+		fi->fsm->cleanup(fi, cause);
+
+	LOGPFSMSRC(fi, file, line, "Freeing instance\n");
+	osmo_fsm_inst_free(fi);
+
+	/* indicate our termination to the parent */
+	if (parent && cause != OSMO_FSM_TERM_PARENT)
+		_osmo_fsm_inst_dispatch(parent, parent_term_event, data,
+					file, line);
+}
+
+/*! \brief Terminate all child FSM instances of an FSM instance.
+ *
+ *  Iterate over all children and send them a termination event, with the given
+ *  cause. Pass OSMO_FSM_TERM_PARENT to avoid dispatching events from the
+ *  terminated child FSMs.
+ *
+ *  \param[in] fi FSM instance that should be cleared of child FSMs
+ *  \param[in] cause Cause / reason for termination (OSMO_FSM_TERM_PARENT)
+ *  \param[in] data Opaque event data to be passed with the parent term events
+ *  \param[in] file Calling source file (from osmo_fsm_inst_term_children macro)
+ *  \param[in] line Calling source line (from osmo_fsm_inst_term_children macro)
+ */
+void _osmo_fsm_inst_term_children(struct osmo_fsm_inst *fi,
+				  enum osmo_fsm_term_cause cause,
+				  void *data,
+				  const char *file, int line)
+{
+	struct osmo_fsm_inst *first_child, *last_seen_first_child;
 
 	/* iterate over all children, starting from the beginning every time:
 	 * terminating an FSM may emit events that cause other FSMs to also
@@ -447,27 +487,9 @@ void _osmo_fsm_inst_term(struct osmo_fsm_inst *fi,
 		last_seen_first_child = first_child;
 
 		/* terminate child */
-		_osmo_fsm_inst_term(first_child, OSMO_FSM_TERM_PARENT, NULL,
+		_osmo_fsm_inst_term(first_child, cause, data,
 				    file, line);
 	}
-
-	/* delete ourselves from the parent */
-	if (parent)
-		LOGPFSMSRC(fi, file, line, "Removing from parent %s\n",
-			   osmo_fsm_inst_name(parent));
-	llist_del(&fi->proc.child);
-
-	/* call destructor / clean-up function */
-	if (fi->fsm->cleanup)
-		fi->fsm->cleanup(fi, cause);
-
-	LOGPFSMSRC(fi, file, line, "Freeing instance\n");
-	osmo_fsm_inst_free(fi);
-
-	/* indicate our termination to the parent */
-	if (parent && cause != OSMO_FSM_TERM_PARENT)
-		_osmo_fsm_inst_dispatch(parent, parent_term_event, data,
-					file, line);
 }
 
 const struct value_string osmo_fsm_term_cause_names[] = {
