@@ -73,14 +73,16 @@ osmo_serial_init(const char *dev, speed_t baudrate)
 	flags = fcntl(fd, F_GETFL, 0);
 	if (flags < 0) {
 		dbg_perror("fcntl get flags");
-		return -1;
+		rc = -errno;
+		goto error;
 	}
 
 	flags &= ~O_NONBLOCK;
 	rc = fcntl(fd, F_SETFL, flags);
 	if (rc != 0) {
 		dbg_perror("fcntl set flags");
-		return -1;
+		rc = -errno;
+		goto error;
 	}
 
 	/* Configure serial interface */
