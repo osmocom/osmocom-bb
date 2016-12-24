@@ -59,7 +59,7 @@
 int
 osmo_serial_init(const char *dev, speed_t baudrate)
 {
-	int rc, fd=0, v24, flags;
+	int rc, fd=-1, v24, flags;
 	struct termios tio;
 
 	/* Use nonblock as the device might block otherwise */
@@ -122,7 +122,7 @@ osmo_serial_init(const char *dev, speed_t baudrate)
 	return fd;
 
 error:
-	if (fd)
+	if (fd >= 0)
 		close(fd);
 	return rc;
 }
