@@ -256,6 +256,24 @@ enum abis_nm_msgtype_ipacc {
 	NM_MT_IPACC_SET_ATTR_NACK,
 };
 
+/*! \brief OML Probable Cause (Section 9.4.43) Manufacturer specific values */
+enum abis_mm_event_causes {
+	/* Critical causes */
+	OSMO_EVT_CRIT_SW_FATAL		= 0x0000,
+	OSMO_EVT_CRIT_PROC_STOP		= 0x0002,
+	OSMO_EVT_CRIT_RTP_TOUT		= 0x032c,
+	OSMO_EVT_CRIT_BOOT_FAIL		= 0x0401,
+	/* Major causes */
+	OSMO_EVT_MAJ_UKWN_MSG		= 0x0002,
+	OSMO_EVT_MAJ_RSL_FAIL		= 0x0309,
+	OSMO_EVT_MAJ_UNSUP_ATTR		= 0x0318,
+	OSMO_EVT_MAJ_NET_CONGEST	= 0x032b,
+	/* Minor causes */
+	OSMO_EVT_MIN_PAG_TAB_FULL	= 0x0401,
+	/* Warning causes */
+	OSMO_EVT_WARN_SW_WARN		= 0x0001,
+};
+
 enum abis_nm_bs11_cell_alloc {
 	NM_BS11_CANR_GSM	= 0x00,
 	NM_BS11_CANR_DCS1800	= 0x01,
