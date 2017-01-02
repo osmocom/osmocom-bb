@@ -227,6 +227,17 @@ const char *abis_nm_severity_name(uint8_t cause)
 	return get_value_string(severity_names, cause);
 }
 
+/*! \brief 3GPP TS 12.21 9.4.53 T200 values (in msec) */
+const uint8_t abis_nm_t200_ms[] = {
+	[T200_SDCCH]		= 5,
+	[T200_FACCH_F]		= 5,
+	[T200_FACCH_H]		= 5,
+	[T200_SACCH_TCH_SAPI0]	= 10,
+	[T200_SACCH_SDCCH]	= 10,
+	[T200_SDCCH_SAPI3]	= 5,
+	[T200_SACCH_TCH_SAPI3]	= 10
+};
+
 /*! \brief Attributes that the BSC can set, not only get, according to Section 9.4 */
 const enum abis_nm_attr abis_nm_att_settable[] = {
 	NM_ATT_ADD_INFO,
@@ -254,6 +265,55 @@ const enum abis_nm_attr abis_nm_att_settable[] = {
 	NM_ATT_SEVERITY,
 	NM_ATT_MEAS_RES,
 	NM_ATT_MEAS_TYPE,
+};
+
+/*! \brief GSM A-bis OML IPA TLV parser definition */
+const struct tlv_definition abis_nm_att_tlvdef_ipa = {
+	.def = {
+		/* ip.access specifics */
+		[NM_ATT_IPACC_DST_IP] =		{ TLV_TYPE_FIXED, 4 },
+		[NM_ATT_IPACC_DST_IP_PORT] =	{ TLV_TYPE_FIXED, 2 },
+		[NM_ATT_IPACC_STREAM_ID] =	{ TLV_TYPE_TV, },
+		[NM_ATT_IPACC_SEC_OML_CFG] =	{ TLV_TYPE_FIXED, 6 },
+		[NM_ATT_IPACC_IP_IF_CFG] =	{ TLV_TYPE_FIXED, 8 },
+		[NM_ATT_IPACC_IP_GW_CFG] =	{ TLV_TYPE_FIXED, 12 },
+		[NM_ATT_IPACC_IN_SERV_TIME] =	{ TLV_TYPE_FIXED, 4 },
+		[NM_ATT_IPACC_LOCATION] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_PAGING_CFG] =	{ TLV_TYPE_FIXED, 2 },
+		[NM_ATT_IPACC_UNIT_ID] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_UNIT_NAME] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_SNMP_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_PRIM_OML_CFG_LIST] = { TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NV_FLAGS] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_FREQ_CTRL] =	{ TLV_TYPE_FIXED, 2 },
+		[NM_ATT_IPACC_PRIM_OML_FB_TOUT] = { TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_CUR_SW_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_TIMING_BUS] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_CGI] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_RAC] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_OBJ_VERSION] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_GPRS_PAGING_CFG]= { TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NSEI] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_BVCI] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NSVCI] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NS_CFG] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_BSSGP_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NS_LINK_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_RLC_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_ALM_THRESH_LIST]=	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_MONIT_VAL_LIST] = { TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_TIB_CONTROL] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_SUPP_FEATURES] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_CODING_SCHEMES] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_RLC_CFG_2] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_HEARTB_TOUT] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_UPTIME] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_RLC_CFG_3] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_SSL_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_SEC_POSSIBLE] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_IML_SSL_STATE] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_REVOC_DATE] =	{ TLV_TYPE_TL16V },
+	},
 };
 
 /*! \brief GSM A-bis OML TLV parser definition */

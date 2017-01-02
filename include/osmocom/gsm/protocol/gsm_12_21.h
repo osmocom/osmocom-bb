@@ -615,6 +615,19 @@ struct abis_nm_channel {
 	uint8_t	subslot;	/*!< \brief E1 sub-slot */
 } __attribute__ ((packed));
 
+/*! \brief 3GPP TS 12.21 9.4.53 T200 index */
+enum abis_nm_t200_idx {
+	T200_SDCCH		= 0,
+	T200_FACCH_F		= 1,
+	T200_FACCH_H		= 2,
+	T200_SACCH_TCH_SAPI0	= 3,
+	T200_SACCH_SDCCH	= 4,
+	T200_SDCCH_SAPI3	= 5,
+	T200_SACCH_TCH_SAPI3	= 6
+};
+
+extern const uint8_t abis_nm_t200_ms[];
+
 /*! \brief Siemens BS-11 specific objects in the SienemsHW (0xA5) object class */
 enum abis_bs11_objtype {
 	BS11_OBJ_ALCO		= 0x01,
