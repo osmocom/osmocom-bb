@@ -324,6 +324,8 @@ tlv_parse_one;
 tvlv_att_def;
 vtvlv_gan_att_def;
 
+osmo_tlvp_copy;
+osmo_tlvp_merge;
 osmo_shift_v_fixed;
 osmo_match_shift_tv_fixed;
 osmo_shift_tlv;

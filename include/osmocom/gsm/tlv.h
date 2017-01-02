@@ -436,6 +436,8 @@ static inline uint32_t tlvp_val32_unal(const struct tlv_parsed *tp, int pos)
 	return res;
 }
 
+struct tlv_parsed *osmo_tlvp_copy(const struct tlv_parsed *tp_orig, void *ctx);
+int osmo_tlvp_merge(struct tlv_parsed *dst, const struct tlv_parsed *src);
 int osmo_shift_v_fixed(uint8_t **data, size_t *data_len,
 		       size_t len, uint8_t **value);
 int osmo_match_shift_tv_fixed(uint8_t **data, size_t *data_len,

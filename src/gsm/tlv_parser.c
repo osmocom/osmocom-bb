@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <errno.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/tlv.h>
 
@@ -39,6 +40,65 @@ int tlv_dump(struct tlv_parsed *dec)
 		if (!dec->lv[i].val)
 			continue;
 		printf("T=%02x L=%d\n", i, dec->lv[i].len);
+	}
+	return 0;
+}
+
+/*! \brief Copy \ref tlv_parsed using given talloc context
+ *  \param[in] tp_orig Parsed TLV structure
+ *  \param[in] ctx Talloc context for allocations
+ *  \returns NULL on errors, \ref tlv_parsed pointer otherwise
+ */
+struct tlv_parsed *osmo_tlvp_copy(const struct tlv_parsed *tp_orig, void *ctx)
+{
+	struct tlv_parsed *tp_out;
+	size_t i, len;
+
+	tp_out = talloc_zero(ctx, struct tlv_parsed);
+	if (!tp_out)
+		return NULL;
+
+	/* if the original is NULL, return empty tlvp */
+	if (!tp_orig)
+		return tp_out;
+
+	for (i = 0; i < ARRAY_SIZE(tp_orig->lv); i++) {
+		len = tp_orig->lv[i].len;
+		tp_out->lv[i].len = len;
+		if (len && tp_out->lv[i].val) {
+			tp_out->lv[i].val = talloc_zero_size(tp_out, len);
+			if (!tp_out->lv[i].val) {
+				talloc_free(tp_out);
+				return NULL;
+			}
+			memcpy((uint8_t *)tp_out->lv[i].val, tp_orig->lv[i].val,
+			       len);
+		}
+	}
+
+	return tp_out;
+}
+
+/*! \brief Merge all \ref tlv_parsed attributes of 'src' into 'dst'
+ *  \param[in] dst Parsed TLV structure to merge into
+ *  \param[in] src Parsed TLV structure to merge from
+ *  \returns 0 on success, negative on error
+ */
+int osmo_tlvp_merge(struct tlv_parsed *dst, const struct tlv_parsed *src)
+{
+	size_t i, len;
+	for (i = 0; i < ARRAY_SIZE(dst->lv); i++) {
+		len = src->lv[i].len;
+		if (len == 0 || src->lv[i].val == NULL)
+			continue;
+		if (dst->lv[i].val) {
+			talloc_free((uint8_t *) dst->lv[i].val);
+			dst->lv[i].len = 0;
+		}
+		dst->lv[i].val = talloc_zero_size(dst, len);
+		if (!dst->lv[i].val)
+			return -ENOMEM;
+		memcpy((uint8_t *) dst->lv[i].val, src->lv[i].val, len);
 	}
 	return 0;
 }
