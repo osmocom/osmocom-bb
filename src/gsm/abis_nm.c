@@ -149,6 +149,21 @@ const char *abis_nm_nack_name(uint8_t nack)
 	return get_value_string(nack_names, nack);
 }
 
+/* Section 9.4.43: Manufacturer specific values */
+const struct value_string abis_mm_event_cause_names[] = {
+	{ OSMO_EVT_CRIT_SW_FATAL,	"Fatal software error" },
+	{ OSMO_EVT_CRIT_PROC_STOP,	"Process stopped" },
+	{ OSMO_EVT_CRIT_RTP_TOUT,	"RTP error" },
+	{ OSMO_EVT_CRIT_BOOT_FAIL,	"Boot failure" },
+	{ OSMO_EVT_MAJ_UKWN_MSG,	"Unknown message" },
+	{ OSMO_EVT_MAJ_RSL_FAIL,	"RSL failure" },
+	{ OSMO_EVT_MAJ_UNSUP_ATTR,	"Unsupported attribute" },
+	{ OSMO_EVT_MAJ_NET_CONGEST,	"Network congestion" },
+	{ OSMO_EVT_MIN_PAG_TAB_FULL,	"Paging table full" },
+	{ OSMO_EVT_WARN_SW_WARN,	"Software warning" },
+	{ 0, NULL }
+};
+
 /* Chapter 9.4.36 */
 static const struct value_string nack_cause_names[] = {
 	/* General Nack Causes */

@@ -274,6 +274,8 @@ enum abis_mm_event_causes {
 	OSMO_EVT_WARN_SW_WARN		= 0x0001,
 };
 
+extern const struct value_string abis_mm_event_cause_names[];
+
 enum abis_nm_bs11_cell_alloc {
 	NM_BS11_CANR_GSM	= 0x00,
 	NM_BS11_CANR_DCS1800	= 0x01,
