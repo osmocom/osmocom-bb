@@ -517,6 +517,44 @@ static const enum abis_nm_chan_comb chcomb4pchan[] = {
 	/* FIXME: bounds check */
 };
 
+/*! \brief Pack 3GPP TS 12.21 § 8.8.2 Failure Event Report into msgb */
+struct msgb *abis_nm_fail_evt_rep(enum abis_nm_event_type t,
+				  enum abis_nm_severity s,
+				  enum abis_nm_pcause_type ct,
+				  uint16_t cause_value, const char *fmt, ...)
+{
+	uint8_t cause[3];
+	int len;
+	va_list ap;
+	char add_text[ABIS_NM_MSG_HEADROOM];
+	struct msgb *nmsg = msgb_alloc_headroom(ABIS_NM_MSG_SIZE,
+						ABIS_NM_MSG_HEADROOM,
+						"OML FAIL EV. REP.");
+	if (!nmsg)
+		return NULL;
+
+	msgb_tv_put(nmsg, NM_ATT_EVENT_TYPE, t);
+	msgb_tv_put(nmsg, NM_ATT_SEVERITY, s);
+
+	cause[0] = ct;
+	osmo_store16be(cause_value, cause + 1);
+
+	msgb_tv_fixed_put(nmsg, NM_ATT_PROB_CAUSE, 3, cause);
+
+	va_start(ap, fmt);
+	len = vsnprintf(add_text, ABIS_NM_MSG_HEADROOM, fmt, ap);
+	va_end(ap);
+
+	if (len < 0) {
+		msgb_free(nmsg);
+		return NULL;
+	}
+	if (len)
+		msgb_tl16v_put(nmsg, NM_ATT_ADD_TEXT, len, add_text);
+
+	return nmsg;
+}
+
 /*! \brief Obtain OML Channel Combination for phnsical channel config */
 int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan)
 {

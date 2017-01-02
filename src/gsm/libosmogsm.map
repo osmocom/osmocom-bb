@@ -4,6 +4,7 @@ global:
 abis_nm_adm_state_names;
 abis_nm_att_settable;
 abis_nm_avail_name;
+abis_nm_fail_evt_rep;
 abis_nm_chcomb4pchan;
 abis_nm_debugp_foh;
 abis_nm_event_type_name;

@@ -45,6 +45,9 @@ struct abis_om_hdr {
 	uint8_t	data[0];
 } __attribute__ ((packed));
 
+#define ABIS_NM_MSG_SIZE	1024
+#define ABIS_NM_MSG_HEADROOM	128
+
 /*! \brief Message Discriminator for Formatted Object Messages */
 #define ABIS_OM_MDISC_FOM		0x80
 /*! \brief Message Discriminator for Man Machine Interface */
@@ -781,4 +784,8 @@ enum ipac_bcch_info_type {
 	IPAC_BINF_CELL_ALLOC		= (1 << 2),
 };
 
+struct msgb *abis_nm_fail_evt_rep(enum abis_nm_event_type t,
+				  enum abis_nm_severity s,
+				  enum abis_nm_pcause_type ct,
+				  uint16_t cause_value, const char *fmt, ...);
 /*! @} */
