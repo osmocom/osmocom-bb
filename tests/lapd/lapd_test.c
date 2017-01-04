@@ -51,7 +51,8 @@ static struct msgb *msgb_from_array(const uint8_t *data, int len)
 {
 	struct msgb *msg = msgb_alloc_headroom(4096, 128, "data");
 	msg->l3h = msgb_put(msg, len);
-	memcpy(msg->l3h, data, len);
+	if (data && len)
+		memcpy(msg->l3h, data, len);
 	return msg;
 }
 
