@@ -115,7 +115,7 @@ int gprs_cipher_supported(enum gprs_ciph_algo algo)
 /* GSM TS 04.64 / Section A.2.1 : Generation of 'input' */
 uint32_t gprs_cipher_gen_input_ui(uint32_t iov_ui, uint8_t sapi, uint32_t lfn, uint32_t oc)
 {
-	uint32_t sx = ((1<<27) * sapi) + (1<<31);
+	uint32_t sx = ((1<<27) * sapi) + ((uint32_t ) 1<<31);
 
 	return (iov_ui ^ sx) + lfn + oc;
 }
