@@ -286,11 +286,9 @@ static int gsmtap_wq_w_cb(struct osmo_fd *ofd, struct msgb *msg)
 
 	rc = write(ofd->fd, msg->data, msg->len);
 	if (rc < 0) {
-		perror("writing msgb to gsmtap fd");
 		return rc;
 	}
 	if (rc != msg->len) {
-		perror("short write to gsmtap fd");
 		return -EIO;
 	}
 
@@ -308,7 +306,6 @@ static int gsmtap_sink_fd_cb(struct osmo_fd *fd, unsigned int flags)
 
 	rc = read(fd->fd, buf, sizeof(buf));
 	if (rc < 0) {
-		perror("reading from gsmtap sink fd");
 		return rc;
 	}
 	/* simply discard any data arriving on the socket */
