@@ -594,6 +594,22 @@ static int vty_dump_nodes(struct vty *vty)
 	return 0;
 }
 
+/* \brief Check if a command with given string exists at given node */
+static int check_element_exists(struct cmd_node *cnode, const char *cmdstring)
+{
+	int i;
+
+	for (i = 0; i < vector_active(cnode->cmd_vector); ++i) {
+		struct cmd_element *elem;
+		elem = vector_slot(cnode->cmd_vector, i);
+		if (!elem->string)
+			continue;
+		if (!strcmp(elem->string, cmdstring))
+			return 1;
+	}
+	return 0;
+}
+
 /*! \brief Install a command into a node
  *  \param[in] ntype Node Type
  *  \param[cmd] element to be installed
@@ -605,6 +621,9 @@ void install_element(int ntype, struct cmd_element *cmd)
 	cnode = vector_slot(cmdvec, ntype);
 
 	OSMO_ASSERT(cnode);
+	/* ensure no _identical_ command has been registered at this
+	 * node so far */
+	OSMO_ASSERT(!check_element_exists(cnode, cmd->string));
 
 	vector_set(cnode->cmd_vector, cmd);
 
