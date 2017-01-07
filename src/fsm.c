@@ -20,6 +20,7 @@
 
 #include <errno.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include <osmocom/core/fsm.h>
 #include <osmocom/core/talloc.h>
@@ -102,6 +103,16 @@ void osmo_fsm_log_addr(bool log_addr)
 	fsm_log_addr = log_addr;
 }
 
+struct osmo_fsm *osmo_fsm_find_by_name(const char *name)
+{
+	struct osmo_fsm *fsm;
+	llist_for_each_entry(fsm, &g_fsms, list) {
+		if (!strcmp(name, fsm->name))
+			return fsm;
+	}
+	return NULL;
+}
+
 /*! \brief register a FSM with the core
  *
  *  A FSM descriptor needs to be registered with the core before any
@@ -112,7 +123,8 @@ void osmo_fsm_log_addr(bool log_addr)
  */
 int osmo_fsm_register(struct osmo_fsm *fsm)
 {
-	/* FIXME:check for duplicate name? */
+	if (osmo_fsm_find_by_name(fsm->name))
+		return -EEXIST;
 	llist_add_tail(&fsm->list, &g_fsms);
 	INIT_LLIST_HEAD(&fsm->instances);
 
