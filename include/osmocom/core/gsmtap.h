@@ -46,6 +46,7 @@
 #define GSMTAP_TYPE_LTE_MAC	0x0e	/* LTE MAC interface */ 
 #define GSMTAP_TYPE_LTE_MAC_FRAMED	0x0f	/* LTE MAC with context hdr */
 #define GSMTAP_TYPE_OSMOCORE_LOG	0x10	/* libosmocore logging */
+#define GSMTAP_TYPE_QC_DIAG		0x11	/* Qualcomm DIAG frame */
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
