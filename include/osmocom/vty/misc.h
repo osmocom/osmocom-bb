@@ -20,5 +20,13 @@ void vty_out_statistics_full(struct vty *vty, const char *prefix);
 void vty_out_statistics_partial(struct vty *vty, const char *prefix,
 	int max_level);
 
+
+struct osmo_fsm;
+struct osmo_fsm_inst;
+void vty_out_fsm(struct vty *vty, struct osmo_fsm *fsm);
+void vty_out_fsm_inst(struct vty *vty, struct osmo_fsm_inst *fsmi);
+void osmo_fsm_vty_add_cmds(void);
+
+
 int osmo_vty_write_config_file(const char *filename);
 int osmo_vty_save_config_file(void);
