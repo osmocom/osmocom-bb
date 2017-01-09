@@ -1,0 +1,2 @@
+This is the package for the Osmocom virtual physical layer.
+A layer 1 implementation satisfying the L1CTL interface towards the l23 application (e.g. mobile).

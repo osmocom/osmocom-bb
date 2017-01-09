@@ -1,0 +1,34 @@
+*.o
+*.a
+Makefile.in
+Makefile
+.deps
+
+build-target
+aclocal.m4
+autom4te.cache
+config.log
+config.status
+config.guess
+config.sub
+configure
+compile
+depcomp
+install-sh
+missing
+stamp-h1
+core
+core.*
+
+# Backups, vi, merges
+*~
+*.sw?
+*.orig
+*.sav
+
+# development environment
+/.autotools
+/.cproject
+/.project
+/.settings/
+
