@@ -377,8 +377,8 @@ static int mdl_error(uint8_t cause, struct lapd_msg_ctx *lctx)
 	struct lapd_datalink *dl = lctx->dl;
 	struct osmo_dlsap_prim dp;
 
-	LOGP(DLLAPD, LOGL_NOTICE, "sending MDL-ERROR-IND cause %d\n",
-		cause);
+	LOGP(DLLAPD, LOGL_NOTICE, "sending MDL-ERROR-IND cause %s\n",
+	     rsl_rlm_cause_name(cause));
 	osmo_prim_init(&dp.oph, 0, PRIM_MDL_ERROR, PRIM_OP_INDICATION, NULL);
 	dp.u.error_ind.cause = cause;
 	return dl->send_dlsap(&dp, lctx);
@@ -833,7 +833,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			}
 			if (!dl->cont_res) {
 				LOGP(DLLAPD, LOGL_INFO, "SABM command not "
-						"allowed in this state\n");
+				     "allowed in state %s\n",
+				     lapd_state_names[dl->state]);
 				mdl_error(MDL_CAUSE_SABM_MF, lctx);
 				msgb_free(msg);
 				return 0;
@@ -870,7 +871,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			/* check for contention resoultion */
 			if (dl->tx_hist[0].msg && dl->tx_hist[0].msg->len) {
 				LOGP(DLLAPD, LOGL_NOTICE, "SABM not allowed "
-					"during contention resolution\n");
+				     "during contention resolution (state %s)\n",
+				     lapd_state_names[dl->state]);
 				mdl_error(MDL_CAUSE_SABM_INFO_NOTALL, lctx);
 			}
 			lapd_send_ua(lctx, length, msg->l3h);
