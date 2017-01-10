@@ -215,7 +215,7 @@ const uint16_t gsm690_4_75_bitorder[95] = {
 };
 
 static const uint8_t amr_len_by_ft[16] = {
-	12, 13, 15, 17, 19, 20, 26, 31, 0,  0,  0,  0,  0,  0,  0,  0
+	12, 13, 15, 17, 19, 20, 26, 31, 7,  0,  0,  0,  0,  0,  0,  0
 };
 
 const struct value_string osmo_amr_type_names[] = {
@@ -262,7 +262,7 @@ int osmo_amr_rtp_dec(const uint8_t *rtppayload, int payload_len, uint8_t *cmr,
 	if (rtppayload[1] >> 7)
 		return -ENOTSUP;
 
-	if (payload_len - 2 < amr_len_by_ft[type])
+	if (payload_len < amr_len_by_ft[type])
 		return -ENOTSUP;
 
 	if (ft)
