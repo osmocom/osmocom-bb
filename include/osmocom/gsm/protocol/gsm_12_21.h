@@ -592,6 +592,8 @@ enum abis_nm_pcause_type {
 	NM_PCAUSE_T_MANUF	= 0x03,
 };
 
+extern const struct value_string abis_nm_pcause_type_names[];
+
 /*! \brief NACK causes (Section 9.4.36) */
 enum abis_nm_nack_cause {
 	/* General Nack Causes */

@@ -164,6 +164,13 @@ const struct value_string abis_mm_event_cause_names[] = {
 	{ 0, NULL }
 };
 
+const struct value_string abis_nm_pcause_type_names[] = {
+	{ NM_PCAUSE_T_X721,	"ISO/CCITT values (X.721)"},
+	{ NM_PCAUSE_T_GSM,	"GSM specific values"},
+	{ NM_PCAUSE_T_MANUF,	"Manufacturer specific values"},
+	{ 0, NULL }
+};
+
 /* Chapter 9.4.36 */
 static const struct value_string nack_cause_names[] = {
 	/* General Nack Causes */
