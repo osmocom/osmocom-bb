@@ -530,9 +530,25 @@ struct msgb *abis_nm_fail_evt_rep(enum abis_nm_event_type t,
 				  enum abis_nm_pcause_type ct,
 				  uint16_t cause_value, const char *fmt, ...)
 {
+	va_list ap;
+	struct msgb *nmsg;
+
+	va_start(ap, fmt);
+	nmsg = abis_nm_fail_evt_vrep(t, s, ct, cause_value, fmt, ap);
+	va_end(ap);
+
+	return nmsg;
+}
+
+/*! \brief Pack 3GPP TS 12.21 § 8.8.2 Failure Event Report into msgb */
+struct msgb *abis_nm_fail_evt_vrep(enum abis_nm_event_type t,
+				   enum abis_nm_severity s,
+				   enum abis_nm_pcause_type ct,
+				   uint16_t cause_value, const char *fmt,
+				   va_list ap)
+{
 	uint8_t cause[3];
 	int len;
-	va_list ap;
 	char add_text[ABIS_NM_MSG_HEADROOM];
 	struct msgb *nmsg = msgb_alloc_headroom(ABIS_NM_MSG_SIZE,
 						ABIS_NM_MSG_HEADROOM,
@@ -548,10 +564,7 @@ struct msgb *abis_nm_fail_evt_rep(enum abis_nm_event_type t,
 
 	msgb_tv_fixed_put(nmsg, NM_ATT_PROB_CAUSE, 3, cause);
 
-	va_start(ap, fmt);
 	len = vsnprintf(add_text, ABIS_NM_MSG_HEADROOM, fmt, ap);
-	va_end(ap);
-
 	if (len < 0) {
 		msgb_free(nmsg);
 		return NULL;

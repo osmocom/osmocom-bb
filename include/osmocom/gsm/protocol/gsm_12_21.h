@@ -790,4 +790,9 @@ struct msgb *abis_nm_fail_evt_rep(enum abis_nm_event_type t,
 				  enum abis_nm_severity s,
 				  enum abis_nm_pcause_type ct,
 				  uint16_t cause_value, const char *fmt, ...);
+struct msgb *abis_nm_fail_evt_vrep(enum abis_nm_event_type t,
+				   enum abis_nm_severity s,
+				   enum abis_nm_pcause_type ct,
+				   uint16_t cause_value, const char *fmt,
+				   va_list ap);
 /*! @} */
