@@ -82,6 +82,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/gsm/lapd_core.h>
+#include <osmocom/gsm/rsl.h>
 
 /* TS 04.06 Table 4 / Section 3.8.1 */
 #define LAPD_U_SABM	0x7

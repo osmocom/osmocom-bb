@@ -21,6 +21,7 @@
  *
  */
 
+#include <osmocom/core/application.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/oap.h>

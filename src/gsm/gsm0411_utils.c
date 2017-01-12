@@ -33,6 +33,7 @@
 #include <osmocom/core/logging.h>
 
 #include <osmocom/gsm/gsm48.h>
+#include <osmocom/gsm/gsm0480.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_03_40.h>
 #include <osmocom/gsm/protocol/gsm_04_11.h>
