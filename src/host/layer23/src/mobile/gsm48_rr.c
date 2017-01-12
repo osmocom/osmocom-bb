@@ -3297,6 +3297,8 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm_support *sup = &ms->support;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	uint8_t *mode;
 	struct msgb *nmsg;
 
@@ -3316,6 +3318,10 @@ static int gsm48_rr_estab_cnf(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* 3.3.1.1.4 */
 	new_rr_state(rr, GSM48_RR_ST_DEDICATED);
+
+	/* early classmark sending */
+	if (cs->si->ecsm && sup->es_ind)
+		gsm48_rr_tx_cm_change(ms);
 
 	/* send confirm to upper layer */
 	nmsg = gsm48_rr_msgb_alloc(
