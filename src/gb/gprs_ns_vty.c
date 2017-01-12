@@ -573,7 +573,15 @@ DEFUN(logging_fltr_nsvc,
 
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 {
+	static bool vty_elements_installed = false;
+
 	vty_nsi = nsi;
+
+	/* Regression test code may call this function repeatedly, so make sure
+	 * that VTY elements are not duplicated, which would assert. */
+	if (vty_elements_installed)
+		return 0;
+	vty_elements_installed = true;
 
 	install_element_ve(&show_ns_cmd);
 	install_element_ve(&show_ns_stats_cmd);
