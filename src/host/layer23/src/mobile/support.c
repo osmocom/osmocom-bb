@@ -33,7 +33,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->ms = ms;
 
 	/* controlled early classmark sending */
-	sup->es_ind = 0; /* no */
+	sup->es_ind = 1; /* yes */
 	/* revision level */
 	sup->rev_lev = 1; /* phase 2 mobile station */
 	/* support of VGCS */
