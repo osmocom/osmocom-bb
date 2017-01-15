@@ -108,7 +108,7 @@ static int l1s_pm_resp(uint8_t num_meas, __unused uint8_t p2,
 		l1s.pm.msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
 	}
 
-	pmr = msgb_put(l1s.pm.msg, sizeof(*pmr));
+	pmr = (struct l1ctl_pm_conf *) msgb_put(l1s.pm.msg, sizeof(*pmr));
 	pmr->band_arfcn = htons(arfcn);
 	/* FIXME: do this as RxLev rather than DBM8 ? */
 	pmr->pm[0] = dbm2rxlev(agc_inp_dbm8_by_pm(pm_level[0])/8);
@@ -125,7 +125,8 @@ static int l1s_pm_resp(uint8_t num_meas, __unused uint8_t p2,
 			l1s_pm_test(1, l1s.pm.range.arfcn_next);
 		} else {
 			/* we have finished, flush the msgb to L2 */
-			struct l1ctl_hdr *l1h = l1s.pm.msg->l1h;
+			struct l1ctl_hdr *l1h;
+			l1h = (struct l1ctl_hdr *) l1s.pm.msg->l1h;
 			l1h->flags |= L1CTL_F_DONE;
 			l1_queue_for_l2(l1s.pm.msg);
 			l1s.pm.msg = NULL;

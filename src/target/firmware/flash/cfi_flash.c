@@ -399,7 +399,7 @@ __ramtext
 static int get_query(void *base_addr, struct cfi_query *query)
 {
 	int res = 0;
-	int i;
+	unsigned int i;
 
 	flash_write_cmd(base_addr, CFI_CMD_CFI);
 
