@@ -72,8 +72,8 @@ const char *debug_default =
 	"DCS:DNB:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DSS:DLSMS:DPAG:DSUM:DSAP";
 
 const char *openbsc_copyright =
-	"Copyright (C) 2008-2010 ...\n"
-	"Contributions by ...\n\n"
+	"Copyright (C) 2010-2015 Andreas Eversberg, Sylvain Munaut, Holger Freyther, Harald Welte\n"
+	"Contributions by Alex Badea, Pablo Neira, Steve Markgraf and others\n\n"
 	"License GPLv2+: GNU GPL version 2 or later "
 		"<http://gnu.org/licenses/gpl.html>\n"
 	"This is free software: you are free to change and redistribute it.\n"
