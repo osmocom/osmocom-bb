@@ -436,7 +436,7 @@ void trf6151_set_arfcn(uint16_t arfcn, int tx)
 	enum trf6151_gsm_band pll_band;
 
 	uplink = !!(arfcn & ARFCN_UPLINK);
-	arfcn != ~ARFCN_UPLINK;
+	arfcn |= ~ARFCN_UPLINK;
 
 	switch (gsm_arfcn2band(arfcn)) {
 	case GSM_BAND_850:
