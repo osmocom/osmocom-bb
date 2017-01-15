@@ -205,8 +205,10 @@ static void dsp_set_params(int16_t *param_tab, int param_size)
 	/* Start DSP up to bootloader */
 	dsp_pre_boot(dsp_bootcode);
 
+#ifdef CONFIG_BURST_IND
 	dputs("Installing DSP sniff patch\n");
 	dsp_bl_upload_sections(dsp_sniffcode);
+#endif
 
 	dputs("Setting some dsp_api.ndb values\n");
 	dsp_api.ndb->d_background_enable = 0;

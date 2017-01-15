@@ -134,3 +134,6 @@ INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include -I../.
 
 # Uncomment this line if you want to write to flash, including the bootloader.
 #CFLAGS += -DCONFIG_FLASH_WRITE_LOADER
+
+# Uncomment this line if you want to use burst_ind for sniffing
+#CFLAGS += -DCONFIG_BURST_IND
