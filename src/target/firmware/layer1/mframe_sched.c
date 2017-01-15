@@ -1,6 +1,6 @@
 /* GSM Multiframe Scheduler Implementation (on top of TDMA sched) */
 
-/* (C) 2010 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2010,2017 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -415,6 +415,22 @@ uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts)
 /* how long do we need to tell the DSP in advance what we want to do? */
 #define SCHEDULE_LATENCY	1
 
+#ifdef CONFIG_BURST_IND
+static struct tdma_sched_item *translate_to_sniffer(struct tdma_sched_item *tsi)
+{
+	/* map all dedicated mode tasks to the sniffer sched_sets */
+	if (tsi == NB_QUAD_DL)
+		tsi = sniff_xcch_dl_sched_set;
+	else if (tsi == NB_QUAD_UL)
+		tsi = sniff_xcch_ul_sched_set;
+	else if (tsi == TCH || tsi == TCH_A)
+		tsi = sniff_tch_sched_set;
+	else if (tsi == TCH_D)
+		tsi = NULL;
+	return tsi;
+}
+#endif
+
 /* (test and) schedule one particular sched_item_set by means of the TDMA scheduler */
 static void mframe_schedule_set(enum mframe_task task_id)
 {
@@ -425,13 +441,23 @@ static void mframe_schedule_set(enum mframe_task task_id)
 		unsigned int trigger = si->frame_nr % si->modulo;
 		unsigned int current = (l1s.current_time.fn + SCHEDULE_AHEAD) % si->modulo;
 		if (current == trigger) {
+			struct tdma_sched_item *tsi;
 			uint32_t fn;
 			int rv;
+
+#ifdef CONFIG_BURST_IND
+			if (l1s.sniffer_mode) {
+				tsi = translate_to_sniffer(si->sched_set);
+				if (!tsi)
+					return;
+			} else
+#endif
+				tsi = si->sched_set;
 
 			/* Schedule the set */
 			/* FIXME: what to do with SACCH Flag etc? */
 			rv = tdma_schedule_set(SCHEDULE_AHEAD-SCHEDULE_LATENCY,
-					  si->sched_set, task_id | (si->flags<<8));
+					  tsi, task_id | (si->flags<<8));
 
 			/* Compute the next safe time to queue a DSP command */
 			fn = l1s.current_time.fn;

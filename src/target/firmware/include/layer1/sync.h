@@ -92,6 +92,9 @@ struct l1s_state {
 	/* callbacks for each of the completions */
 	l1_compl_cb *completion[L1S_NUM_COMPL];
 
+	/* are we in sniffer mode (1) or not (0) */
+	int sniffer_mode;
+
 	/* Structures below are for L1-task specific parameters, used
 	 * to communicate between l1-sync and l1-async (l23_api) */
 	struct {
