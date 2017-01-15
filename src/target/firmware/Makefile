@@ -110,7 +110,7 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 #
 
 # Global include path
-INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
+INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include -I../../shared/libosmocore/build-target/include
 
 # Libraries are defined in subdirectories
 -include calypso/Makefile
