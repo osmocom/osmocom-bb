@@ -185,7 +185,7 @@ int flash_block_unlock(flash_t * flash, uint32_t block_offset)
 		return -EPERM;
 	}
 
-	printf("Unlocking block at 0x%08x, meaning %08x\n",
+	printf("Unlocking block at 0x%08lx, meaning %p\n",
 		   block_offset, base_addr + block_offset);
 
 	flash_write_cmd(base_addr, CFI_CMD_PROTECT);
@@ -204,7 +204,7 @@ int flash_block_lock(flash_t * flash, uint32_t block_offset)
 		return -EINVAL;
 	}
 
-	printf("Locking block at 0x%08x\n", block_offset);
+	printf("Locking block at 0x%08lx\n", block_offset);
 
 	flash_write_cmd(base_addr, CFI_CMD_PROTECT);
 	flash_write_cmd(base_addr + block_offset, CFI_PROT_LOCK);
@@ -222,7 +222,7 @@ int flash_block_lockdown(flash_t * flash, uint32_t block_offset)
 		return -EINVAL;
 	}
 
-	printf("Locking down block at 0x%08x\n", block_offset);
+	printf("Locking down block at 0x%08lx\n", block_offset);
 
 	flash_write_cmd(base_addr, CFI_CMD_PROTECT);
 	flash_write_cmd(base_addr + block_offset, CFI_PROT_LOCKDOWN);
@@ -244,7 +244,7 @@ int flash_block_erase(flash_t * flash, uint32_t block_offset)
 		return -EPERM;
 	}
 
-	printf("Erasing block 0x%08x...", block_offset);
+	printf("Erasing block 0x%08lx...", block_offset);
 
 	void *block_addr = ((uint8_t *) base_addr) + block_offset;
 
@@ -314,7 +314,7 @@ int flash_program(flash_t * flash, uint32_t dst, void *src, uint32_t nbytes)
 	}
 
 	/* say something */
-	printf("Programming %u bytes to 0x%08x from 0x%p...", nbytes, dst, src);
+	printf("Programming %lu bytes to 0x%08lx from 0x%p...", nbytes, dst, src);
 
 	/* clear status register */
 	flash_write_cmd(base_addr, CFI_CMD_CLEAR_STATUS);
@@ -374,7 +374,7 @@ int flash_program(flash_t * flash, uint32_t dst, void *src, uint32_t nbytes)
 	flash_write_cmd(base_addr, CFI_CMD_RESET);
 
  err:
-	printf(" at offset 0x%x\n", i);
+	printf(" at offset 0x%lx\n", i);
 
 	return res;
 }
