@@ -10,6 +10,7 @@
 int printf(const char *format, ...);
 int sprintf(char *str, const char *format, ...);
 int snprintf(char *str, size_t size, const char *format, ...);
+#define fprintf(fd, fmt, args...) printf(fmt, ## args)
 
 #include <stdarg.h>
 
