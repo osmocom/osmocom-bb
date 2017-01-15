@@ -2869,7 +2869,6 @@ int ms_vty_init(void)
 	install_element(CONFIG_NODE, &cfg_ms_create_cmd);
 	install_element(CONFIG_NODE, &cfg_ms_rename_cmd);
 	install_element(CONFIG_NODE, &cfg_no_ms_cmd);
-	install_element(CONFIG_NODE, &ournode_end_cmd);
 	install_node(&ms_node, config_write);
 	install_default(MS_NODE);
 	install_element(MS_NODE, &ournode_exit_cmd);
