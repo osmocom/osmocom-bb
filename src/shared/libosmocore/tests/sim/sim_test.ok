@@ -1,0 +1,6 @@
+Testing sim_sel_mf
+Testing usim_sel_mf
+Testing uicc_tprof
+Testing uicc_tprof_wrong_class
+Testing uicc_read
+Testing uicc_upd

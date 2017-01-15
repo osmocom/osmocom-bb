@@ -19,8 +19,7 @@
  * See README and COPYING for more details.
  */
 
-#ifndef AES_WRAP_H
-#define AES_WRAP_H
+#pragma once
 
 int __must_check aes_wrap(const u8 *kek, int n, const u8 *plain, u8 *cipher);
 int __must_check aes_unwrap(const u8 *kek, int n, const u8 *cipher, u8 *plain);
@@ -44,5 +43,3 @@ int __must_check aes_128_cbc_encrypt(const u8 *key, const u8 *iv, u8 *data,
 				     size_t data_len);
 int __must_check aes_128_cbc_decrypt(const u8 *key, const u8 *iv, u8 *data,
 				     size_t data_len);
-
-#endif /* AES_WRAP_H */

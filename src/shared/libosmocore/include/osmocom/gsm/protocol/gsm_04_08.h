@@ -1,7 +1,10 @@
-#ifndef PROTO_GSM_04_08_H
-#define PROTO_GSM_04_08_H
+#pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include <osmocom/core/utils.h>
+#include <osmocom/core/endian.h>
 
 /* GSM TS 04.08  definitions */
 struct gsm_lchan;
@@ -40,6 +43,7 @@ struct gsm48_classmark2 {
 } __attribute__ ((packed));
 
 /* Chapter 10.5.2.1b.3 */
+#if OSMO_IS_LITTLE_ENDIAN == 1
 struct gsm48_range_1024 {
 	uint8_t	w1_hi:2,
 		 f0:1,
@@ -73,8 +77,44 @@ struct gsm48_range_1024 {
 	uint8_t	w16:6,
 		 w15_lo:2;
 } __attribute__ ((packed));
+#else
+struct gsm48_range_1024 {
+	uint8_t	 form_id:5,
+		f0:1,
+		w1_hi:2;
+	uint8_t	w1_lo;
+	uint8_t	w2_hi;
+	uint8_t	 w2_lo:1,
+		w3_hi:7;
+	uint8_t	 w3_lo:2,
+		w4_hi:6;
+	uint8_t	 w4_lo:2,
+		w5_hi:6;
+	uint8_t	 w5_lo:2,
+		w6_hi:6;
+	uint8_t	 w6_lo:2,
+		w7_hi:6;
+	uint8_t	 w7_lo:2,
+		w8_hi:6;
+	uint8_t	 w8_lo:1,
+		w9:7;
+	uint8_t	 w10:7,
+		w11_hi:1;
+	uint8_t	 w11_lo:6,
+		w12_hi:2;
+	uint8_t	 w12_lo:5,
+		w13_hi:3;
+	uint8_t	 w13_lo:4,
+		w14_hi:4;
+	uint8_t	 w14_lo:3,
+		w15_hi:5;
+	uint8_t	 w15_lo:2,
+		w16:6;
+} __attribute__ ((packed));
+#endif
 
 /* Chapter 10.5.2.1b.4 */
+#if OSMO_IS_LITTLE_ENDIAN == 1
 struct gsm48_range_512 {
 	uint8_t	orig_arfcn_hi:1,
 		 form_id:7;
@@ -108,8 +148,44 @@ struct gsm48_range_512 {
 	uint8_t	w17:5,
 		 w16_lo:3;
 } __attribute__ ((packed));
+#else
+struct gsm48_range_512 {
+	uint8_t	 form_id:7,
+		orig_arfcn_hi:1;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	 orig_arfcn_lo:1,
+		w1_hi:7;
+	uint8_t	 w1_lo:2,
+		w2_hi:6;
+	uint8_t	 w2_lo:2,
+		w3_hi:6;
+	uint8_t	 w3_lo:2,
+		w4_hi:6;
+	uint8_t	 w4_lo:1,
+		w5:7;
+	uint8_t	 w6:7,
+		w7_hi:1;
+	uint8_t	 w7_lo:6,
+		w8_hi:2;
+	uint8_t	 w8_lo:4,
+		w9_hi:4;
+	uint8_t	 w9_lo:2,
+		w10:6;
+	uint8_t	 w11:6,
+		w12_hi:2;
+	uint8_t	 w12_lo:4,
+		w13_hi:4;
+	uint8_t	 w13_lo:2,
+		w14:6;
+	uint8_t	 w15:6,
+		w16_hi:2;
+	uint8_t	 w16_lo:3,
+		w17:5;
+} __attribute__ ((packed));
+#endif
 
 /* Chapter 10.5.2.1b.5 */
+#if OSMO_IS_LITTLE_ENDIAN == 1
 struct gsm48_range_256 {
 	uint8_t	orig_arfcn_hi:1,
 		 form_id:7;
@@ -149,8 +225,50 @@ struct gsm48_range_256 {
 		 w21:4,
 		 w20_lo:3;
 } __attribute__ ((packed));
+#else
+struct gsm48_range_256 {
+	uint8_t	 form_id:7,
+		orig_arfcn_hi:1;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	 orig_arfcn_lo:1,
+		w1_hi:7;
+	uint8_t	 w1_lo:1,
+		w2:7;
+	uint8_t	 w3:7,
+		w4_hi:1;
+	uint8_t	 w4_lo:5,
+		w5_hi:3;
+	uint8_t	 w5_lo:3,
+		w6_hi:5;
+	uint8_t	 w6_lo:1,
+		 w7:6,
+		w8_hi:1;
+	uint8_t	 w8_lo:4,
+		w9_hi:4;
+	uint8_t	 w9_lo:1,
+		 w10:5,
+		w11_hi:2;
+	uint8_t	 w11_lo:3,
+		w12:5;
+	uint8_t	 w13:5,
+		w14_hi:3;
+	uint8_t	 w14_lo:2,
+		 w15:5,
+		w16_hi:1;
+	uint8_t	 w16_lo:3,
+		 w17:4,
+		w18_hi:1;
+	uint8_t	 w18_lo:3,
+		 w19:4,
+		w20_hi:1;
+	uint8_t	 w20_lo:3,
+		 w21:4,
+		spare:1;
+} __attribute__ ((packed));
+#endif
 
 /* Chapter 10.5.2.1b.6 */
+#if OSMO_IS_LITTLE_ENDIAN == 1
 struct gsm48_range_128 {
 	uint8_t	orig_arfcn_hi:1,
 		 form_id:7;
@@ -192,6 +310,49 @@ struct gsm48_range_128 {
 		 w27:3,
 		 w26_lo:1;
 } __attribute__ ((packed));
+#else
+struct gsm48_range_128 {
+	uint8_t	 form_id:7,
+		orig_arfcn_hi:1;
+	uint8_t	orig_arfcn_mid;
+	uint8_t	 orig_arfcn_lo:1,
+		w1:7;
+	uint8_t	 w2:6,
+		w3_hi:2;
+	uint8_t	 w3_lo:4,
+		w4_hi:4;
+	uint8_t	 w4_lo:1,
+		 w5:5,
+		w6_hi:2;
+	uint8_t	 w6_lo:3,
+		w7:5;
+	uint8_t	 w8:4,
+		w9:4;
+	uint8_t	 w10:4,
+		w11:4;
+	uint8_t	 w12:4,
+		w13:4;
+	uint8_t	 w14:4,
+		w15:4;
+	uint8_t	 w16:3,
+		 w17:3,
+		w18_hi:2;
+	uint8_t	 w18_lo:1,
+		 w19:3,
+		 w20:3,
+		w21_hi:1;
+	uint8_t	 w21_lo:2,
+		 w22:3,
+		w23:3;
+	uint8_t	 w24:3,
+		 w25:3,
+		w26_hi:2;
+	uint8_t	 w26_lo:1,
+		 w27:3,
+		 w28:3,
+		spare:1;
+} __attribute__ ((packed));
+#endif
 
 /* Chapter 10.5.2.1b.7 */
 struct gsm48_var_bit {
@@ -345,8 +506,10 @@ enum gsm48_chan_mode {
 	GSM48_CMODE_DATA_14k5	= 0x0f,
 	GSM48_CMODE_DATA_12k0	= 0x03,
 	GSM48_CMODE_DATA_6k0	= 0x0b,
-	GSM48_CMODE_DATA_3k6	= 0x23,
+	GSM48_CMODE_DATA_3k6	= 0x13,
 };
+
+extern const struct value_string gsm48_chan_mode_names[];
 
 /* Chapter 9.1.2 */
 struct gsm48_ass_cmd {
@@ -466,11 +629,20 @@ struct gsm48_control_channel_descr {
 	uint8_t t3212;
 } __attribute__ ((packed));
 
+enum gsm48_dtx_mode {
+	GSM48_DTX_MAY_BE_USED,
+	GSM48_DTX_SHALL_BE_USED,
+	GSM48_DTX_SHALL_NOT_BE_USED
+};
+
+/* Cell Options for SI6, SACCH (10.5.2.3a.2) or SI3, BCCH (Table 10.5.2.3.1),
+   3GPP TS 44.018 */
 struct gsm48_cell_options {
 	uint8_t radio_link_timeout:4,
 		 dtx:2,
 		 pwrc:1,
-		 spare:1;
+	/* either DN-IND or top bit of DTX IND */
+		 d:1;
 } __attribute__ ((packed));
 
 /* Section 9.2.9 CM service request */
@@ -512,6 +684,12 @@ struct gsm48_system_information_type_2bis {
 struct gsm48_system_information_type_2ter {
 	struct gsm48_system_information_type_header header;
 	uint8_t ext_bcch_frequency_list[16];
+	uint8_t rest_octets[0];
+} __attribute__ ((packed));
+
+/* Section 9.1.34a System information Type 2quater */
+struct gsm48_system_information_type_2quater {
+	struct gsm48_system_information_type_header header;
 	uint8_t rest_octets[0];
 } __attribute__ ((packed));
 
@@ -742,8 +920,100 @@ struct gsm48_rr_status {
 #define GSM48_PDISC_SM_GPRS	0x0a
 #define GSM48_PDISC_NC_SS	0x0b
 #define GSM48_PDISC_LOC		0x0c
+#define GSM48_PDISC_EXTEND	0x0e
 #define GSM48_PDISC_MASK	0x0f
 #define GSM48_PDISC_USSD	0x11
+
+bool gsm48_hdr_gmm_cipherable(const struct gsm48_hdr *hdr);
+
+static inline uint8_t gsm48_hdr_pdisc(const struct gsm48_hdr *hdr)
+{
+	/*
+	 * 3GPP TS 24.007 version 12.0.0 Release 12,
+	 * 11.2.3.1.1 Protocol discriminator
+	 */
+	uint8_t pdisc = hdr->proto_discr & GSM48_PDISC_MASK;
+	if (pdisc == GSM48_PDISC_EXTEND)
+		return hdr->proto_discr;
+	return pdisc;
+}
+
+static inline uint8_t gsm48_hdr_trans_id(const struct gsm48_hdr *hdr)
+{
+	/*
+	 * 3GPP TS 24.007 version 12.0.0 Release 12,
+	 * 11.2.3.1.3 Transaction identifier
+	 */
+	return (hdr->proto_discr & 0xf0) >> 4;
+}
+
+#define GSM48_TA_INVALID 220
+
+/*! \brief Check if TA is valid according to 3GPP TS 44.018 § 10.5.2.40
+ *  \param[in] ta Timing Advance value
+ *  \returns true if ta is valid, false otherwise
+ *  Note: Rules for GSM400 band are ignored as it's not implemented in practice.
+ */
+static inline bool gsm48_ta_is_valid(uint8_t ta)
+{
+	return (ta < 64);
+}
+
+static inline uint8_t gsm48_hdr_trans_id_flip_ti(const struct gsm48_hdr *hdr)
+{
+	return gsm48_hdr_trans_id(hdr) ^ 0x08;
+}
+
+static inline uint8_t gsm48_hdr_trans_id_no_ti(const struct gsm48_hdr *hdr)
+{
+	return gsm48_hdr_trans_id(hdr) & 0x07;
+}
+
+static inline uint8_t gsm48_hdr_msg_type_r98(const struct gsm48_hdr *hdr)
+{
+	/*
+	 * 3GPP TS 24.007 version 12.0.0 Release 12,
+	 * 11.2.3.2.1 Message type octet (when accessing Release 98 and older
+	 * networks only)
+	 */
+	switch (gsm48_hdr_pdisc(hdr)) {
+	case GSM48_PDISC_MM:
+	case GSM48_PDISC_CC:
+	case GSM48_PDISC_NC_SS:
+	case GSM48_PDISC_GROUP_CC:
+	case GSM48_PDISC_BCAST_CC:
+	case GSM48_PDISC_LOC:
+		return hdr->msg_type & 0xbf;
+	default:
+		return hdr->msg_type;
+	}
+}
+
+static inline uint8_t gsm48_hdr_msg_type_r99(const struct gsm48_hdr *hdr)
+{
+	/*
+	 * 3GPP TS 24.007 version 12.0.0 Release 12,
+	 * 11.2.3.2.2 Message type octet (when accessing Release 99 and newer
+	 * networks)
+	 */
+	switch (gsm48_hdr_pdisc(hdr)) {
+	case GSM48_PDISC_MM:
+	case GSM48_PDISC_CC:
+		return hdr->msg_type & 0x3f;
+	case GSM48_PDISC_NC_SS:
+	case GSM48_PDISC_GROUP_CC:
+	case GSM48_PDISC_BCAST_CC:
+	case GSM48_PDISC_LOC:
+		return hdr->msg_type & 0xbf;
+	default:
+		return hdr->msg_type;
+	}
+}
+
+void gsm48_set_dtx(struct gsm48_cell_options *op, enum gsm48_dtx_mode full,
+		   enum gsm48_dtx_mode half, bool is_bcch);
+
+#define gsm48_hdr_msg_type gsm48_hdr_msg_type_r99
 
 /* Section 10.4 */
 #define GSM48_MT_RR_INIT_REQ		0x3c
@@ -751,6 +1021,10 @@ struct gsm48_rr_status {
 #define GSM48_MT_RR_IMM_ASS		0x3f
 #define GSM48_MT_RR_IMM_ASS_EXT		0x39
 #define GSM48_MT_RR_IMM_ASS_REJ		0x3a
+#define GSM48_MT_RR_DTM_ASS_FAIL	0x48
+#define GSM48_MT_RR_DTM_REJECT		0x49
+#define GSM48_MT_RR_DTM_REQUEST		0x4A
+#define GSM48_MT_RR_PACKET_ASS		0x4B
 
 #define GSM48_MT_RR_CIPH_M_CMD		0x35
 #define GSM48_MT_RR_CIPH_M_COMPL	0x32
@@ -766,6 +1040,8 @@ struct gsm48_rr_status {
 #define GSM48_MT_RR_HANDO_COMPL		0x2c
 #define GSM48_MT_RR_HANDO_FAIL		0x28
 #define GSM48_MT_RR_HANDO_INFO		0x2d
+#define GSM48_MT_RR_HANDO_INFO		0x2d
+#define GSM48_MT_RR_DTM_ASS_CMD		0x4c
 
 #define GSM48_MT_RR_CELL_CHG_ORDER	0x08
 #define GSM48_MT_RR_PDCH_ASS_CMD	0x23
@@ -779,8 +1055,13 @@ struct gsm48_rr_status {
 #define GSM48_MT_RR_PAG_REQ_3		0x24
 #define GSM48_MT_RR_PAG_RESP		0x27
 #define GSM48_MT_RR_NOTIF_NCH		0x20
-#define GSM48_MT_RR_NOTIF_FACCH		0x25
+#define GSM48_MT_RR_NOTIF_FACCH		0x25 /* (Reserved) */
 #define GSM48_MT_RR_NOTIF_RESP		0x26
+#define GSM48_MT_RR_PACKET_NOTIF	0x4e
+#define GSM48_MT_RR_UTRAN_CLSM_CHG	0x60
+#define GSM48_MT_RR_CDMA2K_CLSM_CHG	0x62
+#define GSM48_MT_RR_IS_TO_UTRAN_HANDO	0x63
+#define GSM48_MT_RR_IS_TO_CDMA2K_HANDO	0x64
 
 #define GSM48_MT_RR_SYSINFO_8		0x18
 #define GSM48_MT_RR_SYSINFO_1		0x19
@@ -793,6 +1074,7 @@ struct gsm48_rr_status {
 
 #define GSM48_MT_RR_SYSINFO_2bis	0x02
 #define GSM48_MT_RR_SYSINFO_2ter	0x03
+#define GSM48_MT_RR_SYSINFO_2quater	0x07
 #define GSM48_MT_RR_SYSINFO_5bis	0x05
 #define GSM48_MT_RR_SYSINFO_5ter	0x06
 #define GSM48_MT_RR_SYSINFO_9		0x04
@@ -800,6 +1082,10 @@ struct gsm48_rr_status {
 
 #define GSM48_MT_RR_SYSINFO_16		0x3d
 #define GSM48_MT_RR_SYSINFO_17		0x3e
+
+#define GSM48_MT_RR_SYSINFO_18		0x40
+#define GSM48_MT_RR_SYSINFO_19		0x41
+#define GSM48_MT_RR_SYSINFO_20		0x42
 
 #define GSM48_MT_RR_CHAN_MODE_MODIF	0x10
 #define GSM48_MT_RR_STATUS		0x12
@@ -811,8 +1097,9 @@ struct gsm48_rr_status {
 #define GSM48_MT_RR_EXT_MEAS_REP	0x36
 #define GSM48_MT_RR_EXT_MEAS_REP_ORD	0x37
 #define GSM48_MT_RR_GPRS_SUSP_REQ	0x34
+#define GSM48_MT_RR_DTM_INFO		0x4d
 
-#define GSM48_MT_RR_VGCS_UPL_GRANT	0x08
+#define GSM48_MT_RR_VGCS_UPL_GRANT	0x09
 #define GSM48_MT_RR_UPLINK_RELEASE	0x0e
 #define GSM48_MT_RR_UPLINK_FREE		0x0c
 #define GSM48_MT_RR_UPLINK_BUSY		0x2a
@@ -925,6 +1212,7 @@ struct gsm48_rr_status {
 #define GSM48_IE_UTC		0x46	/* 10.5.3.8 */
 #define GSM48_IE_NET_TIME_TZ	0x47	/* 10.5.3.9 */
 #define GSM48_IE_LSA_IDENT	0x48	/* 10.5.3.11 */
+#define GSM48_IE_NET_DST	0x49	/* 10.5.3.12 [24.008] */
 
 #define GSM48_IE_BEARER_CAP	0x04	/* 10.5.4.5 */
 #define GSM48_IE_CAUSE		0x08	/* 10.5.4.11 */
@@ -1013,6 +1301,7 @@ struct gsm48_rr_status {
 
 /* Additional MM elements */
 #define GSM48_IE_LOCATION_AREA	0x13
+#define GSM48_IE_AUTN		0x20
 #define GSM48_IE_PRIORITY_LEV	0x80
 #define GSM48_IE_FOLLOW_ON_PROC	0xa1
 #define GSM48_IE_CTS_PERMISSION	0xa2
@@ -1052,9 +1341,9 @@ enum gsm48_rr_cause {
 	GSM48_RR_CAUSE_ABNORMAL_TIMER	= 0x03,
 	GSM48_RR_CAUSE_ABNORMAL_NOACT	= 0x04,
 	GSM48_RR_CAUSE_PREMPTIVE_REL	= 0x05,
-	GSM48_RR_CAUSE_HNDOVER_IMP	= 0x06,
-	GSM48_RR_CAUSE_CHAN_MODE_UNACCT	= 0x07,
-	GSM48_RR_CAUSE_FREQ_NOT_IMPL	= 0x08,
+	GSM48_RR_CAUSE_HNDOVER_IMP	= 0x08,
+	GSM48_RR_CAUSE_CHAN_MODE_UNACCT	= 0x09,
+	GSM48_RR_CAUSE_FREQ_NOT_IMPL	= 0x0a,
 	GSM48_RR_CAUSE_CALL_CLEARED	= 0x41,
 	GSM48_RR_CAUSE_SEMANT_INCORR	= 0x5f,
 	GSM48_RR_CAUSE_INVALID_MAND_INF = 0x60,
@@ -1335,5 +1624,3 @@ struct gsm48_ra_id {
 
 #define GSM_MACBLOCK_LEN	23
 #define GSM_MACBLOCK_PADDING	0x2b
-
-#endif /* PROTO_GSM_04_08_H */

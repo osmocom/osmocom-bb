@@ -22,6 +22,10 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include <osmocom/core/bitvec.h>
+#include <osmocom/core/utils.h>
 
 /* GSM HR unvoiced (mode=0) frames - subjective importance bit ordering */
 	/* This array encode mapping between GSM 05.03 Table 3a (bits
@@ -35,36 +39,36 @@ const uint16_t gsm620_unvoiced_bitorder[112] = {
 	90,	/* GSP 0-3:2 */
 	109,	/* GSP 0-4:2 */
 	15,	/* LPC 1:0 */
-	23,	/* LPC 2:1 */
-	22,	/* LPC 2:2 */
-	21,	/* LPC 2:3 */
-	20,	/* LPC 2:4 */
 	19,	/* LPC 2:5 */
-	31,	/* LPC 3:1 */
-	30,	/* LPC 3:2 */
-	29,	/* LPC 3:3 */
-	28,	/* LPC 3:4 */
-	27,	/* LPC 3:5 */
+	20,	/* LPC 2:4 */
+	21,	/* LPC 2:3 */
+	22,	/* LPC 2:2 */
+	23,	/* LPC 2:1 */
 	26,	/* LPC 3:6 */
+	27,	/* LPC 3:5 */
+	28,	/* LPC 3:4 */
+	29,	/* LPC 3:3 */
+	30,	/* LPC 3:2 */
+	31,	/* LPC 3:1 */
 	61,	/* Code 1-2:0 */
-	68,	/* Code 2-2:0 */
-	67,	/* Code 2-2:1 */
-	66,	/* Code 2-2:2 */
-	65,	/* Code 2-2:3 */
-	64,	/* Code 2-2:4 */
-	63,	/* Code 2-2:5 */
 	62,	/* Code 2-2:6 */
-	80,	/* Code 1-3:0 */
-	79,	/* Code 1-3:1 */
-	78,	/* Code 1-3:2 */
-	77,	/* Code 1-3:3 */
-	76,	/* Code 1-3:4 */
-	75,	/* Code 1-3:5 */
+	63,	/* Code 2-2:5 */
+	64,	/* Code 2-2:4 */
+	65,	/* Code 2-2:3 */
+	66,	/* Code 2-2:2 */
+	67,	/* Code 2-2:1 */
+	68,	/* Code 2-2:0 */
 	74,	/* Code 1-3:6 */
-	84,	/* Code 2-3:3 */
-	83,	/* Code 2-3:4 */
-	82,	/* Code 2-3:5 */
+	75,	/* Code 1-3:5 */
+	76,	/* Code 1-3:4 */
+	77,	/* Code 1-3:3 */
+	78,	/* Code 1-3:2 */
+	79,	/* Code 1-3:1 */
+	80,	/* Code 1-3:0 */
 	81,	/* Code 2-3:6 */
+	82,	/* Code 2-3:5 */
+	83,	/* Code 2-3:4 */
+	84,	/* Code 2-3:3 */
 	32,	/* LPC 3:0 */
 	4,	/* R0:0 */
 	33,	/* INT-LPC:0 */
@@ -106,9 +110,9 @@ const uint16_t gsm620_unvoiced_bitorder[112] = {
 	89,	/* GSP 0-3:3 */
 	70,	/* GSP 0-2:3 */
 	51,	/* GSP 0-1:3 */
-	18,	/* LPC 2:6 */
-	17,	/* LPC 2:7 */
 	16,	/* LPC 2:8 */
+	17,	/* LPC 2:7 */
+	18,	/* LPC 2:6 */
 	107,	/* GSP 0-4:4 */
 	88,	/* GSP 0-3:4 */
 	69,	/* GSP 0-2:4 */
@@ -149,9 +153,9 @@ const uint16_t gsm620_unvoiced_bitorder[112] = {
 const uint16_t gsm620_voiced_bitorder[112] = {
 	13,	/* LPC 1:2 */
 	14,	/* LPC 1:1 */
-	20,	/* LPC 2:4 */
-	19,	/* LPC 2:5 */
 	18,	/* LPC 2:6 */
+	19,	/* LPC 2:5 */
+	20,	/* LPC 2:4 */
 	53,	/* GSP 0-1:4 */
 	71,	/* GSP 0-2:4 */
 	89,	/* GSP 0-3:4 */
@@ -164,22 +168,22 @@ const uint16_t gsm620_voiced_bitorder[112] = {
 	73,	/* GSP 0-2:2 */
 	91,	/* GSP 0-3:2 */
 	109,	/* GSP 0-4:2 */
-	52,	/* Code 1:0 */
-	51,	/* Code 1:1 */
-	50,	/* Code 1:2 */
-	49,	/* Code 1:3 */
-	48,	/* Code 1:4 */
-	47,	/* Code 1:5 */
-	46,	/* Code 1:6 */
-	45,	/* Code 1:7 */
 	44,	/* Code 1:8 */
-	65,	/* Code 2:5 */
-	64,	/* Code 2:6 */
-	63,	/* Code 2:7 */
+	45,	/* Code 1:7 */
+	46,	/* Code 1:6 */
+	47,	/* Code 1:5 */
+	48,	/* Code 1:4 */
+	49,	/* Code 1:3 */
+	50,	/* Code 1:2 */
+	51,	/* Code 1:1 */
+	52,	/* Code 1:0 */
 	62,	/* Code 2:8 */
-	70,	/* Code 2:0 */
-	69,	/* Code 2:1 */
+	63,	/* Code 2:7 */
+	64,	/* Code 2:6 */
+	65,	/* Code 2:5 */
 	68,	/* Code 2:2 */
+	69,	/* Code 2:1 */
+	70,	/* Code 2:0 */
 	80,	/* Code 3:8 */
 	66,	/* Code 2:4 */
 	67,	/* Code 2:3 */
@@ -260,3 +264,31 @@ const uint16_t gsm620_voiced_bitorder[112] = {
 	82,	/* Code 3:6 */
 	81,	/* Code 3:7 */
 };
+
+static inline uint16_t mask(const uint8_t msb)
+{
+	const uint16_t m = (uint16_t)1  << (msb - 1);
+	return (m - 1) ^ m;
+}
+
+/*! \brief Check whether RTP frame contains HR SID code word according to
+ *  TS 101 318 §5.2.2
+ *  \param[in] rtp_payload Buffer with RTP payload
+ *  \param[in] payload_len Length of payload
+ *  \returns true if code word is found, false otherwise
+ */
+bool osmo_hr_check_sid(uint8_t *rtp_payload, size_t payload_len)
+{
+	uint8_t i, bits[] = { 1, 2, 8, 9, 5, 4, 9, 5, 4, 9, 5, 4, 9, 5 };
+	struct bitvec bv;
+	bv.data = rtp_payload;
+	bv.data_len = payload_len;
+	bv.cur_bit = 33;
+
+	/* code word is all 1 at given bits, numbered from 1, MODE is always 3 */
+	for (i = 0; i < ARRAY_SIZE(bits); i++)
+		if (bitvec_get_uint(&bv, bits[i]) != mask(bits[i]))
+			return false;
+
+	return true;
+}

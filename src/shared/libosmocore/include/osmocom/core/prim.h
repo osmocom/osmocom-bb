@@ -1,11 +1,10 @@
-#ifndef OSMO_PRIMITIVE_H
-#define OSMO_PRIMITIVE_H
+#pragma once
 
 /*! \defgroup prim Osmocom primitives
  *  @{
  */
 
-/*! \file prim.c */
+/*! \file prim.h */
 
 #include <stdint.h>
 #include <osmocom/core/msgb.h>
@@ -18,13 +17,16 @@ enum osmo_prim_operation {
 	PRIM_OP_REQUEST,	/*!< \brief request */
 	PRIM_OP_RESPONSE,	/*!< \brief response */
 	PRIM_OP_INDICATION,	/*!< \brief indication */
-	PRIM_OP_CONFIRM,	/*!< \brief cofirm */
+	PRIM_OP_CONFIRM,	/*!< \brief confirm */
 };
+
+extern const struct value_string osmo_prim_op_names[5];
 
 #define _SAP_GSM_SHIFT	24
 
 #define _SAP_GSM_BASE	(0x01 << _SAP_GSM_SHIFT)
 #define _SAP_TETRA_BASE	(0x02 << _SAP_GSM_SHIFT)
+#define _SAP_SS7_BASE	(0x03 << _SAP_GSM_SHIFT)
 
 /*! \brief primitive header */
 struct osmo_prim_hdr {
@@ -37,7 +39,7 @@ struct osmo_prim_hdr {
 /*! \brief initialize a primitive header
  *  \param[in,out] oph primitive header
  *  \param[in] sap Service Access Point
- *  \param[in] primtive Primitive Number
+ *  \param[in] primitive Primitive Number
  *  \param[in] operation Primitive Operation (REQ/RESP/IND/CONF)
  *  \param[in] msg Message
  */
@@ -55,4 +57,4 @@ osmo_prim_init(struct osmo_prim_hdr *oph, unsigned int sap,
 /*! \brief primitive handler callback type */
 typedef int (*osmo_prim_cb)(struct osmo_prim_hdr *oph, void *ctx);
 
-#endif /* OSMO_PRIMITIVE_H */
+/*! @} */

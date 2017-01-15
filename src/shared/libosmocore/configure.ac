@@ -2,7 +2,10 @@ AC_INIT([libosmocore],
 	m4_esyscmd([./git-version-gen .tarball-version]),
 	[openbsc@lists.osmocom.org])
 
-AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip 1.6])
+dnl *This* is the root dir, even if an install-sh exists in ../ or ../../
+AC_CONFIG_AUX_DIR([.])
+
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip 1.6 subdir-objects])
 AC_CONFIG_TESTDIR(tests)
 
 dnl kernel style compile messages
@@ -13,9 +16,24 @@ AC_PROG_MAKE_SET
 AC_PROG_MKDIR_P
 AC_PROG_CC
 AC_PROG_INSTALL
-LT_INIT([pic-only])
+LT_INIT([pic-only disable-static])
 
 AC_CONFIG_MACRO_DIR([m4])
+
+dnl check for pkg-config
+dnl * If pkg-config is missing, we get a "syntax error" for PKG_CHECK_MODULES.
+dnl   Instead, we want to say that pkg-config and pkg.m4 are missing.
+dnl * The proper way is PKG_PROG_PKG_CONFIG() but unfortunately that does not
+dnl   produce an intelligible error message if pkg-config is missing entirely
+dnl   ("syntax error near unexpected token `0.20'").
+dnl * To produce a hint that pkg-config is missing, check for the pkg-config
+dnl   binary; but AC_PATH_PROG breaks if the distribution provides only
+dnl   prefixed (<arch>-pkg-config) versions, so just print a warning.
+AC_PATH_PROG(PKG_CONFIG_INSTALLED, pkg-config, no)
+if test "x$PKG_CONFIG_INSTALLED" = "xno"; then
+        AC_MSG_WARN([You need to install pkg-config])
+fi
+PKG_PROG_PKG_CONFIG([0.20])
 
 dnl check os: some linker flags not available on osx
 case $host in
@@ -31,11 +49,14 @@ AC_SUBST(LTLDFLAGS_OSMOGSM)
 
 dnl checks for header files
 AC_HEADER_STDC
-AC_CHECK_HEADERS(execinfo.h sys/select.h sys/socket.h syslog.h ctype.h)
+AC_CHECK_HEADERS(execinfo.h sys/select.h sys/socket.h syslog.h ctype.h netinet/tcp.h)
 # for src/conv.c
 AC_FUNC_ALLOCA
 AC_SEARCH_LIBS([dlopen], [dl dld], [LIBRARY_DL="$LIBS";LIBS=""])
 AC_SUBST(LIBRARY_DL)
+# for src/backtrace.c
+AC_CHECK_LIB(execinfo, backtrace, BACKTRACE_LIB=-lexecinfo, BACKTRACE_LIB=)
+AC_SUBST(BACKTRACE_LIB)
 
 AC_PATH_PROG(DOXYGEN,doxygen,false)
 AM_CONDITIONAL(HAVE_DOXYGEN, test $DOXYGEN != false)
@@ -77,15 +98,22 @@ AC_DEFUN([CHECK_TM_INCLUDES_TM_GMTOFF], [
 CHECK_TM_INCLUDES_TM_GMTOFF
 
 dnl Generate the output
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER(config.h)
 
-AC_ARG_ENABLE(talloc,
-	[AS_HELP_STRING(
-		[--disable-talloc],
-		[Disable building talloc memory allocator]
-	)],
-	[enable_talloc=$enableval], [enable_talloc="yes"])
-AM_CONDITIONAL(ENABLE_TALLOC, [test x"$enable_talloc" = x"yes"])
+PKG_CHECK_MODULES(TALLOC, [talloc >= 2.0.1])
+
+AC_ARG_ENABLE([pcsc], [AS_HELP_STRING([--disable-pcsc], [Build without PC/SC support])],
+    [
+        ENABLE_PCSC=$enableval
+    ],
+    [
+        ENABLE_PCSC="yes"
+    ])
+AS_IF([test "x$ENABLE_PCSC" = "xyes"], [
+	PKG_CHECK_MODULES(PCSC, libpcsclite)
+])
+AM_CONDITIONAL(ENABLE_PCSC, test "x$ENABLE_PCSC" = "xyes")
+AC_SUBST(ENABLE_PCSC)
 
 AC_ARG_ENABLE(plugin,
 	[AS_HELP_STRING(
@@ -170,12 +198,22 @@ then
 	AM_CONDITIONAL(ENABLE_MSGFILE, false)
 	AM_CONDITIONAL(ENABLE_SERIAL, false)
 	AM_CONDITIONAL(ENABLE_VTY, false)
-	AM_CONDITIONAL(ENABLE_TALLOC, false)
 	AM_CONDITIONAL(ENABLE_UTILITIES, false)
 	AM_CONDITIONAL(ENABLE_GB, false)
 	AC_DEFINE([PANIC_INFLOOP],[1],[Use infinite loop on panic rather than fprintf/abort])
 fi
 
+AC_ARG_ENABLE(sanitize,
+	[AS_HELP_STRING(
+		[--enable-sanitize],
+		[Compile with address sanitizer enabled],
+	)],
+	[sanitize=$enableval], [sanitize="no"])
+if test x"$sanitize" = x"yes"
+then
+	CFLAGS+=" -fsanitize=address -fsanitize=undefined"
+	CPPFLAGS+=" -fsanitize=address -fsanitize=undefined"
+fi
 
 AC_OUTPUT(
 	libosmocore.pc
@@ -183,13 +221,18 @@ AC_OUTPUT(
 	libosmovty.pc
 	libosmogsm.pc
 	libosmogb.pc
+	libosmoctrl.pc
+	libosmosim.pc
 	include/Makefile
 	src/Makefile
 	src/vty/Makefile
 	src/codec/Makefile
+	src/sim/Makefile
 	src/gsm/Makefile
 	src/gb/Makefile
+	src/ctrl/Makefile
 	tests/Makefile
+	tests/atlocal
 	utils/Makefile
 	Doxyfile.core
 	Doxyfile.gsm

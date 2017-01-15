@@ -1,5 +1,4 @@
-#ifndef _OSMO_PROTO_IPACCESS_H
-#define _OSMO_PROTO_IPACCESS_H
+#pragma once
 
 #include <stdint.h>
 
@@ -34,6 +33,9 @@ enum ipaccess_proto_ext {
 	IPAC_PROTO_EXT_MGCP	= 0x01,
 	IPAC_PROTO_EXT_LAC	= 0x02,
 	IPAC_PROTO_EXT_SMSC	= 0x03,
+	IPAC_PROTO_EXT_ORC	= 0x04,		/* OML Router Control */
+	IPAC_PROTO_EXT_GSUP	= 0x05,		/* GSUP GPRS extension */
+	IPAC_PROTO_EXT_OAP	= 0x06,		/* Osmocom Authn Protocol */
 };
 
 enum ipaccess_msgtype {
@@ -90,5 +92,3 @@ struct sdp_header_entry {
 	uint32_t addr2;
 	uint32_t start;
 } __attribute__((packed));
-
-#endif /* _OSMO_PROTO_IPACCESS_H */

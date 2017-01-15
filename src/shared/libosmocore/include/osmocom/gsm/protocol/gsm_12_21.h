@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_12_21_H
-#define PROTO_GSM_12_21_H
+#pragma once
 
 /* GSM Network Management messages on the A-bis interface 
  * 3GPP TS 12.21 version 8.0.0 Release 1999 / ETSI TS 100 623 V8.0.0 */
@@ -45,6 +44,9 @@ struct abis_om_hdr {
 	/*! \brief actual payload data */
 	uint8_t	data[0];
 } __attribute__ ((packed));
+
+#define ABIS_NM_MSG_SIZE	1024
+#define ABIS_NM_MSG_HEADROOM	128
 
 /*! \brief Message Discriminator for Formatted Object Messages */
 #define ABIS_OM_MDISC_FOM		0x80
@@ -256,6 +258,26 @@ enum abis_nm_msgtype_ipacc {
 	NM_MT_IPACC_SET_ATTR_ACK,
 	NM_MT_IPACC_SET_ATTR_NACK,
 };
+
+/*! \brief OML Probable Cause (Section 9.4.43) Manufacturer specific values */
+enum abis_mm_event_causes {
+	/* Critical causes */
+	OSMO_EVT_CRIT_SW_FATAL		= 0x0000,
+	OSMO_EVT_CRIT_PROC_STOP		= 0x0002,
+	OSMO_EVT_CRIT_RTP_TOUT		= 0x032c,
+	OSMO_EVT_CRIT_BOOT_FAIL		= 0x0401,
+	/* Major causes */
+	OSMO_EVT_MAJ_UKWN_MSG		= 0x0002,
+	OSMO_EVT_MAJ_RSL_FAIL		= 0x0309,
+	OSMO_EVT_MAJ_UNSUP_ATTR		= 0x0318,
+	OSMO_EVT_MAJ_NET_CONGEST	= 0x032b,
+	/* Minor causes */
+	OSMO_EVT_MIN_PAG_TAB_FULL	= 0x0401,
+	/* Warning causes */
+	OSMO_EVT_WARN_SW_WARN		= 0x0001,
+};
+
+extern const struct value_string abis_mm_event_cause_names[];
 
 enum abis_nm_bs11_cell_alloc {
 	NM_BS11_CANR_GSM	= 0x00,
@@ -486,6 +508,10 @@ enum abis_nm_attr {
 	NM_ATT_BS11_ANT_TYPE		= 0xf4,
 	NM_ATT_BS11_PLL_MODE		= 0xfc,
 	NM_ATT_BS11_PASSWORD		= 0xfd,
+
+	/* osmocom (osmo-bts) specific attributes, used in combination
+	 * with the "org.osmocom" manufacturer identification */
+	NM_ATT_OSMO_REDUCEPOWER		= 0xfe,	/* TLV_TYPE_TV */
 };
 #define NM_ATT_BS11_FILE_DATA	NM_ATT_EVENT_TYPE
 
@@ -536,6 +562,8 @@ enum abis_nm_chan_comb {
 	NM_CHANC_IPAC_PDCH	= 0x0d,	/* PDTCH/F + PACCH/F + PTCCH/F */
 	NM_CHANC_IPAC_TCHFull_PDCH = 0x80,
 	NM_CHANC_IPAC_TCHFull_TCHHalf = 0x81,
+	/* osmocom */
+	NM_CHANC_OSMO_TCHFull_TCHHalf_PDCH = 0x90,
 };
 
 /*! \brief Event Type (Section 9.4.16) */
@@ -563,6 +591,8 @@ enum abis_nm_pcause_type {
 	NM_PCAUSE_T_GSM		= 0x02,
 	NM_PCAUSE_T_MANUF	= 0x03,
 };
+
+extern const struct value_string abis_nm_pcause_type_names[];
 
 /*! \brief NACK causes (Section 9.4.36) */
 enum abis_nm_nack_cause {
@@ -609,6 +639,19 @@ struct abis_nm_channel {
 	uint8_t	timeslot;	/*!< \brief E1 timeslot */
 	uint8_t	subslot;	/*!< \brief E1 sub-slot */
 } __attribute__ ((packed));
+
+/*! \brief 3GPP TS 12.21 9.4.53 T200 index */
+enum abis_nm_t200_idx {
+	T200_SDCCH		= 0,
+	T200_FACCH_F		= 1,
+	T200_FACCH_H		= 2,
+	T200_SACCH_TCH_SAPI0	= 3,
+	T200_SACCH_SDCCH	= 4,
+	T200_SDCCH_SAPI3	= 5,
+	T200_SACCH_TCH_SAPI3	= 6
+};
+
+extern const uint8_t abis_nm_t200_ms[];
 
 /*! \brief Siemens BS-11 specific objects in the SienemsHW (0xA5) object class */
 enum abis_bs11_objtype {
@@ -743,6 +786,13 @@ enum ipac_bcch_info_type {
 	IPAC_BINF_CELL_ALLOC		= (1 << 2),
 };
 
+struct msgb *abis_nm_fail_evt_rep(enum abis_nm_event_type t,
+				  enum abis_nm_severity s,
+				  enum abis_nm_pcause_type ct,
+				  uint16_t cause_value, const char *fmt, ...);
+struct msgb *abis_nm_fail_evt_vrep(enum abis_nm_event_type t,
+				   enum abis_nm_severity s,
+				   enum abis_nm_pcause_type ct,
+				   uint16_t cause_value, const char *fmt,
+				   va_list ap);
 /*! @} */
-
-#endif /* PROTO_GSM_12_21_H */

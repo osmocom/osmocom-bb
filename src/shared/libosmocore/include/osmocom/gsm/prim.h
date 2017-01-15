@@ -1,5 +1,4 @@
-#ifndef OSMO_GSM_PRIM_H
-#define OSMO_GSM_PRIM_H
+#pragma once
 
 #include <osmocom/core/prim.h>
 
@@ -14,5 +13,3 @@ enum osmo_gsm_sap {
 	SAP_BSSGP_NM,
 	SAP_BSSGP_PFM,
 };
-
-#endif

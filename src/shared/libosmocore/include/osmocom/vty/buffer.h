@@ -16,12 +16,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with GNU Zebra; see the file COPYING.  If not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _ZEBRA_BUFFER_H
-#define _ZEBRA_BUFFER_H
+#pragma once
 
 #include <sys/types.h>
 
@@ -40,7 +39,7 @@ void buffer_free(struct buffer *);
 /* Add the given data to the end of the buffer. */
 extern void buffer_put(struct buffer *, const void *, size_t);
 /* Add a single character to the end of the buffer. */
-extern void buffer_putc(struct buffer *, u_char);
+extern void buffer_putc(struct buffer *, unsigned char);
 /* Add a NUL-terminated string to the end of the buffer. */
 extern void buffer_putstr(struct buffer *, const char *);
 
@@ -98,5 +97,3 @@ extern buffer_status_t buffer_flush_all(struct buffer *, int fd);
 */
 extern buffer_status_t buffer_flush_window(struct buffer *, int fd, int width,
 					   int height, int erase, int no_more);
-
-#endif				/* _ZEBRA_BUFFER_H */

@@ -5,16 +5,16 @@
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
@@ -33,6 +33,7 @@
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/gprs/gprs_ns.h>
 #include <osmocom/gprs/gprs_bssgp.h>
+#include <osmocom/gprs/gprs_bssgp_bss.h>
 
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
@@ -41,12 +42,6 @@
 #include <osmocom/vty/misc.h>
 
 #include "common_vty.h"
-
-/* FIXME: this should go to some common file as it is copied
- * in vty_interface.c of the BSC */
-static const struct value_string gprs_bssgp_timer_strs[] = {
-	{ 0, NULL }
-};
 
 static void log_set_bvc_filter(struct log_target *target,
 				struct bssgp_bvc_ctx *bctx)
@@ -97,9 +92,10 @@ static void dump_bvc(struct vty *vty, struct bssgp_bvc_ctx *bvc, int stats)
 		if (fc)
 			vty_out(vty, "FC-BVC(bucket_max: %uoct, leak_rate: "
 				"%uoct/s, cur_tokens: %uoct, max_q_d: %u, "
-				"cur_q_d: %u)\n", fc->bucket_size_max,
+				"cur_q_d: %u)%s", fc->bucket_size_max,
 				fc->bucket_leak_rate, fc->bucket_counter,
-				fc->max_queue_depth, fc->queue_depth);
+				fc->max_queue_depth, fc->queue_depth,
+				VTY_NEWLINE);
 	}
 }
 
@@ -110,6 +106,30 @@ static void dump_bssgp(struct vty *vty, int stats)
 	llist_for_each_entry(bvc, &bssgp_bvc_ctxts, list) {
 		dump_bvc(vty, bvc, stats);
 	}
+}
+
+DEFUN(bvc_reset, bvc_reset_cmd,
+      "bssgp bvc nsei <0-65535> bvci <0-65535> reset",
+      "Initiate BVC RESET procedure for a given NSEI and BVCI\n"
+      "Filter based on BSSGP Virtual Connection\n"
+      "NSEI of the BVC to be filtered\n"
+      "Network Service Entity Identifier (NSEI)\n"
+      "BVCI of the BVC to be filtered\n"
+      "BSSGP Virtual Connection Identifier (BVCI)\n"
+      "Perform reset procedure\n")
+{
+	int r;
+	uint16_t nsei = atoi(argv[0]), bvci = atoi(argv[1]);
+	struct bssgp_bvc_ctx *bvc = btsctx_by_bvci_nsei(bvci, nsei);
+	if (!bvc) {
+		vty_out(vty, "No BVC for NSEI %d BVCI %d%s", nsei, bvci,
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	r = bssgp_tx_bvc_reset(bvc, bvci, BSSGP_CAUSE_OML_INTERV);
+	vty_out(vty, "Sent BVC RESET for NSEI %d BVCI %d: %d%s", nsei, bvci, r,
+		VTY_NEWLINE);
+	return CMD_SUCCESS;
 }
 
 #define BSSGP_STR "Show information about the BSSGP protocol\n"
@@ -135,7 +155,7 @@ DEFUN(show_bvc, show_bvc_cmd, "show bssgp nsei <0-65535> [stats]",
 	"The NSEI\n" "Include Statistics\n")
 {
 	struct bssgp_bvc_ctx *bvc;
-	uint16_t nsei = atoi(argv[1]);
+	uint16_t nsei = atoi(argv[0]);
 	int show_stats = 0;
 
 	if (argc >= 2)
@@ -184,6 +204,7 @@ int bssgp_vty_init(void)
 	install_element_ve(&show_bssgp_stats_cmd);
 	install_element_ve(&show_bvc_cmd);
 	install_element_ve(&logging_fltr_bvc_cmd);
+	install_element_ve(&bvc_reset_cmd);
 
 	install_element(CFG_LOG_NODE, &logging_fltr_bvc_cmd);
 
@@ -192,7 +213,6 @@ int bssgp_vty_init(void)
 	install_default(L_BSSGP_NODE);
 	install_element(L_BSSGP_NODE, &libgb_exit_cmd);
 	install_element(L_BSSGP_NODE, &libgb_end_cmd);
-	//install_element(L_BSSGP_NODE, &cfg_bssgp_timer_cmd);
 
 	return 0;
 }

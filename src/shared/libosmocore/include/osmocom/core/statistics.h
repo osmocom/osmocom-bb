@@ -1,5 +1,4 @@
-#ifndef _STATISTICS_H
-#define _STATISTICS_H
+#pragma once
 
 /*! \file statistics.h
  *  \brief Common routines regarding statistics */
@@ -10,7 +9,14 @@ struct osmo_counter {
 	const char *name;		/*!< \brief human-readable name */
 	const char *description;	/*!< \brief humn-readable description */
 	unsigned long value;		/*!< \brief current value */
+	unsigned long previous;		/*!< \brief previous value */
 };
+
+/*! \brief Decrement counter */
+static inline void osmo_counter_dec(struct osmo_counter *ctr)
+{
+	ctr->value--;
+}
 
 /*! \brief Increment counter */
 static inline void osmo_counter_inc(struct osmo_counter *ctr)
@@ -34,12 +40,12 @@ static inline void osmo_counter_reset(struct osmo_counter *ctr)
 struct osmo_counter *osmo_counter_alloc(const char *name);
 
 /*! \brief Free the specified counter
- *  \param[ctr] Counter
+ *  \param[in] ctr Counter
  */
 void osmo_counter_free(struct osmo_counter *ctr);
 
-/*! \brief Iteate over all counters
- *  \param[in] handle_counter Call-back function
+/*! \brief Iterate over all counters
+ *  \param[in] handle_counter Call-back function, aborts if rc < 0
  *  \param[in] data Private dtata handed through to \a handle_counter
  */
 int osmo_counters_for_each(int (*handle_counter)(struct osmo_counter *, void *), void *data);
@@ -50,4 +56,5 @@ int osmo_counters_for_each(int (*handle_counter)(struct osmo_counter *, void *),
  */
 struct osmo_counter *osmo_counter_get_by_name(const char *name);
 
-#endif /* _STATISTICS_H */
+/*! \brief Return the counter difference since the last call to this function */
+int osmo_counter_difference(struct osmo_counter *ctr);

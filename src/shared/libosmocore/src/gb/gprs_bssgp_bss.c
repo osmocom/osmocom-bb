@@ -5,16 +5,16 @@
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
@@ -33,6 +33,8 @@
 #include <osmocom/gprs/gprs_ns.h>
 
 #include "common_vty.h"
+
+#define GSM_IMSI_LENGTH 17
 
 uint8_t *bssgp_msgb_tlli_put(struct msgb *msg, uint32_t tlli)
 {
@@ -133,7 +135,7 @@ static struct msgb *common_tx_radio_status(struct bssgp_bvc_ctx *bctx)
 static int common_tx_radio_status2(struct msgb *msg, uint8_t cause)
 {
 	msgb_tvlv_put(msg, BSSGP_IE_CAUSE, 1, &cause);
-	LOGPC(DBSSGP, LOGL_NOTICE, "CAUSE=%u\n", cause);
+	LOGPC(DBSSGP, LOGL_NOTICE, "CAUSE=%s\n", bssgp_cause_str(cause));
 
 	return gprs_ns_sendmsg(bssgp_nsi, msg);
 }
@@ -245,7 +247,7 @@ int bssgp_tx_bvc_block(struct bssgp_bvc_ctx *bctx, uint8_t cause)
 	uint16_t _bvci = htons(bctx->bvci);
 
 	LOGP(DBSSGP, LOGL_NOTICE, "BSSGP (BVCI=%u) Tx BVC-BLOCK "
-	     "CAUSE=%u\n", bctx->bvci, cause);
+		"CAUSE=%s\n", bctx->bvci, bssgp_cause_str(cause));
 
 	msgb_nsei(msg) = bctx->nsei;
 	msgb_bvci(msg) = 0; /* Signalling */
@@ -285,7 +287,7 @@ int bssgp_tx_bvc_reset(struct bssgp_bvc_ctx *bctx, uint16_t bvci, uint8_t cause)
 	uint16_t _bvci = htons(bvci);
 
 	LOGP(DBSSGP, LOGL_NOTICE, "BSSGP (BVCI=%u) Tx BVC-RESET "
-	     "CAUSE=%u\n", bvci, cause);
+		"CAUSE=%s\n", bvci, bssgp_cause_str(cause));
 
 	msgb_nsei(msg) = bctx->nsei;
 	msgb_bvci(msg) = 0; /* Signalling */
@@ -315,7 +317,7 @@ int bssgp_tx_bvc_reset(struct bssgp_bvc_ctx *bctx, uint16_t bvci, uint8_t cause)
  */
 int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 		    uint32_t bucket_size, uint32_t bucket_leak_rate,
-		    uint16_t bmax_default_ms, uint32_t r_default_ms,
+		    uint32_t bmax_default_ms, uint32_t r_default_ms,
 		    uint8_t *bucket_full_ratio, uint32_t *queue_delay_ms)
 {
 	struct msgb *msg;
@@ -325,19 +327,19 @@ int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 
 	if ((bucket_size / 100) > 0xffff)
 		return -EINVAL;
-	e_bucket_size = bucket_size / 100;
+	e_bucket_size = htons(bucket_size / 100);
 
 	if ((bucket_leak_rate * 8 / 100) > 0xffff)
 		return -EINVAL;
-	e_leak_rate = (bucket_leak_rate * 8) / 100;
+	e_leak_rate = htons((bucket_leak_rate * 8) / 100);
 
 	if ((bmax_default_ms / 100) > 0xffff)
 		return -EINVAL;
-	e_bmax_default_ms = bmax_default_ms / 100;
+	e_bmax_default_ms = htons(bmax_default_ms / 100);
 
 	if ((r_default_ms * 8 / 100) > 0xffff)
 		return -EINVAL;
-	e_r_default_ms = (r_default_ms * 8) / 100;
+	e_r_default_ms = htons((r_default_ms * 8) / 100);
 
 	if (queue_delay_ms) {
 		if ((*queue_delay_ms / 10) > 60000)
@@ -345,7 +347,7 @@ int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 		else if (*queue_delay_ms == 0xFFFFFFFF)
 			e_queue_delay = 0xFFFF;
 		else
-			e_queue_delay = *queue_delay_ms / 10;
+			e_queue_delay = htons(*queue_delay_ms / 10);
 	}
 
 	msg = bssgp_msgb_alloc();
@@ -498,8 +500,8 @@ int bssgp_rx_paging(struct bssgp_paging_info *pinfo,
 	if (!TLVP_PRESENT(&tp, BSSGP_IE_IMSI))
 		goto err_mand_ie;
 	if (!pinfo->imsi)
-		pinfo->imsi = talloc_zero_size(pinfo, 16);
-	gsm48_mi_to_string(pinfo->imsi, sizeof(pinfo->imsi),
+		pinfo->imsi = talloc_zero_size(pinfo, GSM_IMSI_LENGTH);
+	gsm48_mi_to_string(pinfo->imsi, GSM_IMSI_LENGTH,
 			   TLVP_VAL(&tp, BSSGP_IE_IMSI),
 			   TLVP_LEN(&tp, BSSGP_IE_IMSI));
 
@@ -540,11 +542,12 @@ int bssgp_rx_paging(struct bssgp_paging_info *pinfo,
 
 	/* Optional (P-)TMSI */
 	if (TLVP_PRESENT(&tp, BSSGP_IE_TMSI) &&
-	    TLVP_LEN(&tp, BSSGP_IE_TMSI) >= 4)
+	    TLVP_LEN(&tp, BSSGP_IE_TMSI) >= 4) {
 		if (!pinfo->ptmsi)
 			pinfo->ptmsi = talloc_zero_size(pinfo, sizeof(uint32_t));
 		*(pinfo->ptmsi) = ntohl(*(uint32_t *)
 					TLVP_VAL(&tp, BSSGP_IE_TMSI));
+	}
 
 	return 0;
 

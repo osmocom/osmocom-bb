@@ -14,7 +14,8 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+  MA  02110-1301, USA.
 
   linux/include/linux/rbtree.h
 
@@ -91,8 +92,7 @@ static inline struct page * rb_insert_page_cache(struct inode * inode,
 -----------------------------------------------------------------------
 */
 
-#ifndef	_LINUX_RBTREE_H
-#define	_LINUX_RBTREE_H
+#pragma once
 
 #include <stdlib.h>
 
@@ -156,5 +156,3 @@ static inline void rb_link_node(struct rb_node * node, struct rb_node * parent,
 
 	*rb_link = node;
 }
-
-#endif	/* _LINUX_RBTREE_H */

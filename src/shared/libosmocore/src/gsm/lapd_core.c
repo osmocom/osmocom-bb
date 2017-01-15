@@ -25,7 +25,7 @@
  *  @{
  */
 
-/*! \file lapd.c */
+/*! \file lapd_core.c */
 
 /*!
  * Notes on Buffering: rcv_buffer, tx_queue, tx_hist, send_buffer, send_queue
@@ -82,6 +82,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/gsm/lapd_core.h>
+#include <osmocom/gsm/rsl.h>
 
 /* TS 04.06 Table 4 / Section 3.8.1 */
 #define LAPD_U_SABM	0x7
@@ -150,15 +151,16 @@ static void lapd_dl_flush_send(struct lapd_datalink *dl)
 		msgb_free(msg);
 
 	/* Clear send-buffer */
-	if (dl->send_buffer) {
-		msgb_free(dl->send_buffer);
-		dl->send_buffer = NULL;
-	}
+	msgb_free(dl->send_buffer);
+	dl->send_buffer = NULL;
 }
 
 static void lapd_dl_flush_hist(struct lapd_datalink *dl)
 {
 	unsigned int i;
+
+	if (!dl->range_hist || !dl->tx_hist)
+		return;
 
 	for (i = 0; i < dl->range_hist; i++) {
 		if (dl->tx_hist[i].msg) {
@@ -232,10 +234,8 @@ static void lapd_dl_newstate(struct lapd_datalink *dl, uint32_t state)
 		/* stop T203 on leaving MF EST state, if running */
 		lapd_stop_t203(dl);
 		/* remove content res. (network side) on leaving MF EST state */
-		if (dl->cont_res) {
-			msgb_free(dl->cont_res);
-			dl->cont_res = NULL;
-		}
+		msgb_free(dl->cont_res);
+		dl->cont_res = NULL;
 	}
 
 	/* start T203 on entering MF EST state, if enabled */
@@ -295,8 +295,8 @@ void lapd_dl_init(struct lapd_datalink *dl, uint8_t k, uint8_t v_range,
 
 	if (!tall_lapd_ctx)
 		tall_lapd_ctx = talloc_named_const(NULL, 1, "lapd context");
-	dl->tx_hist = (struct lapd_history *) talloc_zero_array(tall_lapd_ctx,
-					struct log_info, dl->range_hist);
+	dl->tx_hist = talloc_zero_array(tall_lapd_ctx,
+					struct lapd_history, dl->range_hist);
 }
 
 /* reset to IDLE state */
@@ -311,10 +311,8 @@ void lapd_dl_reset(struct lapd_datalink *dl)
 	lapd_dl_flush_tx(dl);
 	lapd_dl_flush_send(dl);
 	/* Discard partly received L3 message */
-	if (dl->rcv_buffer) {
-		msgb_free(dl->rcv_buffer);
-		dl->rcv_buffer = NULL;
-	}
+	msgb_free(dl->rcv_buffer);
+	dl->rcv_buffer = NULL;
 	/* stop Timers */
 	lapd_stop_t200(dl);
 	lapd_stop_t203(dl);
@@ -327,6 +325,7 @@ void lapd_dl_exit(struct lapd_datalink *dl)
 	lapd_dl_reset(dl);
 	/* free history buffer list */
 	talloc_free(dl->tx_hist);
+	dl->tx_hist = NULL;
 }
 
 /*! \brief Set the \ref lapdm_mode of a LAPDm entity */
@@ -379,8 +378,8 @@ static int mdl_error(uint8_t cause, struct lapd_msg_ctx *lctx)
 	struct lapd_datalink *dl = lctx->dl;
 	struct osmo_dlsap_prim dp;
 
-	LOGP(DLLAPD, LOGL_NOTICE, "sending MDL-ERROR-IND cause %d\n",
-		cause);
+	LOGP(DLLAPD, LOGL_NOTICE, "sending MDL-ERROR-IND cause %s\n",
+	     rsl_rlm_cause_name(cause));
 	osmo_prim_init(&dp.oph, 0, PRIM_MDL_ERROR, PRIM_OP_INDICATION, NULL);
 	dp.u.error_ind.cause = cause;
 	return dl->send_dlsap(&dp, lctx);
@@ -796,7 +795,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		dl->seq_err_cond = 0;
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.resp) {
-			LOGP(DLLAPD, LOGL_NOTICE, "SABM response error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "SABM response error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 			return -EINVAL;
@@ -806,7 +805,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * set, AN MDL-ERROR-INDICATION is sent to MM.
 		 */
 		if (lctx->more || length > lctx->n201) {
-			LOGP(DLLAPD, LOGL_NOTICE, "SABM too large error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "SABM too large error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_UFRM_INC_PARAM, lctx);
 			return -EIO;
@@ -820,18 +819,34 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 				"frame established state\n");
 			/* If link is lost on the remote side, we start over
 			 * and send DL-ESTABLISH indication again. */
-			if (dl->v_send != dl->v_recv) {
-				LOGP(DLLAPD, LOGL_INFO, "Remote reestablish\n");
-				mdl_error(MDL_CAUSE_SABM_MF, lctx);
+			/* Additionally, continue in case of content resoltion
+			 * (GSM network). This happens, if the mobile has not
+			 * yet received UA or another mobile (collision) tries
+			 * to establish connection. The mobile must receive
+			 * UA again. */
+			/* 5.4.2.1 */
+			if (!length) {
+				/* If no content resolution, this is a
+				 * re-establishment. */
+				LOGP(DLLAPD, LOGL_INFO,
+					"Remote reestablish\n");
 				break;
 			}
+			if (!dl->cont_res) {
+				LOGP(DLLAPD, LOGL_INFO, "SABM command not "
+				     "allowed in state %s\n",
+				     lapd_state_names[dl->state]);
+				mdl_error(MDL_CAUSE_SABM_MF, lctx);
+				msgb_free(msg);
+				return 0;
+			}
 			/* Ignore SABM if content differs from first SABM. */
-			if (dl->mode == LAPD_MODE_NETWORK && length
-			 && dl->cont_res) {
+			if (dl->mode == LAPD_MODE_NETWORK && length) {
 #ifdef TEST_CONTENT_RESOLUTION_NETWORK
 				dl->cont_res->data[0] ^= 0x01;
 #endif
-				if (memcmp(dl->cont_res, msg->data, length)) {
+				if (memcmp(dl->cont_res->data, msg->data,
+								length)) {
 					LOGP(DLLAPD, LOGL_INFO, "Another SABM "
 						"with diffrent content - "
 						"ignoring!\n");
@@ -857,7 +872,8 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			/* check for contention resoultion */
 			if (dl->tx_hist[0].msg && dl->tx_hist[0].msg->len) {
 				LOGP(DLLAPD, LOGL_NOTICE, "SABM not allowed "
-					"during contention resolution\n");
+				     "during contention resolution (state %s)\n",
+				     lapd_state_names[dl->state]);
 				mdl_error(MDL_CAUSE_SABM_INFO_NOTALL, lctx);
 			}
 			lapd_send_ua(lctx, length, msg->l3h);
@@ -892,6 +908,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			msgb_free(msg);
 		} else {
 			/* 5.4.1.4 Contention resolution establishment */
+			msgb_trim(msg, length);
 			rc = send_dl_l3(prim, op, lctx, msg);
 		}
 		break;
@@ -900,7 +917,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			lapd_state_names[dl->state]);
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.cmd) {
-			LOGP(DLLAPD, LOGL_NOTICE, "DM command error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "DM command error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 			return -EINVAL;
@@ -981,7 +998,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		LOGP(DLLAPD, LOGL_INFO, "UI received\n");
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.resp) {
-			LOGP(DLLAPD, LOGL_NOTICE, "UI indicates response "
+			LOGP(DLLAPD, LOGL_ERROR, "UI indicates response "
 				"error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
@@ -992,7 +1009,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * set, AN MDL-ERROR-INDICATION is sent to MM.
 		 */
 		if (length > lctx->n201 || lctx->more) {
-			LOGP(DLLAPD, LOGL_NOTICE, "UI too large error "
+			LOGP(DLLAPD, LOGL_ERROR, "UI too large error "
 				"(%d > N201(%d) or M=%d)\n", length,
 				lctx->n201, lctx->more);
 			msgb_free(msg);
@@ -1009,6 +1026,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			msgb_free(msg);
 			return 0;
 		}
+		msgb_trim(msg, length);
 		rc = send_dl_l3(PRIM_DL_UNIT_DATA, PRIM_OP_INDICATION, lctx,
 				msg);
 		break;
@@ -1025,7 +1043,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		dl->seq_err_cond = 0;
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.resp) {
-			LOGP(DLLAPD, LOGL_NOTICE, "DISC response error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "DISC response error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 			return -EINVAL;
@@ -1036,7 +1054,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			 * primitive with cause "U frame with incorrect
 			 * parameters" is sent to the mobile management entity.
 			 */
-			LOGP(DLLAPD, LOGL_NOTICE,
+			LOGP(DLLAPD, LOGL_ERROR,
 				"U frame iwth incorrect parameters ");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_UFRM_INC_PARAM, lctx);
@@ -1088,7 +1106,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 			lapd_state_names[dl->state]);
 		/* G.2.2 Wrong value of the C/R bit */
 		if (lctx->cr == dl->cr.rem2loc.cmd) {
-			LOGP(DLLAPD, LOGL_NOTICE, "UA indicates command "
+			LOGP(DLLAPD, LOGL_ERROR, "UA indicates command "
 				"error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
@@ -1099,7 +1117,7 @@ static int lapd_rx_u(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * set, AN MDL-ERROR-INDICATION is sent to MM.
 		 */
 		if (lctx->more || length > lctx->n201) {
-			LOGP(DLLAPD, LOGL_NOTICE, "UA too large error\n");
+			LOGP(DLLAPD, LOGL_ERROR, "UA too large error\n");
 			msgb_free(msg);
 			mdl_error(MDL_CAUSE_UFRM_INC_PARAM, lctx);
 			return -EIO;
@@ -1206,7 +1224,7 @@ static int lapd_rx_s(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * with the M bit set to "1", an MDL-ERROR-INDICATION
 		 * primitive with cause "S frame with incorrect
 		 * parameters" is sent to the mobile management entity. */
-		LOGP(DLLAPD, LOGL_NOTICE,
+		LOGP(DLLAPD, LOGL_ERROR,
 				"S frame with incorrect parameters\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_SFRM_INC_PARAM, lctx);
@@ -1425,7 +1443,7 @@ static int lapd_rx_s(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		break;
 	default:
 		/* G.3.1 */
-		LOGP(DLLAPD, LOGL_NOTICE, "Supervisory frame not allowed.\n");
+		LOGP(DLLAPD, LOGL_ERROR, "Supervisory frame not allowed.\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 		return -EINVAL;
@@ -1443,12 +1461,12 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 	int length = lctx->length;
 	int rc;
 
-	LOGP(DLLAPD, LOGL_INFO, "I received in state %s\n",
-		lapd_state_names[dl->state]);
+	LOGP(DLLAPD, LOGL_INFO, "I received in state %s on SAPI(%u)\n",
+		lapd_state_names[dl->state], lctx->sapi);
 		
 	/* G.2.2 Wrong value of the C/R bit */
 	if (lctx->cr == dl->cr.rem2loc.resp) {
-		LOGP(DLLAPD, LOGL_NOTICE, "I frame response not allowed\n");
+		LOGP(DLLAPD, LOGL_ERROR, "I frame response not allowed\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_FRM_UNIMPL, lctx);
 		return -EINVAL;
@@ -1459,7 +1477,7 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		 * to a numerical value L>N201 or L=0, an MDL-ERROR-INDICATION
 		 * primitive with cause "I frame with incorrect length"
 		 * is sent to the mobile management entity. */
-		LOGP(DLLAPD, LOGL_NOTICE, "I frame length not allowed\n");
+		LOGP(DLLAPD, LOGL_ERROR, "I frame length not allowed\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_IFRM_INC_LEN, lctx);
 		return -EIO;
@@ -1470,7 +1488,7 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 	 * cause "I frame with incorrect use of M bit" is sent to the
 	 * mobile management entity. */
 	if (lctx->more && length < lctx->n201) {
-		LOGP(DLLAPD, LOGL_NOTICE, "I frame with M bit too short\n");
+		LOGP(DLLAPD, LOGL_ERROR, "I frame with M bit too short\n");
 		msgb_free(msg);
 		mdl_error(MDL_CAUSE_IFRM_INC_MBITS, lctx);
 		return -EIO;
@@ -1538,8 +1556,7 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		if (!lctx->more && !dl->rcv_buffer) {
 			LOGP(DLLAPD, LOGL_INFO, "message in single I frame\n");
 			/* send a DATA INDICATION to L3 */
-			msg->len = length;
-			msg->tail = msg->data + length;
+			msgb_trim(msg, length);
 			rc = send_dl_l3(PRIM_DL_DATA, PRIM_OP_INDICATION, lctx,
 				msg);
 		} else {
@@ -1596,6 +1613,12 @@ static int lapd_rx_i(struct msgb *msg, struct lapd_msg_ctx *lctx)
 		if (!dl->own_busy) {
 			/* NOTE: V(R) is already set above */
 			rc = lapd_send_i(lctx, __LINE__);
+
+			/* if update_pending_iframe returns 0 it updated
+			 * the lapd header of an iframe in the tx queue */
+			if (rc && dl->update_pending_frames)
+				rc = dl->update_pending_frames(lctx);
+
 			if (rc) {
 				LOGP(DLLAPD, LOGL_INFO, "we are not busy and "
 					"have no pending data, send RR\n");
@@ -1686,10 +1709,8 @@ static int lapd_est_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	memcpy(&dl->lctx, lctx, sizeof(dl->lctx));
 
 	/* Discard partly received L3 message */
-	if (dl->rcv_buffer) {
-		msgb_free(dl->rcv_buffer);
-		dl->rcv_buffer = NULL;
-	}
+	msgb_free(dl->rcv_buffer);
+	dl->rcv_buffer = NULL;
 
 	/* assemble message */
 	memcpy(&nctx, &dl->lctx, sizeof(nctx));
@@ -1925,7 +1946,7 @@ static int lapd_susp_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	return send_dl_simple(PRIM_DL_SUSP, PRIM_OP_CONFIRM, &dl->lctx);
 }
 
-/* requesst resume or reconnect of link */
+/* request, resume or reconnect of link */
 static int lapd_res_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 {
 	struct lapd_datalink *dl = lctx->dl;
@@ -1942,20 +1963,22 @@ static int lapd_res_req(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	memcpy(&dl->lctx, lctx, sizeof(dl->lctx));
 
 	/* Replace message in the send-buffer (reconnect) */
-	if (dl->send_buffer)
-		msgb_free(dl->send_buffer);
+	msgb_free(dl->send_buffer);
+	dl->send_buffer = NULL;
+
 	dl->send_out = 0;
-	if (msg && msg->len)
+	if (msg->len) {
 		/* Write data into the send buffer, to be sent first */
 		dl->send_buffer = msg;
-	else
+	} else {
+		msgb_free(msg);
+		msg = NULL;
 		dl->send_buffer = NULL;
+	}
 
 	/* Discard partly received L3 message */
-	if (dl->rcv_buffer) {
-		msgb_free(dl->rcv_buffer);
-		dl->rcv_buffer = NULL;
-	}
+	msgb_free(dl->rcv_buffer);
+	dl->rcv_buffer = NULL;
 
 	/* Create new msgb (old one is now free) */
 	msg = lapd_msgb_alloc(0, "LAPD SABM");
@@ -2070,7 +2093,7 @@ static int lapd_rel_req_idle(struct osmo_dlsap_prim *dp,
 }
 
 /* statefull handling for DL SAP messages from L3 */
-static struct l2downstate {
+static const struct l2downstate {
 	uint32_t	states;
 	int		prim, op;
 	const char 	*name;
@@ -2167,3 +2190,4 @@ int lapd_recv_dlsap(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx)
 	return rc;
 }
 
+/*! @} */

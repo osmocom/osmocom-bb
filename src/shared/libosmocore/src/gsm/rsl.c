@@ -382,6 +382,17 @@ const char *rsl_ipac_msg_name(uint8_t msg_type)
 	return get_value_string(rsl_ipac_msgt_names, msg_type);
 }
 
+/*! \brief Get human-readable name of standard or ip.access RSL msg type.
+ * If msg_type is a standard RSL message type, return its human-readable name.
+ * Otherwise return rsl_ipac_msg_name(msg_type). */
+const char *rsl_or_ipac_msg_name(uint8_t msg_type)
+{
+	const char *str = get_value_string_or_null(rsl_msgt_names, msg_type);
+	if (str)
+		return str;
+	return rsl_ipac_msg_name(msg_type);
+}
+
 static const struct value_string rsl_rlm_cause_strs[] = {
 	{ RLL_CAUSE_T200_EXPIRED,	"Timer T200 expired (N200+1) times" },
 	{ RLL_CAUSE_REEST_REQ,		"Re-establishment request" },
@@ -394,7 +405,7 @@ static const struct value_string rsl_rlm_cause_strs[] = {
 	{ RLL_CAUSE_SFRM_INC_PARAM,	"S-Frame with incorrect parameters" },
 	{ RLL_CAUSE_IFRM_INC_MBITS,	"I-Frame with incorrect use of M bit" },
 	{ RLL_CAUSE_IFRM_INC_LEN,	"I-Frame with incorrect length" },
-	{ RLL_CAUSE_FRM_UNIMPL,		"Fraeme not implemented" },
+	{ RLL_CAUSE_FRM_UNIMPL,		"Frame not implemented" },
 	{ RLL_CAUSE_SABM_MF,		"SABM command, multiple frame established state" },
 	{ RLL_CAUSE_SABM_INFO_NOTALL,	"SABM frame with information not allowed in this state" },
 	{ 0,				NULL },
@@ -503,5 +514,44 @@ struct msgb *rsl_rll_simple(uint8_t msg_type, uint8_t chan_nr,
 
 	return msg;
 }
+
+const struct tlv_definition rsl_ipac_eie_tlvdef = {
+	.def = {
+		[RSL_IPAC_EIE_RXLEV]		= { TLV_TYPE_TV },
+		[RSL_IPAC_EIE_RXQUAL]		= { TLV_TYPE_TV },
+		[RSL_IPAC_EIE_FREQ_ERR]		= { TLV_TYPE_FIXED, 2 },
+		[RSL_IPAC_EIE_TIMING_ERR]	= { TLV_TYPE_TV },
+		[RSL_IPAC_EIE_MEAS_AVG_CFG]	= { TLV_TYPE_TLV },
+		[RSL_IPAC_EIE_BS_PWR_CTL]	= { TLV_TYPE_FIXED, 3 },
+		[RSL_IPAC_EIE_MS_PWR_CTL]	= { TLV_TYPE_FIXED, 3 },
+		[RSL_IPAC_EIE_HANDO_THRESH]	= { TLV_TYPE_FIXED, 6 },
+		[RSL_IPAC_EIE_NCELL_DEFAULTS]	= { TLV_TYPE_FIXED, 3 },
+		[RSL_IPAC_EIE_NCELL_LIST]	= { TLV_TYPE_TLV },
+		[RSL_IPAC_EIE_PC_THRESH_COMP]	= { TLV_TYPE_FIXED, 10 },
+		[RSL_IPAC_EIE_HO_THRESH_COMP]	= { TLV_TYPE_FIXED, 10 },
+		[RSL_IPAC_EIE_HO_CAUSE]		= { TLV_TYPE_TLV },
+		[RSL_IPAC_EIE_HO_CANDIDATES]	= { TLV_TYPE_TLV },
+		[RSL_IPAC_EIE_NCELL_BA_CHG_LIST]= { TLV_TYPE_TLV },
+		[RSL_IPAC_EIE_NUM_OF_MS]	= { TLV_TYPE_TV },
+		[RSL_IPAC_EIE_HO_CAND_EXT]	= { TLV_TYPE_TLV },
+		[RSL_IPAC_EIE_NCELL_DEF_EXT]	= { TLV_TYPE_TLV },
+		[RSL_IPAC_EIE_NCELL_LIST_EXT]	= { TLV_TYPE_TLV },
+		[RSL_IPAC_EIE_MASTER_KEY]	= { TLV_TYPE_TLV },
+		[RSL_IPAC_EIE_MASTER_SALT]	= { TLV_TYPE_TLV },
+	},
+};
+
+const struct value_string rsl_act_type_names[] = {
+	{ RSL_ACT_TYPE_INITIAL,	"INITIAL" },
+	{ RSL_ACT_TYPE_REACT,	"REACT" },
+	{ RSL_ACT_INTRA_IMM_ASS,	"INTRA_IMM_ASS" },
+	{ RSL_ACT_INTRA_NORM_ASS,	"INTRA_NORM_ASS" },
+	{ RSL_ACT_INTER_ASYNC,	"INTER_ASYNC" },
+	{ RSL_ACT_INTER_SYNC,	"INTER_SYNC" },
+	{ RSL_ACT_SECOND_ADD,	"SECOND_ADD" },
+	{ RSL_ACT_SECOND_MULTI,	"SECOND_MULTI" },
+	{ RSL_ACT_OSMO_PDCH,	"OSMO_PDCH" },
+	{ 0, NULL }
+};
 
 /*! @} */

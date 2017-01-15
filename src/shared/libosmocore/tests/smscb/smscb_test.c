@@ -21,6 +21,7 @@
 #include <osmocom/gsm/protocol/gsm_03_41.h>
 
 #include <stdio.h>
+#include <arpa/inet.h>
 
 static uint8_t smscb_msg[] = { 0x40, 0x10, 0x05, 0x0d, 0x01, 0x11 };
 

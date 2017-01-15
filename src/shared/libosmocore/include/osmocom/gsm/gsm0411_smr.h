@@ -1,5 +1,4 @@
-#ifndef _GSM0411_SMR_H
-#define _GSM0411_SMR_H
+#pragma once
 
 #include <osmocom/gsm/protocol/gsm_04_11.h>
 
@@ -11,6 +10,7 @@
 #define GSM411_SM_RL_REPORT_IND		0x406
 
 struct gsm411_smr_inst {
+	uint64_t id;		/* a unique id for the SMS */
 	int network;		/* is this a MO (0) or MT (1) transfer */
 	int (*rl_recv) (struct gsm411_smr_inst *inst, int msg_type,
 			struct msgb *msg);
@@ -24,7 +24,7 @@ struct gsm411_smr_inst {
 extern const struct value_string gsm411_rp_cause_strs[];
 
 /* init a new instance */
-void gsm411_smr_init(struct gsm411_smr_inst *inst, int network,
+void gsm411_smr_init(struct gsm411_smr_inst *inst, uint64_t id, int network,
 	int (*rl_recv) (struct gsm411_smr_inst *inst, int msg_type,
 			struct msgb *msg),
 	int (*mn_send) (struct gsm411_smr_inst *inst, int msg_type,
@@ -40,6 +40,3 @@ int gsm411_smr_send(struct gsm411_smr_inst *inst, int msg_type,
 /* message from lower layer */
 int gsm411_smr_recv(struct gsm411_smr_inst *inst, int msg_type,
 	struct msgb *msg);
-
-#endif /* _GSM0411_SMR_H */
-

@@ -1,27 +1,275 @@
 Source: libosmocore
+Maintainer: Harald Welte <laforge@gnumonks.org>
 Section: libs
 Priority: optional
-Maintainer: Harald Welte <laforge@gnumonks.org>
-Build-Depends: debhelper (>= 7.0.50~), autotools-dev, autoconf, automake, libtool, dh-autoreconf, libdpkg-perl, git, doxygen
-Standards-Version: 3.8.4
-Homepage: http://bb.osmocom.org/trac/wiki/libosmocore
+Build-Depends: debhelper (>= 9),
+               autotools-dev,
+               autoconf,
+               automake,
+               libtool,
+               dh-autoreconf,
+               libdpkg-perl,
+               git,
+               doxygen,
+               libpcsclite-dev,
+               pkg-config,
+               libtalloc-dev,
+               python (>= 2.7.6)
+Standards-Version: 3.9.8
 Vcs-Git: git://git.osmocom.org/libosmocore.git
 Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmocore.git;a=summary
+Homepage: https://projects.osmocom.org/projects/libosmocore
 
 Package: libosmocore
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Open Source MObile COMmunications CORE library
+Multi-Arch: foreign
+Depends: libosmocodec0 (= ${binary:Version}),
+         libosmocore8 (= ${binary:Version}),
+         libosmogb4 (= ${binary:Version}),
+         libosmogsm7 (= ${binary:Version}),
+         libosmovty3 (= ${binary:Version}),
+         libosmoctrl0 (= ${binary:Version}),
+         libosmosim0 (= ${binary:Version}),
+         ${misc:Depends}
+Description: Open Source MObile COMmunications CORE library (metapackage)
+ The libraries provided by this package contain various utility functions.
+ These were originally developed as part of the
+ OpenBSC project but are of a more generic nature and thus useful to (at
+ least) other programs that are developed in the sphere of Free Software / Open
+ Source mobile communication.
+
+Package: libosmocodec0
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: Osmo codec library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ The libosmocodec library in particular contains the implementation of multiple
+ GSM codecs:
+ .
+  - GSM 06.10 - GSM FR Codec
+  - GSM 06.20 - GSM HR Codec
+  - GSM 06.60 - GSM EFR Codec
+  - GSM 06.90 - GSM AMR Codec
+
+Package: libosmocodec-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends},
+         libosmocodec0,
+         libjs-jquery
+Description: Documentation for the osmo codec library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ This package contains the documentation for the libosmocodec library.
+
+Package: libosmocore8
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: Osmo Core library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ The libosmocore8 library in particular is a collection of common code used in
+ various sub-projects inside the Osmocom family of projects.
+
+Package: libosmocore-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends},
+         libosmocore8,
+         libjs-jquery,
+         libosmocodec-doc,
+         libosmogsm-doc,
+         libosmovty-doc
+Description: Documentation for the Osmo Core library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ This package contains the documentation for the libosmocore library.
+
+Package: libosmogb4
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: Osmo GPRS GB library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ The libosmogb library in particular contains a GPRS BSSGP protocol
+ implementation.
+
+Package: libosmogsm7
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: Osmo GSM utility library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ The libosmogsm library in particular is a collection of common code used in
+ various GSM related sub-projects inside the Osmocom family of projects. It
+ includes A5/1 and A5/2 ciphers, COMP128v1, a LAPDm implementation, a GSM TLV
+ parser, SMS utility routines as well as protocol definitions for a series of
+ protocols.
+
+Package: libosmogsm-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends},
+         libosmogsm7,
+         libjs-jquery
+Description: Documentation for the Osmo GSM utility library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ This package contains the documentation for the libosmogsm library.
+
+Package: libosmovty3
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: Osmo VTY library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ The libosmovty library in particular implements the interactive command-line
+ on the VTY (Virtual TTY) as well as configuration file parsing.
+
+Package: libosmovty-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends},
+         libosmovty3,
+         libjs-jquery
+Description: Documentation for the Osmo VTY library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ This package contains the documentation for the libosmovty library.
+
+Package: libosmoctrl0
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: Osmo control library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ The libosmoctrl library in particular contains an SNMP-like status interface.
+
+Package: libosmosim0
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: Osmo SIM library
+ This is part of the libosmocore "meta"-library. The libosmocore library
+ contains various utility functions that were originally developed as part of
+ the OpenBSC project, but which are of a more generic nature and thus useful to
+ (at least) other programs that are developed in the sphere of Free Software /
+ Open Source mobile communication.
+ .
+ The libosmosim library in particular contains routines for SIM card access.
 
 Package: libosmocore-dev
-Section: libdevel
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libosmocore
+Multi-Arch: same
+Section: libdevel
+Depends: libosmocore,
+         libtalloc-dev,
+         ${misc:Depends}
 Description: Development headers for Open Source MObile COMmunications CORE library
+ The header files provided by this package may be used to develop
+ with any of the libosmocore libraries.
+ .
+ Also static libraries are installed with this package.
 
-#Package: libosmocore-dbg
-#Section: libdevel
-#Architecture: any
-#Depends: ${shlibs:Depends}, ${misc:Depends}
-#Description: Debug symbols for Open Source MObile COMmunications CORE library
+Package: libosmocore-utils
+Architecture: any
+Section: utils
+Depends: ${shlibs:Depends},
+         libosmocore,
+         ${misc:Depends}
+Multi-Arch: same
+Description: Utilities for gsm
+ This package contains a program for frequency calculation for GSM called
+ 'osmo-arfcn' and a program called 'osmo-auc-gen' that is used for testing GSM
+ authentication.
+ .
+ They use the libosmocore library. The libosmocore library contain various
+ utility functions that were originally developed as part of the OpenBSC
+ project, but which are of a more generic nature and thus useful to (at least)
+ other programs that are developed in the sphere of Free Software / Open Source
+ mobile communication.
+
+Package: libosmocore-dbg
+Architecture: any
+Multi-Arch: same
+Section: debug
+Priority: extra
+Depends: libosmocore (= ${binary:Version}),
+         ${misc:Depends}
+Description: Debug symbols for Open Source MObile COMmunications CORE library
+ This proackage contains debug symbols for all the libraries that are part of
+ libosmocore.
+ .
+ The libosmocore library contain various utility functions that
+ were originally developed as part of the OpenBSC project, but which are of a
+ more generic nature and thus useful to (at least) other programs that are
+ developed in the sphere of Free Software / Open Source mobile communication.

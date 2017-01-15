@@ -25,11 +25,10 @@
  */
 
 /*! \file serial.h
- *  \file Osmocom serial port helpers
+ * Osmocom serial port helpers
  */
 
-#ifndef __OSMO_SERIAL_H__
-#define __OSMO_SERIAL_H__
+#pragma once
 
 #include <termios.h>
 
@@ -39,5 +38,3 @@ int osmo_serial_set_custom_baudrate(int fd, int baudrate);
 int osmo_serial_clear_custom_baudrate(int fd);
 
 /*! @} */
-
-#endif /* __OSMO_SERIAL_H__ */

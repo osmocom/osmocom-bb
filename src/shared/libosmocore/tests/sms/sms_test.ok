@@ -1,2 +1,29 @@
 SMS testing
+Legacy encode case 0: septet length 9 (expected 9)
+Encode case 0: Octet length 8 (expected 8, computed 8), septet length 9 (expected 9)
+Legacy encode case 1: septet length 41 (expected 41)
+Encode case 1: Octet length 36 (expected 36, computed 36), septet length 41 (expected 41)
+Legacy encode case 2: septet length 39 (expected 39)
+Encode case 2: Octet length 35 (expected 35, computed 35), septet length 39 (expected 39)
+Legacy encode case 3: septet length 40 (expected 40)
+Encode case 3: Octet length 35 (expected 35, computed 35), septet length 40 (expected 40)
+Legacy decode case 0: return value 9 (expected 9)
+Decode case 0: return value 9 (expected 9)
+Legacy decode case 1: return value 41 (expected 41)
+Decode case 1: return value 40 (expected 40)
+Legacy decode case 2: return value 39 (expected 39)
+Decode case 2: return value 31 (expected 31)
+Legacy decode case 3: return value 40 (expected 40)
+Decode case 3: return value 32 (expected 32)
+Decode case 4: return value 153 (expected 153)
+Decode case 5: return value 40 (expected 40)
+Encoding some tests and printing number of septets/octets
+SEPTETS: 8 OCTETS: 7
+Done
+Testing gsm340_gen_oa
+Result: len(12) data(14 81 21 43 65 87 09 21 43 65 87 19 )
+Result: len(12) data(14 a1 21 43 65 87 09 21 43 65 87 19 )
+Result: len(2) data(00 91 )
+Result: len(9) data(0e d0 4f 78 d9 2d 9c 0e 01 )
+Result: len(12) data(14 d0 4f 78 d9 2d 9c 0e c3 e2 31 19 )
 OK

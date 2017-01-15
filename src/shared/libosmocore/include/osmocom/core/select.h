@@ -1,5 +1,4 @@
-#ifndef _BSC_SELECT_H
-#define _BSC_SELECT_H
+#pragma once
 
 #include <osmocom/core/linuxlist.h>
 
@@ -40,6 +39,12 @@ int osmo_fd_register(struct osmo_fd *fd);
 void osmo_fd_unregister(struct osmo_fd *fd);
 int osmo_select_main(int polling);
 
-/*! @} */
+struct osmo_fd *osmo_fd_get_by_fd(int fd);
 
-#endif /* _BSC_SELECT_H */
+/*
+ * foreign event loop integration
+ */
+int osmo_fd_fill_fds(void *readset, void *writeset, void *exceptset);
+int osmo_fd_disp_fds(void *readset, void *writeset, void *exceptset);
+
+/*! @} */

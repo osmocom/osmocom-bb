@@ -1,6 +1,6 @@
 /*
  * (C) 2008 by Daniel Willmann <daniel@totalueberwachung.de>
- * (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
+ * (C) 2009,2013 by Holger Hans Peter Freyther <zecke@selfish.org>
  * (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
  * (C) 2010-2012 by Nico Golde <nico@ngolde.de>
  *
@@ -28,7 +28,7 @@
  * This library is a collection of common code used in various
  * GSM related sub-projects inside the Osmocom family of projects.  It
  * includes A5/1 and A5/2 ciphers, COMP128v1, a LAPDm implementation,
- * a GSM TLV parser, SMS utility routines as well as 
+ * a GSM TLV parser, SMS utility routines as well as
  * protocol definitions for a series of protocols:
  * 	* Um L2 (04.06)
  * 	* Um L3 (04.08)
@@ -64,11 +64,15 @@
 
 //#include <openbsc/gsm_data.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/bitvec.h>
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/meas_rep.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
@@ -80,8 +84,12 @@
  * left out as they can't be handled with a char and
  * since most phones don't display or write these
  * characters this would only needlessly make the code
- * more complex
-*/
+ * more complex.
+ *
+ * Note that this table contains the latin1->7bit mapping _and_ has
+ * been merged with the reverse mapping (7bit->latin1) for the
+ * extended characters at offset 0x7f.
+ */
 static unsigned char gsm_7bit_alphabet[] = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0a, 0xff, 0xff, 0x0d, 0xff,
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -123,12 +131,15 @@ uint8_t gsm_get_octet_len(const uint8_t sept_len){
 }
 
 /* GSM 03.38 6.2.1 Character unpacking */
-int gsm_7bit_decode_hdr(char *text, const uint8_t *user_data, uint8_t septet_l, uint8_t ud_hdr_ind)
+int gsm_7bit_decode_n_hdr(char *text, size_t n, const uint8_t *user_data, uint8_t septet_l, uint8_t ud_hdr_ind)
 {
-	int i = 0;
-	int shift = 0;
-	uint8_t c;
-	uint8_t next_is_ext = 0;
+	unsigned shift = 0;
+	uint8_t c7, c8, next_is_ext = 0, lu, ru;
+	const uint8_t maxlen = gsm_get_octet_len(septet_l);
+	const char *text_buf_begin = text;
+	const char *text_buf_end = text + n;
+
+	OSMO_ASSERT (n > 0);
 
 	/* skip the user data header */
 	if (ud_hdr_ind) {
@@ -139,37 +150,59 @@ int gsm_7bit_decode_hdr(char *text, const uint8_t *user_data, uint8_t septet_l, 
 		septet_l = septet_l - shift;
 	}
 
-	for (i = 0; i < septet_l; i++) {
-		c =
-			((user_data[((i + shift) * 7 + 7) >> 3] <<
-			  (7 - (((i + shift) * 7 + 7) & 7))) |
-			 (user_data[((i + shift) * 7) >> 3] >>
-			  (((i + shift) * 7) & 7))) & 0x7f;
+	unsigned i, l, r;
+	for (i = 0; i < septet_l && text != text_buf_end - 1; i++) {
 
-		/* this is an extension character */
+		l = ((i + shift) * 7 + 7) >> 3;
+		r = ((i + shift) * 7) >> 3;
+
+		/* the left side index is always >= right side index
+		sometimes it even gets beyond array boundary
+		check for that explicitly and force 0 instead
+		 */
+		if (l >= maxlen)
+			lu = 0;
+		else
+			lu = user_data[l] << (7 - (((i + shift) * 7 + 7) & 7));
+
+		ru = user_data[r] >> (((i + shift) * 7) & 7);
+
+		c7 = (lu | ru) & 0x7f;
+
 		if (next_is_ext) {
+			/* this is an extension character */
 			next_is_ext = 0;
-			*(text++) = gsm_7bit_alphabet[0x7f + c];
+			c8 = gsm_7bit_alphabet[0x7f + c7];
+		} else if (c7 == 0x1b && i + 1 < septet_l) {
+			next_is_ext = 1;
 			continue;
+		} else {
+			c8 = gsm_septet_lookup(c7);
 		}
 
-		if (c == 0x1b && i + 1 < septet_l) {
-			next_is_ext = 1;
-		} else {
-			*(text++) = gsm_septet_lookup(c);
-		}
+		*(text++) = c8;
 	}
 
-	if (ud_hdr_ind)
-		i += shift;
 	*text = '\0';
 
-	return i;
+	return text - text_buf_begin;
 }
 
-int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t septet_l)
+int gsm_7bit_decode_n(char *text, size_t n, const uint8_t *user_data, uint8_t septet_l)
 {
-	return gsm_7bit_decode_hdr(text, user_data, septet_l, 0);
+	return gsm_7bit_decode_n_hdr(text, n, user_data, septet_l, 0);
+}
+
+int gsm_7bit_decode_n_ussd(char *text, size_t n, const uint8_t *user_data, uint8_t length)
+{
+	int nchars;
+
+	nchars = gsm_7bit_decode_n_hdr(text, n, user_data, length, 0);
+	/* remove last <CR>, if it fits up to the end of last octet */
+	if (nchars && (user_data[gsm_get_octet_len(length) - 1] >> 1) == '\r')
+		text[--nchars] = '\0';
+
+	return nchars;
 }
 
 /* GSM 03.38 6.2.1 Prepare character packing */
@@ -202,7 +235,8 @@ int gsm_septet_encode(uint8_t *result, const char *data)
 }
 
 /* 7bit to octet packing */
-int gsm_septets2octets(uint8_t *result, uint8_t *rdata, uint8_t septet_len, uint8_t padding){
+int gsm_septets2octets(uint8_t *result, const uint8_t *rdata, uint8_t septet_len, uint8_t padding)
+{
 	int i = 0, z = 0;
 	uint8_t cb, nb;
 	int shift = 0;
@@ -247,14 +281,28 @@ int gsm_septets2octets(uint8_t *result, uint8_t *rdata, uint8_t septet_len, uint
 }
 
 /* GSM 03.38 6.2.1 Character packing */
-int gsm_7bit_encode(uint8_t *result, const char *data)
+int gsm_7bit_encode_n(uint8_t *result, size_t n, const char *data, int *octets)
 {
 	int y = 0;
+	int o;
+	size_t max_septets = n * 8 / 7;
 
 	/* prepare for the worst case, every character expanding to two bytes */
 	uint8_t *rdata = calloc(strlen(data) * 2, sizeof(uint8_t));
 	y = gsm_septet_encode(rdata, data);
-	gsm_septets2octets(result, rdata, y, 0);
+
+	if (y > max_septets) {
+		/*
+		 * Limit the number of septets to avoid the generation
+		 * of more than n octets.
+		 */
+		y = max_septets;
+	}
+
+	o = gsm_septets2octets(result, rdata, y, 0);
+
+	if (octets)
+		*octets = o;
 
 	free(rdata);
 
@@ -269,6 +317,42 @@ int gsm_7bit_encode(uint8_t *result, const char *data)
 	 *         => (48 * 7 bit) / 8 bit = 42 octects
 	 */
 	return y;
+}
+
+int gsm_7bit_encode_n_ussd(uint8_t *result, size_t n, const char *data, int *octets)
+{
+	int y;
+
+	y = gsm_7bit_encode_n(result, n, data, octets);
+	/* if last octet contains only one bit, add <CR> */
+	if (((y * 7) & 7) == 1)
+		result[(*octets) - 1] |= ('\r' << 1);
+	/* if last character is <CR> and completely fills last octet, add
+	 * another <CR>. */
+	if (y && ((y * 7) & 7) == 0 && (result[(*octets) - 1] >> 1) == '\r' && *octets < n - 1) {
+		result[(*octets)++] = '\r';
+		y++;
+	}
+
+	return y;
+}
+
+/*! \brief Build the RSL uplink measurement IE (3GPP TS 08.58 § 9.3.25)
+ *  \param[in] mru Unidirectional measurement report structure
+ *  \param[in] dtxd_used Indicates if DTXd was used during measurement report
+ *             period
+ *  \param[out] buf Pre-allocated bufer for storing IE
+ *  \returns Number of bytes filled in buf
+ */
+size_t gsm0858_rsl_ul_meas_enc(struct gsm_meas_rep_unidir *mru, bool dtxd_used,
+			uint8_t *buf)
+{
+	buf[0] = dtxd_used ? (1 << 6) : 0;
+	buf[0] |= (mru->full.rx_lev & 0x3f);
+	buf[1] = (mru->sub.rx_lev & 0x3f);
+	buf[2] = ((mru->full.rx_qual & 7) << 3) | (mru->sub.rx_qual & 7);
+
+	return 3;
 }
 
 /* convert power class to dBm according to GSM TS 05.05 */
@@ -335,7 +419,7 @@ int ms_pwr_ctl_lvl(enum gsm_band band, unsigned int dbm)
 	case GSM_BAND_1800:
 		if (dbm >= 36)
 			return 29;
-		else if (dbm >= 34)	
+		else if (dbm >= 34)
 			return 30;
 		else if (dbm >= 32)
 			return 31;
@@ -400,7 +484,7 @@ int ms_pwr_dbm(enum gsm_band band, uint8_t lvl)
 	return -EINVAL;
 }
 
-/* According to TS 08.05 Chapter 8.1.4 */
+/* According to TS 05.08 Chapter 8.1.4 */
 int rxlev2dbm(uint8_t rxlev)
 {
 	if (rxlev > 63)
@@ -409,7 +493,7 @@ int rxlev2dbm(uint8_t rxlev)
 	return -110 + rxlev;
 }
 
-/* According to TS 08.05 Chapter 8.1.4 */
+/* According to TS 05.08 Chapter 8.1.4 */
 uint8_t dbm2rxlev(int dbm)
 {
 	int rxlev = dbm + 110;
@@ -503,59 +587,79 @@ enum gsm_band gsm_arfcn2band(uint16_t arfcn)
 		return GSM_BAND_1800;
 }
 
+struct gsm_freq_range {
+	uint16_t arfcn_first;
+	uint16_t arfcn_last;
+	uint16_t freq_ul_first;
+	uint16_t freq_dl_offset;
+	uint16_t flags;
+};
+
+static struct gsm_freq_range gsm_ranges[] = {
+	{ 512,  810, 18502, 800, ARFCN_PCS },	/* PCS 1900 */
+	{   0,  124,  8900, 450, 0 },		/* P-GSM + E-GSM ARFCN 0 */
+	{ 955, 1023,  8762, 450, 0 },		/* E-GSM + R-GSM */
+	{ 128,  251,  8242, 450, 0 },		/* GSM 850  */
+	{ 512,  885, 17102, 950, 0 },		/* DCS 1800 */
+	{ 259,  293,  4506, 100, 0 },		/* GSM 450  */
+	{ 306,  340,  4790, 100, 0 },		/* GSM 480  */
+	{ 350,  425,  8060, 450, 0 },		/* GSM 810  */
+	{ 438,  511,  7472, 300, 0 },		/* GSM 750  */
+	{ /* Guard */ }
+};
+
 /* Convert an ARFCN to the frequency in MHz * 10 */
 uint16_t gsm_arfcn2freq10(uint16_t arfcn, int uplink)
 {
-	uint16_t freq10_ul;
-	uint16_t freq10_dl;
-	int is_pcs = arfcn & ARFCN_PCS;
+	struct gsm_freq_range *r;
+	uint16_t flags = arfcn & ARFCN_FLAG_MASK;
+	uint16_t freq10_ul = 0xffff;
+	uint16_t freq10_dl = 0xffff;
 
 	arfcn &= ~ARFCN_FLAG_MASK;
 
-	if (is_pcs) {
-		/* DCS 1900 */
-		arfcn &= ~ARFCN_PCS;
-		freq10_ul = 18502 + 2 * (arfcn-512);
-		freq10_dl = freq10_ul + 800;
-	} else if (arfcn <= 124) {
-		/* Primary GSM + ARFCN 0 of E-GSM */
-		freq10_ul = 8900 + 2 * arfcn;
-		freq10_dl = freq10_ul + 450;
-	} else if (arfcn >= 955 && arfcn <= 1023) {
-		/* E-GSM and R-GSM */
-		freq10_ul = 8900 + 2 * (arfcn - 1024);
-		freq10_dl = freq10_ul + 450;
-	} else if (arfcn >= 128 && arfcn <= 251) {
-		/* GSM 850 */
-		freq10_ul = 8242 + 2 * (arfcn - 128);
-		freq10_dl = freq10_ul + 450;
-	} else if (arfcn >= 512 && arfcn <= 885) {
-		/* DCS 1800 */
-		freq10_ul = 17102 + 2 * (arfcn - 512);
-		freq10_dl = freq10_ul + 950;
-	} else if (arfcn >= 259 && arfcn <= 293) {
-		/* GSM 450 */
-		freq10_ul = 4506 + 2 * (arfcn - 259);
-		freq10_dl = freq10_ul + 100;
-	} else if (arfcn >= 306 && arfcn <= 340) {
-		/* GSM 480 */
-		freq10_ul = 4790 + 2 * (arfcn - 306);
-		freq10_dl = freq10_ul + 100;
-	} else if (arfcn >= 350 && arfcn <= 425) {
-		/* GSM 810 */
-		freq10_ul = 8060 + 2 * (arfcn - 350);
-		freq10_dl = freq10_ul + 450;
-	} else if (arfcn >= 438 && arfcn <= 511) {
-		/* GSM 750 */
-		freq10_ul = 7472 + 2 * (arfcn - 438);
-		freq10_dl = freq10_ul + 300;
-	} else
-		return 0xffff;
+	for (r=gsm_ranges; r->freq_ul_first>0; r++) {
+		if ((flags == r->flags) &&
+		    (arfcn >= r->arfcn_first) &&
+		    (arfcn <= r->arfcn_last))
+		{
+			freq10_ul = r->freq_ul_first + 2 * (arfcn - r->arfcn_first);
+			freq10_dl = freq10_ul + r->freq_dl_offset;
+			break;
+		}
+	}
+
+	return uplink ? freq10_ul : freq10_dl;
+}
+
+/* Convert a Frequency in MHz * 10 to ARFCN */
+uint16_t gsm_freq102arfcn(uint16_t freq10, int uplink)
+{
+	struct gsm_freq_range *r;
+	uint16_t freq10_lo, freq10_hi;
+	uint16_t arfcn = 0xffff;
+
+	for (r=gsm_ranges; r->freq_ul_first>0; r++) {
+		/* Generate frequency limits */
+		freq10_lo = r->freq_ul_first;
+		freq10_hi = freq10_lo + 2 * (r->arfcn_last - r->arfcn_first);
+		if (!uplink) {
+			freq10_lo += r->freq_dl_offset;
+			freq10_hi += r->freq_dl_offset;
+		}
+
+		/* Check if this fits */
+		if (freq10 >= freq10_lo && freq10 <= freq10_hi) {
+			arfcn  = r->arfcn_first + ((freq10 - freq10_lo) >> 1);
+			arfcn |= r->flags;
+			break;
+		}
+	}
 
 	if (uplink)
-		return freq10_ul;
-	else
-		return freq10_dl;
+		arfcn |= ARFCN_UPLINK;
+
+	return arfcn;
 }
 
 void gsm_fn2gsmtime(struct gsm_time *time, uint32_t fn)
@@ -573,7 +677,41 @@ uint32_t gsm_gsmtime2fn(struct gsm_time *time)
 	return (51 * ((time->t3 - time->t2 + 26) % 26) + time->t3 + (26 * 51 * time->t1));
 }
 
-/* TS 03.03 Chapter 2.6 */
+/*! \brief append range1024 encoded data to bit vector */
+void bitvec_add_range1024(struct bitvec *bv, const struct gsm48_range_1024 *r)
+{
+	bitvec_set_uint(bv, r->w1_hi, 2);
+	bitvec_set_uint(bv, r->w1_lo, 8);
+	bitvec_set_uint(bv, r->w2_hi, 8);
+	bitvec_set_uint(bv, r->w2_lo, 1);
+	bitvec_set_uint(bv, r->w3_hi, 7);
+	bitvec_set_uint(bv, r->w3_lo, 2);
+	bitvec_set_uint(bv, r->w4_hi, 6);
+	bitvec_set_uint(bv, r->w4_lo, 2);
+	bitvec_set_uint(bv, r->w5_hi, 6);
+	bitvec_set_uint(bv, r->w5_lo, 2);
+	bitvec_set_uint(bv, r->w6_hi, 6);
+	bitvec_set_uint(bv, r->w6_lo, 2);
+	bitvec_set_uint(bv, r->w7_hi, 6);
+	bitvec_set_uint(bv, r->w7_lo, 2);
+	bitvec_set_uint(bv, r->w8_hi, 6);
+	bitvec_set_uint(bv, r->w8_lo, 1);
+	bitvec_set_uint(bv, r->w9, 7);
+	bitvec_set_uint(bv, r->w10, 7);
+	bitvec_set_uint(bv, r->w11_hi, 1);
+	bitvec_set_uint(bv, r->w11_lo, 6);
+	bitvec_set_uint(bv, r->w12_hi, 2);
+	bitvec_set_uint(bv, r->w12_lo, 5);
+	bitvec_set_uint(bv, r->w13_hi, 3);
+	bitvec_set_uint(bv, r->w13_lo, 4);
+	bitvec_set_uint(bv, r->w14_hi, 4);
+	bitvec_set_uint(bv, r->w14_lo, 3);
+	bitvec_set_uint(bv, r->w15_hi, 5);
+	bitvec_set_uint(bv, r->w15_lo, 2);
+	bitvec_set_uint(bv, r->w16, 6);
+}
+
+/* TS 23.003 Chapter 2.6 */
 int gprs_tlli_type(uint32_t tlli)
 {
 	if ((tlli & 0xc0000000) == 0xc0000000)
@@ -584,6 +722,10 @@ int gprs_tlli_type(uint32_t tlli)
 		return TLLI_RANDOM;
 	else if ((tlli & 0xf8000000) == 0x70000000)
 		return TLLI_AUXILIARY;
+	else if ((tlli & 0xf0000000) == 0x00000000)
+		return TLLI_G_RNTI;
+	else if ((tlli & 0xf0000000) == 0x10000000)
+		return TLLI_RAND_G_RNTI;
 
 	return TLLI_RESERVED;
 }
@@ -603,4 +745,40 @@ uint32_t gprs_tmsi2tlli(uint32_t p_tmsi, enum gprs_tlli_type type)
 		break;
 	}
 	return tlli;
+}
+
+/* Wrappers for deprecated functions: */
+
+int gsm_7bit_decode(char *text, const uint8_t *user_data, uint8_t septet_l)
+{
+	gsm_7bit_decode_n(text, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+			  user_data, septet_l);
+
+	/* Mimic the original behaviour. */
+	return septet_l;
+}
+
+int gsm_7bit_decode_ussd(char *text, const uint8_t *user_data, uint8_t length)
+{
+	return gsm_7bit_decode_n_ussd(text, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+				      user_data, length);
+}
+
+int gsm_7bit_encode(uint8_t *result, const char *data)
+{
+	int out;
+	return gsm_7bit_encode_n(result, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+				 data, &out);
+}
+
+int gsm_7bit_encode_ussd(uint8_t *result, const char *data, int *octets)
+{
+	return gsm_7bit_encode_n_ussd(result, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+				      data, octets);
+}
+
+int gsm_7bit_encode_oct(uint8_t *result, const char *data, int *octets)
+{
+	return gsm_7bit_encode_n(result, GSM_7BIT_LEGACY_MAX_BUFFER_SIZE,
+				 data, octets);
 }

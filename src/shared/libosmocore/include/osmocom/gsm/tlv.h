@@ -1,5 +1,4 @@
-#ifndef _TLV_H
-#define _TLV_H
+#pragma once
 
 #include <stdint.h>
 #include <string.h>
@@ -403,13 +402,51 @@ int tlv_parse_one(uint8_t *o_tag, uint16_t *o_len, const uint8_t **o_val,
                   const uint8_t *buf, int buf_len);
 int tlv_parse(struct tlv_parsed *dec, const struct tlv_definition *def,
 	      const uint8_t *buf, int buf_len, uint8_t lv_tag, uint8_t lv_tag2);
-/* take a master (src) tlvdev and fill up all empty slots in 'dst' */
+/* take a master (src) tlv def and fill up all empty slots in 'dst' */
 void tlv_def_patch(struct tlv_definition *dst, const struct tlv_definition *src);
 
 #define TLVP_PRESENT(x, y)	((x)->lv[y].val)
 #define TLVP_LEN(x, y)		(x)->lv[y].len
 #define TLVP_VAL(x, y)		(x)->lv[y].val
 
-/*! @} */
+#define TLVP_PRES_LEN(tp, tag, min_len) \
+	(TLVP_PRESENT(tp, tag) && TLVP_LEN(tp, tag) >= min_len)
 
-#endif /* _TLV_H */
+/*! \brief Align given TLV element with 16 bit value to an even address
+ *  \param[in] tp pointer to \ref tlv_parsed
+ *  \param[in] pos element to return
+ *  \returns aligned 16 bit value
+ */
+static inline uint16_t tlvp_val16_unal(const struct tlv_parsed *tp, int pos)
+{
+	uint16_t res;
+	memcpy(&res, TLVP_VAL(tp, pos), sizeof(res));
+	return res;
+}
+
+/*! \brief Align given TLV element with 32 bit value to an address that is a multiple of 4
+ *  \param[in] tp pointer to \ref tlv_parsed
+ *  \param[in] pos element to return
+ *  \returns aligned 32 bit value
+ */
+static inline uint32_t tlvp_val32_unal(const struct tlv_parsed *tp, int pos)
+{
+	uint32_t res;
+	memcpy(&res, TLVP_VAL(tp, pos), sizeof(res));
+	return res;
+}
+
+struct tlv_parsed *osmo_tlvp_copy(const struct tlv_parsed *tp_orig, void *ctx);
+int osmo_tlvp_merge(struct tlv_parsed *dst, const struct tlv_parsed *src);
+int osmo_shift_v_fixed(uint8_t **data, size_t *data_len,
+		       size_t len, uint8_t **value);
+int osmo_match_shift_tv_fixed(uint8_t **data, size_t *data_len,
+			      uint8_t tag, size_t len, uint8_t **value);
+int osmo_shift_tlv(uint8_t **data, size_t *data_len,
+		   uint8_t *tag, uint8_t **value, size_t *value_len);
+int osmo_match_shift_tlv(uint8_t **data, size_t *data_len,
+		   uint8_t tag, uint8_t **value, size_t *value_len);
+int osmo_shift_lv(uint8_t **data, size_t *data_len,
+		  uint8_t **value, size_t *value_len);
+
+/*! @} */

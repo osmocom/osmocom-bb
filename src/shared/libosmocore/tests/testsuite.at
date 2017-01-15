@@ -6,26 +6,49 @@ AT_BANNER([Regression tests.])
 AT_SETUP([a5])
 AT_KEYWORDS([a5])
 cat $abs_srcdir/a5/a5_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/a5/a5_test], [], [expout])
+AT_CHECK([$abs_top_builddir/tests/a5/a5_test], [0], [expout])
 AT_CLEANUP
 
-AT_SETUP([bssgp-fc])
-AT_KEYWORDS([bssgp-fc])
-cat $abs_srcdir/gb/bssgp_fc_tests.ok > expout
-cat $abs_srcdir/gb/bssgp_fc_tests.err > experr
-AT_CHECK([$abs_top_srcdir/tests/gb/bssgp_fc_tests.sh $abs_top_builddir/tests/gb], [], [expout], [experr])
+AT_SETUP([kasumi])
+AT_KEYWORDS([kasumi])
+cat $abs_srcdir/kasumi/kasumi_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/kasumi/kasumi_test], [0], [expout])
 AT_CLEANUP
 
 AT_SETUP([bits])
 AT_KEYWORDS([bits])
 cat $abs_srcdir/bits/bitrev_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/bits/bitrev_test], [], [expout])
+AT_CHECK([$abs_top_builddir/tests/bits/bitrev_test], [0], [expout])
+AT_CLEANUP
+
+AT_SETUP([bitvec])
+AT_KEYWORDS([bitvec])
+cat $abs_srcdir/bitvec/bitvec_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/bitvec/bitvec_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([bitcomp])
+AT_KEYWORDS([bitcomp])
+cat $abs_srcdir/bits/bitcomp_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/bits/bitcomp_test], [0], [expout])
 AT_CLEANUP
 
 AT_SETUP([conv])
 AT_KEYWORDS([conv])
 cat $abs_srcdir/conv/conv_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/conv/conv_test], [], [expout])
+AT_CHECK([$abs_top_builddir/tests/conv/conv_test], [0], [expout])
+AT_CLEANUP
+
+AT_SETUP([msgb])
+AT_KEYWORDS([msgb])
+cat $abs_srcdir/msgb/msgb_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/msgb/msgb_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([gea])
+AT_KEYWORDS([gea])
+cat $abs_srcdir/gea/gea_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gea/gea_test], [0], [expout])
 AT_CLEANUP
 
 if ENABLE_MSGFILE
@@ -33,61 +56,175 @@ AT_SETUP([msgfile])
 AT_KEYWORDS([msgfile])
 cp $abs_srcdir/msgfile/msgconfig.cfg .
 cat $abs_srcdir/msgfile/msgfile_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/msgfile/msgfile_test], [], [expout])
+AT_CHECK([$abs_top_builddir/tests/msgfile/msgfile_test], [0], [expout])
 AT_CLEANUP
 endif
 
 AT_SETUP([sms])
 AT_KEYWORDS([sms])
 cat $abs_srcdir/sms/sms_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/sms/sms_test], [], [expout])
+AT_CHECK([$abs_top_builddir/tests/sms/sms_test], [0], [expout])
 AT_CLEANUP
 
 AT_SETUP([smscb])
 AT_KEYWORDS([smscb])
 cat $abs_srcdir/smscb/smscb_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/smscb/smscb_test], [], [expout])
-AT_CLEANUP
-
-AT_SETUP([timer])
-AT_KEYWORDS([timer])
-cat $abs_srcdir/timer/timer_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/timer/timer_test -s 5], [], [expout], [ignore])
+AT_CHECK([$abs_top_builddir/tests/smscb/smscb_test], [0], [expout])
 AT_CLEANUP
 
 AT_SETUP([ussd])
 AT_KEYWORDS([ussd])
 cat $abs_srcdir/ussd/ussd_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/ussd/ussd_test], [], [expout], [ignore])
+AT_CHECK([$abs_top_builddir/tests/ussd/ussd_test], [0], [expout], [ignore])
 AT_CLEANUP
 
 AT_SETUP([auth])
 AT_KEYWORDS([auth])
 cat $abs_srcdir/auth/milenage_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/auth/milenage_test], [], [expout], [ignore])
+AT_CHECK([$abs_top_builddir/tests/auth/milenage_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([comp128])
+AT_KEYWORDS([comp128])
+cat $abs_srcdir/comp128/comp128_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/comp128/comp128_test], [0], [expout])
 AT_CLEANUP
 
 AT_SETUP([lapd])
 AT_KEYWORDS([lapd])
 cat $abs_srcdir/lapd/lapd_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/lapd/lapd_test], [], [expout], [ignore])
+AT_CHECK([$abs_top_builddir/tests/lapd/lapd_test], [0], [expout], [ignore])
 AT_CLEANUP
 
 AT_SETUP([gsm0808])
 AT_KEYWORDS([gsm0808])
 cat $abs_srcdir/gsm0808/gsm0808_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/gsm0808/gsm0808_test], [], [expout], [ignore])
+AT_CHECK([$abs_top_builddir/tests/gsm0808/gsm0808_test], [0], [expout], [ignore])
 AT_CLEANUP
 
 AT_SETUP([gsm0408])
 AT_KEYWORDS([gsm0408])
 cat $abs_srcdir/gsm0408/gsm0408_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/gsm0408/gsm0408_test], [], [expout], [ignore])
+AT_CHECK([$abs_top_builddir/tests/gsm0408/gsm0408_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([gprs])
+AT_KEYWORDS([gprs])
+cat $abs_srcdir/gprs/gprs_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gprs/gprs_test], [0], [expout], [ignore])
 AT_CLEANUP
 
 AT_SETUP([logging])
 AT_KEYWORDS([logging])
 cat $abs_srcdir/logging/logging_test.ok > expout
 cat $abs_srcdir/logging/logging_test.err > experr
-AT_CHECK([$abs_top_builddir/tests/logging/logging_test], [], [expout], [experr])
+AT_CHECK([$abs_top_builddir/tests/logging/logging_test], [0], [expout], [experr])
+AT_CLEANUP
+
+AT_SETUP([codec])
+AT_KEYWORDS([codec])
+cat $abs_srcdir/codec/codec_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/codec/codec_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([fr])
+AT_KEYWORDS([fr])
+cat $abs_srcdir/fr/fr_test.ok > expout
+cat $abs_srcdir/fr/fr_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/fr/fr_test], [0], [expout], [experr])
+AT_CLEANUP
+
+AT_SETUP([loggingrb])
+AT_KEYWORDS([loggingrb])
+cat $abs_srcdir/loggingrb/logging_test.ok > expout
+cat $abs_srcdir/loggingrb/logging_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/loggingrb/loggingrb_test], [0], [expout], [experr])
+AT_CLEANUP
+
+AT_SETUP([strrb])
+AT_KEYWORDS([strrb])
+cat $abs_srcdir/strrb/strrb_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/strrb/strrb_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([vty])
+AT_KEYWORDS([vty])
+cat $abs_srcdir/vty/vty_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/vty/vty_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([gprs-bssgp])
+AT_KEYWORDS([gprs-bssgp])
+cat $abs_srcdir/gb/gprs_bssgp_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gb/gprs_bssgp_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([gprs-ns])
+AT_KEYWORDS([gprs-ns])
+cat $abs_srcdir/gb/gprs_ns_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gb/gprs_ns_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([utils])
+AT_KEYWORDS([utils])
+cat $abs_srcdir/utils/utils_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/utils/utils_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([stats])
+AT_KEYWORDS([stats])
+cat $abs_srcdir/stats/stats_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/stats/stats_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([write_queue])
+AT_KEYWORDS([write_queue])
+cat $abs_srcdir/write_queue/wqueue_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/write_queue/wqueue_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([bssgp-fc])
+AT_KEYWORDS([bssgp-fc])
+cat $abs_srcdir/gb/bssgp_fc_tests.ok > expout
+cat $abs_srcdir/gb/bssgp_fc_tests.err > experr
+AT_CHECK([$abs_top_srcdir/tests/gb/bssgp_fc_tests.sh $abs_top_builddir/tests/gb], [0], [expout], [experr])
+AT_CLEANUP
+
+AT_SETUP([sim])
+AT_KEYWORDS([sim])
+AT_CHECK([test "x$enable_sim_test" = xyes || exit 77])
+cat $abs_srcdir/sim/sim_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/sim/sim_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([timer])
+AT_KEYWORDS([timer])
+cat $abs_srcdir/timer/timer_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/timer/timer_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([tlv])
+AT_KEYWORDS([tlv])
+cat $abs_srcdir/tlv/tlv_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/tlv/tlv_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([gsup])
+AT_KEYWORDS([gsup])
+cat $abs_srcdir/gsup/gsup_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/gsup/gsup_test], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([fsm])
+AT_KEYWORDS([fsm])
+cat $abs_srcdir/fsm/fsm_test.ok > expout
+cat $abs_srcdir/fsm/fsm_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/fsm/fsm_test], [0], [expout], [experr])
+AT_CLEANUP
+
+AT_SETUP([oap])
+AT_KEYWORDS([oap])
+cat $abs_srcdir/oap/oap_test.ok > expout
+touch experr
+AT_CHECK([$abs_top_builddir/tests/oap/oap_test], [0], [expout], [experr])
 AT_CLEANUP

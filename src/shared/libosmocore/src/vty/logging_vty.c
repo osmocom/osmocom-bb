@@ -1,6 +1,6 @@
 /* OpenBSC logging helper for the VTY */
 /* (C) 2009-2010 by Harald Welte <laforge@gnumonks.org>
- * (C) 2009-2010 by Holger Hans Peter Freyther
+ * (C) 2009-2014 by Holger Hans Peter Freyther
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,8 +27,9 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
-
-//#include <openbsc/vty.h>
+#include <osmocom/core/strrb.h>
+#include <osmocom/core/loggingrb.h>
+#include <osmocom/core/gsmtap.h>
 
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/buffer.h>
@@ -149,6 +150,40 @@ DEFUN(logging_prnt_timestamp,
 	return CMD_SUCCESS;
 }
 
+DEFUN(logging_prnt_ext_timestamp,
+      logging_prnt_ext_timestamp_cmd,
+      "logging print extended-timestamp (0|1)",
+	LOGGING_STR "Log output settings\n"
+	"Configure log message timestamping\n"
+	"Don't prefix each log message\n"
+	"Prefix each log message with current timestamp with YYYYMMDDhhmmssnnn\n")
+{
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
+
+	if (!tgt)
+		return CMD_WARNING;
+
+	log_set_print_extended_timestamp(tgt, atoi(argv[0]));
+	return CMD_SUCCESS;
+}
+
+DEFUN(logging_prnt_cat,
+      logging_prnt_cat_cmd,
+      "logging print category (0|1)",
+	LOGGING_STR "Log output settings\n"
+	"Configure log message\n"
+	"Don't prefix each log message\n"
+	"Prefix each log message with category/subsystem name\n")
+{
+	struct log_target *tgt = osmo_log_vty2tgt(vty);
+
+	if (!tgt)
+		return CMD_WARNING;
+
+	log_set_print_category(tgt, atoi(argv[0]));
+	return CMD_SUCCESS;
+}
+
 DEFUN(logging_level,
       logging_level_cmd,
       NULL, /* cmdstr is dynamically set in logging_vty_add_cmds(). */
@@ -241,19 +276,30 @@ static void vty_print_logtarget(struct vty *vty, const struct log_info *info,
 
 	for (i = 0; i < info->num_cat; i++) {
 		const struct log_category *cat = &tgt->categories[i];
+		/* Skip categories that were not initialized */
+		if (!info->cat[i].name)
+			continue;
 		vty_out(vty, "  %-10s %-10s %-8s %s%s",
 			info->cat[i].name+1, log_level_str(cat->loglevel),
 			cat->enabled ? "Enabled" : "Disabled",
  			info->cat[i].description,
 			VTY_NEWLINE);
 	}
+
+	vty_out(vty, " Log Filter 'ALL': %s%s",
+		tgt->filter_map & LOG_FILTER_ALL ? "Enabled" : "Disabled",
+		VTY_NEWLINE);
+
+	/* print application specific filters */
+	if (info->print_fn)
+		info->print_fn(vty, info, tgt);
 }
 
 #define SHOW_LOG_STR "Show current logging configuration\n"
 
 DEFUN(show_logging_vty,
-      show_logging_vty_cmd,
-      "show logging vty",
+	show_logging_vty_cmd,
+	"show logging vty",
 	SHOW_STR SHOW_LOG_STR
 	"Show current logging configuration for this vty\n")
 {
@@ -263,6 +309,33 @@ DEFUN(show_logging_vty,
 		return CMD_WARNING;
 
 	vty_print_logtarget(vty, osmo_log_info, tgt);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_alarms,
+	show_alarms_cmd,
+	"show alarms",
+	SHOW_STR SHOW_LOG_STR
+	"Show the contents of the logging ringbuffer\n")
+{
+	int i, num_alarms;
+	struct osmo_strrb *rb;
+	struct log_target *tgt = log_target_find(LOG_TGT_TYPE_STRRB, NULL);
+	if (!tgt) {
+		vty_out(vty, "%% No alarms, run 'log alarms <2-32700>'%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	rb = tgt->tgt_rb.rb;
+	num_alarms = osmo_strrb_elements(rb);
+
+	vty_out(vty, "%% Showing %i alarms%s", num_alarms, VTY_NEWLINE);
+
+	for (i = 0; i < num_alarms; i++)
+		vty_out(vty, "%% %s%s", osmo_strrb_get_nth(rb, i),
+			VTY_NEWLINE);
 
 	return CMD_SUCCESS;
 }
@@ -282,7 +355,7 @@ gDEFUN(cfg_description, cfg_description_cmd,
 	if (*dptr)
 		talloc_free(*dptr);
 	*dptr = argv_concat(argv, argc, 0);
-	if (!dptr)
+	if (!*dptr)
 		return CMD_WARNING;
 
 	return CMD_SUCCESS;
@@ -426,6 +499,33 @@ DEFUN(cfg_no_log_syslog, cfg_no_log_syslog_cmd,
 }
 #endif /* HAVE_SYSLOG_H */
 
+DEFUN(cfg_log_gsmtap, cfg_log_gsmtap_cmd,
+	"log gsmtap [HOSTNAME]",
+	LOG_STR "Logging via GSMTAP\n"
+	"Host name to send the GSMTAP logging to (UDP port 4729)\n")
+{
+	const char *hostname = argv[0];
+	struct log_target *tgt;
+
+	tgt = log_target_find(LOG_TGT_TYPE_GSMTAP, hostname);
+	if (!tgt) {
+		tgt = log_target_create_gsmtap(hostname, GSMTAP_UDP_PORT,
+					       host.app_info->name, false,
+					       true);
+		if (!tgt) {
+			vty_out(vty, "%% Unable to create GSMTAP log%s",
+				VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		log_add_target(tgt);
+	}
+
+	vty->index = tgt;
+	vty->node = CFG_LOG_NODE;
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_log_stderr, cfg_log_stderr_cmd,
 	"log stderr",
 	LOG_STR "Logging via STDERR of the process\n")
@@ -510,6 +610,49 @@ DEFUN(cfg_no_log_file, cfg_no_log_file_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_log_alarms, cfg_log_alarms_cmd,
+	"log alarms <2-32700>",
+	LOG_STR "Logging alarms to osmo_strrb\n"
+	"Maximum number of messages to log\n")
+{
+	struct log_target *tgt;
+	unsigned int rbsize = atoi(argv[0]);
+
+	tgt = log_target_find(LOG_TGT_TYPE_STRRB, NULL);
+	if (tgt)
+		log_target_destroy(tgt);
+
+	tgt = log_target_create_rb(rbsize);
+	if (!tgt) {
+		vty_out(vty, "%% Unable to create osmo_strrb (size %u)%s",
+			rbsize, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	log_add_target(tgt);
+
+	vty->index = tgt;
+	vty->node = CFG_LOG_NODE;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_log_alarms, cfg_no_log_alarms_cmd,
+	"no log alarms",
+	NO_STR LOG_STR "Logging alarms to osmo_strrb\n")
+{
+	struct log_target *tgt;
+
+	tgt = log_target_find(LOG_TGT_TYPE_STRRB, NULL);
+	if (!tgt) {
+		vty_out(vty, "%% No osmo_strrb target found%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	log_target_destroy(tgt);
+
+	return CMD_SUCCESS;
+}
+
 static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 {
 	int i;
@@ -533,16 +676,31 @@ static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 	case LOG_TGT_TYPE_FILE:
 		vty_out(vty, "log file %s%s", tgt->tgt_file.fname, VTY_NEWLINE);
 		break;
+	case LOG_TGT_TYPE_STRRB:
+		vty_out(vty, "log alarms %zu%s",
+			log_target_rb_avail_size(tgt), VTY_NEWLINE);
+		break;
+	case LOG_TGT_TYPE_GSMTAP:
+		vty_out(vty, "log gsmtap %s%s",
+			tgt->tgt_gsmtap.hostname, VTY_NEWLINE);
+		break;
 	}
 
 	vty_out(vty, "  logging filter all %u%s",
 		tgt->filter_map & LOG_FILTER_ALL ? 1 : 0, VTY_NEWLINE);
-	/* FIXME: how to do this for filters outside of libosmocore? */
+	/* save filters outside of libosmocore, i.e. in app code */
+	if (osmo_log_info->save_fn)
+		osmo_log_info->save_fn(vty, osmo_log_info, tgt);
 
 	vty_out(vty, "  logging color %u%s", tgt->use_color ? 1 : 0,
 		VTY_NEWLINE);
-	vty_out(vty, "  logging timestamp %u%s", tgt->print_timestamp ? 1 : 0,
-		VTY_NEWLINE);
+	vty_out(vty, "  logging print category %d%s",
+		tgt->print_category ? 1 : 0, VTY_NEWLINE);
+	if (tgt->print_ext_timestamp)
+		vty_out(vty, "  logging print extended-timestamp 1%s", VTY_NEWLINE);
+	else
+		vty_out(vty, "  logging timestamp %u%s",
+			tgt->print_timestamp ? 1 : 0, VTY_NEWLINE);
 
 	/* stupid old osmo logging API uses uppercase strings... */
 	osmo_str2lower(level_lower, log_level_str(tgt->loglevel));
@@ -551,6 +709,10 @@ static int config_write_log_single(struct vty *vty, struct log_target *tgt)
 	for (i = 0; i < osmo_log_info->num_cat; i++) {
 		const struct log_category *cat = &tgt->categories[i];
 		char cat_lower[32];
+
+		/* skip empty entries in the array */
+		if (!osmo_log_info->cat[i].name)
+			continue;
 
 		/* stupid old osmo logging API uses uppercase strings... */
 		osmo_str2lower(cat_lower, osmo_log_info->cat[i].name+1);
@@ -582,6 +744,8 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	install_element_ve(&logging_fltr_all_cmd);
 	install_element_ve(&logging_use_clr_cmd);
 	install_element_ve(&logging_prnt_timestamp_cmd);
+	install_element_ve(&logging_prnt_ext_timestamp_cmd);
+	install_element_ve(&logging_prnt_cat_cmd);
 	install_element_ve(&logging_set_category_mask_cmd);
 	install_element_ve(&logging_set_category_mask_old_cmd);
 
@@ -590,22 +754,27 @@ void logging_vty_add_cmds(const struct log_info *cat)
 	logging_level_cmd.doc = log_vty_command_description(cat);
 	install_element_ve(&logging_level_cmd);
 	install_element_ve(&show_logging_vty_cmd);
+	install_element_ve(&show_alarms_cmd);
 
 	install_node(&cfg_log_node, config_write_log);
-	install_default(CFG_LOG_NODE);
-	install_element(CFG_LOG_NODE, &config_end_cmd);
+	vty_install_default(CFG_LOG_NODE);
 	install_element(CFG_LOG_NODE, &logging_fltr_all_cmd);
 	install_element(CFG_LOG_NODE, &logging_use_clr_cmd);
 	install_element(CFG_LOG_NODE, &logging_prnt_timestamp_cmd);
+	install_element(CFG_LOG_NODE, &logging_prnt_ext_timestamp_cmd);
+	install_element(CFG_LOG_NODE, &logging_prnt_cat_cmd);
 	install_element(CFG_LOG_NODE, &logging_level_cmd);
 
 	install_element(CONFIG_NODE, &cfg_log_stderr_cmd);
 	install_element(CONFIG_NODE, &cfg_no_log_stderr_cmd);
 	install_element(CONFIG_NODE, &cfg_log_file_cmd);
 	install_element(CONFIG_NODE, &cfg_no_log_file_cmd);
+	install_element(CONFIG_NODE, &cfg_log_alarms_cmd);
+	install_element(CONFIG_NODE, &cfg_no_log_alarms_cmd);
 #ifdef HAVE_SYSLOG_H
 	install_element(CONFIG_NODE, &cfg_log_syslog_cmd);
 	install_element(CONFIG_NODE, &cfg_log_syslog_local_cmd);
 	install_element(CONFIG_NODE, &cfg_no_log_syslog_cmd);
 #endif
+	install_element(CONFIG_NODE, &cfg_log_gsmtap_cmd);
 }

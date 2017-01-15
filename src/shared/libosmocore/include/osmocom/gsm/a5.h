@@ -20,11 +20,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __OSMO_A5_H__
-#define __OSMO_A5_H__
+#pragma once
 
 #include <stdint.h>
 
+#include <osmocom/core/defs.h>
 #include <osmocom/core/bits.h>
 
 /*! \defgroup a5 GSM A5 ciphering algorithm
@@ -49,15 +49,13 @@ osmo_a5_fn_count(uint32_t fn)
 }
 
 	/* Notes:
-	 *  - key must be 8 bytes long (or NULL for A5/0)
+	 *  - key must be 8 or 16 (for a5/4) bytes long (or NULL for A5/0)
 	 *  - the dl and ul pointer must be either NULL or 114 bits long
 	 *  - fn is the _real_ GSM frame number.
 	 *    (converted internally to fn_count)
 	 */
-void osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
-void osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
-void osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
+int osmo_a5(int n, const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul);
+void osmo_a5_1(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul) OSMO_DEPRECATED("Use generic osmo_a5() instead");
+void osmo_a5_2(const uint8_t *key, uint32_t fn, ubit_t *dl, ubit_t *ul) OSMO_DEPRECATED("Use generic osmo_a5() instead");
 
 /*! @} */
-
-#endif /* __OSMO_A5_H__ */

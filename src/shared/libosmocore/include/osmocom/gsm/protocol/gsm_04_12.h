@@ -1,9 +1,11 @@
-#ifndef PROTO_GSM_04_12_H
-#define PROTO_GSM_04_12_H
+#pragma once
 
 #include <stdint.h>
 
 /* GSM TS 04.12 definitions for Short Message Service Cell Broadcast */
+
+#define GSM412_MSG_LEN		88	/* TS 04.12 Section 3.1 */
+#define GSM412_BLOCK_LEN	22	/* TS 04.12 Section 3.1 */
 
 #define GSM412_SEQ_FST_BLOCK		0x0
 #define GSM412_SEQ_SND_BLOCK		0x1
@@ -27,5 +29,3 @@ struct gsm412_sched_msg {
 	uint8_t cbsms_msg_map[6];
 	uint8_t data[0];
 } __attribute__((packed));
-
-#endif

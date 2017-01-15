@@ -1,5 +1,4 @@
-#ifndef _GPRS_BSSGP_H
-#define _GPRS_BSSGP_H
+#pragma once
 
 #include <stdint.h>
 #include <osmocom/core/timer.h>
@@ -13,7 +12,9 @@
 /* gprs_bssgp_util.c */
 extern struct gprs_ns_inst *bssgp_nsi;
 struct msgb *bssgp_msgb_alloc(void);
+struct msgb *bssgp_msgb_copy(const struct msgb *msg, const char *name);
 const char *bssgp_cause_str(enum gprs_bssgp_cause cause);
+const char *bssgp_pdu_str(enum bssgp_pdu_type pdu);
 /* Transmit a simple response such as BLOCK/UNBLOCK/RESET ACK/NACK */
 int bssgp_tx_simple_bvci(uint8_t pdu_type, uint16_t nsei,
 			 uint16_t bvci, uint16_t ns_bvci);
@@ -34,6 +35,7 @@ enum bssgp_prim {
 	PRIM_NM_BVC_RESET,
 	PRIM_NM_BVC_BLOCK,
 	PRIM_NM_BVC_UNBLOCK,
+	PRIM_NM_STATUS,
 };
 
 struct osmo_bssgp_prim {
@@ -118,6 +120,7 @@ enum bssgp_ctr {
 	BSSGP_CTR_BYTES_OUT,
 	BSSGP_CTR_BLOCKED,
 	BSSGP_CTR_DISCARDED,
+	BSSGP_CTR_STATUS,
 };
 
 
@@ -207,5 +210,3 @@ int bssgp_vty_init(void);
 void bssgp_set_log_ss(int ss);
 
 int bssgp_prim_cb(struct osmo_prim_hdr *oph, void *ctx);
-
-#endif /* _GPRS_BSSGP_H */

@@ -20,10 +20,13 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/gsm48_ie.h>
+#include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/mncc.h>
+#include <osmocom/core/backtrace.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/msgb.h>
 
@@ -127,7 +130,28 @@ static int test_bearer_cap()
 	return 0;
 }
 
+static void test_mid_from_tmsi(void)
+{
+	static const uint8_t res[] = { 0x17, 0x05, 0xf4, 0xaa, 0xbb, 0xcc, 0xdd };
+
+
+	uint32_t tmsi = 0xAABBCCDD;
+	uint8_t buf[3 + sizeof(uint32_t)];
+
+	printf("Simple TMSI encoding test....");
+
+	memset(&buf, 0xFE, sizeof(buf));
+	gsm48_generate_mid_from_tmsi(buf, tmsi);
+
+	OSMO_ASSERT(memcmp(buf, res, sizeof(res)) == 0);
+	printf("passed\n");
+}
+
 int main(int argc, char **argv)
 {
+	msgb_talloc_ctx_init(NULL, 0);
 	test_bearer_cap();
+	test_mid_from_tmsi();
+
+	return EXIT_SUCCESS;
 }

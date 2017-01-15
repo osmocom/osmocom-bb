@@ -20,15 +20,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __OSMO_CRCGEN_H__
-#define __OSMO_CRCGEN_H__
+#pragma once
 
 /*! \defgroup crcgen Osmocom generic CRC routines
  *  @{
  */
 
 /*! \file crcgen.h
- *  \file Osmocom generic CRC routines global header
+ * Osmocom generic CRC routines global header
  */
 
 #include <osmocom/core/crc8gen.h>
@@ -37,5 +36,3 @@
 #include <osmocom/core/crc64gen.h>
 
 /*! @} */
-
-#endif /* __OSMO_CRCGEN_H__ */

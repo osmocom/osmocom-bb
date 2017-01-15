@@ -1,5 +1,4 @@
-#ifndef _GSMTAP_H
-#define _GSMTAP_H
+#pragma once
 
 /* gsmtap header, pseudo-header in front of the actua GSM payload */
 
@@ -43,7 +42,11 @@
 #define GSMTAP_TYPE_GMR1_UM	0x0a	/* GMR-1 L2 packets */
 #define GSMTAP_TYPE_UMTS_RLC_MAC	0x0b
 #define GSMTAP_TYPE_UMTS_RRC	0x0c
-
+#define GSMTAP_TYPE_LTE_RRC	0x0d	/* LTE interface */
+#define GSMTAP_TYPE_LTE_MAC	0x0e	/* LTE MAC interface */ 
+#define GSMTAP_TYPE_LTE_MAC_FRAMED	0x0f	/* LTE MAC with context hdr */
+#define GSMTAP_TYPE_OSMOCORE_LOG	0x10	/* libosmocore logging */
+#define GSMTAP_TYPE_QC_DIAG		0x11	/* Qualcomm DIAG frame */
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 
@@ -135,6 +138,15 @@
 #define GSMTAP_UMTS_CH_CCCH	0x02
 #define GSMTAP_UMTS_CH_DCCH	0x03
 
+/* sub-types for TYPE_LTE_RRC */
+#define GSMTAP_LTE_CH_BCCH	0x01
+#define GSMTAP_LTE_CH_CCCH	0x02
+#define GSMTAP_LTE_CH_DCCH	0x03
+#define GSMTAP_LTE_CH_MCCH	0x04
+#define GSMTAP_LTE_CH_PCCH	0x05
+#define GSMTAP_LTE_CH_DTCH	0x06
+#define GSMTAP_LTE_CH_MTCH	0x07
+
 /* flags for the ARFCN */
 #define GSMTAP_ARFCN_F_PCS	0x8000
 #define GSMTAP_ARFCN_F_UPLINK	0x4000
@@ -143,24 +155,123 @@
 /* IANA-assigned well-known UDP port for GSMTAP messages */
 #define GSMTAP_UDP_PORT			4729
 
+/* UMTS RRC message types */
+enum {
+	GSMTAP_RRC_SUB_DL_DCCH_Message = 0,
+	GSMTAP_RRC_SUB_UL_DCCH_Message,
+	GSMTAP_RRC_SUB_DL_CCCH_Message,
+	GSMTAP_RRC_SUB_UL_CCCH_Message,
+	GSMTAP_RRC_SUB_PCCH_Message,
+	GSMTAP_RRC_SUB_DL_SHCCH_Message,
+	GSMTAP_RRC_SUB_UL_SHCCH_Message,
+	GSMTAP_RRC_SUB_BCCH_FACH_Message,
+	GSMTAP_RRC_SUB_BCCH_BCH_Message,
+	GSMTAP_RRC_SUB_MCCH_Message,
+	GSMTAP_RRC_SUB_MSCH_Message,
+	GSMTAP_RRC_SUB_HandoverToUTRANCommand,
+	GSMTAP_RRC_SUB_InterRATHandoverInfo,
+	GSMTAP_RRC_SUB_SystemInformation_BCH,
+	GSMTAP_RRC_SUB_System_Information_Container,
+	GSMTAP_RRC_SUB_UE_RadioAccessCapabilityInfo,
+	GSMTAP_RRC_SUB_MasterInformationBlock,
+	GSMTAP_RRC_SUB_SysInfoType1,
+	GSMTAP_RRC_SUB_SysInfoType2,
+	GSMTAP_RRC_SUB_SysInfoType3,
+	GSMTAP_RRC_SUB_SysInfoType4,
+	GSMTAP_RRC_SUB_SysInfoType5,
+	GSMTAP_RRC_SUB_SysInfoType5bis,
+	GSMTAP_RRC_SUB_SysInfoType6,
+	GSMTAP_RRC_SUB_SysInfoType7,
+	GSMTAP_RRC_SUB_SysInfoType8,
+	GSMTAP_RRC_SUB_SysInfoType9,
+	GSMTAP_RRC_SUB_SysInfoType10,
+	GSMTAP_RRC_SUB_SysInfoType11,
+	GSMTAP_RRC_SUB_SysInfoType11bis,
+	GSMTAP_RRC_SUB_SysInfoType12,
+	GSMTAP_RRC_SUB_SysInfoType13,
+	GSMTAP_RRC_SUB_SysInfoType13_1,
+	GSMTAP_RRC_SUB_SysInfoType13_2,
+	GSMTAP_RRC_SUB_SysInfoType13_3,
+	GSMTAP_RRC_SUB_SysInfoType13_4,
+	GSMTAP_RRC_SUB_SysInfoType14,
+	GSMTAP_RRC_SUB_SysInfoType15,
+	GSMTAP_RRC_SUB_SysInfoType15bis,
+	GSMTAP_RRC_SUB_SysInfoType15_1,
+	GSMTAP_RRC_SUB_SysInfoType15_1bis,
+	GSMTAP_RRC_SUB_SysInfoType15_2,
+	GSMTAP_RRC_SUB_SysInfoType15_2bis,
+	GSMTAP_RRC_SUB_SysInfoType15_2ter,
+	GSMTAP_RRC_SUB_SysInfoType15_3,
+	GSMTAP_RRC_SUB_SysInfoType15_3bis,
+	GSMTAP_RRC_SUB_SysInfoType15_4,
+	GSMTAP_RRC_SUB_SysInfoType15_5,
+	GSMTAP_RRC_SUB_SysInfoType15_6,
+	GSMTAP_RRC_SUB_SysInfoType15_7,
+	GSMTAP_RRC_SUB_SysInfoType15_8,
+	GSMTAP_RRC_SUB_SysInfoType16,
+	GSMTAP_RRC_SUB_SysInfoType17,
+	GSMTAP_RRC_SUB_SysInfoType18,
+	GSMTAP_RRC_SUB_SysInfoType19,
+	GSMTAP_RRC_SUB_SysInfoType20,
+	GSMTAP_RRC_SUB_SysInfoType21,
+	GSMTAP_RRC_SUB_SysInfoType22,
+	GSMTAP_RRC_SUB_SysInfoTypeSB1,
+	GSMTAP_RRC_SUB_SysInfoTypeSB2,
+	GSMTAP_RRC_SUB_ToTargetRNC_Container,
+	GSMTAP_RRC_SUB_TargetRNC_ToSourceRNC_Container,
+
+	GSMTAP_RRC_SUB_MAX
+};
+
+/* LTE RRC message types */
+enum {
+    GSMTAP_LTE_RRC_SUB_DL_CCCH_Message = 0,
+    GSMTAP_LTE_RRC_SUB_DL_DCCH_Message,
+    GSMTAP_LTE_RRC_SUB_UL_CCCH_Message,
+    GSMTAP_LTE_RRC_SUB_UL_DCCH_Message,
+    GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message,
+    GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message,
+    GSMTAP_LTE_RRC_SUB_PCCH_Message,
+    GSMTAP_LTE_RRC_SUB_MCCH_Message,
+
+    GSMTAP_LTE_RRC_SUB_MAX
+};
+
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
+/*! \brief Structure of the GTMTAP pseudo-header */
 struct gsmtap_hdr {
-	uint8_t version;	/* version, set to 0x01 currently */
-	uint8_t hdr_len;	/* length in number of 32bit words */
-	uint8_t type;		/* see GSMTAP_TYPE_* */
-	uint8_t timeslot;	/* timeslot (0..7 on Um) */
+	uint8_t version;	/*!< version, set to 0x01 currently */
+	uint8_t hdr_len;	/*!< length in number of 32bit words */
+	uint8_t type;		/*!< see GSMTAP_TYPE_* */
+	uint8_t timeslot;	/*!< timeslot (0..7 on Um) */
 
-	uint16_t arfcn;		/* ARFCN (frequency) */
-	int8_t signal_dbm;	/* signal level in dBm */
-	int8_t snr_db;		/* signal/noise ratio in dB */
+	uint16_t arfcn;		/*!< ARFCN (frequency) */
+	int8_t signal_dbm;	/*!< signal level in dBm */
+	int8_t snr_db;		/*!< signal/noise ratio in dB */
 
-	uint32_t frame_number;	/* GSM Frame Number (FN) */
+	uint32_t frame_number;	/*!< GSM Frame Number (FN) */
 
-	uint8_t sub_type;	/* Type of burst/channel, see above */
-	uint8_t antenna_nr;	/* Antenna Number */
-	uint8_t sub_slot;	/* sub-slot within timeslot */
-	uint8_t res;		/* reserved for future use (RFU) */
+	uint8_t sub_type;	/*!< Type of burst/channel, see above */
+	uint8_t antenna_nr;	/*!< Antenna Number */
+	uint8_t sub_slot;	/*!< sub-slot within timeslot */
+	uint8_t res;		/*!< reserved for future use (RFU) */
 
 } __attribute__((packed));
 
-#endif /* _GSMTAP_H */
+/*! \brief Structure of the GTMTAP libosmocore logging header */
+struct gsmtap_osmocore_log_hdr {
+	struct {
+		uint32_t sec;
+		uint32_t usec;
+	} ts;
+	char proc_name[16];	/*!< name of process */
+	uint32_t pid;		/*!< process ID */
+	uint8_t level;		/*!< logging level */
+	uint8_t _pad[3];
+	/* TODO: color */
+	char subsys[16];	/*!< logging sub-system */
+	struct {
+		char name[32];	/*!< source file name */
+		uint32_t line_nr;/*!< line number */
+	} src_file;
+} __attribute__((packed));

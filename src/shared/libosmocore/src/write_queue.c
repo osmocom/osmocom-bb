@@ -1,6 +1,6 @@
 /* Generic write queue implementation */
 /*
- * (C) 2010 by Holger Hans Peter Freyther
+ * (C) 2010-2016 by Holger Hans Peter Freyther
  * (C) 2010 by On-Waves
  *
  * All Rights Reserved
@@ -21,7 +21,9 @@
  *
  */
 
+#include <errno.h>
 #include <osmocom/core/write_queue.h>
+#include <osmocom/core/logging.h>
 
 /*! \addtogroup write_queue
  *  @{
@@ -32,6 +34,7 @@
 /*! \brief Select loop function for write queue handling
  *  \param[in] fd osmocom file descriptor
  *  \param[in] what bit-mask of events that have happened
+ *  \returns 0 on success; negative on error
  *
  * This function is provided so that it can be registered with the
  * select loop abstraction code (\ref osmo_fd::cb).
@@ -39,14 +42,21 @@
 int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what)
 {
 	struct osmo_wqueue *queue;
+	int rc;
 
 	queue = container_of(fd, struct osmo_wqueue, bfd);
 
-	if (what & BSC_FD_READ)
-		queue->read_cb(fd);
+	if (what & BSC_FD_READ) {
+		rc = queue->read_cb(fd);
+		if (rc == -EBADF)
+			goto err_badfd;
+	}
 
-	if (what & BSC_FD_EXCEPT)
-		queue->except_cb(fd);
+	if (what & BSC_FD_EXCEPT) {
+		rc = queue->except_cb(fd);
+		if (rc == -EBADF)
+			goto err_badfd;
+	}
 
 	if (what & BSC_FD_WRITE) {
 		struct msgb *msg;
@@ -58,14 +68,19 @@ int osmo_wqueue_bfd_cb(struct osmo_fd *fd, unsigned int what)
 			--queue->current_length;
 
 			msg = msgb_dequeue(&queue->msg_queue);
-			queue->write_cb(fd, msg);
+			rc = queue->write_cb(fd, msg);
 			msgb_free(msg);
+
+			if (rc == -EBADF)
+				goto err_badfd;
 
 			if (!llist_empty(&queue->msg_queue))
 				fd->when |= BSC_FD_WRITE;
 		}
 	}
 
+err_badfd:
+	/* Return value is not checked in osmo_select_main() */
 	return 0;
 }
 
@@ -79,6 +94,7 @@ void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length)
 	queue->current_length = 0;
 	queue->read_cb = NULL;
 	queue->write_cb = NULL;
+	queue->except_cb = NULL;
 	queue->bfd.cb = osmo_wqueue_bfd_cb;
 	INIT_LLIST_HEAD(&queue->msg_queue);
 }
@@ -86,11 +102,15 @@ void osmo_wqueue_init(struct osmo_wqueue *queue, int max_length)
 /*! \brief Enqueue a new \ref msgb into a write queue
  *  \param[in] queue Write queue to be used
  *  \param[in] data to-be-enqueued message buffer
+ *  \returns 0 on success; negative on error
  */
 int osmo_wqueue_enqueue(struct osmo_wqueue *queue, struct msgb *data)
 {
-//	if (queue->current_length + 1 >= queue->max_length)
-//		LOGP(DMSC, LOGL_ERROR, "The queue is full. Dropping not yet implemented.\n");
+	if (queue->current_length >= queue->max_length) {
+		LOGP(DLGLOBAL, LOGL_ERROR,
+			"wqueue(%p) is full. Rejecting msgb\n", queue);
+		return -ENOSPC;
+	}
 
 	++queue->current_length;
 	msgb_enqueue(&queue->msg_queue, data);

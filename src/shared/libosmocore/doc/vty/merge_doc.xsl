@@ -18,7 +18,9 @@
       <xsl:copy>
         <xsl:apply-templates select="@*|node()" />
           <xsl:for-each select="$info/*">
-            <xsl:copy-of select="." />
+            <xsl:if test="not($info/vty:description)">
+              <xsl:copy-of select="." />
+	    </xsl:if>
           </xsl:for-each>
       </xsl:copy>
     </xsl:if>

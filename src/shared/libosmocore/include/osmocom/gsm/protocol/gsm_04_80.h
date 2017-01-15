@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_04_80_H
-#define PROTO_GSM_04_80_H
+#pragma once
 
 /* GSM TS 04.80  definitions (Supplementary Services Specification, Formats and Coding) */
 
@@ -122,5 +121,3 @@
 #define ASN1_PRINTABLE_STRING_TAG	0x13
 #define ASN1_IA5_STRING_TAG		0x16
 #define ASN1_UNICODE_STRING_TAG		0x1E
-
-#endif /* PROTO_GSM_04_80_H */

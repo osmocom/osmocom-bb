@@ -8,16 +8,16 @@
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
@@ -43,12 +43,16 @@
 #define GRE_PTYPE_IPv4	0x0800
 #define GRE_PTYPE_KAR	0x0000	/* keepalive response */
 
+#ifndef IPPROTO_GRE
+# define IPPROTO_GRE 47
+#endif
+
 struct gre_hdr {
 	uint16_t flags;
 	uint16_t ptype;
 } __attribute__ ((packed));
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__CYGWIN__)
 /**
  * On BSD the IPv4 struct is called struct ip and instead of iXX
  * the members are called ip_XX. One could change this code to use

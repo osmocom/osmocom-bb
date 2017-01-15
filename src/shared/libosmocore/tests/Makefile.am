@@ -1,25 +1,61 @@
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include
+AM_CFLAGS = -Wall $(TALLOC_CFLAGS)
+AM_LDFLAGS = $(TALLOC_LIBS)
 
 check_PROGRAMS = timer/timer_test sms/sms_test ussd/ussd_test		\
                  smscb/smscb_test bits/bitrev_test a5/a5_test		\
                  conv/conv_test auth/milenage_test lapd/lapd_test	\
                  gsm0808/gsm0808_test gsm0408/gsm0408_test		\
-		 gb/bssgp_fc_test logging/logging_test
+		 gb/bssgp_fc_test gb/gprs_bssgp_test gb/gprs_ns_test	\
+		 gprs/gprs_test	kasumi/kasumi_test gea/gea_test		\
+		 logging/logging_test fr/fr_test codec/codec_test	\
+		 loggingrb/loggingrb_test strrb/strrb_test              \
+		 vty/vty_test comp128/comp128_test utils/utils_test	\
+		 smscb/gsm0341_test stats/stats_test			\
+		 bitvec/bitvec_test msgb/msgb_test bits/bitcomp_test	\
+		 tlv/tlv_test gsup/gsup_test oap/oap_test fsm/fsm_test	\
+		 write_queue/wqueue_test
+
 if ENABLE_MSGFILE
 check_PROGRAMS += msgfile/msgfile_test
 endif
 
+if ENABLE_PCSC
+check_PROGRAMS += sim/sim_test
+endif
+
+utils_utils_test_SOURCES = utils/utils_test.c
+utils_utils_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+stats_stats_test_SOURCES = stats/stats_test.c
+stats_stats_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
 a5_a5_test_SOURCES = a5/a5_test.c
-a5_a5_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+a5_a5_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libgsmint.la
+
+kasumi_kasumi_test_SOURCES = kasumi/kasumi_test.c
+kasumi_kasumi_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libgsmint.la
+
+comp128_comp128_test_SOURCES = comp128/comp128_test.c
+comp128_comp128_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 auth_milenage_test_SOURCES = auth/milenage_test.c
 auth_milenage_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
+gea_gea_test_SOURCES = gea/gea_test.c
+gea_gea_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
 bits_bitrev_test_SOURCES = bits/bitrev_test.c
 bits_bitrev_test_LDADD = $(top_builddir)/src/libosmocore.la
 
+bitvec_bitvec_test_SOURCES = bitvec/bitvec_test.c
+bitvec_bitvec_test_LDADD = $(top_builddir)/src/libosmocore.la
+
+bits_bitcomp_test_SOURCES = bits/bitcomp_test.c
+bits_bitcomp_test_LDADD = $(top_builddir)/src/libosmocore.la
+
 conv_conv_test_SOURCES = conv/conv_test.c
-conv_conv_test_LDADD = $(top_builddir)/src/libosmocore.la
+conv_conv_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libgsmint.la
 
 gsm0808_gsm0808_test_SOURCES = gsm0808/gsm0808_test.c
 gsm0808_gsm0808_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
@@ -27,14 +63,23 @@ gsm0808_gsm0808_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/
 gsm0408_gsm0408_test_SOURCES = gsm0408/gsm0408_test.c
 gsm0408_gsm0408_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
+gprs_gprs_test_SOURCES = gprs/gprs_test.c
+gprs_gprs_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
 lapd_lapd_test_SOURCES = lapd/lapd_test.c
 lapd_lapd_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+msgb_msgb_test_SOURCES = msgb/msgb_test.c
+msgb_msgb_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 msgfile_msgfile_test_SOURCES = msgfile/msgfile_test.c
 msgfile_msgfile_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 smscb_smscb_test_SOURCES = smscb/smscb_test.c
 smscb_smscb_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
+
+smscb_gsm0341_test_SOURCES = smscb/gsm0341_test.c
+smscb_gsm0341_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 sms_sms_test_SOURCES = sms/sms_test.c
 sms_sms_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
@@ -46,10 +91,54 @@ ussd_ussd_test_SOURCES = ussd/ussd_test.c
 ussd_ussd_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gsm/libosmogsm.la
 
 gb_bssgp_fc_test_SOURCES = gb/bssgp_fc_test.c
-gb_bssgp_fc_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la
+gb_bssgp_fc_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la \
+			 $(top_builddir)/src/gsm/libosmogsm.la
+
+gb_gprs_bssgp_test_SOURCES = gb/gprs_bssgp_test.c
+gb_gprs_bssgp_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL) \
+			   $(top_builddir)/src/gsm/libosmogsm.la
+
+gb_gprs_ns_test_SOURCES = gb/gprs_ns_test.c
+gb_gprs_ns_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL) \
+			$(top_builddir)/src/gsm/libosmogsm.la
 
 logging_logging_test_SOURCES = logging/logging_test.c
 logging_logging_test_LDADD = $(top_builddir)/src/libosmocore.la
+
+fr_fr_test_SOURCES = fr/fr_test.c
+fr_fr_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/gb/libosmogb.la $(LIBRARY_DL) \
+		   $(top_builddir)/src/gsm/libosmogsm.la
+
+codec_codec_test_SOURCES = codec/codec_test.c
+codec_codec_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/codec/libosmocodec.la
+
+loggingrb_loggingrb_test_SOURCES = loggingrb/loggingrb_test.c
+loggingrb_loggingrb_test_LDADD = $(top_builddir)/src/libosmocore.la $(top_builddir)/src/vty/libosmovty.la
+
+strrb_strrb_test_SOURCES = strrb/strrb_test.c
+strrb_strrb_test_LDADD = $(top_builddir)/src/libosmocore.la
+
+vty_vty_test_SOURCES = vty/vty_test.c
+vty_vty_test_LDADD = $(top_builddir)/src/vty/libosmovty.la $(top_builddir)/src/libosmocore.la
+
+sim_sim_test_SOURCES = sim/sim_test.c
+sim_sim_test_LDADD = $(top_builddir)/src/sim/libosmosim.la $(top_builddir)/src/libosmocore.la \
+		     $(top_builddir)/src/gsm/libosmogsm.la
+
+tlv_tlv_test_SOURCES = tlv/tlv_test.c
+tlv_tlv_test_LDADD = $(top_builddir)/src/gsm/libosmogsm.la $(top_builddir)/src/libosmocore.la
+
+gsup_gsup_test_SOURCES = gsup/gsup_test.c
+gsup_gsup_test_LDADD = $(top_builddir)/src/gsm/libosmogsm.la $(top_builddir)/src/libosmocore.la
+
+oap_oap_test_SOURCES = oap/oap_test.c
+oap_oap_test_LDADD = $(top_builddir)/src/gsm/libosmogsm.la $(top_builddir)/src/libosmocore.la
+
+fsm_fsm_test_SOURCES = fsm/fsm_test.c
+fsm_fsm_test_LDADD = $(top_builddir)/src/libosmocore.la
+
+write_queue_wqueue_test_SOURCES = write_queue/wqueue_test.c
+write_queue_wqueue_test_LDADD = $(top_builddir)/src/libosmocore.la
 
 # The `:;' works around a Bash 3.2 bug when the output is not writeable.
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac
@@ -76,8 +165,20 @@ EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE)		\
              lapd/lapd_test.ok gsm0408/gsm0408_test.ok			\
              gsm0808/gsm0808_test.ok gb/bssgp_fc_tests.err		\
              gb/bssgp_fc_tests.ok gb/bssgp_fc_tests.sh			\
+             gb/gprs_bssgp_test.ok gb/gprs_ns_test.ok gea/gea_test.ok	\
+             gprs/gprs_test.ok kasumi/kasumi_test.ok codec/codec_test.ok \
              msgfile/msgfile_test.ok msgfile/msgconfig.cfg		\
-             logging/logging_test.ok logging/logging_test.err
+             logging/logging_test.ok logging/logging_test.err		\
+             fr/fr_test.ok loggingrb/logging_test.ok			\
+             loggingrb/logging_test.err	strrb/strrb_test.ok		\
+	     vty/vty_test.ok comp128/comp128_test.ok			\
+	     utils/utils_test.ok stats/stats_test.ok			\
+	     bitvec/bitvec_test.ok msgb/msgb_test.ok bits/bitcomp_test.ok \
+	     sim/sim_test.ok tlv/tlv_test.ok gsup/gsup_test.ok		\
+	     oap/oap_test.ok fsm/fsm_test.ok fsm/fsm_test.err		\
+	     write_queue/wqueue_test.ok
+
+DISTCLEANFILES = atconfig atlocal
 
 TESTSUITE = $(srcdir)/testsuite
 
@@ -91,7 +192,6 @@ installcheck-local: atconfig $(TESTSUITE)
 clean-local:
 	test ! -f '$(TESTSUITE)' || \
 		$(SHELL) '$(TESTSUITE)' --clean
-	$(RM) -f atconfig
 
 AUTOM4TE = $(SHELL) $(top_srcdir)/missing --run autom4te
 AUTOTEST = $(AUTOM4TE) --language=autotest

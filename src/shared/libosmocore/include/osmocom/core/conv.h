@@ -25,11 +25,10 @@
  */
 
 /*! \file conv.h
- *  \file Osmocom convolutional encoder and decoder
+ * Osmocom convolutional encoder and decoder
  */
 
-#ifndef __OSMO_CONV_H__
-#define __OSMO_CONV_H__
+#pragma once
 
 #include <stdint.h>
 
@@ -142,5 +141,3 @@ int osmo_conv_decode(const struct osmo_conv_code *code,
 
 
 /*! @} */
-
-#endif /* __OSMO_CONV_H__ */

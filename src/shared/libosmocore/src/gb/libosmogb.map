@@ -2,10 +2,12 @@ LIBOSMOGB_1.0 {
 global:
 bssgp_cause_str;
 bssgp_create_cell_id;
+bssgp_pdu_str;
 bssgp_fc_in;
 bssgp_fc_init;
 bssgp_fc_ms_init;
 bssgp_msgb_alloc;
+bssgp_msgb_copy;
 bssgp_msgb_tlli_put;
 bssgp_parse_cell_id;
 bssgp_tx_bvc_block;
@@ -38,6 +40,7 @@ bssgp_nsi;
 
 gprs_ns_cause_str;
 gprs_ns_destroy;
+gprs_ns_close;
 gprs_ns_frgre_listen;
 gprs_ns_frgre_sendmsg;
 gprs_ns_instantiate;
@@ -53,6 +56,10 @@ gprs_ns_tx_reset;
 gprs_ns_tx_status;
 gprs_ns_tx_unblock;
 gprs_ns_vty_init;
+gprs_ns_ll_str;
+gprs_ns_ll_copy;
+gprs_ns_ll_clear;
+gprs_ns_msgb_alloc;
 
 gprs_nsvc_create;
 gprs_nsvc_delete;

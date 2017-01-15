@@ -24,7 +24,9 @@
  *  @{
  */
 
-/*! \file panic.c */
+/*! \file panic.c
+ *  \brief Routines for panic handling
+ */
 
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/panic.h>
@@ -58,7 +60,19 @@ static void osmo_panic_default(const char *fmt, va_list args)
 #endif
 
 
-/*! \brief Terminate the current program with a panic */
+/*! \brief Terminate the current program with a panic
+ *
+ * You can call this function in case some severely unexpected situation
+ * is detected and the program is supposed to terminate in a way that
+ * reports the fact that it terminates.
+ *
+ * The application can register a panic handler function using \ref
+ * osmo_set_panic_handler.  If it doesn't, a default panic handler
+ * function is called automatically.
+ *
+ * The default function on most systems will generate a backtrace and
+ * then abort() the process.
+ */
 void osmo_panic(const char *fmt, ...)
 {
 	va_list args;
@@ -74,9 +88,15 @@ void osmo_panic(const char *fmt, ...)
 }
  
 
-/*! \brief Set the panic handler */
+/*! \brief Set the panic handler
+ *  \param[in] h New panic handler function
+ *
+ *  This changes the panic handling function from the currently active
+ *  function to a new call-back function supplied by the caller.
+ */
 void osmo_set_panic_handler(osmo_panic_handler_t h)
 {
 	osmo_panic_handler = h;
 }
 
+/*! @} */

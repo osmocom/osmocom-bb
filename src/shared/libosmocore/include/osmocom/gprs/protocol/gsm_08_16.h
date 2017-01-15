@@ -1,5 +1,4 @@
-#ifndef _OSMO_08_16_H
-#define _OSMO_08_16_H
+#pragma once
 
 /* GPRS Networks Service (NS) messages on the Gb interface
  * 3GPP TS 08.16 version 8.0.1 Release 1999 / ETSI TS 101 299 V8.0.1 (2002-05)
@@ -81,5 +80,3 @@ enum ns_cause {
 	NS_CAUSE_UNKN_IP_ADDR		= 0x13,
 	NS_CAUSE_UNKN_IP_TEST_FAILED	= 0x14,
 };
-
-#endif

@@ -11,16 +11,16 @@
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
@@ -44,12 +44,13 @@
  * MMSMS-REL-REQ. It is allowed to destroy this process while processing
  * this message.
  *
- * There is expeption, if MMSMS-REL-IND is received from lower layer, the
+ * There is an exception, if MMSMS-REL-IND is received from lower layer, the
  * process returns to IDLE without sending MMSMS-REL-REQ.
  *
  */
 
 #include <string.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>
@@ -63,14 +64,17 @@ static void cp_timer_expired(void *data);
 
 #define MAX_SMS_RETRY 2
 
+#define SMC_LOG_STR "SMC(%" PRIu64 ") "
+
 /* init a new instance */
-void gsm411_smc_init(struct gsm411_smc_inst *inst, int network,
+void gsm411_smc_init(struct gsm411_smc_inst *inst, uint64_t id, int network,
 	int (*mn_recv) (struct gsm411_smc_inst *inst, int msg_type,
 			struct msgb *msg),
 	int (*mm_send) (struct gsm411_smc_inst *inst, int msg_type,
 			struct msgb *msg, int cp_msg_type))
 {
 	memset(inst, 0, sizeof(*inst));
+	inst->id = id;
 	inst->network = network;
 	inst->cp_max_retr = MAX_SMS_RETRY;
 	inst->cp_tc1 = GSM411_TMR_TC1A_SEC / (inst->cp_max_retr + 1);
@@ -78,19 +82,23 @@ void gsm411_smc_init(struct gsm411_smc_inst *inst, int network,
 	inst->mn_recv = mn_recv;
 	inst->mm_send = mm_send;
 
-	LOGP(DLSMS, LOGL_INFO, "New SMC instance created\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "instance created for %s\n",
+		inst->id, inst->network ? "network" : "mobile");
 }
 
 /* clear instance */
 void gsm411_smc_clear(struct gsm411_smc_inst *inst)
 {
-	LOGP(DLSMS, LOGL_INFO, "Clear SMC instance\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "clearing instance\n", inst->id);
 
 	osmo_timer_del(&inst->cp_timer);
 
 	/* free stored msg */
 	if (inst->cp_msg) {
-		LOGP(DLSMS, LOGL_INFO, "Dropping pending message\n");
+		LOGP(DLSMS, LOGL_INFO,
+			SMC_LOG_STR "dropping pending message\n", inst->id);
 		msgb_free(inst->cp_msg);
 		inst->cp_msg = NULL;
 	}
@@ -120,7 +128,8 @@ const struct value_string gsm411_cp_cause_strs[] = {
 static void new_cp_state(struct gsm411_smc_inst *inst,
 	enum gsm411_cp_state state)
 {
-	LOGP(DLSMS, LOGL_INFO, "New CP state %s -> %s\n",
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "new CP state %s -> %s\n", inst->id,
 		smc_state_names[inst->cp_state], smc_state_names[state]);
 	inst->cp_state = state;
 }
@@ -130,7 +139,8 @@ static int gsm411_tx_cp_error(struct gsm411_smc_inst *inst, uint8_t cause)
 	struct msgb *nmsg = gsm411_msgb_alloc();
 	uint8_t *causep;
 
-	LOGP(DLSMS, LOGL_NOTICE, "TX CP-ERROR, cause %d (%s)\n", cause,
+	LOGP(DLSMS, LOGL_NOTICE,
+		SMC_LOG_STR "TX CP-ERROR, cause %d (%s)\n", inst->id, cause,
 		get_value_string(gsm411_cp_cause_strs, cause));
 
 	causep = msgb_put(nmsg, 1);
@@ -146,8 +156,10 @@ static int gsm411_mnsms_est_req(struct gsm411_smc_inst *inst, struct msgb *msg)
 	struct msgb *nmsg;
 
 	if (inst->cp_msg) {
-		LOGP(DLSMS, LOGL_FATAL, "EST REQ, but we already have an "
-			"cp_msg. This should never happen, please fix!\n");
+		LOGP(DLSMS, LOGL_FATAL,
+			SMC_LOG_STR "EST REQ, but we already have an "
+			"cp_msg. This should never happen, please fix!\n",
+			inst->id);
 		msgb_free(inst->cp_msg);
 	}
 
@@ -164,7 +176,8 @@ static int gsm411_mmsms_send_msg(struct gsm411_smc_inst *inst)
 {
 	struct msgb *nmsg;
 
-	LOGP(DLSMS, LOGL_INFO, "Send CP data\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "send CP data\n", inst->id);
 	/* reset retry counter */
 	if (inst->cp_state != GSM411_CPS_WAIT_CP_ACK)
 		inst->cp_retx = 0;
@@ -187,8 +200,10 @@ static int gsm411_mmsms_send_msg(struct gsm411_smc_inst *inst)
 static int gsm411_mmsms_est_cnf(struct gsm411_smc_inst *inst, struct msgb *msg)
 {
 	if (!inst->cp_msg) {
-		LOGP(DLSMS, LOGL_FATAL, "EST CNF, but we have no cp_msg. This "
-			"should never happen, please fix!\n");
+		LOGP(DLSMS, LOGL_FATAL,
+			SMC_LOG_STR "EST CNF, but we have no cp_msg. This "
+			"should never happen, please fix!\n",
+			inst->id);
 		return -EINVAL;
 	}
 
@@ -203,7 +218,9 @@ static void cp_timer_expired(void *data)
 
 	if (inst->cp_retx == inst->cp_max_retr) {
 
-		LOGP(DLSMS, LOGL_INFO, "TC1* timeout, no more retries.\n");
+		LOGP(DLSMS, LOGL_INFO,
+			SMC_LOG_STR "TC1* timeout, no more retries.\n",
+			inst->id);
 		/* 5.3.2.1: enter idle state */
 		new_cp_state(inst, GSM411_CPS_IDLE);
 		/* indicate error */
@@ -221,7 +238,8 @@ static void cp_timer_expired(void *data)
 		return;
 	}
 
-	LOGP(DLSMS, LOGL_INFO, "TC1* timeout, retrying...\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "TC1* timeout, retrying...\n", inst->id);
 	inst->cp_retx++;
 	gsm411_mmsms_est_cnf(inst, NULL);
 }
@@ -234,7 +252,8 @@ static int gsm411_mmsms_cp_ack(struct gsm411_smc_inst *inst, struct msgb *msg)
 		inst->cp_msg = NULL;
 	}
 
-	LOGP(DLSMS, LOGL_INFO, "Received CP-ACK\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "received CP-ACK\n", inst->id);
 	/* 5.3.2.1 enter MM Connection established */
 	new_cp_state(inst, GSM411_CPS_MM_ESTABLISHED);
 	/* 5.3.2.1: Reset Timer TC1* */
@@ -244,7 +263,9 @@ static int gsm411_mmsms_cp_ack(struct gsm411_smc_inst *inst, struct msgb *msg)
 	if (inst->cp_rel) {
 		struct msgb *nmsg;
 
-		LOGP(DLSMS, LOGL_INFO, "We have pending release.\n");
+		LOGP(DLSMS, LOGL_INFO,
+			SMC_LOG_STR "we have pending release.\n",
+			inst->id);
 		new_cp_state(inst, GSM411_CPS_IDLE);
 		/* release MM connection */
 		nmsg = gsm411_msgb_alloc();
@@ -259,7 +280,8 @@ static int gsm411_mmsms_cp_data(struct gsm411_smc_inst *inst, struct msgb *msg)
 	struct msgb *nmsg;
 	int mt = GSM411_MNSMS_DATA_IND;
 
-	LOGP(DLSMS, LOGL_INFO, "Received CP-DATA\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "received CP-DATA\n", inst->id);
 	/* 5.3.1 enter MM Connection established (if idle) */
 	if (inst->cp_state == GSM411_CPS_IDLE) {
 		new_cp_state(inst, GSM411_CPS_MM_ESTABLISHED);
@@ -280,8 +302,10 @@ static int gsm411_mmsms_cp_data(struct gsm411_smc_inst *inst, struct msgb *msg)
 static int gsm411_mnsms_data_req(struct gsm411_smc_inst *inst, struct msgb *msg)
 {
 	if (inst->cp_msg) {
-		LOGP(DLSMS, LOGL_FATAL, "DATA REQ, but we already have an "
-			"cp_msg. This should never happen, please fix!\n");
+		LOGP(DLSMS, LOGL_FATAL,
+			SMC_LOG_STR "DATA REQ, but we already have an "
+			"cp_msg. This should never happen, please fix!\n",
+			inst->id);
 		msgb_free(inst->cp_msg);
 	}
 
@@ -304,8 +328,8 @@ static int gsm411_mnsms_rel_req(struct gsm411_smc_inst *inst, struct msgb *msg)
 	/* store release, until established or released */
 	if (inst->cp_state != GSM411_CPS_MM_ESTABLISHED) {
 		LOGP(DLSMS, LOGL_NOTICE,
-			"Cannot release yet current state: %s\n",
-			smc_state_names[inst->cp_state]);
+			SMC_LOG_STR "cannot release yet current state: %s\n",
+			inst->id, smc_state_names[inst->cp_state]);
 		inst->cp_rel = 1;
 		return 0;
 	}
@@ -332,7 +356,8 @@ static int gsm411_mmsms_cp_error(struct gsm411_smc_inst *inst, struct msgb *msg)
 		inst->cp_msg = NULL;
 	}
 
-	LOGP(DLSMS, LOGL_INFO, "Received CP-ERROR\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "received CP-ERROR\n", inst->id);
 	/* 5.3.4 enter idle */
 	new_cp_state(inst, GSM411_CPS_IDLE);
 	/* indicate error */
@@ -352,7 +377,8 @@ static int gsm411_mmsms_rel_ind(struct gsm411_smc_inst *inst, struct msgb *msg)
 		inst->cp_msg = NULL;
 	}
 
-	LOGP(DLSMS, LOGL_INFO, "MM layer is released\n");
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "MM layer is released\n", inst->id);
 	/* 5.3.4 enter idle */
 	new_cp_state(inst, GSM411_CPS_IDLE);
 	/* indicate error */
@@ -385,7 +411,7 @@ static int gsm411_mnsms_abort_req(struct gsm411_smc_inst *inst,
 }
 
 /* statefull handling for MNSMS SAP messages */
-static struct smcdownstate {
+static const struct smcdownstate {
 	uint32_t	states;
 	int		type;
 	const char 	*name;
@@ -429,13 +455,15 @@ int gsm411_smc_send(struct gsm411_smc_inst *inst, int msg_type,
 				break;
 	}
 	if (i == SMCDOWNSLLEN) {
-		LOGP(DLSMS, LOGL_NOTICE, "Message %u unhandled at this state "
-			"%s.\n", msg_type, smc_state_names[inst->cp_state]);
+		LOGP(DLSMS, LOGL_NOTICE,
+			SMC_LOG_STR "message %u unhandled at this state %s.\n",
+			inst->id, msg_type, smc_state_names[inst->cp_state]);
 		msgb_free(msg);
 		return 0;
 	}
 
-	LOGP(DLSMS, LOGL_INFO, "Message %s received in state %s\n",
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "message %s received in state %s\n", inst->id,
 		smcdownstatelist[i].name, smc_state_names[inst->cp_state]);
 
 	rc = smcdownstatelist[i].rout(inst, msg);
@@ -444,7 +472,7 @@ int gsm411_smc_send(struct gsm411_smc_inst *inst, int msg_type,
 }
 
 /* statefull handling for MMSMS SAP messages */
-static struct smcdatastate {
+static const struct smcdatastate {
 	uint32_t	states;
 	int		type, cp_type;
 	const char 	*name;
@@ -496,7 +524,7 @@ int gsm411_smc_recv(struct gsm411_smc_inst *inst, int msg_type,
 
 	/* find function for current state and message */
 	for (i = 0; i < SMCDATASLLEN; i++) {
-		/* state must machtch, MM message must match
+		/* state must match, MM message must match
 		 * CP msg must match only in case of MMSMS_DATA_IND
 		 */
 		if ((msg_type == smcdatastatelist[i].type)
@@ -506,15 +534,17 @@ int gsm411_smc_recv(struct gsm411_smc_inst *inst, int msg_type,
 				break;
 	}
 	if (i == SMCDATASLLEN) {
-		LOGP(DLSMS, LOGL_NOTICE, "Message 0x%x/%u unhandled at this "
-			"state %s.\n", msg_type, cp_msg_type,
+		LOGP(DLSMS, LOGL_NOTICE,
+			SMC_LOG_STR "message 0x%x/%u unhandled at this "
+			"state %s.\n", inst->id, msg_type, cp_msg_type,
 			smc_state_names[inst->cp_state]);
 		if (msg_type == GSM411_MMSMS_EST_IND
 		 || msg_type == GSM411_MMSMS_DATA_IND) {
 			struct msgb *nmsg;
 
-			LOGP(DLSMS, LOGL_NOTICE, "RX Unimplemented CP "
-				"msg_type: 0x%02x\n", msg_type);
+			LOGP(DLSMS, LOGL_NOTICE,
+				SMC_LOG_STR "RX Unimplemented CP "
+				"msg_type: 0x%02x\n", inst->id, msg_type);
 			/* 5.3.4 enter idle */
 			new_cp_state(inst, GSM411_CPS_IDLE);
 			/* indicate error */
@@ -532,7 +562,8 @@ int gsm411_smc_recv(struct gsm411_smc_inst *inst, int msg_type,
 		return 0;
 	}
 
-	LOGP(DLSMS, LOGL_INFO, "Message %s received in state %s\n",
+	LOGP(DLSMS, LOGL_INFO,
+		SMC_LOG_STR "message %s received in state %s\n", inst->id,
 		smcdatastatelist[i].name, smc_state_names[inst->cp_state]);
 
 	rc = smcdatastatelist[i].rout(inst, msg);

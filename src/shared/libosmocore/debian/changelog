@@ -1,3 +1,131 @@
+libosmocore (0.9.6) unstable; urgency=medium
+
+  * doc: osmocom-authn-protocol.txt: fix numbering, mark unused sync msgs
+  * New upstream release of libosmocore.
+
+ -- Max <msuraev@sysmocom.de>  Tue, 13 Dec 2016 18:23:56 +0100
+
+libosmocore (0.9.5) unstable; urgency=medium
+
+  * fix: DLGSUP logging category "unusable"
+  * New upstream release of libosmocore.
+  * ph_data_param struct changed / Extend L1SAP PH-DATA with measurement information
+  * size of ph_tch_param struct changed / Extend with RTP Marker
+  * size of struct log_target changed / Extend with GSMTAP
+
+ -- Max <msuraev@sysmocom.de>  Tue, 13 Dec 2016 18:22:56 +0100
+
+libosmocore (0.9.4) unstable; urgency=medium
+
+  * New upstream release of libosmocore.
+  * Internal API for GPRS cipher implementors updated to accommodate for arbitrary key lengths
+  * external talloc dependency / internal talloc removal
+  * size of ph_data_param struct changed / Extend L1SAP PH-DATA with presence information
+
+ -- Max <msuraev@sysmocom.de>  Tue, 13 Dec 2016 18:21:56 +0100
+
+libosmocore (0.9.3) unstable; urgency=medium
+
+  * Send all stats values after re-configuration.
+  * Fix using an empty prefix.
+  * Fix sending timing values.
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Mon, 09 Nov 2015 21:34:37 +0100
+
+libosmocore (0.9.2) unstable; urgency=medium
+
+  * Fix the counter index after the NS reset.
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Wed, 04 Nov 2015 14:47:48 +0100
+
+libosmocore (0.9.1) unstable; urgency=medium
+
+  * Fix rate_ctr attribute for GPRS NS counters.
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Wed, 04 Nov 2015 10:23:39 +0100
+
+libosmocore (0.9.0) unstable; urgency=medium
+
+  * StatsD support
+  * Disable building of static libraries
+  * GTP Hub and OAP ports/identifiers assigned
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Tue, 03 Nov 2015 09:31:41 +0100
+
+libosmocore (0.8.3) unstable; urgency=medium
+
+  * Prepare new release
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Sun, 23 Aug 2015 17:38:55 +0200
+
+libosmocore (0.8.2) unstable; urgency=medium
+
+  * Add endian header
+  * GPRS flow control changes
+  * Add APN format routines to libosmocore.
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Sat, 01 Aug 2015 20:18:45 +0200
+
+libosmocore (0.8.0) unstable; urgency=medium
+
+  * New upstream release of libosmocore.
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Sun, 18 Jan 2015 19:04:10 +0100
+
+libosmocore (0.7.0) unstable; urgency=medium
+
+  * New upstream release of libosmocore.
+
+ -- Harald Welte <laforge@gnumonks.org>  Thu, 21 Aug 2014 15:52:00 +0200
+
+libosmocore (0.6.6) UNRELEASED; urgency=medium
+
+  * New upstream release of libosmocore.
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Mon, 31 Mar 2014 15:37:33 +0200
+
+libosmocore (0.6.5) unstable; urgency=medium
+
+  * New upstream release of libosmocore
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Mon, 20 Jan 2014 10:37:23 +0100
+
+libosmocore (0.6.4+git3) unstable; urgency=low
+
+  * GPRS fix NS connections to a SGSN when configured via VTY
+
+ -- Jacob Erlbeck <jerlbeck@sysmocom.de>  Thu, 07 Nov 2013 16:07:20 +0100
+
+libosmocore (0.6.4+git2) unstable; urgency=low
+
+  * GPRS related changes, some GSM encoding/decoding changes
+  * GPRS correctly determine routable NSVC.
+  * Update with GPRS changes
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Thu, 10 Oct 2013 14:16:37 +0200
+
+libosmocore (0.6.3+git1-1) unstable; urgency=low
+
+  * New upstream release with new primitives, USSD fixes.
+  * Split libosmocore into several package. One lib per package.
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Fri, 09 Aug 2013 17:47:30 +0200
+
+libosmocore (0.6.2) unstable; urgency=low
+
+  * New upstream release with NS UDP DSCP ABI changes
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Wed, 26 Jun 2013 08:01:55 +0200
+
+libosmocore (0.5.3+git1-6) unstable; urgency=low
+
+  * Build new package with the new API required for osmo-bts/openbsc
+  * Package the arfcn utility.
+  * Add the SOCK_RAW work-around for glibc.
+  * Re-enable the debug packages thanks to Jan.
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Fri, 04 Jan 2013 09:54:55 +0100
+
 libosmocore (0.5.3+git1-2) unstable; urgency=low
 
   * New upstream version 
@@ -30,6 +158,6 @@ libosmocore (0.1.27) natty; urgency=low
 
 libosmocore (0.1.17-1) unstable; urgency=low
 
-  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+  * Initial release
 
  -- Harald Welte <laforge@gnumonks.org>  Tue, 24 Aug 2010 10:55:04 +0200

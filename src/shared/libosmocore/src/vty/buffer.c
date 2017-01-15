@@ -16,8 +16,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with GNU Zebra; see the file COPYING.  If not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
  */
 
 #include <stdio.h>
@@ -180,7 +180,7 @@ void buffer_put(struct buffer *b, const void *p, size_t size)
 }
 
 /* Insert character into the buffer. */
-void buffer_putc(struct buffer *b, u_char c)
+void buffer_putc(struct buffer *b, unsigned char c)
 {
 	buffer_put(b, &c, 1);
 }
@@ -299,7 +299,7 @@ buffer_flush_window(struct buffer * b, int fd, int width, int height,
 				zlog_warn("%s: growing iov array to %d; "
 					  "width %d, height %d, size %lu",
 					  __func__, iov_alloc, width, height,
-					  (u_long) b->size);
+					  (unsigned long) b->size);
 				iov =
 				    XREALLOC(MTYPE_TMP, iov,
 					     iov_alloc * sizeof(*iov));

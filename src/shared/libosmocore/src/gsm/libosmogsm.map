@@ -4,44 +4,115 @@ global:
 abis_nm_adm_state_names;
 abis_nm_att_settable;
 abis_nm_avail_name;
+abis_nm_fail_evt_rep;
 abis_nm_chcomb4pchan;
 abis_nm_debugp_foh;
 abis_nm_event_type_name;
 abis_nm_nack_cause_name;
 abis_nm_nack_name;
 abis_nm_att_tlvdef;
+abis_nm_att_tlvdef_ipa;
+abis_nm_osmo_att_tlvdef;
+abis_nm_msg_disc_names;
 abis_nm_obj_class_names;
 abis_nm_opstate_name;
 abis_nm_nacks;
+abis_nm_t200_ms;
 abis_nm_no_ack_nack;
 abis_nm_pchan4chcomb;
 abis_nm_reports;
 abis_nm_severity_name;
 abis_nm_sw_load_msgs;
 abis_nm_test_name;
+abis_nm_osmo_magic;
+abis_nm_ipa_magic;
+abis_nm_event_cause_names;
+abis_nm_pcause_type_names;
 
 osmo_sitype_strs;
-
+osmo_c4;
+bitvec_add_range1024;
 comp128;
 dbm2rxlev;
+
+osmo_earfcn_add;
+osmo_earfcn_del;
+osmo_earfcn_bit_size;
+osmo_earfcn_init;
 
 gprs_cipher_gen_input_i;
 gprs_cipher_gen_input_ui;
 gprs_cipher_load;
 gprs_cipher_register;
 gprs_cipher_run;
+gprs_cipher_names;
 gprs_cipher_supported;
+gprs_cipher_key_length;
 gprs_tlli_type;
 gprs_tmsi2tlli;
+gprs_ms_net_cap_gea_supported;
+gprs_msgt_gmm_names;
+
+egprs_get_cps;
+
+gsm48_gmm_cause_names;
+gsm48_gsm_cause_names;
+gprs_att_t_strs;
+gprs_upd_t_strs;
+gprs_det_t_mo_strs;
+gprs_det_t_mt_strs;
+gprs_service_t_strs;
+
+gsm0341_build_msg;
 
 gsm0480_create_notifySS;
 gsm0480_create_unstructuredSS_Notify;
 gsm0480_create_ussd_resp;
+gsm0480_create_ussd_notify;
+gsm0480_create_ussd_release_complete;
 gsm0480_decode_ussd_request;
+gsm0480_decode_ss_request;
 gsm0480_wrap_facility;
 gsm0480_wrap_invoke;
 
 gsm0502_calc_paging_group;
+
+gsm0503_xcch;
+gsm0503_rach;
+gsm0503_sch;
+gsm0503_cs2;
+gsm0503_cs3;
+gsm0503_tch_fr;
+gsm0503_tch_hr;
+gsm0503_tch_afs_12_2;
+gsm0503_tch_afs_10_2;
+gsm0503_tch_afs_7_95;
+gsm0503_tch_afs_7_4;
+gsm0503_tch_afs_6_7;
+gsm0503_tch_afs_5_9;
+gsm0503_tch_afs_5_15;
+gsm0503_tch_afs_4_75;
+gsm0503_tch_ahs_7_95;
+gsm0503_tch_ahs_7_4;
+gsm0503_tch_ahs_6_7;
+gsm0503_tch_ahs_5_9;
+gsm0503_tch_ahs_5_15;
+gsm0503_tch_ahs_4_75;
+gsm0503_mcs1_dl_hdr;
+gsm0503_mcs1_ul_hdr;
+gsm0503_mcs1;
+gsm0503_mcs2;
+gsm0503_mcs3;
+gsm0503_mcs4;
+gsm0503_mcs5_dl_hdr;
+gsm0503_mcs5_ul_hdr;
+gsm0503_mcs5;
+gsm0503_mcs6;
+gsm0503_mcs7_dl_hdr;
+gsm0503_mcs7_ul_hdr;
+gsm0503_mcs7;
+gsm0503_mcs8;
+gsm0503_mcs9;
 
 gsm0808_att_tlvdef;
 gsm0808_bssap_name;
@@ -59,6 +130,8 @@ gsm0808_create_layer3;
 gsm0808_create_reset;
 gsm0808_create_sapi_reject;
 gsm0808_prepend_dtap_header;
+
+gsm0858_rsl_ul_meas_enc;
 
 gsm338_get_sms_alphabet;
 
@@ -85,8 +158,10 @@ gsm411_rp_cause_strs;
 
 gsm48_att_tlvdef;
 gsm48_cc_msg_name;
+gsm48_rr_msg_name;
 gsm48_cc_state_name;
 gsm48_construct_ra;
+gsm48_hdr_gmm_cipherable;
 gsm48_decode_bcd_number;
 gsm48_decode_bearer_cap;
 gsm48_decode_called;
@@ -130,13 +205,29 @@ gsm48_mm_att_tlvdef;
 gsm48_number_of_paging_subchannels;
 gsm48_parse_ra;
 gsm48_rr_att_tlvdef;
+gsm48_set_dtx;
+gsm48_dtx_mode;
+gsm48_mi_type_name;
+gsm48_mcc_mnc_to_bcd;
+gsm48_mcc_mnc_from_bcd;
+gsm48_chan_mode_names;
+gsm_chan_t_names;
 
 gsm_7bit_decode;
-gsm_7bit_decode_hdr;
+gsm_7bit_decode_ussd;
 gsm_7bit_encode;
+gsm_7bit_encode_ussd;
+gsm_7bit_encode_oct;
+
+gsm_7bit_decode_n;
+gsm_7bit_decode_n_ussd;
+gsm_7bit_decode_n_hdr;
+gsm_7bit_encode_n;
+gsm_7bit_encode_n_ussd;
 
 gsm_arfcn2band;
 gsm_arfcn2freq10;
+gsm_freq102arfcn;
 gsm_band_name;
 gsm_band_parse;
 gsm_fn2gsmtime;
@@ -163,6 +254,7 @@ lapdm_channel_set_flags;
 lapdm_channel_set_l1;
 lapdm_channel_set_l3;
 lapdm_channel_set_mode;
+lapdm_datalink_for_sapi;
 lapdm_entity_exit;
 lapdm_entity_init;
 lapdm_entity_reset;
@@ -171,6 +263,8 @@ lapdm_entity_set_mode;
 lapdm_phsap_dequeue_prim;
 lapdm_phsap_up;
 lapdm_rslms_recvmsg;
+
+osmo_ph_prim_names;
 
 milenage_auts;
 milenage_check;
@@ -191,6 +285,7 @@ osmo_auth_alg_name;
 osmo_auth_alg_parse;
 osmo_auth_gen_vec;
 osmo_auth_gen_vec_auts;
+osmo_auth_3g_from_2g;
 osmo_auth_load;
 osmo_auth_register;
 osmo_auth_supported;
@@ -201,6 +296,7 @@ osmo_sitype2rsl;
 rr_cause_name;
 
 rsl_att_tlvdef;
+rsl_ipac_eie_tlvdef;
 rsl_ccch_conf_to_bs_cc_chans;
 rsl_ccch_conf_to_bs_ccch_sdcch_comb;
 rsl_chan_nr_str;
@@ -211,10 +307,12 @@ rsl_init_cchan_hdr;
 rsl_init_rll_hdr;
 rsl_ipac_msg_name;
 rsl_msg_name;
+rsl_or_ipac_msg_name;
 rsl_rll_push_hdr;
 rsl_rll_push_l3;
 rsl_rll_simple;
 rsl_rlm_cause_name;
+rsl_act_type_names;
 
 rxlev2dbm;
 rxlev_stat_dump;
@@ -229,8 +327,44 @@ tlv_parse_one;
 tvlv_att_def;
 vtvlv_gan_att_def;
 
+osmo_tlvp_copy;
+osmo_tlvp_merge;
+osmo_shift_v_fixed;
+osmo_match_shift_tv_fixed;
+osmo_shift_tlv;
+osmo_match_shift_tlv;
+osmo_shift_lv;
+
 gan_msgt_vals;
 gan_pdisc_vals;
+
+ipa_ccm_rcvmsg_base;
+ipa_ccm_rcvmsg_bts_base;
+ipa_ccm_send_id_ack;
+ipa_ccm_send_id_req;
+ipa_ccm_send_pong;
+ipa_ccm_tlv_to_unitdata;
+ipa_ccm_idtag_name;
+ipa_ccm_idtag_parse;
+ipa_ccm_idtag_parse_off;
+ipa_msg_alloc;
+ipa_msg_recv;
+ipa_msg_recv_buffered;
+ipa_parse_unitid;
+ipa_prepend_header;
+ipa_prepend_header_ext;
+ipa_send;
+
+osmo_apn_qualify;
+osmo_apn_qualify_from_imsi;
+osmo_apn_to_str;
+osmo_apn_from_str;
+
+osmo_gsup_encode;
+osmo_gsup_decode;
+
+osmo_oap_encode;
+osmo_oap_decode;
 
 local: *;
 };

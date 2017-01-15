@@ -25,8 +25,11 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <inttypes.h>
+#include <time.h>
 
 #include <osmocom/crypt/auth.h>
 #include <osmocom/core/utils.h>
@@ -45,18 +48,18 @@ static void dump_triplets_dat(struct osmo_auth_vector *vec)
 
 static void dump_auth_vec(struct osmo_auth_vector *vec)
 {
-	printf("RAND:\t%s\n", osmo_hexdump(vec->rand, sizeof(vec->rand)));
+	printf("RAND:\t%s\n", osmo_hexdump_nospc(vec->rand, sizeof(vec->rand)));
 
 	if (vec->auth_types & OSMO_AUTH_TYPE_UMTS) {
-		printf("AUTN:\t%s\n", osmo_hexdump(vec->autn, sizeof(vec->autn)));
-		printf("IK:\t%s\n", osmo_hexdump(vec->ik, sizeof(vec->ik)));
-		printf("CK:\t%s\n", osmo_hexdump(vec->ck, sizeof(vec->ck)));
-		printf("RES:\t%s\n", osmo_hexdump(vec->res, vec->res_len));
+		printf("AUTN:\t%s\n", osmo_hexdump_nospc(vec->autn, sizeof(vec->autn)));
+		printf("IK:\t%s\n", osmo_hexdump_nospc(vec->ik, sizeof(vec->ik)));
+		printf("CK:\t%s\n", osmo_hexdump_nospc(vec->ck, sizeof(vec->ck)));
+		printf("RES:\t%s\n", osmo_hexdump_nospc(vec->res, vec->res_len));
 	}
 
 	if (vec->auth_types & OSMO_AUTH_TYPE_GSM) {
-		printf("SRES:\t%s\n", osmo_hexdump(vec->sres, sizeof(vec->sres)));
-		printf("Kc:\t%s\n", osmo_hexdump(vec->kc, sizeof(vec->kc)));
+		printf("SRES:\t%s\n", osmo_hexdump_nospc(vec->sres, sizeof(vec->sres)));
+		printf("Kc:\t%s\n", osmo_hexdump_nospc(vec->kc, sizeof(vec->kc)));
 	}
 }
 
@@ -73,7 +76,7 @@ static void help()
 		"-k  --key\tSpecify Ki / K\n"
 		"-o  --opc\tSpecify OPC (only for 3G)\n"
 		"-O  --op\tSpecify OP (only for 3G)\n"
-		"-a  --amf\tSpecify AMF (only for 3G)\n"
+		"-f  --amf\tSpecify AMF (only for 3G)\n"
 		"-s  --sqn\tSpecify SQN (only for 3G)\n"
 		"-A  --auts\tSpecify AUTS (only for 3G)\n"
 		"-r  --rand\tSpecify random value\n"
@@ -212,12 +215,15 @@ int main(int argc, char **argv)
 	}
 
 	if (!rand_is_set) {
+		int i;
 		printf("WARNING: We're using really weak random numbers!\n\n");
 		srand(time(NULL));
-		*(uint32_t *)&_rand[0] = rand();
-		*(uint32_t *)(&_rand[4]) = rand();
-		*(uint32_t *)(&_rand[8]) = rand();
-		*(uint32_t *)(&_rand[12]) = rand();
+
+		for (i = 0; i < 4; ++i) {
+			uint32_t r;
+			r = rand();
+			memcpy(&_rand[i*4], &r, 4);
+		}
 	}
 
 	if (test_aud.type == OSMO_AUTH_TYPE_NONE ||
@@ -246,7 +252,7 @@ int main(int argc, char **argv)
 		dump_auth_vec(vec);
 
 	if (auts_is_set)
-		printf("AUTS success: SEQ.MS = %lu\n", test_aud.u.umts.sqn);
+		printf("AUTS success: SEQ.MS = %" PRIu64 "\n", test_aud.u.umts.sqn);
 
 	exit(0);
 }

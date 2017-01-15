@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: Osmocom GSM Core Library
 Description: GSM Core Library
 Version: @VERSION@
-Libs: -L${libdir} -losmogsm
+Libs: -L${libdir} @TALLOC_LIBS@ -losmogsm -losmocore
 Cflags: -I${includedir}/
 

@@ -16,12 +16,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with GNU Zebra; see the file COPYING.  If not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _ZEBRA_COMMAND_H
-#define _ZEBRA_COMMAND_H
+#pragma once
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -76,6 +75,7 @@ enum node_type {
 	SERVICE_NODE,		/*!< \brief Service node. */
 	DEBUG_NODE,		/*!< \brief Debug node. */
 	CFG_LOG_NODE,		/*!< \brief Configure the logging */
+	CFG_STATS_NODE,		/*!< \brief Configure the statistics */
 
 	VTY_NODE,		/*!< \brief Vty node. */
 
@@ -83,6 +83,15 @@ enum node_type {
 	L_IPA_NODE,		/*!< \brief IPA proxying commands in libosmo-abis. */
 	L_NS_NODE,		/*!< \brief NS node in libosmo-gb. */
 	L_BSSGP_NODE,		/*!< \brief BSSGP node in libosmo-gb. */
+	L_CTRL_NODE,		/*!< \brief Control interface node. */
+
+	/*
+	 * When adding new nodes to the libosmocore project, these nodes can be
+	 * used to avoid ABI changes for unrelated projects.
+	 */
+	RESERVED1_NODE,		/*!< \brief Reserved for later extensions */
+	RESERVED2_NODE,		/*!< \brief Reserved for later extensions */
+	RESERVED3_NODE,		/*!< \brief Reserved for later extensions */
 
 	_LAST_OSMOVTY_NODE
 };
@@ -93,7 +102,7 @@ enum node_type {
  * configuration function pointer . */
 struct cmd_node {
 	/*! \brief Node index */
-	enum node_type node;
+	int node;
 
 	/*! \brief Prompt character at vty interface. */
 	const char *prompt;
@@ -123,7 +132,7 @@ struct cmd_element {
 	unsigned int cmdsize;	/*!< \brief Command index count. */
 	char *config;		/*!< \brief Configuration string */
 	vector subconfig;	/*!< \brief Sub configuration string */
-	u_char attr;		/*!< \brief Command attributes */
+	unsigned char attr;	/*!< \brief Command attributes */
 };
 
 /*! \brief Command description structure. */
@@ -335,10 +344,15 @@ struct desc {
 
 /* Prototypes. */
 void install_node(struct cmd_node *, int (*)(struct vty *));
-void install_default(enum node_type);
-void install_element(enum node_type, struct cmd_element *);
+void install_default(int node_type);
+void install_element(int node_type, struct cmd_element *);
 void install_element_ve(struct cmd_element *cmd);
 void sort_node(void);
+
+/* This is similar to install_default() but it also creates
+ * 'exit' and 'end' commands.
+ */
+void vty_install_default(int node_type);
 
 /* Concatenates argv[shift] through argv[argc-1] into a single NUL-terminated
    string with a space between each element (allocated using
@@ -365,10 +379,11 @@ extern struct cmd_element config_end_cmd;
 char *host_config_file();
 void host_config_set(const char *);
 
+char *osmo_asciidoc_escape(const char *inp);
+
 /* This is called from main when a daemon is invoked with -v or --version. */
 void print_version(int print_copyright);
 
 extern void *tall_vty_cmd_ctx;
 
 /*! @} */
-#endif				/* _ZEBRA_COMMAND_H */

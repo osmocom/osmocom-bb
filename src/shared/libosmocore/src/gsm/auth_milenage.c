@@ -21,38 +21,9 @@
  */
 
 #include <osmocom/crypt/auth.h>
+#include <osmocom/core/bits.h>
 #include "milenage/common.h"
 #include "milenage/milenage.h"
-
-static void sqn_u64_to_48bit(uint8_t *sqn, const uint64_t sqn64)
-{
-	sqn[5] = (sqn64 >>  0) & 0xff;
-	sqn[4] = (sqn64 >>  8) & 0xff;
-	sqn[3] = (sqn64 >> 16) & 0xff;
-	sqn[2] = (sqn64 >> 24) & 0xff;
-	sqn[1] = (sqn64 >> 32) & 0xff;
-	sqn[0] = (sqn64 >> 40) & 0xff;
-}
-
-static uint64_t sqn_48bit_to_u64(const uint8_t *sqn)
-{
-	uint64_t sqn64;
-
-	sqn64 = sqn[0];
-	sqn64 <<= 8;
-	sqn64 |= sqn[1];
-	sqn64 <<= 8;
-	sqn64 |= sqn[2];
-	sqn64 <<= 8;
-	sqn64 |= sqn[3];
-	sqn64 <<= 8;
-	sqn64 |= sqn[4];
-	sqn64 <<= 8;
-	sqn64 |= sqn[5];
-
-	return sqn64;
-}
-
 
 static int milenage_gen_vec(struct osmo_auth_vector *vec,
 			    struct osmo_sub_auth_data *aud,
@@ -62,7 +33,7 @@ static int milenage_gen_vec(struct osmo_auth_vector *vec,
 	uint8_t sqn[6];
 	int rc;
 
-	sqn_u64_to_48bit(sqn, aud->u.umts.sqn);
+	osmo_store64be_ext(aud->u.umts.sqn, sqn, 6);
 	milenage_generate(aud->u.umts.opc, aud->u.umts.amf, aud->u.umts.k,
 			  sqn, _rand,
 			  vec->autn, vec->ik, vec->ck, vec->res, &res_len);
@@ -101,7 +72,7 @@ static int milenage_gen_vec_auts(struct osmo_auth_vector *vec,
 	if (rc < 0)
 		return rc;
 
-	aud->u.umts.sqn = sqn_48bit_to_u64(sqn_out) + 1;
+	aud->u.umts.sqn = 1 + (osmo_load64be_ext(sqn_out, 6) >> 16);
 
 	return milenage_gen_vec(vec, aud, _rand);
 }

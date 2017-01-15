@@ -16,11 +16,14 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA  02110-1301, USA.
  */
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/select.h>
 
 #include <osmocom/core/select.h>
 #include <osmocom/core/linuxlist.h>
@@ -44,6 +47,7 @@ static int unregistered_count;
 
 /*! \brief Register a new file descriptor with select loop abstraction
  *  \param[in] fd osmocom file descriptor to be registered
+ *  \returns 0 on success; negative in case of error
  */
 int osmo_fd_register(struct osmo_fd *fd)
 {
@@ -95,14 +99,74 @@ void osmo_fd_unregister(struct osmo_fd *fd)
 	llist_del(&fd->list);
 }
 
+inline int osmo_fd_fill_fds(void *_rset, void *_wset, void *_eset)
+{
+	fd_set *readset = _rset, *writeset = _wset, *exceptset = _eset;
+	struct osmo_fd *ufd;
+
+	llist_for_each_entry(ufd, &osmo_fds, list) {
+		if (ufd->when & BSC_FD_READ)
+			FD_SET(ufd->fd, readset);
+
+		if (ufd->when & BSC_FD_WRITE)
+			FD_SET(ufd->fd, writeset);
+
+		if (ufd->when & BSC_FD_EXCEPT)
+			FD_SET(ufd->fd, exceptset);
+	}
+
+	return maxfd;
+}
+
+inline int osmo_fd_disp_fds(void *_rset, void *_wset, void *_eset)
+{
+	struct osmo_fd *ufd, *tmp;
+	int work = 0;
+	fd_set *readset = _rset, *writeset = _wset, *exceptset = _eset;
+
+restart:
+	unregistered_count = 0;
+	llist_for_each_entry_safe(ufd, tmp, &osmo_fds, list) {
+		int flags = 0;
+
+		if (FD_ISSET(ufd->fd, readset)) {
+			flags |= BSC_FD_READ;
+			FD_CLR(ufd->fd, readset);
+		}
+
+		if (FD_ISSET(ufd->fd, writeset)) {
+			flags |= BSC_FD_WRITE;
+			FD_CLR(ufd->fd, writeset);
+		}
+
+		if (FD_ISSET(ufd->fd, exceptset)) {
+			flags |= BSC_FD_EXCEPT;
+			FD_CLR(ufd->fd, exceptset);
+		}
+
+		if (flags) {
+			work = 1;
+			ufd->cb(ufd, flags);
+		}
+		/* ugly, ugly hack. If more than one filedescriptor was
+		 * unregistered, they might have been consecutive and
+		 * llist_for_each_entry_safe() is no longer safe */
+		/* this seems to happen with the last element of the list as well */
+		if (unregistered_count >= 1)
+			goto restart;
+	}
+
+	return work;
+}
+
 /*! \brief select main loop integration
  *  \param[in] polling should we pollonly (1) or block on select (0)
+ *  \returns 0 if no fd handled; 1 if fd handled; negative in case of error
  */
 int osmo_select_main(int polling)
 {
-	struct osmo_fd *ufd, *tmp;
 	fd_set readset, writeset, exceptset;
-	int work = 0, rc;
+	int rc;
 	struct timeval no_time = {0, 0};
 
 	FD_ZERO(&readset);
@@ -110,18 +174,7 @@ int osmo_select_main(int polling)
 	FD_ZERO(&exceptset);
 
 	/* prepare read and write fdsets */
-	llist_for_each_entry(ufd, &osmo_fds, list) {
-		if (ufd->when & BSC_FD_READ)
-			FD_SET(ufd->fd, &readset);
-
-		if (ufd->when & BSC_FD_WRITE)
-			FD_SET(ufd->fd, &writeset);
-
-		if (ufd->when & BSC_FD_EXCEPT)
-			FD_SET(ufd->fd, &exceptset);
-	}
-
-	osmo_timers_check();
+	osmo_fd_fill_fds(&readset, &writeset, &exceptset);
 
 	if (!polling)
 		osmo_timers_prepare();
@@ -133,38 +186,21 @@ int osmo_select_main(int polling)
 	osmo_timers_update();
 
 	/* call registered callback functions */
-restart:
-	unregistered_count = 0;
-	llist_for_each_entry_safe(ufd, tmp, &osmo_fds, list) {
-		int flags = 0;
+	return osmo_fd_disp_fds(&readset, &writeset, &exceptset);
+}
 
-		if (FD_ISSET(ufd->fd, &readset)) {
-			flags |= BSC_FD_READ;
-			FD_CLR(ufd->fd, &readset);
-		}
+/*! \brief find an osmo_fd based on the integer fd
+ *  \param[in] fd file descriptor to use as search key
+ *  \returns \ref osmo_fd for \ref fd; NULL in case it doesn't exist */
+struct osmo_fd *osmo_fd_get_by_fd(int fd)
+{
+	struct osmo_fd *ofd;
 
-		if (FD_ISSET(ufd->fd, &writeset)) {
-			flags |= BSC_FD_WRITE;
-			FD_CLR(ufd->fd, &writeset);
-		}
-
-		if (FD_ISSET(ufd->fd, &exceptset)) {
-			flags |= BSC_FD_EXCEPT;
-			FD_CLR(ufd->fd, &exceptset);
-		}
-
-		if (flags) {
-			work = 1;
-			ufd->cb(ufd, flags);
-		}
-		/* ugly, ugly hack. If more than one filedescriptors were
-		 * unregistered, they might have been consecutive and
-		 * llist_for_each_entry_safe() is no longer safe */
-		/* this seems to happen with the last element of the list as well */
-		if (unregistered_count >= 1)
-			goto restart;
+	llist_for_each_entry(ofd, &osmo_fds, list) {
+		if (ofd->fd == fd)
+			return ofd;
 	}
-	return work;
+	return NULL;
 }
 
 /*! @} */

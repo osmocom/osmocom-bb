@@ -5,16 +5,16 @@
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
@@ -71,7 +71,7 @@ static void log_set_nsvc_filter(struct log_target *target,
 
 static struct cmd_node ns_node = {
 	L_NS_NODE,
-	"%s(ns)#",
+	"%s(config-ns)# ",
 	1,
 };
 
@@ -131,6 +131,9 @@ static int config_write_ns(struct vty *vty)
 	if (vty_nsi->nsip.local_port)
 		vty_out(vty, " encapsulation udp local-port %u%s",
 			vty_nsi->nsip.local_port, VTY_NEWLINE);
+	if (vty_nsi->nsip.dscp)
+		vty_out(vty, " encapsulation udp dscp %d%s",
+			vty_nsi->nsip.dscp, VTY_NEWLINE);
 
 	vty_out(vty, " encapsulation framerelay-gre enabled %u%s",
 		vty_nsi->frgre.enabled ? 1 : 0, VTY_NEWLINE);
@@ -164,8 +167,10 @@ static void dump_nse(struct vty *vty, struct gprs_nsvc *nsvc, int stats)
 			inet_ntoa(nsvc->ip.bts_addr.sin_addr),
 			ntohs(nsvc->ip.bts_addr.sin_port));
 	vty_out(vty, "%s", VTY_NEWLINE);
-	if (stats)
+	if (stats) {
 		vty_out_rate_ctr_group(vty, " ", nsvc->ctrg);
+		vty_out_stat_item_group(vty, " ", nsvc->statg);
+	}
 }
 
 static void dump_ns(struct vty *vty, struct gprs_ns_inst *nsi, int stats)
@@ -454,6 +459,16 @@ DEFUN(cfg_nsip_local_port, cfg_nsip_local_port_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_nsip_dscp, cfg_nsip_dscp_cmd,
+      "encapsulation udp dscp <0-255>",
+	ENCAPS_STR "NS over UDP Encapsulation\n"
+	"Set DSCP/TOS on the UDP socket\n" "DSCP Value\n")
+{
+	int dscp = atoi(argv[0]);
+	vty_nsi->nsip.dscp = dscp;
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_frgre_local_ip, cfg_frgre_local_ip_cmd,
       "encapsulation framerelay-gre local-ip A.B.C.D",
 	ENCAPS_STR "NS over Frame Relay over GRE Encapsulation\n"
@@ -486,21 +501,31 @@ DEFUN(cfg_frgre_enable, cfg_frgre_enable_cmd,
 }
 
 DEFUN(nsvc_nsei, nsvc_nsei_cmd,
-	"nsvc nsei <0-65535> (block|unblock|reset)",
+	"nsvc (nsei|nsvci) <0-65535> (block|unblock|reset)",
 	"Perform an operation on a NSVC\n"
 	"NSEI to identify NS-VC Identifier (NS-VCI)\n"
+	"NS-VC Identifier (NS-VCI)\n"
 	"The NSEI\n"
 	"Initiate BLOCK procedure\n"
 	"Initiate UNBLOCK procedure\n"
 	"Initiate RESET procedure\n")
 {
-	uint16_t nsvci = atoi(argv[0]);
-	const char *operation = argv[1];
+	const char *id_type = argv[0];
+	uint16_t id = atoi(argv[1]);
+	const char *operation = argv[2];
 	struct gprs_nsvc *nsvc;
 
-	nsvc = gprs_nsvc_by_nsei(vty_nsi, nsvci);
+	if (!strcmp(id_type, "nsei"))
+		nsvc = gprs_nsvc_by_nsei(vty_nsi, id);
+	else if (!strcmp(id_type, "nsvci"))
+		nsvc = gprs_nsvc_by_nsvci(vty_nsi, id);
+	else {
+		vty_out(vty, "%%No such id_type '%s'%s", id_type, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
 	if (!nsvc) {
-		vty_out(vty, "No such NSVCI (%u)%s", nsvci, VTY_NEWLINE);
+		vty_out(vty, "No such %s (%u)%s", id_type, id, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -548,7 +573,15 @@ DEFUN(logging_fltr_nsvc,
 
 int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 {
+	static bool vty_elements_installed = false;
+
 	vty_nsi = nsi;
+
+	/* Regression test code may call this function repeatedly, so make sure
+	 * that VTY elements are not duplicated, which would assert. */
+	if (vty_elements_installed)
+		return 0;
+	vty_elements_installed = true;
 
 	install_element_ve(&show_ns_cmd);
 	install_element_ve(&show_ns_stats_cmd);
@@ -572,6 +605,7 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 	install_element(L_NS_NODE, &cfg_ns_timer_cmd);
 	install_element(L_NS_NODE, &cfg_nsip_local_ip_cmd);
 	install_element(L_NS_NODE, &cfg_nsip_local_port_cmd);
+	install_element(L_NS_NODE, &cfg_nsip_dscp_cmd);
 	install_element(L_NS_NODE, &cfg_frgre_enable_cmd);
 	install_element(L_NS_NODE, &cfg_frgre_local_ip_cmd);
 

@@ -5,16 +5,16 @@
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * TODO:
@@ -31,6 +31,7 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/stats.h>
 
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gprs/gprs_ns.h>
@@ -46,6 +47,7 @@ static const struct rate_ctr_desc bssgp_ctr_description[] = {
 	{ "bytes.out",	"Bytes at BSSGP Level   (Out)" },
 	{ "blocked",	"BVC Blocking count" },
 	{ "discarded",	"BVC LLC Discarded count" },
+	{ "status",	"BVC Status count" },
 };
 
 static const struct rate_ctr_group_desc bssgp_ctrg_desc = {
@@ -53,6 +55,7 @@ static const struct rate_ctr_group_desc bssgp_ctrg_desc = {
 	.group_description = "BSSGP Peer Statistics",
 	.num_ctr = ARRAY_SIZE(bssgp_ctr_description),
 	.ctr_desc = bssgp_ctr_description,
+	.class_id = OSMO_STATS_CLASS_PEER,
 };
 
 LLIST_HEAD(bssgp_bvc_ctxts);
@@ -398,32 +401,32 @@ static int bssgp_rx_ul_ud(struct msgb *msg, struct tlv_parsed *tp,
 	return bssgp_prim_cb(&gbp.oph, NULL);
 }
 
-static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
-			    struct bssgp_bvc_ctx *ctx)
+static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp)
 {
 	struct osmo_bssgp_prim gbp;
 	struct gprs_ra_id raid;
 	uint32_t tlli;
+	uint16_t ns_bvci = msgb_bvci(msg);
 	int rc;
 
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TLLI) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_ROUTEING_AREA)) {
 		LOGP(DBSSGP, LOGL_ERROR, "BSSGP BVCI=%u Rx SUSPEND "
-			"missing mandatory IE\n", ctx->bvci);
+			"missing mandatory IE\n", ns_bvci);
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 	}
 
-	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+	tlli = ntohl(tlvp_val32_unal(tp, BSSGP_IE_TLLI));
 
 	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%08x Rx SUSPEND\n",
-		ctx->bvci, tlli);
+		ns_bvci, tlli);
 
 	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
 
 	/* Inform GMM about the SUSPEND request */
 	memset(&gbp, 0, sizeof(gbp));
 	gbp.nsei = msgb_nsei(msg);
-	gbp.bvci = ctx->bvci;
+	gbp.bvci = ns_bvci;
 	gbp.tlli = tlli;
 	gbp.ra_id = &raid;
 	osmo_prim_init(&gbp.oph, SAP_BSSGP_GMM, PRIM_BSSGP_GMM_SUSPEND,
@@ -438,34 +441,34 @@ static int bssgp_rx_suspend(struct msgb *msg, struct tlv_parsed *tp,
 	return 0;
 }
 
-static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp,
-			   struct bssgp_bvc_ctx *ctx)
+static int bssgp_rx_resume(struct msgb *msg, struct tlv_parsed *tp)
 {
 	struct osmo_bssgp_prim gbp;
 	struct gprs_ra_id raid;
 	uint32_t tlli;
 	uint8_t suspend_ref;
+	uint16_t ns_bvci = msgb_bvci(msg);
 	int rc;
 
 	if (!TLVP_PRESENT(tp, BSSGP_IE_TLLI) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_ROUTEING_AREA) ||
 	    !TLVP_PRESENT(tp, BSSGP_IE_SUSPEND_REF_NR)) {
 		LOGP(DBSSGP, LOGL_ERROR, "BSSGP BVCI=%u Rx RESUME "
-			"missing mandatory IE\n", ctx->bvci);
+			"missing mandatory IE\n", ns_bvci);
 		return bssgp_tx_status(BSSGP_CAUSE_MISSING_MAND_IE, NULL, msg);
 	}
 
-	tlli = ntohl(*(uint32_t *)TLVP_VAL(tp, BSSGP_IE_TLLI));
+	tlli = ntohl(tlvp_val32_unal(tp, BSSGP_IE_TLLI));
 	suspend_ref = *TLVP_VAL(tp, BSSGP_IE_SUSPEND_REF_NR);
 
-	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%08x Rx RESUME\n", ctx->bvci, tlli);
+	DEBUGP(DBSSGP, "BSSGP BVCI=%u TLLI=0x%08x Rx RESUME\n", ns_bvci, tlli);
 
 	gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
 
 	/* Inform GMM about the RESUME request */
 	memset(&gbp, 0, sizeof(gbp));
 	gbp.nsei = msgb_nsei(msg);
-	gbp.bvci = ctx->bvci;
+	gbp.bvci = ns_bvci;
 	gbp.tlli = tlli;
 	gbp.ra_id = &raid;
 	gbp.u.resume.suspend_ref = suspend_ref;
@@ -516,6 +519,46 @@ static int bssgp_rx_llc_disc(struct msgb *msg, struct tlv_parsed *tp,
 	return bssgp_prim_cb(&nmp.oph, NULL);
 }
 
+int bssgp_rx_status(struct msgb *msg, struct tlv_parsed *tp,
+	uint16_t bvci, struct bssgp_bvc_ctx *bctx)
+{
+	struct osmo_bssgp_prim nmp;
+	enum gprs_bssgp_cause cause;
+
+	if (!TLVP_PRESENT(tp, BSSGP_IE_CAUSE)) {
+		LOGP(DBSSGP, LOGL_ERROR, "BSSGP BVCI=%u Rx STATUS "
+			"missing mandatory IE\n", bvci);
+		cause = BSSGP_CAUSE_PROTO_ERR_UNSPEC;
+	} else {
+		cause = *TLVP_VAL(tp, BSSGP_IE_CAUSE);
+	}
+
+	LOGP(DBSSGP, LOGL_NOTICE, "BSSGP BVCI=%u Rx BVC STATUS, cause=%s\n",
+		bvci, bssgp_cause_str(cause));
+
+	if (cause == BSSGP_CAUSE_BVCI_BLOCKED || cause == BSSGP_CAUSE_UNKNOWN_BVCI) {
+		if (!TLVP_PRESENT(tp, BSSGP_IE_BVCI))
+			LOGP(DBSSGP, LOGL_ERROR,
+				"BSSGP BVCI=%u Rx STATUS cause=%s "
+				"missing conditional BVCI IE\n",
+				bvci, bssgp_cause_str(cause));
+	}
+
+	if (bctx)
+		rate_ctr_inc(&bctx->ctrg->ctr[BSSGP_CTR_STATUS]);
+
+	/* send NM_STATUS to NM */
+	memset(&nmp, 0, sizeof(nmp));
+	nmp.nsei = msgb_nsei(msg);
+	nmp.bvci = bvci;
+	nmp.tp = tp;
+	osmo_prim_init(&nmp.oph, SAP_BSSGP_NM, PRIM_NM_STATUS,
+			PRIM_OP_INDICATION, msg);
+
+	return bssgp_prim_cb(&nmp.oph, NULL);
+}
+
+
 /* One element (msgb) in a BSSGP Flow Control queue */
 struct bssgp_fc_queue_element {
 	/* linked list of queue elements */
@@ -560,7 +603,7 @@ static void fc_timer_cb(void *data)
 	fc->queue_depth--;
 
 	/* record the time we transmitted this PDU */
-	gettimeofday(&time_now, NULL);
+	osmo_gettimeofday(&time_now, NULL);
 	fc->time_last_pdu = time_now;
 
 	/* call the output callback for this FC instance */
@@ -587,19 +630,23 @@ static int fc_queue_timer_cfg(struct bssgp_flow_control *fc)
 	if (llist_empty(&fc->queue))
 		return 0;
 
-	fcqe = llist_entry(&fc->queue.next, struct bssgp_fc_queue_element,
+	fcqe = llist_entry(fc->queue.next, struct bssgp_fc_queue_element,
 			   list);
 
-	/* Calculate the point in time at which we will have leaked
-	 * a sufficient number of bytes from the bucket to transmit
-	 * the first PDU in the queue */
-	msecs = (fcqe->llc_pdu_len * 1000) / fc->bucket_leak_rate;
-	/* FIXME: add that time to fc->time_last_pdu and subtract it from
-	 * current time */
-
-	fc->timer.data = fc;
-	fc->timer.cb = &fc_timer_cb;
-	osmo_timer_schedule(&fc->timer, msecs / 1000, (msecs % 1000) * 1000);
+	if (fc->bucket_leak_rate != 0) {
+		/* Calculate the point in time at which we will have leaked
+		 * a sufficient number of bytes from the bucket to transmit
+		 * the first PDU in the queue */
+		msecs = (fcqe->llc_pdu_len * 1000) / fc->bucket_leak_rate;
+		/* FIXME: add that time to fc->time_last_pdu and subtract it from
+		 * current time */
+		fc->timer.data = fc;
+		fc->timer.cb = &fc_timer_cb;
+		osmo_timer_schedule(&fc->timer, msecs / 1000, (msecs % 1000) * 1000);
+	} else {
+		/* If the PCU is telling us to not send any more data at all,
+		* there's no point starting a timer. */
+	}
 
 	return 0;
 }
@@ -641,7 +688,7 @@ static int bssgp_fc_needs_queueing(struct bssgp_flow_control *fc, uint32_t pdu_l
 
 	/* compute number of centi-seconds that have elapsed since transmitting
 	 * the last PDU (Tc - Tp) */
-	gettimeofday(&time_now, NULL);
+	osmo_gettimeofday(&time_now, NULL);
 	timersub(&time_now, &fc->time_last_pdu, &time_diff);
 	csecs_elapsed = time_diff.tv_sec*100 + time_diff.tv_usec/10000;
 
@@ -692,6 +739,7 @@ int bssgp_fc_in(struct bssgp_flow_control *fc, struct msgb *msg,
 		LOGP(DBSSGP, LOGL_NOTICE, "Single PDU (size=%u) is larger "
 		     "than maximum bucket size (%u)!\n", llc_pdu_len,
 		     fc->bucket_size_max);
+		msgb_free(msg);
 		return -EIO;
 	}
 
@@ -699,7 +747,7 @@ int bssgp_fc_in(struct bssgp_flow_control *fc, struct msgb *msg,
 		return fc_enqueue(fc, msg, llc_pdu_len, priv);
 	} else {
 		/* record the time we transmitted this PDU */
-		gettimeofday(&time_now, NULL);
+		osmo_gettimeofday(&time_now, NULL);
 		fc->time_last_pdu = time_now;
 		return fc->out_cb(priv, msg, llc_pdu_len, NULL);
 	}
@@ -718,7 +766,7 @@ void bssgp_fc_init(struct bssgp_flow_control *fc,
 	fc->bucket_leak_rate = bucket_leak_rate;
 	fc->max_queue_depth = max_queue_depth;
 	INIT_LLIST_HEAD(&fc->queue);
-	gettimeofday(&fc->time_last_pdu, NULL);
+	osmo_gettimeofday(&fc->time_last_pdu, NULL);
 }
 
 /* Initialize the Flow Control parameters for a new MS according to
@@ -742,6 +790,8 @@ int bssgp_fc_ms_init(struct bssgp_flow_control *fc_ms, uint16_t bvci,
 static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 			   struct bssgp_bvc_ctx *bctx)
 {
+	uint32_t old_leak_rate = bctx->fc->bucket_leak_rate;
+	uint32_t old_r_def_ms = bctx->r_default_ms;
 
 	DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx Flow Control BVC\n",
 		bctx->bvci);
@@ -769,6 +819,23 @@ static int bssgp_rx_fc_bvc(struct msgb *msg, struct tlv_parsed *tp,
 	bctx->r_default_ms = 100 *
 		ntohs(*(uint16_t *)TLVP_VAL(tp, BSSGP_IE_R_DEFAULT_MS)) / 8;
 
+	if (old_leak_rate != 0 && bctx->fc->bucket_leak_rate == 0)
+		LOGP(DBSSGP, LOGL_NOTICE, "BSS instructs us to bucket leak "
+			"rate of 0, stopping all DL GPRS!\n");
+	else if (old_leak_rate == 0 && bctx->fc->bucket_leak_rate != 0)
+		LOGP(DBSSGP, LOGL_NOTICE, "BSS instructs us to bucket leak "
+			"rate of != 0, restarting all DL GPRS!\n");
+
+	if (old_r_def_ms != 0 && bctx->r_default_ms == 0)
+		LOGP(DBSSGP, LOGL_NOTICE, "BSS instructs us to MS default "
+			"bucket leak rate of 0, stopping DL GPRS!\n");
+	else if (old_r_def_ms == 0 && bctx->r_default_ms != 0)
+		LOGP(DBSSGP, LOGL_NOTICE, "BSS instructs us to MS default "
+			"bucket leak rate != 0, restarting DL GPRS!\n");
+
+	/* reconfigure the timer for flow control based on new values */
+	fc_queue_timer_cfg(bctx->fc);
+
 	/* Send FLOW_CONTROL_BVC_ACK */
 	return bssgp_tx_fc_bvc_ack(msgb_nsei(msg), *TLVP_VAL(tp, BSSGP_IE_TAG),
 				   msgb_bvci(msg));
@@ -783,10 +850,12 @@ static int bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 	uint8_t pdu_type = bgph->pdu_type;
 	int rc = 0;
 
+	OSMO_ASSERT(pdu_type != BSSGP_PDUT_STATUS);
+
 	/* If traffic is received on a BVC that is marked as blocked, the
 	 * received PDU shall not be accepted and a STATUS PDU (Cause value:
 	 * BVC Blocked) shall be sent to the peer entity on the signalling BVC */
-	if (bctx->state & BVC_S_BLOCKED && pdu_type != BSSGP_PDUT_STATUS) {
+	if (bctx->state & BVC_S_BLOCKED) {
 		uint16_t bvci = msgb_bvci(msg);
 		return bssgp_tx_status(BSSGP_CAUSE_BVCI_BLOCKED, &bvci, msg);
 	}
@@ -820,15 +889,15 @@ static int bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 		/* FIXME: Send FLOW_CONTROL_MS_ACK */
 		break;
 	case BSSGP_PDUT_STATUS:
-		/* Some exception has occurred */
-		/* FIXME: send NM_STATUS.ind to NM */
+		/* This is already handled in bssgp_rcvmsg() */
+		break;
 	case BSSGP_PDUT_DOWNLOAD_BSS_PFC:
 	case BSSGP_PDUT_CREATE_BSS_PFC_ACK:
 	case BSSGP_PDUT_CREATE_BSS_PFC_NACK:
 	case BSSGP_PDUT_MODIFY_BSS_PFC:
 	case BSSGP_PDUT_DELETE_BSS_PFC_ACK:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type 0x%02x not [yet] "
-			"implemented\n", bctx->bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type %s not [yet] "
+		       "implemented\n", bctx->bvci, bssgp_pdu_str(pdu_type));
 		rc = bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_FEAT, NULL, msg);
 		break;
 	/* those only exist in the SGSN -> BSS direction */
@@ -838,14 +907,14 @@ static int bssgp_rx_ptp(struct msgb *msg, struct tlv_parsed *tp,
 	case BSSGP_PDUT_RA_CAPA_UPDATE_ACK:
 	case BSSGP_PDUT_FLOW_CONTROL_BVC_ACK:
 	case BSSGP_PDUT_FLOW_CONTROL_MS_ACK:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type 0x%02x only exists "
-			"in DL\n", bctx->bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type %s only exists in DL\n",
+		       bctx->bvci, bssgp_pdu_str(pdu_type));
 		bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		rc = -EINVAL;
 		break;
 	default:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type 0x%02x unknown\n",
-			bctx->bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u PDU type %s unknown\n",
+		       bctx->bvci, bssgp_pdu_str(pdu_type));
 		rc = bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		break;
 	}
@@ -862,23 +931,29 @@ static int bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
 	uint8_t pdu_type = bgph->pdu_type;
 	int rc = 0;
 	uint16_t ns_bvci = msgb_bvci(msg);
+	uint16_t bvci = bctx ? bctx->bvci : ns_bvci;
 
 	switch (bgph->pdu_type) {
 	case BSSGP_PDUT_SUSPEND:
 		/* MS wants to suspend */
-		rc = bssgp_rx_suspend(msg, tp, bctx);
+		rc = bssgp_rx_suspend(msg, tp);
 		break;
 	case BSSGP_PDUT_RESUME:
 		/* MS wants to resume */
-		rc = bssgp_rx_resume(msg, tp, bctx);
+		rc = bssgp_rx_resume(msg, tp);
 		break;
 	case BSSGP_PDUT_FLUSH_LL_ACK:
 		/* BSS informs us it has performed LL FLUSH */
-		DEBUGP(DBSSGP, "BSSGP Rx BVCI=%u FLUSH LL ACK\n", bctx->bvci);
+		DEBUGP(DBSSGP, "BSSGP Rx BVCI=%u FLUSH LL ACK\n", bvci);
 		/* FIXME: send NM_FLUSH_LL.res to NM */
 		break;
 	case BSSGP_PDUT_LLC_DISCARD:
 		/* BSS informs that some LLC PDU's have been discarded */
+		if (!bctx) {
+			LOGP(DBSSGP, LOGL_ERROR,
+			     "BSSGP Rx LLC-DISCARD missing mandatory BVCI\n");
+			goto err_mand_ie;
+		}
 		rc = bssgp_rx_llc_disc(msg, tp, bctx);
 		break;
 	case BSSGP_PDUT_BVC_BLOCK:
@@ -911,9 +986,7 @@ static int bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
 		rc = bssgp_rx_bvc_reset(msg, tp, ns_bvci);
 		break;
 	case BSSGP_PDUT_STATUS:
-		/* Some exception has occurred */
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx BVC STATUS\n", bctx->bvci);
-		/* FIXME: send NM_STATUS.ind to NM */
+		/* This is already handled in bssgp_rcvmsg() */
 		break;
 	/* those only exist in the SGSN -> BSS direction */
 	case BSSGP_PDUT_PAGING_PS:
@@ -926,14 +999,14 @@ static int bssgp_rx_sign(struct msgb *msg, struct tlv_parsed *tp,
 	case BSSGP_PDUT_BVC_BLOCK_ACK:
 	case BSSGP_PDUT_BVC_UNBLOCK_ACK:
 	case BSSGP_PDUT_SGSN_INVOKE_TRACE:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type 0x%02x only exists "
-			"in DL\n", bctx->bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type %s only exists in DL\n",
+		       bvci, bssgp_pdu_str(pdu_type));
 		bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		rc = -EINVAL;
 		break;
 	default:
-		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type 0x%02x unknown\n",
-			bctx->bvci, pdu_type);
+		DEBUGP(DBSSGP, "BSSGP BVCI=%u Rx PDU type %s unknown\n",
+			bvci, bssgp_pdu_str(pdu_type));
 		rc = bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		break;
 	}
@@ -953,6 +1026,7 @@ int bssgp_rcvmsg(struct msgb *msg)
 	struct bssgp_bvc_ctx *bctx;
 	uint8_t pdu_type = bgph->pdu_type;
 	uint16_t ns_bvci = msgb_bvci(msg);
+	uint16_t bvci = ns_bvci;
 	int data_len;
 	int rc = 0;
 
@@ -968,15 +1042,11 @@ int bssgp_rcvmsg(struct msgb *msg)
 		rc = bssgp_tlv_parse(&tp, budh->data, data_len);
 	}
 
+	if (bvci == BVCI_SIGNALLING && TLVP_PRESENT(&tp, BSSGP_IE_BVCI))
+		bvci = ntohs(*(uint16_t *)TLVP_VAL(&tp, BSSGP_IE_BVCI));
+
 	/* look-up or create the BTS context for this BVC */
-	bctx = btsctx_by_bvci_nsei(ns_bvci, msgb_nsei(msg));
-	/* Only a RESET PDU can create a new BVC context */
-	if (!bctx && pdu_type != BSSGP_PDUT_BVC_RESET) {
-		LOGP(DBSSGP, LOGL_NOTICE, "NSEI=%u/BVCI=%u Rejecting PDU "
-			"type %u for unknown BVCI\n", msgb_nsei(msg), ns_bvci,
-			pdu_type);
-		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, NULL, msg);
-	}
+	bctx = btsctx_by_bvci_nsei(bvci, msgb_nsei(msg));
 
 	if (bctx) {
 		log_set_context(GPRS_CTX_BVC, bctx);
@@ -985,12 +1055,33 @@ int bssgp_rcvmsg(struct msgb *msg)
 			     msgb_bssgp_len(msg));
 	}
 
+	/* Always handle STATUS PDUs, even if they contain an invalid BVCI or
+	 * are otherwise unexpected */
+	if (pdu_type == BSSGP_PDUT_STATUS)
+		/* Some exception has occurred */
+		return bssgp_rx_status(msg, &tp, bvci, bctx);
+
+	/* Only a RESET PDU can create a new BVC context, otherwise it must be
+	 * registered if a BVCI is given. */
+	if (!bctx && bvci != BVCI_SIGNALLING &&
+	    pdu_type != BSSGP_PDUT_BVC_RESET) {
+		LOGP(DBSSGP, LOGL_NOTICE, "NSEI=%u/BVCI=%u Rejecting PDU "
+			"type %s for unknown BVCI\n", msgb_nsei(msg), bvci,
+			bssgp_pdu_str(pdu_type));
+		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, &bvci, msg);
+	}
+
 	if (ns_bvci == BVCI_SIGNALLING)
 		rc = bssgp_rx_sign(msg, &tp, bctx);
 	else if (ns_bvci == BVCI_PTM)
 		rc = bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_FEAT, NULL, msg);
-	else
+	else if (bctx)
 		rc = bssgp_rx_ptp(msg, &tp, bctx);
+	else
+		LOGP(DBSSGP, LOGL_NOTICE,
+			"NSEI=%u/BVCI=%u Cannot handle PDU type %s for "
+			"unknown BVCI, NS BVCI %u\n",
+			msgb_nsei(msg), bvci, bssgp_pdu_str(pdu_type), ns_bvci);
 
 	return rc;
 }
@@ -1008,10 +1099,13 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 	uint16_t _pdu_lifetime = htons(pdu_lifetime); /* centi-seconds */
 	uint16_t drx_params;
 
+	OSMO_ASSERT(dup != NULL);
+
 	/* Identifiers from UP: TLLI, BVCI, NSEI (all in msgb->cb) */
 	if (bvci <= BVCI_PTM ) {
 		LOGP(DBSSGP, LOGL_ERROR, "Cannot send DL-UD to BVCI %u\n",
 			bvci);
+		msgb_free(msg);
 		return -EINVAL;
 	}
 
@@ -1019,6 +1113,7 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 	if (!bctx) {
 		LOGP(DBSSGP, LOGL_ERROR, "Cannot send DL-UD to unknown BVCI %u\n",
 			bvci);
+		msgb_free(msg);
 		return -ENODEV;
 	}
 
@@ -1038,35 +1133,32 @@ int bssgp_tx_dl_ud(struct msgb *msg, uint16_t pdu_lifetime,
 
 	/* FIXME: optional elements: Alignment, UTRAN CCO, LSA, PFI */
 
-	if (dup) {
-		/* Old TLLI to help BSS map from old->new */
-		if (dup->tlli) {
-			uint32_t tlli = htonl(*dup->tlli);
-			msgb_tvlv_push(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &tlli);
-		}
-
-		/* IMSI */
-		if (dup->imsi && strlen(dup->imsi)) {
-			uint8_t mi[10];
-			int imsi_len = gsm48_generate_mid_from_imsi(mi, dup->imsi);
-			if (imsi_len > 2)
-				msgb_tvlv_push(msg, BSSGP_IE_IMSI,
-						imsi_len-2, mi+2);
-		}
-
-		/* DRX parameters */
-		drx_params = htons(dup->drx_parms);
-		msgb_tvlv_push(msg, BSSGP_IE_DRX_PARAMS, 2,
-				(uint8_t *) &drx_params);
-
-		/* FIXME: Priority */
-
-		/* MS Radio Access Capability */
-		if (dup->ms_ra_cap.len)
-			msgb_tvlv_push(msg, BSSGP_IE_MS_RADIO_ACCESS_CAP,
-					dup->ms_ra_cap.len, dup->ms_ra_cap.v);
-
+	/* Old TLLI to help BSS map from old->new */
+	if (dup->tlli) {
+		uint32_t tlli = htonl(*dup->tlli);
+		msgb_tvlv_push(msg, BSSGP_IE_TLLI, 4, (uint8_t *) &tlli);
 	}
+
+	/* IMSI */
+	if (dup->imsi && strlen(dup->imsi)) {
+		uint8_t mi[10];
+		int imsi_len = gsm48_generate_mid_from_imsi(mi, dup->imsi);
+		if (imsi_len > 2)
+			msgb_tvlv_push(msg, BSSGP_IE_IMSI,
+				imsi_len-2, mi+2);
+	}
+
+	/* DRX parameters */
+	drx_params = htons(dup->drx_parms);
+	msgb_tvlv_push(msg, BSSGP_IE_DRX_PARAMS, 2,
+		(uint8_t *) &drx_params);
+
+	/* FIXME: Priority */
+
+	/* MS Radio Access Capability */
+	if (dup->ms_ra_cap.len)
+		msgb_tvlv_push(msg, BSSGP_IE_MS_RADIO_ACCESS_CAP,
+			dup->ms_ra_cap.len, dup->ms_ra_cap.v);
 
 	/* prepend the pdu lifetime */
 	msgb_tvlv_push(msg, BSSGP_IE_PDU_LIFETIME, 2, (uint8_t *)&_pdu_lifetime);

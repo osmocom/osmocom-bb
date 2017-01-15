@@ -28,7 +28,7 @@ static int c128v1_gen_vec(struct osmo_auth_vector *vec,
 			  struct osmo_sub_auth_data *aud,
 			  const uint8_t *_rand)
 {
-	comp128(aud->u.gsm.ki, _rand, vec->sres, vec->kc);
+	comp128v1(aud->u.gsm.ki, _rand, vec->sres, vec->kc);
 	vec->auth_types = OSMO_AUTH_TYPE_GSM;
 
 	return 0;

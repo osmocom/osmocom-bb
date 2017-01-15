@@ -21,6 +21,8 @@
  *
  */
 
+#define _WITH_GETLINE
+
 #include <osmocom/core/msgfile.h>
 #include <osmocom/core/talloc.h>
 
@@ -28,6 +30,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 
 static struct osmo_config_entry *
 alloc_entry(struct osmo_config_list *entries,

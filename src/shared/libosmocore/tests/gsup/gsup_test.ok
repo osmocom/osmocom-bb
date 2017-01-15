@@ -1,0 +1,14 @@
+Test GSUP message decoding/encoding
+  Testing Send Authentication Info Request
+  Testing Send Authentication Info Error
+  Testing Send Authentication Info Result
+  Testing Update Location Request
+  Testing Update Location Error
+  Testing Update Location Result
+  Testing Location Cancellation Request
+  Testing Location Cancellation Error
+  Testing Location Cancellation Result
+  Testing Purge MS Request
+  Testing Purge MS Error
+  Testing Purge MS Result
+Done.

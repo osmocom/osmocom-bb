@@ -1,0 +1,21 @@
+===== BSSGP test START
+----- test_bssgp_suspend_resume START
+BSSGP primitive, SAP 16777219, prim = 3, op = 0, msg = 0b 1f 84 f0 12 34 56 1b 86 0f f1 80 20 37 00 
+BSSGP primitive, SAP 16777219, prim = 4, op = 0, msg = 0e 1f 84 f0 12 34 56 1b 86 0f f1 80 20 37 00 1d 81 01 
+----- test_bssgp_suspend_resume END
+----- test_bssgp_status START
+BSSGP primitive, SAP 16777221, prim = 11, op = 2, msg = 41 07 81 27 
+BSSGP primitive, SAP 16777221, prim = 11, op = 2, msg = 41 07 81 05 04 82 04 d2 
+----- test_bssgp_status END
+----- test_bssgp_bad_reset START
+----- test_bssgp_bad_reset END
+----- test_bssgp_flow_control_bvc START
+Got message: 26 1e 81 2a 05 82 10 22 03 82 c0 40 01 82 08 11 1c 82 60 20 
+Got message: 26 1e 81 2a 05 82 10 22 03 82 c0 40 01 82 08 11 1c 82 60 20 3c 81 78 06 82 11 44 
+----- test_bssgp_flow_control_bvc END
+----- test_bssgp_msgb_copy START
+Old msgb: [L3]> 22 04 82 00 02 07 81 08 
+New msgb: [L3]> 22 04 82 00 02 07 81 08 
+----- test_bssgp_msgb_copy END
+===== BSSGP test END
+

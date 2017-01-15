@@ -1,0 +1,7 @@
+Document: libosmovty-doc
+Title: Documentation for the libosmovty library
+Section: Programming
+
+Format: HTML
+Index: /usr/share/doc/libosmocore/vty/html/index.html
+Files: /usr/share/doc/libosmocore/vty/html/*.html

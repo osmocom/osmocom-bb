@@ -21,11 +21,16 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
 
+#include <stdlib.h>
+
 enum {
 	DRLL,
 	DCC,
 	DMM,
 };
+
+static int filter_called = 0;
+static int select_output = 0;
 
 static const struct log_info_cat default_categories[] = {
 	[DRLL] = {
@@ -48,10 +53,20 @@ static const struct log_info_cat default_categories[] = {
 	},
 };
 
+static int test_filter(const struct log_context *ctx, struct log_target *target)
+{
+	filter_called += 1;
+	/* omit everything */
+	return select_output;
+}
+
 const struct log_info log_info = {
 	.cat = default_categories,
 	.num_cat = ARRAY_SIZE(default_categories),
+	.filter_fn = test_filter,
 };
+
+extern struct log_info *osmo_log_info;
 
 int main(int argc, char **argv)
 {
@@ -62,15 +77,55 @@ int main(int argc, char **argv)
 	log_add_target(stderr_target);
 	log_set_all_filter(stderr_target, 1);
 	log_set_print_filename(stderr_target, 0);
+	log_set_print_category(stderr_target, 1);
+	log_set_use_color(stderr_target, 0);
 
 	log_parse_category_mask(stderr_target, "DRLL:DCC");
 	log_parse_category_mask(stderr_target, "DRLL");
+
+	select_output = 0;
+
 	DEBUGP(DCC, "You should not see this\n");
+	if (log_check_level(DMM, LOGL_DEBUG) != 0)
+		fprintf(stderr, "log_check_level did not catch this case\n");
 
 	log_parse_category_mask(stderr_target, "DRLL:DCC");
 	DEBUGP(DRLL, "You should see this\n");
+	OSMO_ASSERT(log_check_level(DRLL, LOGL_DEBUG) != 0);
 	DEBUGP(DCC, "You should see this\n");
+	OSMO_ASSERT(log_check_level(DCC, LOGL_DEBUG) != 0);
 	DEBUGP(DMM, "You should not see this\n");
+
+	OSMO_ASSERT(log_check_level(DMM, LOGL_DEBUG) == 0);
+	OSMO_ASSERT(filter_called == 0);
+
+	log_set_all_filter(stderr_target, 0);
+	DEBUGP(DRLL, "You should not see this and filter is called\n");
+	OSMO_ASSERT(filter_called == 1);
+	OSMO_ASSERT(log_check_level(DRLL, LOGL_DEBUG) == 0);
+	OSMO_ASSERT(filter_called == 2);
+
+	DEBUGP(DRLL, "You should not see this\n");
+	OSMO_ASSERT(filter_called == 3);
+	select_output = 1;
+	DEBUGP(DRLL, "You should see this\n");
+	OSMO_ASSERT(filter_called == 5); /* called twice on output */
+
+	/* Make sure out-of-bounds category maps to DLGLOBAL */
+	log_parse_category_mask(stderr_target, "DLGLOBAL,1");
+	/* For IDs out of bounds of the overall osmo_log_info array */
+	DEBUGP(osmo_log_info->num_cat + 1, "You should see this on DLGLOBAL (a)\n");
+	DEBUGP(osmo_log_info->num_cat + 100, "You should see this on DLGLOBAL (b)\n");
+	DEBUGP(osmo_log_info->num_cat, "You should see this on DLGLOBAL (c)\n");
+	/* For IDs out of bounds of the user categories part */
+	DEBUGP(log_info.num_cat + 1, "You should see this on DLGLOBAL (d)\n");
+	DEBUGP(log_info.num_cat, "You should see this on DLGLOBAL (e)\n");
+
+	/* Check log_set_category_filter() with internal categories */
+	log_parse_category_mask(stderr_target, "DLGLOBAL,3");
+	DEBUGP(DLGLOBAL, "You should not see this (DLGLOBAL not on DEBUG)\n");
+	log_set_category_filter(stderr_target, DLGLOBAL, 1, LOGL_DEBUG);
+	DEBUGP(DLGLOBAL, "You should see this (DLGLOBAL on DEBUG)\n");
 
 	return 0;
 }

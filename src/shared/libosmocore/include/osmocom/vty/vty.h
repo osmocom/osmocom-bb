@@ -1,5 +1,4 @@
-#ifndef _VTY_H
-#define _VTY_H
+#pragma once
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -157,9 +156,11 @@ struct vty_app_info {
 	/*! \brief \ref talloc context */
 	void *tall_ctx;
 	/*! \brief call-back for returning to parent n ode */
-	enum node_type (*go_parent_cb)(struct vty *vty);
+	int (*go_parent_cb)(struct vty *vty);
 	/*! \brief call-back to determine if node is config node */
 	int (*is_config_node)(struct vty *vty, int node);
+	/*! \brief Check if the config is consistent before write */
+	int (*config_is_consistent)(struct vty *vty);
 };
 
 /* Prototypes. */
@@ -183,13 +184,28 @@ int vty_shell_serv (struct vty *);
 void vty_hello (struct vty *);
 void *vty_current_index(struct vty *);
 int vty_current_node(struct vty *vty);
-enum node_type vty_go_parent(struct vty *vty);
+int vty_go_parent(struct vty *vty);
+
+/* Return IP address passed to the 'line vty'/'bind' command, or "127.0.0.1" */
+const char *vty_get_bind_addr(void);
 
 extern void *tall_vty_ctx;
 
 extern struct cmd_element cfg_description_cmd;
 extern struct cmd_element cfg_no_description_cmd;
 
-/*! @} */
 
-#endif
+/**
+ * signal handling
+ */
+enum signal_vty {
+	S_VTY_EVENT,
+};
+
+struct vty_signal_data {
+	enum event event;
+	int sock;
+	struct vty *vty;
+};
+
+/*! @} */

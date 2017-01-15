@@ -26,8 +26,7 @@
  *  \brief Compatibility header with some helpers
  */
 
-#ifndef TIMER_COMPAT_H
-#define TIMER_COMPAT_H
+#pragma once
 
 
 /* Convenience macros for operations on timevals.
@@ -75,5 +74,3 @@
 
 
 /*! @} */
-
-#endif /* TIMER_COMPAT_H */

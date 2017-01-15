@@ -7,17 +7,20 @@ Makefile.in
 *.lo
 *.la
 *.pc
+*.pyc
 aclocal.m4
 acinclude.m4
 aminclude.am
 m4/*.m4
 autom4te.cache
+config.cache
 config.h*
 config.sub
 config.log
 config.status
 config.guess
 configure
+compile
 depcomp
 missing
 ltmain.sh
@@ -25,6 +28,9 @@ install-sh
 stamp-h1
 libtool
 libosmocore-*.tar.*
+
+# libtool for different platforms like arm-poky-linux-gnueabi-libtool
+*-libtool
 
 Doxyfile.core
 Doxyfile.gsm
@@ -54,6 +60,10 @@ tests/testsuite
 tests/testsuite.dir/
 tests/testsuite.log
 
+tests/utils/utils_test
+tests/stats/stats_test
+tests/kasumi/kasumi_test
+tests/gea/gea_test
 tests/sms/sms_test
 tests/timer/timer_test
 tests/msgfile/msgfile_test
@@ -61,27 +71,51 @@ tests/ussd/ussd_test
 tests/smscb/smscb_test
 tests/bits/bitrev_test
 tests/a5/a5_test
+tests/comp128/comp128_test
 tests/auth/milenage_test
 tests/conv/conv_test
 tests/lapd/lapd_test
 tests/gsm0808/gsm0808_test
 tests/gb/bssgp_fc_test
+tests/gb/gprs_ns_test
 tests/gsm0408/gsm0408_test
 tests/logging/logging_test
+tests/fr/fr_test
+tests/loggingrb/loggingrb_test
+tests/ringbuf/ringbuf_test
+tests/strrb/strrb_test
+tests/vty/vty_test
+tests/codec/codec_test
+tests/gb/gprs_bssgp_test
+tests/smscb/gsm0341_test
+tests/bitvec/bitvec_test
+tests/bits/bitcomp_test
+tests/gprs/gprs_test
+tests/msgb/msgb_test
+tests/sim/sim_test
+tests/gsup/gsup_test
+tests/tlv/tlv_test
+tests/fsm/fsm_test
+tests/write_queue/wqueue_test
+tests/oap/oap_test
 
 utils/osmo-arfcn
 utils/osmo-auc-gen
+utils/osmo-sim-test
 
 doc/codec
 doc/core
 doc/vty/latex
 doc/vty/html
+doc/vty/doxygen_sqlite3.db
 doc/gsm
 doc/html.tar
+doc/*.tag
 
 src/crc*gen.c
+src/gsm/gsm0503_conv.c
 include/osmocom/core/crc*gen.h
-
+include/osmocom/core/bit*gen.h
 
 # vi files
 *.sw?

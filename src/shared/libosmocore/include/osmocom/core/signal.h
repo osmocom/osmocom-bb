@@ -1,5 +1,4 @@
-#ifndef OSMO_SIGNAL_H
-#define OSMO_SIGNAL_H
+#pragma once
 
 #include <stdint.h>
 
@@ -8,9 +7,9 @@
  */
 /*! \file signal.h */
 
-/* subsystem signaling numbers: we split the numberspace for applications and
- * libraries: from 0 to UINT_MAX/2 for applications, from UINT_MAX/2 to
- * UINT_MAX for libraries. */
+/*! subsystem signaling numbers: we split the numberspace for
+ * applications and libraries: from 0 to UINT_MAX/2 for applications,
+ * from UINT_MAX/2 to UINT_MAX for libraries. */
 #define OSMO_SIGNAL_SS_APPS		0
 #define OSMO_SIGNAL_SS_RESERVED		2147483648u
 
@@ -19,6 +18,7 @@ enum {
 	SS_L_GLOBAL		= OSMO_SIGNAL_SS_RESERVED,
 	SS_L_INPUT,
 	SS_L_NS,
+	SS_L_VTY,
 };
 
 /* application-defined signal types. */
@@ -42,5 +42,3 @@ void osmo_signal_unregister_handler(unsigned int subsys, osmo_signal_cbfn *cbfn,
 void osmo_signal_dispatch(unsigned int subsys, unsigned int signal, void *signal_data);
 
 /*! @} */
-
-#endif /* OSMO_SIGNAL_H */

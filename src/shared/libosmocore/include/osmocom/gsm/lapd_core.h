@@ -1,5 +1,4 @@
-#ifndef _OSMOCOM_LAPD_H
-#define _OSMOCOM_LAPD_H
+#pragma once
 
 #include <stdint.h>
 
@@ -11,9 +10,9 @@
  *  @{
  */
 
-/*! \file lapd.h */
-
-/* primitive related sutff */
+/*! \file lapd_core.h
+ * primitive related stuff
+ */
 
 /*! \brief LAPD related primitives (L2<->L3 SAP)*/
 enum osmo_dl_prim {
@@ -125,6 +124,7 @@ struct lapd_datalink {
 	int (*send_dlsap)(struct osmo_dlsap_prim *dp,
 	        struct lapd_msg_ctx *lctx);
 	int (*send_ph_data_req)(struct lapd_msg_ctx *lctx, struct msgb *msg);
+	int (*update_pending_frames)(struct lapd_msg_ctx *lctx);
 	struct {
 		/*! \brief filled-in once we set the lapd_mode above */
 		struct lapd_cr_ent loc2rem;
@@ -168,4 +168,4 @@ int lapd_set_mode(struct lapd_datalink *dl, enum lapd_mode mode);
 int lapd_ph_data_ind(struct msgb *msg, struct lapd_msg_ctx *lctx);
 int lapd_recv_dlsap(struct osmo_dlsap_prim *dp, struct lapd_msg_ctx *lctx);
 
-#endif /* _OSMOCOM_LAPD_H */
+/*! @} */

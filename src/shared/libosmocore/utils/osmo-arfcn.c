@@ -34,9 +34,8 @@ enum program_mode {
 	MODE_F2A,
 };
 
-static int arfcn2freq(char *arfcn_str)
+static int arfcn2freq(int arfcn)
 {
-	int arfcn = atoi(arfcn_str);
 	uint16_t freq10u, freq10d;
 
 	if (arfcn < 0 || arfcn > 0xffff) {
@@ -53,25 +52,52 @@ static int arfcn2freq(char *arfcn_str)
 	}
 
 	printf("ARFCN %4d: Uplink %4u.%1u MHz / Downlink %4u.%1u MHz\n",
-		arfcn, freq10u/10, freq10u%10, freq10d/10, freq10d%10);
+		arfcn & ~ARFCN_FLAG_MASK,
+		freq10u/10, freq10u%10, freq10d/10, freq10d%10);
 
+	return 0;
+}
+
+static int freq2arfcn(int freq10, int uplink)
+{
+	uint16_t arfcn;
+
+	if (uplink != 0 && uplink != 1) {
+		fprintf(stderr, "Need to specify uplink or downlink\n");
+		return -EINVAL;
+	}
+
+	arfcn = gsm_freq102arfcn(freq10, uplink);
+
+	if (arfcn == 0xffff) {
+		fprintf(stderr, "Unable to find matching ARFCN\n");
+		return -EINVAL;
+	}
+
+	printf("%s: ARFCN %4d\n",
+		gsm_band_name(gsm_arfcn2band(arfcn)),
+		arfcn & ~ARFCN_FLAG_MASK);
 	return 0;
 }
 
 static void help(const char *progname)
 {
-	printf("Usage: %s [-h] [-a arfcn] [-f freq] [-u|-d]\n",
+	printf("Usage: %s [-h] [-p] [-a arfcn] [-f freq] [-u|-d]\n",
 		progname);
 }
 
 int main(int argc, char **argv)
 {
+	int arfcn, freq, pcs = 0, uplink = -1;
 	int opt;
 	char *param;
 	enum program_mode mode = MODE_NONE;
 
-	while ((opt = getopt(argc, argv, "a:f:ud")) != -1) {
+	while ((opt = getopt(argc, argv, "pa:f:ud")) != -1) {
 		switch (opt) {
+		case 'p':
+			pcs = 1;
+			break;
 		case 'a':
 			mode = MODE_A2F;
 			param = optarg;
@@ -79,6 +105,12 @@ int main(int argc, char **argv)
 		case 'f':
 			mode = MODE_F2A;
 			param = optarg;
+			break;
+		case 'u':
+			uplink = 1;
+			break;
+		case 'd':
+			uplink = 0;
 			break;
 		case 'h':
 			help(argv[0]);
@@ -95,7 +127,14 @@ int main(int argc, char **argv)
 		exit(2);
 		break;
 	case MODE_A2F:
-		arfcn2freq(param);
+		arfcn = atoi(param);
+		if (pcs)
+			arfcn |= ARFCN_PCS;
+		arfcn2freq(arfcn);
+		break;
+	case MODE_F2A:
+		freq = (int)(atof(param) * 10.0f);
+		freq2arfcn(freq, uplink);
 		break;
 	}
 

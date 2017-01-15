@@ -30,6 +30,7 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/signal.h>
 
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/buffer.h>
@@ -85,7 +86,14 @@ int telnet_init_dynif(void *tall_ctx, void *priv, const char *ip, int port)
 
 	server_socket.data = priv;
 
-	return (rc < 0) ? -1 : 0;
+	if (rc < 0) {
+		LOGP(DLGLOBAL, LOGL_ERROR, "Cannot bind telnet at %s %d\n",
+		     ip, port);
+		return -1;
+	}
+
+	LOGP(DLGLOBAL, LOGL_NOTICE, "telnet at %s %d\n", ip, port);
+	return 0;
 }
 
 extern struct host host;
@@ -119,7 +127,7 @@ static int client_data(struct osmo_fd *fd, unsigned int what)
 	}
 
 	/* vty might have been closed from vithin vty_read() */
-	if (!conn->vty)
+	if (rc == -EBADF)
 		return rc;
 
 	if (what & BSC_FD_WRITE) {
@@ -137,6 +145,7 @@ static int telnet_new_connection(struct osmo_fd *fd, unsigned int what)
 	struct sockaddr_in sockaddr;
 	socklen_t len = sizeof(sockaddr);
 	int new_connection = accept(fd->fd, (struct sockaddr*)&sockaddr, &len);
+	int rc;
 
 	if (new_connection < 0) {
 		LOGP(0, LOGL_ERROR, "telnet accept failed\n");
@@ -149,7 +158,11 @@ static int telnet_new_connection(struct osmo_fd *fd, unsigned int what)
 	connection->fd.fd = new_connection;
 	connection->fd.when = BSC_FD_READ;
 	connection->fd.cb = client_data;
-	osmo_fd_register(&connection->fd);
+	rc = osmo_fd_register(&connection->fd);
+	if (rc < 0) {
+		talloc_free(connection);
+		return rc;
+	}
 	llist_add_tail(&connection->entry, &active_connections);
 
 	connection->vty = vty_create(new_connection, connection);
@@ -166,11 +179,22 @@ static int telnet_new_connection(struct osmo_fd *fd, unsigned int what)
 /*! \brief callback from core VTY code about VTY related events */
 void vty_event(enum event event, int sock, struct vty *vty)
 {
+	struct vty_signal_data sig_data = { 0, };
 	struct telnet_connection *connection = vty->priv;
-	struct osmo_fd *bfd = &connection->fd;
+	struct osmo_fd *bfd;
 
 	if (vty->type != VTY_TERM)
 		return;
+
+	sig_data.event = event;
+	sig_data.sock = sock;
+	sig_data.vty = vty;
+	osmo_signal_dispatch(SS_L_VTY, S_VTY_EVENT, &sig_data);
+
+	if (!connection)
+		return;
+
+	bfd = &connection->fd;
 
 	switch (event) {
 	case VTY_READ:
@@ -181,7 +205,6 @@ void vty_event(enum event event, int sock, struct vty *vty)
 		break;
 	case VTY_CLOSED:
 		/* vty layer is about to free() vty */
-		connection->vty = NULL;
 		telnet_close_client(bfd);
 		break;
 	default:

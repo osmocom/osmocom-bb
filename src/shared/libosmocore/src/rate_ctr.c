@@ -83,6 +83,18 @@ void rate_ctr_add(struct rate_ctr *ctr, int inc)
 	ctr->current += inc;
 }
 
+/*! \brief Return the counter difference since the last call to this function */
+int64_t rate_ctr_difference(struct rate_ctr *ctr)
+{
+	int64_t result = ctr->current - ctr->previous;
+	ctr->previous = ctr->current;
+
+	return result;
+}
+
+/* TODO: support update intervals > 1s */
+/* TODO: implement this as a special stats reporter */
+
 static void interval_expired(struct rate_ctr *ctr, enum rate_ctr_intv intv)
 {
 	/* calculate rate over last interval */
@@ -141,7 +153,10 @@ int rate_ctr_init(void *tall_ctx)
 	return 0;
 }
 
-/*! \brief Search for counter group based on group name and index */
+/*! \brief Search for counter group based on group name and index
+ *  \param[in] name Name of the counter group you're looking for
+ *  \param[in] idx Index inside the counter group
+ *  \returns \ref rate_ctr_group or NULL in case of error */
 struct rate_ctr_group *rate_ctr_get_group_by_name_idx(const char *name, const unsigned int idx)
 {
 	struct rate_ctr_group *ctrg;
@@ -158,7 +173,11 @@ struct rate_ctr_group *rate_ctr_get_group_by_name_idx(const char *name, const un
 	return NULL;
 }
 
-/*! \brief Search for counter group based on group name */
+/*! \brief Search for counter based on group + name
+ *  \param[in] ctrg pointer to \ref rate_ctr_group
+ *  \param[in] name name of counter inside group
+ *  \returns \ref rate_ctr or NULL in caes of error
+ */
 const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, const char *name)
 {
 	int i;
@@ -175,6 +194,48 @@ const struct rate_ctr *rate_ctr_get_by_name(const struct rate_ctr_group *ctrg, c
 		}
 	}
 	return NULL;
+}
+
+/*! \brief Iterate over each counter in group and call function
+ *  \param[in] counter group over whose counter to iterate
+ *  \param[in] handle_counter function pointer
+ *  \param[in] data Data to hand transparently to \ref handle_counter
+ *  \returns 0 on success; negative otherwise
+ */
+int rate_ctr_for_each_counter(struct rate_ctr_group *ctrg,
+	rate_ctr_handler_t handle_counter, void *data)
+{
+	int rc = 0;
+	int i;
+
+	for (i = 0; i < ctrg->desc->num_ctr; i++) {
+		struct rate_ctr *ctr = &ctrg->ctr[i];
+		rc = handle_counter(ctrg,
+			ctr, &ctrg->desc->ctr_desc[i], data);
+		if (rc < 0)
+			return rc;
+	}
+
+	return rc;
+}
+
+/*! \brief Iterate over all counter groups
+ *  \param[in] handle_group function pointer of callback function
+ *  \param[in] data Data to hand transparently to \ref handle_group
+ *  \returns 0 on success; negative otherwise
+ */
+int rate_ctr_for_each_group(rate_ctr_group_handler_t handle_group, void *data)
+{
+	struct rate_ctr_group *statg;
+	int rc = 0;
+
+	llist_for_each_entry(statg, &rate_ctr_groups, list) {
+		rc = handle_group(statg, data);
+		if (rc < 0)
+			return rc;
+	}
+
+	return rc;
 }
 
 /*! @} */

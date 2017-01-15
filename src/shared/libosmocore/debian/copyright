@@ -1,54 +1,211 @@
-This work was packaged for Debian by:
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: libosmocore
+Source: git://git.osmocom.org/libosmocore.git
 
-    Harald Welte <laforge@gnumonks.org> on Tue, 24 Aug 2010 10:55:04 +0200
+Files: *
+Copyright: 2008      Daniel Willmann <daniel@totalueberwachung.de>
+           2008-2010 Harald Welte <laforge@gnumonks.org>
+           2008-2010 Holger Hans Peter Freyther <zecke@selfish.org>
+           2009-2010 Sylvain Munaut <tnt@246tNt.com>
+           2009-2010 On-Waves
+           2010      Nico Golde <nico@ngolde.de>
+License: GPL-2+
 
-It was downloaded from:
+Files: src/talloc.c include/osmocom/core/talloc.h
+Copyright: 2004 Andrew Tridgell
+           2006 Stefan Metzmacher
+License: LGPL-3+
 
-    git://git.osmocom.org/libosmocore.git
+Files: include/osmocom/core/loggingrb.h
+       include/osmocom/core/strrb.h
+       src/strrb.c
+       src/loggingrb.c
+Copyright: 2012-2013 Katerina Barone-Adesi <kat.obsc@gmail.com>
+License: GPL-2+
 
-Upstream Author(s):
+Files: include/osmocom/core/linuxrbtree.h
+       src/rbtree.c
+Copyright: 1999 Andrea Arcangeli <andrea@suse.de>
+           2002 David Woodhouse <dwmw2@infradead.org>
+License: GPL-2+
 
-    Harald Welte <laforge@gnumonks.org>
-    Holger Hans Peter Freyther <zecke@selfish.org>
-    Sylvain Munaut <tnt@246tNt.com>
-    Daniel Willmann <daniel@totalueberwachung.de>
-    Golde <nico@ngolde.de>
-	For src/talloc.c and include/osmocore/talloc.h:
-    Andrew Tridgell
-    Stefan Metzmacher
-	For src/vty/* and include/osmocom/vty/*
-    Kunihiro Ishiguro
+Files: include/osmocom/core/crc16.h
+Copyright: 2005 Ben Gardner <bgardner@wabtec.com>
+License: GPL-2+
 
-Copyright:
+Files: src/utils.c
+Copyright: 2011 Harald Welte <laforge@gnumonks.org>
+           2011 Sylvain Munaut <tnt@246tNt.com>
+           2014 Nils O. Selåsdal <noselasd@fiane.dyndns.org>
+License: GPL-2+
 
-    Copyright (C) 2008-2010 Harald Welte <laforge@gnumonks.org>
-    Copyright (C) 2008-2010 Holger Hans Peter Freyther <zecke@selfish.org>
-    Copyright (C) 2009-2010 Sylvain Munaut <tnt@246tNt.com>
-    Copyright (C) 2009-2010 On-Waves
-    Copyright (C) 2008 Daniel Willmann <daniel@totalueberwachung.de>
-    Copyright (C) 2010 Nico Golde <nico@ngolde.de>
-	For src/talloc.c and include/osmocore/talloc.h:
-    Copyright (C) 2004 Andrew Tridgell
-    Copyright (C) 2006 Stefan Metzmacher
-	For src/vty/* and include/osmocom/vty/*
-    Copyright (C) 1998 Kunihiro Ishiguro
+Files: src/gsm/gsm48_ie.c
+       src/gsm/lapd_core.c
+       src/gsm/lapdm.c
+Copyright: 2008,2010-2011 Harald Welte <laforge@gnumonks.org>
+           2009-2011      Andreas Eversberg <jolly@eversberg.eu>
+License: GPL-2+
 
-License:
+Files: src/gsm/gsm0411_smc.c
+       src/gsm/gsm0411_smr.c
+       src/gsm/gsm0411_utils.c
+Copyright: 2008 Daniel Willmann <daniel@totalueberwachung.de>
+           2009 Harald Welte <laforge@gnumonks.org>
+           2010-2013 Holger Hans Peter Freyther <zecke@selfish.org>
+           2010 On-Waves
+           2011 Andreas Eversberg <jolly@eversberg.eu>
+License: GPL-2+
 
-    GNU General Public License, Version 2 or later
+Files: src/gsm/gsm0480.c
+Copyright: 2009 Mike Haben <michael.haben@btinternet.com>
+           2010 Holger Hans Peter Freyther <zecke@selfish.org>
+License: GPL-2+
 
-The Debian packaging is:
+Files: src/gsm/milenage/aes-internal.c
+       src/gsm/milenage/aes-encblock.c
+       src/gsm/milenage/aes.h
+       src/gsm/milenage/milenage.c
+       src/gsm/milenage/aes_wrap.h
+       src/gsm/milenage/aes-internal-enc.c
+       src/gsm/milenage/aes_i.h
+Copyright: 2003-2007 Jouni Malinen <j@w1.fi>
+License: GPL-2
+Comment: Most of the file aes-internal.c is public_domain
 
-    Copyright (C) 2010 Harald Welte <laforge@gnumonks.org>
+Files: include/osmocom/core/bitXXgen.h.tpl
+       src/gsm/kasumi.c
+Copyright: 2013-2014 Max <max.suraev@fairwaves.co>
+License: GPL-2+
 
-# Please chose a license for your packaging work. If the program you package
-# uses a mainstream license, using the same license is the safest choice.
-# Please avoid to pick license terms that are more restrictive than the
-# packaged work, as it may make Debian's contributions unacceptable upstream.
-# If you just want it to be GPL version 3, leave the following lines in.
+Files: src/gsm/auth_comp128v23.c
+Copyright: 2010-2011 Harald Welte <laforge@gnumonks.org>
+           2013 Kévin Redon <kevredon@mail.tsaitgaist.info>
+License: GPL-2+
 
-and is licensed under the GPL version 3,
-see "/usr/share/common-licenses/GPL-3".
+Files: src/gsm/comp128v23.c
+Copyright: 2013 Kévin Redon <kevredon@mail.tsaitgaist.info>
+License: GPL-2+
 
-# Please also look if there are files or directories which have a
-# different copyright/license attached and list them here.
+Files: tests/fr/fr_test.c
+       tests/logging/logging_test.c
+       tests/loggingrb/loggingrb_test.c
+Copyright: 2008,2009,2012 Holger Hans Peter Freyther <zecke@selfish.org>
+           2012-2013      Katerina Barone-Adesi <kat.obsc@gmail.com>
+License: AGPL-3+
+
+Files: tests/strrb/strrb_test.c
+       tests/vty/vty_test.c
+Copyright: 2012-2013 Katerina Barone-Adesi <kat.obsc@gmail.com>
+           2013      Jacob Erlbeck <jerlbeck@sysmocom.de>
+License: GPL-3+
+
+Files: src/vty/* include/osmocom/vty/*
+Copyright: 1997,1998 Kunihiro Ishiguro
+License: GPL-2+
+
+Files: include/osmocom/core/stats.h
+       src/stat_item.c
+       src/stats.c
+       src/vty/stats_vty.c
+       tests/stats/stats_test.c
+Copyright: 2009-2010 by Harald Welte <laforge@gnumonks.org>
+           2009-2014 by Holger Hans Peter Freyther
+           2015 Sysmocom s.f.m.c. GmbH
+License: GPL-2+
+
+Files: tests/gb/gprs_ns_test.c
+       tests/gb/gprs_bssgp_test.c
+Copyright: 2013-2014 sysmocom s.f.m.c. GmbH
+License: GPL-2+
+Comment: No license is listed in these files, but it is assumed that
+ the project specific license GPL-2+ applies since contributions by
+ sysmocom people to other files in this package are GPL licensed.
+
+Files: debian/*
+Copyright: 2010-2015 Harald Welte <laforge@gnumonks.org>
+           2014-2015 Ruben Undheim <ruben.undheim@gmail.com>
+License: GPL-3+
+
+
+License: GPL-2+
+ This package is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".
+
+License: GPL-2
+ This package is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, version 2 of the License.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".
+
+License: GPL-3+
+ This package is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 3 can be found in "/usr/share/common-licenses/GPL-3".
+
+
+License: LGPL-3+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 3 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU Lesser General
+ Public License version 3 can be found in "/usr/share/common-licenses/LGPL-3".
+
+
+License: AGPL-3+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU Affero General Public License as published by
+ the Free Software Foundation; either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU Affero General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.

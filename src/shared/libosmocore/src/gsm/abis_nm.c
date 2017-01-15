@@ -36,6 +36,9 @@
 #include <osmocom/gsm/protocol/gsm_12_21.h>
 #include <osmocom/gsm/abis_nm.h>
 
+const char abis_nm_ipa_magic[13] = "com.ipaccess";
+const char abis_nm_osmo_magic[12] = "org.osmocom";
+
 /*! \brief unidirectional messages from BTS to BSC */
 const enum abis_nm_msgtype abis_nm_reports[4] = {
 	NM_MT_SW_ACTIVATED_REP,
@@ -146,6 +149,28 @@ const char *abis_nm_nack_name(uint8_t nack)
 	return get_value_string(nack_names, nack);
 }
 
+/* Section 9.4.43: Manufacturer specific values */
+const struct value_string abis_mm_event_cause_names[] = {
+	{ OSMO_EVT_CRIT_SW_FATAL,	"Fatal software error" },
+	{ OSMO_EVT_CRIT_PROC_STOP,	"Process stopped" },
+	{ OSMO_EVT_CRIT_RTP_TOUT,	"RTP error" },
+	{ OSMO_EVT_CRIT_BOOT_FAIL,	"Boot failure" },
+	{ OSMO_EVT_MAJ_UKWN_MSG,	"Unknown message" },
+	{ OSMO_EVT_MAJ_RSL_FAIL,	"RSL failure" },
+	{ OSMO_EVT_MAJ_UNSUP_ATTR,	"Unsupported attribute" },
+	{ OSMO_EVT_MAJ_NET_CONGEST,	"Network congestion" },
+	{ OSMO_EVT_MIN_PAG_TAB_FULL,	"Paging table full" },
+	{ OSMO_EVT_WARN_SW_WARN,	"Software warning" },
+	{ 0, NULL }
+};
+
+const struct value_string abis_nm_pcause_type_names[] = {
+	{ NM_PCAUSE_T_X721,	"ISO/CCITT values (X.721)"},
+	{ NM_PCAUSE_T_GSM,	"GSM specific values"},
+	{ NM_PCAUSE_T_MANUF,	"Manufacturer specific values"},
+	{ 0, NULL }
+};
+
 /* Chapter 9.4.36 */
 static const struct value_string nack_cause_names[] = {
 	/* General Nack Causes */
@@ -224,6 +249,17 @@ const char *abis_nm_severity_name(uint8_t cause)
 	return get_value_string(severity_names, cause);
 }
 
+/*! \brief 3GPP TS 12.21 9.4.53 T200 values (in msec) */
+const uint8_t abis_nm_t200_ms[] = {
+	[T200_SDCCH]		= 5,
+	[T200_FACCH_F]		= 5,
+	[T200_FACCH_H]		= 5,
+	[T200_SACCH_TCH_SAPI0]	= 10,
+	[T200_SACCH_SDCCH]	= 10,
+	[T200_SDCCH_SAPI3]	= 5,
+	[T200_SACCH_TCH_SAPI3]	= 10
+};
+
 /*! \brief Attributes that the BSC can set, not only get, according to Section 9.4 */
 const enum abis_nm_attr abis_nm_att_settable[] = {
 	NM_ATT_ADD_INFO,
@@ -251,6 +287,55 @@ const enum abis_nm_attr abis_nm_att_settable[] = {
 	NM_ATT_SEVERITY,
 	NM_ATT_MEAS_RES,
 	NM_ATT_MEAS_TYPE,
+};
+
+/*! \brief GSM A-bis OML IPA TLV parser definition */
+const struct tlv_definition abis_nm_att_tlvdef_ipa = {
+	.def = {
+		/* ip.access specifics */
+		[NM_ATT_IPACC_DST_IP] =		{ TLV_TYPE_FIXED, 4 },
+		[NM_ATT_IPACC_DST_IP_PORT] =	{ TLV_TYPE_FIXED, 2 },
+		[NM_ATT_IPACC_STREAM_ID] =	{ TLV_TYPE_TV, },
+		[NM_ATT_IPACC_SEC_OML_CFG] =	{ TLV_TYPE_FIXED, 6 },
+		[NM_ATT_IPACC_IP_IF_CFG] =	{ TLV_TYPE_FIXED, 8 },
+		[NM_ATT_IPACC_IP_GW_CFG] =	{ TLV_TYPE_FIXED, 12 },
+		[NM_ATT_IPACC_IN_SERV_TIME] =	{ TLV_TYPE_FIXED, 4 },
+		[NM_ATT_IPACC_LOCATION] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_PAGING_CFG] =	{ TLV_TYPE_FIXED, 2 },
+		[NM_ATT_IPACC_UNIT_ID] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_UNIT_NAME] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_SNMP_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_PRIM_OML_CFG_LIST] = { TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NV_FLAGS] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_FREQ_CTRL] =	{ TLV_TYPE_FIXED, 2 },
+		[NM_ATT_IPACC_PRIM_OML_FB_TOUT] = { TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_CUR_SW_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_TIMING_BUS] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_CGI] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_RAC] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_OBJ_VERSION] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_GPRS_PAGING_CFG]= { TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NSEI] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_BVCI] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NSVCI] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NS_CFG] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_BSSGP_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_NS_LINK_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_RLC_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_ALM_THRESH_LIST]=	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_MONIT_VAL_LIST] = { TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_TIB_CONTROL] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_SUPP_FEATURES] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_CODING_SCHEMES] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_RLC_CFG_2] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_HEARTB_TOUT] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_UPTIME] =		{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_RLC_CFG_3] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_SSL_CFG] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_SEC_POSSIBLE] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_IML_SSL_STATE] =	{ TLV_TYPE_TL16V },
+		[NM_ATT_IPACC_REVOC_DATE] =	{ TLV_TYPE_TL16V },
+	},
 };
 
 /*! \brief GSM A-bis OML TLV parser definition */
@@ -323,6 +408,22 @@ const struct tlv_definition abis_nm_att_tlvdef = {
 	},
 };
 
+/*! \brief org.osmocom GSM A-bis OML TLV parser definition */
+const struct tlv_definition abis_nm_osmo_att_tlvdef = {
+	.def = {
+		[NM_ATT_OSMO_REDUCEPOWER] =	{ TLV_TYPE_TV },
+	},
+};
+
+/*! \brief Human-readable strings for A-bis OML Object Class */
+const struct value_string abis_nm_msg_disc_names[] = {
+	{ ABIS_OM_MDISC_FOM,	"FOM" },
+	{ ABIS_OM_MDISC_MMI,	"MMI" },
+	{ ABIS_OM_MDISC_TRAU,	"TRAU" },
+	{ ABIS_OM_MDISC_MANUF,	"MANUF" },
+	{ 0, NULL }
+};
+
 /*! \brief Human-readable strings for A-bis OML Object Class */
 const struct value_string abis_nm_obj_class_names[] = {
 	{ NM_OC_SITE_MANAGER,	"SITE-MANAGER" },
@@ -380,7 +481,7 @@ const char *abis_nm_avail_name(uint8_t avail)
 	return get_value_string(avail_names, avail);
 }
 
-static struct value_string test_names[] = {
+static const struct value_string test_names[] = {
 	/* FIXME: standard test names */
 	{ NM_IPACC_TESTNO_CHAN_USAGE, "Channel Usage" },
 	{ NM_IPACC_TESTNO_BCCH_CHAN_USAGE, "BCCH Channel Usage" },
@@ -407,18 +508,6 @@ const struct value_string abis_nm_adm_state_names[] = {
 	{ 0, NULL }
 };
 
-/*! \brief write a human-readable OML header to the debug log
- *  \param[in] ss Logging sub-system
- *  \param[in] foh A-bis OML FOM header
- */
-void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh)
-{
-	DEBUGP(ss, "OC=%s(%02x) INST=(%02x,%02x,%02x) ",
-		get_value_string(abis_nm_obj_class_names, foh->obj_class),
-		foh->obj_class, foh->obj_inst.bts_nr, foh->obj_inst.trx_nr,
-		foh->obj_inst.ts_nr);
-}
-
 static const enum abis_nm_chan_comb chcomb4pchan[] = {
 	[GSM_PCHAN_NONE]	= 0xff,
 	[GSM_PCHAN_CCCH]	= NM_CHANC_mainBCCH,
@@ -429,8 +518,62 @@ static const enum abis_nm_chan_comb chcomb4pchan[] = {
 	[GSM_PCHAN_PDCH]	= NM_CHANC_IPAC_PDCH,
 	[GSM_PCHAN_TCH_F_PDCH]	= NM_CHANC_IPAC_TCHFull_PDCH,
 	[GSM_PCHAN_UNKNOWN]	= 0xff,
+	[GSM_PCHAN_CCCH_SDCCH4_CBCH]	= NM_CHANC_BCCH_CBCH,
+	[GSM_PCHAN_SDCCH8_SACCH8C_CBCH] = NM_CHANC_SDCCH_CBCH,
+	[GSM_PCHAN_TCH_F_TCH_H_PDCH]	= NM_CHANC_OSMO_TCHFull_TCHHalf_PDCH,
 	/* FIXME: bounds check */
 };
+
+/*! \brief Pack 3GPP TS 12.21 § 8.8.2 Failure Event Report into msgb */
+struct msgb *abis_nm_fail_evt_rep(enum abis_nm_event_type t,
+				  enum abis_nm_severity s,
+				  enum abis_nm_pcause_type ct,
+				  uint16_t cause_value, const char *fmt, ...)
+{
+	va_list ap;
+	struct msgb *nmsg;
+
+	va_start(ap, fmt);
+	nmsg = abis_nm_fail_evt_vrep(t, s, ct, cause_value, fmt, ap);
+	va_end(ap);
+
+	return nmsg;
+}
+
+/*! \brief Pack 3GPP TS 12.21 § 8.8.2 Failure Event Report into msgb */
+struct msgb *abis_nm_fail_evt_vrep(enum abis_nm_event_type t,
+				   enum abis_nm_severity s,
+				   enum abis_nm_pcause_type ct,
+				   uint16_t cause_value, const char *fmt,
+				   va_list ap)
+{
+	uint8_t cause[3];
+	int len;
+	char add_text[ABIS_NM_MSG_HEADROOM];
+	struct msgb *nmsg = msgb_alloc_headroom(ABIS_NM_MSG_SIZE,
+						ABIS_NM_MSG_HEADROOM,
+						"OML FAIL EV. REP.");
+	if (!nmsg)
+		return NULL;
+
+	msgb_tv_put(nmsg, NM_ATT_EVENT_TYPE, t);
+	msgb_tv_put(nmsg, NM_ATT_SEVERITY, s);
+
+	cause[0] = ct;
+	osmo_store16be(cause_value, cause + 1);
+
+	msgb_tv_fixed_put(nmsg, NM_ATT_PROB_CAUSE, 3, cause);
+
+	len = vsnprintf(add_text, ABIS_NM_MSG_HEADROOM, fmt, ap);
+	if (len < 0) {
+		msgb_free(nmsg);
+		return NULL;
+	}
+	if (len)
+		msgb_tl16v_put(nmsg, NM_ATT_ADD_TEXT, len, add_text);
+
+	return nmsg;
+}
 
 /*! \brief Obtain OML Channel Combination for phnsical channel config */
 int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan)
@@ -442,7 +585,7 @@ int abis_nm_chcomb4pchan(enum gsm_phys_chan_config pchan)
 }
 
 /*! \brief Obtain physical channel config for OML Channel Combination */
-enum abis_nm_chan_comb abis_nm_pchan4chcomb(uint8_t chcomb)
+enum gsm_phys_chan_config abis_nm_pchan4chcomb(uint8_t chcomb)
 {
 	int i;
 	for (i = 0; i < ARRAY_SIZE(chcomb4pchan); i++) {
@@ -450,6 +593,16 @@ enum abis_nm_chan_comb abis_nm_pchan4chcomb(uint8_t chcomb)
 			return i;
 	}
 	return GSM_PCHAN_NONE;
+}
+
+/* this is just for compatibility reasons, it is now a macro */
+#undef abis_nm_debugp_foh
+void abis_nm_debugp_foh(int ss, struct abis_om_fom_hdr *foh)
+{
+	DEBUGP(ss, "OC=%s(%02x) INST=(%02x,%02x,%02x) ",
+		get_value_string(abis_nm_obj_class_names, foh->obj_class),
+		foh->obj_class, foh->obj_inst.bts_nr, foh->obj_inst.trx_nr,
+		foh->obj_inst.ts_nr);
 }
 
 /*! @} */

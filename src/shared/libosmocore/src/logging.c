@@ -38,11 +38,13 @@
 #include <strings.h>
 #endif
 #include <time.h>
+#include <sys/time.h>
 #include <errno.h>
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/timer.h>
 
 #include <osmocom/vty/logging.h>	/* for LOGGING_STR. */
 
@@ -106,14 +108,40 @@ static const struct log_info_cat internal_cat[OSMO_NUM_DLIB] = {
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 		.color = "\033[1;38m",
 	},
+	[INT2IDX(DLCTRL)] = {
+		.name = "DLCTRL",
+		.description = "Control Interface",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
+	[INT2IDX(DLGTP)] = {
+		.name = "DLGTP",
+		.description = "GPRS GTP library",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
+	[INT2IDX(DLSTATS)] = {
+		.name = "DLSTATS",
+		.description = "Statistics messages and logging",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
+	[INT2IDX(DLGSUP)] = {
+		.name = "DLGSUP",
+		.description = "Generic Subscriber Update Protocol",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
+	[INT2IDX(DLOAP)] = {
+		.name = "DLOAP",
+		.description = "Osmocom Authentication Protocol",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
+/*! \brief descriptive string for each log level */
 /* You have to keep this in sync with the structure loglevel_strs. */
 const char *loglevel_descriptions[LOGLEVEL_DEFS+1] = {
-	"Log simply everything",
+	"Don't use. It doesn't log anything",
 	"Log debug messages and higher levels",
 	"Log informational messages and higher levels",
-	"Log noticable messages and higher levels",
+	"Log noticeable messages and higher levels",
 	"Log error messages and higher levels",
 	"Log only fatal messages",
 	NULL,
@@ -125,13 +153,19 @@ static int subsys_lib2index(int subsys)
 	return (subsys * -1) + (osmo_log_info->num_cat_user-1);
 }
 
-/*! \brief Parse a human-readable log level into a numeric value */
+/*! \brief Parse a human-readable log level into a numeric value
+ *  \param lvl[in] zero-terminated string containing log level name
+ *  \returns numeric log level
+ */
 int log_parse_level(const char *lvl)
 {
 	return get_string_value(loglevel_strs, lvl);
 }
 
-/*! \brief convert a numeric log level into human-readable string */
+/*! \brief convert a numeric log level into human-readable string
+ *  \param lvl[in] numeric log level
+ *  \returns zero-terminated string (log level name)
+ */
 const char *log_level_str(unsigned int lvl)
 {
 	return get_value_string(loglevel_strs, lvl);
@@ -173,6 +207,7 @@ void log_parse_category_mask(struct log_target* target, const char *_mask)
 		target->categories[i].enabled = 0;
 
 	category_token = strtok(mask, ":");
+	OSMO_ASSERT(category_token);
 	do {
 		for (i = 0; i < osmo_log_info->num_cat; ++i) {
 			size_t length, cat_length;
@@ -215,6 +250,14 @@ static const char* color(int subsys)
 	return NULL;
 }
 
+const char* log_category_name(int subsys)
+{
+	if (subsys < osmo_log_info->num_cat)
+		return osmo_log_info->cat[subsys].name;
+
+	return NULL;
+}
+
 static void _output(struct log_target *target, unsigned int subsys,
 		    unsigned int level, const char *file, int line, int cont,
 		    const char *format, va_list ap)
@@ -226,20 +269,38 @@ static void _output(struct log_target *target, unsigned int subsys,
 	if (target->use_color) {
 		const char *c = color(subsys);
 		if (c) {
-			ret = snprintf(buf + offset, rem, "%s", color(subsys));
+			ret = snprintf(buf + offset, rem, "%s", c);
 			if (ret < 0)
 				goto err;
 			OSMO_SNPRINTF_RET(ret, rem, offset, len);
 		}
 	}
 	if (!cont) {
-		if (target->print_timestamp) {
+		if (target->print_ext_timestamp) {
+			struct tm tm;
+			struct timeval tv;
+			osmo_gettimeofday(&tv, NULL);
+			localtime_r(&tv.tv_sec, &tm);
+			ret = snprintf(buf + offset, rem, "%04d%02d%02d%02d%02d%02d%03d ",
+					tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+					tm.tm_hour, tm.tm_min, tm.tm_sec,
+					(int)(tv.tv_usec / 1000));
+			if (ret < 0)
+				goto err;
+			OSMO_SNPRINTF_RET(ret, rem, offset, len);
+		} else if (target->print_timestamp) {
 			char *timestr;
 			time_t tm;
 			tm = time(NULL);
 			timestr = ctime(&tm);
 			timestr[strlen(timestr)-1] = '\0';
 			ret = snprintf(buf + offset, rem, "%s ", timestr);
+			if (ret < 0)
+				goto err;
+			OSMO_SNPRINTF_RET(ret, rem, offset, len);
+		}
+		if (target->print_category) {
+			ret = snprintf(buf + offset, rem, "%s ", log_category_name(subsys));
 			if (ret < 0)
 				goto err;
 			OSMO_SNPRINTF_RET(ret, rem, offset, len);
@@ -267,57 +328,101 @@ err:
 	target->output(target, level, buf);
 }
 
-/*! \brief vararg version of logging function */
+/* Catch internal logging category indexes as well as out-of-bounds indexes.
+ * For internal categories, the ID is negative starting with -1; and internal
+ * logging categories are added behind the user categories. For out-of-bounds
+ * indexes, return the index of DLGLOBAL. The returned category index is
+ * guaranteed to exist in osmo_log_info, otherwise the program would abort,
+ * which should never happen unless even the DLGLOBAL category is missing. */
+static inline int map_subsys(int subsys)
+{
+	/* Note: comparing signed and unsigned integers */
+
+	if (subsys > 0 && ((unsigned int)subsys) >= osmo_log_info->num_cat_user)
+		subsys = DLGLOBAL;
+
+	if (subsys < 0)
+		subsys = subsys_lib2index(subsys);
+
+	if (subsys < 0 || subsys >= osmo_log_info->num_cat)
+		subsys = subsys_lib2index(DLGLOBAL);
+
+	OSMO_ASSERT(!(subsys < 0 || subsys >= osmo_log_info->num_cat));
+
+	return subsys;
+}
+
+static inline int check_log_to_target(struct log_target *tar, int subsys, int level)
+{
+	struct log_category *category;
+
+	category = &tar->categories[subsys];
+
+	/* subsystem is not supposed to be logged */
+	if (!category->enabled)
+		return 0;
+
+	/* Check the global log level */
+	if (tar->loglevel != 0 && level < tar->loglevel)
+		return 0;
+
+	/* Check the category log level */
+	if (tar->loglevel == 0 && category->loglevel != 0 &&
+	    level < category->loglevel)
+		return 0;
+
+	/* Apply filters here... if that becomes messy we will
+	 * need to put filters in a list and each filter will
+	 * say stop, continue, output */
+	if ((tar->filter_map & LOG_FILTER_ALL) != 0)
+		return 1;
+
+	if (osmo_log_info->filter_fn)
+		return osmo_log_info->filter_fn(&log_context, tar);
+
+	/* TODO: Check the filter/selector too? */
+	return 1;
+}
+
+/*! \brief vararg version of logging function
+ *  \param[in] subsys Logging sub-system
+ *  \param[in] level Log level
+ *  \param[in] file name of source code file
+ *  \param[in] cont continuation (1) or new line (0)
+ *  \param[in] format format string
+ *  \param[in] ap vararg-list containing format string arguments
+ */
 void osmo_vlogp(int subsys, int level, const char *file, int line,
 		int cont, const char *format, va_list ap)
 {
 	struct log_target *tar;
 
-	if (subsys < 0)
-		subsys = subsys_lib2index(subsys);
-
-	if (subsys > osmo_log_info->num_cat)
-		subsys = DLGLOBAL;
+	subsys = map_subsys(subsys);
 
 	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
-		struct log_category *category;
-		int output = 0;
 		va_list bp;
 
-		category = &tar->categories[subsys];
-		/* subsystem is not supposed to be logged */
-		if (!category->enabled)
-			continue;
-
-		/* Check the global log level */
-		if (tar->loglevel != 0 && level < tar->loglevel)
-			continue;
-
-		/* Check the category log level */
-		if (tar->loglevel == 0 && category->loglevel != 0 &&
-		    level < category->loglevel)
-			continue;
-
-		/* Apply filters here... if that becomes messy we will
-		 * need to put filters in a list and each filter will
-		 * say stop, continue, output */
-		if ((tar->filter_map & LOG_FILTER_ALL) != 0)
-			output = 1;
-		else if (osmo_log_info->filter_fn)
-			output = osmo_log_info->filter_fn(&log_context,
-						       tar);
-		if (!output)
+		if (!check_log_to_target(tar, subsys, level))
 			continue;
 
 		/* According to the manpage, vsnprintf leaves the value of ap
 		 * in undefined state. Since _output uses vsnprintf and it may
 		 * be called several times, we have to pass a copy of ap. */
 		va_copy(bp, ap);
-		_output(tar, subsys, level, file, line, cont, format, bp);
+		if (tar->raw_output)
+			tar->raw_output(tar, subsys, level, file, line, cont, format, bp);
+		else
+			_output(tar, subsys, level, file, line, cont, format, bp);
 		va_end(bp);
 	}
 }
 
+/*! \brief logging function used by DEBUGP() macro
+ *  \param[in] subsys Logging sub-system
+ *  \param[in] file name of source code file
+ *  \param[in] cont continuation (1) or new line (0)
+ *  \param[in] format format string
+ */
 void logp(int subsys, const char *file, int line, int cont,
 	  const char *format, ...)
 {
@@ -328,6 +433,13 @@ void logp(int subsys, const char *file, int line, int cont,
 	va_end(ap);
 }
 
+/*! \brief logging function used by LOGP() macro
+ *  \param[in] subsys Logging sub-system
+ *  \param[in] level Log level
+ *  \param[in] file name of source code file
+ *  \param[in] cont continuation (1) or new line (0)
+ *  \param[in] format format string
+ */
 void logp2(int subsys, unsigned int level, const char *file, int line, int cont, const char *format, ...)
 {
 	va_list ap;
@@ -362,6 +474,7 @@ void log_reset_context(void)
 /*! \brief Set the logging context
  *  \param[in] ctx_nr logging context number
  *  \param[in] value value to which the context is to be set
+ *  \returns 0 in case of success; negative otherwise
  *
  * A logging context is something like the subscriber identity to which
  * the currently processed message relates, or the BTS through which it
@@ -413,6 +526,19 @@ void log_set_print_timestamp(struct log_target *target, int print_timestamp)
 	target->print_timestamp = print_timestamp;
 }
 
+/*! \brief Enable or disable printing of extended timestamps while logging
+ *  \param[in] target Log target to be affected
+ *  \param[in] print_timestamp Enable (1) or disable (0) timestamps
+ *
+ * When both timestamp and extended timestamp is enabled then only
+ * the extended timestamp will be used. The format of the timestamp
+ * is YYYYMMDDhhmmssnnn.
+ */
+void log_set_print_extended_timestamp(struct log_target *target, int print_timestamp)
+{
+	target->print_ext_timestamp = print_timestamp;
+}
+
 /*! \brief Enable or disable printing of the filename while logging
  *  \param[in] target Log target to be affected
  *  \param[in] print_filename Enable (1) or disable (0) filenames
@@ -420,6 +546,17 @@ void log_set_print_timestamp(struct log_target *target, int print_timestamp)
 void log_set_print_filename(struct log_target *target, int print_filename)
 {
 	target->print_filename = print_filename;
+}
+
+/*! \brief Enable or disable printing of the category name
+ *  \param[in] target Log target to be affected
+ *  \param[in] print_catname Enable (1) or disable (0) filenames
+ *
+ *  Print the category/subsys name in front of every log message.
+ */
+void log_set_print_category(struct log_target *target, int print_category)
+{
+	target->print_category = print_category;
 }
 
 /*! \brief Set the global log level for a given log target
@@ -431,11 +568,18 @@ void log_set_log_level(struct log_target *target, int log_level)
 	target->loglevel = log_level;
 }
 
+/*! \brief Set a category filter on a given log target
+ *  \param[in] target Log target to be affected
+ *  \param[in] category Log category to be affected
+ *  \param[in] enable whether to enable or disable the filter
+ *  \param[in] level Log level of the filter
+ */
 void log_set_category_filter(struct log_target *target, int category,
 			       int enable, int level)
 {
-	if (category >= osmo_log_info->num_cat)
+	if (!target)
 		return;
+	category = map_subsys(category);
 	target->categories[category].enabled = !!enable;
 	target->categories[category].loglevel = level;
 }
@@ -447,7 +591,12 @@ static void _file_output(struct log_target *target, unsigned int level,
 	fflush(target->tgt_file.out);
 }
 
-/*! \brief Create a new log target skeleton */
+/*! \brief Create a new log target skeleton
+ *  \returns dynamically-allocated log target
+ *  This funcition allocates a \ref log_target and initializes it
+ *  with some default values.  The newly created target is not
+ *  registered yet.
+ */
 struct log_target *log_target_create(void)
 {
 	struct log_target *target;
@@ -484,7 +633,8 @@ struct log_target *log_target_create(void)
 	return target;
 }
 
-/*! \brief Create the STDERR log target */
+/*! \brief Create the STDERR log target
+ *  \returns dynamically-allocated \ref log_target for STDERR */
 struct log_target *log_target_create_stderr(void)
 {
 /* since C89/C99 says stderr is a macro, we can safely do this! */
@@ -549,7 +699,8 @@ struct log_target *log_target_find(int type, const char *fname)
 	return NULL;
 }
 
-/*! \brief Unregister, close and delete a log target */
+/*! \brief Unregister, close and delete a log target
+ *  \param target[in] log target to unregister, close and delete */
 void log_target_destroy(struct log_target *target)
 {
 
@@ -571,7 +722,9 @@ void log_target_destroy(struct log_target *target)
 	talloc_free(target);
 }
 
-/*! \brief close and re-open a log file (for log file rotation) */
+/*! \brief close and re-open a log file (for log file rotation)
+ *  \param[in] target log target to re-open
+ *  \returns 0 in case of success; negative otherwise */
 int log_target_file_reopen(struct log_target *target)
 {
 	fclose(target->tgt_file.out);
@@ -585,8 +738,30 @@ int log_target_file_reopen(struct log_target *target)
 	return 0;
 }
 
+/*! \brief close and re-open all log files (for log file rotation)
+ *  \returns 0 in case of success; negative otherwise */
+int log_targets_reopen(void)
+{
+	struct log_target *tar;
+	int rc = 0;
+
+	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
+		switch (tar->type) {
+		case LOG_TGT_TYPE_FILE:
+			if (log_target_file_reopen(tar) < 0)
+				rc = -1;
+			break;
+		default:
+			break;
+		}
+	}
+
+	return rc;
+}
+
 /*! \brief Generates the logging command string for VTY
  *  \param[in] unused_info Deprecated parameter, no longer used!
+ *  \returns vty command string for use by VTY command node
  */
 const char *log_vty_command_string(const struct log_info *unused_info)
 {
@@ -664,6 +839,7 @@ err:
 
 /*! \brief Generates the logging command description for VTY
  *  \param[in] unused_info Deprecated parameter, no longer used!
+ *  \returns logging command description for use by VTY command node
  */
 const char *log_vty_command_description(const struct log_info *unused_info)
 {
@@ -739,6 +915,7 @@ int log_init(const struct log_info *inf, void *ctx)
 	if (!osmo_log_info)
 		return -ENOMEM;
 
+	osmo_log_info->filter_fn = inf->filter_fn;
 	osmo_log_info->num_cat_user = inf->num_cat;
 	/* total number = number of user cat + library cat */
 	osmo_log_info->num_cat = inf->num_cat + ARRAY_SIZE(internal_cat);
@@ -766,6 +943,43 @@ int log_init(const struct log_info *inf, void *ctx)
 			&internal_cat[i], sizeof(struct log_info_cat));
 	}
 
+	return 0;
+}
+
+/* \brief De-initialize the Osmocom logging core
+ * This function destroys all targets and releases associated memory */
+void log_fini(void)
+{
+	struct log_target *tar, *tar2;
+
+	llist_for_each_entry_safe(tar, tar2, &osmo_log_target_list, entry)
+		log_target_destroy(tar);
+
+	talloc_free(osmo_log_info);
+	osmo_log_info = NULL;
+	talloc_free(tall_log_ctx);
+	tall_log_ctx = NULL;
+}
+
+/*! \brief Check whether a log entry will be generated.
+ *  \returns != 0 if a log entry might get generated by at least one target */
+int log_check_level(int subsys, unsigned int level)
+{
+	struct log_target *tar;
+
+	subsys = map_subsys(subsys);
+
+	/* TODO: The following could/should be cached (update on config) */
+
+	llist_for_each_entry(tar, &osmo_log_target_list, entry) {
+		if (!check_log_to_target(tar, subsys, level))
+			continue;
+
+		/* This might get logged (ignoring filters) */
+		return 1;
+	}
+
+	/* We are sure, that this will not be logged. */
 	return 0;
 }
 

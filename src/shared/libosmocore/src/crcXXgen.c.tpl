@@ -27,7 +27,7 @@
  */
 
 /*! \file crcXXgen.c
- *  \file Osmocom generic CRC routines (for max XX bits poly)
+ * Osmocom generic CRC routines (for max XX bits poly)
  */
 
 #include <stdint.h>
@@ -53,13 +53,13 @@ osmo_crcXXgen_compute_bits(const struct osmo_crcXXgen_code *code,
 	for (i=0; i<len; i++) {
 		uintXX_t bit = in[i] & 1;
 		crc ^= (bit << n);
-		if (crc & (1 << n)) {
+		if (crc & ((uintXX_t)1 << n)) {
 			crc <<= 1;
 			crc ^= poly;
 		} else {
 			crc <<= 1;
 		}
-		crc &= (1ULL << code->bits) - 1;
+		crc &= ((uintXX_t)1 << code->bits) - 1;
 	}
 
 	crc ^= code->remainder;

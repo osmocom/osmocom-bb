@@ -26,10 +26,10 @@
  *  \brief Osmocom timer handling routines
  */
 
-#ifndef TIMER_H
-#define TIMER_H
+#pragma once
 
 #include <sys/time.h>
+#include <stdbool.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/linuxrbtree.h>
@@ -38,16 +38,16 @@
  * Timer management:
  *      - Create a struct osmo_timer_list
  *      - Fill out timeout and use add_timer or
- *        use schedule_timer to schedule a timer in
+ *        use osmo_timer_schedule to schedule a timer in
  *        x seconds and microseconds from now...
- *      - Use del_timer to remove the timer
+ *      - Use osmo_timer_del to remove the timer
  *
  *  Internally:
  *      - We hook into select.c to give a timeval of the
  *        nearest timer. On already passed timers we give
  *        it a 0 to immediately fire after the select
- *      - update_timers will call the callbacks and remove
- *        the timers.
+ *      - osmo_timers_update will call the callbacks and
+ *        remove the timers.
  *
  */
 /*! \brief A structure representing a single instance of a timer */
@@ -84,6 +84,14 @@ void osmo_timers_prepare(void);
 int osmo_timers_update(void);
 int osmo_timers_check(void);
 
-/*! @} */
+int osmo_gettimeofday(struct timeval *tv, struct timezone *tz);
 
-#endif
+/**
+ * timer override
+ */
+
+extern bool osmo_gettimeofday_override;
+extern struct timeval osmo_gettimeofday_override_time;
+void osmo_gettimeofday_override_add(time_t secs, suseconds_t usecs);
+
+/*! @} */

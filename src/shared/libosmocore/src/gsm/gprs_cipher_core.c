@@ -33,6 +33,15 @@ static LLIST_HEAD(gprs_ciphers);
 
 static struct gprs_cipher_impl *selected_ciphers[_GPRS_ALGO_NUM];
 
+const struct value_string gprs_cipher_names[] = {
+	{ GPRS_ALGO_GEA0, "GEA0" },
+	{ GPRS_ALGO_GEA1, "GEA1" },
+	{ GPRS_ALGO_GEA2, "GEA2" },
+	{ GPRS_ALGO_GEA3, "GEA3" },
+	{ GPRS_ALGO_GEA4, "GEA4" },
+	{ 0, NULL },
+};
+
 /* register a cipher with the core */
 int gprs_cipher_register(struct gprs_cipher_impl *ciph)
 {
@@ -53,12 +62,14 @@ int gprs_cipher_register(struct gprs_cipher_impl *ciph)
 int gprs_cipher_load(const char *path)
 {
 	/* load all plugins available from path */
-	return osmo_plugin_load_all(path);
+	if (path)
+		return osmo_plugin_load_all(path);
+	return 0;
 }
 
 /* function to be called by core code */
 int gprs_cipher_run(uint8_t *out, uint16_t len, enum gprs_ciph_algo algo,
-		    uint64_t kc, uint32_t iv, enum gprs_cipher_direction dir)
+		    uint8_t *kc, uint32_t iv, enum gprs_cipher_direction dir)
 {
 	if (algo >= ARRAY_SIZE(selected_ciphers))
 		return -ERANGE;
@@ -71,6 +82,23 @@ int gprs_cipher_run(uint8_t *out, uint16_t len, enum gprs_ciph_algo algo,
 
 	/* run the actual cipher from the plugin */
 	return selected_ciphers[algo]->run(out, len, kc, iv, dir);
+}
+
+/*! \brief Obtain key lenght for given GPRS cipher
+ *  \param[in] algo Enum representive GPRS cipher
+ *  \returns unsigned integer key length for supported algorithms,
+ *  for GEA0 and unknown ciphers will return 0
+ */
+unsigned gprs_cipher_key_length(enum gprs_ciph_algo algo)
+{
+	switch (algo) {
+	case GPRS_ALGO_GEA0: return 0;
+	case GPRS_ALGO_GEA1:
+	case GPRS_ALGO_GEA2:
+	case GPRS_ALGO_GEA3: return 8;
+	case GPRS_ALGO_GEA4: return 16;
+	default: return 0;
+	}
 }
 
 int gprs_cipher_supported(enum gprs_ciph_algo algo)
@@ -87,7 +115,7 @@ int gprs_cipher_supported(enum gprs_ciph_algo algo)
 /* GSM TS 04.64 / Section A.2.1 : Generation of 'input' */
 uint32_t gprs_cipher_gen_input_ui(uint32_t iov_ui, uint8_t sapi, uint32_t lfn, uint32_t oc)
 {
-	uint32_t sx = ((1<<27) * sapi) + (1<<31);
+	uint32_t sx = ((1<<27) * sapi) + ((uint32_t ) 1<<31);
 
 	return (iov_ui ^ sx) + lfn + oc;
 }

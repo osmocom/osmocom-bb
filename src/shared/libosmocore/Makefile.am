@@ -1,11 +1,11 @@
 ACLOCAL_AMFLAGS = -I m4
 
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
-SUBDIRS = include src src/vty src/codec src/gsm src/gb tests utils
+AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include
+SUBDIRS = include src src/vty src/codec src/gsm src/gb src/ctrl src/sim tests utils
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libosmocore.pc libosmocodec.pc libosmovty.pc libosmogsm.pc \
-		 libosmogb.pc
+		 libosmogb.pc libosmoctrl.pc
 
 BUILT_SOURCES = $(top_srcdir)/.version
 $(top_srcdir)/.version:
@@ -13,7 +13,7 @@ $(top_srcdir)/.version:
 dist-hook:
 	echo $(VERSION) > $(distdir)/.tarball-version
 
-EXTRA_DIST = git-version-gen
+EXTRA_DIST = git-version-gen .version doc/osmocom-authn-protocol.txt
 
 if HAVE_DOXYGEN
 
@@ -50,7 +50,7 @@ install-data-hook:
 uninstall-hook:
 	cd $(DESTDIR)$(htmldir) && rm -rf {core,gsm,vty,codec}
 
-DX_CLEAN = doc/{core,gsm,vty,codec}/{html,latex}/* doc/html.tar
+DX_CLEAN = doc/{core,gsm,vty,codec}/html/search/* doc/{core,gsm,vty,codec}/{html,latex}/* doc/html.tar doc/{core,gsm,vty,codec}/doxygen_sqlite3.db doc/*.tag
 endif
 
 MOSTLYCLEANFILES = $(DX_CLEAN)

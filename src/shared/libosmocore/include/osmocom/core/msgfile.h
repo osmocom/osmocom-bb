@@ -19,8 +19,7 @@
  *
  */
 
-#ifndef MSG_FILE_H
-#define MSG_FILE_H
+#pragma once
 
 #include <osmocom/core/linuxlist.h>
 
@@ -45,5 +44,3 @@ struct osmo_config_list {
 };
 
 struct osmo_config_list* osmo_config_list_parse(void *ctx, const char *filename);
-
-#endif

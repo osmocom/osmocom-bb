@@ -20,15 +20,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __OSMO_CRCXXGEN_H__
-#define __OSMO_CRCXXGEN_H__
+#pragma once
 
 /*! \addtogroup crcgen
  *  @{
  */
 
 /*! \file crcXXgen.h
- *  \file Osmocom generic CRC routines (for max XX bits poly) header
+ * Osmocom generic CRC routines (for max XX bits poly) header
  */
 
 
@@ -53,7 +52,5 @@ void osmo_crcXXgen_set_bits(const struct osmo_crcXXgen_code *code,
 
 
 /*! @} */
-
-#endif /* __OSMO_CRCXXGEN_H__ */
 
 /* vim: set syntax=c: */

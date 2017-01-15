@@ -75,6 +75,12 @@ vector Vvty_serv_thread;
 
 char *vty_cwd = NULL;
 
+/* IP address passed to the 'line vty'/'bind' command.
+ * Setting the default as vty_bind_addr = "127.0.0.1" doesn't allow freeing, so
+ * use NULL and VTY_BIND_ADDR_DEFAULT instead. */
+static const char *vty_bind_addr = NULL;
+#define VTY_BIND_ADDR_DEFAULT "127.0.0.1"
+
 /* Configure lock. */
 static int vty_config;
 
@@ -276,7 +282,7 @@ int vty_out(struct vty *vty, const char *format, ...)
 			p = buf;
 
 		/* Pointer p must point out buffer. */
-		buffer_put(vty->obuf, (u_char *) p, len);
+		buffer_put(vty->obuf, (unsigned char *) p, len);
 
 		/* If p is not different with buf, it is allocated buffer.  */
 		if (p != buf)
@@ -623,11 +629,11 @@ vty_telnet_option (struct vty *vty, unsigned char *buf, int nbytes)
 	    if (vty->sb_len != TELNET_NAWS_SB_LEN)
 	      vty_out(vty,"RFC 1073 violation detected: telnet NAWS option "
 			"should send %d characters, but we received %lu",
-			TELNET_NAWS_SB_LEN, (u_long)vty->sb_len);
+			TELNET_NAWS_SB_LEN, (unsigned long)vty->sb_len);
 	    else if (sizeof(vty->sb_buf) < TELNET_NAWS_SB_LEN)
 	      vty_out(vty, "Bug detected: sizeof(vty->sb_buf) %lu < %d, "
 		       "too small to handle the telnet NAWS option",
-		       (u_long)sizeof(vty->sb_buf), TELNET_NAWS_SB_LEN);
+		       (unsigned long)sizeof(vty->sb_buf), TELNET_NAWS_SB_LEN);
 	    else
 	      {
 		vty->width = ((vty->sb_buf[1] << 8)|vty->sb_buf[2]);
@@ -982,7 +988,7 @@ static void vty_complete_command(struct vty *vty)
 
 	/* In case of 'help \t'. */
 	if (isspace((int)vty->buf[vty->length - 1]))
-		vector_set(vline, '\0');
+		vector_set(vline, NULL);
 
 	matched = cmd_complete_command(vline, vty, &ret);
 
@@ -1092,9 +1098,9 @@ static void vty_describe_command(struct vty *vty)
 	/* In case of '> ?'. */
 	if (vline == NULL) {
 		vline = vector_init(1);
-		vector_set(vline, '\0');
+		vector_set(vline, NULL);
 	} else if (isspace((int)vty->buf[vty->length - 1]))
-		vector_set(vline, '\0');
+		vector_set(vline, NULL);
 
 	describe = cmd_describe_command(vline, vty, &ret);
 
@@ -1432,9 +1438,10 @@ int vty_read(struct vty *vty)
 	}
 
 	/* Check status. */
-	if (vty->status == VTY_CLOSE)
+	if (vty->status == VTY_CLOSE) {
 		vty_close(vty);
-	else {
+		return -EBADF;
+	} else {
 		vty_event(VTY_WRITE, vty_sock, vty);
 		vty_event(VTY_READ, vty_sock, vty);
 	}
@@ -1584,6 +1591,23 @@ DEFUN(no_vty_login,
 	return CMD_SUCCESS;
 }
 
+/* vty bind */
+DEFUN(vty_bind, vty_bind_cmd, "bind A.B.C.D",
+      "Accept VTY telnet connections on local interface\n"
+      "Local interface IP address (default: " VTY_BIND_ADDR_DEFAULT ")\n")
+{
+	talloc_free((void*)vty_bind_addr);
+	vty_bind_addr = talloc_strdup(tall_vty_ctx, argv[0]);
+	return CMD_SUCCESS;
+}
+
+const char *vty_get_bind_addr(void)
+{
+	if (!vty_bind_addr)
+		return VTY_BIND_ADDR_DEFAULT;
+	return vty_bind_addr;
+}
+
 DEFUN(service_advanced_vty,
       service_advanced_vty_cmd,
       "service advanced-vty",
@@ -1652,6 +1676,10 @@ static int vty_config_write(struct vty *vty)
 	/* login */
 	if (!password_check)
 		vty_out(vty, " no login%s", VTY_NEWLINE);
+
+	/* bind */
+	if (vty_bind_addr && (strcmp(vty_bind_addr, VTY_BIND_ADDR_DEFAULT) != 0))
+		vty_out(vty, " bind %s%s", vty_bind_addr, VTY_NEWLINE);
 
 	vty_out(vty, "!%s", VTY_NEWLINE);
 
@@ -1753,9 +1781,10 @@ void vty_init(struct vty_app_info *app_info)
 	install_element(ENABLE_NODE, &terminal_monitor_cmd);
 	install_element(ENABLE_NODE, &terminal_no_monitor_cmd);
 
-	install_default(VTY_NODE);
+	vty_install_default(VTY_NODE);
 	install_element(VTY_NODE, &vty_login_cmd);
 	install_element(VTY_NODE, &no_vty_login_cmd);
+	install_element(VTY_NODE, &vty_bind_cmd);
 }
 
 /*! \brief Read the configuration file using the VTY code

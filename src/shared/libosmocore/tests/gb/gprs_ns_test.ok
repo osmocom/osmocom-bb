@@ -1,0 +1,1024 @@
+===== NS protocol test START
+--- Create via RESET (round 0) ---
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111, blocked
+
+--- Delete nsvc object (round 0)---
+
+Current NS-VCIs:
+
+--- Create via RESET (round 1) ---
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111, blocked
+
+--- Delete nsvc object (round 1)---
+
+Current NS-VCIs:
+
+--- Create via RESET (round 2) ---
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111, blocked
+
+--- Delete nsvc object (round 2)---
+
+Current NS-VCIs:
+
+--- Create via RESET (round 3) ---
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111, blocked
+
+--- Delete nsvc object (round 3)---
+
+Current NS-VCIs:
+
+--- Process timers ---
+
+--- Send unexpected NS STATUS (should not be answered)---
+
+PROCESSING STATUS from 0x01020304:1111
+08 00 81 0a 02 81 0a 
+
+result (STATUS) = 0
+
+--- Send unexpected NS ALIVE ACK (should not be answered)---
+
+PROCESSING ALIVE_ACK from 0x01020304:1111
+0b 
+
+result (ALIVE_ACK) = 0
+
+--- Send unexpected NS RESET ACK (should not be answered)---
+
+PROCESSING RESET_ACK from 0x01020304:1111
+03 01 82 e0 01 04 82 e0 00 
+
+result (RESET_ACK) = 0
+
+--- Setup, send BSSGP RESET ---
+
+Setup NS-VC: remote 0x01020304:1111, NSVCI 0x1122(4386), NSEI 0x1122(4386)
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 11 22 04 82 11 22 
+
+==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 11 22 04 82 11 22 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+PROCESSING ALIVE from 0x01020304:1111
+0a 
+
+MESSAGE to BSS, msg length 1
+0b 
+
+result (ALIVE) = 1
+
+PROCESSING UNBLOCK from 0x01020304:1111
+06 
+
+==> got signal NS_UNBLOCK, NS-VC 0x1122/1.2.3.4:1111
+MESSAGE to BSS, msg length 1
+07 
+
+result (UNBLOCK) = 1
+
+PROCESSING ALIVE_ACK from 0x01020304:1111
+0b 
+
+result (ALIVE_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:1111
+
+PROCESSING BSSGP RESET from 0x01020304:1111
+00 00 00 00 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+CALLBACK, event 0, msg length 18, bvci 0x0000
+22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = 0
+
+--- Peer port changes, RESET, message remains unchanged ---
+
+PROCESSING RESET from 0x01020304:2222
+02 00 81 01 01 82 11 22 04 82 11 22 
+
+==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:2222
+MESSAGE to BSS, msg length 9
+03 01 82 11 22 04 82 11 22 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:2222, blocked
+
+--- Peer port changes, RESET, VCI changes ---
+
+PROCESSING RESET from 0x01020304:3333
+02 00 81 01 01 82 33 44 04 82 11 22 
+
+==> got signal NS_RESET, NS-VC 0x3344/1.2.3.4:3333
+MESSAGE to BSS, msg length 9
+03 01 82 33 44 04 82 11 22 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x3344, NSEI 0x1122, peer 0x01020304:3333, blocked
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:2222, blocked
+
+--- Peer port changes, RESET, NSEI changes ---
+
+PROCESSING RESET from 0x01020304:4444
+02 00 81 01 01 82 11 22 04 82 33 44 
+
+==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:4444
+MESSAGE to BSS, msg length 9
+03 01 82 11 22 04 82 33 44 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x3344, NSEI 0x1122, peer 0x01020304:3333, blocked
+    VCI 0x1122, NSEI 0x3344, peer 0x01020304:4444, blocked
+         NS-VC changed NSEI count  : 1
+
+--- Peer port 3333, RESET, VCI is changed back ---
+
+PROCESSING RESET from 0x01020304:3333
+02 00 81 01 01 82 11 22 04 82 11 22 
+
+==> got signal NS_REPLACED: 0x1122/1.2.3.4:4444 -> 0x3344/1.2.3.4:3333
+==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:3333
+MESSAGE to BSS, msg length 9
+03 01 82 11 22 04 82 11 22 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x3344, NSEI 0x1122, peer 0x00000000:0, blocked
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:3333, blocked
+         NS-VC replaced other count: 1
+         NS-VC changed NSEI count  : 2
+
+--- Peer port 4444, RESET, NSEI is changed back ---
+
+PROCESSING RESET from 0x01020304:4444
+02 00 81 01 01 82 11 22 04 82 11 22 
+
+==> got signal NS_RESET, NS-VC 0x1122/1.2.3.4:4444
+MESSAGE to BSS, msg length 9
+03 01 82 11 22 04 82 11 22 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x3344, NSEI 0x1122, peer 0x00000000:0, blocked
+    VCI 0x1122, NSEI 0x1122, peer 0x01020304:4444, blocked
+         NS-VC replaced other count: 1
+         NS-VC changed NSEI count  : 2
+
+--- Setup VC 1 BSS -> SGSN ---
+
+Setup NS-VC: remote 0x01020304:1111, NSVCI 0x1001(4097), NSEI 0x1000(4096)
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+PROCESSING ALIVE from 0x01020304:1111
+0a 
+
+MESSAGE to BSS, msg length 1
+0b 
+
+result (ALIVE) = 1
+
+PROCESSING UNBLOCK from 0x01020304:1111
+06 
+
+==> got signal NS_UNBLOCK, NS-VC 0x1001/1.2.3.4:1111
+MESSAGE to BSS, msg length 1
+07 
+
+result (UNBLOCK) = 1
+
+PROCESSING ALIVE_ACK from 0x01020304:1111
+0b 
+
+result (ALIVE_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111
+
+--- Setup VC 2 BSS -> SGSN ---
+
+Setup NS-VC: remote 0x01020304:2222, NSVCI 0x2001(8193), NSEI 0x2000(8192)
+
+PROCESSING RESET from 0x01020304:2222
+02 00 81 01 01 82 20 01 04 82 20 00 
+
+==> got signal NS_RESET, NS-VC 0x2001/1.2.3.4:2222
+MESSAGE to BSS, msg length 9
+03 01 82 20 01 04 82 20 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+PROCESSING ALIVE from 0x01020304:2222
+0a 
+
+MESSAGE to BSS, msg length 1
+0b 
+
+result (ALIVE) = 1
+
+PROCESSING UNBLOCK from 0x01020304:2222
+06 
+
+==> got signal NS_UNBLOCK, NS-VC 0x2001/1.2.3.4:2222
+MESSAGE to BSS, msg length 1
+07 
+
+result (UNBLOCK) = 1
+
+PROCESSING ALIVE_ACK from 0x01020304:2222
+0b 
+
+result (ALIVE_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:2222
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111
+
+--- Setup VC 1 SGSN -> BSS ---
+
+MESSAGE to BSS, msg length 12
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+PROCESSING RESET_ACK from 0x01020304:1111
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+Current NS-VCIs:
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:2222
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:1111, blocked
+         NS-VC Block count         : 1
+
+--- Exchange NSEI 1 + 2 links ---
+
+--- Setup VC 2 SGSN -> BSS (hits NSEI 1) ---
+
+MESSAGE to BSS, msg length 12
+02 00 81 01 01 82 20 01 04 82 20 00 
+
+PROCESSING RESET_ACK from 0x01020304:2222
+03 01 82 10 01 04 82 10 00 
+
+==> got signal NS_REPLACED: 0x1001/1.2.3.4:1111 -> 0x2001/1.2.3.4:2222
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+Current NS-VCIs:
+    VCI 0x2001, NSEI 0x2000, peer 0x00000000:0, blocked, dead
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 2
+         NS-VC replaced other count: 1
+
+--- Setup VC 2 SGSN -> BSS (hits NSEI 2) ---
+
+--- Setup VC 1 SGSN -> BSS (hits NSEI 1) ---
+
+MESSAGE to BSS, msg length 12
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+PROCESSING RESET_ACK from 0x01020304:2222
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+Current NS-VCIs:
+    VCI 0x2001, NSEI 0x2000, peer 0x00000000:0, blocked, dead
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 3
+         NS-VC replaced other count: 1
+
+--- Setup VC 2 BSS -> SGSN ---
+
+Setup NS-VC: remote 0x01020304:1111, NSVCI 0x2001(8193), NSEI 0x2000(8192)
+
+PROCESSING RESET from 0x01020304:1111
+02 00 81 01 01 82 20 01 04 82 20 00 
+
+==> got signal NS_RESET, NS-VC 0x2001/1.2.3.4:1111
+MESSAGE to BSS, msg length 9
+03 01 82 20 01 04 82 20 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+PROCESSING ALIVE from 0x01020304:1111
+0a 
+
+MESSAGE to BSS, msg length 1
+0b 
+
+result (ALIVE) = 1
+
+PROCESSING UNBLOCK from 0x01020304:1111
+06 
+
+==> got signal NS_UNBLOCK, NS-VC 0x2001/1.2.3.4:1111
+MESSAGE to BSS, msg length 1
+07 
+
+result (UNBLOCK) = 1
+
+PROCESSING ALIVE_ACK from 0x01020304:1111
+0b 
+
+result (ALIVE_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 3
+         NS-VC replaced other count: 1
+
+--- RESET with invalid NSEI, BSS -> SGSN ---
+
+PROCESSING RESET from 0x01020304:2222
+02 00 81 01 01 82 10 01 04 82 f0 00 
+
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:2222
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 f0 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0xf000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 3
+         NS-VC replaced other count: 1
+         NS-VC changed NSEI count  : 1
+
+--- RESET with invalid NSVCI, BSS -> SGSN ---
+
+PROCESSING RESET from 0x01020304:2222
+02 00 81 01 01 82 f0 01 04 82 10 00 
+
+==> got signal NS_REPLACED: 0xf001/0.0.0.0:0 -> 0x1001/1.2.3.4:2222
+==> got signal NS_RESET, NS-VC 0xf001/1.2.3.4:2222
+MESSAGE to BSS, msg length 9
+03 01 82 f0 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0xf001, NSEI 0x1000, peer 0x01020304:2222, blocked
+         NS-VC replaced other count: 1
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0xf000, peer 0x00000000:0, blocked
+         NS-VC Block count         : 3
+         NS-VC replaced other count: 1
+         NS-VC changed NSEI count  : 1
+
+--- RESET with old NSEI, NSVCI, BSS -> SGSN ---
+
+PROCESSING RESET from 0x01020304:2222
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_REPLACED: 0x1001/0.0.0.0:0 -> 0xf001/1.2.3.4:2222
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:2222
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0xf001, NSEI 0x1000, peer 0x00000000:0, blocked
+         NS-VC replaced other count: 1
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 3
+         NS-VC replaced other count: 2
+         NS-VC changed NSEI count  : 2
+
+--- Unexpected RESET_ACK VC 1, BSS -> SGSN ---
+
+PROCESSING RESET_ACK from 0x01020304:2222
+03 01 82 10 01 04 82 10 00 
+
+result (RESET_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0xf001, NSEI 0x1000, peer 0x00000000:0, blocked
+         NS-VC replaced other count: 1
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 3
+         NS-VC replaced other count: 2
+         NS-VC changed NSEI count  : 2
+
+---  RESET_ACK with invalid NSEI, BSS -> SGSN ---
+
+MESSAGE to BSS, msg length 12
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+PROCESSING RESET_ACK from 0x01020304:2222
+03 01 82 10 01 04 82 f0 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+Current NS-VCIs:
+    VCI 0xf001, NSEI 0x1000, peer 0x00000000:0, blocked
+         NS-VC replaced other count: 1
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0xf000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 4
+         NS-VC replaced other count: 2
+         NS-VC changed NSEI count  : 3
+
+---  RESET_ACK with invalid NSVCI, BSS -> SGSN ---
+
+MESSAGE to BSS, msg length 12
+02 00 81 01 01 82 10 01 04 82 f0 00 
+
+PROCESSING RESET_ACK from 0x01020304:2222
+03 01 82 f0 01 04 82 10 00 
+
+==> got signal NS_REPLACED: 0xf001/0.0.0.0:0 -> 0x1001/1.2.3.4:2222
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+Current NS-VCIs:
+    VCI 0xf001, NSEI 0x1000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 1
+         NS-VC replaced other count: 2
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0xf000, peer 0x00000000:0, blocked, dead
+         NS-VC Block count         : 4
+         NS-VC replaced other count: 2
+         NS-VC changed NSEI count  : 3
+
+---  RESET (BSS -> SGSN) crossing an UNBLOCK_ACK (SGSN -> BSS) ---
+
+Setup NS-VC: remote 0x01020304:2222, NSVCI 0x1001(4097), NSEI 0x1000(4096)
+
+PROCESSING RESET from 0x01020304:2222
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+==> got signal NS_REPLACED: 0x1001/0.0.0.0:0 -> 0xf001/1.2.3.4:2222
+==> got signal NS_RESET, NS-VC 0x1001/1.2.3.4:2222
+MESSAGE to BSS, msg length 9
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET) = 9
+
+PROCESSING ALIVE from 0x01020304:2222
+0a 
+
+MESSAGE to BSS, msg length 1
+0b 
+
+result (ALIVE) = 1
+
+PROCESSING UNBLOCK from 0x01020304:2222
+06 
+
+==> got signal NS_UNBLOCK, NS-VC 0x1001/1.2.3.4:2222
+MESSAGE to BSS, msg length 1
+07 
+
+result (UNBLOCK) = 1
+
+PROCESSING ALIVE_ACK from 0x01020304:2222
+0b 
+
+result (ALIVE_ACK) = 0
+
+MESSAGE to BSS, msg length 12
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+PROCESSING UNBLOCK_ACK from 0x01020304:2222
+07 
+
+==> got signal NS_UNBLOCK, NS-VC 0x1001/1.2.3.4:2222
+result (UNBLOCK_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0xf001, NSEI 0x1000, peer 0x00000000:0, blocked
+         NS-VC Block count         : 1
+         NS-VC replaced other count: 2
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222
+         NS-VC Block count         : 4
+         NS-VC replaced other count: 3
+         NS-VC changed NSEI count  : 4
+
+PROCESSING RESET_ACK from 0x01020304:2222
+03 01 82 10 01 04 82 10 00 
+
+result (RESET_ACK) = 0
+
+MESSAGE to BSS, msg length 12
+02 00 81 01 01 82 10 01 04 82 10 00 
+
+PROCESSING RESET_ACK from 0x01020304:2222
+03 01 82 10 01 04 82 10 00 
+
+MESSAGE to BSS, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+Current NS-VCIs:
+    VCI 0xf001, NSEI 0x1000, peer 0x00000000:0, blocked
+         NS-VC Block count         : 1
+         NS-VC replaced other count: 2
+    VCI 0x2001, NSEI 0x2000, peer 0x01020304:1111
+    VCI 0x1001, NSEI 0x1000, peer 0x01020304:2222, blocked
+         NS-VC Block count         : 5
+         NS-VC replaced other count: 3
+         NS-VC changed NSEI count  : 4
+
+Current NS-VCIs:
+
+--- Setup SGSN connection, BSS -> SGSN ---
+
+MESSAGE to SGSN, msg length 12
+02 00 81 01 01 82 01 01 04 82 01 00 
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 01 01 04 82 01 00 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+PROCESSING ALIVE_ACK from 0x05060708:32000
+0b 
+
+MESSAGE to SGSN, msg length 1
+06 
+
+result (ALIVE_ACK) = 1
+
+PROCESSING UNBLOCK_ACK from 0x05060708:32000
+07 
+
+==> got signal NS_UNBLOCK, NS-VC 0x0101/5.6.7.8:32000
+result (UNBLOCK_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000
+         NS-VC Block count         : 1
+
+--- RESET, SGSN -> BSS ---
+
+PROCESSING RESET from 0x05060708:32000
+02 00 81 01 01 82 01 01 04 82 01 00 
+
+==> got signal NS_RESET, NS-VC 0x0101/5.6.7.8:32000
+MESSAGE to SGSN, msg length 9
+03 01 82 01 01 04 82 01 00 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked
+         NS-VC Block count         : 1
+
+--- RESET with invalid NSEI, SGSN -> BSS ---
+
+PROCESSING RESET from 0x05060708:32000
+02 00 81 01 01 82 01 01 04 82 f0 00 
+
+==> got signal NS_MISMATCH: 0x0101/5.6.7.8:32000 pdu=2, ie=4
+MESSAGE to SGSN, msg length 9
+03 01 82 01 01 04 82 01 00 
+
+result (RESET) = 0
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked
+         NS-VC Block count         : 1
+         NSEI was invalid count    : 1
+
+--- RESET with invalid NSVCI, SGSN -> BSS ---
+
+PROCESSING RESET from 0x05060708:32000
+02 00 81 01 01 82 f0 01 04 82 01 00 
+
+==> got signal NS_MISMATCH: 0x0101/5.6.7.8:32000 pdu=2, ie=1
+MESSAGE to SGSN, msg length 9
+03 01 82 01 01 04 82 01 00 
+
+result (RESET) = 0
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked
+         NS-VC Block count         : 1
+         NS-VCI was invalid count  : 1
+         NSEI was invalid count    : 1
+
+--- RESET, SGSN -> BSS ---
+
+PROCESSING RESET from 0x05060708:32000
+02 00 81 01 01 82 01 01 04 82 01 00 
+
+==> got signal NS_RESET, NS-VC 0x0101/5.6.7.8:32000
+MESSAGE to SGSN, msg length 9
+03 01 82 01 01 04 82 01 00 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+result (RESET) = 9
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked
+         NS-VC Block count         : 1
+         NS-VCI was invalid count  : 1
+         NSEI was invalid count    : 1
+
+--- Unexpected RESET_ACK VC 1, BSS -> SGSN ---
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 01 01 04 82 01 00 
+
+result (RESET_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked
+         NS-VC Block count         : 1
+         NS-VCI was invalid count  : 1
+         NSEI was invalid count    : 1
+
+---  RESET_ACK with invalid NSEI, BSS -> SGSN ---
+
+MESSAGE to SGSN, msg length 12
+02 00 81 01 01 82 01 01 04 82 01 00 
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 01 01 04 82 e0 00 
+
+==> got signal NS_MISMATCH: 0x0101/5.6.7.8:32000 pdu=3, ie=4
+result (RESET_ACK) = -22
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked, dead
+         NS-VC Block count         : 1
+         NS-VCI was invalid count  : 1
+         NSEI was invalid count    : 2
+
+---  RESET_ACK with invalid NSVCI, BSS -> SGSN ---
+
+MESSAGE to SGSN, msg length 12
+02 00 81 01 01 82 01 01 04 82 01 00 
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 e0 01 04 82 01 00 
+
+==> got signal NS_MISMATCH: 0x0101/5.6.7.8:32000 pdu=3, ie=1
+result (RESET_ACK) = -22
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked, dead
+         NS-VC Block count         : 1
+         NS-VCI was invalid count  : 2
+         NSEI was invalid count    : 2
+
+Current NS-VCIs:
+
+=== test_sgsn_reset_invalid_state ===
+--- Setup SGSN connection, BSS -> SGSN ---
+
+MESSAGE to SGSN, msg length 12
+02 00 81 01 01 82 01 01 04 82 01 00 
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 01 01 04 82 01 00 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+PROCESSING ALIVE_ACK from 0x05060708:32000
+0b 
+
+MESSAGE to SGSN, msg length 1
+06 
+
+result (ALIVE_ACK) = 1
+
+PROCESSING UNBLOCK_ACK from 0x05060708:32000
+07 
+
+==> got signal NS_UNBLOCK, NS-VC 0x0101/5.6.7.8:32000
+result (UNBLOCK_ACK) = 0
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000
+         NS-VC Block count         : 1
+
+--- Time out local test procedure ---
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+==> got signal NS_ALIVE_EXP, NS-VC 0x0101/5.6.7.8:32000
+==> got signal NS_BLOCK, NS-VC 0x0101/5.6.7.8:32000
+--- Remote test procedure continues ---
+
+PROCESSING ALIVE from 0x05060708:32000
+0a 
+
+MESSAGE to SGSN, msg length 12
+02 00 81 0a 01 82 01 01 04 82 01 00 
+
+result (ALIVE) = 12
+
+--- Don't send a NS_RESET_ACK message (pretend it is lost) ---
+
+PROCESSING ALIVE from 0x05060708:32000
+0a 
+
+result (ALIVE) = 0
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 01 01 04 82 01 00 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+PROCESSING ALIVE_ACK from 0x05060708:32000
+0b 
+
+MESSAGE to SGSN, msg length 1
+06 
+
+result (ALIVE_ACK) = 1
+
+PROCESSING UNBLOCK_ACK from 0x05060708:32000
+07 
+
+==> got signal NS_UNBLOCK, NS-VC 0x0101/5.6.7.8:32000
+result (UNBLOCK_ACK) = 0
+
+PROCESSING UNITDATA from 0x05060708:32000
+00 00 12 34 01 02 03 04 
+
+CALLBACK, event 0, msg length 4, bvci 0x1234
+01 02 03 04 
+
+result (UNITDATA) = 0
+
+Current NS-VCIs:
+
+--- Send message to SGSN ---
+
+SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
+22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = -22
+
+--- Setup dead connection to SGSN ---
+
+MESSAGE to SGSN, msg length 12
+02 00 81 01 01 82 01 01 04 82 01 00 
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked, dead
+
+--- Send message to SGSN ---
+
+SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
+22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = -16
+
+--- Make connection to SGSN alive ---
+
+PROCESSING RESET_ACK from 0x05060708:32000
+03 01 82 01 01 04 82 01 00 
+
+MESSAGE to SGSN, msg length 1
+0a 
+
+result (RESET_ACK) = 1
+
+PROCESSING ALIVE_ACK from 0x05060708:32000
+0b 
+
+MESSAGE to SGSN, msg length 1
+06 
+
+result (ALIVE_ACK) = 1
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000, blocked
+         NS-VC Block count         : 1
+
+--- Send message to SGSN ---
+
+SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
+22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = -16
+
+--- Unblock connection to SGSN ---
+
+PROCESSING UNBLOCK_ACK from 0x05060708:32000
+07 
+
+==> got signal NS_UNBLOCK, NS-VC 0x0101/5.6.7.8:32000
+result (UNBLOCK_ACK) = 0
+
+PROCESSING ALIVE from 0x05060708:32000
+0a 
+
+MESSAGE to SGSN, msg length 1
+0b 
+
+result (ALIVE) = 1
+
+Current NS-VCIs:
+    VCI 0x0101, NSEI 0x0100, peer 0x05060708:32000
+         NS-VC Block count         : 1
+
+--- Send message to SGSN ---
+
+SENDING BSSGP RESET to NSEI 0x0100, BVCI 0x0000
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0000, msg length 18
+22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+MESSAGE to SGSN, msg length 22
+00 00 00 00 22 04 82 4a 2e 07 81 08 08 88 10 20 30 40 50 60 10 00 
+
+result (BSSGP RESET) = 22
+
+--- Send empty message with BVCI to SGSN ---
+
+SENDING [empty] to NSEI 0x0100, BVCI 0x0102
+NS UNITDATA MESSAGE to SGSN, BVCI 0x0102, msg length 0
+
+
+MESSAGE to SGSN, msg length 4
+00 00 01 02 
+
+result ([empty]) = 4
+
+===== NS protocol test END
+

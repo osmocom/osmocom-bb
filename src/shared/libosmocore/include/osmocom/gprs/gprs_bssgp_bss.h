@@ -1,5 +1,4 @@
-#ifndef _BSSGP_BSS_H
-#define _BSSGP_BSS_H
+#pragma once
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/gprs/gprs_bssgp.h>
@@ -11,16 +10,16 @@
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
@@ -66,10 +65,9 @@ int bssgp_rx_paging(struct bssgp_paging_info *pinfo,
 
 int bssgp_tx_fc_bvc(struct bssgp_bvc_ctx *bctx, uint8_t tag,
 		    uint32_t bucket_size, uint32_t bucket_leak_rate,
-		    uint16_t bmax_default_ms, uint32_t r_default_ms,
+		    uint32_t bmax_default_ms, uint32_t r_default_ms,
 		    uint8_t *bucket_full_ratio, uint32_t *queue_delay_ms);
 
 int bssgp_tx_fc_ms(struct bssgp_bvc_ctx *bctx, uint32_t tlli, uint8_t tag,
 		   uint32_t ms_bucket_size, uint32_t bucket_leak_rate,
 		   uint8_t *bucket_full_ratio);
-#endif

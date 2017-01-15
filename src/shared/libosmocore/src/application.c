@@ -40,7 +40,7 @@
  * a multi-threaded context, you have to add your own locking.
  *
  * \section sec_copyright Copyright and License
- * Copyright © 2008-2011 - Harald Welte, Holger Freyther and contributors\n
+ * Copyright © 2008-2016 - Harald Welte, Holger Freyther and contributors\n
  * All rights reserved. \n\n
  * The source code of libosmocore is licensed under the terms of the GNU
  * General Public License as published by the Free Software Foundation;
@@ -72,14 +72,25 @@
 
 struct log_target *osmo_stderr_target;
 
+static void sighup_hdlr(int signal)
+{
+	log_targets_reopen();
+}
+
 /*! \brief Ignore \ref SIGPIPE, \ref SIGALRM, \ref SIGHUP and \ref SIGIO */
 void osmo_init_ignore_signals(void)
 {
 	/* Signals that by default would terminate */
+#ifdef SIGPIPE
 	signal(SIGPIPE, SIG_IGN);
+#endif
 	signal(SIGALRM, SIG_IGN);
-	signal(SIGHUP, SIG_IGN);
+#ifdef SIGHUP
+	signal(SIGHUP, &sighup_hdlr);
+#endif
+#ifdef SIGIO
 	signal(SIGIO, SIG_IGN);
+#endif
 }
 
 /*! \brief Initialize the osmocom logging framework

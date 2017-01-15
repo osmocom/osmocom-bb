@@ -1,5 +1,4 @@
-#ifndef _GSMTAP_UTIL_H
-#define _GSMTAP_UTIL_H
+#pragma once
 
 #include <stdint.h>
 #include <osmocom/core/write_queue.h>
@@ -27,7 +26,9 @@ struct gsmtap_inst {
 	struct osmo_fd sink_ofd;/*!< \brief file descriptor */
 };
 
-/*! \brief obtain the file descriptor associated with a gsmtap instance */
+/*! \brief obtain the file descriptor associated with a gsmtap instance
+ *  \param[in] gti GSMTAP instance
+ *  \returns file descriptor of GSMTAP instance */
 static inline int gsmtap_inst_fd(struct gsmtap_inst *gti)
 {
 	return gti->wq.bfd.fd;
@@ -54,4 +55,4 @@ int gsmtap_send(struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts,
 		int8_t signal_dbm, uint8_t snr, const uint8_t *data,
 		unsigned int len);
 
-#endif /* _GSMTAP_UTIL_H */
+/*! @} */

@@ -26,7 +26,7 @@
 #define VERIFY(msg, data, len) 						\
 	if (msgb_l3len(msg) != len) {					\
 		printf("%s:%d Length don't match: %d vs. %d. %s\n", 	\
-			__func__, __LINE__, msgb_l3len(msg), len,	\
+			__func__, __LINE__, msgb_l3len(msg), (int) len,	\
 			osmo_hexdump(msg->l3h, msgb_l3len(msg))); 	\
 		abort();						\
 	} else if (memcmp(msg->l3h, data, len) != 0) {			\

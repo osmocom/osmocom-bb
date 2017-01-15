@@ -1,5 +1,4 @@
-#ifndef PROTO_GSM_08_58_H
-#define PROTO_GSM_08_58_H
+#pragma once
 
 /* GSM Radio Signalling Link messages on the A-bis interface 
  * 3GPP TS 08.58 version 8.6.0 Release 1999 / ETSI TS 100 596 V8.6.0 */
@@ -83,7 +82,7 @@ struct abis_rsl_cchan_hdr {
 /* \brief Check if given RSL message discriminator is transparent */
 #define ABIS_RSL_MDISC_IS_TRANSP(x)	(x & 0x01)
 
-/* \brief RSL Message Tyoe (Chapter 9.1) */
+/* \brief RSL Message Type (Chapter 9.1) */
 enum abis_rsl_msgtype {
 	/* Radio Link Layer Management */
 	RSL_MT_DATA_REQ			= 0x01,
@@ -296,8 +295,31 @@ enum abis_rsl_ie {
 	RSL_IE_IPAC_RTP_MPLEX_ID= 0xfe,
 };
 
+/* Ericsson specific IEs, clash with above partially, so they're not
+ * part of the enum */
+#define RSL_IE_ERIC_INST_NR		0x48
+#define RSL_IE_ERIC_PGSL_TIMERS		0x49
+#define RSL_IE_ERIC_REPEAT_DL_FACCH	0x4a
+#define RSL_IE_ERIC_POWER_INFO		0xf0
+#define RSL_IE_ERIC_MOBILE_ID		0xf1
+#define RSL_IE_ERIC_BCCH_MAPPING	0xf2
+#define RSL_IE_ERIC_PACKET_PAG_IND	0xf3
+#define RSL_IE_ERIC_CNTR_CTRL		0xf4
+#define RSL_IE_ERIC_CNTR_CTRL_ACK	0xf5
+#define RSL_IE_ERIC_CNTR_REPORT		0xf6
+#define RSL_IE_ERIC_ICP_CONN		0xf7
+#define RSL_IE_ERIC_EMR_SUPPORT		0xf8
+#define RSL_IE_ERIC_EGPRS_REQ_REF	0xf9
+#define RSL_IE_ERIC_VGCS_REL		0xfa
+#define RSL_IE_ERIC_REP_PER_NCH		0xfb
+#define RSL_IE_ERIC_NY2			0xfc
+#define RSL_IE_ERIC_T3115		0xfd
+#define RSL_IE_ERIC_ACTIVATE_FLAG	0xfe
+#define RSL_IE_ERIC_FULL_NCH_INFO	0xff
+
 /* Chapter 9.3.1 */
 #define RSL_CHAN_NR_MASK	0xf8
+#define RSL_CHAN_NR_1		0x08	/*< bit to add for 2nd,... lchan */
 #define RSL_CHAN_Bm_ACCHs	0x08
 #define RSL_CHAN_Lm_ACCHs	0x10	/* .. 0x18 */
 #define RSL_CHAN_SDCCH4_ACCH	0x20	/* .. 0x38 */
@@ -305,6 +327,7 @@ enum abis_rsl_ie {
 #define RSL_CHAN_BCCH		0x80
 #define RSL_CHAN_RACH		0x88
 #define RSL_CHAN_PCH_AGCH	0x90
+#define RSL_CHAN_OSMO_PDCH	0xc0	/*< non-standard, for dyn TS */
 
 /* Chapter 9.3.3 */
 #define RSL_ACT_TYPE_INITIAL	0x00
@@ -315,6 +338,7 @@ enum abis_rsl_ie {
 #define RSL_ACT_INTER_SYNC	0x03
 #define RSL_ACT_SECOND_ADD	0x04
 #define RSL_ACT_SECOND_MULTI	0x05
+#define RSL_ACT_OSMO_PDCH	0x0f	/*< non-standard, for dyn TS */
 
 /*! \brief RSL Channel Mode IF (Chapter 9.3.6) */
 struct rsl_ie_chan_mode {
@@ -459,6 +483,7 @@ struct rsl_ie_chan_ident {
 #define RSL_EXT_MEAS_ORDER	0x47
 #define RSL_MEAS_INFO		0x48
 #define RSL_SYSTEM_INFO_13	0x28
+#define RSL_ERIC_SYSTEM_INFO_13	0x0C
 #define RSL_SYSTEM_INFO_2quater	0x29
 #define RSL_SYSTEM_INFO_9	0x2a
 #define RSL_SYSTEM_INFO_18	0x2b
@@ -572,6 +597,35 @@ enum rsl_mrpci_phase {
 	RSL_MRPCI_PHASE_2PLUS	= 3,
 };
 
-/*! @} */
+/* 9.3.20 Release Mode */
+enum rsl_rel_mode {
+	RSL_REL_NORMAL		= 0,
+	RSL_REL_LOCAL_END	= 1,
+};
 
-#endif /* PROTO_GSM_08_58_H */
+/*! \brief ip.access specific embedded information elements */
+enum rsl_ipac_embedded_ie {
+	RSL_IPAC_EIE_RXLEV		= 0x00,
+	RSL_IPAC_EIE_RXQUAL		= 0x01,
+	RSL_IPAC_EIE_FREQ_ERR		= 0x02,
+	RSL_IPAC_EIE_TIMING_ERR		= 0x03,
+	RSL_IPAC_EIE_MEAS_AVG_CFG	= 0x04,
+	RSL_IPAC_EIE_BS_PWR_CTL		= 0x05,
+	RSL_IPAC_EIE_MS_PWR_CTL		= 0x06,
+	RSL_IPAC_EIE_HANDO_THRESH	= 0x07,
+	RSL_IPAC_EIE_NCELL_DEFAULTS	= 0x08,
+	RSL_IPAC_EIE_NCELL_LIST		= 0x09,
+	RSL_IPAC_EIE_PC_THRESH_COMP	= 0x0a,
+	RSL_IPAC_EIE_HO_THRESH_COMP	= 0x0b,
+	RSL_IPAC_EIE_HO_CAUSE		= 0x0c,
+	RSL_IPAC_EIE_HO_CANDIDATES	= 0x0d,
+	RSL_IPAC_EIE_NCELL_BA_CHG_LIST	= 0x0e,
+	RSL_IPAC_EIE_NUM_OF_MS		= 0x10,
+	RSL_IPAC_EIE_HO_CAND_EXT	= 0x11,
+	RSL_IPAC_EIE_NCELL_DEF_EXT	= 0x12,
+	RSL_IPAC_EIE_NCELL_LIST_EXT	= 0x13,
+	RSL_IPAC_EIE_MASTER_KEY		= 0x14,
+	RSL_IPAC_EIE_MASTER_SALT	= 0x15,
+};
+
+/*! @} */

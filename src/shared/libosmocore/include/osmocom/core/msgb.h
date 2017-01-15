@@ -1,5 +1,4 @@
-#ifndef _MSGB_H
-#define _MSGB_H
+#pragma once
 
 /* (C) 2008 by Harald Welte <laforge@gnumonks.org>
  * All Rights Reserved
@@ -23,6 +22,8 @@
 #include <stdint.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/bits.h>
+#include <osmocom/core/defs.h>
 
 /*! \defgroup msgb Message buffers
  *  @{
@@ -73,6 +74,11 @@ extern void msgb_enqueue(struct llist_head *queue, struct msgb *msg);
 extern struct msgb *msgb_dequeue(struct llist_head *queue);
 extern void msgb_reset(struct msgb *m);
 uint16_t msgb_length(const struct msgb *msg);
+extern const char *msgb_hexdump(const struct msgb *msg);
+extern int msgb_resize_area(struct msgb *msg, uint8_t *area,
+	int old_size, int new_size);
+extern struct msgb *msgb_copy(const struct msgb *msg, const char *name);
+static int msgb_test_invariant(const struct msgb *msg) __attribute__((pure));
 
 #ifdef MSGB_DEBUG
 #include <osmocom/core/panic.h>
@@ -180,7 +186,7 @@ static inline unsigned char *msgb_put(struct msgb *msgb, unsigned int len)
 {
 	unsigned char *tmp = msgb->tail;
 	if (msgb_tailroom(msgb) < (int) len)
-		MSGB_ABORT(msgb, "Not enough tailroom msgb_push (%u < %u)\n",
+		MSGB_ABORT(msgb, "Not enough tailroom msgb_put (%u < %u)\n",
 			   msgb_tailroom(msgb), len);
 	msgb->tail += len;
 	msgb->len += len;
@@ -204,8 +210,7 @@ static inline void msgb_put_u8(struct msgb *msgb, uint8_t word)
 static inline void msgb_put_u16(struct msgb *msgb, uint16_t word)
 {
 	uint8_t *space = msgb_put(msgb, 2);
-	space[0] = word >> 8 & 0xFF;
-	space[1] = word & 0xFF;
+	osmo_store16be(word, space);
 }
 
 /*! \brief append a uint32 value to the end of the message
@@ -215,10 +220,7 @@ static inline void msgb_put_u16(struct msgb *msgb, uint16_t word)
 static inline void msgb_put_u32(struct msgb *msgb, uint32_t word)
 {
 	uint8_t *space = msgb_put(msgb, 4);
-	space[0] = word >> 24 & 0xFF;
-	space[1] = word >> 16 & 0xFF;
-	space[2] = word >> 8 & 0xFF;
-	space[3] = word & 0xFF;
+	osmo_store32be(word, space);
 }
 
 /*! \brief remove data from end of message
@@ -227,7 +229,7 @@ static inline void msgb_put_u32(struct msgb *msgb, uint32_t word)
  */
 static inline unsigned char *msgb_get(struct msgb *msgb, unsigned int len)
 {
-	unsigned char *tmp = msgb->data - len;
+	unsigned char *tmp = msgb->tail - len;
 	if (msgb_length(msgb) < len)
 		MSGB_ABORT(msgb, "msgb too small to get %u (len %u)\n",
 			   len, msgb_length(msgb));
@@ -235,6 +237,7 @@ static inline unsigned char *msgb_get(struct msgb *msgb, unsigned int len)
 	msgb->len -= len;
 	return tmp;
 }
+
 /*! \brief remove uint8 from end of message
  *  \param[in] msgb message buffer
  *  \returns 8bit value taken from end of msgb
@@ -244,6 +247,7 @@ static inline uint8_t msgb_get_u8(struct msgb *msgb)
 	uint8_t *space = msgb_get(msgb, 1);
 	return space[0];
 }
+
 /*! \brief remove uint16 from end of message
  *  \param[in] msgb message buffer
  *  \returns 16bit value taken from end of msgb
@@ -251,8 +255,9 @@ static inline uint8_t msgb_get_u8(struct msgb *msgb)
 static inline uint16_t msgb_get_u16(struct msgb *msgb)
 {
 	uint8_t *space = msgb_get(msgb, 2);
-	return space[0] << 8 | space[1];
+	return osmo_load16be(space);
 }
+
 /*! \brief remove uint32 from end of message
  *  \param[in] msgb message buffer
  *  \returns 32bit value taken from end of msgb
@@ -260,7 +265,7 @@ static inline uint16_t msgb_get_u16(struct msgb *msgb)
 static inline uint32_t msgb_get_u32(struct msgb *msgb)
 {
 	uint8_t *space = msgb_get(msgb, 4);
-	return space[0] << 24 | space[1] << 16 | space[2] << 8 | space[3];
+	return osmo_load32be(space);
 }
 
 /*! \brief prepend (push) some data to start of message
@@ -284,6 +289,37 @@ static inline unsigned char *msgb_push(struct msgb *msgb, unsigned int len)
 	msgb->len += len;
 	return msgb->data;
 }
+
+/*! \brief prepend a uint8 value to the head of the message
+ *  \param[in] msgb message buffer
+ *  \param[in] word unsigned 8bit byte to be prepended
+ */
+static inline void msgb_push_u8(struct msgb *msg, uint8_t word)
+{
+	uint8_t *space = msgb_push(msg, 1);
+	space[0] = word;
+}
+
+/*! \brief prepend a uint16 value to the head of the message
+ *  \param[in] msgb message buffer
+ *  \param[in] word unsigned 16bit byte to be prepended
+ */
+static inline void msgb_push_u16(struct msgb *msg, uint16_t word)
+{
+	uint16_t *space = (uint16_t *) msgb_push(msg, 2);
+	osmo_store16be(word, space);
+}
+
+/*! \brief prepend a uint32 value to the head of the message
+ *  \param[in] msgb message buffer
+ *  \param[in] word unsigned 32bit byte to be prepended
+ */
+static inline void msgb_push_u32(struct msgb *msg, uint32_t word)
+{
+	uint32_t *space = (uint32_t *) msgb_push(msg, 4);
+	osmo_store32be(word, space);
+}
+
 /*! \brief remove (pull) a header from the front of the message buffer
  *  \param[in] msgb message buffer
  *  \param[in] len number of octets to be pulled
@@ -299,6 +335,21 @@ static inline unsigned char *msgb_pull(struct msgb *msgb, unsigned int len)
 	return msgb->data += len;
 }
 
+/*! \brief remove (pull) all headers in front of l3h from the message buffer.
+ *  \param[in] msgb message buffer with a valid l3h
+ *  \returns pointer to new start of msgb (l3h)
+ *
+ * This function moves the \a data pointer of the \ref msgb further back
+ * in the message, thereby shrinking the size of the message.
+ * l1h and l2h will be cleared.
+ */
+static inline unsigned char *msgb_pull_to_l3(struct msgb *msg)
+{
+	unsigned char *ret = msgb_pull(msg, msg->l3h - msg->data);
+	msg->l1h = msg->l2h = NULL;
+	return ret;
+}
+
 /*! \brief remove uint8 from front of message
  *  \param[in] msgb message buffer
  *  \returns 8bit value taken from end of msgb
@@ -308,6 +359,7 @@ static inline uint8_t msgb_pull_u8(struct msgb *msgb)
 	uint8_t *space = msgb_pull(msgb, 1) - 1;
 	return space[0];
 }
+
 /*! \brief remove uint16 from front of message
  *  \param[in] msgb message buffer
  *  \returns 16bit value taken from end of msgb
@@ -315,8 +367,9 @@ static inline uint8_t msgb_pull_u8(struct msgb *msgb)
 static inline uint16_t msgb_pull_u16(struct msgb *msgb)
 {
 	uint8_t *space = msgb_pull(msgb, 2) - 2;
-	return space[0] << 8 | space[1];
+	return osmo_load16be(space);
 }
+
 /*! \brief remove uint32 from front of message
  *  \param[in] msgb message buffer
  *  \returns 32bit value taken from end of msgb
@@ -324,7 +377,7 @@ static inline uint16_t msgb_pull_u16(struct msgb *msgb)
 static inline uint32_t msgb_pull_u32(struct msgb *msgb)
 {
 	uint8_t *space = msgb_pull(msgb, 4) - 4;
-	return space[0] << 24 | space[1] << 16 | space[2] << 8 | space[3];
+	return osmo_load32be(space);
 }
 
 /*! \brief Increase headroom of empty msgb, reducing the tailroom
@@ -351,6 +404,8 @@ static inline void msgb_reserve(struct msgb *msg, int len)
  */
 static inline int msgb_trim(struct msgb *msg, int len)
 {
+	if (len < 0)
+		MSGB_ABORT(msg, "Negative length is not allowed\n");
 	if (len > msg->data_len)
 		return -1;
 
@@ -361,7 +416,7 @@ static inline int msgb_trim(struct msgb *msg, int len)
 }
 
 /*! \brief Trim the msgb to a given layer3 length
- *  \pram[in] msg message buffer
+ *  \param[in] msg message buffer
  *  \param[in] l3len new layer3 length
  *  \returns 0 in case of success, negative in case of error
  */
@@ -391,11 +446,50 @@ static inline struct msgb *msgb_alloc_headroom(int size, int headroom,
 	return msg;
 }
 
+/*! \brief Check a message buffer for consistency
+ *  \param[in] msg message buffer
+ *  \returns 0 (false) if inconsistent, != 0 (true) otherwise
+ */
+static inline int msgb_test_invariant(const struct msgb *msg)
+{
+	const unsigned char *lbound;
+	if (!msg || !msg->data || !msg->tail ||
+	    (msg->data + msg->len != msg->tail) ||
+	    (msg->data < msg->head) ||
+	    (msg->tail > msg->head + msg->data_len))
+		return 0;
+
+	lbound = msg->head;
+
+	if (msg->l1h) {
+		if (msg->l1h < lbound)
+			return 0;
+		lbound = msg->l1h;
+	}
+	if (msg->l2h) {
+		if (msg->l2h < lbound)
+			return 0;
+		lbound = msg->l2h;
+	}
+	if (msg->l3h) {
+		if (msg->l3h < lbound)
+			return 0;
+		lbound = msg->l3h;
+	}
+	if (msg->l4h) {
+		if (msg->l4h < lbound)
+			return 0;
+		lbound = msg->l4h;
+	}
+
+	return lbound <= msg->head +  msg->data_len;
+}
+
 /* non inline functions to ease binding */
 
 uint8_t *msgb_data(const struct msgb *msg);
-void msgb_set_talloc_ctx(void *ctx);
+
+void *msgb_talloc_ctx_init(void *root_ctx, unsigned int pool_size);
+void msgb_set_talloc_ctx(void *ctx) OSMO_DEPRECATED("Use msgb_talloc_ctx_init() instead");
 
 /*! @} */
-
-#endif /* _MSGB_H */

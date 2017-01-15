@@ -43,6 +43,7 @@ static struct osmo_auth_impl *selected_auths[_OSMO_AUTH_ALG_NUM];
 
 /*! \brief Register an authentication algorithm implementation with the core
  *  \param[in] impl Structure describing implementation and it's callbacks
+ *  \returns 0 on success, or a negative error code on failure
  *
  * This function is called by an authentication implementation plugin to
  * register itself with the authentication core.
@@ -64,6 +65,7 @@ int osmo_auth_register(struct osmo_auth_impl *impl)
 
 /*! \brief Load all available authentication plugins from the given path
  *  \param[in] path Path name of the directory containing the plugins
+ *  \returns number of plugins loaded in case of success, negative in case of error
  *
  * This function will load all plugins contained in the specified path.
  */
@@ -75,6 +77,7 @@ int osmo_auth_load(const char *path)
 
 /*! \brief Determine if a given authentication algorithm is supported
  *  \param[in] algo Algorithm which should be checked
+ *  \returns 1 if algo is supported, 0 if not, negative error on failure
  *
  * This function is used by an application to determine at runtime if a
  * given authentication algorithm is supported or not.
@@ -90,10 +93,54 @@ int osmo_auth_supported(enum osmo_auth_algo algo)
 	return 0;
 }
 
+/* C5 function to derive UMTS IK from GSM Kc */
+static inline void c5_function(uint8_t *ik, const uint8_t *kc)
+{
+	unsigned int i;
+
+	for (i = 0; i < 4; i++)
+		ik[i] = kc[i] ^ kc[i+4];
+	memcpy(ik+4, kc, 8);
+	for (i = 12; i < 16; i++)
+		ik[i] = ik[i-12];
+}
+
+/* C4 function to derive UMTS CK from GSM Kc */
+void osmo_c4(uint8_t *ck, const uint8_t *kc)
+{
+	memcpy(ck, kc, 8);
+	memcpy(ck+8, kc, 8);
+}
+
+/*! \brief Generate 3G CK + IK from 2G authentication vector
+ *  \param vec Authentication Vector to be modified
+ *  \returns 1 if the vector was changed, 0 otherwise
+ *
+ * This function performs the C5 and C4 functions to derive the UMTS key
+ * material from the GSM key material in the supplied vector, _if_ the input
+ * vector doesn't yet have UMTS authentication capability.
+ */
+int osmo_auth_3g_from_2g(struct osmo_auth_vector *vec)
+{
+	if ((vec->auth_types & OSMO_AUTH_TYPE_GSM) &&
+	    !(vec->auth_types & OSMO_AUTH_TYPE_UMTS)) {
+		c5_function(vec->ik, vec->kc);
+		osmo_c4(vec->ck, vec->kc);
+		/* We cannot actually set OSMO_AUTH_TYPE_UMTS as we have no
+		 * AUTN and no RES, and thus can only perform GSM
+		 * authentication with this tuple.
+		 */
+		return 1;
+	}
+
+	return 0;
+}
+
 /*! \brief Generate authentication vector
  *  \param[out] vec Generated authentication vector
  *  \param[in] aud Subscriber-specific key material
- *  \param[in] rand Random challenge to be used
+ *  \param[in] _rand Random challenge to be used
+ *  \returns 0 on success, negative error on failure
  *
  * This function performs the core cryptographic function of the AUC,
  * computing authentication triples/quintuples based on the permanent
@@ -125,7 +172,8 @@ int osmo_auth_gen_vec(struct osmo_auth_vector *vec,
  *  \param[in] aud Subscriber-specific key material
  *  \param[in] rand_auts RAND value sent by the SIM/MS
  *  \param[in] auts AUTS value sent by the SIM/MS
- *  \param[in] rand Random challenge to be used to generate vector
+ *  \param[in] _rand Random challenge to be used to generate vector
+ *  \returns 0 on success, negative error on failure
  *
  * This function performs a special variant of the  core cryptographic
  * function of the AUC: computing authentication triples/quintuples

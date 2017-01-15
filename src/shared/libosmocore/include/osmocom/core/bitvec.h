@@ -1,9 +1,10 @@
-#ifndef _BITVEC_H
-#define _BITVEC_H
+#pragma once
 
 /* bit vector utility routines */
 
 /* (C) 2009 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2012 Ivan Klyuchnikov
+ * (C) 2015 Sysmocom s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -29,9 +30,19 @@
 
 /*! \file bitvec.h
  *  \brief Osmocom bit vector abstraction
+ *
+ *  These functions assume a MSB (most significant bit) first layout of the
+ *  bits, so that for instance the 5 bit number abcde (a is MSB) can be
+ *  embedded into a byte sequence like in xxxxxxab cdexxxxx. The bit count
+ *  starts with the MSB, so the bits in a byte are numbered (MSB) 01234567 (LSB).
+ *  Note that there are other incompatible encodings, like it is used
+ *  for the EGPRS RLC data block headers (there the bits are numbered from LSB
+ *  to MSB).
  */
 
 #include <stdint.h>
+#include <talloc.h>
+#include <stdbool.h>
 
 /*! \brief A single GSM bit
  *
@@ -46,7 +57,7 @@ enum bit_value {
 
 /*! \brief structure describing a bit vector */
 struct bitvec {
-	unsigned int cur_bit;	/*!< \brief curser to the next unused bit */
+	unsigned int cur_bit;	/*!< \brief cursor to the next unused bit */
 	unsigned int data_len;	/*!< \brief length of data array in bytes */
 	uint8_t *data;		/*!< \brief pointer to data array */
 };
@@ -59,12 +70,30 @@ int bitvec_set_bit_pos(struct bitvec *bv, unsigned int bitnum,
 			enum bit_value bit);
 int bitvec_set_bit(struct bitvec *bv, enum bit_value bit);
 int bitvec_get_bit_high(struct bitvec *bv);
-int bitvec_set_bits(struct bitvec *bv, enum bit_value *bits, int count);
-int bitvec_set_uint(struct bitvec *bv, unsigned int in, int count);
-int bitvec_get_uint(struct bitvec *bv, int num_bits);
+int bitvec_set_bits(struct bitvec *bv, const enum bit_value *bits, unsigned int count);
+int bitvec_set_uint(struct bitvec *bv, uint32_t in, unsigned int count);
+int bitvec_get_uint(struct bitvec *bv, unsigned int num_bits);
 int bitvec_find_bit_pos(const struct bitvec *bv, unsigned int n, enum bit_value val);
 int bitvec_spare_padding(struct bitvec *bv, unsigned int up_to_bit);
+int bitvec_get_bytes(struct bitvec *bv, uint8_t *bytes, unsigned int count);
+int bitvec_set_bytes(struct bitvec *bv, const uint8_t *bytes, unsigned int count);
+struct bitvec *bitvec_alloc(unsigned int size, TALLOC_CTX *bvctx);
+void bitvec_free(struct bitvec *bv);
+int bitvec_unhex(struct bitvec *bv, const char *src);
+unsigned int bitvec_pack(const struct bitvec *bv, uint8_t *buffer);
+unsigned int bitvec_unpack(struct bitvec *bv, const uint8_t *buffer);
+uint64_t bitvec_read_field(struct bitvec *bv, unsigned int *read_index, unsigned int len);
+int bitvec_write_field(struct bitvec *bv, unsigned int *write_index, uint64_t val, unsigned int len);
+int bitvec_fill(struct bitvec *bv, unsigned int num_bits, enum bit_value fill);
+char bit_value_to_char(enum bit_value v);
+void bitvec_to_string_r(const struct bitvec *bv, char *str);
+void bitvec_zero(struct bitvec *bv);
+unsigned bitvec_rl(const struct bitvec *bv, bool b);
+unsigned bitvec_rl_curbit(struct bitvec *bv, bool b, int max_bits);
+void bitvec_shiftl(struct bitvec *bv, unsigned int n);
+int16_t bitvec_get_int16_msb(const struct bitvec *bv, unsigned int num_bits);
+unsigned int bitvec_add_array(struct bitvec *bv, const uint32_t *array,
+			      unsigned int array_len, bool dry_run,
+			      unsigned int num_bits);
 
 /*! @} */
-
-#endif /* _BITVEC_H */

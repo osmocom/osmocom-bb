@@ -23,9 +23,6 @@
  *
  */
 
-/* These store the amount of time that we wait until next timer expires. */
-static struct timeval nearest;
-static struct timeval *nearest_p;
 
 /*! \addtogroup timer
  *  @{
@@ -40,6 +37,10 @@ static struct timeval *nearest_p;
 #include <osmocom/core/timer.h>
 #include <osmocom/core/timer_compat.h>
 #include <osmocom/core/linuxlist.h>
+
+/* These store the amount of time that we wait until next timer expires. */
+static struct timeval nearest;
+static struct timeval *nearest_p;
 
 static struct rb_root timer_root = RB_ROOT;
 
@@ -90,7 +91,7 @@ osmo_timer_schedule(struct osmo_timer_list *timer, int seconds, int microseconds
 {
 	struct timeval current_time;
 
-	gettimeofday(&current_time, NULL);
+	osmo_gettimeofday(&current_time, NULL);
 	timer->timeout.tv_sec = seconds;
 	timer->timeout.tv_usec = microseconds;
 	timeradd(&timer->timeout, &current_time, &timer->timeout);
@@ -128,7 +129,7 @@ int osmo_timer_pending(struct osmo_timer_list *timer)
 
 /*! \brief compute the remaining time of a timer
  *  \param[in] timer the to-be-checked timer
- *  \param[in] the current time (NULL if not known)
+ *  \param[in] now the current time (NULL if not known)
  *  \param[out] remaining remaining time until timer fires
  *  \return 0 if timer has not expired yet, -1 if it has
  *
@@ -141,10 +142,10 @@ int osmo_timer_remaining(const struct osmo_timer_list *timer,
 {
 	struct timeval current_time;
 
-	if (!now) {
-		gettimeofday(&current_time, NULL);
-		now = &current_time;
-	}
+	if (!now)
+		osmo_gettimeofday(&current_time, NULL);
+	else
+		current_time = *now;
 
 	timersub(&timer->timeout, &current_time, remaining);
 
@@ -154,7 +155,9 @@ int osmo_timer_remaining(const struct osmo_timer_list *timer,
 	return 0;
 }
 
-/*
+/*! \brief Determine time between now and the nearest timer
+ *  \returns pointer to timeval of nearest timer, NULL if there is none
+ *
  * if we have a nearest time return the delta between the current
  * time and the time of the nearest timer.
  * If the nearest timer timed out return NULL and then we will
@@ -184,15 +187,13 @@ static void update_nearest(struct timeval *cand, struct timeval *current)
 	}
 }
 
-/*
- * Find the nearest time and update s_nearest_time
- */
+/*! \brief Find the nearest time and update nearest_p */
 void osmo_timers_prepare(void)
 {
 	struct rb_node *node;
 	struct timeval current;
 
-	gettimeofday(&current, NULL);
+	osmo_gettimeofday(&current, NULL);
 
 	node = rb_first(&timer_root);
 	if (node) {
@@ -204,9 +205,7 @@ void osmo_timers_prepare(void)
 	}
 }
 
-/*
- * fire all timers... and remove them
- */
+/*! \brief fire all timers... and remove them */
 int osmo_timers_update(void)
 {
 	struct timeval current_time;
@@ -215,7 +214,7 @@ int osmo_timers_update(void)
 	struct osmo_timer_list *this;
 	int work = 0;
 
-	gettimeofday(&current_time, NULL);
+	osmo_gettimeofday(&current_time, NULL);
 
 	INIT_LLIST_HEAD(&timer_eviction_list);
 	for (node = rb_first(&timer_root); node; node = rb_next(node)) {
@@ -242,7 +241,8 @@ int osmo_timers_update(void)
 restart:
 	llist_for_each_entry(this, &timer_eviction_list, list) {
 		osmo_timer_del(this);
-		this->cb(this->data);
+		if (this->cb)
+			this->cb(this->data);
 		work = 1;
 		goto restart;
 	}
@@ -250,6 +250,8 @@ restart:
 	return work;
 }
 
+/*! \brief Check how many timers we have in the system
+ *  \returns number of \ref osmo_timer_list registered */
 int osmo_timers_check(void)
 {
 	struct rb_node *node;
