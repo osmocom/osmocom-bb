@@ -22,9 +22,11 @@ enum sercomm_dlci {
 };
 
 #ifndef HOST_BUILD
+#include <uart.h>
 /* helper functions for target */
 void sercomm_bind_uart(int uart);
 int sercomm_get_uart(void);
+void sercomm_change_speed(enum uart_baudrate bdrt);
 #endif
 
 void sercomm_init(void);

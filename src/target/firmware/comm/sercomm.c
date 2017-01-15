@@ -157,6 +157,39 @@ unsigned int sercomm_tx_queue_depth(uint8_t dlci)
 	return num;
 }
 
+#ifndef HOST_BUILD
+/* wait until everything has been transmitted, then grab the lock and
+ * change the baud rate as requested */
+void sercomm_change_speed(enum uart_baudrate bdrt)
+{
+	unsigned int i, count;
+	unsigned long flags;
+
+	while (1) {
+		/* count the number of pending messages */
+		count = 0;
+		for (i = 0; i < ARRAY_SIZE(sercomm.tx.dlci_queues); i++)
+			count += sercomm_tx_queue_depth(i);
+		/* if we still have any in the queue, restart */
+		if (count == 0)
+			break;
+	}
+
+	while (1) {
+		/* no messages in the queue, grab the lock to ensure it
+		 * stays that way */
+		sercomm_lock(&flags);
+		if (!sercomm.tx.msg && !sercomm.tx.next_char) {
+			/* change speed */
+			uart_baudrate(sercomm.uart_id, bdrt);
+			sercomm_unlock(&flags);
+			break;
+		}
+			sercomm_unlock(&flags);
+	}
+}
+#endif
+
 /* fetch one octet of to-be-transmitted serial data */
 int sercomm_drv_pull(uint8_t *ch)
 {
