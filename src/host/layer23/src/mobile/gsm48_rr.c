@@ -1203,9 +1203,9 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 	}
 	/* info: The max number of bits are about 80. */
 
-	/* partitial bytes will be completed */
+	/* partial bytes will be padded with zero */
 	*len = (bv.cur_bit + 7) >> 3;
-	bitvec_spare_padding(&bv, (*len * 8) - 1);
+	bitvec_fill(&bv, (*len*8) - bv.cur_bit, ZERO);
 
 	return 0;
 }
