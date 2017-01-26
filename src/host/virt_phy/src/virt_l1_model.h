@@ -13,6 +13,7 @@ struct l1_model_ms {
 //TODO: must contain logical channel information (fram number, ciphering mode, ...)
 struct l1_state_ms {
 
+	uint8_t camping;
 	/* the cell on which we are camping right now */
 	struct l1_cell_info serving_cell;
 

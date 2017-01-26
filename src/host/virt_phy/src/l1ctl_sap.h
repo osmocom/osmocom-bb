@@ -46,6 +46,7 @@ void l1ctl_rx_sim_req(struct msgb *msg);
 
 /* transmit routines */
 void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type);
+void l1ctl_tx_rach_conf(uint32_t fn, uint16_t arfcn);
 void l1ctl_tx_pm_conf(struct l1ctl_pm_req *pm_req);
 void l1ctl_tx_fbsb_conf(uint8_t res, uint16_t arfcn);
 void l1ctl_tx_ccch_mode_conf(uint8_t ccch_mode);

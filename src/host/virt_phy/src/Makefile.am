@@ -8,6 +8,7 @@ AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include -I$(OSMO_BB_DIR)/include -
 # TODO: somehow this include path causes errors, thus the needed files are copied into $(top_srcdir)/include. Would be better to include directly from $(OSMO_BB_DIR)/src/target/firmware/include to avoid redundancy.
 # -I$(OSMO_BB_DIR)/src/target/firmware/include
 
+# disable optimization and enable debugging
 CFLAGS = -g -O0
 
 sbin_PROGRAMS = virtphy

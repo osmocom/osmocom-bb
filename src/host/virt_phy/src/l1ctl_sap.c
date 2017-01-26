@@ -3,6 +3,7 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/gsmtap.h>
 #include <stdio.h>
 #include <l1ctl_proto.h>
 #include <netinet/in.h>
@@ -12,6 +13,7 @@
 #include "virt_l1_model.h"
 #include "l1ctl_sap.h"
 #include "logging.h"
+#include "gsmtapl1_if.h"
 
 static struct l1_model_ms *l1_model_ms = NULL;
 
@@ -30,6 +32,7 @@ void l1ctl_sap_init(struct l1_model_ms *model)
  */
 void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_inst *lsi, struct msgb *msg)
 {
+	// check if the received msg is not empty
 	if (msg) {
 		DEBUGP(DL1C, "Message incoming from layer 2: %s\n",
 		                osmo_hexdump(msg->data, msg->len));
@@ -177,6 +180,8 @@ void l1ctl_sap_handler(struct msgb *msg)
 		break;
 	case L1CTL_RACH_REQ:
 		l1ctl_rx_rach_req(msg);
+		// msg is freed by rx routine
+		goto exit_nofree;
 		break;
 	case L1CTL_DATA_REQ:
 		l1ctl_rx_data_req(msg);
@@ -232,11 +237,18 @@ void l1ctl_rx_fbsb_req(struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_fbsb_req *sync_req = (struct l1ctl_fbsb_req *)l1h->data;
 
-	DEBUGP(DL1C,
-	                "Received and handled from l23 - L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
+	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
 	                ntohs(sync_req->band_arfcn), sync_req->flags);
 
-	l1ctl_tx_fbsb_conf(0, ntohs(sync_req->band_arfcn));
+	l1_model_ms->state->camping = 1;
+	l1_model_ms->state->serving_cell.arfcn = ntohs(sync_req->band_arfcn);
+	l1_model_ms->state->serving_cell.ccch_mode = sync_req->ccch_mode;
+	l1_model_ms->state->serving_cell.fn_offset = 0;
+	l1_model_ms->state->serving_cell.bsic = 0;
+	l1_model_ms->state->serving_cell.time_alignment = 0;
+	// TODO: reset and synchronize the ms uplink schedulers with bts multiframe structure.
+
+	l1ctl_tx_fbsb_conf(0, l1_model_ms->state->serving_cell.arfcn);
 }
 
 /**
@@ -418,16 +430,37 @@ void l1ctl_rx_param_req(struct msgb *msg)
  */
 void l1ctl_rx_rach_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
-	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *)ul->payload;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *) ul->payload;
+
+	uint32_t fn_sched;
+	uint8_t ts;
 
 	DEBUGP(DL1C,
 	                "Received and handled from l23 - L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
 	                rach_req->ra, ntohs(rach_req->offset),
 	                rach_req->combined);
 
-//	l1a_rach_req(ntohs(rach_req->offset), rach_req->combined,
+	// TODO: calculate correct fn/ts for a RACH (if needed by bts)
+	// TODO: implement scheduler for uplink!
+	fn_sched = 42;
+	ts = 0;
+	// for the rach channel request, there is no layer2 header, but only the one bit ra content to submit
+	// see 4.18-9.1.8 CHannel Request
+	// that means we have to set l2h of msgb to the ra content
+	msg->l2h = &rach_req->ra;
+	// avoid all data after ra to also be submitted
+	msgb_trim(msg, sizeof(rach_req->ra));
+	// TODO: check if we need to submit more data than the ra content to the bts
+
+	// send rach over virt um
+	gsmtapl1_tx_to_virt_um(ts, fn_sched, GSMTAP_CHANNEL_RACH, msg);
+
+	// send confirm to layer23
+	l1ctl_tx_rach_conf(fn_sched, l1_model_ms->state->serving_cell.arfcn);
+
+// l1a_rach_req(ntohs(rach_req->offset), rach_req->combined,
 //		rach_req->ra);
 }
 
@@ -481,7 +514,9 @@ void l1ctl_rx_data_req(struct msgb *msg)
  *
  * Process power measurement for a given range of arfcns to calculate signal power and connection quality.
  *
- * Note: We do not need to calculate that for the virtual physical layer, but l23 apps can expect a response. So this response is mocked here.
+ * Note: We do not need to calculate that for the virtual physical layer,
+ * but l23 apps can expect a response. So this response is mocked here.
+ * TODO: Might be possible to sync to different virtual BTS. Mapping from arfcn to mcast address would be needed. Configurable rx_lev for each mcast address.
  */
 void l1ctl_rx_pm_req(struct msgb *msg)
 {
@@ -499,11 +534,11 @@ void l1ctl_rx_pm_req(struct msgb *msg)
 	for(arfcn_next = pm_req->range.band_arfcn_from; arfcn_next <= pm_req->range.band_arfcn_to; ++arfcn_next) {
 		struct l1ctl_pm_conf *pm_conf = (struct l1ctl_pm_conf *)msgb_put(resp_msg, sizeof(*pm_conf));
 		pm_conf->band_arfcn = htons(arfcn_next);
-		// rxlev 63 is great, 0 is bad the two values are probably min and max
+		// rxlev 63 is great, 0 is bad the two values are min and max
 		pm_conf->pm[0] = 63;
 		pm_conf->pm[1] = 63;
 		if(arfcn_next == pm_req->range.band_arfcn_to) {
-			struct l1ctl_hdr *resp_l1h = resp_msg->l1h;
+			struct l1ctl_hdr *resp_l1h = msgb_l1(resp_msg);
 			resp_l1h->flags |= L1CTL_F_DONE;
 		}
 		// no more space in msgb, flush to l2
@@ -526,6 +561,10 @@ void l1ctl_rx_pm_req(struct msgb *msg)
  *
  * Reset layer 1 (state machine, scheduler, transceiver) depending on the reset type.
  *
+ * Note: Currently we do not perform anything else than response with a reset confirm
+ * to just tell l2 that we are rdy.
+ * TODO: Validate if an action has to be done here.
+ *
  */
 void l1ctl_rx_reset_req(struct msgb *msg)
 {
@@ -534,22 +573,16 @@ void l1ctl_rx_reset_req(struct msgb *msg)
 
 	switch (reset_req->type) {
 	case L1CTL_RES_T_FULL:
-		DEBUGP(DL1C,
-		                "Received and handled from l23 - L1CTL_RESET_REQ (type=FULL)\n");
-//		l1s_reset();
-//		l1s_reset_hw();
-//		audio_set_enabled(GSM48_CMODE_SIGN, 0);
+		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=FULL)\n");
+		l1_model_ms->state->camping = 0;
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	case L1CTL_RES_T_SCHED:
-		DEBUGP(DL1C,
-		                "Received and handled from l23 - L1CTL_RESET_REQ (type=SCHED)\n");
-//		sched_gsmtime_reset();
+		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=SCHED)\n");
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	default:
-		LOGP(DL1C, LOGL_ERROR,
-		                "Received and ignored from l23 - L1CTL_RESET_REQ (type=unknown)\n");
+		LOGP(DL1C, LOGL_ERROR, "Received and ignored from l23 - L1CTL_RESET_REQ (type=unknown)\n");
 		break;
 	}
 }
@@ -734,6 +767,23 @@ void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type)
 
 	DEBUGP(DL1C, "Sending to l23 - %s (reset_type: %u)\n",
 	       	       getL1ctlPrimName(msg_type), reset_type);
+	l1ctl_sap_tx_to_l23(msg);
+}
+
+/**
+ * @brief Transmit L1CTL_RESET_IND or L1CTL_RESET_CONF to layer 23.
+ *
+ * -- reset indication / confirm --
+ *
+ * @param [in] msg_type L1CTL primitive message type.
+ * @param [in] reset_type reset type (full, boot or just scheduler reset).
+ */
+void l1ctl_tx_rach_conf(uint32_t fn, uint16_t arfcn)
+{
+	struct msgb * msg = l1ctl_create_l2_msg(L1CTL_RACH_CONF, fn, 0, arfcn);
+
+	DEBUGP(DL1C, "Sending to l23 - %s (fn: %u, arfcn: %u)\n",
+	       	       getL1ctlPrimName(L1CTL_RACH_CONF), fn, arfcn);
 	l1ctl_sap_tx_to_l23(msg);
 }
 

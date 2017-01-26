@@ -42,6 +42,8 @@
 
 #include <arpa/inet.h>
 
+#include <l1ctl_proto.h>
+
 #include "l1ctl_sock.h"
 #include "virtual_um.h"
 #include "logging.h"
@@ -59,14 +61,13 @@
 static int l1ctl_sock_data_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct l1ctl_sock_inst *lsi = ofd->data;
-	int cnt = 0;
 	// Check if request is really read request
 	if (what & BSC_FD_READ) {
 		struct msgb *msg = msgb_alloc(L1CTL_SOCK_MSGB_SIZE,
 		                "L1CTL sock rx");
 		int rc;
 		uint16_t len;
-
+		struct l1ctl_hdr *l1h;
 		// read length of the message first and convert to host byte order
 		rc = read(ofd->fd, &len, sizeof(len));
 		if (rc < sizeof(len)) {
@@ -81,7 +82,8 @@ static int l1ctl_sock_data_cb(struct osmo_fd *ofd, unsigned int what)
 
 		if (rc == len) {
 			msgb_put(msg, rc);
-			msg->l1h = msgb_data(msg);
+			l1h = msgb_data(msg);
+			msg->l1h = l1h;
 			lsi->recv_cb(lsi, msg);
 			return 0;
 		}
