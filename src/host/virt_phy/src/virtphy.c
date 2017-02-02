@@ -17,10 +17,10 @@
 
 int main(void)
 {
-
 	// init loginfo
 	static struct l1_model_ms *model;
-	ms_log_init("DL1C,1:DVIRPHY,1");
+	//ms_log_init("DL1C,1:DVIRPHY,1");
+	ms_log_init("DL1C,1");
 	//ms_log_init("DL1C,8:DVIRPHY,8");
 
 	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer starting up...\n");
@@ -28,7 +28,10 @@ int main(void)
 	model = l1_model_ms_init(NULL);
 
 	// TODO: make this configurable
-	model->vui = virt_um_init(NULL, DEFAULT_BTS_MCAST_GROUP, DEFAULT_BTS_MCAST_PORT, DEFAULT_MS_MCAST_GROUP, DEFAULT_MS_MCAST_PORT, gsmtapl1_rx_from_virt_um_inst_cb);
+	model->vui = virt_um_init(NULL, DEFAULT_BTS_MCAST_GROUP,
+	                DEFAULT_BTS_MCAST_PORT, DEFAULT_MS_MCAST_GROUP,
+	                DEFAULT_MS_MCAST_PORT,
+	                gsmtapl1_rx_from_virt_um_inst_cb);
 	model->lsi = l1ctl_sock_init(NULL, l1ctl_sap_rx_from_l23_inst_cb, NULL);
 
 	gsmtapl1_init(model);

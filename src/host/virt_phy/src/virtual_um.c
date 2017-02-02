@@ -19,7 +19,6 @@
  *
  */
 
-#include <unistd.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/socket.h>
@@ -46,10 +45,12 @@ static int virt_um_fd_cb(struct osmo_fd *ofd, unsigned int what)
 		int rc;
 
 		// read message from fd in message buffer
-		rc = mcast_bidir_sock_rx(vui->mcast_sock, msgb_data(msg), msgb_tailroom(msg));
+		rc = mcast_bidir_sock_rx(vui->mcast_sock, msgb_data(msg),
+		                msgb_tailroom(msg));
 		// rc is number of bytes actually read
 		if (rc > 0) {
 			msgb_put(msg, rc);
+			msg->l1h = msgb_data(msg);
 			// call the l1 callback function for a received msg
 			vui->recv_cb(vui, msg);
 		} else {
@@ -68,12 +69,13 @@ static int virt_um_fd_cb(struct osmo_fd *ofd, unsigned int what)
 
 struct virt_um_inst *virt_um_init(
                 void *ctx, const char *tx_mcast_group, uint16_t tx_mcast_port,
-                const char *rx_mcast_group, uint16_t rx_mcast_port, void (*recv_cb)(struct virt_um_inst *vui, struct msgb *msg))
+                const char *rx_mcast_group, uint16_t rx_mcast_port,
+                void (*recv_cb)(struct virt_um_inst *vui, struct msgb *msg))
 {
-
 	struct virt_um_inst *vui = talloc_zero(ctx, struct virt_um_inst);
-	vui->mcast_sock = mcast_bidir_sock_setup(ctx, tx_mcast_group, tx_mcast_port,
-	                rx_mcast_group, rx_mcast_port, 1, virt_um_fd_cb, vui);
+	vui->mcast_sock = mcast_bidir_sock_setup(ctx, tx_mcast_group,
+	                tx_mcast_port, rx_mcast_group, rx_mcast_port, 1,
+	                virt_um_fd_cb, vui);
 	vui->recv_cb = recv_cb;
 
 	return vui;
@@ -93,7 +95,8 @@ int virt_um_write_msg(struct virt_um_inst *vui, struct msgb *msg)
 {
 	int rc;
 
-	rc = mcast_bidir_sock_tx(vui->mcast_sock, msgb_data(msg), msgb_length(msg));
+	rc = mcast_bidir_sock_tx(vui->mcast_sock, msgb_data(msg),
+	                msgb_length(msg));
 	msgb_free(msg);
 
 	return rc;

@@ -15,6 +15,10 @@
 #define L3_MSG_DATA 200
 #define L3_MSG_SIZE (sizeof(struct l1ctl_hdr) + L3_MSG_HEAD + L3_MSG_DATA)
 
+/* lchan link ID */
+#define LID_SACCH 		0x40
+#define LID_DEDIC 		0x00
+
 void l1ctl_sap_init(struct l1_model_ms *model);
 void l1ctl_sap_tx_to_l23_inst(struct l1ctl_sock_inst *lsi, struct msgb *msg);
 void l1ctl_sap_tx_to_l23(struct msgb *msg);
