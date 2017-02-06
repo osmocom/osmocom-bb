@@ -44,9 +44,9 @@
 
 #include <l1ctl_proto.h>
 
-#include "l1ctl_sock.h"
-#include "virtual_um.h"
-#include "logging.h"
+#include <virtphy/virtual_um.h>
+#include <virtphy/l1ctl_sock.h>
+#include <virtphy/logging.h>
 
 #define L1CTL_SOCK_MSGB_SIZE	256
 
@@ -87,8 +87,8 @@ static int l1ctl_sock_data_cb(struct osmo_fd *ofd, unsigned int what)
 			lsi->recv_cb(lsi, msg);
 			return 0;
 		}
-ERR:
-		perror("Failed to receive msg from l2. Connection will be closed.\n");
+		ERR: perror(
+		                "Failed to receive msg from l2. Connection will be closed.\n");
 		l1ctl_sock_disconnect(lsi);
 	}
 	return 0;

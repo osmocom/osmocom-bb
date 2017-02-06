@@ -1,7 +1,7 @@
 #pragma once
 
-#include "l1ctl_sock.h"
-#include "virtual_um.h"
+#include <virtphy/virtual_um.h>
+#include <virtphy/l1ctl_sock.h>
 
 #define L1S_NUM_NEIGH_CELL	6
 #define A5_KEY_LEN		8
@@ -16,17 +16,17 @@ struct l1_model_ms {
 /* structure representing L1 sync information about a cell */
 struct l1_cell_info {
 	/* on which ARFCN (+band) is the cell? */
-	uint16_t	arfcn;
+	uint16_t arfcn;
 	/* what's the BSIC of the cell (from SCH burst decoding) */
-	uint8_t		bsic;
+	uint8_t bsic;
 	/* Combined or non-combined CCCH */
-	uint8_t		ccch_mode; /* enum ccch_mode */
+	uint8_t ccch_mode; /* enum ccch_mode */
 	/* whats the delta of the cells current GSM frame number
 	 * compared to our current local frame number */
-	int32_t		fn_offset;
+	int32_t fn_offset;
 	/* how much does the TPU need adjustment (delta) to synchronize
 	 * with the cells burst */
-	uint32_t	time_alignment;
+	uint32_t time_alignment;
 };
 
 struct crypto_info_ms {

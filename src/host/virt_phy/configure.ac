@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script
 AC_INIT([virtphy], 0.0.0)
 AM_CONFIG_HEADER([config.h])
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 subdir-objects])
 
 dnl kernel style compile messages
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])

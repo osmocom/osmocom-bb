@@ -47,14 +47,16 @@ host/osmocon/osmocon: host/osmocon/Makefile
 	make -C host/osmocon
 
 .PHONY: virtphy
-virtphy: host/virt_phy/Makefile
-	cd host/virt_phy && make
+virtphy: host/virt_phy/virtphy
 
 host/virt_phy/configure: host/virt_phy/configure.ac
 	cd host/virt_phy && autoreconf -i
 	
 host/virt_phy/Makefile: host/virt_phy/configure
 	cd host/virt_phy && ./configure $(HOST_CONFARGS)
+
+host/virt_phy/virtphy: host/virt_phy/Makefile
+	make -C host/virt_phy
 
 .PHONY: gsmmap
 gsmmap: host/gsmmap/gsmmap

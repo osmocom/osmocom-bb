@@ -25,9 +25,9 @@
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
-
-#include "virtual_um.h"
-#include "osmo_mcast_sock.h"
+#include <virtphy/osmo_mcast_sock.h>
+#include <virtphy/virtual_um.h>
+#include <unistd.h>
 
 /**
  * Virtual UM interface file descriptor callback.
@@ -68,8 +68,8 @@ static int virt_um_fd_cb(struct osmo_fd *ofd, unsigned int what)
 }
 
 struct virt_um_inst *virt_um_init(
-                void *ctx, const char *tx_mcast_group, uint16_t tx_mcast_port,
-                const char *rx_mcast_group, uint16_t rx_mcast_port,
+                void *ctx, char *tx_mcast_group, uint16_t tx_mcast_port,
+                char *rx_mcast_group, uint16_t rx_mcast_port,
                 void (*recv_cb)(struct virt_um_inst *vui, struct msgb *msg))
 {
 	struct virt_um_inst *vui = talloc_zero(ctx, struct virt_um_inst);

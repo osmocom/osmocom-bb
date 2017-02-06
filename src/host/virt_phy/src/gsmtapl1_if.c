@@ -29,13 +29,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <l1ctl_proto.h>
-
-#include "virtual_um.h"
-#include "l1ctl_sock.h"
-#include "virt_l1_model.h"
-#include "l1ctl_sap.h"
-#include "gsmtapl1_if.h"
-#include "logging.h"
+#include <virtphy/virtual_um.h>
+#include <virtphy/l1ctl_sock.h>
+#include <virtphy/virt_l1_model.h>
+#include <virtphy/l1ctl_sap.h>
+#include <virtphy/gsmtapl1_if.h>
+#include <virtphy/logging.h>
 
 static struct l1_model_ms *l1_model_ms = NULL;
 
@@ -162,6 +161,8 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	struct gsmtap_hdr *gh = msgb_l1(msg);
 	struct msgb *l1ctl_msg = NULL;
 	struct l1ctl_info_dl *l1dl;
+	struct l1ctl_traffic_ind * l1ti;
+	struct l1ctl_data_ind * l1di;
 	uint32_t fn = ntohl(gh->frame_number); // frame number of the rcv msg
 	uint16_t arfcn = ntohs(gh->arfcn); // arfcn of the cell we currently camp on
 	uint8_t gsmtap_chantype = gh->sub_type; // gsmtap channel type
@@ -188,7 +189,6 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	switch (gsmtap_chantype & ~GSMTAP_CHANNEL_ACCH & 0xff) {
 	case GSMTAP_CHANNEL_TCH_H:
 	case GSMTAP_CHANNEL_TCH_F:
-		struct l1ctl_traffic_ind * l1ti;
 		l1ctl_msg = l1ctl_msgb_alloc(L1CTL_TRAFFIC_IND);
 		l1dl = (struct l1ctl_info_dl *)msgb_put(l1ctl_msg,
 		                sizeof(struct l1ctl_info_dl));
@@ -214,7 +214,6 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	case GSMTAP_CHANNEL_AGCH:
 	case GSMTAP_CHANNEL_PCH:
 	case GSMTAP_CHANNEL_BCCH:
-		struct l1ctl_data_ind * l1di;
 		l1ctl_msg = l1ctl_msgb_alloc(L1CTL_DATA_IND);
 		l1dl = (struct l1ctl_info_dl *)msgb_put(l1ctl_msg,
 		                sizeof(struct l1ctl_info_dl));

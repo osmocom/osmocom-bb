@@ -3,10 +3,9 @@
 #include <stdint.h>
 #include <osmocom/core/msgb.h>
 #include <l1ctl_proto.h>
-
-#include "l1ctl_sock.h"
-#include "virtual_um.h"
-#include "virt_l1_model.h"
+#include <virtphy/virtual_um.h>
+#include <virtphy/l1ctl_sock.h>
+#include <virtphy/virt_l1_model.h>
 
 /* following sizes are used for message allocation */
 /* size of layer 3 header */
@@ -22,7 +21,8 @@
 void l1ctl_sap_init(struct l1_model_ms *model);
 void l1ctl_sap_tx_to_l23_inst(struct l1ctl_sock_inst *lsi, struct msgb *msg);
 void l1ctl_sap_tx_to_l23(struct msgb *msg);
-void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_inst *lsi, struct msgb *msg);
+void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_inst *lsi,
+                                   struct msgb *msg);
 void l1ctl_sap_rx_from_l23(struct msgb *msg);
 void l1ctl_sap_handler(struct msgb *msg);
 

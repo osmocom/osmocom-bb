@@ -20,11 +20,9 @@
  *
  */
 
-
 #include <osmocom/core/utils.h>
 #include <osmocom/core/application.h>
-
-#include "logging.h"
+#include <virtphy/logging.h>
 
 const char* l1ctlPrimNames[] = {
         "_L1CTL_NONE",
@@ -57,41 +55,33 @@ const char* l1ctlPrimNames[] = {
         "L1CTL_NEIGH_PM_IND",
         "L1CTL_TRAFFIC_REQ",
         "L1CTL_TRAFFIC_CONF",
-        "L1CTL_TRAFFIC_IND"
-};
+        "L1CTL_TRAFFIC_IND"};
 
-static const struct log_info_cat default_categories[] = {
-	[DL1C] = {
-		.name = "DL1C",
-		.description = "Layer 1 Control",
-		.color = "\033[1;31m",
-		.enabled = 1,
-		.loglevel = LOGL_DEBUG,
-	},
-	[DVIRPHY] = {
-		.name = "DVIRPHY",
-		.description = "Virtual Layer 1 Interface",
-		.color = "\033[1;31m",
-		.enabled = 1,
-		.loglevel = LOGL_DEBUG,
-	}
-};
+static const struct log_info_cat default_categories[] = {[DL1C] = {
+        .name = "DL1C",
+        .description = "Layer 1 Control",
+        .color = "\033[1;31m",
+        .enabled = 1,
+        .loglevel = LOGL_DEBUG, }, [DVIRPHY] = {
+        .name = "DVIRPHY",
+        .description = "Virtual Layer 1 Interface",
+        .color = "\033[1;31m",
+        .enabled = 1,
+        .loglevel = LOGL_DEBUG, }};
 
-const struct log_info ms_log_info = {
-	.filter_fn = NULL,
-	.cat = default_categories,
-	.num_cat = ARRAY_SIZE(default_categories),
-};
+const struct log_info ms_log_info = {.filter_fn = NULL, .cat =
+                default_categories, .num_cat = ARRAY_SIZE(default_categories), };
 
 /**
  * Initialize the logging system for the virtual physical layer.
  */
-int ms_log_init(char *cat_mask) {
+int ms_log_init(char *cat_mask)
+{
 	struct log_target *stderr_target;
 
 	log_init(&ms_log_info, NULL);
 	stderr_target = log_target_create_stderr();
-	if(!stderr) {
+	if (!stderr) {
 		return -1;
 	}
 	log_add_target(stderr_target);
@@ -101,7 +91,7 @@ int ms_log_init(char *cat_mask) {
 	log_set_use_color(stderr_target, 0);
 	log_set_print_timestamp(stderr_target, 1);
 	log_set_print_category(stderr_target, 1);
-	if(cat_mask) {
+	if (cat_mask) {
 		log_parse_category_mask(stderr_target, cat_mask);
 	}
 	return 0;

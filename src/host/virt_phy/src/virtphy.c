@@ -1,19 +1,16 @@
 /* osmocom includes */
 
-#include "logging.h"
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/select.h>
-#include <osmo-bts/scheduler.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <virt_l1_model.h>
-
-#include "virtual_um.h"
-#include "l1ctl_sock.h"
-#include "virt_l1_model.h"
-#include "gsmtapl1_if.h"
-#include "l1ctl_sap.h"
+#include <virtphy/virtual_um.h>
+#include <virtphy/l1ctl_sock.h>
+#include <virtphy/virt_l1_model.h>
+#include <virtphy/l1ctl_sap.h>
+#include <virtphy/gsmtapl1_if.h>
+#include <virtphy/logging.h>
 
 int main(void)
 {
@@ -29,9 +26,8 @@ int main(void)
 
 	// TODO: make this configurable
 	model->vui = virt_um_init(NULL, DEFAULT_BTS_MCAST_GROUP,
-	                DEFAULT_BTS_MCAST_PORT, DEFAULT_MS_MCAST_GROUP,
-	                DEFAULT_MS_MCAST_PORT,
-	                gsmtapl1_rx_from_virt_um_inst_cb);
+	DEFAULT_BTS_MCAST_PORT, DEFAULT_MS_MCAST_GROUP,
+	DEFAULT_MS_MCAST_PORT, gsmtapl1_rx_from_virt_um_inst_cb);
 	model->lsi = l1ctl_sock_init(NULL, l1ctl_sap_rx_from_l23_inst_cb, NULL);
 
 	gsmtapl1_init(model);

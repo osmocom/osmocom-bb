@@ -11,13 +11,12 @@
 #include <l1ctl_proto.h>
 #include <netinet/in.h>
 #include <string.h>
-
-#include "virtual_um.h"
-#include "l1ctl_sock.h"
-#include "virt_l1_model.h"
-#include "l1ctl_sap.h"
-#include "logging.h"
-#include "gsmtapl1_if.h"
+#include <virtphy/virtual_um.h>
+#include <virtphy/l1ctl_sock.h>
+#include <virtphy/virt_l1_model.h>
+#include <virtphy/l1ctl_sap.h>
+#include <virtphy/gsmtapl1_if.h>
+#include <virtphy/logging.h>
 
 static struct l1_model_ms *l1_model_ms = NULL;
 

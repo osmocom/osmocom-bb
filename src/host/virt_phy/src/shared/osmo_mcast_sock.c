@@ -8,8 +8,7 @@
 #include <string.h>
 #include <talloc.h>
 #include <unistd.h>
-
-#include "osmo_mcast_sock.h"
+#include <virtphy/osmo_mcast_sock.h>
 
 struct mcast_server_sock *mcast_server_sock_setup(void *ctx,
                                                   char* tx_mcast_group,
