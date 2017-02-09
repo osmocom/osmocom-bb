@@ -74,10 +74,7 @@ void l1ctl_sap_tx_to_l23_inst(struct l1ctl_sock_inst *lsi, struct msgb *msg)
 	/* prepend 16bit length before sending */
 	len = (uint16_t *)msgb_push(msg, sizeof(*len));
 	*len = htons(msg->len - sizeof(*len));
-
-	if (l1ctl_sock_write_msg(lsi, msg) == -1) {
-		DEBUGP(DL1C, "Error writing to layer2 socket");
-	}
+	l1ctl_sock_write_msg(lsi, msg);
 }
 
 /**

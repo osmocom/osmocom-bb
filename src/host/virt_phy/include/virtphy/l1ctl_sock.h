@@ -9,6 +9,7 @@
 struct l1ctl_sock_inst {
 	void *priv; /* Will be appended after osmo-fd's data pointer. */
 	struct osmo_fd connection; /* L1CTL connection to l2 app */
+	char* l1ctl_sock_path; /* Socket path used to connect to l23 */
 	struct osmo_fd ofd; /* Osmocom file descriptor to accept L1CTL connections. */
 	void (*recv_cb)(struct l1ctl_sock_inst *vui, struct msgb *msg); /* Callback function called for incoming data from l2 app. */
 };

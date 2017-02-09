@@ -12,10 +12,18 @@
 #include <virtphy/gsmtapl1_if.h>
 #include <virtphy/logging.h>
 
-int main(void)
+int main( int argc, char *argv[] )
 {
 	// init loginfo
 	static struct l1_model_ms *model;
+	char * l1ctl_sock_path = NULL;
+
+	// get path from commandline argument
+	if( argc > 1 ) {
+	      l1ctl_sock_path = argv[1];
+	}
+
+
 	//ms_log_init("DL1C,1:DVIRPHY,1");
 	ms_log_init("DL1C,1");
 	//ms_log_init("DL1C,8:DVIRPHY,8");
@@ -28,12 +36,13 @@ int main(void)
 	model->vui = virt_um_init(NULL, DEFAULT_BTS_MCAST_GROUP,
 	DEFAULT_BTS_MCAST_PORT, DEFAULT_MS_MCAST_GROUP,
 	DEFAULT_MS_MCAST_PORT, gsmtapl1_rx_from_virt_um_inst_cb);
-	model->lsi = l1ctl_sock_init(NULL, l1ctl_sap_rx_from_l23_inst_cb, NULL);
+	model->lsi = l1ctl_sock_init(NULL, l1ctl_sap_rx_from_l23_inst_cb, l1ctl_sock_path);
 
 	gsmtapl1_init(model);
 	l1ctl_sap_init(model);
 
-	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer ready...\n");
+	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer ready...\n \
+			Waiting for l23 app on", l1ctl_sock_path);
 
 	while (1) {
 		// handle osmocom fd READ events (l1ctl-unix-socket, virtual-um-mcast-socket)

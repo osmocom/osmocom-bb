@@ -163,6 +163,7 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
 	lsi->ofd.cb = l1ctl_sock_accept_cb;
 	// no connection -> invalid filedescriptor and not 0 (==std_in)
 	lsi->connection.fd = -1;
+	lsi->l1ctl_sock_path = path;
 
 	osmo_fd_register(&lsi->ofd);
 
