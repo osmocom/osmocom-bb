@@ -39,48 +39,46 @@
 static struct l1_model_ms *l1_model_ms = NULL;
 
 // for debugging
-static const struct value_string gsmtap_channels [22] = {
-	{ GSMTAP_CHANNEL_UNKNOWN,	"UNKNOWN" },
-	{ GSMTAP_CHANNEL_BCCH,		"BCCH" },
-	{ GSMTAP_CHANNEL_CCCH,		"CCCH" },
-	{ GSMTAP_CHANNEL_RACH,		"RACH" },
-	{ GSMTAP_CHANNEL_AGCH,		"AGCH" },
-	{ GSMTAP_CHANNEL_PCH,		"PCH" },
-	{ GSMTAP_CHANNEL_SDCCH,		"SDCCH" },
-	{ GSMTAP_CHANNEL_SDCCH4,	"SDCCH/4" },
-	{ GSMTAP_CHANNEL_SDCCH8,	"SDCCH/8" },
-	{ GSMTAP_CHANNEL_TCH_F,		"FACCH/F" },
-	{ GSMTAP_CHANNEL_TCH_H,		"FACCH/H" },
-	{ GSMTAP_CHANNEL_PACCH,		"PACCH" },
-	{ GSMTAP_CHANNEL_CBCH52,    	"CBCH" },
-	{ GSMTAP_CHANNEL_PDCH,      	"PDCH" },
-	{ GSMTAP_CHANNEL_PTCCH,    	"PTTCH" },
-	{ GSMTAP_CHANNEL_CBCH51,    	"CBCH" },
-        { GSMTAP_CHANNEL_ACCH|
-	  GSMTAP_CHANNEL_SDCCH,		"LSACCH" },
-	{ GSMTAP_CHANNEL_ACCH|
-	  GSMTAP_CHANNEL_SDCCH4,	"SACCH/4" },
-	{ GSMTAP_CHANNEL_ACCH|
-	  GSMTAP_CHANNEL_SDCCH8,	"SACCH/8" },
-	{ GSMTAP_CHANNEL_ACCH|
-	  GSMTAP_CHANNEL_TCH_F,		"SACCH/F" },
-	{ GSMTAP_CHANNEL_ACCH|
-	  GSMTAP_CHANNEL_TCH_H,		"SACCH/H" },
-	{ 0,				NULL },
-};
+static const struct value_string gsmtap_channels[22] = {
+        {GSMTAP_CHANNEL_UNKNOWN, "UNKNOWN"},
+        {GSMTAP_CHANNEL_BCCH, "BCCH"},
+        {GSMTAP_CHANNEL_CCCH, "CCCH"},
+        {GSMTAP_CHANNEL_RACH, "RACH"},
+        {GSMTAP_CHANNEL_AGCH, "AGCH"},
+        {GSMTAP_CHANNEL_PCH, "PCH"},
+        {GSMTAP_CHANNEL_SDCCH, "SDCCH"},
+        {GSMTAP_CHANNEL_SDCCH4, "SDCCH/4"},
+        {GSMTAP_CHANNEL_SDCCH8, "SDCCH/8"},
+        {GSMTAP_CHANNEL_TCH_F, "FACCH/F"},
+        {GSMTAP_CHANNEL_TCH_H, "FACCH/H"},
+        {GSMTAP_CHANNEL_PACCH, "PACCH"},
+        {GSMTAP_CHANNEL_CBCH52, "CBCH"},
+        {GSMTAP_CHANNEL_PDCH, "PDCH"},
+        {GSMTAP_CHANNEL_PTCCH, "PTTCH"},
+        {GSMTAP_CHANNEL_CBCH51, "CBCH"},
+        {GSMTAP_CHANNEL_ACCH |
+        GSMTAP_CHANNEL_SDCCH, "LSACCH"},
+        {GSMTAP_CHANNEL_ACCH |
+        GSMTAP_CHANNEL_SDCCH4, "SACCH/4"},
+        {GSMTAP_CHANNEL_ACCH |
+        GSMTAP_CHANNEL_SDCCH8, "SACCH/8"},
+        {GSMTAP_CHANNEL_ACCH |
+        GSMTAP_CHANNEL_TCH_F, "SACCH/F"},
+        {GSMTAP_CHANNEL_ACCH |
+        GSMTAP_CHANNEL_TCH_H, "SACCH/H"},
+        {0, NULL}, };
 // for debugging
-static const struct value_string gsmtap_types [10] = {
-	{ GSMTAP_TYPE_UM,		"GSM Um (MS<->BTS)" },
-	{ GSMTAP_TYPE_ABIS,		"GSM Abis (BTS<->BSC)" },
-	{ GSMTAP_TYPE_UM_BURST,		"GSM Um burst (MS<->BTS)" },
-	{ GSMTAP_TYPE_SIM,		"SIM" },
-	{ GSMTAP_TYPE_TETRA_I1, 	"TETRA V+D"},
-	{ GSMTAP_TYPE_WMX_BURST,	"WiMAX burst" },
-	{ GSMTAP_TYPE_GMR1_UM, 		"GMR-1 air interfeace (MES-MS<->GTS)" },
-	{ GSMTAP_TYPE_UMTS_RLC_MAC,	"UMTS RLC/MAC" },
-	{ GSMTAP_TYPE_UMTS_RRC,		"UMTS RRC" },
-	{ 0,				NULL },
-};
+static const struct value_string gsmtap_types[10] = {{
+        GSMTAP_TYPE_UM,
+        "GSM Um (MS<->BTS)"}, {GSMTAP_TYPE_ABIS, "GSM Abis (BTS<->BSC)"}, {
+        GSMTAP_TYPE_UM_BURST,
+        "GSM Um burst (MS<->BTS)"}, {GSMTAP_TYPE_SIM, "SIM"}, {
+        GSMTAP_TYPE_TETRA_I1,
+        "TETRA V+D"}, {GSMTAP_TYPE_WMX_BURST, "WiMAX burst"}, {
+        GSMTAP_TYPE_GMR1_UM,
+        "GMR-1 air interfeace (MES-MS<->GTS)"}, {
+        GSMTAP_TYPE_UMTS_RLC_MAC,
+        "UMTS RLC/MAC"}, {GSMTAP_TYPE_UMTS_RRC, "UMTS RRC"}, {0, NULL}, };
 
 void gsmtapl1_init(struct l1_model_ms *model)
 {
@@ -111,8 +109,10 @@ void gsmtapl1_tx_to_virt_um_inst(struct virt_um_inst *vui, uint32_t fn,
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
 	gsmtap_chan = chantype_rsl2gsmtap(rsl_chantype, ul->link_id);
 
-	outmsg = gsmtap_makemsg(arfcn, timeslot, gsmtap_chan, subslot, fn,
-	                signal_dbm, snr, data, data_len);
+	// arfcn needs to be flagged to be able to distinguish between uplink and downlink
+	outmsg = gsmtap_makemsg(arfcn | GSMTAP_ARFCN_F_UPLINK, timeslot,
+	                gsmtap_chan, subslot, fn, signal_dbm, snr, data,
+	                data_len);
 	if (outmsg) {
 		outmsg->l1h = msgb_data(outmsg);
 		gh = msgb_l1(outmsg);
@@ -184,6 +184,19 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	                arfcn, fn, get_value_string(gsmtap_types, gh->type),
 	                get_value_string(gsmtap_channels, gsmtap_chantype),
 	                timeslot, subslot, rsl_chantype, link_id, chan_nr);
+
+	// generally ignore all messages coming from another arfcn than the synced one
+	if (l1_model_ms->state->serving_cell.arfcn != (arfcn & GSMTAP_ARFCN_MASK)) {
+		LOGP(DVIRPHY, LOGL_NOTICE,
+		                "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n", arfcn & GSMTAP_ARFCN_MASK, l1_model_ms->state->serving_cell.arfcn);
+		goto nomessage;
+	}
+	// generally ignore all uplink messages received
+	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
+		LOGP(DVIRPHY, LOGL_NOTICE,
+		                "Ignoring gsmtap msg from virt um - uplink flag set!\n");
+		goto nomessage;
+	}
 
 	// switch case with removed acch flag
 	switch (gsmtap_chantype & ~GSMTAP_CHANNEL_ACCH & 0xff) {
@@ -258,6 +271,7 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	if (l1ctl_msg) {
 		l1ctl_sap_tx_to_l23(l1ctl_msg);
 	}
+nomessage:
 	// handle memory deallocation
 	talloc_free(msg);
 }
