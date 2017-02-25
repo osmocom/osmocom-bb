@@ -11,6 +11,7 @@
 #include <virtphy/l1ctl_sap.h>
 #include <virtphy/gsmtapl1_if.h>
 #include <virtphy/logging.h>
+#include <virtphy/virt_l1_sched.h>
 
 int main( int argc, char *argv[] )
 {
@@ -40,6 +41,7 @@ int main( int argc, char *argv[] )
 
 	gsmtapl1_init(model);
 	l1ctl_sap_init(model);
+	virt_l1_sched_init(model);
 
 	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer ready...\n \
 			Waiting for l23 app on", l1ctl_sock_path);

@@ -23,6 +23,7 @@
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/rsl.h>
+#include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/core/msgb.h>
 #include <stddef.h>
@@ -35,6 +36,7 @@
 #include <virtphy/l1ctl_sap.h>
 #include <virtphy/gsmtapl1_if.h>
 #include <virtphy/logging.h>
+#include <virtphy/virt_l1_sched.h>
 
 static struct l1_model_ms *l1_model_ms = NULL;
 
@@ -88,13 +90,13 @@ void gsmtapl1_init(struct l1_model_ms *model)
 /**
  * Replace l11 header of given msgb by a gsmtap header and send it over the virt um.
  */
-void gsmtapl1_tx_to_virt_um_inst(struct virt_um_inst *vui, uint32_t fn,
-                                 struct msgb *msg)
+void gsmtapl1_tx_to_virt_um_inst(struct virt_um_inst *vui, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct gsmtap_hdr *gh;
 	struct msgb *outmsg; // msg to send with gsmtap header prepended
+	uint32_t fn = gsm_gsmtime2fn(&l1_model_ms->state->downlink_time);
 	uint16_t arfcn = l1_model_ms->state->serving_cell.arfcn; // arfcn of the cell we currently camp on
 	uint8_t signal_dbm = 63; // signal strength, 63 is best
 	uint8_t snr = 63; // signal noise ratio, 63 is best
@@ -138,9 +140,9 @@ void gsmtapl1_tx_to_virt_um_inst(struct virt_um_inst *vui, uint32_t fn,
 /**
  * @see void gsmtapl1_tx_to_virt_um(struct virt_um_inst *vui, uint32_t fn, struct msgb *msg).
  */
-void gsmtapl1_tx_to_virt_um(uint32_t fn, struct msgb *msg)
+void gsmtapl1_tx_to_virt_um(struct msgb *msg)
 {
-	gsmtapl1_tx_to_virt_um_inst(l1_model_ms->vui, fn, msg);
+	gsmtapl1_tx_to_virt_um_inst(l1_model_ms->vui, msg);
 }
 
 /**
@@ -152,9 +154,15 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	if (!msg) {
 		return;
 	}
-	// we assume we only receive msgs if we actually camp on a cell
-	if (!l1_model_ms->state->camping) {
+	// we do not forward messages to l23 if we are in network search state
+	if (l1_model_ms->state->state == MS_STATE_IDLE_SEARCHING) {
 		talloc_free(msg);
+		return;
+	}
+
+	// forward msg to fbsb sync routine if we are in sync state
+	if (l1_model_ms->state->state == MS_STATE_IDLE_SYNCING) {
+		prim_fbsb_sync(msg);
 		return;
 	}
 
@@ -164,7 +172,7 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	struct l1ctl_traffic_ind * l1ti;
 	struct l1ctl_data_ind * l1di;
 	uint32_t fn = ntohl(gh->frame_number); // frame number of the rcv msg
-	uint16_t arfcn = ntohs(gh->arfcn); // arfcn of the cell we currently camp on
+	uint16_t arfcn = ntohs(gh->arfcn); // arfcn of the received msg
 	uint8_t gsmtap_chantype = gh->sub_type; // gsmtap channel type
 	uint8_t signal_dbm = gh->signal_dbm; // signal strength, 63 is best
 	uint8_t snr = gh->snr_db; // signal noise ratio, 63 is best
@@ -179,18 +187,23 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	// see GSM 8.58 -> 9.3.1 for channel number encoding
 	chan_nr = rsl_enc_chan_nr(rsl_chantype, subslot, timeslot);
 
+	gsm_fn2gsmtime(&l1_model_ms->state->downlink_time, fn);
+	virt_l1_sched_sync_time(l1_model_ms->state->downlink_time, 0);
+	virt_l1_sched_execute(fn);
+
 	DEBUGP(DVIRPHY,
 	                "Receiving gsmtap msg from virt um - (arfcn=%u, framenumber=%u, type=%s, subtype=%s, timeslot=%u, subslot=%u, rsl_chan_type=0x%2x, link_id=0x%2x, chan_nr=0x%2x)\n",
 	                arfcn, fn, get_value_string(gsmtap_types, gh->type),
 	                get_value_string(gsmtap_channels, gsmtap_chantype),
 	                timeslot, subslot, rsl_chantype, link_id, chan_nr);
 
-	// generally ignore all messages coming from another arfcn than the synced one
+	// generally ignore all messages coming from another arfcn than the camped one
 	if (l1_model_ms->state->serving_cell.arfcn != (arfcn & GSMTAP_ARFCN_MASK)) {
 		LOGP(DVIRPHY, LOGL_NOTICE,
 		                "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n", arfcn & GSMTAP_ARFCN_MASK, l1_model_ms->state->serving_cell.arfcn);
 		goto nomessage;
 	}
+
 	// generally ignore all uplink messages received
 	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
 		LOGP(DVIRPHY, LOGL_NOTICE,

@@ -2,9 +2,18 @@
 
 #include <virtphy/virtual_um.h>
 #include <virtphy/l1ctl_sock.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 #define L1S_NUM_NEIGH_CELL	6
 #define A5_KEY_LEN		8
+
+enum ms_state {
+	MS_STATE_IDLE_SEARCHING = 0,
+	MS_STATE_IDLE_SYNCING,
+	MS_STATE_IDLE_CAMPING,
+	MS_STATE_DEDICATED,
+};
+
 
 struct l1_model_ms {
 	struct l1ctl_sock_inst *lsi;
@@ -38,7 +47,10 @@ struct crypto_info_ms {
 
 struct l1_state_ms {
 
-	uint8_t camping; // are we currently camping on a cell
+	struct gsm_time	downlink_time;	/* current GSM time received on downlink */
+	struct gsm_time current_time; /* GSM time used internally for scheduling */
+
+	uint8_t state; // the ms state like in ms_state
 
 	/* the cell on which we are camping right now */
 	struct l1_cell_info serving_cell;
@@ -60,6 +72,11 @@ struct l1_state_ms {
 		uint8_t tsc; // training sequence code (ununsed in virtual um)
 		uint8_t h; // hopping enabled flag (ununsed in virtual um)
 	} dedicated;
+
+	/* fbsb state */
+	struct {
+		uint32_t arfcn;
+	} fbsb;
 };
 
 struct l1_model_ms *l1_model_ms_init(void *ctx);

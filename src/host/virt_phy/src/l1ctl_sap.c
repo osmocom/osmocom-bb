@@ -17,6 +17,7 @@
 #include <virtphy/l1ctl_sap.h>
 #include <virtphy/gsmtapl1_if.h>
 #include <virtphy/logging.h>
+#include <virtphy/virt_l1_sched.h>
 
 static struct l1_model_ms *l1_model_ms = NULL;
 
@@ -38,6 +39,8 @@ static void l1_model_tch_mode_set(uint8_t tch_mode)
 void l1ctl_sap_init(struct l1_model_ms *model)
 {
 	l1_model_ms = model;
+	prim_rach_init(model);
+	prim_fbsb_init(model);
 }
 
 /**
@@ -193,11 +196,9 @@ void l1ctl_sap_handler(struct msgb *msg)
 		break;
 	case L1CTL_RACH_REQ:
 		l1ctl_rx_rach_req(msg);
-		// msg is freed by rx routine
 		goto exit_nofree;
 	case L1CTL_DATA_REQ:
 		l1ctl_rx_data_req(msg);
-		/* we have to keep the msgb, not free it! */
 		goto exit_nofree;
 	case L1CTL_PM_REQ:
 		l1ctl_rx_pm_req(msg);
@@ -216,7 +217,6 @@ void l1ctl_sap_handler(struct msgb *msg)
 		break;
 	case L1CTL_TRAFFIC_REQ:
 		l1ctl_rx_traffic_req(msg);
-		/* we have to keep the msgb, not free it! */
 		goto exit_nofree;
 	case L1CTL_SIM_REQ:
 		l1ctl_rx_sim_req(msg);
@@ -224,49 +224,14 @@ void l1ctl_sap_handler(struct msgb *msg)
 	}
 
 	exit_msgbfree: msgb_free(msg);
-	exit_nofree: return;
+	exit_nofree: return; /* msg is scheduled for uplink and mustn't be freed here */
 }
 
 /***************************************************************
  * L1CTL RX ROUTINES *******************************************
+ * For more routines check the respective handler classes ******
+ * like virt_prim_rach.c ***************************************
  ***************************************************************/
-
-/**
- * @brief Handler for received L1CTL_FBSB_REQ from L23.
- *
- * -- frequency burst synchronisation burst request --
- *
- * @param [in] msg the received message.
- *
- * Transmit frequency control and synchronisation bursts on FCCH and SCH to calibrate transceiver and search for base stations.
- * Sync to a given arfcn.
- *
- * Note: ms will start receiving msgs on virtual um only after this req was received.
- * Note: virt bts does not broadcast freq and sync bursts.
- *
- * TODO: Could be used to bind/connect to different virtual_bts sockets with a arfcn-socket mapping.
- * TODO: Check flags if this is a sync or freq request and handle it accordingly.
- */
-void l1ctl_rx_fbsb_req(struct msgb *msg)
-{
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_fbsb_req *sync_req = (struct l1ctl_fbsb_req *)l1h->data;
-
-	DEBUGP(DL1C,
-	                "Received and handled from l23 - L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
-	                ntohs(sync_req->band_arfcn), sync_req->flags);
-
-	l1_model_ms->state->camping = 1;
-	l1_model_ms->state->serving_cell.arfcn = ntohs(sync_req->band_arfcn); // freq req
-
-	// not needed in virt um
-	l1_model_ms->state->serving_cell.ccch_mode = sync_req->ccch_mode; // sync req
-	l1_model_ms->state->serving_cell.fn_offset = 0; // sync req
-	l1_model_ms->state->serving_cell.bsic = 0; // sync req
-	l1_model_ms->state->serving_cell.time_alignment = 0; // sync req
-
-	l1ctl_tx_fbsb_conf(0, l1_model_ms->state->serving_cell.arfcn);
-}
 
 /**
  * @brief Handler for received L1CTL_DM_EST_REQ from L23.
@@ -410,47 +375,6 @@ void l1ctl_rx_param_req(struct msgb *msg)
 }
 
 /**
- * @brief Handler for received L1CTL_RACH_REQ from L23.
- *
- * -- random access channel request --
- *
- * @param [in] msg the received message.
- *
- * Transmit RACH request on RACH. Refer to 04.08 - 9.1.8 - Channel request.
- *
- */
-void l1ctl_rx_rach_req(struct msgb *msg)
-{
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
-	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *)ul->payload;
-	// FIXME: proper frame number
-	uint32_t fn_sched = 42;
-
-	DEBUGP(DL1C,
-	                "Received and handled from l23 - L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
-	                rach_req->ra, ntohs(rach_req->offset),
-	                rach_req->combined);
-
-	// for the rach channel request, there is no layer2 header, but only the one bit ra content to submit
-	// replace l1ctl_rach_req with ra data that rly shall be submitted
-	// ra on peer side is decoded as uint16_t, but we do not use the 11bit option and thus 8bits must be sufficient
-	msg->l2h = msgb_put(msg, sizeof(uint8_t));
-	*msg->l2h = rach_req->ra;
-
-	// chan_nr is not specified in info_ul for rach request coming from l23, but needed in gsmtapl1_tx_to_virt_um()
-	ul->chan_nr = rsl_enc_chan_nr(RSL_CHAN_RACH, 0, 0);
-	ul->link_id = LID_DEDIC;
-
-	// send rach over virt um
-	gsmtapl1_tx_to_virt_um(fn_sched, msg);
-
-	// send confirm to layer23
-	l1ctl_tx_rach_conf(fn_sched, l1_model_ms->state->serving_cell.arfcn);
-
-}
-
-/**
  * @brief Handler for received L1CTL_DATA_REQ from L23.
  *
  * -- data request --
@@ -466,8 +390,8 @@ void l1ctl_rx_data_req(struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct l1ctl_data_ind *data_ind = (struct l1ctl_data_ind *)ul->payload;
-	// FIXME: proper frame number
-	uint32_t fn_sched = 42;
+	// TODO: calc the scheduled fn
+	uint32_t fn_sched = l1_model_ms->state->downlink_time.fn;
 
 	DEBUGP(DL1C,
 	                "Received and handled from l23 - L1CTL_DATA_REQ (link_id=0x%02x, ul=%p, ul->payload=%p, data_ind=%p, data_ind->data=%p l3h=%p)\n",
@@ -476,8 +400,8 @@ void l1ctl_rx_data_req(struct msgb *msg)
 
 	msg->l2h = data_ind->data;
 
-	// send msg over virt um
-	gsmtapl1_tx_to_virt_um(fn_sched, msg);
+	// TODO: append to scheduler queue instead of sending here directly
+	gsmtapl1_tx_to_virt_um(msg);
 
 	// send confirm to layer23
 	msg = l1ctl_create_l2_msg(L1CTL_DATA_CONF, fn_sched, 0, 0);
@@ -560,11 +484,12 @@ void l1ctl_rx_reset_req(struct msgb *msg)
 	case L1CTL_RES_T_FULL:
 		DEBUGP(DL1C,
 		                "Received and handled from l23 - L1CTL_RESET_REQ (type=FULL)\n");
-		l1_model_ms->state->camping = 0;
-		// TODO: check if we also need to reset the dedicated channel state
+		l1_model_ms->state->state = MS_STATE_IDLE_SEARCHING;
+		virt_l1_sched_stop();
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	case L1CTL_RES_T_SCHED:
+		virt_l1_sched_restart(l1_model_ms->state->downlink_time);
 		DEBUGP(DL1C,
 		                "Received and handled from l23 - L1CTL_RESET_REQ (type=SCHED)\n");
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
@@ -673,14 +598,15 @@ void l1ctl_rx_traffic_req(struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct l1ctl_traffic_req *tr = (struct l1ctl_traffic_req *)ul->payload;
-	uint32_t fn_sched = 42;
+	// TODO: calc the scheduled fn
+	uint32_t fn_sched = l1_model_ms->state->downlink_time.fn;
 
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_TRAFFIC_REQ\n");
 
 	msg->l2h = tr->data;
 
-	// send msg over virt um
-	gsmtapl1_tx_to_virt_um(fn_sched, msg);
+	// TODO: append to scheduler queue instead of sending here directly
+	gsmtapl1_tx_to_virt_um(msg);
 
 	// send confirm to layer23
 	msg = l1ctl_create_l2_msg(L1CTL_TRAFFIC_CONF, fn_sched, 0, 0);
@@ -719,6 +645,8 @@ void l1ctl_rx_sim_req(struct msgb *msg)
 
 /***************************************************************
  * L1CTL TX ROUTINES *******************************************
+ * For more routines check the respective handler classes ******
+ * like virt_prim_rach.c ***************************************
  ***************************************************************/
 
 /**
@@ -742,23 +670,6 @@ void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type)
 }
 
 /**
- * @brief Transmit L1CTL_RESET_IND or L1CTL_RESET_CONF to layer 23.
- *
- * -- reset indication / confirm --
- *
- * @param [in] msg_type L1CTL primitive message type.
- * @param [in] reset_type reset type (full, boot or just scheduler reset).
- */
-void l1ctl_tx_rach_conf(uint32_t fn, uint16_t arfcn)
-{
-	struct msgb * msg = l1ctl_create_l2_msg(L1CTL_RACH_CONF, fn, 0, arfcn);
-
-	DEBUGP(DL1C, "Sending to l23 - %s (fn: %u, arfcn: %u)\n",
-	                getL1ctlPrimName(L1CTL_RACH_CONF), fn, arfcn);
-	l1ctl_sap_tx_to_l23(msg);
-}
-
-/**
  * @brief Transmit L1CTL msg of a given type to layer 23.
  *
  * @param [in] msg_type L1CTL primitive message type.
@@ -767,38 +678,6 @@ void l1ctl_tx_msg(uint8_t msg_type)
 {
 	struct msgb *msg = l1ctl_msgb_alloc(msg_type);
 	DEBUGP(DL1C, "Sending to l23 - %s\n", getL1ctlPrimName(msg_type));
-	l1ctl_sap_tx_to_l23(msg);
-}
-
-/**
- * @brief Transmit L1CTL_FBSB_CONF to l23.
- *
- * -- frequency burst synchronisation burst confirm --
- *
- * @param [in] res 0 -> success, 255 -> error.
- * @param [in] arfcn the arfcn we are synced to.
- *
- * No calculation needed for virtual pyh -> uses dummy values for a good link quality.
- */
-void l1ctl_tx_fbsb_conf(uint8_t res, uint16_t arfcn)
-{
-	struct msgb *msg;
-	struct l1ctl_fbsb_conf *resp;
-	uint32_t fn = 0; // 0 should be okay here
-	uint16_t snr = 40; // signal noise ratio > 40db is best signal (unused in virt)
-	int16_t initial_freq_err = 0; // 0 means no error (unused in virt)
-	uint8_t bsic = 0; // bsci can be read from sync burst (unused in virt)
-
-	msg = l1ctl_create_l2_msg(L1CTL_FBSB_CONF, fn, snr, arfcn);
-
-	resp = (struct l1ctl_fbsb_conf *)msgb_put(msg, sizeof(*resp));
-	resp->initial_freq_err = htons(initial_freq_err);
-	resp->result = res;
-	resp->bsic = bsic;
-
-	DEBUGP(DL1C, "Sending to l23 - %s (res: %u)\n",
-	                getL1ctlPrimName(L1CTL_FBSB_CONF), res);
-
 	l1ctl_sap_tx_to_l23(msg);
 }
 
