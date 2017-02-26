@@ -146,6 +146,11 @@ void gsmtapl1_tx_to_virt_um(struct msgb *msg)
 }
 
 /**
+ * @see virt_prim_fbsb.c
+ */
+extern void prim_fbsb_sync(struct msgb *msg);
+
+/**
  * Receive a gsmtap message from the virt um.
  */
 void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,

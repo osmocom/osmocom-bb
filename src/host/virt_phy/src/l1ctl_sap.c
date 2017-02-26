@@ -41,6 +41,8 @@ void l1ctl_sap_init(struct l1_model_ms *model)
 	l1_model_ms = model;
 	prim_rach_init(model);
 	prim_fbsb_init(model);
+	prim_data_init(model);
+	prim_traffic_init(model);
 }
 
 /**
@@ -375,40 +377,6 @@ void l1ctl_rx_param_req(struct msgb *msg)
 }
 
 /**
- * @brief Handler for received L1CTL_DATA_REQ from L23.
- *
- * -- data request --
- *
- * @param [in] msg the received message.
- *
- * Transmit message on a signalling channel. FACCH/SDCCH or SACCH depending on the headers set link id (TS 8.58 - 9.3.2).
- *
- * TODO: Check if a msg on FACCH is coming in here and needs special handling.
- */
-void l1ctl_rx_data_req(struct msgb *msg)
-{
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
-	struct l1ctl_data_ind *data_ind = (struct l1ctl_data_ind *)ul->payload;
-	// TODO: calc the scheduled fn
-	uint32_t fn_sched = l1_model_ms->state->downlink_time.fn;
-
-	DEBUGP(DL1C,
-	                "Received and handled from l23 - L1CTL_DATA_REQ (link_id=0x%02x, ul=%p, ul->payload=%p, data_ind=%p, data_ind->data=%p l3h=%p)\n",
-	                ul->link_id, ul, ul->payload, data_ind, data_ind->data,
-	                msg->l3h);
-
-	msg->l2h = data_ind->data;
-
-	// TODO: append to scheduler queue instead of sending here directly
-	gsmtapl1_tx_to_virt_um(msg);
-
-	// send confirm to layer23
-	msg = l1ctl_create_l2_msg(L1CTL_DATA_CONF, fn_sched, 0, 0);
-	l1ctl_sap_tx_to_l23(msg);
-}
-
-/**
  * @brief Handler for received L1CTL_PM_REQ from L23.
  *
  * -- power measurement request --
@@ -581,36 +549,6 @@ void l1ctl_rx_neigh_pm_req(struct msgb *msg)
 	DEBUGP(DL1C,
 	                "Received and ignored from l23 - L1CTL_NEIGH_PM_REQ new list with %u entries\n",
 	                pm_req->n);
-}
-
-/**
- * @brief Handler for received L1CTL_TRAFFIC_REQ from L23.
- *
- * -- traffic request --
- *
- * @param [in] msg the received message.
- *
- * Enqueue the message (traffic frame) to the L1 state machine's transmit queue. In virtual layer1 just submit it to the virt um.
- *
- */
-void l1ctl_rx_traffic_req(struct msgb *msg)
-{
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
-	struct l1ctl_traffic_req *tr = (struct l1ctl_traffic_req *)ul->payload;
-	// TODO: calc the scheduled fn
-	uint32_t fn_sched = l1_model_ms->state->downlink_time.fn;
-
-	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_TRAFFIC_REQ\n");
-
-	msg->l2h = tr->data;
-
-	// TODO: append to scheduler queue instead of sending here directly
-	gsmtapl1_tx_to_virt_um(msg);
-
-	// send confirm to layer23
-	msg = l1ctl_create_l2_msg(L1CTL_TRAFFIC_CONF, fn_sched, 0, 0);
-	l1ctl_sap_tx_to_l23(msg);
 }
 
 /**

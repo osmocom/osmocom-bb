@@ -82,7 +82,7 @@ static int l1ctl_sock_data_cb(struct osmo_fd *ofd, unsigned int what)
 
 		if (rc == len) {
 			msgb_put(msg, rc);
-			l1h = msgb_data(msg);
+			l1h = (void *) msgb_data(msg);
 			msg->l1h = l1h;
 			lsi->recv_cb(lsi, msg);
 			return 0;
