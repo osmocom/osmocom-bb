@@ -52,7 +52,7 @@ struct mcast_client_sock *mcast_client_sock_setup(
 	                struct mcast_client_sock);
 	struct sockaddr_in *rx_sock_conf = talloc_zero(NULL,
 	                struct sockaddr_in);
-	int rc, reuseaddr = 1, loopback = 1;
+	int rc, reuseaddr = 1, loopback = 1, all = 0;
 
 	client_sock->osmo_fd = talloc_zero(ctx, struct osmo_fd);
 	client_sock->mcast_group = talloc_zero(ctx, struct ip_mreq);
@@ -104,6 +104,14 @@ struct mcast_client_sock *mcast_client_sock_setup(
 	                sizeof(*client_sock->mcast_group));
 	if (rc < 0) {
 		perror("Failed to join to mcast goup");
+		return NULL;
+	}
+
+	// this option will set the delivery option so that only packages are received
+	// from sockets we are bound to via IP_ADD_MEMBERSHIP
+	if (setsockopt(client_sock->osmo_fd->fd, IPPROTO_IP,
+	IP_MULTICAST_ALL, &all, sizeof(all)) < 0) {
+		perror("Failed to modify delivery policy to explicitly joined.\n");
 		return NULL;
 	}
 
