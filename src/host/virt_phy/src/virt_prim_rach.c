@@ -37,7 +37,7 @@
 #include <l1ctl_proto.h>
 
 static struct l1_model_ms *l1_model_ms = NULL;
-static void virt_l1_sched_handler_cb(struct msgb * msg);
+static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg);
 
 // use if we have a combined uplink (RACH, SDCCH, ...) (see http://www.rfwireless-world.com/Terminology/GSM-combined-channel-configuration.html)
 // if we have no combined channel config, uplink consists of only RACH
@@ -54,10 +54,10 @@ static uint8_t rach_to_t3_comb[27] = {
  *
  * @param [in] msg the msg to sent over virtual um.
  */
-static void virt_l1_sched_handler_cb(struct msgb * msg)
+static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg)
 {
-	gsmtapl1_tx_to_virt_um(msg);
-	l1ctl_tx_rach_conf(l1_model_ms->state->current_time.fn,
+	gsmtapl1_tx_to_virt_um(fn, msg);
+	l1ctl_tx_rach_conf(fn,
 	                   l1_model_ms->state->serving_cell.arfcn);
 }
 

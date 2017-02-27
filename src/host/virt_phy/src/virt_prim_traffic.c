@@ -37,19 +37,19 @@
 #include <l1ctl_proto.h>
 
 static struct l1_model_ms *l1_model_ms = NULL;
-static void virt_l1_sched_handler_cb(struct msgb * msg);
+static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg);
 
 /**
  * @brief Handler callback function for TRAFFIC request.
  *
  * @param [in] msg the msg to sent over virtual um.
  */
-static void virt_l1_sched_handler_cb(struct msgb * msg)
+static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg)
 {
-	gsmtapl1_tx_to_virt_um(msg);
+	gsmtapl1_tx_to_virt_um(fn, msg);
 	// send confirm to layer23
 	msg = l1ctl_create_l2_msg(L1CTL_TRAFFIC_CONF,
-	                          l1_model_ms->state->current_time.fn, 0, 0);
+	                          fn, 0, 0);
 	l1ctl_sap_tx_to_l23(msg);
 }
 
@@ -68,11 +68,10 @@ void l1ctl_rx_traffic_req(struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct l1ctl_traffic_req *tr = (struct l1ctl_traffic_req *)ul->payload;
-	// TODO: calc the scheduled fn
-	uint32_t fn_sched = l1_model_ms->state->current_time.fn;
 	uint8_t rsl_chantype, subslot, timeslot;
-	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
+	uint32_t fn_sched = sched_fn_ul(l1_model_ms->state->current_time, ul->chan_nr, ul->link_id);
 
+	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_TRAFFIC_REQ\n");
 
 	msg->l2h = tr->data;

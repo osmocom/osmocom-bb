@@ -60,3 +60,7 @@ void l1ctl_tx_fbsb_conf(uint8_t res, uint16_t arfcn);
 void l1ctl_tx_ccch_mode_conf(uint8_t ccch_mode);
 void l1ctl_tx_tch_mode_conf(uint8_t tch_mode, uint8_t audio_mode);
 void l1ctl_tx_msg(uint8_t msg_type);
+
+/* scheduler functions */
+uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
+                                      uint8_t link_id);

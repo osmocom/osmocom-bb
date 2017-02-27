@@ -666,3 +666,351 @@ void l1ctl_tx_tch_mode_conf(uint8_t tch_mode, uint8_t audio_mode)
 	l1ctl_sap_tx_to_l23(msg);
 }
 
+/**
+ * @brief Get the scheduled fn for a msg depending on its chan_nr and link_id.
+ */
+uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
+                                      uint8_t link_id)
+{
+	uint8_t chan_type, chan_ss, chan_ts;
+	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
+
+	uint32_t sched_fn = cur_time.fn;
+	uint16_t mod_102 = cur_time.fn % 2 * 51;
+	switch (chan_type) {
+	case RSL_CHAN_Bm_ACCHs:
+		switch (link_id) {
+		case LID_DEDIC:
+			// dl=[0...11,13...24] ul=[0...11,13...24]
+			// skip idle frames and frames reserved for TCH_ACCH
+			if(cur_time.t2 == 12 || cur_time.t2 == 25) {
+				sched_fn++;
+			}
+			break;
+		// dl=42, ul=42+15
+		case LID_SACCH:
+			if((chan_ts & 1)) {
+				// Odd traffic channel timeslot -> dl=[25] ul=[25]
+				// TCH_ACCH always at the end of tch multiframe (mod 26)
+				sched_fn -= cur_time.t2;
+				sched_fn += 25;
+			}
+			else {
+				// Even traffic channel timeslot -> dl=[12] ul=[12]
+				if(cur_time.t2 <= 12) {
+					sched_fn -= cur_time.t2;
+					sched_fn += 12;
+				} else {
+					sched_fn -= cur_time.t2;
+					sched_fn += 26 + 12;
+				}
+
+			}
+			break;
+		}
+		break;
+	case RSL_CHAN_Lm_ACCHs:
+		break; /* TCH/H not supported */
+	case RSL_CHAN_SDCCH4_ACCH:
+		switch (chan_ss) {
+		case 0:
+			switch (link_id) {
+			// dl=22, ul=22+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 22 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 22 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 22 + 15;
+				}
+				break;
+			// dl=42, ul=42+15
+			case LID_SACCH:
+				if(mod_102 <= 42 + 15) {
+					sched_fn -= mod_102;
+					sched_fn += 42 + 15;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 42 + 15;
+				}
+				break;
+			}
+			break;
+		case 1:
+			switch (link_id) {
+			// dl=26, ul=26+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 26 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 26 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 26 + 15;
+				}
+				break;
+			// dl=46, ul=46+15
+			case LID_SACCH:
+				if(mod_102 <= 46 + 15) {
+					sched_fn -= mod_102;
+					sched_fn += 46 + 15;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 46 + 15;
+				}
+				break;
+			}
+			break;
+		case 2:
+			switch (link_id) {
+			// dl=32, ul=32+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 32 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 32 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 32 + 15;
+				}
+				break;
+			// dl=51+42, ul=51+42+15
+			case LID_SACCH:
+				if(mod_102 <= 51 + 42 + 15) {
+					sched_fn -= mod_102;
+					sched_fn += 51 + 42 + 15;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 51 + 42 + 15;
+				}
+				break;
+			}
+			break;
+		case 3:
+			switch (link_id) {
+			// dl=36, ul=36+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 36 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 36 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 36 + 15;
+				}
+				break;
+			// dl=51+46, ul=51+46+15
+			case LID_SACCH:
+				if(mod_102 <= 51 + 46 + 15) {
+					sched_fn -= mod_102;
+					sched_fn += 51 + 46 + 15;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 51 + 46 + 15;
+				}
+				break;
+			}
+			break;
+		}
+		break;
+	case RSL_CHAN_SDCCH8_ACCH:
+		switch (chan_ss) {
+		case 0:
+			switch (link_id) {
+			// dl=0, ul=0+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 0 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 0 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 0 + 15;
+				}
+				break;
+			// dl=32, ul=32+15
+			case LID_SACCH:
+				if(mod_102 <= 32 + 15) {
+					sched_fn -= mod_102;
+					sched_fn += 32 + 15;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 32 + 15;
+				}
+				break;
+			}
+			break;
+		case 1:
+			switch (link_id) {
+			// dl=4, ul=4+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 4 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 4 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 4 + 15;
+				}
+				break;
+			// dl=36, ul=36+15
+			case LID_SACCH:
+				if(mod_102 <= 36 + 15) {
+					sched_fn -= mod_102;
+					sched_fn += 36 + 15;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 36 + 15;
+				}
+				break;
+			}
+			break;
+		case 2:
+			switch (link_id) {
+			// dl=8, ul=8+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 8 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 8 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 8 + 15;
+				}
+				break;
+			// dl=40, ul=40+15
+			case LID_SACCH:
+				if(mod_102 <= 40 + 15) {
+					sched_fn -= mod_102;
+					sched_fn += 40 + 15;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 40 + 15;
+				}
+				break;
+			}
+			break;
+		case 3:
+			switch (link_id) {
+			// dl=12, ul=12+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 12 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 12 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 12 + 15;
+				}
+				break;
+			// dl=44, ul=44+15
+			case LID_SACCH:
+				if(mod_102 <= 44 + 15) {
+					sched_fn -= mod_102;
+					sched_fn += 44 + 15;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 44 + 15;
+				}
+				break;
+			}
+			break;
+		case 4:
+			switch (link_id) {
+			// dl=16, ul=16+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 16 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 16 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 16 + 15;
+				}
+				break;
+			// dl=51+32, ul=51+32+15
+			case LID_SACCH:
+				if(mod_102 <= 51 + 32 + 15) {
+					sched_fn -= mod_102;
+					sched_fn += 51 + 32 + 15;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 51 + 32 + 15;
+				}
+				break;
+			}
+			break;
+		case 5:
+			switch (link_id) {
+			// dl=20, ul=36+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 20 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 20 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 20 + 15;
+				}
+				break;
+			// dl=51+36, ul=51+36+15 ==> 0
+			case LID_SACCH:
+				if(mod_102 <= 0) {
+					sched_fn -= mod_102;
+					sched_fn += 0;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 0;
+				}
+				break;
+			}
+			break;
+		case 6:
+			switch (link_id) {
+			// dl=24, ul=24+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 24 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 24 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 24 + 15;
+				}
+				break;
+			// dl=51+40, ul=51+40+15 ==> 4
+			case LID_SACCH:
+				if(mod_102 <= 4) {
+					sched_fn -= mod_102;
+					sched_fn += 4;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 4;
+				}
+				break;
+			}
+			break;
+		case 7:
+			switch (link_id) {
+			// dl=28, ul=28+15
+			case LID_DEDIC:
+				if(cur_time.t3 <= 28 + 15) {
+					sched_fn -= cur_time.t3;
+					sched_fn += 28 + 15;
+				} else {
+					sched_fn -= cur_time.t3;
+					sched_fn += 51 + 28 + 15;
+				}
+				break;
+			// dl=51+44, ul=51+44+15 ==> 8
+			case LID_SACCH:
+				if(mod_102 <= 8) {
+					sched_fn -= mod_102;
+					sched_fn += 8;
+				} else {
+					sched_fn -= mod_102;
+					sched_fn += 2 * 51 + 8;
+				}
+				break;
+			}
+			break;
+		}
+		break;
+	case RSL_CHAN_RACH:
+		break; /* Use virt_prim_rach.c for calculation of sched fn for rach */
+	default:
+		break; /* Use current fn as default */
+	}
+	return sched_fn;
+}

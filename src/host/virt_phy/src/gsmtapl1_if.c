@@ -90,13 +90,12 @@ void gsmtapl1_init(struct l1_model_ms *model)
 /**
  * Replace l11 header of given msgb by a gsmtap header and send it over the virt um.
  */
-void gsmtapl1_tx_to_virt_um_inst(struct virt_um_inst *vui, struct msgb *msg)
+void gsmtapl1_tx_to_virt_um_inst(uint32_t fn, struct virt_um_inst *vui, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct gsmtap_hdr *gh;
 	struct msgb *outmsg; // msg to send with gsmtap header prepended
-	uint32_t fn = gsm_gsmtime2fn(&l1_model_ms->state->downlink_time);
 	uint16_t arfcn = l1_model_ms->state->serving_cell.arfcn; // arfcn of the cell we currently camp on
 	uint8_t signal_dbm = 63; // signal strength, 63 is best
 	uint8_t snr = 63; // signal noise ratio, 63 is best
@@ -140,9 +139,9 @@ void gsmtapl1_tx_to_virt_um_inst(struct virt_um_inst *vui, struct msgb *msg)
 /**
  * @see void gsmtapl1_tx_to_virt_um(struct virt_um_inst *vui, uint32_t fn, struct msgb *msg).
  */
-void gsmtapl1_tx_to_virt_um(struct msgb *msg)
+void gsmtapl1_tx_to_virt_um(uint32_t fn, struct msgb *msg)
 {
-	gsmtapl1_tx_to_virt_um_inst(l1_model_ms->vui, msg);
+	gsmtapl1_tx_to_virt_um_inst(fn, l1_model_ms->vui, msg);
 }
 
 /**
