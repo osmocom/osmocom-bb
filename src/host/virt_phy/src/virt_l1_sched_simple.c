@@ -9,6 +9,8 @@ static struct l1_model_ms *l1_model_ms = NULL;
 
 static LLIST_HEAD(mframe_item_list);
 
+static uint32_t last_exec_fn = 0;
+
 /**
  * @brief Initialize schedulers data structures.
  */
@@ -70,10 +72,16 @@ void virt_l1_sched_stop()
 void virt_l1_sched_execute(uint32_t fn)
 {
 	struct virt_l1_sched_mframe_item *mi_next, *mi_tmp;
-	// FIXME: change of hyperframe and thus restarting fn at 0 may cause messages in the queue that are never handled
+	uint8_t hyperframe_restart = fn < last_exec_fn;
+
 	llist_for_each_entry_safe(mi_next, mi_tmp, &mframe_item_list, mframe_item_entry)
 	{
-		if (mi_next->fn <= fn) {
+		/* execute all registered handler for current mf sched item */
+		uint8_t exec_now = mi_next->fn <= fn || (hyperframe_restart && mi_next->fn > last_exec_fn);
+		/* break loop, as we have an ordered list in case the hyperframe had not been reset */
+		uint8_t break_now = mi_next->fn > fn && !hyperframe_restart;
+
+		if(exec_now) {
 			struct virt_l1_sched_tdma_item *ti_next, *ti_tmp;
 			// run through all scheduled tdma sched items for that frame number
 			llist_for_each_entry_safe(ti_next, ti_tmp, &mi_next->tdma_item_list, tdma_item_entry)
@@ -87,11 +95,13 @@ void virt_l1_sched_execute(uint32_t fn)
 			// remove handled mframe sched item
 			llist_del(&mi_next->mframe_item_entry);
 			talloc_free(mi_next);
-		} else if (mi_next->fn > fn) {
-			/* break the loop as our list is ordered */
+		}
+
+		if(break_now) {
 			break;
 		}
 	}
+	last_exec_fn = fn;
 }
 
 /**
