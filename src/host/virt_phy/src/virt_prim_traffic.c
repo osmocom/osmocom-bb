@@ -42,15 +42,13 @@ static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg);
 /**
  * @brief Handler callback function for TRAFFIC request.
  *
+ * @param [in] fn frame number
  * @param [in] msg the msg to sent over virtual um.
  */
 static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg)
 {
 	gsmtapl1_tx_to_virt_um(fn, msg);
-	// send confirm to layer23
-	msg = l1ctl_create_l2_msg(L1CTL_TRAFFIC_CONF,
-	                          fn, 0, 0);
-	l1ctl_sap_tx_to_l23(msg);
+	l1ctl_tx_traffic_conf(fn, 0, l1_model_ms->state->serving_cell.arfcn);
 }
 
 /**
@@ -69,7 +67,8 @@ void l1ctl_rx_traffic_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct l1ctl_traffic_req *tr = (struct l1ctl_traffic_req *)ul->payload;
 	uint8_t rsl_chantype, subslot, timeslot;
-	uint32_t fn_sched = sched_fn_ul(l1_model_ms->state->current_time, ul->chan_nr, ul->link_id);
+	uint32_t fn_sched = sched_fn_ul(l1_model_ms->state->current_time,
+	                                ul->chan_nr, ul->link_id);
 
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_TRAFFIC_REQ\n");
@@ -78,6 +77,55 @@ void l1ctl_rx_traffic_req(struct msgb *msg)
 
 	virt_l1_sched_schedule(msg, fn_sched, timeslot,
 	                       &virt_l1_sched_handler_cb);
+}
+
+void l1ctl_tx_traffic_ind(struct msgb *msg, uint16_t arfcn, uint8_t link_id,
+                          uint8_t chan_nr, uint32_t fn, uint8_t snr,
+                          uint8_t signal_dbm, uint8_t num_biterr,
+                          uint8_t fire_crc)
+{
+	struct msgb *l1ctl_msg = NULL;
+	struct l1ctl_traffic_ind * l1ti;
+	struct l1ctl_info_dl * l1dl;
+	uint8_t rsl_chan_type, subchan, timeslot;
+	l1ctl_msg = l1ctl_msgb_alloc(L1CTL_TRAFFIC_IND);
+	l1dl = (struct l1ctl_info_dl *)msgb_put(l1ctl_msg,
+	                                        sizeof(struct l1ctl_info_dl));
+	l1ti = (struct l1ctl_traffic_ind *)msgb_put(
+	                l1ctl_msg, sizeof(struct l1ctl_traffic_ind));
+
+	rsl_dec_chan_nr(chan_nr, &rsl_chan_type, &subchan, &timeslot);
+
+	l1dl->band_arfcn = htons(arfcn);
+	l1dl->link_id = link_id;
+	l1dl->chan_nr = chan_nr;
+	l1dl->frame_nr = htonl(fn);
+	l1dl->snr = snr;
+	l1dl->rx_level = signal_dbm;
+	l1dl->num_biterr = 0; // no biterrors
+	l1dl->fire_crc = 0;
+
+	// TODO: traffic decoding and decryption
+
+	memcpy(l1ti->data, msgb_data(msg), msgb_length(msg));
+	DEBUGP(DL1C, "Sending to l23 - L1CTL_TRAFFIC_IND\n");
+	l1ctl_sap_tx_to_l23(l1ctl_msg);
+}
+
+/**
+ * @brief Send a L1CTL_TRAFFIC_CONF to L23.
+ *
+ * @param [in] fn frame number
+ * @param [in] snr signal noise ratio
+ * @param [in] arfcn arfcn of the cell the message was send on
+ *
+ */
+void l1ctl_tx_traffic_conf(uint32_t fn, uint16_t snr, uint16_t arfcn)
+{
+	struct msgb * l1ctl_msg;
+	l1ctl_msg = l1ctl_create_l2_msg(L1CTL_TRAFFIC_CONF, fn, snr, arfcn);
+	// send confirm to layer23
+	l1ctl_sap_tx_to_l23(l1ctl_msg);
 }
 
 /**

@@ -55,12 +55,21 @@ void l1ctl_rx_sim_req(struct msgb *msg);
 /* transmit routines */
 void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type);
 void l1ctl_tx_rach_conf(uint32_t fn, uint16_t arfcn);
+void l1ctl_tx_data_conf(uint32_t fn, uint16_t snr, uint16_t arfcn);
+void l1ctl_tx_data_ind(struct msgb *msg, uint16_t arfcn, uint8_t link_id,
+                       uint8_t chan_nr, uint32_t fn, uint8_t snr,
+                       uint8_t signal_dbm, uint8_t num_biterr,
+                       uint8_t fire_crc);
+void l1ctl_tx_traffic_conf(uint32_t fn, uint16_t snr, uint16_t arfcn);
+void l1ctl_tx_traffic_ind(struct msgb *msg, uint16_t arfcn, uint8_t link_id,
+                          uint8_t chan_nr, uint32_t fn, uint8_t snr,
+                          uint8_t signal_dbm, uint8_t num_biterr,
+                          uint8_t fire_crc);
 void l1ctl_tx_pm_conf(struct l1ctl_pm_req *pm_req);
 void l1ctl_tx_fbsb_conf(uint8_t res, uint16_t arfcn);
 void l1ctl_tx_ccch_mode_conf(uint8_t ccch_mode);
 void l1ctl_tx_tch_mode_conf(uint8_t tch_mode, uint8_t audio_mode);
-void l1ctl_tx_msg(uint8_t msg_type);
 
 /* scheduler functions */
 uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
-                                      uint8_t link_id);
+                     uint8_t link_id);

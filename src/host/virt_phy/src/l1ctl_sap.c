@@ -149,7 +149,7 @@ struct msgb *l1ctl_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
 
 	dl = (struct l1ctl_info_dl *)msgb_put(msg, sizeof(*dl));
 	dl->frame_nr = htonl(fn);
-	dl->snr = snr;
+	dl->snr = htons(snr);
 	dl->band_arfcn = htons(arfcn);
 
 	return msg;
@@ -604,18 +604,6 @@ void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type)
 
 	DEBUGP(DL1C, "Sending to l23 - %s (reset_type: %u)\n",
 	                getL1ctlPrimName(msg_type), reset_type);
-	l1ctl_sap_tx_to_l23(msg);
-}
-
-/**
- * @brief Transmit L1CTL msg of a given type to layer 23.
- *
- * @param [in] msg_type L1CTL primitive message type.
- */
-void l1ctl_tx_msg(uint8_t msg_type)
-{
-	struct msgb *msg = l1ctl_msgb_alloc(msg_type);
-	DEBUGP(DL1C, "Sending to l23 - %s\n", getL1ctlPrimName(msg_type));
 	l1ctl_sap_tx_to_l23(msg);
 }
 

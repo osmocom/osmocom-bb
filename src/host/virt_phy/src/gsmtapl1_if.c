@@ -51,8 +51,8 @@ static const struct value_string gsmtap_channels[22] = {
         {GSMTAP_CHANNEL_SDCCH, "SDCCH"},
         {GSMTAP_CHANNEL_SDCCH4, "SDCCH/4"},
         {GSMTAP_CHANNEL_SDCCH8, "SDCCH/8"},
-        {GSMTAP_CHANNEL_TCH_F, "FACCH/F"},
-        {GSMTAP_CHANNEL_TCH_H, "FACCH/H"},
+        {GSMTAP_CHANNEL_TCH_F, "TCH/F/FACCH/F"},
+        {GSMTAP_CHANNEL_TCH_H, "TCH/H/FACCH/H"},
         {GSMTAP_CHANNEL_PACCH, "PACCH"},
         {GSMTAP_CHANNEL_CBCH52, "CBCH"},
         {GSMTAP_CHANNEL_PDCH, "PDCH"},
@@ -90,7 +90,8 @@ void gsmtapl1_init(struct l1_model_ms *model)
 /**
  * Replace l11 header of given msgb by a gsmtap header and send it over the virt um.
  */
-void gsmtapl1_tx_to_virt_um_inst(uint32_t fn, struct virt_um_inst *vui, struct msgb *msg)
+void gsmtapl1_tx_to_virt_um_inst(uint32_t fn, struct virt_um_inst *vui,
+                                 struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
@@ -112,21 +113,22 @@ void gsmtapl1_tx_to_virt_um_inst(uint32_t fn, struct virt_um_inst *vui, struct m
 
 	// arfcn needs to be flagged to be able to distinguish between uplink and downlink
 	outmsg = gsmtap_makemsg(arfcn | GSMTAP_ARFCN_F_UPLINK, timeslot,
-	                gsmtap_chan, subslot, fn, signal_dbm, snr, data,
-	                data_len);
+	                        gsmtap_chan, subslot, fn, signal_dbm, snr, data,
+	                        data_len);
 	if (outmsg) {
 		outmsg->l1h = msgb_data(outmsg);
 		gh = msgb_l1(outmsg);
 		if (virt_um_write_msg(l1_model_ms->vui, outmsg) == -1) {
-			LOGP(DVIRPHY, LOGL_ERROR,
-			                "Gsmtap msg could not send to virt um - (arfcn=%u, type=%u, subtype=%u, timeslot=%u, subslot=%u)\n",
-			                gh->arfcn, gh->type, gh->sub_type,
-			                gh->timeslot, gh->sub_slot);
+			LOGP(DVIRPHY,
+			     LOGL_ERROR,
+			     "Gsmtap msg could not send to virt um - (arfcn=%u, type=%u, subtype=%u, timeslot=%u, subslot=%u)\n",
+			     gh->arfcn, gh->type, gh->sub_type, gh->timeslot,
+			     gh->sub_slot);
 		} else {
 			DEBUGP(DVIRPHY,
-			                "Sending gsmtap msg to virt um - (arfcn=%u, type=%u, subtype=%u, timeslot=%u, subslot=%u)\n",
-			                gh->arfcn, gh->type, gh->sub_type,
-			                gh->timeslot, gh->sub_slot);
+			       "Sending gsmtap msg to virt um - (arfcn=%u, type=%u, subtype=%u, timeslot=%u, subslot=%u)\n",
+			       gh->arfcn, gh->type, gh->sub_type, gh->timeslot,
+			       gh->sub_slot);
 		}
 	} else {
 		LOGP(DVIRPHY, LOGL_ERROR, "Gsmtap msg could not be created!\n");
@@ -172,9 +174,6 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 
 	struct gsmtap_hdr *gh = msgb_l1(msg);
 	struct msgb *l1ctl_msg = NULL;
-	struct l1ctl_info_dl *l1dl;
-	struct l1ctl_traffic_ind * l1ti;
-	struct l1ctl_data_ind * l1di;
 	uint32_t fn = ntohl(gh->frame_number); // frame number of the rcv msg
 	uint16_t arfcn = ntohs(gh->arfcn); // arfcn of the received msg
 	uint8_t gsmtap_chantype = gh->sub_type; // gsmtap channel type
@@ -196,22 +195,25 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	virt_l1_sched_execute(fn);
 
 	DEBUGP(DVIRPHY,
-	                "Receiving gsmtap msg from virt um - (arfcn=%u, framenumber=%u, type=%s, subtype=%s, timeslot=%u, subslot=%u, rsl_chan_type=0x%2x, link_id=0x%2x, chan_nr=0x%2x)\n",
-	                arfcn, fn, get_value_string(gsmtap_types, gh->type),
-	                get_value_string(gsmtap_channels, gsmtap_chantype),
-	                timeslot, subslot, rsl_chantype, link_id, chan_nr);
+	       "Receiving gsmtap msg from virt um - (arfcn=%u, framenumber=%u, type=%s, subtype=%s, timeslot=%u, subslot=%u, rsl_chan_type=0x%2x, link_id=0x%2x, chan_nr=0x%2x)\n",
+	       arfcn, fn, get_value_string(gsmtap_types, gh->type),
+	       get_value_string(gsmtap_channels, gsmtap_chantype), timeslot,
+	       subslot, rsl_chantype, link_id, chan_nr);
 
 	// generally ignore all messages coming from another arfcn than the camped one
 	if (l1_model_ms->state->serving_cell.arfcn != (arfcn & GSMTAP_ARFCN_MASK)) {
-		LOGP(DVIRPHY, LOGL_NOTICE,
-		                "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n", arfcn & GSMTAP_ARFCN_MASK, l1_model_ms->state->serving_cell.arfcn);
+		LOGP(DVIRPHY,
+		     LOGL_NOTICE,
+		     "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n",
+		     arfcn & GSMTAP_ARFCN_MASK,
+		     l1_model_ms->state->serving_cell.arfcn);
 		goto nomessage;
 	}
 
 	// generally ignore all uplink messages received
 	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
 		LOGP(DVIRPHY, LOGL_NOTICE,
-		                "Ignoring gsmtap msg from virt um - uplink flag set!\n");
+		     "Ignoring gsmtap msg from virt um - uplink flag set!\n");
 		goto nomessage;
 	}
 
@@ -219,54 +221,25 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	switch (gsmtap_chantype & ~GSMTAP_CHANNEL_ACCH & 0xff) {
 	case GSMTAP_CHANNEL_TCH_H:
 	case GSMTAP_CHANNEL_TCH_F:
-		l1ctl_msg = l1ctl_msgb_alloc(L1CTL_TRAFFIC_IND);
-		l1dl = (struct l1ctl_info_dl *)msgb_put(l1ctl_msg,
-		                sizeof(struct l1ctl_info_dl));
-		l1ti = (struct l1ctl_traffic_ind *)msgb_put(l1ctl_msg,
-		                sizeof(struct l1ctl_traffic_ind));
-
-		l1dl->band_arfcn = htons(arfcn);
-		l1dl->link_id = link_id;
-		l1dl->chan_nr = chan_nr;
-		l1dl->frame_nr = htonl(fn);
-		l1dl->snr = snr;
-		l1dl->rx_level = signal_dbm;
-		l1dl->num_biterr = 0; // no biterrors
-		l1dl->fire_crc = 0;
-
-		// TODO: traffic decoding and decryption
-
-		memcpy(l1ti->data, msgb_data(msg), msgb_length(msg));
-		break;
+#if(0)
+		// TODO: handle msgs on TCH that are neither FACCH nor TCH/ACCH
+		if(!facch && ! tch_acch) {
+			l1ctl_tx_traffic_ind(msg, arfcn, link_id, chan_nr, fn,
+					snr, signal_dbm, 0, 0);
+		}
+#endif
 	case GSMTAP_CHANNEL_SDCCH4:
 	case GSMTAP_CHANNEL_SDCCH8:
-		// TODO: we might need to implement own channel handling for standalone dedicated channels
 	case GSMTAP_CHANNEL_AGCH:
 	case GSMTAP_CHANNEL_PCH:
 	case GSMTAP_CHANNEL_BCCH:
-		l1ctl_msg = l1ctl_msgb_alloc(L1CTL_DATA_IND);
-		l1dl = (struct l1ctl_info_dl *)msgb_put(l1ctl_msg,
-		                sizeof(struct l1ctl_info_dl));
-		l1di = (struct l1ctl_data_ind *)msgb_put(l1ctl_msg,
-		                sizeof(struct l1ctl_data_ind));
-
-		l1dl->band_arfcn = htons(arfcn);
-		l1dl->link_id = link_id;
-		l1dl->chan_nr = chan_nr;
-		l1dl->frame_nr = htonl(fn);
-		l1dl->snr = snr;
-		l1dl->rx_level = signal_dbm;
-		l1dl->num_biterr = 0; // no biterrors
-		l1dl->fire_crc = 0; // TODO: check if this means fire crc is not used or crc produced no error
-
-		// TODO: data decoding and decryption
-
-		memcpy(l1di->data, msgb_data(msg), msgb_length(msg));
-
+		l1ctl_tx_data_ind(msg, arfcn, link_id, chan_nr, fn, snr,
+		                  signal_dbm, 0, 0);
 		break;
 	case GSMTAP_CHANNEL_RACH:
-		LOGP(DVIRPHY, LOGL_NOTICE,
-		                "Ignoring gsmtap msg from virt um - channel type is uplink only!\n");
+		LOGP(DVIRPHY,
+		     LOGL_NOTICE,
+		     "Ignoring gsmtap msg from virt um - channel type is uplink only!\n");
 		break;
 	case GSMTAP_CHANNEL_SDCCH:
 	case GSMTAP_CHANNEL_CCCH:
@@ -275,12 +248,14 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	case GSMTAP_CHANNEL_PTCCH:
 	case GSMTAP_CHANNEL_CBCH51:
 	case GSMTAP_CHANNEL_CBCH52:
-		LOGP(DVIRPHY, LOGL_NOTICE,
-		                "Ignoring gsmtap msg from virt um - channel type not supported!\n");
+		LOGP(DVIRPHY,
+		     LOGL_NOTICE,
+		     "Ignoring gsmtap msg from virt um - channel type not supported!\n");
 		break;
 	default:
-		LOGP(DVIRPHY, LOGL_NOTICE,
-		                "Ignoring gsmtap msg from virt um - channel type unknown.\n");
+		LOGP(DVIRPHY,
+		     LOGL_NOTICE,
+		     "Ignoring gsmtap msg from virt um - channel type unknown.\n");
 		break;
 	}
 
@@ -288,7 +263,7 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	if (l1ctl_msg) {
 		l1ctl_sap_tx_to_l23(l1ctl_msg);
 	}
-nomessage:
+	nomessage:
 	// handle memory deallocation
 	talloc_free(msg);
 }
