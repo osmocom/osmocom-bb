@@ -166,12 +166,6 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 		return;
 	}
 
-	// forward msg to fbsb sync routine if we are in sync state
-	if (l1_model_ms->state->state == MS_STATE_IDLE_SYNCING) {
-		prim_fbsb_sync(msg);
-		return;
-	}
-
 	struct gsmtap_hdr *gh = msgb_l1(msg);
 	struct msgb *l1ctl_msg = NULL;
 	uint32_t fn = ntohl(gh->frame_number); // frame number of the rcv msg
@@ -184,6 +178,29 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	uint8_t rsl_chantype; // rsl chan type (8.58, 9.3.1)
 	uint8_t link_id; // rsl link id tells if this is an ssociated or dedicated link
 	uint8_t chan_nr; // encoded rsl channel type, timeslot and mf subslot
+
+	// generally ignore all uplink messages received
+	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
+		LOGP(DVIRPHY, LOGL_NOTICE,
+		     "Ignoring gsmtap msg from virt um - uplink flag set!\n");
+		goto nomessage;
+	}
+
+	// forward downlink msg to fbsb sync routine if we are in sync state
+	if (l1_model_ms->state->state == MS_STATE_IDLE_SYNCING) {
+		prim_fbsb_sync(msg);
+		return;
+	}
+
+	// generally ignore all messages coming from another arfcn than the camped one
+	if (l1_model_ms->state->serving_cell.arfcn != arfcn) {
+		LOGP(DVIRPHY,
+		     LOGL_NOTICE,
+		     "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n",
+		     arfcn,
+		     l1_model_ms->state->serving_cell.arfcn);
+		goto nomessage;
+	}
 
 	msg->l2h = msgb_pull(msg, sizeof(*gh));
 	chantype_gsmtap2rsl(gsmtap_chantype, &rsl_chantype, &link_id);
@@ -199,23 +216,6 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	       arfcn, fn, get_value_string(gsmtap_types, gh->type),
 	       get_value_string(gsmtap_channels, gsmtap_chantype), timeslot,
 	       subslot, rsl_chantype, link_id, chan_nr);
-
-	// generally ignore all messages coming from another arfcn than the camped one
-	if (l1_model_ms->state->serving_cell.arfcn != (arfcn & GSMTAP_ARFCN_MASK)) {
-		LOGP(DVIRPHY,
-		     LOGL_NOTICE,
-		     "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n",
-		     arfcn & GSMTAP_ARFCN_MASK,
-		     l1_model_ms->state->serving_cell.arfcn);
-		goto nomessage;
-	}
-
-	// generally ignore all uplink messages received
-	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
-		LOGP(DVIRPHY, LOGL_NOTICE,
-		     "Ignoring gsmtap msg from virt um - uplink flag set!\n");
-		goto nomessage;
-	}
 
 	// switch case with removed acch flag
 	switch (gsmtap_chantype & ~GSMTAP_CHANNEL_ACCH & 0xff) {

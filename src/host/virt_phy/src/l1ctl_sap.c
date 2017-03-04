@@ -377,60 +377,6 @@ void l1ctl_rx_param_req(struct msgb *msg)
 }
 
 /**
- * @brief Handler for received L1CTL_PM_REQ from L23.
- *
- * -- power measurement request --
- *
- * @param [in] msg the received message.
- *
- * Process power measurement for a given range of arfcns to calculate signal power and connection quality.
- *
- * Note: We do not need to calculate that for the virtual physical layer,
- * but l23 apps can expect a response. So this response is mocked here.
- * TODO: Might be possible to sync to different virtual BTS. Mapping from arfcn to mcast address would be needed. Configurable rx_lev for each mcast address.
- */
-void l1ctl_rx_pm_req(struct msgb *msg)
-{
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_pm_req *pm_req = (struct l1ctl_pm_req *)l1h->data;
-	struct msgb *resp_msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
-	uint16_t arfcn_next;
-	// convert to host order
-	pm_req->range.band_arfcn_from = ntohs(pm_req->range.band_arfcn_from);
-	pm_req->range.band_arfcn_to = ntohs(pm_req->range.band_arfcn_to);
-
-	DEBUGP(DL1C,
-	                "Received from l23 - L1CTL_PM_REQ TYPE=%u, FROM=%d, TO=%d\n",
-	                pm_req->type, pm_req->range.band_arfcn_from,
-	                pm_req->range.band_arfcn_to);
-
-	for (arfcn_next = pm_req->range.band_arfcn_from;
-	                arfcn_next <= pm_req->range.band_arfcn_to;
-	                ++arfcn_next) {
-		struct l1ctl_pm_conf *pm_conf =
-		                (struct l1ctl_pm_conf *)msgb_put(resp_msg,
-		                                sizeof(*pm_conf));
-		pm_conf->band_arfcn = htons(arfcn_next);
-		// rxlev 63 is great, 0 is bad the two values are min and max
-		pm_conf->pm[0] = 63;
-		pm_conf->pm[1] = 63;
-		if (arfcn_next == pm_req->range.band_arfcn_to) {
-			struct l1ctl_hdr *resp_l1h = msgb_l1(resp_msg);
-			resp_l1h->flags |= L1CTL_F_DONE;
-		}
-		// no more space to hold mor pm info in msgb, flush to l23
-		if (msgb_tailroom(resp_msg) < sizeof(*pm_conf)) {
-			l1ctl_sap_tx_to_l23(resp_msg);
-			resp_msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
-		}
-	}
-	// transmit the remaining part of pm response to l23
-	if (resp_msg) {
-		l1ctl_sap_tx_to_l23(resp_msg);
-	}
-}
-
-/**
  * @brief Handler for received L1CTL_RESET_REQ from L23.
  *
  * -- reset request --

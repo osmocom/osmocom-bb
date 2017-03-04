@@ -23,6 +23,7 @@ void prim_rach_init(struct l1_model_ms *model);
 void prim_data_init(struct l1_model_ms *model);
 void prim_traffic_init(struct l1_model_ms *model);
 void prim_fbsb_init(struct l1_model_ms *model);
+void prim_pm_init(struct l1_model_ms *model);
 void l1ctl_sap_tx_to_l23_inst(struct l1ctl_sock_inst *lsi, struct msgb *msg);
 void l1ctl_sap_tx_to_l23(struct msgb *msg);
 void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_inst *lsi,
