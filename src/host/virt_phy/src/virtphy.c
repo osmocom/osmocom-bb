@@ -44,7 +44,7 @@ int main( int argc, char *argv[] )
 	virt_l1_sched_init(model);
 
 	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer ready...\n \
-			Waiting for l23 app on %s", l1ctl_sock_path);
+			Waiting for l23 app on %s", l1ctl_sock_path ? l1ctl_sock_path : L1CTL_SOCK_PATH);
 
 	while (1) {
 		// handle osmocom fd READ events (l1ctl-unix-socket, virtual-um-mcast-socket)

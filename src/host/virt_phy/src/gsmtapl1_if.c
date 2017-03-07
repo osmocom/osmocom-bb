@@ -162,12 +162,10 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	}
 	// we do not forward messages to l23 if we are in network search state
 	if (l1_model_ms->state->state == MS_STATE_IDLE_SEARCHING) {
-		talloc_free(msg);
-		return;
+		goto freemsg;
 	}
 
 	struct gsmtap_hdr *gh = msgb_l1(msg);
-	struct msgb *l1ctl_msg = NULL;
 	uint32_t fn = ntohl(gh->frame_number); // frame number of the rcv msg
 	uint16_t arfcn = ntohs(gh->arfcn); // arfcn of the received msg
 	uint8_t gsmtap_chantype = gh->sub_type; // gsmtap channel type
@@ -183,7 +181,7 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
 		LOGP(DVIRPHY, LOGL_NOTICE,
 		     "Ignoring gsmtap msg from virt um - uplink flag set!\n");
-		goto nomessage;
+		goto freemsg;
 	}
 
 	// forward downlink msg to fbsb sync routine if we are in sync state
@@ -199,7 +197,7 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 		     "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n",
 		     arfcn,
 		     l1_model_ms->state->serving_cell.arfcn);
-		goto nomessage;
+		goto freemsg;
 	}
 
 	msg->l2h = msgb_pull(msg, sizeof(*gh));
@@ -230,11 +228,17 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 #endif
 	case GSMTAP_CHANNEL_SDCCH4:
 	case GSMTAP_CHANNEL_SDCCH8:
+		// only forward messages on dedicated channels to l2, if the timeslot and subslot is fitting
+		if(l1_model_ms->state->dedicated.tn == timeslot && l1_model_ms->state->dedicated.subslot == subslot) {
+			l1ctl_tx_data_ind(msg, arfcn, link_id, chan_nr, fn, snr,
+					                  signal_dbm, 0, 0);
+		}
+		break;
 	case GSMTAP_CHANNEL_AGCH:
 	case GSMTAP_CHANNEL_PCH:
 	case GSMTAP_CHANNEL_BCCH:
 		l1ctl_tx_data_ind(msg, arfcn, link_id, chan_nr, fn, snr,
-		                  signal_dbm, 0, 0);
+						  signal_dbm, 0, 0);
 		break;
 	case GSMTAP_CHANNEL_RACH:
 		LOGP(DVIRPHY,
@@ -259,11 +263,7 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 		break;
 	}
 
-	/* forward l1ctl message to l2 */
-	if (l1ctl_msg) {
-		l1ctl_sap_tx_to_l23(l1ctl_msg);
-	}
-	nomessage:
+	freemsg:
 	// handle memory deallocation
 	talloc_free(msg);
 }

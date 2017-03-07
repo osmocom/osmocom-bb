@@ -244,7 +244,6 @@ void l1ctl_sap_handler(struct msgb *msg)
  *
  * Handle state change from idle to dedicated mode.
  *
- * TODO: Implement this handler routine!
  */
 void l1ctl_rx_dm_est_req(struct msgb *msg)
 {
@@ -257,12 +256,12 @@ void l1ctl_rx_dm_est_req(struct msgb *msg)
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
 
 	DEBUGP(DL1C,
-	                "Received and handled from l23 - L1CTL_DM_EST_REQ (chan_nr=0x%02x, tn=%u)\n",
-	                ul->chan_nr, timeslot);
+	                "Received and handled from l23 - L1CTL_DM_EST_REQ (chan_nr=0x%02x, tn=%u, ss=%u)\n",
+	                ul->chan_nr, timeslot, subslot);
 
 	l1_model_ms->state->dedicated.chan_type = rsl_chantype;
 	l1_model_ms->state->dedicated.tn = timeslot;
-
+	l1_model_ms->state->dedicated.subslot = subslot;
 	/* TCH config */
 	if (rsl_chantype == RSL_CHAN_Bm_ACCHs
 	                || rsl_chantype == RSL_CHAN_Lm_ACCHs) {
@@ -348,6 +347,8 @@ void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_DM_REL_REQ\n");
 
 	l1_model_ms->state->dedicated.chan_type = 0;
+	l1_model_ms->state->dedicated.tn = 0;
+	l1_model_ms->state->dedicated.subslot = 0;
 	l1_model_ms->state->tch_mode = GSM48_CMODE_SIGN;
 
 	// TODO: disable ciphering
