@@ -153,6 +153,12 @@ extern void prim_fbsb_sync(struct msgb *msg);
 
 /**
  * Receive a gsmtap message from the virt um.
+ *
+ * As we do not have a downlink scheduler, but not all dl messages must be processed and thus forwarded to l2, this function also implements some message filtering.
+ * E.g. we do not forward:
+ * - uplink messages
+ * - messages with a wrong arfcn
+ * - if in MS_STATE_IDLE_SEARCHING
  */
 void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
                                       struct msgb *msg)
@@ -237,6 +243,7 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	case GSMTAP_CHANNEL_AGCH:
 	case GSMTAP_CHANNEL_PCH:
 	case GSMTAP_CHANNEL_BCCH:
+		// save to just forward here, as upper layer ignores messages that do not fit the current state (e.g. gsm48_rr.c:2159)
 		l1ctl_tx_data_ind(msg, arfcn, link_id, chan_nr, fn, snr,
 						  signal_dbm, 0, 0);
 		break;

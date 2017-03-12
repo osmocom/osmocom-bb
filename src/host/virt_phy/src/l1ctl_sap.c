@@ -262,6 +262,8 @@ void l1ctl_rx_dm_est_req(struct msgb *msg)
 	l1_model_ms->state->dedicated.chan_type = rsl_chantype;
 	l1_model_ms->state->dedicated.tn = timeslot;
 	l1_model_ms->state->dedicated.subslot = subslot;
+	l1_model_ms->state->state = MS_STATE_DEDICATED;
+
 	/* TCH config */
 	if (rsl_chantype == RSL_CHAN_Bm_ACCHs
 	                || rsl_chantype == RSL_CHAN_Lm_ACCHs) {
@@ -340,7 +342,6 @@ void l1ctl_rx_crypto_req(struct msgb *msg)
  *
  * Handle state change from dedicated to idle mode. Flush message buffers of dedicated channel.
  *
- * TODO: Implement this handler routine!
  */
 void l1ctl_rx_dm_rel_req(struct msgb *msg)
 {
@@ -350,6 +351,7 @@ void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	l1_model_ms->state->dedicated.tn = 0;
 	l1_model_ms->state->dedicated.subslot = 0;
 	l1_model_ms->state->tch_mode = GSM48_CMODE_SIGN;
+	l1_model_ms->state->state = MS_STATE_IDLE_CAMPING;
 
 	// TODO: disable ciphering
 	// TODO: disable audio recording / playing
