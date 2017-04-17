@@ -27,6 +27,13 @@ enum {
 	GSM_SIM_TYPE_SAP
 };
 
+struct gsm_subscriber_creds {
+	struct llist_head	entry;
+	char 			imsi[GSM_IMSI_LENGTH];
+	uint32_t		online;
+	uint32_t		tmsi;
+};
+
 struct gsm_subscriber {
 	struct osmocom_ms	*ms;
 

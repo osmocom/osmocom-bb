@@ -90,6 +90,7 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	set->cc_dtmf = 1;
 
 	INIT_LLIST_HEAD(&set->abbrev);
+	INIT_LLIST_HEAD(&set->multi_imsi_list);
 
 	return 0;
 }
@@ -135,12 +136,18 @@ int gsm_settings_exit(struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_settings_abbrev *abbrev;
+	struct llist_head *lh, *lh2;
 
 	while (!llist_empty(&set->abbrev)) {
 		abbrev = llist_entry(set->abbrev.next,
 			struct gsm_settings_abbrev, list);
 		llist_del(&abbrev->list);
 		talloc_free(abbrev);
+	}
+
+	llist_for_each_safe(lh, lh2, &set->multi_imsi_list) {
+		llist_del(lh);
+		talloc_free(lh);
 	}
 
 	return 0;

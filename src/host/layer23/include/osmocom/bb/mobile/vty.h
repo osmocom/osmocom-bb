@@ -8,6 +8,7 @@
 
 enum ms_vty_node {
 	MS_NODE = _LAST_OSMOVTY_NODE + 1,
+	MULTI_IMSI_NODE,
 	TESTSIM_NODE,
 	SUPPORT_NODE,
 };

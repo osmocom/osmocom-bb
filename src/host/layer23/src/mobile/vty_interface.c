@@ -1,5 +1,6 @@
 /*
  * (C) 2010 by Andreas Eversberg <jolly@eversberg.eu>
+ * (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * All Rights Reserved
  *
@@ -57,6 +58,12 @@ extern struct llist_head active_connections;
 struct cmd_node ms_node = {
 	MS_NODE,
 	"%s(ms)#",
+	1
+};
+
+struct cmd_node multi_imsi_node = {
+	MULTI_IMSI_NODE,
+	"%s(multi-imsi)#",
 	1
 };
 
@@ -1304,6 +1311,7 @@ DEFUN(cfg_no_ms, cfg_no_ms_cmd, "no ms MS_NAME",
 static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
+	struct gsm_subscriber_creds *imsi_entry;
 	struct gsm_support *sup = &ms->support;
 	struct gsm_settings_abbrev *abbrev;
 
@@ -1480,6 +1488,13 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, "  %sskip-max-per-band%s",
 			(set->skip_max_per_band) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " exit%s", VTY_NEWLINE);
+
+	if (!llist_empty(&set->multi_imsi_list)) {
+		vty_out(vty, " multi-imsi%s", VTY_NEWLINE);
+		llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry)
+			vty_out(vty, "  imsi %s%s", imsi_entry->imsi, VTY_NEWLINE);
+	}
+
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
 	switch (set->test_ki_type) {
@@ -2481,6 +2496,100 @@ DEFUN(cfg_ms_sup_no_skip_max_per_band, cfg_ms_sup_no_skip_max_per_band_cmd,
 	return CMD_SUCCESS;
 }
 
+/* Multi-IMSI config */
+DEFUN(cfg_ms_multi_imsi, cfg_ms_multi_imsi_cmd, "multi-imsi",
+	"Configure multiple IMSIs to care for")
+{
+	vty->node = MULTI_IMSI_NODE;
+
+	return CMD_SUCCESS;
+}
+
+static int multi_imsi_add_impl(struct vty *vty, struct osmocom_ms *ms,
+	const char *imsi)
+{
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_subscriber_creds *creds_node;
+	char *error = gsm_check_imsi(imsi);
+
+	if (error) {
+		vty_out(vty, "%s%s", error, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	// Check if IMSI already in the list
+	llist_for_each_entry(creds_node, &set->multi_imsi_list, entry) {
+		if (!strcmp(creds_node->imsi, imsi)) {
+			vty_out(vty, "%s%s", "IMSI already in the list!", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	// Add a new IMSI
+	creds_node = talloc_zero(l23_ctx, struct gsm_subscriber_creds);
+	strcpy(creds_node->imsi, imsi);
+	creds_node->tmsi = 0xffffffff;
+	llist_add_tail(&creds_node->entry, &set->multi_imsi_list);
+
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+static int multi_imsi_print_impl(struct vty *vty, struct osmocom_ms *ms)
+{
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_subscriber_creds *creds_node;
+	int i = 0;
+
+	llist_for_each_entry(creds_node, &set->multi_imsi_list, entry)
+		vty_out(vty, "  #%02d %s 0x%08x %s%s", ++i,
+			creds_node->imsi, creds_node->tmsi,
+			creds_node->online ? "online" : "",
+			VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_multi_imsi_add, cfg_multi_imsi_add_cmd, "imsi IMSI",
+	"Add a new IMSI to the list\n15 digits IMSI")
+{
+	struct osmocom_ms *ms = vty->index;
+	return multi_imsi_add_impl(vty, ms, argv[0]);
+}
+
+DEFUN(cfg_multi_imsi_list, cfg_multi_imsi_list_cmd, "print",
+	"Print all stored IMSIs")
+{
+	struct osmocom_ms *ms = vty->index;
+	return multi_imsi_print_impl(vty, ms);
+}
+
+DEFUN(multi_imsi_add, multi_imsi_add_cmd, "multi-imsi MS_NAME imsi IMSI",
+	"Multi-IMSI configuration\nMS name\n"
+	"Add a new IMSI to the list\n15 digits IMSI")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	return multi_imsi_add_impl(vty, ms, argv[1]);
+}
+
+DEFUN(multi_imsi_list, multi_imsi_list_cmd, "multi-imsi MS_NAME print",
+	"Multi-IMSI configuration\nMS name\nPrint all stored IMSIs")
+{
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	return multi_imsi_print_impl(vty, ms);
+}
+
 /* per testsim config */
 DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	"Configure test SIM emulation")
@@ -2751,6 +2860,7 @@ enum node_type ms_vty_go_parent(struct vty *vty)
 		vty->node = CONFIG_NODE;
 		vty->index = NULL;
 		break;
+	case MULTI_IMSI_NODE:
 	case TESTSIM_NODE:
 	case SUPPORT_NODE:
 		vty->node = MS_NODE;
@@ -2771,6 +2881,7 @@ gDEFUN(ournode_exit,
 		vty->node = CONFIG_NODE;
 		vty->index = NULL;
 		break;
+	case MULTI_IMSI_NODE:
 	case TESTSIM_NODE:
 	case SUPPORT_NODE:
 		vty->node = MS_NODE;
@@ -2795,6 +2906,7 @@ gDEFUN(ournode_end,
 	case MS_NODE:
 	case TESTSIM_NODE:
 	case SUPPORT_NODE:
+	case MULTI_IMSI_NODE:
 		vty_config_unlock(vty);
 		vty->node = ENABLE_NODE;
 		vty->index = NULL;
@@ -2830,8 +2942,10 @@ int ms_vty_init(void)
 	install_element_ve(&show_forb_plmn_cmd);
 	install_element_ve(&monitor_network_cmd);
 	install_element_ve(&no_monitor_network_cmd);
+	install_element_ve(&multi_imsi_list_cmd);
 	install_element(ENABLE_NODE, &off_cmd);
 
+	install_element(ENABLE_NODE, &multi_imsi_add_cmd);
 	install_element(ENABLE_NODE, &sim_test_cmd);
 	install_element(ENABLE_NODE, &sim_test_att_cmd);
 	install_element(ENABLE_NODE, &sim_sap_cmd);
@@ -2910,6 +3024,7 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_codec_half_cmd);
 	install_element(MS_NODE, &cfg_ms_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_no_abbrev_cmd);
+	install_element(MS_NODE, &cfg_ms_multi_imsi_cmd);
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
 	install_element(MS_NODE, &cfg_ms_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
@@ -2972,6 +3087,14 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_skip_max_per_band_cmd);
+
+	install_node(&multi_imsi_node, config_write_dummy);
+	install_default(MULTI_IMSI_NODE);
+	install_element(MULTI_IMSI_NODE, &ournode_exit_cmd);
+	install_element(MULTI_IMSI_NODE, &ournode_end_cmd);
+	install_element(MULTI_IMSI_NODE, &cfg_multi_imsi_add_cmd);
+	install_element(MULTI_IMSI_NODE, &cfg_multi_imsi_list_cmd);
+
 	install_node(&testsim_node, config_write_dummy);
 	install_default(TESTSIM_NODE);
 	install_element(TESTSIM_NODE, &ournode_exit_cmd);

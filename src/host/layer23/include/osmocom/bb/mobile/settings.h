@@ -20,6 +20,9 @@ struct gsm_settings {
 	/* SMS */
 	char			sms_sca[22];
 
+	/* Multi-IMSI settings */
+	struct llist_head	multi_imsi_list;
+
 	/* test card simulator settings */
 	char 			test_imsi[16];
 	uint32_t		test_tmsi;
