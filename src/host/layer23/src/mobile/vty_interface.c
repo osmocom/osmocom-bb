@@ -2590,6 +2590,25 @@ DEFUN(multi_imsi_list, multi_imsi_list_cmd, "multi-imsi MS_NAME print",
 	return multi_imsi_print_impl(vty, ms);
 }
 
+DEFUN(multi_imsi_update, multi_imsi_update_cmd, "multi-imsi MS_NAME update",
+	"Multi-IMSI configuration\nMS name\nTrigger Location Update")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct gsm_subscriber_creds *creds_node;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	set = &ms->settings;
+
+	llist_for_each_entry(creds_node, &set->multi_imsi_list, entry)
+		creds_node->online = 0;
+
+	return CMD_SUCCESS;
+}
+
 /* per testsim config */
 DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	"Configure test SIM emulation")
@@ -2946,6 +2965,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &off_cmd);
 
 	install_element(ENABLE_NODE, &multi_imsi_add_cmd);
+	install_element(ENABLE_NODE, &multi_imsi_update_cmd);
 	install_element(ENABLE_NODE, &sim_test_cmd);
 	install_element(ENABLE_NODE, &sim_test_att_cmd);
 	install_element(ENABLE_NODE, &sim_sap_cmd);
