@@ -1312,6 +1312,16 @@ int gsm_subscr_remove_sapcard(struct osmocom_ms *ms)
 	return sap_close(ms);
 }
 
+int multi_imsi_spoof(struct osmocom_ms *ms, struct gsm_subscriber_creds *src)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+
+	subscr->tmsi = src->tmsi;
+	strcpy(subscr->imsi, src->imsi);
+
+	return 0;
+}
+
 int multi_imsi_work(struct osmocom_ms *ms)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;

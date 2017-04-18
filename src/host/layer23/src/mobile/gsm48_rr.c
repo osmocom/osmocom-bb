@@ -2096,6 +2096,8 @@ static int gsm48_rr_chan2cause[4] = {
 static uint8_t gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_subscriber_creds *imsi_entry;
 	char imsi[16];
 	uint32_t tmsi;
 	uint8_t mi_type;
@@ -2116,9 +2118,19 @@ static uint8_t gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 				ntohl(tmsi));
 
 			return mi_type;
-		} else
+		} else if (!llist_empty(&set->multi_imsi_list)) {
+			llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+				if (imsi_entry->tmsi == ntohl(tmsi)) {
+					LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
+						ntohl(tmsi));
+					multi_imsi_spoof(ms, imsi_entry);
+					return mi_type;
+				}
+			}
+		} else {
 			LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 				ntohl(tmsi));
+		}
 		break;
 	case GSM_MI_TYPE_IMSI:
 		gsm48_mi_to_string(imsi, sizeof(imsi), mi + 1, mi[0]);
@@ -2126,8 +2138,18 @@ static uint8_t gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 			LOGP(DPAG, LOGL_INFO, " IMSI %s matches\n", imsi);
 
 			return mi_type;
-		} else
+		} else if (!llist_empty(&set->multi_imsi_list)) {
+			llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+				if (!strcmp(imsi, imsi_entry->imsi)) {
+					LOGP(DPAG, LOGL_INFO, " IMSI %s matches\n",
+						imsi);
+					multi_imsi_spoof(ms, imsi_entry);
+					return mi_type;
+				}
+			}
+		} else {
 			LOGP(DPAG, LOGL_INFO, " IMSI %s (not for us)\n", imsi);
+		}
 		break;
 	default:
 		LOGP(DPAG, LOGL_NOTICE, "Paging with unsupported MI type %d.\n",
@@ -2201,6 +2223,8 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_subscriber_creds *imsi_entry;
 	struct gsm48_paging2 *pa = msgb_l3(msg);
 	int payload_len = msgb_l3len(msg) - sizeof(*pa);
 	uint8_t *mi, mi_type;
@@ -2228,6 +2252,7 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	/* channel needed */
 	chan_1 = pa->cneed1;
 	chan_2 = pa->cneed2;
+
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
 	 && ms->subscr.mcc == cs->sel_mcc
@@ -2236,9 +2261,21 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
 			GSM_MI_TYPE_TMSI);
-	} else
+	} else if (!llist_empty(&set->multi_imsi_list)) {
+		llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+			if (imsi_entry->tmsi == ntohl(pa->tmsi1)) {
+				LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
+					imsi_entry->tmsi);
+				multi_imsi_spoof(ms, imsi_entry);
+				return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
+					GSM_MI_TYPE_TMSI);
+			}
+		}
+	} else {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi1));
+	}
+
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
 	 && ms->subscr.mcc == cs->sel_mcc
@@ -2247,9 +2284,21 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
 			GSM_MI_TYPE_TMSI);
-	} else
+	} else if (!llist_empty(&set->multi_imsi_list)) {
+		llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+			if (imsi_entry->tmsi == ntohl(pa->tmsi2)) {
+				LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
+					imsi_entry->tmsi);
+				multi_imsi_spoof(ms, imsi_entry);
+				return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
+					GSM_MI_TYPE_TMSI);
+			}
+		}
+	} else {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi2));
+	}
+
 	/* third MI */
 	mi = pa->data;
 	if (payload_len < 2)
@@ -2271,6 +2320,8 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_subscriber_creds *imsi_entry;
 	struct gsm48_paging3 *pa = msgb_l3(msg);
 	int payload_len = msgb_l3len(msg) - sizeof(*pa);
 	int chan_1, chan_2, chan_3, chan_4;
@@ -2298,6 +2349,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	chan_2 = pa->cneed2;
 	chan_3 = pa->cneed3;
 	chan_4 = pa->cneed4;
+
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
 	 && ms->subscr.mcc == cs->sel_mcc
@@ -2306,9 +2358,21 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
 			GSM_MI_TYPE_TMSI);
-	} else
+	} else if (!llist_empty(&set->multi_imsi_list)) {
+		llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+			if (imsi_entry->tmsi == ntohl(pa->tmsi1)) {
+				LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
+					imsi_entry->tmsi);
+				multi_imsi_spoof(ms, imsi_entry);
+				return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
+					GSM_MI_TYPE_TMSI);
+			}
+		}
+	} else {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi1));
+	}
+
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
 	 && ms->subscr.mcc == cs->sel_mcc
@@ -2317,9 +2381,21 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
 			GSM_MI_TYPE_TMSI);
-	} else
+	} else if (!llist_empty(&set->multi_imsi_list)) {
+		llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+			if (imsi_entry->tmsi == ntohl(pa->tmsi2)) {
+				LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
+					imsi_entry->tmsi);
+				multi_imsi_spoof(ms, imsi_entry);
+				return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
+					GSM_MI_TYPE_TMSI);
+			}
+		}
+	} else {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi2));
+	}
+
 	/* thrid MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi3)
 	 && ms->subscr.mcc == cs->sel_mcc
@@ -2328,9 +2404,21 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi3));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1,
 			GSM_MI_TYPE_TMSI);
-	} else
+	} else if (!llist_empty(&set->multi_imsi_list)) {
+		llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+			if (imsi_entry->tmsi == ntohl(pa->tmsi3)) {
+				LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
+					imsi_entry->tmsi);
+				multi_imsi_spoof(ms, imsi_entry);
+				return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1,
+					GSM_MI_TYPE_TMSI);
+			}
+		}
+	} else {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi3));
+	}
+
 	/* fourth MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi4)
 	 && ms->subscr.mcc == cs->sel_mcc
@@ -2339,9 +2427,20 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi4));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1,
 			GSM_MI_TYPE_TMSI);
-	} else
+	} else if (!llist_empty(&set->multi_imsi_list)) {
+		llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+			if (imsi_entry->tmsi == ntohl(pa->tmsi4)) {
+				LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
+					imsi_entry->tmsi);
+				multi_imsi_spoof(ms, imsi_entry);
+				return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1,
+					GSM_MI_TYPE_TMSI);
+			}
+		}
+	} else {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi4));
+	}
 
 	return 0;
 }
