@@ -1573,6 +1573,8 @@ static int gsm48_mm_tx_tmsi_reall_cpl(struct osmocom_ms *ms)
 static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_subscriber_creds *imsi_entry;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	unsigned int payload_len = msgb_l3len(msg) - sizeof(*gh);
 	struct gsm48_loc_area_id *lai = (struct gsm48_loc_area_id *) gh->data;
@@ -1585,6 +1587,7 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 			"COMMAND message error.\n");
 		return -EINVAL;
 	}
+
 	/* LAI */
 	gsm48_decode_lai_hex(lai, &subscr->mcc, &subscr->mnc, &subscr->lac);
 	/* MI */
@@ -1615,6 +1618,15 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* store LOCI on sim */
 	gsm_subscr_write_loci(ms);
+
+	// Check if current IMSI preset in multi-imsi list
+	// and keep TMSI updated
+	llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+		if (!strcmp(imsi_entry->imsi, subscr->imsi)) {
+			imsi_entry->tmsi = subscr->tmsi;
+			break;
+		}
+	}
 
 	return 0;
 }
