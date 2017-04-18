@@ -72,6 +72,7 @@ int mobile_work(struct osmocom_ms *ms)
 		w |= gsm322_cs_dequeue(ms);
 		w |= gsm_sim_job_dequeue(ms);
 		w |= mncc_dequeue(ms);
+		w |= multi_imsi_work(ms);
 		if (w)
 			work = 1;
 	} while (w);

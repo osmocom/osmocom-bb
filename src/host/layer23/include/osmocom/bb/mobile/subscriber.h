@@ -116,6 +116,7 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 			void (*print)(void *, const char *, ...), void *priv);
 char *gsm_check_imsi(const char *imsi);
 int gsm_subscr_get_key_seq(struct osmocom_ms *ms, struct gsm_subscriber *subscr);
+int multi_imsi_work(struct osmocom_ms *ms);
 
 #endif /* _SUBSCRIBER_H */
 

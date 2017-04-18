@@ -181,8 +181,10 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	if (imsi_attached && set->test_rplmn_valid) {
 		subscr->imsi_attached = imsi_attached;
 		subscr->ustate = GSM_SIM_U1_UPDATED;
-	} else
+	} else {
 		subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
+	}
+
 	subscr->acc_barr = set->test_barr; /* we may access barred cell */
 	subscr->acc_class = 0xffff; /* we have any access class */
 	subscr->plmn_valid = set->test_rplmn_valid;
@@ -1308,4 +1310,53 @@ int gsm_subscr_sapcard(struct osmocom_ms *ms)
 int gsm_subscr_remove_sapcard(struct osmocom_ms *ms)
 {
 	return sap_close(ms);
+}
+
+int multi_imsi_work(struct osmocom_ms *ms)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm_settings *set = &ms->settings;
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm_subscriber_creds *imsi_entry;
+
+	static int fake_imsi = 0;
+	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
+	uint32_t tmsi = 0xffffffff;
+
+	if (cs->state == GSM322_C3_CAMPED_NORMALLY) {
+		llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+			if (!imsi_entry->online && subscr->ustate == GSM_SIM_U1_UPDATED) {
+				if (fake_imsi) {
+					// Update TMSI using obtained information
+					imsi_entry->tmsi = subscr->tmsi;
+
+					fake_imsi = 0;
+					imsi_entry->online = 1;
+
+					vty_notify(ms, "Successfully registered IMSI (%s 0x%08x)\n",
+						imsi_entry->imsi, imsi_entry->tmsi);
+				} else {
+					vty_notify(ms, "Attempting to register a new IMSI %s\n",
+						imsi_entry->imsi);
+
+					fake_imsi = 1;
+
+					// Remove current SIM, avoiding IMSI Detach
+					subscr->imsi_attached = 0;
+					gsm_subscr_remove(ms);
+
+					// Spoof IMSI
+					strcpy(set->test_imsi, imsi_entry->imsi);
+
+					return 1;
+				}
+			}
+		}
+	} else if (!subscr->sim_valid && fake_imsi) {
+		// Force LUR using this IMSI
+		gsm_subscr_testcard(ms, mcc, mnc, lac, tmsi, 0);
+		return 1;
+	}
+
+	return 0;
 }
