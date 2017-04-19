@@ -349,6 +349,8 @@ static void timeout_mm_t3211(void *arg)
 static void timeout_mm_t3212(void *arg)
 {
 	struct gsm48_mmlayer *mm = arg;
+	struct gsm_subscriber_creds *creds_node;
+	struct gsm_settings *set = &mm->ms->settings;
 
 	LOGP(DSUM, LOGL_INFO, "Periodic location update\n");
 	LOGP(DMM, LOGL_INFO, "timer T3212 (periodic loc. upd. delay) has "
@@ -358,6 +360,10 @@ static void timeout_mm_t3212(void *arg)
 	if (mm->state == GSM48_MM_ST_MM_IDLE
 	 && mm->substate == GSM48_MM_SST_ATTEMPT_UPDATE)
 		mm->lupd_attempt = 0;
+
+	// Trigger LU for multi-imsi too
+	llist_for_each_entry(creds_node, &set->multi_imsi_list, entry)
+		creds_node->online = 0;
 
 	gsm48_mm_ev(mm->ms, GSM48_MM_EVENT_TIMEOUT_T3212, NULL);
 }
