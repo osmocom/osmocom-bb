@@ -37,6 +37,8 @@
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
+#include <osmocom/bb/mobile/db.h>
+#include <osmocom/bb/mobile/db_sms.h>
 #include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/vty/telnet_interface.h>
 
@@ -56,6 +58,38 @@ int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg);
 int (*mncc_recv_app)(struct osmocom_ms *ms, int, void *);
 static int quit;
 
+static int db_sms_check(struct osmocom_ms *ms)
+{
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm_settings *set = &ms->settings;
+	struct db_sms_record *sms = NULL;
+	const char *sms_sca = "99999";
+	int rc;
+
+	// Phone should be registered and should support SMS
+	if (cs->state != GSM322_C3_CAMPED_NORMALLY || !set->sms_ptp)
+		return 0;
+
+	// Check if we have a new message to send
+	rc = db_pop_sms(ms->db_sms, &sms);
+	if (rc || !sms)
+		return 0;
+
+	// So, we got a new SMS to send
+	vty_notify(ms, "Got a new SMS to send:\n");
+	vty_notify(ms, "IMSI (%s) -> extension (%s)\n",
+		sms->src_imsi, sms->dst_number);
+
+	// Set up required IMSI
+	multi_imsi_switch_imsi(ms, sms->src_imsi);
+
+	// Send SMS
+	sms_send(ms, sms_sca, sms->dst_number, sms->text);
+
+	talloc_free(sms);
+	return 0;
+}
+
 /* handle ms instance */
 int mobile_work(struct osmocom_ms *ms)
 {
@@ -73,6 +107,7 @@ int mobile_work(struct osmocom_ms *ms)
 		w |= gsm_sim_job_dequeue(ms);
 		w |= mncc_dequeue(ms);
 		w |= multi_imsi_work(ms);
+		w |= db_sms_check(ms);
 		if (w)
 			work = 1;
 	} while (w);
@@ -166,6 +201,7 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	gsm411_sms_exit(ms);
 	gsm_sim_exit(ms);
 	lapdm_channel_exit(&ms->lapdm_channel);
+	db_close(ms->db_sms);
 
 	if (ms->started) {
 		ms->shutdown = 2; /* being down, wait for reset */
@@ -183,6 +219,7 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 /* power-on ms instance */
 int mobile_init(struct osmocom_ms *ms)
 {
+	char *db_name;
 	int rc;
 
 	gsm_settings_arfcn(ms);
@@ -195,6 +232,27 @@ int mobile_init(struct osmocom_ms *ms)
 		T200_ACCH;
 	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_usec = 0;
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
+
+	// Compose database name
+	db_name = talloc_asprintf(ms, "sms_db_%s.sqlite3", ms->name);
+
+	// Init database connection
+	rc = db_open(&ms->db_sms, db_name);
+	if (rc) {
+		ms->l2_wq.bfd.fd = -1;
+		mobile_exit(ms, 1);
+		return rc;
+	}
+
+	// Prepare database if required
+	rc = db_prepare(ms->db_sms);
+	if (rc) {
+		ms->l2_wq.bfd.fd = -1;
+		mobile_exit(ms, 1);
+		return rc;
+	}
+
+	talloc_free(db_name);
 
 	/* init SAP client before SIM card starts up */
 	osmosap_init(ms);

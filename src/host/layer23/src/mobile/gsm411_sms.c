@@ -37,6 +37,8 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
+#include <osmocom/bb/mobile/db.h>
+#include <osmocom/bb/mobile/db_sms.h>
 #include <osmocom/gsm/gsm0411_utils.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/bb/mobile/vty.h>
@@ -212,6 +214,10 @@ fail:
 		goto fail;
 	fprintf(fp, "[SMS from %s]\n%s\n", gsms->address, gsms->text);
 	fclose(fp);
+
+	// Save SMS to database
+	db_push_sms(ms->db_sms, ms->subscr.imsi, ms->subscr.tmsi,
+		gsms->address, gsms->text);
 
 	talloc_free(sms_file);
 
