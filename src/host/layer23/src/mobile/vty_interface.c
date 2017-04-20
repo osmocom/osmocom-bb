@@ -2609,6 +2609,32 @@ DEFUN(multi_imsi_update, multi_imsi_update_cmd, "multi-imsi MS_NAME update",
 	return CMD_SUCCESS;
 }
 
+DEFUN(multi_imsi_switch, multi_imsi_switch_cmd, "multi-imsi MS_NAME switch IMSI",
+	"Multi-IMSI configuration\nMS name\n"
+	"Spoof some IMSI from list\nIMSI to spoof")
+{
+	char *error = gsm_check_imsi(argv[1]);
+	struct osmocom_ms *ms;
+	int rc;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (error) {
+		vty_out(vty, "%s%s", error, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	rc = multi_imsi_switch_imsi(ms, argv[1]);
+	if (rc) {
+		vty_out(vty, "IMSI not in list?%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
 /* per testsim config */
 DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	"Configure test SIM emulation")
@@ -2966,6 +2992,7 @@ int ms_vty_init(void)
 
 	install_element(ENABLE_NODE, &multi_imsi_add_cmd);
 	install_element(ENABLE_NODE, &multi_imsi_update_cmd);
+	install_element(ENABLE_NODE, &multi_imsi_switch_cmd);
 	install_element(ENABLE_NODE, &sim_test_cmd);
 	install_element(ENABLE_NODE, &sim_test_att_cmd);
 	install_element(ENABLE_NODE, &sim_sap_cmd);

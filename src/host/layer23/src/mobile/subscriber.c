@@ -1322,6 +1322,21 @@ int multi_imsi_spoof(struct osmocom_ms *ms, struct gsm_subscriber_creds *src)
 	return 0;
 }
 
+int multi_imsi_switch_imsi(struct osmocom_ms *ms, const char *imsi)
+{
+	struct gsm_subscriber_creds *imsi_entry;
+	struct gsm_settings *set = &ms->settings;
+
+	llist_for_each_entry(imsi_entry, &set->multi_imsi_list, entry) {
+		if (!strcmp(imsi_entry->imsi, imsi)) {
+			multi_imsi_spoof(ms, imsi_entry);
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
 int multi_imsi_work(struct osmocom_ms *ms)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
