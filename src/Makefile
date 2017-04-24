@@ -85,6 +85,7 @@ clean:
 	make -C shared/libosmocore/build-target $@
 	make -C host/layer23 $@
 	make -C host/osmocon $@
+	make -C host/gsmmap $@
 	make -C target/firmware $@
 	make -C target/firmware -f Makefile.mtk $@
 
@@ -92,5 +93,6 @@ distclean:
 	rm -rf shared/libosmocore/build-target
 	make -C host/layer23 $@
 	make -C host/osmocon $@
+	make -C host/gsmmap $@
 # 'firmware' also handles 'mtk-firmware'
 	make -C target/firmware $@
