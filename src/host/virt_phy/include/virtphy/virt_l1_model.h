@@ -3,6 +3,7 @@
 #include <virtphy/virtual_um.h>
 #include <virtphy/l1ctl_sock.h>
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/core/timer.h>
 
 #define L1S_NUM_NEIGH_CELL	6
 #define A5_KEY_LEN		8
@@ -78,6 +79,17 @@ struct l1_state_ms {
 	struct {
 		uint32_t arfcn;
 	} fbsb;
+
+	/* power management state */
+	struct {
+		uint32_t timeout_us;
+		uint32_t timeout_s;
+		struct {
+			int16_t arfcn_sig_lev_dbm[1024];
+			uint8_t arfcn_sig_lev_red_dbm[1024];
+			struct osmo_timer_list arfcn_sig_lev_timers[1024];
+		} meas;
+	} pm;
 };
 
 struct l1_model_ms *l1_model_ms_init(void *ctx);

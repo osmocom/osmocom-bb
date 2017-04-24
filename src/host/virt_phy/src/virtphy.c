@@ -3,6 +3,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/select.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -22,6 +23,8 @@ static char* ul_tx_grp = DEFAULT_BTS_MCAST_GROUP;
 static int port = DEFAULT_MCAST_PORT;
 static char* log_mask = DEFAULT_LOG_MASK;
 static char * l1ctl_sock_path = L1CTL_SOCK_PATH;
+static char * arfcn_sig_lev_red_mask = NULL;
+static char * pm_timeout = NULL;
 
 static void handle_options(int argc, char **argv)
 {
@@ -33,9 +36,11 @@ static void handle_options(int argc, char **argv)
 		        {"port", required_argument, 0, 'x'},
 		        {"log-mask", required_argument, 0, 'd'},
 		        {"l1ctl-sock", required_argument, 0, 's'},
+		        {"arfcn-sig-lev-red", required_argument, 0, 'r'},
+		        {"pm-timeout", required_argument, 0, 't'},
 		        {0, 0, 0, 0},
 		};
-		c = getopt_long(argc, argv, "z:y:x:d:s:", long_options,
+		c = getopt_long(argc, argv, "z:y:x:d:s:r:t:", long_options,
 		                &option_index);
 		if (c == -1)
 			break;
@@ -56,10 +61,57 @@ static void handle_options(int argc, char **argv)
 		case 's':
 			l1ctl_sock_path = optarg;
 			break;
+		case 'r':
+			arfcn_sig_lev_red_mask = optarg;
+			break;
+		case 't':
+			pm_timeout = optarg;
+			break;
 		default:
 			break;
 		}
 	}
+}
+
+void parse_pm_timeout(struct l1_model_ms *model, char *pm_timeout) {
+
+	if(!pm_timeout || (strcmp(pm_timeout, "") == 0)) {
+		return;
+	}
+	// seconds
+	char *buf = strtok(pm_timeout, ":");
+	model->state->pm.timeout_s = atoi(buf);
+	// microseconds
+	buf = strtok(NULL, ":");
+	if(buf) {
+		model->state->pm.timeout_us = atoi(buf);
+	}
+}
+
+/**
+ * arfcn_sig_lev_red_mask has to be formatted like 666,12:888,43:176,22
+ */
+void parse_arfcn_sig_lev_red(struct l1_model_ms *model, char * arfcn_sig_lev_red_mask) {
+
+	if(!arfcn_sig_lev_red_mask || (strcmp(arfcn_sig_lev_red_mask, "") == 0)) {
+		return;
+	}
+	char *token = strtok(arfcn_sig_lev_red_mask, ":");
+	do {
+		char* colon = strstr(token, ",");
+		uint16_t arfcn;
+		uint8_t red;
+		if(!colon) {
+			continue;
+		}
+		colon[0] = '\0';
+
+		arfcn = atoi(token);
+		red = atoi(colon + 1);
+
+		//TODO: this may go wild if the token string is not properly formatted
+		model->state->pm.meas.arfcn_sig_lev_red_dbm[arfcn] = red;
+	} while ((token = strtok(NULL, ":")));
 }
 
 int main(int argc, char *argv[])
@@ -83,6 +135,10 @@ int main(int argc, char *argv[])
 	gsmtapl1_init(model);
 	l1ctl_sap_init(model);
 	virt_l1_sched_init(model);
+
+	// apply timeout and arfcn reduction value config to model
+	parse_pm_timeout(model, pm_timeout);
+	parse_arfcn_sig_lev_red(model, arfcn_sig_lev_red_mask);
 
 	LOGP(DVIRPHY, LOGL_INFO,
 	     "Virtual physical layer ready...\n \

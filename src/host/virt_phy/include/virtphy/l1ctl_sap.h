@@ -18,6 +18,14 @@
 #define LID_SACCH 		0x40
 #define LID_DEDIC 		0x00
 
+/* signature strengths for the ms */
+#define MIN_SIG_LEV_DBM -110
+#define MAX_SIG_LEV_DBM -63
+
+/* Ignore all flags of the arfcn */
+#define ARFCN_NO_FLAGS_MASK 0x0fff
+
+
 void l1ctl_sap_init(struct l1_model_ms *model);
 void prim_rach_init(struct l1_model_ms *model);
 void prim_data_init(struct l1_model_ms *model);

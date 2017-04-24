@@ -57,7 +57,7 @@ void prim_fbsb_sync(struct msgb *msg)
 	if (l1_model_ms->state->fbsb.arfcn != arfcn) {
 		talloc_free(msg);
 		// cancel sync if we did not receive a msg on dl from the requested arfcn that we can sync to
-		if(sync_count++ > 100) {
+		if(sync_count++ > 20) {
 			sync_count = 0;
 			l1_model_ms->state->state = MS_STATE_IDLE_SEARCHING;
 			l1ctl_tx_fbsb_conf(1, (l1_model_ms->state->fbsb.arfcn));

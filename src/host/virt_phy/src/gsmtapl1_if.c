@@ -152,6 +152,11 @@ void gsmtapl1_tx_to_virt_um(uint32_t fn, struct msgb *msg)
 extern void prim_fbsb_sync(struct msgb *msg);
 
 /**
+ * @see virt_prim_pm.c
+ */
+extern uint16_t prim_pm_set_sig_strength(uint16_t arfcn, int16_t sig_lev);
+
+/**
  * Receive a gsmtap message from the virt um.
  *
  * As we do not have a downlink scheduler, but not all dl messages must be processed and thus forwarded to l2, this function also implements some message filtering.
@@ -166,16 +171,12 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	if (!msg) {
 		return;
 	}
-	// we do not forward messages to l23 if we are in network search state
-	if (l1_model_ms->state->state == MS_STATE_IDLE_SEARCHING) {
-		goto freemsg;
-	}
 
 	struct gsmtap_hdr *gh = msgb_l1(msg);
 	uint32_t fn = ntohl(gh->frame_number); // frame number of the rcv msg
 	uint16_t arfcn = ntohs(gh->arfcn); // arfcn of the received msg
 	uint8_t gsmtap_chantype = gh->sub_type; // gsmtap channel type
-	uint8_t signal_dbm = gh->signal_dbm; // signal strength, 63 is best
+	uint8_t signal_dbm = dbm2rxlev(prim_pm_set_sig_strength(arfcn & GSMTAP_ARFCN_MASK, MAX_SIG_LEV_DBM)); // Power measurement with each received massage
 	uint8_t snr = gh->snr_db; // signal noise ratio, 63 is best
 	uint8_t subslot = gh->sub_slot; // multiframe subslot to send msg in (tch -> 0-26, bcch/ccch -> 0-51)
 	uint8_t timeslot = gh->timeslot; // tdma timeslot to send in (0-7)
@@ -187,6 +188,11 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
 		LOGP(DVIRPHY, LOGL_NOTICE,
 		     "Ignoring gsmtap msg from virt um - uplink flag set!\n");
+		goto freemsg;
+	}
+
+	// we do not forward messages to l23 if we are in network search state
+	if (l1_model_ms->state->state == MS_STATE_IDLE_SEARCHING) {
 		goto freemsg;
 	}
 

@@ -43,6 +43,7 @@ void l1ctl_sap_init(struct l1_model_ms *model)
 	prim_fbsb_init(model);
 	prim_data_init(model);
 	prim_traffic_init(model);
+	prim_pm_init(model);
 }
 
 /**
