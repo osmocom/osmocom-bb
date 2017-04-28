@@ -57,6 +57,8 @@ enum {
 	L1CTL_TRAFFIC_CONF,
 	L1CTL_TRAFFIC_IND,
 	L1CTL_BURST_IND,
+	L1CTL_DEVCFG_REQ,
+	L1CTL_DEVCFG_CONF,
 };
 
 enum ccch_mode {
@@ -313,6 +315,23 @@ struct l1ctl_neigh_pm_ind {
 /* traffic data to network */
 struct l1ctl_traffic_req {
 	uint8_t data[TRAFFIC_DATA_LEN];
+} __attribute__((packed));
+
+/* device configuration request and response */
+enum l1ctl_devcfg_cmd {
+	L1CTL_DEVCFG_CMD_BAUDRATE,
+};
+
+struct l1ctl_devcfg_req {
+	uint8_t cmd;
+	union {
+		uint32_t baudrate;
+	};
+} __attribute__((packed));
+
+struct l1ctl_devcfg_resp {
+	uint8_t cmd;
+	uint8_t result;
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */

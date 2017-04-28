@@ -583,6 +583,65 @@ static void l1ctl_sim_req(struct msgb *msg)
    sim_apdu(len, data);
 }
 
+static void l1ctl_tx_devcfg_conf(uint8_t cmd, uint8_t result)
+{
+	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_DEVCFG_CONF);
+	struct l1ctl_devcfg_resp *dr;
+
+	dr = (struct l1ctl_devcfg_resp *) msgb_put(msg, sizeof(*dr));
+	dr->cmd = cmd;
+	dr->result = result;
+
+	l1_queue_for_l2(msg);
+}
+
+static int uard_baudrt_by_l1ctl(uint32_t baudrt)
+{
+	switch (baudrt) {
+	case 38400:
+		return UART_38400;
+	case 57600:
+		return UART_57600;
+	case 115200:
+		return UART_115200;
+	case 230400:
+		return UART_230400;
+	case 460800:
+		return UART_460800;
+	case 614400:
+		return UART_614400;
+	case 921600:
+		return UART_921600;
+	default:
+		return -1;
+	}
+}
+
+static void l1ctl_devcfg_req(struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_devcfg_req *dr = (struct l1ctl_devcfg_req *) l1h->data;
+	int rc;
+
+	switch (dr->cmd) {
+	case L1CTL_DEVCFG_CMD_BAUDRATE:
+		rc = uard_baudrt_by_l1ctl(dr->baudrate);
+		if (rc < 0) {
+			printf("Unsupported baudrate %u\n", dr->baudrate);
+			l1ctl_tx_devcfg_conf(dr->cmd, 0xff);
+			return;
+		}
+		printf("Sending response at old baud rate\n");
+		l1ctl_tx_devcfg_conf(dr->cmd, 0);
+		printf("Changing to new baud rate %u (%d)...\n", dr->baudrate, rc);
+		sercomm_change_speed(rc);
+		break;
+	default:
+		l1ctl_tx_devcfg_conf(dr->cmd, 0xff);
+		return;
+	}
+}
+
 static struct llist_head l23_rx_queue = LLIST_HEAD_INIT(l23_rx_queue);
 
 /* callback from SERCOMM when L2 sends a message to L1 */
@@ -673,6 +732,8 @@ void l1a_l23_handler(void)
 		goto exit_nofree;
 	case L1CTL_SIM_REQ:
 		l1ctl_sim_req(msg);
+	case L1CTL_DEVCFG_REQ:
+		l1ctl_devcfg_req(msg);
 		break;
 	}
 
