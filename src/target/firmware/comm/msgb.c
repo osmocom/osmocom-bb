@@ -44,7 +44,7 @@ struct supermsg {
 	uint8_t buf[MSGB_DATA_SIZE];
 };
 static struct supermsg msgs[MSGB_NUM];
-void *_talloc_zero(void *ctx, unsigned int size, const char *name)
+void *_talloc_zero(const void *ctx, size_t size, const char *name)
 {
 	unsigned long flags;
 	unsigned int i;
@@ -70,7 +70,7 @@ panic:
 
 	return NULL; /* not reached */
 }
-void talloc_free(void *msg)
+int _talloc_free(void *msg, const char *location)
 {
 	struct supermsg *smsg = container_of(msg, struct supermsg, msg);
 	/* no locking required, since this is atomic */

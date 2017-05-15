@@ -2,6 +2,8 @@
 ## Osmocom-BB: Target firmware Makefile
 ##
 
+SYSROOT=/usr/local/arm-none-eabi
+
 #
 # Environments
 #
@@ -101,8 +103,8 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 		layer1/liblayer1.a \
 		lib/libmini.a \
 		comm/libcomm.a \
-		../../shared/libosmocore/build-target/src/.libs/libosmocore.a \
-		../../shared/libosmocore/build-target/src/gsm/.libs/libosmogsm.a
+		$(SYSROOT)/lib/libosmocore.a \
+		$(SYSROOT)/lib/libosmogsm.a
 
 
 #
@@ -110,7 +112,7 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 #
 
 # Global include path
-INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include -I../../shared/libosmocore/build-target/include
+INCLUDES=-Iinclude/ -I../../../include -I$(SYSROOT)/include
 
 # Libraries are defined in subdirectories
 -include calypso/Makefile
