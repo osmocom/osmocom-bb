@@ -2144,7 +2144,7 @@ static int gsm322_search_end(struct osmocom_ms *ms)
 			return -ENOMEM;
 		ngm = (struct gsm322_msg *) nmsg->data;
 		ngm->mcc = mcc;
-		ngm->mnc = mcc;
+		ngm->mnc = mnc;
 		gsm322_plmn_sendmsg(ms, nmsg);
 	}
 
