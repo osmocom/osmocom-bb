@@ -897,8 +897,8 @@ static int gsm480_rx_cf(struct gsm_trans *trans, const uint8_t *data,
 			case 0x85:
 				if (((tag_data[0] & 0x70) >> 4) == 1)
 					strcpy(number, "+");
-				else if (((tag_data[0] & 0x70) >> 4) == 1)
-					strcpy(number, "+");
+				else if (((tag_data[0] & 0x70) >> 4) == 2)
+					strcpy(number, "0");
 				else
 					number[0] = '\0';
 				gsm48_decode_bcd_number(number + strlen(number),
