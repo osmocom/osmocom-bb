@@ -146,11 +146,13 @@ static int gsm48_decode_ba_range(const uint8_t *ba, uint8_t ba_len,
 		*ranges = 0;
 		return -EINVAL;
 	}
-	if (max_ranges > n)
+
+	if (n > max_ranges) {
 		LOGP(DRR, LOGL_NOTICE, "BA range %d exceed the maximum number "
 			"of ranges supported by this mobile (%d).\n",
 			n, max_ranges);
 		n = max_ranges;
+	}
 
 	/* decode ranges */
 	for (i = 0; i < n; i++) {
