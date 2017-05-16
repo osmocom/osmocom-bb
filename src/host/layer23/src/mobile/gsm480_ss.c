@@ -1243,7 +1243,8 @@ static int gsm480_mmss_ind(int mmss_msg, struct gsm_trans *trans,
 		gsm480_trans_free(trans);
 		rc = -ENOTSUP;
 	}
-	return 0;
+
+	return rc;
 }
 
 /* receive message from MM layer */
