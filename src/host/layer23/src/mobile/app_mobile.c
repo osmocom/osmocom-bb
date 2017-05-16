@@ -252,7 +252,7 @@ struct osmocom_ms *mobile_new(char *name)
 	ms = talloc_zero(l23_ctx, struct osmocom_ms);
 	if (!ms) {
 		fprintf(stderr, "Failed to allocate MS\n");
-		exit(1);
+		return NULL;
 	}
 	llist_add_tail(&ms->entity, &ms_list);
 
@@ -423,11 +423,12 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 
 		printf("No Mobile Station defined, creating: MS '1'\n");
 		ms = mobile_new("1");
-		if (ms) {
-			rc = mobile_init(ms);
-			if (rc < 0)
-				return rc;
-		}
+		if (!ms)
+			return -1;
+
+		rc = mobile_init(ms);
+		if (rc < 0)
+			return rc;
 	}
 
 	quit = 0;
