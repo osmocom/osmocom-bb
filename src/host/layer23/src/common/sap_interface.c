@@ -151,7 +151,7 @@ static struct msgb *sap_create_msg(uint8_t id, uint8_t num_params, struct sap_pa
 
 static int osmosap_send(struct osmocom_ms *ms, struct msgb *msg)
 {
-	if(ms->sap_entity.sap_state == SAP_NOT_CONNECTED && !ms->sap_entity.sap_state == SAP_CONNECTION_UNDER_NEGOTIATION)
+	if(ms->sap_entity.sap_state == SAP_NOT_CONNECTED)
 		sap_connect(ms);
 
 	if (ms->sap_wq.bfd.fd <= 0)
