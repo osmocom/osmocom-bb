@@ -5111,6 +5111,7 @@ int gsm322_exit(struct osmocom_ms *ms)
 	char filename[PATH_MAX];
 	struct gsm322_ba_list *ba;
 	uint8_t buf[4];
+	int rc = 0;
 	int i;
 
 	LOGP(DPLMN, LOGL_INFO, "exit PLMN process\n");
@@ -5139,23 +5140,25 @@ int gsm322_exit(struct osmocom_ms *ms)
 	sprintf(filename, "%s/%s.ba", config_dir, ms->name);
 	fp = fopen(filename, "w");
 	if (fp) {
-		int rc;
-
 		fputs(ba_version, fp);
 		llist_for_each_entry(ba, &cs->ba_list, entry) {
 			buf[0] = ba->mcc >> 8;
 			buf[1] = ba->mcc & 0xff;
 			buf[2] = ba->mnc >> 8;
 			buf[3] = ba->mnc & 0xff;
-			rc = fwrite(buf, 4, 1, fp);
-			rc = fwrite(ba->freq, sizeof(ba->freq), 1, fp);
-			LOGP(DCS, LOGL_INFO, "Write stored BA list (mcc=%s "
-				"mnc=%s  %s, %s)\n", gsm_print_mcc(ba->mcc),
-				gsm_print_mnc(ba->mnc), gsm_get_mcc(ba->mcc),
-				gsm_get_mnc(ba->mcc, ba->mnc));
+
+			rc += fwrite(buf, 4, 1, fp);
+			rc += fwrite(ba->freq, sizeof(ba->freq), 1, fp);
 		}
 		fclose(fp);
-	} else
+	}
+
+	if (rc == 2)
+		LOGP(DCS, LOGL_INFO, "Write stored BA list (mcc=%s "
+			"mnc=%s  %s, %s)\n", gsm_print_mcc(ba->mcc),
+			gsm_print_mnc(ba->mnc), gsm_get_mcc(ba->mcc),
+			gsm_get_mnc(ba->mcc, ba->mnc));
+	else
 		LOGP(DCS, LOGL_ERROR, "Failed to write BA list\n");
 
 	/* free lists */
