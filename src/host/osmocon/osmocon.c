@@ -497,8 +497,7 @@ static int romload_prepare_block(void)
 
 static int mtk_prepare_block(void)
 {
-	int rc, i;
-
+	int i;
 	int remaining_bytes;
 	int fill_bytes;
 	uint8_t *block_data;
@@ -565,7 +564,7 @@ static int mtk_prepare_block(void)
 	dnload.block_ptr = dnload.block;
 
 	dnload.block_number++;
-	return rc;
+	return 0;
 }
 
 static int handle_write_block(void)
