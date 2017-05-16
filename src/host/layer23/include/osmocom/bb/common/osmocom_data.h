@@ -57,7 +57,7 @@ struct rx_meas_stat {
 /* One Mobilestation for osmocom */
 struct osmocom_ms {
 	struct llist_head entity;
-	char name[32];
+	char *name;
 	struct osmo_wqueue l2_wq, sap_wq;
 	uint16_t test_arfcn;
 	struct osmol1_entity l1_entity;

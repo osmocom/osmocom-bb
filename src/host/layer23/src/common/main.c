@@ -246,8 +246,7 @@ int main(int argc, char **argv)
 
 	llist_add_tail(&ms->entity, &ms_list);
 
-	sprintf(ms->name, "1");
-
+	ms->name = talloc_strdup(ms, "1");
 	ms->test_arfcn = 871;
 
 	handle_options(argc, argv);

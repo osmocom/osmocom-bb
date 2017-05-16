@@ -5028,7 +5028,7 @@ int gsm322_init(struct osmocom_ms *ms)
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	FILE *fp;
-	char filename[PATH_MAX];
+	char *ba_filename;
 	int i;
 	struct gsm322_ba_list *ba;
 	uint8_t buf[4];
@@ -5060,8 +5060,9 @@ int gsm322_init(struct osmocom_ms *ms)
 			cs->list[i].flags |= GSM322_CS_FLAG_SUPPORT;
 
 	/* read BA list */
-	sprintf(filename, "%s/%s.ba", config_dir, ms->name);
-	fp = fopen(filename, "r");
+	ba_filename = talloc_asprintf(ms, "%s/%s.ba", config_dir, ms->name);
+	fp = fopen(ba_filename, "r");
+	talloc_free(ba_filename);
 	if (fp) {
 		int rc;
 		char *s_rc;
@@ -5108,7 +5109,7 @@ int gsm322_exit(struct osmocom_ms *ms)
 	struct llist_head *lh, *lh2;
 	struct msgb *msg;
 	FILE *fp;
-	char filename[PATH_MAX];
+	char *ba_filename;
 	struct gsm322_ba_list *ba;
 	uint8_t buf[4];
 	int rc = 0;
@@ -5137,20 +5138,23 @@ int gsm322_exit(struct osmocom_ms *ms)
 	}
 
 	/* store BA list */
-	sprintf(filename, "%s/%s.ba", config_dir, ms->name);
-	fp = fopen(filename, "w");
-	if (fp) {
-		fputs(ba_version, fp);
-		llist_for_each_entry(ba, &cs->ba_list, entry) {
-			buf[0] = ba->mcc >> 8;
-			buf[1] = ba->mcc & 0xff;
-			buf[2] = ba->mnc >> 8;
-			buf[3] = ba->mnc & 0xff;
+	ba_filename = talloc_asprintf(ms, "%s/%s.ba", config_dir, ms->name);
+	if (ba_filename) {
+		fp = fopen(ba_filename, "w");
+		talloc_free(ba_filename);
+		if (fp) {
+			fputs(ba_version, fp);
+			llist_for_each_entry(ba, &cs->ba_list, entry) {
+				buf[0] = ba->mcc >> 8;
+				buf[1] = ba->mcc & 0xff;
+				buf[2] = ba->mnc >> 8;
+				buf[3] = ba->mnc & 0xff;
 
-			rc += fwrite(buf, 4, 1, fp);
-			rc += fwrite(ba->freq, sizeof(ba->freq), 1, fp);
+				rc += fwrite(buf, 4, 1, fp);
+				rc += fwrite(ba->freq, sizeof(ba->freq), 1, fp);
+			}
+			fclose(fp);
 		}
-		fclose(fp);
 	}
 
 	if (rc == 2)

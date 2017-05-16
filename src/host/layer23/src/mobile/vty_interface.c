@@ -1265,7 +1265,7 @@ DEFUN(cfg_ms_rename, cfg_ms_rename_cmd, "ms MS_NAME rename MS_NAME",
 		return CMD_WARNING;
 	}
 
-	strncpy(ms->name, argv[1], sizeof(ms->name) - 1);
+	osmo_talloc_replace_string(ms, &ms->name, argv[1]);
 
 	return CMD_SUCCESS;
 }

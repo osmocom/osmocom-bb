@@ -248,18 +248,21 @@ int mobile_init(struct osmocom_ms *ms)
 struct osmocom_ms *mobile_new(char *name)
 {
 	static struct osmocom_ms *ms;
+	char *mncc_name;
 
 	ms = talloc_zero(l23_ctx, struct osmocom_ms);
 	if (!ms) {
 		fprintf(stderr, "Failed to allocate MS\n");
 		return NULL;
 	}
-	llist_add_tail(&ms->entity, &ms_list);
 
-	strcpy(ms->name, name);
-
+	talloc_set_name(ms, "ms_%s", name);
+	ms->name = talloc_strdup(ms, name);
 	ms->l2_wq.bfd.fd = -1;
 	ms->sap_wq.bfd.fd = -1;
+
+	/* Register a new MS */
+	llist_add_tail(&ms->entity, &ms_list);
 
 	gsm_support_init(ms);
 	gsm_settings_init(ms);
@@ -267,13 +270,12 @@ struct osmocom_ms *mobile_new(char *name)
 	ms->shutdown = 3; /* being down */
 
 	if (mncc_recv_app) {
-		char name[32];
-
-		sprintf(name, "/tmp/ms_mncc_%s", ms->name);
+		mncc_name = talloc_asprintf(ms, "/tmp/ms_mncc_%s", ms->name);
 
 		ms->mncc_entity.mncc_recv = mncc_recv_app;
-		ms->mncc_entity.sock_state = mncc_sock_init(ms, name, l23_ctx);
+		ms->mncc_entity.sock_state = mncc_sock_init(ms, mncc_name, l23_ctx);
 
+		talloc_free(mncc_name);
 	} else if (ms->settings.ch_cap == GSM_CAP_SDCCH)
 		ms->mncc_entity.mncc_recv = mncc_recv_dummy;
 	else
