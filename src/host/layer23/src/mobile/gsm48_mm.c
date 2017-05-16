@@ -777,11 +777,9 @@ int gsm48_mmr_dequeue(struct osmocom_ms *ms)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct msgb *msg;
-	struct gsm48_mmr *mmr;
 	int work = 0;
 
 	while ((msg = msgb_dequeue(&mm->mmr_downqueue))) {
-		mmr = (struct gsm48_mmr *) msg->data;
 		gsm48_rcv_mmr(ms, msg);
 		msgb_free(msg);
 		work = 1; /* work done */
