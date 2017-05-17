@@ -43,8 +43,6 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
-void *l23_ctx;
-
 int mncc_call(struct osmocom_ms *ms, char *number);
 int mncc_hangup(struct osmocom_ms *ms);
 int mncc_answer(struct osmocom_ms *ms);
@@ -2104,7 +2102,7 @@ DEFUN(cfg_abbrev, cfg_ms_abbrev_cmd, "abbrev ABBREVIATION NUMBER [NAME]",
 	if (vty_check_number(vty, argv[1]))
 		return CMD_WARNING;
 
-	abbrev = talloc_zero(l23_ctx, struct gsm_settings_abbrev);
+	abbrev = talloc_zero(ms, struct gsm_settings_abbrev);
 	if (!abbrev) {
 		vty_out(vty, "No Memory!%s", VTY_NEWLINE);
 		return CMD_WARNING;

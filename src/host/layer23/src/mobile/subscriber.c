@@ -36,8 +36,6 @@
  * if list is changed, the result is not written back to SIM */
 //#define TEST_EMPTY_FPLMN
 
-void *l23_ctx;
-
 static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_update_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg);
@@ -400,7 +398,7 @@ static int subscr_sim_plmnsel(struct osmocom_ms *ms, uint8_t *data,
 			break;
 
 		/* add to list */
-		plmn = talloc_zero(l23_ctx, struct gsm_sub_plmn_list);
+		plmn = talloc_zero(ms, struct gsm_sub_plmn_list);
 		if (!plmn)
 			return -ENOMEM;
 		lai[0] = data[0];
@@ -504,7 +502,7 @@ static int subscr_sim_fplmn(struct osmocom_ms *ms, uint8_t *data,
 			break;
 
 		/* add to list */
-		na = talloc_zero(l23_ctx, struct gsm_sub_plmn_na);
+		na = talloc_zero(ms, struct gsm_sub_plmn_na);
 		if (!na)
 			return -ENOMEM;
 		lai[0] = data[0];
@@ -1119,7 +1117,7 @@ int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 
 	LOGP(DPLMN, LOGL_INFO, "Add to list of forbidden PLMNs "
 		"(mcc=%s, mnc=%s)\n", gsm_print_mcc(mcc), gsm_print_mnc(mnc));
-	na = talloc_zero(l23_ctx, struct gsm_sub_plmn_na);
+	na = talloc_zero(subscr->ms, struct gsm_sub_plmn_na);
 	if (!na)
 		return -ENOMEM;
 	na->mcc = mcc;

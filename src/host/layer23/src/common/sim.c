@@ -29,7 +29,6 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1ctl.h>
 
-extern void *l23_ctx;
 static int sim_process_job(struct osmocom_ms *ms);
 
 /*
@@ -1181,7 +1180,7 @@ uint32_t sim_open(struct osmocom_ms *ms,
 	struct gsm_sim_handler *handler;
 
 	/* create handler and attach */
-	handler = talloc_zero(l23_ctx, struct gsm_sim_handler);
+	handler = talloc_zero(ms, struct gsm_sim_handler);
 	if (!handler)
 		return 0;
 	handler->handle = new_handle++;

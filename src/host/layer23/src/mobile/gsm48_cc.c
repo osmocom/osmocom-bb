@@ -38,8 +38,6 @@
 #include <osmocom/bb/mobile/voice.h>
 #include <l1ctl_proto.h>
 
-extern void *l23_ctx;
-
 static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg);
 static int gsm48_rel_null_free(struct gsm_trans *trans);
 int mncc_release_ind(struct osmocom_ms *ms, struct gsm_trans *trans,

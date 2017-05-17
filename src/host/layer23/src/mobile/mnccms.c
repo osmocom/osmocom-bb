@@ -32,7 +32,6 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/vty.h>
 
-void *l23_ctx;
 static uint32_t new_callref = 1;
 static LLIST_HEAD(call_list);
 
@@ -287,7 +286,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 	if (!call) {
 		if (llist_empty(&call_list))
 			first_call = 1;
-		call = talloc_zero(l23_ctx, struct gsm_call);
+		call = talloc_zero(ms, struct gsm_call);
 		if (!call)
 			return -ENOMEM;
 		call->ms = ms;
@@ -551,7 +550,7 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 		}
 	}
 
-	call = talloc_zero(l23_ctx, struct gsm_call);
+	call = talloc_zero(ms, struct gsm_call);
 	if (!call)
 		return -ENOMEM;
 	call->ms = ms;

@@ -273,7 +273,7 @@ struct osmocom_ms *mobile_new(char *name)
 		mncc_name = talloc_asprintf(ms, "/tmp/ms_mncc_%s", ms->name);
 
 		ms->mncc_entity.mncc_recv = mncc_recv_app;
-		ms->mncc_entity.sock_state = mncc_sock_init(ms, mncc_name, l23_ctx);
+		ms->mncc_entity.sock_state = mncc_sock_init(ms, mncc_name);
 
 		talloc_free(mncc_name);
 	} else if (ms->settings.ch_cap == GSM_CAP_SDCCH)

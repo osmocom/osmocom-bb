@@ -30,8 +30,6 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 
-extern void *l23_ctx;
-
 void _gsm48_cc_trans_free(struct gsm_trans *trans);
 void _gsm480_ss_trans_free(struct gsm_trans *trans);
 void _gsm411_sms_trans_free(struct gsm_trans *trans);
@@ -67,7 +65,7 @@ struct gsm_trans *trans_alloc(struct osmocom_ms *ms,
 {
 	struct gsm_trans *trans;
 
-	trans = talloc_zero(l23_ctx, struct gsm_trans);
+	trans = talloc_zero(ms, struct gsm_trans);
 	if (!trans)
 		return NULL;
 

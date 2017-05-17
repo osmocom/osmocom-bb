@@ -45,8 +45,6 @@
 
 const char *ba_version = "osmocom BA V1\n";
 
-extern void *l23_ctx;
-
 static void gsm322_cs_timeout(void *arg);
 static int gsm322_cs_select(struct osmocom_ms *ms, int index, uint16_t mcc,
 	uint16_t mnc, int any);
@@ -560,7 +558,7 @@ int gsm322_add_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
 	LOGP(DPLMN, LOGL_INFO, "Add to list of forbidden LAs "
 		"(mcc=%s, mnc=%s, lac=%04x)\n", gsm_print_mcc(mcc),
 		gsm_print_mnc(mnc), lac);
-	la = talloc_zero(l23_ctx, struct gsm322_la_list);
+	la = talloc_zero(ms, struct gsm322_la_list);
 	if (!la)
 		return -ENOMEM;
 	la->mcc = mcc;
@@ -905,7 +903,7 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 			if (cs->list[i].rxlev > found->rxlev)
 				found->rxlev = cs->list[i].rxlev;
 		} else {
-			temp = talloc_zero(l23_ctx, struct gsm322_plmn_list);
+			temp = talloc_zero(ms, struct gsm322_plmn_list);
 			if (!temp)
 				return -ENOMEM;
 			temp->mcc = cs->list[i].sysinfo->mcc;
@@ -2153,7 +2151,7 @@ static int gsm322_search_end(struct osmocom_ms *ms)
 		cs->arfcn = cs->sel_arfcn;
 		cs->arfci = arfcn2index(cs->arfcn);
 		if (!cs->list[cs->arfci].sysinfo)
-			cs->list[cs->arfci].sysinfo = talloc_zero(l23_ctx,
+			cs->list[cs->arfci].sysinfo = talloc_zero(ms,
 							struct gsm48_sysinfo);
 		if (!cs->list[cs->arfci].sysinfo)
 			exit(-ENOMEM);
@@ -2260,7 +2258,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 		memset(cs->list[cs->arfci].sysinfo, 0,
 			sizeof(struct gsm48_sysinfo));
 	else
-		cs->list[cs->arfci].sysinfo = talloc_zero(l23_ctx,
+		cs->list[cs->arfci].sysinfo = talloc_zero(ms,
 						struct gsm48_sysinfo);
 	if (!cs->list[cs->arfci].sysinfo)
 		exit(-ENOMEM);
@@ -2481,7 +2479,7 @@ struct gsm322_ba_list *gsm322_cs_sysinfo_sacch(struct osmocom_ms *ms)
 		/* find or create ba list */
 		ba = gsm322_find_ba_list(cs, s->mcc, s->mnc);
 		if (!ba) {
-			ba = talloc_zero(l23_ctx, struct gsm322_ba_list);
+			ba = talloc_zero(ms, struct gsm322_ba_list);
 			if (!ba)
 				return NULL;
 			ba->mcc = s->mcc;
@@ -2523,7 +2521,7 @@ static int gsm322_store_ba_list(struct gsm322_cellsel *cs,
 	/* find or create ba list */
 	ba = gsm322_find_ba_list(cs, s->mcc, s->mnc);
 	if (!ba) {
-		ba = talloc_zero(l23_ctx, struct gsm322_ba_list);
+		ba = talloc_zero(cs->ms, struct gsm322_ba_list);
 		if (!ba)
 			return -ENOMEM;
 		ba->mcc = s->mcc;
@@ -4093,7 +4091,7 @@ static struct gsm322_neighbour *gsm322_nb_alloc(struct gsm322_cellsel *cs,
 
 	time(&now);
 
-	nb = talloc_zero(l23_ctx, struct gsm322_neighbour);
+	nb = talloc_zero(cs->ms, struct gsm322_neighbour);
 	if (!nb)
 		return 0;
 
@@ -4423,8 +4421,8 @@ no_cell_found:
 		memset(cs->list[cs->arfci].sysinfo, 0,
 			sizeof(struct gsm48_sysinfo));
 	else
-		cs->list[cs->arfci].sysinfo = talloc_zero(l23_ctx,
-						struct gsm48_sysinfo);
+		cs->list[cs->arfci].sysinfo = talloc_zero(ms,
+			struct gsm48_sysinfo);
 	if (!cs->list[cs->arfci].sysinfo)
 		exit(-ENOMEM);
 	cs->si = cs->list[cs->arfci].sysinfo;
@@ -4595,7 +4593,7 @@ printf("%d time to sync again: %u\n", nb->arfcn, now + GSM58_READ_AGAIN - nb->wh
 			memset(cs->list[cs->arfci].sysinfo, 0,
 				sizeof(struct gsm48_sysinfo));
 		else
-			cs->list[cs->arfci].sysinfo = talloc_zero(l23_ctx,
+			cs->list[cs->arfci].sysinfo = talloc_zero(ms,
 							struct gsm48_sysinfo);
 		if (!cs->list[cs->arfci].sysinfo)
 			exit(-ENOMEM);
@@ -5074,7 +5072,7 @@ int gsm322_init(struct osmocom_ms *ms)
 				"stored BA list becomes obsolete.\n");
 		} else
 		while(!feof(fp)) {
-			ba = talloc_zero(l23_ctx, struct gsm322_ba_list);
+			ba = talloc_zero(ms, struct gsm322_ba_list);
 			if (!ba)
 				return -ENOMEM;
 			rc = fread(buf, 4, 1, fp);

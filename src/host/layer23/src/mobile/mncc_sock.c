@@ -252,13 +252,13 @@ static int mncc_sock_accept(struct osmo_fd *bfd, unsigned int flags)
 }
 
 
-struct mncc_sock_state *mncc_sock_init(void *inst, const char *name, void *tall_ctx)
+struct mncc_sock_state *mncc_sock_init(void *inst, const char *name)
 {
 	struct mncc_sock_state *state;
 	struct osmo_fd *bfd;
 	int rc;
 
-	state = talloc_zero(tall_ctx, struct mncc_sock_state);
+	state = talloc_zero(inst, struct mncc_sock_state);
 	if (!state)
 		return NULL;
 
