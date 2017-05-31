@@ -34,15 +34,36 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+#include <osmocom/core/fsm.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/socket.h>
 #include <osmocom/core/write_queue.h>
 
+#include "trxcon.h"
 #include "logging.h"
 #include "l1ctl_link.h"
 
 extern void *tall_trx_ctx;
+extern struct osmo_fsm_inst *trxcon_fsm;
+
+static struct osmo_fsm_state l1ctl_fsm_states[] = {
+	[L1CTL_STATE_IDLE] = {
+		.out_state_mask = GEN_MASK(L1CTL_STATE_CONNECTED),
+		.name = "IDLE",
+	},
+	[L1CTL_STATE_CONNECTED] = {
+		.out_state_mask = GEN_MASK(L1CTL_STATE_IDLE),
+		.name = "CONNECTED",
+	},
+};
+
+static struct osmo_fsm l1ctl_fsm = {
+	.name = "l1ctl_link_fsm",
+	.states = l1ctl_fsm_states,
+	.num_states = ARRAY_SIZE(l1ctl_fsm_states),
+	.log_subsys = DL1C,
+};
 
 static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 {
@@ -154,7 +175,9 @@ static int l1ctl_link_accept(struct osmo_fd *bfd, unsigned int flags)
 		return -1;
 	}
 
-	/* TODO: switch the bridge to CONNECTED state */
+	osmo_fsm_inst_dispatch(trxcon_fsm, L1CTL_EVENT_CONNECT, l1l);
+	osmo_fsm_inst_state_chg(l1l->fsm, L1CTL_STATE_CONNECTED, 0, 0);
+
 	LOGP(DL1C, LOGL_NOTICE, "L1CTL has a new connection\n");
 
 	return 0;
@@ -199,7 +222,9 @@ int l1ctl_link_close_conn(struct l1ctl_link *l1l)
 	/* Clear pending messages */
 	osmo_wqueue_clear(&l1l->wq);
 
-	/* TODO: switch the bridge to IDLE state */
+	osmo_fsm_inst_dispatch(trxcon_fsm, L1CTL_EVENT_DISCONNECT, l1l);
+	osmo_fsm_inst_state_chg(l1l->fsm, L1CTL_STATE_IDLE, 0, 0);
+
 	return 0;
 }
 
@@ -238,6 +263,11 @@ int l1ctl_link_init(struct l1ctl_link **l1l, const char *sock_path)
 	 */
 	l1l_new->wq.bfd.fd = -1;
 
+	/* Allocate a new dedicated state machine */
+	osmo_fsm_register(&l1ctl_fsm);
+	l1l_new->fsm = osmo_fsm_inst_alloc(&l1ctl_fsm, l1l_new,
+		NULL, LOGL_DEBUG, sock_path);
+
 	*l1l = l1l_new;
 
 	return 0;
@@ -266,5 +296,6 @@ void l1ctl_link_shutdown(struct l1ctl_link *l1l)
 		listen_bfd->fd = -1;
 	}
 
+	osmo_fsm_inst_free(l1l->fsm);
 	talloc_free(l1l);
 }

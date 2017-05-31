@@ -35,13 +35,49 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/bits.h>
+#include <osmocom/core/fsm.h>
 
 #include <osmocom/gsm/gsm_utils.h>
 
+#include "trxcon.h"
 #include "trx_if.h"
 #include "logging.h"
 
 extern void *tall_trx_ctx;
+extern struct osmo_fsm_inst *trxcon_fsm;
+
+static struct osmo_fsm_state trx_fsm_states[] = {
+	[TRX_STATE_OFFLINE] = {
+		.out_state_mask = (
+			GEN_MASK(TRX_STATE_IDLE) |
+			GEN_MASK(TRX_STATE_RSP_WAIT)),
+		.name = "OFFLINE",
+	},
+	[TRX_STATE_IDLE] = {
+		.out_state_mask = UINT32_MAX,
+		.name = "IDLE",
+	},
+	[TRX_STATE_ACTIVE] = {
+		.out_state_mask = (
+			GEN_MASK(TRX_STATE_IDLE) |
+			GEN_MASK(TRX_STATE_RSP_WAIT)),
+		.name = "ACTIVE",
+	},
+	[TRX_STATE_RSP_WAIT] = {
+		.out_state_mask = (
+			GEN_MASK(TRX_STATE_IDLE) |
+			GEN_MASK(TRX_STATE_ACTIVE) |
+			GEN_MASK(TRX_STATE_OFFLINE)),
+		.name = "RSP_WAIT",
+	},
+};
+
+static struct osmo_fsm trx_fsm = {
+	.name = "trx_interface_fsm",
+	.states = trx_fsm_states,
+	.num_states = ARRAY_SIZE(trx_fsm_states),
+	.log_subsys = DTRX,
+};
 
 static int trx_udp_open(void *priv, struct osmo_fd *ofd, const char *host,
 	uint16_t port_local, uint16_t port_remote,
@@ -178,6 +214,12 @@ static void trx_ctrl_send(struct trx_instance *trx)
 	LOGP(DTRX, LOGL_DEBUG, "Sending control '%s'\n", tcm->cmd);
 	send(trx->trx_ofd_ctrl.fd, tcm->cmd, strlen(tcm->cmd) + 1, 0);
 
+	/* Trigger state machine */
+	if (trx->fsm->state != TRX_STATE_RSP_WAIT) {
+		trx->prev_state = trx->fsm->state;
+		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_RSP_WAIT, 0, 0);
+	}
+
 	/* Start expire timer */
 	trx->trx_ctrl_timer.data = trx;
 	trx->trx_ctrl_timer.cb = trx_ctrl_timer_cb;
@@ -186,10 +228,25 @@ static void trx_ctrl_send(struct trx_instance *trx)
 
 static void trx_ctrl_timer_cb(void *data)
 {
+	struct trx_instance *trx = (struct trx_instance *) data;
+	struct trx_ctrl_msg *tcm;
+
+	/* Queue may be cleaned at this moment */
+	if (llist_empty(&trx->trx_ctrl_list))
+		return;
+
 	LOGP(DTRX, LOGL_NOTICE, "No response from transceiver...\n");
 
+	tcm = llist_entry(trx->trx_ctrl_list.next, struct trx_ctrl_msg, list);
+	if (++tcm->retry_cnt > 3) {
+		LOGP(DTRX, LOGL_NOTICE, "Transceiver offline\n");
+		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_OFFLINE, 0, 0);
+		osmo_fsm_inst_dispatch(trxcon_fsm, TRX_EVENT_OFFLINE, trx);
+		return;
+	}
+
 	/* Attempt to send a command again */
-	trx_ctrl_send((struct trx_instance *) data);
+	trx_ctrl_send(trx);
 }
 
 /* Add a new CTRL command to the trx_ctrl_list */
@@ -200,11 +257,7 @@ static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
 	int len, pending = 0;
 	va_list ap;
 
-	/*if (!transceiver_available && !!strcmp(cmd, "POWEROFF")) {
-		LOGP(DTRX, LOGL_ERROR, "CTRL ignored: No clock from "
-			"transceiver, please fix!\n");
-		return -EIO;
-	}*/
+	/* TODO: make sure that transceiver online */
 
 	if (!llist_empty(&trx->trx_ctrl_list))
 		pending = 1;
@@ -419,6 +472,18 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 			goto rsp_error;
 	}
 
+	/* Trigger state machine */
+	if (!strncmp(tcm->cmd + 4, "POWERON", 7))
+		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_ACTIVE, 0, 0);
+	else if (!strncmp(tcm->cmd + 4, "POWEROFF", 8))
+		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
+	else if (!strncmp(tcm->cmd + 4, "ECHO", 4)) {
+		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
+		osmo_fsm_inst_dispatch(trxcon_fsm,
+			TRX_EVENT_RESET_IND, trx);
+	} else
+		osmo_fsm_inst_state_chg(trx->fsm, trx->prev_state, 0, 0);
+
 	/* Remove command from list */
 	llist_del(&tcm->list);
 	talloc_free(tcm);
@@ -429,10 +494,8 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	return 0;
 
 rsp_error:
-	/**
-	 * TODO: stop/freeze trxcon process
-	 * or notify higher layers about the problem with L1
-	 */
+	/* Notify higher layers about the problem */
+	osmo_fsm_inst_dispatch(trxcon_fsm, TRX_EVENT_RSP_ERROR, trx);
 	return -EIO;
 }
 
@@ -512,6 +575,18 @@ int trx_if_data(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 {
 	uint8_t buf[256];
 
+	/**
+	 * We must be sure that we have clock,
+	 * and we have sent all control data
+	 *
+	 * TODO: should we wait in TRX_STATE_RSP_WAIT state?
+	 */
+	if (trx->fsm->state != TRX_STATE_ACTIVE) {
+		LOGP(DTRX, LOGL_DEBUG, "Ignoring TX data, "
+			"transceiver isn't ready\n");
+		return -EAGAIN;
+	}
+
 	LOGP(DTRX, LOGL_DEBUG, "TX burst tn=%u fn=%u pwr=%u\n", tn, fn, pwr);
 
 	buf[0] = tn;
@@ -524,17 +599,8 @@ int trx_if_data(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 	/* Copy ubits {0,1} */
 	memcpy(buf + 6, bits, 148);
 
-	/**
-	 * TODO: is transceiver available???
-	 *
-	 * We must be sure that we have clock,
-	 * and we have sent all control data
-	 *
-	 * if (transceiver_available && llist_empty(&l1h->trx_ctrl_list))
-	 *   send(l1h->trx_ofd_data.fd, buf, 154, 0);
-	 * else
-	 *   LOGP(DTRX, LOGL_DEBUG, "Ignoring TX data, transceiver offline.\n");
-	 */
+	/* Send data to transceiver */
+	send(trx->trx_ofd_data.fd, buf, 154, 0);
 
 	return 0;
 }
@@ -546,6 +612,7 @@ int trx_if_data(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
 {
 	struct trx_instance *trx_new;
+	char *inst_name;
 	int rc;
 
 	LOGP(DTRX, LOGL_NOTICE, "Init transceiver interface\n");
@@ -576,6 +643,13 @@ int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
 	if (rc < 0)
 		goto error;
 
+	/* Allocate a new dedicated state machine */
+	osmo_fsm_register(&trx_fsm);
+	inst_name = talloc_asprintf(trx_new, "%s:%u", host, port);
+	trx_new->fsm = osmo_fsm_inst_alloc(&trx_fsm, trx_new,
+		NULL, LOGL_DEBUG, inst_name);
+	talloc_free(inst_name);
+
 	*trx = trx_new;
 
 	return 0;
@@ -587,10 +661,14 @@ error:
 }
 
 /* Flush pending control messages */
-static void trx_if_flush_ctrl(struct trx_instance *trx)
+void trx_if_flush_ctrl(struct trx_instance *trx)
 {
 	struct trx_ctrl_msg *tcm;
 
+	/* Reset state machine */
+	osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
+
+	/* Clear command queue */
 	while (!llist_empty(&trx->trx_ctrl_list)) {
 		tcm = llist_entry(trx->trx_ctrl_list.next,
 			struct trx_ctrl_msg, list);
@@ -616,5 +694,6 @@ void trx_if_close(struct trx_instance *trx)
 	trx_udp_close(&trx->trx_ofd_data);
 
 	/* Free memory */
+	osmo_fsm_inst_free(trx->fsm);
 	talloc_free(trx);
 }

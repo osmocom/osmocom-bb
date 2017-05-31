@@ -29,12 +29,14 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include <osmocom/core/fsm.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/application.h>
 
+#include "trxcon.h"
 #include "trx_if.h"
 #include "logging.h"
 #include "l1ctl_link.h"
@@ -62,6 +64,62 @@ static struct {
 } app_data;
 
 void *tall_trx_ctx = NULL;
+struct osmo_fsm_inst *trxcon_fsm;
+
+static void trxcon_fsm_idle_action(struct osmo_fsm_inst *fi,
+	uint32_t event, void *data)
+{
+	if (event == L1CTL_EVENT_CONNECT)
+		osmo_fsm_inst_state_chg(trxcon_fsm, TRXCON_STATE_MANAGED, 0, 0);
+}
+
+static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
+	uint32_t event, void *data)
+{
+	switch (event) {
+	case L1CTL_EVENT_DISCONNECT:
+		osmo_fsm_inst_state_chg(trxcon_fsm, TRXCON_STATE_IDLE, 0, 0);
+
+		if (app_data.trx->fsm->state != TRX_STATE_OFFLINE) {
+			trx_if_flush_ctrl(app_data.trx);
+			trx_if_cmd_poweroff(app_data.trx);
+		}
+		break;
+	case TRX_EVENT_RESET_IND:
+	case TRX_EVENT_RSP_ERROR:
+	case TRX_EVENT_OFFLINE:
+		/* TODO: notify L2 & L3 about that */
+		break;
+	default:
+		LOGPFSML(fi, LOGL_ERROR, "Unhandled event %u\n", event);
+	}
+}
+
+static struct osmo_fsm_state trxcon_fsm_states[] = {
+	[TRXCON_STATE_IDLE] = {
+		.in_event_mask = GEN_MASK(L1CTL_EVENT_CONNECT),
+		.out_state_mask = GEN_MASK(TRXCON_STATE_MANAGED),
+		.name = "IDLE",
+		.action = trxcon_fsm_idle_action,
+	},
+	[TRXCON_STATE_MANAGED] = {
+		.in_event_mask = (
+			GEN_MASK(L1CTL_EVENT_DISCONNECT) |
+			GEN_MASK(TRX_EVENT_RESET_IND) |
+			GEN_MASK(TRX_EVENT_RSP_ERROR) |
+			GEN_MASK(TRX_EVENT_OFFLINE)),
+		.out_state_mask = GEN_MASK(TRXCON_STATE_IDLE),
+		.name = "MANAGED",
+		.action = trxcon_fsm_managed_action,
+	},
+};
+
+static struct osmo_fsm trxcon_fsm_def = {
+	.name = "trxcon_app_fsm",
+	.states = trxcon_fsm_states,
+	.num_states = ARRAY_SIZE(trxcon_fsm_states),
+	.log_subsys = DAPP,
+};
 
 static void print_usage(const char *app)
 {
@@ -175,6 +233,11 @@ int main(int argc, char **argv)
 	/* Init logging system */
 	trx_log_init(app_data.debug_mask);
 
+	/* Allocate the application state machine */
+	osmo_fsm_register(&trxcon_fsm_def);
+	trxcon_fsm = osmo_fsm_inst_alloc(&trxcon_fsm_def, tall_trx_ctx,
+		NULL, LOGL_DEBUG, "main");
+
 	/* Init L1CTL server */
 	rc = l1ctl_link_init(&app_data.l1l, app_data.bind_socket);
 	if (rc)
@@ -202,6 +265,9 @@ exit:
 	/* Close active connections */
 	l1ctl_link_shutdown(app_data.l1l);
 	trx_if_close(app_data.trx);
+
+	/* Shutdown main state machine */
+	osmo_fsm_inst_free(trxcon_fsm);
 
 	/* Make Valgrind happy */
 	log_fini();

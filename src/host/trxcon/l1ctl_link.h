@@ -3,11 +3,18 @@
 #include <osmocom/core/write_queue.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/fsm.h>
 
 #define L1CTL_LENGTH 256
 #define L1CTL_HEADROOM 32
 
+enum l1ctl_fsm_states {
+	L1CTL_STATE_IDLE = 0,
+	L1CTL_STATE_CONNECTED,
+};
+
 struct l1ctl_link {
+	struct osmo_fsm_inst *fsm;
 	struct osmo_fd listen_bfd;
 	struct osmo_wqueue wq;
 };
