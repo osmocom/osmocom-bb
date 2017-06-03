@@ -25,6 +25,7 @@ void trx_if_close(struct trx_instance *trx);
 
 int trx_if_cmd_poweron(struct trx_instance *trx);
 int trx_if_cmd_poweroff(struct trx_instance *trx);
+int trx_if_cmd_echo(struct trx_instance *trx);
 
 int trx_if_cmd_setpower(struct trx_instance *trx, int db);
 int trx_if_cmd_adjpower(struct trx_instance *trx, int db);

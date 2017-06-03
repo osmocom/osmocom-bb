@@ -239,6 +239,10 @@ static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
 /*
  * Power Control
  *
+ * ECHO is used to check transceiver availability.
+ * CMD ECHO
+ * RSP ECHO <status>
+ *
  * POWEROFF shuts off transmitter power and stops the demodulator.
  * CMD POWEROFF
  * RSP POWEROFF <status>
@@ -252,6 +256,11 @@ static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
  * CMD POWERON
  * RSP POWERON <status>
  */
+
+int trx_if_cmd_echo(struct trx_instance *trx)
+{
+	return trx_ctrl_cmd(trx, 1, "ECHO", "");
+}
 
 int trx_if_cmd_poweroff(struct trx_instance *trx)
 {
