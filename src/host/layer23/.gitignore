@@ -19,7 +19,6 @@ config.status
 
 # build by-products
 *.o
-*.a
 
 # various
 *.sw?

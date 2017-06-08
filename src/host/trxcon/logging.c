@@ -46,6 +46,12 @@ static struct log_info_cat trx_log_info_cat[] = {
 		.color = "\033[1;33m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[DSCH] = {
+		.name = "DSCH",
+		.description = "Scheduler",
+		.color = "\033[1;36m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 static const struct log_info trx_log_info = {

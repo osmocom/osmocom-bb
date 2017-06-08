@@ -28,6 +28,11 @@ trxcon_SOURCES = \
 	trxcon.c \
 	$(NULL)
 
+# Scheduler
+trxcon_SOURCES += \
+	sched_clck.c \
+	$(NULL)
+
 trxcon_LDADD = \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOGSM_LIBS) \

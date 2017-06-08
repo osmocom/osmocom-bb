@@ -18,6 +18,7 @@ version.h
 
 # build by-products
 *.o
+*.a
 
 trxcon
 
