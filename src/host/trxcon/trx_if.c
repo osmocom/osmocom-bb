@@ -592,6 +592,10 @@ static void trx_if_flush_ctrl(struct trx_instance *trx)
 
 void trx_if_close(struct trx_instance *trx)
 {
+	/* May be unallocated due to init error */
+	if (!trx)
+		return;
+
 	LOGP(DTRX, LOGL_NOTICE, "Shutdown transceiver interface\n");
 
 	/* Flush CTRL message list */

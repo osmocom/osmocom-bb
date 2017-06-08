@@ -247,6 +247,10 @@ void l1ctl_link_shutdown(struct l1ctl_link *l1l)
 {
 	struct osmo_fd *listen_bfd;
 
+	/* May be unallocated due to init error */
+	if (!l1l)
+		return;
+
 	LOGP(DL1C, LOGL_NOTICE, "Shutdown L1CTL link\n");
 
 	listen_bfd = &l1l->listen_bfd;
