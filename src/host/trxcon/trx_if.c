@@ -42,6 +42,7 @@
 #include "trxcon.h"
 #include "trx_if.h"
 #include "logging.h"
+#include "scheduler.h"
 
 extern void *tall_trx_ctx;
 extern struct osmo_fsm_inst *trxcon_fsm;
@@ -146,6 +147,7 @@ static void trx_udp_close(struct osmo_fd *ofd)
 
 static int trx_clck_read_cb(struct osmo_fd *ofd, unsigned int what)
 {
+	struct trx_instance *trx = (struct trx_instance *) ofd->data;
 	char buf[1500];
 	uint32_t fn;
 	int len;
@@ -173,7 +175,9 @@ static int trx_clck_read_cb(struct osmo_fd *ofd, unsigned int what)
 			"correctly, correcting to fn=%u\n", fn);
 	}
 
-	/* TODO: call the clck_ind callback */
+	/* Call the clck_ind callback */
+	sched_clck_handle(&trx->sched, fn);
+
 	return 0;
 }
 
