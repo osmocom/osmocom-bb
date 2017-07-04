@@ -6,6 +6,7 @@
 #include <osmocom/core/fsm.h>
 
 #include "scheduler.h"
+#include "sched_trx.h"
 
 enum trx_fsm_states {
 	TRX_STATE_OFFLINE = 0,
@@ -26,6 +27,7 @@ struct trx_instance {
 
 	/* Scheduler stuff */
 	struct trx_sched sched;
+	struct llist_head ts_list;
 };
 
 struct trx_ctrl_msg {

@@ -233,3 +233,22 @@ struct trx_ts {
 extern const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX];
 const struct trx_multiframe *sched_mframe_layout(
 	enum gsm_phys_chan_config config, int ts_num);
+
+/* Scheduler management functions */
+int sched_trx_init(struct trx_instance *trx);
+int sched_trx_reset(struct trx_instance *trx);
+int sched_trx_shutdown(struct trx_instance *trx);
+
+/* Timeslot management functions */
+struct trx_ts *sched_trx_add_ts(struct trx_instance *trx, int ts_num);
+struct trx_ts *sched_trx_find_ts(struct trx_instance *trx, int ts_num);
+void sched_trx_del_ts(struct trx_instance *trx, int ts_num);
+int sched_trx_reset_ts(struct trx_instance *trx, int ts_num);
+int sched_trx_configure_ts(struct trx_instance *trx, int ts_num,
+	enum gsm_phys_chan_config config);
+
+/* Logical channel management functions */
+int sched_trx_activate_lchan(struct trx_ts *ts, enum trx_lchan_type chan);
+int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan);
+struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
+	enum trx_lchan_type chan);

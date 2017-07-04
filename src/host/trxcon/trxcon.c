@@ -42,6 +42,8 @@
 #include "l1ctl.h"
 #include "l1ctl_link.h"
 #include "l1ctl_proto.h"
+#include "scheduler.h"
+#include "sched_trx.h"
 
 #define COPYRIGHT \
 	"Copyright (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
@@ -90,7 +92,9 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 		}
 		break;
 	case L1CTL_EVENT_RESET_REQ:
+		trx_if_cmd_poweroff(app_data.trx);
 		trx_if_cmd_echo(app_data.trx);
+		sched_trx_reset(app_data.trx);
 		break;
 	case TRX_EVENT_RESET_IND:
 		/* TODO: send proper reset type */
@@ -270,6 +274,11 @@ int main(int argc, char **argv)
 	if (rc)
 		goto exit;
 
+	/* Init scheduler */
+	rc = sched_trx_init(app_data.trx);
+	if (rc)
+		goto exit;
+
 	LOGP(DAPP, LOGL_NOTICE, "Init complete\n");
 
 	if (app_data.daemonize) {
@@ -286,6 +295,7 @@ int main(int argc, char **argv)
 exit:
 	/* Close active connections */
 	l1ctl_link_shutdown(app_data.l1l);
+	sched_trx_shutdown(app_data.trx);
 	trx_if_close(app_data.trx);
 
 	/* Shutdown main state machine */
