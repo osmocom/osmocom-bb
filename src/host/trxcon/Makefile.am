@@ -30,6 +30,8 @@ trxcon_SOURCES = \
 
 # Scheduler
 trxcon_SOURCES += \
+	sched_lchan_desc.c \
+	sched_mframe.c \
 	sched_clck.c \
 	$(NULL)
 
