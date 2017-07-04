@@ -570,7 +570,9 @@ static int trx_data_read_cb(struct osmo_fd *ofd, unsigned int what)
 	LOGP(DTRX, LOGL_DEBUG, "RX burst tn=%u fn=%u rssi=%d toa=%.2f\n",
 		tn, fn, rssi, toa);
 
-	/* TODO: poke scheduler here! */
+	/* Poke scheduler */
+	sched_trx_handle_rx_burst(trx, tn, fn, bits, 148, rssi, toa);
+
 	return 0;
 }
 

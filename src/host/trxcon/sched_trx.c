@@ -326,3 +326,79 @@ int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 
 	return 0;
 }
+
+int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t ts_num,
+	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa)
+{
+	struct trx_lchan_state *lchan;
+	const struct trx_frame *frame;
+	struct trx_ts *ts;
+
+	trx_lchan_rx_func *handler;
+	enum trx_lchan_type chan;
+	uint32_t fn, elapsed;
+	uint8_t offset, bid;
+
+	/* Check whether required timeslot is enabled / configured */
+	ts = sched_trx_find_ts(trx, ts_num);
+	if (ts == NULL) {
+		LOGP(DSCH, LOGL_ERROR, "TDMA timeslot #%u isn't configured, "
+			"ignoring burst...\n", ts_num);
+		return -EINVAL;
+	}
+
+	/* Calculate how many frames have been elapsed */
+	elapsed  = (burst_fn + GSM_HYPERFRAME - ts->mf_last_fn);
+	elapsed %= GSM_HYPERFRAME;
+
+	/**
+	 * If not too many frames have been elapsed,
+	 * start counting from last fn + 1
+	 */
+	if (elapsed < 10)
+		fn = (ts->mf_last_fn + 1) % GSM_HYPERFRAME;
+	else
+		fn = burst_fn;
+
+	while (1) {
+		/* Get frame from multiframe */
+		offset = fn % ts->mf_layout->period;
+		frame = ts->mf_layout->frames + offset;
+
+		/* Get required info from frame */
+		bid = frame->dl_bid;
+		chan = frame->dl_chan;
+		handler = trx_lchan_desc[chan].rx_fn;
+
+		/* Omit bursts which have no handler, like IDLE bursts */
+		if (!handler)
+			goto next_frame;
+
+		/* Find required channel state */
+		lchan = sched_trx_find_lchan(ts, chan);
+		if (lchan == NULL) /* FIXME: what should we do here? */
+			goto next_frame;
+
+		/* Ensure that channel is active */
+		if (!lchan->active)
+			goto next_frame;
+
+		/* Put burst to handler */
+		if (fn == burst_fn) {
+			/* TODO: decrypt if required */
+			handler(trx, ts, fn, chan, bid, bits, nbits, rssi, toa);
+		}
+
+next_frame:
+		/* Reached current fn */
+		if (fn == burst_fn)
+			break;
+
+		fn = (fn + 1) % GSM_HYPERFRAME;
+	}
+
+	/* Set last processed frame number */
+	ts->mf_last_fn = fn;
+
+	return 0;
+}
