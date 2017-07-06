@@ -125,7 +125,7 @@ int l1ctl_tx_reset_conf(struct l1ctl_link *l1l, uint8_t type)
 
 static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
-	struct l1ctl_fbsb_req *fbsb;
+	struct l1ctl_fbsb_req *fbsb, *fbsb_copy;
 	uint16_t band_arfcn;
 	int rc = 0;
 
@@ -143,8 +143,19 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		gsm_band_name(gsm_arfcn2band(band_arfcn)),
 		band_arfcn &~ ARFCN_FLAG_MASK);
 
-	osmo_fsm_inst_dispatch(trxcon_fsm,
-		L1CTL_EVENT_FBSB_REQ, &band_arfcn);
+	/**
+	 * We cannot simply pass a pointer to fbsb,
+	 * because the memory will be freed.
+	 *
+	 * TODO: better solution?
+	 */
+	fbsb_copy = talloc_memdup(l1l, fbsb, sizeof(struct l1ctl_fbsb_req));
+	if (fbsb_copy == NULL) {
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	osmo_fsm_inst_dispatch(trxcon_fsm, L1CTL_EVENT_FBSB_REQ, fbsb_copy);
 
 exit:
 	msgb_free(msg);
