@@ -130,6 +130,8 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 	case L1CTL_EVENT_FBSB_REQ:
 		trxcon_handle_fbsb_req((struct l1ctl_fbsb_req *) data);
 		break;
+	case SCH_EVENT_DATA:
+		l1ctl_tx_data_ind(app_data.l1l, (struct l1ctl_info_dl *) data);
 	case TRX_EVENT_RSP_ERROR:
 	case TRX_EVENT_OFFLINE:
 	case SCH_EVENT_CLCK_IND:
@@ -157,7 +159,8 @@ static struct osmo_fsm_state trxcon_fsm_states[] = {
 			GEN_MASK(TRX_EVENT_RSP_ERROR) |
 			GEN_MASK(TRX_EVENT_OFFLINE) |
 			GEN_MASK(SCH_EVENT_CLCK_IND) |
-			GEN_MASK(SCH_EVENT_CLCK_LOSS)),
+			GEN_MASK(SCH_EVENT_CLCK_LOSS) |
+			GEN_MASK(SCH_EVENT_DATA)),
 		.out_state_mask = GEN_MASK(TRXCON_STATE_IDLE),
 		.name = "MANAGED",
 		.action = trxcon_fsm_managed_action,

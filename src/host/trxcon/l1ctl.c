@@ -123,6 +123,28 @@ int l1ctl_tx_reset_conf(struct l1ctl_link *l1l, uint8_t type)
 	return l1ctl_link_send(l1l, msg);
 }
 
+int l1ctl_tx_data_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data)
+{
+	struct l1ctl_info_dl *dl;
+	struct msgb *msg;
+	size_t len;
+
+	msg = l1ctl_alloc_msg(L1CTL_DATA_IND);
+	if (msg == NULL)
+		return -ENOMEM;
+
+	/* We store the 23-byte payload as a flexible array member */
+	len = sizeof(struct l1ctl_info_dl) + 23;
+	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
+
+	/* Copy header and data from source message */
+	memcpy(dl, data, len);
+	talloc_free(data);
+
+	/* Put message to upper layers */
+	return l1ctl_link_send(l1l, msg);
+}
+
 static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_fbsb_req *fbsb, *fbsb_copy;
