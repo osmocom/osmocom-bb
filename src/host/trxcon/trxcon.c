@@ -36,6 +36,8 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/application.h>
 
+#include <osmocom/gsm/gsm_utils.h>
+
 #include "trxcon.h"
 #include "trx_if.h"
 #include "logging.h"
@@ -80,8 +82,6 @@ static void trxcon_fsm_idle_action(struct osmo_fsm_inst *fi,
 static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 	uint32_t event, void *data)
 {
-	uint16_t *band_arfcn;
-
 	switch (event) {
 	case L1CTL_EVENT_DISCONNECT:
 		osmo_fsm_inst_state_chg(trxcon_fsm, TRXCON_STATE_IDLE, 0, 0);
@@ -101,9 +101,9 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 		l1ctl_tx_reset_conf(app_data.l1l, L1CTL_RES_T_BOOT);
 		break;
 	case L1CTL_EVENT_FBSB_REQ:
-		band_arfcn = (uint16_t *) data;
-		trx_if_cmd_rxtune(app_data.trx, *band_arfcn);
-		trx_if_cmd_txtune(app_data.trx, *band_arfcn);
+		app_data.trx->band_arfcn = *((uint16_t *) data);
+		trx_if_cmd_rxtune(app_data.trx, app_data.trx->band_arfcn);
+		trx_if_cmd_txtune(app_data.trx, app_data.trx->band_arfcn);
 		trx_if_cmd_poweron(app_data.trx);
 		break;
 	case TRX_EVENT_RSP_ERROR:

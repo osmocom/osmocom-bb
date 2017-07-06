@@ -24,6 +24,7 @@ struct trx_instance {
 	struct llist_head trx_ctrl_list;
 	struct osmo_fsm_inst *fsm;
 	uint32_t prev_state;
+	uint16_t band_arfcn;
 
 	/* Scheduler stuff */
 	struct trx_sched sched;
