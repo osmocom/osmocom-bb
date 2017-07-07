@@ -44,6 +44,10 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	uint32_t fn, enum trx_lchan_type chan, uint8_t bid,
 	sbit_t *bits, uint16_t nbits, int8_t rssi, float toa);
 
+int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
+	uint32_t fn, enum trx_lchan_type chan, uint8_t bid,
+	sbit_t *bits, uint16_t nbits, int8_t rssi, float toa);
+
 const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 	{
 		TRXC_IDLE,		"IDLE",
@@ -69,8 +73,11 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 		0x00,			LID_DEDIC,
 		0x00,			0x00,
 
-		/* We already have clock indications from TRX */
-		NULL,			NULL,
+		/**
+		 * We already have clock indications from TRX,
+		 * but we also need BSIC (BCC / NCC) value.
+		 */
+		rx_sch_fn,		NULL,
 	},
 	{
 		TRXC_BCCH,		"BCCH",
