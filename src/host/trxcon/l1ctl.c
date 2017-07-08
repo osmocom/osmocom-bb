@@ -43,6 +43,9 @@
 #include "l1ctl_link.h"
 #include "l1ctl_proto.h"
 
+#include "trx_if.h"
+#include "sched_trx.h"
+
 extern void *tall_trx_ctx;
 extern struct osmo_fsm_inst *trxcon_fsm;
 
@@ -147,7 +150,7 @@ int l1ctl_tx_data_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data)
 
 static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
-	struct l1ctl_fbsb_req *fbsb, *fbsb_copy;
+	struct l1ctl_fbsb_req *fbsb;
 	uint16_t band_arfcn;
 	int rc = 0;
 
@@ -165,19 +168,22 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		gsm_band_name(gsm_arfcn2band(band_arfcn)),
 		band_arfcn &~ ARFCN_FLAG_MASK);
 
-	/**
-	 * We cannot simply pass a pointer to fbsb,
-	 * because the memory will be freed.
-	 *
-	 * TODO: better solution?
-	 */
-	fbsb_copy = talloc_memdup(l1l, fbsb, sizeof(struct l1ctl_fbsb_req));
-	if (fbsb_copy == NULL) {
-		rc = -EINVAL;
-		goto exit;
-	}
+	/* Reset L1 */
+	sched_trx_reset(l1l->trx);
 
-	osmo_fsm_inst_dispatch(trxcon_fsm, L1CTL_EVENT_FBSB_REQ, fbsb_copy);
+	/* Configure a single timeslot */
+	if (fbsb->ccch_mode == CCCH_MODE_COMBINED)
+		sched_trx_configure_ts(l1l->trx, 0, GSM_PCHAN_CCCH_SDCCH4);
+	else
+		sched_trx_configure_ts(l1l->trx, 0, GSM_PCHAN_CCCH);
+
+	/* Store current ARFCN */
+	l1l->trx->band_arfcn = band_arfcn;
+
+	/* Tune transceiver to required ARFCN */
+	trx_if_cmd_rxtune(l1l->trx, band_arfcn);
+	trx_if_cmd_txtune(l1l->trx, band_arfcn);
+	trx_if_cmd_poweron(l1l->trx);
 
 exit:
 	msgb_free(msg);

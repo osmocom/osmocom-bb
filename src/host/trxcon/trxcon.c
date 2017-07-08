@@ -74,31 +74,6 @@ static struct {
 void *tall_trx_ctx = NULL;
 struct osmo_fsm_inst *trxcon_fsm;
 
-static void trxcon_handle_fbsb_req(struct l1ctl_fbsb_req *req)
-{
-	uint16_t band_arfcn;
-
-	/* Reset L1 */
-	sched_trx_reset(app_data.trx);
-
-	/* Configure a single timeslot */
-	if (req->ccch_mode == CCCH_MODE_COMBINED)
-		sched_trx_configure_ts(app_data.trx, 0, GSM_PCHAN_CCCH_SDCCH4);
-	else
-		sched_trx_configure_ts(app_data.trx, 0, GSM_PCHAN_CCCH);
-
-	/* Store current ARFCN */
-	band_arfcn = ntohs(req->band_arfcn);
-	app_data.trx->band_arfcn = band_arfcn;
-
-	/* Tune transceiver to required ARFCN */
-	trx_if_cmd_rxtune(app_data.trx, band_arfcn);
-	trx_if_cmd_txtune(app_data.trx, band_arfcn);
-	trx_if_cmd_poweron(app_data.trx);
-
-	talloc_free(req);
-}
-
 static void trxcon_fsm_idle_action(struct osmo_fsm_inst *fi,
 	uint32_t event, void *data)
 {
@@ -127,9 +102,6 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 		/* TODO: send proper reset type */
 		l1ctl_tx_reset_conf(app_data.l1l, L1CTL_RES_T_BOOT);
 		break;
-	case L1CTL_EVENT_FBSB_REQ:
-		trxcon_handle_fbsb_req((struct l1ctl_fbsb_req *) data);
-		break;
 	case SCH_EVENT_DATA:
 		l1ctl_tx_data_ind(app_data.l1l, (struct l1ctl_info_dl *) data);
 	case TRX_EVENT_RSP_ERROR:
@@ -153,7 +125,6 @@ static struct osmo_fsm_state trxcon_fsm_states[] = {
 	[TRXCON_STATE_MANAGED] = {
 		.in_event_mask = (
 			GEN_MASK(L1CTL_EVENT_DISCONNECT) |
-			GEN_MASK(L1CTL_EVENT_FBSB_REQ) |
 			GEN_MASK(L1CTL_EVENT_RESET_REQ) |
 			GEN_MASK(TRX_EVENT_RESET_IND) |
 			GEN_MASK(TRX_EVENT_RSP_ERROR) |
