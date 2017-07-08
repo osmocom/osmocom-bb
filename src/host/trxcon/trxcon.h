@@ -20,5 +20,4 @@ enum trxcon_fsm_events {
 	/* Scheduler specific events */
 	SCH_EVENT_CLCK_IND,
 	SCH_EVENT_CLCK_LOSS,
-	SCH_EVENT_DATA,
 };

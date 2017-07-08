@@ -142,7 +142,6 @@ int l1ctl_tx_data_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data)
 
 	/* Copy header and data from source message */
 	memcpy(dl, data, len);
-	talloc_free(data);
 
 	/* Put message to upper layers */
 	return l1ctl_link_send(l1l, msg);

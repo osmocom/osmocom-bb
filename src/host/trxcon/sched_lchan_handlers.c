@@ -43,6 +43,7 @@
 #include "logging.h"
 #include "trx_if.h"
 #include "trxcon.h"
+#include "l1ctl.h"
 
 extern struct osmo_fsm_inst *trxcon_fsm;
 
@@ -154,8 +155,9 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Fill in decoded payload */
 	memcpy(data->payload, l2, 23);
 
-	/* Raise an event to trxcon */
-	osmo_fsm_inst_dispatch(trxcon_fsm, SCH_EVENT_DATA, data);
+	/* Put a packet to higher layers */
+	l1ctl_tx_data_ind(trx->l1l, data);
+	talloc_free(data);
 
 	/* TODO: AGC, TA loops */
 	return 0;
