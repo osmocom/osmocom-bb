@@ -23,6 +23,9 @@ struct l1ctl_link {
 
 	/* Bind TRX instance */
 	struct trx_instance *trx;
+
+	/* L1CTL handlers specific */
+	uint8_t fbsb_conf_sent;
 };
 
 int l1ctl_link_init(struct l1ctl_link **l1l, const char *sock_path);

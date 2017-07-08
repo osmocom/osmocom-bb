@@ -126,6 +126,31 @@ int l1ctl_tx_reset_conf(struct l1ctl_link *l1l, uint8_t type)
 	return l1ctl_link_send(l1l, msg);
 }
 
+int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result, uint8_t bsic)
+{
+	struct l1ctl_fbsb_conf *conf;
+	struct msgb *msg;
+
+	msg = l1ctl_alloc_msg(L1CTL_FBSB_CONF);
+	if (msg == NULL)
+		return -ENOMEM;
+
+	LOGP(DL1C, LOGL_DEBUG, "Send FBSB Conf (result=%u, bsic=%u)\n",
+		result, bsic);
+
+	conf = (struct l1ctl_fbsb_conf *) msgb_put(msg, sizeof(*conf));
+	conf->result = result;
+	conf->bsic = bsic;
+
+	/* FIXME: set proper value */
+	conf->initial_freq_err = 0;
+
+	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
+	l1l->fbsb_conf_sent = 1;
+
+	return l1ctl_link_send(l1l, msg);
+}
+
 int l1ctl_tx_data_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data)
 {
 	struct l1ctl_info_dl *dl;
@@ -175,6 +200,9 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		sched_trx_configure_ts(l1l->trx, 0, GSM_PCHAN_CCCH_SDCCH4);
 	else
 		sched_trx_configure_ts(l1l->trx, 0, GSM_PCHAN_CCCH);
+
+	/* Ask SCH handler to send L1CTL_FBSB_CONF */
+	l1l->fbsb_conf_sent = 0;
 
 	/* Store current ARFCN */
 	l1l->trx->band_arfcn = band_arfcn;

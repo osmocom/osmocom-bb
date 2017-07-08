@@ -71,7 +71,7 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 	{
 		TRXC_SCH, 		"SCH",
 		0x00,			LID_DEDIC,
-		0x00,			0x00,
+		0x00,			TRX_CH_FLAG_AUTO,
 
 		/**
 		 * We already have clock indications from TRX,

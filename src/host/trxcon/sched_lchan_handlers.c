@@ -223,5 +223,9 @@ int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 		return -EINVAL;
 	}
 
+	/* Send L1CTL_FBSB_CONF to higher layers */
+	if (!trx->l1l->fbsb_conf_sent)
+		l1ctl_tx_fbsb_conf(trx->l1l, 0, bsic);
+
 	return 0;
 }
