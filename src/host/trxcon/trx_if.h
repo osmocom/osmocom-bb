@@ -8,6 +8,9 @@
 #include "scheduler.h"
 #include "sched_trx.h"
 
+/* Forward declaration to avoid mutual include */
+struct l1ctl_link;
+
 enum trx_fsm_states {
 	TRX_STATE_OFFLINE = 0,
 	TRX_STATE_IDLE,
@@ -29,6 +32,9 @@ struct trx_instance {
 	/* Scheduler stuff */
 	struct trx_sched sched;
 	struct llist_head ts_list;
+
+	/* Bind L1CTL link */
+	struct l1ctl_link *l1l;
 };
 
 struct trx_ctrl_msg {

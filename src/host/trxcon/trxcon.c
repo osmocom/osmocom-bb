@@ -301,6 +301,10 @@ int main(int argc, char **argv)
 	if (rc)
 		goto exit;
 
+	/* Bind L1CTL with TRX and vice versa */
+	app_data.l1l->trx = app_data.trx;
+	app_data.trx->l1l = app_data.l1l;
+
 	/* Init scheduler */
 	rc = sched_trx_init(app_data.trx);
 	if (rc)
