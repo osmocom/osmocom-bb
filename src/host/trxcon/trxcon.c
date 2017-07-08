@@ -89,18 +89,10 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 		osmo_fsm_inst_state_chg(trxcon_fsm, TRXCON_STATE_IDLE, 0, 0);
 
 		if (app_data.trx->fsm->state != TRX_STATE_OFFLINE) {
+			/* TODO: implement trx_if_reset() */
 			trx_if_flush_ctrl(app_data.trx);
 			trx_if_cmd_poweroff(app_data.trx);
 		}
-		break;
-	case L1CTL_EVENT_RESET_REQ:
-		trx_if_cmd_poweroff(app_data.trx);
-		trx_if_cmd_echo(app_data.trx);
-		sched_trx_reset(app_data.trx);
-		break;
-	case TRX_EVENT_RESET_IND:
-		/* TODO: send proper reset type */
-		l1ctl_tx_reset_conf(app_data.l1l, L1CTL_RES_T_BOOT);
 		break;
 	case SCH_EVENT_DATA:
 		l1ctl_tx_data_ind(app_data.l1l, (struct l1ctl_info_dl *) data);
@@ -108,6 +100,7 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 	case TRX_EVENT_OFFLINE:
 	case SCH_EVENT_CLCK_IND:
 	case SCH_EVENT_CLCK_LOSS:
+	case TRX_EVENT_RESET_IND:
 		/* TODO: notify L2 & L3 about that */
 		break;
 	default:
@@ -125,7 +118,6 @@ static struct osmo_fsm_state trxcon_fsm_states[] = {
 	[TRXCON_STATE_MANAGED] = {
 		.in_event_mask = (
 			GEN_MASK(L1CTL_EVENT_DISCONNECT) |
-			GEN_MASK(L1CTL_EVENT_RESET_REQ) |
 			GEN_MASK(TRX_EVENT_RESET_IND) |
 			GEN_MASK(TRX_EVENT_RSP_ERROR) |
 			GEN_MASK(TRX_EVENT_OFFLINE) |
