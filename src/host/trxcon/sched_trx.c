@@ -312,9 +312,9 @@ int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 	if (lchan == NULL)
 		return -EINVAL;
 
-	if (lchan->active) {
+	if (!lchan->active) {
 		LOGP(DSCH, LOGL_ERROR, "Logical channel %s already deactivated "
-			"on ts=%d", trx_lchan_desc[chan].name, ts->index);
+			"on ts=%d\n", trx_lchan_desc[chan].name, ts->index);
 		return -EINVAL;
 	}
 
