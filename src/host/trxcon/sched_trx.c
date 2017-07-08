@@ -238,7 +238,7 @@ int sched_trx_reset_ts(struct trx_instance *trx, int ts_num)
 	if (ts == NULL)
 		return -EINVAL;
 
-	/* FIXME: where do we need it? */
+	/* Flush TS frame counter */
 	ts->mf_last_fn = 0;
 
 	/* Undefine multiframe layout */
