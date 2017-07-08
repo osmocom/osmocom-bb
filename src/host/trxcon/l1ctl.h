@@ -7,6 +7,7 @@
 #include "l1ctl_proto.h"
 
 int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result, uint8_t bsic);
+int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode);
 int l1ctl_tx_pm_conf(struct l1ctl_link *l1l, uint16_t band_arfcn,
 	int dbm, int last);
 int l1ctl_tx_reset_conf(struct l1ctl_link *l1l, uint8_t type);

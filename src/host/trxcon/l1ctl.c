@@ -151,6 +151,21 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result, uint8_t bsic)
 	return l1ctl_link_send(l1l, msg);
 }
 
+int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode)
+{
+	struct l1ctl_ccch_mode_conf *conf;
+	struct msgb *msg;
+
+	msg = l1ctl_alloc_msg(L1CTL_CCCH_MODE_CONF);
+	if (msg == NULL)
+		return -ENOMEM;
+
+	conf = (struct l1ctl_ccch_mode_conf *) msgb_put(msg, sizeof(*conf));
+	conf->ccch_mode = mode;
+
+	return l1ctl_link_send(l1l, msg);
+}
+
 int l1ctl_tx_data_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data)
 {
 	struct l1ctl_info_dl *dl;
@@ -311,6 +326,35 @@ static int l1ctl_rx_echo_req(struct l1ctl_link *l1l, struct msgb *msg)
 	return l1ctl_link_send(l1l, msg);
 }
 
+static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	struct l1ctl_ccch_mode_req *req;
+	int mode, rc = 0;
+
+	req = (struct l1ctl_ccch_mode_req *) msg->l1h;
+	if (msgb_l1len(msg) < sizeof(*req)) {
+		LOGP(DL1C, LOGL_ERROR, "MSG too short Reset Req: %u\n",
+			msgb_l1len(msg));
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	LOGP(DL1C, LOGL_DEBUG, "Recv CCCH Mode Req (%u)\n", req->ccch_mode);
+
+	/* Reconfigure TS0 */
+	mode = req->ccch_mode == CCCH_MODE_COMBINED ?
+		GSM_PCHAN_CCCH_SDCCH4 : GSM_PCHAN_CCCH;
+	rc = sched_trx_configure_ts(l1l->trx, 0, mode);
+
+	/* Confirm reconfiguration */
+	if (!rc)
+		rc = l1ctl_tx_ccch_mode_conf(l1l, req->ccch_mode);
+
+exit:
+	msgb_free(msg);
+	return rc;
+}
+
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
@@ -327,6 +371,8 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_reset_req(l1l, msg);
 	case L1CTL_ECHO_REQ:
 		return l1ctl_rx_echo_req(l1l, msg);
+	case L1CTL_CCCH_MODE_REQ:
+		return l1ctl_rx_ccch_mode_req(l1l, msg);
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
 		msgb_free(msg);
