@@ -1,0 +1,24 @@
+This is a set of tools for creating a virtual Um-interface between
+OsmocomBB and OsmoBTS. It may be extremely useful for testing and
+development of GSM stack, including both sides (MS and BTS). This
+software implements OsmoTRX (Osmocom's fork of OpenBTS transceiver)
+style clock (CLCK), control (CTRL) and data interfaces. So, OsmoBTS
+source code doesn't require any modifications, while for OsmocomBB
+you will need to use a new application - trxcon, which can be found
+in the 'fixeria/sdr_phy' branch until one is merged to master.
+
+Brief description of available applications:
+
+  - fake_trx.py - main application, that allows to connect both
+    OsmocomBB and OsmoBTS without actual RF hardware. Currently
+    only a single MS may work with a single BTS.
+
+  - clck_gen.py - a peripheral tool aimed to emulate TDMA frame
+    clock generator. Could be used for testing and clock
+    synchronization of multiple applications. It should be noted,
+    that one relays on generic system timer (via Python), so
+    a random clock jitter takes place.
+
+  - ctrl_cmd.py - another peripheral tool, which could be used
+    for sending CTRL commands directly in manual mode, and also
+    for application fuzzing.
