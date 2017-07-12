@@ -22,6 +22,7 @@ dnl Checks for typedefs, structures and compiler characteristics
 
 AC_CONFIG_FILES([
  Makefile
+ include/Makefile
  src/Makefile
 ])
 AC_OUTPUT
