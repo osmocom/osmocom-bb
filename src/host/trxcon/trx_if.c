@@ -516,6 +516,7 @@ rsp_error:
 /* 1 byte RSSI in -dBm                                                      */
 /* 2 bytes correlator timing offset in 1/256 symbol steps, 2's-comp, BE     */
 /* 148 bytes soft symbol estimates, 0 -> definite "0", 255 -> definite "1"  */
+/* 2 bytes are not used, but being sent by OsmoTRX                          */
 /*                                                                          */
 /* Transmit Data Burst:                                                     */
 /* 1 byte timeslot index                                                    */
@@ -538,7 +539,7 @@ static int trx_data_read_cb(struct osmo_fd *ofd, unsigned int what)
 	if (len <= 0)
 		return len;
 
-	if (len != 156) {
+	if (len != 158) {
 		LOGP(DTRX, LOGL_ERROR, "Got data message with invalid length "
 			"'%d'\n", len);
 		return -EINVAL;
