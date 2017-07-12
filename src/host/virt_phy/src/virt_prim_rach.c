@@ -2,6 +2,7 @@
 
 /* (C) 2010 by Dieter Spaar <spaar@mirider.augusta.de>
  * (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
  *
  * All Rights Reserved
  *
@@ -39,26 +40,28 @@
 static struct l1_model_ms *l1_model_ms = NULL;
 static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg);
 
-// use if we have a combined uplink (RACH, SDCCH, ...) (see http://www.rfwireless-world.com/Terminology/GSM-combined-channel-configuration.html)
-// if we have no combined channel config, uplink consists of only RACH
-static uint8_t t3_to_rach_comb[51] = {
+/* use if we have a combined uplink (RACH, SDCCH, ...) (see
+ * http://www.rfwireless-world.com/Terminology/GSM-combined-channel-configuration.html)
+ * if we have no combined channel config, uplink consists of only RACH * */
+static const uint8_t t3_to_rach_comb[51] = {
         0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 25, 25, 25,
-        25, 25, 25, 25, 25, 26, 27, 27, 27, 27};
-static uint8_t rach_to_t3_comb[27] = {
+        25, 25, 25, 25, 25, 26, 27, 27, 27, 27
+};
+static const uint8_t rach_to_t3_comb[27] = {
         4, 5, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-        30, 31, 32, 33, 34, 35, 36, 45, 46};
+        30, 31, 32, 33, 34, 35, 36, 45, 46
+};
 
 /**
  * @brief Handler callback function for RACH request.
  *
  * @param [in] msg the msg to sent over virtual um.
  */
-static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg)
+static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb *msg)
 {
 	gsmtapl1_tx_to_virt_um(fn, msg);
-	l1ctl_tx_rach_conf(fn,
-	                   l1_model_ms->state->serving_cell.arfcn);
+	l1ctl_tx_rach_conf(fn, l1_model_ms->state->serving_cell.arfcn);
 }
 
 /**
@@ -73,30 +76,29 @@ static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg)
  */
 void l1ctl_rx_rach_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
-	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *)ul->payload;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *) ul->payload;
 	uint32_t fn_sched;
-	uint8_t ts = 1; //FIXME mostly, ts 1 is used for rach, where can i get that info? System info?
+	uint8_t ts = 1; /* FIXME mostly, ts 1 is used for rach, where can i get that info? System info? */
 	uint16_t offset = ntohs(rach_req->offset);
 
-	DEBUGP(DL1C,
-	       "Received and handled from l23 - L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
-	       rach_req->ra, offset, rach_req->combined);
+	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
+		rach_req->ra, offset, rach_req->combined);
 
-	if (rach_req->ra == 0x03) {
+	if (rach_req->ra == 0x03)
 		fn_sched = 42;
-	}
 
-	// set ra data to msg (8bits, the 11bit option is not used)
+	/* set ra data to msg (8bits, the 11bit option is not used for GSM) */
 	msg->l2h = msgb_put(msg, sizeof(uint8_t));
 	*msg->l2h = rach_req->ra;
 
-	// chan_nr need to be encoded here, as it is not set by l23 for the rach request, but needed by virt um
+	/* chan_nr need to be encoded here, as it is not set by l23 for
+	 * the rach request, but needed by virt um */
 	ul->chan_nr = rsl_enc_chan_nr(RSL_CHAN_RACH, 0, ts);
 	ul->link_id = LID_DEDIC;
 
-	// sched fn calculation if we have a combined ccch channel configuration
+	/* sched fn calculation if we have a combined ccch channel configuration */
 	if (rach_req->combined) {
 		/* add elapsed RACH slots to offset */
 		offset += t3_to_rach_comb[l1_model_ms->state->current_time.t3];
@@ -104,12 +106,10 @@ void l1ctl_rx_rach_req(struct msgb *msg)
 		fn_sched = l1_model_ms->state->current_time.fn - l1_model_ms->state->current_time.t3;
 		fn_sched += offset / 27 * 51;
 		fn_sched += rach_to_t3_comb[offset % 27];
-	} else {
+	} else
 		fn_sched = l1_model_ms->state->current_time.fn + offset;
-	}
 
 	virt_l1_sched_schedule(msg, fn_sched, ts, &virt_l1_sched_handler_cb);
-
 }
 
 /**

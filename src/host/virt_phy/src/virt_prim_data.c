@@ -2,6 +2,7 @@
 
 /* (C) 2010 by Dieter Spaar <spaar@mirider.augusta.de>
  * (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
  *
  * All Rights Reserved
  *
@@ -79,9 +80,7 @@ void l1ctl_rx_data_req(struct msgb *msg)
 
 	msg->l2h = data_ind->data;
 
-	virt_l1_sched_schedule(msg, fn_sched, timeslot,
-	                       &virt_l1_sched_handler_cb);
-
+	virt_l1_sched_schedule(msg, fn_sched, timeslot, &virt_l1_sched_handler_cb);
 }
 
 void l1ctl_tx_data_ind(struct msgb *msg, uint16_t arfcn, uint8_t link_id,
@@ -103,16 +102,15 @@ void l1ctl_tx_data_ind(struct msgb *msg, uint16_t arfcn, uint8_t link_id,
 	l1dl->frame_nr = htonl(fn);
 	l1dl->snr = snr;
 	l1dl->rx_level = signal_dbm;
-	l1dl->num_biterr = 0; // no biterrors
+	l1dl->num_biterr = 0; /* no biterrors */
 	l1dl->fire_crc = 0;
 
-	// TODO: data decoding and decryption
+	/* TODO: data decoding and decryption */
 
 	memcpy(l1di->data, msgb_data(msg), msgb_length(msg));
 
 	DEBUGP(DL1C, "Sending signaling-data to l23.\n");
 	l1ctl_sap_tx_to_l23(l1ctl_msg);
-
 }
 
 /**
@@ -127,7 +125,7 @@ void l1ctl_tx_data_conf(uint32_t fn, uint16_t snr, uint16_t arfcn)
 {
 	struct msgb * l1ctl_msg;
 	l1ctl_msg = l1ctl_create_l2_msg(L1CTL_DATA_CONF, fn, snr, arfcn);
-	// send confirm to layer23
+	/* send confirm to layer23 */
 	l1ctl_sap_tx_to_l23(l1ctl_msg);
 }
 

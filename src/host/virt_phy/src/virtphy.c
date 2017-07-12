@@ -1,5 +1,24 @@
 /* osmocom includes */
 
+/* (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
+ *
+ * All Rights Reserved
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/select.h>
 #include <stdint.h>
@@ -18,13 +37,13 @@
 #define DEFAULT_MCAST_PORT 4729 /* IANA-registered port for GSMTAP */
 #define DEFAULT_LOG_MASK "DL1C,1:DVIRPHY,1"
 
-static char* dl_rx_grp = DEFAULT_MS_MCAST_GROUP;
-static char* ul_tx_grp = DEFAULT_BTS_MCAST_GROUP;
+static char *dl_rx_grp = DEFAULT_MS_MCAST_GROUP;
+static char *ul_tx_grp = DEFAULT_BTS_MCAST_GROUP;
 static int port = DEFAULT_MCAST_PORT;
-static char* log_mask = DEFAULT_LOG_MASK;
-static char * l1ctl_sock_path = L1CTL_SOCK_PATH;
-static char * arfcn_sig_lev_red_mask = NULL;
-static char * pm_timeout = NULL;
+static char *log_mask = DEFAULT_LOG_MASK;
+static char *l1ctl_sock_path = L1CTL_SOCK_PATH;
+static char *arfcn_sig_lev_red_mask = NULL;
+static char *pm_timeout = NULL;
 
 static void handle_options(int argc, char **argv)
 {
@@ -75,17 +94,16 @@ static void handle_options(int argc, char **argv)
 
 void parse_pm_timeout(struct l1_model_ms *model, char *pm_timeout) {
 
-	if(!pm_timeout || (strcmp(pm_timeout, "") == 0)) {
+	if (!pm_timeout || (strcmp(pm_timeout, "") == 0))
 		return;
-	}
-	// seconds
+
+	/* seconds */
 	char *buf = strtok(pm_timeout, ":");
 	model->state->pm.timeout_s = atoi(buf);
-	// microseconds
+	/* microseconds */
 	buf = strtok(NULL, ":");
-	if(buf) {
+	if (buf)
 		model->state->pm.timeout_us = atoi(buf);
-	}
 }
 
 /**
@@ -93,30 +111,30 @@ void parse_pm_timeout(struct l1_model_ms *model, char *pm_timeout) {
  */
 void parse_arfcn_sig_lev_red(struct l1_model_ms *model, char * arfcn_sig_lev_red_mask) {
 
-	if(!arfcn_sig_lev_red_mask || (strcmp(arfcn_sig_lev_red_mask, "") == 0)) {
+	if (!arfcn_sig_lev_red_mask || (strcmp(arfcn_sig_lev_red_mask, "") == 0))
 		return;
-	}
+
 	char *token = strtok(arfcn_sig_lev_red_mask, ":");
 	do {
 		char* colon = strstr(token, ",");
 		uint16_t arfcn;
 		uint8_t red;
-		if(!colon) {
+		if (!colon)
 			continue;
-		}
+
 		colon[0] = '\0';
 
 		arfcn = atoi(token);
 		red = atoi(colon + 1);
 
-		//TODO: this may go wild if the token string is not properly formatted
+		/* TODO: this may go wild if the token string is not properly formatted */
 		model->state->pm.meas.arfcn_sig_lev_red_dbm[arfcn] = red;
 	} while ((token = strtok(NULL, ":")));
 }
 
 int main(int argc, char *argv[])
 {
-	// init loginfo
+	/* init loginfo */
 	static struct l1_model_ms *model;
 
 	handle_options(argc, argv);
@@ -136,7 +154,7 @@ int main(int argc, char *argv[])
 	l1ctl_sap_init(model);
 	virt_l1_sched_init(model);
 
-	// apply timeout and arfcn reduction value config to model
+	/* apply timeout and arfcn reduction value config to model */
 	parse_pm_timeout(model, pm_timeout);
 	parse_arfcn_sig_lev_red(model, arfcn_sig_lev_red_mask);
 
@@ -146,12 +164,12 @@ int main(int argc, char *argv[])
 	     l1ctl_sock_path);
 
 	while (1) {
-		// handle osmocom fd READ events (l1ctl-unix-socket, virtual-um-mcast-socket)
+		/* handle osmocom fd READ events (l1ctl-unix-socket, virtual-um-mcast-socket) */
 		osmo_select_main(0);
 	}
 
 	l1_model_ms_destroy(model);
 
-	// not reached
+	/* not reached */
 	return EXIT_FAILURE;
 }

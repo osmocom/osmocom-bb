@@ -1,6 +1,7 @@
 /* Logging/Debug support of the virtual physical layer */
 
 /* (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
  *
  * All Rights Reserved
  *
@@ -57,20 +58,27 @@ const char* l1ctlPrimNames[] = {
         "L1CTL_TRAFFIC_CONF",
         "L1CTL_TRAFFIC_IND"};
 
-static const struct log_info_cat default_categories[] = {[DL1C] = {
-        .name = "DL1C",
-        .description = "Layer 1 Control",
-        .color = "\033[1;31m",
-        .enabled = 1,
-        .loglevel = LOGL_DEBUG, }, [DVIRPHY] = {
-        .name = "DVIRPHY",
-        .description = "Virtual Layer 1 Interface",
-        .color = "\033[1;31m",
-        .enabled = 1,
-        .loglevel = LOGL_DEBUG, }};
+static const struct log_info_cat default_categories[] = {
+	[DL1C] = {
+		.name = "DL1C",
+		.description = "Layer 1 Control",
+		.color = "\033[1;31m",
+		.enabled = 1,
+		.loglevel = LOGL_DEBUG, },
+	[DVIRPHY] = {
+		.name = "DVIRPHY",
+		.description = "Virtual Layer 1 Interface",
+		.color = "\033[1;31m",
+		.enabled = 1,
+		.loglevel = LOGL_DEBUG,
+	}
+};
 
-const struct log_info ms_log_info = {.filter_fn = NULL, .cat =
-                default_categories, .num_cat = ARRAY_SIZE(default_categories), };
+const struct log_info ms_log_info = {
+	.filter_fn = NULL,
+	.cat = default_categories,
+	.num_cat = ARRAY_SIZE(default_categories),
+};
 
 /**
  * Initialize the logging system for the virtual physical layer.
@@ -81,9 +89,9 @@ int ms_log_init(char *cat_mask)
 
 	log_init(&ms_log_info, NULL);
 	stderr_target = log_target_create_stderr();
-	if (!stderr) {
+	if (!stderr)
 		return -1;
-	}
+
 	log_add_target(stderr_target);
 	log_set_all_filter(stderr_target, 1);
 	//log_set_log_level(stderr_target, 1);
@@ -91,9 +99,9 @@ int ms_log_init(char *cat_mask)
 	log_set_use_color(stderr_target, 0);
 	log_set_print_timestamp(stderr_target, 1);
 	log_set_print_category(stderr_target, 1);
-	if (cat_mask) {
+	if (cat_mask)
 		log_parse_category_mask(stderr_target, cat_mask);
-	}
+
 	return 0;
 }
 

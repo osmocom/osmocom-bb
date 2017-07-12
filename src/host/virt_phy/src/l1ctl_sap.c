@@ -1,5 +1,25 @@
 /* L1CTL SAP implementation.  */
 
+/* (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
+ *
+ * All Rights Reserved
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/utils.h>
@@ -23,12 +43,10 @@ static struct l1_model_ms *l1_model_ms = NULL;
 
 static void l1_model_tch_mode_set(uint8_t tch_mode)
 {
-	if (tch_mode == GSM48_CMODE_SPEECH_V1
-	                || tch_mode == GSM48_CMODE_SPEECH_EFR) {
+	if (tch_mode == GSM48_CMODE_SPEECH_V1 || tch_mode == GSM48_CMODE_SPEECH_EFR)
 		l1_model_ms->state->tch_mode = tch_mode;
-
-	} else {
-		// set default value if no proper mode was assigned by l23
+	else {
+		/* set default value if no proper mode was assigned by l23 */
 		l1_model_ms->state->tch_mode = GSM48_CMODE_SIGN;
 	}
 }
@@ -51,13 +69,11 @@ void l1ctl_sap_init(struct l1_model_ms *model)
  *
  * Enqueues the message into the rx queue.
  */
-void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_inst *lsi,
-                                   struct msgb *msg)
+void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_inst *lsi, struct msgb *msg)
 {
-	// check if the received msg is not empty
+	/* check if the received msg is not empty */
 	if (msg) {
-		DEBUGP(DL1C, "Message incoming from layer 2: %s\n",
-		                osmo_hexdump(msg->data, msg->len));
+		DEBUGP(DL1C, "Message incoming from layer 2: %s\n", osmo_hexdump(msg->data, msg->len));
 		l1ctl_sap_handler(msg);
 	}
 }
@@ -76,10 +92,8 @@ void l1ctl_sap_rx_from_l23(struct msgb *msg)
  */
 void l1ctl_sap_tx_to_l23_inst(struct l1ctl_sock_inst *lsi, struct msgb *msg)
 {
-	uint16_t *len;
 	/* prepend 16bit length before sending */
-	len = (uint16_t *)msgb_push(msg, sizeof(*len));
-	*len = htons(msg->len - sizeof(*len));
+	msgb_push_u16(msg, msg->len);
 	l1ctl_sock_write_msg(lsi, msg);
 }
 
@@ -108,15 +122,11 @@ struct msgb *l1ctl_msgb_alloc(uint8_t msg_type)
 {
 	struct msgb *msg;
 	struct l1ctl_hdr *l1h;
-	msg = msgb_alloc_headroom(L3_MSG_SIZE, L3_MSG_HEAD, "l1ctl");
-	if (!msg) {
-		while (1) {
-			puts("OOPS. Out of buffers...\n");
-		}
 
-		return NULL;
-	}
-	l1h = (struct l1ctl_hdr *)msgb_put(msg, sizeof(*l1h));
+	msg = msgb_alloc_headroom(L3_MSG_SIZE, L3_MSG_HEAD, "l1ctl");
+	OSMO_ASSERT(msg);
+
+	l1h = (struct l1ctl_hdr *) msgb_put(msg, sizeof(*l1h));
 	l1h->msg_type = msg_type;
 	l1h->flags = 0;
 
@@ -142,13 +152,12 @@ struct msgb *l1ctl_msgb_alloc(uint8_t msg_type)
  * [l1ctl_info_dl]	: initialized with params. msgb->data points here.
  * [spare-bytes]	: L3_MSG_DATA bytes reserved for data. msgb->tail points here.
  */
-struct msgb *l1ctl_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
-                                 uint16_t arfcn)
+struct msgb *l1ctl_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr, uint16_t arfcn)
 {
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg = l1ctl_msgb_alloc(msg_type);
 
-	dl = (struct l1ctl_info_dl *)msgb_put(msg, sizeof(*dl));
+	dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
 	dl->frame_nr = htonl(fn);
 	dl->snr = htons(snr);
 	dl->band_arfcn = htons(arfcn);
@@ -160,21 +169,18 @@ struct msgb *l1ctl_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
  * @brief General handler for incoming L1CTL messages from layer 2/3.
  *
  * This handler will call the specific routine dependent on the L1CTL message type.
- *
  */
 void l1ctl_sap_handler(struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
 
-	if (!msg) {
+	if (!msg)
 		return;
-	}
 
-	l1h = (struct l1ctl_hdr *)msg->data;
+	l1h = (struct l1ctl_hdr *) msg->data;
 
 	if (sizeof(*l1h) > msg->len) {
-		LOGP(DL1C, LOGL_NOTICE, "Malformed message: too short. %u\n",
-		                msg->len);
+		LOGP(DL1C, LOGL_NOTICE, "Malformed message: too short. %u\n", msg->len);
 		goto exit_msgbfree;
 	}
 
@@ -226,8 +232,11 @@ void l1ctl_sap_handler(struct msgb *msg)
 		break;
 	}
 
-	exit_msgbfree: msgb_free(msg);
-	exit_nofree: return; /* msg is scheduled for uplink and mustn't be freed here */
+exit_msgbfree:
+	msgb_free(msg);
+
+exit_nofree:
+	return; /* msg is scheduled for uplink and mustn't be freed here */
 }
 
 /***************************************************************
@@ -248,17 +257,15 @@ void l1ctl_sap_handler(struct msgb *msg)
  */
 void l1ctl_rx_dm_est_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
-	struct l1ctl_dm_est_req *est_req =
-	                (struct l1ctl_dm_est_req *)ul->payload;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_dm_est_req *est_req = (struct l1ctl_dm_est_req *) ul->payload;
 	uint8_t rsl_chantype, subslot, timeslot;
 
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
 
-	DEBUGP(DL1C,
-	                "Received and handled from l23 - L1CTL_DM_EST_REQ (chan_nr=0x%02x, tn=%u, ss=%u)\n",
-	                ul->chan_nr, timeslot, subslot);
+	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_DM_EST_REQ (chan_nr=0x%02x, tn=%u, ss=%u)\n",
+		ul->chan_nr, timeslot, subslot);
 
 	l1_model_ms->state->dedicated.chan_type = rsl_chantype;
 	l1_model_ms->state->dedicated.tn = timeslot;
@@ -266,12 +273,12 @@ void l1ctl_rx_dm_est_req(struct msgb *msg)
 	l1_model_ms->state->state = MS_STATE_DEDICATED;
 
 	/* TCH config */
-	if (rsl_chantype == RSL_CHAN_Bm_ACCHs
-	                || rsl_chantype == RSL_CHAN_Lm_ACCHs) {
+	if (rsl_chantype == RSL_CHAN_Bm_ACCHs || rsl_chantype == RSL_CHAN_Lm_ACCHs) {
 		l1_model_ms->state->tch_mode = est_req->tch_mode;
 		l1_model_tch_mode_set(est_req->tch_mode);
 		l1_model_ms->state->audio_mode = est_req->audio_mode;
-		// TODO: configure audio hardware for encoding / decoding / recording / playing voice
+		/* TODO: configure audio hardware for encoding /
+		 * decoding / recording / playing voice */
 	}
 }
 
@@ -288,15 +295,12 @@ void l1ctl_rx_dm_est_req(struct msgb *msg)
  */
 void l1ctl_rx_dm_freq_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
-	struct l1ctl_dm_freq_req *freq_req =
-	                (struct l1ctl_dm_freq_req *)ul->payload;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_dm_freq_req *freq_req = (struct l1ctl_dm_freq_req *) ul->payload;
 
-	DEBUGP(DL1C,
-	                "Received and ignored from l23 - L1CTL_DM_FREQ_REQ (arfcn0=%u, hsn=%u, maio=%u)\n",
-	                ntohs(freq_req->h0.band_arfcn), freq_req->h1.hsn,
-	                freq_req->h1.maio);
+	DEBUGP(DL1C, "Received and ignored from l23 - L1CTL_DM_FREQ_REQ (arfcn0=%u, hsn=%u, maio=%u)\n",
+		ntohs(freq_req->h0.band_arfcn), freq_req->h1.hsn, freq_req->h1.maio);
 }
 
 /**
@@ -315,23 +319,21 @@ void l1ctl_rx_dm_freq_req(struct msgb *msg)
  */
 void l1ctl_rx_crypto_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
-	struct l1ctl_crypto_req *cr = (struct l1ctl_crypto_req *)ul->payload;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
+	struct l1ctl_crypto_req *cr = (struct l1ctl_crypto_req *) ul->payload;
 	uint8_t key_len = msg->len - sizeof(*l1h) - sizeof(*ul) - sizeof(*cr);
 
-	DEBUGP(DL1C,
-	                "Received and handled from l23 - L1CTL_CRYPTO_REQ (algo=A5/%u, len=%u)\n",
-	                cr->algo, key_len);
+	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_CRYPTO_REQ (algo=A5/%u, len=%u)\n",
+		cr->algo, key_len);
 
 	if (cr->algo && key_len != A5_KEY_LEN) {
-		DEBUGP(DL1C, "L1CTL_CRYPTO_REQ -> Invalid key\n");
+		LOGP(DL1C, LOGL_ERROR, "L1CTL_CRYPTO_REQ -> Invalid key\n");
 		return;
 	}
 
 	l1_model_ms->crypto_inf->algo = cr->algo;
-	memcpy(l1_model_ms->crypto_inf->key, cr->key,
-	                sizeof(uint8_t) * A5_KEY_LEN);
+	memcpy(l1_model_ms->crypto_inf->key, cr->key, sizeof(uint8_t) * A5_KEY_LEN);
 }
 
 /**
@@ -354,8 +356,8 @@ void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	l1_model_ms->state->tch_mode = GSM48_CMODE_SIGN;
 	l1_model_ms->state->state = MS_STATE_IDLE_CAMPING;
 
-	// TODO: disable ciphering
-	// TODO: disable audio recording / playing
+	/* TODO: disable ciphering */
+	/* TODO: disable audio recording / playing */
 }
 
 /**
@@ -375,9 +377,8 @@ void l1ctl_rx_param_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct l1ctl_par_req *par_req = (struct l1ctl_par_req *)ul->payload;
 
-	DEBUGP(DL1C,
-	                "Received and ignored from l23 - L1CTL_PARAM_REQ (ta=%d, tx_power=%d)\n",
-	                par_req->ta, par_req->tx_power);
+	DEBUGP(DL1C, "Received and ignored from l23 - L1CTL_PARAM_REQ (ta=%d, tx_power=%d)\n",
+		par_req->ta, par_req->tx_power);
 }
 
 /**
@@ -395,26 +396,23 @@ void l1ctl_rx_param_req(struct msgb *msg)
  */
 void l1ctl_rx_reset_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_reset *reset_req = (struct l1ctl_reset *)l1h->data;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_reset *reset_req = (struct l1ctl_reset *) l1h->data;
 
 	switch (reset_req->type) {
 	case L1CTL_RES_T_FULL:
-		DEBUGP(DL1C,
-		                "Received and handled from l23 - L1CTL_RESET_REQ (type=FULL)\n");
+		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=FULL)\n");
 		l1_model_ms->state->state = MS_STATE_IDLE_SEARCHING;
 		virt_l1_sched_stop();
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	case L1CTL_RES_T_SCHED:
 		virt_l1_sched_restart(l1_model_ms->state->downlink_time);
-		DEBUGP(DL1C,
-		                "Received and handled from l23 - L1CTL_RESET_REQ (type=SCHED)\n");
+		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=SCHED)\n");
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	default:
-		LOGP(DL1C, LOGL_ERROR,
-		                "Received and ignored from l23 - L1CTL_RESET_REQ (type=unknown)\n");
+		LOGP(DL1C, LOGL_ERROR, "Received and ignored from l23 - L1CTL_RESET_REQ (type=unknown)\n");
 		break;
 	}
 }
@@ -434,16 +432,15 @@ void l1ctl_rx_reset_req(struct msgb *msg)
  */
 void l1ctl_rx_ccch_mode_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_ccch_mode_req *ccch_mode_req =
-	                (struct l1ctl_ccch_mode_req *)l1h->data;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_ccch_mode_req *ccch_mode_req = (struct l1ctl_ccch_mode_req *) l1h->data;
 	uint8_t ccch_mode = ccch_mode_req->ccch_mode;
 
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_CCCH_MODE_REQ\n");
 
 	l1_model_ms->state->serving_cell.ccch_mode = ccch_mode;
 
-	// check if more has to be done here
+	/* check if more has to be done here */
 	l1ctl_tx_ccch_mode_conf(ccch_mode);
 }
 
@@ -460,21 +457,18 @@ void l1ctl_rx_ccch_mode_req(struct msgb *msg)
  */
 void l1ctl_rx_tch_mode_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_tch_mode_req *tch_mode_req =
-	                (struct l1ctl_tch_mode_req *)l1h->data;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_tch_mode_req *tch_mode_req = (struct l1ctl_tch_mode_req *) l1h->data;
 
 	l1_model_tch_mode_set(tch_mode_req->tch_mode);
 	l1_model_ms->state->audio_mode = tch_mode_req->audio_mode;
 
-	DEBUGP(DL1C,
-	                "Received and handled from l23 - L1CTL_TCH_MODE_REQ (tch_mode=0x%02x audio_mode=0x%02x)\n",
-	                tch_mode_req->tch_mode, tch_mode_req->audio_mode);
+	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_TCH_MODE_REQ (tch_mode=0x%02x audio_mode=0x%02x)\n",
+		tch_mode_req->tch_mode, tch_mode_req->audio_mode);
 
-	// TODO: configure audio hardware for encoding / decoding / recording / playing voice
+	/* TODO: configure audio hardware for encoding / decoding / recording / playing voice */
 
-	l1ctl_tx_tch_mode_conf(l1_model_ms->state->tch_mode,
-	                l1_model_ms->state->audio_mode);
+	l1ctl_tx_tch_mode_conf(l1_model_ms->state->tch_mode, l1_model_ms->state->audio_mode);
 }
 
 /**
@@ -492,13 +486,11 @@ void l1ctl_rx_tch_mode_req(struct msgb *msg)
  */
 void l1ctl_rx_neigh_pm_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_neigh_pm_req *pm_req =
-	                (struct l1ctl_neigh_pm_req *)l1h->data;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_neigh_pm_req *pm_req = (struct l1ctl_neigh_pm_req *) l1h->data;
 
-	DEBUGP(DL1C,
-	                "Received and ignored from l23 - L1CTL_NEIGH_PM_REQ new list with %u entries\n",
-	                pm_req->n);
+	DEBUGP(DL1C, "Received and ignored from l23 - L1CTL_NEIGH_PM_REQ new list with %u entries\n",
+		pm_req->n);
 }
 
 /**
@@ -525,9 +517,8 @@ void l1ctl_rx_sim_req(struct msgb *msg)
 	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
 
-	DEBUGP(DL1C,
-	                "Received and ignored from l23 - SIM Request length: %u, data: %s: ",
-	                len, osmo_hexdump(data, sizeof(data)));
+	LOGP(DL1C, LOGL_ERROR, "Received and ignored from l23 - SIM Request length: %u, data: %s\n",
+		len, osmo_hexdump(data, sizeof(data)));
 
 }
 
@@ -548,12 +539,11 @@ void l1ctl_rx_sim_req(struct msgb *msg)
 void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type)
 {
 	struct msgb *msg = l1ctl_msgb_alloc(msg_type);
-	struct l1ctl_reset *reset_resp;
-	reset_resp = (struct l1ctl_reset *)msgb_put(msg, sizeof(*reset_resp));
-	reset_resp->type = reset_type;
+	struct l1ctl_reset *reset_resp = (struct l1ctl_reset *) msgb_put(msg, sizeof(*reset_resp));
 
-	DEBUGP(DL1C, "Sending to l23 - %s (reset_type: %u)\n",
-	                getL1ctlPrimName(msg_type), reset_type);
+	reset_resp->type = reset_type;
+	DEBUGP(DL1C, "Sending to l23 - %s (reset_type: %u)\n", getL1ctlPrimName(msg_type), reset_type);
+
 	l1ctl_sap_tx_to_l23(msg);
 }
 
@@ -570,12 +560,11 @@ void l1ctl_tx_ccch_mode_conf(uint8_t ccch_mode)
 {
 	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_CCCH_MODE_CONF);
 	struct l1ctl_ccch_mode_conf *mode_conf;
-	mode_conf = (struct l1ctl_ccch_mode_conf *)msgb_put(msg,
-	                sizeof(*mode_conf));
+
+	mode_conf = (struct l1ctl_ccch_mode_conf *) msgb_put(msg, sizeof(*mode_conf));
 	mode_conf->ccch_mode = ccch_mode;
 
-	DEBUGP(DL1C, "Sending to l23 - L1CTL_CCCH_MODE_CONF (mode: %u)\n",
-	                ccch_mode);
+	DEBUGP(DL1C, "Sending to l23 - L1CTL_CCCH_MODE_CONF (mode: %u)\n", ccch_mode);
 	l1ctl_sap_tx_to_l23(msg);
 }
 
@@ -593,56 +582,53 @@ void l1ctl_tx_tch_mode_conf(uint8_t tch_mode, uint8_t audio_mode)
 {
 	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_TCH_MODE_CONF);
 	struct l1ctl_tch_mode_conf *mode_conf;
-	mode_conf = (struct l1ctl_tch_mode_conf *)msgb_put(msg,
-	                sizeof(*mode_conf));
+
+	mode_conf = (struct l1ctl_tch_mode_conf *) msgb_put(msg, sizeof(*mode_conf));
 	mode_conf->tch_mode = tch_mode;
 	mode_conf->audio_mode = audio_mode;
 
-	DEBUGP(DL1C,
-	                "Sending to l23 - L1CTL_TCH_MODE_CONF (tch_mode: %u, audio_mode: %u)\n",
-	                tch_mode, audio_mode);
+	DEBUGP(DL1C, "Sending to l23 - L1CTL_TCH_MODE_CONF (tch_mode: %u, audio_mode: %u)\n",
+		tch_mode, audio_mode);
 	l1ctl_sap_tx_to_l23(msg);
 }
 
 /**
  * @brief Get the scheduled fn for a msg depending on its chan_nr and link_id.
  */
-uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
-                                      uint8_t link_id)
+uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr, uint8_t link_id)
 {
 	uint8_t chan_type, chan_ss, chan_ts;
-	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
-
 	uint32_t sched_fn = cur_time.fn;
 	uint16_t mod_102 = cur_time.fn % 2 * 51;
+
+	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
+
+	/* TODO: Replace this spaghetti monster with some lookup table */
 	switch (chan_type) {
 	case RSL_CHAN_Bm_ACCHs:
 		switch (link_id) {
 		case LID_DEDIC:
-			// dl=[0...11,13...24] ul=[0...11,13...24]
-			// skip idle frames and frames reserved for TCH_ACCH
-			if(cur_time.t2 == 12 || cur_time.t2 == 25) {
+			/* dl=[0...11,13...24] ul=[0...11,13...24]
+			 * skip idle frames and frames reserved for TCH_ACCH */
+			if (cur_time.t2 == 12 || cur_time.t2 == 25)
 				sched_fn++;
-			}
 			break;
-		// dl=42, ul=42+15
+		/* dl=42, ul=42+15 */
 		case LID_SACCH:
-			if((chan_ts & 1)) {
-				// Odd traffic channel timeslot -> dl=[25] ul=[25]
-				// TCH_ACCH always at the end of tch multiframe (mod 26)
+			if ((chan_ts & 1)) {
+				/* Odd traffic channel timeslot -> dl=[25] ul=[25]
+				 * TCH_ACCH always at the end of tch multiframe (mod 26) */
 				sched_fn -= cur_time.t2;
 				sched_fn += 25;
-			}
-			else {
-				// Even traffic channel timeslot -> dl=[12] ul=[12]
-				if(cur_time.t2 <= 12) {
+			} else {
+				/* Even traffic channel timeslot -> dl=[12] ul=[12] */
+				if (cur_time.t2 <= 12) {
 					sched_fn -= cur_time.t2;
 					sched_fn += 12;
 				} else {
 					sched_fn -= cur_time.t2;
 					sched_fn += 26 + 12;
 				}
-
 			}
 			break;
 		}
@@ -653,9 +639,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 		switch (chan_ss) {
 		case 0:
 			switch (link_id) {
-			// dl=22, ul=22+15
+			/* dl=22, ul=22+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 22 + 15) {
+				if (cur_time.t3 <= 22 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 22 + 15;
 				} else {
@@ -663,9 +649,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 22 + 15;
 				}
 				break;
-			// dl=42, ul=42+15
+			/* dl=42, ul=42+15 */
 			case LID_SACCH:
-				if(mod_102 <= 42 + 15) {
+				if (mod_102 <= 42 + 15) {
 					sched_fn -= mod_102;
 					sched_fn += 42 + 15;
 				} else {
@@ -677,9 +663,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 1:
 			switch (link_id) {
-			// dl=26, ul=26+15
+			/* dl=26, ul=26+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 26 + 15) {
+				if (cur_time.t3 <= 26 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 26 + 15;
 				} else {
@@ -687,9 +673,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 26 + 15;
 				}
 				break;
-			// dl=46, ul=46+15
+			/* dl=46, ul=46+15 */
 			case LID_SACCH:
-				if(mod_102 <= 46 + 15) {
+				if (mod_102 <= 46 + 15) {
 					sched_fn -= mod_102;
 					sched_fn += 46 + 15;
 				} else {
@@ -701,9 +687,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 2:
 			switch (link_id) {
-			// dl=32, ul=32+15
+			/* dl=32, ul=32+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 32 + 15) {
+				if (cur_time.t3 <= 32 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 32 + 15;
 				} else {
@@ -711,9 +697,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 32 + 15;
 				}
 				break;
-			// dl=51+42, ul=51+42+15
+			/* dl=51+42, ul=51+42+15 */
 			case LID_SACCH:
-				if(mod_102 <= 51 + 42 + 15) {
+				if (mod_102 <= 51 + 42 + 15) {
 					sched_fn -= mod_102;
 					sched_fn += 51 + 42 + 15;
 				} else {
@@ -725,9 +711,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 3:
 			switch (link_id) {
-			// dl=36, ul=36+15
+			/* dl=36, ul=36+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 36 + 15) {
+				if (cur_time.t3 <= 36 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 36 + 15;
 				} else {
@@ -735,9 +721,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 36 + 15;
 				}
 				break;
-			// dl=51+46, ul=51+46+15
+			/* dl=51+46, ul=51+46+15 */
 			case LID_SACCH:
-				if(mod_102 <= 51 + 46 + 15) {
+				if (mod_102 <= 51 + 46 + 15) {
 					sched_fn -= mod_102;
 					sched_fn += 51 + 46 + 15;
 				} else {
@@ -753,9 +739,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 		switch (chan_ss) {
 		case 0:
 			switch (link_id) {
-			// dl=0, ul=0+15
+			/* dl=0, ul=0+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 0 + 15) {
+				if (cur_time.t3 <= 0 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 0 + 15;
 				} else {
@@ -763,9 +749,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 0 + 15;
 				}
 				break;
-			// dl=32, ul=32+15
+			/* dl=32, ul=32+15 */
 			case LID_SACCH:
-				if(mod_102 <= 32 + 15) {
+				if (mod_102 <= 32 + 15) {
 					sched_fn -= mod_102;
 					sched_fn += 32 + 15;
 				} else {
@@ -777,9 +763,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 1:
 			switch (link_id) {
-			// dl=4, ul=4+15
+			/* dl=4, ul=4+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 4 + 15) {
+				if (cur_time.t3 <= 4 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 4 + 15;
 				} else {
@@ -787,9 +773,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 4 + 15;
 				}
 				break;
-			// dl=36, ul=36+15
+			/* dl=36, ul=36+15 */
 			case LID_SACCH:
-				if(mod_102 <= 36 + 15) {
+				if (mod_102 <= 36 + 15) {
 					sched_fn -= mod_102;
 					sched_fn += 36 + 15;
 				} else {
@@ -801,9 +787,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 2:
 			switch (link_id) {
-			// dl=8, ul=8+15
+			/* dl=8, ul=8+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 8 + 15) {
+				if (cur_time.t3 <= 8 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 8 + 15;
 				} else {
@@ -811,9 +797,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 8 + 15;
 				}
 				break;
-			// dl=40, ul=40+15
+			/* dl=40, ul=40+15 */
 			case LID_SACCH:
-				if(mod_102 <= 40 + 15) {
+				if (mod_102 <= 40 + 15) {
 					sched_fn -= mod_102;
 					sched_fn += 40 + 15;
 				} else {
@@ -825,9 +811,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 3:
 			switch (link_id) {
-			// dl=12, ul=12+15
+			/* dl=12, ul=12+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 12 + 15) {
+				if (cur_time.t3 <= 12 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 12 + 15;
 				} else {
@@ -835,9 +821,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 12 + 15;
 				}
 				break;
-			// dl=44, ul=44+15
+			/* dl=44, ul=44+15 */
 			case LID_SACCH:
-				if(mod_102 <= 44 + 15) {
+				if (mod_102 <= 44 + 15) {
 					sched_fn -= mod_102;
 					sched_fn += 44 + 15;
 				} else {
@@ -849,9 +835,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 4:
 			switch (link_id) {
-			// dl=16, ul=16+15
+			/* dl=16, ul=16+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 16 + 15) {
+				if (cur_time.t3 <= 16 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 16 + 15;
 				} else {
@@ -859,9 +845,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 16 + 15;
 				}
 				break;
-			// dl=51+32, ul=51+32+15
+			/* dl=51+32, ul=51+32+15 */
 			case LID_SACCH:
-				if(mod_102 <= 51 + 32 + 15) {
+				if (mod_102 <= 51 + 32 + 15) {
 					sched_fn -= mod_102;
 					sched_fn += 51 + 32 + 15;
 				} else {
@@ -873,9 +859,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 5:
 			switch (link_id) {
-			// dl=20, ul=36+15
+			/* dl=20, ul=36+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 20 + 15) {
+				if (cur_time.t3 <= 20 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 20 + 15;
 				} else {
@@ -883,9 +869,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 20 + 15;
 				}
 				break;
-			// dl=51+36, ul=51+36+15 ==> 0
+			/* dl=51+36, ul=51+36+15 ==> 0 */
 			case LID_SACCH:
-				if(mod_102 <= 0) {
+				if (mod_102 <= 0) {
 					sched_fn -= mod_102;
 					sched_fn += 0;
 				} else {
@@ -897,9 +883,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 6:
 			switch (link_id) {
-			// dl=24, ul=24+15
+			/* dl=24, ul=24+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 24 + 15) {
+				if (cur_time.t3 <= 24 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 24 + 15;
 				} else {
@@ -907,9 +893,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 24 + 15;
 				}
 				break;
-			// dl=51+40, ul=51+40+15 ==> 4
+			/* dl=51+40, ul=51+40+15 ==> 4 */
 			case LID_SACCH:
-				if(mod_102 <= 4) {
+				if (mod_102 <= 4) {
 					sched_fn -= mod_102;
 					sched_fn += 4;
 				} else {
@@ -921,9 +907,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 			break;
 		case 7:
 			switch (link_id) {
-			// dl=28, ul=28+15
+			/* dl=28, ul=28+15 */
 			case LID_DEDIC:
-				if(cur_time.t3 <= 28 + 15) {
+				if (cur_time.t3 <= 28 + 15) {
 					sched_fn -= cur_time.t3;
 					sched_fn += 28 + 15;
 				} else {
@@ -931,9 +917,9 @@ uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
 					sched_fn += 51 + 28 + 15;
 				}
 				break;
-			// dl=51+44, ul=51+44+15 ==> 8
+			/* dl=51+44, ul=51+44+15 ==> 8 */
 			case LID_SACCH:
-				if(mod_102 <= 8) {
+				if (mod_102 <= 8) {
 					sched_fn -= mod_102;
 					sched_fn += 8;
 				} else {

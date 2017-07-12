@@ -1,12 +1,12 @@
 /* Socket based Layer1 <-> Layer23 communication over L1CTL primitives. */
 
-/* (C) 2016 Sebastian Stumpf
+/* (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
  *
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -14,7 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
@@ -61,36 +61,39 @@
 static int l1ctl_sock_data_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct l1ctl_sock_inst *lsi = ofd->data;
-	// Check if request is really read request
-	if (what & BSC_FD_READ) {
-		struct msgb *msg = msgb_alloc(L1CTL_SOCK_MSGB_SIZE,
-		                "L1CTL sock rx");
-		int rc;
-		uint16_t len;
-		struct l1ctl_hdr *l1h;
-		// read length of the message first and convert to host byte order
-		rc = read(ofd->fd, &len, sizeof(len));
-		if (rc < sizeof(len)) {
-			goto ERR;
-		}
-		// convert to host byte order
-		len = ntohs(len);
-		if (len <= 0 || len > L1CTL_SOCK_MSGB_SIZE) {
-			goto ERR;
-		}
-		rc = read(ofd->fd, msgb_data(msg), len);
+	struct l1ctl_hdr *l1h;
+	struct msgb *msg;
+	uint16_t len;
+	int rc;
 
-		if (rc == len) {
-			msgb_put(msg, rc);
-			l1h = (void *) msgb_data(msg);
-			msg->l1h = l1h;
-			lsi->recv_cb(lsi, msg);
-			return 0;
-		}
-		ERR: perror(
-		                "Failed to receive msg from l2. Connection will be closed.\n");
-		l1ctl_sock_disconnect(lsi);
+	/* Check if request is really read request */
+	if (!(what & BSC_FD_READ))
+		return 0;
+
+	msg = msgb_alloc(L1CTL_SOCK_MSGB_SIZE, "L1CTL sock rx");
+
+	/* read length of the message first and convert to host byte order */
+	rc = read(ofd->fd, &len, sizeof(len));
+	if (rc < sizeof(len))
+		goto err_close;
+
+	/* convert to host byte order */
+	len = ntohs(len);
+	if (len <= 0 || len > L1CTL_SOCK_MSGB_SIZE)
+		goto err_close;
+
+	rc = read(ofd->fd, msgb_data(msg), len);
+	if (rc == len) {
+		msgb_put(msg, rc);
+		l1h = (void *) msgb_data(msg);
+		msg->l1h = l1h;
+		lsi->recv_cb(lsi, msg);
+		return 0;
 	}
+err_close:
+	perror("Failed to receive msg from l2. Connection will be closed.\n");
+	l1ctl_sock_disconnect(lsi);
+
 	return 0;
 
 }
@@ -142,8 +145,7 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
 	strcpy(local_addr.sun_path, path);
 	unlink(local_addr.sun_path);
 
-	if ((rc = bind(fd, (struct sockaddr *)&local_addr, sizeof(local_addr)))
-	                != 0) {
+	if ((rc = bind(fd, (struct sockaddr *)&local_addr, sizeof(local_addr))) != 0) {
 		fprintf(stderr, "Failed to bind the unix domain socket. '%s'\n",
 		                local_addr.sun_path);
 		return NULL;
@@ -161,7 +163,7 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
 	lsi->ofd.fd = fd;
 	lsi->ofd.when = BSC_FD_READ;
 	lsi->ofd.cb = l1ctl_sock_accept_cb;
-	// no connection -> invalid filedescriptor and not 0 (==std_in)
+	/* no connection -> invalid filedescriptor and not 0 (==std_in) */
 	lsi->connection.fd = -1;
 	lsi->l1ctl_sock_path = path;
 

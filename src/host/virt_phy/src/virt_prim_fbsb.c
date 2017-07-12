@@ -1,3 +1,26 @@
+
+/* (C) 2010 by Dieter Spaar <spaar@mirider.augusta.de>
+ * (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
+ *
+ * All Rights Reserved
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ */
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,11 +54,10 @@ static uint16_t sync_count = 0;
  */
 void l1ctl_rx_fbsb_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_fbsb_req *sync_req = (struct l1ctl_fbsb_req *)l1h->data;
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_fbsb_req *sync_req = (struct l1ctl_fbsb_req *) l1h->data;
 
-	DEBUGP(DL1C,
-	       "Received and handled from l23 - L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
+	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
 	       ntohs(sync_req->band_arfcn), sync_req->flags);
 
 	l1_model_ms->state->state = MS_STATE_IDLE_SYNCING;
@@ -50,14 +72,15 @@ void l1ctl_rx_fbsb_req(struct msgb *msg)
 void prim_fbsb_sync(struct msgb *msg)
 {
 	struct gsmtap_hdr *gh = msgb_l1(msg);
-	uint32_t fn = ntohl(gh->frame_number); // frame number of the rcv msg
-	uint16_t arfcn = ntohs(gh->arfcn); // arfcn of the received msg
+	uint32_t fn = ntohl(gh->frame_number); /* frame number of the rcv msg */
+	uint16_t arfcn = ntohs(gh->arfcn); /* arfcn of the received msg */
 
-	// ignore messages from other arfcns as the one requested to sync to by l23
+	/* ignore messages from other arfcns as the one requested to sync to by l23 */
 	if (l1_model_ms->state->fbsb.arfcn != arfcn) {
 		talloc_free(msg);
-		// cancel sync if we did not receive a msg on dl from the requested arfcn that we can sync to
-		if(sync_count++ > 20) {
+		/* cancel sync if we did not receive a msg on dl from
+		 * the requested arfcn that we can sync to */
+		if (sync_count++ > 20) {
 			sync_count = 0;
 			l1_model_ms->state->state = MS_STATE_IDLE_SEARCHING;
 			l1ctl_tx_fbsb_conf(1, (l1_model_ms->state->fbsb.arfcn));
@@ -92,10 +115,10 @@ void l1ctl_tx_fbsb_conf(uint8_t res, uint16_t arfcn)
 {
 	struct msgb *msg;
 	struct l1ctl_fbsb_conf *resp;
-	uint32_t fn = 0; // 0 should be okay here
-	uint16_t snr = 40; // signal noise ratio > 40db is best signal (unused in virt)
-	int16_t initial_freq_err = 0; // 0 means no error (unused in virt)
-	uint8_t bsic = 0; // bsci can be read from sync burst (unused in virt)
+	uint32_t fn = 0; /* 0 should be okay here */
+	uint16_t snr = 40; /* signal noise ratio > 40db is best signal (unused in virt)*/
+	int16_t initial_freq_err = 0; /* 0 means no error (unused in virt) */
+	uint8_t bsic = 0; /* BSIC can be read from sync burst (unused in virt) */
 
 	msg = l1ctl_create_l2_msg(L1CTL_FBSB_CONF, fn, snr, arfcn);
 
@@ -104,8 +127,7 @@ void l1ctl_tx_fbsb_conf(uint8_t res, uint16_t arfcn)
 	resp->result = res;
 	resp->bsic = bsic;
 
-	DEBUGP(DL1C, "Sending to l23 - %s (res: %u)\n",
-	       getL1ctlPrimName(L1CTL_FBSB_CONF), res);
+	DEBUGP(DL1C, "Sending to l23 - %s (res: %u)\n", getL1ctlPrimName(L1CTL_FBSB_CONF), res);
 
 	l1ctl_sap_tx_to_l23(msg);
 }
