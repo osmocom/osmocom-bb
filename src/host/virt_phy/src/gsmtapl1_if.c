@@ -40,46 +40,6 @@
 
 static struct l1_model_ms *l1_model_ms = NULL;
 
-/* for debugging */
-static const struct value_string gsmtap_channels[] = {
-	{ GSMTAP_CHANNEL_UNKNOWN,	"UNKNOWN" },
-	{ GSMTAP_CHANNEL_BCCH,		"BCCH" },
-	{ GSMTAP_CHANNEL_CCCH,		"CCCH" },
-	{ GSMTAP_CHANNEL_RACH,		"RACH" },
-	{ GSMTAP_CHANNEL_AGCH,		"AGCH" },
-	{ GSMTAP_CHANNEL_PCH,		"PCH" },
-	{ GSMTAP_CHANNEL_SDCCH,		"SDCCH" },
-	{ GSMTAP_CHANNEL_SDCCH4,	"SDCCH/4" },
-	{ GSMTAP_CHANNEL_SDCCH8,	"SDCCH/8" },
-	{ GSMTAP_CHANNEL_TCH_F,		"TCH/F/FACCH/F" },
-	{ GSMTAP_CHANNEL_TCH_H,		"TCH/H/FACCH/H" },
-	{ GSMTAP_CHANNEL_PACCH,		"PACCH" },
-	{ GSMTAP_CHANNEL_CBCH52,	"CBCH" },
-	{ GSMTAP_CHANNEL_PDCH,		"PDCH" } ,
-	{ GSMTAP_CHANNEL_PTCCH,		"PTTCH" },
-	{ GSMTAP_CHANNEL_CBCH51,	"CBCH" },
-	{ GSMTAP_CHANNEL_ACCH | GSMTAP_CHANNEL_SDCCH, "LSACCH" },
-	{ GSMTAP_CHANNEL_ACCH | GSMTAP_CHANNEL_SDCCH4, "SACCH/4" },
-	{ GSMTAP_CHANNEL_ACCH | GSMTAP_CHANNEL_SDCCH8, "SACCH/8" },
-	{ GSMTAP_CHANNEL_ACCH | GSMTAP_CHANNEL_TCH_F, "SACCH/F" },
-	{ GSMTAP_CHANNEL_ACCH | GSMTAP_CHANNEL_TCH_H, "SACCH/H" },
-	{ 0, NULL }
-};
-
-/* for debugging */
-static const struct value_string gsmtap_types[10] = {
-	{ GSMTAP_TYPE_UM,		"GSM Um (MS<->BTS)" },
-	{ GSMTAP_TYPE_ABIS,		"GSM Abis (BTS<->BSC)" },
-	{ GSMTAP_TYPE_UM_BURST,		"GSM Um burst (MS<->BTS)" },
-	{ GSMTAP_TYPE_SIM,		"SIM Card" },
-	{ GSMTAP_TYPE_TETRA_I1,		"TETRA V+D"  },
-	{ GSMTAP_TYPE_WMX_BURST,	"WiMAX burst" },
-	{ GSMTAP_TYPE_GMR1_UM,		"GMR-1 air interfeace (MES-MS<->GTS)"},
-	{ GSMTAP_TYPE_UMTS_RLC_MAC,	"UMTS RLC/MAC" },
-	{ GSMTAP_TYPE_UMTS_RRC,		"UMTS RRC" },
-	{ 0, NULL }
-};
-
 void gsmtapl1_init(struct l1_model_ms *model)
 {
 	l1_model_ms = model;
@@ -212,8 +172,8 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 
 	DEBUGP(DVIRPHY, "Receiving gsmtap msg from virt um - "
 	       "(arfcn=%u, framenumber=%u, type=%s, subtype=%s, timeslot=%u, subslot=%u, rsl_chan_type=0x%2x, link_id=0x%2x, chan_nr=0x%2x)\n",
-	       arfcn, fn, get_value_string(gsmtap_types, gh->type),
-	       get_value_string(gsmtap_channels, gsmtap_chantype), timeslot,
+	       arfcn, fn, get_value_string(gsmtap_type_names, gh->type),
+	       get_value_string(gsmtap_gsm_channel_names, gsmtap_chantype), timeslot,
 	       subslot, rsl_chantype, link_id, chan_nr);
 
 	/* switch case with removed ACCH flag */
