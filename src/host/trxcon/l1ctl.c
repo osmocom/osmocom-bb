@@ -187,6 +187,17 @@ int l1ctl_tx_data_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data)
 	return l1ctl_link_send(l1l, msg);
 }
 
+int l1ctl_tx_rach_conf(struct l1ctl_link *l1l)
+{
+	struct msgb *msg;
+
+	msg = l1ctl_alloc_msg(L1CTL_RACH_CONF);
+	if (msg == NULL)
+		return -ENOMEM;
+
+	return l1ctl_link_send(l1l, msg);
+}
+
 static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_fbsb_req *fbsb;
@@ -355,6 +366,57 @@ exit:
 	return rc;
 }
 
+static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	struct l1ctl_rach_req *req;
+	struct trx_ts_prim *prim;
+	struct trx_ts *ts;
+	int len, rc = 0;
+
+	req = (struct l1ctl_rach_req *) msg->l1h;
+	len = sizeof(*req);
+	if (msgb_l1len(msg) < len) {
+		LOGP(DL1C, LOGL_ERROR, "MSG too short RACH Req: %d\n", len);
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Convert offset value to host format */
+	req->offset = ntohs(req->offset);
+
+	LOGP(DL1C, LOGL_DEBUG, "Recv RACH Req (offset=%u)\n", req->offset);
+
+	/* FIXME: can we use other than TS0? */
+	ts = sched_trx_find_ts(l1l->trx, 0);
+	if (ts == NULL) {
+		LOGP(DL1C, LOGL_DEBUG, "Couldn't send RACH: "
+			"TS0 is not active\n");
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Allocate a new primitive */
+	prim = talloc_zero_size(ts, sizeof(struct trx_ts_prim) + len);
+	if (prim == NULL) {
+		LOGP(DL1C, LOGL_ERROR, "Failed to allocate memory\n");
+		rc = -ENOMEM;
+		goto exit;
+	}
+
+	/* Set logical channel of primitive */
+	prim->chan = TRXC_RACH;
+
+	/* Fill in the payload */
+	memcpy(prim->payload, req, len);
+
+	/* Add to TS queue */
+	llist_add_tail(&prim->list, &ts->tx_prims);
+
+exit:
+	msgb_free(msg);
+	return rc;
+}
+
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
@@ -373,6 +435,8 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_echo_req(l1l, msg);
 	case L1CTL_CCCH_MODE_REQ:
 		return l1ctl_rx_ccch_mode_req(l1l, msg);
+	case L1CTL_RACH_REQ:
+		return l1ctl_rx_rach_req(l1l, msg);
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
 		msgb_free(msg);
