@@ -83,7 +83,7 @@ typedef int trx_lchan_rx_func(struct trx_instance *trx,
 	uint8_t bid, sbit_t *bits, uint16_t nbits,
 	int8_t rssi, float toa);
 
-typedef ubit_t *trx_lchan_tx_func(struct trx_instance *trx,
+typedef int trx_lchan_tx_func(struct trx_instance *trx,
 	struct trx_ts *ts,
 	uint32_t fn, enum trx_lchan_type chan,
 	uint8_t bid, uint16_t *nbits);
