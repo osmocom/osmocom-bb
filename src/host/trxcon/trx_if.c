@@ -525,7 +525,7 @@ rsp_error:
 /* 148 bytes output symbol values, 0 & 1                                    */
 /* ------------------------------------------------------------------------ */
 
-static int trx_data_read_cb(struct osmo_fd *ofd, unsigned int what)
+static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
 	uint8_t buf[256];
@@ -577,7 +577,7 @@ static int trx_data_read_cb(struct osmo_fd *ofd, unsigned int what)
 	return 0;
 }
 
-int trx_if_data(struct trx_instance *trx, uint8_t tn, uint32_t fn,
+int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 	uint8_t pwr, const ubit_t *bits)
 {
 	uint8_t buf[256];
@@ -646,7 +646,7 @@ int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
 		goto error;
 
 	rc = trx_udp_open(trx_new, &trx_new->trx_ofd_data, host,
-		port + 102, port + 2, trx_data_read_cb);
+		port + 102, port + 2, trx_data_rx_cb);
 	if (rc < 0)
 		goto error;
 
