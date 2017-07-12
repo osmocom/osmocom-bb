@@ -50,6 +50,9 @@ class BurstForwarder:
 		for i in range(8, length):
 			payload[i] = 255 if payload[i] else 0
 
+		# WTF: append two unused bytes at the end
+		payload[length:2] = [0x00, 0x00]
+
 		return payload
 
 	# Downlink handler: BTS -> BB
