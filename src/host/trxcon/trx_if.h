@@ -63,3 +63,6 @@ int trx_if_cmd_rxtune(struct trx_instance *trx, uint16_t arfcn);
 int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t arfcn);
 
 int trx_if_cmd_setslot(struct trx_instance *trx, uint8_t tn, uint8_t type);
+
+int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
+	uint8_t pwr, const ubit_t *bits);
