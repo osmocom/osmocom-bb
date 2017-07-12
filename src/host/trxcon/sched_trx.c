@@ -48,12 +48,44 @@ static void msgb_queue_flush(struct llist_head *list)
 static void sched_frame_clck_cb(struct trx_sched *sched)
 {
 	struct trx_instance *trx = (struct trx_instance *) sched->data;
+	const struct trx_frame *frame;
+	trx_lchan_tx_func *handler;
+	struct trx_ts_prim *prim;
+	enum trx_lchan_type chan;
+	uint8_t offset, bid;
+	struct trx_ts *ts;
+	uint32_t fn;
 
 	/* If we have no active timeslots, nothing to do */
 	if (llist_empty(&trx->ts_list))
 		return;
 
-	/* Do nothing for now */
+	/* For each allocated timeslot */
+	llist_for_each_entry(ts, &trx->ts_list, list) {
+		if (llist_empty(&ts->tx_prims))
+			continue;
+
+		/* Get frame from multiframe */
+		fn = sched->fn_counter_proc;
+		offset = fn % ts->mf_layout->period;
+		frame = ts->mf_layout->frames + offset;
+
+		/* Get required info from frame */
+		bid = frame->ul_bid;
+		chan = frame->ul_chan;
+		handler = trx_lchan_desc[chan].tx_fn;
+
+		/* Omit lchans without handler */
+		if (!handler)
+			continue;
+
+		/* Get a message from TX queue */
+		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
+
+		/* Poke lchan handler */
+		if (prim->chan == chan)
+			handler(trx, ts, fn, chan, bid, NULL);
+	}
 }
 
 int sched_trx_init(struct trx_instance *trx)

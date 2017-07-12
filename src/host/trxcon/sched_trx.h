@@ -230,6 +230,16 @@ struct trx_ts {
 	struct llist_head list;
 };
 
+/* Represents one TX primitive in the queue of trx_ts */
+struct trx_ts_prim {
+	/*! \brief Link to queue of TS */
+	struct llist_head list;
+	/*! \brief Logical channel type */
+	enum trx_lchan_type chan;
+	/*! \brief Payload */
+	uint8_t payload[0];
+};
+
 extern const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX];
 const struct trx_multiframe *sched_mframe_layout(
 	enum gsm_phys_chan_config config, int ts_num);
