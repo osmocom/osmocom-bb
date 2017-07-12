@@ -25,7 +25,7 @@
 #include <osmocom/core/application.h>
 #include <virtphy/logging.h>
 
-const char* l1ctlPrimNames[] = {
+static const char* l1ctlPrimNames[] = {
         "_L1CTL_NONE",
         "L1CTL_FBSB_REQ",
         "L1CTL_FBSB_CONF",
@@ -105,7 +105,7 @@ int ms_log_init(char *cat_mask)
 	return 0;
 }
 
-char *getL1ctlPrimName(uint8_t type)
+const char *getL1ctlPrimName(uint8_t type)
 {
 	return l1ctlPrimNames[type];
 }

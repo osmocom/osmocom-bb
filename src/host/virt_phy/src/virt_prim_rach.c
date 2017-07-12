@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/core/msgb.h>
