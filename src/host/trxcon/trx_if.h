@@ -27,7 +27,10 @@ struct trx_instance {
 	struct llist_head trx_ctrl_list;
 	struct osmo_fsm_inst *fsm;
 	uint32_t prev_state;
+
+	/* GSM L1 specific */
 	uint16_t band_arfcn;
+	uint8_t bsic;
 
 	/* Scheduler stuff */
 	struct trx_sched sched;
