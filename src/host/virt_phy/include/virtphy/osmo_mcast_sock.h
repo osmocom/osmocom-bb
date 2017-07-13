@@ -4,11 +4,11 @@
 #include <osmocom/core/select.h>
 
 struct mcast_server_sock {
-	struct osmo_fd *osmo_fd;
+	struct osmo_fd osmo_fd;
 };
 
 struct mcast_client_sock {
-	struct osmo_fd *osmo_fd;
+	struct osmo_fd osmo_fd;
 	struct ip_mreq *mcast_group;
 };
 
