@@ -29,6 +29,7 @@
 
 #include <arpa/inet.h>
 
+#include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
 #include <osmocom/core/msgb.h>
@@ -228,6 +229,61 @@ int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 		l1ctl_tx_fbsb_conf(trx->l1l, 0, bsic);
 		trx->bsic = bsic;
 	}
+
+	return 0;
+}
+
+/* 41-bit RACH synchronization sequence */
+static ubit_t rach_synch_seq[] = {
+	0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1,
+	1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0,
+	1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
+};
+
+/* Obtain a to-be-transmitted RACH burst */
+int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
+	uint32_t fn, enum trx_lchan_type chan,
+	uint8_t bid, uint16_t *nbits)
+{
+	struct trx_ts_prim *prim;
+	struct l1ctl_rach_req *req;
+	uint8_t burst[GSM_BURST_LEN];
+	uint8_t payload[36];
+	int rc;
+
+	/* Get a message from TX queue */
+	prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
+	req = (struct l1ctl_rach_req *) prim->payload;
+
+	/* Delay RACH sending according to offset value */
+	if (req->offset-- > 0)
+		return 0;
+
+	/* Encode payload */
+	rc = gsm0503_rach_encode(payload, &req->ra, trx->bsic);
+	if (rc) {
+		LOGP(DSCH, LOGL_ERROR, "Could not encode RACH burst\n");
+		return rc;
+	}
+
+	/* Compose RACH burst */
+	memset(burst, 0, 8); /* TB */
+	memcpy(burst + 8, rach_synch_seq, 41); /* sync seq */
+	memcpy(burst + 49, payload, 36); /* payload */
+	memset(burst + 85, 0, 63); /* TB + GP */
+
+	LOGP(DSCH, LOGL_DEBUG, "Transmitting RACH fn=%u\n", fn);
+
+	/* Send burst to transceiver */
+	rc = trx_if_tx_burst(trx, ts->index, fn, 10, burst);
+	if (rc) {
+		LOGP(DSCH, LOGL_ERROR, "Could not send burst to transceiver\n");
+		return rc;
+	}
+
+	/* Remove primitive from queue and free memory */
+	llist_del(&prim->list);
+	talloc_free(prim);
 
 	return 0;
 }
