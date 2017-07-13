@@ -50,7 +50,7 @@ class CTRLInterfaceBTS(CTRLInterface):
 
 			# Ensure RX / TX freq. are set
 			if (self.rx_freq is None) or (self.tx_freq is None):
-				print("[!] Transceiver already started")
+				print("[!] RX / TX freq. are not set")
 				return -1
 
 			print("[i] Starting transceiver...")
