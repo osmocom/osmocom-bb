@@ -10,32 +10,38 @@
 #include <unistd.h>
 #include <virtphy/osmo_mcast_sock.h>
 
+/* server socket is what we use for transmission. It is not subscribed
+ * to a multicast group or locally bound, but it is just a normal UDP
+ * socket that's connected to the remote mcast group + port */
 struct mcast_server_sock *mcast_server_sock_setup(void *ctx,
                                                   char* tx_mcast_group,
                                                   int tx_mcast_port,
                                                   int loopback)
 {
-	struct mcast_server_sock *serv_sock = talloc_zero(ctx,
-	                struct mcast_server_sock);
+	struct mcast_server_sock *serv_sock = talloc_zero(ctx, struct mcast_server_sock);
+	int rc;
 
-	serv_sock->osmo_fd = talloc_zero(ctx, struct osmo_fd);
-	serv_sock->sock_conf = talloc_zero(ctx, struct sockaddr_in);
+	/* TODO: why allocate those dynamically ?!? */
+	serv_sock->osmo_fd = talloc_zero(serv_sock, struct osmo_fd);
+	serv_sock->sock_conf = talloc_zero(serv_sock, struct sockaddr_in);
 
-	// setup mcast server socket
-	serv_sock->osmo_fd->fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (serv_sock->osmo_fd->fd == -1) {
+	/* setup mcast server socket */
+	rc = osmo_sock_init_ofd(serv_sock->osmo_fd, AF_INET, SOCK_DGRAM, IPPROTO_UDP,
+				tx_mcast_group, tx_mcast_port, OSMO_SOCK_F_CONNECT);
+	if (rc < 0) {
 		perror("Failed to create Multicast Server Socket");
 		return NULL;
 	}
 
+	/* TODO: Why kleep this stored in sock_conf? */
 	serv_sock->sock_conf->sin_family = AF_INET;
 	serv_sock->sock_conf->sin_addr.s_addr = inet_addr(tx_mcast_group);
 	serv_sock->sock_conf->sin_port = htons(tx_mcast_port);
 
 	// determines whether sent mcast packets should be looped back to the local sockets.
 	// loopback must be enabled if the mcast client is on the same machine
-	if (setsockopt(serv_sock->osmo_fd->fd, IPPROTO_IP,
-	IP_MULTICAST_LOOP, &loopback, sizeof(loopback)) < 0) {
+	if (setsockopt(serv_sock->osmo_fd->fd, IPPROTO_IP, IP_MULTICAST_LOOP,
+			&loopback, sizeof(loopback)) < 0) {
 		perror("Failed to disable loopback.\n");
 		return NULL;
 	}
@@ -43,84 +49,59 @@ struct mcast_server_sock *mcast_server_sock_setup(void *ctx,
 	return serv_sock;
 }
 
+/* the client socket is what we use for reception.  It is a UDP socket
+ * that's bound to the GSMTAP UDP port and subscribed to the respective
+ * multicast group */
 struct mcast_client_sock *mcast_client_sock_setup(
                 void *ctx, char* mcast_group, int mcast_port,
                 int (*fd_rx_cb)(struct osmo_fd *ofd, unsigned int what),
                 void *osmo_fd_data)
 {
-	struct mcast_client_sock *client_sock = talloc_zero(ctx,
-	                struct mcast_client_sock);
-	struct sockaddr_in *rx_sock_conf = talloc_zero(NULL,
-	                struct sockaddr_in);
-	int rc, reuseaddr = 1, loopback = 1, all = 0;
+	struct mcast_client_sock *client_sock = talloc_zero(ctx, struct mcast_client_sock);
+	int rc, loopback = 1, all = 0;
 
-	client_sock->osmo_fd = talloc_zero(ctx, struct osmo_fd);
-	client_sock->mcast_group = talloc_zero(ctx, struct ip_mreq);
+	/* TODO: why allocate those dynamically ?!? */
+	client_sock->osmo_fd = talloc_zero(client_sock, struct osmo_fd);
+	client_sock->mcast_group = talloc_zero(client_sock, struct ip_mreq);
 
-	// Create mcast client socket
-	client_sock->osmo_fd->fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (client_sock->osmo_fd->fd == -1) {
+	client_sock->osmo_fd->cb = fd_rx_cb;
+	client_sock->osmo_fd->when = BSC_FD_READ;
+	client_sock->osmo_fd->data = osmo_fd_data;
+
+	/* Create mcast client socket */
+	rc = osmo_sock_init_ofd(client_sock->osmo_fd, AF_INET, SOCK_DGRAM, IPPROTO_UDP,
+				NULL, mcast_port, OSMO_SOCK_F_BIND);
+	if (rc < 0) {
 		perror("Could not create mcast client socket");
 		return NULL;
 	}
 
-	// Enable SO_REUSEADDR to allow multiple instances of this application to receive copies of the multicast datagrams.
-	rc = setsockopt(client_sock->osmo_fd->fd,
-	SOL_SOCKET,
-	SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr));
-	if (rc < 0) {
-		perror("Failed to configure REUSEADDR option");
-		return NULL;
-	}
-
-	// Bind to the proper port number with the IP address specified as INADDR_ANY.
-	rx_sock_conf->sin_family = AF_INET;
-	rx_sock_conf->sin_addr.s_addr = htonl(INADDR_ANY);
-	rx_sock_conf->sin_port = htons(mcast_port);
-	rc = bind(client_sock->osmo_fd->fd, (struct sockaddr *)rx_sock_conf,
-	                sizeof(*rx_sock_conf));
-	talloc_free(rx_sock_conf);
-	if (rc < 0) {
-		perror("Could not bind mcast client socket");
-		return NULL;
-	}
-
-	// Enable loopback of msgs to the host.
-	// Loopback must be enabled for the client, so multiple processes are able to recevie a mcast package.
-	rc = setsockopt(client_sock->osmo_fd->fd,
-	IPPROTO_IP,
-	IP_MULTICAST_LOOP, &loopback, sizeof(loopback));
+	/* Enable loopback of msgs to the host. */
+	/* Loopback must be enabled for the client, so multiple
+	 * processes are able to receive a mcast package. */
+	rc = setsockopt(client_sock->osmo_fd->fd, IPPROTO_IP, IP_MULTICAST_LOOP,
+			&loopback, sizeof(loopback));
 	if (rc < 0) {
 		perror("Failed to enable IP_MULTICAST_LOOP");
 		return NULL;
 	}
 
-	// Configure and join the multicast group
+	/* Configure and join the multicast group */
 	client_sock->mcast_group->imr_multiaddr.s_addr = inet_addr(mcast_group);
 	client_sock->mcast_group->imr_interface.s_addr = htonl(INADDR_ANY);
-	rc = setsockopt(client_sock->osmo_fd->fd,
-	IPPROTO_IP,
-	IP_ADD_MEMBERSHIP, client_sock->mcast_group,
-	                sizeof(*client_sock->mcast_group));
+	rc = setsockopt(client_sock->osmo_fd->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+			client_sock->mcast_group, sizeof(*client_sock->mcast_group));
 	if (rc < 0) {
 		perror("Failed to join to mcast goup");
 		return NULL;
 	}
 
-	// this option will set the delivery option so that only packages are received
-	// from sockets we are bound to via IP_ADD_MEMBERSHIP
-	if (setsockopt(client_sock->osmo_fd->fd, IPPROTO_IP,
-	IP_MULTICAST_ALL, &all, sizeof(all)) < 0) {
+	/* this option will set the delivery option so that only packets
+	 * from sockets we are subscribed to via IP_ADD_MEMBERSHIP are received */
+	if (setsockopt(client_sock->osmo_fd->fd, IPPROTO_IP, IP_MULTICAST_ALL, &all, sizeof(all)) < 0) {
 		perror("Failed to modify delivery policy to explicitly joined.\n");
 		return NULL;
 	}
-
-	// configure and register the osmocom filedescriptor
-	client_sock->osmo_fd->cb = fd_rx_cb;
-	client_sock->osmo_fd->when = BSC_FD_READ;
-	client_sock->osmo_fd->data = osmo_fd_data;
-
-	osmo_fd_register(client_sock->osmo_fd);
 
 	return client_sock;
 }
@@ -171,10 +152,8 @@ int mcast_bidir_sock_rx(struct mcast_bidir_sock *bidir_sock, void* buf,
 
 void mcast_client_sock_close(struct mcast_client_sock *client_sock)
 {
-	setsockopt(client_sock->osmo_fd->fd,
-	IPPROTO_IP,
-	IP_DROP_MEMBERSHIP, client_sock->mcast_group,
-	                sizeof(*client_sock->mcast_group));
+	setsockopt(client_sock->osmo_fd->fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+		   client_sock->mcast_group, sizeof(*client_sock->mcast_group));
 	osmo_fd_unregister(client_sock->osmo_fd);
 	client_sock->osmo_fd->fd = -1;
 	client_sock->osmo_fd->when = 0;
