@@ -138,9 +138,9 @@ void mcast_client_sock_close(struct mcast_client_sock *client_sock)
 	/* multicast memberships of socket are implicitly dropped when
 	 * socket is closed */
 	osmo_fd_unregister(&client_sock->osmo_fd);
+	close(client_sock->osmo_fd.fd);
 	client_sock->osmo_fd.fd = -1;
 	client_sock->osmo_fd.when = 0;
-	close(client_sock->osmo_fd.fd);
 	talloc_free(client_sock);
 
 }
