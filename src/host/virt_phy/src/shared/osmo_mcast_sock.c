@@ -21,7 +21,6 @@ mcast_server_sock_setup(void *ctx, char* tx_mcast_group, int tx_mcast_port, int 
 
 	/* TODO: why allocate those dynamically ?!? */
 	serv_sock->osmo_fd = talloc_zero(serv_sock, struct osmo_fd);
-	serv_sock->sock_conf = talloc_zero(serv_sock, struct sockaddr_in);
 
 	/* setup mcast server socket */
 	rc = osmo_sock_init_ofd(serv_sock->osmo_fd, AF_INET, SOCK_DGRAM, IPPROTO_UDP,
@@ -30,11 +29,6 @@ mcast_server_sock_setup(void *ctx, char* tx_mcast_group, int tx_mcast_port, int 
 		perror("Failed to create Multicast Server Socket");
 		return NULL;
 	}
-
-	/* TODO: Why kleep this stored in sock_conf? */
-	serv_sock->sock_conf->sin_family = AF_INET;
-	serv_sock->sock_conf->sin_addr.s_addr = inet_addr(tx_mcast_group);
-	serv_sock->sock_conf->sin_port = htons(tx_mcast_port);
 
 	/* determines whether sent mcast packets should be looped back to the local sockets.
 	 * loopback must be enabled if the mcast client is on the same machine */
@@ -131,8 +125,7 @@ int mcast_client_sock_rx(struct mcast_client_sock *client_sock, void* buf,
 int mcast_server_sock_tx(struct mcast_server_sock *serv_sock, void* data,
                          int data_len)
 {
-	return sendto(serv_sock->osmo_fd->fd, data, data_len, 0,
-		      (struct sockaddr *)serv_sock->sock_conf, sizeof(*serv_sock->sock_conf));
+	return send(serv_sock->osmo_fd->fd, data, data_len, 0);
 }
 
 int mcast_bidir_sock_tx(struct mcast_bidir_sock *bidir_sock, void* data,
@@ -162,7 +155,6 @@ void mcast_client_sock_close(struct mcast_client_sock *client_sock)
 void mcast_server_sock_close(struct mcast_server_sock *serv_sock)
 {
 	close(serv_sock->osmo_fd->fd);
-	talloc_free(serv_sock->sock_conf);
 	talloc_free(serv_sock);
 }
 

@@ -5,7 +5,6 @@
 
 struct mcast_server_sock {
 	struct osmo_fd *osmo_fd;
-	struct sockaddr_in *sock_conf;
 };
 
 struct mcast_client_sock {
