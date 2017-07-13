@@ -24,8 +24,8 @@ static void fd_close(struct osmo_fd *ofd)
 /* server socket is what we use for transmission. It is not subscribed
  * to a multicast group or locally bound, but it is just a normal UDP
  * socket that's connected to the remote mcast group + port */
-int mcast_server_sock_setup(struct osmo_fd *ofd, const char* tx_mcast_group, int tx_mcast_port,
-			    int loopback)
+int mcast_server_sock_setup(struct osmo_fd *ofd, const char* tx_mcast_group,
+			    uint16_t tx_mcast_port, bool loopback)
 {
 	int rc;
 
@@ -52,7 +52,7 @@ int mcast_server_sock_setup(struct osmo_fd *ofd, const char* tx_mcast_group, int
 /* the client socket is what we use for reception.  It is a UDP socket
  * that's bound to the GSMTAP UDP port and subscribed to the respective
  * multicast group */
-int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, int mcast_port,
+int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, uint16_t mcast_port,
 			    int (*fd_rx_cb)(struct osmo_fd *ofd, unsigned int what),
 			    void *osmo_fd_data)
 {
@@ -105,8 +105,8 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, int mc
 }
 
 struct mcast_bidir_sock *
-mcast_bidir_sock_setup(void *ctx, const char *tx_mcast_group, int tx_mcast_port,
-			const char *rx_mcast_group, int rx_mcast_port, int loopback,
+mcast_bidir_sock_setup(void *ctx, const char *tx_mcast_group, uint16_t tx_mcast_port,
+			const char *rx_mcast_group, uint16_t rx_mcast_port, bool loopback,
 			int (*fd_rx_cb)(struct osmo_fd *ofd, unsigned int what),
 			void *osmo_fd_data)
 {
@@ -132,13 +132,13 @@ mcast_bidir_sock_setup(void *ctx, const char *tx_mcast_group, int tx_mcast_port,
 
 }
 
-int mcast_bidir_sock_tx(struct mcast_bidir_sock *bidir_sock, void* data,
-                        int data_len)
+int mcast_bidir_sock_tx(struct mcast_bidir_sock *bidir_sock, const uint8_t *data,
+                        unsigned int data_len)
 {
 	return send(bidir_sock->tx_ofd.fd, data, data_len, 0);
 }
 
-int mcast_bidir_sock_rx(struct mcast_bidir_sock *bidir_sock, void* buf, int buf_len)
+int mcast_bidir_sock_rx(struct mcast_bidir_sock *bidir_sock, uint8_t *buf, unsigned int buf_len)
 {
 	return recv(bidir_sock->rx_ofd.fd, buf, buf_len, 0);
 }
