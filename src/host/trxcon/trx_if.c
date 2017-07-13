@@ -39,6 +39,7 @@
 
 #include <osmocom/gsm/gsm_utils.h>
 
+#include "l1ctl.h"
 #include "trxcon.h"
 #include "trx_if.h"
 #include "logging.h"
@@ -420,6 +421,66 @@ int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t arfcn)
 	return trx_ctrl_cmd(trx, 1, "TXTUNE", "%d", freq10 * 100);
 }
 
+/*
+ * Power measurement
+ *
+ * MEASURE instructs the transceiver to perform a power
+ * measurement on specified frequency. After receiving this
+ * request, transceiver should quickly re-tune to requested
+ * frequency, measure power level and re-tune back to the
+ * previous frequency.
+ * CMD MEASURE <kHz>
+ * RSP MEASURE <status> <kHz> <dB>
+ */
+
+int trx_if_cmd_measure(struct trx_instance *trx,
+	uint16_t arfcn_start, uint16_t arfcn_stop)
+{
+	uint16_t freq10;
+
+	/* Update ARFCN range for measurement */
+	trx->pm_arfcn_start = arfcn_start;
+	trx->pm_arfcn_stop = arfcn_stop;
+
+	/* Calculate a frequency for current ARFCN (DL) */
+	freq10 = gsm_arfcn2freq10(arfcn_start, 0);
+	if (freq10 == 0xffff) {
+		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", arfcn_start);
+		return -ENOTSUP;
+	}
+
+	return trx_ctrl_cmd(trx, 1, "MEASURE", "%d", freq10 * 100);
+}
+
+static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
+{
+	unsigned int freq10;
+	uint16_t arfcn;
+	int dbm;
+
+	/* Parse freq. and power level */
+	sscanf(resp, "%u %d", &freq10, &dbm);
+	freq10 /= 100;
+
+	/* Check received ARFCN against expected */
+	arfcn = gsm_freq102arfcn((uint16_t) freq10, 0);
+	if (arfcn != trx->pm_arfcn_start) {
+		LOGP(DTRX, LOGL_ERROR, "Power measurement error: "
+			"response ARFCN=%u doesn't match expected ARFCN=%u\n",
+			arfcn &~ ARFCN_FLAG_MASK,
+			trx->pm_arfcn_start &~ ARFCN_FLAG_MASK);
+		return;
+	}
+
+	/* Send L1CTL_PM_CONF */
+	l1ctl_tx_pm_conf(trx->l1l, arfcn, dbm,
+		arfcn == trx->pm_arfcn_stop);
+
+	/* Schedule a next measurement */
+	if (arfcn != trx->pm_arfcn_stop)
+		trx_if_cmd_measure(trx, ++arfcn, trx->pm_arfcn_stop);
+}
+
 /* Get response from CTRL socket */
 static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 {
@@ -481,6 +542,8 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_ACTIVE, 0, 0);
 	else if (!strncmp(tcm->cmd + 4, "POWEROFF", 8))
 		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
+	else if (!strncmp(tcm->cmd + 4, "MEASURE", 7))
+		trx_if_measure_rsp_cb(trx, buf + 14);
 	else if (!strncmp(tcm->cmd + 4, "ECHO", 4)) {
 		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
 		osmo_fsm_inst_dispatch(trxcon_fsm,
