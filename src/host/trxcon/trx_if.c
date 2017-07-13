@@ -458,7 +458,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 		struct trx_ctrl_msg, list);
 
 	/* Check if response matches command */
-	if (rsp_len != tcm->cmd_len || !!strncmp(buf + 4, tcm->cmd + 4, rsp_len)) {
+	if (!!strncmp(buf + 4, tcm->cmd + 4, rsp_len)) {
 		LOGP(DTRX, (tcm->critical) ? LOGL_FATAL : LOGL_ERROR,
 			"Response message '%s' does not match command "
 			"message '%s'\n", buf, tcm->cmd);
