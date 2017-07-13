@@ -13,10 +13,8 @@
 /* server socket is what we use for transmission. It is not subscribed
  * to a multicast group or locally bound, but it is just a normal UDP
  * socket that's connected to the remote mcast group + port */
-struct mcast_server_sock *mcast_server_sock_setup(void *ctx,
-                                                  char* tx_mcast_group,
-                                                  int tx_mcast_port,
-                                                  int loopback)
+struct mcast_server_sock *
+mcast_server_sock_setup(void *ctx, char* tx_mcast_group, int tx_mcast_port, int loopback)
 {
 	struct mcast_server_sock *serv_sock = talloc_zero(ctx, struct mcast_server_sock);
 	int rc;
@@ -38,11 +36,11 @@ struct mcast_server_sock *mcast_server_sock_setup(void *ctx,
 	serv_sock->sock_conf->sin_addr.s_addr = inet_addr(tx_mcast_group);
 	serv_sock->sock_conf->sin_port = htons(tx_mcast_port);
 
-	// determines whether sent mcast packets should be looped back to the local sockets.
-	// loopback must be enabled if the mcast client is on the same machine
+	/* determines whether sent mcast packets should be looped back to the local sockets.
+	 * loopback must be enabled if the mcast client is on the same machine */
 	if (setsockopt(serv_sock->osmo_fd->fd, IPPROTO_IP, IP_MULTICAST_LOOP,
 			&loopback, sizeof(loopback)) < 0) {
-		perror("Failed to disable loopback.\n");
+		perror("Failed to configure multicast loopback.\n");
 		return NULL;
 	}
 
@@ -52,10 +50,10 @@ struct mcast_server_sock *mcast_server_sock_setup(void *ctx,
 /* the client socket is what we use for reception.  It is a UDP socket
  * that's bound to the GSMTAP UDP port and subscribed to the respective
  * multicast group */
-struct mcast_client_sock *mcast_client_sock_setup(
-                void *ctx, char* mcast_group, int mcast_port,
-                int (*fd_rx_cb)(struct osmo_fd *ofd, unsigned int what),
-                void *osmo_fd_data)
+struct mcast_client_sock *
+mcast_client_sock_setup(void *ctx, char* mcast_group, int mcast_port,
+			int (*fd_rx_cb)(struct osmo_fd *ofd, unsigned int what),
+			void *osmo_fd_data)
 {
 	struct mcast_client_sock *client_sock = talloc_zero(ctx, struct mcast_client_sock);
 	int rc, loopback = 1, all = 0;
@@ -106,18 +104,17 @@ struct mcast_client_sock *mcast_client_sock_setup(
 	return client_sock;
 }
 
-struct mcast_bidir_sock *mcast_bidir_sock_setup(
-                void *ctx, char* tx_mcast_group, int tx_mcast_port,
-                char* rx_mcast_group, int rx_mcast_port, int loopback,
-                int (*fd_rx_cb)(struct osmo_fd *ofd, unsigned int what),
-                void *osmo_fd_data)
+struct mcast_bidir_sock *
+mcast_bidir_sock_setup(void *ctx, char* tx_mcast_group, int tx_mcast_port,
+			char* rx_mcast_group, int rx_mcast_port, int loopback,
+			int (*fd_rx_cb)(struct osmo_fd *ofd, unsigned int what),
+			void *osmo_fd_data)
 {
-	struct mcast_bidir_sock *bidir_sock = talloc(ctx,
-	                struct mcast_bidir_sock);
+	struct mcast_bidir_sock *bidir_sock = talloc(ctx, struct mcast_bidir_sock);
 	bidir_sock->rx_sock = mcast_client_sock_setup(ctx, rx_mcast_group,
-	                rx_mcast_port, fd_rx_cb, osmo_fd_data);
+						      rx_mcast_port, fd_rx_cb, osmo_fd_data);
 	bidir_sock->tx_sock = mcast_server_sock_setup(ctx, tx_mcast_group,
-	                tx_mcast_port, loopback);
+						      tx_mcast_port, loopback);
 	if (!bidir_sock->rx_sock || !bidir_sock->tx_sock) {
 		return NULL;
 	}
@@ -135,8 +132,7 @@ int mcast_server_sock_tx(struct mcast_server_sock *serv_sock, void* data,
                          int data_len)
 {
 	return sendto(serv_sock->osmo_fd->fd, data, data_len, 0,
-	                (struct sockaddr *)serv_sock->sock_conf,
-	                sizeof(*serv_sock->sock_conf));
+		      (struct sockaddr *)serv_sock->sock_conf, sizeof(*serv_sock->sock_conf));
 }
 
 int mcast_bidir_sock_tx(struct mcast_bidir_sock *bidir_sock, void* data,
@@ -144,8 +140,8 @@ int mcast_bidir_sock_tx(struct mcast_bidir_sock *bidir_sock, void* data,
 {
 	return mcast_server_sock_tx(bidir_sock->tx_sock, data, data_len);
 }
-int mcast_bidir_sock_rx(struct mcast_bidir_sock *bidir_sock, void* buf,
-                        int buf_len)
+
+int mcast_bidir_sock_rx(struct mcast_bidir_sock *bidir_sock, void* buf, int buf_len)
 {
 	return mcast_client_sock_rx(bidir_sock->rx_sock, buf, buf_len);
 }
