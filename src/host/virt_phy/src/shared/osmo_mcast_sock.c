@@ -28,21 +28,16 @@ int mcast_server_sock_setup(struct osmo_fd *ofd, const char* tx_mcast_group,
 			    uint16_t tx_mcast_port, bool loopback)
 {
 	int rc;
+	unsigned int flags = OSMO_SOCK_F_CONNECT;
+
+	if (!loopback)
+		flags |= OSMO_SOCK_F_NO_MCAST_LOOP;
 
 	/* setup mcast server socket */
 	rc = osmo_sock_init_ofd(ofd, AF_INET, SOCK_DGRAM, IPPROTO_UDP,
-				tx_mcast_group, tx_mcast_port, OSMO_SOCK_F_CONNECT);
+				tx_mcast_group, tx_mcast_port, flags);
 	if (rc < 0) {
 		perror("Failed to create Multicast Server Socket");
-		return rc;
-	}
-
-	/* determines whether sent mcast packets should be looped back to the local sockets.
-	 * loopback must be enabled if the mcast client is on the same machine */
-	rc = setsockopt(ofd->fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback));
-	if (rc < 0) {
-		perror("Failed to configure multicast loopback.\n");
-		fd_close(ofd);
 		return rc;
 	}
 
@@ -56,8 +51,7 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, uint16
 			    int (*fd_rx_cb)(struct osmo_fd *ofd, unsigned int what),
 			    void *osmo_fd_data)
 {
-	struct ip_mreq mreq;
-	int rc, loopback = 1, all = 0;
+	int rc;
 
 	ofd->cb = fd_rx_cb;
 	ofd->when = BSC_FD_READ;
@@ -65,38 +59,16 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, uint16
 
 	/* Create mcast client socket */
 	rc = osmo_sock_init_ofd(ofd, AF_INET, SOCK_DGRAM, IPPROTO_UDP,
-				NULL, mcast_port, OSMO_SOCK_F_BIND);
+				NULL, mcast_port, OSMO_SOCK_F_BIND|OSMO_SOCK_F_NO_MCAST_ALL);
 	if (rc < 0) {
 		perror("Could not create mcast client socket");
 		return rc;
 	}
 
-	/* Enable loopback of msgs to the host. */
-	/* Loopback must be enabled for the client, so multiple
-	 * processes are able to receive a mcast package. */
-	rc = setsockopt(ofd->fd, IPPROTO_IP, IP_MULTICAST_LOOP,
-			&loopback, sizeof(loopback));
-	if (rc < 0) {
-		perror("Failed to enable IP_MULTICAST_LOOP");
-		fd_close(ofd);
-		return rc;
-	}
-
 	/* Configure and join the multicast group */
-	memset(&mreq, 0, sizeof(mreq));
-	mreq.imr_multiaddr.s_addr = inet_addr(mcast_group);
-	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-	rc = setsockopt(ofd->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+	rc = osmo_sock_mcast_subscribe(ofd->fd, mcast_group);
 	if (rc < 0) {
 		perror("Failed to join to mcast goup");
-		fd_close(ofd);
-		return rc;
-	}
-
-	/* this option will set the delivery option so that only packets
-	 * from sockets we are subscribed to via IP_ADD_MEMBERSHIP are received */
-	if (setsockopt(ofd->fd, IPPROTO_IP, IP_MULTICAST_ALL, &all, sizeof(all)) < 0) {
-		perror("Failed to modify delivery policy to explicitly joined.\n");
 		fd_close(ofd);
 		return rc;
 	}
