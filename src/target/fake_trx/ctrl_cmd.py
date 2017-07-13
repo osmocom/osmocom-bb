@@ -44,13 +44,18 @@ class Application:
 			self.print_prompt()
 
 			# Wait until we get any data on any socket
-			socks = [sys.stdin]
+			socks = [sys.stdin, self.ctrl_link.sock]
 			r_event, w_event, x_event = select.select(socks, [], [])
 
 			# Check for incoming CTRL commands
 			if sys.stdin in r_event:
 				cmd = sys.stdin.readline()
 				self.handle_cmd(cmd)
+
+			if self.ctrl_link.sock in r_event:
+				data, addr = self.ctrl_link.sock.recvfrom(128)
+				sys.stdout.write("\r%s\n" % data)
+				sys.stdout.flush()
 
 	def handle_cmd(self, cmd):
 		# Strip spaces, tabs, etc.
