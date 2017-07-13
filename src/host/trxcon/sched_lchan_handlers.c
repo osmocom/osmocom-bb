@@ -281,6 +281,9 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 		return rc;
 	}
 
+	/* Confirm RACH request */
+	l1ctl_tx_rach_conf(trx->l1l);
+
 	/* Remove primitive from queue and free memory */
 	llist_del(&prim->list);
 	talloc_free(prim);
