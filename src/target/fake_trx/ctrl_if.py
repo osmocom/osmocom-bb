@@ -30,7 +30,11 @@ class CTRLInterface(UDPLink):
 		if self.verify_req(data):
 			request = self.prepare_req(data)
 			rc = self.parse_cmd(request)
-			self.send_response(request, rc)
+
+			if type(rc) is tuple:
+				self.send_response(request, rc[0], rc[1])
+			else:
+				self.send_response(request, rc)
 		else:
 			print("[!] Wrong data on CTRL interface")
 
@@ -62,9 +66,14 @@ class CTRLInterface(UDPLink):
 
 		return True
 
-	def send_response(self, request, response_code):
+	def send_response(self, request, response_code, params = None):
 		# Include status code, for example ["TXTUNE", "0", "941600"]
 		request.insert(1, str(response_code))
+
+		# Optionally append command specific parameters
+		if params is not None:
+			request += params
+
 		# Add the response signature, and join back to string
 		response = "RSP " + " ".join(request) + "\0"
 		# Now we have something like "RSP TXTUNE 0 941600"
