@@ -10,17 +10,6 @@
 #include <unistd.h>
 #include <virtphy/osmo_mcast_sock.h>
 
-/* convenience wrapper */
-static void fd_close(struct osmo_fd *ofd)
-{
-	/* multicast memberships of socket are implicitly dropped when
-	 * socket is closed */
-	osmo_fd_unregister(ofd);
-	close(ofd->fd);
-	ofd->fd = -1;
-	ofd->when = 0;
-}
-
 /* server socket is what we use for transmission. It is not subscribed
  * to a multicast group or locally bound, but it is just a normal UDP
  * socket that's connected to the remote mcast group + port */
@@ -69,7 +58,7 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, uint16
 	rc = osmo_sock_mcast_subscribe(ofd->fd, mcast_group);
 	if (rc < 0) {
 		perror("Failed to join to mcast goup");
-		fd_close(ofd);
+		osmo_fd_close(ofd);
 		return rc;
 	}
 
@@ -96,7 +85,7 @@ mcast_bidir_sock_setup(void *ctx, const char *tx_mcast_group, uint16_t tx_mcast_
 	}
 	rc = mcast_server_sock_setup(&bidir_sock->tx_ofd, tx_mcast_group, tx_mcast_port, loopback);
 	if (rc < 0) {
-		fd_close(&bidir_sock->rx_ofd);
+		osmo_fd_close(&bidir_sock->rx_ofd);
 		talloc_free(bidir_sock);
 		return NULL;
 	}
@@ -117,7 +106,7 @@ int mcast_bidir_sock_rx(struct mcast_bidir_sock *bidir_sock, uint8_t *buf, unsig
 
 void mcast_bidir_sock_close(struct mcast_bidir_sock *bidir_sock)
 {
-	fd_close(&bidir_sock->tx_ofd);
-	fd_close(&bidir_sock->rx_ofd);
+	osmo_fd_close(&bidir_sock->tx_ofd);
+	osmo_fd_close(&bidir_sock->rx_ofd);
 	talloc_free(bidir_sock);
 }
