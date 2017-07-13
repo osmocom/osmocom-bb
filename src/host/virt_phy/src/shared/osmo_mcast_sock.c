@@ -42,6 +42,7 @@ int mcast_server_sock_setup(struct osmo_fd *ofd, const char* tx_mcast_group, int
 	rc = setsockopt(ofd->fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback));
 	if (rc < 0) {
 		perror("Failed to configure multicast loopback.\n");
+		fd_close(ofd);
 		return rc;
 	}
 
@@ -77,6 +78,7 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, int mc
 			&loopback, sizeof(loopback));
 	if (rc < 0) {
 		perror("Failed to enable IP_MULTICAST_LOOP");
+		fd_close(ofd);
 		return rc;
 	}
 
@@ -87,6 +89,7 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, int mc
 	rc = setsockopt(ofd->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
 	if (rc < 0) {
 		perror("Failed to join to mcast goup");
+		fd_close(ofd);
 		return rc;
 	}
 
@@ -94,6 +97,7 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, int mc
 	 * from sockets we are subscribed to via IP_ADD_MEMBERSHIP are received */
 	if (setsockopt(ofd->fd, IPPROTO_IP, IP_MULTICAST_ALL, &all, sizeof(all)) < 0) {
 		perror("Failed to modify delivery policy to explicitly joined.\n");
+		fd_close(ofd);
 		return rc;
 	}
 
