@@ -9,7 +9,6 @@ struct mcast_server_sock {
 
 struct mcast_client_sock {
 	struct osmo_fd osmo_fd;
-	struct ip_mreq *mcast_group;
 };
 
 struct mcast_bidir_sock {

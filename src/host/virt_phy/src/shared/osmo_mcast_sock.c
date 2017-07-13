@@ -47,10 +47,8 @@ mcast_client_sock_setup(void *ctx, char* mcast_group, int mcast_port,
 			void *osmo_fd_data)
 {
 	struct mcast_client_sock *client_sock = talloc_zero(ctx, struct mcast_client_sock);
+	struct ip_mreq mreq;
 	int rc, loopback = 1, all = 0;
-
-	/* TODO: why allocate those dynamically ?!? */
-	client_sock->mcast_group = talloc_zero(client_sock, struct ip_mreq);
 
 	client_sock->osmo_fd.cb = fd_rx_cb;
 	client_sock->osmo_fd.when = BSC_FD_READ;
@@ -75,10 +73,10 @@ mcast_client_sock_setup(void *ctx, char* mcast_group, int mcast_port,
 	}
 
 	/* Configure and join the multicast group */
-	client_sock->mcast_group->imr_multiaddr.s_addr = inet_addr(mcast_group);
-	client_sock->mcast_group->imr_interface.s_addr = htonl(INADDR_ANY);
-	rc = setsockopt(client_sock->osmo_fd.fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-			client_sock->mcast_group, sizeof(*client_sock->mcast_group));
+	memset(&mreq, 0, sizeof(mreq));
+	mreq.imr_multiaddr.s_addr = inet_addr(mcast_group);
+	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+	rc = setsockopt(client_sock->osmo_fd.fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
 	if (rc < 0) {
 		perror("Failed to join to mcast goup");
 		return NULL;
@@ -137,13 +135,12 @@ int mcast_bidir_sock_rx(struct mcast_bidir_sock *bidir_sock, void* buf, int buf_
 
 void mcast_client_sock_close(struct mcast_client_sock *client_sock)
 {
-	setsockopt(client_sock->osmo_fd.fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
-		   client_sock->mcast_group, sizeof(*client_sock->mcast_group));
+	/* multicast memberships of socket are implicitly dropped when
+	 * socket is closed */
 	osmo_fd_unregister(&client_sock->osmo_fd);
 	client_sock->osmo_fd.fd = -1;
 	client_sock->osmo_fd.when = 0;
 	close(client_sock->osmo_fd.fd);
-	talloc_free(client_sock->mcast_group);
 	talloc_free(client_sock);
 
 }
