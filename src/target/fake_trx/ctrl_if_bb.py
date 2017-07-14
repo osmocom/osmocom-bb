@@ -27,6 +27,7 @@ from ctrl_if import CTRLInterface
 class CTRLInterfaceBB(CTRLInterface):
 	# Internal state variables
 	trx_started = False
+	burst_fwd = None
 	rx_freq = None
 	tx_freq = None
 	pm = None
@@ -92,6 +93,30 @@ class CTRLInterfaceBB(CTRLInterface):
 			meas_dbm = str(self.pm.measure(meas_freq))
 
 			return (0, [meas_dbm])
+
+		elif self.verify_cmd(request, "SETSLOT", 2):
+			print("[i] Recv SETSLOT cmd")
+
+			if self.burst_fwd is None:
+				return -1
+
+			# Obtain TS index
+			ts = int(request[1])
+			if ts not in range(0, 8):
+				print("[!] TS index should be in range: 0..7")
+				return -1
+
+			# Parse TS type
+			ts_type = int(request[2])
+
+			# TS activation / deactivation
+			# We don't care about ts_type
+			if ts_type == 0:
+				self.burst_fwd.ts_pass = None
+			else:
+				self.burst_fwd.ts_pass = ts
+
+			return 0
 
 		# Wrong / unknown command
 		else:

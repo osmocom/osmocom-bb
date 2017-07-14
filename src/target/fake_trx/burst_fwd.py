@@ -23,8 +23,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 class BurstForwarder:
-	# Timeslot filter
-	ts_pass = 0
+	# Timeslot filter (drop everything by default)
+	ts_pass = None
 
 	def __init__(self, bts_link, bb_link):
 		self.bts_link = bts_link

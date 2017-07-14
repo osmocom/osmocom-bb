@@ -80,6 +80,7 @@ class Application:
 		self.bb_data = UDPLink(self.bb_addr,
 			self.bb_base_port + 102, self.bb_base_port + 2)
 		self.burst_fwd = BurstForwarder(self.bts_data, self.bb_data)
+		self.bb_ctrl.burst_fwd = self.burst_fwd
 
 		# Share clock between BTS and BB
 		self.bts_clck = UDPLink(self.bts_addr,
