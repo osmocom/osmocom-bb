@@ -224,11 +224,32 @@ int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 		return -EINVAL;
 	}
 
+	/* We don't need to send L1CTL_FBSB_CONF */
+	if (trx->l1l->fbsb_conf_sent)
+		return 0;
+
 	/* Send L1CTL_FBSB_CONF to higher layers */
-	if (!trx->l1l->fbsb_conf_sent) {
-		l1ctl_tx_fbsb_conf(trx->l1l, 0, bsic);
-		trx->bsic = bsic;
-	}
+	struct l1ctl_info_dl *data;
+	data = talloc_zero_size(ts, sizeof(struct l1ctl_info_dl));
+	if (data == NULL)
+		return -ENOMEM;
+
+	/* Fill in some downlink info */
+	data->chan_nr = trx_lchan_desc[chan].chan_nr | ts->index;
+	data->link_id = trx_lchan_desc[chan].link_id;
+	data->band_arfcn = htons(trx->band_arfcn);
+	data->frame_nr = htonl(fn);
+	data->rx_level = -rssi;
+
+	/* FIXME: set proper values */
+	data->num_biterr = 0;
+	data->fire_crc = 0;
+	data->snr = 0;
+
+	l1ctl_tx_fbsb_conf(trx->l1l, 0, data, bsic);
+
+	/* Update BSIC value of trx_instance */
+	trx->bsic = bsic;
 
 	return 0;
 }

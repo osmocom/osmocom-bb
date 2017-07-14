@@ -126,10 +126,13 @@ int l1ctl_tx_reset_conf(struct l1ctl_link *l1l, uint8_t type)
 	return l1ctl_link_send(l1l, msg);
 }
 
-int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result, uint8_t bsic)
+int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
+	struct l1ctl_info_dl *dl_info, uint8_t bsic)
 {
 	struct l1ctl_fbsb_conf *conf;
+	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
+	size_t len;
 
 	msg = l1ctl_alloc_msg(L1CTL_FBSB_CONF);
 	if (msg == NULL)
@@ -138,6 +141,13 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result, uint8_t bsic)
 	LOGP(DL1C, LOGL_DEBUG, "Send FBSB Conf (result=%u, bsic=%u)\n",
 		result, bsic);
 
+	/* Copy DL info provided by handler */
+	len = sizeof(struct l1ctl_info_dl);
+	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
+	memcpy(dl, dl_info, len);
+	talloc_free(dl_info);
+
+	/* Fill in FBSB payload: BSIC and sync result */
 	conf = (struct l1ctl_fbsb_conf *) msgb_put(msg, sizeof(*conf));
 	conf->result = result;
 	conf->bsic = bsic;
