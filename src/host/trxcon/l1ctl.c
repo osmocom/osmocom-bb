@@ -197,13 +197,22 @@ int l1ctl_tx_data_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data)
 	return l1ctl_link_send(l1l, msg);
 }
 
-int l1ctl_tx_rach_conf(struct l1ctl_link *l1l)
+int l1ctl_tx_rach_conf(struct l1ctl_link *l1l, uint32_t fn)
 {
+	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
+	size_t len;
 
 	msg = l1ctl_alloc_msg(L1CTL_RACH_CONF);
 	if (msg == NULL)
 		return -ENOMEM;
+
+	len = sizeof(struct l1ctl_info_dl);
+	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
+
+	memset(dl, 0x00, len);
+	dl->band_arfcn = htons(l1l->trx->band_arfcn);
+	dl->frame_nr = htonl(fn);
 
 	return l1ctl_link_send(l1l, msg);
 }
@@ -369,22 +378,20 @@ exit:
 static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_rach_req *req;
+	struct l1ctl_info_ul *ul;
 	struct trx_ts_prim *prim;
 	struct trx_ts *ts;
 	int len, rc = 0;
 
-	req = (struct l1ctl_rach_req *) msg->l1h;
-	len = sizeof(*req);
-	if (msgb_l1len(msg) < len) {
-		LOGP(DL1C, LOGL_ERROR, "MSG too short RACH Req: %d\n", len);
-		rc = -EINVAL;
-		goto exit;
-	}
+	ul = (struct l1ctl_info_ul *) msg->l1h;
+	req = (struct l1ctl_rach_req *) ul->payload;
+	len = sizeof(struct l1ctl_rach_req);
 
 	/* Convert offset value to host format */
 	req->offset = ntohs(req->offset);
 
-	LOGP(DL1C, LOGL_DEBUG, "Recv RACH Req (offset=%u)\n", req->offset);
+	LOGP(DL1C, LOGL_DEBUG, "Recv RACH Req (offset=%u ra=0x%02x)\n",
+		req->offset, req->ra);
 
 	/* FIXME: can we use other than TS0? */
 	ts = sched_trx_find_ts(l1l->trx, 0);

@@ -303,7 +303,7 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	}
 
 	/* Confirm RACH request */
-	l1ctl_tx_rach_conf(trx->l1l);
+	l1ctl_tx_rach_conf(trx->l1l, fn);
 
 	/* Remove primitive from queue and free memory */
 	llist_del(&prim->list);
