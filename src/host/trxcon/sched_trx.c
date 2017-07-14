@@ -202,6 +202,9 @@ void sched_trx_del_ts(struct trx_instance *trx, int ts_num)
 	/* Remove ts from list */
 	llist_del(&ts->list);
 	talloc_free(ts);
+
+	/* Notify transceiver about that */
+	trx_if_cmd_setslot(trx, ts_num, 0);
 }
 
 int sched_trx_configure_ts(struct trx_instance *trx, int ts_num,
@@ -258,6 +261,10 @@ int sched_trx_configure_ts(struct trx_instance *trx, int ts_num,
 		}
 	}
 
+	/* Notify transceiver about TS activation */
+	/* FIXME: set proper channel type */
+	trx_if_cmd_setslot(trx, ts_num, 1);
+
 	return 0;
 }
 
@@ -281,6 +288,9 @@ int sched_trx_reset_ts(struct trx_instance *trx, int ts_num)
 
 	/* Free channel states */
 	talloc_free(ts->lchans);
+
+	/* Notify transceiver about that */
+	trx_if_cmd_setslot(trx, ts_num, 0);
 
 	return 0;
 }
