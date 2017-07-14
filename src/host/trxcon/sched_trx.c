@@ -223,6 +223,9 @@ int sched_trx_configure_ts(struct trx_instance *trx, int ts_num,
 		ts = sched_trx_add_ts(trx, ts_num);
 		if (ts == NULL)
 			return -ENOMEM;
+
+		/* Assign TS index */
+		ts->index = ts_num;
 	}
 
 	/* Init queue primitives for TX */
