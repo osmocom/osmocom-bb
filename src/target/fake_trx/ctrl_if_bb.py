@@ -72,6 +72,7 @@ class CTRLInterfaceBB(CTRLInterface):
 
 			# TODO: check freq range
 			self.rx_freq = int(request[1]) * 1000
+			self.burst_fwd.bb_freq = self.rx_freq
 			return 0
 
 		elif self.verify_cmd(request, "TXTUNE", 1):

@@ -27,6 +27,7 @@ from ctrl_if import CTRLInterface
 class CTRLInterfaceBTS(CTRLInterface):
 	# Internal state variables
 	trx_started = False
+	burst_fwd = None
 	rx_freq = None
 	tx_freq = None
 	pm = None
@@ -88,6 +89,7 @@ class CTRLInterfaceBTS(CTRLInterface):
 
 			# TODO: check freq range
 			self.tx_freq = int(request[1]) * 1000
+			self.burst_fwd.bts_freq = self.tx_freq
 			return 0
 
 		# Wrong / unknown command

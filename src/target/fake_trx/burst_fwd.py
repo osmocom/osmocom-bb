@@ -26,6 +26,10 @@ class BurstForwarder:
 	# Timeslot filter (drop everything by default)
 	ts_pass = None
 
+	# Freq. filter
+	bts_freq = None
+	bb_freq = None
+
 	def __init__(self, bts_link, bb_link):
 		self.bts_link = bts_link
 		self.bb_link = bb_link
@@ -61,6 +65,14 @@ class BurstForwarder:
 		data, addr = self.bts_link.sock.recvfrom(512)
 		payload = self.process_payload(data)
 
+		# BB is not connected / tuned
+		if self.bb_freq is None:
+			return None
+
+		# Freq. filter
+		if self.bb_freq != self.bts_freq:
+			return None
+
 		# Timeslot filter
 		if payload[0] != self.ts_pass:
 			return None
@@ -73,6 +85,14 @@ class BurstForwarder:
 		# Read data from socket
 		data, addr = self.bb_link.sock.recvfrom(512)
 		payload = self.process_payload(data)
+
+		# BTS is not connected / tuned
+		if self.bts_freq is None:
+			return None
+
+		# Freq. filter
+		if self.bb_freq != self.bts_freq:
+			return None
 
 		# Send burst to BTS
 		self.bts_link.send(payload)
