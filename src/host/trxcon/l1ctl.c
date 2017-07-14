@@ -245,7 +245,7 @@ exit:
 
 static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
-	uint16_t arfcn_start, arfcn_stop, arfcn;
+	uint16_t arfcn_start, arfcn_stop;
 	struct l1ctl_pm_req *pmr;
 	int rc = 0;
 
@@ -265,18 +265,8 @@ static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
 		arfcn_start &~ ARFCN_FLAG_MASK,
 		arfcn_stop &~ ARFCN_FLAG_MASK);
 
-	/**
-	 * HACK: power measurement isn't implemented yet,
-	 * sending fake results for now...
-	 *
-	 * FIXME: l1ctl_link.c:203 Failed to enqueue msg!
-	 * l1l->wq size is limited to 100, so we cannot
-	 * put more messages until osmo_select_main()
-	 * is called.
-	 */
-	for (arfcn = arfcn_start; arfcn <= arfcn_stop; arfcn++)
-		l1ctl_tx_pm_conf(l1l, arfcn, arfcn == 33 ?
-			-60 : -120, arfcn == arfcn_stop);
+	/* Send measurement request to transceiver */
+	rc = trx_if_cmd_measure(l1l->trx, arfcn_start, arfcn_stop);
 
 exit:
 	msgb_free(msg);
