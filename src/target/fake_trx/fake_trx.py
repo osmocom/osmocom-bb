@@ -30,6 +30,7 @@ import sys
 from ctrl_if_bts import CTRLInterfaceBTS
 from ctrl_if_bb import CTRLInterfaceBB
 from burst_fwd import BurstForwarder
+from fake_pm import FakePM
 
 from udp_link import UDPLink
 from clck_gen import CLCKGen
@@ -63,6 +64,15 @@ class Application:
 		# Init TRX CTRL interface for BB
 		self.bb_ctrl = CTRLInterfaceBB(self.bb_addr,
 			self.bb_base_port + 101, self.bb_base_port + 1)
+
+		# Power measurement emulation
+		# Noise: -120 .. -105
+		# BTS: -75 .. -50
+		self.pm = FakePM(-120, -105, -75, -50)
+
+		# Share a FakePM instance between both BTS and BB
+		self.bts_ctrl.pm = self.pm
+		self.bb_ctrl.pm = self.pm
 
 		# BTS <-> BB burst forwarding
 		self.bts_data = UDPLink(self.bts_addr,

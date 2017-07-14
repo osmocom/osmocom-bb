@@ -29,6 +29,7 @@ class CTRLInterfaceBTS(CTRLInterface):
 	trx_started = False
 	rx_freq = None
 	tx_freq = None
+	pm = None
 
 	def __init__(self, remote_addr, remote_port, bind_port):
 		print("[i] Init CTRL interface for BTS")
@@ -55,6 +56,11 @@ class CTRLInterfaceBTS(CTRLInterface):
 
 			print("[i] Starting transceiver...")
 			self.trx_started = True
+
+			# Power emulation
+			if self.pm is not None:
+				self.pm.add_bts_list([self.tx_freq])
+
 			return 0
 
 		elif self.verify_cmd(request, "POWEROFF", 0):
@@ -62,6 +68,11 @@ class CTRLInterfaceBTS(CTRLInterface):
 
 			print("[i] Stopping transceiver...")
 			self.trx_started = False
+
+			# Power emulation
+			if self.pm is not None:
+				self.pm.del_bts_list([self.tx_freq])
+
 			return 0
 
 		# Tuning Control

@@ -29,6 +29,7 @@ class CTRLInterfaceBB(CTRLInterface):
 	trx_started = False
 	rx_freq = None
 	tx_freq = None
+	pm = None
 
 	def __init__(self, remote_addr, remote_port, bind_port):
 		print("[i] Init CTRL interface for BB")
@@ -78,6 +79,19 @@ class CTRLInterfaceBB(CTRLInterface):
 			# TODO: check freq range
 			self.tx_freq = int(request[1]) * 1000
 			return 0
+
+		# Power measurement
+		elif self.verify_cmd(request, "MEASURE", 1):
+			print("[i] Recv MEASURE cmd")
+
+			if self.pm is None:
+				return -1
+
+			# TODO: check freq range
+			meas_freq = int(request[1]) * 1000
+			meas_dbm = str(self.pm.measure(meas_freq))
+
+			return (0, [meas_dbm])
 
 		# Wrong / unknown command
 		else:
