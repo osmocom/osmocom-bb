@@ -2,6 +2,7 @@
 
 #include <osmocom/core/write_queue.h>
 #include <osmocom/core/select.h>
+#include <osmocom/core/timer.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/fsm.h>
 
@@ -25,6 +26,7 @@ struct l1ctl_link {
 	struct trx_instance *trx;
 
 	/* L1CTL handlers specific */
+	struct osmo_timer_list fbsb_timer;
 	uint8_t fbsb_conf_sent;
 };
 

@@ -158,6 +158,10 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
 	l1l->fbsb_conf_sent = 1;
 
+	/* Abort FBSB expire timer */
+	if (osmo_timer_pending(&l1l->fbsb_timer))
+		osmo_timer_del(&l1l->fbsb_timer);
+
 	return l1ctl_link_send(l1l, msg);
 }
 
@@ -217,10 +221,45 @@ int l1ctl_tx_rach_conf(struct l1ctl_link *l1l, uint32_t fn)
 	return l1ctl_link_send(l1l, msg);
 }
 
+/* FBSB expire timer */
+static void fbsb_timer_cb(void *data)
+{
+	struct l1ctl_link *l1l = (struct l1ctl_link *) data;
+	struct l1ctl_fbsb_conf *conf;
+	struct l1ctl_info_dl *dl;
+	struct msgb *msg;
+	size_t len;
+
+	msg = l1ctl_alloc_msg(L1CTL_FBSB_CONF);
+	if (msg == NULL)
+		return;
+
+	LOGP(DL1C, LOGL_DEBUG, "Send FBSB Conf (result=255, bsic=0)\n");
+
+	/* Compose DL info header */
+	len = sizeof(struct l1ctl_info_dl);
+	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
+	memset(dl, 0x00, len);
+
+	/* Fill in current ARFCN */
+	dl->band_arfcn = htons(l1l->trx->band_arfcn);
+
+	/* Fill in FBSB payload: BSIC and sync result */
+	conf = (struct l1ctl_fbsb_conf *) msgb_put(msg, sizeof(*conf));
+	conf->result = 255;
+	conf->bsic = 0;
+
+	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
+	l1l->fbsb_conf_sent = 1;
+
+	l1ctl_link_send(l1l, msg);
+}
+
 static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_fbsb_req *fbsb;
 	uint16_t band_arfcn;
+	uint16_t timeout;
 	int rc = 0;
 
 	fbsb = (struct l1ctl_fbsb_req *) msg->l1h;
@@ -232,6 +271,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	}
 
 	band_arfcn = ntohs(fbsb->band_arfcn);
+	timeout = ntohs(fbsb->timeout);
 
 	LOGP(DL1C, LOGL_DEBUG, "Recv FBSB Req (%s %d)\n",
 		gsm_band_name(gsm_arfcn2band(band_arfcn)),
@@ -256,6 +296,12 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	trx_if_cmd_rxtune(l1l->trx, band_arfcn);
 	trx_if_cmd_txtune(l1l->trx, band_arfcn);
 	trx_if_cmd_poweron(l1l->trx);
+
+	/* Start FBSB expire timer */
+	/* TODO: share FRAME_DURATION_uS=4615 from scheduler.c */
+	l1l->fbsb_timer.data = l1l;
+	l1l->fbsb_timer.cb = fbsb_timer_cb;
+	osmo_timer_schedule(&l1l->fbsb_timer, 0, timeout * 4615);
 
 exit:
 	msgb_free(msg);
