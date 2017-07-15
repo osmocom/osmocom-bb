@@ -148,6 +148,8 @@ struct trx_lchan_state {
 	uint32_t rx_first_fn;
 	/*! \brief Mask of received bursts */
 	uint8_t rx_burst_mask;
+	/*! \brief Mask of transmitted bursts */
+	uint8_t tx_burst_mask;
 	/*! \brief Burst buffer for RX */
 	sbit_t *rx_bursts;
 	/*! \brief Burst buffer for TX */

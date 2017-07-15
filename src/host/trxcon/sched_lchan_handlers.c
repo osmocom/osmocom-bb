@@ -164,6 +164,95 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	return 0;
 }
 
+int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
+	uint32_t fn, enum trx_lchan_type chan,
+	uint8_t bid, uint16_t *nbits)
+{
+	struct trx_lchan_state *lchan;
+	struct trx_ts_prim *prim;
+	struct l1ctl_info_ul *ul;
+	ubit_t burst[GSM_BURST_LEN];
+	ubit_t *buffer, *offset;
+	uint8_t *mask, *l2;
+	int rc;
+
+	/* Find required channel state */
+	lchan = sched_trx_find_lchan(ts, chan);
+	if (lchan == NULL)
+		return -EINVAL;
+
+	/* Set up pointers */
+	mask = &lchan->tx_burst_mask;
+	buffer = lchan->tx_bursts;
+
+	if (bid > 0) {
+		/* If we have encoded bursts */
+		if (*mask)
+			goto send_burst;
+		else
+			return 0;
+	}
+
+	/* Encode payload if not yet */
+
+	/* Get a message from TX queue */
+	prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
+	ul = (struct l1ctl_info_ul *) prim->payload;
+	l2 = (uint8_t *) ul->payload;
+
+	/* Encode bursts */
+	rc = gsm0503_xcch_encode(buffer, l2);
+	if (rc) {
+		LOGP(DSCH, LOGL_ERROR, "Failed to encode L2 payload\n");
+
+		/* Remove primitive from queue and free memory */
+		llist_del(&prim->list);
+		talloc_free(prim);
+
+		return -EINVAL;
+	}
+
+send_burst:
+	/* Determine which burst should be sent */
+	offset = buffer + bid * 116;
+
+	/* Update mask */
+	*mask |= (1 << bid);
+
+	/* If we are sending the last (4/4) burst */
+	if ((*mask & 0x0f) == 0x0f) {
+		/* Remove primitive from queue and free memory */
+		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
+		llist_del(&prim->list);
+		talloc_free(prim);
+
+		/* Reset mask */
+		*mask = 0x00;
+	}
+
+	/* Compose a new burst */
+	memset(burst, 0, 3); /* TB */
+	memcpy(burst + 3, offset, 58); /* Payload 1/2 */
+	memcpy(burst + 61, trx->tsc, 26); /* TSC */
+	memcpy(burst + 87, offset + 58, 58); /* Payload 2/2 */
+	memset(burst + 145, 0, 3); /* TB */
+
+	if (nbits)
+		*nbits = GSM_BURST_LEN;
+
+	LOGP(DSCH, LOGL_DEBUG, "Transmitting %s fn=%u ts=%u burst=%u\n",
+		trx_lchan_desc[chan].name, fn, ts->index, bid);
+
+	/* Send burst to transceiver */
+	rc = trx_if_tx_burst(trx, ts->index, fn, 10, burst);
+	if (rc) {
+		LOGP(DSCH, LOGL_ERROR, "Could not send burst to transceiver\n");
+		return rc;
+	}
+
+	return 0;
+}
+
 static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 {
 	uint8_t t3p;
