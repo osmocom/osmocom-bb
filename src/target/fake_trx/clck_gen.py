@@ -94,7 +94,7 @@ class Application:
 		self.clck.start()
 
 	def sig_handler(self, signum, frame):
-		print "Signal %d received" % signum
+		print("Signal %d received" % signum)
 		if signum is signal.SIGINT:
 			self.clck.stop()
 			self.link.shutdown()

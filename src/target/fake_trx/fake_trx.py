@@ -114,12 +114,12 @@ class Application:
 			# CTRL commands from BTS
 			if self.bts_ctrl.sock in r_event:
 				data, addr = self.bts_ctrl.sock.recvfrom(128)
-				self.bts_ctrl.handle_rx(data)
+				self.bts_ctrl.handle_rx(data.decode())
 
 			# CTRL commands from BB
 			if self.bb_ctrl.sock in r_event:
 				data, addr = self.bb_ctrl.sock.recvfrom(128)
-				self.bb_ctrl.handle_rx(data)
+				self.bb_ctrl.handle_rx(data.decode())
 
 	def shutdown(self):
 		print("[i] Shutting down...")

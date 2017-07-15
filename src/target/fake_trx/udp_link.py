@@ -41,12 +41,15 @@ class UDPLink:
 		# Check for incoming data
 		if self.sock in r_event:
 			data, addr = self.sock.recvfrom(128)
-			self.handle_rx(data)
+			self.handle_rx(data.decode())
 
 	def shutdown(self):
 		self.sock.close();
 
 	def send(self, data):
+		if type(data) not in [bytearray, bytes]:
+			data = data.encode()
+
 		self.sock.sendto(data, (self.remote_addr, self.remote_port))
 
 	def handle_rx(self, data):

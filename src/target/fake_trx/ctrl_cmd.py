@@ -54,7 +54,7 @@ class Application:
 
 			if self.ctrl_link.sock in r_event:
 				data, addr = self.ctrl_link.sock.recvfrom(128)
-				sys.stdout.write("\r%s\n" % data)
+				sys.stdout.write("\r%s\n" % data.decode())
 				sys.stdout.flush()
 
 	def handle_cmd(self, cmd):
