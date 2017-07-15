@@ -558,6 +558,72 @@ static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 	return 0;
 }
 
+static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	struct trx_ts *ts;
+	struct trx_ts_prim *prim;
+	struct l1ctl_info_ul *ul;
+	struct l1ctl_data_ind *data_ind;
+	enum trx_lchan_type lchan_type;
+	uint8_t chan_nr, tn;
+	size_t len;
+	int rc = 0;
+
+	ul = (struct l1ctl_info_ul *) msg->l1h;
+	data_ind = (struct l1ctl_data_ind *) ul->payload;
+	chan_nr = ul->chan_nr;
+
+	LOGP(DL1C, LOGL_DEBUG, "Recv Data Req (chan_nr=0x%02x)\n", chan_nr);
+
+	/* Determine TS index */
+	tn = chan_nr & 0x7;
+	if (tn > 7) {
+		LOGP(DL1C, LOGL_ERROR, "Incorrect TS index %u\n", tn);
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Determine lchan type */
+	lchan_type = sched_trx_chan_nr2lchan_type(chan_nr);
+	if (!lchan_type) {
+		LOGP(DL1C, LOGL_ERROR, "Couldn't determine lchan type\n");
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Attempt to find required TS */
+	ts = sched_trx_find_ts(l1l->trx, tn);
+	if (ts == NULL) {
+		LOGP(DL1C, LOGL_DEBUG, "Couldn't find required TS\n");
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Allocate a new primitive */
+	len = sizeof(struct trx_ts_prim) + sizeof(struct l1ctl_info_ul) + 23;
+	prim = talloc_zero_size(ts, len);
+	if (prim == NULL) {
+		LOGP(DL1C, LOGL_ERROR, "Failed to allocate memory\n");
+		rc = -ENOMEM;
+		goto exit;
+	}
+
+	/* Set logical channel of primitive */
+	prim->chan = lchan_type;
+
+	/* Fill in both UL info and payload */
+	len = sizeof(struct l1ctl_info_ul);
+	memcpy(prim->payload, ul, len);
+	memcpy(prim->payload + len, data_ind, 23);
+
+	/* Add to TS queue */
+	llist_add_tail(&prim->list, &ts->tx_prims);
+
+exit:
+	msgb_free(msg);
+	return rc;
+}
+
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
@@ -582,6 +648,8 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_dm_est_req(l1l, msg);
 	case L1CTL_DM_REL_REQ:
 		return l1ctl_rx_dm_rel_req(l1l, msg);
+	case L1CTL_DATA_REQ:
+		return l1ctl_rx_data_req(l1l, msg);
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
 		msgb_free(msg);
