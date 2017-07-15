@@ -372,6 +372,54 @@ int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 	return 0;
 }
 
+void sched_trx_deactivate_all_lchans(struct trx_ts *ts)
+{
+	struct trx_lchan_state *lchan;
+	int i, len;
+
+	len = talloc_array_length(ts->lchans);
+	for (i = 0; i < len; i++) {
+		lchan = ts->lchans + i;
+
+		talloc_free(lchan->rx_bursts);
+		talloc_free(lchan->tx_bursts);
+
+		lchan->active = 0;
+	}
+}
+
+enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr)
+{
+	uint8_t cbits = chan_nr >> 3;
+
+	if (cbits == 0x01)
+		return GSM_PCHAN_TCH_F;
+	else if ((cbits & 0x1e) == 0x02)
+		return GSM_PCHAN_TCH_H;
+	else if ((cbits & 0x1c) == 0x04)
+		return GSM_PCHAN_CCCH_SDCCH4;
+	else if ((cbits & 0x18) == 0x08)
+		return GSM_PCHAN_SDCCH8_SACCH8C;
+
+	return GSM_PCHAN_NONE;
+}
+
+enum trx_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr)
+{
+	uint8_t cbits = chan_nr >> 3;
+
+	if (cbits == 0x01)
+		return TRXC_TCHF;
+	else if ((cbits & 0x1e) == 0x02)
+		return TRXC_TCHH_0 + (cbits & 0x1);
+	else if ((cbits & 0x1c) == 0x04)
+		return TRXC_SDCCH4_0 + (cbits & 0x3);
+	else if ((cbits & 0x18) == 0x08)
+		return TRXC_SDCCH8_0 + (cbits & 0x7);
+
+	return TRXC_IDLE;
+}
+
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t ts_num,
 	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa)
 {

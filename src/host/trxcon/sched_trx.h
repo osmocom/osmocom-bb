@@ -258,6 +258,9 @@ int sched_trx_configure_ts(struct trx_instance *trx, int ts_num,
 	enum gsm_phys_chan_config config);
 
 /* Logical channel management functions */
+enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr);
+enum trx_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr);
+void sched_trx_deactivate_all_lchans(struct trx_ts *ts);
 int sched_trx_activate_lchan(struct trx_ts *ts, enum trx_lchan_type chan);
 int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan);
 struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,

@@ -32,6 +32,7 @@ struct trx_instance {
 	uint16_t pm_arfcn_start;
 	uint16_t pm_arfcn_stop;
 	uint16_t band_arfcn;
+	uint8_t tsc[26];
 	uint8_t bsic;
 
 	/* Scheduler stuff */

@@ -470,6 +470,94 @@ exit:
 	return rc;
 }
 
+static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	enum gsm_phys_chan_config config;
+	enum trx_lchan_type lchan_type;
+	struct l1ctl_dm_est_req *est_req;
+	struct l1ctl_info_ul *ul;
+	struct trx_ts *ts;
+	uint16_t band_arfcn;
+	uint8_t chan_nr, tn;
+	int rc = 0;
+
+	ul = (struct l1ctl_info_ul *) msg->l1h;
+	est_req = (struct l1ctl_dm_est_req *) ul->payload;
+
+	band_arfcn = ntohs(est_req->h0.band_arfcn);
+	chan_nr = ul->chan_nr;
+
+	LOGP(DL1C, LOGL_DEBUG, "Recv L1CTL_DM_EST_REQ (arfcn=%u, "
+		"chan_nr=0x%02x, tsc=%u)\n", (band_arfcn &~ ARFCN_FLAG_MASK),
+		chan_nr, est_req->tsc);
+
+	if (est_req->h) {
+		LOGP(DL1C, LOGL_ERROR, "FHSS is not supported\n");
+		rc = -ENOTSUP;
+		goto exit;
+	}
+
+	/* Update TSC (Training Sequence) */
+	/* FIXME: est_req->tsc is a number of TSC */
+	memset(l1l->trx->tsc, 0x00, 26);
+
+	/* Determine channel config */
+	config = sched_trx_chan_nr2pchan_config(chan_nr);
+	if (config == GSM_PCHAN_NONE) {
+		LOGP(DL1C, LOGL_ERROR, "Couldn't determine channel config\n");
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Determine TS index */
+	tn = chan_nr & 0x7;
+	if (tn > 7) {
+		LOGP(DL1C, LOGL_ERROR, "Incorrect TS index %u\n", tn);
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Determine lchan type */
+	lchan_type = sched_trx_chan_nr2lchan_type(chan_nr);
+	if (!lchan_type) {
+		LOGP(DL1C, LOGL_ERROR, "Couldn't determine lchan type\n");
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Configure requested TS */
+	rc = sched_trx_configure_ts(l1l->trx, tn, config);
+	if (rc) {
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Find just configured TS */
+	ts = sched_trx_find_ts(l1l->trx, tn);
+
+	/* Activate only requested lchan, disabling others */
+	sched_trx_deactivate_all_lchans(ts);
+	rc = sched_trx_activate_lchan(ts, lchan_type);
+	if (rc) {
+		LOGP(DL1C, LOGL_ERROR, "Couldn't activate lchan\n");
+		rc = -EINVAL;
+		goto exit;
+	}
+
+exit:
+	msgb_free(msg);
+	return rc;
+}
+
+static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	/* Reset scheduler */
+	sched_trx_reset(l1l->trx);
+
+	msgb_free(msg);
+	return 0;
+}
+
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
@@ -490,6 +578,10 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_ccch_mode_req(l1l, msg);
 	case L1CTL_RACH_REQ:
 		return l1ctl_rx_rach_req(l1l, msg);
+	case L1CTL_DM_EST_REQ:
+		return l1ctl_rx_dm_est_req(l1l, msg);
+	case L1CTL_DM_REL_REQ:
+		return l1ctl_rx_dm_rel_req(l1l, msg);
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
 		msgb_free(msg);
