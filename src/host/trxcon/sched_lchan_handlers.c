@@ -48,6 +48,42 @@
 
 extern struct osmo_fsm_inst *trxcon_fsm;
 
+/* GSM 05.02 Chapter 5.2.3 Normal Burst (NB) */
+static const uint8_t nb_training_bits[8][26] = {
+	{
+		0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0,
+		0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1,
+	},
+	{
+		0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1,
+		1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1,
+	},
+	{
+		0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1,
+		0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0,
+	},
+	{
+		0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0,
+		1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0,
+	},
+	{
+		0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0,
+		1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1,
+	},
+	{
+		0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0,
+		0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0,
+	},
+	{
+		1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1,
+		0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1,
+	},
+	{
+		1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0,
+		0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0,
+	},
+};
+
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	uint32_t fn, enum trx_lchan_type chan, uint8_t bid,
 	sbit_t *bits, uint16_t nbits, int8_t rssi, float toa)
@@ -174,6 +210,7 @@ int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	ubit_t burst[GSM_BURST_LEN];
 	ubit_t *buffer, *offset;
 	uint8_t *mask, *l2;
+	const uint8_t *tsc;
 	int rc;
 
 	/* Find required channel state */
@@ -219,6 +256,9 @@ send_burst:
 	/* Update mask */
 	*mask |= (1 << bid);
 
+	/* Choose proper TSC */
+	tsc = nb_training_bits[trx->tsc];
+
 	/* If we are sending the last (4/4) burst */
 	if ((*mask & 0x0f) == 0x0f) {
 		/* Remove primitive from queue and free memory */
@@ -233,7 +273,7 @@ send_burst:
 	/* Compose a new burst */
 	memset(burst, 0, 3); /* TB */
 	memcpy(burst + 3, offset, 58); /* Payload 1/2 */
-	memcpy(burst + 61, trx->tsc, 26); /* TSC */
+	memcpy(burst + 61, tsc, 26); /* TSC */
 	memcpy(burst + 87, offset + 58, 58); /* Payload 2/2 */
 	memset(burst + 145, 0, 3); /* TB */
 

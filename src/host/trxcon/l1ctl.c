@@ -497,9 +497,8 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
-	/* Update TSC (Training Sequence) */
-	/* FIXME: est_req->tsc is a number of TSC */
-	memset(l1l->trx->tsc, 0x00, 26);
+	/* Update TSC (Training Sequence Code) */
+	l1l->trx->tsc = est_req->tsc;
 
 	/* Determine channel config */
 	config = sched_trx_chan_nr2pchan_config(chan_nr);
