@@ -395,7 +395,10 @@ int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	return 0;
 }
 
-/* 41-bit RACH synchronization sequence */
+/**
+ * 41-bit RACH synchronization sequence
+ * GSM 05.02 Chapter 5.2.7 Access burst (AB)
+ */
 static ubit_t rach_synch_seq[] = {
 	0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1,
 	1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0,
