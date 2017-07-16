@@ -17,3 +17,4 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg);
 
 int l1ctl_tx_data_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *ind);
 int l1ctl_tx_rach_conf(struct l1ctl_link *l1l, uint32_t fn);
+int l1ctl_tx_data_conf(struct l1ctl_link *l1l);

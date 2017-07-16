@@ -259,17 +259,6 @@ send_burst:
 	/* Choose proper TSC */
 	tsc = nb_training_bits[trx->tsc];
 
-	/* If we are sending the last (4/4) burst */
-	if ((*mask & 0x0f) == 0x0f) {
-		/* Remove primitive from queue and free memory */
-		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
-		llist_del(&prim->list);
-		talloc_free(prim);
-
-		/* Reset mask */
-		*mask = 0x00;
-	}
-
 	/* Compose a new burst */
 	memset(burst, 0, 3); /* TB */
 	memcpy(burst + 3, offset, 58); /* Payload 1/2 */
@@ -287,7 +276,30 @@ send_burst:
 	rc = trx_if_tx_burst(trx, ts->index, fn, 10, burst);
 	if (rc) {
 		LOGP(DSCH, LOGL_ERROR, "Could not send burst to transceiver\n");
+
+		/* Remove primitive from queue and free memory */
+		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
+		llist_del(&prim->list);
+		talloc_free(prim);
+
+		/* Reset mask */
+		*mask = 0x00;
+
 		return rc;
+	}
+
+	/* If we have sent the last (4/4) burst */
+	if ((*mask & 0x0f) == 0x0f) {
+		/* Remove primitive from queue and free memory */
+		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
+		llist_del(&prim->list);
+		talloc_free(prim);
+
+		/* Reset mask */
+		*mask = 0x00;
+
+		/* Confirm data sending */
+		l1ctl_tx_data_conf(trx->l1l);
 	}
 
 	return 0;

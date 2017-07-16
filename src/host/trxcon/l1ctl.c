@@ -221,6 +221,19 @@ int l1ctl_tx_rach_conf(struct l1ctl_link *l1l, uint32_t fn)
 	return l1ctl_link_send(l1l, msg);
 }
 
+int l1ctl_tx_data_conf(struct l1ctl_link *l1l)
+{
+	struct msgb *msg;
+
+	msg = l1ctl_alloc_msg(L1CTL_DATA_CONF);
+	if (msg == NULL)
+		return -ENOMEM;
+
+	LOGP(DL1C, LOGL_DEBUG, "Send Data Conf\n");
+
+	return l1ctl_link_send(l1l, msg);
+}
+
 /* FBSB expire timer */
 static void fbsb_timer_cb(void *data)
 {
