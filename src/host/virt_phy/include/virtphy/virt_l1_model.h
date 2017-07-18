@@ -1,5 +1,7 @@
 #pragma once
 
+/* Per-MS specific state, closely attached to the L1CTL user progran */
+
 #include <virtphy/virtual_um.h>
 #include <virtphy/l1ctl_sock.h>
 #include <osmocom/gsm/gsm_utils.h>

@@ -1,5 +1,11 @@
 #pragma once
 
+/* the "Virtual Um instance" encapsulates the multicast UDP sockets as
+ * well as the encoding and decoding of GSMTAP messages towards the
+ * virtual radio interface. It receives DL messages via GSMTAP from any
+ * number of BTSs transmitting to GSMTAP, and transmits UL messages via
+ * GSMTAP to those BTSs in another multicast group */
+
 #include <osmocom/core/select.h>
 #include <osmocom/core/msgb.h>
 #include "osmo_mcast_sock.h"
