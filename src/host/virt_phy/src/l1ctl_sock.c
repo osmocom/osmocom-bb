@@ -32,13 +32,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/un.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/serial.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
+#include <osmocom/core/socket.h>
 
 #include <arpa/inet.h>
 
@@ -102,11 +102,9 @@ static int l1ctl_sock_accept_cb(struct osmo_fd *ofd, unsigned int what)
 {
 
 	struct l1ctl_sock_inst *lsi = ofd->data;
-	struct sockaddr_un local_addr;
-	socklen_t addr_len = sizeof(struct sockaddr_in);
 	int fd;
 
-	fd = accept(ofd->fd, (struct sockaddr *)&local_addr, &addr_len);
+	fd = accept(ofd->fd, NULL, NULL);
 	if (fd < 0) {
 		fprintf(stderr, "Failed to accept connection to l2.\n");
 		return -1;
@@ -130,39 +128,24 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
                 char *path)
 {
 	struct l1ctl_sock_inst *lsi;
-	struct sockaddr_un local_addr;
-	int fd, rc;
+	int rc;
 
 	if (!path)
 		path = L1CTL_SOCK_PATH;
 
-	if ((fd = socket(AF_LOCAL, SOCK_STREAM, 0)) < 0) {
-		fprintf(stderr, "Failed to create Unix Domain Socket.\n");
-		return NULL;
-	}
-
-	local_addr.sun_family = AF_LOCAL;
-	strcpy(local_addr.sun_path, path);
-	unlink(local_addr.sun_path);
-
-	if ((rc = bind(fd, (struct sockaddr *)&local_addr, sizeof(local_addr))) != 0) {
-		fprintf(stderr, "Failed to bind the unix domain socket. '%s'\n",
-		                local_addr.sun_path);
-		return NULL;
-	}
-
-	if (listen(fd, 0) != 0) {
-		fprintf(stderr, "Failed to listen.\n");
-		return NULL;
-	}
-
 	lsi = talloc_zero(ctx, struct l1ctl_sock_inst);
 	lsi->priv = NULL;
-	lsi->recv_cb = recv_cb;
 	lsi->ofd.data = lsi;
-	lsi->ofd.fd = fd;
 	lsi->ofd.when = BSC_FD_READ;
 	lsi->ofd.cb = l1ctl_sock_accept_cb;
+
+	rc = osmo_sock_unix_init_ofd(&lsi->ofd, SOCK_STREAM, 0, path, OSMO_SOCK_F_BIND);
+	if (rc < 0) {
+		talloc_free(lsi);
+		return NULL;
+	}
+
+	lsi->recv_cb = recv_cb;
 	/* no connection -> invalid filedescriptor and not 0 (==std_in) */
 	lsi->connection.fd = -1;
 	lsi->l1ctl_sock_path = path;
