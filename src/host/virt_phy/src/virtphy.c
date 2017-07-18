@@ -21,6 +21,7 @@
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/select.h>
+#include <osmocom/core/gsmtap.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -34,12 +35,11 @@
 #include <virtphy/logging.h>
 #include <virtphy/virt_l1_sched.h>
 
-#define DEFAULT_MCAST_PORT 4729 /* IANA-registered port for GSMTAP */
 #define DEFAULT_LOG_MASK "DL1C,1:DVIRPHY,1"
 
 static char *dl_rx_grp = DEFAULT_MS_MCAST_GROUP;
 static char *ul_tx_grp = DEFAULT_BTS_MCAST_GROUP;
-static int port = DEFAULT_MCAST_PORT;
+static int port = GSMTAP_UDP_PORT;
 static char *log_mask = DEFAULT_LOG_MASK;
 static char *l1ctl_sock_path = L1CTL_SOCK_PATH;
 static char *arfcn_sig_lev_red_mask = NULL;

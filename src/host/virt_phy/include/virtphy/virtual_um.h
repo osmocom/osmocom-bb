@@ -17,9 +17,7 @@
 
 #define VIRT_UM_MSGB_SIZE	256
 #define DEFAULT_MS_MCAST_GROUP	"239.193.23.1"
-#define DEFAULT_MS_MCAST_PORT 4729 /* IANA-registered port for GSMTAP */
 #define DEFAULT_BTS_MCAST_GROUP	"239.193.23.2"
-#define DEFAULT_BTS_MCAST_PORT 4729 /* IANA-registered port for GSMTAP */
 
 struct virt_um_inst {
 	void *priv;
