@@ -61,7 +61,7 @@ int virt_l1_sched_start(struct gsm_time time)
  */
 void virt_l1_sched_sync_time(struct gsm_time time, uint8_t hard_reset)
 {
-	l1_model_ms->state->current_time = time;
+	l1_model_ms->state.current_time = time;
 }
 
 /**

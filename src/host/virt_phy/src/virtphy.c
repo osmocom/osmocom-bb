@@ -99,11 +99,11 @@ void parse_pm_timeout(struct l1_model_ms *model, char *pm_timeout) {
 
 	/* seconds */
 	char *buf = strtok(pm_timeout, ":");
-	model->state->pm.timeout_s = atoi(buf);
+	model->state.pm.timeout_s = atoi(buf);
 	/* microseconds */
 	buf = strtok(NULL, ":");
 	if (buf)
-		model->state->pm.timeout_us = atoi(buf);
+		model->state.pm.timeout_us = atoi(buf);
 }
 
 /**
@@ -128,7 +128,7 @@ void parse_arfcn_sig_lev_red(struct l1_model_ms *model, char * arfcn_sig_lev_red
 		red = atoi(colon + 1);
 
 		/* TODO: this may go wild if the token string is not properly formatted */
-		model->state->pm.meas.arfcn_sig_lev_red_dbm[arfcn] = red;
+		model->state.pm.meas.arfcn_sig_lev_red_dbm[arfcn] = red;
 	} while ((token = strtok(NULL, ":")));
 }
 

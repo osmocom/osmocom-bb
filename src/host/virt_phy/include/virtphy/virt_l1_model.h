@@ -18,13 +18,6 @@ enum ms_state {
 };
 
 
-struct l1_model_ms {
-	struct l1ctl_sock_inst *lsi;
-	struct virt_um_inst *vui;
-	struct l1_state_ms *state;
-	struct crypto_info_ms *crypto_inf;
-};
-
 /* structure representing L1 sync information about a cell */
 struct l1_cell_info {
 	/* on which ARFCN (+band) is the cell? */
@@ -53,12 +46,13 @@ struct l1_state_ms {
 	struct gsm_time	downlink_time;	/* current GSM time received on downlink */
 	struct gsm_time current_time; /* GSM time used internally for scheduling */
 
-	uint8_t state; // the ms state like in ms_state
+	enum ms_state state;
 
 	/* the cell on which we are camping right now */
 	struct l1_cell_info serving_cell;
 	/* neighbor cell sync info */
 	struct l1_cell_info neigh_cell[L1S_NUM_NEIGH_CELL];
+	struct crypto_info_ms crypto_inf;
 
 	/* TCH info */
 	uint8_t tch_mode; // see enum gsm48_chan_mode in gsm_04_08.h
@@ -93,6 +87,13 @@ struct l1_state_ms {
 		} meas;
 	} pm;
 };
+
+struct l1_model_ms {
+	struct l1ctl_sock_inst *lsi;
+	struct virt_um_inst *vui;
+	struct l1_state_ms state;
+};
+
 
 struct l1_model_ms *l1_model_ms_init(void *ctx);
 

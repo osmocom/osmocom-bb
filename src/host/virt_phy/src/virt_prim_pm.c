@@ -47,17 +47,17 @@ static struct l1_model_ms *l1_model_ms = NULL;
  */
 uint16_t prim_pm_set_sig_strength(uint16_t arfcn, int16_t sig_lev)
 {
-	if (l1_model_ms->state->pm.timeout_s > 0 || l1_model_ms->state->pm.timeout_us > 0) {
-		osmo_timer_schedule(&l1_model_ms->state->pm.meas.arfcn_sig_lev_timers[arfcn],
-				    l1_model_ms->state->pm.timeout_s,
-				    l1_model_ms->state->pm.timeout_us);
+	struct l1_state_ms *l1s = &l1_model_ms->state;
+
+	if (l1s->pm.timeout_s > 0 || l1s->pm.timeout_us > 0) {
+		osmo_timer_schedule(&l1s->pm.meas.arfcn_sig_lev_timers[arfcn],
+				    l1s->pm.timeout_s, l1s->pm.timeout_us);
 	}
-	l1_model_ms->state->pm.meas.arfcn_sig_lev_dbm[arfcn] = 
-				sig_lev - l1_model_ms->state->pm.meas.arfcn_sig_lev_red_dbm[arfcn];
+	l1s->pm.meas.arfcn_sig_lev_dbm[arfcn] = sig_lev - l1s->pm.meas.arfcn_sig_lev_red_dbm[arfcn];
 	DEBUGP(DL1C, "Power measurement set for arfcn %u. Set signal level to %d (== rxlev: %u).\n",
-		arfcn, l1_model_ms->state->pm.meas.arfcn_sig_lev_dbm[arfcn],
-		dbm2rxlev(l1_model_ms->state->pm.meas.arfcn_sig_lev_dbm[arfcn]));
-	return l1_model_ms->state->pm.meas.arfcn_sig_lev_dbm[arfcn];
+		arfcn, l1s->pm.meas.arfcn_sig_lev_dbm[arfcn],
+		dbm2rxlev(l1s->pm.meas.arfcn_sig_lev_dbm[arfcn]));
+	return l1s->pm.meas.arfcn_sig_lev_dbm[arfcn];
 }
 
 void prim_pm_timer_cb(void *data)
@@ -83,6 +83,7 @@ void prim_pm_timer_cb(void *data)
  */
 void l1ctl_rx_pm_req(struct msgb *msg)
 {
+	struct l1_state_ms *l1s = &l1_model_ms->state;
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_pm_req *pm_req = (struct l1ctl_pm_req *) l1h->data;
 	struct msgb *resp_msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
@@ -101,8 +102,8 @@ void l1ctl_rx_pm_req(struct msgb *msg)
 		pm_conf->band_arfcn = htons(arfcn_next);
 		/* set min and max to the value calculated for that
 		 * arfcn (IGNORE UPLINKK AND  PCS AND OTHER FLAGS) */
-		pm_conf->pm[0] = dbm2rxlev(l1_model_ms->state->pm.meas.arfcn_sig_lev_dbm[arfcn_next & ARFCN_NO_FLAGS_MASK]);
-		pm_conf->pm[1] = dbm2rxlev(l1_model_ms->state->pm.meas.arfcn_sig_lev_dbm[arfcn_next & ARFCN_NO_FLAGS_MASK]);
+		pm_conf->pm[0] = dbm2rxlev(l1s->pm.meas.arfcn_sig_lev_dbm[arfcn_next & ARFCN_NO_FLAGS_MASK]);
+		pm_conf->pm[1] = dbm2rxlev(l1s->pm.meas.arfcn_sig_lev_dbm[arfcn_next & ARFCN_NO_FLAGS_MASK]);
 		if (arfcn_next == pm_req->range.band_arfcn_to) {
 			struct l1ctl_hdr *resp_l1h = msgb_l1(resp_msg);
 			resp_l1h->flags |= L1CTL_F_DONE;
@@ -125,13 +126,15 @@ void l1ctl_rx_pm_req(struct msgb *msg)
  */
 void prim_pm_init(struct l1_model_ms *model)
 {
+	struct l1_state_ms *l1s = &model->state;
 	int i;
+
 	l1_model_ms = model;
 	/* init the signal level of all arfcns with the lowest value possible */
-	memset(model->state->pm.meas.arfcn_sig_lev_dbm, MIN_SIG_LEV_DBM, sizeof (int16_t) * 1024);
+	memset(l1s->pm.meas.arfcn_sig_lev_dbm, MIN_SIG_LEV_DBM, sizeof (int16_t) * 1024);
 	/* init timers */
 	for (i = 0; i < 1024; ++i) {
-		l1_model_ms->state->pm.meas.arfcn_sig_lev_timers[i].cb = prim_pm_timer_cb;
-		l1_model_ms->state->pm.meas.arfcn_sig_lev_timers[i].data = &l1_model_ms->state->pm.meas.arfcn_sig_lev_dbm[i];
+		l1s->pm.meas.arfcn_sig_lev_timers[i].cb = prim_pm_timer_cb;
+		l1s->pm.meas.arfcn_sig_lev_timers[i].data = &l1s->pm.meas.arfcn_sig_lev_dbm[i];
 	}
 }

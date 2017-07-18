@@ -44,10 +44,10 @@ static struct l1_model_ms *l1_model_ms = NULL;
 static void l1_model_tch_mode_set(uint8_t tch_mode)
 {
 	if (tch_mode == GSM48_CMODE_SPEECH_V1 || tch_mode == GSM48_CMODE_SPEECH_EFR)
-		l1_model_ms->state->tch_mode = tch_mode;
+		l1_model_ms->state.tch_mode = tch_mode;
 	else {
 		/* set default value if no proper mode was assigned by l23 */
-		l1_model_ms->state->tch_mode = GSM48_CMODE_SIGN;
+		l1_model_ms->state.tch_mode = GSM48_CMODE_SIGN;
 	}
 }
 
@@ -267,16 +267,16 @@ void l1ctl_rx_dm_est_req(struct msgb *msg)
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_DM_EST_REQ (chan_nr=0x%02x, tn=%u, ss=%u)\n",
 		ul->chan_nr, timeslot, subslot);
 
-	l1_model_ms->state->dedicated.chan_type = rsl_chantype;
-	l1_model_ms->state->dedicated.tn = timeslot;
-	l1_model_ms->state->dedicated.subslot = subslot;
-	l1_model_ms->state->state = MS_STATE_DEDICATED;
+	l1_model_ms->state.dedicated.chan_type = rsl_chantype;
+	l1_model_ms->state.dedicated.tn = timeslot;
+	l1_model_ms->state.dedicated.subslot = subslot;
+	l1_model_ms->state.state = MS_STATE_DEDICATED;
 
 	/* TCH config */
 	if (rsl_chantype == RSL_CHAN_Bm_ACCHs || rsl_chantype == RSL_CHAN_Lm_ACCHs) {
-		l1_model_ms->state->tch_mode = est_req->tch_mode;
+		l1_model_ms->state.tch_mode = est_req->tch_mode;
 		l1_model_tch_mode_set(est_req->tch_mode);
-		l1_model_ms->state->audio_mode = est_req->audio_mode;
+		l1_model_ms->state.audio_mode = est_req->audio_mode;
 		/* TODO: configure audio hardware for encoding /
 		 * decoding / recording / playing voice */
 	}
@@ -332,8 +332,8 @@ void l1ctl_rx_crypto_req(struct msgb *msg)
 		return;
 	}
 
-	l1_model_ms->crypto_inf->algo = cr->algo;
-	memcpy(l1_model_ms->crypto_inf->key, cr->key, sizeof(uint8_t) * A5_KEY_LEN);
+	l1_model_ms->state.crypto_inf.algo = cr->algo;
+	memcpy(l1_model_ms->state.crypto_inf.key, cr->key, sizeof(uint8_t) * A5_KEY_LEN);
 }
 
 /**
@@ -350,11 +350,11 @@ void l1ctl_rx_dm_rel_req(struct msgb *msg)
 {
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_DM_REL_REQ\n");
 
-	l1_model_ms->state->dedicated.chan_type = 0;
-	l1_model_ms->state->dedicated.tn = 0;
-	l1_model_ms->state->dedicated.subslot = 0;
-	l1_model_ms->state->tch_mode = GSM48_CMODE_SIGN;
-	l1_model_ms->state->state = MS_STATE_IDLE_CAMPING;
+	l1_model_ms->state.dedicated.chan_type = 0;
+	l1_model_ms->state.dedicated.tn = 0;
+	l1_model_ms->state.dedicated.subslot = 0;
+	l1_model_ms->state.tch_mode = GSM48_CMODE_SIGN;
+	l1_model_ms->state.state = MS_STATE_IDLE_CAMPING;
 
 	/* TODO: disable ciphering */
 	/* TODO: disable audio recording / playing */
@@ -402,12 +402,12 @@ void l1ctl_rx_reset_req(struct msgb *msg)
 	switch (reset_req->type) {
 	case L1CTL_RES_T_FULL:
 		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=FULL)\n");
-		l1_model_ms->state->state = MS_STATE_IDLE_SEARCHING;
+		l1_model_ms->state.state = MS_STATE_IDLE_SEARCHING;
 		virt_l1_sched_stop();
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	case L1CTL_RES_T_SCHED:
-		virt_l1_sched_restart(l1_model_ms->state->downlink_time);
+		virt_l1_sched_restart(l1_model_ms->state.downlink_time);
 		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=SCHED)\n");
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
@@ -438,7 +438,7 @@ void l1ctl_rx_ccch_mode_req(struct msgb *msg)
 
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_CCCH_MODE_REQ\n");
 
-	l1_model_ms->state->serving_cell.ccch_mode = ccch_mode;
+	l1_model_ms->state.serving_cell.ccch_mode = ccch_mode;
 
 	/* check if more has to be done here */
 	l1ctl_tx_ccch_mode_conf(ccch_mode);
@@ -461,14 +461,14 @@ void l1ctl_rx_tch_mode_req(struct msgb *msg)
 	struct l1ctl_tch_mode_req *tch_mode_req = (struct l1ctl_tch_mode_req *) l1h->data;
 
 	l1_model_tch_mode_set(tch_mode_req->tch_mode);
-	l1_model_ms->state->audio_mode = tch_mode_req->audio_mode;
+	l1_model_ms->state.audio_mode = tch_mode_req->audio_mode;
 
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_TCH_MODE_REQ (tch_mode=0x%02x audio_mode=0x%02x)\n",
 		tch_mode_req->tch_mode, tch_mode_req->audio_mode);
 
 	/* TODO: configure audio hardware for encoding / decoding / recording / playing voice */
 
-	l1ctl_tx_tch_mode_conf(l1_model_ms->state->tch_mode, l1_model_ms->state->audio_mode);
+	l1ctl_tx_tch_mode_conf(l1_model_ms->state.tch_mode, l1_model_ms->state.audio_mode);
 }
 
 /**

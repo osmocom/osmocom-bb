@@ -54,14 +54,15 @@ static uint16_t sync_count = 0;
  */
 void l1ctl_rx_fbsb_req(struct msgb *msg)
 {
+	struct l1_state_ms *l1s = &l1_model_ms->state;
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_fbsb_req *sync_req = (struct l1ctl_fbsb_req *) l1h->data;
 
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
 	       ntohs(sync_req->band_arfcn), sync_req->flags);
 
-	l1_model_ms->state->state = MS_STATE_IDLE_SYNCING;
-	l1_model_ms->state->fbsb.arfcn = ntohs(sync_req->band_arfcn);
+	l1s->state = MS_STATE_IDLE_SYNCING;
+	l1s->fbsb.arfcn = ntohs(sync_req->band_arfcn);
 }
 
 /**
@@ -71,32 +72,33 @@ void l1ctl_rx_fbsb_req(struct msgb *msg)
  */
 void prim_fbsb_sync(struct msgb *msg)
 {
+	struct l1_state_ms *l1s = &l1_model_ms->state;
 	struct gsmtap_hdr *gh = msgb_l1(msg);
 	uint32_t fn = ntohl(gh->frame_number); /* frame number of the rcv msg */
 	uint16_t arfcn = ntohs(gh->arfcn); /* arfcn of the received msg */
 
 	/* ignore messages from other arfcns as the one requested to sync to by l23 */
-	if (l1_model_ms->state->fbsb.arfcn != arfcn) {
+	if (l1s->fbsb.arfcn != arfcn) {
 		talloc_free(msg);
 		/* cancel sync if we did not receive a msg on dl from
 		 * the requested arfcn that we can sync to */
 		if (sync_count++ > 20) {
 			sync_count = 0;
-			l1_model_ms->state->state = MS_STATE_IDLE_SEARCHING;
-			l1ctl_tx_fbsb_conf(1, (l1_model_ms->state->fbsb.arfcn));
+			l1s->state = MS_STATE_IDLE_SEARCHING;
+			l1ctl_tx_fbsb_conf(1, (l1s->fbsb.arfcn));
 		}
 		return;
 	}
-	l1_model_ms->state->serving_cell.arfcn = arfcn;
-	l1_model_ms->state->state = MS_STATE_IDLE_CAMPING;
+	l1s->serving_cell.arfcn = arfcn;
+	l1s->state = MS_STATE_IDLE_CAMPING;
 	/* Not needed in virtual phy */
-	l1_model_ms->state->serving_cell.fn_offset = 0;
-	l1_model_ms->state->serving_cell.time_alignment = 0;
-	l1_model_ms->state->serving_cell.bsic = 0;
+	l1s->serving_cell.fn_offset = 0;
+	l1s->serving_cell.time_alignment = 0;
+	l1s->serving_cell.bsic = 0;
 	/* Update current gsm time each time we receive a message on the virt um */
-	gsm_fn2gsmtime(&l1_model_ms->state->downlink_time, fn);
+	gsm_fn2gsmtime(&l1s->downlink_time, fn);
 	/* Restart scheduler */
-	virt_l1_sched_restart(l1_model_ms->state->downlink_time);
+	virt_l1_sched_restart(l1s->downlink_time);
 	talloc_free(msg);
 	l1ctl_tx_fbsb_conf(0, arfcn);
 }

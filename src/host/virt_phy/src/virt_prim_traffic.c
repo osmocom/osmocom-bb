@@ -50,7 +50,7 @@ static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg);
 static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg)
 {
 	gsmtapl1_tx_to_virt_um(fn, msg);
-	l1ctl_tx_traffic_conf(fn, 0, l1_model_ms->state->serving_cell.arfcn);
+	l1ctl_tx_traffic_conf(fn, 0, l1_model_ms->state.serving_cell.arfcn);
 }
 
 /**
@@ -69,7 +69,7 @@ void l1ctl_rx_traffic_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_traffic_req *tr = (struct l1ctl_traffic_req *) ul->payload;
 	uint8_t rsl_chantype, subslot, timeslot;
-	uint32_t fn_sched = sched_fn_ul(l1_model_ms->state->current_time, ul->chan_nr, ul->link_id);
+	uint32_t fn_sched = sched_fn_ul(l1_model_ms->state.current_time, ul->chan_nr, ul->link_id);
 
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_TRAFFIC_REQ\n");

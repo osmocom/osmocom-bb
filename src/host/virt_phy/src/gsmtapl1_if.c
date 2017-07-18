@@ -55,7 +55,7 @@ void gsmtapl1_tx_to_virt_um_inst(uint32_t fn, struct virt_um_inst *vui,
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct gsmtap_hdr *gh;
 	struct msgb *outmsg;	/* msg to send with gsmtap header prepended */
-	uint16_t arfcn = l1_model_ms->state->serving_cell.arfcn;	/* arfcn of the cell we currently camp on */
+	uint16_t arfcn = l1_model_ms->state.serving_cell.arfcn;	/* arfcn of the cell we currently camp on */
 	uint8_t signal_dbm = 63;	/* signal strength */
 	uint8_t snr = 63;	/* signal noise ratio, 63 is best */
 	uint8_t *data = msgb_l2(msg);	/* data to transmit (whole message without l1 header) */
@@ -145,19 +145,19 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 		goto freemsg;
 	}
 	/* we do not forward messages to l23 if we are in network search state */
-	if (l1_model_ms->state->state == MS_STATE_IDLE_SEARCHING)
+	if (l1_model_ms->state.state == MS_STATE_IDLE_SEARCHING)
 		goto freemsg;
 
 	/* forward downlink msg to fbsb sync routine if we are in sync state */
-	if (l1_model_ms->state->state == MS_STATE_IDLE_SYNCING) {
+	if (l1_model_ms->state.state == MS_STATE_IDLE_SYNCING) {
 		prim_fbsb_sync(msg);
 		return;
 	}
 	/* generally ignore all messages coming from another arfcn than the camped one */
-	if (l1_model_ms->state->serving_cell.arfcn != arfcn) {
+	if (l1_model_ms->state.serving_cell.arfcn != arfcn) {
 		LOGP(DVIRPHY, LOGL_NOTICE,
 		     "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n",
-		     arfcn, l1_model_ms->state->serving_cell.arfcn);
+		     arfcn, l1_model_ms->state.serving_cell.arfcn);
 		goto freemsg;
 	}
 
@@ -166,8 +166,8 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	/* see TS 08.58 -> 9.3.1 for channel number encoding */
 	chan_nr = rsl_enc_chan_nr(rsl_chantype, subslot, timeslot);
 
-	gsm_fn2gsmtime(&l1_model_ms->state->downlink_time, fn);
-	virt_l1_sched_sync_time(l1_model_ms->state->downlink_time, 0);
+	gsm_fn2gsmtime(&l1_model_ms->state.downlink_time, fn);
+	virt_l1_sched_sync_time(l1_model_ms->state.downlink_time, 0);
 	virt_l1_sched_execute(fn);
 
 	DEBUGP(DVIRPHY, "Receiving gsmtap msg from virt um - "
@@ -191,8 +191,8 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	case GSMTAP_CHANNEL_SDCCH8:
 		/* only forward messages on dedicated channels to l2, if
 		 * the timeslot and subslot is fitting */
-		if (l1_model_ms->state->dedicated.tn == timeslot
-		    && l1_model_ms->state->dedicated.subslot == subslot) {
+		if (l1_model_ms->state.dedicated.tn == timeslot
+		    && l1_model_ms->state.dedicated.subslot == subslot) {
 			l1ctl_tx_data_ind(msg, arfcn, link_id, chan_nr, fn, snr, signal_dbm, 0, 0);
 		}
 		break;

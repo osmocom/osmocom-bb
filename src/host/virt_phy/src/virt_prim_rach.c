@@ -62,7 +62,7 @@ static const uint8_t rach_to_t3_comb[27] = {
 static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb *msg)
 {
 	gsmtapl1_tx_to_virt_um(fn, msg);
-	l1ctl_tx_rach_conf(fn, l1_model_ms->state->serving_cell.arfcn);
+	l1ctl_tx_rach_conf(fn, l1_model_ms->state.serving_cell.arfcn);
 }
 
 /**
@@ -77,6 +77,7 @@ static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb *msg)
  */
 void l1ctl_rx_rach_req(struct msgb *msg)
 {
+	struct l1_state_ms *l1s = &l1_model_ms->state;
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *) ul->payload;
@@ -102,13 +103,13 @@ void l1ctl_rx_rach_req(struct msgb *msg)
 	/* sched fn calculation if we have a combined ccch channel configuration */
 	if (rach_req->combined) {
 		/* add elapsed RACH slots to offset */
-		offset += t3_to_rach_comb[l1_model_ms->state->current_time.t3];
+		offset += t3_to_rach_comb[l1s->current_time.t3];
 		/* offset is the number of RACH slots in the future */
-		fn_sched = l1_model_ms->state->current_time.fn - l1_model_ms->state->current_time.t3;
+		fn_sched = l1s->current_time.fn - l1s->current_time.t3;
 		fn_sched += offset / 27 * 51;
 		fn_sched += rach_to_t3_comb[offset % 27];
 	} else
-		fn_sched = l1_model_ms->state->current_time.fn + offset;
+		fn_sched = l1s->current_time.fn + offset;
 
 	virt_l1_sched_schedule(msg, fn_sched, ts, &virt_l1_sched_handler_cb);
 }
