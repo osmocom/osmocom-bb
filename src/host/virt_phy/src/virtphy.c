@@ -23,12 +23,14 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/gsmtap.h>
+#include <osmocom/core/application.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <errno.h>
+#include <signal.h>
 #include <virtphy/virtual_um.h>
 #include <virtphy/l1ctl_sock.h>
 #include <virtphy/virt_l1_model.h>
@@ -168,8 +170,29 @@ static void l1ctl_close_cb(struct l1ctl_sock_client *lsc)
 	l1_model_ms_destroy(ms);
 }
 
+static void *tall_vphy_ctx;
+
+static void signal_handler(int signum)
+{
+	LOGP(DMAIN, LOGL_NOTICE, "Signal %d received\n", signum);
+
+	switch (signum) {
+	case SIGUSR1:
+		talloc_report_full(tall_vphy_ctx, stderr);
+		break;
+	default:
+		break;
+	}
+}
+
 int main(int argc, char *argv[])
 {
+	tall_vphy_ctx = talloc_named_const(NULL, 1, "root");
+
+	msgb_talloc_ctx_init(tall_vphy_ctx, 0);
+	signal(SIGUSR1, &signal_handler);
+	osmo_init_ignore_signals();
+
 	/* init loginfo */
 	handle_options(argc, argv);
 
@@ -177,10 +200,10 @@ int main(int argc, char *argv[])
 
 	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer starting up...\n");
 
-	g_vphy.virt_um = virt_um_init(NULL, ul_tx_grp, port, dl_rx_grp, port,
+	g_vphy.virt_um = virt_um_init(tall_vphy_ctx, ul_tx_grp, port, dl_rx_grp, port,
 					gsmtapl1_rx_from_virt_um_inst_cb);
 
-	g_vphy.l1ctl_sock = l1ctl_sock_init(NULL, l1ctl_sap_rx_from_l23_inst_cb,
+	g_vphy.l1ctl_sock = l1ctl_sock_init(tall_vphy_ctx, l1ctl_sap_rx_from_l23_inst_cb,
 					    l1ctl_accept_cb, l1ctl_close_cb, l1ctl_sock_path);
 	g_vphy.virt_um->priv = g_vphy.l1ctl_sock;
 

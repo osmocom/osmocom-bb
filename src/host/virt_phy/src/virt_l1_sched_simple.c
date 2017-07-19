@@ -127,7 +127,7 @@ void virt_l1_sched_schedule(struct l1_model_ms *ms, struct msgb *msg, uint32_t f
 	}
 	if (!mi_fn) {
 		/* list did not contain mframe item with needed fn */
-		mi_fn = talloc_zero(NULL, struct virt_l1_sched_mframe_item);
+		mi_fn = talloc_zero(ms, struct virt_l1_sched_mframe_item);
 		mi_fn->fn = fn;
 		/* need to manually init the struct content.... no so happy */
 		mi_fn->tdma_item_list.prev = &mi_fn->tdma_item_list;
