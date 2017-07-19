@@ -58,6 +58,12 @@ void l1ctl_sap_init(struct l1_model_ms *model)
 	prim_pm_init(model);
 }
 
+void l1ctl_sap_exit(struct l1_model_ms *model)
+{
+	virt_l1_sched_stop(model);
+	prim_pm_exit(model);
+}
+
 /**
  * @brief L1CTL handler called for received messages from L23.
  *

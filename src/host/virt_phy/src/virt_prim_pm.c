@@ -138,3 +138,12 @@ void prim_pm_init(struct l1_model_ms *model)
 		l1s->pm.meas.arfcn_sig_lev_timers[i].data = &l1s->pm.meas.arfcn_sig_lev_dbm[i];
 	}
 }
+
+void prim_pm_exit(struct l1_model_ms *model)
+{
+	struct l1_state_ms *l1s = &model->state;
+	int i;
+
+	for (i = 0; i < 1024; ++i)
+		osmo_timer_del(&l1s->pm.meas.arfcn_sig_lev_timers[i]);
+}

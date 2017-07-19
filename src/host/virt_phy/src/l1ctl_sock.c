@@ -47,6 +47,9 @@
 
 static void l1ctl_client_destroy(struct l1ctl_sock_client *lsc)
 {
+	struct l1ctl_sock_inst *lsi = lsc->l1ctl_sock;
+	if (lsi->close_cb)
+		lsi->close_cb(lsc);
 	osmo_fd_close(&lsc->ofd);
 	llist_del(&lsc->list);
 	talloc_free(lsc);
@@ -149,6 +152,7 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
                 void *ctx,
                 void (*recv_cb)(struct l1ctl_sock_client *lsc, struct msgb *msg),
                 int (*accept_cb)(struct l1ctl_sock_client *lsc),
+                void (*close_cb)(struct l1ctl_sock_client *lsc),
                 char *path)
 {
 	struct l1ctl_sock_inst *lsi;
@@ -172,6 +176,7 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
 
 	lsi->recv_cb = recv_cb;
 	lsi->accept_cb = accept_cb;
+	lsi->close_cb = close_cb;
 	lsi->l1ctl_sock_path = path;
 	INIT_LLIST_HEAD(&lsi->clients);
 

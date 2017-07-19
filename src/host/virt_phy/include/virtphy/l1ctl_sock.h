@@ -28,6 +28,8 @@ struct l1ctl_sock_inst {
 	void (*recv_cb)(struct l1ctl_sock_client *lsc, struct msgb *msg); /* Callback function called for incoming data from l2 app. */
 	/* Callback function called for new client after accept() */
 	int (*accept_cb)(struct l1ctl_sock_client *lsc);
+	/* Callback function called when client disappeared */
+	void (*close_cb)(struct l1ctl_sock_client *lsc);
 };
 
 /**
@@ -37,6 +39,7 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
                 void *ctx,
                 void (*recv_cb)(struct l1ctl_sock_client *lsc, struct msgb *msg),
                 int (*accept_cb)(struct l1ctl_sock_client *lsc),
+                void (*close_cb)(struct l1ctl_sock_client *lsc),
                 char *path);
 
 /**

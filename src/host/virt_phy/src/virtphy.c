@@ -162,6 +162,12 @@ static int l1ctl_accept_cb(struct l1ctl_sock_client *lsc)
 	return 0;
 }
 
+static void l1ctl_close_cb(struct l1ctl_sock_client *lsc)
+{
+	struct l1_model_ms *ms = lsc->priv;
+	l1_model_ms_destroy(ms);
+}
+
 int main(int argc, char *argv[])
 {
 	/* init loginfo */
@@ -175,7 +181,7 @@ int main(int argc, char *argv[])
 					gsmtapl1_rx_from_virt_um_inst_cb);
 
 	g_vphy.l1ctl_sock = l1ctl_sock_init(NULL, l1ctl_sap_rx_from_l23_inst_cb,
-					    l1ctl_accept_cb, l1ctl_sock_path);
+					    l1ctl_accept_cb, l1ctl_close_cb, l1ctl_sock_path);
 	g_vphy.virt_um->priv = g_vphy.l1ctl_sock;
 
 	LOGP(DVIRPHY, LOGL_INFO,
