@@ -5,7 +5,9 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <virtphy/virt_l1_sched.h>
 
-typedef void virt_l1_sched_cb(uint32_t fn, struct msgb * msg);
+struct l1_model_ms;
+
+typedef void virt_l1_sched_cb(struct l1_model_ms *ms, uint32_t fn, struct msgb * msg);
 
 /* bucket containing items to be executed for a specific mframe number */
 struct virt_l1_sched_mframe_item {
@@ -22,11 +24,9 @@ struct virt_l1_sched_tdma_item {
 	virt_l1_sched_cb * handler_cb; /* handler callback */
 };
 
-void virt_l1_sched_init(struct l1_model_ms * model);
-int virt_l1_sched_start(struct gsm_time time);
-int virt_l1_sched_restart(struct gsm_time time);
-void virt_l1_sched_sync_time(struct gsm_time time, uint8_t hard_reset);
-void virt_l1_sched_stop();
-void virt_l1_sched_execute(uint32_t fn);
-void virt_l1_sched_schedule(struct msgb * msg, uint32_t fn, uint8_t ts,
+int virt_l1_sched_restart(struct l1_model_ms *ms, struct gsm_time time);
+void virt_l1_sched_sync_time(struct l1_model_ms *ms, struct gsm_time time, uint8_t hard_reset);
+void virt_l1_sched_stop(struct l1_model_ms *ms);
+void virt_l1_sched_execute(struct l1_model_ms *ms, uint32_t fn);
+void virt_l1_sched_schedule(struct l1_model_ms *ms, struct msgb *msg, uint32_t fn, uint8_t ts,
                             virt_l1_sched_cb * handler_cb);

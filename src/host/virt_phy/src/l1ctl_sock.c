@@ -1,6 +1,7 @@
 /* Socket based Layer1 <-> Layer23 communication over L1CTL primitives. */
 
 /* (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
+ * (C) 2017 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -32,23 +33,24 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/select.h>
-#include <osmocom/core/serial.h>
 #include <osmocom/core/talloc.h>
-#include <osmocom/core/timer.h>
 #include <osmocom/core/socket.h>
 
-#include <arpa/inet.h>
-
-#include <l1ctl_proto.h>
-
-#include <virtphy/virtual_um.h>
 #include <virtphy/l1ctl_sock.h>
 #include <virtphy/logging.h>
 
 #define L1CTL_SOCK_MSGB_SIZE	256
+
+static void l1ctl_client_destroy(struct l1ctl_sock_client *lsc)
+{
+	osmo_fd_close(&lsc->ofd);
+	llist_del(&lsc->list);
+	talloc_free(lsc);
+}
 
 /**
  * @brief L1CTL socket file descriptor callback function.
@@ -60,7 +62,7 @@
  */
 static int l1ctl_sock_data_cb(struct osmo_fd *ofd, unsigned int what)
 {
-	struct l1ctl_sock_inst *lsi = ofd->data;
+	struct l1ctl_sock_client *lsc = ofd->data;
 	struct l1ctl_hdr *l1h;
 	struct msgb *msg;
 	uint16_t len;
@@ -87,44 +89,67 @@ static int l1ctl_sock_data_cb(struct osmo_fd *ofd, unsigned int what)
 		msgb_put(msg, rc);
 		l1h = (void *) msgb_data(msg);
 		msg->l1h = (void *) l1h;
-		lsi->recv_cb(lsi, msg);
+		lsc->l1ctl_sock->recv_cb(lsc, msg);
 		return 0;
 	}
 err_close:
 	perror("Failed to receive msg from l2. Connection will be closed.\n");
-	l1ctl_sock_disconnect(lsi);
+	l1ctl_client_destroy(lsc);
 
 	return 0;
 
 }
 
+/* called for the master (listening) socket of the instance, allocates a new client */
 static int l1ctl_sock_accept_cb(struct osmo_fd *ofd, unsigned int what)
 {
 
 	struct l1ctl_sock_inst *lsi = ofd->data;
-	int fd;
+	struct l1ctl_sock_client *lsc;
+	int fd, rc;
 
 	fd = accept(ofd->fd, NULL, NULL);
 	if (fd < 0) {
 		fprintf(stderr, "Failed to accept connection to l2.\n");
 		return -1;
 	}
+	printf("Accepted client (fd=%u) from server (fd=%u)\n", fd, ofd->fd);
 
-	lsi->connection.fd = fd;
-	lsi->connection.when = BSC_FD_READ;
-	lsi->connection.cb = l1ctl_sock_data_cb;
-	lsi->connection.data = lsi;
-
-	if (osmo_fd_register(&lsi->connection) != 0) {
-		fprintf(stderr, "Failed to register the l2 connection fd.\n");
+	lsc = talloc_zero(lsi, struct l1ctl_sock_client);
+	if (!lsc) {
+		close(fd);
+		fprintf(stderr, "Failed to allocate L1CTL client\n");
 		return -1;
 	}
+
+	lsc->l1ctl_sock = lsi;
+	lsc->ofd.fd = fd;
+	lsc->ofd.when = BSC_FD_READ;
+	lsc->ofd.cb = l1ctl_sock_data_cb;
+	lsc->ofd.data = lsc;
+	if (lsi->accept_cb) {
+		rc = lsi->accept_cb(lsc);
+		if (rc < 0) {
+			talloc_free(lsc);
+			close(fd);
+			return rc;
+		}
+	}
+
+	printf("Accepted L1CTL connection, lsc=%p, lsc->priv=%p\n", lsc, lsc->priv);
+	if (osmo_fd_register(&lsc->ofd) != 0) {
+		fprintf(stderr, "Failed to register the l2 connection fd.\n");
+		talloc_free(lsc);
+		return -1;
+	}
+	llist_add_tail(&lsc->list, &lsi->clients);
 	return 0;
 }
 
 struct l1ctl_sock_inst *l1ctl_sock_init(
                 void *ctx,
-                void (*recv_cb)(struct l1ctl_sock_inst *lsi, struct msgb *msg),
+                void (*recv_cb)(struct l1ctl_sock_client *lsc, struct msgb *msg),
+                int (*accept_cb)(struct l1ctl_sock_client *lsc),
                 char *path)
 {
 	struct l1ctl_sock_inst *lsi;
@@ -146,40 +171,28 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
 	}
 
 	lsi->recv_cb = recv_cb;
-	/* no connection -> invalid filedescriptor and not 0 (==std_in) */
-	lsi->connection.fd = -1;
+	lsi->accept_cb = accept_cb;
 	lsi->l1ctl_sock_path = path;
-
-	osmo_fd_register(&lsi->ofd);
+	INIT_LLIST_HEAD(&lsi->clients);
 
 	return lsi;
 }
 
 void l1ctl_sock_destroy(struct l1ctl_sock_inst *lsi)
 {
-	struct osmo_fd *ofd = &lsi->ofd;
+	struct l1ctl_sock_client *lsc, *lsc2;
 
-	osmo_fd_unregister(ofd);
-	close(ofd->fd);
-	ofd->fd = -1;
-	ofd->when = 0;
+	llist_for_each_entry_safe(lsc, lsc2, &lsi->clients, list)
+		l1ctl_client_destroy(lsc);
 
+	osmo_fd_close(&lsi->ofd);
 	talloc_free(lsi);
 }
 
-void l1ctl_sock_disconnect(struct l1ctl_sock_inst *lsi)
-{
-	struct osmo_fd *ofd = &lsi->connection;
-	osmo_fd_unregister(ofd);
-	close(ofd->fd);
-	ofd->fd = -1;
-	ofd->when = 0;
-}
-
-int l1ctl_sock_write_msg(struct l1ctl_sock_inst *lsi, struct msgb *msg)
+int l1ctl_sock_write_msg(struct l1ctl_sock_client *lsc, struct msgb *msg)
 {
 	int rc;
-	rc = write(lsi->connection.fd, msgb_data(msg), msgb_length(msg));
+	rc = write(lsc->ofd.fd, msgb_data(msg), msgb_length(msg));
 	msgb_free(msg);
 	return rc;
 }

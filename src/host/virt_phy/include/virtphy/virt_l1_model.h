@@ -45,6 +45,10 @@ struct l1_state_ms {
 
 	struct gsm_time	downlink_time;	/* current GSM time received on downlink */
 	struct gsm_time current_time; /* GSM time used internally for scheduling */
+	struct {
+		uint32_t last_exec_fn;
+		struct llist_head mframe_items;
+	} sched;
 
 	enum ms_state state;
 
@@ -89,13 +93,16 @@ struct l1_state_ms {
 };
 
 struct l1_model_ms {
-	struct l1ctl_sock_inst *lsi;
+	/* pointer to the L1CTL socket client associated with this specific MS */
+	struct l1ctl_sock_client *lsc;
+	/* pointer to the (shared) GSMTAP/VirtUM socket to talk to BTS(s) */
 	struct virt_um_inst *vui;
+	/* actual per-MS state */
 	struct l1_state_ms state;
 };
 
 
-struct l1_model_ms *l1_model_ms_init(void *ctx);
+struct l1_model_ms *l1_model_ms_init(void *ctx, struct l1ctl_sock_client *lsc, struct virt_um_inst *vui);
 
 void l1_model_ms_destroy(struct l1_model_ms *model);
 

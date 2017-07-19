@@ -1,6 +1,6 @@
 
 /* (C) 2010 by Dieter Spaar <spaar@mirider.augusta.de>
- * (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2010,2017 by Harald Welte <laforge@gnumonks.org>
  * (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
  *
  * All Rights Reserved
@@ -35,7 +35,6 @@
 #include <virtphy/logging.h>
 #include <l1ctl_proto.h>
 
-static struct l1_model_ms *l1_model_ms = NULL;
 static uint16_t sync_count = 0;
 
 /**
@@ -52,9 +51,9 @@ static uint16_t sync_count = 0;
  * Note: virt bts does not broadcast freq and sync bursts.
  *
  */
-void l1ctl_rx_fbsb_req(struct msgb *msg)
+void l1ctl_rx_fbsb_req(struct l1_model_ms *ms, struct msgb *msg)
 {
-	struct l1_state_ms *l1s = &l1_model_ms->state;
+	struct l1_state_ms *l1s = &ms->state;
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_fbsb_req *sync_req = (struct l1ctl_fbsb_req *) l1h->data;
 
@@ -70,22 +69,21 @@ void l1ctl_rx_fbsb_req(struct msgb *msg)
  *
  * Note: for virtual layer 1 this can be a random downlink message, as we can parse the fn from the gsmtap header.
  */
-void prim_fbsb_sync(struct msgb *msg)
+void prim_fbsb_sync(struct l1_model_ms *ms, struct msgb *msg)
 {
-	struct l1_state_ms *l1s = &l1_model_ms->state;
+	struct l1_state_ms *l1s = &ms->state;
 	struct gsmtap_hdr *gh = msgb_l1(msg);
 	uint32_t fn = ntohl(gh->frame_number); /* frame number of the rcv msg */
 	uint16_t arfcn = ntohs(gh->arfcn); /* arfcn of the received msg */
 
 	/* ignore messages from other arfcns as the one requested to sync to by l23 */
 	if (l1s->fbsb.arfcn != arfcn) {
-		talloc_free(msg);
 		/* cancel sync if we did not receive a msg on dl from
 		 * the requested arfcn that we can sync to */
 		if (sync_count++ > 20) {
 			sync_count = 0;
 			l1s->state = MS_STATE_IDLE_SEARCHING;
-			l1ctl_tx_fbsb_conf(1, (l1s->fbsb.arfcn));
+			l1ctl_tx_fbsb_conf(ms, 1, (l1s->fbsb.arfcn));
 		}
 		return;
 	}
@@ -98,9 +96,8 @@ void prim_fbsb_sync(struct msgb *msg)
 	/* Update current gsm time each time we receive a message on the virt um */
 	gsm_fn2gsmtime(&l1s->downlink_time, fn);
 	/* Restart scheduler */
-	virt_l1_sched_restart(l1s->downlink_time);
-	talloc_free(msg);
-	l1ctl_tx_fbsb_conf(0, arfcn);
+	virt_l1_sched_restart(ms, l1s->downlink_time);
+	l1ctl_tx_fbsb_conf(ms, 0, arfcn);
 }
 
 /**
@@ -113,7 +110,7 @@ void prim_fbsb_sync(struct msgb *msg)
  *
  * No calculation needed for virtual pyh -> uses dummy values for a good link quality.
  */
-void l1ctl_tx_fbsb_conf(uint8_t res, uint16_t arfcn)
+void l1ctl_tx_fbsb_conf(struct l1_model_ms *ms, uint8_t res, uint16_t arfcn)
 {
 	struct msgb *msg;
 	struct l1ctl_fbsb_conf *resp;
@@ -131,14 +128,5 @@ void l1ctl_tx_fbsb_conf(uint8_t res, uint16_t arfcn)
 
 	DEBUGP(DL1C, "Sending to l23 - %s (res: %u)\n", getL1ctlPrimName(L1CTL_FBSB_CONF), res);
 
-	l1ctl_sap_tx_to_l23(msg);
-}
-/**
- * @brief Initialize virtual prim pm.
- *
- * @param [in] model the l1 model instance
- */
-void prim_fbsb_init(struct l1_model_ms *model)
-{
-	l1_model_ms = model;
+	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }

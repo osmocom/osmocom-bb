@@ -1,6 +1,7 @@
 /* GSMTAP layer1 is transmits gsmtap messages over a virtual layer 1.*/
 
 /* (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
+ * (C) 2017 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -38,24 +39,16 @@
 #include <virtphy/logging.h>
 #include <virtphy/virt_l1_sched.h>
 
-static struct l1_model_ms *l1_model_ms = NULL;
-
-void gsmtapl1_init(struct l1_model_ms *model)
-{
-	l1_model_ms = model;
-}
-
 /**
  * Replace l11 header of given msgb by a gsmtap header and send it over the virt um.
  */
-void gsmtapl1_tx_to_virt_um_inst(uint32_t fn, struct virt_um_inst *vui,
-				 struct msgb *msg)
+void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct gsmtap_hdr *gh;
 	struct msgb *outmsg;	/* msg to send with gsmtap header prepended */
-	uint16_t arfcn = l1_model_ms->state.serving_cell.arfcn;	/* arfcn of the cell we currently camp on */
+	uint16_t arfcn = ms->state.serving_cell.arfcn;	/* arfcn of the cell we currently camp on */
 	uint8_t signal_dbm = 63;	/* signal strength */
 	uint8_t snr = 63;	/* signal noise ratio, 63 is best */
 	uint8_t *data = msgb_l2(msg);	/* data to transmit (whole message without l1 header) */
@@ -76,7 +69,7 @@ void gsmtapl1_tx_to_virt_um_inst(uint32_t fn, struct virt_um_inst *vui,
 	if (outmsg) {
 		outmsg->l1h = msgb_data(outmsg);
 		gh = msgb_l1(outmsg);
-		if (virt_um_write_msg(l1_model_ms->vui, outmsg) == -1) {
+		if (virt_um_write_msg(ms->vui, outmsg) == -1) {
 			LOGP(DVIRPHY, LOGL_ERROR, "Gsmtap msg could not send to virt um - "
 			     "(arfcn=%u, type=%u, subtype=%u, timeslot=%u, subslot=%u)\n",
 			     gh->arfcn, gh->type, gh->sub_type, gh->timeslot,
@@ -95,86 +88,44 @@ void gsmtapl1_tx_to_virt_um_inst(uint32_t fn, struct virt_um_inst *vui,
 }
 
 /**
- * @see void gsmtapl1_tx_to_virt_um(struct virt_um_inst *vui, uint32_t fn, struct msgb *msg).
- */
-void gsmtapl1_tx_to_virt_um(uint32_t fn, struct msgb *msg)
-{
-	gsmtapl1_tx_to_virt_um_inst(fn, l1_model_ms->vui, msg);
-}
-
-/**
  * @see virt_prim_fbsb.c
  */
-extern void prim_fbsb_sync(struct msgb *msg);
+extern void prim_fbsb_sync(struct l1_model_ms *ms, struct msgb *msg);
 
 /**
  * @see virt_prim_pm.c
  */
-extern uint16_t prim_pm_set_sig_strength(uint16_t arfcn, int16_t sig_lev);
+extern uint16_t prim_pm_set_sig_strength(struct l1_model_ms *ms, uint16_t arfcn, int16_t sig_lev);
 
-/**
- * Receive a gsmtap message from the virt um.
- *
- * As we do not have a downlink scheduler, but not all dl messages must be processed and thus forwarded to l2, this function also implements some message filtering.
- * E.g. we do not forward:
- * - uplink messages
- * - messages with a wrong arfcn
- * - if in MS_STATE_IDLE_SEARCHING
- */
-void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
-				      struct msgb *msg)
+static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, uint32_t fn,
+				uint16_t arfcn, uint8_t timeslot, uint8_t subslot,
+				uint8_t gsmtap_chantype, uint8_t chan_nr, uint8_t link_id,
+				uint8_t snr_db)
 {
-	if (!msg)
+	struct l1_model_ms *ms = lsc->priv;
+	uint8_t signal_dbm = dbm2rxlev(prim_pm_set_sig_strength(ms, arfcn & GSMTAP_ARFCN_MASK, MAX_SIG_LEV_DBM));	/* Power measurement with each received massage */
+
+	gsm_fn2gsmtime(&ms->state.downlink_time, fn);
+
+	/* we do not forward messages to l23 if we are in network search state */
+	if (ms->state.state == MS_STATE_IDLE_SEARCHING)
 		return;
 
-	struct gsmtap_hdr *gh = msgb_l1(msg);
-	uint32_t fn = ntohl(gh->frame_number);	/* frame number of the rcv msg */
-	uint16_t arfcn = ntohs(gh->arfcn);	/* arfcn of the received msg */
-	uint8_t gsmtap_chantype = gh->sub_type;	/* gsmtap channel type */
-	uint8_t signal_dbm = dbm2rxlev(prim_pm_set_sig_strength(arfcn & GSMTAP_ARFCN_MASK, MAX_SIG_LEV_DBM));	/* Power measurement with each received massage */
-	uint8_t snr = gh->snr_db;	/* signal noise ratio */
-	uint8_t subslot = gh->sub_slot;	/* multiframe subslot to send msg in (tch -> 0-26, bcch/ccch -> 0-51) */
-	uint8_t timeslot = gh->timeslot;	/* tdma timeslot to send in (0-7) */
-	uint8_t rsl_chantype;	/* rsl chan type (8.58, 9.3.1) */
-	uint8_t link_id;	/* rsl link id tells if this is an ssociated or dedicated link */
-	uint8_t chan_nr;	/* encoded rsl channel type, timeslot and mf subslot */
-
-	/* generally ignore all uplink messages received */
-	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
-		LOGP(DVIRPHY, LOGL_NOTICE, "Ignoring gsmtap msg from virt um - uplink flag set!\n");
-		goto freemsg;
-	}
-	/* we do not forward messages to l23 if we are in network search state */
-	if (l1_model_ms->state.state == MS_STATE_IDLE_SEARCHING)
-		goto freemsg;
-
 	/* forward downlink msg to fbsb sync routine if we are in sync state */
-	if (l1_model_ms->state.state == MS_STATE_IDLE_SYNCING) {
-		prim_fbsb_sync(msg);
+	if (ms->state.state == MS_STATE_IDLE_SYNCING) {
+		prim_fbsb_sync(ms, msg);
 		return;
 	}
 	/* generally ignore all messages coming from another arfcn than the camped one */
-	if (l1_model_ms->state.serving_cell.arfcn != arfcn) {
+	if (ms->state.serving_cell.arfcn != arfcn) {
 		LOGP(DVIRPHY, LOGL_NOTICE,
 		     "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n",
-		     arfcn, l1_model_ms->state.serving_cell.arfcn);
-		goto freemsg;
+		     arfcn, ms->state.serving_cell.arfcn);
+		return;
 	}
 
-	msg->l2h = msgb_pull(msg, sizeof(*gh));
-	chantype_gsmtap2rsl(gsmtap_chantype, &rsl_chantype, &link_id);
-	/* see TS 08.58 -> 9.3.1 for channel number encoding */
-	chan_nr = rsl_enc_chan_nr(rsl_chantype, subslot, timeslot);
-
-	gsm_fn2gsmtime(&l1_model_ms->state.downlink_time, fn);
-	virt_l1_sched_sync_time(l1_model_ms->state.downlink_time, 0);
-	virt_l1_sched_execute(fn);
-
-	DEBUGP(DVIRPHY, "Receiving gsmtap msg from virt um - "
-	       "(arfcn=%u, framenumber=%u, type=%s, subtype=%s, timeslot=%u, subslot=%u, rsl_chan_type=0x%2x, link_id=0x%2x, chan_nr=0x%2x)\n",
-	       arfcn, fn, get_value_string(gsmtap_type_names, gh->type),
-	       get_value_string(gsmtap_gsm_channel_names, gsmtap_chantype), timeslot,
-	       subslot, rsl_chantype, link_id, chan_nr);
+	virt_l1_sched_sync_time(ms, ms->state.downlink_time, 0);
+	virt_l1_sched_execute(ms, fn);
 
 	/* switch case with removed ACCH flag */
 	switch (gsmtap_chantype & ~GSMTAP_CHANNEL_ACCH & 0xff) {
@@ -191,9 +142,9 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	case GSMTAP_CHANNEL_SDCCH8:
 		/* only forward messages on dedicated channels to l2, if
 		 * the timeslot and subslot is fitting */
-		if (l1_model_ms->state.dedicated.tn == timeslot
-		    && l1_model_ms->state.dedicated.subslot == subslot) {
-			l1ctl_tx_data_ind(msg, arfcn, link_id, chan_nr, fn, snr, signal_dbm, 0, 0);
+		if (ms->state.dedicated.tn == timeslot
+		    && ms->state.dedicated.subslot == subslot) {
+			l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
 		}
 		break;
 	case GSMTAP_CHANNEL_AGCH:
@@ -201,7 +152,7 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	case GSMTAP_CHANNEL_BCCH:
 		/* save to just forward here, as upper layer ignores messages that
 		 * do not fit the current state (e.g.  gsm48_rr.c:2159) */
-		l1ctl_tx_data_ind(msg, arfcn, link_id, chan_nr, fn, snr, signal_dbm, 0, 0);
+		l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
 		break;
 	case GSMTAP_CHANNEL_RACH:
 		LOGP(DVIRPHY, LOGL_NOTICE,
@@ -222,15 +173,60 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 		     "Ignoring gsmtap msg from virt um - channel type unknown.\n");
 		break;
 	}
-
-freemsg:
-	talloc_free(msg);
 }
 
 /**
- * @see void gsmtapl1_rx_from_virt_um_cb(struct virt_um_inst *vui, struct msgb msg).
+ * Receive a gsmtap message from the virt um.
+ *
+ * As we do not have a downlink scheduler, but not all dl messages must be processed and thus forwarded to l2, this function also implements some message filtering.
+ * E.g. we do not forward:
+ * - uplink messages
+ * - messages with a wrong arfcn
+ * - if in MS_STATE_IDLE_SEARCHING
  */
-void gsmtapl1_rx_from_virt_um(struct msgb *msg)
+void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
+				      struct msgb *msg)
 {
-	gsmtapl1_rx_from_virt_um_inst_cb(l1_model_ms->vui, msg);
+	struct l1ctl_sock_inst *lsi = vui->priv;
+	struct l1ctl_sock_client *lsc;
+
+	if (!msg)
+		return;
+
+	struct gsmtap_hdr *gh = msgb_l1(msg);
+	uint32_t fn = ntohl(gh->frame_number);	/* frame number of the rcv msg */
+	uint16_t arfcn = ntohs(gh->arfcn);	/* arfcn of the received msg */
+	uint8_t gsmtap_chantype = gh->sub_type;	/* gsmtap channel type */
+	uint8_t snr = gh->snr_db;	/* signal noise ratio */
+	uint8_t subslot = gh->sub_slot;	/* multiframe subslot to send msg in (tch -> 0-26, bcch/ccch -> 0-51) */
+	uint8_t timeslot = gh->timeslot;	/* tdma timeslot to send in (0-7) */
+	uint8_t rsl_chantype;	/* rsl chan type (8.58, 9.3.1) */
+	uint8_t link_id;	/* rsl link id tells if this is an ssociated or dedicated link */
+	uint8_t chan_nr;	/* encoded rsl channel type, timeslot and mf subslot */
+
+	msg->l2h = msgb_pull(msg, sizeof(*gh));
+	chantype_gsmtap2rsl(gsmtap_chantype, &rsl_chantype, &link_id);
+	/* see TS 08.58 -> 9.3.1 for channel number encoding */
+	chan_nr = rsl_enc_chan_nr(rsl_chantype, subslot, timeslot);
+
+	/* generally ignore all uplink messages received */
+	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
+		LOGP(DVIRPHY, LOGL_NOTICE, "Ignoring gsmtap msg from virt um - uplink flag set!\n");
+		goto freemsg;
+	}
+
+	DEBUGP(DVIRPHY, "Receiving gsmtap msg from virt um - "
+	       "(arfcn=%u, framenumber=%u, type=%s, subtype=%s, timeslot=%u, subslot=%u, rsl_chan_type=0x%2x, link_id=0x%2x, chan_nr=0x%2x)\n",
+	       arfcn, fn, get_value_string(gsmtap_type_names, gh->type),
+	       get_value_string(gsmtap_gsm_channel_names, gsmtap_chantype), timeslot,
+	       subslot, rsl_chantype, link_id, chan_nr);
+
+	/* dispatch the incoming DL message from GSMTAP to each of the registered L1CTL instances */
+	llist_for_each_entry(lsc, &lsi->clients, list) {
+		l1ctl_from_virt_um(lsc, msg, fn, arfcn, timeslot, subslot, gsmtap_chantype,
+				   chan_nr, link_id, snr);
+	}
+
+freemsg:
+	talloc_free(msg);
 }

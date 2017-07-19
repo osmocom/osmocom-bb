@@ -39,15 +39,13 @@
 #include <virtphy/logging.h>
 #include <virtphy/virt_l1_sched.h>
 
-static struct l1_model_ms *l1_model_ms = NULL;
-
-static void l1_model_tch_mode_set(uint8_t tch_mode)
+static void l1_model_tch_mode_set(struct l1_model_ms *ms, uint8_t tch_mode)
 {
 	if (tch_mode == GSM48_CMODE_SPEECH_V1 || tch_mode == GSM48_CMODE_SPEECH_EFR)
-		l1_model_ms->state.tch_mode = tch_mode;
+		ms->state.tch_mode = tch_mode;
 	else {
 		/* set default value if no proper mode was assigned by l23 */
-		l1_model_ms->state.tch_mode = GSM48_CMODE_SIGN;
+		ms->state.tch_mode = GSM48_CMODE_SIGN;
 	}
 }
 
@@ -56,11 +54,7 @@ static void l1_model_tch_mode_set(uint8_t tch_mode)
  */
 void l1ctl_sap_init(struct l1_model_ms *model)
 {
-	l1_model_ms = model;
-	prim_rach_init(model);
-	prim_fbsb_init(model);
-	prim_data_init(model);
-	prim_traffic_init(model);
+	INIT_LLIST_HEAD(&model->state.sched.mframe_items);
 	prim_pm_init(model);
 }
 
@@ -69,20 +63,15 @@ void l1ctl_sap_init(struct l1_model_ms *model)
  *
  * Enqueues the message into the rx queue.
  */
-void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_inst *lsi, struct msgb *msg)
+void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_client *lsc, struct msgb *msg)
 {
+	struct l1_model_ms *ms = lsc->priv;
 	/* check if the received msg is not empty */
-	if (msg) {
-		DEBUGP(DL1C, "Message incoming from layer 2: %s\n", osmo_hexdump(msg->data, msg->len));
-		l1ctl_sap_handler(msg);
-	}
-}
-/**
- * @see l1ctl_sap_rx_from_l23_cb(struct l1ctl_sock_inst *lsi, struct msgb *msg).
- */
-void l1ctl_sap_rx_from_l23(struct msgb *msg)
-{
-	l1ctl_sap_rx_from_l23_inst_cb(l1_model_ms->lsi, msg);
+	if (!msg)
+		return;
+
+	DEBUGP(DL1C, "Message incoming from layer 2: %s\n", osmo_hexdump(msg->data, msg->len));
+	l1ctl_sap_handler(ms, msg);
 }
 
 /**
@@ -90,19 +79,11 @@ void l1ctl_sap_rx_from_l23(struct msgb *msg)
  *
  * This will forward the message as it is to the upper layer.
  */
-void l1ctl_sap_tx_to_l23_inst(struct l1ctl_sock_inst *lsi, struct msgb *msg)
+void l1ctl_sap_tx_to_l23_inst(struct l1_model_ms *ms, struct msgb *msg)
 {
 	/* prepend 16bit length before sending */
 	msgb_push_u16(msg, msg->len);
-	l1ctl_sock_write_msg(lsi, msg);
-}
-
-/**
- * @see void l1ctl_sap_tx_to_l23(struct l1ctl_sock_inst *lsi, struct msgb *msg).
- */
-void l1ctl_sap_tx_to_l23(struct msgb *msg)
-{
-	l1ctl_sap_tx_to_l23_inst(l1_model_ms->lsi, msg);
+	l1ctl_sock_write_msg(ms->lsc, msg);
 }
 
 /**
@@ -170,7 +151,7 @@ struct msgb *l1ctl_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr, uint16
  *
  * This handler will call the specific routine dependent on the L1CTL message type.
  */
-void l1ctl_sap_handler(struct msgb *msg)
+void l1ctl_sap_handler(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
 
@@ -186,49 +167,49 @@ void l1ctl_sap_handler(struct msgb *msg)
 
 	switch (l1h->msg_type) {
 	case L1CTL_FBSB_REQ:
-		l1ctl_rx_fbsb_req(msg);
+		l1ctl_rx_fbsb_req(ms, msg);
 		break;
 	case L1CTL_DM_EST_REQ:
-		l1ctl_rx_dm_est_req(msg);
+		l1ctl_rx_dm_est_req(ms, msg);
 		break;
 	case L1CTL_DM_REL_REQ:
-		l1ctl_rx_dm_rel_req(msg);
+		l1ctl_rx_dm_rel_req(ms, msg);
 		break;
 	case L1CTL_PARAM_REQ:
-		l1ctl_rx_param_req(msg);
+		l1ctl_rx_param_req(ms, msg);
 		break;
 	case L1CTL_DM_FREQ_REQ:
-		l1ctl_rx_dm_freq_req(msg);
+		l1ctl_rx_dm_freq_req(ms,msg);
 		break;
 	case L1CTL_CRYPTO_REQ:
-		l1ctl_rx_crypto_req(msg);
+		l1ctl_rx_crypto_req(ms, msg);
 		break;
 	case L1CTL_RACH_REQ:
-		l1ctl_rx_rach_req(msg);
+		l1ctl_rx_rach_req(ms, msg);
 		goto exit_nofree;
 	case L1CTL_DATA_REQ:
-		l1ctl_rx_data_req(msg);
+		l1ctl_rx_data_req(ms, msg);
 		goto exit_nofree;
 	case L1CTL_PM_REQ:
-		l1ctl_rx_pm_req(msg);
+		l1ctl_rx_pm_req(ms, msg);
 		break;
 	case L1CTL_RESET_REQ:
-		l1ctl_rx_reset_req(msg);
+		l1ctl_rx_reset_req(ms, msg);
 		break;
 	case L1CTL_CCCH_MODE_REQ:
-		l1ctl_rx_ccch_mode_req(msg);
+		l1ctl_rx_ccch_mode_req(ms, msg);
 		break;
 	case L1CTL_TCH_MODE_REQ:
-		l1ctl_rx_tch_mode_req(msg);
+		l1ctl_rx_tch_mode_req(ms, msg);
 		break;
 	case L1CTL_NEIGH_PM_REQ:
-		l1ctl_rx_neigh_pm_req(msg);
+		l1ctl_rx_neigh_pm_req(ms, msg);
 		break;
 	case L1CTL_TRAFFIC_REQ:
-		l1ctl_rx_traffic_req(msg);
+		l1ctl_rx_traffic_req(ms, msg);
 		goto exit_nofree;
 	case L1CTL_SIM_REQ:
-		l1ctl_rx_sim_req(msg);
+		l1ctl_rx_sim_req(ms, msg);
 		break;
 	}
 
@@ -255,7 +236,7 @@ exit_nofree:
  * Handle state change from idle to dedicated mode.
  *
  */
-void l1ctl_rx_dm_est_req(struct msgb *msg)
+void l1ctl_rx_dm_est_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
@@ -267,16 +248,16 @@ void l1ctl_rx_dm_est_req(struct msgb *msg)
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_DM_EST_REQ (chan_nr=0x%02x, tn=%u, ss=%u)\n",
 		ul->chan_nr, timeslot, subslot);
 
-	l1_model_ms->state.dedicated.chan_type = rsl_chantype;
-	l1_model_ms->state.dedicated.tn = timeslot;
-	l1_model_ms->state.dedicated.subslot = subslot;
-	l1_model_ms->state.state = MS_STATE_DEDICATED;
+	ms->state.dedicated.chan_type = rsl_chantype;
+	ms->state.dedicated.tn = timeslot;
+	ms->state.dedicated.subslot = subslot;
+	ms->state.state = MS_STATE_DEDICATED;
 
 	/* TCH config */
 	if (rsl_chantype == RSL_CHAN_Bm_ACCHs || rsl_chantype == RSL_CHAN_Lm_ACCHs) {
-		l1_model_ms->state.tch_mode = est_req->tch_mode;
-		l1_model_tch_mode_set(est_req->tch_mode);
-		l1_model_ms->state.audio_mode = est_req->audio_mode;
+		ms->state.tch_mode = est_req->tch_mode;
+		l1_model_tch_mode_set(ms, est_req->tch_mode);
+		ms->state.audio_mode = est_req->audio_mode;
 		/* TODO: configure audio hardware for encoding /
 		 * decoding / recording / playing voice */
 	}
@@ -293,7 +274,7 @@ void l1ctl_rx_dm_est_req(struct msgb *msg)
  *
  * Note: Not needed for virtual physical layer as freqency hopping is generally disabled.
  */
-void l1ctl_rx_dm_freq_req(struct msgb *msg)
+void l1ctl_rx_dm_freq_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
@@ -317,7 +298,7 @@ void l1ctl_rx_dm_freq_req(struct msgb *msg)
  * TODO: Implement cryptographic operations for virtual um!
  * TODO: Implement this handler routine!
  */
-void l1ctl_rx_crypto_req(struct msgb *msg)
+void l1ctl_rx_crypto_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
@@ -332,8 +313,8 @@ void l1ctl_rx_crypto_req(struct msgb *msg)
 		return;
 	}
 
-	l1_model_ms->state.crypto_inf.algo = cr->algo;
-	memcpy(l1_model_ms->state.crypto_inf.key, cr->key, sizeof(uint8_t) * A5_KEY_LEN);
+	ms->state.crypto_inf.algo = cr->algo;
+	memcpy(ms->state.crypto_inf.key, cr->key, sizeof(uint8_t) * A5_KEY_LEN);
 }
 
 /**
@@ -346,15 +327,15 @@ void l1ctl_rx_crypto_req(struct msgb *msg)
  * Handle state change from dedicated to idle mode. Flush message buffers of dedicated channel.
  *
  */
-void l1ctl_rx_dm_rel_req(struct msgb *msg)
+void l1ctl_rx_dm_rel_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_DM_REL_REQ\n");
 
-	l1_model_ms->state.dedicated.chan_type = 0;
-	l1_model_ms->state.dedicated.tn = 0;
-	l1_model_ms->state.dedicated.subslot = 0;
-	l1_model_ms->state.tch_mode = GSM48_CMODE_SIGN;
-	l1_model_ms->state.state = MS_STATE_IDLE_CAMPING;
+	ms->state.dedicated.chan_type = 0;
+	ms->state.dedicated.tn = 0;
+	ms->state.dedicated.subslot = 0;
+	ms->state.tch_mode = GSM48_CMODE_SIGN;
+	ms->state.state = MS_STATE_IDLE_CAMPING;
 
 	/* TODO: disable ciphering */
 	/* TODO: disable audio recording / playing */
@@ -371,7 +352,7 @@ void l1ctl_rx_dm_rel_req(struct msgb *msg)
  *
  * Note: Not needed for virtual physical layer.
  */
-void l1ctl_rx_param_req(struct msgb *msg)
+void l1ctl_rx_param_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
@@ -394,7 +375,7 @@ void l1ctl_rx_param_req(struct msgb *msg)
  * to just tell l2 that we are rdy.
  *
  */
-void l1ctl_rx_reset_req(struct msgb *msg)
+void l1ctl_rx_reset_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_reset *reset_req = (struct l1ctl_reset *) l1h->data;
@@ -402,14 +383,14 @@ void l1ctl_rx_reset_req(struct msgb *msg)
 	switch (reset_req->type) {
 	case L1CTL_RES_T_FULL:
 		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=FULL)\n");
-		l1_model_ms->state.state = MS_STATE_IDLE_SEARCHING;
-		virt_l1_sched_stop();
-		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
+		ms->state.state = MS_STATE_IDLE_SEARCHING;
+		virt_l1_sched_stop(ms);
+		l1ctl_tx_reset(ms, L1CTL_RESET_CONF, reset_req->type);
 		break;
 	case L1CTL_RES_T_SCHED:
-		virt_l1_sched_restart(l1_model_ms->state.downlink_time);
+		virt_l1_sched_restart(ms, ms->state.downlink_time);
 		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=SCHED)\n");
-		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
+		l1ctl_tx_reset(ms, L1CTL_RESET_CONF, reset_req->type);
 		break;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Received and ignored from l23 - L1CTL_RESET_REQ (type=unknown)\n");
@@ -430,7 +411,7 @@ void l1ctl_rx_reset_req(struct msgb *msg)
  *
  * TODO: Implement this handler routine!
  */
-void l1ctl_rx_ccch_mode_req(struct msgb *msg)
+void l1ctl_rx_ccch_mode_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_ccch_mode_req *ccch_mode_req = (struct l1ctl_ccch_mode_req *) l1h->data;
@@ -438,10 +419,10 @@ void l1ctl_rx_ccch_mode_req(struct msgb *msg)
 
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_CCCH_MODE_REQ\n");
 
-	l1_model_ms->state.serving_cell.ccch_mode = ccch_mode;
+	ms->state.serving_cell.ccch_mode = ccch_mode;
 
 	/* check if more has to be done here */
-	l1ctl_tx_ccch_mode_conf(ccch_mode);
+	l1ctl_tx_ccch_mode_conf(ms, ccch_mode);
 }
 
 /**
@@ -455,20 +436,20 @@ void l1ctl_rx_ccch_mode_req(struct msgb *msg)
  *
  * TODO: Implement this handler routine!
  */
-void l1ctl_rx_tch_mode_req(struct msgb *msg)
+void l1ctl_rx_tch_mode_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_tch_mode_req *tch_mode_req = (struct l1ctl_tch_mode_req *) l1h->data;
 
-	l1_model_tch_mode_set(tch_mode_req->tch_mode);
-	l1_model_ms->state.audio_mode = tch_mode_req->audio_mode;
+	l1_model_tch_mode_set(ms, tch_mode_req->tch_mode);
+	ms->state.audio_mode = tch_mode_req->audio_mode;
 
 	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_TCH_MODE_REQ (tch_mode=0x%02x audio_mode=0x%02x)\n",
 		tch_mode_req->tch_mode, tch_mode_req->audio_mode);
 
 	/* TODO: configure audio hardware for encoding / decoding / recording / playing voice */
 
-	l1ctl_tx_tch_mode_conf(l1_model_ms->state.tch_mode, l1_model_ms->state.audio_mode);
+	l1ctl_tx_tch_mode_conf(ms, ms->state.tch_mode, ms->state.audio_mode);
 }
 
 /**
@@ -484,7 +465,7 @@ void l1ctl_rx_tch_mode_req(struct msgb *msg)
  *
  * Note: Not needed for virtual physical layer as we dont maintain neigbors.
  */
-void l1ctl_rx_neigh_pm_req(struct msgb *msg)
+void l1ctl_rx_neigh_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_neigh_pm_req *pm_req = (struct l1ctl_neigh_pm_req *) l1h->data;
@@ -512,7 +493,7 @@ void l1ctl_rx_neigh_pm_req(struct msgb *msg)
  *  ki comp128 <xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx>
  * --------
  */
-void l1ctl_rx_sim_req(struct msgb *msg)
+void l1ctl_rx_sim_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
@@ -536,7 +517,7 @@ void l1ctl_rx_sim_req(struct msgb *msg)
  * @param [in] msg_type L1CTL primitive message type.
  * @param [in] reset_type reset type (full, boot or just scheduler reset).
  */
-void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type)
+void l1ctl_tx_reset(struct l1_model_ms *ms, uint8_t msg_type, uint8_t reset_type)
 {
 	struct msgb *msg = l1ctl_msgb_alloc(msg_type);
 	struct l1ctl_reset *reset_resp = (struct l1ctl_reset *) msgb_put(msg, sizeof(*reset_resp));
@@ -544,7 +525,7 @@ void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type)
 	reset_resp->type = reset_type;
 	DEBUGP(DL1C, "Sending to l23 - %s (reset_type: %u)\n", getL1ctlPrimName(msg_type), reset_type);
 
-	l1ctl_sap_tx_to_l23(msg);
+	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }
 
 /**
@@ -556,7 +537,7 @@ void l1ctl_tx_reset(uint8_t msg_type, uint8_t reset_type)
  *
  * Called by layer 1 to inform layer 2 that the ccch mode was successfully changed.
  */
-void l1ctl_tx_ccch_mode_conf(uint8_t ccch_mode)
+void l1ctl_tx_ccch_mode_conf(struct l1_model_ms *ms, uint8_t ccch_mode)
 {
 	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_CCCH_MODE_CONF);
 	struct l1ctl_ccch_mode_conf *mode_conf;
@@ -565,7 +546,7 @@ void l1ctl_tx_ccch_mode_conf(uint8_t ccch_mode)
 	mode_conf->ccch_mode = ccch_mode;
 
 	DEBUGP(DL1C, "Sending to l23 - L1CTL_CCCH_MODE_CONF (mode: %u)\n", ccch_mode);
-	l1ctl_sap_tx_to_l23(msg);
+	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }
 
 /**
@@ -578,7 +559,7 @@ void l1ctl_tx_ccch_mode_conf(uint8_t ccch_mode)
  *
  * Called by layer 1 to inform layer 23 that the traffic channel mode was successfully changed.
  */
-void l1ctl_tx_tch_mode_conf(uint8_t tch_mode, uint8_t audio_mode)
+void l1ctl_tx_tch_mode_conf(struct l1_model_ms *ms, uint8_t tch_mode, uint8_t audio_mode)
 {
 	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_TCH_MODE_CONF);
 	struct l1ctl_tch_mode_conf *mode_conf;
@@ -589,7 +570,7 @@ void l1ctl_tx_tch_mode_conf(uint8_t tch_mode, uint8_t audio_mode)
 
 	DEBUGP(DL1C, "Sending to l23 - L1CTL_TCH_MODE_CONF (tch_mode: %u, audio_mode: %u)\n",
 		tch_mode, audio_mode);
-	l1ctl_sap_tx_to_l23(msg);
+	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }
 
 /**

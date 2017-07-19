@@ -19,17 +19,24 @@
  */
 
 #include <virtphy/virt_l1_model.h>
+#include <virtphy/l1ctl_sap.h>
 #include <talloc.h>
 
-struct l1_model_ms* l1_model_ms_init(void *ctx)
+struct l1_model_ms *l1_model_ms_init(void *ctx, struct l1ctl_sock_client *lsc, struct virt_um_inst *vui)
 {
 	struct l1_model_ms *model = talloc_zero(ctx, struct l1_model_ms);
+	if (!model)
+		return NULL;
+
+	model->lsc = lsc;
+	model->vui = vui;
+
+	l1ctl_sap_init(model);
+
 	return model;
 }
 
 void l1_model_ms_destroy(struct l1_model_ms *model)
 {
-	virt_um_destroy(model->vui);
-	l1ctl_sock_destroy(model->lsi);
 	talloc_free(model);
 }

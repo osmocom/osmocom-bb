@@ -1,7 +1,7 @@
 /* Layer 1 Random Access Channel Burst */
 
 /* (C) 2010 by Dieter Spaar <spaar@mirider.augusta.de>
- * (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2010,2017 by Harald Welte <laforge@gnumonks.org>
  * (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
  *
  * All Rights Reserved
@@ -38,9 +38,6 @@
 
 #include <l1ctl_proto.h>
 
-static struct l1_model_ms *l1_model_ms = NULL;
-static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb * msg);
-
 /* use if we have a combined uplink (RACH, SDCCH, ...) (see
  * http://www.rfwireless-world.com/Terminology/GSM-combined-channel-configuration.html)
  * if we have no combined channel config, uplink consists of only RACH * */
@@ -59,10 +56,10 @@ static const uint8_t rach_to_t3_comb[27] = {
  *
  * @param [in] msg the msg to sent over virtual um.
  */
-static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb *msg)
+static void virt_l1_sched_handler_cb(struct l1_model_ms *ms, uint32_t fn, struct msgb *msg)
 {
-	gsmtapl1_tx_to_virt_um(fn, msg);
-	l1ctl_tx_rach_conf(fn, l1_model_ms->state.serving_cell.arfcn);
+	gsmtapl1_tx_to_virt_um_inst(ms, fn, msg);
+	l1ctl_tx_rach_conf(ms, fn, ms->state.serving_cell.arfcn);
 }
 
 /**
@@ -75,9 +72,9 @@ static void virt_l1_sched_handler_cb(uint32_t fn, struct msgb *msg)
  * Transmit RACH request on RACH. Refer to 04.08 - 9.1.8 - Channel request.
  *
  */
-void l1ctl_rx_rach_req(struct msgb *msg)
+void l1ctl_rx_rach_req(struct l1_model_ms *ms, struct msgb *msg)
 {
-	struct l1_state_ms *l1s = &l1_model_ms->state;
+	struct l1_state_ms *l1s = &ms->state;
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *) ul->payload;
@@ -111,7 +108,7 @@ void l1ctl_rx_rach_req(struct msgb *msg)
 	} else
 		fn_sched = l1s->current_time.fn + offset;
 
-	virt_l1_sched_schedule(msg, fn_sched, ts, &virt_l1_sched_handler_cb);
+	virt_l1_sched_schedule(ms, msg, fn_sched, ts, &virt_l1_sched_handler_cb);
 }
 
 /**
@@ -122,21 +119,11 @@ void l1ctl_rx_rach_req(struct msgb *msg)
  * @param [in] fn the fn on which the rach was sent
  * @param [in] arfcn arfcn on which the rach was sent
  */
-void l1ctl_tx_rach_conf(uint32_t fn, uint16_t arfcn)
+void l1ctl_tx_rach_conf(struct l1_model_ms *ms, uint32_t fn, uint16_t arfcn)
 {
-	struct msgb * msg = l1ctl_create_l2_msg(L1CTL_RACH_CONF, fn, 0, arfcn);
+	struct msgb *msg = l1ctl_create_l2_msg(L1CTL_RACH_CONF, fn, 0, arfcn);
 
 	DEBUGP(DL1C, "Sending to l23 - %s (fn: %u, arfcn: %u)\n",
 	       getL1ctlPrimName(L1CTL_RACH_CONF), fn, arfcn);
-	l1ctl_sap_tx_to_l23(msg);
-}
-
-/**
- * @brief Initialize virtual prim rach.
- *
- * @param [in] model the l1 model instance
- */
-void prim_rach_init(struct l1_model_ms *model)
-{
-	l1_model_ms = model;
+	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }

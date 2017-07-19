@@ -1,6 +1,6 @@
 
 /* (C) 2010 by Dieter Spaar <spaar@mirider.augusta.de>
- * (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2010,2017 by Harald Welte <laforge@gnumonks.org>
  * (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
  *
  * All Rights Reserved
@@ -35,8 +35,6 @@
 #include <virtphy/logging.h>
 #include <l1ctl_proto.h>
 
-static struct l1_model_ms *l1_model_ms = NULL;
-
 /**
  * @brief Change the signal strength for a given arfcn.
  *
@@ -45,9 +43,9 @@ static struct l1_model_ms *l1_model_ms = NULL;
  * @param [in] arfcn to change sig str for.
  * @param [in] sig_lev the measured signal level value.
  */
-uint16_t prim_pm_set_sig_strength(uint16_t arfcn, int16_t sig_lev)
+uint16_t prim_pm_set_sig_strength(struct l1_model_ms *ms, uint16_t arfcn, int16_t sig_lev)
 {
-	struct l1_state_ms *l1s = &l1_model_ms->state;
+	struct l1_state_ms *l1s = &ms->state;
 
 	if (l1s->pm.timeout_s > 0 || l1s->pm.timeout_us > 0) {
 		osmo_timer_schedule(&l1s->pm.meas.arfcn_sig_lev_timers[arfcn],
@@ -81,9 +79,9 @@ void prim_pm_timer_cb(void *data)
  * Note: This should only be called after a certain time so some
  * messages have already been received.
  */
-void l1ctl_rx_pm_req(struct msgb *msg)
+void l1ctl_rx_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 {
-	struct l1_state_ms *l1s = &l1_model_ms->state;
+	struct l1_state_ms *l1s = &ms->state;
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_pm_req *pm_req = (struct l1ctl_pm_req *) l1h->data;
 	struct msgb *resp_msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
@@ -110,13 +108,13 @@ void l1ctl_rx_pm_req(struct msgb *msg)
 		}
 		/* no more space to hold mor pm info in msgb, flush to l23 */
 		if (msgb_tailroom(resp_msg) < sizeof(*pm_conf)) {
-			l1ctl_sap_tx_to_l23(resp_msg);
+			l1ctl_sap_tx_to_l23_inst(ms, resp_msg);
 			resp_msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
 		}
 	}
 	/* transmit the remaining part of pm response to l23 */
 	if (resp_msg)
-		l1ctl_sap_tx_to_l23(resp_msg);
+		l1ctl_sap_tx_to_l23_inst(ms, resp_msg);
 }
 
 /**
@@ -129,7 +127,6 @@ void prim_pm_init(struct l1_model_ms *model)
 	struct l1_state_ms *l1s = &model->state;
 	int i;
 
-	l1_model_ms = model;
 	/* init the signal level of all arfcns with the lowest value possible */
 	memset(l1s->pm.meas.arfcn_sig_lev_dbm, MIN_SIG_LEV_DBM, sizeof (int16_t) * 1024);
 	/* init timers */

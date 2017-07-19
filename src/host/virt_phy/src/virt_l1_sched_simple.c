@@ -1,4 +1,5 @@
 /* (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
+ * (C) 2017 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -24,55 +25,41 @@
 #include <time.h>
 #include <talloc.h>
 
-static struct l1_model_ms *l1_model_ms = NULL;
-
-static LLIST_HEAD(mframe_item_list);
-
-static uint32_t last_exec_fn = 0;
-
 /**
- * @brief Initialize schedulers data structures.
+ * @brief Start scheduler thread based on current gsm time from model
  */
-void virt_l1_sched_init(struct l1_model_ms *model)
+static int virt_l1_sched_start(struct l1_model_ms *ms, struct gsm_time time)
 {
-	l1_model_ms = model;
+	virt_l1_sched_sync_time(ms, time, 1);
+	return 0;
 }
 
 /**
  * @brief Clear scheduler queue and completely restart scheduler.
  */
-int virt_l1_sched_restart(struct gsm_time time)
+int virt_l1_sched_restart(struct l1_model_ms *ms, struct gsm_time time)
 {
-	virt_l1_sched_stop();
-	return virt_l1_sched_start(time);
-}
-
-/**
- * @brief Start scheduler thread based on current gsm time from model
- */
-int virt_l1_sched_start(struct gsm_time time)
-{
-	virt_l1_sched_sync_time(time, 1);
-	return 0;
+	virt_l1_sched_stop(ms);
+	return virt_l1_sched_start(ms, time);
 }
 
 /**
  * @brief Sync scheduler with given time.
  */
-void virt_l1_sched_sync_time(struct gsm_time time, uint8_t hard_reset)
+void virt_l1_sched_sync_time(struct l1_model_ms *ms, struct gsm_time time, uint8_t hard_reset)
 {
-	l1_model_ms->state.current_time = time;
+	ms->state.current_time = time;
 }
 
 /**
  * @brief Stop the scheduler thread and cleanup mframe items queue
  */
-void virt_l1_sched_stop()
+void virt_l1_sched_stop(struct l1_model_ms *ms)
 {
 	struct virt_l1_sched_mframe_item *mi_next, *mi_tmp;
 
 	/* Empty tdma and mframe sched items lists */
-	llist_for_each_entry_safe(mi_next, mi_tmp, &mframe_item_list, mframe_item_entry) {
+	llist_for_each_entry_safe(mi_next, mi_tmp, &ms->state.sched.mframe_items, mframe_item_entry) {
 		struct virt_l1_sched_tdma_item *ti_next, *ti_tmp;
 
 		llist_for_each_entry_safe(ti_next, ti_tmp, &mi_next->tdma_item_list, tdma_item_entry) {
@@ -87,14 +74,15 @@ void virt_l1_sched_stop()
 /**
  * @brief Handle all pending scheduled items for the current frame number.
  */
-void virt_l1_sched_execute(uint32_t fn)
+void virt_l1_sched_execute(struct l1_model_ms *ms, uint32_t fn)
 {
+	struct l1_state_ms *l1s = &ms->state;
 	struct virt_l1_sched_mframe_item *mi_next, *mi_tmp;
-	uint8_t hyperframe_restart = fn < last_exec_fn;
+	uint8_t hyperframe_restart = fn < l1s->sched.last_exec_fn;
 
-	llist_for_each_entry_safe(mi_next, mi_tmp, &mframe_item_list, mframe_item_entry) {
+	llist_for_each_entry_safe(mi_next, mi_tmp, &l1s->sched.mframe_items, mframe_item_entry) {
 		/* execute all registered handler for current mf sched item */
-		uint8_t exec_now = mi_next->fn <= fn || (hyperframe_restart && mi_next->fn > last_exec_fn);
+		uint8_t exec_now = mi_next->fn <= fn || (hyperframe_restart && mi_next->fn > l1s->sched.last_exec_fn);
 		/* break loop, as we have an ordered list in case the hyperframe had not been reset */
 		uint8_t break_now = mi_next->fn > fn && !hyperframe_restart;
 
@@ -106,7 +94,7 @@ void virt_l1_sched_execute(uint32_t fn)
 				/* exec tdma sched item's handler callback */
 				/* TODO: we do not have a TDMA scheduler currently and execute
 				 * all scheduled tdma items here at once */
-				ti_next->handler_cb(mi_next->fn, ti_next->msg);
+				ti_next->handler_cb(ms, mi_next->fn, ti_next->msg);
 				/* remove handled tdma sched item */
 				llist_del(&ti_next->tdma_item_entry);
 			}
@@ -118,19 +106,19 @@ void virt_l1_sched_execute(uint32_t fn)
 		if (break_now)
 			break;
 	}
-	last_exec_fn = fn;
+	l1s->sched.last_exec_fn = fn;
 }
 
 /**
  * @brief Schedule a msg to the given framenumber and timeslot.
  */
-void virt_l1_sched_schedule(struct msgb * msg, uint32_t fn, uint8_t ts,
-                            virt_l1_sched_cb * handler_cb)
+void virt_l1_sched_schedule(struct l1_model_ms *ms, struct msgb *msg, uint32_t fn, uint8_t ts,
+                            virt_l1_sched_cb *handler_cb)
 {
 	struct virt_l1_sched_mframe_item *mi_next = NULL, *mi_tmp = NULL, *mi_fn = NULL;
 	struct virt_l1_sched_tdma_item *ti_new = NULL;
 
-	llist_for_each_entry_safe(mi_next, mi_tmp, &mframe_item_list, mframe_item_entry) {
+	llist_for_each_entry_safe(mi_next, mi_tmp, &ms->state.sched.mframe_items, mframe_item_entry) {
 		if (mi_next->fn == fn) {
 			mi_fn = mi_next;
 			break;
