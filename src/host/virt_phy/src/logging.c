@@ -64,7 +64,15 @@ static const struct log_info_cat default_categories[] = {
 		.description = "Layer 1 Control",
 		.color = "\033[1;31m",
 		.enabled = 1,
-		.loglevel = LOGL_DEBUG, },
+		.loglevel = LOGL_DEBUG,
+	},
+	[DL1P] = {
+		.name = "DL1P",
+		.description = "Layer 1 Data",
+		.color = "\033[1;31m",
+		.enabled = 1,
+		.loglevel = LOGL_DEBUG,
+	},
 	[DVIRPHY] = {
 		.name = "DVIRPHY",
 		.description = "Virtual Layer 1 Interface",

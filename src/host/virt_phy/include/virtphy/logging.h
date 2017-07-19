@@ -5,6 +5,7 @@
 /* L1CTL related messages */
 enum virtphy_log_cat {
 	DL1C,
+	DL1P,
 	DVIRPHY,
 	DMAIN
 };

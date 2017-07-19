@@ -70,7 +70,6 @@ void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_client *lsc, struct msgb *m
 	if (!msg)
 		return;
 
-	DEBUGPMS(DL1C, ms, "Message incoming from layer 2: %s\n", osmo_hexdump(msg->data, msg->len));
 	l1ctl_sap_handler(ms, msg);
 }
 
@@ -146,6 +145,20 @@ struct msgb *l1ctl_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr, uint16
 	return msg;
 }
 
+static bool is_l1ctl_control(uint8_t msg_type)
+{
+	switch (msg_type) {
+	case L1CTL_DATA_REQ:
+	case L1CTL_DATA_CONF:
+	case L1CTL_TRAFFIC_REQ:
+	case L1CTL_TRAFFIC_CONF:
+	case L1CTL_TRAFFIC_IND:
+		return false;
+	default:
+		return true;
+	}
+}
+
 /**
  * @brief General handler for incoming L1CTL messages from layer 2/3.
  *
@@ -154,6 +167,7 @@ struct msgb *l1ctl_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr, uint16
 void l1ctl_sap_handler(struct l1_model_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
+	int log_subsys;
 
 	if (!msg)
 		return;
@@ -164,6 +178,13 @@ void l1ctl_sap_handler(struct l1_model_ms *ms, struct msgb *msg)
 		LOGPMS(DL1C, LOGL_NOTICE, ms, "Malformed message: too short. %u\n", msg->len);
 		goto exit_msgbfree;
 	}
+
+	if (is_l1ctl_control(l1h->msg_type))
+		log_subsys = DL1C;
+	else
+		log_subsys = DL1P;
+
+	DEBUGPMS(log_subsys, ms, "Message incoming from layer 2: %s\n", osmo_hexdump(msg->data, msg->len));
 
 	switch (l1h->msg_type) {
 	case L1CTL_FBSB_REQ:
