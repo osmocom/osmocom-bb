@@ -52,7 +52,7 @@ uint16_t prim_pm_set_sig_strength(struct l1_model_ms *ms, uint16_t arfcn, int16_
 				    l1s->pm.timeout_s, l1s->pm.timeout_us);
 	}
 	l1s->pm.meas.arfcn_sig_lev_dbm[arfcn] = sig_lev - l1s->pm.meas.arfcn_sig_lev_red_dbm[arfcn];
-	DEBUGP(DL1C, "Power measurement set for arfcn %u. Set signal level to %d (== rxlev: %u).\n",
+	DEBUGPMS(DL1C, ms, "Power measurement set for arfcn %u. Set signal level to %d (== rxlev: %u).\n",
 		arfcn, l1s->pm.meas.arfcn_sig_lev_dbm[arfcn],
 		dbm2rxlev(l1s->pm.meas.arfcn_sig_lev_dbm[arfcn]));
 	return l1s->pm.meas.arfcn_sig_lev_dbm[arfcn];
@@ -91,7 +91,7 @@ void l1ctl_rx_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 	pm_req->range.band_arfcn_from = ntohs(pm_req->range.band_arfcn_from);
 	pm_req->range.band_arfcn_to = ntohs(pm_req->range.band_arfcn_to);
 
-	DEBUGP(DL1C, "Received from l23 - L1CTL_PM_REQ TYPE=%u, FROM=%d, TO=%d\n",
+	DEBUGPMS(DL1C, ms, "Received from l23 - L1CTL_PM_REQ TYPE=%u, FROM=%d, TO=%d\n",
 		pm_req->type, pm_req->range.band_arfcn_from, pm_req->range.band_arfcn_to);
 
 	for (arfcn_next = pm_req->range.band_arfcn_from;

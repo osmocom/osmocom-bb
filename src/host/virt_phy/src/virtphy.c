@@ -37,7 +37,7 @@
 #include <virtphy/logging.h>
 #include <virtphy/virt_l1_sched.h>
 
-#define DEFAULT_LOG_MASK "DL1C,1:DVIRPHY,1"
+#define DEFAULT_LOG_MASK "DL1C,1:DVIRPHY,1:DMAIN,1"
 
 /* this exists once in the program, and contains the state that we
  * only keep once:  L1CTL server socket, GSMTAP/VirtUM socket */

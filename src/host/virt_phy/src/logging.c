@@ -71,7 +71,14 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[1;31m",
 		.enabled = 1,
 		.loglevel = LOGL_DEBUG,
-	}
+	},
+	[DMAIN] = {
+		.name = "DMAIN",
+		.description = "Main Program / Data Structures",
+		.color = "\033[1;32m",
+		.enabled = 1,
+		.loglevel = LOGL_DEBUG,
+	},
 };
 
 const struct log_info ms_log_info = {
@@ -107,5 +114,8 @@ int ms_log_init(char *cat_mask)
 
 const char *getL1ctlPrimName(uint8_t type)
 {
-	return l1ctlPrimNames[type];
+	if (type <= ARRAY_SIZE(l1ctlPrimNames))
+		return l1ctlPrimNames[type];
+	else
+		return "Unknwon Primitive";
 }

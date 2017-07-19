@@ -71,7 +71,7 @@ void l1ctl_rx_data_req(struct l1_model_ms *ms, struct msgb *msg)
 	                                ul->chan_nr, ul->link_id);
 
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
-	DEBUGP(DL1C,
+	DEBUGPMS(DL1C, ms,
 	       "Received and handled from l23 - L1CTL_DATA_REQ (link_id=0x%02x, ul=%p, ul->payload=%p, data_ind=%p, data_ind->data=%p l3h=%p)\n",
 	       ul->link_id, ul, ul->payload, data_ind, data_ind->data,
 	       msg->l3h);
@@ -107,7 +107,7 @@ void l1ctl_tx_data_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arfcn,
 
 	memcpy(l1di->data, msgb_data(msg), msgb_length(msg));
 
-	DEBUGP(DL1C, "Sending signaling-data to l23.\n");
+	DEBUGPMS(DL1C, ms, "Sending signaling-data to l23.\n");
 	l1ctl_sap_tx_to_l23_inst(ms, l1ctl_msg);
 }
 

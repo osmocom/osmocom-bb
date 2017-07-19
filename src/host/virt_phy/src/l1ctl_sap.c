@@ -70,7 +70,7 @@ void l1ctl_sap_rx_from_l23_inst_cb(struct l1ctl_sock_client *lsc, struct msgb *m
 	if (!msg)
 		return;
 
-	DEBUGP(DL1C, "Message incoming from layer 2: %s\n", osmo_hexdump(msg->data, msg->len));
+	DEBUGPMS(DL1C, ms, "Message incoming from layer 2: %s\n", osmo_hexdump(msg->data, msg->len));
 	l1ctl_sap_handler(ms, msg);
 }
 
@@ -161,7 +161,7 @@ void l1ctl_sap_handler(struct l1_model_ms *ms, struct msgb *msg)
 	l1h = (struct l1ctl_hdr *) msg->data;
 
 	if (sizeof(*l1h) > msg->len) {
-		LOGP(DL1C, LOGL_NOTICE, "Malformed message: too short. %u\n", msg->len);
+		LOGPMS(DL1C, LOGL_NOTICE, ms, "Malformed message: too short. %u\n", msg->len);
 		goto exit_msgbfree;
 	}
 
@@ -245,7 +245,7 @@ void l1ctl_rx_dm_est_req(struct l1_model_ms *ms, struct msgb *msg)
 
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
 
-	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_DM_EST_REQ (chan_nr=0x%02x, tn=%u, ss=%u)\n",
+	DEBUGPMS(DL1C, ms, "Received and handled from l23 - L1CTL_DM_EST_REQ (chan_nr=0x%02x, tn=%u, ss=%u)\n",
 		ul->chan_nr, timeslot, subslot);
 
 	ms->state.dedicated.chan_type = rsl_chantype;
@@ -280,7 +280,7 @@ void l1ctl_rx_dm_freq_req(struct l1_model_ms *ms, struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_dm_freq_req *freq_req = (struct l1ctl_dm_freq_req *) ul->payload;
 
-	DEBUGP(DL1C, "Received and ignored from l23 - L1CTL_DM_FREQ_REQ (arfcn0=%u, hsn=%u, maio=%u)\n",
+	DEBUGPMS(DL1C, ms, "Received and ignored from l23 - L1CTL_DM_FREQ_REQ (arfcn0=%u, hsn=%u, maio=%u)\n",
 		ntohs(freq_req->h0.band_arfcn), freq_req->h1.hsn, freq_req->h1.maio);
 }
 
@@ -305,7 +305,7 @@ void l1ctl_rx_crypto_req(struct l1_model_ms *ms, struct msgb *msg)
 	struct l1ctl_crypto_req *cr = (struct l1ctl_crypto_req *) ul->payload;
 	uint8_t key_len = msg->len - sizeof(*l1h) - sizeof(*ul) - sizeof(*cr);
 
-	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_CRYPTO_REQ (algo=A5/%u, len=%u)\n",
+	DEBUGPMS(DL1C, ms, "Received and handled from l23 - L1CTL_CRYPTO_REQ (algo=A5/%u, len=%u)\n",
 		cr->algo, key_len);
 
 	if (cr->algo && key_len != A5_KEY_LEN) {
@@ -329,7 +329,7 @@ void l1ctl_rx_crypto_req(struct l1_model_ms *ms, struct msgb *msg)
  */
 void l1ctl_rx_dm_rel_req(struct l1_model_ms *ms, struct msgb *msg)
 {
-	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_DM_REL_REQ\n");
+	DEBUGPMS(DL1C, ms, "Received and handled from l23 - L1CTL_DM_REL_REQ\n");
 
 	ms->state.dedicated.chan_type = 0;
 	ms->state.dedicated.tn = 0;
@@ -358,7 +358,7 @@ void l1ctl_rx_param_req(struct l1_model_ms *ms, struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
 	struct l1ctl_par_req *par_req = (struct l1ctl_par_req *)ul->payload;
 
-	DEBUGP(DL1C, "Received and ignored from l23 - L1CTL_PARAM_REQ (ta=%d, tx_power=%d)\n",
+	DEBUGPMS(DL1C, ms, "Received and ignored from l23 - L1CTL_PARAM_REQ (ta=%d, tx_power=%d)\n",
 		par_req->ta, par_req->tx_power);
 }
 
@@ -382,18 +382,18 @@ void l1ctl_rx_reset_req(struct l1_model_ms *ms, struct msgb *msg)
 
 	switch (reset_req->type) {
 	case L1CTL_RES_T_FULL:
-		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=FULL)\n");
+		DEBUGPMS(DL1C, ms, "Received and handled from l23 - L1CTL_RESET_REQ (type=FULL)\n");
 		ms->state.state = MS_STATE_IDLE_SEARCHING;
 		virt_l1_sched_stop(ms);
 		l1ctl_tx_reset(ms, L1CTL_RESET_CONF, reset_req->type);
 		break;
 	case L1CTL_RES_T_SCHED:
 		virt_l1_sched_restart(ms, ms->state.downlink_time);
-		DEBUGP(DL1C, "Received and handled from l23 - L1CTL_RESET_REQ (type=SCHED)\n");
+		DEBUGPMS(DL1C, ms, "Received and handled from l23 - L1CTL_RESET_REQ (type=SCHED)\n");
 		l1ctl_tx_reset(ms, L1CTL_RESET_CONF, reset_req->type);
 		break;
 	default:
-		LOGP(DL1C, LOGL_ERROR, "Received and ignored from l23 - L1CTL_RESET_REQ (type=unknown)\n");
+		LOGPMS(DL1C, LOGL_ERROR, ms, "Received and ignored from l23 - L1CTL_RESET_REQ (type=unknown)\n");
 		break;
 	}
 }
@@ -417,7 +417,7 @@ void l1ctl_rx_ccch_mode_req(struct l1_model_ms *ms, struct msgb *msg)
 	struct l1ctl_ccch_mode_req *ccch_mode_req = (struct l1ctl_ccch_mode_req *) l1h->data;
 	uint8_t ccch_mode = ccch_mode_req->ccch_mode;
 
-	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_CCCH_MODE_REQ\n");
+	DEBUGPMS(DL1C, ms, "Received and handled from l23 - L1CTL_CCCH_MODE_REQ\n");
 
 	ms->state.serving_cell.ccch_mode = ccch_mode;
 
@@ -444,7 +444,7 @@ void l1ctl_rx_tch_mode_req(struct l1_model_ms *ms, struct msgb *msg)
 	l1_model_tch_mode_set(ms, tch_mode_req->tch_mode);
 	ms->state.audio_mode = tch_mode_req->audio_mode;
 
-	DEBUGP(DL1C, "Received and handled from l23 - L1CTL_TCH_MODE_REQ (tch_mode=0x%02x audio_mode=0x%02x)\n",
+	DEBUGPMS(DL1C, ms, "Received and handled from l23 - L1CTL_TCH_MODE_REQ (tch_mode=0x%02x audio_mode=0x%02x)\n",
 		tch_mode_req->tch_mode, tch_mode_req->audio_mode);
 
 	/* TODO: configure audio hardware for encoding / decoding / recording / playing voice */
@@ -470,7 +470,7 @@ void l1ctl_rx_neigh_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_neigh_pm_req *pm_req = (struct l1ctl_neigh_pm_req *) l1h->data;
 
-	DEBUGP(DL1C, "Received and ignored from l23 - L1CTL_NEIGH_PM_REQ new list with %u entries\n",
+	DEBUGPMS(DL1C, ms, "Received and ignored from l23 - L1CTL_NEIGH_PM_REQ new list with %u entries\n",
 		pm_req->n);
 }
 
@@ -498,7 +498,7 @@ void l1ctl_rx_sim_req(struct l1_model_ms *ms, struct msgb *msg)
 	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
 
-	LOGP(DL1C, LOGL_ERROR, "Received and ignored from l23 - SIM Request length: %u, data: %s\n",
+	LOGPMS(DL1C, LOGL_ERROR, ms, "Received and ignored from l23 - SIM Request length: %u, data: %s\n",
 		len, osmo_hexdump(data, sizeof(data)));
 
 }
@@ -523,7 +523,7 @@ void l1ctl_tx_reset(struct l1_model_ms *ms, uint8_t msg_type, uint8_t reset_type
 	struct l1ctl_reset *reset_resp = (struct l1ctl_reset *) msgb_put(msg, sizeof(*reset_resp));
 
 	reset_resp->type = reset_type;
-	DEBUGP(DL1C, "Sending to l23 - %s (reset_type: %u)\n", getL1ctlPrimName(msg_type), reset_type);
+	DEBUGPMS(DL1C, ms, "Sending to l23 - %s (reset_type: %u)\n", getL1ctlPrimName(msg_type), reset_type);
 
 	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }
@@ -545,7 +545,7 @@ void l1ctl_tx_ccch_mode_conf(struct l1_model_ms *ms, uint8_t ccch_mode)
 	mode_conf = (struct l1ctl_ccch_mode_conf *) msgb_put(msg, sizeof(*mode_conf));
 	mode_conf->ccch_mode = ccch_mode;
 
-	DEBUGP(DL1C, "Sending to l23 - L1CTL_CCCH_MODE_CONF (mode: %u)\n", ccch_mode);
+	DEBUGPMS(DL1C, ms, "Sending to l23 - L1CTL_CCCH_MODE_CONF (mode: %u)\n", ccch_mode);
 	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }
 
@@ -568,7 +568,7 @@ void l1ctl_tx_tch_mode_conf(struct l1_model_ms *ms, uint8_t tch_mode, uint8_t au
 	mode_conf->tch_mode = tch_mode;
 	mode_conf->audio_mode = audio_mode;
 
-	DEBUGP(DL1C, "Sending to l23 - L1CTL_TCH_MODE_CONF (tch_mode: %u, audio_mode: %u)\n",
+	DEBUGPMS(DL1C, ms, "Sending to l23 - L1CTL_TCH_MODE_CONF (tch_mode: %u, audio_mode: %u)\n",
 		tch_mode, audio_mode);
 	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }

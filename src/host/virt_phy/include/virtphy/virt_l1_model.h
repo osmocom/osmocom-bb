@@ -93,6 +93,7 @@ struct l1_state_ms {
 };
 
 struct l1_model_ms {
+	uint32_t nr;
 	/* pointer to the L1CTL socket client associated with this specific MS */
 	struct l1ctl_sock_client *lsc;
 	/* pointer to the (shared) GSMTAP/VirtUM socket to talk to BTS(s) */

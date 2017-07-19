@@ -1,5 +1,6 @@
 
 /* (C) 2016 by Sebastian Stumpf <sebastian.stumpf87@googlemail.com>
+ * (C) 2017 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -20,7 +21,10 @@
 
 #include <virtphy/virt_l1_model.h>
 #include <virtphy/l1ctl_sap.h>
+#include <virtphy/logging.h>
 #include <talloc.h>
+
+static uint32_t next_ms_nr;
 
 struct l1_model_ms *l1_model_ms_init(void *ctx, struct l1ctl_sock_client *lsc, struct virt_um_inst *vui)
 {
@@ -28,15 +32,19 @@ struct l1_model_ms *l1_model_ms_init(void *ctx, struct l1ctl_sock_client *lsc, s
 	if (!model)
 		return NULL;
 
+	model->nr = next_ms_nr++;
 	model->lsc = lsc;
 	model->vui = vui;
 
 	l1ctl_sap_init(model);
+
+	LOGPMS(DMAIN, LOGL_INFO, model, "allocated\n");
 
 	return model;
 }
 
 void l1_model_ms_destroy(struct l1_model_ms *model)
 {
+	LOGPMS(DMAIN, LOGL_INFO, model, "destryed\n");
 	talloc_free(model);
 }

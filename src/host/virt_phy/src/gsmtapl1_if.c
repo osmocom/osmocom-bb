@@ -70,18 +70,18 @@ void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, struct msg
 		outmsg->l1h = msgb_data(outmsg);
 		gh = msgb_l1(outmsg);
 		if (virt_um_write_msg(ms->vui, outmsg) == -1) {
-			LOGP(DVIRPHY, LOGL_ERROR, "Gsmtap msg could not send to virt um - "
+			LOGPMS(DVIRPHY, LOGL_ERROR, ms, "Gsmtap msg could not send to virt um - "
 			     "(arfcn=%u, type=%u, subtype=%u, timeslot=%u, subslot=%u)\n",
 			     gh->arfcn, gh->type, gh->sub_type, gh->timeslot,
 			     gh->sub_slot);
 		} else {
-			DEBUGP(DVIRPHY, "Sending gsmtap msg to virt um - "
+			DEBUGPMS(DVIRPHY, ms, "Sending gsmtap msg to virt um - "
 			       "(arfcn=%u, type=%u, subtype=%u, timeslot=%u, subslot=%u)\n",
 			       gh->arfcn, gh->type, gh->sub_type, gh->timeslot,
 			       gh->sub_slot);
 		}
 	} else
-		LOGP(DVIRPHY, LOGL_ERROR, "Gsmtap msg could not be created!\n");
+		LOGPMS(DVIRPHY, LOGL_ERROR, ms, "Gsmtap msg could not be created!\n");
 
 	/* free message */
 	msgb_free(msg);
@@ -118,7 +118,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	}
 	/* generally ignore all messages coming from another arfcn than the camped one */
 	if (ms->state.serving_cell.arfcn != arfcn) {
-		LOGP(DVIRPHY, LOGL_NOTICE,
+		LOGPMS(DVIRPHY, LOGL_NOTICE, ms,
 		     "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n",
 		     arfcn, ms->state.serving_cell.arfcn);
 		return;
@@ -155,7 +155,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 		l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
 		break;
 	case GSMTAP_CHANNEL_RACH:
-		LOGP(DVIRPHY, LOGL_NOTICE,
+		LOGPMS(DVIRPHY, LOGL_NOTICE, ms,
 		     "Ignoring gsmtap msg from virt um - channel type is uplink only!\n");
 		break;
 	case GSMTAP_CHANNEL_SDCCH:
@@ -165,11 +165,11 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	case GSMTAP_CHANNEL_PTCCH:
 	case GSMTAP_CHANNEL_CBCH51:
 	case GSMTAP_CHANNEL_CBCH52:
-		LOGP(DVIRPHY, LOGL_NOTICE,
+		LOGPMS(DVIRPHY, LOGL_NOTICE, ms,
 		     "Ignoring gsmtap msg from virt um - channel type not supported!\n");
 		break;
 	default:
-		LOGP(DVIRPHY, LOGL_NOTICE,
+		LOGPMS(DVIRPHY, LOGL_NOTICE, ms,
 		     "Ignoring gsmtap msg from virt um - channel type unknown.\n");
 		break;
 	}

@@ -2,8 +2,15 @@
 
 #include <osmocom/core/logging.h>
 
-#define DL1C 0
-#define DVIRPHY 1
+/* L1CTL related messages */
+enum virtphy_log_cat {
+	DL1C,
+	DVIRPHY,
+	DMAIN
+};
+
+#define LOGPMS(ss, lvl, ms, fmt, args ...)	LOGP(ss, lvl, "MS %04u: " fmt, ms->nr, ## args)
+#define DEBUGPMS(ss, ms, fmt, args ...)		DEBUGP(ss, "MS %04u: " fmt, ms->nr, ## args)
 
 extern const struct log_info ms_log_info;
 

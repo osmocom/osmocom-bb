@@ -93,7 +93,7 @@ static int l1ctl_sock_data_cb(struct osmo_fd *ofd, unsigned int what)
 		return 0;
 	}
 err_close:
-	perror("Failed to receive msg from l2. Connection will be closed.\n");
+	LOGP(DL1C, LOGL_ERROR, "Failed to receive msg from l2. Connection will be closed.\n");
 	l1ctl_client_destroy(lsc);
 
 	return 0;
@@ -110,15 +110,14 @@ static int l1ctl_sock_accept_cb(struct osmo_fd *ofd, unsigned int what)
 
 	fd = accept(ofd->fd, NULL, NULL);
 	if (fd < 0) {
-		fprintf(stderr, "Failed to accept connection to l2.\n");
+		LOGP(DL1C, LOGL_ERROR, "Failed to accept connection to l2.\n");
 		return -1;
 	}
-	printf("Accepted client (fd=%u) from server (fd=%u)\n", fd, ofd->fd);
 
 	lsc = talloc_zero(lsi, struct l1ctl_sock_client);
 	if (!lsc) {
 		close(fd);
-		fprintf(stderr, "Failed to allocate L1CTL client\n");
+		LOGP(DL1C, LOGL_ERROR, "Failed to allocate L1CTL client\n");
 		return -1;
 	}
 
@@ -136,9 +135,9 @@ static int l1ctl_sock_accept_cb(struct osmo_fd *ofd, unsigned int what)
 		}
 	}
 
-	printf("Accepted L1CTL connection, lsc=%p, lsc->priv=%p\n", lsc, lsc->priv);
+	LOGP(DL1C, LOGL_INFO, "Accepted client (fd=%u) from server (fd=%u)\n", fd, ofd->fd);
 	if (osmo_fd_register(&lsc->ofd) != 0) {
-		fprintf(stderr, "Failed to register the l2 connection fd.\n");
+		LOGP(DL1C, LOGL_ERROR, "Failed to register the l2 connection fd.\n");
 		talloc_free(lsc);
 		return -1;
 	}
@@ -166,6 +165,7 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
 
 	rc = osmo_sock_unix_init_ofd(&lsi->ofd, SOCK_STREAM, 0, path, OSMO_SOCK_F_BIND);
 	if (rc < 0) {
+		LOGP(DL1C, LOGL_ERROR, "Error creating L1CTL listening socket\n");
 		talloc_free(lsi);
 		return NULL;
 	}
