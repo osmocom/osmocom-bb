@@ -184,9 +184,7 @@ int main(int argc, char *argv[])
 					    l1ctl_accept_cb, l1ctl_close_cb, l1ctl_sock_path);
 	g_vphy.virt_um->priv = g_vphy.l1ctl_sock;
 
-	LOGP(DVIRPHY, LOGL_INFO,
-	     "Virtual physical layer ready...\n \
-			Waiting for l23 app on %s",
+	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer ready, waiting for l23 app(s) on %s\n",
 	     l1ctl_sock_path);
 
 	while (1) {
