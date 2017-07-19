@@ -82,7 +82,7 @@ void l1ctl_rx_rach_req(struct l1_model_ms *ms, struct msgb *msg)
 	uint8_t ts = 1; /* FIXME mostly, ts 1 is used for rach, where can i get that info? System info? */
 	uint16_t offset = ntohs(rach_req->offset);
 
-	DEBUGPMS(DL1C, ms, "Received and handled from l23 - L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
+	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
 		rach_req->ra, offset, rach_req->combined);
 
 	if (rach_req->ra == 0x03)
@@ -123,7 +123,6 @@ void l1ctl_tx_rach_conf(struct l1_model_ms *ms, uint32_t fn, uint16_t arfcn)
 {
 	struct msgb *msg = l1ctl_create_l2_msg(L1CTL_RACH_CONF, fn, 0, arfcn);
 
-	DEBUGPMS(DL1C, ms, "Sending to l23 - %s (fn: %u, arfcn: %u)\n",
-	       getL1ctlPrimName(L1CTL_RACH_CONF), fn, arfcn);
+	LOGPMS(DL1C, LOGL_INFO, ms, "Tx L1CTL_RACH_CONF (fn: %u, arfcn: %u)\n", fn, arfcn);
 	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }

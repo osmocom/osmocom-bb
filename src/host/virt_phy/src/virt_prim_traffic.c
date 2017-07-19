@@ -69,7 +69,8 @@ void l1ctl_rx_traffic_req(struct l1_model_ms *ms, struct msgb *msg)
 	uint32_t fn_sched = sched_fn_ul(ms->state.current_time, ul->chan_nr, ul->link_id);
 
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
-	DEBUGPMS(DL1P, ms, "Received and handled from l23 - L1CTL_TRAFFIC_REQ\n");
+	DEBUGPMS(DL1P, ms, "Rx L1CTL_TRAFFIC_REQ (chan_nr=0x%02x, link_id=0x%02x)\n",
+		 ul->chan_nr, ul->link_id);
 
 	msg->l2h = tr->data;
 
@@ -102,7 +103,7 @@ void l1ctl_tx_traffic_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arf
 	/* TODO: traffic decoding and decryption */
 
 	memcpy(l1ti->data, msgb_data(msg), msgb_length(msg));
-	DEBUGPMS(DL1P, ms, "Sending to l23 - L1CTL_TRAFFIC_IND\n");
+	DEBUGPMS(DL1P, ms, "Tx L1CTL_TRAFFIC_IND (chan_nr=0x%02x, link_id=0x%02x)\n", chan_nr, link_id);
 	l1ctl_sap_tx_to_l23_inst(ms, l1ctl_msg);
 }
 
@@ -119,5 +120,6 @@ void l1ctl_tx_traffic_conf(struct l1_model_ms *ms, uint32_t fn, uint16_t snr, ui
 	struct msgb * l1ctl_msg;
 	l1ctl_msg = l1ctl_create_l2_msg(L1CTL_TRAFFIC_CONF, fn, snr, arfcn);
 	/* send confirm to layer23 */
+	DEBUGPMS(DL1P, ms, "Tx L1CTL_TRAFFIC_CONF\n");
 	l1ctl_sap_tx_to_l23_inst(ms, l1ctl_msg);
 }

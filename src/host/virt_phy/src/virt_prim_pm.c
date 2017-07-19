@@ -91,7 +91,7 @@ void l1ctl_rx_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 	pm_req->range.band_arfcn_from = ntohs(pm_req->range.band_arfcn_from);
 	pm_req->range.band_arfcn_to = ntohs(pm_req->range.band_arfcn_to);
 
-	DEBUGPMS(DL1C, ms, "Received from l23 - L1CTL_PM_REQ TYPE=%u, FROM=%d, TO=%d\n",
+	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_PM_REQ TYPE=%u, FROM=%d, TO=%d\n",
 		pm_req->type, pm_req->range.band_arfcn_from, pm_req->range.band_arfcn_to);
 
 	for (arfcn_next = pm_req->range.band_arfcn_from;
@@ -108,13 +108,16 @@ void l1ctl_rx_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 		}
 		/* no more space to hold mor pm info in msgb, flush to l23 */
 		if (msgb_tailroom(resp_msg) < sizeof(*pm_conf)) {
+			LOGPMS(DL1C, LOGL_INFO, ms, "Tx L1CTL_PM_CONF\n");
 			l1ctl_sap_tx_to_l23_inst(ms, resp_msg);
 			resp_msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
 		}
 	}
 	/* transmit the remaining part of pm response to l23 */
-	if (resp_msg)
+	if (resp_msg) {
+		LOGPMS(DL1C, LOGL_INFO, ms, "Tx L1CTL_PM_CONF\n");
 		l1ctl_sap_tx_to_l23_inst(ms, resp_msg);
+	}
 }
 
 /**

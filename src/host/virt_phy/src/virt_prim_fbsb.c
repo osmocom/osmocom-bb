@@ -57,8 +57,8 @@ void l1ctl_rx_fbsb_req(struct l1_model_ms *ms, struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_fbsb_req *sync_req = (struct l1ctl_fbsb_req *) l1h->data;
 
-	DEBUGPMS(DL1C, ms, "Received and handled from l23 - L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
-	       ntohs(sync_req->band_arfcn), sync_req->flags);
+	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_FBSB_REQ (arfcn=%u, flags=0x%x)\n",
+		 ntohs(sync_req->band_arfcn), sync_req->flags);
 
 	l1s->state = MS_STATE_IDLE_SYNCING;
 	l1s->fbsb.arfcn = ntohs(sync_req->band_arfcn);
@@ -126,7 +126,7 @@ void l1ctl_tx_fbsb_conf(struct l1_model_ms *ms, uint8_t res, uint16_t arfcn)
 	resp->result = res;
 	resp->bsic = bsic;
 
-	DEBUGPMS(DL1C, ms, "Sending to l23 - %s (res: %u)\n", getL1ctlPrimName(L1CTL_FBSB_CONF), res);
+	LOGPMS(DL1C, LOGL_INFO, ms, "Tx L1CTL_FBSB_CONF (res: %u)\n", res);
 
 	l1ctl_sap_tx_to_l23_inst(ms, msg);
 }

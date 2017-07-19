@@ -30,6 +30,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <l1ctl_proto.h>
 #include <virtphy/virtual_um.h>
 #include <virtphy/l1ctl_sock.h>
@@ -38,6 +39,14 @@
 #include <virtphy/gsmtapl1_if.h>
 #include <virtphy/logging.h>
 #include <virtphy/virt_l1_sched.h>
+
+static char *pseudo_lchan_name(uint16_t arfcn, uint8_t ts, uint8_t ss, uint8_t sub_type)
+{
+	static char lname[64];
+	snprintf(lname, sizeof(lname), "(arfcn=%u,ts=%u,ss=%u,type=%s)",
+		arfcn, ts, ss, get_value_string(gsmtap_gsm_channel_names, sub_type));
+	return lname;
+}
 
 /**
  * Replace l11 header of given msgb by a gsmtap header and send it over the virt um.
@@ -70,18 +79,16 @@ void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, struct msg
 		outmsg->l1h = msgb_data(outmsg);
 		gh = msgb_l1(outmsg);
 		if (virt_um_write_msg(ms->vui, outmsg) == -1) {
-			LOGPMS(DVIRPHY, LOGL_ERROR, ms, "Gsmtap msg could not send to virt um - "
-			     "(arfcn=%u, type=%u, subtype=%u, timeslot=%u, subslot=%u)\n",
-			     gh->arfcn, gh->type, gh->sub_type, gh->timeslot,
-			     gh->sub_slot);
+			LOGPMS(DVIRPHY, LOGL_ERROR, ms, "%s Tx go GSMTAP failed: %s\n",
+				pseudo_lchan_name(gh->arfcn, gh->timeslot, gh->sub_slot, gh->sub_type),
+				strerror(errno));
 		} else {
-			DEBUGPMS(DVIRPHY, ms, "Sending gsmtap msg to virt um - "
-			       "(arfcn=%u, type=%u, subtype=%u, timeslot=%u, subslot=%u)\n",
-			       gh->arfcn, gh->type, gh->sub_type, gh->timeslot,
-			       gh->sub_slot);
+			DEBUGPMS(DVIRPHY, ms, "%s: Tx to GSMTAP: %s\n",
+				pseudo_lchan_name(gh->arfcn, gh->timeslot, gh->sub_slot, gh->sub_type),
+				osmo_hexdump(data, data_len));
 		}
 	} else
-		LOGPMS(DVIRPHY, LOGL_ERROR, ms, "Gsmtap msg could not be created!\n");
+		LOGPMS(DVIRPHY, LOGL_ERROR, ms, "GSMTAP msg could not be created!\n");
 
 	/* free message */
 	msgb_free(msg);
@@ -118,9 +125,6 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	}
 	/* generally ignore all messages coming from another arfcn than the camped one */
 	if (ms->state.serving_cell.arfcn != arfcn) {
-		LOGPMS(DVIRPHY, LOGL_NOTICE, ms,
-		     "Ignoring gsmtap msg from virt um - msg arfcn=%d not equal synced arfcn=%d!\n",
-		     arfcn, ms->state.serving_cell.arfcn);
 		return;
 	}
 
@@ -155,8 +159,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 		l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
 		break;
 	case GSMTAP_CHANNEL_RACH:
-		LOGPMS(DVIRPHY, LOGL_NOTICE, ms,
-		     "Ignoring gsmtap msg from virt um - channel type is uplink only!\n");
+		LOGPMS(DVIRPHY, LOGL_NOTICE, ms, "Ignoring unexpected RACH in downlink ?!?\n");
 		break;
 	case GSMTAP_CHANNEL_SDCCH:
 	case GSMTAP_CHANNEL_CCCH:
@@ -165,12 +168,12 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	case GSMTAP_CHANNEL_PTCCH:
 	case GSMTAP_CHANNEL_CBCH51:
 	case GSMTAP_CHANNEL_CBCH52:
-		LOGPMS(DVIRPHY, LOGL_NOTICE, ms,
-		     "Ignoring gsmtap msg from virt um - channel type not supported!\n");
+		LOGPMS(DVIRPHY, LOGL_NOTICE, ms, "Ignoring unsupported channel type %s\n",
+			get_value_string(gsmtap_gsm_channel_names, gsmtap_chantype));
 		break;
 	default:
-		LOGPMS(DVIRPHY, LOGL_NOTICE, ms,
-		     "Ignoring gsmtap msg from virt um - channel type unknown.\n");
+		LOGPMS(DVIRPHY, LOGL_NOTICE, ms, "Ignoring unknown channel type %s\n",
+			get_value_string(gsmtap_gsm_channel_names, gsmtap_chantype));
 		break;
 	}
 }
@@ -203,23 +206,24 @@ void gsmtapl1_rx_from_virt_um_inst_cb(struct virt_um_inst *vui,
 	uint8_t rsl_chantype;	/* rsl chan type (8.58, 9.3.1) */
 	uint8_t link_id;	/* rsl link id tells if this is an ssociated or dedicated link */
 	uint8_t chan_nr;	/* encoded rsl channel type, timeslot and mf subslot */
+	struct gsm_time gtime;
 
 	msg->l2h = msgb_pull(msg, sizeof(*gh));
 	chantype_gsmtap2rsl(gsmtap_chantype, &rsl_chantype, &link_id);
 	/* see TS 08.58 -> 9.3.1 for channel number encoding */
 	chan_nr = rsl_enc_chan_nr(rsl_chantype, subslot, timeslot);
 
+	gsm_fn2gsmtime(&gtime, fn);
+
+	DEBUGP(DVIRPHY, "%s Rx from VirtUM: FN=%s chan_nr=0x%02x link_id=0x%02x\n",
+		pseudo_lchan_name(arfcn, timeslot, subslot, gsmtap_chantype),
+		osmo_dump_gsmtime(&gtime), chan_nr, link_id);
+
 	/* generally ignore all uplink messages received */
 	if (arfcn & GSMTAP_ARFCN_F_UPLINK) {
-		LOGP(DVIRPHY, LOGL_NOTICE, "Ignoring gsmtap msg from virt um - uplink flag set!\n");
+		LOGP(DVIRPHY, LOGL_NOTICE, "Ignoring unexpected uplink message in downlink!\n");
 		goto freemsg;
 	}
-
-	DEBUGP(DVIRPHY, "Receiving gsmtap msg from virt um - "
-	       "(arfcn=%u, framenumber=%u, type=%s, subtype=%s, timeslot=%u, subslot=%u, rsl_chan_type=0x%2x, link_id=0x%2x, chan_nr=0x%2x)\n",
-	       arfcn, fn, get_value_string(gsmtap_type_names, gh->type),
-	       get_value_string(gsmtap_gsm_channel_names, gsmtap_chantype), timeslot,
-	       subslot, rsl_chantype, link_id, chan_nr);
 
 	/* dispatch the incoming DL message from GSMTAP to each of the registered L1CTL instances */
 	llist_for_each_entry(lsc, &lsi->clients, list) {
