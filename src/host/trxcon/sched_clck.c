@@ -52,7 +52,7 @@ static void sched_clck_tick(void *data)
 
 	/* Check if transceiver is still alive */
 	if (sched->fn_counter_lost++ == TRX_LOSS_FRAMES) {
-		LOGP(DSCH, LOGL_NOTICE, "No more clock from transceiver\n");
+		LOGP(DSCH, LOGL_DEBUG, "No more clock from transceiver\n");
 		sched->state = SCH_CLCK_STATE_WAIT;
 
 		return;
@@ -131,11 +131,13 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 	if (sched->state == SCH_CLCK_STATE_WAIT) {
 		sched_clck_correct(sched, &tv_now, fn);
 
-		LOGP(DSCH, LOGL_NOTICE, "Initial clock received: fn=%u\n", fn);
+		LOGP(DSCH, LOGL_DEBUG, "Initial clock received: fn=%u\n", fn);
 		sched->state = SCH_CLCK_STATE_OK;
 
 		return 0;
 	}
+
+	LOGP(DSCH, LOGL_NOTICE, "Clock indication: fn=%u\n", fn);
 
 	osmo_timer_del(&sched->clock_timer);
 

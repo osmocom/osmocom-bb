@@ -155,7 +155,7 @@ struct trx_ts *sched_trx_add_ts(struct trx_instance *trx, int ts_num)
 {
 	struct trx_ts *ts;
 
-	LOGP(DSCH, LOGL_INFO, "Add a new TDMA timeslot #%u\n", ts_num);
+	LOGP(DSCH, LOGL_NOTICE, "Add a new TDMA timeslot #%u\n", ts_num);
 
 	ts = talloc_zero(trx, struct trx_ts);
 	if (!ts)
@@ -190,7 +190,7 @@ void sched_trx_del_ts(struct trx_instance *trx, int ts_num)
 	if (ts == NULL)
 		return;
 
-	LOGP(DSCH, LOGL_INFO, "Delete TDMA timeslot #%u\n", ts_num);
+	LOGP(DSCH, LOGL_NOTICE, "Delete TDMA timeslot #%u\n", ts_num);
 
 	/* Flush queue primitives for TX */
 	msgb_queue_flush(&ts->tx_prims);
@@ -232,7 +232,7 @@ int sched_trx_configure_ts(struct trx_instance *trx, int ts_num,
 	if (ts->mf_layout->chan_config != config)
 		return -EINVAL;
 
-	LOGP(DSCH, LOGL_INFO, "(Re)configure TDMA timeslot #%u as %s\n",
+	LOGP(DSCH, LOGL_NOTICE, "(Re)configure TDMA timeslot #%u as %s\n",
 		ts_num, ts->mf_layout->name);
 
 	/* Count channel states */
@@ -431,7 +431,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t ts_num,
 	/* Check whether required timeslot is enabled / configured */
 	ts = sched_trx_find_ts(trx, ts_num);
 	if (ts == NULL) {
-		LOGP(DSCH, LOGL_ERROR, "TDMA timeslot #%u isn't configured, "
+		LOGP(DSCH, LOGL_DEBUG, "TDMA timeslot #%u isn't configured, "
 			"ignoring burst...\n", ts_num);
 		return -EINVAL;
 	}

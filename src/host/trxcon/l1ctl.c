@@ -283,7 +283,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	band_arfcn = ntohs(fbsb->band_arfcn);
 	timeout = ntohs(fbsb->timeout);
 
-	LOGP(DL1C, LOGL_DEBUG, "Recv FBSB Req (%s %d)\n",
+	LOGP(DL1C, LOGL_NOTICE, "Received FBSB request (%s %d)\n",
 		gsm_band_name(gsm_arfcn2band(band_arfcn)),
 		band_arfcn &~ ARFCN_FLAG_MASK);
 
@@ -335,7 +335,8 @@ static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
 	arfcn_start = ntohs(pmr->range.band_arfcn_from);
 	arfcn_stop  = ntohs(pmr->range.band_arfcn_to);
 
-	LOGP(DL1C, LOGL_DEBUG, "Recv PM Req (%s: %d -> %d)\n",
+	LOGP(DL1C, LOGL_NOTICE, "Received power measurement "
+		"request (%s: %d -> %d)\n",
 		gsm_band_name(gsm_arfcn2band(arfcn_start)),
 		arfcn_start &~ ARFCN_FLAG_MASK,
 		arfcn_stop &~ ARFCN_FLAG_MASK);
@@ -361,7 +362,8 @@ static int l1ctl_rx_reset_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
-	LOGP(DL1C, LOGL_DEBUG, "Recv Reset Req (%u)\n", res->type);
+	LOGP(DL1C, LOGL_NOTICE, "Received reset request (%u)\n",
+		res->type);
 
 	switch (res->type) {
 	case L1CTL_RES_T_FULL:
@@ -414,7 +416,9 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
-	LOGP(DL1C, LOGL_DEBUG, "Recv CCCH Mode Req (%u)\n", req->ccch_mode);
+	LOGP(DL1C, LOGL_NOTICE, "Received CCCH mode request (%s)\n",
+		req->ccch_mode == CCCH_MODE_COMBINED ?
+			"combined" : "not combined");
 
 	/* Reconfigure TS0 */
 	mode = req->ccch_mode == CCCH_MODE_COMBINED ?
@@ -445,8 +449,8 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Convert offset value to host format */
 	req->offset = ntohs(req->offset);
 
-	LOGP(DL1C, LOGL_DEBUG, "Recv RACH Req (offset=%u ra=0x%02x)\n",
-		req->offset, req->ra);
+	LOGP(DL1C, LOGL_NOTICE, "Received RACH request "
+		"(offset=%u ra=0x%02x)\n", req->offset, req->ra);
 
 	/* FIXME: can we use other than TS0? */
 	ts = sched_trx_find_ts(l1l->trx, 0);
@@ -496,7 +500,7 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 	band_arfcn = ntohs(est_req->h0.band_arfcn);
 	chan_nr = ul->chan_nr;
 
-	LOGP(DL1C, LOGL_DEBUG, "Recv L1CTL_DM_EST_REQ (arfcn=%u, "
+	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_EST_REQ (arfcn=%u, "
 		"chan_nr=0x%02x, tsc=%u)\n", (band_arfcn &~ ARFCN_FLAG_MASK),
 		chan_nr, est_req->tsc);
 
@@ -559,6 +563,9 @@ exit:
 
 static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_REL_REQ, "
+		"switching back to CCCH\n");
+
 	/* Reset scheduler */
 	sched_trx_reset(l1l->trx, 0);
 
