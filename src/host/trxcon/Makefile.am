@@ -31,8 +31,10 @@ trxcon_SOURCES = \
 
 # Scheduler
 trxcon_SOURCES += \
-	sched_lchan_handlers.c \
 	sched_lchan_desc.c \
+	sched_lchan_xcch.c \
+	sched_lchan_rach.c \
+	sched_lchan_sch.c \
 	sched_mframe.c \
 	sched_clck.c \
 	sched_trx.c \
