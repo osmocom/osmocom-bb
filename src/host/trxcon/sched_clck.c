@@ -44,8 +44,6 @@
 #define MAX_FN_SKEW		50
 #define TRX_LOSS_FRAMES	400
 
-extern struct osmo_fsm_inst *trxcon_fsm;
-
 static void sched_clck_tick(void *data)
 {
 	struct trx_sched *sched = (struct trx_sched *) data;

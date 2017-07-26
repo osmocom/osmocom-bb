@@ -2,6 +2,9 @@
 
 #define GEN_MASK(state) (0x01 << state)
 
+extern struct osmo_fsm_inst *trxcon_fsm;
+extern void *tall_trx_ctx;
+
 enum trxcon_fsm_states {
 	TRXCON_STATE_IDLE = 0,
 	TRXCON_STATE_MANAGED,

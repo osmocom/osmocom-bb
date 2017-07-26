@@ -46,9 +46,6 @@
 #include "trx_if.h"
 #include "sched_trx.h"
 
-extern void *tall_trx_ctx;
-extern struct osmo_fsm_inst *trxcon_fsm;
-
 static struct msgb *l1ctl_alloc_msg(uint8_t msg_type)
 {
 	struct l1ctl_hdr *l1h;

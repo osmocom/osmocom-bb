@@ -45,9 +45,6 @@
 #include "l1ctl_link.h"
 #include "l1ctl.h"
 
-extern void *tall_trx_ctx;
-extern struct osmo_fsm_inst *trxcon_fsm;
-
 static struct osmo_fsm_state l1ctl_fsm_states[] = {
 	[L1CTL_STATE_IDLE] = {
 		.out_state_mask = GEN_MASK(L1CTL_STATE_CONNECTED),

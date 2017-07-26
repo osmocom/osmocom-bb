@@ -46,8 +46,6 @@
 #include "trxcon.h"
 #include "l1ctl.h"
 
-extern struct osmo_fsm_inst *trxcon_fsm;
-
 /* GSM 05.02 Chapter 5.2.3 Normal Burst (NB) */
 static const uint8_t nb_training_bits[8][26] = {
 	{

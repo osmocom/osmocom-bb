@@ -45,9 +45,6 @@
 #include "logging.h"
 #include "scheduler.h"
 
-extern void *tall_trx_ctx;
-extern struct osmo_fsm_inst *trxcon_fsm;
-
 static struct osmo_fsm_state trx_fsm_states[] = {
 	[TRX_STATE_OFFLINE] = {
 		.out_state_mask = (
