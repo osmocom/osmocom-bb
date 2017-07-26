@@ -633,6 +633,24 @@ exit:
 	return rc;
 }
 
+static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	struct l1ctl_par_req *par_req;
+	struct l1ctl_info_ul *ul;
+
+	ul = (struct l1ctl_info_ul *) msg->l1h;
+	par_req = (struct l1ctl_par_req *) ul->payload;
+
+	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_PARAM_REQ "
+		"(ta=%d, tx_power=%u)\n", par_req->ta, par_req->tx_power);
+
+	l1l->trx->ta = par_req->ta;
+	l1l->trx->tx_power = par_req->tx_power;
+
+	msgb_free(msg);
+	return 0;
+}
+
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
@@ -659,6 +677,8 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_dm_rel_req(l1l, msg);
 	case L1CTL_DATA_REQ:
 		return l1ctl_rx_data_req(l1l, msg);
+	case L1CTL_PARAM_REQ:
+		return l1ctl_rx_param_req(l1l, msg);
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
 		msgb_free(msg);
