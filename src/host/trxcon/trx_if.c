@@ -127,59 +127,6 @@ static void trx_udp_close(struct osmo_fd *ofd)
 }
 
 /* ------------------------------------------------------------------------ */
-/* Clock (CLCK) interface handlers                                          */
-/* ------------------------------------------------------------------------ */
-/* Indications on the Master Clock Interface                                */
-/*                                                                          */
-/* The master clock interface is output only (from the radio).              */
-/* Messages are "indications".                                              */
-/*                                                                          */
-/* CLOCK gives the current value of the transceiver clock to be used by the */
-/* core. This message is sent whenever a transmission packet arrives that   */
-/* is too late or too early. The clock value is NOT the current transceiver */
-/* time. It is a time setting the core should use to give better packet     */
-/* arrival times.                                                           */
-/*                                                                          */
-/* IND CLOCK <totalFrames>                                                  */
-/* ------------------------------------------------------------------------ */
-
-static int trx_clck_read_cb(struct osmo_fd *ofd, unsigned int what)
-{
-	struct trx_instance *trx = (struct trx_instance *) ofd->data;
-	char buf[1500];
-	uint32_t fn;
-	int len;
-
-	len = recv(ofd->fd, buf, sizeof(buf) - 1, 0);
-	if (len <= 0)
-		return len;
-
-	/* Terminate received string */
-	buf[len] = '\0';
-
-	if (!!strncmp(buf, "IND CLOCK ", 10)) {
-		LOGP(DTRX, LOGL_ERROR,
-			"Unknown message on CLCK socket: %s\n", buf);
-		return 0;
-	}
-
-	sscanf(buf, "IND CLOCK %u", &fn);
-
-	LOGP(DTRX, LOGL_DEBUG, "Clock indication: fn=%u\n", fn);
-
-	if (fn >= 2715648) {
-		fn %= 2715648;
-		LOGP(DTRX, LOGL_ERROR, "Indicated clock's FN is not wrapping "
-			"correctly, correcting to fn=%u\n", fn);
-	}
-
-	/* Call the clck_ind callback */
-	sched_clck_handle(&trx->sched, fn);
-
-	return 0;
-}
-
-/* ------------------------------------------------------------------------ */
 /* Control (CTRL) interface handlers                                        */
 /* ------------------------------------------------------------------------ */
 /* Commands on the Per-ARFCN Control Interface                              */
@@ -634,6 +581,10 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	/* Poke scheduler */
 	sched_trx_handle_rx_burst(trx, tn, fn, bits, 148, rssi, toa);
 
+	/* Correct local clock counter */
+	if (fn % 51 == 0)
+		sched_clck_handle(&trx->sched, fn);
+
 	return 0;
 }
 
@@ -695,11 +646,6 @@ int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
 	INIT_LLIST_HEAD(&trx_new->trx_ctrl_list);
 
 	/* Open sockets */
-	rc = trx_udp_open(trx_new, &trx_new->trx_ofd_clck, host,
-		port + 100, port + 0, trx_clck_read_cb);
-	if (rc < 0)
-		goto error;
-
 	rc = trx_udp_open(trx_new, &trx_new->trx_ofd_ctrl, host,
 		port + 101, port + 1, trx_ctrl_read_cb);
 	if (rc < 0)
@@ -756,7 +702,6 @@ void trx_if_close(struct trx_instance *trx)
 	trx_if_flush_ctrl(trx);
 
 	/* Close sockets */
-	trx_udp_close(&trx->trx_ofd_clck);
 	trx_udp_close(&trx->trx_ofd_ctrl);
 	trx_udp_close(&trx->trx_ofd_data);
 

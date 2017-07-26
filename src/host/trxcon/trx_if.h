@@ -19,7 +19,6 @@ enum trx_fsm_states {
 };
 
 struct trx_instance {
-	struct osmo_fd trx_ofd_clck;
 	struct osmo_fd trx_ofd_ctrl;
 	struct osmo_fd trx_ofd_data;
 
