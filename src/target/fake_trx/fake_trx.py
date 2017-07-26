@@ -85,12 +85,10 @@ class Application:
 		self.bts_ctrl.burst_fwd = self.burst_fwd
 		self.bb_ctrl.burst_fwd = self.burst_fwd
 
-		# Share clock between BTS and BB
+		# Provide clock to BTS
 		self.bts_clck = UDPLink(self.bts_addr,
 			self.bts_base_port + 100, self.bts_base_port)
-		self.bb_clck = UDPLink(self.bb_addr,
-			self.bb_base_port + 100, self.bb_base_port)
-		self.clck_gen = CLCKGen([self.bts_clck, self.bb_clck])
+		self.clck_gen = CLCKGen([self.bts_clck])
 		self.clck_gen.start()
 
 		print("[i] Init complete")
@@ -129,7 +127,6 @@ class Application:
 
 		# Close CLCK interfaces
 		self.bts_clck.shutdown()
-		self.bb_clck.shutdown()
 
 		# Close CTRL interfaces
 		self.bts_ctrl.shutdown()
