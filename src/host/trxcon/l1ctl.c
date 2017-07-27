@@ -685,3 +685,10 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return -EINVAL;
 	}
 }
+
+void l1ctl_shutdown_cb(struct l1ctl_link *l1l)
+{
+	/* Abort FBSB expire timer */
+	if (osmo_timer_pending(&l1l->fbsb_timer))
+		osmo_timer_del(&l1l->fbsb_timer);
+}

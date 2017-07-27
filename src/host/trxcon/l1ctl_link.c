@@ -251,6 +251,10 @@ int l1ctl_link_init(struct l1ctl_link **l1l, const char *sock_path)
 		return rc;
 	}
 
+	/* Bind shutdown handler */
+	l1l_new->shutdown_cb = l1ctl_shutdown_cb;
+
+	/* Bind connection handler */
 	bfd->cb = l1ctl_link_accept;
 	bfd->when = BSC_FD_READ;
 	bfd->data = l1l_new;
@@ -280,6 +284,10 @@ void l1ctl_link_shutdown(struct l1ctl_link *l1l)
 		return;
 
 	LOGP(DL1C, LOGL_NOTICE, "Shutdown L1CTL link\n");
+
+	/* Call shutdown callback */
+	if (l1l->shutdown_cb != NULL)
+		l1l->shutdown_cb(l1l);
 
 	listen_bfd = &l1l->listen_bfd;
 
