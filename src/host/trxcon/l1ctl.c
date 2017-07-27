@@ -287,8 +287,8 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		gsm_band_name(gsm_arfcn2band(band_arfcn)),
 		band_arfcn &~ ARFCN_FLAG_MASK);
 
-	/* Reset L1 */
-	sched_trx_reset(l1l->trx);
+	/* Reset scheduler and clock counter */
+	sched_trx_reset(l1l->trx, 1);
 
 	/* Configure a single timeslot */
 	if (fbsb->ccch_mode == CCCH_MODE_COMBINED)
@@ -371,7 +371,7 @@ static int l1ctl_rx_reset_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 		/* Fall through */
 	case L1CTL_RES_T_SCHED:
-		sched_trx_reset(l1l->trx);
+		sched_trx_reset(l1l->trx, 1);
 		break;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown L1CTL_RESET_REQ type\n");
@@ -560,7 +560,7 @@ exit:
 static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	/* Reset scheduler */
-	sched_trx_reset(l1l->trx);
+	sched_trx_reset(l1l->trx, 0);
 
 	msgb_free(msg);
 	return 0;

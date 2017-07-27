@@ -128,14 +128,15 @@ int sched_trx_shutdown(struct trx_instance *trx)
 	return 0;
 }
 
-int sched_trx_reset(struct trx_instance *trx)
+int sched_trx_reset(struct trx_instance *trx, int reset_clock)
 {
 	int i;
 
 	if (!trx)
 		return -EINVAL;
 
-	LOGP(DSCH, LOGL_NOTICE, "Reset scheduler\n");
+	LOGP(DSCH, LOGL_NOTICE, "Reset scheduler %s\n",
+		reset_clock ? "and clock counter" : "");
 
 	/* Free all potentially allocated timeslots */
 	for (i = 0; i < TRX_TS_COUNT; i++)
@@ -143,8 +144,9 @@ int sched_trx_reset(struct trx_instance *trx)
 
 	INIT_LLIST_HEAD(&trx->ts_list);
 
-	/* Stop and reset clock counter */
-	sched_clck_reset(&trx->sched);
+	/* Stop and reset clock counter if required */
+	if (reset_clock)
+		sched_clck_reset(&trx->sched);
 
 	return 0;
 }

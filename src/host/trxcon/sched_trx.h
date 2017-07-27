@@ -248,7 +248,7 @@ const struct trx_multiframe *sched_mframe_layout(
 
 /* Scheduler management functions */
 int sched_trx_init(struct trx_instance *trx);
-int sched_trx_reset(struct trx_instance *trx);
+int sched_trx_reset(struct trx_instance *trx, int reset_clock);
 int sched_trx_shutdown(struct trx_instance *trx);
 
 /* Timeslot management functions */
