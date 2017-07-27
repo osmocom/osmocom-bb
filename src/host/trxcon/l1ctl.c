@@ -366,7 +366,6 @@ static int l1ctl_rx_reset_req(struct l1ctl_link *l1l, struct msgb *msg)
 	switch (res->type) {
 	case L1CTL_RES_T_FULL:
 		/* TODO: implement trx_if_reset() */
-		trx_if_flush_ctrl(l1l->trx);
 		trx_if_cmd_poweroff(l1l->trx);
 		trx_if_cmd_echo(l1l->trx);
 

@@ -93,8 +93,8 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 			sched_trx_reset(app_data.trx);
 
 			/* TODO: implement trx_if_reset() */
-			trx_if_flush_ctrl(app_data.trx);
 			trx_if_cmd_poweroff(app_data.trx);
+			trx_if_cmd_echo(app_data.trx);
 		}
 		break;
 	case TRX_EVENT_RSP_ERROR:
