@@ -16,7 +16,6 @@ enum trxcon_fsm_events {
 	L1CTL_EVENT_DISCONNECT,
 
 	/* TRX specific events */
-	TRX_EVENT_RESET_IND,
 	TRX_EVENT_RSP_ERROR,
 	TRX_EVENT_OFFLINE,
 };

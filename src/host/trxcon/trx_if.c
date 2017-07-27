@@ -488,11 +488,9 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
 	else if (!strncmp(tcm->cmd + 4, "MEASURE", 7))
 		trx_if_measure_rsp_cb(trx, buf + 14);
-	else if (!strncmp(tcm->cmd + 4, "ECHO", 4)) {
+	else if (!strncmp(tcm->cmd + 4, "ECHO", 4))
 		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
-		osmo_fsm_inst_dispatch(trxcon_fsm,
-			TRX_EVENT_RESET_IND, trx);
-	} else
+	else
 		osmo_fsm_inst_state_chg(trx->fsm, trx->prev_state, 0, 0);
 
 	/* Remove command from list */
