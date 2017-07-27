@@ -99,8 +99,6 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 		break;
 	case TRX_EVENT_RSP_ERROR:
 	case TRX_EVENT_OFFLINE:
-	case SCH_EVENT_CLCK_IND:
-	case SCH_EVENT_CLCK_LOSS:
 	case TRX_EVENT_RESET_IND:
 		/* TODO: notify L2 & L3 about that */
 		break;
@@ -121,9 +119,7 @@ static struct osmo_fsm_state trxcon_fsm_states[] = {
 			GEN_MASK(L1CTL_EVENT_DISCONNECT) |
 			GEN_MASK(TRX_EVENT_RESET_IND) |
 			GEN_MASK(TRX_EVENT_RSP_ERROR) |
-			GEN_MASK(TRX_EVENT_OFFLINE) |
-			GEN_MASK(SCH_EVENT_CLCK_IND) |
-			GEN_MASK(SCH_EVENT_CLCK_LOSS)),
+			GEN_MASK(TRX_EVENT_OFFLINE)),
 		.out_state_mask = GEN_MASK(TRXCON_STATE_IDLE),
 		.name = "MANAGED",
 		.action = trxcon_fsm_managed_action,

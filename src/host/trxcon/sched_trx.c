@@ -152,6 +152,9 @@ int sched_trx_reset(struct trx_instance *trx)
 	sched->fn_counter_proc = 0;
 	sched->fn_counter_lost = 0;
 
+	/* Reset internal state */
+	sched->state = SCH_CLCK_STATE_WAIT;
+
 	return 0;
 }
 

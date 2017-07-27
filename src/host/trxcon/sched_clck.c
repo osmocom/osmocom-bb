@@ -47,16 +47,12 @@
 static void sched_clck_tick(void *data)
 {
 	struct trx_sched *sched = (struct trx_sched *) data;
-	struct trx_instance *trx = (struct trx_instance *) sched->data;
-
 	struct timeval tv_now, *tv_clock;
 	int32_t elapsed;
 
 	/* Check if transceiver is still alive */
 	if (sched->fn_counter_lost++ == TRX_LOSS_FRAMES) {
 		LOGP(DSCH, LOGL_NOTICE, "No more clock from transceiver\n");
-
-		osmo_fsm_inst_dispatch(trxcon_fsm, SCH_EVENT_CLCK_LOSS, trx);
 		sched->state = SCH_CLCK_STATE_WAIT;
 
 		return;
@@ -74,7 +70,6 @@ static void sched_clck_tick(void *data)
 		LOGP(DSCH, LOGL_NOTICE, "PC clock skew: "
 			"elapsed uS %d\n", elapsed);
 
-		osmo_fsm_inst_dispatch(trxcon_fsm, SCH_EVENT_CLCK_LOSS, trx);
 		sched->state = SCH_CLCK_STATE_WAIT;
 
 		return;
@@ -122,7 +117,6 @@ static void sched_clck_correct(struct trx_sched *sched,
 
 int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 {
-	struct trx_instance *trx = (struct trx_instance *) sched->data;
 	struct timeval tv_now, *tv_clock;
 	int32_t elapsed, elapsed_fn;
 
@@ -138,7 +132,6 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 		sched_clck_correct(sched, &tv_now, fn);
 
 		LOGP(DSCH, LOGL_NOTICE, "Initial clock received: fn=%u\n", fn);
-		osmo_fsm_inst_dispatch(trxcon_fsm, SCH_EVENT_CLCK_IND, trx);
 		sched->state = SCH_CLCK_STATE_OK;
 
 		return 0;

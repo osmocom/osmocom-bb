@@ -19,8 +19,4 @@ enum trxcon_fsm_events {
 	TRX_EVENT_RESET_IND,
 	TRX_EVENT_RSP_ERROR,
 	TRX_EVENT_OFFLINE,
-
-	/* Scheduler specific events */
-	SCH_EVENT_CLCK_IND,
-	SCH_EVENT_CLCK_LOSS,
 };
