@@ -130,7 +130,6 @@ int sched_trx_shutdown(struct trx_instance *trx)
 
 int sched_trx_reset(struct trx_instance *trx)
 {
-	struct trx_sched *sched;
 	int i;
 
 	if (!trx)
@@ -144,16 +143,8 @@ int sched_trx_reset(struct trx_instance *trx)
 
 	INIT_LLIST_HEAD(&trx->ts_list);
 
-	/* Obtain a scheduler instance from TRX */
-	sched = &trx->sched;
-
-	/* Reset clock counter */
-	osmo_timer_del(&sched->clock_timer);
-	sched->fn_counter_proc = 0;
-	sched->fn_counter_lost = 0;
-
-	/* Reset internal state */
-	sched->state = SCH_CLCK_STATE_WAIT;
+	/* Stop and reset clock counter */
+	sched_clck_reset(&trx->sched);
 
 	return 0;
 }

@@ -35,3 +35,4 @@ struct trx_sched {
 };
 
 int sched_clck_handle(struct trx_sched *sched, uint32_t fn);
+void sched_clck_reset(struct trx_sched *sched);

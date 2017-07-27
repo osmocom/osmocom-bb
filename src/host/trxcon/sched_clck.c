@@ -198,3 +198,16 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 
 	return 0;
 }
+
+void sched_clck_reset(struct trx_sched *sched)
+{
+	/* Reset internal state */
+	sched->state = SCH_CLCK_STATE_WAIT;
+
+	/* Stop clock timer */
+	osmo_timer_del(&sched->clock_timer);
+
+	/* Flush counters */
+	sched->fn_counter_proc = 0;
+	sched->fn_counter_lost = 0;
+}
