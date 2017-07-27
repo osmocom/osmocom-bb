@@ -472,6 +472,9 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 	int attached)
 {
 	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+
+	/* Initial testcard settings */
 	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
 	uint32_t tmsi = 0xffffffff;
 
@@ -483,6 +486,18 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 		vty_out(vty, "SIM already attached, remove first!%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
+	}
+
+	set = &ms->settings;
+	if (set->test_rplmn_valid) {
+		mcc = set->test_rplmn_mcc;
+		mnc = set->test_rplmn_mnc;
+
+		if (set->test_lac > 0x0000 && set->test_lac < 0xfffe)
+			lac = set->test_lac;
+
+		if (set->test_tmsi != 0xffffffff)
+			tmsi = set->test_tmsi;
 	}
 
 	if (argc == 2) {
