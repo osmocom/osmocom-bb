@@ -38,7 +38,7 @@ struct trx_instance {
 
 	/* Scheduler stuff */
 	struct trx_sched sched;
-	struct llist_head ts_list;
+	struct trx_ts *ts_list[TRX_TS_COUNT];
 
 	/* Bind L1CTL link */
 	struct l1ctl_link *l1l;

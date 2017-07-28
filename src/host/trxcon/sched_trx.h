@@ -228,8 +228,6 @@ struct trx_ts {
 	struct trx_lchan_state *lchans;
 	/*! \brief Queue primitives for TX */
 	struct llist_head tx_prims;
-	/*! \brief Link to parent list */
-	struct llist_head list;
 };
 
 /* Represents one TX primitive in the queue of trx_ts */

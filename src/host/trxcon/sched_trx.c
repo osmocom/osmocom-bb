@@ -55,13 +55,20 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 	uint8_t offset, bid;
 	struct trx_ts *ts;
 	uint32_t fn;
+	int i;
 
-	/* If we have no active timeslots, nothing to do */
-	if (llist_empty(&trx->ts_list))
-		return;
+	/* Iterate over timeslot list */
+	for (i = 0; i < TRX_TS_COUNT; i++) {
+		/* Timeslot is not allocated */
+		ts = trx->ts_list[i];
+		if (ts == NULL)
+			continue;
 
-	/* For each allocated timeslot */
-	llist_for_each_entry(ts, &trx->ts_list, list) {
+		/* Timeslot is not configured */
+		if (ts->mf_layout == NULL)
+			continue;
+
+		/* There is nothing to send */
 		if (llist_empty(&ts->tx_prims))
 			continue;
 
@@ -107,8 +114,6 @@ int sched_trx_init(struct trx_instance *trx)
 	sched = &trx->sched;
 	sched->data = trx;
 
-	INIT_LLIST_HEAD(&trx->ts_list);
-
 	return 0;
 }
 
@@ -142,8 +147,6 @@ int sched_trx_reset(struct trx_instance *trx, int reset_clock)
 	for (i = 0; i < TRX_TS_COUNT; i++)
 		sched_trx_del_ts(trx, i);
 
-	INIT_LLIST_HEAD(&trx->ts_list);
-
 	/* Stop and reset clock counter if required */
 	if (reset_clock)
 		sched_clck_reset(&trx->sched);
@@ -151,89 +154,81 @@ int sched_trx_reset(struct trx_instance *trx, int reset_clock)
 	return 0;
 }
 
-struct trx_ts *sched_trx_add_ts(struct trx_instance *trx, int ts_num)
+struct trx_ts *sched_trx_add_ts(struct trx_instance *trx, int tn)
 {
-	struct trx_ts *ts;
-
-	LOGP(DSCH, LOGL_NOTICE, "Add a new TDMA timeslot #%u\n", ts_num);
-
-	ts = talloc_zero(trx, struct trx_ts);
-	if (!ts)
+	/* Make sure that ts isn't allocated yet */
+	if (trx->ts_list[tn] != NULL) {
+		LOGP(DSCH, LOGL_ERROR, "Timeslot #%u already allocated\n", tn);
 		return NULL;
-
-	llist_add_tail(&ts->list, &trx->ts_list);
-
-	return ts;
-}
-
-struct trx_ts *sched_trx_find_ts(struct trx_instance *trx, int ts_num)
-{
-	struct trx_ts *ts;
-
-	if (llist_empty(&trx->ts_list))
-		return NULL;
-
-	llist_for_each_entry(ts, &trx->ts_list, list) {
-		if (ts->index == ts_num)
-			return ts;
 	}
 
-	return NULL;
+	LOGP(DSCH, LOGL_NOTICE, "Add a new TDMA timeslot #%u\n", tn);
+
+	/* Allocate a new one */
+	trx->ts_list[tn] = talloc_zero(trx, struct trx_ts);
+
+	/* Assign TS index */
+	trx->ts_list[tn]->index = tn;
+
+	return trx->ts_list[tn];
 }
 
-void sched_trx_del_ts(struct trx_instance *trx, int ts_num)
+/* FIXME: one kept here for compatibility reasons */
+struct trx_ts *sched_trx_find_ts(struct trx_instance *trx, int tn)
+{
+	return trx->ts_list[tn];
+}
+
+void sched_trx_del_ts(struct trx_instance *trx, int tn)
 {
 	struct trx_ts *ts;
 
 	/* Find ts in list */
-	ts = sched_trx_find_ts(trx, ts_num);
+	ts = trx->ts_list[tn];
 	if (ts == NULL)
 		return;
 
-	LOGP(DSCH, LOGL_NOTICE, "Delete TDMA timeslot #%u\n", ts_num);
+	LOGP(DSCH, LOGL_NOTICE, "Delete TDMA timeslot #%u\n", tn);
 
 	/* Flush queue primitives for TX */
 	msgb_queue_flush(&ts->tx_prims);
 
-	/* Remove ts from list */
-	llist_del(&ts->list);
+	/* Remove ts from list and free memory */
+	trx->ts_list[tn] = NULL;
 	talloc_free(ts);
 
 	/* Notify transceiver about that */
-	trx_if_cmd_setslot(trx, ts_num, 0);
+	trx_if_cmd_setslot(trx, tn, 0);
 }
 
-int sched_trx_configure_ts(struct trx_instance *trx, int ts_num,
+int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 	enum gsm_phys_chan_config config)
 {
 	int i, type, lchan_cnt = 0;
 	struct trx_ts *ts;
 
 	/* Try to find specified ts */
-	ts = sched_trx_find_ts(trx, ts_num);
+	ts = trx->ts_list[tn];
 	if (ts != NULL) {
 		/* Reconfiguration of existing one */
-		sched_trx_reset_ts(trx, ts_num);
+		sched_trx_reset_ts(trx, tn);
 	} else {
 		/* Allocate a new one if doesn't exist */
-		ts = sched_trx_add_ts(trx, ts_num);
+		ts = sched_trx_add_ts(trx, tn);
 		if (ts == NULL)
 			return -ENOMEM;
-
-		/* Assign TS index */
-		ts->index = ts_num;
 	}
 
 	/* Init queue primitives for TX */
 	INIT_LLIST_HEAD(&ts->tx_prims);
 
 	/* Choose proper multiframe layout */
-	ts->mf_layout = sched_mframe_layout(config, ts_num);
+	ts->mf_layout = sched_mframe_layout(config, tn);
 	if (ts->mf_layout->chan_config != config)
 		return -EINVAL;
 
 	LOGP(DSCH, LOGL_NOTICE, "(Re)configure TDMA timeslot #%u as %s\n",
-		ts_num, ts->mf_layout->name);
+		tn, ts->mf_layout->name);
 
 	/* Count channel states */
 	for (type = 0; type < _TRX_CHAN_MAX; type++)
@@ -262,17 +257,17 @@ int sched_trx_configure_ts(struct trx_instance *trx, int ts_num,
 
 	/* Notify transceiver about TS activation */
 	/* FIXME: set proper channel type */
-	trx_if_cmd_setslot(trx, ts_num, 1);
+	trx_if_cmd_setslot(trx, tn, 1);
 
 	return 0;
 }
 
-int sched_trx_reset_ts(struct trx_instance *trx, int ts_num)
+int sched_trx_reset_ts(struct trx_instance *trx, int tn)
 {
 	struct trx_ts *ts;
 
 	/* Try to find specified ts */
-	ts = sched_trx_find_ts(trx, ts_num);
+	ts = trx->ts_list[tn];
 	if (ts == NULL)
 		return -EINVAL;
 
@@ -289,7 +284,7 @@ int sched_trx_reset_ts(struct trx_instance *trx, int ts_num)
 	talloc_free(ts->lchans);
 
 	/* Notify transceiver about that */
-	trx_if_cmd_setslot(trx, ts_num, 0);
+	trx_if_cmd_setslot(trx, tn, 0);
 
 	return 0;
 }
@@ -416,7 +411,7 @@ enum trx_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr)
 	return TRXC_IDLE;
 }
 
-int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t ts_num,
+int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa)
 {
 	struct trx_lchan_state *lchan;
@@ -429,10 +424,10 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t ts_num,
 	uint8_t offset, bid;
 
 	/* Check whether required timeslot is enabled / configured */
-	ts = sched_trx_find_ts(trx, ts_num);
+	ts = sched_trx_find_ts(trx, tn);
 	if (ts == NULL) {
 		LOGP(DSCH, LOGL_DEBUG, "TDMA timeslot #%u isn't configured, "
-			"ignoring burst...\n", ts_num);
+			"ignoring burst...\n", tn);
 		return -EINVAL;
 	}
 
