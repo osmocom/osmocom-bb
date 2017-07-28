@@ -454,7 +454,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 
 		/* Find required channel state */
 		lchan = sched_trx_find_lchan(ts, chan);
-		if (lchan == NULL) /* FIXME: what should we do here? */
+		if (lchan == NULL)
 			goto next_frame;
 
 		/* Ensure that channel is active */
