@@ -251,7 +251,6 @@ int sched_trx_shutdown(struct trx_instance *trx);
 
 /* Timeslot management functions */
 struct trx_ts *sched_trx_add_ts(struct trx_instance *trx, int ts_num);
-struct trx_ts *sched_trx_find_ts(struct trx_instance *trx, int ts_num);
 void sched_trx_del_ts(struct trx_instance *trx, int ts_num);
 int sched_trx_reset_ts(struct trx_instance *trx, int ts_num);
 int sched_trx_configure_ts(struct trx_instance *trx, int ts_num,

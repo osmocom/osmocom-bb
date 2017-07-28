@@ -453,7 +453,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 		"(offset=%u ra=0x%02x)\n", req->offset, req->ra);
 
 	/* FIXME: can we use other than TS0? */
-	ts = sched_trx_find_ts(l1l->trx, 0);
+	ts = l1l->trx->ts_list[0];
 	if (ts == NULL) {
 		LOGP(DL1C, LOGL_DEBUG, "Couldn't send RACH: "
 			"TS0 is not active\n");
@@ -539,13 +539,11 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Configure requested TS */
 	rc = sched_trx_configure_ts(l1l->trx, tn, config);
+	ts = l1l->trx->ts_list[tn];
 	if (rc) {
 		rc = -EINVAL;
 		goto exit;
 	}
-
-	/* Find just configured TS */
-	ts = sched_trx_find_ts(l1l->trx, tn);
 
 	/* Activate only requested lchan, disabling others */
 	sched_trx_deactivate_all_lchans(ts);
@@ -606,10 +604,10 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
-	/* Attempt to find required TS */
-	ts = sched_trx_find_ts(l1l->trx, tn);
-	if (ts == NULL) {
-		LOGP(DL1C, LOGL_DEBUG, "Couldn't find required TS\n");
+	/* Check whether required timeslot is allocated and configured */
+	ts = l1l->trx->ts_list[tn];
+	if (ts == NULL || ts->mf_layout == NULL) {
+		LOGP(DL1C, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
 		rc = -EINVAL;
 		goto exit;
 	}

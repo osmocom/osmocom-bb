@@ -173,12 +173,6 @@ struct trx_ts *sched_trx_add_ts(struct trx_instance *trx, int tn)
 	return trx->ts_list[tn];
 }
 
-/* FIXME: one kept here for compatibility reasons */
-struct trx_ts *sched_trx_find_ts(struct trx_instance *trx, int tn)
-{
-	return trx->ts_list[tn];
-}
-
 void sched_trx_del_ts(struct trx_instance *trx, int tn)
 {
 	struct trx_ts *ts;
@@ -424,7 +418,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint8_t offset, bid;
 
 	/* Check whether required timeslot is allocated and configured */
-	ts = sched_trx_find_ts(trx, tn);
+	ts = trx->ts_list[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DSCH, LOGL_DEBUG, "TDMA timeslot #%u isn't configured, "
 			"ignoring burst...\n", tn);
