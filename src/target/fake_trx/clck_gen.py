@@ -29,6 +29,13 @@ import sys
 from threading import Timer
 from udp_link import UDPLink
 
+COPYRIGHT = \
+	"Copyright (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
+	"License GPLv2+: GNU GPL version 2 or later " \
+	"<http://gnu.org/licenses/gpl.html>\n" \
+	"This is free software: you are free to change and redistribute it.\n" \
+	"There is NO WARRANTY, to the extent permitted by law.\n"
+
 class CLCKGen:
 	# GSM TDMA definitions
 	SEC_DELAY_US = 1000 * 1000
@@ -87,6 +94,9 @@ class Application:
 	def __init__(self):
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
+
+		# Print copyright
+		print(COPYRIGHT)
 
 	def run(self):
 		self.link = UDPLink("127.0.0.1", 5800, 5700)
