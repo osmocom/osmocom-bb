@@ -149,13 +149,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 			ts->mf_layout->period,
 			trx_lchan_desc[chan].name);
 
-		/* We require first burst to have correct FN */
-		if (!(*mask & 0x1)) {
-			*mask = 0x0;
-			return 0;
-		}
-
-		/* FIXME: return from here? */
+		return -1;
 	}
 
 	/* Attempt to decode */
