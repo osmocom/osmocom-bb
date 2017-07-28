@@ -1800,12 +1800,12 @@ static const struct trx_multiframe layouts[] = {
 };
 
 const struct trx_multiframe *sched_mframe_layout(
-	enum gsm_phys_chan_config config, int ts_num)
+	enum gsm_phys_chan_config config, int tn)
 {
 	int i, ts_allowed;
 
 	for (i = 0; i < ARRAY_SIZE(layouts); i++) {
-		ts_allowed = layouts[i].slotmask & (0x01 << ts_num);
+		ts_allowed = layouts[i].slotmask & (0x01 << tn);
 		if (layouts[i].chan_config == config && ts_allowed)
 			return &layouts[i];
 	}
