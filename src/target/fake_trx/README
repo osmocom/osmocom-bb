@@ -22,3 +22,8 @@ Brief description of available applications:
   - ctrl_cmd.py - another peripheral tool, which could be used
     for sending CTRL commands directly in manual mode, and also
     for application fuzzing.
+
+  - burst_gen.py - a tool for sending GSM bursts either to L1
+    (OsmoBTS or OsmocomBB) or to TRX (OsmoTRX and GR-GSM TRX).
+    Currently it is only possible to send random bursts of
+    different types: NB, FB, SB, AB.
