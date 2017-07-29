@@ -154,6 +154,8 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	case GSMTAP_CHANNEL_AGCH:
 	case GSMTAP_CHANNEL_PCH:
 	case GSMTAP_CHANNEL_BCCH:
+	case GSMTAP_CHANNEL_CBCH51:
+	case GSMTAP_CHANNEL_CBCH52:
 		/* save to just forward here, as upper layer ignores messages that
 		 * do not fit the current state (e.g.  gsm48_rr.c:2159) */
 		l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
@@ -166,8 +168,6 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	case GSMTAP_CHANNEL_PACCH:
 	case GSMTAP_CHANNEL_PDCH:
 	case GSMTAP_CHANNEL_PTCCH:
-	case GSMTAP_CHANNEL_CBCH51:
-	case GSMTAP_CHANNEL_CBCH52:
 		LOGPMS(DVIRPHY, LOGL_NOTICE, ms, "Ignoring unsupported channel type %s\n",
 			get_value_string(gsmtap_gsm_channel_names, gsmtap_chantype));
 		break;
