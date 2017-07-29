@@ -486,7 +486,6 @@ exit:
 static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	enum gsm_phys_chan_config config;
-	enum trx_lchan_type lchan_type;
 	struct l1ctl_dm_est_req *est_req;
 	struct l1ctl_info_ul *ul;
 	struct trx_ts *ts;
@@ -529,14 +528,6 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
-	/* Determine lchan type */
-	lchan_type = sched_trx_chan_nr2lchan_type(chan_nr);
-	if (!lchan_type) {
-		LOGP(DL1C, LOGL_ERROR, "Couldn't determine lchan type\n");
-		rc = -EINVAL;
-		goto exit;
-	}
-
 	/* Configure requested TS */
 	rc = sched_trx_configure_ts(l1l->trx, tn, config);
 	ts = l1l->trx->ts_list[tn];
@@ -545,11 +536,13 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
-	/* Activate only requested lchan, disabling others */
+	/* Deactivate all lchans */
 	sched_trx_deactivate_all_lchans(ts);
-	rc = sched_trx_activate_lchan(ts, lchan_type);
+
+	/* Activate only requested lchans */
+	rc = sched_trx_set_lchans(ts, chan_nr, 1);
 	if (rc) {
-		LOGP(DL1C, LOGL_ERROR, "Couldn't activate lchan\n");
+		LOGP(DL1C, LOGL_ERROR, "Couldn't activate requested lchans\n");
 		rc = -EINVAL;
 		goto exit;
 	}
@@ -578,15 +571,19 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 	struct l1ctl_info_ul *ul;
 	struct l1ctl_data_ind *data_ind;
 	enum trx_lchan_type lchan_type;
-	uint8_t chan_nr, tn;
+	uint8_t chan_nr, link_id, tn;
 	size_t len;
 	int rc = 0;
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 	data_ind = (struct l1ctl_data_ind *) ul->payload;
-	chan_nr = ul->chan_nr;
 
-	LOGP(DL1C, LOGL_DEBUG, "Recv Data Req (chan_nr=0x%02x)\n", chan_nr);
+	/* Obtain channel description */
+	chan_nr = ul->chan_nr;
+	link_id = ul->link_id & 0x40;
+
+	LOGP(DL1C, LOGL_DEBUG, "Recv Data Req (chan_nr=0x%02x, "
+		"link_id=0x%02x)\n", chan_nr, link_id);
 
 	/* Determine TS index */
 	tn = chan_nr & 0x7;
@@ -597,9 +594,10 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 	}
 
 	/* Determine lchan type */
-	lchan_type = sched_trx_chan_nr2lchan_type(chan_nr);
+	lchan_type = sched_trx_chan_nr2lchan_type(chan_nr, link_id);
 	if (!lchan_type) {
-		LOGP(DL1C, LOGL_ERROR, "Couldn't determine lchan type\n");
+		LOGP(DL1C, LOGL_ERROR, "Couldn't determine lchan type "
+			"for chan_nr=%02x and link_id=%02x\n", chan_nr, link_id);
 		rc = -EINVAL;
 		goto exit;
 	}

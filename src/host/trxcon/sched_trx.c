@@ -296,6 +296,35 @@ struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
 	return NULL;
 }
 
+int sched_trx_set_lchans(struct trx_ts *ts, uint8_t chan_nr, int active)
+{
+	const struct trx_lchan_desc *lchan_desc;
+	struct trx_lchan_state *lchan;
+	int len, i, rc = 0;
+
+	/* Prevent NULL-pointer deference */
+	if (ts == NULL || ts->lchans == NULL) {
+		LOGP(DSCH, LOGL_ERROR, "Timeslot isn't configured\n");
+		return -EINVAL;
+	}
+
+	/* Iterate over all allocated lchans */
+	len = talloc_array_length(ts->lchans);
+	for (i = 0; i < len; i++) {
+		lchan = ts->lchans + i;
+		lchan_desc = &trx_lchan_desc[lchan->type];
+
+		if (lchan_desc->chan_nr == (chan_nr & 0xf8)) {
+			if (active)
+				rc |= sched_trx_activate_lchan(ts, lchan->type);
+			else
+				rc |= sched_trx_deactivate_lchan(ts, lchan->type);
+		}
+	}
+
+	return rc;
+}
+
 int sched_trx_activate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 {
 	const struct trx_lchan_desc *lchan_desc = &trx_lchan_desc[chan];
@@ -311,6 +340,9 @@ int sched_trx_activate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 			"on ts=%d\n", trx_lchan_desc[chan].name, ts->index);
 		return -EINVAL;
 	}
+
+	LOGP(DSCH, LOGL_NOTICE, "Activating lchan=%s "
+		"on ts=%d\n", trx_lchan_desc[chan].name, ts->index);
 
 	/* Conditionally allocate memory for bursts */
 	if (lchan_desc->rx_fn && lchan_desc->burst_buf_size > 0) {
@@ -348,6 +380,9 @@ int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 		return -EINVAL;
 	}
 
+	LOGP(DSCH, LOGL_DEBUG, "Deactivating lchan=%s "
+		"on ts=%d\n", trx_lchan_desc[chan].name, ts->index);
+
 	/* Free memory */
 	talloc_free(lchan->rx_bursts);
 	talloc_free(lchan->tx_bursts);
@@ -361,6 +396,9 @@ void sched_trx_deactivate_all_lchans(struct trx_ts *ts)
 {
 	struct trx_lchan_state *lchan;
 	int i, len;
+
+	LOGP(DSCH, LOGL_DEBUG, "Deactivating all logical channels "
+		"on ts=%d\n", ts->index);
 
 	len = talloc_array_length(ts->lchans);
 	for (i = 0; i < len; i++) {
@@ -389,18 +427,16 @@ enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr)
 	return GSM_PCHAN_NONE;
 }
 
-enum trx_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr)
+enum trx_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr,
+	uint8_t link_id)
 {
-	uint8_t cbits = chan_nr >> 3;
+	int i;
 
-	if (cbits == 0x01)
-		return TRXC_TCHF;
-	else if ((cbits & 0x1e) == 0x02)
-		return TRXC_TCHH_0 + (cbits & 0x1);
-	else if ((cbits & 0x1c) == 0x04)
-		return TRXC_SDCCH4_0 + (cbits & 0x3);
-	else if ((cbits & 0x18) == 0x08)
-		return TRXC_SDCCH8_0 + (cbits & 0x7);
+	/* Iterate over all known lchan types */
+	for (i = 0; i < _TRX_CHAN_MAX; i++)
+		if (trx_lchan_desc[i].chan_nr == (chan_nr & 0xf8))
+			if (trx_lchan_desc[i].link_id == link_id)
+				return i;
 
 	return TRXC_IDLE;
 }
