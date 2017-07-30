@@ -94,7 +94,7 @@ void virt_l1_sched_execute(struct l1_model_ms *ms, uint32_t fn)
 				/* exec tdma sched item's handler callback */
 				/* TODO: we do not have a TDMA scheduler currently and execute
 				 * all scheduled tdma items here at once */
-				ti_next->handler_cb(ms, mi_next->fn, ti_next->msg);
+				ti_next->handler_cb(ms, mi_next->fn, ti_next->ts, ti_next->msg);
 				/* remove handled tdma sched item */
 				llist_del(&ti_next->tdma_item_entry);
 			}

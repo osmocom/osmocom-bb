@@ -7,7 +7,7 @@
 
 struct l1_model_ms;
 
-typedef void virt_l1_sched_cb(struct l1_model_ms *ms, uint32_t fn, struct msgb * msg);
+typedef void virt_l1_sched_cb(struct l1_model_ms *ms, uint32_t fn, uint8_t tn, struct msgb * msg);
 
 /* bucket containing items to be executed for a specific mframe number */
 struct virt_l1_sched_mframe_item {

@@ -51,7 +51,7 @@ static char *pseudo_lchan_name(uint16_t arfcn, uint8_t ts, uint8_t ss, uint8_t s
 /**
  * Replace l11 header of given msgb by a gsmtap header and send it over the virt um.
  */
-void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, struct msgb *msg)
+void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, uint8_t tn, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;

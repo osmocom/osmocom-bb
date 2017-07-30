@@ -56,9 +56,9 @@ static const uint8_t rach_to_t3_comb[27] = {
  *
  * @param [in] msg the msg to sent over virtual um.
  */
-static void virt_l1_sched_handler_cb(struct l1_model_ms *ms, uint32_t fn, struct msgb *msg)
+static void virt_l1_sched_handler_cb(struct l1_model_ms *ms, uint32_t fn, uint8_t tn, struct msgb *msg)
 {
-	gsmtapl1_tx_to_virt_um_inst(ms, fn, msg);
+	gsmtapl1_tx_to_virt_um_inst(ms, fn, tn, msg);
 	l1ctl_tx_rach_conf(ms, fn, ms->state.serving_cell.arfcn);
 }
 
