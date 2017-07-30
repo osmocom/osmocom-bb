@@ -56,6 +56,13 @@ enum {
 	L1CTL_TRAFFIC_REQ,
 	L1CTL_TRAFFIC_CONF,
 	L1CTL_TRAFFIC_IND,
+
+	/* configure TBF for uplink/downlink */
+	L1CTL_TBF_CFG_REQ,
+	L1CTL_TBF_CFG_CONF,
+
+	L1CTL_DATA_TBF_REQ,
+	L1CTL_DATA_TBF_CONF,
 };
 
 enum ccch_mode {
@@ -68,6 +75,23 @@ enum neigh_mode {
 	NEIGH_MODE_NONE = 0,
 	NEIGH_MODE_PM,
 	NEIGH_MODE_SB,
+};
+
+enum l1ctl_coding_scheme {
+	L1CTL_CS_NONE,
+	L1CTL_CS1,
+	L1CTL_CS2,
+	L1CTL_CS3,
+	L1CTL_CS4,
+	L1CTL_MCS1,
+	L1CTL_MCS2,
+	L1CTL_MCS3,
+	L1CTL_MCS4,
+	L1CTL_MCS5,
+	L1CTL_MCS6,
+	L1CTL_MCS7,
+	L1CTL_MCS8,
+	L1CTL_MCS9,
 };
 
 #define TRAFFIC_DATA_LEN	40
@@ -149,6 +173,15 @@ struct l1ctl_info_ul {
 	uint8_t link_id;
 	uint8_t padding[2];
 
+	uint8_t payload[0];
+} __attribute__((packed));
+
+struct l1ctl_info_ul_tbf {
+	/* references l1ctl_tbf_cfg_req.tbf_nr */
+	uint8_t tbf_nr;
+	uint8_t coding_scheme;
+	uint8_t padding[2];
+	/* RLC/MAC block, size determines CS */
 	uint8_t payload[0];
 } __attribute__((packed));
 
@@ -298,6 +331,17 @@ struct l1ctl_neigh_pm_ind {
 /* traffic data to network */
 struct l1ctl_traffic_req {
 	uint8_t data[TRAFFIC_DATA_LEN];
+} __attribute__((packed));
+
+struct l1ctl_tbf_cfg_req {
+	/* future support for multiple concurrent TBFs. 0 for now */
+	uint8_t tbf_nr;
+	/* is this about an UL TBF (1) or DL (0) */
+	uint8_t is_uplink;
+	uint8_t padding[2];
+
+	/* one USF for each TN, or 255 for invalid/unused */
+	uint8_t usf[8];
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */

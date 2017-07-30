@@ -15,6 +15,7 @@ enum ms_state {
 	MS_STATE_IDLE_SYNCING,
 	MS_STATE_IDLE_CAMPING,
 	MS_STATE_DEDICATED,
+	MS_STATE_TBF
 };
 
 
@@ -74,6 +75,15 @@ struct l1_state_ms {
 		uint8_t tsc; // training sequence code (ununsed in virtual um)
 		uint8_t h; // hopping enabled flag (ununsed in virtual um)
 	} dedicated;
+	struct {
+		struct {
+			uint8_t usf[8];
+			struct llist_head tx_queue;
+		} ul;
+		struct {
+			uint8_t tfi[8];
+		} dl;
+	} tbf;
 
 	/* fbsb state */
 	struct {

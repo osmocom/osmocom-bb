@@ -27,6 +27,7 @@
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/rsl.h>
+#include <osmocom/gprs/gprs_rlc.h>
 #include <stdio.h>
 #include <l1ctl_proto.h>
 #include <netinet/in.h>
@@ -38,6 +39,9 @@
 #include <virtphy/gsmtapl1_if.h>
 #include <virtphy/logging.h>
 #include <virtphy/virt_l1_sched.h>
+
+static void l1ctl_rx_tbf_cfg_req(struct l1_model_ms *ms, struct msgb *msg);
+static void l1ctl_rx_data_tbf_req(struct l1_model_ms *ms, struct msgb *msg);
 
 static void l1_model_tch_mode_set(struct l1_model_ms *ms, uint8_t tch_mode)
 {
@@ -55,6 +59,8 @@ static void l1_model_tch_mode_set(struct l1_model_ms *ms, uint8_t tch_mode)
 void l1ctl_sap_init(struct l1_model_ms *model)
 {
 	INIT_LLIST_HEAD(&model->state.sched.mframe_items);
+	INIT_LLIST_HEAD(&model->state.tbf.ul.tx_queue);
+
 	prim_pm_init(model);
 }
 
@@ -156,6 +162,8 @@ static bool is_l1ctl_control(uint8_t msg_type)
 	switch (msg_type) {
 	case L1CTL_DATA_REQ:
 	case L1CTL_DATA_CONF:
+	case L1CTL_DATA_TBF_REQ:
+	case L1CTL_DATA_TBF_CONF:
 	case L1CTL_TRAFFIC_REQ:
 	case L1CTL_TRAFFIC_CONF:
 	case L1CTL_TRAFFIC_IND:
@@ -238,6 +246,12 @@ void l1ctl_sap_handler(struct l1_model_ms *ms, struct msgb *msg)
 	case L1CTL_SIM_REQ:
 		l1ctl_rx_sim_req(ms, msg);
 		break;
+	case L1CTL_TBF_CFG_REQ:
+		l1ctl_rx_tbf_cfg_req(ms, msg);
+		break;
+	case L1CTL_DATA_TBF_REQ:
+		l1ctl_rx_data_tbf_req(ms, msg);
+		goto exit_nofree;
 	}
 
 exit_msgbfree:
@@ -529,11 +543,142 @@ void l1ctl_rx_sim_req(struct l1_model_ms *ms, struct msgb *msg)
 
 }
 
+static void l1ctl_tx_tbf_cfg_conf(struct l1_model_ms *ms, const struct l1ctl_tbf_cfg_req *in);
+
+static void l1ctl_rx_tbf_cfg_req(struct l1_model_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_tbf_cfg_req *cfg_req = (struct l1ctl_tbf_cfg_req *) l1h->data;
+	unsigned int i;
+
+	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_TBF_CFG_REQ (tbf_id=%u, dir=%s, "
+		"usf=[%d,%d,%d,%d,%d,%d,%d,%d]\n", cfg_req->tbf_nr,
+		cfg_req->is_uplink ? "UL" : "DL", cfg_req->usf[0], cfg_req->usf[1],
+		cfg_req->usf[2], cfg_req->usf[3], cfg_req->usf[4], cfg_req->usf[5],
+		cfg_req->usf[6], cfg_req->usf[7]);
+
+	if (cfg_req->tbf_nr != 0) {
+		LOGPMS(DL1C, LOGL_ERROR, ms, "TBF_NR != 0 not supported yet!\n");
+		return;
+	}
+
+	if (ms->state.state == MS_STATE_DEDICATED)
+		LOGPMS(DL1C, LOGL_NOTICE, ms, "Harrd termiation of DEDICATED mode, fix L23!\n");
+
+	if (cfg_req->is_uplink) {
+		for (i = 0; i < 8; i++)
+			ms->state.tbf.ul.usf[i] = cfg_req->usf[i];
+	} else {
+		for (i = 0; i < 8; i++)
+			ms->state.tbf.dl.tfi[i] = cfg_req->usf[i];
+	}
+	ms->state.state = MS_STATE_TBF;
+
+	l1ctl_tx_tbf_cfg_conf(ms, cfg_req);
+}
+
+static const enum osmo_gprs_cs osmo_cs_by_l1ctl[] = {
+	[L1CTL_CS_NONE]	= OSMO_GPRS_CS_NONE,
+	[L1CTL_CS1]	= OSMO_GPRS_CS1,
+	[L1CTL_CS2]	= OSMO_GPRS_CS2,
+	[L1CTL_CS3]	= OSMO_GPRS_CS3,
+	[L1CTL_CS4]	= OSMO_GPRS_CS4,
+	[L1CTL_MCS1]	= OSMO_GPRS_MCS1,
+	[L1CTL_MCS2]	= OSMO_GPRS_MCS2,
+	[L1CTL_MCS3]	= OSMO_GPRS_MCS3,
+	[L1CTL_MCS4]	= OSMO_GPRS_MCS4,
+	[L1CTL_MCS5]	= OSMO_GPRS_MCS5,
+	[L1CTL_MCS6]	= OSMO_GPRS_MCS6,
+	[L1CTL_MCS7]	= OSMO_GPRS_MCS7,
+	[L1CTL_MCS8]	= OSMO_GPRS_MCS8,
+	[L1CTL_MCS9]	= OSMO_GPRS_MCS9,
+};
+
+static int get_osmo_cs_by_l1ctl(enum l1ctl_coding_scheme l1)
+{
+	if (l1 >= ARRAY_SIZE(osmo_cs_by_l1ctl))
+		return -1;
+	return osmo_cs_by_l1ctl[l1];
+}
+
+static const enum l1ctl_coding_scheme l1ctl_cs_by_osmo[] = {
+	[OSMO_GPRS_CS_NONE]	= L1CTL_CS_NONE,
+	[OSMO_GPRS_CS1]		= L1CTL_CS1,
+	[OSMO_GPRS_CS2]		= L1CTL_CS2,
+	[OSMO_GPRS_CS3]		= L1CTL_CS3,
+	[OSMO_GPRS_CS4]		= L1CTL_CS4,
+	[OSMO_GPRS_MCS1]	= L1CTL_MCS1,
+	[OSMO_GPRS_MCS2]	= L1CTL_MCS2,
+	[OSMO_GPRS_MCS3]	= L1CTL_MCS3,
+	[OSMO_GPRS_MCS4]	= L1CTL_MCS4,
+	[OSMO_GPRS_MCS5]	= L1CTL_MCS5,
+	[OSMO_GPRS_MCS6]	= L1CTL_MCS6,
+	[OSMO_GPRS_MCS7]	= L1CTL_MCS7,
+	[OSMO_GPRS_MCS8]	= L1CTL_MCS8,
+	[OSMO_GPRS_MCS9]	= L1CTL_MCS9,
+};
+
+static int get_l1ctl_cs_by_osmo(enum osmo_gprs_cs in)
+{
+	if (in >= ARRAY_SIZE(l1ctl_cs_by_osmo))
+		return -1;
+	return l1ctl_cs_by_osmo[in];
+}
+
+static void l1ctl_rx_data_tbf_req(struct l1_model_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul_tbf *udt = (struct l1ctl_info_ul_tbf *) l1h->data;
+	enum osmo_gprs_cs osmo_cs;
+	int block_size;
+
+	msg->l2h = udt->payload;
+
+	LOGPMS(DL1P, LOGL_ERROR, ms, "Rx L1CTL_DATA_TBF_REQ (tbf_id=%d, data=%s)\n",
+		udt->tbf_nr, osmo_hexdump(msg->l2h, msgb_l2len(msg)));
+	if (udt->tbf_nr != 0) {
+		LOGPMS(DL1C, LOGL_ERROR, ms, "TBF_NR != 0 not supported yet!\n");
+		return;
+	}
+
+	if (ms->state.state != MS_STATE_TBF) {
+		LOGPMS(DL1P, LOGL_ERROR, ms, "DATA_TBF_REQ in state != TBF\n");
+		return;
+	}
+
+	osmo_cs = get_l1ctl_cs_by_osmo(udt->coding_scheme);
+	if (osmo_cs < 0) {
+		LOGPMS(DL1P, LOGL_ERROR, ms, "DATA_RBF_REQ with invalid CS\n");
+		return;
+	}
+	block_size = osmo_gprs_ul_block_size_bytes(osmo_cs);
+
+	if (msgb_l2len(msg) < block_size) {
+		int pad_len = block_size - msgb_l2len(msg);
+		uint8_t *pad = msgb_put(msg, pad_len);
+		memset(pad, GSM_MACBLOCK_PADDING, pad_len);
+	}
+
+	msgb_enqueue(&ms->state.tbf.ul.tx_queue, msg);
+}
+
 /***************************************************************
  * L1CTL TX ROUTINES *******************************************
  * For more routines check the respective handler classes ******
  * like virt_prim_rach.c ***************************************
  ***************************************************************/
+
+static void l1ctl_tx_tbf_cfg_conf(struct l1_model_ms *ms, const struct l1ctl_tbf_cfg_req *in)
+{
+	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_TBF_CFG_CONF);
+	struct l1ctl_tbf_cfg_req *out;
+
+	/* copy over the data from the request */
+	out = (struct l1ctl_tbf_cfg_req *) msgb_put(msg, sizeof(*out));
+	*out = *in;
+
+	l1ctl_sap_tx_to_l23_inst(ms, msg);
+}
 
 /**
  * @brief Transmit L1CTL_RESET_IND or L1CTL_RESET_CONF to layer 23.

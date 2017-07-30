@@ -54,7 +54,7 @@ static char *pseudo_lchan_name(uint16_t arfcn, uint8_t ts, uint8_t ss, uint8_t s
 void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, uint8_t tn, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
-	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *)l1h->data;
+	struct l1ctl_info_ul *ul;
 	struct gsmtap_hdr *gh;
 	struct msgb *outmsg;	/* msg to send with gsmtap header prepended */
 	uint16_t arfcn = ms->state.serving_cell.arfcn;	/* arfcn of the cell we currently camp on */
@@ -68,8 +68,20 @@ void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, uint8_t tn
 	uint8_t timeslot;	/* tdma timeslot to send in (0-7) */
 	uint8_t gsmtap_chan;	/* the gsmtap channel */
 
-	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
-	gsmtap_chan = chantype_rsl2gsmtap(rsl_chantype, ul->link_id);
+	switch (l1h->msg_type) {
+	case L1CTL_DATA_TBF_REQ:
+		ul = NULL;
+		rsl_chantype = RSL_CHAN_OSMO_PDCH;
+		timeslot = tn;
+		subslot = 0;
+		gsmtap_chan = chantype_rsl2gsmtap(rsl_chantype, 0);
+		break;
+	default:
+		ul = (struct l1ctl_info_ul *)l1h->data;
+		rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
+		gsmtap_chan = chantype_rsl2gsmtap(rsl_chantype, ul->link_id);
+		break;
+	}
 
 	/* arfcn needs to be flagged to be able to distinguish between uplink and downlink */
 	outmsg = gsmtap_makemsg(arfcn | GSMTAP_ARFCN_F_UPLINK, timeslot,
@@ -104,6 +116,77 @@ extern void prim_fbsb_sync(struct l1_model_ms *ms, struct msgb *msg);
  */
 extern uint16_t prim_pm_set_sig_strength(struct l1_model_ms *ms, uint16_t arfcn, int16_t sig_lev);
 
+/* determine if a received Downlink RLC/MAC block matches the current MS configuration */
+static bool gprs_dl_block_matches_ms(struct l1_model_ms *ms, struct msgb *msg, uint8_t timeslot)
+{
+	uint8_t payload_type;
+	uint8_t tfi;
+
+	if (msgb_length(msg) < 1)
+		return false;
+
+	/* FIXME: Ensure this will also work for EGPRS!  */
+	payload_type = msg->data[0] >> 6;
+	switch (payload_type) {
+	case 0: /* RLC Data Block */
+		/* forward all RLD Data Blocks destined for TFI of MS */
+		tfi = (msg->data[1] >> 1) & 0x1f;
+		if (ms->state.state == MS_STATE_TBF && ms->state.tbf.dl.tfi[timeslot] == tfi)
+			return true;
+		break;
+	case 1: /* RLC/MAC Control without optional octets */
+		/* forward all RLC/MAC control blocks without optional octets, i.e. not adressed
+		 * to a specific TFI */
+		return true;
+	case 2: /* RLC/MAC with optional control octets */
+		/* forward all RLD Control Blocks destined for TFI of MS */
+		tfi = (msg->data[2] >> 1) & 0x1f;
+		if (ms->state.state == MS_STATE_TBF && ms->state.tbf.dl.tfi[timeslot] == tfi)
+			return true;
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
+/* determine if given USF at given timeslot is relevant to given MS or not */
+static bool usf_matches_ms(struct l1_model_ms *ms, uint8_t usf, uint8_t timeslot)
+{
+	if (ms->state.state == MS_STATE_TBF && ms->state.tbf.ul.usf[timeslot] == usf)
+		return true;
+
+	return false;
+}
+
+/* extract USF from (E)GPRS RLC/MAC block */
+static uint8_t get_usf_from_block(struct msgb *msg)
+{
+	/* FIXME: Ensure this will also work for EGPRS!  */
+	return msg->data[0] & 0x7;
+}
+
+/* MS is authorized to transmit a block in uplink for given USF on timeslot+arfcn at FN */
+static void ms_ul_tbf_may_transmit(struct l1_model_ms *ms, uint16_t arfcn, uint8_t timeslot,
+				   uint32_t fn, uint8_t usf)
+{
+	struct msgb *msg;
+
+	/* If USF is not for us, bail out */
+	if (!usf_matches_ms(ms, usf, timeslot))
+		return;
+
+	/* attempt to de-queue pending msgb for this UL TBF and transmit it */
+	msg = msgb_dequeue(&ms->state.tbf.ul.tx_queue);
+	if (!msg) {
+		printf("FN=%u, TN=%u, USF=%u: empty tx_queue, not transmitting\n", fn, timeslot, usf);
+		/* FIXME: send some dummy control frame? */
+	} else {
+		printf("FN=%u, TN=%u, USF=%u: transmitting queued msg\n", fn, timeslot, usf);
+		gsmtapl1_tx_to_virt_um_inst(ms, fn, timeslot, msg);
+	}
+}
+
 static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, uint32_t fn,
 				uint16_t arfcn, uint8_t timeslot, uint8_t subslot,
 				uint8_t gsmtap_chantype, uint8_t chan_nr, uint8_t link_id,
@@ -111,6 +194,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 {
 	struct l1_model_ms *ms = lsc->priv;
 	uint8_t signal_dbm = dbm2rxlev(prim_pm_set_sig_strength(ms, arfcn & GSMTAP_ARFCN_MASK, MAX_SIG_LEV_DBM));	/* Power measurement with each received massage */
+	uint8_t usf;
 
 	gsm_fn2gsmtime(&ms->state.downlink_time, fn);
 
@@ -163,10 +247,15 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	case GSMTAP_CHANNEL_RACH:
 		LOGPMS(DVIRPHY, LOGL_NOTICE, ms, "Ignoring unexpected RACH in downlink ?!?\n");
 		break;
-	case GSMTAP_CHANNEL_SDCCH:
-	case GSMTAP_CHANNEL_CCCH:
 	case GSMTAP_CHANNEL_PACCH:
 	case GSMTAP_CHANNEL_PDCH:
+		if (gprs_dl_block_matches_ms(ms, msg, timeslot))
+			l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
+		usf = get_usf_from_block(msg);
+		ms_ul_tbf_may_transmit(ms, arfcn, timeslot, fn, usf);
+		break;
+	case GSMTAP_CHANNEL_SDCCH:
+	case GSMTAP_CHANNEL_CCCH:
 	case GSMTAP_CHANNEL_PTCCH:
 		LOGPMS(DVIRPHY, LOGL_NOTICE, ms, "Ignoring unsupported channel type %s\n",
 			get_value_string(gsmtap_gsm_channel_names, gsmtap_chantype));
