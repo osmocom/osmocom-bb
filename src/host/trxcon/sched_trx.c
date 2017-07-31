@@ -49,6 +49,7 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 {
 	struct trx_instance *trx = (struct trx_instance *) sched->data;
 	const struct trx_frame *frame;
+	struct trx_lchan_state *lchan;
 	trx_lchan_tx_func *handler;
 	struct trx_ts_prim *prim;
 	enum trx_lchan_type chan;
@@ -86,12 +87,17 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		if (!handler)
 			continue;
 
+		/* Make sure that lchan was allocated and activated */
+		lchan = sched_trx_find_lchan(ts, chan);
+		if (lchan == NULL)
+			continue;
+
 		/* Get a message from TX queue */
 		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
 
 		/* Poke lchan handler */
 		if (prim->chan == chan)
-			handler(trx, ts, fn, chan, bid, NULL);
+			handler(trx, ts, lchan, fn, bid, NULL);
 	}
 }
 
@@ -500,7 +506,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 		/* Put burst to handler */
 		if (fn == burst_fn) {
 			/* TODO: decrypt if required */
-			handler(trx, ts, fn, chan, bid, bits, nbits, rssi, toa);
+			handler(trx, ts, lchan, fn, bid, bits, nbits, rssi, toa);
 		}
 
 next_frame:

@@ -23,6 +23,7 @@
 #define MAX_A5_KEY_LEN		(128 / 8)
 
 /* Forward declaration to avoid mutual include */
+struct trx_lchan_state;
 struct trx_instance;
 struct trx_ts;
 
@@ -78,15 +79,13 @@ enum trx_lchan_type {
 };
 
 typedef int trx_lchan_rx_func(struct trx_instance *trx,
-	struct trx_ts *ts,
-	uint32_t fn, enum trx_lchan_type chan,
-	uint8_t bid, sbit_t *bits, uint16_t nbits,
-	int8_t rssi, float toa);
+	struct trx_ts *ts, struct trx_lchan_state *lchan,
+	uint32_t fn, uint8_t bid, sbit_t *bits,
+	uint16_t nbits, int8_t rssi, float toa);
 
 typedef int trx_lchan_tx_func(struct trx_instance *trx,
-	struct trx_ts *ts,
-	uint32_t fn, enum trx_lchan_type chan,
-	uint8_t bid, uint16_t *nbits);
+	struct trx_ts *ts, struct trx_lchan_state *lchan,
+	uint32_t fn, uint8_t bid, uint16_t *nbits);
 
 struct trx_lchan_desc {
 	/*! \brief TRX Channel Type */

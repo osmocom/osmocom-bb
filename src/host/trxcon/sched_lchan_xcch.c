@@ -83,26 +83,19 @@ static const uint8_t nb_training_bits[8][26] = {
 };
 
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
-	uint32_t fn, enum trx_lchan_type chan, uint8_t bid,
+	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
 	sbit_t *bits, uint16_t nbits, int8_t rssi, float toa)
 {
+	const struct trx_lchan_desc *lchan_desc;
 	int n_errors, n_bits_total, rc;
-	struct trx_lchan_state *lchan;
 	uint8_t *rssi_num, *toa_num;
 	float *rssi_sum, *toa_sum;
 	sbit_t *buffer, *offset;
 	uint8_t l2[23], *mask;
 	uint32_t *first_fn;
 
-	LOGP(DSCH, LOGL_DEBUG, "Data received on %s: fn=%u ts=%u bid=%u\n",
-		trx_lchan_desc[chan].name, fn, ts->index, bid);
-
-	/* Find required channel state */
-	lchan = sched_trx_find_lchan(ts, chan);
-	if (lchan == NULL)
-		return -EINVAL;
-
 	/* Set up pointers */
+	lchan_desc = &trx_lchan_desc[lchan->type];
 	first_fn = &lchan->rx_first_fn;
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
@@ -111,6 +104,9 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	rssi_num = &lchan->rssi_num;
 	toa_sum = &lchan->toa_sum;
 	toa_num = &lchan->toa_num;
+
+	LOGP(DSCH, LOGL_DEBUG, "Data received on %s: fn=%u ts=%u bid=%u\n",
+		lchan_desc->name, fn, ts->index, bid);
 
 	/* Clear buffer & store frame number of first burst */
 	if (bid == 0) {
@@ -147,7 +143,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 			"fn=%u (%u/%u) for %s\n", *first_fn,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
-			trx_lchan_desc[chan].name);
+			lchan_desc->name);
 
 		return -1;
 	}
@@ -159,7 +155,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 			"(%u/%u) for %s\n", *first_fn,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
-			trx_lchan_desc[chan].name);
+			lchan_desc->name);
 		return rc;
 	}
 
@@ -170,8 +166,8 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 		return -ENOMEM;
 
 	/* Fill in some downlink info */
-	data->chan_nr = trx_lchan_desc[chan].chan_nr | ts->index;
-	data->link_id = trx_lchan_desc[chan].link_id;
+	data->chan_nr = lchan_desc->chan_nr | ts->index;
+	data->link_id = lchan_desc->link_id;
 	data->band_arfcn = htons(trx->band_arfcn);
 	data->frame_nr = htonl(*first_fn);
 	data->rx_level = -(*rssi_sum / *rssi_num);
@@ -193,10 +189,10 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 }
 
 int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
-	uint32_t fn, enum trx_lchan_type chan,
+	struct trx_lchan_state *lchan, uint32_t fn,
 	uint8_t bid, uint16_t *nbits)
 {
-	struct trx_lchan_state *lchan;
+	const struct trx_lchan_desc *lchan_desc;
 	struct trx_ts_prim *prim;
 	struct l1ctl_info_ul *ul;
 	ubit_t burst[GSM_BURST_LEN];
@@ -205,12 +201,8 @@ int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	const uint8_t *tsc;
 	int rc;
 
-	/* Find required channel state */
-	lchan = sched_trx_find_lchan(ts, chan);
-	if (lchan == NULL)
-		return -EINVAL;
-
 	/* Set up pointers */
+	lchan_desc = &trx_lchan_desc[lchan->type];
 	mask = &lchan->tx_burst_mask;
 	buffer = lchan->tx_bursts;
 
@@ -262,7 +254,7 @@ send_burst:
 		*nbits = GSM_BURST_LEN;
 
 	LOGP(DSCH, LOGL_DEBUG, "Transmitting %s fn=%u ts=%u burst=%u\n",
-		trx_lchan_desc[chan].name, fn, ts->index, bid);
+		lchan_desc->name, fn, ts->index, bid);
 
 	/* Send burst to transceiver */
 	rc = trx_if_tx_burst(trx, ts->index, fn, 10, burst);

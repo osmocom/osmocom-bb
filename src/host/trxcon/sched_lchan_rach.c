@@ -58,7 +58,7 @@ static ubit_t rach_synch_seq[] = {
 
 /* Obtain a to-be-transmitted RACH burst */
 int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
-	uint32_t fn, enum trx_lchan_type chan,
+	struct trx_lchan_state *lchan, uint32_t fn,
 	uint8_t bid, uint16_t *nbits)
 {
 	struct trx_ts_prim *prim;

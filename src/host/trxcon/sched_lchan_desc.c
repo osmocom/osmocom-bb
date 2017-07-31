@@ -39,19 +39,19 @@
 
 /* Forward declaration of handlers */
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
-	uint32_t fn, enum trx_lchan_type chan, uint8_t bid,
+	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
 	sbit_t *bits, uint16_t nbits, int8_t rssi, float toa);
 
 int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
-	uint32_t fn, enum trx_lchan_type chan,
+	struct trx_lchan_state *lchan, uint32_t fn,
 	uint8_t bid, uint16_t *nbits);
 
 int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
-	uint32_t fn, enum trx_lchan_type chan, uint8_t bid,
+	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
 	sbit_t *bits, uint16_t nbits, int8_t rssi, float toa);
 
 int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
-	uint32_t fn, enum trx_lchan_type chan,
+	struct trx_lchan_state *lchan, uint32_t fn,
 	uint8_t bid, uint16_t *nbits);
 
 const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
