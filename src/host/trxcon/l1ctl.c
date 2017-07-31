@@ -177,18 +177,25 @@ int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode)
 	return l1ctl_link_send(l1l, msg);
 }
 
-int l1ctl_tx_data_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data)
+int l1ctl_tx_data_ind(struct l1ctl_link *l1l,
+	struct l1ctl_info_dl *data, uint8_t msg_type)
 {
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 	size_t len;
 
-	msg = l1ctl_alloc_msg(L1CTL_DATA_IND);
+	if (msg_type != L1CTL_DATA_IND && msg_type != L1CTL_TRAFFIC_IND) {
+		LOGP(DL1C, LOGL_DEBUG, "Incorrect indication type\n");
+		return -EINVAL;
+	}
+
+	msg = l1ctl_alloc_msg(msg_type);
 	if (msg == NULL)
 		return -ENOMEM;
 
-	/* We store the 23-byte payload as a flexible array member */
-	len = sizeof(struct l1ctl_info_dl) + 23;
+	/* We store the payload as a flexible array member */
+	len = sizeof(struct l1ctl_info_dl);
+	len += msg_type == L1CTL_DATA_IND ? 23 : TRAFFIC_DATA_LEN;
 	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
 
 	/* Copy header and data from source message */

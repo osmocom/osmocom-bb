@@ -181,7 +181,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	memcpy(data->payload, l2, 23);
 
 	/* Put a packet to higher layers */
-	l1ctl_tx_data_ind(trx->l1l, data);
+	l1ctl_tx_data_ind(trx->l1l, data, L1CTL_DATA_IND);
 	talloc_free(data);
 
 	/* TODO: AGC, TA loops */
