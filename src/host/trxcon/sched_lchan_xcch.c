@@ -84,7 +84,7 @@ static const uint8_t nb_training_bits[8][26] = {
 
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	sbit_t *bits, uint16_t nbits, int8_t rssi, float toa)
+	sbit_t *bits, int8_t rssi, float toa)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	int n_errors, n_bits_total, rc;
@@ -189,8 +189,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 }
 
 int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn,
-	uint8_t bid, uint16_t *nbits)
+	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct trx_ts_prim *prim;
@@ -249,9 +248,6 @@ send_burst:
 	memcpy(burst + 61, tsc, 26); /* TSC */
 	memcpy(burst + 87, offset + 58, 58); /* Payload 2/2 */
 	memset(burst + 145, 0, 3); /* TB */
-
-	if (nbits)
-		*nbits = GSM_BURST_LEN;
 
 	LOGP(DSCH, LOGL_DEBUG, "Transmitting %s fn=%u ts=%u burst=%u\n",
 		lchan_desc->name, fn, ts->index, bid);

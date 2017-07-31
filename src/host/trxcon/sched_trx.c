@@ -97,7 +97,7 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 
 		/* Poke lchan handler */
 		if (prim->chan == chan)
-			handler(trx, ts, lchan, fn, bid, NULL);
+			handler(trx, ts, lchan, fn, bid);
 	}
 }
 
@@ -506,7 +506,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 		/* Put burst to handler */
 		if (fn == burst_fn) {
 			/* TODO: decrypt if required */
-			handler(trx, ts, lchan, fn, bid, bits, nbits, rssi, toa);
+			handler(trx, ts, lchan, fn, bid, bits, rssi, toa);
 		}
 
 next_frame:

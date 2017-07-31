@@ -74,7 +74,7 @@ static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 
 int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	sbit_t *bits, uint16_t nbits, int8_t rssi, float toa)
+	sbit_t *bits, int8_t rssi, float toa)
 {
 	sbit_t payload[2 * 39];
 	struct gsm_time time;

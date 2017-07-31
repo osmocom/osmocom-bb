@@ -81,11 +81,11 @@ enum trx_lchan_type {
 typedef int trx_lchan_rx_func(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
 	uint32_t fn, uint8_t bid, sbit_t *bits,
-	uint16_t nbits, int8_t rssi, float toa);
+	int8_t rssi, float toa);
 
 typedef int trx_lchan_tx_func(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
-	uint32_t fn, uint8_t bid, uint16_t *nbits);
+	uint32_t fn, uint8_t bid);
 
 struct trx_lchan_desc {
 	/*! \brief TRX Channel Type */
