@@ -46,41 +46,11 @@
 #include "trxcon.h"
 #include "l1ctl.h"
 
-/* GSM 05.02 Chapter 5.2.3 Normal Burst (NB) */
-static const uint8_t nb_training_bits[8][26] = {
-	{
-		0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0,
-		0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1,
-	},
-	{
-		0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1,
-		1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1,
-	},
-	{
-		0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1,
-		0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0,
-	},
-	{
-		0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0,
-		1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0,
-	},
-	{
-		0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0,
-		1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1,
-	},
-	{
-		0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0,
-		0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0,
-	},
-	{
-		1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1,
-		0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1,
-	},
-	{
-		1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0,
-		0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0,
-	},
-};
+/* Forward declarations */
+extern const uint8_t nb_training_bits[8][26];
+
+int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
+	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len);
 
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
@@ -159,30 +129,8 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 		return rc;
 	}
 
-	/* Compose a message to the higher layers */
-	struct l1ctl_info_dl *data;
-	data = talloc_zero_size(ts, sizeof(struct l1ctl_info_dl) + 23);
-	if (data == NULL)
-		return -ENOMEM;
-
-	/* Fill in some downlink info */
-	data->chan_nr = lchan_desc->chan_nr | ts->index;
-	data->link_id = lchan_desc->link_id;
-	data->band_arfcn = htons(trx->band_arfcn);
-	data->frame_nr = htonl(*first_fn);
-	data->rx_level = -(*rssi_sum / *rssi_num);
-
-	/* FIXME: set proper values */
-	data->num_biterr = n_errors;
-	data->fire_crc = 0;
-	data->snr = 0;
-
-	/* Fill in decoded payload */
-	memcpy(data->payload, l2, 23);
-
-	/* Put a packet to higher layers */
-	l1ctl_tx_data_ind(trx->l1l, data, L1CTL_DATA_IND);
-	talloc_free(data);
+	/* Send a L2 frame to the higher layers */
+	sched_send_data_ind(trx, ts, lchan, l2, 23);
 
 	/* TODO: AGC, TA loops */
 	return 0;
