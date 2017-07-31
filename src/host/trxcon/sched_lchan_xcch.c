@@ -27,13 +27,9 @@
 #include <talloc.h>
 #include <stdint.h>
 
-#include <arpa/inet.h>
-
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
-#include <osmocom/core/msgb.h>
-#include <osmocom/core/fsm.h>
 
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/coding/gsm0503_coding.h>
