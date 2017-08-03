@@ -28,8 +28,8 @@ import getopt
 import select
 import sys
 
-from udp_link import UDPLink
 from rand_burst_gen import RandBurstGen
+from data_if import DATAInterface
 
 COPYRIGHT = \
 	"Copyright (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
@@ -37,86 +37,6 @@ COPYRIGHT = \
 	"<http://gnu.org/licenses/gpl.html>\n" \
 	"This is free software: you are free to change and redistribute it.\n" \
 	"There is NO WARRANTY, to the extent permitted by law.\n"
-
-class DATAInterface(UDPLink):
-	# GSM PHY definitions
-	GSM_HYPERFRAME = 2048 * 26 * 51
-
-	def send_l1_msg(self, burst,
-		tn = None, fn = None, rssi = None):
-		# Generate random timeslot index if not preset
-		if tn is None:
-			tn = random.randint(0, 7)
-
-		# Generate random frame number if not preset
-		if fn is None:
-			fn = random.randint(0, self.GSM_HYPERFRAME)
-
-		# Generate random RSSI if not preset
-		if rssi is None:
-			rssi = -random.randint(-75, -50)
-
-		# Prepare a buffer for header and burst
-		buf = []
-
-		# Put timeslot index
-		buf.append(tn)
-
-		# Put frame number
-		buf.append((fn >> 24) & 0xff)
-		buf.append((fn >> 16) & 0xff)
-		buf.append((fn >>  8) & 0xff)
-		buf.append((fn >>  0) & 0xff)
-
-		# Put RSSI
-		buf.append(rssi)
-
-		# HACK: put fake TOA value
-		buf += [0x00] * 2
-
-		# Put burst
-		buf += burst
-
-		# Put two unused bytes
-		buf += [0x00] * 2
-
-		# Send message
-		self.send(bytearray(buf))
-
-	def send_trx_msg(self, burst,
-		tn = None, fn = None, pwr = None):
-		# Generate random timeslot index if not preset
-		if tn is None:
-			tn = random.randint(0, 7)
-
-		# Generate random frame number if not preset
-		if fn is None:
-			fn = random.randint(0, self.GSM_HYPERFRAME)
-
-		# Generate random power level if not preset
-		if pwr is None:
-			pwr = random.randint(0, 34)
-
-		# Prepare a buffer for header and burst
-		buf = []
-
-		# Put timeslot index
-		buf.append(tn)
-
-		# Put frame number
-		buf.append((fn >> 24) & 0xff)
-		buf.append((fn >> 16) & 0xff)
-		buf.append((fn >>  8) & 0xff)
-		buf.append((fn >>  0) & 0xff)
-
-		# Put transmit power level
-		buf.append(pwr)
-
-		# Put burst
-		buf += burst
-
-		# Send message
-		self.send(bytearray(buf))
 
 class Application:
 	# Application variables
