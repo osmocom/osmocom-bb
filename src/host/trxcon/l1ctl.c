@@ -657,6 +657,40 @@ static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 	return 0;
 }
 
+static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	struct l1ctl_tch_mode_req *req;
+	struct trx_ts *ts;
+	int len, i, j;
+
+	req = (struct l1ctl_tch_mode_req *) msg->l1h;
+
+	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_TCH_MODE_REQ "
+		"(tch_mode=%u, audio_mode=%u)\n", req->tch_mode, req->audio_mode);
+
+	/* Iterate over timeslot list */
+	for (i = 0; i < TRX_TS_COUNT; i++) {
+		/* Timeslot is not allocated */
+		ts = l1l->trx->ts_list[i];
+		if (ts == NULL)
+			continue;
+
+		/* Timeslot is not configured */
+		if (ts->mf_layout == NULL)
+			continue;
+
+		/* Iterate over all allocated lchans */
+		len = talloc_array_length(ts->lchans);
+		for (j = 0; j < len; j++)
+			ts->lchans[j].tch_mode = req->tch_mode;
+	}
+
+	/* TODO: do we need to care about audio_mode? */
+
+	msgb_free(msg);
+	return 0;
+}
+
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
@@ -685,6 +719,8 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_data_req(l1l, msg);
 	case L1CTL_PARAM_REQ:
 		return l1ctl_rx_param_req(l1l, msg);
+	case L1CTL_TCH_MODE_REQ:
+		return l1ctl_rx_tch_mode_req(l1l, msg);
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
 		msgb_free(msg);
