@@ -126,6 +126,9 @@ class Application:
 
 	burst_type = None
 	burst_count = 1
+	pwr = None
+	fn = None
+	tn = None
 
 	def __init__(self):
 		self.print_copyright()
@@ -149,6 +152,12 @@ class Application:
 		# Init random burst generator
 		self.gen = RandBurstGen()
 
+		# Generate a random frame number or use provided one
+		if self.fn is None:
+			fn = random.randint(0, DATAInterface.GSM_HYPERFRAME)
+		else:
+			fn = self.fn
+
 		# Send as much bursts as required
 		for i in range(self.burst_count):
 			# Generate a random burst
@@ -165,15 +174,20 @@ class Application:
 				self.shutdown()
 				sys.exit(2)
 
-			print("[i] Sending %d/%d %s burst to %s..."
+			print("[i] Sending %d/%d %s burst (fn=%u) to %s..."
 				% (i + 1, self.burst_count, self.burst_type,
-					self.conn_mode))
+					fn, self.conn_mode))
 
 			# Send to TRX or L1
 			if self.conn_mode == "TRX":
-				self.data_if.send_trx_msg(buf)
+				self.data_if.send_trx_msg(buf,
+					self.tn, fn, self.pwr)
 			elif self.conn_mode == "L1":
-				self.data_if.send_l1_msg(buf)
+				self.data_if.send_l1_msg(buf,
+					self.tn, fn, self.pwr)
+
+			# Increase frame number (for count > 1)
+			fn = (fn + 1) % DATAInterface.GSM_HYPERFRAME
 
 		self.shutdown()
 
@@ -193,6 +207,9 @@ class Application:
 		s += " Burst generation\n" \
 			 "  -b --burst-type     Random burst type (NB, FB, SB, AB)\n"    \
 			 "  -c --burst-count    How much bursts to send (default 1)\n"   \
+			 "  -f --frame-number   Set frame number (default random)\n"     \
+			 "  -t --timeslot       Set timeslot index (default random)\n"   \
+			 "  -l --power-level    Set transmit level (default random)\n"   \
 
 		print(s % (self.remote_addr, self.base_port))
 
@@ -202,7 +219,7 @@ class Application:
 	def parse_argv(self):
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
-				"m:r:p:b:c:h",
+				"m:r:p:b:c:f:t:l:h",
 				[
 					"help",
 					"conn-mode=",
@@ -210,6 +227,9 @@ class Application:
 					"base-port=",
 					"burst-type=",
 					"burst-count=",
+					"frame-number=",
+					"timeslot=",
+					"power-level=",
 				])
 		except getopt.GetoptError as err:
 			self.print_help("[!] " + str(err))
@@ -231,6 +251,12 @@ class Application:
 				self.burst_type = v
 			elif o in ("-c", "--burst-count"):
 				self.burst_count = int(v)
+			elif o in ("-f", "--frame-number"):
+				self.fn = int(v)
+			elif o in ("-t", "--timeslot"):
+				self.tn = int(v)
+			elif o in ("-l", "--power-level"):
+				self.pwr = abs(int(v))
 
 	def shutdown(self):
 		self.data_if.shutdown()
