@@ -185,7 +185,7 @@ int l1ctl_tx_data_ind(struct l1ctl_link *l1l,
 	size_t len;
 
 	if (msg_type != L1CTL_DATA_IND && msg_type != L1CTL_TRAFFIC_IND) {
-		LOGP(DL1D, LOGL_DEBUG, "Incorrect indication type\n");
+		LOGP(DL1D, LOGL_ERROR, "Incorrect indication type\n");
 		return -EINVAL;
 	}
 
