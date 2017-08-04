@@ -81,7 +81,7 @@ static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 	/* Attempt to read from socket */
 	rc = read(bfd->fd, &len, sizeof(len));
 	if (rc < sizeof(len)) {
-		LOGP(DL1C, LOGL_NOTICE, "L1CTL has lost connection\n");
+		LOGP(DL1D, LOGL_NOTICE, "L1CTL has lost connection\n");
 		msgb_free(msg);
 		if (rc >= 0)
 			rc = -EIO;
@@ -92,7 +92,7 @@ static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 	/* Check message length */
 	len = ntohs(len);
 	if (len > L1CTL_LENGTH) {
-		LOGP(DL1C, LOGL_ERROR, "Length is too big: %u\n", len);
+		LOGP(DL1D, LOGL_ERROR, "Length is too big: %u\n", len);
 		msgb_free(msg);
 		return -EINVAL;
 	}
@@ -100,14 +100,14 @@ static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 	msg->l1h = msgb_put(msg, len);
 	rc = read(bfd->fd, msg->l1h, msgb_l1len(msg));
 	if (rc != len) {
-		LOGP(DL1C, LOGL_ERROR, "Can not read data: len=%d < rc=%d: "
+		LOGP(DL1D, LOGL_ERROR, "Can not read data: len=%d < rc=%d: "
 			"%s\n", len, rc, strerror(errno));
 		msgb_free(msg);
 		return rc;
 	}
 
 	/* Debug print */
-	LOGP(DL1C, LOGL_DEBUG, "RX: '%s'\n",
+	LOGP(DL1D, LOGL_DEBUG, "RX: '%s'\n",
 		osmo_hexdump(msg->data, msg->len));
 
 	/* Call L1CTL handler */
@@ -125,7 +125,7 @@ static int l1ctl_link_write_cb(struct osmo_fd *bfd, struct msgb *msg)
 
 	len = write(bfd->fd, msg->data, msg->len);
 	if (len != msg->len) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to write data: "
+		LOGP(DL1D, LOGL_ERROR, "Failed to write data: "
 			"written (%d) < msg_len (%d)\n", len, msg->len);
 		return -1;
 	}
@@ -186,18 +186,18 @@ int l1ctl_link_send(struct l1ctl_link *l1l, struct msgb *msg)
 	uint16_t *len;
 
 	/* Debug print */
-	LOGP(DL1C, LOGL_DEBUG, "TX: '%s'\n",
+	LOGP(DL1D, LOGL_DEBUG, "TX: '%s'\n",
 		osmo_hexdump(msg->data, msg->len));
 
 	if (msg->l1h != msg->data)
-		LOGP(DL1C, LOGL_INFO, "Message L1 header != Message Data\n");
+		LOGP(DL1D, LOGL_INFO, "Message L1 header != Message Data\n");
 
 	/* Prepend 16-bit length before sending */
 	len = (uint16_t *) msgb_push(msg, sizeof(*len));
 	*len = htons(msg->len - sizeof(*len));
 
 	if (osmo_wqueue_enqueue(&l1l->wq, msg) != 0) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to enqueue msg!\n");
+		LOGP(DL1D, LOGL_ERROR, "Failed to enqueue msg!\n");
 		msgb_free(msg);
 		return -EIO;
 	}

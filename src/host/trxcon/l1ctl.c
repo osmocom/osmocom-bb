@@ -185,7 +185,7 @@ int l1ctl_tx_data_ind(struct l1ctl_link *l1l,
 	size_t len;
 
 	if (msg_type != L1CTL_DATA_IND && msg_type != L1CTL_TRAFFIC_IND) {
-		LOGP(DL1C, LOGL_DEBUG, "Incorrect indication type\n");
+		LOGP(DL1D, LOGL_DEBUG, "Incorrect indication type\n");
 		return -EINVAL;
 	}
 
@@ -233,7 +233,7 @@ int l1ctl_tx_data_conf(struct l1ctl_link *l1l)
 	if (msg == NULL)
 		return -ENOMEM;
 
-	LOGP(DL1C, LOGL_DEBUG, "Send Data Conf\n");
+	LOGP(DL1D, LOGL_DEBUG, "Send Data Conf\n");
 
 	return l1ctl_link_send(l1l, msg);
 }
@@ -601,13 +601,13 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 	chan_nr = ul->chan_nr;
 	link_id = ul->link_id & 0x40;
 
-	LOGP(DL1C, LOGL_DEBUG, "Recv Data Req (chan_nr=0x%02x, "
+	LOGP(DL1D, LOGL_DEBUG, "Recv Data Req (chan_nr=0x%02x, "
 		"link_id=0x%02x)\n", chan_nr, link_id);
 
 	/* Determine TS index */
 	tn = chan_nr & 0x7;
 	if (tn > 7) {
-		LOGP(DL1C, LOGL_ERROR, "Incorrect TS index %u\n", tn);
+		LOGP(DL1D, LOGL_ERROR, "Incorrect TS index %u\n", tn);
 		rc = -EINVAL;
 		goto exit;
 	}
@@ -615,7 +615,7 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Determine lchan type */
 	lchan_type = sched_trx_chan_nr2lchan_type(chan_nr, link_id);
 	if (!lchan_type) {
-		LOGP(DL1C, LOGL_ERROR, "Couldn't determine lchan type "
+		LOGP(DL1D, LOGL_ERROR, "Couldn't determine lchan type "
 			"for chan_nr=%02x and link_id=%02x\n", chan_nr, link_id);
 		rc = -EINVAL;
 		goto exit;
@@ -624,7 +624,7 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Check whether required timeslot is allocated and configured */
 	ts = l1l->trx->ts_list[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
-		LOGP(DL1C, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
+		LOGP(DL1D, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
 		rc = -EINVAL;
 		goto exit;
 	}
@@ -633,7 +633,7 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 	len = sizeof(struct trx_ts_prim) + sizeof(struct l1ctl_info_ul) + 23;
 	prim = talloc_zero_size(ts, len);
 	if (prim == NULL) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to allocate memory\n");
+		LOGP(DL1D, LOGL_ERROR, "Failed to allocate memory\n");
 		rc = -ENOMEM;
 		goto exit;
 	}
