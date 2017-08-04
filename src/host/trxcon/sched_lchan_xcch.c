@@ -197,7 +197,7 @@ send_burst:
 		lchan_desc->name, fn, ts->index, bid);
 
 	/* Send burst to transceiver */
-	rc = trx_if_tx_burst(trx, ts->index, fn, 10, burst);
+	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, burst);
 	if (rc) {
 		LOGP(DSCH, LOGL_ERROR, "Could not send burst to transceiver\n");
 

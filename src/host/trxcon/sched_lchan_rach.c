@@ -86,7 +86,7 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	LOGP(DSCH, LOGL_DEBUG, "Transmitting RACH fn=%u\n", fn);
 
 	/* Send burst to transceiver */
-	rc = trx_if_tx_burst(trx, ts->index, fn, 10, burst);
+	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, burst);
 	if (rc) {
 		LOGP(DSCH, LOGL_ERROR, "Could not send burst to transceiver\n");
 		return rc;
