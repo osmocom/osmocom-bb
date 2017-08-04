@@ -413,6 +413,7 @@ static int l1ctl_rx_echo_req(struct l1ctl_link *l1l, struct msgb *msg)
 static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_ccch_mode_req *req;
+	struct trx_ts *ts;
 	int mode, rc = 0;
 
 	req = (struct l1ctl_ccch_mode_req *) msg->l1h;
@@ -427,10 +428,21 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 		req->ccch_mode == CCCH_MODE_COMBINED ?
 			"combined" : "not combined");
 
-	/* Reconfigure TS0 */
+	/* Make sure that TS0 is allocated and configured */
+	ts = l1l->trx->ts_list[0];
+	if (ts == NULL || ts->mf_layout == NULL) {
+		LOGP(DL1C, LOGL_ERROR, "TS0 is not configured");
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Choose corresponding channel combination */
 	mode = req->ccch_mode == CCCH_MODE_COMBINED ?
 		GSM_PCHAN_CCCH_SDCCH4 : GSM_PCHAN_CCCH;
-	rc = sched_trx_configure_ts(l1l->trx, 0, mode);
+
+	/* Do nothing if the current mode matches required */
+	if (ts->mf_layout->chan_config != mode)
+		rc = sched_trx_configure_ts(l1l->trx, 0, mode);
 
 	/* Confirm reconfiguration */
 	if (!rc)
