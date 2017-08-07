@@ -33,6 +33,7 @@
 #include <osmocom/core/bits.h>
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include "l1ctl_proto.h"
 #include "scheduler.h"
@@ -144,4 +145,83 @@ int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
 	talloc_free(data);
 
 	return 0;
+}
+
+/**
+ * Composes a bad frame indication message
+ * according to the current tch_mode.
+ *
+ * @param  l2       Pointer to allocated byte array
+ * @param  tch_mode Current TCH mode
+ * @return          How much bytes were written
+ */
+size_t sched_bad_frame_ind(uint8_t *l2, uint8_t rsl_cmode, uint8_t tch_mode)
+{
+	/* BFI is only required for speech */
+	if (rsl_cmode != RSL_CMOD_SPD_SPEECH)
+		return 0;
+
+	switch (tch_mode) {
+	case GSM48_CMODE_SIGN:
+	case GSM48_CMODE_SPEECH_V1: /* Full Rate */
+		memset(l2, 0x00, GSM_FR_BYTES);
+		l2[0] = 0xd0;
+		return GSM_FR_BYTES;
+	case GSM48_CMODE_SPEECH_EFR: /* Enhanced Full Rate */
+		memset(l2, 0x00, GSM_EFR_BYTES);
+		l2[0] = 0xc0;
+		return GSM_EFR_BYTES;
+	case GSM48_CMODE_SPEECH_AMR: /* Adaptive Multi Rate */
+		/* FIXME: AMR is not implemented yet */
+		return 0;
+	default:
+		LOGP(DSCH, LOGL_ERROR, "Invalid TCH mode: %u\n", tch_mode);
+		return 0;
+	}
+}
+
+#define PRIM_IS_FACCH(prim) \
+	prim->payload_len == GSM_MACBLOCK_LEN
+
+#define PRIM_IS_TCH(prim) \
+	prim->payload_len != GSM_MACBLOCK_LEN
+
+struct trx_ts_prim *sched_dequeue_tch_prim(struct llist_head *queue)
+{
+	struct trx_ts_prim *a, *b;
+
+	/* Obtain the first prim from TX queue */
+	a = llist_entry(queue->next, struct trx_ts_prim, list);
+
+	/* If this is the only one => do nothing... */
+	if (queue->next->next == queue)
+		return a;
+
+	/* Obtain the second prim from TX queue */
+	b = llist_entry(queue->next->next, struct trx_ts_prim, list);
+
+	/* Find and prioritize FACCH  */
+	if (PRIM_IS_FACCH(a) && PRIM_IS_TCH(b)) {
+		/**
+		 * Case 1: first is FACCH, second is TCH:
+		 * Prioritize FACCH, dropping TCH
+		 */
+		llist_del(&b->list);
+		talloc_free(b);
+		return a;
+	} else if (PRIM_IS_TCH(a) && PRIM_IS_FACCH(b)) {
+		/**
+		 * Case 2: first is TCH, second is FACCH:
+		 * Prioritize FACCH, dropping TCH
+		 */
+		llist_del(&a->list);
+		talloc_free(a);
+		return b;
+	} else {
+		/**
+		 * Otherwise: both are TCH or FACCH frames:
+		 * Nothing to prioritize, return the first one
+		 */
+		return a;
+	}
 }

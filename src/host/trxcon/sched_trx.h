@@ -22,6 +22,11 @@
 
 #define MAX_A5_KEY_LEN		(128 / 8)
 
+/* TS 101318 Chapter 5.1: 260 bits + 4bit sig */
+#define GSM_FR_BYTES		33
+/* TS 101318 Chapter 5.3: 244 bits + 4bit sig */
+#define GSM_EFR_BYTES		31
+
 /* Forward declaration to avoid mutual include */
 struct trx_lchan_state;
 struct trx_instance;
@@ -262,6 +267,7 @@ int sched_trx_init_prim(struct trx_instance *trx, struct trx_ts_prim **prim,
 	size_t pl_len, uint8_t chan_nr, uint8_t link_id);
 int sched_trx_push_prim(struct trx_instance *trx,
 	struct trx_ts_prim *prim, uint8_t chan_nr);
+struct trx_ts_prim *sched_dequeue_tch_prim(struct llist_head *queue);
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa);
