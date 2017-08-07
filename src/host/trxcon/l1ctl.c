@@ -306,12 +306,16 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Ask SCH handler to send L1CTL_FBSB_CONF */
 	l1l->fbsb_conf_sent = 0;
 
-	/* Store current ARFCN */
-	l1l->trx->band_arfcn = band_arfcn;
+	/* Only if current ARFCN differs */
+	if (l1l->trx->band_arfcn != band_arfcn) {
+		/* Update current ARFCN */
+		l1l->trx->band_arfcn = band_arfcn;
 
-	/* Tune transceiver to required ARFCN */
-	trx_if_cmd_rxtune(l1l->trx, band_arfcn);
-	trx_if_cmd_txtune(l1l->trx, band_arfcn);
+		/* Tune transceiver to required ARFCN */
+		trx_if_cmd_rxtune(l1l->trx, band_arfcn);
+		trx_if_cmd_txtune(l1l->trx, band_arfcn);
+	}
+
 	trx_if_cmd_poweron(l1l->trx);
 
 	/* Start FBSB expire timer */
