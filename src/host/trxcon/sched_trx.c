@@ -417,6 +417,75 @@ void sched_trx_deactivate_all_lchans(struct trx_ts *ts)
 	}
 }
 
+int sched_trx_init_prim(struct trx_instance *trx,
+	struct trx_ts_prim **prim, size_t pl_len,
+	uint8_t chan_nr, uint8_t link_id)
+{
+	enum trx_lchan_type lchan_type;
+	struct trx_ts_prim *new_prim;
+	uint8_t len;
+
+	/* Determine lchan type */
+	lchan_type = sched_trx_chan_nr2lchan_type(chan_nr, link_id);
+	if (!lchan_type) {
+		LOGP(DSCH, LOGL_ERROR, "Couldn't determine lchan type "
+			"for chan_nr=%02x and link_id=%02x\n", chan_nr, link_id);
+		return -EINVAL;
+	}
+
+	/* How much memory do we need? */
+	len  = sizeof(struct trx_ts_prim); /* Primitive header */
+	len += pl_len; /* Requested payload size */
+
+	/* Allocate a new primitive */
+	new_prim = talloc_zero_size(trx, len);
+	if (new_prim == NULL) {
+		LOGP(DSCH, LOGL_ERROR, "Failed to allocate memory\n");
+		return -ENOMEM;
+	}
+
+	/* Init primitive header */
+	new_prim->payload_len = pl_len;
+	new_prim->chan = lchan_type;
+
+	/* Set external pointer */
+	*prim = new_prim;
+
+	return 0;
+}
+
+int sched_trx_push_prim(struct trx_instance *trx,
+	struct trx_ts_prim *prim, uint8_t chan_nr)
+{
+	struct trx_ts *ts;
+	uint8_t tn;
+
+	/* Determine TS index */
+	tn = chan_nr & 0x7;
+	if (tn > 7) {
+		LOGP(DSCH, LOGL_ERROR, "Incorrect TS index %u\n", tn);
+		return -EINVAL;
+	}
+
+	/* Check whether required timeslot is allocated and configured */
+	ts = trx->ts_list[tn];
+	if (ts == NULL || ts->mf_layout == NULL) {
+		LOGP(DSCH, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
+		return -EINVAL;
+	}
+
+	/**
+	 * Change talloc context of primitive
+	 * from trx to the parent ts
+	 */
+	talloc_steal(ts, prim);
+
+	/* Add primitive to TS transmit queue */
+	llist_add_tail(&prim->list, &ts->tx_prims);
+
+	return 0;
+}
+
 enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr)
 {
 	uint8_t cbits = chan_nr >> 3;

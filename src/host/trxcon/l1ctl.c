@@ -589,17 +589,13 @@ static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
-	struct trx_ts *ts;
-	struct trx_ts_prim *prim;
 	struct l1ctl_info_ul *ul;
-	struct l1ctl_data_ind *data_ind;
-	enum trx_lchan_type lchan_type;
-	uint8_t chan_nr, link_id, tn;
-	size_t len;
-	int rc = 0;
+	struct trx_ts_prim *prim;
+	uint8_t chan_nr, link_id;
+	int rc;
 
+	/* Extract UL frame header */
 	ul = (struct l1ctl_info_ul *) msg->l1h;
-	data_ind = (struct l1ctl_data_ind *) ul->payload;
 
 	/* Obtain channel description */
 	chan_nr = ul->chan_nr;
@@ -608,48 +604,21 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 	LOGP(DL1D, LOGL_DEBUG, "Recv Data Req (chan_nr=0x%02x, "
 		"link_id=0x%02x)\n", chan_nr, link_id);
 
-	/* Determine TS index */
-	tn = chan_nr & 0x7;
-	if (tn > 7) {
-		LOGP(DL1D, LOGL_ERROR, "Incorrect TS index %u\n", tn);
-		rc = -EINVAL;
+	/* Init a new primitive */
+	rc = sched_trx_init_prim(l1l->trx, &prim, 23,
+		chan_nr, link_id);
+	if (rc)
+		goto exit;
+
+	/* Push this primitive to transmit queue */
+	rc = sched_trx_push_prim(l1l->trx, prim, chan_nr);
+	if (rc) {
+		talloc_free(prim);
 		goto exit;
 	}
-
-	/* Determine lchan type */
-	lchan_type = sched_trx_chan_nr2lchan_type(chan_nr, link_id);
-	if (!lchan_type) {
-		LOGP(DL1D, LOGL_ERROR, "Couldn't determine lchan type "
-			"for chan_nr=%02x and link_id=%02x\n", chan_nr, link_id);
-		rc = -EINVAL;
-		goto exit;
-	}
-
-	/* Check whether required timeslot is allocated and configured */
-	ts = l1l->trx->ts_list[tn];
-	if (ts == NULL || ts->mf_layout == NULL) {
-		LOGP(DL1D, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
-		rc = -EINVAL;
-		goto exit;
-	}
-
-	/* Allocate a new primitive */
-	len = sizeof(struct trx_ts_prim) + sizeof(struct l1ctl_info_ul) + 23;
-	prim = talloc_zero_size(ts, len);
-	if (prim == NULL) {
-		LOGP(DL1D, LOGL_ERROR, "Failed to allocate memory\n");
-		rc = -ENOMEM;
-		goto exit;
-	}
-
-	/* Set logical channel of primitive */
-	prim->chan = lchan_type;
 
 	/* Fill in the payload */
-	memcpy(prim->payload, data_ind, 23);
-
-	/* Add to TS queue */
-	llist_add_tail(&prim->list, &ts->tx_prims);
+	memcpy(prim->payload, ul->payload, 23);
 
 exit:
 	msgb_free(msg);

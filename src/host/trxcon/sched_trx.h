@@ -235,6 +235,8 @@ struct trx_ts_prim {
 	struct llist_head list;
 	/*! \brief Logical channel type */
 	enum trx_lchan_type chan;
+	/*! \brief Payload length */
+	size_t payload_len;
 	/*! \brief Payload */
 	uint8_t payload[0];
 };
@@ -266,6 +268,12 @@ int sched_trx_activate_lchan(struct trx_ts *ts, enum trx_lchan_type chan);
 int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan);
 struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
 	enum trx_lchan_type chan);
+
+/* Primitive management functions */
+int sched_trx_init_prim(struct trx_instance *trx, struct trx_ts_prim **prim,
+	size_t pl_len, uint8_t chan_nr, uint8_t link_id);
+int sched_trx_push_prim(struct trx_instance *trx,
+	struct trx_ts_prim *prim, uint8_t chan_nr);
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa);
