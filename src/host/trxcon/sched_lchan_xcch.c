@@ -137,7 +137,6 @@ int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct trx_ts_prim *prim;
-	struct l1ctl_info_ul *ul;
 	ubit_t burst[GSM_BURST_LEN];
 	ubit_t *buffer, *offset;
 	uint8_t *mask, *l2;
@@ -161,8 +160,7 @@ int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Get a message from TX queue */
 	prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
-	ul = (struct l1ctl_info_ul *) prim->payload;
-	l2 = (uint8_t *) ul->payload;
+	l2 = (uint8_t *) prim->payload;
 
 	/* Encode bursts */
 	rc = gsm0503_xcch_encode(buffer, l2);

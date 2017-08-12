@@ -645,10 +645,8 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Set logical channel of primitive */
 	prim->chan = lchan_type;
 
-	/* Fill in both UL info and payload */
-	len = sizeof(struct l1ctl_info_ul);
-	memcpy(prim->payload, ul, len);
-	memcpy(prim->payload + len, data_ind, 23);
+	/* Fill in the payload */
+	memcpy(prim->payload, data_ind, 23);
 
 	/* Add to TS queue */
 	llist_add_tail(&prim->list, &ts->tx_prims);
