@@ -639,6 +639,44 @@ exit:
 	return rc;
 }
 
+static int l1ctl_rx_traffic_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	struct l1ctl_info_ul *ul;
+	struct trx_ts_prim *prim;
+	uint8_t chan_nr, link_id;
+	int rc;
+
+	/* Extract UL frame header */
+	ul = (struct l1ctl_info_ul *) msg->l1h;
+
+	/* Obtain channel description */
+	chan_nr = ul->chan_nr;
+	link_id = ul->link_id & 0x40;
+
+	LOGP(DL1D, LOGL_DEBUG, "Recv Traffic Req (chan_nr=0x%02x, "
+		"link_id=0x%02x)\n", chan_nr, link_id);
+
+	/* Init a new primitive */
+	rc = sched_trx_init_prim(l1l->trx, &prim, TRAFFIC_DATA_LEN,
+		chan_nr, link_id);
+	if (rc)
+		goto exit;
+
+	/* Push this primitive to transmit queue */
+	rc = sched_trx_push_prim(l1l->trx, prim, chan_nr);
+	if (rc) {
+		talloc_free(prim);
+		goto exit;
+	}
+
+	/* Fill in the payload */
+	memcpy(prim->payload, ul->payload, TRAFFIC_DATA_LEN);
+
+exit:
+	msgb_free(msg);
+	return rc;
+}
+
 static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_par_req *par_req;
@@ -720,6 +758,8 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_dm_rel_req(l1l, msg);
 	case L1CTL_DATA_REQ:
 		return l1ctl_rx_data_req(l1l, msg);
+	case L1CTL_TRAFFIC_REQ:
+		return l1ctl_rx_traffic_req(l1l, msg);
 	case L1CTL_PARAM_REQ:
 		return l1ctl_rx_param_req(l1l, msg);
 	case L1CTL_TCH_MODE_REQ:
