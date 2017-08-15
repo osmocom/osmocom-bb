@@ -462,8 +462,9 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 	struct l1ctl_rach_req *req;
 	struct l1ctl_info_ul *ul;
 	struct trx_ts_prim *prim;
-	struct trx_ts *ts;
-	int len, rc = 0;
+	uint8_t chan_nr, link_id;
+	size_t len;
+	int rc;
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 	req = (struct l1ctl_rach_req *) ul->payload;
@@ -472,34 +473,36 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Convert offset value to host format */
 	req->offset = ntohs(req->offset);
 
+	/**
+	 * FIXME: l1ctl_info_ul doesn't provide channel description
+	 * FIXME: Can we use other than TS0?
+	 */
+	chan_nr = 0x88;
+	link_id = 0x00;
+
 	LOGP(DL1C, LOGL_NOTICE, "Received RACH request "
 		"(offset=%u ra=0x%02x)\n", req->offset, req->ra);
 
-	/* FIXME: can we use other than TS0? */
-	ts = l1l->trx->ts_list[0];
-	if (ts == NULL) {
-		LOGP(DL1C, LOGL_DEBUG, "Couldn't send RACH: "
-			"TS0 is not active\n");
-		rc = -EINVAL;
+	/* Init a new primitive */
+	rc = sched_trx_init_prim(l1l->trx, &prim, len,
+		chan_nr, link_id);
+	if (rc)
+		goto exit;
+
+	/**
+	 * Push this primitive to transmit queue
+	 *
+	 * FIXME: what if requested TS is not configured?
+	 * Or what if one (such as TCH) has no TRXC_RACH slots?
+	 */
+	rc = sched_trx_push_prim(l1l->trx, prim, chan_nr);
+	if (rc) {
+		talloc_free(prim);
 		goto exit;
 	}
-
-	/* Allocate a new primitive */
-	prim = talloc_zero_size(ts, sizeof(struct trx_ts_prim) + len);
-	if (prim == NULL) {
-		LOGP(DL1C, LOGL_ERROR, "Failed to allocate memory\n");
-		rc = -ENOMEM;
-		goto exit;
-	}
-
-	/* Set logical channel of primitive */
-	prim->chan = TRXC_RACH;
 
 	/* Fill in the payload */
 	memcpy(prim->payload, req, len);
-
-	/* Add to TS queue */
-	llist_add_tail(&prim->list, &ts->tx_prims);
 
 exit:
 	msgb_free(msg);
