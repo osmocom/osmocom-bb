@@ -112,3 +112,34 @@ int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
 
 	return 0;
 }
+
+int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
+	struct trx_lchan_state *lchan, uint32_t fn, size_t l2_len)
+{
+	const struct trx_lchan_desc *lchan_desc;
+	struct l1ctl_info_dl *data;
+	uint8_t conf_type;
+
+	/* Allocate memory */
+	data = talloc_zero(ts, struct l1ctl_info_dl);
+	if (data == NULL)
+		return -ENOMEM;
+
+	/* Set up pointers */
+	lchan_desc = &trx_lchan_desc[lchan->type];
+
+	/* Fill in known downlink info */
+	data->chan_nr = lchan_desc->chan_nr | ts->index;
+	data->link_id = lchan_desc->link_id;
+	data->band_arfcn = htons(trx->band_arfcn);
+	data->frame_nr = htonl(fn);
+
+	/* Choose a confirmation type */
+	conf_type = l2_len == 23 ?
+		L1CTL_DATA_CONF : L1CTL_TRAFFIC_CONF;
+
+	l1ctl_tx_data_conf(trx->l1l, data, conf_type);
+	talloc_free(data);
+
+	return 0;
+}

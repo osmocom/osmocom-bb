@@ -48,6 +48,9 @@ extern const uint8_t nb_training_bits[8][26];
 int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len);
 
+int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
+	struct trx_lchan_state *lchan, uint32_t fn, size_t l2_len);
+
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
 	sbit_t *bits, int8_t rssi, float toa)
@@ -221,7 +224,7 @@ send_burst:
 		*mask = 0x00;
 
 		/* Confirm data sending */
-		l1ctl_tx_data_conf(trx->l1l);
+		sched_send_data_conf(trx, ts, lchan, fn, 23);
 	}
 
 	return 0;
