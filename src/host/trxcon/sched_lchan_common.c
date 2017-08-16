@@ -41,7 +41,7 @@
 #include "l1ctl.h"
 
 /* GSM 05.02 Chapter 5.2.3 Normal Burst (NB) */
-const uint8_t nb_training_bits[8][26] = {
+const uint8_t sched_nb_training_bits[8][26] = {
 	{
 		0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0,
 		0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1,

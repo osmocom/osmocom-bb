@@ -277,3 +277,12 @@ int sched_trx_push_prim(struct trx_instance *trx,
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa);
+
+/* Shared declarations for lchan handlers */
+extern const uint8_t sched_nb_training_bits[8][26];
+
+size_t sched_bad_frame_ind(uint8_t *l2, uint8_t rsl_cmode, uint8_t tch_mode);
+int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
+	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len);
+int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
+	struct trx_lchan_state *lchan, uint32_t fn, size_t l2_len);
