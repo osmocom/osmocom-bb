@@ -37,12 +37,14 @@
 #include "trx_if.h"
 #include "logging.h"
 
-static void msgb_queue_flush(struct llist_head *list)
+static void prim_queue_flush(struct llist_head *list)
 {
-	struct msgb *msg, *msg2;
+	struct trx_ts_prim *prim, *prim_next;
 
-	llist_for_each_entry_safe(msg, msg2, list, list)
-		msgb_free(msg);
+	llist_for_each_entry_safe(prim, prim_next, list, list) {
+		llist_del(&prim->list);
+		talloc_free(prim);
+	}
 }
 
 static void sched_frame_clck_cb(struct trx_sched *sched)
@@ -191,7 +193,7 @@ void sched_trx_del_ts(struct trx_instance *trx, int tn)
 	LOGP(DSCH, LOGL_NOTICE, "Delete TDMA timeslot #%u\n", tn);
 
 	/* Flush queue primitives for TX */
-	msgb_queue_flush(&ts->tx_prims);
+	prim_queue_flush(&ts->tx_prims);
 
 	/* Remove ts from list and free memory */
 	trx->ts_list[tn] = NULL;
@@ -278,7 +280,7 @@ int sched_trx_reset_ts(struct trx_instance *trx, int tn)
 	ts->mf_layout = NULL;
 
 	/* Flush queue primitives for TX */
-	msgb_queue_flush(&ts->tx_prims);
+	prim_queue_flush(&ts->tx_prims);
 
 	/* Free channel states */
 	talloc_free(ts->lchans);
