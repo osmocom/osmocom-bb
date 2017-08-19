@@ -60,7 +60,13 @@ static struct log_info_cat trx_log_info_cat[] = {
 	},
 	[DSCH] = {
 		.name = "DSCH",
-		.description = "Scheduler",
+		.description = "Scheduler management",
+		.color = "\033[1;36m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
+	[DSCHD] = {
+		.name = "DSCHD",
+		.description = "Scheduler data",
 		.color = "\033[1;36m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},

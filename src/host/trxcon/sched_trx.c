@@ -533,7 +533,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	/* Check whether required timeslot is allocated and configured */
 	ts = trx->ts_list[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
-		LOGP(DSCH, LOGL_DEBUG, "TDMA timeslot #%u isn't configured, "
+		LOGP(DSCHD, LOGL_DEBUG, "TDMA timeslot #%u isn't configured, "
 			"ignoring burst...\n", tn);
 		return -EINVAL;
 	}

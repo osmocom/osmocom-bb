@@ -65,7 +65,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	toa_sum = &lchan->toa_sum;
 	toa_num = &lchan->toa_num;
 
-	LOGP(DSCH, LOGL_DEBUG, "Data received on %s: fn=%u ts=%u bid=%u\n",
+	LOGP(DSCHD, LOGL_DEBUG, "Data received on %s: fn=%u ts=%u bid=%u\n",
 		lchan_desc->name, fn, ts->index, bid);
 
 	/* Clear buffer & store frame number of first burst */
@@ -99,7 +99,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Check for complete set of bursts */
 	if ((*mask & 0xf) != 0xf) {
-		LOGP(DSCH, LOGL_DEBUG, "Received incomplete data frame at "
+		LOGP(DSCHD, LOGL_DEBUG, "Received incomplete data frame at "
 			"fn=%u (%u/%u) for %s\n", *first_fn,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
@@ -111,7 +111,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Attempt to decode */
 	rc = gsm0503_xcch_decode(l2, buffer, &n_errors, &n_bits_total);
 	if (rc) {
-		LOGP(DSCH, LOGL_DEBUG, "Received bad data frame at fn=%u "
+		LOGP(DSCHD, LOGL_DEBUG, "Received bad data frame at fn=%u "
 			"(%u/%u) for %s\n", *first_fn,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
@@ -159,7 +159,7 @@ int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Encode bursts */
 	rc = gsm0503_xcch_encode(buffer, l2);
 	if (rc) {
-		LOGP(DSCH, LOGL_ERROR, "Failed to encode L2 payload\n");
+		LOGP(DSCHD, LOGL_ERROR, "Failed to encode L2 payload\n");
 
 		/* Remove primitive from queue and free memory */
 		llist_del(&prim->list);
@@ -185,13 +185,13 @@ send_burst:
 	memcpy(burst + 87, offset + 58, 58); /* Payload 2/2 */
 	memset(burst + 145, 0, 3); /* TB */
 
-	LOGP(DSCH, LOGL_DEBUG, "Transmitting %s fn=%u ts=%u burst=%u\n",
+	LOGP(DSCHD, LOGL_DEBUG, "Transmitting %s fn=%u ts=%u burst=%u\n",
 		lchan_desc->name, fn, ts->index, bid);
 
 	/* Send burst to transceiver */
 	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, burst);
 	if (rc) {
-		LOGP(DSCH, LOGL_ERROR, "Could not send burst to transceiver\n");
+		LOGP(DSCHD, LOGL_ERROR, "Could not send burst to transceiver\n");
 
 		/* Remove primitive from queue and free memory */
 		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);

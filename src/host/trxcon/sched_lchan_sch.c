@@ -87,19 +87,19 @@ int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Attempt to decode */
 	rc = gsm0503_sch_decode(sb_info, payload);
 	if (rc) {
-		LOGP(DSCH, LOGL_DEBUG, "Received bad SCH burst at fn=%u\n", fn);
+		LOGP(DSCHD, LOGL_DEBUG, "Received bad SCH burst at fn=%u\n", fn);
 		return rc;
 	}
 
 	/* Decode BSIC and TDMA frame number */
 	decode_sb(&time, &bsic, sb_info);
 
-	LOGP(DSCH, LOGL_DEBUG, "Received SCH: bsic=%u, fn=%u, sched_fn=%u\n",
+	LOGP(DSCHD, LOGL_DEBUG, "Received SCH: bsic=%u, fn=%u, sched_fn=%u\n",
 		bsic, time.fn, trx->sched.fn_counter_proc);
 
 	/* Check if decoded frame number matches */
 	if (time.fn != fn) {
-		LOGP(DSCH, LOGL_ERROR, "Decoded fn=%u does not match "
+		LOGP(DSCHD, LOGL_ERROR, "Decoded fn=%u does not match "
 			"fn=%u provided by scheduler\n", time.fn, fn);
 		return -EINVAL;
 	}

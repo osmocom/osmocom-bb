@@ -73,7 +73,7 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Encode payload */
 	rc = gsm0503_rach_encode(payload, &req->ra, trx->bsic);
 	if (rc) {
-		LOGP(DSCH, LOGL_ERROR, "Could not encode RACH burst\n");
+		LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst\n");
 		return rc;
 	}
 
@@ -83,12 +83,12 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	memcpy(burst + 49, payload, 36); /* payload */
 	memset(burst + 85, 0, 63); /* TB + GP */
 
-	LOGP(DSCH, LOGL_DEBUG, "Transmitting RACH fn=%u\n", fn);
+	LOGP(DSCHD, LOGL_DEBUG, "Transmitting RACH fn=%u\n", fn);
 
 	/* Send burst to transceiver */
 	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, burst);
 	if (rc) {
-		LOGP(DSCH, LOGL_ERROR, "Could not send burst to transceiver\n");
+		LOGP(DSCHD, LOGL_ERROR, "Could not send burst to transceiver\n");
 		return rc;
 	}
 
