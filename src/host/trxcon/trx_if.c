@@ -545,8 +545,8 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return len;
 
 	if (len != 158) {
-		LOGP(DTRX, LOGL_ERROR, "Got data message with invalid length "
-			"'%d'\n", len);
+		LOGP(DTRXD, LOGL_ERROR, "Got data message with invalid "
+			"length '%d'\n", len);
 		return -EINVAL;
 	}
 
@@ -564,16 +564,16 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	}
 
 	if (tn >= 8) {
-		LOGP(DTRX, LOGL_ERROR, "Illegal TS %d\n", tn);
+		LOGP(DTRXD, LOGL_ERROR, "Illegal TS %d\n", tn);
 		return -EINVAL;
 	}
 
 	if (fn >= 2715648) {
-		LOGP(DTRX, LOGL_ERROR, "Illegal FN %u\n", fn);
+		LOGP(DTRXD, LOGL_ERROR, "Illegal FN %u\n", fn);
 		return -EINVAL;
 	}
 
-	LOGP(DTRX, LOGL_DEBUG, "RX burst tn=%u fn=%u rssi=%d toa=%.2f\n",
+	LOGP(DTRXD, LOGL_DEBUG, "RX burst tn=%u fn=%u rssi=%d toa=%.2f\n",
 		tn, fn, rssi, toa);
 
 	/* Poke scheduler */
@@ -598,12 +598,12 @@ int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 	 * TODO: should we wait in TRX_STATE_RSP_WAIT state?
 	 */
 	if (trx->fsm->state != TRX_STATE_ACTIVE) {
-		LOGP(DTRX, LOGL_DEBUG, "Ignoring TX data, "
+		LOGP(DTRXD, LOGL_DEBUG, "Ignoring TX data, "
 			"transceiver isn't ready\n");
 		return -EAGAIN;
 	}
 
-	LOGP(DTRX, LOGL_DEBUG, "TX burst tn=%u fn=%u pwr=%u\n", tn, fn, pwr);
+	LOGP(DTRXD, LOGL_DEBUG, "TX burst tn=%u fn=%u pwr=%u\n", tn, fn, pwr);
 
 	buf[0] = tn;
 	buf[1] = (fn >> 24) & 0xff;

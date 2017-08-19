@@ -48,7 +48,13 @@ static struct log_info_cat trx_log_info_cat[] = {
 	},
 	[DTRX] = {
 		.name = "DTRX",
-		.description = "Transceiver interface",
+		.description = "Transceiver control interface",
+		.color = "\033[1;33m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
+	[DTRXD] = {
+		.name = "DTRXD",
+		.description = "Transceiver data interface",
 		.color = "\033[1;33m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
