@@ -74,7 +74,7 @@ static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 	msg = msgb_alloc_headroom(L1CTL_LENGTH + L1CTL_HEADROOM,
 		L1CTL_HEADROOM, "L1CTL");
 	if (!msg) {
-		fprintf(stderr, "Failed to allocate msg\n");
+		LOGP(DL1D, LOGL_ERROR, "Failed to allocate msg\n");
 		return -ENOMEM;
 	}
 
@@ -236,7 +236,7 @@ int l1ctl_link_init(struct l1ctl_link **l1l, const char *sock_path)
 
 	l1l_new = talloc_zero(tall_trx_ctx, struct l1ctl_link);
 	if (!l1l_new) {
-		fprintf(stderr, "Failed to allocate memory\n");
+		LOGP(DL1C, LOGL_ERROR, "Failed to allocate memory\n");
 		return -ENOMEM;
 	}
 
@@ -245,7 +245,7 @@ int l1ctl_link_init(struct l1ctl_link **l1l, const char *sock_path)
 	rc = osmo_sock_unix_init_ofd(bfd, SOCK_STREAM, 0, sock_path,
 		OSMO_SOCK_F_BIND);
 	if (rc < 0) {
-		fprintf(stderr, "Could not create UNIX socket: %s\n",
+		LOGP(DL1C, LOGL_ERROR, "Could not create UNIX socket: %s\n",
 			strerror(errno));
 		talloc_free(l1l_new);
 		return rc;

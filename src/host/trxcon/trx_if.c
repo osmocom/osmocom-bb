@@ -636,7 +636,7 @@ int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
 	/* Try to allocate memory */
 	trx_new = talloc_zero(tall_trx_ctx, struct trx_instance);
 	if (!trx_new) {
-		fprintf(stderr, "Failed to allocate memory\n");
+		LOGP(DTRX, LOGL_ERROR, "Failed to allocate memory\n");
 		return -ENOMEM;
 	}
 
