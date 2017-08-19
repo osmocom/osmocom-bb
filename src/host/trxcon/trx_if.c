@@ -666,7 +666,7 @@ int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
 	return 0;
 
 error:
-	LOGP(DTRX, LOGL_NOTICE, "Couldn't establish UDP connection\n");
+	LOGP(DTRX, LOGL_ERROR, "Couldn't establish UDP connection\n");
 	talloc_free(trx_new);
 	return rc;
 }
