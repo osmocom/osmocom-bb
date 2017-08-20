@@ -177,6 +177,10 @@ static void signal_handler(int signum)
 	LOGP(DMAIN, LOGL_NOTICE, "Signal %d received\n", signum);
 
 	switch (signum) {
+	case SIGINT:
+	case SIGTERM:
+		exit(0);
+		break;
 	case SIGUSR1:
 		talloc_report_full(tall_vphy_ctx, stderr);
 		break;
@@ -190,6 +194,8 @@ int main(int argc, char *argv[])
 	tall_vphy_ctx = talloc_named_const(NULL, 1, "root");
 
 	msgb_talloc_ctx_init(tall_vphy_ctx, 0);
+	signal(SIGINT, &signal_handler);
+	signal(SIGTERM, &signal_handler);
 	signal(SIGUSR1, &signal_handler);
 	osmo_init_ignore_signals();
 
