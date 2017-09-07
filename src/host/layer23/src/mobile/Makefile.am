@@ -7,6 +7,7 @@ AM_CFLAGS = \
 	-Wall \
 	$(LIBOSMOCORE_CFLAGS) \
 	$(LIBOSMOGSM_CFLAGS) \
+	$(LIBOSMOGAPK_CFLAGS) \
 	$(LIBGPS_CFLAGS) \
 	$(LIBLUA_CFLAGS) \
 	$(NULL)
@@ -15,6 +16,7 @@ LDADD = \
 	$(top_srcdir)/src/common/liblayer23.a \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOCODEC_LIBS) \
+	$(LIBOSMOGAPK_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBGPS_LIBS) \
