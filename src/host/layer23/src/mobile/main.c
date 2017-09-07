@@ -38,6 +38,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -51,6 +52,8 @@ struct log_target *stderr_target;
 void *l23_ctx = NULL;
 struct llist_head ms_list;
 static char *gsmtap_ip = 0;
+static const char *config_file = ".osmocom/bb/mobile.cfg";
+bool use_default_cfg = true;
 struct gsmtap_inst *gsmtap_inst = NULL;
 static char *vty_ip = "127.0.0.1";
 unsigned short vty_port = 4247;
@@ -96,6 +99,7 @@ static void print_help()
 	printf("  -d --debug		Change debug flags. default: %s\n",
 		debug_default);
 	printf("  -D --daemonize	Run as daemon\n");
+	printf("  -c --config-file filename The config file to use.\n");
 	printf("  -m --mncc-sock	Disable built-in MNCC handler and "
 		"offer socket\n");
 }
@@ -111,11 +115,12 @@ static void handle_options(int argc, char **argv)
 			{"vty-port", 1, 0, 'v'},
 			{"debug", 1, 0, 'd'},
 			{"daemonize", 0, 0, 'D'},
+			{"config-file", 1, 0, 'c'},
 			{"mncc-sock", 0, 0, 'm'},
 			{0, 0, 0, 0},
 		};
 
-		c = getopt_long(argc, argv, "hi:u:v:d:Dm",
+		c = getopt_long(argc, argv, "hi:u:c:v:d:Dm",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -131,6 +136,10 @@ static void handle_options(int argc, char **argv)
 			break;
 		case 'u':
 			vty_ip = optarg;
+			break;
+		case 'c':
+			config_file = optarg;
+			use_default_cfg = false;
 			break;
 		case 'v':
 			vty_port = atoi(optarg);
@@ -202,9 +211,6 @@ int main(int argc, char **argv)
 	int quit = 0;
 	int rc;
 	char const * home;
-	size_t len;
-	const char osmocomcfg[] = ".osmocom/bb/mobile.cfg";
-	char *config_file = NULL;
 
 	printf("%s\n", openbsc_copyright);
 
@@ -234,13 +240,11 @@ int main(int argc, char **argv)
 		gsmtap_source_add_sink(gsmtap_inst);
 	}
 
-	home = getenv("HOME");
-	if (home != NULL) {
-		len = strlen(home) + 1 + sizeof(osmocomcfg);
-		config_file = talloc_size(l23_ctx, len);
-		if (config_file != NULL)
-			snprintf(config_file, len, "%s/%s", home, osmocomcfg);
+	if (use_default_cfg) {
+		home = talloc_strdup(l23_ctx, getenv("HOME"));
+		config_file = talloc_asprintf_append(home, "/%s", config_file);
 	}
+
 	/* save the config file directory name */
 	config_dir = talloc_strdup(l23_ctx, config_file);
 	config_dir = dirname(config_dir);

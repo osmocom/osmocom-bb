@@ -409,12 +409,13 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 					" using: 'touch %s'\n", config_file);
 			return rc;
 		}
+		printf("Using configuration from %s\n", config_file);
 	}
 	vty_reading = 0;
 	rc = telnet_init_dynif(l23_ctx, NULL, vty_ip, vty_port);
 	if (rc < 0)
 		return rc;
-	printf("VTY available on port %u.\n", vty_port);
+	printf("VTY available on %s %u\n", vty_ip, vty_port);
 
 	osmo_signal_register_handler(SS_GLOBAL, &global_signal_cb, NULL);
 	osmo_signal_register_handler(SS_L1CTL, &mobile_signal_cb, NULL);
