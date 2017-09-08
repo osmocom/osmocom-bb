@@ -32,6 +32,7 @@
 
 static char *layer2_socket_path = "/tmp/osmocom_l2";
 static char *sap_socket_path = "/tmp/osmocom_sap";
+static char *mncc_socket_path = "/tmp/ms_mncc.%s";
 
 int gsm_settings_init(struct osmocom_ms *ms)
 {
@@ -40,6 +41,10 @@ int gsm_settings_init(struct osmocom_ms *ms)
 
 	strcpy(set->layer2_socket_path, layer2_socket_path);
 	strcpy(set->sap_socket_path, sap_socket_path);
+
+	/* Compose MNCC socket path using MS name */
+	snprintf(set->mncc_socket_path, sizeof(set->mncc_socket_path) - 1,
+		mncc_socket_path, ms->name);
 
 	/* network search */
 	set->plmn_mode = PLMN_MODE_AUTO;
