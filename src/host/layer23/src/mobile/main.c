@@ -38,7 +38,6 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -52,8 +51,7 @@ struct log_target *stderr_target;
 void *l23_ctx = NULL;
 struct llist_head ms_list;
 static char *gsmtap_ip = 0;
-static const char *config_file = ".osmocom/bb/mobile.cfg";
-bool use_default_cfg = true;
+static const char *custom_cfg_file = NULL;
 struct gsmtap_inst *gsmtap_inst = NULL;
 static char *vty_ip = "127.0.0.1";
 unsigned short vty_port = 4247;
@@ -138,8 +136,7 @@ static void handle_options(int argc, char **argv)
 			vty_ip = optarg;
 			break;
 		case 'c':
-			config_file = optarg;
-			use_default_cfg = false;
+			custom_cfg_file = optarg;
 			break;
 		case 'v':
 			vty_port = atoi(optarg);
@@ -208,9 +205,9 @@ void sighandler(int sigset)
 
 int main(int argc, char **argv)
 {
+	char *config_file;
 	int quit = 0;
 	int rc;
-	char const * home;
 
 	printf("%s\n", openbsc_copyright);
 
@@ -240,9 +237,18 @@ int main(int argc, char **argv)
 		gsmtap_source_add_sink(gsmtap_inst);
 	}
 
-	if (use_default_cfg) {
-		home = talloc_strdup(l23_ctx, getenv("HOME"));
-		config_file = talloc_asprintf_append(home, "/%s", config_file);
+	if (custom_cfg_file) {
+		/* Use full path provided by user */
+		config_file = talloc_strdup(l23_ctx, custom_cfg_file);
+	} else {
+		/* Obtain the user's home directory path */
+		const char *home_dir = getenv("HOME");
+		if (!home_dir)
+			home_dir = "~";
+
+		/* Concatenate it with default config path */
+		config_file = talloc_asprintf(l23_ctx, "%s/%s",
+			home_dir, ".osmocom/bb/mobile.cfg");
 	}
 
 	/* save the config file directory name */
