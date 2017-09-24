@@ -438,6 +438,56 @@ DEFUN(show_forb_la, show_forb_la_cmd, "show forbidden location-area MS_NAME",
 	return CMD_SUCCESS;
 }
 
+DEFUN(clone_tsmi, clone_tsmi_cmd, "clone tmsi MS_NAME [TMSI]",
+	"Spoof mobile identity\n"
+	"Force MS to use specified TMSI\n"
+	"Name of MS (see \"show ms\")\n"
+	"Specify required TMSI (e.g. 0xdeadbeef)")
+{
+	uint32_t tmsi = 0xffffffff;
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (argc >= 2)
+		tmsi = strtoul(argv[1], NULL, 16);
+
+	ms->subscr.tmsi = tmsi;
+	vty_out(vty, "Forced to use the following TMSI: 0x%08X%s",
+		tmsi, VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(clone_imsi, clone_imsi_cmd, "clone imsi MS_NAME IMSI",
+	"Spoof mobile identity\n"
+	"Force MS to use specified IMSI\n"
+	"Name of MS (see \"show ms\")\n"
+	"Specify required IMSI (15 digits)")
+{
+	const char *imsi = argv[1];
+	struct osmocom_ms *ms;
+	char *error;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	error = gsm_check_imsi(imsi);
+	if (error) {
+		vty_out(vty, "%s%s", error, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	osmo_strlcpy(ms->subscr.imsi, imsi, GSM_IMSI_LENGTH);
+	vty_out(vty, "Forced to use the following IMSI: %s%s",
+			ms->subscr.imsi, VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(monitor_network, monitor_network_cmd, "monitor network MS_NAME",
 	"Monitor...\nMonitor network information\nName of MS (see \"show ms\")")
 {
@@ -2914,6 +2964,8 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &service_cmd);
 	install_element(ENABLE_NODE, &test_reselection_cmd);
 	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
+	install_element(ENABLE_NODE, &clone_tsmi_cmd);
+	install_element(ENABLE_NODE, &clone_imsi_cmd);
 
 #ifdef _HAVE_GPSD
 	install_element(CONFIG_NODE, &cfg_gps_host_cmd);
