@@ -1494,7 +1494,6 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	if (!hide_default || set->skip_max_per_band)
 		vty_out(vty, "  %sskip-max-per-band%s",
 			(set->skip_max_per_band) ? "" : "no ", VTY_NEWLINE);
-	vty_out(vty, " exit%s", VTY_NEWLINE);
 	vty_out(vty, " test-sim%s", VTY_NEWLINE);
 	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
 	switch (set->test_ki_type) {
@@ -1530,11 +1529,9 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, "  hplmn-search %s%s",
 			(set->test_always) ? "everywhere" : "foreign-country",
 			VTY_NEWLINE);
-	vty_out(vty, " exit%s", VTY_NEWLINE);
 	/* no shutdown must be written to config, because shutdown is default */
 	vty_out(vty, " %sshutdown%s", (ms->shutdown) ? "" : "no ",
 		VTY_NEWLINE);
-	vty_out(vty, "exit%s", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
 
