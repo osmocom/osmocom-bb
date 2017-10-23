@@ -407,6 +407,8 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 					" '%s'\n", config_file);
 			fprintf(stderr, "Please check or create config file"
 					" using: 'touch %s'\n", config_file);
+			fprintf(stderr, "or use one from "
+					"'doc/examples/mobile/'\n");
 			return rc;
 		}
 		printf("Using configuration from %s\n", config_file);
