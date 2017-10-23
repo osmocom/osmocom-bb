@@ -48,7 +48,7 @@ extern void *l23_ctx;
 void mm_conn_free(struct gsm48_mm_conn *conn);
 static int gsm48_rcv_rr(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_rcv_mmr(struct osmocom_ms *ms, struct msgb *msg);
-static int gsm48_mm_ev(struct osmocom_ms *ms, int msg_type, struct msgb *msg);
+int gsm48_mm_ev(struct osmocom_ms *ms, int msg_type, struct msgb *msg);
 static int gsm48_mm_tx_id_rsp(struct osmocom_ms *ms, uint8_t mi_type);
 static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms);
 static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg);
@@ -4295,7 +4295,7 @@ static struct eventstate {
 #define EVENTSLLEN \
 	(sizeof(eventstatelist) / sizeof(struct eventstate))
 
-static int gsm48_mm_ev(struct osmocom_ms *ms, int msg_type, struct msgb *msg)
+int gsm48_mm_ev(struct osmocom_ms *ms, int msg_type, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	int i, rc;

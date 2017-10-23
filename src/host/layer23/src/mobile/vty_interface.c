@@ -1081,6 +1081,28 @@ DEFUN(test_reselection, test_reselection_cmd, "test re-selection NAME",
 	return CMD_SUCCESS;
 }
 
+DEFUN(test_lur, test_lur_cmd, "test location-update NAME",
+	"Manually trigger Location Update procedure\n"
+	"Name of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+	struct gsm48_mmlayer *mm;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	/* Reset attempt counter when attempting to update (4.4.4.5) */
+	mm = &ms->mmlayer;
+	if (mm->state == GSM48_MM_ST_MM_IDLE
+	 && mm->substate == GSM48_MM_SST_ATTEMPT_UPDATE)
+		mm->lupd_attempt = 0;
+
+	gsm48_mm_ev(ms, GSM48_MM_EVENT_TIMEOUT_T3212, NULL);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(delete_forbidden_plmn, delete_forbidden_plmn_cmd,
 	"delete forbidden plmn NAME MCC MNC",
 	"Delete\nForbidden\nplmn\nName of MS (see \"show ms\")\n"
@@ -2986,6 +3008,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &sms_cmd);
 	install_element(ENABLE_NODE, &service_cmd);
 	install_element(ENABLE_NODE, &test_reselection_cmd);
+	install_element(ENABLE_NODE, &test_lur_cmd);
 	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
 	install_element(ENABLE_NODE, &clone_tsmi_cmd);
 	install_element(ENABLE_NODE, &clone_imsi_cmd);
