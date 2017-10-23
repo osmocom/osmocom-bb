@@ -488,6 +488,29 @@ DEFUN(clone_imsi, clone_imsi_cmd, "clone imsi MS_NAME IMSI",
 	return CMD_SUCCESS;
 }
 
+DEFUN(clone_kc_num, clone_kc_num_cmd, "clone kc_num MS_NAME NUM",
+	"Spoof mobile identity\n"
+	"Change current Key Sequence number\n"
+	"Name of MS (see \"show ms\")\n"
+	"Key Sequence number")
+{
+	uint8_t kc_num = 0;
+	struct osmocom_ms *ms;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (argc >= 2)
+		kc_num = strtoul(argv[1], NULL, 10);
+
+	ms->subscr.key_seq = kc_num;
+	vty_out(vty, "Forced to use the following "
+		"Key Sequence number: %u%s", kc_num, VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(monitor_network, monitor_network_cmd, "monitor network MS_NAME",
 	"Monitor...\nMonitor network information\nName of MS (see \"show ms\")")
 {
@@ -2966,6 +2989,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
 	install_element(ENABLE_NODE, &clone_tsmi_cmd);
 	install_element(ENABLE_NODE, &clone_imsi_cmd);
+	install_element(ENABLE_NODE, &clone_kc_num_cmd);
 
 #ifdef _HAVE_GPSD
 	install_element(CONFIG_NODE, &cfg_gps_host_cmd);
