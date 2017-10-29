@@ -2951,6 +2951,9 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
 	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);
 
+	/* Register the talloc context introspection command */
+	osmo_talloc_vty_add_cmds();
+
 	return 0;
 }
 

@@ -396,6 +396,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 
 	osmo_gps_init();
 
+	vty_info.tall_ctx = l23_ctx;
 	vty_init(&vty_info);
 	ms_vty_init();
 	dummy_conn.priv = NULL;
