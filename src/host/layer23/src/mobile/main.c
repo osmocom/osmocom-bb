@@ -220,7 +220,8 @@ int main(int argc, char **argv)
 	log_set_all_filter(stderr_target, 1);
 
 	l23_ctx = talloc_named_const(NULL, 1, "layer2 context");
-	msgb_set_talloc_ctx(l23_ctx);
+	/* TODO: measure and choose a proper pool size */
+	msgb_talloc_ctx_init(l23_ctx, 0);
 
 	handle_options(argc, argv);
 
