@@ -7,8 +7,9 @@ deps="$base/deps"
 inst="$deps/install"
 export deps inst
 
+osmo-clean-workspace.sh
+
 mkdir "$deps" || true
-rm -rf "$inst"
 
 osmo-build-dep.sh libosmocore "" ac_cv_path_DOXYGEN=false
 
@@ -30,3 +31,5 @@ cd src/host/layer23
 autoreconf -fi
 ./configure
 make
+
+osmo-clean-workspace.sh
