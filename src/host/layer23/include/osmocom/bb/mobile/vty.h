@@ -12,7 +12,7 @@ enum ms_vty_node {
 	SUPPORT_NODE,
 };
 
-enum node_type ms_vty_go_parent(struct vty *vty);
+int ms_vty_go_parent(struct vty *vty);
 int ms_vty_init(void);
 extern void vty_notify(struct osmocom_ms *ms, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
 

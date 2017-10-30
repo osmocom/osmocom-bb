@@ -2757,7 +2757,7 @@ DEFUN(cfg_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
 	return CMD_SUCCESS;
 }
 
-enum node_type ms_vty_go_parent(struct vty *vty)
+int ms_vty_go_parent(struct vty *vty)
 {
 	switch (vty->node) {
 	case MS_NODE:
