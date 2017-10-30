@@ -41,6 +41,7 @@
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/vty/telnet_interface.h>
+#include <osmocom/vty/misc.h>
 
 void *l23_ctx;
 
