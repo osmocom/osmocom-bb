@@ -2837,7 +2837,6 @@ int ms_vty_init(void)
 	install_element(CONFIG_NODE, &cfg_ms_rename_cmd);
 	install_element(CONFIG_NODE, &cfg_no_ms_cmd);
 	install_node(&ms_node, config_write);
-	install_default(MS_NODE);
 	install_element(MS_NODE, &cfg_ms_show_this_cmd);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
 	install_element(MS_NODE, &cfg_ms_sap_cmd);
@@ -2880,7 +2879,6 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
-	install_default(SUPPORT_NODE);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dtmf_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_dtmf_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_sms_cmd);
@@ -2936,7 +2934,6 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_skip_max_per_band_cmd);
 	install_node(&testsim_node, config_write_dummy);
-	install_default(TESTSIM_NODE);
 	install_element(TESTSIM_NODE, &cfg_test_imsi_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_ki_xor_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_ki_comp128_cmd);

@@ -189,7 +189,6 @@ int bssgp_vty_init(void)
 
 	install_element(CONFIG_NODE, &cfg_bssgp_cmd);
 	install_node(&bssgp_node, config_write_bssgp);
-	install_default(L_BSSGP_NODE);
 	install_element(L_BSSGP_NODE, &libgb_exit_cmd);
 	install_element(L_BSSGP_NODE, &libgb_end_cmd);
 	//install_element(L_BSSGP_NODE, &cfg_bssgp_timer_cmd);

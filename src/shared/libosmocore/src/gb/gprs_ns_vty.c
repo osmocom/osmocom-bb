@@ -559,7 +559,6 @@ int gprs_ns_vty_init(struct gprs_ns_inst *nsi)
 
 	install_element(CONFIG_NODE, &cfg_ns_cmd);
 	install_node(&ns_node, config_write_ns);
-	install_default(L_NS_NODE);
 	install_element(L_NS_NODE, &libgb_exit_cmd);
 	install_element(L_NS_NODE, &libgb_end_cmd);
 	install_element(L_NS_NODE, &cfg_nse_nsvci_cmd);
