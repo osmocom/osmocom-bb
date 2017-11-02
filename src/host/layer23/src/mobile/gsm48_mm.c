@@ -3244,7 +3244,6 @@ static int gsm48_mm_conn_go_dedic(struct osmocom_ms *ms)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_mm_conn *conn, *conn_found = NULL;
 	struct msgb *nmsg;
-	struct gsm48_mmxx_hdr *nmmh;
 
 	/* the first and only pending connection is the recent requested */
 	llist_for_each_entry(conn, &mm->mm_conn, list) {
@@ -3293,7 +3292,7 @@ static int gsm48_mm_conn_go_dedic(struct osmocom_ms *ms)
 	}
 	if (!nmsg)
 		return -ENOMEM;
-	nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+
 	gsm48_mmxx_upmsg(ms, nmsg);
 
 	return 0;
@@ -3325,7 +3324,6 @@ static int gsm48_mm_sync_ind_active(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_mm_conn *conn;
 	struct msgb *nmsg;
-	struct gsm48_mmxx_hdr *nmmh;
 
 	/* stop MM connection timer */
 	stop_mm_t3230(mm);
@@ -3342,7 +3340,7 @@ static int gsm48_mm_sync_ind_active(struct osmocom_ms *ms, struct msgb *msg)
 		}
 		if (!nmsg)
 			continue; /* skip if not of CC type */
-		nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+
 		/* copy L3 message */
 		nmsg->l3h = msgb_put(nmsg, msgb_l3len(msg));
 		memcpy(nmsg->l3h, msg->l3h, msgb_l3len(msg));
@@ -3595,15 +3593,12 @@ static int gsm48_rcv_rr_sapi3(struct osmocom_ms *ms, struct msgb *msg,
 		llist_for_each_entry(conn, &mm->mm_conn, list) {
 			if (conn->sapi == sapi
 			 && conn->state == GSM48_MMXX_ST_DEDICATED) {
-				struct gsm48_mmxx_hdr *nmmh;
 				struct msgb *nmsg;
-
 				nmsg = gsm48_mmxx_msgb_alloc(
 					GSM48_MMSMS_EST_CNF, conn->ref,
 					conn->transaction_id, conn->sapi);
 				if (!nmsg)
 					return -ENOMEM;
-				nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
 				gsm48_mmxx_upmsg(ms, nmsg);
 			}
 		}

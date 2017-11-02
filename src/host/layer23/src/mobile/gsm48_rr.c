@@ -743,11 +743,6 @@ static void timeout_rr_t3122(void *arg)
 	LOGP(DRR, LOGL_INFO, "timer T3122 has fired\n");
 }
 
-static void timeout_rr_t3124(void *arg)
-{
-	LOGP(DRR, LOGL_INFO, "timer T3124 has fired\n");
-}
-
 static void timeout_rr_t3126(void *arg)
 {
 	struct gsm48_rrlayer *rr = arg;
@@ -810,15 +805,6 @@ static void start_rr_t3122(struct gsm48_rrlayer *rr, int sec, int micro)
 	rr->t3122.cb = timeout_rr_t3122;
 	rr->t3122.data = rr;
 	osmo_timer_schedule(&rr->t3122, sec, micro);
-}
-
-static void start_rr_t3124(struct gsm48_rrlayer *rr, int sec, int micro)
-{
-	LOGP(DRR, LOGL_INFO, "starting T3124 with %d.%03d seconds\n", sec,
-		micro / 1000);
-	rr->t3124.cb = timeout_rr_t3124;
-	rr->t3124.data = rr;
-	osmo_timer_schedule(&rr->t3124, sec, micro);
 }
 
 static void start_rr_t3126(struct gsm48_rrlayer *rr, int sec, int micro)
@@ -2735,7 +2721,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 	uint8_t serv_rxlev_full = 0, serv_rxlev_sub = 0, serv_rxqual_full = 0,
 		serv_rxqual_sub = 0;
 	uint8_t ta, tx_power;
-	uint8_t rep_ba = 0, rep_valid = 0, meas_valid = 0, multi_rep = 0;
+	uint8_t rep_ba = 0, rep_valid = 0, meas_valid = 0;
 	uint8_t n = 0, rxlev_nc[6], bsic_nc[6], bcch_f_nc[6];
 
 	/* just in case! */
@@ -2770,12 +2756,13 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 		uint8_t ncc;
 		int i, index;
 
-		/* multiband reporting, if not: 0 = normal reporting */
-		if (s->si5ter)
-			multi_rep = s->nb_multi_rep_si5ter;
+#if 0
+		/* FIXME: multi-band reporting, if not: 0 = normal reporting */
+		uint8_t multi_rep = s->si5ter ?
+			s->nb_multi_rep_si5ter : 0;
+#endif
 
 		/* get 6 strongest measurements */
-		// FIXME: multiband report
 		strongest = 127; /* infinite */
 		for (n = 0; n < 6; n++) {
 			current = -128; /* -infinite */
@@ -5577,6 +5564,15 @@ static void timeout_rr_t3124(void *arg)
 	return gsm48_send_rsl(ms, RSL_MT_REEST_REQ, nmsg, 0);
 
 	todo
+}
+
+static void start_rr_t3124(struct gsm48_rrlayer *rr, int sec, int micro)
+{
+	LOGP(DRR, LOGL_INFO, "starting T3124 with %d.%03d seconds\n", sec,
+		micro / 1000);
+	rr->t3124.cb = timeout_rr_t3124;
+	rr->t3124.data = rr;
+	osmo_timer_schedule(&rr->t3124, sec, micro);
 }
 
 /* send HANDOVER ACCESS burst (9.1.14) */

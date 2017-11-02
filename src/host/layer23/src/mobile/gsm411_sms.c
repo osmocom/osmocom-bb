@@ -226,7 +226,7 @@ static int gsm340_rx_tpdu(struct gsm_trans *trans, struct msgb *msg)
 	uint8_t *smsp = msgb_sms(msg);
 	struct gsm_sms *gsms;
 	unsigned int sms_alphabet;
-	uint8_t sms_mti, sms_mms;
+	uint8_t sms_mti;
 	uint8_t oa_len_bytes;
 	uint8_t address_lv[12]; /* according to 03.40 / 9.1.2.5 */
 	int rc = 0;
@@ -235,7 +235,7 @@ static int gsm340_rx_tpdu(struct gsm_trans *trans, struct msgb *msg)
 
 	/* invert those fields where 0 means active/present */
 	sms_mti = *smsp & 0x03;
-	sms_mms = !!(*smsp & 0x04);
+	/* uint8_t sms_mms = !!(*smsp & 0x04); */
 	gsms->status_rep_req = (*smsp & 0x20);
 	gsms->ud_hdr_ind = (*smsp & 0x40);
 	gsms->reply_path_req  = (*smsp & 0x80);
