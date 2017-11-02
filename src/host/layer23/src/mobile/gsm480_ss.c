@@ -532,7 +532,7 @@ static int gsm480_tx_ussd(struct gsm_trans *trans, uint8_t msg_type,
 	}
 
 	/* Encode service request */
-	length = gsm_7bit_encode(msg->data, text);
+	gsm_7bit_encode_n_ussd(msg->data, msgb_tailroom(msg), text, &length);
 	msgb_put(msg, length);
 
 	/* Then wrap it as an Octet String */
@@ -772,11 +772,7 @@ static int gsm480_rx_ussd(struct gsm_trans *trans, const uint8_t *data,
 		return -EINVAL;
 	}
 	num_chars = tag_len * 8 / 7;
-	/* Prevent a mobile-originated buffer-overrun! */
-	if (num_chars > sizeof(text) - 1)
-		num_chars = sizeof(text) - 1;
-	text[sizeof(text) - 1] = '\0';
-	gsm_7bit_decode(text, tag_data, num_chars);
+	gsm_7bit_decode_n_ussd(text, sizeof(text), tag_data, num_chars);
 
 	for (i = 0; text[i]; i++) {
 		if (text[i] == '\r')
