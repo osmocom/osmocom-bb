@@ -113,7 +113,8 @@ struct gsm_sms *sms_from_text(const char *receiver, int dcs, const char *text)
 	sms->data_coding_scheme = dcs;
 	strncpy(sms->address, receiver, sizeof(sms->address)-1);
 	/* Generate user_data */
-	sms->user_data_len = gsm_7bit_encode(sms->user_data, sms->text);
+	sms->user_data_len = gsm_7bit_encode_n(sms->user_data,
+		sizeof(sms->user_data), sms->text, NULL);
 
 	return sms;
 }
@@ -282,7 +283,8 @@ static int gsm340_rx_tpdu(struct gsm_trans *trans, struct msgb *msg)
 
 		switch (sms_alphabet) {
 		case DCS_7BIT_DEFAULT:
-			gsm_7bit_decode(gsms->text, smsp, gsms->user_data_len);
+			gsm_7bit_decode_n(gsms->text, sizeof(gsms->text),
+				smsp, gsms->user_data_len);
 			break;
 		case DCS_8BIT_DATA:
 		case DCS_UCS2:
