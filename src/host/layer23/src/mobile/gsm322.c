@@ -320,6 +320,10 @@ static char *bargraph(int value, int min, int max)
 	else
 		value -= min;
 
+	/* Prevent calling memset() with zero length */
+	if (value == 0)
+		return "";
+
 	memset(bar, '=', value);
 	bar[value] = '\0';
 
