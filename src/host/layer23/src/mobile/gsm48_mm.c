@@ -264,10 +264,7 @@ static int decode_network_name(char *name, int name_len,
 	length = ((in_len - 1) * 8 - padding) / 7;
 	if (length <= 0)
 		return 0;
-	if (length >= name_len)
-		length = name_len - 1;
-	gsm_7bit_decode(name, lv + 2, length);
-	name[length] = '\0';
+	gsm_7bit_decode_n(name, name_len, lv + 2, length);
 
 	return length;
 }
