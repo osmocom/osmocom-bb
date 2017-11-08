@@ -21,6 +21,13 @@ AC_SUBST([LIBGPS_CFLAGS])
 AC_SUBST([LIBGPS_LIBS])
 
 
+dnl optional dependencies
+PKG_CHECK_MODULES(LIBLUA, lua53, [
+	WITH_LUA=1], [
+	WITH_LUA=0])
+AC_SUBST([WITH_LUA])
+AM_CONDITIONAL([BUILD_LUA], test "x$WITH_LUA" = "x1")
+
 dnl checks for header files
 AC_HEADER_STDC
 
