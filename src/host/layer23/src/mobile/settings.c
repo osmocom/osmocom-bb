@@ -24,6 +24,7 @@
 #include <string.h>
 #include <osmocom/core/talloc.h>
 
+#include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
@@ -142,6 +143,8 @@ int gsm_settings_exit(struct osmocom_ms *ms)
 		llist_del(&abbrev->list);
 		talloc_free(abbrev);
 	}
+
+	script_lua_close(ms);
 
 	return 0;
 }

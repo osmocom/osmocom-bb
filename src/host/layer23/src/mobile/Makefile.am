@@ -12,4 +12,10 @@ bin_PROGRAMS = mobile
 mobile_SOURCES = main.c app_mobile.c
 mobile_LDADD = libmobile.a $(LDADD)
 
-
+# lua support
+if BUILD_LUA
+AM_CPPFLAGS += -DWITH_LUA=1
+libmobile_a_SOURCES += script_lua.c
+else
+libmobile_a_SOURCES += script_nolua.c
+endif

@@ -1531,6 +1531,8 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	/* no shutdown must be written to config, because shutdown is default */
 	vty_out(vty, " %sshutdown%s", (ms->shutdown != MS_SHUTDOWN_NONE) ? "" : "no ",
 		VTY_NEWLINE);
+	if (ms->lua_script)
+		vty_out(vty, " lua-script %s%s", ms->lua_script, VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
 
@@ -2740,6 +2742,30 @@ DEFUN(cfg_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_script_load_run, cfg_ms_script_load_run_cmd, "lua-script FILENAME",
+	"Load and execute a LUA script\nFilename for lua script")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	osmo_talloc_replace_string(ms, &ms->lua_script, argv[0]);
+	if (!ms->lua_script)
+		return CMD_WARNING;
+
+	script_lua_load(vty, ms, ms->lua_script);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_script_load_run, cfg_ms_no_script_load_run_cmd, "no lua-script",
+	NO_STR "Load and execute LUA script")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	script_lua_close(ms);
+	talloc_free(ms->lua_script);
+	ms->lua_script = NULL;
+	return CMD_SUCCESS;
+}
+
 int ms_vty_go_parent(struct vty *vty)
 {
 	switch (vty->node) {
@@ -2931,6 +2957,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_shutdown_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
 	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);
+	install_element(MS_NODE, &cfg_ms_script_load_run_cmd);
+	install_element(MS_NODE, &cfg_ms_no_script_load_run_cmd);
 
 	/* Register the talloc context introspection command */
 	osmo_talloc_vty_add_cmds();

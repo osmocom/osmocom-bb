@@ -6,6 +6,7 @@
 extern char *config_dir;
 
 struct osmocom_ms;
+struct vty;
 
 int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 	const char *config_file, const char *vty_ip, uint16_t vty_port);
@@ -19,6 +20,9 @@ int mobile_stop(struct osmocom_ms *ms, int force);
 
 void mobile_set_started(struct osmocom_ms *ms, bool state);
 void mobile_set_shutdown(struct osmocom_ms *ms, int state);
+
+int script_lua_load(struct vty *vty, struct osmocom_ms *ms, const char *filename);
+int script_lua_close(struct osmocom_ms *ms);
 
 
 /* Internal code. Don't call directly */

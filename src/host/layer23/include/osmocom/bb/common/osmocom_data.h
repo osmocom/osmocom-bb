@@ -85,6 +85,9 @@ struct osmocom_ms {
 	struct gsm48_cclayer cclayer;
 	struct osmomncc_entity mncc_entity;
 	struct llist_head trans_list;
+
+	void *lua_state;
+	char *lua_script;
 };
 
 enum osmobb_sig_subsys {
