@@ -38,6 +38,7 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
 #include <osmocom/bb/common/sap_interface.h>
+#include <osmocom/vty/logging.h>
 #include <osmocom/vty/telnet_interface.h>
 
 #include <osmocom/core/msgb.h>
@@ -398,6 +399,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 
 	vty_info.tall_ctx = l23_ctx;
 	vty_init(&vty_info);
+	logging_vty_add_cmds(NULL);
 	ms_vty_init();
 	dummy_conn.priv = NULL;
 	vty_reading = 1;
