@@ -139,6 +139,12 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[1;32m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DLUA] = {
+		.name = "DLUA",
+		.description = "LUA",
+		.color = "\033[1;32m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
 };
 
 const struct log_info log_info = {
