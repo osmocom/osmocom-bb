@@ -320,6 +320,9 @@ static char *bargraph(int value, int min, int max)
 	else
 		value -= min;
 
+	/* Prevent 'bar' buffer over-/under-run */
+	OSMO_ASSERT(value >= 0 && value < 128);
+
 	/* Prevent calling memset() with zero length */
 	if (value == 0)
 		return "";
