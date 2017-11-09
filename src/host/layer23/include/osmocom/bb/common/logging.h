@@ -23,6 +23,7 @@ enum {
 	DSIM,
 	DGPS,
 	DMOB,
+	DPRIM,
 };
 
 extern const struct log_info log_info;
