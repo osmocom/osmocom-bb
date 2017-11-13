@@ -23,6 +23,7 @@
 #include <lauxlib.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/common/logging.h>
 
 #include <osmocom/bb/mobile/primitives.h>
@@ -94,6 +95,30 @@ static const struct luaL_Reg global_runtime[] = {
 	{ NULL, NULL },
 };
 
+/* Push table and function.   Stack+=2 */
+static bool load_cb(lua_State *L, int ref, const char *cb_name)
+{
+	lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+	lua_pushstring(L, cb_name);
+	lua_gettable(L, -2);
+	if (lua_isnil(L, -1)) {
+		LOGP(DLUA, LOGL_DEBUG, "No handler for %s\n", cb_name);
+		lua_pop(L, 2);
+		return false;
+	}
+	return true;
+}
+
+/* Call callback. Stack-=func + args. func/args popped by lua_pcall */
+static void call_cb(lua_State *L, int args)
+{
+	int err = lua_pcall(L, args, 0, 0);
+	if (err) {
+		LOGP(DLUA, LOGL_ERROR, "lua error: %s\n", lua_tostring(L, -1));
+		lua_pop(L, 2);
+	}
+}
+
 static void handle_timeout(struct mobile_prim_intf *intf, struct mobile_timer_param *param)
 {
 	struct timer_userdata *timer = (void *)(intptr_t) param->timer_id;
@@ -108,6 +133,109 @@ static void handle_timeout(struct mobile_prim_intf *intf, struct mobile_timer_pa
 		LOGP(DLUA, LOGL_ERROR, "lua error: %s\n", lua_tostring(L, -1));
 		lua_pop(L, 1);
 	}
+}
+
+static void handle_started(struct mobile_prim_intf *intf, struct mobile_started_param *param)
+{
+	lua_State *L = intf->ms->lua_state;
+
+	if (intf->ms->lua_cb_ref == LUA_REFNIL)
+		return;
+
+	if (!load_cb(L, intf->ms->lua_cb_ref, "Started"))
+		return;
+
+	lua_pushinteger(L, param->started);
+
+	call_cb(L, 1);
+	lua_pop(L, 1);
+}
+
+static void handle_shutdown(struct mobile_prim_intf *intf, struct mobile_shutdown_param *param)
+{
+	lua_State *L = intf->ms->lua_state;
+
+	if (intf->ms->lua_cb_ref == LUA_REFNIL)
+		return;
+
+	if (!load_cb(L, intf->ms->lua_cb_ref, "Shutdown"))
+		return;
+
+	lua_pushinteger(L, param->old_state);
+	lua_pushinteger(L, param->new_state);
+
+	call_cb(L, 2);
+	lua_pop(L, 1);
+}
+
+static void handle_sms(struct mobile_prim_intf *intf, struct mobile_sms_param *param)
+{
+	lua_State *L = intf->ms->lua_state;
+
+	if (intf->ms->lua_cb_ref == LUA_REFNIL)
+		return;
+
+	if (!load_cb(L, intf->ms->lua_cb_ref, "Sms"))
+		return;
+
+	lua_createtable(L, 0, 11);
+
+	lua_pushinteger(L, param->sms.validity_minutes);
+	lua_setfield(L, -2, "validity_minutes");
+
+	lua_pushinteger(L, param->sms.reply_path_req);
+	lua_setfield(L, -2, "reply_path_req");
+
+	lua_pushinteger(L, param->sms.status_rep_req);
+	lua_setfield(L, -2, "status_rep_req");
+
+	lua_pushinteger(L, param->sms.ud_hdr_ind);
+	lua_setfield(L, -2, "ud_hdr_ind");
+
+	lua_pushinteger(L, param->sms.protocol_id);
+	lua_setfield(L, -2, "protocol_id");
+
+	lua_pushinteger(L, param->sms.data_coding_scheme);
+	lua_setfield(L, -2, "data_coding_scheme");
+
+	lua_pushinteger(L, param->sms.msg_ref);
+	lua_setfield(L, -2, "msg_ref");
+
+	lua_pushstring(L, param->sms.address);
+	lua_setfield(L, -2, "address");
+
+	lua_pushinteger(L, param->sms.time);
+	lua_setfield(L, -2, "time");
+
+	lua_pushlstring(L, (char *) param->sms.user_data, param->sms.user_data_len);
+	lua_setfield(L, -2, "user_data");
+
+	lua_pushstring(L, param->sms.text);
+	lua_setfield(L, -2, "text");
+
+	lua_pushinteger(L, param->cause_valid);
+	lua_pushinteger(L, param->cause);
+
+	call_cb(L, 3);
+	lua_pop(L, 1);
+}
+
+static void handle_mm(struct mobile_prim_intf *intf, struct mobile_mm_param *param)
+{
+	lua_State *L = intf->ms->lua_state;
+
+	if (intf->ms->lua_cb_ref == LUA_REFNIL)
+		return;
+
+	if (!load_cb(L, intf->ms->lua_cb_ref, "Mm"))
+		return;
+
+	lua_pushinteger(L, param->state);
+	lua_pushinteger(L, param->substate);
+	lua_pushinteger(L, param->prev_substate);
+
+	call_cb(L, 3);
+	lua_pop(L, 1);
 }
 
 static int lua_osmo_timeout(lua_State *L)
@@ -164,8 +292,125 @@ static const struct luaL_Reg timer_funcs[] = {
 	{ NULL, NULL },
 };
 
+static int lua_osmo_ms(lua_State *L)
+{
+	lua_pushlightuserdata(L, get_primitive(L)->ms);
+	luaL_getmetatable(L, "MS");
+	lua_setmetatable(L, -2);
+
+	return 1;
+}
+
+static int lua_ms_imei(lua_State *L)
+{
+	struct osmocom_ms *ms = get_primitive(L)->ms;
+
+	luaL_argcheck(L, lua_isuserdata(L, -1), 1, "No userdata");
+	lua_pushstring(L, ms->settings.imei);
+	return 1;
+}
+static int lua_ms_imsi(lua_State *L)
+{
+	struct osmocom_ms *ms = get_primitive(L)->ms;
+
+	luaL_argcheck(L, lua_isuserdata(L, -1), 1, "No userdata");
+	lua_pushstring(L, ms->subscr.imsi);
+	return 1;
+}
+
+static int lua_ms_shutdown_state(lua_State *L)
+{
+	struct osmocom_ms *ms = get_primitive(L)->ms;
+
+	lua_pushinteger(L, ms->shutdown);
+	return 1;
+}
+
+static int lua_ms_started(lua_State *L)
+{
+	struct osmocom_ms *ms = get_primitive(L)->ms;
+
+	lua_pushinteger(L, ms->started);
+	return 1;
+}
+
+static int lua_ms_register(lua_State *L)
+{
+	struct osmocom_ms *ms = get_primitive(L)->ms;
+
+	/* callbacks must be a table */
+	luaL_checktype(L, 2, LUA_TTABLE);
+
+	if (ms->lua_cb_ref != LUA_REFNIL)
+		luaL_unref(L, LUA_REGISTRYINDEX, ms->lua_cb_ref);
+	ms->lua_cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	return 0;
+}
+
+static int lua_ms_no_shutdown(lua_State *L)
+{
+	struct osmocom_ms *ms = get_primitive(L)->ms;
+	char *name;
+	int res;
+
+	res = mobile_start(ms, &name);
+	lua_pushinteger(L, res);
+	return 1;
+}
+
+static int lua_ms_shutdown(lua_State *L)
+{
+	struct osmocom_ms *ms = get_primitive(L)->ms;
+	int argc = lua_gettop(L);
+	int force = 0;
+	int res;
+
+	if (argc >= 1) {
+		luaL_argcheck(L, lua_isboolean(L, -1), 1, "Force");
+		force = lua_toboolean(L, -1);
+	}
+
+	res = mobile_stop(ms, force);
+	lua_pushinteger(L, res);
+	return 1;
+}
+
+static int lua_ms_sms_send_simple(lua_State *L)
+{
+	const char *sms_sca, *number, *text;
+	int msg_ref, rc;
+
+	luaL_argcheck(L, lua_isnumber(L, -1), 4, "msg_ref needs to be a number");
+	luaL_argcheck(L, lua_isstring(L, -2), 3, "text must be a string");
+	luaL_argcheck(L, lua_isstring(L, -3), 2, "number must be a string");
+	luaL_argcheck(L, lua_isstring(L, -4), 1, "sms_sca must be a string");
+
+	msg_ref = (int) lua_tonumber(L, -1);
+	text = lua_tostring(L, -2);
+	number = lua_tostring(L, -3);
+	sms_sca = lua_tostring(L, -4);
+
+	rc = sms_send(get_primitive(L)->ms, sms_sca, number, text, msg_ref);
+	lua_pushinteger(L, rc);
+	return 1;
+}
+
+static const struct luaL_Reg ms_funcs[] = {
+	{ "imsi", lua_ms_imsi },
+	{ "imei", lua_ms_imei },
+	{ "shutdown_state", lua_ms_shutdown_state },
+	{ "started", lua_ms_started },
+	{ "register", lua_ms_register },
+	{ "start", lua_ms_no_shutdown },
+	{ "stop", lua_ms_shutdown },
+	{ "sms_send_simple", lua_ms_sms_send_simple },
+	{ NULL, NULL },
+};
+
+
 static const struct luaL_Reg osmo_funcs[] = {
 	{ "timeout",	lua_osmo_timeout },
+	{ "ms",	lua_osmo_ms },
 	{ NULL, NULL },
 };
 
@@ -174,6 +419,18 @@ static void lua_prim_ind(struct mobile_prim_intf *intf, struct mobile_prim *prim
 	switch (OSMO_PRIM_HDR(&prim->hdr)) {
 	case OSMO_PRIM(PRIM_MOB_TIMER, PRIM_OP_INDICATION):
 		handle_timeout(intf, (struct mobile_timer_param *) &prim->u.timer);
+		break;
+	case OSMO_PRIM(PRIM_MOB_STARTED, PRIM_OP_INDICATION):
+		handle_started(intf, (struct mobile_started_param *) &prim->u.started);
+		break;
+	case OSMO_PRIM(PRIM_MOB_SHUTDOWN, PRIM_OP_INDICATION):
+		handle_shutdown(intf, (struct mobile_shutdown_param *) &prim->u.shutdown);
+		break;
+	case OSMO_PRIM(PRIM_MOB_SMS, PRIM_OP_INDICATION):
+		handle_sms(intf, (struct mobile_sms_param *) &prim->u.sms);
+		break;
+	case OSMO_PRIM(PRIM_MOB_MM, PRIM_OP_INDICATION):
+		handle_mm(intf, (struct mobile_mm_param *) &prim->u.mm);
 		break;
 	default:
 		LOGP(DLUA, LOGL_ERROR, "Unknown primitive: %d\n", OSMO_PRIM_HDR(&prim->hdr));
@@ -196,6 +453,16 @@ static void add_globals(lua_State *L)
 	lua_pop(L, 1);
 }
 
+static void create_meta_table(lua_State *L, const char *name, const luaL_Reg *regs)
+{
+	luaL_newmetatable(L, name);
+	lua_pushliteral(L, "__index");
+	lua_pushvalue(L, -2);
+	lua_rawset(L, -3);
+	luaL_setfuncs(L, regs, 0);
+	lua_pop(L, 1);
+}
+
 static void add_runtime(lua_State *L, struct mobile_prim_intf *intf)
 {
 	add_globals(L);
@@ -206,13 +473,8 @@ static void add_runtime(lua_State *L, struct mobile_prim_intf *intf)
 	lua_setglobal(L, "osmo");
 
 	/* Create metatables so we can GC objects... */
-	luaL_newmetatable(L, "Timer");
-	lua_pushliteral(L, "__index");
-	lua_pushvalue(L, -2);
-	lua_rawset(L, -3);
-	luaL_setfuncs(L, timer_funcs, 0);
-	lua_pop(L, 1);
-
+	create_meta_table(L, "Timer", timer_funcs);
+	create_meta_table(L, "MS", ms_funcs);
 
 	/* Remember the primitive pointer... store it in the registry */
 	lua_pushlightuserdata(L, lua_prim_key);
@@ -251,6 +513,7 @@ int script_lua_load(struct vty *vty, struct osmocom_ms *ms, const char *filename
 	if (!ms->lua_state)
 		return -1;
 
+	ms->lua_cb_ref = LUA_REFNIL;
 	luaL_openlibs(ms->lua_state);
 
 	intf = mobile_prim_intf_alloc(ms);

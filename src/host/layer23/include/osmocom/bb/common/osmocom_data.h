@@ -87,6 +87,7 @@ struct osmocom_ms {
 	struct llist_head trans_list;
 
 	void *lua_state;
+	int lua_cb_ref;
 	char *lua_script;
 };
 
