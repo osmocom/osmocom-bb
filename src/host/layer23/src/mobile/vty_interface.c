@@ -55,19 +55,19 @@ extern struct llist_head active_connections;
 
 struct cmd_node ms_node = {
 	MS_NODE,
-	"%s(ms)#",
+	"%s(ms)# ",
 	1
 };
 
 struct cmd_node testsim_node = {
 	TESTSIM_NODE,
-	"%s(test-sim)#",
+	"%s(test-sim)# ",
 	1
 };
 
 struct cmd_node support_node = {
 	SUPPORT_NODE,
-	"%s(support)#",
+	"%s(support)# ",
 	1
 };
 
