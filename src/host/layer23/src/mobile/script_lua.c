@@ -25,7 +25,26 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
 
+#include <osmocom/bb/mobile/primitives.h>
+
 #include <osmocom/vty/misc.h>
+
+struct timer_userdata {
+	int cb_ref;
+};
+
+static char lua_prim_key[] = "osmocom.org-mobile-prim";
+
+static struct mobile_prim_intf *get_primitive(lua_State *L)
+{
+	struct mobile_prim_intf *intf;
+
+	lua_pushlightuserdata(L, lua_prim_key);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	intf = (void *) lua_topointer(L, -1);
+	lua_pop(L, 1);
+	return intf;
+}
 
 static int lua_osmo_do_log(lua_State *L, int loglevel)
 {
@@ -75,6 +94,94 @@ static const struct luaL_Reg global_runtime[] = {
 	{ NULL, NULL },
 };
 
+static void handle_timeout(struct mobile_prim_intf *intf, struct mobile_timer_param *param)
+{
+	struct timer_userdata *timer = (void *)(intptr_t) param->timer_id;
+	lua_State *L = intf->ms->lua_state;
+	int err;
+
+	lua_rawgeti(L, LUA_REGISTRYINDEX, timer->cb_ref);
+	luaL_unref(L, LUA_REGISTRYINDEX, timer->cb_ref);
+
+	err = lua_pcall(L, 0, 0, 0);
+	if (err) {
+		LOGP(DLUA, LOGL_ERROR, "lua error: %s\n", lua_tostring(L, -1));
+		lua_pop(L, 1);
+	}
+}
+
+static int lua_osmo_timeout(lua_State *L)
+{
+	struct mobile_prim *prim;
+	struct timer_userdata *timer;
+
+	if(lua_gettop(L) != 2) {
+		lua_pushliteral(L, "Need two arguments");
+		lua_error(L);
+		return 0;
+	}
+
+	luaL_argcheck(L, lua_isnumber(L, -2), 1, "Timeout needs to be a number");
+	luaL_argcheck(L, lua_isfunction(L, -1), 2, "Callback needs to be a function");
+
+	/*
+	 * Create a handle to prevent the function to be GCed while we run the
+	 * timer. Add a metatable to the object so itself will be GCed properly.
+	 */
+	timer = lua_newuserdata(L, sizeof(*timer));
+	luaL_getmetatable(L, "Timer");
+	lua_setmetatable(L, -2);
+
+	lua_pushvalue(L, -2);
+	timer->cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	/* Take the address of the user data... */
+	prim = mobile_prim_alloc(PRIM_MOB_TIMER, PRIM_OP_REQUEST);
+	prim->u.timer.timer_id = (intptr_t) timer;
+	prim->u.timer.seconds = lua_tonumber(L, -3);
+	mobile_prim_intf_req(get_primitive(L), prim);
+
+	return 1;
+}
+
+static int lua_timer_cancel(lua_State *L)
+{
+	struct mobile_prim *prim;
+	struct timer_userdata *timer;
+
+	luaL_argcheck(L, lua_isuserdata(L, -1), 1, "No userdata");
+	timer = lua_touserdata(L, -1);
+
+	prim = mobile_prim_alloc(PRIM_MOB_TIMER_CANCEL, PRIM_OP_REQUEST);
+	prim->u.timer.timer_id = (intptr_t) timer;
+	mobile_prim_intf_req(get_primitive(L), prim);
+	return 0;
+}
+
+static const struct luaL_Reg timer_funcs[] = {
+	{ "cancel", lua_timer_cancel },
+	{ "__gc", lua_timer_cancel },
+	{ NULL, NULL },
+};
+
+static const struct luaL_Reg osmo_funcs[] = {
+	{ "timeout",	lua_osmo_timeout },
+	{ NULL, NULL },
+};
+
+static void lua_prim_ind(struct mobile_prim_intf *intf, struct mobile_prim *prim)
+{
+	switch (OSMO_PRIM_HDR(&prim->hdr)) {
+	case OSMO_PRIM(PRIM_MOB_TIMER, PRIM_OP_INDICATION):
+		handle_timeout(intf, (struct mobile_timer_param *) &prim->u.timer);
+		break;
+	default:
+		LOGP(DLUA, LOGL_ERROR, "Unknown primitive: %d\n", OSMO_PRIM_HDR(&prim->hdr));
+	};
+
+	msgb_free(prim->hdr.msg);
+}
+
 /*
  *  Add functions to the global lua scope. Technically these are
  *  included in the _G table. The following lua code can be used
@@ -89,9 +196,29 @@ static void add_globals(lua_State *L)
 	lua_pop(L, 1);
 }
 
-static void add_runtime(lua_State *L, struct osmocom_ms *ms)
+static void add_runtime(lua_State *L, struct mobile_prim_intf *intf)
 {
 	add_globals(L);
+
+	/* Add a osmo module/table. Seems an oldschool module? */
+	lua_newtable(L);
+	luaL_setfuncs(L, osmo_funcs, 0);
+	lua_setglobal(L, "osmo");
+
+	/* Create metatables so we can GC objects... */
+	luaL_newmetatable(L, "Timer");
+	lua_pushliteral(L, "__index");
+	lua_pushvalue(L, -2);
+	lua_rawset(L, -3);
+	luaL_setfuncs(L, timer_funcs, 0);
+	lua_pop(L, 1);
+
+
+	/* Remember the primitive pointer... store it in the registry */
+	lua_pushlightuserdata(L, lua_prim_key);
+	lua_pushlightuserdata(L, intf);
+	lua_settable(L, LUA_REGISTRYINDEX);
+
 }
 
 static void *talloc_lua_alloc(void *ctx, void *ptr, size_t osize, size_t nsize)
@@ -115,6 +242,7 @@ int script_lua_close(struct osmocom_ms *ms)
 
 int script_lua_load(struct vty *vty, struct osmocom_ms *ms, const char *filename)
 {
+	struct mobile_prim_intf *intf;
 	int err;
 
 	if (ms->lua_state)
@@ -124,6 +252,11 @@ int script_lua_load(struct vty *vty, struct osmocom_ms *ms, const char *filename
 		return -1;
 
 	luaL_openlibs(ms->lua_state);
+
+	intf = mobile_prim_intf_alloc(ms);
+	intf->indication = lua_prim_ind;
+	add_runtime(ms->lua_state, intf);
+
 	err = luaL_loadfilex(ms->lua_state, filename, NULL);
 	if (err) {
 		vty_out(vty, "%% LUA load error: %s%s",
@@ -132,7 +265,6 @@ int script_lua_load(struct vty *vty, struct osmocom_ms *ms, const char *filename
 		return -2;
 	}
 
-	add_runtime(ms->lua_state, ms);
 
 	err = lua_pcall(ms->lua_state, 0, 0, 0);
 	if (err) {
