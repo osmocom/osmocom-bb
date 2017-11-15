@@ -131,7 +131,7 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 			gsm322_cs_sendmsg(ms, nmsg);
 		}
 
-		ms->started = 1;
+		ms->started = true;
 	}
 	return 0;
 }
@@ -231,7 +231,7 @@ int mobile_init(struct osmocom_ms *ms)
 	gsm_random_imei(&ms->settings);
 
 	ms->shutdown = 0;
-	ms->started = 0;
+	ms->started = false;
 
 	if (!strcmp(ms->settings.imei, "000000000000000")) {
 		LOGP(DMOB, LOGL_NOTICE, "***\nWarning: Mobile '%s' has default IMEI: %s\n",
@@ -291,7 +291,7 @@ int mobile_delete(struct osmocom_ms *ms, int force)
 {
 	int rc;
 
-	ms->deleting = 1;
+	ms->deleting = true;
 
 	if (mncc_recv_app) {
 		mncc_sock_exit(ms->mncc_entity.sock_state);

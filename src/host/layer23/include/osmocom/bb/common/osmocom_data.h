@@ -62,7 +62,8 @@ struct osmocom_ms {
 	uint16_t test_arfcn;
 	struct osmol1_entity l1_entity;
 
-	uint8_t deleting, shutdown, started;
+	bool started, deleting;
+	uint8_t shutdown;
 	struct gsm_support support;
 	struct gsm_settings settings;
 	struct gsm_subscriber subscr;
