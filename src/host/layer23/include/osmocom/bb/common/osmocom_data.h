@@ -54,6 +54,13 @@ struct rx_meas_stat {
 	int16_t s, rl_fail;
 };
 
+enum {
+	MS_SHUTDOWN_NONE = 0,
+	MS_SHUTDOWN_IMSI_DETACH = 1,
+	MS_SHUTDOWN_WAIT_RESET = 2,
+	MS_SHUTDOWN_COMPL = 3,
+};
+
 /* One Mobilestation for osmocom */
 struct osmocom_ms {
 	struct llist_head entity;

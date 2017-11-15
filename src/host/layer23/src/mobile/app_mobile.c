@@ -96,9 +96,9 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 		set = &ms->settings;
 
 		/* waiting for reset after shutdown */
-		if (ms->shutdown == 2) {
+		if (ms->shutdown == MS_SHUTDOWN_WAIT_RESET) {
 			LOGP(DMOB, LOGL_NOTICE, "MS '%s' has been resetted\n", ms->name);
-			ms->shutdown = 3;
+			ms->shutdown = MS_SHUTDOWN_COMPL;
 			break;
 		}
 
@@ -142,13 +142,13 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 
 	/* if shutdown is already performed */
-	if (ms->shutdown >= 2)
+	if (ms->shutdown >= MS_SHUTDOWN_WAIT_RESET)
 		return 0;
 
 	if (!force && ms->started) {
 		struct msgb *nmsg;
 
-		ms->shutdown = 1; /* going down */
+		ms->shutdown = MS_SHUTDOWN_IMSI_DETACH;
 		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
 		if (!nmsg)
 			return -ENOMEM;
@@ -168,10 +168,10 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	lapdm_channel_exit(&ms->lapdm_channel);
 
 	if (ms->started) {
-		ms->shutdown = 2; /* being down, wait for reset */
+		ms->shutdown = MS_SHUTDOWN_WAIT_RESET; /* being down, wait for reset */
 		l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	} else {
-		ms->shutdown = 3; /* being down */
+		ms->shutdown = MS_SHUTDOWN_COMPL; /* being down */
 	}
 	vty_notify(ms, NULL);
 	vty_notify(ms, "Power off!\n");
@@ -230,7 +230,7 @@ int mobile_init(struct osmocom_ms *ms)
 
 	gsm_random_imei(&ms->settings);
 
-	ms->shutdown = 0;
+	ms->shutdown = MS_SHUTDOWN_NONE;
 	ms->started = false;
 
 	if (!strcmp(ms->settings.imei, "000000000000000")) {
@@ -268,7 +268,7 @@ struct osmocom_ms *mobile_new(char *name)
 	gsm_support_init(ms);
 	gsm_settings_init(ms);
 
-	ms->shutdown = 3; /* being down */
+	ms->shutdown = MS_SHUTDOWN_COMPL;
 
 	if (mncc_recv_app) {
 		mncc_name = talloc_asprintf(ms, "/tmp/ms_mncc_%s", ms->name);
@@ -298,7 +298,7 @@ int mobile_delete(struct osmocom_ms *ms, int force)
 		ms->mncc_entity.sock_state = NULL;
 	}
 
-	if (ms->shutdown == 0 || (ms->shutdown == 1 && force)) {
+	if (ms->shutdown == MS_SHUTDOWN_NONE || (ms->shutdown == MS_SHUTDOWN_IMSI_DETACH && force)) {
 		rc = mobile_exit(ms, force);
 		if (rc < 0)
 			return rc;
@@ -339,9 +339,9 @@ int l23_app_work(int *_quit)
 	int work = 0;
 
 	llist_for_each_entry_safe(ms, ms2, &ms_list, entity) {
-		if (ms->shutdown != 3)
+		if (ms->shutdown != MS_SHUTDOWN_COMPL)
 			work |= mobile_work(ms);
-		if (ms->shutdown == 3) {
+		if (ms->shutdown == MS_SHUTDOWN_COMPL) {
 			if (ms->l2_wq.bfd.fd > -1) {
 				layer2_close(ms);
 				ms->l2_wq.bfd.fd = -1;

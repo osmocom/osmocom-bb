@@ -603,7 +603,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 	}
 
 	/* no running, no transaction */
-	if (!ms->started || ms->shutdown) {
+	if (!ms->started || ms->shutdown != MS_SHUTDOWN_NONE) {
 		gsm480_ss_result(ms, "<phone is down>", 0);
 		return -EIO;
 	}

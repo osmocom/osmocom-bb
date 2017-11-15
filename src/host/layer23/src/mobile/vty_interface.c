@@ -123,7 +123,7 @@ static void vty_restart(struct vty *vty, struct osmocom_ms *ms)
 {
 	if (vty_reading)
 		return;
-	if (ms->shutdown != 0)
+	if (ms->shutdown != MS_SHUTDOWN_NONE)
 		return;
 	vty_out(vty, "You must restart MS '%s' ('shutdown / no shutdown') for "
 		"change to take effect!%s", ms->name, VTY_NEWLINE);
@@ -142,7 +142,7 @@ static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
 
 	llist_for_each_entry(ms, &ms_list, entity) {
 		if (!strcmp(ms->name, name)) {
-			if (ms->shutdown) {
+			if (ms->shutdown != MS_SHUTDOWN_NONE) {
 				vty_out(vty, "MS '%s' is admin down.%s", name,
 					VTY_NEWLINE);
 				return NULL;
@@ -189,9 +189,9 @@ static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 		service = ", MM connection active";
 
 	vty_out(vty, "MS '%s' is %s%s%s%s", ms->name,
-		(ms->shutdown) ? "administratively " : "",
-		(ms->shutdown || !ms->started) ? "down" : "up",
-		(!ms->shutdown) ? service : "",
+		(ms->shutdown != MS_SHUTDOWN_NONE) ? "administratively " : "",
+		(ms->shutdown != MS_SHUTDOWN_NONE || !ms->started) ? "down" : "up",
+		(ms->shutdown == MS_SHUTDOWN_NONE) ? service : "",
 		VTY_NEWLINE);
 	vty_out(vty, "  IMEI: %s%s", set->imei, VTY_NEWLINE);
 	vty_out(vty, "     IMEISV: %s%s", set->imeisv, VTY_NEWLINE);
@@ -201,7 +201,7 @@ static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 	else
 		vty_out(vty, "     IMEI generation: fixed%s", VTY_NEWLINE);
 
-	if (ms->shutdown)
+	if (ms->shutdown != MS_SHUTDOWN_NONE)
 		return;
 
 	if (set->plmn_mode == PLMN_MODE_AUTO)
@@ -303,7 +303,7 @@ DEFUN(show_subscr, show_subscr_cmd, "show subscriber [MS_NAME]",
 		gsm_subscr_dump(&ms->subscr, print_vty, vty);
 	} else {
 		llist_for_each_entry(ms, &ms_list, entity) {
-			if (!ms->shutdown) {
+			if (ms->shutdown == MS_SHUTDOWN_NONE) {
 				gsm_subscr_dump(&ms->subscr, print_vty, vty);
 				vty_out(vty, "%s", VTY_NEWLINE);
 			}
@@ -1529,7 +1529,7 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 			(set->test_always) ? "everywhere" : "foreign-country",
 			VTY_NEWLINE);
 	/* no shutdown must be written to config, because shutdown is default */
-	vty_out(vty, " %sshutdown%s", (ms->shutdown) ? "" : "no ",
+	vty_out(vty, " %sshutdown%s", (ms->shutdown != MS_SHUTDOWN_NONE) ? "" : "no ",
 		VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
@@ -2699,7 +2699,7 @@ DEFUN(cfg_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
 	struct osmocom_ms *ms = vty->index, *tmp;
 	int rc;
 
-	if (ms->shutdown != 3)
+	if (ms->shutdown != MS_SHUTDOWN_COMPL)
 		return CMD_SUCCESS;
 
 	llist_for_each_entry(tmp, &ms_list, entity) {
@@ -2738,7 +2738,7 @@ DEFUN(cfg_shutdown, cfg_ms_shutdown_cmd, "shutdown",
 {
 	struct osmocom_ms *ms = vty->index;
 
-	if (ms->shutdown == 0)
+	if (ms->shutdown == MS_SHUTDOWN_NONE)
 		mobile_exit(ms, 0);
 
 	return CMD_SUCCESS;
@@ -2749,7 +2749,7 @@ DEFUN(cfg_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
 {
 	struct osmocom_ms *ms = vty->index;
 
-	if (ms->shutdown <= 1)
+	if (ms->shutdown <= MS_SHUTDOWN_IMSI_DETACH)
 		mobile_exit(ms, 1);
 
 	return CMD_SUCCESS;

@@ -1849,7 +1849,7 @@ static int gsm48_mm_imsi_detach_end(struct osmocom_ms *ms, struct msgb *msg)
 	subscr->sim_valid = 0;
 
 	/* wait for RR idle and then power off when IMSI is detached */
-	if (ms->shutdown) {
+	if (ms->shutdown != MS_SHUTDOWN_NONE) {
 		if (mm->state == GSM48_MM_ST_MM_IDLE) {
 			mobile_exit(ms, 1);
 			return 0;
@@ -1944,7 +1944,7 @@ static int gsm48_mm_imsi_detach_release(struct osmocom_ms *ms, struct msgb *msg)
 		new_mm_state(mm, GSM48_MM_ST_WAIT_NETWORK_CMD, 0);
 
 		/* power off */
-		if (ms->shutdown) {
+		if (ms->shutdown != MS_SHUTDOWN_NONE) {
 			mobile_exit(ms, 1);
 			return 0;
 		}
