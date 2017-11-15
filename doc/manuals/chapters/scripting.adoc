@@ -1,0 +1,111 @@
+[[scripting]]
+== Scripting using Lua
+
+The mobile application can be extended using the
+https://www.lua.org/manual/5.3/[lua5.3 language].
+To use the scripting facility a script needs to be
+configured through the VTY interface and will be
+associated to a Mobile Station (MS). The script will
+then be able to interact with the specific MS.
+
+An event based programming model is to be used. This
+means that once the script has been loaded it should
+register to the wanted events, configure timers and
+return. When an event occurs the registered event
+handler will be executed.
+
+The following describes the exported runtime services
+to be used in the script.
+
+=== Logging
+
+The logging functions allow to generate log messages
+for different levels. The log implementatiom is using
+the standard Osmocom logging framework which allows to
+have multiple log targets, e.g. syslog, file or through
+the VTY.
+
+|========
+|Code              |Return | Explanation
+|print(...)        |void  | Print a message with log level 'debug'
+|log_debug(...)    |void  | Print a message with log level 'debug'
+|log_notice(...)   |void  | Print a message with log level 'notice'
+|log_error(...)    |void  | Print a message with log level 'error'
+|log_fatal(...)    |void  | Print a message with log level 'fatal'
+|========
+
+==== Examples
+
+----
+Code:
+print("Log level 'debug'")
+log_debug("Log level 'debug'")
+log_notice("Log level 'notice'")
+log_error("Log level 'error'")
+log_fatal("Log level 'fatal'")
+
+Output:
+\<0011> @script.lua:1 Log level 'debug' 
+\<0011> @script.lua:2 Log level 'debug' 
+\<0011> @script.lua:3 Log level 'notice' 
+\<0011> @script.lua:4 Log level 'error' 
+\<0011> @script.lua:5 Log level 'fatal' 
+
+----
+
+=== Timer class
+
+The timer allows to invoke a function once after the requested
+timeout. The timer creation function will return immediately and
+the callback will be called after the timeout and when no other
+lua code is executing. The _osmo.timeout_ function should be used
+to create a new time, a running timer can be canneled using the _cancel_
+method.
+
+|========
+|Code                     |Return     |Explanation
+|osmo.timeout(timeout, cb)|A new timer|Create a new non-recurring timer. Timeout should be in rounded seconds and cb should be a function.
+|timer.cancel()           |Void       |Cancel the timer, the callback will not be called.
+|========
+
+==== Examples
+
+----
+Code:
+local timer = osmo.timeout(timeout_in_seconds, call_back)
+timer:cancel()
+----
+
+----
+Code:
+local timer = osmo.timeout(3, function()
+	print("Timeout passed")
+end)
+print("Configured")
+
+Output:
+\<0011> @script.lua:4 Configured
+\<0011> @script.lua:2 Timeout passed
+----
+
+=== MS class
+
+The MS singletong provides access to the Mobile Station configuration
+the script is associated with. This includes runtime information like
+the IMSI, IMEI or functions like start/stop.
+
+|========
+|Code                     |Return     |Explanation
+|osmo.ms().imsi()         |string     |The IMSI. It might be invalid in case it has not been read from SIM card yet
+|osmo.ms().imei()         |string     |The configured IMEI
+|========
+==== Examples
+
+-----
+Code:
+local ms = osmo.ms()
+print(ms.imei(), ms.imsi())
+
+Output:
+\<0011> @script.lua:2 126000000000000
+-----
