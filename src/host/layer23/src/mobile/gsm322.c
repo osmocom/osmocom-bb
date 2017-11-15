@@ -3584,7 +3584,7 @@ static int gsm322_c_choose_cell(struct osmocom_ms *ms, struct msgb *msg)
 		gsm322_sync_to_cell(cs, NULL, 0);
 		cs->si = cs->list[cs->arfci].sysinfo;
 		if (!cs->si) {
-			printf("No SI when ret.idle, please fix!\n");
+			LOGP(DCS, LOGL_FATAL, "No SI when ret.idle, please fix!\n");
 			exit(0L);
 		}
 
@@ -3670,7 +3670,7 @@ static int gsm322_c_conn_mode_1(struct osmocom_ms *ms, struct msgb *msg)
 		gsm_print_arfcn(cs->arfcn));
 	cs->si = cs->list[cs->arfci].sysinfo;
 	if (!cs->si) {
-		printf("No SI when leaving idle, please fix!\n");
+		LOGP(DCS, LOGL_FATAL, "No SI when leaving idle, please fix!\n");
 		exit(0L);
 	}
 	cs->sync_retries = SYNC_RETRIES;
@@ -3700,7 +3700,7 @@ static int gsm322_c_conn_mode_2(struct osmocom_ms *ms, struct msgb *msg)
 		gsm_print_arfcn(cs->arfcn));
 	cs->si = cs->list[cs->arfci].sysinfo;
 	if (!cs->si) {
-		printf("No SI when leaving idle, please fix!\n");
+		LOGP(DCS, LOGL_FATAL, "No SI when leaving idle, please fix!\n");
 		exit(0L);
 	}
 	cs->sync_retries = SYNC_RETRIES;
@@ -4637,7 +4637,7 @@ printf("%d time to sync again: %u\n", nb->arfcn, now + GSM58_READ_AGAIN - nb->wh
 		cs->arfci = arfcn2index(cs->arfcn);
 		cs->si = cs->list[cs->arfci].sysinfo;
 		if (!cs->si) {
-			printf("No SI after neighbour scan, please fix!\n");
+			LOGP(DNB, LOGL_FATAL, "No SI after neighbour scan, please fix!\n");
 			exit(0L);
 		}
 		LOGP(DNB, LOGL_INFO, "Syncing back to serving cell\n");

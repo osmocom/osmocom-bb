@@ -97,7 +97,7 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 
 		/* waiting for reset after shutdown */
 		if (ms->shutdown == 2) {
-			printf("MS '%s' has been resetted\n", ms->name);
+			LOGP(DMOB, LOGL_NOTICE, "MS '%s' has been resetted\n", ms->name);
 			ms->shutdown = 3;
 			break;
 		}
@@ -175,7 +175,7 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	}
 	vty_notify(ms, NULL);
 	vty_notify(ms, "Power off!\n");
-	printf("Power off! (MS %s)\n", ms->name);
+	LOGP(DMOB, LOGL_NOTICE, "Power off! (MS %s)\n", ms->name);
 
 	return 0;
 }
@@ -212,7 +212,7 @@ int mobile_init(struct osmocom_ms *ms)
 
 	rc = layer2_open(ms, ms->settings.layer2_socket_path);
 	if (rc < 0) {
-		fprintf(stderr, "Failed during layer2_open()\n");
+		LOGP(DMOB, LOGL_ERROR, "Failed during layer2_open()\n");
 		ms->l2_wq.bfd.fd = -1;
 		mobile_exit(ms, 1);
 		return rc;
@@ -234,14 +234,14 @@ int mobile_init(struct osmocom_ms *ms)
 	ms->started = 0;
 
 	if (!strcmp(ms->settings.imei, "000000000000000")) {
-		printf("***\nWarning: Mobile '%s' has default IMEI: %s\n",
+		LOGP(DMOB, LOGL_NOTICE, "***\nWarning: Mobile '%s' has default IMEI: %s\n",
 			ms->name, ms->settings.imei);
-		printf("This could relate your identitiy to other users with "
+		LOGP(DMOB, LOGL_NOTICE, "This could relate your identitiy to other users with "
 			"default IMEI.\n***\n");
 	}
 
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
-	printf("Mobile '%s' initialized, please start phone now!\n", ms->name);
+	LOGP(DMOB, LOGL_NOTICE, "Mobile '%s' initialized, please start phone now!\n", ms->name);
 	return 0;
 }
 
@@ -253,7 +253,7 @@ struct osmocom_ms *mobile_new(char *name)
 
 	ms = talloc_zero(l23_ctx, struct osmocom_ms);
 	if (!ms) {
-		fprintf(stderr, "Failed to allocate MS\n");
+		LOGP(DMOB, LOGL_ERROR, "Failed to allocate MS: %s\n", name);
 		return NULL;
 	}
 
