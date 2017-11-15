@@ -131,7 +131,7 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 			gsm322_cs_sendmsg(ms, nmsg);
 		}
 
-		ms->started = true;
+		mobile_set_started(ms, true);
 	}
 	return 0;
 }
@@ -148,7 +148,7 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	if (!force && ms->started) {
 		struct msgb *nmsg;
 
-		ms->shutdown = MS_SHUTDOWN_IMSI_DETACH;
+		mobile_set_shutdown(ms, MS_SHUTDOWN_IMSI_DETACH);
 		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_IMSI_DETACH);
 		if (!nmsg)
 			return -ENOMEM;
@@ -168,10 +168,10 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	lapdm_channel_exit(&ms->lapdm_channel);
 
 	if (ms->started) {
-		ms->shutdown = MS_SHUTDOWN_WAIT_RESET; /* being down, wait for reset */
+		mobile_set_shutdown(ms, MS_SHUTDOWN_WAIT_RESET); /* being down, wait for reset */
 		l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	} else {
-		ms->shutdown = MS_SHUTDOWN_COMPL; /* being down */
+		mobile_set_shutdown(ms, MS_SHUTDOWN_COMPL); /* being down */
 	}
 	vty_notify(ms, NULL);
 	vty_notify(ms, "Power off!\n");
@@ -230,8 +230,8 @@ int mobile_init(struct osmocom_ms *ms)
 
 	gsm_random_imei(&ms->settings);
 
-	ms->shutdown = MS_SHUTDOWN_NONE;
-	ms->started = false;
+	mobile_set_shutdown(ms, MS_SHUTDOWN_NONE);
+	mobile_set_started(ms, false);
 
 	if (!strcmp(ms->settings.imei, "000000000000000")) {
 		LOGP(DMOB, LOGL_NOTICE, "***\nWarning: Mobile '%s' has default IMEI: %s\n",
@@ -268,7 +268,7 @@ struct osmocom_ms *mobile_new(char *name)
 	gsm_support_init(ms);
 	gsm_settings_init(ms);
 
-	ms->shutdown = MS_SHUTDOWN_COMPL;
+	mobile_set_shutdown(ms, MS_SHUTDOWN_COMPL);
 
 	if (mncc_recv_app) {
 		mncc_name = talloc_asprintf(ms, "/tmp/ms_mncc_%s", ms->name);
@@ -444,3 +444,12 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 	return 0;
 }
 
+void mobile_set_started(struct osmocom_ms *ms, bool state)
+{
+	ms->started = state;
+}
+
+void mobile_set_shutdown(struct osmocom_ms *ms, int state)
+{
+	ms->shutdown = state;
+}

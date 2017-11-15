@@ -1,6 +1,8 @@
 #ifndef APP_MOBILE_H
 #define APP_MOBILE_H
 
+#include <stdbool.h>
+
 extern char *config_dir;
 
 int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
@@ -12,6 +14,9 @@ struct osmocom_ms *mobile_new(char *name);
 int mobile_init(struct osmocom_ms *ms);
 int mobile_exit(struct osmocom_ms *ms, int force);
 int mobile_work(struct osmocom_ms *ms);
+
+void mobile_set_started(struct osmocom_ms *ms, bool state);
+void mobile_set_shutdown(struct osmocom_ms *ms, int state);
 
 #endif
 
