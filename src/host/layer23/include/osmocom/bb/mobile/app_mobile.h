@@ -5,6 +5,8 @@
 
 extern char *config_dir;
 
+struct osmocom_ms;
+
 int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 	const char *config_file, const char *vty_ip, uint16_t vty_port);
 int l23_app_exit(void);
