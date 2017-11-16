@@ -37,6 +37,7 @@
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
+#include <osmocom/bb/mobile/primitives.h>
 #include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/vty/logging.h>
 #include <osmocom/vty/telnet_interface.h>
@@ -492,9 +493,14 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 void mobile_set_started(struct osmocom_ms *ms, bool state)
 {
 	ms->started = state;
+
+	mobile_prim_ntfy_started(ms, state);
 }
 
 void mobile_set_shutdown(struct osmocom_ms *ms, int state)
 {
+	int old_state = ms->shutdown;
 	ms->shutdown = state;
+
+	mobile_prim_ntfy_shutdown(ms, old_state, state);
 }

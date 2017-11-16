@@ -24,6 +24,8 @@
 #include <osmocom/core/timer.h>
 #include <osmocom/core/talloc.h>
 
+static LLIST_HEAD(s_prims);
+
 struct timer_closure {
 	struct llist_head entry;
 	struct mobile_prim_intf *intf;
@@ -39,6 +41,7 @@ struct mobile_prim_intf *mobile_prim_intf_alloc(struct osmocom_ms *ms)
 	intf->ms = ms;
 
 	INIT_LLIST_HEAD(&intf->timers);
+	llist_add_tail(&intf->entry, &s_prims);
 	return intf;
 }
 
@@ -51,6 +54,7 @@ void mobile_prim_intf_free(struct mobile_prim_intf *intf)
 		llist_del(&timer->entry);
 		talloc_free(timer);
 	}
+	llist_del(&intf->entry);
 	talloc_free(intf);
 }
 
@@ -93,6 +97,33 @@ static int create_timer(struct mobile_prim_intf *intf, struct mobile_timer_param
 	llist_add_tail(&closure->entry, &intf->timers);
 	osmo_timer_schedule(&closure->timer, param->seconds, 0);
 	return 0;
+}
+
+static void dispatch(struct osmocom_ms *ms, struct mobile_prim *prim)
+{
+	struct mobile_prim_intf *intf, *tmp;
+
+	llist_for_each_entry_safe(intf, tmp, &s_prims, entry) {
+		if (intf->ms == ms)
+			intf->indication(intf, prim);
+	}
+}
+
+void mobile_prim_ntfy_started(struct osmocom_ms *ms, bool started)
+{
+	struct mobile_prim *prim = mobile_prim_alloc(PRIM_MOB_STARTED, PRIM_OP_INDICATION);
+
+	prim->u.started.started = started;
+	dispatch(ms, prim);
+}
+
+void mobile_prim_ntfy_shutdown(struct osmocom_ms *ms, int old_state, int new_state)
+{
+	struct mobile_prim *prim = mobile_prim_alloc(PRIM_MOB_SHUTDOWN, PRIM_OP_INDICATION);
+
+	prim->u.shutdown.old_state = old_state;
+	prim->u.shutdown.new_state = new_state;
+	dispatch(ms, prim);
 }
 
 static int cancel_timer(struct mobile_prim_intf *intf, struct mobile_timer_param *param)
