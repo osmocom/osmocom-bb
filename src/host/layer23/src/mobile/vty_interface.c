@@ -947,7 +947,7 @@ DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 	if (vty_check_number(vty, number))
 		return CMD_WARNING;
 
-	sms_send(ms, sms_sca, number, argv_concat(argv, argc, 2));
+	sms_send(ms, sms_sca, number, argv_concat(argv, argc, 2), 42);
 
 	return CMD_SUCCESS;
 }

@@ -221,7 +221,7 @@ fail:
 
 /* process an incoming TPDU (called from RP-DATA)
  * return value > 0: RP CAUSE for ERROR; < 0: silent error; 0 = success */
-static int gsm340_rx_tpdu(struct gsm_trans *trans, struct msgb *msg)
+static int gsm340_rx_tpdu(struct gsm_trans *trans, struct msgb *msg, uint8_t msg_ref)
 {
 	uint8_t *smsp = msgb_sms(msg);
 	struct gsm_sms *gsms;
@@ -296,7 +296,7 @@ static int gsm340_rx_tpdu(struct gsm_trans *trans, struct msgb *msg)
 	LOGP(DLSMS, LOGL_INFO, "RX SMS: MTI: 0x%02x, "
 	     "MR: 0x%02x PID: 0x%02x, DCS: 0x%02x, OA: %s, "
 	     "UserDataLength: 0x%02x, UserData: \"%s\"\n",
-	     sms_mti, gsms->msg_ref,
+	     sms_mti, msg_ref,
 	     gsms->protocol_id, gsms->data_coding_scheme, gsms->address,
 	     gsms->user_data_len,
 			sms_alphabet == DCS_7BIT_DEFAULT ? gsms->text :
@@ -377,7 +377,7 @@ static int gsm411_rx_rp_ud(struct msgb *msg, struct gsm_trans *trans,
 	LOGP(DLSMS, LOGL_INFO, "TPDU(%li,%s)\n", msg->tail-msg->l4h,
 		osmo_hexdump(msg->l4h, msg->tail-msg->l4h));
 
-	rc = gsm340_rx_tpdu(trans, msg);
+	rc = gsm340_rx_tpdu(trans, msg, rph->msg_ref);
 	if (rc == 0)
 		return gsm411_send_rp_ack(trans, rph->msg_ref);
 	else if (rc > 0)
@@ -528,7 +528,7 @@ static int gsm411_rx_rl_report(struct msgb *msg, struct gsm48_hdr *gh,
 
 /* generate a msgb containing a TPDU derived from struct gsm_sms,
  * returns total size of TPDU */
-static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms)
+static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms, uint8_t msg_ref)
 {
 	uint8_t *smsp;
 	uint8_t da[12];	/* max len per 03.40 */
@@ -559,7 +559,7 @@ static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms)
 
 	/* generate message ref */
 	smsp = msgb_put(msg, 1);
-	*smsp = sms->msg_ref;
+	*smsp = msg_ref;
 
 	/* generate destination address */
 	if (sms->address[0] == '+')
@@ -620,12 +620,11 @@ static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms)
 
 /* Take a SMS in gsm_sms structure and send it. */
 static int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
-	struct gsm_sms *sms)
+	struct gsm_sms *sms, uint8_t msg_ref)
 {
 	struct msgb *msg;
 	struct gsm_trans *trans;
 	uint8_t *data, *rp_ud_len;
-	uint8_t msg_ref = 42;
 	int rc;
 	int transaction_id;
 	uint8_t sca[11];	/* max len per 03.40 */
@@ -689,7 +688,7 @@ error:
 	rp_ud_len = (uint8_t *)msgb_put(msg, 1);
 
 	/* generate the 03.40 TPDU */
-	rc = gsm340_gen_tpdu(msg, sms);
+	rc = gsm340_gen_tpdu(msg, sms, msg_ref);
 	if (rc < 0)
 		goto error;
 	*rp_ud_len = rc;
@@ -703,14 +702,14 @@ error:
 
 /* create and send SMS */
 int sms_send(struct osmocom_ms *ms, const char *sms_sca, const char *number,
-	const char *text)
+	const char *text, uint8_t msg_ref)
 {
 	struct gsm_sms *sms = sms_from_text(number, 0, text);
 
 	if (!sms)
 		return -ENOMEM;
 
-	return gsm411_tx_sms_submit(ms, sms_sca, sms);
+	return gsm411_tx_sms_submit(ms, sms_sca, sms, msg_ref);
 }
 
 /*
