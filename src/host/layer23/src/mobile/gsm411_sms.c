@@ -40,6 +40,7 @@
 #include <osmocom/gsm/gsm0411_utils.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/bb/mobile/vty.h>
+#include <osmocom/bb/mobile/primitives.h>
 
 #define UM_SAPI_SMS 3
 
@@ -129,6 +130,7 @@ static int gsm411_sms_report(struct osmocom_ms *ms, struct gsm_sms *sms,
 		vty_notify(ms, "SMS to %s failed: %s\n", sms->address,
 			get_value_string(gsm411_rp_cause_strs, cause));
 
+	mobile_prim_ntfy_sms_status(ms, sms, cause);
 	return 0;
 }
 /*
@@ -185,6 +187,8 @@ static int gsm340_rx_sms_deliver(struct osmocom_ms *ms, struct msgb *msg,
 	char *sms_file;
 	char vty_text[sizeof(gsms->text)], *p;
 	FILE *fp;
+
+	mobile_prim_ntfy_sms_new(ms, gsms);
 
 	/* remove linefeeds and show at VTY */
 	strcpy(vty_text, gsms->text);

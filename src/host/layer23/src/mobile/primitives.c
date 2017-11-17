@@ -126,6 +126,24 @@ void mobile_prim_ntfy_shutdown(struct osmocom_ms *ms, int old_state, int new_sta
 	dispatch(ms, prim);
 }
 
+void mobile_prim_ntfy_sms_new(struct osmocom_ms *ms, struct gsm_sms *sms)
+{
+	struct mobile_prim *prim = mobile_prim_alloc(PRIM_MOB_SMS, PRIM_OP_INDICATION);
+
+	prim->u.sms.sms = *sms;
+	dispatch(ms, prim);
+}
+
+void mobile_prim_ntfy_sms_status(struct osmocom_ms *ms, struct gsm_sms *sms, uint8_t cause)
+{
+	struct mobile_prim *prim = mobile_prim_alloc(PRIM_MOB_SMS, PRIM_OP_INDICATION);
+
+	prim->u.sms.sms = *sms;
+	prim->u.sms.cause_valid = true;
+	prim->u.sms.cause = cause;
+	dispatch(ms, prim);
+}
+
 static int cancel_timer(struct mobile_prim_intf *intf, struct mobile_timer_param *param)
 {
 	struct timer_closure *closure;

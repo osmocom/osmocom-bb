@@ -4,6 +4,12 @@
 #define SMS_HDR_SIZE	128
 #define SMS_TEXT_SIZE	256
 
+#include <stdint.h>
+#include <time.h>
+
+struct osmocom_ms;
+struct msgb;
+
 struct gsm_sms {
 	unsigned long validity_minutes;
 	uint8_t reply_path_req;

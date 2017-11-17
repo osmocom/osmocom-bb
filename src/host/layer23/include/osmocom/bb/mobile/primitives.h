@@ -1,5 +1,7 @@
 #pragma once
 
+#include <osmocom/bb/mobile/gsm411_sms.h>
+
 #include <osmocom/core/prim.h>
 
 struct mobile_prim;
@@ -16,6 +18,7 @@ enum mobile_prims {
 	PRIM_MOB_TIMER_CANCEL,
 	PRIM_MOB_STARTED,
 	PRIM_MOB_SHUTDOWN,
+	PRIM_MOB_SMS,
 };
 
 struct mobile_prim_intf {
@@ -52,14 +55,26 @@ struct mobile_shutdown_param {
 	int new_state;
 };
 
+/**
+ * SMS related configs.
+ */
+struct mobile_sms_param {
+	struct gsm_sms sms;
+
+	bool cause_valid;
+	int cause;
+};
+
 struct mobile_prim {
 	struct osmo_prim_hdr hdr;	/*!< Primitive base class */
 	union {
 		struct mobile_timer_param timer;
 		struct mobile_started_param started;
 		struct mobile_shutdown_param shutdown;
+		struct mobile_sms_param sms;
 	} u;
 };
+
 
 struct mobile_prim_intf *mobile_prim_intf_alloc(struct osmocom_ms *ms);
 int mobile_prim_intf_req(struct mobile_prim_intf *intf, struct mobile_prim *hdr);
@@ -69,3 +84,5 @@ struct mobile_prim *mobile_prim_alloc(unsigned int primitive, enum osmo_prim_ope
 
 void mobile_prim_ntfy_started(struct osmocom_ms *ms, bool started);
 void mobile_prim_ntfy_shutdown(struct osmocom_ms *ms, int old_state, int new_state);
+void mobile_prim_ntfy_sms_new(struct osmocom_ms *ms, struct gsm_sms *sms);
+void mobile_prim_ntfy_sms_status(struct osmocom_ms *ms, struct gsm_sms *sms, uint8_t cause);
