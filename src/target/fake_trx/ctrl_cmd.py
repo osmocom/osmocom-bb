@@ -23,6 +23,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import signal
+import getopt
 import select
 import sys
 
@@ -36,18 +37,62 @@ COPYRIGHT = \
 	"There is NO WARRANTY, to the extent permitted by law.\n"
 
 class Application:
-	def __init__(self, remote_addr, remote_port, bind_port, fuz = False):
-		# Init UDP connection
-		self.ctrl_link = UDPLink(remote_addr, remote_port, bind_port)
+	# Application variables
+	remote_addr = "127.0.0.1"
+	base_port = 5700
+	fuzzing = False
 
-		# Determine working mode
-		self.fuzzing = fuz
+	def __init__(self):
+		print(COPYRIGHT)
+		self.parse_argv()
 
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
 
-		# Print copyright
-		print(COPYRIGHT)
+		# Init UDP connection
+		self.ctrl_link = UDPLink(self.remote_addr,
+			self.base_port + 1, self.base_port + 101)
+
+	def print_help(self, msg = None):
+		s  = " Usage: " + sys.argv[0] + " [options]\n\n" \
+			 " Some help...\n" \
+			 "  -h --help           this text\n\n"
+
+		s += " TRX interface specific\n" \
+			 "  -r --remote-addr    Set remote address (default %s)\n"   \
+			 "  -p --base-port      Set base port number (default %d)\n" \
+			 "  -f --fuzzing        Send raw payloads (without CMD)\n"   \
+
+		print(s % (self.remote_addr, self.base_port))
+
+		if msg is not None:
+			print(msg)
+
+	def parse_argv(self):
+		try:
+			opts, args = getopt.getopt(sys.argv[1:],
+				"r:p:fh",
+				[
+					"help",
+					"fuzzing",
+					"base-port=",
+					"remote-addr=",
+				])
+		except getopt.GetoptError as err:
+			self.print_help("[!] " + str(err))
+			sys.exit(2)
+
+		for o, v in opts:
+			if o in ("-h", "--help"):
+				self.print_help()
+				sys.exit(2)
+
+			elif o in ("-r", "--remote-addr"):
+				self.remote_addr = v
+			elif o in ("-p", "--base-port"):
+				self.base_port = int(v)
+			elif o in ("-f", "--fuzzing"):
+				self.fuzzing = True
 
 	def run(self):
 		while True:
@@ -88,5 +133,5 @@ class Application:
 			sys.exit(0)
 
 if __name__ == '__main__':
-	app = Application("127.0.0.1", 5701, 5801)
+	app = Application()
 	app.run()
