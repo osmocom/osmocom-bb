@@ -268,7 +268,7 @@ int l1ctl_link_init(struct l1ctl_link **l1l, const char *sock_path)
 	/* Allocate a new dedicated state machine */
 	osmo_fsm_register(&l1ctl_fsm);
 	l1l_new->fsm = osmo_fsm_inst_alloc(&l1ctl_fsm, l1l_new,
-		NULL, LOGL_DEBUG, sock_path);
+		NULL, LOGL_DEBUG, "l1ctl_link");
 
 	*l1l = l1l_new;
 

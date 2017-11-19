@@ -628,7 +628,6 @@ int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
 {
 	struct trx_instance *trx_new;
-	char *inst_name;
 	int rc;
 
 	LOGP(DTRX, LOGL_NOTICE, "Init transceiver interface\n");
@@ -656,10 +655,8 @@ int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
 
 	/* Allocate a new dedicated state machine */
 	osmo_fsm_register(&trx_fsm);
-	inst_name = talloc_asprintf(trx_new, "%s:%u", host, port);
 	trx_new->fsm = osmo_fsm_inst_alloc(&trx_fsm, trx_new,
-		NULL, LOGL_DEBUG, inst_name);
-	talloc_free(inst_name);
+		NULL, LOGL_DEBUG, "trx_interface");
 
 	*trx = trx_new;
 
