@@ -25,7 +25,6 @@
 import random
 import signal
 import getopt
-import select
 import sys
 
 from rand_burst_gen import RandBurstGen
