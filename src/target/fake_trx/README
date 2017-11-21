@@ -5,7 +5,7 @@ software implements OsmoTRX (Osmocom's fork of OpenBTS transceiver)
 style clock (CLCK), control (CTRL) and data interfaces. So, OsmoBTS
 source code doesn't require any modifications, while for OsmocomBB
 you will need to use a new application - trxcon, which can be found
-in the 'fixeria/sdr_phy' branch until one is merged to master.
+in the 'fixeria/trx' branch until one is merged to master.
 
 Brief description of available applications:
 
