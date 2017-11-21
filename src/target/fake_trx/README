@@ -25,5 +25,9 @@ Brief description of available applications:
 
   - burst_gen.py - a tool for sending GSM bursts either to L1
     (OsmoBTS or OsmocomBB) or to TRX (OsmoTRX and GR-GSM TRX).
-    Currently it is only possible to send random bursts of
+    Currently it is only possible to generate random bursts of
     different types: NB, FB, SB, AB.
+
+  - burst_send.py - a tool for sending existing bursts from file
+    or standard input either to L1 (OsmoBTS or OsmocomBB) or to
+    TRX (OsmoTRX and GR-GSM TRX).
