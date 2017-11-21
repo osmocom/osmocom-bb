@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-# Simple tool to send custom messages via TRX DATA interface,
-# which may be also useful for fuzzing and testing
+# Auxiliary tool to generate and send random bursts via TRX DATA
+# interface, which may be useful for fuzzing and testing
 #
 # (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
 #

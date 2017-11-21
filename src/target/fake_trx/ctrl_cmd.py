@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-# Simple tool to send custom commands via TRX CTRL interface,
-# which may be also useful for fuzzing
+# Auxiliary tool to send custom commands via TRX CTRL interface,
+# which may be useful for testing and fuzzing
 #
 # (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
 #

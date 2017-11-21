@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-# Simple tool to send bursts via TRX DATA interface
+# Auxiliary tool to send existing bursts via TRX DATA interface
 #
 # (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
 #

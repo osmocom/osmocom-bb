@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-# Simple tool to send custom messages via TRX DATA interface,
-# which may be also useful for fuzzing and testing
+# Virtual Um-interface (fake transceiver)
+# DATA interface implementation
 #
 # (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
 #
