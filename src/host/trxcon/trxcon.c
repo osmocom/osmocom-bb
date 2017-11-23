@@ -69,6 +69,7 @@ static struct {
 	struct trx_instance *trx;
 	const char *trx_ip;
 	uint16_t trx_base_port;
+	uint32_t trx_fn_advance;
 } app_data;
 
 void *tall_trx_ctx = NULL;
@@ -143,6 +144,7 @@ static void print_help(void)
 	printf("  -d --debug        Change debug flags. Default: %s\n", DEBUG_DEFAULT);
 	printf("  -i --trx-ip       IP address of host runing TRX (default 127.0.0.1)\n");
 	printf("  -p --trx-port     Base port of TRX instance (default 5700)\n");
+	printf("  -f --trx-advance  Scheduler clock advance (default 20)\n");
 	printf("  -s --socket       Listening socket for layer23 (default /tmp/osmocom_l2)\n");
 	printf("  -D --daemonize    Run as daemon\n");
 }
@@ -157,11 +159,12 @@ static void handle_options(int argc, char **argv)
 			{"socket", 1, 0, 's'},
 			{"trx-ip", 1, 0, 'i'},
 			{"trx-port", 1, 0, 'p'},
+			{"trx-advance", 1, 0, 'f'},
 			{"daemonize", 0, 0, 'D'},
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "d:i:p:s:Dh",
+		c = getopt_long(argc, argv, "d:i:p:f:s:Dh",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -181,6 +184,9 @@ static void handle_options(int argc, char **argv)
 		case 'p':
 			app_data.trx_base_port = atoi(optarg);
 			break;
+		case 'f':
+			app_data.trx_fn_advance = atoi(optarg);
+			break;
 		case 's':
 			app_data.bind_socket = optarg;
 			break;
@@ -198,6 +204,7 @@ static void init_defaults(void)
 	app_data.bind_socket = "/tmp/osmocom_l2";
 	app_data.trx_ip = "127.0.0.1";
 	app_data.trx_base_port = 5700;
+	app_data.trx_fn_advance = 20;
 
 	app_data.debug_mask = NULL;
 	app_data.daemonize = 0;
@@ -263,7 +270,7 @@ int main(int argc, char **argv)
 	app_data.trx->l1l = app_data.l1l;
 
 	/* Init scheduler */
-	rc = sched_trx_init(app_data.trx);
+	rc = sched_trx_init(app_data.trx, app_data.trx_fn_advance);
 	if (rc)
 		goto exit;
 

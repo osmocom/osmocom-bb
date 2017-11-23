@@ -246,7 +246,7 @@ const struct trx_multiframe *sched_mframe_layout(
 	enum gsm_phys_chan_config config, int tn);
 
 /* Scheduler management functions */
-int sched_trx_init(struct trx_instance *trx);
+int sched_trx_init(struct trx_instance *trx, uint32_t fn_advance);
 int sched_trx_reset(struct trx_instance *trx, int reset_clock);
 int sched_trx_shutdown(struct trx_instance *trx);
 

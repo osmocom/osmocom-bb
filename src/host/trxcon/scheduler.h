@@ -24,6 +24,8 @@ struct trx_sched {
 	struct timeval clock;
 	/*! \brief Count of processed frames */
 	uint32_t fn_counter_proc;
+	/*! \brief Local frame counter advance */
+	uint32_t fn_counter_advance;
 	/*! \brief Frame counter */
 	uint32_t fn_counter_lost;
 	/*! \brief Frame callback timer */

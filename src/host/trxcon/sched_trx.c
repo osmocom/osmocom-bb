@@ -75,8 +75,14 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		if (llist_empty(&ts->tx_prims))
 			continue;
 
+		/**
+		 * Advance frame number, giving the transceiver more
+		 * time until a burst must be transmitted...
+		 */
+		fn = (sched->fn_counter_proc + sched->fn_counter_advance)
+			% GSM_HYPERFRAME;
+
 		/* Get frame from multiframe */
-		fn = sched->fn_counter_proc;
 		offset = fn % ts->mf_layout->period;
 		frame = ts->mf_layout->frames + offset;
 
@@ -103,7 +109,7 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 	}
 }
 
-int sched_trx_init(struct trx_instance *trx)
+int sched_trx_init(struct trx_instance *trx, uint32_t fn_advance)
 {
 	struct trx_sched *sched;
 
@@ -121,6 +127,9 @@ int sched_trx_init(struct trx_instance *trx)
 	/* Set pointers */
 	sched = &trx->sched;
 	sched->data = trx;
+
+	/* Set frame counter advance */
+	sched->fn_counter_advance = fn_advance;
 
 	return 0;
 }
