@@ -2523,7 +2523,7 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 #define HEX_STR "\nByte as two digits hexadecimal"
 DEFUN(cfg_test_ki_xor, cfg_test_ki_xor_cmd, "ki xor HEX HEX HEX HEX HEX HEX "
 	"HEX HEX HEX HEX HEX HEX",
-	"Set Key (Kc) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
+	"Set Key (Ki) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
 	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR)
 {
 	struct osmocom_ms *ms = vty->index;
@@ -2551,7 +2551,7 @@ DEFUN(cfg_test_ki_xor, cfg_test_ki_xor_cmd, "ki xor HEX HEX HEX HEX HEX HEX "
 
 DEFUN(cfg_test_ki_comp128, cfg_test_ki_comp128_cmd, "ki comp128 HEX HEX HEX "
 	"HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX",
-	"Set Key (Kc) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
+	"Set Key (Ki) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
 	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR
 	HEX_STR HEX_STR HEX_STR HEX_STR)
 {
