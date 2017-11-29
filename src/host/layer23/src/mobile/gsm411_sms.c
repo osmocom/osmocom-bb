@@ -632,7 +632,7 @@ static int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
 	LOGP(DLSMS, LOGL_INFO, "..._sms_submit()\n");
 
 	/* no running, no transaction */
-	if (!ms->started || ms->shutdown != MS_SHUTDOWN_COMPL) {
+	if (!ms->started || ms->shutdown != MS_SHUTDOWN_NONE) {
 		LOGP(DLSMS, LOGL_ERROR, "Phone is down\n");
 		gsm411_sms_report(ms, sms, GSM411_RP_CAUSE_MO_TEMP_FAIL);
 		sms_free(sms);
