@@ -56,10 +56,11 @@ static int lua_osmo_do_log(lua_State *L, int loglevel)
 	lua_getstack(L, 1, &ar);
 	lua_getinfo(L, "nSl", &ar);
 
+	LOGPSRC(DLUA, loglevel, ar.source, ar.currentline, "%s", "");
 	for (i = 1; i <= argc; ++i) {
 		if (!lua_isstring(L, i))
 			continue;
-		LOGPSRC(DLUA, loglevel, ar.source, ar.currentline,
+		LOGPSRCC(DLUA, loglevel, ar.source, ar.currentline, 1,
 				"%s%s", i > 1 ? "\t" : "", lua_tostring(L, i));
 	}
 	LOGPC(DLUA, loglevel, "\n");
