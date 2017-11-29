@@ -11,6 +11,7 @@ struct gsm_sms {
 	uint8_t ud_hdr_ind;
 	uint8_t protocol_id;
 	uint8_t data_coding_scheme;
+	uint8_t msg_ref;
 	char address[20+1];	/* DA LV is 12 bytes max, i.e. 10 bytes
 				 * BCD == 20 bytes string */
 	time_t time;

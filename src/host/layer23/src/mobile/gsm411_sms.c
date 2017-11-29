@@ -232,6 +232,7 @@ static int gsm340_rx_tpdu(struct gsm_trans *trans, struct msgb *msg, uint8_t msg
 	int rc = 0;
 
 	gsms = sms_alloc();
+	gsms->msg_ref = msg_ref;
 
 	/* invert those fields where 0 means active/present */
 	sms_mti = *smsp & 0x03;
@@ -296,7 +297,7 @@ static int gsm340_rx_tpdu(struct gsm_trans *trans, struct msgb *msg, uint8_t msg
 	LOGP(DLSMS, LOGL_INFO, "RX SMS: MTI: 0x%02x, "
 	     "MR: 0x%02x PID: 0x%02x, DCS: 0x%02x, OA: %s, "
 	     "UserDataLength: 0x%02x, UserData: \"%s\"\n",
-	     sms_mti, msg_ref,
+	     sms_mti, gsms->msg_ref,
 	     gsms->protocol_id, gsms->data_coding_scheme, gsms->address,
 	     gsms->user_data_len,
 			sms_alphabet == DCS_7BIT_DEFAULT ? gsms->text :
@@ -528,7 +529,7 @@ static int gsm411_rx_rl_report(struct msgb *msg, struct gsm48_hdr *gh,
 
 /* generate a msgb containing a TPDU derived from struct gsm_sms,
  * returns total size of TPDU */
-static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms, uint8_t msg_ref)
+static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms)
 {
 	uint8_t *smsp;
 	uint8_t da[12];	/* max len per 03.40 */
@@ -559,7 +560,7 @@ static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms, uint8_t msg_re
 
 	/* generate message ref */
 	smsp = msgb_put(msg, 1);
-	*smsp = msg_ref;
+	*smsp = sms->msg_ref;
 
 	/* generate destination address */
 	if (sms->address[0] == '+')
@@ -620,7 +621,7 @@ static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms, uint8_t msg_re
 
 /* Take a SMS in gsm_sms structure and send it. */
 static int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
-	struct gsm_sms *sms, uint8_t msg_ref)
+	struct gsm_sms *sms)
 {
 	struct msgb *msg;
 	struct gsm_trans *trans;
@@ -688,14 +689,14 @@ error:
 	rp_ud_len = (uint8_t *)msgb_put(msg, 1);
 
 	/* generate the 03.40 TPDU */
-	rc = gsm340_gen_tpdu(msg, sms, msg_ref);
+	rc = gsm340_gen_tpdu(msg, sms);
 	if (rc < 0)
 		goto error;
 	*rp_ud_len = rc;
 
 	LOGP(DLSMS, LOGL_INFO, "TX: SMS DELIVER\n");
 
-	gsm411_push_rp_header(msg, GSM411_MT_RP_DATA_MO, msg_ref);
+	gsm411_push_rp_header(msg, GSM411_MT_RP_DATA_MO, sms->msg_ref);
 	return gsm411_smr_send(&trans->sms.smr_inst, GSM411_SM_RL_DATA_REQ,
 		msg);
 }
@@ -709,7 +710,8 @@ int sms_send(struct osmocom_ms *ms, const char *sms_sca, const char *number,
 	if (!sms)
 		return -ENOMEM;
 
-	return gsm411_tx_sms_submit(ms, sms_sca, sms, msg_ref);
+	sms->msg_ref = msg_ref;
+	return gsm411_tx_sms_submit(ms, sms_sca, sms);
 }
 
 /*
