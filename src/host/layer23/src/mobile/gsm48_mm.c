@@ -39,6 +39,7 @@
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/bb/mobile/app_mobile.h>
+#include <osmocom/bb/mobile/primitives.h>
 #include <osmocom/bb/mobile/vty.h>
 
 extern void *l23_ctx;
@@ -961,6 +962,7 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 
 	mm->state = state;
 	mm->substate = substate;
+	mobile_prim_ntfy_mm_status(ms, mm->state, mm->substate, mm->mr_substate);
 
 	/* resend detach event, if flag is set */
 	if (state == GSM48_MM_ST_MM_IDLE && mm->delay_detach) {

@@ -144,6 +144,16 @@ void mobile_prim_ntfy_sms_status(struct osmocom_ms *ms, struct gsm_sms *sms, uin
 	dispatch(ms, prim);
 }
 
+void mobile_prim_ntfy_mm_status(struct osmocom_ms *ms, int state, int substate, int mr_substate)
+{
+	struct mobile_prim *prim = mobile_prim_alloc(PRIM_MOB_MM, PRIM_OP_INDICATION);
+
+	prim->u.mm.state = state;
+	prim->u.mm.substate = substate;
+	prim->u.mm.prev_substate = mr_substate;
+	dispatch(ms, prim);
+}
+
 static int cancel_timer(struct mobile_prim_intf *intf, struct mobile_timer_param *param)
 {
 	struct timer_closure *closure;
