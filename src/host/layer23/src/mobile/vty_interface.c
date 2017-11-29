@@ -2703,7 +2703,7 @@ DEFUN(cfg_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
 		return CMD_SUCCESS;
 
 	llist_for_each_entry(tmp, &ms_list, entity) {
-		if (tmp->shutdown == 3)
+		if (tmp->shutdown == MS_SHUTDOWN_COMPL)
 			continue;
 		if (!strcmp(ms->settings.layer2_socket_path,
 				tmp->settings.layer2_socket_path)) {
