@@ -181,7 +181,7 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 }
 
 /* power-on ms instance */
-int mobile_init(struct osmocom_ms *ms)
+static int mobile_init(struct osmocom_ms *ms)
 {
 	int rc;
 
@@ -244,6 +244,51 @@ int mobile_init(struct osmocom_ms *ms)
 	LOGP(DMOB, LOGL_NOTICE, "Mobile '%s' initialized, please start phone now!\n", ms->name);
 	return 0;
 }
+
+int mobile_start(struct osmocom_ms *ms, char **other_name)
+{
+	struct osmocom_ms *tmp;
+	int rc;
+
+	if (ms->shutdown != MS_SHUTDOWN_COMPL)
+		return 0;
+
+	llist_for_each_entry(tmp, &ms_list, entity) {
+		if (tmp->shutdown == MS_SHUTDOWN_COMPL)
+			continue;
+		if (!strcmp(ms->settings.layer2_socket_path,
+				tmp->settings.layer2_socket_path)) {
+			LOGP(DMOB, LOGL_ERROR, "Cannot start MS '%s', because MS '%s' "
+				"use the same layer2-socket.\nPlease shutdown "
+				"MS '%s' first.\n", ms->name, tmp->name, tmp->name);
+			*other_name = tmp->name;
+			return -1;
+		}
+		if (!strcmp(ms->settings.sap_socket_path,
+				tmp->settings.sap_socket_path)) {
+			LOGP(DMOB, LOGL_ERROR, "Cannot start MS '%s', because MS '%s' "
+				"use the same sap-socket.\nPlease shutdown "
+				"MS '%s' first.\n", ms->name, tmp->name, tmp->name);
+			*other_name = tmp->name;
+			return -2;
+		}
+	}
+
+	rc = mobile_init(ms);
+	if (rc < 0)
+		return -3;
+	return 0;
+}
+
+int mobile_stop(struct osmocom_ms *ms, int force)
+{
+	if (force && ms->shutdown <= MS_SHUTDOWN_IMSI_DETACH)
+		return mobile_exit(ms, 1);
+	if (!force && ms->shutdown == MS_SHUTDOWN_NONE)
+		return mobile_exit(ms, 0);
+	return 0;
+}
+
 
 /* create ms instance */
 struct osmocom_ms *mobile_new(char *name)

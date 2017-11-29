@@ -2696,35 +2696,25 @@ DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-coun
 DEFUN(cfg_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
 	NO_STR "Activate and run MS")
 {
-	struct osmocom_ms *ms = vty->index, *tmp;
+	struct osmocom_ms *ms = vty->index;
+	char *other_name = NULL;
 	int rc;
 
-	if (ms->shutdown != MS_SHUTDOWN_COMPL)
-		return CMD_SUCCESS;
-
-	llist_for_each_entry(tmp, &ms_list, entity) {
-		if (tmp->shutdown == MS_SHUTDOWN_COMPL)
-			continue;
-		if (!strcmp(ms->settings.layer2_socket_path,
-				tmp->settings.layer2_socket_path)) {
-			vty_out(vty, "Cannot start MS '%s', because MS '%s' "
-				"use the same layer2-socket.%sPlease shutdown "
-				"MS '%s' first.%s", ms->name, tmp->name,
-				VTY_NEWLINE, tmp->name, VTY_NEWLINE);
-			return CMD_WARNING;
-		}
-		if (!strcmp(ms->settings.sap_socket_path,
-				tmp->settings.sap_socket_path)) {
-			vty_out(vty, "Cannot start MS '%s', because MS '%s' "
-				"use the same sap-socket.%sPlease shutdown "
-				"MS '%s' first.%s", ms->name, tmp->name,
-				VTY_NEWLINE, tmp->name, VTY_NEWLINE);
-			return CMD_WARNING;
-		}
-	}
-
-	rc = mobile_init(ms);
-	if (rc < 0) {
+	rc = mobile_start(ms, &other_name);
+	switch (rc) {
+	case -1:
+		vty_out(vty, "Cannot start MS '%s', because MS '%s' "
+			"use the same layer2-socket.%sPlease shutdown "
+			"MS '%s' first.%s", ms->name, other_name,
+			VTY_NEWLINE, other_name, VTY_NEWLINE);
+		return CMD_WARNING;
+	case -2:
+		vty_out(vty, "Cannot start MS '%s', because MS '%s' "
+			"use the same sap-socket.%sPlease shutdown "
+			"MS '%s' first.%s", ms->name, other_name,
+			VTY_NEWLINE, other_name, VTY_NEWLINE);
+		return CMD_WARNING;
+	case -3:
 		vty_out(vty, "Connection to layer 1 failed!%s",
 			VTY_NEWLINE);
 		return CMD_WARNING;
@@ -2737,10 +2727,7 @@ DEFUN(cfg_shutdown, cfg_ms_shutdown_cmd, "shutdown",
 	"Shut down and deactivate MS")
 {
 	struct osmocom_ms *ms = vty->index;
-
-	if (ms->shutdown == MS_SHUTDOWN_NONE)
-		mobile_exit(ms, 0);
-
+	mobile_stop(ms, 0);
 	return CMD_SUCCESS;
 }
 
@@ -2749,9 +2736,7 @@ DEFUN(cfg_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
 {
 	struct osmocom_ms *ms = vty->index;
 
-	if (ms->shutdown <= MS_SHUTDOWN_IMSI_DETACH)
-		mobile_exit(ms, 1);
-
+	mobile_stop(ms, 1);
 	return CMD_SUCCESS;
 }
 
