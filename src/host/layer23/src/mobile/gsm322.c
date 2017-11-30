@@ -5141,6 +5141,7 @@ int gsm322_exit(struct osmocom_ms *ms)
 		}
 		cs->list[i].flags = 0;
 	}
+	cs->si = NULL;
 
 	/* store BA list */
 	ba_filename = talloc_asprintf(ms, "%s/%s.ba", config_dir, ms->name);
