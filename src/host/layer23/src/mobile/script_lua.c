@@ -389,6 +389,12 @@ static int lua_ms_sms_send_simple(lua_State *L)
 	return 1;
 }
 
+static int lua_ms_name(lua_State *L)
+{
+	lua_pushstring(L, get_primitive(L)->ms->name);
+	return 1;
+}
+
 static const struct luaL_Reg ms_funcs[] = {
 	{ "imsi", lua_ms_imsi },
 	{ "imei", lua_ms_imei },
@@ -398,6 +404,7 @@ static const struct luaL_Reg ms_funcs[] = {
 	{ "start", lua_ms_no_shutdown },
 	{ "stop", lua_ms_shutdown },
 	{ "sms_send_simple", lua_ms_sms_send_simple },
+	{ "number", lua_ms_name },
 	{ NULL, NULL },
 };
 
