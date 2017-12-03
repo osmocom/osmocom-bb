@@ -537,8 +537,8 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	sbit_t bits[148];
 	int8_t rssi, tn;
 	uint32_t fn;
-	int len, i;
 	float toa;
+	int len;
 
 	len = recv(ofd->fd, buf, sizeof(buf), 0);
 	if (len <= 0)
@@ -556,12 +556,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	toa = ((int16_t) (buf[6] << 8) | buf[7]) / 256.0F;
 
 	/* Copy and convert bits {254..0} to sbits {-127..127} */
-	for (i = 0; i < 148; i++) {
-		if (buf[8 + i] == 255)
-			bits[i] = -127;
-		else
-			bits[i] = 127 - buf[8 + i];
-	}
+	osmo_ubit2sbit(bits, buf + 8, 148);
 
 	if (tn >= 8) {
 		LOGP(DTRXD, LOGL_ERROR, "Illegal TS %d\n", tn);
