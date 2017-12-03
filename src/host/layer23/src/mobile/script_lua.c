@@ -97,9 +97,14 @@ static const struct luaL_Reg global_runtime[] = {
 };
 
 /* Push table and function.   Stack+=2 */
-static bool load_cb(lua_State *L, int ref, const char *cb_name)
+static bool load_cb(struct osmocom_ms *ms, const char *cb_name)
 {
-	lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+	struct lua_State *L = ms->lua_state;
+
+	if (ms->lua_cb_ref == LUA_REFNIL)
+		return false;
+
+	lua_rawgeti(L, LUA_REGISTRYINDEX, ms->lua_cb_ref);
 	lua_pushstring(L, cb_name);
 	lua_gettable(L, -2);
 	if (lua_isnil(L, -1)) {
@@ -138,12 +143,9 @@ static void handle_timeout(struct mobile_prim_intf *intf, struct mobile_timer_pa
 
 static void handle_started(struct mobile_prim_intf *intf, struct mobile_started_param *param)
 {
-	lua_State *L = intf->ms->lua_state;
+	struct lua_State *L = intf->ms->lua_state;
 
-	if (intf->ms->lua_cb_ref == LUA_REFNIL)
-		return;
-
-	if (!load_cb(L, intf->ms->lua_cb_ref, "Started"))
+	if (!load_cb(intf->ms, "Started"))
 		return;
 
 	lua_pushinteger(L, param->started);
@@ -154,12 +156,9 @@ static void handle_started(struct mobile_prim_intf *intf, struct mobile_started_
 
 static void handle_shutdown(struct mobile_prim_intf *intf, struct mobile_shutdown_param *param)
 {
-	lua_State *L = intf->ms->lua_state;
+	struct lua_State *L = intf->ms->lua_state;
 
-	if (intf->ms->lua_cb_ref == LUA_REFNIL)
-		return;
-
-	if (!load_cb(L, intf->ms->lua_cb_ref, "Shutdown"))
+	if (!load_cb(intf->ms, "Shutdown"))
 		return;
 
 	lua_pushinteger(L, param->old_state);
@@ -171,12 +170,9 @@ static void handle_shutdown(struct mobile_prim_intf *intf, struct mobile_shutdow
 
 static void handle_sms(struct mobile_prim_intf *intf, struct mobile_sms_param *param)
 {
-	lua_State *L = intf->ms->lua_state;
+	struct lua_State *L = intf->ms->lua_state;
 
-	if (intf->ms->lua_cb_ref == LUA_REFNIL)
-		return;
-
-	if (!load_cb(L, intf->ms->lua_cb_ref, "Sms"))
+	if (!load_cb(intf->ms, "Sms"))
 		return;
 
 	lua_createtable(L, 0, 11);
@@ -225,10 +221,7 @@ static void handle_mm(struct mobile_prim_intf *intf, struct mobile_mm_param *par
 {
 	lua_State *L = intf->ms->lua_state;
 
-	if (intf->ms->lua_cb_ref == LUA_REFNIL)
-		return;
-
-	if (!load_cb(L, intf->ms->lua_cb_ref, "Mm"))
+	if (!load_cb(intf->ms, "Mm"))
 		return;
 
 	lua_pushinteger(L, param->state);
