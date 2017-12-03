@@ -375,7 +375,7 @@ static int gsm411_rx_rp_ud(struct msgb *msg, struct gsm_trans *trans,
 
 	LOGP(DLSMS, LOGL_INFO, "DST(%u,%s)\n", src_len,
 		osmo_hexdump(src, src_len));
-	LOGP(DLSMS, LOGL_INFO, "TPDU(%li,%s)\n", msg->tail-msg->l4h,
+	LOGP(DLSMS, LOGL_INFO, "TPDU(%ti,%s)\n", msg->tail-msg->l4h,
 		osmo_hexdump(msg->l4h, msg->tail-msg->l4h));
 
 	rc = gsm340_rx_tpdu(trans, msg, rph->msg_ref);
