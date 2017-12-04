@@ -63,6 +63,8 @@ int trx_if_cmd_echo(struct trx_instance *trx);
 int trx_if_cmd_setpower(struct trx_instance *trx, int db);
 int trx_if_cmd_adjpower(struct trx_instance *trx, int db);
 
+int trx_if_cmd_setta(struct trx_instance *trx, int8_t ta);
+
 int trx_if_cmd_rxtune(struct trx_instance *trx, uint16_t arfcn);
 int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t arfcn);
 

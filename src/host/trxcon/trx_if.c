@@ -415,6 +415,32 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 		trx_if_cmd_measure(trx, ++arfcn, trx->pm_arfcn_stop);
 }
 
+/*
+ * Timing Advance control
+ *
+ * SETTA instructs the transceiver to transmit bursts in
+ * advance calculated from requested TA value. This value is
+ * normally between 0 and 63, with each step representing
+ * an advance of one bit period (about 3.69 microseconds).
+ * CMD SETTA <0-63>
+ * RSP SETTA <status> <TA>
+ */
+
+int trx_if_cmd_setta(struct trx_instance *trx, int8_t ta)
+{
+	/* Do nothing, if requested TA value matches the current */
+	if (trx->ta == ta)
+		return 0;
+
+	/* Make sure that TA value is in valid range */
+	if (ta < 0 || ta > 63) {
+		LOGP(DTRX, LOGL_ERROR, "TA value %d is out of allowed range\n", ta);
+		return -ENOTSUP;
+	}
+
+	return trx_ctrl_cmd(trx, 0, "SETTA", "%d", ta);
+}
+
 /* Get response from CTRL socket */
 static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 {
