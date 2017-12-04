@@ -299,16 +299,6 @@ int trx_if_cmd_adjpower(struct trx_instance *trx, int db)
 	return trx_ctrl_cmd(trx, 0, "ADJPOWER", "%d", db);
 }
 
-int trx_if_cmd_setrxgain(struct trx_instance *trx, int db)
-{
-	return trx_ctrl_cmd(trx, 0, "SETRXGAIN", "%d", db);
-}
-
-int trx_if_cmd_setmaxdly(struct trx_instance *trx, int dly)
-{
-	return trx_ctrl_cmd(trx, 0, "SETMAXDLY", "%d", dly);
-}
-
 /*
  * Timeslot Control
  *
