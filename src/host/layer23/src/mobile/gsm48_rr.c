@@ -1943,10 +1943,9 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 5" message (9.1.37) */
 static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 {
-	/* NOTE: pseudo length is not in this structure, so we skip */
-	struct gsm48_system_information_type_5 *si = msgb_l3(msg) + 1;
+	struct gsm48_system_information_type_5 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->cellsel.si;
-	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
 	if (!s) {
 		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 5 "
@@ -1973,10 +1972,9 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 5bis" message (9.1.38) */
 static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 {
-	/* NOTE: pseudo length is not in this structure, so we skip */
-	struct gsm48_system_information_type_5bis *si = msgb_l3(msg) + 1;
+	struct gsm48_system_information_type_5bis *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->cellsel.si;
-	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
 	if (!s) {
 		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 5bis"
@@ -2004,10 +2002,9 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 5ter" message (9.1.39) */
 static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 {
-	/* NOTE: pseudo length is not in this structure, so we skip */
-	struct gsm48_system_information_type_5ter *si = msgb_l3(msg) + 1;
+	struct gsm48_system_information_type_5ter *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->cellsel.si;
-	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
 	if (!s) {
 		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 5ter"
@@ -2035,11 +2032,10 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 6" message (9.1.39) */
 static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 {
-	/* NOTE: pseudo length is not in this structure, so we skip */
-	struct gsm48_system_information_type_6 *si = msgb_l3(msg) + 1;
+	struct gsm48_system_information_type_6 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	struct rx_meas_stat *meas = &ms->meas;
-	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
 	if (!s) {
 		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 6 "
@@ -4748,7 +4744,7 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_settings *set = &ms->settings;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
-	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
+	struct gsm48_hdr *sih = msgb_l3(msg);
 	uint8_t ind_ta, ind_tx_power;
 
 	if (msgb_l2len(msg) < sizeof(*rllh) + 2 + 2) {
@@ -4772,7 +4768,7 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 		rr->cd_now.ind_tx_power = ind_tx_power;
 	}
 
-	switch (sih->system_information) {
+	switch (sih->msg_type) {
 	case GSM48_MT_RR_SYSINFO_5:
 		return gsm48_rr_rx_sysinfo5(ms, msg);
 	case GSM48_MT_RR_SYSINFO_5bis:
@@ -4783,7 +4779,7 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_rx_sysinfo6(ms, msg);
 	default:
 		LOGP(DRR, LOGL_NOTICE, "ACCH message type 0x%02x unknown.\n",
-			sih->system_information);
+			sih->msg_type);
 		return -EINVAL;
 	}
 }
