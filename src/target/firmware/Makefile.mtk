@@ -4,14 +4,16 @@ BOARDS?=mt62xx
 # List of all applications (meant to be overridden on command line)
 APPLICATIONS?=loader_mtk
 
-mtkram_LDS=board/mediatek/ram.lds
-mtkram_OBJS=board/mediatek/start.ram.o
+APP_loader_mtk_ENVIRONMENTS=mtkram
+
+ENV_mtkram_LDS=board/mediatek/ram.lds
+ENV_mtkram_OBJS=board/mediatek/start.ram.o
 
 mtk_COMMON_OBJS=board/mediatek/uart.o
 
 # Mediatek MT62xx
-mt62xx_OBJS=$(mtk_COMMON_OBJS) board/mt62xx/init.o
-mt62xx_ENVIRONMENTS=mtkram
+BOARD_mt62xx_OBJS=$(mtk_COMMON_OBJS) board/mt62xx/init.o
+BOARD_mt62xx_ENVIRONMENTS=mtkram
 
 # Global include path
 INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
