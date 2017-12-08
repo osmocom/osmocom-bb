@@ -1911,7 +1911,6 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 4" message (9.1.36) */
 static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 {
-	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_4 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
