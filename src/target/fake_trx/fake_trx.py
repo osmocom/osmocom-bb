@@ -89,7 +89,7 @@ class Application:
 		self.bts_clck = UDPLink(self.bts_addr,
 			self.bts_base_port + 100, self.bts_base_port)
 		self.clck_gen = CLCKGen([self.bts_clck])
-		self.clck_gen.start()
+		self.bts_ctrl.clck_gen = self.clck_gen
 
 		print("[i] Init complete")
 

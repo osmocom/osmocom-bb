@@ -28,6 +28,7 @@ class CTRLInterfaceBTS(CTRLInterface):
 	# Internal state variables
 	trx_started = False
 	burst_fwd = None
+	clck_gen = None
 	rx_freq = None
 	tx_freq = None
 	pm = None
@@ -62,6 +63,10 @@ class CTRLInterfaceBTS(CTRLInterface):
 			if self.pm is not None:
 				self.pm.add_bts_list([self.tx_freq])
 
+			# Start clock indications
+			if self.clck_gen is not None:
+				self.clck_gen.start()
+
 			return 0
 
 		elif self.verify_cmd(request, "POWEROFF", 0):
@@ -73,6 +78,10 @@ class CTRLInterfaceBTS(CTRLInterface):
 			# Power emulation
 			if self.pm is not None:
 				self.pm.del_bts_list([self.tx_freq])
+
+			# Stop clock indications
+			if self.clck_gen is not None:
+				self.clck_gen.stop()
 
 			return 0
 
