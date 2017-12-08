@@ -51,6 +51,7 @@ class CLCKGen:
 	def __init__(self, clck_links, clck_start = 0, ind_period = 102):
 		self.clck_links = clck_links
 		self.ind_period = ind_period
+		self.clck_start = clck_start
 		self.clck_src = clck_start
 
 		# Calculate counter time
@@ -67,6 +68,9 @@ class CLCKGen:
 		if self.timer is not None:
 			self.timer.cancel()
 			self.timer = None
+
+		# Reset the clock source
+		self.clck_src = self.clck_start
 
 	def send_clck_ind(self):
 		# Keep clock cycle
