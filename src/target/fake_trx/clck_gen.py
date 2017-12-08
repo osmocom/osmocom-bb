@@ -45,6 +45,9 @@ class CLCKGen:
 	# Average loop back delay
 	LO_DELAY_US = 90.0
 
+	# State variables
+	timer = None
+
 	def __init__(self, clck_links, clck_start = 0, ind_period = 102):
 		self.clck_links = clck_links
 		self.ind_period = ind_period
@@ -55,15 +58,15 @@ class CLCKGen:
 		self.ctr_interval /= self.SEC_DELAY_US
 		self.ctr_interval *= self.ind_period
 
-		# Create a timer manager
-		self.timer = Timer(self.ctr_interval, self.send_clck_ind)
-
 	def start(self):
-		# Schedule the first indication
-		self.timer.start()
+		# Send the first indication
+		self.send_clck_ind()
 
 	def stop(self):
-		self.timer.cancel()
+		# Stop pending timer
+		if self.timer is not None:
+			self.timer.cancel()
+			self.timer = None
 
 	def send_clck_ind(self):
 		# Keep clock cycle
