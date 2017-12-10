@@ -54,10 +54,7 @@ struct gsmtap_inst *gsmtap_inst = NULL;
 static char *vty_ip = "127.0.0.1";
 unsigned short vty_port = 4247;
 char *config_dir = NULL;
-int use_mncc_sock = 0;
 int daemonize = 0;
-
-int mncc_recv_socket(struct osmocom_ms *ms, int msg_type, void *arg);
 
 int mobile_delete(struct osmocom_ms *ms, int force);
 int mobile_signal_cb(unsigned int subsys, unsigned int signal,
@@ -95,8 +92,6 @@ static void print_help()
 		debug_default);
 	printf("  -D --daemonize	Run as daemon\n");
 	printf("  -c --config-file filename The config file to use.\n");
-	printf("  -m --mncc-sock	Disable built-in MNCC handler and "
-		"offer socket\n");
 }
 
 static void handle_options(int argc, char **argv)
@@ -111,11 +106,10 @@ static void handle_options(int argc, char **argv)
 			{"debug", 1, 0, 'd'},
 			{"daemonize", 0, 0, 'D'},
 			{"config-file", 1, 0, 'c'},
-			{"mncc-sock", 0, 0, 'm'},
 			{0, 0, 0, 0},
 		};
 
-		c = getopt_long(argc, argv, "hi:u:c:v:d:Dm",
+		c = getopt_long(argc, argv, "hi:u:c:v:d:D",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -143,9 +137,6 @@ static void handle_options(int argc, char **argv)
 			break;
 		case 'D':
 			daemonize = 1;
-			break;
-		case 'm':
-			use_mncc_sock = 1;
 			break;
 		default:
 			break;
@@ -247,10 +238,7 @@ int main(int argc, char **argv)
 	config_dir = talloc_strdup(l23_ctx, config_file);
 	config_dir = dirname(config_dir);
 
-	if (use_mncc_sock)
-		rc = l23_app_init(mncc_recv_socket, config_file, vty_ip, vty_port);
-	else
-		rc = l23_app_init(NULL, config_file, vty_ip, vty_port);
+	rc = l23_app_init(config_file, vty_ip, vty_port);
 	if (rc)
 		exit(rc);
 

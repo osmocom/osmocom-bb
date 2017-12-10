@@ -46,6 +46,9 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	snprintf(set->mncc_socket_path, sizeof(set->mncc_socket_path) - 1,
 		mncc_socket_path, ms->name);
 
+	/* Built-in MNCC handler */
+	set->mncc_handler = MNCC_HANDLER_MOBILE;
+
 	/* network search */
 	set->plmn_mode = PLMN_MODE_AUTO;
 

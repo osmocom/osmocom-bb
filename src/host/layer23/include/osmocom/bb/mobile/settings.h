@@ -3,10 +3,23 @@
 
 #define MOB_C7_DEFLT_ANY_TIMEOUT	30
 
+/* How CC (Call Control) messages should be handled? */
+enum mncc_handler_t {
+	/* by built-in mobile MNCC */
+	MNCC_HANDLER_MOBILE,
+	/* by external MNCC application via UNIX-socket */
+	MNCC_HANDLER_SOCKET,
+	/* no call support */
+	MNCC_HANDLER_DUMMY,
+};
+
 struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];
 	char			mncc_socket_path[128];
+
+	/* MNCC handler */
+	enum mncc_handler_t	mncc_handler;
 
 	/* IMEI */
 	char			imei[16];

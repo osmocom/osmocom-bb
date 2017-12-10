@@ -1326,6 +1326,17 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		VTY_NEWLINE);
 	vty_out(vty, " sap-socket %s%s", set->sap_socket_path, VTY_NEWLINE);
 	vty_out(vty, " mncc-socket %s%s", set->mncc_socket_path, VTY_NEWLINE);
+	switch (set->mncc_handler) {
+	case MNCC_HANDLER_MOBILE:
+		vty_out(vty, " mncc-handler mobile%s", VTY_NEWLINE);
+		break;
+	case MNCC_HANDLER_SOCKET:
+		vty_out(vty, " mncc-handler socket%s", VTY_NEWLINE);
+		break;
+	case MNCC_HANDLER_DUMMY:
+	default:
+		vty_out(vty, " no mncc-handler%s", VTY_NEWLINE);
+	}
 	switch(set->sim_type) {
 		case GSM_SIM_TYPE_NONE:
 		vty_out(vty, " sim none%s", VTY_NEWLINE);
@@ -1602,7 +1613,7 @@ DEFUN(cfg_ms_sap, cfg_ms_sap_cmd, "sap-socket PATH",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_mncc, cfg_ms_mncc_cmd, "mncc-socket PATH",
+DEFUN(cfg_ms_mncc_sock, cfg_ms_mncc_sock_cmd, "mncc-socket PATH",
 	"Define socket path for MNCC interface\n"
 	"Unix socket, default '/tmp/ms_mncc.<ms_name>'")
 {
@@ -1613,6 +1624,54 @@ DEFUN(cfg_ms_mncc, cfg_ms_mncc_cmd, "mncc-socket PATH",
 		sizeof(set->mncc_socket_path) - 1);
 
 	vty_restart(vty, ms);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_mncc_handler, cfg_ms_mncc_handler_cmd,
+	"mncc-handler (mobile|socket)",
+	"Set MNCC (Call Control) handler\n"
+	"Built-in mobile MNCC (default)\n"
+	"External MNCC application via UNIX-socket (e.g. LCR)")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	switch (argv[0][0]) {
+	case 'm':
+		if (set->ch_cap != GSM_CAP_SDCCH) {
+			set->mncc_handler = MNCC_HANDLER_MOBILE;
+		} else {
+			vty_out(vty, "TCH support isn't enabled, "
+				"see 'channel-capability' option%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		break;
+	case 's':
+		set->mncc_handler = MNCC_HANDLER_SOCKET;
+		break;
+	default:
+		vty_out(vty, "Given mncc-handler invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	/* Restart required */
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_mncc_handler, cfg_ms_no_mncc_handler_cmd,
+	"no mncc-handler", NO_STR "Disable Call Control")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	/* Dummy handler */
+	set->mncc_handler = MNCC_HANDLER_DUMMY;
+
+	/* Restart required */
+	vty_restart_if_started(vty, ms);
+
 	return CMD_SUCCESS;
 }
 
@@ -2904,7 +2963,9 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_show_this_cmd);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
 	install_element(MS_NODE, &cfg_ms_sap_cmd);
-	install_element(MS_NODE, &cfg_ms_mncc_cmd);
+	install_element(MS_NODE, &cfg_ms_mncc_sock_cmd);
+	install_element(MS_NODE, &cfg_ms_mncc_handler_cmd);
+	install_element(MS_NODE, &cfg_ms_no_mncc_handler_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
 	install_element(MS_NODE, &cfg_ms_mode_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_cmd);
