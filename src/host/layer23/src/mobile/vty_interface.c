@@ -71,6 +71,12 @@ struct cmd_node support_node = {
 	1
 };
 
+struct cmd_node audio_node = {
+	AUDIO_NODE,
+	"%s(audio)# ",
+	1
+};
+
 static void print_vty(void *priv, const char *fmt, ...)
 {
 	char buffer[1000];
@@ -1544,6 +1550,26 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, " c7-any-timeout %d%s",
 			set->any_timeout, VTY_NEWLINE);
 
+	vty_out(vty, " audio%s", VTY_NEWLINE);
+	switch (set->audio.io_target) {
+	case AUDIO_IO_HARDWARE:
+		vty_out(vty, "  io-target hardware%s", VTY_NEWLINE);
+		break;
+	case AUDIO_IO_SOCKET:
+		vty_out(vty, "  io-target socket%s", VTY_NEWLINE);
+		break;
+	case AUDIO_IO_GAPK:
+		vty_out(vty, "  io-target gapk%s", VTY_NEWLINE);
+		break;
+	case AUDIO_IO_NONE:
+	default:
+		vty_out(vty, "  no io-target%s", VTY_NEWLINE);
+	}
+	vty_out(vty, "  alsa-output-dev %s%s",
+		set->audio.alsa_output_dev, VTY_NEWLINE);
+	vty_out(vty, "  alsa-input-dev %s%s",
+		set->audio.alsa_input_dev, VTY_NEWLINE);
+
 	/* no shutdown must be written to config, because shutdown is default */
 	vty_out(vty, " %sshutdown%s", (ms->shutdown != MS_SHUTDOWN_NONE) ? "" : "no ",
 		VTY_NEWLINE);
@@ -2807,6 +2833,94 @@ DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-coun
 	return CMD_SUCCESS;
 }
 
+/* per audio config */
+DEFUN(cfg_ms_audio, cfg_ms_audio_cmd, "audio",
+	"Configure audio settings")
+{
+	vty->node = AUDIO_NODE;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_audio_io_target, cfg_ms_audio_io_target_cmd,
+	"io-target (gapk|hardware|socket)", "Set TCH frame I/O target\n"
+	"Built-in GAPK-based back-end (default)\n"
+	"L1 hardware (e.g. Calypso DSP)\n"
+	"External MNCC application (e.g. LCR)")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	switch (argv[0][0]) {
+	case 'g':
+		set->audio.io_target = AUDIO_IO_GAPK;
+		break;
+	case 'h':
+		set->audio.io_target = AUDIO_IO_HARDWARE;
+		break;
+	case 's':
+		set->audio.io_target = AUDIO_IO_SOCKET;
+		break;
+	default:
+		vty_out(vty, "Given io-target invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	/* Restart required */
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_audio_no_io_target, cfg_ms_audio_no_io_target_cmd,
+	"no io-target", NO_STR "Disable TCH frame processing")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	/* Nothing, don't care about TCH */
+	set->audio.io_target = AUDIO_IO_NONE;
+
+	/* Restart required */
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_audio_alsa_out_dev, cfg_ms_audio_alsa_out_dev_cmd,
+	"alsa-output-dev (default|NAME)",
+	"Set ALSA playback (i.e. speakers) device name\n"
+	"Default system playback device (default)\n"
+	"Name of a custom playback device")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	const char *dev_name = argv[0];
+
+	/* Just copy device name */
+	strncpy(set->audio.alsa_output_dev, dev_name,
+		sizeof(set->audio.alsa_output_dev) - 1);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_audio_alsa_in_dev, cfg_ms_audio_alsa_in_dev_cmd,
+	"alsa-input-dev (default|NAME)",
+	"Set ALSA recording (i.e. mic) device name\n"
+	"Default system recording device (default)\n"
+	"Name of a custom recording device")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	const char *dev_name = argv[0];
+
+	/* Just copy device name */
+	strncpy(set->audio.alsa_input_dev, dev_name,
+		sizeof(set->audio.alsa_input_dev) - 1);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
 	NO_STR "Activate and run MS")
 {
@@ -2887,6 +3001,7 @@ int ms_vty_go_parent(struct vty *vty)
 		break;
 	case TESTSIM_NODE:
 	case SUPPORT_NODE:
+	case AUDIO_NODE:
 		vty->node = MS_NODE;
 		break;
 	default:
@@ -3001,6 +3116,7 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_no_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
+	install_element(MS_NODE, &cfg_ms_audio_cmd);
 	install_element(MS_NODE, &cfg_ms_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_any_timeout_cmd);
@@ -3077,6 +3193,12 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);
 	install_element(MS_NODE, &cfg_ms_script_load_run_cmd);
 	install_element(MS_NODE, &cfg_ms_no_script_load_run_cmd);
+
+	install_node(&audio_node, config_write_dummy);
+	install_element(AUDIO_NODE, &cfg_ms_audio_io_target_cmd);
+	install_element(AUDIO_NODE, &cfg_ms_audio_no_io_target_cmd);
+	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_out_dev_cmd);
+	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_in_dev_cmd);
 
 	/* Register the talloc context introspection command */
 	osmo_talloc_vty_add_cmds();

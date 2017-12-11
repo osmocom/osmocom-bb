@@ -33,6 +33,7 @@
 static char *layer2_socket_path = "/tmp/osmocom_l2";
 static char *sap_socket_path = "/tmp/osmocom_sap";
 static char *mncc_socket_path = "/tmp/ms_mncc.%s";
+static char *alsa_dev_default = "default";
 
 int gsm_settings_init(struct osmocom_ms *ms)
 {
@@ -48,6 +49,13 @@ int gsm_settings_init(struct osmocom_ms *ms)
 
 	/* Built-in MNCC handler */
 	set->mncc_handler = MNCC_HANDLER_MOBILE;
+
+	/* Audio settings */
+	set->audio.io_target = AUDIO_IO_GAPK;
+	strncpy(set->audio.alsa_output_dev, alsa_dev_default,
+		sizeof(set->audio.alsa_output_dev) - 1);
+	strncpy(set->audio.alsa_input_dev, alsa_dev_default,
+		sizeof(set->audio.alsa_input_dev) - 1);
 
 	/* network search */
 	set->plmn_mode = PLMN_MODE_AUTO;

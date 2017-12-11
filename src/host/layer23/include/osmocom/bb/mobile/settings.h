@@ -13,6 +13,24 @@ enum mncc_handler_t {
 	MNCC_HANDLER_DUMMY,
 };
 
+/* TCH frame I/O target */
+enum audio_io_target {
+	/* Nothing, don't care about TCH */
+	AUDIO_IO_NONE = 0,
+	/* L1 hardware (e.g. Calypso DSP) */
+	AUDIO_IO_HARDWARE,
+	/* External MNCC application (e.g. LCR) */
+	AUDIO_IO_SOCKET,
+	/* Built-in GAPK-based back-end */
+	AUDIO_IO_GAPK,
+};
+
+struct audio_settings {
+	enum audio_io_target io_target;
+	char alsa_output_dev[128];
+	char alsa_input_dev[128];
+};
+
 struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];
@@ -20,6 +38,9 @@ struct gsm_settings {
 
 	/* MNCC handler */
 	enum mncc_handler_t	mncc_handler;
+
+	/* Audio settings */
+	struct audio_settings	audio;
 
 	/* IMEI */
 	char			imei[16];
