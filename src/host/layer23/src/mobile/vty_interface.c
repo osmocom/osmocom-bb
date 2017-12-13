@@ -2392,9 +2392,12 @@ DEFUN(cfg_ms_sup_class_pcs, cfg_ms_sup_class_pcs_cmd, "class-pcs (1|2|3)",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_sup_ch_cap, cfg_ms_sup_ch_cap_cmd, "channel-capability "
-	"(sdcch|sdcch+tchf|sdcch+tchf+tchh)",
-	"Select channel capability\nSDCCH only\nSDCCH + TCH/F\nSDCCH + TCH/H")
+DEFUN(cfg_ms_sup_ch_cap, cfg_ms_sup_ch_cap_cmd,
+	"channel-capability (sdcch|sdcch+tchf|sdcch+tchf+tchh)",
+	"Select channel capability\n"
+	"SDCCH only\n"
+	"SDCCH + TCH/F\n"
+	"SDCCH + TCH/F + TCH/H")
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
