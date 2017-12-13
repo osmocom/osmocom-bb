@@ -32,6 +32,7 @@
 #include <byteorder.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/codec/codec.h>
 #include <osmocom/core/msgb.h>
 #include <calypso/dsp_api.h>
 #include <calypso/irq.h>
@@ -55,6 +56,44 @@
 
 #include <l1ctl_proto.h>
 
+static inline int msb_get_bit(uint8_t *buf, int bn)
+{
+	int pos_byte = bn >> 3;
+	int pos_bit  = 7 - (bn & 7);
+
+	return (buf[pos_byte] >> pos_bit) & 1;
+}
+
+static inline void msb_set_bit(uint8_t *buf, int bn, int bit)
+{
+	int pos_byte = bn >> 3;
+	int pos_bit  = 7 - (bn & 7);
+
+	buf[pos_byte] |=  (bit << pos_bit);
+}
+
+static void tch_fr_bit_magic(uint8_t *frame, int dl)
+{
+	uint8_t fr[33];
+	int i, di, si;
+
+	memset(fr, 0x00, 33);
+
+	if (dl)
+		fr[0] = 0xd0;
+
+	for (i = 0; i < 260; i++) {
+		di = gsm610_bitorder[i];
+		si = (i > 181) ? i + 4 : i;
+
+		if (dl)
+			msb_set_bit(fr, 4 + di, msb_get_bit(frame, si));
+		else
+			msb_set_bit(fr, si, msb_get_bit(frame, 4 + di));
+	}
+
+	memcpy(frame, fr, 33);
+}
 
 /* This computes various parameters both for the DSP and for
  * our logic. Not all are used all the time, but it's easier
@@ -314,6 +353,12 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 				/* Copy actual data, skipping the information block [0,1,2] */
 				dsp_memcpy_from_api(ti->data, &traffic_buf[3], 33, 1);
 
+				/**
+				 * Perform some bit conversations
+				 * FIXME: what about other (than FR) codecs?
+				 */
+				tch_fr_bit_magic(ti, 1);
+
 				/* Give message to up layer */
 				l1_queue_for_l2(msg);
 			}
@@ -439,6 +484,13 @@ static int l1s_tch_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 
 		/* Pull Traffic data (if any) */
 		msg = msgb_dequeue(&l1s.tx_queue[L1S_CHAN_TRAFFIC]);
+
+		/**
+		 * Perform some bit conversations
+		 * FIXME: what about other (than FR) codecs?
+		 */
+		if (msg)
+			tch_fr_bit_magic(msg->l2h, 0);
 
 		/* Copy actual data, skipping the information block [0,1,2] */
 		if (msg) {
