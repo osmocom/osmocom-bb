@@ -102,7 +102,8 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 		lib/libmini.a \
 		comm/libcomm.a \
 		../../shared/libosmocore/build-target/src/.libs/libosmocore.a \
-		../../shared/libosmocore/build-target/src/gsm/.libs/libosmogsm.a
+		../../shared/libosmocore/build-target/src/gsm/.libs/libosmogsm.a \
+		../../shared/libosmocore/build-target/src/codec/.libs/libosmocodec.a
 
 
 #

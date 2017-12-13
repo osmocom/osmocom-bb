@@ -47,7 +47,6 @@
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/gsm/lapdm.h>
 #include <osmocom/bb/common/logging.h>
-#include <osmocom/codec/codec.h>
 
 extern struct gsmtap_inst *gsmtap_inst;
 
@@ -70,24 +69,6 @@ static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 	
 	return msg;
 }
-
-
-static inline int msb_get_bit(uint8_t *buf, int bn)
-{
-	int pos_byte = bn >> 3;
-	int pos_bit  = 7 - (bn & 7);
-
-	return (buf[pos_byte] >> pos_bit) & 1;
-}
-
-static inline void msb_set_bit(uint8_t *buf, int bn, int bit)
-{
-	int pos_byte = bn >> 3;
-	int pos_bit  = 7 - (bn & 7);
-
-	buf[pos_byte] |=  (bit << pos_bit);
-}
-
 
 static int osmo_make_band_arfcn(struct osmocom_ms *ms, uint16_t arfcn)
 {
@@ -791,22 +772,11 @@ static int rx_l1_traffic_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_info_dl *dl;
 	struct l1ctl_traffic_ind *ti;
-	uint8_t fr[33];
-	int i, di, si;
 
 	/* Header handling */
 	dl = (struct l1ctl_info_dl *) msg->l1h;
 	msg->l2h = dl->payload;
 	ti = (struct l1ctl_traffic_ind *) msg->l2h;
-
-	memset(fr, 0x00, 33);
-	fr[0] = 0xd0;
-	for (i = 0; i < 260; i++) {
-		di = gsm610_bitorder[i];
-		si = (i > 181) ? i + 4 : i;
-		msb_set_bit(fr, 4 + di, msb_get_bit(ti->data, si));
-        }
-	memcpy(ti->data, fr, 33);
 
 	DEBUGP(DL1C, "TRAFFIC IND (%s)\n", osmo_hexdump(ti->data, 33));
 
@@ -830,8 +800,6 @@ int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
 	struct l1ctl_hdr *l1h;
 	struct l1ctl_info_ul *l1i_ul;
 	struct l1ctl_traffic_req *tr;
-	uint8_t fr[33];
-	int i, di, si;
 
 	/* Header handling */
 	tr = (struct l1ctl_traffic_req *) msg->l2h;
@@ -853,13 +821,6 @@ int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
 		return -EINVAL;
 	}
 
-	memset(fr, 0x00, 33);
-	for (i = 0; i < 260; i++) {
-		si = gsm610_bitorder[i];
-		di = (i > 181) ? i + 4 : i;
-		msb_set_bit(fr, di, msb_get_bit(tr->data, 4 + si));
-        }
-	memcpy(tr->data, fr, 33);
 //	printf("TX %s\n", osmo_hexdump(tr->data, 33));
 
 	/* prepend uplink info header */
