@@ -61,12 +61,10 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	LOGP(DSCHD, LOGL_DEBUG, "Data received on %s: fn=%u ts=%u bid=%u\n",
 		lchan_desc->name, fn, ts->index, bid);
 
-	/* Clear buffer & store frame number of first burst */
+	/* Reset internal state */
 	if (bid == 0) {
 		/* Clean up old measurements */
 		memset(&lchan->meas, 0x00, sizeof(lchan->meas));
-
-		memset(buffer, 0, 464);
 
 		*first_fn = fn;
 		*mask = 0x0;
