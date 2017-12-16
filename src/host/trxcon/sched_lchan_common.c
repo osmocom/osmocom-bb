@@ -32,6 +32,8 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
 
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+
 #include "l1ctl_proto.h"
 #include "scheduler.h"
 #include "sched_trx.h"
@@ -106,7 +108,7 @@ int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
 	memcpy(data->payload, l2, l2_len);
 
 	/* Put a packet to higher layers */
-	l1ctl_tx_data_ind(trx->l1l, data, l2_len == 23 ?
+	l1ctl_tx_data_ind(trx->l1l, data, l2_len == GSM_MACBLOCK_LEN ?
 		L1CTL_DATA_IND : L1CTL_TRAFFIC_IND);
 	talloc_free(data);
 
@@ -135,7 +137,7 @@ int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
 	data->frame_nr = htonl(fn);
 
 	/* Choose a confirmation type */
-	conf_type = l2_len == 23 ?
+	conf_type = l2_len == GSM_MACBLOCK_LEN ?
 		L1CTL_DATA_CONF : L1CTL_TRAFFIC_CONF;
 
 	l1ctl_tx_data_conf(trx->l1l, data, conf_type);

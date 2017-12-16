@@ -32,6 +32,7 @@
 #include <osmocom/core/bits.h>
 
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/coding/gsm0503_coding.h>
 
 #include "l1ctl_proto.h"
@@ -47,9 +48,9 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	sbit_t *bits, int8_t rssi, float toa)
 {
 	const struct trx_lchan_desc *lchan_desc;
+	uint8_t l2[GSM_MACBLOCK_LEN], *mask;
 	int n_errors, n_bits_total, rc;
 	sbit_t *buffer, *offset;
-	uint8_t l2[23], *mask;
 	uint32_t *first_fn;
 
 	/* Set up pointers */
@@ -111,7 +112,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	}
 
 	/* Send a L2 frame to the higher layers */
-	sched_send_data_ind(trx, ts, lchan, l2, 23);
+	sched_send_data_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN);
 
 	/* TODO: AGC, TA loops */
 	return 0;
@@ -206,7 +207,7 @@ send_burst:
 		*mask = 0x00;
 
 		/* Confirm data sending */
-		sched_send_data_conf(trx, ts, lchan, fn, 23);
+		sched_send_data_conf(trx, ts, lchan, fn, GSM_MACBLOCK_LEN);
 	}
 
 	return 0;
