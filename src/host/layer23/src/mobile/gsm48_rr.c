@@ -1005,9 +1005,11 @@ static int gsm48_rr_rx_cip_mode_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	rr->cipher_on = sc;
 	rr->cipher_type = alg_id;
 	if (rr->cipher_on)
-		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
+		l1ctl_tx_crypto_req(ms, rr->cd_now.chan_nr,
+			rr->cipher_type + 1, subscr->key, 8);
 	else
-		l1ctl_tx_crypto_req(ms, 0, NULL, 0);
+		l1ctl_tx_crypto_req(ms, rr->cd_now.chan_nr,
+			0, NULL, 0);
 
 	/* response (using the new mode) */
 	return gsm48_rr_tx_cip_mode_cpl(ms, cr);
@@ -2996,7 +2998,8 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	s->si5 = s->si5bis = s->si5ter = s->si6 = 0;
 
 	if (rr->cipher_on)
-		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
+		l1ctl_tx_crypto_req(ms, rr->cd_now.chan_nr,
+			rr->cipher_type + 1, subscr->key, 8);
 
 	return 0;
 }
@@ -3015,7 +3018,8 @@ static int gsm48_rr_channel_after_time(struct osmocom_ms *ms,
 		l1ctl_tx_dm_freq_req_h0(ms, cd->arfcn, cd->tsc, fn);
 
 	if (rr->cipher_on)
-		l1ctl_tx_crypto_req(ms, rr->cipher_type + 1, subscr->key, 8);
+		l1ctl_tx_crypto_req(ms, rr->cd_now.chan_nr,
+			rr->cipher_type + 1, subscr->key, 8);
 
 	gsm48_rr_set_mode(ms, cd->chan_nr, cd->mode);
 

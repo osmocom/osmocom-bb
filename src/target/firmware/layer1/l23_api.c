@@ -301,11 +301,10 @@ static void l1ctl_rx_crypto_req(struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_crypto_req *cr = (struct l1ctl_crypto_req *) ul->payload;
-	uint8_t key_len = msg->len - sizeof(*l1h) - sizeof(*ul) - sizeof(*cr);
 
-	printd("L1CTL_CRYPTO_REQ (algo=A5/%u, len=%u)\n", cr->algo, key_len);
+	printd("L1CTL_CRYPTO_REQ (algo=A5/%u, len=%u)\n", cr->algo, cr->key_len);
 
-	if (cr->algo && key_len != 8) {
+	if (cr->algo && cr->key_len != 8) {
 		printd("L1CTL_CRYPTO_REQ -> Invalid key\n");
 		return;
 	}

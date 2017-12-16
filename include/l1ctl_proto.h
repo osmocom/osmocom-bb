@@ -281,6 +281,7 @@ struct l1ctl_dm_freq_req {
 
 struct l1ctl_crypto_req {
 	uint8_t algo;
+	uint8_t key_len;
 	uint8_t key[0];
 } __attribute__((packed));
 
