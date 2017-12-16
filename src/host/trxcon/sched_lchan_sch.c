@@ -87,7 +87,7 @@ int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Attempt to decode */
 	rc = gsm0503_sch_decode(sb_info, payload);
 	if (rc) {
-		LOGP(DSCHD, LOGL_DEBUG, "Received bad SCH burst at fn=%u\n", fn);
+		LOGP(DSCHD, LOGL_ERROR, "Received bad SCH burst at fn=%u\n", fn);
 		return rc;
 	}
 

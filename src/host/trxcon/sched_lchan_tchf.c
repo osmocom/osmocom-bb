@@ -96,7 +96,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Check for complete set of bursts */
 	if ((*mask & 0xf) != 0xf) {
-		LOGP(DSCHD, LOGL_DEBUG, "Received incomplete traffic frame at "
+		LOGP(DSCHD, LOGL_ERROR, "Received incomplete traffic frame at "
 			"fn=%u (%u/%u) for %s\n", *first_fn,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
@@ -143,7 +143,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Check decoding result */
 	if (rc < 4) {
-		LOGP(DSCHD, LOGL_DEBUG, "Received bad TCH frame ending at "
+		LOGP(DSCHD, LOGL_ERROR, "Received bad TCH frame ending at "
 			"fn=%u for %s\n", fn, lchan_desc->name);
 
 		l2_len = sched_bad_frame_ind(l2, rsl_cmode, tch_mode);

@@ -91,7 +91,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Check for complete set of bursts */
 	if ((*mask & 0xf) != 0xf) {
-		LOGP(DSCHD, LOGL_DEBUG, "Received incomplete data frame at "
+		LOGP(DSCHD, LOGL_ERROR, "Received incomplete data frame at "
 			"fn=%u (%u/%u) for %s\n", *first_fn,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
@@ -103,7 +103,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Attempt to decode */
 	rc = gsm0503_xcch_decode(l2, buffer, &n_errors, &n_bits_total);
 	if (rc) {
-		LOGP(DSCHD, LOGL_DEBUG, "Received bad data frame at fn=%u "
+		LOGP(DSCHD, LOGL_ERROR, "Received bad data frame at fn=%u "
 			"(%u/%u) for %s\n", *first_fn,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
