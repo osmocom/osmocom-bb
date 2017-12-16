@@ -408,8 +408,8 @@ int l1ctl_tx_param_req(struct osmocom_ms *ms, uint8_t ta, uint8_t tx_power)
 }
 
 /* Transmit L1CTL_CRYPTO_REQ */
-int l1ctl_tx_crypto_req(struct osmocom_ms *ms, uint8_t algo, uint8_t *key,
-	uint8_t len)
+int l1ctl_tx_crypto_req(struct osmocom_ms *ms, uint8_t chan_nr,
+	uint8_t algo, uint8_t *key, uint8_t len)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -422,7 +422,11 @@ int l1ctl_tx_crypto_req(struct osmocom_ms *ms, uint8_t algo, uint8_t *key,
 	DEBUGP(DL1C, "CRYPTO Req. algo=%d, len=%d\n", algo, len);
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	req = (struct l1ctl_crypto_req *) msgb_put(msg, sizeof(*req) + len);
+
+	ul->chan_nr = chan_nr;
+	req->key_len = len;
 	req->algo = algo;
+
 	if (len)
 		memcpy(req->key, key, len);
 
