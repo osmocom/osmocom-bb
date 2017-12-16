@@ -154,65 +154,53 @@ struct trx_lchan_state {
 	/*! \brief Burst buffer for TX */
 	ubit_t *tx_bursts;
 
-	/*! \brief Number of RSSI values */
-	uint8_t rssi_num;
-	/*! \brief Sum of RSSI values */
-	float rssi_sum;
-	/*! \brief Number of TOA values */
-	uint8_t toa_num;
-	/*! \brief Sum of TOA values */
-	float toa_sum;
-	/*! \brief (SACCH) loss detection */
-	uint8_t lost;
 	/*! \brief Mode for TCH channels */
 	uint8_t	rsl_cmode, tch_mode;
 
-	/* AMR specific */
-	/*! \brief 4 possible codecs for AMR */
-	uint8_t codec[4];
-	/*! \brief Number of possible codecs */
-	int codecs;
-	/*! \brief Sum of bit error rates */
-	float ber_sum;
-	/*! \brief Number of bit error rates */
-	int ber_num;
-	/*! \brief Current uplink FT index */
-	uint8_t ul_ft;
-	/*! \brief Current downlink FT index */
-	uint8_t dl_ft;
-	/*! \brief Current uplink CMR index */
-	uint8_t ul_cmr;
-	/*! \brief Current downlink CMR index */
-	uint8_t dl_cmr;
-	/*! \brief If AMR loop is enabled */
-	uint8_t amr_loop;
+	/*! \brief FACCH/H on downlink */
+	uint8_t dl_ongoing_facch;
+	/*! \brief FACCH/H on uplink */
+	uint8_t ul_ongoing_facch;
 
-	/* TCH/H */
-	uint8_t dl_ongoing_facch; /*! \brief FACCH/H on downlink */
-	uint8_t ul_ongoing_facch; /*! \brief FACCH/H on uplink */
-
-	/*! \brief A5/x encryption algorithm */
-	int encr_algo;
-	int encr_key_len;
-	uint8_t encr_key[MAX_A5_KEY_LEN];
-
-	/*! \brief Measurements */
 	struct {
-		/*! \brief Cyclic clock counter */
-		uint8_t clock;
-		/*! \brief Last RSSI values */
-		int8_t rssi[32];
-		/*! \brief Received RSSI values */
-		int rssi_count;
-		/*! \brief Number of stored value */
-		int rssi_valid_count;
-		/*! \brief Any burst received so far */
-		int rssi_got_burst;
+		/*! \brief Number of RSSI values */
+		uint8_t rssi_num;
+		/*! \brief Sum of RSSI values */
+		float rssi_sum;
+		/*! \brief Number of TOA values */
+		uint8_t toa_num;
 		/*! \brief Sum of TOA values */
 		float toa_sum;
-		/*! \brief Number of TOA value */
-		int toa_num;
 	} meas;
+
+	/* AMR specific */
+	struct {
+		/*! \brief 4 possible codecs for AMR */
+		uint8_t codec[4];
+		/*! \brief Number of possible codecs */
+		uint8_t codecs;
+		/*! \brief Current uplink FT index */
+		uint8_t ul_ft;
+		/*! \brief Current downlink FT index */
+		uint8_t dl_ft;
+		/*! \brief Current uplink CMR index */
+		uint8_t ul_cmr;
+		/*! \brief Current downlink CMR index */
+		uint8_t dl_cmr;
+		/*! \brief If AMR loop is enabled */
+		uint8_t amr_loop;
+		/*! \brief Number of bit error rates */
+		uint8_t ber_num;
+		/*! \brief Sum of bit error rates */
+		float ber_sum;
+	} amr;
+
+	/*! \brief A5/X encryption state */
+	struct {
+		uint8_t key[MAX_A5_KEY_LEN];
+		uint8_t key_len;
+		uint8_t algo;
+	} a5;
 };
 
 struct trx_ts {

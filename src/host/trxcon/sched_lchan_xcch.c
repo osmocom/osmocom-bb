@@ -48,8 +48,6 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 {
 	const struct trx_lchan_desc *lchan_desc;
 	int n_errors, n_bits_total, rc;
-	uint8_t *rssi_num, *toa_num;
-	float *rssi_sum, *toa_sum;
 	sbit_t *buffer, *offset;
 	uint8_t l2[23], *mask;
 	uint32_t *first_fn;
@@ -60,33 +58,28 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
 
-	rssi_sum = &lchan->rssi_sum;
-	rssi_num = &lchan->rssi_num;
-	toa_sum = &lchan->toa_sum;
-	toa_num = &lchan->toa_num;
-
 	LOGP(DSCHD, LOGL_DEBUG, "Data received on %s: fn=%u ts=%u bid=%u\n",
 		lchan_desc->name, fn, ts->index, bid);
 
 	/* Clear buffer & store frame number of first burst */
 	if (bid == 0) {
+		/* Clean up old measurements */
+		memset(&lchan->meas, 0x00, sizeof(lchan->meas));
+
 		memset(buffer, 0, 464);
 
 		*first_fn = fn;
 		*mask = 0x0;
-
-		*rssi_sum = 0;
-		*rssi_num = 0;
-		*toa_sum = 0;
-		*toa_num = 0;
 	}
 
-	/* Update mask and RSSI */
+	/* Update mask */
 	*mask |= (1 << bid);
-	*rssi_sum += rssi;
-	(*rssi_num)++;
-	*toa_sum += toa;
-	(*toa_num)++;
+
+	/* Update measurements */
+	lchan->meas.rssi_sum += rssi;
+	lchan->meas.toa_sum += toa;
+	lchan->meas.rssi_num++;
+	lchan->meas.toa_num++;
 
 	/* Copy burst to buffer of 4 bursts */
 	offset = buffer + bid * 116;

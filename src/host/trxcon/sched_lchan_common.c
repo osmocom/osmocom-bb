@@ -95,7 +95,7 @@ int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
 	data->link_id = lchan_desc->link_id;
 	data->band_arfcn = htons(trx->band_arfcn);
 	data->frame_nr = htonl(lchan->rx_first_fn);
-	data->rx_level = -(lchan->rssi_sum / lchan->rssi_num);
+	data->rx_level = -(lchan->meas.rssi_sum / lchan->meas.rssi_num);
 
 	/* FIXME: set proper values */
 	data->num_biterr = 0;
