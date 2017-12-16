@@ -108,11 +108,11 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);
-		return rc;
 	}
 
 	/* Send a L2 frame to the higher layers */
-	sched_send_data_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN);
+	sched_send_data_ind(trx, ts, lchan,
+		l2, GSM_MACBLOCK_LEN, rc != 0, n_errors);
 
 	/* TODO: AGC, TA loops */
 	return 0;

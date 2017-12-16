@@ -26,6 +26,7 @@
 #include <string.h>
 #include <talloc.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <arpa/inet.h>
 
@@ -80,7 +81,8 @@ const uint8_t sched_nb_training_bits[8][26] = {
 };
 
 int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len)
+	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len,
+	bool dec_failed, int bit_error_count)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct l1ctl_info_dl *data;
@@ -99,14 +101,18 @@ int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
 	data->band_arfcn = htons(trx->band_arfcn);
 	data->frame_nr = htonl(lchan->rx_first_fn);
 	data->rx_level = -(lchan->meas.rssi_sum / lchan->meas.rssi_num);
+	data->num_biterr = bit_error_count;
 
 	/* FIXME: set proper values */
-	data->num_biterr = 0;
-	data->fire_crc = 0;
 	data->snr = 0;
 
-	/* Fill in the payload */
-	memcpy(data->payload, l2, l2_len);
+	if (dec_failed) {
+		/* Mark frame as broken */
+		data->fire_crc = 2;
+	} else {
+		/* Fill in the payload */
+		memcpy(data->payload, l2, l2_len);
+	}
 
 	/* Put a packet to higher layers */
 	l1ctl_tx_data_ind(trx->l1l, data, l2_len == GSM_MACBLOCK_LEN ?

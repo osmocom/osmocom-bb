@@ -149,7 +149,9 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		l2_len = sched_bad_frame_ind(l2, rsl_cmode, tch_mode);
 	} else if (rc == GSM_MACBLOCK_LEN) {
 		/* FACCH received, forward it to the higher layers */
-		sched_send_data_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN);
+		sched_send_data_ind(trx, ts, lchan,
+			l2, GSM_MACBLOCK_LEN, false, n_errors);
+
 		/* Send BFI instead of stolen TCH frame */
 		l2_len = sched_bad_frame_ind(l2, rsl_cmode, tch_mode);
 	} else {
@@ -159,7 +161,8 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Send a traffic frame to the higher layers */
 	if (l2_len > 0)
-		sched_send_data_ind(trx, ts, lchan, l2, l2_len);
+		sched_send_data_ind(trx, ts, lchan,
+			l2, l2_len, false, n_errors);
 
 	return 0;
 }

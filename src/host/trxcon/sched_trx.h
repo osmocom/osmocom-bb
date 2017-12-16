@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <osmocom/core/bits.h>
 #include <osmocom/core/utils.h>
@@ -277,6 +278,7 @@ extern const uint8_t sched_nb_training_bits[8][26];
 
 size_t sched_bad_frame_ind(uint8_t *l2, uint8_t rsl_cmode, uint8_t tch_mode);
 int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len);
+	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len,
+	bool dec_failed, int bit_error_count);
 int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, size_t l2_len);
