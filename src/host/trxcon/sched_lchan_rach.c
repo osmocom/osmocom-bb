@@ -26,6 +26,7 @@
 #include <string.h>
 #include <talloc.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
@@ -70,8 +71,8 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	if (req->offset-- > 0)
 		return 0;
 
-	/* Encode payload */
-	rc = gsm0503_rach_encode(payload, &req->ra, trx->bsic);
+	/* Encode (8-bit) payload */
+	rc = gsm0503_rach_ext_encode(payload, req->ra, trx->bsic, false);
 	if (rc) {
 		LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst\n");
 		return rc;
