@@ -531,3 +531,21 @@ next_frame:
 
 	return 0;
 }
+
+int sched_trx_handle_tx_burst(struct trx_instance *trx,
+	struct trx_ts *ts, struct trx_lchan_state *lchan,
+	uint32_t fn, ubit_t *bits)
+{
+	int rc;
+
+	/* TODO: perform A5/X burst encryption if required */
+
+	/* Forward burst to transceiver */
+	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, bits);
+	if (rc) {
+		LOGP(DSCHD, LOGL_ERROR, "Could not send burst to transceiver\n");
+		return rc;
+	}
+
+	return 0;
+}

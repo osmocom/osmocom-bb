@@ -86,11 +86,9 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	LOGP(DSCHD, LOGL_DEBUG, "Transmitting RACH fn=%u\n", fn);
 
-	/* Send burst to transceiver */
-	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, burst);
+	/* Forward burst to scheduler */
+	rc = sched_trx_handle_tx_burst(trx, ts, lchan, fn, burst);
 	if (rc) {
-		LOGP(DSCHD, LOGL_ERROR, "Could not send burst to transceiver\n");
-
 		/* Forget this primitive */
 		sched_prim_drop(lchan);
 

@@ -258,11 +258,9 @@ send_burst:
 	LOGP(DSCHD, LOGL_DEBUG, "Transmitting %s fn=%u ts=%u burst=%u\n",
 		lchan_desc->name, fn, ts->index, bid);
 
-	/* Send burst to transceiver */
-	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, burst);
+	/* Forward burst to scheduler */
+	rc = sched_trx_handle_tx_burst(trx, ts, lchan, fn, burst);
 	if (rc) {
-		LOGP(DSCHD, LOGL_ERROR, "Could not send burst to transceiver\n");
-
 		/* Forget this primitive */
 		sched_prim_drop(lchan);
 
