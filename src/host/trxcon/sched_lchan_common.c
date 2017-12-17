@@ -186,11 +186,14 @@ size_t sched_bad_frame_ind(uint8_t *l2, uint8_t rsl_cmode, uint8_t tch_mode)
 	}
 }
 
-#define PRIM_IS_FACCH(prim) \
-	prim->payload_len == GSM_MACBLOCK_LEN
+#define CHAN_IS_TCH(chan) \
+	(chan == TRXC_TCHF || chan == TRXC_TCHH_0 || chan == TRXC_TCHH_1)
 
 #define PRIM_IS_TCH(prim) \
-	prim->payload_len != GSM_MACBLOCK_LEN
+	CHAN_IS_TCH(prim->chan) && prim->payload_len != GSM_MACBLOCK_LEN
+
+#define PRIM_IS_FACCH(prim) \
+	CHAN_IS_TCH(prim->chan) && prim->payload_len == GSM_MACBLOCK_LEN
 
 struct trx_ts_prim *sched_dequeue_tch_prim(struct llist_head *queue)
 {
