@@ -253,6 +253,8 @@ void sched_trx_del_ts(struct trx_instance *trx, int tn);
 int sched_trx_reset_ts(struct trx_instance *trx, int tn);
 int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 	enum gsm_phys_chan_config config);
+int sched_trx_start_ciphering(struct trx_ts *ts, uint8_t algo,
+	uint8_t *key, uint8_t key_len);
 
 /* Logical channel management functions */
 enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr);

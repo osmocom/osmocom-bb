@@ -27,6 +27,7 @@
 #include <string.h>
 #include <talloc.h>
 
+#include <osmocom/gsm/a5.h>
 #include <osmocom/core/bits.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>
@@ -292,6 +293,37 @@ int sched_trx_reset_ts(struct trx_instance *trx, int tn)
 	return 0;
 }
 
+int sched_trx_start_ciphering(struct trx_ts *ts, uint8_t algo,
+	uint8_t *key, uint8_t key_len)
+{
+	struct trx_lchan_state *state;
+	size_t len;
+	int i;
+
+	/* Prevent NULL-pointer deference */
+	if (!ts)
+		return -EINVAL;
+
+	/* Make sure we can store this key */
+	if (key_len > MAX_A5_KEY_LEN)
+		return -ERANGE;
+
+	/* Iterate over all allocated logical channels */
+	len = talloc_array_length(ts->lchans);
+	for (i = 0; i < len; i++) {
+		/* Set key length and algorithm */
+		state = ts->lchans + i;
+		state->a5.key_len = key_len;
+		state->a5.algo = algo;
+
+		/* Copy requested key */
+		if (key_len)
+			memcpy(state->a5.key, key, key_len);
+	}
+
+	return 0;
+}
+
 struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
 	enum trx_lchan_type chan)
 {
@@ -396,6 +428,9 @@ int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 	talloc_free(lchan->rx_bursts);
 	talloc_free(lchan->tx_bursts);
 
+	/* Reset ciphering state */
+	memset(&lchan->a5, 0x00, sizeof(lchan->a5));
+
 	/* Forget the current prim */
 	sched_prim_drop(lchan);
 
@@ -456,6 +491,40 @@ enum trx_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr,
 	return TRXC_IDLE;
 }
 
+static void sched_trx_a5_burst_dec(struct trx_lchan_state *lchan,
+	uint32_t fn, sbit_t *burst)
+{
+	ubit_t ks[114];
+	int i;
+
+	/* Generate keystream for a DL burst */
+	osmo_a5(lchan->a5.algo, lchan->a5.key, fn, ks, NULL);
+
+	/* Apply keystream over ciphertext */
+	for (i = 0; i < 57; i++) {
+		if (ks[i])
+			burst[i + 3] *= -1;
+		if (ks[i + 57])
+			burst[i + 88] *= -1;
+	}
+}
+
+static void sched_trx_a5_burst_enc(struct trx_lchan_state *lchan,
+	uint32_t fn, ubit_t *burst)
+{
+	ubit_t ks[114];
+	int i;
+
+	/* Generate keystream for an UL burst */
+	osmo_a5(lchan->a5.algo, lchan->a5.key, fn, NULL, ks);
+
+	/* Apply keystream over plaintext */
+	for (i = 0; i < 57; i++) {
+		burst[i + 3] ^= ks[i];
+		burst[i + 88] ^= ks[i + 57];
+	}
+}
+
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa)
 {
@@ -512,9 +581,13 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 		if (!lchan->active)
 			goto next_frame;
 
-		/* Put burst to handler */
+		/* Reached current fn */
 		if (fn == burst_fn) {
-			/* TODO: decrypt if required */
+			/* Perform A5/X decryption if required */
+			if (lchan->a5.algo)
+				sched_trx_a5_burst_dec(lchan, fn, bits);
+
+			/* Put burst to handler */
 			handler(trx, ts, lchan, fn, bid, bits, rssi, toa);
 		}
 
@@ -538,7 +611,9 @@ int sched_trx_handle_tx_burst(struct trx_instance *trx,
 {
 	int rc;
 
-	/* TODO: perform A5/X burst encryption if required */
+	/* Perform A5/X burst encryption if required */
+	if (lchan->a5.algo)
+		sched_trx_a5_burst_enc(lchan, fn, bits);
 
 	/* Forward burst to transceiver */
 	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, bits);

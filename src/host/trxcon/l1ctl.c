@@ -731,6 +731,49 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 	return 0;
 }
 
+static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	struct l1ctl_crypto_req *req;
+	struct l1ctl_info_ul *ul;
+	struct trx_ts *ts;
+	uint8_t tn;
+	int rc = 0;
+
+	ul = (struct l1ctl_info_ul *) msg->l1h;
+	req = (struct l1ctl_crypto_req *) ul->payload;
+
+	LOGP(DL1C, LOGL_NOTICE, "L1CTL_CRYPTO_REQ (algo=A5/%u, key_len=%u)\n",
+		req->algo, req->key_len);
+
+	/* Determine TS index */
+	tn = ul->chan_nr & 0x7;
+	if (tn > 7) {
+		LOGP(DL1C, LOGL_ERROR, "Incorrect TS index %u\n", tn);
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Make sure that required TS is allocated and configured */
+	ts = l1l->trx->ts_list[tn];
+	if (ts == NULL || ts->mf_layout == NULL) {
+		LOGP(DL1C, LOGL_ERROR, "TS %u is not configured\n", tn);
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Poke scheduler */
+	rc = sched_trx_start_ciphering(ts, req->algo, req->key, req->key_len);
+	if (rc) {
+		LOGP(DL1C, LOGL_ERROR, "Couldn't configure ciphering\n");
+		rc = -EINVAL;
+		goto exit;
+	}
+
+exit:
+	msgb_free(msg);
+	return rc;
+}
+
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
@@ -763,6 +806,8 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_param_req(l1l, msg);
 	case L1CTL_TCH_MODE_REQ:
 		return l1ctl_rx_tch_mode_req(l1l, msg);
+	case L1CTL_CRYPTO_REQ:
+		return l1ctl_rx_crypto_req(l1l, msg);
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
 		msgb_free(msg);
