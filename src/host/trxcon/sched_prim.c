@@ -145,43 +145,51 @@ int sched_prim_push(struct trx_instance *trx,
  */
 static struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
 {
-	struct trx_ts_prim *a, *b;
+	struct trx_ts_prim *facch = NULL;
+	struct trx_ts_prim *tch = NULL;
+	struct trx_ts_prim *i;
 
-	/* Dequeue the first prim */
-	a = llist_entry(queue->next, struct trx_ts_prim, list);
-	llist_del(&a->list);
+	/* Attempt to find a pair of FACCH and TCH frames */
+	llist_for_each_entry(i, queue, list) {
+		/* Find one FACCH frame */
+		if (!facch && PRIM_IS_FACCH(i))
+			facch = i;
 
-	/* If this was the only one => do nothing... */
-	if (llist_empty(queue))
-		return a;
+		/* Find one TCH frame */
+		if (!tch && PRIM_IS_TCH(i))
+			tch = i;
 
-	/* Obtain the next prim */
-	b = llist_entry(queue->next, struct trx_ts_prim, list);
-
-	/* Find and prioritize FACCH  */
-	if (PRIM_IS_FACCH(a) && PRIM_IS_TCH(b)) {
-		/**
-		 * Case 1: first is FACCH, second is TCH:
-		 * Prioritize FACCH, dropping TCH
-		 */
-		llist_del(&b->list);
-		talloc_free(b);
-		return a;
-	} else if (PRIM_IS_TCH(a) && PRIM_IS_FACCH(b)) {
-		/**
-		 * Case 2: first is TCH, second is FACCH:
-		 * Prioritize FACCH, dropping TCH
-		 */
-		llist_del(&b->list);
-		talloc_free(a);
-		return b;
-	} else {
-		/**
-		 * Otherwise: both are TCH or FACCH frames:
-		 * Nothing to prioritize, return the first one
-		 */
-		return a;
+		/* If both are found */
+		if (facch && tch)
+			break;
 	}
+
+	/* There should be at least one frame found */
+	OSMO_ASSERT(facch || tch);
+
+	/* Prioritize FACCH */
+	if (facch && tch) {
+		/* We found a pair, dequeue both */
+		llist_del(&facch->list);
+		llist_del(&tch->list);
+
+		/* Drop TCH */
+		talloc_free(tch);
+
+		/* FACCH replaces TCH */
+		return facch;
+	} else if (facch) {
+		/* Only FACCH was found */
+		llist_del(&facch->list);
+		return facch;
+	} else if (tch) {
+		/* Only TCH was found */
+		llist_del(&tch->list);
+		return tch;
+	}
+
+	/* Unreachable */
+	OSMO_ASSERT(0);
 }
 
 /**
