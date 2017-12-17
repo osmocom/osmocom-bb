@@ -264,11 +264,13 @@ struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
 	enum trx_lchan_type chan);
 
 /* Primitive management functions */
-int sched_trx_init_prim(struct trx_instance *trx, struct trx_ts_prim **prim,
+int sched_prim_init(struct trx_instance *trx, struct trx_ts_prim **prim,
 	size_t pl_len, uint8_t chan_nr, uint8_t link_id);
-int sched_trx_push_prim(struct trx_instance *trx,
+int sched_prim_push(struct trx_instance *trx,
 	struct trx_ts_prim *prim, uint8_t chan_nr);
-struct trx_ts_prim *sched_dequeue_tch_prim(struct llist_head *queue);
+
+struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue);
+void sched_prim_flush_queue(struct llist_head *list);
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa);

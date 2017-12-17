@@ -217,7 +217,7 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	}
 
 	/* Get a message from TX queue */
-	prim = sched_dequeue_tch_prim(&ts->tx_prims);
+	prim = sched_prim_dequeue_tch(&ts->tx_prims);
 	l2 = (uint8_t *) prim->payload;
 
 	/* Determine payload length */

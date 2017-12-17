@@ -495,8 +495,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 		"(offset=%u ra=0x%02x)\n", req->offset, req->ra);
 
 	/* Init a new primitive */
-	rc = sched_trx_init_prim(l1l->trx, &prim, len,
-		chan_nr, link_id);
+	rc = sched_prim_init(l1l->trx, &prim, len, chan_nr, link_id);
 	if (rc)
 		goto exit;
 
@@ -506,7 +505,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 	 * FIXME: what if requested TS is not configured?
 	 * Or what if one (such as TCH) has no TRXC_RACH slots?
 	 */
-	rc = sched_trx_push_prim(l1l->trx, prim, chan_nr);
+	rc = sched_prim_push(l1l->trx, prim, chan_nr);
 	if (rc) {
 		talloc_free(prim);
 		goto exit;
@@ -619,13 +618,13 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 		"link_id=0x%02x)\n", chan_nr, link_id);
 
 	/* Init a new primitive */
-	rc = sched_trx_init_prim(l1l->trx, &prim, 23,
+	rc = sched_prim_init(l1l->trx, &prim, 23,
 		chan_nr, link_id);
 	if (rc)
 		goto exit;
 
 	/* Push this primitive to transmit queue */
-	rc = sched_trx_push_prim(l1l->trx, prim, chan_nr);
+	rc = sched_prim_push(l1l->trx, prim, chan_nr);
 	if (rc) {
 		talloc_free(prim);
 		goto exit;
@@ -657,13 +656,13 @@ static int l1ctl_rx_traffic_req(struct l1ctl_link *l1l, struct msgb *msg)
 		"link_id=0x%02x)\n", chan_nr, link_id);
 
 	/* Init a new primitive */
-	rc = sched_trx_init_prim(l1l->trx, &prim, TRAFFIC_DATA_LEN,
+	rc = sched_prim_init(l1l->trx, &prim, TRAFFIC_DATA_LEN,
 		chan_nr, link_id);
 	if (rc)
 		goto exit;
 
 	/* Push this primitive to transmit queue */
-	rc = sched_trx_push_prim(l1l->trx, prim, chan_nr);
+	rc = sched_prim_push(l1l->trx, prim, chan_nr);
 	if (rc) {
 		talloc_free(prim);
 		goto exit;

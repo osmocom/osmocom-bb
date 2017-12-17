@@ -39,6 +39,7 @@ trxcon_SOURCES += \
 	sched_lchan_sch.c \
 	sched_mframe.c \
 	sched_clck.c \
+	sched_prim.c \
 	sched_trx.c \
 	$(NULL)
 
