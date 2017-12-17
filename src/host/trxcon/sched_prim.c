@@ -143,19 +143,20 @@ int sched_prim_push(struct trx_instance *trx,
  * @param  queue a transmit queue to take a prim from
  * @return       a FACCH or TCH primitive
  */
-struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
+static struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
 {
 	struct trx_ts_prim *a, *b;
 
-	/* Obtain the first prim from TX queue */
+	/* Dequeue the first prim */
 	a = llist_entry(queue->next, struct trx_ts_prim, list);
+	llist_del(&a->list);
 
-	/* If this is the only one => do nothing... */
-	if (queue->next->next == queue)
+	/* If this was the only one => do nothing... */
+	if (llist_empty(queue))
 		return a;
 
-	/* Obtain the second prim from TX queue */
-	b = llist_entry(queue->next->next, struct trx_ts_prim, list);
+	/* Obtain the next prim */
+	b = llist_entry(queue->next, struct trx_ts_prim, list);
 
 	/* Find and prioritize FACCH  */
 	if (PRIM_IS_FACCH(a) && PRIM_IS_TCH(b)) {
@@ -171,7 +172,7 @@ struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
 		 * Case 2: first is TCH, second is FACCH:
 		 * Prioritize FACCH, dropping TCH
 		 */
-		llist_del(&a->list);
+		llist_del(&b->list);
 		talloc_free(a);
 		return b;
 	} else {
@@ -181,6 +182,49 @@ struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
 		 */
 		return a;
 	}
+}
+
+/**
+ * Dequeues a single primitive of required type
+ * from a specified transmit queue.
+ *
+ * @param  queue      a transmit queue to take a prim from
+ * @param  lchan_type required primitive type
+ * @return            a primitive or NULL if not found
+ */
+struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
+	enum trx_lchan_type lchan_type)
+{
+	struct trx_ts_prim *prim;
+
+	/* There is nothing to dequeue */
+	if (llist_empty(queue))
+		return NULL;
+
+	/* TCH requires FACCH prioritization, so handle it separately */
+	if (CHAN_IS_TCH(lchan_type))
+		return sched_prim_dequeue_tch(queue);
+
+	llist_for_each_entry(prim, queue, list) {
+		if (prim->chan == lchan_type) {
+			llist_del(&prim->list);
+			return prim;
+		}
+	}
+
+	return NULL;
+}
+
+/**
+ * Drops the current primitive of specified logical channel
+ *
+ * @param lchan a logical channel to drop prim from
+ */
+void sched_prim_drop(struct trx_lchan_state *lchan)
+{
+	/* Forget this primitive */
+	talloc_free(lchan->prim);
+	lchan->prim = NULL;
 }
 
 /**

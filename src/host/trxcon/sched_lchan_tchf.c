@@ -24,10 +24,8 @@
 
 #include <errno.h>
 #include <string.h>
-#include <talloc.h>
 #include <stdint.h>
 
-#include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
 
@@ -171,11 +169,10 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid)
 {
 	const struct trx_lchan_desc *lchan_desc;
-	struct trx_ts_prim *prim;
 	ubit_t burst[GSM_BURST_LEN];
 	ubit_t *buffer, *offset;
-	uint8_t *mask, *l2;
 	const uint8_t *tsc;
+	uint8_t *mask;
 	size_t l2_len;
 	int rc;
 
@@ -206,35 +203,37 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		 * TODO: AMR requires a dedicated loop,
 		 * which will be implemented later...
 		 */
-		/* TODO: drop prim here */
-		LOGP(DSCHD, LOGL_ERROR, "AMR isn't supported yet\n");
+		LOGP(DSCHD, LOGL_ERROR, "AMR isn't supported yet, "
+			"dropping frame...\n");
+
+		/* Forget this primitive */
+		sched_prim_drop(lchan);
+
 		return -ENOTSUP;
 	default:
-		/* TODO: drop prim here */
-		LOGP(DSCHD, LOGL_ERROR, "Invalid TCH mode: %u\n",
-			lchan->tch_mode);
+		LOGP(DSCHD, LOGL_ERROR, "Invalid TCH mode: %u, "
+			"dropping frame...\n", lchan->tch_mode);
+
+		/* Forget this primitive */
+		sched_prim_drop(lchan);
+
 		return -EINVAL;
 	}
 
-	/* Get a message from TX queue */
-	prim = sched_prim_dequeue_tch(&ts->tx_prims);
-	l2 = (uint8_t *) prim->payload;
-
 	/* Determine payload length */
-	if (prim->payload_len == GSM_MACBLOCK_LEN)
+	if (lchan->prim->payload_len == GSM_MACBLOCK_LEN)
 		l2_len = GSM_MACBLOCK_LEN;
 
 	/* Shift buffer by 4 bursts back for interleaving */
 	memcpy(buffer, buffer + 464, 464);
 
 	/* Encode payload */
-	rc = gsm0503_tch_fr_encode(buffer, l2, l2_len, 1);
+	rc = gsm0503_tch_fr_encode(buffer, lchan->prim->payload, l2_len, 1);
 	if (rc) {
 		LOGP(DSCHD, LOGL_ERROR, "Failed to encode L2 payload\n");
 
-		/* Remove primitive from queue and free memory */
-		llist_del(&prim->list);
-		talloc_free(prim);
+		/* Forget this primitive */
+		sched_prim_drop(lchan);
 
 		return -EINVAL;
 	}
@@ -264,10 +263,8 @@ send_burst:
 	if (rc) {
 		LOGP(DSCHD, LOGL_ERROR, "Could not send burst to transceiver\n");
 
-		/* Remove primitive from queue and free memory */
-		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
-		llist_del(&prim->list);
-		talloc_free(prim);
+		/* Forget this primitive */
+		sched_prim_drop(lchan);
 
 		/* Reset mask */
 		*mask = 0x00;
@@ -277,15 +274,12 @@ send_burst:
 
 	/* If we have sent the last (4/4) burst */
 	if (*mask == 0x0f) {
-		/* Get pointer to a prim which was sent */
-		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
-
 		/* Confirm data / traffic sending */
-		sched_send_data_conf(trx, ts, lchan, fn, prim->payload_len);
+		sched_send_data_conf(trx, ts, lchan, fn,
+			lchan->prim->payload_len);
 
-		/* Remove primitive from queue and free memory */
-		llist_del(&prim->list);
-		talloc_free(prim);
+		/* Forget processed primitive */
+		sched_prim_drop(lchan);
 
 		/* Reset mask */
 		*mask = 0x00;

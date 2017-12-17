@@ -160,6 +160,9 @@ struct trx_lchan_state {
 	/*! \brief Burst buffer for TX */
 	ubit_t *tx_bursts;
 
+	/*! \brief A primitive being sent */
+	struct trx_ts_prim *prim;
+
 	/*! \brief Mode for TCH channels */
 	uint8_t	rsl_cmode, tch_mode;
 
@@ -269,7 +272,9 @@ int sched_prim_init(struct trx_instance *trx, struct trx_ts_prim **prim,
 int sched_prim_push(struct trx_instance *trx,
 	struct trx_ts_prim *prim, uint8_t chan_nr);
 
-struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue);
+struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
+	enum trx_lchan_type lchan_type);
+void sched_prim_drop(struct trx_lchan_state *lchan);
 void sched_prim_flush_queue(struct llist_head *list);
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,

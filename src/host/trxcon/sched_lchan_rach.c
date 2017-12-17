@@ -24,11 +24,9 @@
 
 #include <errno.h>
 #include <string.h>
-#include <talloc.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
 
@@ -57,15 +55,13 @@ static ubit_t rach_synch_seq[] = {
 int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid)
 {
-	struct trx_ts_prim *prim;
 	struct l1ctl_rach_req *req;
 	uint8_t burst[GSM_BURST_LEN];
 	uint8_t payload[36];
 	int rc;
 
-	/* Get a message from TX queue */
-	prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
-	req = (struct l1ctl_rach_req *) prim->payload;
+	/* Get the payload from a current primitive */
+	req = (struct l1ctl_rach_req *) lchan->prim->payload;
 
 	/* Delay RACH sending according to offset value */
 	if (req->offset-- > 0)
@@ -75,6 +71,10 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	rc = gsm0503_rach_ext_encode(payload, req->ra, trx->bsic, false);
 	if (rc) {
 		LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst\n");
+
+		/* Forget this primitive */
+		sched_prim_drop(lchan);
+
 		return rc;
 	}
 
@@ -90,15 +90,18 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, burst);
 	if (rc) {
 		LOGP(DSCHD, LOGL_ERROR, "Could not send burst to transceiver\n");
+
+		/* Forget this primitive */
+		sched_prim_drop(lchan);
+
 		return rc;
 	}
 
 	/* Confirm RACH request */
 	l1ctl_tx_rach_conf(trx->l1l, fn);
 
-	/* Remove primitive from queue and free memory */
-	llist_del(&prim->list);
-	talloc_free(prim);
+	/* Forget processed primitive */
+	sched_prim_drop(lchan);
 
 	return 0;
 }

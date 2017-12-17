@@ -43,7 +43,6 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 	const struct trx_frame *frame;
 	struct trx_lchan_state *lchan;
 	trx_lchan_tx_func *handler;
-	struct trx_ts_prim *prim;
 	enum trx_lchan_type chan;
 	uint8_t offset, bid;
 	struct trx_ts *ts;
@@ -59,10 +58,6 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 
 		/* Timeslot is not configured */
 		if (ts->mf_layout == NULL)
-			continue;
-
-		/* There is nothing to send */
-		if (llist_empty(&ts->tx_prims))
 			continue;
 
 		/**
@@ -90,12 +85,19 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		if (lchan == NULL)
 			continue;
 
-		/* Get a message from TX queue */
-		prim = llist_entry(ts->tx_prims.next, struct trx_ts_prim, list);
+		/**
+		 * If we aren't processing any primitive yet,
+		 * attempt to obtain a new one from queue
+		 */
+		if (lchan->prim == NULL)
+			lchan->prim = sched_prim_dequeue(&ts->tx_prims, chan);
+
+		/* If there is no primitive, do nothing */
+		if (lchan->prim == NULL)
+			continue;
 
 		/* Poke lchan handler */
-		if (prim->chan == chan)
-			handler(trx, ts, lchan, fn, bid);
+		handler(trx, ts, lchan, fn, bid);
 	}
 }
 
@@ -394,6 +396,9 @@ int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 	talloc_free(lchan->rx_bursts);
 	talloc_free(lchan->tx_bursts);
 
+	/* Forget the current prim */
+	sched_prim_drop(lchan);
+
 	lchan->active = 0;
 
 	return 0;
@@ -413,6 +418,9 @@ void sched_trx_deactivate_all_lchans(struct trx_ts *ts)
 
 		talloc_free(lchan->rx_bursts);
 		talloc_free(lchan->tx_bursts);
+
+		/* Forget the current prim */
+		sched_prim_drop(lchan);
 
 		lchan->active = 0;
 	}

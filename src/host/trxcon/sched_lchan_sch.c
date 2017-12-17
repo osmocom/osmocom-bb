@@ -29,7 +29,6 @@
 
 #include <arpa/inet.h>
 
-#include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
 
