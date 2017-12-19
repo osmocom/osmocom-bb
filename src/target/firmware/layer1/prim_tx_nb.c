@@ -125,6 +125,7 @@ static int l1s_tx_cmd(uint8_t p1, uint8_t burst_id, uint16_t p3)
 		burst_id, tsc
 	);
 
+	//printf("\nMTZ: arfcn in l1s_tx_cmd = %d, sc=%d\n", arfcn, l1s.serving_cell.arfcn);
 	l1s_tx_win_ctrl(arfcn | ARFCN_UPLINK, L1_TXWIN_NB, 0, 3);
 
 	return 0;

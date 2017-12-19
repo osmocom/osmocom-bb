@@ -47,7 +47,9 @@
 #define L1_NB_DURATION_Q	(L1_BURST_LENGTH_Q + 2 * L1_NB_MARGIN_Q - L1_TAIL_DURATION_Q)
 #define L1_SB_DURATION_Q	(L1_BURST_LENGTH_Q + 2 * L1_SB_MARGIN_Q - L1_TAIL_DURATION_Q)
 #define L1_FB_DURATION_Q	(11 * L1_TDMA_LENGTH_Q + 2057)	/* more than 11 full slots */
-#define L1_FB26_DURATION_Q	(L1_TDMA_LENGTH_Q + 798)
+//#define L1_FB26_DURATION_Q	(L1_TDMA_LENGTH_Q + 798)
+#define L1_FB26_DURATION_Q	(2*L1_TDMA_LENGTH_Q + 798)
+#define L1_SB26_DURATION_Q	(L1_TDMA_LENGTH_Q + 984) // 984
 #define	L1_PW_DURATION_Q	289
 
 #define DSP_SETUP_TIME		66
@@ -57,6 +59,8 @@ static const uint16_t rx_burst_duration[_NUM_L1_RXWIN] = {
 	[L1_RXWIN_FB]	= L1_FB_DURATION_Q,
 	[L1_RXWIN_SB]	= L1_SB_DURATION_Q,
 	[L1_RXWIN_NB]	= L1_NB_DURATION_Q,
+	[L1_RXWIN_FB26]	= L1_FB26_DURATION_Q,
+	[L1_RXWIN_SB26]	= L1_SB26_DURATION_Q,
 };
 
 #define L1_TX_NB_DURATION_Q	626
@@ -127,6 +131,15 @@ void l1s_rx_win_ctrl(uint16_t arfcn, enum l1_rxwin_type wtype, uint8_t tn_ofs)
 			tpu_enq_at(0);
 
 		stop -= 11 * L1_TDMA_LENGTH_Q;
+	}
+
+	/* Delay 11 full TDMA frames */
+	if (wtype == L1_RXWIN_FB26) {
+		uint8_t i;
+		for (i = 0; i < 2; i++)
+			tpu_enq_at(0);
+
+		stop -= 2 * L1_TDMA_LENGTH_Q;
 	}
 
 	/* Window close for ABB */

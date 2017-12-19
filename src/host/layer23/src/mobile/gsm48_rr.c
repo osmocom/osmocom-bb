@@ -92,6 +92,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms);
 static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	uint8_t mode);
 static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg);
+static int gsm48_rr_as_ho_failed(struct osmocom_ms *ms);
 
 /*
  * support
@@ -147,13 +148,11 @@ static int gsm48_decode_ba_range(const uint8_t *ba, uint8_t ba_len,
 		*ranges = 0;
 		return -EINVAL;
 	}
-
-	if (n > max_ranges) {
+	if (max_ranges > n)
 		LOGP(DRR, LOGL_NOTICE, "BA range %d exceed the maximum number "
 			"of ranges supported by this mobile (%d).\n",
 			n, max_ranges);
 		n = max_ranges;
-	}
 
 	/* decode ranges */
 	for (i = 0; i < n; i++) {
@@ -365,6 +364,8 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		stop_rr_t_starting(rr);
 		/* stop handover timer */
 		stop_rr_t3124(rr);
+		/* stop faking measurement report */
+		rr->hando_fake_report = 0;
 	}
 
 	rr->state = state;
@@ -526,6 +527,7 @@ static int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
 	}
 	rsl_rll_push_l3(msg, msg_type, rr->cd_now.chan_nr, link_id, 1);
 
+	printf("MTZ: lapdm_rslms_recvmsg called 1 (in gsm48_send_rsl)\n");
 	return lapdm_rslms_recvmsg(msg, &ms->lapdm_channel);
 }
 
@@ -538,12 +540,14 @@ static int gsm48_send_rsl_nol3(struct osmocom_ms *ms, uint8_t msg_type,
 	rsl_rll_push_hdr(msg, msg_type, rr->cd_now.chan_nr,
 		link_id, 1);
 
+	printf("MTZ: lapdm_rslms_recvmsg called 2 (in gsm48_send_rsl_nol3)\n");
 	return lapdm_rslms_recvmsg(msg, &ms->lapdm_channel);
 }
 
 /* enqueue messages (RSL-SAP) */
 static int rcv_rsl(struct msgb *msg, struct lapdm_entity *le, void *l3ctx)
 {
+	printf("MTZ: In rcv_rsl\n");
 	struct osmocom_ms *ms = l3ctx;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
@@ -644,8 +648,9 @@ static void timeout_rr_meas(void *arg)
 		rxlev = (meas->rxlev + meas->frames / 2) / meas->frames;
 		berr = (meas->berr + meas->frames / 2) / meas->frames;
 		snr = (meas->snr + meas->frames / 2) / meas->frames;
-		sprintf(text, "MON: f=%d lev=%s snr=%2d ber=%3d "
-			"LAI=%s %s %04x ID=%04x", cs->sel_arfcn,
+		sprintf(text, "MON: BCCH=%s lev=%s snr=%2d ber=%3d "
+			"LAI=%s %s %04x ID=%04x",
+			gsm_print_arfcn(cs->sel_arfcn),
 			gsm_print_rxlev(rxlev), berr, snr,
 			gsm_print_mcc(cs->sel_mcc),
 			gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
@@ -744,6 +749,16 @@ static void timeout_rr_t3122(void *arg)
 	LOGP(DRR, LOGL_INFO, "timer T3122 has fired\n");
 }
 
+static void timeout_rr_t3124(void *arg)
+{
+	struct gsm48_rrlayer *rr = arg;
+	struct osmocom_ms *ms = rr->ms;
+
+	LOGP(DRR, LOGL_INFO, "timer T3124 has fired (handover timeout)\n");
+
+	gsm48_rr_as_ho_failed(ms);
+}
+
 static void timeout_rr_t3126(void *arg)
 {
 	struct gsm48_rrlayer *rr = arg;
@@ -806,6 +821,15 @@ static void start_rr_t3122(struct gsm48_rrlayer *rr, int sec, int micro)
 	rr->t3122.cb = timeout_rr_t3122;
 	rr->t3122.data = rr;
 	osmo_timer_schedule(&rr->t3122, sec, micro);
+}
+
+static void start_rr_t3124(struct gsm48_rrlayer *rr, int sec, int micro)
+{
+	LOGP(DRR, LOGL_INFO, "starting T3124 with %d.%03d seconds\n", sec,
+		micro / 1000);
+	rr->t3124.cb = timeout_rr_t3124;
+	rr->t3124.data = rr;
+	osmo_timer_schedule(&rr->t3124, sec, micro);
 }
 
 static void start_rr_t3126(struct gsm48_rrlayer *rr, int sec, int micro)
@@ -1288,7 +1312,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 	struct gsm_settings *set = &ms->settings;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct msgb *nmsg;
 	struct gsm48_rr_hdr *nrrh;
 	uint8_t chan_req_val, chan_req_mask;
@@ -1341,6 +1365,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 	/* generate CHAN REQ (9.1.8) */
 	switch (cause) {
 	case RR_EST_CAUSE_EMERGENCY:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_EMERGENCY\n");
 		/* 101xxxxx */
 		chan_req_mask = 0x1f;
 		chan_req_val = 0xa0;
@@ -1348,12 +1373,14 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 			chan_req_val);
 		break;
 	case RR_EST_CAUSE_REESTAB_TCH_F:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_REESTAB_TCH_F\n");
 		chan_req_mask = 0x1f;
 		chan_req_val = 0xc0;
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (re-establish "
 			"TCH/F)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_REESTAB_TCH_H:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_REESTAB_TCH_H\n");
 		if (s->neci) {
 			chan_req_mask = 0x03;
 			chan_req_val = 0x68;
@@ -1368,6 +1395,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 		}
 		break;
 	case RR_EST_CAUSE_REESTAB_2_TCH_H:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_REESTAB_2_TCH_H\n");
 		if (s->neci) {
 			chan_req_mask = 0x03;
 			chan_req_val = 0x6c;
@@ -1383,18 +1411,21 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 		}
 		break;
 	case RR_EST_CAUSE_ANS_PAG_ANY:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_ANS_PAG_ANY\n");
 		chan_req_mask = 0x1f;
 		chan_req_val = 0x80;
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (PAGING "
 			"Any channel)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_SDCCH:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_ANS_PAG_SDCCH\n");
 		chan_req_mask = 0x0f;
 		chan_req_val = 0x10;
 		LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (PAGING SDCCH)\n",
 			chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_F:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_ANS_PAG_TCH_F\n");
 		switch (set->ch_cap) {
 		case GSM_CAP_SDCCH:
 			chan_req_mask = 0x0f;
@@ -1413,6 +1444,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 			chan_req_val);
 		break;
 	case RR_EST_CAUSE_ANS_PAG_TCH_ANY:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_ANS_PAG_TCH_ANY\n");
 		switch (set->ch_cap) {
 		case GSM_CAP_SDCCH:
 			chan_req_mask = 0x0f;
@@ -1431,6 +1463,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 				"TCH/F)\n", chan_req_val);
 		break;
 	case RR_EST_CAUSE_ORIG_TCHF:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_ORIG_TCHF\n");
 		/* ms supports no dual rate */
 		chan_req_mask = 0x1f;
 		chan_req_val = 0xe0;
@@ -1438,6 +1471,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 			chan_req_val);
 		break;
 	case RR_EST_CAUSE_LOC_UPD:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_LOC_UPD\n");
 		if (s->neci) {
 			chan_req_mask = 0x0f;
 			chan_req_val = 0x00;
@@ -1451,6 +1485,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 		}
 		break;
 	case RR_EST_CAUSE_OTHER_SDCCH:
+		printf("MTZ: In gsm48_rr_chan_req - RR_EST_CAUSE_OTHER_SDCCH\n");
 		if (s->neci) {
 			chan_req_mask = 0x0f;
 			chan_req_val = 0x10;
@@ -1464,6 +1499,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 		}
 		break;
 	default:
+		printf("MTZ: In gsm48_rr_chan_req - Unknown\n");
 		if (!rr->rr_est_req) /* no request from MM */
 			return -EINVAL;
 
@@ -1498,8 +1534,12 @@ rel_ind:
 	rr->paging_mi_type = paging_mi_type;
 
 	/* if channel is already active somehow */
-	if (cs->ccch_state == GSM322_CCCH_ST_DATA)
+	if (cs->ccch_state == GSM322_CCCH_ST_DATA){
+		printf("MTZ: gsm48_rr_tx_rand_acc called 1 (in gsm48_rr_chan_req)\n");
 		return gsm48_rr_tx_rand_acc(ms, NULL);
+	} else {
+		printf("MTZ: gsm48_rr_tx_rand_acc not sent as cs->ccch_state not GSM322_CCCH_ST_DATA\n");
+	}
 
 	return 0;
 }
@@ -1516,6 +1556,8 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 	int slots;
 	uint8_t chan_req;
 	uint8_t tx_power;
+
+	printf("MTZ: In gsm48_rr_tx_rand_acc\n");
 
 	/* already assigned */
 	if (rr->wait_assign == 2)
@@ -1658,22 +1700,22 @@ fail:
 		tx_power = set->alter_tx_power_value;
 		LOGP(DRR, LOGL_INFO, "Use alternative tx-power %d (%d dBm)\n",
 			tx_power,
-			ms_pwr_dbm(gsm_arfcn2band(cs->arfcn), tx_power));
+			ms_pwr_dbm(gsm_arfcn2band(cs->sel_arfcn), tx_power));
 	} else {
 		tx_power = s->ms_txpwr_max_cch;
 		/* power offset in case of DCS1800 */
-		if (s->po && (cs->arfcn & 1023) >= 512
-		 && (cs->arfcn & 1023) <= 885) {
+		if (s->po && (cs->sel_arfcn & 1023) >= 512
+		 && (cs->sel_arfcn & 1023) <= 885) {
 			LOGP(DRR, LOGL_INFO, "Use MS-TXPWR-MAX-CCH power value "
 				"%d (%d dBm) with offset %d dBm\n", tx_power,
-				ms_pwr_dbm(gsm_arfcn2band(cs->arfcn), tx_power),
-				s->po_value * 2);
+				ms_pwr_dbm(gsm_arfcn2band(cs->sel_arfcn),
+					   tx_power), s->po_value * 2);
 			/* use reserved bits 7,8 for offset (+ X * 2dB) */
 			tx_power |= s->po_value << 6;
 		} else
 			LOGP(DRR, LOGL_INFO, "Use MS-TXPWR-MAX-CCH power value "
 				"%d (%d dBm)\n", tx_power,
-				ms_pwr_dbm(gsm_arfcn2band(cs->arfcn),
+				ms_pwr_dbm(gsm_arfcn2band(cs->sel_arfcn),
 							tx_power));
 	}
 	ncch->data[7] = tx_power;
@@ -1685,7 +1727,110 @@ fail:
 	/* store ra until confirmed, then copy it with time into cr_hist */
 	rr->cr_ra = chan_req;
 
+	printf("MTZ: lapdm_rslms_recvmsg called 3 (in gsm48_rr_tx_rand_acc)\n");
 	return lapdm_rslms_recvmsg(nmsg, &ms->lapdm_channel);
+}
+
+/*
+ * neighbour cell measurement and sync (dedicated mode)
+ */
+
+/* generate list from SI5 and send to L1 to start SB measurement */
+static int gsm48_new_si5(struct osmocom_ms *ms)
+{
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm48_sysinfo *s = &cs->sel_si;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_rr_meas *rrmeas = &rr->meas;
+	int n = 0, i, refer_pcs;
+
+	rrmeas->nc_num = 0;
+	refer_pcs = gsm_refer_pcs(cs->sel_arfcn, s);
+
+	/* collect channels from freq list (1..1023,0) */
+	for (i = 1; i <= 1024; i++) {
+		if ((s->freq[i & 1023].mask & FREQ_TYPE_REP)) {
+			if (n == 32) {
+				LOGP(DRR, LOGL_NOTICE, "SI5* report "
+					"exceeds 32 BCCHs\n");
+				break;
+			}
+			if (refer_pcs && i >= 512 && i <= 810) {
+				if (!(cs->list[i - 512 + 1024].flags
+						& GSM322_CS_FLAG_SUPPORT)) {
+					LOGP(DRR, LOGL_NOTICE, "SI5* report "
+						"arfcn %s not supported\n",
+						gsm_print_arfcn(i | ARFCN_PCS));
+					continue;
+				}
+				rrmeas->nc_arfcn[n] = i | ARFCN_PCS;
+			} else {
+				if (!(cs->list[i & 1023].flags
+						& GSM322_CS_FLAG_SUPPORT)) {
+					LOGP(DRR, LOGL_NOTICE, "SI5* report "
+						"arfcn %s not supported\n",
+						gsm_print_arfcn(i & 1023));
+					continue;
+				}
+				rrmeas->nc_arfcn[n] = i & 1023;
+			}
+			/* set rxlev + bsic status to "no value" */
+			rrmeas->nc_rxlev_dbm[n] = -128;
+			rrmeas->nc_bsic[n] = 255;
+			LOGP(DRR, LOGL_NOTICE, "SI5* report arfcn %s\n",
+				gsm_print_arfcn(rrmeas->nc_arfcn[n]));
+			n++;
+		}
+	}
+	rrmeas->nc_num = n;
+
+	/* in case we receive this message after leaving dedicated mode. */
+	if (!rr->dm_est)
+		return -EIO;
+
+	/* start neigbour cell measurement and sync task */
+	LOGP(DRR, LOGL_INFO, "Sending list of neighbour cells to layer1.\n");
+	l1ctl_tx_neigh_pm_req(ms, n, rrmeas->nc_arfcn);
+
+	return n;
+}
+
+int gsm48_rr_meas_ind(struct osmocom_ms *ms, uint16_t band_arfcn, 
+        uint8_t rx_lev, uint8_t bsic)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_rr_meas *rrmeas = &rr->meas;
+	int i;
+
+	LOGP(DRR, LOGL_INFO, "Measurement result: arfcn=%s lev=%s bsic=",
+		gsm_print_arfcn(band_arfcn), gsm_print_rxlev(rx_lev));
+	if (bsic > 0x3f)
+		LOGPC(DRR, LOGL_INFO, "<unknown>\n");
+	else
+		LOGPC(DRR, LOGL_INFO, "%d,%d\n", bsic >> 3, bsic & 7);
+
+	for (i = 0; i < rrmeas->nc_num; i++) {
+		if (rrmeas->nc_arfcn[i] == band_arfcn) {
+			rrmeas->nc_rxlev_dbm[i] = rx_lev - 110;
+			rrmeas->nc_bsic[i] = bsic;
+		}
+
+		//struct gsm322_cellsel *cs = &ms->cellsel;
+
+		//if (cs->sel_arfcn == 25) {
+		//	if (rrmeas->nc_arfcn[i] == 57) {
+		//		rrmeas->nc_rxlev_dbm[i] = -47;
+		//		rrmeas->nc_bsic[i] = 57;
+		//	}
+		//} else {
+		//	if (rrmeas->nc_arfcn[i] == 25) {
+		//		rrmeas->nc_rxlev_dbm[i] = -47;
+		//		rrmeas->nc_bsic[i] = 27;
+		//	}
+		//}
+	}
+
+	return 0;
 }
 
 /*
@@ -1695,45 +1840,28 @@ fail:
 /* send sysinfo event to other layers */
 static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 {
-	struct gsm48_sysinfo *s = ms->cellsel.si;
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct msgb *nmsg;
 	struct gsm322_msg *em;
 
 	/* update list of measurements, if BA(SACCH) is complete and new */
-	if (s
-	 && (type == GSM48_MT_RR_SYSINFO_5
+	if ((type == GSM48_MT_RR_SYSINFO_5
 	  || type == GSM48_MT_RR_SYSINFO_5bis
 	  || type == GSM48_MT_RR_SYSINFO_5ter)
 	 && s->si5
 	 && (!s->nb_ext_ind_si5 || s->si5bis)) {
-		struct gsm48_rr_meas *rrmeas = &ms->rrlayer.meas;
-		int n = 0, i, refer_pcs;
-
 		LOGP(DRR, LOGL_NOTICE, "Complete set of SI5* for BA(%d)\n",
 			s->nb_ba_ind_si5);
-		rrmeas->nc_num = 0;
-		refer_pcs = gsm_refer_pcs(cs->arfcn, s);
-
-		/* collect channels from freq list (1..1023,0) */
-		for (i = 1; i <= 1024; i++) {
-			if ((s->freq[i & 1023].mask & FREQ_TYPE_REP)) {
-				if (n == 32) {
-					LOGP(DRR, LOGL_NOTICE, "SI5* report "
-						"exceeds 32 BCCHs\n");
-					break;
-				}
-				if (refer_pcs && i >= 512 && i <= 810)
-					rrmeas->nc_arfcn[n] = i | ARFCN_PCS;
-				else
-					rrmeas->nc_arfcn[n] = i & 1023;
-				rrmeas->nc_rxlev_dbm[n] = -128;
-				LOGP(DRR, LOGL_NOTICE, "SI5* report arfcn %s\n",
-					gsm_print_arfcn(rrmeas->nc_arfcn[n]));
-				n++;
-			}
-		}
-		rrmeas->nc_num = n;
+		gsm48_new_si5(ms);
+	}
+ 
+	/* update stuff from SI 6 */
+	if (type == GSM48_MT_RR_SYSINFO_6 && s->si6) {
+		cs->sel_mcc = s->mcc;
+		cs->sel_mnc = s->mnc;
+		cs->sel_lac = s->lac;
+		cs->sel_id = s->cell_id;
 	}
 
 	/* send sysinfo event to other layers */
@@ -1914,6 +2042,7 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 4" message (9.1.36) */
 static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 {
+	/* NOTE: pseudo length is not in this structure, so we skip */
 	struct gsm48_system_information_type_4 *si = msgb_l3(msg);
 	struct gsm48_sysinfo *s = ms->cellsel.si;
 	int payload_len = msgb_l3len(msg) - sizeof(*si);
@@ -1945,9 +2074,11 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 5" message (9.1.37) */
 static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_system_information_type_5 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->cellsel.si;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	/* NOTE: pseudo length is not in this structure, so we skip */
+	struct gsm48_system_information_type_5 *si = msgb_l3(msg) + 1;
+	/* Note: Only store SI5* / SI6 in temporary sel_si */
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
+	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (!s) {
 		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 5 "
@@ -1974,9 +2105,11 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 5bis" message (9.1.38) */
 static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_system_information_type_5bis *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->cellsel.si;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	/* NOTE: pseudo length is not in this structure, so we skip */
+	struct gsm48_system_information_type_5bis *si = msgb_l3(msg) + 1;
+	/* Note: Only store SI5* / SI6 in temporary sel_si */
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
+	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (!s) {
 		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 5bis"
@@ -2004,9 +2137,11 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 5ter" message (9.1.39) */
 static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_system_information_type_5ter *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->cellsel.si;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	/* NOTE: pseudo length is not in this structure, so we skip */
+	struct gsm48_system_information_type_5ter *si = msgb_l3(msg) + 1;
+	/* Note: Only store SI5* / SI6 in temporary sel_si */
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
+	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (!s) {
 		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 5ter"
@@ -2034,10 +2169,12 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 /* receive "SYSTEM INFORMATION 6" message (9.1.39) */
 static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_system_information_type_6 *si = msgb_l3(msg);
-	struct gsm48_sysinfo *s = ms->cellsel.si;
+	/* NOTE: pseudo length is not in this structure, so we skip */
+	struct gsm48_system_information_type_6 *si = msgb_l3(msg) + 1;
+	/* Note: Only store SI5* / SI6 in temporary sel_si */
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 	struct rx_meas_stat *meas = &ms->meas;
-	int payload_len = msgb_l3len(msg) - sizeof(*si);
+	int payload_len = msgb_l3len(msg) - sizeof(*si) - 1;
 
 	if (!s) {
 		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 6 "
@@ -2163,9 +2300,11 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 	mi = pa->data;
 	if (payload_len < mi[0] + 1)
 		goto short_read;
-	if ((mi_type = gsm_match_mi(ms, mi)) > 0)
+	if ((mi_type = gsm_match_mi(ms, mi)) > 0){
+		printf("MTZ: gsm48_rr_chan_req called 1 (in gsm48_rr_rx_pag_req_1)\n");
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
 			mi_type);
+	}
 	/* second MI */
 	payload_len -= mi[0] + 1;
 	mi = pa->data + mi[0] + 1;
@@ -2175,9 +2314,11 @@ static int gsm48_rr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	if (payload_len < mi[1] + 2)
 		goto short_read;
-	if ((mi_type = gsm_match_mi(ms, mi + 1)) > 0)
+	if ((mi_type = gsm_match_mi(ms, mi + 1)) > 0){
+		printf("MTZ: gsm48_rr_chan_req called 2 (in gsm48_rr_rx_pag_req_1)\n");
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
 			mi_type);
+	}
 
 	return 0;
 }
@@ -2220,6 +2361,7 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
+		printf("MTZ: gsm48_rr_chan_req called 3 (in gsm48_rr_rx_pag_req_2)\n");
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
 			GSM_MI_TYPE_TMSI);
 	} else
@@ -2231,6 +2373,7 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
+		printf("MTZ: gsm48_rr_chan_req called 4 (in gsm48_rr_rx_pag_req_2)\n");
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
 			GSM_MI_TYPE_TMSI);
 	} else
@@ -2245,9 +2388,10 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	if (payload_len < mi[1] + 2 + 1) /* must include "channel needed" */
 		goto short_read;
 	chan_3 = mi[mi[1] + 2] & 0x03; /* channel needed */
-	if ((mi_type = gsm_match_mi(ms, mi + 1)) > 0)
+	if ((mi_type = gsm_match_mi(ms, mi + 1)) > 0){
+		printf("MTZ: gsm48_rr_chan_req called 5 (in gsm48_rr_rx_pag_req_2)\n");
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1,
-			mi_type);
+			mi_type);}
 
 	return 0;
 }
@@ -2290,6 +2434,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
+		printf("MTZ: gsm48_rr_chan_req called 6 (in gsm48_rr_rx_pag_req_3)\n");
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
 			GSM_MI_TYPE_TMSI);
 	} else
@@ -2301,6 +2446,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
+		printf("MTZ: gsm48_rr_chan_req called 7 (in gsm48_rr_rx_pag_req_3)\n");
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
 			GSM_MI_TYPE_TMSI);
 	} else
@@ -2312,6 +2458,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi3));
+		printf("MTZ: gsm48_rr_chan_req called 8 (in gsm48_rr_rx_pag_req_3)\n");
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1,
 			GSM_MI_TYPE_TMSI);
 	} else
@@ -2323,6 +2470,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	 && ms->subscr.mnc == cs->sel_mnc
 	 && ms->subscr.lac == cs->sel_lac) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi4));
+		printf("MTZ: gsm48_rr_chan_req called 9 (in gsm48_rr_rx_pag_req_3)\n");
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1,
 			GSM_MI_TYPE_TMSI);
 	} else
@@ -2378,7 +2526,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm48_imm_ass *ia = msgb_l3(msg);
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	int ma_len = msgb_l3len(msg) - sizeof(*ia);
 	uint8_t ch_type, ch_subch, ch_ts;
 	struct gsm48_rr_cd cd;
@@ -2426,6 +2574,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	cd.chan_nr = ia->chan_desc.chan_nr;
 	rsl_dec_chan_nr(cd.chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ia->chan_desc.h0.h) {
+		printf("\nMTZ: ia->chan_desc.h0.h = 1\n");
 		cd.h = 1;
 		gsm48_decode_chan_h1(&ia->chan_desc, &cd.tsc, &cd.maio,
 			&cd.hsn);
@@ -2436,9 +2585,10 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 			ia->req_ref.ra, ia->chan_desc.chan_nr, cd.maio,
 			cd.hsn, ch_ts, ch_subch, cd.tsc);
 	} else {
+		printf("\nMTZ: ia->chan_desc.h0.h = 0\n");
 		cd.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc, &cd.tsc, &cd.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd.arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " (ta %d/%dm ra 0x%02x chan_nr 0x%02x "
 			"ARFCN %s TS %u SS %u TSC %u)\n",
@@ -2485,7 +2635,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_imm_ass_ext *ia = msgb_l3(msg);
 	int ma_len = msgb_l3len(msg) - sizeof(*ia);
 	uint8_t ch_type, ch_subch, ch_ts;
@@ -2552,7 +2702,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd1.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc1, &cd1.tsc, &cd1.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd1.arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " assignment 1 (ta %d/%dm ra 0x%02x "
 			"chan_nr 0x%02x ARFCN %s TS %u SS %u TSC %u)\n",
@@ -2576,7 +2726,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd2.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc2, &cd2.tsc, &cd2.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd2.arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " assignment 2 (ta %d/%dm ra 0x%02x "
 			"chan_nr 0x%02x ARFCN %s TS %u SS %u TSC %u)\n",
@@ -2710,7 +2860,7 @@ static int gsm48_rr_rx_add_ass(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct gsm48_sysinfo *s = ms->cellsel.si;
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
 	struct rx_meas_stat *meas = &rr->ms->meas;
 	struct gsm48_rr_meas *rrmeas = &rr->meas;
 	struct msgb *nmsg;
@@ -2719,8 +2869,8 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 	uint8_t serv_rxlev_full = 0, serv_rxlev_sub = 0, serv_rxqual_full = 0,
 		serv_rxqual_sub = 0;
 	uint8_t ta, tx_power;
-	uint8_t rep_ba = 0, rep_valid = 0, meas_valid = 0;
-	uint8_t n = 0, rxlev_nc[6], bsic_nc[6], bcch_f_nc[6];
+	uint8_t rep_ba = 0, rep_valid = 0, meas_valid = 0, multi_rep = 0;
+	uint8_t n = 0, i, rxlev_nc[6], bsic_nc[6], bcch_f_nc[6];
 
 	/* just in case! */
 	if (!s)
@@ -2745,41 +2895,67 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 			(meas->rxlev + (meas->frames / 2)) / meas->frames;
 		serv_rxqual_full = serv_rxqual_sub = 0; // FIXME
 	}
+ 
+	/* fake serving cell, if wanted */
+	if (rr->hando_fake_report) {
+		struct gsm322_cellsel *cs = &ms->cellsel;
+
+		if (rr->hando_fake_report_arfcn == cs->sel_arfcn)
+			serv_rxlev_full = serv_rxlev_sub = 63; /* -47 dBm */
+		else
+			serv_rxlev_full = serv_rxlev_sub = 10; /* -100 dBm */
+		serv_rxqual_full = serv_rxqual_sub = 0; // quality is ok
+	}
 
 	memset(&rxlev_nc, 0, sizeof(rxlev_nc));
 	memset(&bsic_nc, 0, sizeof(bsic_nc));
 	memset(&bcch_f_nc, 0, sizeof(bcch_f_nc));
 	if (rep_valid) {
-		int8_t strongest, current;
+		int8_t current;
 		uint8_t ncc;
-		int i, index;
+		int index;
+		int checked[32];
 
-#if 0
-		/* FIXME: multi-band reporting, if not: 0 = normal reporting */
-		uint8_t multi_rep = s->si5ter ?
-			s->nb_multi_rep_si5ter : 0;
-#endif
+		/* multiband reporting, if not: 0 = normal reporting */
+		if (s->si5ter)
+			multi_rep = s->nb_multi_rep_si5ter;
 
 		/* get 6 strongest measurements */
-		strongest = 127; /* infinite */
+		// FIXME: multiband report
+		memset(checked, 0, sizeof(checked));
 		for (n = 0; n < 6; n++) {
 			current = -128; /* -infinite */
 			index = 0;
 			for (i = 0; i < rrmeas->nc_num; i++) {
+				/* omit if already choosen */
+				if (checked[i])
+					continue;
+				/* omit if no BSIC available */
+				if (rrmeas->nc_bsic[i] > 0x3f)
+					continue;
 				/* only check if NCC is permitted */
 				ncc = rrmeas->nc_bsic[i] >> 3;
 				if ((s->nb_ncc_permitted_si6 & (1 << ncc))
-				 && rrmeas->nc_rxlev_dbm[i] > current
-				 && rrmeas->nc_rxlev_dbm[i] < strongest) {
+				 && rrmeas->nc_rxlev_dbm[i] > current) {
 					current = rrmeas->nc_rxlev_dbm[i];
 					index = i;
 				}
 			}
 			if (current == -128) /* no more found */
 				break;
+			checked[index] = 1;
 			rxlev_nc[n] = rrmeas->nc_rxlev_dbm[index] + 110;
 			bsic_nc[n] = rrmeas->nc_bsic[index];
 			bcch_f_nc[n] = index;
+
+			/* fake neighbor cell, if wanted */
+			if (rr->hando_fake_report) {
+				if (rr->hando_fake_report_arfcn
+				 == rrmeas->nc_arfcn[index])
+					rxlev_nc[n] = 63; /* -47 dBm */
+				else
+					rxlev_nc[n] = 10; /* -100 dBm */
+			}
 		}
 	}
 
@@ -2849,6 +3025,12 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 		mr->rxlev_full - 110, mr->rxlev_sub - 110,
 		mr->rxqual_full, mr->rxqual_sub, mr->dtx_used, mr->ba_used,
 		(mr->no_nc_n_hi << 2) | mr->no_nc_n_lo);
+	for (i = 0; i < n; i++) {
+		LOGP(DRR, LOGL_INFO, "          NB #%d BCCH=%s rxlev=%d "
+			"BSIC=%d.%d\n", i + 1,
+			gsm_print_arfcn(rrmeas->nc_arfcn[bcch_f_nc[i]]),
+			rxlev_nc[i] - 110, bsic_nc[i] >> 3, bsic_nc[i] & 7);
+	}
 
 	msgb_tv16_push(nmsg, RSL_IE_L3_INFO,
 		nmsg->tail - (uint8_t *)msgb_l3(nmsg));
@@ -2860,6 +3042,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 	rsl_rll_push_hdr(nmsg, RSL_MT_UNIT_DATA_REQ, rr->cd_now.chan_nr,
 		0x40, 1);
 
+	printf("MTZ: lapdm_rslms_recvmsg called 4 (in gsm48_rr_tx_meas_rep)\n");
 	return lapdm_rslms_recvmsg(nmsg, &ms->lapdm_channel);
 }
 
@@ -2936,20 +3119,27 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 
 /* activation of channel in dedicated mode */
 static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
-	struct gsm48_rr_cd *cd, uint16_t *ma, uint8_t ma_len)
+	struct gsm48_rr_cd *cd, uint16_t *ma, uint8_t ma_len, int tx,
+	int sync, int index)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_settings *set = &ms->settings;
- 	struct gsm48_sysinfo *s = ms->cellsel.si;
- 	struct rx_meas_stat *meas = &ms->meas;
+	struct gsm48_sysinfo *s = &ms->cellsel.sel_si;
+	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t ch_type, ch_subch, ch_ts;
 	uint8_t timeout = 64;
+	int ta = cd->ind_ta;
 
 	/* setting (new) timing advance */
-	LOGP(DRR, LOGL_INFO, "setting indicated TA %d (actual TA %d)\n",
-		cd->ind_ta, cd->ind_ta - set->alter_delay);
-	l1ctl_tx_param_req(ms, cd->ind_ta - set->alter_delay,
+	if (!tx) {
+		ta = 0;
+		LOGP(DRR, LOGL_INFO, "setting TA 0 for access bursts "
+			"(actual TA %d)\n", ta - set->alter_delay);
+	} else
+		LOGP(DRR, LOGL_INFO, "setting indicated TA %d "
+			"(actual TA %d)\n", cd->ind_ta, ta - set->alter_delay);
+	l1ctl_tx_param_req(ms, ta - set->alter_delay,
 			(set->alter_tx_power) ? set->alter_tx_power_value
 						: cd->ind_tx_power);
 
@@ -2984,15 +3174,17 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
 	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
 	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d, "
-		"audio-mode %d, cipher %d\n", ch_type, ch_subch, ch_ts,
-		cd->mode, rr->audio_mode, rr->cipher_type + 1);
+		"audio-mode %d, cipher %d, tsc %d, ARFCN %s, hopping=%s\n",
+		ch_type, ch_subch, ch_ts, cd->mode, rr->audio_mode,
+		rr->cipher_type + 1, cd->tsc, gsm_print_arfcn(cd->arfcn),
+		(cd->h) ? "yes":"no");
 	if (cd->h)
 		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
 			ma, ma_len, cd->chan_nr, cd->tsc, cd->mode,
-			rr->audio_mode);
+			rr->audio_mode, tx, sync, index);
 	else
 		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc,
-			cd->mode, rr->audio_mode);
+			cd->mode, rr->audio_mode, tx, sync, index);
 	rr->dm_est = 1;
 
 	/* old SI 5/6 are not valid on a new dedicated channel */
@@ -3032,12 +3224,12 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 	uint16_t *ma, uint8_t *ma_len)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm_settings *set = &ms->settings;
 	int i, pcs, index;
 	uint16_t arfcn;
 
-	pcs = gsm_refer_pcs(cs->arfcn, s) ? ARFCN_PCS : 0;
+	pcs = gsm_refer_pcs(cs->sel_arfcn, s) ? ARFCN_PCS : 0;
 
 	/* no hopping (no MA), channel description is valid */
 	if (!cd->h) {
@@ -3262,7 +3454,8 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 	rr->cd_before.h = 0;
 	rr->cd_before.arfcn = 0;
 	/* activate channel */
-	gsm48_rr_activate_channel(ms, &rr->cd_before, ma, ma_len);
+	printf("MTZ: gsm48_rr_activate_channel called 1\n");
+	gsm48_rr_activate_channel(ms, &rr->cd_before, ma, ma_len, 1, 0, 0);
 	/* render channel "after time" */
 	gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
 	/* schedule change of channel */
@@ -3270,7 +3463,8 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		rr->cd_now.start_tm.fn);
 #else
 	/* activate channel */
-	gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len);
+	printf("MTZ: gsm48_rr_activate_channel called 2\n");
+	gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len, 1, 0, 0);
 #endif
 
 	/* set T200 of SAPI 0 */
@@ -3443,7 +3637,7 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_frq_redef *fr = msgb_l3(msg);
 	int mob_al_len = msgb_l3len(msg) - sizeof(*fr);
 	uint8_t ch_type, ch_subch, ch_ts;
@@ -3480,7 +3674,7 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd.h = 0;
 		gsm48_decode_chan_h0(&fr->chan_desc, &cd.tsc, &cd.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd.arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " (ARFCN %s TS %u SS %u TSC %u)\n",
 			gsm_print_arfcn(cd.arfcn), ch_ts, ch_subch, cd.tsc);
@@ -3553,7 +3747,7 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_chan_mode_modify *cm =
 		(struct gsm48_chan_mode_modify *)gh->data;
@@ -3585,7 +3779,7 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd->h = 0;
 		gsm48_decode_chan_h0(&cm->chan_desc, &cd->tsc, &cd->arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
 			cd->arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " (chan_nr 0x%02x ARFCN %s TS %u SS %u "
 			"TSC %u mode %u)\n", cm->chan_desc.chan_nr,
@@ -3661,7 +3855,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_ass_cmd *ac = (struct gsm48_ass_cmd *)gh->data;
 	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*ac);
@@ -3708,7 +3902,8 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		} else {
 			cdb->h = 0;
 			gsm48_decode_chan_h0(ccd, &cdb->tsc, &cdb->arfcn);
-			if (gsm_refer_pcs(cs->arfcn, s))
+			if (gsm_refer_pcs(cs->sel_arfcn, s))
+				printf("\nMTZ: Orig with ARFCN_PCS\n");
 				cdb->arfcn |= ARFCN_PCS;
 			LOGP(DRR, LOGL_INFO, " before: (chan_nr 0x%02x "
 				"ARFCN %s TS %u SS %u TSC %u)\n", ccd->chan_nr,
@@ -3731,7 +3926,8 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cda->h = 0;
 		gsm48_decode_chan_h0(&ac->chan_desc, &cda->tsc, &cda->arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
+				printf("\nMTZ: Orig with ARFCN_PCS\n");
 			cda->arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " after: (chan_nr 0x%02x ARFCN %s TS %u "
 			"SS %u TSC %u)\n", ac->chan_desc.chan_nr,
@@ -4028,12 +4224,44 @@ static int gsm48_rr_tx_hando_fail(struct osmocom_ms *ms, uint8_t cause,
 	return gsm48_send_rsl(ms, rsl_prim, nmsg, 0);
 }
 
+/* get index of measurement result from new cell's BCCH ARFCN */
+static int get_meas_index(struct osmocom_ms *ms)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm48_rr_meas *rrmeas = &rr->meas;
+	int i;
+
+	if (cs->sel_arfcn == rr->hando_new_cell_arfcn) {
+		LOGP(DRR, LOGL_INFO, "Handover to channel of same cell\n");
+		return -1;
+	}
+
+	for (i = 0; i < rrmeas->nc_num; i++) {
+		if (rrmeas->nc_arfcn[i] == rr->hando_new_cell_arfcn) {
+			LOGP(DRR, LOGL_INFO, "Handover to channel of different "
+				"cell - %d (serving cell - %d)\n", rr->hando_new_cell_arfcn, cs->sel_arfcn);
+			return i;
+		}
+	}
+
+	LOGP(DRR, LOGL_NOTICE, "Handover to channel of unknown cell\n");
+	return -EINVAL;
+}
+
+static const char *ho_case[4] = {
+	"Non-synchronized",
+	"Synchronized",
+	"Pre-synchronized",
+	"Pseudo-synchronized",
+};
+
 /* receiving HANDOVER COMMAND message (9.1.15) */
 static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	struct gsm48_sysinfo *s = cs->si;
+	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_ho_cmd *ho = (struct gsm48_ho_cmd *)gh->data;
 	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*ho);
@@ -4050,7 +4278,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t cause;
 	struct msgb *nmsg;
 
-	LOGP(DRR, LOGL_INFO, "HANDOVER COMMAND\n");
+	LOGP(DRR, LOGL_INFO, "\n\n------------------\nHANDOVER COMMAND\n----------------\n\n");
 
 	memset(cda, 0, sizeof(*cda));
 	cda->ind_tx_power = rr->cd_now.ind_tx_power;
@@ -4067,9 +4295,20 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	/* cell description */
 	gsm48_decode_cell_desc(&ho->cell_desc, &arfcn, &ncc, &bcc);
 
+	/* set new cell arfcn */
+	rr->hando_new_cell_arfcn = arfcn;
+	rr->hando_new_cell_bsic = ncc << 3 | bcc;
+
+	/* get sync information of new cell */
+	rr->hando_meas_index = get_meas_index(ms);
+	if (rr->hando_meas_index == -EINVAL) {
+		return gsm48_rr_tx_rr_status(ms,
+			GSM48_RR_CAUSE_ABNORMAL_UNSPEC);
+	}
+
 	/* handover reference */
-	rr->chan_req_val = ho->ho_ref;
-	rr->chan_req_mask = 0x00;
+	rr->hando_ref = ho->ho_ref;
+	LOGP(DRR, LOGL_INFO, " HO-ref: 0x%02x\n", ho->ho_ref);
 
 	tlv_parse(&tp, &gsm48_rr_att_tlvdef, ho->data, payload_len, 0, 0);
 
@@ -4077,8 +4316,13 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	if (TLVP_PRESENT(&tp, GSM48_IE_SYNC_IND)) {
 		gsm48_decode_sync_ind(rr, (struct gsm48_sync_ind *)
 			TLVP_VAL(&tp, GSM48_IE_SYNC_IND));
-		LOGP(DRR, LOGL_INFO, " (sync_ind=%d rot=%d nci=%d)\n",
-			rr->hando_sync_ind, rr->hando_rot, rr->hando_nci);
+		LOGP(DRR, LOGL_INFO, " (sync_ind=%s rot=%d nci=%d)\n",
+			ho_case[rr->hando_sync_ind], rr->hando_rot,
+			rr->hando_nci);
+	} else {
+		rr->hando_sync_ind = GSM48_RR_HO_NON_SYNC;
+		LOGP(DRR, LOGL_INFO, " (no sync IE, default sync_ind=%s)\n",
+			ho_case[rr->hando_sync_ind]);
 	}
 
 	/* decode channel description (before time) */
@@ -4097,8 +4341,10 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		} else {
 			cdb->h = 0;
 			gsm48_decode_chan_h0(ccd, &cdb->tsc, &cdb->arfcn);
-			if (gsm_refer_pcs(cs->arfcn, s))
+			if (gsm_refer_pcs(cs->sel_arfcn, s)) {
+				printf("\nMTZ: Orig with ARFCN_PCS\n");
 				cdb->arfcn |= ARFCN_PCS;
+			}
 			LOGP(DRR, LOGL_INFO, " before: (chan_nr 0x%02x "
 				"ARFCN %s TS %u SS %u TSC %u)\n", ccd->chan_nr,
 				gsm_print_arfcn(cdb->arfcn),
@@ -4120,7 +4366,8 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cda->h = 0;
 		gsm48_decode_chan_h0(&ho->chan_desc, &cda->tsc, &cda->arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
+		if (gsm_refer_pcs(cs->sel_arfcn, s))
+				printf("\nMTZ: Orig with ARFCN_PCS\n");
 			cda->arfcn |= ARFCN_PCS;
 		LOGP(DRR, LOGL_INFO, " after: (chan_nr 0x%02x ARFCN %s TS %u "
 			"SS %u TSC %u)\n", ho->chan_desc.chan_nr,
@@ -4288,7 +4535,14 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		(struct gsm48_power_cmd *) &ho->power_command,
 		&cda->ind_tx_power, &rr->hando_act);
 	cdb->ind_tx_power = cda->ind_tx_power;
-	cda->ind_ta = cdb->ind_ta = rr->cd_now.ind_ta; /* same cell */
+	if (rr->hando_sync_ind == GSM48_RR_HO_PRE_SYNC) {
+		if (TLVP_PRESENT(&tp, GSM48_IE_TIMING_ADVANCE)) {
+			uint8_t ta = *TLVP_VAL(&tp, GSM48_IE_TIMING_ADVANCE);
+			cda->ind_ta = cdb->ind_ta = ta;
+		} else
+			cda->ind_ta = cdb->ind_ta = 1; /* default from TS 05.10 */
+	} else
+		cda->ind_ta = cdb->ind_ta = rr->cd_now.ind_ta; /* use same */
 	LOGP(DRR, LOGL_INFO, " both: (tx_power %d TA %d access=%s)\n",
 		cda->ind_tx_power, cda->ind_ta,
 		(rr->hando_act) ? "optional" : "mandatory");
@@ -4367,6 +4621,79 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+static int gsm48_rr_resume_after_handover(struct osmocom_ms *ms)
+{
+	/* get timing advance */
+	LOGP(DRR, LOGL_INFO, "setting new ta and enable TX\n");
+	gsm48_rr_alter_delay(ms);
+
+	/* send DL-RESUME REQUEST */
+	LOGP(DRR, LOGL_INFO, "request resume of data link\n");
+	gsm48_rr_tx_hando_cpl(ms, GSM48_RR_CAUSE_NORMAL);
+
+	/* note: keep in HANDOVER modify_state */
+
+	return 0;
+}
+
+/* send HANDOVER ACCESS burst (9.1.14) */
+static int gsm48_rr_tx_hando_access(struct osmocom_ms *ms)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	LOGP(DRR, LOGL_INFO, "send access bursts on DCCH (HO-ref 0x%02x)\n",
+		rr->hando_ref);
+
+	printf("\nMTZ: handover new arfcn = %d (%s with the or)\n", rr->hando_new_cell_arfcn, gsm_print_arfcn(rr->hando_new_cell_arfcn | ARFCN_PCS));
+
+	//return l1ctl_tx_rach_req(ms, rr->hando_ref, 0, 0);
+	return l1ctl_tx_rach_req(ms, rr->hando_ref, 0, 0, rr->hando_new_cell_arfcn); //MTZ - modified
+}
+
+/* send next channel request in dedicated state */
+static int gsm48_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	if (rr->modify_state != GSM48_RR_MOD_HANDO) {
+		LOGP(DRR, LOGL_NOTICE, "Random acces confirm, but not in "
+			"handover state. (no bug)\n");
+		return 0;
+	}
+
+	/* ignore confirm, if physical info is already received */
+	if (!rr->hando_acc_pending) {
+		return 0;
+	}
+
+	/* non-synchrionized: start timer after sending first acccess burst */
+	if (rr->hando_sync_ind == GSM48_RR_HO_NON_SYNC
+	 && !osmo_timer_pending(&rr->t3124)) {
+		uint8_t ch_type, ch_subch, ch_ts;
+		rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch,
+			&ch_ts);
+		if (ch_type == RSL_CHAN_SDCCH4_ACCH
+		 || ch_type == RSL_CHAN_SDCCH8_ACCH)
+			start_rr_t3124(rr, GSM_T3124_675);
+		else
+			start_rr_t3124(rr, GSM_T3124_320);
+	}
+
+	/* count down for sync handover */
+	if (rr->hando_sync_ind != GSM48_RR_HO_NON_SYNC)
+		rr->hando_acc_pending--;
+
+	/* send more access bursts */
+	if (rr->hando_acc_pending) {
+		printf("MTZ - gsm48_rr_tx_hando_access call 1\n");
+		gsm48_rr_tx_hando_access(ms);
+		return 0;
+	}
+
+	/* in case of any sync handover, resume after 4 access bursts */
+	return gsm48_rr_resume_after_handover(ms);
+}
+
 /* send all queued messages down to layer 2 */
 static int gsm48_rr_dequeue_down(struct osmocom_ms *ms)
 {
@@ -4396,6 +4723,12 @@ static int gsm48_rr_estab_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DRR, LOGL_INFO, "data link is resumed\n");
 
+	/* if we handovered to a new cell, update info about current cell */
+	if (rr->modify_state == GSM48_RR_MOD_HANDO) {
+		struct gsm322_cellsel *cs = &ms->cellsel;
+		cs->sel_arfcn = rr->hando_new_cell_arfcn;
+	}
+
 	/* transmit queued frames during ho / ass transition */
 	gsm48_rr_dequeue_down(ms);
 
@@ -4412,6 +4745,8 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 	if (rr->modify_state) {
 		uint16_t ma[64];
 		uint8_t ma_len;
+		int enable_tx = (rr->modify_state != GSM48_RR_MOD_HANDO);
+		int sync = (rr->modify_state == GSM48_RR_MOD_HANDO);
 
 		/* deactivating dedicated mode */
 		LOGP(DRR, LOGL_INFO, "suspension coplete, leaving dedicated "
@@ -4432,8 +4767,9 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 			gsm48_rr_render_ma(ms, &rr->cd_before, ma, &ma_len);
 
 			/* activate channel */
+	printf("MTZ: gsm48_rr_activate_channel called 3\n");
 			gsm48_rr_activate_channel(ms, &rr->cd_before, ma,
-				ma_len);
+				ma_len, enable_tx, sync, rr->hando_meas_index);
 
 			/* render channel "after time" */
 			gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
@@ -4446,29 +4782,86 @@ static int gsm48_rr_susp_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
 			gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
 
 			/* activate channel */
-			gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len);
+	printf("MTZ: gsm48_rr_activate_channel called 4\n");
+			gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len,
+				enable_tx, sync, rr->hando_meas_index);
 		}
 
-		/* send DL-RESUME REQUEST */
-		LOGP(DRR, LOGL_INFO, "request resume of data link\n");
 		switch (rr->modify_state) {
 		case GSM48_RR_MOD_ASSIGN:
+			/* send DL-RESUME REQUEST */
+			LOGP(DRR, LOGL_INFO, "request resume of data link\n");
 			gsm48_rr_tx_ass_cpl(ms, GSM48_RR_CAUSE_NORMAL);
 			break;
 		case GSM48_RR_MOD_HANDO:
-			gsm48_rr_tx_hando_cpl(ms, GSM48_RR_CAUSE_NORMAL);
+			/* trigger Handover access bursts */
+			/* NOTE: T3124 is started after RACH CONF */
+			printf("MTZ - gsm48_rr_tx_hando_access call 2\n");
+			gsm48_rr_tx_hando_access(ms);
+			rr->hando_acc_pending = 4;
 			break;
 		}
-
-#ifdef TODO
-		/* trigger RACH */
-		if (rr->modify_state == GSM48_RR_MOD_HANDO) {
-			gsm48_rr_tx_hando_access(ms);
-			rr->hando_acc_left = 3;
-		}
-#endif
 	}
 	return 0;
+}
+
+static int gsm48_rr_rx_phys_info(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	uint8_t *ind_ta = (uint8_t *)gh->data;
+	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*ind_ta);
+
+	LOGP(DRR, LOGL_INFO, "PHYSICAL INFORMATION\n");
+	printf("\n\n----------------------------\nPHYSICAL INFORMATION\n--------------------------\n\n");
+
+	if (payload_len < 0) {
+		LOGP(DRR, LOGL_NOTICE, "Short read of PHYSICAL INFORMATION "
+			"message.\n");
+		return -EINVAL;
+	}
+
+	/* ignore physical info, if not handover */
+	if (rr->modify_state != GSM48_RR_MOD_HANDO)
+		return 0;
+
+	/* ignore pyhsical info, if already received (no more bursts) */
+	if (rr->hando_acc_pending == 0)
+		return 0;
+
+	rr->cd_now.ind_ta = *ind_ta;
+
+	/* stop access bursts */
+	rr->hando_acc_pending = 0;
+
+	/* stop timer */
+	stop_rr_t3124(rr);
+
+	return gsm48_rr_resume_after_handover(ms);
+}
+ 
+/* force handover to given ARFCN, by faking measurement report */
+const char *gsm48_rr_force_handover(struct osmocom_ms *ms, uint16_t arfcn)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_rr_meas *rrmeas = &rr->meas;
+	int i;
+
+	if (rr->state != GSM48_RR_ST_DEDICATED)
+		return "No dedicated connection";
+
+	if (rrmeas->nc_num == 0)
+		return "No Neighbor cells given by BTS";
+
+	for (i = 0; i < rrmeas->nc_num; i++) {
+		if (rrmeas->nc_arfcn[i] == arfcn) {
+			rr->hando_fake_report = 1;
+			rr->hando_fake_report_arfcn = arfcn;
+			return 0;
+		}
+	}
+
+	return "Given ARFCN is not a neighbor cell";
 }
 
 /*
@@ -4577,6 +4970,7 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_l3(msg), msgb_l3len(msg));
 
 	/* request channel */
+		printf("MTZ: gsm48_rr_chan_req called 10 (in gsm48_rr_est_req)\n");
 	return gsm48_rr_chan_req(ms, rrh->cause, 0, 0);
 }
 
@@ -4633,38 +5027,50 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		uint8_t skip_ind = (gh->proto_discr & 0xf0) >> 4;
 
 		/* ignore if skip indicator is not B'0000' */
-		if (skip_ind)
+		if (skip_ind) {
+			msgb_free(msg);
 			return 0;
+		}
 
 		switch(gh->msg_type) {
 		case GSM48_MT_RR_ADD_ASS:
+			printf("MTZ: GSM48_MT_RR_ADD_ASS, calling gsm48_rr_rx_add_ass (in gsm48_rr_data_ind)\n");
 			rc = gsm48_rr_rx_add_ass(ms, msg);
 			break;
 		case GSM48_MT_RR_ASS_CMD:
+			printf("MTZ: GSM48_MT_RR_ASS_CMD, calling gsm48_rr_rx_ass_cmd(in gsm48_rr_data_ind)\n");
 			rc = gsm48_rr_rx_ass_cmd(ms, msg);
 			break;
 		case GSM48_MT_RR_CIPH_M_CMD:
+			printf("MTZ: GSM48_MT_RR_CIPH_M_CMD, calling gsm48_rr_rx_cip_mode_cmd(in gsm48_rr_data_ind)\n");
 			rc = gsm48_rr_rx_cip_mode_cmd(ms, msg);
 			break;
 		case GSM48_MT_RR_CLSM_ENQ:
+			printf("MTZ: GSM48_MT_RR_CLSM_ENQ, calling gsm48_rr_rx_cm_enq(in gsm48_rr_data_ind)\n");
 			rc = gsm48_rr_rx_cm_enq(ms, msg);
 			break;
 		case GSM48_MT_RR_CHAN_MODE_MODIF:
+			printf("MTZ: GSM48_MT_RR_CHAN_MODE_MODIF, calling gsm48_rr_rx_chan_modify(in gsm48_rr_data_ind)\n");
 			rc = gsm48_rr_rx_chan_modify(ms, msg);
 			break;
 		case GSM48_MT_RR_HANDO_CMD:
+			printf("MTZ: GSM48_MT_RR_HANDO_CMD, calling gsm48_rr_rx_hando_cmd(in gsm48_rr_data_ind)\n");
 			rc = gsm48_rr_rx_hando_cmd(ms, msg);
 			break;
 		case GSM48_MT_RR_FREQ_REDEF:
+			printf("MTZ: GSM48_MT_RR_FREQ_REDEF, calling gsm48_rr_rx_frq_redef(in gsm48_rr_data_ind)\n");
 			rc = gsm48_rr_rx_frq_redef(ms, msg);
 			break;
 		case GSM48_MT_RR_CHAN_REL:
+			printf("MTZ: GSM48_MT_RR_CHAN_REL, calling gsm48_rr_rx_chan_rel(in gsm48_rr_data_ind)\n");
 			rc = gsm48_rr_rx_chan_rel(ms, msg);
 			break;
 		case GSM48_MT_RR_APP_INFO:
+			printf("MTZ: GSM48_MT_RR_APP_INFO, calling none (in gsm48_rr_data_ind)\n");
 			LOGP(DRR, LOGL_NOTICE, "APP INFO not supported!\n");
 			break;
 		default:
+			printf("MTZ: Unknown, calling none (in gsm48_rr_data_ind)\n");
 			LOGP(DRR, LOGL_NOTICE, "Message type 0x%02x unknown.\n",
 				gh->msg_type);
 
@@ -4694,18 +5100,25 @@ static int gsm48_rr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_SYSINFO_1:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_1, calling gsm48_rr_rx_sysinfo1 (in gsm48_rr_rx_bcch)\n");
 		return gsm48_rr_rx_sysinfo1(ms, msg);
 	case GSM48_MT_RR_SYSINFO_2:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_2, calling gsm48_rr_rx_sysinfo2 (in gsm48_rr_rx_bcch)\n");
 		return gsm48_rr_rx_sysinfo2(ms, msg);
 	case GSM48_MT_RR_SYSINFO_2bis:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_2bis, calling gsm48_rr_rx_sysinfo2bis (in gsm48_rr_rx_bcch)\n");
 		return gsm48_rr_rx_sysinfo2bis(ms, msg);
 	case GSM48_MT_RR_SYSINFO_2ter:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_2ter, calling gsm48_rr_rx_sysinfo2ter (in gsm48_rr_rx_bcch)\n");
 		return gsm48_rr_rx_sysinfo2ter(ms, msg);
 	case GSM48_MT_RR_SYSINFO_3:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_3, calling gsm48_rr_rx_sysinfo3 (in gsm48_rr_rx_bcch)\n");
 		return gsm48_rr_rx_sysinfo3(ms, msg);
 	case GSM48_MT_RR_SYSINFO_4:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_4, calling gsm48_rr_rx_sysinfo4 (in gsm48_rr_rx_bcch)\n");
 		return gsm48_rr_rx_sysinfo4(ms, msg);
 	default:
+		printf("MTZ: Unsupported, calling none (in gsm48_rr_rx_bcch)\n");
 #if 0
 		LOGP(DRR, LOGL_NOTICE, "BCCH message type 0x%02x not sup.\n",
 			sih->system_information);
@@ -4721,19 +5134,26 @@ static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_PAG_REQ_1:
+		printf("MTZ: GSM48_MT_RR_PAG_REQ_1, calling gsm48_rr_rx_pag_req_1 (in gsm48_rr_rx_pch_agch)\n");
 		return gsm48_rr_rx_pag_req_1(ms, msg);
 	case GSM48_MT_RR_PAG_REQ_2:
+		printf("MTZ: GSM48_MT_RR_PAG_REQ_2, calling gsm48_rr_rx_pag_req_2 (in gsm48_rr_rx_pch_agch)\n");
 		return gsm48_rr_rx_pag_req_2(ms, msg);
 	case GSM48_MT_RR_PAG_REQ_3:
+		printf("MTZ: GSM48_MT_RR_PAG_REQ_3, calling gsm48_rr_rx_pag_req_3 (in gsm48_rr_rx_pch_agch)\n");
 		return gsm48_rr_rx_pag_req_3(ms, msg);
 
 	case GSM48_MT_RR_IMM_ASS:
+		printf("MTZ: GSM48_MT_RR_IMM_ASS, calling gsm48_rr_rx_imm_ass (in gsm48_rr_rx_pch_agch)\n");
 		return gsm48_rr_rx_imm_ass(ms, msg);
 	case GSM48_MT_RR_IMM_ASS_EXT:
+		printf("MTZ: GSM48_MT_RR_IMM_ASS_EXT, calling gsm48_rr_rx_imm_ass_ext (in gsm48_rr_rx_pch_agch)\n");
 		return gsm48_rr_rx_imm_ass_ext(ms, msg);
 	case GSM48_MT_RR_IMM_ASS_REJ:
+		printf("MTZ: GSM48_MT_RR_IMM_ASS_REJ, calling gsm48_rr_rx_imm_ass_rej (in gsm48_rr_rx_pch_agch)\n");
 		return gsm48_rr_rx_imm_ass_rej(ms, msg);
 	default:
+		printf("MTZ: Unknown, calling none (in gsm48_rr_rx_pch_agch)\n");
 #if 0
 		LOGP(DRR, LOGL_NOTICE, "CCCH message type 0x%02x unknown.\n",
 			sih->system_information);
@@ -4742,14 +5162,16 @@ static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 	}
 }
 
-/* receive ACCH at RR layer */
-static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
+/* receive ACCH unit data at RR layer */
+static int gsm48_rr_rx_acch_unit(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm_settings *set = &ms->settings;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
-	struct gsm48_hdr *sih = msgb_l3(msg);
+	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
 	uint8_t ind_ta, ind_tx_power;
+
+	printf("MTZ: In gsm48_rr_rx_acch_unit\n");
 
 	if (msgb_l2len(msg) < sizeof(*rllh) + 2 + 2) {
 		LOGP(DRR, LOGL_ERROR, "Missing TA and TX_POWER IEs\n");
@@ -4772,20 +5194,52 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 		rr->cd_now.ind_tx_power = ind_tx_power;
 	}
 
-	switch (sih->msg_type) {
+	switch (sih->system_information) {
 	case GSM48_MT_RR_SYSINFO_5:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_5, calling gsm48_rr_rx_sysinfo5 (in gsm48_rr_rx_acch_unit)\n");
 		return gsm48_rr_rx_sysinfo5(ms, msg);
 	case GSM48_MT_RR_SYSINFO_5bis:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_5bis, calling gsm48_rr_rx_sysinfo5bis (in gsm48_rr_rx_acch_unit)\n");
 		return gsm48_rr_rx_sysinfo5bis(ms, msg);
 	case GSM48_MT_RR_SYSINFO_5ter:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_5ter, calling gsm48_rr_rx_sysinfo5ter (in gsm48_rr_rx_acch_unit)\n");
 		return gsm48_rr_rx_sysinfo5ter(ms, msg);
 	case GSM48_MT_RR_SYSINFO_6:
+		printf("MTZ: GSM48_MT_RR_SYSINFO_6, calling gsm48_rr_rx_sysinfo6 (in gsm48_rr_rx_acch_unit)\n");
 		return gsm48_rr_rx_sysinfo6(ms, msg);
 	default:
+		printf("MTZ: Unknown, calling none (in gsm48_rr_rx_acch_unit)\n");
 		LOGP(DRR, LOGL_NOTICE, "ACCH message type 0x%02x unknown.\n",
-			sih->msg_type);
+			sih->system_information);
 		return -EINVAL;
 	}
+}
+ 
+/* receive DCCH unit data at RR layer */
+static int gsm48_rr_rx_dcch_unit(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	uint8_t pdisc = gh->proto_discr & 0x0f;
+
+	/* FIXME: set correct L3 message length */
+
+	if (pdisc == GSM48_PDISC_RR) {
+		uint8_t skip_ind = (gh->proto_discr & 0xf0) >> 4;
+
+		/* ignore if skip indicator is not B'0000' */
+		if (skip_ind)
+			return 0;
+
+		switch(gh->msg_type) {
+		case GSM48_MT_RR_HANDO_INFO:
+			return gsm48_rr_rx_phys_info(ms, msg);
+		default:
+			LOGP(DRR, LOGL_NOTICE, "Message type 0x%02x unknown.\n",
+				gh->msg_type);
+		}
+	}
+
+	return 0;
 }
 
 /* unit data from layer 2 to RR layer */
@@ -4816,8 +5270,10 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		cs->ccch_state = GSM322_CCCH_ST_DATA;
 
 		/* in dedicated mode */
-		if (ms->rrlayer.state == GSM48_RR_ST_CONN_PEND)
+		if (ms->rrlayer.state == GSM48_RR_ST_CONN_PEND){
+		printf("MTZ: gsm48_rr_tx_rand_acc called 2 (in gsm48_rr_unit_data_ind)\n");
 			return gsm48_rr_tx_rand_acc(ms, NULL);
+		}
 
 		/* set timer for reading BCCH */
 		if (cs->state == GSM322_C2_STORED_CELL_SEL
@@ -4836,15 +5292,27 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	rsl_dec_chan_nr(rllh->chan_nr, &ch_type, &ch_subch, &ch_ts);
 	switch (ch_type) {
 	case RSL_CHAN_PCH_AGCH:
+		printf("MTZ: RSL_CHAN_PCH_AGCH, calling gsm48_rr_rx_pch_agch (after gsm48_rcv_rll)\n");
 		return gsm48_rr_rx_pch_agch(ms, msg);
 	case RSL_CHAN_BCCH:
+		printf("MTZ: RSL_CHAN_BCCH, calling gsm48_rr_rx_bcch (after gsm48_rcv_rll)\n");
 		return gsm48_rr_rx_bcch(ms, msg);
 	case RSL_CHAN_Bm_ACCHs:
+		printf("MTZ: RSL_CHAN_Bm_ACCHs, calling none (after gsm48_rcv_rll)\n");
 	case RSL_CHAN_Lm_ACCHs:
+		printf("MTZ: RSL_CHAN_Lm_ACCHs, calling none (after gsm48_rcv_rll)\n");
 	case RSL_CHAN_SDCCH4_ACCH:
+		printf("MTZ: RSL_CHAN_SDCCH4_ACCH, calling none (after gsm48_rcv_rll)\n");
 	case RSL_CHAN_SDCCH8_ACCH:
-		return gsm48_rr_rx_acch(ms, msg);
+		if ((rllh->link_id & 0x40)){
+			printf("MTZ: RSL_CHAN_SDCCH8_ACCH, calling gsm48_rr_rx_acch_unit (after gsm48_rcv_rll)\n");
+			return gsm48_rr_rx_acch_unit(ms, msg);
+		} else {
+			printf("MTZ: RSL_CHAN_SDCCH8_ACCH, calling gsm48_rr_rx_dcch_unit (after gsm48_rcv_rll)\n");
+			return gsm48_rr_rx_dcch_unit(ms, msg);
+		}
 	default:
+		printf("MTZ: unknown, calling none (after gsm48_rcv_rll)\n");
 		LOGP(DRSL, LOGL_NOTICE, "RSL with chan_nr 0x%02x unknown.\n",
 			rllh->chan_nr);
 		return -EINVAL;
@@ -4890,6 +5358,38 @@ static int gsm48_rr_abort_req(struct osmocom_ms *ms, struct msgb *msg)
 
 	return 0;
 }
+ 
+/* function to return to last channel */
+static int gsm48_rr_as_ho_failed(struct osmocom_ms *ms)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	uint16_t ma[64];
+	uint8_t ma_len;
+
+	/* deactivate channel */
+	l1ctl_tx_dm_rel_req(ms);
+	ms->meas.rl_fail = 0;
+	rr->dm_est = 0;
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
+
+	/* get old channel description */
+	memcpy(&rr->cd_now, &rr->cd_last, sizeof(rr->cd_now));
+
+	/* render and change radio to old channel */
+	gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
+	printf("MTZ: gsm48_rr_activate_channel called 5\n");
+	gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len, 1, 1, -1);
+
+	if (rr->modify_state == GSM48_RR_MOD_ASSIGN) {
+		rr->modify_state = GSM48_RR_MOD_ASSIGN_RESUME;
+		return gsm48_rr_tx_ass_fail(ms,
+			GSM48_RR_CAUSE_ABNORMAL_UNSPEC, RSL_MT_RECON_REQ);
+	} else {
+		rr->modify_state = GSM48_RR_MOD_HANDO_RESUME;
+		return gsm48_rr_tx_hando_fail(ms,
+			GSM48_RR_CAUSE_ABNORMAL_UNSPEC, RSL_MT_RECON_REQ);
+	}
+}
 
 /* release confirm */
 static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
@@ -4898,42 +5398,12 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 	struct gsm48_rr_hdr *nrrh;
 	uint8_t cause = RR_REL_CAUSE_NORMAL;
-	uint16_t ma[64];
-	uint8_t ma_len;
 
 	/* switch back to old channel, if modify/ho failed */
 	switch (rr->modify_state) {
 	case GSM48_RR_MOD_ASSIGN:
 	case GSM48_RR_MOD_HANDO:
-		/* deactivate channel */
-		l1ctl_tx_dm_rel_req(ms);
-		ms->meas.rl_fail = 0;
-		rr->dm_est = 0;
-		l1ctl_tx_reset_req(ms, L1CTL_RES_T_SCHED);
-
-		/* get old channel description */
-		memcpy(&rr->cd_now, &rr->cd_last, sizeof(rr->cd_now));
-
-		/* render and change radio to old channel */
-		gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
-		gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len);
-
-		/* re-establish old link */
-		nmsg = gsm48_l3_msgb_alloc();
-		if (!nmsg)
-			return -ENOMEM;
-		if (rr->modify_state == GSM48_RR_MOD_ASSIGN) {
-			rr->modify_state = GSM48_RR_MOD_ASSIGN_RESUME;
-			return gsm48_rr_tx_ass_fail(ms,
-				GSM48_RR_CAUSE_ABNORMAL_UNSPEC,
-				RSL_MT_RECON_REQ);
-		} else {
-			rr->modify_state = GSM48_RR_MOD_HANDO_RESUME;
-			return gsm48_rr_tx_hando_fail(ms,
-				GSM48_RR_CAUSE_ABNORMAL_UNSPEC,
-				RSL_MT_RECON_REQ);
-		}
-		/* returns above */
+		return gsm48_rr_as_ho_failed(ms);
 	case GSM48_RR_MOD_ASSIGN_RESUME:
 	case GSM48_RR_MOD_HANDO_RESUME:
 		rr->modify_state = GSM48_RR_MOD_NONE;
@@ -4969,6 +5439,8 @@ static int gsm48_rr_mdl_error_ind(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t *mode;
 	uint8_t cause = rllh->data[2];
 	uint8_t link_id = rllh->link_id;
+
+	printf("MTZ: In gsm48_rr_mdl_error_ind\n");
 
 	switch (cause) {
 	case RLL_CAUSE_SEQ_ERR:
@@ -5025,6 +5497,8 @@ static int gsm48_rr_estab_ind_sapi3(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 	struct gsm48_rr_hdr *nrrh;
 
+	printf("MTZ: In gsm48_rr_estab_ind_sapi3\n");
+
 	if (rr->state != GSM48_RR_ST_DEDICATED) {
 		/* disconnect sapi 3 link */
 		gsm48_release_sapi3_link(ms);
@@ -5061,6 +5535,8 @@ static int gsm48_rr_estab_cnf_sapi3(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 	struct gsm48_rr_hdr *nrrh;
 
+	printf("MTZ: In gsm48_rr_estab_cnf_sapi3\n");
+
 	if (rr->state != GSM48_RR_ST_DEDICATED) {
 		gsm48_release_sapi3_link(ms);
 		return -EINVAL;
@@ -5090,6 +5566,8 @@ static int gsm48_rr_data_ind_sapi3(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rr_hdr *rrh;
 	uint8_t pdisc = gh->proto_discr & 0x0f;
 
+	printf("MTZ: In gsm48_rr_data_ind_sapi3\n");
+
 	if (pdisc == GSM48_PDISC_RR) {
 		msgb_free(msg);
 		return -EINVAL;
@@ -5114,6 +5592,8 @@ static int gsm48_rr_rel_ind_sapi3(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t link_id = rllh->link_id;
 	struct msgb *nmsg;
 	struct gsm48_rr_hdr *nrrh;
+
+	printf("MTZ: In gsm48_rr_rel_ind_sapi3\n");
 
 	new_sapi3_state(rr, GSM48_RR_SAPI3ST_IDLE);
 
@@ -5251,11 +5731,6 @@ static struct dldatastate {
 	{SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_SUSP_CONF, gsm48_rr_susp_cnf_dedicated},
 
-#if 0
-	{SBIT(GSM48_RR_ST_DEDICATED),
-	 RSL_MT_CHAN_CNF, gsm48_rr_rand_acc_cnf_dedicated},
-#endif
-
 	{SBIT(GSM48_RR_ST_DEDICATED),
 	 RSL_MT_ERROR_IND, gsm48_rr_mdl_error_ind},
 };
@@ -5302,9 +5777,15 @@ static int gsm48_rcv_rll(struct osmocom_ms *ms, struct msgb *msg)
 		"%s (link_id 0x%x)\n", ms->name, rsl_msg_name(msg_type),
 		gsm48_rr_state_names[rr->state], link_id);
 
+	//MTZ - added below
+	LOGP(DCS, LOGL_INFO, "In gsm48_rcv_rll - (ms %s) Received '%s' from L2 in state "
+		"%s (link_id 0x%x)\n", ms->name, rsl_msg_name(msg_type),
+		gsm48_rr_state_names[rr->state], link_id);
+
 	/* find function for current state and message */
 	if (!(link_id & 7)) {
 		/* SAPI 0 */
+		printf("MTZ - SAP 0\n");
 		for (i = 0; i < DLDATASLLEN; i++)
 			if ((msg_type == dldatastatelist[i].type)
 			 && ((1 << rr->state) & dldatastatelist[i].states))
@@ -5319,6 +5800,7 @@ static int gsm48_rcv_rll(struct osmocom_ms *ms, struct msgb *msg)
 		rc = dldatastatelist[i].rout(ms, msg);
 	} else {
 		/* SAPI 3 */
+		printf("MTZ - SAP 3\n");
 		for (i = 0; i < DLDATASLLENS3; i++)
 			if ((msg_type == dldatastatelists3[i].type)
 			 && ((1 << rr->sapi3_state) &
@@ -5354,7 +5836,17 @@ static int gsm48_rcv_cch(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (rr->state == GSM48_RR_ST_CONN_PEND
 	 && msg_type == RSL_MT_CHAN_CONF) {
+		printf("MTZ: RSL_MT_CHAN_CONF with GSM48_RR_ST_CONN_PEND, calling gsm48_rr_tx_rand_acc (after gsm48_rcv_cch)\n");
+		printf("MTZ: gsm48_rr_tx_rand_acc called 3 (in gsm48_rcv_cch)\n");
 	 	rc = gsm48_rr_tx_rand_acc(ms, msg);
+		msgb_free(msg);
+		return rc;
+	}
+ 
+	if (rr->state == GSM48_RR_ST_DEDICATED
+	 && msg_type == RSL_MT_CHAN_CONF) {
+		printf("MTZ: RSL_MT_CHAN_CONF with GSM48_RR_ST_DEDICATED, calling gsm48_rr_rand_acc_cnf_dedicated (after gsm48_rcv_cch)\n");
+		rc = gsm48_rr_rand_acc_cnf_dedicated(ms, msg);
 		msgb_free(msg);
 		return rc;
 	}
@@ -5373,13 +5865,16 @@ static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 
 	switch (rslh->msg_discr & 0xfe) {
 	case ABIS_RSL_MDISC_RLL:
+		printf("MTZ: In gsm48_rcv_rsl, calling gsm48_rcv_rll\n");
 		rc = gsm48_rcv_rll(ms, msg);
 		break;
 	case ABIS_RSL_MDISC_COM_CHAN:
+		printf("MTZ: In gsm48_rcv_rsl, calling gsm48_rcv_cch\n");
 		rc = gsm48_rcv_cch(ms, msg);
 		break;
 	default:
 		/* FIXME: implement this */
+		printf("MTZ: In gsm48_rcv_rsl, unknown message\n");
 		LOGP(DRSL, LOGL_NOTICE, "unknown RSLms msg_discr 0x%02x\n",
 			rslh->msg_discr);
 		msgb_free(msg);
@@ -5535,95 +6030,6 @@ int gsm48_rr_exit(struct osmocom_ms *ms)
 
 	return 0;
 }
-
-#if 0
-
-todo rr_sync_ind when receiving ciph, re ass, channel mode modify
-
-
-static void timeout_rr_t3124(void *arg)
-{
-	struct gsm48_rrlayer *rr = arg;
-	struct msgb *nmsg;
-
-	/* stop sending more access bursts when timer expired */
-	hando_acc_left = 0;
-
-	/* get old channel description */
-	memcpy(&rr->chan_desc, &rr->chan_last, sizeof(rr->chan_desc));
-
-	/* change radio to old channel */
-	tx_ph_dm_est_req(ms, rr->cd_now.arfcn, rr->cd_now.chan_nr,
-			 rr->cd_now.tsc);
-	rr->dm_est = 1;
-
-	/* re-establish old link */
-	nmsg = gsm48_l3_msgb_alloc();
-	if (!nmsg)
-		return -ENOMEM;
-	return gsm48_send_rsl(ms, RSL_MT_REEST_REQ, nmsg, 0);
-
-	todo
-}
-
-static void start_rr_t3124(struct gsm48_rrlayer *rr, int sec, int micro)
-{
-	LOGP(DRR, LOGL_INFO, "starting T3124 with %d.%03d seconds\n", sec,
-		micro / 1000);
-	rr->t3124.cb = timeout_rr_t3124;
-	rr->t3124.data = rr;
-	osmo_timer_schedule(&rr->t3124, sec, micro);
-}
-
-/* send HANDOVER ACCESS burst (9.1.14) */
-static int gsm48_rr_tx_hando_access(struct osmocom_ms *ms)
-{
-	nmsg = msgb_alloc_headroom(20, 16, "HAND_ACCESS");
-	if (!nmsg)
-		return -ENOMEM;
-	*msgb_put(nmsg, 1) = rr->hando_ref;
-	todo burst
-	return gsm48_send_rsl(ms, RSL_MT_RAND_ACC_REQ, nmsg, 0);
-}
-
-/* send next channel request in dedicated state */
-static int gsm48_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct msgb *nmsg;
-	int s;
-
-	if (rr->modify_state != GSM48_RR_MOD_HANDO) {
-		LOGP(DRR, LOGL_NOTICE, "Random acces confirm, but not in handover state.\n");
-		return 0;
-	}
-
-	/* send up to four handover access bursts */
-	if (rr->hando_acc_left) {
-		rr->hando_acc_left--;
-		gsm48_rr_tx_hando_access(ms);
-		return;
-	}
-
-	/* start timer for sending next HANDOVER ACCESS bursts afterwards */
-	if (!osmo_timer_pending(&rr->t3124)) {
-		if (allocated channel is SDCCH)
-			start_rr_t3124(rr, GSM_T3124_675);
-		else
-			start_rr_t3124(rr, GSM_T3124_320);
-	}
-	if (!rr->n_chan_req) {
-		start_rr_t3126(rr, 5, 0); /* TODO improve! */
-		return 0;
-	}
-	rr->n_chan_req--;
-
-	/* wait for PHYSICAL INFORMATION message or T3124 timeout */
-	return 0;
-
-}
-
-#endif
 
 int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
 {

@@ -174,7 +174,8 @@ struct l1ctl_info_ul {
 	uint8_t chan_nr;
 	/* GSM 08.58 link identifier (9.3.2) */
 	uint8_t link_id;
-	uint8_t padding[2];
+	/* the ARFCN and the band */
+	uint16_t band_arfcn;
 
 	uint8_t payload[0];
 } __attribute__((packed));

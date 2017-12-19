@@ -56,6 +56,9 @@
 
 #include <l1ctl_proto.h>
 
+/* FIXME: count of what? use better name */
+static int count11 = 0;
+
 static inline int msb_get_bit(uint8_t *buf, int bn)
 {
 	int pos_byte = bn >> 3;
@@ -213,6 +216,13 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 
 	meas_id = (meas_id + 1) % FACCH_MEAS_HIST; /* absolute value doesn't matter */
 
+	count11++;
+	if (count11 == 20){
+		count11=0;
+	//printf("\nMTZ: arfcn in l1s_tch_resp = %d, sc = %d\n", arfcn, l1s.serving_cell.arfcn);
+	}
+	//printf("\nMTZ: arfcn in l1s_tch_resp = %d, sc = %d\n", arfcn, l1s.serving_cell.arfcn);
+
 	/* Collect measurements */
 	rx_tch.meas[meas_id].toa_qbit = dsp_api.db_r->a_serv_demod[D_TOA];
 	rx_tch.meas[meas_id].pm_dbm8 =
@@ -258,6 +268,9 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		/* Allocate msgb */
 			/* FIXME: we actually want all allocation out of L1S! */
 		msg = l1ctl_msgb_alloc(L1CTL_DATA_IND);
+			//MTZ
+			//printf("\n\n\n---------------------------------\nFACCH\n---------------------------------\n\n\n");
+			//printf("\n\n\n---------------------------------\nFACCH\n---------------------------------\n\n\n");
 		if(!msg) {
 			printf("TCH FACCH: unable to allocate msgb\n");
 			goto skip_rx_facch;
@@ -271,6 +284,8 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		dl->link_id = 0x00;	/* FACCH */
 		dl->band_arfcn = htons(arfcn);
 		dl->frame_nr = htonl(rx_time.fn);
+
+		printf("\n\nMTZ: FACCH received - chan_nr=%x\n\n", chan_nr);
 
 		/* Average SNR & RX level */
 		n = tch_f_hn ? 8 : 6;
@@ -429,8 +444,10 @@ static int l1s_tch_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 			msg = NULL;
 
 		/* If TX is empty and we're signalling only, use dummy frame */
-		if (msg)
-			data = msg->l3h;
+		if (msg) { //MTZ
+			//printf("\n\n\n---------------------------------\nFACCH\n---------------------------------\n\n\n");
+			//printf("\n\n\n---------------------------------\nFACCH\n---------------------------------\n\n\n");
+			data = msg->l3h;}
 		else if (tch_mode == SIG_ONLY_MODE)
 			data = pu_get_idle_frame();
 		else
@@ -533,7 +550,15 @@ skip_tx_traffic:
 		dsp_task_iq_swap(TCHT_DSP_TASK, arfcn, 0),
 		0, tsc		/* burst_id unused for TCH */
 	);
+
+	//printf("\nMTZ: arfcn in l1s_tch_cmd = %d, sc = %d\n", arfcn, l1s.serving_cell.arfcn);
+
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
+
+	/* stop here, if TX is disabled */
+	if (l1s.dedicated.rx_only)
+		return 0;
+
 
 	dsp_load_tx_task(
 		dsp_task_iq_swap(TCHT_DSP_TASK, arfcn, 1),
@@ -798,7 +823,13 @@ static int l1s_tch_a_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		dsp_task_iq_swap(TCHA_DSP_TASK, arfcn, 0),
 		0, tsc		/* burst_id unused for TCHA */
 	);
+	//printf("\nMTZ: arfcn in l1s_tch_a_cmd = %d, sc=%d\n", arfcn, l1s.serving_cell.arfcn);
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
+
+	/* stop here, if TX is disabled */
+	if (l1s.dedicated.rx_only)
+		return 0;
+
 
 	dsp_load_tx_task(
 		dsp_task_iq_swap(TCHA_DSP_TASK, arfcn, 1),

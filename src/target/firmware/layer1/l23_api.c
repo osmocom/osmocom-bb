@@ -236,6 +236,10 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_dm_est_req *est_req = (struct l1ctl_dm_est_req *) ul->payload;
 
+	//MTZ - added
+	l1s.new_dm = 1;
+	//l1s.ho_arfcn = 0;
+
 	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u)\n",
 		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc);
 
@@ -243,10 +247,11 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	mframe_disable(MF_TASK_NEIGH_PM51_C0T0);
 
 	/* configure dedicated channel state */
-	l1s.dedicated.type = chan_nr2dchan_type(ul->chan_nr);
-	l1s.dedicated.tsc  = est_req->tsc;
-	l1s.dedicated.tn   = ul->chan_nr & 0x7;
-	l1s.dedicated.h    = est_req->h;
+	l1s.dedicated.chan_nr = ul->chan_nr;
+	l1s.dedicated.type    = chan_nr2dchan_type(ul->chan_nr);
+	l1s.dedicated.tsc     = est_req->tsc;
+	l1s.dedicated.tn      = ul->chan_nr & 0x7;
+	l1s.dedicated.h       = est_req->h;
 
 	if (est_req->h) {
 		int i;
@@ -271,8 +276,15 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 		/* Audio path */
 		audio_set_enabled(est_req->tch_mode, est_req->audio_mode);
 	}
+ 
+	/* Handover config */
+	if ((est_req->flags & L1CTL_EST_F_RXONLY))
+		l1s.dedicated.rx_only = 1;
+	else
+		l1s.dedicated.rx_only = 0;
 
 	/* figure out which MF tasks to enable */
+	l1s.neigh_pm.n = 0; //MTZ - Uncomment
 	l1a_mftask_set(chan_nr2mf_task_mask(ul->chan_nr, NEIGH_MODE_PM));
 }
 
@@ -337,7 +349,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	dsp_load_ciph_param(0, NULL);
 	l1a_tch_mode_set(GSM48_CMODE_SIGN);
 	audio_set_enabled(GSM48_CMODE_SIGN, 0);
-	l1s.neigh_pm.n = 0;
+	l1s.neigh_pm.n = 0; //MTZ - Uncomment
 }
 
 /* receive a L1CTL_PARAM_REQ from L23 */
@@ -352,6 +364,7 @@ static void l1ctl_rx_param_req(struct msgb *msg)
 
 	l1s.ta = par_req->ta;
 	l1s.tx_power = par_req->tx_power;
+	l1s.dedicated.rx_only = 0;
 }
 
 /* receive a L1CTL_RACH_REQ from L23 */
@@ -361,11 +374,12 @@ static void l1ctl_rx_rach_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *) ul->payload;
 
-	printd("L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
-		rach_req->ra, ntohs(rach_req->offset), rach_req->combined);
+	//printd("L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
+	printd("L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d arfcn=%d)\n", //MTZ
+		rach_req->ra, ntohs(rach_req->offset), rach_req->combined, rach_req->arfcn);
 
 	l1a_rach_req(ntohs(rach_req->offset), rach_req->combined,
-		rach_req->ra);
+		rach_req->ra, rach_req->arfcn); //MTZ - last added
 }
 
 /* receive a L1CTL_DATA_REQ from L23 */
@@ -376,14 +390,16 @@ static void l1ctl_rx_data_req(struct msgb *msg)
 	struct l1ctl_data_ind *data_ind = (struct l1ctl_data_ind *) ul->payload;
 	struct llist_head *tx_queue;
 
-	printd("L1CTL_DATA_REQ (link_id=0x%02x)\n", ul->link_id);
+	//MTZ - commenting as causing issues in firmware
+	//printd("L1CTL_DATA_REQ (link_id=0x%02x)\n", ul->link_id);
 
 	msg->l3h = data_ind->data;
 	if (ul->link_id & 0x40) {
 		struct gsm48_hdr *gh = (struct gsm48_hdr *)(data_ind->data + 5);
 		if (gh->proto_discr == GSM48_PDISC_RR
 		 && gh->msg_type == GSM48_MT_RR_MEAS_REP) {
-			printd("updating measurement report\n");
+			//MTZ - commenting as causing issues in firmware
+			//printd("updating measurement report\n");
 			l1a_meas_msgb_set(msg);
 			return;
 		}
@@ -445,6 +461,7 @@ static void l1ctl_rx_reset_req(struct msgb *msg)
 		l1s_reset();
 		l1s_reset_hw();
 		audio_set_enabled(GSM48_CMODE_SIGN, 0);
+		l1s.dedicated.type = GSM_DCHAN_NONE;
 		l1ctl_tx_reset(L1CTL_RESET_CONF, reset_req->type);
 		break;
 	case L1CTL_RES_T_SCHED:
@@ -510,6 +527,15 @@ static void l1ctl_tx_tch_mode_conf(uint8_t tch_mode, uint8_t audio_mode)
 	l1_queue_for_l2(msg);
 }
 
+//MTZ
+/* Transmit a L1CTL_TCH_MODE_CONF */
+static void l1ctl_test(void)
+{
+	struct msgb *msg = l1ctl_msgb_alloc(L1CTL_TEST);
+
+	l1_queue_for_l2(msg);
+}
+
 /* receive a L1CTL_TCH_MODE_REQ from L23 */
 static void l1ctl_rx_tch_mode_req(struct msgb *msg)
 {
@@ -541,20 +567,32 @@ static void l1ctl_rx_neigh_pm_req(struct msgb *msg)
 
 	/* reset list in order to prevent race condition */
 	l1s.neigh_pm.n = 0; /* atomic */
-	l1s.neigh_pm.second = 0;
 	/* now reset pointer and fill list */
 	l1s.neigh_pm.pos = 0;
+	l1s.neigh_pm.valid = 0;
+	l1s.neigh_pm.rounds = 0;
 	l1s.neigh_pm.running = 0;
+	if (pm_req->n > 64)
+		pm_req->n = 64;
 	for (i = 0; i < pm_req->n; i++) {
 		l1s.neigh_pm.band_arfcn[i] = ntohs(pm_req->band_arfcn[i]);
 		l1s.neigh_pm.tn[i] = pm_req->tn[i];
+		l1s.neigh_pm.level[i] = 0;
+		l1s.neigh_sb.flags_bsic[i] = 0;
 	}
+	l1s.neigh_sb.count = 0;
 	printf("L1CTL_NEIGH_PM_REQ new list with %u entries\n", pm_req->n);
 	l1s.neigh_pm.n = pm_req->n; /* atomic */
 
-	/* on C0 enable PM on frame 51 */
+	/*
+	 * IDLE: on C0 enable PM on frame 51
+	 * DEDICATED: add neighbor cell task
+	 */
 	if (l1s.dedicated.type == GSM_DCHAN_NONE)
 		mframe_enable(MF_TASK_NEIGH_PM51_C0T0);
+	else
+		l1a_mftask_set(chan_nr2mf_task_mask(l1s.dedicated.chan_nr,
+			NEIGH_MODE_PM));
 }
 
 /* receive a L1CTL_TRAFFIC_REQ from L23 */

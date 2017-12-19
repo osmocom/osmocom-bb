@@ -156,11 +156,43 @@ void l1s_pm_test(uint8_t base_fn, uint16_t arfcn)
 }
 
 /*
- * perform measurements of neighbour cells
+ * perform measurements of neighbour cells on idle frame
  */
 
+/* send measurement results */
+static void neigh_pm_ind(void)
+{
+	struct msgb *msg;
+	struct l1ctl_neigh_pm_ind *mi;
+	int i;
+	uint8_t half_rounds = l1s.neigh_pm.rounds >> 1;
+
+	/* return result */
+	msg = l1ctl_msgb_alloc(L1CTL_NEIGH_PM_IND);
+	for (i = 0; i < l1s.neigh_pm.n; i++) {
+		if (msgb_tailroom(msg) < (int) sizeof(*mi)) {
+			l1_queue_for_l2(msg);
+			msg = l1ctl_msgb_alloc(L1CTL_NEIGH_PM_IND);
+		}
+		mi = (struct l1ctl_neigh_pm_ind *)
+			msgb_put(msg, sizeof(*mi));
+		mi->band_arfcn = htons(l1s.neigh_pm.band_arfcn[i]);
+		mi->tn = l1s.neigh_pm.tn[i];
+		l1s.neigh_pm.level[i]
+			= (l1s.neigh_pm.level_sum[i] + half_rounds)
+			  / l1s.neigh_pm.rounds;
+		mi->pm[0] = l1s.neigh_pm.level[i];
+		l1s.neigh_pm.level_sum[i] = 0;
+		if ((l1s.neigh_sb.flags_bsic[i] & NEIGH_PM_FLAG_BSIC))
+			mi->bsic = l1s.neigh_sb.flags_bsic[i] & 0x3f;
+		else
+			mi->bsic = 255;
+	}
+	l1_queue_for_l2(msg);
+}
+
 /* scheduler callback to issue a power measurement task to the DSP */
-static int l1s_neigh_pm_cmd(uint8_t num_meas,
+static int l1s_neigh_pm_idle_cmd(uint8_t num_meas,
 		      __unused uint8_t p2, __unused uint16_t p3)
 {
 	uint8_t last_gain = rffe_get_gain();
@@ -188,7 +220,7 @@ static int l1s_neigh_pm_cmd(uint8_t num_meas,
 }
 
 /* scheduler callback to read power measurement resposnse from the DSP */
-static int l1s_neigh_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
+static int l1s_neigh_pm_idle_resp(__unused uint8_t p1, __unused uint8_t p2,
 		       __unused uint16_t p3)
 {
 	uint16_t dbm;
@@ -202,29 +234,14 @@ static int l1s_neigh_pm_resp(__unused uint8_t p1, __unused uint8_t p2,
 	dbm = (uint16_t) ((dsp_api.db_r->a_pm[0] & 0xffff) >> 3);
 	level = dbm2rxlev(agc_inp_dbm8_by_pm(dbm)/8);
 
-	l1s.neigh_pm.level[l1s.neigh_pm.pos] = level;
+	l1s.neigh_pm.level_sum[l1s.neigh_pm.pos] = level;
 
 	if (++l1s.neigh_pm.pos >= l1s.neigh_pm.n) {
-		struct msgb *msg;
-		struct l1ctl_neigh_pm_ind *mi;
-		int i;
-
 		l1s.neigh_pm.pos = 0;
-		/* return result */
-		msg = l1ctl_msgb_alloc(L1CTL_NEIGH_PM_IND);
-		for (i = 0; i < l1s.neigh_pm.n; i++) {
-			if (msgb_tailroom(msg) < (int) sizeof(*mi)) {
-				l1_queue_for_l2(msg);
-				msg = l1ctl_msgb_alloc(L1CTL_NEIGH_PM_IND);
-			}
-			mi = (struct l1ctl_neigh_pm_ind *)
-				msgb_put(msg, sizeof(*mi));
-			mi->band_arfcn = htons(l1s.neigh_pm.band_arfcn[i]);
-			mi->tn = l1s.neigh_pm.tn[i];
-			mi->pm[0] = l1s.neigh_pm.level[i];
-			mi->pm[1] = 0;
-		}
-		l1_queue_for_l2(msg);
+		l1s.neigh_pm.rounds++;
+		neigh_pm_ind();
+		l1s.neigh_pm.rounds = 0;
+		l1s.neigh_pm.valid = 1;
 	}
 
 out:
@@ -233,10 +250,137 @@ out:
 	return 0;
 }
 
-const struct tdma_sched_item neigh_pm_sched_set[] = {
-	SCHED_ITEM_DT(l1s_neigh_pm_cmd, 0, 1, 0),	SCHED_END_FRAME(),
+const struct tdma_sched_item neigh_pm_idle_sched_set[] = {
+	SCHED_ITEM_DT(l1s_neigh_pm_idle_cmd, -1, 1, 0),	SCHED_END_FRAME(),
 							SCHED_END_FRAME(),
-	SCHED_ITEM(l1s_neigh_pm_resp, -4, 1, 0),	SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_neigh_pm_idle_resp, -4, 1, 0),	SCHED_END_FRAME(),
+	SCHED_END_SET()
+};
+
+/*
+ * Perform measurements of neighbour cells on TCH
+ *
+ * Only when number of neighbor cells is > 0, perform measurement.
+ *
+ * For each measurement, l1s.neigh_pm.running is set. In case of an update
+ * of neighbor cell list, this state is cleared, so a pending measurement would
+ * be ignored.
+ *
+ * The measuement starts at position 0 (first neighbor cell). After each
+ * measurement result, the position is incremented until the number of neighbor
+ * cells are reached.
+ *
+ * All measurement results are added to level_sum array. It will be used to
+ * calculate an average from multiple measurements.
+ *
+ * All measurements start at round 0. When all neighbors have been measured,
+ * the number of rounds is increased and the measurement start over. At start
+ * of round 0, the start_fn is recorded. It will be used to calculate the
+ * elapsed time from the beginning.
+ *
+ * After reach round, the number of elapsed frames is checked. If at least 104
+ * frames have been elapsed, this would be the last round. The average of
+ * measurements are calculated from the level_sum array. Then the result is
+ * indicated to layer, the measurement states are reset, the measurments are
+ * maked as valid, and the measurement process starts over.
+ */
+
+/* scheduler callback to issue a power measurement task to the DSP */
+static int l1s_neigh_pm_tch_cmd(uint8_t num_meas,
+		      __unused uint8_t p2, __unused uint16_t p3)
+{
+	uint8_t last_gain;
+
+	if (l1s.neigh_pm.n == 0)
+		return 0;
+
+	/* set start_fn for the first round */
+	if (l1s.neigh_pm.pos == 0 && l1s.neigh_pm.rounds == 0)
+		l1s.neigh_pm.start_fn = l1s.next_time.fn;
+
+	/* save current gain */
+	last_gain = rffe_get_gain();
+
+	dsp_api.db_w->d_task_md = num_meas; /* number of measurements */
+//	dsp_api.ndb->d_fb_mode = 0; /* wideband search */
+
+	/* Tell the RF frontend to set the gain appropriately (keep last) */
+	rffe_compute_gain(-85, CAL_DSP_TGT_BB_LVL);
+
+
+	/*
+	 * Program TPU
+	 * Use TS 5 (two TS after TX)
+	 */
+	l1s_rx_win_ctrl((l1s.neigh_pm.n) ?
+			l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] : 0,
+		L1_RXWIN_PW, 5);
+
+	/* restore last gain */
+	rffe_set_gain(last_gain);
+
+	l1s.neigh_pm.running = 1;
+
+	return 0;
+}
+
+/* scheduler callback to read power measurement resposnse from the DSP */
+static int l1s_neigh_pm_tch_resp(__unused uint8_t p1, __unused uint8_t p2,
+		       __unused uint16_t p3)
+{
+	uint16_t dbm;
+	uint8_t level;
+
+	dsp_api.r_page_used = 1;
+
+	if (l1s.neigh_pm.n == 0 || !l1s.neigh_pm.running)
+		goto out;
+
+	dbm = (uint16_t) ((dsp_api.db_r->a_pm[0] & 0xffff) >> 3);
+	level = dbm2rxlev(agc_inp_dbm8_by_pm(dbm)/8);
+
+	//MTZ: The code below is to artificially induce handover
+	//////////////////////////////////////////////
+	if (((l1s.serving_cell.arfcn == 25) && ((l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] == 57)||(l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] == 52)||(l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] == 49))) || ((l1s.serving_cell.arfcn == 57) && ((l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] == 25)||(l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] == 52)||(l1s.neigh_pm.band_arfcn[l1s.neigh_pm.pos] == 58)))) {
+		l1s.neigh_pm.level_sum[l1s.neigh_pm.pos] += 63;
+	} else {
+		l1s.neigh_pm.level_sum[l1s.neigh_pm.pos] += level;
+	}
+	///////////////////////////////////////////////
+
+
+	//MTZ: This if statement is used because it was seen that sometimes a level of 0 was read off in dedicated mode which is not valid
+	if (level > 0) {
+		if (++l1s.neigh_pm.pos >= l1s.neigh_pm.n) {
+			uint32_t elapsed = (l1s.next_time.fn + 2715648
+						- l1s.neigh_pm.start_fn) % 2715648;
+	
+			l1s.neigh_pm.pos = 0;
+			l1s.neigh_pm.rounds++;
+			/* 
+			 * We want at least 104 frames before indicating the
+			 * measurement(s). Add two, since the measurement was
+			 * started two frames ago.
+			 */
+			if (elapsed >= 104 + 2) {
+				neigh_pm_ind();
+				l1s.neigh_pm.rounds = 0;
+				l1s.neigh_pm.valid = 1;
+			}
+		}
+	}
+
+out:
+	l1s.neigh_pm.running = 0;
+
+	return 0;
+}
+
+/* NOTE: Prio 1 is below TCH's TX+RX prio 0 */
+const struct tdma_sched_item neigh_pm_tch_sched_set[] = {
+	SCHED_ITEM_DT(l1s_neigh_pm_tch_cmd, 1, 1, 0),	SCHED_END_FRAME(),
+							SCHED_END_FRAME(),
+	SCHED_ITEM(l1s_neigh_pm_tch_resp, -4, 1, 0),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
 

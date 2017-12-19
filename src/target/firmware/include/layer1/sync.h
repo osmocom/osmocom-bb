@@ -55,6 +55,17 @@ struct l1s_h1 {
 };
 
 struct l1s_state {
+
+	//MTZ
+	int new_dm;
+	uint32_t orig_tpu_offset;
+	uint32_t tpu_offsets[64];
+	uint32_t nb_freq_diff[64];
+	uint32_t nb_frame_diff[64];
+	int32_t nb_sb_freq_diff[64];
+	uint32_t nb_sb_snr[64];
+	uint16_t tpu_offsets_arfcn[64];
+
 	struct gsm_time	current_time;	/* current GSM time */
 	struct gsm_time	next_time;	/* GSM time at next TMDMA irq */
 
@@ -127,6 +138,7 @@ struct l1s_state {
 			GSM_DCHAN_UNKNOWN,
 		} type;
 
+		uint8_t chan_nr;
 		uint8_t scn;
 		uint8_t tsc;
 		uint8_t tn;
@@ -145,18 +157,36 @@ struct l1s_state {
 			struct l1s_h0 st_h0;
 			struct l1s_h1 st_h1;
 		};
+
+		uint8_t rx_only;
 	} dedicated;
 
 	/* neighbour cell power measurement process */
 	struct {
-		uint8_t n, second;
-		uint8_t pos;
-		uint8_t running;
-		uint16_t band_arfcn[64];
-		uint8_t tn[64];
-		uint8_t	level[64];
+		uint32_t start_fn; /* frame number of measumrement start */
+		uint8_t valid; /* we have a complete set of measurements */
+		uint8_t rounds; /* current rounds of complete measurements */
+		uint8_t pos; /* current neighbor to measure */
+		uint8_t running; /* DSP task running */
+		uint8_t n; /* number of neighbors to measure */
+		uint16_t band_arfcn[64]; /* list of ARFCNs */
+		uint8_t tn[64]; /* list of TS offset for each measurement */
+		uint16_t level_sum[64]; /* sum while processing rounds */
+		uint8_t level[64]; /* latest results */
+		uint32_t tpu_offset[64];
 	} neigh_pm;
+
+	/* neighbor cell SCH sync process */
+	struct {
+		uint8_t flags_bsic[64]; /* flags + bsic */
+		uint8_t count; /* counter for sync process */
+		uint8_t index; /* cell of current sync process (0..63) */
+		uint8_t running; /* DSP task running */
+	} neigh_sb;
 };
+
+#define NEIGH_PM_FLAG_SCANNED	0x80
+#define NEIGH_PM_FLAG_BSIC	0x40
 
 extern struct l1s_state l1s;
 

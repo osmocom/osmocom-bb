@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 enum mframe_task {
+	MF_TASK_TEST1,
+
 	MF_TASK_BCCH_NORM,
 	MF_TASK_BCCH_EXT,
 	MF_TASK_CCCH,

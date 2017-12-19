@@ -6,6 +6,8 @@ enum l1_rxwin_type {
 	L1_RXWIN_FB,	/* FCCH burst detection */
 	L1_RXWIN_SB,	/* SCH burst detection */
 	L1_RXWIN_NB,	/* Normal burst decoding */
+	L1_RXWIN_FB26,	/* SCH burst detection of neighbour cell */
+	L1_RXWIN_SB26,	/* SCH burst detection of neighbour cell */
 	_NUM_L1_RXWIN
 };
 

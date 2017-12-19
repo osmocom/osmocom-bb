@@ -93,7 +93,10 @@ void afc_correct(int16_t freq_error, uint16_t arfcn)
 	}
 
 	delta = (int16_t) ((afc_norm_factor * (int32_t)freq_error) / AFC_SLOPE);
-	printd("afc_correct(error=%dHz, arfcn=%u): delta=%d, afc_dac(old=%d,new=%d)\n",
+	//MTZ
+	//printd("afc_correct(error=%dHz, arfcn=%u): delta=%d, afc_dac(old=%d,new=%d)\n",
+	//	freq_error, arfcn, delta, afc_state.dac_value, afc_state.dac_value+delta);
+	printf("afc_correct(error=%dHz, arfcn=%u): delta=%d, afc_dac(old=%d,new=%d)\n",
 		freq_error, arfcn, delta, afc_state.dac_value, afc_state.dac_value+delta);
 	afc_state.dac_value += delta;
 

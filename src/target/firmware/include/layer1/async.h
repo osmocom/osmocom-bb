@@ -33,7 +33,7 @@ int l1a_txq_msgb_count(struct llist_head *queue);
 void l1a_txq_msgb_flush(struct llist_head *queue);
 
 /* request a RACH */
-void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra);
+void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra, uint16_t arfcn);
 
 /* schedule frequency change */
 void l1a_freq_req(uint32_t fn_sched);

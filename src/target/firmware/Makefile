@@ -136,7 +136,7 @@ INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include -I../.
 #
 
 # Uncomment this line if you want to enable Tx (Transmit) Support.
-#CFLAGS += -DCONFIG_TX_ENABLE
+CFLAGS += -DCONFIG_TX_ENABLE
 
 # Uncomment this line if you want to write to flash.
 #CFLAGS += -DCONFIG_FLASH_WRITE

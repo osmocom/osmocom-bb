@@ -52,7 +52,7 @@ int l1ctl_ph_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 				   pp->u.rach_req.tx_power);
 		rc = l1ctl_tx_rach_req(ms, pp->u.rach_req.ra,
 				       pp->u.rach_req.offset,
-				       pp->u.rach_req.is_combined_ccch);
+				       pp->u.rach_req.is_combined_ccch, 0);
 		break;
 	default:
 		rc = -EINVAL;

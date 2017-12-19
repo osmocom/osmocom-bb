@@ -89,6 +89,9 @@ static int l1s_nb_resp(__unused uint8_t p1, uint8_t burst_id, uint16_t p3)
 	gsm_fn2gsmtime(&rx_time, l1s.current_time.fn - 1);
 	rfch_get_params(&rx_time, &rf_arfcn, &tsc, &tn);
 
+	//As causing held issues
+	//printf("\nMTZ:l1s_nb_resp, sc=%d\n", l1s.serving_cell.arfcn);
+
 	/* collect measurements */
 	rxnb.meas[burst_id].toa_qbit = dsp_api.db_r->a_serv_demod[D_TOA];
 	rxnb.meas[burst_id].pm_dbm8 =
@@ -204,6 +207,7 @@ static int l1s_nb_cmd(__unused uint8_t p1, uint8_t burst_id,
 		burst_id, tsc
 	);
 
+	//printf("\nMTZ: arfcn in l1s_nb_cmd = %d\n", arfcn);
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
 
 	return 0;

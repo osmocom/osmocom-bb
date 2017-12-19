@@ -122,20 +122,6 @@ static int l1s_tx_rach_resp(__unused uint8_t p1, __unused uint8_t burst_id,
 					afc_input(l1s.nb_sb_freq_diff[ii], arfcn, 1);
 				else
 					afc_input(l1s.nb_sb_freq_diff[ii], arfcn, 0);
-
-
-					//mframe_disable(MF_TASK_TCH_F_EVEN);
-					//mframe_disable(MF_TASK_TCH_F_ODD);
-					//mframe_disable(MF_TASK_TCH_H_0);
-					//mframe_disable(MF_TASK_TCH_H_1);
-
-					//mframe_disable(MF_TASK_NEIGH_PM51_C0T0);
-					//mframe_disable(MF_TASK_NEIGH_PM51);
-					//mframe_disable(MF_TASK_NEIGH_PM26E);
-					//mframe_disable(MF_TASK_NEIGH_PM26O);
-
-					//mframe_enable(MF_TASK_BCCH_NORM);
-
 			}
 		}
 	}
@@ -192,28 +178,19 @@ void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra, uint16_t arfcn)
 	if (arfcn > 0) {
 		hando_arfcn = arfcn;
 		hando_access_flag = 1;
-		//printf("\n\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nMTZ: CP1\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n\n");
+		printf("\n\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nMTZ: CP1\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n\n");
 		uint32_t	new_fn;
-		if (l1s.new_dm) {
+		if (l1s.new_dm2) {
 			int ii = 0;
 			for (ii =0; ii<64; ii++) {
 				if (l1s.tpu_offsets_arfcn[ii] == arfcn) {
-					printf("\n\n\n\n\n\n\n-------------------------------------------\n\n\n\n\nMTZ: SYNCHING TO NEW ARFCN %d\n\n\n\n\n-------------------------------------------\n\n\n\n\n\n\n\n", arfcn);
-					//printf("\n\n\n\n\n\n\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n!!!!!!!!!!!!!MTZ: SYNCHING TO NEW ARFCN %d (offset=%d, freq_diff=%d, sb_fb_freq_diff=%d, sb_snr=%d, frame_diff=%d)!!!!!!!!!\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n\n\n\n\n\n\n\n", arfcn, l1s.tpu_offsets[ii], l1s.nb_freq_diff[ii], l1s.nb_sb_freq_diff[ii], l1s.nb_sb_snr[ii], l1s.nb_frame_diff[ii]);
-
-					//MTZ - Setting tpu_offset for frame start synchronization as well as doing frequency compensation
+					printf("\n\n\n\n----------------------------------------------------------\n\n\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n!!!!!!!!!!!!!MTZ: SYNCHING TO NEW ARFCN %d (offset=%d, freq_diff=%d, sb_fb_freq_diff=%d, sb_snr=%d, frame_diff=%d)!!!!!!!!!\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n\n----------------------------------------------------------\n\n\n\n\n\n", arfcn, l1s.tpu_offsets[ii], l1s.nb_freq_diff[ii], l1s.nb_sb_freq_diff[ii], l1s.nb_sb_snr[ii], l1s.nb_frame_diff[ii]);
 					l1s.orig_tpu_offset = l1s.tpu_offset;
 					l1s.tpu_offset = l1s.tpu_offsets[ii];
 					afc_correct(l1s.nb_freq_diff[ii], arfcn);
 
-					//if (l1s.nb_sb_snr[ii] > 0)
-					//	afc_input(l1s.nb_sb_freq_diff[ii], arfcn, 1);
-					//else
-					//	afc_input(l1s.nb_sb_freq_diff[ii], arfcn, 0);
-
-					//MTZ - Setting frame number using the difference computed before
 					new_fn = l1s.current_time.fn + l1s.nb_frame_diff[ii];
-					while (new_fn < 0)
+					if (new_fn < 0)
 						new_fn += 2715647;
 					new_fn = new_fn % 2715647;
 					gsm_fn2gsmtime(&l1s.current_time, new_fn);					
@@ -225,9 +202,26 @@ void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra, uint16_t arfcn)
 
 					ho_flag = 1;
 
+					//if (l1s.nb_sb_snr[ii] > 0)
+					//	afc_input(l1s.nb_sb_freq_diff[ii], arfcn, 1);
+					//else
+					//	afc_input(l1s.nb_sb_freq_diff[ii], arfcn, 0);
+
+					//mframe_disable(MF_TASK_TCH_F_EVEN);
+					//mframe_disable(MF_TASK_TCH_F_ODD);
+					//mframe_disable(MF_TASK_TCH_H_0);
+					//mframe_disable(MF_TASK_TCH_H_1);
+
+					//mframe_disable(MF_TASK_NEIGH_PM51_C0T0);
+					//mframe_disable(MF_TASK_NEIGH_PM51);
+					//mframe_disable(MF_TASK_NEIGH_PM26E);
+					//mframe_disable(MF_TASK_NEIGH_PM26O);
+
+					//mframe_enable(MF_TASK_BCCH_NORM);
+
 				}
 			}
-			l1s.new_dm = 0;			
+			l1s.new_dm2 = 0;			
 		}
 	}
 

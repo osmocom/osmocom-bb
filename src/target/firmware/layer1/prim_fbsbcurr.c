@@ -85,15 +85,19 @@ struct l1a_fb_state {
 static struct l1a_fb_state fbs;
 static struct mon_state *last_fb = &fbs.mon;
 static int sb_det = 0;  //MTZ - This was added
-static int fb_det = 0;  //MTZ - This was added
 uint32_t old_tpu_offset = 0;  //MTZ - This was added
 int total_sb_det = 0;
 
 int16_t nb_fb_toa = 0;  //MTZ - This was added
 uint16_t nb_fb_pm = 0;  //MTZ - This was added
-uint16_t nb_fb_angle0 = 0;  //MTZ - This was added
-uint16_t nb_fb_angle1 = 0;  //MTZ - This was added
+uint16_t nb_fb_angle = 0;  //MTZ - This was added
 uint16_t nb_fb_snr = 0;  //MTZ - This was added
+
+// MTZ - for working of these variables see comments in l1s_neigh_fbsb_cmd
+// MTZ - det_serving_cell overrides neigh_for_fbsb_det
+int synchronize_yes = 0; //MTZ - A test variable
+int det_serving_cell = 0; //MTZ - A test variable
+int neigh_for_fbsb_det = 0; //MTZ - A test variable
 
 static void dump_mon_state(struct mon_state *fb)
 {
@@ -151,7 +155,6 @@ static uint8_t l1s_decode_sb(struct gsm_time *time, uint32_t sb)
 
 	/* TS 05.02 Chapter 4.3.3 TDMA frame number */
 	time->fn = gsm_gsmtime2fn(time);
-	printf("\n\nMTZ: time->fn = %d\n\n", time->fn);
 
 	time->tc = (time->fn / 51) % 8;
 
@@ -171,30 +174,6 @@ static void read_sb_result(struct mon_state *st, int attempt)
 
 	dump_mon_state(st);
 
-	if (st->snr > AFC_SNR_THRESHOLD)
-		afc_input(st->freq_diff, rf_arfcn, 1);
-	else
-		afc_input(st->freq_diff, rf_arfcn, 0);
-
-	dsp_api.r_page_used = 1;
-}
-
-static void read_sb_result2(struct mon_state *st, int attempt)
-{
-	st->toa = dsp_api.db_r->a_serv_demod[D_TOA];
-	st->pm = dsp_api.db_r->a_serv_demod[D_PM]>>3;
-	st->angle = dsp_api.db_r->a_serv_demod[D_ANGLE];
-	st->snr = dsp_api.db_r->a_serv_demod[D_SNR];
-
-	st->freq_diff = ANGLE_TO_FREQ(st->angle);
-	st->fnr_report = l1s.current_time.fn;
-	st->attempt = attempt;
-
-	dump_mon_state(st);
-
-	printf("\n\n\nMTZ: st->freq_diff = %d\n\n\n", st->freq_diff);
-
-	//MTZ - commenting out for now
 	if (st->snr > AFC_SNR_THRESHOLD)
 		afc_input(st->freq_diff, rf_arfcn, 1);
 	else
@@ -270,7 +249,6 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 	synchronize_tdma(&l1s.serving_cell);
 
 	/* if we have recived a SYNC burst, update our local GSM time */
-	printf("\n\nMTZ: current_fn = %d, fn from SB = %d\n\n", gsm_gsmtime2fn(&l1s.current_time), fbs.mon.time.fn + SB2_LATENCY);
 	gsm_fn2gsmtime(&l1s.current_time, fbs.mon.time.fn + SB2_LATENCY);
 	/* compute next time from new current time */
 	l1s.next_time = l1s.current_time;
@@ -299,15 +277,8 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		mframe_enable(MF_TASK_CCCH_COMB);
 	else if (l1s.serving_cell.ccch_mode == CCCH_MODE_NON_COMBINED)
 		mframe_enable(MF_TASK_CCCH);
-	else if (l1s.serving_cell.ccch_mode == CCCH_MODE_COMBINED_CBCH) {
-		mframe_enable(MF_TASK_CCCH_COMB);
-		mframe_enable(MF_TASK_SDCCH4_CBCH);
-	}
 
 	l1s_compl_sched(L1_COMPL_FB);
-
-	//MTZ - delete this
-	//mframe_enable(MF_TASK_TEST1);
 
 	return 0;
 }
@@ -329,8 +300,6 @@ static int l1s_sbdet_cmd(__unused uint8_t p1, __unused uint8_t p2,
 
 	return 0;
 }
-
-static const struct tdma_sched_item sb_sched_set[];
 
 /* This is how it is done by the TSM30 */
 static const struct tdma_sched_item sb_sched_set[] = {
@@ -606,21 +575,12 @@ void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req)
 	/* Reset the TOA loop counters */
 	toa_reset();
 
-	tdma_schedule_set(0, fb_sched_set, 0);	
-
-	//MTZ - Changed
-	//if (fbs.req.flags & L1CTL_FBSB_F_FB0)
-	//	tdma_schedule_set(base_fn, fb_sched_set, 0);
-	//else if (fbs.req.flags & L1CTL_FBSB_F_FB1)
-	//	tdma_schedule_set(base_fn, fb_sched_set, 0);
-	//else if (fbs.req.flags & L1CTL_FBSB_F_SB)
-	//	tdma_schedule_set(base_fn, sb_sched_set, 0);
-
-	//MTZ
-	//l1ctl_test();
-	//struct msgb *msg1 = l1ctl_msgb_alloc(L1CTL_TEST);
-
-	//l1_queue_for_l2(msg1);
+	if (fbs.req.flags & L1CTL_FBSB_F_FB0)
+		tdma_schedule_set(base_fn, fb_sched_set, 0);
+	else if (fbs.req.flags & L1CTL_FBSB_F_FB1)
+		tdma_schedule_set(base_fn, fb_sched_set, 0);
+	else if (fbs.req.flags & L1CTL_FBSB_F_SB)
+		tdma_schedule_set(base_fn, sb_sched_set, 0);
 
 }
 
@@ -735,56 +695,56 @@ void synchronize_tdma2()
 	tpu_enq_sync(l1s.tpu_offset);
 }
 
-/*//////////////////////////////////////////////////////////////////////////////////////////////////////
+/* scheduler callback to issue a FB detection task to the DSP */
+static int sync_test1(__unused uint8_t p1, __unused uint8_t p2,
+			 uint16_t fb_mode)
+{
 
-FB/SB detection in dedicated mode
+		printf("\n\nMTZ - sync_test1, old_tpu_offset = %d\n\n", l1s.tpu_offset);
 
-- First of all it must be noted that 3 additional frames have been added to the original idle frame 25 or 12 depending upon the half rate type. This gives us additional time to do any required time and frequency synchronization before detecting the synchronization burst of the neighbour as well as returning to the current settings before the TCH frame that follows. This can be seen in the file firmware/layer1/mframe_sched.c.
+		old_tpu_offset = l1s.tpu_offset;
 
-- The approach to detect FB and SB in dedicated mode must be kept in mind. In dedicated mode the traffic multiframe is running on the MS that consists of 26 frames with frame 25 as idle frame (in even mode). In order to read FB of neighbour we need to read its control channel that consists of 51 frames. As the control MF size is not a multiple of traffic MF size each time the traffic idle frame appears we are at a different frame number in the control MF of the neighbour. Hence the traffic idle frame coincides with a different control channel each time and actually traverses through it. By looking at the channel assignment accross the control MF it can be seen that we will coincide with a frequency burst on the control channel when we have an idle traffic frame every 10 or 11 idle frames. If we repeatedly search for FB on traffic idle frames we should be able to detect it every 10 or 11 idle frames. The SB would appear the second idle frame following the idle frame on which FB is detected not the next (this can be verified by hand). This is the approach we use.
+		//l1s.tpu_offset = 3000;
+		//tpu_enq_at(SWITCH_TIME);
+		//tpu_enq_sync(l1s.tpu_offset);
+		//tpu_enq_at(0);
+		//tpu_enq_at(0);
+		//l1s.tpu_offset = old_tpu_offset;
+		//l1s.tpu_offset = 2000;
+		//tpu_enq_at(SWITCH_TIME);
+		//tpu_enq_sync(l1s.tpu_offset);
 
-- It was seen in idle mode FB/SB detection that FB is detected twice, first using FB mode 0 then using FB mode 1 which seem to provide different precision on frequency correction. After each FB detection frequency correction is performed in idle mode using afc_correct. Following FB mode 1 FB detection the quarter-bit synchronization is also performed using TOA (time of arrival of frequency burst) to synch the start of frame with the internal counters by modifying l1s.tpu_offset from what I could find. It is only after these two kinds of synchronizations/corrections that we can read the bursts on the channel properly. Synchronization burst is then read which is used to get the BSIC of the BTS and the absolute frame number it is on to update our internal variables/registers with it. Additionally further frequency correction is performed.
+		//tpu_enq_at(SWITCH_TIME);
+		tpu_enq_sync(3000);
+		//tpu_enq_at(0);
+		//tpu_enq_at(0);
+		//tpu_enq_at(SWITCH_TIME);
+		//tpu_enq_sync(old_tpu_offset);
+		//tpu_enq_at(0);
 
-- The same steps need to be performed as above but this time in steps as we can only do this whenever the idle frame appears otherwise we would be in traffic mode and wouldn't have time to perform this. At each step values for frequency compensation/time correction are stored to be used in the next step. At the beginning of every idle frame set (as we have added three more idle frames) the required synchronization/correction is performed and at the end of it it is reversed to return to original settings. l1s_neigh_fbsb_sync is used to perform any synching/correction at the start of the idle frame set.
+		//tpu_enq_at(SWITCH_TIME);
+		//tpu_enq_sync(2000);
+		////tpu_enq_at(0);
+		////tpu_enq_at(0);
+		//tpu_enq_at(SWITCH_TIME);
+		//tpu_enq_sync(0);
+		//tpu_enq_at(SWITCH_TIME);
+		//tpu_enq_sync(old_tpu_offset);
 
-- fb_det and sb_det are used as control variables to guide through the synchronization process as follows:
+		printf("\n\nMTZ - sync_test1, ending tpu_offset = %d\n\n", l1s.tpu_offset);
+		
 
-	fb_det		sb_det		task
+}
 
-	0		0		FB detection mode 0
-	1		0		FB detection mode 1
-	0		1		Do nothing - this is the idle frame following FB detection
-	0		2		SB detection
-	0		3		Do nothing
-	0		4		SB detection again
-
-fb_det goes from 0 to 1 upon FB detection in FB mode 0. Then when FB is detected in FB mode 1 sb_det becomes 1 and fb_det goes to 0. Thereafter sb_det increments upon every idle frame. This is important to keep in mind.
-
-* SB detection is done second time to make sure the SB isn't missed as I thought it might be in the middle of the frames. Just a cautious check.
-
-- Whenever FB and/or SB are detected the results are stored in the following variables to be used in case of handover
-
-
-	l1s.tpu_offsets_arfcn[ii] - The corresponding arfcn for the indices
-	l1s.tpu_offsets[ii] - The quarter-bit offset required for start of frame
-	l1s.nb_freq_diff[ii] - Frequency correction required from FB mode 0 + 1
-	l1s.nb_sb_freq_diff[ii] - Additional freq correction from SB detection
-	l1s.nb_frame_diff[ii] - The difference in frame of serving cell and the neighbour
-	l1s.nb_sb_snr[ii] - The snr received (might not really be needed)
-
-I know I could have used the l1s.neigh_sb struct but for now that's the way it is. This is so also because the stored number of neighbour gets reset whenever we enter a new dedicated mode but that can be worked around.
-
-- The TOA obtained from FB detection gives the number of GSM bits from the start of the command to detect FB till the actual detection. As it can span more than 1 frame especially in idle mode it is broken down to ntdma and qbits. ntdma denotes the complete frames and qbits the number of quarter-bits following an integer number of frames (the remainder bits x 4). This is the actual difference from the frame start of the serving cell to the frame start of the neighbour cell.
-
-- This schedule is activated using the multiframe scheduler whenever the idle frame comes in dedicated mode. select_neigh_cell() is used to select the next neighbour once SB of one neighbour is obtained or 15 tries to detect FB have failed (or SB is not detected following FB detection).
-
-- l1s.neigh_sb is the struct used to keep track of neigbour bsic/power measurements etc. This can be enhanced to store the values menioned above as well.
-
-- l1s.tpu_offset is the variable storing the quarter-bit offset to the start of frame for the cell to be read/transmitted to. afc_correct(...) is used to do frequency compensation.
-
-- Things could have been coded in a better way but that's the way it is for now. Perhaps someone else can restructure the whole thing and come up with a better approach.
-
-///////////////////////////////////////////////////////////////////////////////////////////////////// */
+/* scheduler callback to issue a FB detection task to the DSP */
+static int sync_test2(__unused uint8_t p1, __unused uint8_t p2,
+			 uint16_t fb_mode)
+{
+		printf("\n\nMTZ - sync_test2\n\n");
+		l1s.tpu_offset = old_tpu_offset;
+		tpu_enq_at(SWITCH_TIME);
+		tpu_enq_sync(l1s.tpu_offset);
+}
 
 /* scheduler callback to issue a FB detection task to the DSP */
 static int l1s_neigh_fbsb_sync(__unused uint8_t p1, __unused uint8_t p2,
@@ -793,11 +753,6 @@ static int l1s_neigh_fbsb_sync(__unused uint8_t p1, __unused uint8_t p2,
 
 	uint32_t tpu_shift;
 	int ntdma, qbits;
-
-	if (fb_det == 1) {
-		//printf("afc_correct in l1s_neigh_fbsb_sync for FB1 - nb_fb_angle0\n\n");
-		afc_correct(ANGLE_TO_FREQ(nb_fb_angle0), l1s.neigh_pm.band_arfcn[l1s.neigh_sb.index]);
-	}
 
 	if ((sb_det == 2)||(sb_det == 4)) {
 		//printf("\nMTZ - in l1s_neigh_fbsb_sync, old_tpu_offset = %d\n", l1s.tpu_offset);
@@ -831,7 +786,7 @@ static int l1s_neigh_fbsb_sync(__unused uint8_t p1, __unused uint8_t p2,
 		//if (tpu_shift < SWITCH_TIME)
 		//	fn_offset++;
 
-		//printf("MTZ - old_tpu_offset = %d, tpu_shift = %d, qbits = %d\n", old_tpu_offset, tpu_shift, qbits);
+		printf("MTZ - old_tpu_offset = %d, tpu_shift = %d, qbits = %d\n", old_tpu_offset, tpu_shift, qbits);
 
 		l1s.neigh_pm.tpu_offset[l1s.neigh_sb.index] = tpu_shift;
 
@@ -839,44 +794,110 @@ static int l1s_neigh_fbsb_sync(__unused uint8_t p1, __unused uint8_t p2,
 		for (ii=0; ii<64; ii++) {
 			if (l1s.tpu_offsets_arfcn[ii] == l1s.neigh_pm.band_arfcn[l1s.neigh_sb.index]) {
 				l1s.tpu_offsets[ii] = tpu_shift;
-				l1s.nb_freq_diff[ii] = ANGLE_TO_FREQ(nb_fb_angle0)+ANGLE_TO_FREQ(nb_fb_angle1);
+				l1s.nb_freq_diff[ii] = ANGLE_TO_FREQ(nb_fb_angle);
 				break;
 			}
 			if (l1s.tpu_offsets_arfcn[ii] == 0) {
 				l1s.tpu_offsets_arfcn[ii] = l1s.neigh_pm.band_arfcn[l1s.neigh_sb.index];
 				l1s.tpu_offsets[ii] = tpu_shift;
-				l1s.nb_freq_diff[ii] = ANGLE_TO_FREQ(nb_fb_angle0)+ANGLE_TO_FREQ(nb_fb_angle1);
+				l1s.nb_freq_diff[ii] = ANGLE_TO_FREQ(nb_fb_angle);
 				break;
 			}
 		}
 
-		//printf("\n\nMTZ: Stored TPU Offsets, Angles:");
-		//for (ii=0; ii<64; ii++) {
-		//	if (l1s.tpu_offsets_arfcn[ii] == 0)
-		//		break;
-		//	printf("  %d,%d(%d)", l1s.tpu_offsets[ii], l1s.nb_freq_diff[ii], l1s.tpu_offsets_arfcn[ii]);
-		//}
-		//printf("\n\n");
+		printf("\n\nMTZ: Stored TPU Offsets, Angles:");
+		for (ii=0; ii<64; ii++) {
+			if (l1s.tpu_offsets_arfcn[ii] == 0)
+				break;
+			printf("  %d,%d(%d)", l1s.tpu_offsets[ii], l1s.nb_freq_diff[ii], l1s.tpu_offsets_arfcn[ii]);
+		}
+		printf("\n\n");
 
-		//MTZ - possibly remove the >=50 if statement
+		//MTZ - testing this - possibly remove
 		if (nb_fb_toa >= 50) {
 			l1s.tpu_offset = tpu_shift;
 			//tpu_enq_at(SWITCH_TIME);
 			//tpu_enq_sync(tpu_shift);
 		}
-		//printf("afc_correct in l1s_neigh_fbsb_sync for SB - nb_fb_angle0+nb_fb_angle1\n\n");
-		afc_correct(ANGLE_TO_FREQ(nb_fb_angle0)+ANGLE_TO_FREQ(nb_fb_angle1), l1s.neigh_pm.band_arfcn[l1s.neigh_sb.index]);
+		afc_correct(ANGLE_TO_FREQ(nb_fb_angle), l1s.neigh_pm.band_arfcn[l1s.neigh_sb.index]);
+
+		if (synchronize_yes) {
+			l1s.tpu_offset = tpu_shift;
+			//puts("Synchronize_TDMA\n");
+			/* request the TPU to adjust the SYNCHRO and OFFSET registers */
+			tpu_enq_at(SWITCH_TIME);
+			tpu_enq_sync(l1s.tpu_offset);
+		}
 	}
 
 }
-/* scheduler callback to issue a FB and SB detection task to the DSP in dedicated mode */
-// READ COMMENTS ABOVE l1s_neigh_fbsb_sync
+/* scheduler callback to issue a FB detection task to the DSP */
 static int l1s_neigh_fbsb_cmd(__unused uint8_t p1, __unused uint8_t p2,
 			 uint16_t fb_mode)
 {
 
 	int index = l1s.neigh_sb.index;
 	uint8_t last_gain;
+
+	//printf("\nMTZ: In neigh_fbsb_cmd, l1s.neigh_pm.n = %d", l1s.neigh_pm.n);
+
+	//----------------------------------------------------------------------------------------
+	//
+	// 	Important points of note:
+	// 	-------------------------
+	//
+	//	Temporary variables used for testing:
+	//	
+	//	Right now we have three global variables defined at the beginning of this file
+	//	for testing purposes: det_serving_cell, synchronize_yes and neigh_for_fbsb_det.
+	//
+	//	det_serving_cell allows for detection of FBSB on serving cell, something which we
+	//	thought should be simpler as the clock is already synched on that cell.
+	//
+	//	synchronize_yes is a variable with which one can control whether offset and synch
+	//	commands will be sent to the TPU. There was a thought that perhaps the DSP SB
+	//	detection task for dedicated mode might not require synching due to which this
+	//	test variable was created. Also, naturally, detection on the serving cell should
+	//	not require synching but we could be wrong.
+	//
+	//	neigh_for_fbsb_det is a variable to hardcode the neighbour one wants to detect
+	//	FBSB on. Note that because more functionality is added to the code the mechanism
+	//	for traversing through neighbours using select_neigh_cell and certain flags is
+	//	disturbed for now. Due to this the index is hardcoded in the code below to
+	//	whichever neighbour one wants to detect FBSB on (ordered by signal strength)
+	//	using this variable.
+	//
+	//	Progress so far:
+	//
+	//	Right now we are able to detect FB in dedicated mode even for neighbours. One
+	//	additional thing we have done to aid us is that we have added 3 more frames to
+	//	our idle frame by taking up some TCH channels (this can be seen in mframe_sched).
+	//	The call doesn't get dropped if synchronization is not performed except for very
+	//	few cases which we need not worry about for now. However, when synchronization
+	//	is performed the call gets dropped without exception.
+	//
+	//	Few points where the problem could lie:
+	//
+	//	1) Perhaps we are not using the TCH_SB_DSP_TASK correctly. Perhaps some other
+	//	locations in the API also need to be written to when issuing the command in
+	//	addition to dsp_api.db_w->d_task_md. Perhaps we are not reading from the correct
+	//	location when checking the response.
+	//
+	//	2) Perhaps we need to start the SB detection task some quarter-bits or timeslots
+	//	before the actual SB appears.
+	//
+	//	3) Timing issues. This is the most likely cause as we haven't really been able
+	//	to fully understand and implement timing (if it is required, which it seems like
+	//	it is) in the code. If timing is required then this code is quite superficial.
+	//	In idle mode functions such as afc_correct and procedures requiring frequency
+	//	difference are used to before calling SB detection task which are not done here.
+	//	
+	//	Timing issues seems to be the most likely problem. Anyone wishing to solve the
+	//	SB detection issue should try to focus on this problem, understand how
+	//	synchronization is performed in idle mode and how we can do that in dedicated
+	//	mode and be back within 4 frames as after that the traffic needs to resume.
+	//
+	//----------------------------------------------------------------------------------------
 
 	if (l1s.neigh_pm.n == 0)
 		return 0;
@@ -901,46 +922,63 @@ static int l1s_neigh_fbsb_cmd(__unused uint8_t p1, __unused uint8_t p2,
 //		index = l1s.neigh_sb.index;
 //	}
 
+	//MTZ - This index variable is used to hardcode the neighbour cell for now
+	//index = neigh_for_fbsb_det;
+
 	if (sb_det == 0) {
 
 		//l1s.fb.mode = fb_mode;
 
-		//printf(" - detect FB arfcn %d (#%d) %d dbm\n", l1s.neigh_pm.band_arfcn[index], l1s.neigh_sb.count, rxlev2dbm(l1s.neigh_pm.level[index]));
+//		if (det_serving_cell)
+//			printf(" - detect FB arfcn %d (serving cell) (#%d) %d dbm\n", l1s.serving_cell.arfcn, l1s.neigh_sb.count, rxlev2dbm(fbs.req.rxlev_exp));
+//		else
+//			printf(" - detect FB arfcn %d (#%d) %d dbm\n", l1s.neigh_pm.band_arfcn[index], l1s.neigh_sb.count, rxlev2dbm(l1s.neigh_pm.level[index]));
 
 		last_gain = rffe_get_gain();
 
 		/* Tell the RF frontend to set the gain appropriately */
-		rffe_compute_gain(rxlev2dbm(l1s.neigh_pm.level[index]), CAL_DSP_TGT_BB_LVL);
+		if (det_serving_cell)
+			rffe_compute_gain(rxlev2dbm(fbs.req.rxlev_exp), CAL_DSP_TGT_BB_LVL);
+		else
+			rffe_compute_gain(rxlev2dbm(l1s.neigh_pm.level[index]), CAL_DSP_TGT_BB_LVL);
 
 		/* Program DSP */
 		dsp_api.db_w->d_task_md = TCH_FB_DSP_TASK;  /* maybe with I/Q swap? */
 //		dsp_api.db_w->d_task_md = dsp_task_iq_swap(TCH_SB_DSP_TASK, l1s.neigh_pm.band_arfcn[index], 0); //MTZ - Commented originally
-		if (fb_det == 1) {
-			dsp_api.ndb->d_fb_mode = 1;
-		} else {
-			dsp_api.ndb->d_fb_mode = 0;
-		}
+		dsp_api.ndb->d_fb_mode = 0;
 
 		/* Program TPU */
-		//l1s_rx_win_ctrl(l1s.neigh_pm.band_arfcn[index], L1_RXWIN_FB26, 5); //MTZ - Original - don't think works - as we have multiple idle frames now we can use TS 0
-		l1s_rx_win_ctrl(l1s.neigh_pm.band_arfcn[index], L1_RXWIN_FB26, 0);
+		//l1s_rx_win_ctrl(l1s.neigh_pm.band_arfcn[index], L1_RXWIN_FB26, 5); //MTZ - Original - don't think works
+	printf("\nMTZ: arfcn in l1s_neigh_fbsb_cmd (FB) = %d\n", l1s.neigh_pm.band_arfcn[index]);
+		if (det_serving_cell)
+			l1s_rx_win_ctrl(l1s.serving_cell.arfcn, L1_RXWIN_FB26, 0);
+		else
+			l1s_rx_win_ctrl(l1s.neigh_pm.band_arfcn[index], L1_RXWIN_FB26, 0);
 
 		/* restore last gain */
 		rffe_set_gain(last_gain);
 
 	} else if ((sb_det == 2)||(sb_det == 4)) {
 
-//		printf(" - detect SB arfcn %d (#%d) %d dbm\n", l1s.neigh_pm.band_arfcn[index], l1s.neigh_sb.count, rxlev2dbm(l1s.neigh_pm.level[index]));
+//		if (det_serving_cell)
+//			printf(" - detect SB arfcn %d (serving cell) (#%d) %d dbm\n", l1s.serving_cell.arfcn, l1s.neigh_sb.count, rxlev2dbm(fbs.req.rxlev_exp));
+//		else
+//			printf(" - detect SB arfcn %d (#%d) %d dbm\n", l1s.neigh_pm.band_arfcn[index], l1s.neigh_sb.count, rxlev2dbm(l1s.neigh_pm.level[index]));
+
+		//MTZ - This is a variable for the testing phase whether to send sync commands or not
+		//if (synchronize_yes)
+		//	synchronize_tdma2();
 
 		last_gain = rffe_get_gain();
 
 		/* Tell the RF frontend to set the gain appropriately */
-		rffe_compute_gain(rxlev2dbm(l1s.neigh_pm.level[index]), CAL_DSP_TGT_BB_LVL);
+		if (det_serving_cell)
+			rffe_compute_gain(rxlev2dbm(fbs.req.rxlev_exp), CAL_DSP_TGT_BB_LVL);
+		else
+			rffe_compute_gain(rxlev2dbm(l1s.neigh_pm.level[index]), CAL_DSP_TGT_BB_LVL);
 
 		/* Program DSP */
-		//MTZ Changed
-		//dsp_api.db_w->d_task_md = TCH_SB_DSP_TASK;  /* maybe with I/Q swap? */
-		dsp_api.db_w->d_task_md = SB_DSP_TASK;  /* maybe with I/Q swap? */
+		dsp_api.db_w->d_task_md = TCH_SB_DSP_TASK;  /* maybe with I/Q swap? */
 //		dsp_api.db_w->d_task_md = dsp_task_iq_swap(TCH_SB_DSP_TASK, l1s.neigh_pm.band_arfcn[index], 0); //MTZ - Commented originally
 		dsp_api.ndb->d_fb_mode = 0;
 
@@ -952,8 +990,12 @@ static int l1s_neigh_fbsb_cmd(__unused uint8_t p1, __unused uint8_t p2,
 
 
 		/* Program TPU */
-		//l1s_rx_win_ctrl(l1s.neigh_pm.band_arfcn[index], L1_RXWIN_SB26, 5); //MTZ - Original - don't think works - as we have multiple idle frames now we can use TS 0
-		l1s_rx_win_ctrl(l1s.neigh_pm.band_arfcn[index], L1_RXWIN_SB, 0);
+		//l1s_rx_win_ctrl(l1s.neigh_pm.band_arfcn[index], L1_RXWIN_SB26, 5); //MTZ - Original - don't think works
+	printf("\nMTZ: arfcn in l1s_neigh_fbsb_cmd (SB) = %d\n", l1s.neigh_pm.band_arfcn[index]);
+		if (det_serving_cell)
+			l1s_rx_win_ctrl(l1s.serving_cell.arfcn, L1_RXWIN_SB26, 0);
+		else
+			l1s_rx_win_ctrl(l1s.neigh_pm.band_arfcn[index], L1_RXWIN_SB26, 0);
 
 		/* restore last gain */
 		rffe_set_gain(last_gain);
@@ -964,8 +1006,7 @@ static int l1s_neigh_fbsb_cmd(__unused uint8_t p1, __unused uint8_t p2,
 	return 0;
 }
 
-/* scheduler callback to issue a FB and SB detection task to the DSP in dedicate mode */
-// READ COMMENTS ABOVE l1s_neigh_fbsb_sync
+/* scheduler callback to issue a FB detection task to the DSP */
 static int l1s_neigh_fbsb_resp(__unused uint8_t p1, uint8_t attempt,
 			  uint16_t fb_mode)
 {
@@ -975,90 +1016,53 @@ static int l1s_neigh_fbsb_resp(__unused uint8_t p1, uint8_t attempt,
 	int sb_found = 0;
 
 	if (sb_det == 0) {
-		if (fb_det == 1) {
-			//printf("afc_correct (-ve) in l1s_neigh_fbsb_resp for FB1 - nb_fb_angle0\n\n");
-			afc_correct(-1*ANGLE_TO_FREQ(nb_fb_angle0), l1s.neigh_pm.band_arfcn[l1s.neigh_sb.index]);
-		}
 		if (!dsp_api.ndb->d_fb_det) {
-			printf("MTZ: ARFCN %d (index %d, power %d dbm, try #%d) FB%d found = 0\n", l1s.neigh_pm.band_arfcn[index], index, rxlev2dbm(l1s.neigh_pm.level[index]), l1s.neigh_sb.count, fb_det);
+//			printf("MTZ: ARFCN %d (index %d, power %d dbm, try #%d) FB found = 0\n", l1s.neigh_pm.band_arfcn[index], index, rxlev2dbm(l1s.neigh_pm.level[index]), l1s.neigh_sb.count);
 
 			/* next sync */
-			if (++l1s.neigh_sb.count == 15) {
-				//MTZ - a count of 0 will result in select_neigh_cell() being called and next cell being selected
+			if (++l1s.neigh_sb.count == 11) {
 				l1s.neigh_sb.count = 0;
 				l1s.neigh_sb.flags_bsic[index] |= NEIGH_PM_FLAG_SCANNED;
-				//MTZ - If 15 tries in FB mode 1 then set fb_det to 0
-				if (fb_det == 1){
-					fb_det = 0;
-				}
 			}
 
 		} else {
-			//MTZ - Capturing the readings from FB detection - these are stored in arrays upon SB detection for use in case handover is required
 			nb_fb_toa = dsp_api.ndb->a_sync_demod[D_TOA];
 			nb_fb_pm = dsp_api.ndb->a_sync_demod[D_PM];
-			if (fb_det == 1)
-				nb_fb_angle1 = dsp_api.ndb->a_sync_demod[D_ANGLE];
-			else
-				nb_fb_angle0 = dsp_api.ndb->a_sync_demod[D_ANGLE];
+			nb_fb_angle = dsp_api.ndb->a_sync_demod[D_ANGLE];
 			nb_fb_snr = dsp_api.ndb->a_sync_demod[D_SNR];
-			printf("\n\nMTZ: ARFCN %d (index %d, power %d dbm, try #%d) FB%d found = 1 >>> nb_fb_toa = %d, angle = %d\n\n", l1s.neigh_pm.band_arfcn[index], index, rxlev2dbm(l1s.neigh_pm.level[index]), l1s.neigh_sb.count, fb_det, nb_fb_toa, dsp_api.ndb->a_sync_demod[D_ANGLE]);
-			//MTZ - If FB mode was 0 make it 1, it FB mode was one set sb_det to 1 to indicate SB detection step
-			if (fb_det == 0) {
-				fb_det = 1;
-				l1s.neigh_sb.count = 1;
-			} else {
-				sb_det = 1;
-				fb_det = 0;
-			}
+			printf("\n\nMTZ: ARFCN %d (index %d, power %d dbm, try #%d) FB found = 1 >>> nb_fb_toa = %d\n\n", l1s.neigh_pm.band_arfcn[index], index, rxlev2dbm(l1s.neigh_pm.level[index]), l1s.neigh_sb.count, nb_fb_toa);
+			sb_det = 1;
 		}
 
 		//l1s_reset_hw();
 		tdma_sched_reset();
 	} else {
+
 		if ((sb_det == 2)||(sb_det == 4)) {
 			/* check if sync was successful */
-
-			//MTZ - This was the main change below - we need to read a_sch26 as opposed to a_sch
 			//if (dsp_api.db_r->a_sch[0] & (1<<B_SCH_CRC)) {
+			//	printf("\nSB found1 = 0\n");
+			//} else {
+			//	printf("\nSB found1 = 1\n\n");
+			//	printf("\n\n-------------------------------\nSB found1 = 1\n-------------------------------\n\n");
+			//	printf("\n\n-------------------------------\nSB found1 = 1\n-------------------------------\n\n");
+			//	printf("\n\n-------------------------------\nSB found1 = 1\n-------------------------------\n\n");
+			//}
+
 			if (dsp_api.ndb->a_sch26[0] & (1<<B_SCH_CRC)) {
 //				printf("\nSB found = 0 (ARFCN %d, power %d dbm)\n\n", l1s.neigh_pm.band_arfcn[index], rxlev2dbm(l1s.neigh_pm.level[index]));
 			} else {
-
-				uint32_t	fn;	/* FN count */
-				uint16_t	t1;	/* FN div (26*51) */
-				uint8_t		t2;	/* FN modulo 26 */
-				uint8_t		t3;	/* FN modulo 51 */
-				uint8_t		tc;
-				uint8_t t3p;				
-
 				sb_found = 1;
 				sb = dsp_api.ndb->a_sch26[3] | dsp_api.ndb->a_sch26[4] << 16;
 				bsic = (sb >> 2) & 0x3f;
-
-				t1 = ((sb >> 23) & 1) | ((sb >> 7) & 0x1fe) | ((sb << 9) & 0x600);
-				t2 = (sb >> 18) & 0x1f;
-				t3p = ((sb >> 24) & 1) | ((sb >> 15) & 6);
-				t3 = t3p*10 + 1;
-
-				/* TS 05.02 Chapter 4.3.3 TDMA frame number */
-				fn = (51 * ((t3 - t2 + 26) % 26) + t3 + (26 * 51 * t1)) + SB2_LATENCY;
-
-				int ii =0;
-				for (ii=0; ii<64; ii++) {
-					if (l1s.tpu_offsets_arfcn[ii] == l1s.neigh_pm.band_arfcn[l1s.neigh_sb.index]) {
-						l1s.nb_frame_diff[ii] = fn - l1s.current_time.fn;
-						l1s.nb_sb_freq_diff[ii] = ANGLE_TO_FREQ(dsp_api.db_r->a_serv_demod[D_ANGLE]);
-						l1s.nb_sb_snr[ii] = dsp_api.db_r->a_serv_demod[D_SNR];
-						break;
-					}
-				}
-
-
 				total_sb_det++;
 				//printf("=> SB 0x%08"PRIx32": BSIC=%u \n\n", sb, bsic);
-				printf("\n----------------------------------------------------------------------------\nSB found = 1 (ARFCN %d, power %d dbm) => SB 0x%08"PRIx32": BSIC=%u, TOA=%d, Angle=%d (Total=%d)\n----------------------------------------------------------------------------\n\n", l1s.neigh_pm.band_arfcn[index], rxlev2dbm(l1s.neigh_pm.level[index]), sb, bsic, dsp_api.db_r->a_serv_demod[D_TOA], dsp_api.db_r->a_serv_demod[D_ANGLE], total_sb_det);
+				printf("\n----------------------------------------------------------------------------\nSB found = 1 (ARFCN %d, power %d dbm) => SB 0x%08"PRIx32": BSIC=%u, TOA=%d (Total=%d)\n----------------------------------------------------------------------------\n\n", l1s.neigh_pm.band_arfcn[index], rxlev2dbm(l1s.neigh_pm.level[index]), sb, bsic, dsp_api.db_r->a_serv_demod[D_TOA], total_sb_det);
 				l1s.neigh_sb.flags_bsic[index] = bsic | NEIGH_PM_FLAG_BSIC | NEIGH_PM_FLAG_SCANNED;
+				if ((l1s.new_dm == 1) && (l1s.neigh_pm.band_arfcn[index] != 58)) {
+					l1s.ho_arfcn = l1s.neigh_pm.band_arfcn[index];
+					l1s.new_dm = 0;
+				}
 			}
 		
 			if ((sb_det == 2)||(sb_det == 4)) {
@@ -1066,9 +1070,13 @@ static int l1s_neigh_fbsb_resp(__unused uint8_t p1, uint8_t attempt,
 				//MTZ - testing this - possibly remove
 				if (nb_fb_toa >= 50);
 					l1s.tpu_offset = old_tpu_offset;
-				//printf("afc_correct (-ve) in l1s_neigh_fbsb_resp for SB - nb_fb_angle0+nb_fb_angle1\n\n");
-				afc_correct(-1*(ANGLE_TO_FREQ(nb_fb_angle0) + ANGLE_TO_FREQ(nb_fb_angle1)), l1s.neigh_pm.band_arfcn[l1s.neigh_sb.index]);
+				afc_correct(-1*ANGLE_TO_FREQ(nb_fb_angle), l1s.neigh_pm.band_arfcn[l1s.neigh_sb.index]);
 
+				if (synchronize_yes) {
+					l1s.tpu_offset = old_tpu_offset;
+					tpu_enq_at(SWITCH_TIME);
+					tpu_enq_sync(l1s.tpu_offset);
+				}
 			}
 	
 			if ((sb_det == 4)||(sb_found == 1)) {
@@ -1078,7 +1086,7 @@ static int l1s_neigh_fbsb_resp(__unused uint8_t p1, uint8_t attempt,
 
 				l1s.neigh_sb.running = 0;
 
-				//dsp_api.r_page_used = 1;
+				dsp_api.r_page_used = 1;
 
 				if (sb_found == 0)
 					printf("\n\n");
@@ -1095,7 +1103,6 @@ static int l1s_neigh_fbsb_resp(__unused uint8_t p1, uint8_t attempt,
 	return 0;
 }
 
-//MTZ - THIS FUNCTION BELOW IS NOT USED!!!!!
 static int l1s_neigh_sb_cmd(__unused uint8_t p1, __unused uint8_t p2,
                             __unused uint16_t p3)
 {
@@ -1140,7 +1147,6 @@ static int l1s_neigh_sb_cmd(__unused uint8_t p1, __unused uint8_t p2,
 	return 0;
 }
 
-//MTZ - THIS FUNCTION BELOW IS NOT USED!!!!!
 static int l1s_neigh_sb_resp(__unused uint8_t p1, __unused uint8_t p2,
                              __unused uint16_t p3)
 {
@@ -1200,6 +1206,16 @@ const struct tdma_sched_item neigh_sync_sched_set[] = {
 	SCHED_ITEM(l1s_neigh_fbsb_resp, -4, 0, 1),	SCHED_END_FRAME(),
 	SCHED_END_SET()
 };
+
+///* NOTE: Prio 1 is below TCH's RX+TX prio 0 */
+//const struct tdma_sched_item neigh_sync_sched_set[] = {
+//	SCHED_ITEM_DT(sync_test1, 1, 0, 1),	SCHED_END_FRAME(),
+////							SCHED_END_FRAME(),
+////							SCHED_END_FRAME(),
+////	SCHED_ITEM_DT(sync_test2, 1, 0, 1),	SCHED_END_FRAME(),
+//	SCHED_END_SET()
+//};
+
 
 static __attribute__ ((constructor)) void l1s_prim_fbsb_init(void)
 {

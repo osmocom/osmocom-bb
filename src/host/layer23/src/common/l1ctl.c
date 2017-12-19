@@ -432,7 +432,7 @@ int l1ctl_tx_crypto_req(struct osmocom_ms *ms, uint8_t chan_nr,
 
 /* Transmit L1CTL_RACH_REQ */
 int l1ctl_tx_rach_req(struct osmocom_ms *ms, uint8_t ra, uint16_t offset,
-	uint8_t combined)
+	uint8_t combined, uint16_t band_arfcn)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -444,6 +444,7 @@ int l1ctl_tx_rach_req(struct osmocom_ms *ms, uint8_t ra, uint16_t offset,
 
 	DEBUGP(DL1C, "RACH Req. offset=%d combined=%d\n", offset, combined);
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
+	ul->band_arfcn = htons(band_arfcn); //MTZ - Added
 	req = (struct l1ctl_rach_req *) msgb_put(msg, sizeof(*req));
 	req->ra = ra;
 	req->offset = htons(offset);

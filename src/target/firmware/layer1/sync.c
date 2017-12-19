@@ -187,6 +187,8 @@ void l1s_reset_hw(void)
 
 static int last_timestamp;
 
+static int last_ts;
+
 static inline void check_lost_frame(void)
 {
 	int diff, timestamp = hwtimer_read(1);
@@ -195,6 +197,26 @@ static inline void check_lost_frame(void)
 		last_timestamp += (4*TIMER_TICKS_PER_TDMA);
 
 	diff = last_timestamp - timestamp;
+ 
+	/* TS change compensation */
+	if (l1s.dedicated.type) {
+		if (l1s.dedicated.tn < last_ts) {
+			int ediff = ((8 - last_ts + l1s.dedicated.tn) * TIMER_TICKS_PER_TDMA) >> 3;
+			printf("TS Chg back: %d -> %d | %d %d\n",
+				last_ts, l1s.dedicated.tn, diff, ediff);
+
+	//		if (((ediff - 2) < diff) && ((ediff + 2) > diff)) {
+				puts("ADV !\n");
+				l1s.current_time = l1s.next_time;
+				l1s_time_inc(&l1s.next_time, 1);
+	//		}
+		} else if (l1s.dedicated.tn > last_ts)
+			printf("TS Chg forth: %d -> %d | %d\n",
+				last_ts, l1s.dedicated.tn, diff);
+		last_ts = l1s.dedicated.tn;
+	}
+//	} else
+//		last_ts = 0;
 
 	/* allow for a bit of jitter */
 	if (diff < TIMER_TICKS_PER_TDMA - TIMER_TICK_JITTER ||
@@ -367,6 +389,7 @@ void l1s_reset(void)
 
 	/* Leave dedicated mode */
 	l1s.dedicated.type = GSM_DCHAN_NONE;
+	last_ts = 0;
 
 	/* reset scheduler and hardware */
 	sched_gsmtime_reset();
@@ -382,9 +405,19 @@ void l1s_init(void)
 {
 	unsigned int i;
 
+	for (i = 0; i < 64; i++) {
+		l1s.tpu_offsets_arfcn[i] = 0;
+		l1s.tpu_offsets[i] = 0;
+		l1s.nb_freq_diff[i] = 0;
+		l1s.nb_sb_freq_diff[i] = 0;
+		l1s.nb_sb_snr[i] = 0;
+		l1s.nb_frame_diff[i] = 0;
+	}
+
 	for (i = 0; i < ARRAY_SIZE(l1s.tx_queue); i++)
 		INIT_LLIST_HEAD(&l1s.tx_queue[i]);
 	l1s.tx_meas = NULL;
+
 
 	sched_gsmtime_init();
 
