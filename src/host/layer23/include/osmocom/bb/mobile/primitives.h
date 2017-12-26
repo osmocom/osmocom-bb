@@ -62,6 +62,8 @@ struct mobile_shutdown_param {
 struct mobile_sms_param {
 	struct gsm_sms sms;
 
+	char sca[20+1]; /*<! Service Centre Address. For SubmitMS */
+
 	bool cause_valid;
 	int cause;
 };

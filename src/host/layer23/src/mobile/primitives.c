@@ -173,6 +173,19 @@ static int cancel_timer(struct mobile_prim_intf *intf, struct mobile_timer_param
 	return -1;
 }
 
+static int send_sms(struct mobile_prim_intf *intf, struct mobile_sms_param *param)
+{
+	struct gsm_sms *sms;
+
+	sms = sms_alloc();
+	*sms = param->sms;
+
+	/* Force a NUL at the end of the string */
+	param->sca[sizeof(param->sca) - 1] = '\0';
+
+	return gsm411_tx_sms_submit(intf->ms, param->sca, sms);
+}
+
 int mobile_prim_intf_req(struct mobile_prim_intf *intf, struct mobile_prim *prim)
 {
 	int rc = 0;
@@ -183,6 +196,9 @@ int mobile_prim_intf_req(struct mobile_prim_intf *intf, struct mobile_prim *prim
 		break;
 	case OSMO_PRIM(PRIM_MOB_TIMER_CANCEL, PRIM_OP_REQUEST):
 		rc = cancel_timer(intf, &prim->u.timer);
+		break;
+	case OSMO_PRIM(PRIM_MOB_SMS, PRIM_OP_REQUEST):
+		rc = send_sms(intf, &prim->u.sms);
 		break;
 	default:
 		LOGP(DPRIM, LOGL_ERROR, "Unknown primitive: %d\n", OSMO_PRIM_HDR(&prim->hdr));

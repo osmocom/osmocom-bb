@@ -35,5 +35,7 @@ struct gsm_sms *sms_from_text(const char *receiver, int dcs, const char *text);
 int gsm411_rcv_sms(struct osmocom_ms *ms, struct msgb *msg);
 int sms_send(struct osmocom_ms *ms, const char *sms_sca, const char *number,
 	const char *text, uint8_t msg_ref);
+int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
+	struct gsm_sms *sms);
 
 #endif /* _GSM411_SMS_H */

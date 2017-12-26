@@ -372,7 +372,9 @@ static int lua_ms_shutdown(lua_State *L)
 static int lua_ms_sms_send_simple(lua_State *L)
 {
 	const char *sms_sca, *number, *text;
-	int msg_ref, rc;
+	struct mobile_prim *prim;
+	struct gsm_sms *sms;
+	int msg_ref;
 
 	luaL_argcheck(L, lua_isnumber(L, -1), 4, "msg_ref needs to be a number");
 	luaL_argcheck(L, lua_isstring(L, -2), 3, "text must be a string");
@@ -384,8 +386,21 @@ static int lua_ms_sms_send_simple(lua_State *L)
 	number = lua_tostring(L, -3);
 	sms_sca = lua_tostring(L, -4);
 
-	rc = sms_send(get_primitive(L)->ms, sms_sca, number, text, msg_ref);
-	lua_pushinteger(L, rc);
+	prim = mobile_prim_alloc(PRIM_MOB_SMS, PRIM_OP_REQUEST);
+
+	sms = sms_from_text(number, 0, text);
+	if (!sms) {
+		lua_pushinteger(L, -ENOMEM);
+		msgb_free(prim->hdr.msg);
+		return 1;
+	}
+
+	prim->u.sms.sms = *sms;
+	prim->u.sms.sms.msg_ref = msg_ref;
+	osmo_strlcpy(prim->u.sms.sca, sms_sca, sizeof(prim->u.sms.sca));
+	mobile_prim_intf_req(get_primitive(L), prim);
+
+	lua_pushinteger(L, 0);
 	return 1;
 }
 

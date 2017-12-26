@@ -624,7 +624,7 @@ static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms)
 }
 
 /* Take a SMS in gsm_sms structure and send it. */
-static int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
+int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
 	struct gsm_sms *sms)
 {
 	struct msgb *msg;
