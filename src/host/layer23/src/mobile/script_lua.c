@@ -510,10 +510,14 @@ static void *talloc_lua_alloc(void *ctx, void *ptr, size_t osize, size_t nsize)
 
 int script_lua_close(struct osmocom_ms *ms)
 {
+	struct mobile_prim_intf *intf;
+
 	if (!ms->lua_state)
 		return 0;
 
+	intf = get_primitive(ms->lua_state);
 	lua_close(ms->lua_state);
+	mobile_prim_intf_free(intf);
 	ms->lua_state = NULL;
 	return 0;
 }
@@ -523,8 +527,7 @@ int script_lua_load(struct vty *vty, struct osmocom_ms *ms, const char *filename
 	struct mobile_prim_intf *intf;
 	int err;
 
-	if (ms->lua_state)
-		lua_close(ms->lua_state);
+	script_lua_close(ms);
 	ms->lua_state = lua_newstate(talloc_lua_alloc, ms);
 	if (!ms->lua_state)
 		return -1;
@@ -550,7 +553,7 @@ int script_lua_load(struct vty *vty, struct osmocom_ms *ms, const char *filename
 		vty_out(vty, "%% LUA execute error: %s%s",
 				lua_tostring(ms->lua_state, -1), VTY_NEWLINE);
 		lua_pop(ms->lua_state, 1);
-		return 3;
+		return -3;
 	}
 
 	return 0;
