@@ -141,7 +141,7 @@ int sched_prim_push(struct trx_instance *trx,
  * dropped (i.e. replaced).
  *
  * @param  queue a transmit queue to take a prim from
- * @return       a FACCH or TCH primitive
+ * @return       a FACCH or TCH primitive, otherwise NULL
  */
 static struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
 {
@@ -164,9 +164,6 @@ static struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
 			break;
 	}
 
-	/* There should be at least one frame found */
-	OSMO_ASSERT(facch || tch);
-
 	/* Prioritize FACCH */
 	if (facch && tch) {
 		/* We found a pair, dequeue both */
@@ -188,8 +185,11 @@ static struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
 		return tch;
 	}
 
-	/* Unreachable */
-	OSMO_ASSERT(0);
+	/**
+	 * Nothing was found,
+	 * e.g. only SACCH frames are in queue
+	 */
+	return NULL;
 }
 
 /**
