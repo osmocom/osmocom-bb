@@ -274,6 +274,15 @@ int sched_prim_init(struct trx_instance *trx, struct trx_ts_prim **prim,
 int sched_prim_push(struct trx_instance *trx,
 	struct trx_ts_prim *prim, uint8_t chan_nr);
 
+#define CHAN_IS_TCH(chan) \
+	(chan == TRXC_TCHF || chan == TRXC_TCHH_0 || chan == TRXC_TCHH_1)
+
+#define PRIM_IS_TCH(prim) \
+	CHAN_IS_TCH(prim->chan) && prim->payload_len != GSM_MACBLOCK_LEN
+
+#define PRIM_IS_FACCH(prim) \
+	CHAN_IS_TCH(prim->chan) && prim->payload_len == GSM_MACBLOCK_LEN
+
 struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
 	enum trx_lchan_type lchan_type);
 void sched_prim_drop(struct trx_lchan_state *lchan);

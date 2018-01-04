@@ -126,15 +126,6 @@ int sched_prim_push(struct trx_instance *trx,
 	return 0;
 }
 
-#define CHAN_IS_TCH(chan) \
-	(chan == TRXC_TCHF || chan == TRXC_TCHH_0 || chan == TRXC_TCHH_1)
-
-#define PRIM_IS_TCH(prim) \
-	CHAN_IS_TCH(prim->chan) && prim->payload_len != GSM_MACBLOCK_LEN
-
-#define PRIM_IS_FACCH(prim) \
-	CHAN_IS_TCH(prim->chan) && prim->payload_len == GSM_MACBLOCK_LEN
-
 /**
  * Dequeues a TCH or FACCH frame, prioritizing the second.
  * In case if a FACCH frame is found, a TCH frame is being
