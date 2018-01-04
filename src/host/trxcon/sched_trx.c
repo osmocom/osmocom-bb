@@ -406,6 +406,42 @@ int sched_trx_activate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 	return 0;
 }
 
+static void sched_trx_reset_lchan(struct trx_lchan_state *lchan)
+{
+	/* Prevent NULL-pointer deference */
+	OSMO_ASSERT(lchan != NULL);
+
+	/* Reset internal state variables */
+	lchan->rx_burst_mask = 0x00;
+	lchan->tx_burst_mask = 0x00;
+	lchan->rx_first_fn = 0;
+
+	/* Free burst memory */
+	talloc_free(lchan->rx_bursts);
+	talloc_free(lchan->tx_bursts);
+
+	lchan->rx_bursts = NULL;
+	lchan->tx_bursts = NULL;
+
+	/* Forget the current prim */
+	sched_prim_drop(lchan);
+
+	/* TCH specific variables */
+	if (CHAN_IS_TCH(lchan->type)) {
+		lchan->dl_ongoing_facch = 0;
+		lchan->ul_ongoing_facch = 0;
+
+		lchan->rsl_cmode = 0x00;
+		lchan->tch_mode = 0x00;
+
+		/* Reset AMR state */
+		memset(&lchan->amr, 0x00, sizeof(lchan->amr));
+	}
+
+	/* Reset ciphering state */
+	memset(&lchan->a5, 0x00, sizeof(lchan->a5));
+}
+
 int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 {
 	struct trx_lchan_state *lchan;
@@ -424,16 +460,10 @@ int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 	LOGP(DSCH, LOGL_DEBUG, "Deactivating lchan=%s "
 		"on ts=%d\n", trx_lchan_desc[chan].name, ts->index);
 
-	/* Free memory */
-	talloc_free(lchan->rx_bursts);
-	talloc_free(lchan->tx_bursts);
+	/* Reset internal state, free memory */
+	sched_trx_reset_lchan(lchan);
 
-	/* Reset ciphering state */
-	memset(&lchan->a5, 0x00, sizeof(lchan->a5));
-
-	/* Forget the current prim */
-	sched_prim_drop(lchan);
-
+	/* Update activation flag */
 	lchan->active = 0;
 
 	return 0;
@@ -451,12 +481,14 @@ void sched_trx_deactivate_all_lchans(struct trx_ts *ts)
 	for (i = 0; i < len; i++) {
 		lchan = ts->lchans + i;
 
-		talloc_free(lchan->rx_bursts);
-		talloc_free(lchan->tx_bursts);
+		/* Omit inactive channels */
+		if (!lchan->active)
+			continue;
 
-		/* Forget the current prim */
-		sched_prim_drop(lchan);
+		/* Reset internal state, free memory */
+		sched_trx_reset_lchan(lchan);
 
+		/* Update activation flag */
 		lchan->active = 0;
 	}
 }
