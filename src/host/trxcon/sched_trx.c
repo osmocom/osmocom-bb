@@ -194,6 +194,12 @@ void sched_trx_del_ts(struct trx_instance *trx, int tn)
 
 	LOGP(DSCH, LOGL_NOTICE, "Delete TDMA timeslot #%u\n", tn);
 
+	/* Deactivate all logical channels */
+	sched_trx_deactivate_all_lchans(ts);
+
+	/* Free channel states */
+	talloc_free(ts->lchans);
+
 	/* Flush queue primitives for TX */
 	sched_prim_flush_queue(&ts->tx_prims);
 
@@ -283,6 +289,9 @@ int sched_trx_reset_ts(struct trx_instance *trx, int tn)
 
 	/* Flush queue primitives for TX */
 	sched_prim_flush_queue(&ts->tx_prims);
+
+	/* Deactivate all logical channels */
+	sched_trx_deactivate_all_lchans(ts);
 
 	/* Free channel states */
 	talloc_free(ts->lchans);
