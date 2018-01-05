@@ -146,6 +146,8 @@ struct trx_lchan_state {
 	enum trx_lchan_type type;
 	/*! \brief Channel status */
 	uint8_t active;
+	/*! \brief Link to a list of channels */
+	struct llist_head list;
 
 	/*! \brief Burst type: GMSK or 8PSK */
 	enum trx_burst_type burst_type;
@@ -221,7 +223,7 @@ struct trx_ts {
 	/*! \brief Pointer to multiframe layout */
 	const struct trx_multiframe *mf_layout;
 	/*! \brief Channel states for logical channels */
-	struct trx_lchan_state *lchans;
+	struct llist_head lchans;
 	/*! \brief Queue primitives for TX */
 	struct llist_head tx_prims;
 };

@@ -700,8 +700,9 @@ static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_tch_mode_req *req;
+	struct trx_lchan_state *lchan;
 	struct trx_ts *ts;
-	int len, i, j;
+	int i;
 
 	req = (struct l1ctl_tch_mode_req *) msg->l1h;
 
@@ -720,9 +721,14 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 			continue;
 
 		/* Iterate over all allocated lchans */
-		len = talloc_array_length(ts->lchans);
-		for (j = 0; j < len; j++)
-			ts->lchans[j].tch_mode = req->tch_mode;
+		llist_for_each_entry(lchan, &ts->lchans, list) {
+			/* Omit inactive channels */
+			if (!lchan->active)
+				continue;
+
+			/* Set TCH mode */
+			lchan->tch_mode = req->tch_mode;
+		}
 	}
 
 	/* TODO: do we need to care about audio_mode? */

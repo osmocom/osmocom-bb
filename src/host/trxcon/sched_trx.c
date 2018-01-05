@@ -185,6 +185,7 @@ struct trx_ts *sched_trx_add_ts(struct trx_instance *trx, int tn)
 
 void sched_trx_del_ts(struct trx_instance *trx, int tn)
 {
+	struct trx_lchan_state *lchan;
 	struct trx_ts *ts;
 
 	/* Find ts in list */
@@ -198,7 +199,8 @@ void sched_trx_del_ts(struct trx_instance *trx, int tn)
 	sched_trx_deactivate_all_lchans(ts);
 
 	/* Free channel states */
-	talloc_free(ts->lchans);
+	llist_for_each_entry(lchan, &ts->lchans, list)
+		talloc_free(lchan);
 
 	/* Flush queue primitives for TX */
 	sched_prim_flush_queue(&ts->tx_prims);
@@ -211,10 +213,14 @@ void sched_trx_del_ts(struct trx_instance *trx, int tn)
 	trx_if_cmd_setslot(trx, tn, 0);
 }
 
+#define LAYOUT_HAS_LCHAN(layout, lchan) \
+	(layout->lchan_mask & ((uint64_t) 0x01 << lchan))
+
 int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 	enum gsm_phys_chan_config config)
 {
-	int i, type, lchan_cnt = 0;
+	struct trx_lchan_state *lchan;
+	enum trx_lchan_type type;
 	struct trx_ts *ts;
 
 	/* Try to find specified ts */
@@ -229,9 +235,6 @@ int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 			return -ENOMEM;
 	}
 
-	/* Init queue primitives for TX */
-	INIT_LLIST_HEAD(&ts->tx_prims);
-
 	/* Choose proper multiframe layout */
 	ts->mf_layout = sched_mframe_layout(config, tn);
 	if (ts->mf_layout->chan_config != config)
@@ -240,29 +243,30 @@ int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 	LOGP(DSCH, LOGL_NOTICE, "(Re)configure TDMA timeslot #%u as %s\n",
 		tn, ts->mf_layout->name);
 
-	/* Count channel states */
-	for (type = 0; type < _TRX_CHAN_MAX; type++)
-		if (ts->mf_layout->lchan_mask & ((uint64_t) 0x01 << type))
-			lchan_cnt++;
-
-	if (!lchan_cnt)
-		return 0;
+	/* Init queue primitives for TX */
+	INIT_LLIST_HEAD(&ts->tx_prims);
+	/* Init logical channels list */
+	INIT_LLIST_HEAD(&ts->lchans);
 
 	/* Allocate channel states */
-	ts->lchans = talloc_zero_array(ts, struct trx_lchan_state, lchan_cnt);
-	if (ts->lchans == NULL)
-		return -ENOMEM;
+	for (type = 0; type < _TRX_CHAN_MAX; type++) {
+		if (!LAYOUT_HAS_LCHAN(ts->mf_layout, type))
+			continue;
 
-	/* Init channel states */
-	for (type = 0, i = 0; type < _TRX_CHAN_MAX; type++) {
-		if (ts->mf_layout->lchan_mask & ((uint64_t) 0x01 << type)) {
-			/* Set proper channel type */
-			ts->lchans[i++].type = type;
+		/* Allocate a channel state */
+		lchan = talloc_zero(ts, struct trx_lchan_state);
+		if (!lchan)
+			return -ENOMEM;
 
-			/* Enable channel automatically if required */
-			if (trx_lchan_desc[type].flags & TRX_CH_FLAG_AUTO)
-				sched_trx_activate_lchan(ts, type);
-		}
+		/* Set channel type */
+		lchan->type = type;
+
+		/* Add to the list of channel states */
+		llist_add_tail(&lchan->list, &ts->lchans);
+
+		/* Enable channel automatically if required */
+		if (trx_lchan_desc[type].flags & TRX_CH_FLAG_AUTO)
+			sched_trx_activate_lchan(ts, type);
 	}
 
 	/* Notify transceiver about TS activation */
@@ -274,6 +278,7 @@ int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 
 int sched_trx_reset_ts(struct trx_instance *trx, int tn)
 {
+	struct trx_lchan_state *lchan, *lchan_next;
 	struct trx_ts *ts;
 
 	/* Try to find specified ts */
@@ -294,7 +299,10 @@ int sched_trx_reset_ts(struct trx_instance *trx, int tn)
 	sched_trx_deactivate_all_lchans(ts);
 
 	/* Free channel states */
-	talloc_free(ts->lchans);
+	llist_for_each_entry_safe(lchan, lchan_next, &ts->lchans, list) {
+		llist_del(&lchan->list);
+		talloc_free(lchan);
+	}
 
 	/* Notify transceiver about that */
 	trx_if_cmd_setslot(trx, tn, 0);
@@ -305,9 +313,7 @@ int sched_trx_reset_ts(struct trx_instance *trx, int tn)
 int sched_trx_start_ciphering(struct trx_ts *ts, uint8_t algo,
 	uint8_t *key, uint8_t key_len)
 {
-	struct trx_lchan_state *state;
-	size_t len;
-	int i;
+	struct trx_lchan_state *lchan;
 
 	/* Prevent NULL-pointer deference */
 	if (!ts)
@@ -318,16 +324,18 @@ int sched_trx_start_ciphering(struct trx_ts *ts, uint8_t algo,
 		return -ERANGE;
 
 	/* Iterate over all allocated logical channels */
-	len = talloc_array_length(ts->lchans);
-	for (i = 0; i < len; i++) {
+	llist_for_each_entry(lchan, &ts->lchans, list) {
+		/* Omit inactive channels */
+		if (!lchan->active)
+			continue;
+
 		/* Set key length and algorithm */
-		state = ts->lchans + i;
-		state->a5.key_len = key_len;
-		state->a5.algo = algo;
+		lchan->a5.key_len = key_len;
+		lchan->a5.algo = algo;
 
 		/* Copy requested key */
 		if (key_len)
-			memcpy(state->a5.key, key, key_len);
+			memcpy(lchan->a5.key, key, key_len);
 	}
 
 	return 0;
@@ -336,12 +344,11 @@ int sched_trx_start_ciphering(struct trx_ts *ts, uint8_t algo,
 struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
 	enum trx_lchan_type chan)
 {
-	int i, len;
+	struct trx_lchan_state *lchan;
 
-	len = talloc_array_length(ts->lchans);
-	for (i = 0; i < len; i++)
-		if (ts->lchans[i].type == chan)
-			return ts->lchans + i;
+	llist_for_each_entry(lchan, &ts->lchans, list)
+		if (lchan->type == chan)
+			return lchan;
 
 	return NULL;
 }
@@ -350,18 +357,16 @@ int sched_trx_set_lchans(struct trx_ts *ts, uint8_t chan_nr, int active)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct trx_lchan_state *lchan;
-	int len, i, rc = 0;
+	int rc = 0;
 
 	/* Prevent NULL-pointer deference */
-	if (ts == NULL || ts->lchans == NULL) {
+	if (ts == NULL) {
 		LOGP(DSCH, LOGL_ERROR, "Timeslot isn't configured\n");
 		return -EINVAL;
 	}
 
 	/* Iterate over all allocated lchans */
-	len = talloc_array_length(ts->lchans);
-	for (i = 0; i < len; i++) {
-		lchan = ts->lchans + i;
+	llist_for_each_entry(lchan, &ts->lchans, list) {
 		lchan_desc = &trx_lchan_desc[lchan->type];
 
 		if (lchan_desc->chan_nr == (chan_nr & 0xf8)) {
@@ -396,14 +401,14 @@ int sched_trx_activate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 
 	/* Conditionally allocate memory for bursts */
 	if (lchan_desc->rx_fn && lchan_desc->burst_buf_size > 0) {
-		lchan->rx_bursts = talloc_zero_size(ts->lchans,
+		lchan->rx_bursts = talloc_zero_size(lchan,
 			lchan_desc->burst_buf_size);
 		if (lchan->rx_bursts == NULL)
 			return -ENOMEM;
 	}
 
 	if (lchan_desc->tx_fn && lchan_desc->burst_buf_size > 0) {
-		lchan->tx_bursts = talloc_zero_size(ts->lchans,
+		lchan->tx_bursts = talloc_zero_size(lchan,
 			lchan_desc->burst_buf_size);
 		if (lchan->tx_bursts == NULL)
 			return -ENOMEM;
@@ -481,15 +486,11 @@ int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
 void sched_trx_deactivate_all_lchans(struct trx_ts *ts)
 {
 	struct trx_lchan_state *lchan;
-	int i, len;
 
 	LOGP(DSCH, LOGL_DEBUG, "Deactivating all logical channels "
 		"on ts=%d\n", ts->index);
 
-	len = talloc_array_length(ts->lchans);
-	for (i = 0; i < len; i++) {
-		lchan = ts->lchans + i;
-
+	llist_for_each_entry(lchan, &ts->lchans, list) {
 		/* Omit inactive channels */
 		if (!lchan->active)
 			continue;
