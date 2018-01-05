@@ -33,6 +33,8 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
 
+#include <osmocom/codec/codec.h>
+
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 

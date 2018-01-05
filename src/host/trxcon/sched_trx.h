@@ -23,11 +23,6 @@
 
 #define MAX_A5_KEY_LEN		(128 / 8)
 
-/* TS 101318 Chapter 5.1: 260 bits + 4bit sig */
-#define GSM_FR_BYTES		33
-/* TS 101318 Chapter 5.3: 244 bits + 4bit sig */
-#define GSM_EFR_BYTES		31
-
 /* Forward declaration to avoid mutual include */
 struct trx_lchan_state;
 struct trx_instance;
