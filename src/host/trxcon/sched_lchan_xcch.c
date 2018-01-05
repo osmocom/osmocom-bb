@@ -112,7 +112,6 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	sched_send_data_ind(trx, ts, lchan,
 		l2, GSM_MACBLOCK_LEN, rc != 0, n_errors);
 
-	/* TODO: AGC, TA loops */
 	return 0;
 }
 
