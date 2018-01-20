@@ -67,8 +67,10 @@ class Application:
 
 		# Open the burst source (file or stdin)
 		if self.burst_src is not None:
+			print("[i] Reading bursts from file '%s'..." % self.burst_src)
 			src = open(self.burst_src, "r")
 		else:
+			print("[i] Reading bursts from stdin...")
 			src = sys.stdin
 
 		# Generate a random frame number or use provided one
