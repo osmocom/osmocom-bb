@@ -31,3 +31,9 @@ Brief description of available applications:
   - burst_send.py - a tool for sending existing bursts from file
     or standard input either to L1 (OsmoBTS or OsmocomBB) or to
     TRX (OsmoTRX and GR-GSM TRX).
+
+  - trx_sniff.py - Scapy-based TRX protocol sniffer. Allows one
+    to observe a single connection between TRX and L1, and vice
+    versa. Also provides some capabilities for filtering bursts
+    by direction, frame and timeslot numbers, and for recording
+    captured messages to a binary file.
