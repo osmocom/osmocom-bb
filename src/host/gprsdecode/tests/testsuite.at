@@ -1,0 +1,20 @@
+AT_INIT
+AT_BANNER([Regression tests.])
+
+AT_SETUP([sample/cs2])
+AT_KEYWORDS([cs2])
+cat $abs_srcdir/cs2.decoded > expout
+AT_CHECK([
+	$abs_top_builddir/gprsdecode \
+		-c $abs_srcdir/cs2.sample
+], [0], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([sample/cs3])
+AT_KEYWORDS([cs3])
+cat $abs_srcdir/cs3.decoded > expout
+AT_CHECK([
+	$abs_top_builddir/gprsdecode \
+		-c $abs_srcdir/cs3.sample
+], [0], [expout], [ignore])
+AT_CLEANUP

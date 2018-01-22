@@ -1,0 +1,6278 @@
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 16895 fn_last_bsn 16895 delta_bsn 0 old_len 0
+clearing TBF 1, first 0 last 0
+new TBF, starting from 0
+ bsn 0 
+lime 0
+end of message reached
+MSG: 41c001081502de8e9a
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 1 FBI 0 
+fn_same_bsn 16986 fn_last_bsn 39 delta_bsn 1 old_len 0
+ bsn 0 
+lime 0
+
+lime 1
+ bsn 1 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS2 DL DATA TFI 0 BSN 1 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 29
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 16999 fn_last_bsn 8 delta_bsn 1 old_len 0
+ bsn 1 
+lime 0
+ bsn 2 
+lime 0
+end of message reached
+MSG: 41c005081501c7d312
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS2 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 17064 fn_last_bsn 30 delta_bsn 1 old_len 0
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS2 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 29
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 29
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 29
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 9 fn_last_bsn 9 delta_bsn 0 old_len 29
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 5 FBI 0 
+fn_same_bsn 17090 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+end of message reached
+MSG: 2b2b2b
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS2 DL DATA TFI 0 BSN 5 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 5 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 5 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 5 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS2 DL DATA TFI 0 BSN 5 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 28
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 6 FBI 0 
+fn_same_bsn 17142 fn_last_bsn 30 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 6 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 6 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 6 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 6 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 6 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 17177 fn_last_bsn 13 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7 
+TS 4 CS3 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 36
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 36
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 36
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 36
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 36
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 17203 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 10 FBI 0 
+fn_same_bsn 17264 fn_last_bsn 39 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 10 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 10 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 10 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 10 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 10 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 11 FBI 0 
+fn_same_bsn 17324 fn_last_bsn 39 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 11 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 11 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 11 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 11 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 11 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 12 FBI 0 
+fn_same_bsn 17381 fn_last_bsn 35 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+ bsn 12 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 12 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 12 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 12 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 12 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 12 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 17441 fn_last_bsn 39 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+ bsn 12 
+lime 0
+ bsn 13 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 14 FBI 0 
+fn_same_bsn 17498 fn_last_bsn 35 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+ bsn 12 
+lime 0
+ bsn 13 
+lime 0
+ bsn 14 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 14 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 14 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 14 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 14 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 14 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 17558 fn_last_bsn 39 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+ bsn 12 
+lime 0
+ bsn 13 
+lime 0
+ bsn 14 
+lime 0
+ bsn 15 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 16 FBI 1 
+fn_same_bsn 18005 fn_last_bsn 425 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+ bsn 12 
+lime 0
+ bsn 13 
+lime 0
+ bsn 14 
+lime 0
+ bsn 15 
+lime 0
+ bsn 16 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 16 FBI 1 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 16 FBI 1 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 16 FBI 1 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 16 FBI 1 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 16 FBI 1 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 35
+duplicate2
+
+TS 4 CS3 DL DATA TFI 1 BSN 1 FBI 0 
+fn_same_bsn 18109 fn_last_bsn 18109 delta_bsn 1 old_len 0
+clearing TBF 2, first 0 last 0
+new TBF, starting from 1
+ bsn 1 
+TS 4 CS3 DL DATA TFI 1 BSN 0 FBI 0 
+fn_same_bsn 18113 fn_last_bsn 4 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS3 DL DATA TFI 1 BSN 2 FBI 0 
+fn_same_bsn 18117 fn_last_bsn 8 delta_bsn 1 old_len 0
+ bsn 1  bsn 2 
+lime 0
+end of message reached
+MSG: 26818000010001000000000277730367746d046163657203636f6d0000010001c00c00010001000000070004c76b780a5a9f7f
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 1 BSN 1 FBI 0 
+fn_same_bsn 13 fn_last_bsn 5 delta_bsn -1 old_len 36
+duplicate2
+
+TS 4 CS3 DL DATA TFI 1 BSN 0 FBI 0 
+fn_same_bsn 13 fn_last_bsn 9 delta_bsn -2 old_len 0
+duplicate2
+
+TS 4 CS3 DL DATA TFI 1 BSN 2 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 34
+duplicate2
+
+TS 4 CS3 DL DATA TFI 1 BSN 1 FBI 0 
+fn_same_bsn 13 fn_last_bsn 5 delta_bsn -1 old_len 36
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 18174 fn_last_bsn 44 delta_bsn 1 old_len 0
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 8 fn_last_bsn 8 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 3 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 5 FBI 0 
+fn_same_bsn 18234 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+end of message reached
+MSG: 64010303000101080a2df10b9001cbcbdf04020000d10cd2
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 5 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 5 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 5 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 5 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 5 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 6 FBI 0 
+fn_same_bsn 18286 fn_last_bsn 30 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 6 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 6 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 6 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 6 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 6 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 7 FBI 0 
+fn_same_bsn 18343 fn_last_bsn 35 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 7 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 7 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 7 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 7 FBI 0 
+fn_same_bsn 8 fn_last_bsn 8 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 9 FBI 0 
+fn_same_bsn 18395 fn_last_bsn 31 delta_bsn 2 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7 
+lime 0
+ bsn 8 null
+ bsn 9 
+lime 0
+end of message reached
+MSG: 0a2df10e5d01cbcc1afd50b8
+
+TS 4 CS4 DL DATA TFI 1 BSN 11 FBI 0 
+fn_same_bsn 18399 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 9 
+lime 0
+ bsn 10 null
+ bsn 11 
+TS 4 CS4 DL DATA TFI 1 BSN 13 FBI 0 
+fn_same_bsn 18403 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 9 
+lime 0
+ bsn 10 null
+ bsn 11  bsn 12 null
+ bsn 13 
+TS 4 CS4 DL DATA TFI 1 BSN 15 FBI 0 
+fn_same_bsn 18408 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 9 
+lime 0
+ bsn 10 null
+ bsn 11  bsn 12 null
+ bsn 13  bsn 14 null
+ bsn 15 
+TS 4 CS4 DL DATA TFI 1 BSN 17 FBI 0 
+fn_same_bsn 18412 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 9 
+lime 0
+ bsn 10 null
+ bsn 11  bsn 12 null
+ bsn 13  bsn 14 null
+ bsn 15  bsn 16 null
+ bsn 17 
+TS 4 CS4 DL DATA TFI 1 BSN 19 FBI 0 
+fn_same_bsn 18416 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 9 
+lime 0
+ bsn 10 null
+ bsn 11  bsn 12 null
+ bsn 13  bsn 14 null
+ bsn 15  bsn 16 null
+ bsn 17  bsn 18 null
+ bsn 19 
+lime 0
+end of message reached
+MSG: 696c61626c653c2f68323e0d0a3c6872ae2662
+
+TS 4 CS4 DL DATA TFI 1 BSN 21 FBI 0 
+fn_same_bsn 18421 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 null
+ bsn 21 
+TS 4 CS4 DL DATA TFI 1 BSN 8 FBI 0 
+fn_same_bsn 18425 fn_last_bsn 4 delta_bsn -13 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 1 BSN 10 FBI 0 
+fn_same_bsn 18429 fn_last_bsn 8 delta_bsn -11 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 1 BSN 12 FBI 0 
+fn_same_bsn 18434 fn_last_bsn 13 delta_bsn -9 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 1 BSN 14 FBI 0 
+fn_same_bsn 18438 fn_last_bsn 17 delta_bsn -7 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 1 BSN 16 FBI 0 
+fn_same_bsn 18442 fn_last_bsn 21 delta_bsn -5 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 1 BSN 18 FBI 0 
+fn_same_bsn 18447 fn_last_bsn 26 delta_bsn -3 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 1 BSN 20 FBI 0 
+fn_same_bsn 18451 fn_last_bsn 30 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 18455 fn_last_bsn 34 delta_bsn 1 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 null
+ bsn 21  bsn 22 
+lime 0
+end of message reached
+MSG: c015650000044500003406b94000ee0685e8c76b780ac0a800040050db85d1b579a8c324e273801112058d9300000101080a2df10e5e01cbcc1a1347bb
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 9 FBI 0 
+fn_same_bsn 65 fn_last_bsn 5 delta_bsn -13 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 11 FBI 0 
+fn_same_bsn 65 fn_last_bsn 9 delta_bsn -11 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 13 FBI 0 
+fn_same_bsn 65 fn_last_bsn 13 delta_bsn -9 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 22 fn_last_bsn 22 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 23 FBI 0 
+fn_same_bsn 18559 fn_last_bsn 39 delta_bsn 1 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 null
+ bsn 21  bsn 22 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 23 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 23 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 23 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 23 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 23 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 23 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 24 FBI 0 
+fn_same_bsn 18616 fn_last_bsn 35 delta_bsn 1 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 null
+ bsn 21  bsn 22 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 23 
+lime 0
+ bsn 24 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 24 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 24 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 24 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 24 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 24 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 25 FBI 0 
+fn_same_bsn 18676 fn_last_bsn 39 delta_bsn 1 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 null
+ bsn 21  bsn 22 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 23 
+lime 0
+ bsn 24 
+lime 0
+ bsn 25 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 25 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 25 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 25 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 25 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 25 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 26 FBI 0 
+fn_same_bsn 18733 fn_last_bsn 35 delta_bsn 1 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 null
+ bsn 21  bsn 22 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 23 
+lime 0
+ bsn 24 
+lime 0
+ bsn 25 
+lime 0
+ bsn 26 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 26 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 26 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 26 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 26 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 26 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 27 FBI 0 
+fn_same_bsn 18793 fn_last_bsn 39 delta_bsn 1 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 null
+ bsn 21  bsn 22 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 23 
+lime 0
+ bsn 24 
+lime 0
+ bsn 25 
+lime 0
+ bsn 26 
+lime 0
+ bsn 27 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 27 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 27 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 27 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 27 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 27 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 28 FBI 0 
+fn_same_bsn 18850 fn_last_bsn 35 delta_bsn 1 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 null
+ bsn 21  bsn 22 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 23 
+lime 0
+ bsn 24 
+lime 0
+ bsn 25 
+lime 0
+ bsn 26 
+lime 0
+ bsn 27 
+lime 0
+ bsn 28 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 28 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 28 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 28 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 28 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 28 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 29 FBI 1 
+fn_same_bsn 19296 fn_last_bsn 425 delta_bsn 1 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 null
+ bsn 21  bsn 22 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 23 
+lime 0
+ bsn 24 
+lime 0
+ bsn 25 
+lime 0
+ bsn 26 
+lime 0
+ bsn 27 
+lime 0
+ bsn 28 
+lime 0
+ bsn 29 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 1 BSN 29 FBI 1 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 29 FBI 1 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 29 FBI 1 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 29 FBI 1 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 1 BSN 29 FBI 1 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 1 FBI 0 
+fn_same_bsn 2409 fn_last_bsn 1374 delta_bsn -15 old_len 29
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 2318 fn_last_bsn 1378 delta_bsn -13 old_len 29
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 5 FBI 0 
+fn_same_bsn 2297 fn_last_bsn 1383 delta_bsn -11 old_len 28
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 2466 fn_last_bsn 1387 delta_bsn -16 old_len 28
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 2383 fn_last_bsn 1391 delta_bsn -14 old_len 28
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 4 FBI 0 
+fn_same_bsn 19422 fn_last_bsn 1396 delta_bsn -12 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 6 FBI 0 
+fn_same_bsn 2262 fn_last_bsn 1400 delta_bsn -10 old_len 35
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 1 FBI 0 
+fn_same_bsn 30 fn_last_bsn 1404 delta_bsn -15 old_len 29
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 31 fn_last_bsn 1409 delta_bsn -13 old_len 29
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 2275 fn_last_bsn 1448 delta_bsn -9 old_len 36
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 4 fn_last_bsn 1452 delta_bsn -9 old_len 36
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 4 fn_last_bsn 1456 delta_bsn -9 old_len 36
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 5 fn_last_bsn 1461 delta_bsn -9 old_len 36
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 4 fn_last_bsn 1465 delta_bsn -9 old_len 36
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 4 fn_last_bsn 1469 delta_bsn -9 old_len 36
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 2275 fn_last_bsn 1474 delta_bsn -7 old_len 35
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 8 FBI 0 
+fn_same_bsn 19504 fn_last_bsn 1478 delta_bsn -8 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 10 FBI 0 
+fn_same_bsn 2223 fn_last_bsn 1482 delta_bsn -6 old_len 35
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 13 fn_last_bsn 1487 delta_bsn -7 old_len 35
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 11 FBI 0 
+fn_same_bsn 2171 fn_last_bsn 1491 delta_bsn -5 old_len 35
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 2058 fn_last_bsn 1495 delta_bsn -3 old_len 35
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 1946 fn_last_bsn 1500 delta_bsn -1 old_len 35
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 17 FBI 0 
+fn_same_bsn 19530 fn_last_bsn 1504 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+ bsn 12 old segment
+ bsn 13 
+lime 0
+ bsn 14 old segment
+ bsn 15 
+lime 0
+ bsn 16 
+lime 0
+ bsn 17 
+lime 0
+end of message reached
+MSG: b40402080aeee79bbe01cbce350103030706c7b8
+
+TS 4 CS4 DL DATA TFI 0 BSN 11 FBI 0 
+fn_same_bsn 17 fn_last_bsn 4 delta_bsn -6 old_len 35
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 18 fn_last_bsn 9 delta_bsn -4 old_len 35
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 16 FBI 0 
+fn_same_bsn 1521 fn_last_bsn 17 delta_bsn -1 old_len 35
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 18 FBI 0 
+fn_same_bsn 19552 fn_last_bsn 22 delta_bsn 1 old_len 0
+ bsn 17 
+lime 0
+ bsn 18 
+lime 0
+end of message reached
+MSG: 03c03d6500000e4500003c000040003206359e57fafa77c0a8000401bb95e64c065295b7e109dba0126e004ec700000204058c0402080a163d99fb01cbce330103030804ed0d
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 20 FBI 0 
+fn_same_bsn 19556 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 18 
+lime 0
+
+lime 1
+ bsn 19 null
+ bsn 20 
+lime 0
+end of message reached
+MSG: b40402080aeee79bfc01cbce3501030307a1edee
+
+TS 4 CS4 DL DATA TFI 0 BSN 19 FBI 0 
+fn_same_bsn 19560 fn_last_bsn 4 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 21 FBI 0 
+fn_same_bsn 19565 fn_last_bsn 9 delta_bsn 1 old_len 0
+ bsn 20 
+lime 0
+ bsn 21 
+lime 0
+end of message reached
+MSG: 03c0456500001045000038000040002f06df04364c75c3c0a8000401bbb5d384caa283890c2130901245eafe620000020423010402080a1bdb18a601cbce42f8f843
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 20 FBI 0 
+fn_same_bsn 13 fn_last_bsn 4 delta_bsn -1 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 19 FBI 0 
+fn_same_bsn 13 fn_last_bsn 8 delta_bsn -2 old_len 0
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 21 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 22 FBI 0 
+fn_same_bsn 19608 fn_last_bsn 30 delta_bsn 1 old_len 0
+ bsn 21 
+lime 0
+
+lime 1
+ bsn 22 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 22 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 22 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 22 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 19669 fn_last_bsn 39 delta_bsn 1 old_len 0
+ bsn 22 
+lime 0
+ bsn 23 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 25 FBI 0 
+fn_same_bsn 19695 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 23 
+lime 0
+ bsn 24 null
+ bsn 25 
+lime 0
+end of message reached
+MSG: 0a163d9a2801cbce5fe94175
+
+TS 4 CS4 DL DATA TFI 0 BSN 27 FBI 0 
+fn_same_bsn 19699 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27 
+TS 4 CS4 DL DATA TFI 0 BSN 29 FBI 0 
+fn_same_bsn 19703 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 
+lime 0
+end of message reached
+MSG: 34e27903be69e04f8071066d74967e6bf6b6a56b6bfdf5fa35
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 25 FBI 0 
+fn_same_bsn 13 fn_last_bsn 5 delta_bsn -4 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 27 FBI 0 
+fn_same_bsn 13 fn_last_bsn 9 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 29 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 25 FBI 0 
+fn_same_bsn 13 fn_last_bsn 5 delta_bsn -4 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 27 FBI 0 
+fn_same_bsn 13 fn_last_bsn 9 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 29 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 26 FBI 0 
+fn_same_bsn 19738 fn_last_bsn 9 delta_bsn -3 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 28 FBI 0 
+fn_same_bsn 19742 fn_last_bsn 13 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 24 FBI 0 
+fn_same_bsn 19747 fn_last_bsn 18 delta_bsn -5 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 28 FBI 0 
+fn_same_bsn 13 fn_last_bsn 26 delta_bsn -1 old_len 0
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 24 FBI 0 
+fn_same_bsn 13 fn_last_bsn 31 delta_bsn -5 old_len 0
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 31 FBI 0 
+fn_same_bsn 19773 fn_last_bsn 44 delta_bsn 2 old_len 0
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 
+lime 0
+
+lime 1
+ bsn 30 null
+ bsn 31 
+lime 0
+end of message reached
+MSG: 8c0402080a1639ca4501cbce3301030308e9532c
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 33 FBI 0 
+fn_same_bsn 19777 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 
+lime 0
+
+lime 1
+ bsn 30 null
+ bsn 31 
+lime 0
+
+lime 1
+ bsn 32 null
+ bsn 33 
+lime 0
+end of message reached
+MSG: 0a163d996401cbce603a0eaa
+
+TS 4 CS4 DL DATA TFI 0 BSN 35 FBI 0 
+fn_same_bsn 19781 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 33 
+lime 0
+ bsn 34 null
+ bsn 35 
+TS 4 CS4 DL DATA TFI 0 BSN 37 FBI 0 
+fn_same_bsn 19786 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 33 
+lime 0
+ bsn 34 null
+ bsn 35  bsn 36 null
+ bsn 37 
+lime 0
+end of message reached
+MSG: 555117cafb1754b8f4c55e19a4ac7c2e7ad6797c0eb8aa1f9b
+
+TS 4 CS4 DL DATA TFI 0 BSN 39 FBI 0 
+fn_same_bsn 19790 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 37 
+lime 0
+ bsn 38 null
+ bsn 39 
+TS 4 CS4 DL DATA TFI 0 BSN 30 FBI 0 
+fn_same_bsn 19794 fn_last_bsn 4 delta_bsn -9 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 35 FBI 0 
+fn_same_bsn 18 fn_last_bsn 9 delta_bsn -4 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 37 FBI 0 
+fn_same_bsn 17 fn_last_bsn 13 delta_bsn -2 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 39 FBI 0 
+fn_same_bsn 17 fn_last_bsn 17 delta_bsn 0 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 34 FBI 0 
+fn_same_bsn 19812 fn_last_bsn 5 delta_bsn -5 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 36 FBI 0 
+fn_same_bsn 19816 fn_last_bsn 9 delta_bsn -3 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 38 FBI 0 
+fn_same_bsn 19820 fn_last_bsn 13 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 42 FBI 0 
+fn_same_bsn 19825 fn_last_bsn 18 delta_bsn 3 old_len 0
+ bsn 37 
+lime 0
+ bsn 38 null
+ bsn 39  bsn 40 null
+ bsn 41 null
+ bsn 42 
+lime 0
+end of message reached
+MSG: 8c0402080a0d9c84ec01cbce3301030308ffb276
+
+TS 4 CS4 DL DATA TFI 0 BSN 41 FBI 0 
+fn_same_bsn 19829 fn_last_bsn 4 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 44 FBI 0 
+fn_same_bsn 19838 fn_last_bsn 13 delta_bsn 2 old_len 0
+ bsn 42 
+lime 0
+ bsn 43 null
+ bsn 44 
+TS 4 CS4 DL DATA TFI 0 BSN 41 FBI 0 
+fn_same_bsn 13 fn_last_bsn 4 delta_bsn -3 old_len 0
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 43 FBI 0 
+fn_same_bsn 19846 fn_last_bsn 8 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 45 FBI 0 
+fn_same_bsn 19851 fn_last_bsn 13 delta_bsn 1 old_len 0
+ bsn 42 
+lime 0
+ bsn 43 null
+ bsn 44  bsn 45 
+lime 0
+end of message reached
+MSG: 03c06d6500001a4500003c0000400034063d045fd3e938c0a800040050e05adb5fece59e0ae323a01238907b6a0000020405b40402080aeee7a13501cbce350103030754e3ff
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 47 FBI 0 
+fn_same_bsn 19855 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 42 
+lime 0
+ bsn 43 null
+ bsn 44  bsn 45 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 46 null
+ bsn 47 
+lime 0
+end of message reached
+MSG: 0a1639ca9d01cbce68dafaea
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 19859 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 47 
+lime 0
+ bsn 48 null
+ bsn 49 
+TS 4 CS4 DL DATA TFI 0 BSN 51 FBI 0 
+fn_same_bsn 19864 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 47 
+lime 0
+ bsn 48 null
+ bsn 49  bsn 50 null
+ bsn 51 
+lime 0
+end of message reached
+MSG: 5e8ae919aa7cd608b26f7b8864c5b2498d8e2687925c30fb00
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 45 FBI 0 
+fn_same_bsn 17 fn_last_bsn 4 delta_bsn -6 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 47 FBI 0 
+fn_same_bsn 17 fn_last_bsn 8 delta_bsn -4 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 18 fn_last_bsn 13 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 51 FBI 0 
+fn_same_bsn 17 fn_last_bsn 17 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 8 fn_last_bsn 4 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 51 FBI 0 
+fn_same_bsn 9 fn_last_bsn 9 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 9 fn_last_bsn 4 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 51 FBI 0 
+fn_same_bsn 8 fn_last_bsn 8 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 53 FBI 0 
+fn_same_bsn 19907 fn_last_bsn 9 delta_bsn 2 old_len 0
+ bsn 47 
+lime 0
+ bsn 48 null
+ bsn 49  bsn 50 null
+ bsn 51 
+lime 0
+
+lime 1
+ bsn 52 null
+ bsn 53 
+lime 0
+end of message reached
+MSG: 0a1639c92a01cbce686b9012
+
+TS 4 CS4 DL DATA TFI 0 BSN 55 FBI 0 
+fn_same_bsn 19911 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 53 
+lime 0
+ bsn 54 null
+ bsn 55 
+TS 4 CS4 DL DATA TFI 0 BSN 57 FBI 0 
+fn_same_bsn 19916 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 53 
+lime 0
+ bsn 54 null
+ bsn 55  bsn 56 null
+ bsn 57 
+lime 0
+end of message reached
+MSG: b8bd67b7679737b1c39971d041f73e4bbd717654a340ef7aee
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 53 FBI 0 
+fn_same_bsn 13 fn_last_bsn 4 delta_bsn -4 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 55 FBI 0 
+fn_same_bsn 13 fn_last_bsn 8 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 57 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 54 FBI 0 
+fn_same_bsn 19937 fn_last_bsn 8 delta_bsn -3 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 19942 fn_last_bsn 13 delta_bsn 1 old_len 0
+ bsn 53 
+lime 0
+ bsn 54 null
+ bsn 55  bsn 56 null
+ bsn 57 
+lime 0
+
+lime 1
+ bsn 58 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 60 FBI 0 
+fn_same_bsn 19972 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 53 
+lime 0
+ bsn 54 null
+ bsn 55  bsn 56 null
+ bsn 57 
+lime 0
+
+lime 1
+ bsn 58 
+lime 0
+ bsn 59 null
+ bsn 60 
+lime 0
+end of message reached
+MSG: 0a0d9c859b01cbce6b917ee3
+
+TS 4 CS4 DL DATA TFI 0 BSN 62 FBI 0 
+fn_same_bsn 19976 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62 
+TS 4 CS4 DL DATA TFI 0 BSN 64 FBI 0 
+fn_same_bsn 19981 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+end of message reached
+MSG: f1055b922d58930fad49f9855f360b6a8edbc53e5af6808100
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 66 FBI 0 
+fn_same_bsn 19985 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66 
+TS 4 CS4 DL DATA TFI 0 BSN 68 FBI 0 
+fn_same_bsn 19989 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68 
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 26 fn_last_bsn 5 delta_bsn -10 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 60 FBI 0 
+fn_same_bsn 26 fn_last_bsn 9 delta_bsn -8 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 66 FBI 0 
+fn_same_bsn 17 fn_last_bsn 13 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 68 FBI 0 
+fn_same_bsn 18 fn_last_bsn 18 delta_bsn 0 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 65 FBI 0 
+fn_same_bsn 20011 fn_last_bsn 4 delta_bsn -3 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 67 FBI 0 
+fn_same_bsn 20015 fn_last_bsn 8 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 69 FBI 0 
+fn_same_bsn 20020 fn_last_bsn 13 delta_bsn 1 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+end of message reached
+MSG: 687474702f312e31140303000101160303002896ddbd90638cc55a2a61f5ecb3a75e6441d434e27903be69e04f8071066d74967e6bf6b6a56b6bfd645a6c
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 66 FBI 0 
+fn_same_bsn 22 fn_last_bsn 4 delta_bsn -3 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 70 FBI 0 
+fn_same_bsn 20028 fn_last_bsn 8 delta_bsn 1 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 70 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 70 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 70 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 70 FBI 0 
+fn_same_bsn 9 fn_last_bsn 9 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 72 FBI 0 
+fn_same_bsn 20080 fn_last_bsn 30 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+end of message reached
+MSG: 0aeee7a5a901cbce6dd5597d
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 74 FBI 0 
+fn_same_bsn 20085 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74 
+TS 4 CS4 DL DATA TFI 0 BSN 76 FBI 0 
+fn_same_bsn 20089 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76 
+TS 4 CS4 DL DATA TFI 0 BSN 78 FBI 0 
+fn_same_bsn 20093 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78 
+TS 4 CS4 DL DATA TFI 0 BSN 80 FBI 0 
+fn_same_bsn 20098 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80 
+TS 4 CS4 DL DATA TFI 0 BSN 82 FBI 0 
+fn_same_bsn 20102 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82 
+TS 4 CS4 DL DATA TFI 0 BSN 84 FBI 0 
+fn_same_bsn 20106 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84 
+TS 4 CS4 DL DATA TFI 0 BSN 86 FBI 0 
+fn_same_bsn 20111 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84  bsn 85 null
+ bsn 86 
+TS 4 CS4 DL DATA TFI 0 BSN 88 FBI 0 
+fn_same_bsn 20115 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84  bsn 85 null
+ bsn 86  bsn 87 null
+ bsn 88 
+TS 4 CS4 DL DATA TFI 0 BSN 90 FBI 0 
+fn_same_bsn 20119 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84  bsn 85 null
+ bsn 86  bsn 87 null
+ bsn 88  bsn 89 null
+ bsn 90 
+TS 4 CS4 DL DATA TFI 0 BSN 92 FBI 0 
+fn_same_bsn 20124 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84  bsn 85 null
+ bsn 86  bsn 87 null
+ bsn 88  bsn 89 null
+ bsn 90  bsn 91 null
+ bsn 92 
+TS 4 CS4 DL DATA TFI 0 BSN 94 FBI 0 
+fn_same_bsn 20128 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84  bsn 85 null
+ bsn 86  bsn 87 null
+ bsn 88  bsn 89 null
+ bsn 90  bsn 91 null
+ bsn 92  bsn 93 null
+ bsn 94 
+TS 4 CS4 DL DATA TFI 0 BSN 96 FBI 0 
+fn_same_bsn 20132 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84  bsn 85 null
+ bsn 86  bsn 87 null
+ bsn 88  bsn 89 null
+ bsn 90  bsn 91 null
+ bsn 92  bsn 93 null
+ bsn 94  bsn 95 null
+ bsn 96 
+TS 4 CS4 DL DATA TFI 0 BSN 98 FBI 0 
+fn_same_bsn 20137 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84  bsn 85 null
+ bsn 86  bsn 87 null
+ bsn 88  bsn 89 null
+ bsn 90  bsn 91 null
+ bsn 92  bsn 93 null
+ bsn 94  bsn 95 null
+ bsn 96  bsn 97 null
+ bsn 98 
+TS 4 CS4 DL DATA TFI 0 BSN 100 FBI 0 
+fn_same_bsn 20141 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84  bsn 85 null
+ bsn 86  bsn 87 null
+ bsn 88  bsn 89 null
+ bsn 90  bsn 91 null
+ bsn 92  bsn 93 null
+ bsn 94  bsn 95 null
+ bsn 96  bsn 97 null
+ bsn 98  bsn 99 null
+ bsn 100 
+TS 4 CS4 DL DATA TFI 0 BSN 103 FBI 0 
+fn_same_bsn 20150 fn_last_bsn 9 delta_bsn 3 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 null
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 null
+ bsn 74  bsn 75 null
+ bsn 76  bsn 77 null
+ bsn 78  bsn 79 null
+ bsn 80  bsn 81 null
+ bsn 82  bsn 83 null
+ bsn 84  bsn 85 null
+ bsn 86  bsn 87 null
+ bsn 88  bsn 89 null
+ bsn 90  bsn 91 null
+ bsn 92  bsn 93 null
+ bsn 94  bsn 95 null
+ bsn 96  bsn 97 null
+ bsn 98  bsn 99 null
+ bsn 100  bsn 101 null
+ bsn 102 null
+ bsn 103 
+lime 0
+end of message reached
+MSG: ee0c389b4e15e6e0f8a5d57991a3b726998d0271
+
+lime 1
+end of message reached
+MSG: 03c09d253023e4e2adccdabd57986c3ecc83f8
+
+TS 4 CS4 DL DATA TFI 0 BSN 105 FBI 0 
+fn_same_bsn 20154 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105 
+TS 4 CS4 DL DATA TFI 0 BSN 107 FBI 0 
+fn_same_bsn 20158 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106 null
+ bsn 107 
+TS 4 CS4 DL DATA TFI 0 BSN 109 FBI 0 
+fn_same_bsn 20163 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106 null
+ bsn 107  bsn 108 null
+ bsn 109 
+TS 4 CS4 DL DATA TFI 0 BSN 111 FBI 0 
+fn_same_bsn 20167 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106 null
+ bsn 107  bsn 108 null
+ bsn 109  bsn 110 null
+ bsn 111 
+TS 4 CS4 DL DATA TFI 0 BSN 113 FBI 0 
+fn_same_bsn 20171 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106 null
+ bsn 107  bsn 108 null
+ bsn 109  bsn 110 null
+ bsn 111  bsn 112 null
+ bsn 113 
+lime 0
+end of message reached
+MSG: ec8bd7f1fb76d96eee54ec86ab6e2d2d266762c91bb72697164d8fe3aa656fbb95c6a9fc3615931fc6d54ea59a987a
+
+TS 4 CS4 DL DATA TFI 0 BSN 115 FBI 0 
+fn_same_bsn 20176 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114 null
+ bsn 115 
+TS 4 CS4 DL DATA TFI 0 BSN 117 FBI 0 
+fn_same_bsn 20180 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114 null
+ bsn 115  bsn 116 null
+ bsn 117 
+TS 4 CS4 DL DATA TFI 0 BSN 119 FBI 0 
+fn_same_bsn 20184 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114 null
+ bsn 115  bsn 116 null
+ bsn 117  bsn 118 null
+ bsn 119 
+TS 4 CS4 DL DATA TFI 0 BSN 121 FBI 0 
+fn_same_bsn 20189 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114 null
+ bsn 115  bsn 116 null
+ bsn 117  bsn 118 null
+ bsn 119  bsn 120 null
+ bsn 121 
+TS 4 CS4 DL DATA TFI 0 BSN 123 FBI 0 
+fn_same_bsn 20193 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114 null
+ bsn 115  bsn 116 null
+ bsn 117  bsn 118 null
+ bsn 119  bsn 120 null
+ bsn 121  bsn 122 null
+ bsn 123 
+TS 4 CS4 DL DATA TFI 0 BSN 125 FBI 0 
+fn_same_bsn 20197 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114 null
+ bsn 115  bsn 116 null
+ bsn 117  bsn 118 null
+ bsn 119  bsn 120 null
+ bsn 121  bsn 122 null
+ bsn 123  bsn 124 null
+ bsn 125 
+TS 4 CS4 DL DATA TFI 0 BSN 127 FBI 0 
+fn_same_bsn 20202 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114 null
+ bsn 115  bsn 116 null
+ bsn 117  bsn 118 null
+ bsn 119  bsn 120 null
+ bsn 121  bsn 122 null
+ bsn 123  bsn 124 null
+ bsn 125  bsn 126 null
+ bsn 127 
+TS 4 CS4 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 775 fn_last_bsn 8 delta_bsn -124 old_len 29
+ bsn 113 
+lime 0
+ bsn 114 null
+ bsn 115  bsn 116 null
+ bsn 117  bsn 118 null
+ bsn 119  bsn 120 null
+ bsn 121  bsn 122 null
+ bsn 123  bsn 124 null
+ bsn 125  bsn 126 null
+ bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 
+lime 0
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3 
+TS 4 CS4 DL DATA TFI 0 BSN 5 FBI 0 
+fn_same_bsn 806 fn_last_bsn 5 delta_bsn 2 old_len 28
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 724 fn_last_bsn 9 delta_bsn 4 old_len 36
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 710 fn_last_bsn 13 delta_bsn 6 old_len 35
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 11 FBI 0 
+fn_same_bsn 694 fn_last_bsn 18 delta_bsn 8 old_len 35
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 693 fn_last_bsn 22 delta_bsn 10 old_len 35
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 710 fn_last_bsn 26 delta_bsn 12 old_len 35
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 17 FBI 0 
+fn_same_bsn 711 fn_last_bsn 31 delta_bsn 14 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 35 fn_last_bsn 35 delta_bsn 0 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 19 FBI 0 
+fn_same_bsn 676 fn_last_bsn 4 delta_bsn 16 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 22 FBI 0 
+fn_same_bsn 628 fn_last_bsn 13 delta_bsn 19 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 24 FBI 0 
+fn_same_bsn 502 fn_last_bsn 17 delta_bsn 21 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 26 FBI 0 
+fn_same_bsn 529 fn_last_bsn 22 delta_bsn 23 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 28 FBI 0 
+fn_same_bsn 516 fn_last_bsn 26 delta_bsn 25 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 30 FBI 0 
+fn_same_bsn 481 fn_last_bsn 30 delta_bsn 27 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 32 FBI 0 
+fn_same_bsn 20280 fn_last_bsn 35 delta_bsn 29 old_len 0
+ bsn 113 
+lime 0
+ bsn 114 null
+ bsn 115  bsn 116 null
+ bsn 117  bsn 118 null
+ bsn 119  bsn 120 null
+ bsn 121  bsn 122 null
+ bsn 123  bsn 124 null
+ bsn 125  bsn 126 null
+ bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 
+lime 0
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3  bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+ bsn 12 old segment
+ bsn 13 
+lime 0
+ bsn 14 old segment
+ bsn 15 
+lime 0
+ bsn 16 
+lime 0
+ bsn 17 
+lime 0
+ bsn 18 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 19 null
+ bsn 20 
+lime 0
+ bsn 21 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 22 
+lime 0
+ bsn 23 
+lime 0
+ bsn 24 null
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 
+lime 0
+
+lime 1
+ bsn 30 null
+ bsn 31 
+lime 0
+
+lime 1
+ bsn 32 
+TS 4 CS4 DL DATA TFI 0 BSN 34 FBI 0 
+fn_same_bsn 472 fn_last_bsn 4 delta_bsn 2 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 36 FBI 0 
+fn_same_bsn 472 fn_last_bsn 8 delta_bsn 4 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 38 FBI 0 
+fn_same_bsn 473 fn_last_bsn 13 delta_bsn 6 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 40 FBI 0 
+fn_same_bsn 20297 fn_last_bsn 17 delta_bsn 8 old_len 0
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 
+lime 0
+
+lime 1
+ bsn 30 null
+ bsn 31 
+lime 0
+
+lime 1
+ bsn 32  bsn 33 
+lime 0
+
+lime error!
+ bsn 34 null
+ bsn 35  bsn 36 null
+ bsn 37 
+lime 0
+ bsn 38 null
+ bsn 39  bsn 40 
+TS 4 CS4 DL DATA TFI 0 BSN 42 FBI 0 
+fn_same_bsn 476 fn_last_bsn 4 delta_bsn 2 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 44 FBI 0 
+fn_same_bsn 468 fn_last_bsn 9 delta_bsn 4 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 46 FBI 0 
+fn_same_bsn 20310 fn_last_bsn 13 delta_bsn 6 old_len 0
+ bsn 37 
+lime 0
+ bsn 38 null
+ bsn 39  bsn 40  bsn 41 null
+ bsn 42 
+lime 0
+ bsn 43 null
+ bsn 44  bsn 45 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 46 
+TS 4 CS4 DL DATA TFI 0 BSN 48 FBI 0 
+fn_same_bsn 20314 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 42 
+lime 0
+ bsn 43 null
+ bsn 44  bsn 45 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 46  bsn 47 
+lime 0
+
+lime error!
+ bsn 48 
+TS 4 CS4 DL DATA TFI 0 BSN 50 FBI 0 
+fn_same_bsn 20319 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 47 
+lime 0
+ bsn 48  bsn 49  bsn 50 
+TS 4 CS4 DL DATA TFI 0 BSN 52 FBI 0 
+fn_same_bsn 20323 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 47 
+lime 0
+ bsn 48  bsn 49  bsn 50  bsn 51 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 52 
+TS 4 CS4 DL DATA TFI 0 BSN 54 FBI 0 
+fn_same_bsn 390 fn_last_bsn 4 delta_bsn 2 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 56 FBI 0 
+fn_same_bsn 20332 fn_last_bsn 9 delta_bsn 4 old_len 0
+ bsn 47 
+lime 0
+ bsn 48  bsn 49  bsn 50  bsn 51 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 52  bsn 53 
+lime 0
+
+lime error!
+ bsn 54 null
+ bsn 55  bsn 56 
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 342 fn_last_bsn 4 delta_bsn 2 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 60 FBI 0 
+fn_same_bsn 342 fn_last_bsn 8 delta_bsn 4 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 62 FBI 0 
+fn_same_bsn 369 fn_last_bsn 13 delta_bsn 6 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 65 FBI 0 
+fn_same_bsn 342 fn_last_bsn 21 delta_bsn 9 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 67 FBI 0 
+fn_same_bsn 343 fn_last_bsn 26 delta_bsn 11 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 69 FBI 0 
+fn_same_bsn 342 fn_last_bsn 30 delta_bsn 13 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 71 FBI 0 
+fn_same_bsn 20366 fn_last_bsn 34 delta_bsn 15 old_len 0
+ bsn 53 
+lime 0
+ bsn 54 null
+ bsn 55  bsn 56  bsn 57 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 58 
+lime 0
+ bsn 59 null
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71 
+TS 4 CS4 DL DATA TFI 0 BSN 73 FBI 0 
+fn_same_bsn 20371 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73 
+TS 4 CS4 DL DATA TFI 0 BSN 75 FBI 0 
+fn_same_bsn 20375 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75 
+TS 4 CS4 DL DATA TFI 0 BSN 77 FBI 0 
+fn_same_bsn 20379 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77 
+TS 4 CS4 DL DATA TFI 0 BSN 79 FBI 0 
+fn_same_bsn 20384 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79 
+TS 4 CS4 DL DATA TFI 0 BSN 81 FBI 0 
+fn_same_bsn 20388 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81 
+TS 4 CS4 DL DATA TFI 0 BSN 83 FBI 0 
+fn_same_bsn 20392 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83 
+TS 4 CS4 DL DATA TFI 0 BSN 85 FBI 0 
+fn_same_bsn 20397 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85 
+TS 4 CS4 DL DATA TFI 0 BSN 87 FBI 0 
+fn_same_bsn 20401 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85  bsn 86  bsn 87 
+TS 4 CS4 DL DATA TFI 0 BSN 89 FBI 0 
+fn_same_bsn 20405 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85  bsn 86  bsn 87  bsn 88  bsn 89 
+TS 4 CS4 DL DATA TFI 0 BSN 91 FBI 0 
+fn_same_bsn 20410 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85  bsn 86  bsn 87  bsn 88  bsn 89  bsn 90  bsn 91 
+TS 4 CS4 DL DATA TFI 0 BSN 93 FBI 0 
+fn_same_bsn 20414 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85  bsn 86  bsn 87  bsn 88  bsn 89  bsn 90  bsn 91  bsn 92  bsn 93 
+TS 4 CS4 DL DATA TFI 0 BSN 95 FBI 0 
+fn_same_bsn 20418 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85  bsn 86  bsn 87  bsn 88  bsn 89  bsn 90  bsn 91  bsn 92  bsn 93  bsn 94  bsn 95 
+TS 4 CS4 DL DATA TFI 0 BSN 97 FBI 0 
+fn_same_bsn 20423 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85  bsn 86  bsn 87  bsn 88  bsn 89  bsn 90  bsn 91  bsn 92  bsn 93  bsn 94  bsn 95  bsn 96  bsn 97 
+TS 4 CS4 DL DATA TFI 0 BSN 99 FBI 0 
+fn_same_bsn 20427 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61 null
+ bsn 62  bsn 63 null
+ bsn 64 
+lime 0
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85  bsn 86  bsn 87  bsn 88  bsn 89  bsn 90  bsn 91  bsn 92  bsn 93  bsn 94  bsn 95  bsn 96  bsn 97  bsn 98  bsn 99 
+lime 0
+end of message reached
+MSG: 3c0ad90c08e00458bf2e78747618f0e88f09501645cbfa54bcf50d095708925ad30db110f0da2889d04d19fa507faab6f0a90aeee7a5b901cbce6d485454502f312e3120323030204f4b0d0a5365727665723a206e67696e780d0a446174653a204d6f6ea153ea304f5d5cf96d0fceed3644a32c5b3cea051d6484df4a955277248b5abe10d6002c84a1a68718c44b5ae88f6d179dae6c3b20636861727365743d77696e646f77732d313235310d0a5472616e736665722d456e636f64696e673a206368756e6b653239042c683604ac53061c8a08878175ca4c0611e12582750a11facbdc5f7605c0c4800887817502de29dbbb3a97ae8c5cda4947494e0d0a436f6e74656e742d456e636f64696e673a20677a69700d0a0d0a343061640d0a1f8b0800000000000003ed9ddd8958c2bf7364d7a0c57d4116b9becda4bd96c8bb8ee0b27d478e084ea2a9356b5fc71caa4d4b42760cc36108924be137abb779bf5fc055fbc651e28d2ab12ccb99caec9b949b209a6ce2d2c4c514e92123eeef39a71b0d4908017638354cd564c602d135154b0ee31c0d812c95018722ad6190a5329341a4758990a583492b804206a4350cb25407097eab03cbc67bc916dd4211736c7af10f4edb6a379caafabcd3b0dbd6ad4973f9ca95b7b8652d5d4aa9e5d554a1982e2d441e66722bf987c589f854321e51db484008a5a2b6c9a91682b2c883d0a4800e8a884292821fe810b82f77442d051c710a614fcfe2cca47ba7e102e46b82a953981622a5f4a3d2a4fe5e48671722c5d266365d5c4da74bba35afbb5c6a8d5befe60b6ba9d2c44aba945e2e65f2b9885acee75599c820c2b94450d5d88d41518500b01810ce305055d0145a236ba22475d4cafa1a79997f9bbdaf5525d4a54cf67eea4ef66a2d93cbac6dac4d149753d9f4423c1ae352ead1ab97bce19d35d7a57c612a39b1965fca64d332e5db53b17822361d9b1e72750d9943bc0d858dd8343f6834699de203642a6163756aa7e6e617a889cd8e760c3ed36108879c26901e64f5b56b987f3abee2f5476b59168e1e5fe933c7dbf11b9be455a71f4dc6e353fa4dbf259b41bf2e59ef95cc83e84f36f2a5b492bfe4a5aa9f29160f7ca4ca4dbb0e3e0882040ecbe304144ec491ca9f4ee3850323689337c16aac6d14c867fbe08314b8f483ab8404c71529c815cfdb250ddd9af4a720b3592e64d64bbd1bf37eea41ca5c8da86261b9bba13753b216d16269f2fe4f36d285cdc978f4466c74b4fd88b4afbd143ccd114f9163f531afe631cb0fab1157284c8a798e63fd96b9c383f5667285cd3b2003ffc88844297798c9dd7b6dce2127cda6f169e6b53594cd79e5ec8564072bf520555077eea57ea216ccc7cf7faede7b7f9e1fe462747da3b879c2607c3ede57e99de9031d9c19063af8dca4076bab4cc891ad69576ad6b6f856240489d54810734f6d39bb80e275289338c97d0f56240f7834f567ee7d279bcd3ffc2e7c305de0e6526123dda7cd5221b5fcc13fa6eec17bd20f75438c71f4ee464e73c82d4092c5f244f64ba38748fcb25d857cc1d658e523bb4ede9f0c4740051a572310bc564b776440fcfa5600879a3ec1275a8fa9e2666e999664403245254fb0afb9343a22bcba3837a2167a7acae60d8b88ae17f2a5fc723eab6e2bef46b87a313ba2e6b0b4d0a881ee40c661806c3321806c33170064ebd91f3ee5de981ac265c478cf1d6994f186215cfa1a8c6393890cd00ca4fff19b9b3f4add93550e26f65eecfd79558caea70accf77bf9957434932ba60ba56fa61109e9d17ba97155d4afecc3b1513eaf0220b635
+
+TS 4 CS4 DL DATA TFI 0 BSN 101 FBI 0 
+fn_same_bsn 20431 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 99 
+lime 0
+ bsn 100  bsn 101 
+TS 4 CS4 DL DATA TFI 0 BSN 103 FBI 0 
+fn_same_bsn 286 fn_last_bsn 5 delta_bsn 2 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 105 FBI 0 
+fn_same_bsn 286 fn_last_bsn 9 delta_bsn 4 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 107 FBI 0 
+fn_same_bsn 286 fn_last_bsn 13 delta_bsn 6 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 110 FBI 0 
+fn_same_bsn 20453 fn_last_bsn 22 delta_bsn 9 old_len 0
+ bsn 99 
+lime 0
+ bsn 100  bsn 101  bsn 102 null
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106 null
+ bsn 107  bsn 108 null
+ bsn 109  bsn 110 
+TS 4 CS4 DL DATA TFI 0 BSN 112 FBI 0 
+fn_same_bsn 20457 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106 null
+ bsn 107  bsn 108 null
+ bsn 109  bsn 110  bsn 111  bsn 112 
+TS 4 CS4 DL DATA TFI 0 BSN 114 FBI 0 
+fn_same_bsn 20462 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106 null
+ bsn 107  bsn 108 null
+ bsn 109  bsn 110  bsn 111  bsn 112  bsn 113 
+lime 0
+
+lime error!
+ bsn 114 
+TS 4 CS4 DL DATA TFI 0 BSN 116 FBI 0 
+fn_same_bsn 20466 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116 
+TS 4 CS4 DL DATA TFI 0 BSN 118 FBI 0 
+fn_same_bsn 20470 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118 
+TS 4 CS4 DL DATA TFI 0 BSN 120 FBI 0 
+fn_same_bsn 20475 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120 
+TS 4 CS4 DL DATA TFI 0 BSN 122 FBI 0 
+fn_same_bsn 20479 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122 
+TS 4 CS4 DL DATA TFI 0 BSN 124 FBI 0 
+fn_same_bsn 20483 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124 
+TS 4 CS4 DL DATA TFI 0 BSN 126 FBI 0 
+fn_same_bsn 20488 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126 
+TS 4 CS4 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 1079 fn_last_bsn 4 delta_bsn -126 old_len 28
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+TS 4 CS4 DL DATA TFI 0 BSN 2 FBI 0 
+fn_same_bsn 1079 fn_last_bsn 4 delta_bsn 2 old_len 28
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 4 FBI 0 
+fn_same_bsn 1079 fn_last_bsn 9 delta_bsn 4 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 6 FBI 0 
+fn_same_bsn 1079 fn_last_bsn 13 delta_bsn 6 old_len 35
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 116 FBI 0 
+fn_same_bsn 43 fn_last_bsn 17 delta_bsn 116 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 8 FBI 0 
+fn_same_bsn 1010 fn_last_bsn 22 delta_bsn 8 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 10 FBI 0 
+fn_same_bsn 1010 fn_last_bsn 26 delta_bsn 10 old_len 35
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 12 FBI 0 
+fn_same_bsn 3120 fn_last_bsn 30 delta_bsn 12 old_len 35
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0  bsn 1 
+lime 0
+
+lime error!
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3  bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+ bsn 12 
+lime 0
+end of message reached
+MSG: 2f065dd9364c75c3c0a8000401bbb5d384caa284890c21e88010494826ae00000101080a1bdb241001cbce82028236
+
+TS 4 CS4 DL DATA TFI 0 BSN 14 FBI 0 
+fn_same_bsn 3008 fn_last_bsn 5 delta_bsn 2 old_len 35
+ bsn 12 
+lime 0
+ bsn 13 
+lime 0
+
+lime error!
+ bsn 14 
+TS 4 CS4 DL DATA TFI 0 BSN 16 FBI 0 
+fn_same_bsn 984 fn_last_bsn 4 delta_bsn 2 old_len 35
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 18 FBI 0 
+fn_same_bsn 983 fn_last_bsn 8 delta_bsn 4 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 20 FBI 0 
+fn_same_bsn 971 fn_last_bsn 13 delta_bsn 6 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 22 FBI 0 
+fn_same_bsn 914 fn_last_bsn 17 delta_bsn 8 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 25 FBI 0 
+fn_same_bsn 832 fn_last_bsn 26 delta_bsn 11 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 27 FBI 0 
+fn_same_bsn 832 fn_last_bsn 30 delta_bsn 13 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 29 FBI 0 
+fn_same_bsn 832 fn_last_bsn 34 delta_bsn 15 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 31 FBI 0 
+fn_same_bsn 793 fn_last_bsn 39 delta_bsn 17 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 33 FBI 0 
+fn_same_bsn 793 fn_last_bsn 43 delta_bsn 19 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 35 FBI 0 
+fn_same_bsn 775 fn_last_bsn 47 delta_bsn 21 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 37 FBI 0 
+fn_same_bsn 776 fn_last_bsn 52 delta_bsn 23 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 39 FBI 0 
+fn_same_bsn 776 fn_last_bsn 56 delta_bsn 25 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 41 FBI 0 
+fn_same_bsn 745 fn_last_bsn 60 delta_bsn 27 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 43 FBI 0 
+fn_same_bsn 746 fn_last_bsn 65 delta_bsn 29 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 45 FBI 0 
+fn_same_bsn 728 fn_last_bsn 69 delta_bsn 31 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 47 FBI 0 
+fn_same_bsn 728 fn_last_bsn 73 delta_bsn 33 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 711 fn_last_bsn 78 delta_bsn 35 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 51 FBI 0 
+fn_same_bsn 711 fn_last_bsn 82 delta_bsn 37 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 53 FBI 0 
+fn_same_bsn 693 fn_last_bsn 86 delta_bsn 39 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 55 FBI 0 
+fn_same_bsn 694 fn_last_bsn 91 delta_bsn 41 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 57 FBI 0 
+fn_same_bsn 693 fn_last_bsn 95 delta_bsn 43 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 59 FBI 0 
+fn_same_bsn 20626 fn_last_bsn 99 delta_bsn 45 old_len 0
+ bsn 12 
+lime 0
+ bsn 13 
+lime 0
+
+lime error!
+ bsn 14  bsn 15 
+lime 0
+
+lime error!
+ bsn 16 
+lime 0
+ bsn 17 
+lime 0
+ bsn 18 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 19 null
+ bsn 20 
+lime 0
+ bsn 21 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 22 
+lime 0
+ bsn 23 
+lime 0
+ bsn 24 null
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 
+lime 0
+
+lime 1
+ bsn 30 null
+ bsn 31 
+lime 0
+
+lime 1
+ bsn 32  bsn 33 
+lime 0
+
+lime error!
+ bsn 34 null
+ bsn 35  bsn 36 null
+ bsn 37 
+lime 0
+ bsn 38 null
+ bsn 39  bsn 40  bsn 41 null
+ bsn 42 
+lime 0
+ bsn 43 null
+ bsn 44  bsn 45 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 46  bsn 47 
+lime 0
+
+lime error!
+ bsn 48  bsn 49  bsn 50  bsn 51 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 52  bsn 53 
+lime 0
+
+lime error!
+ bsn 54 null
+ bsn 55  bsn 56  bsn 57 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 58 
+lime 0
+ bsn 59 
+TS 4 CS4 DL DATA TFI 0 BSN 61 FBI 0 
+fn_same_bsn 20631 fn_last_bsn 5 delta_bsn 2 old_len 0
+ bsn 53 
+lime 0
+ bsn 54 null
+ bsn 55  bsn 56  bsn 57 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 58 
+lime 0
+ bsn 59  bsn 60 
+lime 0
+
+lime error!
+ bsn 61 
+TS 4 CS4 DL DATA TFI 0 BSN 63 FBI 0 
+fn_same_bsn 20635 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 60 
+lime 0
+ bsn 61  bsn 62  bsn 63 
+TS 4 CS4 DL DATA TFI 0 BSN 65 FBI 0 
+fn_same_bsn 628 fn_last_bsn 4 delta_bsn 2 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 67 FBI 0 
+fn_same_bsn 629 fn_last_bsn 9 delta_bsn 4 old_len 0
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 70 FBI 0 
+fn_same_bsn 602 fn_last_bsn 17 delta_bsn 7 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 72 FBI 0 
+fn_same_bsn 577 fn_last_bsn 22 delta_bsn 9 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 74 FBI 0 
+fn_same_bsn 576 fn_last_bsn 26 delta_bsn 11 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 76 FBI 0 
+fn_same_bsn 576 fn_last_bsn 30 delta_bsn 13 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 78 FBI 0 
+fn_same_bsn 577 fn_last_bsn 35 delta_bsn 15 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 80 FBI 0 
+fn_same_bsn 576 fn_last_bsn 39 delta_bsn 17 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 82 FBI 0 
+fn_same_bsn 576 fn_last_bsn 43 delta_bsn 19 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 84 FBI 0 
+fn_same_bsn 577 fn_last_bsn 48 delta_bsn 21 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 86 FBI 0 
+fn_same_bsn 576 fn_last_bsn 52 delta_bsn 23 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 88 FBI 0 
+fn_same_bsn 576 fn_last_bsn 56 delta_bsn 25 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 90 FBI 0 
+fn_same_bsn 577 fn_last_bsn 61 delta_bsn 27 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 92 FBI 0 
+fn_same_bsn 576 fn_last_bsn 65 delta_bsn 29 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 94 FBI 0 
+fn_same_bsn 576 fn_last_bsn 69 delta_bsn 31 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 96 FBI 0 
+fn_same_bsn 577 fn_last_bsn 74 delta_bsn 33 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 98 FBI 0 
+fn_same_bsn 576 fn_last_bsn 78 delta_bsn 35 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 100 FBI 0 
+fn_same_bsn 576 fn_last_bsn 82 delta_bsn 37 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 102 FBI 0 
+fn_same_bsn 20722 fn_last_bsn 87 delta_bsn 39 old_len 0
+ bsn 60 
+lime 0
+ bsn 61  bsn 62  bsn 63  bsn 64 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 65 null
+ bsn 66  bsn 67 null
+ bsn 68  bsn 69 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85  bsn 86  bsn 87  bsn 88  bsn 89  bsn 90  bsn 91  bsn 92  bsn 93  bsn 94  bsn 95  bsn 96  bsn 97  bsn 98  bsn 99 
+lime 0
+
+lime error!
+ bsn 100  bsn 101  bsn 102 
+TS 4 CS4 DL DATA TFI 0 BSN 106 FBI 0 
+fn_same_bsn 20735 fn_last_bsn 13 delta_bsn 4 old_len 0
+ bsn 99 
+lime 0
+ bsn 100  bsn 101  bsn 102  bsn 103 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106 
+TS 4 CS4 DL DATA TFI 0 BSN 108 FBI 0 
+fn_same_bsn 20739 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106  bsn 107  bsn 108 
+TS 4 CS4 DL DATA TFI 0 BSN 102 FBI 0 
+fn_same_bsn 43 fn_last_bsn 26 delta_bsn -6 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 120 FBI 0 
+fn_same_bsn 316 fn_last_bsn 52 delta_bsn 12 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 121 FBI 0 
+fn_same_bsn 797 fn_last_bsn 247 delta_bsn 13 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 123 FBI 0 
+fn_same_bsn 797 fn_last_bsn 251 delta_bsn 15 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 116 FBI 0 
+fn_same_bsn 529 fn_last_bsn 256 delta_bsn 8 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 0 FBI 0 
+fn_same_bsn 750 fn_last_bsn 503 delta_bsn -108 old_len 50
+ bsn 103 
+lime 0
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106  bsn 107  bsn 108  bsn 109  bsn 110  bsn 111  bsn 112  bsn 113 
+lime 0
+
+lime error!
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+lime 0
+end of message reached
+MSG: 03c05c4dd7f0484f5b179a74015059e2d8c307e8ea1227f0273537767e120a01159cb900a860cf9bf249686a7618053e045450c67aeb7b1716ab6edda9b6fc950a1eb89bfa4964d1fd45cbda6bfb7bfb15e2909df9831ffed05f349f6a3cb65a7a9829a1ba6b6d8fe96c14f24fd9bf02e83b91c8f00bb1609d5d52554ecdaf22ad34517e8a5caea165db2d71b0517915e2a9cf4bf91eb0b6bdaf6fbc5b99dcfa46af9a6b5642348688d78df97b3d9b5a4eafe6b370bf8548dbaeb6dacaa939aae1d6eda6b7a922685bd9511be8f4853aa8d95bc4a1f7ed2a3d6a479cbef3093704084777ab86503b3dd0b4c76024dfde1b5c57d03e232e0ceca33b56d321b551cacf1b112057b834ef898139359594af9a010e90f88bb7ae4e4c4c4eaa5b57df7bf75beffce89df744ab7cebfbefa6ed38180d86d5500a89489a2ec43226bdfdf4a73fa58e1a7a0f8ddcbe8aff4e74200d3706838d5a66ba383f0c7126040c71d061eea50b4aa61d198b2ec1724723de0a8dabaee697f6553f79caff9fe84cf2346a130de9573877178db04843bc03517cfc549a949f514442fce490a84270562b6e3b0a6ade10fc730fef618a7a611c50c0cb6d8ad415314c36afa69bcabe655cf1ec7e3ae2998c236885baf73787e83fea7f16d2a58d42ae4741f57fe8fdfc50a5b3c5b4a71ef7fef0fadf98ef85d268e469670706e5e3b9108412023a357301d0a99ef7e1134a3c111f468c86804ec9804389d161a05332934162f41240a77a29c5f756f47760a6185ff0eb87a294faedbcba0b947e91ef695f8810ddfbbc4dfd567bb6d0cfbacffa6d945633c568119fc772a9f7bd4b3ff21d11a6203dc4fac2fe9c45440800438bb02f0c84107aa0c40b1e64ec45f13e63ef8a778b22b52480e394ae368fe58aee4cda4ddc7cff3a8cc56cc305b66e292d031137cb42045f02be153ed9635d6662be8862a8b5838011f7b820165fd17452056676ad360b6a8edbc53e5af6dd9138
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 125 FBI 0 
+fn_same_bsn 1049 fn_last_bsn 4 delta_bsn 125 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 127 FBI 0 
+fn_same_bsn 1048 fn_last_bsn 8 delta_bsn 127 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 1958 fn_last_bsn 255 delta_bsn 13 old_len 35
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 1976 fn_last_bsn 260 delta_bsn 15 old_len 35
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 17 FBI 0 
+fn_same_bsn 1976 fn_last_bsn 264 delta_bsn 17 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 10 FBI 0 
+fn_same_bsn 2015 fn_last_bsn 281 delta_bsn 10 old_len 35
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 
+lime 0
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3  bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 27 FBI 0 
+fn_same_bsn 1824 fn_last_bsn 26 delta_bsn 17 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1920 fn_last_bsn 291 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1924 fn_last_bsn 295 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1928 fn_last_bsn 299 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1941 fn_last_bsn 312 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1950 fn_last_bsn 321 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1954 fn_last_bsn 325 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1959 fn_last_bsn 330 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1963 fn_last_bsn 334 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1967 fn_last_bsn 338 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1972 fn_last_bsn 343 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1976 fn_last_bsn 347 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1980 fn_last_bsn 351 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1985 fn_last_bsn 356 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1989 fn_last_bsn 360 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1993 fn_last_bsn 364 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1998 fn_last_bsn 369 delta_bsn 39 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 2002 fn_last_bsn 373 delta_bsn 39 old_len 50
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 
+lime 0
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3  bsn 4 null
+ bsn 5 
+lime 0
+
+lime 1
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 null
+ bsn 9 
+lime 0
+ bsn 10 old segment
+ bsn 11 
+lime 0
+ bsn 12 
+lime 0
+ bsn 13 
+lime 0
+
+lime error!
+ bsn 14  bsn 15 
+lime 0
+
+lime error!
+ bsn 16 
+lime 0
+ bsn 17 
+lime 0
+ bsn 18 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 19 null
+ bsn 20 
+lime 0
+ bsn 21 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 22 
+lime 0
+ bsn 23 
+lime 0
+ bsn 24 null
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 
+lime 0
+
+lime 1
+ bsn 30 null
+ bsn 31 
+lime 0
+
+lime 1
+ bsn 32  bsn 33 
+lime 0
+
+lime error!
+ bsn 34 null
+ bsn 35  bsn 36 null
+ bsn 37 
+lime 0
+ bsn 38 null
+ bsn 39  bsn 40  bsn 41 null
+ bsn 42 
+lime 0
+ bsn 43 null
+ bsn 44  bsn 45 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 46  bsn 47 
+lime 0
+
+lime error!
+ bsn 48  bsn 49 
+lime 0
+end of message reached
+MSG: 03c0756500001c450000ca37bd40003206fd5257fafa77c0a8000401bb95e397cdfdee0abb68f450a4af68c4676e0ca16930e0733b6f64c061340dfa1aecbc91990cd034a4ff73691aff91bc3236c04f3b7ba30fafc4fb43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 9 fn_last_bsn 9 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 51 FBI 0 
+fn_same_bsn 2076 fn_last_bsn 4 delta_bsn 2 old_len 48
+ bsn 47 
+lime 0
+ bsn 48  bsn 49 
+lime 0
+
+lime error!
+ bsn 50  bsn 51 
+TS 4 CS4 DL DATA TFI 0 BSN 53 FBI 0 
+fn_same_bsn 2058 fn_last_bsn 4 delta_bsn 2 old_len 49
+ bsn 47 
+lime 0
+ bsn 48  bsn 49 
+lime 0
+
+lime error!
+ bsn 50  bsn 51  bsn 52  bsn 53 
+TS 4 CS4 DL DATA TFI 0 BSN 55 FBI 0 
+fn_same_bsn 2059 fn_last_bsn 5 delta_bsn 2 old_len 50
+ bsn 47 
+lime 0
+ bsn 48  bsn 49 
+lime 0
+
+lime error!
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55 
+TS 4 CS4 DL DATA TFI 0 BSN 57 FBI 0 
+fn_same_bsn 2058 fn_last_bsn 4 delta_bsn 2 old_len 48
+ bsn 47 
+lime 0
+ bsn 48  bsn 49 
+lime 0
+
+lime error!
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55  bsn 56  bsn 57 
+TS 4 CS4 DL DATA TFI 0 BSN 59 FBI 0 
+fn_same_bsn 1365 fn_last_bsn 4 delta_bsn 2 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 61 FBI 0 
+fn_same_bsn 1365 fn_last_bsn 9 delta_bsn 4 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 54 FBI 0 
+fn_same_bsn 2072 fn_last_bsn 22 delta_bsn -3 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 56 FBI 0 
+fn_same_bsn 1681 fn_last_bsn 26 delta_bsn -1 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 2023 fn_last_bsn 30 delta_bsn 1 old_len 49
+ bsn 47 
+lime 0
+ bsn 48  bsn 49 
+lime 0
+
+lime error!
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55  bsn 56  bsn 57  bsn 58 
+TS 4 CS4 DL DATA TFI 0 BSN 62 FBI 0 
+fn_same_bsn 2050 fn_last_bsn 9 delta_bsn 4 old_len 50
+ bsn 47 
+lime 0
+ bsn 48  bsn 49 
+lime 0
+
+lime error!
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55  bsn 56  bsn 57  bsn 58  bsn 59  bsn 60 
+lime 0
+
+lime error!
+ bsn 61  bsn 62 
+TS 4 CS4 DL DATA TFI 0 BSN 64 FBI 0 
+fn_same_bsn 2049 fn_last_bsn 4 delta_bsn 2 old_len 48
+ bsn 60 
+lime 0
+ bsn 61  bsn 62  bsn 63  bsn 64 
+TS 4 CS4 DL DATA TFI 0 BSN 68 FBI 0 
+fn_same_bsn 2032 fn_last_bsn 9 delta_bsn 4 old_len 50
+ bsn 60 
+lime 0
+ bsn 61  bsn 62  bsn 63  bsn 64  bsn 65 null
+ bsn 66 old segment
+ bsn 67 null
+ bsn 68 
+TS 4 CS4 DL DATA TFI 0 BSN 70 FBI 0 
+fn_same_bsn 1993 fn_last_bsn 4 delta_bsn 2 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 72 FBI 0 
+fn_same_bsn 1968 fn_last_bsn 9 delta_bsn 4 old_len 48
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 74 FBI 0 
+fn_same_bsn 1967 fn_last_bsn 13 delta_bsn 6 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 1 FBI 0 
+fn_same_bsn 4169 fn_last_bsn 1560 delta_bsn -67 old_len 29
+ bsn 60 
+lime 0
+ bsn 61  bsn 62  bsn 63  bsn 64  bsn 65 null
+ bsn 66 old segment
+ bsn 67 null
+ bsn 68  bsn 69 old segment
+ bsn 70 
+lime 0
+ bsn 71  bsn 72 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 73  bsn 74  bsn 75  bsn 76  bsn 77  bsn 78  bsn 79  bsn 80  bsn 81  bsn 82  bsn 83  bsn 84  bsn 85  bsn 86  bsn 87  bsn 88  bsn 89  bsn 90  bsn 91  bsn 92  bsn 93  bsn 94  bsn 95  bsn 96  bsn 97  bsn 98  bsn 99 
+lime 0
+
+lime error!
+ bsn 100  bsn 101  bsn 102  bsn 103 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 104 null
+ bsn 105  bsn 106  bsn 107  bsn 108  bsn 109  bsn 110  bsn 111  bsn 112  bsn 113 
+lime 0
+
+lime error!
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 3 FBI 0 
+fn_same_bsn 3358 fn_last_bsn 4 delta_bsn 2 old_len 50
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 old segment
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 5 FBI 0 
+fn_same_bsn 4199 fn_last_bsn 5 delta_bsn 2 old_len 28
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 old segment
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3 old segment
+ bsn 4 null
+ bsn 5 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 4117 fn_last_bsn 4 delta_bsn 2 old_len 36
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 old segment
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3 old segment
+ bsn 4 null
+ bsn 5 old segment
+ bsn 6 
+lime 0
+ bsn 7 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 9 FBI 0 
+fn_same_bsn 4103 fn_last_bsn 4 delta_bsn 2 old_len 35
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 old segment
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3 old segment
+ bsn 4 null
+ bsn 5 old segment
+ bsn 6 
+lime 0
+ bsn 7 old segment
+ bsn 8 null
+ bsn 9 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 4086 fn_last_bsn 9 delta_bsn 4 old_len 35
+ bsn 113 
+lime 0
+ bsn 114  bsn 115  bsn 116  bsn 117  bsn 118  bsn 119  bsn 120  bsn 121  bsn 122  bsn 123  bsn 124  bsn 125  bsn 126  bsn 127  bsn 0 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 1 old segment
+ bsn 2 
+lime 0
+
+lime 1
+ bsn 3 old segment
+ bsn 4 null
+ bsn 5 old segment
+ bsn 6 
+lime 0
+ bsn 7 old segment
+ bsn 8 null
+ bsn 9 old segment
+ bsn 10 old segment
+ bsn 11 
+lime 0
+ bsn 12 
+lime 0
+ bsn 13 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 15 FBI 0 
+fn_same_bsn 4103 fn_last_bsn 4 delta_bsn 2 old_len 35
+ bsn 12 
+lime 0
+ bsn 13 old segment
+ bsn 14  bsn 15 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 19 FBI 0 
+fn_same_bsn 4065 fn_last_bsn 9 delta_bsn 4 old_len 0
+ bsn 12 
+lime 0
+ bsn 13 old segment
+ bsn 14  bsn 15 old segment
+ bsn 16 
+lime 0
+ bsn 17 
+lime 0
+ bsn 18 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 19 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 29 FBI 0 
+fn_same_bsn 3931 fn_last_bsn 22 delta_bsn 10 old_len 48
+ bsn 17 
+lime 0
+ bsn 18 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 19 old segment
+ bsn 20 
+lime 0
+ bsn 21 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 22 
+lime 0
+ bsn 23 
+lime 0
+ bsn 24 null
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 31 FBI 0 
+fn_same_bsn 3891 fn_last_bsn 4 delta_bsn 2 old_len 48
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 old segment
+ bsn 30 null
+ bsn 31 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 34 FBI 0 
+fn_same_bsn 3861 fn_last_bsn 9 delta_bsn 3 old_len 0
+ bsn 25 
+lime 0
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29 old segment
+ bsn 30 null
+ bsn 31 old segment
+ bsn 32  bsn 33 
+lime 0
+
+lime error!
+ bsn 34 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 24 FBI 0 
+fn_same_bsn 3917 fn_last_bsn 4 delta_bsn -10 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 26 FBI 0 
+fn_same_bsn 3943 fn_last_bsn 8 delta_bsn -8 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 32 FBI 0 
+fn_same_bsn 3414 fn_last_bsn 21 delta_bsn -2 old_len 50
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 34 FBI 0 
+fn_same_bsn 26 fn_last_bsn 26 delta_bsn 0 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 36 FBI 0 
+fn_same_bsn 3887 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 33 
+lime 0
+ bsn 34 old segment
+ bsn 35  bsn 36 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 38 FBI 0 
+fn_same_bsn 3887 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 33 
+lime 0
+ bsn 34 old segment
+ bsn 35  bsn 36 old segment
+ bsn 37 
+lime 0
+ bsn 38 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 40 FBI 0 
+fn_same_bsn 3415 fn_last_bsn 5 delta_bsn 2 old_len 50
+ bsn 37 
+lime 0
+ bsn 38 old segment
+ bsn 39  bsn 40 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 37 FBI 0 
+fn_same_bsn 3917 fn_last_bsn 8 delta_bsn -3 old_len 49
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 39 FBI 0 
+fn_same_bsn 3918 fn_last_bsn 13 delta_bsn -1 old_len 50
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 36 FBI 0 
+fn_same_bsn 26 fn_last_bsn 17 delta_bsn -4 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 38 FBI 0 
+fn_same_bsn 26 fn_last_bsn 21 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 40 FBI 0 
+fn_same_bsn 26 fn_last_bsn 26 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 42 FBI 0 
+fn_same_bsn 3917 fn_last_bsn 4 delta_bsn 2 old_len 49
+ bsn 37 
+lime 0
+ bsn 38  bsn 39  bsn 40 
+lime 0
+end of message reached
+MSG: 03c05d6500001645000038000040002f06df04364c75c3c01f1120abc1965ea60c31f0d55c55ae3cbc43ce8e7f5af9db38514f7b1f3dcaf7a6b839c02b000012ff0100010033740009084500003c0000400034063d045fd3e938c0a800040050e05b19d049c8d8cf3372a012389055cb0000020405b40402080aeee7f73e4bbd717654a3404f0744
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+ bsn 41 null
+ bsn 42 
+TS 4 CS4 DL DATA TFI 0 BSN 44 FBI 0 
+fn_same_bsn 3908 fn_last_bsn 4 delta_bsn 2 old_len 50
+ bsn 40 
+lime 0
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44 
+TS 4 CS4 DL DATA TFI 0 BSN 46 FBI 0 
+fn_same_bsn 3441 fn_last_bsn 5 delta_bsn 2 old_len 50
+ bsn 40 
+lime 0
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+end of message reached
+MSG: 01000436b70e872c7883
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 42 FBI 0 
+fn_same_bsn 13 fn_last_bsn 4 delta_bsn -4 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 44 FBI 0 
+fn_same_bsn 13 fn_last_bsn 8 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 46 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 42 FBI 0 
+fn_same_bsn 13 fn_last_bsn 4 delta_bsn -4 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 44 FBI 0 
+fn_same_bsn 13 fn_last_bsn 8 delta_bsn -2 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 47 FBI 0 
+fn_same_bsn 3905 fn_last_bsn 13 delta_bsn 1 old_len 49
+ bsn 40 
+lime 0
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 47 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 47 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 47 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 47 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 47 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 49 FBI 0 
+fn_same_bsn 1846 fn_last_bsn 18 delta_bsn 2 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 50 FBI 0 
+fn_same_bsn 3505 fn_last_bsn 26 delta_bsn 3 old_len 50
+ bsn 40 
+lime 0
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50 
+TS 4 CS4 DL DATA TFI 0 BSN 52 FBI 0 
+fn_same_bsn 3506 fn_last_bsn 5 delta_bsn 2 old_len 50
+ bsn 40 
+lime 0
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50  bsn 51  bsn 52 
+TS 4 CS4 DL DATA TFI 0 BSN 56 FBI 0 
+fn_same_bsn 1824 fn_last_bsn 8 delta_bsn 4 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 1825 fn_last_bsn 13 delta_bsn 6 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 60 FBI 0 
+fn_same_bsn 3848 fn_last_bsn 17 delta_bsn 8 old_len 49
+ bsn 40 
+lime 0
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55  bsn 56  bsn 57  bsn 58  bsn 59  bsn 60 old segment
+
+TS 4 CS4 DL DATA TFI 0 BSN 53 FBI 0 
+fn_same_bsn 1881 fn_last_bsn 13 delta_bsn -7 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 57 FBI 0 
+fn_same_bsn 1881 fn_last_bsn 22 delta_bsn -3 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 64 FBI 0 
+fn_same_bsn 1842 fn_last_bsn 26 delta_bsn 4 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 66 FBI 0 
+fn_same_bsn 3852 fn_last_bsn 30 delta_bsn 6 old_len 50
+ bsn 40 
+lime 0
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55  bsn 56  bsn 57  bsn 58  bsn 59  bsn 60 old segment
+ bsn 61  bsn 62  bsn 63  bsn 64  bsn 65 null
+ bsn 66 
+lime 0
+end of message reached
+MSG: 840abbd16d8010007b8e8400000101080a1639dcbc01cbd5c461f664
+
+TS 4 CS4 DL DATA TFI 0 BSN 63 FBI 0 
+fn_same_bsn 3246 fn_last_bsn 5 delta_bsn -3 old_len 50
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 65 FBI 0 
+fn_same_bsn 3874 fn_last_bsn 9 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 67 FBI 0 
+fn_same_bsn 3874 fn_last_bsn 13 delta_bsn 1 old_len 0
+ bsn 66 
+lime 0
+ bsn 67 
+lime 0
+end of message reached
+MSG: 03c1c56500004b4500003437bf40003206fde657fafa77c0a8000401bb95e397cdfe840abbd16d8011007b8e8300000101080a1639dcbc01cbd5c4da773a
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 64 FBI 0 
+fn_same_bsn 1864 fn_last_bsn 5 delta_bsn -3 old_len 50
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 68 FBI 0 
+fn_same_bsn 1859 fn_last_bsn 9 delta_bsn 1 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 70 FBI 0 
+fn_same_bsn 3852 fn_last_bsn 13 delta_bsn 3 old_len 49
+ bsn 67 
+lime 0
+
+lime 1
+ bsn 68  bsn 69 old segment
+ bsn 70 
+lime 0
+end of message reached
+MSG: 2d616e616c7974696373016c06676f6f676c65c021c036000100010000005e0004d83ad34e48fecd
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 72 FBI 0 
+fn_same_bsn 3835 fn_last_bsn 13 delta_bsn 2 old_len 48
+ bsn 67 
+lime 0
+
+lime 1
+ bsn 68  bsn 69 old segment
+ bsn 70 
+lime 0
+
+lime 1
+ bsn 71 old segment
+ bsn 72 
+lime 0
+end of message reached
+MSG: 23
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 72 FBI 0 
+fn_same_bsn 9 fn_last_bsn 9 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 72 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 72 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 72 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 73 FBI 0 
+fn_same_bsn 3575 fn_last_bsn 9 delta_bsn 1 old_len 50
+ bsn 67 
+lime 0
+
+lime 1
+ bsn 68  bsn 69 old segment
+ bsn 70 
+lime 0
+
+lime 1
+ bsn 71 old segment
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73 
+TS 4 CS4 DL DATA TFI 0 BSN 74 FBI 0 
+fn_same_bsn 3869 fn_last_bsn 8 delta_bsn 1 old_len 50
+ bsn 67 
+lime 0
+
+lime 1
+ bsn 68  bsn 69 old segment
+ bsn 70 
+lime 0
+
+lime 1
+ bsn 71 old segment
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73  bsn 74 
+lime 0
+end of message reached
+MSG: 03c1d16500004e4500003c0000400034063d055fd3e937c0a800040050e85c23fe0d33dbc2bd33a0123890a0b00000020405b40402080aeee7eb4501cbd62a010303075247e3
+
+TS 4 CS4 DL DATA TFI 0 BSN 74 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 76 FBI 0 
+fn_same_bsn 3883 fn_last_bsn 5 delta_bsn 2 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76 
+TS 4 CS4 DL DATA TFI 0 BSN 77 FBI 0 
+fn_same_bsn 3610 fn_last_bsn 17 delta_bsn 1 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+end of message reached
+MSG: 03c1d9650000504500003c000040002b06d71736b78141c0a800040050a2efb3d3d9ab159e9e3ca01238909dee0000020405b40402080af609464e01cbd60e01030308bff2bd
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 77 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 77 FBI 0 
+fn_same_bsn 9 fn_last_bsn 9 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 77 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 77 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 77 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 77 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 77 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 83 FBI 0 
+fn_same_bsn 3658 fn_last_bsn 26 delta_bsn 6 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79 old segment
+ bsn 80 old segment
+ bsn 81 old segment
+ bsn 82 old segment
+ bsn 83 
+lime 0
+end of message reached
+MSG: 960402080aa3c65a3801cbd64201030307abdf87
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 83 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 81 FBI 0 
+fn_same_bsn 3683 fn_last_bsn 8 delta_bsn -2 old_len 50
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 83 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 79 FBI 0 
+fn_same_bsn 3705 fn_last_bsn 13 delta_bsn -4 old_len 50
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 87 FBI 0 
+fn_same_bsn 3696 fn_last_bsn 21 delta_bsn 4 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+end of message reached
+MSG: 960402080aa3c6607c01cbd65d0103030772f846
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 89 FBI 0 
+fn_same_bsn 3697 fn_last_bsn 5 delta_bsn 2 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+end of message reached
+MSG: 960402080aa43557eb01cbd668010303073b787f
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 87 FBI 0 
+fn_same_bsn 13 fn_last_bsn 8 delta_bsn -2 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 91 FBI 0 
+fn_same_bsn 3709 fn_last_bsn 17 delta_bsn 2 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90 old segment
+ bsn 91 
+lime 0
+end of message reached
+MSG: 960402080aa3c65b6401cbd64201030307b35ba6
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 89 FBI 0 
+fn_same_bsn 21 fn_last_bsn 4 delta_bsn -2 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 92 FBI 0 
+fn_same_bsn 4021 fn_last_bsn 26 delta_bsn 1 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90 old segment
+ bsn 91 
+lime 0
+
+lime 1
+ bsn 92 
+TS 4 CS4 DL DATA TFI 0 BSN 122 FBI 0 
+fn_same_bsn 3731 fn_last_bsn 65 delta_bsn 30 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90 old segment
+ bsn 91 
+lime 0
+
+lime 1
+ bsn 92  bsn 93 old segment
+ bsn 94 old segment
+ bsn 95 old segment
+ bsn 96 old segment
+ bsn 97 old segment
+ bsn 98 old segment
+ bsn 99 old segment
+ bsn 100 old segment
+ bsn 101 old segment
+ bsn 102 old segment
+ bsn 103 old segment
+ bsn 104 null
+ bsn 105 old segment
+ bsn 106 old segment
+ bsn 107 old segment
+ bsn 108 old segment
+ bsn 109 old segment
+ bsn 110 old segment
+ bsn 111 old segment
+ bsn 112 old segment
+ bsn 113 old segment
+ bsn 114 old segment
+ bsn 115 old segment
+ bsn 116 old segment
+ bsn 117 old segment
+ bsn 118 old segment
+ bsn 119 old segment
+ bsn 120 old segment
+ bsn 121 old segment
+ bsn 122 
+TS 4 CS4 DL DATA TFI 0 BSN 124 FBI 0 
+fn_same_bsn 3731 fn_last_bsn 4 delta_bsn 2 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90 old segment
+ bsn 91 
+lime 0
+
+lime 1
+ bsn 92  bsn 93 old segment
+ bsn 94 old segment
+ bsn 95 old segment
+ bsn 96 old segment
+ bsn 97 old segment
+ bsn 98 old segment
+ bsn 99 old segment
+ bsn 100 old segment
+ bsn 101 old segment
+ bsn 102 old segment
+ bsn 103 old segment
+ bsn 104 null
+ bsn 105 old segment
+ bsn 106 old segment
+ bsn 107 old segment
+ bsn 108 old segment
+ bsn 109 old segment
+ bsn 110 old segment
+ bsn 111 old segment
+ bsn 112 old segment
+ bsn 113 old segment
+ bsn 114 old segment
+ bsn 115 old segment
+ bsn 116 old segment
+ bsn 117 old segment
+ bsn 118 old segment
+ bsn 119 old segment
+ bsn 120 old segment
+ bsn 121 old segment
+ bsn 122  bsn 123 old segment
+ bsn 124 
+TS 4 CS4 DL DATA TFI 0 BSN 13 FBI 0 
+fn_same_bsn 628 fn_last_bsn 39 delta_bsn -111 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90 old segment
+ bsn 91 
+lime 0
+
+lime 1
+ bsn 92  bsn 93 old segment
+ bsn 94 old segment
+ bsn 95 old segment
+ bsn 96 old segment
+ bsn 97 old segment
+ bsn 98 old segment
+ bsn 99 old segment
+ bsn 100 old segment
+ bsn 101 old segment
+ bsn 102 old segment
+ bsn 103 old segment
+ bsn 104 null
+ bsn 105 old segment
+ bsn 106 old segment
+ bsn 107 old segment
+ bsn 108 old segment
+ bsn 109 old segment
+ bsn 110 old segment
+ bsn 111 old segment
+ bsn 112 old segment
+ bsn 113 old segment
+ bsn 114 old segment
+ bsn 115 old segment
+ bsn 116 old segment
+ bsn 117 old segment
+ bsn 118 old segment
+ bsn 119 old segment
+ bsn 120 old segment
+ bsn 121 old segment
+ bsn 122  bsn 123 old segment
+ bsn 124  bsn 125 old segment
+ bsn 126 old segment
+ bsn 127 old segment
+ bsn 0 old segment
+ bsn 1  bsn 2 old segment
+ bsn 3  bsn 4 null
+ bsn 5  bsn 6 old segment
+ bsn 7  bsn 8 null
+ bsn 9  bsn 10 old segment
+ bsn 11 old segment
+ bsn 12 old segment
+ bsn 13 
+TS 4 CS4 DL DATA TFI 0 BSN 27 FBI 0 
+fn_same_bsn 4559 fn_last_bsn 31 delta_bsn 14 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90 old segment
+ bsn 91 
+lime 0
+
+lime 1
+ bsn 92  bsn 93 old segment
+ bsn 94 old segment
+ bsn 95 old segment
+ bsn 96 old segment
+ bsn 97 old segment
+ bsn 98 old segment
+ bsn 99 old segment
+ bsn 100 old segment
+ bsn 101 old segment
+ bsn 102 old segment
+ bsn 103 old segment
+ bsn 104 null
+ bsn 105 old segment
+ bsn 106 old segment
+ bsn 107 old segment
+ bsn 108 old segment
+ bsn 109 old segment
+ bsn 110 old segment
+ bsn 111 old segment
+ bsn 112 old segment
+ bsn 113 old segment
+ bsn 114 old segment
+ bsn 115 old segment
+ bsn 116 old segment
+ bsn 117 old segment
+ bsn 118 old segment
+ bsn 119 old segment
+ bsn 120 old segment
+ bsn 121 old segment
+ bsn 122  bsn 123 old segment
+ bsn 124  bsn 125 old segment
+ bsn 126 old segment
+ bsn 127 old segment
+ bsn 0 old segment
+ bsn 1  bsn 2 old segment
+ bsn 3  bsn 4 null
+ bsn 5  bsn 6 old segment
+ bsn 7  bsn 8 null
+ bsn 9  bsn 10 old segment
+ bsn 11 old segment
+ bsn 12 old segment
+ bsn 13  bsn 14 old segment
+ bsn 15  bsn 16 old segment
+ bsn 17 old segment
+ bsn 18 old segment
+ bsn 19 
+lime 0
+end of message reached
+MSG: c9c9
+ bsn 20 old segment
+ bsn 21 old segment
+ bsn 22 old segment
+ bsn 23 old segment
+ bsn 24 null
+ bsn 25 old segment
+ bsn 26 null
+ bsn 27 
+TS 4 CS3 DL DATA TFI 0 BSN 51 FBI 0 
+fn_same_bsn 2392 fn_last_bsn 82 delta_bsn 24 old_len 50
+ bsn 19 
+lime 0
+ bsn 20 old segment
+ bsn 21 old segment
+ bsn 22 old segment
+ bsn 23 old segment
+ bsn 24 null
+ bsn 25 old segment
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29  bsn 30 null
+ bsn 31 
+lime 0
+end of message reached
+MSG: 86028727b54aaec540b87534a56f099c3abd
+ bsn 32  bsn 33 old segment
+ bsn 34  bsn 35 old segment
+ bsn 36  bsn 37 
+lime 0
+
+lime error!
+ bsn 38  bsn 39  bsn 40 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50  bsn 51 
+TS 4 CS3 DL DATA TFI 0 BSN 55 FBI 0 
+fn_same_bsn 2392 fn_last_bsn 9 delta_bsn 4 old_len 50
+ bsn 37 
+lime 0
+ bsn 38  bsn 39  bsn 40 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55 
+TS 4 CS3 DL DATA TFI 0 BSN 57 FBI 0 
+fn_same_bsn 511 fn_last_bsn 4 delta_bsn 2 old_len 50
+fucking error d_bsn!
+
+TS 4 CS3 DL DATA TFI 0 BSN 55 FBI 0 
+fn_same_bsn 17 fn_last_bsn 17 delta_bsn 0 old_len 36
+duplicate2
+
+TS 4 CS3 DL DATA TFI 0 BSN 57 FBI 0 
+fn_same_bsn 528 fn_last_bsn 4 delta_bsn 2 old_len 50
+fucking error d_bsn!
+
+TS 4 CS3 DL DATA TFI 0 BSN 54 FBI 0 
+fn_same_bsn 2392 fn_last_bsn 9 delta_bsn -1 old_len 0
+duplicate
+
+TS 4 CS3 DL DATA TFI 0 BSN 56 FBI 0 
+fn_same_bsn 2392 fn_last_bsn 13 delta_bsn 1 old_len 50
+ bsn 37 
+lime 0
+ bsn 38  bsn 39  bsn 40 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55  bsn 56 
+TS 4 CS3 DL DATA TFI 0 BSN 58 FBI 0 
+fn_same_bsn 2392 fn_last_bsn 4 delta_bsn 2 old_len 50
+ bsn 37 
+lime 0
+ bsn 38  bsn 39  bsn 40 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55  bsn 56  bsn 57  bsn 58 
+lime 0
+end of message reached
+MSG: 0e000037116eb308080808c0a8000400357aea005c6e58ce5f8180000100020000000007616e64726f696407636c69656e747306676f6f676c6503636f6d0000010001c00c000500e98e95f24fc0197bdcd2efd3a7c91c164d46fbc132b155951b986dda15244ccbd3cbced0e833245333cb33a8ff9d2c0bed949f7c
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS3 DL DATA TFI 0 BSN 55 FBI 0 
+fn_same_bsn 22 fn_last_bsn 5 delta_bsn -3 old_len 36
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 68 FBI 0 
+fn_same_bsn 2435 fn_last_bsn 65 delta_bsn 10 old_len 50
+ bsn 37 
+lime 0
+ bsn 38  bsn 39  bsn 40 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 old segment
+ bsn 46 
+lime 0
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55  bsn 56  bsn 57  bsn 58 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 59 old segment
+ bsn 60  bsn 61 old segment
+ bsn 62  bsn 63  bsn 64  bsn 65 null
+ bsn 66 
+lime 0
+ bsn 67 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 68 
+TS 4 CS4 DL DATA TFI 0 BSN 90 FBI 0 
+fn_same_bsn 4403 fn_last_bsn 48 delta_bsn 22 old_len 50
+ bsn 66 
+lime 0
+ bsn 67 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 68  bsn 69 old segment
+ bsn 70 
+lime 0
+
+lime 1
+ bsn 71 old segment
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73  bsn 74 
+lime 0
+
+lime error!
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90 
+TS 4 CS4 DL DATA TFI 0 BSN 100 FBI 0 
+fn_same_bsn 4446 fn_last_bsn 65 delta_bsn 10 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90  bsn 91 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 92  bsn 93 old segment
+ bsn 94 old segment
+ bsn 95 old segment
+ bsn 96 old segment
+ bsn 97 old segment
+ bsn 98 old segment
+ bsn 99 old segment
+ bsn 100 
+TS 4 CS4 DL DATA TFI 0 BSN 12 FBI 0 
+fn_same_bsn 4117 fn_last_bsn 52 delta_bsn -88 old_len 49
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90  bsn 91 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 92  bsn 93 old segment
+ bsn 94 old segment
+ bsn 95 old segment
+ bsn 96 old segment
+ bsn 97 old segment
+ bsn 98 old segment
+ bsn 99 old segment
+ bsn 100  bsn 101 old segment
+ bsn 102 old segment
+ bsn 103 old segment
+ bsn 104 null
+ bsn 105 old segment
+ bsn 106 old segment
+ bsn 107 old segment
+ bsn 108 old segment
+ bsn 109 old segment
+ bsn 110 old segment
+ bsn 111 old segment
+ bsn 112 old segment
+ bsn 113 old segment
+ bsn 114 old segment
+ bsn 115 old segment
+ bsn 116 old segment
+ bsn 117 old segment
+ bsn 118 old segment
+ bsn 119 old segment
+ bsn 120 old segment
+ bsn 121 old segment
+ bsn 122  bsn 123 old segment
+ bsn 124  bsn 125 old segment
+ bsn 126 old segment
+ bsn 127 old segment
+ bsn 0 old segment
+ bsn 1  bsn 2 old segment
+ bsn 3  bsn 4 null
+ bsn 5  bsn 6 old segment
+ bsn 7  bsn 8 null
+ bsn 9  bsn 10 old segment
+ bsn 11 old segment
+ bsn 12 
+TS 4 CS4 DL DATA TFI 0 BSN 45 FBI 0 
+fn_same_bsn 4845 fn_last_bsn 74 delta_bsn 33 old_len 48
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90  bsn 91 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 92  bsn 93 old segment
+ bsn 94 old segment
+ bsn 95 old segment
+ bsn 96 old segment
+ bsn 97 old segment
+ bsn 98 old segment
+ bsn 99 old segment
+ bsn 100  bsn 101 old segment
+ bsn 102 old segment
+ bsn 103 old segment
+ bsn 104 null
+ bsn 105 old segment
+ bsn 106 old segment
+ bsn 107 old segment
+ bsn 108 old segment
+ bsn 109 old segment
+ bsn 110 old segment
+ bsn 111 old segment
+ bsn 112 old segment
+ bsn 113 old segment
+ bsn 114 old segment
+ bsn 115 old segment
+ bsn 116 old segment
+ bsn 117 old segment
+ bsn 118 old segment
+ bsn 119 old segment
+ bsn 120 old segment
+ bsn 121 old segment
+ bsn 122  bsn 123 old segment
+ bsn 124  bsn 125 old segment
+ bsn 126 old segment
+ bsn 127 old segment
+ bsn 0 old segment
+ bsn 1  bsn 2 old segment
+ bsn 3  bsn 4 null
+ bsn 5  bsn 6 old segment
+ bsn 7  bsn 8 null
+ bsn 9  bsn 10 old segment
+ bsn 11 old segment
+ bsn 12  bsn 13  bsn 14 old segment
+ bsn 15  bsn 16 old segment
+ bsn 17 old segment
+ bsn 18 old segment
+ bsn 19 
+lime 0
+ bsn 20 old segment
+ bsn 21 old segment
+ bsn 22 old segment
+ bsn 23 old segment
+ bsn 24 null
+ bsn 25 old segment
+ bsn 26 null
+ bsn 27  bsn 28 null
+ bsn 29  bsn 30 null
+ bsn 31 
+lime 0
+ bsn 32  bsn 33 old segment
+ bsn 34  bsn 35 old segment
+ bsn 36  bsn 37 
+lime 0
+
+lime error!
+ bsn 38  bsn 39  bsn 40 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45 
+TS 4 CS4 DL DATA TFI 0 BSN 55 FBI 0 
+fn_same_bsn 320 fn_last_bsn 21 delta_bsn 10 old_len 36
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 125 FBI 0 
+fn_same_bsn 4702 fn_last_bsn 186 delta_bsn 80 old_len 50
+ bsn 37 
+lime 0
+ bsn 38  bsn 39  bsn 40 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 41 null
+ bsn 42  bsn 43 null
+ bsn 44  bsn 45  bsn 46 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 47 
+lime 0
+ bsn 48 old segment
+ bsn 49 
+lime 0
+ bsn 50  bsn 51  bsn 52  bsn 53  bsn 54 null
+ bsn 55  bsn 56  bsn 57  bsn 58 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 59 old segment
+ bsn 60  bsn 61 old segment
+ bsn 62  bsn 63  bsn 64  bsn 65 null
+ bsn 66 
+lime 0
+ bsn 67 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 68  bsn 69 old segment
+ bsn 70 
+lime 0
+
+lime 1
+ bsn 71 old segment
+ bsn 72 
+lime 0
+
+lime 1
+ bsn 73  bsn 74 
+lime 0
+
+lime error!
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90  bsn 91 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 92  bsn 93 old segment
+ bsn 94 old segment
+ bsn 95 old segment
+ bsn 96 old segment
+ bsn 97 old segment
+ bsn 98 old segment
+ bsn 99 old segment
+ bsn 100  bsn 101 old segment
+ bsn 102 old segment
+ bsn 103 old segment
+ bsn 104 null
+ bsn 105 old segment
+ bsn 106 old segment
+ bsn 107 old segment
+ bsn 108 old segment
+ bsn 109 old segment
+ bsn 110 old segment
+ bsn 111 old segment
+ bsn 112 old segment
+ bsn 113 old segment
+ bsn 114 old segment
+ bsn 115 old segment
+ bsn 116 old segment
+ bsn 117 old segment
+ bsn 118 old segment
+ bsn 119 old segment
+ bsn 120 old segment
+ bsn 121 old segment
+ bsn 122  bsn 123 old segment
+ bsn 124  bsn 125 
+TS 4 CS4 DL DATA TFI 0 BSN 7 FBI 0 
+fn_same_bsn 1309 fn_last_bsn 22 delta_bsn -118 old_len 50
+ bsn 74 
+lime 0
+ bsn 75 old segment
+ bsn 76  bsn 77 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 78 old segment
+ bsn 79  bsn 80 old segment
+ bsn 81  bsn 82 old segment
+ bsn 83 
+lime 0
+
+lime 1
+ bsn 84 old segment
+ bsn 85 old segment
+ bsn 86 old segment
+ bsn 87 
+lime 0
+
+lime 1
+ bsn 88 old segment
+ bsn 89 
+lime 0
+
+lime 1
+ bsn 90  bsn 91 
+lime 0
+
+lime error!
+
+lime 1
+ bsn 92  bsn 93 old segment
+ bsn 94 old segment
+ bsn 95 old segment
+ bsn 96 old segment
+ bsn 97 old segment
+ bsn 98 old segment
+ bsn 99 old segment
+ bsn 100  bsn 101 old segment
+ bsn 102 old segment
+ bsn 103 old segment
+ bsn 104 null
+ bsn 105 old segment
+ bsn 106 old segment
+ bsn 107 old segment
+ bsn 108 old segment
+ bsn 109 old segment
+ bsn 110 old segment
+ bsn 111 old segment
+ bsn 112 old segment
+ bsn 113 old segment
+ bsn 114 old segment
+ bsn 115 old segment
+ bsn 116 old segment
+ bsn 117 old segment
+ bsn 118 old segment
+ bsn 119 old segment
+ bsn 120 old segment
+ bsn 121 old segment
+ bsn 122  bsn 123 old segment
+ bsn 124  bsn 125  bsn 126 old segment
+ bsn 127 old segment
+ bsn 0 old segment
+ bsn 1  bsn 2 old segment
+ bsn 3  bsn 4 null
+ bsn 5  bsn 6 old segment
+ bsn 7 
+lime 0
+end of message reached
+MSG: 0100000035000436b7cfd882fd7f
+
+TS 4 CS4 DL DATA TFI 0 BSN 4 FBI 0 
+fn_same_bsn 5529 fn_last_bsn 30 delta_bsn -3 old_len 0
+duplicate
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 5317 fn_last_bsn 86 delta_bsn 16 old_len 49
+ bsn 7 
+lime 0
+ bsn 8 null
+ bsn 9  bsn 10 old segment
+ bsn 11 old segment
+ bsn 12  bsn 13  bsn 14 old segment
+ bsn 15  bsn 16 old segment
+ bsn 17 old segment
+ bsn 18 old segment
+ bsn 19 
+lime 0
+ bsn 20 old segment
+ bsn 21 old segment
+ bsn 22 old segment
+ bsn 23 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 23 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 25 FBI 0 
+fn_same_bsn 5317 fn_last_bsn 18 delta_bsn 2 old_len 49
+ bsn 19 
+lime 0
+ bsn 20 old segment
+ bsn 21 old segment
+ bsn 22 old segment
+ bsn 23 
+lime 0
+ bsn 24 null
+ bsn 25 
+lime 0
+end of message reached
+MSG: 010402080a1bdb7b6501cbd7ad4c0575
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 27 FBI 0 
+fn_same_bsn 758 fn_last_bsn 4 delta_bsn 2 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 25 FBI 0 
+fn_same_bsn 8 fn_last_bsn 8 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 28 FBI 0 
+fn_same_bsn 5304 fn_last_bsn 13 delta_bsn 3 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 old segment
+ bsn 21 old segment
+ bsn 22 old segment
+ bsn 23 
+lime 0
+ bsn 24 null
+ bsn 25 
+lime 0
+
+lime 1
+ bsn 26 null
+ bsn 27  bsn 28 
+lime 0
+end of message reached
+MSG: 5472616e736665722d456e636f64696e673a206368756e6b65640d0a436f6e6e656374696f6e3a206b6565702d616c69766543c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 28 FBI 0 
+fn_same_bsn 13 fn_last_bsn 13 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 28 FBI 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 28 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 28 FBI 0 
+fn_same_bsn 9 fn_last_bsn 9 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 28 FBI 0 
+fn_same_bsn 17 fn_last_bsn 17 delta_bsn 0 old_len 49
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 30 FBI 0 
+fn_same_bsn 5317 fn_last_bsn 4 delta_bsn 2 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 old segment
+ bsn 21 old segment
+ bsn 22 old segment
+ bsn 23 
+lime 0
+ bsn 24 null
+ bsn 25 
+lime 0
+
+lime 1
+ bsn 26 null
+ bsn 27  bsn 28 
+lime 0
+
+lime error!
+ bsn 29  bsn 30 
+lime 0
+end of message reached
+MSG: 40d486f6b93071160dffd2ad4c133ca892764b19c946f823996fb70573d9939ab7e19c9776447e75551957a5f0ffa3e4e75d960402080aa3c66aa701cbd7b1010303076209bb
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 4 CS4 DL DATA TFI 0 BSN 30 FBI 0 
+fn_same_bsn 18 fn_last_bsn 18 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 30 FBI 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 48
+duplicate2
+
+TS 4 CS4 DL DATA TFI 0 BSN 31 FBI 0 
+fn_same_bsn 1478 fn_last_bsn 9 delta_bsn 1 old_len 49
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 32 FBI 0 
+fn_same_bsn 1456 fn_last_bsn 17 delta_bsn 2 old_len 50
+fucking error d_bsn!
+
+TS 4 CS4 DL DATA TFI 0 BSN 31 FBI 0 
+fn_same_bsn 1491 fn_last_bsn 22 delta_bsn 1 old_len 49
+fucking error d_bsn!
+

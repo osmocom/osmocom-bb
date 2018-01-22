@@ -13,7 +13,7 @@ TOPDIR=$(shell pwd)
 
 all: libosmocore-target nofirmware firmware mtk-firmware
 
-nofirmware: layer23 osmocon gsmmap virtphy
+nofirmware: layer23 osmocon gsmmap gprsdecode virtphy
 
 libosmocore-target: shared/libosmocore/build-target/src/.libs/libosmocore.a
 
@@ -83,6 +83,17 @@ host/layer23/Makefile: host/layer23/configure
 host/layer23/layer23: host/layer23/Makefile
 	make -C host/layer23
 
+.PHONY: gprsdecode
+gprsdecode: host/gprsdecode/gprsdecode
+
+host/gprsdecode/configure: host/gprsdecode/configure.ac
+	cd host/gprsdecode && autoreconf -i
+
+host/gprsdecode/Makefile: host/gprsdecode/configure
+	cd host/gprsdecode && ./configure $(HOST_CONFARGS)
+
+host/gprsdecode/gprsdecode: host/gprsdecode/Makefile
+	make -C host/gprsdecode
 
 .PHONY: firmware
 firmware: libosmocore-target
@@ -98,6 +109,7 @@ clean:
 	make -C host/layer23 $@
 	make -C host/osmocon $@
 	make -C host/gsmmap $@
+	make -C host/gprsdecode $@
 	make -C host/virt_phy $@
 	make -C target/firmware $@
 	make -C target/firmware -f Makefile.mtk $@
@@ -107,6 +119,7 @@ distclean:
 	make -C host/layer23 $@
 	make -C host/osmocon $@
 	make -C host/gsmmap $@
+	make -C host/gprsdecode $@
 	make -C host/virt_phy $@
 # 'firmware' also handles 'mtk-firmware'
 	make -C target/firmware $@

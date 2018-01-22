@@ -1,0 +1,450 @@
+TS 7 CS2 UL DATA TFI 21 BSN 0 CV 1 
+fn_same_bsn 494819 fn_last_bsn 494819 delta_bsn 0 old_len 0
+clearing TBF 22, first 0 last 0
+new TBF, starting from 0
+ bsn 0 
+TS 7 CS2 UL DATA TFI 21 BSN 1 CV 0 
+fn_same_bsn 494823 fn_last_bsn 4 delta_bsn 1 old_len 0
+ bsn 0  bsn 1 
+lime 0
+end of message reached
+MSG: 01c001080102e5e071070405f41b40072b62f208000100121953422ae57ef909006aa4d594321200d5401716cfabbb
+
+TS 7 CS2 UL DATA TFI 21 BSN 0 CV 1 
+fn_same_bsn 8 fn_last_bsn 4 delta_bsn -1 old_len 30
+duplicate2
+
+TS 7 CS2 UL DATA TFI 21 BSN 1 CV 0 
+fn_same_bsn 9 fn_last_bsn 9 delta_bsn 0 old_len 29
+duplicate2
+
+TS 7 CS2 UL DATA TFI 21 BSN 0 CV 1 
+fn_same_bsn 9 fn_last_bsn 4 delta_bsn -1 old_len 30
+duplicate2
+
+TS 7 CS2 DL DATA TFI 16 BSN 0 FBI 0 
+fn_same_bsn 494866 fn_last_bsn 494866 delta_bsn 0 old_len 0
+clearing TBF 17, first 0 last 0
+new TBF, starting from 0
+ bsn 0 
+lime 0
+end of message reached
+MSG: 01c0010802012a0462f2080001001805f444f70250b6151a
+
+TS 7 CS4 DL DATA TFI 16 BSN 1 FBI 0 
+fn_same_bsn 494897 fn_last_bsn 31 delta_bsn 1 old_len 0
+ bsn 0 
+lime 0
+ bsn 1 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 2 FBI 0 
+fn_same_bsn 494914 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 1 
+lime 0
+
+lime 1
+ bsn 2 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 3 FBI 0 
+fn_same_bsn 494936 fn_last_bsn 22 delta_bsn 1 old_len 0
+ bsn 2 
+lime 0
+ bsn 3 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 UL DATA TFI 20 BSN 0 CV 0 
+fn_same_bsn 494953 fn_last_bsn 494953 delta_bsn 0 old_len 0
+clearing TBF 21, first 1 last 1
+ bsn 1 
+lime 0
+new TBF, starting from 0
+ bsn 0 
+lime 0
+end of message reached
+MSG: 01c00508038d8a47
+
+TS 7 CS4 UL DATA TFI 20 BSN 0 CV 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 7 CS4 UL DATA TFI 20 BSN 0 CV 0 
+fn_same_bsn 5 fn_last_bsn 5 delta_bsn 0 old_len 49
+duplicate2
+
+TS 7 CS4 UL DATA TFI 20 BSN 0 CV 0 
+fn_same_bsn 4 fn_last_bsn 4 delta_bsn 0 old_len 49
+duplicate2
+
+TS 7 CS4 DL DATA TFI 16 BSN 4 FBI 0 
+fn_same_bsn 494992 fn_last_bsn 56 delta_bsn 1 old_len 0
+ bsn 3 
+lime 0
+ bsn 4 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 5 FBI 0 
+fn_same_bsn 495009 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 4 
+lime 0
+ bsn 5 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 6 FBI 0 
+fn_same_bsn 495031 fn_last_bsn 22 delta_bsn 1 old_len 0
+ bsn 5 
+lime 0
+ bsn 6 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 UL DATA TFI 19 BSN 0 CV 1 
+fn_same_bsn 495048 fn_last_bsn 495048 delta_bsn 0 old_len 0
+clearing TBF 20, first 0 last 0
+ bsn 0 
+lime 0
+new TBF, starting from 0
+ bsn 0 
+TS 7 CS4 UL DATA TFI 19 BSN 1 CV 0 
+fn_same_bsn 495053 fn_last_bsn 5 delta_bsn 1 old_len 0
+ bsn 0  bsn 1 
+lime 0
+end of message reached
+MSG: 01c0090a4105030e00001f10000000000000000000000201212806056a7564666f272680c0230f0100000f04666a6b640567666a6d668021100100001081060000000083060000000032e5d0
+
+TS 7 CS4 UL DATA TFI 19 BSN 0 CV 1 
+fn_same_bsn 9 fn_last_bsn 4 delta_bsn -1 old_len 50
+duplicate2
+
+TS 7 CS4 UL DATA TFI 19 BSN 1 CV 0 
+fn_same_bsn 8 fn_last_bsn 8 delta_bsn 0 old_len 49
+duplicate2
+
+TS 7 CS4 DL DATA TFI 16 BSN 7 FBI 0 
+fn_same_bsn 495066 fn_last_bsn 35 delta_bsn 1 old_len 0
+ bsn 6 
+lime 0
+ bsn 7 
+TS 7 CS4 UL DATA TFI 19 BSN 0 CV 1 
+fn_same_bsn 9 fn_last_bsn 5 delta_bsn -1 old_len 50
+duplicate2
+
+TS 7 CS4 DL DATA TFI 16 BSN 8 FBI 0 
+fn_same_bsn 495074 fn_last_bsn 8 delta_bsn 1 old_len 0
+ bsn 6 
+lime 0
+ bsn 7  bsn 8 
+lime 0
+end of message reached
+MSG: 01c0058a42030e23621f72993f3f1143ffff000000002b0601210a00000627148080211002000010810608080808830600000000d68800
+
+lime 1
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 9 FBI 0 
+fn_same_bsn 495096 fn_last_bsn 22 delta_bsn 1 old_len 0
+ bsn 8 
+lime 0
+
+lime 1
+ bsn 9 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 10 FBI 0 
+fn_same_bsn 495113 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 9 
+lime 0
+ bsn 10 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 11 FBI 0 
+fn_same_bsn 495131 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 10 
+lime 0
+ bsn 11 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 12 FBI 0 
+fn_same_bsn 495148 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 11 
+lime 0
+ bsn 12 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 13 FBI 0 
+fn_same_bsn 495165 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 12 
+lime 0
+ bsn 13 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 14 FBI 0 
+fn_same_bsn 495183 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 13 
+lime 0
+ bsn 14 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 15 FBI 0 
+fn_same_bsn 495200 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 14 
+lime 0
+ bsn 15 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 16 FBI 0 
+fn_same_bsn 495217 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 15 
+lime 0
+ bsn 16 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 17 FBI 0 
+fn_same_bsn 495235 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 16 
+lime 0
+ bsn 17 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 18 FBI 0 
+fn_same_bsn 495252 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 17 
+lime 0
+ bsn 18 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 19 FBI 0 
+fn_same_bsn 495269 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 18 
+lime 0
+ bsn 19 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 20 FBI 0 
+fn_same_bsn 495287 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 19 
+lime 0
+ bsn 20 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 21 FBI 0 
+fn_same_bsn 495304 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 20 
+lime 0
+ bsn 21 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 22 FBI 0 
+fn_same_bsn 495321 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 21 
+lime 0
+ bsn 22 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 23 FBI 0 
+fn_same_bsn 495339 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 22 
+lime 0
+ bsn 23 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 24 FBI 0 
+fn_same_bsn 495356 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 23 
+lime 0
+ bsn 24 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 25 FBI 0 
+fn_same_bsn 495373 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 24 
+lime 0
+ bsn 25 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 26 FBI 0 
+fn_same_bsn 495391 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 25 
+lime 0
+ bsn 26 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 27 FBI 0 
+fn_same_bsn 495408 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 26 
+lime 0
+ bsn 27 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 28 FBI 0 
+fn_same_bsn 495425 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 27 
+lime 0
+ bsn 28 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 29 FBI 0 
+fn_same_bsn 495443 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 28 
+lime 0
+ bsn 29 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 30 FBI 0 
+fn_same_bsn 495460 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 29 
+lime 0
+ bsn 30 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 31 FBI 0 
+fn_same_bsn 495477 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 30 
+lime 0
+ bsn 31 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 32 FBI 0 
+fn_same_bsn 495495 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 31 
+lime 0
+ bsn 32 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 33 FBI 0 
+fn_same_bsn 495512 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 32 
+lime 0
+ bsn 33 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 34 FBI 0 
+fn_same_bsn 495529 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 33 
+lime 0
+ bsn 34 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 35 FBI 0 
+fn_same_bsn 495547 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 34 
+lime 0
+ bsn 35 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 36 FBI 0 
+fn_same_bsn 495564 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 35 
+lime 0
+ bsn 36 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 37 FBI 0 
+fn_same_bsn 495581 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 36 
+lime 0
+ bsn 37 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 38 FBI 0 
+fn_same_bsn 495599 fn_last_bsn 18 delta_bsn 1 old_len 0
+ bsn 37 
+lime 0
+ bsn 38 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 39 FBI 0 
+fn_same_bsn 495616 fn_last_bsn 17 delta_bsn 1 old_len 0
+ bsn 38 
+lime 0
+ bsn 39 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+
+TS 7 CS4 DL DATA TFI 16 BSN 40 FBI 1 
+fn_same_bsn 495620 fn_last_bsn 4 delta_bsn 1 old_len 0
+ bsn 39 
+lime 0
+ bsn 40 
+lime 0
+end of message reached
+MSG: 43c0012b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+

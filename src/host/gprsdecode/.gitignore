@@ -1,0 +1,13 @@
+# GNU automake
+Makefile
+
+# Final executables
+gprsdecode
+
+# GNU autotest
+tests/package.m4
+tests/atconfig
+tests/atlocal
+tests/testsuite
+tests/testsuite.dir/
+tests/testsuite.log

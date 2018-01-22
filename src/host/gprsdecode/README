@@ -1,0 +1,8 @@
+GPRS decoder for OsmocomBB
+
+Usage: ./gprsdecode <burstfile>
+
+The burstfile should contain samples, captured using burst_ind branch.
+An example of decoded output as well as few sample capture files could be found in tests/
+
+Based on the version from git://git.srlabs.de/gprsdecode.git
