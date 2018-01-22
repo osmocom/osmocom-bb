@@ -1,7 +1,6 @@
 *.o
 *.a
 Makefile.in
-Makefile
 .deps
 
 build-target
