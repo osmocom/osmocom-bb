@@ -25,10 +25,9 @@
 import random
 
 from udp_link import UDPLink
+from gsm_shared import *
 
 class DATAInterface(UDPLink):
-	# GSM PHY definitions
-	GSM_HYPERFRAME = 2048 * 26 * 51
 
 	def send_l1_msg(self, burst,
 		tn = None, fn = None, rssi = None):
@@ -38,7 +37,7 @@ class DATAInterface(UDPLink):
 
 		# Generate random frame number if not preset
 		if fn is None:
-			fn = random.randint(0, self.GSM_HYPERFRAME)
+			fn = random.randint(0, GSM_HYPERFRAME)
 
 		# Generate random RSSI if not preset
 		if rssi is None:
@@ -79,7 +78,7 @@ class DATAInterface(UDPLink):
 
 		# Generate random frame number if not preset
 		if fn is None:
-			fn = random.randint(0, self.GSM_HYPERFRAME)
+			fn = random.randint(0, GSM_HYPERFRAME)
 
 		# Generate random power level if not preset
 		if pwr is None:

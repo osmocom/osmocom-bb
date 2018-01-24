@@ -27,6 +27,7 @@ import getopt
 import sys
 
 from data_if import DATAInterface
+from gsm_shared import *
 
 COPYRIGHT = \
 	"Copyright (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
@@ -75,7 +76,7 @@ class Application:
 
 		# Generate a random frame number or use provided one
 		if self.fn is None:
-			fn = random.randint(0, DATAInterface.GSM_HYPERFRAME)
+			fn = random.randint(0, GSM_HYPERFRAME)
 		else:
 			fn = self.fn
 
@@ -109,7 +110,7 @@ class Application:
 					self.tn, fn, self.pwr)
 
 			# Increase frame number (for count > 1)
-			fn = (fn + 1) % DATAInterface.GSM_HYPERFRAME
+			fn = (fn + 1) % GSM_HYPERFRAME
 
 		# Finish
 		self.shutdown()

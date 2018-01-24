@@ -24,9 +24,9 @@
 
 import random
 
+from gsm_shared import *
+
 class RandBurstGen:
-	# GSM L1 definitions
-	GSM_BURST_LEN = 148
 
 	# GSM 05.02 Chapter 5.2.3 Normal Burst
 	nb_tsc_list = [
@@ -125,7 +125,7 @@ class RandBurstGen:
 
 	# Generate a frequency correction burst
 	def gen_fb(self):
-		return [0] * self.GSM_BURST_LEN
+		return [0] * GSM_BURST_LEN
 
 	# Generate a synchronization burst
 	def gen_sb(self):

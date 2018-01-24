@@ -28,6 +28,7 @@ import sys
 
 from threading import Timer
 from udp_link import UDPLink
+from gsm_shared import *
 
 COPYRIGHT = \
 	"Copyright (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
@@ -39,7 +40,6 @@ COPYRIGHT = \
 class CLCKGen:
 	# GSM TDMA definitions
 	SEC_DELAY_US = 1000 * 1000
-	GSM_SUPERFRAME = 2715648
 	GSM_FRAME_US = 4615.0
 
 	# Average loop back delay
@@ -74,8 +74,8 @@ class CLCKGen:
 
 	def send_clck_ind(self):
 		# Keep clock cycle
-		if self.clck_src % self.GSM_SUPERFRAME >= 0:
-			self.clck_src %= self.GSM_SUPERFRAME
+		if self.clck_src % GSM_HYPERFRAME >= 0:
+			self.clck_src %= GSM_HYPERFRAME
 
 		# We don't need to send so often
 		if self.clck_src % self.ind_period == 0:
