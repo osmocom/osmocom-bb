@@ -44,6 +44,19 @@ class DATAMSG:
 	def parse_hdr(self, hdr):
 		raise NotImplementedError
 
+	# Generates a random frame number
+	def rand_fn(self):
+		return random.randint(0, GSM_HYPERFRAME)
+
+	# Generates a random timeslot number
+	def rand_tn(self):
+		return random.randint(0, 7)
+
+	# Randomizes the message header
+	def rand_hdr(self):
+		self.fn = self.rand_fn()
+		self.tn = self.rand_tn()
+
 	# Converts unsigned soft-bits {254..0} to soft-bits {-127..127}
 	def usbit2sbit(self, bits):
 		buf = []
@@ -201,6 +214,21 @@ class DATAMSG_L12TRX(DATAMSG):
 
 		return True
 
+	# Generates a random power level
+	def rand_pwr(self, min = None, max = None):
+		if min is None:
+			min = self.PWR_MIN
+
+		if max is None:
+			max = self.PWR_MAX
+
+		return random.randint(min, max)
+
+	# Randomizes message specific header
+	def rand_hdr(self):
+		DATAMSG.rand_hdr(self)
+		self.pwr = self.rand_pwr()
+
 	# Generates message specific header part
 	def gen_hdr(self):
 		# Allocate an empty byte-array
@@ -257,6 +285,32 @@ class DATAMSG_TRX2L1(DATAMSG):
 			return False
 
 		return True
+
+	# Generates a random RSSI value
+	def rand_rssi(self, min = None, max = None):
+		if min is None:
+			min = self.RSSI_MIN
+
+		if max is None:
+			max = self.RSSI_MAX
+
+		return random.randint(min, max)
+
+	# Generates a ToA (Time of Arrival) value
+	def rand_toa(self, min = None, max = None):
+		if min is None:
+			min = self.TOA_MIN
+
+		if max is None:
+			max = self.TOA_MAX
+
+		return random.uniform(min, max)
+
+	# Randomizes message specific header
+	def rand_hdr(self):
+		DATAMSG.rand_hdr(self)
+		self.rssi = self.rand_rssi()
+		self.toa = self.rand_toa()
 
 	# Generates message specific header part
 	def gen_hdr(self):
@@ -349,6 +403,16 @@ if __name__ == '__main__':
 	# assert(msg_trx2l1_dec.toa == msg_trx2l1_ref.toa)
 
 	print("[?] Compare message specific data: OK")
+
+	# Validate header randomization
+	for i in range(0, 100):
+		msg_l12trx_ref.rand_hdr()
+		msg_trx2l1_ref.rand_hdr()
+
+		assert(msg_l12trx_ref.validate())
+		assert(msg_trx2l1_ref.validate())
+
+	print("[?] Validate header randomization: OK")
 
 	# Bit conversation test
 	usbits_ref = range(0, 256)
