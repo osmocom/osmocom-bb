@@ -68,7 +68,7 @@ class Application:
 				self.base_port + 102, self.base_port + 2)
 
 		# Init random burst generator
-		self.gen = RandBurstGen()
+		burst_gen = RandBurstGen()
 
 		# Generate a random frame number or use provided one
 		if self.fn is None:
@@ -80,13 +80,13 @@ class Application:
 		for i in range(self.burst_count):
 			# Generate a random burst
 			if self.burst_type == "NB":
-				buf = self.gen.gen_nb()
+				buf = burst_gen.gen_nb()
 			elif self.burst_type == "FB":
-				buf = self.gen.gen_fb()
+				buf = burst_gen.gen_fb()
 			elif self.burst_type == "SB":
-				buf = self.gen.gen_sb()
+				buf = burst_gen.gen_sb()
 			elif self.burst_type == "AB":
-				buf = self.gen.gen_ab()
+				buf = burst_gen.gen_ab()
 
 			print("[i] Sending %d/%d %s burst (fn=%u) to %s..."
 				% (i + 1, self.burst_count, self.burst_type,
