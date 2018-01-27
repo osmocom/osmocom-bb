@@ -43,9 +43,15 @@ class Application:
 	conn_mode = "TRX"
 
 	burst_src = None
-	pwr = None
+	
+	# Common header fields
 	fn = None
 	tn = None
+
+	# Message specific header fields
+	rssi = None
+	toa = None
+	pwr = None
 
 	def __init__(self):
 		self.print_copyright()
@@ -108,7 +114,13 @@ class Application:
 			if self.pwr is not None:
 				msg.pwr = self.pwr
 
-			# TODO: also set TRX2L1 specific fields
+			# Set time of arrival
+			if self.toa is not None:
+				msg.toa = self.toa
+
+			# Set RSSI
+			if self.rssi is not None:
+				msg.rssi = self.rssi
 
 			# Parse a string
 			for bit in burst_str:
@@ -153,7 +165,9 @@ class Application:
 			 "  -i --burst-file     Read bursts from file (default stdin)\n" \
 			 "  -f --frame-number   Set frame number (default random)\n"     \
 			 "  -t --timeslot       Set timeslot index (default random)\n"   \
-			 "  -l --power-level    Set transmit level (default random)\n"   \
+			 "     --pwr            Set power level (default random)\n"      \
+			 "     --rssi           Set RSSI (default random)\n"             \
+			 "     --toa            Set TOA (default random)\n\n"
 
 		print(s % (self.remote_addr, self.base_port))
 
@@ -163,7 +177,7 @@ class Application:
 	def parse_argv(self):
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
-				"m:r:p:i:f:t:l:h",
+				"m:r:p:i:f:t:h",
 				[
 					"help",
 					"conn-mode=",
@@ -172,7 +186,9 @@ class Application:
 					"burst-file=",
 					"frame-number=",
 					"timeslot=",
-					"power-level=",
+					"rssi=",
+					"toa=",
+					"pwr=",
 				])
 		except getopt.GetoptError as err:
 			self.print_help("[!] " + str(err))
@@ -196,8 +212,14 @@ class Application:
 				self.fn = int(v)
 			elif o in ("-t", "--timeslot"):
 				self.tn = int(v)
-			elif o in ("-l", "--power-level"):
-				self.pwr = abs(int(v))
+
+			# Message specific header fields
+			elif o == "--pwr":
+				self.pwr = int(v)
+			elif o == "--rssi":
+				self.rssi = int(v)
+			elif o == "--toa":
+				self.toa = float(v)
 
 	def shutdown(self):
 		self.data_if.shutdown()
