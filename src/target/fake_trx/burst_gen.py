@@ -53,6 +53,7 @@ class Application:
 	def __init__(self):
 		self.print_copyright()
 		self.parse_argv()
+		self.check_argv()
 
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
@@ -65,9 +66,6 @@ class Application:
 		elif self.conn_mode == "L1":
 			self.data_if = DATAInterface(self.remote_addr,
 				self.base_port + 102, self.base_port + 2)
-		else:
-			self.print_help("[!] Unknown connection type")
-			sys.exit(2)
 
 		# Init random burst generator
 		self.gen = RandBurstGen()
@@ -89,10 +87,6 @@ class Application:
 				buf = self.gen.gen_sb()
 			elif self.burst_type == "AB":
 				buf = self.gen.gen_ab()
-			else:
-				self.print_help("[!] Unknown burst type")
-				self.shutdown()
-				sys.exit(2)
 
 			print("[i] Sending %d/%d %s burst (fn=%u) to %s..."
 				% (i + 1, self.burst_count, self.burst_type,
@@ -177,6 +171,17 @@ class Application:
 				self.tn = int(v)
 			elif o in ("-l", "--power-level"):
 				self.pwr = abs(int(v))
+
+	def check_argv(self):
+		# Check connection mode
+		if self.conn_mode not in ("TRX", "L1"):
+			self.print_help("[!] Unknown connection type")
+			sys.exit(2)
+
+		# Check connection mode
+		if self.burst_type not in ("NB", "FB", "SB", "AB"):
+			self.print_help("[!] Unknown burst type")
+			sys.exit(2)
 
 	def shutdown(self):
 		self.data_if.shutdown()
