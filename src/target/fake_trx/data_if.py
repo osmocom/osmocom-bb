@@ -4,7 +4,7 @@
 # Virtual Um-interface (fake transceiver)
 # DATA interface implementation
 #
-# (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -22,85 +22,18 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import random
-
 from udp_link import UDPLink
-from gsm_shared import *
+from data_msg import *
 
 class DATAInterface(UDPLink):
 
-	def send_l1_msg(self, burst,
-		tn = None, fn = None, rssi = None):
-		# Generate random timeslot index if not preset
-		if tn is None:
-			tn = random.randint(0, 7)
+	def send_msg(self, msg):
+		# Validate a message
+		if not msg.validate():
+			raise ValueError("Message incomplete or incorrect")
 
-		# Generate random frame number if not preset
-		if fn is None:
-			fn = random.randint(0, GSM_HYPERFRAME)
-
-		# Generate random RSSI if not preset
-		if rssi is None:
-			rssi = -random.randint(-75, -50)
-
-		# Prepare a buffer for header and burst
-		buf = []
-
-		# Put timeslot index
-		buf.append(tn)
-
-		# Put frame number
-		buf.append((fn >> 24) & 0xff)
-		buf.append((fn >> 16) & 0xff)
-		buf.append((fn >>  8) & 0xff)
-		buf.append((fn >>  0) & 0xff)
-
-		# Put RSSI
-		buf.append(rssi)
-
-		# HACK: put fake TOA value
-		buf += [0x00] * 2
-
-		# Put burst
-		buf += burst
-
-		# Put two unused bytes
-		buf += [0x00] * 2
+		# Generate TRX message
+		payload = msg.gen_msg()
 
 		# Send message
-		self.send(bytearray(buf))
-
-	def send_trx_msg(self, burst,
-		tn = None, fn = None, pwr = None):
-		# Generate random timeslot index if not preset
-		if tn is None:
-			tn = random.randint(0, 7)
-
-		# Generate random frame number if not preset
-		if fn is None:
-			fn = random.randint(0, GSM_HYPERFRAME)
-
-		# Generate random power level if not preset
-		if pwr is None:
-			pwr = random.randint(0, 34)
-
-		# Prepare a buffer for header and burst
-		buf = []
-
-		# Put timeslot index
-		buf.append(tn)
-
-		# Put frame number
-		buf.append((fn >> 24) & 0xff)
-		buf.append((fn >> 16) & 0xff)
-		buf.append((fn >>  8) & 0xff)
-		buf.append((fn >>  0) & 0xff)
-
-		# Put transmit power level
-		buf.append(pwr)
-
-		# Put burst
-		buf += burst
-
-		# Send message
-		self.send(bytearray(buf))
+		self.send(payload)

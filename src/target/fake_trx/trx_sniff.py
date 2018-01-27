@@ -27,6 +27,8 @@ import sys
 
 import scapy.all
 
+from data_msg import *
+
 COPYRIGHT = \
 	"Copyright (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
 	"License GPLv2+: GNU GPL version 2 or later " \
@@ -98,32 +100,39 @@ class Application:
 		trx = udp.payload
 
 		# Convert to bytearray
-		trx = bytearray(str(trx))
-
-		# Parse GSM TDMA specific data
-		fn = (trx[1] << 24) | (trx[2] << 16) | (trx[3] << 8) | trx[4]
-		tn = trx[0]
+		msg_raw = bytearray(str(trx))
 
 		# Determine a burst direction (L1 <-> TRX)
 		l12trx = udp.sport > udp.dport
 
+		# Create an empty DATA message
+		msg = DATAMSG_L12TRX() if l12trx else DATAMSG_TRX2L1()
+
+		# Attempt to parse the payload as a DATA message
+		try:
+			msg.parse_msg(msg_raw)
+		except:
+			print("[!] Failed to parse message, dropping...")
+			self.cnt_burst_dropped_num += 1
+			return
+
 		# Poke burst pass filter
-		rc = self.burst_pass_filter(l12trx, fn, tn)
+		rc = self.burst_pass_filter(l12trx, msg.fn, msg.tn)
 		if rc is False:
 			self.cnt_burst_dropped_num += 1
 			return
 
 		# Debug print
-		print("[i] %s burst: fn=%u, tn=%d" \
-			% ("L1 -> TRX" if l12trx else "TRX -> L1", fn, tn))
+		print("[i] %s burst: %s" \
+			% ("L1 -> TRX" if l12trx else "TRX -> L1", msg.desc_hdr()))
 
 		# Poke burst handler
-		rc = self.burst_handle(trx, l12trx, fn, tn)
+		rc = self.burst_handle(l12trx, msg_raw, msg)
 		if rc is False:
 			self.shutdown()
 
 		# Poke burst counter
-		rc = self.burst_count(fn, tn)
+		rc = self.burst_count(msg.fn, msg.tn)
 		if rc is True:
 			self.shutdown()
 
@@ -149,46 +158,22 @@ class Application:
 		# Burst passed ;)
 		return True
 
-	def burst_handle(self, trx_burst, l12trx, fn, tn):
+	def burst_handle(self, l12trx, msg_raw, msg):
 		if self.print_bursts:
-			self.burst_dump_bits(sys.stdout, trx_burst, l12trx)
-			sys.stdout.flush()
+			print(msg.burst)
 
 		if self.output_file is not None:
 			# TLV: tag defines burst direction (one byte, BE)
 			self.output_file.write('\x01' if l12trx else '\x02')
 
 			# TLV: length of value (one byte, BE)
-			length = len(trx_burst)
+			length = len(msg_raw)
 			self.output_file.write(chr(length))
 
 			# TLV: raw value
-			self.output_file.write(trx_burst)
+			self.output_file.write(msg_raw)
 
 		return True
-
-	def burst_dump_bits(self, dst, trx_burst, l12trx):
-		# Split out burst header
-		if l12trx:
-			burst = trx_burst[6:]
-		else:
-			burst = trx_burst[8:]
-
-		# Print normal bits: 0 or 1
-		for i in range(0, 148):
-			# Convert bits to chars
-			if l12trx:
-				# Convert bits as is
-				bit = '1' if burst[i] else '0'
-			else:
-				# Convert trx bits {254..0} to sbits {-127..127}
-				bit = -127 if burst[i] == 255 else 127 - burst[i]
-				# Convert sbits {-127..127} to ubits {0..1}
-				bit = '1' if bit < 0 else '0'
-
-			# Write a normal bit
-			dst.write(bit)
-		dst.write("\n")
 
 	def burst_count(self, fn, tn):
 		# Update frame counter

@@ -4,7 +4,7 @@
 # Auxiliary tool to generate and send random bursts via TRX DATA
 # interface, which may be useful for fuzzing and testing
 #
-# (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -22,7 +22,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import random
 import signal
 import getopt
 import sys
@@ -30,6 +29,7 @@ import sys
 from rand_burst_gen import RandBurstGen
 from data_if import DATAInterface
 from gsm_shared import *
+from data_msg import *
 
 COPYRIGHT = \
 	"Copyright (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
@@ -70,38 +70,56 @@ class Application:
 		# Init random burst generator
 		burst_gen = RandBurstGen()
 
+		# Init an empty DATA message
+		if self.conn_mode == "TRX":
+			msg = DATAMSG_L12TRX()
+		elif self.conn_mode == "L1":
+			msg = DATAMSG_TRX2L1()
+
 		# Generate a random frame number or use provided one
-		if self.fn is None:
-			fn = random.randint(0, GSM_HYPERFRAME)
-		else:
-			fn = self.fn
+		fn_init = msg.rand_fn() if self.fn is None else self.fn
 
 		# Send as much bursts as required
 		for i in range(self.burst_count):
+			# Randomize the message header
+			msg.rand_hdr()
+
+			# Increase and set frame number
+			msg.fn = (fn_init + i) % GSM_HYPERFRAME
+
+			# Set timeslot number
+			if self.tn is not None:
+				msg.tn = self.tn
+
+			# Set transmit power level
+			if self.pwr is not None:
+				msg.pwr = self.pwr
+
+			# TODO: also set TRX2L1 specific fields
+
 			# Generate a random burst
 			if self.burst_type == "NB":
-				buf = burst_gen.gen_nb()
+				burst = burst_gen.gen_nb()
 			elif self.burst_type == "FB":
-				buf = burst_gen.gen_fb()
+				burst = burst_gen.gen_fb()
 			elif self.burst_type == "SB":
-				buf = burst_gen.gen_sb()
+				burst = burst_gen.gen_sb()
 			elif self.burst_type == "AB":
-				buf = burst_gen.gen_ab()
+				burst = burst_gen.gen_ab()
 
-			print("[i] Sending %d/%d %s burst (fn=%u) to %s..."
+			# Convert to soft-bits in case of TRX -> L1 message
+			if self.conn_mode == "L1":
+				burst = msg.ubit2sbit(burst)
+
+			# Set burst
+			msg.burst = burst
+
+			print("[i] Sending %d/%d %s burst %s to %s..."
 				% (i + 1, self.burst_count, self.burst_type,
-					fn, self.conn_mode))
+					msg.desc_hdr(), self.conn_mode))
 
-			# Send to TRX or L1
-			if self.conn_mode == "TRX":
-				self.data_if.send_trx_msg(buf,
-					self.tn, fn, self.pwr)
-			elif self.conn_mode == "L1":
-				self.data_if.send_l1_msg(buf,
-					self.tn, fn, self.pwr)
-
-			# Increase frame number (for count > 1)
-			fn = (fn + 1) % GSM_HYPERFRAME
+			# Send message
+			self.data_if.send_msg(msg)
 
 		self.shutdown()
 
