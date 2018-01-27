@@ -44,6 +44,14 @@ class DATAMSG:
 	def parse_hdr(self, hdr):
 		raise NotImplementedError
 
+	# Generates message specific burst
+	def gen_burst(self):
+		raise NotImplementedError
+
+	# Parses message specific burst
+	def parse_burst(self, burst):
+		raise NotImplementedError
+
 	# Generates a random frame number
 	def rand_fn(self):
 		return random.randint(0, GSM_HYPERFRAME)
@@ -159,9 +167,8 @@ class DATAMSG:
 		hdr = self.gen_hdr()
 		buf += hdr
 
-		# Put burst
-		# TODO: distinguish between: usbits, ubits and sbits
-		buf += bytearray(self.burst)
+		# Generate burst
+		buf += self.gen_burst()
 
 		return buf
 
@@ -182,7 +189,8 @@ class DATAMSG:
 		self.parse_hdr(msg)
 
 		# Copy burst, skipping header
-		self.burst = msg[self.HDR_LEN:]
+		msg_burst = msg[self.HDR_LEN:]
+		self.parse_burst(msg_burst)
 
 class DATAMSG_L12TRX(DATAMSG):
 	# Constants
@@ -243,6 +251,21 @@ class DATAMSG_L12TRX(DATAMSG):
 	def parse_hdr(self, hdr):
 		# Parse power level
 		self.pwr = hdr[5]
+
+	# Generates message specific burst
+	def gen_burst(self):
+		# Copy burst 'as is'
+		return bytearray(self.burst)
+
+	# Parses message specific burst
+	def parse_burst(self, burst):
+		length = len(burst)
+
+		# Distinguish between GSM and EDGE
+		if length >= EDGE_BURST_LEN:
+			self.burst = list(burst[:EDGE_BURST_LEN])
+		else:
+			self.burst = list(burst[:GSM_BURST_LEN])
 
 class DATAMSG_TRX2L1(DATAMSG):
 	# Constants
@@ -338,17 +361,46 @@ class DATAMSG_TRX2L1(DATAMSG):
 		# FIXME: parsing unsupported
 		self.toa = None
 
+	# Generates message specific burst
+	def gen_burst(self):
+		# Convert soft-bits to unsigned soft-bits
+		burst_usbits = self.sbit2usbit(self.burst)
+
+		# Encode to bytes
+		return bytearray(burst_usbits)
+
+	# Parses message specific burst
+	def parse_burst(self, burst):
+		length = len(burst)
+
+		# Distinguish between GSM and EDGE
+		if length >= EDGE_BURST_LEN:
+			burst_usbits = list(burst[:EDGE_BURST_LEN])
+		else:
+			burst_usbits = list(burst[:GSM_BURST_LEN])
+
+		# Convert unsigned soft-bits to soft-bits
+		burst_sbits = self.usbit2sbit(burst_usbits)
+
+		# Save
+		self.burst = burst_sbits
+
 # Regression test
 if __name__ == '__main__':
 	# Common reference data
 	fn = 1024
 	tn = 0
 
-	# Generate a random burst
-	burst = bytearray()
+	# Generate two random bursts
+	burst_l12trx_ref = []
+	burst_trx2l1_ref = []
+
 	for i in range(0, GSM_BURST_LEN):
-		byte = random.randint(0x00, 0xff)
-		burst.append(byte)
+		ubit = random.randint(0, 1)
+		burst_l12trx_ref.append(ubit)
+
+		sbit = random.randint(-127, 127)
+		burst_trx2l1_ref.append(sbit)
 
 	print("[i] Generating the reference messages")
 
@@ -361,9 +413,9 @@ if __name__ == '__main__':
 	msg_l12trx_ref.pwr = 0x33
 	msg_trx2l1_ref.toa = -0.6
 
-	# Specify the reference burst
-	msg_trx2l1_ref.burst = burst
-	msg_l12trx_ref.burst = burst
+	# Specify the reference bursts
+	msg_l12trx_ref.burst = burst_l12trx_ref
+	msg_trx2l1_ref.burst = burst_trx2l1_ref
 
 	print("[i] Encoding the reference messages")
 
@@ -382,8 +434,8 @@ if __name__ == '__main__':
 	print("[i] Comparing decoded messages with the reference")
 
 	# Compare bursts
-	assert(msg_l12trx_dec.burst == burst)
-	assert(msg_trx2l1_dec.burst == burst)
+	assert(msg_l12trx_dec.burst == burst_l12trx_ref)
+	assert(msg_trx2l1_dec.burst == burst_trx2l1_ref)
 
 	print("[?] Compare bursts: OK")
 
