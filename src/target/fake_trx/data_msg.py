@@ -65,6 +65,18 @@ class DATAMSG:
 		self.fn = self.rand_fn()
 		self.tn = self.rand_tn()
 
+	# Generates human-readable header description
+	def desc_hdr(self):
+		result = ""
+
+		if self.fn is not None:
+			result += ("fn=%u " % self.fn)
+
+		if self.tn is not None:
+			result += ("tn=%u " % self.tn)
+
+		return result
+
 	# Converts unsigned soft-bits {254..0} to soft-bits {-127..127}
 	def usbit2sbit(self, bits):
 		buf = []
@@ -237,6 +249,17 @@ class DATAMSG_L12TRX(DATAMSG):
 		DATAMSG.rand_hdr(self)
 		self.pwr = self.rand_pwr()
 
+	# Generates human-readable header description
+	def desc_hdr(self):
+		# Describe the common part
+		result = DATAMSG.desc_hdr(self)
+
+		if self.pwr is not None:
+			result += ("pwr=%u " % self.pwr)
+
+		# Strip useless whitespace and return
+		return result.strip()
+
 	# Generates message specific header part
 	def gen_hdr(self):
 		# Allocate an empty byte-array
@@ -334,6 +357,20 @@ class DATAMSG_TRX2L1(DATAMSG):
 		DATAMSG.rand_hdr(self)
 		self.rssi = self.rand_rssi()
 		self.toa = self.rand_toa()
+
+	# Generates human-readable header description
+	def desc_hdr(self):
+		# Describe the common part
+		result = DATAMSG.desc_hdr(self)
+
+		if self.rssi is not None:
+			result += ("rssi=%d " % self.rssi)
+
+		if self.toa is not None:
+			result += ("toa=%.2f " % self.toa)
+
+		# Strip useless whitespace and return
+		return result.strip()
 
 	# Generates message specific header part
 	def gen_hdr(self):
