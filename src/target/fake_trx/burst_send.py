@@ -96,8 +96,8 @@ class Application:
 			burst = []
 
 			# Check length
-			if len(burst_str) != 148:
-				print("[!] Dropping burst due to length != 148")
+			if len(burst_str) not in (GSM_BURST_LEN, EDGE_BURST_LEN):
+				print("[!] Dropping burst due to incorrect length")
 				continue
 
 			# Randomize the message header
