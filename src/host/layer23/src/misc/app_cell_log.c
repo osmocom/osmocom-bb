@@ -43,7 +43,7 @@ extern void *l23_ctx;
 extern uint16_t basic_band_range[][2];
 extern uint16_t (*band_range)[][2];
 
-char *logname = "/var/log/osmocom.log";
+char *logname = "/dev/null";
 int RACH_MAX = 2;
 
 int _scan_work(struct osmocom_ms *ms)
