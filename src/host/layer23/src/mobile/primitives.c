@@ -18,6 +18,8 @@
  *
  */
 
+#include <inttypes.h>
+
 #include <osmocom/bb/mobile/primitives.h>
 #include <osmocom/bb/common/logging.h>
 
@@ -87,7 +89,8 @@ static int create_timer(struct mobile_prim_intf *intf, struct mobile_timer_param
 {
 	struct timer_closure *closure;
 
-	LOGP(DPRIM, LOGL_DEBUG, "Creating timer with reference: %llu\n", param->timer_id);
+	LOGP(DPRIM, LOGL_DEBUG, "Creating timer with reference: "
+		"%" PRIu64 "\n", param->timer_id);
 
 	closure = talloc_zero(intf, struct timer_closure);
 	closure->intf = intf;
@@ -163,8 +166,9 @@ static int cancel_timer(struct mobile_prim_intf *intf, struct mobile_timer_param
 		if (closure->id != param->timer_id)
 			continue;
 
-		LOGP(DPRIM, LOGL_DEBUG,
-			"Canceling timer with reference: %llu\n", param->timer_id);
+		LOGP(DPRIM, LOGL_DEBUG, "Canceling timer with reference: "
+			"%" PRIu64 "\n", param->timer_id);
+
 		osmo_timer_del(&closure->timer);
 		llist_del(&closure->entry);
 		talloc_free(closure);
