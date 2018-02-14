@@ -340,7 +340,7 @@ _trx_ctrl_cmd_setslot(struct trx *trx, const char *cmd, const char *args)
 	if (trx->l1l[tn])
 		l1ctl_tx_bts_mode(trx->l1l[tn], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[tn]->tx_mask, trx->l1l[tn]->rx_mask, trx->handover);
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, type);
+	return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", 0, tn, type);
 }
 
 static int
