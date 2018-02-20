@@ -27,6 +27,7 @@ import sys
 
 import scapy.all
 
+from data_dump import DATADumpFile
 from data_msg import *
 
 COPYRIGHT = \
@@ -69,9 +70,9 @@ class Application:
 		print(COPYRIGHT)
 		self.parse_argv()
 
-		# Open requested file for writing
+		# Open requested capture file
 		if self.output_file is not None:
-			self.output_file = open(self.output_file, "ab")
+			self.ddf = DATADumpFile(self.output_file)
 
 	def run(self):
 		# Compose a packet filter
@@ -126,10 +127,8 @@ class Application:
 		print("[i] %s burst: %s" \
 			% ("L1 -> TRX" if l12trx else "TRX -> L1", msg.desc_hdr()))
 
-		# Poke burst handler
-		rc = self.burst_handle(l12trx, msg_raw, msg)
-		if rc is False:
-			self.shutdown()
+		# Poke message handler
+		self.msg_handle(msg)
 
 		# Poke burst counter
 		rc = self.burst_count(msg.fn, msg.tn)
@@ -158,22 +157,13 @@ class Application:
 		# Burst passed ;)
 		return True
 
-	def burst_handle(self, l12trx, msg_raw, msg):
+	def msg_handle(self, msg):
 		if self.print_bursts:
 			print(msg.burst)
 
+		# Append a new message to the capture
 		if self.output_file is not None:
-			# TLV: tag defines burst direction (one byte, BE)
-			self.output_file.write('\x01' if l12trx else '\x02')
-
-			# TLV: length of value (one byte, BE)
-			length = len(msg_raw)
-			self.output_file.write(chr(length))
-
-			# TLV: raw value
-			self.output_file.write(msg_raw)
-
-		return True
+			self.ddf.append_msg(msg)
 
 	def burst_count(self, fn, tn):
 		# Update frame counter
@@ -207,10 +197,6 @@ class Application:
 		# Print statistics
 		print("[i] %u bursts handled, %u dropped" \
 			% (self.cnt_burst_num, self.cnt_burst_dropped_num))
-
-		# Close output file if opened
-		if self.output_file is not None:
-			self.output_file.close()
 
 		# Exit
 		sys.exit(0)
