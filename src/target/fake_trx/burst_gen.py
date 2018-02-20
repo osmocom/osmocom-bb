@@ -27,6 +27,7 @@ import getopt
 import sys
 
 from rand_burst_gen import RandBurstGen
+from data_dump import DATADumpFile
 from data_if import DATAInterface
 from gsm_shared import *
 from data_msg import *
@@ -43,6 +44,7 @@ class Application:
 	remote_addr = "127.0.0.1"
 	base_port = 5700
 	conn_mode = "TRX"
+	output_file = None
 
 	burst_type = None
 	burst_count = 1
@@ -63,6 +65,10 @@ class Application:
 
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
+
+		# Open requested capture file
+		if self.output_file is not None:
+			self.ddf = DATADumpFile(self.output_file)
 
 	def run(self):
 		# Init DATA interface with TRX or L1
@@ -133,6 +139,10 @@ class Application:
 			# Send message
 			self.data_if.send_msg(msg)
 
+			# Append a new message to the capture
+			if self.output_file is not None:
+				self.ddf.append_msg(msg)
+
 		self.shutdown()
 
 	def print_copyright(self):
@@ -144,6 +154,7 @@ class Application:
 			 "  -h --help           this text\n\n"
 
 		s += " TRX interface specific\n" \
+			 "  -o --output-file    Write bursts to a capture file\n"        \
 			 "  -m --conn-mode      Send bursts to: TRX (default) / L1\n"    \
 			 "  -r --remote-addr    Set remote address (default %s)\n"       \
 			 "  -p --base-port      Set base port number (default %d)\n\n"
@@ -165,9 +176,10 @@ class Application:
 	def parse_argv(self):
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
-				"m:r:p:b:c:f:t:h",
+				"o:m:r:p:b:c:f:t:h",
 				[
 					"help",
+					"output-file="
 					"conn-mode=",
 					"remote-addr=",
 					"base-port=",
@@ -188,6 +200,8 @@ class Application:
 				self.print_help()
 				sys.exit(2)
 
+			elif o in ("-o", "--output-file"):
+				self.output_file = v
 			elif o in ("-m", "--conn-mode"):
 				self.conn_mode = v
 			elif o in ("-r", "--remote-addr"):
