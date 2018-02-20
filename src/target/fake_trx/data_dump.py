@@ -30,7 +30,7 @@ class DATADump:
 	# Constants
 	TAG_L12TRX = '\x01'
 	TAG_TRX2L1 = '\x02'
-	HDR_LENGTH = 2
+	HDR_LENGTH = 3
 
 	# Generates raw bytes from a DATA message
 	# Return value: raw message bytes
@@ -46,15 +46,18 @@ class DATADump:
 		# Generate a message payload
 		msg_raw = msg.gen_msg()
 
-		# Calculate the length
+		# Calculate and pack the message length
 		msg_len = len(msg_raw)
 
+		# Pack to unsigned short (2 bytes, BE)
+		msg_len = struct.pack(">H", msg_len)
+
 		# Concatenate a message with header
-		return bytearray([tag, msg_len]) + msg_raw
+		return bytearray(tag + msg_len) + msg_raw
 
 	def parse_hdr(self, hdr):
 		# Extract the header info
-		msg_len = struct.unpack("<B", hdr[1])[0]
+		msg_len = struct.unpack(">H", hdr[1:3])[0]
 		tag = hdr[0]
 
 		# Check if tag is known
