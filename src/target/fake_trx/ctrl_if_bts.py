@@ -97,6 +97,29 @@ class CTRLInterfaceBTS(CTRLInterface):
 			self.burst_fwd.bts_freq = self.tx_freq
 			return 0
 
+		# Timing of Arrival simulation for Downlink
+		# Absolute form: CMD FAKE_TOA <BASE> <THRESH>
+		elif self.verify_cmd(request, "FAKE_TOA", 2):
+			print("[i] Recv FAKE_TOA cmd")
+
+			# Parse and apply both base and threshold
+			self.burst_fwd.toa256_dl_base = int(request[1])
+			self.burst_fwd.toa256_dl_threshold = int(request[2])
+
+			# TODO: avoid sending response
+			return -1
+
+		# Timing of Arrival simulation for Downlink
+		# Relative form: CMD FAKE_TOA <+-BASE_DELTA>
+		elif self.verify_cmd(request, "FAKE_TOA", 1):
+			print("[i] Recv FAKE_TOA cmd")
+
+			# Parse and apply delta
+			self.burst_fwd.toa256_dl_base += int(request[1])
+
+			# TODO: avoid sending response
+			return -1
+
 		# Wrong / unknown command
 		else:
 			# We don't care about other commands,
