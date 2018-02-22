@@ -143,7 +143,7 @@ static void print_help(void)
 	printf("  -h --help         this text\n");
 	printf("  -d --debug        Change debug flags. Default: %s\n", DEBUG_DEFAULT);
 	printf("  -i --trx-ip       IP address of host runing TRX (default 127.0.0.1)\n");
-	printf("  -p --trx-port     Base port of TRX instance (default 5700)\n");
+	printf("  -p --trx-port     Base port of TRX instance (default 6700)\n");
 	printf("  -f --trx-advance  Scheduler clock advance (default 20)\n");
 	printf("  -s --socket       Listening socket for layer23 (default /tmp/osmocom_l2)\n");
 	printf("  -D --daemonize    Run as daemon\n");
@@ -203,7 +203,7 @@ static void init_defaults(void)
 {
 	app_data.bind_socket = "/tmp/osmocom_l2";
 	app_data.trx_ip = "127.0.0.1";
-	app_data.trx_base_port = 5700;
+	app_data.trx_base_port = 6700;
 	app_data.trx_fn_advance = 20;
 
 	app_data.debug_mask = NULL;

@@ -47,7 +47,7 @@ class Application:
 	bts_addr = "127.0.0.1"
 	bb_addr = "127.0.0.1"
 	bts_base_port = 5700
-	bb_base_port = 5703
+	bb_base_port = 6700
 
 	def __init__(self):
 		self.print_copyright()
