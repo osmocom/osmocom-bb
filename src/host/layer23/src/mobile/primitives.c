@@ -110,6 +110,7 @@ static void dispatch(struct osmocom_ms *ms, struct mobile_prim *prim)
 		if (intf->ms == ms)
 			intf->indication(intf, prim);
 	}
+	msgb_free(prim->hdr.msg);
 }
 
 void mobile_prim_ntfy_started(struct osmocom_ms *ms, bool started)

@@ -451,8 +451,6 @@ static void lua_prim_ind(struct mobile_prim_intf *intf, struct mobile_prim *prim
 	default:
 		LOGP(DLUA, LOGL_ERROR, "Unknown primitive: %d\n", OSMO_PRIM_HDR(&prim->hdr));
 	};
-
-	msgb_free(prim->hdr.msg);
 }
 
 /*
