@@ -290,6 +290,17 @@ class DATAMSG_L12TRX(DATAMSG):
 		else:
 			self.burst = list(burst[:GSM_BURST_LEN])
 
+	# Transforms this message to TRX2L1 message
+	def gen_trx2l1(self):
+		# Allocate a new message
+		msg = DATAMSG_TRX2L1(fn = self.fn, tn = self.tn)
+
+		# Convert burst bits
+		if self.burst is not None:
+			msg.burst = self.ubit2sbit(self.burst)
+
+		return msg
+
 class DATAMSG_TRX2L1(DATAMSG):
 	# Constants
 	HDR_LEN = 8
@@ -422,6 +433,17 @@ class DATAMSG_TRX2L1(DATAMSG):
 		# Save
 		self.burst = burst_sbits
 
+	# Transforms this message to L12TRX message
+	def gen_l12trx(self):
+		# Allocate a new message
+		msg = DATAMSG_L12TRX(fn = self.fn, tn = self.tn)
+
+		# Convert burst bits
+		if self.burst is not None:
+			msg.burst = self.sbit2ubit(self.burst)
+
+		return msg
+
 # Regression test
 if __name__ == '__main__':
 	# Common reference data
@@ -523,3 +545,18 @@ if __name__ == '__main__':
 	assert(sbits == ([-127] * 127 + [127] * 128))
 
 	print("[?] Check both sbit2ubit() and ubit2sbit(): OK")
+
+	# Test message transformation
+	msg_l12trx_dec = msg_trx2l1_ref.gen_l12trx()
+	msg_trx2l1_dec = msg_l12trx_ref.gen_trx2l1()
+
+	assert(msg_l12trx_dec.fn == msg_trx2l1_ref.fn)
+	assert(msg_l12trx_dec.tn == msg_trx2l1_ref.tn)
+
+	assert(msg_trx2l1_dec.fn == msg_l12trx_ref.fn)
+	assert(msg_trx2l1_dec.tn == msg_l12trx_ref.tn)
+
+	assert(msg_l12trx_dec.burst == msg_l12trx_dec.sbit2ubit(burst_trx2l1_ref))
+	assert(msg_trx2l1_dec.burst == msg_trx2l1_dec.ubit2sbit(burst_l12trx_ref))
+
+	print("[?] Check L12TRX <-> TRX2L1 type transformations: OK")
