@@ -23,7 +23,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import socket
-import select
 
 class UDPLink:
 	def __init__(self, remote_addr, remote_port, bind_port):
@@ -38,19 +37,8 @@ class UDPLink:
 	def __del__(self):
 		self.sock.close()
 
-	def loop(self):
-		r_event, w_event, x_event = select.select([self.sock], [], [])
-
-		# Check for incoming data
-		if self.sock in r_event:
-			data, addr = self.sock.recvfrom(128)
-			self.handle_rx(data.decode())
-
 	def send(self, data):
 		if type(data) not in [bytearray, bytes]:
 			data = data.encode()
 
 		self.sock.sendto(data, (self.remote_addr, self.remote_port))
-
-	def handle_rx(self, data):
-		raise NotImplementedError
