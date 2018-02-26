@@ -129,7 +129,6 @@ class Application:
 	def sig_handler(self, signum, frame):
 		print("\n\nSignal %d received" % signum)
 		if signum is signal.SIGINT:
-			self.ctrl_link.shutdown()
 			sys.exit(0)
 
 if __name__ == '__main__':

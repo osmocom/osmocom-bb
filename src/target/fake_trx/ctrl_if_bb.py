@@ -36,10 +36,6 @@ class CTRLInterfaceBB(CTRLInterface):
 		print("[i] Init CTRL interface for BB")
 		CTRLInterface.__init__(self, remote_addr, remote_port, bind_port)
 
-	def shutdown(self):
-		print("[i] Shutdown CTRL interface for BB")
-		CTRLInterface.shutdown(self)
-
 	def parse_cmd(self, request):
 		# Power control
 		if self.verify_cmd(request, "POWERON", 0):

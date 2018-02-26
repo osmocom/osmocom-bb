@@ -125,18 +125,6 @@ class Application:
 		# Stop clock generator
 		self.clck_gen.stop()
 
-		# Close CLCK interfaces
-		self.bts_clck.shutdown()
-
-		# Close CTRL interfaces
-		self.bts_ctrl.shutdown()
-		self.bb_ctrl.shutdown()
-
-		# Close DATA interfaces
-		self.bts_data.shutdown()
-		self.bb_data.shutdown()
-
-
 	def print_copyright(self):
 		print(COPYRIGHT)
 

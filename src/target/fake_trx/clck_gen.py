@@ -114,7 +114,6 @@ class Application:
 		print("Signal %d received" % signum)
 		if signum is signal.SIGINT:
 			self.clck.stop()
-			self.link.shutdown()
 
 if __name__ == '__main__':
 	app = Application()

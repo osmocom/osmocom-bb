@@ -100,9 +100,6 @@ class Application:
 			# Send message
 			self.data_if.send_msg(msg)
 
-		# Finish
-		self.shutdown()
-
 	def msg_pass_filter(self, l12trx, msg):
 		# Direction filter
 		if isinstance(msg, DATAMSG_L12TRX) and not l12trx:
@@ -216,13 +213,9 @@ class Application:
 			self.print_help("[!] Please specify a capture file")
 			sys.exit(2)
 
-	def shutdown(self):
-		self.data_if.shutdown()
-
 	def sig_handler(self, signum, frame):
 		print("Signal %d received" % signum)
 		if signum is signal.SIGINT:
-			self.shutdown()
 			sys.exit(0)
 
 if __name__ == '__main__':

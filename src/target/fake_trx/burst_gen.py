@@ -143,8 +143,6 @@ class Application:
 			if self.output_file is not None:
 				self.ddf.append_msg(msg)
 
-		self.shutdown()
-
 	def print_copyright(self):
 		print(COPYRIGHT)
 
@@ -237,13 +235,9 @@ class Application:
 			self.print_help("[!] Unknown burst type")
 			sys.exit(2)
 
-	def shutdown(self):
-		self.data_if.shutdown()
-
 	def sig_handler(self, signum, frame):
 		print("Signal %d received" % signum)
 		if signum is signal.SIGINT:
-			self.shutdown()
 			sys.exit(0)
 
 if __name__ == '__main__':
