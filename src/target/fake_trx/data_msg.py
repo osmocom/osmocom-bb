@@ -32,9 +32,11 @@ class DATAMSG:
 	fn = None
 	tn = None
 
-	# HACK: Abstract class definition
-	def __init__(self):
-		raise NotImplementedError
+	# Common constructor
+	def __init__(self, fn = None, tn = None, burst = None):
+		self.burst = burst
+		self.fn = fn
+		self.tn = tn
 
 	# Generates message specific header
 	def gen_hdr(self):
@@ -213,13 +215,6 @@ class DATAMSG_L12TRX(DATAMSG):
 	# Specific message fields
 	pwr = None
 
-	def __init__(self, fn = None, tn = None, pwr = None, burst = None):
-		# Init local variables
-		self.burst = burst
-		self.pwr = pwr
-		self.fn = fn
-		self.tn = tn
-
 	# Validates the message fields
 	def validate(self):
 		# Validate common fields
@@ -314,14 +309,6 @@ class DATAMSG_TRX2L1(DATAMSG):
 	# Specific message fields
 	rssi = None
 	toa = None
-
-	def __init__(self, fn = None, tn = None, rssi = None, toa = None, burst = None):
-		# Init local variables
-		self.burst = burst
-		self.rssi = rssi
-		self.toa = toa
-		self.fn = fn
-		self.tn = tn
 
 	# Validates the message fields
 	def validate(self):
