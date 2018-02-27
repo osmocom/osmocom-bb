@@ -526,8 +526,8 @@ if __name__ == '__main__':
 	print("[?] Validate header randomization: OK")
 
 	# Bit conversation test
-	usbits_ref = range(0, 256)
-	sbits_ref = range(-127, 128)
+	usbits_ref = list(range(0, 256))
+	sbits_ref = list(range(-127, 128))
 
 	# Test both usbit2sbit() and sbit2usbit()
 	sbits = msg_trx2l1_ref.usbit2sbit(usbits_ref)
