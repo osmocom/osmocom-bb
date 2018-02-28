@@ -57,12 +57,6 @@ class BurstForwarder:
 		self.toa_min = self.TOA_RAND_BASE - self.TOA_RAND_TRESHOLD
 		self.toa_max = self.TOA_RAND_BASE + self.TOA_RAND_TRESHOLD
 
-	def set_slot(self, ts):
-		if ts > 0 and ts < 8:
-			self.ts_pass = ts
-		else:
-			raise ValueError("Incorrect index for timeslot filter")
-
 	# Converts a L12TRX message to TRX2L1 message
 	def transform_msg(self, msg_raw):
 		# Attempt to parse a message
