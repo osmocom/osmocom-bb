@@ -34,6 +34,11 @@ class BurstForwarder:
 	bts_freq = None
 	bb_freq = None
 
+	# Timing Advance value indicated by MS (0 by default)
+	# Valid range: 0..63, where each unit means
+	# one GSM symbol advance.
+	ta = 0
+
 	# Constants
 	# TODO: add options to change this
 	RSSI_RAND_TRESHOLD = 10
@@ -56,6 +61,17 @@ class BurstForwarder:
 		# Generate a random ToA range
 		self.toa256_min = self.TOA256_RAND_BASE - self.TOA256_RAND_TRESHOLD
 		self.toa256_max = self.TOA256_RAND_BASE + self.TOA256_RAND_TRESHOLD
+
+	# Calculates ToA value for Uplink bursts (coming to a BTS)
+	def calc_toa_ul(self):
+		# Generate a random ToA value
+		toa256 = random.randint(self.toa256_min, self.toa256_max)
+
+		# Apply TA value
+		ta256 = self.ta * 256
+		toa256 -= ta256
+
+		return toa256
 
 	# Converts a L12TRX message to TRX2L1 message
 	def transform_msg(self, msg_raw):
@@ -127,6 +143,9 @@ class BurstForwarder:
 		msg = self.transform_msg(data)
 		if msg is None:
 			return None
+
+		# Emulate ToA value for BTS
+		msg.toa256 = self.calc_toa_ul()
 
 		# Validate and generate the payload
 		payload = msg.gen_msg()
