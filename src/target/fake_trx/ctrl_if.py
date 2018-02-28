@@ -25,16 +25,16 @@
 from udp_link import UDPLink
 
 class CTRLInterface(UDPLink):
-	def handle_rx(self, data):
+	def handle_rx(self, data, remote):
 		# print(data)
 		if self.verify_req(data):
 			request = self.prepare_req(data)
 			rc = self.parse_cmd(request)
 
 			if type(rc) is tuple:
-				self.send_response(request, rc[0], rc[1])
+				self.send_response(request, remote, rc[0], rc[1])
 			else:
-				self.send_response(request, rc)
+				self.send_response(request, remote, rc)
 		else:
 			print("[!] Wrong data on CTRL interface")
 
@@ -66,7 +66,7 @@ class CTRLInterface(UDPLink):
 
 		return True
 
-	def send_response(self, request, response_code, params = None):
+	def send_response(self, request, remote, response_code, params = None):
 		# Include status code, for example ["TXTUNE", "0", "941600"]
 		request.insert(1, str(response_code))
 
@@ -77,7 +77,7 @@ class CTRLInterface(UDPLink):
 		# Add the response signature, and join back to string
 		response = "RSP " + " ".join(request) + "\0"
 		# Now we have something like "RSP TXTUNE 0 941600"
-		self.send(response)
+		self.sendto(response, remote)
 
 	def parse_cmd(self, request):
 		raise NotImplementedError
