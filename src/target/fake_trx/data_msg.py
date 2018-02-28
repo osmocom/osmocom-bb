@@ -304,8 +304,8 @@ class DATAMSG_TRX2L1(DATAMSG):
 	RSSI_MAX = -50
 
 	# TODO: verify this range
-	TOA256_MIN = -256 * 10
-	TOA256_MAX = 256 * 10
+	TOA256_MIN = -256 * 200
+	TOA256_MAX = 256 * 200
 
 	# Specific message fields
 	rssi = None
