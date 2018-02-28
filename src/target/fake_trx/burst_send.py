@@ -90,10 +90,6 @@ class Application:
 			if not self.msg_pass_filter(l12trx, msg):
 				continue
 
-			# HACK: as ToA parsing is not implemented yet,
-			# we have to use a fixed value for now...
-			msg.toa256 = 0
-
 			print("[i] Sending a burst %s to %s..."
 				% (msg.desc_hdr(), self.conn_mode))
 

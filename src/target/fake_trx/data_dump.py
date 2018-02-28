@@ -257,11 +257,6 @@ if __name__ == '__main__':
 		# Randomize the header
 		msg.rand_hdr()
 
-		# HACK: as ToA parsing is not implemented yet,
-		# we have to use a fixed value for now...
-		if isinstance(msg, DATAMSG_TRX2L1):
-			msg.toa256 = 0
-
 		# Append
 		messages_ref.append(msg)
 
@@ -293,10 +288,6 @@ if __name__ == '__main__':
 		assert(messages_check[i].fn == messages_ref[i].fn)
 		assert(messages_check[i].tn == messages_ref[i].tn)
 
-		# HACK: as ToA parsing is not implemented yet,
-		# we have to use a fixed value for now...
-		messages_check[i].toa256 = 0
-
 		# Validate a message
 		assert(messages_check[i].validate())
 
@@ -318,10 +309,6 @@ if __name__ == '__main__':
 		assert(messages_check[i].burst == messages_ref[i].burst)
 		assert(messages_check[i].fn == messages_ref[i].fn)
 		assert(messages_check[i].tn == messages_ref[i].tn)
-
-		# HACK: as ToA parsing is not implemented yet,
-		# we have to use a fixed value for now...
-		messages_check[i].toa256 = 0
 
 		# Validate a message
 		assert(messages_check[i].validate())
@@ -345,11 +332,6 @@ if __name__ == '__main__':
 	assert(msg10.fn == messages_ref[10].fn)
 	assert(msg10.tn == messages_ref[10].tn)
 
-	# HACK: as ToA parsing is not implemented yet,
-	# we have to use a fixed value for now...
-	msg0.toa256 = 0
-	msg10.toa256 = 0
-
 	# Validate both messages
 	assert(msg0.validate())
 	assert(msg10.validate())
@@ -371,10 +353,6 @@ if __name__ == '__main__':
 		assert(messages_check[i].burst == messages_ref[i + 10].burst)
 		assert(messages_check[i].fn == messages_ref[i + 10].fn)
 		assert(messages_check[i].tn == messages_ref[i + 10].tn)
-
-		# HACK: as ToA parsing is not implemented yet,
-		# we have to use a fixed value for now...
-		messages_check[i].toa256 = 0
 
 		# Validate a message
 		assert(messages_check[i].validate())

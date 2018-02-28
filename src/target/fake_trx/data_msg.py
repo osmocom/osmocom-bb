@@ -23,6 +23,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import random
+import struct
 
 from gsm_shared import *
 
@@ -391,8 +392,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 		self.rssi = -(hdr[5])
 
 		# Parse ToA (Time of Arrival)
-		# FIXME: parsing unsupported
-		self.toa256 = None
+		self.toa256 = struct.unpack(">h", hdr[6:8])[0]
 
 	# Generates message specific burst
 	def gen_burst(self):
@@ -494,9 +494,7 @@ if __name__ == '__main__':
 	# Compare message specific parts
 	assert(msg_trx2l1_dec.rssi == msg_trx2l1_ref.rssi)
 	assert(msg_l12trx_dec.pwr == msg_l12trx_ref.pwr)
-
-	# FIXME: ToA check disabled until the parsing is implemented
-	# assert(msg_trx2l1_dec.toa256 == msg_trx2l1_ref.toa256)
+	assert(msg_trx2l1_dec.toa256 == msg_trx2l1_ref.toa256)
 
 	print("[?] Compare message specific data: OK")
 
