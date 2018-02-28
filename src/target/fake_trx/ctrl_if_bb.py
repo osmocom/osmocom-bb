@@ -138,8 +138,7 @@ class CTRLInterfaceBB(CTRLInterface):
 			self.burst_fwd.toa256_ul_base = int(request[1])
 			self.burst_fwd.toa256_ul_threshold = int(request[2])
 
-			# TODO: avoid sending response
-			return -1
+			return 0
 
 		# Timing of Arrival simulation for Uplink
 		# Relative form: CMD FAKE_TOA <+-BASE_DELTA>
@@ -149,8 +148,7 @@ class CTRLInterfaceBB(CTRLInterface):
 			# Parse and apply delta
 			self.burst_fwd.toa256_ul_base += int(request[1])
 
-			# TODO: avoid sending response
-			return -1
+			return 0
 
 		# Wrong / unknown command
 		else:
