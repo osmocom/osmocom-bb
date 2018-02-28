@@ -28,8 +28,8 @@ from data_msg import *
 
 class DATADump:
 	# Constants
-	TAG_L12TRX = '\x01'
-	TAG_TRX2L1 = '\x02'
+	TAG_L12TRX = b'\x01'
+	TAG_TRX2L1 = b'\x02'
 	HDR_LENGTH = 3
 
 	# Generates raw bytes from a DATA message
@@ -58,7 +58,7 @@ class DATADump:
 	def parse_hdr(self, hdr):
 		# Extract the header info
 		msg_len = struct.unpack(">H", hdr[1:3])[0]
-		tag = hdr[0]
+		tag = hdr[:1]
 
 		# Check if tag is known
 		if tag == self.TAG_L12TRX:
@@ -76,11 +76,11 @@ class DATADump:
 class DATADumpFile(DATADump):
 	def __init__(self, capture):
 		# Check if capture file is already opened
-		if type(capture) is file:
-			self.f = capture
-		else:
+		if isinstance(capture, str):
 			print("[i] Opening capture file '%s'..." % capture)
 			self.f = open(capture, "a+b")
+		else:
+			self.f = capture
 
 	def __del__(self):
 		print("[i] Closing the capture file")
