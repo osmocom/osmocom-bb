@@ -39,42 +39,75 @@ class BurstForwarder:
 	# one GSM symbol advance.
 	ta = 0
 
-	# Constants
-	# TODO: add options to change this
-	RSSI_RAND_TRESHOLD = 10
-	RSSI_RAND_MIN = -90
-	RSSI_RAND_MAX = -60
+	# Timing of Arrival values indicated by transceiver
+	# in units of 1/256 of GSM symbol periods. A pair of
+	# base and threshold values defines a range of ToA value
+	# randomization: from (base - threshold) to (base + threshold).
+	toa256_dl_base = 0
+	toa256_ul_base = 0
 
-	# TODO: add options to change this
-	TOA256_RAND_TRESHOLD = 128
-	TOA256_RAND_BASE = 0
+	toa256_dl_threshold = 128
+	toa256_ul_threshold = 128
+
+	# RSSI values indicated by transceiver in dBm.
+	# A pair of base and threshold values defines a range of RSSI
+	# randomization: from (base - threshold) to (base + threshold).
+	rssi_dl_base = -60
+	rssi_ul_base = -70
+
+	rssi_dl_threshold = 10
+	rssi_ul_threshold = 5
 
 	def __init__(self, bts_link, bb_link):
 		self.bts_link = bts_link
 		self.bb_link = bb_link
 
-		# Generate a random RSSI range
-		rssi = random.randint(self.RSSI_RAND_MIN, self.RSSI_RAND_MAX)
-		self.rssi_min = rssi - self.RSSI_RAND_TRESHOLD
-		self.rssi_max = rssi + self.RSSI_RAND_TRESHOLD
+	# Calculates a random ToA value for Downlink bursts
+	def calc_dl_toa256(self):
+		# Calculate a range for randomization
+		toa256_min = self.toa256_dl_base - self.toa256_dl_threshold
+		toa256_max = self.toa256_dl_base + self.toa256_dl_threshold
 
-		# Generate a random ToA range
-		self.toa256_min = self.TOA256_RAND_BASE - self.TOA256_RAND_TRESHOLD
-		self.toa256_max = self.TOA256_RAND_BASE + self.TOA256_RAND_TRESHOLD
-
-	# Calculates ToA value for Uplink bursts (coming to a BTS)
-	def calc_toa_ul(self):
 		# Generate a random ToA value
-		toa256 = random.randint(self.toa256_min, self.toa256_max)
+		toa256 = random.randint(toa256_min, toa256_max)
 
-		# Apply TA value
+		return toa256
+
+	# Calculates a random ToA value for Uplink bursts
+	def calc_ul_toa256(self):
+		# Calculate a range for randomization
+		toa256_min = self.toa256_ul_base - self.toa256_ul_threshold
+		toa256_max = self.toa256_ul_base + self.toa256_ul_threshold
+
+		# Generate a random ToA value
+		toa256 = random.randint(toa256_min, toa256_max)
+
+		# Apply TA value indicated by MS
 		ta256 = self.ta * 256
 		toa256 -= ta256
 
 		return toa256
 
+	# Calculates a random RSSI value for Downlink bursts
+	def calc_dl_rssi(self):
+		# Calculate a range for randomization
+		rssi_min = self.rssi_dl_base - self.rssi_dl_threshold
+		rssi_max = self.rssi_dl_base + self.rssi_dl_threshold
+
+		# Generate a random RSSI value
+		return random.randint(rssi_min, rssi_max)
+
+	# Calculates a random RSSI value for Uplink bursts
+	def calc_ul_rssi(self):
+		# Calculate a range for randomization
+		rssi_min = self.rssi_ul_base - self.rssi_ul_threshold
+		rssi_max = self.rssi_ul_base + self.rssi_ul_threshold
+
+		# Generate a random RSSI value
+		return random.randint(rssi_min, rssi_max)
+
 	# Converts a L12TRX message to TRX2L1 message
-	def transform_msg(self, msg_raw):
+	def transform_msg(self, msg_raw, dl = True):
 		# Attempt to parse a message
 		try:
 			msg_l12trx = DATAMSG_L12TRX()
@@ -87,10 +120,12 @@ class BurstForwarder:
 		msg_trx2l1 = msg_l12trx.gen_trx2l1()
 
 		# Randomize both RSSI and ToA values
-		msg_trx2l1.rssi = msg_trx2l1.rand_rssi(
-			min = self.rssi_min, max = self.rssi_max)
-		msg_trx2l1.toa256 = msg_trx2l1.rand_toa256(
-			min = self.toa256_min, max = self.toa256_max)
+		if dl:
+			msg_trx2l1.toa256 = self.calc_dl_toa256()
+			msg_trx2l1.rssi = self.calc_dl_rssi()
+		else:
+			msg_trx2l1.toa256 = self.calc_ul_toa256()
+			msg_trx2l1.rssi = self.calc_ul_rssi()
 
 		return msg_trx2l1
 
@@ -108,7 +143,7 @@ class BurstForwarder:
 			return None
 
 		# Process a message
-		msg = self.transform_msg(data)
+		msg = self.transform_msg(data, dl = True)
 		if msg is None:
 			return None
 
@@ -140,12 +175,9 @@ class BurstForwarder:
 			return None
 
 		# Process a message
-		msg = self.transform_msg(data)
+		msg = self.transform_msg(data, dl = False)
 		if msg is None:
 			return None
-
-		# Emulate ToA value for BTS
-		msg.toa256 = self.calc_toa_ul()
 
 		# Validate and generate the payload
 		payload = msg.gen_msg()
