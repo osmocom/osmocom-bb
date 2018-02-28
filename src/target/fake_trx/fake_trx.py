@@ -49,6 +49,12 @@ class Application:
 	bts_base_port = 5700
 	bb_base_port = 6700
 
+	# BurstForwarder field randomization
+	randomize_dl_toa256 = False
+	randomize_ul_toa256 = False
+	randomize_dl_rssi = False
+	randomize_ul_rssi = False
+
 	def __init__(self):
 		self.print_copyright()
 		self.parse_argv()
@@ -74,12 +80,18 @@ class Application:
 		self.bts_ctrl.pm = self.pm
 		self.bb_ctrl.pm = self.pm
 
-		# BTS <-> BB burst forwarding
+		# Init DATA links
 		self.bts_data = UDPLink(self.bts_addr,
 			self.bts_base_port + 102, self.bts_base_port + 2)
 		self.bb_data = UDPLink(self.bb_addr,
 			self.bb_base_port + 102, self.bb_base_port + 2)
+
+		# BTS <-> BB burst forwarding
 		self.burst_fwd = BurstForwarder(self.bts_data, self.bb_data)
+		self.burst_fwd.randomize_dl_toa256 = self.randomize_dl_toa256
+		self.burst_fwd.randomize_ul_toa256 = self.randomize_ul_toa256
+		self.burst_fwd.randomize_dl_rssi = self.randomize_dl_rssi
+		self.burst_fwd.randomize_ul_rssi = self.randomize_ul_rssi
 
 		# Share a BurstForwarder instance between BTS and BB
 		self.bts_ctrl.burst_fwd = self.burst_fwd
@@ -137,7 +149,13 @@ class Application:
 			 "  -R --bts-addr       Set BTS remote address (default %s)\n"   \
 			 "  -r --bb-addr        Set BB remote address (default %s)\n"    \
 			 "  -P --bts-base-port  Set BTS base port number (default %d)\n" \
-			 "  -p --bb-base-port   Set BB base port number (default %d)\n"
+			 "  -p --bb-base-port   Set BB base port number (default %d)\n\n"
+
+		s += " Simulation\n" \
+			 "  --rand-dl-rssi      Enable DL RSSI randomization\n"   \
+			 "  --rand-ul-rssi      Enable UL RSSI randomization\n"   \
+			 "  --rand-dl-toa       Enable DL ToA randomization\n"    \
+			 "  --rand-ul-toa       Enable UL ToA randomization\n"
 
 		print(s % (self.bts_addr, self.bb_addr,
 			self.bts_base_port, self.bb_base_port))
@@ -149,8 +167,13 @@ class Application:
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
 				"R:r:P:p:h",
-				["help", "bts-addr=", "bb-addr=",
-					"bts-base-port=", "bb-base-port="])
+				[
+					"help",
+					"bts-addr=", "bb-addr=",
+					"bts-base-port=", "bb-base-port=",
+					"rand-dl-rssi", "rand-ul-rssi",
+					"rand-dl-toa", "rand-ul-toa",
+				])
 		except getopt.GetoptError as err:
 			self.print_help("[!] " + str(err))
 			sys.exit(2)
@@ -169,6 +192,16 @@ class Application:
 				self.bts_base_port = int(v)
 			elif o in ("-p", "--bb-base-port"):
 				self.bb_base_port = int(v)
+
+			# Message field randomization
+			elif o == "rand-dl-rssi":
+				self.randomize_dl_rssi = True
+			elif o == "rand-ul-rssi":
+				self.randomize_ul_rssi = True
+			elif o == "rand-dl-toa":
+				self.randomize_dl_toa256 = True
+			elif o == "rand-ul-toa":
+				self.randomize_ul_toa256 = True
 
 		# Ensure there is no overlap between ports
 		if self.bts_base_port == self.bb_base_port:
