@@ -70,6 +70,11 @@ class BurstForwarder:
 		self.bts_link = bts_link
 		self.bb_link = bb_link
 
+	# Converts TA value from symbols to
+	# units of 1/256 of GSM symbol periods
+	def calc_ta256(self):
+		return self.ta * 256
+
 	# Calculates a random ToA value for Downlink bursts
 	def calc_dl_toa256(self):
 		# Check if randomization is required
@@ -97,10 +102,6 @@ class BurstForwarder:
 
 		# Generate a random ToA value
 		toa256 = random.randint(toa256_min, toa256_max)
-
-		# Apply TA value indicated by MS
-		ta256 = self.ta * 256
-		toa256 -= ta256
 
 		return toa256
 
@@ -149,6 +150,7 @@ class BurstForwarder:
 			msg_trx2l1.rssi = self.calc_dl_rssi()
 		else:
 			msg_trx2l1.toa256 = self.calc_ul_toa256()
+			msg_trx2l1.toa256 -= self.calc_ta256()
 			msg_trx2l1.rssi = self.calc_ul_rssi()
 
 		return msg_trx2l1
