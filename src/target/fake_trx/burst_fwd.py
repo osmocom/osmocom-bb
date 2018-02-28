@@ -34,6 +34,14 @@ class BurstForwarder:
 	bts_freq = None
 	bb_freq = None
 
+	# Randomization of RSSI
+	randomize_dl_rssi = False
+	randomize_ul_rssi = False
+
+	# Randomization of ToA
+	randomize_dl_toa256 = False
+	randomize_ul_toa256 = False
+
 	# Timing Advance value indicated by MS (0 by default)
 	# Valid range: 0..63, where each unit means
 	# one GSM symbol advance.
@@ -64,6 +72,10 @@ class BurstForwarder:
 
 	# Calculates a random ToA value for Downlink bursts
 	def calc_dl_toa256(self):
+		# Check if randomization is required
+		if not self.randomize_dl_toa256:
+			return self.toa256_dl_base
+
 		# Calculate a range for randomization
 		toa256_min = self.toa256_dl_base - self.toa256_dl_threshold
 		toa256_max = self.toa256_dl_base + self.toa256_dl_threshold
@@ -75,6 +87,10 @@ class BurstForwarder:
 
 	# Calculates a random ToA value for Uplink bursts
 	def calc_ul_toa256(self):
+		# Check if randomization is required
+		if not self.randomize_ul_toa256:
+			return self.toa256_ul_base
+
 		# Calculate a range for randomization
 		toa256_min = self.toa256_ul_base - self.toa256_ul_threshold
 		toa256_max = self.toa256_ul_base + self.toa256_ul_threshold
@@ -90,6 +106,10 @@ class BurstForwarder:
 
 	# Calculates a random RSSI value for Downlink bursts
 	def calc_dl_rssi(self):
+		# Check if randomization is required
+		if not self.randomize_dl_rssi:
+			return self.rssi_dl_base
+
 		# Calculate a range for randomization
 		rssi_min = self.rssi_dl_base - self.rssi_dl_threshold
 		rssi_max = self.rssi_dl_base + self.rssi_dl_threshold
@@ -99,6 +119,10 @@ class BurstForwarder:
 
 	# Calculates a random RSSI value for Uplink bursts
 	def calc_ul_rssi(self):
+		# Check if randomization is required
+		if not self.randomize_ul_rssi:
+			return self.rssi_ul_base
+
 		# Calculate a range for randomization
 		rssi_min = self.rssi_ul_base - self.rssi_ul_threshold
 		rssi_max = self.rssi_ul_base + self.rssi_ul_threshold
