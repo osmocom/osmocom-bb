@@ -41,8 +41,8 @@ class BurstForwarder:
 	RSSI_RAND_MAX = -60
 
 	# TODO: add options to change this
-	TOA_RAND_TRESHOLD = 0.3
-	TOA_RAND_BASE = 0.00
+	TOA256_RAND_TRESHOLD = 128
+	TOA256_RAND_BASE = 0
 
 	def __init__(self, bts_link, bb_link):
 		self.bts_link = bts_link
@@ -54,8 +54,8 @@ class BurstForwarder:
 		self.rssi_max = rssi + self.RSSI_RAND_TRESHOLD
 
 		# Generate a random ToA range
-		self.toa_min = self.TOA_RAND_BASE - self.TOA_RAND_TRESHOLD
-		self.toa_max = self.TOA_RAND_BASE + self.TOA_RAND_TRESHOLD
+		self.toa256_min = self.TOA256_RAND_BASE - self.TOA256_RAND_TRESHOLD
+		self.toa256_max = self.TOA256_RAND_BASE + self.TOA256_RAND_TRESHOLD
 
 	# Converts a L12TRX message to TRX2L1 message
 	def transform_msg(self, msg_raw):
@@ -73,8 +73,8 @@ class BurstForwarder:
 		# Randomize both RSSI and ToA values
 		msg_trx2l1.rssi = msg_trx2l1.rand_rssi(
 			min = self.rssi_min, max = self.rssi_max)
-		msg_trx2l1.toa = msg_trx2l1.rand_toa(
-			min = self.toa_min, max = self.toa_max)
+		msg_trx2l1.toa256 = msg_trx2l1.rand_toa256(
+			min = self.toa256_min, max = self.toa256_max)
 
 		return msg_trx2l1
 

@@ -54,8 +54,8 @@ class Application:
 	tn = None
 
 	# Message specific header fields
+	toa256 = None
 	rssi = None
-	toa = None
 	pwr = None
 
 	def __init__(self):
@@ -108,8 +108,8 @@ class Application:
 				msg.pwr = self.pwr
 
 			# Set time of arrival
-			if self.toa is not None:
-				msg.toa = self.toa
+			if self.toa256 is not None:
+				msg.toa256 = self.toa256
 
 			# Set RSSI
 			if self.rssi is not None:
@@ -164,7 +164,8 @@ class Application:
 			 "  -t --timeslot       Set timeslot index (default random)\n"   \
 			 "     --pwr            Set power level (default random)\n"      \
 			 "     --rssi           Set RSSI (default random)\n"             \
-			 "     --toa            Set TOA (default random)\n\n"
+			 "     --toa            Set ToA in symbols (default random)\n"   \
+			 "     --toa256         Set ToA in 1/256 symbol periods\n"
 
 		print(s % (self.remote_addr, self.base_port))
 
@@ -187,6 +188,7 @@ class Application:
 					"timeslot=",
 					"rssi=",
 					"toa=",
+					"toa256=",
 					"pwr=",
 				])
 		except getopt.GetoptError as err:
@@ -221,8 +223,10 @@ class Application:
 				self.pwr = int(v)
 			elif o == "--rssi":
 				self.rssi = int(v)
+			elif o == "--toa256":
+				self.toa256 = int(v)
 			elif o == "--toa":
-				self.toa = float(v)
+				self.toa256 = int(float(v) * 256.0 + 0.5)
 
 	def check_argv(self):
 		# Check connection mode

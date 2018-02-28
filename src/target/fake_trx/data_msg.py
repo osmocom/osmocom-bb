@@ -303,12 +303,12 @@ class DATAMSG_TRX2L1(DATAMSG):
 	RSSI_MAX = -50
 
 	# TODO: verify this range
-	TOA_MIN = -10.0
-	TOA_MAX = 10.0
+	TOA256_MIN = -256 * 10
+	TOA256_MAX = 256 * 10
 
 	# Specific message fields
 	rssi = None
-	toa = None
+	toa256 = None
 
 	# Validates the message fields
 	def validate(self):
@@ -322,10 +322,10 @@ class DATAMSG_TRX2L1(DATAMSG):
 		if self.rssi < self.RSSI_MIN or self.rssi > self.RSSI_MAX:
 			return False
 
-		if self.toa is None:
+		if self.toa256 is None:
 			return False
 
-		if self.toa < self.TOA_MIN or self.toa > self.TOA_MAX:
+		if self.toa256 < self.TOA256_MIN or self.toa256 > self.TOA256_MAX:
 			return False
 
 		return True
@@ -341,20 +341,20 @@ class DATAMSG_TRX2L1(DATAMSG):
 		return random.randint(min, max)
 
 	# Generates a ToA (Time of Arrival) value
-	def rand_toa(self, min = None, max = None):
+	def rand_toa256(self, min = None, max = None):
 		if min is None:
-			min = self.TOA_MIN
+			min = self.TOA256_MIN
 
 		if max is None:
-			max = self.TOA_MAX
+			max = self.TOA256_MAX
 
-		return random.uniform(min, max)
+		return random.randint(min, max)
 
 	# Randomizes message specific header
 	def rand_hdr(self):
 		DATAMSG.rand_hdr(self)
 		self.rssi = self.rand_rssi()
-		self.toa = self.rand_toa()
+		self.toa256 = self.rand_toa256()
 
 	# Generates human-readable header description
 	def desc_hdr(self):
@@ -364,8 +364,8 @@ class DATAMSG_TRX2L1(DATAMSG):
 		if self.rssi is not None:
 			result += ("rssi=%d " % self.rssi)
 
-		if self.toa is not None:
-			result += ("toa=%.2f " % self.toa)
+		if self.toa256 is not None:
+			result += ("toa256=%d " % self.toa256)
 
 		# Strip useless whitespace and return
 		return result.strip()
@@ -378,12 +378,10 @@ class DATAMSG_TRX2L1(DATAMSG):
 		# Put RSSI
 		buf.append(-self.rssi)
 
-		# Round ToA (Time of Arrival) to closest integer
-		toa = int(self.toa * 256.0 + 0.5)
-
-		# Encode ToA
-		buf.append((toa >> 8) & 0xff)
-		buf.append(toa & 0xff)
+		# Encode ToA (Time of Arrival)
+		# Big endian, 2 bytes (int32_t)
+		buf.append((self.toa256 >> 8) & 0xff)
+		buf.append(self.toa256 & 0xff)
 
 		return buf
 
@@ -394,7 +392,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 
 		# Parse ToA (Time of Arrival)
 		# FIXME: parsing unsupported
-		self.toa = None
+		self.toa256 = None
 
 	# Generates message specific burst
 	def gen_burst(self):
@@ -457,7 +455,7 @@ if __name__ == '__main__':
 	# Fill in message specific fields
 	msg_trx2l1_ref.rssi = -88
 	msg_l12trx_ref.pwr = 0x33
-	msg_trx2l1_ref.toa = -0.6
+	msg_trx2l1_ref.toa256 = -256
 
 	# Specify the reference bursts
 	msg_l12trx_ref.burst = burst_l12trx_ref
@@ -498,7 +496,7 @@ if __name__ == '__main__':
 	assert(msg_l12trx_dec.pwr == msg_l12trx_ref.pwr)
 
 	# FIXME: ToA check disabled until the parsing is implemented
-	# assert(msg_trx2l1_dec.toa == msg_trx2l1_ref.toa)
+	# assert(msg_trx2l1_dec.toa256 == msg_trx2l1_ref.toa256)
 
 	print("[?] Compare message specific data: OK")
 

@@ -91,8 +91,8 @@ class Application:
 				continue
 
 			# HACK: as ToA parsing is not implemented yet,
-			# we have to use a fixed 0.00 value for now...
-			msg.toa = 0.00
+			# we have to use a fixed value for now...
+			msg.toa256 = 0
 
 			print("[i] Sending a burst %s to %s..."
 				% (msg.desc_hdr(), self.conn_mode))
