@@ -33,8 +33,8 @@ class CTRLInterfaceBB(CTRLInterface):
 	pm = None
 
 	def __init__(self, remote_addr, remote_port, bind_port):
-		print("[i] Init CTRL interface for BB")
 		CTRLInterface.__init__(self, remote_addr, remote_port, bind_port)
+		print("[i] Init CTRL interface for BB (%s)" % self.desc_link())
 
 	def parse_cmd(self, request):
 		# Power control

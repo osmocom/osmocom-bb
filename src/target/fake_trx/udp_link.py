@@ -34,9 +34,14 @@ class UDPLink:
 		# Save remote info
 		self.remote_addr = remote_addr
 		self.remote_port = remote_port
+		self.bind_port = bind_port
 
 	def __del__(self):
 		self.sock.close()
+
+	def desc_link(self):
+		return "L:%u <-> R:%s:%u" \
+			% (self.bind_port, self.remote_addr, self.remote_port)
 
 	def send(self, data):
 		if type(data) not in [bytearray, bytes]:
