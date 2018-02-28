@@ -45,6 +45,10 @@
 #include "logging.h"
 #include "scheduler.h"
 
+static struct value_string trx_evt_names[] = {
+	{ 0, NULL } /* no events? */
+};
+
 static struct osmo_fsm_state trx_fsm_states[] = {
 	[TRX_STATE_OFFLINE] = {
 		.out_state_mask = (
@@ -76,6 +80,7 @@ static struct osmo_fsm trx_fsm = {
 	.states = trx_fsm_states,
 	.num_states = ARRAY_SIZE(trx_fsm_states),
 	.log_subsys = DTRX,
+	.event_names = trx_evt_names,
 };
 
 static int trx_udp_open(void *priv, struct osmo_fd *ofd, const char *host,

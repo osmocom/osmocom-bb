@@ -45,6 +45,10 @@
 #include "l1ctl_link.h"
 #include "l1ctl.h"
 
+static struct value_string l1ctl_evt_names[] = {
+	{ 0, NULL } /* no events? */
+};
+
 static struct osmo_fsm_state l1ctl_fsm_states[] = {
 	[L1CTL_STATE_IDLE] = {
 		.out_state_mask = GEN_MASK(L1CTL_STATE_CONNECTED),
@@ -61,6 +65,7 @@ static struct osmo_fsm l1ctl_fsm = {
 	.states = l1ctl_fsm_states,
 	.num_states = ARRAY_SIZE(l1ctl_fsm_states),
 	.log_subsys = DL1C,
+	.event_names = l1ctl_evt_names,
 };
 
 static int l1ctl_link_read_cb(struct osmo_fd *bfd)
