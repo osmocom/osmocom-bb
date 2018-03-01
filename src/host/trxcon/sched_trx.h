@@ -17,6 +17,9 @@
 #define GPRS_BURST_LEN		GSM_BURST_LEN
 #define EDGE_BURST_LEN		444
 
+#define GPRS_L2_MAX_LEN		54
+#define EDGE_L2_MAX_LEN		155
+
 #define TRX_CH_LID_DEDIC	0x00
 #define TRX_CH_LID_SACCH	0x40
 
