@@ -270,7 +270,7 @@ int main(int argc, char **argv)
 		goto exit;
 
 	/* Init transceiver interface */
-	rc = trx_if_open(&app_data.trx, app_data.trx_ip, app_data.trx_base_port);
+	rc = trx_if_open(&app_data.trx, "0.0.0.0", app_data.trx_ip, app_data.trx_base_port);
 	if (rc)
 		goto exit;
 

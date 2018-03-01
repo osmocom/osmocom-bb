@@ -83,42 +83,20 @@ static struct osmo_fsm trx_fsm = {
 	.event_names = trx_evt_names,
 };
 
-static int trx_udp_open(void *priv, struct osmo_fd *ofd, const char *host,
-	uint16_t port_local, uint16_t port_remote,
+static int trx_udp_open(void *priv, struct osmo_fd *ofd, const char *host_local,
+	uint16_t port_local, const char *host_remote, uint16_t port_remote,
 	int (*cb)(struct osmo_fd *fd, unsigned int what))
 {
-	struct sockaddr_storage sas;
-	struct sockaddr *sa = (struct sockaddr *) &sas;
-	socklen_t sa_len;
 	int rc;
 
 	ofd->data = priv;
 	ofd->fd = -1;
 	ofd->cb = cb;
 
-	/* Init RX side for UDP connection */
-	rc = osmo_sock_init_ofd(ofd, AF_UNSPEC, SOCK_DGRAM,
-		0, host, port_local, OSMO_SOCK_F_BIND);
-	if (rc < 0)
-		return rc;
-
-	/* Init TX side for UDP connection */
-	sa_len = sizeof(sas);
-	rc = getsockname(ofd->fd, sa, &sa_len);
-	if (rc)
-		return rc;
-
-	if (sa->sa_family == AF_INET) {
-		struct sockaddr_in *sin = (struct sockaddr_in *) sa;
-		sin->sin_port = htons(port_remote);
-	} else if (sa->sa_family == AF_INET6) {
-		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *) sa;
-		sin6->sin6_port = htons(port_remote);
-	} else {
-		return -EINVAL;
-	}
-
-	rc = connect(ofd->fd, sa, sa_len);
+	/* Init UDP Connection */
+	rc = osmo_sock_init2_ofd(ofd, AF_UNSPEC, SOCK_DGRAM, 0, host_local, port_local,
+				 host_remote, port_remote,
+				 OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT);
 	return rc;
 }
 
@@ -641,7 +619,8 @@ int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
  * Open/close OsmoTRX connection
  */
 
-int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
+int trx_if_open(struct trx_instance **trx, const char *local_host,
+		const char *remote_host, uint16_t port)
 {
 	struct trx_instance *trx_new;
 	int rc;
@@ -659,13 +638,13 @@ int trx_if_open(struct trx_instance **trx, const char *host, uint16_t port)
 	INIT_LLIST_HEAD(&trx_new->trx_ctrl_list);
 
 	/* Open sockets */
-	rc = trx_udp_open(trx_new, &trx_new->trx_ofd_ctrl, host,
-		port + 101, port + 1, trx_ctrl_read_cb);
+	rc = trx_udp_open(trx_new, &trx_new->trx_ofd_ctrl, local_host,
+		port + 101, remote_host, port + 1, trx_ctrl_read_cb);
 	if (rc < 0)
 		goto error;
 
-	rc = trx_udp_open(trx_new, &trx_new->trx_ofd_data, host,
-		port + 102, port + 2, trx_data_rx_cb);
+	rc = trx_udp_open(trx_new, &trx_new->trx_ofd_data, local_host,
+		port + 102, remote_host, port + 2, trx_data_rx_cb);
 	if (rc < 0)
 		goto error;
 
