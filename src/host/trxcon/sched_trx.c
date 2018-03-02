@@ -568,7 +568,8 @@ static void sched_trx_a5_burst_enc(struct trx_lchan_state *lchan,
 }
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
-	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa)
+	uint32_t burst_fn, sbit_t *bits, uint16_t nbits,
+	int8_t rssi, int16_t toa256)
 {
 	struct trx_lchan_state *lchan;
 	const struct trx_frame *frame;
@@ -630,7 +631,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 				sched_trx_a5_burst_dec(lchan, fn, bits);
 
 			/* Put burst to handler */
-			handler(trx, ts, lchan, fn, bid, bits, rssi, toa);
+			handler(trx, ts, lchan, fn, bid, bits, rssi, toa256);
 		}
 
 next_frame:

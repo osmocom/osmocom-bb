@@ -82,7 +82,7 @@ enum trx_lchan_type {
 typedef int trx_lchan_rx_func(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
 	uint32_t fn, uint8_t bid, sbit_t *bits,
-	int8_t rssi, float toa);
+	int8_t rssi, int16_t toa256);
 
 typedef int trx_lchan_tx_func(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
@@ -174,9 +174,9 @@ struct trx_lchan_state {
 		/*! \brief Sum of RSSI values */
 		float rssi_sum;
 		/*! \brief Number of TOA values */
-		uint8_t toa_num;
+		uint8_t toa256_num;
 		/*! \brief Sum of TOA values */
-		float toa_sum;
+		int32_t toa256_sum;
 	} meas;
 
 	/* AMR specific */
@@ -286,7 +286,8 @@ void sched_prim_drop(struct trx_lchan_state *lchan);
 void sched_prim_flush_queue(struct llist_head *list);
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
-	uint32_t burst_fn, sbit_t *bits, uint16_t nbits, int8_t rssi, float toa);
+	uint32_t burst_fn, sbit_t *bits, uint16_t nbits,
+	int8_t rssi, int16_t toa256);
 int sched_trx_handle_tx_burst(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
 	uint32_t fn, ubit_t *bits);

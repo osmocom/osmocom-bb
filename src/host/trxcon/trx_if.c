@@ -535,8 +535,8 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	uint8_t buf[256];
 	sbit_t bits[148];
 	int8_t rssi, tn;
+	int16_t toa256;
 	uint32_t fn;
-	float toa;
 	int len;
 
 	len = recv(ofd->fd, buf, sizeof(buf), 0);
@@ -552,7 +552,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	tn = buf[0];
 	fn = (buf[1] << 24) | (buf[2] << 16) | (buf[3] << 8) | buf[4];
 	rssi = -(int8_t) buf[5];
-	toa = ((int16_t) (buf[6] << 8) | buf[7]) / 256.0F;
+	toa256 = ((int16_t) (buf[6] << 8) | buf[7]);
 
 	/* Copy and convert bits {254..0} to sbits {-127..127} */
 	osmo_ubit2sbit(bits, buf + 8, 148);
@@ -567,11 +567,11 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return -EINVAL;
 	}
 
-	LOGP(DTRXD, LOGL_DEBUG, "RX burst tn=%u fn=%u rssi=%d toa=%.2f\n",
-		tn, fn, rssi, toa);
+	LOGP(DTRXD, LOGL_DEBUG, "RX burst tn=%u fn=%u rssi=%d toa=%d\n",
+		tn, fn, rssi, toa256);
 
 	/* Poke scheduler */
-	sched_trx_handle_rx_burst(trx, tn, fn, bits, 148, rssi, toa);
+	sched_trx_handle_rx_burst(trx, tn, fn, bits, 148, rssi, toa256);
 
 	/* Correct local clock counter */
 	if (fn % 51 == 0)

@@ -38,21 +38,21 @@
 /* Forward declaration of handlers */
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	sbit_t *bits, int8_t rssi, float toa);
+	sbit_t *bits, int8_t rssi, int16_t toa256);
 
 int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
 
 int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	sbit_t *bits, int8_t rssi, float toa);
+	sbit_t *bits, int8_t rssi, int16_t toa256);
 
 int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
 
 int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	sbit_t *bits, int8_t rssi, float toa);
+	sbit_t *bits, int8_t rssi, int16_t toa256);
 
 int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
