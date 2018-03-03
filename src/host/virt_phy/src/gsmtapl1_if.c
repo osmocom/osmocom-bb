@@ -70,6 +70,7 @@ void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, uint8_t tn
 
 	switch (l1h->msg_type) {
 	case L1CTL_DATA_TBF_REQ:
+	case L1CTL_DATA_ABS_REQ:
 		ul = NULL;
 		rsl_chantype = RSL_CHAN_OSMO_PDCH;
 		timeslot = tn;
@@ -166,11 +167,57 @@ static uint8_t get_usf_from_block(struct msgb *msg)
 	return msg->data[0] & 0x7;
 }
 
+/* get first message in queue, but don't de-queue */
+static struct msgb *my_msgb_queue_peek(struct llist_head *queue)
+{
+	struct llist_head *lh;
+
+	if (llist_empty(queue))
+		return NULL;
+
+	lh = queue->next;
+	if (!lh)
+		return NULL;
+
+	return llist_entry(lh, struct msgb, list);
+}
+
+/* Check if we have any uplink transfer queued for this frame number. If so, transmit */
+static bool ms_ul_abs_may_transmit(struct l1_model_ms *ms, uint32_t fn)
+{
+	struct llist_head *queue = &ms->state.tx_queue_abs;
+	struct msgb *msg;
+
+	/* First check if we have any pending uplink blocks for this absolute FN */
+	msg = my_msgb_queue_peek(queue);
+	if (msg) {
+		struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+		struct l1ctl_info_ul_abs *abs = (struct l1ctl_info_ul_abs *) l1h->data;
+		if (abs->fn < fn) {
+			printf("----Dropping UL ABS, %u < %u\n", abs->fn, fn);
+			LOGPMS(DVIRPHY, LOGL_ERROR, ms, "Dropping UL ABS, %u < %u\n", abs->fn, fn);
+			OSMO_ASSERT(msgb_dequeue(queue) == msg);
+			msgb_free(msg);
+		} else if (abs->fn == fn) {
+			printf("----dequeueing abs for fn %u tn %u\n", abs->fn, abs->ts_nr);
+			OSMO_ASSERT(msgb_dequeue(queue) == msg);
+			gsmtapl1_tx_to_virt_um_inst(ms, fn, abs->ts_nr, msg);
+			return true;
+		}
+	}
+	/* TODO: what in case we have multiple for same FN but different TN? */
+	return false;
+}
+
 /* MS is authorized to transmit a block in uplink for given USF on timeslot+arfcn at FN */
 static void ms_ul_tbf_may_transmit(struct l1_model_ms *ms, uint16_t arfcn, uint8_t timeslot,
 				   uint32_t fn, uint8_t usf)
 {
 	struct msgb *msg;
+
+	/* If we have any ABS uplink transmit queued, this has higher precedence than USF */
+	if (ms_ul_abs_may_transmit(ms, fn))
+		return;
 
 	/* If USF is not for us, bail out */
 	if (!usf_matches_ms(ms, usf, timeslot))

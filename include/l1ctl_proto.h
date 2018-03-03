@@ -1,6 +1,6 @@
 /* Messages to be sent between the different layers */
 
-/* (C) 2010 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2010-2017 by Harald Welte <laforge@gnumonks.org>
  * (C) 2010 by Holger Hans Peter Freyther
  *
  * All Rights Reserved
@@ -64,6 +64,7 @@ enum {
 
 	L1CTL_DATA_TBF_REQ,
 	L1CTL_DATA_TBF_CONF,
+	L1CTL_DATA_ABS_REQ,
 };
 
 enum ccch_mode {
@@ -183,6 +184,23 @@ struct l1ctl_info_ul_tbf {
 	uint8_t coding_scheme;
 	uint8_t padding[2];
 	/* RLC/MAC block, size determines CS */
+	uint8_t payload[0];
+} __attribute__((packed));
+
+/* (E)GPRS uplink block at user-specified absolute frame number */
+struct l1ctl_info_ul_abs {
+	/* references l1ctl_tbf_cfg_req.tbf_nr */
+	uint8_t tbf_nr;
+	/* timeslot number on which to transmit */
+	uint8_t coding_scheme;
+	uint8_t ts_nr;
+	uint8_t padding[1];
+	/* frame number on which to transmit (first of 4 blocks) */
+	uint32_t fn;
+	/* ARFCN on which to transmit */
+	uint16_t arfcn;
+	uint8_t padding2[2];
+	/* RLC/MAC block */
 	uint8_t payload[0];
 } __attribute__((packed));
 

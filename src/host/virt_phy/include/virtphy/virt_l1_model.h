@@ -84,6 +84,8 @@ struct l1_state_ms {
 			uint8_t tfi[8];
 		} dl;
 	} tbf;
+	/* PS related transmit requests with absolute frame number */
+	struct llist_head tx_queue_abs;
 
 	/* fbsb state */
 	struct {

@@ -42,6 +42,7 @@
 
 static void l1ctl_rx_tbf_cfg_req(struct l1_model_ms *ms, struct msgb *msg);
 static void l1ctl_rx_data_tbf_req(struct l1_model_ms *ms, struct msgb *msg);
+static void l1ctl_rx_data_abs_req(struct l1_model_ms *ms, struct msgb *msg);
 
 static void l1_model_tch_mode_set(struct l1_model_ms *ms, uint8_t tch_mode)
 {
@@ -60,6 +61,7 @@ void l1ctl_sap_init(struct l1_model_ms *model)
 {
 	INIT_LLIST_HEAD(&model->state.sched.mframe_items);
 	INIT_LLIST_HEAD(&model->state.tbf.ul.tx_queue);
+	INIT_LLIST_HEAD(&model->state.tx_queue_abs);
 
 	prim_pm_init(model);
 }
@@ -251,6 +253,9 @@ void l1ctl_sap_handler(struct l1_model_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_DATA_TBF_REQ:
 		l1ctl_rx_data_tbf_req(ms, msg);
+		goto exit_nofree;
+	case L1CTL_DATA_ABS_REQ:
+		l1ctl_rx_data_abs_req(ms, msg);
 		goto exit_nofree;
 	}
 
@@ -660,6 +665,46 @@ static void l1ctl_rx_data_tbf_req(struct l1_model_ms *ms, struct msgb *msg)
 	}
 
 	msgb_enqueue(&ms->state.tbf.ul.tx_queue, msg);
+}
+
+static void l1ctl_rx_data_abs_req(struct l1_model_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	struct l1ctl_info_ul_abs *udt = (struct l1ctl_info_ul_abs *) l1h->data;
+	enum osmo_gprs_cs osmo_cs;
+	int block_size;
+
+	msg->l2h = udt->payload;
+
+	LOGPMS(DL1P, LOGL_ERROR, ms, "Rx L1CTL_DATA_ABS_REQ (tbf_id=%d, ts=%u, fn=%u, data=%s)\n",
+		udt->tbf_nr, udt->ts_nr, udt->fn, osmo_hexdump(msg->l2h, msgb_l2len(msg)));
+	if (udt->tbf_nr != 0) {
+		LOGPMS(DL1C, LOGL_ERROR, ms, "TBF_NR != 0 not supported yet!\n");
+		return;
+	}
+
+	if (ms->state.state != MS_STATE_TBF) {
+		LOGPMS(DL1P, LOGL_ERROR, ms, "DATA_ABS_REQ in state != TBF\n");
+		return;
+	}
+
+	osmo_cs = get_l1ctl_cs_by_osmo(udt->coding_scheme);
+	if (osmo_cs < 0) {
+		LOGPMS(DL1P, LOGL_ERROR, ms, "DATA_RBF_REQ with invalid CS\n");
+		return;
+	}
+	block_size = osmo_gprs_ul_block_size_bytes(osmo_cs);
+
+	if (msgb_l2len(msg) < block_size) {
+		int pad_len = block_size - msgb_l2len(msg);
+		uint8_t *pad = msgb_put(msg, pad_len);
+		memset(pad, GSM_MACBLOCK_PADDING, pad_len);
+	}
+
+	printf("----enqueueing abs for fn %u, ts %u: %s\n", udt->fn, udt->ts_nr, msgb_hexdump(msg));
+	/* FIXME: ordered insert?  But then, the L1CTL_DATA_ABS_REQ should already
+	 * arrive in ordered fashion */
+	msgb_enqueue(&ms->state.tx_queue_abs, msg);
 }
 
 /***************************************************************
