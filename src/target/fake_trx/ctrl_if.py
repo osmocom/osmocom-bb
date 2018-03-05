@@ -60,11 +60,6 @@ class CTRLInterface(UDPLink):
 		if len(request) - 1 != argc:
 			return False
 
-		# Check if all arguments are numeric
-		for v in request[1:]:
-			if not v.isdigit():
-				return False
-
 		return True
 
 	def send_response(self, request, remote, response_code, params = None):
