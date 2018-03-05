@@ -26,16 +26,18 @@ from udp_link import UDPLink
 
 class CTRLInterface(UDPLink):
 	def handle_rx(self, data, remote):
-		if self.verify_req(data):
-			request = self.prepare_req(data)
-			rc = self.parse_cmd(request)
-
-			if type(rc) is tuple:
-				self.send_response(request, remote, rc[0], rc[1])
-			else:
-				self.send_response(request, remote, rc)
-		else:
+		if not self.verify_req(data):
 			print("[!] Wrong data on CTRL interface")
+			return
+
+		# Attempt to parse a command
+		request = self.prepare_req(data)
+		rc = self.parse_cmd(request)
+
+		if type(rc) is tuple:
+			self.send_response(request, remote, rc[0], rc[1])
+		else:
+			self.send_response(request, remote, rc)
 
 	def verify_req(self, data):
 		# Verify command signature
