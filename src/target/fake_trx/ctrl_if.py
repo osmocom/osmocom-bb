@@ -26,7 +26,6 @@ from udp_link import UDPLink
 
 class CTRLInterface(UDPLink):
 	def handle_rx(self, data, remote):
-		# print(data)
 		if self.verify_req(data):
 			request = self.prepare_req(data)
 			rc = self.parse_cmd(request)
