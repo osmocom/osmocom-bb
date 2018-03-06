@@ -25,7 +25,7 @@
 import socket
 
 class UDPLink:
-	def __init__(self, remote_addr, remote_port, bind_port):
+	def __init__(self, remote_addr, remote_port, bind_port = 0):
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind(('0.0.0.0', bind_port))
@@ -34,14 +34,15 @@ class UDPLink:
 		# Save remote info
 		self.remote_addr = remote_addr
 		self.remote_port = remote_port
-		self.bind_port = bind_port
 
 	def __del__(self):
 		self.sock.close()
 
 	def desc_link(self):
-		return "L:%u <-> R:%s:%u" \
-			% (self.bind_port, self.remote_addr, self.remote_port)
+		(bind_addr, bind_port) = self.sock.getsockname()
+
+		return "L:%s:%u <-> R:%s:%u" \
+			% (bind_addr, bind_port, self.remote_addr, self.remote_port)
 
 	def send(self, data):
 		if type(data) not in [bytearray, bytes]:
