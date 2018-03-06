@@ -4,7 +4,7 @@
 # Auxiliary tool to send custom commands via TRX CTRL interface,
 # which may be useful for testing and fuzzing
 #
-# (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -30,7 +30,7 @@ import sys
 from udp_link import UDPLink
 
 COPYRIGHT = \
-	"Copyright (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
+	"Copyright (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
 	"License GPLv2+: GNU GPL version 2 or later " \
 	"<http://gnu.org/licenses/gpl.html>\n" \
 	"This is free software: you are free to change and redistribute it.\n" \
@@ -40,6 +40,7 @@ class Application:
 	# Application variables
 	remote_addr = "127.0.0.1"
 	base_port = 5700
+	bind_port = 0
 	fuzzing = False
 
 	def __init__(self):
@@ -51,7 +52,11 @@ class Application:
 
 		# Init UDP connection
 		self.ctrl_link = UDPLink(self.remote_addr,
-			self.base_port + 1, self.base_port + 101)
+			self.base_port + 1, self.bind_port)
+
+		# Debug print
+		print("[i] Init CTRL interface (%s)" \
+			% self.ctrl_link.desc_link())
 
 	def print_help(self, msg = None):
 		s  = " Usage: " + sys.argv[0] + " [options]\n\n" \
@@ -61,6 +66,7 @@ class Application:
 		s += " TRX interface specific\n" \
 			 "  -r --remote-addr    Set remote address (default %s)\n"   \
 			 "  -p --base-port      Set base port number (default %d)\n" \
+			 "  -P --bind-port      Set local port number (default: random)\n" \
 			 "  -f --fuzzing        Send raw payloads (without CMD)\n"   \
 
 		print(s % (self.remote_addr, self.base_port))
@@ -71,11 +77,12 @@ class Application:
 	def parse_argv(self):
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
-				"r:p:fh",
+				"r:p:P:fh",
 				[
 					"help",
 					"fuzzing",
 					"base-port=",
+					"bind-port=",
 					"remote-addr=",
 				])
 		except getopt.GetoptError as err:
@@ -91,6 +98,8 @@ class Application:
 				self.remote_addr = v
 			elif o in ("-p", "--base-port"):
 				self.base_port = int(v)
+			elif o in ("-P", "--bind-port"):
+				self.bind_port = int(v)
 			elif o in ("-f", "--fuzzing"):
 				self.fuzzing = True
 
