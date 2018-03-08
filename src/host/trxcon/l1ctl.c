@@ -49,8 +49,14 @@
 static struct msgb *l1ctl_alloc_msg(uint8_t msg_type)
 {
 	struct l1ctl_hdr *l1h;
-	struct msgb *msg = msgb_alloc_headroom(256, 4, "l1ctl_tx_msg");
+	struct msgb *msg;
 
+	/**
+	 * Each L1CTL message gets its own length pushed in front
+	 * before sending. This is why we need this small headroom.
+	 */
+	msg = msgb_alloc_headroom(L1CTL_LENGTH + L1CTL_MSG_LEN_FIELD,
+		L1CTL_MSG_LEN_FIELD, "l1ctl_tx_msg");
 	if (!msg) {
 		LOGP(DL1C, LOGL_ERROR, "Failed to allocate memory\n");
 		return NULL;

@@ -84,8 +84,8 @@ static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 	}
 
 	/* Attempt to read from socket */
-	rc = read(bfd->fd, &len, sizeof(len));
-	if (rc < sizeof(len)) {
+	rc = read(bfd->fd, &len, L1CTL_MSG_LEN_FIELD);
+	if (rc < L1CTL_MSG_LEN_FIELD) {
 		LOGP(DL1D, LOGL_NOTICE, "L1CTL has lost connection\n");
 		msgb_free(msg);
 		if (rc >= 0)
@@ -198,8 +198,8 @@ int l1ctl_link_send(struct l1ctl_link *l1l, struct msgb *msg)
 		LOGP(DL1D, LOGL_INFO, "Message L1 header != Message Data\n");
 
 	/* Prepend 16-bit length before sending */
-	len = (uint16_t *) msgb_push(msg, sizeof(*len));
-	*len = htons(msg->len - sizeof(*len));
+	len = (uint16_t *) msgb_push(msg, L1CTL_MSG_LEN_FIELD);
+	*len = htons(msg->len - L1CTL_MSG_LEN_FIELD);
 
 	if (osmo_wqueue_enqueue(&l1l->wq, msg) != 0) {
 		LOGP(DL1D, LOGL_ERROR, "Failed to enqueue msg!\n");

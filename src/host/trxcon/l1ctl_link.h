@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #include <osmocom/core/write_queue.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/timer.h>
@@ -8,6 +10,12 @@
 
 #define L1CTL_LENGTH 256
 #define L1CTL_HEADROOM 32
+
+/**
+ * Each L1CTL message gets its own length pushed
+ * as two bytes in front before sending.
+ */
+#define L1CTL_MSG_LEN_FIELD 2
 
 /* Forward declaration to avoid mutual include */
 struct trx_instance;
