@@ -49,7 +49,7 @@
 static struct msgb *l1ctl_alloc_msg(uint8_t msg_type)
 {
 	struct l1ctl_hdr *l1h;
-	struct msgb *msg = msgb_alloc_headroom(256, 4, "osmo_l1");
+	struct msgb *msg = msgb_alloc_headroom(256, 4, "l1ctl_tx_msg");
 
 	if (!msg) {
 		LOGP(DL1C, LOGL_ERROR, "Failed to allocate memory\n");

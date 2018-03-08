@@ -77,7 +77,7 @@ static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 
 	/* Allocate a new msg */
 	msg = msgb_alloc_headroom(L1CTL_LENGTH + L1CTL_HEADROOM,
-		L1CTL_HEADROOM, "L1CTL");
+		L1CTL_HEADROOM, "l1ctl_rx_msg");
 	if (!msg) {
 		LOGP(DL1D, LOGL_ERROR, "Failed to allocate msg\n");
 		return -ENOMEM;
