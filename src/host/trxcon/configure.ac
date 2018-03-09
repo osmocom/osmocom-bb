@@ -18,6 +18,17 @@ PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm)
 dnl checks for header files
 AC_HEADER_STDC
 
+AC_ARG_ENABLE(sanitize,
+	[AS_HELP_STRING(
+		[--enable-sanitize],
+		[Compile with address sanitizer enabled],
+	)], [sanitize=$enableval], [sanitize="no"])
+if test x"$sanitize" = x"yes"
+then
+	CFLAGS="$CFLAGS -fsanitize=address -fsanitize=undefined"
+	CPPFLAGS="$CPPFLAGS -fsanitize=address -fsanitize=undefined"
+fi
+
 dnl Checks for typedefs, structures and compiler characteristics
 
 AC_OUTPUT(
