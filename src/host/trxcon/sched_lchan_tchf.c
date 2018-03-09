@@ -49,8 +49,8 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	sbit_t *bits, int8_t rssi, int16_t toa256)
 {
 	const struct trx_lchan_desc *lchan_desc;
+	int n_errors = -1, n_bits_total, rc;
 	uint8_t rsl_cmode, tch_mode, mode;
-	int n_errors, n_bits_total, rc;
 	sbit_t *buffer, *offset;
 	uint8_t l2[128], *mask;
 	uint32_t *first_fn;
@@ -92,16 +92,6 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	if (bid != 3)
 		return 0;
 
-	/* Check for complete set of bursts */
-	if ((*mask & 0xf) != 0xf) {
-		LOGP(DSCHD, LOGL_ERROR, "Received incomplete traffic frame at "
-			"fn=%u (%u/%u) for %s\n", *first_fn,
-			(*first_fn) % ts->mf_layout->period,
-			ts->mf_layout->period,
-			lchan_desc->name);
-		return -EINVAL;
-	}
-
 	/**
 	 * Get current RSL / TCH modes
 	 *
@@ -110,6 +100,18 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	 */
 	rsl_cmode = RSL_CMOD_SPD_SPEECH;
 	tch_mode = lchan->tch_mode;
+
+	/* Check for complete set of bursts */
+	if ((*mask & 0xf) != 0xf) {
+		LOGP(DSCHD, LOGL_ERROR, "Received incomplete traffic frame at "
+			"fn=%u (%u/%u) for %s\n", *first_fn,
+			(*first_fn) % ts->mf_layout->period,
+			ts->mf_layout->period,
+			lchan_desc->name);
+
+		/* Send BFI */
+		goto bfi;
+	}
 
 	mode = rsl_cmode != RSL_CMOD_SPD_SPEECH ?
 		GSM48_CMODE_SPEECH_V1 : tch_mode;
@@ -144,25 +146,35 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		LOGP(DSCHD, LOGL_ERROR, "Received bad TCH frame ending at "
 			"fn=%u for %s\n", fn, lchan_desc->name);
 
-		l2_len = sched_bad_frame_ind(l2, rsl_cmode, tch_mode);
+		/* Send BFI */
+		goto bfi;
 	} else if (rc == GSM_MACBLOCK_LEN) {
 		/* FACCH received, forward it to the higher layers */
 		sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
 			n_errors, false, false);
 
 		/* Send BFI instead of stolen TCH frame */
-		l2_len = sched_bad_frame_ind(l2, rsl_cmode, tch_mode);
+		goto bfi;
 	} else {
 		/* A good TCH frame received */
 		l2_len = rc;
 	}
 
 	/* Send a traffic frame to the higher layers */
-	if (l2_len > 0)
-		sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
-			n_errors, rc < 4, true);
+	return sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
+		n_errors, false, true);
 
-	return 0;
+bfi:
+	/* Bad frame indication */
+	l2_len = sched_bad_frame_ind(l2, rsl_cmode, tch_mode);
+
+	/* Didn't try to decode */
+	if (n_errors < 0)
+		n_errors = 116 * 4;
+
+	/* Send a BFI frame to the higher layers */
+	return sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
+		n_errors, true, true);
 }
 
 int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
