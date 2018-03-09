@@ -75,19 +75,10 @@ static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 	uint16_t len;
 	int rc;
 
-	/* Allocate a new msg */
-	msg = msgb_alloc_headroom(L1CTL_LENGTH + L1CTL_HEADROOM,
-		L1CTL_HEADROOM, "l1ctl_rx_msg");
-	if (!msg) {
-		LOGP(DL1D, LOGL_ERROR, "Failed to allocate msg\n");
-		return -ENOMEM;
-	}
-
 	/* Attempt to read from socket */
 	rc = read(bfd->fd, &len, L1CTL_MSG_LEN_FIELD);
 	if (rc < L1CTL_MSG_LEN_FIELD) {
 		LOGP(DL1D, LOGL_NOTICE, "L1CTL has lost connection\n");
-		msgb_free(msg);
 		if (rc >= 0)
 			rc = -EIO;
 		l1ctl_link_close_conn(l1l);
@@ -98,8 +89,15 @@ static int l1ctl_link_read_cb(struct osmo_fd *bfd)
 	len = ntohs(len);
 	if (len > L1CTL_LENGTH) {
 		LOGP(DL1D, LOGL_ERROR, "Length is too big: %u\n", len);
-		msgb_free(msg);
 		return -EINVAL;
+	}
+
+	/* Allocate a new msg */
+	msg = msgb_alloc_headroom(L1CTL_LENGTH + L1CTL_HEADROOM,
+		L1CTL_HEADROOM, "l1ctl_rx_msg");
+	if (!msg) {
+		LOGP(DL1D, LOGL_ERROR, "Failed to allocate msg\n");
+		return -ENOMEM;
 	}
 
 	msg->l1h = msgb_put(msg, len);
