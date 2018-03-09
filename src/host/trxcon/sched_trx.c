@@ -185,7 +185,7 @@ struct trx_ts *sched_trx_add_ts(struct trx_instance *trx, int tn)
 
 void sched_trx_del_ts(struct trx_instance *trx, int tn)
 {
-	struct trx_lchan_state *lchan;
+	struct trx_lchan_state *lchan, *lchan_next;
 	struct trx_ts *ts;
 
 	/* Find ts in list */
@@ -199,8 +199,10 @@ void sched_trx_del_ts(struct trx_instance *trx, int tn)
 	sched_trx_deactivate_all_lchans(ts);
 
 	/* Free channel states */
-	llist_for_each_entry(lchan, &ts->lchans, list)
+	llist_for_each_entry_safe(lchan, lchan_next, &ts->lchans, list) {
+		llist_del(&lchan->list);
 		talloc_free(lchan);
+	}
 
 	/* Flush queue primitives for TX */
 	sched_prim_flush_queue(&ts->tx_prims);
