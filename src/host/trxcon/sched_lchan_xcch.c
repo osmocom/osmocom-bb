@@ -109,8 +109,8 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	}
 
 	/* Send a L2 frame to the higher layers */
-	sched_send_data_ind(trx, ts, lchan,
-		l2, GSM_MACBLOCK_LEN, rc != 0, n_errors);
+	sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
+		n_errors, rc != 0, false);
 
 	return 0;
 }
@@ -190,7 +190,7 @@ send_burst:
 		*mask = 0x00;
 
 		/* Confirm data sending */
-		sched_send_data_conf(trx, ts, lchan, fn, GSM_MACBLOCK_LEN);
+		sched_send_dt_conf(trx, ts, lchan, fn, false);
 	}
 
 	return 0;

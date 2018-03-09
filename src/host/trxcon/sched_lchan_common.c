@@ -82,9 +82,9 @@ const uint8_t sched_nb_training_bits[8][26] = {
 	},
 };
 
-int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
+int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len,
-	bool dec_failed, int bit_error_count)
+	int bit_error_count, bool dec_failed, bool traffic)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct l1ctl_info_dl dl_hdr;
@@ -107,14 +107,13 @@ int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
 	dl_hdr.fire_crc = dec_failed ? 2 : 0;
 
 	/* Put a packet to higher layers */
-	l1ctl_tx_dt_ind(trx->l1l, &dl_hdr, l2, l2_len,
-		l2_len != GSM_MACBLOCK_LEN);
+	l1ctl_tx_dt_ind(trx->l1l, &dl_hdr, l2, l2_len, traffic);
 
 	return 0;
 }
 
-int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, size_t l2_len)
+int sched_send_dt_conf(struct trx_instance *trx, struct trx_ts *ts,
+	struct trx_lchan_state *lchan, uint32_t fn, bool traffic)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct l1ctl_info_dl dl_hdr;
@@ -131,8 +130,7 @@ int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
 	dl_hdr.band_arfcn = htons(trx->band_arfcn);
 	dl_hdr.frame_nr = htonl(fn);
 
-	l1ctl_tx_dt_conf(trx->l1l, &dl_hdr,
-		l2_len != GSM_MACBLOCK_LEN);
+	l1ctl_tx_dt_conf(trx->l1l, &dl_hdr, traffic);
 
 	return 0;
 }
