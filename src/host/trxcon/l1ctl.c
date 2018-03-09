@@ -231,19 +231,19 @@ int l1ctl_tx_rach_conf(struct l1ctl_link *l1l, uint32_t fn)
 	return l1ctl_link_send(l1l, msg);
 }
 
-int l1ctl_tx_data_conf(struct l1ctl_link *l1l,
-	struct l1ctl_info_dl *data, uint8_t msg_type)
+
+/**
+ * Handles both L1CTL_DATA_CONF and L1CTL_TRAFFIC_CONF.
+ */
+int l1ctl_tx_dt_conf(struct l1ctl_link *l1l,
+	struct l1ctl_info_dl *data, bool traffic)
 {
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 	size_t len;
 
-	if (msg_type != L1CTL_DATA_CONF && msg_type != L1CTL_TRAFFIC_CONF) {
-		LOGP(DL1D, LOGL_ERROR, "Incorrect confirmation type\n");
-		return -EINVAL;
-	}
-
-	msg = l1ctl_alloc_msg(msg_type);
+	msg = l1ctl_alloc_msg(traffic ?
+		L1CTL_TRAFFIC_CONF : L1CTL_DATA_CONF);
 	if (msg == NULL)
 		return -ENOMEM;
 

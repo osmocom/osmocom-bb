@@ -20,6 +20,6 @@ int l1ctl_tx_reset_ind(struct l1ctl_link *l1l, uint8_t type);
 
 int l1ctl_tx_data_ind(struct l1ctl_link *l1l,
 	struct l1ctl_info_dl *data, uint8_t msg_type);
-int l1ctl_tx_data_conf(struct l1ctl_link *l1l,
-	struct l1ctl_info_dl *data, uint8_t msg_type);
+int l1ctl_tx_dt_conf(struct l1ctl_link *l1l,
+	struct l1ctl_info_dl *data, bool traffic);
 int l1ctl_tx_rach_conf(struct l1ctl_link *l1l, uint32_t fn);

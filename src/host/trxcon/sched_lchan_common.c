@@ -129,7 +129,6 @@ int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct l1ctl_info_dl *data;
-	uint8_t conf_type;
 
 	/* Allocate memory */
 	data = talloc_zero(ts, struct l1ctl_info_dl);
@@ -145,11 +144,8 @@ int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
 	data->band_arfcn = htons(trx->band_arfcn);
 	data->frame_nr = htonl(fn);
 
-	/* Choose a confirmation type */
-	conf_type = l2_len == GSM_MACBLOCK_LEN ?
-		L1CTL_DATA_CONF : L1CTL_TRAFFIC_CONF;
-
-	l1ctl_tx_data_conf(trx->l1l, data, conf_type);
+	l1ctl_tx_dt_conf(trx->l1l, data,
+		l2_len != GSM_MACBLOCK_LEN);
 	talloc_free(data);
 
 	return 0;
