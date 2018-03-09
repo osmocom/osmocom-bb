@@ -87,34 +87,28 @@ int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
 	bool dec_failed, int bit_error_count)
 {
 	const struct trx_lchan_desc *lchan_desc;
-	struct l1ctl_info_dl *data;
-
-	/* Allocate memory */
-	data = talloc_zero_size(ts, sizeof(struct l1ctl_info_dl));
-	if (data == NULL)
-		return -ENOMEM;
+	struct l1ctl_info_dl dl_hdr;
 
 	/* Set up pointers */
 	lchan_desc = &trx_lchan_desc[lchan->type];
 
 	/* Fill in known downlink info */
-	data->chan_nr = lchan_desc->chan_nr | ts->index;
-	data->link_id = lchan_desc->link_id;
-	data->band_arfcn = htons(trx->band_arfcn);
-	data->frame_nr = htonl(lchan->rx_first_fn);
-	data->rx_level = -(lchan->meas.rssi_sum / lchan->meas.rssi_num);
-	data->num_biterr = bit_error_count;
+	dl_hdr.chan_nr = lchan_desc->chan_nr | ts->index;
+	dl_hdr.link_id = lchan_desc->link_id;
+	dl_hdr.band_arfcn = htons(trx->band_arfcn);
+	dl_hdr.frame_nr = htonl(lchan->rx_first_fn);
+	dl_hdr.rx_level = -(lchan->meas.rssi_sum / lchan->meas.rssi_num);
+	dl_hdr.num_biterr = bit_error_count;
 
 	/* FIXME: set proper values */
-	data->snr = 0;
+	dl_hdr.snr = 0;
 
 	/* Mark frame as broken if so */
-	data->fire_crc = dec_failed ? 2 : 0;
+	dl_hdr.fire_crc = dec_failed ? 2 : 0;
 
 	/* Put a packet to higher layers */
-	l1ctl_tx_dt_ind(trx->l1l, data, l2, l2_len,
+	l1ctl_tx_dt_ind(trx->l1l, &dl_hdr, l2, l2_len,
 		l2_len != GSM_MACBLOCK_LEN);
-	talloc_free(data);
 
 	return 0;
 }
@@ -123,25 +117,22 @@ int sched_send_data_conf(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, size_t l2_len)
 {
 	const struct trx_lchan_desc *lchan_desc;
-	struct l1ctl_info_dl *data;
-
-	/* Allocate memory */
-	data = talloc_zero(ts, struct l1ctl_info_dl);
-	if (data == NULL)
-		return -ENOMEM;
+	struct l1ctl_info_dl dl_hdr;
 
 	/* Set up pointers */
 	lchan_desc = &trx_lchan_desc[lchan->type];
 
-	/* Fill in known downlink info */
-	data->chan_nr = lchan_desc->chan_nr | ts->index;
-	data->link_id = lchan_desc->link_id;
-	data->band_arfcn = htons(trx->band_arfcn);
-	data->frame_nr = htonl(fn);
+	/* Zero-initialize DL header, because we don't set all fields */
+	memset(&dl_hdr, 0x00, sizeof(struct l1ctl_info_dl));
 
-	l1ctl_tx_dt_conf(trx->l1l, data,
+	/* Fill in known downlink info */
+	dl_hdr.chan_nr = lchan_desc->chan_nr | ts->index;
+	dl_hdr.link_id = lchan_desc->link_id;
+	dl_hdr.band_arfcn = htons(trx->band_arfcn);
+	dl_hdr.frame_nr = htonl(fn);
+
+	l1ctl_tx_dt_conf(trx->l1l, &dl_hdr,
 		l2_len != GSM_MACBLOCK_LEN);
-	talloc_free(data);
 
 	return 0;
 }
