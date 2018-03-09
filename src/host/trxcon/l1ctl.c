@@ -606,25 +606,35 @@ static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 	return 0;
 }
 
-static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
+/**
+ * Handles both L1CTL_DATA_REQ and L1CTL_TRAFFIC_REQ.
+ */
+static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
+	struct msgb *msg, bool traffic)
 {
 	struct l1ctl_info_ul *ul;
 	struct trx_ts_prim *prim;
 	uint8_t chan_nr, link_id;
+	size_t payload_len;
 	int rc;
 
 	/* Extract UL frame header */
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 
+	/* Calculate the payload len */
+	msg->l2h = ul->payload;
+	payload_len = msgb_l2len(msg);
+
 	/* Obtain channel description */
 	chan_nr = ul->chan_nr;
 	link_id = ul->link_id & 0x40;
 
-	LOGP(DL1D, LOGL_DEBUG, "Recv Data Req (chan_nr=0x%02x, "
-		"link_id=0x%02x)\n", chan_nr, link_id);
+	LOGP(DL1D, LOGL_DEBUG, "Recv %s Req (chan_nr=0x%02x, "
+		"link_id=0x%02x, len=%zu)\n", traffic ? "TRAFFIC" : "DATA",
+		chan_nr, link_id, payload_len);
 
 	/* Init a new primitive */
-	rc = sched_prim_init(l1l->trx, &prim, 23,
+	rc = sched_prim_init(l1l->trx, &prim, payload_len,
 		chan_nr, link_id);
 	if (rc)
 		goto exit;
@@ -637,45 +647,7 @@ static int l1ctl_rx_data_req(struct l1ctl_link *l1l, struct msgb *msg)
 	}
 
 	/* Fill in the payload */
-	memcpy(prim->payload, ul->payload, 23);
-
-exit:
-	msgb_free(msg);
-	return rc;
-}
-
-static int l1ctl_rx_traffic_req(struct l1ctl_link *l1l, struct msgb *msg)
-{
-	struct l1ctl_info_ul *ul;
-	struct trx_ts_prim *prim;
-	uint8_t chan_nr, link_id;
-	int rc;
-
-	/* Extract UL frame header */
-	ul = (struct l1ctl_info_ul *) msg->l1h;
-
-	/* Obtain channel description */
-	chan_nr = ul->chan_nr;
-	link_id = ul->link_id & 0x40;
-
-	LOGP(DL1D, LOGL_DEBUG, "Recv Traffic Req (chan_nr=0x%02x, "
-		"link_id=0x%02x)\n", chan_nr, link_id);
-
-	/* Init a new primitive */
-	rc = sched_prim_init(l1l->trx, &prim, TRAFFIC_DATA_LEN,
-		chan_nr, link_id);
-	if (rc)
-		goto exit;
-
-	/* Push this primitive to transmit queue */
-	rc = sched_prim_push(l1l->trx, prim, chan_nr);
-	if (rc) {
-		talloc_free(prim);
-		goto exit;
-	}
-
-	/* Fill in the payload */
-	memcpy(prim->payload, ul->payload, TRAFFIC_DATA_LEN);
+	memcpy(prim->payload, ul->payload, payload_len);
 
 exit:
 	msgb_free(msg);
@@ -811,9 +783,9 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 	case L1CTL_DM_REL_REQ:
 		return l1ctl_rx_dm_rel_req(l1l, msg);
 	case L1CTL_DATA_REQ:
-		return l1ctl_rx_data_req(l1l, msg);
+		return l1ctl_rx_dt_req(l1l, msg, false);
 	case L1CTL_TRAFFIC_REQ:
-		return l1ctl_rx_traffic_req(l1l, msg);
+		return l1ctl_rx_dt_req(l1l, msg, true);
 	case L1CTL_PARAM_REQ:
 		return l1ctl_rx_param_req(l1l, msg);
 	case L1CTL_TCH_MODE_REQ:
