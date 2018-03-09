@@ -90,7 +90,7 @@ int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
 	struct l1ctl_info_dl *data;
 
 	/* Allocate memory */
-	data = talloc_zero_size(ts, sizeof(struct l1ctl_info_dl) + l2_len);
+	data = talloc_zero_size(ts, sizeof(struct l1ctl_info_dl));
 	if (data == NULL)
 		return -ENOMEM;
 
@@ -108,17 +108,12 @@ int sched_send_data_ind(struct trx_instance *trx, struct trx_ts *ts,
 	/* FIXME: set proper values */
 	data->snr = 0;
 
-	if (dec_failed) {
-		/* Mark frame as broken */
-		data->fire_crc = 2;
-	} else {
-		/* Fill in the payload */
-		memcpy(data->payload, l2, l2_len);
-	}
+	/* Mark frame as broken if so */
+	data->fire_crc = dec_failed ? 2 : 0;
 
 	/* Put a packet to higher layers */
-	l1ctl_tx_data_ind(trx->l1l, data, l2_len == GSM_MACBLOCK_LEN ?
-		L1CTL_DATA_IND : L1CTL_TRAFFIC_IND);
+	l1ctl_tx_dt_ind(trx->l1l, data, l2, l2_len,
+		l2_len != GSM_MACBLOCK_LEN);
 	talloc_free(data);
 
 	return 0;

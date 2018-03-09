@@ -183,29 +183,30 @@ int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode)
 	return l1ctl_link_send(l1l, msg);
 }
 
-int l1ctl_tx_data_ind(struct l1ctl_link *l1l,
-	struct l1ctl_info_dl *data, uint8_t msg_type)
+/**
+ * Handles both L1CTL_DATA_IND and L1CTL_TRAFFIC_IND.
+ */
+int l1ctl_tx_dt_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data,
+	uint8_t *l2, size_t l2_len, bool traffic)
 {
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
-	size_t len;
+	uint8_t *msg_l2;
 
-	if (msg_type != L1CTL_DATA_IND && msg_type != L1CTL_TRAFFIC_IND) {
-		LOGP(DL1D, LOGL_ERROR, "Incorrect indication type\n");
-		return -EINVAL;
-	}
-
-	msg = l1ctl_alloc_msg(msg_type);
+	msg = l1ctl_alloc_msg(traffic ?
+		L1CTL_TRAFFIC_IND : L1CTL_DATA_IND);
 	if (msg == NULL)
 		return -ENOMEM;
 
-	/* We store the payload as a flexible array member */
-	len = sizeof(struct l1ctl_info_dl);
-	len += msg_type == L1CTL_DATA_IND ? 23 : TRAFFIC_DATA_LEN;
-	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
+	/* Copy DL header */
+	dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
+	memcpy(dl, data, sizeof(*dl));
 
-	/* Copy header and data from source message */
-	memcpy(dl, data, len);
+	/* Copy the L2 payload if preset */
+	if (l2 && l2_len > 0) {
+		msg_l2 = (uint8_t *) msgb_put(msg, l2_len);
+		memcpy(msg_l2, l2, l2_len);
+	}
 
 	/* Put message to upper layers */
 	return l1ctl_link_send(l1l, msg);
