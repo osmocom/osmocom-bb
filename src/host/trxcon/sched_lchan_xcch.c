@@ -94,8 +94,6 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);
-
-		return -1;
 	}
 
 	/* Attempt to decode */
@@ -106,13 +104,18 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);
+
+		/**
+		 * We should anyway send dummy frame for
+		 * proper measurement reporting...
+		 */
+		return sched_send_dt_ind(trx, ts, lchan, NULL, 0,
+			n_errors, true, false);
 	}
 
 	/* Send a L2 frame to the higher layers */
-	sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
-		n_errors, rc != 0, false);
-
-	return 0;
+	return sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
+		n_errors, false, false);
 }
 
 int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
