@@ -17,11 +17,13 @@
 #define GPRS_BURST_LEN		GSM_BURST_LEN
 #define EDGE_BURST_LEN		444
 
+/* Is a channel related to PDCH (GPRS) */
 #define TRX_CH_FLAG_PDCH	(1 << 0)
+/* Should a channel be activated automatically */
 #define TRX_CH_FLAG_AUTO	(1 << 1)
-#define TRX_TS_COUNT		8
 
 #define MAX_A5_KEY_LEN		(128 / 8)
+#define TRX_TS_COUNT		8
 
 /* Forward declaration to avoid mutual include */
 struct trx_lchan_state;
