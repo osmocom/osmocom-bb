@@ -86,6 +86,10 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		if (lchan == NULL)
 			continue;
 
+		/* Omit inactive lchans */
+		if (!lchan->active)
+			continue;
+
 		/**
 		 * If we aren't processing any primitive yet,
 		 * attempt to obtain a new one from queue
