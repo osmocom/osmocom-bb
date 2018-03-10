@@ -28,6 +28,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
 
 #include <arpa/inet.h>
 
@@ -292,6 +293,9 @@ int main(int argc, char **argv)
 			goto exit;
 		}
 	}
+
+	/* Initialize pseudo-random generator */
+	srand(time(NULL));
 
 	while (!app_data.quit)
 		osmo_select_main(0);

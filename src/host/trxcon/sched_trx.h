@@ -275,6 +275,17 @@ int sched_prim_init(struct trx_instance *trx, struct trx_ts_prim **prim,
 int sched_prim_push(struct trx_instance *trx,
 	struct trx_ts_prim *prim, uint8_t chan_nr);
 
+#define TCH_MODE_IS_SPEECH(mode)       \
+	  (mode == GSM48_CMODE_SPEECH_V1   \
+	|| mode == GSM48_CMODE_SPEECH_EFR  \
+	|| mode == GSM48_CMODE_SPEECH_AMR)
+
+#define TCH_MODE_IS_DATA(mode)        \
+	  (mode == GSM48_CMODE_DATA_14k5  \
+	|| mode == GSM48_CMODE_DATA_12k0  \
+	|| mode == GSM48_CMODE_DATA_6k0   \
+	|| mode == GSM48_CMODE_DATA_3k6)
+
 #define CHAN_IS_TCH(chan) \
 	(chan == TRXC_TCHF || chan == TRXC_TCHH_0 || chan == TRXC_TCHH_1)
 
@@ -286,6 +297,7 @@ int sched_prim_push(struct trx_instance *trx,
 
 struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
 	enum trx_lchan_type lchan_type);
+int sched_prim_dummy(struct trx_lchan_state *lchan);
 void sched_prim_drop(struct trx_lchan_state *lchan);
 void sched_prim_flush_queue(struct llist_head *list);
 

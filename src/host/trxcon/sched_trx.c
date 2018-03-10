@@ -97,6 +97,19 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		if (lchan->prim == NULL)
 			lchan->prim = sched_prim_dequeue(&ts->tx_prims, chan);
 
+		/* TODO: report TX buffers health to the higher layers */
+
+		/* If CBTX (Continuous Burst Transmission) is assumed */
+		if (trx_lchan_desc[chan].flags & TRX_CH_FLAG_CBTX) {
+			/**
+			 * Probably, a TX buffer is empty. Nevertheless,
+			 * we shall continuously transmit anything on
+			 * CBTX channels.
+			 */
+			if (lchan->prim == NULL)
+				sched_prim_dummy(lchan);
+		}
+
 		/* If there is no primitive, do nothing */
 		if (lchan->prim == NULL)
 			continue;

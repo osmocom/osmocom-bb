@@ -23,6 +23,7 @@
  */
 
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <talloc.h>
 
@@ -31,6 +32,7 @@
 #include <osmocom/core/linuxlist.h>
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include "scheduler.h"
 #include "sched_trx.h"
@@ -224,6 +226,93 @@ void sched_prim_drop(struct trx_lchan_state *lchan)
 	/* Forget this primitive */
 	talloc_free(lchan->prim);
 	lchan->prim = NULL;
+}
+
+/**
+ * Assigns a dummy primitive to a lchan depending on its type.
+ * Could be used when there is nothing to transmit, but
+ * CBTX (Continuous Burst Transmission) is assumed.
+ *
+ * @param  lchan lchan to assign a primitive
+ * @return       zero in case of success, otherwise a error code
+ */
+int sched_prim_dummy(struct trx_lchan_state *lchan)
+{
+	enum trx_lchan_type chan = lchan->type;
+	uint8_t tch_mode = lchan->tch_mode;
+	struct trx_ts_prim *prim;
+	uint8_t prim_buffer[40];
+	size_t prim_len = 0;
+	int i;
+
+	/**
+	 * TS 144.006, section 8.4.2.3 "Fill frames"
+	 * A fill frame is a UI command frame for SAPI 0, P=0
+	 * and with an information field of 0 octet length.
+	 */
+	static const uint8_t lapdm_fill_frame[] = {
+		0x01, 0x03, 0x01,
+		/* Pending part is to be randomized */
+	};
+
+	/* Make sure that there is no existing primitive */
+	OSMO_ASSERT(lchan->prim == NULL);
+
+	/**
+	 * Determine what actually should be generated:
+	 * TCH in GSM48_CMODE_SIGN: LAPDm fill frame;
+	 * TCH in other modes: silence frame;
+	 * other channels: LAPDm fill frame.
+	 */
+	if (CHAN_IS_TCH(chan) && TCH_MODE_IS_SPEECH(tch_mode)) {
+		/**
+		 * Silence frame indication
+		 * HACK: use actual rsl_cmode!
+		 */
+		prim_len = sched_bad_frame_ind(prim_buffer,
+			RSL_CMOD_SPD_SPEECH, tch_mode);
+	} else if (CHAN_IS_TCH(chan) && TCH_MODE_IS_DATA(tch_mode)) {
+		/* FIXME: should we do anything for CSD? */
+		return 0;
+	} else {
+		/**
+		 * TS 144.006, section 8.1.2.3 "Fill frames"
+		 * A fill frame is a UI command frame for SAPI 0, P=0
+		 * and with an information field of 0 octet length.
+		 */
+		memcpy(prim_buffer, lapdm_fill_frame, 3);
+
+		/* Randomize pending unused bytes */
+		for (i = 3; i < GSM_MACBLOCK_LEN; i++)
+			prim_buffer[i] = (uint8_t) rand();
+
+		/* Define a prim length */
+		prim_len = GSM_MACBLOCK_LEN;
+	}
+
+	/* Nothing to allocate / assign */
+	if (!prim_len)
+		return 0;
+
+	/* Allocate a new primitive */
+	prim = talloc_zero_size(lchan, sizeof(struct trx_ts_prim) + prim_len);
+	if (prim == NULL)
+		return -ENOMEM;
+
+	/* Init primitive header */
+	prim->payload_len = prim_len;
+	prim->chan = lchan->type;
+
+	/* Fill in the payload */
+	memcpy(prim->payload, prim_buffer, prim_len);
+
+	/* Assign the current prim */
+	lchan->prim = prim;
+
+	LOGP(DSCHD, LOGL_DEBUG, "Transmitting a dummy / silence frame "
+		"on lchan=%s\n", trx_lchan_desc[chan].name);
+
+	return 0;
 }
 
 /**
