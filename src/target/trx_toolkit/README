@@ -1,11 +1,6 @@
-This is a set of tools for creating a virtual Um-interface between
-OsmocomBB and OsmoBTS. It may be extremely useful for testing and
-development of GSM stack, including both sides (MS and BTS). This
-software implements OsmoTRX (Osmocom's fork of OpenBTS transceiver)
-style clock (CLCK), control (CTRL) and data interfaces. So, OsmoBTS
-source code doesn't require any modifications, while for OsmocomBB
-you will need to use a new application - trxcon, which can be found
-in the 'fixeria/trx' branch until one is merged to master.
+TRX toolkit is a set of tools intended for hacking and debugging
+a TRX interface between both transceiver and L1 software, and
+emulating a virtual Um-interface between OsmocomBB and OsmoBTS.
 
 Brief description of available applications:
 

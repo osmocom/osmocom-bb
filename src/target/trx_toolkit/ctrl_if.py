@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-# Virtual Um-interface (fake transceiver)
+# TRX Toolkit
 # CTRL interface implementation
 #
 # (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>

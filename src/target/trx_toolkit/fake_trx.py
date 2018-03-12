@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+# TRX Toolkit
 # Virtual Um-interface (fake transceiver)
-# OsmocomBB <-> OsmoBTS bridge
 #
 # (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
 #

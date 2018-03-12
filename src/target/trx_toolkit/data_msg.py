@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-# Virtual Um-interface (fake transceiver)
+# TRX Toolkit
 # DATA interface message definitions and helpers
 #
 # (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>

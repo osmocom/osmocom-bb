@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+# TRX Toolkit
 # Auxiliary tool to send existing bursts via TRX DATA interface
 #
 # (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>

@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+# TRX Toolkit
 # Auxiliary tool to generate and send random bursts via TRX DATA
 # interface, which may be useful for fuzzing and testing
 #

@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+# TRX Toolkit
 # Auxiliary tool to send custom commands via TRX CTRL interface,
 # which may be useful for testing and fuzzing
 #

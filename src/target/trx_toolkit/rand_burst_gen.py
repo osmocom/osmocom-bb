@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-# Virtual Um-interface (fake transceiver)
+# TRX Toolkit
 # Random burst (NB, FB, SB, AB) generator
 #
 # (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>

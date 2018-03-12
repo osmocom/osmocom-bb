@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+# TRX Toolkit
 # Scapy-based TRX interface sniffer
 #
 # (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>

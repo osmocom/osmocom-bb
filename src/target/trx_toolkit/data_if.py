@@ -1,10 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-# Virtual Um-interface (fake transceiver)
-# Common GSM constants
+# TRX Toolkit
+# DATA interface implementation
 #
-# (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -22,10 +22,18 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# TDMA definitions
-GSM_SUPERFRAME = 26 * 51
-GSM_HYPERFRAME = 2048 * GSM_SUPERFRAME
+from udp_link import UDPLink
+from data_msg import *
 
-# Burst length
-GSM_BURST_LEN = 148
-EDGE_BURST_LEN = GSM_BURST_LEN * 3
+class DATAInterface(UDPLink):
+
+	def send_msg(self, msg):
+		# Validate a message
+		if not msg.validate():
+			raise ValueError("Message incomplete or incorrect")
+
+		# Generate TRX message
+		payload = msg.gen_msg()
+
+		# Send message
+		self.send(payload)
