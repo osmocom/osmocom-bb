@@ -4,7 +4,7 @@
 # Virtual Um-interface (fake transceiver)
 # OsmocomBB <-> OsmoBTS bridge
 #
-# (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -22,6 +22,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+from copyright import print_copyright
+CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+
 import signal
 import getopt
 import select
@@ -34,13 +37,6 @@ from fake_pm import FakePM
 
 from udp_link import UDPLink
 from clck_gen import CLCKGen
-
-COPYRIGHT = \
-	"Copyright (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
-	"License GPLv2+: GNU GPL version 2 or later " \
-	"<http://gnu.org/licenses/gpl.html>\n" \
-	"This is free software: you are free to change and redistribute it.\n" \
-	"There is NO WARRANTY, to the extent permitted by law.\n"
 
 class Application:
 	# Application variables
@@ -56,7 +52,7 @@ class Application:
 	randomize_ul_rssi = False
 
 	def __init__(self):
-		self.print_copyright()
+		print_copyright(CR_HOLDERS)
 		self.parse_argv()
 
 		# Set up signal handlers
@@ -136,9 +132,6 @@ class Application:
 
 		# Stop clock generator
 		self.clck_gen.stop()
-
-	def print_copyright(self):
-		print(COPYRIGHT)
 
 	def print_help(self, msg = None):
 		s  = " Usage: " + sys.argv[0] + " [options]\n\n" \

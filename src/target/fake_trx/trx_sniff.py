@@ -21,6 +21,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+from copyright import print_copyright
+CR_HOLDERS = [("2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+
 import signal
 import getopt
 import sys
@@ -29,13 +32,6 @@ import scapy.all
 
 from data_dump import DATADumpFile
 from data_msg import *
-
-COPYRIGHT = \
-	"Copyright (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
-	"License GPLv2+: GNU GPL version 2 or later " \
-	"<http://gnu.org/licenses/gpl.html>\n" \
-	"This is free software: you are free to change and redistribute it.\n" \
-	"There is NO WARRANTY, to the extent permitted by law.\n"
 
 class Application:
 	# Application variables
@@ -67,7 +63,7 @@ class Application:
 	lo_trigger = False
 
 	def __init__(self):
-		print(COPYRIGHT)
+		print_copyright(CR_HOLDERS)
 		self.parse_argv()
 
 		# Open requested capture file

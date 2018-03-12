@@ -4,7 +4,7 @@
 # Virtual Um-interface (fake transceiver)
 # Simple TDMA frame clock generator
 #
-# (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -22,6 +22,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+from copyright import print_copyright
+CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+
 import signal
 import time
 import sys
@@ -29,13 +32,6 @@ import sys
 from threading import Timer
 from udp_link import UDPLink
 from gsm_shared import *
-
-COPYRIGHT = \
-	"Copyright (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
-	"License GPLv2+: GNU GPL version 2 or later " \
-	"<http://gnu.org/licenses/gpl.html>\n" \
-	"This is free software: you are free to change and redistribute it.\n" \
-	"There is NO WARRANTY, to the extent permitted by law.\n"
 
 class CLCKGen:
 	# GSM TDMA definitions
@@ -99,11 +95,11 @@ class CLCKGen:
 # Just a wrapper for independent usage
 class Application:
 	def __init__(self):
+		# Print copyright
+		print_copyright(CR_HOLDERS)
+
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
-
-		# Print copyright
-		print(COPYRIGHT)
 
 	def run(self):
 		self.link = UDPLink("127.0.0.1", 5800, 5700)
