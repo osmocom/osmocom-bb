@@ -102,7 +102,7 @@ class Application:
 		signal.signal(signal.SIGINT, self.sig_handler)
 
 	def run(self):
-		self.link = UDPLink("127.0.0.1", 5800, 5700)
+		self.link = UDPLink("127.0.0.1", 5800, "0.0.0.0", 5700)
 		self.clck = CLCKGen([self.link], ind_period = 51)
 		self.clck.start()
 

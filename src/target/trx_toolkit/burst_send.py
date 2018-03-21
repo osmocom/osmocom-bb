@@ -37,6 +37,7 @@ from data_msg import *
 class Application:
 	# Application variables
 	remote_addr = "127.0.0.1"
+	bind_addr = "0.0.0.0"
 	base_port = 5700
 	conn_mode = "TRX"
 
@@ -65,12 +66,12 @@ class Application:
 	def run(self):
 		# Init DATA interface with TRX or L1
 		if self.conn_mode == "TRX":
-			self.data_if = DATAInterface(self.remote_addr,
-				self.base_port + 2, self.base_port + 102)
+			self.data_if = DATAInterface(self.remote_addr, self.base_port + 2,
+				self.bind_addr, self.base_port + 102)
 			l12trx = True
 		elif self.conn_mode == "L1":
-			self.data_if = DATAInterface(self.remote_addr,
-				self.base_port + 102, self.base_port + 2)
+			self.data_if = DATAInterface(self.remote_addr, self.base_port + 102,
+				self.bind_addr, self.base_port + 2)
 			l12trx = False
 		else:
 			self.print_help("[!] Unknown connection type")
@@ -124,6 +125,7 @@ class Application:
 		s += " TRX interface specific\n" \
 			 "  -m --conn-mode         Send bursts to: TRX (default) / L1\n"    \
 			 "  -r --remote-addr       Set remote address (default %s)\n"       \
+			 "  -b --bind-addr         Set bind address (default %s)\n"         \
 			 "  -p --base-port         Set base port number (default %d)\n\n"
 
 		s += " Burst source\n" \
@@ -138,7 +140,7 @@ class Application:
 			 "  --frame-num-lt  NUM    TDMA frame number lower than NUM\n"   \
 			 "  --frame-num-gt  NUM    TDMA frame number greater than NUM\n"
 
-		print(s % (self.remote_addr, self.base_port))
+		print(s % (self.remote_addr, self.bind_addr, self.base_port))
 
 		if msg is not None:
 			print(msg)
@@ -146,11 +148,12 @@ class Application:
 	def parse_argv(self):
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
-				"m:r:p:i:h",
+				"m:r:b:p:i:h",
 				[
 					"help",
 					"conn-mode=",
 					"remote-addr=",
+					"bind-addr=",
 					"base-port=",
 					"capture-file=",
 					"msg-skip=",
@@ -177,6 +180,8 @@ class Application:
 				self.conn_mode = v
 			elif o in ("-r", "--remote-addr"):
 				self.remote_addr = v
+			elif o in ("-b", "--bind-addr"):
+				self.bind_addr = v
 			elif o in ("-p", "--base-port"):
 				self.base_port = int(v)
 

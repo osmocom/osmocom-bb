@@ -32,8 +32,8 @@ class CTRLInterfaceBB(CTRLInterface):
 	tx_freq = None
 	pm = None
 
-	def __init__(self, remote_addr, remote_port, bind_port):
-		CTRLInterface.__init__(self, remote_addr, remote_port, bind_port)
+	def __init__(self, remote_addr, remote_port, bind_addr, bind_port):
+		CTRLInterface.__init__(self, remote_addr, remote_port, bind_addr, bind_port)
 		print("[i] Init CTRL interface for BB (%s)" % self.desc_link())
 
 	def parse_cmd(self, request):

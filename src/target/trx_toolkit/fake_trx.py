@@ -42,6 +42,7 @@ class Application:
 	# Application variables
 	bts_addr = "127.0.0.1"
 	bb_addr = "127.0.0.1"
+	trx_bind_addr = "0.0.0.0"
 	bts_base_port = 5700
 	bb_base_port = 6700
 
@@ -60,12 +61,12 @@ class Application:
 
 	def run(self):
 		# Init TRX CTRL interface for BTS
-		self.bts_ctrl = CTRLInterfaceBTS(self.bts_addr,
-			self.bts_base_port + 101, self.bts_base_port + 1)
+		self.bts_ctrl = CTRLInterfaceBTS(self.bts_addr, self.bts_base_port + 101,
+			self.trx_bind_addr, self.bts_base_port + 1)
 
 		# Init TRX CTRL interface for BB
-		self.bb_ctrl = CTRLInterfaceBB(self.bb_addr,
-			self.bb_base_port + 101, self.bb_base_port + 1)
+		self.bb_ctrl = CTRLInterfaceBB(self.bb_addr, self.bb_base_port + 101,
+			self.trx_bind_addr, self.bb_base_port + 1)
 
 		# Power measurement emulation
 		# Noise: -120 .. -105
@@ -77,10 +78,10 @@ class Application:
 		self.bb_ctrl.pm = self.pm
 
 		# Init DATA links
-		self.bts_data = UDPLink(self.bts_addr,
-			self.bts_base_port + 102, self.bts_base_port + 2)
-		self.bb_data = UDPLink(self.bb_addr,
-			self.bb_base_port + 102, self.bb_base_port + 2)
+		self.bts_data = UDPLink(self.bts_addr, self.bts_base_port + 102,
+			self.trx_bind_addr, self.bts_base_port + 2)
+		self.bb_data = UDPLink(self.bb_addr, self.bb_base_port + 102,
+			self.trx_bind_addr, self.bb_base_port + 2)
 
 		# BTS <-> BB burst forwarding
 		self.burst_fwd = BurstForwarder(self.bts_data, self.bb_data)
@@ -94,8 +95,8 @@ class Application:
 		self.bb_ctrl.burst_fwd = self.burst_fwd
 
 		# Provide clock to BTS
-		self.bts_clck = UDPLink(self.bts_addr,
-			self.bts_base_port + 100, self.bts_base_port)
+		self.bts_clck = UDPLink(self.bts_addr, self.bts_base_port + 100,
+			self.trx_bind_addr, self.bts_base_port)
 		self.clck_gen = CLCKGen([self.bts_clck])
 		self.bts_ctrl.clck_gen = self.clck_gen
 
@@ -142,7 +143,8 @@ class Application:
 			 "  -R --bts-addr       Set BTS remote address (default %s)\n"   \
 			 "  -r --bb-addr        Set BB remote address (default %s)\n"    \
 			 "  -P --bts-base-port  Set BTS base port number (default %d)\n" \
-			 "  -p --bb-base-port   Set BB base port number (default %d)\n\n"
+			 "  -p --bb-base-port   Set BB base port number (default %d)\n" \
+			 "  -b --trx-bind-addr  Set TRX bind address (default %s)\n\n"
 
 		s += " Simulation\n" \
 			 "  --rand-dl-rssi      Enable DL RSSI randomization\n"   \
@@ -151,7 +153,8 @@ class Application:
 			 "  --rand-ul-toa       Enable UL ToA randomization\n"
 
 		print(s % (self.bts_addr, self.bb_addr,
-			self.bts_base_port, self.bb_base_port))
+			self.bts_base_port, self.bb_base_port,
+			self.trx_bind_addr))
 
 		if msg is not None:
 			print(msg)
@@ -159,11 +162,12 @@ class Application:
 	def parse_argv(self):
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
-				"R:r:P:p:h",
+				"R:r:P:p:b:h",
 				[
 					"help",
 					"bts-addr=", "bb-addr=",
 					"bts-base-port=", "bb-base-port=",
+					"trx-bind-addr=",
 					"rand-dl-rssi", "rand-ul-rssi",
 					"rand-dl-toa", "rand-ul-toa",
 				])
@@ -185,6 +189,9 @@ class Application:
 				self.bts_base_port = int(v)
 			elif o in ("-p", "--bb-base-port"):
 				self.bb_base_port = int(v)
+
+			elif o in ("-b", "--trx-bind-addr"):
+				self.trx_bind_addr = v
 
 			# Message field randomization
 			elif o == "rand-dl-rssi":

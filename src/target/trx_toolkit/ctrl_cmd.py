@@ -36,6 +36,7 @@ from udp_link import UDPLink
 class Application:
 	# Application variables
 	remote_addr = "127.0.0.1"
+	bind_addr = "0.0.0.0"
 	base_port = 5700
 	bind_port = 0
 	fuzzing = False
@@ -48,8 +49,8 @@ class Application:
 		signal.signal(signal.SIGINT, self.sig_handler)
 
 		# Init UDP connection
-		self.ctrl_link = UDPLink(self.remote_addr,
-			self.base_port + 1, self.bind_port)
+		self.ctrl_link = UDPLink(self.remote_addr, self.base_port + 1,
+			self.bind_addr, self.bind_port)
 
 		# Debug print
 		print("[i] Init CTRL interface (%s)" \
@@ -64,9 +65,10 @@ class Application:
 			 "  -r --remote-addr    Set remote address (default %s)\n"   \
 			 "  -p --base-port      Set base port number (default %d)\n" \
 			 "  -P --bind-port      Set local port number (default: random)\n" \
+			 "  -b --bind-addr      Set local address (default %s)\n" \
 			 "  -f --fuzzing        Send raw payloads (without CMD)\n"   \
 
-		print(s % (self.remote_addr, self.base_port))
+		print(s % (self.remote_addr, self.base_port, self.bind_addr))
 
 		if msg is not None:
 			print(msg)
@@ -74,12 +76,13 @@ class Application:
 	def parse_argv(self):
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
-				"r:p:P:fh",
+				"r:p:P:b:fh",
 				[
 					"help",
 					"fuzzing",
 					"base-port=",
 					"bind-port=",
+					"bind-addr=",
 					"remote-addr=",
 				])
 		except getopt.GetoptError as err:
@@ -93,6 +96,8 @@ class Application:
 
 			elif o in ("-r", "--remote-addr"):
 				self.remote_addr = v
+			elif o in ("-b", "--bind-addr"):
+				self.bind_addr = v
 			elif o in ("-p", "--base-port"):
 				self.base_port = int(v)
 			elif o in ("-P", "--bind-port"):

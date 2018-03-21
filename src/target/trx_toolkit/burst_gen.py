@@ -39,6 +39,7 @@ from data_msg import *
 class Application:
 	# Application variables
 	remote_addr = "127.0.0.1"
+	bind_addr = "0.0.0.0"
 	base_port = 5700
 	conn_mode = "TRX"
 	output_file = None
@@ -70,11 +71,11 @@ class Application:
 	def run(self):
 		# Init DATA interface with TRX or L1
 		if self.conn_mode == "TRX":
-			self.data_if = DATAInterface(self.remote_addr,
-				self.base_port + 2, self.base_port + 102)
+			self.data_if = DATAInterface(self.remote_addr, self.base_port + 2,
+				self.bind_addr, self.base_port + 102)
 		elif self.conn_mode == "L1":
-			self.data_if = DATAInterface(self.remote_addr,
-				self.base_port + 102, self.base_port + 2)
+			self.data_if = DATAInterface(self.remote_addr, self.base_port + 102,
+				self.bind_addr, self.base_port + 2)
 
 		# Init random burst generator
 		burst_gen = RandBurstGen()
@@ -149,6 +150,7 @@ class Application:
 			 "  -o --output-file    Write bursts to a capture file\n"        \
 			 "  -m --conn-mode      Send bursts to: TRX (default) / L1\n"    \
 			 "  -r --remote-addr    Set remote address (default %s)\n"       \
+			 "  -b --bind-addr      Set local address (default %s)\n"        \
 			 "  -p --base-port      Set base port number (default %d)\n\n"
 
 		s += " Burst generation\n" \
@@ -161,7 +163,7 @@ class Application:
 			 "     --toa            Set ToA in symbols (default random)\n"   \
 			 "     --toa256         Set ToA in 1/256 symbol periods\n"
 
-		print(s % (self.remote_addr, self.base_port))
+		print(s % (self.remote_addr, self.bind_addr, self.base_port))
 
 		if msg is not None:
 			print(msg)
@@ -169,12 +171,13 @@ class Application:
 	def parse_argv(self):
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
-				"o:m:r:p:b:c:f:t:h",
+				"o:m:r:b:p:b:c:f:t:h",
 				[
 					"help",
 					"output-file="
 					"conn-mode=",
 					"remote-addr=",
+					"bind-addr=",
 					"base-port=",
 					"burst-type=",
 					"burst-count=",
@@ -200,6 +203,8 @@ class Application:
 				self.conn_mode = v
 			elif o in ("-r", "--remote-addr"):
 				self.remote_addr = v
+			elif o in ("-b", "--bind-addr"):
+				self.bind_addr = v
 			elif o in ("-p", "--base-port"):
 				self.base_port = int(v)
 
