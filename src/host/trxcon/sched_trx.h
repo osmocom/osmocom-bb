@@ -292,6 +292,9 @@ int sched_prim_push(struct trx_instance *trx,
 #define CHAN_IS_TCH(chan) \
 	(chan == TRXC_TCHF || chan == TRXC_TCHH_0 || chan == TRXC_TCHH_1)
 
+#define CHAN_IS_SACCH(chan) \
+	(trx_lchan_desc[chan].link_id & TRX_CH_LID_SACCH)
+
 #define PRIM_IS_TCH(prim) \
 	CHAN_IS_TCH(prim->chan) && prim->payload_len != GSM_MACBLOCK_LEN
 
