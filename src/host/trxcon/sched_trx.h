@@ -17,6 +17,9 @@
 #define GPRS_BURST_LEN		GSM_BURST_LEN
 #define EDGE_BURST_LEN		444
 
+#define TRX_CH_LID_DEDIC	0x00
+#define TRX_CH_LID_SACCH	0x40
+
 /* Is a channel related to PDCH (GPRS) */
 #define TRX_CH_FLAG_PDCH	(1 << 0)
 /* Should a channel be activated automatically */
