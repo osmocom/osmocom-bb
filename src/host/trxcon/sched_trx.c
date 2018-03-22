@@ -460,7 +460,7 @@ static void sched_trx_reset_lchan(struct trx_lchan_state *lchan)
 	/* Forget the current prim */
 	sched_prim_drop(lchan);
 
-	/* TCH specific variables */
+	/* Channel specific stuff */
 	if (CHAN_IS_TCH(lchan->type)) {
 		lchan->dl_ongoing_facch = 0;
 		lchan->ul_facch_blocks = 0;
@@ -469,6 +469,9 @@ static void sched_trx_reset_lchan(struct trx_lchan_state *lchan)
 
 		/* Reset AMR state */
 		memset(&lchan->amr, 0x00, sizeof(lchan->amr));
+	} else if (CHAN_IS_SACCH(lchan->type)) {
+		/* Reset SACCH state */
+		memset(&lchan->sacch, 0x00, sizeof(lchan->sacch));
 	}
 
 	/* Reset ciphering state */

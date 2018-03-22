@@ -122,6 +122,194 @@ int sched_prim_push(struct trx_instance *trx,
 	return 0;
 }
 
+/**
+ * Composes a new primitive using either cached (if populated),
+ * or "dummy" Measurement Report message.
+ *
+ * @param  lchan lchan to assign a primitive
+ * @return       SACCH primitive to be transmitted
+ */
+static struct trx_ts_prim *prim_compose_mr(struct trx_lchan_state *lchan)
+{
+	struct trx_ts_prim *prim;
+	uint8_t *mr_src_ptr;
+	bool cached;
+	int rc;
+
+	/* "Dummy" Measurement Report */
+	static const uint8_t meas_rep_dummy[] = {
+		/* L1 SACCH pseudo-header */
+		0x0f, 0x00,
+
+		/* LAPDm header */
+		0x01, 0x03, 0x49,
+
+		/* Measurement report */
+		0x06, 0x15, 0x36, 0x36, 0x01, 0xC0,
+
+		/* TODO: Padding? Randomize if so */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	};
+
+	/* Allocate a new primitive */
+	rc = sched_prim_init(lchan, &prim, GSM_MACBLOCK_LEN,
+		trx_lchan_desc[lchan->type].chan_nr, TRX_CH_LID_SACCH);
+	OSMO_ASSERT(rc == 0);
+
+	/* Check if the MR cache is populated (verify LAPDm header) */
+	cached = (lchan->sacch.mr_cache[2] != 0x00
+		&& lchan->sacch.mr_cache[3] != 0x00
+		&& lchan->sacch.mr_cache[4] != 0x00);
+	if (cached) { /* Use the cached one */
+		mr_src_ptr = lchan->sacch.mr_cache;
+		lchan->sacch.mr_cache_usage++;
+	} else { /* Use "dummy" one */
+		mr_src_ptr = (uint8_t *) meas_rep_dummy;
+	}
+
+	/* Compose a new Measurement Report primitive */
+	memcpy(prim->payload, mr_src_ptr, GSM_MACBLOCK_LEN);
+
+#if 0
+	/**
+	 * Update the L1 SACCH pseudo-header (only for cached MRs)
+	 *
+	 * FIXME: this would require having access to the trx_instance,
+	 * what can be achieved either by chain-passing the pointer
+	 * through sched_prim_dequeue(), or by adding some
+	 * back-pointers to the logical channel state.
+	 *
+	 * TODO: filling of the actual values into cached Measurement
+	 * Reports would break the distance spoofing feature. If it
+	 * were known whether the spoofing is enabled or not, we could
+	 * decide whether to update the cached L1 SACCH header here.
+	 */
+	if (!cached) {
+		prim->payload[0] = trx->tx_power;
+		prim->payload[1] = trx->ta;
+	}
+#endif
+
+	/* Inform about the cache usage count */
+	if (cached && lchan->sacch.mr_cache_usage > 5) {
+		LOGP(DSCHD, LOGL_NOTICE, "SACCH MR cache usage count=%u > 5 "
+			"on lchan=%s => ancient measurements, please fix!\n",
+			lchan->sacch.mr_cache_usage,
+			trx_lchan_desc[lchan->type].name);
+	}
+
+	LOGP(DSCHD, LOGL_NOTICE, "Using a %s Measurement Report "
+		"on lchan=%s\n", (cached ? "cached" : "dummy"),
+		trx_lchan_desc[lchan->type].name);
+
+	return prim;
+}
+
+/**
+ * Dequeues a SACCH primitive from transmit queue, if present.
+ * Otherwise dequeues a cached Measurement Report (the last
+ * received one). Finally, if the cache is empty, a "dummy"
+ * measurement report is used.
+ *
+ * According to 3GPP TS 04.08, section 3.4.1, SACCH channel
+ * accompanies either a traffic or a signaling channel. It
+ * has the particularity that continuous transmission must
+ * occur in both directions, so on the Uplink direction
+ * measurement result messages are sent at each possible
+ * occasion when nothing else has to be sent. The LAPDm
+ * fill frames (0x01, 0x03, 0x01, 0x2b, ...) are not
+ * applicable on SACCH channels!
+ *
+ * Unfortunately, 3GPP TS 04.08 doesn't clearly state
+ * which "else messages" besides Measurement Reports
+ * can be send by the MS on SACCH channels. However,
+ * in sub-clause 3.4.1 it's stated that the interval
+ * between two successive measurement result messages
+ * shall not exceed one L2 frame.
+ *
+ * @param  queue transmit queue to take a prim from
+ * @param  lchan lchan to assign a primitive
+ * @return       SACCH primitive to be transmitted
+ */
+static struct trx_ts_prim *prim_dequeue_sacch(struct llist_head *queue,
+	struct trx_lchan_state *lchan)
+{
+	struct trx_ts_prim *prim_nmr = NULL;
+	struct trx_ts_prim *prim_mr = NULL;
+	struct trx_ts_prim *prim;
+	bool mr_now;
+
+	/* Shall we transmit MR now? */
+	mr_now = !lchan->sacch.mr_tx_last;
+
+#define PRIM_IS_MR(prim) \
+	(prim->payload[5] == GSM48_PDISC_RR \
+		&& prim->payload[6] == GSM48_MT_RR_MEAS_REP)
+
+	/* Iterate over all primitives in the queue */
+	llist_for_each_entry(prim, queue, list) {
+		/* We are looking for particular channel */
+		if (prim->chan != lchan->type)
+			continue;
+
+		/* Just to be sure... */
+		if (prim->payload_len != GSM_MACBLOCK_LEN)
+			continue;
+
+		/* Look for a Measurement Report */
+		if (!prim_mr && PRIM_IS_MR(prim))
+			prim_mr = prim;
+
+		/* Look for anything else */
+		if (!prim_nmr && !PRIM_IS_MR(prim))
+			prim_nmr = prim;
+
+		/* Should we look further? */
+		if (mr_now && prim_mr)
+			break; /* MR was found */
+		else if (!mr_now && prim_nmr)
+			break; /* something else was found */
+	}
+
+	LOGP(DSCHD, LOGL_DEBUG, "SACCH MR selection on lchan=%s: "
+		"mr_tx_last=%d prim_mr=%p prim_nmr=%p\n",
+		trx_lchan_desc[lchan->type].name,
+		lchan->sacch.mr_tx_last,
+		prim_mr, prim_nmr);
+
+	/* Prioritize non-MR prim if possible */
+	if (mr_now && prim_mr)
+		prim = prim_mr;
+	else if (!mr_now && prim_nmr)
+		prim = prim_nmr;
+	else if (!mr_now && prim_mr)
+		prim = prim_mr;
+	else /* Nothing was found */
+		prim = NULL;
+
+	/* Have we found what we were looking for? */
+	if (prim) /* Dequeue if so */
+		llist_del(&prim->list);
+	else /* Otherwise compose a new MR */
+		prim = prim_compose_mr(lchan);
+
+	/* Update the cached report */
+	if (prim == prim_mr) {
+		memcpy(lchan->sacch.mr_cache,
+			prim->payload, GSM_MACBLOCK_LEN);
+		lchan->sacch.mr_cache_usage = 0;
+
+		LOGP(DSCHD, LOGL_DEBUG, "SACCH MR cache has been updated "
+			"for lchan=%s\n", trx_lchan_desc[lchan->type].name);
+	}
+
+	/* Update the MR transmission state */
+	lchan->sacch.mr_tx_last = PRIM_IS_MR(prim);
+
+	return prim;
+}
+
 /* Dequeues a primitive of a given channel type */
 static struct trx_ts_prim *prim_dequeue_one(struct llist_head *queue,
 	enum trx_lchan_type lchan_type)
@@ -285,6 +473,10 @@ no_facch:
 struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
 	uint32_t fn, struct trx_lchan_state *lchan)
 {
+	/* SACCH is unorthodox, see 3GPP TS 04.08, section 3.4.1 */
+	if (CHAN_IS_SACCH(lchan->type))
+		return prim_dequeue_sacch(queue, lchan);
+
 	/* There is nothing to dequeue */
 	if (llist_empty(queue))
 		return NULL;
@@ -346,6 +538,8 @@ int sched_prim_dummy(struct trx_lchan_state *lchan)
 
 	/* Make sure that there is no existing primitive */
 	OSMO_ASSERT(lchan->prim == NULL);
+	/* Not applicable for SACCH! */
+	OSMO_ASSERT(!CHAN_IS_SACCH(lchan->type));
 
 	/**
 	 * Determine what actually should be generated:
@@ -360,18 +554,8 @@ int sched_prim_dummy(struct trx_lchan_state *lchan)
 		/* FIXME: should we do anything for CSD? */
 		return 0;
 	} else {
-		uint8_t *cur = prim_buffer;
-
-		if (CHAN_IS_SACCH(chan)) {
-			/* Add 2-byte SACCH header */
-			/* FIXME: How to get TA and MS Tx Power from l1l->trx->tx_power + l1l->trx->ta? */
-			cur[0] = cur[1] = 0x00;
-			cur += 2;
-		}
-
-		/* Copy a fill frame payload */
-		memcpy(cur, lapdm_fill_frame, sizeof(lapdm_fill_frame));
-		cur += sizeof(lapdm_fill_frame);
+		/* Copy LAPDm fill frame's header */
+		memcpy(prim_buffer, lapdm_fill_frame, sizeof(lapdm_fill_frame));
 
 		/**
 		 * TS 144.006, section 5.2 "Frame delimitation and fill bits"
@@ -379,7 +563,7 @@ int sched_prim_dummy(struct trx_lchan_state *lchan)
 		 * be set to the binary value "00101011", each fill bit should
 		 * be set to a random value when sent by the network.
 		 */
-		for (i = cur - prim_buffer; i < GSM_MACBLOCK_LEN; i++)
+		for (i = sizeof(lapdm_fill_frame); i < GSM_MACBLOCK_LEN; i++)
 			prim_buffer[i] = (uint8_t) rand();
 
 		/* Define a prim length */

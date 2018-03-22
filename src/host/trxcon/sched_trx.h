@@ -186,6 +186,16 @@ struct trx_lchan_state {
 		int32_t toa256_sum;
 	} meas;
 
+	/*! \brief SACCH state */
+	struct {
+		/*! \brief Cached measurement report (last received) */
+		uint8_t mr_cache[GSM_MACBLOCK_LEN];
+		/*! \brief Cache usage counter */
+		uint8_t mr_cache_usage;
+		/*! \brief Was a MR transmitted last time? */
+		bool mr_tx_last;
+	} sacch;
+
 	/* AMR specific */
 	struct {
 		/*! \brief 4 possible codecs for AMR */
