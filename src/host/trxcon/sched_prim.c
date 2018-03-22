@@ -251,7 +251,7 @@ int sched_prim_dummy(struct trx_lchan_state *lchan)
 	 * and with an information field of 0 octet length.
 	 */
 	static const uint8_t lapdm_fill_frame[] = {
-		0x01, 0x03, 0x01,
+		0x01, 0x03, 0x01, 0x2b,
 		/* Pending part is to be randomized */
 	};
 
@@ -275,15 +275,16 @@ int sched_prim_dummy(struct trx_lchan_state *lchan)
 		/* FIXME: should we do anything for CSD? */
 		return 0;
 	} else {
-		/**
-		 * TS 144.006, section 8.1.2.3 "Fill frames"
-		 * A fill frame is a UI command frame for SAPI 0, P=0
-		 * and with an information field of 0 octet length.
-		 */
-		memcpy(prim_buffer, lapdm_fill_frame, 3);
+		/* Copy a fill frame payload */
+		memcpy(prim_buffer, lapdm_fill_frame, sizeof(lapdm_fill_frame));
 
-		/* Randomize pending unused bytes */
-		for (i = 3; i < GSM_MACBLOCK_LEN; i++)
+		/**
+		 * TS 144.006, section 5.2 "Frame delimitation and fill bits"
+		 * Except for the first octet containing fill bits which shall
+		 * be set to the binary value "00101011", each fill bit should
+		 * be set to a random value when sent by the network.
+		 */
+		for (i = sizeof(lapdm_fill_frame); i < GSM_MACBLOCK_LEN; i++)
 			prim_buffer[i] = (uint8_t) rand();
 
 		/* Define a prim length */
