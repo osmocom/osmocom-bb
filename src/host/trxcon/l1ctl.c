@@ -543,8 +543,8 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 	chan_nr = ul->chan_nr;
 
 	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_EST_REQ (arfcn=%u, "
-		"chan_nr=0x%02x, tsc=%u)\n", (band_arfcn &~ ARFCN_FLAG_MASK),
-		chan_nr, est_req->tsc);
+		"chan_nr=0x%02x, tsc=%u, tch_mode=0x%02x)\n", (band_arfcn &~ ARFCN_FLAG_MASK),
+		chan_nr, est_req->tsc, est_req->tch_mode);
 
 	if (est_req->h) {
 		LOGP(DL1C, LOGL_ERROR, "FHSS is not supported\n");
@@ -583,7 +583,7 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 	sched_trx_deactivate_all_lchans(ts);
 
 	/* Activate only requested lchans */
-	rc = sched_trx_set_lchans(ts, chan_nr, 1);
+	rc = sched_trx_set_lchans(ts, chan_nr, 1, est_req->tch_mode);
 	if (rc) {
 		LOGP(DL1C, LOGL_ERROR, "Couldn't activate requested lchans\n");
 		rc = -EINVAL;

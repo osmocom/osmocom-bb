@@ -372,7 +372,7 @@ struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
 	return NULL;
 }
 
-int sched_trx_set_lchans(struct trx_ts *ts, uint8_t chan_nr, int active)
+int sched_trx_set_lchans(struct trx_ts *ts, uint8_t chan_nr, int active, uint8_t tch_mode)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct trx_lchan_state *lchan;
@@ -389,9 +389,10 @@ int sched_trx_set_lchans(struct trx_ts *ts, uint8_t chan_nr, int active)
 		lchan_desc = &trx_lchan_desc[lchan->type];
 
 		if (lchan_desc->chan_nr == (chan_nr & 0xf8)) {
-			if (active)
+			if (active) {
 				rc |= sched_trx_activate_lchan(ts, lchan->type);
-			else
+				lchan->tch_mode = tch_mode;
+			} else
 				rc |= sched_trx_deactivate_lchan(ts, lchan->type);
 		}
 	}
