@@ -247,6 +247,9 @@ int main(int argc, char **argv)
 	init_defaults();
 	handle_options(argc, argv);
 
+	/* Track the use of talloc NULL memory contexts */
+	talloc_enable_null_tracking();
+
 	/* Init talloc memory management system */
 	tall_trx_ctx = talloc_init("trxcon context");
 	msgb_talloc_ctx_init(tall_trx_ctx, 0);
