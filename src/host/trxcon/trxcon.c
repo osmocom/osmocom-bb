@@ -309,9 +309,14 @@ exit:
 	/* Shutdown main state machine */
 	osmo_fsm_inst_free(trxcon_fsm);
 
-	/* Make Valgrind happy */
+	/* Deinitialize logging */
 	log_fini();
-	talloc_free(tall_trx_ctx);
+
+	/**
+	 * Print report for the root talloc context in order
+	 * to be able to find and fix potential memory leaks.
+	 */
+	talloc_report_full(tall_trx_ctx, stderr);
 
 	return rc;
 }
