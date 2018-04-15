@@ -275,8 +275,18 @@ int sched_prim_dummy(struct trx_lchan_state *lchan)
 		/* FIXME: should we do anything for CSD? */
 		return 0;
 	} else {
+		uint8_t *cur = prim_buffer;
+
+		if (CHAN_IS_SACCH(chan)) {
+			/* Add 2-byte SACCH header */
+			/* FIXME: How to get TA and MS Tx Power from l1l->trx->tx_power + l1l->trx->ta? */
+			cur[0] = cur[1] = 0x00;
+			cur += 2;
+		}
+
 		/* Copy a fill frame payload */
-		memcpy(prim_buffer, lapdm_fill_frame, sizeof(lapdm_fill_frame));
+		memcpy(cur, lapdm_fill_frame, sizeof(lapdm_fill_frame));
+		cur += sizeof(lapdm_fill_frame);
 
 		/**
 		 * TS 144.006, section 5.2 "Frame delimitation and fill bits"
@@ -284,7 +294,7 @@ int sched_prim_dummy(struct trx_lchan_state *lchan)
 		 * be set to the binary value "00101011", each fill bit should
 		 * be set to a random value when sent by the network.
 		 */
-		for (i = sizeof(lapdm_fill_frame); i < GSM_MACBLOCK_LEN; i++)
+		for (i = cur - prim_buffer; i < GSM_MACBLOCK_LEN; i++)
 			prim_buffer[i] = (uint8_t) rand();
 
 		/* Define a prim length */
