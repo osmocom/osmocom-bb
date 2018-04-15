@@ -57,6 +57,7 @@ static const char* l1ctlPrimNames[] = {
         "L1CTL_TRAFFIC_REQ",
         "L1CTL_TRAFFIC_CONF",
         "L1CTL_TRAFFIC_IND",
+        "L1CTL_BURST_IND",
         "L1CTL_TBF_CFG_REQ",
         "L1CTL_TBF_CFG_CONF",
         "L1CTL_DATA_TBF_REQ",
