@@ -1,8 +1,8 @@
 # List of all supported boards (meant to be overridden on command line)
-BOARDS?=mt62xx
+BOARDS?=mt62xx fernvale
 
 # List of all applications (meant to be overridden on command line)
-APPLICATIONS?=loader_mtk
+APPLICATIONS?=loader_mtk blink
 
 APP_loader_mtk_ENVIRONMENTS=mtkram
 
@@ -14,6 +14,10 @@ mtk_COMMON_OBJS=board/mediatek/uart.o
 # Mediatek MT62xx
 BOARD_mt62xx_OBJS=$(mtk_COMMON_OBJS) board/mt62xx/init.o
 BOARD_mt62xx_ENVIRONMENTS=mtkram
+
+# Fernvale
+BOARD_fernvale_OBJS=board/fernvale/init.o
+BOARD_fernvale_ENVIRONMENTS=mtkram
 
 # Global include path
 INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include

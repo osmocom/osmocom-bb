@@ -44,7 +44,10 @@ done_ramtext:
 	.EQU	I_BIT,		0x80
 	.EQU	F_BIT,		0x40
 
-#define	TOP_OF_RAM	0x4000a000
+/* TODO shouldn't we use something defined by the linker script so we */
+/* have one "source of truth" in terms of memory locations? */
+/* #define TOP_OF_RAM	0x4000a000 TODO re-enable this for mt6235 */
+#define	TOP_OF_RAM	0x7000cffc // stack_start from fernly/start.S
 #define FIQ_STACK_SIZE	1024
 #define IRQ_STACK_SIZE	1024
 		

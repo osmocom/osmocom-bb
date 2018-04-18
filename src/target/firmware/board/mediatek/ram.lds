@@ -10,17 +10,43 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 MEMORY
 {
+/* TODO adjust this back to vary for 6235 and othe chips */
+    /* total RAM at our disposal */
+    SRAM (rw) : ORIGIN = 0x70000000, LENGTH = 0xcfff
     /* mtk-loaded binary: our text, initialized data */
-    LRAM (rw) : ORIGIN = 0x40000000, LENGTH = 0x00006000
+    LRAM (rw) : ORIGIN = 0x70000000, LENGTH = 0x5000
     /* mtk-loaded binary: our unitialized data, stacks, heap */
-    IRAM (rw) : ORIGIN = 0x40006000, LENGTH = 0x00006000
+    IRAM (rw) : ORIGIN = 0x70005000, LENGTH = 0x6000
+    /* need to ensure IRAM fits UNDER two 1024 long stacks starting from 0x7000cffc and down
+
+/* LRAM 0x70006000, l=0x4000
+   IRAM 0x70004000, l=0x6000 works, now adjust other bits in assembly code */
+
+/* with IRAM 0x7000c000, length 0x7fc osmocom overflows by 15376 bytes
+/* 2044, 4 bytes short of 2048 same as fernly */
+    /* top of RAM is 0x7000cffc so leave two 1024 blocks near that top for stack */
+
+/* keep this and don't mess with it */
+    STACK (rw) : ORIGIN = 0x7000c7fc, LENGTH = 0x800
+
+/* 
+6260 fernly success code
+0x7000cffc // start_start
+0x7000c000 // stack_end
+
+6261
+0x7000affc // stack start
+0x7000a000 // stack end
+*/
 }
+
 SECTIONS
 {
-    . = 0x40000000;
+    . = 0x70000000;
 
     /* romloader data section, contains passthru interrupt vectors */
-    .mtk.loader (NOLOAD) : { . = 0x1400; } > LRAM
+/* disable this, we start at 0x70006000 and can use it all */
+/* TODO re-enable for mt6235   .mtk.loader (NOLOAD) : { . = 0x1400; } > LRAM */
 
     /* initialization code */
     . = ALIGN(4);
