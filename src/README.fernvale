@@ -1,0 +1,13 @@
+wip, instructions on building layer1 firmware for mt6260/fernvale hardware
+
+
+build osmocom-bb as usual then use fernly to load the firmware.
+assumes fernly and osmocom directories are at the same level and
+osmocom-bb is underneath osmocom
+
+(parent)
++-fernly
++-osmocom
+  +-osmocom-bb
+
+./build/fernly-usb-loader -w -s /dev/ttyUSB0 ./build/usb-loader.bin ./build/firmware.bin ../osmocom/osmocom-bb/src/target/firmware/board/fernvale/layer1.mt6260.bin

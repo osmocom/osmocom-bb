@@ -6,13 +6,13 @@
 .globl _start
 _start:
 	/* clear bss section */
-	clear_bss
+	//clear_bss
 
 	/* initialize all stacks */
-	init_stacks
+	//init_stacks
 
 	/* call constructors */
-	call_ctors
+	//call_ctors
 
 	/* jump to main */
 	ldr	pc, _jump_main

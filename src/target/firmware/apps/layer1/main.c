@@ -61,6 +61,31 @@ static void key_handler(enum key_codes code, enum key_states state);
 
 int main(void)
 {
+
+// TODO setup a fernvale specific handler for a generic "I'm alive" indicator...
+// TODO setup a timer instead of a loop for blink the light...
+// from fernly/includes/fernvale-kbd.h
+#define BIG_LED_ADDR (0xA0700000 + 0x0C80)
+#define BIG_LED_ON (0x3)
+#define BIG_LED_OFF (0x0)
+#define BLINK_LOOP_COUNT 500000
+
+
+	board_init(1);
+
+//writeb(BIG_LED_ON, BIG_LED_ADDR);
+
+//while (1) {}
+
+int i;
+while (1) {
+    for ( i=0; i<BLINK_LOOP_COUNT; i++) {
+        writeb(BIG_LED_OFF, BIG_LED_ADDR);
+    }
+    for ( i=0; i<BLINK_LOOP_COUNT; i++) {
+        writeb(BIG_LED_ON, BIG_LED_ADDR);
+    }
+}
 	uint8_t atr[20];
 	uint8_t atrLength = 0;
 
@@ -111,35 +136,13 @@ int main(void)
 	layer1_init();
 
 	tpu_frame_irq_en(1, 1);
-
-	while (1) {
-// TODO setup a fernvale specific handler for a generic "I'm alive" indicator...
-// TODO setup a timer instead of a loop for blink the light...
-// from fernly/includes/fernvale-kbd.h
-#define BIG_LED_ADDR (0xA0700000 + 0x0C80)
-#define BIG_LED_ON (0x3)
-#define BIG_LED_OFF (0x0)
-#define BLINK_LOOP_COUNT 500000
-
-int i;
-
-while (1) {
-    for ( i=0; i<BLINK_LOOP_COUNT; i++) {
-        writeb(BIG_LED_OFF, BIG_LED_ADDR);
-    }
-    for ( i=0; i<BLINK_LOOP_COUNT; i++) {
-        writeb(BIG_LED_ON, BIG_LED_ADDR);
-    }
-}
-    
-
 /*
 		l1a_compl_execute();
 		osmo_timers_update();
 		sim_handler();
 		l1a_l23_handler();
 */
-	}
+//	}
 
 	/* NOT REACHED */
 
