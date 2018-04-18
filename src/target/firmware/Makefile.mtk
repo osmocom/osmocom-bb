@@ -1,23 +1,29 @@
 # List of all supported boards (meant to be overridden on command line)
-BOARDS?=mt62xx fernvale
+BOARDS?=sciphone_dream_g2 fernvale
 
 # List of all applications (meant to be overridden on command line)
-APPLICATIONS?=loader_mtk blink
+#APPLICATIONS?=loader_mtk hello_world layer1
+APPLICATIONS?=loader_mtk hello_world
+#APPLICATIONS?=blink
 
-APP_loader_mtk_ENVIRONMENTS=mtkram
+APP_loader_mtk_ENVIRONMENTS=mt6235 mt6260
 
-ENV_mtkram_LDS=board/mediatek/ram.lds
-ENV_mtkram_OBJS=board/mediatek/start.ram.o
+ENV_mt6235_LDS=board/mt6235/ram.lds
+ENV_mt6235_OBJS=board/mt6235/start.ram.o
+
+ENV_mt6260_LDS=board/mt6260/ram.lds
+ENV_mt6260_OBJS=board/mt6260/start.ram.o
 
 mtk_COMMON_OBJS=board/mediatek/uart.o
+mtk_COMMON_OBJS+=board/mt6260/misc.o
 
 # Mediatek MT62xx
-BOARD_mt62xx_OBJS=$(mtk_COMMON_OBJS) board/mt62xx/init.o
-BOARD_mt62xx_ENVIRONMENTS=mtkram
+BOARD_sciphone_dream_g2_OBJS=$(mtk_COMMON_OBJS) board/sciphone_dream_g2/init.o
+BOARD_sciphone_dream_g2_ENVIRONMENTS=mt6235
 
 # Fernvale
-BOARD_fernvale_OBJS=board/fernvale/init.o
-BOARD_fernvale_ENVIRONMENTS=mtkram
+BOARD_fernvale_OBJS=$(mtk_COMMON_OBJS) board/fernvale/init.o
+BOARD_fernvale_ENVIRONMENTS=mt6260
 
 # Global include path
 INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include

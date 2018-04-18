@@ -109,6 +109,8 @@ int main(void)
 	dump_dev_id();
 	puts(hr);
 
+#if 0
+
 	/* Dump clock config before PLL set */
 	calypso_clk_dump();
 	puts(hr);
@@ -163,6 +165,7 @@ int main(void)
 	}
 
 	twl3025_power_off();
+#endif
 
 	while (1) {}
 }

@@ -44,7 +44,10 @@
 #endif
 
 /* MT 6235 */
-#define BASE_ADDR_UART1	0x81030000
+//#define BASE_ADDR_UART1	0x81030000
+
+/* MT 6260 */
+#define BASE_ADDR_UART1 0xa0080000
 
 //TODO make UART2 and 3 work
 #define UART_REG(n,m)	(BASE_ADDR_UART1 + (m))

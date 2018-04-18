@@ -192,4 +192,11 @@
 #define PLL_PDN_CON_PLL		(1 << 13)
 #define PLL_PDN_CON_DSP_DIV2	(1 << 15)
 
+/* PMIC registry from uboot mt6235 arch/arm/include/asm/arch-mtk/system.h */
+#define MTK_PMIC_CON5   0x83010814
+
+/* MTK_PMIC_CON5 bit field definitions */
+#define PMIC_CON5_VIBR_EN   (1 << 0)
+#define PMIC_CON5_KPLED_EN  (1 << 1)
+
 #endif

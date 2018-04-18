@@ -6,6 +6,8 @@
 #define BIG_LED_ON   (0x3)
 #define BIG_LED_OFF  (0x0)
 
+#define BLINK_LOOP_COUNT 500000
+
 int main(void)
 {
     board_init(0);
@@ -13,10 +15,10 @@ int main(void)
     int i;
 
     while (1) {
-        for ( i=0; i<1000000; i++) {
+        for ( i=0; i<BLINK_LOOP_COUNT; i++) {
             writeb(BIG_LED_OFF, BIG_LED_ADDR);
         }
-        for ( i=0; i<1000000; i++) {
+        for ( i=0; i<BLINK_LOOP_COUNT; i++) {
             writeb(BIG_LED_ON, BIG_LED_ADDR);
         }
     }

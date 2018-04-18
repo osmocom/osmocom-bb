@@ -1049,6 +1049,7 @@ static int handle_read_mtk(void)
 		dnload.mtk_state = MTK_INIT_2;
 		printf("Received init magic byte 1\n");
 		rc = write(dnload.serial_fd.fd, &mtk_init_cmd[1], 1);
+        printf("Wrote mtk_init_cmd[1]: %x\n", &mtk_init_cmd[1]);
 		break;
 	case MTK_INIT_2:
 		if (!(buffer[0] == mtk_init_resp[1]))
