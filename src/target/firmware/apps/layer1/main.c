@@ -37,6 +37,8 @@
 #include <comm/sercomm.h>
 #include <comm/timer.h>
 
+//TODO migrate these headers to a generic location?
+//for mediatek support.
 #include <calypso/clock.h>
 #include <calypso/tpu.h>
 #include <calypso/tsp.h>
@@ -152,6 +154,7 @@ static void key_handler(enum key_codes code, enum key_states state)
 		afcout -= 100;
 		if (afcout < -4096)
 			afcout = -4096;
+// TODO make this generic API call instead of direct hardware reference
 		twl3025_afc_set(afcout);
 		printf("AFC OUT: %u\n", twl3025_afcout_get());
 		break;
@@ -159,6 +162,7 @@ static void key_handler(enum key_codes code, enum key_states state)
 		afcout += 100;
 		if (afcout > 4095)
 			afcout = 4095;
+// TODO make generic
 		twl3025_afc_set(afcout);
 		printf("AFC OUT: %u\n", twl3025_afcout_get());
 		break;

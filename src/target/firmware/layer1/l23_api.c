@@ -148,6 +148,7 @@ static int chan_nr_is_tch(uint8_t chan_nr)
 
 static void audio_set_enabled(uint8_t tch_mode, uint8_t audio_mode)
 {
+// TODO make generic for mediatek support
 	if (tch_mode == GSM48_CMODE_SIGN) {
 		twl3025_unit_enable(TWL3025_UNIT_VUL, 0);
 		twl3025_unit_enable(TWL3025_UNIT_VDL, 0);

@@ -10,13 +10,16 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 MEMORY
 {
-/* TODO adjust this back to vary for 6235 and othe chips */
+/* TODO adjust this back to vary for 6235 and other chips */
     /* total RAM at our disposal */
-    SRAM (rw) : ORIGIN = 0x70000000, LENGTH = 0xcfff
+/*    SRAM (rw) : ORIGIN = 0x70000000, LENGTH = 0xcfff */
+/* TODO how big does this binary need to be anyway??? Right now I don't seem to have enough SRAM
+ * I'm short by about 669+793 bytes...
+ */
     /* mtk-loaded binary: our text, initialized data */
-    LRAM (rw) : ORIGIN = 0x70000000, LENGTH = 0x5000
+    LRAM (rw) : ORIGIN = 0x60000000, LENGTH = 0x10000000
     /* mtk-loaded binary: our unitialized data, stacks, heap */
-    IRAM (rw) : ORIGIN = 0x70005000, LENGTH = 0x6000
+    IRAM (rw) : ORIGIN = 0x70000000, LENGTH = 0xcfff
     /* need to ensure IRAM fits UNDER two 1024 long stacks starting from 0x7000cffc and down
 
 /* LRAM 0x70006000, l=0x4000
