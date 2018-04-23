@@ -86,17 +86,45 @@ SECTIONS
 		_sdata = ABSOLUTE(.);
 		*(.data .data.*)
 		*(.gnu.linkonce.d.*)
-		CONSTRUCTORS
+/*		CONSTRUCTORS*/
 		_edata = ABSOLUTE(.);
 	} > isram
 
+/* from target/firmware/board/compal/ram.lds */
+    /* constructor pointers */
+    .ctors : {
+        /* ctor count */
+        LONG(SIZEOF(.ctors) / 4 - 2)
+        /* ctor pointers */
+        KEEP(*(SORT(.ctors)))
+        KEEP(*(SORT(.init_array)))
+        /* end of list */
+        LONG(0)
+    } > isram
+    PROVIDE(_ctor_start = LOADADDR(.ctors));
+    PROVIDE(_ctor_end = LOADADDR(.ctors) + SIZEOF(.ctors));
+
+    /* destructor pointers */
+    .dtors : {
+        /* dtor count */
+        LONG(SIZEOF(.dtors) / 4 - 2)
+        /* dtor pointers */
+        KEEP(*(SORT(.dtors)))
+        /* end of list */
+        LONG(0)
+    } > isram
+    PROVIDE(_dtor_start = LOADADDR(.dtors));
+    PROVIDE(_dtor_end = LOADADDR(.dtors) + SIZEOF(.dtors));
+
 	.bss : {
 		_sbss = ABSOLUTE(.);
+__bss_start = .;
 		*(.bss .bss.*)
 		*(.gnu.linkonce.b.*)
 		*(COMMON)
 		_ebss = ABSOLUTE(.);
 	} > isram
+__bss_end = .;
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }

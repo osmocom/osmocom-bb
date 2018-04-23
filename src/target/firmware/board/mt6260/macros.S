@@ -47,6 +47,9 @@ done_ramtext:
 /* TODO shouldn't we use something defined by the linker script so we */
 /* have one "source of truth" in terms of memory locations? */
 /* #define TOP_OF_RAM	0x4000a000 TODO re-enable this for mt6235 */
+/* TODO TOP_OF_RAM now that we are using SDRAM what should it be? not 0x0 */
+/* that's where our text/code is, someplace generically higher than that? */
+/* maybe at the "top" of ram like 0x0 + 8MB? */
 #define	TOP_OF_RAM	0x7000cffc // stack_start from fernly/start.S
 #define FIQ_STACK_SIZE	1024
 #define IRQ_STACK_SIZE	1024

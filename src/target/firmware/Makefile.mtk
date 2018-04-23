@@ -17,7 +17,7 @@ ENV_mt6235_OBJS=board/mt6235/start.ram.o
 ENV_mt6260_LDS=board/mt6260/ram.lds
 ENV_mt6260_OBJS=board/mt6260/start.ram.o
 
-mtk_COMMON_OBJS=board/mediatek/uart.o
+# TODO move misc.c to board/mediatek if it is indeed "common" to mtk chips
 mtk_COMMON_OBJS+=board/mt6260/misc.o
 
 # Mediatek MT62xx

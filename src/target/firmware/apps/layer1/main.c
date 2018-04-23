@@ -53,6 +53,9 @@
 
 #include <fb/framebuffer.h>
 
+// TODO remove uart when print works
+#include <uart.h>
+
 const char *hr = "======================================================================\n";
 
 /* MAIN program **************************************************************/
@@ -79,9 +82,13 @@ int main(void)
 
 int i;
 while (1) {
+    uart_putchar_wait(UART_MODEM, '0');
+
     for ( i=0; i<BLINK_LOOP_COUNT; i++) {
         writeb(BIG_LED_OFF, BIG_LED_ADDR);
     }
+
+    uart_putchar_wait(UART_MODEM, '1');
     for ( i=0; i<BLINK_LOOP_COUNT; i++) {
         writeb(BIG_LED_ON, BIG_LED_ADDR);
     }
