@@ -3433,9 +3433,11 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	}
 
 	/* only apply mode to TCH/F or TCH/H */
-	if (ch_type != RSL_CHAN_Bm_ACCHs
-	 && ch_type != RSL_CHAN_Lm_ACCHs)
+	if (ch_type != RSL_CHAN_Bm_ACCHs && ch_type != RSL_CHAN_Lm_ACCHs) {
+		LOGP(DRR, LOGL_ERROR, "CHANNEL MODE MODIFY only applies "
+			"to TCH channels, ignoring...\n");
 		return -ENOTSUP;
+	}
 
 	/* setting (new) timing advance */
 	LOGP(DRR, LOGL_INFO, "setting TCH mode to %s, audio mode to %d\n",
