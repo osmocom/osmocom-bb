@@ -3470,8 +3470,8 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 		return -ENOTSUP;
 
 	/* setting (new) timing advance */
-	LOGP(DRR, LOGL_INFO, "setting TCH mode to %d, audio mode to %d\n",
-		mode, rr->audio_mode);
+	LOGP(DRR, LOGL_INFO, "setting TCH mode to %s, audio mode to %d\n",
+	     get_value_string(gsm48_chan_mode_names, mode), rr->audio_mode);
 	l1ctl_tx_tch_mode_req(ms, mode, rr->audio_mode, rr->tch_loop_mode);
 
 	return 0;
