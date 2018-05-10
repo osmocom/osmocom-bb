@@ -3423,9 +3423,16 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;
+	int rc;
+
+	/* Decode RSL channel number */
+	rc = rsl_dec_chan_nr(chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rc) {
+		LOGP(DRR, LOGL_ERROR, "Couldn't decode RSL channel number\n");
+		return -EINVAL;
+	}
 
 	/* only apply mode to TCH/F or TCH/H */
-	rsl_dec_chan_nr(chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ch_type != RSL_CHAN_Bm_ACCHs
 	 && ch_type != RSL_CHAN_Lm_ACCHs)
 		return -ENOTSUP;
