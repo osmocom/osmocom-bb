@@ -229,7 +229,13 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	ccch = (struct l1ctl_data_ind *) msg->l2h;
 
 	gsm_fn2gsmtime(&tm, ntohl(dl->frame_nr));
-	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
+	if (rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts) != 0) {
+		LOGP(DL1C, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, dl->chan_nr);
+		return -EINVAL;
+	}
+
 	DEBUGP(DL1C, "%s (%.4u/%.2u/%.2u) %d dBm: %s\n",
 		rsl_chan_nr_str(dl->chan_nr), tm.t1, tm.t2, tm.t3,
 		(int)dl->rx_level-110,
@@ -374,7 +380,6 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	struct l1ctl_hdr *l1h;
 	struct l1ctl_info_ul *l1i_ul;
 	uint8_t chan_type, chan_ts, chan_ss;
-	uint8_t gsmtap_chan_type;
 
 	DEBUGP(DL1C, "(%s)\n", osmo_hexdump(msg->l2h, msgb_l2len(msg)));
 
@@ -386,11 +391,16 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	}
 
 	/* send copy via GSMTAP */
-	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
-	gsmtap_chan_type = chantype_rsl2gsmtap2(chan_type, link_id, false);
-	gsmtap_send(gsmtap_inst, ms->rrlayer.cd_now.arfcn | GSMTAP_ARFCN_F_UPLINK,
-		    chan_ts, gsmtap_chan_type, chan_ss, 0, 127, 255,
-		    msg->l2h, msgb_l2len(msg));
+	if (rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts) == 0) {
+		uint8_t gsmtap_chan_type = chantype_rsl2gsmtap2(chan_type, link_id, false);
+		gsmtap_send(gsmtap_inst, ms->rrlayer.cd_now.arfcn | GSMTAP_ARFCN_F_UPLINK,
+			    chan_ts, gsmtap_chan_type, chan_ss, 0, 127, 255,
+			    msg->l2h, msgb_l2len(msg));
+	} else {
+		LOGP(DL1C, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, chan_nr);
+	}
 
 	/* prepend uplink info header */
 	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));

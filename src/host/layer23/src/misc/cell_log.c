@@ -680,7 +680,13 @@ static int unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	 	return -EINVAL;
 	}
 
-	rsl_dec_chan_nr(rllh->chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(rllh->chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRSL, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, rllh->chan_nr);
+		return -EINVAL;
+	}
+
 	switch (ch_type) {
 	case RSL_CHAN_PCH_AGCH:
 		return pch_agch(ms, msg);

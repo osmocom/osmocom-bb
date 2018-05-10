@@ -166,7 +166,12 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	if (ia->page_mode & 0xf0)
 		return 0;
 
-	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, ia->chan_desc.chan_nr);
+		return -EINVAL;
+	}
 
 	if (!ia->chan_desc.h0.h) {
 		/* Non-hopping */

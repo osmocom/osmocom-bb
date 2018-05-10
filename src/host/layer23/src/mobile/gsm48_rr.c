@@ -247,8 +247,14 @@ static uint8_t gsm48_rr_check_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	struct gsm_settings *set = &ms->settings;
 	uint8_t ch_type, ch_subch, ch_ts;
 
+	if (rsl_dec_chan_nr(chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, chan_nr);
+		return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+	}
+
 	/* only complain if we use TCH/F or TCH/H */
-	rsl_dec_chan_nr(chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ch_type != RSL_CHAN_Bm_ACCHs
 	 && ch_type != RSL_CHAN_Lm_ACCHs)
 		return 0;
@@ -648,15 +654,15 @@ static void timeout_rr_meas(void *arg)
 			gsm_print_mcc(cs->sel_mcc),
 			gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
 		if (rr->state == GSM48_RR_ST_DEDICATED) {
-			rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type,
-				&ch_subch, &ch_ts);
 			sprintf(text + strlen(text), " TA=%d pwr=%d TS=%d",
 			rr->cd_now.ind_ta - set->alter_delay,
 			(set->alter_tx_power) ? set->alter_tx_power_value
 					: rr->cd_now.ind_tx_power, ch_ts);
-			if (ch_type == RSL_CHAN_SDCCH8_ACCH
-			 || ch_type == RSL_CHAN_SDCCH4_ACCH)
-				sprintf(text + strlen(text), "/%d", ch_subch);
+			if (rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts) == 0) {
+				if (ch_type == RSL_CHAN_SDCCH8_ACCH
+				 || ch_type == RSL_CHAN_SDCCH4_ACCH) // TODO: TCH/H
+					sprintf(text + strlen(text), "/%d", ch_subch);
+			}
 		} else
 			gsm322_meas(rr->ms, rxlev);
 	}
@@ -2428,7 +2434,12 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	/* decode channel description */
 	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT:\n");
 	cd.chan_nr = ia->chan_desc.chan_nr;
-	rsl_dec_chan_nr(cd.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(cd.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, cd.chan_nr);
+		return -EINVAL;
+	}
 	if (ia->chan_desc.h0.h) {
 		cd.h = 1;
 		gsm48_decode_chan_h1(&ia->chan_desc, &cd.tsc, &cd.maio,
@@ -2542,7 +2553,12 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	/* decode channel description */
 	LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT EXTENDED:\n");
 	cd1.chan_nr = ia->chan_desc1.chan_nr;
-	rsl_dec_chan_nr(cd1.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(cd1.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, cd1.chan_nr);
+		return -EINVAL;
+	}
 	if (ia->chan_desc1.h0.h) {
 		cd1.h = 1;
 		gsm48_decode_chan_h1(&ia->chan_desc1, &cd1.tsc, &cd1.maio,
@@ -2566,7 +2582,12 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 			gsm_print_arfcn(cd1.arfcn), ch_ts, ch_subch, cd1.tsc);
 	}
 	cd2.chan_nr = ia->chan_desc2.chan_nr;
-	rsl_dec_chan_nr(cd2.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(cd2.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, cd2.chan_nr);
+		return -EINVAL;
+	}
 	if (ia->chan_desc2.h0.h) {
 		cd2.h = 1;
 		gsm48_decode_chan_h1(&ia->chan_desc2, &cd2.tsc, &cd2.maio,
@@ -2986,7 +3007,14 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 
 	/* establish */
 	LOGP(DRR, LOGL_INFO, "establishing channel in dedicated mode\n");
-	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
+
+	if (rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, cd->chan_nr);
+		return -EINVAL;
+	}
+
 	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d, "
 		"audio-mode %d, cipher %d\n", ch_type, ch_subch, ch_ts,
 		cd->mode, rr->audio_mode, rr->cipher_type + 1);
@@ -3428,8 +3456,14 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;
 
+	if (rsl_dec_chan_nr(chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, chan_nr);
+		return -EINVAL;
+	}
+
 	/* only apply mode to TCH/F or TCH/H */
-	rsl_dec_chan_nr(chan_nr, &ch_type, &ch_subch, &ch_ts);
 	if (ch_type != RSL_CHAN_Bm_ACCHs
 	 && ch_type != RSL_CHAN_Lm_ACCHs)
 		return -ENOTSUP;
@@ -3474,7 +3508,12 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 	/* decode channel description */
 	LOGP(DRR, LOGL_INFO, "FREQUENCY REDEFINITION:\n");
 	cd.chan_nr = fr->chan_desc.chan_nr;
-	rsl_dec_chan_nr(cd.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(cd.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, cd.chan_nr);
+		return -EINVAL;
+	}
 	if (fr->chan_desc.h0.h) {
 		cd.h = 1;
 		gsm48_decode_chan_h1(&fr->chan_desc, &cd.tsc, &cd.maio,
@@ -3578,7 +3617,12 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* decode channel description */
 	cd->chan_nr = cm->chan_desc.chan_nr;
-	rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(cd->chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, cd->chan_nr);
+		return -EINVAL;
+	}
 	if (cm->chan_desc.h0.h) {
 		cd->h = 1;
 		gsm48_decode_chan_h1(&cm->chan_desc, &cd->tsc, &cd->maio,
@@ -3701,7 +3745,12 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		struct gsm48_chan_desc *ccd = (struct gsm48_chan_desc *)
 			TLVP_VAL(&tp, GSM48_IE_CH_DESC_1_BEFORE);
 		cdb->chan_nr = ccd->chan_nr;
-		rsl_dec_chan_nr(cdb->chan_nr, &ch_type, &ch_subch, &ch_ts);
+		if (rsl_dec_chan_nr(cdb->chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+			LOGP(DRR, LOGL_ERROR,
+			     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+			     __func__, cdb->chan_nr);
+			return -EINVAL;
+		}
 		if (ccd->h0.h) {
 			cdb->h = 1;
 			gsm48_decode_chan_h1(ccd, &cdb->tsc, &cdb->maio,
@@ -3724,7 +3773,12 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* decode channel description (after time) */
 	cda->chan_nr = ac->chan_desc.chan_nr;
-	rsl_dec_chan_nr(cda->chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(cda->chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, cda->chan_nr);
+		return -EINVAL;
+	}
 	if (ac->chan_desc.h0.h) {
 		cda->h = 1;
 		gsm48_decode_chan_h1(&ac->chan_desc, &cda->tsc, &cda->maio,
@@ -4090,7 +4144,12 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		struct gsm48_chan_desc *ccd = (struct gsm48_chan_desc *)
 			TLVP_VAL(&tp, GSM48_IE_CH_DESC_1_BEFORE);
 		cdb->chan_nr = ccd->chan_nr;
-		rsl_dec_chan_nr(cdb->chan_nr, &ch_type, &ch_subch, &ch_ts);
+		if (rsl_dec_chan_nr(cdb->chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+			LOGP(DRR, LOGL_ERROR,
+			     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+			     __func__, cdb->chan_nr);
+			return -EINVAL;
+		}
 		if (ccd->h0.h) {
 			cdb->h = 1;
 			gsm48_decode_chan_h1(ccd, &cdb->tsc, &cdb->maio,
@@ -4113,7 +4172,12 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* decode channel description (after time) */
 	cda->chan_nr = ho->chan_desc.chan_nr;
-	rsl_dec_chan_nr(cda->chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(cda->chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, cda->chan_nr);
+		return -EINVAL;
+	}
 	if (ho->chan_desc.h0.h) {
 		cda->h = 1;
 		gsm48_decode_chan_h1(&ho->chan_desc, &cda->tsc, &cda->maio,
@@ -4843,7 +4907,13 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 				// TODO: timer depends on BCCH config
 	}
 
-	rsl_dec_chan_nr(rllh->chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(rllh->chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRSL, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, rllh->chan_nr);
+		return -EINVAL;
+	}
+
 	switch (ch_type) {
 	case RSL_CHAN_PCH_AGCH:
 		return gsm48_rr_rx_pch_agch(ms, msg);
@@ -5167,7 +5237,13 @@ static int gsm48_rr_est_req_sapi3(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_upmsg(ms, nmsg);
 	}
 
-	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRSL, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, rr->cd_now.chan_nr);
+		return -EINVAL;
+	}
+
 	if (ch_type != RSL_CHAN_Bm_ACCHs
 	 && ch_type != RSL_CHAN_Lm_ACCHs) {
 		LOGP(DRR, LOGL_INFO, "Requesting DCCH link, because no TCH "
@@ -5683,7 +5759,13 @@ int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
 		goto error;
 	}
 
-	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRSL, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, rr->cd_now.chan_nr);
+		goto error;
+	}
+
 	if (ch_type != RSL_CHAN_Bm_ACCHs) {
 		LOGP(DRR, LOGL_INFO, "Current channel is not (yet) TCH/F\n");
 		goto error;
@@ -5711,7 +5793,13 @@ int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode)
 	if (!rr->dm_est)
 		return 0;
 
-	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
+	if (rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRSL, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, rr->cd_now.chan_nr);
+		return -EINVAL;
+	}
+
 	if (ch_type != RSL_CHAN_Bm_ACCHs
 	 && ch_type != RSL_CHAN_Lm_ACCHs)
 		return 0;
