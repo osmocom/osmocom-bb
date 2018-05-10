@@ -3569,7 +3569,7 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*cm);
 	struct gsm48_rr_cd *cd = &rr->cd_now;
 	uint8_t ch_type, ch_subch, ch_ts;
-	uint8_t cause;
+	int rc;
 
 	LOGP(DRR, LOGL_INFO, "CHANNEL MODE MODIFY\n");
 
@@ -3601,14 +3601,30 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 			gsm_print_arfcn(cd->arfcn), ch_ts, ch_subch, cd->tsc,
 			cm->mode);
 	}
-	/* mode */
-	cause = gsm48_rr_check_mode(ms, cd->chan_nr, cm->mode);
-	if (cause)
-		return gsm48_rr_tx_rr_status(ms, cause);
-	cd->mode = cm->mode;
-	gsm48_rr_set_mode(ms, cd->chan_nr, cd->mode);
 
-	return gsm48_rr_tx_chan_modify_ack(ms, &cm->chan_desc, cm->mode);
+	/**
+	 * According to 3GPP TS 04.08, section 3.4.6.1.3
+	 * "Abnormal cases" of "channel mode modify procedure",
+	 * if the MS doesn't support the indicated channel mode,
+	 * it shall retain the old mode and return the associated
+	 * channel mode information in the ACKNOWLEDGE message.
+	 */
+
+	/* Check if we support this channel mode */
+	rc = gsm48_rr_check_mode(ms, cd->chan_nr, cm->mode);
+	if (rc)
+		goto ack;
+
+	/* Attempt to apply this mode */
+	rc = gsm48_rr_set_mode(ms, cd->chan_nr, cm->mode);
+	if (rc)
+		goto ack;
+
+	/* Finally set (a new) mode */
+	cd->mode = cm->mode;
+
+ack:
+	return gsm48_rr_tx_chan_modify_ack(ms, &cm->chan_desc, cd->mode);
 }
 
 /* 9.1.3 sending ASSIGNMENT COMPLETE */
