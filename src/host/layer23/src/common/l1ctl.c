@@ -910,8 +910,6 @@ int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
 	DEBUGP(DL1C, "TRAFFIC REQ len=%zu (%s)\n", frame_len,
 		osmo_hexdump(frame, frame_len));
 
-//	printf("TX %s\n", osmo_hexdump(frame, frame_len));
-
 	/* prepend uplink info header */
 	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));
 
