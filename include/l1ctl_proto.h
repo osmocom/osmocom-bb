@@ -96,8 +96,6 @@ enum l1ctl_coding_scheme {
 	L1CTL_MCS9,
 };
 
-#define TRAFFIC_DATA_LEN	40
-
 /*
  * NOTE: struct size. We do add manual padding out of the believe
  * that it will avoid some unaligned access.
@@ -162,7 +160,7 @@ struct l1ctl_data_ind {
 
 /* traffic from the network */
 struct l1ctl_traffic_ind {
-	uint8_t data[TRAFFIC_DATA_LEN];
+	uint8_t data[0];
 } __attribute__((packed));
 
 /*
@@ -346,7 +344,7 @@ struct l1ctl_neigh_pm_ind {
 
 /* traffic data to network */
 struct l1ctl_traffic_req {
-	uint8_t data[TRAFFIC_DATA_LEN];
+	uint8_t data[0];
 } __attribute__((packed));
 
 struct l1ctl_tbf_cfg_req {
