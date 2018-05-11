@@ -189,6 +189,7 @@ int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode)
 int l1ctl_tx_dt_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data,
 	uint8_t *l2, size_t l2_len, bool traffic)
 {
+	struct l1ctl_traffic_ind *ti;
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 	uint8_t *msg_l2;
@@ -201,6 +202,13 @@ int l1ctl_tx_dt_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data,
 	/* Copy DL header */
 	dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
 	memcpy(dl, data, sizeof(*dl));
+
+	/* Put the TCH frame header */
+	if (traffic) {
+		/* TODO: Nothing to fill in for now */
+		ti = (struct l1ctl_traffic_ind *) msgb_put(msg, sizeof(*ti));
+		memset(ti, 0x00, sizeof(*ti));
+	}
 
 	/* Copy the L2 payload if preset */
 	if (l2 && l2_len > 0) {
@@ -635,18 +643,35 @@ static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 	struct msgb *msg, bool traffic)
 {
+	struct l1ctl_traffic_req *tr;
 	struct l1ctl_info_ul *ul;
 	struct trx_ts_prim *prim;
 	uint8_t chan_nr, link_id;
 	size_t payload_len;
+	uint8_t *payload;
 	int rc;
 
 	/* Extract UL frame header */
 	ul = (struct l1ctl_info_ul *) msg->l1h;
-
-	/* Calculate the payload len */
 	msg->l2h = ul->payload;
-	payload_len = msgb_l2len(msg);
+
+	/* Extract payload */
+	if (traffic) {
+		/**
+		 * FIXME: we ignore TCH frame header for now,
+		 * but in the near future it will be extended
+		 * by some additional fields, such as TCH
+		 * frame format...
+		 */
+		tr = (struct l1ctl_traffic_req *) ul->payload;
+		msg->l3h = tr->data;
+
+		payload = tr->data;
+		payload_len = msgb_l3len(msg);
+	} else {
+		payload = ul->payload;
+		payload_len = msgb_l2len(msg);
+	}
 
 	/* Obtain channel description */
 	chan_nr = ul->chan_nr;
@@ -670,7 +695,7 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 	}
 
 	/* Fill in the payload */
-	memcpy(prim->payload, ul->payload, payload_len);
+	memcpy(prim->payload, payload, payload_len);
 
 exit:
 	msgb_free(msg);
