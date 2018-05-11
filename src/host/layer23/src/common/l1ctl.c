@@ -762,6 +762,8 @@ static int rx_l1_traffic_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_info_dl *dl;
 	struct l1ctl_traffic_ind *ti;
+	size_t frame_len;
+	uint8_t *frame;
 
 	if (msgb_l1len(msg) < sizeof(*dl)) {
 		LOGP(DL1C, LOGL_ERROR, "TRAFFIC IND MSG too short "
@@ -771,10 +773,17 @@ static int rx_l1_traffic_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* Header handling */
 	dl = (struct l1ctl_info_dl *) msg->l1h;
-	msg->l2h = dl->payload;
-	ti = (struct l1ctl_traffic_ind *) msg->l2h;
+	ti = (struct l1ctl_traffic_ind *) dl->payload;
+	frame = (uint8_t *) ti->data;
 
-	DEBUGP(DL1C, "TRAFFIC IND (%s)\n", osmo_hexdump(ti->data, 33));
+	msg->l2h = dl->payload;
+	msg->l3h = frame;
+
+	/* Calculate the frame length */
+	frame_len = msgb_l3len(msg);
+
+	DEBUGP(DL1C, "TRAFFIC IND len=%zu (%s)\n", frame_len,
+		osmo_hexdump(frame, frame_len));
 
 	/* distribute or drop */
 	if (ms->l1_entity.l1_traffic_ind)
@@ -791,28 +800,28 @@ int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
 	struct l1ctl_hdr *l1h;
 	struct l1ctl_info_ul *l1i_ul;
 	struct l1ctl_traffic_req *tr;
+	size_t frame_len;
+	uint8_t *frame;
 
 	/* Header handling */
 	tr = (struct l1ctl_traffic_req *) msg->l2h;
+	frame = (uint8_t *) tr->data;
+	msg->l3h = frame;
 
-	DEBUGP(DL1C, "TRAFFIC REQ (%s)\n",
-		osmo_hexdump(msg->l2h, msgb_l2len(msg)));
+	/* Calculate the frame length */
+	frame_len = msgb_l3len(msg);
 
-	if (msgb_l2len(msg) != 33) {
-		LOGP(DL1C, LOGL_ERROR, "Traffic Request has incorrect length "
-			"(%u != 33)\n", msgb_l2len(msg));
-		msgb_free(msg);
-		return -EINVAL;
-	}
+	DEBUGP(DL1C, "TRAFFIC REQ len=%zu (%s)\n", frame_len,
+		osmo_hexdump(frame, frame_len));
 
-	if ((tr->data[0] >> 4) != 0xd) {
+	if ((frame[0] >> 4) != 0xd) {
 		LOGP(DL1C, LOGL_ERROR, "Traffic Request has incorrect magic "
-			"(%u != 0xd)\n", tr->data[0] >> 4);
+			"(%u != 0xd)\n", frame[0] >> 4);
 		msgb_free(msg);
 		return -EINVAL;
 	}
 
-//	printf("TX %s\n", osmo_hexdump(tr->data, 33));
+//	printf("TX %s\n", osmo_hexdump(frame, frame_len));
 
 	/* prepend uplink info header */
 	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));
