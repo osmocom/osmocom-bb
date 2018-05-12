@@ -31,6 +31,7 @@ src/misc/cbch_sniff
 src/misc/cell_log
 src/misc/echo_test
 src/misc/cbch_sniff
+src/misc/gprs_sniff
 src/misc/ccch_scan
 src/misc/layer23
 src/mobile/mobile
