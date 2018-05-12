@@ -1,1 +1,1 @@
-SUBDIRS = common misc mobile
+SUBDIRS = common gprs misc mobile
