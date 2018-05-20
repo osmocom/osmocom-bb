@@ -61,7 +61,9 @@ static const char* l1ctlPrimNames[] = {
         "L1CTL_TBF_CFG_REQ",
         "L1CTL_TBF_CFG_CONF",
         "L1CTL_DATA_TBF_REQ",
-        "L1CTL_DATA_TBF_CONF"
+        "L1CTL_DATA_TBF_CONF",
+        "L1CTL_PHY_NEGO_REQ",
+        "L1CTL_PHY_NEGO_IND",
 };
 
 static const struct log_info_cat default_categories[] = {

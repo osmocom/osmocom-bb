@@ -64,6 +64,10 @@ enum {
 
 	L1CTL_DATA_TBF_REQ,
 	L1CTL_DATA_TBF_CONF,
+
+	/* PHY info / features negotiation */
+	L1CTL_PHY_NEGO_REQ,
+	L1CTL_PHY_NEGO_IND,
 };
 
 enum ccch_mode {
@@ -357,5 +361,91 @@ struct l1ctl_tbf_cfg_req {
 	/* one USF for each TN, or 255 for invalid/unused */
 	uint8_t usf[8];
 } __attribute__((packed));
+
+
+/**
+ * PHY info negotiation message header, data encoded using TLV.
+ * Tag values defined by l1ctl_phy_feature enum.
+ */
+struct l1ctl_phy_nego_ind {
+	uint16_t len;
+	uint8_t data[0];
+} __attribute__((packed));
+
+enum l1ctl_phy_info_tag {
+	/* PHY feature list defined by l1ctl_phy_feature_tag enum */
+	L1CTL_PHY_INFO_FEATURES = 0,
+	/* PHY name, e.g. 'calypso', 'trxcon' or 'virt_phy' */
+	L1CTL_PHY_INFO_NAME,
+	/* Firmware build target, e.g. e88, e99, etc. */
+	L1CTL_PHY_INFO_FW_TARGET,
+	/* Firmware version */
+	L1CTL_PHY_INFO_FW_VERSION,
+
+	/**
+	 * NOTE: please keep the order of enum items
+	 * constant and add new ones to the end,
+	 * before this comment.
+	 */
+	_L1CTL_PHY_INFO_MAX
+};
+
+enum l1ctl_phy_feature_tag {
+	/* Frequency band support */
+	L1CTL_PHY_FEATURE_BAND_400 = 0,
+	L1CTL_PHY_FEATURE_BAND_850,
+	L1CTL_PHY_FEATURE_BAND_900,
+	L1CTL_PHY_FEATURE_BAND_DCS,
+	L1CTL_PHY_FEATURE_BAND_PCS,
+
+	/* Voice codecs support */
+	L1CTL_PHY_FEATURE_CODEC_HR,
+	L1CTL_PHY_FEATURE_CODEC_FR,
+	L1CTL_PHY_FEATURE_CODEC_EFR,
+	L1CTL_PHY_FEATURE_CODEC_HR_AMR,
+	L1CTL_PHY_FEATURE_CODEC_FR_AMR,
+
+	/* Channel coding support */
+	L1CTL_PHY_FEATURE_CHAN_XCCH,
+	L1CTL_PHY_FEATURE_CHAN_TCHF,
+	L1CTL_PHY_FEATURE_CHAN_TCHH,
+	L1CTL_PHY_FEATURE_CHAN_CBCH,
+	L1CTL_PHY_FEATURE_CHAN_PTCH,
+
+	/* A5/X ciphering support */
+	L1CTL_PHY_FEATURE_A5_1,
+	L1CTL_PHY_FEATURE_A5_2,
+	L1CTL_PHY_FEATURE_A5_3,
+	L1CTL_PHY_FEATURE_A5_4,
+	L1CTL_PHY_FEATURE_A5_5,
+	L1CTL_PHY_FEATURE_A5_6,
+	L1CTL_PHY_FEATURE_A5_7,
+
+	/* Transmission enabled? */
+	L1CTL_PHY_FEATURE_TX,
+	/* Frequency hopping */
+	L1CTL_PHY_FEATURE_FH,
+	/* Power measurement for a single ARFCN */
+	L1CTL_PHY_FEATURE_PM,
+	/* Power measurement for neighbour ARFCNs */
+	L1CTL_PHY_FEATURE_NEIGH_PM,
+	/* SIM card support (Calypso based PHYs) */
+	L1CTL_PHY_FEATURE_SIM,
+	/* Measurement processing and reporting by L1 itself */
+	L1CTL_PHY_FEATURE_MEAS_REP,
+	/* Burst transmission support (sylvain/testing) */
+	L1CTL_PHY_FEATURE_BURST_TRX,
+	/* Burst sniffing support (sylvain/burst_ind) */
+	L1CTL_PHY_FEATURE_BURST_IND,
+	/* TCH traffic (voice frames) support */
+	L1CTL_PHY_FEATURE_TRAFFIC,
+
+	/**
+	 * NOTE: please keep the order of enum items
+	 * constant and add new ones to the end,
+	 * before this comment.
+	 */
+	_L1CTL_PHY_FEATURE_MAX
+};
 
 #endif /* __L1CTL_PROTO_H__ */
