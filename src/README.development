@@ -1,18 +1,24 @@
 = Contributing to OsmocomBB development =
 
 Feel free to help us by extending the code.  Always make sure to
-send back all your patches to the baseband-devel@lists.osmocom.org
-mailing list - Free Software is all about sharing.
+send back all your patches to Gerrit (recommended) or to the
+baseband-devel@lists.osmocom.org mailing list - Free Software
+is all about sharing. For details, see:
+
+https://osmocom.org/projects/cellular-infrastructure/wiki/Gerrit
+https://gerrit.osmocom.org/
 
 == Coding Style ==
 
 Like all C language Osmocom projects, we use the Linux Kernel coding
 style, you can find it in the Documentation/CodingStyle subdirectory
-of any Linux Kernel source.
+of any Linux Kernel source. For details, see:
+
+https://osmocom.org/projects/cellular-infrastructure/wiki/Coding_standards
 
 == More Information ==
 
-Please consult the http://bb.osmocom.org/ web page / wiki.
+Please consult the https://osmocom.org/projects/baseband/wiki/.
 
 If you have any technical questions regarding the code, don't hesitate
 to ask the baseband-devel@lists.osmocom.org mailing list.
