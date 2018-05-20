@@ -8,13 +8,15 @@ and the Cygwin environment for MS Windows, but we do not officially support
 this.
 
  * Make sure you have compiled and installed a recent version of
-   libosmocore. See http://bb.osmocom.org/trac/wiki/libosmocore
+   libosmocore. See https://osmocom.org/projects/libosmocore/wiki/Libosmocore
 
    DO NOT USE the libosmocore version embedded in this git tree. This
    is a special version used internally and MUST NOT be used as
    system-wide libosmocore.
 
  * Get a GNU toolchain (gcc/binutils) for ARM (e.g. from http://gnuarm.com/)
+   See https://osmocom.org/projects/baseband/wiki/GnuArmToolchain
+
  * Set your path to include the arm-elf-* executables of your toolchain
 
  * call 'make' in this (the src) subdirectory
