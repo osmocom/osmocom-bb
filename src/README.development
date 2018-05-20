@@ -65,6 +65,15 @@ written with some idea of modularity in mind, i.e. we have
    * board/compal_e99 is the Motorola C155 family
  * Applications (each app builds one firmware image) in apps/
 
+=== src/target/trx_toolkit ===
+
+A set of tools in Python for debugging TRX interface and creating
+a virtual Um-interface between OsmocomBB and OsmoBTS. For details,
+please refer:
+
+https://osmocom.org/projects/baseband/wiki/TRX_Interface
+https://osmocom.org/projects/baseband/wiki/FakeTRX
+target/trx_toolkit/README
 
 === src/target_dsp/calypso ===
 
@@ -75,4 +84,3 @@ the DSP that is part of the Calypso DBB.
 
 The Layer2 (LAPDm / TS 04.06) and Layer3 (CC/MM/RR / TS 04.08)
 implementations, as they are growing.
-
