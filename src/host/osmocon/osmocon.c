@@ -1470,6 +1470,16 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	/* Reset ready to read/write */
+	fprintf(stderr, "Clearing DTR bit\n");
+	int v24 = TIOCM_DTR | TIOCM_RTS;
+	if (ioctl(dnload.serial_fd.fd, TIOCMBIC, &v24) < 0)
+		fprintf(stderr, "ioctl(TIOCMBIC) %d", errno);
+	usleep(5*1000*1000);
+	fprintf(stderr, "Setting DTR bit\n");
+	if (ioctl(dnload.serial_fd.fd, TIOCMBIS, &v24) < 0)
+		fprintf(stderr, "ioctl(TIOCMBIS) %d", errno);
+
 	if (osmo_fd_register(&dnload.serial_fd) != 0) {
 		fprintf(stderr, "Failed to register the serial.\n");
 		exit(1);
