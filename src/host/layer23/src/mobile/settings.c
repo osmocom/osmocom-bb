@@ -90,6 +90,8 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	/* software features */
 	set->cc_dtmf = 1;
 
+	set->any_timeout = MOB_C7_DEFLT_ANY_TIMEOUT;
+
 	INIT_LLIST_HEAD(&set->abbrev);
 
 	return 0;

@@ -1528,6 +1528,10 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, "  hplmn-search %s%s",
 			(set->test_always) ? "everywhere" : "foreign-country",
 			VTY_NEWLINE);
+	if (!hide_default || set->any_timeout != MOB_C7_DEFLT_ANY_TIMEOUT)
+		vty_out(vty, " c7-any-timeout %d%s",
+			set->any_timeout, VTY_NEWLINE);
+
 	/* no shutdown must be written to config, because shutdown is default */
 	vty_out(vty, " %sshutdown%s", (ms->shutdown != MS_SHUTDOWN_NONE) ? "" : "no ",
 		VTY_NEWLINE);
@@ -2164,6 +2168,19 @@ DEFUN(cfg_ms_no_neighbour, cfg_ms_no_neighbour_cmd, "no neighbour-measurement",
 	struct gsm_settings *set = &ms->settings;
 
 	set->no_neighbour = 1;
+
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_any_timeout, cfg_ms_any_timeout_cmd, "c7-any-timeout <0-255>",
+	"Seconds to wait in C7 before doing a PLMN search")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->any_timeout = atoi(argv[0]);
 
 	vty_restart_if_started(vty, ms);
 
@@ -2891,6 +2908,7 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
 	install_element(MS_NODE, &cfg_ms_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
+	install_element(MS_NODE, &cfg_ms_any_timeout_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dtmf_cmd);

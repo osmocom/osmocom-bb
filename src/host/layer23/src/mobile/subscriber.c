@@ -99,7 +99,7 @@ int gsm_subscr_init(struct osmocom_ms *ms)
 	subscr->key_seq = 7;
 
 	/* any cell selection timer timeout */
-	subscr->any_timeout = 30;
+	subscr->any_timeout = ms->settings.any_timeout;
 
 	/* init lists */
 	INIT_LLIST_HEAD(&subscr->plmn_list);

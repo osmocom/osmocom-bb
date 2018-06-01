@@ -1,6 +1,8 @@
 #ifndef _settings_h
 #define _settings_h
 
+#define MOB_C7_DEFLT_ANY_TIMEOUT	30
+
 struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];
@@ -100,6 +102,9 @@ struct gsm_settings {
 	uint8_t			class_dtm;
 	uint8_t			dtm_mac;
 	uint8_t			dtm_egprs;
+
+	/* Timeout for GSM 03.22 C7 state */
+	uint8_t			any_timeout;
 };
 
 struct gsm_settings_abbrev {
