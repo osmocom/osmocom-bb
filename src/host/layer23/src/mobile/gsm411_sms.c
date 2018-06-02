@@ -213,8 +213,10 @@ fail:
 	snprintf(sms_file, len, "%s/%s", home, osmocomsms);
 
 	fp = fopen(sms_file, "a");
-	if (!fp)
+	if (!fp) {
+		talloc_free(sms_file);
 		goto fail;
+	}
 	fprintf(fp, "[SMS from %s]\n%s\n", gsms->address, gsms->text);
 	fclose(fp);
 
