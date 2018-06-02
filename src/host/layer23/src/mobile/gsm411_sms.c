@@ -182,7 +182,6 @@ static int gsm340_rx_sms_deliver(struct osmocom_ms *ms, struct msgb *msg,
 	struct gsm_sms *gsms)
 {
 	const char osmocomsms[] = ".osmocom/bb/sms.txt";
-	int len;
 	const char *home;
 	char *sms_file;
 	char vty_text[sizeof(gsms->text)], *p;
@@ -206,11 +205,9 @@ fail:
 			"your home directory.\n", osmocomsms);
 		return GSM411_RP_CAUSE_MT_MEM_EXCEEDED;
 	}
-	len = strlen(home) + 1 + sizeof(osmocomsms);
-	sms_file = talloc_size(l23_ctx, len);
+	sms_file = talloc_asprintf(l23_ctx, "%s/%s", home, osmocomsms);
 	if (!sms_file)
 		goto fail;
-	snprintf(sms_file, len, "%s/%s", home, osmocomsms);
 
 	fp = fopen(sms_file, "a");
 	if (!fp) {
