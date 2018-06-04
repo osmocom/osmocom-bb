@@ -1766,6 +1766,26 @@ DEFUN(cfg_ms_no_sms_sca, cfg_ms_no_sms_sca_cmd, "no sms-service-center",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_no_sms_store, cfg_ms_no_sms_store_cmd, "no sms-store",
+	NO_STR "Store SMS in the home directory")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->store_sms = false;
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sms_store, cfg_ms_sms_store_cmd, "sms-store",
+	"Store SMS in the home directory")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->store_sms = true;
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_no_cw, cfg_ms_no_cw_cmd, "no call-waiting",
 	NO_STR "Disallow waiting calls")
 {
@@ -2909,6 +2929,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_any_timeout_cmd);
+	install_element(MS_NODE, &cfg_ms_sms_store_cmd);
+	install_element(MS_NODE, &cfg_ms_no_sms_store_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dtmf_cmd);

@@ -92,6 +92,8 @@ int gsm_settings_init(struct osmocom_ms *ms)
 
 	set->any_timeout = MOB_C7_DEFLT_ANY_TIMEOUT;
 
+	set->store_sms = true;
+
 	INIT_LLIST_HEAD(&set->abbrev);
 
 	return 0;

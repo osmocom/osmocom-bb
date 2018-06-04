@@ -21,6 +21,7 @@ struct gsm_settings {
 
 	/* SMS */
 	char			sms_sca[22];
+	bool			store_sms;
 
 	/* test card simulator settings */
 	char 			test_imsi[16];

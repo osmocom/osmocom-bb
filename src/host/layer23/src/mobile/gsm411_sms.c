@@ -177,8 +177,8 @@ static int gsm411_trans_free(struct gsm_trans *trans)
  * receive SMS
  */
 
-/* now here comes our SMS */
-static int gsm340_rx_sms_deliver(struct osmocom_ms *ms, struct msgb *msg,
+/* store the SMS to disk */
+static int sms_store(struct osmocom_ms *ms, struct msgb *msg,
 	struct gsm_sms *gsms)
 {
 	const char osmocomsms[] = ".osmocom/bb/sms.txt";
@@ -186,8 +186,6 @@ static int gsm340_rx_sms_deliver(struct osmocom_ms *ms, struct msgb *msg,
 	char *sms_file;
 	char vty_text[sizeof(gsms->text)], *p;
 	FILE *fp;
-
-	mobile_prim_ntfy_sms_new(ms, gsms);
 
 	/* remove linefeeds and show at VTY */
 	strcpy(vty_text, gsms->text);
@@ -220,6 +218,16 @@ fail:
 	talloc_free(sms_file);
 
 	return 0;
+}
+
+/* now here comes our SMS */
+static int gsm340_rx_sms_deliver(struct osmocom_ms *ms, struct msgb *msg,
+	struct gsm_sms *gsms)
+{
+	mobile_prim_ntfy_sms_new(ms, gsms);
+	if (!ms->settings.store_sms)
+		return 0;
+	return sms_store(ms, msg, gsms);
 }
 
 /* process an incoming TPDU (called from RP-DATA)
