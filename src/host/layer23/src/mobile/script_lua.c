@@ -1,4 +1,4 @@
-/* (C) 2017 by Holger Hans Peter Freyther
+/* (C) 2017-2018 by Holger Hans Peter Freyther
  *
  * All Rights Reserved
  *
@@ -29,6 +29,9 @@
 #include <osmocom/bb/mobile/primitives.h>
 
 #include <osmocom/vty/misc.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
 
 struct timer_userdata {
 	int cb_ref;
@@ -410,6 +413,23 @@ static int lua_ms_name(lua_State *L)
 	return 1;
 }
 
+/* Expect a fd on the stack and enable SO_PASSCRED */
+static int lua_unix_passcred(lua_State *L)
+{
+	int one = 1;
+	int fd, rc;
+
+	luaL_argcheck(L, lua_isnumber(L, -1), 1, "needs to be a filedescriptor");
+	fd = (int) lua_tonumber(L, -1);
+
+	rc = setsockopt(fd, SOL_SOCKET, SO_PASSCRED, &one, sizeof(one));
+	if (rc != 0)
+		LOGP(DLUA, LOGL_ERROR, "Failed to set SO_PASSCRED: %s\n",
+			strerror(errno));
+	lua_pushinteger(L, rc);
+	return 1;
+}
+
 static const struct luaL_Reg ms_funcs[] = {
 	{ "imsi", lua_ms_imsi },
 	{ "imei", lua_ms_imei },
@@ -426,6 +446,7 @@ static const struct luaL_Reg ms_funcs[] = {
 
 static const struct luaL_Reg osmo_funcs[] = {
 	{ "timeout",	lua_osmo_timeout },
+	{ "unix_passcred", lua_unix_passcred },
 	{ "ms",	lua_osmo_ms },
 	{ NULL, NULL },
 };
