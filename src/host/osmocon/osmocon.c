@@ -789,8 +789,11 @@ static int handle_buffer(int buf_used_len)
 	}
 
 	nbytes = read(dnload.serial_fd.fd, bufptr, buf_left);
-	if (nbytes <= 0)
+	if (nbytes <= 0) {
+		fprintf(stderr, "handle_buffer() read(%d) = %d (%s)\n",
+			buf_left, nbytes, strerror(errno));
 		return nbytes;
+	}
 
 	if (!dnload.expect_hdlc) {
 		printf("got %i bytes from modem, ", nbytes);
@@ -1173,8 +1176,6 @@ static int serial_read(struct osmo_fd *fd, unsigned int flags)
 				while ((rc = handle_read()) > 0);
 				break;
 		}
-		if (rc == 0)
-			exit(2);
 	}
 
 	if (flags & BSC_FD_WRITE) {
