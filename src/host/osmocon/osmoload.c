@@ -149,7 +149,7 @@ static int version(const char *name)
 static void osmoload_osmo_hexdump(const uint8_t *data, unsigned int len)
 {
 	const uint8_t *bufptr = data;
-	const uint8_t const *endptr = bufptr + len;
+	const uint8_t *endptr = bufptr + len;
 	int n, m, i, hexchr;
 
 	for (n=0; n < len; n+=32, bufptr += 32) {
