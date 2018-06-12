@@ -647,7 +647,7 @@ static int handle_write_dnload(void)
 
 	dnload.write_ptr += rc;
 
-	printf("%u bytes (%u/%u)\n", rc, dnload.write_ptr - dnload.data,
+	printf("%u bytes (%lu/%u)\n", rc, dnload.write_ptr - dnload.data,
 		dnload.data_len);
 
 	return 0;
