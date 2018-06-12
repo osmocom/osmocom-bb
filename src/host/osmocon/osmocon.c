@@ -44,6 +44,7 @@
 #include <osmocom/core/serial.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
+#include <osmocom/core/application.h>
 
 #include <arpa/inet.h>
 
@@ -1422,6 +1423,8 @@ int main(int argc, char **argv)
 	dnload.mode = MODE_C123;
 	dnload.beacon_interval = DEFAULT_BEACON_INTERVAL;
 	dnload.do_chainload = 0;
+
+	osmo_init_ignore_signals();
 
 	while ((opt = getopt(argc, argv, "d:hl:p:m:cs:i:v")) != -1) {
 		switch (opt) {
