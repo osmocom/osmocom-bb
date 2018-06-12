@@ -551,7 +551,7 @@ loader_send_flash_query(uint8_t command, uint8_t chip, uint32_t address) {
 	osmoload.command = command;
 }
 
-static void
+static void __attribute__((__unused__))
 loader_start_flash_query(uint8_t command, uint8_t chip, uint32_t address) {
 	loader_send_flash_query(command, chip, address);
 	osmoload.state = STATE_QUERY_PENDING;
