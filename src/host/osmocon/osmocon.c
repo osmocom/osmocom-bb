@@ -210,13 +210,13 @@ static const uint8_t chainloader[] = {
 
 /* Calypso romloader specific */
 static const uint8_t romload_ident_cmd[] =	{ 0x3c, 0x69 };	/* <i */
-static const uint8_t romload_abort_cmd[] =	{ 0x3c, 0x61 };	/* <a */
+static const uint8_t __attribute__((__unused__)) romload_abort_cmd[] =	{ 0x3c, 0x61 };	/* <a */
 static const uint8_t romload_write_cmd[] =	{ 0x3c, 0x77 };	/* <w */
 static const uint8_t romload_checksum_cmd[] =	{ 0x3c, 0x63 };	/* <c */
 static const uint8_t romload_branch_cmd[] =	{ 0x3c, 0x62 };	/* <b */
 static const uint8_t romload_ident_ack[] =	{ 0x3e, 0x69 };	/* >i */
 static const uint8_t romload_param_ack[] =	{ 0x3e, 0x70 };	/* >p */
-static const uint8_t romload_param_nack[] =	{ 0x3e, 0x50 };	/* >P */
+static const uint8_t __attribute__((__unused__)) romload_param_nack[] =	{ 0x3e, 0x50 };	/* >P */
 static const uint8_t romload_block_ack[] =	{ 0x3e, 0x77 };	/* >w */
 static const uint8_t romload_block_nack[] =	{ 0x3e, 0x57 };	/* >W */
 static const uint8_t romload_checksum_ack[] =	{ 0x3e, 0x63 };	/* >c */
