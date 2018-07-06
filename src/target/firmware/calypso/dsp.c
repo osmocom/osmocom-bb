@@ -568,6 +568,9 @@ void dsp_load_ciph_param(int mode, uint8_t *key)
 {
 	dsp_api.ndb->d_a5mode = mode;
 
+	if (mode >= 3) /* Only A5/0, A5/1, A5/2 are supported by calypso */
+		printd("Algo A5/%u is not supported!!!\n", mode);
+
 	if (!mode || !key)
 		return;
 
