@@ -71,6 +71,7 @@
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/core/bitvec.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1l2_interface.h>
@@ -1628,7 +1629,8 @@ fail:
 		}
 	}
 
-	chan_req = random();
+	if (osmo_get_rand_id((uint8_t *) &chan_req, sizeof(chan_req)) != 0)
+		chan_req = random();
 	chan_req &= rr->chan_req_mask;
 	chan_req |= rr->chan_req_val;
 

@@ -959,7 +959,9 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 			entries++;
 	}
 	while(entries) {
-		move = random() % entries;
+		if (osmo_get_rand_id((uint8_t *) &move, sizeof(move)) != 0)
+			move = random();
+		move = move % entries;
 		i = 0;
 		llist_for_each_entry(temp, &temp_list, entry) {
 			if (rxlev2dbm(temp->rxlev) > -85) {
