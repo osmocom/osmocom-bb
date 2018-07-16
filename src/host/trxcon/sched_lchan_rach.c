@@ -42,6 +42,15 @@
 #include "l1ctl.h"
 
 /**
+ * 8-bit RACH extended tail bits
+ * GSM 05.02 Chapter 5.2.7 Access burst (AB)
+ */
+
+static ubit_t rach_ext_tail_bits[] = {
+	0, 0, 1, 1, 1, 0, 1, 0,
+};
+
+/**
  * 41-bit RACH synchronization sequence
  * GSM 05.02 Chapter 5.2.7 Access burst (AB)
  */
@@ -79,7 +88,7 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	}
 
 	/* Compose RACH burst */
-	memset(burst, 0, 8); /* TB */
+	memcpy(burst, rach_ext_tail_bits, 8); /* TB */
 	memcpy(burst + 8, rach_synch_seq, 41); /* sync seq */
 	memcpy(burst + 49, payload, 36); /* payload */
 	memset(burst + 85, 0, 63); /* TB + GP */
