@@ -30,7 +30,6 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/core/talloc.h>
-#include <osmocom/gsm/gsm_utils.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
@@ -2100,9 +2099,7 @@ static int gsm48_mm_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 			mm->t3212.timeout.tv_sec = current_time.tv_sec
 				+ (t % s->t3212);
 		} else {
-			uint32_t rand;
-			if (osmo_get_rand_id((uint8_t *) &rand, sizeof(rand)) != 0)
-				rand = random();
+			uint32_t rand = random();
 
 			LOGP(DMM, LOGL_INFO, "New T3212 while timer is not "
 				"running (value %d)\n", s->t3212);
