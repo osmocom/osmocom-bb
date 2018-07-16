@@ -46,8 +46,6 @@
 #include <time.h>
 #include <libgen.h>
 
-struct log_target *stderr_target;
-
 void *l23_ctx = NULL;
 struct llist_head ms_list;
 static char *gsmtap_ip = 0;
@@ -55,7 +53,6 @@ static const char *custom_cfg_file = NULL;
 struct gsmtap_inst *gsmtap_inst = NULL;
 static char *vty_ip = "127.0.0.1";
 unsigned short vty_port = 4247;
-int debug_set = 0;
 char *config_dir = NULL;
 int use_mncc_sock = 0;
 int daemonize = 0;
@@ -142,8 +139,7 @@ static void handle_options(int argc, char **argv)
 			vty_port = atoi(optarg);
 			break;
 		case 'd':
-			log_parse_category_mask(stderr_target, optarg);
-			debug_set = 1;
+			log_parse_category_mask(osmo_stderr_target, optarg);
 			break;
 		case 'D':
 			daemonize = 1;
@@ -214,20 +210,15 @@ int main(int argc, char **argv)
 	srand(time(NULL));
 
 	INIT_LLIST_HEAD(&ms_list);
-	log_init(&log_info, NULL);
-	stderr_target = log_target_create_stderr();
-	log_add_target(stderr_target);
-	log_set_all_filter(stderr_target, 1);
 
 	l23_ctx = talloc_named_const(NULL, 1, "layer2 context");
 	/* TODO: measure and choose a proper pool size */
 	msgb_talloc_ctx_init(l23_ctx, 0);
 
-	handle_options(argc, argv);
+	/* Init default stderr logging */
+	osmo_init_logging2(l23_ctx, &log_info);
 
-	if (!debug_set)
-		log_parse_category_mask(stderr_target, debug_default);
-	log_set_log_level(stderr_target, LOGL_DEBUG);
+	handle_options(argc, argv);
 
 	if (gsmtap_ip) {
 		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
@@ -287,6 +278,7 @@ int main(int argc, char **argv)
 	}
 
 	l23_app_exit();
+	log_fini();
 
 	talloc_free(config_file);
 	talloc_free(config_dir);
