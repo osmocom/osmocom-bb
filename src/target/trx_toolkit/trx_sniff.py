@@ -79,7 +79,7 @@ class Application:
 		print("[i] Listening on interface '%s'..." % self.sniff_interface)
 
 		# Start sniffing...
-		scapy.all.sniff(iface = self.sniff_interface, store = 1,
+		scapy.all.sniff(iface = self.sniff_interface, store = 0,
 			filter = pkt_filter, prn = self.pkt_handler)
 
 		# Scapy registers its own signal handler
