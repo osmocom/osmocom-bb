@@ -79,6 +79,7 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/mobile/vty.h>
+#include <osmocom/bb/common/utils.h>
 
 #include <l1ctl_proto.h>
 
@@ -1628,7 +1629,7 @@ fail:
 		}
 	}
 
-	chan_req = random();
+	chan_req = layer23_random();
 	chan_req &= rr->chan_req_mask;
 	chan_req |= rr->chan_req_val;
 

@@ -31,7 +31,6 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/gsm48.h>
-#include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/signal.h>
 
 #include <osmocom/bb/common/logging.h>
@@ -40,6 +39,7 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
+#include <osmocom/bb/common/utils.h>
 
 #include <l1ctl_proto.h>
 
@@ -959,7 +959,7 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 			entries++;
 	}
 	while(entries) {
-		move = random() % entries;
+		move = layer23_random() % entries;
 		i = 0;
 		llist_for_each_entry(temp, &temp_list, entry) {
 			if (rxlev2dbm(temp->rxlev) > -85) {

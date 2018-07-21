@@ -41,6 +41,7 @@
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/primitives.h>
 #include <osmocom/bb/mobile/vty.h>
+#include <osmocom/bb/common/utils.h>
 
 extern void *l23_ctx;
 
@@ -2099,7 +2100,7 @@ static int gsm48_mm_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 			mm->t3212.timeout.tv_sec = current_time.tv_sec
 				+ (t % s->t3212);
 		} else {
-			uint32_t rand = random();
+			uint32_t rand = layer23_random();
 
 			LOGP(DMM, LOGL_INFO, "New T3212 while timer is not "
 				"running (value %d)\n", s->t3212);

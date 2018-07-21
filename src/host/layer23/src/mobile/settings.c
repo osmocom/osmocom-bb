@@ -25,6 +25,7 @@
 #include <osmocom/core/talloc.h>
 
 #include <osmocom/bb/mobile/app_mobile.h>
+#include <osmocom/bb/common/utils.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
@@ -184,8 +185,8 @@ int gsm_random_imei(struct gsm_settings *set)
 	if (digits > 15)
 		digits = 15;
 
-	sprintf(rand, "%08ld", random() % 100000000);
-	sprintf(rand + 8, "%07ld", random() % 10000000);
+	sprintf(rand, "%08d", layer23_random() % 100000000);
+	sprintf(rand + 8, "%07d", layer23_random() % 10000000);
 
 	strcpy(set->imei + 15 - digits, rand + 15 - digits);
 	strncpy(set->imeisv, set->imei, 15);
