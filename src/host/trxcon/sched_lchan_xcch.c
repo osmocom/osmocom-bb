@@ -141,6 +141,15 @@ int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 			return 0;
 	}
 
+	/* Check the prim payload length */
+	if (lchan->prim->payload_len != GSM_MACBLOCK_LEN) {
+		LOGP(DSCHD, LOGL_ERROR, "Primitive has odd length %zu (expected %u), "
+			"so dropping...\n", lchan->prim->payload_len, GSM_MACBLOCK_LEN);
+
+		sched_prim_drop(lchan);
+		return -EINVAL;
+	}
+
 	/* Encode payload */
 	rc = gsm0503_xcch_encode(buffer, lchan->prim->payload);
 	if (rc) {

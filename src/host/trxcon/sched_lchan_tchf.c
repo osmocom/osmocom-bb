@@ -232,9 +232,17 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		return -EINVAL;
 	}
 
-	/* Determine payload length */
-	if (lchan->prim->payload_len == GSM_MACBLOCK_LEN)
-		l2_len = GSM_MACBLOCK_LEN;
+	/* Determine and check the payload length */
+	if (lchan->prim->payload_len == GSM_MACBLOCK_LEN) {
+		l2_len = GSM_MACBLOCK_LEN; /* FACCH */
+	} else if (lchan->prim->payload_len != l2_len) {
+		LOGP(DSCHD, LOGL_ERROR, "Primitive has odd length %zu "
+			"(expected %zu for TCH or %u for FACCH), so dropping...\n",
+			lchan->prim->payload_len, l2_len, GSM_MACBLOCK_LEN);
+
+		sched_prim_drop(lchan);
+		return -EINVAL;
+	}
 
 	/* Shift buffer by 4 bursts back for interleaving */
 	memcpy(buffer, buffer + 464, 464);

@@ -69,6 +69,15 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	uint8_t payload[36];
 	int rc;
 
+	/* Check the prim payload length */
+	if (lchan->prim->payload_len != sizeof(*req)) {
+		LOGP(DSCHD, LOGL_ERROR, "Primitive has odd length %zu (expected %zu), "
+			"so dropping...\n", lchan->prim->payload_len, sizeof(*req));
+
+		sched_prim_drop(lchan);
+		return -EINVAL;
+	}
+
 	/* Get the payload from a current primitive */
 	req = (struct l1ctl_rach_req *) lchan->prim->payload;
 
