@@ -320,6 +320,11 @@ exit:
 	 * to be able to find and fix potential memory leaks.
 	 */
 	talloc_report_full(tall_trx_ctx, stderr);
+	talloc_free(tall_trx_ctx);
+
+	/* Make both Valgrind and ASAN happy */
+	talloc_report_full(NULL, stderr);
+	talloc_disable_null_tracking();
 
 	return rc;
 }
