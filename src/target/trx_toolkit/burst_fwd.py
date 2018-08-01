@@ -131,8 +131,22 @@ class BurstForwarder:
 		# Generate a random RSSI value
 		return random.randint(rssi_min, rssi_max)
 
+	# DL burst preprocessing
+	def preprocess_dl_burst(self, msg):
+		# Calculate both RSSI and ToA values
+		msg.toa256 = self.calc_dl_toa256()
+		msg.rssi = self.calc_dl_rssi()
+
+	# UL burst preprocessing
+	def preprocess_ul_burst(self, msg):
+		# Calculate both RSSI and ToA values,
+		# also apply Timing Advance
+		msg.toa256 = self.calc_ul_toa256()
+		msg.toa256 -= self.calc_ta256()
+		msg.rssi = self.calc_ul_rssi()
+
 	# Converts a L12TRX message to TRX2L1 message
-	def transform_msg(self, msg_raw, dl = True):
+	def transform_msg(self, msg_raw):
 		# Attempt to parse a message
 		try:
 			msg_l12trx = DATAMSG_L12TRX()
@@ -142,18 +156,7 @@ class BurstForwarder:
 			return None
 
 		# Compose a new message for L1
-		msg_trx2l1 = msg_l12trx.gen_trx2l1()
-
-		# Randomize both RSSI and ToA values
-		if dl:
-			msg_trx2l1.toa256 = self.calc_dl_toa256()
-			msg_trx2l1.rssi = self.calc_dl_rssi()
-		else:
-			msg_trx2l1.toa256 = self.calc_ul_toa256()
-			msg_trx2l1.toa256 -= self.calc_ta256()
-			msg_trx2l1.rssi = self.calc_ul_rssi()
-
-		return msg_trx2l1
+		return msg_l12trx.gen_trx2l1()
 
 	# Downlink handler: BTS -> BB
 	def bts2bb(self):
@@ -169,13 +172,16 @@ class BurstForwarder:
 			return None
 
 		# Process a message
-		msg = self.transform_msg(data, dl = True)
+		msg = self.transform_msg(data)
 		if msg is None:
 			return None
 
 		# Timeslot filter
 		if msg.tn != self.ts_pass:
 			return None
+
+		# Burst preprocessing
+		self.preprocess_dl_burst(msg)
 
 		# Validate and generate the payload
 		payload = msg.gen_msg()
@@ -201,9 +207,12 @@ class BurstForwarder:
 			return None
 
 		# Process a message
-		msg = self.transform_msg(data, dl = False)
+		msg = self.transform_msg(data)
 		if msg is None:
 			return None
+
+		# Burst preprocessing
+		self.preprocess_ul_burst(msg)
 
 		# Validate and generate the payload
 		payload = msg.gen_msg()
