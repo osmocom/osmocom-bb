@@ -66,6 +66,15 @@ class BurstForwarder:
 	rssi_dl_threshold = 10
 	rssi_ul_threshold = 5
 
+	# Path loss simulation: DL/UL burst dropping
+	# Indicates how many bursts should be dropped
+	# and which dropping period is used. By default,
+	# period is 1, i.e. every burst (fn % 1 is always 0)
+	burst_dl_drop_amount = 0
+	burst_ul_drop_amount = 0
+	burst_dl_drop_period = 1
+	burst_ul_drop_period = 1
+
 	def __init__(self, bts_link, bb_link):
 		self.bts_link = bts_link
 		self.bb_link = bb_link
@@ -131,6 +140,30 @@ class BurstForwarder:
 		# Generate a random RSSI value
 		return random.randint(rssi_min, rssi_max)
 
+	# DL path loss simulation
+	def path_loss_sim_dl(self, msg):
+		# Burst dropping
+		if self.burst_dl_drop_amount > 0:
+			if msg.fn % self.burst_dl_drop_period == 0:
+				print("[~] Simulation: dropping DL burst (fn=%u %% %u == 0)"
+					% (msg.fn, self.burst_dl_drop_period))
+				self.burst_dl_drop_amount -= 1
+				return None
+
+		return msg
+
+	# UL path loss simulation
+	def path_loss_sim_ul(self, msg):
+		# Burst dropping
+		if self.burst_ul_drop_amount > 0:
+			if msg.fn % self.burst_ul_drop_period == 0:
+				print("[~] Simulation: dropping UL burst (fn=%u %% %u == 0)"
+					% (msg.fn, self.burst_ul_drop_period))
+				self.burst_ul_drop_amount -= 1
+				return None
+
+		return msg
+
 	# DL burst preprocessing
 	def preprocess_dl_burst(self, msg):
 		# Calculate both RSSI and ToA values
@@ -180,6 +213,11 @@ class BurstForwarder:
 		if msg.tn != self.ts_pass:
 			return None
 
+		# Path loss simulation
+		msg = self.path_loss_sim_dl(msg)
+		if msg is None:
+			return None
+
 		# Burst preprocessing
 		self.preprocess_dl_burst(msg)
 
@@ -208,6 +246,11 @@ class BurstForwarder:
 
 		# Process a message
 		msg = self.transform_msg(data)
+		if msg is None:
+			return None
+
+		# Path loss simulation
+		msg = self.path_loss_sim_ul(msg)
 		if msg is None:
 			return None
 

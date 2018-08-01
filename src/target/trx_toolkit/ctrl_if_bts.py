@@ -118,6 +118,46 @@ class CTRLInterfaceBTS(CTRLInterface):
 
 			return 0
 
+		# Path loss simulation for DL: burst dropping
+		# Syntax: CMD FAKE_DROP <AMOUNT>
+		# Dropping pattern: fn % 1 == 0
+		elif self.verify_cmd(request, "FAKE_DROP", 1):
+			print("[i] Recv FAKE_DROP cmd")
+
+			# Parse / validate amount of bursts
+			num = int(request[1])
+			if num < 0:
+				print("[!] FAKE_DROP amount shall not be negative")
+				return -1
+
+			self.burst_fwd.burst_dl_drop_amount = num
+			self.burst_fwd.burst_dl_drop_period = 1
+
+			return 0
+
+		# Path loss simulation for DL: burst dropping
+		# Syntax: CMD FAKE_DROP <AMOUNT> <FN_PERIOD>
+		# Dropping pattern: fn % period == 0
+		elif self.verify_cmd(request, "FAKE_DROP", 2):
+			print("[i] Recv FAKE_DROP cmd")
+
+			# Parse / validate amount of bursts
+			num = int(request[1])
+			if num < 0:
+				print("[!] FAKE_DROP amount shall not be negative")
+				return -1
+
+			# Parse / validate period
+			period = int(request[2])
+			if period <= 0:
+				print("[!] FAKE_DROP period shall be greater than zero")
+				return -1
+
+			self.burst_fwd.burst_dl_drop_amount = num
+			self.burst_fwd.burst_dl_drop_period = period
+
+			return 0
+
 		# Wrong / unknown command
 		else:
 			# We don't care about other commands,
