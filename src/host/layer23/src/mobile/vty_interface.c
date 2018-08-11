@@ -1141,7 +1141,7 @@ DEFUN(cfg_gps_device, cfg_gps_device_cmd, "gps device DEVICE",
 	"GPS receiver\nSelect serial device\n"
 	"Full path of serial device including /dev/")
 {
-	strncpy(g.device, argv[0], sizeof(g.device));
+	osmo_strlcpy(g.device, argv[0], sizeof(g.device));
 	g.device[sizeof(g.device) - 1] = '\0';
 	g.gps_type = GPS_TYPE_SERIAL;
 	if (g.enable) {

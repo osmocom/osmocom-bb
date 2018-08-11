@@ -315,7 +315,7 @@ int osmo_unixsock_listen(struct osmo_fd *bfd, int type, const char *path)
 	}
 
 	local.sun_family = AF_UNIX;
-	strncpy(local.sun_path, path, sizeof(local.sun_path));
+	osmo_strlcpy(local.sun_path, path, sizeof(local.sun_path));
 	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
 	unlink(local.sun_path);
 

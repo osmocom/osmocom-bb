@@ -189,7 +189,7 @@ int gsm_random_imei(struct gsm_settings *set)
 	sprintf(rand + 8, "%07d", layer23_random() % 10000000);
 
 	strcpy(set->imei + 15 - digits, rand + 15 - digits);
-	strncpy(set->imeisv, set->imei, 15);
+	osmo_strlcpy(set->imeisv, set->imei, 15);
 
 	return 0;
 }
