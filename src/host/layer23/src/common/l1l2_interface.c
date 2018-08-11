@@ -157,16 +157,13 @@ int layer2_close(struct osmocom_ms *ms)
 
 int osmo_send_l1(struct osmocom_ms *ms, struct msgb *msg)
 {
-	uint16_t *len;
-
 	DEBUGP(DL1C, "Sending: '%s'\n", osmo_hexdump(msg->data, msg->len));
 
 	if (msg->l1h != msg->data)
 		LOGP(DL1C, LOGL_ERROR, "Message L1 header != Message Data\n");
-	
+
 	/* prepend 16bit length before sending */
-	len = (uint16_t *) msgb_push(msg, sizeof(*len));
-	*len = htons(msg->len - sizeof(*len));
+	msgb_push_u16(msg, msg->len);
 
 	if (osmo_wqueue_enqueue(&ms->l2_wq, msg) != 0) {
 		LOGP(DL1C, LOGL_ERROR, "Failed to enqueue msg.\n");
