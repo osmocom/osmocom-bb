@@ -2859,8 +2859,8 @@ static int gsm322_cs_powerscan(struct osmocom_ms *ms)
 		}
 	}
 
-	strncpy(s_text, gsm_print_arfcn(index2arfcn(s)), ARFCN_TEXT_LEN);
-	strncpy(e_text, gsm_print_arfcn(index2arfcn(e)), ARFCN_TEXT_LEN);
+	osmo_strlcpy(s_text, gsm_print_arfcn(index2arfcn(s)), ARFCN_TEXT_LEN);
+	osmo_strlcpy(e_text, gsm_print_arfcn(index2arfcn(e)), ARFCN_TEXT_LEN);
 	LOGP(DCS, LOGL_DEBUG, "Scanning frequencies. (%s..%s)\n",
 		s_text,
 		e_text);
@@ -3477,8 +3477,8 @@ struct gsm322_ba_list *gsm322_cs_ba_range(struct osmocom_ms *ms,
 			higher += 1024-512;
 		}
 		range++;
-		strncpy(lower_text,  gsm_print_arfcn(index2arfcn(lower)),  ARFCN_TEXT_LEN);
-		strncpy(higher_text, gsm_print_arfcn(index2arfcn(higher)), ARFCN_TEXT_LEN);
+		osmo_strlcpy(lower_text,  gsm_print_arfcn(index2arfcn(lower)),  ARFCN_TEXT_LEN);
+		osmo_strlcpy(higher_text, gsm_print_arfcn(index2arfcn(higher)), ARFCN_TEXT_LEN);
 		LOGP(DCS, LOGL_INFO, "Use BA range: %s..%s\n",
 			lower_text,
 			higher_text);
