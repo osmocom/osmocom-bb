@@ -358,7 +358,7 @@ static int class_of_band(struct osmocom_ms *ms, int band)
 
 char *gsm_print_rxlev(uint8_t rxlev)
 {
-	static char string[5];
+	static char string[6];
 	if (rxlev == 0)
 		return "<=-110";
 	if (rxlev >= 63)
