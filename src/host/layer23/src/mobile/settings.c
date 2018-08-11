@@ -178,7 +178,7 @@ char *gsm_check_imei(const char *imei, const char *sv)
 int gsm_random_imei(struct gsm_settings *set)
 {
 	int digits = set->imei_random;
-	char rand[16];
+	char rand[16+1];
 
 	if (digits <= 0)
 		return 0;
