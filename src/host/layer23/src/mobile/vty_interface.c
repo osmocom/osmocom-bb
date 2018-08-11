@@ -1582,8 +1582,7 @@ DEFUN(cfg_ms_layer2, cfg_ms_layer2_cmd, "layer2-socket PATH",
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	strncpy(set->layer2_socket_path, argv[0],
-		sizeof(set->layer2_socket_path) - 1);
+	OSMO_STRLCPY_ARRAY(set->layer2_socket_path, argv[0]);
 
 	vty_restart(vty, ms);
 	return CMD_SUCCESS;
@@ -1596,8 +1595,7 @@ DEFUN(cfg_ms_sap, cfg_ms_sap_cmd, "sap-socket PATH",
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	strncpy(set->sap_socket_path, argv[0],
-		sizeof(set->sap_socket_path) - 1);
+	OSMO_STRLCPY_ARRAY(set->sap_socket_path, argv[0]);
 
 	vty_restart(vty, ms);
 	return CMD_SUCCESS;
@@ -2134,10 +2132,10 @@ DEFUN(cfg_abbrev, cfg_ms_abbrev_cmd, "abbrev ABBREVIATION NUMBER [NAME]",
 		return CMD_WARNING;
 	}
 	llist_add_tail(&abbrev->list, &set->abbrev);
-	strncpy(abbrev->abbrev, argv[0], sizeof(abbrev->abbrev) - 1);
-	strncpy(abbrev->number, argv[1], sizeof(abbrev->number) - 1);
+	OSMO_STRLCPY_ARRAY(abbrev->abbrev, argv[0]);
+	OSMO_STRLCPY_ARRAY(abbrev->number, argv[1]);
 	if (argc >= 3)
-		strncpy(abbrev->name, argv[2], sizeof(abbrev->name) - 1);
+		OSMO_STRLCPY_ARRAY(abbrev->name, argv[2]);
 
 	return CMD_SUCCESS;
 }

@@ -104,7 +104,7 @@ struct gsm_sms *sms_from_text(const char *receiver, int dcs, const char *text)
 	if (!sms)
 		return NULL;
 
-	strncpy(sms->text, text, sizeof(sms->text)-1);
+	OSMO_STRLCPY_ARRAY(sms->text, text);
 
 	/* FIXME: don't use ID 1 static */
 	sms->reply_path_req = 0;
@@ -112,7 +112,7 @@ struct gsm_sms *sms_from_text(const char *receiver, int dcs, const char *text)
 	sms->ud_hdr_ind = 0;
 	sms->protocol_id = 0; /* implicit */
 	sms->data_coding_scheme = dcs;
-	strncpy(sms->address, receiver, sizeof(sms->address)-1);
+	OSMO_STRLCPY_ARRAY(sms->address, receiver);
 	/* Generate user_data */
 	sms->user_data_len = gsm_7bit_encode_n(sms->user_data,
 		sizeof(sms->user_data), sms->text, NULL);

@@ -508,8 +508,7 @@ int sap_open(struct osmocom_ms *ms, const char *socket_path)
 	}
 
 	local.sun_family = AF_UNIX;
-	strncpy(local.sun_path, socket_path, sizeof(local.sun_path));
-	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
+	osmo_strlcpy(local.sun_path, socket_path, sizeof(local.sun_path));
 
 	rc = connect(ms->sap_wq.bfd.fd, (struct sockaddr *) &local, sizeof(local));
 	if (rc < 0) {
@@ -572,7 +571,7 @@ int osmosap_sapsocket(struct osmocom_ms *ms, const char *path)
 {
 	struct gsm_settings *set = &ms->settings;
 	memset(set->sap_socket_path, 0, sizeof(set->sap_socket_path));
-	strncpy(set->sap_socket_path, path, sizeof(set->sap_socket_path) - 1);
+	osmo_strlcpy(set->sap_socket_path, path, sizeof(set->sap_socket_path) - 1);
 
 	return 0;
 }

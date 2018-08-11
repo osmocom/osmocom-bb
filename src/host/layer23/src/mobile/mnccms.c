@@ -576,8 +576,7 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 			setup.called.type = 0; /* auto/unknown - prefix must be
 						  used */
 		setup.called.plan = 1; /* ISDN */
-		strncpy(setup.called.number, number,
-			sizeof(setup.called.number) - 1);
+		OSMO_STRLCPY_ARRAY(setup.called.number, number);
 
 		/* bearer capability (mandatory) */
 		mncc_set_bearer(ms, -1, &setup);
@@ -808,7 +807,7 @@ int mncc_dtmf(struct osmocom_ms *ms, char *dtmf)
 	}
 
 	call->dtmf_index = 0;
-	strncpy(call->dtmf, dtmf, sizeof(call->dtmf) - 1);
+	OSMO_STRLCPY_ARRAY(call->dtmf, dtmf);
 	return dtmf_statemachine(call, NULL);
 }
 

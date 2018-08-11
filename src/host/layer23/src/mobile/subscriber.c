@@ -256,7 +256,7 @@ static int subscr_sim_imsi(struct osmocom_ms *ms, uint8_t *data,
 		return -EINVAL;
 	}
 
-	strncpy(subscr->imsi, imsi + 1, sizeof(subscr->imsi) - 1);
+	OSMO_STRLCPY_ARRAY(subscr->imsi, imsi + 1);
 
 	LOGP(DMM, LOGL_INFO, "received IMSI %s from SIM\n", subscr->imsi);
 

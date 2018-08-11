@@ -114,8 +114,7 @@ int layer2_open(struct osmocom_ms *ms, const char *socket_path)
 	}
 
 	local.sun_family = AF_UNIX;
-	strncpy(local.sun_path, socket_path, sizeof(local.sun_path));
-	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
+	osmo_strlcpy(local.sun_path, socket_path, sizeof(local.sun_path));
 
 	rc = connect(ms->l2_wq.bfd.fd, (struct sockaddr *) &local,
 		     sizeof(local));

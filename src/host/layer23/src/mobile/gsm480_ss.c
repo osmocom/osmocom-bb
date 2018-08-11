@@ -200,8 +200,7 @@ static int gsm480_ss_result(struct osmocom_ms *ms, const char *response,
 	if (response) {
 		char text[256], *t = text, *s;
 
-		strncpy(text, response, sizeof(text) - 1);
-		text[sizeof(text) - 1] = '\0';
+		OSMO_STRLCPY_ARRAY(text, response);
 		while ((s = strchr(text, '\r')))
 			*s = '\n';
 		while ((s = strsep(&t, "\n"))) {
@@ -655,9 +654,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 	
 		/* register */
 		if (ss_code && to && to[0] == '*') {
-			strncpy(dest, to + 1, sizeof(dest) - 1);
-			dest[sizeof(dest) - 1] = '\0';
-			dest[strlen(dest) - 1] = '\0';
+			OSMO_STRLCPY_ARRAY(dest, to + 1);
 			return gsm480_tx_cf(trans, GSM0480_MTYPE_REGISTER,
 				GSM0480_OP_CODE_REGISTER_SS, ss_code, dest);
 		}
