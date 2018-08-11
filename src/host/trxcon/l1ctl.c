@@ -792,6 +792,16 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_tch_mode_req(l1l, msg);
 	case L1CTL_CRYPTO_REQ:
 		return l1ctl_rx_crypto_req(l1l, msg);
+
+	/* Not (yet) handled messages */
+	case L1CTL_NEIGH_PM_REQ:
+	case L1CTL_DATA_TBF_REQ:
+	case L1CTL_TBF_CFG_REQ:
+	case L1CTL_DM_FREQ_REQ:
+	case L1CTL_SIM_REQ:
+		LOGP(DL1C, LOGL_NOTICE, "Ignoring unsupported message "
+			"(type=%u)\n", l1h->msg_type);
+		return -ENOTSUP;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG type %u: %s\n", l1h->msg_type,
 			osmo_hexdump(msgb_data(msg), msgb_length(msg)));
