@@ -463,7 +463,7 @@ static void sched_trx_reset_lchan(struct trx_lchan_state *lchan)
 	/* TCH specific variables */
 	if (CHAN_IS_TCH(lchan->type)) {
 		lchan->dl_ongoing_facch = 0;
-		lchan->ul_ongoing_facch = 0;
+		lchan->ul_facch_blocks = 0;
 
 		lchan->tch_mode = GSM48_CMODE_SIGN;
 

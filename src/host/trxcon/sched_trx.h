@@ -171,9 +171,9 @@ struct trx_lchan_state {
 	uint8_t	tch_mode;
 
 	/*! \brief FACCH/H on downlink */
-	uint8_t dl_ongoing_facch;
-	/*! \brief FACCH/H on uplink */
-	uint8_t ul_ongoing_facch;
+	bool dl_ongoing_facch;
+	/*! \brief pending FACCH/H blocks on Uplink */
+	uint8_t ul_facch_blocks;
 
 	struct {
 		/*! \brief Number of RSSI values */

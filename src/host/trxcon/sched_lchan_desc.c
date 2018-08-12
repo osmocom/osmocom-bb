@@ -27,10 +27,7 @@
 
 /* TODO: implement */
 #define tx_pdtch_fn	NULL
-#define tx_tchh_fn	NULL
-
 #define rx_pdtch_fn	NULL
-#define rx_tchh_fn	NULL
 
 /* Forward declaration of handlers */
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
@@ -53,6 +50,14 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
+
+int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
+	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
+	sbit_t *bits, int8_t rssi, int16_t toa256);
+
+int tx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
+	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
+
 
 const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 	{
