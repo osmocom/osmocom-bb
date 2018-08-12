@@ -223,25 +223,105 @@ static struct trx_ts_prim *prim_dequeue_tch_f(struct llist_head *queue)
 }
 
 /**
+ * Dequeues either a TCH/H, or a FACCH/H prim (preferred).
+ * If a FACCH/H prim is found, two TCH/H prims are being
+ * dropped (i.e. replaced).
+ *
+ * According to GSM 05.02, the following blocks can be used
+ * to carry FACCH/H data (see clause 7, table 1 of 9):
+ *
+ * UL FACCH/H0:
+ * B0(0,2,4,6,8,10), B1(8,10,13,15,17,19), B2(17,19,21,23,0,2)
+ *
+ * UL FACCH/H1:
+ * B0(1,3,5,7,9,11), B1(9,11,14,16,18,20), B2(18,20,22,24,1,3)
+ *
+ * where the numbers within brackets are fn % 26.
+ *
+ * @param  queue      transmit queue to take a prim from
+ * @param  fn         the current frame number
+ * @param  lchan_type required channel type of a primitive,
+ * @return            either a FACCH/H, or a TCH/H primitive,
+ *                    otherwise NULL
+ */
+static struct trx_ts_prim *prim_dequeue_tch_h(struct llist_head *queue,
+	uint32_t fn, enum trx_lchan_type lchan_type)
+{
+	struct trx_ts_prim *facch;
+	struct trx_ts_prim *tch;
+	bool facch_now = false;
+	uint32_t fn_mf;
+
+	/* Traffic multiframe period */
+	fn_mf = fn % 26;
+
+	/* FACCH/H0 frame alignment */
+	if (lchan_type == TRXC_TCHH_0)
+		if (fn_mf == 0 || fn_mf == 8 || fn_mf == 17)
+			facch_now = true;
+
+	/* FACCH/H1 frame alignment */
+	if (lchan_type == TRXC_TCHH_1)
+		if (fn_mf == 1 || fn_mf == 9 || fn_mf == 18)
+			facch_now = true;
+
+	/* If FACCH/H is not allowed for a given frame number */
+	if (!facch_now) /* Just dequeue a TCH/H prim */
+		goto no_facch;
+
+	/* If there are no FACCH/H prims in the queue */
+	facch = prim_dequeue_tch(queue, lchan_type, true);
+	if (!facch) /* Just dequeue a TCH/H prim */
+		goto no_facch;
+
+	/* FACCH/H prim replaces two TCH/F prims */
+	tch = prim_dequeue_tch(queue, lchan_type, false);
+	if (tch) {
+		/* At least one TCH/H prim is dropped */
+		talloc_free(tch);
+
+		/* Attempt to find another */
+		tch = prim_dequeue_tch(queue, lchan_type, false);
+		if (tch) /* Drop the second TCH/H prim */
+			talloc_free(tch);
+	}
+
+	return facch;
+
+no_facch:
+	return prim_dequeue_tch(queue, lchan_type, false);
+}
+
+/**
  * Dequeues a single primitive of required type
  * from a specified transmit queue.
  *
  * @param  queue      a transmit queue to take a prim from
+ * @param  fn         the current frame number (used for FACCH/H)
  * @param  lchan_type required primitive type
  * @return            a primitive or NULL if not found
  */
 struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
-	enum trx_lchan_type lchan_type)
+	uint32_t fn, enum trx_lchan_type lchan_type)
 {
 	/* There is nothing to dequeue */
 	if (llist_empty(queue))
 		return NULL;
 
-	/* TCH requires FACCH prioritization, so handle it separately */
-	if (CHAN_IS_TCH(lchan_type))
+	switch (lchan_type) {
+	/* TCH/F requires FACCH/F prioritization */
+	case TRXC_TCHF:
 		return prim_dequeue_tch_f(queue);
 
-	return prim_dequeue_one(queue, lchan_type);
+	/* FACCH/H prioritization is a bit more complex */
+	case TRXC_TCHH_0:
+	case TRXC_TCHH_1:
+		return prim_dequeue_tch_h(queue, fn, lchan_type);
+
+	/* Other kinds of logical channels */
+	default:
+		return prim_dequeue_one(queue, lchan_type);
+	}
 }
 
 /**

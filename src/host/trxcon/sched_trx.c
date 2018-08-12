@@ -95,7 +95,7 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		 * attempt to obtain a new one from queue
 		 */
 		if (lchan->prim == NULL)
-			lchan->prim = sched_prim_dequeue(&ts->tx_prims, chan);
+			lchan->prim = sched_prim_dequeue(&ts->tx_prims, fn, chan);
 
 		/* TODO: report TX buffers health to the higher layers */
 
