@@ -151,10 +151,16 @@ size_t sched_bad_frame_ind(uint8_t *l2, struct trx_lchan_state *lchan)
 
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
-	case GSM48_CMODE_SPEECH_V1: /* Full Rate */
-		memset(l2, 0x00, GSM_FR_BYTES);
-		l2[0] = 0xd0;
-		return GSM_FR_BYTES;
+	case GSM48_CMODE_SPEECH_V1:
+		if (lchan->type == TRXC_TCHF) { /* Full Rate */
+			memset(l2, 0x00, GSM_FR_BYTES);
+			l2[0] = 0xd0;
+			return GSM_FR_BYTES;
+		} else { /* Half Rate */
+			memset(l2 + 1, 0x00, GSM_HR_BYTES);
+			l2[0] = 0x70; /* F = 0, FT = 111 */
+			return GSM_HR_BYTES + 1;
+		}
 	case GSM48_CMODE_SPEECH_EFR: /* Enhanced Full Rate */
 		memset(l2, 0x00, GSM_EFR_BYTES);
 		l2[0] = 0xc0;
