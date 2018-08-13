@@ -28,12 +28,19 @@
 
 #include <osmocom/bb/mobile/primitives.h>
 
+#include <osmocom/core/select.h>
 #include <osmocom/vty/misc.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 
 struct timer_userdata {
+	int cb_ref;
+};
+
+struct fd_userdata {
+	struct lua_State *state;
+	struct osmo_fd fd;
 	int cb_ref;
 };
 
@@ -435,6 +442,100 @@ static int lua_unix_passcred(lua_State *L)
 	return 1;
 }
 
+static void lua_fd_do_unregister(lua_State *L, struct fd_userdata *fdu) {
+	/* Unregister the fd and forget about the callback */
+	osmo_fd_unregister(&fdu->fd);
+	if (fdu->cb_ref != LUA_NOREF) {
+		luaL_unref(L, LUA_REGISTRYINDEX, fdu->cb_ref);
+		fdu->cb_ref = LUA_NOREF;
+	}
+}
+
+static int lua_fd_cb(struct osmo_fd *fd, unsigned int what) {
+	struct fd_userdata *fdu;
+	lua_State *L;
+	int cb_ref;
+	int err;
+
+	if (!fd->data) {
+		LOGP(DLUA, LOGL_ERROR,
+			"fd callback for fd(%d) but no lua callback\n", fd->fd);
+		return 0;
+	}
+
+	fdu = fd->data;
+	L = fdu->state;
+	cb_ref = fdu->cb_ref;
+	lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
+
+	err = lua_pcall(L, 0, 1, 0);
+	if (err) {
+		LOGP(DLUA, LOGL_ERROR, "lua error: %s\n", lua_tostring(L, -1));
+		lua_pop(L, 1);
+	}
+
+	/* Check if we should continue */
+	luaL_argcheck(L, lua_isnumber(L, -1), 1, "needs to be a number");
+	if (lua_tonumber(L, -1) == 1)
+		return 0;
+
+	lua_fd_do_unregister(L, fdu);
+	return 0;
+}
+
+/* Register the fd */
+static int lua_register_fd(lua_State *L)
+{
+	struct fd_userdata *fdu;
+
+	/* fd, cb */
+	luaL_argcheck(L, lua_isnumber(L, -2), 1, "needs to be a filedescriptor");
+	luaL_argcheck(L, lua_isfunction(L, -1), 2, "Callback needs to be a function");
+
+	/* Cretae a table so a user can unregister (and unregister on GC) */
+	fdu = lua_newuserdata(L, sizeof(*fdu));
+	fdu->state = L;
+	fdu->fd.fd = -1;
+	luaL_getmetatable(L, "Fd");
+	lua_setmetatable(L, -2);
+
+	/* Set the filedescriptor */
+	fdu->fd.fd = (int) lua_tonumber(L, -3);
+	fdu->fd.cb = lua_fd_cb;
+	fdu->fd.when = BSC_FD_READ;
+	fdu->fd.data = fdu;
+
+	/* Assuming that an error here will lead to a GC */
+	if (osmo_fd_register(&fdu->fd) != 0) {
+		fdu->cb_ref = LUA_NOREF;
+		lua_pushliteral(L, "Can't register the fd");
+		lua_error(L);
+		return 0;
+	}
+
+	/* Take the callback and keep a reference to it */
+	lua_pushvalue(L, -2);
+	fdu->cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	return 1;
+}
+
+static int lua_fd_unregister(lua_State *L) {
+	struct fd_userdata *fdu;
+
+	luaL_argcheck(L, lua_isuserdata(L, -1), 1, "No userdata");
+	fdu = lua_touserdata(L, -1);
+
+	lua_fd_do_unregister(L, fdu);
+	return 0;
+}
+
+
+static const struct luaL_Reg fd_funcs[] = {
+	{ "unregister", lua_fd_unregister },
+	{ "__gc", lua_fd_unregister },
+};
+
 static const struct luaL_Reg ms_funcs[] = {
 	{ "imsi", lua_ms_imsi },
 	{ "imei", lua_ms_imei },
@@ -452,6 +553,7 @@ static const struct luaL_Reg ms_funcs[] = {
 static const struct luaL_Reg osmo_funcs[] = {
 	{ "timeout",	lua_osmo_timeout },
 	{ "unix_passcred", lua_unix_passcred },
+	{ "register_fd", lua_register_fd },
 	{ "ms",	lua_osmo_ms },
 	{ NULL, NULL },
 };
@@ -515,6 +617,7 @@ static void add_runtime(lua_State *L, struct mobile_prim_intf *intf)
 	/* Create metatables so we can GC objects... */
 	create_meta_table(L, "Timer", timer_funcs);
 	create_meta_table(L, "MS", ms_funcs);
+	create_meta_table(L, "Fd", fd_funcs);
 
 	/* Remember the primitive pointer... store it in the registry */
 	lua_pushlightuserdata(L, lua_prim_key);
