@@ -296,10 +296,10 @@ int sched_prim_push(struct trx_instance *trx,
 	(trx_lchan_desc[chan].link_id & TRX_CH_LID_SACCH)
 
 #define PRIM_IS_TCH(prim) \
-	CHAN_IS_TCH(prim->chan) && prim->payload_len != GSM_MACBLOCK_LEN
+	(CHAN_IS_TCH(prim->chan) && prim->payload_len != GSM_MACBLOCK_LEN)
 
 #define PRIM_IS_FACCH(prim) \
-	CHAN_IS_TCH(prim->chan) && prim->payload_len == GSM_MACBLOCK_LEN
+	(CHAN_IS_TCH(prim->chan) && prim->payload_len == GSM_MACBLOCK_LEN)
 
 struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
 	enum trx_lchan_type lchan_type);
