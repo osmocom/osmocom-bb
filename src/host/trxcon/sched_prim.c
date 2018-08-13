@@ -128,61 +128,98 @@ int sched_prim_push(struct trx_instance *trx,
 	return 0;
 }
 
+/* Dequeues a primitive of a given channel type */
+static struct trx_ts_prim *prim_dequeue_one(struct llist_head *queue,
+	enum trx_lchan_type lchan_type)
+{
+	struct trx_ts_prim *prim;
+
+	/**
+	 * There is no need to use the 'safe' list iteration here
+	 * as an item removal is immediately followed by return.
+	 */
+	llist_for_each_entry(prim, queue, list) {
+		if (prim->chan == lchan_type) {
+			llist_del(&prim->list);
+			return prim;
+		}
+	}
+
+	return NULL;
+}
+
 /**
- * Dequeues a TCH or FACCH frame, prioritizing the second.
- * In case if a FACCH frame is found, a TCH frame is being
+ * Dequeues either a FACCH, or a speech TCH primitive
+ * of a given channel type (Lm or Bm).
+ *
+ * Note: we could avoid 'lchan_type' parameter and just
+ * check the prim's channel type using CHAN_IS_TCH(),
+ * but the current approach is a bit more flexible,
+ * and allows one to have both sub-slots of TCH/H
+ * enabled on same timeslot e.g. for testing...
+ *
+ * @param  queue      transmit queue to take a prim from
+ * @param  lchan_type required channel type of a primitive,
+ *                    e.g. TRXC_TCHF, TRXC_TCHH_0, or TRXC_TCHH_1
+ * @param  facch      FACCH (true) or speech (false) prim?
+ * @return            either a FACCH, or a TCH primitive if found,
+ *                    otherwise NULL
+ */
+static struct trx_ts_prim *prim_dequeue_tch(struct llist_head *queue,
+	enum trx_lchan_type lchan_type, bool facch)
+{
+	struct trx_ts_prim *prim;
+
+	/**
+	 * There is no need to use the 'safe' list iteration here
+	 * as an item removal is immediately followed by return.
+	 */
+	llist_for_each_entry(prim, queue, list) {
+		if (prim->chan != lchan_type)
+			continue;
+
+		/* Either FACCH, or not FACCH */
+		if (PRIM_IS_FACCH(prim) != facch)
+			continue;
+
+		llist_del(&prim->list);
+		return prim;
+	}
+
+	return NULL;
+}
+
+/**
+ * Dequeues either a TCH/F, or a FACCH/F prim (preferred).
+ * If a FACCH/F prim is found, one TCH/F prim is being
  * dropped (i.e. replaced).
  *
  * @param  queue a transmit queue to take a prim from
- * @return       a FACCH or TCH primitive, otherwise NULL
+ * @return       either a FACCH/F, or a TCH/F primitive,
+ *               otherwise NULL
  */
-static struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
+static struct trx_ts_prim *prim_dequeue_tch_f(struct llist_head *queue)
 {
-	struct trx_ts_prim *facch = NULL;
-	struct trx_ts_prim *tch = NULL;
-	struct trx_ts_prim *i;
+	struct trx_ts_prim *facch;
+	struct trx_ts_prim *tch;
 
-	/* Attempt to find a pair of FACCH and TCH frames */
-	llist_for_each_entry(i, queue, list) {
-		/* Find one FACCH frame */
-		if (!facch && PRIM_IS_FACCH(i))
-			facch = i;
+	/* Attempt to find a pair of both FACCH/F and TCH/F frames */
+	facch = prim_dequeue_tch(queue, TRXC_TCHF, true);
+	tch = prim_dequeue_tch(queue, TRXC_TCHF, false);
 
-		/* Find one TCH frame */
-		if (!tch && PRIM_IS_TCH(i))
-			tch = i;
-
-		/* If both are found */
-		if (facch && tch)
-			break;
-	}
-
-	/* Prioritize FACCH */
-	if (facch && tch) {
-		/* We found a pair, dequeue both */
-		llist_del(&facch->list);
-		llist_del(&tch->list);
-
-		/* Drop TCH */
-		talloc_free(tch);
-
-		/* FACCH replaces TCH */
-		return facch;
-	} else if (facch) {
-		/* Only FACCH was found */
-		llist_del(&facch->list);
+	/* Prioritize FACCH/F, if found */
+	if (facch) {
+		/* One TCH/F prim is replaced */
+		if (tch)
+			talloc_free(tch);
 		return facch;
 	} else if (tch) {
-		/* Only TCH was found */
-		llist_del(&tch->list);
+		/* Only TCH/F prim was found */
 		return tch;
+	} else {
+		/* Nothing was found, e.g. when only SACCH frames are in queue */
+		return NULL;
 	}
-
-	/**
-	 * Nothing was found,
-	 * e.g. only SACCH frames are in queue
-	 */
-	return NULL;
 }
 
 /**
@@ -196,24 +233,15 @@ static struct trx_ts_prim *sched_prim_dequeue_tch(struct llist_head *queue)
 struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
 	enum trx_lchan_type lchan_type)
 {
-	struct trx_ts_prim *prim;
-
 	/* There is nothing to dequeue */
 	if (llist_empty(queue))
 		return NULL;
 
 	/* TCH requires FACCH prioritization, so handle it separately */
 	if (CHAN_IS_TCH(lchan_type))
-		return sched_prim_dequeue_tch(queue);
+		return prim_dequeue_tch_f(queue);
 
-	llist_for_each_entry(prim, queue, list) {
-		if (prim->chan == lchan_type) {
-			llist_del(&prim->list);
-			return prim;
-		}
-	}
-
-	return NULL;
+	return prim_dequeue_one(queue, lchan_type);
 }
 
 /**
