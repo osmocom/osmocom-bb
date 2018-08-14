@@ -323,3 +323,19 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	int bit_error_count, bool dec_failed, bool traffic);
 int sched_send_dt_conf(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, bool traffic);
+
+/* Interleaved TCH/H block TDMA frame mapping */
+uint32_t sched_tchh_block_dl_first_fn(enum trx_lchan_type chan,
+	uint32_t last_fn, bool facch);
+bool sched_tchh_block_map_fn(enum trx_lchan_type chan,
+	uint32_t fn, bool ul, bool facch, bool start);
+
+#define sched_tchh_traffic_start(chan, fn, ul) \
+	sched_tchh_block_map_fn(chan, fn, ul, 0, 1)
+#define sched_tchh_traffic_end(chan, fn, ul) \
+	sched_tchh_block_map_fn(chan, fn, ul, 0, 0)
+
+#define sched_tchh_facch_start(chan, fn, ul) \
+	sched_tchh_block_map_fn(chan, fn, ul, 1, 1)
+#define sched_tchh_facch_end(chan, fn, ul) \
+	sched_tchh_block_map_fn(chan, fn, ul, 1, 0)

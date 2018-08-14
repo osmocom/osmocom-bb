@@ -248,23 +248,10 @@ static struct trx_ts_prim *prim_dequeue_tch_h(struct llist_head *queue,
 {
 	struct trx_ts_prim *facch;
 	struct trx_ts_prim *tch;
-	bool facch_now = false;
-	uint32_t fn_mf;
+	bool facch_now;
 
-	/* Traffic multiframe period */
-	fn_mf = fn % 26;
-
-	/* FACCH/H0 frame alignment */
-	if (lchan_type == TRXC_TCHH_0)
-		if (fn_mf == 0 || fn_mf == 8 || fn_mf == 17)
-			facch_now = true;
-
-	/* FACCH/H1 frame alignment */
-	if (lchan_type == TRXC_TCHH_1)
-		if (fn_mf == 1 || fn_mf == 9 || fn_mf == 18)
-			facch_now = true;
-
-	/* If FACCH/H is not allowed for a given frame number */
+	/* May we initiate an UL FACCH/H frame transmission now? */
+	facch_now = sched_tchh_facch_start(lchan_type, fn, true);
 	if (!facch_now) /* Just dequeue a TCH/H prim */
 		goto no_facch;
 

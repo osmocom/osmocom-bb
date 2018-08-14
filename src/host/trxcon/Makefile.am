@@ -35,6 +35,7 @@ trxcon_SOURCES += \
 	sched_lchan_desc.c \
 	sched_lchan_xcch.c \
 	sched_lchan_tchf.c \
+	sched_lchan_tchh.c \
 	sched_lchan_rach.c \
 	sched_lchan_sch.c \
 	sched_mframe.c \

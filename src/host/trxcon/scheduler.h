@@ -17,6 +17,10 @@
 	((a + GSM_HYPERFRAME - b) % GSM_HYPERFRAME)
 #define TDMA_FN_INC(fn) \
 	TDMA_FN_SUM(fn, 1)
+#define TDMA_FN_MIN(a, b) \
+	(a < b ? a : b)
+#define TDMA_FN_DIFF(a, b) \
+	TDMA_FN_MIN(TDMA_FN_SUB(a, b), TDMA_FN_SUB(b, a))
 
 enum tdma_sched_clck_state {
 	SCH_CLCK_STATE_WAIT,
