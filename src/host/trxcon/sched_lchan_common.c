@@ -139,17 +139,17 @@ int sched_send_dt_conf(struct trx_instance *trx, struct trx_ts *ts,
  * Composes a bad frame indication message
  * according to the current tch_mode.
  *
- * @param  l2       Pointer to allocated byte array
- * @param  tch_mode Current TCH mode
+ * @param  l2       Caller-allocated byte array
+ * @param  lchan    Logical channel to generate BFI for
  * @return          How much bytes were written
  */
-size_t sched_bad_frame_ind(uint8_t *l2, uint8_t rsl_cmode, uint8_t tch_mode)
+size_t sched_bad_frame_ind(uint8_t *l2, struct trx_lchan_state *lchan)
 {
 	/* BFI is only required for speech */
-	if (rsl_cmode != RSL_CMOD_SPD_SPEECH)
+	if (lchan->rsl_cmode != RSL_CMOD_SPD_SPEECH)
 		return 0;
 
-	switch (tch_mode) {
+	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
 	case GSM48_CMODE_SPEECH_V1: /* Full Rate */
 		memset(l2, 0x00, GSM_FR_BYTES);
@@ -163,7 +163,7 @@ size_t sched_bad_frame_ind(uint8_t *l2, uint8_t rsl_cmode, uint8_t tch_mode)
 		/* FIXME: AMR is not implemented yet */
 		return 0;
 	default:
-		LOGP(DSCH, LOGL_ERROR, "Invalid TCH mode: %u\n", tch_mode);
+		LOGP(DSCH, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);
 		return 0;
 	}
 }

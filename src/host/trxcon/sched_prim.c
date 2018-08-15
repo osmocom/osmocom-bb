@@ -373,12 +373,8 @@ int sched_prim_dummy(struct trx_lchan_state *lchan)
 	 * other channels: LAPDm fill frame.
 	 */
 	if (CHAN_IS_TCH(chan) && TCH_MODE_IS_SPEECH(tch_mode)) {
-		/**
-		 * Silence frame indication
-		 * HACK: use actual rsl_cmode!
-		 */
-		prim_len = sched_bad_frame_ind(prim_buffer,
-			RSL_CMOD_SPD_SPEECH, tch_mode);
+		/* Bad frame indication */
+		prim_len = sched_bad_frame_ind(prim_buffer, lchan);
 	} else if (CHAN_IS_TCH(chan) && TCH_MODE_IS_DATA(tch_mode)) {
 		/* FIXME: should we do anything for CSD? */
 		return 0;

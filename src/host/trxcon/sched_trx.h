@@ -317,7 +317,7 @@ int sched_trx_handle_tx_burst(struct trx_instance *trx,
 /* Shared declarations for lchan handlers */
 extern const uint8_t sched_nb_training_bits[8][26];
 
-size_t sched_bad_frame_ind(uint8_t *l2, uint8_t rsl_cmode, uint8_t tch_mode);
+size_t sched_bad_frame_ind(uint8_t *l2, struct trx_lchan_state *lchan);
 int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len,
 	int bit_error_count, bool dec_failed, bool traffic);

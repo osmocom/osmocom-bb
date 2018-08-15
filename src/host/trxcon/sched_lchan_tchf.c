@@ -166,7 +166,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 bfi:
 	/* Bad frame indication */
-	l2_len = sched_bad_frame_ind(l2, rsl_cmode, tch_mode);
+	l2_len = sched_bad_frame_ind(l2, lchan);
 
 	/* Didn't try to decode */
 	if (n_errors < 0)
