@@ -465,8 +465,7 @@ static void sched_trx_reset_lchan(struct trx_lchan_state *lchan)
 		lchan->dl_ongoing_facch = 0;
 		lchan->ul_ongoing_facch = 0;
 
-		lchan->rsl_cmode = 0x00;
-		lchan->tch_mode = 0x00;
+		lchan->tch_mode = GSM48_CMODE_SIGN;
 
 		/* Reset AMR state */
 		memset(&lchan->amr, 0x00, sizeof(lchan->amr));

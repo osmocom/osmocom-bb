@@ -32,7 +32,6 @@
 #include <osmocom/core/linuxlist.h>
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
-#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include "scheduler.h"
 #include "sched_trx.h"

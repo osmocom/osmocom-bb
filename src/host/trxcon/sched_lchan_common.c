@@ -36,7 +36,6 @@
 #include <osmocom/codec/codec.h>
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
-#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include "l1ctl_proto.h"
 #include "scheduler.h"
@@ -145,10 +144,6 @@ int sched_send_dt_conf(struct trx_instance *trx, struct trx_ts *ts,
  */
 size_t sched_bad_frame_ind(uint8_t *l2, struct trx_lchan_state *lchan)
 {
-	/* BFI is only required for speech */
-	if (lchan->rsl_cmode != RSL_CMOD_SPD_SPEECH)
-		return 0;
-
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
 	case GSM48_CMODE_SPEECH_V1:

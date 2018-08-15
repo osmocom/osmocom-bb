@@ -30,7 +30,6 @@
 #include <osmocom/core/bits.h>
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
-#include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/gsm/gsm_utils.h>
 
 #include <osmocom/coding/gsm0503_coding.h>
@@ -50,7 +49,6 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 {
 	const struct trx_lchan_desc *lchan_desc;
 	int n_errors = -1, n_bits_total, rc;
-	uint8_t rsl_cmode, tch_mode, mode;
 	sbit_t *buffer, *offset;
 	uint8_t l2[128], *mask;
 	uint32_t *first_fn;
@@ -92,15 +90,6 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	if (bid != 3)
 		return 0;
 
-	/**
-	 * Get current RSL / TCH modes
-	 *
-	 * FIXME: we do support speech only, and
-	 * CSD support may be implemented latter.
-	 */
-	rsl_cmode = RSL_CMOD_SPD_SPEECH;
-	tch_mode = lchan->tch_mode;
-
 	/* Check for complete set of bursts */
 	if ((*mask & 0xf) != 0xf) {
 		LOGP(DSCHD, LOGL_ERROR, "Received incomplete traffic frame at "
@@ -113,10 +102,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		goto bfi;
 	}
 
-	mode = rsl_cmode != RSL_CMOD_SPD_SPEECH ?
-		GSM48_CMODE_SPEECH_V1 : tch_mode;
-
-	switch (mode) {
+	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
 	case GSM48_CMODE_SPEECH_V1: /* FR */
 		rc = gsm0503_tch_fr_decode(l2, buffer,
@@ -134,7 +120,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		LOGP(DSCHD, LOGL_ERROR, "AMR isn't supported yet\n");
 		return -ENOTSUP;
 	default:
-		LOGP(DSCHD, LOGL_ERROR, "Invalid TCH mode: %u\n", tch_mode);
+		LOGP(DSCHD, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);
 		return -EINVAL;
 	}
 

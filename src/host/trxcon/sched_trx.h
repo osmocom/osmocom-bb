@@ -167,8 +167,8 @@ struct trx_lchan_state {
 	/*! \brief A primitive being sent */
 	struct trx_ts_prim *prim;
 
-	/*! \brief Mode for TCH channels */
-	uint8_t	rsl_cmode, tch_mode;
+	/*! \brief Mode for TCH channels (see GSM48_CMODE_*) */
+	uint8_t	tch_mode;
 
 	/*! \brief FACCH/H on downlink */
 	uint8_t dl_ongoing_facch;
