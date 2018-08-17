@@ -5665,17 +5665,9 @@ static int gsm48_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *m
 int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	uint8_t ch_type, ch_subch, ch_ts;
 
 	if (!rr->dm_est) {
 		LOGP(DRR, LOGL_INFO, "Current channel is not active\n");
-		msgb_free(msg);
-		return -ENOTSUP;
-	}
-
-	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
-	if (ch_type != RSL_CHAN_Bm_ACCHs) {
-		LOGP(DRR, LOGL_INFO, "Current channel is not (yet) TCH/F\n");
 		msgb_free(msg);
 		return -ENOTSUP;
 	}
