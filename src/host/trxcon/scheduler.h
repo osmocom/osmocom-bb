@@ -21,7 +21,7 @@ struct trx_sched {
 	/*! \brief Clock state */
 	uint8_t state;
 	/*! \brief Local clock source */
-	struct timeval clock;
+	struct timespec clock;
 	/*! \brief Count of processed frames */
 	uint32_t fn_counter_proc;
 	/*! \brief Local frame counter advance */

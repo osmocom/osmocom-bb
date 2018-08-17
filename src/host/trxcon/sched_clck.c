@@ -27,12 +27,15 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/bits.h>
 #include <osmocom/core/fsm.h>
+#include <osmocom/core/timer.h>
+#include <osmocom/core/timer_compat.h>
 #include <osmocom/gsm/a5.h>
 
 #include "scheduler.h"
@@ -47,8 +50,9 @@
 static void sched_clck_tick(void *data)
 {
 	struct trx_sched *sched = (struct trx_sched *) data;
-	struct timeval tv_now, *tv_clock;
-	int32_t elapsed;
+	struct timespec tv_now, *tv_clock, elapsed;
+	int64_t elapsed_us;
+	const struct timespec frame_duration = { .tv_sec = 0, .tv_nsec = FRAME_DURATION_uS * 1000 };
 
 	/* Check if transceiver is still alive */
 	if (sched->fn_counter_lost++ == TRX_LOSS_FRAMES) {
@@ -59,16 +63,16 @@ static void sched_clck_tick(void *data)
 	}
 
 	/* Get actual / previous frame time */
-	gettimeofday(&tv_now, NULL);
+	osmo_clock_gettime(CLOCK_MONOTONIC, &tv_now);
 	tv_clock = &sched->clock;
 
-	elapsed = (tv_now.tv_sec - tv_clock->tv_sec) * 1000000
-		+ (tv_now.tv_usec - tv_clock->tv_usec);
+	timespecsub(&tv_now, tv_clock, &elapsed);
+	elapsed_us = (elapsed.tv_sec * 1000000) + (elapsed.tv_nsec / 1000);
 
 	/* If someone played with clock, or if the process stalled */
-	if (elapsed > FRAME_DURATION_uS * MAX_FN_SKEW || elapsed < 0) {
+	if (elapsed_us > FRAME_DURATION_uS * MAX_FN_SKEW || elapsed_us < 0) {
 		LOGP(DSCH, LOGL_NOTICE, "PC clock skew: "
-			"elapsed uS %d\n", elapsed);
+			"elapsed uS %" PRId64 "\n", elapsed_us);
 
 		sched->state = SCH_CLCK_STATE_WAIT;
 
@@ -76,14 +80,9 @@ static void sched_clck_tick(void *data)
 	}
 
 	/* Schedule next FN clock */
-	while (elapsed > FRAME_DURATION_uS / 2) {
-		tv_clock->tv_usec += FRAME_DURATION_uS;
-		elapsed -= FRAME_DURATION_uS;
-
-		if (tv_clock->tv_usec >= 1000000) {
-			tv_clock->tv_sec++;
-			tv_clock->tv_usec -= 1000000;
-		}
+	while (elapsed_us > FRAME_DURATION_uS / 2) {
+		timespecadd(tv_clock, &frame_duration, tv_clock);
+		elapsed_us -= FRAME_DURATION_uS;
 
 		sched->fn_counter_proc = (sched->fn_counter_proc + 1)
 			% GSM_HYPERFRAME;
@@ -94,11 +93,11 @@ static void sched_clck_tick(void *data)
 	}
 
 	osmo_timer_schedule(&sched->clock_timer, 0,
-		FRAME_DURATION_uS - elapsed);
+		FRAME_DURATION_uS - elapsed_us);
 }
 
 static void sched_clck_correct(struct trx_sched *sched,
-	struct timeval *tv_now, uint32_t fn)
+	struct timespec *tv_now, uint32_t fn)
 {
 	sched->fn_counter_proc = fn;
 
@@ -107,7 +106,7 @@ static void sched_clck_correct(struct trx_sched *sched,
 		sched->clock_cb(sched);
 
 	/* Schedule first FN clock */
-	memcpy(&sched->clock, tv_now, sizeof(struct timeval));
+	sched->clock = *tv_now;
 	memset(&sched->clock_timer, 0, sizeof(sched->clock_timer));
 
 	sched->clock_timer.cb = sched_clck_tick;
@@ -117,14 +116,14 @@ static void sched_clck_correct(struct trx_sched *sched,
 
 int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 {
-	struct timeval tv_now, *tv_clock;
-	int32_t elapsed, elapsed_fn;
+	struct timespec tv_now, *tv_clock, elapsed;
+	int64_t elapsed_us, elapsed_fn;
 
 	/* Reset lost counter */
 	sched->fn_counter_lost = 0;
 
 	/* Get actual / previous frame time */
-	gettimeofday(&tv_now, NULL);
+	osmo_clock_gettime(CLOCK_MONOTONIC, &tv_now);
 	tv_clock = &sched->clock;
 
 	/* If this is the first CLCK IND */
@@ -142,8 +141,8 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 	osmo_timer_del(&sched->clock_timer);
 
 	/* Calculate elapsed time / frames since last processed fn */
-	elapsed = (tv_now.tv_sec - tv_clock->tv_sec) * 1000000
-		+ (tv_now.tv_usec - tv_clock->tv_usec);
+	timespecsub(&tv_now, tv_clock, &elapsed);
+	elapsed_us = (elapsed.tv_sec * 1000000) + (elapsed.tv_nsec / 1000);
 	elapsed_fn = (fn + GSM_HYPERFRAME - sched->fn_counter_proc)
 		% GSM_HYPERFRAME;
 
@@ -159,23 +158,20 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 		return 0;
 	}
 
-	LOGP(DSCH, LOGL_INFO, "GSM clock jitter: %d\n",
-		elapsed_fn * FRAME_DURATION_uS - elapsed);
+	LOGP(DSCH, LOGL_INFO, "GSM clock jitter: %" PRId64 "\n",
+		elapsed_fn * FRAME_DURATION_uS - elapsed_us);
 
 	/* Too many frames have been processed already */
 	if (elapsed_fn < 0) {
+		struct timespec duration;
 		/**
 		 * Set clock to the time or last FN should
 		 * have been transmitted
 		 */
-		tv_clock->tv_sec = tv_now.tv_sec;
-		tv_clock->tv_usec = tv_now.tv_usec +
-			(0 - elapsed_fn) * FRAME_DURATION_uS;
-
-		if (tv_clock->tv_usec >= 1000000) {
-			tv_clock->tv_sec++;
-			tv_clock->tv_usec -= 1000000;
-		}
+		duration.tv_nsec = (0 - elapsed_fn) * FRAME_DURATION_uS * 1000;
+		duration.tv_sec = duration.tv_nsec / 1000000000;
+		duration.tv_nsec = duration.tv_nsec % 1000000000;
+		timespecadd(&tv_now, &duration, tv_clock);
 
 		/* Set time to the time our next FN has to be transmitted */
 		osmo_timer_schedule(&sched->clock_timer, 0,
@@ -195,7 +191,7 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 	}
 
 	/* Schedule next FN to be transmitted */
-	memcpy(tv_clock, &tv_now, sizeof(struct timeval));
+	*tv_clock = tv_now;
 	osmo_timer_schedule(&sched->clock_timer, 0, FRAME_DURATION_uS);
 
 	return 0;
