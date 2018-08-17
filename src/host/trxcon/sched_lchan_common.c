@@ -145,7 +145,6 @@ int sched_send_dt_conf(struct trx_instance *trx, struct trx_ts *ts,
 size_t sched_bad_frame_ind(uint8_t *l2, struct trx_lchan_state *lchan)
 {
 	switch (lchan->tch_mode) {
-	case GSM48_CMODE_SIGN:
 	case GSM48_CMODE_SPEECH_V1:
 		if (lchan->type == TRXC_TCHF) { /* Full Rate */
 			memset(l2, 0x00, GSM_FR_BYTES);
@@ -162,6 +161,9 @@ size_t sched_bad_frame_ind(uint8_t *l2, struct trx_lchan_state *lchan)
 		return GSM_EFR_BYTES;
 	case GSM48_CMODE_SPEECH_AMR: /* Adaptive Multi Rate */
 		/* FIXME: AMR is not implemented yet */
+		return 0;
+	case GSM48_CMODE_SIGN:
+		LOGP(DSCH, LOGL_ERROR, "BFI is not allowed in signalling mode\n");
 		return 0;
 	default:
 		LOGP(DSCH, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);

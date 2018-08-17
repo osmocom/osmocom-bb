@@ -151,12 +151,17 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		n_errors, false, true);
 
 bfi:
-	/* Bad frame indication */
-	l2_len = sched_bad_frame_ind(l2, lchan);
-
 	/* Didn't try to decode */
 	if (n_errors < 0)
 		n_errors = 116 * 4;
+
+	/* BFI is not applicable in signalling mode */
+	if (lchan->tch_mode == GSM48_CMODE_SIGN)
+		return sched_send_dt_ind(trx, ts, lchan, NULL, 0,
+			n_errors, true, false);
+
+	/* Bad frame indication */
+	l2_len = sched_bad_frame_ind(l2, lchan);
 
 	/* Send a BFI frame to the higher layers */
 	return sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
