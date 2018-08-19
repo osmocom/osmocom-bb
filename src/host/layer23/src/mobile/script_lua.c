@@ -136,6 +136,7 @@ static void handle_timeout(struct mobile_prim_intf *intf, struct mobile_timer_pa
 
 	lua_rawgeti(L, LUA_REGISTRYINDEX, timer->cb_ref);
 	luaL_unref(L, LUA_REGISTRYINDEX, timer->cb_ref);
+	timer->cb_ref = LUA_NOREF;
 
 	err = lua_pcall(L, 0, 0, 0);
 	if (err) {
@@ -276,6 +277,10 @@ static int lua_timer_cancel(lua_State *L)
 
 	luaL_argcheck(L, lua_isuserdata(L, -1), 1, "No userdata");
 	timer = lua_touserdata(L, -1);
+	if (timer->cb_ref != LUA_NOREF) {
+		luaL_unref(L, LUA_REGISTRYINDEX, timer->cb_ref);
+		timer->cb_ref = LUA_NOREF;
+	}
 
 	prim = mobile_prim_alloc(PRIM_MOB_TIMER_CANCEL, PRIM_OP_REQUEST);
 	prim->u.timer.timer_id = (intptr_t) timer;
