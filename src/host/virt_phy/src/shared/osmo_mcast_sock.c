@@ -17,7 +17,7 @@ int mcast_server_sock_setup(struct osmo_fd *ofd, const char* tx_mcast_group,
 			    uint16_t tx_mcast_port, bool loopback)
 {
 	int rc;
-	unsigned int flags = OSMO_SOCK_F_CONNECT;
+	unsigned int flags = OSMO_SOCK_F_CONNECT | OSMO_SOCK_F_UDP_REUSEADDR;
 
 	if (!loopback)
 		flags |= OSMO_SOCK_F_NO_MCAST_LOOP;
@@ -41,6 +41,7 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, uint16
 			    void *osmo_fd_data)
 {
 	int rc;
+	unsigned int flags = OSMO_SOCK_F_BIND | OSMO_SOCK_F_NO_MCAST_ALL | OSMO_SOCK_F_UDP_REUSEADDR;
 
 	ofd->cb = fd_rx_cb;
 	ofd->when = BSC_FD_READ;
@@ -48,7 +49,7 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, uint16
 
 	/* Create mcast client socket */
 	rc = osmo_sock_init_ofd(ofd, AF_INET, SOCK_DGRAM, IPPROTO_UDP,
-				NULL, mcast_port, OSMO_SOCK_F_BIND|OSMO_SOCK_F_NO_MCAST_ALL);
+				NULL, mcast_port, flags);
 	if (rc < 0) {
 		perror("Could not create mcast client socket");
 		return rc;
