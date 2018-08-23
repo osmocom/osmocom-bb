@@ -314,7 +314,8 @@ int read_file(const char *filename, int chainload)
 	dnload.data = malloc(MAX_HDR_SIZE + payload_size);
 
 	if (!dnload.data) {
-		close(fd);
+		if (!chainload)
+			close(fd);
 		fprintf(stderr, "No memory\n");
 		return -ENOMEM;
 	}
