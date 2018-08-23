@@ -471,7 +471,7 @@ static int romload_prepare_block(void)
 	remaining_bytes = dnload.data_len - 3 -
 			(dnload.block_payload_size * dnload.block_number);
 
-	memcpy(block_data, dnload.write_ptr, dnload.block_payload_size);
+	memcpy(block_data, dnload.write_ptr, OSMO_MIN(dnload.block_payload_size, remaining_bytes));
 
 	if (remaining_bytes <= dnload.block_payload_size) {
 		fill_bytes = (dnload.block_payload_size - remaining_bytes);
