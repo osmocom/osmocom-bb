@@ -53,7 +53,18 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 /*
  * send voice
  */
-int gsm_send_voice(struct osmocom_ms *ms, struct gsm_data_frame *data)
+int gsm_send_voice(struct osmocom_ms *ms, struct msgb *msg)
+{
+	/**
+	 * Nothing to do for now...
+	 * TODO: compose l1ctl_traffic_ind header here
+	 */
+
+	/* Forward to RR */
+	return gsm48_rr_tx_voice(ms, msg);
+}
+
+int gsm_send_voice_mncc(struct osmocom_ms *ms, struct gsm_data_frame *frame)
 {
 	struct msgb *nmsg;
 
@@ -61,9 +72,9 @@ int gsm_send_voice(struct osmocom_ms *ms, struct gsm_data_frame *data)
 	if (!nmsg)
 		return -ENOMEM;
 	nmsg->l2h = msgb_put(nmsg, 33);
-	memcpy(nmsg->l2h, data->data, 33);
+	memcpy(nmsg->l2h, frame->data, 33);
 
-	return gsm48_rr_tx_voice(ms, nmsg);
+	return gsm_send_voice(ms, nmsg);
 }
 
 /*

@@ -1970,7 +1970,7 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 
 	switch (msg_type) {
 	case GSM_TCHF_FRAME:
-		return gsm_send_voice(ms, arg);
+		return gsm_send_voice_mncc(ms, arg);
 	case MNCC_LCHAN_MODIFY:
 		return 0;
 	case MNCC_FRAME_RECV:
