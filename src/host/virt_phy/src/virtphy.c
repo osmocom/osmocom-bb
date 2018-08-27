@@ -60,11 +60,30 @@ static char *l1ctl_sock_path = L1CTL_SOCK_PATH;
 static char *arfcn_sig_lev_red_mask = NULL;
 static char *pm_timeout = NULL;
 
+static void print_usage()
+{
+	printf("Usage: virtphy\n");
+}
+
+static void print_help()
+{
+	printf("  Some useful help...\n");
+	printf("  -h --help 			This text.\n");
+	printf("  -z --dl-rx-grp 		ms multicast group.\n");
+	printf("  -y --ul-tx-grp 		bts multicast group.\n");
+	printf("  -x --port			udp port to use for communication with virtual BTS (GSMTAP)\n");
+	printf("  -d --log-mask			--log-mask=DRLL:DCC enable debugging.\n");
+	printf("  -s --l1ctl-sock            	l1ctl socket path path.\n");
+	printf("  -r --arfcn-sig-lev-red        reduce signal level (e.g. 666,12:888,43:176,22).\n");
+	printf("  -t --pm-timeout		power management timeout.\n");
+}
+
 static void handle_options(int argc, char **argv)
 {
 	while (1) {
 		int option_index = 0, c;
 		static struct option long_options[] = {
+			{"help", 0, 0, 'h'},
 			{"dl-rx-grp", required_argument, 0, 'z'},
 		        {"ul-tx-grp", required_argument, 0, 'y'},
 		        {"port", required_argument, 0, 'x'},
@@ -74,12 +93,16 @@ static void handle_options(int argc, char **argv)
 		        {"pm-timeout", required_argument, 0, 't'},
 		        {0, 0, 0, 0},
 		};
-		c = getopt_long(argc, argv, "z:y:x:d:s:r:t:", long_options,
+		c = getopt_long(argc, argv, "hz:y:x:d:s:r:t:", long_options,
 		                &option_index);
 		if (c == -1)
 			break;
 
 		switch (c) {
+		case 'h':
+			print_usage();
+			print_help();
+			exit(0);
 		case 'z':
 			dl_rx_grp = optarg;
 			break;
