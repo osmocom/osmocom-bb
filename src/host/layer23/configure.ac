@@ -55,6 +55,11 @@ AC_ARG_WITH([lua53], [
 		       [Enable LUA scripting support @<:@default=check@:>@])
 ])
 
+AC_ARG_WITH([gapk_io], [
+	AS_HELP_STRING([--with-gapk-io],
+		       [Enable GAPK I/O support @<:@default=check@:>@])
+])
+
 found_lua53=no
 AS_IF([test "x$with_lua53" != "xno"], [
 	PKG_CHECK_MODULES(LIBLUA, lua53, [found_lua53=yes], [found_lua53=no])
@@ -63,6 +68,15 @@ AS_IF([test "x$with_lua53" != "xno"], [
 	])
 ])
 AM_CONDITIONAL([BUILD_LUA], test "x$found_lua53" = "xyes")
+
+found_gapk=no
+AS_IF([test "x$with_gapk_io" != "xno"], [
+	PKG_CHECK_MODULES(LIBOSMOGAPK, libosmogapk, [found_gapk=yes], [found_gapk=no])
+	AS_IF([test "x$with_gapk_io" = "xyes" -a "x$found_gapk" = "xno"], [
+		AC_MSG_ERROR([GAPK I/O support requested but pkg-config is unable to find it])
+	])
+])
+AM_CONDITIONAL([BUILD_GAPK], test "x$found_gapk" = "xyes")
 
 dnl checks for header files
 AC_HEADER_STDC

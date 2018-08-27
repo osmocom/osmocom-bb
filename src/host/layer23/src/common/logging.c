@@ -141,6 +141,12 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[1;32m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DGAPK] = {
+		.name = "DGAPK",
+		.description = "GAPK audio",
+		.color = "\033[0;36m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
 };
 
 const struct log_info log_info = {

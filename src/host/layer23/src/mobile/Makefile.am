@@ -9,6 +9,7 @@ AM_CFLAGS = \
 	$(LIBOSMOVTY_CFLAGS) \
 	$(LIBOSMOGSM_CFLAGS) \
 	$(LIBOSMOCODEC_CFLAGS) \
+	$(LIBOSMOGAPK_CFLAGS) \
 	$(LIBGPS_CFLAGS) \
 	$(LIBLUA_CFLAGS) \
 	$(NULL)
@@ -43,6 +44,7 @@ mobile_LDADD = \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
 	$(LIBOSMOCODEC_LIBS) \
+	$(LIBOSMOGAPK_LIBS) \
 	$(LIBGPS_LIBS) \
 	$(LIBLUA_LIBS) \
 	$(NULL)
@@ -53,4 +55,10 @@ AM_CPPFLAGS += -DWITH_LUA=1
 libmobile_a_SOURCES += script_lua.c
 else
 libmobile_a_SOURCES += script_nolua.c
+endif
+
+# GAPK I/O support
+if BUILD_GAPK
+AM_CPPFLAGS += -DWITH_GAPK_IO=1
+libmobile_a_SOURCES += gapk_io.c
 endif

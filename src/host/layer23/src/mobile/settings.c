@@ -29,6 +29,7 @@
 static char *layer2_socket_path = "/tmp/osmocom_l2";
 static char *sap_socket_path = "/tmp/osmocom_sap";
 static char *mncc_socket_path = "/tmp/ms_mncc";
+static char *alsa_dev_default = "default";
 
 int gsm_settings_init(struct osmocom_ms *ms)
 {
@@ -44,6 +45,8 @@ int gsm_settings_init(struct osmocom_ms *ms)
 
 	/* Audio settings: drop TCH frames by default */
 	set->audio.io_handler = AUDIO_IOH_NONE;
+	OSMO_STRLCPY_ARRAY(set->audio.alsa_output_dev, alsa_dev_default);
+	OSMO_STRLCPY_ARRAY(set->audio.alsa_input_dev, alsa_dev_default);
 
 	/* Built-in MNCC handler */
 	set->mncc_handler = MNCC_HANDLER_INTERNAL;
@@ -203,6 +206,7 @@ int gsm_random_imei(struct gsm_settings *set)
 
 const struct value_string audio_io_handler_names[] = {
 	{ AUDIO_IOH_NONE,	"none" },
+	{ AUDIO_IOH_GAPK,	"gapk" },
 	{ AUDIO_IOH_L1PHY,	"l1phy" },
 	{ AUDIO_IOH_MNCC_SOCK,	"mncc-sock" },
 	{ AUDIO_IOH_LOOPBACK,	"loopback" },

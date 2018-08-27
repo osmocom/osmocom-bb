@@ -1543,8 +1543,14 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 			set->any_timeout, VTY_NEWLINE);
 
 	vty_out(vty, " audio%s", VTY_NEWLINE);
-	if (!hide_default || set->audio.io_handler != AUDIO_IOH_NONE)
-		vty_out(vty, "  io-handler %s%s", audio_io_handler_name(set->audio.io_handler), VTY_NEWLINE);
+	vty_out(vty, "  io-handler %s%s",
+		audio_io_handler_name(set->audio.io_handler), VTY_NEWLINE);
+	if (set->audio.io_handler == AUDIO_IOH_GAPK) {
+		vty_out(vty, "  alsa-output-dev %s%s",
+			set->audio.alsa_output_dev, VTY_NEWLINE);
+		vty_out(vty, "  alsa-input-dev %s%s",
+			set->audio.alsa_input_dev, VTY_NEWLINE);
+	}
 
 	/* no shutdown must be written to config, because shutdown is default */
 	vty_out(vty, " %sshutdown%s", (ms->shutdown != MS_SHUTDOWN_NONE) ? "" : "no ",
@@ -2831,9 +2837,10 @@ static int set_audio_io_handler(struct vty *vty, enum audio_io_handler val)
 }
 
 DEFUN(cfg_ms_audio_io_handler, cfg_ms_audio_io_handler_cmd,
-	"io-handler (none|l1phy|mncc-sock|loopback)",
+	"io-handler (none|gapk|l1phy|mncc-sock|loopback)",
 	"Set TCH frame I/O handler\n"
 	"No handler, drop TCH frames (default)\n"
+	"libosmo-gapk based I/O handler (requires ALSA)\n"
 	"L1 PHY (e.g. Calypso DSP in Motorola C1xx phones)\n"
 	"External MNCC application (e.g. LCR) via MNCC socket\n"
 	"Return TCH frame payload back to sender\n")
@@ -2849,6 +2856,13 @@ DEFUN(cfg_ms_audio_io_handler, cfg_ms_audio_io_handler_cmd,
 		}
 	}
 
+#ifndef WITH_GAPK_IO
+	if (val == AUDIO_IOH_GAPK) {
+		vty_out(vty, "GAPK I/O is not compiled in (--with-gapk-io)%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+#endif
+
 	return set_audio_io_handler(vty, val);
 }
 
@@ -2856,6 +2870,34 @@ DEFUN(cfg_ms_audio_no_io_handler, cfg_ms_audio_no_io_handler_cmd,
 	"no io-handler", NO_STR "Disable TCH frame processing")
 {
 	return set_audio_io_handler(vty, AUDIO_IOH_NONE);
+}
+
+DEFUN(cfg_ms_audio_alsa_out_dev, cfg_ms_audio_alsa_out_dev_cmd,
+	"alsa-output-dev (default|NAME)",
+	"Set ALSA output (playback) device name (for GAPK only)\n"
+	"Default system playback device (default)\n"
+	"Name of a custom playback device")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	OSMO_STRLCPY_ARRAY(set->audio.alsa_output_dev, argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_audio_alsa_in_dev, cfg_ms_audio_alsa_in_dev_cmd,
+	"alsa-input-dev (default|NAME)",
+	"Set ALSA input (capture) device name (for GAPK only)\n"
+	"Default system recording device (default)\n"
+	"Name of a custom recording device")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	OSMO_STRLCPY_ARRAY(set->audio.alsa_input_dev, argv[0]);
+
+	return CMD_SUCCESS;
 }
 
 DEFUN(cfg_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
@@ -3134,6 +3176,8 @@ int ms_vty_init(void)
 	install_node(&audio_node, config_write_dummy);
 	install_element(AUDIO_NODE, &cfg_ms_audio_io_handler_cmd);
 	install_element(AUDIO_NODE, &cfg_ms_audio_no_io_handler_cmd);
+	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_out_dev_cmd);
+	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_in_dev_cmd);
 
 	/* Register the talloc context introspection command */
 	osmo_talloc_vty_add_cmds();

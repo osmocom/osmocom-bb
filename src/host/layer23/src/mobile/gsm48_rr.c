@@ -75,6 +75,8 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/l1ctl.h>
+
+#include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/common/utils.h>
 
@@ -3473,6 +3475,15 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	 && ch_type != RSL_CHAN_Lm_ACCHs)
 		return -ENOTSUP;
 
+#ifdef WITH_GAPK_IO
+	/* Poke GAPK audio back-end, if it is chosen */
+	if (ms->settings.audio.io_handler == AUDIO_IOH_GAPK) {
+		int rc = gapk_io_init_ms_chan(ms, ch_type, mode);
+		if (rc)
+			return rc;
+	}
+#endif
+
 	/* Apply indicated channel mode */
 	LOGP(DRR, LOGL_INFO, "setting TCH mode to %s, audio mode to %d\n",
 	     get_value_string(gsm48_chan_mode_names, mode), rr->audio_mode);
@@ -4018,6 +4029,12 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	cause = gsm48_rr_render_ma(ms, cda, ma, &ma_len);
 	if (cause)
 		return gsm48_rr_tx_ass_fail(ms, cause, RSL_MT_DATA_REQ);
+
+#ifdef WITH_GAPK_IO
+	/* Poke GAPK audio back-end, if it is chosen */
+	if (ms->settings.audio.io_handler == AUDIO_IOH_GAPK)
+		gapk_io_init_ms_chan(ms, ch_type, cda->mode);
+#endif
 
 #ifdef TEST_FREQUENCY_MOD
 	LOGP(DRR, LOGL_INFO, " TESTING: frequency modify ASS.CMD\n");
@@ -5622,6 +5639,7 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 		break;
 	case AUDIO_IOH_MNCC_SOCK:
 	case AUDIO_IOH_LOOPBACK:
+	case AUDIO_IOH_GAPK:
 		rr->audio_mode = AUDIO_RX_TRAFFIC_IND | AUDIO_TX_TRAFFIC_REQ;
 		break;
 	case AUDIO_IOH_NONE:

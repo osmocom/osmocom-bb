@@ -17,6 +17,8 @@ enum mncc_handler_t {
 enum audio_io_handler {
 	/* No handler, drop frames */
 	AUDIO_IOH_NONE = 0,
+	/* libosmo-gapk based handler */
+	AUDIO_IOH_GAPK,
 	/* L1 PHY (e.g. Calypso DSP) */
 	AUDIO_IOH_L1PHY,
 	/* External MNCC app (via MNCC socket) */
@@ -31,6 +33,8 @@ static inline const char *audio_io_handler_name(enum audio_io_handler val)
 
 struct audio_settings {
 	enum audio_io_handler	io_handler;
+	char alsa_output_dev[128];
+	char alsa_input_dev[128];
 };
 
 struct gsm_settings {

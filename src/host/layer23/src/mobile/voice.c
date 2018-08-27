@@ -1,5 +1,7 @@
 /*
  * (C) 2010 by Andreas Eversberg <jolly@eversberg.eu>
+ * (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * All Rights Reserved
  *
@@ -15,7 +17,8 @@
  *
  */
 
-#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/codec/codec.h>
@@ -24,6 +27,7 @@
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
 
@@ -76,6 +80,15 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm_send_voice_msg(ms, msg);
 	case AUDIO_IOH_MNCC_SOCK:
 		return gsm_forward_mncc(ms, msg);
+	case AUDIO_IOH_GAPK:
+#ifdef WITH_GAPK_IO
+		/* Prevent null pointer dereference */
+		OSMO_ASSERT(ms->gapk_io != NULL);
+
+		/* Enqueue a frame to the DL TCH buffer */
+		gapk_io_enqueue_dl(ms->gapk_io, msg);
+		break;
+#endif
 	case AUDIO_IOH_L1PHY:
 	case AUDIO_IOH_NONE:
 		/* Drop voice frame */
