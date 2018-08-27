@@ -45,7 +45,7 @@ struct l1_model_ms *l1_model_ms_init(void *ctx, struct l1ctl_sock_client *lsc, s
 
 void l1_model_ms_destroy(struct l1_model_ms *model)
 {
-	LOGPMS(DMAIN, LOGL_INFO, model, "destryed\n");
+	LOGPMS(DMAIN, LOGL_INFO, model, "destroyed\n");
 	l1ctl_sap_exit(model);
 	talloc_free(model);
 }
