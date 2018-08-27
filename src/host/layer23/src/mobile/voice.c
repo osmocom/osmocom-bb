@@ -24,6 +24,7 @@
 #include <errno.h>
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/codec/codec.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/mobile/settings.h>
@@ -37,6 +38,7 @@
 static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_data_frame *frame;
+	size_t frame_len;
 
 	/* Make sure that a MNCC handler is set */
 	if (!ms->mncc_entity.mncc_recv) {
@@ -54,8 +56,25 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 		frame = (struct gsm_data_frame *)
 			msgb_push(msg, sizeof(struct gsm_data_frame));
 
-		/* FIXME: set proper msg_type */
-		frame->msg_type = GSM_TCHF_FRAME;
+		/* Determine a frame type */
+		frame_len = msgb_l3len(msg);
+		switch (frame_len) {
+		case GSM_FR_BYTES:
+			frame->msg_type = GSM_TCHF_FRAME;
+			break;
+		case GSM_EFR_BYTES:
+			frame->msg_type = GSM_TCHF_FRAME_EFR;
+			break;
+		case (GSM_HR_BYTES + 1):
+			frame->msg_type = GSM_TCHH_FRAME;
+			break;
+		case GSM_TCH_FRAME_AMR: /* FIXME! */
+		default:
+			/* TODO: add some logging here */
+			msgb_free(msg);
+			return -ENOTSUP;
+		}
+
 		frame->callref = ms->mncc_entity.ref;
 
 		/* Forward to an MNCC-handler */
@@ -103,13 +122,34 @@ int gsm_send_voice(struct osmocom_ms *ms, struct msgb *msg)
 
 int gsm_send_voice_mncc(struct osmocom_ms *ms, struct gsm_data_frame *frame)
 {
+	unsigned int frame_len;
 	struct msgb *nmsg;
 
-	nmsg = msgb_alloc_headroom(33 + 64, 64, "TCH/F");
+	/* Determine frame length */
+	switch (frame->msg_type) {
+	case GSM_TCHF_FRAME:
+		frame_len = GSM_FR_BYTES;
+		break;
+	case GSM_TCHF_FRAME_EFR:
+		frame_len = GSM_EFR_BYTES;
+		break;
+	case GSM_TCHH_FRAME:
+		frame_len = (GSM_HR_BYTES + 1);
+		break;
+	case GSM_TCH_FRAME_AMR:
+	default:
+		/* TODO: add some logging here */
+		return -ENOTSUP;
+	}
+
+	/* Allocate a message for the lower layers */
+	nmsg = msgb_alloc_headroom(frame_len + 64, 64, "TCH frame");
 	if (!nmsg)
 		return -ENOMEM;
-	nmsg->l2h = msgb_put(nmsg, 33);
-	memcpy(nmsg->l2h, frame->data, 33);
+
+	/* Copy payload from a frame */
+	nmsg->l2h = msgb_put(nmsg, frame_len);
+	memcpy(nmsg->l2h, frame->data, frame_len);
 
 	return gsm_send_voice(ms, nmsg);
 }
