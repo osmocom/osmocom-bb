@@ -46,6 +46,7 @@ libmobile_a_SOURCES += \
 # MNCC and voice implementation
 libmobile_a_SOURCES += \
 	mncc_sock.c \
+	gapk_io.c \
 	mnccms.c \
 	voice.c \
 	$(NULL)

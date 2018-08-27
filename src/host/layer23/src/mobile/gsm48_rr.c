@@ -78,6 +78,8 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/l1ctl.h>
+
+#include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/common/utils.h>
 
@@ -3437,6 +3439,13 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 		LOGP(DRR, LOGL_ERROR, "CHANNEL MODE MODIFY only applies "
 			"to TCH channels, ignoring...\n");
 		return -ENOTSUP;
+	}
+
+	/* Poke GAPK audio back-end, if it is chosen */
+	if (ms->settings.audio.io_target == AUDIO_IO_GAPK) {
+		rc = gapk_io_init_ms_chan(ms, ch_type, mode);
+		if (rc)
+			return rc;
 	}
 
 	/* Apply indicated channel mode */

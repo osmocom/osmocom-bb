@@ -8,6 +8,7 @@
 struct osmocom_ms;
 
 	/* FIXME no 'mobile' specific stuff should be here */
+#include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/support.h>
 #include <osmocom/bb/mobile/settings.h>
 #include <osmocom/bb/mobile/subscriber.h>
@@ -85,6 +86,9 @@ struct osmocom_ms {
 	struct gsm48_cclayer cclayer;
 	struct osmomncc_entity mncc_entity;
 	struct llist_head trans_list;
+
+	/* Audio I/O */
+	struct gapk_io_state *gapk_io;
 
 	void *lua_state;
 	int lua_cb_ref;
