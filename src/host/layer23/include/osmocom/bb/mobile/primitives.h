@@ -20,6 +20,7 @@ enum mobile_prims {
 	PRIM_MOB_SHUTDOWN,
 	PRIM_MOB_SMS,
 	PRIM_MOB_MM,
+	PRIM_MOB_NETWORK_RESELECT,
 };
 
 struct mobile_prim_intf {

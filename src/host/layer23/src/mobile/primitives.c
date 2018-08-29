@@ -20,6 +20,7 @@
 
 #include <inttypes.h>
 
+#include <osmocom/bb/mobile/gsm322.h>
 #include <osmocom/bb/mobile/primitives.h>
 #include <osmocom/bb/common/logging.h>
 
@@ -191,6 +192,17 @@ static int send_sms(struct mobile_prim_intf *intf, struct mobile_sms_param *para
 	return gsm411_tx_sms_submit(intf->ms, param->sca, sms);
 }
 
+static int network_reselect(struct mobile_prim_intf *intf)
+{
+	struct msgb *nmsg;
+
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_USER_RESEL);
+	if (!nmsg)
+		return -1;
+	gsm322_plmn_sendmsg(intf->ms, nmsg);
+	return 0;
+}
+
 int mobile_prim_intf_req(struct mobile_prim_intf *intf, struct mobile_prim *prim)
 {
 	int rc = 0;
@@ -204,6 +216,9 @@ int mobile_prim_intf_req(struct mobile_prim_intf *intf, struct mobile_prim *prim
 		break;
 	case OSMO_PRIM(PRIM_MOB_SMS, PRIM_OP_REQUEST):
 		rc = send_sms(intf, &prim->u.sms);
+		break;
+	case OSMO_PRIM(PRIM_MOB_NETWORK_RESELECT, PRIM_OP_REQUEST):
+		rc = network_reselect(intf);
 		break;
 	default:
 		LOGP(DPRIM, LOGL_ERROR, "Unknown primitive: %d\n", OSMO_PRIM_HDR(&prim->hdr));

@@ -425,6 +425,16 @@ static int lua_ms_name(lua_State *L)
 	return 1;
 }
 
+static int lua_reselect_network(lua_State *L)
+{
+	struct mobile_prim *prim;
+
+	prim = mobile_prim_alloc(PRIM_MOB_NETWORK_RESELECT, PRIM_OP_REQUEST);
+	mobile_prim_intf_req(get_primitive(L), prim);
+
+	return 1;
+}
+
 /* Expect a fd on the stack and enable SO_PASSCRED */
 static int lua_unix_passcred(lua_State *L)
 {
@@ -546,6 +556,7 @@ static const struct luaL_Reg ms_funcs[] = {
 	{ "stop", lua_ms_shutdown },
 	{ "sms_send_simple", lua_ms_sms_send_simple },
 	{ "number", lua_ms_name },
+	{ "reselect_network", lua_reselect_network },
 	{ NULL, NULL },
 };
 
