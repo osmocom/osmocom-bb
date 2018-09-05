@@ -295,7 +295,7 @@ int trx_if_cmd_adjpower(struct trx_instance *trx, int db)
 
 int trx_if_cmd_setslot(struct trx_instance *trx, uint8_t tn, uint8_t type)
 {
-	return trx_ctrl_cmd(trx, 1, "SETSLOT", "%d %d", tn, type);
+	return trx_ctrl_cmd(trx, 1, "SETSLOT", "%u %u", tn, type);
 }
 
 /*
@@ -321,7 +321,7 @@ int trx_if_cmd_rxtune(struct trx_instance *trx, uint16_t band_arfcn)
 		return -ENOTSUP;
 	}
 
-	return trx_ctrl_cmd(trx, 1, "RXTUNE", "%d", freq10 * 100);
+	return trx_ctrl_cmd(trx, 1, "RXTUNE", "%u", freq10 * 100);
 }
 
 int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t band_arfcn)
@@ -335,7 +335,7 @@ int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t band_arfcn)
 		return -ENOTSUP;
 	}
 
-	return trx_ctrl_cmd(trx, 1, "TXTUNE", "%d", freq10 * 100);
+	return trx_ctrl_cmd(trx, 1, "TXTUNE", "%u", freq10 * 100);
 }
 
 /*
@@ -366,7 +366,7 @@ int trx_if_cmd_measure(struct trx_instance *trx,
 		return -ENOTSUP;
 	}
 
-	return trx_ctrl_cmd(trx, 1, "MEASURE", "%d", freq10 * 100);
+	return trx_ctrl_cmd(trx, 1, "MEASURE", "%u", freq10 * 100);
 }
 
 static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
