@@ -541,10 +541,12 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	band_arfcn = ntohs(est_req->h0.band_arfcn);
 	chan_nr = ul->chan_nr;
+	tn = chan_nr & 0x07;
 
 	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_EST_REQ (arfcn=%u, "
-		"chan_nr=0x%02x, tsc=%u, tch_mode=0x%02x)\n", (band_arfcn &~ ARFCN_FLAG_MASK),
-		chan_nr, est_req->tsc, est_req->tch_mode);
+		"tn=%u, chan_nr=0x%02x, tsc=%u, tch_mode=0x%02x)\n",
+		(band_arfcn &~ ARFCN_FLAG_MASK), tn, chan_nr,
+		est_req->tsc, est_req->tch_mode);
 
 	if (est_req->h) {
 		LOGP(DL1C, LOGL_ERROR, "FHSS is not supported\n");
@@ -562,9 +564,6 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 		rc = -EINVAL;
 		goto exit;
 	}
-
-	/* Determine TS index */
-	tn = chan_nr & 0x7;
 
 	/* Configure requested TS */
 	rc = sched_trx_configure_ts(l1l->trx, tn, config);
