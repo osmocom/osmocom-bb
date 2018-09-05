@@ -337,7 +337,7 @@ static void l1ctl_rx_param_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_par_req *par_req = (struct l1ctl_par_req *) ul->payload;
 
-	printd("L1CTL_PARAM_REQ (ta=%d, tx_power=%d)\n", par_req->ta,
+	printd("L1CTL_PARAM_REQ (ta=%d, tx_power=%u)\n", par_req->ta,
 		par_req->tx_power);
 
 	l1s.ta = par_req->ta;
