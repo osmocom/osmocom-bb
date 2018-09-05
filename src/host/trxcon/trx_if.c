@@ -310,28 +310,28 @@ int trx_if_cmd_setslot(struct trx_instance *trx, uint8_t tn, uint8_t type)
  * RSP (RX/TX)TUNE <status> <kHz>
  */
 
-int trx_if_cmd_rxtune(struct trx_instance *trx, uint16_t arfcn)
+int trx_if_cmd_rxtune(struct trx_instance *trx, uint16_t band_arfcn)
 {
 	uint16_t freq10;
 
 	/* RX is downlink on MS side */
-	freq10 = gsm_arfcn2freq10(arfcn, 0);
+	freq10 = gsm_arfcn2freq10(band_arfcn, 0);
 	if (freq10 == 0xffff) {
-		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", arfcn);
+		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn);
 		return -ENOTSUP;
 	}
 
 	return trx_ctrl_cmd(trx, 1, "RXTUNE", "%d", freq10 * 100);
 }
 
-int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t arfcn)
+int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t band_arfcn)
 {
 	uint16_t freq10;
 
 	/* TX is uplink on MS side */
-	freq10 = gsm_arfcn2freq10(arfcn, 1);
+	freq10 = gsm_arfcn2freq10(band_arfcn, 1);
 	if (freq10 == 0xffff) {
-		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", arfcn);
+		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn);
 		return -ENOTSUP;
 	}
 
@@ -351,18 +351,18 @@ int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t arfcn)
  */
 
 int trx_if_cmd_measure(struct trx_instance *trx,
-	uint16_t arfcn_start, uint16_t arfcn_stop)
+	uint16_t band_arfcn_start, uint16_t band_arfcn_stop)
 {
 	uint16_t freq10;
 
 	/* Update ARFCN range for measurement */
-	trx->pm_arfcn_start = arfcn_start;
-	trx->pm_arfcn_stop = arfcn_stop;
+	trx->pm_band_arfcn_start = band_arfcn_start;
+	trx->pm_band_arfcn_stop = band_arfcn_stop;
 
 	/* Calculate a frequency for current ARFCN (DL) */
-	freq10 = gsm_arfcn2freq10(arfcn_start, 0);
+	freq10 = gsm_arfcn2freq10(band_arfcn_start, 0);
 	if (freq10 == 0xffff) {
-		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", arfcn_start);
+		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn_start);
 		return -ENOTSUP;
 	}
 
@@ -372,7 +372,7 @@ int trx_if_cmd_measure(struct trx_instance *trx,
 static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 {
 	unsigned int freq10;
-	uint16_t arfcn;
+	uint16_t band_arfcn;
 	int dbm;
 
 	/* Parse freq. and power level */
@@ -380,22 +380,22 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 	freq10 /= 100;
 
 	/* Check received ARFCN against expected */
-	arfcn = gsm_freq102arfcn((uint16_t) freq10, 0);
-	if (arfcn != trx->pm_arfcn_start) {
+	band_arfcn = gsm_freq102arfcn((uint16_t) freq10, 0);
+	if (band_arfcn != trx->pm_band_arfcn_start) {
 		LOGP(DTRX, LOGL_ERROR, "Power measurement error: "
 			"response ARFCN=%u doesn't match expected ARFCN=%u\n",
-			arfcn &~ ARFCN_FLAG_MASK,
-			trx->pm_arfcn_start &~ ARFCN_FLAG_MASK);
+			band_arfcn &~ ARFCN_FLAG_MASK,
+			trx->pm_band_arfcn_start &~ ARFCN_FLAG_MASK);
 		return;
 	}
 
 	/* Send L1CTL_PM_CONF */
-	l1ctl_tx_pm_conf(trx->l1l, arfcn, dbm,
-		arfcn == trx->pm_arfcn_stop);
+	l1ctl_tx_pm_conf(trx->l1l, band_arfcn, dbm,
+		band_arfcn == trx->pm_band_arfcn_stop);
 
 	/* Schedule a next measurement */
-	if (arfcn != trx->pm_arfcn_stop)
-		trx_if_cmd_measure(trx, ++arfcn, trx->pm_arfcn_stop);
+	if (band_arfcn != trx->pm_band_arfcn_stop)
+		trx_if_cmd_measure(trx, ++band_arfcn, trx->pm_band_arfcn_stop);
 }
 
 /*

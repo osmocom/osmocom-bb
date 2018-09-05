@@ -349,7 +349,7 @@ exit:
 
 static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
-	uint16_t arfcn_start, arfcn_stop;
+	uint16_t band_arfcn_start, band_arfcn_stop;
 	struct l1ctl_pm_req *pmr;
 	int rc = 0;
 
@@ -361,17 +361,17 @@ static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
-	arfcn_start = ntohs(pmr->range.band_arfcn_from);
-	arfcn_stop  = ntohs(pmr->range.band_arfcn_to);
+	band_arfcn_start = ntohs(pmr->range.band_arfcn_from);
+	band_arfcn_stop  = ntohs(pmr->range.band_arfcn_to);
 
 	LOGP(DL1C, LOGL_NOTICE, "Received power measurement "
 		"request (%s: %d -> %d)\n",
-		gsm_band_name(gsm_arfcn2band(arfcn_start)),
-		arfcn_start &~ ARFCN_FLAG_MASK,
-		arfcn_stop &~ ARFCN_FLAG_MASK);
+		gsm_band_name(gsm_arfcn2band(band_arfcn_start)),
+		band_arfcn_start &~ ARFCN_FLAG_MASK,
+		band_arfcn_stop &~ ARFCN_FLAG_MASK);
 
 	/* Send measurement request to transceiver */
-	rc = trx_if_cmd_measure(l1l->trx, arfcn_start, arfcn_stop);
+	rc = trx_if_cmd_measure(l1l->trx, band_arfcn_start, band_arfcn_stop);
 
 exit:
 	msgb_free(msg);
