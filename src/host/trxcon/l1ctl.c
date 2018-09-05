@@ -554,6 +554,16 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
+	/* Only if the current ARFCN differs */
+	if (l1l->trx->band_arfcn != band_arfcn) {
+		/* Update current ARFCN */
+		l1l->trx->band_arfcn = band_arfcn;
+
+		/* Tune transceiver to required ARFCN */
+		trx_if_cmd_rxtune(l1l->trx, band_arfcn);
+		trx_if_cmd_txtune(l1l->trx, band_arfcn);
+	}
+
 	/* Update TSC (Training Sequence Code) */
 	l1l->trx->tsc = est_req->tsc;
 
