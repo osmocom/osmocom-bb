@@ -565,11 +565,6 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Determine TS index */
 	tn = chan_nr & 0x7;
-	if (tn > 7) {
-		LOGP(DL1C, LOGL_ERROR, "Incorrect TS index %u\n", tn);
-		rc = -EINVAL;
-		goto exit;
-	}
 
 	/* Configure requested TS */
 	rc = sched_trx_configure_ts(l1l->trx, tn, config);
@@ -732,11 +727,6 @@ static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Determine TS index */
 	tn = ul->chan_nr & 0x7;
-	if (tn > 7) {
-		LOGP(DL1C, LOGL_ERROR, "Incorrect TS index %u\n", tn);
-		rc = -EINVAL;
-		goto exit;
-	}
 
 	/* Make sure that required TS is allocated and configured */
 	ts = l1l->trx->ts_list[tn];
