@@ -1,6 +1,6 @@
 /* osmocon */
 
-/* (C) 2010 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2010,2018 by Harald Welte <laforge@gnumonks.org>
  * (C) 2010 by Holger Hans Peter Freyther <zecke@selfish.org>
  * (C) 2010 by Steve Markgraf <steve@steve-m.de>
  *
@@ -45,6 +45,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/application.h>
+#include <osmocom/core/socket.h>
 
 #include <arpa/inet.h>
 
@@ -1333,47 +1334,14 @@ static int register_tool_server(struct tool_server *ts,
 				uint8_t dlci)
 {
 	struct osmo_fd *bfd = &ts->bfd;
-	struct sockaddr_un local;
-	unsigned int namelen;
 	int rc;
 
-	bfd->fd = socket(AF_UNIX, SOCK_STREAM, 0);
-
-	if (bfd->fd < 0) {
+	rc = osmo_sock_unix_init_ofd(bfd, SOCK_STREAM, 0, path, OSMO_SOCK_F_BIND);
+	if (rc < 0) {
 		fprintf(stderr, "Failed to create Unix Domain Socket.\n");
 		return -1;
 	}
 
-	local.sun_family = AF_UNIX;
-	strncpy(local.sun_path, path, sizeof(local.sun_path));
-	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
-	unlink(local.sun_path);
-
-	/* we use the same magic that X11 uses in Xtranssock.c for
-	 * calculating the proper length of the sockaddr */
-#if defined(BSD44SOCKETS) || defined(__UNIXWARE__)
-	local.sun_len = strlen(local.sun_path);
-#endif
-#if defined(BSD44SOCKETS) || defined(SUN_LEN)
-	namelen = SUN_LEN(&local);
-#else
-	namelen = strlen(local.sun_path) +
-		  offsetof(struct sockaddr_un, sun_path);
-#endif
-
-	rc = bind(bfd->fd, (struct sockaddr *) &local, namelen);
-	if (rc != 0) {
-		fprintf(stderr, "Failed to bind the unix domain socket. '%s'\n",
-			local.sun_path);
-		return -1;
-	}
-
-	if (listen(bfd->fd, 0) != 0) {
-		fprintf(stderr, "Failed to listen.\n");
-		return -1;
-	}
-
-	bfd->when = BSC_FD_READ;
 	bfd->cb = tool_accept;
 	bfd->data = ts;
 
@@ -1383,11 +1351,6 @@ static int register_tool_server(struct tool_server *ts,
 	tool_server_for_dlci[dlci] = ts;
 
 	sercomm_register_rx_cb(dlci, hdlc_tool_cb);
-
-	if (osmo_fd_register(bfd) != 0) {
-		fprintf(stderr, "Failed to register the bfd.\n");
-		return -1;
-	}
 
 	return 0;
 }
