@@ -258,31 +258,6 @@ int trx_if_cmd_poweron(struct trx_instance *trx)
 }
 
 /*
- * SETPOWER sets output power in dB wrt full scale.
- * This command fails if the transmitter and receiver are not running.
- * CMD SETPOWER <dB>
- * RSP SETPOWER <status> <dB>
- */
-
-int trx_if_cmd_setpower(struct trx_instance *trx, int db)
-{
-	return trx_ctrl_cmd(trx, 0, "SETPOWER", "%d", db);
-}
-
-/*
- * ADJPOWER adjusts power by the given dB step.
- * Response returns resulting power level wrt full scale.
- * This command fails if the transmitter and receiver are not running.
- * CMD ADJPOWER <dBStep>
- * RSP ADJPOWER <status> <dBLevel>
-*/
-
-int trx_if_cmd_adjpower(struct trx_instance *trx, int db)
-{
-	return trx_ctrl_cmd(trx, 0, "ADJPOWER", "%d", db);
-}
-
-/*
  * Timeslot Control
  *
  * SETSLOT sets the format of the uplink timeslots in the ARFCN.
