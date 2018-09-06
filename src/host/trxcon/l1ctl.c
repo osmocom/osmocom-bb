@@ -554,43 +554,84 @@ exit:
 	return rc;
 }
 
+static int l1ctl_proc_est_req_h0(struct trx_instance *trx, struct l1ctl_h0 *h)
+{
+	uint16_t band_arfcn;
+	int rc = 0;
+
+	band_arfcn = ntohs(h->band_arfcn);
+
+	LOGP(DL1C, LOGL_NOTICE, "L1CTL_DM_EST_REQ indicates a single "
+		"ARFCN=%u channel\n", band_arfcn &~ ARFCN_FLAG_MASK);
+
+	/* Do we need to retune? */
+	if (trx->band_arfcn == band_arfcn)
+		return 0;
+
+	/* Tune transceiver to required ARFCN */
+	rc |= trx_if_cmd_rxtune(trx, band_arfcn);
+	rc |= trx_if_cmd_txtune(trx, band_arfcn);
+	if (rc)
+		return rc;
+
+	/* Update current ARFCN */
+	trx->band_arfcn = band_arfcn;
+
+	return 0;
+}
+
+static int l1ctl_proc_est_req_h1(struct trx_instance *trx, struct l1ctl_h1 *h)
+{
+	int rc;
+
+	LOGP(DL1C, LOGL_NOTICE, "L1CTL_DM_EST_REQ indicates a Frequency "
+		"Hopping (hsn=%u, maio=%u, chans=%u) channel\n",
+		h->hsn, h->maio, h->n);
+
+	/* No channels?!? */
+	if (!h->n) {
+		LOGP(DL1C, LOGL_ERROR, "No channels in mobile allocation?!?\n");
+		return -EINVAL;
+	}
+
+	/* Forward hopping parameters to TRX */
+	rc = trx_if_cmd_setfh(trx, h->hsn, h->maio, h->ma, h->n);
+	if (rc)
+		return rc;
+
+	/**
+	 * TODO: update the state of trx_instance somehow
+	 * in order to indicate that it is in hopping mode...
+	 */
+	return 0;
+}
+
 static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	enum gsm_phys_chan_config config;
 	struct l1ctl_dm_est_req *est_req;
 	struct l1ctl_info_ul *ul;
 	struct trx_ts *ts;
-	uint16_t band_arfcn;
 	uint8_t chan_nr, tn;
-	int rc = 0;
+	int rc;
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 	est_req = (struct l1ctl_dm_est_req *) ul->payload;
 
-	band_arfcn = ntohs(est_req->h0.band_arfcn);
 	chan_nr = ul->chan_nr;
 	tn = chan_nr & 0x07;
 
-	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_EST_REQ (arfcn=%u, "
-		"tn=%u, chan_nr=0x%02x, tsc=%u, tch_mode=0x%02x)\n",
-		(band_arfcn &~ ARFCN_FLAG_MASK), tn, chan_nr,
-		est_req->tsc, est_req->tch_mode);
+	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_EST_REQ "
+		"(tn=%u, chan_nr=0x%02x, tsc=%u, tch_mode=0x%02x)\n",
+		tn, chan_nr, est_req->tsc, est_req->tch_mode);
 
-	if (est_req->h) {
-		LOGP(DL1C, LOGL_ERROR, "FHSS is not supported\n");
-		rc = -ENOTSUP;
+	/* Frequency hopping? */
+	if (est_req->h)
+		rc = l1ctl_proc_est_req_h1(l1l->trx, &est_req->h1);
+	else /* Single ARFCN */
+		rc = l1ctl_proc_est_req_h0(l1l->trx, &est_req->h0);
+	if (rc)
 		goto exit;
-	}
-
-	/* Only if the current ARFCN differs */
-	if (l1l->trx->band_arfcn != band_arfcn) {
-		/* Update current ARFCN */
-		l1l->trx->band_arfcn = band_arfcn;
-
-		/* Tune transceiver to required ARFCN */
-		trx_if_cmd_rxtune(l1l->trx, band_arfcn);
-		trx_if_cmd_txtune(l1l->trx, band_arfcn);
-	}
 
 	/* Update TSC (Training Sequence Code) */
 	l1l->trx->tsc = est_req->tsc;
