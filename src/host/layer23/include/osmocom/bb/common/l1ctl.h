@@ -14,7 +14,7 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg, uint8_t chan_nr,
 	uint8_t link_id);
 
 /* Transmit L1CTL_PARAM_REQ */
-int l1ctl_tx_param_req(struct osmocom_ms *ms, uint8_t ta, uint8_t tx_power);
+int l1ctl_tx_param_req(struct osmocom_ms *ms, int8_t ta, uint8_t tx_power);
 
 int l1ctl_tx_crypto_req(struct osmocom_ms *ms, uint8_t chan_nr,
 	uint8_t algo, uint8_t *key, uint8_t len);

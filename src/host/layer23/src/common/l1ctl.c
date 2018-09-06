@@ -388,7 +388,7 @@ int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode,
 }
 
 /* Transmit L1CTL_PARAM_REQ */
-int l1ctl_tx_param_req(struct osmocom_ms *ms, uint8_t ta, uint8_t tx_power)
+int l1ctl_tx_param_req(struct osmocom_ms *ms, int8_t ta, uint8_t tx_power)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
