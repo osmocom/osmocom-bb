@@ -391,6 +391,50 @@ int trx_if_cmd_setta(struct trx_instance *trx, int8_t ta)
 	return trx_ctrl_cmd(trx, 0, "SETTA", "%d", ta);
 }
 
+/*
+ * Frequency Hopping parameters indication
+ *
+ * SETFH instructs transceiver to enable frequency
+ * hopping mode using the given parameters.
+ * CMD SETFH <HSN> <MAIO> <CH1> <CH2> [... <CHN>]
+ */
+
+int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn,
+	uint8_t maio, uint16_t *ma, size_t ma_len)
+{
+	char ma_buf[100];
+	char *ptr;
+	int i, rc;
+
+	/* No channels, WTF?!? */
+	if (!ma_len)
+		return -EINVAL;
+
+	/**
+	 * Compose a sequence of channels (mobile allocation)
+	 * FIXME: the length of a CTRL command is limited to 128 symbols,
+	 * so we may have some problems if there are many channels...
+	 */
+	for (i = 0, ptr = ma_buf; i < ma_len; i++) {
+		/* Append a channel */
+		rc = snprintf(ptr, ma_buf + sizeof(ma_buf) - ptr, "%u ", ma[i]);
+		if (rc < 0)
+			return rc;
+
+		/* Move pointer */
+		ptr += rc;
+
+		/* Prevent buffer overflow */
+		if (ptr >= (ma_buf + 100))
+			return -EIO;
+	}
+
+	/* Overwrite the last space */
+	*(ptr - 1) = '\0';
+
+	return trx_ctrl_cmd(trx, 1, "SETFH", "%u %u %s", hsn, maio, ma_buf);
+}
+
 /* Get response from CTRL socket */
 static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 {
