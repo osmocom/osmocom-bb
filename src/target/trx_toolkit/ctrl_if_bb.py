@@ -119,12 +119,6 @@ class CTRLInterfaceBB(CTRLInterface):
 		elif self.verify_cmd(request, "SETTA", 1):
 			print("[i] Recv SETTA cmd")
 
-			# Parse and check TA value
-			ta = int(request[1])
-			if ta < 0 or ta > 63:
-				print("[!] TA value should be in range: 0..63")
-				return -1
-
 			# Save to the BurstForwarder instance
 			self.burst_fwd.ta = ta
 			return 0
