@@ -1,7 +1,7 @@
 /* Layer 1 socket interface of layer2/3 stack */
 
 /* (C) 2010 by Holger Hans Peter Freyther
- * (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2010,2018 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -27,6 +27,7 @@
 #include <osmocom/bb/common/l1l2_interface.h>
 
 #include <osmocom/core/utils.h>
+#include <osmocom/core/socket.h>
 
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -105,38 +106,17 @@ static int layer2_write(struct osmo_fd *fd, struct msgb *msg)
 int layer2_open(struct osmocom_ms *ms, const char *socket_path)
 {
 	int rc;
-	struct sockaddr_un local;
 
-	ms->l2_wq.bfd.fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (ms->l2_wq.bfd.fd < 0) {
-		fprintf(stderr, "Failed to create unix domain socket.\n");
-		return ms->l2_wq.bfd.fd;
-	}
-
-	local.sun_family = AF_UNIX;
-	osmo_strlcpy(local.sun_path, socket_path, sizeof(local.sun_path));
-
-	rc = connect(ms->l2_wq.bfd.fd, (struct sockaddr *) &local,
-		     sizeof(local));
+	rc = osmo_sock_unix_init_ofd(&ms->l2_wq.bfd, SOCK_STREAM, 0, socket_path, OSMO_SOCK_F_CONNECT);
 	if (rc < 0) {
-		fprintf(stderr, "Failed to connect to '%s': %s\n", local.sun_path,
-			strerror(errno));
-		close(ms->l2_wq.bfd.fd);
+		fprintf(stderr, "Failed to create unix domain socket.\n");
 		return rc;
 	}
 
 	osmo_wqueue_init(&ms->l2_wq, 100);
 	ms->l2_wq.bfd.data = ms;
-	ms->l2_wq.bfd.when = BSC_FD_READ;
 	ms->l2_wq.read_cb = layer2_read;
 	ms->l2_wq.write_cb = layer2_write;
-
-	rc = osmo_fd_register(&ms->l2_wq.bfd);
-	if (rc != 0) {
-		fprintf(stderr, "Failed to register fd.\n");
-		close(ms->l2_wq.bfd.fd);
-		return rc;
-	}
 
 	return 0;
 }

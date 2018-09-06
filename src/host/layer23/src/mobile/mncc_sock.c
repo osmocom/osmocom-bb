@@ -1,6 +1,6 @@
 /* mncc_sock.c: Tie the MNCC interface to a unix domain socket */
 
-/* (C) 2008-2010 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2008-2011,2018 by Harald Welte <laforge@gnumonks.org>
  * (C) 2009,2011 by Andreas Eversberg <andreas@eversberg.eu>
  * All Rights Reserved
  *
@@ -34,6 +34,7 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/socket.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <osmocom/bb/common/logging.h>
@@ -79,9 +80,6 @@ void mncc_sock_write_pending(struct mncc_sock_state *state)
 {
 	state->conn_bfd.when |= BSC_FD_WRITE;
 }
-
-/* FIXME: move this to libosmocore */
-int osmo_unixsock_listen(struct osmo_fd *bfd, int type, const char *path);
 
 static void mncc_sock_close(struct mncc_sock_state *state)
 {
@@ -268,7 +266,7 @@ struct mncc_sock_state *mncc_sock_init(void *inst, const char *name)
 
 	bfd = &state->listen_bfd;
 
-	rc = osmo_unixsock_listen(bfd, SOCK_SEQPACKET, name);
+	rc = osmo_sock_unix_init_ofd(bfd, SOCK_SEQPACKET, 0, name, OSMO_SOCK_F_BIND);
 	if (rc < 0) {
 		LOGP(DMNCC, LOGL_ERROR, "Could not create unix socket: %s\n",
 			strerror(errno));
@@ -276,17 +274,8 @@ struct mncc_sock_state *mncc_sock_init(void *inst, const char *name)
 		return NULL;
 	}
 
-	bfd->when = BSC_FD_READ;
 	bfd->cb = mncc_sock_accept;
 	bfd->data = state;
-
-	rc = osmo_fd_register(bfd);
-	if (rc < 0) {
-		LOGP(DMNCC, LOGL_ERROR, "Could not register listen fd: %d\n", rc);
-		close(bfd->fd);
-		talloc_free(state);
-		return NULL;
-	}
 
 	return state;
 }
@@ -298,50 +287,4 @@ void mncc_sock_exit(struct mncc_sock_state *state)
 	osmo_fd_unregister(&state->listen_bfd);
 	close(state->listen_bfd.fd);
 	talloc_free(state);
-}
-
-/* FIXME: move this to libosmocore */
-int osmo_unixsock_listen(struct osmo_fd *bfd, int type, const char *path)
-{
-	struct sockaddr_un local;
-	unsigned int namelen;
-	int rc;
-
-	bfd->fd = socket(AF_UNIX, type, 0);
-
-	if (bfd->fd < 0) {
-		fprintf(stderr, "Failed to create Unix Domain Socket.\n");
-		return -1;
-	}
-
-	local.sun_family = AF_UNIX;
-	osmo_strlcpy(local.sun_path, path, sizeof(local.sun_path));
-	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
-	unlink(local.sun_path);
-
-	/* we use the same magic that X11 uses in Xtranssock.c for
-	 * calculating the proper length of the sockaddr */
-#if defined(BSD44SOCKETS) || defined(__UNIXWARE__)
-	local.sun_len = strlen(local.sun_path);
-#endif
-#if defined(BSD44SOCKETS) || defined(SUN_LEN)
-	namelen = SUN_LEN(&local);
-#else
-	namelen = strlen(local.sun_path) +
-		  offsetof(struct sockaddr_un, sun_path);
-#endif
-
-	rc = bind(bfd->fd, (struct sockaddr *) &local, namelen);
-	if (rc != 0) {
-		fprintf(stderr, "Failed to bind the unix domain socket. '%s'\n",
-			local.sun_path);
-		return -1;
-	}
-
-	if (listen(bfd->fd, 0) != 0) {
-		fprintf(stderr, "Failed to listen.\n");
-		return -1;
-	}
-
-	return 0;
 }

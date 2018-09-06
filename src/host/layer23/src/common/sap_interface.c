@@ -1,7 +1,7 @@
 /* BTSAP socket interface of layer2/3 stack */
 
 /* (C) 2010 by Holger Hans Peter Freyther
- * (C) 2010 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2010,2018 by Harald Welte <laforge@gnumonks.org>
  * (C) 2010 by Andreas Eversberg <jolly@eversberg.eu>
  * (C) 2011 by Nico Golde <nico@ngolde.de>
  *
@@ -29,6 +29,7 @@
 
 #include <osmocom/core/utils.h>
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/socket.h>
 
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -499,36 +500,18 @@ static void sap_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 int sap_open(struct osmocom_ms *ms, const char *socket_path)
 {
 	ssize_t rc;
-	struct sockaddr_un local;
 
-	ms->sap_wq.bfd.fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (ms->sap_wq.bfd.fd < 0) {
-		fprintf(stderr, "Failed to create unix domain socket.\n");
-		return ms->sap_wq.bfd.fd;
-	}
-
-	local.sun_family = AF_UNIX;
-	osmo_strlcpy(local.sun_path, socket_path, sizeof(local.sun_path));
-
-	rc = connect(ms->sap_wq.bfd.fd, (struct sockaddr *) &local, sizeof(local));
+	rc = osmo_sock_unix_init_ofd(&ms->sap_wq.bfd, SOCK_STREAM, 0, socket_path, OSMO_SOCK_F_CONNECT);
 	if (rc < 0) {
-		fprintf(stderr, "Failed to connect to '%s'\n", local.sun_path);
+		fprintf(stderr, "Failed to create unix domain socket.\n");
 		ms->sap_entity.sap_state = SAP_SOCKET_ERROR;
-		close(ms->sap_wq.bfd.fd);
 		return rc;
 	}
 
 	osmo_wqueue_init(&ms->sap_wq, 100);
 	ms->sap_wq.bfd.data = ms;
-	ms->sap_wq.bfd.when = BSC_FD_READ;
 	ms->sap_wq.read_cb = sap_read;
 	ms->sap_wq.write_cb = sap_write;
-
-	rc = osmo_fd_register(&ms->sap_wq.bfd);
-	if (rc != 0) {
-		fprintf(stderr, "Failed to register fd.\n");
-		return rc;
-	}
 
 	sap_connect(ms);
 
