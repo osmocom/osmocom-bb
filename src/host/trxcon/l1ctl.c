@@ -663,7 +663,6 @@ static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_par_req *par_req;
 	struct l1ctl_info_ul *ul;
-	int rc = 0;
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 	par_req = (struct l1ctl_par_req *) ul->payload;
@@ -671,13 +670,16 @@ static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_PARAM_REQ "
 		"(ta=%d, tx_power=%u)\n", par_req->ta, par_req->tx_power);
 
-	rc |= trx_if_cmd_setta(l1l->trx, par_req->ta);
+	/* Instruct TRX to use new TA value */
+	if (l1l->trx->ta != par_req->ta) {
+		trx_if_cmd_setta(l1l->trx, par_req->ta);
+		l1l->trx->ta = par_req->ta;
+	}
 
-	l1l->trx->ta = par_req->ta;
 	l1l->trx->tx_power = par_req->tx_power;
 
 	msgb_free(msg);
-	return rc;
+	return 0;
 }
 
 static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)

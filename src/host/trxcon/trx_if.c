@@ -388,10 +388,6 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 
 int trx_if_cmd_setta(struct trx_instance *trx, int8_t ta)
 {
-	/* Do nothing, if requested TA value matches the current */
-	if (trx->ta == ta)
-		return 0;
-
 	return trx_ctrl_cmd(trx, 0, "SETTA", "%d", ta);
 }
 
