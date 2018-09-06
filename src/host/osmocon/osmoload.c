@@ -1,6 +1,7 @@
 /* control utility for the Calypso bootloader */
 
 /* (C) 2010 by Ingo Albrecht <prom@berlin.ccc.de>
+ * (C) 2018 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
  *
@@ -39,6 +40,7 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/crc16.h>
+#include <osmocom/core/socket.h>
 
 #include <loader/protocol.h>
 
@@ -493,34 +495,16 @@ loader_read_cb(struct osmo_fd *fd, unsigned int flags) {
 static void
 loader_connect(const char *socket_path) {
 	int rc;
-	struct sockaddr_un local;
 	struct osmo_fd *conn = &connection;
 
-	local.sun_family = AF_UNIX;
-	strncpy(local.sun_path, socket_path, sizeof(local.sun_path));
-	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
-
-	conn->fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (conn->fd < 0) {
+	rc = osmo_sock_unix_init_ofd(conn, SOCK_STREAM, 0, socket_path, OSMO_SOCK_F_CONNECT);
+	if (rc < 0) {
 		fprintf(stderr, "Failed to create unix domain socket.\n");
 		exit(1);
 	}
 
-	rc = connect(conn->fd, (struct sockaddr *) &local,
-				 sizeof(local.sun_family) + strlen(local.sun_path));
-	if (rc < 0) {
-		fprintf(stderr, "Failed to connect to '%s'.\n", local.sun_path);
-		exit(1);
-	}
-
-	conn->when = BSC_FD_READ;
 	conn->cb = loader_read_cb;
 	conn->data = NULL;
-
-	if (osmo_fd_register(conn) != 0) {
-		fprintf(stderr, "Failed to register fd.\n");
-		exit(1);
-	}
 }
 
 static void
