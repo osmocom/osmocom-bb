@@ -10,6 +10,14 @@
 #define GSM_SUPERFRAME		(26 * 51)
 #define GSM_HYPERFRAME		(2048 * GSM_SUPERFRAME)
 
+/* TDMA frame number arithmetics */
+#define TDMA_FN_SUM(a, b) \
+	((a + b) % GSM_HYPERFRAME)
+#define TDMA_FN_SUB(a, b) \
+	((a + GSM_HYPERFRAME - b) % GSM_HYPERFRAME)
+#define TDMA_FN_INC(fn) \
+	TDMA_FN_SUM(fn, 1)
+
 enum tdma_sched_clck_state {
 	SCH_CLCK_STATE_WAIT,
 	SCH_CLCK_STATE_OK,

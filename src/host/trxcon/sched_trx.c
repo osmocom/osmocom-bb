@@ -65,8 +65,8 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		 * Advance frame number, giving the transceiver more
 		 * time until a burst must be transmitted...
 		 */
-		fn = (sched->fn_counter_proc + sched->fn_counter_advance)
-			% GSM_HYPERFRAME;
+		fn = TDMA_FN_SUM(sched->fn_counter_proc,
+			sched->fn_counter_advance);
 
 		/* Get frame from multiframe */
 		offset = fn % ts->mf_layout->period;
@@ -608,15 +608,14 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	}
 
 	/* Calculate how many frames have been elapsed */
-	elapsed  = (burst_fn + GSM_HYPERFRAME - ts->mf_last_fn);
-	elapsed %= GSM_HYPERFRAME;
+	elapsed = TDMA_FN_SUB(burst_fn, ts->mf_last_fn);
 
 	/**
 	 * If not too many frames have been elapsed,
 	 * start counting from last fn + 1
 	 */
 	if (elapsed < 10)
-		fn = (ts->mf_last_fn + 1) % GSM_HYPERFRAME;
+		fn = TDMA_FN_INC(ts->mf_last_fn);
 	else
 		fn = burst_fn;
 
@@ -658,7 +657,7 @@ next_frame:
 		if (fn == burst_fn)
 			break;
 
-		fn = (fn + 1) % GSM_HYPERFRAME;
+		fn = TDMA_FN_INC(fn);
 	}
 
 	/* Set last processed frame number */

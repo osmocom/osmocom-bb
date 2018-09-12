@@ -83,8 +83,7 @@ static void sched_clck_tick(void *data)
 		timespecadd(tv_clock, &frame_duration, tv_clock);
 		elapsed_us -= FRAME_DURATION_uS;
 
-		sched->fn_counter_proc = (sched->fn_counter_proc + 1)
-			% GSM_HYPERFRAME;
+		sched->fn_counter_proc = TDMA_FN_INC(sched->fn_counter_proc);
 
 		/* Call frame callback */
 		if (sched->clock_cb)
@@ -142,8 +141,7 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 	/* Calculate elapsed time / frames since last processed fn */
 	timespecsub(&tv_now, tv_clock, &elapsed);
 	elapsed_us = (elapsed.tv_sec * 1000000) + (elapsed.tv_nsec / 1000);
-	elapsed_fn = (fn + GSM_HYPERFRAME - sched->fn_counter_proc)
-		% GSM_HYPERFRAME;
+	elapsed_fn = TDMA_FN_SUB(fn, sched->fn_counter_proc);
 
 	if (elapsed_fn >= 135774)
 		elapsed_fn -= GSM_HYPERFRAME;
@@ -181,8 +179,7 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 
 	/* Transmit what we still need to transmit */
 	while (fn != sched->fn_counter_proc) {
-		sched->fn_counter_proc = (sched->fn_counter_proc + 1)
-			% GSM_HYPERFRAME;
+		sched->fn_counter_proc = TDMA_FN_INC(sched->fn_counter_proc);
 
 		/* Call frame callback */
 		if (sched->clock_cb)
