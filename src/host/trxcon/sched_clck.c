@@ -43,7 +43,6 @@
 #include "trx_if.h"
 #include "trxcon.h"
 
-#define FRAME_DURATION_uS	4615
 #define MAX_FN_SKEW		50
 #define TRX_LOSS_FRAMES	400
 

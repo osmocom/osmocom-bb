@@ -337,10 +337,10 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	trx_if_cmd_poweron(l1l->trx);
 
 	/* Start FBSB expire timer */
-	/* TODO: share FRAME_DURATION_uS=4615 from scheduler.c */
 	l1l->fbsb_timer.data = l1l;
 	l1l->fbsb_timer.cb = fbsb_timer_cb;
-	osmo_timer_schedule(&l1l->fbsb_timer, 0, timeout * 4615);
+	osmo_timer_schedule(&l1l->fbsb_timer, 0,
+		timeout * FRAME_DURATION_uS);
 
 exit:
 	msgb_free(msg);

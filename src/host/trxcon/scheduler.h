@@ -5,6 +5,8 @@
 
 #include <osmocom/core/timer.h>
 
+#define FRAME_DURATION_uS	4615
+
 #define GSM_SUPERFRAME		(26 * 51)
 #define GSM_HYPERFRAME		(2048 * GSM_SUPERFRAME)
 
