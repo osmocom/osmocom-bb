@@ -1,6 +1,11 @@
 #ifndef _GSM322_H
 #define _GSM322_H
 
+#include <osmocom/bb/common/sysinfo.h>
+
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/timer.h>
+
 /* 4.3.1.1 List of states for PLMN slection process (automatic mode) */
 #define GSM322_A0_NULL			0
 #define	GSM322_A1_TRYING_RPLMN		1
