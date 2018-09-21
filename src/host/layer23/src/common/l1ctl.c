@@ -226,7 +226,6 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	if (dl->fire_crc >= 2) {
-printf("Dropping frame with %u bit errors\n", dl->num_biterr);
 		LOGP(DL1C, LOGL_NOTICE, "Dropping frame with %u bit errors\n",
 			dl->num_biterr);
 		msgb_free(msg);
