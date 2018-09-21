@@ -194,7 +194,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			if (meas->dsc > meas->ds_fail)
 				meas->dsc = meas->ds_fail;
 			if (meas->dsc < meas->ds_fail)
-				printf("LOSS counter for CCCH %d\n", meas->dsc);
+				LOGP(DL1C, LOGL_INFO, "LOSS counter for CCCH %d\n", meas->dsc);
 			if (meas->dsc > 0)
 				break;
 			meas->ds_fail = 0;
@@ -216,7 +216,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			if (meas->s > meas->rl_fail)
 				meas->s = meas->rl_fail;
 			if (meas->s < meas->rl_fail)
-				printf("LOSS counter for ACCH %d\n", meas->s);
+				LOGP(DL1C, LOGL_NOTICE, "LOSS counter for ACCH %d\n", meas->s);
 			if (meas->s > 0)
 				break;
 			meas->rl_fail = 0;
