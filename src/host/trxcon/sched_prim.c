@@ -284,17 +284,17 @@ no_facch:
  *
  * @param  queue      a transmit queue to take a prim from
  * @param  fn         the current frame number (used for FACCH/H)
- * @param  lchan_type required primitive type
+ * @param  lchan      logical channel state
  * @return            a primitive or NULL if not found
  */
 struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
-	uint32_t fn, enum trx_lchan_type lchan_type)
+	uint32_t fn, struct trx_lchan_state *lchan)
 {
 	/* There is nothing to dequeue */
 	if (llist_empty(queue))
 		return NULL;
 
-	switch (lchan_type) {
+	switch (lchan->type) {
 	/* TCH/F requires FACCH/F prioritization */
 	case TRXC_TCHF:
 		return prim_dequeue_tch_f(queue);
@@ -302,11 +302,11 @@ struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
 	/* FACCH/H prioritization is a bit more complex */
 	case TRXC_TCHH_0:
 	case TRXC_TCHH_1:
-		return prim_dequeue_tch_h(queue, fn, lchan_type);
+		return prim_dequeue_tch_h(queue, fn, lchan->type);
 
 	/* Other kinds of logical channels */
 	default:
-		return prim_dequeue_one(queue, lchan_type);
+		return prim_dequeue_one(queue, lchan->type);
 	}
 }
 

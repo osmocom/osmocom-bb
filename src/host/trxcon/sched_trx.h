@@ -302,7 +302,7 @@ int sched_prim_push(struct trx_instance *trx,
 	(CHAN_IS_TCH(prim->chan) && prim->payload_len == GSM_MACBLOCK_LEN)
 
 struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
-	uint32_t fn, enum trx_lchan_type lchan_type);
+	uint32_t fn, struct trx_lchan_state *lchan);
 int sched_prim_dummy(struct trx_lchan_state *lchan);
 void sched_prim_drop(struct trx_lchan_state *lchan);
 void sched_prim_flush_queue(struct llist_head *list);
