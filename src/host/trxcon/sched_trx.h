@@ -273,7 +273,7 @@ struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
 	enum trx_lchan_type chan);
 
 /* Primitive management functions */
-int sched_prim_init(struct trx_instance *trx, struct trx_ts_prim **prim,
+int sched_prim_init(void *ctx, struct trx_ts_prim **prim,
 	size_t pl_len, uint8_t chan_nr, uint8_t link_id);
 int sched_prim_push(struct trx_instance *trx,
 	struct trx_ts_prim *prim, uint8_t chan_nr);

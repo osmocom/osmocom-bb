@@ -42,16 +42,15 @@
  * Initializes a new primitive by allocating memory
  * and filling some meta-information (e.g. lchan type).
  *
- * @param  trx     TRX instance to be used as initial talloc context
+ * @param  ctx     parent talloc context
  * @param  prim    external prim pointer (will point to the allocated prim)
  * @param  pl_len  prim payload length
  * @param  chan_nr RSL channel description (used to set a proper chan)
  * @param  link_id RSL link description (used to set a proper chan)
  * @return         zero in case of success, otherwise a error number
  */
-int sched_prim_init(struct trx_instance *trx,
-	struct trx_ts_prim **prim, size_t pl_len,
-	uint8_t chan_nr, uint8_t link_id)
+int sched_prim_init(void *ctx, struct trx_ts_prim **prim,
+	size_t pl_len, uint8_t chan_nr, uint8_t link_id)
 {
 	enum trx_lchan_type lchan_type;
 	struct trx_ts_prim *new_prim;
@@ -70,7 +69,7 @@ int sched_prim_init(struct trx_instance *trx,
 	len += pl_len; /* Requested payload size */
 
 	/* Allocate a new primitive */
-	new_prim = talloc_zero_size(trx, len);
+	new_prim = talloc_zero_size(ctx, len);
 	if (new_prim == NULL) {
 		LOGP(DSCH, LOGL_ERROR, "Failed to allocate memory\n");
 		return -ENOMEM;
