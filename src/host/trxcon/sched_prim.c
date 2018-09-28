@@ -102,10 +102,6 @@ int sched_prim_push(struct trx_instance *trx,
 
 	/* Determine TS index */
 	tn = chan_nr & 0x7;
-	if (tn > 7) {
-		LOGP(DSCH, LOGL_ERROR, "Incorrect TS index %u\n", tn);
-		return -EINVAL;
-	}
 
 	/* Check whether required timeslot is allocated and configured */
 	ts = trx->ts_list[tn];
