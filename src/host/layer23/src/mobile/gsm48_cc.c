@@ -1974,17 +1974,13 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 	case GSM_TCHH_FRAME:
 	case GSM_TCH_FRAME_AMR:
 		return gsm_send_voice_mncc(ms, arg);
+
+	/* Intentionally ignored messages */
 	case MNCC_LCHAN_MODIFY:
-		return 0;
 	case MNCC_FRAME_RECV:
-		ms->mncc_entity.ref = trans->callref;
-		gsm48_rr_audio_mode(ms,
-			AUDIO_TX_TRAFFIC_REQ | AUDIO_RX_TRAFFIC_IND);
-		return 0;
 	case MNCC_FRAME_DROP:
-		if (ms->mncc_entity.ref == trans->callref)
-			ms->mncc_entity.ref = 0;
-		gsm48_rr_audio_mode(ms, AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER);
+		LOGP(DCC, LOGL_NOTICE, "Ignoring MNCC message %s\n",
+			get_mncc_name(msg_type));
 		return 0;
 	}
 

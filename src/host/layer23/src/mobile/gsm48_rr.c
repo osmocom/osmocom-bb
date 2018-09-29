@@ -5683,24 +5683,3 @@ int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
 
 	return l1ctl_tx_traffic_req(ms, msg, rr->cd_now.chan_nr, 0);
 }
-
-int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode)
-{
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	uint8_t ch_type, ch_subch, ch_ts;
-
-	LOGP(DRR, LOGL_INFO, "setting audio mode to %d\n", mode);
-
-	rr->audio_mode = mode;
-
-	if (!rr->dm_est)
-		return 0;
-
-	rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts);
-	if (ch_type != RSL_CHAN_Bm_ACCHs
-	 && ch_type != RSL_CHAN_Lm_ACCHs)
-		return 0;
-
-	return l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, mode);
-}
-
