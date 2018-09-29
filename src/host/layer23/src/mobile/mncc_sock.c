@@ -206,6 +206,38 @@ static int mncc_sock_cb(struct osmo_fd *bfd, unsigned int flags)
 	return rc;
 }
 
+/* Send a version indication to the remote */
+static void mncc_sock_queue_hello(struct mncc_sock_state *state)
+{
+	struct gsm_mncc_hello *hello;
+	struct msgb *msg;
+
+	msg = msgb_alloc(sizeof(*hello), "MNCC_SOCKET_HELLO");
+	if (!msg) {
+		LOGP(DMNCC, LOGL_ERROR, "Failed to allocate MNCC_SOCKET_HELLO\n");
+		mncc_sock_close(state);
+		return;
+	}
+
+	/* Put header */
+	hello = (struct gsm_mncc_hello *) msgb_put(msg, sizeof(*hello));
+	hello->msg_type = MNCC_SOCKET_HELLO;
+	hello->version = MNCC_SOCK_VERSION;
+
+	/* The sizes of some structures */
+	hello->mncc_size = sizeof(struct gsm_mncc);
+	hello->data_frame_size = sizeof(struct gsm_data_frame);
+
+	/* Some offsets */
+	hello->called_offset = offsetof(struct gsm_mncc, called);
+	hello->signal_offset = offsetof(struct gsm_mncc, signal);
+	hello->emergency_offset = offsetof(struct gsm_mncc, emergency);
+	hello->lchan_type_offset = offsetof(struct gsm_mncc, lchan_type);
+
+	msgb_enqueue(&state->upqueue, msg);
+	state->conn_bfd.when |= BSC_FD_WRITE;
+}
+
 /* accept a new connection */
 static int mncc_sock_accept(struct osmo_fd *bfd, unsigned int flags)
 {
@@ -245,6 +277,9 @@ static int mncc_sock_accept(struct osmo_fd *bfd, unsigned int flags)
 
 	LOGP(DMNCC, LOGL_NOTICE, "MNCC Socket has connection with external "
 		"call control application\n");
+
+	/* Send HELLO */
+	mncc_sock_queue_hello(state);
 
 	return 0;
 }

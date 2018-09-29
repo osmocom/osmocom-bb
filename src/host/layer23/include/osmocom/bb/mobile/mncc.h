@@ -29,6 +29,8 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/gsm/mncc.h>
 
+#define MNCC_SOCK_VERSION	5
+
 struct gsm_call {
 	struct llist_head	entry;
 
@@ -111,6 +113,8 @@ struct gsm_call {
 #define GSM_TCHH_FRAME		0x0302
 #define GSM_TCH_FRAME_AMR	0x0303
 
+#define MNCC_SOCKET_HELLO	0x0400
+
 #define GSM_MAX_FACILITY	128
 #define GSM_MAX_SSVERSION	128
 #define GSM_MAX_USERUSER	128
@@ -171,6 +175,21 @@ struct gsm_data_frame {
 	uint32_t	msg_type;
 	uint32_t	callref;
 	unsigned char	data[0];
+};
+
+struct gsm_mncc_hello {
+	uint32_t	msg_type;
+	uint32_t	version;
+
+	/* The sizes of some structures */
+	uint32_t	mncc_size;
+	uint32_t	data_frame_size;
+
+	/* Some offsets */
+	uint32_t	called_offset;
+	uint32_t	signal_offset;
+	uint32_t	emergency_offset;
+	uint32_t	lchan_type_offset;
 };
 
 const char *get_mncc_name(int value);
