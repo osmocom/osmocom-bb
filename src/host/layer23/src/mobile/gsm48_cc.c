@@ -1975,6 +1975,12 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 	case GSM_TCH_FRAME_AMR:
 		return gsm_send_voice_mncc(ms, arg);
 
+	/* RTP management */
+	case MNCC_RTP_CREATE:
+	case MNCC_RTP_CONNECT:
+	case MNCC_RTP_FREE:
+		return 0;
+
 	/* Intentionally ignored messages */
 	case MNCC_LCHAN_MODIFY:
 	case MNCC_FRAME_RECV:
