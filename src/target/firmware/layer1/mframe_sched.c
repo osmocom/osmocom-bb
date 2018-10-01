@@ -400,10 +400,12 @@ uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts)
 	case MF_TASK_TCH_H_1:
 		cbits = 0x02 + 1;
 		break;
+
 	case MF_TASK_UL_ALL_NB:
-		/* ERROR: cannot express as channel number */
-		cbits = 0;
-		break;
+	default:
+		printd("ERROR: cannot express mf_task=%d as "
+			"channel number, using 0x00\n", mft);
+		cbits = 0x00;
 	}
 
 	return (cbits << 3) | (ts & 0x7);
