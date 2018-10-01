@@ -256,6 +256,25 @@ int l1ctl_tx_dt_conf(struct l1ctl_link *l1l,
 	return l1ctl_link_send(l1l, msg);
 }
 
+static enum gsm_phys_chan_config l1ctl_ccch_mode2pchan_config(enum ccch_mode mode)
+{
+	switch (mode) {
+	/* TODO: distinguish extended BCCH */
+	case CCCH_MODE_NON_COMBINED:
+	case CCCH_MODE_NONE:
+		return GSM_PCHAN_CCCH;
+
+	/* TODO: distinguish CBCH */
+	case CCCH_MODE_COMBINED:
+		return GSM_PCHAN_CCCH_SDCCH4;
+
+	default:
+		LOGP(DL1C, LOGL_NOTICE, "Undandled CCCH mode (%u), "
+			"assuming non-combined configuration\n", mode);
+		return GSM_PCHAN_CCCH;
+	}
+}
+
 /* FBSB expire timer */
 static void fbsb_timer_cb(void *data)
 {
@@ -292,6 +311,7 @@ static void fbsb_timer_cb(void *data)
 
 static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	enum gsm_phys_chan_config ch_config;
 	struct l1ctl_fbsb_req *fbsb;
 	uint16_t band_arfcn;
 	uint16_t timeout;
@@ -305,6 +325,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
+	ch_config = l1ctl_ccch_mode2pchan_config(fbsb->ccch_mode);
 	band_arfcn = ntohs(fbsb->band_arfcn);
 	timeout = ntohs(fbsb->timeout);
 
@@ -316,10 +337,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	sched_trx_reset(l1l->trx, 1);
 
 	/* Configure a single timeslot */
-	if (fbsb->ccch_mode == CCCH_MODE_COMBINED)
-		sched_trx_configure_ts(l1l->trx, 0, GSM_PCHAN_CCCH_SDCCH4);
-	else
-		sched_trx_configure_ts(l1l->trx, 0, GSM_PCHAN_CCCH);
+	sched_trx_configure_ts(l1l->trx, 0, ch_config);
 
 	/* Ask SCH handler to send L1CTL_FBSB_CONF */
 	l1l->fbsb_conf_sent = 0;
@@ -434,9 +452,10 @@ static int l1ctl_rx_echo_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	enum gsm_phys_chan_config ch_config;
 	struct l1ctl_ccch_mode_req *req;
 	struct trx_ts *ts;
-	int mode, rc = 0;
+	int rc = 0;
 
 	req = (struct l1ctl_ccch_mode_req *) msg->l1h;
 	if (msgb_l1len(msg) < sizeof(*req)) {
@@ -446,9 +465,8 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
-	LOGP(DL1C, LOGL_NOTICE, "Received CCCH mode request (%s)\n",
-		req->ccch_mode == CCCH_MODE_COMBINED ?
-			"combined" : "not combined");
+	LOGP(DL1C, LOGL_NOTICE, "Received CCCH mode request (%u)\n",
+		req->ccch_mode); /* TODO: add value-string for ccch_mode */
 
 	/* Make sure that TS0 is allocated and configured */
 	ts = l1l->trx->ts_list[0];
@@ -459,12 +477,11 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 	}
 
 	/* Choose corresponding channel combination */
-	mode = req->ccch_mode == CCCH_MODE_COMBINED ?
-		GSM_PCHAN_CCCH_SDCCH4 : GSM_PCHAN_CCCH;
+	ch_config = l1ctl_ccch_mode2pchan_config(req->ccch_mode);
 
 	/* Do nothing if the current mode matches required */
-	if (ts->mf_layout->chan_config != mode)
-		rc = sched_trx_configure_ts(l1l->trx, 0, mode);
+	if (ts->mf_layout->chan_config != ch_config)
+		rc = sched_trx_configure_ts(l1l->trx, 0, ch_config);
 
 	/* Confirm reconfiguration */
 	if (!rc)
