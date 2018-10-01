@@ -382,7 +382,8 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 	int rc = 0;
 
 	if (sih->rr_protocol_discriminator != GSM48_PDISC_RR)
-		LOGP(DRR, LOGL_ERROR, "PCH pdisc != RR\n");
+		LOGP(DRR, LOGL_ERROR, "PCH pdisc (%s) != RR\n",
+			gsm48_pdisc_name(sih->rr_protocol_discriminator));
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_PAG_REQ_1:
