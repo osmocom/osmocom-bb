@@ -42,13 +42,8 @@
 #include <l1ctl_proto.h>
 
 static struct {
-	int has_si1;
 	int ccch_mode;
-	int ccch_enabled;
-	int rach_count;
-	struct gsm_sysinfo_freq cell_arfcns[1024];
 } app_state;
-
 
 static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 {
@@ -62,18 +57,6 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 		if (tc != 0)
 			LOGP(DRR, LOGL_ERROR, "SI1 on the wrong TC: %d\n", tc);
 #endif
-		if (!app_state.has_si1) {
-			struct gsm48_system_information_type_1 *si1 =
-				(struct gsm48_system_information_type_1 *)data;
-
-			gsm48_decode_freq_list(app_state.cell_arfcns,
-			                       si1->cell_channel_description,
-					       sizeof(si1->cell_channel_description),
-					       0xff, 0x01);
-
-			app_state.has_si1 = 1;
-			LOGP(DRR, LOGL_ERROR, "SI1 received.\n");
-		}
 		break;
 	case GSM48_MT_RR_SYSINFO_2:
 #ifdef BCCH_TC_CHECK
@@ -182,8 +165,6 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	if (ia->page_mode & 0xf0)
 		return 0;
 
-	/* FIXME: compare RA and GSM time with when we sent RACH req */
-
 	rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts);
 
 	if (!ia->chan_desc.h0.h) {
@@ -199,9 +180,7 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 
 	} else {
 		/* Hopping */
-		uint8_t maio, hsn, ma_len;
-		uint16_t ma[64], arfcn;
-		int i, j, k;
+		uint8_t maio, hsn;
 
 		hsn = ia->chan_desc.h1.hsn;
 		maio = ia->chan_desc.h1.maio_low | (ia->chan_desc.h1.maio_high << 2);
@@ -210,19 +189,6 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 			"HSN=%u, MAIO=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
 			ia->chan_desc.chan_nr, hsn, maio, ch_ts, ch_subch,
 			ia->chan_desc.h1.tsc);
-
-		/* decode mobile allocation */
-		ma_len = 0;
-		for (i=1, j=0; i<=1024; i++) {
-			arfcn = i & 1023;
-			if (app_state.cell_arfcns[arfcn].mask & 0x01) {
-				k = ia->mob_alloc_len - (j>>3) - 1;
-				if (ia->mob_alloc[k] & (1 << (j&7))) {
-					ma[ma_len++] = arfcn;
-				}
-				j++;
-			}
-		}
 	}
 
 	LOGPC(DRR, LOGL_NOTICE, "\n");
@@ -449,25 +415,13 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 	//dump_bcch(dl->time.tc, ccch->data);
 	dump_bcch(ms, 0, msg->l3h);
 
-	/* Req channel logic */
-	if (app_state.ccch_enabled && (app_state.rach_count < 2)) {
-		l1ctl_tx_rach_req(ms, app_state.rach_count, 0,
-			app_state.ccch_mode == CCCH_MODE_COMBINED);
-		app_state.rach_count++;
-	}
-
 	return 0;
 }
 
 void layer3_app_reset(void)
 {
 	/* Reset state */
-	app_state.has_si1 = 0;
 	app_state.ccch_mode = CCCH_MODE_NONE;
-	app_state.ccch_enabled = 0;
-	app_state.rach_count = 0;
-
-	memset(&app_state.cell_arfcns, 0x00, sizeof(app_state.cell_arfcns));
 }
 
 static int signal_cb(unsigned int subsys, unsigned int signal,
