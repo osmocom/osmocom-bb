@@ -45,108 +45,113 @@ static struct {
 	int ccch_mode;
 } app_state;
 
+static int bcch_check_tc(uint8_t si_type, uint8_t tc)
+{
+	/* FIXME: there is no tc information (always 0) */
+	return 0;
+
+	switch (si_type) {
+	case GSM48_MT_RR_SYSINFO_1:
+		if (tc != 0)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_2:
+		if (tc != 1)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_3:
+		if (tc != 2 && tc != 6)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_4:
+		if (tc != 3 && tc != 7)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_7:
+		if (tc != 7)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_8:
+		if (tc != 3)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_9:
+		if (tc != 4)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_13:
+		if (tc != 4 && tc != 0)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_16:
+		if (tc != 6)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_17:
+		if (tc != 2)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_2bis:
+		if (tc != 5)
+			return -EINVAL;
+		break;
+	case GSM48_MT_RR_SYSINFO_2ter:
+		if (tc != 5 && tc != 4)
+			return -EINVAL;
+		break;
+
+	/* The following types are used on SACCH only */
+	case GSM48_MT_RR_SYSINFO_5:
+	case GSM48_MT_RR_SYSINFO_6:
+	case GSM48_MT_RR_SYSINFO_5bis:
+	case GSM48_MT_RR_SYSINFO_5ter:
+		break;
+
+	/* Unknown SI type */
+	default:
+		LOGP(DRR, LOGL_INFO, "Unknown SI (type=0x%02x)\n", si_type);
+		return -ENOTSUP;
+	};
+
+	return 0;
+}
+
+static void handle_si3(struct osmocom_ms *ms,
+	struct gsm48_system_information_type_3 *si)
+{
+	if (app_state.ccch_mode != CCCH_MODE_NONE)
+		return;
+
+	if (si->control_channel_desc.ccch_conf == RSL_BCCH_CCCH_CONF_1_C)
+		app_state.ccch_mode = CCCH_MODE_COMBINED;
+	else
+		app_state.ccch_mode = CCCH_MODE_NON_COMBINED;
+
+	l1ctl_tx_ccch_mode_req(ms, app_state.ccch_mode);
+}
+
 static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 {
 	struct gsm48_system_information_type_header *si_hdr;
 	si_hdr = (struct gsm48_system_information_type_header *) data;
+	uint8_t si_type = si_hdr->system_information;
+
+	LOGP(DRR, LOGL_INFO, "BCCH message (type=0x%02x): %s\n",
+		si_type, gsm48_rr_msg_name(si_type));
+
+	if (bcch_check_tc(si_type, tc) == -EINVAL)
+		LOGP(DRR, LOGL_INFO, "SI on wrong tc=%u\n", tc);
 
 	/* GSM 05.02 §6.3.1.3 Mapping of BCCH data */
-	switch (si_hdr->system_information) {
-	case GSM48_MT_RR_SYSINFO_1:
-#ifdef BCCH_TC_CHECK
-		if (tc != 0)
-			LOGP(DRR, LOGL_ERROR, "SI1 on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_2:
-#ifdef BCCH_TC_CHECK
-		if (tc != 1)
-			LOGP(DRR, LOGL_ERROR, "SI2 on the wrong TC: %d\n", tc);
-#endif
-		break;
+	switch (si_type) {
 	case GSM48_MT_RR_SYSINFO_3:
-#ifdef BCCH_TC_CHECK
-		if (tc != 2 && tc != 6)
-			LOGP(DRR, LOGL_ERROR, "SI3 on the wrong TC: %d\n", tc);
-#endif
-		if (app_state.ccch_mode == CCCH_MODE_NONE) {
-			struct gsm48_system_information_type_3 *si3 =
-				(struct gsm48_system_information_type_3 *)data;
+		handle_si3(ms,
+			(struct gsm48_system_information_type_3 *) data);
+		break;
 
-			if (si3->control_channel_desc.ccch_conf == RSL_BCCH_CCCH_CONF_1_C)
-				app_state.ccch_mode = CCCH_MODE_COMBINED;
-			else
-				app_state.ccch_mode = CCCH_MODE_NON_COMBINED;
-
-			l1ctl_tx_ccch_mode_req(ms, app_state.ccch_mode);
-		}
-		break;
-	case GSM48_MT_RR_SYSINFO_4:
-#ifdef BCCH_TC_CHECK
-		if (tc != 3 && tc != 7)
-			LOGP(DRR, LOGL_ERROR, "SI4 on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_5:
-		break;
-	case GSM48_MT_RR_SYSINFO_6:
-		break;
-	case GSM48_MT_RR_SYSINFO_7:
-#ifdef BCCH_TC_CHECK
-		if (tc != 7)
-			LOGP(DRR, LOGL_ERROR, "SI7 on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_8:
-#ifdef BCCH_TC_CHECK
-		if (tc != 3)
-			LOGP(DRR, LOGL_ERROR, "SI8 on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_9:
-#ifdef BCCH_TC_CHECK
-		if (tc != 4)
-			LOGP(DRR, LOGL_ERROR, "SI9 on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_13:
-#ifdef BCCH_TC_CHECK
-		if (tc != 4 && tc != 0)
-			LOGP(DRR, LOGL_ERROR, "SI13 on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_16:
-#ifdef BCCH_TC_CHECK
-		if (tc != 6)
-			LOGP(DRR, LOGL_ERROR, "SI16 on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_17:
-#ifdef BCCH_TC_CHECK
-		if (tc != 2)
-			LOGP(DRR, LOGL_ERROR, "SI17 on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_2bis:
-#ifdef BCCH_TC_CHECK
-		if (tc != 5)
-			LOGP(DRR, LOGL_ERROR, "SI2bis on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_2ter:
-#ifdef BCCH_TC_CHECK
-		if (tc != 5 && tc != 4)
-			LOGP(DRR, LOGL_ERROR, "SI2ter on the wrong TC: %d\n", tc);
-#endif
-		break;
-	case GSM48_MT_RR_SYSINFO_5bis:
-		break;
-	case GSM48_MT_RR_SYSINFO_5ter:
-		break;
 	default:
-		LOGP(DRR, LOGL_ERROR, "Unknown SI: %d\n",
-		     si_hdr->system_information);
-		break;
+		/* We don't care about other types of SI */
+		break; /* thus there is nothing to do */
 	};
 }
 
