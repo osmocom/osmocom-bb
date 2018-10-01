@@ -130,11 +130,16 @@ static void handle_si3(struct osmocom_ms *ms,
 	l1ctl_tx_ccch_mode_req(ms, app_state.ccch_mode);
 }
 
-static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
+int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_system_information_type_header *si_hdr;
-	si_hdr = (struct gsm48_system_information_type_header *) data;
-	uint8_t si_type = si_hdr->system_information;
+	uint8_t si_type, tc = 0;
+
+	/* FIXME: we have lost the gsm frame time until here,
+	 * need to store it in some msgb context, so tc=0 */
+
+	si_hdr = (struct gsm48_system_information_type_header *) msg->l3h;
+	si_type = si_hdr->system_information;
 
 	LOGP(DRR, LOGL_INFO, "BCCH message (type=0x%02x): %s\n",
 		si_type, gsm48_rr_msg_name(si_type));
@@ -146,13 +151,15 @@ static void dump_bcch(struct osmocom_ms *ms, uint8_t tc, const uint8_t *data)
 	switch (si_type) {
 	case GSM48_MT_RR_SYSINFO_3:
 		handle_si3(ms,
-			(struct gsm48_system_information_type_3 *) data);
+			(struct gsm48_system_information_type_3 *) si_hdr);
 		break;
 
 	default:
 		/* We don't care about other types of SI */
 		break; /* thus there is nothing to do */
 	};
+
+	return 0;
 }
 
 
@@ -444,16 +451,6 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 	}
 
 	return rc;
-}
-
-int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
-{
-	/* FIXME: we have lost the gsm frame time until here, need to store it
-	 * in some msgb context */
-	//dump_bcch(dl->time.tc, ccch->data);
-	dump_bcch(ms, 0, msg->l3h);
-
-	return 0;
 }
 
 void layer3_app_reset(void)
