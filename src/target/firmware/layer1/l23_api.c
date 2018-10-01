@@ -489,6 +489,10 @@ static void l1ctl_rx_ccch_mode_req(struct msgb *msg)
 		mframe_enable(MF_TASK_CCCH_COMB);
 	else if (ccch_mode == CCCH_MODE_NON_COMBINED)
 		mframe_enable(MF_TASK_CCCH);
+	else if (ccch_mode == CCCH_MODE_COMBINED_CBCH) {
+		mframe_enable(MF_TASK_CCCH_COMB);
+		mframe_enable(MF_TASK_SDCCH4_CBCH);
+	}
 
 	l1ctl_tx_ccch_mode_conf(ccch_mode);
 }

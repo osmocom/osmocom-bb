@@ -264,9 +264,10 @@ static enum gsm_phys_chan_config l1ctl_ccch_mode2pchan_config(enum ccch_mode mod
 	case CCCH_MODE_NONE:
 		return GSM_PCHAN_CCCH;
 
-	/* TODO: distinguish CBCH */
 	case CCCH_MODE_COMBINED:
 		return GSM_PCHAN_CCCH_SDCCH4;
+	case CCCH_MODE_COMBINED_CBCH:
+		return GSM_PCHAN_CCCH_SDCCH4_CBCH;
 
 	default:
 		LOGP(DL1C, LOGL_NOTICE, "Undandled CCCH mode (%u), "

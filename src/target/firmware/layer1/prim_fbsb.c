@@ -262,6 +262,10 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 		mframe_enable(MF_TASK_CCCH_COMB);
 	else if (l1s.serving_cell.ccch_mode == CCCH_MODE_NON_COMBINED)
 		mframe_enable(MF_TASK_CCCH);
+	else if (l1s.serving_cell.ccch_mode == CCCH_MODE_COMBINED_CBCH) {
+		mframe_enable(MF_TASK_CCCH_COMB);
+		mframe_enable(MF_TASK_SDCCH4_CBCH);
+	}
 
 	l1s_compl_sched(L1_COMPL_FB);
 

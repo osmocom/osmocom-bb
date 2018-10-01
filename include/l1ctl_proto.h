@@ -70,6 +70,7 @@ enum ccch_mode {
 	CCCH_MODE_NONE = 0,
 	CCCH_MODE_NON_COMBINED,
 	CCCH_MODE_COMBINED,
+	CCCH_MODE_COMBINED_CBCH,
 };
 
 enum neigh_mode {
