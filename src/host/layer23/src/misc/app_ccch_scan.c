@@ -405,8 +405,9 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 		/* wireshark know that this is SI2 quater and for 3G interop */
 		break;
 	default:
-		LOGP(DRR, LOGL_NOTICE, "unknown PCH/AGCH type 0x%02x\n",
-			sih->system_information);
+		LOGP(DRR, LOGL_NOTICE, "Unknown PCH/AGCH message "
+			"(type 0x%02x): %s\n", sih->system_information,
+			msgb_hexdump_l3(msg));
 		rc = -EINVAL;
 	}
 
