@@ -174,7 +174,7 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 		arfcn = ia->chan_desc.h0.arfcn_low | (ia->chan_desc.h0.arfcn_high << 8);
 
 		LOGP(DRR, LOGL_NOTICE, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
-			"ARFCN=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
+			"ARFCN=%u, TS=%u, SS=%u, TSC=%u)\n", ia->req_ref.ra,
 			ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
 			ia->chan_desc.h0.tsc);
 
@@ -186,12 +186,11 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 		maio = ia->chan_desc.h1.maio_low | (ia->chan_desc.h1.maio_high << 2);
 
 		LOGP(DRR, LOGL_NOTICE, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
-			"HSN=%u, MAIO=%u, TS=%u, SS=%u, TSC=%u) ", ia->req_ref.ra,
+			"HSN=%u, MAIO=%u, TS=%u, SS=%u, TSC=%u)\n", ia->req_ref.ra,
 			ia->chan_desc.chan_nr, hsn, maio, ch_ts, ch_subch,
 			ia->chan_desc.h1.tsc);
 	}
 
-	LOGPC(DRR, LOGL_NOTICE, "\n");
 	return 0;
 }
 
