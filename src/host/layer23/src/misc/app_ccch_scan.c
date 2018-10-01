@@ -376,10 +376,42 @@ static int gsm48_rx_paging_p3(struct msgb *msg, struct osmocom_ms *ms)
 	return 0;
 }
 
+/* Dummy Paging Request 1 with "no identity" */
+static const uint8_t paging_fill[] = {
+	0x15, 0x06, 0x21, 0x00, 0x01, 0xf0, 0x2b,
+	/* The rest part may be randomized */
+};
+
+/* LAPDm func=UI fill frame (for the BTS side) */
+static const uint8_t lapdm_fill[] = {
+	0x03, 0x03, 0x01, 0x2b,
+	/* The rest part may be randomized */
+};
+
+/* TODO: share / generalize this code */
+static bool is_fill_frame(struct msgb *msg)
+{
+	size_t l2_len = msgb_l3len(msg);
+	uint8_t *l2 = msgb_l3(msg);
+
+	OSMO_ASSERT(l2_len == GSM_MACBLOCK_LEN);
+
+	if (!memcmp(l2, paging_fill, sizeof(paging_fill)))
+		return true;
+	if (!memcmp(l2, lapdm_fill, sizeof(lapdm_fill)))
+		return true;
+
+	return false;
+}
+
 int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
 	int rc = 0;
+
+	/* Skip dummy (fill) frames */
+	if (is_fill_frame(msg))
+		return 0;
 
 	if (sih->rr_protocol_discriminator != GSM48_PDISC_RR)
 		LOGP(DRR, LOGL_ERROR, "PCH pdisc (%s) != RR\n",
