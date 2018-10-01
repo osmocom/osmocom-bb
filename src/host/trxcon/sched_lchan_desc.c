@@ -290,13 +290,13 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 	},
 	{
 		TRXC_PDTCH,		"PDTCH",
-		0x08,			TRX_CH_LID_DEDIC,
+		0xc0,			TRX_CH_LID_DEDIC,
 		12 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_PDCH,
 		rx_pdtch_fn,		tx_pdtch_fn,
 	},
 	{
 		TRXC_PTCCH,		"PTCCH",
-		0x08,			TRX_CH_LID_DEDIC,
+		0xc0,			TRX_CH_LID_DEDIC,
 		4 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_PDCH,
 		rx_data_fn,		tx_data_fn,
 	},
