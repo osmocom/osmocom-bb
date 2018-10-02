@@ -874,9 +874,10 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	int rc = 0;
 	struct l1ctl_hdr *l1h;
 
-	if (msgb_l2len(msg) < sizeof(*l1h)) {
-		LOGP(DL1C, LOGL_ERROR, "Short Layer2 message: %u\n",
-			msgb_l2len(msg));
+	/* Make sure a message has L1CTL header (pointed by msg->l1h) */
+	if (msgb_l1len(msg) < sizeof(*l1h)) {
+		LOGP(DL1C, LOGL_ERROR, "Short L1CTL message, "
+			"missing the header (len=%u)\n", msgb_l1len(msg));
 		msgb_free(msg);
 		return -1;
 	}
