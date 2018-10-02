@@ -872,10 +872,10 @@ static int rx_l1_neigh_pm_ind(struct osmocom_ms *ms, struct msgb *msg)
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {
 	int rc = 0;
-	struct l1ctl_hdr *l1h;
+	struct l1ctl_hdr *hdr;
 
 	/* Make sure a message has L1CTL header (pointed by msg->l1h) */
-	if (msgb_l1len(msg) < sizeof(*l1h)) {
+	if (msgb_l1len(msg) < sizeof(*hdr)) {
 		LOGP(DL1C, LOGL_ERROR, "Short L1CTL message, "
 			"missing the header (len=%u)\n", msgb_l1len(msg));
 		msgb_free(msg);
@@ -883,14 +883,14 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* Pull the L1CTL header from the msgb */
-	l1h = (struct l1ctl_hdr *) msg->l1h;
+	hdr = (struct l1ctl_hdr *) msg->l1h;
 	msgb_pull(msg, sizeof(struct l1ctl_hdr));
 
 	/* move the l1 header pointer to point _BEHIND_ l1ctl_hdr,
 	   as the l1ctl header is of no interest to subsequent code */
-	msg->l1h = l1h->data;
+	msg->l1h = hdr->data;
 
-	switch (l1h->msg_type) {
+	switch (hdr->msg_type) {
 	case L1CTL_FBSB_CONF:
 		rc = rx_l1_fbsb_conf(ms, msg);
 		msgb_free(msg);
@@ -908,7 +908,7 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_PM_CONF:
 		rc = rx_l1_pm_conf(ms, msg);
-		if (l1h->flags & L1CTL_F_DONE)
+		if (hdr->flags & L1CTL_F_DONE)
 			osmo_signal_dispatch(SS_L1CTL, S_L1CTL_PM_DONE, ms);
 		msgb_free(msg);
 		break;
@@ -937,7 +937,7 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_free(msg);
 		break;
 	default:
-		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", l1h->msg_type);
+		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", hdr->msg_type);
 		msgb_free(msg);
 		break;
 	}
