@@ -25,6 +25,7 @@ enum {
 	DMOB,
 	DPRIM,
 	DLUA,
+	DL23SAP,
 };
 
 extern const struct log_info log_info;

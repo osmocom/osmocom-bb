@@ -43,9 +43,9 @@
 #include <osmocom/gsm/rsl.h>
 
 #include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/l23sap.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1l2_interface.h>
-#include <osmocom/gsm/lapdm.h>
 #include <osmocom/bb/common/logging.h>
 
 extern struct gsmtap_inst *gsmtap_inst;
@@ -114,34 +114,21 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct lapdm_entity *le = &ms->lapdm_channel.lapdm_dcch;
-	struct osmo_phsap_prim pp;
-	struct l1ctl_info_dl *dl;
-
-	if (msgb_l1len(msg) < sizeof(*dl)) {
+	if (msgb_l1len(msg) < sizeof(struct l1ctl_info_dl)) {
 		LOGP(DL1C, LOGL_ERROR, "RACH CONF MSG too short "
 			"(len=%u), missing DL info header\n", msgb_l1len(msg));
 		msgb_free(msg);
 		return -1;
 	}
 
-	dl = (struct l1ctl_info_dl *) msg->l1h;
-	msg->l2h = msg->l3h = dl->payload;
-
-	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_RACH,
-			PRIM_OP_CONFIRM, msg);
-	pp.u.rach_ind.fn = ntohl(dl->frame_nr);
-
-	return lapdm_phsap_up(&pp.oph, le);
+	return l23sap_rach_conf(ms, msg);
 }
 
 /* Receive L1CTL_DATA_IND (Data Indication from L1) */
-static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
+static int rx_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct osmo_phsap_prim pp;
 	struct l1ctl_info_dl *dl;
 	struct l1ctl_data_ind *ccch;
-	struct lapdm_entity *le;
 	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t chan_type, chan_ts, chan_ss;
 	uint8_t gsmtap_chan_type;
@@ -235,46 +222,22 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		    gsmtap_chan_type, chan_ss, tm.fn, dl->rx_level-110,
 		    dl->snr, ccch->data, sizeof(ccch->data));
 
-	/* determine LAPDm entity based on SACCH or not */
-	if (dl->link_id & 0x40)
-		le = &ms->lapdm_channel.lapdm_acch;
-	else
-		le = &ms->lapdm_channel.lapdm_dcch;
-
-	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
-			PRIM_OP_INDICATION, msg);
-	pp.u.data.chan_nr = dl->chan_nr;
-	pp.u.data.link_id = dl->link_id;
-
-	/* send it up into LAPDm */
-	return lapdm_phsap_up(&pp.oph, le);
+	/* Send it up towards LAPDm via L23SAP */
+	return l23sap_data_ind(ms, msg);
 }
 
 /* Receive L1CTL_DATA_CONF (Data Confirm from L1) */
-static int rx_ph_data_conf(struct osmocom_ms *ms, struct msgb *msg)
+static int rx_data_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct osmo_phsap_prim pp;
-	struct l1ctl_info_dl *dl = (struct l1ctl_info_dl *) msg->l1h;
-	struct lapdm_entity *le;
-
-	if (msgb_l1len(msg) < sizeof(*dl)) {
+	if (msgb_l1len(msg) < sizeof(struct l1ctl_info_dl)) {
 		LOGP(DL1C, LOGL_ERROR, "DATA CONF MSG too short (len=%u), "
 			"missing UL info header\n", msgb_l1len(msg));
 		msgb_free(msg);
 		return -1;
 	}
 
-	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_RTS,
-			PRIM_OP_INDICATION, msg);
-
-	/* determine LAPDm entity based on SACCH or not */
-	if (dl->link_id & 0x40)
-		le = &ms->lapdm_channel.lapdm_acch;
-	else
-		le = &ms->lapdm_channel.lapdm_dcch;
-
-	/* send it up into LAPDm */
-	return lapdm_phsap_up(&pp.oph, le);
+	/* Send it up towards LAPDm via L23SAP */
+	return l23sap_data_conf(ms, msg);
 }
 
 /* Transmit L1CTL_DATA_REQ */
@@ -912,10 +875,10 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_free(msg);
 		break;
 	case L1CTL_DATA_IND:
-		rc = rx_ph_data_ind(ms, msg);
+		rc = rx_data_ind(ms, msg);
 		break;
 	case L1CTL_DATA_CONF:
-		rc = rx_ph_data_conf(ms, msg);
+		rc = rx_data_conf(ms, msg);
 		break;
 	case L1CTL_RESET_IND:
 	case L1CTL_RESET_CONF:
