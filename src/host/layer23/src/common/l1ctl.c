@@ -244,10 +244,6 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	else
 		le = &ms->lapdm_channel.lapdm_dcch;
 
-	/* pull the L1 header from the msgb */
-	msgb_pull(msg, msg->l2h - (msg->l1h-sizeof(struct l1ctl_hdr)));
-	msg->l1h = NULL;
-
 	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
 			PRIM_OP_INDICATION, msg);
 	pp.u.data.chan_nr = dl->chan_nr;
@@ -638,8 +634,8 @@ int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 /* just forward the SIM response to the SIM handler */
 static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
-	uint16_t len = msg->len - sizeof(struct l1ctl_hdr);
-	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
+	uint16_t len = msgb_l2len(msg);
+	uint8_t *data = msg->data;
 
 	if (apdu_len > -1 && apdu_len + len <= sizeof(apdu_data)) {
 		memcpy(apdu_data + apdu_len, data, len);
@@ -649,10 +645,6 @@ static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	LOGP(DL1C, LOGL_INFO, "SIM %s\n", osmo_hexdump(data, len));
-	
-	/* pull the L1 header from the msgb */
-	msgb_pull(msg, sizeof(struct l1ctl_hdr));
-	msg->l1h = NULL;
 
 	sim_apdu_resp(ms, msg);
 	
@@ -784,13 +776,8 @@ static int rx_l1_traffic_ind(struct osmocom_ms *ms, struct msgb *msg)
 	DEBUGP(DL1C, "TRAFFIC IND (%s)\n", osmo_hexdump(ti->data, 33));
 
 	/* distribute or drop */
-	if (ms->l1_entity.l1_traffic_ind) {
-		/* pull the L1 header from the msgb */
-		msgb_pull(msg, msg->l2h - (msg->l1h-sizeof(struct l1ctl_hdr)));
-		msg->l1h = NULL;
-
+	if (ms->l1_entity.l1_traffic_ind)
 		return ms->l1_entity.l1_traffic_ind(ms, msg);
-	}
 
 	msgb_free(msg);
 	return 0;
@@ -895,7 +882,9 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		return -1;
 	}
 
+	/* Pull the L1CTL header from the msgb */
 	l1h = (struct l1ctl_hdr *) msg->l1h;
+	msgb_pull(msg, sizeof(struct l1ctl_hdr));
 
 	/* move the l1 header pointer to point _BEHIND_ l1ctl_hdr,
 	   as the l1ctl header is of no interest to subsequent code */
