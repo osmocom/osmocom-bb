@@ -873,9 +873,8 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {
 	int rc = 0;
 	struct l1ctl_hdr *l1h;
-	struct l1ctl_info_dl *dl;
 
-	if (msgb_l2len(msg) < sizeof(*dl)) {
+	if (msgb_l2len(msg) < sizeof(*l1h)) {
 		LOGP(DL1C, LOGL_ERROR, "Short Layer2 message: %u\n",
 			msgb_l2len(msg));
 		msgb_free(msg);
