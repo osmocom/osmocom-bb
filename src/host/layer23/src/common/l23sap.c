@@ -2,6 +2,7 @@
  * L23SAP (L2&3 Service Access Point), an interface between
  * L1 implementation and the upper layers (i.e. L2&3).
  *
+ * (C) 2010 by Andreas Eversberg <jolly@eversberg.eu>
  * (C) 2011 by Harald Welte <laforge@gnumonks.org>
  * (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>
  *
@@ -34,6 +35,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/gsmtap.h>
+#include <osmocom/core/signal.h>
 #include <osmocom/core/prim.h>
 #include <osmocom/core/msgb.h>
 
@@ -46,6 +48,81 @@
 #include <osmocom/bb/common/l23sap.h>
 
 extern struct gsmtap_inst *gsmtap_inst;
+
+static int l23sap_check_dl_loss(struct osmocom_ms *ms,
+	struct l1ctl_info_dl *dl)
+{
+	struct rx_meas_stat *meas = &ms->meas;
+	uint8_t chan_type, chan_ts, chan_ss;
+
+	/* Update measurements */
+	meas->last_fn = ntohl(dl->frame_nr);
+	meas->frames++;
+	meas->snr += dl->snr;
+	meas->berr += dl->num_biterr;
+	meas->rxlev += dl->rx_level;
+
+	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
+
+	/* counting loss criteria */
+	if (!CHAN_IS_SACCH(dl->link_id)) {
+		switch (chan_type) {
+		case RSL_CHAN_PCH_AGCH:
+			/* only look at one CCCH frame in each 51 multiframe.
+			 * FIXME: implement DRX
+			 * - select correct paging block that is for us.
+			 * - initialize ds_fail according to BS_PA_MFRMS.
+			 */
+			if ((meas->last_fn % 51) != 6)
+				break;
+			if (!meas->ds_fail)
+				break;
+			if (dl->fire_crc >= 2)
+				meas->dsc -= 4;
+			else
+				meas->dsc += 1;
+			if (meas->dsc > meas->ds_fail)
+				meas->dsc = meas->ds_fail;
+			if (meas->dsc < meas->ds_fail)
+				LOGP(DL23SAP, LOGL_INFO, "LOSS counter for CCCH %d\n", meas->dsc);
+			if (meas->dsc > 0)
+				break;
+			meas->ds_fail = 0;
+			osmo_signal_dispatch(SS_L1CTL, S_L1CTL_LOSS_IND, ms);
+			break;
+		}
+	} else {
+		switch (chan_type) {
+		case RSL_CHAN_Bm_ACCHs:
+		case RSL_CHAN_Lm_ACCHs:
+		case RSL_CHAN_SDCCH4_ACCH:
+		case RSL_CHAN_SDCCH8_ACCH:
+			if (!meas->rl_fail)
+				break;
+			if (dl->fire_crc >= 2)
+				meas->s -= 1;
+			else
+				meas->s += 2;
+			if (meas->s > meas->rl_fail)
+				meas->s = meas->rl_fail;
+			if (meas->s < meas->rl_fail)
+				LOGP(DL23SAP, LOGL_NOTICE, "LOSS counter for ACCH %d\n", meas->s);
+			if (meas->s > 0)
+				break;
+			meas->rl_fail = 0;
+			osmo_signal_dispatch(SS_L1CTL, S_L1CTL_LOSS_IND, ms);
+			break;
+		}
+	}
+
+	if (dl->fire_crc >= 2) {
+		LOGP(DL23SAP, LOGL_NOTICE, "Dropping frame with %u bit "
+			"errors\n", dl->num_biterr);
+		return -EBADMSG;
+	}
+
+	return 0;
+}
 
 int l23sap_gsmtap_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -101,6 +178,12 @@ int l23sap_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct l1ctl_info_dl *dl = (struct l1ctl_info_dl *) msg->l1h;
 	struct osmo_phsap_prim pp;
 	struct lapdm_entity *le;
+
+	/* Check for decoding errors (path loss) */
+	if (l23sap_check_dl_loss(ms, dl)) {
+		msgb_free(msg);
+		return 0;
+	}
 
 	/* Init a new DATA IND primitive */
 	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_DATA,
