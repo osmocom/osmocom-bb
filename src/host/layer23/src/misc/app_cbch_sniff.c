@@ -48,6 +48,12 @@ static int try_cbch(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
 		return 0;
 	}
 
+#define L1SAP_CHAN_IS_SDCCH4(chan_nr) ((chan_nr >> 3) & 3)
+#define L1SAP_CHAN_IS_SDCCH8(chan_nr) ((chan_nr >> 3) & 7)
+#define L1SAP_SDCCH_TO_CBCH(chan_nr) \
+	(L1SAP_CHAN_IS_SDCCH4(chan_nr) ? ((0x18 << 3) | (chan_nr & 0x07)) \
+		: L1SAP_CHAN_IS_SDCCH8(chan_nr) ? ((0x19 << 3) | (chan_nr & 0x07)) : 0x00)
+
 	if (s->h) {
 		LOGP(DRR, LOGL_INFO, "chan_nr = 0x%02x TSC = %d  MAIO = %d  "
 			"HSN = %d  hseq (%d): %s\n",
@@ -56,13 +62,13 @@ static int try_cbch(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
 			osmo_hexdump((unsigned char *) s->hopping, s->hopp_len * 2));
 		return l1ctl_tx_dm_est_req_h1(ms,
 			s->maio, s->hsn, s->hopping, s->hopp_len,
-			s->chan_nr, s->tsc,
+			L1SAP_SDCCH_TO_CBCH(s->chan_nr), s->tsc,
 			GSM48_CMODE_SIGN, 0);
 	} else {
 		LOGP(DRR, LOGL_INFO, "chan_nr = 0x%02x TSC = %d  ARFCN = %d\n",
 			s->chan_nr, s->tsc, s->arfcn);
 		return l1ctl_tx_dm_est_req_h0(ms, s->arfcn,
-			s->chan_nr, s->tsc, GSM48_CMODE_SIGN, 0);
+			L1SAP_SDCCH_TO_CBCH(s->chan_nr), s->tsc, GSM48_CMODE_SIGN, 0);
 	}
 }
 
