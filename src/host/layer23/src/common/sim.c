@@ -24,10 +24,14 @@
 #include <arpa/inet.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/gsmtap.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1ctl.h>
+
+extern struct gsmtap_inst *gsmtap_inst;
 
 static int sim_process_job(struct osmocom_ms *ms);
 
@@ -184,6 +188,16 @@ static int sim_apdu_send(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 {
 	LOGP(DSIM, LOGL_INFO, "sending APDU (class 0x%02x, ins 0x%02x)\n",
 		data[0], data[1]);
+
+	/* Cache this APDU, so it can be sent to GSMTAP on response */
+	if (length <= sizeof(ms->sim.apdu_data)) {
+		memcpy(ms->sim.apdu_data, data, length);
+		ms->sim.apdu_len = length;
+	} else {
+		LOGP(DSIM, LOGL_NOTICE, "Cannot cache SIM APDU "
+			"(len=%u), so it won't be sent to GSMTAP\n", length);
+		ms->sim.apdu_len = 0;
+	}
 
 	/* adding SAP client support
 	 * it makes more sense to do it here then in L1CTL */
@@ -860,6 +874,17 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm1111_response_mfdf *mfdf;
 	struct gsm1111_response_mfdf_gsm *mfdf_gsm;
 	int i;
+
+	/* If there is cached APDU */
+	if (ms->sim.apdu_len) {
+		/* ... and APDU buffer has enough space, send it to GSMTAP */
+		if ((ms->sim.apdu_len + length) <= sizeof(ms->sim.apdu_data)) {
+			memcpy(ms->sim.apdu_data + ms->sim.apdu_len, data, length);
+			ms->sim.apdu_len += length;
+			gsmtap_send_ex(gsmtap_inst, GSMTAP_TYPE_SIM,
+				0, 0, 0, 0, 0, 0, 0, ms->sim.apdu_data, ms->sim.apdu_len);
+		}
+	}
 
 	/* ignore, if current job already gone */
 	if (!sim->job_msg) {

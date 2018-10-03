@@ -176,6 +176,10 @@ struct gsm_sim {
 	uint8_t			reset;
 	uint8_t			chv1_remain, chv2_remain;
 	uint8_t			unblk1_remain, unblk2_remain;
+
+	/* APDU cache (used by GSMTAP) */
+	uint8_t apdu_data[256 + 7];
+	uint16_t apdu_len;
 };
 
 struct sim_hdr {
