@@ -49,6 +49,30 @@
 
 extern struct gsmtap_inst *gsmtap_inst;
 
+/* Decoder for Osmocom specific chan_nr / link_id values (e.g. CBCH) */
+static int l23sap_dec_chan_nr_ext(uint8_t chan_nr, uint8_t link_id,
+	uint8_t *chan_type, uint8_t *chan_ts, uint8_t *chan_ss,
+	uint8_t *gsmtap_chan_type)
+{
+	uint8_t cbits = (chan_nr >> 3);
+
+	if ((cbits & 0x1f) == 0x18) {
+		*chan_type = GSMTAP_CHANNEL_SDCCH4;
+		*chan_ss = 2;
+		if (gsmtap_chan_type)
+			*gsmtap_chan_type = GSMTAP_CHANNEL_CBCH51;
+	} else if ((cbits & 0x1f) == 0x19) {
+		*chan_type = GSMTAP_CHANNEL_SDCCH8;
+		if (gsmtap_chan_type)
+			*gsmtap_chan_type = GSMTAP_CHANNEL_CBCH51;
+	} else {
+		return -ENODEV;
+	}
+
+	*chan_ts = chan_nr & 0x07;
+	return 0;
+}
+
 /* Safe wrapper around rsl_dec_chan_nr() */
 static int l23sap_dec_chan_nr(uint8_t chan_nr, uint8_t link_id,
 	uint8_t *chan_type, uint8_t *chan_ts, uint8_t *chan_ss,
@@ -56,6 +80,13 @@ static int l23sap_dec_chan_nr(uint8_t chan_nr, uint8_t link_id,
 {
 	int rc;
 
+	/* Attempt to decode Osmocom specific extensions */
+	rc = l23sap_dec_chan_nr_ext(chan_nr, link_id,
+		chan_type, chan_ts, chan_ss, gsmtap_chan_type);
+	if (!rc) /* Successful decoding */
+		return 0;
+
+	/* Attempt to decode according to the specs */
 	rc = rsl_dec_chan_nr(chan_nr, chan_type, chan_ss, chan_ts);
 	if (rc) {
 		LOGP(DL23SAP, LOGL_ERROR, "Failed to decode logical channel "
