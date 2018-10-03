@@ -49,11 +49,36 @@
 
 extern struct gsmtap_inst *gsmtap_inst;
 
+/* Safe wrapper around rsl_dec_chan_nr() */
+static int l23sap_dec_chan_nr(uint8_t chan_nr, uint8_t link_id,
+	uint8_t *chan_type, uint8_t *chan_ts, uint8_t *chan_ss,
+	uint8_t *gsmtap_chan_type)
+{
+	int rc;
+
+	rc = rsl_dec_chan_nr(chan_nr, chan_type, chan_ss, chan_ts);
+	if (rc) {
+		LOGP(DL23SAP, LOGL_ERROR, "Failed to decode logical channel "
+			"info (chan_nr=0x%02x, link_id=0x%02x)\n", chan_nr, link_id);
+		if (gsmtap_chan_type)
+			*gsmtap_chan_type = GSMTAP_CHANNEL_UNKNOWN;
+		*chan_type = *chan_ss = *chan_ts = 0x00;
+		return -EINVAL;
+	}
+
+	/* Pick corresponding GSMTAP channel type */
+	if (gsmtap_chan_type)
+		*gsmtap_chan_type = chantype_rsl2gsmtap(*chan_type, link_id);
+
+	return 0;
+}
+
 static int l23sap_check_dl_loss(struct osmocom_ms *ms,
 	struct l1ctl_info_dl *dl)
 {
 	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t chan_type, chan_ts, chan_ss;
+	int rc;
 
 	/* Update measurements */
 	meas->last_fn = ntohl(dl->frame_nr);
@@ -62,7 +87,11 @@ static int l23sap_check_dl_loss(struct osmocom_ms *ms,
 	meas->berr += dl->num_biterr;
 	meas->rxlev += dl->rx_level;
 
-	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
+	/* Attempt to decode logical channel info */
+	rc = l23sap_dec_chan_nr(dl->chan_nr, dl->link_id,
+		&chan_type, &chan_ts, &chan_ss, NULL);
+	if (rc)
+		return rc;
 
 	/* counting loss criteria */
 	if (!CHAN_IS_SACCH(dl->link_id)) {
@@ -138,9 +167,10 @@ int l23sap_gsmtap_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	signal_dbm = dl->rx_level - 110;
 	fn = ntohl(dl->frame_nr);
 
-	/* Logical channel info */
-	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
-	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
+	/* Attempt to decode logical channel info */
+	l23sap_dec_chan_nr(dl->chan_nr, dl->link_id,
+		&chan_type, &chan_ts, &chan_ss,
+		&gsmtap_chan_type);
 
 	/* Send to GSMTAP */
 	return gsmtap_send(gsmtap_inst, band_arfcn, chan_ts,
@@ -154,9 +184,10 @@ int l23sap_gsmtap_data_req(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t chan_type, chan_ts, chan_ss;
 	uint8_t gsmtap_chan_type;
 
-	/* send copy via GSMTAP */
-	rsl_dec_chan_nr(ul->chan_nr, &chan_type, &chan_ss, &chan_ts);
-	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, ul->link_id);
+	/* Attempt to decode logical channel info */
+	l23sap_dec_chan_nr(ul->chan_nr, ul->link_id,
+		&chan_type, &chan_ts, &chan_ss,
+		&gsmtap_chan_type);
 
 	/**
 	 * Send to GSMTAP
