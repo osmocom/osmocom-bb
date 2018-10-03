@@ -83,9 +83,9 @@ static int rx_l1_fbsb_conf(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_time tm;
 	struct osmobb_fbsb_res fr;
 
-	if (msgb_l3len(msg) < sizeof(*dl) + sizeof(*sb)) {
-		LOGP(DL1C, LOGL_ERROR, "FBSB RESP: MSG too short %u\n",
-			msgb_l3len(msg));
+	if (msgb_l1len(msg) < (sizeof(*dl) + sizeof(*sb))) {
+		LOGP(DL1C, LOGL_ERROR, "FBSB RESP: MSG too short (len=%u), "
+			"missing UL info header and/or payload\n", msgb_l1len(msg));
 		return -1;
 	}
 
@@ -121,9 +121,9 @@ static int rx_l1_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 	struct osmo_phsap_prim pp;
 	struct l1ctl_info_dl *dl;
 
-	if (msgb_l2len(msg) < sizeof(*dl)) {
-		LOGP(DL1C, LOGL_ERROR, "RACH CONF: MSG too short %u\n",
-			msgb_l3len(msg));
+	if (msgb_l1len(msg) < sizeof(*dl)) {
+		LOGP(DL1C, LOGL_ERROR, "RACH CONF MSG too short "
+			"(len=%u), missing DL info header\n", msgb_l1len(msg));
 		msgb_free(msg);
 		return -1;
 	}
@@ -150,9 +150,9 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t gsmtap_chan_type;
 	struct gsm_time tm;
 
-	if (msgb_l3len(msg) < sizeof(*ccch)) {
-		LOGP(DL1C, LOGL_ERROR, "MSG too short Data Ind: %u\n",
-			msgb_l3len(msg));
+	if (msgb_l1len(msg) < sizeof(*dl)) {
+		LOGP(DL1C, LOGL_ERROR, "DATA IND MSG too short (len=%u), "
+			"missing UL info header\n", msgb_l1len(msg));
 		msgb_free(msg);
 		return -1;
 	}
@@ -260,6 +260,13 @@ static int rx_ph_data_conf(struct osmocom_ms *ms, struct msgb *msg)
 	struct l1ctl_info_dl *dl = (struct l1ctl_info_dl *) msg->l1h;
 	struct lapdm_entity *le;
 
+	if (msgb_l1len(msg) < sizeof(*dl)) {
+		LOGP(DL1C, LOGL_ERROR, "DATA CONF MSG too short (len=%u), "
+			"missing UL info header\n", msgb_l1len(msg));
+		msgb_free(msg);
+		return -1;
+	}
+
 	osmo_prim_init(&pp.oph, SAP_GSM_PH, PRIM_PH_RTS,
 			PRIM_OP_INDICATION, msg);
 
@@ -284,14 +291,12 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 
 	DEBUGP(DL1C, "(%s)\n", osmo_hexdump(msg->l2h, msgb_l2len(msg)));
 
-	if (msgb_l2len(msg) > 23) {
-		LOGP(DL1C, LOGL_ERROR, "L1 cannot handle message length "
-			"> 23 (%u)\n", msgb_l2len(msg));
+	if (msgb_l2len(msg) != 23) {
+		LOGP(DL1C, LOGL_ERROR, "Wrong message length (len=%u), "
+			"DATA REQ ignored, please fix!\n", msgb_l2len(msg));
 		msgb_free(msg);
 		return -EINVAL;
-	} else if (msgb_l2len(msg) < 23)
-		LOGP(DL1C, LOGL_ERROR, "L1 message length < 23 (%u) "
-			"doesn't seem right!\n", msgb_l2len(msg));
+	}
 
 	/* send copy via GSMTAP */
 	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
@@ -702,6 +707,12 @@ static int rx_l1_pm_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_pm_conf *pmr;
 
+	if (msgb_l1len(msg) < sizeof(*pmr)) {
+		LOGP(DL1C, LOGL_ERROR, "PM CONF MSG too short (len=%u), "
+			"missing measurement results\n", msgb_l1len(msg));
+		return -1;
+	}
+
 	for (pmr = (struct l1ctl_pm_conf *) msg->l1h;
 	     (uint8_t *) pmr < msg->tail; pmr++) {
 		struct osmobb_meas_res mr;
@@ -721,9 +732,9 @@ static int rx_l1_ccch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 	struct osmobb_ccch_mode_conf mc;
 	struct l1ctl_ccch_mode_conf *conf;
 
-	if (msgb_l3len(msg) < sizeof(*conf)) {
-		LOGP(DL1C, LOGL_ERROR, "CCCH MODE CONF: MSG too short %u\n",
-			msgb_l3len(msg));
+	if (msgb_l1len(msg) < sizeof(*conf)) {
+		LOGP(DL1C, LOGL_ERROR, "CCCH MODE CONF: MSG too short "
+			"(len=%u), missing CCCH mode info\n", msgb_l1len(msg));
 		return -1;
 	}
 
@@ -744,9 +755,9 @@ static int rx_l1_tch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 	struct osmobb_tch_mode_conf mc;
 	struct l1ctl_tch_mode_conf *conf;
 
-	if (msgb_l3len(msg) < sizeof(*conf)) {
-		LOGP(DL1C, LOGL_ERROR, "TCH MODE CONF: MSG too short %u\n",
-			msgb_l3len(msg));
+	if (msgb_l1len(msg) < sizeof(*conf)) {
+		LOGP(DL1C, LOGL_ERROR, "TCH MODE CONF: MSG too short "
+			"(len=%u), missing TCH mode info\n", msgb_l1len(msg));
 		return -1;
 	}
 
@@ -767,6 +778,12 @@ static int rx_l1_traffic_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_info_dl *dl;
 	struct l1ctl_traffic_ind *ti;
+
+	if (msgb_l1len(msg) < sizeof(*dl)) {
+		LOGP(DL1C, LOGL_ERROR, "TRAFFIC IND MSG too short "
+			"(len=%u), missing DL info header\n", msgb_l1len(msg));
+		return -1;
+	}
 
 	/* Header handling */
 	dl = (struct l1ctl_info_dl *) msg->l1h;
@@ -853,6 +870,12 @@ int l1ctl_tx_neigh_pm_req(struct osmocom_ms *ms, int num, uint16_t *arfcn)
 static int rx_l1_neigh_pm_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_neigh_pm_ind *pm_ind;
+
+	if (msgb_l1len(msg) < sizeof(*pm_ind)) {
+		LOGP(DL1C, LOGL_ERROR, "NEIGH PH IND MSG too short "
+			"(len=%u), missing measurement results\n", msgb_l1len(msg));
+		return -1;
+	}
 
 	for (pm_ind = (struct l1ctl_neigh_pm_ind *) msg->l1h;
 	     (uint8_t *) pm_ind < msg->tail; pm_ind++) {
