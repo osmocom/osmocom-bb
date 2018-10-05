@@ -64,6 +64,9 @@ enum {
 
 	L1CTL_DATA_TBF_REQ,
 	L1CTL_DATA_TBF_CONF,
+
+	/* Extended (11-bit) RACH (see 3GPP TS 05.02, section 5.2.7) */
+	L1CTL_EXT_RACH_REQ,
 };
 
 enum ccch_mode {
@@ -234,6 +237,15 @@ struct l1ctl_tch_mode_req {
 /* the l1_info_ul header is in front */
 struct l1ctl_rach_req {
 	uint8_t ra;
+	uint8_t combined;
+	uint16_t offset;
+} __attribute__((packed));
+
+
+/* the l1_info_ul header is in front */
+struct l1ctl_ext_rach_req {
+	uint16_t ra11;
+	uint8_t synch_seq;
 	uint8_t combined;
 	uint16_t offset;
 } __attribute__((packed));
