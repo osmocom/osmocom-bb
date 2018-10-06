@@ -36,8 +36,6 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/gsm/gsm_utils.h>
-#include <osmocom/core/gsmtap_util.h>
-#include <osmocom/core/gsmtap.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/gsm/rsl.h>
@@ -47,8 +45,6 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/logging.h>
-
-extern struct gsmtap_inst *gsmtap_inst;
 
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {
@@ -131,7 +127,6 @@ static int rx_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct l1ctl_data_ind *ccch;
 	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t chan_type, chan_ts, chan_ss;
-	uint8_t gsmtap_chan_type;
 	struct gsm_time tm;
 
 	if (msgb_l1len(msg) < sizeof(*dl)) {
@@ -216,12 +211,6 @@ static int rx_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* send CCCH data via GSMTAP */
-	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
-	gsmtap_send(gsmtap_inst, ntohs(dl->band_arfcn), chan_ts,
-		    gsmtap_chan_type, chan_ss, tm.fn, dl->rx_level-110,
-		    dl->snr, ccch->data, sizeof(ccch->data));
-
 	/* Send it up towards LAPDm via L23SAP */
 	return l23sap_data_ind(ms, msg);
 }
@@ -246,8 +235,6 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 {
 	struct l1ctl_hdr *l1h;
 	struct l1ctl_info_ul *l1i_ul;
-	uint8_t chan_type, chan_ts, chan_ss;
-	uint8_t gsmtap_chan_type;
 
 	DEBUGP(DL1C, "(%s)\n", osmo_hexdump(msg->l2h, msgb_l2len(msg)));
 
@@ -258,17 +245,14 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 		return -EINVAL;
 	}
 
-	/* send copy via GSMTAP */
-	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
-	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, link_id);
-	gsmtap_send(gsmtap_inst, 0|0x4000, chan_ts, gsmtap_chan_type,
-		    chan_ss, 0, 127, 255, msg->l2h, msgb_l2len(msg));
-
 	/* prepend uplink info header */
 	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));
-
+	msg->l1h = (uint8_t *) l1i_ul;
 	l1i_ul->chan_nr = chan_nr;
 	l1i_ul->link_id = link_id;
+
+	/* Send to GSMTAP */
+	l23sap_gsmtap_data_req(ms, msg);
 
 	/* prepend l1 header */
 	msg->l1h = msgb_push(msg, sizeof(*l1h));

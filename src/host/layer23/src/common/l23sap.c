@@ -26,18 +26,74 @@
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <arpa/inet.h>
 #include <l1ctl_proto.h>
 
 #include <osmocom/core/logging.h>
+#include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/gsmtap.h>
 #include <osmocom/core/prim.h>
 #include <osmocom/core/msgb.h>
+
 #include <osmocom/gsm/lapdm.h>
+#include <osmocom/gsm/rsl.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l23sap.h>
+
+extern struct gsmtap_inst *gsmtap_inst;
+
+int l23sap_gsmtap_data_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_info_dl *dl = (struct l1ctl_info_dl *) msg->l1h;
+	uint8_t chan_type, chan_ts, chan_ss;
+	uint8_t gsmtap_chan_type;
+	uint16_t band_arfcn;
+	int8_t signal_dbm;
+	uint32_t fn;
+
+	/* FDMA / TDMA info indicated by L1 */
+	band_arfcn = ntohs(dl->band_arfcn);
+	signal_dbm = dl->rx_level - 110;
+	fn = ntohl(dl->frame_nr);
+
+	/* Logical channel info */
+	rsl_dec_chan_nr(dl->chan_nr, &chan_type, &chan_ss, &chan_ts);
+	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
+
+	/* Send to GSMTAP */
+	return gsmtap_send(gsmtap_inst, band_arfcn, chan_ts,
+		gsmtap_chan_type, chan_ss, fn, signal_dbm,
+		dl->snr, msg->l2h, msgb_l2len(msg));
+}
+
+int l23sap_gsmtap_data_req(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) msg->l1h;
+	uint8_t chan_type, chan_ts, chan_ss;
+	uint8_t gsmtap_chan_type;
+
+	/* send copy via GSMTAP */
+	rsl_dec_chan_nr(ul->chan_nr, &chan_type, &chan_ss, &chan_ts);
+	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, ul->link_id);
+
+	/**
+	 * Send to GSMTAP
+	 *
+	 * FIXME: neither FDMA, not TDMA info is known here.
+	 * As a possible solution, we can store an UL frame
+	 * until RTS (TX confirmation) is received from PHY.
+	 * This would also require to add some reference
+	 * info to both UL/DL info headers. This is similar
+	 * to how SIM-card related messages are handled.
+	 */
+	return gsmtap_send(gsmtap_inst, 0 | 0x4000, chan_ts,
+		gsmtap_chan_type, chan_ss, 0, 127, 255,
+		msg->l2h, msgb_l2len(msg));
+}
 
 int l23sap_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -56,6 +112,9 @@ int l23sap_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		le = &ms->lapdm_channel.lapdm_acch;
 	else
 		le = &ms->lapdm_channel.lapdm_dcch;
+
+	/* Send to GSMTAP */
+	l23sap_gsmtap_data_ind(ms, msg);
 
 	/* Send it up into LAPDm */
 	return lapdm_phsap_up(&pp.oph, le);
