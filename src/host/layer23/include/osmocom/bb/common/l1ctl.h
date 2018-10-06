@@ -67,9 +67,6 @@ int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length);
 int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
 			uint8_t chan_nr, uint8_t link_id);
 
-/* LAPDm wants to send a PH-* primitive to the physical layer (L1) */
-int l1ctl_ph_prim_cb(struct osmo_prim_hdr *oph, void *ctx);
-
 /* Transmit L1CTL_NEIGH_PM_REQ */
 int l1ctl_tx_neigh_pm_req(struct osmocom_ms *ms, int num, uint16_t *arfcn);
 

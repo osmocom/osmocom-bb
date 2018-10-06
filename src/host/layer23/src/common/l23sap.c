@@ -42,6 +42,7 @@
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/l23sap.h>
 
 extern struct gsmtap_inst *gsmtap_inst;
@@ -154,4 +155,36 @@ int l23sap_rach_conf(struct osmocom_ms *ms, struct msgb *msg)
 	/* Send it up into LAPDm */
 	return lapdm_phsap_up(&pp.oph,
 		&ms->lapdm_channel.lapdm_dcch);
+}
+
+/* LAPDm wants to send a PH-* primitive to the PHY (L1) */
+int l23sap_lapdm_ph_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
+{
+	struct osmocom_ms *ms = ctx;
+	struct osmo_phsap_prim *pp = (struct osmo_phsap_prim *) oph;
+	int rc = 0;
+
+	if (oph->sap != SAP_GSM_PH)
+		return -ENODEV;
+
+	if (oph->operation != PRIM_OP_REQUEST)
+		return -EINVAL;
+
+	switch (oph->primitive) {
+	case PRIM_PH_DATA:
+		rc = l1ctl_tx_data_req(ms, oph->msg, pp->u.data.chan_nr,
+					pp->u.data.link_id);
+		break;
+	case PRIM_PH_RACH:
+		l1ctl_tx_param_req(ms, pp->u.rach_req.ta,
+				   pp->u.rach_req.tx_power);
+		rc = l1ctl_tx_rach_req(ms, pp->u.rach_req.ra,
+				       pp->u.rach_req.offset,
+				       pp->u.rach_req.is_combined_ccch);
+		break;
+	default:
+		rc = -EINVAL;
+	}
+
+	return rc;
 }

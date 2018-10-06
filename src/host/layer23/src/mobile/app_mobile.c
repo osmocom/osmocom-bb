@@ -28,6 +28,7 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/l23sap.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
@@ -195,7 +196,7 @@ static int mobile_init(struct osmocom_ms *ms)
 	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_sec =
 		T200_ACCH;
 	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_usec = 0;
-	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
+	lapdm_channel_set_l1(&ms->lapdm_channel, l23sap_lapdm_ph_prim_cb, ms);
 
 	/* init SAP client before SIM card starts up */
 	osmosap_init(ms);

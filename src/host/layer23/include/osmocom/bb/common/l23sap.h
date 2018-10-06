@@ -10,6 +10,8 @@
 #define CHAN_IS_SACCH(link_id) \
 	((link_id & 0xc0) == LID_SACCH)
 
+int l23sap_lapdm_ph_prim_cb(struct osmo_prim_hdr *oph, void *ctx);
+
 int l23sap_gsmtap_data_ind(struct osmocom_ms *ms, struct msgb *msg);
 int l23sap_gsmtap_data_req(struct osmocom_ms *ms, struct msgb *msg);
 
