@@ -302,6 +302,8 @@ int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 		/* Enable channel automatically if required */
 		if (trx_lchan_desc[type].flags & TRX_CH_FLAG_AUTO)
 			sched_trx_activate_lchan(ts, type);
+		else if (trx_lchan_desc[type].flags & TRX_CH_FLAG_PDCH)
+			sched_trx_activate_lchan(ts, type);
 	}
 
 	/* Notify transceiver about TS activation */
