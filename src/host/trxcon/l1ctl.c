@@ -665,9 +665,6 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 		goto exit;
 	}
 
-	/* Deactivate all lchans */
-	sched_trx_deactivate_all_lchans(ts);
-
 	/* Activate only requested lchans */
 	rc = sched_trx_set_lchans(ts, chan_nr, 1, est_req->tch_mode);
 	if (rc) {
