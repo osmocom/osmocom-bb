@@ -118,6 +118,27 @@ class CTRLInterfaceBTS(CTRLInterface):
 
 			return 0
 
+		# RSSI simulation for Downlink
+		# Absolute form: CMD FAKE_RSSI <BASE> <THRESH>
+		elif self.verify_cmd(request, "FAKE_RSSI", 2):
+			print("[i] Recv FAKE_RSSI cmd")
+
+			# Parse and apply both base and threshold
+			self.burst_fwd.rssi_dl_base = int(request[1])
+			self.burst_fwd.rssi_dl_threshold = int(request[2])
+
+			return 0
+
+		# RSSI simulation for Downlink
+		# Relative form: CMD FAKE_RSSI <+-BASE_DELTA>
+		elif self.verify_cmd(request, "FAKE_RSSI", 1):
+			print("[i] Recv FAKE_RSSI cmd")
+
+			# Parse and apply delta
+			self.burst_fwd.rssi_dl_base += int(request[1])
+
+			return 0
+
 		# Path loss simulation for DL: burst dropping
 		# Syntax: CMD FAKE_DROP <AMOUNT>
 		# Dropping pattern: fn % 1 == 0
