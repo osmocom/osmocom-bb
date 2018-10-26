@@ -68,7 +68,8 @@ static struct {
 
 	/* TRX specific */
 	struct trx_instance *trx;
-	const char *trx_ip;
+	const char *trx_bind_ip;
+	const char *trx_remote_ip;
 	uint16_t trx_base_port;
 	uint32_t trx_fn_advance;
 } app_data;
@@ -152,7 +153,8 @@ static void print_help(void)
 	printf(" Some help...\n");
 	printf("  -h --help         this text\n");
 	printf("  -d --debug        Change debug flags. Default: %s\n", DEBUG_DEFAULT);
-	printf("  -i --trx-ip       IP address of host runing TRX (default 127.0.0.1)\n");
+	printf("  -b --trx-bind     TRX bind IP address (default 0.0.0.0)\n");
+	printf("  -i --trx-remote   TRX remote IP address (default 127.0.0.1)\n");
 	printf("  -p --trx-port     Base port of TRX instance (default 6700)\n");
 	printf("  -f --trx-advance  Scheduler clock advance (default 20)\n");
 	printf("  -s --socket       Listening socket for layer23 (default /tmp/osmocom_l2)\n");
@@ -167,14 +169,18 @@ static void handle_options(int argc, char **argv)
 			{"help", 0, 0, 'h'},
 			{"debug", 1, 0, 'd'},
 			{"socket", 1, 0, 's'},
+			{"trx-bind", 1, 0, 'b'},
+			/* NOTE: 'trx-ip' is now an alias for 'trx-remote'
+			 * due to backward compatibility reasons! */
 			{"trx-ip", 1, 0, 'i'},
+			{"trx-remote", 1, 0, 'i'},
 			{"trx-port", 1, 0, 'p'},
 			{"trx-advance", 1, 0, 'f'},
 			{"daemonize", 0, 0, 'D'},
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "d:i:p:f:s:Dh",
+		c = getopt_long(argc, argv, "d:b:i:p:f:s:Dh",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -188,8 +194,11 @@ static void handle_options(int argc, char **argv)
 		case 'd':
 			app_data.debug_mask = optarg;
 			break;
+		case 'b':
+			app_data.trx_bind_ip = optarg;
+			break;
 		case 'i':
-			app_data.trx_ip = optarg;
+			app_data.trx_remote_ip = optarg;
 			break;
 		case 'p':
 			app_data.trx_base_port = atoi(optarg);
@@ -212,7 +221,8 @@ static void handle_options(int argc, char **argv)
 static void init_defaults(void)
 {
 	app_data.bind_socket = "/tmp/osmocom_l2";
-	app_data.trx_ip = "127.0.0.1";
+	app_data.trx_remote_ip = "127.0.0.1";
+	app_data.trx_bind_ip = "0.0.0.0";
 	app_data.trx_base_port = 6700;
 	app_data.trx_fn_advance = 20;
 
@@ -274,7 +284,8 @@ int main(int argc, char **argv)
 		goto exit;
 
 	/* Init transceiver interface */
-	rc = trx_if_open(&app_data.trx, "0.0.0.0", app_data.trx_ip, app_data.trx_base_port);
+	rc = trx_if_open(&app_data.trx,
+		app_data.trx_bind_ip, app_data.trx_remote_ip, app_data.trx_base_port);
 	if (rc)
 		goto exit;
 
