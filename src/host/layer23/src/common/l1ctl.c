@@ -180,7 +180,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			 * - select correct paging block that is for us.
 			 * - initialize ds_fail according to BS_PA_MFRMS.
 			 */
-			if ((dl->frame_nr % 51) != 6)
+			if ((meas->last_fn % 51) != 6)
 				break;
 			if (!meas->ds_fail)
 				break;
