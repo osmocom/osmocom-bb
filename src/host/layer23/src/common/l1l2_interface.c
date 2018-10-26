@@ -109,7 +109,7 @@ int layer2_open(struct osmocom_ms *ms, const char *socket_path)
 
 	rc = osmo_sock_unix_init_ofd(&ms->l2_wq.bfd, SOCK_STREAM, 0, socket_path, OSMO_SOCK_F_CONNECT);
 	if (rc < 0) {
-		fprintf(stderr, "Failed to create unix domain socket.\n");
+		fprintf(stderr, "Failed to create unix domain socket %s\n", socket_path);
 		return rc;
 	}
 

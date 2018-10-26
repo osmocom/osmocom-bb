@@ -503,7 +503,7 @@ int sap_open(struct osmocom_ms *ms, const char *socket_path)
 
 	rc = osmo_sock_unix_init_ofd(&ms->sap_wq.bfd, SOCK_STREAM, 0, socket_path, OSMO_SOCK_F_CONNECT);
 	if (rc < 0) {
-		fprintf(stderr, "Failed to create unix domain socket.\n");
+		fprintf(stderr, "Failed to create unix domain socket %s\n", socket_path);
 		ms->sap_entity.sap_state = SAP_SOCKET_ERROR;
 		return rc;
 	}
