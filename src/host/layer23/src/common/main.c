@@ -143,7 +143,8 @@ static void build_config(char **opt, struct option **option)
 
 	*option = talloc_zero_array(l23_ctx, struct option, len + app_len + 1);
 	memcpy(*option, long_options, sizeof(long_options));
-	memcpy(*option + len, app_opp, app_len * sizeof(struct option));
+	if (app_opp)
+		memcpy(*option + len, app_opp, app_len * sizeof(struct option));
 }
 
 static void handle_options(int argc, char **argv)
