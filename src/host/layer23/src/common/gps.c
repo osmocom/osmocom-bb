@@ -234,7 +234,7 @@ static int osmo_serialgps_line(char *line)
 	if (line[23] == 'W')
 		longitude = 360.0 - longitude;
 	g.longitude = longitude;
-	
+
 	LOGP(DGPS, LOGL_DEBUG, "%s\n", line);
 	LOGP(DGPS, LOGL_INFO, " time=%02d:%02d:%02d %04d-%02d-%02d, "
 		"diff-to-host=%d, latitude=%do%.4f, longitude=%do%.4f\n",
@@ -324,8 +324,8 @@ int osmo_serialgps_open(void)
 	case  38400:
 		baud = B38400;     break;
 	case  57600:
-		baud = B57600;     break;	
-	case 115200: 
+		baud = B57600;     break;
+	case 115200:
 		baud = B115200;    break;
 	}
 
@@ -399,4 +399,3 @@ void osmo_gps_close(void)
 			return;
 	}
 }
-
