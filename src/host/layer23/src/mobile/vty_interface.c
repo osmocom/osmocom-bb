@@ -35,6 +35,7 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/mobile/mncc.h>
+#include <osmocom/bb/mobile/mncc_ms.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
@@ -42,13 +43,6 @@
 #include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
-
-int mncc_call(struct osmocom_ms *ms, char *number);
-int mncc_hangup(struct osmocom_ms *ms);
-int mncc_answer(struct osmocom_ms *ms);
-int mncc_hold(struct osmocom_ms *ms);
-int mncc_retrieve(struct osmocom_ms *ms, int number);
-int mncc_dtmf(struct osmocom_ms *ms, char *dtmf);
 
 extern struct llist_head ms_list;
 extern struct llist_head active_connections;
