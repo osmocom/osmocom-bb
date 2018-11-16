@@ -213,7 +213,7 @@ static int mobile_init(struct osmocom_ms *ms)
 
 	rc = layer2_open(ms, ms->settings.layer2_socket_path);
 	if (rc < 0) {
-		LOGP(DMOB, LOGL_ERROR, "Failed during layer2_open()\n");
+		LOGP(DMOB, LOGL_ERROR, "Failed during layer2_open(%s)\n", ms->settings.layer2_socket_path);
 		ms->l2_wq.bfd.fd = -1;
 		mobile_exit(ms, 1);
 		return rc;
