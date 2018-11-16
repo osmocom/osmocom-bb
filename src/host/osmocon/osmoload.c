@@ -499,7 +499,8 @@ loader_connect(const char *socket_path) {
 
 	rc = osmo_sock_unix_init_ofd(conn, SOCK_STREAM, 0, socket_path, OSMO_SOCK_F_CONNECT);
 	if (rc < 0) {
-		fprintf(stderr, "Failed to create unix domain socket %s\n", socket_path);
+		fprintf(stderr, "Failed to create unix domain socket %s: %s\n",
+			socket_path, strerror(-rc));
 		exit(1);
 	}
 
