@@ -294,7 +294,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 	}
 
 	/* not in initiated state anymore */
-	call->init = 0;
+	call->init = false;
 
 	switch (msg_type) {
 	case MNCC_DISC_IND:
@@ -478,9 +478,9 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 			LOGP(DMNCC, LOGL_INFO, "Ring!\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, "Knock!\n");
-			call->hold = 1;
+			call->hold = true;
 		}
-		call->ring = 1;
+		call->ring = true;
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
 		mncc_tx_to_cc(ms, MNCC_ALERT_REQ, &mncc);
@@ -498,7 +498,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is on hold\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is on hold\n");
-		call->hold = 1;
+		call->hold = true;
 		break;
 	case MNCC_HOLD_REJ:
 		vty_notify(ms, NULL);
@@ -509,7 +509,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 		vty_notify(ms, NULL);
 		vty_notify(ms, "Call is retrieved\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is retrieved\n");
-		call->hold = 0;
+		call->hold = false;
 		break;
 	case MNCC_RETRIEVE_REJ:
 		vty_notify(ms, NULL);
@@ -554,7 +554,7 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 		return -ENOMEM;
 	call->ms = ms;
 	call->callref = new_callref++;
-	call->init = 1;
+	call->init = true;
 	llist_add_tail(&call->entry, &call_list);
 
 	memset(&setup, 0, sizeof(struct gsm_mncc));
@@ -646,8 +646,8 @@ int mncc_answer(struct osmocom_ms *ms)
 		vty_notify(ms, "Please put active call on hold first!\n");
 		return -EBUSY;
 	}
-	alerting->ring = 0;
-	alerting->hold = 0;
+	alerting->ring = false;
+	alerting->hold = false;
 
 	memset(&rsp, 0, sizeof(struct gsm_mncc));
 	rsp.callref = alerting->callref;
