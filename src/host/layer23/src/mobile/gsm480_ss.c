@@ -307,16 +307,6 @@ static inline unsigned char *msgb_wrap_with_L(struct msgb *msgb)
 	return data;
 }
 
-/* support function taken from OpenBSC */
-static inline unsigned char *msgb_wrap_with_TL(struct msgb *msgb, uint8_t tag)
-{
-	uint8_t *data = msgb_push(msgb, 2);
-
-	data[0] = tag;
-	data[1] = msgb->len - 2;
-	return data;
-}
-
 static inline void msgb_wrap_with_TL_asn(struct msgb *msg, uint8_t tag)
 {
 	int len = msg->len;
