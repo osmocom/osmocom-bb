@@ -31,6 +31,7 @@
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/core/application.h>
+#include <osmocom/vty/vty.h>
 
 #include <arpa/inet.h>
 
@@ -51,7 +52,7 @@ struct llist_head ms_list;
 static char *gsmtap_ip = 0;
 static const char *custom_cfg_file = NULL;
 struct gsmtap_inst *gsmtap_inst = NULL;
-static char *vty_ip = "127.0.0.1";
+static char *vty_ip = NULL;
 unsigned short vty_port = 4247;
 char *config_dir = NULL;
 int use_mncc_sock = 0;
@@ -90,7 +91,7 @@ static void print_help()
 	printf("  -u --vty-ip           The VTY IP to telnet to. "
 		"(default %s)\n", vty_ip);
 	printf("  -v --vty-port		The VTY port number to telnet to. "
-		"(default %u)\n", vty_port);
+		"(default %s)\n", vty_get_bind_addr());
 	printf("  -d --debug		Change debug flags. default: %s\n",
 		debug_default);
 	printf("  -D --daemonize	Run as daemon\n");
@@ -248,7 +249,7 @@ int main(int argc, char **argv)
 	config_dir = dirname(config_dir);
 
 	if (use_mncc_sock)
-		rc = l23_app_init(mncc_recv_socket, config_file, vty_ip, vty_port);
+		rc = l23_app_init(mncc_recv_socket, config_file, vty_ip ? vty_ip : vty_get_bind_addr(), vty_port);
 	else
 		rc = l23_app_init(NULL, config_file, vty_ip, vty_port);
 	if (rc)
