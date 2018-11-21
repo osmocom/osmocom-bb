@@ -39,6 +39,8 @@
 #include <osmocom/bb/mobile/voice.h>
 #include <osmocom/bb/mobile/primitives.h>
 #include <osmocom/bb/common/sap_interface.h>
+
+#include <osmocom/vty/ports.h>
 #include <osmocom/vty/logging.h>
 #include <osmocom/vty/telnet_interface.h>
 
@@ -434,7 +436,7 @@ static struct vty_app_info vty_info = {
 
 /* global init */
 int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
-	const char *config_file, const char *vty_ip, uint16_t vty_port)
+	const char *config_file)
 {
 	struct telnet_connection dummy_conn;
 	int rc = 0;
@@ -462,10 +464,11 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 		LOGP(DMOB, LOGL_INFO, "Using configuration from '%s'\n", config_file);
 	}
 	vty_reading = 0;
-	rc = telnet_init_dynif(l23_ctx, NULL, vty_ip, vty_port);
+	rc = telnet_init_dynif(l23_ctx, NULL,
+		vty_get_bind_addr(), OSMO_VTY_PORT_BB);
 	if (rc < 0) {
 		LOGP(DMOB, LOGL_FATAL, "Cannot init VTY on %s port %u: %s\n",
-			vty_ip, vty_port, strerror(errno));
+			vty_get_bind_addr(), OSMO_VTY_PORT_BB, strerror(errno));
 		return rc;
 	}
 

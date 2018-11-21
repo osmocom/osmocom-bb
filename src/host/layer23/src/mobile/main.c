@@ -51,8 +51,6 @@ struct llist_head ms_list;
 static char *gsmtap_ip = 0;
 static const char *custom_cfg_file = NULL;
 struct gsmtap_inst *gsmtap_inst = NULL;
-static char *vty_ip = "127.0.0.1";
-unsigned short vty_port = 4247;
 char *config_dir = NULL;
 int use_mncc_sock = 0;
 int daemonize = 0;
@@ -87,10 +85,6 @@ static void print_help()
 	printf(" Some help...\n");
 	printf("  -h --help		this text\n");
 	printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
-	printf("  -u --vty-ip           The VTY IP to telnet to. "
-		"(default %s)\n", vty_ip);
-	printf("  -v --vty-port		The VTY port number to telnet to. "
-		"(default %u)\n", vty_port);
 	printf("  -d --debug		Change debug flags. default: %s\n",
 		debug_default);
 	printf("  -D --daemonize	Run as daemon\n");
@@ -106,12 +100,13 @@ static int handle_options(int argc, char **argv)
 		static struct option long_options[] = {
 			{"help", 0, 0, 'h'},
 			{"gsmtap-ip", 1, 0, 'i'},
-			{"vty-ip", 1, 0, 'u'},
-			{"vty-port", 1, 0, 'v'},
 			{"debug", 1, 0, 'd'},
 			{"daemonize", 0, 0, 'D'},
 			{"config-file", 1, 0, 'c'},
 			{"mncc-sock", 0, 0, 'm'},
+			/* DEPRECATED options, to be removed */
+			{"vty-ip", 1, 0, 'u'},
+			{"vty-port", 1, 0, 'v'},
 			{0, 0, 0, 0},
 		};
 
@@ -129,14 +124,8 @@ static int handle_options(int argc, char **argv)
 		case 'i':
 			gsmtap_ip = optarg;
 			break;
-		case 'u':
-			vty_ip = optarg;
-			break;
 		case 'c':
 			custom_cfg_file = optarg;
-			break;
-		case 'v':
-			vty_port = atoi(optarg);
 			break;
 		case 'd':
 			log_parse_category_mask(osmo_stderr_target, optarg);
@@ -147,6 +136,13 @@ static int handle_options(int argc, char **argv)
 		case 'm':
 			use_mncc_sock = 1;
 			break;
+		/* DEPRECATED options, to be removed */
+		case 'u':
+		case 'v':
+			fprintf(stderr, "Both 'u' and 'v' options are "
+				"deprecated! Please use the configuration file "
+				"in order to set VTY bind address.\n");
+			/* fall-thru */
 		default:
 			/* Unknown parameter passed */
 			return -EINVAL;
@@ -255,9 +251,9 @@ int main(int argc, char **argv)
 	config_dir = dirname(config_dir);
 
 	if (use_mncc_sock)
-		rc = l23_app_init(mncc_recv_socket, config_file, vty_ip, vty_port);
+		rc = l23_app_init(mncc_recv_socket, config_file);
 	else
-		rc = l23_app_init(NULL, config_file, vty_ip, vty_port);
+		rc = l23_app_init(NULL, config_file);
 	if (rc)
 		exit(rc);
 
