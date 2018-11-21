@@ -452,20 +452,19 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 	if (config_file != NULL) {
 		rc = vty_read_config_file(config_file, &dummy_conn);
 		if (rc < 0) {
-			fprintf(stderr, "Failed to parse the config file:"
-					" '%s'\n", config_file);
-			fprintf(stderr, "Please check or create config file"
-					" using: 'touch %s'\n", config_file);
-			fprintf(stderr, "or use one from "
-					"'doc/examples/mobile/'\n");
+			LOGP(DMOB, LOGL_FATAL, "Failed to parse the configuration "
+				"file '%s'\n", config_file);
+			LOGP(DMOB, LOGL_FATAL, "Please make sure the file "
+				"'%s' exists, or use an example from "
+				"'doc/examples/mobile/'\n", config_file);
 			return rc;
 		}
-		printf("Using configuration from %s\n", config_file);
+		LOGP(DMOB, LOGL_INFO, "Using configuration from '%s'\n", config_file);
 	}
 	vty_reading = 0;
 	rc = telnet_init_dynif(l23_ctx, NULL, vty_ip, vty_port);
 	if (rc < 0) {
-		fprintf(stderr, "Cannot init VTY on %s port %u: %s\n",
+		LOGP(DMOB, LOGL_FATAL, "Cannot init VTY on %s port %u: %s\n",
 			vty_ip, vty_port, strerror(errno));
 		return rc;
 	}
@@ -477,7 +476,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 	if (llist_empty(&ms_list)) {
 		struct osmocom_ms *ms;
 
-		printf("No Mobile Station defined, creating: MS '1'\n");
+		LOGP(DMOB, LOGL_NOTICE, "No Mobile Station defined, creating: MS '1'\n");
 		ms = mobile_new("1");
 		if (!ms)
 			return -1;
