@@ -612,6 +612,19 @@ int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len)
 	return osmo_send_l1(ms, msg);
 }
 
+int l1ctl_tx_nego_req(struct osmocom_ms *ms)
+{
+	struct msgb *msg;
+
+	msg = osmo_l1_alloc(L1CTL_PHY_NEGO_REQ);
+	if (!msg)
+		return -ENOMEM;
+
+	/* TODO: the host side might also indicate some info... */
+
+	return osmo_send_l1(ms, msg);
+}
+
 int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 {
 	struct msgb *msg;
@@ -884,6 +897,28 @@ static int rx_l1_neigh_pm_ind(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* Receive L1CTL_PHY_NEGO_IND */
+static int rx_l1_nego_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct l1ctl_phy_nego_ind *hdr;
+
+	/* If we already have PHY info, free it */
+	if (ms->phy_info)
+		msgb_free(ms->phy_info);
+
+	/* Store the received information */
+	ms->phy_info = msg;
+
+	/* Correct the header */
+	hdr = (struct l1ctl_phy_nego_ind *) msg->l1h;
+	hdr->len = ntohs(hdr->len);
+
+	/* Notify everybody about this great event */
+	osmo_signal_dispatch(SS_L1CTL, S_L1CTL_NEGO_IND, ms);
+
+	return 0;
+}
+
 /* Receive incoming data from L1 using L1CTL format */
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -951,6 +986,9 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_TRAFFIC_CONF:
 		msgb_free(msg);
+		break;
+	case L1CTL_PHY_NEGO_IND:
+		rc = rx_l1_nego_ind(ms, msg);
 		break;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", hdr->msg_type);

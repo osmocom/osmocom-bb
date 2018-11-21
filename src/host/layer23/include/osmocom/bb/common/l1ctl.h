@@ -54,6 +54,9 @@ int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode,
 /* Transmit ECHO_REQ */
 int l1ctl_tx_echo_req(struct osmocom_ms *ms, unsigned int len);
 
+/* Transmit info / features negotiation request */
+int l1ctl_tx_nego_req(struct osmocom_ms *ms);
+
 /* Transmit L1CTL_RESET_REQ */
 int l1ctl_tx_reset_req(struct osmocom_ms *ms, uint8_t type);
 

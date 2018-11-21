@@ -34,3 +34,4 @@ src/misc/cbch_sniff
 src/misc/ccch_scan
 src/misc/layer23
 src/mobile/mobile
+src/misc/phy_info

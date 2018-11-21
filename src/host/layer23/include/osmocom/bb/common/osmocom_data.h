@@ -1,6 +1,7 @@
 #ifndef osmocom_data_h
 #define osmocom_data_h
 
+#include <osmocom/core/msgb.h>
 #include <osmocom/core/select.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/write_queue.h>
@@ -86,6 +87,9 @@ struct osmocom_ms {
 	struct osmomncc_entity mncc_entity;
 	struct llist_head trans_list;
 
+	/* PHY info / features */
+	struct msgb *phy_info;
+
 	void *lua_state;
 	int lua_cb_ref;
 	char *lua_script;
@@ -106,6 +110,7 @@ enum osmobb_l1ctl_sig {
 	S_L1CTL_TCH_MODE_CONF,
 	S_L1CTL_LOSS_IND,
 	S_L1CTL_NEIGH_PM_IND,
+	S_L1CTL_NEGO_IND,
 };
 
 enum osmobb_global_sig {
