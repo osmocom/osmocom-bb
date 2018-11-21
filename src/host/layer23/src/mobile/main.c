@@ -99,7 +99,7 @@ static void print_help()
 		"offer socket\n");
 }
 
-static void handle_options(int argc, char **argv)
+static int handle_options(int argc, char **argv)
 {
 	while (1) {
 		int option_index = 0, c;
@@ -148,9 +148,12 @@ static void handle_options(int argc, char **argv)
 			use_mncc_sock = 1;
 			break;
 		default:
-			break;
+			/* Unknown parameter passed */
+			return -EINVAL;
 		}
 	}
+
+	return 0;
 }
 
 void sighandler(int sigset)
@@ -218,7 +221,11 @@ int main(int argc, char **argv)
 	/* Init default stderr logging */
 	osmo_init_logging2(l23_ctx, &log_info);
 
-	handle_options(argc, argv);
+	rc = handle_options(argc, argv);
+	if (rc) { /* Abort in case of parsing errors */
+		fprintf(stderr, "Error in command line options. Exiting.\n");
+		return 1;
+	}
 
 	if (gsmtap_ip) {
 		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
