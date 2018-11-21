@@ -27,6 +27,7 @@ trxcon_SOURCES = \
 	trx_if.c \
 	logging.c \
 	trxcon.c \
+	phy_info.c \
 	$(NULL)
 
 # Scheduler

@@ -3,7 +3,7 @@
  * GSM L1 control interface handlers
  *
  * (C) 2014 by Sylvain Munaut <tnt@246tNt.com>
- * (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2016-2018 by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * All Rights Reserved
  *
@@ -778,6 +778,39 @@ exit:
 	return rc;
 }
 
+/* Forward-declaration of the actual implementation */
+int trxcon_compose_phy_info(struct msgb *msg);
+
+static int l1ctl_rx_nego_req(struct l1ctl_link *l1l, struct msgb *msg)
+{
+	struct msgb *info_msg;
+	int rc;
+
+	LOGP(DL1C, LOGL_NOTICE, "PHY info / features negotiation\n");
+
+	/**
+	 * In the future the higher layers may also send some
+	 * information within negotiation request, so we don't
+	 * abuse this message (by changing its type),
+	 * and allocate a new one.
+	 */
+	msgb_free(msg);
+
+	info_msg = l1ctl_alloc_msg(L1CTL_PHY_NEGO_IND);
+	if (info_msg == NULL)
+		return -ENOMEM;
+
+	rc = trxcon_compose_phy_info(info_msg);
+	if (rc)
+		goto exit_free;
+
+	return l1ctl_link_send(l1l, info_msg);
+
+exit_free:
+	msgb_free(info_msg);
+	return rc;
+}
+
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
@@ -812,6 +845,8 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_tch_mode_req(l1l, msg);
 	case L1CTL_CRYPTO_REQ:
 		return l1ctl_rx_crypto_req(l1l, msg);
+	case L1CTL_PHY_NEGO_REQ:
+		return l1ctl_rx_nego_req(l1l, msg);
 
 	/* Not (yet) handled messages */
 	case L1CTL_NEIGH_PM_REQ:
