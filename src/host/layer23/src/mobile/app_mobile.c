@@ -469,7 +469,6 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 			vty_ip, vty_port, strerror(errno));
 		return rc;
 	}
-	printf("VTY available on %s %u\n", vty_ip, vty_port);
 
 	osmo_signal_register_handler(SS_GLOBAL, &global_signal_cb, NULL);
 	osmo_signal_register_handler(SS_L1CTL, &mobile_signal_cb, NULL);
