@@ -46,6 +46,16 @@
 #include "trx_if.h"
 #include "sched_trx.h"
 
+static const char *arfcn2band_name(uint16_t arfcn)
+{
+	enum gsm_band band;
+
+	if (gsm_arfcn2band_rc(arfcn, &band) < 0)
+		return "(invalid)";
+
+	return gsm_band_name(band);
+}
+
 static struct msgb *l1ctl_alloc_msg(uint8_t msg_type)
 {
 	struct l1ctl_hdr *l1h;
@@ -80,7 +90,7 @@ int l1ctl_tx_pm_conf(struct l1ctl_link *l1l, uint16_t band_arfcn,
 		return -ENOMEM;
 
 	LOGP(DL1C, LOGL_DEBUG, "Send PM Conf (%s %d = %d dBm)\n",
-		gsm_band_name(gsm_arfcn2band(band_arfcn)),
+		arfcn2band_name(band_arfcn),
 		band_arfcn &~ ARFCN_FLAG_MASK, dbm);
 
 	pmc = (struct l1ctl_pm_conf *) msgb_put(msg, sizeof(*pmc));
@@ -331,7 +341,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	timeout = ntohs(fbsb->timeout);
 
 	LOGP(DL1C, LOGL_NOTICE, "Received FBSB request (%s %d)\n",
-		gsm_band_name(gsm_arfcn2band(band_arfcn)),
+		arfcn2band_name(band_arfcn),
 		band_arfcn &~ ARFCN_FLAG_MASK);
 
 	/* Reset scheduler and clock counter */
@@ -385,7 +395,7 @@ static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	LOGP(DL1C, LOGL_NOTICE, "Received power measurement "
 		"request (%s: %d -> %d)\n",
-		gsm_band_name(gsm_arfcn2band(band_arfcn_start)),
+		arfcn2band_name(band_arfcn_start),
 		band_arfcn_start &~ ARFCN_FLAG_MASK,
 		band_arfcn_stop &~ ARFCN_FLAG_MASK);
 
