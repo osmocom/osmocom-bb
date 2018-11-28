@@ -1,0 +1,21 @@
+OsmocomBB User Manual
+=====================
+Holger Hans Peter Freyther <holger@moiji-mobile.com>
+
+
+include::../common/chapters/preface.adoc[]
+
+include::chapters/scripting.adoc[]
+
+include::../common/chapters/vty.adoc[]
+
+include::../common/chapters/logging.adoc[]
+
+
+include::../common/chapters/port_numbers.adoc[]
+
+include::../common/chapters/bibliography.adoc[]
+
+include::../common/chapters/glossary.adoc[]
+
+include::../common/chapters/gfdl.adoc[]
