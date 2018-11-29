@@ -1,7 +1,5 @@
-OSMO_GSM_MANUALS_DIR = $(top_srcdir)
-EXTRA_DIST = osmocombb-usermanual.adoc \
-	osmocombb-usermanual-docinfo.xml \
-	chapters
+OSMO_GSM_MANUALS_DIR := $(shell ./osmo-gsm-manuals-dir.sh)
+srcdir=$(CURDIR)
 
 ASCIIDOC = osmocombb-usermanual.adoc
 ASCIIDOC_DEPS = $(srcdir)/chapters/*.adoc
