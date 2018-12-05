@@ -74,7 +74,7 @@ class BurstForwarder:
 	            to (rssi_ul_base + rssi_ul_threshold).
 
 	Please note that the randomization of both RSSI and ToA
-	is optional, and should be enabled manually.
+	is optional, and can be enabled from the control interface.
 
 	=== Timing Advance handling
 
@@ -103,14 +103,6 @@ class BurstForwarder:
 	def __init__(self, bts_link, bb_link):
 		self.bts_link = bts_link
 		self.bb_link = bb_link
-
-		# Randomization of RSSI
-		randomize_dl_rssi = False
-		randomize_ul_rssi = False
-
-		# Randomization of ToA
-		randomize_dl_toa256 = False
-		randomize_ul_toa256 = False
 
 		# Init default parameters
 		self.reset_dl()
@@ -164,7 +156,7 @@ class BurstForwarder:
 	# Calculates a random ToA value for Downlink bursts
 	def calc_dl_toa256(self):
 		# Check if randomization is required
-		if not self.randomize_dl_toa256:
+		if self.toa256_dl_threshold is 0:
 			return self.toa256_dl_base
 
 		# Calculate a range for randomization
@@ -179,7 +171,7 @@ class BurstForwarder:
 	# Calculates a random ToA value for Uplink bursts
 	def calc_ul_toa256(self):
 		# Check if randomization is required
-		if not self.randomize_ul_toa256:
+		if self.toa256_ul_threshold is 0:
 			return self.toa256_ul_base
 
 		# Calculate a range for randomization
@@ -194,7 +186,7 @@ class BurstForwarder:
 	# Calculates a random RSSI value for Downlink bursts
 	def calc_dl_rssi(self):
 		# Check if randomization is required
-		if not self.randomize_dl_rssi:
+		if self.rssi_dl_threshold is 0:
 			return self.rssi_dl_base
 
 		# Calculate a range for randomization
@@ -207,7 +199,7 @@ class BurstForwarder:
 	# Calculates a random RSSI value for Uplink bursts
 	def calc_ul_rssi(self):
 		# Check if randomization is required
-		if not self.randomize_ul_rssi:
+		if self.rssi_ul_threshold is 0:
 			return self.rssi_ul_base
 
 		# Calculate a range for randomization

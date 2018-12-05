@@ -46,12 +46,6 @@ class Application:
 	bts_base_port = 5700
 	bb_base_port = 6700
 
-	# BurstForwarder field randomization
-	randomize_dl_toa256 = False
-	randomize_ul_toa256 = False
-	randomize_dl_rssi = False
-	randomize_ul_rssi = False
-
 	def __init__(self):
 		print_copyright(CR_HOLDERS)
 		self.parse_argv()
@@ -85,10 +79,6 @@ class Application:
 
 		# BTS <-> BB burst forwarding
 		self.burst_fwd = BurstForwarder(self.bts_data, self.bb_data)
-		self.burst_fwd.randomize_dl_toa256 = self.randomize_dl_toa256
-		self.burst_fwd.randomize_ul_toa256 = self.randomize_ul_toa256
-		self.burst_fwd.randomize_dl_rssi = self.randomize_dl_rssi
-		self.burst_fwd.randomize_ul_rssi = self.randomize_ul_rssi
 
 		# Share a BurstForwarder instance between BTS and BB
 		self.bts_ctrl.burst_fwd = self.burst_fwd
@@ -144,13 +134,7 @@ class Application:
 			 "  -r --bb-addr        Set BB remote address (default %s)\n"    \
 			 "  -P --bts-base-port  Set BTS base port number (default %d)\n" \
 			 "  -p --bb-base-port   Set BB base port number (default %d)\n" \
-			 "  -b --trx-bind-addr  Set TRX bind address (default %s)\n\n"
-
-		s += " Simulation\n" \
-			 "  --rand-dl-rssi      Enable DL RSSI randomization\n"   \
-			 "  --rand-ul-rssi      Enable UL RSSI randomization\n"   \
-			 "  --rand-dl-toa       Enable DL ToA randomization\n"    \
-			 "  --rand-ul-toa       Enable UL ToA randomization\n"
+			 "  -b --trx-bind-addr  Set TRX bind address (default %s)\n"
 
 		print(s % (self.bts_addr, self.bb_addr,
 			self.bts_base_port, self.bb_base_port,
@@ -168,8 +152,6 @@ class Application:
 					"bts-addr=", "bb-addr=",
 					"bts-base-port=", "bb-base-port=",
 					"trx-bind-addr=",
-					"rand-dl-rssi", "rand-ul-rssi",
-					"rand-dl-toa", "rand-ul-toa",
 				])
 		except getopt.GetoptError as err:
 			self.print_help("[!] " + str(err))
@@ -192,16 +174,6 @@ class Application:
 
 			elif o in ("-b", "--trx-bind-addr"):
 				self.trx_bind_addr = v
-
-			# Message field randomization
-			elif o == "rand-dl-rssi":
-				self.randomize_dl_rssi = True
-			elif o == "rand-ul-rssi":
-				self.randomize_ul_rssi = True
-			elif o == "rand-dl-toa":
-				self.randomize_dl_toa256 = True
-			elif o == "rand-ul-toa":
-				self.randomize_ul_toa256 = True
 
 		# Ensure there is no overlap between ports
 		if self.bts_base_port == self.bb_base_port:
