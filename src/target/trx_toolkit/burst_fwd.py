@@ -326,6 +326,11 @@ class BurstForwarder:
 		if msg is None:
 			return None
 
+		# Timeslot filter
+		if msg.tn not in self.ts_pass_list:
+			print("[!] TS %u is not configured, dropping UL burst..." % msg.tn)
+			return None
+
 		# Path loss simulation
 		msg = self.path_loss_sim_ul(msg)
 		if msg is None:
