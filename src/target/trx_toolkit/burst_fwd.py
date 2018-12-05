@@ -43,11 +43,10 @@ class BurstForwarder:
 	    and transmit frequencies. It would be great to distinguish
 	    between RX and TX frequencies for both BTS and MS.
 
-	  - ts_pass - currently active timeslot, configured by the MS.
-	    It can be activated or deactivated using SETSLOT control
-	    command from the MS.
+	  - ts_pass_list - the list of active (i.e. configured)
+	    timeslot numbers for the MS. A timeslot can be activated
+	    or deactivated using SETSLOT control command from the MS.
 
-	    FIXME: only a single timeslot can be activated!
 	    FIXME: there is no such list for the BTS side.
 
 	== Preprocessing and measurement simulation
@@ -152,7 +151,7 @@ class BurstForwarder:
 		self.burst_ul_drop_period = 1
 
 		# Init timeslot filter (drop everything by default)
-		self.ts_pass = None
+		self.ts_pass_list = []
 
 		# Reset Timing Advance value
 		self.ta = 0
@@ -288,7 +287,7 @@ class BurstForwarder:
 			return None
 
 		# Timeslot filter
-		if msg.tn != self.ts_pass:
+		if msg.tn not in self.ts_pass_list:
 			return None
 
 		# Path loss simulation
