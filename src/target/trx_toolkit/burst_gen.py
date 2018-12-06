@@ -159,7 +159,7 @@ class Application:
 			 "  -p --base-port      Set base port number (default %d)\n\n"
 
 		s += " Burst generation\n" \
-			 "  -b --burst-type     Random burst type (NB, FB, SB, AB)\n"    \
+			 "  -B --burst-type     Random burst type (NB, FB, SB, AB)\n"    \
 			 "  -c --burst-count    How much bursts to send (default 1)\n"   \
 			 "  -f --frame-number   Set frame number (default random)\n"     \
 			 "  -t --timeslot       Set timeslot index (default random)\n"   \
@@ -176,7 +176,7 @@ class Application:
 	def parse_argv(self):
 		try:
 			opts, args = getopt.getopt(sys.argv[1:],
-				"o:m:r:b:p:b:c:f:t:h",
+				"o:m:r:b:p:B:c:f:t:h",
 				[
 					"help",
 					"output-file="
@@ -213,7 +213,7 @@ class Application:
 			elif o in ("-p", "--base-port"):
 				self.base_port = int(v)
 
-			elif o in ("-b", "--burst-type"):
+			elif o in ("-B", "--burst-type"):
 				self.burst_type = v
 			elif o in ("-c", "--burst-count"):
 				self.burst_count = int(v)
