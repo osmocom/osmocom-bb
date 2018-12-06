@@ -22,6 +22,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import logging as log
+
 from ctrl_if import CTRLInterface
 
 class CTRLInterfaceBB(CTRLInterface):
@@ -34,37 +36,37 @@ class CTRLInterfaceBB(CTRLInterface):
 
 	def __init__(self, remote_addr, remote_port, bind_addr, bind_port):
 		CTRLInterface.__init__(self, remote_addr, remote_port, bind_addr, bind_port)
-		print("[i] Init CTRL interface for BB (%s)" % self.desc_link())
+		log.info("Init CTRL interface for BB (%s)" % self.desc_link())
 
 	def parse_cmd(self, request):
 		# Power control
 		if self.verify_cmd(request, "POWERON", 0):
-			print("[i] Recv POWERON CMD")
+			log.debug("Recv POWERON CMD")
 
 			# Ensure transceiver isn't working
 			if self.trx_started:
-				print("[!] Transceiver already started")
+				log.error("Transceiver already started")
 				return -1
 
 			# Ensure RX / TX freq. are set
 			if (self.rx_freq is None) or (self.tx_freq is None):
-				print("[!] RX / TX freq. are not set")
+				log.error("RX / TX freq. are not set")
 				return -1
 
-			print("[i] Starting transceiver...")
+			log.info("Starting transceiver...")
 			self.trx_started = True
 			return 0
 
 		elif self.verify_cmd(request, "POWEROFF", 0):
-			print("[i] Recv POWEROFF cmd")
+			log.debug("Recv POWEROFF cmd")
 
-			print("[i] Stopping transceiver...")
+			log.info("Stopping transceiver...")
 			self.trx_started = False
 			return 0
 
 		# Tuning Control
 		elif self.verify_cmd(request, "RXTUNE", 1):
-			print("[i] Recv RXTUNE cmd")
+			log.debug("Recv RXTUNE cmd")
 
 			# TODO: check freq range
 			self.rx_freq = int(request[1]) * 1000
@@ -72,7 +74,7 @@ class CTRLInterfaceBB(CTRLInterface):
 			return 0
 
 		elif self.verify_cmd(request, "TXTUNE", 1):
-			print("[i] Recv TXTUNE cmd")
+			log.debug("Recv TXTUNE cmd")
 
 			# TODO: check freq range
 			self.tx_freq = int(request[1]) * 1000
@@ -80,7 +82,7 @@ class CTRLInterfaceBB(CTRLInterface):
 
 		# Power measurement
 		elif self.verify_cmd(request, "MEASURE", 1):
-			print("[i] Recv MEASURE cmd")
+			log.debug("Recv MEASURE cmd")
 
 			if self.pm is None:
 				return -1
@@ -92,7 +94,7 @@ class CTRLInterfaceBB(CTRLInterface):
 			return (0, [meas_dbm])
 
 		elif self.verify_cmd(request, "SETSLOT", 2):
-			print("[i] Recv SETSLOT cmd")
+			log.debug("Recv SETSLOT cmd")
 
 			if self.burst_fwd is None:
 				return -1
@@ -100,7 +102,7 @@ class CTRLInterfaceBB(CTRLInterface):
 			# Obtain TS index
 			ts = int(request[1])
 			if ts not in range(0, 8):
-				print("[!] TS index should be in range: 0..7")
+				log.error("TS index should be in range: 0..7")
 				return -1
 
 			# Parse TS type
@@ -113,7 +115,7 @@ class CTRLInterfaceBB(CTRLInterface):
 				if ts in self.burst_fwd.ts_pass_list:
 					self.burst_fwd.ts_pass_list.remove(ts)
 				else:
-					print("[!] TS %u was not activated before" % ts)
+					log.warning("TS %u was not activated before" % ts)
 					# TODO: uncomment as soon as RESET is introduced
 					# return -1
 			else:
@@ -121,7 +123,7 @@ class CTRLInterfaceBB(CTRLInterface):
 				if ts not in self.burst_fwd.ts_pass_list:
 					self.burst_fwd.ts_pass_list.append(ts)
 				else:
-					print("[!] TS %u was already activated before" % ts)
+					log.warning("TS %u was already activated before" % ts)
 					# TODO: uncomment as soon as RESET is introduced
 					# return -1
 
@@ -129,7 +131,7 @@ class CTRLInterfaceBB(CTRLInterface):
 
 		# Timing Advance
 		elif self.verify_cmd(request, "SETTA", 1):
-			print("[i] Recv SETTA cmd")
+			log.debug("Recv SETTA cmd")
 
 			# Save to the BurstForwarder instance
 			self.burst_fwd.ta = ta
@@ -138,7 +140,7 @@ class CTRLInterfaceBB(CTRLInterface):
 		# Timing of Arrival simulation for Uplink
 		# Absolute form: CMD FAKE_TOA <BASE> <THRESH>
 		elif self.verify_cmd(request, "FAKE_TOA", 2):
-			print("[i] Recv FAKE_TOA cmd")
+			log.debug("Recv FAKE_TOA cmd")
 
 			# Parse and apply both base and threshold
 			self.burst_fwd.toa256_ul_base = int(request[1])
@@ -149,7 +151,7 @@ class CTRLInterfaceBB(CTRLInterface):
 		# Timing of Arrival simulation for Uplink
 		# Relative form: CMD FAKE_TOA <+-BASE_DELTA>
 		elif self.verify_cmd(request, "FAKE_TOA", 1):
-			print("[i] Recv FAKE_TOA cmd")
+			log.debug("Recv FAKE_TOA cmd")
 
 			# Parse and apply delta
 			self.burst_fwd.toa256_ul_base += int(request[1])
@@ -159,7 +161,7 @@ class CTRLInterfaceBB(CTRLInterface):
 		# RSSI simulation for Uplink
 		# Absolute form: CMD FAKE_RSSI <BASE> <THRESH>
 		elif self.verify_cmd(request, "FAKE_RSSI", 2):
-			print("[i] Recv FAKE_RSSI cmd")
+			log.debug("Recv FAKE_RSSI cmd")
 
 			# Parse and apply both base and threshold
 			self.burst_fwd.rssi_ul_base = int(request[1])
@@ -170,7 +172,7 @@ class CTRLInterfaceBB(CTRLInterface):
 		# RSSI simulation for Uplink
 		# Relative form: CMD FAKE_RSSI <+-BASE_DELTA>
 		elif self.verify_cmd(request, "FAKE_RSSI", 1):
-			print("[i] Recv FAKE_RSSI cmd")
+			log.debug("Recv FAKE_RSSI cmd")
 
 			# Parse and apply delta
 			self.burst_fwd.rssi_ul_base += int(request[1])
@@ -181,12 +183,12 @@ class CTRLInterfaceBB(CTRLInterface):
 		# Syntax: CMD FAKE_DROP <AMOUNT>
 		# Dropping pattern: fn % 1 == 0
 		elif self.verify_cmd(request, "FAKE_DROP", 1):
-			print("[i] Recv FAKE_DROP cmd")
+			log.debug("Recv FAKE_DROP cmd")
 
 			# Parse / validate amount of bursts
 			num = int(request[1])
 			if num < 0:
-				print("[!] FAKE_DROP amount shall not be negative")
+				log.error("FAKE_DROP amount shall not be negative")
 				return -1
 
 			self.burst_fwd.burst_ul_drop_amount = num
@@ -198,18 +200,18 @@ class CTRLInterfaceBB(CTRLInterface):
 		# Syntax: CMD FAKE_DROP <AMOUNT> <FN_PERIOD>
 		# Dropping pattern: fn % period == 0
 		elif self.verify_cmd(request, "FAKE_DROP", 2):
-			print("[i] Recv FAKE_DROP cmd")
+			log.debug("Recv FAKE_DROP cmd")
 
 			# Parse / validate amount of bursts
 			num = int(request[1])
 			if num < 0:
-				print("[!] FAKE_DROP amount shall not be negative")
+				log.error("FAKE_DROP amount shall not be negative")
 				return -1
 
 			# Parse / validate period
 			period = int(request[2])
 			if period <= 0:
-				print("[!] FAKE_DROP period shall be greater than zero")
+				log.error("FAKE_DROP period shall be greater than zero")
 				return -1
 
 			self.burst_fwd.burst_ul_drop_amount = num
@@ -221,5 +223,5 @@ class CTRLInterfaceBB(CTRLInterface):
 		else:
 			# We don't care about other commands,
 			# so let's merely ignore them ;)
-			print("[i] Ignore CMD %s" % request[0])
+			log.debug("Ignore CMD %s" % request[0])
 			return 0

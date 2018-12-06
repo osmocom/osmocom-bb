@@ -26,6 +26,7 @@
 from copyright import print_copyright
 CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
+import logging as log
 import signal
 import getopt
 import select
@@ -48,12 +49,16 @@ class Application:
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
 
+		# Configure logging
+		log.basicConfig(level = log.DEBUG,
+			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+
 		# Init UDP connection
 		self.ctrl_link = UDPLink(self.remote_addr, self.base_port + 1,
 			self.bind_addr, self.bind_port)
 
 		# Debug print
-		print("[i] Init CTRL interface (%s)" \
+		log.info("Init CTRL interface (%s)" \
 			% self.ctrl_link.desc_link())
 
 	def print_help(self, msg = None):
@@ -138,7 +143,7 @@ class Application:
 		sys.stdout.flush()
 
 	def sig_handler(self, signum, frame):
-		print("\n\nSignal %d received" % signum)
+		log.info("Signal %d received" % signum)
 		if signum is signal.SIGINT:
 			sys.exit(0)
 

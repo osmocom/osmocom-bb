@@ -22,6 +22,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import logging as log
 import random
 
 from data_msg import *
@@ -214,7 +215,7 @@ class BurstForwarder:
 		# Burst dropping
 		if self.burst_dl_drop_amount > 0:
 			if msg.fn % self.burst_dl_drop_period == 0:
-				print("[~] Simulation: dropping DL burst (fn=%u %% %u == 0)"
+				log.info("Simulation: dropping DL burst (fn=%u %% %u == 0)"
 					% (msg.fn, self.burst_dl_drop_period))
 				self.burst_dl_drop_amount -= 1
 				return None
@@ -226,7 +227,7 @@ class BurstForwarder:
 		# Burst dropping
 		if self.burst_ul_drop_amount > 0:
 			if msg.fn % self.burst_ul_drop_period == 0:
-				print("[~] Simulation: dropping UL burst (fn=%u %% %u == 0)"
+				log.info("Simulation: dropping UL burst (fn=%u %% %u == 0)"
 					% (msg.fn, self.burst_ul_drop_period))
 				self.burst_ul_drop_amount -= 1
 				return None
@@ -254,7 +255,7 @@ class BurstForwarder:
 			msg_l12trx = DATAMSG_L12TRX()
 			msg_l12trx.parse_msg(bytearray(msg_raw))
 		except:
-			print("[!] Dropping unhandled DL message...")
+			log.error("Dropping unhandled DL message...")
 			return None
 
 		# Compose a new message for L1
@@ -320,7 +321,7 @@ class BurstForwarder:
 
 		# Timeslot filter
 		if msg.tn not in self.ts_pass_list:
-			print("[!] TS %u is not configured, dropping UL burst..." % msg.tn)
+			log.warning("TS %u is not configured, dropping UL burst..." % msg.tn)
 			return None
 
 		# Path loss simulation

@@ -25,6 +25,7 @@
 from copyright import print_copyright
 CR_HOLDERS = [("2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
+import logging as log
 import signal
 import getopt
 import sys
@@ -67,6 +68,10 @@ class Application:
 		print_copyright(CR_HOLDERS)
 		self.parse_argv()
 
+		# Configure logging
+		log.basicConfig(level = log.DEBUG,
+			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+
 		# Open requested capture file
 		if self.output_file is not None:
 			self.ddf = DATADumpFile(self.output_file)
@@ -76,7 +81,7 @@ class Application:
 		pkt_filter = "udp and (port %d or port %d)" \
 			% (self.sniff_base_port + 2, self.sniff_base_port + 102)
 
-		print("[i] Listening on interface '%s'..." % self.sniff_interface)
+		log.info("Listening on interface '%s'..." % self.sniff_interface)
 
 		# Start sniffing...
 		scapy.all.sniff(iface = self.sniff_interface, store = 0,
@@ -110,7 +115,7 @@ class Application:
 		try:
 			msg.parse_msg(msg_raw)
 		except:
-			print("[!] Failed to parse message, dropping...")
+			log.warning("Failed to parse message, dropping...")
 			self.cnt_burst_dropped_num += 1
 			return
 
@@ -121,7 +126,7 @@ class Application:
 			return
 
 		# Debug print
-		print("[i] %s burst: %s" \
+		log.debug("%s burst: %s" \
 			% ("L1 -> TRX" if l12trx else "TRX -> L1", msg.desc_hdr()))
 
 		# Poke message handler
@@ -177,22 +182,22 @@ class Application:
 		# Stop sniffing after N bursts
 		if self.cnt_burst_break is not None:
 			if self.cnt_burst_num == self.cnt_burst_break:
-				print("[i] Collected required amount of bursts")
+				log.info("Collected required amount of bursts")
 				return True
 
 		# Stop sniffing after N frames
 		if self.cnt_frame_break is not None:
 			if self.cnt_frame_num == self.cnt_frame_break:
-				print("[i] Collected required amount of frames")
+				log.info("Collected required amount of frames")
 				return True
 
 		return False
 
 	def shutdown(self):
-		print("[i] Shutting down...")
+		log.info("Shutting down...")
 
 		# Print statistics
-		print("[i] %u bursts handled, %u dropped" \
+		log.info("%u bursts handled, %u dropped" \
 			% (self.cnt_burst_num, self.cnt_burst_dropped_num))
 
 		# Exit

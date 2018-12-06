@@ -431,6 +431,12 @@ class DATAMSG_TRX2L1(DATAMSG):
 
 # Regression test
 if __name__ == '__main__':
+	import logging as log
+
+	# Configure logging
+	log.basicConfig(level = log.DEBUG,
+		format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+
 	# Common reference data
 	fn = 1024
 	tn = 0
@@ -446,7 +452,7 @@ if __name__ == '__main__':
 		sbit = random.randint(-127, 127)
 		burst_trx2l1_ref.append(sbit)
 
-	print("[i] Generating the reference messages")
+	log.info("Generating the reference messages")
 
 	# Create messages of both types
 	msg_l12trx_ref = DATAMSG_L12TRX(fn = fn, tn = tn)
@@ -461,13 +467,13 @@ if __name__ == '__main__':
 	msg_l12trx_ref.burst = burst_l12trx_ref
 	msg_trx2l1_ref.burst = burst_trx2l1_ref
 
-	print("[i] Encoding the reference messages")
+	log.info("Encoding the reference messages")
 
 	# Encode DATA messages
 	l12trx_raw = msg_l12trx_ref.gen_msg()
 	trx2l1_raw = msg_trx2l1_ref.gen_msg()
 
-	print("[i] Parsing generated messages back")
+	log.info("Parsing generated messages back")
 
 	# Parse generated DATA messages
 	msg_l12trx_dec = DATAMSG_L12TRX()
@@ -475,13 +481,13 @@ if __name__ == '__main__':
 	msg_l12trx_dec.parse_msg(l12trx_raw)
 	msg_trx2l1_dec.parse_msg(trx2l1_raw)
 
-	print("[i] Comparing decoded messages with the reference")
+	log.info("Comparing decoded messages with the reference")
 
 	# Compare bursts
 	assert(msg_l12trx_dec.burst == burst_l12trx_ref)
 	assert(msg_trx2l1_dec.burst == burst_trx2l1_ref)
 
-	print("[?] Compare bursts: OK")
+	log.info("Compare bursts: OK")
 
 	# Compare both parsed messages with the reference data
 	assert(msg_l12trx_dec.fn == fn)
@@ -489,14 +495,14 @@ if __name__ == '__main__':
 	assert(msg_l12trx_dec.tn == tn)
 	assert(msg_trx2l1_dec.tn == tn)
 
-	print("[?] Compare FN / TN: OK")
+	log.info("Compare FN / TN: OK")
 
 	# Compare message specific parts
 	assert(msg_trx2l1_dec.rssi == msg_trx2l1_ref.rssi)
 	assert(msg_l12trx_dec.pwr == msg_l12trx_ref.pwr)
 	assert(msg_trx2l1_dec.toa256 == msg_trx2l1_ref.toa256)
 
-	print("[?] Compare message specific data: OK")
+	log.info("Compare message specific data: OK")
 
 	# Validate header randomization
 	for i in range(0, 100):
@@ -506,7 +512,7 @@ if __name__ == '__main__':
 		assert(msg_l12trx_ref.validate())
 		assert(msg_trx2l1_ref.validate())
 
-	print("[?] Validate header randomization: OK")
+	log.info("Validate header randomization: OK")
 
 	# Bit conversation test
 	usbits_ref = list(range(0, 256))
@@ -518,7 +524,7 @@ if __name__ == '__main__':
 	assert(usbits[:255] == usbits_ref[:255])
 	assert(usbits[255] == 254)
 
-	print("[?] Check both usbit2sbit() and sbit2usbit(): OK")
+	log.info("Check both usbit2sbit() and sbit2usbit(): OK")
 
 	# Test both sbit2ubit() and ubit2sbit()
 	ubits = msg_trx2l1_ref.sbit2ubit(sbits_ref)
@@ -527,7 +533,7 @@ if __name__ == '__main__':
 	sbits = msg_trx2l1_ref.ubit2sbit(ubits)
 	assert(sbits == ([-127] * 127 + [127] * 128))
 
-	print("[?] Check both sbit2ubit() and ubit2sbit(): OK")
+	log.info("Check both sbit2ubit() and ubit2sbit(): OK")
 
 	# Test message transformation
 	msg_l12trx_dec = msg_trx2l1_ref.gen_l12trx()
@@ -542,4 +548,4 @@ if __name__ == '__main__':
 	assert(msg_l12trx_dec.burst == msg_l12trx_dec.sbit2ubit(burst_trx2l1_ref))
 	assert(msg_trx2l1_dec.burst == msg_trx2l1_dec.ubit2sbit(burst_l12trx_ref))
 
-	print("[?] Check L12TRX <-> TRX2L1 type transformations: OK")
+	log.info("Check L12TRX <-> TRX2L1 type transformations: OK")

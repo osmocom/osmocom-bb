@@ -22,6 +22,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import logging as log
 import struct
 
 from data_msg import *
@@ -77,13 +78,15 @@ class DATADumpFile(DATADump):
 	def __init__(self, capture):
 		# Check if capture file is already opened
 		if isinstance(capture, str):
-			print("[i] Opening capture file '%s'..." % capture)
+			log.info("Opening capture file '%s'..." % capture)
 			self.f = open(capture, "a+b")
 		else:
 			self.f = capture
 
 	def __del__(self):
-		print("[i] Closing the capture file")
+		# FIXME: this causes an Exception in Python 2 (but not in Python 3)
+		# AttributeError: 'NoneType' object has no attribute 'info'
+		log.info("Closing the capture file")
 		self.f.close()
 
 	# Moves the file descriptor before a specified message
@@ -104,7 +107,7 @@ class DATADumpFile(DATADump):
 			# Attempt to parse it
 			rc = self.parse_hdr(hdr_raw)
 			if rc is False:
-				print("[!] Couldn't parse a message header")
+				log.error("Couldn't parse a message header")
 				return False
 
 			# Expand the header
@@ -129,7 +132,7 @@ class DATADumpFile(DATADump):
 		# Attempt to parse it
 		rc = self.parse_hdr(hdr_raw)
 		if rc is False:
-			print("[!] Couldn't parse a message header")
+			log.error("Couldn't parse a message header")
 			return None
 
 		# Expand the header
@@ -138,7 +141,7 @@ class DATADumpFile(DATADump):
 		# Attempt to read a message
 		msg_raw = self.f.read(msg_len)
 		if len(msg_raw) != msg_len:
-			print("[!] Message length mismatch")
+			log.error("Message length mismatch")
 			return None
 
 		# Attempt to parse a message
@@ -146,7 +149,7 @@ class DATADumpFile(DATADump):
 			msg_raw = bytearray(msg_raw)
 			msg.parse_msg(msg_raw)
 		except:
-			print("[!] Couldn't parse a message, skipping...")
+			log.error("Couldn't parse a message, skipping...")
 			return False
 
 		# Success
@@ -161,7 +164,7 @@ class DATADumpFile(DATADump):
 		# Move descriptor to the begining of requested message
 		rc = self._seek2msg(idx)
 		if not rc:
-			print("[!] Couldn't find requested message")
+			log.error("Couldn't find requested message")
 			return False
 
 		# Attempt to parse a message
@@ -181,7 +184,7 @@ class DATADumpFile(DATADump):
 		else:
 			rc = self._seek2msg(skip)
 			if not rc:
-				print("[!] Couldn't find requested message")
+				log.error("Couldn't find requested message")
 				return False
 
 		# Read the capture in loop...
@@ -224,6 +227,10 @@ if __name__ == '__main__':
 	from gsm_shared import *
 	import random
 
+	# Configure logging
+	log.basicConfig(level = log.DEBUG,
+		format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+
 	# Create a temporary file
 	tf = TemporaryFile()
 
@@ -242,7 +249,7 @@ if __name__ == '__main__':
 		burst_trx2l1.append(sbit)
 
 	# Generate a basic list of random messages
-	print("[i] Generating the reference messages")
+	log.info("Generating the reference messages")
 	messages_ref = []
 
 	for i in range(100):
@@ -260,9 +267,9 @@ if __name__ == '__main__':
 		# Append
 		messages_ref.append(msg)
 
-	print("[i] Adding the following messages to the capture:")
+	log.info("Adding the following messages to the capture:")
 	for msg in messages_ref[:3]:
-		print("    %s: burst_len=%d"
+		log.info("%s: burst_len=%d"
 			% (msg.desc_hdr(), len(msg.burst)))
 
 	# Check single message appending
@@ -273,9 +280,9 @@ if __name__ == '__main__':
 	# Read the written messages back
 	messages_check = ddf.parse_all()
 
-	print("[i] Read the following messages back:")
+	log.info("Read the following messages back:")
 	for msg in messages_check:
-		print("    %s: burst_len=%d"
+		log.info("%s: burst_len=%d"
 			% (msg.desc_hdr(), len(msg.burst)))
 
 	# Expecting three messages
@@ -291,7 +298,7 @@ if __name__ == '__main__':
 		# Validate a message
 		assert(messages_check[i].validate())
 
-	print("[?] Check append_msg(): OK")
+	log.info("Check append_msg(): OK")
 
 
 	# Append the pending reference messages
@@ -313,7 +320,7 @@ if __name__ == '__main__':
 		# Validate a message
 		assert(messages_check[i].validate())
 
-	print("[?] Check append_all(): OK")
+	log.info("Check append_all(): OK")
 
 
 	# Check parse_msg()
@@ -336,7 +343,7 @@ if __name__ == '__main__':
 	assert(msg0.validate())
 	assert(msg10.validate())
 
-	print("[?] Check parse_msg(): OK")
+	log.info("Check parse_msg(): OK")
 
 
 	# Check parse_all() with range
@@ -357,4 +364,4 @@ if __name__ == '__main__':
 		# Validate a message
 		assert(messages_check[i].validate())
 
-	print("[?] Check parse_all(): OK")
+	log.info("Check parse_all(): OK")

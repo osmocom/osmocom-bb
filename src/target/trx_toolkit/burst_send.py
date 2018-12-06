@@ -25,6 +25,7 @@
 from copyright import print_copyright
 CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
+import logging as log
 import signal
 import getopt
 import sys
@@ -60,6 +61,10 @@ class Application:
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
 
+		# Configure logging
+		log.basicConfig(level = log.DEBUG,
+			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+
 		# Open requested capture file
 		self.ddf = DATADumpFile(self.capture_file)
 
@@ -88,7 +93,7 @@ class Application:
 			if not self.msg_pass_filter(l12trx, msg):
 				continue
 
-			print("[i] Sending a burst %s to %s..."
+			log.info("Sending a burst %s to %s..."
 				% (msg.desc_hdr(), self.conn_mode))
 
 			# Send message
@@ -209,7 +214,7 @@ class Application:
 			sys.exit(2)
 
 	def sig_handler(self, signum, frame):
-		print("Signal %d received" % signum)
+		log.info("Signal %d received" % signum)
 		if signum is signal.SIGINT:
 			sys.exit(0)
 

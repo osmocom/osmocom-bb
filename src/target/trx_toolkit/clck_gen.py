@@ -25,6 +25,7 @@
 from copyright import print_copyright
 CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
+import logging as log
 import signal
 import time
 import sys
@@ -83,7 +84,7 @@ class CLCKGen:
 				link.send(payload)
 
 			# Debug print
-			print("[T] %s" % payload)
+			log.debug(payload)
 
 		# Increase frame count
 		self.clck_src += self.ind_period
@@ -101,13 +102,17 @@ class Application:
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
 
+		# Configure logging
+		log.basicConfig(level = log.DEBUG,
+			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+
 	def run(self):
 		self.link = UDPLink("127.0.0.1", 5800, "0.0.0.0", 5700)
 		self.clck = CLCKGen([self.link], ind_period = 51)
 		self.clck.start()
 
 	def sig_handler(self, signum, frame):
-		print("Signal %d received" % signum)
+		log.info("Signal %d received" % signum)
 		if signum is signal.SIGINT:
 			self.clck.stop()
 

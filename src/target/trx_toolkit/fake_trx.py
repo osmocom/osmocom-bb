@@ -25,6 +25,7 @@
 from copyright import print_copyright
 CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
+import logging as log
 import signal
 import getopt
 import select
@@ -52,6 +53,10 @@ class Application:
 
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
+
+		# Configure logging
+		log.basicConfig(level = log.DEBUG,
+			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
 
 	def run(self):
 		# Init TRX CTRL interface for BTS
@@ -90,7 +95,7 @@ class Application:
 		self.clck_gen = CLCKGen([self.bts_clck])
 		self.bts_ctrl.clck_gen = self.clck_gen
 
-		print("[i] Init complete")
+		log.info("Init complete")
 
 		# Enter main loop
 		while True:
@@ -119,7 +124,7 @@ class Application:
 				self.bb_ctrl.handle_rx(data.decode(), addr)
 
 	def shutdown(self):
-		print("[i] Shutting down...")
+		log.info("Shutting down...")
 
 		# Stop clock generator
 		self.clck_gen.stop()
@@ -198,7 +203,7 @@ class Application:
 				sys.exit(2)
 
 	def sig_handler(self, signum, frame):
-		print("Signal %d received" % signum)
+		log.info("Signal %d received" % signum)
 		if signum is signal.SIGINT:
 			self.shutdown()
 			sys.exit(0)
