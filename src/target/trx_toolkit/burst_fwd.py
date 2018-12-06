@@ -4,7 +4,7 @@
 # TRX Toolkit
 # BTS <-> BB burst forwarding
 #
-# (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -27,57 +27,135 @@ import random
 from data_msg import *
 
 class BurstForwarder:
-	# Timeslot filter (drop everything by default)
-	ts_pass = None
+	""" Performs burst forwarding and preprocessing between MS and BTS.
 
-	# Freq. filter
-	bts_freq = None
-	bb_freq = None
+	== Pass-filtering parameters
 
-	# Randomization of RSSI
-	randomize_dl_rssi = False
-	randomize_ul_rssi = False
+	BurstForwarder may drop or pass an UL/DL burst depending
+	on the following parameters:
 
-	# Randomization of ToA
-	randomize_dl_toa256 = False
-	randomize_ul_toa256 = False
+	  - bts_freq / bb_freq - the current BTS / MS frequency
+	    that was set using RXTUNE control command. By default,
+	    both freq. values are set to None, so nothing is being
+	    forwarded (i.e. bursts are getting dropped).
 
-	# Timing Advance value indicated by MS (0 by default)
-	# Valid range: 0..63, where each unit means
-	# one GSM symbol advance.
-	ta = 0
+	    FIXME: currently, we don't care about TXTUNE command
+	    and transmit frequencies. It would be great to distinguish
+	    between RX and TX frequencies for both BTS and MS.
 
-	# Timing of Arrival values indicated by transceiver
-	# in units of 1/256 of GSM symbol periods. A pair of
-	# base and threshold values defines a range of ToA value
-	# randomization: from (base - threshold) to (base + threshold).
-	toa256_dl_base = 0
-	toa256_ul_base = 0
+	  - ts_pass - currently active timeslot, configured by the MS.
+	    It can be activated or deactivated using SETSLOT control
+	    command from the MS.
 
-	toa256_dl_threshold = 128
-	toa256_ul_threshold = 128
+	    FIXME: only a single timeslot can be activated!
+	    FIXME: there is no such list for the BTS side.
 
-	# RSSI values indicated by transceiver in dBm.
-	# A pair of base and threshold values defines a range of RSSI
-	# randomization: from (base - threshold) to (base + threshold).
-	rssi_dl_base = -60
-	rssi_ul_base = -70
+	== Preprocessing and measurement simulation
 
-	rssi_dl_threshold = 10
-	rssi_ul_threshold = 5
+	Since this is a virtual environment, we can simulate different
+	parameters of a virtual RF interface:
 
-	# Path loss simulation: DL/UL burst dropping
-	# Indicates how many bursts should be dropped
-	# and which dropping period is used. By default,
-	# period is 1, i.e. every burst (fn % 1 is always 0)
-	burst_dl_drop_amount = 0
-	burst_ul_drop_amount = 0
-	burst_dl_drop_period = 1
-	burst_ul_drop_period = 1
+	  - ToA (Timing of Arrival) - measured difference between expected
+	    and actual time of burst arrival in units of 1/256 of GSM symbol
+	    periods. A pair of both base and threshold values defines a range
+	    of ToA value randomization:
+
+	      DL: from (toa256_dl_base - toa256_dl_threshold)
+	            to (toa256_dl_base + toa256_dl_threshold),
+	      UL: from (toa256_ul_base - toa256_ul_threshold)
+	            to (toa256_ul_base + toa256_ul_threshold).
+
+	  - RSSI (Received Signal Strength Indication) - measured "power" of
+	    the signal (per burst) in dBm. A pair of both base and threshold
+	    values defines a range of RSSI value randomization:
+
+	      DL: from (rssi_dl_base - rssi_dl_threshold)
+	            to (rssi_dl_base + rssi_dl_threshold),
+	      UL: from (rssi_ul_base - rssi_ul_threshold)
+	            to (rssi_ul_base + rssi_ul_threshold).
+
+	Please note that the randomization of both RSSI and ToA
+	is optional, and should be enabled manually.
+
+	=== Timing Advance handling
+
+	The BTS is using ToA measurements for UL bursts in order to calculate
+	Timing Advance value, that is then indicated to a MS, which in its turn
+	shall apply this value to the transmitted signal in order to compensate
+	the delay. Basically, every burst is transmitted in advance defined by
+	the indicated Timing Advance value. The valid range is 0..63, where
+	each unit means one GSM symbol advance. The actual Timing Advance value
+	is set using SETTA control command from MS. By default, it's set to 0.
+
+	=== Path loss simulation - burst dropping
+
+	In some cases, e.g. due to a weak signal or high interference, a burst
+	can be lost, i.e. not detected by the receiver. This can also be
+	simulated using FAKE_DROP command on both control interfaces:
+
+	  - burst_{dl|ul}_drop_amount - the amount of DL/UL bursts
+	      to be dropped (i.e. not forwarded towards the MS/BTS),
+
+	  - burst_{dl|ul}_drop_period - drop every X DL/UL burst, e.g.
+	    1 - drop every consequent burst, 2 - drop every second burst, etc.
+
+	"""
 
 	def __init__(self, bts_link, bb_link):
 		self.bts_link = bts_link
 		self.bb_link = bb_link
+
+		# Randomization of RSSI
+		randomize_dl_rssi = False
+		randomize_ul_rssi = False
+
+		# Randomization of ToA
+		randomize_dl_toa256 = False
+		randomize_ul_toa256 = False
+
+		# Init default parameters
+		self.reset_dl()
+		self.reset_ul()
+
+	# Initialize (or reset to) default parameters for Downlink
+	def reset_dl(self):
+		# Unset current DL freq.
+		self.bts_freq = None
+
+		# Indicated RSSI / ToA values
+		self.toa256_dl_base = 0
+		self.rssi_dl_base = -60
+
+		# RSSI / ToA randomization threshold
+		self.toa256_dl_threshold = 0
+		self.rssi_dl_threshold = 0
+
+		# Path loss simulation (burst dropping)
+		self.burst_dl_drop_amount = 0
+		self.burst_dl_drop_period = 1
+
+	# Initialize (or reset to) default parameters for Uplink
+	def reset_ul(self):
+		# Unset current DL freq.
+		self.bb_freq = None
+
+		# Indicated RSSI / ToA values
+		self.rssi_ul_base = -70
+		self.toa256_ul_base = 0
+
+		# RSSI / ToA randomization threshold
+		self.toa256_ul_threshold = 0
+		self.rssi_ul_threshold = 0
+
+		# Path loss simulation (burst dropping)
+		self.burst_ul_drop_amount = 0
+		self.burst_ul_drop_period = 1
+
+		# Init timeslot filter (drop everything by default)
+		self.ts_pass = None
+
+		# Reset Timing Advance value
+		self.ta = 0
 
 	# Converts TA value from symbols to
 	# units of 1/256 of GSM symbol periods
