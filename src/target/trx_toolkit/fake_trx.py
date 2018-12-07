@@ -31,6 +31,7 @@ import argparse
 import select
 import sys
 
+from app_common import ApplicationBase
 from ctrl_if_bts import CTRLInterfaceBTS
 from ctrl_if_bb import CTRLInterfaceBB
 from burst_fwd import BurstForwarder
@@ -39,7 +40,7 @@ from fake_pm import FakePM
 from udp_link import UDPLink
 from clck_gen import CLCKGen
 
-class Application:
+class Application(ApplicationBase):
 	def __init__(self):
 		print_copyright(CR_HOLDERS)
 		self.argv = self.parse_argv()
@@ -48,8 +49,7 @@ class Application:
 		signal.signal(signal.SIGINT, self.sig_handler)
 
 		# Configure logging
-		log.basicConfig(level = log.DEBUG,
-			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+		self.app_init_logging(self.argv)
 
 	def run(self):
 		# Init TRX CTRL interface for BTS
@@ -130,6 +130,9 @@ class Application:
 	def parse_argv(self):
 		parser = argparse.ArgumentParser(prog = "fake_trx",
 			description = "Virtual Um-interface (fake transceiver)")
+
+		# Register common logging options
+		self.app_reg_logging_options(parser)
 
 		trx_group = parser.add_argument_group("TRX interface")
 		trx_group.add_argument("-b", "--trx-bind-addr",

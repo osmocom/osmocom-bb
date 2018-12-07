@@ -32,10 +32,11 @@ import sys
 
 import scapy.all
 
+from app_common import ApplicationBase
 from data_dump import DATADumpFile
 from data_msg import *
 
-class Application:
+class Application(ApplicationBase):
 	# Counters
 	cnt_burst_dropped_num = 0
 	cnt_burst_num = 0
@@ -51,8 +52,7 @@ class Application:
 		self.argv = self.parse_argv()
 
 		# Configure logging
-		log.basicConfig(level = log.DEBUG,
-			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+		self.app_init_logging(self.argv)
 
 		# Open requested capture file
 		if self.argv.output_file is not None:
@@ -194,6 +194,9 @@ class Application:
 		parser.add_argument("-v", "--verbose",
 			dest = "verbose", action = "store_true",
 			help = "Print burst bits to stdout")
+
+		# Register common logging options
+		self.app_reg_logging_options(parser)
 
 		trx_group = parser.add_argument_group("TRX interface")
 		trx_group.add_argument("-i", "--sniff-interface",

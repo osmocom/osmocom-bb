@@ -32,9 +32,10 @@ import argparse
 import select
 import sys
 
+from app_common import ApplicationBase
 from udp_link import UDPLink
 
-class Application:
+class Application(ApplicationBase):
 	def __init__(self):
 		print_copyright(CR_HOLDERS)
 		self.argv = self.parse_argv()
@@ -43,8 +44,7 @@ class Application:
 		signal.signal(signal.SIGINT, self.sig_handler)
 
 		# Configure logging
-		log.basicConfig(level = log.DEBUG,
-			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+		self.app_init_logging(self.argv)
 
 		# Init UDP connection
 		self.ctrl_link = UDPLink(
@@ -58,6 +58,9 @@ class Application:
 	def parse_argv(self):
 		parser = argparse.ArgumentParser(prog = "ctrl_cmd",
 			description = "Auxiliary tool to send control commands")
+
+		# Register common logging options
+		self.app_reg_logging_options(parser)
 
 		trx_group = parser.add_argument_group("TRX interface")
 		trx_group.add_argument("-r", "--remote-addr",

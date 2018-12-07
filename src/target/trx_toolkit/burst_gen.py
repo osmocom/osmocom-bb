@@ -31,13 +31,14 @@ import signal
 import argparse
 import sys
 
+from app_common import ApplicationBase
 from rand_burst_gen import RandBurstGen
 from data_dump import DATADumpFile
 from data_if import DATAInterface
 from gsm_shared import *
 from data_msg import *
 
-class Application:
+class Application(ApplicationBase):
 	def __init__(self):
 		print_copyright(CR_HOLDERS)
 		self.argv = self.parse_argv()
@@ -46,8 +47,7 @@ class Application:
 		signal.signal(signal.SIGINT, self.sig_handler)
 
 		# Configure logging
-		log.basicConfig(level = log.DEBUG,
-			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+		self.app_init_logging(self.argv)
 
 		# Open requested capture file
 		if self.argv.output_file is not None:
@@ -134,6 +134,9 @@ class Application:
 	def parse_argv(self):
 		parser = argparse.ArgumentParser(prog = "burst_gen",
 			description = "Auxiliary tool to generate and send random bursts")
+
+		# Register common logging options
+		self.app_reg_logging_options(parser)
 
 		trx_group = parser.add_argument_group("TRX interface")
 		trx_group.add_argument("-r", "--remote-addr",
