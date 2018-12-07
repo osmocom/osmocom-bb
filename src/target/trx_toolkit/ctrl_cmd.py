@@ -28,23 +28,16 @@ CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import signal
-import getopt
+import argparse
 import select
 import sys
 
 from udp_link import UDPLink
 
 class Application:
-	# Application variables
-	remote_addr = "127.0.0.1"
-	bind_addr = "0.0.0.0"
-	base_port = 5700
-	bind_port = 0
-	fuzzing = False
-
 	def __init__(self):
 		print_copyright(CR_HOLDERS)
-		self.parse_argv()
+		self.argv = self.parse_argv()
 
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
@@ -54,61 +47,36 @@ class Application:
 			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
 
 		# Init UDP connection
-		self.ctrl_link = UDPLink(self.remote_addr, self.base_port + 1,
-			self.bind_addr, self.bind_port)
+		self.ctrl_link = UDPLink(
+			self.argv.remote_addr, self.argv.base_port + 1,
+			self.argv.bind_addr, self.argv.bind_port)
 
 		# Debug print
 		log.info("Init CTRL interface (%s)" \
 			% self.ctrl_link.desc_link())
 
-	def print_help(self, msg = None):
-		s  = " Usage: " + sys.argv[0] + " [options]\n\n" \
-			 " Some help...\n" \
-			 "  -h --help           this text\n\n"
-
-		s += " TRX interface specific\n" \
-			 "  -r --remote-addr    Set remote address (default %s)\n"   \
-			 "  -p --base-port      Set base port number (default %d)\n" \
-			 "  -P --bind-port      Set local port number (default: random)\n" \
-			 "  -b --bind-addr      Set local address (default %s)\n" \
-			 "  -f --fuzzing        Send raw payloads (without CMD)\n"   \
-
-		print(s % (self.remote_addr, self.base_port, self.bind_addr))
-
-		if msg is not None:
-			print(msg)
-
 	def parse_argv(self):
-		try:
-			opts, args = getopt.getopt(sys.argv[1:],
-				"r:p:P:b:fh",
-				[
-					"help",
-					"fuzzing",
-					"base-port=",
-					"bind-port=",
-					"bind-addr=",
-					"remote-addr=",
-				])
-		except getopt.GetoptError as err:
-			self.print_help("[!] " + str(err))
-			sys.exit(2)
+		parser = argparse.ArgumentParser(prog = "ctrl_cmd",
+			description = "Auxiliary tool to send control commands")
 
-		for o, v in opts:
-			if o in ("-h", "--help"):
-				self.print_help()
-				sys.exit(2)
+		trx_group = parser.add_argument_group("TRX interface")
+		trx_group.add_argument("-r", "--remote-addr",
+			dest = "remote_addr", type = str, default = "127.0.0.1",
+			help = "Set remote address (default %(default)s)")
+		trx_group.add_argument("-b", "--bind-addr",
+			dest = "bind_addr", type = str, default = "0.0.0.0",
+			help = "Set bind address (default %(default)s)")
+		trx_group.add_argument("-p", "--base-port",
+			dest = "base_port", type = int, default = 6700,
+			help = "Set base port number (default %(default)s)")
+		trx_group.add_argument("-P", "--bind-port",
+			dest = "bind_port", type = int, default = 0,
+			help = "Set bind port number (default random)")
+		trx_group.add_argument("-f", "--fuzzing",
+			dest = "fuzzing", action = "store_true",
+			help = "Send raw payloads (without CMD)")
 
-			elif o in ("-r", "--remote-addr"):
-				self.remote_addr = v
-			elif o in ("-b", "--bind-addr"):
-				self.bind_addr = v
-			elif o in ("-p", "--base-port"):
-				self.base_port = int(v)
-			elif o in ("-P", "--bind-port"):
-				self.bind_port = int(v)
-			elif o in ("-f", "--fuzzing"):
-				self.fuzzing = True
+		return parser.parse_args()
 
 	def run(self):
 		while True:
@@ -133,7 +101,7 @@ class Application:
 		cmd = cmd.strip().strip("\0")
 
 		# Send a command
-		if self.fuzzing:
+		if self.argv.fuzzing:
 			self.ctrl_link.send("%s" % cmd)
 		else:
 			self.ctrl_link.send("CMD %s\0" % cmd)
