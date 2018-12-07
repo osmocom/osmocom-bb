@@ -1,4 +1,10 @@
 #!/bin/sh
+# jenkins build helper script for osmocom-bb.  This is how we build on jenkins.osmocom.org
+#
+# environment variables:
+# * WITH_MANUALS: build manual PDFs if set to "1"
+# * PUBLISH: upload manuals after building if set to "1" (ignored without WITH_MANUALS = "1")
+#
 
 set -ex
 
@@ -34,5 +40,16 @@ for dir in gprsdecode gsmmap layer23 osmocon trxcon virt_phy; do
 	./configure
 	make
 done
+
+# Build and publish manuals
+if [ "$WITH_MANUALS" = "1" ]; then
+	osmo-build-dep.sh osmo-gsm-manuals
+	make -C "$base/doc/manuals"
+	make -C "$base/doc/manuals" check
+
+	if [ "$PUBLISH" = "1" ]; then
+		make -C "$base/doc/manuals" publish
+	fi
+fi
 
 osmo-clean-workspace.sh
