@@ -27,7 +27,7 @@ CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import signal
-import getopt
+import argparse
 import select
 import sys
 
@@ -40,16 +40,9 @@ from udp_link import UDPLink
 from clck_gen import CLCKGen
 
 class Application:
-	# Application variables
-	bts_addr = "127.0.0.1"
-	bb_addr = "127.0.0.1"
-	trx_bind_addr = "0.0.0.0"
-	bts_base_port = 5700
-	bb_base_port = 6700
-
 	def __init__(self):
 		print_copyright(CR_HOLDERS)
-		self.parse_argv()
+		self.argv = self.parse_argv()
 
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)
@@ -60,12 +53,14 @@ class Application:
 
 	def run(self):
 		# Init TRX CTRL interface for BTS
-		self.bts_ctrl = CTRLInterfaceBTS(self.bts_addr, self.bts_base_port + 101,
-			self.trx_bind_addr, self.bts_base_port + 1)
+		self.bts_ctrl = CTRLInterfaceBTS(
+			self.argv.bts_addr, self.argv.bts_base_port + 101,
+			self.argv.trx_bind_addr, self.argv.bts_base_port + 1)
 
 		# Init TRX CTRL interface for BB
-		self.bb_ctrl = CTRLInterfaceBB(self.bb_addr, self.bb_base_port + 101,
-			self.trx_bind_addr, self.bb_base_port + 1)
+		self.bb_ctrl = CTRLInterfaceBB(
+			self.argv.bb_addr, self.argv.bb_base_port + 101,
+			self.argv.trx_bind_addr, self.argv.bb_base_port + 1)
 
 		# Power measurement emulation
 		# Noise: -120 .. -105
@@ -77,10 +72,12 @@ class Application:
 		self.bb_ctrl.pm = self.pm
 
 		# Init DATA links
-		self.bts_data = UDPLink(self.bts_addr, self.bts_base_port + 102,
-			self.trx_bind_addr, self.bts_base_port + 2)
-		self.bb_data = UDPLink(self.bb_addr, self.bb_base_port + 102,
-			self.trx_bind_addr, self.bb_base_port + 2)
+		self.bts_data = UDPLink(
+			self.argv.bts_addr, self.argv.bts_base_port + 102,
+			self.argv.trx_bind_addr, self.argv.bts_base_port + 2)
+		self.bb_data = UDPLink(
+			self.argv.bb_addr, self.argv.bb_base_port + 102,
+			self.argv.trx_bind_addr, self.argv.bb_base_port + 2)
 
 		# BTS <-> BB burst forwarding
 		self.burst_fwd = BurstForwarder(self.bts_data, self.bb_data)
@@ -90,8 +87,9 @@ class Application:
 		self.bb_ctrl.burst_fwd = self.burst_fwd
 
 		# Provide clock to BTS
-		self.bts_clck = UDPLink(self.bts_addr, self.bts_base_port + 100,
-			self.trx_bind_addr, self.bts_base_port)
+		self.bts_clck = UDPLink(
+			self.argv.bts_addr, self.argv.bts_base_port + 100,
+			self.argv.trx_bind_addr, self.argv.bts_base_port)
 		self.clck_gen = CLCKGen([self.bts_clck])
 		self.bts_ctrl.clck_gen = self.clck_gen
 
@@ -129,78 +127,34 @@ class Application:
 		# Stop clock generator
 		self.clck_gen.stop()
 
-	def print_help(self, msg = None):
-		s  = " Usage: " + sys.argv[0] + " [options]\n\n" \
-			 " Some help...\n" \
-			 "  -h --help           this text\n\n"
-
-		s += " TRX interface specific\n" \
-			 "  -R --bts-addr       Set BTS remote address (default %s)\n"   \
-			 "  -r --bb-addr        Set BB remote address (default %s)\n"    \
-			 "  -P --bts-base-port  Set BTS base port number (default %d)\n" \
-			 "  -p --bb-base-port   Set BB base port number (default %d)\n" \
-			 "  -b --trx-bind-addr  Set TRX bind address (default %s)\n"
-
-		print(s % (self.bts_addr, self.bb_addr,
-			self.bts_base_port, self.bb_base_port,
-			self.trx_bind_addr))
-
-		if msg is not None:
-			print(msg)
-
 	def parse_argv(self):
-		try:
-			opts, args = getopt.getopt(sys.argv[1:],
-				"R:r:P:p:b:h",
-				[
-					"help",
-					"bts-addr=", "bb-addr=",
-					"bts-base-port=", "bb-base-port=",
-					"trx-bind-addr=",
-				])
-		except getopt.GetoptError as err:
-			self.print_help("[!] " + str(err))
-			sys.exit(2)
+		parser = argparse.ArgumentParser(prog = "fake_trx",
+			description = "Virtual Um-interface (fake transceiver)")
 
-		for o, v in opts:
-			if o in ("-h", "--help"):
-				self.print_help()
-				sys.exit(2)
+		trx_group = parser.add_argument_group("TRX interface")
+		trx_group.add_argument("-b", "--trx-bind-addr",
+			dest = "trx_bind_addr", type = str, default = "0.0.0.0",
+			help = "Set FakeTRX bind address (default %(default)s)")
+		trx_group.add_argument("-R", "--bts-addr",
+			dest = "bts_addr", type = str, default = "127.0.0.1",
+			help = "Set BTS remote address (default %(default)s)")
+		trx_group.add_argument("-r", "--bb-addr",
+			dest = "bb_addr", type = str, default = "127.0.0.1",
+			help = "Set BB remote address (default %(default)s)")
+		trx_group.add_argument("-P", "--bts-base-port",
+			dest = "bts_base_port", type = int, default = 5700,
+			help = "Set BTS base port number (default %(default)s)")
+		trx_group.add_argument("-p", "--bb-base-port",
+			dest = "bb_base_port", type = int, default = 6700,
+			help = "Set BB base port number (default %(default)s)")
 
-			elif o in ("-R", "--bts-addr"):
-				self.bts_addr = v
-			elif o in ("-r", "--bb-addr"):
-				self.bb_addr = v
+		argv = parser.parse_args()
 
-			elif o in ("-P", "--bts-base-port"):
-				self.bts_base_port = int(v)
-			elif o in ("-p", "--bb-base-port"):
-				self.bb_base_port = int(v)
+		# Make sure there is no overlap between ports
+		if argv.bts_base_port == argv.bb_base_port:
+			parser.error("BTS and BB base ports shall be different")
 
-			elif o in ("-b", "--trx-bind-addr"):
-				self.trx_bind_addr = v
-
-		# Ensure there is no overlap between ports
-		if self.bts_base_port == self.bb_base_port:
-			self.print_help("[!] BTS and BB base ports should be different")
-			sys.exit(2)
-
-		bts_ports = [
-			self.bts_base_port + 0, self.bts_base_port + 100,
-			self.bts_base_port + 1, self.bts_base_port + 101,
-			self.bts_base_port + 2, self.bts_base_port + 102,
-		]
-
-		bb_ports = [
-			self.bb_base_port + 0, self.bb_base_port + 100,
-			self.bb_base_port + 1, self.bb_base_port + 101,
-			self.bb_base_port + 2, self.bb_base_port + 102,
-		]
-
-		for p in bb_ports:
-			if p in bts_ports:
-				self.print_help("[!] BTS and BB ports overlap detected")
-				sys.exit(2)
+		return argv
 
 	def sig_handler(self, signum, frame):
 		log.info("Signal %d received" % signum)
