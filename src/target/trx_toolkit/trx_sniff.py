@@ -22,8 +22,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from copyright import print_copyright
-CR_HOLDERS = [("2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+APP_CR_HOLDERS = [("2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import signal
@@ -48,7 +47,7 @@ class Application(ApplicationBase):
 	lo_trigger = False
 
 	def __init__(self):
-		print_copyright(CR_HOLDERS)
+		self.app_print_copyright(APP_CR_HOLDERS)
 		self.argv = self.parse_argv()
 
 		# Configure logging

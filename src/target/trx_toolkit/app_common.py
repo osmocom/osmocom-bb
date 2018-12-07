@@ -29,6 +29,17 @@ class ApplicationBase:
 	# Example: [DEBUG] ctrl_if_bts.py:71 Recv POWEROFF cmd
 	LOG_FMT_DEFAULT = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s"
 
+	def app_print_copyright(self, holders = []):
+		# Print copyright holders if any
+		for date, author in holders:
+			print("Copyright (C) %s by %s" % (date, author))
+
+		# Print the license header itself
+		print("License GPLv2+: GNU GPL version 2 or later " \
+			"<http://gnu.org/licenses/gpl.html>\n" \
+			"This is free software: you are free to change and redistribute it.\n" \
+			"There is NO WARRANTY, to the extent permitted by law.\n")
+
 	def app_init_logging(self, argv):
 		# Default logging handler (stderr)
 		sh = log.StreamHandler()

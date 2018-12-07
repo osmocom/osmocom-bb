@@ -22,14 +22,14 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from copyright import print_copyright
-CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+APP_CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import signal
 import time
 import sys
 
+from app_common import ApplicationBase
 from threading import Timer
 from udp_link import UDPLink
 from gsm_shared import *
@@ -94,10 +94,10 @@ class CLCKGen:
 		self.timer.start()
 
 # Just a wrapper for independent usage
-class Application:
+class Application(ApplicationBase):
 	def __init__(self):
 		# Print copyright
-		print_copyright(CR_HOLDERS)
+		self.app_print_copyright(APP_CR_HOLDERS)
 
 		# Set up signal handlers
 		signal.signal(signal.SIGINT, self.sig_handler)

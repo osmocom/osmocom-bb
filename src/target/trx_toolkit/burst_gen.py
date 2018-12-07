@@ -23,8 +23,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from copyright import print_copyright
-CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+APP_CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import signal
@@ -40,7 +39,7 @@ from data_msg import *
 
 class Application(ApplicationBase):
 	def __init__(self):
-		print_copyright(CR_HOLDERS)
+		self.app_print_copyright(APP_CR_HOLDERS)
 		self.argv = self.parse_argv()
 
 		# Set up signal handlers
