@@ -26,6 +26,39 @@ from udp_link import UDPLink
 from data_msg import *
 
 class DATAInterface(UDPLink):
+	def recv_raw_data(self):
+		data, _ = self.sock.recvfrom(512)
+		return data
+
+	def recv_l12trx_msg(self):
+		# Read raw data from socket
+		data = self.recv_raw_data()
+
+		# Attempt to parse as a L12TRX message
+		try:
+			msg = DATAMSG_L12TRX()
+			msg.parse_msg(bytearray(data))
+		except:
+			log.error("Failed to parse a L12TRX message "
+				"from R:%s:%u" % (self.remote_addr, self.remote_port))
+			return None
+
+		return msg
+
+	def recv_trx2l1_msg(self):
+		# Read raw data from socket
+		data = self.recv_raw_data()
+
+		# Attempt to parse as a L12TRX message
+		try:
+			msg = DATAMSG_TRX2L1()
+			msg.parse_msg(bytearray(data))
+		except:
+			log.error("Failed to parse a TRX2L1 message "
+				"from R:%s:%u" % (self.remote_addr, self.remote_port))
+			return None
+
+		return msg
 
 	def send_msg(self, msg):
 		# Validate a message
