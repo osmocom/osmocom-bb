@@ -134,7 +134,7 @@ class CTRLInterfaceBB(CTRLInterface):
 			log.debug("Recv SETTA cmd")
 
 			# Save to the BurstForwarder instance
-			self.burst_fwd.ta = ta
+			self.burst_fwd.ta = int(request[1])
 			return 0
 
 		# Timing of Arrival simulation for Uplink
