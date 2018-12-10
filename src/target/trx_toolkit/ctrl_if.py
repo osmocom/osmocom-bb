@@ -27,7 +27,11 @@ import logging as log
 from udp_link import UDPLink
 
 class CTRLInterface(UDPLink):
-	def handle_rx(self, data, remote):
+	def handle_rx(self):
+		# Read data from socket
+		data, remote = self.sock.recvfrom(128)
+		data = data.decode()
+
 		if not self.verify_req(data):
 			log.error("Wrong data on CTRL interface")
 			return
