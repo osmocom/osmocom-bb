@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 # TRX Toolkit
-# Power measurement emulation for BB
+# Power measurement emulation
 #
-# (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -25,29 +25,53 @@
 from random import randint
 
 class FakePM:
-	# Freq. list for good power level
-	bts_list = []
+	""" Power measurement emulation for fake transceivers.
 
-	def __init__(self, noise_min, noise_max, bts_min, bts_max):
-		# Save power level ranges
+	There is no such thing like RF signal level in fake Um-interface,
+	so we need to emulate this. The main idea is to have a list of
+	all running and idle transceivers. As soon as a measurement
+	request is received, FakePM will attempt to find a running
+	transceiver on a given frequency.
+
+	The result of such "measurement" is a random RSSI value
+	in one of the following ranges:
+
+	  - trx_min ... trx_max - if at least one TRX was found,
+	  - noise_min ... noise_max - no TRX instances were found.
+
+	FIXME: it would be great to average the rate of bursts
+	       and indicated power / attenuation values for all
+	       matching transceivers, so "pure traffic" ARFCNs
+	       would be handled properly.
+
+	"""
+
+	def __init__(self, noise_min, noise_max, trx_min, trx_max):
+		# Init list of transceivers
+		self.trx_list = []
+
+		# RSSI randomization ranges
 		self.noise_min = noise_min
 		self.noise_max = noise_max
-		self.bts_min = bts_min
-		self.bts_max = bts_max
+		self.trx_min = trx_min
+		self.trx_max = trx_max
 
-	def measure(self, bts):
-		if bts in self.bts_list:
-			return randint(self.bts_min, self.bts_max)
-		else:
-			return randint(self.noise_min, self.noise_max)
+	@property
+	def rssi_noise(self):
+		return randint(self.noise_min, self.noise_max)
 
-	def update_bts_list(self, new_list):
-		self.bts_list = new_list
+	@property
+	def rssi_trx(self):
+		return randint(self.trx_min, self.trx_max)
 
-	def add_bts_list(self, add_list):
-		self.bts_list += add_list
+	def measure(self, freq):
+		# Iterate over all known transceivers
+		for trx in self.trx_list:
+			if not trx.running:
+				continue
 
-	def del_bts_list(self, del_list):
-		for item in del_list:
-			if item in self.bts_list:
-				self.bts_list.remove(item)
+			# Match by given frequency
+			if trx.tx_freq == freq:
+				return self.rssi_trx
+
+		return self.rssi_noise
