@@ -114,18 +114,10 @@ class CTRLInterfaceBB(CTRLInterface):
 				# Deactivate TS (remove from TS pass-filter list)
 				if ts in self.burst_fwd.ts_pass_list:
 					self.burst_fwd.ts_pass_list.remove(ts)
-				else:
-					log.warning("TS %u was not activated before" % ts)
-					# TODO: uncomment as soon as RESET is introduced
-					# return -1
 			else:
 				# Activate TS (add to TS pass-filter list)
 				if ts not in self.burst_fwd.ts_pass_list:
 					self.burst_fwd.ts_pass_list.append(ts)
-				else:
-					log.warning("TS %u was already activated before" % ts)
-					# TODO: uncomment as soon as RESET is introduced
-					# return -1
 
 			return 0
 
