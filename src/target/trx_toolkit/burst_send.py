@@ -134,13 +134,13 @@ class Application(ApplicationBase):
 			help = "Stop after sending N messages")
 
 		pf_group = parser.add_argument_group("Filtering (optional)")
-		cnt_group.add_argument("--timeslot", metavar = "TN",
+		pf_group.add_argument("--timeslot", metavar = "TN",
 			dest = "pf_tn", type = int, choices = range(0, 8),
 			help = "TDMA timeslot number (equal TN)")
-		cnt_group.add_argument("--frame-num-lt", metavar = "FN",
+		pf_group.add_argument("--frame-num-lt", metavar = "FN",
 			dest = "pf_fn_lt", type = int,
 			help = "TDMA frame number (lower than FN)")
-		cnt_group.add_argument("--frame-num-gt", metavar = "FN",
+		pf_group.add_argument("--frame-num-gt", metavar = "FN",
 			dest = "pf_fn_gt", type = int,
 			help = "TDMA frame number (greater than FN)")
 
