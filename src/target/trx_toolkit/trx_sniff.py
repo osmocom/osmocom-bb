@@ -25,7 +25,6 @@
 APP_CR_HOLDERS = [("2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
-import signal
 import argparse
 import sys
 

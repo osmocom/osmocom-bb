@@ -32,7 +32,6 @@ import sys
 from app_common import ApplicationBase
 from data_dump import DATADumpFile
 from data_if import DATAInterface
-from gsm_shared import *
 from data_msg import *
 
 class Application(ApplicationBase):
