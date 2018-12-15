@@ -63,7 +63,8 @@ class Application(ApplicationBase):
 		messages = self.ddf.parse_all(
 			skip = self.argv.cnt_skip, count = self.argv.cnt_count)
 		if messages is False:
-			pass # FIXME!!!
+			log.error("Parsing failed, nothing to send")
+			sys.exit(1)
 
 		for msg in messages:
 			# Pass filter
