@@ -454,8 +454,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 		LOGP(DMOB, LOGL_INFO, "Using configuration from '%s'\n", config_file);
 	}
 	vty_reading = 0;
-	rc = telnet_init_dynif(l23_ctx, NULL,
-		vty_get_bind_addr(), OSMO_VTY_PORT_BB);
+	rc = telnet_init_default(l23_ctx, NULL, OSMO_VTY_PORT_BB);
 	if (rc < 0) {
 		LOGP(DMOB, LOGL_FATAL, "Cannot init VTY on %s port %u: %s\n",
 			vty_get_bind_addr(), OSMO_VTY_PORT_BB, strerror(errno));
