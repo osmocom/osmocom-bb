@@ -143,24 +143,13 @@ class DATAMSG:
 
 	# Generates frame number to bytes
 	def gen_fn(self, fn):
-		# Allocate an empty byte-array
-		buf = bytearray()
-
 		# Big endian, 4 bytes
-		buf.append((fn >> 24) & 0xff)
-		buf.append((fn >> 16) & 0xff)
-		buf.append((fn >>  8) & 0xff)
-		buf.append((fn >>  0) & 0xff)
-
-		return buf
+		return struct.pack(">L", fn)
 
 	# Parses frame number from bytes
 	def parse_fn(self, buf):
 		# Big endian, 4 bytes
-		return (buf[0] << 24) \
-			 | (buf[1] << 16) \
-			 | (buf[2] << 8)  \
-			 | (buf[3] << 0)
+		return struct.unpack(">L", buf)[0]
 
 	# Generates a TRX DATA message
 	def gen_msg(self):
@@ -197,7 +186,7 @@ class DATAMSG:
 			raise ValueError("Message is to short")
 
 		# Parse both fn and tn
-		self.fn = self.parse_fn(msg[1:])
+		self.fn = self.parse_fn(msg[1:5])
 		self.tn = msg[0]
 
 		# Specific message part
@@ -381,8 +370,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 
 		# Encode ToA (Time of Arrival)
 		# Big endian, 2 bytes (int32_t)
-		buf.append((self.toa256 >> 8) & 0xff)
-		buf.append(self.toa256 & 0xff)
+		buf += struct.pack(">h", self.toa256)
 
 		return buf
 
