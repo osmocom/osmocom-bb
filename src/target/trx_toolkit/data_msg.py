@@ -152,7 +152,7 @@ class DATAMSG:
 		return struct.unpack(">L", buf)[0]
 
 	# Generates a TRX DATA message
-	def gen_msg(self):
+	def gen_msg(self, legacy = False):
 		# Validate all the fields
 		if not self.validate():
 			raise ValueError("Message incomplete or incorrect")
@@ -173,6 +173,11 @@ class DATAMSG:
 
 		# Generate burst
 		buf += self.gen_burst()
+
+		# This is a rudiment from (legacy) OpenBTS transceiver,
+		# some L1 implementations still expect two dummy bytes.
+		if legacy:
+			buf += bytearray(2)
 
 		return buf
 
@@ -461,6 +466,9 @@ if __name__ == '__main__':
 	l12trx_raw = msg_l12trx_ref.gen_msg()
 	trx2l1_raw = msg_trx2l1_ref.gen_msg()
 
+	# Encode a TRX2L1 message in legacy mode
+	trx2l1_raw_legacy = msg_trx2l1_ref.gen_msg(legacy = True)
+
 	log.info("Parsing generated messages back")
 
 	# Parse generated DATA messages
@@ -469,11 +477,16 @@ if __name__ == '__main__':
 	msg_l12trx_dec.parse_msg(l12trx_raw)
 	msg_trx2l1_dec.parse_msg(trx2l1_raw)
 
+	# Parse generated TRX2L1 message in legacy mode
+	msg_trx2l1_legacy_dec = DATAMSG_TRX2L1()
+	msg_trx2l1_legacy_dec.parse_msg(trx2l1_raw_legacy)
+
 	log.info("Comparing decoded messages with the reference")
 
 	# Compare bursts
 	assert(msg_l12trx_dec.burst == burst_l12trx_ref)
 	assert(msg_trx2l1_dec.burst == burst_trx2l1_ref)
+	assert(msg_trx2l1_legacy_dec.burst == burst_trx2l1_ref)
 
 	log.info("Compare bursts: OK")
 
