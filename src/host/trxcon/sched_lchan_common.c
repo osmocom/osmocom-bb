@@ -87,6 +87,7 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct l1ctl_info_dl dl_hdr;
+	int dbm_avg;
 
 	/* Set up pointers */
 	lchan_desc = &trx_lchan_desc[lchan->type];
@@ -96,8 +97,17 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	dl_hdr.link_id = lchan_desc->link_id;
 	dl_hdr.band_arfcn = htons(trx->band_arfcn);
 	dl_hdr.frame_nr = htonl(lchan->rx_first_fn);
-	dl_hdr.rx_level = -(lchan->meas.rssi_sum / lchan->meas.rssi_num);
 	dl_hdr.num_biterr = bit_error_count;
+
+	/* Convert average RSSI to RX level */
+	if (lchan->meas.rssi_num) {
+		/* RX level: 0 .. 63 in typical GSM notation (dBm + 110) */
+		dbm_avg = lchan->meas.rssi_sum / lchan->meas.rssi_num;
+		dl_hdr.rx_level = dbm2rxlev(dbm_avg);
+	} else {
+		/* No measurements, assuming the worst */
+		dl_hdr.rx_level = 0;
+	}
 
 	/* FIXME: set proper values */
 	dl_hdr.snr = 0;
