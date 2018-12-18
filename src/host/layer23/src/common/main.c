@@ -258,10 +258,6 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	rc = sap_open(ms, sap_socket_path);
-	if (rc < 0)
-		fprintf(stderr, "Failed during sap_open(), no SIM reader\n");
-
 	ms->lapdm_channel.lapdm_dcch.l1_ctx = ms;
 	ms->lapdm_channel.lapdm_dcch.l3_ctx = ms;
 	ms->lapdm_channel.lapdm_acch.l1_ctx = ms;
