@@ -177,7 +177,7 @@ static int sap_parse_result(struct sap_param *param)
 				get_value_string(sap_result_names, param->value[0]));
 	}
 
-	if(param->value[0] > sizeof(sap_result_names)/sizeof(struct value_string)){
+	if(param->value[0] > ARRAY_SIZE(sap_result_names)){
 		return -1;
 	}
 
