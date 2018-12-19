@@ -221,16 +221,6 @@ static int mobile_init(struct osmocom_ms *ms)
 		return rc;
 	}
 
-#if 0
-	rc = sap_open(ms, ms->settings.sap_socket_path);
-	if (rc < 0) {
-		fprintf(stderr, "Failed during sap_open(), no SIM reader\n");
-		ms->sap_wq.bfd.fd = -1;
-		mobile_exit(ms, 1);
-		return rc;
-	}
-#endif
-
 	gsm_random_imei(&ms->settings);
 
 	mobile_set_shutdown(ms, MS_SHUTDOWN_NONE);
