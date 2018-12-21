@@ -474,10 +474,11 @@ static void sap_disconnect(struct osmocom_ms *ms)
 	ms->sap_entity.sap_state = SAP_NOT_CONNECTED;
 }
 
-static void sap_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
+static int sap_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 {
 	struct msgb *msg;
 	struct sap_param params[1];
+	int rc;
 
 	params[0].id = SAP_COMMAND_APDU;
 	params[0].len = len;
@@ -485,16 +486,20 @@ static void sap_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 
 	if(ms->sap_entity.sap_state != SAP_IDLE){
 		LOGP(DSAP, LOGL_ERROR, "Attempting to send APDU request while not being idle.\n");
-		return;
+		return -EIO;
 	}
 
 	msg = sap_create_msg(SAP_TRANSFER_APDU_REQ, 1, params);
 	if(!msg)
-		return;
+		return -ENOMEM;
 
-	osmosap_send(ms, msg);
+	rc = osmosap_send(ms, msg);
+	if (rc)
+		return rc;
 
 	ms->sap_entity.sap_state = SAP_PROCESSING_APDU_REQUEST;
+
+	return 0;
 }
 
 int sap_open(struct osmocom_ms *ms, const char *socket_path)
@@ -538,9 +543,7 @@ int osmosap_send_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 {
 	//LOGP(DSAP, LOGL_ERROR, "Received the following APDU from sim.c: %s\n" ,
 	//     osmo_hexdump(data, length));
-	sap_apdu(ms, data, length);
-
-	return 0;
+	return sap_apdu(ms, data, length);
 }
 
 /* register message handler for messages that are sent from L2->L3 */
