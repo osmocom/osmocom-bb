@@ -186,6 +186,8 @@ void gsm_sim_reply(struct osmocom_ms *ms, uint8_t result_type, uint8_t *result,
 /* send APDU to card reader */
 static int sim_apdu_send(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 {
+	int rc;
+
 	LOGP(DSIM, LOGL_INFO, "sending APDU (class 0x%02x, ins 0x%02x)\n",
 		data[0], data[1]);
 
@@ -203,13 +205,13 @@ static int sim_apdu_send(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 	 * it makes more sense to do it here then in L1CTL */
 	if (ms->subscr.sim_type == GSM_SIM_TYPE_SAP) {
 		LOGP(DSIM, LOGL_INFO, "Using SAP backend\n");
-		osmosap_send_apdu(ms, data, length);
+		rc = osmosap_send_apdu(ms, data, length);
 	} else {
 		LOGP(DSIM, LOGL_INFO, "Using built-in SIM reader\n");
-		l1ctl_tx_sim_req(ms, data, length);
+		rc = l1ctl_tx_sim_req(ms, data, length);
 	}
 
-	return 0;
+	return rc;
 }
 
 /* dequeue messages (RSL-SAP) */
