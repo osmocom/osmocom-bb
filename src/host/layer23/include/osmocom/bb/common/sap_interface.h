@@ -6,7 +6,6 @@ int sap_open(struct osmocom_ms *ms, const char *socket_path);
 int sap_close(struct osmocom_ms *ms);
 int osmosap_send_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t length);
 int osmosap_register_handler(struct osmocom_ms *ms, osmosap_cb_t cb);
-int osmosap_sapsocket(struct osmocom_ms *ms, const char *path);
 int osmosap_init(struct osmocom_ms *ms);
 
 enum osmosap_state {

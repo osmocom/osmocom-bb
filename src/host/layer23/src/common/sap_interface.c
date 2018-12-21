@@ -554,15 +554,6 @@ int osmosap_register_handler(struct osmocom_ms *ms, osmosap_cb_t cb)
 	return 0;
 }
 
-int osmosap_sapsocket(struct osmocom_ms *ms, const char *path)
-{
-	struct gsm_settings *set = &ms->settings;
-	memset(set->sap_socket_path, 0, sizeof(set->sap_socket_path));
-	osmo_strlcpy(set->sap_socket_path, path, sizeof(set->sap_socket_path) - 1);
-
-	return 0;
-}
-
 /* init */
 int osmosap_init(struct osmocom_ms *ms)
 {
