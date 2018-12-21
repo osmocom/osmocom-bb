@@ -504,7 +504,7 @@ static int sap_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 
 int sap_open(struct osmocom_ms *ms)
 {
-	ssize_t rc;
+	int rc;
 
 	rc = osmo_sock_unix_init_ofd(&ms->sap_wq.bfd, SOCK_STREAM, 0,
 		ms->settings.sap_socket_path, OSMO_SOCK_F_CONNECT);
