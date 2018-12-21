@@ -1282,7 +1282,7 @@ int gsm_subscr_sapcard(struct osmocom_ms *ms)
 	/* Try to connect to the SAP interface */
 	vty_notify(ms, NULL);
 	vty_notify(ms, "Connecting to the SAP interface...\n");
-	rc = sap_open(ms, ms->settings.sap_socket_path);
+	rc = sap_open(ms);
 	if (rc < 0) {
 		LOGP(DSAP, LOGL_ERROR, "Failed during sap_open(), no SAP based SIM reader\n");
 		vty_notify(ms, "SAP connection error!\n");
