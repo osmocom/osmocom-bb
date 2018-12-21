@@ -380,19 +380,19 @@ static int sap_read(struct osmo_fd *fd)
 
 	sap_buffer = talloc_zero_size(NULL, ms->sap_entity.max_msg_size);
 	if(!sap_buffer){
-		fprintf(stderr, "Failed to allocate memory\n");
+		LOGP(DSAP, LOGL_ERROR, "Failed to allocate memory\n");
 		return -ENOMEM;
 	}
 
 	rc = read(fd->fd, sap_buffer, ms->sap_entity.max_msg_size - 1);
 	if (rc < 0) {
-		fprintf(stderr, "SAP socket failed\n");
+		LOGP(DSAP, LOGL_ERROR,"SAP socket failed\n");
 		msgb_free(msg);
 		sap_close(ms);
 		return rc;
 	}
 	if(rc == 0) {
-		fprintf(stderr, "SAP socket closed by server\n");
+		LOGP(DSAP, LOGL_NOTICE, "SAP socket closed by server\n");
 		msgb_free(msg);
 		sap_close(ms);
 		return -ECONNREFUSED;
