@@ -3,8 +3,10 @@
 #include <stdint.h>
 
 #include <osmocom/core/utils.h>
+#include <osmocom/core/msgb.h>
 
-/* Table 5.1: Message Overview */
+/* Table 5.1: Message Overview
+ * NOTE: messages are used as events for SAP FSM */
 enum sap_msg_type {
 	SAP_CONNECT_REQ = 0x00,
 	SAP_CONNECT_RESP = 0x01,
@@ -81,14 +83,39 @@ extern const struct value_string sap_result_names[];
 extern const struct value_string sap_card_status_names[];
 extern const struct value_string sap_conn_status_names[];
 
+/* Figure 5.2: Payload Coding */
 struct sap_param {
-	uint8_t id;
-	uint16_t len;
-	uint8_t *value;
-};
+	/* Parameter ID, see sap_param_type enum */
+	uint8_t param_id;
+	/* Reserved for further use (shall be set to 0x00) */
+	uint8_t reserved[1];
+	/* Parameter length */
+	uint16_t length;
+	/* Parameter value (and optional padding) */
+	uint8_t value[0];
+} __attribute__((packed));
 
-struct sap_msg {
-	uint8_t id;
+/* Figure 5.1 Message Format */
+struct sap_message {
+	/* Message ID, see sap_msg_type enum */
+	uint8_t msg_id;
+	/* Number of parameters */
 	uint8_t num_params;
-	struct sap_param *params;
-};
+	/* Reserved for further use (shall be set to 0x00) */
+	uint8_t reserved[2];
+	/* Payload, see sap_param struct */
+	uint8_t payload[0];
+} __attribute__((packed));
+
+#define GSM_SAP_LENGTH 300
+#define GSM_SAP_HEADROOM 32
+
+struct msgb *sap_msgb_alloc(uint8_t msg_id);
+struct msgb *sap_msg_parse(const uint8_t *buf, size_t buf_len, int max_msg_size);
+int sap_check_result_code(const struct sap_message *sap_msg);
+
+void sap_msgb_add_param(struct msgb *msg,
+	enum sap_param_type param_type,
+	uint16_t param_len, const uint8_t *param_value);
+struct sap_param *sap_get_param(const struct sap_message *sap_msg,
+	enum sap_param_type param_type, uint16_t *param_len);

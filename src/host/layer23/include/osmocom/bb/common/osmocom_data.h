@@ -23,9 +23,14 @@ struct osmocom_ms;
 #include <osmocom/bb/common/l1ctl.h>
 
 struct osmosap_entity {
-	sap_cb_t msg_handler;
-	uint8_t sap_state;
+	struct osmo_fsm_inst *fi;
 	uint16_t max_msg_size;
+	uint8_t card_status;
+
+	/* Optional SAP message call-back */
+	sap_msg_cb_t sap_msg_cb;
+	/* Optional response call-back */
+	sap_rsp_cb_t sap_rsp_cb;
 };
 
 struct osmol1_entity {

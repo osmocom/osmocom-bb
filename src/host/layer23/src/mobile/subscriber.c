@@ -29,6 +29,7 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/sap_interface.h>
+#include <osmocom/bb/common/sap_proto.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/mobile/vty.h>
 
@@ -1305,4 +1306,52 @@ int gsm_subscr_sapcard(struct osmocom_ms *ms)
 int gsm_subscr_remove_sapcard(struct osmocom_ms *ms)
 {
 	return sap_close(ms);
+}
+
+int gsm_subscr_sap_rsp_cb(struct osmocom_ms *ms, int res_code,
+	uint8_t res_type, uint16_t param_len, const uint8_t *param_val)
+{
+	struct msgb *msg;
+	int rc = 0;
+
+	/* Response parameter is not encoded in case of error */
+	if (res_code != SAP_RESULT_OK_REQ_PROC_CORR)
+		goto ignore_rsp;
+
+	switch (res_type) {
+	case SAP_TRANSFER_APDU_RESP:
+		/* Prevent NULL-pointer dereference */
+		if (!param_len || !param_val) {
+			rc = -EINVAL;
+			goto ignore_rsp;
+		}
+
+		/* FIXME: why do we use this length? */
+		msg = msgb_alloc(GSM_SAP_LENGTH, "sap_apdu");
+		if (!msg) {
+			rc = -ENOMEM;
+			goto ignore_rsp;
+		}
+
+		msg->data = msgb_put(msg, param_len);
+		memcpy(msg->data, param_val, param_len);
+
+		return sim_apdu_resp(ms, msg);
+
+	case SAP_TRANSFER_ATR_RESP:
+		/* TODO: don't read SIM again (if already) */
+		LOGP(DSAP, LOGL_INFO, "SAP card is ready, start reading...\n");
+		return subscr_sim_request(ms);
+
+	default:
+		rc = -ENOTSUP;
+		goto ignore_rsp;
+	}
+
+	return 0;
+
+ignore_rsp:
+	LOGP(DSAP, LOGL_NOTICE, "Ignored SAP response '%s' (code=%d)\n",
+		get_value_string(sap_msg_names, res_type), res_code);
+	return rc;
 }
