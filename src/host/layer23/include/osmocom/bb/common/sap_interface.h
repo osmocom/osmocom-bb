@@ -1,5 +1,4 @@
-#ifndef _SAP_INTERFACE_H
-#define _SAP_INTERFACE_H
+#pragma once
 
 typedef int (*osmosap_cb_t)(struct msgb *msg, struct osmocom_ms *ms);
 
@@ -70,6 +69,3 @@ struct sap_msg {
 	uint8_t num_params;
 	struct sap_param *params;
 };
-
-
-#endif /* _SAP_INTERFACE_H */
