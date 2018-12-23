@@ -47,71 +47,75 @@
 
 static void sap_connect(struct osmocom_ms *ms);
 
+/* Table 5.15: List of Parameter IDs */
 static const struct value_string sap_param_names[] = {
-	{SAP_MAX_MSG_SIZE,			"MaxMsgSize"},
-	{SAP_CONNECTION_STATUS, 	"ConnectionStatus"},
-	{SAP_RESULT_CODE,			"ResultCode"},
-	{SAP_DISCONNECTION_TYPE,	"DisconnectionType"},
-	{SAP_COMMAND_APDU,			"CommandAPDU"},
-	{SAP_COMMAND_APDU_7816,		"CommandAPDU7816"},
-	{SAP_RESPONSE_APDU,			"ResponseAPDU"},
-	{SAP_ATR,					"ATR"},
-	{SAP_CARD_READER_STATUS,	"CardReaderStatus"},
-	{SAP_STATUS_CHANGE,			"StatusChange"},
-	{SAP_TRANSPORT_PROTOCOL,	"TransportProtocol"}
+	{ SAP_MAX_MSG_SIZE,		"MaxMsgSize" },
+	{ SAP_CONNECTION_STATUS,	"ConnectionStatus" },
+	{ SAP_RESULT_CODE,		"ResultCode" },
+	{ SAP_DISCONNECTION_TYPE,	"DisconnectionType" },
+	{ SAP_COMMAND_APDU,		"CommandAPDU" },
+	{ SAP_COMMAND_APDU_7816,	"CommandAPDU7816" },
+	{ SAP_RESPONSE_APDU,		"ResponseAPDU" },
+	{ SAP_ATR,			"ATR" },
+	{ SAP_CARD_READER_STATUS,	"CardReaderStatus" },
+	{ SAP_STATUS_CHANGE,		"StatusChange" },
+	{ SAP_TRANSPORT_PROTOCOL,	"TransportProtocol" },
 };
 
+/* Table 5.1: Message Overview */
 static const struct value_string sap_msg_names[] = {
-	{SAP_CONNECT_REQ,						"CONNECT_REQ"},
-	{SAP_CONNECT_RESP,						"CONNECT_RESP"},
-	{SAP_DISCONNECT_REQ,					"DISCONNECT_REQ"},
-	{SAP_DISCONNECT_RESP,					"DISCONNECT_RESP"},
-	{SAP_DISCONNECT_IND,					"DISCONNECT_IND"},
-	{SAP_TRANSFER_APDU_REQ,					"TRANSFER_APDU_REQ"},
-	{SAP_TRANSFER_APDU_RESP,				"TRANSFER_APDU_RESP"},
-	{SAP_TRANSFER_ATR_REQ,					"TRANSFER_ATR_REQ"},
-	{SAP_TRANSFER_ATR_RESP,					"TRANSFER_ATR_RESP"},
-	{SAP_POWER_SIM_OFF_REQ,					"POWER_SIM_OFF_REQ"},
-	{SAP_POWER_SIM_OFF_RESP,				"POWER_SIM_OFF_RESP"},
-	{SAP_POWER_SIM_ON_REQ,					"POWER_SIM_ON_REQ"},
-	{SAP_POWER_SIM_ON_RESP,					"POWER_SIM_ON_RESP"},
-	{SAP_RESET_SIM_REQ,						"RESET_SIM_REQ"},
-	{SAP_RESET_SIM_RESP,					"RESET_SIM_RESP"},
-	{SAP_TRANSFER_CARD_READER_STATUS_REQ,	"TRANSFER_CARD_READER_STATUS_REQ"},
-	{SAP_TRANSFER_CARD_READER_STATUS_RESP,	"TRANSFER_CARD_READER_STATUS_RESP"},
-	{SAP_STATUS_IND,						"STATUS_IND"},
-	{SAP_ERROR_RESP,						"ERROR_RESP"},
-	{SAP_SET_TRANSPORT_PROTOCOL_REQ,		"SET_TRANSPORT_PROTOCOL_REQ"},
-	{SAP_SET_TRANSPORT_PROTOCOL_RESP,		"SET_TRANSPORT_PROTOCOL_RESP"}
+	{ SAP_CONNECT_REQ,			"CONNECT_REQ" },
+	{ SAP_CONNECT_RESP,			"CONNECT_RESP" },
+	{ SAP_DISCONNECT_REQ,			"DISCONNECT_REQ" },
+	{ SAP_DISCONNECT_RESP,			"DISCONNECT_RESP" },
+	{ SAP_DISCONNECT_IND,			"DISCONNECT_IND" },
+	{ SAP_TRANSFER_APDU_REQ,		"TRANSFER_APDU_REQ" },
+	{ SAP_TRANSFER_APDU_RESP,		"TRANSFER_APDU_RESP" },
+	{ SAP_TRANSFER_ATR_REQ,			"TRANSFER_ATR_REQ" },
+	{ SAP_TRANSFER_ATR_RESP,		"TRANSFER_ATR_RESP" },
+	{ SAP_POWER_SIM_OFF_REQ,		"POWER_SIM_OFF_REQ" },
+	{ SAP_POWER_SIM_OFF_RESP,		"POWER_SIM_OFF_RESP" },
+	{ SAP_POWER_SIM_ON_REQ,			"POWER_SIM_ON_REQ" },
+	{ SAP_POWER_SIM_ON_RESP,		"POWER_SIM_ON_RESP" },
+	{ SAP_RESET_SIM_REQ,			"RESET_SIM_REQ" },
+	{ SAP_RESET_SIM_RESP,			"RESET_SIM_RESP" },
+	{ SAP_TRANSFER_CARD_READER_STATUS_REQ,	"TRANSFER_CARD_READER_STATUS_REQ" },
+	{ SAP_TRANSFER_CARD_READER_STATUS_RESP,	"TRANSFER_CARD_READER_STATUS_RESP" },
+	{ SAP_STATUS_IND,			"STATUS_IND" },
+	{ SAP_ERROR_RESP,			"ERROR_RESP" },
+	{ SAP_SET_TRANSPORT_PROTOCOL_REQ,	"SET_TRANSPORT_PROTOCOL_REQ" },
+	{ SAP_SET_TRANSPORT_PROTOCOL_RESP,	"SET_TRANSPORT_PROTOCOL_RESP" },
 };
 
-/* BTSAP table 5.18 */
+/* Table 5.18: Possible values for ResultCode */
 static const struct value_string sap_result_names[] = {
-	{0, "OK, request processed correctly"},
-	{1, "Error, no reason defined"},
-	{2, "Error, card not accessible"},
-	{3, "Error, card (already) powered off"},
-	{4, "Error, card removed"},
-	{5, "Error, card already powered on"},
-	{6, "Error, data not available"},
-	{7, "Error, not supported"}
+	{ 0, "OK, request processed correctly" },
+	{ 1, "Error, no reason defined" },
+	{ 2, "Error, card not accessible" },
+	{ 3, "Error, card (already) powered off" },
+	{ 4, "Error, card removed" },
+	{ 5, "Error, card already powered on" },
+	{ 6, "Error, data not available" },
+	{ 7, "Error, not supported "},
 };
 
+/* Table 5.19: Possible values for StatusChange */
 static const struct value_string sap_status_change_names[] = {
-	{0, "Unknown Error"},
-	{1, "Card reset"},
-	{2, "Card not accessible"},
-	{3, "Card removed"},
-	{4, "Card inserted"},
-	{5, "Card recovered"},
+	{ 0, "Unknown Error" },
+	{ 1, "Card reset" },
+	{ 2, "Card not accessible" },
+	{ 3, "Card removed" },
+	{ 4, "Card inserted" },
+	{ 5, "Card recovered" },
 };
 
+/* Table 5.16: Possible values for ConnectionStatus */
 static const struct value_string sap_status_names[] = {
-	{0, "OK, Server can fulfill requirements"},
-	{1, "Error, Server unable to establish connection"},
-	{2, "Error, Server does not support maximum message size"},
-	{3, "Error, maximum message size by Client is too small"},
-	{4, "OK, ongoing call"}
+	{ 0, "OK, Server can fulfill requirements" },
+	{ 1, "Error, Server unable to establish connection" },
+	{ 2, "Error, Server does not support maximum message size" },
+	{ 3, "Error, maximum message size by Client is too small" },
+	{ 4, "OK, ongoing call" },
 };
 
 static struct msgb *sap_create_msg(uint8_t id, uint8_t num_params, struct sap_param *params)

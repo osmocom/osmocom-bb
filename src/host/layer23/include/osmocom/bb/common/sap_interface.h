@@ -17,7 +17,7 @@ enum osmosap_state {
 	SAP_PROCESSING_APDU_REQUEST
 };
 
-/* BTSAP 1.13 */
+/* Table 5.1: Message Overview */
 enum osmosap_msg_type {
 	SAP_CONNECT_REQ = 0x00,
 	SAP_CONNECT_RESP = 0x01,
@@ -42,7 +42,7 @@ enum osmosap_msg_type {
 	SAP_SET_TRANSPORT_PROTOCOL_RESP = 0x14
 };
 
-/* BTSAP 5.2 */
+/* Table 5.15: List of Parameter IDs */
 enum osmosap_param_type {
 	SAP_MAX_MSG_SIZE = 0x00,
 	SAP_CONNECTION_STATUS = 0x01,
