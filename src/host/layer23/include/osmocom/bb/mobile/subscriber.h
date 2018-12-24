@@ -20,6 +20,9 @@ struct gsm_sub_plmn_na {
 
 #define GSM_IMSI_LENGTH		16
 
+#define GSM_SIM_IS_READER(type) \
+	(type == GSM_SIM_TYPE_L1PHY || type == GSM_SIM_TYPE_SAP)
+
 enum {
 	GSM_SIM_TYPE_NONE = 0,
 	GSM_SIM_TYPE_L1PHY,
