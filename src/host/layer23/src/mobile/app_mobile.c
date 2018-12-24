@@ -110,7 +110,7 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 
 		/* insert test card, if enabled */
 		switch (set->sim_type) {
-		case GSM_SIM_TYPE_READER:
+		case GSM_SIM_TYPE_L1PHY:
 			/* trigger sim card reader process */
 			gsm_subscr_simcard(ms);
 			break;

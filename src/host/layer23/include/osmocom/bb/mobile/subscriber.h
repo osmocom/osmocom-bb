@@ -22,7 +22,7 @@ struct gsm_sub_plmn_na {
 
 enum {
 	GSM_SIM_TYPE_NONE = 0,
-	GSM_SIM_TYPE_READER,
+	GSM_SIM_TYPE_L1PHY,
 	GSM_SIM_TYPE_TEST,
 	GSM_SIM_TYPE_SAP
 };

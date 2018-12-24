@@ -711,7 +711,7 @@ void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
 	uint8_t job;
 
 	/* skip, if no real valid SIM */
-	if (subscr->sim_type != GSM_SIM_TYPE_READER)
+	if (subscr->sim_type != GSM_SIM_TYPE_L1PHY)
 		return;
 
 	switch (mode) {
@@ -764,7 +764,7 @@ int gsm_subscr_simcard(struct osmocom_ms *ms)
 	gsm_subscr_exit(ms);
 	gsm_subscr_init(ms);
 
-	subscr->sim_type = GSM_SIM_TYPE_READER;
+	subscr->sim_type = GSM_SIM_TYPE_L1PHY;
 	sprintf(subscr->sim_name, "sim");
 	subscr->sim_valid = 1;
 	subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
@@ -790,7 +790,7 @@ static int subscr_write_plmn_na(struct osmocom_ms *ms)
 #endif
 
 	/* skip, if no real valid SIM */
-	if (subscr->sim_type != GSM_SIM_TYPE_READER || !subscr->sim_valid)
+	if (subscr->sim_type != GSM_SIM_TYPE_L1PHY || !subscr->sim_valid)
 		return 0;
 
 	/* get tail list from "PLMN not allowed" */
@@ -844,7 +844,7 @@ int gsm_subscr_write_loci(struct osmocom_ms *ms)
 	struct gsm1111_ef_loci *loci;
 
 	/* skip, if no real valid SIM */
-	if (subscr->sim_type != GSM_SIM_TYPE_READER || !subscr->sim_valid)
+	if (subscr->sim_type != GSM_SIM_TYPE_L1PHY || !subscr->sim_valid)
 		return 0;
 
 	LOGP(DMM, LOGL_INFO, "Updating LOCI on SIM\n");
@@ -907,7 +907,7 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 	struct sim_hdr *nsh;
 
 	/* not a SIM */
-	if ((subscr->sim_type != GSM_SIM_TYPE_READER
+	if ((subscr->sim_type != GSM_SIM_TYPE_L1PHY
 	  && subscr->sim_type != GSM_SIM_TYPE_TEST)
 	 || !subscr->sim_valid || no_sim) {
 		struct gsm48_mm_event *nmme;

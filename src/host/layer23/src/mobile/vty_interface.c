@@ -1323,7 +1323,7 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		case GSM_SIM_TYPE_NONE:
 		vty_out(vty, " sim none%s", VTY_NEWLINE);
 		break;
-		case GSM_SIM_TYPE_READER:
+		case GSM_SIM_TYPE_L1PHY:
 		vty_out(vty, " sim reader%s", VTY_NEWLINE);
 		break;
 		case GSM_SIM_TYPE_TEST:
@@ -1608,7 +1608,7 @@ DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test|sap)",
 		set->sim_type = GSM_SIM_TYPE_NONE;
 		break;
 	case 'r':
-		set->sim_type = GSM_SIM_TYPE_READER;
+		set->sim_type = GSM_SIM_TYPE_L1PHY;
 		break;
 	case 't':
 		set->sim_type = GSM_SIM_TYPE_TEST;

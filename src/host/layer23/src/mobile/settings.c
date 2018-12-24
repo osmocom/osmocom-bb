@@ -49,7 +49,7 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	sprintf(set->imeisv, "0000000000000000");
 
 	/* SIM type */
-	set->sim_type = GSM_SIM_TYPE_READER;
+	set->sim_type = GSM_SIM_TYPE_L1PHY;
 
 	/* test SIM */
 	strcpy(set->test_imsi, "001010000000000");
