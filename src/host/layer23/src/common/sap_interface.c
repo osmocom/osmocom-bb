@@ -296,15 +296,15 @@ static void sap_atr(struct osmocom_ms *ms)
 
 static void sap_parse_resp(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 {
-	struct sap_msg *msg = NULL;
+	struct sap_msg *msg;
 	if(len > ms->sap_entity.max_msg_size){
 		LOGP(DSAP, LOGL_ERROR, "Read more data than allowed by max_msg_size, ignoring.\n");
 		return;
 	}
 
 	msg = sap_parse_msg(data);
-	if(!msg){
-		sap_msg_free(msg);
+	if (!msg) {
+		LOGP(DSAP, LOGL_ERROR, "Failed to parse SAP message\n");
 		return;
 	}
 
@@ -335,7 +335,7 @@ static void sap_parse_resp(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 	case SAP_TRANSFER_ATR_RESP:
 		if(ms->sap_entity.sap_state != SAP_PROCESSING_ATR_REQUEST){
 			LOGP(DSAP, LOGL_ERROR, "got ATR resp in state: %u\n", ms->sap_entity.sap_state);
-			return;
+			break;
 		}
 		if(msg->num_params >= 2){
 			LOGP(DSAP, LOGL_INFO, "ATR: %s\n", osmo_hexdump(msg->params[1].value, msg->params[1].len));
@@ -345,11 +345,11 @@ static void sap_parse_resp(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 	case SAP_TRANSFER_APDU_RESP:
 		if(ms->sap_entity.sap_state != SAP_PROCESSING_APDU_REQUEST){
 			LOGP(DSAP, LOGL_ERROR, "got APDU resp in state: %u\n", ms->sap_entity.sap_state);
-			return;
+			break;
 		}
 		if(msg->num_params != 2){
 			LOGP(DSAP, LOGL_ERROR, "wrong number of parameters %u in APDU response\n", msg->num_params);
-			return;
+			break;
 		}
 		ms->sap_entity.sap_state = SAP_IDLE;
 		if(sap_parse_result(&msg->params[0]) == 0){
@@ -369,6 +369,8 @@ static void sap_parse_resp(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 		LOGP(DSAP, LOGL_ERROR, "got unknown or not implemented SAP msgid: %u\n", msg->id);
 		break;
 	}
+
+	sap_msg_free(msg);
 }
 
 static int sap_read(struct osmo_fd *fd)
