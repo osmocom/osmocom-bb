@@ -159,7 +159,7 @@ static struct msgb *sap_create_msg(uint8_t id, uint8_t num_params, struct sap_pa
 	return msg;
 }
 
-static int osmosap_send(struct osmocom_ms *ms, struct msgb *msg)
+static int sap_send(struct osmocom_ms *ms, struct msgb *msg)
 {
 	if(ms->sap_entity.sap_state == SAP_NOT_CONNECTED)
 		sap_connect(ms);
@@ -299,7 +299,7 @@ static void sap_atr(struct osmocom_ms *ms)
 	if(!msg)
 		return;
 
-	osmosap_send(ms, msg);
+	sap_send(ms, msg);
 	ms->sap_entity.sap_state = SAP_PROCESSING_ATR_REQUEST;
 }
 
@@ -463,7 +463,7 @@ static void sap_connect(struct osmocom_ms *ms)
 	if(!msg)
 		return;
 
-	osmosap_send(ms, msg);
+	sap_send(ms, msg);
 
 	ms->sap_entity.sap_state = SAP_CONNECTION_UNDER_NEGOTIATION;
 }
@@ -480,7 +480,7 @@ static void sap_disconnect(struct osmocom_ms *ms)
 	if(!msg)
 		return;
 
-	osmosap_send(ms, msg);
+	sap_send(ms, msg);
 
 	ms->sap_entity.sap_state = SAP_NOT_CONNECTED;
 }
@@ -504,7 +504,7 @@ static int sap_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 	if(!msg)
 		return -ENOMEM;
 
-	rc = osmosap_send(ms, msg);
+	rc = sap_send(ms, msg);
 	if (rc)
 		return rc;
 
@@ -551,7 +551,7 @@ int sap_close(struct osmocom_ms *ms)
 }
 
 /* same signature as in L1CTL, so it can be called from sim.c */
-int osmosap_send_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
+int sap_send_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 {
 	//LOGP(DSAP, LOGL_ERROR, "Received the following APDU from sim.c: %s\n" ,
 	//     osmo_hexdump(data, length));
@@ -559,7 +559,7 @@ int osmosap_send_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 }
 
 /* register message handler for messages that are sent from L2->L3 */
-int osmosap_register_handler(struct osmocom_ms *ms, osmosap_cb_t cb)
+int sap_register_handler(struct osmocom_ms *ms, sap_cb_t cb)
 {
 	ms->sap_entity.msg_handler = cb;
 
@@ -567,7 +567,7 @@ int osmosap_register_handler(struct osmocom_ms *ms, osmosap_cb_t cb)
 }
 
 /* init */
-int osmosap_init(struct osmocom_ms *ms)
+int sap_init(struct osmocom_ms *ms)
 {
 	struct osmosap_entity *sap = &ms->sap_entity;
 

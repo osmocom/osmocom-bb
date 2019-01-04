@@ -23,7 +23,7 @@ struct osmocom_ms;
 #include <osmocom/bb/common/l1ctl.h>
 
 struct osmosap_entity {
-	osmosap_cb_t msg_handler;
+	sap_cb_t msg_handler;
 	uint8_t sap_state;
 	uint16_t max_msg_size;
 };

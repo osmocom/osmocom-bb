@@ -200,7 +200,7 @@ static int mobile_init(struct osmocom_ms *ms)
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
 	/* init SAP client before SIM card starts up */
-	osmosap_init(ms);
+	sap_init(ms);
 
 	gsm_sim_init(ms);
 	gsm48_cc_init(ms);

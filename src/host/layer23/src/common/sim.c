@@ -205,7 +205,7 @@ static int sim_apdu_send(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 	 * it makes more sense to do it here then in L1CTL */
 	if (ms->subscr.sim_type == GSM_SIM_TYPE_SAP) {
 		LOGP(DSIM, LOGL_INFO, "Using SAP backend\n");
-		rc = osmosap_send_apdu(ms, data, length);
+		rc = sap_send_apdu(ms, data, length);
 	} else {
 		LOGP(DSIM, LOGL_INFO, "Using built-in SIM reader\n");
 		rc = l1ctl_tx_sim_req(ms, data, length);

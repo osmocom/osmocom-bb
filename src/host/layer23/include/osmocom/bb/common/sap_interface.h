@@ -1,14 +1,14 @@
 #pragma once
 
-typedef int (*osmosap_cb_t)(struct msgb *msg, struct osmocom_ms *ms);
+typedef int (*sap_cb_t)(struct msgb *msg, struct osmocom_ms *ms);
 
 int sap_open(struct osmocom_ms *ms);
 int sap_close(struct osmocom_ms *ms);
-int osmosap_send_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t length);
-int osmosap_register_handler(struct osmocom_ms *ms, osmosap_cb_t cb);
-int osmosap_init(struct osmocom_ms *ms);
+int sap_send_apdu(struct osmocom_ms *ms, uint8_t *data, uint16_t length);
+int sap_register_handler(struct osmocom_ms *ms, sap_cb_t cb);
+int sap_init(struct osmocom_ms *ms);
 
-enum osmosap_state {
+enum sap_state {
 	SAP_SOCKET_ERROR,
 	SAP_NOT_CONNECTED,
 	SAP_IDLE,
@@ -18,7 +18,7 @@ enum osmosap_state {
 };
 
 /* Table 5.1: Message Overview */
-enum osmosap_msg_type {
+enum sap_msg_type {
 	SAP_CONNECT_REQ = 0x00,
 	SAP_CONNECT_RESP = 0x01,
 	SAP_DISCONNECT_REQ = 0x02,
@@ -43,7 +43,7 @@ enum osmosap_msg_type {
 };
 
 /* Table 5.15: List of Parameter IDs */
-enum osmosap_param_type {
+enum sap_param_type {
 	SAP_MAX_MSG_SIZE = 0x00,
 	SAP_CONNECTION_STATUS = 0x01,
 	SAP_RESULT_CODE = 0x02,
