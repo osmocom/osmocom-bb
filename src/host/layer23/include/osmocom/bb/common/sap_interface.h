@@ -57,6 +57,37 @@ enum osmosap_param_type {
 	SAP_TRANSPORT_PROTOCOL = 0x09
 };
 
+/* Table 5.18: Possible values for ResultCode */
+enum sap_result_type {
+	SAP_RESULT_OK_REQ_PROC_CORR = 0x00,
+	SAP_RESULT_ERROR_NO_REASON = 0x01,
+	SAP_RESULT_ERROR_CARD_NOT_ACC = 0x02,
+	SAP_RESULT_ERROR_CARD_POWERED_OFF = 0x03,
+	SAP_RESULT_ERROR_CARD_REMOVED = 0x04,
+	SAP_RESULT_ERROR_CARD_POWERED_ON = 0x05,
+	SAP_RESULT_ERROR_DATA_UNAVAIL = 0x06,
+	SAP_RESULT_ERROR_NOT_SUPPORTED = 0x07,
+};
+
+/* Table 5.19: Possible values for StatusChange */
+enum sap_card_status_type {
+	SAP_CARD_STATUS_UNKNOWN_ERROR = 0x00,
+	SAP_CARD_STATUS_RESET = 0x01,
+	SAP_CARD_STATUS_NOT_ACC = 0x02,
+	SAP_CARD_STATUS_REMOVED = 0x03,
+	SAP_CARD_STATUS_INSERTED = 0x04,
+	SAP_CARD_STATUS_RECOVERED = 0x05,
+};
+
+/* Table 5.16: Possible values for ConnectionStatus */
+enum sap_conn_status_type {
+	SAP_CONN_STATUS_OK_READY = 0x00,
+	SAP_CONN_STATUS_ERROR_CONN = 0x01,
+	SAP_CONN_STATUS_ERROR_MAX_MSG_SIZE = 0x02,
+	SAP_CONN_STATUS_ERROR_SMALL_MSG_SIZE = 0x03,
+	SAP_CONN_STATUS_OK_CALL = 0x04,
+};
+
 struct sap_param {
 	uint8_t id;
 	uint16_t len;

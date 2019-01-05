@@ -91,35 +91,35 @@ static const struct value_string sap_msg_names[] = {
 
 /* Table 5.18: Possible values for ResultCode */
 static const struct value_string sap_result_names[] = {
-	{ 0, "OK, request processed correctly" },
-	{ 1, "Error, no reason defined" },
-	{ 2, "Error, card not accessible" },
-	{ 3, "Error, card (already) powered off" },
-	{ 4, "Error, card removed" },
-	{ 5, "Error, card already powered on" },
-	{ 6, "Error, data not available" },
-	{ 7, "Error, not supported "},
+	{ SAP_RESULT_OK_REQ_PROC_CORR,		"OK, request processed correctly" },
+	{ SAP_RESULT_ERROR_NO_REASON,		"Error, no reason defined" },
+	{ SAP_RESULT_ERROR_CARD_NOT_ACC,	"Error, card not accessible" },
+	{ SAP_RESULT_ERROR_CARD_POWERED_OFF,	"Error, card (already) powered off" },
+	{ SAP_RESULT_ERROR_CARD_REMOVED,	"Error, card removed" },
+	{ SAP_RESULT_ERROR_CARD_POWERED_ON,	"Error, card already powered on" },
+	{ SAP_RESULT_ERROR_DATA_UNAVAIL,	"Error, data not available" },
+	{ SAP_RESULT_ERROR_NOT_SUPPORTED,	"Error, not supported "},
 	{ 0, NULL }
 };
 
 /* Table 5.19: Possible values for StatusChange */
-static const struct value_string sap_status_change_names[] = {
-	{ 0, "Unknown Error" },
-	{ 1, "Card reset" },
-	{ 2, "Card not accessible" },
-	{ 3, "Card removed" },
-	{ 4, "Card inserted" },
-	{ 5, "Card recovered" },
+static const struct value_string sap_card_status_names[] = {
+	{ SAP_CARD_STATUS_UNKNOWN_ERROR,	"Unknown Error" },
+	{ SAP_CARD_STATUS_RESET,		"Card reset" },
+	{ SAP_CARD_STATUS_NOT_ACC,		"Card not accessible" },
+	{ SAP_CARD_STATUS_REMOVED,		"Card removed" },
+	{ SAP_CARD_STATUS_INSERTED,		"Card inserted" },
+	{ SAP_CARD_STATUS_RECOVERED,		"Card recovered" },
 	{ 0, NULL }
 };
 
 /* Table 5.16: Possible values for ConnectionStatus */
-static const struct value_string sap_status_names[] = {
-	{ 0, "OK, Server can fulfill requirements" },
-	{ 1, "Error, Server unable to establish connection" },
-	{ 2, "Error, Server does not support maximum message size" },
-	{ 3, "Error, maximum message size by Client is too small" },
-	{ 4, "OK, ongoing call" },
+static const struct value_string sap_conn_status_names[] = {
+	{ SAP_CONN_STATUS_OK_READY,		"OK, Server can fulfill requirements" },
+	{ SAP_CONN_STATUS_ERROR_CONN,		"Error, Server unable to establish connection" },
+	{ SAP_CONN_STATUS_ERROR_MAX_MSG_SIZE,	"Error, Server does not support maximum message size" },
+	{ SAP_CONN_STATUS_ERROR_SMALL_MSG_SIZE,	"Error, maximum message size by Client is too small" },
+	{ SAP_CONN_STATUS_OK_CALL,		"OK, ongoing call" },
 	{ 0, NULL }
 };
 
@@ -319,7 +319,7 @@ static void sap_parse_resp(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 
 	switch(msg->id){
 	case SAP_CONNECT_RESP:
-		LOGP(DSAP, LOGL_INFO, "Status: %s\n", get_value_string(sap_status_names, msg->params[0].value[0]));
+		LOGP(DSAP, LOGL_INFO, "Status: %s\n", get_value_string(sap_conn_status_names, msg->params[0].value[0]));
 		if(msg->params[0].value[0] == 0){
 			ms->sap_entity.sap_state = SAP_IDLE;
 		}
@@ -335,9 +335,9 @@ static void sap_parse_resp(struct osmocom_ms *ms, uint8_t *data, uint16_t len)
 		ms->sap_entity.sap_state = SAP_NOT_CONNECTED;
 		break;
 	case SAP_STATUS_IND:
-		LOGP(DSAP, LOGL_INFO, "New card state: %s\n", get_value_string(sap_status_change_names,
+		LOGP(DSAP, LOGL_INFO, "New card state: %s\n", get_value_string(sap_card_status_names,
 					msg->params[0].value[0]));
-		if(msg->params[0].value[0] != 1){
+		if(msg->params[0].value[0] != SAP_CARD_STATUS_RESET){
 			/* TODO: handle case in which the card is not ready yet */
 		}
 		break;
