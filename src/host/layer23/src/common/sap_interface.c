@@ -60,6 +60,7 @@ static const struct value_string sap_param_names[] = {
 	{ SAP_CARD_READER_STATUS,	"CardReaderStatus" },
 	{ SAP_STATUS_CHANGE,		"StatusChange" },
 	{ SAP_TRANSPORT_PROTOCOL,	"TransportProtocol" },
+	{ 0, NULL }
 };
 
 /* Table 5.1: Message Overview */
@@ -85,6 +86,7 @@ static const struct value_string sap_msg_names[] = {
 	{ SAP_ERROR_RESP,			"ERROR_RESP" },
 	{ SAP_SET_TRANSPORT_PROTOCOL_REQ,	"SET_TRANSPORT_PROTOCOL_REQ" },
 	{ SAP_SET_TRANSPORT_PROTOCOL_RESP,	"SET_TRANSPORT_PROTOCOL_RESP" },
+	{ 0, NULL }
 };
 
 /* Table 5.18: Possible values for ResultCode */
@@ -97,6 +99,7 @@ static const struct value_string sap_result_names[] = {
 	{ 5, "Error, card already powered on" },
 	{ 6, "Error, data not available" },
 	{ 7, "Error, not supported "},
+	{ 0, NULL }
 };
 
 /* Table 5.19: Possible values for StatusChange */
@@ -107,6 +110,7 @@ static const struct value_string sap_status_change_names[] = {
 	{ 3, "Card removed" },
 	{ 4, "Card inserted" },
 	{ 5, "Card recovered" },
+	{ 0, NULL }
 };
 
 /* Table 5.16: Possible values for ConnectionStatus */
@@ -116,6 +120,7 @@ static const struct value_string sap_status_names[] = {
 	{ 2, "Error, Server does not support maximum message size" },
 	{ 3, "Error, maximum message size by Client is too small" },
 	{ 4, "OK, ongoing call" },
+	{ 0, NULL }
 };
 
 static struct msgb *sap_create_msg(uint8_t id, uint8_t num_params, struct sap_param *params)
