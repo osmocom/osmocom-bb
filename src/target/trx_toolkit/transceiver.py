@@ -4,7 +4,7 @@
 # TRX Toolkit
 # Transceiver implementation
 #
-# (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2018-2019 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -27,6 +27,7 @@ import logging as log
 from ctrl_if_trx import CTRLInterfaceTRX
 from data_if import DATAInterface
 from udp_link import UDPLink
+from trx_list import TRXList
 
 class Transceiver:
 	""" Base transceiver implementation.
@@ -54,6 +55,21 @@ class Transceiver:
 	NOTE: we don't store the associated channel combinations,
 	      as they are only useful for burst detection and demodulation.
 
+	== Child transceivers
+
+	A BTS can (optionally) have more than one transceiver. In this case
+	additional (let's say child) transceivers basically share the same
+	clock source of the first transceiver, so UDP port mapping is a bit
+	different, for example:
+
+	  (trx_0) clck=5700, ctrl=5701, data=5702,
+	  (trx_1)            ctrl=5703, data=5704,
+	  (trx_2)            ctrl=5705, data=5706.
+	  ...
+
+	As soon as the first transceiver is powered on / off,
+	all child transceivers are also powered on / off.
+
 	== Clock distribution (optional)
 
 	The clock indications are not expected by L1 when transceiver
@@ -75,21 +91,26 @@ class Transceiver:
 	"""
 
 	def __init__(self, bind_addr, remote_addr, base_port,
-			clck_gen = None, pwr_meas = None):
+			child_idx = 0, clck_gen = None, pwr_meas = None):
 		# Connection info
 		self.remote_addr = remote_addr
 		self.bind_addr = bind_addr
 		self.base_port = base_port
+		self.child_idx = child_idx
+
+		# Child transceiver cannot have its own clock
+		if clck_gen is not None and child_idx > 0:
+			raise TypeError("Child transceiver cannot have its own clock")
 
 		# Init DATA interface
 		self.data_if = DATAInterface(
-			remote_addr, base_port + 102,
-			bind_addr, base_port + 2)
+			remote_addr, base_port + child_idx * 2 + 102,
+			bind_addr, base_port + child_idx * 2 + 2)
 
 		# Init CTRL interface
 		self.ctrl_if = CTRLInterfaceTRX(self,
-			remote_addr, base_port + 101,
-			bind_addr, base_port + 1)
+			remote_addr, base_port + child_idx * 2 + 101,
+			bind_addr, base_port + child_idx * 2 + 1)
 
 		# Init optional CLCK interface
 		self.clck_gen = clck_gen
@@ -111,12 +132,22 @@ class Transceiver:
 		# List of active (configured) timeslots
 		self.ts_list = []
 
+		# List of child transceivers
+		self.child_trx_list = TRXList()
+
 	# To be overwritten if required,
 	# no custom command handlers by default
 	def ctrl_cmd_handler(self, request):
 		return None
 
 	def power_event_handler(self, event):
+		# Update child transceivers
+		for trx in self.child_trx_list.trx_list:
+			if event == "POWERON":
+				trx.running = True
+			else:
+				trx.running = False
+
 		# Trigger clock generator if required
 		if self.clck_gen is not None:
 			clck_links = self.clck_gen.clck_links
