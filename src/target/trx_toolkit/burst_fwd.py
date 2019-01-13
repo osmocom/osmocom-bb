@@ -43,9 +43,12 @@ class BurstForwarder:
 
 	"""
 
-	def __init__(self, trx_list = []):
+	def __init__(self, trx_list = None):
 		# List of Transceiver instances
-		self.trx_list = trx_list
+		if trx_list is not None:
+			self.trx_list = trx_list
+		else:
+			self.trx_list = []
 
 	def add_trx(self, trx):
 		if trx in self.trx_list:
