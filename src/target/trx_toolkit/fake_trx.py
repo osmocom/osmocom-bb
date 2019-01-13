@@ -308,6 +308,7 @@ class Application(ApplicationBase):
 		# Noise: -120 .. -105
 		# BTS: -75 .. -50
 		self.fake_pm = FakePM(-120, -105, -75, -50)
+		self.fake_pm.trx_list = self.trx_list
 
 		# Init TRX instance for BTS
 		self.append_trx(self.argv.bts_addr, self.argv.bts_base_port)
