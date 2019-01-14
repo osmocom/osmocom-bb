@@ -29,7 +29,7 @@ from udp_link import UDPLink
 class CTRLInterface(UDPLink):
 	def __init__(self, *udp_link_args):
 		UDPLink.__init__(self, *udp_link_args)
-		log.debug("Init CTRL interface (%s)" % self.desc_link())
+		log.debug("Init TRXC interface (%s)" % self.desc_link())
 
 	def handle_rx(self):
 		# Read data from socket
@@ -37,7 +37,7 @@ class CTRLInterface(UDPLink):
 		data = data.decode()
 
 		if not self.verify_req(data):
-			log.error("Wrong data on CTRL interface")
+			log.error("Wrong data on TRXC interface")
 			return
 
 		# Attempt to parse a command

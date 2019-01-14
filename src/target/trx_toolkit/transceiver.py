@@ -180,13 +180,13 @@ class Transceiver:
 
 		# Make sure that transceiver is configured and running
 		if not self.running:
-			log.warning("(%s) RX DATA message (%s), but transceiver "
+			log.warning("(%s) RX TRXD message (%s), but transceiver "
 				"is not running => dropping..." % (self, msg.desc_hdr()))
 			return None
 
 		# Make sure that indicated timeslot is configured
 		if msg.tn not in self.ts_list:
-			log.warning("(%s) RX DATA message (%s), but timeslot is not "
+			log.warning("(%s) RX TRXD message (%s), but timeslot is not "
 				"configured => dropping..." % (self, msg.desc_hdr()))
 			return None
 

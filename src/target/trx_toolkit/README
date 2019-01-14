@@ -32,3 +32,8 @@ Brief description of available applications:
     versa. Also provides some capabilities for filtering bursts
     by direction, frame and timeslot numbers, and for recording
     captured messages to a binary file.
+
+Please note that TRX toolkit is not using libosmocore's CTRL
+interface, so 'CTRL' in scope of this code base actually means
+control interface of TRX or control protocol. In order to avoid
+possible confusion, we use 'TRXC' and 'TRXD' in logging.

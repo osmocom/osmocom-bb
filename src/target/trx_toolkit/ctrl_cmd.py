@@ -51,7 +51,7 @@ class Application(ApplicationBase):
 			self.argv.bind_addr, self.argv.bind_port)
 
 		# Debug print
-		log.info("Init CTRL interface (%s)" \
+		log.info("Init TRXC interface (%s)" \
 			% self.ctrl_link.desc_link())
 
 	def parse_argv(self):
@@ -109,7 +109,7 @@ class Application(ApplicationBase):
 			self.ctrl_link.send("CMD %s\0" % cmd)
 
 	def print_prompt(self):
-		sys.stdout.write("CTRL# ")
+		sys.stdout.write("TRXC# ")
 		sys.stdout.flush()
 
 	def sig_handler(self, signum, frame):
