@@ -90,13 +90,16 @@ class Transceiver:
 
 	"""
 
-	def __init__(self, bind_addr, remote_addr, base_port,
+	def __init__(self, bind_addr, remote_addr, base_port, name = None,
 			child_idx = 0, clck_gen = None, pwr_meas = None):
 		# Connection info
 		self.remote_addr = remote_addr
 		self.bind_addr = bind_addr
 		self.base_port = base_port
 		self.child_idx = child_idx
+
+		# Meta info
+		self.name = name
 
 		log.info("Init transceiver '%s'" % self)
 
@@ -141,6 +144,8 @@ class Transceiver:
 		desc = "%s:%d" % (self.remote_addr, self.base_port)
 		if self.child_idx > 0:
 			desc += "/%d" % self.child_idx
+		if self.name is not None:
+			desc = "%s@%s" % (self.name, desc)
 
 		return desc
 

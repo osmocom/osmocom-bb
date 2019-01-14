@@ -288,31 +288,34 @@ class Application(ApplicationBase):
 		self.fake_pm.trx_list = self.trx_list
 
 		# Init TRX instance for BTS
-		self.append_trx(self.argv.bts_addr, self.argv.bts_base_port)
+		self.append_trx(self.argv.bts_addr,
+			self.argv.bts_base_port, name = "BTS")
 
 		# Init TRX instance for BB
-		self.append_trx(self.argv.bb_addr, self.argv.bb_base_port)
+		self.append_trx(self.argv.bb_addr,
+			self.argv.bb_base_port, name = "MS")
 
 		# Additional transceivers (optional)
 		if self.argv.trx_list is not None:
 			for trx_def in self.argv.trx_list:
-				(addr, port, idx) = trx_def
-				self.append_child_trx(addr, port, idx)
+				(name, addr, port, idx) = trx_def
+				self.append_child_trx(addr, port, idx, name)
 
 		# Burst forwarding between transceivers
 		self.burst_fwd = BurstForwarder(self.trx_list)
 
 		log.info("Init complete")
 
-	def append_trx(self, remote_addr, base_port):
+	def append_trx(self, remote_addr, base_port, name = None):
 		trx = FakeTRX(self.argv.trx_bind_addr, remote_addr, base_port,
-			clck_gen = self.clck_gen, pwr_meas = self.fake_pm)
+			clck_gen = self.clck_gen, pwr_meas = self.fake_pm,
+			name = name)
 		self.trx_list.add_trx(trx)
 
-	def append_child_trx(self, remote_addr, base_port, child_idx):
+	def append_child_trx(self, remote_addr, base_port, child_idx, name = None):
 		# Index 0 corresponds to the first transceiver
 		if child_idx is 0:
-			self.append_trx(remote_addr, base_port)
+			self.append_trx(remote_addr, base_port, name)
 			return
 
 		# Find 'parent' transceiver for a new child
@@ -323,7 +326,7 @@ class Application(ApplicationBase):
 
 		# Allocate a new child
 		trx_child = FakeTRX(self.argv.trx_bind_addr, remote_addr, base_port,
-			child_idx = child_idx, pwr_meas = self.fake_pm)
+			child_idx = child_idx, pwr_meas = self.fake_pm, name = name)
 		self.trx_list.add_trx(trx_child)
 
 		# Link a new 'child' with its 'parent'
@@ -363,11 +366,12 @@ class Application(ApplicationBase):
 	# format: REMOTE_ADDR:BIND_PORT[/TRX_NUM]
 	# e.g. [2001:0db8:85a3:0000:0000:8a2e:0370:7334]:5700/5
 	# e.g. 127.0.0.1:5700 or 127.0.0.1:5700/1
+	# e.g. foo@127.0.0.1:5700 or bar@127.0.0.1:5700/1
 	@staticmethod
 	def trx_def(val):
 		try:
-			result = re.match("(.+):([0-9]+)(\/[0-9]+)?", val)
-			(addr, port, idx) = result.groups()
+			result = re.match("(.+@)?(.+):([0-9]+)(\/[0-9]+)?", val)
+			(name, addr, port, idx) = result.groups()
 		except:
 			raise argparse.ArgumentTypeError("Invalid TRX definition: %s" % val)
 
@@ -376,7 +380,11 @@ class Application(ApplicationBase):
 		else:
 			idx = 0
 
-		return (addr, int(port), idx)
+		# Cut '@' from TRX name
+		if name is not None:
+			name = name[:-1]
+
+		return (name, addr, int(port), idx)
 
 	def parse_argv(self):
 		parser = argparse.ArgumentParser(prog = "fake_trx",
