@@ -46,7 +46,6 @@ class CTRLInterfaceTRX(CTRLInterface):
 
 	def __init__(self, trx, *udp_link_args):
 		CTRLInterface.__init__(self, *udp_link_args)
-		log.info("Init CTRL interface (%s)" % self.desc_link())
 
 		# Link with Transceiver instance we belong to
 		self.trx = trx

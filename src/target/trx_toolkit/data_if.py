@@ -28,6 +28,10 @@ from udp_link import UDPLink
 from data_msg import *
 
 class DATAInterface(UDPLink):
+	def __init__(self, *udp_link_args):
+		UDPLink.__init__(self, *udp_link_args)
+		log.debug("Init DATA interface (%s)" % self.desc_link())
+
 	def recv_raw_data(self):
 		data, _ = self.sock.recvfrom(512)
 		return data
