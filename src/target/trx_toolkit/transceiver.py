@@ -135,6 +135,13 @@ class Transceiver:
 		# List of child transceivers
 		self.child_trx_list = TRXList()
 
+	def __str__(self):
+		desc = "%s:%d" % (self.remote_addr, self.base_port)
+		if self.child_idx > 0:
+			desc += "/%d" % self.child_idx
+
+		return desc
+
 	# To be overwritten if required,
 	# no custom command handlers by default
 	def ctrl_cmd_handler(self, request):
@@ -173,14 +180,14 @@ class Transceiver:
 
 		# Make sure that transceiver is configured and running
 		if not self.running:
-			log.warning("RX DATA message (%s), but transceiver "
-				"is not running => dropping..." % msg.desc_hdr())
+			log.warning("(%s) RX DATA message (%s), but transceiver "
+				"is not running => dropping..." % (self, msg.desc_hdr()))
 			return None
 
 		# Make sure that indicated timeslot is configured
 		if msg.tn not in self.ts_list:
-			log.warning("RX DATA message (%s), but timeslot "
-				"is not configured => dropping..." % msg.desc_hdr())
+			log.warning("(%s) RX DATA message (%s), but timeslot is not "
+				"configured => dropping..." % (self, msg.desc_hdr()))
 			return None
 
 		return msg

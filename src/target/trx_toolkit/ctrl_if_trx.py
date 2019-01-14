@@ -59,19 +59,19 @@ class CTRLInterfaceTRX(CTRLInterface):
 
 		# Power control
 		if self.verify_cmd(request, "POWERON", 0):
-			log.debug("Recv POWERON CMD")
+			log.debug("(%s) Recv POWERON CMD" % self.trx)
 
 			# Ensure transceiver isn't working
 			if self.trx.running:
-				log.error("Transceiver already started")
+				log.error("(%s) Transceiver already started" % self.trx)
 				return -1
 
 			# Ensure RX / TX freq. are set
 			if (self.trx.rx_freq is None) or (self.trx.tx_freq is None):
-				log.error("RX / TX freq. are not set")
+				log.error("(%s) RX / TX freq. are not set" % self.trx)
 				return -1
 
-			log.info("Starting transceiver...")
+			log.info("(%s) Starting transceiver..." % self.trx)
 			self.trx.running = True
 
 			# Notify transceiver about that
@@ -80,9 +80,9 @@ class CTRLInterfaceTRX(CTRLInterface):
 			return 0
 
 		elif self.verify_cmd(request, "POWEROFF", 0):
-			log.debug("Recv POWEROFF cmd")
+			log.debug("(%s) Recv POWEROFF cmd" % self.trx)
 
-			log.info("Stopping transceiver...")
+			log.info("(%s) Stopping transceiver..." % self.trx)
 			self.trx.running = False
 
 			# Notify transceiver about that
@@ -92,26 +92,27 @@ class CTRLInterfaceTRX(CTRLInterface):
 
 		# Tuning Control
 		elif self.verify_cmd(request, "RXTUNE", 1):
-			log.debug("Recv RXTUNE cmd")
+			log.debug("(%s) Recv RXTUNE cmd" % self.trx)
 
 			# TODO: check freq range
 			self.trx.rx_freq = int(request[1]) * 1000
 			return 0
 
 		elif self.verify_cmd(request, "TXTUNE", 1):
-			log.debug("Recv TXTUNE cmd")
+			log.debug("(%s) Recv TXTUNE cmd" % self.trx)
 
 			# TODO: check freq range
 			self.trx.tx_freq = int(request[1]) * 1000
 			return 0
 
 		elif self.verify_cmd(request, "SETSLOT", 2):
-			log.debug("Recv SETSLOT cmd")
+			log.debug("(%s) Recv SETSLOT cmd" % self.trx)
 
 			# Obtain TS index
 			ts = int(request[1])
 			if ts not in range(0, 8):
-				log.error("TS index should be in range: 0..7")
+				log.error("(%s) TS index should be in "
+					"range: 0..7" % self.trx)
 				return -1
 
 			# Parse TS type
@@ -132,13 +133,13 @@ class CTRLInterfaceTRX(CTRLInterface):
 
 		# Power measurement
 		if self.verify_cmd(request, "MEASURE", 1):
-			log.debug("Recv MEASURE cmd")
+			log.debug("(%s) Recv MEASURE cmd" % self.trx)
 
 			# Power Measurement interface is optional
 			# for Transceiver, thus may be uninitialized
 			if self.trx.pwr_meas is None:
-				log.error("Power Measurement interface "
-					"is not initialized => rejecting command")
+				log.error("(%s) Power Measurement interface is not "
+					"initialized => rejecting command" % self.trx)
 				return -1
 
 			# TODO: check freq range
@@ -151,5 +152,5 @@ class CTRLInterfaceTRX(CTRLInterface):
 		else:
 			# We don't care about other commands,
 			# so let's merely ignore them ;)
-			log.debug("Ignore CMD %s" % request[0])
+			log.debug("(%s) Ignore CMD %s" % (self.trx, request[0]))
 			return 0

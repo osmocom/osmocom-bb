@@ -145,8 +145,8 @@ class FakeTRX(Transceiver):
 			return False
 
 		if msg.fn % self.burst_drop_period == 0:
-			log.info("Simulation: dropping burst (fn=%u %% %u == 0)"
-				% (msg.fn, self.burst_drop_period))
+			log.info("(%s) Simulation: dropping burst (fn=%u %% %u == 0)"
+				% (self, msg.fn, self.burst_drop_period))
 			self.burst_drop_amount -= 1
 			return True
 
@@ -176,7 +176,7 @@ class FakeTRX(Transceiver):
 		# Timing Advance
 		# Syntax: CMD SETTA <TA>
 		if self.ctrl_if.verify_cmd(request, "SETTA", 1):
-			log.debug("Recv SETTA cmd")
+			log.debug("(%s) Recv SETTA cmd" % self)
 
 			# Store indicated value
 			self.ta = int(request[1])
@@ -185,7 +185,7 @@ class FakeTRX(Transceiver):
 		# Timing of Arrival simulation
 		# Absolute form: CMD FAKE_TOA <BASE> <THRESH>
 		elif self.ctrl_if.verify_cmd(request, "FAKE_TOA", 2):
-			log.debug("Recv FAKE_TOA cmd")
+			log.debug("(%s) Recv FAKE_TOA cmd" % self)
 
 			# Parse and apply both base and threshold
 			self.toa256_base = int(request[1])
@@ -195,7 +195,7 @@ class FakeTRX(Transceiver):
 		# Timing of Arrival simulation
 		# Relative form: CMD FAKE_TOA <+-BASE_DELTA>
 		elif self.ctrl_if.verify_cmd(request, "FAKE_TOA", 1):
-			log.debug("Recv FAKE_TOA cmd")
+			log.debug("(%s) Recv FAKE_TOA cmd" % self)
 
 			# Parse and apply delta
 			self.toa256_base += int(request[1])
@@ -204,7 +204,7 @@ class FakeTRX(Transceiver):
 		# RSSI simulation
 		# Absolute form: CMD FAKE_RSSI <BASE> <THRESH>
 		elif self.ctrl_if.verify_cmd(request, "FAKE_RSSI", 2):
-			log.debug("Recv FAKE_RSSI cmd")
+			log.debug("(%s) Recv FAKE_RSSI cmd" % self)
 
 			# Parse and apply both base and threshold
 			self.rssi_base = int(request[1])
@@ -214,7 +214,7 @@ class FakeTRX(Transceiver):
 		# RSSI simulation
 		# Relative form: CMD FAKE_RSSI <+-BASE_DELTA>
 		elif self.ctrl_if.verify_cmd(request, "FAKE_RSSI", 1):
-			log.debug("Recv FAKE_RSSI cmd")
+			log.debug("(%s) Recv FAKE_RSSI cmd" % self)
 
 			# Parse and apply delta
 			self.rssi_base += int(request[1])
@@ -224,12 +224,13 @@ class FakeTRX(Transceiver):
 		# Syntax: CMD FAKE_DROP <AMOUNT>
 		# Dropping pattern: fn % 1 == 0
 		elif self.ctrl_if.verify_cmd(request, "FAKE_DROP", 1):
-			log.debug("Recv FAKE_DROP cmd")
+			log.debug("(%s) Recv FAKE_DROP cmd" % self)
 
 			# Parse / validate amount of bursts
 			num = int(request[1])
 			if num < 0:
-				log.error("FAKE_DROP amount shall not be negative")
+				log.error("(%s) FAKE_DROP amount shall not "
+					"be negative" % self)
 				return -1
 
 			self.burst_drop_amount = num
@@ -240,18 +241,20 @@ class FakeTRX(Transceiver):
 		# Syntax: CMD FAKE_DROP <AMOUNT> <FN_PERIOD>
 		# Dropping pattern: fn % period == 0
 		elif self.ctrl_if.verify_cmd(request, "FAKE_DROP", 2):
-			log.debug("Recv FAKE_DROP cmd")
+			log.debug("(%s) Recv FAKE_DROP cmd" % self)
 
 			# Parse / validate amount of bursts
 			num = int(request[1])
 			if num < 0:
-				log.error("FAKE_DROP amount shall not be negative")
+				log.error("(%s) FAKE_DROP amount shall not "
+					"be negative" % self)
 				return -1
 
 			# Parse / validate period
 			period = int(request[2])
 			if period <= 0:
-				log.error("FAKE_DROP period shall be greater than zero")
+				log.error("(%s) FAKE_DROP period shall "
+					"be greater than zero" % self)
 				return -1
 
 			self.burst_drop_amount = num
