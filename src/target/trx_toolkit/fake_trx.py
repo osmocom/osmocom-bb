@@ -275,6 +275,32 @@ class Application(ApplicationBase):
 		# List of all transceivers
 		self.trx_list = TRXList()
 
+		# Init shared clock generator
+		self.clck_gen = CLCKGen([])
+
+		# Power measurement emulation
+		# Noise: -120 .. -105
+		# BTS: -75 .. -50
+		self.fake_pm = FakePM(-120, -105, -75, -50)
+		self.fake_pm.trx_list = self.trx_list
+
+		# Init TRX instance for BTS
+		self.append_trx(self.argv.bts_addr, self.argv.bts_base_port)
+
+		# Init TRX instance for BB
+		self.append_trx(self.argv.bb_addr, self.argv.bb_base_port)
+
+		# Additional transceivers (optional)
+		if self.argv.trx_list is not None:
+			for trx_def in self.argv.trx_list:
+				(addr, port, idx) = trx_def
+				self.append_child_trx(addr, port, idx)
+
+		# Burst forwarding between transceivers
+		self.burst_fwd = BurstForwarder(self.trx_list)
+
+		log.info("Init complete")
+
 	def append_trx(self, remote_addr, base_port):
 		trx = FakeTRX(self.argv.trx_bind_addr, remote_addr, base_port,
 			clck_gen = self.clck_gen, pwr_meas = self.fake_pm)
@@ -301,42 +327,16 @@ class Application(ApplicationBase):
 		trx_parent.child_trx_list.add_trx(trx_child)
 
 	def run(self):
-		# Init shared clock generator
-		self.clck_gen = CLCKGen([])
-
-		# Power measurement emulation
-		# Noise: -120 .. -105
-		# BTS: -75 .. -50
-		self.fake_pm = FakePM(-120, -105, -75, -50)
-		self.fake_pm.trx_list = self.trx_list
-
-		# Init TRX instance for BTS
-		self.append_trx(self.argv.bts_addr, self.argv.bts_base_port)
-
-		# Init TRX instance for BB
-		self.append_trx(self.argv.bb_addr, self.argv.bb_base_port)
-
-		# Additional transceivers (optional)
-		if self.argv.trx_list is not None:
-			for trx_def in self.argv.trx_list:
-				(addr, port, idx) = trx_def
-				self.append_child_trx(addr, port, idx)
-
-		# Burst forwarding between transceivers
-		self.burst_fwd = BurstForwarder(self.trx_list)
-
 		# Compose list of to be monitored sockets
-		self.sock_list = []
+		sock_list = []
 		for trx in self.trx_list:
-			self.sock_list.append(trx.ctrl_if.sock)
-			self.sock_list.append(trx.data_if.sock)
-
-		log.info("Init complete")
+			sock_list.append(trx.ctrl_if.sock)
+			sock_list.append(trx.data_if.sock)
 
 		# Enter main loop
 		while True:
 			# Wait until we get any data on any socket
-			r_event, _, _ = select.select(self.sock_list, [], [])
+			r_event, _, _ = select.select(sock_list, [], [])
 
 			# Iterate over all transceivers
 			for trx in self.trx_list:
