@@ -5,8 +5,9 @@ emulating a virtual Um-interface between OsmocomBB and OsmoBTS.
 Brief description of available applications:
 
   - fake_trx.py - main application, that allows to connect both
-    OsmocomBB and OsmoBTS without actual RF hardware. Currently
-    only a single MS may work with a single BTS.
+    OsmocomBB and OsmoBTS without actual RF hardware. It's also
+    possible to emulate more than two transceivers, so multiple
+    MS and/or BTS instances can be connected.
 
   - clck_gen.py - a peripheral tool aimed to emulate TDMA frame
     clock generator. Could be used for testing and clock
