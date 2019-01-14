@@ -98,6 +98,8 @@ class Transceiver:
 		self.base_port = base_port
 		self.child_idx = child_idx
 
+		log.info("Init transceiver '%s'" % self)
+
 		# Child transceiver cannot have its own clock
 		if clck_gen is not None and child_idx > 0:
 			raise TypeError("Child transceiver cannot have its own clock")
