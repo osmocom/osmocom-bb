@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: GSM PHY routines
  *
- * (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2019 by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * All Rights Reserved
  *
@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <string.h>
 #include <talloc.h>
+#include <stdbool.h>
 
 #include <osmocom/gsm/a5.h>
 #include <osmocom/core/bits.h>
@@ -160,7 +161,7 @@ int sched_trx_shutdown(struct trx_instance *trx)
 	return 0;
 }
 
-int sched_trx_reset(struct trx_instance *trx, int reset_clock)
+int sched_trx_reset(struct trx_instance *trx, bool reset_clock)
 {
 	int i;
 

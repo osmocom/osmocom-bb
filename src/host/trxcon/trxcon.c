@@ -93,7 +93,7 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 
 		if (app_data.trx->fsm->state != TRX_STATE_OFFLINE) {
 			/* Reset scheduler and clock counter */
-			sched_trx_reset(app_data.trx, 1);
+			sched_trx_reset(app_data.trx, true);
 
 			/* TODO: implement trx_if_reset() */
 			trx_if_cmd_poweroff(app_data.trx);
