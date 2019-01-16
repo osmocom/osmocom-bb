@@ -42,7 +42,6 @@
 #include "sched_trx.h"
 #include "logging.h"
 #include "trx_if.h"
-#include "trxcon.h"
 #include "l1ctl.h"
 
 /* GSM 05.02 Chapter 5.2.3 Normal Burst (NB) */

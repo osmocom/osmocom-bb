@@ -40,7 +40,6 @@
 #include "sched_trx.h"
 #include "logging.h"
 #include "trx_if.h"
-#include "trxcon.h"
 #include "l1ctl.h"
 
 static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)

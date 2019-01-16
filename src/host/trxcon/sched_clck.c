@@ -41,7 +41,6 @@
 #include "scheduler.h"
 #include "logging.h"
 #include "trx_if.h"
-#include "trxcon.h"
 
 #define MAX_FN_SKEW		50
 #define TRX_LOSS_FRAMES	400

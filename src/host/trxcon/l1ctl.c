@@ -38,7 +38,6 @@
 #include <osmocom/core/select.h>
 #include <osmocom/gsm/gsm_utils.h>
 
-#include "trxcon.h"
 #include "logging.h"
 #include "l1ctl_link.h"
 #include "l1ctl_proto.h"

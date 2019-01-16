@@ -43,7 +43,6 @@
 #include "sched_trx.h"
 #include "logging.h"
 #include "trx_if.h"
-#include "trxcon.h"
 #include "l1ctl.h"
 
 static const uint8_t tch_h0_traffic_block_map[3][4] = {

@@ -38,7 +38,6 @@
 #include "sched_trx.h"
 #include "logging.h"
 #include "trx_if.h"
-#include "trxcon.h"
 #include "l1ctl.h"
 
 int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
