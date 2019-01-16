@@ -74,7 +74,7 @@ static struct {
 	uint32_t trx_fn_advance;
 } app_data;
 
-void *tall_trx_ctx = NULL;
+static void *tall_trxcon_ctx = NULL;
 struct osmo_fsm_inst *trxcon_fsm;
 
 static void trxcon_fsm_idle_action(struct osmo_fsm_inst *fi,
@@ -242,7 +242,7 @@ static void signal_handler(int signal)
 	case SIGABRT:
 	case SIGUSR1:
 	case SIGUSR2:
-		talloc_report_full(tall_trx_ctx, stderr);
+		talloc_report_full(tall_trxcon_ctx, stderr);
 		break;
 	default:
 		break;
@@ -261,8 +261,8 @@ int main(int argc, char **argv)
 	talloc_enable_null_tracking();
 
 	/* Init talloc memory management system */
-	tall_trx_ctx = talloc_init("trxcon context");
-	msgb_talloc_ctx_init(tall_trx_ctx, 0);
+	tall_trxcon_ctx = talloc_init("trxcon context");
+	msgb_talloc_ctx_init(tall_trxcon_ctx, 0);
 
 	/* Setup signal handlers */
 	signal(SIGINT, &signal_handler);
@@ -271,20 +271,21 @@ int main(int argc, char **argv)
 	osmo_init_ignore_signals();
 
 	/* Init logging system */
-	trx_log_init(app_data.debug_mask);
+	trx_log_init(tall_trxcon_ctx, app_data.debug_mask);
 
 	/* Allocate the application state machine */
 	osmo_fsm_register(&trxcon_fsm_def);
-	trxcon_fsm = osmo_fsm_inst_alloc(&trxcon_fsm_def, tall_trx_ctx,
+	trxcon_fsm = osmo_fsm_inst_alloc(&trxcon_fsm_def, tall_trxcon_ctx,
 		NULL, LOGL_DEBUG, "main");
 
 	/* Init L1CTL server */
-	app_data.l1l = l1ctl_link_init(tall_trx_ctx, app_data.bind_socket);
+	app_data.l1l = l1ctl_link_init(tall_trxcon_ctx,
+		app_data.bind_socket);
 	if (app_data.l1l == NULL)
 		goto exit;
 
 	/* Init transceiver interface */
-	app_data.trx = trx_if_open(tall_trx_ctx,
+	app_data.trx = trx_if_open(tall_trxcon_ctx,
 		app_data.trx_bind_ip, app_data.trx_remote_ip,
 		app_data.trx_base_port);
 	if (!app_data.trx)
@@ -331,8 +332,8 @@ exit:
 	 * Print report for the root talloc context in order
 	 * to be able to find and fix potential memory leaks.
 	 */
-	talloc_report_full(tall_trx_ctx, stderr);
-	talloc_free(tall_trx_ctx);
+	talloc_report_full(tall_trxcon_ctx, stderr);
+	talloc_free(tall_trxcon_ctx);
 
 	/* Make both Valgrind and ASAN happy */
 	talloc_report_full(NULL, stderr);
