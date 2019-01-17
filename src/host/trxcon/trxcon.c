@@ -279,8 +279,8 @@ int main(int argc, char **argv)
 		NULL, LOGL_DEBUG, "main");
 
 	/* Init L1CTL server */
-	rc = l1ctl_link_init(&app_data.l1l, app_data.bind_socket);
-	if (rc)
+	app_data.l1l = l1ctl_link_init(tall_trx_ctx, app_data.bind_socket);
+	if (app_data.l1l == NULL)
 		goto exit;
 
 	/* Init transceiver interface */

@@ -41,7 +41,7 @@ struct l1ctl_link {
 	void (*shutdown_cb)(struct l1ctl_link *l1l);
 };
 
-int l1ctl_link_init(struct l1ctl_link **l1l, const char *sock_path);
+struct l1ctl_link *l1ctl_link_init(void *tall_ctx, const char *sock_path);
 void l1ctl_link_shutdown(struct l1ctl_link *l1l);
 
 int l1ctl_link_send(struct l1ctl_link *l1l, struct msgb *msg);

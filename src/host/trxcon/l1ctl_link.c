@@ -229,59 +229,57 @@ int l1ctl_link_close_conn(struct l1ctl_link *l1l)
 	return 0;
 }
 
-int l1ctl_link_init(struct l1ctl_link **l1l, const char *sock_path)
+struct l1ctl_link *l1ctl_link_init(void *tall_ctx, const char *sock_path)
 {
-	struct l1ctl_link *l1l_new;
+	struct l1ctl_link *l1l;
 	struct osmo_fd *bfd;
 	int rc;
 
 	LOGP(DL1C, LOGL_NOTICE, "Init L1CTL link (%s)\n", sock_path);
 
-	l1l_new = talloc_zero(tall_trx_ctx, struct l1ctl_link);
-	if (!l1l_new) {
+	l1l = talloc_zero(tall_ctx, struct l1ctl_link);
+	if (!l1l) {
 		LOGP(DL1C, LOGL_ERROR, "Failed to allocate memory\n");
-		return -ENOMEM;
+		return NULL;
 	}
 
 	/* Allocate a new dedicated state machine */
-	l1l_new->fsm = osmo_fsm_inst_alloc(&l1ctl_fsm, l1l_new,
+	l1l->fsm = osmo_fsm_inst_alloc(&l1ctl_fsm, l1l,
 		NULL, LOGL_DEBUG, "l1ctl_link");
-	if (l1l_new->fsm == NULL) {
+	if (l1l->fsm == NULL) {
 		LOGP(DTRX, LOGL_ERROR, "Failed to allocate an instance "
 			"of FSM '%s'\n", l1ctl_fsm.name);
-		talloc_free(l1l_new);
-		return -ENOMEM;
+		talloc_free(l1l);
+		return NULL;
 	}
 
 	/* Create a socket and bind handlers */
-	bfd = &l1l_new->listen_bfd;
+	bfd = &l1l->listen_bfd;
 	rc = osmo_sock_unix_init_ofd(bfd, SOCK_STREAM, 0, sock_path,
 		OSMO_SOCK_F_BIND);
 	if (rc < 0) {
 		LOGP(DL1C, LOGL_ERROR, "Could not create UNIX socket: %s\n",
 			strerror(errno));
-		osmo_fsm_inst_free(l1l_new->fsm);
-		talloc_free(l1l_new);
-		return rc;
+		osmo_fsm_inst_free(l1l->fsm);
+		talloc_free(l1l);
+		return NULL;
 	}
 
 	/* Bind shutdown handler */
-	l1l_new->shutdown_cb = l1ctl_shutdown_cb;
+	l1l->shutdown_cb = l1ctl_shutdown_cb;
 
 	/* Bind connection handler */
 	bfd->cb = l1ctl_link_accept;
 	bfd->when = BSC_FD_READ;
-	bfd->data = l1l_new;
+	bfd->data = l1l;
 
 	/**
 	 * To be able to accept first connection and
 	 * drop others, it should be set to -1
 	 */
-	l1l_new->wq.bfd.fd = -1;
+	l1l->wq.bfd.fd = -1;
 
-	*l1l = l1l_new;
-
-	return 0;
+	return l1l;
 }
 
 void l1ctl_link_shutdown(struct l1ctl_link *l1l)
