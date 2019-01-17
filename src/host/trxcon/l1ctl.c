@@ -871,6 +871,7 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 	case L1CTL_SIM_REQ:
 		LOGP(DL1C, LOGL_NOTICE, "Ignoring unsupported message "
 			"(type=%u)\n", l1h->msg_type);
+		msgb_free(msg);
 		return -ENOTSUP;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG type %u: %s\n", l1h->msg_type,
