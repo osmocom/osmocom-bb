@@ -269,7 +269,6 @@ int l1ctl_link_init(struct l1ctl_link **l1l, const char *sock_path)
 	l1l_new->wq.bfd.fd = -1;
 
 	/* Allocate a new dedicated state machine */
-	osmo_fsm_register(&l1ctl_fsm);
 	l1l_new->fsm = osmo_fsm_inst_alloc(&l1ctl_fsm, l1l_new,
 		NULL, LOGL_DEBUG, "l1ctl_link");
 
@@ -307,4 +306,9 @@ void l1ctl_link_shutdown(struct l1ctl_link *l1l)
 
 	osmo_fsm_inst_free(l1l->fsm);
 	talloc_free(l1l);
+}
+
+static __attribute__((constructor)) void on_dso_load(void)
+{
+	OSMO_ASSERT(osmo_fsm_register(&l1ctl_fsm) == 0);
 }

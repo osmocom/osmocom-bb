@@ -660,7 +660,6 @@ int trx_if_open(struct trx_instance **trx, const char *local_host,
 		goto error;
 
 	/* Allocate a new dedicated state machine */
-	osmo_fsm_register(&trx_fsm);
 	trx_new->fsm = osmo_fsm_inst_alloc(&trx_fsm, trx_new,
 		NULL, LOGL_DEBUG, "trx_interface");
 
@@ -709,4 +708,9 @@ void trx_if_close(struct trx_instance *trx)
 	/* Free memory */
 	osmo_fsm_inst_free(trx->fsm);
 	talloc_free(trx);
+}
+
+static __attribute__((constructor)) void on_dso_load(void)
+{
+	OSMO_ASSERT(osmo_fsm_register(&trx_fsm) == 0);
 }
