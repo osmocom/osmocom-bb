@@ -22,4 +22,5 @@ int l1ctl_tx_dt_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data,
 	uint8_t *l2, size_t l2_len, bool traffic);
 int l1ctl_tx_dt_conf(struct l1ctl_link *l1l,
 	struct l1ctl_info_dl *data, bool traffic);
-int l1ctl_tx_rach_conf(struct l1ctl_link *l1l, uint32_t fn);
+int l1ctl_tx_rach_conf(struct l1ctl_link *l1l,
+	uint16_t band_arfcn, uint32_t fn);
