@@ -626,58 +626,55 @@ int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 	return 0;
 }
 
-/*
- * Open/close OsmoTRX connection
- */
-
-int trx_if_open(struct trx_instance **trx, const char *local_host,
-		const char *remote_host, uint16_t port)
+/* Init TRX interface (TRXC, TRXD sockets and FSM) */
+struct trx_instance *trx_if_open(void *tall_ctx,
+	const char *local_host, const char *remote_host,
+	uint16_t base_port)
 {
-	struct trx_instance *trx_new;
+	struct trx_instance *trx;
 	int rc;
 
-	LOGP(DTRX, LOGL_NOTICE, "Init transceiver interface\n");
+	LOGP(DTRX, LOGL_NOTICE, "Init transceiver interface "
+		"(%s:%u)\n", remote_host, base_port);
 
 	/* Try to allocate memory */
-	trx_new = talloc_zero(tall_trx_ctx, struct trx_instance);
-	if (!trx_new) {
+	trx = talloc_zero(tall_ctx, struct trx_instance);
+	if (!trx) {
 		LOGP(DTRX, LOGL_ERROR, "Failed to allocate memory\n");
-		return -ENOMEM;
+		return NULL;
 	}
 
 	/* Allocate a new dedicated state machine */
-	trx_new->fsm = osmo_fsm_inst_alloc(&trx_fsm, trx_new,
+	trx->fsm = osmo_fsm_inst_alloc(&trx_fsm, trx,
 		NULL, LOGL_DEBUG, "trx_interface");
-	if (trx_new->fsm == NULL) {
+	if (trx->fsm == NULL) {
 		LOGP(DTRX, LOGL_ERROR, "Failed to allocate an instance "
 			"of FSM '%s'\n", trx_fsm.name);
-		talloc_free(trx_new);
-		return -ENOMEM;
+		talloc_free(trx);
+		return NULL;
 	}
 
 	/* Initialize CTRL queue */
-	INIT_LLIST_HEAD(&trx_new->trx_ctrl_list);
+	INIT_LLIST_HEAD(&trx->trx_ctrl_list);
 
 	/* Open sockets */
-	rc = trx_udp_open(trx_new, &trx_new->trx_ofd_ctrl, local_host,
-		port + 101, remote_host, port + 1, trx_ctrl_read_cb);
+	rc = trx_udp_open(trx, &trx->trx_ofd_ctrl, local_host,
+		base_port + 101, remote_host, base_port + 1, trx_ctrl_read_cb);
 	if (rc < 0)
-		goto error;
+		goto udp_error;
 
-	rc = trx_udp_open(trx_new, &trx_new->trx_ofd_data, local_host,
-		port + 102, remote_host, port + 2, trx_data_rx_cb);
+	rc = trx_udp_open(trx, &trx->trx_ofd_data, local_host,
+		base_port + 102, remote_host, base_port + 2, trx_data_rx_cb);
 	if (rc < 0)
-		goto error;
+		goto udp_error;
 
-	*trx = trx_new;
+	return trx;
 
-	return 0;
-
-error:
+udp_error:
 	LOGP(DTRX, LOGL_ERROR, "Couldn't establish UDP connection\n");
-	osmo_fsm_inst_free(trx_new->fsm);
-	talloc_free(trx_new);
-	return rc;
+	osmo_fsm_inst_free(trx->fsm);
+	talloc_free(trx);
+	return NULL;
 }
 
 /* Flush pending control messages */

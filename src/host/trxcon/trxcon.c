@@ -284,9 +284,10 @@ int main(int argc, char **argv)
 		goto exit;
 
 	/* Init transceiver interface */
-	rc = trx_if_open(&app_data.trx,
-		app_data.trx_bind_ip, app_data.trx_remote_ip, app_data.trx_base_port);
-	if (rc)
+	app_data.trx = trx_if_open(tall_trx_ctx,
+		app_data.trx_bind_ip, app_data.trx_remote_ip,
+		app_data.trx_base_port);
+	if (!app_data.trx)
 		goto exit;
 
 	/* Bind L1CTL with TRX and vice versa */

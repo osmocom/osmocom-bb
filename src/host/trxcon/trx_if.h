@@ -52,8 +52,8 @@ struct trx_ctrl_msg {
 	int cmd_len;
 };
 
-int trx_if_open(struct trx_instance **trx, const char *local_host,
-		const char *remote_host, uint16_t port);
+struct trx_instance *trx_if_open(void *tall_ctx,
+	const char *local_host, const char *remote_host, uint16_t port);
 void trx_if_flush_ctrl(struct trx_instance *trx);
 void trx_if_close(struct trx_instance *trx);
 
