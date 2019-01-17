@@ -645,6 +645,16 @@ int trx_if_open(struct trx_instance **trx, const char *local_host,
 		return -ENOMEM;
 	}
 
+	/* Allocate a new dedicated state machine */
+	trx_new->fsm = osmo_fsm_inst_alloc(&trx_fsm, trx_new,
+		NULL, LOGL_DEBUG, "trx_interface");
+	if (trx_new->fsm == NULL) {
+		LOGP(DTRX, LOGL_ERROR, "Failed to allocate an instance "
+			"of FSM '%s'\n", trx_fsm.name);
+		talloc_free(trx_new);
+		return -ENOMEM;
+	}
+
 	/* Initialize CTRL queue */
 	INIT_LLIST_HEAD(&trx_new->trx_ctrl_list);
 
@@ -659,16 +669,13 @@ int trx_if_open(struct trx_instance **trx, const char *local_host,
 	if (rc < 0)
 		goto error;
 
-	/* Allocate a new dedicated state machine */
-	trx_new->fsm = osmo_fsm_inst_alloc(&trx_fsm, trx_new,
-		NULL, LOGL_DEBUG, "trx_interface");
-
 	*trx = trx_new;
 
 	return 0;
 
 error:
 	LOGP(DTRX, LOGL_ERROR, "Couldn't establish UDP connection\n");
+	osmo_fsm_inst_free(trx_new->fsm);
 	talloc_free(trx_new);
 	return rc;
 }
