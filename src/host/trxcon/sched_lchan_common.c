@@ -99,9 +99,9 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	dl_hdr.num_biterr = bit_error_count;
 
 	/* Convert average RSSI to RX level */
-	if (lchan->meas.rssi_num) {
+	if (lchan->meas.num) {
 		/* RX level: 0 .. 63 in typical GSM notation (dBm + 110) */
-		dbm_avg = lchan->meas.rssi_sum / lchan->meas.rssi_num;
+		dbm_avg = lchan->meas.rssi_sum / lchan->meas.num;
 		dl_hdr.rx_level = dbm2rxlev(dbm_avg);
 	} else {
 		/* No measurements, assuming the worst */

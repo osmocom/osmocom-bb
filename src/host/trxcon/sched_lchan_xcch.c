@@ -74,8 +74,7 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Update measurements */
 	lchan->meas.rssi_sum += rssi;
 	lchan->meas.toa256_sum += toa256;
-	lchan->meas.rssi_num++;
-	lchan->meas.toa256_num++;
+	lchan->meas.num++;
 
 	/* Copy burst to buffer of 4 bursts */
 	offset = buffer + bid * 116;

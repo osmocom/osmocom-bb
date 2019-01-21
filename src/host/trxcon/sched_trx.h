@@ -181,12 +181,10 @@ struct trx_lchan_state {
 	uint8_t ul_facch_blocks;
 
 	struct {
-		/*! \brief Number of RSSI values */
-		uint8_t rssi_num;
+		/*! \brief Number of measurements */
+		unsigned int num;
 		/*! \brief Sum of RSSI values */
 		float rssi_sum;
-		/*! \brief Number of TOA values */
-		uint8_t toa256_num;
 		/*! \brief Sum of TOA values */
 		int32_t toa256_sum;
 	} meas;
