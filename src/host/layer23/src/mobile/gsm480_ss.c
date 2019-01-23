@@ -438,7 +438,7 @@ static int gsm480_tx_invoke(struct gsm_trans *trans, struct msgb *msg,
 	if (msg_type == GSM0480_MTYPE_FACILITY)
 		msgb_wrap_with_L(msg);
 	else
-		msgb_wrap_with_TL(msg, GSM0480_IE_FACILITY);
+		msgb_push_tl(msg, GSM0480_IE_FACILITY);
 
 	/* FIXME: If phase 2, we need SSVERSION to be added */
 
