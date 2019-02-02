@@ -5156,6 +5156,11 @@ int gsm322_exit(struct osmocom_ms *ms)
 				buf[2] = ba->mnc >> 8;
 				buf[3] = ba->mnc & 0xff;
 
+				LOGP(DCS, LOGL_INFO, "Write stored BA list (mcc=%s "
+					"mnc=%s  %s, %s)\n", gsm_print_mcc(ba->mcc),
+					gsm_print_mnc(ba->mnc), gsm_get_mcc(ba->mcc),
+					gsm_get_mnc(ba->mcc, ba->mnc));
+
 				rc += fwrite(buf, 4, 1, fp);
 				rc += fwrite(ba->freq, sizeof(ba->freq), 1, fp);
 			}
@@ -5163,12 +5168,7 @@ int gsm322_exit(struct osmocom_ms *ms)
 		}
 	}
 
-	if (rc == 2)
-		LOGP(DCS, LOGL_INFO, "Write stored BA list (mcc=%s "
-			"mnc=%s  %s, %s)\n", gsm_print_mcc(ba->mcc),
-			gsm_print_mnc(ba->mnc), gsm_get_mcc(ba->mcc),
-			gsm_get_mnc(ba->mcc, ba->mnc));
-	else
+	if (rc != 2)
 		LOGP(DCS, LOGL_ERROR, "Failed to write BA list\n");
 
 	/* free lists */
