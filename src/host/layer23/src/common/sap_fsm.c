@@ -674,10 +674,6 @@ int sap_fsm_alloc(struct osmocom_ms *ms)
 	sap = &ms->sap_entity;
 	OSMO_ASSERT(sap->fi == NULL);
 
-	/* Register our FSM (if required) */
-	if (!osmo_fsm_find_by_name(sap_fsm_def.name))
-		OSMO_ASSERT(osmo_fsm_register(&sap_fsm_def) == 0);
-
 	/* Allocate an instance using ms as talloc context */
 	sap->fi = osmo_fsm_inst_alloc(&sap_fsm_def, ms,
 		ms, LOGL_DEBUG, ms->name);
@@ -687,4 +683,9 @@ int sap_fsm_alloc(struct osmocom_ms *ms)
 	}
 
 	return 0;
+}
+
+static __attribute__((constructor)) void on_dso_load(void)
+{
+	OSMO_ASSERT(osmo_fsm_register(&sap_fsm_def) == 0);
 }
