@@ -146,7 +146,6 @@ void gsm_sim_reply(struct osmocom_ms *ms, uint8_t result_type, uint8_t *result,
 	struct gsm_sim *sim = &ms->sim;
 	struct msgb *msg = sim->job_msg;
 	struct sim_hdr *sh;
-	uint16_t payload_len;
 	struct gsm_sim_handler *handler;
 
 	LOGP(DSIM, LOGL_INFO, "sending result to callback function "
@@ -164,11 +163,8 @@ void gsm_sim_reply(struct osmocom_ms *ms, uint8_t result_type, uint8_t *result,
 		return;
 	}
 
-	payload_len = msg->len - sizeof(*sh);
-
 	/* remove data */
-	msg->tail -= payload_len;
-	msg->len -= payload_len;
+	msgb_get(msg, msg->len - sizeof(*sh));
 
 	/* add reply data */
 	sh->job_type = result_type;
