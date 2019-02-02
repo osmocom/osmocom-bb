@@ -13,6 +13,7 @@ struct osmocom_ms;
 #include <osmocom/bb/mobile/subscriber.h>
 #include <osmocom/gsm/lapdm.h>
 #include <osmocom/bb/common/sap_interface.h>
+#include <osmocom/bb/common/sap_proto.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
 #include <osmocom/bb/common/sysinfo.h>
 #include <osmocom/bb/mobile/gsm322.h>
@@ -25,7 +26,9 @@ struct osmocom_ms;
 struct osmosap_entity {
 	struct osmo_fsm_inst *fi;
 	uint16_t max_msg_size;
-	uint8_t card_status;
+
+	/* Current state of remote SIM card */
+	enum sap_card_status_type card_status;
 
 	/* Optional SAP message call-back */
 	sap_msg_cb_t sap_msg_cb;
