@@ -49,29 +49,26 @@
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define IO_CNTL_REG	0xfffe4804
 #define ASIC_CONF_REG	0xfffef008
+#define IO_CONF_REG	0xfffef00a
 
 static void board_io_init(void)
 {
 	uint16_t reg;
 
 	reg = readw(ASIC_CONF_REG);
-	/* LCD Set I/O(3) / SA0 to I/O(3) mode */
-	reg &= ~(1 << 10);
-	/* Set function pins to I2C Mode */
-	reg |= ((1 << 12) | (1 << 7));		/* SCL / SDA */
 	/* TWL3025: Set SPI+RIF RX clock to rising edge */
 	reg |= (1 << 13) | (1 << 14);
 	writew(reg, ASIC_CONF_REG);
 
-	/* LCD Set I/O(3) to output mode */
-	reg = readw(IO_CNTL_REG);
-	reg &= ~(1 << 3);
-	writew(reg, IO_CNTL_REG);
-
-	/* LCD Set I/O(3) output low */
-	reg = readw(ARMIO_LATCH_OUT);
-	reg &= ~(1 << 3);
-	writew(reg, ARMIO_LATCH_OUT);
+	/*
+	 * Most Calypso peripheral interface signals are unconnected
+	 * on this modem.  We configure them to be GPIOs in IO_CONF_REG,
+	 * then configure them to be outputs in IO_CNTL_REG, then set
+	 * the outputs to 0 in ARMIO_LATCH_OUT.
+	 */
+	writew(0x03F5, IO_CONF_REG);
+	writew(0xC000, IO_CNTL_REG);
+	writew(0x0000, ARMIO_LATCH_OUT);
 }
 
 void board_init(int with_irq)
