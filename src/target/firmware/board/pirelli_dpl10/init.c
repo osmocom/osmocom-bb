@@ -60,8 +60,8 @@ static void board_io_init(void)
 	uint16_t reg;
 
 	reg = readw(ASIC_CONF_REG);
-	/* Set function pins to I2C Mode */
-	reg |= ((1 << 12) | (1 << 7));		/* SCL / SDA */
+	/* Set LPG and PWL pin mux like Pirelli's fw does */
+	reg |= (1 << 6) | (1 << 4);
 	/* TWL3025: Set SPI+RIF RX clock to rising edge */
 	reg |= (1 << 13) | (1 << 14);
 	reg &= ~(1 << 1);
