@@ -24,7 +24,7 @@ ENV_e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/ex
 #
 
 # List of all supported boards (meant to be overridden on command line)
-BOARDS?=compal_e88 compal_e86 compal_e99 se_j100 gta0x pirelli_dpl10
+BOARDS?=compal_e88 compal_e86 compal_e99 se_j100 gta0x fcdev3b pirelli_dpl10
 
 # Framebuffer support, board specific drivers
 FB_OBJS=fb/framebuffer.o fb/font.o fb/helvR08.o fb/helvB14.o fb/c64.o \
@@ -45,6 +45,12 @@ BOARD_gta0x_OBJS=$(calypso_COMMON_OBJS) board/gta0x/init.o \
 	board/gta0x/rffe_gta0x_triband.o board/gta0x/rf_power.o \
 	battery/dummy.o $(FB_dummy_OBJS)
 BOARD_gta0x_ENVIRONMENTS=highram
+
+# FreeCalypso FCDEV3B
+BOARD_fcdev3b_OBJS=$(calypso_COMMON_OBJS) board/fcdev3b/init.o \
+	board/gta0x/rffe_gta0x_triband.o board/gta0x/rf_power.o \
+	battery/dummy.o $(FB_dummy_OBJS)
+BOARD_fcdev3b_ENVIRONMENTS=highram
 
 # Pirelli DP-L10
 BOARD_pirelli_dpl10_OBJS=$(calypso_COMMON_OBJS) board/pirelli_dpl10/init.o \
