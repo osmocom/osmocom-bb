@@ -32,6 +32,7 @@
 #include <keypad.h>
 #include <console.h>
 #include <flash/cfi_flash.h>
+#include <tiffs.h>
 
 #include <calypso/irq.h>
 #include <calypso/clock.h>
@@ -138,4 +139,7 @@ void board_init(int with_irq)
 
 	/* Initialize ABB driver (uses SPI) */
 	twl3025_init();
+
+	/* Initialize TIFFS reader (8 sectors of 256 KiB each) */
+	tiffs_init(0x01800000, 0x40000, 8);
 }

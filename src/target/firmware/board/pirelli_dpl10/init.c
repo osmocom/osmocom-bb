@@ -31,6 +31,7 @@
 #include <keypad.h>
 #include <console.h>
 #include <flash/cfi_flash.h>
+#include <tiffs.h>
 
 #include <calypso/irq.h>
 #include <calypso/clock.h>
@@ -156,4 +157,7 @@ void board_init(int with_irq)
 
 	/* enable LEDB driver of Iota for keypad backlight */
 	twl3025_reg_write(AUXLED, 0x02);
+
+	/* Initialize TIFFS reader (18 sectors of 256 KiB each) */
+	tiffs_init(0x02000000, 0x40000, 18);
 }

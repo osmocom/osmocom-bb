@@ -107,6 +107,7 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 		layer1/liblayer1.a \
 		lib/libmini.a \
 		comm/libcomm.a \
+		tiffs/libtiffs.a \
 		../../shared/libosmocore/build-target/src/.libs/libosmocore.a \
 		../../shared/libosmocore/build-target/src/gsm/.libs/libosmogsm.a \
 		../../shared/libosmocore/build-target/src/codec/.libs/libosmocodec.a
@@ -123,6 +124,7 @@ INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include -I../.
 -include calypso/Makefile
 -include layer1/Makefile
 -include comm/Makefile
+-include tiffs/Makefile
 -include lib/Makefile
 
 # Include rules
