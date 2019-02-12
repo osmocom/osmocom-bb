@@ -44,10 +44,30 @@ void rffe_mode(enum gsm_band band, int tx)
 	tsp_act_update(tspact);
 }
 
-/* Returns RF wiring */
+/*
+ * Each given Mot C1xx phone is made either for 900+1800 MHz, in which
+ * case only the DCS Rx port is connected, or for 850+1900 MHz, in which
+ * case only the PCS Rx port is connected. Here we tell the TRF6151 driver
+ * that both DCS and PCS ports are connected, so that the same binary
+ * build can be used on both EU-band and US-band C1xx phones.
+ *
+ * If you are using your phone the way it was meant to be used, i.e.,
+ * listening to EGSM and DCS downlinks only with EU-band phones or
+ * listening to GSM850 and PCS downlinks only with US-band phones, then
+ * the same standard binary build will work on both: the TRF6151 driver
+ * will use the DCS Rx port when trying to receive DCS downlink or the
+ * PCS Rx port when trying to receive PCS downlink, and everything will
+ * just work.  However, if you are interested in using OsmocomBB for
+ * various hacking purposes (its original and primary intended use)
+ * and you need to tune your phone's TRF6151 receiver out of spec or
+ * at least outside of the DCS/PCS Rx SAW filter's legitimate passband
+ * (or if you have changed or removed that SAW filter), then you need
+ * to change the following rffe_get_rx_ports() function to match your
+ * specific hw version, i.e., PORT_DCS1800 only or PORT_PCS1900 only.
+ */
 uint32_t rffe_get_rx_ports(void)
 {
-	return (1 << PORT_LO) | (1 << PORT_DCS1800);
+	return (1 << PORT_LO) | (1 << PORT_DCS1800) | (1 << PORT_PCS1900);
 }
 
 uint32_t rffe_get_tx_ports(void)
