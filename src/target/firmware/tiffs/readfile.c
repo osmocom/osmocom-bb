@@ -1,10 +1,11 @@
 /* TIFFS (TI Flash File System) reader implementation */
 
 /*
- * (C) 2017 by Mychaela Falconia <mychaela.falconia@gmail.com>
- * Tweaked (coding style changes) by Vadim Yanitskiy <axilirator@gmail.com>
+ * This code was written by Mychaela Falconia <falcon@freecalypso.org>
+ * who refuses to claim copyright on it and has released it as public domain
+ * instead. NO rights reserved, all rights relinquished.
  *
- * All Rights Reserved
+ * Tweaked (coding style changes) by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
