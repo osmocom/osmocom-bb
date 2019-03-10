@@ -92,6 +92,10 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);
+		/* NOTE: xCCH has an insane amount of redundancy for error
+		 * correction, so even just 2 valid bursts might be enough
+		 * to reconstruct some L2 frames. This is why we do not
+		 * abort here. */
 	}
 
 	/* Attempt to decode */
