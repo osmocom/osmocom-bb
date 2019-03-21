@@ -168,7 +168,7 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 	conf->initial_freq_err = 0;
 
 	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
-	l1l->fbsb_conf_sent = 1;
+	l1l->fbsb_conf_sent = true;
 
 	/* Abort FBSB expire timer */
 	if (osmo_timer_pending(&l1l->fbsb_timer))
@@ -314,7 +314,7 @@ static void fbsb_timer_cb(void *data)
 	conf->bsic = 0;
 
 	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
-	l1l->fbsb_conf_sent = 1;
+	l1l->fbsb_conf_sent = true;
 
 	l1ctl_link_send(l1l, msg);
 }
@@ -350,7 +350,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	sched_trx_configure_ts(l1l->trx, 0, ch_config);
 
 	/* Ask SCH handler to send L1CTL_FBSB_CONF */
-	l1l->fbsb_conf_sent = 0;
+	l1l->fbsb_conf_sent = false;
 
 	/* Only if current ARFCN differs */
 	if (l1l->trx->band_arfcn != band_arfcn) {

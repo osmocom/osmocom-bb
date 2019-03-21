@@ -35,7 +35,7 @@ struct l1ctl_link {
 
 	/* L1CTL handlers specific */
 	struct osmo_timer_list fbsb_timer;
-	uint8_t fbsb_conf_sent;
+	bool fbsb_conf_sent;
 
 	/* Shutdown callback */
 	void (*shutdown_cb)(struct l1ctl_link *l1l);
