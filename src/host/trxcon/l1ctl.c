@@ -295,7 +295,7 @@ static void fbsb_timer_cb(void *data)
 	if (msg == NULL)
 		return;
 
-	LOGP(DL1C, LOGL_DEBUG, "Send FBSB Conf (result=255, bsic=0)\n");
+	LOGP(DL1C, LOGL_NOTICE, "FBSB timer fired for ARFCN %u\n", l1l->trx->band_arfcn &~ ARFCN_FLAG_MASK);
 
 	dl = put_dl_info_hdr(msg, NULL);
 
@@ -361,6 +361,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Start FBSB expire timer */
 	l1l->fbsb_timer.data = l1l;
 	l1l->fbsb_timer.cb = fbsb_timer_cb;
+	LOGP(DL1C, LOGL_INFO, "Starting FBSB timer %u ms\n", timeout * FRAME_DURATION_uS / 1000);
 	osmo_timer_schedule(&l1l->fbsb_timer, 0,
 		timeout * FRAME_DURATION_uS);
 
