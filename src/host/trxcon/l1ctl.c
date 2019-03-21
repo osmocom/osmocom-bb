@@ -138,13 +138,24 @@ int l1ctl_tx_reset_conf(struct l1ctl_link *l1l, uint8_t type)
 	return l1ctl_link_send(l1l, msg);
 }
 
+static struct l1ctl_info_dl *put_dl_info_hdr(struct msgb *msg, struct l1ctl_info_dl *dl_info)
+{
+	size_t len = sizeof(struct l1ctl_info_dl);
+	struct l1ctl_info_dl *dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
+
+	if (dl_info) /* Copy DL info provided by handler */
+		memcpy(dl, dl_info, len);
+	else /* Init DL info header */
+		memset(dl, 0x00, len);
+
+	return dl;
+}
+
 int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 	struct l1ctl_info_dl *dl_info, uint8_t bsic)
 {
 	struct l1ctl_fbsb_conf *conf;
-	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
-	size_t len;
 
 	msg = l1ctl_alloc_msg(L1CTL_FBSB_CONF);
 	if (msg == NULL)
@@ -153,10 +164,7 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 	LOGP(DL1C, LOGL_DEBUG, "Send FBSB Conf (result=%u, bsic=%u)\n",
 		result, bsic);
 
-	/* Copy DL info provided by handler */
-	len = sizeof(struct l1ctl_info_dl);
-	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
-	memcpy(dl, dl_info, len);
+	put_dl_info_hdr(msg, dl_info);
 	talloc_free(dl_info);
 
 	/* Fill in FBSB payload: BSIC and sync result */
@@ -198,7 +206,6 @@ int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode)
 int l1ctl_tx_dt_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data,
 	uint8_t *l2, size_t l2_len, bool traffic)
 {
-	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 	uint8_t *msg_l2;
 
@@ -207,9 +214,7 @@ int l1ctl_tx_dt_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data,
 	if (msg == NULL)
 		return -ENOMEM;
 
-	/* Copy DL header */
-	dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
-	memcpy(dl, data, sizeof(*dl));
+	put_dl_info_hdr(msg, data);
 
 	/* Copy the L2 payload if preset */
 	if (l2 && l2_len > 0) {
@@ -225,16 +230,13 @@ int l1ctl_tx_rach_conf(struct l1ctl_link *l1l, uint32_t fn)
 {
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
-	size_t len;
 
 	msg = l1ctl_alloc_msg(L1CTL_RACH_CONF);
 	if (msg == NULL)
 		return -ENOMEM;
 
-	len = sizeof(struct l1ctl_info_dl);
-	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
+	dl = put_dl_info_hdr(msg, NULL);
 
-	memset(dl, 0x00, len);
 	dl->band_arfcn = htons(l1l->trx->band_arfcn);
 	dl->frame_nr = htonl(fn);
 
@@ -248,9 +250,7 @@ int l1ctl_tx_rach_conf(struct l1ctl_link *l1l, uint32_t fn)
 int l1ctl_tx_dt_conf(struct l1ctl_link *l1l,
 	struct l1ctl_info_dl *data, bool traffic)
 {
-	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
-	size_t len;
 
 	msg = l1ctl_alloc_msg(traffic ?
 		L1CTL_TRAFFIC_CONF : L1CTL_DATA_CONF);
@@ -258,9 +258,7 @@ int l1ctl_tx_dt_conf(struct l1ctl_link *l1l,
 		return -ENOMEM;
 
 	/* Copy DL frame header from source message */
-	len = sizeof(struct l1ctl_info_dl);
-	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
-	memcpy(dl, data, len);
+	put_dl_info_hdr(msg, data);
 
 	return l1ctl_link_send(l1l, msg);
 }
@@ -292,7 +290,6 @@ static void fbsb_timer_cb(void *data)
 	struct l1ctl_fbsb_conf *conf;
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
-	size_t len;
 
 	msg = l1ctl_alloc_msg(L1CTL_FBSB_CONF);
 	if (msg == NULL)
@@ -300,10 +297,7 @@ static void fbsb_timer_cb(void *data)
 
 	LOGP(DL1C, LOGL_DEBUG, "Send FBSB Conf (result=255, bsic=0)\n");
 
-	/* Compose DL info header */
-	len = sizeof(struct l1ctl_info_dl);
-	dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
-	memset(dl, 0x00, len);
+	dl = put_dl_info_hdr(msg, NULL);
 
 	/* Fill in current ARFCN */
 	dl->band_arfcn = htons(l1l->trx->band_arfcn);
