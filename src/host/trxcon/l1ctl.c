@@ -151,6 +151,19 @@ static struct l1ctl_info_dl *put_dl_info_hdr(struct msgb *msg, struct l1ctl_info
 	return dl;
 }
 
+/* Fill in FBSB payload: BSIC and sync result */
+static struct l1ctl_fbsb_conf *fbsb_conf_make(struct msgb *msg, uint8_t result, uint8_t bsic)
+{
+	struct l1ctl_fbsb_conf *conf = (struct l1ctl_fbsb_conf *) msgb_put(msg, sizeof(*conf));
+
+	LOGP(DL1C, LOGL_DEBUG, "Send FBSB Conf (result=%u, bsic=%u)\n", result, bsic);
+
+	conf->result = result;
+	conf->bsic = bsic;
+
+	return conf;
+}
+
 int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 	struct l1ctl_info_dl *dl_info, uint8_t bsic)
 {
@@ -161,16 +174,10 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 	if (msg == NULL)
 		return -ENOMEM;
 
-	LOGP(DL1C, LOGL_DEBUG, "Send FBSB Conf (result=%u, bsic=%u)\n",
-		result, bsic);
-
 	put_dl_info_hdr(msg, dl_info);
 	talloc_free(dl_info);
 
-	/* Fill in FBSB payload: BSIC and sync result */
-	conf = (struct l1ctl_fbsb_conf *) msgb_put(msg, sizeof(*conf));
-	conf->result = result;
-	conf->bsic = bsic;
+	conf = fbsb_conf_make(msg, result, bsic);
 
 	/* FIXME: set proper value */
 	conf->initial_freq_err = 0;
@@ -287,7 +294,6 @@ static enum gsm_phys_chan_config l1ctl_ccch_mode2pchan_config(enum ccch_mode mod
 static void fbsb_timer_cb(void *data)
 {
 	struct l1ctl_link *l1l = (struct l1ctl_link *) data;
-	struct l1ctl_fbsb_conf *conf;
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 
@@ -302,10 +308,7 @@ static void fbsb_timer_cb(void *data)
 	/* Fill in current ARFCN */
 	dl->band_arfcn = htons(l1l->trx->band_arfcn);
 
-	/* Fill in FBSB payload: BSIC and sync result */
-	conf = (struct l1ctl_fbsb_conf *) msgb_put(msg, sizeof(*conf));
-	conf->result = 255;
-	conf->bsic = 0;
+	fbsb_conf_make(msg, 255, 0);
 
 	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
 	l1l->fbsb_conf_sent = true;
