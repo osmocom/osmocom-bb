@@ -500,8 +500,9 @@ exit:
 	return rc;
 }
 
-static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 {
+	struct l1ctl_ext_rach_req *ext_req;
 	struct l1ctl_rach_req *req;
 	struct l1ctl_info_ul *ul;
 	struct trx_ts_prim *prim;
@@ -510,11 +511,25 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 	int rc;
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
-	req = (struct l1ctl_rach_req *) ul->payload;
-	len = sizeof(struct l1ctl_rach_req);
 
-	/* Convert offset value to host format */
-	req->offset = ntohs(req->offset);
+	/* Is it extended (11-bit) RACH or not? */
+	if (ext) {
+		ext_req = (struct l1ctl_ext_rach_req *) ul->payload;
+		ext_req->offset = ntohs(ext_req->offset);
+		ext_req->ra11 = ntohs(ext_req->ra11);
+		len = sizeof(*ext_req);
+
+		LOGP(DL1C, LOGL_NOTICE, "Received extended (11-bit) RACH request "
+			"(offset=%u, synch_seq=%u, ra11=0x%02hx)\n",
+			ext_req->offset, ext_req->synch_seq, ext_req->ra11);
+	} else {
+		req = (struct l1ctl_rach_req *) ul->payload;
+		req->offset = ntohs(req->offset);
+		len = sizeof(*req);
+
+		LOGP(DL1C, LOGL_NOTICE, "Received regular (8-bit) RACH request "
+			"(offset=%u, ra=0x%02x)\n", req->offset, req->ra);
+	}
 
 	/**
 	 * FIXME: l1ctl_info_ul doesn't provide channel description
@@ -522,9 +537,6 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 	 */
 	chan_nr = 0x88;
 	link_id = 0x00;
-
-	LOGP(DL1C, LOGL_NOTICE, "Received RACH request "
-		"(offset=%u ra=0x%02x)\n", req->offset, req->ra);
 
 	/* Init a new primitive */
 	rc = sched_prim_init(l1l->trx, &prim, len, chan_nr, link_id);
@@ -544,7 +556,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg)
 	}
 
 	/* Fill in the payload */
-	memcpy(prim->payload, req, len);
+	memcpy(prim->payload, ul->payload, len);
 
 exit:
 	msgb_free(msg);
@@ -845,7 +857,9 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 	case L1CTL_CCCH_MODE_REQ:
 		return l1ctl_rx_ccch_mode_req(l1l, msg);
 	case L1CTL_RACH_REQ:
-		return l1ctl_rx_rach_req(l1l, msg);
+		return l1ctl_rx_rach_req(l1l, msg, false);
+	case L1CTL_EXT_RACH_REQ:
+		return l1ctl_rx_rach_req(l1l, msg, true);
 	case L1CTL_DM_EST_REQ:
 		return l1ctl_rx_dm_est_req(l1l, msg);
 	case L1CTL_DM_REL_REQ:

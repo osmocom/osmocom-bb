@@ -40,68 +40,130 @@
 #include "trx_if.h"
 #include "l1ctl.h"
 
-/**
- * 8-bit RACH extended tail bits
- * GSM 05.02 Chapter 5.2.7 Access burst (AB)
- */
+/* FIXME: we need a better way to identify / distinguish primitives */
+#define PRIM_IS_EXT_RACH(prim) \
+	(prim->payload_len == sizeof(struct l1ctl_ext_rach_req))
+#define PRIM_IS_RACH(prim) \
+	(prim->payload_len == sizeof(struct l1ctl_rach_req))
 
-static ubit_t rach_ext_tail_bits[] = {
+/* 3GPP TS 05.02, section 5.2.7 "Access burst (AB)" */
+#define RACH_EXT_TAIL_BITS_LEN	8
+#define RACH_SYNCH_SEQ_LEN	41
+#define RACH_PAYLOAD_LEN	36
+
+/* Extended tail bits (BN0..BN7) */
+static const ubit_t rach_ext_tail_bits[] = {
 	0, 0, 1, 1, 1, 0, 1, 0,
 };
 
-/**
- * 41-bit RACH synchronization sequence
- * GSM 05.02 Chapter 5.2.7 Access burst (AB)
- */
-static ubit_t rach_synch_seq[] = {
-	0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1,
-	1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0,
-	1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
+/* Synchronization (training) sequence types */
+enum rach_synch_seq_t {
+	RACH_SYNCH_SEQ_UNKNOWN = -1,
+	RACH_SYNCH_SEQ_TS0, /* GSM, GMSK (default) */
+	RACH_SYNCH_SEQ_TS1, /* EGPRS, 8-PSK */
+	RACH_SYNCH_SEQ_TS2, /* EGPRS, GMSK */
+	RACH_SYNCH_SEQ_NUM
+};
+
+/* Synchronization (training) sequence bits */
+static const char rach_synch_seq_bits[RACH_SYNCH_SEQ_NUM][RACH_SYNCH_SEQ_LEN] = {
+	[RACH_SYNCH_SEQ_TS0] = "01001011011111111001100110101010001111000",
+	[RACH_SYNCH_SEQ_TS1] = "01010100111110001000011000101111001001101",
+	[RACH_SYNCH_SEQ_TS2] = "11101111001001110101011000001101101110111",
+};
+
+/* Synchronization (training) sequence names */
+static struct value_string rach_synch_seq_names[] = {
+	{ RACH_SYNCH_SEQ_UNKNOWN, "UNKNOWN" },
+	{ RACH_SYNCH_SEQ_TS0, "TS0: GSM, GMSK" },
+	{ RACH_SYNCH_SEQ_TS1, "TS1: EGPRS, 8-PSK" },
+	{ RACH_SYNCH_SEQ_TS2, "TS2: EGPRS, GMSK" },
+	{ 0, NULL },
 };
 
 /* Obtain a to-be-transmitted RACH burst */
 int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid)
 {
-	struct l1ctl_rach_req *req;
+	struct l1ctl_ext_rach_req *ext_req = NULL;
+	struct l1ctl_rach_req *req = NULL;
+	enum rach_synch_seq_t synch_seq;
 	uint8_t burst[GSM_BURST_LEN];
+	uint8_t *burst_ptr = burst;
 	uint8_t payload[36];
-	int rc;
+	int i, rc;
 
-	/* Check the prim payload length */
-	if (lchan->prim->payload_len != sizeof(*req)) {
-		LOGP(DSCHD, LOGL_ERROR, "Primitive has odd length %zu (expected %zu), "
-			"so dropping...\n", lchan->prim->payload_len, sizeof(*req));
+	/* Is it extended (11-bit) RACH or not? */
+	if (PRIM_IS_EXT_RACH(lchan->prim)) {
+		ext_req = (struct l1ctl_ext_rach_req *) lchan->prim->payload;
+		synch_seq = ext_req->synch_seq;
 
+		/* Check requested synch. sequence */
+		if (synch_seq >= RACH_SYNCH_SEQ_NUM) {
+			LOGP(DSCHD, LOGL_ERROR, "Unknown RACH synch. sequence=0x%02x\n", synch_seq);
+
+			/* Forget this primitive */
+			sched_prim_drop(lchan);
+			return -ENOTSUP;
+		}
+
+		/* Delay sending according to offset value */
+		if (ext_req->offset-- > 0)
+			return 0;
+
+		/* Encode extended (11-bit) payload */
+		rc = gsm0503_rach_ext_encode(payload, ext_req->ra11, trx->bsic, true);
+		if (rc) {
+			LOGP(DSCHD, LOGL_ERROR, "Could not encode extended RACH burst\n");
+
+			/* Forget this primitive */
+			sched_prim_drop(lchan);
+			return rc;
+		}
+	} else if (PRIM_IS_RACH(lchan->prim)) {
+		req = (struct l1ctl_rach_req *) lchan->prim->payload;
+		synch_seq = RACH_SYNCH_SEQ_TS0;
+
+		/* Delay sending according to offset value */
+		if (req->offset-- > 0)
+			return 0;
+
+		/* Encode regular (8-bit) payload */
+		rc = gsm0503_rach_ext_encode(payload, req->ra, trx->bsic, false);
+		if (rc) {
+			LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst\n");
+
+			/* Forget this primitive */
+			sched_prim_drop(lchan);
+			return rc;
+		}
+	} else {
+		LOGP(DSCHD, LOGL_ERROR, "Primitive has odd length %zu (expected %zu or %zu), "
+			"so dropping...\n", lchan->prim->payload_len,
+			sizeof(*req), sizeof(*ext_req));
 		sched_prim_drop(lchan);
 		return -EINVAL;
 	}
 
-	/* Get the payload from a current primitive */
-	req = (struct l1ctl_rach_req *) lchan->prim->payload;
 
-	/* Delay RACH sending according to offset value */
-	if (req->offset-- > 0)
-		return 0;
+	/* BN0-7: extended tail bits */
+	memcpy(burst_ptr, rach_ext_tail_bits, RACH_EXT_TAIL_BITS_LEN);
+	burst_ptr += RACH_EXT_TAIL_BITS_LEN;
 
-	/* Encode (8-bit) payload */
-	rc = gsm0503_rach_ext_encode(payload, req->ra, trx->bsic, false);
-	if (rc) {
-		LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst\n");
+	/* BN8-48: chosen synch. (training) sequence */
+	for (i = 0; i < RACH_SYNCH_SEQ_LEN; i++)
+		*(burst_ptr++) = rach_synch_seq_bits[synch_seq][i] == '1';
 
-		/* Forget this primitive */
-		sched_prim_drop(lchan);
+	/* BN49-84: encrypted bits (the payload) */
+	memcpy(burst_ptr, payload, RACH_PAYLOAD_LEN);
+	burst_ptr += RACH_PAYLOAD_LEN;
 
-		return rc;
-	}
+	/* BN85-156: tail bits & extended guard period */
+	memset(burst_ptr, 0, burst + GSM_BURST_LEN - burst_ptr);
 
-	/* Compose RACH burst */
-	memcpy(burst, rach_ext_tail_bits, 8); /* TB */
-	memcpy(burst + 8, rach_synch_seq, 41); /* sync seq */
-	memcpy(burst + 49, payload, 36); /* payload */
-	memset(burst + 85, 0, 63); /* TB + GP */
-
-	LOGP(DSCHD, LOGL_DEBUG, "Transmitting RACH fn=%u\n", fn);
+	LOGP(DSCHD, LOGL_DEBUG, "Transmitting %s RACH (%s) fn=%u\n",
+		PRIM_IS_EXT_RACH(lchan->prim) ? "extended (11-bit)" : "regular (8-bit)",
+		get_value_string(rach_synch_seq_names, synch_seq), fn);
 
 	/* Forward burst to scheduler */
 	rc = sched_trx_handle_tx_burst(trx, ts, lchan, fn, burst);
