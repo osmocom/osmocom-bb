@@ -544,6 +544,7 @@ static int lua_fd_unregister(lua_State *L) {
 static const struct luaL_Reg fd_funcs[] = {
 	{ "unregister", lua_fd_unregister },
 	{ "__gc", lua_fd_unregister },
+	{ NULL, NULL },
 };
 
 static const struct luaL_Reg ms_funcs[] = {
