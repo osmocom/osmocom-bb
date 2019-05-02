@@ -61,7 +61,7 @@ struct gsm48_rr_hdr {
 	uint32_t		msg_type; /* RR-* primitive */
 	uint8_t			sapi;
 	uint8_t			cause;
-};
+} __attribute__((packed));
 
 /* GSM 04.07 9.1.1 */
 #define GSM48_RR_ST_IDLE		0
