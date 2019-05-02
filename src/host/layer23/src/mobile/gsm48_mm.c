@@ -3583,7 +3583,7 @@ static int gsm48_mm_rel_other(struct osmocom_ms *ms, struct msgb *msg)
  */
 
 static int gsm48_rcv_rr_sapi3(struct osmocom_ms *ms, struct msgb *msg,
-	int msg_type, uint8_t sapi)
+			      uint32_t msg_type, uint8_t sapi)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_mm_conn *conn;
@@ -3895,12 +3895,12 @@ static int gsm48_rcv_rr(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
-	int msg_type = rrh->msg_type;
-	int sapi = rrh->sapi;
+	uint32_t msg_type = rrh->msg_type;
+	uint8_t sapi = rrh->sapi;
 	int i, rc;
 
 	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' from RR in state %s "
-		"(sapi %d)\n", ms->name, get_rr_name(msg_type),
+		"(sapi %u)\n", ms->name, get_rr_name(msg_type),
 		gsm48_mm_state_names[mm->state], sapi);
 
 	if (sapi)
@@ -3969,7 +3969,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
-	int sapi = rrh->sapi;
+	uint8_t sapi = rrh->sapi;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	uint8_t pdisc = gh->proto_discr & 0x0f;
 	uint8_t msg_type = gh->msg_type & 0xbf;
