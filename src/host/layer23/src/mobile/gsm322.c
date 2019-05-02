@@ -3011,6 +3011,8 @@ int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			cs->list[cs->arfci].flags &= ~GSM322_CS_FLAG_SYSINFO;
 			LOGP(DCS, LOGL_DEBUG, "free sysinfo ARFCN=%s\n",
 				gsm_print_arfcn(index2arfcn(cs->arfci)));
+			if (cs->si == cs->list[cs->arfci].sysinfo)
+				cs->si = NULL;
 			talloc_free(cs->list[cs->arfci].sysinfo);
 			cs->list[cs->arfci].sysinfo = NULL;
 
