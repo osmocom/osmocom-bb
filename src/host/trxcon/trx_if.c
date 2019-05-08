@@ -444,8 +444,10 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	char buf[1500], *p;
 
 	len = read(ofd->fd, buf, sizeof(buf) - 1);
-	if (len <= 0)
+	if (len <= 0) {
+		LOGP(DTRX, LOGL_ERROR, "read() failed with rc=%d\n", len);
 		return len;
+	}
 	buf[len] = '\0';
 
 	if (!!strncmp(buf, "RSP ", 4)) {
@@ -551,8 +553,10 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	int len;
 
 	len = read(ofd->fd, buf, sizeof(buf));
-	if (len <= 0)
+	if (len <= 0) {
+		LOGP(DTRXD, LOGL_ERROR, "read() failed with rc=%d\n", len);
 		return len;
+	}
 
 	if (len != 158) {
 		LOGP(DTRXD, LOGL_ERROR, "Got data message with invalid "
