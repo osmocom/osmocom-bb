@@ -443,7 +443,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	int len, resp, rsp_len;
 	char buf[1500], *p;
 
-	len = recv(ofd->fd, buf, sizeof(buf) - 1, 0);
+	len = read(ofd->fd, buf, sizeof(buf) - 1);
 	if (len <= 0)
 		return len;
 	buf[len] = '\0';
@@ -550,7 +550,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	uint32_t fn;
 	int len;
 
-	len = recv(ofd->fd, buf, sizeof(buf), 0);
+	len = read(ofd->fd, buf, sizeof(buf));
 	if (len <= 0)
 		return len;
 
