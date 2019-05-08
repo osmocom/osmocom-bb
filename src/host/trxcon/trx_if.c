@@ -440,15 +440,16 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
 	struct trx_ctrl_msg *tcm;
-	int len, resp, rsp_len;
+	int resp, rsp_len;
 	char buf[1500], *p;
+	ssize_t read_len;
 
-	len = read(ofd->fd, buf, sizeof(buf) - 1);
-	if (len <= 0) {
-		LOGP(DTRX, LOGL_ERROR, "read() failed with rc=%d\n", len);
-		return len;
+	read_len = read(ofd->fd, buf, sizeof(buf) - 1);
+	if (read_len <= 0) {
+		LOGP(DTRX, LOGL_ERROR, "read() failed with rc=%zd\n", read_len);
+		return read_len;
 	}
-	buf[len] = '\0';
+	buf[read_len] = '\0';
 
 	if (!!strncmp(buf, "RSP ", 4)) {
 		LOGP(DTRX, LOGL_NOTICE, "Unknown message on CTRL port: %s\n", buf);
@@ -550,17 +551,17 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	int8_t rssi, tn;
 	int16_t toa256;
 	uint32_t fn;
-	int len;
+	ssize_t read_len;
 
-	len = read(ofd->fd, buf, sizeof(buf));
-	if (len <= 0) {
-		LOGP(DTRXD, LOGL_ERROR, "read() failed with rc=%d\n", len);
-		return len;
+	read_len = read(ofd->fd, buf, sizeof(buf));
+	if (read_len <= 0) {
+		LOGP(DTRXD, LOGL_ERROR, "read() failed with rc=%zd\n", read_len);
+		return read_len;
 	}
 
-	if (len != 158) {
+	if (read_len != 158) {
 		LOGP(DTRXD, LOGL_ERROR, "Got data message with invalid "
-			"length '%d'\n", len);
+			"length '%zd'\n", read_len);
 		return -EINVAL;
 	}
 
