@@ -244,6 +244,8 @@ int l1ctl_tx_rach_conf(struct l1ctl_link *l1l,
 		return -ENOMEM;
 
 	dl = put_dl_info_hdr(msg, NULL);
+	memset(dl, 0x00, sizeof(*dl));
+
 	dl->band_arfcn = htons(band_arfcn);
 	dl->frame_nr = htonl(fn);
 
