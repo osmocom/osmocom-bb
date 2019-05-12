@@ -20,10 +20,10 @@ SECTIONS
     . = 0x800000;
 
     /* romloader data section, contains passthru interrupt vectors */
-    .compal.loader (NOLOAD) : { . = 0x100; } > LRAM
+    .compal.loader (NOLOAD) : { . = 0x1c; } > LRAM
 
     /* image signature (prepended by osmocon according to phone type) */
-    .compal.header (NOLOAD) : { . = 4; } > LRAM
+    .compal.header 0x800100 (NOLOAD): { . = 4; } > LRAM
 
     /* initialization code */
     . = ALIGN(4);
