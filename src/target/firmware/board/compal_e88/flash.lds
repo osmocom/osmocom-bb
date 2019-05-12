@@ -91,8 +91,8 @@ SECTIONS
     PROVIDE(_got_end = ADDR(.got) + SIZEOF(.got));
 
     /* reserved ram  */
-    .compal.reservedram 0x800000 (NOLOAD) : {
-        . = 0xff;
+    .compal.reservedram 0x800038 (NOLOAD) : {
+        . = 0xff - 0x38;
     } > IRAM
 
     /* initialized data */
