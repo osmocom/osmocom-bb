@@ -127,7 +127,7 @@ INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include -I../.
 -include tiffs/Makefile
 -include lib/Makefile
 
-# Include rules
+# Include toolchain configuration
 -include Makefile.inc
 
 
