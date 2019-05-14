@@ -942,6 +942,7 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 				pin_cause[0] = SIM_CAUSE_PUC_BLOCKED;
 				pin_cause[1] = 0;
 			}
+			break;
 		case SIM_JST_PIN1_UNLOCK:
 		case SIM_JST_PIN1_CHANGE:
 		case SIM_JST_PIN1_DISABLE:
