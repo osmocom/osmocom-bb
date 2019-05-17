@@ -82,7 +82,7 @@ class CLCKGen:
 				link.send(payload)
 
 			# Debug print
-			log.debug(payload)
+			log.debug(payload.rstrip("\0"))
 
 		# Increase frame count
 		self.clck_src += self.ind_period
