@@ -34,7 +34,16 @@ echo
 set -x
 
 
-for dir in gprsdecode gsmmap layer23 osmocon trxcon virt_phy; do
+# building those sub-projects where 'distcheck' is known-working
+for dir in gprsdecode layer23; do
+	cd $base/src/host/$dir
+	autoreconf -fi
+	./configure
+	make distcheck
+done
+
+# TODO: make sure 'distcheck' passes also for these
+for dir in gsmmap osmocon trxcon virt_phy; do
 	cd $base/src/host/$dir
 	autoreconf -fi
 	./configure
