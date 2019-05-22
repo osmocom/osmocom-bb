@@ -1867,7 +1867,7 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int index, uint16_t mcc,
 
 		/* check C1 criteria not fullfilled */
 		// TODO: class 3 DCS mobile
-		band = gsm_arfcn2band(index2arfcn(i));
+		gsm_arfcn2band_rc(index2arfcn(i), &band);
 		class = class_of_band(ms, band);
 		c1 = calculate_c1(DCS, rxlev2dbm(cs->list[i].rxlev),
 			s->rxlev_acc_min_db,
@@ -4129,7 +4129,8 @@ static int gsm322_nb_check(struct osmocom_ms *ms, int any)
 	struct gsm48_sysinfo *s;
 	int i = 0, reselect = 0;
 	uint16_t acc_class;
-	int band, class;
+	int class;
+	enum gsm_band band;
 	struct gsm322_neighbour *nb;
 	time_t now;
 	char arfcn_text[10];
@@ -4200,7 +4201,7 @@ static int gsm322_nb_check(struct osmocom_ms *ms, int any)
 			nb->prio_low = 1;
 
 		/* get C1 & C2 */
-		band = gsm_arfcn2band(nb->arfcn);
+		gsm_arfcn2band_rc(nb->arfcn, &band);
 		class = class_of_band(ms, band);
 		nb->c1 = calculate_c1(DNB, nb->rla_c_dbm, s->rxlev_acc_min_db,
 			ms_pwr_dbm(band, s->ms_txpwr_max_cch),
@@ -4697,9 +4698,11 @@ static int gsm322_nb_new_rxlev(struct gsm322_cellsel *cs)
 	struct llist_head sorted;
 	struct llist_head *lh, *lh2;
 	struct gsm48_sysinfo *s = &cs->sel_si;
-	int band = gsm_arfcn2band(cs->arfcn);
-	int class = class_of_band(cs->ms, band);
+	enum gsm_band band;
+	int class;
 
+	gsm_arfcn2band_rc(cs->arfcn, &band);
+	class = class_of_band(cs->ms, band);
 
 	/* calculate the RAL_C of serving cell */
 	if (cs->rxlev_count) {

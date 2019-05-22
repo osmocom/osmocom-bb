@@ -1822,33 +1822,33 @@ int gsm_match_mnc(uint16_t mcc, uint16_t mnc, char *imsi)
 
 const char *gsm_print_mcc(uint16_t mcc)
 {
-	static char string[5] = "000";
+	static char string[6] = "000";
 
-	snprintf(string, 4, "%03x", mcc);
+	snprintf(string, 5, "%03x", mcc);
 	return string;
 }
 
 const char *gsm_print_mnc(uint16_t mnc)
 {
-	static char string[7];
+	static char string[8];
 
 	/* invalid format: return hex value */
 	if ((mnc & 0xf000)
 	 || (mnc & 0x0f00) > 0x0900
 	 || (mnc & 0x00f0) > 0x0090
 	 || ((mnc & 0x000f) > 0x0009 && (mnc & 0x000f) < 0x000f)) {
-		snprintf(string, 6, "0x%03x", mnc);
+		snprintf(string, 7, "0x%03x", mnc);
 		return string;
 	}
 
 	/* two digits */
 	if ((mnc & 0x000f) == 0x000f) {
-		snprintf(string, 6, "%02x", mnc >> 4);
+		snprintf(string, 7, "%02x", mnc >> 4);
 		return string;
 	}
 
 	/* three digits */
-	snprintf(string, 6, "%03x", mnc);
+	snprintf(string, 7, "%03x", mnc);
 	return string;
 }
 

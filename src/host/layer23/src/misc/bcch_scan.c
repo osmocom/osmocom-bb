@@ -199,9 +199,13 @@ static void cinfo_timer_cb(void *data)
 	case BSCAN_S_WAIT_DATA:
 		cinfo_next_cell(data);
 		break;
+	case BSCAN_S_NONE:
+	case BSCAN_S_DONE:
+		break;
 	}
 }
 
+#if 0
 /* Update cell_info for current cell with received BCCH info */
 static int rx_bcch_info(const uint8_t *data)
 {
@@ -233,12 +237,13 @@ static int rx_bcch_info(const uint8_t *data)
 static int rx_sch_info()
 {
 	/* FIXME */
+	return 0;
 }
+#endif
 
 static int bscan_sig_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
 {
-	struct cell_info *ci = fps.cur_cell;
 	struct osmocom_ms *ms;
 	struct osmobb_meas_res *mr;
 	uint16_t arfcn;
@@ -278,6 +283,9 @@ static int bscan_sig_cb(unsigned int subsys, unsigned int signal,
 				return 0;
 			}
 			_cinfo_start_arfcn(rc);
+			break;
+		case FPS_S_NONE:
+		case FPS_S_BINFO:
 			break;
 		}
 		break;
