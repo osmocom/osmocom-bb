@@ -348,9 +348,9 @@ static int subscr_sim_smsp(struct osmocom_ms *ms, uint8_t *data,
 			strcpy(subscr->sms_sca, "+");
 		if (((smsp->ts_sca[1] & 0x70) >> 4) == 2)
 			strcpy(subscr->sms_sca, "0");
-		gsm48_decode_bcd_number(subscr->sms_sca +
-			strlen(subscr->sms_sca), sizeof(subscr->sms_sca)
-			- strlen(subscr->sms_sca), smsp->ts_sca, 1);
+		gsm48_decode_bcd_number2(subscr->sms_sca + strlen(subscr->sms_sca),
+					 sizeof(subscr->sms_sca) - strlen(subscr->sms_sca),
+					 smsp->ts_sca, sizeof(smsp->ts_sca), 1);
 	}
 
 	LOGP(DMM, LOGL_INFO, "received SMSP from SIM (sca=%s)\n",

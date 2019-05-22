@@ -271,8 +271,8 @@ static int gsm340_rx_tpdu(struct gsm_trans *trans, struct msgb *msg, uint8_t msg
 		strcpy(gsms->address, "0");
 	else
 		gsms->address[0] = '\0';
-	gsm48_decode_bcd_number(gsms->address + strlen(gsms->address),
-		sizeof(gsms->address) - strlen(gsms->address), address_lv, 1);
+	gsm48_decode_bcd_number2(gsms->address + strlen(gsms->address),
+		sizeof(gsms->address) - strlen(gsms->address), address_lv, sizeof(address_lv), 1);
 	smsp += oa_len_bytes;
 
 	gsms->protocol_id = *smsp++;

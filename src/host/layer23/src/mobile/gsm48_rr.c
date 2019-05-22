@@ -1516,6 +1516,9 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 	int slots;
 	uint8_t chan_req;
 	uint8_t tx_power;
+	enum gsm_band band;
+
+	gsm_arfcn2band_rc(cs->arfcn, &band);
 
 	/* already assigned */
 	if (rr->wait_assign == 2)
@@ -1657,8 +1660,7 @@ fail:
 	if (set->alter_tx_power) {
 		tx_power = set->alter_tx_power_value;
 		LOGP(DRR, LOGL_INFO, "Use alternative tx-power %d (%d dBm)\n",
-			tx_power,
-			ms_pwr_dbm(gsm_arfcn2band(cs->arfcn), tx_power));
+			tx_power, ms_pwr_dbm(band, tx_power));
 	} else {
 		tx_power = s->ms_txpwr_max_cch;
 		/* power offset in case of DCS1800 */
@@ -1666,15 +1668,12 @@ fail:
 		 && (cs->arfcn & 1023) <= 885) {
 			LOGP(DRR, LOGL_INFO, "Use MS-TXPWR-MAX-CCH power value "
 				"%d (%d dBm) with offset %d dBm\n", tx_power,
-				ms_pwr_dbm(gsm_arfcn2band(cs->arfcn), tx_power),
-				s->po_value * 2);
+				ms_pwr_dbm(band, tx_power), s->po_value * 2);
 			/* use reserved bits 7,8 for offset (+ X * 2dB) */
 			tx_power |= s->po_value << 6;
 		} else
 			LOGP(DRR, LOGL_INFO, "Use MS-TXPWR-MAX-CCH power value "
-				"%d (%d dBm)\n", tx_power,
-				ms_pwr_dbm(gsm_arfcn2band(cs->arfcn),
-							tx_power));
+				"%d (%d dBm)\n", tx_power, ms_pwr_dbm(band, tx_power));
 	}
 	ncch->data[7] = tx_power;
 

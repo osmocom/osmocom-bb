@@ -884,9 +884,9 @@ static int gsm480_rx_cf(struct gsm_trans *trans, const uint8_t *data,
 					strcpy(number, "0");
 				else
 					number[0] = '\0';
-				gsm48_decode_bcd_number(number + strlen(number),
+				gsm48_decode_bcd_number2(number + strlen(number),
 					sizeof(number) - strlen(number),
-					tag_data - 1, 1);
+					tag_data - 1, tag_len + 1, 1);
 				vty_notify(ms, "Destination: %s\n", number);
 				break;
 			}
