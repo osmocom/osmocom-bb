@@ -100,7 +100,7 @@ static void sap_negotiate_msg_size(struct osmosap_entity *sap,
 	}
 
 	/* Parse MaxMsgSize suggested by server */
-	size = ntohs((uint16_t *) param->value);
+	size = ntohs(*(uint16_t *) param->value);
 	if (size > SAP_MAX_MSG_SIZE) {
 		cause = "suggested MaxMsgSize is too big for us";
 		goto error;
