@@ -563,7 +563,7 @@ static void l1ctl_rx_tbf_cfg_req(struct l1_model_ms *ms, struct msgb *msg)
 	}
 
 	if (ms->state.state == MS_STATE_DEDICATED)
-		LOGPMS(DL1C, LOGL_NOTICE, ms, "Harrd termiation of DEDICATED mode, fix L23!\n");
+		LOGPMS(DL1C, LOGL_NOTICE, ms, "Hard termination of DEDICATED mode, fix L23!\n");
 
 	if (cfg_req->is_uplink) {
 		for (i = 0; i < 8; i++)
