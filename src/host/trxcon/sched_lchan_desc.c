@@ -304,13 +304,13 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 	},
 	[TRXC_SDCCH4_CBCH] = {
 		TRXC_SDCCH4_CBCH,	"SDCCH/4(CBCH)",
-		0xc0,			TRX_CH_LID_DEDIC,
+		0xc8,			TRX_CH_LID_DEDIC,
 		4 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_AUTO,
 		rx_data_fn,		NULL,
 	},
 	[TRXC_SDCCH8_CBCH] = {
 		TRXC_SDCCH8_CBCH,	"SDCCH/8(CBCH)",
-		0xc8,			TRX_CH_LID_DEDIC,
+		0xd0,			TRX_CH_LID_DEDIC,
 		4 * GSM_BURST_PL_LEN,	0x00,
 		rx_data_fn,		NULL,
 	},

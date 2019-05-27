@@ -536,11 +536,11 @@ enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr)
 		return GSM_PCHAN_TCH_H;
 	else if ((cbits & 0x1c) == 0x04)
 		return GSM_PCHAN_CCCH_SDCCH4;
-	else if ((cbits & 0x1f) == 0x18)
-		return GSM_PCHAN_CCCH_SDCCH4_CBCH;
 	else if ((cbits & 0x18) == 0x08)
 		return GSM_PCHAN_SDCCH8_SACCH8C;
 	else if ((cbits & 0x1f) == 0x19)
+		return GSM_PCHAN_CCCH_SDCCH4_CBCH;
+	else if ((cbits & 0x1f) == 0x1a)
 		return GSM_PCHAN_SDCCH8_SACCH8C_CBCH;
 
 	return GSM_PCHAN_NONE;
