@@ -101,10 +101,11 @@ typedef int trx_lchan_tx_func(struct trx_instance *trx,
 	uint32_t fn, uint8_t bid);
 
 struct trx_lchan_desc {
-	/*! \brief TRX Channel Type */
-	enum trx_lchan_type chan;
 	/*! \brief Human-readable name */
 	const char *name;
+	/*! \brief Human-readable description */
+	const char *desc;
+
 	/*! \brief Channel Number (like in RSL) */
 	uint8_t chan_nr;
 	/*! \brief Link ID (like in RSL) */
