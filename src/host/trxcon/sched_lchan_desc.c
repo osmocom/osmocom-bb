@@ -23,6 +23,7 @@
  *
  */
 
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 #include "sched_trx.h"
 
 /* Forward declaration of handlers */
@@ -94,31 +95,31 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 	},
 	{
 		TRXC_BCCH,		"BCCH",
-		0x80,			TRX_CH_LID_DEDIC,
+		RSL_CHAN_BCCH,		TRX_CH_LID_DEDIC,
 		4 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_AUTO,
 		rx_data_fn,		NULL,
 	},
 	{
 		TRXC_RACH,		"RACH",
-		0x88,			TRX_CH_LID_DEDIC,
+		RSL_CHAN_RACH,		TRX_CH_LID_DEDIC,
 		0x00,			TRX_CH_FLAG_AUTO,
 		NULL,			tx_rach_fn,
 	},
 	{
 		TRXC_CCCH,		"CCCH",
-		0x90,			TRX_CH_LID_DEDIC,
+		RSL_CHAN_PCH_AGCH,	TRX_CH_LID_DEDIC,
 		4 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_AUTO,
 		rx_data_fn,		NULL,
 	},
 	{
 		TRXC_TCHF,		"TCH/F",
-		0x08,			TRX_CH_LID_DEDIC,
+		RSL_CHAN_Bm_ACCHs,		TRX_CH_LID_DEDIC,
 		8 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_CBTX,
 		rx_tchf_fn,		tx_tchf_fn,
 	},
 	{
 		TRXC_TCHH_0,		"TCH/H(0)",
-		0x10,			TRX_CH_LID_DEDIC,
+		RSL_CHAN_Lm_ACCHs,		TRX_CH_LID_DEDIC,
 		6 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_CBTX,
 		rx_tchh_fn,		tx_tchh_fn,
 	},
@@ -292,25 +293,25 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 	},
 	{
 		TRXC_PDTCH,		"PDTCH",
-		0xc0,			TRX_CH_LID_DEDIC,
+		RSL_CHAN_OSMO_PDCH,	TRX_CH_LID_DEDIC,
 		12 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_PDCH,
 		rx_pdtch_fn,		tx_pdtch_fn,
 	},
 	{
 		TRXC_PTCCH,		"PTCCH",
-		0xc0,			TRX_CH_LID_DEDIC,
+		RSL_CHAN_OSMO_PDCH,	TRX_CH_LID_DEDIC,
 		4 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_PDCH,
 		rx_data_fn,		tx_data_fn,
 	},
 	[TRXC_SDCCH4_CBCH] = {
 		TRXC_SDCCH4_CBCH,	"SDCCH/4(CBCH)",
-		0xc8,			TRX_CH_LID_DEDIC,
+		RSL_CHAN_OSMO_CBCH4,		TRX_CH_LID_DEDIC,
 		4 * GSM_BURST_PL_LEN,	TRX_CH_FLAG_AUTO,
 		rx_data_fn,		NULL,
 	},
 	[TRXC_SDCCH8_CBCH] = {
 		TRXC_SDCCH8_CBCH,	"SDCCH/8(CBCH)",
-		0xd0,			TRX_CH_LID_DEDIC,
+		RSL_CHAN_OSMO_CBCH8,	TRX_CH_LID_DEDIC,
 		4 * GSM_BURST_PL_LEN,	0x00,
 		rx_data_fn,		NULL,
 	},

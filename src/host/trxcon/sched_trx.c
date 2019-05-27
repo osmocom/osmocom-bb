@@ -29,6 +29,7 @@
 #include <stdbool.h>
 
 #include <osmocom/gsm/a5.h>
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/core/bits.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>
@@ -530,17 +531,17 @@ enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr)
 {
 	uint8_t cbits = chan_nr >> 3;
 
-	if (cbits == 0x01)
+	if (cbits == ABIS_RSL_CHAN_NR_CBITS_Bm_ACCHs)
 		return GSM_PCHAN_TCH_F;
-	else if ((cbits & 0x1e) == 0x02)
+	else if ((cbits & 0x1e) == ABIS_RSL_CHAN_NR_CBITS_Lm_ACCHs(0))
 		return GSM_PCHAN_TCH_H;
-	else if ((cbits & 0x1c) == 0x04)
+	else if ((cbits & 0x1c) == ABIS_RSL_CHAN_NR_CBITS_SDCCH4_ACCH(0))
 		return GSM_PCHAN_CCCH_SDCCH4;
-	else if ((cbits & 0x18) == 0x08)
+	else if ((cbits & 0x18) == ABIS_RSL_CHAN_NR_CBITS_SDCCH8_ACCH(0))
 		return GSM_PCHAN_SDCCH8_SACCH8C;
-	else if ((cbits & 0x1f) == 0x19)
+	else if ((cbits & 0x1f) == ABIS_RSL_CHAN_NR_CBITS_OSMO_CBCH4)
 		return GSM_PCHAN_CCCH_SDCCH4_CBCH;
-	else if ((cbits & 0x1f) == 0x1a)
+	else if ((cbits & 0x1f) == ABIS_RSL_CHAN_NR_CBITS_OSMO_CBCH8)
 		return GSM_PCHAN_SDCCH8_SACCH8C_CBCH;
 
 	return GSM_PCHAN_NONE;
