@@ -416,10 +416,10 @@ uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts)
 
 	/* Osmocom specific extensions */
 	case MF_TASK_SDCCH4_CBCH:
-		cbits = 0x18;
+		cbits = 0x19;
 		break;
 	case MF_TASK_SDCCH8_CBCH:
-		cbits = 0x19;
+		cbits = 0x1a;
 		break;
 
 	case MF_TASK_UL_ALL_NB:
