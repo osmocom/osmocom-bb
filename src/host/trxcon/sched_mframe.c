@@ -1916,6 +1916,50 @@ static const struct trx_frame frame_pdch[104] = {
 	{ TRXC_IDLE,	0,	TRXC_IDLE,	0 },
 };
 
+/* Logical channel mask for a single channel */
+#define M64(x) \
+	((uint64_t) 0x01 << x)
+
+/* Logical channel mask for BCCH+CCCH */
+#define M64_BCCH_CCCH \
+	(uint64_t) 0x00 \
+		| M64(TRXC_FCCH) \
+		| M64(TRXC_SCH)  \
+		| M64(TRXC_BCCH) \
+		| M64(TRXC_RACH) \
+		| M64(TRXC_CCCH)
+
+/* Logical channel mask for SDCCH4 (with SACCH, all sub-channels) */
+#define M64_SDCCH4 \
+	(uint64_t) 0x00 \
+		| M64(TRXC_SDCCH4_0) | M64(TRXC_SACCH4_0) \
+		| M64(TRXC_SDCCH4_1) | M64(TRXC_SACCH4_1) \
+		| M64(TRXC_SDCCH4_2) | M64(TRXC_SACCH4_2) \
+		| M64(TRXC_SDCCH4_3) | M64(TRXC_SACCH4_3)
+
+/* Logical channel mask for SDCCH8 (with SACCH, all sub-channels) */
+#define M64_SDCCH8 \
+	(uint64_t) 0x00 \
+		| M64(TRXC_SDCCH8_0) | M64(TRXC_SACCH8_0) \
+		| M64(TRXC_SDCCH8_1) | M64(TRXC_SACCH8_1) \
+		| M64(TRXC_SDCCH8_2) | M64(TRXC_SACCH8_2) \
+		| M64(TRXC_SDCCH8_3) | M64(TRXC_SACCH8_3) \
+		| M64(TRXC_SDCCH8_4) | M64(TRXC_SACCH8_4) \
+		| M64(TRXC_SDCCH8_5) | M64(TRXC_SACCH8_5) \
+		| M64(TRXC_SDCCH8_6) | M64(TRXC_SACCH8_6) \
+		| M64(TRXC_SDCCH8_7) | M64(TRXC_SACCH8_7)
+
+/* Logical channel mask for TCH/F (with SACCH) */
+#define M64_TCHF \
+	(uint64_t) 0x00 \
+		| M64(TRXC_TCHF) | M64(TRXC_SACCHTF)
+
+/* Logical channel mask for TCH/H (with SACCH, all sub-channels) */
+#define M64_TCHH \
+	(uint64_t) 0x00 \
+		| M64(TRXC_TCHH_0) | M64(TRXC_SACCHTH_0) \
+		| M64(TRXC_TCHH_1) | M64(TRXC_SACCHTH_1)
+
 /**
  * A few notes about frame count:
  *
@@ -1928,97 +1972,116 @@ static const struct trx_frame frame_pdch[104] = {
 static const struct trx_multiframe layouts[] = {
 	{
 		GSM_PCHAN_NONE, "NONE",
-		0,	0xff,	(uint64_t) 0x00,
+		0,	0xff,
+		0x00,
 		NULL
 	},
 	{
 		GSM_PCHAN_CCCH, "BCCH+CCCH",
-		51,	0xff,	(uint64_t) 0x3e,
+		51,	0xff,
+		M64_BCCH_CCCH,
 		frame_bcch
 	},
 	{
 		GSM_PCHAN_CCCH_SDCCH4, "BCCH+CCCH+SDCCH/4+SACCH/4",
-		102,	0xff,	(uint64_t) 0xf001e3e,
+		102,	0xff,
+		M64_BCCH_CCCH | M64_SDCCH4,
 		frame_bcch_sdcch4
 	},
 	{
 		GSM_PCHAN_CCCH_SDCCH4_CBCH, "BCCH+CCCH+SDCCH/4+SACCH/4+CBCH",
-		102,	0xff,	(uint64_t) 0x400f001e3e,
+		102,	0xff,
+		M64_BCCH_CCCH | M64_SDCCH4 | M64(TRXC_SDCCH4_CBCH),
 		frame_bcch_sdcch4_cbch
 	},
 	{
 		GSM_PCHAN_SDCCH8_SACCH8C, "SDCCH/8+SACCH/8",
-		102,	0xff,	(uint64_t) 0xff01fe000,
+		102,	0xff,
+		M64_SDCCH8,
 		frame_sdcch8
 	},
 	{
 		GSM_PCHAN_SDCCH8_SACCH8C_CBCH, "SDCCH/8+SACCH/8+CBCH",
-		102,	0xff,	(uint64_t) 0x8ff01fe000,
+		102,	0xff,
+		M64_SDCCH8 | M64(TRXC_SDCCH8_CBCH),
 		frame_sdcch8_cbch
 	},
 	{
 		GSM_PCHAN_TCH_F, "TCH/F+SACCH",
-		104,	0x01,	(uint64_t) 0x200040,
+		104,	0x01,
+		M64_TCHF,
 		frame_tchf_ts0
 	},
 	{
 		GSM_PCHAN_TCH_F, "TCH/F+SACCH",
-		104,	0x02,	(uint64_t) 0x200040,
+		104,	0x02,
+		M64_TCHF,
 		frame_tchf_ts1
 	},
 	{
 		GSM_PCHAN_TCH_F, "TCH/F+SACCH",
-		104,	0x04,	(uint64_t) 0x200040,
+		104,	0x04,
+		M64_TCHF,
 		frame_tchf_ts2
 	},
 	{
 		GSM_PCHAN_TCH_F, "TCH/F+SACCH",
-		104,	0x08,	(uint64_t) 0x200040,
+		104,	0x08,
+		M64_TCHF,
 		frame_tchf_ts3
 	},
 	{
 		GSM_PCHAN_TCH_F, "TCH/F+SACCH",
-		104,	0x10,	(uint64_t) 0x200040,
+		104,	0x10,
+		M64_TCHF,
 		frame_tchf_ts4
 	},
 	{
 		GSM_PCHAN_TCH_F, "TCH/F+SACCH",
-		104,	0x20,	(uint64_t) 0x200040,
+		104,	0x20,
+		M64_TCHF,
 		frame_tchf_ts5
 	},
 	{
 		GSM_PCHAN_TCH_F, "TCH/F+SACCH",
-		104,	0x40,	(uint64_t) 0x200040,
+		104,	0x40,
+		M64_TCHF,
 		frame_tchf_ts6
 	},
 	{
 		GSM_PCHAN_TCH_F, "TCH/F+SACCH",
-		104,	0x80,	(uint64_t) 0x200040,
+		104,	0x80,
+		M64_TCHF,
 		frame_tchf_ts7
 	},
 	{
 		GSM_PCHAN_TCH_H, "TCH/H+SACCH",
-		104,	0x03,	(uint64_t) 0xc00180,
+		104,	0x03,
+		M64_TCHH,
 		frame_tchh_ts01
 	},
 	{
 		GSM_PCHAN_TCH_H, "TCH/H+SACCH",
-		104,	0x0c,	(uint64_t) 0xc00180,
+		104,	0x0c,
+		M64_TCHH,
 		frame_tchh_ts23
 	},
 	{
 		GSM_PCHAN_TCH_H, "TCH/H+SACCH",
-		104,	0x30,	(uint64_t) 0xc00180,
+		104,	0x30,
+		M64_TCHH,
 		frame_tchh_ts45
 	},
 	{
 		GSM_PCHAN_TCH_H, "TCH/H+SACCH",
-		104,	0xc0,	(uint64_t) 0xc00180,
+		104,	0xc0,
+		M64_TCHH,
 		frame_tchh_ts67
 	},
 	{
 		GSM_PCHAN_PDCH, "PDCH",
-		104,	0xff,	(uint64_t) 0x3000000000,
+		104,	0xff,
+		M64(TRXC_PDTCH) | M64(TRXC_PTCCH),
 		frame_pdch
 	},
 };
