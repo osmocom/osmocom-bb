@@ -530,6 +530,7 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 
 		/* Same as for TRXC_BCCH (xCCH), but Rx only. See above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.flags = TRX_CH_FLAG_AUTO,
 		.rx_fn = rx_data_fn,
 	},
 	[TRXC_SDCCH8_CBCH] = {
