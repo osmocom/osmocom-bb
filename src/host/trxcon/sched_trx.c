@@ -543,6 +543,8 @@ enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr)
 		return GSM_PCHAN_CCCH_SDCCH4_CBCH;
 	else if ((cbits & 0x1f) == ABIS_RSL_CHAN_NR_CBITS_OSMO_CBCH8)
 		return GSM_PCHAN_SDCCH8_SACCH8C_CBCH;
+	else if ((cbits & 0x1f) == ABIS_RSL_CHAN_NR_CBITS_OSMO_PDCH)
+		return GSM_PCHAN_PDCH;
 
 	return GSM_PCHAN_NONE;
 }
