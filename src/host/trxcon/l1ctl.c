@@ -37,6 +37,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include "logging.h"
 #include "l1ctl_link.h"
@@ -537,7 +538,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	 * FIXME: l1ctl_info_ul doesn't provide channel description
 	 * FIXME: Can we use other than TS0?
 	 */
-	chan_nr = 0x88;
+	chan_nr = RSL_CHAN_RACH;
 	link_id = 0x00;
 
 	/* Init a new primitive */
