@@ -637,6 +637,14 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 		"(tn=%u, chan_nr=0x%02x, tsc=%u, tch_mode=0x%02x)\n",
 		tn, chan_nr, est_req->tsc, est_req->tch_mode);
 
+	/* Determine channel config */
+	config = sched_trx_chan_nr2pchan_config(chan_nr);
+	if (config == GSM_PCHAN_NONE) {
+		LOGP(DL1C, LOGL_ERROR, "Couldn't determine channel config\n");
+		rc = -EINVAL;
+		goto exit;
+	}
+
 	/* Frequency hopping? */
 	if (est_req->h)
 		rc = l1ctl_proc_est_req_h1(l1l->trx, &est_req->h1);
@@ -647,14 +655,6 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Update TSC (Training Sequence Code) */
 	l1l->trx->tsc = est_req->tsc;
-
-	/* Determine channel config */
-	config = sched_trx_chan_nr2pchan_config(chan_nr);
-	if (config == GSM_PCHAN_NONE) {
-		LOGP(DL1C, LOGL_ERROR, "Couldn't determine channel config\n");
-		rc = -EINVAL;
-		goto exit;
-	}
 
 	/* Configure requested TS */
 	rc = sched_trx_configure_ts(l1l->trx, tn, config);
