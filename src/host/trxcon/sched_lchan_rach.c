@@ -155,9 +155,10 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* BN85-156: tail bits & extended guard period */
 	memset(burst_ptr, 0, burst + GSM_BURST_LEN - burst_ptr);
 
-	LOGP(DSCHD, LOGL_DEBUG, "Transmitting %s RACH (%s) fn=%u\n",
+	LOGP(DSCHD, LOGL_NOTICE, "Transmitting %s RACH (%s) on fn=%u, tn=%u, lchan=%s\n",
 		PRIM_IS_RACH11(lchan->prim) ? "extended (11-bit)" : "regular (8-bit)",
-		get_value_string(rach_synch_seq_names, synch_seq), fn);
+		get_value_string(rach_synch_seq_names, synch_seq), fn,
+		ts->index, trx_lchan_desc[lchan->type].name);
 
 	/* Forward burst to scheduler */
 	rc = sched_trx_handle_tx_burst(trx, ts, lchan, fn, burst);

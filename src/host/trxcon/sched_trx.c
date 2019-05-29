@@ -35,6 +35,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/linuxlist.h>
 
+#include "l1ctl_proto.h"
 #include "scheduler.h"
 #include "sched_trx.h"
 #include "trx_if.h"
@@ -115,6 +116,11 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		/* If there is no primitive, do nothing */
 		if (lchan->prim == NULL)
 			continue;
+
+		/* Handover RACH needs to be handled regardless of the
+		 * current channel type and the associated handler. */
+		if (PRIM_IS_RACH(lchan->prim) && lchan->prim->chan != TRXC_RACH)
+			handler = trx_lchan_desc[TRXC_RACH].tx_fn;
 
 		/* Poke lchan handler */
 		handler(trx, ts, lchan, fn, bid);

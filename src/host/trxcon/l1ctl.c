@@ -512,7 +512,6 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	struct l1ctl_rach_req *req;
 	struct l1ctl_info_ul *ul;
 	struct trx_ts_prim *prim;
-	uint8_t chan_nr, link_id;
 	size_t len;
 	int rc;
 
@@ -537,25 +536,24 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 			"(offset=%u, ra=0x%02x)\n", req->offset, req->ra);
 	}
 
-	/**
-	 * FIXME: l1ctl_info_ul doesn't provide channel description
-	 * FIXME: Can we use other than TS0?
-	 */
-	chan_nr = RSL_CHAN_RACH;
-	link_id = 0x00;
+	/* The controlling L1CTL side always does include the UL info header,
+	 * but may leave it empty. We assume RACH is on TS0 in this case. */
+	if (ul->chan_nr == 0x00) {
+		LOGP(DL1C, LOGL_NOTICE, "The UL info header is empty, "
+					"assuming RACH is on TS0\n");
+		ul->chan_nr = RSL_CHAN_RACH;
+	}
 
 	/* Init a new primitive */
-	rc = sched_prim_init(l1l->trx, &prim, len, chan_nr, link_id);
+	rc = sched_prim_init(l1l->trx, &prim, len, ul->chan_nr, ul->link_id);
 	if (rc)
 		goto exit;
 
 	/**
-	 * Push this primitive to transmit queue
-	 *
-	 * FIXME: what if requested TS is not configured?
-	 * Or what if one (such as TCH) has no TRXC_RACH slots?
+	 * Push this primitive to the transmit queue.
+	 * Indicated timeslot needs to be configured.
 	 */
-	rc = sched_prim_push(l1l->trx, prim, chan_nr);
+	rc = sched_prim_push(l1l->trx, prim, ul->chan_nr);
 	if (rc) {
 		talloc_free(prim);
 		goto exit;
