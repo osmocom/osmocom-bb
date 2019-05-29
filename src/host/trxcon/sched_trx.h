@@ -309,6 +309,16 @@ int sched_prim_push(struct trx_instance *trx,
 #define CHAN_IS_SACCH(chan) \
 	(trx_lchan_desc[chan].link_id & TRX_CH_LID_SACCH)
 
+/* FIXME: we need a better way to identify / distinguish primitives */
+#define PRIM_IS_RACH11(prim) \
+	(prim->payload_len == sizeof(struct l1ctl_ext_rach_req))
+
+#define PRIM_IS_RACH8(prim) \
+	(prim->payload_len == sizeof(struct l1ctl_rach_req))
+
+#define PRIM_IS_RACH(prim) \
+	(PRIM_IS_RACH8(prim) || PRIM_IS_RACH11(prim))
+
 #define PRIM_IS_TCH(prim) \
 	(CHAN_IS_TCH(prim->chan) && prim->payload_len != GSM_MACBLOCK_LEN)
 

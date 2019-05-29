@@ -40,12 +40,6 @@
 #include "trx_if.h"
 #include "l1ctl.h"
 
-/* FIXME: we need a better way to identify / distinguish primitives */
-#define PRIM_IS_EXT_RACH(prim) \
-	(prim->payload_len == sizeof(struct l1ctl_ext_rach_req))
-#define PRIM_IS_RACH(prim) \
-	(prim->payload_len == sizeof(struct l1ctl_rach_req))
-
 /* 3GPP TS 05.02, section 5.2.7 "Access burst (AB)" */
 #define RACH_EXT_TAIL_BITS_LEN	8
 #define RACH_SYNCH_SEQ_LEN	41
@@ -94,7 +88,7 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	int i, rc;
 
 	/* Is it extended (11-bit) RACH or not? */
-	if (PRIM_IS_EXT_RACH(lchan->prim)) {
+	if (PRIM_IS_RACH11(lchan->prim)) {
 		ext_req = (struct l1ctl_ext_rach_req *) lchan->prim->payload;
 		synch_seq = ext_req->synch_seq;
 
@@ -120,7 +114,7 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 			sched_prim_drop(lchan);
 			return rc;
 		}
-	} else if (PRIM_IS_RACH(lchan->prim)) {
+	} else if (PRIM_IS_RACH8(lchan->prim)) {
 		req = (struct l1ctl_rach_req *) lchan->prim->payload;
 		synch_seq = RACH_SYNCH_SEQ_TS0;
 
@@ -162,7 +156,7 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 	memset(burst_ptr, 0, burst + GSM_BURST_LEN - burst_ptr);
 
 	LOGP(DSCHD, LOGL_DEBUG, "Transmitting %s RACH (%s) fn=%u\n",
-		PRIM_IS_EXT_RACH(lchan->prim) ? "extended (11-bit)" : "regular (8-bit)",
+		PRIM_IS_RACH11(lchan->prim) ? "extended (11-bit)" : "regular (8-bit)",
 		get_value_string(rach_synch_seq_names, synch_seq), fn);
 
 	/* Forward burst to scheduler */
