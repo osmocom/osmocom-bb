@@ -292,10 +292,10 @@ static const struct trx_frame frame_bcch_sdcch4_cbch[102] = {
 	{ TRXC_IDLE,		2,	TRXC_SDCCH4_1,	3 },
 	{ TRXC_IDLE,		3,	TRXC_RACH,	0 },
 	{ TRXC_SACCH4_3,	0,	TRXC_RACH,	0 },
-	{ TRXC_SACCH4_3,	1,	TRXC_SDCCH4_2,	0 },
-	{ TRXC_SACCH4_3,	2,	TRXC_SDCCH4_2,	1 },
-	{ TRXC_SACCH4_3,	3,	TRXC_SDCCH4_2,	2 },
-	{ TRXC_IDLE,		0,	TRXC_SDCCH4_2,	3 },
+	{ TRXC_SACCH4_3,	1,	TRXC_IDLE,	0 },
+	{ TRXC_SACCH4_3,	2,	TRXC_IDLE,	1 },
+	{ TRXC_SACCH4_3,	3,	TRXC_IDLE,	2 },
+	{ TRXC_IDLE,		0,	TRXC_IDLE,	3 },
 };
 
 static const struct trx_frame frame_sdcch8[102] = {
