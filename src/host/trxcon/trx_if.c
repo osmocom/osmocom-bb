@@ -614,10 +614,11 @@ int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 	 * We must be sure that we have clock,
 	 * and we have sent all control data
 	 *
-	 * TODO: should we wait in TRX_STATE_RSP_WAIT state?
+	 * TODO: introduce proper state machines for both
+	 *       transceiver and its TRXC interface.
 	 */
 	if (trx->fsm->state != TRX_STATE_ACTIVE) {
-		LOGP(DTRXD, LOGL_DEBUG, "Ignoring TX data, "
+		LOGP(DTRXD, LOGL_ERROR, "Ignoring TX data, "
 			"transceiver isn't ready\n");
 		return -EAGAIN;
 	}
