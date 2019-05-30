@@ -25,7 +25,10 @@ struct trx_instance {
 	struct osmo_timer_list trx_ctrl_timer;
 	struct llist_head trx_ctrl_list;
 	struct osmo_fsm_inst *fsm;
+
+	/* HACK: we need proper state machines */
 	uint32_t prev_state;
+	bool powered_up;
 
 	/* GSM L1 specific */
 	uint16_t pm_band_arfcn_start;

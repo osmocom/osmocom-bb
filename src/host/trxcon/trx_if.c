@@ -254,6 +254,11 @@ int trx_if_cmd_poweroff(struct trx_instance *trx)
 
 int trx_if_cmd_poweron(struct trx_instance *trx)
 {
+	if (trx->powered_up) {
+		/* FIXME: this should be handled by the FSM, not here! */
+		LOGP(DTRX, LOGL_ERROR, "Suppressing POWERON as we're already powered up\n");
+		return -EAGAIN;
+	}
 	return trx_ctrl_cmd(trx, 1, "POWERON", "");
 }
 
@@ -495,10 +500,14 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	}
 
 	/* Trigger state machine */
-	if (!strncmp(tcm->cmd + 4, "POWERON", 7))
+	if (!strncmp(tcm->cmd + 4, "POWERON", 7)) {
+		trx->powered_up = true;
 		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_ACTIVE, 0, 0);
-	else if (!strncmp(tcm->cmd + 4, "POWEROFF", 8))
+	}
+	else if (!strncmp(tcm->cmd + 4, "POWEROFF", 8)) {
+		trx->powered_up = false;
 		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
+	}
 	else if (!strncmp(tcm->cmd + 4, "MEASURE", 7))
 		trx_if_measure_rsp_cb(trx, buf + 14);
 	else if (!strncmp(tcm->cmd + 4, "ECHO", 4))

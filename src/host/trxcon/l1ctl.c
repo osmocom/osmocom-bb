@@ -362,7 +362,10 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		trx_if_cmd_txtune(l1l->trx, band_arfcn);
 	}
 
-	trx_if_cmd_poweron(l1l->trx);
+	/* Transceiver might have been powered on before, e.g.
+	 * in case of sending L1CTL_FBSB_REQ due to signal loss. */
+	if (!l1l->trx->powered_up)
+		trx_if_cmd_poweron(l1l->trx);
 
 	/* Start FBSB expire timer */
 	l1l->fbsb_timer.data = l1l;
