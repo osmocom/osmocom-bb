@@ -294,8 +294,10 @@ class DATAMSG_L12TRX(DATAMSG):
 class DATAMSG_TRX2L1(DATAMSG):
 	# Constants
 	HDR_LEN = 8
+
+	# rxlev2dbm(0..63) gives us [-110..-47], plus -10 dbm for noise
 	RSSI_MIN = -120
-	RSSI_MAX = -50
+	RSSI_MAX = -47
 
 	# Min and max values of int16_t
 	TOA256_MIN = -32768
