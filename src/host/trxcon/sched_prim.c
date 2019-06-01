@@ -253,10 +253,6 @@ static struct trx_ts_prim *prim_dequeue_sacch(struct llist_head *queue,
 		if (prim->chan != lchan->type)
 			continue;
 
-		/* Just to be sure... */
-		if (prim->payload_len != GSM_MACBLOCK_LEN)
-			continue;
-
 		/* Look for a Measurement Report */
 		if (!prim_mr && PRIM_IS_MR(prim))
 			prim_mr = prim;
@@ -306,6 +302,10 @@ static struct trx_ts_prim *prim_dequeue_sacch(struct llist_head *queue,
 
 	/* Update the MR transmission state */
 	lchan->sacch.mr_tx_last = PRIM_IS_MR(prim);
+
+	LOGP(DSCHD, LOGL_DEBUG, "SACCH decision on lchan=%s: %s\n",
+		trx_lchan_desc[lchan->type].name, PRIM_IS_MR(prim) ?
+			"Measurement Report" : "data frame");
 
 	return prim;
 }
