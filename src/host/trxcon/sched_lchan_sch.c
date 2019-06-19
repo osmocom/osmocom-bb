@@ -47,7 +47,7 @@ static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 	uint8_t t3p;
 	uint32_t sb;
 
-	sb = (sb_info[3] << 24)
+	sb = ((uint32_t)sb_info[3] << 24)
 	   | (sb_info[2] << 16)
 	   | (sb_info[1] << 8)
 	   | sb_info[0];
