@@ -28,11 +28,6 @@ import struct
 from gsm_shared import *
 
 class DATAMSG:
-	# Common message fields
-	burst = None
-	fn = None
-	tn = None
-
 	# Common constructor
 	def __init__(self, fn = None, tn = None, burst = None):
 		self.burst = burst
