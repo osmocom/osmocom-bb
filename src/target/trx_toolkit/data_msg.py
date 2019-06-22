@@ -136,16 +136,6 @@ class DATAMSG:
 
 		return True
 
-	# Generates frame number to bytes
-	def gen_fn(self, fn):
-		# Big endian, 4 bytes
-		return struct.pack(">L", fn)
-
-	# Parses frame number from bytes
-	def parse_fn(self, buf):
-		# Big endian, 4 bytes
-		return struct.unpack(">L", buf)[0]
-
 	# Generates a TRX DATA message
 	def gen_msg(self, legacy = False):
 		# Validate all the fields
@@ -158,9 +148,8 @@ class DATAMSG:
 		# Put timeslot index
 		buf.append(self.tn)
 
-		# Put frame number
-		fn = self.gen_fn(self.fn)
-		buf += fn
+		# Put frame number (4 octets, BE)
+		buf += struct.pack(">L", self.fn)
 
 		# Generate message specific header part
 		hdr = self.gen_hdr()
@@ -186,7 +175,7 @@ class DATAMSG:
 			raise ValueError("Message is to short")
 
 		# Parse both fn and tn
-		self.fn = self.parse_fn(msg[1:5])
+		self.fn = struct.unpack(">L", msg[1:5])[0]
 		self.tn = msg[0]
 
 		# Specific message part
