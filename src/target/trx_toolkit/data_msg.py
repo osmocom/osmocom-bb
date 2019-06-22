@@ -432,10 +432,6 @@ if __name__ == '__main__':
 	log.basicConfig(level = log.DEBUG,
 		format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
 
-	# Common reference data
-	fn = 1024
-	tn = 0
-
 	# Generate two random bursts
 	burst_l12trx_ref = []
 	burst_trx2l1_ref = []
@@ -450,17 +446,18 @@ if __name__ == '__main__':
 	log.info("Generating the reference messages")
 
 	# Create messages of both types
-	msg_l12trx_ref = DATAMSG_L12TRX(fn = fn, tn = tn)
-	msg_trx2l1_ref = DATAMSG_TRX2L1(fn = fn, tn = tn)
+	msg_l12trx_ref = DATAMSG_L12TRX(burst = burst_l12trx_ref)
+	msg_trx2l1_ref = DATAMSG_TRX2L1(burst = burst_trx2l1_ref)
 
-	# Fill in message specific fields
-	msg_trx2l1_ref.rssi = -88
-	msg_l12trx_ref.pwr = 0x33
-	msg_trx2l1_ref.toa256 = -256
+	# Validate header randomization
+	for i in range(0, 100):
+		msg_l12trx_ref.rand_hdr()
+		msg_trx2l1_ref.rand_hdr()
 
-	# Specify the reference bursts
-	msg_l12trx_ref.burst = burst_l12trx_ref
-	msg_trx2l1_ref.burst = burst_trx2l1_ref
+		assert(msg_l12trx_ref.validate())
+		assert(msg_trx2l1_ref.validate())
+
+	log.info("Validate header randomization: OK")
 
 	log.info("Encoding the reference messages")
 
@@ -493,10 +490,10 @@ if __name__ == '__main__':
 	log.info("Compare bursts: OK")
 
 	# Compare both parsed messages with the reference data
-	assert(msg_l12trx_dec.fn == fn)
-	assert(msg_trx2l1_dec.fn == fn)
-	assert(msg_l12trx_dec.tn == tn)
-	assert(msg_trx2l1_dec.tn == tn)
+	assert(msg_l12trx_dec.fn == msg_l12trx_ref.fn)
+	assert(msg_trx2l1_dec.fn == msg_trx2l1_ref.fn)
+	assert(msg_l12trx_dec.tn == msg_l12trx_ref.tn)
+	assert(msg_trx2l1_dec.tn == msg_trx2l1_ref.tn)
 
 	log.info("Compare FN / TN: OK")
 
@@ -506,16 +503,6 @@ if __name__ == '__main__':
 	assert(msg_trx2l1_dec.toa256 == msg_trx2l1_ref.toa256)
 
 	log.info("Compare message specific data: OK")
-
-	# Validate header randomization
-	for i in range(0, 100):
-		msg_l12trx_ref.rand_hdr()
-		msg_trx2l1_ref.rand_hdr()
-
-		assert(msg_l12trx_ref.validate())
-		assert(msg_trx2l1_ref.validate())
-
-	log.info("Validate header randomization: OK")
 
 	# Bit conversation test
 	usbits_ref = list(range(0, 256))
