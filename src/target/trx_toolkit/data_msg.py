@@ -28,6 +28,38 @@ import struct
 from gsm_shared import *
 
 class DATAMSG:
+	""" TRXD (DATA) message codec (common part).
+
+	The DATA messages are used to carry bursts in both directions
+	between L1 and TRX. There exist two kinds of them:
+
+	  - L12TRX (L1 -> TRX) - to be transmitted bursts,
+	  - TRX2L1 (TRX -> L1) - received bursts.
+
+	Both of them have quite similar structure, and start with
+	the common fixed-size message header (no TLVs):
+
+	  +---------------+-----------------+------------+
+	  | common header | specific header | burst bits |
+	  +---------------+-----------------+------------+
+
+	while the message specific headers and bit types are different.
+
+	The common header is represented by this class, which is the
+	parent of both DATAMSG_L12TRX and DATAMSG_TRX2L2 (see below),
+	and has the following fields:
+
+	  +--------------+-------------------+
+	  | TN (1 octet) | FN (4 octets, BE) |
+	  +--------------+-------------------+
+
+	where:
+
+	  - TN is TDMA time-slot number (1 octet), and
+	  - FN is TDMA frame number (4 octets, big endian).
+
+	"""
+
 	# Common constructor
 	def __init__(self, fn = None, tn = None, burst = None):
 		self.burst = burst
@@ -186,6 +218,25 @@ class DATAMSG:
 		self.parse_burst(msg_burst)
 
 class DATAMSG_L12TRX(DATAMSG):
+	""" L12TRX (L1 -> TRX) message codec.
+
+	This message represents a Downlink burst on the BTS side,
+	or an Uplink burst on the MS side, and has the following
+	message specific fixed-size header preceding the burst bits:
+
+	  +-----+--------------------+
+	  | PWR | hard-bits (1 or 0) |
+	  +-----+--------------------+
+
+	where PWR (1 octet) is relative (to the full-scale amplitude)
+	transmit power level in dB. The absolute value is set on
+	the control interface.
+
+	Each hard-bit (1 or 0) of the burst is represented using one
+	byte (0x01 or 0x00 respectively).
+
+	"""
+
 	# Constants
 	HDR_LEN = 6
 	PWR_MIN = 0x00
@@ -276,6 +327,34 @@ class DATAMSG_L12TRX(DATAMSG):
 		return msg
 
 class DATAMSG_TRX2L1(DATAMSG):
+	""" TRX2L1 (TRX -> L1) message codec.
+
+	This message represents an Uplink burst on the BTS side,
+	or a Downlink burst on the MS side, and has the following
+	message specific fixed-size header preceding the burst bits:
+
+	  +------+-----+--------------------+
+	  | RSSI | ToA | soft-bits (254..0) |
+	  +------+-----+--------------------+
+
+	where:
+
+	  - RSSI (1 octet) - Received Signal Strength Indication
+			     encoded without the negative sign.
+	  - ToA (2 octets) - Timing of Arrival in units of 1/256
+			     of symbol (big endian).
+
+	Unlike to be transmitted bursts, the received bursts are designated
+	using the soft-bits notation, so the receiver can indicate its
+	assurance from 0 to -127 that a given bit is 1, and from 0 to +127
+	that a given bit is 0. The Viterbi algorithm allows to approximate
+	the original sequence of hard-bits (1 or 0) using these values.
+
+	Each soft-bit (-127..127) of the burst is encoded as an unsigned
+	value in range (254..0) respectively using the constant shift.
+
+	"""
+
 	# Constants
 	HDR_LEN = 8
 
