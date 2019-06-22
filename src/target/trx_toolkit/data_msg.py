@@ -4,7 +4,7 @@
 # TRX Toolkit
 # DATA interface message definitions and helpers
 #
-# (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2018-2019 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -49,20 +49,55 @@ class DATAMSG:
 	parent of both DATAMSG_L12TRX and DATAMSG_TRX2L2 (see below),
 	and has the following fields:
 
-	  +--------------+-------------------+
-	  | TN (1 octet) | FN (4 octets, BE) |
-	  +--------------+-------------------+
+	  +-----------------+----------------+-------------------+
+	  | VER (1/2 octet) | TN (1/2 octet) | FN (4 octets, BE) |
+	  +-----------------+----------------+-------------------+
 
 	where:
 
-	  - TN is TDMA time-slot number (1 octet), and
+	  - VER is the header version indicator (1/2 octet MSB),
+	  - TN is TDMA time-slot number (1/2 octet LSB), and
 	  - FN is TDMA frame number (4 octets, big endian).
+
+	== Header version indication
+
+	It may be necessary to extend the message specific header
+	with more information. Since this is not a TLV-based
+	protocol, we need to include the header format version.
+
+	  +-----------------+------------------------+
+	  | 7 6 5 4 3 2 1 0 | bit numbers            |
+	  +-----------------+------------------------+
+	  | X X X X . . . . | header version (0..15) |
+	  +-----------------+------------------------+
+	  | . . . . . X X X | TDMA TN (0..7)         |
+	  +-----------------+------------------------+
+	  | . . . . X . . . | RESERVED (0)           |
+	  +-----------------+------------------------+
+
+	Instead of prepending an additional byte, it was decided to use
+	4 MSB bits of the first octet, which used to be zero-initialized
+	due to the value range of TDMA TN. Therefore, the legacy header
+	format has implicit version 0x00.
+
+	Otherwise Wireshark (or trx_sniff.py) would need to guess the
+	header version, or alternatively follow the control channel
+	looking for the version setting command.
+
+	The reserved bit number 3 can be used in the future to extend
+	the TDMA TN range to (0..15), in case anybody would need
+	to transfer UMTS bursts.
 
 	"""
 
+	# NOTE: up to 16 versions can be encoded
+	CHDR_VERSION_MAX = 0b1111
+	known_versions = [0x00]
+
 	# Common constructor
-	def __init__(self, fn = None, tn = None, burst = None):
+	def __init__(self, fn = None, tn = None, burst = None, ver = 0):
 		self.burst = burst
+		self.ver = ver
 		self.fn = fn
 		self.tn = tn
 
@@ -102,6 +137,9 @@ class DATAMSG:
 	# Generates human-readable header description
 	def desc_hdr(self):
 		result = ""
+
+		if self.ver > 0:
+			result += ("ver=%u " % self.ver)
 
 		if self.fn is not None:
 			result += ("fn=%u " % self.fn)
@@ -156,6 +194,9 @@ class DATAMSG:
 
 	# Validates the message fields
 	def validate(self):
+		if not self.ver in self.known_versions:
+			return False
+
 		if self.burst is None:
 			return False
 
@@ -185,10 +226,10 @@ class DATAMSG:
 		# Allocate an empty byte-array
 		buf = bytearray()
 
-		# Put timeslot index
-		buf.append(self.tn)
+		# Put version (4 bits) and TDMA TN (3 bits)
+		buf.append((self.ver << 4) | (self.tn & 0x07))
 
-		# Put frame number (4 octets, BE)
+		# Put TDMA FN (4 octets, BE)
 		buf += struct.pack(">L", self.fn)
 
 		# Generate message specific header part
@@ -214,9 +255,12 @@ class DATAMSG:
 		if length < (self.HDR_LEN + GSM_BURST_LEN):
 			raise ValueError("Message is to short")
 
-		# Parse both fn and tn
+		# Parse version and TDMA TN
+		self.ver = (msg[0] >> 4)
+		self.tn = (msg[0] & 0x07)
+
+		# Parse TDMA FN
 		self.fn = struct.unpack(">L", msg[1:5])[0]
-		self.tn = msg[0]
 
 		# Specific message part
 		self.parse_hdr(msg)
@@ -332,9 +376,10 @@ class DATAMSG_L12TRX(DATAMSG):
 			self.burst.append(ubit)
 
 	# Transforms this message to TRX2L1 message
-	def gen_trx2l1(self):
+	def gen_trx2l1(self, ver = None):
 		# Allocate a new message
-		msg = DATAMSG_TRX2L1(fn = self.fn, tn = self.tn)
+		msg = DATAMSG_TRX2L1(fn = self.fn, tn = self.tn,
+			ver = self.ver if ver is None else ver)
 
 		# Convert burst bits
 		if self.burst is not None:
@@ -501,9 +546,10 @@ class DATAMSG_TRX2L1(DATAMSG):
 			self.burst.append(sbit)
 
 	# Transforms this message to L12TRX message
-	def gen_l12trx(self):
+	def gen_l12trx(self, ver = None):
 		# Allocate a new message
-		msg = DATAMSG_L12TRX(fn = self.fn, tn = self.tn)
+		msg = DATAMSG_L12TRX(fn = self.fn, tn = self.tn,
+			ver = self.ver if ver is None else ver)
 
 		# Convert burst bits
 		if self.burst is not None:
@@ -618,3 +664,57 @@ if __name__ == '__main__':
 	assert(msg_trx2l1_dec.burst == DATAMSG.ubit2sbit(msg_l12trx_ref.burst))
 
 	log.info("Check L12TRX <-> TRX2L1 type transformations: OK")
+
+	# Test header version coding
+	for ver in DATAMSG.known_versions:
+		# Create messages of both types
+		msg_l12trx = DATAMSG_L12TRX(ver = ver)
+		msg_trx2l1 = DATAMSG_TRX2L1(ver = ver)
+
+		# Randomize message specific headers
+		msg_l12trx.rand_hdr()
+		msg_trx2l1.rand_hdr()
+
+		# Randomize bursts
+		msg_l12trx.rand_burst()
+		msg_trx2l1.rand_burst()
+
+		# Encode DATA messages
+		msg_l12trx_enc = msg_l12trx.gen_msg()
+		msg_trx2l1_enc = msg_trx2l1.gen_msg()
+
+		# Parse generated DATA messages
+		msg_l12trx_dec = DATAMSG_L12TRX()
+		msg_trx2l1_dec = DATAMSG_TRX2L1()
+		msg_l12trx_dec.parse_msg(msg_l12trx_enc)
+		msg_trx2l1_dec.parse_msg(msg_trx2l1_enc)
+
+		# Match the header version
+		assert(msg_l12trx_dec.ver == ver)
+		assert(msg_trx2l1_dec.ver == ver)
+
+		# Match common TDMA fields
+		assert(msg_l12trx_dec.tn == msg_l12trx.tn)
+		assert(msg_trx2l1_dec.fn == msg_trx2l1.fn)
+
+		# Compare bursts
+		assert(msg_l12trx_dec.burst == msg_l12trx.burst)
+		assert(msg_trx2l1_dec.burst == msg_trx2l1.burst)
+
+		log.info("Check header version %u coding: OK" % ver)
+
+		msg_trx2l1_gen = msg_l12trx.gen_trx2l1()
+		msg_l12trx_gen = msg_trx2l1.gen_l12trx()
+
+		assert(msg_trx2l1_gen is not None)
+		assert(msg_l12trx_gen is not None)
+
+		# Match the header version
+		assert(msg_trx2l1_gen.ver == ver)
+		assert(msg_l12trx_gen.ver == ver)
+
+		# Match common TDMA fields
+		assert(msg_trx2l1_gen.tn == msg_l12trx.tn)
+		assert(msg_l12trx_gen.fn == msg_trx2l1.fn)
+
+		log.info("Verify direct transformation: OK")
