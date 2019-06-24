@@ -271,7 +271,7 @@ class DATAMSG:
 
 		# This is a rudiment from (legacy) OpenBTS transceiver,
 		# some L1 implementations still expect two dummy bytes.
-		if legacy:
+		if legacy and self.ver == 0x00:
 			buf += bytearray(2)
 
 		return buf
