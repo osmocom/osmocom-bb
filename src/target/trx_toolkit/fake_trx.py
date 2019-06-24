@@ -64,8 +64,16 @@ class FakeTRX(Transceiver):
 	      from (rssi_base - rssi_rand_threshold)
 	        to (rssi_base + rssi_rand_threshold).
 
-	Please note that randomization of both RSSI and ToA is optional,
-	and can be enabled from the control interface.
+	  - C/I (Carrier-to-Interference ratio) - value in cB (centiBels),
+	    computed from the training sequence of each received burst, by
+	    comparing the "ideal" training sequence with the actual one.
+	    A pair of both base and threshold values defines a range of
+	    C/I randomization:
+
+	      from (ci_base - ci_rand_threshold)
+	        to (ci_base + ci_rand_threshold).
+
+	Please note that the randomization is optional and disabled by default.
 
 	== Timing Advance handling
 
@@ -261,6 +269,25 @@ class FakeTRX(Transceiver):
 
 			# Parse and apply delta
 			self.rssi_base += int(request[1])
+			return 0
+
+		# C/I simulation
+		# Absolute form: CMD FAKE_CI <BASE> <THRESH>
+		elif self.ctrl_if.verify_cmd(request, "FAKE_CI", 2):
+			log.debug("(%s) Recv FAKE_CI cmd" % self)
+
+			# Parse and apply both base and threshold
+			self.ci_base = int(request[1])
+			self.ci_rand_threshold = int(request[2])
+			return 0
+
+		# C/I simulation
+		# Relative form: CMD FAKE_CI <+-BASE_DELTA>
+		elif self.ctrl_if.verify_cmd(request, "FAKE_CI", 1):
+			log.debug("(%s) Recv FAKE_CI cmd" % self)
+
+			# Parse and apply delta
+			self.ci_base += int(request[1])
 			return 0
 
 		# Path loss simulation: burst dropping
