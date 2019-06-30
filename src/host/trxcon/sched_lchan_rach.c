@@ -108,7 +108,8 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 		/* Encode extended (11-bit) payload */
 		rc = gsm0503_rach_ext_encode(payload, ext_req->ra11, trx->bsic, true);
 		if (rc) {
-			LOGP(DSCHD, LOGL_ERROR, "Could not encode extended RACH burst\n");
+			LOGP(DSCHD, LOGL_ERROR, "Could not encode extended RACH burst "
+						"(ra=%u bsic=%u)\n", ext_req->ra11, trx->bsic);
 
 			/* Forget this primitive */
 			sched_prim_drop(lchan);
@@ -125,7 +126,8 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 		/* Encode regular (8-bit) payload */
 		rc = gsm0503_rach_ext_encode(payload, req->ra, trx->bsic, false);
 		if (rc) {
-			LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst\n");
+			LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst "
+						"(ra=%u bsic=%u)\n", req->ra, trx->bsic);
 
 			/* Forget this primitive */
 			sched_prim_drop(lchan);

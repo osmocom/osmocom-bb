@@ -239,7 +239,9 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Encode payload */
 	rc = gsm0503_tch_fr_encode(buffer, lchan->prim->payload, l2_len, 1);
 	if (rc) {
-		LOGP(DSCHD, LOGL_ERROR, "Failed to encode L2 payload\n");
+		LOGP(DSCHD, LOGL_ERROR, "Failed to encode L2 payload (len=%zu): %s\n",
+		     lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload,
+							    lchan->prim->payload_len));
 
 		/* Forget this primitive */
 		sched_prim_drop(lchan);
