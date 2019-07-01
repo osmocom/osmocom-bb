@@ -82,6 +82,10 @@ class DATAMSG:
 	def parse_burst(self, burst):
 		raise NotImplementedError
 
+	# Generate a random message specific burst
+	def rand_burst(self):
+		raise NotImplementedError
+
 	# Generates a random frame number
 	def rand_fn(self):
 		return random.randint(0, GSM_HYPERFRAME)
@@ -319,6 +323,14 @@ class DATAMSG_L12TRX(DATAMSG):
 		else:
 			self.burst = list(burst[:GSM_BURST_LEN])
 
+	# Generate a random message specific burst
+	def rand_burst(self, length = GSM_BURST_LEN):
+		self.burst = []
+
+		for i in range(length):
+			ubit = random.randint(0, 1)
+			self.burst.append(ubit)
+
 	# Transforms this message to TRX2L1 message
 	def gen_trx2l1(self):
 		# Allocate a new message
@@ -480,6 +492,14 @@ class DATAMSG_TRX2L1(DATAMSG):
 		# Save
 		self.burst = burst_sbits
 
+	# Generate a random message specific burst
+	def rand_burst(self, length = GSM_BURST_LEN):
+		self.burst = []
+
+		for i in range(length):
+			sbit = random.randint(-127, 127)
+			self.burst.append(sbit)
+
 	# Transforms this message to L12TRX message
 	def gen_l12trx(self):
 		# Allocate a new message
@@ -499,27 +519,19 @@ if __name__ == '__main__':
 	log.basicConfig(level = log.DEBUG,
 		format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
 
-	# Generate two random bursts
-	burst_l12trx_ref = []
-	burst_trx2l1_ref = []
-
-	for i in range(0, GSM_BURST_LEN):
-		ubit = random.randint(0, 1)
-		burst_l12trx_ref.append(ubit)
-
-		sbit = random.randint(-127, 127)
-		burst_trx2l1_ref.append(sbit)
-
 	log.info("Generating the reference messages")
 
 	# Create messages of both types
-	msg_l12trx_ref = DATAMSG_L12TRX(burst = burst_l12trx_ref)
-	msg_trx2l1_ref = DATAMSG_TRX2L1(burst = burst_trx2l1_ref)
+	msg_l12trx_ref = DATAMSG_L12TRX()
+	msg_trx2l1_ref = DATAMSG_TRX2L1()
 
 	# Validate header randomization
 	for i in range(0, 100):
 		msg_l12trx_ref.rand_hdr()
 		msg_trx2l1_ref.rand_hdr()
+
+		msg_l12trx_ref.rand_burst()
+		msg_trx2l1_ref.rand_burst()
 
 		assert(msg_l12trx_ref.validate())
 		assert(msg_trx2l1_ref.validate())
@@ -550,9 +562,9 @@ if __name__ == '__main__':
 	log.info("Comparing decoded messages with the reference")
 
 	# Compare bursts
-	assert(msg_l12trx_dec.burst == burst_l12trx_ref)
-	assert(msg_trx2l1_dec.burst == burst_trx2l1_ref)
-	assert(msg_trx2l1_legacy_dec.burst == burst_trx2l1_ref)
+	assert(msg_l12trx_dec.burst == msg_l12trx_ref.burst)
+	assert(msg_trx2l1_dec.burst == msg_trx2l1_ref.burst)
+	assert(msg_trx2l1_legacy_dec.burst == msg_trx2l1_ref.burst)
 
 	log.info("Compare bursts: OK")
 
@@ -602,7 +614,7 @@ if __name__ == '__main__':
 	assert(msg_trx2l1_dec.fn == msg_l12trx_ref.fn)
 	assert(msg_trx2l1_dec.tn == msg_l12trx_ref.tn)
 
-	assert(msg_l12trx_dec.burst == DATAMSG.sbit2ubit(burst_trx2l1_ref))
-	assert(msg_trx2l1_dec.burst == DATAMSG.ubit2sbit(burst_l12trx_ref))
+	assert(msg_l12trx_dec.burst == DATAMSG.sbit2ubit(msg_trx2l1_ref.burst))
+	assert(msg_trx2l1_dec.burst == DATAMSG.ubit2sbit(msg_l12trx_ref.burst))
 
 	log.info("Check L12TRX <-> TRX2L1 type transformations: OK")
