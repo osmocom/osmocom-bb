@@ -108,7 +108,8 @@ class DATAMSG:
 		return result
 
 	# Converts unsigned soft-bits {254..0} to soft-bits {-127..127}
-	def usbit2sbit(self, bits):
+	@staticmethod
+	def usbit2sbit(bits):
 		buf = []
 
 		for bit in bits:
@@ -120,7 +121,8 @@ class DATAMSG:
 		return buf
 
 	# Converts soft-bits {-127..127} to unsigned soft-bits {254..0}
-	def sbit2usbit(self, bits):
+	@staticmethod
+	def sbit2usbit(bits):
 		buf = []
 
 		for bit in bits:
@@ -129,7 +131,8 @@ class DATAMSG:
 		return buf
 
 	# Converts soft-bits {-127..127} to bits {1..0}
-	def sbit2ubit(self, bits):
+	@staticmethod
+	def sbit2ubit(bits):
 		buf = []
 
 		for bit in bits:
@@ -138,7 +141,8 @@ class DATAMSG:
 		return buf
 
 	# Converts bits {1..0} to soft-bits {-127..127}
-	def ubit2sbit(self, bits):
+	@staticmethod
+	def ubit2sbit(bits):
 		buf = []
 
 		for bit in bits:
@@ -572,18 +576,18 @@ if __name__ == '__main__':
 	sbits_ref = list(range(-127, 128))
 
 	# Test both usbit2sbit() and sbit2usbit()
-	sbits = msg_trx2l1_ref.usbit2sbit(usbits_ref)
-	usbits = msg_trx2l1_ref.sbit2usbit(sbits)
+	sbits = DATAMSG.usbit2sbit(usbits_ref)
+	usbits = DATAMSG.sbit2usbit(sbits)
 	assert(usbits[:255] == usbits_ref[:255])
 	assert(usbits[255] == 254)
 
 	log.info("Check both usbit2sbit() and sbit2usbit(): OK")
 
 	# Test both sbit2ubit() and ubit2sbit()
-	ubits = msg_trx2l1_ref.sbit2ubit(sbits_ref)
+	ubits = DATAMSG.sbit2ubit(sbits_ref)
 	assert(ubits == ([1] * 127 + [0] * 128))
 
-	sbits = msg_trx2l1_ref.ubit2sbit(ubits)
+	sbits = DATAMSG.ubit2sbit(ubits)
 	assert(sbits == ([-127] * 127 + [127] * 128))
 
 	log.info("Check both sbit2ubit() and ubit2sbit(): OK")
@@ -598,7 +602,7 @@ if __name__ == '__main__':
 	assert(msg_trx2l1_dec.fn == msg_l12trx_ref.fn)
 	assert(msg_trx2l1_dec.tn == msg_l12trx_ref.tn)
 
-	assert(msg_l12trx_dec.burst == msg_l12trx_dec.sbit2ubit(burst_trx2l1_ref))
-	assert(msg_trx2l1_dec.burst == msg_trx2l1_dec.ubit2sbit(burst_l12trx_ref))
+	assert(msg_l12trx_dec.burst == DATAMSG.sbit2ubit(burst_trx2l1_ref))
+	assert(msg_trx2l1_dec.burst == DATAMSG.ubit2sbit(burst_l12trx_ref))
 
 	log.info("Check L12TRX <-> TRX2L1 type transformations: OK")
