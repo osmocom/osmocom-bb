@@ -4,7 +4,7 @@
 # TRX Toolkit
 # CTRL interface implementation (common commands)
 #
-# (C) 2016-2018 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2016-2019 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -25,6 +25,7 @@
 import logging as log
 
 from ctrl_if import CTRLInterface
+from data_msg import DATAMSG
 
 class CTRLInterfaceTRX(CTRLInterface):
 	""" CTRL interface handler for common transceiver management commands.
@@ -41,6 +42,45 @@ class CTRLInterfaceTRX(CTRLInterface):
 	A given transceiver may also define its own command handler,
 	that is prioritized, i.e. it can overwrite any commands mentioned
 	above. If None is returned, a command is considered as unhandled.
+
+	== TRXD header version negotiation
+
+	Messages on DATA interface may have different header formats,
+	defined by a version number, which can be negotiated on the
+	control interface. By default, the Transceiver will use the
+	legacy header version (0).
+
+	The header format negotiation can be initiated by the L1
+	using 'SETFORMAT' command. If the requested version is not
+	supported by the transceiver, status code of the response
+	message should indicate a preferred (basically, the latest)
+	version. The format of this message is the following:
+
+	  L1 -> TRX: CMD SETFORMAT VER_REQ
+	  L1 <- TRX: RSP SETFORMAT VER_RSP VER_REQ
+
+	where:
+
+	  - VER_REQ is the requested version (suggested by the L1),
+	  - VER_RSP is either the applied version if matches VER_REQ,
+	    or a preferred version if VER_REQ is not supported.
+
+	If the transceiver indicates VER_RSP different than VER_REQ,
+	the L1 is supposed to reinitiate the version negotiation
+	using the suggested VER_RSP. For example:
+
+	  L1 -> TRX: CMD SETFORMAT 2
+	  L1 <- TRX: RSP SETFORMAT 1 2
+
+	  L1 -> TRX: CMD SETFORMAT 1
+	  L1 <- TRX: RSP SETFORMAT 1 1
+
+	If no suitable VER_RSP is found, or the VER_REQ is incorrect,
+	the status code in the response shall be -1.
+
+	As soon as VER_RSP matches VER_REQ in the response, the process
+	of negotiation is complete. Changing the header version is
+	supposed to be done before POWERON, but can be also done after.
 
 	"""
 
@@ -146,6 +186,31 @@ class CTRLInterfaceTRX(CTRLInterface):
 			meas_dbm = self.trx.pwr_meas.measure(meas_freq)
 
 			return (0, [str(meas_dbm)])
+
+		# TRXD header version negotiation
+		if self.verify_cmd(request, "SETFORMAT", 1):
+			log.debug("(%s) Recv SETFORMAT cmd" % self.trx)
+
+			# Parse the requested version
+			ver_req = int(request[1])
+			# ... and store current for logging
+			ver_cur = self.trx.data_if._hdr_ver
+
+			if ver_req < 0 or ver_req > DATAMSG.CHDR_VERSION_MAX:
+				log.error("(%s) Incorrect TRXD header version %u"
+					% (self.trx, ver_req))
+				return -1
+
+			if not self.trx.data_if.set_hdr_ver(ver_req):
+				ver_rsp = self.trx.data_if.pick_hdr_ver(ver_req)
+				log.warn("(%s) Requested TRXD header version %u "
+					  "is not supported, suggesting %u..."
+					% (self.trx, ver_req, ver_rsp))
+				return ver_rsp
+
+			log.info("(%s) TRXD header version %u -> %u"
+				% (self.trx, ver_cur, ver_req))
+			return ver_req
 
 		# Wrong / unknown command
 		else:

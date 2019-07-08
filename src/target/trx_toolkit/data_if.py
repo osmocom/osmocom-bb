@@ -42,6 +42,15 @@ class DATAInterface(UDPLink):
 		self._hdr_ver = ver
 		return True
 
+	def pick_hdr_ver(self, ver_req):
+		# Pick a version that is lower or equal to ver_req
+		for ver in DATAMSG.known_versions[::-1]:
+			if ver <= ver_req:
+				return ver
+
+		# No suitable version found
+		return -1
+
 	def match_hdr_ver(self, msg):
 		if msg.ver == self._hdr_ver:
 			return True
