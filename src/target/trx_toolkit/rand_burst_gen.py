@@ -28,50 +28,6 @@ from gsm_shared import *
 
 class RandBurstGen:
 
-	# GSM 05.02 Chapter 5.2.3 Normal Burst
-	nb_tsc_list = [
-		[
-			0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0,
-			0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1,
-		],
-		[
-			0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1,
-			1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1,
-		],
-		[
-			0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1,
-			0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0,
-		],
-		[
-			0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0,
-			1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0,
-		],
-		[
-			0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0,
-			1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1,
-		],
-		[
-			0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0,
-			0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0,
-		],
-		[
-			1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1,
-			0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1,
-		],
-		[
-			1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0,
-			0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0,
-		],
-	]
-
-	# GSM 05.02 Chapter 5.2.5 SCH training sequence
-	sb_tsc = [
-		1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0,
-		0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
-		0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1,
-		0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1,
-	]
-
 	# GSM 05.02 Chapter 5.2.6 Dummy Burst
 	db_bits = [
 		0, 0, 0,
@@ -87,15 +43,13 @@ class RandBurstGen:
 		0, 0, 0,
 	]
 
-	# GSM 05.02 Chapter 5.2.7 Access burst
-	ab_tsc = [
-		0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1,
-		1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0,
-		1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
-	]
+	# Pick a random TSC for a given burst type
+	def get_rand_tsc(self, bt):
+		tsc_list = filter(lambda seq: seq.bt == bt, list(TrainingSeqGMSK))
+		return random.choice(tsc_list)
 
 	# Generate a normal burst
-	def gen_nb(self, seq_idx = 0):
+	def gen_nb(self, tsc = None):
 		buf = []
 
 		# Tailing bits
@@ -109,7 +63,9 @@ class RandBurstGen:
 		buf.append(random.randint(0, 1))
 
 		# Training sequence
-		buf += self.nb_tsc_list[seq_idx]
+		if tsc is None:
+			tsc = self.get_rand_tsc(BurstType.NORMAL)
+		buf += tsc.seq
 
 		# Steal flag 2 / 2
 		buf.append(random.randint(0, 1))
@@ -128,7 +84,7 @@ class RandBurstGen:
 		return [0] * GSM_BURST_LEN
 
 	# Generate a synchronization burst
-	def gen_sb(self):
+	def gen_sb(self, tsc = None):
 		buf = []
 
 		# Tailing bits
@@ -139,7 +95,9 @@ class RandBurstGen:
 			buf.append(random.randint(0, 1))
 
 		# Training sequence
-		buf += self.sb_tsc
+		if tsc is None:
+			tsc = self.get_rand_tsc(BurstType.SYNC)
+		buf += tsc.seq
 
 		# Random data 2 / 2
 		for i in range(0, 39):
@@ -155,14 +113,16 @@ class RandBurstGen:
 		return self.db_bits
 
 	# Generate an access burst
-	def gen_ab(self):
+	def gen_ab(self, tsc = None):
 		buf = []
 
 		# Tailing bits
 		buf += [0] * 8
 
 		# Training sequence
-		buf += self.ab_tsc
+		if tsc is None:
+			tsc = self.get_rand_tsc(BurstType.ACCESS)
+		buf += tsc.seq
 
 		# Random data
 		for i in range(0, 36):
