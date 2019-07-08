@@ -35,9 +35,11 @@ import re
 from app_common import ApplicationBase
 from burst_fwd import BurstForwarder
 from transceiver import Transceiver
+from data_msg import Modulation
 from clck_gen import CLCKGen
 from trx_list import TRXList
 from fake_pm import FakePM
+from gsm_shared import *
 
 class FakeTRX(Transceiver):
 	""" Fake transceiver with RF path (burst loss, RSSI, TA, ToA) simulation.
@@ -98,18 +100,21 @@ class FakeTRX(Transceiver):
 
 	TOA256_BASE_DEFAULT = 0
 	RSSI_BASE_DEFAULT = -60
+	CI_BASE_DEFAULT = 90
 
 	def __init__(self, *trx_args, **trx_kwargs):
 		Transceiver.__init__(self, *trx_args, **trx_kwargs)
 
-		# Actual ToA / RSSI / TA values
+		# Actual ToA, RSSI, C/I, TA values
 		self.toa256_base = self.TOA256_BASE_DEFAULT
 		self.rssi_base = self.RSSI_BASE_DEFAULT
+		self.ci_base = self.CI_BASE_DEFAULT
 		self.ta = 0
 
-		# ToA / RSSI randomization threshold
+		# ToA, RSSI, C/I randomization thresholds
 		self.toa256_rand_threshold = 0
 		self.rssi_rand_threshold = 0
+		self.ci_rand_threshold = 0
 
 		# Path loss simulation (burst dropping)
 		self.burst_drop_amount = 0
@@ -137,6 +142,17 @@ class FakeTRX(Transceiver):
 		rssi_max = self.rssi_base + self.rssi_rand_threshold
 		return random.randint(rssi_min, rssi_max)
 
+	@property
+	def ci(self):
+		# Check if randomization is required
+		if self.ci_rand_threshold is 0:
+			return self.ci_base
+
+		# Generate a random C/I value in required range
+		ci_min = self.ci_base - self.ci_rand_threshold
+		ci_max = self.ci_base + self.ci_rand_threshold
+		return random.randint(ci_min, ci_max)
+
 	# Path loss simulation: burst dropping
 	# Returns: True - drop, False - keep
 	def sim_burst_drop(self, msg):
@@ -152,13 +168,40 @@ class FakeTRX(Transceiver):
 
 		return False
 
+	def _handle_data_msg_v1(self, src_msg, msg):
+		# TODO: NOPE indications are not (yet) supported
+		msg.nope_ind = False
+
+		# C/I (Carrier-to-Interference ratio)
+		msg.ci = self.ci
+
+		# Pick modulation type by burst length
+		bl = len(src_msg.burst)
+		msg.mod_type = Modulation.pick_by_bl(bl)
+
+		# Pick TSC (Training Sequence Code) and TSC set
+		if msg.mod_type is Modulation.ModGMSK:
+			ss = TrainingSeqGMSK.pick(src_msg.burst)
+			msg.tsc = ss.tsc if ss is not None else 0
+			msg.tsc_set = ss.tsc_set if ss is not None else 0
+		else: # TODO: other modulation types (at least 8-PSK)
+			msg.tsc_set = 0
+			msg.tsc = 0
+
 	# Takes (partially initialized) TRX2L1 message,
 	# simulates RF path parameters (such as RSSI),
 	# and sends towards the L1
-	def send_data_msg(self, src_trx, msg):
+	def send_data_msg(self, src_trx, src_msg, msg):
+		# Override header version
+		msg.ver = self.data_if._hdr_ver
+
 		# Complete message header
 		msg.toa256 = self.toa256
 		msg.rssi = self.rssi
+
+		# Version specific fields
+		if msg.ver >= 0x01:
+			self._handle_data_msg_v1(src_msg, msg)
 
 		# Apply optional Timing Advance
 		if src_trx.ta is not 0:

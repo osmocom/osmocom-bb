@@ -84,4 +84,4 @@ class BurstForwarder:
 			if tx_msg.tn not in trx.ts_list:
 				continue
 
-			trx.send_data_msg(src_trx, tx_msg)
+			trx.send_data_msg(src_trx, rx_msg, tx_msg)
