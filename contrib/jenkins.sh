@@ -61,4 +61,10 @@ if [ "$WITH_MANUALS" = "1" ]; then
 	fi
 fi
 
+# Test 'maintainer-clean'
+for dir in gprsdecode layer23 gsmmap osmocon trxcon virt_phy; do
+	cd "$base/src/host/$dir"
+	make maintainer-clean
+done
+
 osmo-clean-workspace.sh
