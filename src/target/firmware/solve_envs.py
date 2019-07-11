@@ -34,7 +34,7 @@ def main(name, board_envs, app_envs):
 	envs = solve(board_envs, app_envs)
 
 	# Result
-	print ' '.join(envs)
+	print(' '.join(envs))
 
 
 if __name__ == '__main__':
