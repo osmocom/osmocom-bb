@@ -31,7 +31,7 @@ def main(pn, filename):
 	name = filename.split('.',1)[0]
 
 	# Header / footer
-	print """
+	print("""
 #define _SA_DECL (const uint16_t *)&(const uint16_t [])
 
 static const struct dsp_section %s[] = {
@@ -50,7 +50,7 @@ static const struct dsp_section %s[] = {
 };
 
 #undef _SA_DECL
-""" % (name, len(d)/2, ops)
+""" % (name, len(d)/2, ops))
 
 
 if __name__ == "__main__":
