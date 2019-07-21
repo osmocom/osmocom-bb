@@ -1242,7 +1242,7 @@ static int un_tool_read(struct osmo_fd *fd, unsigned int flags)
 
 	c = 0;
 	while(c < 2) {
-		rc = read(fd->fd, &buf + c, 2 - c);
+		rc = read(fd->fd, buf + c, 2 - c);
 		if(rc == 0) {
 			// disconnect
 			goto close;
@@ -1262,7 +1262,7 @@ static int un_tool_read(struct osmo_fd *fd, unsigned int flags)
 
 	c = 0;
 	while(c < length) {
-		rc = read(fd->fd, &buf + c, length - c);
+		rc = read(fd->fd, buf + c, length - c);
 		if(rc == 0) {
 			// disconnect
 			goto close;
