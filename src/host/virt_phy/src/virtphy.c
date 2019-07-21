@@ -153,6 +153,8 @@ void parse_arfcn_sig_lev_red(struct l1_model_ms *model, char * arfcn_sig_lev_red
 		return;
 
 	char *token = strtok(arfcn_sig_lev_red_mask, ":");
+	if (!token)
+		return;
 	do {
 		char* colon = strstr(token, ",");
 		uint16_t arfcn;
