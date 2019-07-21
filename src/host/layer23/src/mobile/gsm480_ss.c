@@ -399,10 +399,10 @@ static int gsm480_tx_release_compl(struct gsm_trans *trans, uint8_t cause)
 
 	if (cause) {
 		uint8_t *tlv = msgb_put(msg, 4);
-		*tlv = GSM48_IE_CAUSE;
-		*tlv = 2;
-		*tlv = 0x80 | cause;
-		*tlv = 0x80 | GSM48_CAUSE_LOC_USER;
+		tlv[0] = GSM48_IE_CAUSE;
+		tlv[1] = 2;
+		tlv[2] = 0x80 | cause;
+		tlv[3] = 0x80 | GSM48_CAUSE_LOC_USER;
 	}
 	return gsm480_to_mm(msg, trans, GSM48_MMSS_DATA_REQ);
 }
