@@ -579,6 +579,9 @@ static int gsm340_gen_tpdu(struct msgb *msg, struct gsm_sms *sms)
 							sms->address + 1);
 	else
 		da_len = gsm340_gen_oa(da, sizeof(da), 0x0, 0x1, sms->address);
+	if (da_len < 0)
+		return da_len;
+
 	smsp = msgb_put(msg, da_len);
 	memcpy(smsp, da, da_len);
 
