@@ -290,6 +290,7 @@ int read_file(const char *filename, int chainload)
 		if ((st.st_size > MAX_DNLOAD_SIZE) && (dnload.mode != MODE_ROMLOAD)) {
 			fprintf(stderr, "The maximum file size is 64kBytes (%u bytes)\n",
 				MAX_DNLOAD_SIZE);
+			close(fd);
 			return -EFBIG;
 		}
 	} else {
