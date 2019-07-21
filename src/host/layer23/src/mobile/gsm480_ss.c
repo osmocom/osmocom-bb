@@ -397,12 +397,17 @@ static int gsm480_tx_release_compl(struct gsm_trans *trans, uint8_t cause)
 	gh->proto_discr = GSM48_PDISC_NC_SS | (trans->transaction_id << 4);
 	gh->msg_type = GSM0480_MTYPE_RELEASE_COMPLETE;
 
+	/* GSM 04.08, section 10.5.4.11 */
 	if (cause) {
 		uint8_t *tlv = msgb_put(msg, 4);
 		tlv[0] = GSM48_IE_CAUSE;
 		tlv[1] = 2;
-		tlv[2] = 0x80 | cause;
-		tlv[3] = 0x80 | GSM48_CAUSE_LOC_USER;
+
+		/* Coding standard defined for the GSM PLMNs,
+		 * location - USER, cause as given by caller,
+		 * no extension, no diagnostics. */
+		tlv[2] = (1 << 7) | (0x03 << 5) | (GSM48_CAUSE_LOC_USER & 0x0f);
+		tlv[3] = (1 << 7) | cause;
 	}
 	return gsm480_to_mm(msg, trans, GSM48_MMSS_DATA_REQ);
 }
