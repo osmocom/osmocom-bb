@@ -539,7 +539,7 @@ void l1ctl_rx_sim_req(struct l1_model_ms *ms, struct msgb *msg)
 	uint8_t *data = msg->data + sizeof(struct l1ctl_hdr);
 
 	LOGPMS(DL1C, LOGL_ERROR, ms, "Rx SIM Request (length: %u, data: %s): UNSUPPORTED\n",
-		len, osmo_hexdump(data, sizeof(data)));
+		len, osmo_hexdump(data, len));
 
 }
 
