@@ -5085,8 +5085,10 @@ int gsm322_init(struct osmocom_ms *ms)
 		} else
 		while(!feof(fp)) {
 			ba = talloc_zero(ms, struct gsm322_ba_list);
-			if (!ba)
+			if (!ba) {
+				fclose(fp);
 				return -ENOMEM;
+			}
 			rc = fread(buf, 4, 1, fp);
 			if (!rc) {
 				talloc_free(ba);
