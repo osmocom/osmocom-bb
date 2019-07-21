@@ -630,6 +630,7 @@ static int handle_write_dnload(void)
 		case MODE_C140xor:
 		case MODE_C123xor:
 			rc = write(dnload.serial_fd.fd, &xor_init, 1);
+			OSMO_ASSERT(rc == 1);
 			break;
 		default:
 			break;
@@ -652,6 +653,7 @@ static int handle_write_dnload(void)
 		perror("Error during write");
 		return rc;
 	}
+	OSMO_ASSERT(rc == write_len);
 
 	dnload.write_ptr += rc;
 
