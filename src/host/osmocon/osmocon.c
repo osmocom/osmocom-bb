@@ -1309,6 +1309,7 @@ static int tool_accept(struct osmo_fd *fd, unsigned int flags)
 	con = talloc_zero(NULL, struct tool_connection);
 	if (!con) {
 		fprintf(stderr, "Failed to create tool connection.\n");
+		close(rc);
 		return -1;
 	}
 
@@ -1320,6 +1321,8 @@ static int tool_accept(struct osmo_fd *fd, unsigned int flags)
 	con->fd.data = con;
 	if (osmo_fd_register(&con->fd) != 0) {
 		fprintf(stderr, "Failed to register the fd.\n");
+		talloc_free(con);
+		close(rc);
 		return -1;
 	}
 
