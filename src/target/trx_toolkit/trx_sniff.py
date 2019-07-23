@@ -57,14 +57,14 @@ class Application(ApplicationBase):
 			self.ddf = DATADumpFile(self.argv.output_file)
 
 	def run(self):
-		# Compose a packet filter
-		pkt_filter = "udp and (port %d or port %d)" \
-			% (self.argv.base_port + 2, self.argv.base_port + 102)
+		# Compose a list of permitted UDP ports
+		rx_port_list = ["port %d" % (port + 102) for port in self.argv.base_ports]
+		tx_port_list = ["port %d" % (port +   2) for port in self.argv.base_ports]
 
 		# Arguments to be passed to scapy.all.sniff()
 		sniff_args = {
+			"filter" : "udp and (%s)" % " or ".join(rx_port_list + tx_port_list),
 			"prn" : self.pkt_handler,
-			"filter" : pkt_filter,
 			"store" : 0,
 		}
 
@@ -208,8 +208,9 @@ class Application(ApplicationBase):
 		self.app_reg_logging_options(parser)
 
 		trx_group = parser.add_argument_group("TRX interface")
-		trx_group.add_argument("-p", "--base-port",
-			dest = "base_port", type = int, default = 6700,
+		trx_group.add_argument("-p", "--base-port", "--base-ports",
+			dest = "base_ports", type = int, metavar = "PORT",
+			default = [5700, 6700], nargs = "*",
 			help = "Set base port number (default %(default)s)")
 		trx_group.add_argument("-o", "--output-file", metavar = "FILE",
 			dest = "output_file", type = str,
