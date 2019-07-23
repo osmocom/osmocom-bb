@@ -190,7 +190,7 @@ class Application(ApplicationBase):
 
 	def sig_handler(self, signum, frame):
 		log.info("Signal %d received" % signum)
-		if signum is signal.SIGINT:
+		if signum == signal.SIGINT:
 			sys.exit(0)
 
 if __name__ == '__main__':
