@@ -46,6 +46,7 @@ class RandBurstGen:
 	# Pick a random TSC for a given burst type
 	def get_rand_tsc(self, bt):
 		tsc_list = filter(lambda seq: seq.bt == bt, list(TrainingSeqGMSK))
+		tsc_list = list(tsc_list) # In Python 3 filter() returns an iterator
 		return random.choice(tsc_list)
 
 	# Generate a normal burst
