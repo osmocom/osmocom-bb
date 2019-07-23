@@ -61,18 +61,29 @@ class Application(ApplicationBase):
 		pkt_filter = "udp and (port %d or port %d)" \
 			% (self.argv.base_port + 2, self.argv.base_port + 102)
 
-		log.info("Listening on interface '%s'..." % self.argv.sniff_if)
+		# Arguments to be passed to scapy.all.sniff()
+		sniff_args = {
+			"prn" : self.pkt_handler,
+			"filter" : pkt_filter,
+			"store" : 0,
+		}
+
+		if self.argv.cap_file is not None:
+			log.info("Reading packets from '%s'..." % self.argv.cap_file)
+			sniff_args["offline"] = self.argv.cap_file
+		else:
+			log.info("Listening on interface '%s'..." % self.argv.sniff_if)
+			sniff_args["iface"] = self.argv.sniff_if
 
 		# Start sniffing...
-		scapy.all.sniff(iface = self.argv.sniff_if, store = 0,
-			filter = pkt_filter, prn = self.pkt_handler)
+		scapy.all.sniff(**sniff_args)
 
 		# Scapy registers its own signal handler
 		self.shutdown()
 
 	def pkt_handler(self, ether):
 		# Prevent loopback packet duplication
-		if self.argv.sniff_if == "lo":
+		if self.argv.sniff_if == "lo" and self.argv.cap_file is None:
 			self.lo_trigger = not self.lo_trigger
 			if not self.lo_trigger:
 				return
@@ -197,15 +208,20 @@ class Application(ApplicationBase):
 		self.app_reg_logging_options(parser)
 
 		trx_group = parser.add_argument_group("TRX interface")
-		trx_group.add_argument("-i", "--sniff-interface",
-			dest = "sniff_if", type = str, default = "lo", metavar = "IF",
-			help = "Set network interface (default '%(default)s')")
 		trx_group.add_argument("-p", "--base-port",
 			dest = "base_port", type = int, default = 6700,
 			help = "Set base port number (default %(default)s)")
 		trx_group.add_argument("-o", "--output-file", metavar = "FILE",
 			dest = "output_file", type = str,
 			help = "Write bursts to a capture file")
+
+		input_group = trx_group.add_mutually_exclusive_group()
+		input_group.add_argument("-i", "--sniff-interface",
+			dest = "sniff_if", type = str, default = "lo", metavar = "IF",
+			help = "Set network interface (default '%(default)s')")
+		input_group.add_argument("-r", "--capture-file",
+			dest = "cap_file", type = str, metavar = "FILE",
+			help = "Read packets from a PCAP file")
 
 		cnt_group = parser.add_argument_group("Count limitations (optional)")
 		cnt_group.add_argument("--frame-count", metavar = "N",
