@@ -5,7 +5,7 @@
 # Auxiliary tool to generate and send random bursts via TRX DATA
 # interface, which may be useful for fuzzing and testing
 #
-# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2019 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -23,7 +23,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-APP_CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+APP_CR_HOLDERS = [("2017-2019", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import signal
@@ -68,9 +68,9 @@ class Application(ApplicationBase):
 
 		# Init an empty DATA message
 		if self.argv.conn_mode == "TRX":
-			msg = DATAMSG_L12TRX()
+			msg = DATAMSG_L12TRX(ver = self.argv.hdr_ver)
 		elif self.argv.conn_mode == "L1":
-			msg = DATAMSG_TRX2L1()
+			msg = DATAMSG_TRX2L1(ver = self.argv.hdr_ver)
 
 		# Generate a random frame number or use provided one
 		fn_init = msg.rand_fn() if self.argv.tdma_fn is None \
@@ -101,6 +101,17 @@ class Application(ApplicationBase):
 			# Set RSSI
 			if self.argv.rssi is not None:
 				msg.rssi = self.argv.rssi
+
+			if msg.ver >= 0x01:
+				# TODO: Only GMSK and TSC set 0 for now
+				msg.mod_type = Modulation.ModGMSK
+				self.tsc_set = 0
+
+				if self.argv.tsc is not None:
+					msg.tsc = self.argv.tsc
+
+				if self.argv.ci is not None:
+					msg.ci = self.argv.ci
 
 			# Generate a random burst
 			if self.argv.burst_type == "NB":
@@ -163,6 +174,10 @@ class Application(ApplicationBase):
 		bg_group.add_argument("-c", "--burst-count", metavar = "N",
 			dest = "burst_count", type = int, default = 1,
 			help = "How many bursts to send (default %(default)s)")
+		bg_group.add_argument("-v", "--hdr-version", metavar = "VER",
+			dest = "hdr_ver", type = int,
+			default = 0, choices = DATAMSG.known_versions,
+			help = "TRXD header version (default %(default)s)")
 		bg_group.add_argument("-f", "--frame-number", metavar = "FN",
 			dest = "tdma_fn", type = int,
 			help = "Set TDMA frame number (default random)")
@@ -185,6 +200,14 @@ class Application(ApplicationBase):
 		bg_toa_group.add_argument("--toa256",
 			dest = "toa256", type = int,
 			help = "Set Timing of Arrival in 1/256 symbol periods")
+
+		bg_group.add_argument("--tsc", metavar = "TSC",
+			dest = "tsc", type = int, choices = range(0, 8),
+			help = "Set Training Sequence Code (default random)")
+		bg_group.add_argument("--ci", metavar = "CI",
+			dest = "ci", type = int,
+			help = "C/I: Carrier-to-Interference ratio "
+			       "in centiBels (default random)")
 
 		return parser.parse_args()
 
