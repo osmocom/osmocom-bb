@@ -83,7 +83,7 @@ class Application(ApplicationBase):
 		trx = udp.payload
 
 		# Convert to bytearray
-		msg_raw = bytearray(str(trx))
+		msg_raw = bytearray(trx.load)
 
 		# Determine a burst direction (L1 <-> TRX)
 		l12trx = udp.sport > udp.dport
