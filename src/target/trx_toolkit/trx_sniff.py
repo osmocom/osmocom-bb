@@ -75,6 +75,10 @@ class Application(ApplicationBase):
 			log.info("Listening on interface '%s'..." % self.argv.sniff_if)
 			sniff_args["iface"] = self.argv.sniff_if
 
+		if self.argv.cap_filter is not None:
+			log.info("Using additional capture filter '%s'" % self.argv.cap_filter)
+			sniff_args["filter"] += " and (%s)" % self.argv.cap_filter
+
 		# Start sniffing...
 		scapy.all.sniff(**sniff_args)
 
@@ -223,6 +227,10 @@ class Application(ApplicationBase):
 		input_group.add_argument("-r", "--capture-file",
 			dest = "cap_file", type = str, metavar = "FILE",
 			help = "Read packets from a PCAP file")
+
+		trx_group.add_argument("-f", "--capture-filter",
+			dest = "cap_filter", type = str, metavar = "FILTER",
+			help = "Set additional capture filter (e.g. 'host 192.168.1.2')")
 
 		cnt_group = parser.add_argument_group("Count limitations (optional)")
 		cnt_group.add_argument("--frame-count", metavar = "N",
