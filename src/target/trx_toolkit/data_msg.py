@@ -477,17 +477,17 @@ class DATAMSG_TRX2L1(DATAMSG):
 	  +-----------------+---------------------------------------+
 	  | 7 6 5 4 3 2 1 0 | bit numbers (value range)             |
 	  +-----------------+---------------------------------------+
-	  | . . . . . X X X | Training Sequence Code (0..7)         |
+	  | X . . . . . . . | IDLE / nope frame indication (0 or 1) |
 	  +-----------------+---------------------------------------+
 	  | . X X X X . . . | Modulation, TS set number (see below) |
 	  +-----------------+---------------------------------------+
-	  | X . . . . . . . | IDLE / nope frame indication (0 or 1) |
+	  | . . . . . X X X | Training Sequence Code (0..7)         |
 	  +-----------------+---------------------------------------+
 
 	The bit number 7 (MSB) is set to high when either nothing has been
 	detected, or during IDLE frames, so we can deliver noise levels,
 	and avoid clock gaps on the L1 side. Other bits are ignored,
-	and should be set to low (0) in this case. L16 shall be set to 0x00.
+	and should be set to low (0) in this case.
 
 	== Coding of modulation and TS set number
 
@@ -520,14 +520,14 @@ class DATAMSG_TRX2L1(DATAMSG):
 
 	== Coding of the burst bits
 
-	Unlike to be transmitted bursts, the received bursts are designated
+	Unlike the transmitted bursts, the received bursts are designated
 	using the soft-bits notation, so the receiver can indicate its
 	assurance from 0 to -127 that a given bit is 1, and from 0 to +127
 	that a given bit is 0. The Viterbi algorithm allows to approximate
 	the original sequence of hard-bits (1 or 0) using these values.
 
 	Each soft-bit (-127..127) of the burst is encoded as an unsigned
-	value in range (254..0) respectively using the constant shift.
+	value in range (0..255) respectively using the constant shift.
 
 	"""
 
