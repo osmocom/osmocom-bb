@@ -440,7 +440,7 @@ int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
 
 	vty_info.tall_ctx = l23_ctx;
 	vty_init(&vty_info);
-	logging_vty_add_cmds(NULL);
+	logging_vty_add_cmds();
 	ms_vty_init();
 	dummy_conn.priv = NULL;
 	vty_reading = 1;
