@@ -60,8 +60,15 @@ const uint16_t twl3025_default_ramp[16] = {
 	ABB_RAMP_VAL( 0,  0),
 };
 
+typedef enum pwon_state {
+	PWON_IDLE,
+	PWON_DETECTED,
+	PWON_REPORTED,
+} pwon_state_t;
+
 struct twl3025 {
 	uint8_t page;
+	pwon_state_t pwon;
 };
 static struct twl3025 twl3025_state;
 
@@ -106,6 +113,8 @@ static void twl3025_irq(enum irq_nr nr)
 	case IRQ_EXTERNAL: // charger in/out, pwrbtn, adc done
 		src = twl3025_reg_read(ITSTATREG);
 //		printd("itstatreg 0x%02x\n", src);
+		if ((src & 0x04) && twl3025_state.pwon == PWON_IDLE)
+			twl3025_state.pwon = PWON_DETECTED;
 		if (src & 0x08)
 			handle_charger();
 		if (src & 0x20)
@@ -127,6 +136,7 @@ void twl3025_init(void)
 	twl3025_clk13m(1);
 	twl3025_reg_write(AFCCTLADD, 0x01);	/* AFCCK(1:0) must not be zero! */
 	twl3025_unit_enable(TWL3025_UNIT_AFC, 1);
+	twl3025_state.pwon = PWON_IDLE;
 
 	irq_register_handler(IRQ_EXTERNAL, &twl3025_irq);
 	irq_config(IRQ_EXTERNAL, 0, 0, 0);
@@ -183,6 +193,24 @@ static void twl3025_wait_ibic_access(void)
 {
 	/* Wait 6 * 32kHz clock cycles for first IBIC access (187us + 10% = 210us) */
 	delay_ms(1);
+}
+
+int twl3025_get_pwon(void)
+{
+	switch (twl3025_state.pwon) {
+	case PWON_DETECTED:
+		twl3025_state.pwon = PWON_REPORTED;
+		break;
+	case PWON_REPORTED:
+		if (twl3025_reg_read(VRPCSTS) & 0x10)
+			twl3025_state.pwon = PWON_IDLE;
+		break;
+	case PWON_IDLE:
+	default:
+		break;
+	}
+
+	return (twl3025_state.pwon != PWON_IDLE);
 }
 
 void twl3025_power_off(void)
