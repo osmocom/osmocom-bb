@@ -23,5 +23,6 @@ static const uint8_t keymap[] = {
 	[KEY_OK]	= 0,
 	[KEY_POWER]	= 24,
 	[KEY_MINUS]	= 30,	/* not existent */
-	[KEY_PLUS]	= 31,	/* not existent */
+	[KEY_PLUS]	= 30,	/* not existent */
+	[KEY_CAMERA]	= 30,	/* not existent */
 };

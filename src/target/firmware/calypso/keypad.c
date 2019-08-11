@@ -1,7 +1,7 @@
 /* Driver for the keypad attached to the TI Calypso */
 
 /* (C) 2010 by roh <roh@hyte.de>
- * (C) 2013 by Steve Markgraf <steve@steve-m.de>
+ * (C) 2013-19 by Steve Markgraf <steve@steve-m.de>
  *
  * All Rights Reserved
  *
@@ -119,6 +119,15 @@ void keypad_poll()
 	static uint16_t reg;
 	static uint16_t col;
 	static uint32_t buttons = 0, debounce1 = 0, debounce2 = 0;
+	uint8_t use_iota_pwrbtn = (btn_map[KEY_POWER] == 31);
+	uint32_t pwr_mask = (1 << btn_map[KEY_POWER]);
+
+	/* only read Iota powerbutton if it was not yet pressed */
+	if (use_iota_pwrbtn && !(buttons & pwr_mask) && twl3025_get_pwon()) {
+		buttons |= pwr_mask;
+		if (!polling)
+			polling = 1;
+	}
 
 	if (with_interrupts && !polling)
 		return;
@@ -154,7 +163,6 @@ void keypad_poll()
 
 	col++;
 	if (col > 5) {
-		uint32_t pwr_mask = (1 << btn_map[KEY_POWER]);
 		col = 0;
 		/* if power button, ignore other states */
 		if (buttons & pwr_mask)
@@ -162,6 +170,16 @@ void keypad_poll()
 		else if (lastbuttons & pwr_mask)
 			buttons = lastbuttons & ~pwr_mask;
 		dispatch_buttons(buttons);
+
+		/* check if powerbutton connected to Iota was released */
+		if (use_iota_pwrbtn && (buttons & pwr_mask) && !twl3025_get_pwon()) {
+			buttons &= ~pwr_mask;
+
+			/* dispatch buttons again so we do not loose
+			 * very short powerbutton presses */
+			dispatch_buttons(buttons);
+		}
+
 		if (buttons == 0) {
 			writew(0x0, KBC_REG);
 			polling = 3;
@@ -172,5 +190,4 @@ void keypad_poll()
 		writew(0xff, KBC_REG);
 	else
 		writew(0x1f & ~(0x1 << col ), KBC_REG);
-
 }

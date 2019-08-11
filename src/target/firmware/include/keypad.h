@@ -25,10 +25,10 @@ enum key_codes {
 	KEY_POWER,	//red on-hook
 	KEY_MINUS,
 	KEY_PLUS,
+	KEY_CAMERA,
+	BUTTON_CNT,
 	KEY_INV = 0xFF
 };
-
-#define BUTTON_CNT	23
 
 enum key_states {
 	PRESSED,

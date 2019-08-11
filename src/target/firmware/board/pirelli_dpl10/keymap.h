@@ -21,8 +21,9 @@ static const uint8_t keymap[] = {
 	[KEY_LEFT]	= 5,
 	[KEY_RIGHT]	= 10,
 	[KEY_OK]	= 11,
-/* power button is not connected, we use the camera button instead */
-	[KEY_POWER]	= 23,
+/* power button is not connected to keypad scan matrix but to TWL3025 */
+	[KEY_POWER]	= 31,
 	[KEY_MINUS]	= 22,
 	[KEY_PLUS]	= 21,
+	[KEY_CAMERA]	= 23,
 };
