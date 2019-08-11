@@ -1,7 +1,7 @@
 
 #### TOOLCHAIN CONFIGURATION ####
 
-CROSS_COMPILE?=arm-elf-
+CROSS_COMPILE?=arm-none-eabi-
 
 CC=gcc
 LD=ld
