@@ -26,6 +26,14 @@ typedef enum {
 	FLASH_LOCKED_DOWN
 } flash_lock_t;
 
+/* manufacturer ids */
+enum cfi_manuf {
+	CFI_MANUF_ST       = 0x0020,
+	CFI_MANUF_INTEL    = 0x0089,
+	CFI_MANUF_SPANSION = 0x0001,
+	CFI_MANUF_SAMSUNG  = 0x00EC,
+};
+
 int flash_init(flash_t *flash, void *base_addr);
 
 flash_lock_t flash_block_getlock(flash_t *flash, uint32_t block_offset);
@@ -37,5 +45,7 @@ int flash_block_lockdown(flash_t *flash, uint32_t block_offset);
 int flash_block_erase(flash_t *flash, uint32_t block_offset);
 
 int flash_program(flash_t *flash, uint32_t dst_offset, void *src, uint32_t nbytes);
+
+int flash_get_id(void *base_addr, uint16_t * manufacturer_id, uint16_t * device_id);
 
 #endif

@@ -69,12 +69,6 @@ struct cfi_query {
 	struct cfi_region erase_regions[CFI_FLASH_MAX_ERASE_REGIONS];
 } __attribute__ ((packed));
 
-/* manufacturer ids */
-enum cfi_manuf {
-	CFI_MANUF_ST    = 0x0020,
-	CFI_MANUF_INTEL = 0x0089,
-};
-
 /* algorithm ids */
 enum cfi_algo {
 	CFI_ALGO_INTEL_3 = 0x03
@@ -83,6 +77,7 @@ enum cfi_algo {
 /* various command bytes */
 enum cfi_flash_cmd {
 	CFI_CMD_RESET = 0xff,
+	CFI_CMD_RESET_TO_READ_MODE = 0xF0,
 	CFI_CMD_READ_ID = 0x90,
 	CFI_CMD_CFI = 0x98,
 	CFI_CMD_READ_STATUS = 0x70,
@@ -91,6 +86,8 @@ enum cfi_flash_cmd {
 	CFI_CMD_BLOCK_ERASE = 0x20,
 	CFI_CMD_ERASE_CONFIRM = 0xD0,
 	CFI_CMD_PROTECT = 0x60,
+	CFI_CMD_UNLOCK1 = 0xAA,
+	CFI_CMD_UNLOCK2 = 0x55,
 };
 
 /* protection commands */
@@ -104,6 +101,8 @@ enum flash_prot_cmd {
 enum flash_offset {
 	CFI_OFFSET_MANUFACTURER_ID = 0x00,
 	CFI_OFFSET_DEVICE_ID = 0x01,
+	CFI_OFFSET_EXT_DEVICE_ID1 = 0x0E,
+	CFI_OFFSET_EXT_DEVICE_ID2 = 0x0F,
 	CFI_OFFSET_INTEL_PROTECTION = 0x81,
 	CFI_OFFSET_CFI_RESP = 0x10
 };
@@ -124,6 +123,9 @@ enum flash_status {
 	CFI_STATUS_LOCKED_ERROR = 0x02,
 	CFI_STATUS_RESERVED = 0x01
 };
+
+#define CFI_CMD_ADDR1			0xAAA
+#define CFI_CMD_ADDR2			0x555
 
 __ramtext
 static inline void flash_write_cmd(const void *base_addr, uint16_t cmd)
@@ -379,17 +381,27 @@ int flash_program(flash_t * flash, uint32_t dst, void *src, uint32_t nbytes)
 	return res;
 }
 
-/* Internal: retrieve manufacturer and device id from id space */
+/* retrieve manufacturer and extended device id from id space */
 __ramtext
-static int get_id(void *base_addr,
+int flash_get_id(void *base_addr,
 		  uint16_t * manufacturer_id, uint16_t * device_id)
 {
-	flash_write_cmd(base_addr, CFI_CMD_READ_ID);
+	flash_write_cmd(base_addr, CFI_CMD_RESET_TO_READ_MODE);
 
-	*manufacturer_id = flash_read16(base_addr, CFI_OFFSET_MANUFACTURER_ID);
-	*device_id = flash_read16(base_addr, CFI_OFFSET_DEVICE_ID);
+	flash_write_cmd(base_addr + CFI_CMD_ADDR1, CFI_CMD_UNLOCK1);
+	flash_write_cmd(base_addr + CFI_CMD_ADDR2, CFI_CMD_UNLOCK2);
+	flash_write_cmd(base_addr + CFI_CMD_ADDR1, CFI_CMD_READ_ID);
 
-	flash_write_cmd(base_addr, CFI_CMD_RESET);
+	if (manufacturer_id)
+		*manufacturer_id = flash_read16(base_addr, CFI_OFFSET_MANUFACTURER_ID);
+
+	if (device_id) {
+		device_id[0] = flash_read16(base_addr, CFI_OFFSET_DEVICE_ID);
+		device_id[1] = flash_read16(base_addr, CFI_OFFSET_EXT_DEVICE_ID1);
+		device_id[2] = flash_read16(base_addr, CFI_OFFSET_EXT_DEVICE_ID2);
+	}
+
+	flash_write_cmd(base_addr, CFI_CMD_RESET_TO_READ_MODE);
 
 	return 0;
 }
@@ -524,12 +536,12 @@ int flash_init(flash_t * flash, void *base_addr)
 {
 	int res;
 	unsigned u;
-	uint16_t m_id, d_id;
+	uint16_t m_id, d_id[3];
 	uint32_t base;
 	struct cfi_query qry;
 
 	/* retrieve and check manufacturer and device id */
-	res = get_id(base_addr, &m_id, &d_id);
+	res = flash_get_id(base_addr, &m_id, d_id);
 	if (res) {
 		return res;
 	}
