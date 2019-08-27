@@ -296,7 +296,7 @@ if __name__ == '__main__':
 		assert(messages_check[i].tn == messages_ref[i].tn)
 
 		# Validate a message
-		assert(messages_check[i].validate())
+		messages_check[i].validate()
 
 	log.info("Check append_msg(): OK")
 
@@ -318,7 +318,7 @@ if __name__ == '__main__':
 		assert(messages_check[i].tn == messages_ref[i].tn)
 
 		# Validate a message
-		assert(messages_check[i].validate())
+		messages_check[i].validate()
 
 	log.info("Check append_all(): OK")
 
@@ -340,8 +340,8 @@ if __name__ == '__main__':
 	assert(msg10.tn == messages_ref[10].tn)
 
 	# Validate both messages
-	assert(msg0.validate())
-	assert(msg10.validate())
+	msg0.validate()
+	msg10.validate()
 
 	log.info("Check parse_msg(): OK")
 
@@ -362,6 +362,6 @@ if __name__ == '__main__':
 		assert(messages_check[i].tn == messages_ref[i + 10].tn)
 
 		# Validate a message
-		assert(messages_check[i].validate())
+		messages_check[i].validate()
 
 	log.info("Check parse_all(): OK")

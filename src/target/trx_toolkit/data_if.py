@@ -107,8 +107,7 @@ class DATAInterface(UDPLink):
 
 	def send_msg(self, msg, legacy = False):
 		# Validate a message
-		if not msg.validate():
-			raise ValueError("Message incomplete or incorrect")
+		msg.validate()
 
 		# Generate TRX message
 		payload = msg.gen_msg(legacy)
