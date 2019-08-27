@@ -111,7 +111,10 @@ class Application(ApplicationBase):
 			msg.parse_msg(msg_raw)
 			msg.validate()
 		except ValueError as e:
-			log.warning("Ignoring an incorrect message: %s" % e)
+			desc = msg.desc_hdr()
+			if desc is "":
+				desc = "parsing error"
+			log.warning("Ignoring an incorrect message (%s): %s" % (desc, e))
 			self.cnt_burst_dropped_num += 1
 			return
 
