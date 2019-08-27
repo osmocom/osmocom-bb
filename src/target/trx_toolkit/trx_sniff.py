@@ -109,6 +109,7 @@ class Application(ApplicationBase):
 		# Attempt to parse the payload as a DATA message
 		try:
 			msg.parse_msg(msg_raw)
+			msg.validate()
 		except ValueError as e:
 			log.warning("Ignoring an incorrect message: %s" % e)
 			self.cnt_burst_dropped_num += 1
