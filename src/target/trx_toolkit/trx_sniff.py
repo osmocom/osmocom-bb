@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # TRX Toolkit
 # Scapy-based TRX interface sniffer
 #
-# (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2018-2019 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -22,7 +22,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-APP_CR_HOLDERS = [("2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+APP_CR_HOLDERS = [("2018-2019", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import argparse
@@ -109,8 +109,8 @@ class Application(ApplicationBase):
 		# Attempt to parse the payload as a DATA message
 		try:
 			msg.parse_msg(msg_raw)
-		except:
-			log.warning("Failed to parse message, dropping...")
+		except ValueError as e:
+			log.warning("Ignoring an incorrect message: %s" % e)
 			self.cnt_burst_dropped_num += 1
 			return
 
