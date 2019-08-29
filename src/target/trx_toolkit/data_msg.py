@@ -182,6 +182,9 @@ class DATAMSG:
 		if self.tn is not None:
 			result += ("tn=%u " % self.tn)
 
+		if self.burst is not None and len(self.burst) > 0:
+			result += ("bl=%u " % len(self.burst))
+
 		return result
 
 	# Converts unsigned soft-bits {254..0} to soft-bits {-127..127}
