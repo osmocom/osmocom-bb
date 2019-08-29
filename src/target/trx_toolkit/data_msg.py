@@ -279,11 +279,13 @@ class DATAMSG:
 		if len(msg) < self.CHDR_LEN:
 			raise ValueError("Message is to short: missing common header")
 
-		# Parse version and TDMA TN
+		# Parse the header version first
 		self.ver = (msg[0] >> 4)
-		self.tn = (msg[0] & 0x07)
+		if not self.ver in self.known_versions:
+			raise ValueError("Unknown TRXD header version %d" % self.ver)
 
-		# Parse TDMA FN
+		# Parse TDMA TN and FN
+		self.tn = (msg[0] & 0x07)
 		self.fn = struct.unpack(">L", msg[1:5])[0]
 
 		# Make sure we have the whole header,
