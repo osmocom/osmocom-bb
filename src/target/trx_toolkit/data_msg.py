@@ -233,7 +233,7 @@ class DATAMSG:
 	# Validates the message fields (throws ValueError)
 	def validate(self):
 		if not self.ver in self.known_versions:
-			raise ValueError("Unknown TRXD header version")
+			raise ValueError("Unknown TRXD header version %d" % self.ver)
 
 		if self.fn is None:
 			raise ValueError("TDMA frame-number is not set")
@@ -823,7 +823,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 			self.mod_type = Modulation.pick_by_bl(bl - 2)
 
 		if self.mod_type is None:
-			raise ValueError("Odd burst length")
+			raise ValueError("Odd burst length %u" % bl)
 
 		return burst[:self.mod_type.bl]
 
