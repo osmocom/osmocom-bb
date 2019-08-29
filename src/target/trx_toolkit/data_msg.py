@@ -275,9 +275,9 @@ class DATAMSG:
 
 	# Parses a TRX DATA message
 	def parse_msg(self, msg):
-		# Make sure we have at least header
-		if len(msg) < self.HDR_LEN:
-			raise ValueError("Message is to short")
+		# Make sure we have at least common header
+		if len(msg) < self.CHDR_LEN:
+			raise ValueError("Message is to short: missing common header")
 
 		# Parse version and TDMA TN
 		self.ver = (msg[0] >> 4)
@@ -285,6 +285,11 @@ class DATAMSG:
 
 		# Parse TDMA FN
 		self.fn = struct.unpack(">L", msg[1:5])[0]
+
+		# Make sure we have the whole header,
+		# including the version specific fields
+		if len(msg) < self.HDR_LEN:
+			raise ValueError("Message is to short: missing version specific header")
 
 		# Specific message part
 		self.parse_hdr(msg)
