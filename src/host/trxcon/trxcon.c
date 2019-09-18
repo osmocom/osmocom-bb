@@ -1,7 +1,7 @@
 /*
  * OsmocomBB <-> SDR connection bridge
  *
- * (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2016-2019 by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * All Rights Reserved
  *
@@ -38,6 +38,8 @@
 #include <osmocom/core/signal.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/application.h>
+#include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/gsmtap.h>
 
 #include <osmocom/gsm/gsm_utils.h>
 
@@ -51,7 +53,7 @@
 #include "sched_trx.h"
 
 #define COPYRIGHT \
-	"Copyright (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
+	"Copyright (C) 2016-2019 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
 	"License GPLv2+: GNU GPL version 2 or later " \
 	"<http://gnu.org/licenses/gpl.html>\n" \
 	"This is free software: you are free to change and redistribute it.\n" \
@@ -72,9 +74,11 @@ static struct {
 	const char *trx_remote_ip;
 	uint16_t trx_base_port;
 	uint32_t trx_fn_advance;
+	const char *gsmtap_ip;
 } app_data;
 
 static void *tall_trxcon_ctx = NULL;
+struct gsmtap_inst *gsmtap = NULL;
 struct osmo_fsm_inst *trxcon_fsm;
 
 static void trxcon_fsm_idle_action(struct osmo_fsm_inst *fi,
@@ -158,6 +162,7 @@ static void print_help(void)
 	printf("  -p --trx-port     Base port of TRX instance (default 6700)\n");
 	printf("  -f --trx-advance  Scheduler clock advance (default 20)\n");
 	printf("  -s --socket       Listening socket for layer23 (default /tmp/osmocom_l2)\n");
+	printf("  -g --gsmtap-ip    The destination IP used for GSMTAP (disabled by default)\n");
 	printf("  -D --daemonize    Run as daemon\n");
 }
 
@@ -176,11 +181,12 @@ static void handle_options(int argc, char **argv)
 			{"trx-remote", 1, 0, 'i'},
 			{"trx-port", 1, 0, 'p'},
 			{"trx-advance", 1, 0, 'f'},
+			{"gsmtap-ip", 1, 0, 'g'},
 			{"daemonize", 0, 0, 'D'},
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "d:b:i:p:f:s:Dh",
+		c = getopt_long(argc, argv, "d:b:i:p:f:s:g:Dh",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -209,6 +215,9 @@ static void handle_options(int argc, char **argv)
 		case 's':
 			app_data.bind_socket = optarg;
 			break;
+		case 'g':
+			app_data.gsmtap_ip = optarg;
+			break;
 		case 'D':
 			app_data.daemonize = 1;
 			break;
@@ -227,6 +236,7 @@ static void init_defaults(void)
 	app_data.trx_fn_advance = 20;
 
 	app_data.debug_mask = NULL;
+	app_data.gsmtap_ip = NULL;
 	app_data.daemonize = 0;
 	app_data.quit = 0;
 }
@@ -272,6 +282,17 @@ int main(int argc, char **argv)
 
 	/* Init logging system */
 	trx_log_init(tall_trxcon_ctx, app_data.debug_mask);
+
+	/* Optional GSMTAP  */
+	if (app_data.gsmtap_ip != NULL) {
+		gsmtap = gsmtap_source_init(app_data.gsmtap_ip, GSMTAP_UDP_PORT, 1);
+		if (!gsmtap) {
+			LOGP(DAPP, LOGL_ERROR, "Failed to init GSMTAP\n");
+			goto exit;
+		}
+		/* Suppress ICMP "destination unreachable" errors */
+		gsmtap_source_add_sink(gsmtap);
+	}
 
 	/* Allocate the application state machine */
 	osmo_fsm_register(&trxcon_fsm_def);

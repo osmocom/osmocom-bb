@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: common routines for lchan handlers
  *
- * (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2019 by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * All Rights Reserved
  *
@@ -32,15 +32,19 @@
 
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
+#include <osmocom/core/gsmtap_util.h>
+#include <osmocom/core/gsmtap.h>
 
 #include <osmocom/codec/codec.h>
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include "l1ctl_proto.h"
 #include "scheduler.h"
 #include "sched_trx.h"
 #include "logging.h"
+#include "trxcon.h"
 #include "trx_if.h"
 #include "l1ctl.h"
 
@@ -80,13 +84,32 @@ const uint8_t sched_nb_training_bits[8][26] = {
 	},
 };
 
+int sched_gsmtap_send(enum trx_lchan_type lchan_type, uint32_t fn, uint8_t tn,
+		      uint16_t band_arfcn, int8_t signal_dbm, uint8_t snr,
+		      const uint8_t *data, size_t data_len)
+{
+	const struct trx_lchan_desc *lchan_desc = &trx_lchan_desc[lchan_type];
+
+	/* GSMTAP logging may not be enabled */
+	if (gsmtap == NULL)
+		return 0;
+
+	/* Omit frames with unknown channel type */
+	if (lchan_desc->gsmtap_chan_type == GSMTAP_CHANNEL_UNKNOWN)
+		return 0;
+
+	/* TODO: distinguish GSMTAP_CHANNEL_PCH and GSMTAP_CHANNEL_AGCH */
+	return gsmtap_send(gsmtap, band_arfcn, tn, lchan_desc->gsmtap_chan_type,
+			   lchan_desc->ss_nr, fn, signal_dbm, snr, data, data_len);
+}
+
 int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len,
 	int bit_error_count, bool dec_failed, bool traffic)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	struct l1ctl_info_dl dl_hdr;
-	int dbm_avg;
+	int dbm_avg = 0;
 
 	/* Set up pointers */
 	lchan_desc = &trx_lchan_desc[lchan->type];
@@ -117,6 +140,12 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	/* Put a packet to higher layers */
 	l1ctl_tx_dt_ind(trx->l1l, &dl_hdr, l2, l2_len, traffic);
 
+	/* Optional GSMTAP logging */
+	if (l2_len > 0 && (!traffic || lchan_desc->chan_nr == RSL_CHAN_OSMO_PDCH)) {
+		sched_gsmtap_send(lchan->type, lchan->rx_first_fn, ts->index,
+				  trx->band_arfcn, dbm_avg, 0, l2, l2_len);
+	}
+
 	return 0;
 }
 
@@ -139,6 +168,14 @@ int sched_send_dt_conf(struct trx_instance *trx, struct trx_ts *ts,
 	dl_hdr.frame_nr = htonl(fn);
 
 	l1ctl_tx_dt_conf(trx->l1l, &dl_hdr, traffic);
+
+	/* Optional GSMTAP logging */
+	if (!traffic || lchan_desc->chan_nr == RSL_CHAN_OSMO_PDCH) {
+		sched_gsmtap_send(lchan->type, fn, ts->index,
+				  trx->band_arfcn | ARFCN_UPLINK,
+				  0, 0, lchan->prim->payload,
+				  lchan->prim->payload_len);
+	}
 
 	return 0;
 }

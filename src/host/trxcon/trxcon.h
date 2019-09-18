@@ -3,6 +3,7 @@
 #define GEN_MASK(state) (0x01 << state)
 
 extern struct osmo_fsm_inst *trxcon_fsm;
+extern struct gsmtap_inst *gsmtap;
 
 enum trxcon_fsm_states {
 	TRXCON_STATE_IDLE = 0,

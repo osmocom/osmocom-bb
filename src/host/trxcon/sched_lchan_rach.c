@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
- * (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2019 by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * All Rights Reserved
  *
@@ -173,6 +173,12 @@ int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Confirm RACH request */
 	l1ctl_tx_rach_conf(trx->l1l, trx->band_arfcn, fn);
+
+	/* Optional GSMTAP logging */
+	sched_gsmtap_send(lchan->type, fn, ts->index,
+			  trx->band_arfcn | ARFCN_UPLINK, 0, 0,
+			  PRIM_IS_RACH11(lchan->prim) ? (uint8_t *) &ext_req->ra11 : &req->ra,
+			  PRIM_IS_RACH11(lchan->prim) ? 2 : 1);
 
 	/* Forget processed primitive */
 	sched_prim_drop(lchan);

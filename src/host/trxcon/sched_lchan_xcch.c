@@ -199,14 +199,14 @@ send_burst:
 
 	/* If we have sent the last (4/4) burst */
 	if ((*mask & 0x0f) == 0x0f) {
+		/* Confirm data sending */
+		sched_send_dt_conf(trx, ts, lchan, fn, false);
+
 		/* Forget processed primitive */
 		sched_prim_drop(lchan);
 
 		/* Reset mask */
 		*mask = 0x00;
-
-		/* Confirm data sending */
-		sched_send_dt_conf(trx, ts, lchan, fn, false);
 	}
 
 	return 0;

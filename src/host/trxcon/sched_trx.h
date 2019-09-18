@@ -114,6 +114,10 @@ struct trx_lchan_desc {
 	uint8_t chan_nr;
 	/*! \brief Link ID (like in RSL) */
 	uint8_t link_id;
+	/*! \brief Sub-slot number (for SDCCH and TCH/H) */
+	uint8_t ss_nr;
+	/*! \brief GSMTAP channel type (see GSMTAP_CHANNEL_*) */
+	uint8_t gsmtap_chan_type;
 
 	/*! \brief How much memory do we need to store bursts */
 	size_t burst_buf_size;
@@ -351,6 +355,9 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	int bit_error_count, bool dec_failed, bool traffic);
 int sched_send_dt_conf(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, bool traffic);
+int sched_gsmtap_send(enum trx_lchan_type lchan_type, uint32_t fn, uint8_t tn,
+		      uint16_t band_arfcn, int8_t signal_dbm, uint8_t snr,
+		      const uint8_t *data, size_t data_len);
 
 /* Interleaved TCH/H block TDMA frame mapping */
 uint32_t sched_tchh_block_dl_first_fn(enum trx_lchan_type chan,
