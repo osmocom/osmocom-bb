@@ -516,12 +516,17 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 		.name = "PTCCH", /* 3GPP TS 05.02, section 3.3.4.2 */
 		.desc = "Packet Timing advance control channel",
 		.chan_nr = RSL_CHAN_OSMO_PDCH,
+		.link_id = TRX_CH_LID_PTCCH,
 
-		/* Same as for TRXC_BCCH (xCCH), see above. */
+		/* On the Uplink, mobile stations transmit random Access Bursts
+		 * to allow estimation of the timing advance for one MS in packet
+		 * transfer mode. On Downlink, the network sends timing advance
+		 * updates for several mobile stations. The coding scheme used
+		 * for PTCCH/D messages is the same as for PDTCH CS-1. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
 		.flags = TRX_CH_FLAG_PDCH,
-		.rx_fn = rx_data_fn,
-		.tx_fn = tx_data_fn,
+		.rx_fn = rx_pdtch_fn,
+		.tx_fn = tx_rach_fn,
 	},
 	[TRXC_SDCCH4_CBCH] = {
 		.name = "SDCCH/4(CBCH)", /* 3GPP TS 05.02, section 3.3.5 */

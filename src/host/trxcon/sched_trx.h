@@ -23,6 +23,10 @@
 #define TRX_CH_LID_DEDIC	0x00
 #define TRX_CH_LID_SACCH	0x40
 
+/* Osmocom-specific extension for PTCCH (see 3GPP TS 45.002, section 3.3.4.2).
+ * Shall be used to distinguish PTCCH and PDTCH channels on a PDCH time-slot. */
+#define TRX_CH_LID_PTCCH	0x80
+
 /* Is a channel related to PDCH (GPRS) */
 #define TRX_CH_FLAG_PDCH	(1 << 0)
 /* Should a channel be activated automatically */
