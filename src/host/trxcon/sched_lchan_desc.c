@@ -503,7 +503,7 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 		.desc = "Packet data traffic & control channel",
 		.chan_nr = RSL_CHAN_OSMO_PDCH,
 
-		/* Rx and Tx, multiple coding schemes: CS-2..4 and MCS-1..9 (3GPP TS
+		/* Rx and Tx, multiple coding schemes: CS-1..4 and MCS-1..9 (3GPP TS
 		 * 05.03, chapter 5), regular interleaving as specified for xCCH.
 		 * NOTE: the burst buffer is three times bigger because the
 		 * payload of EDGE bursts is three times longer. */
