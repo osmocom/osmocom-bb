@@ -234,7 +234,7 @@ static int l1s_sbdet_resp(__unused uint8_t p1, uint8_t attempt,
 
 	synchronize_tdma(&l1s.serving_cell);
 
-	/* if we have recived a SYNC burst, update our local GSM time */
+	/* if we have received a SYNC burst, update our local GSM time */
 	gsm_fn2gsmtime(&l1s.current_time, fbs.mon.time.fn + SB2_LATENCY);
 	/* compute next time from new current time */
 	l1s.next_time = l1s.current_time;
@@ -532,7 +532,7 @@ static void l1a_fb_compl(__unused enum l1_compl c)
 		return;
 	}
 
-	/* FIME: use l1s.neigh_cell[fbs.cinfo_idx] */
+	/* FIXME: use l1s.neigh_cell[fbs.cinfo_idx] */
 	fbinfo2cellinfo(&l1s.serving_cell, last_fb);
 
 	/* send FBSB_CONF success message via L1CTL */

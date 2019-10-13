@@ -30,7 +30,7 @@ Layer3 calls rslms_recvmsg() with a msgb that has the msgb->l2h pointing to a
 RSL header (struct abis_rsl_common_hdr).
 
 There are utility functions like rslms_tx_rll_req() and rslms_tx_rsll_req_l3()
-for creating msgb's with the apropriate RSL/RLL headers.
+for creating msgb's with the appropriate RSL/RLL headers.
 
 
 === LAPDm ===

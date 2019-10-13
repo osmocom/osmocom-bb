@@ -94,7 +94,7 @@ class DATADumpFile(DATADump):
 	#   True in case of success,
 	#   or False in case of EOF or header parsing error.
 	def _seek2msg(self, idx):
-		# Seek to the begining of the capture
+		# Seek to the beginning of the capture
 		self.f.seek(0)
 
 		# Read the capture in loop...
@@ -161,7 +161,7 @@ class DATADumpFile(DATADump):
 	#   or None in case of EOF or header parsing error,
 	#   or False in case of message parsing error or out of range.
 	def parse_msg(self, idx):
-		# Move descriptor to the begining of requested message
+		# Move descriptor to the beginning of requested message
 		rc = self._seek2msg(idx)
 		if not rc:
 			log.error("Couldn't find requested message")
@@ -179,7 +179,7 @@ class DATADumpFile(DATADump):
 
 		# Should we skip some messages?
 		if skip is None:
-			# Seek to the begining of the capture
+			# Seek to the beginning of the capture
 			self.f.seek(0)
 		else:
 			rc = self._seek2msg(skip)

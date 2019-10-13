@@ -607,7 +607,7 @@ const struct tdma_sched_item tch_d_sched_set[] = {
  * ------------------------------------------------------------------------- */
 
 /*
- * SACCH data are spread over 4 bursts, however they are so far appart that
+ * SACCH data are spread over 4 bursts, however they are so far apart that
  * we can't use the normal scheduler to schedule all them at once in a single
  * set.
  * Therefore, the task code itself decides in which burst it is, if it's the

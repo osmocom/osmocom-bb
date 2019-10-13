@@ -16,7 +16,7 @@ MEMORY
     XRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00020000
     /* highram binary single big zone with all rest of internal SRAM */
     /*  -> our text, initialized data */
-    /*  -> our unitialized data, stacks, heap */
+    /*  -> our uninitialized data, stacks, heap */
     RAM  (rw) : ORIGIN = 0x00820000, LENGTH = 0x00030000
 }
 SECTIONS

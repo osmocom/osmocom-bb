@@ -131,5 +131,5 @@ const char *getL1ctlPrimName(uint8_t type)
 	if (type < ARRAY_SIZE(l1ctlPrimNames))
 		return l1ctlPrimNames[type];
 	else
-		return "Unknwon Primitive";
+		return "Unknown Primitive";
 }

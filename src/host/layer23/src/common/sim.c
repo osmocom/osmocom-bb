@@ -1132,7 +1132,7 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 		case SIM_JOB_INCREASE:
 			if (length != 4) {
 				LOGP(DSIM, LOGL_ERROR, "expecting uint32_t as "
-					"value lenght, but got %d bytes\n",
+					"value length, but got %d bytes\n",
 					length);
 				goto request_error;
 			}

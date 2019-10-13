@@ -40,7 +40,7 @@
  *
  */
 
-/* Testing delayed (immediate) assigment / handover
+/* Testing delayed (immediate) assignment / handover
  *
  * When enabled, the starting time will be set by given frames in the future.
  * If a starting time is given by the network, this time is ignored.
@@ -210,7 +210,7 @@ static int gsm48_apply_v_sd(struct gsm48_rrlayer *rr, struct msgb *msg)
 	case GSM48_PDISC_MM:
 	case GSM48_PDISC_CC:
 	case GSM48_PDISC_NC_SS:
-		/* all thre pdiscs share the same V(SD) */
+		/* all three pdiscs share the same V(SD) */
 		pdisc = GSM48_PDISC_MM;
 		// fall through
 	case GSM48_PDISC_GROUP_CC:
@@ -634,7 +634,7 @@ static void timeout_rr_meas(void *arg)
 	uint8_t ch_type, ch_subch, ch_ts;
 	char text[256];
 
-	/* don't monitor if no cell is selcted or if we scan neighbour cells */
+	/* don't monitor if no cell is selected or if we scan neighbour cells */
 	if (!cs->selected || cs->neighbour) {
 		sprintf(text, "MON: not camping on serving cell");
 		goto restart;
@@ -1454,7 +1454,7 @@ static int gsm48_rr_chan_req(struct osmocom_ms *ms, int cause, int paging,
 		if (s->neci) {
 			chan_req_mask = 0x0f;
 			chan_req_val = 0x10;
-			LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (OHTER "
+			LOGP(DRR, LOGL_INFO, "CHANNEL REQUEST: %02x (OTHER "
 				"with NECI)\n", chan_req_val);
 		} else {
 			chan_req_mask = 0x1f;
@@ -1593,11 +1593,11 @@ fail:
 	rr->n_chan_req--;
 
 	if (rr->wait_assign == 0) {
-		/* first random acces, without delay of slots */
+		/* first random access, without delay of slots */
 		slots = 0;
 		rr->wait_assign = 1;
 	} else {
-		/* subsequent random acces, with slots from table 3.1 */
+		/* subsequent random access, with slots from table 3.1 */
 		switch(s->tx_integer) {
 		case 3: case 8: case 14: case 50:
 			if (s->ccch_conf != 1) /* not combined CCCH */
@@ -2077,7 +2077,7 @@ static int gsm48_rr_chan2cause[4] = {
 	RR_EST_CAUSE_ANS_PAG_TCH_ANY
 };
 
-/* given LV of mobile identity is checked agains ms */
+/* given LV of mobile identity is checked against ms */
 static uint8_t gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
@@ -2305,7 +2305,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	} else
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
 			ntohl(pa->tmsi2));
-	/* thrid MI */
+	/* third MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi3)
 	 && ms->subscr.mcc == cs->sel_mcc
 	 && ms->subscr.mnc == cs->sel_mnc
@@ -2335,7 +2335,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
  * (immediate) assignment
  */
 
-/* match request reference agains request history */
+/* match request reference against request history */
 static int gsm48_match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
@@ -2387,7 +2387,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* ignore imm.ass. while not camping on a cell */
 	if (!cs->selected || cs->neighbour || !s) {
-		LOGP(DRR, LOGL_INFO, "IMMEDIATED ASSGINMENT ignored, we are "
+		LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT ignored, we are "
 			"have not proper selected the serving cell.\n");
 
 		return 0;
@@ -2495,7 +2495,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* ignore imm.ass.ext while not camping on a cell */
 	if (!cs->selected || cs->neighbour || !s) {
-		LOGP(DRR, LOGL_INFO, "IMMEDIATED ASSGINMENT ignored, we are "
+		LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT ignored, we are "
 			"have not proper selected the serving cell.\n");
 
 		return 0;
@@ -2671,7 +2671,7 @@ static int gsm48_rr_rx_imm_ass_rej(struct osmocom_ms *ms, struct msgb *msg)
 			/* start timer 3126 if not already */
 			if (!osmo_timer_pending(&rr->t3126))
 				start_rr_t3126(rr, 5, 0); /* TODO improve! */
-			/* stop assignmnet requests */
+			/* stop assignment requests */
 			rr->n_chan_req = 0;
 
 			/* wait until timer 3126 expires, then release
@@ -2683,7 +2683,7 @@ static int gsm48_rr_rx_imm_ass_rej(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-/* 9.1.1 ADDITIONAL ASSIGMENT is received */
+/* 9.1.1 ADDITIONAL ASSIGNMENT is received */
 static int gsm48_rr_rx_add_ass(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_hdr *gh = msgb_l3(msg);
@@ -2732,7 +2732,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 		if ((s->si5bis && s->nb_ext_ind_si5
 		  && s->nb_ba_ind_si5bis != rep_ba)
 		 || (s->si5ter && s->nb_ba_ind_si5ter != rep_ba)) {
-			LOGP(DRR, LOGL_NOTICE, "BA-IND missmatch on SI5*");
+			LOGP(DRR, LOGL_NOTICE, "BA-IND mismatch on SI5*");
 		} else
 			rep_valid = 1;
 	}
@@ -3054,7 +3054,7 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 			LOGP(DRR, LOGL_INFO, "using cell channel descr.\n");
 			if (cd->cell_desc_lv[0] != 16) {
 				LOGP(DRR, LOGL_ERROR, "cell channel descr. "
-					"has invalid lenght\n");
+					"has invalid length\n");
 				return GSM48_RR_CAUSE_ABNORMAL_UNSPEC;
 			}
 			gsm48_decode_freq_list(freq, cd->cell_desc_lv + 1, 16,
@@ -3413,7 +3413,7 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /*
- * frequency redefition, chanel mode modify, assignment, and handover
+ * frequency redefition, channel mode modify, assignment, and handover
  */
 
 /* set channel mode in case of TCH */
@@ -4537,7 +4537,7 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 	 	goto reject;
 	}
 
-	/* check for relevant informations */
+	/* check for relevant information */
 	if (!s->si3) {
 		LOGP(DRR, LOGL_INFO, "Not enough SI, rejecting!\n");
 		cause = RR_REL_CAUSE_TRY_LATER;
@@ -5364,7 +5364,7 @@ static int gsm48_rcv_cch(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 
-/* input function for L2 messags up to L3 */
+/* input function for L2 messages up to L3 */
 static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
@@ -5593,7 +5593,7 @@ static int gsm48_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *m
 	int s;
 
 	if (rr->modify_state != GSM48_RR_MOD_HANDO) {
-		LOGP(DRR, LOGL_NOTICE, "Random acces confirm, but not in handover state.\n");
+		LOGP(DRR, LOGL_NOTICE, "Random access confirm, but not in handover state.\n");
 		return 0;
 	}
 

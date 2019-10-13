@@ -12,7 +12,7 @@ MEMORY
     /* compal-loaded binary: our text, initialized data */
     /* (only this zone can contain loaded data since loader is 64k limit) */
     LRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00010000
-    /* compal-loaded binary: our unitialized data, stacks, heap */
+    /* compal-loaded binary: our uninitialized data, stacks, heap */
     IRAM (rw) : ORIGIN = 0x00810000, LENGTH = 0x00030000
 }
 SECTIONS

@@ -106,7 +106,7 @@ void l1ctl_rx_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 			struct l1ctl_hdr *resp_l1h = msgb_l1(resp_msg);
 			resp_l1h->flags |= L1CTL_F_DONE;
 		}
-		/* no more space to hold mor pm info in msgb, flush to l23 */
+		/* no more space to hold more pm info in msgb, flush to l23 */
 		if (msgb_tailroom(resp_msg) < sizeof(*pm_conf)) {
 			LOGPMS(DL1C, LOGL_INFO, ms, "Tx L1CTL_PM_CONF\n");
 			l1ctl_sap_tx_to_l23_inst(ms, resp_msg);

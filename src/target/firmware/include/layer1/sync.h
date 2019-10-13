@@ -15,7 +15,7 @@ struct l1_cell_info {
 	uint8_t		bsic;
 	/* Combined or non-combined CCCH */
 	uint8_t		ccch_mode; /* enum ccch_mode */
-	/* whats the delta of the cells current GSM frame number
+	/* what's the delta of the cells current GSM frame number
 	 * compared to our current local frame number */
 	int32_t		fn_offset;
 	/* how much does the TPU need adjustment (delta) to synchronize

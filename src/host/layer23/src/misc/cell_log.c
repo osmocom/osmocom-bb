@@ -438,7 +438,7 @@ static int ta_result(uint8_t ta)
 	return 0;
 }
 
-/* match request reference agains request */
+/* match request reference against request */
 static int match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref)
 {
 	uint8_t ia_t1, ia_t2, ia_t3;

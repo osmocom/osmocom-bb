@@ -179,7 +179,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 
 int l23_app_init(struct osmocom_ms *ms)
 {
-	/* don't do layer3_init() as we don't want an actualy L3 */
+	/* don't do layer3_init() as we don't want an actual L3 */
 
 	g_ms = ms;
 	lapdm_channel_set_l3(&ms->lapdm_channel, &rcv_rsl, ms);

@@ -72,7 +72,7 @@ s6b33b1x_initdata[] = {
 	{ DATA, 0x0a }, /* DATA: fPCK = fOSC/6 */
 	{ CMD,  0x2a }, /* CMD   Contrast Control */
 	{ DATA, 0x2d }, /* DATA: default contrast */
-	{ CMD,  0x30 }, /* CMD   Adressing mode set */
+	{ CMD,  0x30 }, /* CMD   Addressing mode set */
 	{ DATA, 0x0b }, /* DATA: 65536 color mode */
 	{ CMD,  0x10 }, /* CMD   Driver output mode set */
 	{ DATA, 0x03 }, /* DATA: Display duty: 1/132 */

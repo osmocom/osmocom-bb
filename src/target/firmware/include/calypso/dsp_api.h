@@ -45,7 +45,7 @@ typedef struct
   API d_task_ra;          // (7) RA task command.
   API d_fn;               // (8)  FN, in Rep. period and FN%104, used for TRAFFIC/TCH only.
                              //        bit [0..7]  -> b_fn_report, FN in the normalized reporting period.
-                             //        bit [8..15] -> b_fn_sid,    FN % 104, used for SID positionning.
+                             //        bit [8..15] -> b_fn_sid,    FN % 104, used for SID positioning.
   API d_ctrl_tch;         // (9)  Tch channel description.
                              //        bit [0..3]  -> b_chan_mode,    channel  mode.
                              //        bit [4..5]  -> b_chan_type,    channel type.
@@ -72,7 +72,7 @@ typedef struct
                              //        word 1, bit [0..11] -> T1.
   API d_power_ctl;        // (14) Power level control.
   API d_afc;              // (15) AFC value (enabled by "b_afc" in "d_ctrl_TCM4400 or in d_ctrl_abb").
-  API d_ctrl_system;      // (16) Controle Register for RESET/RESUME.
+  API d_ctrl_system;      // (16) Control Register for RESET/RESUME.
                              //        bit [0..2] -> b_tsq,           training sequence.
                              //        bit [3]    -> b_bcch_freq_ind, BCCH frequency indication.
                              //        bit [15]   -> b_task_abort,    DSP task abort command.
@@ -264,7 +264,7 @@ T_DB_DSP_TO_MCU;
 
     // Speech Recognition module
     API d_sr_status;          // status of the DSP speech reco task
-    API d_sr_param;           // paramters for the DSP speech reco task: OOV threshold.
+    API d_sr_param;           // parameters for the DSP speech reco task: OOV threshold.
     API d_sr_bit_exact_test;  // bit exact test
     API d_sr_nb_words;        // number of words used in the speech recognition task
     API d_sr_db_level;        // estimate voice level in dB
@@ -608,7 +608,7 @@ T_DB_DSP_TO_MCU;
 
     // Speech Recognition module
     API d_sr_status;          // status of the DSP speech reco task
-    API d_sr_param;           // paramters for the DSP speech reco task: OOV threshold.
+    API d_sr_param;           // parameters for the DSP speech reco task: OOV threshold.
     API d_sr_bit_exact_test;  // bit exact test
     API d_sr_nb_words;        // number of words used in the speech recognition task
     API d_sr_db_level;        // estimate voice level in dB
@@ -766,7 +766,7 @@ T_DB_DSP_TO_MCU;
                                 // The size of this buffer is 15 word but some speech reco words
                                 // are overlayer with this buffer. This is the reason why the size is 3 instead of 15.
       API d_sr_status;          // status of the DSP speech reco task
-      API d_sr_param;           // paramters for the DSP speech reco task: OOV threshold.
+      API d_sr_param;           // parameters for the DSP speech reco task: OOV threshold.
       API sr_hole1;             // hole
       API d_sr_bit_exact_test;  // bit exact test
       API d_sr_nb_words;        // number of words used in the speech recognition task
@@ -989,7 +989,7 @@ typedef struct
                               // The size of this buffer is 15 word but some speech reco words
                               // are overlayer with this buffer. This is the reason why the size is 3 instead of 15.
     API d_sr_status;          // status of the DSP speech reco task
-    API d_sr_param;           // paramters for the DSP speech reco task: OOV threshold.
+    API d_sr_param;           // parameters for the DSP speech reco task: OOV threshold.
     API sr_hole1;             // hole
     API d_sr_bit_exact_test;  // bit exact test
     API d_sr_nb_words;        // number of words used in the speech recognition task

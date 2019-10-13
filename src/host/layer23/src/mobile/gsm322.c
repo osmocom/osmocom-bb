@@ -156,7 +156,7 @@ static int gsm322_nb_meas_ind(struct osmocom_ms *ms, uint16_t arfcn,
  *
  * * subscr->plmn_list
  *
- * The "PLMN Selector list" stores prefered networks to select during PLMN
+ * The "PLMN Selector list" stores preferred networks to select during PLMN
  * search process. This list is also stored in the SIM.
  *
  * * subscr->plmn_na
@@ -172,7 +172,7 @@ static int gsm322_nb_meas_ind(struct osmocom_ms *ms, uint16_t arfcn,
  *
  * * cs->list[1024+299]
  *
- * This list stores measurements and cell informations during cell selection
+ * This list stores measurements and cell information during cell selection
  * process. It can be used to speed up repeated cell selection.
  *
  * * cs->ba_list
@@ -201,7 +201,7 @@ static int gsm322_nb_meas_ind(struct osmocom_ms *ms, uint16_t arfcn,
  * the BCCH data after 5 minutes. This timer is also used if sync or read
  * fails.
  *
- * The C1 and C2 criterion is calculated for the currently monitored neigbour
+ * The C1 and C2 criterion is calculated for the currently monitored neighbour
  * cells. During this process, a better neighbour cell will trigger cell
  * re-selection.
  *
@@ -427,14 +427,14 @@ static int16_t calculate_c2(int16_t c1, int serving, int last_serving,
 		return c2;
 	}
 
-	/*  penatly time reached */
+	/*  penalty time reached */
 	if (t >= (penalty_time + 1) * 20) {
 		LOGP(DNB, LOGL_INFO, "C2 = C1 + CELL_RESELECT_OFFSET (%d) = %d "
 			"(PENALTY_TIME reached)\n", cell_resel_off, c2);
 		return c2;
 	}
 
-	/* penalty time not reached, substract temporary offset */
+	/* penalty time not reached, subtract temporary offset */
 	if (temp_offset < 7)
 		c2 -= temp_offset * 10;
 	else
@@ -975,7 +975,7 @@ static int gsm322_sort_list(struct osmocom_ms *ms)
 		entries--;
 	}
 
-	/* move ohter PLMN in decreasing order */
+	/* move other PLMN in decreasing order */
 	while(1) {
 		found = NULL;
 		llist_for_each_entry(temp, &temp_list, entry) {
@@ -1047,7 +1047,7 @@ static int gsm322_a_go_wait_for_plmns(struct osmocom_ms *ms, struct msgb *msg)
 
 	new_a_state(plmn, GSM322_A4_WAIT_FOR_PLMN);
 
-	/* we must forward this, otherwhise "Any cell selection"
+	/* we must forward this, otherwise "Any cell selection"
 	 * will not start automatically.
 	 */
 	nmsg = gsm322_msgb_alloc(GSM322_EVENT_NEW_PLMN);
@@ -1074,7 +1074,7 @@ static int gsm322_a_no_more_plmn(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* if no PLMN in list:
 	 * this means that we are at a point where we camp on any cell or
-	 * no cell ist available. */
+	 * no cell is available. */
 	if (found < 0) {
 		if (subscr->plmn_valid) {
 			LOGP(DPLMN, LOGL_INFO, "Not any PLMN allowable. "
@@ -1555,7 +1555,7 @@ static int gsm322_m_display_plmns(struct osmocom_ms *ms, struct msgb *msg)
 	/* go Not on PLMN state */
 	new_m_state(plmn, GSM322_M3_NOT_ON_PLMN);
 
-	/* we must forward this, otherwhise "Any cell selection"
+	/* we must forward this, otherwise "Any cell selection"
 	 * will not start automatically.
 	 * this way we get back to the last PLMN, in case we gained
 	 * our coverage back.
@@ -1847,7 +1847,7 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int index, uint16_t mcc,
 	if (cs->state == GSM322_C2_STORED_CELL_SEL
 	 || cs->state == GSM322_C5_CHOOSE_CELL)
 		mask |= GSM322_CS_FLAG_BA;
-	flags = mask; /* all masked flags are requied */
+	flags = mask; /* all masked flags are required */
 
 	/* loop through all scanned frequencies and select cell.
 	 * if an index is given (arfci), we just check this cell only */
@@ -1860,12 +1860,12 @@ static int gsm322_cs_select(struct osmocom_ms *ms, int index, uint16_t mcc,
 		cs->list[i].flags &= ~GSM322_CS_FLAG_TEMP_AA;
 		s = cs->list[i].sysinfo;
 
-		/* channel has no informations for us */
+		/* channel has no information for us */
 		if (!s || (cs->list[i].flags & mask) != flags) {
 			continue;
 		}
 
-		/* check C1 criteria not fullfilled */
+		/* check C1 criteria not fulfilled */
 		// TODO: class 3 DCS mobile
 		gsm_arfcn2band_rc(index2arfcn(i), &band);
 		class = class_of_band(ms, band);
@@ -2195,7 +2195,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	if (cs->state == GSM322_C2_STORED_CELL_SEL
 	 || cs->state == GSM322_C5_CHOOSE_CELL)
 		mask |= GSM322_CS_FLAG_BA;
-	flags = mask; /* all masked flags are requied */
+	flags = mask; /* all masked flags are required */
 	for (i = 0; i <= 1023+299; i++) {
 		j = 0; /* make gcc happy */
 		if (!ms->settings.skip_max_per_band) {
@@ -2249,7 +2249,7 @@ static int gsm322_cs_scan(struct osmocom_ms *ms)
 	}
 
 	/* NOTE: We might already have system information from previous
-	 * scan. But we need recent informations, so we scan again!
+	 * scan. But we need recent information, so we scan again!
 	 */
 
 	/* Tune to frequency for a while, to receive broadcasts. */
@@ -2462,7 +2462,7 @@ indicate_plmn_avail:
 	return 0;
 }
 
-/* process system information when returing to idle mode */
+/* process system information when returning to idle mode */
 struct gsm322_ba_list *gsm322_cs_sysinfo_sacch(struct osmocom_ms *ms)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
@@ -2517,7 +2517,7 @@ struct gsm322_ba_list *gsm322_cs_sysinfo_sacch(struct osmocom_ms *ms)
 	return ba;
 }
 
-/* store BA whenever a system informations changes */
+/* store BA whenever a system information changes */
 static int gsm322_store_ba_list(struct gsm322_cellsel *cs,
 	struct gsm48_sysinfo *s)
 {
@@ -2582,9 +2582,9 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* Store BA if we have full system info about cells and neigbor cells.
+	/* Store BA if we have full system info about cells and neighbor cells.
 	 * Depending on the extended bit in the channel description,
-	 * we require more or less system informations about neighbor cells
+	 * we require more or less system information about neighbor cells
 	 */
 	if (s->mcc
 	 && s->mnc
@@ -2600,7 +2600,7 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 		&& s->nb_ext_ind_si2bis)))
 		gsm322_store_ba_list(cs, s);
 
-	/* update sel_si, if all relevant system informations received */
+	/* update sel_si, if all relevant system information received */
 	if (s->si1 && s->si2 && s->si3
 	 && (!s->nb_ext_ind_si2
 	  || (s->si2bis && s->nb_ext_ind_si2 && !s->nb_ext_ind_si2bis)
@@ -2696,9 +2696,9 @@ static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	/* Store BA if we have full system info about cells and neigbor cells.
+	/* Store BA if we have full system info about cells and neighbor cells.
 	 * Depending on the extended bit in the channel description,
-	 * we require more or less system informations about neighbor cells
+	 * we require more or less system information about neighbor cells
 	 */
 	if (s->mcc
 	 && s->mnc
@@ -2712,7 +2712,7 @@ static int gsm322_c_scan_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 	 && (!s->si2ter_ind || s->si2ter))
 		gsm322_store_ba_list(cs, s);
 
-	/* all relevant system informations received */
+	/* all relevant system information received */
 	if (s->si1 && s->si2 && s->si3
 	 && (!s->nb_ext_ind_si2 || s->si2bis)
 	 && (!s->si2ter_ind || s->si2ter)) {
@@ -3108,7 +3108,7 @@ static void gsm322_cs_loss(void *arg)
 			/* keep cell info for re-selection */
 
 			gsm48_rr_los(ms);
-			/* be shure that nothing else is done after here
+			/* be sure that nothing else is done after here
 			 * because the function call above may cause
 			 * to return from idle state and trigger cell re-sel.
 			 */
@@ -3220,7 +3220,7 @@ static int gsm322_c_stored_cell_sel(struct osmocom_ms *ms,
 	return gsm322_cs_powerscan(ms);
 }
 
-/* start noraml cell selection */
+/* start normal cell selection */
 static int gsm322_c_normal_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
@@ -3265,7 +3265,7 @@ static int gsm322_c_any_cell_sel(struct osmocom_ms *ms, struct msgb *msg)
 
 		/* indicate to MM that we lost coverage.
 		 * this is the only case where we really have no coverage.
-		 * we tell MM, so it will enter the "No Cell Avaiable" state. */
+		 * we tell MM, so it will enter the "No Cell Available" state. */
 		if (msg_type == GSM322_EVENT_NO_CELL_FOUND) {
 			struct msgb *nmsg;
 
@@ -3325,7 +3325,7 @@ static int gsm322_c_sim_remove(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm322_c_any_cell_sel(ms, msg);
 }
 
-/* start noraml cell re-selection */
+/* start normal cell re-selection */
 static int gsm322_c_normal_cell_resel(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
@@ -3490,7 +3490,7 @@ struct gsm322_ba_list *gsm322_cs_ba_range(struct osmocom_ms *ms,
 			if (lower == higher)
 				break;
 			lower++;
-			/* wrap arround, only if not PCS */
+			/* wrap around, only if not PCS */
 			if (lower == 1024)
 				lower = 0;
 		}
@@ -4183,7 +4183,7 @@ static int gsm322_nb_check(struct osmocom_ms *ms, int any)
 		/* check if we have successfully read BCCH */
 		if (!s || nb->state != GSM322_NB_SYSINFO) {
 			LOGP(DNB, LOGL_INFO, "Skip cell: There are no system "
-				"informations available.\n");
+				"information available.\n");
 			if (ms->rrlayer.monitor) {
 				snprintf(arfcn_text, 10, "%s         ",
 					gsm_print_arfcn(nb->arfcn));
@@ -4356,7 +4356,7 @@ static int gsm322_nb_scan(struct osmocom_ms *ms)
 			nb->c2);
 		/* track which cells have been checked do far */
 		if (nb->checked_for_resel) {
-			LOGP(DCS, LOGL_INFO, "Skip cell: alredy tried to "
+			LOGP(DCS, LOGL_INFO, "Skip cell: already tried to "
 				"select.\n");
 			goto cont;
 		}
@@ -4417,7 +4417,7 @@ no_cell_found:
 	nb->checked_for_resel = 1;
 
 	/* NOTE: We might already have system information from previous
-	 * scan. But we need recent informations, so we scan again!
+	 * scan. But we need recent information, so we scan again!
 	 */
 
 	/* Tune to frequency for a while, to receive broadcasts. */
@@ -4523,7 +4523,7 @@ static int gsm322_nb_start(struct osmocom_ms *ms, int synced)
 	if (!changed && cs->nb_meas_set)
 		return 0;
 
-	/* start neigbour cell measurement task */
+	/* start neighbour cell measurement task */
 	num = 0;
 	llist_for_each_entry(nb, &cs->nb_list, entry) {
 		if (nb->state == GSM322_NB_NOT_SUP)
@@ -5080,7 +5080,7 @@ int gsm322_init(struct osmocom_ms *ms)
 		s_rc = fgets(version, sizeof(version), fp);
 		version[sizeof(version) - 1] = '\0';
 		if (!s_rc || !!strcmp(ba_version, version)) {
-			LOGP(DCS, LOGL_NOTICE, "BA version missmatch, "
+			LOGP(DCS, LOGL_NOTICE, "BA version mismatch, "
 				"stored BA list becomes obsolete.\n");
 		} else
 		while(!feof(fp)) {

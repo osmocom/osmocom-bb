@@ -6,7 +6,7 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/timer.h>
 
-/* 4.3.1.1 List of states for PLMN slection process (automatic mode) */
+/* 4.3.1.1 List of states for PLMN selection process (automatic mode) */
 #define GSM322_A0_NULL			0
 #define	GSM322_A1_TRYING_RPLMN		1
 #define	GSM322_A2_ON_PLMN		2
@@ -15,7 +15,7 @@
 #define	GSM322_A5_HPLMN_SEARCH		5
 #define	GSM322_A6_NO_SIM		6
 
-/* 4.3.1.2 List of states for PLMN slection process (manual mode) */
+/* 4.3.1.2 List of states for PLMN selection process (manual mode) */
 #define GSM322_M0_NULL			0
 #define	GSM322_M1_TRYING_RPLMN		1
 #define	GSM322_M2_ON_PLMN		2
@@ -129,9 +129,9 @@ struct gsm322_plmn {
 
 /* state of CCCH activation */
 #define GSM322_CCCH_ST_IDLE	0	/* no connection */
-#define GSM322_CCCH_ST_INIT	1	/* initalized */
+#define GSM322_CCCH_ST_INIT	1	/* initialized */
 #define GSM322_CCCH_ST_SYNC	2	/* got sync */
-#define GSM322_CCCH_ST_DATA	3	/* receiveing data */
+#define GSM322_CCCH_ST_DATA	3	/* receiving data */
 
 /* neighbour cell info list entry */
 struct gsm322_neighbour {
@@ -144,7 +144,7 @@ struct gsm322_neighbour {
 	time_t			when; /* when did we sync / read */
 	int16_t			rxlev_sum_dbm; /* sum of received levels */
 	uint8_t			rxlev_count; /* number of received levels */
-	int8_t			rla_c_dbm; /* average of the reveive level */
+	int8_t			rla_c_dbm; /* average of the receive level */
 	uint8_t			c12_valid; /* both C1 and C2 are calculated */
 	int16_t			c1, c2, crh;
 	uint8_t			checked_for_resel;

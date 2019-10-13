@@ -109,7 +109,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  *  - cell selected
  *  - cell == SIM LAI
  *
- * Otherwhise PLMN SEARCH is entered.
+ * Otherwise PLMN SEARCH is entered.
  *
  * During PLMN SEARCH NORMAL state: (4.2.2.5)
  *  - on expirery of T3212: Perform periodic location update, when back
@@ -193,7 +193,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  *
  *
  * gsm48_mm_set_plmn_search() is used enter PLMN SEARCH or PLMN SEARCH NORMAL
- * state. Depending on the conditions above, the appropiate state is selected.
+ * state. Depending on the conditions above, the appropriate state is selected.
  *
  *
  * gsm48_mm_return_idle() is used to select the Service state when returning
@@ -1006,7 +1006,7 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 			if (s->t3212) /* still required? */
 				gsm48_mm_loc_upd_periodic(ms, NULL);
 			else
-				LOGP(DMM, LOGL_INFO, "but not requred\n");
+				LOGP(DMM, LOGL_INFO, "but not required\n");
 			/* must exit, because this function can be called
 			 * recursively
 			 */
@@ -2135,7 +2135,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 	/* (re)start only if we still require location update */
 	if (!mm->lupd_pending) {
 		LOGP(DMM, LOGL_INFO, "No loc. upd. pending.\n");
-		/* use MM IDLE to selecte the idle state */
+		/* use MM IDLE to select the idle state */
 		return gsm48_mm_return_idle(ms, NULL);
 	}
 
@@ -2159,7 +2159,7 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg)
 		if (!nmsg)
 			return -ENOMEM;
 		gsm322_plmn_sendmsg(ms, nmsg);
-		/* use MM IDLE to selecte the idle state */
+		/* use MM IDLE to select the idle state */
 		return gsm48_mm_return_idle(ms, NULL);
 	}
 
@@ -2419,7 +2419,7 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	/* update has finished */
 	mm->lupd_pending = 0;
 
-	/* RA was successfull */
+	/* RA was successful */
 	mm->lupd_ra_failure = 0;
 
 	/* stop periodic location updating timer */
@@ -2531,7 +2531,7 @@ static int gsm48_mm_rx_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	/* RA was successfull */
+	/* RA was successful */
 	mm->lupd_ra_failure = 0;
 
 	/* stop periodic location updating timer */
@@ -2674,7 +2674,7 @@ static int gsm48_mm_loc_upd_delay_retry(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-/* process failues as described in the lower part of 4.4.4.9 */
+/* process failures as described in the lower part of 4.4.4.9 */
 static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
@@ -2755,7 +2755,7 @@ static int gsm48_mm_rel_loc_upd_abort(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* RA was successfull or sent twice */
+	/* RA was successful or sent twice */
 	mm->lupd_ra_failure = 0;
 
 	/* continue with failure handling */
@@ -2938,7 +2938,7 @@ static int gsm48_mm_rx_cm_service_rej(struct osmocom_ms *ms, struct msgb *msg)
 	/* release MM connection(s) */
 	gsm48_mm_release_mm_conn(ms, abort_any, 16, 0, 0);
 
-	/* state depends on the existance of remaining MM connections */
+	/* state depends on the existence of remaining MM connections */
 	if (llist_empty(&mm->mm_conn))
 		new_mm_state(mm, GSM48_MM_ST_WAIT_NETWORK_CMD, 0);
 	else
@@ -3395,7 +3395,7 @@ static int gsm48_mm_timeout_mm_con(struct osmocom_ms *ms, struct msgb *msg)
 	/* release pending connection */
 	gsm48_mm_release_mm_conn(ms, 0, 102, 0, 0);
 
-	/* state depends on the existance of remaining MM connections */
+	/* state depends on the existence of remaining MM connections */
 	if (llist_empty(&mm->mm_conn)) {
 		/* start RR release timer */
 		start_mm_t3240(mm);
@@ -3470,7 +3470,7 @@ static int gsm48_mm_release_active(struct osmocom_ms *ms, struct msgb *msg)
 	if (conn)
 		mm_conn_free(conn);
 
-	/* state depends on the existance of remaining MM connections */
+	/* state depends on the existence of remaining MM connections */
 	if (llist_empty(&mm->mm_conn)) {
 		/* start RR release timer */
 		start_mm_t3240(mm);
@@ -3800,7 +3800,7 @@ int gsm48_mmxx_downmsg(struct osmocom_ms *ms, struct msgb *msg)
 	return rc;
 }
 
-/* state trasitions for radio ressource messages (lower layer) */
+/* state trasitions for radio resource messages (lower layer) */
 static struct rrdatastate {
 	uint32_t	states;
 	int		type;
@@ -4059,7 +4059,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			msgb_free(msg);
 			return 0;
 		}
-		break; /* follow the selection proceedure below */
+		break; /* follow the selection procedure below */
 
 	case GSM48_PDISC_CC:
 		rc = gsm48_rcv_cc(ms, msg);

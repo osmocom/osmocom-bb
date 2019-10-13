@@ -502,7 +502,7 @@ static int lua_register_fd(lua_State *L)
 	luaL_argcheck(L, lua_isnumber(L, -2), 1, "needs to be a filedescriptor");
 	luaL_argcheck(L, lua_isfunction(L, -1), 2, "Callback needs to be a function");
 
-	/* Cretae a table so a user can unregister (and unregister on GC) */
+	/* Create a table so a user can unregister (and unregister on GC) */
 	fdu = lua_newuserdata(L, sizeof(*fdu));
 	fdu->state = L;
 	fdu->fd.fd = -1;

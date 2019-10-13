@@ -27,7 +27,7 @@ struct l1_cell_info {
 	uint8_t bsic;
 	/* Combined or non-combined CCCH */
 	uint8_t ccch_mode; /* enum ccch_mode */
-	/* whats the delta of the cells current GSM frame number
+	/* what's the delta of the cells current GSM frame number
 	 * compared to our current local frame number */
 	int32_t fn_offset;
 	/* how much does the TPU need adjustment (delta) to synchronize
@@ -71,9 +71,9 @@ struct l1_state_ms {
 		uint8_t tn; // timeslot number 1-7
 		uint8_t subslot; // subslot of the dedicated channel, SDCCH/4:[0-3], SDCCH/8:[0-7]
 
-		uint8_t scn; // single-hop cellular network? (ununsed in virtual um)
-		uint8_t tsc; // training sequence code (ununsed in virtual um)
-		uint8_t h; // hopping enabled flag (ununsed in virtual um)
+		uint8_t scn; // single-hop cellular network? (unused in virtual um)
+		uint8_t tsc; // training sequence code (unused in virtual um)
+		uint8_t h; // hopping enabled flag (unused in virtual um)
 	} dedicated;
 	struct {
 		struct {

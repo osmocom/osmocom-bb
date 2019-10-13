@@ -204,7 +204,7 @@ struct gsm48_mm_conn {
 	struct llist_head	list;
 	struct gsm48_mmlayer	*mm;
 
-	/* ref and type form a unique tupple */
+	/* ref and type form a unique tuple */
 	uint32_t		ref; /* reference to trans */
 	uint8_t			protocol;
 	uint8_t			transaction_id;

@@ -223,7 +223,7 @@ static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 			gsm_get_mnc(ms->cellsel.sel_mcc, ms->cellsel.sel_mnc),
 			VTY_NEWLINE);
 	}
-	vty_out(vty, "  radio ressource layer state: %s%s",
+	vty_out(vty, "  radio resource layer state: %s%s",
 		gsm48_rr_state_names[ms->rrlayer.state], VTY_NEWLINE);
 	vty_out(vty, "  mobility management layer state: %s",
 		gsm48_mm_state_names[ms->mmlayer.state]);
@@ -523,7 +523,7 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 
 DEFUN(sim_test, sim_test_cmd,
 	"sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
-	"SIM actions\nAttach bulit in test SIM\nName of MS (see \"show ms\")\n"
+	"SIM actions\nAttach built in test SIM\nName of MS (see \"show ms\")\n"
 	"Optionally set mobile Country Code of RPLMN\n"
 	"Optionally set mobile Network Code of RPLMN\n"
 	"Optionally set location area code of RPLMN\n"
@@ -534,7 +534,7 @@ DEFUN(sim_test, sim_test_cmd,
 
 DEFUN(sim_test_att, sim_test_att_cmd,
 	"sim testcard MS_NAME MCC MNC LAC TMSI attached",
-	"SIM actions\nAttach bulit in test SIM\nName of MS (see \"show ms\")\n"
+	"SIM actions\nAttach built in test SIM\nName of MS (see \"show ms\")\n"
 	"Set mobile Country Code of RPLMN\nSet mobile Network Code of RPLMN\n"
 	"Set location area code\nSet current assigned TMSI\n"
 	"Indicate to MM that card is already attached")
@@ -814,7 +814,7 @@ DEFUN(network_select, network_select_cmd,
 DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 	"Make a call\nName of MS (see \"show ms\")\nPhone number to call "
 	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
-	"Make an emergency call\nAnswer an incomming call\nHangup a call\n"
+	"Make an emergency call\nAnswer an incoming call\nHangup a call\n"
 	"Hold current active call\n")
 {
 	struct osmocom_ms *ms;
@@ -1597,7 +1597,7 @@ DEFUN(cfg_ms_sap, cfg_ms_sap_cmd, "sap-socket PATH",
 
 DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test|sap)",
 	"Set SIM card to attach when powering on\nAttach no SIM\n"
-	"Attach SIM from reader\nAttach bulit in test SIM\n"
+	"Attach SIM from reader\nAttach build in test SIM\n"
 	"Attach SIM over SAP interface")
 {
 	struct osmocom_ms *ms = vty->index;

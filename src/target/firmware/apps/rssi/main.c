@@ -1260,7 +1260,7 @@ static void handle_assign(void)
 /* Main Program */
 const char *hr = "======================================================================\n";
 
-/* match request reference agains request history */
+/* match request reference against request history */
 static int gsm48_match_ra(struct gsm48_req_ref *ref)
 {
 	uint8_t ia_t1, ia_t2, ia_t3;

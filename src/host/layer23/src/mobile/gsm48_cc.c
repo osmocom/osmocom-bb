@@ -1750,7 +1750,7 @@ static int gsm48_cc_rx_release(struct gsm_trans *trans, struct msgb *msg)
 				TLVP_VAL(&tp, GSM48_IE_USER_USER)-1);
 	}
 
-	/* in case we receive a relase, when we are already in NULL state */
+	/* in case we receive a release, when we are already in NULL state */
 	if (trans->cc.state == GSM_CSTATE_NULL) {
 		LOGP(DCC, LOGL_INFO, "ignoring RELEASE in NULL state\n");
 		/* release MM conn, free trans */

@@ -100,7 +100,7 @@ int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 
 		/* waiting for reset after shutdown */
 		if (ms->shutdown == MS_SHUTDOWN_WAIT_RESET) {
-			LOGP(DMOB, LOGL_NOTICE, "MS '%s' has been resetted\n", ms->name);
+			LOGP(DMOB, LOGL_NOTICE, "MS '%s' has been reset\n", ms->name);
 			ms->shutdown = MS_SHUTDOWN_COMPL;
 			break;
 		}

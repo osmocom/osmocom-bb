@@ -104,7 +104,7 @@ class CalypsoCOFF(object):
 				sptr,	# long int       s_scnptr; /* File pointer to raw data */
 				0,		# long int       s_relptr; /* File pointer to relocation entries */
 				0,		# long int       s_lnnoptr;/* File pointer to line number entries */
-				0,		# unsigned short s_nreloc; /* Number of relocation entrie */
+				0,		# unsigned short s_nreloc; /* Number of relocation entries */
 				0,		# unsigned short s_nlnno;  /* Number of line number entries */
 				s.flags,# unsigned short s_flags;  /* Flags (see ``Section header flags'') */
 				'\x00',	# /

@@ -168,7 +168,7 @@ void l1s_reset_hw(void)
 	dsp_api.ndb->d_dsp_page = 0;
 
 	/* we have to really reset the TPU, otherwise FB detection
-	 * somtimes returns wrong TOA values. */
+	 * sometimes returns wrong TOA values. */
 	tpu_reset(1);
 	tpu_reset(0);
 	tpu_rewind();

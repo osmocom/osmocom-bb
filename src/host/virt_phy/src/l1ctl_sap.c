@@ -313,7 +313,7 @@ void l1ctl_rx_dm_est_req(struct l1_model_ms *ms, struct msgb *msg)
  *
  * Handle frequency change in dedicated mode. E.g. used for frequency hopping.
  *
- * Note: Not needed for virtual physical layer as freqency hopping is generally disabled.
+ * Note: Not needed for virtual physical layer as frequency hopping is generally disabled.
  */
 void l1ctl_rx_dm_freq_req(struct l1_model_ms *ms, struct msgb *msg)
 {
@@ -504,7 +504,7 @@ void l1ctl_rx_tch_mode_req(struct l1_model_ms *ms, struct msgb *msg)
  * The neighbor cell description is one of the info messages sent by the BTS on BCCH.
  * This method will also enable neighbor measurement in the multiframe scheduler.
  *
- * Note: Not needed for virtual physical layer as we dont maintain neigbors.
+ * Note: Not needed for virtual physical layer as we don't maintain neighbors.
  */
 void l1ctl_rx_neigh_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 {

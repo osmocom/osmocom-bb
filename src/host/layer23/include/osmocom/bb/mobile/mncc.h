@@ -58,7 +58,7 @@ struct gsm_call {
 #define MNCC_SETUP_CNF		0x0104
 #define MNCC_SETUP_COMPL_REQ	0x0105
 #define MNCC_SETUP_COMPL_IND	0x0106
-/* MNCC_REJ_* is perfomed via MNCC_REL_* */
+/* MNCC_REJ_* is performed via MNCC_REL_* */
 #define MNCC_CALL_CONF_IND	0x0107
 #define MNCC_CALL_PROC_REQ	0x0108
 #define MNCC_PROGRESS_REQ	0x0109
@@ -136,7 +136,7 @@ struct gsm_mncc {
 	/* which fields are present */
 	uint32_t	fields;
 
-	/* data derived informations (MNCC_F_ based) */
+	/* data derived information (MNCC_F_ based) */
 	struct gsm_mncc_bearer_cap	bearer_cap;
 	struct gsm_mncc_number		called;
 	struct gsm_mncc_number		calling;

@@ -287,7 +287,7 @@ static int gsm480_trans_free(struct gsm_trans *trans)
 }
 
 /*
- * endcoding
+ * encoding
  */
 
 #define GSM480_ALLOC_SIZE       512+128
@@ -933,7 +933,7 @@ static int gsm480_rx_result(struct gsm_trans *trans, const uint8_t *data,
 			LOGP(DSS, LOGL_NOTICE, "Invoke ID mismatch\n");
 		}
 	}
-	/* Store invoke ID, in case we wan't to send a result. */
+	/* Store invoke ID, in case we want to send a result. */
 	trans->ss.invoke_id = tag_data[0];
 	len -= tag_data - data + tag_len;
 	data = tag_data + tag_len;

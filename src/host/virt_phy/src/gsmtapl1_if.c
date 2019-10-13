@@ -135,7 +135,7 @@ static bool gprs_dl_block_matches_ms(struct l1_model_ms *ms, struct msgb *msg, u
 			return true;
 		break;
 	case 1: /* RLC/MAC Control without optional octets */
-		/* forward all RLC/MAC control blocks without optional octets, i.e. not adressed
+		/* forward all RLC/MAC control blocks without optional octets, i.e. not addressed
 		 * to a specific TFI */
 		return true;
 	case 2: /* RLC/MAC with optional control octets */

@@ -166,7 +166,7 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 	struct gsm48_imm_ass *ia = msgb_l3(msg);
 	uint8_t ch_type, ch_subch, ch_ts;
 
-	/* Discard packet TBF assignement */
+	/* Discard packet TBF assignment */
 	if (ia->page_mode & 0xf0)
 		return 0;
 

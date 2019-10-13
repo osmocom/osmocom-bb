@@ -78,7 +78,7 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
 	print(priv, "ARFCN = %s  channels 512+ refer to %s\n",
 		gsm_print_arfcn(arfcn),
 		(refer_pcs) ? "PCS (1900)" : "DCS (1800)");
-	print(priv, "Available SYSTEM INFORMATIONS =");
+	print(priv, "Available SYSTEM INFORMATION =");
 	if (s->si1)
 		print(priv, " 1");
 	if (s->si2)

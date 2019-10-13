@@ -144,7 +144,7 @@ void fb_rgb332_lineto(uint16_t x2,uint16_t y2){
 
 	int t,tmax;		/* counter for steps */
 	int err_inc,err_accu=0;	/* error delta and accumulator for */
-				/* Brensenham's algorhithm */
+				/* Brensenham's algorithm */
 
 	fb_limit_fb_range(&x1,&y1);
 	fb_limit_fb_range(&x2,&y2);

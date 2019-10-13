@@ -53,7 +53,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 
 int l23_app_init(struct osmocom_ms *ms)
 {
-	/* don't do layer3_init() as we don't want an actualy L3 */
+	/* don't do layer3_init() as we don't want an actual L3 */
 	fps_init();
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	return osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);

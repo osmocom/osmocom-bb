@@ -17,7 +17,7 @@
 #define	FREQ_TYPE_REP_5bis	0x40 /* sub channel of SI 5bis */
 #define	FREQ_TYPE_REP_5ter	0x80 /* sub channel of SI 5ter */
 
-/* structure of all received system informations */
+/* structure of all received system information */
 struct gsm48_sysinfo {
 	/* flags of available information */
 	uint8_t				si1, si2, si2bis, si2ter, si3,

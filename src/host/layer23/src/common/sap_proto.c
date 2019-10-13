@@ -177,7 +177,7 @@ void sap_msgb_add_param(struct msgb *msg,
  * \param[in] sap_msg pointer to SAP message header
  * \param[in] param_type parameter type (see sap_param_type enum)
  * \param[out] param_len parameter length (if found)
- * \returns pointer to a given parameter withing the message, NULL otherwise
+ * \returns pointer to a given parameter within the message, NULL otherwise
  */
 struct sap_param *sap_get_param(const struct sap_message *sap_msg,
 	enum sap_param_type param_type, uint16_t *param_len)

@@ -125,7 +125,7 @@ static int gsm411_sms_report(struct osmocom_ms *ms, struct gsm_sms *sms,
 {
 	vty_notify(ms, NULL);
 	if (!cause)
-		vty_notify(ms, "SMS to %s successfull\n", sms->address);
+		vty_notify(ms, "SMS to %s successful\n", sms->address);
 	else
 		vty_notify(ms, "SMS to %s failed: %s\n", sms->address,
 			get_value_string(gsm411_rp_cause_strs, cause));

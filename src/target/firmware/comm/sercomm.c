@@ -182,7 +182,7 @@ int sercomm_drv_pull(uint8_t *ch)
 			sercomm_unlock(&flags);
 			return 1;
 		} else {
-			/* no more data avilable */
+			/* no more data available */
 			sercomm_unlock(&flags);
 			return 0;
 		}

@@ -300,8 +300,8 @@ static void trf6151_pll_tx(uint32_t freq_khz,
 		/* Low band. We have 3 possible PLL modes that output on
 		 * the right port: GSM900, GSM850_HIGH, GSM850_LOW.
 		 *
-		 * The transistion points have been chosen looking at the VCO
-		 * and IF frequencies for various frequencies for theses modes
+		 * The transition points have been chosen looking at the VCO
+		 * and IF frequencies for various frequencies for these modes
 		 */
 		if (freq_khz < 837100) {
 			/* GSM850_LOW */

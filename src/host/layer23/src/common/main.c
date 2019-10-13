@@ -208,7 +208,7 @@ void sighandler(int sigset)
 	if (sigset == SIGHUP || sigset == SIGPIPE)
 		return;
 
-	fprintf(stderr, "Signal %d recevied.\n", sigset);
+	fprintf(stderr, "Signal %d received.\n", sigset);
 	if (l23_app_exit)
 		rc = l23_app_exit(ms);
 

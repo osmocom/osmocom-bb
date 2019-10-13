@@ -96,7 +96,7 @@ static void mncc_sock_close(struct mncc_sock_state *state)
 
 	/* FIXME: make sure we don't enqueue anymore */
 
-	/* release all exisitng calls */
+	/* release all existing calls */
 	mncc_clear_trans(state->inst, GSM48_PDISC_CC);
 
 	/* flush the queue */

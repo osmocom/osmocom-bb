@@ -58,7 +58,7 @@ enum {
 #define L3_MSG_HEAD 4
 
 static uint8_t sim_data[256]; /* buffer for SIM command */
-static volatile uint16_t sim_len = 0; /* lenght of data in sim_data[] */
+static volatile uint16_t sim_len = 0; /* length of data in sim_data[] */
 static volatile uint8_t sim_state = SIM_STATE_IDLE;
 	/* current state of SIM process */
 static volatile uint8_t sim_ignore_waiting_char = 0;

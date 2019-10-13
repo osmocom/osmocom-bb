@@ -570,7 +570,7 @@ static void l1ctl_rx_traffic_req(struct msgb *msg)
 	struct l1ctl_traffic_req *tr = (struct l1ctl_traffic_req *) ul->payload;
 	int num = 0;
 
-	/* printd("L1CTL_TRAFFIC_REQ\n"); */ /* Very verbose, can overwelm serial */
+	/* printd("L1CTL_TRAFFIC_REQ\n"); */ /* Very verbose, can overwhelm serial */
 
 	msg->l2h = tr->data;
 

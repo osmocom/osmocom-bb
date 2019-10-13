@@ -3,7 +3,7 @@
 
 /* 8bit monochrome framebuffer, organized with 8 stacked pixels
    per byte, backed by local memory. fb_bw8.c lists functions that
-   are common to simmilar organized displays. */
+   are common to similar organized displays. */
 
 /*
 	Sketch of Memory Layout 

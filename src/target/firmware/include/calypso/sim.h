@@ -160,7 +160,7 @@ void calypso_sim_powerdown(void);			/* Powerdown simcard */
 
 /* APDU transmission modes */
 #define SIM_APDU_PUT 0		/* Transmit a data body to the card */
-#define SIM_APDU_GET 1		/* Fetch data from the card eg. GET RESOPNSE */
+#define SIM_APDU_GET 1		/* Fetch data from the card eg. GET RESPONSE */
 
 
 void calypso_sim_init(void);				/* Initialize simcard interface */

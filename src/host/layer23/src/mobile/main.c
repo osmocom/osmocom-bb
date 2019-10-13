@@ -166,7 +166,7 @@ void sighandler(int sigset)
 		/* The first signal causes initiating of shutdown with detach
 		 * procedure. The second signal causes initiating of shutdown
 		 * without detach procedure. The third signal will exit process
-		 * immidiately. (in case it hangs)
+		 * immediately. (in case it hangs)
 		 */
 		if (count_int == 0) {
 			fprintf(stderr, "Performing shutdown with clean "

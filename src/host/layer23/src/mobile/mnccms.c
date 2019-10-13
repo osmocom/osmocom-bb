@@ -153,7 +153,7 @@ static void mncc_set_bearer(struct osmocom_ms *ms, int8_t speech_ver,
 	mncc->bearer_cap.speech_ctm = 0;
 	/* if no specific speech_ver is given */
 	if (speech_ver < 0) {
-		/* if half rate is supported and prefered */
+		/* if half rate is supported and preferred */
 		if (set->half_v3 && set->half && set->half_prefer) {
 			mncc->bearer_cap.speech_ver[i++] = 5;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v3\n");
@@ -175,7 +175,7 @@ static void mncc_set_bearer(struct osmocom_ms *ms, int8_t speech_ver,
 			mncc->bearer_cap.speech_ver[i++] = 0;
 			LOGP(DMNCC, LOGL_INFO, " support full rate v1\n");
 		}
-		/* if half rate is supported and not prefered */
+		/* if half rate is supported and not preferred */
 		if (set->half_v3 && set->half && !set->half_prefer) {
 			mncc->bearer_cap.speech_ver[i++] = 5;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v3\n");
@@ -331,7 +331,7 @@ int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
 			vty_notify(ms, "Call: Remote out of order\n");
 			break;
 		case GSM48_CC_CAUSE_INV_NR_FORMAT:
-			vty_notify(ms, "Call: Number invalid or imcomplete\n");
+			vty_notify(ms, "Call: Number invalid or incomplete\n");
 			break;
 		case GSM48_CC_CAUSE_NO_CIRCUIT_CHAN:
 			vty_notify(ms, "Call: No channel available\n");
