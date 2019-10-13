@@ -61,7 +61,7 @@ extern unsigned long volatile jiffies;
  * timer management
  */
 void osmo_timer_add(struct osmo_timer_list *timer);
-void osmo_timer_schedule(struct osmo_timer_list *timer, int miliseconds);
+void osmo_timer_schedule(struct osmo_timer_list *timer, int milliseconds);
 void osmo_timer_del(struct osmo_timer_list *timer);
 int osmo_timer_pending(struct osmo_timer_list *timer);
 
