@@ -5,6 +5,7 @@
 
 #include <osmocom/core/bits.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/linuxlist.h>
 
