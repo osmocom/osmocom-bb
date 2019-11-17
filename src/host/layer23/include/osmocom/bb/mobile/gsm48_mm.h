@@ -55,7 +55,7 @@
 
 /* MMxx-SAP header */
 struct gsm48_mmxx_hdr {
-	int		msg_type; /* MMxx_* primitive */
+	uint16_t	msg_type; /* MMxx_* primitive */
 	uint32_t	ref; /* reference to transaction */
 	uint32_t	transaction_id; /* transaction identifier */
 	uint8_t		sapi; /* sapi */
@@ -71,8 +71,7 @@ struct gsm48_mmxx_hdr {
 
 /* MMR-SAP header */
 struct gsm48_mmr {
-	int		msg_type;
-
+	uint8_t		msg_type;
 	uint8_t		cause;
 } __attribute__((packed));
 
