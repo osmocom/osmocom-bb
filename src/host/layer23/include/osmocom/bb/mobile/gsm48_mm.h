@@ -61,7 +61,7 @@ struct gsm48_mmxx_hdr {
 	uint8_t		sapi; /* sapi */
 	uint8_t		emergency; /* emergency type of call */
 	uint8_t		cause; /* cause used for release */
-};
+} __attribute__((packed));
 
 /* GSM 6.1.2 */
 #define	GSM48_MMR_REG_REQ		0x01
@@ -74,7 +74,7 @@ struct gsm48_mmr {
 	int		msg_type;
 
 	uint8_t		cause;
-};
+} __attribute__((packed));
 
 /* GSM 04.07 9.2.1 */
 #define GSM48_MMXX_ST_IDLE		0
@@ -140,7 +140,7 @@ struct gsm48_mm_event {
 	uint32_t	msg_type;
 
 	uint8_t		sres[4];
-};
+} __attribute__((packed));
 
 /* GSM 04.08 MM timers */
 #define GSM_T3210_MS    20, 0
