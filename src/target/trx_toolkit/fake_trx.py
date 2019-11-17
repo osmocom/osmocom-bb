@@ -110,6 +110,11 @@ class FakeTRX(Transceiver):
 	RSSI_BASE_DEFAULT = -60
 	CI_BASE_DEFAULT = 90
 
+	# Default values for NOPE / IDLE indications
+	TOA256_NOISE_DEFAULT = 0
+	RSSI_NOISE_DEFAULT = -110
+	CI_NOISE_DEFAULT = -30
+
 	def __init__(self, *trx_args, **trx_kwargs):
 		Transceiver.__init__(self, *trx_args, **trx_kwargs)
 
@@ -177,9 +182,6 @@ class FakeTRX(Transceiver):
 		return False
 
 	def _handle_data_msg_v1(self, src_msg, msg):
-		# TODO: NOPE indications are not (yet) supported
-		msg.nope_ind = False
-
 		# C/I (Carrier-to-Interference ratio)
 		msg.ci = self.ci
 
@@ -200,6 +202,26 @@ class FakeTRX(Transceiver):
 	# simulates RF path parameters (such as RSSI),
 	# and sends towards the L1
 	def handle_data_msg(self, src_trx, src_msg, msg):
+		# Path loss simulation
+		msg.nope_ind = self.sim_burst_drop(msg)
+		if msg.nope_ind:
+			# Before TRXDv1, we simply drop the message
+			if msg.ver < 0x01:
+				del msg
+				return
+
+			# Since TRXDv1, we should send a NOPE.ind
+			del msg.burst # burst bits are omited
+			msg.burst = None
+
+			# TODO: shoud we make these values configurable?
+			msg.toa256 = self.TOA256_NOISE_DEFAULT
+			msg.rssi = self.RSSI_NOISE_DEFAULT
+			msg.ci = self.CI_NOISE_DEFAULT
+
+			self.data_if.send_msg(msg)
+			return
+
 		# Complete message header
 		msg.toa256 = self.toa256
 		msg.rssi = self.rssi
@@ -211,10 +233,6 @@ class FakeTRX(Transceiver):
 		# Apply optional Timing Advance
 		if src_trx.ta != 0:
 			msg.toa256 -= src_trx.ta * 256
-
-		# Path loss simulation
-		if self.sim_burst_drop(msg):
-			return
 
 		# TODO: make legacy mode configurable (via argv?)
 		self.data_if.send_msg(msg, legacy = True)
