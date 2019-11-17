@@ -319,7 +319,7 @@ static uint8_t gsm48_rr_check_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 int gsm48_rr_alter_delay(struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct gsm_settings *set = &rr->ms->settings;
+	struct gsm_settings *set = &ms->settings;
 
 	if (rr->state != GSM48_RR_ST_DEDICATED)
 		return -EINVAL;
