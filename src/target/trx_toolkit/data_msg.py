@@ -630,7 +630,8 @@ class DATAMSG_TRX2L1(DATAMSG):
 		if self.toa256 < self.TOA256_MIN or self.toa256 > self.TOA256_MAX:
 			raise ValueError("ToA256 %d is out of range" % self.toa256)
 
-		if self.ver >= 0x01:
+		# Version specific parameters (omited for NOPE.ind)
+		if self.ver >= 0x01 and not self.nope_ind:
 			if type(self.mod_type) is not Modulation:
 				raise ValueError("Unknown Rx modulation type")
 
@@ -650,6 +651,8 @@ class DATAMSG_TRX2L1(DATAMSG):
 			if self.tsc not in self.TSC_RANGE:
 				raise ValueError("TSC %d is out of range" % self.tsc)
 
+		# Version specific parameters (also present in NOPE.ind)
+		if self.ver >= 0x01:
 			if self.ci is None:
 				raise ValueError("C/I is not set")
 
@@ -779,10 +782,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 			buf.append(mts)
 
 			# C/I: Carrier-to-Interference ratio (in centiBels)
-			if not self.nope_ind:
-				buf += struct.pack(">h", self.ci)
-			else:
-				buf += bytearray(2)
+			buf += struct.pack(">h", self.ci)
 
 		return buf
 
@@ -799,10 +799,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 			self.parse_mts(hdr[8])
 
 			# C/I: Carrier-to-Interference ratio (in centiBels)
-			if not self.nope_ind:
-				self.ci = struct.unpack(">h", hdr[9:11])[0]
-			else:
-				self.ci = None
+			self.ci = struct.unpack(">h", hdr[9:11])[0]
 
 	# Generates message specific burst
 	def gen_burst(self):
