@@ -65,12 +65,6 @@ class BurstForwarder:
 		self.trx_list.remove(trx)
 
 	def forward_msg(self, src_trx, rx_msg):
-		# Transform from L12TRX to TRX2L1
-		tx_msg = rx_msg.gen_trx2l1()
-		if tx_msg is None:
-			log.error("Forwarding failed, could not transform "
-				"message (%s) => dropping..." % rx_msg.desc_hdr())
-
 		# Iterate over all known transceivers
 		for trx in self.trx_list:
 			if trx == src_trx:
@@ -81,7 +75,9 @@ class BurstForwarder:
 				continue
 			if trx.rx_freq != src_trx.tx_freq:
 				continue
-			if tx_msg.tn not in trx.ts_list:
+			if rx_msg.tn not in trx.ts_list:
 				continue
 
-			trx.send_data_msg(src_trx, rx_msg, tx_msg)
+			# Transform from L12TRX to TRX2L1 and forward
+			tx_msg = rx_msg.gen_trx2l1(ver = trx.data_if._hdr_ver)
+			trx.handle_data_msg(src_trx, rx_msg, tx_msg)

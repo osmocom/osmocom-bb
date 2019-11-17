@@ -199,10 +199,7 @@ class FakeTRX(Transceiver):
 	# Takes (partially initialized) TRX2L1 message,
 	# simulates RF path parameters (such as RSSI),
 	# and sends towards the L1
-	def send_data_msg(self, src_trx, src_msg, msg):
-		# Override header version
-		msg.ver = self.data_if._hdr_ver
-
+	def handle_data_msg(self, src_trx, src_msg, msg):
 		# Complete message header
 		msg.toa256 = self.toa256
 		msg.rssi = self.rssi
