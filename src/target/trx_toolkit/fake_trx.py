@@ -4,7 +4,7 @@
 # TRX Toolkit
 # Virtual Um-interface (fake transceiver)
 #
-# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2019 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -22,7 +22,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-APP_CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+APP_CR_HOLDERS = [("2017-2019", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import signal
@@ -131,7 +131,7 @@ class FakeTRX(Transceiver):
 	@property
 	def toa256(self):
 		# Check if randomization is required
-		if self.toa256_rand_threshold is 0:
+		if self.toa256_rand_threshold == 0:
 			return self.toa256_base
 
 		# Generate a random ToA value in required range
@@ -142,7 +142,7 @@ class FakeTRX(Transceiver):
 	@property
 	def rssi(self):
 		# Check if randomization is required
-		if self.rssi_rand_threshold is 0:
+		if self.rssi_rand_threshold == 0:
 			return self.rssi_base
 
 		# Generate a random RSSI value in required range
@@ -153,7 +153,7 @@ class FakeTRX(Transceiver):
 	@property
 	def ci(self):
 		# Check if randomization is required
-		if self.ci_rand_threshold is 0:
+		if self.ci_rand_threshold == 0:
 			return self.ci_base
 
 		# Generate a random C/I value in required range
@@ -165,7 +165,7 @@ class FakeTRX(Transceiver):
 	# Returns: True - drop, False - keep
 	def sim_burst_drop(self, msg):
 		# Check if dropping is required
-		if self.burst_drop_amount is 0:
+		if self.burst_drop_amount == 0:
 			return False
 
 		if msg.fn % self.burst_drop_period == 0:
@@ -212,7 +212,7 @@ class FakeTRX(Transceiver):
 			self._handle_data_msg_v1(src_msg, msg)
 
 		# Apply optional Timing Advance
-		if src_trx.ta is not 0:
+		if src_trx.ta != 0:
 			msg.toa256 -= src_trx.ta * 256
 
 		# Path loss simulation
@@ -384,7 +384,7 @@ class Application(ApplicationBase):
 
 	def append_child_trx(self, remote_addr, base_port, child_idx, name = None):
 		# Index 0 corresponds to the first transceiver
-		if child_idx is 0:
+		if child_idx == 0:
 			self.append_trx(remote_addr, base_port, name)
 			return
 
