@@ -70,6 +70,7 @@ class CLCKGen:
 
 		# Initialize and start a new thread
 		self._thread = threading.Thread(target = self._worker)
+		self._thread.setDaemon(True)
 		self._thread.start()
 
 	def stop(self):
@@ -127,6 +128,9 @@ class Application(ApplicationBase):
 		self.link = UDPLink("127.0.0.1", 5800, "0.0.0.0", 5700)
 		self.clck = CLCKGen([self.link], ind_period = 51)
 		self.clck.start()
+
+		# Block unless we receive a signal
+		self.clck._thread.join()
 
 	def sig_handler(self, signum, frame):
 		log.info("Signal %d received" % signum)
