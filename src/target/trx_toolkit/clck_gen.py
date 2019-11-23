@@ -4,7 +4,7 @@
 # TRX Toolkit
 # Simple TDMA frame clock generator
 #
-# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2019 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -22,13 +22,14 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-APP_CR_HOLDERS = [("2017-2018", "Vadim Yanitskiy <axilirator@gmail.com>")]
+APP_CR_HOLDERS = [("2017-2019", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
+import threading
 import signal
+import time
 
 from app_common import ApplicationBase
-from threading import Timer
 from udp_link import UDPLink
 from gsm_shared import *
 
@@ -40,32 +41,54 @@ class CLCKGen:
 	# Average loop back delay
 	LO_DELAY_US = 90.0
 
-	# State variables
-	timer = None
-
 	def __init__(self, clck_links, clck_start = 0, ind_period = 102):
+		# This event is needed to control the thread
+		self._breaker = threading.Event()
+		self._thread = None
+
 		self.clck_links = clck_links
 		self.ind_period = ind_period
 		self.clck_start = clck_start
-		self.clck_src = clck_start
 
 		# Calculate counter time
 		self.ctr_interval  = self.GSM_FRAME_US - self.LO_DELAY_US
 		self.ctr_interval /= self.SEC_DELAY_US
 		self.ctr_interval *= self.ind_period
 
+	@property
+	def running(self):
+		if self._thread is None:
+			return False
+		return self._thread.isAlive()
+
 	def start(self):
-		# Send the first indication
-		self.send_clck_ind()
+		# Make sure we won't start two threads
+		assert(self._thread is None)
+
+		# (Re)set the clock counter
+		self.clck_src = self.clck_start
+
+		# Initialize and start a new thread
+		self._thread = threading.Thread(target = self._worker)
+		self._thread.start()
 
 	def stop(self):
-		# Stop pending timer
-		if self.timer is not None:
-			self.timer.cancel()
-			self.timer = None
+		# No thread, no problem ;)
+		if self._thread is None:
+			return
 
-		# Reset the clock source
-		self.clck_src = self.clck_start
+		# Stop the thread first
+		self._breaker.set()
+		self._thread.join()
+
+		# Free memory, reset breaker
+		del self._thread
+		self._thread = None
+		self._breaker.clear()
+
+	def _worker(self):
+		while not self._breaker.wait(self.ctr_interval):
+			self.send_clck_ind()
 
 	def send_clck_ind(self):
 		# Keep clock cycle
@@ -87,10 +110,6 @@ class CLCKGen:
 		# Increase frame count
 		self.clck_src += self.ind_period
 
-		# Schedule a new indication
-		self.timer = Timer(self.ctr_interval, self.send_clck_ind)
-		self.timer.start()
-
 # Just a wrapper for independent usage
 class Application(ApplicationBase):
 	def __init__(self):
@@ -102,7 +121,7 @@ class Application(ApplicationBase):
 
 		# Configure logging
 		log.basicConfig(level = log.DEBUG,
-			format = "[%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+			format = "[%(levelname)s] TID#%(thread)s %(filename)s:%(lineno)d %(message)s")
 
 	def run(self):
 		self.link = UDPLink("127.0.0.1", 5800, "0.0.0.0", 5700)

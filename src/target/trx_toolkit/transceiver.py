@@ -172,10 +172,10 @@ class Transceiver:
 				# Transceiver was started
 				clck_links.append(self.clck_if)
 
-			if not self.clck_gen.timer and len(clck_links) > 0:
+			if not self.clck_gen.running and len(clck_links) > 0:
 				log.info("Starting clock generator")
 				self.clck_gen.start()
-			elif self.clck_gen.timer and not clck_links:
+			elif self.clck_gen.running and not clck_links:
 				log.info("Stopping clock generator")
 				self.clck_gen.stop()
 
