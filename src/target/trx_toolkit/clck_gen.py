@@ -135,7 +135,6 @@ class Application(ApplicationBase):
 	def sig_handler(self, signum, frame):
 		log.info("Signal %d received" % signum)
 		if signum == signal.SIGINT:
-			print("Stopping timer")
 			self.clck.stop()
 
 if __name__ == '__main__':
