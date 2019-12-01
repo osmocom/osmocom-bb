@@ -264,6 +264,8 @@ int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 
 	/* Choose proper multiframe layout */
 	ts->mf_layout = sched_mframe_layout(config, tn);
+	if (!ts->mf_layout)
+		return -EINVAL;
 	if (ts->mf_layout->chan_config != config)
 		return -EINVAL;
 
