@@ -295,7 +295,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Allocate the application state machine */
-	osmo_fsm_register(&trxcon_fsm_def);
+	OSMO_ASSERT(osmo_fsm_register(&trxcon_fsm_def) == 0);
 	trxcon_fsm = osmo_fsm_inst_alloc(&trxcon_fsm_def, tall_trxcon_ctx,
 		NULL, LOGL_DEBUG, "main");
 
