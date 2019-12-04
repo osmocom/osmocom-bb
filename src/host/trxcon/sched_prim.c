@@ -171,14 +171,8 @@ static struct trx_ts_prim *prim_compose_mr(struct trx_lchan_state *lchan)
 	/* Compose a new Measurement Report primitive */
 	memcpy(prim->payload, mr_src_ptr, GSM_MACBLOCK_LEN);
 
-#if 0
 	/**
 	 * Update the L1 SACCH pseudo-header (only for cached MRs)
-	 *
-	 * FIXME: this would require having access to the trx_instance,
-	 * what can be achieved either by chain-passing the pointer
-	 * through sched_prim_dequeue(), or by adding some
-	 * back-pointers to the logical channel state.
 	 *
 	 * TODO: filling of the actual values into cached Measurement
 	 * Reports would break the distance spoofing feature. If it
@@ -186,10 +180,9 @@ static struct trx_ts_prim *prim_compose_mr(struct trx_lchan_state *lchan)
 	 * decide whether to update the cached L1 SACCH header here.
 	 */
 	if (!cached) {
-		prim->payload[0] = trx->tx_power;
-		prim->payload[1] = trx->ta;
+		prim->payload[0] = lchan->ts->trx->tx_power;
+		prim->payload[1] = lchan->ts->trx->ta;
 	}
-#endif
 
 	/* Inform about the cache usage count */
 	if (cached && lchan->sacch.mr_cache_usage > 5) {

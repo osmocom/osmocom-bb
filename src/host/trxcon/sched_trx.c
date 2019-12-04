@@ -202,6 +202,9 @@ struct trx_ts *sched_trx_add_ts(struct trx_instance *trx, int tn)
 	/* Allocate a new one */
 	trx->ts_list[tn] = talloc_zero(trx, struct trx_ts);
 
+	/* Add backpointer */
+	trx->ts_list[tn]->trx = trx;
+
 	/* Assign TS index */
 	trx->ts_list[tn]->index = tn;
 
@@ -286,6 +289,9 @@ int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 		lchan = talloc_zero(ts, struct trx_lchan_state);
 		if (!lchan)
 			return -ENOMEM;
+
+		/* set backpointer */
+		lchan->ts = ts;
 
 		/* Set channel type */
 		lchan->type = type;

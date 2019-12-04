@@ -237,6 +237,9 @@ struct trx_lchan_state {
 		uint8_t key_len;
 		uint8_t algo;
 	} a5;
+
+	/* TS that this lchan belongs to */
+	struct trx_ts *ts;
 };
 
 struct trx_ts {
@@ -251,6 +254,8 @@ struct trx_ts {
 	struct llist_head lchans;
 	/*! \brief Queue primitives for TX */
 	struct llist_head tx_prims;
+	/* backpointer to its TRX */
+	struct trx_instance *trx;
 };
 
 /* Represents one TX primitive in the queue of trx_ts */
