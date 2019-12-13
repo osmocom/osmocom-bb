@@ -71,4 +71,8 @@ done
 cd "$base/src"
 make firmware
 
+# TRX Toolkit unit tests
+cd "$base/src/target/trx_toolkit"
+python3 -m unittest discover -v
+
 osmo-clean-workspace.sh
