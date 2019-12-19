@@ -298,8 +298,9 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	/* send copy via GSMTAP */
 	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
 	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, link_id);
-	gsmtap_send(gsmtap_inst, 0|0x4000, chan_ts, gsmtap_chan_type,
-		    chan_ss, 0, 127, 255, msg->l2h, msgb_l2len(msg));
+	gsmtap_send(gsmtap_inst, ms->rrlayer.cd_now.arfcn | GSMTAP_ARFCN_F_UPLINK,
+		    chan_ts, gsmtap_chan_type, chan_ss, 0, 127, 255,
+		    msg->l2h, msgb_l2len(msg));
 
 	/* prepend uplink info header */
 	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));
