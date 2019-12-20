@@ -63,7 +63,7 @@ static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 	msg->l1h = msgb_put(msg, sizeof(*l1h));
 	l1h = (struct l1ctl_hdr *) msg->l1h;
 	l1h->msg_type = msg_type;
-	
+
 	return msg;
 }
 
@@ -636,7 +636,7 @@ static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DL1C, LOGL_INFO, "SIM %s\n", osmo_hexdump(data, len));
 
 	sim_apdu_resp(ms, msg);
-	
+
 	return 0;
 }
 
