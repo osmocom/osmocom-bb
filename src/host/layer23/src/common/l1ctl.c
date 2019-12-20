@@ -95,6 +95,34 @@ static uint8_t chantype_rsl2gsmtap_ext(uint8_t rsl_chantype, uint8_t link_id, ui
 	return GSMTAP_CHANNEL_AGCH;
 }
 
+static const uint8_t fill_frame[GSM_MACBLOCK_LEN] = {
+        0x03, 0x03, 0x01, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B,
+        0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B,
+        0x2B, 0x2B, 0x2B
+};
+
+/* Paging Request 1 with "no identity" content, i.e. empty/dummy paging */
+static const uint8_t paging_fill[GSM_MACBLOCK_LEN] = {
+	0x15, 0x06, 0x21, 0x00, 0x01, 0xf0, 0x2b, 0x2b, 0x2b, 0x2b,
+	0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b, 0x2b,
+	0x2b, 0x2b, 0x2b };
+
+static bool is_fill_frame(uint8_t chan_type, const uint8_t *data)
+{
+	switch (chan_type) {
+	case GSMTAP_CHANNEL_AGCH:
+		if (!memcmp(data, fill_frame, GSM_MACBLOCK_LEN))
+			return true;
+		break;
+	case GSMTAP_CHANNEL_PCH:
+		if (!memcmp(data, paging_fill, GSM_MACBLOCK_LEN))
+			return true;
+		break;
+	/* don't use 'default' case here as the above only conditionally return true */
+	}
+	return false;
+}
+
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {
 	struct l1ctl_hdr *l1h;
@@ -274,11 +302,15 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	/* send CCCH data via GSMTAP */
 	gsmtap_chan_type = chantype_rsl2gsmtap_ext(chan_type, dl->link_id, tm.fn, ms->cellsel.si->bs_ag_blks_res);
-	gsmtap_send(gsmtap_inst, ntohs(dl->band_arfcn), chan_ts,
-		    gsmtap_chan_type, chan_ss, tm.fn, dl->rx_level-110,
-		    dl->snr, ccch->data, sizeof(ccch->data));
+	/* don't log fill frames via GSMTAP; they serve no purpose other than
+	 * to clog up your logs */
+	if (!is_fill_frame(gsmtap_chan_type, ccch->data)) {
+		/* send CCCH data via GSMTAP */
+		gsmtap_send(gsmtap_inst, ntohs(dl->band_arfcn), chan_ts,
+			    gsmtap_chan_type, chan_ss, tm.fn, dl->rx_level-110,
+			    dl->snr, ccch->data, sizeof(ccch->data));
+	}
 
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
