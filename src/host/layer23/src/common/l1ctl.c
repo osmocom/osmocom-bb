@@ -50,6 +50,51 @@
 
 extern struct gsmtap_inst *gsmtap_inst;
 
+#define CB_FCCH		-1
+#define CB_SCH		-2
+#define CB_BCCH		-3
+#define CB_IDLE		-4
+
+/* according to TS 05.02 Clause 7 Table 3 of 9 an Figure 8a */
+static const int ccch_block_table[51] = {
+	CB_FCCH, CB_SCH,/* 0..1 */
+	CB_BCCH, CB_BCCH, CB_BCCH, CB_BCCH,	/* 2..5: BCCH */
+	0, 0, 0, 0,	/* 6..9: B0 */
+	CB_FCCH, CB_SCH,/* 10..11 */
+	1, 1, 1, 1,	/* 12..15: B1 */
+	2, 2, 2, 2,	/* 16..19: B2 */
+	CB_FCCH, CB_SCH,/* 20..21 */
+	3, 3, 3, 3,	/* 22..25: B3 */
+	4, 4, 4, 4,	/* 26..29: B4 */
+	CB_FCCH, CB_SCH,/* 30..31 */
+	5, 5, 5, 5,	/* 32..35: B5 */
+	6, 6, 6, 6,	/* 36..39: B6 */
+	CB_FCCH, CB_SCH,/* 40..41 */
+	7, 7, 7, 7, 	/* 42..45: B7 */
+	8, 8, 8, 8, 	/* 46..49: B8 */
+	-4		/* 50: Idle */
+};
+
+/* determine the CCCH block number based on the frame number */
+static unsigned int fn2ccch_block(uint32_t fn)
+{
+	int rc = ccch_block_table[fn%51];
+	/* if FN is negative, we were called for something that's not CCCH! */
+	OSMO_ASSERT(rc >= 0);
+	return rc;
+}
+
+static uint8_t chantype_rsl2gsmtap_ext(uint8_t rsl_chantype, uint8_t link_id, uint32_t fn, uint8_t num_agch)
+{
+	uint8_t ret = chantype_rsl2gsmtap(rsl_chantype, link_id);
+	if (ret != GSMTAP_CHANNEL_PCH)
+		return ret;
+
+	if (fn2ccch_block(fn) >= num_agch)
+		return GSMTAP_CHANNEL_PCH;
+	return GSMTAP_CHANNEL_AGCH;
+}
+
 static struct msgb *osmo_l1_alloc(uint8_t msg_type)
 {
 	struct l1ctl_hdr *l1h;
@@ -230,7 +275,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* send CCCH data via GSMTAP */
-	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, dl->link_id);
+	gsmtap_chan_type = chantype_rsl2gsmtap_ext(chan_type, dl->link_id, tm.fn, ms->cellsel.si->bs_ag_blks_res);
 	gsmtap_send(gsmtap_inst, ntohs(dl->band_arfcn), chan_ts,
 		    gsmtap_chan_type, chan_ss, tm.fn, dl->rx_level-110,
 		    dl->snr, ccch->data, sizeof(ccch->data));
