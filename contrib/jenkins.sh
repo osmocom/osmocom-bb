@@ -67,4 +67,8 @@ for dir in gprsdecode layer23 gsmmap osmocon trxcon virt_phy; do
 	make maintainer-clean
 done
 
+# Build the firmware (against the local copy of libosmocore)
+cd "$base/src"
+make firmware
+
 osmo-clean-workspace.sh
