@@ -82,7 +82,11 @@ int osmo_gpsd_cb(struct osmo_fd *bfd, unsigned int what)
 	g.valid = 0;
 
 	/* gps is offline */
+#if GPSD_API_MAJOR_VERSION >= 9 && GPSD_API_MINOR_VERSION >= 0
+	if (gdata->online.tv_sec || gdata->online.tv_nsec)
+#else
 	if (gdata->online)
+#endif
 	    goto gps_not_ready;
 
 #if GPSD_API_MAJOR_VERSION >= 5
@@ -102,7 +106,11 @@ int osmo_gpsd_cb(struct osmo_fd *bfd, unsigned int what)
 	/* data are valid */
 	if (gdata->set & LATLON_SET) {
 		g.valid = 1;
+#if GPSD_API_MAJOR_VERSION >= 9 && GPSD_API_MINOR_VERSION >= 0
+		g.gmt = gdata->fix.time.tv_sec;
+#else
 		g.gmt = gdata->fix.time;
+#endif
 		tm = localtime(&g.gmt);
 		diff = time(NULL) - g.gmt;
 		g.latitude = gdata->fix.latitude;
