@@ -446,7 +446,6 @@ static const struct trx_cmd_handler trx_handlers[] = {
 	{ "SETRXGAIN",	_trx_ctrl_cmd_setrxgain },
 	{ "SETMAXDLY",	_trx_ctrl_cmd_setmaxdly },
 	{ "SETSLOT",	_trx_ctrl_cmd_setslot },
-	{ "SETSLOT",	_trx_ctrl_cmd_setslot },
 	{ "RXTUNE",	_trx_ctrl_cmd_rxtune },
 	{ "TXTUNE",	_trx_ctrl_cmd_txtune },
 	{ "HANDOVER",	_trx_ctrl_cmd_handover },
