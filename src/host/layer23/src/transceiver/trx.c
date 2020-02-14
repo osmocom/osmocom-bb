@@ -207,17 +207,19 @@ trx_clk_ind(struct trx *trx, uint32_t fn)
 #define TRX_CMD_BUF_LEN	128
 
 static int
-_trx_ctrl_send_resp(struct trx *trx, const char *cmd, const char *fmt, ...)
+_trx_ctrl_send_resp(struct trx *trx, const char *cmd, int status, const char *fmt, ...)
 {
 	va_list ap;
 	char buf[TRX_CMD_BUF_LEN];
 	int l;
 
-	l = snprintf(buf, sizeof(buf)-1, "RSP %s ", cmd);
+	l = snprintf(buf, sizeof(buf)-1, "RSP %s %d ", cmd, status);
 
-	va_start(ap, fmt);
-	l += vsnprintf(buf+l, sizeof(buf)-l-1, fmt, ap);
-	va_end(ap);
+	if (fmt != NULL) {
+		va_start(ap, fmt);
+		l += vsnprintf(buf+l, sizeof(buf)-l-1, fmt, ap);
+		va_end(ap);
+	}
 
 	buf[l] = '\0';
 
@@ -238,7 +240,7 @@ _trx_ctrl_cmd_poweroff(struct trx *trx, const char *cmd, const char *args)
 		if (trx->l1l[i])
 			l1ctl_tx_bts_mode(trx->l1l[i], 0, trx->type, 0, 0, 0, 0, 0, trx->handover);
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d", 0);
+	return _trx_ctrl_send_resp(trx, cmd, 0, NULL);
 }
 
 static int
@@ -259,7 +261,7 @@ _trx_ctrl_cmd_poweron(struct trx *trx, const char *cmd, const char *args)
 				l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask, trx->handover);
 	}
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d", rv);
+	return _trx_ctrl_send_resp(trx, cmd, rv, NULL);
 }
 
 static int
@@ -269,7 +271,7 @@ _trx_ctrl_cmd_settsc(struct trx *trx, const char *cmd, const char *args)
 		"TRX received SETTSC command ! "
 		"OpenBTS should be configured to send SETBSIC command !\n");
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d", -1);
+	return _trx_ctrl_send_resp(trx, cmd, -1, NULL);
 }
 
 static int
@@ -279,12 +281,13 @@ _trx_ctrl_cmd_setbsic(struct trx *trx, const char *cmd, const char *args)
 
 	if (bsic >= 64) {
 		LOGP(DTRX, LOGL_ERROR, "Invalid BSIC received\n");
-		return _trx_ctrl_send_resp(trx, cmd, "%d", -1);
+		return _trx_ctrl_send_resp(trx, cmd, -1, NULL);
 	}
 
 	trx->bsic = bsic;
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d", 0);
+	/* FIXME: include the arguments in response */
+	return _trx_ctrl_send_resp(trx, cmd, 0, NULL);
 }
 
 static int
@@ -295,7 +298,7 @@ _trx_ctrl_cmd_setrxgain(struct trx *trx, const char *cmd, const char *args)
 
 	if (db < 0 || db > 63) {
 		LOGP(DTRX, LOGL_ERROR, "Invalid gain received\n");
-		return _trx_ctrl_send_resp(trx, cmd, "%d %d", -1, db);
+		return _trx_ctrl_send_resp(trx, cmd, -1, "%d", db);
 	}
 
 	trx->gain = db;
@@ -306,7 +309,7 @@ _trx_ctrl_cmd_setrxgain(struct trx *trx, const char *cmd, const char *args)
 				l1ctl_tx_bts_mode(trx->l1l[i], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[i]->tx_mask, trx->l1l[i]->rx_mask, trx->handover);
 	}
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, db);
+	return _trx_ctrl_send_resp(trx, cmd, 0, "%d", db);
 }
 
 static int
@@ -314,7 +317,7 @@ _trx_ctrl_cmd_setpower(struct trx *trx, const char *cmd, const char *args)
 {
 	int db = atoi(args);
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, db);
+	return _trx_ctrl_send_resp(trx, cmd, 0, "%d", db);
 }
 
 static int
@@ -322,7 +325,7 @@ _trx_ctrl_cmd_setmaxdly(struct trx *trx, const char *cmd, const char *args)
 {
 	int dly = atoi(args);
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d %d", 0, dly);
+	return _trx_ctrl_send_resp(trx, cmd, 0, "%d", dly);
 }
 
 static int
@@ -333,14 +336,14 @@ _trx_ctrl_cmd_setslot(struct trx *trx, const char *cmd, const char *args)
 	n = sscanf(args, "%d %d", &tn, &type);
 
 	if ((n != 2) || (tn < 0) || (tn > 7) || (type < 0) || ((type > 8) && (type != 13)))
-		return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", -1, tn, type);
+		return _trx_ctrl_send_resp(trx, cmd, -1, "%d %d", tn, type);
 
 	trx->type[tn] = type;
 
 	if (trx->l1l[tn])
 		l1ctl_tx_bts_mode(trx->l1l[tn], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[tn]->tx_mask, trx->l1l[tn]->rx_mask, trx->handover);
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", 0, tn, type);
+	return _trx_ctrl_send_resp(trx, cmd, 0, "%d %d", tn, type);
 }
 
 static int
@@ -367,7 +370,7 @@ _trx_ctrl_cmd_rxtune(struct trx *trx, const char *cmd, const char *args)
 	}
 
 done:
-	return _trx_ctrl_send_resp(trx, cmd, "%d %d", rv, freq_khz);
+	return _trx_ctrl_send_resp(trx, cmd, rv, "%d", freq_khz);
 }
 
 static int
@@ -393,7 +396,7 @@ _trx_ctrl_cmd_txtune(struct trx *trx, const char *cmd, const char *args)
 	}
 
 done:
-	return _trx_ctrl_send_resp(trx, cmd, "%d %d", rv, freq_khz);
+	return _trx_ctrl_send_resp(trx, cmd, rv, "%d", freq_khz);
 }
 
 static int
@@ -404,14 +407,14 @@ _trx_ctrl_cmd_handover(struct trx *trx, const char *cmd, const char *args)
 	n = sscanf(args, "%d %d", &tn, &ss);
 
 	if ((n < 1) || (tn < 0) || (tn > 7) || (ss < 0) || ((ss > 8)))
-		return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", -1, tn, ss);
+		return _trx_ctrl_send_resp(trx, cmd, -1, "%d %d", tn, ss);
 
 	trx->handover[tn] |= (1 << ss);
 
 	if (trx->l1l[tn])
 		l1ctl_tx_bts_mode(trx->l1l[tn], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[tn]->tx_mask, trx->l1l[tn]->rx_mask, trx->handover);
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", 0, tn, ss);
+	return _trx_ctrl_send_resp(trx, cmd, 0, "%d %d", tn, ss);
 }
 
 static int
@@ -422,14 +425,14 @@ _trx_ctrl_cmd_nohandover(struct trx *trx, const char *cmd, const char *args)
 	n = sscanf(args, "%d %d", &tn, &ss);
 
 	if ((n < 1) || (tn < 0) || (tn > 7) || (ss < 0) || ((ss > 8)))
-		return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", -1, tn, ss);
+		return _trx_ctrl_send_resp(trx, cmd, -1, "%d %d", tn, ss);
 
 	trx->handover[tn] &= ~(1 << ss);
 
 	if (trx->l1l[tn])
 		l1ctl_tx_bts_mode(trx->l1l[tn], 1, trx->type, trx->bsic, trx->arfcn, trx->gain, trx->l1l[tn]->tx_mask, trx->l1l[tn]->rx_mask, trx->handover);
 
-	return _trx_ctrl_send_resp(trx, cmd, "%d %d %d", 0, tn, ss);
+	return _trx_ctrl_send_resp(trx, cmd, 0, "%d %d", tn, ss);
 }
 
 struct trx_cmd_handler {
@@ -505,7 +508,7 @@ _trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 
 	if (!ch->cmd) {
 		LOGP(DTRX, LOGL_ERROR, "[!] No handlers found for command '%s'. Empty response\n", cmd);
-		_trx_ctrl_send_resp(trx, cmd, "%d", -1);
+		_trx_ctrl_send_resp(trx, cmd, -1, NULL);
 	}
 
 	/* Done ! */
