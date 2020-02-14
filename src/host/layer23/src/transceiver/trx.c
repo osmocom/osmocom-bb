@@ -507,7 +507,8 @@ _trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 
 	if (!ch->cmd) {
 		LOGP(DTRX, LOGL_ERROR, "[!] No handlers found for command '%s'. Empty response\n", cmd);
-		_trx_ctrl_send_resp(trx, cmd, -1, args);
+		/* Mimic behaviour of OsmoTRX on receipt of an unknown command */
+		_trx_ctrl_send_resp(trx, "ERR", 1, NULL);
 	}
 
 	/* Done ! */
