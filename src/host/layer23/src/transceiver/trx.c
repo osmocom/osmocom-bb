@@ -271,7 +271,7 @@ _trx_ctrl_cmd_settsc(struct trx *trx, const char *cmd, const char *args)
 		"TRX received SETTSC command ! "
 		"OpenBTS should be configured to send SETBSIC command !\n");
 
-	return _trx_ctrl_send_resp(trx, cmd, -1, NULL);
+	return _trx_ctrl_send_resp(trx, cmd, -1, "%s", args);
 }
 
 static int
@@ -281,13 +281,12 @@ _trx_ctrl_cmd_setbsic(struct trx *trx, const char *cmd, const char *args)
 
 	if (bsic >= 64) {
 		LOGP(DTRX, LOGL_ERROR, "Invalid BSIC received\n");
-		return _trx_ctrl_send_resp(trx, cmd, -1, NULL);
+		return _trx_ctrl_send_resp(trx, cmd, -1, "%d", bsic);
 	}
 
 	trx->bsic = bsic;
 
-	/* FIXME: include the arguments in response */
-	return _trx_ctrl_send_resp(trx, cmd, 0, NULL);
+	return _trx_ctrl_send_resp(trx, cmd, 0, "%d", bsic);
 }
 
 static int
@@ -508,7 +507,7 @@ _trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 
 	if (!ch->cmd) {
 		LOGP(DTRX, LOGL_ERROR, "[!] No handlers found for command '%s'. Empty response\n", cmd);
-		_trx_ctrl_send_resp(trx, cmd, -1, NULL);
+		_trx_ctrl_send_resp(trx, cmd, -1, args);
 	}
 
 	/* Done ! */
