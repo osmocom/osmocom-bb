@@ -62,6 +62,7 @@ static int layer2_read(struct osmo_fd *fd)
 		if (rc >= 0)
 			rc = -EIO;
 		layer2_close((struct osmocom_ms *) fd->data);
+		exit(102);
 		return rc;
 	}
 
