@@ -218,6 +218,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct rx_meas_stat *meas = &ms->meas;
 	uint8_t chan_type, chan_ts, chan_ss;
 	uint8_t gsmtap_chan_type;
+	uint8_t bs_ag_blks_res;
 	struct gsm_time tm;
 
 	if (msgb_l1len(msg) < sizeof(*dl)) {
@@ -302,7 +303,13 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 
-	gsmtap_chan_type = chantype_rsl2gsmtap_ext(chan_type, dl->link_id, tm.fn, ms->cellsel.si->bs_ag_blks_res);
+	/* May not be initialized in some applications (e.g. ccch_scan) */
+	if (ms->cellsel.si != NULL)
+		bs_ag_blks_res = ms->cellsel.si->bs_ag_blks_res;
+	else /* fall-back to 1 (this is what OsmoBTS does) */
+		bs_ag_blks_res = 1;
+
+	gsmtap_chan_type = chantype_rsl2gsmtap_ext(chan_type, dl->link_id, tm.fn, bs_ag_blks_res);
 	/* don't log fill frames via GSMTAP; they serve no purpose other than
 	 * to clog up your logs */
 	if (!is_fill_frame(gsmtap_chan_type, ccch->data)) {
