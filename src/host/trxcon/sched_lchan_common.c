@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: common routines for lchan handlers
  *
- * (C) 2017-2019 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2020 by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * All Rights Reserved
  *
@@ -83,6 +83,25 @@ const uint8_t sched_nb_training_bits[8][26] = {
 		0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0,
 	},
 };
+
+/* Get a string representation of the burst buffer's completeness.
+ * Examples: "  ****.." (incomplete, 4/6 bursts)
+ *           "    ****" (complete, all 4 bursts)
+ *           "**.***.." (incomplete, 5/8 bursts) */
+const char *burst_mask2str(const uint8_t *mask, int bits)
+{
+	/* TODO: CSD is interleaved over 22 bursts, so the mask needs to be extended */
+	static char buf[8 + 1];
+	char *ptr = buf;
+
+	OSMO_ASSERT(bits <= 8 && bits > 0);
+
+	while (--bits >= 0)
+		*(ptr++) = (*mask & (1 << bits)) ? '*' : '.';
+	*ptr = '\0';
+
+	return buf;
+}
 
 int sched_gsmtap_send(enum trx_lchan_type lchan_type, uint32_t fn, uint8_t tn,
 		      uint16_t band_arfcn, int8_t signal_dbm, uint8_t snr,

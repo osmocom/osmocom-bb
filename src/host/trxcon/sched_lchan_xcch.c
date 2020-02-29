@@ -87,8 +87,9 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Check for complete set of bursts */
 	if ((*mask & 0xf) != 0xf) {
-		LOGP(DSCHD, LOGL_ERROR, "Received incomplete data frame at "
-			"fn=%u (%u/%u) for %s\n", *first_fn,
+		LOGP(DSCHD, LOGL_ERROR, "Received incomplete (%s) data frame at "
+			"fn=%u (%u/%u) for %s\n",
+			burst_mask2str(mask, 4), *first_fn,
 			(*first_fn) % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);

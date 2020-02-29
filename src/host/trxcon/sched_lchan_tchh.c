@@ -299,8 +299,9 @@ int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Check decoding result */
 	if (rc < 4) {
-		LOGP(DSCHD, LOGL_ERROR, "Received bad TCH frame ending at "
-			"fn=%u on %s (rc=%d)\n", fn, lchan_desc->name, rc);
+		LOGP(DSCHD, LOGL_ERROR, "Received bad TCH frame (%s) ending at "
+			"fn=%u on %s (rc=%d)\n", burst_mask2str(mask, 6),
+			fn, lchan_desc->name, rc);
 
 		/* Send BFI */
 		goto bfi;
