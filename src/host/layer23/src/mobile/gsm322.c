@@ -2635,6 +2635,8 @@ static int gsm322_c_camp_sysinfo_bcch(struct osmocom_ms *ms, struct msgb *msg)
 			if (cs->list[cs->arfci].sysinfo) {
 				LOGP(DCS, LOGL_DEBUG, "free sysinfo arfcn=%s\n",
 					gsm_print_arfcn(cs->arfcn));
+				if (cs->si == cs->list[cs->arfci].sysinfo)
+					cs->si = NULL;
 				talloc_free(cs->list[cs->arfci].sysinfo);
 				cs->list[cs->arfci].sysinfo = NULL;
 			}
@@ -2752,6 +2754,8 @@ static void gsm322_cs_timeout(void *arg)
 	if (cs->list[cs->arfci].sysinfo) {
 		LOGP(DCS, LOGL_DEBUG, "free sysinfo arfcn=%s\n",
 			gsm_print_arfcn(cs->arfcn));
+		if (cs->si == cs->list[cs->arfci].sysinfo)
+			cs->si = NULL;
 		talloc_free(cs->list[cs->arfci].sysinfo);
 		cs->list[cs->arfci].sysinfo = NULL;
 	}
@@ -2919,6 +2923,8 @@ int gsm322_l1_signal(unsigned int subsys, unsigned int signal,
 			cs->list[i].flags &= ~GSM322_CS_FLAG_SYSINFO;
 			LOGP(DCS, LOGL_DEBUG, "free sysinfo ARFCN=%s\n",
 				gsm_print_arfcn(index2arfcn(i)));
+			if (cs->si == cs->list[i].sysinfo)
+				cs->si = NULL;
 			talloc_free(cs->list[i].sysinfo);
 			cs->list[i].sysinfo = NULL;
 		}
@@ -5145,6 +5151,7 @@ int gsm322_exit(struct osmocom_ms *ms)
 				gsm_print_arfcn(index2arfcn(i)));
 			talloc_free(cs->list[i].sysinfo);
 			cs->list[i].sysinfo = NULL;
+			cs->si = NULL;
 		}
 		cs->list[i].flags = 0;
 	}
