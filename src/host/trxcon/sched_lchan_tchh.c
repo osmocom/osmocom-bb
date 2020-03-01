@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
- * (C) 2018 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2018-2020 by Vadim Yanitskiy <axilirator@gmail.com>
  * (C) 2018 by Harald Welte <laforge@gnumonks.org>
  *
  * All Rights Reserved
@@ -200,7 +200,7 @@ uint32_t sched_tchh_block_dl_first_fn(enum trx_lchan_type chan,
 
 int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	sbit_t *bits, int8_t rssi, int16_t toa256)
+	sbit_t *bits, const struct trx_meas_set *meas)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	int n_errors = -1, n_bits_total, rc;
@@ -234,16 +234,8 @@ int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Update mask */
 	*mask |= (1 << bid);
 
-	/**
-	 * FIXME: properly update measurements
-	 *
-	 * Since TCH/H channel is using block-diagonal interleaving,
-	 * a single burst may carry 57 bits of one encoded frame,
-	 * and 57 bits of another. This should be taken into account.
-	 */
-	lchan->meas.rssi_sum += rssi;
-	lchan->meas.toa256_sum += toa256;
-	lchan->meas.num++;
+	/* Store the measurements */
+	sched_trx_meas_push(lchan, meas);
 
 	/* Copy burst to the end of buffer of 6 bursts */
 	offset = buffer + bid * 116 + 464;
@@ -303,6 +295,9 @@ int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 			"fn=%u on %s (rc=%d)\n", burst_mask2str(mask, 6),
 			fn, lchan_desc->name, rc);
 
+		/* Calculate AVG of the measurements (assuming 4 bursts) */
+		sched_trx_meas_avg(lchan, 4);
+
 		/* Send BFI */
 		goto bfi;
 	} else if (rc == GSM_MACBLOCK_LEN) {
@@ -313,6 +308,9 @@ int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 		lchan->rx_first_fn = sched_tchh_block_dl_first_fn(lchan->type,
 			fn, true); /* FACCH/H */
 
+		/* Calculate AVG of the measurements (FACCH/H takes 6 bursts) */
+		sched_trx_meas_avg(lchan, 6);
+
 		/* FACCH/H received, forward to the higher layers */
 		sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
 			n_errors, false, false);
@@ -322,6 +320,9 @@ int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 	} else {
 		/* A good TCH frame received */
 		l2_len = rc;
+
+		/* Calculate AVG of the measurements (traffic takes 4 bursts) */
+		sched_trx_meas_avg(lchan, 4);
 	}
 
 	/* Calculate TDMA frame number of the first burst */
@@ -341,9 +342,14 @@ bfi_shift:
 	*mask = *mask << 2;
 
 bfi:
-	/* Didn't try to decode */
-	if (n_errors < 0)
+	/* Didn't try to decode, fake measurements */
+	if (n_errors < 0) {
+		lchan->meas_avg = (struct trx_meas_set) {
+			.toa256 = 0,
+			.rssi = -110,
+		};
 		n_errors = 116 * 2;
+	}
 
 	/* Calculate TDMA frame number of the first burst */
 	lchan->rx_first_fn = sched_tchh_block_dl_first_fn(lchan->type,

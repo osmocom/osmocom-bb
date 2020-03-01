@@ -126,9 +126,9 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint8_t *l2, size_t l2_len,
 	int bit_error_count, bool dec_failed, bool traffic)
 {
+	const struct trx_meas_set *meas = &lchan->meas_avg;
 	const struct trx_lchan_desc *lchan_desc;
 	struct l1ctl_info_dl dl_hdr;
-	int dbm_avg = 0;
 
 	/* Set up pointers */
 	lchan_desc = &trx_lchan_desc[lchan->type];
@@ -140,15 +140,8 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	dl_hdr.frame_nr = htonl(lchan->rx_first_fn);
 	dl_hdr.num_biterr = bit_error_count;
 
-	/* Convert average RSSI to RX level */
-	if (lchan->meas.num) {
-		/* RX level: 0 .. 63 in typical GSM notation (dBm + 110) */
-		dbm_avg = lchan->meas.rssi_sum / lchan->meas.num;
-		dl_hdr.rx_level = dbm2rxlev(dbm_avg);
-	} else {
-		/* No measurements, assuming the worst */
-		dl_hdr.rx_level = 0;
-	}
+	/* RX level: 0 .. 63 in typical GSM notation (dBm + 110) */
+	dl_hdr.rx_level = dbm2rxlev(meas->rssi);
 
 	/* FIXME: set proper values */
 	dl_hdr.snr = 0;
@@ -162,7 +155,7 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	/* Optional GSMTAP logging */
 	if (l2_len > 0 && (!traffic || lchan_desc->chan_nr == RSL_CHAN_OSMO_PDCH)) {
 		sched_gsmtap_send(lchan->type, lchan->rx_first_fn, ts->index,
-				  trx->band_arfcn, dbm_avg, 0, l2, l2_len);
+				  trx->band_arfcn, meas->rssi, 0, l2, l2_len);
 	}
 
 	return 0;

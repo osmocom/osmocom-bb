@@ -555,6 +555,7 @@ rsp_error:
 static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
+	struct trx_meas_set meas;
 	uint8_t buf[256];
 	sbit_t bits[148];
 	int8_t rssi, tn;
@@ -595,8 +596,14 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	LOGP(DTRXD, LOGL_DEBUG, "RX burst tn=%u fn=%u rssi=%d toa=%d\n",
 		tn, fn, rssi, toa256);
 
+	/* Group the measurements together */
+	meas = (struct trx_meas_set) {
+		.toa256 = toa256,
+		.rssi = rssi,
+	};
+
 	/* Poke scheduler */
-	sched_trx_handle_rx_burst(trx, tn, fn, bits, 148, rssi, toa256);
+	sched_trx_handle_rx_burst(trx, tn, fn, bits, 148, &meas);
 
 	/* Correct local clock counter */
 	if (fn % 51 == 0)

@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
- * (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2020 by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * All Rights Reserved
  *
@@ -44,7 +44,7 @@
 
 int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	sbit_t *bits, int8_t rssi, int16_t toa256)
+	sbit_t *bits, const struct trx_meas_set *meas)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	int n_errors = -1, n_bits_total, rc;
@@ -64,9 +64,6 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Reset internal state */
 	if (bid == 0) {
-		/* Clean up old measurements */
-		memset(&lchan->meas, 0x00, sizeof(lchan->meas));
-
 		*first_fn = fn;
 		*mask = 0x00;
 	}
@@ -74,10 +71,8 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Update mask */
 	*mask |= (1 << bid);
 
-	/* Update mask and RSSI */
-	lchan->meas.rssi_sum += rssi;
-	lchan->meas.toa256_sum += toa256;
-	lchan->meas.num++;
+	/* Store the measurements */
+	sched_trx_meas_push(lchan, meas);
 
 	/* Copy burst to end of buffer of 8 bursts */
 	offset = buffer + bid * 116 + 464;
@@ -87,6 +82,9 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Wait until complete set of bursts */
 	if (bid != 3)
 		return 0;
+
+	/* Calculate AVG of the measurements */
+	sched_trx_meas_avg(lchan, 8);
 
 	/* Check for complete set of bursts */
 	if ((*mask & 0xf) != 0xf) {
@@ -150,9 +148,14 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		n_errors, false, true);
 
 bfi:
-	/* Didn't try to decode */
-	if (n_errors < 0)
+	/* Didn't try to decode, fake measurements */
+	if (n_errors < 0) {
+		lchan->meas_avg = (struct trx_meas_set) {
+			.toa256 = 0,
+			.rssi = -110,
+		};
 		n_errors = 116 * 4;
+	}
 
 	/* BFI is not applicable in signalling mode */
 	if (lchan->tch_mode == GSM48_CMODE_SIGN)

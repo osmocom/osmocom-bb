@@ -40,6 +40,7 @@
 
 /* Forward declaration to avoid mutual include */
 struct trx_lchan_state;
+struct trx_meas_set;
 struct trx_instance;
 struct trx_ts;
 
@@ -99,7 +100,7 @@ enum trx_lchan_type {
 typedef int trx_lchan_rx_func(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
 	uint32_t fn, uint8_t bid, sbit_t *bits,
-	int8_t rssi, int16_t toa256);
+	const struct trx_meas_set *meas);
 
 typedef int trx_lchan_tx_func(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
@@ -157,6 +158,19 @@ struct trx_multiframe {
 	const struct trx_frame *frames;
 };
 
+struct trx_meas_set {
+	/*! \brief ToA256 (Timing of Arrival, 1/256 of a symbol) */
+	int16_t toa256;
+	/*! \brief RSSI (Received Signal Strength Indication) */
+	int8_t rssi;
+};
+
+/* Simple ring buffer (up to 8 unique measurements) */
+struct trx_lchan_meas_hist {
+	struct trx_meas_set buf[8];
+	struct trx_meas_set *head;
+};
+
 /* States each channel on a multiframe */
 struct trx_lchan_state {
 	/*! \brief Channel type */
@@ -190,14 +204,10 @@ struct trx_lchan_state {
 	/*! \brief pending FACCH/H blocks on Uplink */
 	uint8_t ul_facch_blocks;
 
-	struct {
-		/*! \brief Number of measurements */
-		unsigned int num;
-		/*! \brief Sum of RSSI values */
-		float rssi_sum;
-		/*! \brief Sum of TOA values */
-		int32_t toa256_sum;
-	} meas;
+	/*! \brief Downlink measurements history */
+	struct trx_lchan_meas_hist meas_hist;
+	/*! \brief AVG measurements of the last received block */
+	struct trx_meas_set meas_avg;
 
 	/*! \brief SACCH state */
 	struct {
@@ -347,7 +357,7 @@ void sched_prim_flush_queue(struct llist_head *list);
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint32_t burst_fn, sbit_t *bits, uint16_t nbits,
-	int8_t rssi, int16_t toa256);
+	const struct trx_meas_set *meas);
 int sched_trx_handle_tx_burst(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
 	uint32_t fn, ubit_t *bits);
@@ -381,3 +391,7 @@ bool sched_tchh_block_map_fn(enum trx_lchan_type chan,
 	sched_tchh_block_map_fn(chan, fn, ul, 1, 1)
 #define sched_tchh_facch_end(chan, fn, ul) \
 	sched_tchh_block_map_fn(chan, fn, ul, 1, 0)
+
+/* Measurement history */
+void sched_trx_meas_push(struct trx_lchan_state *lchan, const struct trx_meas_set *meas);
+void sched_trx_meas_avg(struct trx_lchan_state *lchan, unsigned int n);

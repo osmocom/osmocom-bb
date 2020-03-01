@@ -613,7 +613,7 @@ static void sched_trx_a5_burst_enc(struct trx_lchan_state *lchan,
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint32_t burst_fn, sbit_t *bits, uint16_t nbits,
-	int8_t rssi, int16_t toa256)
+	const struct trx_meas_set *meas)
 {
 	struct trx_lchan_state *lchan;
 	const struct trx_frame *frame;
@@ -674,7 +674,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 				sched_trx_a5_burst_dec(lchan, fn, bits);
 
 			/* Put burst to handler */
-			handler(trx, ts, lchan, fn, bid, bits, rssi, toa256);
+			handler(trx, ts, lchan, fn, bid, bits, meas);
 		}
 
 next_frame:
@@ -709,4 +709,51 @@ int sched_trx_handle_tx_burst(struct trx_instance *trx,
 	}
 
 	return 0;
+}
+
+#define MEAS_HIST_FIRST(hist) \
+	(&hist->buf[0])
+#define MEAS_HIST_LAST(hist) \
+	(MEAS_HIST_FIRST(hist) + ARRAY_SIZE(hist->buf) - 1)
+
+/* Add a new set of measurements to the history */
+void sched_trx_meas_push(struct trx_lchan_state *lchan, const struct trx_meas_set *meas)
+{
+	struct trx_lchan_meas_hist *hist = &lchan->meas_hist;
+
+	/* Find a new position where to store the measurements */
+	if (hist->head == MEAS_HIST_LAST(hist) || hist->head == NULL)
+		hist->head = MEAS_HIST_FIRST(hist);
+	else
+		hist->head++;
+
+	*hist->head = *meas;
+}
+
+/* Calculate the AVG of n measurements from the history */
+void sched_trx_meas_avg(struct trx_lchan_state *lchan, unsigned int n)
+{
+	struct trx_lchan_meas_hist *hist = &lchan->meas_hist;
+	struct trx_meas_set *meas = hist->head;
+	int toa256_sum = 0;
+	int rssi_sum = 0;
+	int i;
+
+	OSMO_ASSERT(n > 0 && n <= ARRAY_SIZE(hist->buf));
+	OSMO_ASSERT(meas != NULL);
+
+	/* Traverse backwards up to n entries, calculate the sum */
+	for (i = 0; i < n; i++) {
+		toa256_sum += meas->toa256;
+		rssi_sum += meas->rssi;
+
+		if (meas == MEAS_HIST_FIRST(hist))
+			meas = MEAS_HIST_LAST(hist);
+		else
+			meas--;
+	}
+
+	/* Calculate the AVG */
+	lchan->meas_avg.toa256 = toa256_sum / n;
+	lchan->meas_avg.rssi = rssi_sum / n;
 }

@@ -70,7 +70,7 @@ static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 
 int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	sbit_t *bits, int8_t rssi, int16_t toa256)
+	sbit_t *bits, const struct trx_meas_set *meas)
 {
 	sbit_t payload[2 * 39];
 	struct gsm_time time;
@@ -117,7 +117,7 @@ int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	data->link_id = trx_lchan_desc[lchan->type].link_id;
 	data->band_arfcn = htons(trx->band_arfcn);
 	data->frame_nr = htonl(fn);
-	data->rx_level = -rssi;
+	data->rx_level = -(meas->rssi);
 
 	/* FIXME: set proper values */
 	data->num_biterr = 0;
