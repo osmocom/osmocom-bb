@@ -136,7 +136,8 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
 			n_errors, false, false);
 
-		/* Send BFI instead of stolen TCH frame */
+		/* Send BFI substituting a stolen TCH frame */
+		n_errors = -1; /* ensure fake measurements */
 		goto bfi;
 	} else {
 		/* A good TCH frame received */
