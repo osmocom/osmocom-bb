@@ -137,8 +137,10 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	dl_hdr.chan_nr = lchan_desc->chan_nr | ts->index;
 	dl_hdr.link_id = lchan_desc->link_id;
 	dl_hdr.band_arfcn = htons(trx->band_arfcn);
-	dl_hdr.frame_nr = htonl(lchan->rx_first_fn);
 	dl_hdr.num_biterr = bit_error_count;
+
+	/* sched_trx_meas_avg() gives us TDMA frame number of the first burst */
+	dl_hdr.frame_nr = htonl(meas->fn);
 
 	/* RX level: 0 .. 63 in typical GSM notation (dBm + 110) */
 	dl_hdr.rx_level = dbm2rxlev(meas->rssi);
@@ -154,7 +156,7 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Optional GSMTAP logging */
 	if (l2_len > 0 && (!traffic || lchan_desc->chan_nr == RSL_CHAN_OSMO_PDCH)) {
-		sched_gsmtap_send(lchan->type, lchan->rx_first_fn, ts->index,
+		sched_gsmtap_send(lchan->type, meas->fn, ts->index,
 				  trx->band_arfcn, meas->rssi, 0, l2, l2_len);
 	}
 

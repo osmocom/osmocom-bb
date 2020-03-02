@@ -600,6 +600,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	meas = (struct trx_meas_set) {
 		.toa256 = toa256,
 		.rssi = rssi,
+		.fn = fn,
 	};
 
 	/* Poke scheduler */

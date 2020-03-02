@@ -159,6 +159,8 @@ struct trx_multiframe {
 };
 
 struct trx_meas_set {
+	/*! \brief TDMA frame number of the first burst this set belongs to */
+	uint32_t fn;
 	/*! \brief ToA256 (Timing of Arrival, 1/256 of a symbol) */
 	int16_t toa256;
 	/*! \brief RSSI (Received Signal Strength Indication) */
@@ -182,8 +184,6 @@ struct trx_lchan_state {
 
 	/*! \brief Burst type: GMSK or 8PSK */
 	enum trx_burst_type burst_type;
-	/*! \brief Frame number of first burst */
-	uint32_t rx_first_fn;
 	/*! \brief Mask of received bursts */
 	uint8_t rx_burst_mask;
 	/*! \brief Mask of transmitted bursts */

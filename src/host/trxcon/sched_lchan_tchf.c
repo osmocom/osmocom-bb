@@ -50,12 +50,10 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	int n_errors = -1, n_bits_total, rc;
 	sbit_t *buffer, *offset;
 	uint8_t l2[128], *mask;
-	uint32_t *first_fn;
 	size_t l2_len;
 
 	/* Set up pointers */
 	lchan_desc = &trx_lchan_desc[lchan->type];
-	first_fn = &lchan->rx_first_fn;
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
 
@@ -63,10 +61,8 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		lchan_desc->name, fn, ts->index, bid);
 
 	/* Reset internal state */
-	if (bid == 0) {
-		*first_fn = fn;
+	if (bid == 0)
 		*mask = 0x00;
-	}
 
 	/* Update mask */
 	*mask |= (1 << bid);
@@ -90,8 +86,8 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	if ((*mask & 0xf) != 0xf) {
 		LOGP(DSCHD, LOGL_ERROR, "Received incomplete (%s) traffic frame at "
 			"fn=%u (%u/%u) for %s\n",
-			burst_mask2str(mask, 8), *first_fn,
-			(*first_fn) % ts->mf_layout->period,
+			burst_mask2str(mask, 8), lchan->meas_avg.fn,
+			lchan->meas_avg.fn % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);
 
@@ -152,6 +148,7 @@ bfi:
 	/* Didn't try to decode, fake measurements */
 	if (n_errors < 0) {
 		lchan->meas_avg = (struct trx_meas_set) {
+			.fn = lchan->meas_avg.fn,
 			.toa256 = 0,
 			.rssi = -110,
 		};

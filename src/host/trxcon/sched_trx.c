@@ -464,7 +464,6 @@ static void sched_trx_reset_lchan(struct trx_lchan_state *lchan)
 	/* Reset internal state variables */
 	lchan->rx_burst_mask = 0x00;
 	lchan->tx_burst_mask = 0x00;
-	lchan->rx_first_fn = 0;
 
 	/* Free burst memory */
 	talloc_free(lchan->rx_bursts);
@@ -747,6 +746,10 @@ void sched_trx_meas_avg(struct trx_lchan_state *lchan, unsigned int n)
 		toa256_sum += meas->toa256;
 		rssi_sum += meas->rssi;
 
+		/* Do not go below the first burst */
+		if (i + 1 == n)
+			break;
+
 		if (meas == MEAS_HIST_FIRST(hist))
 			meas = MEAS_HIST_LAST(hist);
 		else
@@ -756,4 +759,7 @@ void sched_trx_meas_avg(struct trx_lchan_state *lchan, unsigned int n)
 	/* Calculate the AVG */
 	lchan->meas_avg.toa256 = toa256_sum / n;
 	lchan->meas_avg.rssi = rssi_sum / n;
+
+	/* As a bonus, store TDMA frame number of the first burst */
+	lchan->meas_avg.fn = meas->fn;
 }

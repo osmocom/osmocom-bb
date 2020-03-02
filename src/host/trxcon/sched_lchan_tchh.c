@@ -291,22 +291,18 @@ int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Check decoding result */
 	if (rc < 4) {
-		LOGP(DSCHD, LOGL_ERROR, "Received bad TCH frame (%s) ending at "
-			"fn=%u on %s (rc=%d)\n", burst_mask2str(mask, 6),
-			fn, lchan_desc->name, rc);
-
 		/* Calculate AVG of the measurements (assuming 4 bursts) */
 		sched_trx_meas_avg(lchan, 4);
+
+		LOGP(DSCHD, LOGL_ERROR, "Received bad TCH frame (%s) "
+			"at fn=%u on %s (rc=%d)\n", burst_mask2str(mask, 6),
+			lchan->meas_avg.fn, lchan_desc->name, rc);
 
 		/* Send BFI */
 		goto bfi;
 	} else if (rc == GSM_MACBLOCK_LEN) {
 		/* Skip decoding of the next 2 stolen bursts */
 		lchan->dl_ongoing_facch = true;
-
-		/* Calculate TDMA frame number of the first burst */
-		lchan->rx_first_fn = sched_tchh_block_dl_first_fn(lchan->type,
-			fn, true); /* FACCH/H */
 
 		/* Calculate AVG of the measurements (FACCH/H takes 6 bursts) */
 		sched_trx_meas_avg(lchan, 6);
@@ -326,10 +322,6 @@ int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 		sched_trx_meas_avg(lchan, 4);
 	}
 
-	/* Calculate TDMA frame number of the first burst */
-	lchan->rx_first_fn = sched_tchh_block_dl_first_fn(lchan->type,
-		fn, false); /* TCH/H */
-
 	/* Send a traffic frame to the higher layers */
 	return sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
 		n_errors, false, true);
@@ -346,6 +338,7 @@ bfi:
 	/* Didn't try to decode, fake measurements */
 	if (n_errors < 0) {
 		lchan->meas_avg = (struct trx_meas_set) {
+			.fn = sched_tchh_block_dl_first_fn(lchan->type, fn, false),
 			.toa256 = 0,
 			.rssi = -110,
 		};
@@ -353,10 +346,6 @@ bfi:
 		/* No bursts => no errors */
 		n_errors = 0;
 	}
-
-	/* Calculate TDMA frame number of the first burst */
-	lchan->rx_first_fn = sched_tchh_block_dl_first_fn(lchan->type,
-		fn, false); /* TCH/H */
 
 	/* BFI is not applicable in signalling mode */
 	if (lchan->tch_mode == GSM48_CMODE_SIGN)

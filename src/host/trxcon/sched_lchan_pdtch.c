@@ -48,12 +48,10 @@ int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	uint8_t l2[GPRS_L2_MAX_LEN], *mask;
 	int n_errors, n_bits_total, rc;
 	sbit_t *buffer, *offset;
-	uint32_t *first_fn;
 	size_t l2_len;
 
 	/* Set up pointers */
 	lchan_desc = &trx_lchan_desc[lchan->type];
-	first_fn = &lchan->rx_first_fn;
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
 
@@ -61,10 +59,8 @@ int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
 		"fn=%u ts=%u bid=%u\n", lchan_desc->name, fn, ts->index, bid);
 
 	/* Reset internal state */
-	if (bid == 0) {
-		*first_fn = fn;
+	if (bid == 0)
 		*mask = 0x0;
-	}
 
 	/* Update mask */
 	*mask |= (1 << bid);
@@ -88,8 +84,8 @@ int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	if ((*mask & 0xf) != 0xf) {
 		LOGP(DSCHD, LOGL_ERROR, "Received incomplete (%s) data frame at "
 			"fn=%u (%u/%u) for %s\n",
-			burst_mask2str(mask, 4), *first_fn,
-			(*first_fn) % ts->mf_layout->period,
+			burst_mask2str(mask, 4), lchan->meas_avg.fn,
+			lchan->meas_avg.fn % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);
 
@@ -101,8 +97,8 @@ int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
 		NULL, &n_errors, &n_bits_total);
 	if (rc < 0) {
 		LOGP(DSCHD, LOGL_ERROR, "Received bad packet data frame "
-			"at fn=%u (%u/%u) for %s\n", *first_fn,
-			(*first_fn) % ts->mf_layout->period,
+			"at fn=%u (%u/%u) for %s\n", lchan->meas_avg.fn,
+			lchan->meas_avg.fn % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);
 	}
