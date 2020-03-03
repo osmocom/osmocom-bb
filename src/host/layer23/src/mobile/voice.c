@@ -36,15 +36,19 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_data_frame *mncc;
 
+	/* Drop the l1ctl_info_dl header */
+	msgb_pull_to_l2(msg);
+	/* push mncc header in front of data */
+	mncc = (struct gsm_data_frame *)
+		msgb_push(msg, sizeof(struct gsm_data_frame));
+	mncc->msg_type = GSM_TCHF_FRAME;
+	mncc->callref =  ms->mncc_entity.ref;
+
+	/* HACK: send voice frame back */
+	gsm_send_voice(ms, mncc);
+
 	/* distribute and then free */
 	if (ms->mncc_entity.mncc_recv && ms->mncc_entity.ref) {
-		/* Drop the l1ctl_info_dl header */
-		msgb_pull_to_l2(msg);
-		/* push mncc header in front of data */
-		mncc = (struct gsm_data_frame *)
-			msgb_push(msg, sizeof(struct gsm_data_frame));
-		mncc->msg_type = GSM_TCHF_FRAME;
-		mncc->callref =  ms->mncc_entity.ref;
 		ms->mncc_entity.mncc_recv(ms, mncc->msg_type, mncc);
 	}
 
