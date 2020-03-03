@@ -640,7 +640,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	 * start counting from last fn + 1
 	 */
 	if (elapsed < 10)
-		fn = TDMA_FN_INC(ts->mf_last_fn);
+		fn = TDMA_FN_SUM(ts->mf_last_fn, 1);
 	else
 		fn = burst_fn;
 
@@ -682,7 +682,7 @@ next_frame:
 		if (fn == burst_fn)
 			break;
 
-		fn = TDMA_FN_INC(fn);
+		TDMA_FN_INC(&fn);
 	}
 
 	/* Set last processed frame number */

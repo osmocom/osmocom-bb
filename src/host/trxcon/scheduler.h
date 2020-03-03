@@ -16,7 +16,7 @@
 #define TDMA_FN_SUB(a, b) \
 	((a + GSM_HYPERFRAME - b) % GSM_HYPERFRAME)
 #define TDMA_FN_INC(fn) \
-	TDMA_FN_SUM(fn, 1)
+	(*fn = TDMA_FN_SUM(*fn, 1))
 #define TDMA_FN_MIN(a, b) \
 	(a < b ? a : b)
 #define TDMA_FN_DIFF(a, b) \

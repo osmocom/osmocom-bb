@@ -82,7 +82,7 @@ static void sched_clck_tick(void *data)
 		timespecadd(tv_clock, &frame_duration, tv_clock);
 		elapsed_us -= FRAME_DURATION_uS;
 
-		sched->fn_counter_proc = TDMA_FN_INC(sched->fn_counter_proc);
+		TDMA_FN_INC(&sched->fn_counter_proc);
 
 		/* Call frame callback */
 		if (sched->clock_cb)
@@ -178,7 +178,7 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 
 	/* Transmit what we still need to transmit */
 	while (fn != sched->fn_counter_proc) {
-		sched->fn_counter_proc = TDMA_FN_INC(sched->fn_counter_proc);
+		TDMA_FN_INC(&sched->fn_counter_proc);
 
 		/* Call frame callback */
 		if (sched->clock_cb)
