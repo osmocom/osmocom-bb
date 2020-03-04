@@ -58,9 +58,9 @@ int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	LOGP(DSCHD, LOGL_DEBUG, "Packet data received on %s: "
 		"fn=%u ts=%u bid=%u\n", lchan_desc->name, fn, ts->index, bid);
 
-	/* Reset internal state */
-	if (bid == 0)
-		*mask = 0x0;
+	/* Align to the first burst of a block */
+	if (*mask == 0x00 && bid != 0)
+		return 0;
 
 	/* Update mask */
 	*mask |= (1 << bid);
@@ -91,6 +91,9 @@ int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 		return -1;
 	}
+
+	/* Keep the mask updated */
+	*mask = *mask << 4;
 
 	/* Attempt to decode */
 	rc = gsm0503_pdtch_decode(l2, buffer,

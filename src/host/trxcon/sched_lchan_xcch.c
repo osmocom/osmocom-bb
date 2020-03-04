@@ -57,9 +57,9 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	LOGP(DSCHD, LOGL_DEBUG, "Data received on %s: fn=%u ts=%u bid=%u\n",
 		lchan_desc->name, fn, ts->index, bid);
 
-	/* Reset internal state */
-	if (bid == 0)
-		*mask = 0x0;
+	/* Align to the first burst of a block */
+	if (*mask == 0x00 && bid != 0)
+		return 0;
 
 	/* Update mask */
 	*mask |= (1 << bid);
@@ -92,6 +92,9 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 		 * to reconstruct some L2 frames. This is why we do not
 		 * abort here. */
 	}
+
+	/* Keep the mask updated */
+	*mask = *mask << 4;
 
 	/* Attempt to decode */
 	rc = gsm0503_xcch_decode(l2, buffer, &n_errors, &n_bits_total);
