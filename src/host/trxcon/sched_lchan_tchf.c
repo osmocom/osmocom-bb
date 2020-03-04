@@ -155,7 +155,9 @@ bfi:
 			.toa256 = 0,
 			.rssi = -110,
 		};
-		n_errors = 116 * 4;
+
+		/* No bursts => no errors */
+		n_errors = 0;
 	}
 
 	/* BFI is not applicable in signalling mode */

@@ -349,7 +349,9 @@ bfi:
 			.toa256 = 0,
 			.rssi = -110,
 		};
-		n_errors = 116 * 2;
+
+		/* No bursts => no errors */
+		n_errors = 0;
 	}
 
 	/* Calculate TDMA frame number of the first burst */
