@@ -155,7 +155,10 @@ const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 		/* Rx and Tx, multiple convolutional coding types (3GPP TS 05.03,
 		 * chapter 3), block diagonal interleaving (3GPP TS 05.02, clause 7):
 		 *
-		 *   - a traffic frame is interleaved over 6 consecutive bursts
+		 *   - a traffic frame is interleaved over 4 non-consecutive bursts
+		 *     using the even numbered bits of the first 2 bursts,
+		 *     and odd numbered bits of the last 2 bursts;
+		 *   - a FACCH/H frame is interleaved over 6 non-consecutive bursts
 		 *     using the even numbered bits of the first 2 bursts,
 		 *     all bits of the middle two 2 bursts,
 		 *     and odd numbered bits of the last 2 bursts;
