@@ -83,7 +83,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	sched_trx_meas_avg(lchan, 8);
 
 	/* Check for complete set of bursts */
-	if ((*mask & 0xf) != 0xf) {
+	if ((*mask & 0xff) != 0xff) {
 		LOGP(DSCHD, LOGL_ERROR, "Received incomplete (%s) traffic frame at "
 			"fn=%u (%u/%u) for %s\n",
 			burst_mask2str(mask, 8), lchan->meas_avg.fn,
