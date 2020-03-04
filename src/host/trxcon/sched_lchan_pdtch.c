@@ -88,8 +88,7 @@ int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
 			lchan->meas_avg.fn % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);
-
-		return -1;
+		/* NOTE: do not abort here, give it a try. Maybe we're lucky ;) */
 	}
 
 	/* Keep the mask updated */
