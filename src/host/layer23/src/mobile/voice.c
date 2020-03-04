@@ -38,6 +38,8 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* distribute and then free */
 	if (ms->mncc_entity.mncc_recv && ms->mncc_entity.ref) {
+		/* Drop the l1ctl_info_dl header */
+		msgb_pull_to_l2(msg);
 		/* push mncc header in front of data */
 		mncc = (struct gsm_data_frame *)
 			msgb_push(msg, sizeof(struct gsm_data_frame));
