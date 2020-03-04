@@ -321,9 +321,6 @@ int sched_trx_reset_ts(struct trx_instance *trx, int tn)
 	if (ts == NULL)
 		return -EINVAL;
 
-	/* Flush TS frame counter */
-	ts->mf_last_fn = 0;
-
 	/* Undefine multiframe layout */
 	ts->mf_layout = NULL;
 
@@ -491,6 +488,9 @@ static void sched_trx_reset_lchan(struct trx_lchan_state *lchan)
 
 	/* Reset ciphering state */
 	memset(&lchan->a5, 0x00, sizeof(lchan->a5));
+
+	/* Reset TDMA frame statistics */
+	memset(&lchan->tdma, 0x00, sizeof(lchan->tdma));
 }
 
 int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
@@ -610,8 +610,65 @@ static void sched_trx_a5_burst_enc(struct trx_lchan_state *lchan,
 	}
 }
 
+static int subst_frame_loss(struct trx_lchan_state *lchan,
+			    trx_lchan_rx_func *handler,
+			    uint32_t fn)
+{
+	const struct trx_multiframe *mf;
+	const struct trx_frame *fp;
+	unsigned int elapsed, i;
+
+	/* Wait until at least one TDMA frame is processed */
+	if (lchan->tdma.num_proc == 0)
+		return -EAGAIN;
+
+	/* Short alias for the current multiframe */
+	mf = lchan->ts->mf_layout;
+
+	/* How many frames elapsed since the last one? */
+	elapsed = TDMA_FN_SUB(fn, lchan->tdma.last_proc);
+	if (elapsed > mf->period) {
+		LOGP(DSCHD, LOGL_NOTICE, "Too many (>%u) contiguous TDMA frames elapsed (%u) "
+					 "since the last processed fn=%u\n", mf->period,
+					 elapsed, lchan->tdma.last_proc);
+	} else if (elapsed == 0) {
+		LOGP(DSCHD, LOGL_ERROR, "No TDMA frames elapsed since the last processed "
+					"fn=%u, must be a bug?\n", lchan->tdma.last_proc);
+		return -EIO;
+	}
+
+	/* TODO: make bits constant */
+	static sbit_t bits[148] = { 0 };
+	struct trx_meas_set fake_meas = {
+		.fn = lchan->tdma.last_proc,
+		.rssi = -120,
+		.toa256 = 0,
+	};
+
+	/* Traverse from fp till the current frame */
+	for (i = 0; i < elapsed - 1; i++) {
+		fp = &mf->frames[TDMA_FN_INC(&fake_meas.fn) % mf->period];
+		if (fp->dl_chan != lchan->type)
+			continue;
+
+		LOGP(DSCHD, LOGL_NOTICE, "Substituting lost TDMA frame %u on %s\n",
+		     fake_meas.fn, trx_lchan_desc[lchan->type].name);
+
+		handler(lchan->ts->trx, lchan->ts, lchan,
+			fake_meas.fn, fp->dl_bid,
+			bits, &fake_meas);
+
+		/* Update TDMA frame statistics */
+		lchan->tdma.last_proc = fake_meas.fn;
+		lchan->tdma.num_proc++;
+		lchan->tdma.num_lost++;
+	}
+
+	return 0;
+}
+
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
-	uint32_t burst_fn, sbit_t *bits, uint16_t nbits,
+	uint32_t fn, sbit_t *bits, uint16_t nbits,
 	const struct trx_meas_set *meas)
 {
 	struct trx_lchan_state *lchan;
@@ -620,7 +677,6 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 
 	trx_lchan_rx_func *handler;
 	enum trx_lchan_type chan;
-	uint32_t fn, elapsed;
 	uint8_t offset, bid;
 
 	/* Check whether required timeslot is allocated and configured */
@@ -631,61 +687,42 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 		return -EINVAL;
 	}
 
-	/* Calculate how many frames have been elapsed */
-	elapsed = TDMA_FN_SUB(burst_fn, ts->mf_last_fn);
+	/* Get frame from multiframe */
+	offset = fn % ts->mf_layout->period;
+	frame = ts->mf_layout->frames + offset;
 
-	/**
-	 * If not too many frames have been elapsed,
-	 * start counting from last fn + 1
-	 */
-	if (elapsed < 10)
-		fn = TDMA_FN_SUM(ts->mf_last_fn, 1);
-	else
-		fn = burst_fn;
+	/* Get required info from frame */
+	bid = frame->dl_bid;
+	chan = frame->dl_chan;
+	handler = trx_lchan_desc[chan].rx_fn;
 
-	while (1) {
-		/* Get frame from multiframe */
-		offset = fn % ts->mf_layout->period;
-		frame = ts->mf_layout->frames + offset;
+	/* Omit bursts which have no handler, like IDLE bursts.
+	 * TODO: handle noise indications during IDLE frames. */
+	if (!handler)
+		return -ENODEV;
 
-		/* Get required info from frame */
-		bid = frame->dl_bid;
-		chan = frame->dl_chan;
-		handler = trx_lchan_desc[chan].rx_fn;
+	/* Find required channel state */
+	lchan = sched_trx_find_lchan(ts, chan);
+	if (lchan == NULL)
+		return -ENODEV;
 
-		/* Omit bursts which have no handler, like IDLE bursts */
-		if (!handler)
-			goto next_frame;
+	/* Ensure that channel is active */
+	if (!lchan->active)
+		return 0;
 
-		/* Find required channel state */
-		lchan = sched_trx_find_lchan(ts, chan);
-		if (lchan == NULL)
-			goto next_frame;
+	/* Compensate lost TDMA frames (if any) */
+	subst_frame_loss(lchan, handler, fn);
 
-		/* Ensure that channel is active */
-		if (!lchan->active)
-			goto next_frame;
+	/* Perform A5/X decryption if required */
+	if (lchan->a5.algo)
+		sched_trx_a5_burst_dec(lchan, fn, bits);
 
-		/* Reached current fn */
-		if (fn == burst_fn) {
-			/* Perform A5/X decryption if required */
-			if (lchan->a5.algo)
-				sched_trx_a5_burst_dec(lchan, fn, bits);
+	/* Put burst to handler */
+	handler(trx, ts, lchan, fn, bid, bits, meas);
 
-			/* Put burst to handler */
-			handler(trx, ts, lchan, fn, bid, bits, meas);
-		}
-
-next_frame:
-		/* Reached current fn */
-		if (fn == burst_fn)
-			break;
-
-		TDMA_FN_INC(&fn);
-	}
-
-	/* Set last processed frame number */
-	ts->mf_last_fn = fn;
+	/* Update TDMA frame statistics */
+	lchan->tdma.last_proc = fn;
+	lchan->tdma.num_proc++;
 
 	return 0;
 }

@@ -209,6 +209,16 @@ struct trx_lchan_state {
 	/*! \brief AVG measurements of the last received block */
 	struct trx_meas_set meas_avg;
 
+	/*! \brief TDMA loss detection state */
+	struct {
+		/*! \brief Last processed TDMA frame number */
+		uint32_t last_proc;
+		/*! \brief Number of processed TDMA frames */
+		unsigned long num_proc;
+		/*! \brief Number of lost TDMA frames */
+		unsigned long num_lost;
+	} tdma;
+
 	/*! \brief SACCH state */
 	struct {
 		/*! \brief Cached measurement report (last received) */
@@ -255,8 +265,6 @@ struct trx_lchan_state {
 struct trx_ts {
 	/*! \brief Timeslot index within a frame (0..7) */
 	uint8_t index;
-	/*! \brief Last received frame number */
-	uint32_t mf_last_fn;
 
 	/*! \brief Pointer to multiframe layout */
 	const struct trx_multiframe *mf_layout;
@@ -356,7 +364,7 @@ void sched_prim_drop(struct trx_lchan_state *lchan);
 void sched_prim_flush_queue(struct llist_head *list);
 
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
-	uint32_t burst_fn, sbit_t *bits, uint16_t nbits,
+	uint32_t fn, sbit_t *bits, uint16_t nbits,
 	const struct trx_meas_set *meas);
 int sched_trx_handle_tx_burst(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
