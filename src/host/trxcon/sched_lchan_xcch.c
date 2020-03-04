@@ -42,7 +42,7 @@
 
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	sbit_t *bits, const struct trx_meas_set *meas)
+	const sbit_t *bits, const struct trx_meas_set *meas)
 {
 	const struct trx_lchan_desc *lchan_desc;
 	uint8_t l2[GSM_MACBLOCK_LEN], *mask;

@@ -99,7 +99,7 @@ enum trx_lchan_type {
 
 typedef int trx_lchan_rx_func(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
-	uint32_t fn, uint8_t bid, sbit_t *bits,
+	uint32_t fn, uint8_t bid, const sbit_t *bits,
 	const struct trx_meas_set *meas);
 
 typedef int trx_lchan_tx_func(struct trx_instance *trx,

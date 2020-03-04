@@ -637,8 +637,7 @@ static int subst_frame_loss(struct trx_lchan_state *lchan,
 		return -EIO;
 	}
 
-	/* TODO: make bits constant */
-	static sbit_t bits[148] = { 0 };
+	static const sbit_t bits[148] = { 0 };
 	struct trx_meas_set fake_meas = {
 		.fn = lchan->tdma.last_proc,
 		.rssi = -120,
