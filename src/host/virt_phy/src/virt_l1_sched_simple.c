@@ -97,6 +97,7 @@ void virt_l1_sched_execute(struct l1_model_ms *ms, uint32_t fn)
 				ti_next->handler_cb(ms, mi_next->fn, ti_next->ts, ti_next->msg);
 				/* remove handled tdma sched item */
 				llist_del(&ti_next->tdma_item_entry);
+				talloc_free(ti_next);
 			}
 			/* remove handled mframe sched item */
 			llist_del(&mi_next->mframe_item_entry);
