@@ -129,12 +129,8 @@ void virt_l1_sched_schedule(struct l1_model_ms *ms, struct msgb *msg, uint32_t f
 		/* list did not contain mframe item with needed fn */
 		mi_fn = talloc_zero(ms, struct virt_l1_sched_mframe_item);
 		mi_fn->fn = fn;
-		/* need to manually init the struct content.... no so happy */
-		mi_fn->tdma_item_list.prev = &mi_fn->tdma_item_list;
-		mi_fn->tdma_item_list.next = &mi_fn->tdma_item_list;
-
-		/* TODO: check if we get an error if list is empty... */
-		llist_add(&mi_fn->mframe_item_entry, mi_next->mframe_item_entry.prev);
+		INIT_LLIST_HEAD(&mi_fn->tdma_item_list);
+		llist_add_tail(&mi_fn->mframe_item_entry, &mi_next->mframe_item_entry);
 	}
 
 	ti_new = talloc_zero(mi_fn, struct virt_l1_sched_tdma_item);
