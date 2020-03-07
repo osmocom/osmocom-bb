@@ -84,7 +84,8 @@ void l1ctl_tx_traffic_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arf
 	struct msgb *l1ctl_msg = NULL;
 	struct l1ctl_traffic_ind * l1ti;
 	struct l1ctl_info_dl * l1dl;
-	uint8_t *frame, frame_len;
+	uint8_t *frame;
+	int frame_len;
 	uint8_t rsl_chan_type, subchan, timeslot;
 	l1ctl_msg = l1ctl_msgb_alloc(L1CTL_TRAFFIC_IND);
 	l1dl = (struct l1ctl_info_dl *) msgb_put(l1ctl_msg, sizeof(*l1dl));
@@ -101,11 +102,16 @@ void l1ctl_tx_traffic_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arf
 	l1dl->num_biterr = 0; /* no biterrors */
 	l1dl->fire_crc = 0;
 
-	/* TODO: traffic decoding and decryption */
-
-	frame_len = msgb_length(msg);
+	/* The first byte indicates the type of voice frame (enum gsmtap_um_voice_type),
+	 * which we simply ignore here and pass on the frame without that byte.
+	 * TODO: Check for consistency with ms->state.tch_mode ? */
+	frame_len = msgb_length(msg) - 1;
+	if (frame_len < 0) {
+		msgb_free(l1ctl_msg);
+		return;
+	}
 	frame = (uint8_t *) msgb_put(l1ctl_msg, frame_len);
-	memcpy(frame, msgb_data(msg), frame_len);
+	memcpy(frame, msgb_data(msg)+1, frame_len);
 
 	DEBUGPMS(DL1P, ms, "Tx L1CTL_TRAFFIC_IND (chan_nr=0x%02x, link_id=0x%02x)\n", chan_nr, link_id);
 	l1ctl_sap_tx_to_l23_inst(ms, l1ctl_msg);

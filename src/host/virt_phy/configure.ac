@@ -12,6 +12,8 @@ AC_PROG_CC
 AC_PROG_INSTALL
 
 dnl checks for libraries
+dnl TODO: insert libosmocore version with GSMTAP_CHANNEL_VOICE: PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 1.4.0)
+dnl       (at time of writing not released yet)
 PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore)
 PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm)
 

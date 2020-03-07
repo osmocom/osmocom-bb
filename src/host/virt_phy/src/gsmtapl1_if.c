@@ -26,6 +26,7 @@
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/core/msgb.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -46,6 +47,29 @@ static char *pseudo_lchan_name(uint16_t arfcn, uint8_t ts, uint8_t ss, uint8_t s
 	snprintf(lname, sizeof(lname), "(arfcn=%u,ts=%u,ss=%u,type=%s)",
 		arfcn, ts, ss, get_value_string(gsmtap_gsm_channel_names, sub_type));
 	return lname;
+}
+
+/* Return gsmtap_um_voice_type or -1 on error */
+static int get_um_voice_type(enum gsm48_chan_mode tch_mode, uint8_t rsl_chantype)
+{
+	switch (tch_mode) {
+	case GSM48_CMODE_SPEECH_V1:
+		switch (rsl_chantype) {
+		case RSL_CHAN_Bm_ACCHs:
+			return GSMTAP_UM_VOICE_FR;
+		case RSL_CHAN_Lm_ACCHs:
+			return GSMTAP_UM_VOICE_HR;
+		default:
+			return -1;
+		}
+		break;
+	case GSM48_CMODE_SPEECH_EFR:
+		return GSMTAP_UM_VOICE_EFR;
+	case GSM48_CMODE_SPEECH_AMR:
+		return GSMTAP_UM_VOICE_AMR;
+	default:
+		return -1;
+	}
 }
 
 /**
@@ -74,12 +98,25 @@ void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, uint8_t tn
 		rsl_chantype = RSL_CHAN_OSMO_PDCH;
 		timeslot = tn;
 		subslot = 0;
-		gsmtap_chan = chantype_rsl2gsmtap(rsl_chantype, 0);
+		gsmtap_chan = chantype_rsl2gsmtap2(rsl_chantype, 0, false);
+		break;
+	case L1CTL_TRAFFIC_REQ:
+		ul = (struct l1ctl_info_ul *)l1h->data;
+		rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
+		gsmtap_chan = chantype_rsl2gsmtap2(rsl_chantype, 0, true);
+		/* the first byte indicates the type of voice codec (gsmtap_um_voice_type);
+		 * let's first strip any data in front of the l2 header, then push this extra
+		 * byte to the front and finally adjust the l2h pointer */
+		msgb_pull_to_l2(msg);
+		msgb_push_u8(msg, get_um_voice_type(ms->state.tch_mode, rsl_chantype));
+		msg->l2h = msg->data;
+		data = msgb_l2(msg);
+		data_len = msgb_l2len(msg);
 		break;
 	default:
 		ul = (struct l1ctl_info_ul *)l1h->data;
 		rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
-		gsmtap_chan = chantype_rsl2gsmtap(rsl_chantype, ul->link_id);
+		gsmtap_chan = chantype_rsl2gsmtap2(rsl_chantype, ul->link_id, false);
 		break;
 	}
 
@@ -219,13 +256,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	switch (gsmtap_chantype & ~GSMTAP_CHANNEL_ACCH & 0xff) {
 	case GSMTAP_CHANNEL_TCH_H:
 	case GSMTAP_CHANNEL_TCH_F:
-#if 0
-		/* TODO: handle voice */
-		if (!facch && !tch_acch) {
-			l1ctl_tx_traffic_ind(msg, arfcn, link_id, chan_nr, fn,
-					     snr, signal_dbm, 0, 0);
-		}
-#endif
+		/* This is TCH signalling, for voice frames see GSMTAP_CHANNEL_VOICE */
 	case GSMTAP_CHANNEL_SDCCH4:
 	case GSMTAP_CHANNEL_SDCCH8:
 		/* only forward messages on dedicated channels to l2, if
@@ -233,6 +264,16 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 		if (ms->state.dedicated.tn == timeslot
 		    && ms->state.dedicated.subslot == subslot) {
 			l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
+		}
+		break;
+	case GSMTAP_CHANNEL_VOICE_F:
+	case GSMTAP_CHANNEL_VOICE_H:
+		/* only forward messages on dedicated channels to l2, if
+		 * the timeslot and subslot is fitting */
+		if (ms->state.dedicated.tn == timeslot
+		    && ms->state.dedicated.subslot == subslot) {
+			l1ctl_tx_traffic_ind(ms, msg, arfcn, link_id, chan_nr, fn,
+					     snr_db, signal_dbm, 0, 0);
 		}
 		break;
 	case GSMTAP_CHANNEL_CBCH51:
