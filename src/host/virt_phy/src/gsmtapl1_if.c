@@ -235,10 +235,14 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 			l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
 		}
 		break;
+	case GSMTAP_CHANNEL_CBCH51:
+		/* only pass CBCH data if the user application actually indicated that a CBCH
+		 * is present */
+		if (ms->state.serving_cell.ccch_mode != CCCH_MODE_COMBINED_CBCH)
+			break;
 	case GSMTAP_CHANNEL_AGCH:
 	case GSMTAP_CHANNEL_PCH:
 	case GSMTAP_CHANNEL_BCCH:
-	case GSMTAP_CHANNEL_CBCH51:
 	case GSMTAP_CHANNEL_CBCH52:
 		/* save to just forward here, as upper layer ignores messages that
 		 * do not fit the current state (e.g.  gsm48_rr.c:2159) */
