@@ -68,6 +68,7 @@ struct l1_state_ms {
 	struct {
 		uint8_t chan_type; // like rsl chantype 08.58 -> Chapter 9.3.1 */
 
+		uint16_t band_arfcn;
 		uint8_t tn; // timeslot number 1-7
 		uint8_t subslot; // subslot of the dedicated channel, SDCCH/4:[0-3], SDCCH/8:[0-7]
 

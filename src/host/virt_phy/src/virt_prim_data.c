@@ -47,7 +47,8 @@
 static void virt_l1_sched_handler_cb(struct l1_model_ms *ms, uint32_t fn, uint8_t tn, struct msgb * msg)
 {
 	gsmtapl1_tx_to_virt_um_inst(ms, fn, tn, msg);
-	l1ctl_tx_data_conf(ms, fn, 0, ms->state.serving_cell.arfcn);
+	/* FIXME: get ARFCN from msg payload */
+	l1ctl_tx_data_conf(ms, fn, 0, ms->state.dedicated.band_arfcn);
 }
 
 /**

@@ -81,7 +81,7 @@ void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, uint8_t tn
 	struct l1ctl_info_ul *ul;
 	struct gsmtap_hdr *gh;
 	struct msgb *outmsg;	/* msg to send with gsmtap header prepended */
-	uint16_t arfcn = ms->state.serving_cell.arfcn;	/* arfcn of the cell we currently camp on */
+	uint16_t arfcn;
 	uint8_t signal_dbm = 63;	/* signal strength */
 	uint8_t snr = 63;	/* signal noise ratio, 63 is best */
 	uint8_t *data = msgb_l2(msg);	/* data to transmit (whole message without l1 header) */
@@ -91,6 +91,16 @@ void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, uint8_t tn
 	uint8_t subslot;	/* multiframe subslot to send msg in (tch -> 0-26, bcch/ccch -> 0-51) */
 	uint8_t timeslot;	/* tdma timeslot to send in (0-7) */
 	uint8_t gsmtap_chan;	/* the gsmtap channel */
+
+	switch (ms->state.state) {
+	case MS_STATE_DEDICATED:
+	case MS_STATE_TBF:
+		arfcn = ms->state.dedicated.band_arfcn;
+		break;
+	default:
+		arfcn = ms->state.serving_cell.arfcn;
+		break;
+	}
 
 	switch (l1h->msg_type) {
 	case L1CTL_DATA_TBF_REQ:
@@ -235,18 +245,24 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 
 	gsm_fn2gsmtime(&ms->state.downlink_time, fn);
 
-	/* we do not forward messages to l23 if we are in network search state */
-	if (ms->state.state == MS_STATE_IDLE_SEARCHING)
+	switch (ms->state.state) {
+	case MS_STATE_IDLE_SEARCHING:
+		/* we do not forward messages to l23 if we are in network search state */
 		return;
-
-	/* forward downlink msg to fbsb sync routine if we are in sync state */
-	if (ms->state.state == MS_STATE_IDLE_SYNCING) {
+	case MS_STATE_IDLE_SYNCING:
+		/* forward downlink msg to fbsb sync routine if we are in sync state */
 		prim_fbsb_sync(ms, msg);
 		return;
-	}
-	/* generally ignore all messages coming from another arfcn than the camped one */
-	if (ms->state.serving_cell.arfcn != arfcn) {
-		return;
+	case MS_STATE_DEDICATED:
+		/* generally ignore all messages coming from another arfcn than the camped one */
+		if (arfcn != ms->state.dedicated.band_arfcn)
+			return;
+		break;
+	default:
+		/* generally ignore all messages coming from another arfcn than the camped one */
+		if (arfcn != ms->state.serving_cell.arfcn)
+			return;
+		break;
 	}
 
 	virt_l1_sched_sync_time(ms, ms->state.downlink_time, 0);

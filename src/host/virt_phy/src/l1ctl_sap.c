@@ -286,9 +286,11 @@ void l1ctl_rx_dm_est_req(struct l1_model_ms *ms, struct msgb *msg)
 
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
 
-	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_DM_EST_REQ (chan_nr=0x%02x, tn=%u, ss=%u)\n",
-		ul->chan_nr, timeslot, subslot);
+	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_DM_EST_REQ (chan_nr=0x%02x, arfcn=%u, tn=%u, ss=%u)\n",
+		ul->chan_nr, ntohs(est_req->h0.band_arfcn), timeslot, subslot);
 
+	OSMO_ASSERT(est_req->h == 0); /* we don't do hopping */
+	ms->state.dedicated.band_arfcn = ntohs(est_req->h0.band_arfcn);
 	ms->state.dedicated.chan_type = rsl_chantype;
 	ms->state.dedicated.tn = timeslot;
 	ms->state.dedicated.subslot = subslot;
