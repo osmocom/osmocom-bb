@@ -319,6 +319,12 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			    dl->snr, ccch->data, sizeof(ccch->data));
 	}
 
+	/* HACK: Do not pass PDTCH / PTCCH frames to LAPDm */
+	if (chan_type == RSL_CHAN_OSMO_PDCH) {
+		msgb_free(msg);
+		return 0;
+	}
+
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
 		le = &ms->lapdm_channel.lapdm_acch;

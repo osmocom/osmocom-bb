@@ -311,6 +311,58 @@ static const struct mframe_sched_item mf_neigh_pm26_odd[] = {
 	{ .sched_set = NULL }
 };
 
+/* See 3GPP TS 45.002, table 6 */
+static const struct mframe_sched_item mf_gprs_pdtch[] = {
+	{ .sched_set = NB_QUAD_DL, .modulo = 13, .frame_nr = 0 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 13, .frame_nr = 4 },
+	{ .sched_set = NB_QUAD_DL, .modulo = 13, .frame_nr = 8 },
+#if 0
+	/* FIXME: we need to use different handler here to avoid
+	 * sending dummy blocks and DCCH / SACCH data here. */
+	{ .sched_set = NB_QUAD_UL, .modulo = 13, .frame_nr = 0 },
+	{ .sched_set = NB_QUAD_UL, .modulo = 13, .frame_nr = 4 },
+	{ .sched_set = NB_QUAD_UL, .modulo = 13, .frame_nr = 8 },
+#endif
+	{ .sched_set = NULL }
+};
+
+static const struct mframe_sched_item mf_gprs_ptcch[] = {
+	/* TODO: implement AB_PTCCH_UL for PTCCH/U */
+	/* TODO: implement NB_PTCCH_DL for PTCCH/D */
+#if 0
+	/* PTCCH/D */
+	{ .sched_set = NB_PTCCH_DL, .modulo = 104, .frame_nr = 12, .flags = MF_F_PTCCH },
+	{ .sched_set = NB_PTCCH_DL, .modulo = 104, .frame_nr = 38, .flags = MF_F_PTCCH },
+	{ .sched_set = NB_PTCCH_DL, .modulo = 104, .frame_nr = 64, .flags = MF_F_PTCCH },
+	{ .sched_set = NB_PTCCH_DL, .modulo = 104, .frame_nr = 90, .flags = MF_F_PTCCH },
+
+	/* PTCCH/U for TAI 0 .. 3 */
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 12 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 38 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 64 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 90 },
+
+	/* PTCCH/U for TAI 4 .. 7 */
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 116 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 142 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 168 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 194 },
+
+	/* PTCCH/U for TAI 8 .. 11 */
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 220 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 246 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 272 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 298 },
+
+	/* PTCCH/U for TAI 12 .. 15 */
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 324 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 350 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 376 },
+	{ .sched_set = AB_PTCCH_UL, .modulo = 416, .frame_nr = 402 },
+#endif
+	{ .sched_set = NULL }
+};
+
 /* Test TX */
 static const struct mframe_sched_item mf_tx_all_nb[] = {
 	{ .sched_set = NB_QUAD_FH_UL, .modulo = 4, .frame_nr = 0 },
@@ -344,6 +396,9 @@ static const struct mframe_sched_item *sched_set_for_task[32] = {
 	[MF_TASK_TCH_F_ODD]  = mf_tch_f_odd,
 	[MF_TASK_TCH_H_0]    = mf_tch_h_0,
 	[MF_TASK_TCH_H_1]    = mf_tch_h_1,
+
+	[MF_TASK_GPRS_PDTCH] = mf_gprs_pdtch,
+	[MF_TASK_GPRS_PTCCH] = mf_gprs_ptcch,
 
 	[MF_TASK_NEIGH_PM51_C0T0] = mf_neigh_pm51_c0t0,
 	[MF_TASK_NEIGH_PM51] = mf_neigh_pm51,
@@ -415,6 +470,10 @@ uint8_t mframe_task2chan_nr(enum mframe_task mft, uint8_t ts)
 		break;
 
 	/* Osmocom specific extensions */
+	case MF_TASK_GPRS_PDTCH:
+	case MF_TASK_GPRS_PTCCH:
+		cbits = 0x18;
+		break;
 	case MF_TASK_SDCCH4_CBCH:
 		cbits = 0x19;
 		break;

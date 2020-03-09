@@ -78,6 +78,7 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 	uint8_t tn = chan_nr & 0x7;
 	uint8_t lch_idx;
 	enum mframe_task master_task = 0;
+	enum mframe_task add_task = 0;
 	uint32_t neigh_task = 0;
 	enum mf_type multiframe = 0;
 
@@ -97,6 +98,12 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 		lch_idx = cbits & 0x7;
 		master_task = MF_TASK_SDCCH8_0 + lch_idx;
 		multiframe = MF51;
+	} else if ((cbits & 0x1f) == 0x18) {
+		/* Osmocom specific extension for PDTCH and PTCCH */
+		master_task = MF_TASK_GPRS_PDTCH;
+		add_task = MF_TASK_GPRS_PTCCH;
+		/* FIXME: is it really different from e.g. BCCH? */
+		multiframe = MFNONE;
 	} else if ((cbits & 0x1f) == 0x19) {
 		/* Osmocom specific extension for CBCH on SDCCH/4 */
 		master_task = MF_TASK_SDCCH4_CBCH;
@@ -129,7 +136,7 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 		}
 		break;
 	}
-	return (1 << master_task) | neigh_task;
+	return (1 << master_task) | (1 << add_task) | neigh_task;
 }
 
 static int  chan_nr2dchan_type(uint8_t chan_nr)
@@ -144,6 +151,9 @@ static int  chan_nr2dchan_type(uint8_t chan_nr)
 		return GSM_DCHAN_SDCCH_4;
 	} else if ((cbits & 0x18) == 0x08) {
 		return GSM_DCHAN_SDCCH_8;
+	} else if ((cbits & 0x1f) == 0x18) {
+		/* Osmocom-specific extension for PDCH */
+		return GSM_DCHAN_PDCH;
 	} else if ((cbits & 0x1f) == 0x19) {
 		/* Osmocom-specific extension for CBCH on SDCCH/4 */
 		return GSM_DCHAN_SDCCH_4_CBCH;
