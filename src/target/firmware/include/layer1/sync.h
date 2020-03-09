@@ -124,6 +124,7 @@ struct l1s_state {
 			GSM_DCHAN_SDCCH_8_CBCH,
 			GSM_DCHAN_TCH_H,
 			GSM_DCHAN_TCH_F,
+			GSM_DCHAN_PDCH,
 			GSM_DCHAN_UNKNOWN,
 		} type;
 

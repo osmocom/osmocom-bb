@@ -31,6 +31,9 @@ enum mframe_task {
 	MF_TASK_TCH_H_0,
 	MF_TASK_TCH_H_1,
 
+	MF_TASK_GPRS_PDTCH,
+	MF_TASK_GPRS_PTCCH,
+
 	MF_TASK_NEIGH_PM51_C0T0,
 	MF_TASK_NEIGH_PM51,
 	MF_TASK_NEIGH_PM26E,
@@ -42,6 +45,7 @@ enum mframe_task {
 
 enum mf_sched_item_flag {
 	MF_F_SACCH	= (1 << 0),
+	MF_F_PTCCH	= (1 << 1),
 };
 
 /* The scheduler itself */
