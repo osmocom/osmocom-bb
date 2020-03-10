@@ -27,7 +27,9 @@
 #include <osmocom/core/talloc.h>
 #include <virtphy/osmo_mcast_sock.h>
 #include <virtphy/virtual_um.h>
+
 #include <unistd.h>
+#include <errno.h>
 
 /**
  * Virtual UM interface file descriptor callback.
@@ -37,49 +39,71 @@ static int virt_um_fd_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct virt_um_inst *vui = ofd->data;
 
-	// check if the read flag is set
 	if (what & BSC_FD_READ) {
-		// allocate message buffer of specified size
-		struct msgb *msg = msgb_alloc(VIRT_UM_MSGB_SIZE,
-		                "Virtual UM Rx");
+		struct msgb *msg = msgb_alloc(VIRT_UM_MSGB_SIZE, "Virtual UM Rx");
 		int rc;
 
-		// read message from fd in message buffer
-		rc = mcast_bidir_sock_rx(vui->mcast_sock, msgb_data(msg),
-		                msgb_tailroom(msg));
-		// rc is number of bytes actually read
+		/* read message from fd into message buffer */
+		rc = mcast_bidir_sock_rx(vui->mcast_sock, msgb_data(msg), msgb_tailroom(msg));
 		if (rc > 0) {
 			msgb_put(msg, rc);
 			msg->l1h = msgb_data(msg);
-			// call the l1 callback function for a received msg
+			/* call the l1 callback function for a received msg */
 			vui->recv_cb(vui, msg);
-		} else {
-			// TODO: this kind of error handling might be a bit harsh
+		} else if (rc == 0) {
 			vui->recv_cb(vui, NULL);
-			// Unregister fd from select loop
-			osmo_fd_unregister(ofd);
-			close(ofd->fd);
-			ofd->fd = -1;
-			ofd->when = 0;
-		}
+			osmo_fd_close(ofd);
+		} else
+			perror("Read from multicast socket");
+
 	}
 
 	return 0;
 }
 
-struct virt_um_inst *virt_um_init(
-                void *ctx, char *tx_mcast_group, uint16_t tx_mcast_port,
-                char *rx_mcast_group, uint16_t rx_mcast_port,
-                void (*recv_cb)(struct virt_um_inst *vui, struct msgb *msg))
+struct virt_um_inst *virt_um_init(void *ctx, char *tx_mcast_group, uint16_t tx_mcast_port,
+				  char *rx_mcast_group, uint16_t rx_mcast_port, int ttl, const char *dev_name,
+				  void (*recv_cb)(struct virt_um_inst *vui, struct msgb *msg))
 {
 	struct virt_um_inst *vui = talloc_zero(ctx, struct virt_um_inst);
-	vui->mcast_sock = mcast_bidir_sock_setup(ctx, tx_mcast_group,
-	                tx_mcast_port, rx_mcast_group, rx_mcast_port, 1,
-	                virt_um_fd_cb, vui);
+	int rc;
+
+	vui->mcast_sock = mcast_bidir_sock_setup(ctx, tx_mcast_group, tx_mcast_port,
+						 rx_mcast_group, rx_mcast_port, 1, virt_um_fd_cb, vui);
+	if (!vui->mcast_sock) {
+		perror("Unable to create VirtualUm multicast socket");
+		talloc_free(vui);
+		return NULL;
+	}
 	vui->recv_cb = recv_cb;
+
+	if (ttl >= 0) {
+		rc = osmo_sock_mcast_ttl_set(vui->mcast_sock->tx_ofd.fd, ttl);
+		if (rc < 0) {
+			perror("Cannot set TTL of Virtual Um transmit socket");
+			goto out_close;
+		}
+	}
+
+	if (dev_name) {
+		rc = osmo_sock_mcast_iface_set(vui->mcast_sock->tx_ofd.fd, dev_name);
+		if (rc < 0) {
+			perror("Cannot bind multicast tx to given device");
+			goto out_close;
+		}
+		rc = osmo_sock_mcast_iface_set(vui->mcast_sock->rx_ofd.fd, dev_name);
+		if (rc < 0) {
+			perror("Cannot bind multicast rx to given device");
+			goto out_close;
+		}
+	}
 
 	return vui;
 
+out_close:
+	mcast_bidir_sock_close(vui->mcast_sock);
+	talloc_free(vui);
+	return NULL;
 }
 
 void virt_um_destroy(struct virt_um_inst *vui)
@@ -97,6 +121,8 @@ int virt_um_write_msg(struct virt_um_inst *vui, struct msgb *msg)
 
 	rc = mcast_bidir_sock_tx(vui->mcast_sock, msgb_data(msg),
 	                msgb_length(msg));
+	if (rc < 0)
+		rc = -errno;
 	msgb_free(msg);
 
 	return rc;

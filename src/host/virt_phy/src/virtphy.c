@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
 
 	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer starting up...\n");
 
-	g_vphy.virt_um = virt_um_init(tall_vphy_ctx, ul_tx_grp, port, dl_rx_grp, port,
+	g_vphy.virt_um = virt_um_init(tall_vphy_ctx, ul_tx_grp, port, dl_rx_grp, port, -1, NULL,
 					gsmtapl1_rx_from_virt_um_inst_cb);
 
 	g_vphy.l1ctl_sock = l1ctl_sock_init(tall_vphy_ctx, l1ctl_sap_rx_from_l23_inst_cb,
