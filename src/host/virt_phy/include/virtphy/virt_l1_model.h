@@ -100,6 +100,12 @@ struct l1_state_ms {
 			uint8_t arfcn_sig_lev_red_dbm[1024];
 			struct osmo_timer_list arfcn_sig_lev_timers[1024];
 		} meas;
+		struct {
+			uint16_t band_arfcn_from;
+			uint16_t band_arfcn_to;
+			/* timer between receiving PM_REQ and responding with PM_CONF */
+			struct osmo_timer_list timer;
+		} req;
 	} pm;
 };
 

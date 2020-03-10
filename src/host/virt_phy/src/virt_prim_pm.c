@@ -84,25 +84,36 @@ void l1ctl_rx_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 	struct l1_state_ms *l1s = &ms->state;
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	struct l1ctl_pm_req *pm_req = (struct l1ctl_pm_req *) l1h->data;
+
+	/* just parse the data from the request here */
+	l1s->pm.req.band_arfcn_from = ntohs(pm_req->range.band_arfcn_from);
+	l1s->pm.req.band_arfcn_to = ntohs(pm_req->range.band_arfcn_to);
+
+	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_PM_REQ TYPE=%u, FROM=%d, TO=%d\n",
+		pm_req->type, l1s->pm.req.band_arfcn_from, l1s->pm.req.band_arfcn_to);
+
+	/* generating the response will happen delayed in a timer, as otherwise
+	 * we will respond too fast, and 'mobile' will run havoc in a busy loop issuing
+	 * endless PM_REQ until a cell eventually isfound */
+	osmo_timer_schedule(&l1s->pm.req.timer, 0, 300000);
+}
+
+static void pm_conf_timer_cb(void *data)
+{
+	struct l1_model_ms *ms = data;
+	struct l1_state_ms *l1s = &ms->state;
 	struct msgb *resp_msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
 	uint16_t arfcn_next;
 
-	/* convert to host order */
-	pm_req->range.band_arfcn_from = ntohs(pm_req->range.band_arfcn_from);
-	pm_req->range.band_arfcn_to = ntohs(pm_req->range.band_arfcn_to);
-
-	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_PM_REQ TYPE=%u, FROM=%d, TO=%d\n",
-		pm_req->type, pm_req->range.band_arfcn_from, pm_req->range.band_arfcn_to);
-
-	for (arfcn_next = pm_req->range.band_arfcn_from;
-	     arfcn_next <= pm_req->range.band_arfcn_to; ++arfcn_next) {
+	for (arfcn_next = l1s->pm.req.band_arfcn_from;
+	     arfcn_next <= l1s->pm.req.band_arfcn_to; ++arfcn_next) {
 		struct l1ctl_pm_conf *pm_conf = (struct l1ctl_pm_conf *) msgb_put(resp_msg, sizeof(*pm_conf));
 		pm_conf->band_arfcn = htons(arfcn_next);
 		/* set min and max to the value calculated for that
 		 * arfcn (IGNORE UPLINKK AND  PCS AND OTHER FLAGS) */
 		pm_conf->pm[0] = dbm2rxlev(l1s->pm.meas.arfcn_sig_lev_dbm[arfcn_next & ARFCN_NO_FLAGS_MASK]);
 		pm_conf->pm[1] = dbm2rxlev(l1s->pm.meas.arfcn_sig_lev_dbm[arfcn_next & ARFCN_NO_FLAGS_MASK]);
-		if (arfcn_next == pm_req->range.band_arfcn_to) {
+		if (arfcn_next == l1s->pm.req.band_arfcn_to) {
 			struct l1ctl_hdr *resp_l1h = msgb_l1(resp_msg);
 			resp_l1h->flags |= L1CTL_F_DONE;
 		}
@@ -137,6 +148,7 @@ void prim_pm_init(struct l1_model_ms *model)
 		l1s->pm.meas.arfcn_sig_lev_timers[i].cb = prim_pm_timer_cb;
 		l1s->pm.meas.arfcn_sig_lev_timers[i].data = &l1s->pm.meas.arfcn_sig_lev_dbm[i];
 	}
+	osmo_timer_setup(&l1s->pm.req.timer, pm_conf_timer_cb, model);
 }
 
 void prim_pm_exit(struct l1_model_ms *model)
@@ -146,4 +158,5 @@ void prim_pm_exit(struct l1_model_ms *model)
 
 	for (i = 0; i < 1024; ++i)
 		osmo_timer_del(&l1s->pm.meas.arfcn_sig_lev_timers[i]);
+	osmo_timer_del(&l1s->pm.req.timer);
 }
