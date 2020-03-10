@@ -721,7 +721,16 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 
 	/* Update TDMA frame statistics */
 	lchan->tdma.last_proc = fn;
-	lchan->tdma.num_proc++;
+
+	if (++lchan->tdma.num_proc == 0) {
+		/* Theoretically, we may have an integer overflow of num_proc counter.
+		 * As a consequence, subst_frame_loss() will be unable to compensate
+		 * one (potentionally lost) Downlink burst. On practice, it would
+		 * happen once in 4615 * 10e-6 * (2 ^ 32 - 1) seconds or ~6 years. */
+		LOGP(DSCHD, LOGL_NOTICE, "Too many TDMA frames have been processed. "
+					 "Are you running trxcon for more than 6 years?!?\n");
+		lchan->tdma.num_proc = 1;
+	}
 
 	return 0;
 }
