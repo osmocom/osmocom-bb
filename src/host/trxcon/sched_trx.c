@@ -458,6 +458,16 @@ static void sched_trx_reset_lchan(struct trx_lchan_state *lchan)
 	/* Prevent NULL-pointer deference */
 	OSMO_ASSERT(lchan != NULL);
 
+	/* Print some TDMA statistics for Downlink */
+	if (trx_lchan_desc[lchan->type].rx_fn && lchan->active) {
+		LOGP(DSCH, LOGL_DEBUG, "TDMA statistics for lchan=%s on ts=%u: "
+				       "%lu DL frames have been processed, "
+				       "%lu lost (compensated), last fn=%u\n",
+		     trx_lchan_desc[lchan->type].name, lchan->ts->index,
+		     lchan->tdma.num_proc, lchan->tdma.num_lost,
+		     lchan->tdma.last_proc);
+	}
+
 	/* Reset internal state variables */
 	lchan->rx_burst_mask = 0x00;
 	lchan->tx_burst_mask = 0x00;
