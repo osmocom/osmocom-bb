@@ -59,6 +59,8 @@ static char *log_mask = DEFAULT_LOG_MASK;
 static char *l1ctl_sock_path = L1CTL_SOCK_PATH;
 static char *arfcn_sig_lev_red_mask = NULL;
 static char *pm_timeout = NULL;
+static char *mcast_netdev = NULL;
+static int mcast_ttl = -1;
 
 static void print_usage()
 {
@@ -76,6 +78,8 @@ static void print_help()
 	printf("  -s --l1ctl-sock            	l1ctl socket path path.\n");
 	printf("  -r --arfcn-sig-lev-red        reduce signal level (e.g. 666,12:888,43:176,22).\n");
 	printf("  -t --pm-timeout		power management timeout.\n");
+	printf("  -T --mcast-ttl TTL		set TTL of Virtual Um GSMTAP multicast frames\n");
+	printf("  -D --mcast-deav NETDEV	bind to given network device for Virtual Um\n");
 }
 
 static void handle_options(int argc, char **argv)
@@ -91,9 +95,11 @@ static void handle_options(int argc, char **argv)
 		        {"l1ctl-sock", required_argument, 0, 's'},
 		        {"arfcn-sig-lev-red", required_argument, 0, 'r'},
 		        {"pm-timeout", required_argument, 0, 't'},
+			{"mcast-ttl", required_argument, 0, 'T'},
+			{"mcast-dev", required_argument, 0, 'D'},
 		        {0, 0, 0, 0},
 		};
-		c = getopt_long(argc, argv, "hz:y:x:d:s:r:t:", long_options,
+		c = getopt_long(argc, argv, "hz:y:x:d:s:r:t:T:D:", long_options,
 		                &option_index);
 		if (c == -1)
 			break;
@@ -123,6 +129,12 @@ static void handle_options(int argc, char **argv)
 			break;
 		case 't':
 			pm_timeout = optarg;
+			break;
+		case 'T':
+			mcast_ttl = atoi(optarg);
+			break;
+		case 'D':
+			mcast_netdev = optarg;
 			break;
 		default:
 			break;
@@ -231,8 +243,8 @@ int main(int argc, char *argv[])
 
 	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer starting up...\n");
 
-	g_vphy.virt_um = virt_um_init(tall_vphy_ctx, ul_tx_grp, port, dl_rx_grp, port, -1, NULL,
-					gsmtapl1_rx_from_virt_um_inst_cb);
+	g_vphy.virt_um = virt_um_init(tall_vphy_ctx, ul_tx_grp, port, dl_rx_grp, port, mcast_ttl,
+					mcast_netdev, gsmtapl1_rx_from_virt_um_inst_cb);
 
 	g_vphy.l1ctl_sock = l1ctl_sock_init(tall_vphy_ctx, l1ctl_sap_rx_from_l23_inst_cb,
 					    l1ctl_accept_cb, l1ctl_close_cb, l1ctl_sock_path);
