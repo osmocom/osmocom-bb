@@ -319,6 +319,16 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			    dl->snr, ccch->data, sizeof(ccch->data));
 	}
 
+	/* Do not pass PDCH and CBCH frames to LAPDm */
+	switch (chan_type) {
+	case RSL_CHAN_OSMO_PDCH:
+	case RSL_CHAN_OSMO_CBCH4:
+	case RSL_CHAN_OSMO_CBCH8:
+		/* TODO: pass directly to l23 application */
+		msgb_free(msg);
+		return 0;
+	}
+
 	/* determine LAPDm entity based on SACCH or not */
 	if (dl->link_id & 0x40)
 		le = &ms->lapdm_channel.lapdm_acch;
