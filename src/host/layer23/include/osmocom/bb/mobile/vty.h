@@ -10,6 +10,7 @@ enum ms_vty_node {
 	MS_NODE = _LAST_OSMOVTY_NODE + 1,
 	TESTSIM_NODE,
 	SUPPORT_NODE,
+	AUDIO_NODE,
 };
 
 int ms_vty_go_parent(struct vty *vty);

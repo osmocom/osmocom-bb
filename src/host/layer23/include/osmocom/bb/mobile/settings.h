@@ -3,9 +3,28 @@
 
 #define MOB_C7_DEFLT_ANY_TIMEOUT	30
 
+/* TCH frame I/O handler */
+enum audio_io_handler {
+	/* No handler, drop frames */
+	AUDIO_IOH_NONE = 0,
+	/* Return to sender */
+	AUDIO_IOH_LOOPBACK,
+};
+
+extern const struct value_string audio_io_handler_names[];
+static inline const char *audio_io_handler_name(enum audio_io_handler val)
+{ return get_value_string(audio_io_handler_names, val); }
+
+struct audio_settings {
+	enum audio_io_handler	io_handler;
+};
+
 struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];
+
+	/* Audio settings */
+	struct audio_settings	audio;
 
 	/* IMEI */
 	char			imei[16];

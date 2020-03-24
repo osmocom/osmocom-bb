@@ -41,6 +41,9 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	strcpy(set->layer2_socket_path, layer2_socket_path);
 	strcpy(set->sap_socket_path, sap_socket_path);
 
+	/* Audio settings: drop TCH frames by default */
+	set->audio.io_handler = AUDIO_IOH_NONE;
+
 	/* network search */
 	set->plmn_mode = PLMN_MODE_AUTO;
 
@@ -194,3 +197,8 @@ int gsm_random_imei(struct gsm_settings *set)
 	return 0;
 }
 
+const struct value_string audio_io_handler_names[] = {
+	{ AUDIO_IOH_NONE,	"none" },
+	{ AUDIO_IOH_LOOPBACK,	"loopback" },
+	{ 0x00, NULL}
+};
