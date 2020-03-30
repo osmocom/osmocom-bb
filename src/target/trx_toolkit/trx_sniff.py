@@ -158,6 +158,12 @@ class Application(ApplicationBase):
 			if msg.fn < self.argv.pf_fn_gt:
 				return False
 
+		# Message type specific filtering
+		if isinstance(msg, DATAMSG_TRX2L1):
+			# NOPE.ind filter
+			if not self.argv.pf_nope_ind and msg.nope_ind:
+				return False
+
 		# Burst passed ;)
 		return True
 
@@ -258,6 +264,9 @@ class Application(ApplicationBase):
 		pf_group.add_argument("--frame-num-gt", metavar = "FN",
 			dest = "pf_fn_gt", type = int,
 			help = "TDMA frame number (greater than FN)")
+		pf_group.add_argument("--no-nope-ind",
+			dest = "pf_nope_ind", action = "store_false",
+			help = "Ignore NOPE.ind (NOPE / IDLE indications)")
 
 		return parser.parse_args()
 
