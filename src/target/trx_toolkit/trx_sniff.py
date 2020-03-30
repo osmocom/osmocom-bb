@@ -4,7 +4,7 @@
 # TRX Toolkit
 # Scapy-based TRX interface sniffer
 #
-# (C) 2018-2019 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2018-2020 by Vadim Yanitskiy <axilirator@gmail.com>
 #
 # All Rights Reserved
 #
@@ -22,7 +22,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-APP_CR_HOLDERS = [("2018-2019", "Vadim Yanitskiy <axilirator@gmail.com>")]
+APP_CR_HOLDERS = [("2018-2020", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import argparse
@@ -119,8 +119,7 @@ class Application(ApplicationBase):
 			return
 
 		# Poke burst pass filter
-		rc = self.burst_pass_filter(l12trx, msg.fn, msg.tn)
-		if rc is False:
+		if not self.burst_pass_filter(msg):
 			self.cnt_burst_dropped_num += 1
 			return
 
@@ -136,25 +135,27 @@ class Application(ApplicationBase):
 		if rc is True:
 			self.shutdown()
 
-	def burst_pass_filter(self, l12trx, fn, tn):
+	def burst_pass_filter(self, msg):
 		# Direction filter
 		if self.argv.direction is not None:
-			if self.argv.direction == "TRX" and not l12trx:
-				return False
-			elif self.argv.direction == "L1" and l12trx:
-				return False
+			if self.argv.direction == "TRX": # L1 -> TRX
+				if not isinstance(msg, DATAMSG_L12TRX):
+					return False
+			elif self.argv.direction == "L1": # TRX -> L1
+				if not isinstance(msg, DATAMSG_TRX2L1):
+					return False
 
 		# Timeslot filter
 		if self.argv.pf_tn is not None:
-			if tn != self.argv.pf_tn:
+			if msg.tn != self.argv.pf_tn:
 				return False
 
 		# Frame number filter
 		if self.argv.pf_fn_lt is not None:
-			if fn > self.argv.pf_fn_lt:
+			if msg.fn > self.argv.pf_fn_lt:
 				return False
 		if self.argv.pf_fn_gt is not None:
-			if fn < self.argv.pf_fn_gt:
+			if msg.fn < self.argv.pf_fn_gt:
 				return False
 
 		# Burst passed ;)
