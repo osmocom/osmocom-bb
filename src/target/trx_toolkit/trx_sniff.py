@@ -164,6 +164,14 @@ class Application(ApplicationBase):
 			if not self.argv.pf_nope_ind and msg.nope_ind:
 				return False
 
+			# RSSI filter
+			if self.argv.pf_rssi_min is not None:
+				if msg.rssi < self.argv.pf_rssi_min:
+					return False
+			if self.argv.pf_rssi_max is not None:
+				if msg.rssi > self.argv.pf_rssi_max:
+					return False
+
 		# Burst passed ;)
 		return True
 
@@ -267,6 +275,12 @@ class Application(ApplicationBase):
 		pf_group.add_argument("--no-nope-ind",
 			dest = "pf_nope_ind", action = "store_false",
 			help = "Ignore NOPE.ind (NOPE / IDLE indications)")
+		pf_group.add_argument("--rssi-min", metavar = "RSSI",
+			dest = "pf_rssi_min", type = int,
+			help = "Minimum RSSI value (e.g. -75)")
+		pf_group.add_argument("--rssi-max", metavar = "RSSI",
+			dest = "pf_rssi_max", type = int,
+			help = "Maximum RSSI value (e.g. -50)")
 
 		return parser.parse_args()
 
