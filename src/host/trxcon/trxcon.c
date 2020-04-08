@@ -1,7 +1,7 @@
 /*
  * OsmocomBB <-> SDR connection bridge
  *
- * (C) 2016-2019 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2016-2020 by Vadim Yanitskiy <axilirator@gmail.com>
  *
  * All Rights Reserved
  *
@@ -53,7 +53,7 @@
 #include "sched_trx.h"
 
 #define COPYRIGHT \
-	"Copyright (C) 2016-2019 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
+	"Copyright (C) 2016-2020 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
 	"License GPLv2+: GNU GPL version 2 or later " \
 	"<http://gnu.org/licenses/gpl.html>\n" \
 	"This is free software: you are free to change and redistribute it.\n" \
@@ -282,6 +282,12 @@ int main(int argc, char **argv)
 
 	/* Init logging system */
 	trx_log_init(tall_trxcon_ctx, app_data.debug_mask);
+
+	/* Configure pretty logging */
+	log_set_print_extended_timestamp(osmo_stderr_target, 1);
+	log_set_print_category_hex(osmo_stderr_target, 0);
+	log_set_print_category(osmo_stderr_target, 1);
+	log_set_print_level(osmo_stderr_target, 1);
 
 	/* Optional GSMTAP  */
 	if (app_data.gsmtap_ip != NULL) {
