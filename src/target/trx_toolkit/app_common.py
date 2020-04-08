@@ -40,19 +40,25 @@ class ApplicationBase:
 			"This is free software: you are free to change and redistribute it.\n" \
 			"There is NO WARRANTY, to the extent permitted by law.\n")
 
+	def add_log_handler(self, lh, log_level, log_fmt):
+		lf = log.Formatter(log_fmt)
+		ll = log.getLevelName(log_level)
+
+		log.root.addHandler(lh)
+		lh.setFormatter(lf)
+		lh.setLevel(ll)
+
 	def app_init_logging(self, argv):
 		# Default logging handler (stderr)
-		sh = log.StreamHandler()
-		sh.setLevel(log.getLevelName(argv.log_level))
-		sh.setFormatter(log.Formatter(argv.log_fmt))
-		log.root.addHandler(sh)
+		lo = (argv.log_level, argv.log_fmt)
+		lh = log.StreamHandler()
+		self.add_log_handler(lh, *lo)
 
 		# Optional file handler
 		if argv.log_file_name is not None:
-			fh = log.FileHandler(argv.log_file_name)
-			fh.setLevel(log.getLevelName(argv.log_file_level))
-			fh.setFormatter(log.Formatter(argv.log_file_fmt))
-			log.root.addHandler(fh)
+			lo = (argv.log_file_level, argv.log_file_fmt)
+			lh = log.FileHandler(argv.log_file_name)
+			self.add_log_handler(lh, *lo)
 
 		# Set DEBUG for the root logger
 		log.root.setLevel(log.DEBUG)
