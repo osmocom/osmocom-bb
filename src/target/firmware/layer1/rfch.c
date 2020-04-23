@@ -82,9 +82,16 @@ static int pow_nbin_mask(int n)
 	return x;
 }
 
-static int16_t rfch_hop_seq_gen(struct gsm_time *t,
+/*! Hopping sequence generator.
+ * \param[in] t GSM time (frame number)
+ * \param[in] hsn Hopping Sequence Number
+ * \param[in] maio Mobile Allocation Index OFfset
+ * \param[in] n number of entries in mobile allocation (arfcn table)
+ * \param[in] arfcn_tbl Array of ARFCN representing the mobile allocation
+ * \returns ARFCN to use for given input parameters at time 't' or MAI if arfcn_tbl == NULL */
+static int16_t rfch_hop_seq_gen(const struct gsm_time *t,
                                 uint8_t hsn, uint8_t maio,
-                                uint8_t n, uint16_t *arfcn_tbl)
+                                uint8_t n, const uint16_t *arfcn_tbl)
 {
 	int mai;
 
@@ -114,8 +121,12 @@ static int16_t rfch_hop_seq_gen(struct gsm_time *t,
 }
 
 
-/* RF Channel parameters */
-void rfch_get_params(struct gsm_time *t,
+/*! Get RF Channel parameters at a given GSM time (frame number)
+ *  \param[in] t GSM time for which to obtain parameters
+ *  \param[out] arfcn_p ARFCN to use at time t
+ *  \oaram[out] tsc_p Training sequence to use at time t
+ *  \param[out] tn_p Timeslot Number to use at time t */
+void rfch_get_params(const struct gsm_time *t,
                      uint16_t *arfcn_p, uint8_t *tsc_p, uint8_t *tn_p)
 {
 	if (l1s.dedicated.type == GSM_DCHAN_NONE) {
