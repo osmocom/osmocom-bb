@@ -22,7 +22,9 @@
 #include <stdlib.h>
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/codec/codec.h>
 
+#include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
@@ -43,10 +45,13 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_push(msg, sizeof(struct gsm_data_frame));
 	mncc->callref = ms->mncc_entity.ref;
 
-	/* FIXME: FR only! */
+	/* FIXME: FR, EFR only! */
 	switch (ms->rrlayer.cd_now.mode) {
 	case GSM48_CMODE_SPEECH_V1:
 		mncc->msg_type = GSM_TCHF_FRAME;
+		break;
+	case GSM48_CMODE_SPEECH_EFR:
+		mncc->msg_type = GSM_TCHF_FRAME_EFR;
 		break;
 	default:
 		/* TODO: print error message here */
@@ -73,12 +78,26 @@ exit_free:
 int gsm_send_voice(struct osmocom_ms *ms, struct gsm_data_frame *data)
 {
 	struct msgb *nmsg;
+	int len;
 
-	nmsg = msgb_alloc_headroom(33 + 64, 64, "TCH/F");
+	switch (ms->rrlayer.cd_now.mode) {
+	case GSM48_CMODE_SPEECH_V1:
+		/* FIXME: FR only, check for TCH/F (FR) and TCH/H (HR) */
+		len = GSM_FR_BYTES;
+		break;
+	case GSM48_CMODE_SPEECH_EFR:
+		len = GSM_EFR_BYTES;
+		break;
+	default:
+		LOGP(DL1C, LOGL_ERROR, "gsm_send_voice, msg_type=0x%02x: not implemented\n", data->msg_type);
+		return -EINVAL;
+	}
+
+	nmsg = msgb_alloc_headroom(len + 64, 64, "TCH/F");
 	if (!nmsg)
 		return -ENOMEM;
-	nmsg->l2h = msgb_put(nmsg, 33);
-	memcpy(nmsg->l2h, data->data, 33);
+	nmsg->l2h = msgb_put(nmsg, len);
+	memcpy(nmsg->l2h, data->data, len);
 
 	return gsm48_rr_tx_voice(ms, nmsg);
 }
