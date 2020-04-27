@@ -22,6 +22,7 @@
 #include <stdlib.h>
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/codec/codec.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/mobile/mncc.h>
@@ -41,7 +42,7 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 	/* push mncc header in front of data */
 	mncc = (struct gsm_data_frame *)
 		msgb_push(msg, sizeof(struct gsm_data_frame));
-	mncc->msg_type = GSM_TCHF_FRAME;
+	mncc->msg_type = GSM_TCHF_FRAME_EFR;
 	mncc->callref =  ms->mncc_entity.ref;
 
 	/* HACK: send voice frame back */
@@ -63,11 +64,11 @@ int gsm_send_voice(struct osmocom_ms *ms, struct gsm_data_frame *data)
 {
 	struct msgb *nmsg;
 
-	nmsg = msgb_alloc_headroom(33 + 64, 64, "TCH/F");
+	nmsg = msgb_alloc_headroom(GSM_EFR_BYTES + 64, 64, "TCH/F");
 	if (!nmsg)
 		return -ENOMEM;
-	nmsg->l2h = msgb_put(nmsg, 33);
-	memcpy(nmsg->l2h, data->data, 33);
+	nmsg->l2h = msgb_put(nmsg, GSM_EFR_BYTES);
+	memcpy(nmsg->l2h, data->data, GSM_EFR_BYTES);
 
 	return gsm48_rr_tx_voice(ms, nmsg);
 }
