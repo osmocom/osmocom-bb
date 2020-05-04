@@ -909,13 +909,6 @@ int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
 	DEBUGP(DL1C, "TRAFFIC REQ len=%zu (%s)\n", frame_len,
 		osmo_hexdump(frame, frame_len));
 
-	if ((frame[0] >> 4) != 0xd) {
-		LOGP(DL1C, LOGL_ERROR, "Traffic Request has incorrect magic "
-			"(%u != 0xd)\n", frame[0] >> 4);
-		msgb_free(msg);
-		return -EINVAL;
-	}
-
 //	printf("TX %s\n", osmo_hexdump(frame, frame_len));
 
 	/* prepend uplink info header */
