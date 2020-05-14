@@ -4,7 +4,8 @@
 # TRX Toolkit
 # CTRL interface implementation
 #
-# (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2016-2020 by Vadim Yanitskiy <axilirator@gmail.com>
+# Contributions by sysmocom - s.f.m.c. GmbH
 #
 # All Rights Reserved
 #
@@ -61,13 +62,17 @@ class CTRLInterface(UDPLink):
 		# Now we have something like ["TXTUNE", "941600"]
 		return request
 
-	def verify_cmd(self, request, cmd, argc):
+	# If va is True, the command can have variable number of arguments
+	def verify_cmd(self, request, cmd, argc, va = False):
 		# Check if requested command matches
 		if request[0] != cmd:
 			return False
 
 		# And has enough arguments
-		if len(request) - 1 != argc:
+		req_len = len(request[1:])
+		if not va and req_len != argc:
+			return False
+		elif va and req_len < argc:
 			return False
 
 		return True

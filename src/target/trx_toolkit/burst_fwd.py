@@ -4,7 +4,8 @@
 # TRX Toolkit
 # Burst forwarding between transceivers
 #
-# (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2017-2020 by Vadim Yanitskiy <axilirator@gmail.com>
+# Contributions by sysmocom - s.f.m.c. GmbH
 #
 # All Rights Reserved
 #
@@ -65,6 +66,10 @@ class BurstForwarder:
 		self.trx_list.remove(trx)
 
 	def forward_msg(self, src_trx, rx_msg):
+		# Originating Transceiver may use frequency hopping,
+		# so let's precalculate its Tx frequency in advance
+		tx_freq = src_trx.get_tx_freq(rx_msg.fn)
+
 		# Iterate over all known transceivers
 		for trx in self.trx_list:
 			if trx == src_trx:
@@ -73,9 +78,11 @@ class BurstForwarder:
 			# Check transceiver state
 			if not trx.running:
 				continue
-			if trx.rx_freq != src_trx.tx_freq:
-				continue
 			if rx_msg.tn not in trx.ts_list:
+				continue
+
+			# Match Tx/Rx frequencies of the both transceivers
+			if trx.get_rx_freq(rx_msg.fn) != tx_freq:
 				continue
 
 			# Transform from L12TRX to TRX2L1 and forward

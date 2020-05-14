@@ -64,14 +64,19 @@ class FakePM:
 	def rssi_trx(self):
 		return randint(self.trx_min, self.trx_max)
 
-	def measure(self, freq):
+	def measure(self, freq, fn = None):
 		# Iterate over all known transceivers
 		for trx in self.trx_list:
 			if not trx.running:
 				continue
 
+			# FIXME: we need to know current TDMA frame number here,
+			# because some transceivers may use frequency hopping
+			if trx.fh is not None and fn is None:
+				continue
+
 			# Match by given frequency
-			if trx.tx_freq == freq:
+			if trx.get_tx_freq(fn) == freq:
 				return self.rssi_trx
 
 		return self.rssi_noise

@@ -4,7 +4,8 @@
 # TRX Toolkit
 # CTRL interface implementation (common commands)
 #
-# (C) 2016-2019 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2016-2020 by Vadim Yanitskiy <axilirator@gmail.com>
+# Contributions by sysmocom - s.f.m.c. GmbH
 #
 # All Rights Reserved
 #
@@ -105,9 +106,9 @@ class CTRLInterfaceTRX(CTRLInterface):
 				log.error("(%s) Transceiver already started" % self.trx)
 				return -1
 
-			# Ensure RX / TX freq. are set
-			if (self.trx.rx_freq is None) or (self.trx.tx_freq is None):
-				log.error("(%s) RX / TX freq. are not set" % self.trx)
+			# Ensure that transceiver is ready
+			if not self.trx.ready:
+				log.error("(%s) Transceiver is not ready" % self.trx)
 				return -1
 
 			log.info("(%s) Starting transceiver..." % self.trx)
@@ -134,14 +135,14 @@ class CTRLInterfaceTRX(CTRLInterface):
 			log.debug("(%s) Recv RXTUNE cmd" % self.trx)
 
 			# TODO: check freq range
-			self.trx.rx_freq = int(request[1]) * 1000
+			self.trx._rx_freq = int(request[1]) * 1000
 			return 0
 
 		elif self.verify_cmd(request, "TXTUNE", 1):
 			log.debug("(%s) Recv TXTUNE cmd" % self.trx)
 
 			# TODO: check freq range
-			self.trx.tx_freq = int(request[1]) * 1000
+			self.trx._tx_freq = int(request[1]) * 1000
 			return 0
 
 		elif self.verify_cmd(request, "SETSLOT", 2):
@@ -186,6 +187,32 @@ class CTRLInterfaceTRX(CTRLInterface):
 			meas_dbm = self.trx.pwr_meas.measure(meas_freq)
 
 			return (0, [str(meas_dbm)])
+
+		# Frequency hopping configuration (variable length list):
+		#
+		#   CMD SETFH <HSN> <MAIO> <RXF1> <TXF1> [... <RXFN> <TXFN>]
+		#
+		# where <RXFN> and <TXFN> is a pair of Rx/Tx frequencies (in kHz)
+		# corresponding to one ARFCN the Mobile Allocation. Note that the
+		# channel list is expected to be sorted in ascending order.
+		if self.verify_cmd(request, "SETFH", 4, va = True):
+			log.debug("(%s) Recv SETFH cmd" % self.trx)
+
+			# Parse HSN and MAIO
+			hsn = int(request[1])
+			maio = int(request[2])
+
+			# Parse the list of hopping frequencies
+			ma = [int(f) * 1000 for f in request[3:]] # kHz -> Hz
+			ma = [(rx, tx) for rx, tx in zip(ma[0::2], ma[1::2])]
+
+			# Configure the hopping sequence generator
+			try:
+				self.trx.enable_fh(hsn, maio, ma)
+				return 0
+			except:
+				log.error("(%s) Failed to configure frequency hopping" % trx)
+				return -1
 
 		# TRXD header version negotiation
 		if self.verify_cmd(request, "SETFORMAT", 1):

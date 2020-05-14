@@ -4,7 +4,8 @@
 # TRX Toolkit
 # Transceiver implementation
 #
-# (C) 2018-2019 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2018-2020 by Vadim Yanitskiy <axilirator@gmail.com>
+# Contributions by sysmocom - s.f.m.c. GmbH
 #
 # All Rights Reserved
 #
@@ -28,6 +29,8 @@ from ctrl_if_trx import CTRLInterfaceTRX
 from data_if import DATAInterface
 from udp_link import UDPLink
 from trx_list import TRXList
+
+from gsm_shared import HoppingParams
 
 class Transceiver:
 	""" Base transceiver implementation.
@@ -88,6 +91,38 @@ class Transceiver:
 	that shall provide at least one method: measure(freq). This
 	is required for the MS side (i.e. OsmocomBB).
 
+	== Frequency hopping (optional)
+
+	There are two ways to implement frequency hopping:
+
+	  a) The Transceiver is configured with the hopping parameters, in
+	     particular HSN, MAIO, and the list of ARFCNs (channels), so the
+	     actual Rx/Tx frequencies are changed by the Transceiver itself
+	     depending on the current TDMA frame number.
+
+	  b) The L1 maintains several Transceivers (two or more), so each
+	     instance is assigned one dedicated RF carrier frequency, and
+	     hence the number of available hopping frequencies is equal to
+	     the number of Transceivers. In this case, it's the task of
+	     the L1 to commutate bursts between Transceivers (frequencies).
+
+	Variant a) is commonly known as "synthesizer frequency hopping"
+	whereas b) is known as "baseband frequency hopping".
+
+	For the MS side, a) is preferred, because a phone usually has only
+	one Transceiver (per RAT). On the other hand, b) is more suitable
+	for the BTS side, because it's relatively easy to implement and
+	there is no technical limitation on the amount of Transceivers.
+
+	FakeTRX obviously does support b) since multi-TRX feature has been
+	implemented, as well as a) by resolving UL/DL frequencies using a
+	preconfigured (by the L1) set of the hopping parameters. The later
+	can be enabled using the SETFH control command.
+
+	NOTE: in the current implementation, mode a) applies to the whole
+	Transceiver and all its timeslots, so using in for the BTS side
+	does not make any sense (imagine BCCH hopping together with DCCH).
+
 	"""
 
 	def __init__(self, bind_addr, remote_addr, base_port, name = None,
@@ -131,8 +166,11 @@ class Transceiver:
 		self.running = False
 
 		# Actual RX / TX frequencies
-		self.rx_freq = None
-		self.tx_freq = None
+		self._rx_freq = None
+		self._tx_freq = None
+
+		# Frequency hopping parameters (set by CTRL)
+		self.fh = None
 
 		# List of active (configured) timeslots
 		self.ts_list = []
@@ -149,6 +187,41 @@ class Transceiver:
 
 		return desc
 
+	@property
+	def ready(self):
+		# Make sure that either both Rx/Tx frequencies are set
+		if self._rx_freq is None or self._tx_freq is None:
+			# ... or frequency hopping is in use
+			if self.fh is None:
+				return False
+
+		return True
+
+	def get_rx_freq(self, fn):
+		if self.fh is None:
+			return self._rx_freq
+
+		# Frequency hopping in use, resolve by TDMA fn
+		(rx_freq, _) = self.fh.resolve(fn)
+		return rx_freq
+
+	def get_tx_freq(self, fn):
+		if self.fh is None:
+			return self._tx_freq
+
+		# Frequency hopping in use, resolve by TDMA fn
+		(_, tx_freq) = self.fh.resolve(fn)
+		return tx_freq
+
+	def enable_fh(self, *args):
+		self.fh = HoppingParams(*args)
+		log.info("(%s) Frequency hopping configured: %s" % (self, self.fh))
+
+	def disable_fh(self):
+		if self.fh is not None:
+			log.info("(%s) Frequency hopping disabled" % self)
+			self.fh = None
+
 	# To be overwritten if required,
 	# no custom command handlers by default
 	def ctrl_cmd_handler(self, request):
@@ -159,8 +232,13 @@ class Transceiver:
 		for trx in self.child_trx_list.trx_list:
 			if event == "POWERON":
 				trx.running = True
-			else:
+			elif event == "POWEROFF":
 				trx.running = False
+				trx.disable_fh()
+
+		# Reset frequency hopping parameters
+		if event == "POWEROFF":
+			self.disable_fh()
 
 		# Trigger clock generator if required
 		if self.clck_gen is not None:
