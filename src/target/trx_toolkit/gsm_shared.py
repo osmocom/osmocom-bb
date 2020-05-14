@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 # TRX Toolkit
-# Common GSM constants
+# Common GSM constants and helpers
 #
-# (C) 2018-2019 by Vadim Yanitskiy <axilirator@gmail.com>
+# (C) 2018-2020 by Vadim Yanitskiy <axilirator@gmail.com>
+# Contributions by sysmocom - s.f.m.c. GmbH
 #
 # All Rights Reserved
 #
@@ -106,3 +107,73 @@ class TrainingSeqGMSK(Enum):
 				return ts
 
 		return None
+
+class HoppingParams:
+	""" Hopping sequence generation as per 3GPP TS 45.002, section 6.2.3.
+
+	Based on firmware/layer1/rfch.c:rfch_hop_seq_gen() by Sylvain Munaut.
+
+	"""
+
+	# Magic numbers for pseudo-random hopping sequence generation
+	RNTABLE = [
+		 48,  98,  63,   1,  36,  95,  78, 102,  94,  73,
+		  0,  64,  25,  81,  76,  59, 124,  23, 104, 100,
+		101,  47, 118,  85,  18,  56,  96,  86,  54,   2,
+		 80,  34, 127,  13,   6,  89,  57, 103,  12,  74,
+		 55, 111,  75,  38, 109,  71, 112,  29,  11,  88,
+		 87,  19,   3,  68, 110,  26,  33,  31,   8,  45,
+		 82,  58,  40, 107,  32,   5, 106,  92,  62,  67,
+		 77, 108, 122,  37,  60,  66, 121,  42,  51, 126,
+		117, 114,   4,  90,  43,  52,  53, 113, 120,  72,
+		 16,  49,   7,  79, 119,  61,  22,  84,   9,  97,
+		 91,  15,  21,  24,  46,  39,  93, 105,  65,  70,
+		125,  99,  17, 123,
+	]
+
+	def __init__(self, hsn, maio, ma):
+		# Make sure MA is not empty
+		ma_len = len(ma)
+		if ma_len == 0: # TODO: or rather > 1?
+			raise ValueError("Mobile Allocation is empty")
+
+		self.hsn = hsn
+		self.maio = maio
+		self.ma = ma
+
+		# Pre-calculate 2 ** NBIN in advance
+		self._pnm = (ma_len >> 0) | (ma_len >> 1) \
+			  | (ma_len >> 2) | (ma_len >> 3) \
+			  | (ma_len >> 4) | (ma_len >> 5) \
+			  | (ma_len >> 6)
+
+	def __str__(self):
+		fmt = "hsn=%u, maio=%u, ma_len=%u"
+		return fmt % (self.hsn, self.maio, len(self.ma))
+
+	@staticmethod
+	def fn2gsm_time(fn):
+		t1 = fn // (26 * 51)
+		t2 = fn % 26
+		t3 = fn % 51
+		tc = (fn // 51) % 8
+		return (t1, t2, t3, tc)
+
+	# Resolve current ARFCN using the given TDMA frame number
+	def resolve(self, fn):
+		# Cyclic hopping
+		if self.hsn == 0:
+			mai = (fn + self.maio) % len(self.ma)
+			return self.ma[mai]
+
+		# Pseudo random hopping
+		(t1, t2, t3, tc) = self.fn2gsm_time(fn)
+		ma_len = len(self.ma)
+
+		rn_idx = (self.hsn ^ (t1 & 63)) + t3
+		m = t2 + self.RNTABLE[rn_idx]
+		mp = m & self._pnm
+
+		s = mp if mp < ma_len else (mp + t3 & self._pnm) % ma_len
+		mai = (s + self.maio) % ma_len
+		return self.ma[mai]
