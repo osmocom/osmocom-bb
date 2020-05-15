@@ -89,7 +89,7 @@ void l1ctl_rx_pm_req(struct l1_model_ms *ms, struct msgb *msg)
 	l1s->pm.req.band_arfcn_from = ntohs(pm_req->range.band_arfcn_from);
 	l1s->pm.req.band_arfcn_to = ntohs(pm_req->range.band_arfcn_to);
 
-	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_PM_REQ TYPE=%u, FROM=%d, TO=%d\n",
+	LOGPMS(DL1C, LOGL_DEBUG, ms, "Rx L1CTL_PM_REQ TYPE=%u, FROM=%d, TO=%d\n",
 		pm_req->type, l1s->pm.req.band_arfcn_from, l1s->pm.req.band_arfcn_to);
 
 	/* generating the response will happen delayed in a timer, as otherwise
@@ -119,14 +119,14 @@ static void pm_conf_timer_cb(void *data)
 		}
 		/* no more space to hold more pm info in msgb, flush to l23 */
 		if (msgb_tailroom(resp_msg) < sizeof(*pm_conf)) {
-			LOGPMS(DL1C, LOGL_INFO, ms, "Tx L1CTL_PM_CONF\n");
+			LOGPMS(DL1C, LOGL_DEBUG, ms, "Tx L1CTL_PM_CONF\n");
 			l1ctl_sap_tx_to_l23_inst(ms, resp_msg);
 			resp_msg = l1ctl_msgb_alloc(L1CTL_PM_CONF);
 		}
 	}
 	/* transmit the remaining part of pm response to l23 */
 	if (resp_msg) {
-		LOGPMS(DL1C, LOGL_INFO, ms, "Tx L1CTL_PM_CONF\n");
+		LOGPMS(DL1C, LOGL_DEBUG, ms, "Tx L1CTL_PM_CONF\n");
 		l1ctl_sap_tx_to_l23_inst(ms, resp_msg);
 	}
 }

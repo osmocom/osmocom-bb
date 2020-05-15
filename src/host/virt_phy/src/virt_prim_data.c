@@ -74,7 +74,7 @@ void l1ctl_rx_data_req(struct l1_model_ms *ms, struct msgb *msg)
 	rsl_dec_chan_nr(ul->chan_nr, &rsl_chantype, &subslot, &timeslot);
 	msg->l2h = data_ind->data;
 
-	LOGPMS(DL1P, LOGL_INFO, ms, "Rx L1CTL_DATA_REQ (chan_nr=0x%02x, link_id=0x%02x) %s\n",
+	LOGPMS(DL1P, LOGL_DEBUG, ms, "Rx L1CTL_DATA_REQ (chan_nr=0x%02x, link_id=0x%02x) %s\n",
 		ul->chan_nr, ul->link_id, osmo_hexdump(msg->l2h, msgb_l2len(msg)));
 
 	virt_l1_sched_schedule(ms, msg, fn_sched, timeslot, &virt_l1_sched_handler_cb);
@@ -106,7 +106,7 @@ void l1ctl_tx_data_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arfcn,
 
 	memcpy(l1di->data, msgb_data(msg), msgb_length(msg));
 
-	LOGPMS(DL1P, LOGL_INFO, ms, "TX L1CTL_DATA_IND (link_id=0x%02x) %s\n", link_id,
+	LOGPMS(DL1P, LOGL_DEBUG, ms, "TX L1CTL_DATA_IND (link_id=0x%02x) %s\n", link_id,
 		 osmo_hexdump(msgb_data(msg), msgb_length(msg)));
 	l1ctl_sap_tx_to_l23_inst(ms, l1ctl_msg);
 }
@@ -124,6 +124,6 @@ void l1ctl_tx_data_conf(struct l1_model_ms *ms, uint32_t fn, uint16_t snr, uint1
 	struct msgb * l1ctl_msg;
 	l1ctl_msg = l1ctl_create_l2_msg(L1CTL_DATA_CONF, fn, snr, arfcn);
 	/* send confirm to layer23 */
-	LOGPMS(DL1P, LOGL_INFO, ms, "Tx L1CTL_DATA_CONF\n");
+	LOGPMS(DL1P, LOGL_DEBUG, ms, "Tx L1CTL_DATA_CONF\n");
 	l1ctl_sap_tx_to_l23_inst(ms, l1ctl_msg);
 }
