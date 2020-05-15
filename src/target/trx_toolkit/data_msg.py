@@ -190,45 +190,22 @@ class DATAMSG:
 	# Converts unsigned soft-bits {254..0} to soft-bits {-127..127}
 	@staticmethod
 	def usbit2sbit(bits):
-		buf = []
-
-		for bit in bits:
-			if bit == 0xff:
-				buf.append(-127)
-			else:
-				buf.append(127 - bit)
-
-		return buf
+		return [-127 if (b == 0xff) else 127 - b for b in bits]
 
 	# Converts soft-bits {-127..127} to unsigned soft-bits {254..0}
 	@staticmethod
 	def sbit2usbit(bits):
-		buf = []
-
-		for bit in bits:
-			buf.append(127 - bit)
-
-		return buf
+		return [127 - b for b in bits]
 
 	# Converts soft-bits {-127..127} to bits {1..0}
 	@staticmethod
 	def sbit2ubit(bits):
-		buf = []
-
-		for bit in bits:
-			buf.append(1 if bit < 0 else 0)
-
-		return buf
+		return [int(b < 0) for b in bits]
 
 	# Converts bits {1..0} to soft-bits {-127..127}
 	@staticmethod
 	def ubit2sbit(bits):
-		buf = []
-
-		for bit in bits:
-			buf.append(-127 if bit else 127)
-
-		return buf
+		return [-127 if b else 127 for b in bits]
 
 	# Validates the message fields (throws ValueError)
 	def validate(self):
@@ -426,11 +403,7 @@ class DATAMSG_L12TRX(DATAMSG):
 
 	# Generate a random message specific burst
 	def rand_burst(self, length = GSM_BURST_LEN):
-		self.burst = []
-
-		for i in range(length):
-			ubit = random.randint(0, 1)
-			self.burst.append(ubit)
+		self.burst = [random.randint(0, 1) for i in range(length)]
 
 	# Transforms this message to TRX2L1 message
 	def gen_trx2l1(self, ver = None):
@@ -836,14 +809,10 @@ class DATAMSG_TRX2L1(DATAMSG):
 
 	# Generate a random message specific burst
 	def rand_burst(self, length = None):
-		self.burst = []
-
 		if length is None:
 			length = self.mod_type.bl
 
-		for i in range(length):
-			sbit = random.randint(-127, 127)
-			self.burst.append(sbit)
+		self.burst = [random.randint(-127, 127) for i in range(length)]
 
 	# Transforms this message to L12TRX message
 	def gen_l12trx(self, ver = None):
