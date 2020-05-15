@@ -446,7 +446,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	struct trx_instance *trx = ofd->data;
 	struct trx_ctrl_msg *tcm;
 	int resp, rsp_len;
-	char buf[1500], *p;
+	char buf[TRXC_BUF_SIZE], *p;
 	ssize_t read_len;
 
 	read_len = read(ofd->fd, buf, sizeof(buf) - 1);
@@ -556,7 +556,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
 	struct trx_meas_set meas;
-	uint8_t buf[256];
+	uint8_t buf[TRXD_BUF_SIZE];
 	sbit_t bits[148];
 	int8_t rssi, tn;
 	int16_t toa256;
@@ -616,7 +616,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 	uint8_t pwr, const ubit_t *bits)
 {
-	uint8_t buf[256];
+	uint8_t buf[TRXD_BUF_SIZE];
 
 	/**
 	 * We must be sure that we have clock,

@@ -8,6 +8,9 @@
 #include "scheduler.h"
 #include "sched_trx.h"
 
+#define TRXC_BUF_SIZE	1024
+#define TRXD_BUF_SIZE	512
+
 /* Forward declaration to avoid mutual include */
 struct l1ctl_link;
 
@@ -49,7 +52,7 @@ struct trx_instance {
 
 struct trx_ctrl_msg {
 	struct llist_head list;
-	char cmd[128];
+	char cmd[TRXC_BUF_SIZE];
 	int retry_cnt;
 	int critical;
 	int cmd_len;
