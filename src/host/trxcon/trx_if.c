@@ -397,41 +397,57 @@ int trx_if_cmd_setta(struct trx_instance *trx, int8_t ta)
 }
 
 /*
- * Frequency Hopping parameters indication
+ * Frequency Hopping parameters indication.
  *
- * SETFH instructs transceiver to enable frequency
- * hopping mode using the given parameters.
- * CMD SETFH <HSN> <MAIO> <CH1> <CH2> [... <CHN>]
+ * SETFH instructs transceiver to enable frequency hopping mode
+ * using the given HSN, MAIO, and Mobile Allocation parameters.
+ *
+ * CMD SETFH <HSN> <MAIO> <RXF1> <TXF1> [... <RXFN> <TXFN>]
+ *
+ * where <RXFN> and <TXFN> is a pair of Rx/Tx frequencies (in kHz)
+ * corresponding to one ARFCN the Mobile Allocation. Note that the
+ * channel list is expected to be sorted in ascending order.
  */
 
 int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn,
 	uint8_t maio, uint16_t *ma, size_t ma_len)
 {
-	char ma_buf[100];
+	/* Reserve some room for CMD SETFH <HSN> <MAIO> */
+	char ma_buf[TRXC_BUF_SIZE - 24];
+	size_t ma_buf_len = sizeof(ma_buf) - 1;
+	uint16_t rx_freq, tx_freq;
 	char *ptr;
 	int i, rc;
 
-	/* No channels, WTF?!? */
-	if (!ma_len)
+	/* Make sure that Mobile Allocation has at least one ARFCN */
+	if (!ma_len || ma == NULL) {
+		LOGP(DTRX, LOGL_ERROR, "Mobile Allocation is empty?!?\n");
 		return -EINVAL;
+	}
 
-	/**
-	 * Compose a sequence of channels (mobile allocation)
-	 * FIXME: the length of a CTRL command is limited to 128 symbols,
-	 * so we may have some problems if there are many channels...
-	 */
+	/* Compose a sequence of Rx/Tx frequencies (mobile allocation) */
 	for (i = 0, ptr = ma_buf; i < ma_len; i++) {
-		/* Append a channel */
-		rc = snprintf(ptr, ma_buf + sizeof(ma_buf) - ptr, "%u ", ma[i]);
-		if (rc < 0)
-			return rc;
+		/* Convert ARFCN to a pair of Rx/Tx frequencies (Hz * 10) */
+		rx_freq = gsm_arfcn2freq10(ma[i], 0); /* Rx: Downlink */
+		tx_freq = gsm_arfcn2freq10(ma[i], 1); /* Tx: Uplink */
+		if (rx_freq == 0xffff || tx_freq == 0xffff) {
+			LOGP(DTRX, LOGL_ERROR, "Failed to convert ARFCN %u "
+			     "to a pair of Rx/Tx frequencies\n",
+			     ma[i] & ~ARFCN_FLAG_MASK);
+			return -EINVAL;
+		}
+
+		/* Append a pair of Rx/Tx frequencies (in kHz) to the buffer */
+		rc = snprintf(ptr, ma_buf_len, "%u %u ", rx_freq * 100, tx_freq * 100);
+		if (rc < 0 || rc > ma_buf_len) { /* Prevent buffer overflow */
+			LOGP(DTRX, LOGL_ERROR, "Not enough room to encode "
+			     "Mobile Allocation (N=%zu)\n", ma_len);
+			return -ENOSPC;
+		}
 
 		/* Move pointer */
+		ma_buf_len -= rc;
 		ptr += rc;
-
-		/* Prevent buffer overflow */
-		if (ptr >= (ma_buf + 100))
-			return -EIO;
 	}
 
 	/* Overwrite the last space */
