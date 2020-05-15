@@ -57,8 +57,7 @@ class RandBurstGen:
 		buf += [0] * 3
 
 		# Random data 1 / 2
-		for i in range(0, 57):
-			buf.append(random.randint(0, 1))
+		buf += [random.randint(0, 1) for i in range(57)]
 
 		# Steal flag 1 / 2
 		buf.append(random.randint(0, 1))
@@ -72,8 +71,7 @@ class RandBurstGen:
 		buf.append(random.randint(0, 1))
 
 		# Random data 2 / 2
-		for i in range(0, 57):
-			buf.append(random.randint(0, 1))
+		buf += [random.randint(0, 1) for i in range(57)]
 
 		# Tailing bits
 		buf += [0] * 3
@@ -92,8 +90,7 @@ class RandBurstGen:
 		buf += [0] * 3
 
 		# Random data 1 / 2
-		for i in range(0, 39):
-			buf.append(random.randint(0, 1))
+		buf += [random.randint(0, 1) for i in range(39)]
 
 		# Training sequence
 		if tsc is None:
@@ -101,8 +98,7 @@ class RandBurstGen:
 		buf += tsc.seq
 
 		# Random data 2 / 2
-		for i in range(0, 39):
-			buf.append(random.randint(0, 1))
+		buf += [random.randint(0, 1) for i in range(39)]
 
 		# Tailing bits
 		buf += [0] * 3
@@ -126,8 +122,7 @@ class RandBurstGen:
 		buf += tsc.seq
 
 		# Random data
-		for i in range(0, 36):
-			buf.append(random.randint(0, 1))
+		buf += [random.randint(0, 1) for i in range(36)]
 
 		# Tailing bits
 		buf += [0] * 3
