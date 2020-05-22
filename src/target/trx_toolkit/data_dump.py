@@ -158,14 +158,14 @@ class DATADumpFile(DATADump):
 	# Parses a particular message defined by index idx
 	# Return value:
 	#   a parsed message in case of success,
-	#   or None in case of EOF or header parsing error,
-	#   or False in case of message parsing error or out of range.
+	#   or None in case of EOF, out of range, or header parsing error,
+	#   or False in case of message parsing error.
 	def parse_msg(self, idx):
 		# Move descriptor to the beginning of requested message
 		rc = self._seek2msg(idx)
 		if not rc:
 			log.error("Couldn't find requested message")
-			return False
+			return None
 
 		# Attempt to parse a message
 		return self._parse_msg()

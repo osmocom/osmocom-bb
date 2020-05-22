@@ -133,9 +133,9 @@ class DATADump_Test(unittest.TestCase):
 
 	def test_parse_empty(self):
 		with self.assertLogs(level = 'ERROR'):
-			idx = random.randrange(100)
-			msg = self._ddf.parse_msg(idx)
-			self.assertEqual(msg, False)
+			for idx in range(100):
+				msg = self._ddf.parse_msg(idx)
+				self.assertEqual(msg, None)
 
 	def test_parse_all_empty(self):
 		msg_list = self._ddf.parse_all()
