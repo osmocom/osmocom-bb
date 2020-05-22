@@ -98,7 +98,7 @@ class DATADumpFile(DATADump):
 		self.f.seek(0)
 
 		# Read the capture in loop...
-		for i in range(idx):
+		for _ in range(idx):
 			# Attempt to read a message header
 			hdr_raw = self.f.read(self.HDR_LENGTH)
 			if len(hdr_raw) != self.HDR_LENGTH:

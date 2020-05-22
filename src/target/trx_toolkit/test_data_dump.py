@@ -79,7 +79,7 @@ class DATADump_Test(unittest.TestCase):
 	def _gen_rand_messages(self, cls, count, ver = 1):
 		msg_list = []
 
-		for i in range(count):
+		for _ in range(count):
 			msg = self._gen_rand_message(cls, ver)
 			msg_list.append(msg)
 

@@ -403,7 +403,7 @@ class DATAMSG_L12TRX(DATAMSG):
 
 	# Generate a random message specific burst
 	def rand_burst(self, length = GSM_BURST_LEN):
-		self.burst = [random.randint(0, 1) for i in range(length)]
+		self.burst = [random.randint(0, 1) for _ in range(length)]
 
 	# Transforms this message to TRX2L1 message
 	def gen_trx2l1(self, ver = None):
@@ -812,7 +812,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 		if length is None:
 			length = self.mod_type.bl
 
-		self.burst = [random.randint(-127, 127) for i in range(length)]
+		self.burst = [random.randint(-127, 127) for _ in range(length)]
 
 	# Transforms this message to L12TRX message
 	def gen_l12trx(self, ver = None):
