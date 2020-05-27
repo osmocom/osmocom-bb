@@ -595,7 +595,8 @@ static int l1ctl_proc_est_req_h0(struct trx_instance *trx, struct l1ctl_h0 *h)
 
 static int l1ctl_proc_est_req_h1(struct trx_instance *trx, struct l1ctl_h1 *h)
 {
-	int rc;
+	uint16_t ma[64];
+	int i, rc;
 
 	LOGP(DL1C, LOGL_NOTICE, "L1CTL_DM_EST_REQ indicates a Frequency "
 		"Hopping (hsn=%u, maio=%u, chans=%u) channel\n",
@@ -607,8 +608,12 @@ static int l1ctl_proc_est_req_h1(struct trx_instance *trx, struct l1ctl_h1 *h)
 		return -EINVAL;
 	}
 
+	/* Convert from network to host byte order */
+	for (i = 0; i < h->n; i++)
+		ma[i] = ntohs(h->ma[i]);
+
 	/* Forward hopping parameters to TRX */
-	rc = trx_if_cmd_setfh(trx, h->hsn, h->maio, h->ma, h->n);
+	rc = trx_if_cmd_setfh(trx, h->hsn, h->maio, ma, h->n);
 	if (rc)
 		return rc;
 
