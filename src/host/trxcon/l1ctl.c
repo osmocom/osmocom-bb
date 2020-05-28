@@ -606,6 +606,9 @@ static int l1ctl_proc_est_req_h1(struct trx_instance *trx, struct l1ctl_h1 *h)
 	if (!h->n) {
 		LOGP(DL1C, LOGL_ERROR, "No channels in mobile allocation?!?\n");
 		return -EINVAL;
+	} else if (h->n > ARRAY_SIZE(ma)) {
+		LOGP(DL1C, LOGL_ERROR, "More than 64 channels in mobile allocation?!?\n");
+		return -EINVAL;
 	}
 
 	/* Convert from network to host byte order */
