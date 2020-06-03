@@ -106,8 +106,11 @@ class FakeTRX(Transceiver):
 
 	"""
 
+	NOMINAL_TX_POWER_DEFAULT = 50 # dBm
+	TX_ATT_DEFAULT = 0 # dB
+	PATH_LOSS_DEFAULT = 110 # dB
+
 	TOA256_BASE_DEFAULT = 0
-	RSSI_BASE_DEFAULT = -60
 	CI_BASE_DEFAULT = 90
 
 	# Default values for NOPE / IDLE indications
@@ -118,9 +121,15 @@ class FakeTRX(Transceiver):
 	def __init__(self, *trx_args, **trx_kwargs):
 		Transceiver.__init__(self, *trx_args, **trx_kwargs)
 
+		# fake RSSI is disabled by default, only enabled through TRXC FAKE_RSSI.
+		# When disabled, RSSI is calculated based on Tx power and Rx path loss
+		self.fake_rssi_enabled = False
+
 		# Actual ToA, RSSI, C/I, TA values
+		self.tx_power_base = self.NOMINAL_TX_POWER_DEFAULT
+		self.tx_att_base = self.TX_ATT_DEFAULT
 		self.toa256_base = self.TOA256_BASE_DEFAULT
-		self.rssi_base = self.RSSI_BASE_DEFAULT
+		self.rssi_base = self.NOMINAL_TX_POWER_DEFAULT - self.TX_ATT_DEFAULT - self.PATH_LOSS_DEFAULT
 		self.ci_base = self.CI_BASE_DEFAULT
 		self.ta = 0
 
@@ -154,6 +163,10 @@ class FakeTRX(Transceiver):
 		rssi_min = self.rssi_base - self.rssi_rand_threshold
 		rssi_max = self.rssi_base + self.rssi_rand_threshold
 		return random.randint(rssi_min, rssi_max)
+
+	@property
+	def tx_power(self):
+		return self.tx_power_base - self.tx_att_base
 
 	@property
 	def ci(self):
@@ -224,7 +237,12 @@ class FakeTRX(Transceiver):
 
 		# Complete message header
 		msg.toa256 = self.toa256
-		msg.rssi = self.rssi
+
+		# Apply RSSI based on transmitter:
+		if not self.fake_rssi_enabled:
+			msg.rssi = src_trx.tx_power - src_msg.pwr - self.PATH_LOSS_DEFAULT
+		else: # Apply fake RSSI
+			msg.rssi = self.rssi
 
 		# Version specific fields
 		if msg.ver >= 0x01:
@@ -272,9 +290,15 @@ class FakeTRX(Transceiver):
 		elif self.ctrl_if.verify_cmd(request, "FAKE_RSSI", 2):
 			log.debug("(%s) Recv FAKE_RSSI cmd" % self)
 
+			# Use negative threshold to disable fake_rssi if previously enabled:
+			if int(request[2]) < 0:
+				self.fake_rssi_enabled = False
+				return 0
+
 			# Parse and apply both base and threshold
 			self.rssi_base = int(request[1])
 			self.rssi_rand_threshold = int(request[2])
+			self.fake_rssi_enabled = True
 			return 0
 
 		# RSSI simulation

@@ -239,6 +239,19 @@ class CTRLInterfaceTRX(CTRLInterface):
 				% (self.trx, ver_cur, ver_req))
 			return ver_req
 
+		# Set Power Attenuation
+		if self.verify_cmd(request, "SETPOWER", 1):
+			log.debug("(%s) Recv SETPOWER cmd" % self.trx)
+			# Parse the requested Tx Power Attenuation
+			att_req = int(request[1])
+			self.trx.tx_att_base = att_req
+			return 0
+
+		# Retrieve Nominal Tx power
+		if self.verify_cmd(request, "NOMTXPOWER", 0):
+			log.debug("(%s) Recv NOMTXPOWER cmd" % self.trx)
+			return (0, [str(self.trx.tx_power_base)])
+
 		# Wrong / unknown command
 		else:
 			# We don't care about other commands,
