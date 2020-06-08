@@ -170,7 +170,7 @@ static void print_display(char *text, int *y, int c)
 
 static void refresh_display(void)
 {
-	char text[16];
+	char text[32];
 	int bat = battery_info.battery_percent;
 
 	fb_clear();
