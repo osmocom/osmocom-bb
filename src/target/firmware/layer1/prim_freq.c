@@ -49,11 +49,6 @@
 
 #include <l1ctl_proto.h>
 
-struct {
-	uint32_t fn;
-	uint16_t band_arfcn;
-} last_rach;
-
 /* if the "starting time" is reached, use frequencies "after time" */
 static int l1s_freq_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused uint16_t p3)
 {
