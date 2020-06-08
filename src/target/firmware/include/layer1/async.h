@@ -32,12 +32,6 @@ int l1a_txq_msgb_count(struct llist_head *queue);
 /* flush all pending msgb */
 void l1a_txq_msgb_flush(struct llist_head *queue);
 
-/* request a RACH */
-void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra);
-
-/* schedule frequency change */
-void l1a_freq_req(uint32_t fn_sched);
-
 /* Enable a repeating multiframe task */
 void l1a_mftask_enable(enum mframe_task task);
 
