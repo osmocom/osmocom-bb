@@ -32,8 +32,6 @@
 
 #define NO_TALLOC
 
-void *tall_msgb_ctx;
-
 #ifdef NO_TALLOC
 /* This is a poor mans static allocator for msgb objects */
 #define MSGB_DATA_SIZE	256+4
