@@ -592,7 +592,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	}
 
 	tn = buf[0];
-	fn = (buf[1] << 24) | (buf[2] << 16) | (buf[3] << 8) | buf[4];
+	fn = osmo_load32be(buf + 1);
 	rssi = -(int8_t) buf[5];
 	toa256 = ((int16_t) (buf[6] << 8) | buf[7]);
 
@@ -650,10 +650,7 @@ int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 	LOGP(DTRXD, LOGL_DEBUG, "TX burst tn=%u fn=%u pwr=%u\n", tn, fn, pwr);
 
 	buf[0] = tn;
-	buf[1] = (fn >> 24) & 0xff;
-	buf[2] = (fn >> 16) & 0xff;
-	buf[3] = (fn >>  8) & 0xff;
-	buf[4] = (fn >>  0) & 0xff;
+	osmo_store32be(fn, buf + 1);
 	buf[5] = pwr;
 
 	/* Copy ubits {0,1} */
