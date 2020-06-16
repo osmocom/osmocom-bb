@@ -33,7 +33,7 @@ struct trx_sched;
 /*! \brief One scheduler instance */
 struct trx_sched {
 	/*! \brief Clock state */
-	uint8_t state;
+	enum tdma_sched_clck_state state;
 	/*! \brief Local clock source */
 	struct timespec clock;
 	/*! \brief Count of processed frames */
