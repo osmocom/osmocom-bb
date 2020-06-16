@@ -370,9 +370,9 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Start FBSB expire timer */
 	l1l->fbsb_timer.data = l1l;
 	l1l->fbsb_timer.cb = fbsb_timer_cb;
-	LOGP(DL1C, LOGL_INFO, "Starting FBSB timer %u ms\n", timeout * FRAME_DURATION_uS / 1000);
+	LOGP(DL1C, LOGL_INFO, "Starting FBSB timer %u ms\n", timeout * GSM_TDMA_FN_DURATION_uS / 1000);
 	osmo_timer_schedule(&l1l->fbsb_timer, 0,
-		timeout * FRAME_DURATION_uS);
+		timeout * GSM_TDMA_FN_DURATION_uS);
 
 exit:
 	msgb_free(msg);

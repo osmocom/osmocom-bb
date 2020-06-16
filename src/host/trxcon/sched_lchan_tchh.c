@@ -171,8 +171,8 @@ uint32_t sched_tchh_block_dl_first_fn(enum trx_lchan_type chan,
 #define BLOCK_FIRST_FN(map) \
 	do { \
 		if (map[i][ARRAY_SIZE(map[i]) - 1] == fn_mf) { \
-			fn_diff = TDMA_FN_DIFF(fn_mf, map[i][0]); \
-			return TDMA_FN_SUB(last_fn, fn_diff); \
+			fn_diff = GSM_TDMA_FN_DIFF(fn_mf, map[i][0]); \
+			return GSM_TDMA_FN_SUB(last_fn, fn_diff); \
 		} \
 	} while (++i < ARRAY_SIZE(map))
 

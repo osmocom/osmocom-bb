@@ -50,7 +50,7 @@ static void sched_clck_tick(void *data)
 	struct trx_sched *sched = (struct trx_sched *) data;
 	struct timespec tv_now, *tv_clock, elapsed;
 	int64_t elapsed_us;
-	const struct timespec frame_duration = { .tv_sec = 0, .tv_nsec = FRAME_DURATION_uS * 1000 };
+	const struct timespec frame_duration = { .tv_sec = 0, .tv_nsec = GSM_TDMA_FN_DURATION_nS };
 
 	/* Check if transceiver is still alive */
 	if (sched->fn_counter_lost++ == TRX_LOSS_FRAMES) {
@@ -68,7 +68,7 @@ static void sched_clck_tick(void *data)
 	elapsed_us = (elapsed.tv_sec * 1000000) + (elapsed.tv_nsec / 1000);
 
 	/* If someone played with clock, or if the process stalled */
-	if (elapsed_us > FRAME_DURATION_uS * MAX_FN_SKEW || elapsed_us < 0) {
+	if (elapsed_us > GSM_TDMA_FN_DURATION_uS * MAX_FN_SKEW || elapsed_us < 0) {
 		LOGP(DSCH, LOGL_NOTICE, "PC clock skew: "
 			"elapsed uS %" PRId64 "\n", elapsed_us);
 
@@ -78,11 +78,11 @@ static void sched_clck_tick(void *data)
 	}
 
 	/* Schedule next FN clock */
-	while (elapsed_us > FRAME_DURATION_uS / 2) {
+	while (elapsed_us > GSM_TDMA_FN_DURATION_uS / 2) {
 		timespecadd(tv_clock, &frame_duration, tv_clock);
-		elapsed_us -= FRAME_DURATION_uS;
+		elapsed_us -= GSM_TDMA_FN_DURATION_uS;
 
-		TDMA_FN_INC(&sched->fn_counter_proc);
+		GSM_TDMA_FN_INC(sched->fn_counter_proc);
 
 		/* Call frame callback */
 		if (sched->clock_cb)
@@ -90,7 +90,7 @@ static void sched_clck_tick(void *data)
 	}
 
 	osmo_timer_schedule(&sched->clock_timer, 0,
-		FRAME_DURATION_uS - elapsed_us);
+		GSM_TDMA_FN_DURATION_uS - elapsed_us);
 }
 
 static void sched_clck_correct(struct trx_sched *sched,
@@ -108,7 +108,7 @@ static void sched_clck_correct(struct trx_sched *sched,
 
 	sched->clock_timer.cb = sched_clck_tick;
 	sched->clock_timer.data = sched;
-	osmo_timer_schedule(&sched->clock_timer, 0, FRAME_DURATION_uS);
+	osmo_timer_schedule(&sched->clock_timer, 0, GSM_TDMA_FN_DURATION_uS);
 }
 
 int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
@@ -140,10 +140,10 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 	/* Calculate elapsed time / frames since last processed fn */
 	timespecsub(&tv_now, tv_clock, &elapsed);
 	elapsed_us = (elapsed.tv_sec * 1000000) + (elapsed.tv_nsec / 1000);
-	elapsed_fn = TDMA_FN_SUB(fn, sched->fn_counter_proc);
+	elapsed_fn = GSM_TDMA_FN_SUB(fn, sched->fn_counter_proc);
 
 	if (elapsed_fn >= 135774)
-		elapsed_fn -= GSM_HYPERFRAME;
+		elapsed_fn -= GSM_TDMA_HYPERFRAME;
 
 	/* Check for max clock skew */
 	if (elapsed_fn > MAX_FN_SKEW || elapsed_fn < -MAX_FN_SKEW) {
@@ -155,7 +155,7 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 	}
 
 	LOGP(DSCH, LOGL_INFO, "GSM clock jitter: %" PRId64 "\n",
-		elapsed_fn * FRAME_DURATION_uS - elapsed_us);
+		elapsed_fn * GSM_TDMA_FN_DURATION_uS - elapsed_us);
 
 	/* Too many frames have been processed already */
 	if (elapsed_fn < 0) {
@@ -164,21 +164,21 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 		 * Set clock to the time or last FN should
 		 * have been transmitted
 		 */
-		duration.tv_nsec = (0 - elapsed_fn) * FRAME_DURATION_uS * 1000;
+		duration.tv_nsec = (0 - elapsed_fn) * GSM_TDMA_FN_DURATION_nS;
 		duration.tv_sec = duration.tv_nsec / 1000000000;
 		duration.tv_nsec = duration.tv_nsec % 1000000000;
 		timespecadd(&tv_now, &duration, tv_clock);
 
 		/* Set time to the time our next FN has to be transmitted */
 		osmo_timer_schedule(&sched->clock_timer, 0,
-			FRAME_DURATION_uS * (1 - elapsed_fn));
+			GSM_TDMA_FN_DURATION_uS * (1 - elapsed_fn));
 
 		return 0;
 	}
 
 	/* Transmit what we still need to transmit */
 	while (fn != sched->fn_counter_proc) {
-		TDMA_FN_INC(&sched->fn_counter_proc);
+		GSM_TDMA_FN_INC(sched->fn_counter_proc);
 
 		/* Call frame callback */
 		if (sched->clock_cb)
@@ -187,7 +187,7 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 
 	/* Schedule next FN to be transmitted */
 	*tv_clock = tv_now;
-	osmo_timer_schedule(&sched->clock_timer, 0, FRAME_DURATION_uS);
+	osmo_timer_schedule(&sched->clock_timer, 0, GSM_TDMA_FN_DURATION_uS);
 
 	return 0;
 }

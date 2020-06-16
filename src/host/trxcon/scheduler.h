@@ -4,23 +4,7 @@
 #include <time.h>
 
 #include <osmocom/core/timer.h>
-
-#define FRAME_DURATION_uS	4615
-
-#define GSM_SUPERFRAME		(26 * 51)
-#define GSM_HYPERFRAME		(2048 * GSM_SUPERFRAME)
-
-/* TDMA frame number arithmetics */
-#define TDMA_FN_SUM(a, b) \
-	((a + b) % GSM_HYPERFRAME)
-#define TDMA_FN_SUB(a, b) \
-	((a + GSM_HYPERFRAME - b) % GSM_HYPERFRAME)
-#define TDMA_FN_INC(fn) \
-	(*fn = TDMA_FN_SUM(*fn, 1))
-#define TDMA_FN_MIN(a, b) \
-	(a < b ? a : b)
-#define TDMA_FN_DIFF(a, b) \
-	TDMA_FN_MIN(TDMA_FN_SUB(a, b), TDMA_FN_SUB(b, a))
+#include <osmocom/gsm/gsm0502.h>
 
 enum tdma_sched_clck_state {
 	SCH_CLCK_STATE_WAIT,

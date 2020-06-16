@@ -68,8 +68,7 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		 * Advance frame number, giving the transceiver more
 		 * time until a burst must be transmitted...
 		 */
-		fn = TDMA_FN_SUM(sched->fn_counter_proc,
-			sched->fn_counter_advance);
+		fn = GSM_TDMA_FN_SUM(sched->fn_counter_proc, sched->fn_counter_advance);
 
 		/* Get frame from multiframe */
 		offset = fn % ts->mf_layout->period;
@@ -636,7 +635,7 @@ static int subst_frame_loss(struct trx_lchan_state *lchan,
 	mf = lchan->ts->mf_layout;
 
 	/* How many frames elapsed since the last one? */
-	elapsed = TDMA_FN_SUB(fn, lchan->tdma.last_proc);
+	elapsed = GSM_TDMA_FN_SUB(fn, lchan->tdma.last_proc);
 	if (elapsed > mf->period) {
 		LOGP(DSCHD, LOGL_NOTICE, "Too many (>%u) contiguous TDMA frames elapsed (%u) "
 					 "since the last processed fn=%u\n", mf->period,
@@ -656,7 +655,7 @@ static int subst_frame_loss(struct trx_lchan_state *lchan,
 
 	/* Traverse from fp till the current frame */
 	for (i = 0; i < elapsed - 1; i++) {
-		fp = &mf->frames[TDMA_FN_INC(&fake_meas.fn) % mf->period];
+		fp = &mf->frames[GSM_TDMA_FN_INC(fake_meas.fn) % mf->period];
 		if (fp->dl_chan != lchan->type)
 			continue;
 
