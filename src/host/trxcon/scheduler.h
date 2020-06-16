@@ -40,7 +40,7 @@ struct trx_sched {
 	uint32_t fn_counter_proc;
 	/*! \brief Local frame counter advance */
 	uint32_t fn_counter_advance;
-	/*! \brief Frame counter */
+	/*! \brief Count of lost frames */
 	uint32_t fn_counter_lost;
 	/*! \brief Frame callback timer */
 	struct osmo_timer_list clock_timer;
