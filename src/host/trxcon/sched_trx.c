@@ -640,6 +640,7 @@ static int subst_frame_loss(struct trx_lchan_state *lchan,
 		LOGP(DSCHD, LOGL_NOTICE, "Too many (>%u) contiguous TDMA frames elapsed (%u) "
 					 "since the last processed fn=%u (current %u)\n",
 					 mf->period, elapsed, lchan->tdma.last_proc, fn);
+		return -EIO;
 	} else if (elapsed == 0) {
 		LOGP(DSCHD, LOGL_ERROR, "No TDMA frames elapsed since the last processed "
 					"fn=%u, must be a bug?\n", lchan->tdma.last_proc);
