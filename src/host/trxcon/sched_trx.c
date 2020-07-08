@@ -625,7 +625,7 @@ static int subst_frame_loss(struct trx_lchan_state *lchan,
 {
 	const struct trx_multiframe *mf;
 	const struct trx_frame *fp;
-	unsigned int elapsed, i;
+	int elapsed, i;
 
 	/* Wait until at least one TDMA frame is processed */
 	if (lchan->tdma.num_proc == 0)
@@ -634,10 +634,28 @@ static int subst_frame_loss(struct trx_lchan_state *lchan,
 	/* Short alias for the current multiframe */
 	mf = lchan->ts->mf_layout;
 
-	/* How many frames elapsed since the last one? */
-	elapsed = GSM_TDMA_FN_SUB(fn, lchan->tdma.last_proc);
+	/* Calculate how many frames elapsed since the last received one.
+	 * The algorithm is based on GSM::FNDelta() from osmo-trx. */
+	elapsed = fn - lchan->tdma.last_proc;
+	if (elapsed >= GSM_TDMA_HYPERFRAME / 2)
+		elapsed -= GSM_TDMA_HYPERFRAME;
+	else if (elapsed < -GSM_TDMA_HYPERFRAME / 2)
+		elapsed += GSM_TDMA_HYPERFRAME;
+
+	/* Check TDMA frame order (wrong order is possible with fake_trx.py, see OS#4658) */
+	if (elapsed < 0) {
+		/* This burst has already been substituted by a dummy burst (all bits set to zero),
+		 * so better drop it. Otherwise we risk to get undefined behavior in handler(). */
+		LOGP(DSCHD, LOGL_ERROR, "(%s) Rx burst with fn=%u older than the last "
+					"processed fn=%u (see OS#4658) => dropping\n",
+					trx_lchan_desc[lchan->type].name,
+					fn, lchan->tdma.last_proc);
+		return -EALREADY;
+	}
+
+	/* Check how many frames we (potentially) need to compensate */
 	if (elapsed > mf->period) {
-		LOGP(DSCHD, LOGL_NOTICE, "Too many (>%u) contiguous TDMA frames elapsed (%u) "
+		LOGP(DSCHD, LOGL_NOTICE, "Too many (>%u) contiguous TDMA frames elapsed (%d) "
 					 "since the last processed fn=%u (current %u)\n",
 					 mf->period, elapsed, lchan->tdma.last_proc, fn);
 		return -EIO;
@@ -687,6 +705,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	trx_lchan_rx_func *handler;
 	enum trx_lchan_type chan;
 	uint8_t offset, bid;
+	int rc;
 
 	/* Check whether required timeslot is allocated and configured */
 	ts = trx->ts_list[tn];
@@ -720,7 +739,9 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 		return 0;
 
 	/* Compensate lost TDMA frames (if any) */
-	subst_frame_loss(lchan, handler, fn);
+	rc = subst_frame_loss(lchan, handler, fn);
+	if (rc == -EALREADY)
+		return rc;
 
 	/* Perform A5/X decryption if required */
 	if (lchan->a5.algo)
