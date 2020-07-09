@@ -276,3 +276,7 @@ class Transceiver:
 			return None
 
 		return msg
+
+	def handle_data_msg(self, msg):
+		# TODO: make legacy mode configurable (via argv?)
+		self.data_if.send_msg(msg, legacy = True)

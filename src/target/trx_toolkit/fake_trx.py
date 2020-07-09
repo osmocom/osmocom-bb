@@ -252,8 +252,7 @@ class FakeTRX(Transceiver):
 		if src_trx.ta != 0:
 			msg.toa256 -= src_trx.ta * 256
 
-		# TODO: make legacy mode configurable (via argv?)
-		self.data_if.send_msg(msg, legacy = True)
+		Transceiver.handle_data_msg(self, msg)
 
 	# Simulation specific CTRL command handler
 	def ctrl_cmd_handler(self, request):
