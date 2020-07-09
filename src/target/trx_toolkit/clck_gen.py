@@ -91,10 +91,6 @@ class CLCKGen:
 			self.send_clck_ind()
 
 	def send_clck_ind(self):
-		# Keep clock cycle
-		if self.clck_src % GSM_HYPERFRAME >= 0:
-			self.clck_src %= GSM_HYPERFRAME
-
 		# We don't need to send so often
 		if self.clck_src % self.ind_period == 0:
 			# Create UDP payload
@@ -107,8 +103,8 @@ class CLCKGen:
 			# Debug print
 			log.debug(payload.rstrip("\0"))
 
-		# Increase frame count
-		self.clck_src += 1
+		# Increase frame count (modular arithmetic)
+		self.clck_src = (self.clck_src + 1) % GSM_HYPERFRAME
 
 # Just a wrapper for independent usage
 class Application(ApplicationBase):
