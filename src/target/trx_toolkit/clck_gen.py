@@ -53,7 +53,6 @@ class CLCKGen:
 		# Calculate counter time
 		self.ctr_interval  = self.GSM_FRAME_US - self.LO_DELAY_US
 		self.ctr_interval /= self.SEC_DELAY_US
-		self.ctr_interval *= self.ind_period
 
 	@property
 	def running(self):
@@ -109,7 +108,7 @@ class CLCKGen:
 			log.debug(payload.rstrip("\0"))
 
 		# Increase frame count
-		self.clck_src += self.ind_period
+		self.clck_src += 1
 
 # Just a wrapper for independent usage
 class Application(ApplicationBase):
