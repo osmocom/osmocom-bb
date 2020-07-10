@@ -54,6 +54,9 @@ class CLCKGen:
 		self.ctr_interval  = self.GSM_FRAME_US - self.LO_DELAY_US
 		self.ctr_interval /= self.SEC_DELAY_US
 
+		# (Optional) clock consumer
+		self.clck_handler = None
+
 	@property
 	def running(self):
 		if self._thread is None:
@@ -102,6 +105,9 @@ class CLCKGen:
 
 			# Debug print
 			log.debug(payload.rstrip("\0"))
+
+		if self.clck_handler is not None:
+			self.clck_handler(self.clck_src)
 
 		# Increase frame count (modular arithmetic)
 		self.clck_src = (self.clck_src + 1) % GSM_HYPERFRAME
