@@ -25,7 +25,9 @@
 
 import logging as log
 
-class BurstForwarder:
+from trx_list import TRXList
+
+class BurstForwarder(TRXList):
 	""" Performs burst forwarding between transceivers.
 
 	BurstForwarder distributes bursts between the list of given
@@ -43,27 +45,6 @@ class BurstForwarder:
 	transceiver individually before sending towards the L1.
 
 	"""
-
-	def __init__(self, trx_list = None):
-		# List of Transceiver instances
-		if trx_list is not None:
-			self.trx_list = trx_list
-		else:
-			self.trx_list = []
-
-	def add_trx(self, trx):
-		if trx in self.trx_list:
-			log.error("TRX is already in the list")
-			return
-
-		self.trx_list.append(trx)
-
-	def del_trx(self, trx):
-		if trx not in self.trx_list:
-			log.error("TRX is not in the list")
-			return
-
-		self.trx_list.remove(trx)
 
 	def forward_msg(self, src_trx, rx_msg):
 		# Originating Transceiver may use frequency hopping,

@@ -31,8 +31,8 @@ class TRXList:
 
 	"""
 
-	def __init__(self):
-		self.trx_list = []
+	def __init__(self, trx_list = None):
+		self.trx_list = trx_list or []
 
 	def __getitem__(self, i):
 		return self.trx_list[i]
