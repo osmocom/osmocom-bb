@@ -411,7 +411,7 @@ class Application(ApplicationBase):
 				self.append_child_trx(addr, port, idx, name)
 
 		# Burst forwarding between transceivers
-		self.burst_fwd = BurstForwarder(self.trx_list)
+		self.burst_fwd = BurstForwarder(self.trx_list.trx_list)
 
 		log.info("Init complete")
 
@@ -444,7 +444,7 @@ class Application(ApplicationBase):
 	def run(self):
 		# Compose list of to be monitored sockets
 		sock_list = []
-		for trx in self.trx_list:
+		for trx in self.trx_list.trx_list:
 			sock_list.append(trx.ctrl_if.sock)
 			sock_list.append(trx.data_if.sock)
 
@@ -454,7 +454,7 @@ class Application(ApplicationBase):
 			r_event, _, _ = select.select(sock_list, [], [])
 
 			# Iterate over all transceivers
-			for trx in self.trx_list:
+			for trx in self.trx_list.trx_list:
 				# DATA interface
 				if trx.data_if.sock in r_event:
 					msg = trx.recv_data_msg()
