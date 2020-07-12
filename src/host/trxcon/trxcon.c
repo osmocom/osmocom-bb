@@ -160,7 +160,7 @@ static void print_help(void)
 	printf("  -b --trx-bind     TRX bind IP address (default 0.0.0.0)\n");
 	printf("  -i --trx-remote   TRX remote IP address (default 127.0.0.1)\n");
 	printf("  -p --trx-port     Base port of TRX instance (default 6700)\n");
-	printf("  -f --trx-advance  Scheduler clock advance (default 20)\n");
+	printf("  -f --trx-advance  Uplink burst scheduling advance (default 3)\n");
 	printf("  -s --socket       Listening socket for layer23 (default /tmp/osmocom_l2)\n");
 	printf("  -g --gsmtap-ip    The destination IP used for GSMTAP (disabled by default)\n");
 	printf("  -D --daemonize    Run as daemon\n");
@@ -233,7 +233,7 @@ static void init_defaults(void)
 	app_data.trx_remote_ip = "127.0.0.1";
 	app_data.trx_bind_ip = "0.0.0.0";
 	app_data.trx_base_port = 6700;
-	app_data.trx_fn_advance = 20;
+	app_data.trx_fn_advance = 3;
 
 	app_data.debug_mask = NULL;
 	app_data.gsmtap_ip = NULL;
