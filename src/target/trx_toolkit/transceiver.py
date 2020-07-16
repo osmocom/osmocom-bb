@@ -326,8 +326,7 @@ class Transceiver:
 
 	def tx_queue_clear(self):
 		with self._tx_queue_lock:
-			# TODO: Python3: self._tx_queue.clear()
-			del self._tx_queue[:]
+			self._tx_queue.clear()
 
 	def clck_tick(self, fwd, fn):
 		if not self.running:

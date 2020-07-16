@@ -83,8 +83,6 @@ class DATADumpFile(DATADump):
 			self.f = capture
 
 	def __del__(self):
-		# FIXME: this causes an Exception in Python 2 (but not in Python 3)
-		# AttributeError: 'NoneType' object has no attribute 'info'
 		log.info("Closing the capture file")
 		self.f.close()
 
