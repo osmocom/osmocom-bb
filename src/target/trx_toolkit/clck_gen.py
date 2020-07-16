@@ -27,7 +27,6 @@ APP_CR_HOLDERS = [("2017-2019", "Vadim Yanitskiy <axilirator@gmail.com>")]
 import logging as log
 import threading
 import signal
-import time
 
 from app_common import ApplicationBase
 from udp_link import UDPLink
