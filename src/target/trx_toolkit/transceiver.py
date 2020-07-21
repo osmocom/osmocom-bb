@@ -23,7 +23,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import logging as log
-import threading
 
 from ctrl_if_trx import CTRLInterfaceTRX
 from data_if import DATAInterface
@@ -123,37 +122,6 @@ class Transceiver:
 	Transceiver and all its timeslots, so using in for the BTS side
 	does not make any sense (imagine BCCH hopping together with DCCH).
 
-	== The transmit burst queue
-
-	According to 3GPP 45.002, the time difference between Uplink and
-	Downlink corresponds to three TDMA timeslot periods.  However,
-	in general the L1 implementations (such as osmo-bts-trx and trxcon)
-	never schedule to be transmitted bursts for the current TDMA frame
-	immediately.  Instead, they are being scheduled prematurely.
-
-	The rationale is that both transceiver and the L1 implementation
-	are separete processes that are not perfectly synchronized in time.
-	Moreover, the transceiver needs some time to prepare a burst for
-	transmission.  This is why the time difference between Uplink and
-	Downlink is actually much higher on practice (20 TDMA frame periods
-	by default, at the moment of writing this patch).
-
-	In order to reflect that delay in a virtual environment, this
-	implementation, just like a normal transceiver (e.g. osmo-trx),
-	queues all to be transmitted (L12TRX) bursts, so hey remain in
-	the transmit queue until the appropriate time of transmission.
-
-	The API user is supposed to call recv_data_msg() in order to obtain
-	a L12TRX message on the TRXD (data) inteface, so it gets queued by
-	this function.  Then, to ensure the timeous transmission, the user
-	of this implementation needs to call clck_tick() on each TDMA
-	frame.  Both functions are thread-safe (queue mutex).
-
-	In a multi-trx configuration, the use of queue additionally ensures
-	proper burst aggregation on multiple TRXD connections, so all L12TRX
-	messages are guaranteed to be sent in the right order, i.e. with
-	monolithically-increasing TDMA frame numbers.
-
 	"""
 
 	def __init__(self, bind_addr, remote_addr, base_port, name = None,
@@ -208,10 +176,6 @@ class Transceiver:
 
 		# List of child transceivers
 		self.child_trx_list = TRXList()
-
-		# Tx (L12TRX) burst queue and mutex
-		self._tx_queue_lock = threading.Lock()
-		self._tx_queue = []
 
 	def __str__(self):
 		desc = "%s:%d" % (self.remote_addr, self.base_port)
@@ -269,12 +233,10 @@ class Transceiver:
 				trx.running = True
 			elif event == "POWEROFF":
 				trx.running = False
-				trx.tx_queue_clear()
 				trx.disable_fh()
 
-		# Reset frequency hopping parameters, clear the queue
+		# Reset frequency hopping parameters
 		if event == "POWEROFF":
-			self.tx_queue_clear()
 			self.disable_fh()
 
 		# Trigger clock generator if required
@@ -312,34 +274,8 @@ class Transceiver:
 				"configured => dropping..." % (self, msg.desc_hdr()))
 			return None
 
-		# Enque the message, it will be sent later
-		self.tx_queue_append(msg)
 		return msg
 
 	def handle_data_msg(self, msg):
 		# TODO: make legacy mode configurable (via argv?)
 		self.data_if.send_msg(msg, legacy = True)
-
-	def tx_queue_append(self, msg):
-		with self._tx_queue_lock:
-			self._tx_queue.append(msg)
-
-	def tx_queue_clear(self):
-		with self._tx_queue_lock:
-			self._tx_queue.clear()
-
-	def clck_tick(self, fwd, fn):
-		if not self.running:
-			return
-
-		self._tx_queue_lock.acquire()
-
-		for msg in self._tx_queue:
-			if msg.fn == fn:
-				fwd.forward_msg(self, msg)
-			elif msg.fn < fn:
-				log.warning("(%s) Stale TRXD message (fn=%u): %s"
-					% (self, fn, msg.desc_hdr()))
-
-		self._tx_queue = [msg for msg in self._tx_queue if msg.fn > fn]
-		self._tx_queue_lock.release()
