@@ -105,8 +105,14 @@ class DATAInterface(UDPLink):
 		return msg
 
 	def send_msg(self, msg, legacy = False):
-		# Validate and encode TRXD message
-		payload = msg.gen_msg(legacy)
+		try:
+			# Validate and encode TRXD message
+			payload = msg.gen_msg(legacy)
+		except ValueError as e:
+			log.error("Failed to encode a TRX2L1 message ('%s') "
+				"due to error: %s" % (msg.desc_hdr(), e))
+			# TODO: we may want to send a NOPE.ind here
+			return
 
 		# Send message
 		self.send(payload)
