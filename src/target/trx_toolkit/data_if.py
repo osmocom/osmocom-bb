@@ -105,10 +105,7 @@ class DATAInterface(UDPLink):
 		return msg
 
 	def send_msg(self, msg, legacy = False):
-		# Validate a message
-		msg.validate()
-
-		# Generate TRX message
+		# Validate and encode TRXD message
 		payload = msg.gen_msg(legacy)
 
 		# Send message
