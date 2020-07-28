@@ -4076,7 +4076,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_free(msg);
 		return rc;
 
-	case 0x0f: /* test TS 04.14 */
+	case GSM48_PDISC_TEST: /* test TS 04.14 */
 		LOGP(DMM, LOGL_NOTICE, "Test protocol 0x%02x according to "
 			"TS 04.14 is not supported.\n", pdisc);
 		goto status;
