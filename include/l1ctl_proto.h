@@ -149,11 +149,24 @@ struct l1ctl_ccch_mode_conf {
 	uint8_t padding[3];
 } __attribute__((packed));
 
+/* 3GPP TS 44.014, section 5.1 (Calypso specific numbers) */
+enum l1ctl_tch_loop_mode {
+	L1CTL_TCH_LOOP_OPEN	= 0x00,
+	L1CTL_TCH_LOOP_A	= 0x01,
+	L1CTL_TCH_LOOP_B	= 0x02,
+	L1CTL_TCH_LOOP_C	= 0x03,
+	L1CTL_TCH_LOOP_D	= 0x04,
+	L1CTL_TCH_LOOP_E	= 0x05,
+	L1CTL_TCH_LOOP_F	= 0x06,
+	L1CTL_TCH_LOOP_I	= 0x07,
+};
+
 /* TCH mode was changed */
 struct l1ctl_tch_mode_conf {
 	uint8_t tch_mode;	/* enum tch_mode */
 	uint8_t audio_mode;
-	uint8_t padding[2];
+	uint8_t tch_loop_mode;	/* enum l1ctl_tch_loop_mode */
+	uint8_t padding[1];
 } __attribute__((packed));
 
 /* data on the CCCH was found. This is following the header */
@@ -231,7 +244,8 @@ struct l1ctl_tch_mode_req {
 #define AUDIO_RX_SPEAKER	(1<<2)
 #define AUDIO_RX_TRAFFIC_IND	(1<<3)
 	uint8_t audio_mode;
-	uint8_t padding[2];
+	uint8_t tch_loop_mode;	/* enum l1ctl_tch_loop_mode */
+	uint8_t padding[1];
 } __attribute__((packed));
 
 /* the l1_info_ul header is in front */

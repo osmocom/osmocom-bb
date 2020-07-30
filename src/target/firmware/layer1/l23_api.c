@@ -352,6 +352,7 @@ static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 	dsp_load_ciph_param(0, NULL);
 	l1a_tch_mode_set(GSM48_CMODE_SIGN);
 	audio_set_enabled(GSM48_CMODE_SIGN, 0);
+	l1s.tch_loop_mode = L1CTL_TCH_LOOP_OPEN;
 	l1s.neigh_pm.n = 0;
 }
 
@@ -521,6 +522,7 @@ static void l1ctl_tx_tch_mode_conf(uint8_t tch_mode, uint8_t audio_mode)
 				msgb_put(msg, sizeof(*mode_conf));
 	mode_conf->tch_mode = tch_mode;
 	mode_conf->audio_mode = audio_mode;
+	mode_conf->tch_loop_mode = l1s.tch_loop_mode;
 
 	l1_queue_for_l2(msg);
 }
@@ -542,6 +544,7 @@ static void l1ctl_rx_tch_mode_req(struct msgb *msg)
 	audio_set_enabled(tch_mode, audio_mode);
 
 	l1s.tch_sync = 1; /* Needed for audio to work */
+	l1s.tch_loop_mode = tch_mode_req->tch_loop_mode;
 
 	l1ctl_tx_tch_mode_conf(tch_mode, audio_mode);
 }
