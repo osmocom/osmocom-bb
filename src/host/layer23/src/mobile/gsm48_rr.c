@@ -4633,8 +4633,10 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		uint8_t skip_ind = (gh->proto_discr & 0xf0) >> 4;
 
 		/* ignore if skip indicator is not B'0000' */
-		if (skip_ind)
+		if (skip_ind) {
+			msgb_free(msg);
 			return 0;
+		}
 
 		switch(gh->msg_type) {
 		case GSM48_MT_RR_ADD_ASS:
