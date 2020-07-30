@@ -894,7 +894,7 @@ static int gsm48_rr_tx_rr_status(struct osmocom_ms *ms, uint8_t cause)
 	st = (struct gsm48_rr_status *) msgb_put(nmsg, sizeof(*st));
 
 	gh->proto_discr = GSM48_PDISC_RR;
-	gh->msg_type = GSM48_MT_RR_CIPH_M_COMPL;
+	gh->msg_type = GSM48_MT_RR_STATUS;
 
 	/* rr cause */
 	st->rr_cause = cause;
