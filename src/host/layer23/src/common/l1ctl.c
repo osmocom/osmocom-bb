@@ -461,7 +461,7 @@ int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode)
 
 /* Transmit L1CTL_TCH_MODE_REQ */
 int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode,
-	uint8_t audio_mode)
+			  uint8_t audio_mode, uint8_t tch_loop_mode)
 {
 	struct msgb *msg;
 	struct l1ctl_tch_mode_req *req;
@@ -475,6 +475,7 @@ int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode,
 	req = (struct l1ctl_tch_mode_req *) msgb_put(msg, sizeof(*req));
 	req->tch_mode = tch_mode;
 	req->audio_mode = audio_mode;
+	req->tch_loop_mode = tch_loop_mode;
 
 	return osmo_send_l1(ms, msg);
 }

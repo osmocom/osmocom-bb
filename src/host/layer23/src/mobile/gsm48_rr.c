@@ -93,6 +93,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms);
 static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	uint8_t mode);
 static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg);
+int gsm414_rcv_test(struct osmocom_ms *ms, const struct msgb *msg);
 
 /*
  * support
@@ -516,8 +517,8 @@ int gsm48_rr_upmsg(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* push rsl header and send (RSL-SAP) */
-static int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
-				struct msgb *msg, uint8_t link_id)
+int gsm48_send_rsl(struct osmocom_ms *ms, uint8_t msg_type,
+		   struct msgb *msg, uint8_t link_id)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
@@ -879,7 +880,7 @@ static void stop_rr_t3126(struct gsm48_rrlayer *rr)
  */
 
 /* send rr status request */
-static int gsm48_rr_tx_rr_status(struct osmocom_ms *ms, uint8_t cause)
+int gsm48_rr_tx_rr_status(struct osmocom_ms *ms, uint8_t cause)
 {
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
@@ -3433,7 +3434,7 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 	/* setting (new) timing advance */
 	LOGP(DRR, LOGL_INFO, "setting TCH mode to %d, audio mode to %d\n",
 		mode, rr->audio_mode);
-	l1ctl_tx_tch_mode_req(ms, mode, rr->audio_mode);
+	l1ctl_tx_tch_mode_req(ms, mode, rr->audio_mode, rr->tch_loop_mode);
 
 	return 0;
 }
@@ -4627,9 +4628,9 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_rr_hdr *rrh;
 	uint8_t pdisc = gh->proto_discr & 0x0f;
+	int rc = -EINVAL;
 
 	if (pdisc == GSM48_PDISC_RR) {
-		int rc = -EINVAL;
 		uint8_t skip_ind = (gh->proto_discr & 0xf0) >> 4;
 
 		/* ignore if skip indicator is not B'0000' */
@@ -4674,6 +4675,10 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_MSG_TYPE_N);
 		}
 
+		msgb_free(msg);
+		return rc;
+	} else if (pdisc == GSM48_PDISC_TEST) {
+		rc = gsm414_rcv_test(ms, msg);
 		msgb_free(msg);
 		return rc;
 	}
@@ -5505,6 +5510,7 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 	start_rr_t_meas(rr, 1, 0);
 
 	rr->audio_mode = AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER;
+	rr->tch_loop_mode = L1CTL_TCH_LOOP_OPEN;
 
 	return 0;
 }
@@ -5707,6 +5713,5 @@ int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode)
 	 && ch_type != RSL_CHAN_Lm_ACCHs)
 		return 0;
 
-	return l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, mode);
+	return l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, mode, rr->tch_loop_mode);
 }
-

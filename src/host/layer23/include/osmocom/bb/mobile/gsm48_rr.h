@@ -188,6 +188,9 @@ struct gsm48_rrlayer {
 	/* audio flow */
 	uint8_t                 audio_mode;
 
+	/* 3GPP TS 44.014 TCH test loop mode (L1CTL specific format) */
+	uint8_t			tch_loop_mode;
+
 	/* sapi 3 */
 	uint8_t			sapi3_state;
 	uint8_t			sapi3_link_id;
