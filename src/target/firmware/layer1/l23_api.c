@@ -79,8 +79,8 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 	uint8_t lch_idx;
 	enum mframe_task master_task = 0;
 	enum mframe_task second_task = 0;
-	uint32_t neigh_task = 0;
 	enum mf_type multiframe = 0;
+	uint32_t task_mask = 0x00;
 
 	if (cbits == 0x01) {
 		lch_idx = 0;
@@ -121,22 +121,27 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 		master_task = MF_TASK_BCCH_CCCH;
 #endif
 	}
+
+	/* Primary and secondary tasks */
+	task_mask |= (1 << master_task) | (1 << second_task);
+
 	switch (neigh_mode) {
 	case NEIGH_MODE_PM:
 		switch (multiframe) {
 		case MF51:
-			neigh_task = (1 << MF_TASK_NEIGH_PM51);
+			task_mask |= (1 << MF_TASK_NEIGH_PM51);
 			break;
 		case MF26EVEN:
-			neigh_task = (1 << MF_TASK_NEIGH_PM26E);
+			task_mask |= (1 << MF_TASK_NEIGH_PM26E);
 			break;
 		case MF26ODD:
-			neigh_task = (1 << MF_TASK_NEIGH_PM26O);
+			task_mask |= (1 << MF_TASK_NEIGH_PM26O);
 			break;
 		}
 		break;
 	}
-	return (1 << master_task) | (1 << second_task) | neigh_task;
+
+	return task_mask;
 }
 
 static int  chan_nr2dchan_type(uint8_t chan_nr)
