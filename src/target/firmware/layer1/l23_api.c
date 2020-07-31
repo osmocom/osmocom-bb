@@ -77,8 +77,8 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 	uint8_t cbits = chan_nr >> 3;
 	uint8_t tn = chan_nr & 0x7;
 	uint8_t lch_idx;
-	enum mframe_task master_task = 0;
-	enum mframe_task second_task = 0;
+	enum mframe_task master_task = MF_TASK_BCCH_NORM;
+	enum mframe_task second_task = -1; /* optional */
 	enum mf_type multiframe = 0;
 	uint32_t task_mask = 0x00;
 
@@ -123,7 +123,9 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 	}
 
 	/* Primary and secondary tasks */
-	task_mask |= (1 << master_task) | (1 << second_task);
+	task_mask |= (1 << master_task);
+	if (second_task >= 0) /* optional */
+		task_mask |= (1 << second_task);
 
 	switch (neigh_mode) {
 	case NEIGH_MODE_PM:
