@@ -39,12 +39,16 @@ Q_SIZE = $(if $(V:1=),@echo "  SIZE   $@";)
 #### GIT VERSION ####
 
 GIT_COMMIT:=$(shell git describe --always)
+GIT_SHORTHASH:=$(shell git rev-parse --short HEAD)
 GIT_MODIFIED:=$(shell (git status | grep "modified:\|added:\|deleted:" -q) && echo "-modified")
 
 GIT_REVISION:=$(GIT_COMMIT)$(GIT_MODIFIED)
 
 ASFLAGS += -DGIT_REVISION=\"$(GIT_REVISION)\"
 CFLAGS += -DGIT_REVISION=\"$(GIT_REVISION)\"
+
+ASFLAGS += -DGIT_SHORTHASH=\"$(GIT_SHORTHASH)\"
+CFLAGS += -DGIT_SHORTHASH=\"$(GIT_SHORTHASH)\"
 
 #### GLOBAL DATA ####
 
