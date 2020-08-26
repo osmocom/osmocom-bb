@@ -251,6 +251,13 @@ class CTRLInterfaceTRX(CTRLInterface):
 			log.debug("(%s) Recv NOMTXPOWER cmd" % self.trx)
 			return (0, [str(self.trx.tx_power_base)])
 
+		# Lock/Unlock RF emission+reception
+		if self.verify_cmd(request, "RFMUTE", 1):
+			log.debug("(%s) Recv RFMUTE cmd" % self.trx)
+			# Parse the requested RFMUTE state (1=locked, 0=unlocked)
+			self.trx.rf_muted = int(request[1]) > 0
+			return 0
+
 		# Wrong / unknown command
 		else:
 			# We don't care about other commands,

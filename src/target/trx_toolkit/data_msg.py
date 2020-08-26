@@ -413,6 +413,8 @@ class DATAMSG_L12TRX(DATAMSG):
 		# Convert burst bits
 		if self.burst is not None:
 			msg.burst = self.ubit2sbit(self.burst)
+		else:
+			msg.nope_ind = True
 
 		return msg
 

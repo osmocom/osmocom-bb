@@ -125,6 +125,8 @@ class FakeTRX(Transceiver):
 		# When disabled, RSSI is calculated based on Tx power and Rx path loss
 		self.fake_rssi_enabled = False
 
+		self.rf_muted = False
+
 		# Actual ToA, RSSI, C/I, TA values
 		self.tx_power_base = self.NOMINAL_TX_POWER_DEFAULT
 		self.tx_att_base = self.TX_ATT_DEFAULT
@@ -215,8 +217,11 @@ class FakeTRX(Transceiver):
 	# simulates RF path parameters (such as RSSI),
 	# and sends towards the L1
 	def handle_data_msg(self, src_trx, src_msg, msg):
-		# Path loss simulation
-		msg.nope_ind = self.sim_burst_drop(msg)
+		if self.rf_muted:
+			msg.nope_ind = True
+		elif not msg.nope_ind:
+			# Path loss simulation
+			msg.nope_ind = self.sim_burst_drop(msg)
 		if msg.nope_ind:
 			# Before TRXDv1, we simply drop the message
 			if msg.ver < 0x01:
