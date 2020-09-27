@@ -19,7 +19,7 @@
 #include_next <stdint.h>
 #endif
 
-#ifndef __int8_t_defined
+#if (!defined(__int8_t_defined) && !defined(INT8_MAX))
 typedef signed char int8_t;
 typedef unsigned char uint8_t;
 
