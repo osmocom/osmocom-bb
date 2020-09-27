@@ -50,12 +50,13 @@
 #include <layer1/sync.h>
 #include <layer1/afc.h>
 #include <layer1/agc.h>
-#include <layer1/apc.h>
 #include <layer1/tdma_sched.h>
 #include <layer1/mframe_sched.h>
 #include <layer1/sched_gsmtime.h>
 #include <layer1/tpu_window.h>
 #include <layer1/l23_api.h>
+
+#include <rf/txcal.h>
 
 #include <l1ctl_proto.h>
 
@@ -322,19 +323,62 @@ void l1s_dsp_abort(void)
 	tdma_schedule(0, &l1s_abort_cmd, 0, 0, 0, 10);
 }
 
+/* APC offset is different from different targets */
+extern uint8_t apc_offset; /* see board/.../rf_tables.c */
+
 void l1s_tx_apc_helper(uint16_t arfcn)
 {
+	struct txcal_chan_cal (*my_chan_cal)[RF_TX_NUM_SUB_BANDS];
+	struct txcal_chan_cal (*chan_cal)[RF_TX_NUM_SUB_BANDS];
+	struct txcal_tx_level *levels, *mylevel;
+	struct txcal_ramp_def *ramps, *myramp;
 	int16_t auxapc;
-	enum gsm_band band;
 	int i;
 
-	/* Get DAC setting */
-	band = gsm_arfcn2band(arfcn);
-	auxapc = apc_tx_pwrlvl2auxapc(band, l1s.tx_power);
+	/* Figure out which band we are working in */
+	switch (gsm_arfcn2band(arfcn)) {
+	case GSM_BAND_850:
+		levels = rf_tx_levels_850;
+		ramps = rf_tx_ramps_850;
+		chan_cal = rf_tx_chan_cal_850;
+		break;
+	case GSM_BAND_900:
+		levels = rf_tx_levels_900;
+		ramps = rf_tx_ramps_900;
+		chan_cal = rf_tx_chan_cal_900;
+		break;
+	case GSM_BAND_1800:
+		levels = rf_tx_levels_1800;
+		ramps = rf_tx_ramps_1800;
+		chan_cal = rf_tx_chan_cal_1800;
+		break;
+	case GSM_BAND_1900:
+		levels = rf_tx_levels_1900;
+		ramps = rf_tx_ramps_1900;
+		chan_cal = rf_tx_chan_cal_1900;
+		break;
+	default:
+		puts("Error: invalid band in l1s_tx_apc_helper()!\n");
+		return;
+	}
 
-	/* Load the ApcOffset into the DSP */
-	#define  MY_OFFSET	4
-	dsp_api.ndb->d_apcoff = ABB_VAL(APCOFF, (1 << 6) | MY_OFFSET) | 1; /* 2x slope for the GTA-02 ramp */
+	/* Figure out our Tx power level, APC and ramp index */
+	mylevel = levels + (l1s.tx_power & 0x1F);
+	auxapc = mylevel->apc;
+	myramp = ramps + mylevel->ramp_index;
+	my_chan_cal = chan_cal + mylevel->chan_cal_index;
+
+	/* Channel calibration correction */
+	arfcn &= ~ARFCN_FLAG_MASK;
+	for (i = 0; i < RF_TX_NUM_SUB_BANDS; i++) {
+		if (arfcn <= (*my_chan_cal)[i].arfcn_limit)
+			break;
+	}
+	if (i < RF_TX_NUM_SUB_BANDS)
+		auxapc = ((uint32_t)auxapc * (*my_chan_cal)[i].chan_cal) / 128;
+
+	/* Load the (target specific) ApcOffset into the DSP */
+	dsp_api.ndb->d_apcoff = ABB_VAL(APCOFF, (1 << 6) | apc_offset) | 1; /* 2x slope for the GTA-02 ramp */
 
 	/* Load the TX Power into the DSP */
 	/*
@@ -346,7 +390,8 @@ void l1s_tx_apc_helper(uint16_t arfcn)
 
 	/* Update the ramp according to the PCL */
 	for (i = 0; i < 16; i++)
-		dsp_api.ndb->a_ramp[i] = ABB_VAL(APCRAM, twl3025_default_ramp[i]);
+		dsp_api.ndb->a_ramp[i] = ABB_VAL(APCRAM,
+			ABB_RAMP_VAL(myramp->ramp_up[i], myramp->ramp_down[i]));
 
 	/* The Ramp Table is sent to ABB only once after RF init routine called */
 	dsp_api.db_w->d_ctrl_abb |= (1 << B_RAMP) | (1 << B_BULRAMPDEL);

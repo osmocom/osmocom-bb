@@ -34,6 +34,7 @@
 #include <board.h>
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
+#include <rf/readcal.h>
 #include <calypso/clock.h>
 #include <calypso/tpu.h>
 #include <calypso/tsp.h>
@@ -1528,6 +1529,7 @@ int main(void)
 	sercomm_register_rx_cb(SC_DLCI_CONSOLE, console_rx_cb);
 	sercomm_register_rx_cb(SC_DLCI_L1A_L23, l1a_l23_rx_cb);
 
+	read_factory_rf_calibration();
 	layer1_init();
 	l1a_l23_tx_cb = l1a_l23_tx;
 

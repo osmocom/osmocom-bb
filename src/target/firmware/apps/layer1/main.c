@@ -33,6 +33,7 @@
 
 #include <abb/twl3025.h>
 #include <rf/trf6151.h>
+#include <rf/readcal.h>
 
 #include <comm/sercomm.h>
 #include <comm/timer.h>
@@ -106,6 +107,7 @@ int main(void)
 	memset(atr,0,sizeof(atr));
 	atrLength = calypso_sim_powerup(atr);
 
+	read_factory_rf_calibration();
 	layer1_init();
 
 	tpu_frame_irq_en(1, 1);

@@ -30,7 +30,7 @@
 #include <layer1/avg.h>
 #include <calypso/dsp.h>
 
-#define AFC_INITIAL_DAC_VALUE	-700
+#include <rf/vcxocal.h>
 
 /* Over how many TDMA frames do we want to average? (this may change in dedicated mode) */
 #define AFC_PERIOD		40
@@ -53,7 +53,6 @@ static struct afc_state afc_state = {
 		.period = AFC_PERIOD,
 		.min_valid = AFC_MIN_MUN_VALID,
 	},
-	.dac_value = AFC_INITIAL_DAC_VALUE,
 };
 
 /* The AFC DAC in the ABB has to be configured as follows:
@@ -65,10 +64,6 @@ static struct afc_state afc_state = {
 
 #define AFC_NORM_FACTOR_GSM	((1<<15) / 947)
 #define AFC_NORM_FACTOR_DCS	((1<<15) / 1894)
-
-/* we assume 8.769ppb per LSB, equals 0.008769 * 32768 == 287 */
-//#define AFC_SLOPE		320
-#define AFC_SLOPE		287
 
 /* The DSP can measure the frequency error in the following ranges:
  * 	FB_MODE0:	+/- 20 kHz
@@ -92,7 +87,7 @@ void afc_correct(int16_t freq_error, uint16_t arfcn)
 		afc_norm_factor = AFC_NORM_FACTOR_DCS;
 	}
 
-	delta = (int16_t) ((afc_norm_factor * (int32_t)freq_error) / AFC_SLOPE);
+	delta = (int16_t) ((afc_norm_factor * (int32_t)freq_error) / afc_slope);
 	printd("afc_correct(error=%dHz, arfcn=%u): delta=%d, afc_dac(old=%d,new=%d)\n",
 		freq_error, arfcn, delta, afc_state.dac_value, afc_state.dac_value+delta);
 	afc_state.dac_value += delta;
@@ -106,7 +101,7 @@ void afc_correct(int16_t freq_error, uint16_t arfcn)
 
 void afc_reset(void)
 {
-	afc_state.dac_value = AFC_INITIAL_DAC_VALUE;
+	afc_state.dac_value = afc_initial_dac_value;
 }
 
 void afc_input(int32_t freq_error, uint16_t arfcn, int valid)

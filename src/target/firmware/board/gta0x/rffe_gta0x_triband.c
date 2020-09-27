@@ -7,10 +7,22 @@
 #include <calypso/tsp.h>
 #include <rf/trf6151.h>
 
-/* This is a value that has been measured on the C123 by Harald: 71dBm,
-   it is the difference between the input level at the antenna and what
-   the DSP reports, subtracted by the total gain of the TRF6151 */
-#define SYSTEM_INHERENT_GAIN	71
+/*
+ * OsmocomBB's definition of system inherent gain is similar to what is
+ * called "magic gain" (GMagic) in TI's architecture, except that TI's
+ * GMagic includes TRF6151 LNA gain whereas OBB's definition of system
+ * inherent gain does not.  TI's GMagic is also reckoned in half-dB units
+ * instead of integral dB.  The RF tract is identical between Openmoko
+ * GTA0x and FreeCalypso FCDEV3B boards, both manufacturers' devices
+ * have had their GMagic calibrated per unit at the center frequency
+ * of each supported downlink band at the respective factories, and all
+ * calibrated values on defect-free units fall in the range between 199
+ * to 202, with 200 as the round median value.  Setting OsmocomBB's notion
+ * of system inherent gain to 73 dB produces an equivalent of GMagic=200
+ * in TI's universe, which is more correct than the previous setting of
+ * 71 dB copied from Compal/Motorola phones, which have a different RFFE.
+ */
+#define SYSTEM_INHERENT_GAIN	73
 
 /* describe how the RF frontend is wired on the Openmoko GTA0x boards */
 
