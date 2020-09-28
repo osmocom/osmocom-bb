@@ -67,14 +67,12 @@ static void board_io_init(void)
 	writew(reg, ASIC_CONF_REG);
 
 	/*
-	 * Most Calypso peripheral interface signals are unconnected
-	 * on this modem.  We configure them to be GPIOs in IO_CONF_REG,
-	 * then configure them to be outputs in IO_CNTL_REG, then set
-	 * the outputs to 0 in ARMIO_LATCH_OUT.
+	 * Configure Calypso GPIO and multifunction pins the same way
+	 * how Huawei's official firmware configures them.
 	 */
 	writew(0x03F5, IO_CONF_REG);
-	writew(0xC000, IO_CNTL_REG);
-	writew(0x0000, ARMIO_LATCH_OUT);
+	writew(0xDC58, IO_CNTL_REG);
+	writew(0x0007, ARMIO_LATCH_OUT);
 
 	/* Set LPG output permanently on (power LED) */
 	writew(1, LPG_PM_REG);
