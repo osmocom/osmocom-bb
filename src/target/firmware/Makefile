@@ -50,7 +50,8 @@ BOARD_gta0x_ENVIRONMENTS=highram
 
 # Huawei GTM900-B
 BOARD_gtm900b_OBJS=$(calypso_COMMON_OBJS) board/gtm900b/init.o \
-	board/gtm900b/rffe_gtm900b.o board/gtm900b/rf_tables.o \
+	board/gtm900b/rffe_gtm900b.o board/gta0x/rf_tables.o \
+	board/gtm900b/afcparams.o \
 	board/common/readcal_tiffs.o battery/dummy.o $(FB_dummy_OBJS)
 BOARD_gtm900b_ENVIRONMENTS=highram
 
