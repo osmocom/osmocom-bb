@@ -50,6 +50,7 @@
 
 #define ARMIO_LATCH_OUT 0xfffe4802
 #define IO_CNTL_REG	0xfffe4804
+#define ARM_CONF_REG	0xfffef006
 #define ASIC_CONF_REG	0xfffef008
 #define IO_CONF_REG	0xfffef00a
 #define LPG_LCR_REG	0xfffe7800
@@ -77,13 +78,28 @@ static void board_io_init(void)
 	/* Set LPG output permanently on (power LED) */
 	writew(1, LPG_PM_REG);
 	writew((1 << 7), LPG_LCR_REG);
+
+	/* configure ADD(22), needed for second half of flash on MG01GSMT */
+	reg = readw(ARM_CONF_REG);
+	reg |= (1 << 3);
+	writew(reg, ARM_CONF_REG);
 }
 
 void board_init(int with_irq)
 {
-	/* Configure the memory interface */
-	calypso_mem_cfg(CALYPSO_nCS0, 3, CALYPSO_MEM_16bit, 1);
-	calypso_mem_cfg(CALYPSO_nCS1, 3, CALYPSO_MEM_16bit, 1);
+	/*
+	 * Configure the memory interface.
+	 * Huawei's official fw sets WS=4 for RAM, but not for flash -
+	 * but let's be consistent and use WS=4 for both.  Please refer
+	 * to this technical article for the underlying theory:
+https://www.freecalypso.org/hg/freecalypso-docs/file/tip/MEMIF-wait-states
+	 */
+	calypso_mem_cfg(CALYPSO_nCS0, 4, CALYPSO_MEM_16bit, 1);
+	calypso_mem_cfg(CALYPSO_nCS1, 4, CALYPSO_MEM_16bit, 1);
+	/*
+	 * The remaining 3 chip selects are unused on this hw,
+	 * thus their settings are dummies.
+	 */
 	calypso_mem_cfg(CALYPSO_nCS2, 5, CALYPSO_MEM_16bit, 1);
 	calypso_mem_cfg(CALYPSO_nCS3, 5, CALYPSO_MEM_16bit, 1);
 	calypso_mem_cfg(CALYPSO_CS4, 0, CALYPSO_MEM_8bit, 1);
