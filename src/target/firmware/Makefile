@@ -44,6 +44,7 @@ calypso_COMMON_OBJS=board/common/calypso_uart.o \
 # OpenMoko GTA0x
 BOARD_gta0x_OBJS=$(calypso_COMMON_OBJS) board/gta0x/init.o \
 	board/gta0x/rffe_gta0x_triband.o board/gta0x/rf_tables.o \
+	board/gta0x/afcparams.o \
 	board/common/readcal_tiffs.o battery/dummy.o $(FB_dummy_OBJS)
 BOARD_gta0x_ENVIRONMENTS=highram
 
@@ -56,6 +57,7 @@ BOARD_gtm900b_ENVIRONMENTS=highram
 # FreeCalypso FCDEV3B
 BOARD_fcdev3b_OBJS=$(calypso_COMMON_OBJS) board/fcdev3b/init.o \
 	board/gta0x/rffe_gta0x_triband.o board/gta0x/rf_tables.o \
+	board/gta0x/afcparams.o \
 	board/common/readcal_tiffs.o battery/dummy.o $(FB_dummy_OBJS)
 BOARD_fcdev3b_ENVIRONMENTS=highram
 

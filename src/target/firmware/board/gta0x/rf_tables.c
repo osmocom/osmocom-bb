@@ -23,35 +23,6 @@
 
 #include <stdint.h>
 #include <rf/txcal.h>
-#include <rf/vcxocal.h>
-
-/*
- * Here is a typical set of AFC Psi parameters for an FCDEV3B modem board,
- * computed by FreeCalypso fc-rfcal-vcxo calibration tool from frequency
- * offset measurements made with a CMU200 RF tester:
- *
- * Psi_sta_inv: 3462
- * Psi_st: 15
- * Psi_st_32: 992326
- * Psi_st_inv: 4328
- *
- * The following AFC slope number is the closest OsmocomBB-style afc_slope
- * integer corresponding to these Psi numbers; the true value is somewhere
- * between 454 and 455.
- *
- * This AFC slope setting is expected to be correct for both Openmoko and
- * FreeCalypso hardware as we use the same VCXO components as were used
- * by Openmoko.
- */
-int16_t afc_slope = 454;
-
-/*
- * The compiled-in AFC initial DAC value below is the same as was used by
- * the old OsmocomBB code written for Mot C1xx phones, but it will normally
- * be overridden by the per-unit factory calibration value read from the
- * /gsm/rf/afcdac file in FFS.
- */
-int16_t afc_initial_dac_value = -700;
 
 /* APC offset (comes from the official firmware) for TI-classic targets */
 uint8_t apc_offset = 48;
