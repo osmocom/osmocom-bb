@@ -1,5 +1,5 @@
 /* RF frontend driver for Huawei GTM900-B modems, supporting both
- * MG01GSMT and MG01GSMT hardware variants */
+ * MG01GSMT and MGCxGSMT hardware variants */
 
 /* (C) 2019 by Steve Markgraf <steve@steve-m.de>
  *
@@ -63,12 +63,7 @@
  * Tx2: high band PA output
  */
 
-typedef enum rffe_var {
-	RFFE_MGC2GSMT,
-	RFFE_MG01GSMT
-} rffe_var_t;
-
-static rffe_var_t rffe_variant = RFFE_MGC2GSMT;
+extern int gtm900_hw_is_mg01gsmt;	/* set in init.c */
 
 static inline void rffe_mode_mgc2gsmt(enum gsm_band band, int tx)
 {
@@ -139,10 +134,10 @@ static inline void rffe_mode_mg01gsmt(enum gsm_band band, int tx)
 /* switch RF Frontend Mode */
 void rffe_mode(enum gsm_band band, int tx)
 {
-	if (rffe_variant == RFFE_MGC2GSMT)
-		rffe_mode_mgc2gsmt(band, tx);
-	else
+	if (gtm900_hw_is_mg01gsmt)
 		rffe_mode_mg01gsmt(band, tx);
+	else
+		rffe_mode_mgc2gsmt(band, tx);
 }
 
 uint32_t rffe_get_rx_ports(void)
@@ -166,7 +161,6 @@ int rffe_iq_swapped(uint16_t band_arfcn, int tx)
 void rffe_init(void)
 {
 	uint16_t reg;
-	uint16_t manufacturer_id = 0;
 
 	reg = readw(ARM_CONF_REG);
 	reg &= ~ (1 << 7);	/* TSPACT4 I/O function, not nRDYMEM */
@@ -176,28 +170,6 @@ void rffe_init(void)
 	tsp_setup(IOTA_STROBE, 1, 0, 0);
 
 	trf6151_init(RITA_STROBE, RITA_RESET);
-
-	/* Detect the used RFFE variant based on the used flash chip.
-	 * The MGC2GSMT uses a Samsung flash, whereas the MG01GSMT uses
-	 * a Spansion flash. We use an address above the Calpso bootrom
-	 * so we do not need to unmap it to access the flash. */
-	flash_get_id((void *)0x40000, &manufacturer_id, NULL);
-
-	switch (manufacturer_id) {
-	case CFI_MANUF_SPANSION:
-		printf("Detected MG01GSMT module\n\n");
-		rffe_variant = RFFE_MG01GSMT;
-		break;
-	case CFI_MANUF_SAMSUNG:
-		printf("Detected MGC2GSMT module\n\n");
-		rffe_variant = RFFE_MGC2GSMT;
-		break;
-	default:
-		printf("Unknown module detected, flash ID 0x%4.4x\n"
-		       "Please contact mailing list!\n\n", manufacturer_id);
-		rffe_variant = RFFE_MGC2GSMT;
-		break;
-	}
 }
 
 uint8_t rffe_get_gain(void)
