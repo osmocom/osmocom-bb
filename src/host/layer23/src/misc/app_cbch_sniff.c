@@ -34,6 +34,8 @@
 #include <osmocom/core/signal.h>
 #include <osmocom/gsm/rsl.h>
 
+#include <osmocom/gsm/protocol/gsm_08_58.h>
+
 #include <l1ctl_proto.h>
 
 struct osmocom_ms *g_ms;
@@ -41,12 +43,21 @@ struct gsm48_sysinfo g_sysinfo = {};
 
 static int try_cbch(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
 {
+	uint8_t chan_nr;
+
 	if (!s->si1 || !s->si4)
 		return 0;
 	if (!s->chan_nr) {
 		LOGP(DRR, LOGL_INFO, "no CBCH chan_nr found\n");
 		return 0;
 	}
+
+	/* Convert received channel number to Osmocom specific one;
+	 * this way the layer1 can activate proper CBCH task. */
+	if (s->chan_nr != RSL_CHAN_SDCCH4_ACCH)
+		chan_nr = RSL_CHAN_OSMO_CBCH8 | (s->chan_nr & 0x07);
+	else
+		chan_nr = RSL_CHAN_OSMO_CBCH4;
 
 	if (s->h) {
 		LOGP(DRR, LOGL_INFO, "chan_nr = 0x%02x TSC = %d  MAIO = %d  "
@@ -56,13 +67,13 @@ static int try_cbch(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
 			osmo_hexdump((unsigned char *) s->hopping, s->hopp_len * 2));
 		return l1ctl_tx_dm_est_req_h1(ms,
 			s->maio, s->hsn, s->hopping, s->hopp_len,
-			s->chan_nr, s->tsc,
+			chan_nr, s->tsc,
 			GSM48_CMODE_SIGN, 0);
 	} else {
 		LOGP(DRR, LOGL_INFO, "chan_nr = 0x%02x TSC = %d  ARFCN = %d\n",
 			s->chan_nr, s->tsc, s->arfcn);
 		return l1ctl_tx_dm_est_req_h0(ms, s->arfcn,
-			s->chan_nr, s->tsc, GSM48_CMODE_SIGN, 0);
+			chan_nr, s->tsc, GSM48_CMODE_SIGN, 0);
 	}
 }
 
