@@ -184,7 +184,7 @@ static int l1ctl_link_accept(struct osmo_fd *bfd, unsigned int flags)
 
 int l1ctl_link_send(struct l1ctl_link *l1l, struct msgb *msg)
 {
-	uint16_t *len;
+	uint8_t *len;
 
 	/* Debug print */
 	LOGP(DL1D, LOGL_DEBUG, "TX: '%s'\n",
@@ -194,8 +194,8 @@ int l1ctl_link_send(struct l1ctl_link *l1l, struct msgb *msg)
 		LOGP(DL1D, LOGL_INFO, "Message L1 header != Message Data\n");
 
 	/* Prepend 16-bit length before sending */
-	len = (uint16_t *) msgb_push(msg, L1CTL_MSG_LEN_FIELD);
-	*len = htons(msg->len - L1CTL_MSG_LEN_FIELD);
+	len = msgb_push(msg, L1CTL_MSG_LEN_FIELD);
+	osmo_store16be(msg->len - L1CTL_MSG_LEN_FIELD, len);
 
 	if (osmo_wqueue_enqueue(&l1l->wq, msg) != 0) {
 		LOGP(DL1D, LOGL_ERROR, "Failed to enqueue msg!\n");
