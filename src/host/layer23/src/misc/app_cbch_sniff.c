@@ -169,7 +169,7 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	case S_L1CTL_FBSB_ERR:
 		ms = g_ms;
 		return l1ctl_tx_fbsb_req(ms, ms->test_arfcn,
-			L1CTL_FBSB_F_FB01SB, 100, 0, CCCH_MODE_COMBINED_CBCH,
+			L1CTL_FBSB_F_FB01SB, 100, 0, CCCH_MODE_COMBINED,
 			dbm2rxlev(-85));
 	case S_L1CTL_FBSB_RESP:
 		return 0;
