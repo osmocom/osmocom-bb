@@ -641,11 +641,13 @@ int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 	 * TODO: introduce proper state machines for both
 	 *       transceiver and its TRXC interface.
 	 */
+#if 0
 	if (trx->fsm->state != TRX_STATE_ACTIVE) {
 		LOGP(DTRXD, LOGL_ERROR, "Ignoring TX data, "
 			"transceiver isn't ready\n");
 		return -EAGAIN;
 	}
+#endif
 
 	LOGP(DTRXD, LOGL_DEBUG, "TX burst tn=%u fn=%u pwr=%u\n", tn, fn, pwr);
 
