@@ -125,10 +125,7 @@ static int l1ctl_sock_accept_cb(struct osmo_fd *ofd, unsigned int what)
 	}
 
 	lsc->l1ctl_sock = lsi;
-	lsc->ofd.fd = fd;
-	lsc->ofd.when = OSMO_FD_READ;
-	lsc->ofd.cb = l1ctl_sock_data_cb;
-	lsc->ofd.data = lsc;
+	osmo_fd_setup(&lsc->ofd, fd, OSMO_FD_READ, l1ctl_sock_data_cb, lsc, 0);
 	if (lsi->accept_cb) {
 		rc = lsi->accept_cb(lsc);
 		if (rc < 0) {
@@ -163,9 +160,7 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
 
 	lsi = talloc_zero(ctx, struct l1ctl_sock_inst);
 	lsi->priv = NULL;
-	lsi->ofd.data = lsi;
-	lsi->ofd.when = OSMO_FD_READ;
-	lsi->ofd.cb = l1ctl_sock_accept_cb;
+	osmo_fd_setup(&lsi->ofd, -1, OSMO_FD_READ, l1ctl_sock_accept_cb, lsi, 0);
 
 	rc = osmo_sock_unix_init_ofd(&lsi->ofd, SOCK_STREAM, 0, path, OSMO_SOCK_F_BIND);
 	if (rc < 0) {

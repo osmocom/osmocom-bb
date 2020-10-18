@@ -165,9 +165,7 @@ static int l1ctl_link_accept(struct osmo_fd *bfd, unsigned int flags)
 
 	l1l->wq.write_cb = l1ctl_link_write_cb;
 	l1l->wq.read_cb = l1ctl_link_read_cb;
-	conn_bfd->when = OSMO_FD_READ;
-	conn_bfd->data = l1l;
-	conn_bfd->fd = cfd;
+	osmo_fd_setup(conn_bfd, cfd, OSMO_FD_READ, osmo_wqueue_bfd_cb, l1l, 0);
 
 	if (osmo_fd_register(conn_bfd) != 0) {
 		LOGP(DL1C, LOGL_ERROR, "Failed to register new connection fd\n");
@@ -255,6 +253,10 @@ struct l1ctl_link *l1ctl_link_init(void *tall_ctx, const char *sock_path)
 
 	/* Create a socket and bind handlers */
 	bfd = &l1l->listen_bfd;
+
+	/* Bind connection handler */
+	osmo_fd_setup(bfd, -1, OSMO_FD_READ, l1ctl_link_accept, l1l, 0);
+
 	rc = osmo_sock_unix_init_ofd(bfd, SOCK_STREAM, 0, sock_path,
 		OSMO_SOCK_F_BIND);
 	if (rc < 0) {
@@ -267,11 +269,6 @@ struct l1ctl_link *l1ctl_link_init(void *tall_ctx, const char *sock_path)
 
 	/* Bind shutdown handler */
 	l1l->shutdown_cb = l1ctl_shutdown_cb;
-
-	/* Bind connection handler */
-	bfd->cb = l1ctl_link_accept;
-	bfd->when = OSMO_FD_READ;
-	bfd->data = l1l;
 
 	/**
 	 * To be able to accept first connection and

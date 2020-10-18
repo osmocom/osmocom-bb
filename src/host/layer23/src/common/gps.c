@@ -137,10 +137,6 @@ int osmo_gpsd_open(void)
 {
 	LOGP(DGPS, LOGL_INFO, "Connecting to gpsd at '%s:%s'\n", g.gpsd_host, g.gpsd_port);
 
-	gps_bfd.data = NULL;
-	gps_bfd.when = OSMO_FD_READ;
-	gps_bfd.cb = osmo_gpsd_cb;
-
 #if GPSD_API_MAJOR_VERSION >= 5
 	if (gps_open(g.gpsd_host, g.gpsd_port, &_gdata) == -1)
 		gdata = NULL;
@@ -153,15 +149,15 @@ int osmo_gpsd_open(void)
 		LOGP(DGPS, LOGL_ERROR, "Can't connect to gpsd\n");
 		return -1;
 	}
-	gps_bfd.fd = gdata->gps_fd;
-	if (gps_bfd.fd < 0)
-		return gps_bfd.fd;
+	if (gdata->gps_fd < 0)
+		return gdata->gps_fd;
 
 	if (gps_stream(gdata, WATCH_ENABLE, NULL) == -1) {
 		LOGP(DGPS, LOGL_ERROR, "Error in gps_stream()\n");
 		return -1;
 	}
 
+	osmo_fd_setup(&gps_bfd, gdata->gps_fd, OSMO_FD_READ, osmo_gpsd_cb, NULL, 0);
 	osmo_fd_register(&gps_bfd);
 
 	return 0;
@@ -320,18 +316,17 @@ int osmo_serialgps_cb(struct osmo_fd *bfd, unsigned int what)
 int osmo_serialgps_open(void)
 {
 	int baud = 0;
+	int fd;
 
 	if (gps_bfd.fd > 0)
 		return 0;
 
 	LOGP(DGPS, LOGL_INFO, "Open GPS device '%s'\n", g.device);
 
-	gps_bfd.data = NULL;
-	gps_bfd.when = OSMO_FD_READ;
-	gps_bfd.cb = osmo_serialgps_cb;
-	gps_bfd.fd = open(g.device, O_RDONLY);
-	if (gps_bfd.fd < 0)
-		return gps_bfd.fd;
+	fd = open(g.device, O_RDONLY);
+	if (fd < 0)
+		return fd;
+	osmo_fd_setup(&gps_bfd, fd, OSMO_FD_READ, osmo_serialgps_cb, NULL, 0);
 
 	switch (g.baud) {
 	case   4800:

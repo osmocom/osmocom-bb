@@ -1322,10 +1322,7 @@ static int tool_accept(struct osmo_fd *fd, unsigned int flags)
 
 	con->server = srv;
 
-	con->fd.fd = rc;
-	con->fd.when = OSMO_FD_READ;
-	con->fd.cb = un_tool_read;
-	con->fd.data = con;
+	osmo_fd_setup(&con->fd, rc, OSMO_FD_READ, un_tool_read, con, 0);
 	if (osmo_fd_register(&con->fd) != 0) {
 		fprintf(stderr, "Failed to register the fd.\n");
 		talloc_free(con);
@@ -1389,7 +1386,7 @@ void parse_debug(const char *str)
 
 int main(int argc, char **argv)
 {
-	int opt, flags;
+	int opt, flags, fd;
 	uint32_t tmp_load_address = ROMLOAD_ADDRESS;
 	const char *serial_dev = "/dev/ttyUSB1";
 	const char *layer2_un_path = "/tmp/osmocom_l2";
@@ -1442,12 +1439,13 @@ int main(int argc, char **argv)
 		dnload.filename = argv[optind];
 	}
 
-	dnload.serial_fd.fd = osmo_serial_init(serial_dev, MODEM_BAUDRATE);
-	if (dnload.serial_fd.fd < 0) {
+	fd = osmo_serial_init(serial_dev, MODEM_BAUDRATE);
+	if (fd < 0) {
 		fprintf(stderr, "Cannot open serial device %s\n", serial_dev);
 		exit(1);
 	}
 
+	osmo_fd_setup(&dnload.serial_fd, fd, OSMO_FD_READ, serial_read, NULL, 0);
 	if (osmo_fd_register(&dnload.serial_fd) != 0) {
 		fprintf(stderr, "Failed to register the serial.\n");
 		exit(1);
@@ -1457,9 +1455,6 @@ int main(int argc, char **argv)
 	flags = fcntl(dnload.serial_fd.fd, F_GETFL);
 	flags |= O_NONBLOCK;
 	fcntl(dnload.serial_fd.fd, F_SETFL, flags);
-
-	dnload.serial_fd.when = OSMO_FD_READ;
-	dnload.serial_fd.cb = serial_read;
 
 	/* initialize the HDLC layer */
 	sercomm_init();
