@@ -44,7 +44,7 @@ int mcast_client_sock_setup(struct osmo_fd *ofd, const char *mcast_group, uint16
 	unsigned int flags = OSMO_SOCK_F_BIND | OSMO_SOCK_F_NO_MCAST_ALL | OSMO_SOCK_F_UDP_REUSEADDR;
 
 	ofd->cb = fd_rx_cb;
-	ofd->when = BSC_FD_READ;
+	ofd->when = OSMO_FD_READ;
 	ofd->data = osmo_fd_data;
 
 	/* Create mcast client socket */

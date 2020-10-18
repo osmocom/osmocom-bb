@@ -72,7 +72,7 @@ static int l1ctl_sock_data_cb(struct osmo_fd *ofd, unsigned int what)
 	int rc;
 
 	/* Check if request is really read request */
-	if (!(what & BSC_FD_READ))
+	if (!(what & OSMO_FD_READ))
 		return 0;
 
 	msg = msgb_alloc(L1CTL_SOCK_MSGB_SIZE, "L1CTL sock rx");
@@ -126,7 +126,7 @@ static int l1ctl_sock_accept_cb(struct osmo_fd *ofd, unsigned int what)
 
 	lsc->l1ctl_sock = lsi;
 	lsc->ofd.fd = fd;
-	lsc->ofd.when = BSC_FD_READ;
+	lsc->ofd.when = OSMO_FD_READ;
 	lsc->ofd.cb = l1ctl_sock_data_cb;
 	lsc->ofd.data = lsc;
 	if (lsi->accept_cb) {
@@ -164,7 +164,7 @@ struct l1ctl_sock_inst *l1ctl_sock_init(
 	lsi = talloc_zero(ctx, struct l1ctl_sock_inst);
 	lsi->priv = NULL;
 	lsi->ofd.data = lsi;
-	lsi->ofd.when = BSC_FD_READ;
+	lsi->ofd.when = OSMO_FD_READ;
 	lsi->ofd.cb = l1ctl_sock_accept_cb;
 
 	rc = osmo_sock_unix_init_ofd(&lsi->ofd, SOCK_STREAM, 0, path, OSMO_SOCK_F_BIND);

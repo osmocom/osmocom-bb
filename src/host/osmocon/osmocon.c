@@ -500,7 +500,7 @@ static int romload_prepare_block(void)
 	dnload.block_ptr = dnload.block;
 
 	dnload.block_number++;
-	dnload.serial_fd.when = BSC_FD_READ | BSC_FD_WRITE;
+	dnload.serial_fd.when = OSMO_FD_READ | OSMO_FD_WRITE;
 	return 0;
 }
 
@@ -586,7 +586,7 @@ static int handle_write_block(void)
 		printf("Progress: %i%%\r", progress);
 		fflush(stdout);
 		dnload.write_ptr = dnload.data;
-		dnload.serial_fd.when &= ~BSC_FD_WRITE;
+		dnload.serial_fd.when &= ~OSMO_FD_WRITE;
 		if (dnload.romload_state == SENDING_LAST_BLOCK) {
 			dnload.romload_state = LAST_BLOCK_SENT;
 			printf("Finished, sent %i blocks in total\n",
@@ -638,7 +638,7 @@ static int handle_write_dnload(void)
 	} else if (dnload.write_ptr >= dnload.data + dnload.data_len) { 
 		printf("finished\n");
 		dnload.write_ptr = dnload.data;
-		dnload.serial_fd.when &= ~BSC_FD_WRITE;
+		dnload.serial_fd.when &= ~OSMO_FD_WRITE;
 		return 1;
 	}
 
@@ -682,7 +682,7 @@ static int handle_sercomm_write(void)
 	}
 
 	if (end)
-		dnload.serial_fd.when &= ~BSC_FD_WRITE;
+		dnload.serial_fd.when &= ~OSMO_FD_WRITE;
 
 	return 0;
 }
@@ -751,7 +751,7 @@ static void hdlc_send_to_phone(uint8_t dlci, uint8_t *data, int len)
 
 	sercomm_sendmsg(dlci, msg);
 
-	dnload.serial_fd.when |= BSC_FD_WRITE;
+	dnload.serial_fd.when |= OSMO_FD_WRITE;
 }
 
 static void hdlc_console_cb(uint8_t dlci, struct msgb *msg)
@@ -842,12 +842,12 @@ static int handle_read(void)
 		}
 	} else if (!memcmp(buffer, phone_prompt2, sizeof(phone_prompt2))) {
 		printf("Received PROMPT2 from phone, starting download\n");
-		dnload.serial_fd.when = BSC_FD_READ | BSC_FD_WRITE;
+		dnload.serial_fd.when = OSMO_FD_READ | OSMO_FD_WRITE;
 		dnload.state = DOWNLOADING;
 	} else if (!memcmp(buffer, phone_ack, sizeof(phone_ack))) {
 		printf("Received DOWNLOAD ACK from phone, your code is"
 			" running now!\n");
-		dnload.serial_fd.when = BSC_FD_READ;
+		dnload.serial_fd.when = OSMO_FD_READ;
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
 		dnload.expect_hdlc = 1;
@@ -868,18 +868,18 @@ static int handle_read(void)
 	} else if (!memcmp(buffer, phone_nack, sizeof(phone_nack))) {
 		printf("Received DOWNLOAD NACK from phone, something went"
 			" wrong :(\n");
-		dnload.serial_fd.when = BSC_FD_READ;
+		dnload.serial_fd.when = OSMO_FD_READ;
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
 	} else if (!memcmp(buffer, phone_nack_magic, sizeof(phone_nack_magic))) {
 		printf("Received MAGIC NACK from phone, you need to"
 			" have \"1003\" at 0x803ce0\n");
-		dnload.serial_fd.when = BSC_FD_READ;
+		dnload.serial_fd.when = OSMO_FD_READ;
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
 	} else if (!memcmp(buffer, ftmtool, sizeof(ftmtool))) {
 		printf("Received FTMTOOL from phone, ramloader has aborted\n");
-		dnload.serial_fd.when = BSC_FD_READ;
+		dnload.serial_fd.when = OSMO_FD_READ;
 		dnload.state = WAITING_PROMPT1;
 		dnload.write_ptr = dnload.data;
 	}
@@ -1000,7 +1000,7 @@ static int handle_read_romload(void)
 		if (!memcmp(buffer, romload_branch_ack,
 			    sizeof(romload_branch_ack))) {
 			printf("Received branch ack, your code is running now!\n");
-			dnload.serial_fd.when = BSC_FD_READ;
+			dnload.serial_fd.when = OSMO_FD_READ;
 			dnload.romload_state = FINISHED;
 			dnload.write_ptr = dnload.data;
 			dnload.expect_hdlc = 1;
@@ -1116,7 +1116,7 @@ static int handle_read_mtk(void)
 		printf("Received size ack\n");
 		dnload.expect_hdlc = 1;
 		dnload.mtk_state = MTK_SENDING_BLOCKS;
-		dnload.serial_fd.when = BSC_FD_READ | BSC_FD_WRITE;
+		dnload.serial_fd.when = OSMO_FD_READ | OSMO_FD_WRITE;
 		bufptr -= 3;
 		break;
 	case MTK_SENDING_BLOCKS:
@@ -1138,7 +1138,7 @@ static int handle_read_mtk(void)
 			printf("Received Block %i preparing next block\n",
 				dnload.block_number);
 			mtk_prepare_block();
-			dnload.serial_fd.when = BSC_FD_READ | BSC_FD_WRITE;
+			dnload.serial_fd.when = OSMO_FD_READ | OSMO_FD_WRITE;
 		}
 		break;
 	case MTK_WAIT_BRANCH_CMD_ACK:
@@ -1156,7 +1156,7 @@ static int handle_read_mtk(void)
 			break;
 		printf("Received branch address ack, code should run now\n");
 		osmo_serial_set_baudrate(dnload.serial_fd.fd, MODEM_BAUDRATE);
-		dnload.serial_fd.when = BSC_FD_READ;
+		dnload.serial_fd.when = OSMO_FD_READ;
 		dnload.mtk_state = MTK_FINISHED;
 		dnload.write_ptr = dnload.data;
 		dnload.expect_hdlc = 1;
@@ -1172,7 +1172,7 @@ static int handle_read_mtk(void)
 static int serial_read(struct osmo_fd *fd, unsigned int flags)
 {
 	int rc;
-	if (flags & BSC_FD_READ) {
+	if (flags & OSMO_FD_READ) {
 		switch (dnload.mode) {
 			case MODE_ROMLOAD:
 				while ((rc = handle_read_romload()) > 0);
@@ -1188,7 +1188,7 @@ static int serial_read(struct osmo_fd *fd, unsigned int flags)
 			exit(2);
 	}
 
-	if (flags & BSC_FD_WRITE) {
+	if (flags & OSMO_FD_WRITE) {
 		rc = handle_write();
 		if (rc == 1)
 			dnload.state = WAITING_PROMPT1;
@@ -1323,7 +1323,7 @@ static int tool_accept(struct osmo_fd *fd, unsigned int flags)
 	con->server = srv;
 
 	con->fd.fd = rc;
-	con->fd.when = BSC_FD_READ;
+	con->fd.when = OSMO_FD_READ;
 	con->fd.cb = un_tool_read;
 	con->fd.data = con;
 	if (osmo_fd_register(&con->fd) != 0) {
@@ -1458,7 +1458,7 @@ int main(int argc, char **argv)
 	flags |= O_NONBLOCK;
 	fcntl(dnload.serial_fd.fd, F_SETFL, flags);
 
-	dnload.serial_fd.when = BSC_FD_READ;
+	dnload.serial_fd.when = OSMO_FD_READ;
 	dnload.serial_fd.cb = serial_read;
 
 	/* initialize the HDLC layer */

@@ -138,7 +138,7 @@ int osmo_gpsd_open(void)
 	LOGP(DGPS, LOGL_INFO, "Connecting to gpsd at '%s:%s'\n", g.gpsd_host, g.gpsd_port);
 
 	gps_bfd.data = NULL;
-	gps_bfd.when = BSC_FD_READ;
+	gps_bfd.when = OSMO_FD_READ;
 	gps_bfd.cb = osmo_gpsd_cb;
 
 #if GPSD_API_MAJOR_VERSION >= 5
@@ -327,7 +327,7 @@ int osmo_serialgps_open(void)
 	LOGP(DGPS, LOGL_INFO, "Open GPS device '%s'\n", g.device);
 
 	gps_bfd.data = NULL;
-	gps_bfd.when = BSC_FD_READ;
+	gps_bfd.when = OSMO_FD_READ;
 	gps_bfd.cb = osmo_serialgps_cb;
 	gps_bfd.fd = open(g.device, O_RDONLY);
 	if (gps_bfd.fd < 0)

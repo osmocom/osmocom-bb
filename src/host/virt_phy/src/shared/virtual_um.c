@@ -39,7 +39,7 @@ static int virt_um_fd_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct virt_um_inst *vui = ofd->data;
 
-	if (what & BSC_FD_READ) {
+	if (what & OSMO_FD_READ) {
 		struct msgb *msg = msgb_alloc(VIRT_UM_MSGB_SIZE, "Virtual UM Rx");
 		int rc;
 

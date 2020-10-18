@@ -165,7 +165,7 @@ static int l1ctl_link_accept(struct osmo_fd *bfd, unsigned int flags)
 
 	l1l->wq.write_cb = l1ctl_link_write_cb;
 	l1l->wq.read_cb = l1ctl_link_read_cb;
-	conn_bfd->when = BSC_FD_READ;
+	conn_bfd->when = OSMO_FD_READ;
 	conn_bfd->data = l1l;
 	conn_bfd->fd = cfd;
 
@@ -270,7 +270,7 @@ struct l1ctl_link *l1ctl_link_init(void *tall_ctx, const char *sock_path)
 
 	/* Bind connection handler */
 	bfd->cb = l1ctl_link_accept;
-	bfd->when = BSC_FD_READ;
+	bfd->when = OSMO_FD_READ;
 	bfd->data = l1l;
 
 	/**

@@ -512,7 +512,7 @@ static int lua_register_fd(lua_State *L)
 	/* Set the filedescriptor */
 	fdu->fd.fd = (int) lua_tonumber(L, -3);
 	fdu->fd.cb = lua_fd_cb;
-	fdu->fd.when = BSC_FD_READ;
+	fdu->fd.when = OSMO_FD_READ;
 	fdu->fd.data = fdu;
 
 	/* Assuming that an error here will lead to a GC */
