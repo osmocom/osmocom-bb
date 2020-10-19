@@ -808,8 +808,11 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* TODO: do we need to care about audio_mode? */
 
-	msgb_free(msg);
-	return 0;
+	/* Re-use the original message as confirmation */
+	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
+	l1h->msg_type = L1CTL_TCH_MODE_CONF;
+
+	return l1ctl_link_send(l1l, msg);
 }
 
 static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
