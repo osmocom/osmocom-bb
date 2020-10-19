@@ -497,6 +497,7 @@ static int lua_fd_cb(struct osmo_fd *fd, unsigned int what) {
 static int lua_register_fd(lua_State *L)
 {
 	struct fd_userdata *fdu;
+	int fd;
 
 	/* fd, cb */
 	luaL_argcheck(L, lua_isnumber(L, -2), 1, "needs to be a filedescriptor");
@@ -510,10 +511,8 @@ static int lua_register_fd(lua_State *L)
 	lua_setmetatable(L, -2);
 
 	/* Set the filedescriptor */
-	fdu->fd.fd = (int) lua_tonumber(L, -3);
-	fdu->fd.cb = lua_fd_cb;
-	fdu->fd.when = OSMO_FD_READ;
-	fdu->fd.data = fdu;
+	fd = (int) lua_tonumber(L, -3);
+	osmo_fd_setup(&fdu->fd, fd, OSMO_FD_READ, lua_fd_cb, fdu, 0);
 
 	/* Assuming that an error here will lead to a GC */
 	if (osmo_fd_register(&fdu->fd) != 0) {
