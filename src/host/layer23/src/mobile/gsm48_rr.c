@@ -648,7 +648,7 @@ static void timeout_rr_meas(void *arg)
 		snr = (meas->snr + meas->frames / 2) / meas->frames;
 		sprintf(text, "MON: f=%d lev=%s snr=%2d ber=%3d "
 			"LAI=%s %s %04x ID=%04x", cs->sel_arfcn,
-			gsm_print_rxlev(rxlev), berr, snr,
+			gsm_print_rxlev(rxlev), snr, berr,
 			gsm_print_mcc(cs->sel_mcc),
 			gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
 		if (rr->state == GSM48_RR_ST_DEDICATED) {
