@@ -91,7 +91,7 @@ static void tpu_debug(void)
 {
 	uint16_t *tpu_base = (uint16_t *)BASE_ADDR_TPU_RAM;
 	unsigned int tpu_size = tpu_ptr - tpu_base;
-	struct msgb *msg = sercomm_alloc_msgb(tpu_size*2);
+	struct msgb *msg = sercomm_alloc_msgb(sizeof(uint32_t) + tpu_size*2);
 	uint16_t *data;
 	uint32_t *fn;
 	uint16_t reg;
