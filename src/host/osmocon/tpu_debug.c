@@ -57,6 +57,60 @@ static const char *tpu_addr_name[0x1f] = {
 
 static uint8_t tpu_reg_cache[0x1f];
 static uint16_t tpu_qbit;
+static uint16_t tspact_cache;
+
+static const char *tspact_name(unsigned int n)
+{
+	static char buf[32];
+
+	/* FIXME: This is rffe_dualband.c specific */
+	switch (n) {
+	case 0:
+		return "RITA_RESET";
+	case 1:
+		return "PA_ENABLE";
+	case 6:
+		return "TRENA";
+	case 8:
+		return "GSM_TXEN";
+	default:
+		snprintf(buf, sizeof(buf), "TSPACT%u", n);
+		return buf;
+	}
+}
+
+static const char *tps_strobe_name(unsigned int n)
+{
+	static char buf[32];
+
+	switch (n) {
+	case 0:
+		return "TWL3025";
+	case 2:
+		return "TRF6151";
+	default:
+		snprintf(buf, sizeof(buf), "STROBE%u", n);
+		return buf;
+	}
+}
+
+static void handle_tspact(uint16_t mask, uint16_t bits)
+{
+	uint16_t newval = (tspact_cache & mask) | bits;
+	unsigned int i;
+
+	if (newval == tspact_cache)
+		return;
+
+	for (i = 0; i < 16; i++) {
+		uint16_t shifted = (1 << i);
+		if ((tspact_cache & shifted) != (newval & shifted)) {
+			printf("%s:%d->%d ", tspact_name(i),
+				tspact_cache & shifted ? 1 : 0, newval & shifted ? 1 : 0);
+		}
+	}
+	tspact_cache = newval;
+}
 
 static void tpu_show_instr(uint16_t tpu)
 {
@@ -93,7 +147,7 @@ static void tpu_show_instr(uint16_t tpu)
 		switch (addr) {
 		case 0:
 			bitlen = (data & 0x1f) + 1;
-			printf("DEV_IDX=%u, BITLEN=%u ", data >> 5, bitlen);
+			printf("DEV_IDX=%s, BITLEN=%u ", tps_strobe_name(data >> 5), bitlen);
 			if (bitlen <= 8) {
 				tsp_data = tpu_reg_cache[4];
 				printf(" TSP_DATA=0x%02x ", tsp_data);
@@ -119,6 +173,12 @@ static void tpu_show_instr(uint16_t tpu)
 				printf("READ ");
 			if (data & 0x02)
 				printf("WRITE ");
+			break;
+		case 6:
+			handle_tspact(0xff00, data);
+			break;
+		case 7:
+			handle_tspact(0x00ff, data << 8);
 			break;
 		}
 	}
