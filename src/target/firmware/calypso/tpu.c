@@ -75,44 +75,43 @@ static uint16_t *tpu_ptr = (uint16_t *)BASE_ADDR_TPU_RAM;
 #ifdef TPU_DEBUG
 #include <comm/sercomm.h>
 #include <layer1/sync.h>
-static void tpu_ram_read_en(int enable)
-{
-	uint16_t reg;
+static struct msgb *tpu_debug_msg = NULL;
 
-	reg = readw(TPU_REG(TPU_CTRL));
-	if (enable)
-		reg |= TPU_CTRL_MCU_RAM_ACC;
-	else
-		reg &= ~TPU_CTRL_MCU_RAM_ACC;
-	writew(reg, TPU_REG(TPU_CTRL));
+static void tpu_debug_alloc(void)
+{
+	tpu_debug_msg = sercomm_alloc_msgb(sizeof(uint32_t) + 64*2);
+	if (!tpu_debug_msg)
+		printf("UNABLE TO ALLOC TPU DBG\n");
 }
-
-static void tpu_debug(void)
+static void tpu_debug_flush(void)
 {
-	uint16_t *tpu_base = (uint16_t *)BASE_ADDR_TPU_RAM;
-	unsigned int tpu_size = tpu_ptr - tpu_base;
-	struct msgb *msg = sercomm_alloc_msgb(sizeof(uint32_t) + tpu_size*2);
-	uint16_t *data;
-	uint32_t *fn;
-	uint16_t reg;
-	int i;
+	if (tpu_debug_msg) {
+		sercomm_sendmsg(SC_DLCI_DEBUG, tpu_debug_msg);
+		tpu_debug_msg = NULL;
+	}
+	tpu_debug_alloc();
+}
+static void tpu_debug_enqueue(uint16_t instr)
+{
+	uint16_t *u16_out;
 
-	/* prepend tpu memory dump with frame number */
-	fn = (uint32_t *) msgb_put(msg, sizeof(fn));
-	*fn = l1s.current_time.fn;
-
-	tpu_ram_read_en(1);
-
-	data = (uint16_t *) msgb_put(msg, tpu_size*2);
-	for (i = 0; i < tpu_size; i ++)
-		data[i] = tpu_base[i];
-
-	tpu_ram_read_en(0);
-
-	sercomm_sendmsg(SC_DLCI_DEBUG, msg);
+	if (!tpu_debug_msg)
+		return;
+	if (tpu_ptr == (uint16_t *) BASE_ADDR_TPU_RAM) {
+		/* prepend tpu memory dump with frame number */
+		uint32_t *fn = (uint32_t *) msgb_put(tpu_debug_msg, sizeof(fn));
+		*fn = l1s.current_time.fn;
+	}
+	if (msgb_tailroom(tpu_debug_msg) >= sizeof(instr)) {
+		/* cannot use msgb_put_u16 as host program expects little endian */
+		u16_out = (uint16_t *) msgb_put(tpu_debug_msg, sizeof(instr));
+		*u16_out = instr;
+	}
 }
 #else
-static void tpu_debug(void) { }
+static void tpu_debug_alloc(void) { }
+static void tpu_debug_flush(void) { }
+static void tpu_debug_enqueue(uint16_t instr) { }
 #endif
 
 #define BIT_SET	1
@@ -167,13 +166,13 @@ void tpu_enable(int active)
 
 	printd("tpu_enable(%u)\n", active);
 
-	tpu_debug();
-
 	if (active)
 		reg |= TPU_CTRL_EN;
 	else
 		reg &= ~TPU_CTRL_EN;
 	writew(reg, TPU_REG(TPU_CTRL));
+
+	tpu_debug_flush();
 
 	/* After the new scenario is loaded, TPU switches the MCU-visible memory
 	 * page, i.e. we can write without any danger */
@@ -241,6 +240,7 @@ void tpu_rewind(void)
 void tpu_enqueue(uint16_t instr)
 {
 	printd("tpu_enqueue(tpu_ptr=%p, instr=0x%04x)\n", tpu_ptr, instr);
+	tpu_debug_enqueue(instr);
 	*tpu_ptr++ = instr;
 	if (tpu_ptr > (uint16_t *) TPU_RAM_END)
 		puts("TPU enqueue beyond end of TPU memory\n");
