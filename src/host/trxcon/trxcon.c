@@ -276,6 +276,7 @@ int main(int argc, char **argv)
 
 	/* Setup signal handlers */
 	signal(SIGINT, &signal_handler);
+	signal(SIGABRT, &signal_handler);
 	signal(SIGUSR1, &signal_handler);
 	signal(SIGUSR2, &signal_handler);
 	osmo_init_ignore_signals();
