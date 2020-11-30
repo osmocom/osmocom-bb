@@ -144,10 +144,10 @@ static struct trx_ts_prim *prim_compose_mr(struct trx_lchan_state *lchan)
 		/* LAPDm header */
 		0x01, 0x03, 0x49,
 
-		/* Measurement report */
+		/* Measurement report (see 3GPP TS 44.018, section 10.5.2.20) */
 		0x06, 0x15, 0x36, 0x36, 0x01, 0xC0,
 
-		/* TODO: Padding? Randomize if so */
+		/* 0** -- Padding with zeroes */
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	};
