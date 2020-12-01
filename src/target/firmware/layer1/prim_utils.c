@@ -51,13 +51,13 @@ static uint8_t ubMeas[23] = {
 	 *   .0.. .... = DTX-USED: DTX was not used
 	 *   ..11 0110 = RXLEV-FULL-SERVING-CELL: -57 <= x < -56 dBm (54)
 	 *   0... .... = 3G-BA-USED: 0
-	 *   .0.. .... = MEAS-VALID: The measurement results are valid
+	 *   .1.. .... = MEAS-VALID: The measurement results are not valid
 	 *   ..11 0110 = RXLEV-SUB-SERVING-CELL: -57 <= x < -56 dBm (54)
 	 *   0... .... = SI23_BA_USED: 0
 	 *   .000 .... = RXQUAL-FULL-SERVING-CELL: BER < 0.2%, Mean value 0.14% (0)
 	 *   .... 000. = RXQUAL-SUB-SERVING-CELL: BER < 0.2%, Mean value 0.14% (0)
 	 *   .... ...1  11.. .... = NO-NCELL-M: Neighbour cell information not available */
-	0x36, 0x36, 0x01, 0xc0, 0x00, 0x00, 0x00, 0x00,
+	0x36, 0x76, 0x01, 0xc0, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
