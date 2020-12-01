@@ -43,10 +43,22 @@ static uint8_t ubMeas[23] = {
 	/* lapdm header */
 	0x01, 0x03, 0x49,
 
-	/* Measurement report */
-	0x06, 0x15, 0x36, 0x36, 0x01, 0xC0, 0x00, 0x00,
+	/* RR Management messages, Measurement Report */
+	0x06, 0x15,
+
+	/* Measurement results (see 3GPP TS 44.018, section 10.5.2.20):
+	 *   0... .... = BA-USED: 0
+	 *   .0.. .... = DTX-USED: DTX was not used
+	 *   ..11 0110 = RXLEV-FULL-SERVING-CELL: -57 <= x < -56 dBm (54)
+	 *   0... .... = 3G-BA-USED: 0
+	 *   .0.. .... = MEAS-VALID: The measurement results are valid
+	 *   ..11 0110 = RXLEV-SUB-SERVING-CELL: -57 <= x < -56 dBm (54)
+	 *   0... .... = SI23_BA_USED: 0
+	 *   .000 .... = RXQUAL-FULL-SERVING-CELL: BER < 0.2%, Mean value 0.14% (0)
+	 *   .... 000. = RXQUAL-SUB-SERVING-CELL: BER < 0.2%, Mean value 0.14% (0)
+	 *   .... ...1  11.. .... = NO-NCELL-M: Neighbour cell information not available */
+	0x36, 0x36, 0x01, 0xc0, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00
 };
 
 
