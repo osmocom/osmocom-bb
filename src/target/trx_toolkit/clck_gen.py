@@ -60,7 +60,7 @@ class CLCKGen:
 	def running(self):
 		if self._thread is None:
 			return False
-		return self._thread.isAlive()
+		return self._thread.is_alive()
 
 	def start(self):
 		# Make sure we won't start two threads
