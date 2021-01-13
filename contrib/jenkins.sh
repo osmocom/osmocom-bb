@@ -52,7 +52,6 @@ done
 
 # Build and publish manuals
 if [ "$WITH_MANUALS" = "1" ]; then
-	osmo-build-dep.sh osmo-gsm-manuals
 	make -C "$base/doc/manuals"
 	make -C "$base/doc/manuals" check
 
