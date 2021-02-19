@@ -116,9 +116,10 @@ int ms_log_init(char *cat_mask)
 	log_add_target(stderr_target);
 	log_set_all_filter(stderr_target, 1);
 	//log_set_log_level(stderr_target, 1);
-	log_set_print_filename(stderr_target, 1);
+	log_set_print_filename2(stderr_target, LOG_FILENAME_PATH);
 	log_set_use_color(stderr_target, 0);
 	log_set_print_timestamp(stderr_target, 1);
+	log_set_print_category_hex(stderr_target, 0);
 	log_set_print_category(stderr_target, 1);
 	if (cat_mask)
 		log_parse_category_mask(stderr_target, cat_mask);
