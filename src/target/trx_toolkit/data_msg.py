@@ -23,6 +23,7 @@
 
 import random
 import struct
+import abc
 
 from enum import Enum
 from gsm_shared import *
@@ -55,7 +56,7 @@ class Modulation(Enum):
 				return mod
 		return None
 
-class DATAMSG:
+class DATAMSG(abc.ABC):
 	""" TRXD (DATA) message codec (common part).
 
 	The DATA messages are used to carry bursts in both directions
@@ -133,25 +134,25 @@ class DATAMSG:
 		''' The common header length. '''
 		return 1 + 4 # (VER + TN) + FN
 
+	@abc.abstractmethod
 	def gen_hdr(self):
 		''' Generate message specific header. '''
-		raise NotImplementedError
 
+	@abc.abstractmethod
 	def parse_hdr(self, hdr):
 		''' Parse message specific header. '''
-		raise NotImplementedError
 
+	@abc.abstractmethod
 	def gen_burst(self):
 		''' Generate message specific burst. '''
-		raise NotImplementedError
 
+	@abc.abstractmethod
 	def parse_burst(self, burst):
 		''' Parse message specific burst. '''
-		raise NotImplementedError
 
+	@abc.abstractmethod
 	def rand_burst(self):
 		''' Generate a random message specific burst. '''
-		raise NotImplementedError
 
 	def rand_fn(self):
 		''' Generate a random frame number. '''
