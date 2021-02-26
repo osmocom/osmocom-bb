@@ -121,7 +121,7 @@ class DATAMSG(abc.ABC):
 
 	# NOTE: up to 16 versions can be encoded
 	CHDR_VERSION_MAX = 0b1111
-	known_versions = [0x00, 0x01]
+	known_versions = (0, 1)
 
 	def __init__(self, fn = None, tn = None, burst = None, ver = 0):
 		self.burst = burst
