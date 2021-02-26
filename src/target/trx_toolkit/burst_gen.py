@@ -176,7 +176,7 @@ class Application(ApplicationBase):
 			help = "How many bursts to send (default %(default)s)")
 		bg_group.add_argument("-v", "--hdr-version", metavar = "VER",
 			dest = "hdr_ver", type = int,
-			default = 0, choices = DATAMSG.known_versions,
+			default = 0, choices = DATAMSG.KNOWN_VERSIONS,
 			help = "TRXD header version (default %(default)s)")
 		bg_group.add_argument("-f", "--frame-number", metavar = "FN",
 			dest = "tdma_fn", type = int,

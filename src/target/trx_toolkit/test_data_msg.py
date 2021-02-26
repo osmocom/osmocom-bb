@@ -120,7 +120,7 @@ class DATAMSG_Test(unittest.TestCase):
 
 	# Validate encoding and decoding
 	def test_enc_dec(self):
-		for ver in DATAMSG.known_versions:
+		for ver in DATAMSG.KNOWN_VERSIONS:
 			with self.subTest("L1 -> TRX message", ver = ver):
 				msg = DATAMSG_L12TRX(ver = ver)
 				self._test_enc_dec(msg)
@@ -180,7 +180,7 @@ class DATAMSG_Test(unittest.TestCase):
 
 	# Validate message transformation
 	def test_transform(self):
-		for ver in DATAMSG.known_versions:
+		for ver in DATAMSG.KNOWN_VERSIONS:
 			with self.subTest("L1 -> TRX message", ver = ver):
 				msg = DATAMSG_L12TRX(ver = ver)
 				self._test_transform(msg)

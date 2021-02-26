@@ -35,7 +35,7 @@ class DATAInterface(UDPLink):
 		log.debug("Init TRXD interface (%s)" % self.desc_link())
 
 	def set_hdr_ver(self, ver):
-		if not ver in DATAMSG.known_versions:
+		if not ver in DATAMSG.KNOWN_VERSIONS:
 			return False
 
 		self._hdr_ver = ver
@@ -43,7 +43,7 @@ class DATAInterface(UDPLink):
 
 	def pick_hdr_ver(self, ver_req):
 		# Pick a version that is lower or equal to ver_req
-		for ver in DATAMSG.known_versions[::-1]:
+		for ver in DATAMSG.KNOWN_VERSIONS[::-1]:
 			if ver <= ver_req:
 				return ver
 

@@ -121,7 +121,7 @@ class DATAMSG(abc.ABC):
 
 	# NOTE: up to 16 versions can be encoded
 	CHDR_VERSION_MAX = 0b1111
-	known_versions = (0, 1)
+	KNOWN_VERSIONS = (0, 1)
 
 	def __init__(self, fn = None, tn = None, burst = None, ver = 0):
 		self.burst = burst
@@ -209,7 +209,7 @@ class DATAMSG(abc.ABC):
 	def validate(self):
 		''' Validate the message fields (throws ValueError). '''
 
-		if not self.ver in self.known_versions:
+		if not self.ver in self.KNOWN_VERSIONS:
 			raise ValueError("Unknown TRXD header version %d" % self.ver)
 
 		if self.fn is None:
@@ -263,7 +263,7 @@ class DATAMSG(abc.ABC):
 
 		# Parse the header version first
 		self.ver = (msg[0] >> 4)
-		if not self.ver in self.known_versions:
+		if not self.ver in self.KNOWN_VERSIONS:
 			raise ValueError("Unknown TRXD header version %d" % self.ver)
 
 		# Parse TDMA TN and FN
