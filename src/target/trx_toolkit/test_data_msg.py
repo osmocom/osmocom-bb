@@ -62,23 +62,23 @@ class DATAMSG_Test(unittest.TestCase):
 	def test_validate(self):
 		# Unknown version
 		with self.assertRaises(ValueError):
-			msg = DATAMSG(fn = 0, tn = 0, ver = 100)
+			msg = DATAMSG_TRX2L1(fn = 0, tn = 0, ver = 100)
 			msg.validate()
 
 		# Uninitialized field
 		with self.assertRaises(ValueError):
-			msg = DATAMSG()
+			msg = DATAMSG_TRX2L1()
 			msg.validate()
 		with self.assertRaises(ValueError):
-			msg = DATAMSG(fn = None, tn = 0)
+			msg = DATAMSG_TRX2L1(fn = None, tn = 0)
 			msg.validate()
 
 		# Out-of-range value(s)
 		with self.assertRaises(ValueError):
-			msg = DATAMSG(fn = -1, tn = 0)
+			msg = DATAMSG_TRX2L1(fn = -1, tn = 0)
 			msg.validate()
 		with self.assertRaises(ValueError):
-			msg = DATAMSG(fn = 0, tn = 10)
+			msg = DATAMSG_TRX2L1(fn = 0, tn = 10)
 			msg.validate()
 
 	# Validate header and burst randomization
