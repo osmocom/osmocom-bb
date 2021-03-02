@@ -25,6 +25,7 @@ import random
 import struct
 import abc
 
+from typing import List
 from enum import Enum
 from gsm_shared import *
 
@@ -187,22 +188,22 @@ class DATAMSG(abc.ABC):
 		return result
 
 	@staticmethod
-	def usbit2sbit(bits):
+	def usbit2sbit(bits: List[int]) -> List[int]:
 		''' Convert unsigned soft-bits {254..0} to soft-bits {-127..127}. '''
 		return [-127 if (b == 0xff) else 127 - b for b in bits]
 
 	@staticmethod
-	def sbit2usbit(bits):
+	def sbit2usbit(bits: List[int]) -> List[int]:
 		''' Convert soft-bits {-127..127} to unsigned soft-bits {254..0}. '''
 		return [127 - b for b in bits]
 
 	@staticmethod
-	def sbit2ubit(bits):
+	def sbit2ubit(bits: List[int]) -> List[int]:
 		''' Convert soft-bits {-127..127} to bits {1..0}. '''
 		return [int(b < 0) for b in bits]
 
 	@staticmethod
-	def ubit2sbit(bits):
+	def ubit2sbit(bits: List[int]) -> List[int]:
 		''' Convert bits {1..0} to soft-bits {-127..127}. '''
 		return [-127 if b else 127 for b in bits]
 
