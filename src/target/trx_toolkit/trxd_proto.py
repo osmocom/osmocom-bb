@@ -30,12 +30,20 @@ import codec
 class Header(codec.BitFieldSet):
 	''' Header constructor for TRXD PDUs. '''
 
-	def __init__(self, ver: int):
-		codec.BitFieldSet.__init__(self, len=1, set=(
-			codec.BitField('ver', bl=4, val=ver),
-			codec.BitField.Pad(bl=1), # RFU
+	def __init__(self, ver: int, batched: bool = False):
+		f = [ # Dynamically generated field list
+			codec.BitField('ver', bl=4, val=ver) if not batched
+				else codec.BitField.Spare(bl=4), # RFU
+			codec.BitField.Spare(bl=1),
 			codec.BitField('tn', bl=3),
-		))
+		]
+
+		if ver >= 2: # TRXDv2 and higher
+			f.append(codec.BitField('batch', bl=1))
+			f.append(codec.BitField.Spare(bl=1))
+			f.append(codec.BitField('trxn', bl=6))
+
+		codec.BitFieldSet.__init__(self, set=tuple(f))
 
 class MTS(codec.BitFieldSet):
 	''' Modulation and Training Sequence. '''
@@ -53,8 +61,10 @@ class MTS(codec.BitFieldSet):
 
 		GMSK_BURST_LEN = 148
 
-		if (mod >> 2) in (0b00, 0b11): # GMSK or AQPSK
+		if (mod >> 2) == 0b00: # GMSK
 			return 1 * GMSK_BURST_LEN
+		elif (mod >> 2) == 0b11: # AQPSK
+			return 2 * GMSK_BURST_LEN
 		elif (mod >> 1) == 0b010: # 8-PSK
 			return 3 * GMSK_BURST_LEN
 		elif (mod >> 1) == 0b100: # 16QAM
@@ -64,6 +74,35 @@ class MTS(codec.BitFieldSet):
 		elif mod == 0b0110: # GMSK (Access Burst)
 			return 1 * GMSK_BURST_LEN
 		raise ValueError('Unknown modulation type')
+
+class Power(codec.Codec):
+	''' SCPIR and Tx power reduction (TRXDv2 and higher).
+
+	+-----------------+---------------------------------+
+	| 7 6 5 4 3 2 1 0 | Description                     |
+	+-----------------+---------------------------------+
+	| . . . . x x x x | Power REDuction (in 2 dB steps) |
+	+-----------------+---------------------------------+
+	| . x x x . . . . | SCPIR value (in 2 dB steps)     |
+	+-----------------+---------------------------------+
+	| x . . . . . . . | SCPIR sign indicator            |
+	+-----------------+---------------------------------+
+
+	'''
+
+	def from_bytes(self, vals: dict, data: bytes) -> int:
+		blob = ord(data) # Convert a byte to an int
+		vals['red'] = (blob & 0b1111) * 2
+		vals['scpir'] = ((blob >> 4) & 0b111) * 2
+		if blob & (1 << 7): # negative sign
+			vals['scpir'] *= -1
+		return 1
+
+	def to_bytes(self, vals: dict) -> bytes:
+		blob = (vals['red'] & 0b1111) \
+		     | (abs(vals['scpir']) << 4) // 2 \
+		     | (0x80 if (vals['scpir'] < 0) else 0x00)
+		return bytes((blob,))
 
 class BurstBits(codec.Buf):
 	''' Soft-/hard-bits with variable length. '''
@@ -118,3 +157,46 @@ class PDUv1Tx(PDUv0Tx):
 	def __init__(self, *args, **kw):
 		PDUv0Tx.__init__(self, *args, **kw)
 		self.STRUCT[0]._fields[0].val = 1
+
+
+class PDUv2Rx(codec.Envelope):
+	class BPDU(codec.Envelope):
+		''' Batched PDU part. '''
+		STRUCT = (
+			Header(ver=2, batched=True),
+			MTS(),
+			codec.Uint('rssi', mult=-1),
+			codec.Int16BE('toa256'),
+			codec.Int16BE('cir'),
+			BurstBits('soft-bits'),
+		)
+
+	STRUCT = (
+		Header(ver=2),
+		MTS(),
+		codec.Uint('rssi', mult=-1),
+		codec.Int16BE('toa256'),
+		codec.Int16BE('cir'),
+		codec.Uint32BE('fn'),
+		BurstBits('soft-bits'),
+		codec.Sequence(item=BPDU()).f('bpdu'),
+	)
+
+class PDUv2Tx(codec.Envelope):
+	class BPDU(codec.Envelope):
+		''' Batched PDU part. '''
+		STRUCT = (
+			Header(ver=2, batched=True),
+			MTS(),
+			Power(),
+			BurstBits('hard-bits'),
+		)
+
+	STRUCT = (
+		Header(ver=2),
+		MTS(),
+		Power(),
+		codec.Uint32BE('fn'),
+		BurstBits('hard-bits'),
+		codec.Sequence(item=BPDU()).f('bpdu'),
+	)
