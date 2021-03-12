@@ -55,17 +55,17 @@ class Field(Codec):
 	''' Base class representing one field in a Message. '''
 
 	# Default length (0 means the whole buffer)
-	DEF_LEN: int = 0
+	DEF_LEN = 0 # type: int
 
 	# Default parameters
-	DEF_PARAMS: dict = { }
+	DEF_PARAMS = { } # type: dict
 
 	# Presence of a field during decoding and encoding
-	get_pres: Callable[[dict], bool]
+	## get_pres: Callable[[dict], bool]
 	# Length of a field for self.from_bytes()
-	get_len: Callable[[dict, bytes], int]
+	## get_len: Callable[[dict, bytes], int]
 	# Value of a field for self.to_bytes()
-	get_val: Callable[[dict], Any]
+	## get_val: Callable[[dict], Any]
 
 	def __init__(self, name: str, **kw) -> None:
 		self.name = name
@@ -201,7 +201,7 @@ class BitFieldSet(Field):
 	}
 
 	# To be defined by derived types
-	STRUCT: Tuple['BitField', ...] = ()
+	STRUCT = () # type: Tuple['BitField', ...]
 
 	def __init__(self, **kw) -> None:
 		Field.__init__(self, self.__class__.__name__, **kw)
@@ -248,8 +248,8 @@ class BitField:
 	''' One field in a BitFieldSet. '''
 
 	# Special fields for BitFieldSet
-	offset: int = 0
-	mask: int = 0
+	offset = 0 # type: int
+	mask = 0 # type: int
 
 	class Spare:
 		''' Spare filling in a BitFieldSet. '''
@@ -272,7 +272,7 @@ class BitField:
 		self.bl = bl
 
 		# (Optional) fixed value for encoding and decoding
-		self.val: Optional[int] = kw.get('val', None)
+		self.val = kw.get('val', None) # type: Optional[int]
 
 	def enc_val(self, vals: dict) -> int:
 		if self.val is None:
@@ -291,11 +291,11 @@ class BitField:
 class Envelope:
 	''' A group of related fields. '''
 
-	STRUCT: Tuple[Codec, ...] = ()
+	STRUCT = () # type: Tuple[Codec, ...]
 
 	def __init__(self, check_len: bool = True):
 		# TODO: ensure uniqueue field names in self.STRUCT
-		self.c: dict = { }
+		self.c = { } # type: dict
 		self.check_len = check_len
 
 	def __getitem__(self, key: str) -> Any:
@@ -368,7 +368,7 @@ class Sequence:
 	''' A sequence of repeating elements (e.g. TLVs). '''
 
 	# The item of sequence
-	ITEM: Optional[Envelope] = None
+	ITEM = None # type: Optional[Envelope]
 
 	def __init__(self, **kw) -> None:
 		if (self.ITEM is None) and ('item' not in kw):
