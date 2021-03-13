@@ -28,7 +28,7 @@ class UDPLink:
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind((bind_addr, bind_port))
-		self.sock.setblocking(0)
+		self.sock.setblocking(False)
 
 		# Save remote info
 		self.remote_addr = remote_addr
