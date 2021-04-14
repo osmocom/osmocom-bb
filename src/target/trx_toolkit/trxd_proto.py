@@ -75,35 +75,6 @@ class MTS(codec.BitFieldSet):
 			return 1 * GMSK_BURST_LEN
 		raise ValueError('Unknown modulation type')
 
-class Power(codec.Codec):
-	''' SCPIR and Tx power reduction (TRXDv2 and higher).
-
-	+-----------------+---------------------------------+
-	| 7 6 5 4 3 2 1 0 | Description                     |
-	+-----------------+---------------------------------+
-	| . . . . x x x x | Power REDuction (in 2 dB steps) |
-	+-----------------+---------------------------------+
-	| . x x x . . . . | SCPIR value (in 2 dB steps)     |
-	+-----------------+---------------------------------+
-	| x . . . . . . . | SCPIR sign indicator            |
-	+-----------------+---------------------------------+
-
-	'''
-
-	def from_bytes(self, vals: dict, data: bytes) -> int:
-		blob = ord(data) # Convert a byte to an int
-		vals['red'] = (blob & 0b1111) * 2
-		vals['scpir'] = ((blob >> 4) & 0b111) * 2
-		if blob & (1 << 7): # negative sign
-			vals['scpir'] *= -1
-		return 1
-
-	def to_bytes(self, vals: dict) -> bytes:
-		blob = (vals['red'] & 0b1111) \
-		     | (abs(vals['scpir']) << 4) // 2 \
-		     | (0x80 if (vals['scpir'] < 0) else 0x00)
-		return bytes((blob,))
-
 class BurstBits(codec.Buf):
 	''' Soft-/hard-bits with variable length. '''
 
@@ -188,14 +159,18 @@ class PDUv2Tx(codec.Envelope):
 		STRUCT = (
 			Header(ver=2, batched=True),
 			MTS(),
-			Power(),
+			codec.Uint('pwr'),
+			codec.Int('scpir'),
+			codec.Spare(len=3),
 			BurstBits('hard-bits'),
 		)
 
 	STRUCT = (
 		Header(ver=2),
 		MTS(),
-		Power(),
+		codec.Uint('pwr'),
+		codec.Int('scpir'),
+		codec.Spare(len=3),
 		codec.Uint32BE('fn'),
 		BurstBits('hard-bits'),
 		codec.Sequence(item=BPDU()).f('bpdu'),
