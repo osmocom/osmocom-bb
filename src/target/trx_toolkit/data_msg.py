@@ -347,7 +347,7 @@ class DATAMSG_L12TRX(DATAMSG):
 			raise ValueError("Tx burst bits are not set")
 
 		# FIXME: properly handle IDLE / NOPE indications
-		if len(self.burst) not in (GSM_BURST_LEN, EDGE_BURST_LEN):
+		if len(self.burst) not in (GMSK_BURST_LEN, EDGE_BURST_LEN):
 			raise ValueError("Tx burst has odd length %u" % len(self.burst))
 
 	def rand_pwr(self, min = None, max = None):
@@ -411,9 +411,9 @@ class DATAMSG_L12TRX(DATAMSG):
 		if length >= EDGE_BURST_LEN:
 			self.burst = list(burst[:EDGE_BURST_LEN])
 		else:
-			self.burst = list(burst[:GSM_BURST_LEN])
+			self.burst = list(burst[:GMSK_BURST_LEN])
 
-	def rand_burst(self, length = GSM_BURST_LEN):
+	def rand_burst(self, length = GMSK_BURST_LEN):
 		''' Generate a random message specific burst. '''
 		self.burst = [random.randint(0, 1) for _ in range(length)]
 
@@ -578,7 +578,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 			raise ValueError("Rx burst bits are not set")
 
 		# ... and can be either of GSM (GMSK) or EDGE (8-PSK)
-		if len(self.burst) not in (GSM_BURST_LEN, EDGE_BURST_LEN):
+		if len(self.burst) not in (GMSK_BURST_LEN, EDGE_BURST_LEN):
 			raise ValueError("Rx burst has odd length %u" % len(self.burst))
 
 	def _validate_burst_v1(self):

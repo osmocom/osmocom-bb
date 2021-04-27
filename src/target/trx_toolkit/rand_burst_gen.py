@@ -80,7 +80,7 @@ class RandBurstGen:
 
 	# Generate a frequency correction burst
 	def gen_fb(self):
-		return [0] * GSM_BURST_LEN
+		return [0] * GMSK_BURST_LEN
 
 	# Generate a synchronization burst
 	def gen_sb(self, tsc = None):
