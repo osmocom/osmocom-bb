@@ -31,11 +31,13 @@ from gsm_shared import *
 
 class Modulation(Enum):
 	""" Modulation types defined in 3GPP TS 45.002 """
-	ModGMSK  = (0b0000, 148)
-	Mod8PSK  = (0b0100, 444)
-	ModAQPSK = (0b0110, 296)
-	Mod16QAM = (0b1000, 592)
-	Mod32QAM = (0b1010, 740)
+	ModGMSK		= (0b0000, 1 * GMSK_BURST_LEN)
+	Mod8PSK		= (0b0100, 3 * GMSK_BURST_LEN)
+	ModGMSK_AB	= (0b0110, 1 * GMSK_BURST_LEN)
+	# ModRFU	= (0b0111, 0) # Reserved for Future Use
+	Mod16QAM	= (0b1000, 4 * GMSK_BURST_LEN)
+	Mod32QAM	= (0b1010, 5 * GMSK_BURST_LEN)
+	ModAQPSK	= (0b1100, 2 * GMSK_BURST_LEN)
 
 	def __init__(self, coding, bl):
 		# Coding in TRXD header
