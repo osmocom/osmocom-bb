@@ -60,67 +60,7 @@ class Modulation(Enum):
 		return None
 
 class DATAMSG(abc.ABC):
-	""" TRXD (DATA) message codec (common part).
-
-	The DATA messages are used to carry bursts in both directions
-	between L1 and TRX. There exist two kinds of them:
-
-	  - L12TRX (L1 -> TRX) - to be transmitted bursts,
-	  - TRX2L1 (TRX -> L1) - received bursts.
-
-	Both of them have quite similar structure, and start with
-	the common fixed-size message header (no TLVs):
-
-	  +---------------+-----------------+------------+
-	  | common header | specific header | burst bits |
-	  +---------------+-----------------+------------+
-
-	while the message specific headers and bit types are different.
-
-	The common header is represented by this class, which is the
-	parent of both DATAMSG_L12TRX and DATAMSG_TRX2L2 (see below),
-	and has the following fields:
-
-	  +-----------------+----------------+-------------------+
-	  | VER (1/2 octet) | TN (1/2 octet) | FN (4 octets, BE) |
-	  +-----------------+----------------+-------------------+
-
-	where:
-
-	  - VER is the header version indicator (1/2 octet MSB),
-	  - TN is TDMA time-slot number (1/2 octet LSB), and
-	  - FN is TDMA frame number (4 octets, big endian).
-
-	== Header version indication
-
-	It may be necessary to extend the message specific header
-	with more information. Since this is not a TLV-based
-	protocol, we need to include the header format version.
-
-	  +-----------------+------------------------+
-	  | 7 6 5 4 3 2 1 0 | bit numbers            |
-	  +-----------------+------------------------+
-	  | X X X X . . . . | header version (0..15) |
-	  +-----------------+------------------------+
-	  | . . . . . X X X | TDMA TN (0..7)         |
-	  +-----------------+------------------------+
-	  | . . . . X . . . | RESERVED (0)           |
-	  +-----------------+------------------------+
-
-	Instead of prepending an additional byte, it was decided to use
-	4 MSB bits of the first octet, which used to be zero-initialized
-	due to the value range of TDMA TN. Therefore, the legacy header
-	format has implicit version 0x00.
-
-	Otherwise Wireshark (or trx_sniff.py) would need to guess the
-	header version, or alternatively follow the control channel
-	looking for the version setting command.
-
-	The reserved bit number 3 can be used in the future to extend
-	the TDMA TN range to (0..15), in case anybody would need
-	to transfer UMTS bursts.
-
-	"""
+	''' TRXD (DATA) message coding API (common part). '''
 
 	# NOTE: up to 16 versions can be encoded
 	CHDR_VERSION_MAX = 0b1111
@@ -289,26 +229,7 @@ class DATAMSG(abc.ABC):
 			self.burst = None
 
 class DATAMSG_L12TRX(DATAMSG):
-	""" L12TRX (L1 -> TRX) message codec.
-
-	This message represents a Downlink burst on the BTS side,
-	or an Uplink burst on the MS side, and has the following
-	message specific fixed-size header preceding the burst bits:
-
-	== Versions 0x00, 0x01
-
-	  +-----+--------------------+
-	  | PWR | hard-bits (1 or 0) |
-	  +-----+--------------------+
-
-	where PWR (1 octet) is relative (to the full-scale amplitude)
-	transmit power level in dB. The absolute value is set on
-	the control interface.
-
-	Each hard-bit (1 or 0) of the burst is represented using one
-	byte (0x01 or 0x00 respectively).
-
-	"""
+	''' L12TRX (L1 -> TRX) message coding API. '''
 
 	# Constants
 	PWR_MIN = 0x00
@@ -435,95 +356,7 @@ class DATAMSG_L12TRX(DATAMSG):
 		return msg
 
 class DATAMSG_TRX2L1(DATAMSG):
-	""" TRX2L1 (TRX -> L1) message codec.
-
-	This message represents an Uplink burst on the BTS side,
-	or a Downlink burst on the MS side, and has the following
-	message specific fixed-size header preceding the burst bits:
-
-	== Version 0x00
-
-	  +------+-----+--------------------+
-	  | RSSI | ToA | soft-bits (254..0) |
-	  +------+-----+--------------------+
-
-	== Version 0x01
-
-	  +------+-----+-----+-----+--------------------+
-	  | RSSI | ToA | MTS | C/I | soft-bits (254..0) |
-	  +------+-----+-----+-----+--------------------+
-
-	where:
-
-	  - RSSI (1 octet) - Received Signal Strength Indication
-			     encoded without the negative sign.
-	  - ToA (2 octets) - Timing of Arrival in units of 1/256
-			     of symbol (big endian).
-	  - MTS (1 octet)  - Modulation and Training Sequence info.
-	  - C/I (2 octets) - Carrier-to-Interference ratio (big endian).
-
-	== Coding of MTS: Modulation and Training Sequence info
-
-	3GPP TS 45.002 version 15.1.0 defines several modulation types,
-	and a few sets of training sequences for each type. The most
-	common are GMSK and 8-PSK (which is used in EDGE).
-
-	  +-----------------+---------------------------------------+
-	  | 7 6 5 4 3 2 1 0 | bit numbers (value range)             |
-	  +-----------------+---------------------------------------+
-	  | X . . . . . . . | IDLE / nope frame indication (0 or 1) |
-	  +-----------------+---------------------------------------+
-	  | . X X X X . . . | Modulation, TS set number (see below) |
-	  +-----------------+---------------------------------------+
-	  | . . . . . X X X | Training Sequence Code (0..7)         |
-	  +-----------------+---------------------------------------+
-
-	The bit number 7 (MSB) is set to high when either nothing has been
-	detected, or during IDLE frames, so we can deliver noise levels,
-	and avoid clock gaps on the L1 side. Other bits are ignored,
-	and should be set to low (0) in this case.
-
-	== Coding of modulation and TS set number
-
-	GMSK has 4 sets of training sequences (see tables 5.2.3a-d),
-	while 8-PSK (see tables 5.2.3f-g) and the others have 2 sets.
-	Access and Synchronization bursts also have several synch.
-	sequences.
-
-	  +-----------------+---------------------------------------+
-	  | 7 6 5 4 3 2 1 0 | bit numbers (value range)             |
-	  +-----------------+---------------------------------------+
-	  | . 0 0 X X . . . | GMSK, 4 TS sets (0..3)                |
-	  +-----------------+---------------------------------------+
-	  | . 0 1 0 X . . . | 8-PSK, 2 TS sets (0..1)               |
-	  +-----------------+---------------------------------------+
-	  | . 0 1 1 X . . . | AQPSK, 2 TS sets (0..1)               |
-	  +-----------------+---------------------------------------+
-	  | . 1 0 0 X . . . | 16QAM, 2 TS sets (0..1)               |
-	  +-----------------+---------------------------------------+
-	  | . 1 0 1 X . . . | 32QAM, 2 TS sets (0..1)               |
-	  +-----------------+---------------------------------------+
-	  | . 1 1 1 X . . . | RESERVED (0)                          |
-	  +-----------------+---------------------------------------+
-
-	== C/I: Carrier-to-Interference ratio
-
-	The C/I value can be computed from the training sequence of each
-	burst, where we can compare the "ideal" training sequence with
-	the actual training sequence and then express that in centiBels.
-
-	== Coding of the burst bits
-
-	Unlike the transmitted bursts, the received bursts are designated
-	using the soft-bits notation, so the receiver can indicate its
-	assurance from 0 to -127 that a given bit is 1, and from 0 to +127
-	that a given bit is 0. The Viterbi algorithm allows to approximate
-	the original sequence of hard-bits (1 or 0) using these values.
-
-	Each soft-bit (-127..127) of the burst is encoded as an unsigned
-	value in range (0..255) respectively using the constant shift.
-
-	"""
+	''' TRX2L1 (TRX -> L1) message coding API. '''
 
 	# rxlev2dbm(0..63) gives us [-110..-47], plus -10 dbm for noise
 	RSSI_MIN = -120
