@@ -125,9 +125,10 @@ class PDUv1Rx(codec.Envelope):
 
 class PDUv1Tx(PDUv0Tx):
 	# Same structure as PDUv0Tx, only the version is different
-	def __init__(self, *args, **kw):
-		PDUv0Tx.__init__(self, *args, **kw)
-		self.STRUCT[0]._fields[0].val = 1
+	STRUCT = (
+		Header(ver=1),
+		*PDUv0Tx.STRUCT[1:]
+	)
 
 
 class PDUv2Rx(codec.Envelope):
