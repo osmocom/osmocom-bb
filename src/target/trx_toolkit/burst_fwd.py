@@ -37,8 +37,8 @@ class BurstForwarder(TRXList):
 	  - actual RX / TX frequencies,
 	  - list of active timeslots.
 
-	Each to be distributed L12TRX message is being transformed
-	into a TRX2L1 message, and then forwarded to transceivers
+	Each to be distributed 'TxMsg' message is being transformed
+	into a 'RxMsg' message, and then forwarded to transceivers
 	with partially initialized header. All uninitialized header
 	fields (such as rssi and toa256) shall be set by each
 	transceiver individually before sending towards the L1.
@@ -69,6 +69,6 @@ class BurstForwarder(TRXList):
 			if trx.get_rx_freq(rx_msg.fn) != tx_freq:
 				continue
 
-			# Transform from L12TRX to TRX2L1 and forward
-			tx_msg = rx_msg.gen_trx2l1(ver = trx.data_if._hdr_ver)
+			# Transform from TxMsg to RxMsg and forward
+			tx_msg = rx_msg.trans(ver = trx.data_if._hdr_ver)
 			trx.handle_data_msg(src_trx, rx_msg, tx_msg)

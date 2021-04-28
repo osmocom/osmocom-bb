@@ -59,7 +59,7 @@ class Modulation(Enum):
 				return mod
 		return None
 
-class DATAMSG(abc.ABC):
+class Msg(abc.ABC):
 	''' TRXD (DATA) message coding API (common part). '''
 
 	# NOTE: up to 16 versions can be encoded
@@ -228,8 +228,8 @@ class DATAMSG(abc.ABC):
 		else:
 			self.burst = None
 
-class DATAMSG_L12TRX(DATAMSG):
-	''' L12TRX (L1 -> TRX) message coding API. '''
+class TxMsg(Msg):
+	''' Tx (L1 -> TRX) message coding API. '''
 
 	# Constants
 	PWR_MIN = 0x00
@@ -257,7 +257,7 @@ class DATAMSG_L12TRX(DATAMSG):
 		''' Validate the message fields (throws ValueError). '''
 
 		# Validate common fields
-		DATAMSG.validate(self)
+		Msg.validate(self)
 
 		if self.pwr is None:
 			raise ValueError("Tx Attenuation level is not set")
@@ -287,14 +287,14 @@ class DATAMSG_L12TRX(DATAMSG):
 	def rand_hdr(self):
 		''' Randomize message specific header. '''
 
-		DATAMSG.rand_hdr(self)
+		Msg.rand_hdr(self)
 		self.pwr = self.rand_pwr()
 
 	def desc_hdr(self):
 		''' Generate human-readable header description. '''
 
 		# Describe the common part
-		result = DATAMSG.desc_hdr(self)
+		result = Msg.desc_hdr(self)
 
 		if self.pwr is not None:
 			result += ("pwr=%u " % self.pwr)
@@ -340,11 +340,11 @@ class DATAMSG_L12TRX(DATAMSG):
 		''' Generate a random message specific burst. '''
 		self.burst = [random.randint(0, 1) for _ in range(length)]
 
-	def gen_trx2l1(self, ver = None):
-		''' Transform this message to TRX2L1 message. '''
+	def trans(self, ver = None):
+		''' Transform this message into RxMsg. '''
 
 		# Allocate a new message
-		msg = DATAMSG_TRX2L1(fn = self.fn, tn = self.tn,
+		msg = RxMsg(fn = self.fn, tn = self.tn,
 			ver = self.ver if ver is None else ver)
 
 		# Convert burst bits
@@ -355,8 +355,8 @@ class DATAMSG_L12TRX(DATAMSG):
 
 		return msg
 
-class DATAMSG_TRX2L1(DATAMSG):
-	''' TRX2L1 (TRX -> L1) message coding API. '''
+class RxMsg(Msg):
+	''' Rx (TRX -> L1) message coding API. '''
 
 	# rxlev2dbm(0..63) gives us [-110..-47], plus -10 dbm for noise
 	RSSI_MIN = -120
@@ -442,7 +442,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 		''' Validate the message header fields (throws ValueError). '''
 
 		# Validate common fields
-		DATAMSG.validate(self)
+		Msg.validate(self)
 
 		if self.rssi is None:
 			raise ValueError("RSSI is not set")
@@ -512,7 +512,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 	def rand_hdr(self):
 		''' Randomize message specific header. '''
 
-		DATAMSG.rand_hdr(self)
+		Msg.rand_hdr(self)
 		self.rssi = self.rand_rssi()
 		self.toa256 = self.rand_toa256()
 
@@ -531,7 +531,7 @@ class DATAMSG_TRX2L1(DATAMSG):
 		''' Generate human-readable header description. '''
 
 		# Describe the common part
-		result = DATAMSG.desc_hdr(self)
+		result = Msg.desc_hdr(self)
 
 		if self.rssi is not None:
 			result += ("rssi=%d " % self.rssi)
@@ -679,11 +679,11 @@ class DATAMSG_TRX2L1(DATAMSG):
 
 		self.burst = [random.randint(-127, 127) for _ in range(length)]
 
-	def gen_l12trx(self, ver = None):
-		''' Transform this message to L12TRX message. '''
+	def trans(self, ver = None):
+		''' Transform this message to TxMsg. '''
 
 		# Allocate a new message
-		msg = DATAMSG_L12TRX(fn = self.fn, tn = self.tn,
+		msg = TxMsg(fn = self.fn, tn = self.tn,
 			ver = self.ver if ver is None else ver)
 
 		# Convert burst bits

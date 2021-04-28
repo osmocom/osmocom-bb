@@ -68,9 +68,9 @@ class Application(ApplicationBase):
 
 		# Init an empty DATA message
 		if self.argv.conn_mode == "TRX":
-			msg = DATAMSG_L12TRX(ver = self.argv.hdr_ver)
+			msg = TxMsg(ver = self.argv.hdr_ver)
 		elif self.argv.conn_mode == "L1":
-			msg = DATAMSG_TRX2L1(ver = self.argv.hdr_ver)
+			msg = RxMsg(ver = self.argv.hdr_ver)
 
 		# Generate a random frame number or use provided one
 		fn_init = msg.rand_fn() if self.argv.tdma_fn is None \
@@ -176,7 +176,7 @@ class Application(ApplicationBase):
 			help = "How many bursts to send (default %(default)s)")
 		bg_group.add_argument("-v", "--hdr-version", metavar = "VER",
 			dest = "hdr_ver", type = int,
-			default = 0, choices = DATAMSG.KNOWN_VERSIONS,
+			default = 0, choices = Msg.KNOWN_VERSIONS,
 			help = "TRXD header version (default %(default)s)")
 		bg_group.add_argument("-f", "--frame-number", metavar = "FN",
 			dest = "tdma_fn", type = int,

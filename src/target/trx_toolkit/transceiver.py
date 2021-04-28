@@ -258,7 +258,7 @@ class Transceiver:
 
 	def recv_data_msg(self):
 		# Read and parse data from socket
-		msg = self.data_if.recv_l12trx_msg()
+		msg = self.data_if.recv_tx_msg()
 		if not msg:
 			return None
 

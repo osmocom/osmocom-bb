@@ -25,7 +25,7 @@
 import logging as log
 
 from ctrl_if import CTRLInterface
-from data_msg import DATAMSG
+from data_msg import Msg
 
 class CTRLInterfaceTRX(CTRLInterface):
 	""" CTRL interface handler for common transceiver management commands.
@@ -222,7 +222,7 @@ class CTRLInterfaceTRX(CTRLInterface):
 			# ... and store current for logging
 			ver_cur = self.trx.data_if._hdr_ver
 
-			if ver_req < 0 or ver_req > DATAMSG.CHDR_VERSION_MAX:
+			if ver_req < 0 or ver_req > Msg.CHDR_VERSION_MAX:
 				log.error("(%s) Incorrect TRXD header version %u"
 					% (self.trx, ver_req))
 				return -1

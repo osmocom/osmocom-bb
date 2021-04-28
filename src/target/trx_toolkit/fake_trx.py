@@ -213,7 +213,7 @@ class FakeTRX(Transceiver):
 			msg.tsc_set = 0
 			msg.tsc = 0
 
-	# Takes (partially initialized) TRX2L1 message,
+	# Takes (partially initialized) TRXD Rx message,
 	# simulates RF path parameters (such as RSSI),
 	# and sends towards the L1
 	def handle_data_msg(self, src_trx, src_msg, msg):

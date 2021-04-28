@@ -50,12 +50,12 @@ class DATADump_Test(unittest.TestCase):
 		# Burst bits (if present)
 		self.assertEqual(a.burst, b.burst)
 
-		# TRX2L1 specific fields
-		if isinstance(a, DATAMSG_L12TRX):
+		# TxMsg specific fields
+		if isinstance(a, TxMsg):
 			self.assertEqual(a.pwr, b.pwr)
 
-		# L12TRX specific fields
-		if isinstance(a, DATAMSG_TRX2L1):
+		# RxMsg specific fields
+		if isinstance(a, RxMsg):
 			# Version independent fields
 			self.assertEqual(a.toa256, b.toa256)
 			self.assertEqual(a.rssi, b.rssi)
@@ -88,8 +88,8 @@ class DATADump_Test(unittest.TestCase):
 	# Generate a mixed list of random messages
 	def _gen_rand_message_mix(self, count, ver = 1):
 		msg_list = []
-		msg_list += self._gen_rand_messages(DATAMSG_TRX2L1, count)
-		msg_list += self._gen_rand_messages(DATAMSG_L12TRX, count)
+		msg_list += self._gen_rand_messages(RxMsg, count)
+		msg_list += self._gen_rand_messages(TxMsg, count)
 		random.shuffle(msg_list)
 		return msg_list
 
@@ -100,15 +100,15 @@ class DATADump_Test(unittest.TestCase):
 		msg = self._ddf.parse_msg(0)
 		self._compare_msg(msg, msg_ref)
 
-	# Store one TRX2L1 message in a file, read it back and compare
-	def test_store_and_parse_trx2l1(self):
-		self._test_store_and_parse(DATAMSG_TRX2L1)
+	# Store one Rx message in a file, read it back and compare
+	def test_store_and_parse_rx_msg(self):
+		self._test_store_and_parse(RxMsg)
 
-	# Store one L12TRX message in a file, read it back and compare
-	def test_store_and_parse_l12trx(self):
-		self._test_store_and_parse(DATAMSG_L12TRX)
+	# Store one Tx message in a file, read it back and compare
+	def test_store_and_parse_tx_msg(self):
+		self._test_store_and_parse(TxMsg)
 
-	# Store multiple TRX2L1/L12TRX messages in a file, read them back and compare
+	# Store multiple Rx/Tx messages in a file, read them back and compare
 	def test_store_and_parse_all(self):
 		# Store a mixed list of random messages (19 + 19)
 		msg_list_ref = self._gen_rand_message_mix(19)
@@ -143,7 +143,7 @@ class DATADump_Test(unittest.TestCase):
 
 	def test_parse_len_overflow(self):
 		# Write a malformed message directly
-		self._tf.write(DATADump.TAG_L12TRX)
+		self._tf.write(DATADump.TAG_TxMsg)
 		self._tf.write(b'\x00\x63') # 99
 		self._tf.write(b'\xff' * 90)
 

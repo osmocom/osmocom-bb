@@ -24,9 +24,9 @@
 
 import unittest
 
-from data_msg import DATAMSG, DATAMSG_L12TRX, DATAMSG_TRX2L1
+from data_msg import Msg, TxMsg, RxMsg
 
-class DATAMSG_Test(unittest.TestCase):
+class Msg_Test(unittest.TestCase):
 	# Compare message a with message b
 	def _compare_msg(self, a, b):
 		# Make sure we're comparing messages of the same type
@@ -40,12 +40,12 @@ class DATAMSG_Test(unittest.TestCase):
 		# Burst bits (if present)
 		self.assertEqual(a.burst, b.burst)
 
-		# TRX2L1 specific fields
-		if isinstance(a, DATAMSG_L12TRX):
+		# TxMsg specific fields
+		if isinstance(a, TxMsg):
 			self.assertEqual(a.pwr, b.pwr)
 
-		# L12TRX specific fields
-		if isinstance(a, DATAMSG_TRX2L1):
+		# RxMsg specific fields
+		if isinstance(a, RxMsg):
 			# Version independent fields
 			self.assertEqual(a.toa256, b.toa256)
 			self.assertEqual(a.rssi, b.rssi)
@@ -62,38 +62,38 @@ class DATAMSG_Test(unittest.TestCase):
 	def test_validate(self):
 		# Unknown version
 		with self.assertRaises(ValueError):
-			msg = DATAMSG_TRX2L1(fn = 0, tn = 0, ver = 100)
+			msg = RxMsg(fn = 0, tn = 0, ver = 100)
 			msg.validate()
 
 		# Uninitialized field
 		with self.assertRaises(ValueError):
-			msg = DATAMSG_TRX2L1()
+			msg = RxMsg()
 			msg.validate()
 		with self.assertRaises(ValueError):
-			msg = DATAMSG_TRX2L1(fn = None, tn = 0)
+			msg = RxMsg(fn = None, tn = 0)
 			msg.validate()
 
 		# Out-of-range value(s)
 		with self.assertRaises(ValueError):
-			msg = DATAMSG_TRX2L1(fn = -1, tn = 0)
+			msg = RxMsg(fn = -1, tn = 0)
 			msg.validate()
 		with self.assertRaises(ValueError):
-			msg = DATAMSG_TRX2L1(fn = 0, tn = 10)
+			msg = RxMsg(fn = 0, tn = 10)
 			msg.validate()
 
 	# Validate header and burst randomization
 	def test_rand_hdr_burst(self):
-		msg_l12trx = DATAMSG_L12TRX()
-		msg_trx2l1 = DATAMSG_TRX2L1()
+		tx_msg = TxMsg()
+		rx_msg = RxMsg()
 
 		for i in range(100):
-			msg_l12trx.rand_burst()
-			msg_trx2l1.rand_burst()
-			msg_l12trx.rand_hdr()
-			msg_trx2l1.rand_hdr()
+			tx_msg.rand_burst()
+			rx_msg.rand_burst()
+			tx_msg.rand_hdr()
+			rx_msg.rand_hdr()
 
-			msg_l12trx.validate()
-			msg_trx2l1.validate()
+			tx_msg.validate()
+			rx_msg.validate()
 
 	def _test_enc_dec(self, msg, legacy = False, nope_ind = False):
 		# Prepare a given message (randomize)
@@ -120,22 +120,22 @@ class DATAMSG_Test(unittest.TestCase):
 
 	# Validate encoding and decoding
 	def test_enc_dec(self):
-		for ver in DATAMSG.KNOWN_VERSIONS:
-			with self.subTest("L1 -> TRX message", ver = ver):
-				msg = DATAMSG_L12TRX(ver = ver)
+		for ver in Msg.KNOWN_VERSIONS:
+			with self.subTest("TxMsg", ver = ver):
+				msg = TxMsg(ver = ver)
 				self._test_enc_dec(msg)
 
-			with self.subTest("TRX -> L1 message", ver = ver):
-				msg = DATAMSG_TRX2L1(ver = ver)
+			with self.subTest("RxMsg", ver = ver):
+				msg = RxMsg(ver = ver)
 				self._test_enc_dec(msg)
 
 			if ver >= 1:
-				with self.subTest("TRX -> L1 NOPE.ind", ver = ver):
-					msg = DATAMSG_TRX2L1(ver = ver)
+				with self.subTest("RxMsg NOPE.ind", ver = ver):
+					msg = RxMsg(ver = ver)
 					self._test_enc_dec(msg, nope_ind = True)
 
-		with self.subTest("TRX -> L1 message (legacy)"):
-			msg = DATAMSG_TRX2L1(ver = 0)
+		with self.subTest("RxMsg (legacy transceiver)"):
+			msg = RxMsg(ver = 0)
 			self._test_enc_dec(msg, legacy = True)
 
 	# Validate bit conversations
@@ -144,16 +144,16 @@ class DATAMSG_Test(unittest.TestCase):
 		sbits_ref = list(range(-127, 128))
 
 		# Test both usbit2sbit() and sbit2usbit()
-		sbits = DATAMSG.usbit2sbit(usbits_ref)
-		usbits = DATAMSG.sbit2usbit(sbits)
+		sbits = Msg.usbit2sbit(usbits_ref)
+		usbits = Msg.sbit2usbit(sbits)
 		self.assertEqual(usbits[:255], usbits_ref[:255])
 		self.assertEqual(usbits[255], 254)
 
 		# Test both sbit2ubit() and ubit2sbit()
-		ubits = DATAMSG.sbit2ubit(sbits_ref)
+		ubits = Msg.sbit2ubit(sbits_ref)
 		self.assertEqual(ubits, ([1] * 127 + [0] * 128))
 
-		sbits = DATAMSG.ubit2sbit(ubits)
+		sbits = Msg.ubit2sbit(ubits)
 		self.assertEqual(sbits, ([-127] * 127 + [127] * 128))
 
 	def _test_transform(self, msg):
@@ -162,31 +162,31 @@ class DATAMSG_Test(unittest.TestCase):
 		msg.rand_burst()
 
 		# Perform message transformation
-		if isinstance(msg, DATAMSG_L12TRX):
-			msg_trans = msg.gen_trx2l1()
+		if isinstance(msg, TxMsg):
+			msg_trans = msg.trans()
 		else:
-			msg_trans = msg.gen_l12trx()
+			msg_trans = msg.trans()
 
 		self.assertEqual(msg_trans.ver, msg.ver)
 		self.assertEqual(msg_trans.fn, msg.fn)
 		self.assertEqual(msg_trans.tn, msg.tn)
 
-		if isinstance(msg, DATAMSG_TRX2L1):
-			burst = DATAMSG.sbit2ubit(msg.burst)
+		if isinstance(msg, RxMsg):
+			burst = Msg.sbit2ubit(msg.burst)
 			self.assertEqual(msg_trans.burst, burst)
 		else:
-			burst = DATAMSG.ubit2sbit(msg.burst)
+			burst = Msg.ubit2sbit(msg.burst)
 			self.assertEqual(msg_trans.burst, burst)
 
 	# Validate message transformation
 	def test_transform(self):
-		for ver in DATAMSG.KNOWN_VERSIONS:
-			with self.subTest("L1 -> TRX message", ver = ver):
-				msg = DATAMSG_L12TRX(ver = ver)
+		for ver in Msg.KNOWN_VERSIONS:
+			with self.subTest("TxMsg", ver = ver):
+				msg = TxMsg(ver = ver)
 				self._test_transform(msg)
 
-			with self.subTest("TRX -> L1 message", ver = ver):
-				msg = DATAMSG_TRX2L1(ver = ver)
+			with self.subTest("RxMsg", ver = ver):
+				msg = RxMsg(ver = ver)
 				self._test_transform(msg)
 
 if __name__ == '__main__':

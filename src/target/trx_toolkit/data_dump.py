@@ -28,18 +28,18 @@ from data_msg import *
 
 class DATADump:
 	# Constants
-	TAG_L12TRX = b'\x01'
-	TAG_TRX2L1 = b'\x02'
+	TAG_TxMsg = b'\x01'
+	TAG_RxMsg = b'\x02'
 	HDR_LENGTH = 3
 
 	# Generates raw bytes from a DATA message
 	# Return value: raw message bytes
 	def dump_msg(self, msg):
 		# Determine a message type
-		if isinstance(msg, DATAMSG_L12TRX):
-			tag = self.TAG_L12TRX
-		elif isinstance(msg, DATAMSG_TRX2L1):
-			tag = self.TAG_TRX2L1
+		if isinstance(msg, TxMsg):
+			tag = self.TAG_TxMsg
+		elif isinstance(msg, RxMsg):
+			tag = self.TAG_RxMsg
 		else:
 			raise ValueError("Unknown message type")
 
@@ -61,12 +61,10 @@ class DATADump:
 		tag = hdr[:1]
 
 		# Check if tag is known
-		if tag == self.TAG_L12TRX:
-			# L1 -> TRX
-			msg = DATAMSG_L12TRX()
-		elif tag == self.TAG_TRX2L1:
-			# TRX -> L1
-			msg = DATAMSG_TRX2L1()
+		if tag == self.TAG_TxMsg:
+			msg = TxMsg()
+		elif tag == self.TAG_RxMsg:
+			msg = RxMsg()
 		else:
 			# Unknown tag
 			return False

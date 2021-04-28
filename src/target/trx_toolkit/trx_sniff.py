@@ -101,10 +101,10 @@ class Application(ApplicationBase):
 		msg_raw = bytearray(trx.load)
 
 		# Determine a burst direction (L1 <-> TRX)
-		l12trx = udp.sport > udp.dport
+		tx_dir = udp.sport > udp.dport
 
 		# Create an empty DATA message
-		msg = DATAMSG_L12TRX() if l12trx else DATAMSG_TRX2L1()
+		msg = TxMsg() if tx_dir else RxMsg()
 
 		# Attempt to parse the payload as a DATA message
 		try:
@@ -124,8 +124,7 @@ class Application(ApplicationBase):
 			return
 
 		# Debug print
-		log.debug("%s burst: %s" \
-			% ("L1 -> TRX" if l12trx else "TRX -> L1", msg.desc_hdr()))
+		log.debug("%s burst: %s", "L1 -> TRX" if tx_dir else "TRX -> L1", msg.desc_hdr())
 
 		# Poke message handler
 		self.msg_handle(msg)
@@ -139,10 +138,10 @@ class Application(ApplicationBase):
 		# Direction filter
 		if self.argv.direction is not None:
 			if self.argv.direction == "TRX": # L1 -> TRX
-				if not isinstance(msg, DATAMSG_L12TRX):
+				if not isinstance(msg, TxMsg):
 					return False
 			elif self.argv.direction == "L1": # TRX -> L1
-				if not isinstance(msg, DATAMSG_TRX2L1):
+				if not isinstance(msg, RxMsg):
 					return False
 
 		# Timeslot filter
@@ -159,7 +158,7 @@ class Application(ApplicationBase):
 				return False
 
 		# Message type specific filtering
-		if isinstance(msg, DATAMSG_TRX2L1):
+		if isinstance(msg, RxMsg):
 			# NOPE.ind filter
 			if not self.argv.pf_nope_ind and msg.nope_ind:
 				return False

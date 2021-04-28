@@ -79,11 +79,10 @@ class Application(ApplicationBase):
 
 	def msg_pass_filter(self, msg):
 		# Direction filter
-		l12trx = self.argv.conn_mode == "TRX"
-		if isinstance(msg, DATAMSG_L12TRX) and not l12trx:
-			return False
-		elif isinstance(msg, DATAMSG_TRX2L1) and l12trx:
-			return False
+		if isinstance(msg, RxMsg) and self.argv.conn_mode == "TRX":
+			return False # cannot send RxMsg to TRX
+		if isinstance(msg, TxMsg) and self.argv.conn_mode == "L1":
+			return False # cannot send TxMsg to L1
 
 		# Timeslot filter
 		if self.argv.pf_tn is not None:

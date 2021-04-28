@@ -35,7 +35,7 @@ class DATAInterface(UDPLink):
 		log.debug("Init TRXD interface (%s)" % self.desc_link())
 
 	def set_hdr_ver(self, ver):
-		if not ver in DATAMSG.KNOWN_VERSIONS:
+		if not ver in Msg.KNOWN_VERSIONS:
 			return False
 
 		self._hdr_ver = ver
@@ -43,7 +43,7 @@ class DATAInterface(UDPLink):
 
 	def pick_hdr_ver(self, ver_req):
 		# Pick a version that is lower or equal to ver_req
-		for ver in DATAMSG.KNOWN_VERSIONS[::-1]:
+		for ver in Msg.KNOWN_VERSIONS[::-1]:
 			if ver <= ver_req:
 				return ver
 
@@ -64,16 +64,16 @@ class DATAInterface(UDPLink):
 		data, _ = self.sock.recvfrom(512)
 		return data
 
-	def recv_l12trx_msg(self):
+	def recv_tx_msg(self):
 		# Read raw data from socket
 		data = self.recv_raw_data()
 
-		# Attempt to parse as a L12TRX message
+		# Attempt to parse a TRXD Tx message
 		try:
-			msg = DATAMSG_L12TRX()
+			msg = TxMsg()
 			msg.parse_msg(bytearray(data))
 		except:
-			log.error("Failed to parse a L12TRX message "
+			log.error("Failed to parse a TRXD Tx message "
 				"from R:%s:%u" % (self.remote_addr, self.remote_port))
 			return None
 
@@ -84,16 +84,16 @@ class DATAInterface(UDPLink):
 
 		return msg
 
-	def recv_trx2l1_msg(self):
+	def recv_rx_msg(self):
 		# Read raw data from socket
 		data = self.recv_raw_data()
 
-		# Attempt to parse as a L12TRX message
+		# Attempt to parse a TRXD Rx message
 		try:
-			msg = DATAMSG_TRX2L1()
+			msg = RxMsg()
 			msg.parse_msg(bytearray(data))
 		except:
-			log.error("Failed to parse a TRX2L1 message "
+			log.error("Failed to parse a TRXD Rx message "
 				"from R:%s:%u" % (self.remote_addr, self.remote_port))
 			return None
 
@@ -106,10 +106,10 @@ class DATAInterface(UDPLink):
 
 	def send_msg(self, msg, legacy = False):
 		try:
-			# Validate and encode TRXD message
+			# Validate and encode a TRXD message
 			payload = msg.gen_msg(legacy)
 		except ValueError as e:
-			log.error("Failed to encode a TRX2L1 message ('%s') "
+			log.error("Failed to encode a TRXD message ('%s') "
 				"due to error: %s" % (msg.desc_hdr(), e))
 			# TODO: we may want to send a NOPE.ind here
 			return
