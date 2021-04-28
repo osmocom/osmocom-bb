@@ -162,7 +162,7 @@ class PDUv2Tx(codec.Envelope):
 			MTS(),
 			codec.Uint('pwr'),
 			codec.Int('scpir'),
-			codec.Spare(len=3),
+			codec.Spare('spare', len=3),
 			BurstBits('hard-bits'),
 		)
 
@@ -171,7 +171,7 @@ class PDUv2Tx(codec.Envelope):
 		MTS(),
 		codec.Uint('pwr'),
 		codec.Int('scpir'),
-		codec.Spare(len=3),
+		codec.Spare('spare', len=3),
 		codec.Uint32BE('fn'),
 		BurstBits('hard-bits'),
 		codec.Sequence(item=BPDU()).f('bpdu'),
