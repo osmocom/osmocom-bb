@@ -585,7 +585,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return read_len;
 	}
 
-	if (read_len != 158) {
+	if (read_len < (8 + 148)) { /* TRXDv0 header + GMSK burst */
 		LOGP(DTRXD, LOGL_ERROR, "Got data message with invalid "
 			"length '%zd'\n", read_len);
 		return -EINVAL;
