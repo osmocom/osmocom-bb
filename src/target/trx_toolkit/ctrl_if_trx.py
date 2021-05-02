@@ -210,7 +210,7 @@ class CTRLInterfaceTRX(CTRLInterface):
 				self.trx.enable_fh(hsn, maio, ma)
 				return 0
 			except:
-				log.error("(%s) Failed to configure frequency hopping" % trx)
+				log.error("(%s) Failed to configure frequency hopping" % self.trx)
 				return -1
 
 		# TRXD header version negotiation
