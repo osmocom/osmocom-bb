@@ -54,6 +54,10 @@ class Field(unittest.TestCase):
 			field = TestField('magic')
 			self.assertEqual(field.to_bytes(vals), encoded_de)
 
+		with self.subTest('default length=4, different key=0x88'):
+			field = TestField('magic', key=0x88)
+			self.assertEqual(field.to_bytes(vals), encoded_88)
+
 		with self.subTest('different length=2, default key=0xde'):
 			field = TestField('magic', len=2)
 			vals['magic'] = vals['magic'][:2]
