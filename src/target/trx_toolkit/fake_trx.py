@@ -483,7 +483,7 @@ class Application(ApplicationBase):
 	@staticmethod
 	def trx_def(val):
 		try:
-			result = re.match("(.+@)?(.+):([0-9]+)(\/[0-9]+)?", val)
+			result = re.match(r"(.+@)?(.+):([0-9]+)(/[0-9]+)?", val)
 			(name, addr, port, idx) = result.groups()
 		except:
 			raise argparse.ArgumentTypeError("Invalid TRX definition: %s" % val)
