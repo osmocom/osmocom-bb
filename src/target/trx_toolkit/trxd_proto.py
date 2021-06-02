@@ -40,7 +40,8 @@ class Header(codec.BitFieldSet):
 
 		if ver >= 2: # TRXDv2 and higher
 			f.append(codec.BitField('batch', bl=1))
-			f.append(codec.BitField.Spare(bl=1))
+			f.append(codec.BitField('shadow', bl=1) if batched
+			    else codec.BitField.Spare(bl=1))
 			f.append(codec.BitField('trxn', bl=6))
 
 		codec.BitFieldSet.__init__(self, set=tuple(f))
