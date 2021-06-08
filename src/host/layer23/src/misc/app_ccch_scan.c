@@ -409,6 +409,13 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
 	int rc = 0;
 
+	/* Skip frames with wrong length */
+	if (msgb_l3len(msg) != GSM_MACBLOCK_LEN) {
+		LOGP(DRR, LOGL_ERROR, "Rx CCCH message with odd length=%u: %s\n",
+		     msgb_l3len(msg), msgb_hexdump_l3(msg));
+		return -EINVAL;
+	}
+
 	/* Skip dummy (fill) frames */
 	if (is_fill_frame(msg))
 		return 0;
