@@ -629,10 +629,14 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	return 0;
 }
 
-int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
-	uint8_t pwr, const ubit_t *bits)
+int trx_if_tx_burst(struct trx_instance *trx,
+		    const struct sched_burst_req *br)
 {
 	uint8_t buf[TRXD_BUF_SIZE];
+	size_t length;
+
+	if (br->burst_len == 0)
+		return 0;
 
 	/**
 	 * We must be sure that we have clock,
@@ -649,17 +653,20 @@ int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
 	}
 #endif
 
-	LOGP(DTRXD, LOGL_DEBUG, "TX burst tn=%u fn=%u pwr=%u\n", tn, fn, pwr);
+	LOGP(DTRXD, LOGL_DEBUG, "TX burst tn=%u fn=%u pwr=%u\n",
+	     br->tn, br->fn, br->pwr);
 
-	buf[0] = tn;
-	osmo_store32be(fn, buf + 1);
-	buf[5] = pwr;
+	buf[0] = br->tn;
+	osmo_store32be(br->fn, buf + 1);
+	buf[5] = br->pwr;
+	length = 6;
 
 	/* Copy ubits {0,1} */
-	memcpy(buf + 6, bits, 148);
+	memcpy(buf + 6, br->burst, br->burst_len);
+	length += br->burst_len;
 
 	/* Send data to transceiver */
-	send(trx->trx_ofd_data.fd, buf, 154, 0);
+	send(trx->trx_ofd_data.fd, buf, length, 0);
 
 	return 0;
 }

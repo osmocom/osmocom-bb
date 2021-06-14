@@ -34,35 +34,40 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	const sbit_t *bits, const struct trx_meas_set *meas);
 
 int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
+	       struct trx_lchan_state *lchan,
+	       struct sched_burst_req *br);
 
 int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
 	const sbit_t *bits, const struct trx_meas_set *meas);
 
 int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
+	       struct trx_lchan_state *lchan,
+	       struct sched_burst_req *br);
 
 int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
 	const sbit_t *bits, const struct trx_meas_set *meas);
 
 int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
+	       struct trx_lchan_state *lchan,
+	       struct sched_burst_req *br);
 
 int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
 	const sbit_t *bits, const struct trx_meas_set *meas);
 
 int tx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
+	       struct trx_lchan_state *lchan,
+	       struct sched_burst_req *br);
 
 int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
 	const sbit_t *bits, const struct trx_meas_set *meas);
 
 int tx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid);
+		struct trx_lchan_state *lchan,
+		struct sched_burst_req *br);
 
 const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX] = {
 	[TRXC_IDLE] = {

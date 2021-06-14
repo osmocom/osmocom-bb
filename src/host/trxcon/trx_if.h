@@ -79,5 +79,5 @@ int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn,
 int trx_if_cmd_measure(struct trx_instance *trx,
 	uint16_t band_arfcn_start, uint16_t band_arfcn_stop);
 
-int trx_if_tx_burst(struct trx_instance *trx, uint8_t tn, uint32_t fn,
-	uint8_t pwr, const ubit_t *bits);
+int trx_if_tx_burst(struct trx_instance *trx,
+		    const struct sched_burst_req *br);

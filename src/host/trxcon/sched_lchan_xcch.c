@@ -2,7 +2,8 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
- * (C) 2017-2020 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2021 by Vadim Yanitskiy <axilirator@gmail.com>
+ * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -119,10 +120,10 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 }
 
 int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid)
+	       struct trx_lchan_state *lchan,
+	       struct sched_burst_req *br)
 {
 	const struct trx_lchan_desc *lchan_desc;
-	ubit_t burst[GSM_BURST_LEN];
 	ubit_t *buffer, *offset;
 	const uint8_t *tsc;
 	uint8_t *mask;
@@ -133,7 +134,7 @@ int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	mask = &lchan->tx_burst_mask;
 	buffer = lchan->tx_bursts;
 
-	if (bid > 0) {
+	if (br->bid > 0) {
 		/* If we have encoded bursts */
 		if (*mask)
 			goto send_burst;
@@ -165,40 +166,29 @@ int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 send_burst:
 	/* Determine which burst should be sent */
-	offset = buffer + bid * 116;
+	offset = buffer + br->bid * 116;
 
 	/* Update mask */
-	*mask |= (1 << bid);
+	*mask |= (1 << br->bid);
 
 	/* Choose proper TSC */
 	tsc = sched_nb_training_bits[trx->tsc];
 
 	/* Compose a new burst */
-	memset(burst, 0, 3); /* TB */
-	memcpy(burst + 3, offset, 58); /* Payload 1/2 */
-	memcpy(burst + 61, tsc, 26); /* TSC */
-	memcpy(burst + 87, offset + 58, 58); /* Payload 2/2 */
-	memset(burst + 145, 0, 3); /* TB */
+	memset(br->burst, 0, 3); /* TB */
+	memcpy(br->burst + 3, offset, 58); /* Payload 1/2 */
+	memcpy(br->burst + 61, tsc, 26); /* TSC */
+	memcpy(br->burst + 87, offset + 58, 58); /* Payload 2/2 */
+	memset(br->burst + 145, 0, 3); /* TB */
+	br->burst_len = GSM_BURST_LEN;
 
-	LOGP(DSCHD, LOGL_DEBUG, "Transmitting %s fn=%u ts=%u burst=%u\n",
-		lchan_desc->name, fn, ts->index, bid);
-
-	/* Forward burst to scheduler */
-	rc = sched_trx_handle_tx_burst(trx, ts, lchan, fn, burst);
-	if (rc) {
-		/* Forget this primitive */
-		sched_prim_drop(lchan);
-
-		/* Reset mask */
-		*mask = 0x00;
-
-		return rc;
-	}
+	LOGP(DSCHD, LOGL_DEBUG, "Scheduled %s fn=%u ts=%u burst=%u\n",
+		lchan_desc->name, br->fn, ts->index, br->bid);
 
 	/* If we have sent the last (4/4) burst */
 	if ((*mask & 0x0f) == 0x0f) {
 		/* Confirm data sending */
-		sched_send_dt_conf(trx, ts, lchan, fn, false);
+		sched_send_dt_conf(trx, ts, lchan, br->fn, false);
 
 		/* Forget processed primitive */
 		sched_prim_drop(lchan);

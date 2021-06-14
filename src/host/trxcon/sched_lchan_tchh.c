@@ -2,8 +2,9 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
- * (C) 2018-2020 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2018-2021 by Vadim Yanitskiy <axilirator@gmail.com>
  * (C) 2018 by Harald Welte <laforge@gnumonks.org>
+ * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -361,10 +362,10 @@ bfi:
 }
 
 int tx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid)
+	       struct trx_lchan_state *lchan,
+	       struct sched_burst_req *br)
 {
 	const struct trx_lchan_desc *lchan_desc;
-	ubit_t burst[GSM_BURST_LEN];
 	ubit_t *buffer, *offset;
 	const uint8_t *tsc;
 	uint8_t *mask;
@@ -376,7 +377,7 @@ int tx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 	mask = &lchan->tx_burst_mask;
 	buffer = lchan->tx_bursts;
 
-	if (bid > 0) {
+	if (br->bid > 0) {
 		/* Align to the first burst */
 		if (*mask == 0x00)
 			return 0;
@@ -386,7 +387,7 @@ int tx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 	if (*mask == 0x00) {
 		/* Align transmission of the first FACCH/H frame */
 		if (lchan->tch_mode == GSM48_CMODE_SIGN)
-			if (!sched_tchh_facch_start(lchan->type, fn, 1))
+			if (!sched_tchh_facch_start(lchan->type, br->fn, 1))
 				return 0;
 	}
 
@@ -459,26 +460,24 @@ int tx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 send_burst:
 	/* Determine which burst should be sent */
-	offset = buffer + bid * 116;
+	offset = buffer + br->bid * 116;
 
 	/* Update mask */
-	*mask |= (1 << bid);
+	*mask |= (1 << br->bid);
 
 	/* Choose proper TSC */
 	tsc = sched_nb_training_bits[trx->tsc];
 
 	/* Compose a new burst */
-	memset(burst, 0, 3); /* TB */
-	memcpy(burst + 3, offset, 58); /* Payload 1/2 */
-	memcpy(burst + 61, tsc, 26); /* TSC */
-	memcpy(burst + 87, offset + 58, 58); /* Payload 2/2 */
-	memset(burst + 145, 0, 3); /* TB */
+	memset(br->burst, 0, 3); /* TB */
+	memcpy(br->burst + 3, offset, 58); /* Payload 1/2 */
+	memcpy(br->burst + 61, tsc, 26); /* TSC */
+	memcpy(br->burst + 87, offset + 58, 58); /* Payload 2/2 */
+	memset(br->burst + 145, 0, 3); /* TB */
+	br->burst_len = GSM_BURST_LEN;
 
-	LOGP(DSCHD, LOGL_DEBUG, "Transmitting %s fn=%u ts=%u burst=%u\n",
-		lchan_desc->name, fn, ts->index, bid);
-
-	/* Forward burst to transceiver */
-	sched_trx_handle_tx_burst(trx, ts, lchan, fn, burst);
+	LOGP(DSCHD, LOGL_DEBUG, "Scheduled %s fn=%u ts=%u burst=%u\n",
+		lchan_desc->name, br->fn, ts->index, br->bid);
 
 	/* In case of a FACCH/H frame, one block less */
 	if (lchan->ul_facch_blocks)
@@ -490,7 +489,7 @@ send_burst:
 		 * confirm data / traffic sending
 		 */
 		if (!lchan->ul_facch_blocks)
-			sched_send_dt_conf(trx, ts, lchan, fn,
+			sched_send_dt_conf(trx, ts, lchan, br->fn,
 				PRIM_IS_TCH(lchan->prim));
 
 		/* Forget processed primitive */

@@ -41,14 +41,18 @@
 #include "trx_if.h"
 #include "logging.h"
 
+static void sched_trx_a5_burst_enc(struct trx_lchan_state *lchan,
+				   struct sched_burst_req *br);
+
 static void sched_frame_clck_cb(struct trx_sched *sched)
 {
 	struct trx_instance *trx = (struct trx_instance *) sched->data;
+	struct sched_burst_req br[TRX_TS_COUNT];
 	const struct trx_frame *frame;
 	struct trx_lchan_state *lchan;
 	trx_lchan_tx_func *handler;
 	enum trx_lchan_type chan;
-	uint8_t offset, bid;
+	uint8_t offset;
 	struct trx_ts *ts;
 	int i;
 
@@ -59,6 +63,14 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 
 	/* Iterate over timeslot list */
 	for (i = 0; i < TRX_TS_COUNT; i++) {
+		/* Initialize the buffer for this timeslot */
+		br[i] = (struct sched_burst_req) {
+			.fn = fn,
+			.tn = i,
+			.pwr = trx->tx_power,
+			.burst_len = 0, /* NOPE.ind */
+		};
+
 		/* Timeslot is not allocated */
 		ts = trx->ts_list[i];
 		if (ts == NULL)
@@ -73,7 +85,7 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		frame = ts->mf_layout->frames + offset;
 
 		/* Get required info from frame */
-		bid = frame->ul_bid;
+		br[i].bid = frame->ul_bid;
 		chan = frame->ul_chan;
 		handler = trx_lchan_desc[chan].tx_fn;
 
@@ -120,8 +132,16 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 			handler = trx_lchan_desc[TRXC_RACH].tx_fn;
 
 		/* Poke lchan handler */
-		handler(trx, ts, lchan, fn, bid);
+		handler(trx, ts, lchan, &br[i]);
+
+		/* Perform A5/X burst encryption if required */
+		if (lchan->a5.algo)
+			sched_trx_a5_burst_enc(lchan, &br[i]);
 	}
+
+	/* Send all bursts for this TDMA frame */
+	for (i = 0; i < ARRAY_SIZE(br); i++)
+		trx_if_tx_burst(trx, &br[i]);
 }
 
 int sched_trx_init(struct trx_instance *trx, uint32_t fn_advance)
@@ -602,18 +622,18 @@ static void sched_trx_a5_burst_dec(struct trx_lchan_state *lchan,
 }
 
 static void sched_trx_a5_burst_enc(struct trx_lchan_state *lchan,
-	uint32_t fn, ubit_t *burst)
+				   struct sched_burst_req *br)
 {
 	ubit_t ks[114];
 	int i;
 
 	/* Generate keystream for an UL burst */
-	osmo_a5(lchan->a5.algo, lchan->a5.key, fn, NULL, ks);
+	osmo_a5(lchan->a5.algo, lchan->a5.key, br->fn, NULL, ks);
 
 	/* Apply keystream over plaintext */
 	for (i = 0; i < 57; i++) {
-		burst[i + 3] ^= ks[i];
-		burst[i + 88] ^= ks[i + 57];
+		br->burst[i + 3] ^= ks[i];
+		br->burst[i + 88] ^= ks[i + 57];
 	}
 }
 
@@ -759,26 +779,6 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 		LOGP(DSCHD, LOGL_NOTICE, "Too many TDMA frames have been processed. "
 					 "Are you running trxcon for more than 6 years?!?\n");
 		lchan->tdma.num_proc = 1;
-	}
-
-	return 0;
-}
-
-int sched_trx_handle_tx_burst(struct trx_instance *trx,
-	struct trx_ts *ts, struct trx_lchan_state *lchan,
-	uint32_t fn, ubit_t *bits)
-{
-	int rc;
-
-	/* Perform A5/X burst encryption if required */
-	if (lchan->a5.algo)
-		sched_trx_a5_burst_enc(lchan, fn, bits);
-
-	/* Forward burst to transceiver */
-	rc = trx_if_tx_burst(trx, ts->index, fn, trx->tx_power, bits);
-	if (rc) {
-		LOGP(DSCHD, LOGL_ERROR, "Could not send burst to transceiver\n");
-		return rc;
 	}
 
 	return 0;

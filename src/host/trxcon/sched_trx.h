@@ -97,14 +97,27 @@ enum trx_lchan_type {
 	_TRX_CHAN_MAX
 };
 
+/* Represents a burst to be transmitted */
+struct sched_burst_req {
+	uint32_t fn;
+	uint8_t tn;
+	uint8_t pwr;
+
+	/* Internally used by the scheduler */
+	uint8_t bid;
+
+	ubit_t burst[EDGE_BURST_LEN];
+	size_t burst_len;
+};
+
 typedef int trx_lchan_rx_func(struct trx_instance *trx,
 	struct trx_ts *ts, struct trx_lchan_state *lchan,
 	uint32_t fn, uint8_t bid, const sbit_t *bits,
 	const struct trx_meas_set *meas);
 
-typedef int trx_lchan_tx_func(struct trx_instance *trx,
-	struct trx_ts *ts, struct trx_lchan_state *lchan,
-	uint32_t fn, uint8_t bid);
+typedef int trx_lchan_tx_func(struct trx_instance *trx, struct trx_ts *ts,
+			      struct trx_lchan_state *lchan,
+			      struct sched_burst_req *br);
 
 struct trx_lchan_desc {
 	/*! \brief Human-readable name */
@@ -366,9 +379,6 @@ void sched_prim_flush_queue(struct llist_head *list);
 int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	uint32_t fn, sbit_t *bits, uint16_t nbits,
 	const struct trx_meas_set *meas);
-int sched_trx_handle_tx_burst(struct trx_instance *trx,
-	struct trx_ts *ts, struct trx_lchan_state *lchan,
-	uint32_t fn, ubit_t *bits);
 
 /* Shared declarations for lchan handlers */
 extern const uint8_t sched_nb_training_bits[8][26];
