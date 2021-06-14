@@ -50,8 +50,12 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 	enum trx_lchan_type chan;
 	uint8_t offset, bid;
 	struct trx_ts *ts;
-	uint32_t fn;
 	int i;
+
+	/* Advance TDMA frame number in order to give the transceiver
+	 * more time to handle the burst before the actual transmission. */
+	const uint32_t fn = GSM_TDMA_FN_SUM(sched->fn_counter_proc,
+					    sched->fn_counter_advance);
 
 	/* Iterate over timeslot list */
 	for (i = 0; i < TRX_TS_COUNT; i++) {
@@ -63,12 +67,6 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 		/* Timeslot is not configured */
 		if (ts->mf_layout == NULL)
 			continue;
-
-		/**
-		 * Advance frame number, giving the transceiver more
-		 * time until a burst must be transmitted...
-		 */
-		fn = GSM_TDMA_FN_SUM(sched->fn_counter_proc, sched->fn_counter_advance);
 
 		/* Get frame from multiframe */
 		offset = fn % ts->mf_layout->period;
