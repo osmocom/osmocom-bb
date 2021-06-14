@@ -269,7 +269,8 @@ class Transceiver:
 			return None
 
 		# Make sure that indicated timeslot is configured
-		if msg.tn not in self.ts_list:
+		# Pass PDUs without burst bits, they will be sent as NOPE.ind
+		if msg.tn not in self.ts_list and msg.burst:
 			log.warning("(%s) RX TRXD message (%s), but timeslot is not "
 				"configured => dropping..." % (self, msg.desc_hdr()))
 			return None
