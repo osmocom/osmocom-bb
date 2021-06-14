@@ -635,9 +635,6 @@ int trx_if_tx_burst(struct trx_instance *trx,
 	uint8_t buf[TRXD_BUF_SIZE];
 	size_t length;
 
-	if (br->burst_len == 0)
-		return 0;
-
 	/**
 	 * We must be sure that we have clock,
 	 * and we have sent all control data
@@ -662,8 +659,10 @@ int trx_if_tx_burst(struct trx_instance *trx,
 	length = 6;
 
 	/* Copy ubits {0,1} */
-	memcpy(buf + 6, br->burst, br->burst_len);
-	length += br->burst_len;
+	if (br->burst_len != 0) {
+		memcpy(buf + 6, br->burst, br->burst_len);
+		length += br->burst_len;
+	}
 
 	/* Send data to transceiver */
 	send(trx->trx_ofd_data.fd, buf, length, 0);
