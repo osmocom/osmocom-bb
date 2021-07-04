@@ -100,11 +100,8 @@ int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	/* Attempt to decode */
 	rc = gsm0503_xcch_decode(l2, buffer, &n_errors, &n_bits_total);
 	if (rc) {
-		LOGP(DSCHD, LOGL_ERROR, "Received bad data frame at fn=%u "
-			"(%u/%u) for %s\n", lchan->meas_avg.fn,
-			lchan->meas_avg.fn % ts->mf_layout->period,
-			ts->mf_layout->period,
-			lchan_desc->name);
+		LOGP(DSCHD, LOGL_ERROR, "Received bad %s frame (rc=%d, ber=%d/%d) at fn=%u\n",
+		     lchan_desc->name, rc, n_errors, n_bits_total, lchan->meas_avg.fn);
 
 		/**
 		 * We should anyway send dummy frame for

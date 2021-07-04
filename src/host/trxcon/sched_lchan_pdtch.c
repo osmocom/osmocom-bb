@@ -99,11 +99,8 @@ int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
 	rc = gsm0503_pdtch_decode(l2, buffer,
 		NULL, &n_errors, &n_bits_total);
 	if (rc < 0) {
-		LOGP(DSCHD, LOGL_ERROR, "Received bad packet data frame "
-			"at fn=%u (%u/%u) for %s\n", lchan->meas_avg.fn,
-			lchan->meas_avg.fn % ts->mf_layout->period,
-			ts->mf_layout->period,
-			lchan_desc->name);
+		LOGP(DSCHD, LOGL_ERROR, "Received bad %s frame (rc=%d, ber=%d/%d) at fn=%u\n",
+		     lchan_desc->name, rc, n_errors, n_bits_total, lchan->meas_avg.fn);
 	}
 
 	/* Determine L2 length */

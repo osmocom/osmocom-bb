@@ -125,8 +125,8 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 
 	/* Check decoding result */
 	if (rc < 4) {
-		LOGP(DSCHD, LOGL_ERROR, "Received bad TCH frame ending at "
-			"fn=%u for %s\n", fn, lchan_desc->name);
+		LOGP(DSCHD, LOGL_ERROR, "Received bad %s frame (rc=%d, ber=%d/%d) at fn=%u\n",
+		     lchan_desc->name, rc, n_errors, n_bits_total, lchan->meas_avg.fn);
 
 		/* Send BFI */
 		goto bfi;
