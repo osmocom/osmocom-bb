@@ -23,6 +23,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import logging as log
+import time
 
 from udp_link import UDPLink
 
@@ -30,6 +31,9 @@ class CTRLInterface(UDPLink):
 	def __init__(self, *udp_link_args):
 		UDPLink.__init__(self, *udp_link_args)
 		log.debug("Init TRXC interface (%s)" % self.desc_link())
+
+		# Do not delay RSP messages by default
+		self.rsp_delay_ms = 0
 
 	def handle_rx(self):
 		# Read data from socket
@@ -86,6 +90,9 @@ class CTRLInterface(UDPLink):
 
 		# Add the response signature, and join back to string
 		response = "RSP " + " ".join(request) + "\0"
+		# If configured, delay sending the RSP message
+		if self.rsp_delay_ms > 0:
+			time.sleep(self.rsp_delay_ms / 1000.0)
 		# Now we have something like "RSP TXTUNE 0 941600"
 		self.sendto(response, remote)
 

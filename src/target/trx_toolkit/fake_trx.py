@@ -374,6 +374,15 @@ class FakeTRX(Transceiver):
 			self.burst_drop_period = period
 			return 0
 
+		# Artificial delay for the TRXC interface
+		# Syntax: CMD FAKE_TRXC_DELAY <DELAY_MS>
+		elif self.ctrl_if.verify_cmd(request, "FAKE_TRXC_DELAY", 1):
+			log.debug("(%s) Recv FAKE_TRXC_DELAY cmd", self)
+
+			self.ctrl_if.rsp_delay_ms = int(request[1])
+			log.info("(%s) Artificial TRXC delay set to %d",
+				 self, self.ctrl_if.rsp_delay_ms)
+
 		# Unhandled command
 		return None
 
