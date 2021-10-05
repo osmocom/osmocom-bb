@@ -70,28 +70,28 @@ static const struct log_info_cat default_categories[] = {
 		.description = "Layer 1 Control",
 		.color = "\033[1;31m",
 		.enabled = 1,
-		.loglevel = LOGL_INFO,
+		.loglevel = LOGL_NOTICE,
 	},
 	[DL1P] = {
 		.name = "DL1P",
 		.description = "Layer 1 Data",
 		.color = "\033[1;31m",
 		.enabled = 1,
-		.loglevel = LOGL_INFO,
+		.loglevel = LOGL_NOTICE,
 	},
 	[DVIRPHY] = {
 		.name = "DVIRPHY",
 		.description = "Virtual Layer 1 Interface",
 		.color = "\033[1;31m",
 		.enabled = 1,
-		.loglevel = LOGL_INFO,
+		.loglevel = LOGL_NOTICE,
 	},
 	[DMAIN] = {
 		.name = "DMAIN",
 		.description = "Main Program / Data Structures",
 		.color = "\033[1;32m",
 		.enabled = 1,
-		.loglevel = LOGL_INFO,
+		.loglevel = LOGL_NOTICE,
 	},
 };
 
