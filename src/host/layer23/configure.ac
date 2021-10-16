@@ -39,7 +39,7 @@ then
 fi
 
 dnl checks for libraries
-PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore)
+PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 1.5.0)
 PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty >= 0.10.0)
 PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm)
 PKG_CHECK_MODULES(LIBOSMOCODEC, libosmocodec)
