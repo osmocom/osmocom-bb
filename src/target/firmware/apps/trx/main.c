@@ -127,6 +127,8 @@ int main(void)
 
 	fb_flush();
 
+	read_factory_rf_calibration();
+
 	/* Init TRX */
 	trx_init();
 
