@@ -22,7 +22,7 @@ CFLAGS += -g$(DEBUGF)
 #ASFLAGS=--g$(DEBUGF) $(INCLUDES) -D__ASSEMBLY__
 ASFLAGS=$(INCLUDES) -D__ASSEMBLY__
 
-LDFLAGS = -nostartfiles -nostdlib -nodefaultlibs --gc-sections --cref
+LDFLAGS = -nostdlib -z nodefaultlib --gc-sections --cref
 
 #### QUIET OUTPUT ####
 
