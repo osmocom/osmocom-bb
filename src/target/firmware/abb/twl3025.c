@@ -178,7 +178,7 @@ uint16_t twl3025_reg_read(uint8_t reg)
 
 	/* A read cycle contains two SPI transfers */
 	spi_xfer(TWL3025_DEV_IDX, 16, &tx, &rx);
-	delay_ms(1);
+	delay_us(400);
 	spi_xfer(TWL3025_DEV_IDX, 16, &tx, &rx);
 
 	rx >>= 6;
@@ -192,7 +192,7 @@ uint16_t twl3025_reg_read(uint8_t reg)
 static void twl3025_wait_ibic_access(void)
 {
 	/* Wait 6 * 32kHz clock cycles for first IBIC access (187us + 10% = 210us) */
-	delay_ms(1);
+	delay_us(400);
 }
 
 int twl3025_get_pwon(void)

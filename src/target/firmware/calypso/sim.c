@@ -86,7 +86,7 @@ void calypso_sim_regdump(void)
 #ifdef DEBUG
 	unsigned int regVal;
 
-#define SIM_DEBUG_OUTPUTDELAY 200
+#define SIM_DEBUG_OUTPUTDELAY 80
 
 	puts("\n\n\n");
 	puts("====================== CALYPSO SIM REGISTER DUMP =====================\n");

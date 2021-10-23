@@ -108,7 +108,7 @@ static void wait_key_release(void)
 {
 	/* wait for key release */
 	while (key_state == PRESSED) {
-		delay_ms(10);
+		delay_ms(4);
 		keypad_poll();
 	}
 }
@@ -323,7 +323,7 @@ int main(void)
 	while (1) {
 		for (i = 0; i < 50; i++) {
 			keypad_poll();
-			delay_ms(10);
+			delay_ms(4);
 			osmo_timers_update();
 			handle_key_code();
 		}

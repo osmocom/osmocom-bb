@@ -186,13 +186,13 @@ static void dsp_pre_boot(const struct dsp_section *bootcode)
 
 		writew(BL_STATUS_NA, BL_CMD_STATUS);
 	} else
-		delay_ms(10);
+		delay_ms(4);
 
 	dputs("Releasing DSP from Reset\n");
 	calypso_reset_set(RESET_DSP, 0);
 
 	/* Wait 10 us */
-	delay_ms(100);
+	delay_ms(40);
 
 	dsp_bl_wait_ready();
 }
@@ -650,7 +650,7 @@ static void _dsp_dump_range(uint32_t addr, uint32_t size, int mode)
 		while (bs--) {
 			/* FIXME workaround: small delay to prevent overflowing
 			 * the sercomm buffer */
-			delay_ms(2);
+			delay_us(800);
 			if ((addr&15)==0)
 				printf("%05lx : ", addr);
 			printf("%04hx%c", *api++, ((addr&15)==15)?'\n':' ');

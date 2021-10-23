@@ -99,7 +99,7 @@ static void fb_s6b33b1x_send_cmdlist(const struct s6b33b1x_cmdlist *p)
 static void fb_spca_write(uint16_t addr, uint16_t val)
 {
 	writew(addr, nCS4_ADDR);
-	delay_ms(1);
+	delay_us(100);
 	writew(val , nCS4_ADDR | 2);
 }
 
@@ -109,15 +109,15 @@ static void fb_spca_init(void)
 
 	/* Initialize Sunplus SPCA552E Media Controller for bypass mode */
 	fb_spca_write(0x7e, 0x00);	/* internal register access */
-	delay_ms(10);
+	delay_ms(4);
 	fb_spca_write(0x7a, 0x00);	/* keep CPU in reset state */
-	delay_ms(10);
+	delay_ms(4);
 	fb_spca_write(0x7f, 0x00);	/* select main page */
-	delay_ms(5);
+	delay_ms(2);
 	fb_spca_write(0x72, 0x07);	/* don't reshape timing, 16 bit mode */
 	fb_spca_write(0x14, 0x03);
 	fb_spca_write(0x7f, 0x00);	/* select main page */
-	delay_ms(5);
+	delay_ms(2);
 	fb_spca_write(0x06, 0xff);
 	fb_spca_write(0x7f, 0x09);
 	fb_spca_write(0x19, 0x08);	/* backlight: 0x08 is on, 0x0c is off */

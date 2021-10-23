@@ -69,7 +69,7 @@ static void flush_uart(void)
 	unsigned i;
 	for (i = 0; i < 500; i++) {
 		uart_poll(sercomm_uart);
-		delay_ms(1);
+		delay_us(400);
 	}
 }
 

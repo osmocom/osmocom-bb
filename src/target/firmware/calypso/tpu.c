@@ -291,7 +291,7 @@ void tpu_wait_idle(void)
 {
 	dputs("Waiting for TPU Idle ");
 	/* Wait until TPU is doing something */
-	delay_us(3);
+	delay_us(1);
 	/* Wait until TPU is idle */
 	while (readw(TPU_REG(TPU_CTRL)) & TPU_CTRL_IDLE)
 		dputchar('.');

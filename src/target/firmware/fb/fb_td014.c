@@ -73,9 +73,9 @@ static void
 fb_td014_init(void) {
 	printf("%s: initializing LCD.\n",__FUNCTION__);
 	calypso_reset_set(RESET_EXT, 0);
-	delay_ms(5);
+	delay_ms(2);
 	uwire_init();
-	delay_ms(5);
+	delay_ms(2);
 
 	fb_td014_send_cmdlist(td014_initdata);
 }

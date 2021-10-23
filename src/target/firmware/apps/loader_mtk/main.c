@@ -63,7 +63,7 @@ static void flush_uart(void)
 	unsigned i;
 	for (i = 0; i < 500; i++) {
 		uart_poll(sercomm_uart);
-		delay_ms(1);
+		delay_us(400);
 	}
 }
 
@@ -83,7 +83,7 @@ static void device_reset(void)
 static void device_enter_loader(__unused unsigned char bootrom)
 {
 	flush_uart();
-	delay_ms(2000);
+	delay_ms(800);
 	void (*entry)( void ) = (void (*)(void))0;
 	entry();
 }

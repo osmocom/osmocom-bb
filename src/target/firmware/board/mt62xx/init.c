@@ -49,7 +49,7 @@ void pll_init(void)
 
 	writew(PLL_RST, MTK_PLL_PLL);
 	writew(0, MTK_PLL_PLL);
-	delay_ms(1);
+	delay_us(400);
 
 	/* Turn on PLL for MCU, DSP and USB */
 	writew(PLL_MPLLSEL_PLL | PLL_DPLLSEL | PLL_UPLLSEL, MTK_PLL_PLL);
@@ -87,9 +87,9 @@ void memory_init(void)
 	for (i = 0; i < 5; ++i) {
 		/* Setup five single bits, one by one for DRAM init */
 		writel((1 << (24 + i)) | (0x400013), MTK_EMI_CONN);
-		delay_ms(1);
+		delay_us(400);
 		writel(0x400013, MTK_EMI_CONN);
-		delay_ms(1);
+		delay_us(400);
 	}
 
 #if 0
@@ -109,9 +109,9 @@ void memory_init(void)
 	for (i = 0; i < 5; ++i) {
 		/* Setup five single bits, one by one for DRAM init */
 		writel((1 << (24 + i)) | (0x500013), MTK_EMI_CONN);
-		delay_ms(1);
+		delay_us(400);
 		writel(0x500013, MTK_EMI_CONN);
-		delay_ms(1);
+		delay_us(400);
 	}
 
 #endif

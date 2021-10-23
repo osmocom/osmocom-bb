@@ -409,8 +409,8 @@ int main(void)
 	osmo_timers_update();
 
 	intro();
-	delay_ms(5000);
-	fb_clear_fancy(20);
+	delay_ms(2000);
+	fb_clear_fancy(8);
 
 	fb_setfg(FB_COLOR_BLACK);
 	fb_setbg(FB_COLOR_WHITE);

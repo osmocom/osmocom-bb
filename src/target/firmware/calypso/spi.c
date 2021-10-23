@@ -121,7 +121,7 @@ int spi_xfer(uint8_t dev_idx, uint8_t bitlen, const void *dout, void *din)
 			break;
 	}
 	/* FIXME: calibrate how much delay we really need (seven 13MHz cycles) */
-	delay_ms(1);
+	delay_us(400);
 
 	if (din) {
 		tmp = readw(SPI_REG(REG_RX_MSB)) << 16;

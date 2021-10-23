@@ -147,7 +147,7 @@
 							/* 1 = SIM card insertion/extraction */
 
 
-#define SIM_OPERATION_DELAY 100				/* Time between operations like reset, vcc apply ect... */ 
+#define SIM_OPERATION_DELAY 40				/* Time between operations like reset, vcc apply etc... */
 
 
 void calypso_sim_regdump(void);				/* Display Register dump */

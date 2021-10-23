@@ -285,7 +285,7 @@ void do_sim_test(void)
 	printf("       Result: ");
 	myHexdump(buffer,12);
 
-	delay_ms(5000);
+	delay_ms(2000);
 
 	calypso_sim_powerdown();
 

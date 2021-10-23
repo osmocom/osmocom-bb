@@ -128,9 +128,9 @@ static void
 fb_ssd1783_init(void){
 	printf("%s: initializing LCD.\n",__FUNCTION__);
 	calypso_reset_set(RESET_EXT, 0);
-	delay_ms(5);
+	delay_ms(2);
 	uwire_init();
-	delay_ms(5);
+	delay_ms(2);
 	fb_ssd1783_send_cmdlist(ssd1783_initdata);
 }
 
