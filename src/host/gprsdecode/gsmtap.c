@@ -100,6 +100,6 @@ void gsmtap_send_llc(uint8_t *data, size_t len, bool ul)
 	memcpy(dst, data, len);
 
 	/* Finally, send to the sink */
-	gsmtap_sendmsg(gti, msg);
+	gsmtap_sendmsg_free(gti, msg);
 }
 
