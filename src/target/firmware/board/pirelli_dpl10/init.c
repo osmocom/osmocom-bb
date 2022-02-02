@@ -121,7 +121,7 @@ void board_init(int with_irq)
 
 	/* initialize IRDA UART to be used for sercomm */
 	uart_init(UART_IRDA, with_irq);
-	uart_baudrate(UART_IRDA, UART_115200);
+	uart_baudrate(UART_IRDA, UART_460800);
 
 	/* Initialize MODEM UART to be used for old-school console code. */
 	uart_init(UART_MODEM, with_irq);
