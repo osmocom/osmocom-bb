@@ -540,7 +540,6 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 static void
 local_burst_decode(struct l1ctl_burst_ind *bi)
 {
-	int16_t rx_dbm;
 	uint16_t arfcn;
 	uint32_t fn;
 	uint8_t cbits, tn, lch_idx;
@@ -550,7 +549,6 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 
 	/* Get params (Only for SDCCH and SACCH/{4,8,F,H}) */
 	arfcn  = ntohs(bi->band_arfcn);
-	rx_dbm = rxlev2dbm(bi->rx_level);
 
 	fn     = ntohl(bi->frame_nr);
 	ul     = !!(arfcn & ARFCN_UPLINK);
