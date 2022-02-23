@@ -904,7 +904,7 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 	struct sim_hdr *nsh;
 
 	/* not a SIM */
-	if (!GSM_SIM_IS_READER(subscr->sim_type)
+	if ((subscr->sim_type != GSM_SIM_TYPE_TEST && !GSM_SIM_IS_READER(subscr->sim_type))
 	 || !subscr->sim_valid || no_sim) {
 		struct gsm48_mm_event *nmme;
 
