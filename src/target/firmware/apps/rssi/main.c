@@ -916,8 +916,6 @@ static void handle_pm(void)
 			a = arfcn;
 			if (pcs && arfcn >= PCS_MIN && arfcn <= PCS_MAX)
 				a |= ARFCN_PCS;
-			if (uplink)
-				a |= ARFCN_UPLINK;
 			e = a;
 			pm_mode = PM_SENT;
 		} else { /* mode == MODE_SPECTRUM */
