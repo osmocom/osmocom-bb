@@ -133,6 +133,9 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 		case MF26ODD:
 			TASK_SET(MF_TASK_NEIGH_PM26O);
 			break;
+		default:
+			/* no neighbor measurement */
+			break;
 		}
 		break;
 	}
