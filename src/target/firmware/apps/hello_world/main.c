@@ -165,8 +165,6 @@ int main(void)
 
 void key_handler(enum key_codes code, enum key_states state)
 {
-	char test[16];
-
 	if (state != PRESSED)
 		return;
 
