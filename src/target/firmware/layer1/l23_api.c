@@ -73,71 +73,71 @@ static uint32_t chan_nr2mf_task_mask(uint8_t chan_nr, uint8_t neigh_mode)
 	uint8_t cbits = chan_nr >> 3;
 	uint8_t tn = chan_nr & 0x7;
 	uint8_t lch_idx;
-	enum mframe_task master_task = MF_TASK_BCCH_NORM;
-	enum mframe_task second_task = -1; /* optional */
 	enum mf_type multiframe = 0;
 	uint32_t task_mask = 0x00;
 
+#define TASK_SET(task) \
+	task_mask |= (1 << (task))
+
 	if (cbits == 0x01) {
 		lch_idx = 0;
-		master_task = (tn & 1) ? MF_TASK_TCH_F_ODD : MF_TASK_TCH_F_EVEN;
+		TASK_SET((tn & 1) ? MF_TASK_TCH_F_ODD : MF_TASK_TCH_F_EVEN);
 		multiframe = (tn & 1) ? MF26ODD : MF26EVEN;
 	} else if ((cbits & 0x1e) == 0x02) {
 		lch_idx = cbits & 0x1;
-		master_task = MF_TASK_TCH_H_0 + lch_idx;
+		TASK_SET(MF_TASK_TCH_H_0 + lch_idx);
 		multiframe = (lch_idx & 1) ? MF26ODD : MF26EVEN;
 	} else if ((cbits & 0x1c) == 0x04) {
 		lch_idx = cbits & 0x3;
-		master_task = MF_TASK_SDCCH4_0 + lch_idx;
+		TASK_SET(MF_TASK_SDCCH4_0 + lch_idx);
 		multiframe = MF51;
 	} else if ((cbits & 0x18) == 0x08) {
 		lch_idx = cbits & 0x7;
-		master_task = MF_TASK_SDCCH8_0 + lch_idx;
+		TASK_SET(MF_TASK_SDCCH8_0 + lch_idx);
 		multiframe = MF51;
 	} else if ((cbits & 0x1f) == 0x18) {
 		/* Osmocom specific extension for PDTCH and PTCCH */
-		master_task = MF_TASK_GPRS_PDTCH;
-		second_task = MF_TASK_GPRS_PTCCH;
+		TASK_SET(MF_TASK_GPRS_PDTCH);
+		TASK_SET(MF_TASK_GPRS_PTCCH);
 		/* FIXME: PDCH has different multiframe structure */
 		multiframe = MFNONE;
 	} else if ((cbits & 0x1f) == 0x19) {
 		/* Osmocom specific extension for CBCH on SDCCH/4 */
-		master_task = MF_TASK_SDCCH4_CBCH;
+		TASK_SET(MF_TASK_SDCCH4_CBCH);
 		multiframe = MF51;
 	} else if ((cbits & 0x1f) == 0x1a) {
 		/* Osmocom specific extension for CBCH on SDCCH/8 */
-		master_task = MF_TASK_SDCCH8_CBCH;
+		TASK_SET(MF_TASK_SDCCH8_CBCH);
 		multiframe = MF51;
 #if 0
 	} else if (cbits == 0x10) {
 		/* FIXME: when to do extended BCCH? */
-		master_task = MF_TASK_BCCH_NORM;
+		TASK_SET(MF_TASK_BCCH_NORM);
 	} else if (cbits == 0x11 || cbits == 0x12) {
 		/* FIXME: how to decide CCCH norm/extd? */
-		master_task = MF_TASK_BCCH_CCCH;
+		TASK_SET(MF_TASK_BCCH_CCCH);
 #endif
+	} else {
+		TASK_SET(MF_TASK_BCCH_NORM);
 	}
-
-	/* Primary and secondary tasks */
-	task_mask |= (1 << master_task);
-	if (second_task >= 0) /* optional */
-		task_mask |= (1 << second_task);
 
 	switch (neigh_mode) {
 	case NEIGH_MODE_PM:
 		switch (multiframe) {
 		case MF51:
-			task_mask |= (1 << MF_TASK_NEIGH_PM51);
+			TASK_SET(MF_TASK_NEIGH_PM51);
 			break;
 		case MF26EVEN:
-			task_mask |= (1 << MF_TASK_NEIGH_PM26E);
+			TASK_SET(MF_TASK_NEIGH_PM26E);
 			break;
 		case MF26ODD:
-			task_mask |= (1 << MF_TASK_NEIGH_PM26O);
+			TASK_SET(MF_TASK_NEIGH_PM26O);
 			break;
 		}
 		break;
 	}
+
+#undef TASK_SET
 
 	return task_mask;
 }
