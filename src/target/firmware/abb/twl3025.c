@@ -373,6 +373,7 @@ void twl3025_unit_enable(enum twl3025_unit unit, int on)
 			togbr1 = (1 << 5);
 		else
 			togbr1 = (1 << 4);
+		break;
 	case TWL3025_UNIT_VDL:
 		if (on)
 			togbr1 = (1 << 3);
