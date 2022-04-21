@@ -57,7 +57,6 @@ static void key_handler(enum key_codes code, enum key_states state);
 int main(void)
 {
 	uint8_t atr[20];
-	uint8_t atrLength = 0;
 
 	board_init(1);
 
@@ -101,7 +100,7 @@ int main(void)
 
 	puts("Power up simcard:\n");
 	memset(atr,0,sizeof(atr));
-	atrLength = calypso_sim_powerup(atr);
+	calypso_sim_powerup(atr);
 
 	read_factory_rf_calibration();
 	layer1_init();
