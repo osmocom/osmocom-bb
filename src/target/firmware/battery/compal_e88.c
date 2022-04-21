@@ -352,7 +352,6 @@ bat_compal_e88_adc_read(){
 static void
 battery_compal_e88_timer_cb(void *p){
 	struct osmo_timer_list *tmr = (struct osmo_timer_list*)p;
-	int i;
 
 	if(bat_compal_e88_adc_read()){ /* read back ADCs after a brief delay */
 		osmo_timer_schedule(tmr,ADC_TIMER_DELAY);
