@@ -346,8 +346,6 @@ static void l1ctl_rx_crypto_req(struct msgb *msg)
 /* receive a L1CTL_DM_REL_REQ from L23 */
 static void l1ctl_rx_dm_rel_req(struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
-
 	printd("L1CTL_DM_REL_REQ\n");
 	l1a_mftask_set(0);
 	l1s.dedicated.type = GSM_DCHAN_NONE;
