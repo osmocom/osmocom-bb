@@ -82,7 +82,7 @@ static unsigned int fn2ccch_block(uint32_t fn)
 
 static uint8_t chantype_rsl2gsmtap_ext(uint8_t rsl_chantype, uint8_t link_id, uint32_t fn, uint8_t num_agch)
 {
-	uint8_t ret = chantype_rsl2gsmtap(rsl_chantype, link_id);
+	uint8_t ret = chantype_rsl2gsmtap2(rsl_chantype, link_id, false);
 	if (ret != GSMTAP_CHANNEL_PCH)
 		return ret;
 
@@ -387,7 +387,7 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 
 	/* send copy via GSMTAP */
 	rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts);
-	gsmtap_chan_type = chantype_rsl2gsmtap(chan_type, link_id);
+	gsmtap_chan_type = chantype_rsl2gsmtap2(chan_type, link_id, false);
 	gsmtap_send(gsmtap_inst, ms->rrlayer.cd_now.arfcn | GSMTAP_ARFCN_F_UPLINK,
 		    chan_ts, gsmtap_chan_type, chan_ss, 0, 127, 255,
 		    msg->l2h, msgb_l2len(msg));
