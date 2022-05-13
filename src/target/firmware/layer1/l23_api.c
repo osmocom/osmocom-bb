@@ -257,8 +257,8 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_dm_est_req *est_req = (struct l1ctl_dm_est_req *) ul->payload;
 
-	printd("L1CTL_DM_EST_REQ (arfcn=%u, chan_nr=0x%02x, tsc=%u)\n",
-		ntohs(est_req->h0.band_arfcn), ul->chan_nr, est_req->tsc);
+	printd("L1CTL_DM_EST_REQ (chan_nr=0x%02x, tsc=%u)\n",
+	       ul->chan_nr, est_req->tsc);
 
 	/* disable neighbour cell measurement of C0 TS 0 */
 	mframe_disable(MF_TASK_NEIGH_PM51_C0T0);
@@ -276,8 +276,12 @@ static void l1ctl_rx_dm_est_req(struct msgb *msg)
 		l1s.dedicated.h1.n    = est_req->h1.n;
 		for (i=0; i<est_req->h1.n; i++)
 			l1s.dedicated.h1.ma[i] = ntohs(est_req->h1.ma[i]);
+		printd("L1CTL_DM_EST_REQ indicates H1 (HSN=%u, MAIO=%u, chans=%u)\n",
+		       est_req->h1.hsn, est_req->h1.maio, est_req->h1.n);
 	} else {
 		l1s.dedicated.h0.arfcn = ntohs(est_req->h0.band_arfcn);
+		printd("L1CTL_DM_EST_REQ indicates H0 (ARFCN=%u)\n",
+		       l1s.dedicated.h0.arfcn & ~ARFCN_FLAG_MASK);
 	}
 
 	/* TCH config */
