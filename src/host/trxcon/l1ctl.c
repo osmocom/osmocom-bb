@@ -687,8 +687,7 @@ exit:
 
 static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
-	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_REL_REQ, "
-		"switching back to CCCH\n");
+	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_REL_REQ, resetting scheduler\n");
 
 	/* Reset scheduler */
 	sched_trx_reset(l1l->trx, false);
