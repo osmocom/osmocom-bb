@@ -33,7 +33,7 @@ handling, timers - as well as some more specifically GSM related things
 like a TLV parser, a Comp128V1 implementation and utility functions for
 RSL (TS 08.58) and CC/MM/RR (TS 04.08).
 
-libosmocore is maintained in git://git.osmocom.org/libosmocore.git, so
+libosmocore is maintained in https://gitea.osmocom.org/osmocom/libosmocore, so
 
 	DO NOT DIRECTLY COMMIT TO libosmocore IN THIS REPOSITORY!
 
