@@ -35,5 +35,6 @@ AC_CONFIG_FILES([include/Makefile
 		 include/osmocom/Makefile
 		 include/osmocom/bb/Makefile
 		 include/osmocom/bb/trxcon/Makefile
+		 src/Makefile
 		 Makefile])
 AC_OUTPUT

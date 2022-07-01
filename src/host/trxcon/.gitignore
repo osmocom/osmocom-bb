@@ -20,7 +20,7 @@ version.h
 *.o
 *.a
 
-trxcon
+/src/trxcon
 
 # various
 .version
