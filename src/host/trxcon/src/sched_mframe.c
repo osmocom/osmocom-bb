@@ -28,7 +28,7 @@
 #include <osmocom/bb/trxcon/sched_trx.h>
 
 /* Non-combined CCCH */
-static const struct trx_frame frame_bcch[51] = {
+static const struct l1sched_tdma_frame frame_bcch[51] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_FCCH,		0,	L1SCHED_RACH,		0 },
 	{ L1SCHED_SCH,		0,	L1SCHED_RACH,		0 },
@@ -84,7 +84,7 @@ static const struct trx_frame frame_bcch[51] = {
 };
 
 /* Combined CCCH+SDCCH4 */
-static const struct trx_frame frame_bcch_sdcch4[102] = {
+static const struct l1sched_tdma_frame frame_bcch_sdcch4[102] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_FCCH,		0,	L1SCHED_SDCCH4_3,	0 },
 	{ L1SCHED_SCH,		0,	L1SCHED_SDCCH4_3,	1 },
@@ -191,7 +191,7 @@ static const struct trx_frame frame_bcch_sdcch4[102] = {
 	{ L1SCHED_IDLE,		0,	L1SCHED_SDCCH4_2,	3 },
 };
 
-static const struct trx_frame frame_bcch_sdcch4_cbch[102] = {
+static const struct l1sched_tdma_frame frame_bcch_sdcch4_cbch[102] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_FCCH,		0,	L1SCHED_SDCCH4_3,	0 },
 	{ L1SCHED_SCH,		0,	L1SCHED_SDCCH4_3,	1 },
@@ -298,7 +298,7 @@ static const struct trx_frame frame_bcch_sdcch4_cbch[102] = {
 	{ L1SCHED_IDLE,		0,	L1SCHED_IDLE,		3 },
 };
 
-static const struct trx_frame frame_sdcch8[102] = {
+static const struct l1sched_tdma_frame frame_sdcch8[102] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_SDCCH8_0,	0,	L1SCHED_SACCH8_5,	0 },
 	{ L1SCHED_SDCCH8_0,	1,	L1SCHED_SACCH8_5,	1 },
@@ -405,7 +405,7 @@ static const struct trx_frame frame_sdcch8[102] = {
 	{ L1SCHED_IDLE,		0,	L1SCHED_SACCH8_4,	3 },
 };
 
-static const struct trx_frame frame_sdcch8_cbch[102] = {
+static const struct l1sched_tdma_frame frame_sdcch8_cbch[102] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_SDCCH8_0,	0,	L1SCHED_SACCH8_5,	0 },
 	{ L1SCHED_SDCCH8_0,	1,	L1SCHED_SACCH8_5,	1 },
@@ -512,7 +512,7 @@ static const struct trx_frame frame_sdcch8_cbch[102] = {
 	{ L1SCHED_IDLE,		0,	L1SCHED_SACCH8_4,	3 },
 };
 
-static const struct trx_frame frame_tchf_ts0[104] = {
+static const struct l1sched_tdma_frame frame_tchf_ts0[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHF,		0,	L1SCHED_TCHF,		0 },
 	{ L1SCHED_TCHF,		1,	L1SCHED_TCHF,		1 },
@@ -620,7 +620,7 @@ static const struct trx_frame frame_tchf_ts0[104] = {
 	{ L1SCHED_IDLE,		0,	L1SCHED_IDLE,		0 },
 };
 
-static const struct trx_frame frame_tchf_ts1[104] = {
+static const struct l1sched_tdma_frame frame_tchf_ts1[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHF,		0,	L1SCHED_TCHF,		0 },
 	{ L1SCHED_TCHF,		1,	L1SCHED_TCHF,		1 },
@@ -728,7 +728,7 @@ static const struct trx_frame frame_tchf_ts1[104] = {
 	{ L1SCHED_SACCHTF,	3,	L1SCHED_SACCHTF,	3 },
 };
 
-static const struct trx_frame frame_tchf_ts2[104] = {
+static const struct l1sched_tdma_frame frame_tchf_ts2[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHF,		0,	L1SCHED_TCHF,		0 },
 	{ L1SCHED_TCHF,		1,	L1SCHED_TCHF,		1 },
@@ -836,7 +836,7 @@ static const struct trx_frame frame_tchf_ts2[104] = {
 	{ L1SCHED_IDLE,		0,	L1SCHED_IDLE,		0 },
 };
 
-static const struct trx_frame frame_tchf_ts3[104] = {
+static const struct l1sched_tdma_frame frame_tchf_ts3[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHF,		0,	L1SCHED_TCHF,		0 },
 	{ L1SCHED_TCHF,		1,	L1SCHED_TCHF,		1 },
@@ -944,7 +944,7 @@ static const struct trx_frame frame_tchf_ts3[104] = {
 	{ L1SCHED_SACCHTF,	2,	L1SCHED_SACCHTF,	2 },
 };
 
-static const struct trx_frame frame_tchf_ts4[104] = {
+static const struct l1sched_tdma_frame frame_tchf_ts4[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHF,		0,	L1SCHED_TCHF,		0 },
 	{ L1SCHED_TCHF,		1,	L1SCHED_TCHF,		1 },
@@ -1052,7 +1052,7 @@ static const struct trx_frame frame_tchf_ts4[104] = {
 	{ L1SCHED_IDLE,		0,	L1SCHED_IDLE,		0 },
 };
 
-static const struct trx_frame frame_tchf_ts5[104] = {
+static const struct l1sched_tdma_frame frame_tchf_ts5[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHF,		0,	L1SCHED_TCHF,		0 },
 	{ L1SCHED_TCHF,		1,	L1SCHED_TCHF,		1 },
@@ -1160,7 +1160,7 @@ static const struct trx_frame frame_tchf_ts5[104] = {
 	{ L1SCHED_SACCHTF,	1,	L1SCHED_SACCHTF,	1 },
 };
 
-static const struct trx_frame frame_tchf_ts6[104] = {
+static const struct l1sched_tdma_frame frame_tchf_ts6[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHF,		0,	L1SCHED_TCHF,		0 },
 	{ L1SCHED_TCHF,		1,	L1SCHED_TCHF,		1 },
@@ -1268,7 +1268,7 @@ static const struct trx_frame frame_tchf_ts6[104] = {
 	{ L1SCHED_IDLE,		0,	L1SCHED_IDLE,		0 },
 };
 
-static const struct trx_frame frame_tchf_ts7[104] = {
+static const struct l1sched_tdma_frame frame_tchf_ts7[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHF,		0,	L1SCHED_TCHF,		0 },
 	{ L1SCHED_TCHF,		1,	L1SCHED_TCHF,		1 },
@@ -1376,7 +1376,7 @@ static const struct trx_frame frame_tchf_ts7[104] = {
 	{ L1SCHED_SACCHTF,	0,	L1SCHED_SACCHTF,	0 },
 };
 
-static const struct trx_frame frame_tchh_ts01[104] = {
+static const struct l1sched_tdma_frame frame_tchh_ts01[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHH_0,	0,	L1SCHED_TCHH_0,		0 },
 	{ L1SCHED_TCHH_1,	0,	L1SCHED_TCHH_1,		0 },
@@ -1484,7 +1484,7 @@ static const struct trx_frame frame_tchh_ts01[104] = {
 	{ L1SCHED_SACCHTH_1,	3,	L1SCHED_SACCHTH_1,	3 },
 };
 
-static const struct trx_frame frame_tchh_ts23[104] = {
+static const struct l1sched_tdma_frame frame_tchh_ts23[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHH_0,	0,	L1SCHED_TCHH_0,		0 },
 	{ L1SCHED_TCHH_1,	0,	L1SCHED_TCHH_1,		0 },
@@ -1592,7 +1592,7 @@ static const struct trx_frame frame_tchh_ts23[104] = {
 	{ L1SCHED_SACCHTH_1,	2,	L1SCHED_SACCHTH_1,	2 },
 };
 
-static const struct trx_frame frame_tchh_ts45[104] = {
+static const struct l1sched_tdma_frame frame_tchh_ts45[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHH_0,	0,	L1SCHED_TCHH_0,		0 },
 	{ L1SCHED_TCHH_1,	0,	L1SCHED_TCHH_1,		0 },
@@ -1700,7 +1700,7 @@ static const struct trx_frame frame_tchh_ts45[104] = {
 	{ L1SCHED_SACCHTH_1,	1,	L1SCHED_SACCHTH_1,	1 },
 };
 
-static const struct trx_frame frame_tchh_ts67[104] = {
+static const struct l1sched_tdma_frame frame_tchh_ts67[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_TCHH_0,	0,	L1SCHED_TCHH_0,		0 },
 	{ L1SCHED_TCHH_1,	0,	L1SCHED_TCHH_1,		0 },
@@ -1808,7 +1808,7 @@ static const struct trx_frame frame_tchh_ts67[104] = {
 	{ L1SCHED_SACCHTH_1,	0,	L1SCHED_SACCHTH_1,	0 },
 };
 
-static const struct trx_frame frame_pdch[104] = {
+static const struct l1sched_tdma_frame frame_pdch[104] = {
 	/* dl_chan		dl_bid	ul_chan			ul_bid */
 	{ L1SCHED_PDTCH,	0,	L1SCHED_PDTCH,		0 },
 	{ L1SCHED_PDTCH,	1,	L1SCHED_PDTCH,		1 },
@@ -1969,7 +1969,7 @@ static const struct trx_frame frame_pdch[104] = {
  * 102 = 2 x 51 frame multiframe
  * 104 = 4 x 26 frame multiframe
  */
-static const struct trx_multiframe layouts[] = {
+static const struct l1sched_tdma_multiframe layouts[] = {
 	{
 		GSM_PCHAN_NONE, "NONE",
 		0,	0xff,
@@ -2086,7 +2086,7 @@ static const struct trx_multiframe layouts[] = {
 	},
 };
 
-const struct trx_multiframe *sched_mframe_layout(
+const struct l1sched_tdma_multiframe *l1sched_mframe_layout(
 	enum gsm_phys_chan_config config, int tn)
 {
 	int i, ts_allowed;

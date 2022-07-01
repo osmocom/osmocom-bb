@@ -39,18 +39,18 @@
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
 
-int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct trx_meas_set *meas)
+int rx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
+	const sbit_t *bits, const struct l1sched_meas_set *meas)
 {
-	const struct trx_lchan_desc *lchan_desc;
+	const struct l1sched_lchan_desc *lchan_desc;
 	int n_errors = -1, n_bits_total, rc;
 	sbit_t *buffer, *offset;
 	uint8_t l2[128], *mask;
 	size_t l2_len;
 
 	/* Set up pointers */
-	lchan_desc = &trx_lchan_desc[lchan->type];
+	lchan_desc = &l1sched_lchan_desc[lchan->type];
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
 
@@ -65,7 +65,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	*mask |= (1 << bid);
 
 	/* Store the measurements */
-	sched_trx_meas_push(lchan, meas);
+	l1sched_lchan_meas_push(lchan, meas);
 
 	/* Copy burst to end of buffer of 8 bursts */
 	offset = buffer + bid * 116 + 464;
@@ -77,13 +77,13 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		return 0;
 
 	/* Calculate AVG of the measurements */
-	sched_trx_meas_avg(lchan, 8);
+	l1sched_lchan_meas_avg(lchan, 8);
 
 	/* Check for complete set of bursts */
 	if ((*mask & 0xff) != 0xff) {
 		LOGP(DSCHD, LOGL_ERROR, "Received incomplete (%s) traffic frame at "
 			"fn=%u (%u/%u) for %s\n",
-			burst_mask2str(mask, 8), lchan->meas_avg.fn,
+			l1sched_burst_mask2str(mask, 8), lchan->meas_avg.fn,
 			lchan->meas_avg.fn % ts->mf_layout->period,
 			ts->mf_layout->period,
 			lchan_desc->name);
@@ -128,7 +128,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 		goto bfi;
 	} else if (rc == GSM_MACBLOCK_LEN) {
 		/* FACCH received, forward it to the higher layers */
-		sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
+		l1sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
 			n_errors, false, false);
 
 		/* Send BFI substituting a stolen TCH frame */
@@ -140,13 +140,13 @@ int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	}
 
 	/* Send a traffic frame to the higher layers */
-	return sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
+	return l1sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
 		n_errors, false, true);
 
 bfi:
 	/* Didn't try to decode, fake measurements */
 	if (n_errors < 0) {
-		lchan->meas_avg = (struct trx_meas_set) {
+		lchan->meas_avg = (struct l1sched_meas_set) {
 			.fn = lchan->meas_avg.fn,
 			.toa256 = 0,
 			.rssi = -110,
@@ -158,22 +158,22 @@ bfi:
 
 	/* BFI is not applicable in signalling mode */
 	if (lchan->tch_mode == GSM48_CMODE_SIGN)
-		return sched_send_dt_ind(trx, ts, lchan, NULL, 0,
+		return l1sched_send_dt_ind(trx, ts, lchan, NULL, 0,
 			n_errors, true, false);
 
 	/* Bad frame indication */
-	l2_len = sched_bad_frame_ind(l2, lchan);
+	l2_len = l1sched_bad_frame_ind(l2, lchan);
 
 	/* Send a BFI frame to the higher layers */
-	return sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
+	return l1sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
 		n_errors, true, true);
 }
 
-int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
-	       struct trx_lchan_state *lchan,
-	       struct sched_burst_req *br)
+int tx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	       struct l1sched_lchan_state *lchan,
+	       struct l1sched_burst_req *br)
 {
-	const struct trx_lchan_desc *lchan_desc;
+	const struct l1sched_lchan_desc *lchan_desc;
 	ubit_t *buffer, *offset;
 	const uint8_t *tsc;
 	uint8_t *mask;
@@ -181,7 +181,7 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 	int rc;
 
 	/* Set up pointers */
-	lchan_desc = &trx_lchan_desc[lchan->type];
+	lchan_desc = &l1sched_lchan_desc[lchan->type];
 	mask = &lchan->tx_burst_mask;
 	buffer = lchan->tx_bursts;
 
@@ -211,7 +211,7 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 			"dropping frame...\n");
 
 		/* Forget this primitive */
-		sched_prim_drop(lchan);
+		l1sched_prim_drop(lchan);
 
 		return -ENOTSUP;
 	default:
@@ -219,7 +219,7 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 			"dropping frame...\n", lchan->tch_mode);
 
 		/* Forget this primitive */
-		sched_prim_drop(lchan);
+		l1sched_prim_drop(lchan);
 
 		return -EINVAL;
 	}
@@ -232,7 +232,7 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 			"(expected %zu for TCH or %u for FACCH), so dropping...\n",
 			lchan->prim->payload_len, l2_len, GSM_MACBLOCK_LEN);
 
-		sched_prim_drop(lchan);
+		l1sched_prim_drop(lchan);
 		return -EINVAL;
 	}
 
@@ -247,7 +247,7 @@ int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
 							    lchan->prim->payload_len));
 
 		/* Forget this primitive */
-		sched_prim_drop(lchan);
+		l1sched_prim_drop(lchan);
 
 		return -EINVAL;
 	}
@@ -260,7 +260,7 @@ send_burst:
 	*mask |= (1 << br->bid);
 
 	/* Choose proper TSC */
-	tsc = sched_nb_training_bits[trx->tsc];
+	tsc = l1sched_nb_training_bits[trx->tsc];
 
 	/* Compose a new burst */
 	memset(br->burst, 0, 3); /* TB */
@@ -276,10 +276,10 @@ send_burst:
 	/* If we have sent the last (4/4) burst */
 	if (*mask == 0x0f) {
 		/* Confirm data / traffic sending */
-		sched_send_dt_conf(trx, ts, lchan, br->fn, PRIM_IS_TCH(lchan->prim));
+		l1sched_send_dt_conf(trx, ts, lchan, br->fn, L1SCHED_PRIM_IS_TCH(lchan->prim));
 
 		/* Forget processed primitive */
-		sched_prim_drop(lchan);
+		l1sched_prim_drop(lchan);
 
 		/* Reset mask */
 		*mask = 0x00;

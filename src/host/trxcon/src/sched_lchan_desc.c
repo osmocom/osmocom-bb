@@ -29,47 +29,47 @@
 #include <osmocom/bb/trxcon/sched_trx.h>
 
 /* Forward declaration of handlers */
-int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct trx_meas_set *meas);
+int rx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
+	const sbit_t *bits, const struct l1sched_meas_set *meas);
 
-int tx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
-	       struct trx_lchan_state *lchan,
-	       struct sched_burst_req *br);
+int tx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	       struct l1sched_lchan_state *lchan,
+	       struct l1sched_burst_req *br);
 
-int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct trx_meas_set *meas);
+int rx_sch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
+	const sbit_t *bits, const struct l1sched_meas_set *meas);
 
-int tx_rach_fn(struct trx_instance *trx, struct trx_ts *ts,
-	       struct trx_lchan_state *lchan,
-	       struct sched_burst_req *br);
+int tx_rach_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	       struct l1sched_lchan_state *lchan,
+	       struct l1sched_burst_req *br);
 
-int rx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct trx_meas_set *meas);
+int rx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
+	const sbit_t *bits, const struct l1sched_meas_set *meas);
 
-int tx_tchf_fn(struct trx_instance *trx, struct trx_ts *ts,
-	       struct trx_lchan_state *lchan,
-	       struct sched_burst_req *br);
+int tx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	       struct l1sched_lchan_state *lchan,
+	       struct l1sched_burst_req *br);
 
-int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct trx_meas_set *meas);
+int rx_tchh_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
+	const sbit_t *bits, const struct l1sched_meas_set *meas);
 
-int tx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
-	       struct trx_lchan_state *lchan,
-	       struct sched_burst_req *br);
+int tx_tchh_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	       struct l1sched_lchan_state *lchan,
+	       struct l1sched_burst_req *br);
 
-int rx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct trx_meas_set *meas);
+int rx_pdtch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
+	const sbit_t *bits, const struct l1sched_meas_set *meas);
 
-int tx_pdtch_fn(struct trx_instance *trx, struct trx_ts *ts,
-		struct trx_lchan_state *lchan,
-		struct sched_burst_req *br);
+int tx_pdtch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+		struct l1sched_lchan_state *lchan,
+		struct l1sched_burst_req *br);
 
-const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
+const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 	[L1SCHED_IDLE] = {
 		.name = "IDLE",
 		.desc = "Idle channel",
@@ -87,7 +87,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 
 		/* 3GPP TS 05.03, section 4.7. Handled by transceiver,
 		 * however we still need to parse BSIC (BCC / NCC). */
-		.flags = TRX_CH_FLAG_AUTO,
+		.flags = L1SCHED_CH_FLAG_AUTO,
 		.rx_fn = rx_sch_fn,
 	},
 	[L1SCHED_BCCH] = {
@@ -100,7 +100,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 * regular interleaving (3GPP TS 05.02, clause 7, table 3):
 		 * a L2 frame is interleaved over 4 consecutive bursts. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_AUTO,
+		.flags = L1SCHED_CH_FLAG_AUTO,
 		.rx_fn = rx_data_fn,
 	},
 	[L1SCHED_RACH] = {
@@ -110,7 +110,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.chan_nr = RSL_CHAN_RACH,
 
 		/* Tx only, RACH convolutional coding (3GPP TS 05.03, section 4.6). */
-		.flags = TRX_CH_FLAG_AUTO,
+		.flags = L1SCHED_CH_FLAG_AUTO,
 		.tx_fn = tx_rach_fn,
 	},
 	[L1SCHED_CCCH] = {
@@ -123,7 +123,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 * regular interleaving (3GPP TS 05.02, clause 7, table 3):
 		 * a L2 frame is interleaved over 4 consecutive bursts. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_AUTO,
+		.flags = L1SCHED_CH_FLAG_AUTO,
 		.rx_fn = rx_data_fn,
 	},
 	[L1SCHED_TCHF] = {
@@ -131,7 +131,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Full Rate traffic channel",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_TCH_F,
 		.chan_nr = RSL_CHAN_Bm_ACCHs,
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 
 		/* Rx and Tx, multiple convolutional coding types (3GPP TS 05.03,
 		 * chapter 3), block diagonal interleaving (3GPP TS 05.02, clause 7):
@@ -145,7 +145,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 * The MS shall continuously transmit bursts, even if there is nothing
 		 * to send, unless DTX (Discontinuous Transmission) is used. */
 		.burst_buf_size = 8 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_tchf_fn,
 		.tx_fn = tx_tchf_fn,
 	},
@@ -154,7 +154,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Half Rate traffic channel (sub-channel 0)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_TCH_H,
 		.chan_nr = RSL_CHAN_Lm_ACCHs + (0 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 0,
 
 		/* Rx and Tx, multiple convolutional coding types (3GPP TS 05.03,
@@ -174,7 +174,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 * The MS shall continuously transmit bursts, even if there is nothing
 		 * to send, unless DTX (Discontinuous Transmission) is used. */
 		.burst_buf_size = 6 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_tchh_fn,
 		.tx_fn = tx_tchh_fn,
 	},
@@ -183,12 +183,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Half Rate traffic channel (sub-channel 1)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_TCH_H,
 		.chan_nr = RSL_CHAN_Lm_ACCHs + (1 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_TCHH_0, see above. */
 		.burst_buf_size = 6 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_tchh_fn,
 		.tx_fn = tx_tchh_fn,
 	},
@@ -197,12 +197,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 0)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH4,
 		.chan_nr = RSL_CHAN_SDCCH4_ACCH + (0 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -211,12 +211,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 1)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH4,
 		.chan_nr = RSL_CHAN_SDCCH4_ACCH + (1 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -225,12 +225,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 2)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH4,
 		.chan_nr = RSL_CHAN_SDCCH4_ACCH + (2 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -239,12 +239,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 3)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH4,
 		.chan_nr = RSL_CHAN_SDCCH4_ACCH + (3 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 3,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -253,12 +253,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 0)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (0 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -267,12 +267,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 1)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (1 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -281,12 +281,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 2)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (2 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -295,12 +295,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 3)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (3 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 3,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -309,12 +309,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 4)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (4 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 4,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -323,12 +323,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 5)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (5 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 5,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -337,12 +337,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 6)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (6 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 6,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -351,12 +351,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Stand-alone dedicated control channel (sub-channel 7)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (7 << 3),
-		.link_id = TRX_CH_LID_DEDIC,
+		.link_id = L1SCHED_CH_LID_DEDIC,
 		.ss_nr = 7,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -365,11 +365,11 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow TCH/F associated control channel",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_TCH_F | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_Bm_ACCHs,
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -378,12 +378,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow TCH/H associated control channel (sub-channel 0)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_TCH_H | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_Lm_ACCHs + (0 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -392,12 +392,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow TCH/H associated control channel (sub-channel 1)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_TCH_H | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_Lm_ACCHs + (1 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -406,12 +406,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/4 associated control channel (sub-channel 0)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH4 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH4_ACCH + (0 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -420,12 +420,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/4 associated control channel (sub-channel 1)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH4 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH4_ACCH + (1 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -434,12 +434,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/4 associated control channel (sub-channel 2)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH4 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH4_ACCH + (2 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -448,12 +448,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/4 associated control channel (sub-channel 3)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH4 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH4_ACCH + (3 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 3,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -462,12 +462,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/8 associated control channel (sub-channel 0)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (0 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -476,12 +476,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/8 associated control channel (sub-channel 1)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (1 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -490,12 +490,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/8 associated control channel (sub-channel 2)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (2 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -504,12 +504,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/8 associated control channel (sub-channel 3)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (3 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 3,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -518,12 +518,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/8 associated control channel (sub-channel 4)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (4 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 4,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -532,12 +532,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/8 associated control channel (sub-channel 5)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (5 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 5,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -546,12 +546,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/8 associated control channel (sub-channel 6)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (6 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 6,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -560,12 +560,12 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Slow SDCCH/8 associated control channel (sub-channel 7)",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_SDCCH8 | GSMTAP_CHANNEL_ACCH,
 		.chan_nr = RSL_CHAN_SDCCH8_ACCH + (7 << 3),
-		.link_id = TRX_CH_LID_SACCH,
+		.link_id = L1SCHED_CH_LID_SACCH,
 		.ss_nr = 7,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_CBTX,
+		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
 	},
@@ -580,7 +580,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 * NOTE: the burst buffer is three times bigger because the
 		 * payload of EDGE bursts is three times longer. */
 		.burst_buf_size = 3 * 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_PDCH,
+		.flags = L1SCHED_CH_FLAG_PDCH,
 		.rx_fn = rx_pdtch_fn,
 		.tx_fn = tx_pdtch_fn,
 	},
@@ -589,7 +589,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.desc = "Packet Timing advance control channel",
 		.gsmtap_chan_type = GSMTAP_CHANNEL_PTCCH,
 		.chan_nr = RSL_CHAN_OSMO_PDCH,
-		.link_id = TRX_CH_LID_PTCCH,
+		.link_id = L1SCHED_CH_LID_PTCCH,
 
 		/* On the Uplink, mobile stations transmit random Access Bursts
 		 * to allow estimation of the timing advance for one MS in packet
@@ -597,7 +597,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 * updates for several mobile stations. The coding scheme used
 		 * for PTCCH/D messages is the same as for PDTCH CS-1. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_PDCH,
+		.flags = L1SCHED_CH_FLAG_PDCH,
 		.rx_fn = rx_pdtch_fn,
 		.tx_fn = tx_rach_fn,
 	},
@@ -610,7 +610,7 @@ const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX] = {
 
 		/* Same as for L1SCHED_BCCH (xCCH), but Rx only. See above. */
 		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
-		.flags = TRX_CH_FLAG_AUTO,
+		.flags = L1SCHED_CH_FLAG_AUTO,
 		.rx_fn = rx_data_fn,
 	},
 	[L1SCHED_SDCCH8_CBCH] = {

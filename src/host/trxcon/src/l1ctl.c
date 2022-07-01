@@ -340,10 +340,10 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		band_arfcn &~ ARFCN_FLAG_MASK);
 
 	/* Reset scheduler and clock counter */
-	sched_trx_reset(l1l->trx, true);
+	l1sched_reset(l1l->trx, true);
 
 	/* Configure a single timeslot */
-	sched_trx_configure_ts(l1l->trx, 0, ch_config);
+	l1sched_configure_ts(l1l->trx, 0, ch_config);
 
 	/* Ask SCH handler to send L1CTL_FBSB_CONF */
 	l1l->fbsb_conf_sent = false;
@@ -430,7 +430,7 @@ static int l1ctl_rx_reset_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 		/* Fall through */
 	case L1CTL_RES_T_SCHED:
-		sched_trx_reset(l1l->trx, true);
+		l1sched_reset(l1l->trx, true);
 		break;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown L1CTL_RESET_REQ type\n");
@@ -464,7 +464,7 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	enum gsm_phys_chan_config ch_config;
 	struct l1ctl_ccch_mode_req *req;
-	struct trx_ts *ts;
+	struct l1sched_ts *ts;
 	int rc = 0;
 
 	req = (struct l1ctl_ccch_mode_req *) msg->l1h;
@@ -491,7 +491,7 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Do nothing if the current mode matches required */
 	if (ts->mf_layout->chan_config != ch_config)
-		rc = sched_trx_configure_ts(l1l->trx, 0, ch_config);
+		rc = l1sched_configure_ts(l1l->trx, 0, ch_config);
 
 	/* Confirm reconfiguration */
 	if (!rc)
@@ -507,7 +507,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	struct l1ctl_ext_rach_req *ext_req;
 	struct l1ctl_rach_req *req;
 	struct l1ctl_info_ul *ul;
-	struct trx_ts_prim *prim;
+	struct l1sched_ts_prim *prim;
 	size_t len;
 	int rc;
 
@@ -541,7 +541,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	}
 
 	/* Init a new primitive */
-	rc = sched_prim_init(l1l->trx, &prim, len, ul->chan_nr, ul->link_id);
+	rc = l1sched_prim_init(l1l->trx, &prim, len, ul->chan_nr, ul->link_id);
 	if (rc)
 		goto exit;
 
@@ -549,7 +549,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	 * Push this primitive to the transmit queue.
 	 * Indicated timeslot needs to be configured.
 	 */
-	rc = sched_prim_push(l1l->trx, prim, ul->chan_nr);
+	rc = l1sched_prim_push(l1l->trx, prim, ul->chan_nr);
 	if (rc) {
 		talloc_free(prim);
 		goto exit;
@@ -628,7 +628,7 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 	enum gsm_phys_chan_config config;
 	struct l1ctl_dm_est_req *est_req;
 	struct l1ctl_info_ul *ul;
-	struct trx_ts *ts;
+	struct l1sched_ts *ts;
 	uint8_t chan_nr, tn;
 	int rc;
 
@@ -643,7 +643,7 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 		tn, chan_nr, est_req->tsc, est_req->tch_mode);
 
 	/* Determine channel config */
-	config = sched_trx_chan_nr2pchan_config(chan_nr);
+	config = l1sched_chan_nr2pchan_config(chan_nr);
 	if (config == GSM_PCHAN_NONE) {
 		LOGP(DL1C, LOGL_ERROR, "Couldn't determine channel config\n");
 		rc = -EINVAL;
@@ -662,7 +662,7 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 	l1l->trx->tsc = est_req->tsc;
 
 	/* Configure requested TS */
-	rc = sched_trx_configure_ts(l1l->trx, tn, config);
+	rc = l1sched_configure_ts(l1l->trx, tn, config);
 	ts = l1l->trx->ts_list[tn];
 	if (rc) {
 		rc = -EINVAL;
@@ -670,10 +670,10 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 	}
 
 	/* Deactivate all lchans */
-	sched_trx_deactivate_all_lchans(ts);
+	l1sched_deactivate_all_lchans(ts);
 
 	/* Activate only requested lchans */
-	rc = sched_trx_set_lchans(ts, chan_nr, 1, est_req->tch_mode);
+	rc = l1sched_set_lchans(ts, chan_nr, 1, est_req->tch_mode);
 	if (rc) {
 		LOGP(DL1C, LOGL_ERROR, "Couldn't activate requested lchans\n");
 		rc = -EINVAL;
@@ -690,7 +690,7 @@ static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_REL_REQ, resetting scheduler\n");
 
 	/* Reset scheduler */
-	sched_trx_reset(l1l->trx, false);
+	l1sched_reset(l1l->trx, false);
 
 	msgb_free(msg);
 	return 0;
@@ -703,7 +703,7 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 	struct msgb *msg, bool traffic)
 {
 	struct l1ctl_info_ul *ul;
-	struct trx_ts_prim *prim;
+	struct l1sched_ts_prim *prim;
 	uint8_t chan_nr, link_id;
 	size_t payload_len;
 	int rc;
@@ -724,13 +724,13 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 		chan_nr, link_id, payload_len);
 
 	/* Init a new primitive */
-	rc = sched_prim_init(l1l->trx, &prim, payload_len,
+	rc = l1sched_prim_init(l1l->trx, &prim, payload_len,
 		chan_nr, link_id);
 	if (rc)
 		goto exit;
 
 	/* Push this primitive to transmit queue */
-	rc = sched_prim_push(l1l->trx, prim, chan_nr);
+	rc = l1sched_prim_push(l1l->trx, prim, chan_nr);
 	if (rc) {
 		talloc_free(prim);
 		goto exit;
@@ -770,8 +770,8 @@ static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_tch_mode_req *req;
-	struct trx_lchan_state *lchan;
-	struct trx_ts *ts;
+	struct l1sched_lchan_state *lchan;
+	struct l1sched_ts *ts;
 	int i;
 
 	req = (struct l1ctl_tch_mode_req *) msg->l1h;
@@ -814,7 +814,7 @@ static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	struct l1ctl_crypto_req *req;
 	struct l1ctl_info_ul *ul;
-	struct trx_ts *ts;
+	struct l1sched_ts *ts;
 	uint8_t tn;
 	int rc = 0;
 
@@ -836,7 +836,7 @@ static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
 	}
 
 	/* Poke scheduler */
-	rc = sched_trx_start_ciphering(ts, req->algo, req->key, req->key_len);
+	rc = l1sched_start_ciphering(ts, req->algo, req->key, req->key_len);
 	if (rc) {
 		LOGP(DL1C, LOGL_ERROR, "Couldn't configure ciphering\n");
 		rc = -EINVAL;

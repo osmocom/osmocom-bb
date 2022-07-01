@@ -45,9 +45,9 @@
 #define MAX_FN_SKEW		50
 #define TRX_LOSS_FRAMES	400
 
-static void sched_clck_tick(void *data)
+static void l1sched_clck_tick(void *data)
 {
-	struct trx_sched *sched = (struct trx_sched *) data;
+	struct l1sched_state *sched = (struct l1sched_state *) data;
 	struct timespec tv_now, *tv_clock, elapsed;
 	int64_t elapsed_us;
 	const struct timespec frame_duration = { .tv_sec = 0, .tv_nsec = GSM_TDMA_FN_DURATION_nS };
@@ -55,7 +55,7 @@ static void sched_clck_tick(void *data)
 	/* Check if transceiver is still alive */
 	if (sched->fn_counter_lost++ == TRX_LOSS_FRAMES) {
 		LOGP(DSCH, LOGL_DEBUG, "No more clock from transceiver\n");
-		sched->state = SCH_CLCK_STATE_WAIT;
+		sched->state = L1SCHED_CLCK_ST_WAIT;
 
 		return;
 	}
@@ -72,7 +72,7 @@ static void sched_clck_tick(void *data)
 		LOGP(DSCH, LOGL_NOTICE, "PC clock skew: "
 			"elapsed uS %" PRId64 "\n", elapsed_us);
 
-		sched->state = SCH_CLCK_STATE_WAIT;
+		sched->state = L1SCHED_CLCK_ST_WAIT;
 
 		return;
 	}
@@ -93,7 +93,7 @@ static void sched_clck_tick(void *data)
 		GSM_TDMA_FN_DURATION_uS - elapsed_us);
 }
 
-static void sched_clck_correct(struct trx_sched *sched,
+static void l1sched_clck_correct(struct l1sched_state *sched,
 	struct timespec *tv_now, uint32_t fn)
 {
 	sched->fn_counter_proc = fn;
@@ -106,12 +106,12 @@ static void sched_clck_correct(struct trx_sched *sched,
 	sched->clock = *tv_now;
 	memset(&sched->clock_timer, 0, sizeof(sched->clock_timer));
 
-	sched->clock_timer.cb = sched_clck_tick;
+	sched->clock_timer.cb = l1sched_clck_tick;
 	sched->clock_timer.data = sched;
 	osmo_timer_schedule(&sched->clock_timer, 0, GSM_TDMA_FN_DURATION_uS);
 }
 
-int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
+int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn)
 {
 	struct timespec tv_now, *tv_clock, elapsed;
 	int64_t elapsed_us, elapsed_fn;
@@ -124,11 +124,11 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 	tv_clock = &sched->clock;
 
 	/* If this is the first CLCK IND */
-	if (sched->state == SCH_CLCK_STATE_WAIT) {
-		sched_clck_correct(sched, &tv_now, fn);
+	if (sched->state == L1SCHED_CLCK_ST_WAIT) {
+		l1sched_clck_correct(sched, &tv_now, fn);
 
 		LOGP(DSCH, LOGL_DEBUG, "Initial clock received: fn=%u\n", fn);
-		sched->state = SCH_CLCK_STATE_OK;
+		sched->state = L1SCHED_CLCK_ST_OK;
 
 		return 0;
 	}
@@ -150,7 +150,7 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 		LOGP(DSCH, LOGL_NOTICE, "GSM clock skew: old fn=%u, "
 			"new fn=%u\n", sched->fn_counter_proc, fn);
 
-		sched_clck_correct(sched, &tv_now, fn);
+		l1sched_clck_correct(sched, &tv_now, fn);
 		return 0;
 	}
 
@@ -192,10 +192,10 @@ int sched_clck_handle(struct trx_sched *sched, uint32_t fn)
 	return 0;
 }
 
-void sched_clck_reset(struct trx_sched *sched)
+void l1sched_clck_reset(struct l1sched_state *sched)
 {
 	/* Reset internal state */
-	sched->state = SCH_CLCK_STATE_WAIT;
+	sched->state = L1SCHED_CLCK_ST_WAIT;
 
 	/* Stop clock timer */
 	osmo_timer_del(&sched->clock_timer);

@@ -571,7 +571,7 @@ rsp_error:
 static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
-	struct trx_meas_set meas;
+	struct l1sched_meas_set meas;
 	uint8_t buf[TRXD_BUF_SIZE];
 	sbit_t bits[148];
 	int8_t rssi, tn;
@@ -613,24 +613,24 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		tn, fn, rssi, toa256);
 
 	/* Group the measurements together */
-	meas = (struct trx_meas_set) {
+	meas = (struct l1sched_meas_set) {
 		.toa256 = toa256,
 		.rssi = rssi,
 		.fn = fn,
 	};
 
 	/* Poke scheduler */
-	sched_trx_handle_rx_burst(trx, tn, fn, bits, 148, &meas);
+	l1sched_handle_rx_burst(trx, tn, fn, bits, 148, &meas);
 
 	/* Correct local clock counter */
 	if (fn % 51 == 0)
-		sched_clck_handle(&trx->sched, fn);
+		l1sched_clck_handle(&trx->sched, fn);
 
 	return 0;
 }
 
 int trx_if_tx_burst(struct trx_instance *trx,
-		    const struct sched_burst_req *br)
+		    const struct l1sched_burst_req *br)
 {
 	uint8_t buf[TRXD_BUF_SIZE];
 	size_t length;

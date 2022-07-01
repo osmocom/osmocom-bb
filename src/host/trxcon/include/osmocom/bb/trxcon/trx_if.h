@@ -43,8 +43,8 @@ struct trx_instance {
 	int8_t ta;
 
 	/* Scheduler stuff */
-	struct trx_sched sched;
-	struct trx_ts *ts_list[TRX_TS_COUNT];
+	struct l1sched_state sched;
+	struct l1sched_ts *ts_list[TRX_TS_COUNT];
 
 	/* Bind L1CTL link */
 	struct l1ctl_link *l1l;
@@ -80,4 +80,4 @@ int trx_if_cmd_measure(struct trx_instance *trx,
 	uint16_t band_arfcn_start, uint16_t band_arfcn_stop);
 
 int trx_if_tx_burst(struct trx_instance *trx,
-		    const struct sched_burst_req *br);
+		    const struct l1sched_burst_req *br);

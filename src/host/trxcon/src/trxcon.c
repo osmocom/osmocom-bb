@@ -93,7 +93,7 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 
 		if (app_data.trx->fsm->state != TRX_STATE_OFFLINE) {
 			/* Reset scheduler and clock counter */
-			sched_trx_reset(app_data.trx, true);
+			l1sched_reset(app_data.trx, true);
 
 			/* TODO: implement trx_if_reset() */
 			trx_if_cmd_poweroff(app_data.trx);
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
 	app_data.trx->l1l = app_data.l1l;
 
 	/* Init scheduler */
-	rc = sched_trx_init(app_data.trx, app_data.trx_fn_advance);
+	rc = l1sched_init(app_data.trx, app_data.trx_fn_advance);
 	if (rc)
 		goto exit;
 
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
 exit:
 	/* Close active connections */
 	l1ctl_link_shutdown(app_data.l1l);
-	sched_trx_shutdown(app_data.trx);
+	l1sched_shutdown(app_data.trx);
 	trx_if_close(app_data.trx);
 
 	/* Shutdown main state machine */

@@ -64,9 +64,9 @@ static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 	time->fn = gsm_gsmtime2fn(time);
 }
 
-int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
-	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct trx_meas_set *meas)
+int rx_sch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
+	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
+	const sbit_t *bits, const struct l1sched_meas_set *meas)
 {
 	sbit_t payload[2 * 39];
 	struct gsm_time time;
@@ -109,8 +109,8 @@ int rx_sch_fn(struct trx_instance *trx, struct trx_ts *ts,
 		return -ENOMEM;
 
 	/* Fill in some downlink info */
-	data->chan_nr = trx_lchan_desc[lchan->type].chan_nr | ts->index;
-	data->link_id = trx_lchan_desc[lchan->type].link_id;
+	data->chan_nr = l1sched_lchan_desc[lchan->type].chan_nr | ts->index;
+	data->link_id = l1sched_lchan_desc[lchan->type].link_id;
 	data->band_arfcn = htons(trx->band_arfcn);
 	data->frame_nr = htonl(fn);
 	data->rx_level = -(meas->rssi);
