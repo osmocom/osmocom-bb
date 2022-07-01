@@ -1,0 +1,3 @@
+SUBDIRS = \
+	trxcon \
+	$(NULL)

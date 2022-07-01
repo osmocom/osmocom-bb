@@ -9,8 +9,8 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/linuxlist.h>
 
-#include "logging.h"
-#include "scheduler.h"
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/scheduler.h>
 
 #define GSM_BURST_LEN		148
 #define GSM_BURST_PL_LEN	116

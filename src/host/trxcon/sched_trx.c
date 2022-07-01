@@ -31,11 +31,11 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/linuxlist.h>
 
-#include "l1ctl_proto.h"
-#include "scheduler.h"
-#include "sched_trx.h"
-#include "trx_if.h"
-#include "logging.h"
+#include <osmocom/bb/trxcon/l1ctl_proto.h>
+#include <osmocom/bb/trxcon/scheduler.h>
+#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/logging.h>
 
 static void sched_trx_a5_burst_enc(struct trx_lchan_state *lchan,
 				   struct sched_burst_req *br);

@@ -36,13 +36,13 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
-#include "l1ctl_proto.h"
-#include "scheduler.h"
-#include "sched_trx.h"
-#include "logging.h"
-#include "trxcon.h"
-#include "trx_if.h"
-#include "l1ctl.h"
+#include <osmocom/bb/trxcon/l1ctl_proto.h>
+#include <osmocom/bb/trxcon/scheduler.h>
+#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/trxcon.h>
+#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/l1ctl.h>
 
 /* GSM 05.02 Chapter 5.2.3 Normal Burst (NB) */
 const uint8_t sched_nb_training_bits[8][26] = {

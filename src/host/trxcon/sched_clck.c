@@ -38,9 +38,9 @@
 #include <osmocom/core/timer_compat.h>
 #include <osmocom/gsm/a5.h>
 
-#include "scheduler.h"
-#include "logging.h"
-#include "trx_if.h"
+#include <osmocom/bb/trxcon/scheduler.h>
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/trx_if.h>
 
 #define MAX_FN_SKEW		50
 #define TRX_LOSS_FRAMES	400

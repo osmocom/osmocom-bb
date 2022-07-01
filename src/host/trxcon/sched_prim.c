@@ -29,10 +29,10 @@
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
-#include "scheduler.h"
-#include "sched_trx.h"
-#include "trx_if.h"
-#include "logging.h"
+#include <osmocom/bb/trxcon/scheduler.h>
+#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/logging.h>
 
 /**
  * Initializes a new primitive by allocating memory

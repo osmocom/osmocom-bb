@@ -36,10 +36,10 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/core/write_queue.h>
 
-#include "trxcon.h"
-#include "logging.h"
-#include "l1ctl_link.h"
-#include "l1ctl.h"
+#include <osmocom/bb/trxcon/trxcon.h>
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/l1ctl_link.h>
+#include <osmocom/bb/trxcon/l1ctl.h>
 
 static struct value_string l1ctl_evt_names[] = {
 	{ 0, NULL } /* no events? */

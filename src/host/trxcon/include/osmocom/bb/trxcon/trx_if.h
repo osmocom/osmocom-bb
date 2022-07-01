@@ -5,8 +5,8 @@
 #include <osmocom/core/timer.h>
 #include <osmocom/core/fsm.h>
 
-#include "scheduler.h"
-#include "sched_trx.h"
+#include <osmocom/bb/trxcon/scheduler.h>
+#include <osmocom/bb/trxcon/sched_trx.h>
 
 #define TRXC_BUF_SIZE	1024
 #define TRXD_BUF_SIZE	512

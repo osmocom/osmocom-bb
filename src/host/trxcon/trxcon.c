@@ -39,14 +39,14 @@
 
 #include <osmocom/gsm/gsm_utils.h>
 
-#include "trxcon.h"
-#include "trx_if.h"
-#include "logging.h"
-#include "l1ctl.h"
-#include "l1ctl_link.h"
-#include "l1ctl_proto.h"
-#include "scheduler.h"
-#include "sched_trx.h"
+#include <osmocom/bb/trxcon/trxcon.h>
+#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/l1ctl.h>
+#include <osmocom/bb/trxcon/l1ctl_link.h>
+#include <osmocom/bb/trxcon/l1ctl_proto.h>
+#include <osmocom/bb/trxcon/scheduler.h>
+#include <osmocom/bb/trxcon/sched_trx.h>
 
 #define COPYRIGHT \
 	"Copyright (C) 2016-2020 by Vadim Yanitskiy <axilirator@gmail.com>\n" \

@@ -30,12 +30,12 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/coding/gsm0503_coding.h>
 
-#include "l1ctl_proto.h"
-#include "scheduler.h"
-#include "sched_trx.h"
-#include "logging.h"
-#include "trx_if.h"
-#include "l1ctl.h"
+#include <osmocom/bb/trxcon/l1ctl_proto.h>
+#include <osmocom/bb/trxcon/scheduler.h>
+#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/l1ctl.h>
 
 int rx_data_fn(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, uint8_t bid,

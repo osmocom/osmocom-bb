@@ -31,12 +31,12 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/coding/gsm0503_coding.h>
 
-#include "l1ctl_proto.h"
-#include "scheduler.h"
-#include "sched_trx.h"
-#include "logging.h"
-#include "trx_if.h"
-#include "l1ctl.h"
+#include <osmocom/bb/trxcon/l1ctl_proto.h>
+#include <osmocom/bb/trxcon/scheduler.h>
+#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/l1ctl.h>
 
 static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 {

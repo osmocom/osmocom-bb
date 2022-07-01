@@ -35,12 +35,12 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
-#include "logging.h"
-#include "l1ctl_link.h"
-#include "l1ctl_proto.h"
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/l1ctl_link.h>
+#include <osmocom/bb/trxcon/l1ctl_proto.h>
 
-#include "trx_if.h"
-#include "sched_trx.h"
+#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/sched_trx.h>
 
 static const char *arfcn2band_name(uint16_t arfcn)
 {

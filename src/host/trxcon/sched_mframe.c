@@ -25,7 +25,7 @@
 
 #include <osmocom/gsm/gsm_utils.h>
 
-#include "sched_trx.h"
+#include <osmocom/bb/trxcon/sched_trx.h>
 
 /* Non-combined CCCH */
 static const struct trx_frame frame_bcch[51] = {

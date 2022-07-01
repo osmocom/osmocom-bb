@@ -3,8 +3,8 @@
 #include <stdint.h>
 #include <osmocom/core/msgb.h>
 
-#include "l1ctl_link.h"
-#include "l1ctl_proto.h"
+#include <osmocom/bb/trxcon/l1ctl_link.h>
+#include <osmocom/bb/trxcon/l1ctl_proto.h>
 
 /* Event handlers */
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg);

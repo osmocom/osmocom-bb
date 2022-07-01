@@ -1,5 +1,9 @@
 AUTOMAKE_OPTIONS = foreign dist-bzip2 1.6
 
+SUBDIRS = \
+	include \
+	$(NULL)
+
 AM_CPPFLAGS = \
 	$(all_includes) \
 	-I$(top_srcdir)/include \

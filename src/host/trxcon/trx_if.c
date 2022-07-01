@@ -39,11 +39,11 @@
 
 #include <osmocom/gsm/gsm_utils.h>
 
-#include "l1ctl.h"
-#include "trxcon.h"
-#include "trx_if.h"
-#include "logging.h"
-#include "scheduler.h"
+#include <osmocom/bb/trxcon/l1ctl.h>
+#include <osmocom/bb/trxcon/trxcon.h>
+#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/scheduler.h>
 
 static struct value_string trx_evt_names[] = {
 	{ 0, NULL } /* no events? */

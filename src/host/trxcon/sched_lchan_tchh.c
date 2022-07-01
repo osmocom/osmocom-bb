@@ -35,12 +35,12 @@
 #include <osmocom/coding/gsm0503_coding.h>
 #include <osmocom/codec/codec.h>
 
-#include "l1ctl_proto.h"
-#include "scheduler.h"
-#include "sched_trx.h"
-#include "logging.h"
-#include "trx_if.h"
-#include "l1ctl.h"
+#include <osmocom/bb/trxcon/l1ctl_proto.h>
+#include <osmocom/bb/trxcon/scheduler.h>
+#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/l1ctl.h>
 
 static const uint8_t tch_h0_traffic_block_map[3][4] = {
 	/* B0(0,2,4,6), B1(4,6,8,10), B2(8,10,0,2) */

@@ -31,5 +31,9 @@ fi
 
 dnl Checks for typedefs, structures and compiler characteristics
 
-AC_OUTPUT(
-    Makefile)
+AC_CONFIG_FILES([include/Makefile
+		 include/osmocom/Makefile
+		 include/osmocom/bb/Makefile
+		 include/osmocom/bb/trxcon/Makefile
+		 Makefile])
+AC_OUTPUT

@@ -21,7 +21,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
 
-#include "logging.h"
+#include <osmocom/bb/trxcon/logging.h>
 
 static struct log_info_cat trx_log_info_cat[] = {
 	[DAPP] = {
