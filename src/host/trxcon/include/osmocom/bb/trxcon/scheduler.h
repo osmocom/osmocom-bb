@@ -14,23 +14,23 @@ enum tdma_sched_clck_state {
 /* Forward structure declaration */
 struct trx_sched;
 
-/*! \brief One scheduler instance */
+/*! One scheduler instance */
 struct trx_sched {
-	/*! \brief Clock state */
+	/*! Clock state */
 	enum tdma_sched_clck_state state;
-	/*! \brief Local clock source */
+	/*! Local clock source */
 	struct timespec clock;
-	/*! \brief Count of processed frames */
+	/*! Count of processed frames */
 	uint32_t fn_counter_proc;
-	/*! \brief Local frame counter advance */
+	/*! Local frame counter advance */
 	uint32_t fn_counter_advance;
-	/*! \brief Count of lost frames */
+	/*! Count of lost frames */
 	uint32_t fn_counter_lost;
-	/*! \brief Frame callback timer */
+	/*! Frame callback timer */
 	struct osmo_timer_list clock_timer;
-	/*! \brief Frame callback */
+	/*! Frame callback */
 	void (*clock_cb)(struct trx_sched *sched);
-	/*! \brief Private data (e.g. pointer to trx instance) */
+	/*! Private data (e.g. pointer to trx instance) */
 	void *data;
 };
 

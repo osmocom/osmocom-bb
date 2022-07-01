@@ -120,63 +120,63 @@ typedef int trx_lchan_tx_func(struct trx_instance *trx, struct trx_ts *ts,
 			      struct sched_burst_req *br);
 
 struct trx_lchan_desc {
-	/*! \brief Human-readable name */
+	/*! Human-readable name */
 	const char *name;
-	/*! \brief Human-readable description */
+	/*! Human-readable description */
 	const char *desc;
 
-	/*! \brief Channel Number (like in RSL) */
+	/*! Channel Number (like in RSL) */
 	uint8_t chan_nr;
-	/*! \brief Link ID (like in RSL) */
+	/*! Link ID (like in RSL) */
 	uint8_t link_id;
-	/*! \brief Sub-slot number (for SDCCH and TCH/H) */
+	/*! Sub-slot number (for SDCCH and TCH/H) */
 	uint8_t ss_nr;
-	/*! \brief GSMTAP channel type (see GSMTAP_CHANNEL_*) */
+	/*! GSMTAP channel type (see GSMTAP_CHANNEL_*) */
 	uint8_t gsmtap_chan_type;
 
-	/*! \brief How much memory do we need to store bursts */
+	/*! How much memory do we need to store bursts */
 	size_t burst_buf_size;
-	/*! \brief Channel specific flags */
+	/*! Channel specific flags */
 	uint8_t flags;
 
-	/*! \brief Function to call when burst received from PHY */
+	/*! Function to call when burst received from PHY */
 	trx_lchan_rx_func *rx_fn;
-	/*! \brief Function to call when data received from L2 */
+	/*! Function to call when data received from L2 */
 	trx_lchan_tx_func *tx_fn;
 };
 
 struct trx_frame {
-	/*! \brief Downlink TRX channel type */
+	/*! Downlink TRX channel type */
 	enum trx_lchan_type dl_chan;
-	/*! \brief Downlink block ID */
+	/*! Downlink block ID */
 	uint8_t dl_bid;
-	/*! \brief Uplink TRX channel type */
+	/*! Uplink TRX channel type */
 	enum trx_lchan_type ul_chan;
-	/*! \brief Uplink block ID */
+	/*! Uplink block ID */
 	uint8_t ul_bid;
 };
 
 struct trx_multiframe {
-	/*! \brief Channel combination */
+	/*! Channel combination */
 	enum gsm_phys_chan_config chan_config;
-	/*! \brief Human-readable name */
+	/*! Human-readable name */
 	const char *name;
-	/*! \brief Repeats how many frames */
+	/*! Repeats how many frames */
 	uint8_t period;
-	/*! \brief Applies to which timeslots */
+	/*! Applies to which timeslots */
 	uint8_t slotmask;
-	/*! \brief Contains which lchans */
+	/*! Contains which lchans */
 	uint64_t lchan_mask;
-	/*! \brief Pointer to scheduling structure */
+	/*! Pointer to scheduling structure */
 	const struct trx_frame *frames;
 };
 
 struct trx_meas_set {
-	/*! \brief TDMA frame number of the first burst this set belongs to */
+	/*! TDMA frame number of the first burst this set belongs to */
 	uint32_t fn;
-	/*! \brief ToA256 (Timing of Arrival, 1/256 of a symbol) */
+	/*! ToA256 (Timing of Arrival, 1/256 of a symbol) */
 	int16_t toa256;
-	/*! \brief RSSI (Received Signal Strength Indication) */
+	/*! RSSI (Received Signal Strength Indication) */
 	int8_t rssi;
 };
 
@@ -188,83 +188,83 @@ struct trx_lchan_meas_hist {
 
 /* States each channel on a multiframe */
 struct trx_lchan_state {
-	/*! \brief Channel type */
+	/*! Channel type */
 	enum trx_lchan_type type;
-	/*! \brief Channel status */
+	/*! Channel status */
 	uint8_t active;
-	/*! \brief Link to a list of channels */
+	/*! Link to a list of channels */
 	struct llist_head list;
 
-	/*! \brief Burst type: GMSK or 8PSK */
+	/*! Burst type: GMSK or 8PSK */
 	enum trx_burst_type burst_type;
-	/*! \brief Mask of received bursts */
+	/*! Mask of received bursts */
 	uint8_t rx_burst_mask;
-	/*! \brief Mask of transmitted bursts */
+	/*! Mask of transmitted bursts */
 	uint8_t tx_burst_mask;
-	/*! \brief Burst buffer for RX */
+	/*! Burst buffer for RX */
 	sbit_t *rx_bursts;
-	/*! \brief Burst buffer for TX */
+	/*! Burst buffer for TX */
 	ubit_t *tx_bursts;
 
-	/*! \brief A primitive being sent */
+	/*! A primitive being sent */
 	struct trx_ts_prim *prim;
 
-	/*! \brief Mode for TCH channels (see GSM48_CMODE_*) */
+	/*! Mode for TCH channels (see GSM48_CMODE_*) */
 	uint8_t	tch_mode;
 
-	/*! \brief FACCH/H on downlink */
+	/*! FACCH/H on downlink */
 	bool dl_ongoing_facch;
-	/*! \brief pending FACCH/H blocks on Uplink */
+	/*! pending FACCH/H blocks on Uplink */
 	uint8_t ul_facch_blocks;
 
-	/*! \brief Downlink measurements history */
+	/*! Downlink measurements history */
 	struct trx_lchan_meas_hist meas_hist;
-	/*! \brief AVG measurements of the last received block */
+	/*! AVG measurements of the last received block */
 	struct trx_meas_set meas_avg;
 
-	/*! \brief TDMA loss detection state */
+	/*! TDMA loss detection state */
 	struct {
-		/*! \brief Last processed TDMA frame number */
+		/*! Last processed TDMA frame number */
 		uint32_t last_proc;
-		/*! \brief Number of processed TDMA frames */
+		/*! Number of processed TDMA frames */
 		unsigned long num_proc;
-		/*! \brief Number of lost TDMA frames */
+		/*! Number of lost TDMA frames */
 		unsigned long num_lost;
 	} tdma;
 
-	/*! \brief SACCH state */
+	/*! SACCH state */
 	struct {
-		/*! \brief Cached measurement report (last received) */
+		/*! Cached measurement report (last received) */
 		uint8_t mr_cache[GSM_MACBLOCK_LEN];
-		/*! \brief Cache usage counter */
+		/*! Cache usage counter */
 		uint8_t mr_cache_usage;
-		/*! \brief Was a MR transmitted last time? */
+		/*! Was a MR transmitted last time? */
 		bool mr_tx_last;
 	} sacch;
 
 	/* AMR specific */
 	struct {
-		/*! \brief 4 possible codecs for AMR */
+		/*! 4 possible codecs for AMR */
 		uint8_t codec[4];
-		/*! \brief Number of possible codecs */
+		/*! Number of possible codecs */
 		uint8_t codecs;
-		/*! \brief Current uplink FT index */
+		/*! Current uplink FT index */
 		uint8_t ul_ft;
-		/*! \brief Current downlink FT index */
+		/*! Current downlink FT index */
 		uint8_t dl_ft;
-		/*! \brief Current uplink CMR index */
+		/*! Current uplink CMR index */
 		uint8_t ul_cmr;
-		/*! \brief Current downlink CMR index */
+		/*! Current downlink CMR index */
 		uint8_t dl_cmr;
-		/*! \brief If AMR loop is enabled */
+		/*! If AMR loop is enabled */
 		uint8_t amr_loop;
-		/*! \brief Number of bit error rates */
+		/*! Number of bit error rates */
 		uint8_t ber_num;
-		/*! \brief Sum of bit error rates */
+		/*! Sum of bit error rates */
 		float ber_sum;
 	} amr;
 
-	/*! \brief A5/X encryption state */
+	/*! A5/X encryption state */
 	struct {
 		uint8_t key[MAX_A5_KEY_LEN];
 		uint8_t key_len;
@@ -276,14 +276,14 @@ struct trx_lchan_state {
 };
 
 struct trx_ts {
-	/*! \brief Timeslot index within a frame (0..7) */
+	/*! Timeslot index within a frame (0..7) */
 	uint8_t index;
 
-	/*! \brief Pointer to multiframe layout */
+	/*! Pointer to multiframe layout */
 	const struct trx_multiframe *mf_layout;
-	/*! \brief Channel states for logical channels */
+	/*! Channel states for logical channels */
 	struct llist_head lchans;
-	/*! \brief Queue primitives for TX */
+	/*! Queue primitives for TX */
 	struct llist_head tx_prims;
 	/* backpointer to its TRX */
 	struct trx_instance *trx;
@@ -291,13 +291,13 @@ struct trx_ts {
 
 /* Represents one TX primitive in the queue of trx_ts */
 struct trx_ts_prim {
-	/*! \brief Link to queue of TS */
+	/*! Link to queue of TS */
 	struct llist_head list;
-	/*! \brief Logical channel type */
+	/*! Logical channel type */
 	enum trx_lchan_type chan;
-	/*! \brief Payload length */
+	/*! Payload length */
 	size_t payload_len;
-	/*! \brief Payload */
+	/*! Payload */
 	uint8_t payload[0];
 };
 
