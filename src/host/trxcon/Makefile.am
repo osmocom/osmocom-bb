@@ -44,8 +44,14 @@ trxcon_LDADD = \
 	$(LIBOSMOGSM_LIBS) \
 	$(NULL)
 
+BUILT_SOURCES = \
+	$(top_srcdir)/.version \
+	$(NULL)
+EXTRA_DIST = \
+	.version \
+	$(NULL)
+
 # versioning magic
-BUILT_SOURCES = $(top_srcdir)/.version
 $(top_srcdir)/.version:
 	echo $(VERSION) > $@-t && mv $@-t $@
 dist-hook:
