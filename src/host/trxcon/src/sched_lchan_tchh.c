@@ -90,21 +90,21 @@ const uint8_t tch_h1_ul_facch_block_map[3][6] = {
  *
  * See GSM 05.02, clause 7, table 1
  *
- * @param  chan   channel type (TRXC_TCHH_0 or TRXC_TCHH_1)
+ * @param  chan   channel type (L1SCHED_TCHH_0 or L1SCHED_TCHH_1)
  * @param  fn     the current frame number
  * @param  ul     Uplink or Downlink?
  * @param  facch  FACCH/H or traffic?
  * @param  start  init or end of transmission?
  * @return        true (yes) or false (no)
  */
-bool sched_tchh_block_map_fn(enum trx_lchan_type chan,
+bool sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
 	uint32_t fn, bool ul, bool facch, bool start)
 {
 	uint8_t fn_mf;
 	int i = 0;
 
 	/* Just to be sure */
-	OSMO_ASSERT(chan == TRXC_TCHH_0 || chan == TRXC_TCHH_1);
+	OSMO_ASSERT(chan == L1SCHED_TCHH_0 || chan == L1SCHED_TCHH_1);
 
 	/* Calculate a modulo */
 	fn_mf = facch ? (fn % 26) : (fn % 13);
@@ -121,18 +121,18 @@ bool sched_tchh_block_map_fn(enum trx_lchan_type chan,
 	/* Choose a proper block map */
 	if (facch) {
 		if (ul) {
-			if (chan == TRXC_TCHH_0)
+			if (chan == L1SCHED_TCHH_0)
 				BLOCK_MAP_FN(tch_h0_ul_facch_block_map);
 			else
 				BLOCK_MAP_FN(tch_h1_ul_facch_block_map);
 		} else {
-			if (chan == TRXC_TCHH_0)
+			if (chan == L1SCHED_TCHH_0)
 				BLOCK_MAP_FN(tch_h0_dl_facch_block_map);
 			else
 				BLOCK_MAP_FN(tch_h1_dl_facch_block_map);
 		}
 	} else {
-		if (chan == TRXC_TCHH_0)
+		if (chan == L1SCHED_TCHH_0)
 			BLOCK_MAP_FN(tch_h0_traffic_block_map);
 		else
 			BLOCK_MAP_FN(tch_h1_traffic_block_map);
@@ -147,20 +147,20 @@ bool sched_tchh_block_map_fn(enum trx_lchan_type chan,
  *
  * See GSM 05.02, clause 7, table 1
  *
- * @param  chan      channel type (TRXC_TCHH_0 or TRXC_TCHH_1)
+ * @param  chan      channel type (L1SCHED_TCHH_0 or L1SCHED_TCHH_1)
  * @param  last_fn   frame number of the last burst
  * @param  facch     FACCH/H or traffic?
  * @return           either frame number of the first burst,
  *                   or fn=last_fn if calculation failed
  */
-uint32_t sched_tchh_block_dl_first_fn(enum trx_lchan_type chan,
+uint32_t sched_tchh_block_dl_first_fn(enum l1sched_lchan_type chan,
 	uint32_t last_fn, bool facch)
 {
 	uint8_t fn_mf, fn_diff;
 	int i = 0;
 
 	/* Just to be sure */
-	OSMO_ASSERT(chan == TRXC_TCHH_0 || chan == TRXC_TCHH_1);
+	OSMO_ASSERT(chan == L1SCHED_TCHH_0 || chan == L1SCHED_TCHH_1);
 
 	/* Calculate a modulo */
 	fn_mf = facch ? (last_fn % 26) : (last_fn % 13);
@@ -175,12 +175,12 @@ uint32_t sched_tchh_block_dl_first_fn(enum trx_lchan_type chan,
 
 	/* Choose a proper block map */
 	if (facch) {
-		if (chan == TRXC_TCHH_0)
+		if (chan == L1SCHED_TCHH_0)
 			BLOCK_FIRST_FN(tch_h0_dl_facch_block_map);
 		else
 			BLOCK_FIRST_FN(tch_h1_dl_facch_block_map);
 	} else {
-		if (chan == TRXC_TCHH_0)
+		if (chan == L1SCHED_TCHH_0)
 			BLOCK_FIRST_FN(tch_h0_traffic_block_map);
 		else
 			BLOCK_FIRST_FN(tch_h1_traffic_block_map);

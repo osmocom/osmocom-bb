@@ -53,48 +53,48 @@ enum trx_burst_type {
  * These types define the different channels on a multiframe.
  * Each channel has queues and can be activated individually.
  */
-enum trx_lchan_type {
-	TRXC_IDLE = 0,
-	TRXC_FCCH,
-	TRXC_SCH,
-	TRXC_BCCH,
-	TRXC_RACH,
-	TRXC_CCCH,
-	TRXC_TCHF,
-	TRXC_TCHH_0,
-	TRXC_TCHH_1,
-	TRXC_SDCCH4_0,
-	TRXC_SDCCH4_1,
-	TRXC_SDCCH4_2,
-	TRXC_SDCCH4_3,
-	TRXC_SDCCH8_0,
-	TRXC_SDCCH8_1,
-	TRXC_SDCCH8_2,
-	TRXC_SDCCH8_3,
-	TRXC_SDCCH8_4,
-	TRXC_SDCCH8_5,
-	TRXC_SDCCH8_6,
-	TRXC_SDCCH8_7,
-	TRXC_SACCHTF,
-	TRXC_SACCHTH_0,
-	TRXC_SACCHTH_1,
-	TRXC_SACCH4_0,
-	TRXC_SACCH4_1,
-	TRXC_SACCH4_2,
-	TRXC_SACCH4_3,
-	TRXC_SACCH8_0,
-	TRXC_SACCH8_1,
-	TRXC_SACCH8_2,
-	TRXC_SACCH8_3,
-	TRXC_SACCH8_4,
-	TRXC_SACCH8_5,
-	TRXC_SACCH8_6,
-	TRXC_SACCH8_7,
-	TRXC_PDTCH,
-	TRXC_PTCCH,
-	TRXC_SDCCH4_CBCH,
-	TRXC_SDCCH8_CBCH,
-	_TRX_CHAN_MAX
+enum l1sched_lchan_type {
+	L1SCHED_IDLE = 0,
+	L1SCHED_FCCH,
+	L1SCHED_SCH,
+	L1SCHED_BCCH,
+	L1SCHED_RACH,
+	L1SCHED_CCCH,
+	L1SCHED_TCHF,
+	L1SCHED_TCHH_0,
+	L1SCHED_TCHH_1,
+	L1SCHED_SDCCH4_0,
+	L1SCHED_SDCCH4_1,
+	L1SCHED_SDCCH4_2,
+	L1SCHED_SDCCH4_3,
+	L1SCHED_SDCCH8_0,
+	L1SCHED_SDCCH8_1,
+	L1SCHED_SDCCH8_2,
+	L1SCHED_SDCCH8_3,
+	L1SCHED_SDCCH8_4,
+	L1SCHED_SDCCH8_5,
+	L1SCHED_SDCCH8_6,
+	L1SCHED_SDCCH8_7,
+	L1SCHED_SACCHTF,
+	L1SCHED_SACCHTH_0,
+	L1SCHED_SACCHTH_1,
+	L1SCHED_SACCH4_0,
+	L1SCHED_SACCH4_1,
+	L1SCHED_SACCH4_2,
+	L1SCHED_SACCH4_3,
+	L1SCHED_SACCH8_0,
+	L1SCHED_SACCH8_1,
+	L1SCHED_SACCH8_2,
+	L1SCHED_SACCH8_3,
+	L1SCHED_SACCH8_4,
+	L1SCHED_SACCH8_5,
+	L1SCHED_SACCH8_6,
+	L1SCHED_SACCH8_7,
+	L1SCHED_PDTCH,
+	L1SCHED_PTCCH,
+	L1SCHED_SDCCH4_CBCH,
+	L1SCHED_SDCCH8_CBCH,
+	_L1SCHED_CHAN_MAX
 };
 
 /* Represents a burst to be transmitted */
@@ -146,12 +146,12 @@ struct trx_lchan_desc {
 };
 
 struct trx_frame {
-	/*! Downlink TRX channel type */
-	enum trx_lchan_type dl_chan;
+	/*! Downlink channel (slot) type */
+	enum l1sched_lchan_type dl_chan;
 	/*! Downlink block ID */
 	uint8_t dl_bid;
-	/*! Uplink TRX channel type */
-	enum trx_lchan_type ul_chan;
+	/*! Uplink channel (slot) type */
+	enum l1sched_lchan_type ul_chan;
 	/*! Uplink block ID */
 	uint8_t ul_bid;
 };
@@ -189,7 +189,7 @@ struct trx_lchan_meas_hist {
 /* States each channel on a multiframe */
 struct trx_lchan_state {
 	/*! Channel type */
-	enum trx_lchan_type type;
+	enum l1sched_lchan_type type;
 	/*! Channel status */
 	uint8_t active;
 	/*! Link to a list of channels */
@@ -294,14 +294,14 @@ struct trx_ts_prim {
 	/*! Link to queue of TS */
 	struct llist_head list;
 	/*! Logical channel type */
-	enum trx_lchan_type chan;
+	enum l1sched_lchan_type chan;
 	/*! Payload length */
 	size_t payload_len;
 	/*! Payload */
 	uint8_t payload[0];
 };
 
-extern const struct trx_lchan_desc trx_lchan_desc[_TRX_CHAN_MAX];
+extern const struct trx_lchan_desc trx_lchan_desc[_L1SCHED_CHAN_MAX];
 const struct trx_multiframe *sched_mframe_layout(
 	enum gsm_phys_chan_config config, int tn);
 
@@ -321,15 +321,15 @@ int sched_trx_start_ciphering(struct trx_ts *ts, uint8_t algo,
 
 /* Logical channel management functions */
 enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr);
-enum trx_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr,
+enum l1sched_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr,
 	uint8_t link_id);
 
 void sched_trx_deactivate_all_lchans(struct trx_ts *ts);
 int sched_trx_set_lchans(struct trx_ts *ts, uint8_t chan_nr, int active, uint8_t tch_mode);
-int sched_trx_activate_lchan(struct trx_ts *ts, enum trx_lchan_type chan);
-int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan);
+int sched_trx_activate_lchan(struct trx_ts *ts, enum l1sched_lchan_type chan);
+int sched_trx_deactivate_lchan(struct trx_ts *ts, enum l1sched_lchan_type chan);
 struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
-	enum trx_lchan_type chan);
+	enum l1sched_lchan_type chan);
 
 /* Primitive management functions */
 int sched_prim_init(void *ctx, struct trx_ts_prim **prim,
@@ -349,7 +349,7 @@ int sched_prim_push(struct trx_instance *trx,
 	|| mode == GSM48_CMODE_DATA_3k6)
 
 #define CHAN_IS_TCH(chan) \
-	(chan == TRXC_TCHF || chan == TRXC_TCHH_0 || chan == TRXC_TCHH_1)
+	(chan == L1SCHED_TCHF || chan == L1SCHED_TCHH_0 || chan == L1SCHED_TCHH_1)
 
 #define CHAN_IS_SACCH(chan) \
 	(trx_lchan_desc[chan].link_id & TRX_CH_LID_SACCH)
@@ -390,14 +390,14 @@ int sched_send_dt_ind(struct trx_instance *trx, struct trx_ts *ts,
 	int bit_error_count, bool dec_failed, bool traffic);
 int sched_send_dt_conf(struct trx_instance *trx, struct trx_ts *ts,
 	struct trx_lchan_state *lchan, uint32_t fn, bool traffic);
-int sched_gsmtap_send(enum trx_lchan_type lchan_type, uint32_t fn, uint8_t tn,
+int sched_gsmtap_send(enum l1sched_lchan_type lchan_type, uint32_t fn, uint8_t tn,
 		      uint16_t band_arfcn, int8_t signal_dbm, uint8_t snr,
 		      const uint8_t *data, size_t data_len);
 
 /* Interleaved TCH/H block TDMA frame mapping */
-uint32_t sched_tchh_block_dl_first_fn(enum trx_lchan_type chan,
+uint32_t sched_tchh_block_dl_first_fn(enum l1sched_lchan_type chan,
 	uint32_t last_fn, bool facch);
-bool sched_tchh_block_map_fn(enum trx_lchan_type chan,
+bool sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
 	uint32_t fn, bool ul, bool facch, bool start);
 
 #define sched_tchh_traffic_start(chan, fn, ul) \

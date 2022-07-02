@@ -99,7 +99,7 @@ const char *burst_mask2str(const uint8_t *mask, int bits)
 	return buf;
 }
 
-int sched_gsmtap_send(enum trx_lchan_type lchan_type, uint32_t fn, uint8_t tn,
+int sched_gsmtap_send(enum l1sched_lchan_type lchan_type, uint32_t fn, uint8_t tn,
 		      uint16_t band_arfcn, int8_t signal_dbm, uint8_t snr,
 		      const uint8_t *data, size_t data_len)
 {
@@ -202,7 +202,7 @@ size_t sched_bad_frame_ind(uint8_t *l2, struct trx_lchan_state *lchan)
 {
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SPEECH_V1:
-		if (lchan->type == TRXC_TCHF) { /* Full Rate */
+		if (lchan->type == L1SCHED_TCHF) { /* Full Rate */
 			memset(l2, 0x00, GSM_FR_BYTES);
 			l2[0] = 0xd0;
 			return GSM_FR_BYTES;

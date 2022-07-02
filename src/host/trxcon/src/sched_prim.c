@@ -48,7 +48,7 @@
 int sched_prim_init(void *ctx, struct trx_ts_prim **prim,
 	size_t pl_len, uint8_t chan_nr, uint8_t link_id)
 {
-	enum trx_lchan_type lchan_type;
+	enum l1sched_lchan_type lchan_type;
 	struct trx_ts_prim *new_prim;
 	uint8_t len;
 
@@ -314,7 +314,7 @@ static struct trx_ts_prim *prim_dequeue_sacch(struct llist_head *queue,
 
 /* Dequeues a primitive of a given channel type */
 static struct trx_ts_prim *prim_dequeue_one(struct llist_head *queue,
-	enum trx_lchan_type lchan_type)
+	enum l1sched_lchan_type lchan_type)
 {
 	struct trx_ts_prim *prim;
 
@@ -344,13 +344,13 @@ static struct trx_ts_prim *prim_dequeue_one(struct llist_head *queue,
  *
  * @param  queue      transmit queue to take a prim from
  * @param  lchan_type required channel type of a primitive,
- *                    e.g. TRXC_TCHF, TRXC_TCHH_0, or TRXC_TCHH_1
+ *                    e.g. L1SCHED_TCHF, L1SCHED_TCHH_0, or L1SCHED_TCHH_1
  * @param  facch      FACCH (true) or speech (false) prim?
  * @return            either a FACCH, or a TCH primitive if found,
  *                    otherwise NULL
  */
 static struct trx_ts_prim *prim_dequeue_tch(struct llist_head *queue,
-	enum trx_lchan_type lchan_type, bool facch)
+	enum l1sched_lchan_type lchan_type, bool facch)
 {
 	struct trx_ts_prim *prim;
 
@@ -388,8 +388,8 @@ static struct trx_ts_prim *prim_dequeue_tch_f(struct llist_head *queue)
 	struct trx_ts_prim *tch;
 
 	/* Attempt to find a pair of both FACCH/F and TCH/F frames */
-	facch = prim_dequeue_tch(queue, TRXC_TCHF, true);
-	tch = prim_dequeue_tch(queue, TRXC_TCHF, false);
+	facch = prim_dequeue_tch(queue, L1SCHED_TCHF, true);
+	tch = prim_dequeue_tch(queue, L1SCHED_TCHF, false);
 
 	/* Prioritize FACCH/F, if found */
 	if (facch) {
@@ -429,7 +429,7 @@ static struct trx_ts_prim *prim_dequeue_tch_f(struct llist_head *queue)
  *                    otherwise NULL
  */
 static struct trx_ts_prim *prim_dequeue_tch_h(struct llist_head *queue,
-	uint32_t fn, enum trx_lchan_type lchan_type)
+	uint32_t fn, enum l1sched_lchan_type lchan_type)
 {
 	struct trx_ts_prim *facch;
 	struct trx_ts_prim *tch;
@@ -485,12 +485,12 @@ struct trx_ts_prim *sched_prim_dequeue(struct llist_head *queue,
 
 	switch (lchan->type) {
 	/* TCH/F requires FACCH/F prioritization */
-	case TRXC_TCHF:
+	case L1SCHED_TCHF:
 		return prim_dequeue_tch_f(queue);
 
 	/* FACCH/H prioritization is a bit more complex */
-	case TRXC_TCHH_0:
-	case TRXC_TCHH_1:
+	case L1SCHED_TCHH_0:
+	case L1SCHED_TCHH_1:
 		return prim_dequeue_tch_h(queue, fn, lchan->type);
 
 	/* Other kinds of logical channels */
@@ -521,7 +521,7 @@ void sched_prim_drop(struct trx_lchan_state *lchan)
  */
 int sched_prim_dummy(struct trx_lchan_state *lchan)
 {
-	enum trx_lchan_type chan = lchan->type;
+	enum l1sched_lchan_type chan = lchan->type;
 	uint8_t tch_mode = lchan->tch_mode;
 	struct trx_ts_prim *prim;
 	uint8_t prim_buffer[40];

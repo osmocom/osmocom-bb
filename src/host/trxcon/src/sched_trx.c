@@ -47,7 +47,7 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 	const struct trx_frame *frame;
 	struct trx_lchan_state *lchan;
 	trx_lchan_tx_func *handler;
-	enum trx_lchan_type chan;
+	enum l1sched_lchan_type chan;
 	uint8_t offset;
 	struct trx_ts *ts;
 	int i;
@@ -124,8 +124,8 @@ static void sched_frame_clck_cb(struct trx_sched *sched)
 
 		/* Handover RACH needs to be handled regardless of the
 		 * current channel type and the associated handler. */
-		if (PRIM_IS_RACH(lchan->prim) && lchan->prim->chan != TRXC_RACH)
-			handler = trx_lchan_desc[TRXC_RACH].tx_fn;
+		if (PRIM_IS_RACH(lchan->prim) && lchan->prim->chan != L1SCHED_RACH)
+			handler = trx_lchan_desc[L1SCHED_RACH].tx_fn;
 
 		/* Poke lchan handler */
 		handler(trx, ts, lchan, &br[i]);
@@ -263,7 +263,7 @@ int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 	enum gsm_phys_chan_config config)
 {
 	struct trx_lchan_state *lchan;
-	enum trx_lchan_type type;
+	enum l1sched_lchan_type type;
 	struct trx_ts *ts;
 
 	/* Try to find specified ts */
@@ -294,7 +294,7 @@ int sched_trx_configure_ts(struct trx_instance *trx, int tn,
 	INIT_LLIST_HEAD(&ts->lchans);
 
 	/* Allocate channel states */
-	for (type = 0; type < _TRX_CHAN_MAX; type++) {
+	for (type = 0; type < _L1SCHED_CHAN_MAX; type++) {
 		if (!LAYOUT_HAS_LCHAN(ts->mf_layout, type))
 			continue;
 
@@ -387,7 +387,7 @@ int sched_trx_start_ciphering(struct trx_ts *ts, uint8_t algo,
 }
 
 struct trx_lchan_state *sched_trx_find_lchan(struct trx_ts *ts,
-	enum trx_lchan_type chan)
+	enum l1sched_lchan_type chan)
 {
 	struct trx_lchan_state *lchan;
 
@@ -426,7 +426,7 @@ int sched_trx_set_lchans(struct trx_ts *ts, uint8_t chan_nr, int active, uint8_t
 	return rc;
 }
 
-int sched_trx_activate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
+int sched_trx_activate_lchan(struct trx_ts *ts, enum l1sched_lchan_type chan)
 {
 	const struct trx_lchan_desc *lchan_desc = &trx_lchan_desc[chan];
 	struct trx_lchan_state *lchan;
@@ -516,7 +516,7 @@ static void sched_trx_reset_lchan(struct trx_lchan_state *lchan)
 	memset(&lchan->tdma, 0x00, sizeof(lchan->tdma));
 }
 
-int sched_trx_deactivate_lchan(struct trx_ts *ts, enum trx_lchan_type chan)
+int sched_trx_deactivate_lchan(struct trx_ts *ts, enum l1sched_lchan_type chan)
 {
 	struct trx_lchan_state *lchan;
 
@@ -585,18 +585,18 @@ enum gsm_phys_chan_config sched_trx_chan_nr2pchan_config(uint8_t chan_nr)
 	return GSM_PCHAN_NONE;
 }
 
-enum trx_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr,
+enum l1sched_lchan_type sched_trx_chan_nr2lchan_type(uint8_t chan_nr,
 	uint8_t link_id)
 {
 	int i;
 
 	/* Iterate over all known lchan types */
-	for (i = 0; i < _TRX_CHAN_MAX; i++)
+	for (i = 0; i < _L1SCHED_CHAN_MAX; i++)
 		if (trx_lchan_desc[i].chan_nr == (chan_nr & 0xf8))
 			if (trx_lchan_desc[i].link_id == link_id)
 				return i;
 
-	return TRXC_IDLE;
+	return L1SCHED_IDLE;
 }
 
 static void sched_trx_a5_burst_dec(struct trx_lchan_state *lchan,
@@ -717,7 +717,7 @@ int sched_trx_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	struct trx_ts *ts;
 
 	trx_lchan_rx_func *handler;
-	enum trx_lchan_type chan;
+	enum l1sched_lchan_type chan;
 	uint8_t offset, bid;
 	int rc;
 
