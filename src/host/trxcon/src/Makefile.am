@@ -10,18 +10,10 @@ AM_CFLAGS = \
 	$(LIBOSMOGSM_CFLAGS) \
 	$(NULL)
 
-bin_PROGRAMS = trxcon
 
-trxcon_SOURCES = \
-	l1ctl_link.c \
-	l1ctl.c \
-	trx_if.c \
-	logging.c \
-	trxcon.c \
-	$(NULL)
+noinst_LTLIBRARIES = libl1sched.la
 
-# Scheduler
-trxcon_SOURCES += \
+libl1sched_la_SOURCES = \
 	sched_lchan_common.c \
 	sched_lchan_pdtch.c \
 	sched_lchan_desc.c \
@@ -36,8 +28,25 @@ trxcon_SOURCES += \
 	sched_trx.c \
 	$(NULL)
 
-trxcon_LDADD = \
+libl1sched_la_LIBADD = \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOCODING_LIBS) \
+	$(LIBOSMOGSM_LIBS) \
+	$(NULL)
+
+
+bin_PROGRAMS = trxcon
+
+trxcon_SOURCES = \
+	l1ctl_link.c \
+	l1ctl.c \
+	trx_if.c \
+	logging.c \
+	trxcon.c \
+	$(NULL)
+
+trxcon_LDADD = \
+	libl1sched.la \
+	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
 	$(NULL)

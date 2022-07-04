@@ -9,6 +9,11 @@ install-sh
 missing
 compile
 
+# libtool by-products
+ltmain.sh
+libtool
+m4/*.m4
+
 # configure by-products
 .deps/
 Makefile
@@ -18,7 +23,9 @@ version.h
 
 # build by-products
 *.o
+*.lo
 *.a
+*.la
 
 /src/trxcon
 
