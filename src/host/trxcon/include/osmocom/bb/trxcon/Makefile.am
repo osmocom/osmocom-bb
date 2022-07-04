@@ -2,8 +2,7 @@ noinst_HEADERS = \
 	l1ctl_proto.h \
 	l1ctl_link.h \
 	l1ctl.h \
-	scheduler.h \
-	sched_trx.h \
+	l1sched.h \
 	trx_if.h \
 	logging.h \
 	trxcon.h \

@@ -43,7 +43,6 @@
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/scheduler.h>
 
 static struct value_string trx_evt_names[] = {
 	{ 0, NULL } /* no events? */

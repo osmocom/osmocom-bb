@@ -1,5 +1,6 @@
 #pragma once
 
+#include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -7,10 +8,11 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/gsm0502.h>
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/core/timer.h>
 
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/scheduler.h>
 
 #define GSM_BURST_LEN		148
 #define GSM_BURST_PL_LEN	116
@@ -41,8 +43,14 @@
 /* Forward declaration to avoid mutual include */
 struct l1sched_lchan_state;
 struct l1sched_meas_set;
+struct l1sched_state;
 struct trx_instance;
 struct l1sched_ts;
+
+enum l1sched_clck_state {
+	L1SCHED_CLCK_ST_WAIT,
+	L1SCHED_CLCK_ST_OK,
+};
 
 enum l1sched_burst_type {
 	L1SCHED_BURST_GMSK,
@@ -301,6 +309,26 @@ struct l1sched_ts_prim {
 	uint8_t payload[0];
 };
 
+/*! One scheduler instance */
+struct l1sched_state {
+	/*! Clock state */
+	enum l1sched_clck_state state;
+	/*! Local clock source */
+	struct timespec clock;
+	/*! Count of processed frames */
+	uint32_t fn_counter_proc;
+	/*! Local frame counter advance */
+	uint32_t fn_counter_advance;
+	/*! Count of lost frames */
+	uint32_t fn_counter_lost;
+	/*! Frame callback timer */
+	struct osmo_timer_list clock_timer;
+	/*! Frame callback */
+	void (*clock_cb)(struct l1sched_state *sched);
+	/*! Private data (e.g. pointer to trx instance) */
+	void *data;
+};
+
 extern const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX];
 const struct l1sched_tdma_multiframe *l1sched_mframe_layout(
 	enum gsm_phys_chan_config config, int tn);
@@ -413,3 +441,6 @@ bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
 /* Measurement history */
 void l1sched_lchan_meas_push(struct l1sched_lchan_state *lchan, const struct l1sched_meas_set *meas);
 void l1sched_lchan_meas_avg(struct l1sched_lchan_state *lchan, unsigned int n);
+
+int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn);
+void l1sched_clck_reset(struct l1sched_state *sched);

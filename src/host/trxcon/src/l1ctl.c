@@ -40,7 +40,7 @@
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
 
 #include <osmocom/bb/trxcon/trx_if.h>
-#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/l1sched.h>
 
 static const char *arfcn2band_name(uint16_t arfcn)
 {

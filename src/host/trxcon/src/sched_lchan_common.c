@@ -37,8 +37,7 @@
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
-#include <osmocom/bb/trxcon/scheduler.h>
-#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trx_if.h>

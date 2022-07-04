@@ -26,7 +26,7 @@
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/core/gsmtap.h>
 
-#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/l1sched.h>
 
 /* Forward declaration of handlers */
 int rx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,

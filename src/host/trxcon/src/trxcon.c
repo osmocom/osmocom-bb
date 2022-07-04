@@ -45,8 +45,7 @@
 #include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/trxcon/l1ctl_link.h>
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
-#include <osmocom/bb/trxcon/scheduler.h>
-#include <osmocom/bb/trxcon/sched_trx.h>
+#include <osmocom/bb/trxcon/l1sched.h>
 
 #define COPYRIGHT \
 	"Copyright (C) 2016-2020 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
