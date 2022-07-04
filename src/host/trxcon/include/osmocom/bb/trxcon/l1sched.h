@@ -12,8 +12,6 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/timer.h>
 
-#include <osmocom/bb/trxcon/logging.h>
-
 #define GSM_BURST_LEN		148
 #define GSM_BURST_PL_LEN	116
 
