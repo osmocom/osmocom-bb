@@ -164,7 +164,7 @@ static struct l1ctl_fbsb_conf *fbsb_conf_make(struct msgb *msg, uint8_t result, 
 }
 
 int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
-	struct l1ctl_info_dl *dl_info, uint8_t bsic)
+		       const struct l1ctl_info_dl *dl_info, uint8_t bsic)
 {
 	struct l1ctl_fbsb_conf *conf;
 	struct msgb *msg;
@@ -174,7 +174,6 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 		return -ENOMEM;
 
 	put_dl_info_hdr(msg, dl_info);
-	talloc_free(dl_info);
 
 	conf = fbsb_conf_make(msg, result, bsic);
 
@@ -344,10 +343,10 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		band_arfcn &~ ARFCN_FLAG_MASK);
 
 	/* Reset scheduler and clock counter */
-	l1sched_reset(l1l->trx, true);
+	l1sched_reset(l1l->sched, true);
 
 	/* Configure a single timeslot */
-	l1sched_configure_ts(l1l->trx, 0, ch_config);
+	l1sched_configure_ts(l1l->sched, 0, ch_config);
 
 	/* Ask SCH handler to send L1CTL_FBSB_CONF */
 	l1l->fbsb_conf_sent = false;
@@ -434,7 +433,7 @@ static int l1ctl_rx_reset_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 		/* Fall through */
 	case L1CTL_RES_T_SCHED:
-		l1sched_reset(l1l->trx, true);
+		l1sched_reset(l1l->sched, true);
 		break;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown L1CTL_RESET_REQ type\n");
@@ -483,7 +482,7 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 		req->ccch_mode); /* TODO: add value-string for ccch_mode */
 
 	/* Make sure that TS0 is allocated and configured */
-	ts = l1l->trx->ts_list[0];
+	ts = l1l->sched->ts_list[0];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DL1C, LOGL_ERROR, "TS0 is not configured");
 		rc = -EINVAL;
@@ -495,7 +494,7 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Do nothing if the current mode matches required */
 	if (ts->mf_layout->chan_config != ch_config)
-		rc = l1sched_configure_ts(l1l->trx, 0, ch_config);
+		rc = l1sched_configure_ts(l1l->sched, 0, ch_config);
 
 	/* Confirm reconfiguration */
 	if (!rc)
@@ -554,7 +553,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	 * Indicated timeslot needs to be configured.
 	 */
 	prim_type = ext ? L1SCHED_PRIM_RACH11 : L1SCHED_PRIM_RACH8;
-	prim = l1sched_prim_push(l1l->trx, prim_type, ul->chan_nr, ul->link_id,
+	prim = l1sched_prim_push(l1l->sched, prim_type, ul->chan_nr, ul->link_id,
 				 (const uint8_t *)&rach, sizeof(rach));
 	if (prim == NULL)
 		rc = -ENOMEM;
@@ -658,12 +657,9 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 	if (rc)
 		goto exit;
 
-	/* Update TSC (Training Sequence Code) */
-	l1l->trx->tsc = est_req->tsc;
-
 	/* Configure requested TS */
-	rc = l1sched_configure_ts(l1l->trx, tn, config);
-	ts = l1l->trx->ts_list[tn];
+	rc = l1sched_configure_ts(l1l->sched, tn, config);
+	ts = l1l->sched->ts_list[tn];
 	if (rc) {
 		rc = -EINVAL;
 		goto exit;
@@ -673,7 +669,7 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 	l1sched_deactivate_all_lchans(ts);
 
 	/* Activate only requested lchans */
-	rc = l1sched_set_lchans(ts, chan_nr, 1, est_req->tch_mode);
+	rc = l1sched_set_lchans(ts, chan_nr, 1, est_req->tch_mode, est_req->tsc);
 	if (rc) {
 		LOGP(DL1C, LOGL_ERROR, "Couldn't activate requested lchans\n");
 		rc = -EINVAL;
@@ -690,7 +686,7 @@ static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_REL_REQ, resetting scheduler\n");
 
 	/* Reset scheduler */
-	l1sched_reset(l1l->trx, false);
+	l1sched_reset(l1l->sched, false);
 
 	msgb_free(msg);
 	return 0;
@@ -724,7 +720,7 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 		chan_nr, link_id, payload_len);
 
 	/* Push this primitive to transmit queue */
-	prim = l1sched_prim_push(l1l->trx, L1SCHED_PRIM_DATA,
+	prim = l1sched_prim_push(l1l->sched, L1SCHED_PRIM_DATA,
 				 chan_nr, link_id, ul->payload, payload_len);
 	if (prim == NULL)
 		rc = -ENOMEM;
@@ -771,7 +767,7 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Iterate over timeslot list */
 	for (i = 0; i < TRX_TS_COUNT; i++) {
 		/* Timeslot is not allocated */
-		ts = l1l->trx->ts_list[i];
+		ts = l1l->sched->ts_list[i];
 		if (ts == NULL)
 			continue;
 
@@ -817,7 +813,7 @@ static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
 	tn = ul->chan_nr & 0x7;
 
 	/* Make sure that required TS is allocated and configured */
-	ts = l1l->trx->ts_list[tn];
+	ts = l1l->sched->ts_list[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DL1C, LOGL_ERROR, "TS %u is not configured\n", tn);
 		rc = -EINVAL;

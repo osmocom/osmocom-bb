@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
- * (C) 2017-2021 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2022 by Vadim Yanitskiy <axilirator@gmail.com>
  * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
@@ -32,15 +32,12 @@
 #include <osmocom/coding/gsm0503_coding.h>
 #include <osmocom/codec/codec.h>
 
-#include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/trx_if.h>
-#include <osmocom/bb/trxcon/l1ctl.h>
 
-int rx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct l1sched_meas_set *meas)
+int rx_tchf_fn(struct l1sched_lchan_state *lchan,
+	       uint32_t fn, uint8_t bid, const sbit_t *bits,
+	       const struct l1sched_meas_set *meas)
 {
 	const struct l1sched_lchan_desc *lchan_desc;
 	int n_errors = -1, n_bits_total, rc;
@@ -54,7 +51,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 	buffer = lchan->rx_bursts;
 
 	LOGP(DSCHD, LOGL_DEBUG, "Traffic received on %s: fn=%u ts=%u bid=%u\n",
-		lchan_desc->name, fn, ts->index, bid);
+		lchan_desc->name, fn, lchan->ts->index, bid);
 
 	/* Align to the first burst of a block */
 	if (*mask == 0x00 && bid != 0)
@@ -83,8 +80,8 @@ int rx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 		LOGP(DSCHD, LOGL_ERROR, "Received incomplete (%s) traffic frame at "
 			"fn=%u (%u/%u) for %s\n",
 			l1sched_burst_mask2str(mask, 8), lchan->meas_avg.fn,
-			lchan->meas_avg.fn % ts->mf_layout->period,
-			ts->mf_layout->period,
+			lchan->meas_avg.fn % lchan->ts->mf_layout->period,
+			lchan->ts->mf_layout->period,
 			lchan_desc->name);
 		/* NOTE: do not abort here, give it a try. Maybe we're lucky ;) */
 
@@ -127,8 +124,9 @@ int rx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 		goto bfi;
 	} else if (rc == GSM_MACBLOCK_LEN) {
 		/* FACCH received, forward it to the higher layers */
-		l1sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
-			n_errors, false, false);
+		l1sched_handle_data_ind(lchan, l2, GSM_MACBLOCK_LEN,
+					n_errors, n_bits_total,
+					L1SCHED_DT_SIGNALING);
 
 		/* Send BFI substituting a stolen TCH frame */
 		n_errors = -1; /* ensure fake measurements */
@@ -139,8 +137,7 @@ int rx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 	}
 
 	/* Send a traffic frame to the higher layers */
-	return l1sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
-		n_errors, false, true);
+	return l1sched_handle_data_ind(lchan, l2, l2_len, n_errors, n_bits_total, L1SCHED_DT_TRAFFIC);
 
 bfi:
 	/* Didn't try to decode, fake measurements */
@@ -156,20 +153,22 @@ bfi:
 	}
 
 	/* BFI is not applicable in signalling mode */
-	if (lchan->tch_mode == GSM48_CMODE_SIGN)
-		return l1sched_send_dt_ind(trx, ts, lchan, NULL, 0,
-			n_errors, true, false);
+	if (lchan->tch_mode == GSM48_CMODE_SIGN) {
+		return l1sched_handle_data_ind(lchan, NULL, 0,
+					       n_errors, n_bits_total,
+					       L1SCHED_DT_TRAFFIC);
+	}
 
 	/* Bad frame indication */
 	l2_len = l1sched_bad_frame_ind(l2, lchan);
 
 	/* Send a BFI frame to the higher layers */
-	return l1sched_send_dt_ind(trx, ts, lchan, l2, l2_len,
-		n_errors, true, true);
+	return l1sched_handle_data_ind(lchan, l2, l2_len,
+				       n_errors, n_bits_total,
+				       L1SCHED_DT_TRAFFIC);
 }
 
-int tx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	       struct l1sched_lchan_state *lchan,
+int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
 	const struct l1sched_lchan_desc *lchan_desc;
@@ -259,7 +258,7 @@ send_burst:
 	*mask |= (1 << br->bid);
 
 	/* Choose proper TSC */
-	tsc = l1sched_nb_training_bits[trx->tsc];
+	tsc = l1sched_nb_training_bits[lchan->tsc];
 
 	/* Compose a new burst */
 	memset(br->burst, 0, 3); /* TB */
@@ -270,12 +269,14 @@ send_burst:
 	br->burst_len = GSM_BURST_LEN;
 
 	LOGP(DSCHD, LOGL_DEBUG, "Scheduled %s fn=%u ts=%u burst=%u\n",
-		lchan_desc->name, br->fn, ts->index, br->bid);
+		lchan_desc->name, br->fn, lchan->ts->index, br->bid);
 
 	/* If we have sent the last (4/4) burst */
 	if (*mask == 0x0f) {
 		/* Confirm data / traffic sending */
-		l1sched_send_dt_conf(trx, ts, lchan, br->fn, L1SCHED_PRIM_IS_TCH(lchan->prim));
+		enum l1sched_data_type dt = L1SCHED_PRIM_IS_TCH(lchan->prim) ?
+						L1SCHED_DT_TRAFFIC : L1SCHED_DT_SIGNALING;
+		l1sched_handle_data_cnf(lchan, br->fn, dt);
 
 		/* Forget processed primitive */
 		l1sched_prim_drop(lchan);

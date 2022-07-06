@@ -30,6 +30,9 @@ struct l1ctl_link {
 	struct osmo_fd listen_bfd;
 	struct osmo_wqueue wq;
 
+	/* Scheduler for this interface */
+	struct l1sched_state *sched;
+
 	/* Bind TRX instance */
 	struct trx_instance *trx;
 

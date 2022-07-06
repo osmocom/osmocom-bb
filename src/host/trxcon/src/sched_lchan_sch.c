@@ -2,7 +2,8 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
- * (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2022 by Vadim Yanitskiy <axilirator@gmail.com>
+ * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -31,11 +32,8 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/coding/gsm0503_coding.h>
 
-#include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/trx_if.h>
-#include <osmocom/bb/trxcon/l1ctl.h>
 
 static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 {
@@ -63,9 +61,9 @@ static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 	time->fn = gsm_gsmtime2fn(time);
 }
 
-int rx_sch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct l1sched_meas_set *meas)
+int rx_sch_fn(struct l1sched_lchan_state *lchan,
+	      uint32_t fn, uint8_t bid, const sbit_t *bits,
+	      const struct l1sched_meas_set *meas)
 {
 	sbit_t payload[2 * 39];
 	struct gsm_time time;
@@ -88,7 +86,7 @@ int rx_sch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 	decode_sb(&time, &bsic, sb_info);
 
 	LOGP(DSCHD, LOGL_DEBUG, "Received SCH: bsic=%u, fn=%u, sched_fn=%u\n",
-		bsic, time.fn, trx->sched.fn_counter_proc);
+		bsic, time.fn, lchan->ts->sched->fn_counter_proc);
 
 	/* Check if decoded frame number matches */
 	if (time.fn != fn) {
@@ -97,32 +95,11 @@ int rx_sch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 		return -EINVAL;
 	}
 
-	/* We don't need to send L1CTL_FBSB_CONF */
-	if (trx->l1l->fbsb_conf_sent)
-		return 0;
+	/* Update BSIC value in the scheduler state */
+	lchan->ts->sched->bsic = bsic;
 
-	/* Send L1CTL_FBSB_CONF to higher layers */
-	struct l1ctl_info_dl *data;
-	data = talloc_zero_size(ts, sizeof(struct l1ctl_info_dl));
-	if (data == NULL)
-		return -ENOMEM;
-
-	/* Fill in some downlink info */
-	data->chan_nr = l1sched_lchan_desc[lchan->type].chan_nr | ts->index;
-	data->link_id = l1sched_lchan_desc[lchan->type].link_id;
-	data->band_arfcn = htons(trx->band_arfcn);
-	data->frame_nr = htonl(fn);
-	data->rx_level = -(meas->rssi);
-
-	/* FIXME: set proper values */
-	data->num_biterr = 0;
-	data->fire_crc = 0;
-	data->snr = 0;
-
-	l1ctl_tx_fbsb_conf(trx->l1l, 0, data, bsic);
-
-	/* Update BSIC value of trx_instance */
-	trx->bsic = bsic;
+	l1sched_handle_data_ind(lchan, (const uint8_t *)&time, sizeof(time),
+				0, 39 * 2, L1SCHED_DT_OTHER);
 
 	return 0;
 }

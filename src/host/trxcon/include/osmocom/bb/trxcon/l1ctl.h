@@ -11,7 +11,7 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg);
 void l1ctl_shutdown_cb(struct l1ctl_link *l1l);
 
 int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
-	struct l1ctl_info_dl *dl_info, uint8_t bsic);
+		       const struct l1ctl_info_dl *dl_info, uint8_t bsic);
 int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode);
 int l1ctl_tx_pm_conf(struct l1ctl_link *l1l, uint16_t band_arfcn,
 	int dbm, int last);

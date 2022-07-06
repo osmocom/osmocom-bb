@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
- * (C) 2017-2021 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2022 by Vadim Yanitskiy <axilirator@gmail.com>
  * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
@@ -30,11 +30,8 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/coding/gsm0503_coding.h>
 
-#include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/trx_if.h>
-#include <osmocom/bb/trxcon/l1ctl.h>
 
 /* 3GPP TS 05.02, section 5.2.7 "Access burst (AB)" */
 #define RACH_EXT_TAIL_BITS_LEN	8
@@ -72,14 +69,13 @@ static struct value_string rach_synch_seq_names[] = {
 };
 
 /* Obtain a to-be-transmitted RACH burst */
-int tx_rach_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	       struct l1sched_lchan_state *lchan,
+int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
+	const uint8_t bsic = lchan->ts->sched->bsic;
 	struct l1sched_ts_prim_rach *rach;
 	uint8_t *burst_ptr = br->burst;
 	uint8_t payload[36];
-	uint8_t ra_buf[2];
 	int i, rc;
 
 	rach = (struct l1sched_ts_prim_rach *)lchan->prim->payload;
@@ -101,10 +97,10 @@ int tx_rach_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 		}
 
 		/* Encode extended (11-bit) payload */
-		rc = gsm0503_rach_ext_encode(payload, rach->ra, trx->bsic, true);
+		rc = gsm0503_rach_ext_encode(payload, rach->ra, bsic, true);
 		if (rc) {
 			LOGP(DSCHD, LOGL_ERROR, "Could not encode extended RACH burst "
-						"(ra=%u bsic=%u)\n", rach->ra, trx->bsic);
+						"(ra=%u bsic=%u)\n", rach->ra, bsic);
 
 			/* Forget this primitive */
 			l1sched_prim_drop(lchan);
@@ -114,10 +110,10 @@ int tx_rach_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 		rach->synch_seq = RACH_SYNCH_SEQ_TS0;
 
 		/* Encode regular (8-bit) payload */
-		rc = gsm0503_rach_ext_encode(payload, rach->ra, trx->bsic, false);
+		rc = gsm0503_rach_ext_encode(payload, rach->ra, bsic, false);
 		if (rc) {
 			LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst "
-						"(ra=%u bsic=%u)\n", rach->ra, trx->bsic);
+						"(ra=%u bsic=%u)\n", rach->ra, bsic);
 
 			/* Forget this primitive */
 			l1sched_prim_drop(lchan);
@@ -150,22 +146,10 @@ int tx_rach_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 	LOGP(DSCHD, LOGL_NOTICE, "Scheduled %s RACH (%s) on fn=%u, tn=%u, lchan=%s\n",
 		L1SCHED_PRIM_IS_RACH11(lchan->prim) ? "extended (11-bit)" : "regular (8-bit)",
 		get_value_string(rach_synch_seq_names, rach->synch_seq), br->fn,
-		ts->index, l1sched_lchan_desc[lchan->type].name);
+		lchan->ts->index, l1sched_lchan_desc[lchan->type].name);
 
 	/* Confirm RACH request */
-	l1ctl_tx_rach_conf(trx->l1l, trx->band_arfcn, br->fn);
-
-	if (L1SCHED_PRIM_IS_RACH11(lchan->prim)) {
-		ra_buf[0] = (uint8_t)(rach->ra >> 3);
-		ra_buf[1] = (uint8_t)(rach->ra & 0x07);
-	} else {
-		ra_buf[0] = (uint8_t)(rach->ra);
-	}
-
-	/* Optional GSMTAP logging */
-	l1sched_gsmtap_send(lchan->type, br->fn, ts->index,
-			    trx->band_arfcn | ARFCN_UPLINK, 0, 0,
-			    &ra_buf[0], L1SCHED_PRIM_IS_RACH11(lchan->prim) ? 2 : 1);
+	l1sched_handle_data_cnf(lchan, br->fn, L1SCHED_DT_OTHER);
 
 	/* Forget processed primitive */
 	l1sched_prim_drop(lchan);

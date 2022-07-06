@@ -5,12 +5,12 @@
 #include <osmocom/core/timer.h>
 #include <osmocom/core/fsm.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
-
 #define TRXC_BUF_SIZE	1024
 #define TRXD_BUF_SIZE	512
 
 /* Forward declaration to avoid mutual include */
+struct l1sched_burst_req;
+struct l1sched_state;
 struct l1ctl_link;
 
 enum trx_fsm_states {
@@ -37,13 +37,10 @@ struct trx_instance {
 	uint16_t pm_band_arfcn_stop;
 	uint16_t band_arfcn;
 	uint8_t tx_power;
-	uint8_t bsic;
-	uint8_t tsc;
 	int8_t ta;
 
-	/* Scheduler stuff */
-	struct l1sched_state sched;
-	struct l1sched_ts *ts_list[TRX_TS_COUNT];
+	/* Scheduler for this interface */
+	struct l1sched_state *sched;
 
 	/* Bind L1CTL link */
 	struct l1ctl_link *l1l;

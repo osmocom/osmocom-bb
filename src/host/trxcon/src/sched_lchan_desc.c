@@ -5,6 +5,7 @@
  * (C) 2013 by Andreas Eversberg <jolly@eversberg.eu>
  * (C) 2015 by Alexander Chemeris <Alexander.Chemeris@fairwaves.co>
  * (C) 2015 by Harald Welte <laforge@gnumonks.org>
+ * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -29,44 +30,39 @@
 #include <osmocom/bb/trxcon/l1sched.h>
 
 /* Forward declaration of handlers */
-int rx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct l1sched_meas_set *meas);
+int rx_data_fn(struct l1sched_lchan_state *lchan,
+	       uint32_t fn, uint8_t bid, const sbit_t *bits,
+	       const struct l1sched_meas_set *meas);
 
-int tx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	       struct l1sched_lchan_state *lchan,
+int tx_data_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br);
 
-int rx_sch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct l1sched_meas_set *meas);
+int rx_sch_fn(struct l1sched_lchan_state *lchan,
+	      uint32_t fn, uint8_t bid, const sbit_t *bits,
+	      const struct l1sched_meas_set *meas);
 
-int tx_rach_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	       struct l1sched_lchan_state *lchan,
+int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br);
 
-int rx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct l1sched_meas_set *meas);
+int rx_tchf_fn(struct l1sched_lchan_state *lchan,
+	       uint32_t fn, uint8_t bid, const sbit_t *bits,
+	       const struct l1sched_meas_set *meas);
 
-int tx_tchf_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	       struct l1sched_lchan_state *lchan,
+int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br);
 
-int rx_tchh_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct l1sched_meas_set *meas);
+int rx_tchh_fn(struct l1sched_lchan_state *lchan,
+	       uint32_t fn, uint8_t bid, const sbit_t *bits,
+	       const struct l1sched_meas_set *meas);
 
-int tx_tchh_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	       struct l1sched_lchan_state *lchan,
+int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br);
 
-int rx_pdtch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct l1sched_meas_set *meas);
+int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
+		uint32_t fn, uint8_t bid, const sbit_t *bits,
+		const struct l1sched_meas_set *meas);
 
-int tx_pdtch_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-		struct l1sched_lchan_state *lchan,
+int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 		struct l1sched_burst_req *br);
 
 const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {

@@ -31,7 +31,6 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <osmocom/bb/trxcon/l1sched.h>
-#include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 /**
@@ -79,14 +78,14 @@ static struct l1sched_ts_prim *prim_alloc(void *ctx, size_t pl_len,
  * Adds a primitive to the end of transmit queue of a particular
  * timeslot, whose index is parsed from chan_nr.
  *
- * @param  trx     TRX instance
+ * @param  sched   scheduler instance
  * @param  chan_nr RSL channel description
  * @param  link_id RSL link description
  * @param  pl      Payload data
  * @param  pl_len  Payload length
  * @return         queued primitive or NULL
  */
-struct l1sched_ts_prim *l1sched_prim_push(struct trx_instance *trx,
+struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
 					  enum l1sched_ts_prim_type type,
 					  uint8_t chan_nr, uint8_t link_id,
 					  const uint8_t *pl, size_t pl_len)
@@ -99,7 +98,7 @@ struct l1sched_ts_prim *l1sched_prim_push(struct trx_instance *trx,
 	tn = chan_nr & 0x7;
 
 	/* Check whether required timeslot is allocated and configured */
-	ts = trx->ts_list[tn];
+	ts = sched->ts_list[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DSCH, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
 		return NULL;
@@ -188,8 +187,11 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 	 * decide whether to update the cached L1 SACCH header here.
 	 */
 	if (!cached) {
-		prim->payload[0] = lchan->ts->trx->tx_power;
-		prim->payload[1] = lchan->ts->trx->ta;
+#warning "FIXME: no direct access to trx->{tx_power,ta}"
+#if 0
+		prim->payload[0] = lchan->ts->sched->trx->tx_power;
+		prim->payload[1] = lchan->ts->sched->trx->ta;
+#endif
 	}
 
 	/* Inform about the cache usage count */

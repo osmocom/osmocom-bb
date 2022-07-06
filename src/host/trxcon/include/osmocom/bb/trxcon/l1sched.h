@@ -38,11 +38,9 @@
 #define MAX_A5_KEY_LEN		(128 / 8)
 #define TRX_TS_COUNT		8
 
-/* Forward declaration to avoid mutual include */
 struct l1sched_lchan_state;
 struct l1sched_meas_set;
 struct l1sched_state;
-struct trx_instance;
 struct l1sched_ts;
 
 enum l1sched_clck_state {
@@ -109,6 +107,29 @@ enum l1sched_lchan_type {
 	_L1SCHED_CHAN_MAX
 };
 
+enum l1sched_data_type {
+	L1SCHED_DT_PACKET_DATA,
+	L1SCHED_DT_SIGNALING,
+	L1SCHED_DT_TRAFFIC,
+	L1SCHED_DT_OTHER, /* SCH and RACH */
+};
+
+enum l1sched_config_type {
+	/*! Channel combination for a timeslot */
+	L1SCHED_CFG_PCHAN_COMB,
+};
+
+/* Represents a (re)configuration request */
+struct l1sched_config_req {
+	enum l1sched_config_type type;
+	union {
+		struct {
+			uint8_t tn;
+			uint8_t pchan;
+		} pchan_comb;
+	};
+};
+
 /* Represents a burst to be transmitted */
 struct l1sched_burst_req {
 	uint32_t fn;
@@ -122,13 +143,11 @@ struct l1sched_burst_req {
 	size_t burst_len;
 };
 
-typedef int l1sched_lchan_rx_func(struct trx_instance *trx,
-				  struct l1sched_ts *ts, struct l1sched_lchan_state *lchan,
+typedef int l1sched_lchan_rx_func(struct l1sched_lchan_state *lchan,
 				  uint32_t fn, uint8_t bid, const sbit_t *bits,
 				  const struct l1sched_meas_set *meas);
 
-typedef int l1sched_lchan_tx_func(struct trx_instance *trx, struct l1sched_ts *ts,
-				  struct l1sched_lchan_state *lchan,
+typedef int l1sched_lchan_tx_func(struct l1sched_lchan_state *lchan,
 				  struct l1sched_burst_req *br);
 
 struct l1sched_lchan_desc {
@@ -223,6 +242,8 @@ struct l1sched_lchan_state {
 
 	/*! Mode for TCH channels (see GSM48_CMODE_*) */
 	uint8_t	tch_mode;
+	/*! Training Sequence Code */
+	uint8_t tsc;
 
 	/*! FACCH/H on downlink */
 	bool dl_ongoing_facch;
@@ -297,8 +318,8 @@ struct l1sched_ts {
 	struct llist_head lchans;
 	/*! Queue primitives for TX */
 	struct llist_head tx_prims;
-	/* backpointer to its TRX */
-	struct trx_instance *trx;
+	/*! Backpointer to the scheduler */
+	struct l1sched_state *sched;
 };
 
 /* Represents one TX primitive in the queue of l1sched_ts */
@@ -341,8 +362,10 @@ struct l1sched_state {
 	struct osmo_timer_list clock_timer;
 	/*! Frame callback */
 	void (*clock_cb)(struct l1sched_state *sched);
-	/*! Private data (e.g. pointer to trx instance) */
-	void *data;
+	/*! List of timeslots maintained by this scheduler */
+	struct l1sched_ts *ts_list[TRX_TS_COUNT];
+	/*! BSIC value learned from SCH bursts */
+	uint8_t bsic;
 };
 
 extern const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX];
@@ -350,15 +373,15 @@ const struct l1sched_tdma_multiframe *l1sched_mframe_layout(
 	enum gsm_phys_chan_config config, int tn);
 
 /* Scheduler management functions */
-int l1sched_init(struct trx_instance *trx, uint32_t fn_advance);
-int l1sched_reset(struct trx_instance *trx, bool reset_clock);
-int l1sched_shutdown(struct trx_instance *trx);
+struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance);
+void l1sched_reset(struct l1sched_state *sched, bool reset_clock);
+void l1sched_free(struct l1sched_state *sched);
 
 /* Timeslot management functions */
-struct l1sched_ts *l1sched_add_ts(struct trx_instance *trx, int tn);
-void l1sched_del_ts(struct trx_instance *trx, int tn);
-int l1sched_reset_ts(struct trx_instance *trx, int tn);
-int l1sched_configure_ts(struct trx_instance *trx, int tn,
+struct l1sched_ts *l1sched_add_ts(struct l1sched_state *sched, int tn);
+void l1sched_del_ts(struct l1sched_state *sched, int tn);
+int l1sched_reset_ts(struct l1sched_state *sched, int tn);
+int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 	enum gsm_phys_chan_config config);
 int l1sched_start_ciphering(struct l1sched_ts *ts, uint8_t algo,
 	uint8_t *key, uint8_t key_len);
@@ -369,14 +392,15 @@ enum l1sched_lchan_type l1sched_chan_nr2lchan_type(uint8_t chan_nr,
 	uint8_t link_id);
 
 void l1sched_deactivate_all_lchans(struct l1sched_ts *ts);
-int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr, int active, uint8_t tch_mode);
+int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr,
+		       int active, uint8_t tch_mode, uint8_t tsc);
 int l1sched_activate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan);
 int l1sched_deactivate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan);
 struct l1sched_lchan_state *l1sched_find_lchan(struct l1sched_ts *ts,
 	enum l1sched_lchan_type chan);
 
 /* Primitive management functions */
-struct l1sched_ts_prim *l1sched_prim_push(struct trx_instance *trx,
+struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
 					  enum l1sched_ts_prim_type type,
 					  uint8_t chan_nr, uint8_t link_id,
 					  const uint8_t *pl, size_t pl_len);
@@ -419,7 +443,7 @@ int l1sched_prim_dummy(struct l1sched_lchan_state *lchan);
 void l1sched_prim_drop(struct l1sched_lchan_state *lchan);
 void l1sched_prim_flush_queue(struct llist_head *list);
 
-int l1sched_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
+int l1sched_handle_rx_burst(struct l1sched_state *sched, uint8_t tn,
 	uint32_t fn, sbit_t *bits, uint16_t nbits,
 	const struct l1sched_meas_set *meas);
 
@@ -428,14 +452,6 @@ extern const uint8_t l1sched_nb_training_bits[8][26];
 
 const char *l1sched_burst_mask2str(const uint8_t *mask, int bits);
 size_t l1sched_bad_frame_ind(uint8_t *l2, struct l1sched_lchan_state *lchan);
-int l1sched_send_dt_ind(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint8_t *l2, size_t l2_len,
-	int bit_error_count, bool dec_failed, bool traffic);
-int l1sched_send_dt_conf(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, bool traffic);
-int l1sched_gsmtap_send(enum l1sched_lchan_type lchan_type, uint32_t fn, uint8_t tn,
-		      uint16_t band_arfcn, int8_t signal_dbm, uint8_t snr,
-		      const uint8_t *data, size_t data_len);
 
 /* Interleaved TCH/H block TDMA frame mapping */
 uint32_t l1sched_tchh_block_dl_first_fn(enum l1sched_lchan_type chan,
@@ -459,3 +475,17 @@ void l1sched_lchan_meas_avg(struct l1sched_lchan_state *lchan, unsigned int n);
 
 int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn);
 void l1sched_clck_reset(struct l1sched_state *sched);
+
+/* External L1 API, must be implemented by the API user */
+int l1sched_handle_config_req(struct l1sched_state *sched,
+			      const struct l1sched_config_req *cr);
+int l1sched_handle_burst_req(struct l1sched_state *sched,
+			     const struct l1sched_burst_req *br);
+
+/* External L2 API, must be implemented by the API user */
+int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
+			    const uint8_t *data, size_t data_len,
+			    int n_errors, int n_bits_total,
+			    enum l1sched_data_type dt);
+int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
+			    uint32_t fn, enum l1sched_data_type dt);

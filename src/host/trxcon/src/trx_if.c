@@ -39,6 +39,7 @@
 
 #include <osmocom/gsm/gsm_utils.h>
 
+#include <osmocom/bb/trxcon/l1sched.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trx_if.h>
@@ -619,11 +620,11 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	};
 
 	/* Poke scheduler */
-	l1sched_handle_rx_burst(trx, tn, fn, bits, 148, &meas);
+	l1sched_handle_rx_burst(trx->sched, tn, fn, bits, 148, &meas);
 
 	/* Correct local clock counter */
 	if (fn % 51 == 0)
-		l1sched_clck_handle(&trx->sched, fn);
+		l1sched_clck_handle(trx->sched, fn);
 
 	return 0;
 }

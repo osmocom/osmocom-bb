@@ -2,7 +2,8 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: common routines for lchan handlers
  *
- * (C) 2017-2020 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2022 by Vadim Yanitskiy <axilirator@gmail.com>
+ * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -36,12 +37,8 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
-#include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/trxcon.h>
-#include <osmocom/bb/trxcon/trx_if.h>
-#include <osmocom/bb/trxcon/l1ctl.h>
 
 /* GSM 05.02 Chapter 5.2.3 Normal Burst (NB) */
 const uint8_t l1sched_nb_training_bits[8][26] = {
@@ -96,97 +93,6 @@ const char *l1sched_burst_mask2str(const uint8_t *mask, int bits)
 	*ptr = '\0';
 
 	return buf;
-}
-
-int l1sched_gsmtap_send(enum l1sched_lchan_type lchan_type, uint32_t fn, uint8_t tn,
-		      uint16_t band_arfcn, int8_t signal_dbm, uint8_t snr,
-		      const uint8_t *data, size_t data_len)
-{
-	const struct l1sched_lchan_desc *lchan_desc = &l1sched_lchan_desc[lchan_type];
-
-	/* GSMTAP logging may not be enabled */
-	if (gsmtap == NULL)
-		return 0;
-
-	/* Omit frames with unknown channel type */
-	if (lchan_desc->gsmtap_chan_type == GSMTAP_CHANNEL_UNKNOWN)
-		return 0;
-
-	/* TODO: distinguish GSMTAP_CHANNEL_PCH and GSMTAP_CHANNEL_AGCH */
-	return gsmtap_send(gsmtap, band_arfcn, tn, lchan_desc->gsmtap_chan_type,
-			   lchan_desc->ss_nr, fn, signal_dbm, snr, data, data_len);
-}
-
-int l1sched_send_dt_ind(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint8_t *l2, size_t l2_len,
-	int bit_error_count, bool dec_failed, bool traffic)
-{
-	const struct l1sched_meas_set *meas = &lchan->meas_avg;
-	const struct l1sched_lchan_desc *lchan_desc;
-	struct l1ctl_info_dl dl_hdr;
-
-	/* Set up pointers */
-	lchan_desc = &l1sched_lchan_desc[lchan->type];
-
-	/* Fill in known downlink info */
-	dl_hdr.chan_nr = lchan_desc->chan_nr | ts->index;
-	dl_hdr.link_id = lchan_desc->link_id;
-	dl_hdr.band_arfcn = htons(trx->band_arfcn);
-	dl_hdr.num_biterr = bit_error_count;
-
-	/* l1sched_lchan_meas_avg() gives us TDMA frame number of the first burst */
-	dl_hdr.frame_nr = htonl(meas->fn);
-
-	/* RX level: 0 .. 63 in typical GSM notation (dBm + 110) */
-	dl_hdr.rx_level = dbm2rxlev(meas->rssi);
-
-	/* FIXME: set proper values */
-	dl_hdr.snr = 0;
-
-	/* Mark frame as broken if so */
-	dl_hdr.fire_crc = dec_failed ? 2 : 0;
-
-	/* Put a packet to higher layers */
-	l1ctl_tx_dt_ind(trx->l1l, &dl_hdr, l2, l2_len, traffic);
-
-	/* Optional GSMTAP logging */
-	if (l2_len > 0 && (!traffic || lchan_desc->chan_nr == RSL_CHAN_OSMO_PDCH)) {
-		l1sched_gsmtap_send(lchan->type, meas->fn, ts->index,
-				  trx->band_arfcn, meas->rssi, 0, l2, l2_len);
-	}
-
-	return 0;
-}
-
-int l1sched_send_dt_conf(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, bool traffic)
-{
-	const struct l1sched_lchan_desc *lchan_desc;
-	struct l1ctl_info_dl dl_hdr;
-
-	/* Set up pointers */
-	lchan_desc = &l1sched_lchan_desc[lchan->type];
-
-	/* Zero-initialize DL header, because we don't set all fields */
-	memset(&dl_hdr, 0x00, sizeof(struct l1ctl_info_dl));
-
-	/* Fill in known downlink info */
-	dl_hdr.chan_nr = lchan_desc->chan_nr | ts->index;
-	dl_hdr.link_id = lchan_desc->link_id;
-	dl_hdr.band_arfcn = htons(trx->band_arfcn);
-	dl_hdr.frame_nr = htonl(fn);
-
-	l1ctl_tx_dt_conf(trx->l1l, &dl_hdr, traffic);
-
-	/* Optional GSMTAP logging */
-	if (!traffic || lchan_desc->chan_nr == RSL_CHAN_OSMO_PDCH) {
-		l1sched_gsmtap_send(lchan->type, fn, ts->index,
-				  trx->band_arfcn | ARFCN_UPLINK,
-				  0, 0, lchan->prim->payload,
-				  lchan->prim->payload_len);
-	}
-
-	return 0;
 }
 
 /**

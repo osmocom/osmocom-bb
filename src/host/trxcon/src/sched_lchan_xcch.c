@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
- * (C) 2017-2021 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2022 by Vadim Yanitskiy <axilirator@gmail.com>
  * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
@@ -30,15 +30,12 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/coding/gsm0503_coding.h>
 
-#include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/trx_if.h>
-#include <osmocom/bb/trxcon/l1ctl.h>
 
-int rx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	struct l1sched_lchan_state *lchan, uint32_t fn, uint8_t bid,
-	const sbit_t *bits, const struct l1sched_meas_set *meas)
+int rx_data_fn(struct l1sched_lchan_state *lchan,
+	       uint32_t fn, uint8_t bid, const sbit_t *bits,
+	       const struct l1sched_meas_set *meas)
 {
 	const struct l1sched_lchan_desc *lchan_desc;
 	uint8_t l2[GSM_MACBLOCK_LEN], *mask;
@@ -51,7 +48,7 @@ int rx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 	buffer = lchan->rx_bursts;
 
 	LOGP(DSCHD, LOGL_DEBUG, "Data received on %s: fn=%u ts=%u bid=%u\n",
-		lchan_desc->name, fn, ts->index, bid);
+		lchan_desc->name, fn, lchan->ts->index, bid);
 
 	/* Align to the first burst of a block */
 	if (*mask == 0x00 && bid != 0)
@@ -80,8 +77,8 @@ int rx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 		LOGP(DSCHD, LOGL_ERROR, "Received incomplete (%s) data frame at "
 			"fn=%u (%u/%u) for %s\n",
 			l1sched_burst_mask2str(mask, 4), lchan->meas_avg.fn,
-			lchan->meas_avg.fn % ts->mf_layout->period,
-			ts->mf_layout->period,
+			lchan->meas_avg.fn % lchan->ts->mf_layout->period,
+			lchan->ts->mf_layout->period,
 			lchan_desc->name);
 		/* NOTE: xCCH has an insane amount of redundancy for error
 		 * correction, so even just 2 valid bursts might be enough
@@ -97,22 +94,15 @@ int rx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 	if (rc) {
 		LOGP(DSCHD, LOGL_ERROR, "Received bad %s frame (rc=%d, ber=%d/%d) at fn=%u\n",
 		     lchan_desc->name, rc, n_errors, n_bits_total, lchan->meas_avg.fn);
-
-		/**
-		 * We should anyway send dummy frame for
-		 * proper measurement reporting...
-		 */
-		return l1sched_send_dt_ind(trx, ts, lchan, NULL, 0,
-			n_errors, true, false);
 	}
 
 	/* Send a L2 frame to the higher layers */
-	return l1sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
-		n_errors, false, false);
+	return l1sched_handle_data_ind(lchan, l2, rc ? 0 : GSM_MACBLOCK_LEN,
+				       n_errors, n_bits_total,
+				       L1SCHED_DT_SIGNALING);
 }
 
-int tx_data_fn(struct trx_instance *trx, struct l1sched_ts *ts,
-	       struct l1sched_lchan_state *lchan,
+int tx_data_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
 	const struct l1sched_lchan_desc *lchan_desc;
@@ -164,7 +154,7 @@ send_burst:
 	*mask |= (1 << br->bid);
 
 	/* Choose proper TSC */
-	tsc = l1sched_nb_training_bits[trx->tsc];
+	tsc = l1sched_nb_training_bits[lchan->tsc];
 
 	/* Compose a new burst */
 	memset(br->burst, 0, 3); /* TB */
@@ -175,12 +165,12 @@ send_burst:
 	br->burst_len = GSM_BURST_LEN;
 
 	LOGP(DSCHD, LOGL_DEBUG, "Scheduled %s fn=%u ts=%u burst=%u\n",
-		lchan_desc->name, br->fn, ts->index, br->bid);
+		lchan_desc->name, br->fn, lchan->ts->index, br->bid);
 
 	/* If we have sent the last (4/4) burst */
 	if ((*mask & 0x0f) == 0x0f) {
 		/* Confirm data sending */
-		l1sched_send_dt_conf(trx, ts, lchan, br->fn, false);
+		l1sched_handle_data_cnf(lchan, br->fn, L1SCHED_DT_SIGNALING);
 
 		/* Forget processed primitive */
 		l1sched_prim_drop(lchan);

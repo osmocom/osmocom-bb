@@ -2,7 +2,8 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: GSM PHY routines
  *
- * (C) 2017-2019 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2022 by Vadim Yanitskiy <axilirator@gmail.com>
+ * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -31,17 +32,28 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/linuxlist.h>
 
-#include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/l1sched.h>
-#include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
+
+static int l1sched_cfg_pchan_comb_req(struct l1sched_state *sched,
+				      uint8_t tn, uint8_t pchan)
+{
+	const struct l1sched_config_req cr = {
+		.type = L1SCHED_CFG_PCHAN_COMB,
+		.pchan_comb = {
+			.tn = tn,
+			.pchan = pchan,
+		},
+	};
+
+	return l1sched_handle_config_req(sched, &cr);
+}
 
 static void l1sched_a5_burst_enc(struct l1sched_lchan_state *lchan,
 				 struct l1sched_burst_req *br);
 
 static void sched_frame_clck_cb(struct l1sched_state *sched)
 {
-	struct trx_instance *trx = (struct trx_instance *) sched->data;
 	struct l1sched_burst_req br[TRX_TS_COUNT];
 	const struct l1sched_tdma_frame *frame;
 	struct l1sched_lchan_state *lchan;
@@ -62,12 +74,11 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 		br[i] = (struct l1sched_burst_req) {
 			.fn = fn,
 			.tn = i,
-			.pwr = trx->tx_power,
 			.burst_len = 0, /* NOPE.ind */
 		};
 
 		/* Timeslot is not allocated */
-		ts = trx->ts_list[i];
+		ts = sched->ts_list[i];
 		if (ts == NULL)
 			continue;
 
@@ -127,7 +138,7 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 			handler = l1sched_lchan_desc[L1SCHED_RACH].tx_fn;
 
 		/* Poke lchan handler */
-		handler(trx, ts, lchan, &br[i]);
+		handler(lchan, &br[i]);
 
 		/* Perform A5/X burst encryption if required */
 		if (lchan->a5.algo)
@@ -136,100 +147,88 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 
 	/* Send all bursts for this TDMA frame */
 	for (i = 0; i < ARRAY_SIZE(br); i++)
-		trx_if_tx_burst(trx, &br[i]);
+		l1sched_handle_burst_req(sched, &br[i]);
 }
 
-int l1sched_init(struct trx_instance *trx, uint32_t fn_advance)
+struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance)
 {
 	struct l1sched_state *sched;
 
-	if (!trx)
-		return -EINVAL;
-
 	LOGP(DSCH, LOGL_NOTICE, "Init scheduler\n");
 
-	/* Obtain a scheduler instance from TRX */
-	sched = &trx->sched;
+	sched = talloc(ctx, struct l1sched_state);
+	if (!sched)
+		return NULL;
 
-	/* Register frame clock callback */
-	sched->clock_cb = sched_frame_clck_cb;
+	*sched = (struct l1sched_state) {
+		/* .clock_timer is set up in l1sched_clck_correct() */
+		.clock_cb = &sched_frame_clck_cb,
+		.fn_counter_advance = fn_advance,
+	};
 
-	/* Set pointers */
-	sched = &trx->sched;
-	sched->data = trx;
-
-	/* Set frame counter advance */
-	sched->fn_counter_advance = fn_advance;
-
-	return 0;
+	return sched;
 }
 
-int l1sched_shutdown(struct trx_instance *trx)
+void l1sched_free(struct l1sched_state *sched)
 {
 	int i;
 
-	if (!trx)
-		return -EINVAL;
+	if (sched == NULL)
+		return;
 
 	LOGP(DSCH, LOGL_NOTICE, "Shutdown scheduler\n");
 
 	/* Free all potentially allocated timeslots */
 	for (i = 0; i < TRX_TS_COUNT; i++)
-		l1sched_del_ts(trx, i);
+		l1sched_del_ts(sched, i);
 
-	return 0;
+	l1sched_clck_reset(sched);
+	talloc_free(sched);
 }
 
-int l1sched_reset(struct trx_instance *trx, bool reset_clock)
+void l1sched_reset(struct l1sched_state *sched, bool reset_clock)
 {
 	int i;
 
-	if (!trx)
-		return -EINVAL;
+	if (sched == NULL)
+		return;
 
 	LOGP(DSCH, LOGL_NOTICE, "Reset scheduler %s\n",
 		reset_clock ? "and clock counter" : "");
 
 	/* Free all potentially allocated timeslots */
 	for (i = 0; i < TRX_TS_COUNT; i++)
-		l1sched_del_ts(trx, i);
+		l1sched_del_ts(sched, i);
 
 	/* Stop and reset clock counter if required */
 	if (reset_clock)
-		l1sched_clck_reset(&trx->sched);
-
-	return 0;
+		l1sched_clck_reset(sched);
 }
 
-struct l1sched_ts *l1sched_add_ts(struct trx_instance *trx, int tn)
+struct l1sched_ts *l1sched_add_ts(struct l1sched_state *sched, int tn)
 {
 	/* Make sure that ts isn't allocated yet */
-	if (trx->ts_list[tn] != NULL) {
+	if (sched->ts_list[tn] != NULL) {
 		LOGP(DSCH, LOGL_ERROR, "Timeslot #%u already allocated\n", tn);
 		return NULL;
 	}
 
 	LOGP(DSCH, LOGL_NOTICE, "Add a new TDMA timeslot #%u\n", tn);
 
-	/* Allocate a new one */
-	trx->ts_list[tn] = talloc_zero(trx, struct l1sched_ts);
+	sched->ts_list[tn] = talloc_zero(sched, struct l1sched_ts);
+	sched->ts_list[tn]->sched = sched;
+	sched->ts_list[tn]->index = tn;
 
-	/* Add backpointer */
-	trx->ts_list[tn]->trx = trx;
-
-	/* Assign TS index */
-	trx->ts_list[tn]->index = tn;
-
-	return trx->ts_list[tn];
+	return sched->ts_list[tn];
 }
 
-void l1sched_del_ts(struct trx_instance *trx, int tn)
+void l1sched_del_ts(struct l1sched_state *sched, int tn)
 {
 	struct l1sched_lchan_state *lchan, *lchan_next;
 	struct l1sched_ts *ts;
 
 	/* Find ts in list */
-	ts = trx->ts_list[tn];
+	ts = sched->ts_list[tn];
 	if (ts == NULL)
 		return;
 
@@ -248,31 +247,31 @@ void l1sched_del_ts(struct trx_instance *trx, int tn)
 	l1sched_prim_flush_queue(&ts->tx_prims);
 
 	/* Remove ts from list and free memory */
-	trx->ts_list[tn] = NULL;
+	sched->ts_list[tn] = NULL;
 	talloc_free(ts);
 
 	/* Notify transceiver about that */
-	trx_if_cmd_setslot(trx, tn, 0);
+	l1sched_cfg_pchan_comb_req(sched, tn, 0);
 }
 
 #define LAYOUT_HAS_LCHAN(layout, lchan) \
 	(layout->lchan_mask & ((uint64_t) 0x01 << lchan))
 
-int l1sched_configure_ts(struct trx_instance *trx, int tn,
-	enum gsm_phys_chan_config config)
+int l1sched_configure_ts(struct l1sched_state *sched, int tn,
+			 enum gsm_phys_chan_config config)
 {
 	struct l1sched_lchan_state *lchan;
 	enum l1sched_lchan_type type;
 	struct l1sched_ts *ts;
 
 	/* Try to find specified ts */
-	ts = trx->ts_list[tn];
+	ts = sched->ts_list[tn];
 	if (ts != NULL) {
 		/* Reconfiguration of existing one */
-		l1sched_reset_ts(trx, tn);
+		l1sched_reset_ts(sched, tn);
 	} else {
 		/* Allocate a new one if doesn't exist */
-		ts = l1sched_add_ts(trx, tn);
+		ts = l1sched_add_ts(sched, tn);
 		if (ts == NULL)
 			return -ENOMEM;
 	}
@@ -318,18 +317,18 @@ int l1sched_configure_ts(struct trx_instance *trx, int tn,
 
 	/* Notify transceiver about TS activation */
 	/* FIXME: set proper channel type */
-	trx_if_cmd_setslot(trx, tn, 1);
+	l1sched_cfg_pchan_comb_req(sched, tn, 1);
 
 	return 0;
 }
 
-int l1sched_reset_ts(struct trx_instance *trx, int tn)
+int l1sched_reset_ts(struct l1sched_state *sched, int tn)
 {
 	struct l1sched_lchan_state *lchan, *lchan_next;
 	struct l1sched_ts *ts;
 
 	/* Try to find specified ts */
-	ts = trx->ts_list[tn];
+	ts = sched->ts_list[tn];
 	if (ts == NULL)
 		return -EINVAL;
 
@@ -349,7 +348,7 @@ int l1sched_reset_ts(struct trx_instance *trx, int tn)
 	}
 
 	/* Notify transceiver about that */
-	trx_if_cmd_setslot(trx, tn, 0);
+	l1sched_cfg_pchan_comb_req(sched, tn, 0);
 
 	return 0;
 }
@@ -397,7 +396,8 @@ struct l1sched_lchan_state *l1sched_find_lchan(struct l1sched_ts *ts,
 	return NULL;
 }
 
-int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr, int active, uint8_t tch_mode)
+int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr,
+		       int active, uint8_t tch_mode, uint8_t tsc)
 {
 	const struct l1sched_lchan_desc *lchan_desc;
 	struct l1sched_lchan_state *lchan;
@@ -417,6 +417,7 @@ int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr, int active, uint8
 			if (active) {
 				rc |= l1sched_activate_lchan(ts, lchan->type);
 				lchan->tch_mode = tch_mode;
+				lchan->tsc = tsc;
 			} else
 				rc |= l1sched_deactivate_lchan(ts, lchan->type);
 		}
@@ -694,9 +695,7 @@ static int subst_frame_loss(struct l1sched_lchan_state *lchan,
 		LOGP(DSCHD, LOGL_NOTICE, "Substituting lost TDMA frame %u on %s\n",
 		     fake_meas.fn, l1sched_lchan_desc[lchan->type].name);
 
-		handler(lchan->ts->trx, lchan->ts, lchan,
-			fake_meas.fn, fp->dl_bid,
-			bits, &fake_meas);
+		handler(lchan, fake_meas.fn, fp->dl_bid, bits, &fake_meas);
 
 		/* Update TDMA frame statistics */
 		lchan->tdma.last_proc = fake_meas.fn;
@@ -707,7 +706,7 @@ static int subst_frame_loss(struct l1sched_lchan_state *lchan,
 	return 0;
 }
 
-int l1sched_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
+int l1sched_handle_rx_burst(struct l1sched_state *sched, uint8_t tn,
 	uint32_t fn, sbit_t *bits, uint16_t nbits,
 	const struct l1sched_meas_set *meas)
 {
@@ -721,7 +720,7 @@ int l1sched_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 	int rc;
 
 	/* Check whether required timeslot is allocated and configured */
-	ts = trx->ts_list[tn];
+	ts = sched->ts_list[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DSCHD, LOGL_DEBUG, "TDMA timeslot #%u isn't configured, "
 			"ignoring burst...\n", tn);
@@ -761,7 +760,7 @@ int l1sched_handle_rx_burst(struct trx_instance *trx, uint8_t tn,
 		l1sched_a5_burst_dec(lchan, fn, bits);
 
 	/* Put burst to handler */
-	handler(trx, ts, lchan, fn, bid, bits, meas);
+	handler(lchan, fn, bid, bits, meas);
 
 	/* Update TDMA frame statistics */
 	lchan->tdma.last_proc = fn;
