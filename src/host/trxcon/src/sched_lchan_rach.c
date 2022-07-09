@@ -76,63 +76,56 @@ int tx_rach_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 	       struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
-	struct l1ctl_ext_rach_req *ext_req = NULL;
-	struct l1ctl_rach_req *req = NULL;
-	enum rach_synch_seq_t synch_seq;
+	struct l1sched_ts_prim_rach *rach;
 	uint8_t *burst_ptr = br->burst;
 	uint8_t payload[36];
+	uint8_t ra_buf[2];
 	int i, rc;
+
+	rach = (struct l1sched_ts_prim_rach *)lchan->prim->payload;
+
+	/* Delay sending according to offset value */
+	if (rach->offset-- > 0)
+		return 0;
 
 	/* Is it extended (11-bit) RACH or not? */
 	if (L1SCHED_PRIM_IS_RACH11(lchan->prim)) {
-		ext_req = (struct l1ctl_ext_rach_req *) lchan->prim->payload;
-		synch_seq = ext_req->synch_seq;
-
 		/* Check requested synch. sequence */
-		if (synch_seq >= RACH_SYNCH_SEQ_NUM) {
-			LOGP(DSCHD, LOGL_ERROR, "Unknown RACH synch. sequence=0x%02x\n", synch_seq);
+		if (rach->synch_seq >= RACH_SYNCH_SEQ_NUM) {
+			LOGP(DSCHD, LOGL_ERROR, "Unknown RACH synch. sequence=0x%02x\n",
+			     rach->synch_seq);
 
 			/* Forget this primitive */
 			l1sched_prim_drop(lchan);
 			return -ENOTSUP;
 		}
 
-		/* Delay sending according to offset value */
-		if (ext_req->offset-- > 0)
-			return 0;
-
 		/* Encode extended (11-bit) payload */
-		rc = gsm0503_rach_ext_encode(payload, ext_req->ra11, trx->bsic, true);
+		rc = gsm0503_rach_ext_encode(payload, rach->ra, trx->bsic, true);
 		if (rc) {
 			LOGP(DSCHD, LOGL_ERROR, "Could not encode extended RACH burst "
-						"(ra=%u bsic=%u)\n", ext_req->ra11, trx->bsic);
+						"(ra=%u bsic=%u)\n", rach->ra, trx->bsic);
 
 			/* Forget this primitive */
 			l1sched_prim_drop(lchan);
 			return rc;
 		}
 	} else if (L1SCHED_PRIM_IS_RACH8(lchan->prim)) {
-		req = (struct l1ctl_rach_req *) lchan->prim->payload;
-		synch_seq = RACH_SYNCH_SEQ_TS0;
-
-		/* Delay sending according to offset value */
-		if (req->offset-- > 0)
-			return 0;
+		rach->synch_seq = RACH_SYNCH_SEQ_TS0;
 
 		/* Encode regular (8-bit) payload */
-		rc = gsm0503_rach_ext_encode(payload, req->ra, trx->bsic, false);
+		rc = gsm0503_rach_ext_encode(payload, rach->ra, trx->bsic, false);
 		if (rc) {
 			LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst "
-						"(ra=%u bsic=%u)\n", req->ra, trx->bsic);
+						"(ra=%u bsic=%u)\n", rach->ra, trx->bsic);
 
 			/* Forget this primitive */
 			l1sched_prim_drop(lchan);
 			return rc;
 		}
 	} else {
-		LOGP(DSCHD, LOGL_ERROR, "Primitive has odd length %zu (expected %zu or %zu), "
-			"so dropping...\n", lchan->prim->payload_len,
-			sizeof(*req), sizeof(*ext_req));
+		LOGP(DSCHD, LOGL_ERROR, "Primitive has unexpected "
+		     "type=0x%02x\n", lchan->prim->type);
 		l1sched_prim_drop(lchan);
 		return -EINVAL;
 	}
@@ -144,7 +137,7 @@ int tx_rach_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 
 	/* BN8-48: chosen synch. (training) sequence */
 	for (i = 0; i < RACH_SYNCH_SEQ_LEN; i++)
-		*(burst_ptr++) = rach_synch_seq_bits[synch_seq][i] == '1';
+		*(burst_ptr++) = rach_synch_seq_bits[rach->synch_seq][i] == '1';
 
 	/* BN49-84: encrypted bits (the payload) */
 	memcpy(burst_ptr, payload, RACH_PAYLOAD_LEN);
@@ -156,17 +149,23 @@ int tx_rach_fn(struct trx_instance *trx, struct l1sched_ts *ts,
 
 	LOGP(DSCHD, LOGL_NOTICE, "Scheduled %s RACH (%s) on fn=%u, tn=%u, lchan=%s\n",
 		L1SCHED_PRIM_IS_RACH11(lchan->prim) ? "extended (11-bit)" : "regular (8-bit)",
-		get_value_string(rach_synch_seq_names, synch_seq), br->fn,
+		get_value_string(rach_synch_seq_names, rach->synch_seq), br->fn,
 		ts->index, l1sched_lchan_desc[lchan->type].name);
 
 	/* Confirm RACH request */
 	l1ctl_tx_rach_conf(trx->l1l, trx->band_arfcn, br->fn);
 
+	if (L1SCHED_PRIM_IS_RACH11(lchan->prim)) {
+		ra_buf[0] = (uint8_t)(rach->ra >> 3);
+		ra_buf[1] = (uint8_t)(rach->ra & 0x07);
+	} else {
+		ra_buf[0] = (uint8_t)(rach->ra);
+	}
+
 	/* Optional GSMTAP logging */
 	l1sched_gsmtap_send(lchan->type, br->fn, ts->index,
-			  trx->band_arfcn | ARFCN_UPLINK, 0, 0,
-			  L1SCHED_PRIM_IS_RACH11(lchan->prim) ? (uint8_t *) &ext_req->ra11 : &req->ra,
-			  L1SCHED_PRIM_IS_RACH11(lchan->prim) ? 2 : 1);
+			    trx->band_arfcn | ARFCN_UPLINK, 0, 0,
+			    &ra_buf[0], L1SCHED_PRIM_IS_RACH11(lchan->prim) ? 2 : 1);
 
 	/* Forget processed primitive */
 	l1sched_prim_drop(lchan);

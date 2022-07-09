@@ -504,32 +504,37 @@ exit:
 
 static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 {
-	struct l1ctl_ext_rach_req *ext_req;
-	struct l1ctl_rach_req *req;
 	struct l1ctl_info_ul *ul;
 	struct l1sched_ts_prim *prim;
-	size_t len;
+	struct l1sched_ts_prim_rach rach;
+	enum l1sched_ts_prim_type prim_type;
 	int rc;
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 
 	/* Is it extended (11-bit) RACH or not? */
 	if (ext) {
-		ext_req = (struct l1ctl_ext_rach_req *) ul->payload;
-		ext_req->offset = ntohs(ext_req->offset);
-		ext_req->ra11 = ntohs(ext_req->ra11);
-		len = sizeof(*ext_req);
+		const struct l1ctl_ext_rach_req *req = (void *)ul->payload;
+
+		rach = (struct l1sched_ts_prim_rach) {
+			.ra = ntohs(req->ra11),
+			.synch_seq = req->synch_seq,
+			.offset = ntohs(req->offset),
+		};
 
 		LOGP(DL1C, LOGL_NOTICE, "Received extended (11-bit) RACH request "
 			"(offset=%u, synch_seq=%u, ra11=0x%02hx)\n",
-			ext_req->offset, ext_req->synch_seq, ext_req->ra11);
+			rach.offset, rach.synch_seq, rach.ra);
 	} else {
-		req = (struct l1ctl_rach_req *) ul->payload;
-		req->offset = ntohs(req->offset);
-		len = sizeof(*req);
+		const struct l1ctl_rach_req *req = (void *)ul->payload;
+
+		rach = (struct l1sched_ts_prim_rach) {
+			.ra = req->ra,
+			.offset = ntohs(req->offset),
+		};
 
 		LOGP(DL1C, LOGL_NOTICE, "Received regular (8-bit) RACH request "
-			"(offset=%u, ra=0x%02x)\n", req->offset, req->ra);
+			"(offset=%u, ra=0x%02x)\n", rach.offset, rach.ra);
 	}
 
 	/* The controlling L1CTL side always does include the UL info header,
@@ -544,7 +549,9 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	 * Push this primitive to the transmit queue.
 	 * Indicated timeslot needs to be configured.
 	 */
-	prim = l1sched_prim_push(l1l->trx, ul->chan_nr, ul->link_id, ul->payload, len);
+	prim_type = ext ? L1SCHED_PRIM_RACH11 : L1SCHED_PRIM_RACH8;
+	prim = l1sched_prim_push(l1l->trx, prim_type, ul->chan_nr, ul->link_id,
+				 (const uint8_t *)&rach, sizeof(rach));
 	if (prim == NULL)
 		rc = -ENOMEM;
 
@@ -713,7 +720,8 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 		chan_nr, link_id, payload_len);
 
 	/* Push this primitive to transmit queue */
-	prim = l1sched_prim_push(l1l->trx, chan_nr, link_id, ul->payload, payload_len);
+	prim = l1sched_prim_push(l1l->trx, L1SCHED_PRIM_DATA,
+				 chan_nr, link_id, ul->payload, payload_len);
 	if (prim == NULL)
 		rc = -ENOMEM;
 

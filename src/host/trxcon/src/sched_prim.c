@@ -40,11 +40,13 @@
  *
  * @param  ctx     parent talloc context
  * @param  pl_len  prim payload length
+ * @param  type    prim payload type
  * @param  chan_nr RSL channel description (used to set a proper chan)
  * @param  link_id RSL link description (used to set a proper chan)
  * @return         allocated primitive or NULL
  */
 static struct l1sched_ts_prim *prim_alloc(void *ctx, size_t pl_len,
+					  enum l1sched_ts_prim_type type,
 					  uint8_t chan_nr, uint8_t link_id)
 {
 	enum l1sched_lchan_type lchan_type;
@@ -68,6 +70,7 @@ static struct l1sched_ts_prim *prim_alloc(void *ctx, size_t pl_len,
 	/* Init primitive header */
 	prim->payload_len = pl_len;
 	prim->chan = lchan_type;
+	prim->type = type;
 
 	return prim;
 }
@@ -84,6 +87,7 @@ static struct l1sched_ts_prim *prim_alloc(void *ctx, size_t pl_len,
  * @return         queued primitive or NULL
  */
 struct l1sched_ts_prim *l1sched_prim_push(struct trx_instance *trx,
+					  enum l1sched_ts_prim_type type,
 					  uint8_t chan_nr, uint8_t link_id,
 					  const uint8_t *pl, size_t pl_len)
 {
@@ -101,7 +105,7 @@ struct l1sched_ts_prim *l1sched_prim_push(struct trx_instance *trx,
 		return NULL;
 	}
 
-	prim = prim_alloc(ts, pl_len, chan_nr, link_id);
+	prim = prim_alloc(ts, pl_len, type, chan_nr, link_id);
 	if (prim == NULL)
 		return NULL;
 
@@ -156,7 +160,7 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 	};
 
 	/* Allocate a new primitive */
-	prim = prim_alloc(lchan, GSM_MACBLOCK_LEN,
+	prim = prim_alloc(lchan, GSM_MACBLOCK_LEN, L1SCHED_PRIM_DATA,
 			  l1sched_lchan_desc[lchan->type].chan_nr,
 			  L1SCHED_CH_LID_SACCH);
 	OSMO_ASSERT(prim != NULL);

@@ -55,6 +55,12 @@ enum l1sched_burst_type {
 	L1SCHED_BURST_8PSK,
 };
 
+enum l1sched_ts_prim_type {
+	L1SCHED_PRIM_DATA,
+	L1SCHED_PRIM_RACH8,
+	L1SCHED_PRIM_RACH11,
+};
+
 /**
  * These types define the different channels on a multiframe.
  * Each channel has queues and can be activated individually.
@@ -299,12 +305,24 @@ struct l1sched_ts {
 struct l1sched_ts_prim {
 	/*! Link to queue of TS */
 	struct llist_head list;
+	/*! Type of primitive */
+	enum l1sched_ts_prim_type type;
 	/*! Logical channel type */
 	enum l1sched_lchan_type chan;
 	/*! Payload length */
 	size_t payload_len;
 	/*! Payload */
 	uint8_t payload[0];
+};
+
+/*! Represents a RACH (8-bit or 11-bit) primitive */
+struct l1sched_ts_prim_rach {
+	/*! RA value */
+	uint16_t ra;
+	/*! Training Sequence (only for 11-bit RA) */
+	uint8_t synch_seq;
+	/*! Transmission offset (how many frames to skip) */
+	uint8_t offset;
 };
 
 /*! One scheduler instance */
@@ -359,6 +377,7 @@ struct l1sched_lchan_state *l1sched_find_lchan(struct l1sched_ts *ts,
 
 /* Primitive management functions */
 struct l1sched_ts_prim *l1sched_prim_push(struct trx_instance *trx,
+					  enum l1sched_ts_prim_type type,
 					  uint8_t chan_nr, uint8_t link_id,
 					  const uint8_t *pl, size_t pl_len);
 
@@ -379,12 +398,11 @@ struct l1sched_ts_prim *l1sched_prim_push(struct trx_instance *trx,
 #define L1SCHED_CHAN_IS_SACCH(chan) \
 	(l1sched_lchan_desc[chan].link_id & L1SCHED_CH_LID_SACCH)
 
-/* FIXME: we need a better way to identify / distinguish primitives */
 #define L1SCHED_PRIM_IS_RACH11(prim) \
-	(prim->payload_len == sizeof(struct l1ctl_ext_rach_req))
+	(prim->type == L1SCHED_PRIM_RACH11)
 
 #define L1SCHED_PRIM_IS_RACH8(prim) \
-	(prim->payload_len == sizeof(struct l1ctl_rach_req))
+	(prim->type == L1SCHED_PRIM_RACH8)
 
 #define L1SCHED_PRIM_IS_RACH(prim) \
 	(L1SCHED_PRIM_IS_RACH8(prim) || L1SCHED_PRIM_IS_RACH11(prim))
