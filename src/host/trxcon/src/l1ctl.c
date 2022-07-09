@@ -3,7 +3,8 @@
  * GSM L1 control interface handlers
  *
  * (C) 2014 by Sylvain Munaut <tnt@246tNt.com>
- * (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2016-2022 by Vadim Yanitskiy <axilirator@gmail.com>
+ * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -135,7 +136,8 @@ int l1ctl_tx_reset_conf(struct l1ctl_link *l1l, uint8_t type)
 	return l1ctl_link_send(l1l, msg);
 }
 
-static struct l1ctl_info_dl *put_dl_info_hdr(struct msgb *msg, struct l1ctl_info_dl *dl_info)
+static struct l1ctl_info_dl *put_dl_info_hdr(struct msgb *msg,
+					     const struct l1ctl_info_dl *dl_info)
 {
 	size_t len = sizeof(struct l1ctl_info_dl);
 	struct l1ctl_info_dl *dl = (struct l1ctl_info_dl *) msgb_put(msg, len);
@@ -207,8 +209,10 @@ int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode)
 /**
  * Handles both L1CTL_DATA_IND and L1CTL_TRAFFIC_IND.
  */
-int l1ctl_tx_dt_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data,
-	uint8_t *l2, size_t l2_len, bool traffic)
+int l1ctl_tx_dt_ind(struct l1ctl_link *l1l,
+		    const struct l1ctl_info_dl *dl_info,
+		    const uint8_t *l2, size_t l2_len,
+		    bool traffic)
 {
 	struct msgb *msg;
 	uint8_t *msg_l2;
@@ -218,7 +222,7 @@ int l1ctl_tx_dt_ind(struct l1ctl_link *l1l, struct l1ctl_info_dl *data,
 	if (msg == NULL)
 		return -ENOMEM;
 
-	put_dl_info_hdr(msg, data);
+	put_dl_info_hdr(msg, dl_info);
 
 	/* Copy the L2 payload if preset */
 	if (l2 && l2_len > 0) {
