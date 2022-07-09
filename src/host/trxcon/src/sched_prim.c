@@ -49,7 +49,6 @@ struct l1sched_ts_prim *l1sched_prim_alloc(void *ctx, size_t pl_len,
 {
 	enum l1sched_lchan_type lchan_type;
 	struct l1sched_ts_prim *prim;
-	uint8_t len;
 
 	/* Determine lchan type */
 	lchan_type = l1sched_chan_nr2lchan_type(chan_nr, link_id);
@@ -59,12 +58,8 @@ struct l1sched_ts_prim *l1sched_prim_alloc(void *ctx, size_t pl_len,
 		return NULL;
 	}
 
-	/* How much memory do we need? */
-	len  = sizeof(struct l1sched_ts_prim); /* Primitive header */
-	len += pl_len; /* Requested payload size */
-
 	/* Allocate a new primitive */
-	prim = talloc_zero_size(ctx, len);
+	prim = talloc_zero_size(ctx, sizeof(*prim) + pl_len);
 	if (prim == NULL) {
 		LOGP(DSCH, LOGL_ERROR, "Failed to allocate memory\n");
 		return NULL;
