@@ -540,27 +540,14 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 		ul->chan_nr = RSL_CHAN_RACH;
 	}
 
-	/* Init a new primitive */
-	prim = l1sched_prim_alloc(l1l->trx, len, ul->chan_nr, ul->link_id);
-	if (prim == NULL) {
-		rc = -ENOMEM;
-		goto exit;
-	}
-
 	/**
 	 * Push this primitive to the transmit queue.
 	 * Indicated timeslot needs to be configured.
 	 */
-	rc = l1sched_prim_push(l1l->trx, prim, ul->chan_nr);
-	if (rc) {
-		talloc_free(prim);
-		goto exit;
-	}
+	prim = l1sched_prim_push(l1l->trx, ul->chan_nr, ul->link_id, ul->payload, len);
+	if (prim == NULL)
+		rc = -ENOMEM;
 
-	/* Fill in the payload */
-	memcpy(prim->payload, ul->payload, len);
-
-exit:
 	msgb_free(msg);
 	return rc;
 }
@@ -725,24 +712,11 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 		"link_id=0x%02x, len=%zu)\n", traffic ? "TRAFFIC" : "DATA",
 		chan_nr, link_id, payload_len);
 
-	/* Init a new primitive */
-	prim = l1sched_prim_alloc(l1l->trx, payload_len, chan_nr, link_id);
-	if (prim == NULL) {
-		rc = -ENOMEM;
-		goto exit;
-	}
-
 	/* Push this primitive to transmit queue */
-	rc = l1sched_prim_push(l1l->trx, prim, chan_nr);
-	if (rc) {
-		talloc_free(prim);
-		goto exit;
-	}
+	prim = l1sched_prim_push(l1l->trx, chan_nr, link_id, ul->payload, payload_len);
+	if (prim == NULL)
+		rc = -ENOMEM;
 
-	/* Fill in the payload */
-	memcpy(prim->payload, ul->payload, payload_len);
-
-exit:
 	msgb_free(msg);
 	return rc;
 }

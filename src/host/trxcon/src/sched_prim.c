@@ -44,8 +44,8 @@
  * @param  link_id RSL link description (used to set a proper chan)
  * @return         allocated primitive or NULL
  */
-struct l1sched_ts_prim *l1sched_prim_alloc(void *ctx, size_t pl_len,
-					   uint8_t chan_nr, uint8_t link_id)
+static struct l1sched_ts_prim *prim_alloc(void *ctx, size_t pl_len,
+					  uint8_t chan_nr, uint8_t link_id)
 {
 	enum l1sched_lchan_type lchan_type;
 	struct l1sched_ts_prim *prim;
@@ -77,13 +77,17 @@ struct l1sched_ts_prim *l1sched_prim_alloc(void *ctx, size_t pl_len,
  * timeslot, whose index is parsed from chan_nr.
  *
  * @param  trx     TRX instance
- * @param  prim    to be enqueued primitive
  * @param  chan_nr RSL channel description
- * @return         zero in case of success, otherwise a error number
+ * @param  link_id RSL link description
+ * @param  pl      Payload data
+ * @param  pl_len  Payload length
+ * @return         queued primitive or NULL
  */
-int l1sched_prim_push(struct trx_instance *trx,
-	struct l1sched_ts_prim *prim, uint8_t chan_nr)
+struct l1sched_ts_prim *l1sched_prim_push(struct trx_instance *trx,
+					  uint8_t chan_nr, uint8_t link_id,
+					  const uint8_t *pl, size_t pl_len)
 {
+	struct l1sched_ts_prim *prim;
 	struct l1sched_ts *ts;
 	uint8_t tn;
 
@@ -94,19 +98,19 @@ int l1sched_prim_push(struct trx_instance *trx,
 	ts = trx->ts_list[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DSCH, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
-		return -EINVAL;
+		return NULL;
 	}
 
-	/**
-	 * Change talloc context of primitive
-	 * from trx to the parent ts
-	 */
-	talloc_steal(ts, prim);
+	prim = prim_alloc(ts, pl_len, chan_nr, link_id);
+	if (prim == NULL)
+		return NULL;
+
+	memcpy(&prim->payload[0], pl, pl_len);
 
 	/* Add primitive to TS transmit queue */
 	llist_add_tail(&prim->list, &ts->tx_prims);
 
-	return 0;
+	return prim;
 }
 
 /**
@@ -152,9 +156,9 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 	};
 
 	/* Allocate a new primitive */
-	prim = l1sched_prim_alloc(lchan, GSM_MACBLOCK_LEN,
-				  l1sched_lchan_desc[lchan->type].chan_nr,
-				  L1SCHED_CH_LID_SACCH);
+	prim = prim_alloc(lchan, GSM_MACBLOCK_LEN,
+			  l1sched_lchan_desc[lchan->type].chan_nr,
+			  L1SCHED_CH_LID_SACCH);
 	OSMO_ASSERT(prim != NULL);
 
 	/* Check if the MR cache is populated (verify LAPDm header) */

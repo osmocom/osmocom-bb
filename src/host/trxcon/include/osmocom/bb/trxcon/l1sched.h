@@ -358,10 +358,9 @@ struct l1sched_lchan_state *l1sched_find_lchan(struct l1sched_ts *ts,
 	enum l1sched_lchan_type chan);
 
 /* Primitive management functions */
-struct l1sched_ts_prim *l1sched_prim_alloc(void *ctx, size_t pl_len,
-					   uint8_t chan_nr, uint8_t link_id);
-int l1sched_prim_push(struct trx_instance *trx,
-	struct l1sched_ts_prim *prim, uint8_t chan_nr);
+struct l1sched_ts_prim *l1sched_prim_push(struct trx_instance *trx,
+					  uint8_t chan_nr, uint8_t link_id,
+					  const uint8_t *pl, size_t pl_len);
 
 #define L1SCHED_TCH_MODE_IS_SPEECH(mode)   \
 	  (mode == GSM48_CMODE_SPEECH_V1   \
