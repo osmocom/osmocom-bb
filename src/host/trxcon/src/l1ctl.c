@@ -541,9 +541,11 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	}
 
 	/* Init a new primitive */
-	rc = l1sched_prim_alloc(l1l->trx, &prim, len, ul->chan_nr, ul->link_id);
-	if (rc)
+	prim = l1sched_prim_alloc(l1l->trx, len, ul->chan_nr, ul->link_id);
+	if (prim == NULL) {
+		rc = -ENOMEM;
 		goto exit;
+	}
 
 	/**
 	 * Push this primitive to the transmit queue.
@@ -724,10 +726,11 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 		chan_nr, link_id, payload_len);
 
 	/* Init a new primitive */
-	rc = l1sched_prim_alloc(l1l->trx, &prim, payload_len,
-		chan_nr, link_id);
-	if (rc)
+	prim = l1sched_prim_alloc(l1l->trx, payload_len, chan_nr, link_id);
+	if (prim == NULL) {
+		rc = -ENOMEM;
 		goto exit;
+	}
 
 	/* Push this primitive to transmit queue */
 	rc = l1sched_prim_push(l1l->trx, prim, chan_nr);

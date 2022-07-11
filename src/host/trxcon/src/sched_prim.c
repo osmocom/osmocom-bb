@@ -2,7 +2,8 @@
  * OsmocomBB <-> SDR connection bridge
  * TDMA scheduler: primitive management
  *
- * (C) 2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * (C) 2017-2022 by Vadim Yanitskiy <axilirator@gmail.com>
+ * Contributions by sysmocom - s.f.m.c. GmbH
  *
  * All Rights Reserved
  *
@@ -38,17 +39,16 @@
  * and filling some meta-information (e.g. lchan type).
  *
  * @param  ctx     parent talloc context
- * @param  prim    external prim pointer (will point to the allocated prim)
  * @param  pl_len  prim payload length
  * @param  chan_nr RSL channel description (used to set a proper chan)
  * @param  link_id RSL link description (used to set a proper chan)
- * @return         zero in case of success, otherwise a error number
+ * @return         allocated primitive or NULL
  */
-int l1sched_prim_alloc(void *ctx, struct l1sched_ts_prim **prim,
-	size_t pl_len, uint8_t chan_nr, uint8_t link_id)
+struct l1sched_ts_prim *l1sched_prim_alloc(void *ctx, size_t pl_len,
+					   uint8_t chan_nr, uint8_t link_id)
 {
 	enum l1sched_lchan_type lchan_type;
-	struct l1sched_ts_prim *new_prim;
+	struct l1sched_ts_prim *prim;
 	uint8_t len;
 
 	/* Determine lchan type */
@@ -56,7 +56,7 @@ int l1sched_prim_alloc(void *ctx, struct l1sched_ts_prim **prim,
 	if (!lchan_type) {
 		LOGP(DSCH, LOGL_ERROR, "Couldn't determine lchan type "
 			"for chan_nr=%02x and link_id=%02x\n", chan_nr, link_id);
-		return -EINVAL;
+		return NULL;
 	}
 
 	/* How much memory do we need? */
@@ -64,20 +64,17 @@ int l1sched_prim_alloc(void *ctx, struct l1sched_ts_prim **prim,
 	len += pl_len; /* Requested payload size */
 
 	/* Allocate a new primitive */
-	new_prim = talloc_zero_size(ctx, len);
-	if (new_prim == NULL) {
+	prim = talloc_zero_size(ctx, len);
+	if (prim == NULL) {
 		LOGP(DSCH, LOGL_ERROR, "Failed to allocate memory\n");
-		return -ENOMEM;
+		return NULL;
 	}
 
 	/* Init primitive header */
-	new_prim->payload_len = pl_len;
-	new_prim->chan = lchan_type;
+	prim->payload_len = pl_len;
+	prim->chan = lchan_type;
 
-	/* Set external pointer */
-	*prim = new_prim;
-
-	return 0;
+	return prim;
 }
 
 /**
@@ -129,7 +126,6 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 	struct l1sched_ts_prim *prim;
 	uint8_t *mr_src_ptr;
 	bool cached;
-	int rc;
 
 	/* "Dummy" Measurement Report */
 	static const uint8_t meas_rep_dummy[] = {
@@ -161,9 +157,10 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 	};
 
 	/* Allocate a new primitive */
-	rc = l1sched_prim_alloc(lchan, &prim, GSM_MACBLOCK_LEN,
-		l1sched_lchan_desc[lchan->type].chan_nr, L1SCHED_CH_LID_SACCH);
-	OSMO_ASSERT(rc == 0);
+	prim = l1sched_prim_alloc(lchan, GSM_MACBLOCK_LEN,
+				  l1sched_lchan_desc[lchan->type].chan_nr,
+				  L1SCHED_CH_LID_SACCH);
+	OSMO_ASSERT(prim != NULL);
 
 	/* Check if the MR cache is populated (verify LAPDm header) */
 	cached = (lchan->sacch.mr_cache[2] != 0x00
