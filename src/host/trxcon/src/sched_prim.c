@@ -44,7 +44,7 @@
  * @param  link_id RSL link description (used to set a proper chan)
  * @return         zero in case of success, otherwise a error number
  */
-int l1sched_prim_init(void *ctx, struct l1sched_ts_prim **prim,
+int l1sched_prim_alloc(void *ctx, struct l1sched_ts_prim **prim,
 	size_t pl_len, uint8_t chan_nr, uint8_t link_id)
 {
 	enum l1sched_lchan_type lchan_type;
@@ -161,7 +161,7 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 	};
 
 	/* Allocate a new primitive */
-	rc = l1sched_prim_init(lchan, &prim, GSM_MACBLOCK_LEN,
+	rc = l1sched_prim_alloc(lchan, &prim, GSM_MACBLOCK_LEN,
 		l1sched_lchan_desc[lchan->type].chan_nr, L1SCHED_CH_LID_SACCH);
 	OSMO_ASSERT(rc == 0);
 

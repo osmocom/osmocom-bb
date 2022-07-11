@@ -541,7 +541,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	}
 
 	/* Init a new primitive */
-	rc = l1sched_prim_init(l1l->trx, &prim, len, ul->chan_nr, ul->link_id);
+	rc = l1sched_prim_alloc(l1l->trx, &prim, len, ul->chan_nr, ul->link_id);
 	if (rc)
 		goto exit;
 
@@ -724,7 +724,7 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 		chan_nr, link_id, payload_len);
 
 	/* Init a new primitive */
-	rc = l1sched_prim_init(l1l->trx, &prim, payload_len,
+	rc = l1sched_prim_alloc(l1l->trx, &prim, payload_len,
 		chan_nr, link_id);
 	if (rc)
 		goto exit;
