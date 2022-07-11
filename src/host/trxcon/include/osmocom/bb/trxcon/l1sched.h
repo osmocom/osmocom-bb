@@ -125,7 +125,7 @@ struct l1sched_config_req {
 	union {
 		struct {
 			uint8_t tn;
-			uint8_t pchan;
+			enum gsm_phys_chan_config pchan;
 		} pchan_comb;
 	};
 };

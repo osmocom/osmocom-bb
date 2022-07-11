@@ -36,7 +36,7 @@
 #include <osmocom/bb/trxcon/logging.h>
 
 static int l1sched_cfg_pchan_comb_req(struct l1sched_state *sched,
-				      uint8_t tn, uint8_t pchan)
+				      uint8_t tn, enum gsm_phys_chan_config pchan)
 {
 	const struct l1sched_config_req cr = {
 		.type = L1SCHED_CFG_PCHAN_COMB,
@@ -251,7 +251,7 @@ void l1sched_del_ts(struct l1sched_state *sched, int tn)
 	talloc_free(ts);
 
 	/* Notify transceiver about that */
-	l1sched_cfg_pchan_comb_req(sched, tn, 0);
+	l1sched_cfg_pchan_comb_req(sched, tn, GSM_PCHAN_NONE);
 }
 
 #define LAYOUT_HAS_LCHAN(layout, lchan) \
@@ -316,8 +316,7 @@ int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 	}
 
 	/* Notify transceiver about TS activation */
-	/* FIXME: set proper channel type */
-	l1sched_cfg_pchan_comb_req(sched, tn, 1);
+	l1sched_cfg_pchan_comb_req(sched, tn, config);
 
 	return 0;
 }
@@ -348,7 +347,7 @@ int l1sched_reset_ts(struct l1sched_state *sched, int tn)
 	}
 
 	/* Notify transceiver about that */
-	l1sched_cfg_pchan_comb_req(sched, tn, 0);
+	l1sched_cfg_pchan_comb_req(sched, tn, GSM_PCHAN_NONE);
 
 	return 0;
 }

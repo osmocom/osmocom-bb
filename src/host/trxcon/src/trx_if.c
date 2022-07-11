@@ -273,9 +273,24 @@ int trx_if_cmd_poweron(struct trx_instance *trx)
  * RSP SETSLOT <status> <timeslot> <chantype>
  */
 
-int trx_if_cmd_setslot(struct trx_instance *trx, uint8_t tn, uint8_t type)
+int trx_if_cmd_setslot(struct trx_instance *trx, uint8_t tn,
+		       enum gsm_phys_chan_config pchan)
 {
-	return trx_ctrl_cmd(trx, 1, "SETSLOT", "%u %u", tn, type);
+	/* Values correspond to 'enum ChannelCombination' in osmo-trx.git */
+	static const uint8_t chan_types[_GSM_PCHAN_MAX] = {
+		[GSM_PCHAN_UNKNOWN]             = 0,
+		[GSM_PCHAN_NONE]                = 0,
+		[GSM_PCHAN_CCCH]                = 4,
+		[GSM_PCHAN_CCCH_SDCCH4]         = 5,
+		[GSM_PCHAN_CCCH_SDCCH4_CBCH]    = 5,
+		[GSM_PCHAN_TCH_F]               = 1,
+		[GSM_PCHAN_TCH_H]               = 3,
+		[GSM_PCHAN_SDCCH8_SACCH8C]      = 7,
+		[GSM_PCHAN_SDCCH8_SACCH8C_CBCH] = 7,
+		[GSM_PCHAN_PDCH]                = 13,
+	};
+
+	return trx_ctrl_cmd(trx, 1, "SETSLOT", "%u %u", tn, chan_types[pchan]);
 }
 
 /*
