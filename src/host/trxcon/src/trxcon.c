@@ -301,7 +301,7 @@ static struct osmo_fsm_state trxcon_fsm_states[] = {
 	},
 };
 
-static const struct value_string app_evt_names[] = {
+static const struct value_string trxcon_fsm_event_names[] = {
 	OSMO_VALUE_STRING(L1CTL_EVENT_CONNECT),
 	OSMO_VALUE_STRING(L1CTL_EVENT_DISCONNECT),
 	OSMO_VALUE_STRING(TRX_EVENT_OFFLINE),
@@ -314,7 +314,7 @@ static struct osmo_fsm trxcon_fsm_def = {
 	.states = trxcon_fsm_states,
 	.num_states = ARRAY_SIZE(trxcon_fsm_states),
 	.log_subsys = DAPP,
-	.event_names = app_evt_names,
+	.event_names = trxcon_fsm_event_names,
 };
 
 static void print_usage(const char *app)
