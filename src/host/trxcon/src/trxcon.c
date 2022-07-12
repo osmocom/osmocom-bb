@@ -84,10 +84,10 @@ static struct {
 static void *tall_trxcon_ctx = NULL;
 struct osmo_fsm_inst *trxcon_fsm;
 
-void trxcon_gsmtap_send(const struct l1sched_lchan_desc *lchan_desc,
-			uint32_t fn, uint8_t tn, uint16_t band_arfcn,
-			int8_t signal_dbm, uint8_t snr,
-			const uint8_t *data, size_t data_len)
+static void trxcon_gsmtap_send(const struct l1sched_lchan_desc *lchan_desc,
+			       uint32_t fn, uint8_t tn, uint16_t band_arfcn,
+			       int8_t signal_dbm, uint8_t snr,
+			       const uint8_t *data, size_t data_len)
 {
 	/* GSMTAP logging may be not enabled */
 	if (app_data.gsmtap == NULL)
