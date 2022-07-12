@@ -150,7 +150,7 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 		l1sched_handle_burst_req(sched, &br[tn]);
 }
 
-struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance)
+struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance, void *priv)
 {
 	struct l1sched_state *sched;
 
@@ -164,6 +164,7 @@ struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance)
 		/* .clock_timer is set up in l1sched_clck_correct() */
 		.clock_cb = &sched_frame_clck_cb,
 		.fn_counter_advance = fn_advance,
+		.priv = priv,
 	};
 
 	return sched;

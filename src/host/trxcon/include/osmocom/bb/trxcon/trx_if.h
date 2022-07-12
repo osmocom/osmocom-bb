@@ -12,8 +12,7 @@
 
 /* Forward declaration to avoid mutual include */
 struct l1sched_burst_req;
-struct l1sched_state;
-struct l1ctl_link;
+struct trxcon_inst;
 
 enum trx_fsm_states {
 	TRX_STATE_OFFLINE = 0,
@@ -23,6 +22,9 @@ enum trx_fsm_states {
 };
 
 struct trx_instance {
+	/* trxcon instance we belong to */
+	struct trxcon_inst *trxcon;
+
 	struct osmo_fd trx_ofd_ctrl;
 	struct osmo_fd trx_ofd_data;
 
@@ -40,12 +42,6 @@ struct trx_instance {
 	uint16_t band_arfcn;
 	uint8_t tx_power;
 	int8_t ta;
-
-	/* Scheduler for this interface */
-	struct l1sched_state *sched;
-
-	/* Bind L1CTL link */
-	struct l1ctl_link *l1l;
 };
 
 struct trx_ctrl_msg {
@@ -56,7 +52,7 @@ struct trx_ctrl_msg {
 	int cmd_len;
 };
 
-struct trx_instance *trx_if_open(void *tall_ctx,
+struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	const char *local_host, const char *remote_host, uint16_t port);
 void trx_if_flush_ctrl(struct trx_instance *trx);
 void trx_if_close(struct trx_instance *trx);

@@ -136,6 +136,7 @@ static int l1ctl_link_write_cb(struct osmo_fd *bfd, struct msgb *msg)
 static int l1ctl_link_accept(struct osmo_fd *bfd, unsigned int flags)
 {
 	struct l1ctl_link *l1l = (struct l1ctl_link *) bfd->data;
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct osmo_fd *conn_bfd = &l1l->wq.bfd;
 	struct sockaddr_un un_addr;
 	socklen_t len;
@@ -170,7 +171,7 @@ static int l1ctl_link_accept(struct osmo_fd *bfd, unsigned int flags)
 		return -1;
 	}
 
-	osmo_fsm_inst_dispatch(trxcon_fsm, L1CTL_EVENT_CONNECT, l1l);
+	osmo_fsm_inst_dispatch(trxcon->fi, L1CTL_EVENT_CONNECT, l1l);
 	osmo_fsm_inst_state_chg(l1l->fsm, L1CTL_STATE_CONNECTED, 0, 0);
 
 	LOGP(DL1C, LOGL_NOTICE, "L1CTL has a new connection\n");
@@ -205,6 +206,7 @@ int l1ctl_link_send(struct l1ctl_link *l1l, struct msgb *msg)
 int l1ctl_link_close_conn(struct l1ctl_link *l1l)
 {
 	struct osmo_fd *conn_bfd = &l1l->wq.bfd;
+	struct trxcon_inst *trxcon = l1l->priv;
 
 	if (conn_bfd->fd <= 0)
 		return -EINVAL;
@@ -217,7 +219,7 @@ int l1ctl_link_close_conn(struct l1ctl_link *l1l)
 	/* Clear pending messages */
 	osmo_wqueue_clear(&l1l->wq);
 
-	osmo_fsm_inst_dispatch(trxcon_fsm, L1CTL_EVENT_DISCONNECT, l1l);
+	osmo_fsm_inst_dispatch(trxcon->fi, L1CTL_EVENT_DISCONNECT, l1l);
 	osmo_fsm_inst_state_chg(l1l->fsm, L1CTL_STATE_IDLE, 0, 0);
 
 	return 0;

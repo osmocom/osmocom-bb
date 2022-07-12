@@ -161,6 +161,7 @@ static void trx_ctrl_send(struct trx_instance *trx)
 static void trx_ctrl_timer_cb(void *data)
 {
 	struct trx_instance *trx = (struct trx_instance *) data;
+	struct trxcon_inst *trxcon = trx->trxcon;
 	struct trx_ctrl_msg *tcm;
 
 	/* Queue may be cleaned at this moment */
@@ -173,7 +174,7 @@ static void trx_ctrl_timer_cb(void *data)
 	if (++tcm->retry_cnt > 3) {
 		LOGP(DTRX, LOGL_NOTICE, "Transceiver offline\n");
 		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_OFFLINE, 0, 0);
-		osmo_fsm_inst_dispatch(trxcon_fsm, TRX_EVENT_OFFLINE, trx);
+		osmo_fsm_inst_dispatch(trxcon->fi, TRX_EVENT_OFFLINE, trx);
 		return;
 	}
 
@@ -366,6 +367,7 @@ int trx_if_cmd_measure(struct trx_instance *trx,
 
 static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 {
+	struct trxcon_inst *trxcon = trx->trxcon;
 	unsigned int freq10;
 	uint16_t band_arfcn;
 	int dbm;
@@ -385,7 +387,7 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 	}
 
 	/* Send L1CTL_PM_CONF */
-	l1ctl_tx_pm_conf(trx->l1l, band_arfcn, dbm,
+	l1ctl_tx_pm_conf(trxcon->l1l, band_arfcn, dbm,
 		band_arfcn == trx->pm_band_arfcn_stop);
 
 	/* Schedule a next measurement */
@@ -475,6 +477,7 @@ int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn,
 static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
+	struct trxcon_inst *trxcon = trx->trxcon;
 	struct trx_ctrl_msg *tcm;
 	int resp, rsp_len;
 	char buf[TRXC_BUF_SIZE], *p;
@@ -557,7 +560,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 
 rsp_error:
 	/* Notify higher layers about the problem */
-	osmo_fsm_inst_dispatch(trxcon_fsm, TRX_EVENT_RSP_ERROR, trx);
+	osmo_fsm_inst_dispatch(trxcon->fi, TRX_EVENT_RSP_ERROR, trx);
 	return -EIO;
 }
 
@@ -586,6 +589,7 @@ rsp_error:
 static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
+	struct trxcon_inst *trxcon = trx->trxcon;
 	struct l1sched_meas_set meas;
 	uint8_t buf[TRXD_BUF_SIZE];
 	sbit_t bits[148];
@@ -635,11 +639,11 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	};
 
 	/* Poke scheduler */
-	l1sched_handle_rx_burst(trx->sched, tn, fn, bits, 148, &meas);
+	l1sched_handle_rx_burst(trxcon->sched, tn, fn, bits, 148, &meas);
 
 	/* Correct local clock counter */
 	if (fn % 51 == 0)
-		l1sched_clck_handle(trx->sched, fn);
+		l1sched_clck_handle(trxcon->sched, fn);
 
 	return 0;
 }
@@ -686,7 +690,7 @@ int trx_if_tx_burst(struct trx_instance *trx,
 }
 
 /* Init TRX interface (TRXC, TRXD sockets and FSM) */
-struct trx_instance *trx_if_open(void *tall_ctx,
+struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	const char *local_host, const char *remote_host,
 	uint16_t base_port)
 {
@@ -697,13 +701,14 @@ struct trx_instance *trx_if_open(void *tall_ctx,
 		"(%s:%u)\n", remote_host, base_port);
 
 	/* Try to allocate memory */
-	trx = talloc_zero(tall_ctx, struct trx_instance);
+	trx = talloc_zero(trxcon, struct trx_instance);
 	if (!trx) {
 		LOGP(DTRX, LOGL_ERROR, "Failed to allocate memory\n");
 		return NULL;
 	}
 
 	/* Allocate a new dedicated state machine */
+	/* TODO: allocate it as a child of trxcon->fi */
 	trx->fsm = osmo_fsm_inst_alloc(&trx_fsm, trx,
 		NULL, LOGL_DEBUG, "trx_interface");
 	if (trx->fsm == NULL) {
@@ -726,6 +731,8 @@ struct trx_instance *trx_if_open(void *tall_ctx,
 		base_port + 102, remote_host, base_port + 2, trx_data_rx_cb);
 	if (rc < 0)
 		goto udp_error;
+
+	trx->trxcon = trxcon;
 
 	return trx;
 

@@ -2,7 +2,9 @@
 
 #define GEN_MASK(state) (0x01 << state)
 
-extern struct osmo_fsm_inst *trxcon_fsm;
+struct l1sched_state;
+struct trx_instance;
+struct l1ctl_link;
 
 enum trxcon_fsm_states {
 	TRXCON_STATE_IDLE = 0,
@@ -18,3 +20,16 @@ enum trxcon_fsm_events {
 	TRX_EVENT_RSP_ERROR,
 	TRX_EVENT_OFFLINE,
 };
+
+struct trxcon_inst {
+	struct osmo_fsm_inst *fi;
+
+	/* The L1 scheduler */
+	struct l1sched_state *sched;
+	/* L1/L2 interfaces */
+	struct trx_instance *trx;
+	struct l1ctl_link *l1l;
+};
+
+struct trxcon_inst *trxcon_inst_alloc(void *ctx);
+void trxcon_inst_free(struct trxcon_inst *trxcon);

@@ -42,6 +42,7 @@
 
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/trxcon/trxcon.h>
 
 static const char *arfcn2band_name(uint16_t arfcn)
 {
@@ -296,6 +297,7 @@ static enum gsm_phys_chan_config l1ctl_ccch_mode2pchan_config(enum ccch_mode mod
 static void fbsb_timer_cb(void *data)
 {
 	struct l1ctl_link *l1l = (struct l1ctl_link *) data;
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 
@@ -303,12 +305,13 @@ static void fbsb_timer_cb(void *data)
 	if (msg == NULL)
 		return;
 
-	LOGP(DL1C, LOGL_NOTICE, "FBSB timer fired for ARFCN %u\n", l1l->trx->band_arfcn & ~ARFCN_FLAG_MASK);
+	LOGP(DL1C, LOGL_NOTICE, "FBSB timer fired for ARFCN %u\n",
+	     trxcon->trx->band_arfcn & ~ARFCN_FLAG_MASK);
 
 	dl = put_dl_info_hdr(msg, NULL);
 
 	/* Fill in current ARFCN */
-	dl->band_arfcn = htons(l1l->trx->band_arfcn);
+	dl->band_arfcn = htons(trxcon->trx->band_arfcn);
 
 	fbsb_conf_make(msg, 255, 0);
 
@@ -320,6 +323,7 @@ static void fbsb_timer_cb(void *data)
 
 static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	enum gsm_phys_chan_config ch_config;
 	struct l1ctl_fbsb_req *fbsb;
 	uint16_t band_arfcn;
@@ -343,28 +347,28 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		band_arfcn & ~ARFCN_FLAG_MASK);
 
 	/* Reset scheduler and clock counter */
-	l1sched_reset(l1l->sched, true);
+	l1sched_reset(trxcon->sched, true);
 
 	/* Configure a single timeslot */
-	l1sched_configure_ts(l1l->sched, 0, ch_config);
+	l1sched_configure_ts(trxcon->sched, 0, ch_config);
 
 	/* Ask SCH handler to send L1CTL_FBSB_CONF */
 	l1l->fbsb_conf_sent = false;
 
 	/* Only if current ARFCN differs */
-	if (l1l->trx->band_arfcn != band_arfcn) {
+	if (trxcon->trx->band_arfcn != band_arfcn) {
 		/* Update current ARFCN */
-		l1l->trx->band_arfcn = band_arfcn;
+		trxcon->trx->band_arfcn = band_arfcn;
 
 		/* Tune transceiver to required ARFCN */
-		trx_if_cmd_rxtune(l1l->trx, band_arfcn);
-		trx_if_cmd_txtune(l1l->trx, band_arfcn);
+		trx_if_cmd_rxtune(trxcon->trx, band_arfcn);
+		trx_if_cmd_txtune(trxcon->trx, band_arfcn);
 	}
 
 	/* Transceiver might have been powered on before, e.g.
 	 * in case of sending L1CTL_FBSB_REQ due to signal loss. */
-	if (!l1l->trx->powered_up)
-		trx_if_cmd_poweron(l1l->trx);
+	if (!trxcon->trx->powered_up)
+		trx_if_cmd_poweron(trxcon->trx);
 
 	/* Start FBSB expire timer */
 	l1l->fbsb_timer.data = l1l;
@@ -381,6 +385,7 @@ exit:
 static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
 	uint16_t band_arfcn_start, band_arfcn_stop;
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct l1ctl_pm_req *pmr;
 	int rc = 0;
 
@@ -402,7 +407,7 @@ static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
 		band_arfcn_stop & ~ARFCN_FLAG_MASK);
 
 	/* Send measurement request to transceiver */
-	rc = trx_if_cmd_measure(l1l->trx, band_arfcn_start, band_arfcn_stop);
+	rc = trx_if_cmd_measure(trxcon->trx, band_arfcn_start, band_arfcn_stop);
 
 exit:
 	msgb_free(msg);
@@ -411,6 +416,7 @@ exit:
 
 static int l1ctl_rx_reset_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct l1ctl_reset *res;
 	int rc = 0;
 
@@ -428,12 +434,12 @@ static int l1ctl_rx_reset_req(struct l1ctl_link *l1l, struct msgb *msg)
 	switch (res->type) {
 	case L1CTL_RES_T_FULL:
 		/* TODO: implement trx_if_reset() */
-		trx_if_cmd_poweroff(l1l->trx);
-		trx_if_cmd_echo(l1l->trx);
+		trx_if_cmd_poweroff(trxcon->trx);
+		trx_if_cmd_echo(trxcon->trx);
 
 		/* Fall through */
 	case L1CTL_RES_T_SCHED:
-		l1sched_reset(l1l->sched, true);
+		l1sched_reset(trxcon->sched, true);
 		break;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown L1CTL_RESET_REQ type\n");
@@ -465,6 +471,7 @@ static int l1ctl_rx_echo_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	enum gsm_phys_chan_config ch_config;
 	struct l1ctl_ccch_mode_req *req;
 	struct l1sched_ts *ts;
@@ -482,7 +489,7 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 		req->ccch_mode); /* TODO: add value-string for ccch_mode */
 
 	/* Make sure that TS0 is allocated and configured */
-	ts = l1l->sched->ts[0];
+	ts = trxcon->sched->ts[0];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DL1C, LOGL_ERROR, "TS0 is not configured");
 		rc = -EINVAL;
@@ -494,7 +501,7 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Do nothing if the current mode matches required */
 	if (ts->mf_layout->chan_config != ch_config)
-		rc = l1sched_configure_ts(l1l->sched, 0, ch_config);
+		rc = l1sched_configure_ts(trxcon->sched, 0, ch_config);
 
 	/* Confirm reconfiguration */
 	if (!rc)
@@ -507,6 +514,7 @@ exit:
 
 static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct l1ctl_info_ul *ul;
 	struct l1sched_ts_prim *prim;
 	struct l1sched_ts_prim_rach rach;
@@ -553,7 +561,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
 	 * Indicated timeslot needs to be configured.
 	 */
 	prim_type = ext ? L1SCHED_PRIM_RACH11 : L1SCHED_PRIM_RACH8;
-	prim = l1sched_prim_push(l1l->sched, prim_type, ul->chan_nr, ul->link_id,
+	prim = l1sched_prim_push(trxcon->sched, prim_type, ul->chan_nr, ul->link_id,
 				 (const uint8_t *)&rach, sizeof(rach));
 	if (prim == NULL)
 		rc = -ENOMEM;
@@ -624,6 +632,7 @@ static int l1ctl_proc_est_req_h1(struct trx_instance *trx, struct l1ctl_h1 *h)
 
 static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	enum gsm_phys_chan_config config;
 	struct l1ctl_dm_est_req *est_req;
 	struct l1ctl_info_ul *ul;
@@ -651,15 +660,15 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Frequency hopping? */
 	if (est_req->h)
-		rc = l1ctl_proc_est_req_h1(l1l->trx, &est_req->h1);
+		rc = l1ctl_proc_est_req_h1(trxcon->trx, &est_req->h1);
 	else /* Single ARFCN */
-		rc = l1ctl_proc_est_req_h0(l1l->trx, &est_req->h0);
+		rc = l1ctl_proc_est_req_h0(trxcon->trx, &est_req->h0);
 	if (rc)
 		goto exit;
 
 	/* Configure requested TS */
-	rc = l1sched_configure_ts(l1l->sched, tn, config);
-	ts = l1l->sched->ts[tn];
+	rc = l1sched_configure_ts(trxcon->sched, tn, config);
+	ts = trxcon->sched->ts[tn];
 	if (rc) {
 		rc = -EINVAL;
 		goto exit;
@@ -683,10 +692,12 @@ exit:
 
 static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
+
 	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_REL_REQ, resetting scheduler\n");
 
 	/* Reset scheduler */
-	l1sched_reset(l1l->sched, false);
+	l1sched_reset(trxcon->sched, false);
 
 	msgb_free(msg);
 	return 0;
@@ -698,6 +709,7 @@ static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 	struct msgb *msg, bool traffic)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct l1ctl_info_ul *ul;
 	struct l1sched_ts_prim *prim;
 	uint8_t chan_nr, link_id;
@@ -720,7 +732,7 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 		chan_nr, link_id, payload_len);
 
 	/* Push this primitive to transmit queue */
-	prim = l1sched_prim_push(l1l->sched, L1SCHED_PRIM_DATA,
+	prim = l1sched_prim_push(trxcon->sched, L1SCHED_PRIM_DATA,
 				 chan_nr, link_id, ul->payload, payload_len);
 	if (prim == NULL)
 		rc = -ENOMEM;
@@ -731,6 +743,7 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 
 static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct l1ctl_par_req *par_req;
 	struct l1ctl_info_ul *ul;
 
@@ -741,12 +754,12 @@ static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 		"(ta=%d, tx_power=%u)\n", par_req->ta, par_req->tx_power);
 
 	/* Instruct TRX to use new TA value */
-	if (l1l->trx->ta != par_req->ta) {
-		trx_if_cmd_setta(l1l->trx, par_req->ta);
-		l1l->trx->ta = par_req->ta;
+	if (trxcon->trx->ta != par_req->ta) {
+		trx_if_cmd_setta(trxcon->trx, par_req->ta);
+		trxcon->trx->ta = par_req->ta;
 	}
 
-	l1l->trx->tx_power = par_req->tx_power;
+	trxcon->trx->tx_power = par_req->tx_power;
 
 	msgb_free(msg);
 	return 0;
@@ -754,6 +767,7 @@ static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct l1ctl_tch_mode_req *req;
 	struct l1sched_lchan_state *lchan;
 	struct l1sched_ts *ts;
@@ -765,9 +779,9 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 		"(tch_mode=%u, audio_mode=%u)\n", req->tch_mode, req->audio_mode);
 
 	/* Iterate over timeslot list */
-	for (tn = 0; tn < ARRAY_SIZE(l1l->sched->ts); tn++) {
+	for (tn = 0; tn < ARRAY_SIZE(trxcon->sched->ts); tn++) {
 		/* Timeslot is not allocated */
-		ts = l1l->sched->ts[tn];
+		ts = trxcon->sched->ts[tn];
 		if (ts == NULL)
 			continue;
 
@@ -797,6 +811,7 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct l1ctl_crypto_req *req;
 	struct l1ctl_info_ul *ul;
 	struct l1sched_ts *ts;
@@ -813,7 +828,7 @@ static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
 	tn = ul->chan_nr & 0x7;
 
 	/* Make sure that required TS is allocated and configured */
-	ts = l1l->sched->ts[tn];
+	ts = trxcon->sched->ts[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DL1C, LOGL_ERROR, "TS %u is not configured\n", tn);
 		rc = -EINVAL;

@@ -17,9 +17,6 @@
  */
 #define L1CTL_MSG_LEN_FIELD 2
 
-/* Forward declaration to avoid mutual include */
-struct trx_instance;
-
 enum l1ctl_fsm_states {
 	L1CTL_STATE_IDLE = 0,
 	L1CTL_STATE_CONNECTED,
@@ -30,11 +27,8 @@ struct l1ctl_link {
 	struct osmo_fd listen_bfd;
 	struct osmo_wqueue wq;
 
-	/* Scheduler for this interface */
-	struct l1sched_state *sched;
-
-	/* Bind TRX instance */
-	struct trx_instance *trx;
+	/* Some private data */
+	void *priv;
 
 	/* L1CTL handlers specific */
 	struct osmo_timer_list fbsb_timer;

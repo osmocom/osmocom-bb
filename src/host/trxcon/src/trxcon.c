@@ -62,15 +62,10 @@ static struct {
 	int daemonize;
 	int quit;
 
-	/* The scheduler */
-	struct l1sched_state *sched;
-
 	/* L1CTL specific */
-	struct l1ctl_link *l1l;
 	const char *bind_socket;
 
 	/* TRX specific */
-	struct trx_instance *trx;
 	const char *trx_bind_ip;
 	const char *trx_remote_ip;
 	uint16_t trx_base_port;
@@ -88,7 +83,6 @@ static struct {
 };
 
 static void *tall_trxcon_ctx = NULL;
-struct osmo_fsm_inst *trxcon_fsm;
 
 static void trxcon_gsmtap_send(const struct l1sched_lchan_desc *lchan_desc,
 			       uint32_t fn, uint8_t tn, uint16_t band_arfcn,
@@ -112,13 +106,15 @@ static void trxcon_gsmtap_send(const struct l1sched_lchan_desc *lchan_desc,
 int l1sched_handle_config_req(struct l1sched_state *sched,
 			      const struct l1sched_config_req *cr)
 {
+	struct trxcon_inst *trxcon = sched->priv;
+
 	switch (cr->type) {
 	case L1SCHED_CFG_PCHAN_COMB:
-		return trx_if_cmd_setslot(app_data.trx,
+		return trx_if_cmd_setslot(trxcon->trx,
 					  cr->pchan_comb.tn,
 					  cr->pchan_comb.pchan);
 	default:
-		LOGPFSML(trxcon_fsm, LOGL_ERROR,
+		LOGPFSML(trxcon->fi, LOGL_ERROR,
 			 "Unhandled config request (type 0x%02x)\n", cr->type);
 		return -ENODEV;
 	}
@@ -127,7 +123,9 @@ int l1sched_handle_config_req(struct l1sched_state *sched,
 int l1sched_handle_burst_req(struct l1sched_state *sched,
 			     const struct l1sched_burst_req *br)
 {
-	return trx_if_tx_burst(app_data.trx, br);
+	struct trxcon_inst *trxcon = sched->priv;
+
+	return trx_if_tx_burst(trxcon->trx, br);
 }
 
 /* External L2 API for the scheduler */
@@ -138,6 +136,8 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 {
 	const struct l1sched_meas_set *meas = &lchan->meas_avg;
 	const struct l1sched_lchan_desc *lchan_desc;
+	struct l1sched_state *sched = lchan->ts->sched;
+	struct trxcon_inst *trxcon = sched->priv;
 	struct l1ctl_info_dl dl_hdr;
 	int rc;
 
@@ -147,7 +147,7 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
 		.link_id = lchan_desc->link_id,
 		.frame_nr = htonl(meas->fn),
-		.band_arfcn = htons(app_data.trx->band_arfcn),
+		.band_arfcn = htons(trxcon->trx->band_arfcn),
 		.fire_crc = data_len > 0 ? 0 : 2,
 		.rx_level = dbm2rxlev(meas->rssi),
 		.num_biterr = n_errors,
@@ -157,29 +157,28 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 	switch (dt) {
 	case L1SCHED_DT_TRAFFIC:
 	case L1SCHED_DT_PACKET_DATA:
-		rc = l1ctl_tx_dt_ind(app_data.l1l, &dl_hdr, data, data_len, true);
+		rc = l1ctl_tx_dt_ind(trxcon->l1l, &dl_hdr, data, data_len, true);
 		break;
 	case L1SCHED_DT_SIGNALING:
-		rc = l1ctl_tx_dt_ind(app_data.l1l, &dl_hdr, data, data_len, false);
+		rc = l1ctl_tx_dt_ind(trxcon->l1l, &dl_hdr, data, data_len, false);
 		break;
 	case L1SCHED_DT_OTHER:
 		if (lchan->type == L1SCHED_SCH) {
-			if (app_data.l1l->fbsb_conf_sent)
+			if (trxcon->l1l->fbsb_conf_sent)
 				return 0;
-			rc = l1ctl_tx_fbsb_conf(app_data.l1l, 0, &dl_hdr,
-						lchan->ts->sched->bsic);
+			rc = l1ctl_tx_fbsb_conf(trxcon->l1l, 0, &dl_hdr, sched->bsic);
 			break;
 		}
 		/* fall through */
 	default:
-		LOGPFSML(trxcon_fsm, LOGL_ERROR,
+		LOGPFSML(trxcon->fi, LOGL_ERROR,
 			 "Unhandled L2 DATA.ind (type 0x%02x)\n", dt);
 		return -ENODEV;
 	}
 
 	if (data != NULL && data_len > 0) {
 		trxcon_gsmtap_send(lchan_desc, meas->fn, lchan->ts->index,
-				   app_data.trx->band_arfcn, meas->rssi, 0,
+				   trxcon->trx->band_arfcn, meas->rssi, 0,
 				   data, data_len);
 	}
 
@@ -190,6 +189,8 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 			    uint32_t fn, enum l1sched_data_type dt)
 {
 	const struct l1sched_lchan_desc *lchan_desc;
+	struct l1sched_state *sched = lchan->ts->sched;
+	struct trxcon_inst *trxcon = sched->priv;
 	struct l1ctl_info_dl dl_hdr;
 	const uint8_t *data;
 	uint8_t ra_buf[2];
@@ -202,18 +203,18 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
 		.link_id = lchan_desc->link_id,
 		.frame_nr = htonl(fn),
-		.band_arfcn = htons(app_data.trx->band_arfcn),
+		.band_arfcn = htons(trxcon->trx->band_arfcn),
 	};
 
 	switch (dt) {
 	case L1SCHED_DT_TRAFFIC:
 	case L1SCHED_DT_PACKET_DATA:
-		rc = l1ctl_tx_dt_conf(app_data.l1l, &dl_hdr, true);
+		rc = l1ctl_tx_dt_conf(trxcon->l1l, &dl_hdr, true);
 		data_len = lchan->prim->payload_len;
 		data = lchan->prim->payload;
 		break;
 	case L1SCHED_DT_SIGNALING:
-		rc = l1ctl_tx_dt_conf(app_data.l1l, &dl_hdr, false);
+		rc = l1ctl_tx_dt_conf(trxcon->l1l, &dl_hdr, false);
 		data_len = lchan->prim->payload_len;
 		data = lchan->prim->payload;
 		break;
@@ -223,7 +224,7 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 
 			rach = (struct l1sched_ts_prim_rach *)lchan->prim->payload;
 
-			rc = l1ctl_tx_rach_conf(app_data.l1l, app_data.trx->band_arfcn, fn);
+			rc = l1ctl_tx_rach_conf(trxcon->l1l, trxcon->trx->band_arfcn, fn);
 			if (lchan->prim->type == L1SCHED_PRIM_RACH11) {
 				ra_buf[0] = (uint8_t)(rach->ra >> 3);
 				ra_buf[1] = (uint8_t)(rach->ra & 0x07);
@@ -238,13 +239,13 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 		}
 		/* fall through */
 	default:
-		LOGPFSML(trxcon_fsm, LOGL_ERROR,
+		LOGPFSML(trxcon->fi, LOGL_ERROR,
 			 "Unhandled L2 DATA.cnf (type 0x%02x)\n", dt);
 		return -ENODEV;
 	}
 
 	trxcon_gsmtap_send(lchan_desc, fn, lchan->ts->index,
-			   app_data.trx->band_arfcn | ARFCN_UPLINK,
+			   trxcon->trx->band_arfcn | ARFCN_UPLINK,
 			   0, 0, data, data_len);
 
 	return rc;
@@ -255,23 +256,25 @@ static void trxcon_fsm_idle_action(struct osmo_fsm_inst *fi,
 	uint32_t event, void *data)
 {
 	if (event == L1CTL_EVENT_CONNECT)
-		osmo_fsm_inst_state_chg(trxcon_fsm, TRXCON_STATE_MANAGED, 0, 0);
+		osmo_fsm_inst_state_chg(fi, TRXCON_STATE_MANAGED, 0, 0);
 }
 
 static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 	uint32_t event, void *data)
 {
+	struct trxcon_inst *trxcon = fi->priv;
+
 	switch (event) {
 	case L1CTL_EVENT_DISCONNECT:
-		osmo_fsm_inst_state_chg(trxcon_fsm, TRXCON_STATE_IDLE, 0, 0);
+		osmo_fsm_inst_state_chg(fi, TRXCON_STATE_IDLE, 0, 0);
 
-		if (app_data.trx->fsm->state != TRX_STATE_OFFLINE) {
+		if (trxcon->trx->fsm->state != TRX_STATE_OFFLINE) {
 			/* Reset scheduler and clock counter */
-			l1sched_reset(app_data.sched, true);
+			l1sched_reset(trxcon->sched, true);
 
 			/* TODO: implement trx_if_reset() */
-			trx_if_cmd_poweroff(app_data.trx);
-			trx_if_cmd_echo(app_data.trx);
+			trx_if_cmd_poweroff(trxcon->trx);
+			trx_if_cmd_echo(trxcon->trx);
 		}
 		break;
 	case TRX_EVENT_RSP_ERROR:
@@ -310,12 +313,68 @@ static const struct value_string trxcon_fsm_event_names[] = {
 };
 
 static struct osmo_fsm trxcon_fsm_def = {
-	.name = "trxcon_app_fsm",
+	.name = "trxcon",
 	.states = trxcon_fsm_states,
 	.num_states = ARRAY_SIZE(trxcon_fsm_states),
 	.log_subsys = DAPP,
 	.event_names = trxcon_fsm_event_names,
 };
+
+struct trxcon_inst *trxcon_inst_alloc(void *ctx)
+{
+	struct trxcon_inst *trxcon;
+
+	trxcon = talloc_zero(ctx, struct trxcon_inst);
+	OSMO_ASSERT(trxcon != NULL);
+
+	trxcon->fi = osmo_fsm_inst_alloc(&trxcon_fsm_def, tall_trxcon_ctx,
+					 trxcon, LOGL_DEBUG, NULL);
+	OSMO_ASSERT(trxcon->fi != NULL);
+
+	/* Init L1CTL server */
+	trxcon->l1l = l1ctl_link_init(trxcon, app_data.bind_socket);
+	if (trxcon->l1l == NULL) {
+		trxcon_inst_free(trxcon);
+		return NULL;
+	}
+
+	/* Init transceiver interface */
+	trxcon->trx = trx_if_open(trxcon,
+				  app_data.trx_bind_ip,
+				  app_data.trx_remote_ip,
+				  app_data.trx_base_port);
+	if (trxcon->trx == NULL) {
+		trxcon_inst_free(trxcon);
+		return NULL;
+	}
+
+	trxcon->l1l->priv = trxcon;
+
+	/* Init scheduler */
+	trxcon->sched = l1sched_alloc(trxcon, app_data.trx_fn_advance, trxcon);
+	if (trxcon->sched == NULL) {
+		trxcon_inst_free(trxcon);
+		return NULL;
+	}
+
+	return trxcon;
+}
+
+void trxcon_inst_free(struct trxcon_inst *trxcon)
+{
+	/* Shutdown the scheduler */
+	if (trxcon->sched != NULL)
+		l1sched_free(trxcon->sched);
+	/* Close active connections */
+	if (trxcon->l1l != NULL)
+		l1ctl_link_shutdown(trxcon->l1l);
+	if (trxcon->trx != NULL)
+		trx_if_close(trxcon->trx);
+
+	if (trxcon->fi != NULL)
+		osmo_fsm_inst_free(trxcon->fi);
+	talloc_free(trxcon);
+}
 
 static void print_usage(const char *app)
 {
@@ -427,6 +486,7 @@ static void signal_handler(int signum)
 
 int main(int argc, char **argv)
 {
+	struct trxcon_inst *trxcon = NULL;
 	int rc = 0;
 
 	printf("%s", COPYRIGHT);
@@ -469,36 +529,13 @@ int main(int argc, char **argv)
 		gsmtap_source_add_sink(app_data.gsmtap);
 	}
 
-	/* Allocate the application state machine */
+	/* Register the trxcon state machine */
 	OSMO_ASSERT(osmo_fsm_register(&trxcon_fsm_def) == 0);
-	trxcon_fsm = osmo_fsm_inst_alloc(&trxcon_fsm_def, tall_trxcon_ctx,
-		NULL, LOGL_DEBUG, "main");
 
-	/* Init L1CTL server */
-	app_data.l1l = l1ctl_link_init(tall_trxcon_ctx,
-		app_data.bind_socket);
-	if (app_data.l1l == NULL)
+	/* Allocate the trxcon instance (only one for now) */
+	trxcon = trxcon_inst_alloc(tall_trxcon_ctx);
+	if (trxcon == NULL)
 		goto exit;
-
-	/* Init transceiver interface */
-	app_data.trx = trx_if_open(tall_trxcon_ctx,
-		app_data.trx_bind_ip, app_data.trx_remote_ip,
-		app_data.trx_base_port);
-	if (!app_data.trx)
-		goto exit;
-
-	/* Bind L1CTL with TRX and vice versa */
-	app_data.l1l->trx = app_data.trx;
-	app_data.trx->l1l = app_data.l1l;
-
-	/* Init scheduler */
-	app_data.sched = l1sched_alloc(tall_trxcon_ctx, app_data.trx_fn_advance);
-	if (app_data.sched == NULL)
-		goto exit;
-
-	/* Let both L1CTL and TRX interfaces access to the scheduler */
-	app_data.l1l->sched = app_data.sched;
-	app_data.trx->sched = app_data.sched;
 
 	LOGP(DAPP, LOGL_NOTICE, "Init complete\n");
 
@@ -517,13 +554,9 @@ int main(int argc, char **argv)
 		osmo_select_main(0);
 
 exit:
-	/* Close active connections */
-	l1ctl_link_shutdown(app_data.l1l);
-	l1sched_free(app_data.sched);
-	trx_if_close(app_data.trx);
-
-	/* Shutdown main state machine */
-	osmo_fsm_inst_free(trxcon_fsm);
+	/* Release the trxcon instance */
+	if (trxcon != NULL)
+		trxcon_inst_free(trxcon);
 
 	/* Deinitialize logging */
 	log_fini();
