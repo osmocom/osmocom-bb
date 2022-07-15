@@ -79,7 +79,13 @@ static struct {
 	/* GSMTAP specific */
 	struct gsmtap_inst *gsmtap;
 	const char *gsmtap_ip;
-} app_data;
+} app_data = {
+	.bind_socket = "/tmp/osmocom_l2",
+	.trx_remote_ip = "127.0.0.1",
+	.trx_bind_ip = "0.0.0.0",
+	.trx_base_port = 6700,
+	.trx_fn_advance = 3,
+};
 
 static void *tall_trxcon_ctx = NULL;
 struct osmo_fsm_inst *trxcon_fsm;
@@ -391,20 +397,6 @@ static void handle_options(int argc, char **argv)
 	}
 }
 
-static void init_defaults(void)
-{
-	app_data.bind_socket = "/tmp/osmocom_l2";
-	app_data.trx_remote_ip = "127.0.0.1";
-	app_data.trx_bind_ip = "0.0.0.0";
-	app_data.trx_base_port = 6700;
-	app_data.trx_fn_advance = 3;
-
-	app_data.debug_mask = NULL;
-	app_data.gsmtap_ip = NULL;
-	app_data.daemonize = 0;
-	app_data.quit = 0;
-}
-
 static void signal_handler(int signum)
 {
 	fprintf(stderr, "signal %u received\n", signum);
@@ -438,7 +430,6 @@ int main(int argc, char **argv)
 	int rc = 0;
 
 	printf("%s", COPYRIGHT);
-	init_defaults();
 	handle_options(argc, argv);
 
 	/* Track the use of talloc NULL memory contexts */
