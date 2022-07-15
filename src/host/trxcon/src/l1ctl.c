@@ -757,7 +757,7 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 	struct l1ctl_tch_mode_req *req;
 	struct l1sched_lchan_state *lchan;
 	struct l1sched_ts *ts;
-	int i;
+	unsigned int tn;
 
 	req = (struct l1ctl_tch_mode_req *) msg->l1h;
 
@@ -765,9 +765,9 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 		"(tch_mode=%u, audio_mode=%u)\n", req->tch_mode, req->audio_mode);
 
 	/* Iterate over timeslot list */
-	for (i = 0; i < ARRAY_SIZE(l1l->sched->ts); i++) {
+	for (tn = 0; tn < ARRAY_SIZE(l1l->sched->ts); tn++) {
 		/* Timeslot is not allocated */
-		ts = l1l->sched->ts[i];
+		ts = l1l->sched->ts[tn];
 		if (ts == NULL)
 			continue;
 

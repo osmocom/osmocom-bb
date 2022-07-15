@@ -61,7 +61,7 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 	enum l1sched_lchan_type chan;
 	uint8_t offset;
 	struct l1sched_ts *ts;
-	int i;
+	unsigned int tn;
 
 	/* Advance TDMA frame number in order to give the transceiver
 	 * more time to handle the burst before the actual transmission. */
@@ -69,16 +69,16 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 					    sched->fn_counter_advance);
 
 	/* Iterate over timeslot list */
-	for (i = 0; i < ARRAY_SIZE(br); i++) {
+	for (tn = 0; tn < ARRAY_SIZE(br); tn++) {
 		/* Initialize the buffer for this timeslot */
-		br[i] = (struct l1sched_burst_req) {
+		br[tn] = (struct l1sched_burst_req) {
 			.fn = fn,
-			.tn = i,
+			.tn = tn,
 			.burst_len = 0, /* NOPE.ind */
 		};
 
 		/* Timeslot is not allocated */
-		ts = sched->ts[i];
+		ts = sched->ts[tn];
 		if (ts == NULL)
 			continue;
 
@@ -91,7 +91,7 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 		frame = ts->mf_layout->frames + offset;
 
 		/* Get required info from frame */
-		br[i].bid = frame->ul_bid;
+		br[tn].bid = frame->ul_bid;
 		chan = frame->ul_chan;
 		handler = l1sched_lchan_desc[chan].tx_fn;
 
@@ -138,16 +138,16 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 			handler = l1sched_lchan_desc[L1SCHED_RACH].tx_fn;
 
 		/* Poke lchan handler */
-		handler(lchan, &br[i]);
+		handler(lchan, &br[tn]);
 
 		/* Perform A5/X burst encryption if required */
 		if (lchan->a5.algo)
-			l1sched_a5_burst_enc(lchan, &br[i]);
+			l1sched_a5_burst_enc(lchan, &br[tn]);
 	}
 
 	/* Send all bursts for this TDMA frame */
-	for (i = 0; i < ARRAY_SIZE(br); i++)
-		l1sched_handle_burst_req(sched, &br[i]);
+	for (tn = 0; tn < ARRAY_SIZE(br); tn++)
+		l1sched_handle_burst_req(sched, &br[tn]);
 }
 
 struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance)
@@ -171,7 +171,7 @@ struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance)
 
 void l1sched_free(struct l1sched_state *sched)
 {
-	int i;
+	unsigned int tn;
 
 	if (sched == NULL)
 		return;
@@ -179,8 +179,8 @@ void l1sched_free(struct l1sched_state *sched)
 	LOGP(DSCH, LOGL_NOTICE, "Shutdown scheduler\n");
 
 	/* Free all potentially allocated timeslots */
-	for (i = 0; i < ARRAY_SIZE(sched->ts); i++)
-		l1sched_del_ts(sched, i);
+	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)
+		l1sched_del_ts(sched, tn);
 
 	l1sched_clck_reset(sched);
 	talloc_free(sched);
@@ -188,7 +188,7 @@ void l1sched_free(struct l1sched_state *sched)
 
 void l1sched_reset(struct l1sched_state *sched, bool reset_clock)
 {
-	int i;
+	unsigned int tn;
 
 	if (sched == NULL)
 		return;
@@ -197,8 +197,8 @@ void l1sched_reset(struct l1sched_state *sched, bool reset_clock)
 		reset_clock ? "and clock counter" : "");
 
 	/* Free all potentially allocated timeslots */
-	for (i = 0; i < ARRAY_SIZE(sched->ts); i++)
-		l1sched_del_ts(sched, i);
+	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)
+		l1sched_del_ts(sched, tn);
 
 	/* Stop and reset clock counter if required */
 	if (reset_clock)
