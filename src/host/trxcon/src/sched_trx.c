@@ -69,7 +69,7 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 					    sched->fn_counter_advance);
 
 	/* Iterate over timeslot list */
-	for (i = 0; i < TRX_TS_COUNT; i++) {
+	for (i = 0; i < ARRAY_SIZE(br); i++) {
 		/* Initialize the buffer for this timeslot */
 		br[i] = (struct l1sched_burst_req) {
 			.fn = fn,
@@ -179,7 +179,7 @@ void l1sched_free(struct l1sched_state *sched)
 	LOGP(DSCH, LOGL_NOTICE, "Shutdown scheduler\n");
 
 	/* Free all potentially allocated timeslots */
-	for (i = 0; i < TRX_TS_COUNT; i++)
+	for (i = 0; i < ARRAY_SIZE(sched->ts); i++)
 		l1sched_del_ts(sched, i);
 
 	l1sched_clck_reset(sched);
@@ -197,7 +197,7 @@ void l1sched_reset(struct l1sched_state *sched, bool reset_clock)
 		reset_clock ? "and clock counter" : "");
 
 	/* Free all potentially allocated timeslots */
-	for (i = 0; i < TRX_TS_COUNT; i++)
+	for (i = 0; i < ARRAY_SIZE(sched->ts); i++)
 		l1sched_del_ts(sched, i);
 
 	/* Stop and reset clock counter if required */
