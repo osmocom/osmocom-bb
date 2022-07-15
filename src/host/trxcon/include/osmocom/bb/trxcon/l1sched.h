@@ -349,7 +349,7 @@ struct l1sched_ts_prim_rach {
 /*! One scheduler instance */
 struct l1sched_state {
 	/*! Clock state */
-	enum l1sched_clck_state state;
+	enum l1sched_clck_state clck_state;
 	/*! Local clock source */
 	struct timespec clock;
 	/*! Count of processed frames */

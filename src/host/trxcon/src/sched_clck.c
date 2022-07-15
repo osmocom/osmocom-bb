@@ -55,7 +55,7 @@ static void l1sched_clck_tick(void *data)
 	/* Check if transceiver is still alive */
 	if (sched->fn_counter_lost++ == TRX_LOSS_FRAMES) {
 		LOGP(DSCH, LOGL_DEBUG, "No more clock from transceiver\n");
-		sched->state = L1SCHED_CLCK_ST_WAIT;
+		sched->clck_state = L1SCHED_CLCK_ST_WAIT;
 
 		return;
 	}
@@ -72,7 +72,7 @@ static void l1sched_clck_tick(void *data)
 		LOGP(DSCH, LOGL_NOTICE, "PC clock skew: "
 			"elapsed uS %" PRId64 "\n", elapsed_us);
 
-		sched->state = L1SCHED_CLCK_ST_WAIT;
+		sched->clck_state = L1SCHED_CLCK_ST_WAIT;
 
 		return;
 	}
@@ -124,11 +124,11 @@ int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn)
 	tv_clock = &sched->clock;
 
 	/* If this is the first CLCK IND */
-	if (sched->state == L1SCHED_CLCK_ST_WAIT) {
+	if (sched->clck_state == L1SCHED_CLCK_ST_WAIT) {
 		l1sched_clck_correct(sched, &tv_now, fn);
 
 		LOGP(DSCH, LOGL_DEBUG, "Initial clock received: fn=%u\n", fn);
-		sched->state = L1SCHED_CLCK_ST_OK;
+		sched->clck_state = L1SCHED_CLCK_ST_OK;
 
 		return 0;
 	}
@@ -195,7 +195,7 @@ int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn)
 void l1sched_clck_reset(struct l1sched_state *sched)
 {
 	/* Reset internal state */
-	sched->state = L1SCHED_CLCK_ST_WAIT;
+	sched->clck_state = L1SCHED_CLCK_ST_WAIT;
 
 	/* Stop clock timer */
 	osmo_timer_del(&sched->clock_timer);
