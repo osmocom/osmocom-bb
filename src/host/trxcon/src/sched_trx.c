@@ -78,7 +78,7 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 		};
 
 		/* Timeslot is not allocated */
-		ts = sched->ts_list[i];
+		ts = sched->ts[i];
 		if (ts == NULL)
 			continue;
 
@@ -208,18 +208,18 @@ void l1sched_reset(struct l1sched_state *sched, bool reset_clock)
 struct l1sched_ts *l1sched_add_ts(struct l1sched_state *sched, int tn)
 {
 	/* Make sure that ts isn't allocated yet */
-	if (sched->ts_list[tn] != NULL) {
+	if (sched->ts[tn] != NULL) {
 		LOGP(DSCH, LOGL_ERROR, "Timeslot #%u already allocated\n", tn);
 		return NULL;
 	}
 
 	LOGP(DSCH, LOGL_NOTICE, "Add a new TDMA timeslot #%u\n", tn);
 
-	sched->ts_list[tn] = talloc_zero(sched, struct l1sched_ts);
-	sched->ts_list[tn]->sched = sched;
-	sched->ts_list[tn]->index = tn;
+	sched->ts[tn] = talloc_zero(sched, struct l1sched_ts);
+	sched->ts[tn]->sched = sched;
+	sched->ts[tn]->index = tn;
 
-	return sched->ts_list[tn];
+	return sched->ts[tn];
 }
 
 void l1sched_del_ts(struct l1sched_state *sched, int tn)
@@ -228,7 +228,7 @@ void l1sched_del_ts(struct l1sched_state *sched, int tn)
 	struct l1sched_ts *ts;
 
 	/* Find ts in list */
-	ts = sched->ts_list[tn];
+	ts = sched->ts[tn];
 	if (ts == NULL)
 		return;
 
@@ -247,7 +247,7 @@ void l1sched_del_ts(struct l1sched_state *sched, int tn)
 	l1sched_prim_flush_queue(&ts->tx_prims);
 
 	/* Remove ts from list and free memory */
-	sched->ts_list[tn] = NULL;
+	sched->ts[tn] = NULL;
 	talloc_free(ts);
 
 	/* Notify transceiver about that */
@@ -265,7 +265,7 @@ int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 	struct l1sched_ts *ts;
 
 	/* Try to find specified ts */
-	ts = sched->ts_list[tn];
+	ts = sched->ts[tn];
 	if (ts != NULL) {
 		/* Reconfiguration of existing one */
 		l1sched_reset_ts(sched, tn);
@@ -327,7 +327,7 @@ int l1sched_reset_ts(struct l1sched_state *sched, int tn)
 	struct l1sched_ts *ts;
 
 	/* Try to find specified ts */
-	ts = sched->ts_list[tn];
+	ts = sched->ts[tn];
 	if (ts == NULL)
 		return -EINVAL;
 
@@ -719,7 +719,7 @@ int l1sched_handle_rx_burst(struct l1sched_state *sched, uint8_t tn,
 	int rc;
 
 	/* Check whether required timeslot is allocated and configured */
-	ts = sched->ts_list[tn];
+	ts = sched->ts[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DSCHD, LOGL_DEBUG, "TDMA timeslot #%u isn't configured, "
 			"ignoring burst...\n", tn);

@@ -98,7 +98,7 @@ struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
 	tn = chan_nr & 0x7;
 
 	/* Check whether required timeslot is allocated and configured */
-	ts = sched->ts_list[tn];
+	ts = sched->ts[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DSCH, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
 		return NULL;

@@ -482,7 +482,7 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 		req->ccch_mode); /* TODO: add value-string for ccch_mode */
 
 	/* Make sure that TS0 is allocated and configured */
-	ts = l1l->sched->ts_list[0];
+	ts = l1l->sched->ts[0];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DL1C, LOGL_ERROR, "TS0 is not configured");
 		rc = -EINVAL;
@@ -659,7 +659,7 @@ static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Configure requested TS */
 	rc = l1sched_configure_ts(l1l->sched, tn, config);
-	ts = l1l->sched->ts_list[tn];
+	ts = l1l->sched->ts[tn];
 	if (rc) {
 		rc = -EINVAL;
 		goto exit;
@@ -767,7 +767,7 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 	/* Iterate over timeslot list */
 	for (i = 0; i < TRX_TS_COUNT; i++) {
 		/* Timeslot is not allocated */
-		ts = l1l->sched->ts_list[i];
+		ts = l1l->sched->ts[i];
 		if (ts == NULL)
 			continue;
 
@@ -813,7 +813,7 @@ static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
 	tn = ul->chan_nr & 0x7;
 
 	/* Make sure that required TS is allocated and configured */
-	ts = l1l->sched->ts_list[tn];
+	ts = l1l->sched->ts[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP(DL1C, LOGL_ERROR, "TS %u is not configured\n", tn);
 		rc = -EINVAL;
