@@ -49,8 +49,6 @@
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/l1sched/l1sched.h>
 
-#define S(x)	(1 << (x))
-
 #define COPYRIGHT \
 	"Copyright (C) 2016-2022 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
 	"Contributions by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>\n" \
@@ -142,35 +140,35 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 	const struct l1sched_lchan_desc *lchan_desc;
 	struct l1sched_state *sched = lchan->ts->sched;
 	struct trxcon_inst *trxcon = sched->priv;
-	struct l1ctl_info_dl dl_hdr;
 	int rc;
 
 	lchan_desc = &l1sched_lchan_desc[lchan->type];
 
-	dl_hdr = (struct l1ctl_info_dl) {
+	struct trxcon_param_rx_traffic_data_ind ind = {
 		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
 		.link_id = lchan_desc->link_id,
-		.frame_nr = htonl(meas->fn),
-		.band_arfcn = htons(trxcon->trx->band_arfcn),
-		.fire_crc = data_len > 0 ? 0 : 2,
-		.rx_level = dbm2rxlev(meas->rssi),
-		.num_biterr = n_errors,
-		/* TODO: set proper .snr */
+		.frame_nr = meas->fn,
+		.toa256 = meas->toa256,
+		.rssi = meas->rssi,
+		.n_errors = n_errors,
+		.n_bits_total = n_bits_total,
+		.data_len = data_len,
+		.data = data,
 	};
 
 	switch (dt) {
 	case L1SCHED_DT_TRAFFIC:
 	case L1SCHED_DT_PACKET_DATA:
-		rc = l1ctl_tx_dt_ind(trxcon->l1c, &dl_hdr, data, data_len, true);
+		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_RX_TRAFFIC_IND, &ind);
 		break;
 	case L1SCHED_DT_SIGNALING:
-		rc = l1ctl_tx_dt_ind(trxcon->l1c, &dl_hdr, data, data_len, false);
+		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_RX_DATA_IND, &ind);
 		break;
 	case L1SCHED_DT_OTHER:
 		if (lchan->type == L1SCHED_SCH) {
-			if (trxcon->fbsb_conf_sent)
+			if (trxcon->fi->state != TRXCON_ST_FBSB_SEARCH)
 				return 0;
-			rc = l1ctl_tx_fbsb_conf(trxcon->l1c, 0, &dl_hdr, sched->bsic);
+			rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_FBSB_SEARCH_RES, NULL);
 			break;
 		}
 		/* fall through */
@@ -255,75 +253,6 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	return rc;
 }
 
-/* The trxcon state machine */
-static void trxcon_fsm_idle_action(struct osmo_fsm_inst *fi,
-	uint32_t event, void *data)
-{
-	if (event == L1CTL_EVENT_CONNECT)
-		osmo_fsm_inst_state_chg(fi, TRXCON_STATE_MANAGED, 0, 0);
-}
-
-static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
-	uint32_t event, void *data)
-{
-	struct trxcon_inst *trxcon = fi->priv;
-
-	switch (event) {
-	case L1CTL_EVENT_DISCONNECT:
-		osmo_fsm_inst_state_chg(fi, TRXCON_STATE_IDLE, 0, 0);
-
-		if (trxcon->trx->fi->state != TRX_STATE_OFFLINE) {
-			/* Reset scheduler and clock counter */
-			l1sched_reset(trxcon->sched, true);
-
-			/* TODO: implement trx_if_reset() */
-			trx_if_cmd_poweroff(trxcon->trx);
-			trx_if_cmd_echo(trxcon->trx);
-		}
-		break;
-	case TRX_EVENT_RSP_ERROR:
-	case TRX_EVENT_OFFLINE:
-		/* TODO: notify L2 & L3 about that */
-		break;
-	default:
-		LOGPFSML(fi, LOGL_ERROR, "Unhandled event %u\n", event);
-	}
-}
-
-static struct osmo_fsm_state trxcon_fsm_states[] = {
-	[TRXCON_STATE_IDLE] = {
-		.in_event_mask = S(L1CTL_EVENT_CONNECT),
-		.out_state_mask = S(TRXCON_STATE_MANAGED),
-		.name = "IDLE",
-		.action = trxcon_fsm_idle_action,
-	},
-	[TRXCON_STATE_MANAGED] = {
-		.in_event_mask = (
-			S(L1CTL_EVENT_DISCONNECT) |
-			S(TRX_EVENT_RSP_ERROR) |
-			S(TRX_EVENT_OFFLINE)),
-		.out_state_mask = S(TRXCON_STATE_IDLE),
-		.name = "MANAGED",
-		.action = trxcon_fsm_managed_action,
-	},
-};
-
-static const struct value_string trxcon_fsm_event_names[] = {
-	OSMO_VALUE_STRING(L1CTL_EVENT_CONNECT),
-	OSMO_VALUE_STRING(L1CTL_EVENT_DISCONNECT),
-	OSMO_VALUE_STRING(TRX_EVENT_OFFLINE),
-	OSMO_VALUE_STRING(TRX_EVENT_RSP_ERROR),
-	{ 0, NULL }
-};
-
-static struct osmo_fsm trxcon_fsm_def = {
-	.name = "trxcon",
-	.states = trxcon_fsm_states,
-	.num_states = ARRAY_SIZE(trxcon_fsm_states),
-	.log_subsys = DAPP,
-	.event_names = trxcon_fsm_event_names,
-};
-
 struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
 {
 	struct trxcon_inst *trxcon;
@@ -377,8 +306,6 @@ void trxcon_inst_free(struct trxcon_inst *trxcon)
 	if (trxcon->trx != NULL)
 		trx_if_close(trxcon->trx);
 
-	osmo_timer_del(&trxcon->fbsb_timer);
-
 	if (trxcon->fi != NULL)
 		osmo_fsm_inst_free(trxcon->fi);
 	talloc_free(trxcon);
@@ -405,6 +332,8 @@ static void l1ctl_conn_close_cb(struct l1ctl_client *l1c)
 
 	if (trxcon == NULL)
 		return;
+
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_L2IF_FAILURE, NULL);
 
 	/* l1c is free()ed by the caller */
 	trxcon->l1c = NULL;
@@ -560,6 +489,8 @@ int main(int argc, char **argv)
 	log_set_print_filename2(osmo_stderr_target, LOG_FILENAME_BASENAME);
 	log_set_print_filename_pos(osmo_stderr_target, LOG_FILENAME_POS_LINE_END);
 
+	osmo_fsm_log_timeouts(true);
+
 	/* Optional GSMTAP  */
 	if (app_data.gsmtap_ip != NULL) {
 		app_data.gsmtap = gsmtap_source_init(app_data.gsmtap_ip, GSMTAP_UDP_PORT, 1);
@@ -570,9 +501,6 @@ int main(int argc, char **argv)
 		/* Suppress ICMP "destination unreachable" errors */
 		gsmtap_source_add_sink(app_data.gsmtap);
 	}
-
-	/* Register the trxcon state machine */
-	OSMO_ASSERT(osmo_fsm_register(&trxcon_fsm_def) == 0);
 
 	/* Start the L1CTL server */
 	server_cfg = (struct l1ctl_server_cfg) {

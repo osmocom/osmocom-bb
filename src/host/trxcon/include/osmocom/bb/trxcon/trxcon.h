@@ -4,19 +4,127 @@ struct l1sched_state;
 struct trx_instance;
 struct l1ctl_client;
 
+extern struct osmo_fsm trxcon_fsm_def;
+
 enum trxcon_fsm_states {
-	TRXCON_STATE_IDLE = 0,
-	TRXCON_STATE_MANAGED,
+	TRXCON_ST_RESET,
+	TRXCON_ST_FULL_POWER_SCAN,
+	TRXCON_ST_FBSB_SEARCH,
+	TRXCON_ST_BCCH_CCCH,
+	TRXCON_ST_DEDICATED,
 };
 
 enum trxcon_fsm_events {
-	/* L1CTL specific events */
-	L1CTL_EVENT_CONNECT,
-	L1CTL_EVENT_DISCONNECT,
+	TRXCON_EV_L1IF_FAILURE,
+	TRXCON_EV_L2IF_FAILURE,
+	TRXCON_EV_RESET_FULL_REQ,
+	TRXCON_EV_RESET_SCHED_REQ,
+	TRXCON_EV_FULL_POWER_SCAN_REQ,
+	TRXCON_EV_FULL_POWER_SCAN_RES,
+	TRXCON_EV_FBSB_SEARCH_REQ,
+	TRXCON_EV_FBSB_SEARCH_RES,
+	TRXCON_EV_SET_CCCH_MODE_REQ,
+	TRXCON_EV_SET_TCH_MODE_REQ,
+	TRXCON_EV_SET_CONFIG_REQ,
+	TRXCON_EV_TX_ACCESS_BURST_REQ,
+	TRXCON_EV_DEDICATED_ESTABLISH_REQ,
+	TRXCON_EV_DEDICATED_RELEASE_REQ,
+	TRXCON_EV_TX_TRAFFIC_REQ,
+	TRXCON_EV_RX_TRAFFIC_IND,
+	TRXCON_EV_TX_DATA_REQ,
+	TRXCON_EV_RX_DATA_IND,
+	TRXCON_EV_CRYPTO_REQ,
+};
 
-	/* TRX specific events */
-	TRX_EVENT_RSP_ERROR,
-	TRX_EVENT_OFFLINE,
+/* param of TRXCON_EV_FULL_POWER_SCAN_REQ */
+struct trxcon_param_full_power_scan_req {
+	uint16_t band_arfcn_start;
+	uint16_t band_arfcn_stop;
+};
+
+/* param of TRXCON_EV_FULL_POWER_SCAN_RES */
+struct trxcon_param_full_power_scan_res {
+	bool last_result;
+	uint16_t band_arfcn;
+	int dbm;
+};
+
+/* param of TRXCON_EV_FBSB_SEARCH_REQ */
+struct trxcon_param_fbsb_search_req {
+	uint16_t band_arfcn;
+	uint16_t timeout_ms;
+	uint8_t pchan_config;
+};
+
+/* param of TRXCON_EV_SET_{CCCH,TCH}_MODE_REQ */
+struct trxcon_param_set_ccch_tch_mode_req {
+	uint8_t mode;
+	bool applied;
+};
+
+/* param of TRXCON_EV_SET_CONFIG_REQ */
+struct trxcon_param_set_config_req {
+	uint8_t timing_advance;
+	uint8_t tx_power;
+};
+
+/* param of TRXCON_EV_TX_{TRAFFIC,DATA}_REQ */
+struct trxcon_param_tx_traffic_data_req {
+	uint8_t chan_nr;
+	uint8_t link_id;
+	size_t data_len;
+	const uint8_t *data;
+};
+
+/* param of TRXCON_EV_RX_{TRAFFIC,DATA}_IND */
+struct trxcon_param_rx_traffic_data_ind {
+	uint8_t chan_nr;
+	uint8_t link_id;
+	uint32_t frame_nr;
+	int16_t toa256;
+	int8_t rssi;
+	int n_errors;
+	int n_bits_total;
+	size_t data_len;
+	const uint8_t *data;
+};
+
+/* param of TRXCON_EV_TX_ACCESS_BURST_REQ */
+struct trxcon_param_tx_access_burst_req {
+	uint8_t chan_nr;
+	uint8_t link_id;
+	uint8_t offset;
+	uint8_t synch_seq;
+	uint16_t ra;
+	bool is_11bit;
+};
+
+/* param of TRXCON_EV_DEDICATED_ESTABLISH_REQ */
+struct trxcon_param_dedicated_establish_req {
+	uint8_t chan_nr;
+	uint8_t tch_mode;
+	uint8_t tsc;
+
+	bool hopping;
+	union {
+		struct { /* hopping=false */
+			uint16_t band_arfcn;
+		} h0;
+		struct { /* hopping=true */
+			uint8_t hsn;
+			uint8_t maio;
+			uint8_t n;
+			uint16_t ma[64];
+		} h1;
+	};
+};
+
+/* param of TRXCON_EV_CRYPTO_REQ */
+struct trxcon_param_crypto_req {
+	uint8_t chan_nr;
+	uint8_t a5_algo; /* 0 is A5/0 */
+	uint8_t key_len;
+	const uint8_t *key;
 };
 
 struct trxcon_inst {
@@ -31,10 +139,6 @@ struct trxcon_inst {
 	/* L1/L2 interfaces */
 	struct trx_instance *trx;
 	struct l1ctl_client *l1c;
-
-	/* TODO: implement this as an FSM state with timeout */
-	struct osmo_timer_list fbsb_timer;
-	bool fbsb_conf_sent;
 };
 
 struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id);

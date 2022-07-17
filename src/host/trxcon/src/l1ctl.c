@@ -30,18 +30,18 @@
 
 #include <arpa/inet.h>
 
+#include <osmocom/core/fsm.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
+
+#include <osmocom/gsm/gsm0502.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/l1ctl_server.h>
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
-
-#include <osmocom/bb/trxcon/trx_if.h>
-#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/trxcon.h>
 
 static const char *arfcn2band_name(uint16_t arfcn)
@@ -166,33 +166,52 @@ static struct l1ctl_fbsb_conf *fbsb_conf_make(struct msgb *msg, uint8_t result, 
 	return conf;
 }
 
-int l1ctl_tx_fbsb_conf(struct l1ctl_client *l1c, uint8_t result,
-		       const struct l1ctl_info_dl *dl_info, uint8_t bsic)
+int l1ctl_tx_fbsb_fail(struct l1ctl_client *l1c, uint16_t band_arfcn)
 {
 	struct trxcon_inst *trxcon = l1c->priv;
-	struct l1ctl_fbsb_conf *conf;
+	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 
 	msg = l1ctl_alloc_msg(L1CTL_FBSB_CONF);
 	if (msg == NULL)
 		return -ENOMEM;
 
-	put_dl_info_hdr(msg, dl_info);
+	dl = put_dl_info_hdr(msg, NULL);
 
-	conf = fbsb_conf_make(msg, result, bsic);
+	/* Fill in current ARFCN */
+	dl->band_arfcn = htons(band_arfcn);
+
+	fbsb_conf_make(msg, 255, 0);
+
+	LOGPFSMSL(trxcon->fi, DL1C, LOGL_DEBUG, "Send FBSB Conf (timeout)\n");
+
+	return l1ctl_client_send(l1c, msg);
+}
+
+int l1ctl_tx_fbsb_conf(struct l1ctl_client *l1c, uint16_t band_arfcn, uint8_t bsic)
+{
+	struct trxcon_inst *trxcon = l1c->priv;
+	struct l1ctl_fbsb_conf *conf;
+	struct l1ctl_info_dl *dl;
+	struct msgb *msg;
+
+	msg = l1ctl_alloc_msg(L1CTL_FBSB_CONF);
+	if (msg == NULL)
+		return -ENOMEM;
+
+	dl = put_dl_info_hdr(msg, NULL);
+
+	/* Fill in current ARFCN */
+	dl->band_arfcn = htons(band_arfcn);
+
+	conf = fbsb_conf_make(msg, 0, bsic);
 
 	/* FIXME: set proper value */
 	conf->initial_freq_err = 0;
 
-	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
-	trxcon->fbsb_conf_sent = true;
-
-	/* Abort FBSB expire timer */
-	osmo_timer_del(&trxcon->fbsb_timer);
-
 	LOGPFSMSL(trxcon->fi, DL1C, LOGL_DEBUG,
 		  "Send FBSB Conf (result=%u, bsic=%u)\n",
-		  result, bsic);
+		  conf->result, conf->bsic);
 
 	return l1ctl_client_send(l1c, msg);
 }
@@ -299,44 +318,10 @@ static enum gsm_phys_chan_config l1ctl_ccch_mode2pchan_config(enum ccch_mode mod
 	}
 }
 
-/* FBSB expire timer */
-static void fbsb_timer_cb(void *data)
-{
-	struct l1ctl_client *l1c = (struct l1ctl_client *) data;
-	struct trxcon_inst *trxcon = l1c->priv;
-	struct l1ctl_info_dl *dl;
-	struct msgb *msg;
-
-	msg = l1ctl_alloc_msg(L1CTL_FBSB_CONF);
-	if (msg == NULL)
-		return;
-
-	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
-		  "FBSB timer fired for ARFCN %u\n",
-		  trxcon->trx->band_arfcn & ~ARFCN_FLAG_MASK);
-
-	dl = put_dl_info_hdr(msg, NULL);
-
-	/* Fill in current ARFCN */
-	dl->band_arfcn = htons(trxcon->trx->band_arfcn);
-
-	fbsb_conf_make(msg, 255, 0);
-
-	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
-	trxcon->fbsb_conf_sent = true;
-
-	LOGPFSMSL(trxcon->fi, DL1C, LOGL_DEBUG, "Send FBSB Conf (timeout)\n");
-
-	l1ctl_client_send(l1c, msg);
-}
-
 static int l1ctl_rx_fbsb_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
 	struct trxcon_inst *trxcon = l1c->priv;
-	enum gsm_phys_chan_config ch_config;
 	struct l1ctl_fbsb_req *fbsb;
-	uint16_t band_arfcn;
-	uint16_t timeout;
 	int rc = 0;
 
 	fbsb = (struct l1ctl_fbsb_req *) msg->l1h;
@@ -348,44 +333,19 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_client *l1c, struct msgb *msg)
 		goto exit;
 	}
 
-	ch_config = l1ctl_ccch_mode2pchan_config(fbsb->ccch_mode);
-	band_arfcn = ntohs(fbsb->band_arfcn);
-	timeout = ntohs(fbsb->timeout);
+	struct trxcon_param_fbsb_search_req req = {
+		.pchan_config = l1ctl_ccch_mode2pchan_config(fbsb->ccch_mode),
+		.timeout_ms = ntohs(fbsb->timeout) * GSM_TDMA_FN_DURATION_uS / 1000,
+		.band_arfcn = ntohs(fbsb->band_arfcn),
+	};
 
-	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE, "Received FBSB request (%s %d)\n",
-		  arfcn2band_name(band_arfcn), band_arfcn & ~ARFCN_FLAG_MASK);
+	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
+		  "Received FBSB request (%s %d, timeout %u ms)\n",
+		  arfcn2band_name(req.band_arfcn),
+		  req.band_arfcn & ~ARFCN_FLAG_MASK,
+		  req.timeout_ms);
 
-	/* Reset scheduler and clock counter */
-	l1sched_reset(trxcon->sched, true);
-
-	/* Configure a single timeslot */
-	l1sched_configure_ts(trxcon->sched, 0, ch_config);
-
-	/* Ask SCH handler to send L1CTL_FBSB_CONF */
-	trxcon->fbsb_conf_sent = false;
-
-	/* Only if current ARFCN differs */
-	if (trxcon->trx->band_arfcn != band_arfcn) {
-		/* Update current ARFCN */
-		trxcon->trx->band_arfcn = band_arfcn;
-
-		/* Tune transceiver to required ARFCN */
-		trx_if_cmd_rxtune(trxcon->trx, band_arfcn);
-		trx_if_cmd_txtune(trxcon->trx, band_arfcn);
-	}
-
-	/* Transceiver might have been powered on before, e.g.
-	 * in case of sending L1CTL_FBSB_REQ due to signal loss. */
-	if (!trxcon->trx->powered_up)
-		trx_if_cmd_poweron(trxcon->trx);
-
-	/* Start FBSB expire timer */
-	trxcon->fbsb_timer.data = l1c;
-	trxcon->fbsb_timer.cb = fbsb_timer_cb;
-	LOGPFSMSL(trxcon->fi, DL1C, LOGL_INFO, "Starting FBSB timer %u ms\n",
-		  timeout * GSM_TDMA_FN_DURATION_uS / 1000);
-	osmo_timer_schedule(&trxcon->fbsb_timer, 0,
-		timeout * GSM_TDMA_FN_DURATION_uS);
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_FBSB_SEARCH_REQ, &req);
 
 exit:
 	msgb_free(msg);
@@ -394,7 +354,6 @@ exit:
 
 static int l1ctl_rx_pm_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
-	uint16_t band_arfcn_start, band_arfcn_stop;
 	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_pm_req *pmr;
 	int rc = 0;
@@ -408,17 +367,18 @@ static int l1ctl_rx_pm_req(struct l1ctl_client *l1c, struct msgb *msg)
 		goto exit;
 	}
 
-	band_arfcn_start = ntohs(pmr->range.band_arfcn_from);
-	band_arfcn_stop  = ntohs(pmr->range.band_arfcn_to);
+	struct trxcon_param_full_power_scan_req req = {
+		.band_arfcn_start = ntohs(pmr->range.band_arfcn_from),
+		.band_arfcn_stop = ntohs(pmr->range.band_arfcn_to),
+	};
 
 	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
 		  "Received power measurement request (%s: %d -> %d)\n",
-		  arfcn2band_name(band_arfcn_start),
-		  band_arfcn_start & ~ARFCN_FLAG_MASK,
-		  band_arfcn_stop & ~ARFCN_FLAG_MASK);
+		  arfcn2band_name(req.band_arfcn_start),
+		  req.band_arfcn_start & ~ARFCN_FLAG_MASK,
+		  req.band_arfcn_stop & ~ARFCN_FLAG_MASK);
 
-	/* Send measurement request to transceiver */
-	rc = trx_if_cmd_measure(trxcon->trx, band_arfcn_start, band_arfcn_stop);
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_FULL_POWER_SCAN_REQ, &req);
 
 exit:
 	msgb_free(msg);
@@ -445,13 +405,10 @@ static int l1ctl_rx_reset_req(struct l1ctl_client *l1c, struct msgb *msg)
 
 	switch (res->type) {
 	case L1CTL_RES_T_FULL:
-		/* TODO: implement trx_if_reset() */
-		trx_if_cmd_poweroff(trxcon->trx);
-		trx_if_cmd_echo(trxcon->trx);
-
-		/* Fall through */
+		osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_RESET_FULL_REQ, NULL);
+		break;
 	case L1CTL_RES_T_SCHED:
-		l1sched_reset(trxcon->sched, true);
+		osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_RESET_SCHED_REQ, NULL);
 		break;
 	default:
 		LOGPFSMSL(trxcon->fi, DL1C, LOGL_ERROR,
@@ -486,13 +443,11 @@ static int l1ctl_rx_echo_req(struct l1ctl_client *l1c, struct msgb *msg)
 static int l1ctl_rx_ccch_mode_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
 	struct trxcon_inst *trxcon = l1c->priv;
-	enum gsm_phys_chan_config ch_config;
-	struct l1ctl_ccch_mode_req *req;
-	struct l1sched_ts *ts;
-	int rc = 0;
+	struct l1ctl_ccch_mode_req *mode_req;
+	int rc;
 
-	req = (struct l1ctl_ccch_mode_req *) msg->l1h;
-	if (msgb_l1len(msg) < sizeof(*req)) {
+	mode_req = (struct l1ctl_ccch_mode_req *)msg->l1h;
+	if (msgb_l1len(msg) < sizeof(*mode_req)) {
 		LOGPFSMSL(trxcon->fi, DL1C, LOGL_ERROR,
 			  "MSG too short Reset Req: %u\n",
 			  msgb_l1len(msg));
@@ -501,26 +456,16 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_client *l1c, struct msgb *msg)
 	}
 
 	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE, "Received CCCH mode request (%u)\n",
-		  req->ccch_mode); /* TODO: add value-string for ccch_mode */
+		  mode_req->ccch_mode); /* TODO: add value-string for ccch_mode */
 
-	/* Make sure that TS0 is allocated and configured */
-	ts = trxcon->sched->ts[0];
-	if (ts == NULL || ts->mf_layout == NULL) {
-		LOGPFSMSL(trxcon->fi, DL1C, LOGL_ERROR, "TS0 is not configured");
-		rc = -EINVAL;
-		goto exit;
-	}
+	struct trxcon_param_set_ccch_tch_mode_req req = {
+		/* Choose corresponding channel combination */
+		.mode = l1ctl_ccch_mode2pchan_config(mode_req->ccch_mode),
+	};
 
-	/* Choose corresponding channel combination */
-	ch_config = l1ctl_ccch_mode2pchan_config(req->ccch_mode);
-
-	/* Do nothing if the current mode matches required */
-	if (ts->mf_layout->chan_config != ch_config)
-		rc = l1sched_configure_ts(trxcon->sched, 0, ch_config);
-
-	/* Confirm reconfiguration */
-	if (!rc)
-		rc = l1ctl_tx_ccch_mode_conf(l1c, req->ccch_mode);
+	rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_SET_CCCH_MODE_REQ, &req);
+	if (rc == 0 && req.applied)
+		l1ctl_tx_ccch_mode_conf(l1c, mode_req->ccch_mode);
 
 exit:
 	msgb_free(msg);
@@ -529,40 +474,38 @@ exit:
 
 static int l1ctl_rx_rach_req(struct l1ctl_client *l1c, struct msgb *msg, bool ext)
 {
+	struct trxcon_param_tx_access_burst_req req;
 	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_info_ul *ul;
-	struct l1sched_ts_prim *prim;
-	struct l1sched_ts_prim_rach rach;
-	enum l1sched_ts_prim_type prim_type;
-	int rc;
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 
 	/* Is it extended (11-bit) RACH or not? */
 	if (ext) {
-		const struct l1ctl_ext_rach_req *req = (void *)ul->payload;
+		const struct l1ctl_ext_rach_req *rr = (void *)ul->payload;
 
-		rach = (struct l1sched_ts_prim_rach) {
-			.ra = ntohs(req->ra11),
-			.synch_seq = req->synch_seq,
-			.offset = ntohs(req->offset),
+		req = (struct trxcon_param_tx_access_burst_req) {
+			.offset = ntohs(rr->offset),
+			.synch_seq = rr->synch_seq,
+			.ra = ntohs(rr->ra11),
+			.is_11bit = true,
 		};
 
 		LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
 			  "Received extended (11-bit) RACH request "
 			  "(offset=%u, synch_seq=%u, ra11=0x%02hx)\n",
-			  rach.offset, rach.synch_seq, rach.ra);
+			  req.offset, req.synch_seq, req.ra);
 	} else {
-		const struct l1ctl_rach_req *req = (void *)ul->payload;
+		const struct l1ctl_rach_req *rr = (void *)ul->payload;
 
-		rach = (struct l1sched_ts_prim_rach) {
-			.ra = req->ra,
-			.offset = ntohs(req->offset),
+		req = (struct trxcon_param_tx_access_burst_req) {
+			.offset = ntohs(rr->offset),
+			.ra = rr->ra,
 		};
 
 		LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
 			  "Received regular (8-bit) RACH request "
-			  "(offset=%u, ra=0x%02x)\n", rach.offset, rach.ra);
+			  "(offset=%u, ra=0x%02x)\n", req.offset, req.ra);
 	}
 
 	/* The controlling L1CTL side always does include the UL info header,
@@ -570,55 +513,38 @@ static int l1ctl_rx_rach_req(struct l1ctl_client *l1c, struct msgb *msg, bool ex
 	if (ul->chan_nr == 0x00) {
 		LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
 			  "The UL info header is empty, assuming RACH is on TS0\n");
-		ul->chan_nr = RSL_CHAN_RACH;
+		req.chan_nr = RSL_CHAN_RACH;
+		req.link_id = 0x00;
+	} else {
+		req.chan_nr = ul->chan_nr;
+		req.link_id = ul->link_id;
 	}
 
-	/**
-	 * Push this primitive to the transmit queue.
-	 * Indicated timeslot needs to be configured.
-	 */
-	prim_type = ext ? L1SCHED_PRIM_RACH11 : L1SCHED_PRIM_RACH8;
-	prim = l1sched_prim_push(trxcon->sched, prim_type, ul->chan_nr, ul->link_id,
-				 (const uint8_t *)&rach, sizeof(rach));
-	if (prim == NULL)
-		rc = -ENOMEM;
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_ACCESS_BURST_REQ, &req);
 
 	msgb_free(msg);
-	return rc;
+	return 0;
 }
 
-static int l1ctl_proc_est_req_h0(struct trxcon_inst *trxcon, struct l1ctl_h0 *h)
+static int l1ctl_proc_est_req_h0(struct trxcon_inst *trxcon,
+				 struct trxcon_param_dedicated_establish_req *req,
+				 const struct l1ctl_h0 *h)
 {
-	struct trx_instance *trx = trxcon->trx;
-	uint16_t band_arfcn;
-	int rc = 0;
-
-	band_arfcn = ntohs(h->band_arfcn);
+	req->h0.band_arfcn = ntohs(h->band_arfcn);
 
 	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
-		  "L1CTL_DM_EST_REQ indicates a single ARFCN=%u\n",
-		  band_arfcn & ~ARFCN_FLAG_MASK);
-
-	/* Do we need to retune? */
-	if (trx->band_arfcn == band_arfcn)
-		return 0;
-
-	/* Tune transceiver to required ARFCN */
-	rc |= trx_if_cmd_rxtune(trx, band_arfcn);
-	rc |= trx_if_cmd_txtune(trx, band_arfcn);
-	if (rc)
-		return rc;
-
-	/* Update current ARFCN */
-	trx->band_arfcn = band_arfcn;
+		  "L1CTL_DM_EST_REQ indicates single ARFCN %s %u\n",
+		  arfcn2band_name(req->h0.band_arfcn),
+		  req->h0.band_arfcn & ~ARFCN_FLAG_MASK);
 
 	return 0;
 }
 
-static int l1ctl_proc_est_req_h1(struct trxcon_inst *trxcon, struct l1ctl_h1 *h)
+static int l1ctl_proc_est_req_h1(struct trxcon_inst *trxcon,
+				 struct trxcon_param_dedicated_establish_req *req,
+				 const struct l1ctl_h1 *h)
 {
-	uint16_t ma[64];
-	int i, rc;
+	unsigned int i;
 
 	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
 		  "L1CTL_DM_EST_REQ indicates a Frequency "
@@ -630,7 +556,7 @@ static int l1ctl_proc_est_req_h1(struct trxcon_inst *trxcon, struct l1ctl_h1 *h)
 		LOGPFSMSL(trxcon->fi, DL1C, LOGL_ERROR,
 			  "No channels in mobile allocation?!?\n");
 		return -EINVAL;
-	} else if (h->n > ARRAY_SIZE(ma)) {
+	} else if (h->n > ARRAY_SIZE(h->ma)) {
 		LOGPFSMSL(trxcon->fi, DL1C, LOGL_ERROR,
 			  "More than 64 channels in mobile allocation?!?\n");
 		return -EINVAL;
@@ -638,75 +564,45 @@ static int l1ctl_proc_est_req_h1(struct trxcon_inst *trxcon, struct l1ctl_h1 *h)
 
 	/* Convert from network to host byte order */
 	for (i = 0; i < h->n; i++)
-		ma[i] = ntohs(h->ma[i]);
+		req->h1.ma[i] = ntohs(h->ma[i]);
+	req->h1.n = h->n;
+	req->h1.hsn = h->hsn;
+	req->h1.maio = h->maio;
 
-	/* Forward hopping parameters to TRX */
-	rc = trx_if_cmd_setfh(trxcon->trx, h->hsn, h->maio, ma, h->n);
-	if (rc)
-		return rc;
-
-	/**
-	 * TODO: update the state of trx_instance somehow
-	 * in order to indicate that it is in hopping mode...
-	 */
 	return 0;
 }
 
 static int l1ctl_rx_dm_est_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
 	struct trxcon_inst *trxcon = l1c->priv;
-	enum gsm_phys_chan_config config;
 	struct l1ctl_dm_est_req *est_req;
 	struct l1ctl_info_ul *ul;
-	struct l1sched_ts *ts;
-	uint8_t chan_nr, tn;
 	int rc;
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 	est_req = (struct l1ctl_dm_est_req *) ul->payload;
 
-	chan_nr = ul->chan_nr;
-	tn = chan_nr & 0x07;
+	struct trxcon_param_dedicated_establish_req req = {
+		.chan_nr = ul->chan_nr,
+		.tch_mode = est_req->tch_mode,
+		.tsc = est_req->tsc,
+		.hopping = est_req->h,
+	};
 
 	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
 		  "Received L1CTL_DM_EST_REQ "
 		  "(tn=%u, chan_nr=0x%02x, tsc=%u, tch_mode=0x%02x)\n",
-		  tn, chan_nr, est_req->tsc, est_req->tch_mode);
-
-	/* Determine channel config */
-	config = l1sched_chan_nr2pchan_config(chan_nr);
-	if (config == GSM_PCHAN_NONE) {
-		LOGPFSMSL(trxcon->fi, DL1C, LOGL_ERROR, "Couldn't determine channel config\n");
-		rc = -EINVAL;
-		goto exit;
-	}
+		  req.chan_nr & 0x07, req.chan_nr, req.tsc, req.tch_mode);
 
 	/* Frequency hopping? */
 	if (est_req->h)
-		rc = l1ctl_proc_est_req_h1(trxcon, &est_req->h1);
+		rc = l1ctl_proc_est_req_h1(trxcon, &req, &est_req->h1);
 	else /* Single ARFCN */
-		rc = l1ctl_proc_est_req_h0(trxcon, &est_req->h0);
+		rc = l1ctl_proc_est_req_h0(trxcon, &req, &est_req->h0);
 	if (rc)
 		goto exit;
 
-	/* Configure requested TS */
-	rc = l1sched_configure_ts(trxcon->sched, tn, config);
-	ts = trxcon->sched->ts[tn];
-	if (rc) {
-		rc = -EINVAL;
-		goto exit;
-	}
-
-	/* Deactivate all lchans */
-	l1sched_deactivate_all_lchans(ts);
-
-	/* Activate only requested lchans */
-	rc = l1sched_set_lchans(ts, chan_nr, 1, est_req->tch_mode, est_req->tsc);
-	if (rc) {
-		LOGPFSMSL(trxcon->fi, DL1C, LOGL_ERROR, "Couldn't activate requested lchans\n");
-		rc = -EINVAL;
-		goto exit;
-	}
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_DEDICATED_ESTABLISH_REQ, &req);
 
 exit:
 	msgb_free(msg);
@@ -717,11 +613,9 @@ static int l1ctl_rx_dm_rel_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
 	struct trxcon_inst *trxcon = l1c->priv;
 
-	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
-		  "Received L1CTL_DM_REL_REQ, resetting scheduler\n");
+	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE, "Received L1CTL_DM_REL_REQ\n");
 
-	/* Reset scheduler */
-	l1sched_reset(trxcon->sched, false);
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_DEDICATED_RELEASE_REQ, NULL);
 
 	msgb_free(msg);
 	return 0;
@@ -735,34 +629,29 @@ static int l1ctl_rx_dt_req(struct l1ctl_client *l1c,
 {
 	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_info_ul *ul;
-	struct l1sched_ts_prim *prim;
-	uint8_t chan_nr, link_id;
-	size_t payload_len;
-	int rc;
 
 	/* Extract UL frame header */
 	ul = (struct l1ctl_info_ul *) msg->l1h;
-
-	/* Calculate the payload len */
 	msg->l2h = ul->payload;
-	payload_len = msgb_l2len(msg);
 
-	/* Obtain channel description */
-	chan_nr = ul->chan_nr;
-	link_id = ul->link_id & 0x40;
+	struct trxcon_param_tx_traffic_data_req req = {
+		.chan_nr = ul->chan_nr,
+		.link_id = ul->link_id & 0x40,
+		.data_len = msgb_l2len(msg),
+		.data = ul->payload,
+	};
 
 	LOGPFSMSL(trxcon->fi, DL1D, LOGL_DEBUG,
 		  "Recv %s Req (chan_nr=0x%02x, link_id=0x%02x, len=%zu)\n",
-		  traffic ? "TRAFFIC" : "DATA", chan_nr, link_id, payload_len);
+		  traffic ? "TRAFFIC" : "DATA", req.chan_nr, req.link_id, req.data_len);
 
-	/* Push this primitive to transmit queue */
-	prim = l1sched_prim_push(trxcon->sched, L1SCHED_PRIM_DATA,
-				 chan_nr, link_id, ul->payload, payload_len);
-	if (prim == NULL)
-		rc = -ENOMEM;
+	if (traffic)
+		osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_TRAFFIC_REQ, &req);
+	else
+		osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_DATA_REQ, &req);
 
 	msgb_free(msg);
-	return rc;
+	return 0;
 }
 
 static int l1ctl_rx_param_req(struct l1ctl_client *l1c, struct msgb *msg)
@@ -778,13 +667,12 @@ static int l1ctl_rx_param_req(struct l1ctl_client *l1c, struct msgb *msg)
 		  "Received L1CTL_PARAM_REQ (ta=%d, tx_power=%u)\n",
 		  par_req->ta, par_req->tx_power);
 
-	/* Instruct TRX to use new TA value */
-	if (trxcon->trx->ta != par_req->ta) {
-		trx_if_cmd_setta(trxcon->trx, par_req->ta);
-		trxcon->trx->ta = par_req->ta;
-	}
+	struct trxcon_param_set_config_req req = {
+		.timing_advance = par_req->ta,
+		.tx_power = par_req->tx_power,
+	};
 
-	trxcon->trx->tx_power = par_req->tx_power;
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_SET_CONFIG_REQ, &req);
 
 	msgb_free(msg);
 	return 0;
@@ -793,40 +681,26 @@ static int l1ctl_rx_param_req(struct l1ctl_client *l1c, struct msgb *msg)
 static int l1ctl_rx_tch_mode_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
 	struct trxcon_inst *trxcon = l1c->priv;
-	struct l1ctl_tch_mode_req *req;
-	struct l1sched_lchan_state *lchan;
-	struct l1sched_ts *ts;
-	unsigned int tn;
+	struct l1ctl_tch_mode_req *mode_req;
+	int rc;
 
-	req = (struct l1ctl_tch_mode_req *) msg->l1h;
+	mode_req = (struct l1ctl_tch_mode_req *)msg->l1h;
 
 	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
 		  "Received L1CTL_TCH_MODE_REQ (tch_mode=%u, audio_mode=%u)\n",
-		  req->tch_mode, req->audio_mode);
-
-	/* Iterate over timeslot list */
-	for (tn = 0; tn < ARRAY_SIZE(trxcon->sched->ts); tn++) {
-		/* Timeslot is not allocated */
-		ts = trxcon->sched->ts[tn];
-		if (ts == NULL)
-			continue;
-
-		/* Timeslot is not configured */
-		if (ts->mf_layout == NULL)
-			continue;
-
-		/* Iterate over all allocated lchans */
-		llist_for_each_entry(lchan, &ts->lchans, list) {
-			/* Omit inactive channels */
-			if (!lchan->active)
-				continue;
-
-			/* Set TCH mode */
-			lchan->tch_mode = req->tch_mode;
-		}
-	}
+		  mode_req->tch_mode, mode_req->audio_mode);
 
 	/* TODO: do we need to care about audio_mode? */
+
+	struct trxcon_param_set_ccch_tch_mode_req req = {
+		.mode = mode_req->tch_mode,
+	};
+
+	rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_SET_TCH_MODE_REQ, &req);
+	if (rc != 0 || !req.applied) {
+		talloc_free(msg);
+		return rc;
+	}
 
 	/* Re-use the original message as confirmation */
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
@@ -838,41 +712,27 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_client *l1c, struct msgb *msg)
 static int l1ctl_rx_crypto_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
 	struct trxcon_inst *trxcon = l1c->priv;
-	struct l1ctl_crypto_req *req;
+	struct l1ctl_crypto_req *cr;
 	struct l1ctl_info_ul *ul;
-	struct l1sched_ts *ts;
-	uint8_t tn;
-	int rc = 0;
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
-	req = (struct l1ctl_crypto_req *) ul->payload;
+	cr = (struct l1ctl_crypto_req *) ul->payload;
+
+	struct trxcon_param_crypto_req req = {
+		.chan_nr = ul->chan_nr,
+		.a5_algo = cr->algo,
+		.key_len = cr->key_len,
+		.key = cr->key,
+	};
 
 	LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
 		  "L1CTL_CRYPTO_REQ (algo=A5/%u, key_len=%u)\n",
-		  req->algo, req->key_len);
+		  req.a5_algo, req.key_len);
 
-	/* Determine TS index */
-	tn = ul->chan_nr & 0x7;
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_CRYPTO_REQ, &req);
 
-	/* Make sure that required TS is allocated and configured */
-	ts = trxcon->sched->ts[tn];
-	if (ts == NULL || ts->mf_layout == NULL) {
-		LOGPFSMSL(trxcon->fi, DL1C, LOGL_ERROR, "TS %u is not configured\n", tn);
-		rc = -EINVAL;
-		goto exit;
-	}
-
-	/* Poke scheduler */
-	rc = l1sched_start_ciphering(ts, req->algo, req->key, req->key_len);
-	if (rc) {
-		LOGPFSMSL(trxcon->fi, DL1C, LOGL_ERROR, "Couldn't configure ciphering\n");
-		rc = -EINVAL;
-		goto exit;
-	}
-
-exit:
 	msgb_free(msg);
-	return rc;
+	return 0;
 }
 
 int l1ctl_rx_cb(struct l1ctl_client *l1c, struct msgb *msg)

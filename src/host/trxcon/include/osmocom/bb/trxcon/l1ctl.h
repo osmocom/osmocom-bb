@@ -9,8 +9,8 @@
 /* Event handlers */
 int l1ctl_rx_cb(struct l1ctl_client *l1c, struct msgb *msg);
 
-int l1ctl_tx_fbsb_conf(struct l1ctl_client *l1c, uint8_t result,
-		       const struct l1ctl_info_dl *dl_info, uint8_t bsic);
+int l1ctl_tx_fbsb_conf(struct l1ctl_client *l1c, uint16_t band_arfcn, uint8_t bsic);
+int l1ctl_tx_fbsb_fail(struct l1ctl_client *l1c, uint16_t band_arfcn);
 int l1ctl_tx_ccch_mode_conf(struct l1ctl_client *l1c, uint8_t mode);
 int l1ctl_tx_pm_conf(struct l1ctl_client *l1c, uint16_t band_arfcn,
 	int dbm, int last);

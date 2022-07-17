@@ -40,7 +40,6 @@
 #include <osmocom/gsm/gsm_utils.h>
 
 #include <osmocom/bb/l1sched/l1sched.h>
-#include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
@@ -163,7 +162,6 @@ static void trx_ctrl_send(struct trx_instance *trx)
 static void trx_ctrl_timer_cb(void *data)
 {
 	struct trx_instance *trx = (struct trx_instance *) data;
-	struct trxcon_inst *trxcon = trx->trxcon;
 	struct trx_ctrl_msg *tcm;
 
 	/* Queue may be cleaned at this moment */
@@ -176,7 +174,7 @@ static void trx_ctrl_timer_cb(void *data)
 	if (++tcm->retry_cnt > 3) {
 		LOGPFSML(trx->fi, LOGL_NOTICE, "Transceiver offline\n");
 		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_OFFLINE, 0, 0);
-		osmo_fsm_inst_dispatch(trxcon->fi, TRX_EVENT_OFFLINE, trx);
+		osmo_fsm_inst_term(trx->fi, OSMO_FSM_TERM_TIMEOUT, NULL);
 		return;
 	}
 
@@ -388,9 +386,13 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 		return;
 	}
 
-	/* Send L1CTL_PM_CONF */
-	l1ctl_tx_pm_conf(trxcon->l1c, band_arfcn, dbm,
-		band_arfcn == trx->pm_band_arfcn_stop);
+	struct trxcon_param_full_power_scan_res res = {
+		.last_result = band_arfcn == trx->pm_band_arfcn_stop,
+		.band_arfcn = band_arfcn,
+		.dbm = dbm,
+	};
+
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_FULL_POWER_SCAN_RES, &res);
 
 	/* Schedule a next measurement */
 	if (band_arfcn != trx->pm_band_arfcn_stop)
@@ -479,7 +481,6 @@ int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn, uint8_t maio,
 static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
-	struct trxcon_inst *trxcon = trx->trxcon;
 	struct trx_ctrl_msg *tcm;
 	int resp, rsp_len;
 	char buf[TRXC_BUF_SIZE], *p;
@@ -560,8 +561,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	return 0;
 
 rsp_error:
-	/* Notify higher layers about the problem */
-	osmo_fsm_inst_dispatch(trxcon->fi, TRX_EVENT_RSP_ERROR, trx);
+	osmo_fsm_inst_term(trx->fi, OSMO_FSM_TERM_ERROR, NULL);
 	return -EIO;
 }
 
@@ -712,7 +712,7 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	}
 
 	/* Allocate a new dedicated state machine */
-	trx->fi = osmo_fsm_inst_alloc_child(&trx_fsm, trxcon->fi, TRX_EVENT_OFFLINE);
+	trx->fi = osmo_fsm_inst_alloc_child(&trx_fsm, trxcon->fi, TRXCON_EV_L1IF_FAILURE);
 	if (trx->fi == NULL) {
 		LOGPFSML(trxcon->fi, LOGL_ERROR, "Failed to allocate an instance "
 			"of FSM '%s'\n", trx_fsm.name);
