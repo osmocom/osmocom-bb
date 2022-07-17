@@ -36,7 +36,7 @@
 #include <osmocom/core/write_queue.h>
 
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/l1ctl_link.h>
+#include <osmocom/bb/trxcon/l1ctl_server.h>
 
 static int l1ctl_client_read_cb(struct osmo_fd *ofd)
 {

@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <osmocom/core/msgb.h>
 
-#include <osmocom/bb/trxcon/l1ctl_link.h>
+#include <osmocom/bb/trxcon/l1ctl_server.h>
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
 
 /* Event handlers */
