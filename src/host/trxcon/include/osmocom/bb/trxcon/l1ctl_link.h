@@ -29,13 +29,6 @@ struct l1ctl_link {
 
 	/* Some private data */
 	void *priv;
-
-	/* L1CTL handlers specific */
-	struct osmo_timer_list fbsb_timer;
-	bool fbsb_conf_sent;
-
-	/* Shutdown callback */
-	void (*shutdown_cb)(struct l1ctl_link *l1l);
 };
 
 struct l1ctl_link *l1ctl_link_init(void *tall_ctx, const char *sock_path);

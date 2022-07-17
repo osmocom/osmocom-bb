@@ -265,9 +265,6 @@ struct l1ctl_link *l1ctl_link_init(void *tall_ctx, const char *sock_path)
 		return NULL;
 	}
 
-	/* Bind shutdown handler */
-	l1l->shutdown_cb = l1ctl_shutdown_cb;
-
 	/**
 	 * To be able to accept first connection and
 	 * drop others, it should be set to -1
@@ -286,10 +283,6 @@ void l1ctl_link_shutdown(struct l1ctl_link *l1l)
 		return;
 
 	LOGP(DL1C, LOGL_NOTICE, "Shutdown L1CTL link\n");
-
-	/* Call shutdown callback */
-	if (l1l->shutdown_cb != NULL)
-		l1l->shutdown_cb(l1l);
 
 	listen_bfd = &l1l->listen_bfd;
 

@@ -164,7 +164,7 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 		break;
 	case L1SCHED_DT_OTHER:
 		if (lchan->type == L1SCHED_SCH) {
-			if (trxcon->l1l->fbsb_conf_sent)
+			if (trxcon->fbsb_conf_sent)
 				return 0;
 			rc = l1ctl_tx_fbsb_conf(trxcon->l1l, 0, &dl_hdr, sched->bsic);
 			break;
@@ -370,6 +370,9 @@ void trxcon_inst_free(struct trxcon_inst *trxcon)
 		l1ctl_link_shutdown(trxcon->l1l);
 	if (trxcon->trx != NULL)
 		trx_if_close(trxcon->trx);
+
+	if (osmo_timer_pending(&trxcon->fbsb_timer))
+		osmo_timer_del(&trxcon->fbsb_timer);
 
 	if (trxcon->fi != NULL)
 		osmo_fsm_inst_free(trxcon->fi);

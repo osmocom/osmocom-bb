@@ -8,7 +8,6 @@
 
 /* Event handlers */
 int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg);
-void l1ctl_shutdown_cb(struct l1ctl_link *l1l);
 
 int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 		       const struct l1ctl_info_dl *dl_info, uint8_t bsic);

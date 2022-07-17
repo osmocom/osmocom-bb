@@ -29,6 +29,10 @@ struct trxcon_inst {
 	/* L1/L2 interfaces */
 	struct trx_instance *trx;
 	struct l1ctl_link *l1l;
+
+	/* TODO: implement this as an FSM state with timeout */
+	struct osmo_timer_list fbsb_timer;
+	bool fbsb_conf_sent;
 };
 
 struct trxcon_inst *trxcon_inst_alloc(void *ctx);

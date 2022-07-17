@@ -167,6 +167,7 @@ static struct l1ctl_fbsb_conf *fbsb_conf_make(struct msgb *msg, uint8_t result, 
 int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 		       const struct l1ctl_info_dl *dl_info, uint8_t bsic)
 {
+	struct trxcon_inst *trxcon = l1l->priv;
 	struct l1ctl_fbsb_conf *conf;
 	struct msgb *msg;
 
@@ -182,11 +183,11 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 	conf->initial_freq_err = 0;
 
 	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
-	l1l->fbsb_conf_sent = true;
+	trxcon->fbsb_conf_sent = true;
 
 	/* Abort FBSB expire timer */
-	if (osmo_timer_pending(&l1l->fbsb_timer))
-		osmo_timer_del(&l1l->fbsb_timer);
+	if (osmo_timer_pending(&trxcon->fbsb_timer))
+		osmo_timer_del(&trxcon->fbsb_timer);
 
 	return l1ctl_link_send(l1l, msg);
 }
@@ -316,7 +317,7 @@ static void fbsb_timer_cb(void *data)
 	fbsb_conf_make(msg, 255, 0);
 
 	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
-	l1l->fbsb_conf_sent = true;
+	trxcon->fbsb_conf_sent = true;
 
 	l1ctl_link_send(l1l, msg);
 }
@@ -353,7 +354,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 	l1sched_configure_ts(trxcon->sched, 0, ch_config);
 
 	/* Ask SCH handler to send L1CTL_FBSB_CONF */
-	l1l->fbsb_conf_sent = false;
+	trxcon->fbsb_conf_sent = false;
 
 	/* Only if current ARFCN differs */
 	if (trxcon->trx->band_arfcn != band_arfcn) {
@@ -371,10 +372,10 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		trx_if_cmd_poweron(trxcon->trx);
 
 	/* Start FBSB expire timer */
-	l1l->fbsb_timer.data = l1l;
-	l1l->fbsb_timer.cb = fbsb_timer_cb;
+	trxcon->fbsb_timer.data = l1l;
+	trxcon->fbsb_timer.cb = fbsb_timer_cb;
 	LOGP(DL1C, LOGL_INFO, "Starting FBSB timer %u ms\n", timeout * GSM_TDMA_FN_DURATION_uS / 1000);
-	osmo_timer_schedule(&l1l->fbsb_timer, 0,
+	osmo_timer_schedule(&trxcon->fbsb_timer, 0,
 		timeout * GSM_TDMA_FN_DURATION_uS);
 
 exit:
@@ -901,11 +902,4 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		msgb_free(msg);
 		return -EINVAL;
 	}
-}
-
-void l1ctl_shutdown_cb(struct l1ctl_link *l1l)
-{
-	/* Abort FBSB expire timer */
-	if (osmo_timer_pending(&l1l->fbsb_timer))
-		osmo_timer_del(&l1l->fbsb_timer);
 }
