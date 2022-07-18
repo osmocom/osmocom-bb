@@ -45,6 +45,8 @@
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
 
+#define S(x)	(1 << (x))
+
 static struct value_string trx_evt_names[] = {
 	{ 0, NULL } /* no events? */
 };
@@ -52,8 +54,8 @@ static struct value_string trx_evt_names[] = {
 static struct osmo_fsm_state trx_fsm_states[] = {
 	[TRX_STATE_OFFLINE] = {
 		.out_state_mask = (
-			GEN_MASK(TRX_STATE_IDLE) |
-			GEN_MASK(TRX_STATE_RSP_WAIT)),
+			S(TRX_STATE_IDLE) |
+			S(TRX_STATE_RSP_WAIT)),
 		.name = "OFFLINE",
 	},
 	[TRX_STATE_IDLE] = {
@@ -62,15 +64,15 @@ static struct osmo_fsm_state trx_fsm_states[] = {
 	},
 	[TRX_STATE_ACTIVE] = {
 		.out_state_mask = (
-			GEN_MASK(TRX_STATE_IDLE) |
-			GEN_MASK(TRX_STATE_RSP_WAIT)),
+			S(TRX_STATE_IDLE) |
+			S(TRX_STATE_RSP_WAIT)),
 		.name = "ACTIVE",
 	},
 	[TRX_STATE_RSP_WAIT] = {
 		.out_state_mask = (
-			GEN_MASK(TRX_STATE_IDLE) |
-			GEN_MASK(TRX_STATE_ACTIVE) |
-			GEN_MASK(TRX_STATE_OFFLINE)),
+			S(TRX_STATE_IDLE) |
+			S(TRX_STATE_ACTIVE) |
+			S(TRX_STATE_OFFLINE)),
 		.name = "RSP_WAIT",
 	},
 };

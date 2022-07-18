@@ -49,6 +49,8 @@
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/l1sched.h>
 
+#define S(x)	(1 << (x))
+
 #define COPYRIGHT \
 	"Copyright (C) 2016-2022 by Vadim Yanitskiy <axilirator@gmail.com>\n" \
 	"Contributions by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>\n" \
@@ -288,17 +290,17 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 
 static struct osmo_fsm_state trxcon_fsm_states[] = {
 	[TRXCON_STATE_IDLE] = {
-		.in_event_mask = GEN_MASK(L1CTL_EVENT_CONNECT),
-		.out_state_mask = GEN_MASK(TRXCON_STATE_MANAGED),
+		.in_event_mask = S(L1CTL_EVENT_CONNECT),
+		.out_state_mask = S(TRXCON_STATE_MANAGED),
 		.name = "IDLE",
 		.action = trxcon_fsm_idle_action,
 	},
 	[TRXCON_STATE_MANAGED] = {
 		.in_event_mask = (
-			GEN_MASK(L1CTL_EVENT_DISCONNECT) |
-			GEN_MASK(TRX_EVENT_RSP_ERROR) |
-			GEN_MASK(TRX_EVENT_OFFLINE)),
-		.out_state_mask = GEN_MASK(TRXCON_STATE_IDLE),
+			S(L1CTL_EVENT_DISCONNECT) |
+			S(TRX_EVENT_RSP_ERROR) |
+			S(TRX_EVENT_OFFLINE)),
+		.out_state_mask = S(TRXCON_STATE_IDLE),
 		.name = "MANAGED",
 		.action = trxcon_fsm_managed_action,
 	},

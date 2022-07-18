@@ -1,7 +1,5 @@
 #pragma once
 
-#define GEN_MASK(state) (0x01 << state)
-
 struct l1sched_state;
 struct trx_instance;
 struct l1ctl_client;
