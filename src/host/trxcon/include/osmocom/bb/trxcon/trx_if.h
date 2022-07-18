@@ -5,6 +5,8 @@
 #include <osmocom/core/timer.h>
 #include <osmocom/core/fsm.h>
 
+#include <osmocom/gsm/gsm_utils.h>
+
 #define TRXC_BUF_SIZE	1024
 #define TRXD_BUF_SIZE	512
 
