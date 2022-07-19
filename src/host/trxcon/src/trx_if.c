@@ -387,7 +387,7 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 	}
 
 	/* Send L1CTL_PM_CONF */
-	l1ctl_tx_pm_conf(trxcon->l1l, band_arfcn, dbm,
+	l1ctl_tx_pm_conf(trxcon->l1c, band_arfcn, dbm,
 		band_arfcn == trx->pm_band_arfcn_stop);
 
 	/* Schedule a next measurement */

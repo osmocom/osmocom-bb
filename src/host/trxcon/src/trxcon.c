@@ -157,16 +157,16 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 	switch (dt) {
 	case L1SCHED_DT_TRAFFIC:
 	case L1SCHED_DT_PACKET_DATA:
-		rc = l1ctl_tx_dt_ind(trxcon->l1l, &dl_hdr, data, data_len, true);
+		rc = l1ctl_tx_dt_ind(trxcon->l1c, &dl_hdr, data, data_len, true);
 		break;
 	case L1SCHED_DT_SIGNALING:
-		rc = l1ctl_tx_dt_ind(trxcon->l1l, &dl_hdr, data, data_len, false);
+		rc = l1ctl_tx_dt_ind(trxcon->l1c, &dl_hdr, data, data_len, false);
 		break;
 	case L1SCHED_DT_OTHER:
 		if (lchan->type == L1SCHED_SCH) {
 			if (trxcon->fbsb_conf_sent)
 				return 0;
-			rc = l1ctl_tx_fbsb_conf(trxcon->l1l, 0, &dl_hdr, sched->bsic);
+			rc = l1ctl_tx_fbsb_conf(trxcon->l1c, 0, &dl_hdr, sched->bsic);
 			break;
 		}
 		/* fall through */
@@ -209,12 +209,12 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	switch (dt) {
 	case L1SCHED_DT_TRAFFIC:
 	case L1SCHED_DT_PACKET_DATA:
-		rc = l1ctl_tx_dt_conf(trxcon->l1l, &dl_hdr, true);
+		rc = l1ctl_tx_dt_conf(trxcon->l1c, &dl_hdr, true);
 		data_len = lchan->prim->payload_len;
 		data = lchan->prim->payload;
 		break;
 	case L1SCHED_DT_SIGNALING:
-		rc = l1ctl_tx_dt_conf(trxcon->l1l, &dl_hdr, false);
+		rc = l1ctl_tx_dt_conf(trxcon->l1c, &dl_hdr, false);
 		data_len = lchan->prim->payload_len;
 		data = lchan->prim->payload;
 		break;
@@ -224,7 +224,7 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 
 			rach = (struct l1sched_ts_prim_rach *)lchan->prim->payload;
 
-			rc = l1ctl_tx_rach_conf(trxcon->l1l, trxcon->trx->band_arfcn, fn);
+			rc = l1ctl_tx_rach_conf(trxcon->l1c, trxcon->trx->band_arfcn, fn);
 			if (lchan->prim->type == L1SCHED_PRIM_RACH11) {
 				ra_buf[0] = (uint8_t)(rach->ra >> 3);
 				ra_buf[1] = (uint8_t)(rach->ra & 0x07);
@@ -331,13 +331,6 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx)
 					 trxcon, LOGL_DEBUG, NULL);
 	OSMO_ASSERT(trxcon->fi != NULL);
 
-	/* Init L1CTL server */
-	trxcon->l1l = l1ctl_link_init(trxcon, app_data.bind_socket);
-	if (trxcon->l1l == NULL) {
-		trxcon_inst_free(trxcon);
-		return NULL;
-	}
-
 	/* Init transceiver interface */
 	trxcon->trx = trx_if_open(trxcon,
 				  app_data.trx_bind_ip,
@@ -347,8 +340,6 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx)
 		trxcon_inst_free(trxcon);
 		return NULL;
 	}
-
-	trxcon->l1l->priv = trxcon;
 
 	/* Init scheduler */
 	trxcon->sched = l1sched_alloc(trxcon, app_data.trx_fn_advance, trxcon);
@@ -366,8 +357,8 @@ void trxcon_inst_free(struct trxcon_inst *trxcon)
 	if (trxcon->sched != NULL)
 		l1sched_free(trxcon->sched);
 	/* Close active connections */
-	if (trxcon->l1l != NULL)
-		l1ctl_link_shutdown(trxcon->l1l);
+	if (trxcon->l1c != NULL)
+		l1ctl_client_conn_close(trxcon->l1c);
 	if (trxcon->trx != NULL)
 		trx_if_close(trxcon->trx);
 
@@ -377,6 +368,32 @@ void trxcon_inst_free(struct trxcon_inst *trxcon)
 	if (trxcon->fi != NULL)
 		osmo_fsm_inst_free(trxcon->fi);
 	talloc_free(trxcon);
+}
+
+static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
+{
+	struct trxcon_inst *trxcon;
+
+	trxcon = trxcon_inst_alloc(l1c);
+	if (trxcon == NULL) {
+		l1ctl_client_conn_close(l1c);
+		return;
+	}
+
+	l1c->priv = trxcon;
+	trxcon->l1c = l1c;
+}
+
+static void l1ctl_conn_close_cb(struct l1ctl_client *l1c)
+{
+	struct trxcon_inst *trxcon = l1c->priv;
+
+	if (trxcon == NULL)
+		return;
+
+	/* l1c is free()ed by the caller */
+	trxcon->l1c = NULL;
+	trxcon_inst_free(trxcon);
 }
 
 static void print_usage(const char *app)
@@ -489,7 +506,8 @@ static void signal_handler(int signum)
 
 int main(int argc, char **argv)
 {
-	struct trxcon_inst *trxcon = NULL;
+	struct l1ctl_server_cfg server_cfg;
+	struct l1ctl_server server;
 	int rc = 0;
 
 	printf("%s", COPYRIGHT);
@@ -535,10 +553,20 @@ int main(int argc, char **argv)
 	/* Register the trxcon state machine */
 	OSMO_ASSERT(osmo_fsm_register(&trxcon_fsm_def) == 0);
 
-	/* Allocate the trxcon instance (only one for now) */
-	trxcon = trxcon_inst_alloc(tall_trxcon_ctx);
-	if (trxcon == NULL)
+	/* Start the L1CTL server */
+	server_cfg = (struct l1ctl_server_cfg) {
+		.sock_path = app_data.bind_socket,
+		.talloc_ctx = tall_trxcon_ctx,
+		.num_clients_max = 1, /* only one connection for now */
+		.conn_read_cb = &l1ctl_rx_cb,
+		.conn_accept_cb = &l1ctl_conn_accept_cb,
+		.conn_close_cb = &l1ctl_conn_close_cb,
+	};
+
+	if (l1ctl_server_start(&server, &server_cfg) != 0) {
+		rc = EXIT_FAILURE;
 		goto exit;
+	}
 
 	LOGP(DAPP, LOGL_NOTICE, "Init complete\n");
 
@@ -557,9 +585,7 @@ int main(int argc, char **argv)
 		osmo_select_main(0);
 
 exit:
-	/* Release the trxcon instance */
-	if (trxcon != NULL)
-		trxcon_inst_free(trxcon);
+	l1ctl_server_shutdown(&server);
 
 	/* Deinitialize logging */
 	log_fini();

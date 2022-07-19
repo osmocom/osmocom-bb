@@ -77,7 +77,7 @@ static struct msgb *l1ctl_alloc_msg(uint8_t msg_type)
 	return msg;
 }
 
-int l1ctl_tx_pm_conf(struct l1ctl_link *l1l, uint16_t band_arfcn,
+int l1ctl_tx_pm_conf(struct l1ctl_client *l1c, uint16_t band_arfcn,
 	int dbm, int last)
 {
 	struct l1ctl_pm_conf *pmc;
@@ -101,10 +101,10 @@ int l1ctl_tx_pm_conf(struct l1ctl_link *l1l, uint16_t band_arfcn,
 		l1h->flags |= L1CTL_F_DONE;
 	}
 
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
-int l1ctl_tx_reset_ind(struct l1ctl_link *l1l, uint8_t type)
+int l1ctl_tx_reset_ind(struct l1ctl_client *l1c, uint8_t type)
 {
 	struct msgb *msg;
 	struct l1ctl_reset *res;
@@ -118,10 +118,10 @@ int l1ctl_tx_reset_ind(struct l1ctl_link *l1l, uint8_t type)
 	res = (struct l1ctl_reset *) msgb_put(msg, sizeof(*res));
 	res->type = type;
 
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
-int l1ctl_tx_reset_conf(struct l1ctl_link *l1l, uint8_t type)
+int l1ctl_tx_reset_conf(struct l1ctl_client *l1c, uint8_t type)
 {
 	struct msgb *msg;
 	struct l1ctl_reset *res;
@@ -134,7 +134,7 @@ int l1ctl_tx_reset_conf(struct l1ctl_link *l1l, uint8_t type)
 	res = (struct l1ctl_reset *) msgb_put(msg, sizeof(*res));
 	res->type = type;
 
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
 static struct l1ctl_info_dl *put_dl_info_hdr(struct msgb *msg,
@@ -164,10 +164,10 @@ static struct l1ctl_fbsb_conf *fbsb_conf_make(struct msgb *msg, uint8_t result, 
 	return conf;
 }
 
-int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
+int l1ctl_tx_fbsb_conf(struct l1ctl_client *l1c, uint8_t result,
 		       const struct l1ctl_info_dl *dl_info, uint8_t bsic)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_fbsb_conf *conf;
 	struct msgb *msg;
 
@@ -189,10 +189,10 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_link *l1l, uint8_t result,
 	if (osmo_timer_pending(&trxcon->fbsb_timer))
 		osmo_timer_del(&trxcon->fbsb_timer);
 
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
-int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode)
+int l1ctl_tx_ccch_mode_conf(struct l1ctl_client *l1c, uint8_t mode)
 {
 	struct l1ctl_ccch_mode_conf *conf;
 	struct msgb *msg;
@@ -204,13 +204,13 @@ int l1ctl_tx_ccch_mode_conf(struct l1ctl_link *l1l, uint8_t mode)
 	conf = (struct l1ctl_ccch_mode_conf *) msgb_put(msg, sizeof(*conf));
 	conf->ccch_mode = mode;
 
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
 /**
  * Handles both L1CTL_DATA_IND and L1CTL_TRAFFIC_IND.
  */
-int l1ctl_tx_dt_ind(struct l1ctl_link *l1l,
+int l1ctl_tx_dt_ind(struct l1ctl_client *l1c,
 		    const struct l1ctl_info_dl *dl_info,
 		    const uint8_t *l2, size_t l2_len,
 		    bool traffic)
@@ -232,10 +232,10 @@ int l1ctl_tx_dt_ind(struct l1ctl_link *l1l,
 	}
 
 	/* Put message to upper layers */
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
-int l1ctl_tx_rach_conf(struct l1ctl_link *l1l,
+int l1ctl_tx_rach_conf(struct l1ctl_client *l1c,
 	uint16_t band_arfcn, uint32_t fn)
 {
 	struct l1ctl_info_dl *dl;
@@ -251,14 +251,14 @@ int l1ctl_tx_rach_conf(struct l1ctl_link *l1l,
 	dl->band_arfcn = htons(band_arfcn);
 	dl->frame_nr = htonl(fn);
 
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
 
 /**
  * Handles both L1CTL_DATA_CONF and L1CTL_TRAFFIC_CONF.
  */
-int l1ctl_tx_dt_conf(struct l1ctl_link *l1l,
+int l1ctl_tx_dt_conf(struct l1ctl_client *l1c,
 	struct l1ctl_info_dl *data, bool traffic)
 {
 	struct msgb *msg;
@@ -271,7 +271,7 @@ int l1ctl_tx_dt_conf(struct l1ctl_link *l1l,
 	/* Copy DL frame header from source message */
 	put_dl_info_hdr(msg, data);
 
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
 static enum gsm_phys_chan_config l1ctl_ccch_mode2pchan_config(enum ccch_mode mode)
@@ -297,8 +297,8 @@ static enum gsm_phys_chan_config l1ctl_ccch_mode2pchan_config(enum ccch_mode mod
 /* FBSB expire timer */
 static void fbsb_timer_cb(void *data)
 {
-	struct l1ctl_link *l1l = (struct l1ctl_link *) data;
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct l1ctl_client *l1c = (struct l1ctl_client *) data;
+	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 
@@ -319,12 +319,12 @@ static void fbsb_timer_cb(void *data)
 	/* Ask SCH handler not to send L1CTL_FBSB_CONF anymore */
 	trxcon->fbsb_conf_sent = true;
 
-	l1ctl_link_send(l1l, msg);
+	l1ctl_client_send(l1c, msg);
 }
 
-static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_fbsb_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	enum gsm_phys_chan_config ch_config;
 	struct l1ctl_fbsb_req *fbsb;
 	uint16_t band_arfcn;
@@ -372,7 +372,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 		trx_if_cmd_poweron(trxcon->trx);
 
 	/* Start FBSB expire timer */
-	trxcon->fbsb_timer.data = l1l;
+	trxcon->fbsb_timer.data = l1c;
 	trxcon->fbsb_timer.cb = fbsb_timer_cb;
 	LOGP(DL1C, LOGL_INFO, "Starting FBSB timer %u ms\n", timeout * GSM_TDMA_FN_DURATION_uS / 1000);
 	osmo_timer_schedule(&trxcon->fbsb_timer, 0,
@@ -383,10 +383,10 @@ exit:
 	return rc;
 }
 
-static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_pm_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
 	uint16_t band_arfcn_start, band_arfcn_stop;
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_pm_req *pmr;
 	int rc = 0;
 
@@ -415,9 +415,9 @@ exit:
 	return rc;
 }
 
-static int l1ctl_rx_reset_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_reset_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_reset *res;
 	int rc = 0;
 
@@ -448,14 +448,14 @@ static int l1ctl_rx_reset_req(struct l1ctl_link *l1l, struct msgb *msg)
 	}
 
 	/* Confirm */
-	rc = l1ctl_tx_reset_conf(l1l, res->type);
+	rc = l1ctl_tx_reset_conf(l1c, res->type);
 
 exit:
 	msgb_free(msg);
 	return rc;
 }
 
-static int l1ctl_rx_echo_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_echo_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
 
@@ -467,12 +467,12 @@ static int l1ctl_rx_echo_req(struct l1ctl_link *l1l, struct msgb *msg)
 	l1h->msg_type = L1CTL_ECHO_CONF;
 	msg->data = msg->l1h;
 
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
-static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_ccch_mode_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	enum gsm_phys_chan_config ch_config;
 	struct l1ctl_ccch_mode_req *req;
 	struct l1sched_ts *ts;
@@ -506,16 +506,16 @@ static int l1ctl_rx_ccch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	/* Confirm reconfiguration */
 	if (!rc)
-		rc = l1ctl_tx_ccch_mode_conf(l1l, req->ccch_mode);
+		rc = l1ctl_tx_ccch_mode_conf(l1c, req->ccch_mode);
 
 exit:
 	msgb_free(msg);
 	return rc;
 }
 
-static int l1ctl_rx_rach_req(struct l1ctl_link *l1l, struct msgb *msg, bool ext)
+static int l1ctl_rx_rach_req(struct l1ctl_client *l1c, struct msgb *msg, bool ext)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_info_ul *ul;
 	struct l1sched_ts_prim *prim;
 	struct l1sched_ts_prim_rach rach;
@@ -631,9 +631,9 @@ static int l1ctl_proc_est_req_h1(struct trx_instance *trx, struct l1ctl_h1 *h)
 	return 0;
 }
 
-static int l1ctl_rx_dm_est_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_dm_est_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	enum gsm_phys_chan_config config;
 	struct l1ctl_dm_est_req *est_req;
 	struct l1ctl_info_ul *ul;
@@ -691,9 +691,9 @@ exit:
 	return rc;
 }
 
-static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_dm_rel_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 
 	LOGP(DL1C, LOGL_NOTICE, "Received L1CTL_DM_REL_REQ, resetting scheduler\n");
 
@@ -707,10 +707,10 @@ static int l1ctl_rx_dm_rel_req(struct l1ctl_link *l1l, struct msgb *msg)
 /**
  * Handles both L1CTL_DATA_REQ and L1CTL_TRAFFIC_REQ.
  */
-static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
+static int l1ctl_rx_dt_req(struct l1ctl_client *l1c,
 	struct msgb *msg, bool traffic)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_info_ul *ul;
 	struct l1sched_ts_prim *prim;
 	uint8_t chan_nr, link_id;
@@ -742,9 +742,9 @@ static int l1ctl_rx_dt_req(struct l1ctl_link *l1l,
 	return rc;
 }
 
-static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_param_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_par_req *par_req;
 	struct l1ctl_info_ul *ul;
 
@@ -766,9 +766,9 @@ static int l1ctl_rx_param_req(struct l1ctl_link *l1l, struct msgb *msg)
 	return 0;
 }
 
-static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_tch_mode_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_tch_mode_req *req;
 	struct l1sched_lchan_state *lchan;
 	struct l1sched_ts *ts;
@@ -807,12 +807,12 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_link *l1l, struct msgb *msg)
 	struct l1ctl_hdr *l1h = (struct l1ctl_hdr *) msg->data;
 	l1h->msg_type = L1CTL_TCH_MODE_CONF;
 
-	return l1ctl_link_send(l1l, msg);
+	return l1ctl_client_send(l1c, msg);
 }
 
-static int l1ctl_rx_crypto_req(struct l1ctl_link *l1l, struct msgb *msg)
+static int l1ctl_rx_crypto_req(struct l1ctl_client *l1c, struct msgb *msg)
 {
-	struct trxcon_inst *trxcon = l1l->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 	struct l1ctl_crypto_req *req;
 	struct l1ctl_info_ul *ul;
 	struct l1sched_ts *ts;
@@ -849,7 +849,7 @@ exit:
 	return rc;
 }
 
-int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
+int l1ctl_rx_cb(struct l1ctl_client *l1c, struct msgb *msg)
 {
 	struct l1ctl_hdr *l1h;
 
@@ -858,33 +858,33 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 
 	switch (l1h->msg_type) {
 	case L1CTL_FBSB_REQ:
-		return l1ctl_rx_fbsb_req(l1l, msg);
+		return l1ctl_rx_fbsb_req(l1c, msg);
 	case L1CTL_PM_REQ:
-		return l1ctl_rx_pm_req(l1l, msg);
+		return l1ctl_rx_pm_req(l1c, msg);
 	case L1CTL_RESET_REQ:
-		return l1ctl_rx_reset_req(l1l, msg);
+		return l1ctl_rx_reset_req(l1c, msg);
 	case L1CTL_ECHO_REQ:
-		return l1ctl_rx_echo_req(l1l, msg);
+		return l1ctl_rx_echo_req(l1c, msg);
 	case L1CTL_CCCH_MODE_REQ:
-		return l1ctl_rx_ccch_mode_req(l1l, msg);
+		return l1ctl_rx_ccch_mode_req(l1c, msg);
 	case L1CTL_RACH_REQ:
-		return l1ctl_rx_rach_req(l1l, msg, false);
+		return l1ctl_rx_rach_req(l1c, msg, false);
 	case L1CTL_EXT_RACH_REQ:
-		return l1ctl_rx_rach_req(l1l, msg, true);
+		return l1ctl_rx_rach_req(l1c, msg, true);
 	case L1CTL_DM_EST_REQ:
-		return l1ctl_rx_dm_est_req(l1l, msg);
+		return l1ctl_rx_dm_est_req(l1c, msg);
 	case L1CTL_DM_REL_REQ:
-		return l1ctl_rx_dm_rel_req(l1l, msg);
+		return l1ctl_rx_dm_rel_req(l1c, msg);
 	case L1CTL_DATA_REQ:
-		return l1ctl_rx_dt_req(l1l, msg, false);
+		return l1ctl_rx_dt_req(l1c, msg, false);
 	case L1CTL_TRAFFIC_REQ:
-		return l1ctl_rx_dt_req(l1l, msg, true);
+		return l1ctl_rx_dt_req(l1c, msg, true);
 	case L1CTL_PARAM_REQ:
-		return l1ctl_rx_param_req(l1l, msg);
+		return l1ctl_rx_param_req(l1c, msg);
 	case L1CTL_TCH_MODE_REQ:
-		return l1ctl_rx_tch_mode_req(l1l, msg);
+		return l1ctl_rx_tch_mode_req(l1c, msg);
 	case L1CTL_CRYPTO_REQ:
-		return l1ctl_rx_crypto_req(l1l, msg);
+		return l1ctl_rx_crypto_req(l1c, msg);
 
 	/* Not (yet) handled messages */
 	case L1CTL_NEIGH_PM_REQ:
