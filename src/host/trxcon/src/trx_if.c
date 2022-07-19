@@ -710,9 +710,7 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	}
 
 	/* Allocate a new dedicated state machine */
-	/* TODO: allocate it as a child of trxcon->fi */
-	trx->fi = osmo_fsm_inst_alloc(&trx_fsm, trx,
-		NULL, LOGL_DEBUG, "trx_interface");
+	trx->fi = osmo_fsm_inst_alloc_child(&trx_fsm, trxcon->fi, TRX_EVENT_OFFLINE);
 	if (trx->fi == NULL) {
 		LOGP(DTRX, LOGL_ERROR, "Failed to allocate an instance "
 			"of FSM '%s'\n", trx_fsm.name);
