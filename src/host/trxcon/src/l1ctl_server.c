@@ -51,7 +51,9 @@ static int l1ctl_client_read_cb(struct osmo_fd *ofd)
 	/* Attempt to read from socket */
 	rc = read(ofd->fd, &len, L1CTL_MSG_LEN_FIELD);
 	if (rc < L1CTL_MSG_LEN_FIELD) {
-		LOGP_CLI(client, DL1D, LOGL_NOTICE, "L1CTL server has lost connection\n");
+		LOGP_CLI(client, DL1D, LOGL_NOTICE,
+			 "L1CTL server has lost connection (id=%u)\n",
+			 client->id);
 		if (rc >= 0)
 			rc = -EIO;
 		l1ctl_client_conn_close(client);
@@ -157,11 +159,12 @@ static int l1ctl_server_conn_cb(struct osmo_fd *sfd, unsigned int flags)
 		return rc;
 	}
 
-	LOGP(DL1C, LOGL_NOTICE, "L1CTL server got a new connection\n");
-
 	llist_add_tail(&client->list, &server->clients);
+	client->id = server->next_client_id++;
 	client->server = server;
 	server->num_clients++;
+
+	LOGP(DL1C, LOGL_NOTICE, "L1CTL server got a new connection (id=%u)\n", client->id);
 
 	if (client->server->cfg->conn_accept_cb != NULL)
 		client->server->cfg->conn_accept_cb(client);
@@ -194,8 +197,10 @@ int l1ctl_client_send(struct l1ctl_client *client, struct msgb *msg)
 
 void l1ctl_client_conn_close(struct l1ctl_client *client)
 {
-	if (client->server->cfg->conn_close_cb != NULL)
-		client->server->cfg->conn_close_cb(client);
+	struct l1ctl_server *server = client->server;
+
+	if (server->cfg->conn_close_cb != NULL)
+		server->cfg->conn_close_cb(client);
 
 	/* Close connection socket */
 	osmo_fd_unregister(&client->wq.bfd);
@@ -208,6 +213,11 @@ void l1ctl_client_conn_close(struct l1ctl_client *client)
 	client->server->num_clients--;
 	llist_del(&client->list);
 	talloc_free(client);
+
+	/* If this was the last client, reset the client IDs generator to 0.
+	 * This way avoid assigning huge unreadable client IDs like 26545. */
+	if (llist_empty(&server->clients))
+		server->next_client_id = 0;
 }
 
 struct l1ctl_server *l1ctl_server_alloc(void *ctx, const struct l1ctl_server_cfg *cfg)

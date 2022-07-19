@@ -21,6 +21,7 @@ enum trxcon_fsm_events {
 
 struct trxcon_inst {
 	struct osmo_fsm_inst *fi;
+	unsigned int id;
 
 	/* Logging context for sched and l1c */
 	const char *log_prefix;
@@ -36,5 +37,5 @@ struct trxcon_inst {
 	bool fbsb_conf_sent;
 };
 
-struct trxcon_inst *trxcon_inst_alloc(void *ctx);
+struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id);
 void trxcon_inst_free(struct trxcon_inst *trxcon);

@@ -65,6 +65,7 @@ static struct {
 	int quit;
 
 	/* L1CTL specific */
+	unsigned int max_clients;
 	const char *bind_socket;
 
 	/* TRX specific */
@@ -77,6 +78,7 @@ static struct {
 	struct gsmtap_inst *gsmtap;
 	const char *gsmtap_ip;
 } app_data = {
+	.max_clients = 1, /* only one L1CTL client by default */
 	.bind_socket = "/tmp/osmocom_l2",
 	.trx_remote_ip = "127.0.0.1",
 	.trx_bind_ip = "0.0.0.0",
@@ -322,7 +324,7 @@ static struct osmo_fsm trxcon_fsm_def = {
 	.event_names = trxcon_fsm_event_names,
 };
 
-struct trxcon_inst *trxcon_inst_alloc(void *ctx)
+struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
 {
 	struct trxcon_inst *trxcon;
 
@@ -332,6 +334,9 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx)
 	trxcon->fi = osmo_fsm_inst_alloc(&trxcon_fsm_def, tall_trxcon_ctx,
 					 trxcon, LOGL_DEBUG, NULL);
 	OSMO_ASSERT(trxcon->fi != NULL);
+
+	osmo_fsm_inst_update_id_f(trxcon->fi, "%u", id);
+	trxcon->id = id;
 
 	/* Logging context to be used by both l1ctl and l1sched modules */
 	trxcon->log_prefix = talloc_asprintf(trxcon, "%s: ", osmo_fsm_inst_name(trxcon->fi));
@@ -383,7 +388,7 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 {
 	struct trxcon_inst *trxcon;
 
-	trxcon = trxcon_inst_alloc(l1c);
+	trxcon = trxcon_inst_alloc(l1c, l1c->id);
 	if (trxcon == NULL) {
 		l1ctl_client_conn_close(l1c);
 		return;
@@ -422,6 +427,7 @@ static void print_help(void)
 	printf("  -f --trx-advance  Uplink burst scheduling advance (default 3)\n");
 	printf("  -s --socket       Listening socket for layer23 (default /tmp/osmocom_l2)\n");
 	printf("  -g --gsmtap-ip    The destination IP used for GSMTAP (disabled by default)\n");
+	printf("  -C --max-clients  Maximum number of L1CTL connections (default 1)\n");
 	printf("  -D --daemonize    Run as daemon\n");
 }
 
@@ -441,11 +447,12 @@ static void handle_options(int argc, char **argv)
 			{"trx-port", 1, 0, 'p'},
 			{"trx-advance", 1, 0, 'f'},
 			{"gsmtap-ip", 1, 0, 'g'},
+			{"max-clients", 1, 0, 'C'},
 			{"daemonize", 0, 0, 'D'},
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "d:b:i:p:f:s:g:Dh",
+		c = getopt_long(argc, argv, "d:b:i:p:f:s:g:C:Dh",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -476,6 +483,9 @@ static void handle_options(int argc, char **argv)
 			break;
 		case 'g':
 			app_data.gsmtap_ip = optarg;
+			break;
+		case 'C':
+			app_data.max_clients = atoi(optarg);
 			break;
 		case 'D':
 			app_data.daemonize = 1;
@@ -567,7 +577,7 @@ int main(int argc, char **argv)
 	/* Start the L1CTL server */
 	server_cfg = (struct l1ctl_server_cfg) {
 		.sock_path = app_data.bind_socket,
-		.num_clients_max = 1, /* only one connection for now */
+		.num_clients_max = app_data.max_clients,
 		.conn_read_cb = &l1ctl_rx_cb,
 		.conn_accept_cb = &l1ctl_conn_accept_cb,
 		.conn_close_cb = &l1ctl_conn_close_cb,

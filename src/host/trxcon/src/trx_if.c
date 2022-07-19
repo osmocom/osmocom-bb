@@ -697,11 +697,12 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	const char *local_host, const char *remote_host,
 	uint16_t base_port)
 {
+	const unsigned int offset = trxcon->id * 2;
 	struct trx_instance *trx;
 	int rc;
 
 	LOGPFSML(trxcon->fi, LOGL_NOTICE, "Init transceiver interface "
-		"(%s:%u)\n", remote_host, base_port);
+		"(%s:%u/%u)\n", remote_host, base_port, trxcon->id);
 
 	/* Try to allocate memory */
 	trx = talloc_zero(trxcon, struct trx_instance);
@@ -723,13 +724,17 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	INIT_LLIST_HEAD(&trx->trx_ctrl_list);
 
 	/* Open sockets */
-	rc = trx_udp_open(trx, &trx->trx_ofd_ctrl, local_host,
-		base_port + 101, remote_host, base_port + 1, trx_ctrl_read_cb);
+	rc = trx_udp_open(trx, &trx->trx_ofd_ctrl, /* TRXC */
+			  local_host, base_port + 101 + offset,
+			  remote_host, base_port + 1 + offset,
+			  trx_ctrl_read_cb);
 	if (rc < 0)
 		goto udp_error;
 
-	rc = trx_udp_open(trx, &trx->trx_ofd_data, local_host,
-		base_port + 102, remote_host, base_port + 2, trx_data_rx_cb);
+	rc = trx_udp_open(trx, &trx->trx_ofd_data, /* TRXD */
+			  local_host, base_port + 102 + offset,
+			  remote_host, base_port + 2 + offset,
+			  trx_data_rx_cb);
 	if (rc < 0)
 		goto udp_error;
 

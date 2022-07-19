@@ -37,6 +37,8 @@ struct l1ctl_server {
 	struct llist_head clients;
 	/* number of connected clients */
 	unsigned int num_clients;
+	/* used for client ID generation */
+	unsigned int next_client_id;
 	/* socket on which we listen for connections */
 	struct osmo_fd ofd;
 	/* server configuration */
@@ -52,6 +54,8 @@ struct l1ctl_client {
 	struct osmo_wqueue wq;
 	/* logging context (used as prefix for messages) */
 	const char *log_prefix;
+	/* unique client ID */
+	unsigned int id;
 	/* some private data */
 	void *priv;
 };
