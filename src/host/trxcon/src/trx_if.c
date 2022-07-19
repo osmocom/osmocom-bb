@@ -379,8 +379,8 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 	if (band_arfcn != trx->pm_band_arfcn_start) {
 		LOGP(DTRX, LOGL_ERROR, "Power measurement error: "
 			"response ARFCN=%u doesn't match expected ARFCN=%u\n",
-			band_arfcn &~ ARFCN_FLAG_MASK,
-			trx->pm_band_arfcn_start &~ ARFCN_FLAG_MASK);
+			band_arfcn & ~ARFCN_FLAG_MASK,
+			trx->pm_band_arfcn_start & ~ARFCN_FLAG_MASK);
 		return;
 	}
 

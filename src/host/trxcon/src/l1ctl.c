@@ -88,7 +88,7 @@ int l1ctl_tx_pm_conf(struct l1ctl_link *l1l, uint16_t band_arfcn,
 
 	LOGP(DL1C, LOGL_DEBUG, "Send PM Conf (%s %d = %d dBm)\n",
 		arfcn2band_name(band_arfcn),
-		band_arfcn &~ ARFCN_FLAG_MASK, dbm);
+		band_arfcn & ~ARFCN_FLAG_MASK, dbm);
 
 	pmc = (struct l1ctl_pm_conf *) msgb_put(msg, sizeof(*pmc));
 	pmc->band_arfcn = htons(band_arfcn);
@@ -303,7 +303,7 @@ static void fbsb_timer_cb(void *data)
 	if (msg == NULL)
 		return;
 
-	LOGP(DL1C, LOGL_NOTICE, "FBSB timer fired for ARFCN %u\n", l1l->trx->band_arfcn &~ ARFCN_FLAG_MASK);
+	LOGP(DL1C, LOGL_NOTICE, "FBSB timer fired for ARFCN %u\n", l1l->trx->band_arfcn & ~ARFCN_FLAG_MASK);
 
 	dl = put_dl_info_hdr(msg, NULL);
 
@@ -340,7 +340,7 @@ static int l1ctl_rx_fbsb_req(struct l1ctl_link *l1l, struct msgb *msg)
 
 	LOGP(DL1C, LOGL_NOTICE, "Received FBSB request (%s %d)\n",
 		arfcn2band_name(band_arfcn),
-		band_arfcn &~ ARFCN_FLAG_MASK);
+		band_arfcn & ~ARFCN_FLAG_MASK);
 
 	/* Reset scheduler and clock counter */
 	l1sched_reset(l1l->sched, true);
@@ -398,8 +398,8 @@ static int l1ctl_rx_pm_req(struct l1ctl_link *l1l, struct msgb *msg)
 	LOGP(DL1C, LOGL_NOTICE, "Received power measurement "
 		"request (%s: %d -> %d)\n",
 		arfcn2band_name(band_arfcn_start),
-		band_arfcn_start &~ ARFCN_FLAG_MASK,
-		band_arfcn_stop &~ ARFCN_FLAG_MASK);
+		band_arfcn_start & ~ARFCN_FLAG_MASK,
+		band_arfcn_stop & ~ARFCN_FLAG_MASK);
 
 	/* Send measurement request to transceiver */
 	rc = trx_if_cmd_measure(l1l->trx, band_arfcn_start, band_arfcn_stop);
@@ -570,7 +570,7 @@ static int l1ctl_proc_est_req_h0(struct trx_instance *trx, struct l1ctl_h0 *h)
 	band_arfcn = ntohs(h->band_arfcn);
 
 	LOGP(DL1C, LOGL_NOTICE, "L1CTL_DM_EST_REQ indicates a single "
-		"ARFCN=%u channel\n", band_arfcn &~ ARFCN_FLAG_MASK);
+		"ARFCN=%u channel\n", band_arfcn & ~ARFCN_FLAG_MASK);
 
 	/* Do we need to retune? */
 	if (trx->band_arfcn == band_arfcn)
