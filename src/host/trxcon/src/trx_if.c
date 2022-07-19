@@ -149,9 +149,9 @@ static void trx_ctrl_send(struct trx_instance *trx)
 	send(trx->trx_ofd_ctrl.fd, tcm->cmd, strlen(tcm->cmd) + 1, 0);
 
 	/* Trigger state machine */
-	if (trx->fsm->state != TRX_STATE_RSP_WAIT) {
-		trx->prev_state = trx->fsm->state;
-		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_RSP_WAIT, 0, 0);
+	if (trx->fi->state != TRX_STATE_RSP_WAIT) {
+		trx->prev_state = trx->fi->state;
+		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_RSP_WAIT, 0, 0);
 	}
 
 	/* Start expire timer */
@@ -175,7 +175,7 @@ static void trx_ctrl_timer_cb(void *data)
 	tcm = llist_entry(trx->trx_ctrl_list.next, struct trx_ctrl_msg, list);
 	if (++tcm->retry_cnt > 3) {
 		LOGP(DTRX, LOGL_NOTICE, "Transceiver offline\n");
-		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_OFFLINE, 0, 0);
+		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_OFFLINE, 0, 0);
 		osmo_fsm_inst_dispatch(trxcon->fi, TRX_EVENT_OFFLINE, trx);
 		return;
 	}
@@ -538,18 +538,18 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	/* Trigger state machine */
 	if (!strncmp(tcm->cmd + 4, "POWERON", 7)) {
 		trx->powered_up = true;
-		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_ACTIVE, 0, 0);
+		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_ACTIVE, 0, 0);
 	}
 	else if (!strncmp(tcm->cmd + 4, "POWEROFF", 8)) {
 		trx->powered_up = false;
-		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
+		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_IDLE, 0, 0);
 	}
 	else if (!strncmp(tcm->cmd + 4, "MEASURE", 7))
 		trx_if_measure_rsp_cb(trx, buf + 14);
 	else if (!strncmp(tcm->cmd + 4, "ECHO", 4))
-		osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
+		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_IDLE, 0, 0);
 	else
-		osmo_fsm_inst_state_chg(trx->fsm, trx->prev_state, 0, 0);
+		osmo_fsm_inst_state_chg(trx->fi, trx->prev_state, 0, 0);
 
 	/* Remove command from list */
 	llist_del(&tcm->list);
@@ -664,7 +664,7 @@ int trx_if_tx_burst(struct trx_instance *trx,
 	 *       transceiver and its TRXC interface.
 	 */
 #if 0
-	if (trx->fsm->state != TRX_STATE_ACTIVE) {
+	if (trx->fi->state != TRX_STATE_ACTIVE) {
 		LOGP(DTRXD, LOGL_ERROR, "Ignoring TX data, "
 			"transceiver isn't ready\n");
 		return -EAGAIN;
@@ -711,9 +711,9 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 
 	/* Allocate a new dedicated state machine */
 	/* TODO: allocate it as a child of trxcon->fi */
-	trx->fsm = osmo_fsm_inst_alloc(&trx_fsm, trx,
+	trx->fi = osmo_fsm_inst_alloc(&trx_fsm, trx,
 		NULL, LOGL_DEBUG, "trx_interface");
-	if (trx->fsm == NULL) {
+	if (trx->fi == NULL) {
 		LOGP(DTRX, LOGL_ERROR, "Failed to allocate an instance "
 			"of FSM '%s'\n", trx_fsm.name);
 		talloc_free(trx);
@@ -740,7 +740,7 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 
 udp_error:
 	LOGP(DTRX, LOGL_ERROR, "Couldn't establish UDP connection\n");
-	osmo_fsm_inst_free(trx->fsm);
+	osmo_fsm_inst_free(trx->fi);
 	talloc_free(trx);
 	return NULL;
 }
@@ -751,7 +751,7 @@ void trx_if_flush_ctrl(struct trx_instance *trx)
 	struct trx_ctrl_msg *tcm;
 
 	/* Reset state machine */
-	osmo_fsm_inst_state_chg(trx->fsm, TRX_STATE_IDLE, 0, 0);
+	osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_IDLE, 0, 0);
 
 	/* Clear command queue */
 	while (!llist_empty(&trx->trx_ctrl_list)) {
@@ -778,7 +778,7 @@ void trx_if_close(struct trx_instance *trx)
 	trx_udp_close(&trx->trx_ofd_data);
 
 	/* Free memory */
-	osmo_fsm_inst_free(trx->fsm);
+	osmo_fsm_inst_free(trx->fi);
 	talloc_free(trx);
 }
 

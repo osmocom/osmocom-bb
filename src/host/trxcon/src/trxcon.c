@@ -270,7 +270,7 @@ static void trxcon_fsm_managed_action(struct osmo_fsm_inst *fi,
 	case L1CTL_EVENT_DISCONNECT:
 		osmo_fsm_inst_state_chg(fi, TRXCON_STATE_IDLE, 0, 0);
 
-		if (trxcon->trx->fsm->state != TRX_STATE_OFFLINE) {
+		if (trxcon->trx->fi->state != TRX_STATE_OFFLINE) {
 			/* Reset scheduler and clock counter */
 			l1sched_reset(trxcon->sched, true);
 

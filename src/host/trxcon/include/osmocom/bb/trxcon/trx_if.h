@@ -30,7 +30,7 @@ struct trx_instance {
 
 	struct osmo_timer_list trx_ctrl_timer;
 	struct llist_head trx_ctrl_list;
-	struct osmo_fsm_inst *fsm;
+	struct osmo_fsm_inst *fi;
 
 	/* HACK: we need proper state machines */
 	uint32_t prev_state;
