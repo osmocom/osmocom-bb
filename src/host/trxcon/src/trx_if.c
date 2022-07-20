@@ -78,7 +78,7 @@ static struct osmo_fsm_state trx_fsm_states[] = {
 };
 
 static struct osmo_fsm trx_fsm = {
-	.name = "trx_interface_fsm",
+	.name = "trx_interface",
 	.states = trx_fsm_states,
 	.num_states = ARRAY_SIZE(trx_fsm_states),
 	.log_subsys = DTRX,
