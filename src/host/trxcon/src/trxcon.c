@@ -455,6 +455,9 @@ int main(int argc, char **argv)
 	log_set_print_category(osmo_stderr_target, 1);
 	log_set_print_level(osmo_stderr_target, 1);
 
+	log_set_print_filename2(osmo_stderr_target, LOG_FILENAME_BASENAME);
+	log_set_print_filename_pos(osmo_stderr_target, LOG_FILENAME_POS_LINE_END);
+
 	/* Optional GSMTAP  */
 	if (app_data.gsmtap_ip != NULL) {
 		app_data.gsmtap = gsmtap_source_init(app_data.gsmtap_ip, GSMTAP_UDP_PORT, 1);
