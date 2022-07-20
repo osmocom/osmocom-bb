@@ -145,7 +145,7 @@ static void trx_ctrl_send(struct trx_instance *trx)
 	tcm = llist_entry(trx->trx_ctrl_list.next, struct trx_ctrl_msg, list);
 
 	/* Send command */
-	LOGP(DTRX, LOGL_DEBUG, "Sending control '%s'\n", tcm->cmd);
+	LOGPFSML(trx->fi, LOGL_DEBUG, "Sending control '%s'\n", tcm->cmd);
 	send(trx->trx_ofd_ctrl.fd, tcm->cmd, strlen(tcm->cmd) + 1, 0);
 
 	/* Trigger state machine */
@@ -170,11 +170,11 @@ static void trx_ctrl_timer_cb(void *data)
 	if (llist_empty(&trx->trx_ctrl_list))
 		return;
 
-	LOGP(DTRX, LOGL_NOTICE, "No response from transceiver...\n");
+	LOGPFSML(trx->fi, LOGL_NOTICE, "No response from transceiver...\n");
 
 	tcm = llist_entry(trx->trx_ctrl_list.next, struct trx_ctrl_msg, list);
 	if (++tcm->retry_cnt > 3) {
-		LOGP(DTRX, LOGL_NOTICE, "Transceiver offline\n");
+		LOGPFSML(trx->fi, LOGL_NOTICE, "Transceiver offline\n");
 		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_OFFLINE, 0, 0);
 		osmo_fsm_inst_dispatch(trxcon->fi, TRX_EVENT_OFFLINE, trx);
 		return;
@@ -215,7 +215,7 @@ static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
 	tcm->cmd_len = strlen(cmd);
 	tcm->critical = critical;
 	llist_add_tail(&tcm->list, &trx->trx_ctrl_list);
-	LOGP(DTRX, LOGL_INFO, "Adding new control '%s'\n", tcm->cmd);
+	LOGPFSML(trx->fi, LOGL_INFO, "Adding new control '%s'\n", tcm->cmd);
 
 	/* Send message, if no pending messages */
 	if (!pending)
@@ -259,7 +259,7 @@ int trx_if_cmd_poweron(struct trx_instance *trx)
 {
 	if (trx->powered_up) {
 		/* FIXME: this should be handled by the FSM, not here! */
-		LOGP(DTRX, LOGL_ERROR, "Suppressing POWERON as we're already powered up\n");
+		LOGPFSML(trx->fi, LOGL_ERROR, "Suppressing POWERON as we're already powered up\n");
 		return -EAGAIN;
 	}
 	return trx_ctrl_cmd(trx, 1, "POWERON", "");
@@ -315,7 +315,7 @@ int trx_if_cmd_rxtune(struct trx_instance *trx, uint16_t band_arfcn)
 	/* RX is downlink on MS side */
 	freq10 = gsm_arfcn2freq10(band_arfcn, 0);
 	if (freq10 == 0xffff) {
-		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn);
+		LOGPFSML(trx->fi, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn);
 		return -ENOTSUP;
 	}
 
@@ -329,7 +329,7 @@ int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t band_arfcn)
 	/* TX is uplink on MS side */
 	freq10 = gsm_arfcn2freq10(band_arfcn, 1);
 	if (freq10 == 0xffff) {
-		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn);
+		LOGPFSML(trx->fi, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn);
 		return -ENOTSUP;
 	}
 
@@ -360,7 +360,7 @@ int trx_if_cmd_measure(struct trx_instance *trx,
 	/* Calculate a frequency for current ARFCN (DL) */
 	freq10 = gsm_arfcn2freq10(band_arfcn_start, 0);
 	if (freq10 == 0xffff) {
-		LOGP(DTRX, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn_start);
+		LOGPFSML(trx->fi, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn_start);
 		return -ENOTSUP;
 	}
 
@@ -381,7 +381,7 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 	/* Check received ARFCN against expected */
 	band_arfcn = gsm_freq102arfcn((uint16_t) freq10, 0);
 	if (band_arfcn != trx->pm_band_arfcn_start) {
-		LOGP(DTRX, LOGL_ERROR, "Power measurement error: "
+		LOGPFSML(trx->fi, LOGL_ERROR, "Power measurement error: "
 			"response ARFCN=%u doesn't match expected ARFCN=%u\n",
 			band_arfcn & ~ARFCN_FLAG_MASK,
 			trx->pm_band_arfcn_start & ~ARFCN_FLAG_MASK);
@@ -440,7 +440,7 @@ int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn,
 
 	/* Make sure that Mobile Allocation has at least one ARFCN */
 	if (!ma_len || ma == NULL) {
-		LOGP(DTRX, LOGL_ERROR, "Mobile Allocation is empty?!?\n");
+		LOGPFSML(trx->fi, LOGL_ERROR, "Mobile Allocation is empty?!?\n");
 		return -EINVAL;
 	}
 
@@ -450,7 +450,7 @@ int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn,
 		rx_freq = gsm_arfcn2freq10(ma[i], 0); /* Rx: Downlink */
 		tx_freq = gsm_arfcn2freq10(ma[i], 1); /* Tx: Uplink */
 		if (rx_freq == 0xffff || tx_freq == 0xffff) {
-			LOGP(DTRX, LOGL_ERROR, "Failed to convert ARFCN %u "
+			LOGPFSML(trx->fi, LOGL_ERROR, "Failed to convert ARFCN %u "
 			     "to a pair of Rx/Tx frequencies\n",
 			     ma[i] & ~ARFCN_FLAG_MASK);
 			return -EINVAL;
@@ -459,7 +459,7 @@ int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn,
 		/* Append a pair of Rx/Tx frequencies (in kHz) to the buffer */
 		rc = snprintf(ptr, ma_buf_len, "%u %u ", rx_freq * 100, tx_freq * 100);
 		if (rc < 0 || rc > ma_buf_len) { /* Prevent buffer overflow */
-			LOGP(DTRX, LOGL_ERROR, "Not enough room to encode "
+			LOGPFSML(trx->fi, LOGL_ERROR, "Not enough room to encode "
 			     "Mobile Allocation (N=%zu)\n", ma_len);
 			return -ENOSPC;
 		}
@@ -487,13 +487,13 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 
 	read_len = read(ofd->fd, buf, sizeof(buf) - 1);
 	if (read_len <= 0) {
-		LOGP(DTRX, LOGL_ERROR, "read() failed with rc=%zd\n", read_len);
+		LOGPFSML(trx->fi, LOGL_ERROR, "read() failed with rc=%zd\n", read_len);
 		return read_len;
 	}
 	buf[read_len] = '\0';
 
 	if (!!strncmp(buf, "RSP ", 4)) {
-		LOGP(DTRX, LOGL_NOTICE, "Unknown message on CTRL port: %s\n", buf);
+		LOGPFSML(trx->fi, LOGL_NOTICE, "Unknown message on CTRL port: %s\n", buf);
 		return 0;
 	}
 
@@ -501,7 +501,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	p = strchr(buf + 4, ' ');
 	rsp_len = p ? p - buf - 4 : strlen(buf) - 4;
 
-	LOGP(DTRX, LOGL_INFO, "Response message: '%s'\n", buf);
+	LOGPFSML(trx->fi, LOGL_INFO, "Response message: '%s'\n", buf);
 
 	/* Abort expire timer */
 	if (osmo_timer_pending(&trx->trx_ctrl_timer))
@@ -509,7 +509,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 
 	/* Get command for response message */
 	if (llist_empty(&trx->trx_ctrl_list)) {
-		LOGP(DTRX, LOGL_NOTICE, "Response message without command\n");
+		LOGPFSML(trx->fi, LOGL_NOTICE, "Response message without command\n");
 		return -EINVAL;
 	}
 
@@ -518,7 +518,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 
 	/* Check if response matches command */
 	if (!!strncmp(buf + 4, tcm->cmd + 4, rsp_len)) {
-		LOGP(DTRX, (tcm->critical) ? LOGL_FATAL : LOGL_ERROR,
+		LOGPFSML(trx->fi, (tcm->critical) ? LOGL_FATAL : LOGL_ERROR,
 			"Response message '%s' does not match command "
 			"message '%s'\n", buf, tcm->cmd);
 		goto rsp_error;
@@ -527,7 +527,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	/* Check for response code */
 	sscanf(p + 1, "%d", &resp);
 	if (resp) {
-		LOGP(DTRX, (tcm->critical) ? LOGL_FATAL : LOGL_ERROR,
+		LOGPFSML(trx->fi, (tcm->critical) ? LOGL_FATAL : LOGL_ERROR,
 			"Transceiver rejected TRX command with "
 			"response: '%s'\n", buf);
 
@@ -699,20 +699,20 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	struct trx_instance *trx;
 	int rc;
 
-	LOGP(DTRX, LOGL_NOTICE, "Init transceiver interface "
+	LOGPFSML(trxcon->fi, LOGL_NOTICE, "Init transceiver interface "
 		"(%s:%u)\n", remote_host, base_port);
 
 	/* Try to allocate memory */
 	trx = talloc_zero(trxcon, struct trx_instance);
 	if (!trx) {
-		LOGP(DTRX, LOGL_ERROR, "Failed to allocate memory\n");
+		LOGPFSML(trx->fi, LOGL_ERROR, "Failed to allocate memory\n");
 		return NULL;
 	}
 
 	/* Allocate a new dedicated state machine */
 	trx->fi = osmo_fsm_inst_alloc_child(&trx_fsm, trxcon->fi, TRX_EVENT_OFFLINE);
 	if (trx->fi == NULL) {
-		LOGP(DTRX, LOGL_ERROR, "Failed to allocate an instance "
+		LOGPFSML(trx->fi, LOGL_ERROR, "Failed to allocate an instance "
 			"of FSM '%s'\n", trx_fsm.name);
 		talloc_free(trx);
 		return NULL;
@@ -737,7 +737,7 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	return trx;
 
 udp_error:
-	LOGP(DTRX, LOGL_ERROR, "Couldn't establish UDP connection\n");
+	LOGPFSML(trx->fi, LOGL_ERROR, "Couldn't establish UDP connection\n");
 	osmo_fsm_inst_free(trx->fi);
 	talloc_free(trx);
 	return NULL;
@@ -766,7 +766,7 @@ void trx_if_close(struct trx_instance *trx)
 	if (!trx)
 		return;
 
-	LOGP(DTRX, LOGL_NOTICE, "Shutdown transceiver interface\n");
+	LOGPFSML(trx->fi, LOGL_NOTICE, "Shutdown transceiver interface\n");
 
 	/* Flush CTRL message list */
 	trx_if_flush_ctrl(trx);
