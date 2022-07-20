@@ -768,6 +768,9 @@ void trx_if_close(struct trx_instance *trx)
 
 	LOGPFSML(trx->fi, LOGL_NOTICE, "Shutdown transceiver interface\n");
 
+	/* Abort TRXC response timer (if pending) */
+	osmo_timer_del(&trx->trx_ctrl_timer);
+
 	/* Flush CTRL message list */
 	trx_if_flush_ctrl(trx);
 
