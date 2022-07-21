@@ -364,8 +364,7 @@ void trxcon_inst_free(struct trxcon_inst *trxcon)
 	if (trxcon->trx != NULL)
 		trx_if_close(trxcon->trx);
 
-	if (osmo_timer_pending(&trxcon->fbsb_timer))
-		osmo_timer_del(&trxcon->fbsb_timer);
+	osmo_timer_del(&trxcon->fbsb_timer);
 
 	if (trxcon->fi != NULL)
 		osmo_fsm_inst_free(trxcon->fi);

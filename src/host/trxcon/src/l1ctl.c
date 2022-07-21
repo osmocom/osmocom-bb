@@ -186,8 +186,7 @@ int l1ctl_tx_fbsb_conf(struct l1ctl_client *l1c, uint8_t result,
 	trxcon->fbsb_conf_sent = true;
 
 	/* Abort FBSB expire timer */
-	if (osmo_timer_pending(&trxcon->fbsb_timer))
-		osmo_timer_del(&trxcon->fbsb_timer);
+	osmo_timer_del(&trxcon->fbsb_timer);
 
 	return l1ctl_client_send(l1c, msg);
 }

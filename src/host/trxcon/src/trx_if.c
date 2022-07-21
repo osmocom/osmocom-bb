@@ -504,8 +504,7 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 	LOGPFSML(trx->fi, LOGL_INFO, "Response message: '%s'\n", buf);
 
 	/* Abort expire timer */
-	if (osmo_timer_pending(&trx->trx_ctrl_timer))
-		osmo_timer_del(&trx->trx_ctrl_timer);
+	osmo_timer_del(&trx->trx_ctrl_timer);
 
 	/* Get command for response message */
 	if (llist_empty(&trx->trx_ctrl_list)) {
