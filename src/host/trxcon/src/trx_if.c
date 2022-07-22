@@ -704,14 +704,14 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	/* Try to allocate memory */
 	trx = talloc_zero(trxcon, struct trx_instance);
 	if (!trx) {
-		LOGPFSML(trx->fi, LOGL_ERROR, "Failed to allocate memory\n");
+		LOGPFSML(trxcon->fi, LOGL_ERROR, "Failed to allocate memory\n");
 		return NULL;
 	}
 
 	/* Allocate a new dedicated state machine */
 	trx->fi = osmo_fsm_inst_alloc_child(&trx_fsm, trxcon->fi, TRX_EVENT_OFFLINE);
 	if (trx->fi == NULL) {
-		LOGPFSML(trx->fi, LOGL_ERROR, "Failed to allocate an instance "
+		LOGPFSML(trxcon->fi, LOGL_ERROR, "Failed to allocate an instance "
 			"of FSM '%s'\n", trx_fsm.name);
 		talloc_free(trx);
 		return NULL;
