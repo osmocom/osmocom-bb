@@ -128,7 +128,7 @@ static int l1ctl_server_conn_cb(struct osmo_fd *sfd, unsigned int flags)
 		return -ENOMEM;
 	}
 
-	client = talloc_zero(server->cfg->talloc_ctx, struct l1ctl_client);
+	client = talloc_zero(server, struct l1ctl_client);
 	if (client == NULL) {
 		LOGP(DL1C, LOGL_ERROR, "Failed to allocate an L1CTL client\n");
 		close(client_fd);
@@ -206,12 +206,15 @@ void l1ctl_client_conn_close(struct l1ctl_client *client)
 	talloc_free(client);
 }
 
-int l1ctl_server_start(struct l1ctl_server *server,
-		       const struct l1ctl_server_cfg *cfg)
+struct l1ctl_server *l1ctl_server_start(void *ctx, const struct l1ctl_server_cfg *cfg)
 {
+	struct l1ctl_server *server;
 	int rc;
 
 	LOGP(DL1C, LOGL_NOTICE, "Init L1CTL server (sock_path=%s)\n", cfg->sock_path);
+
+	server = talloc(ctx, struct l1ctl_server);
+	OSMO_ASSERT(server != NULL);
 
 	*server = (struct l1ctl_server) {
 		.clients = LLIST_HEAD_INIT(server->clients),
@@ -230,10 +233,10 @@ int l1ctl_server_start(struct l1ctl_server *server,
 		LOGP(DL1C, LOGL_ERROR, "Could not create UNIX socket: %s\n",
 			strerror(errno));
 		talloc_free(server);
-		return rc;
+		return NULL;
 	}
 
-	return 0;
+	return server;
 }
 
 void l1ctl_server_shutdown(struct l1ctl_server *server)
@@ -254,4 +257,6 @@ void l1ctl_server_shutdown(struct l1ctl_server *server)
 		close(server->ofd.fd);
 		server->ofd.fd = -1;
 	}
+
+	talloc_free(server);
 }

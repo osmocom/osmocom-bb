@@ -508,7 +508,7 @@ static void signal_handler(int signum)
 int main(int argc, char **argv)
 {
 	struct l1ctl_server_cfg server_cfg;
-	struct l1ctl_server server;
+	struct l1ctl_server *server = NULL;
 	int rc = 0;
 
 	printf("%s", COPYRIGHT);
@@ -557,14 +557,14 @@ int main(int argc, char **argv)
 	/* Start the L1CTL server */
 	server_cfg = (struct l1ctl_server_cfg) {
 		.sock_path = app_data.bind_socket,
-		.talloc_ctx = tall_trxcon_ctx,
 		.num_clients_max = 1, /* only one connection for now */
 		.conn_read_cb = &l1ctl_rx_cb,
 		.conn_accept_cb = &l1ctl_conn_accept_cb,
 		.conn_close_cb = &l1ctl_conn_close_cb,
 	};
 
-	if (l1ctl_server_start(&server, &server_cfg) != 0) {
+	server = l1ctl_server_start(tall_trxcon_ctx, &server_cfg);
+	if (server == NULL) {
 		rc = EXIT_FAILURE;
 		goto exit;
 	}
@@ -586,7 +586,8 @@ int main(int argc, char **argv)
 		osmo_select_main(0);
 
 exit:
-	l1ctl_server_shutdown(&server);
+	if (server != NULL)
+		l1ctl_server_shutdown(server);
 
 	/* Deinitialize logging */
 	log_fini();

@@ -24,8 +24,6 @@ typedef void l1ctl_conn_state_func(struct l1ctl_client *);
 struct l1ctl_server_cfg {
 	/* UNIX socket path to listen on */
 	const char *sock_path;
-	/* talloc context to be used for new clients */
-	void *talloc_ctx;
 	/* maximum number of connected clients */
 	unsigned int num_clients_max;
 	/* functions to be called on various events */
@@ -56,8 +54,7 @@ struct l1ctl_client {
 	void *priv;
 };
 
-int l1ctl_server_start(struct l1ctl_server *server,
-		       const struct l1ctl_server_cfg *cfg);
+struct l1ctl_server *l1ctl_server_start(void *ctx, const struct l1ctl_server_cfg *cfg);
 void l1ctl_server_shutdown(struct l1ctl_server *server);
 
 int l1ctl_client_send(struct l1ctl_client *client, struct msgb *msg);
