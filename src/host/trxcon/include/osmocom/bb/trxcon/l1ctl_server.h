@@ -54,8 +54,8 @@ struct l1ctl_client {
 	void *priv;
 };
 
-struct l1ctl_server *l1ctl_server_start(void *ctx, const struct l1ctl_server_cfg *cfg);
-void l1ctl_server_shutdown(struct l1ctl_server *server);
+struct l1ctl_server *l1ctl_server_alloc(void *ctx, const struct l1ctl_server_cfg *cfg);
+void l1ctl_server_free(struct l1ctl_server *server);
 
 int l1ctl_client_send(struct l1ctl_client *client, struct msgb *msg);
 void l1ctl_client_conn_close(struct l1ctl_client *client);

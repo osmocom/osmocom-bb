@@ -563,7 +563,7 @@ int main(int argc, char **argv)
 		.conn_close_cb = &l1ctl_conn_close_cb,
 	};
 
-	server = l1ctl_server_start(tall_trxcon_ctx, &server_cfg);
+	server = l1ctl_server_alloc(tall_trxcon_ctx, &server_cfg);
 	if (server == NULL) {
 		rc = EXIT_FAILURE;
 		goto exit;
@@ -587,7 +587,7 @@ int main(int argc, char **argv)
 
 exit:
 	if (server != NULL)
-		l1ctl_server_shutdown(server);
+		l1ctl_server_free(server);
 
 	/* Deinitialize logging */
 	log_fini();

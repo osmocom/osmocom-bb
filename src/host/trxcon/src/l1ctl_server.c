@@ -206,7 +206,7 @@ void l1ctl_client_conn_close(struct l1ctl_client *client)
 	talloc_free(client);
 }
 
-struct l1ctl_server *l1ctl_server_start(void *ctx, const struct l1ctl_server_cfg *cfg)
+struct l1ctl_server *l1ctl_server_alloc(void *ctx, const struct l1ctl_server_cfg *cfg)
 {
 	struct l1ctl_server *server;
 	int rc;
@@ -239,7 +239,7 @@ struct l1ctl_server *l1ctl_server_start(void *ctx, const struct l1ctl_server_cfg
 	return server;
 }
 
-void l1ctl_server_shutdown(struct l1ctl_server *server)
+void l1ctl_server_free(struct l1ctl_server *server)
 {
 	LOGP(DL1C, LOGL_NOTICE, "Shutdown L1CTL server\n");
 
