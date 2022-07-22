@@ -35,7 +35,7 @@
 #include <osmocom/coding/gsm0503_coding.h>
 #include <osmocom/codec/codec.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 static const uint8_t tch_h0_traffic_block_map[3][4] = {

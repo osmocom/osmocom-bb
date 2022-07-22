@@ -30,7 +30,7 @@
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 /**

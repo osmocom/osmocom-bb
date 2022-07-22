@@ -32,7 +32,7 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/coding/gsm0503_coding.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)

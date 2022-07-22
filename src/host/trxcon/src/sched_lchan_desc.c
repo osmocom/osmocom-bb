@@ -27,7 +27,7 @@
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/core/gsmtap.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 
 /* Forward declaration of handlers */
 int rx_data_fn(struct l1sched_lchan_state *lchan,

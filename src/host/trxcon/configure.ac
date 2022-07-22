@@ -36,6 +36,7 @@ AC_CONFIG_MACRO_DIRS([m4])
 AC_CONFIG_FILES([include/Makefile
 		 include/osmocom/Makefile
 		 include/osmocom/bb/Makefile
+		 include/osmocom/bb/l1sched/Makefile
 		 include/osmocom/bb/trxcon/Makefile
 		 src/Makefile
 		 Makefile])

@@ -25,7 +25,7 @@
 
 #include <osmocom/gsm/gsm_utils.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 
 /* Non-combined CCCH */
 static const struct l1sched_tdma_frame frame_bcch[51] = {

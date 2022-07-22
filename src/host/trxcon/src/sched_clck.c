@@ -35,7 +35,7 @@
 #include <osmocom/core/timer.h>
 #include <osmocom/core/timer_compat.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 #define MAX_FN_SKEW		50

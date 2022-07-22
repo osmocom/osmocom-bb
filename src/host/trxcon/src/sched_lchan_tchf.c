@@ -32,7 +32,7 @@
 #include <osmocom/coding/gsm0503_coding.h>
 #include <osmocom/codec/codec.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 int rx_tchf_fn(struct l1sched_lchan_state *lchan,

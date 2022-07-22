@@ -30,7 +30,7 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/coding/gsm0503_coding.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 /* 3GPP TS 05.02, section 5.2.7 "Access burst (AB)" */

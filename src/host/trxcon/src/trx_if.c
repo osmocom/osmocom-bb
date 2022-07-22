@@ -39,7 +39,7 @@
 
 #include <osmocom/gsm/gsm_utils.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trx_if.h>

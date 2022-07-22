@@ -47,7 +47,7 @@
 #include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/trxcon/l1ctl_server.h>
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 
 #define S(x)	(1 << (x))
 

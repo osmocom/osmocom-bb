@@ -32,7 +32,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/linuxlist.h>
 
-#include <osmocom/bb/trxcon/l1sched.h>
+#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 static int l1sched_cfg_pchan_comb_req(struct l1sched_state *sched,
