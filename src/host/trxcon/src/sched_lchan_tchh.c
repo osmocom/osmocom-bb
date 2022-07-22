@@ -36,7 +36,7 @@
 #include <osmocom/codec/codec.h>
 
 #include <osmocom/bb/l1sched/l1sched.h>
-#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/l1sched/logging.h>
 
 static const uint8_t tch_h0_traffic_block_map[3][4] = {
 	/* B0(0,2,4,6), B1(4,6,8,10), B2(8,10,0,2) */
@@ -182,10 +182,11 @@ uint32_t l1sched_tchh_block_dl_first_fn(enum l1sched_lchan_type chan,
 			BLOCK_FIRST_FN(tch_h1_traffic_block_map);
 	}
 
-	LOGP(DSCHD, LOGL_ERROR, "Failed to calculate TDMA "
-		"frame number of the first burst of %s block, "
-		"using the current fn=%u\n", facch ?
-			"FACCH/H" : "TCH/H", last_fn);
+#if 0
+	LOGP_LCHAND(lchan, LOGL_ERROR,
+		    "Failed to calculate TDMA frame number of the first burst of %s block, "
+		    "using the current fn=%u\n", facch ? "FACCH/H" : "TCH/H", last_fn);
+#endif
 
 	/* Couldn't calculate the first fn, return the last */
 	return last_fn;
@@ -195,19 +196,16 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	       uint32_t fn, uint8_t bid, const sbit_t *bits,
 	       const struct l1sched_meas_set *meas)
 {
-	const struct l1sched_lchan_desc *lchan_desc;
 	int n_errors = -1, n_bits_total, rc;
 	sbit_t *buffer, *offset;
 	uint8_t l2[128], *mask;
 	size_t l2_len;
 
 	/* Set up pointers */
-	lchan_desc = &l1sched_lchan_desc[lchan->type];
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
 
-	LOGP(DSCHD, LOGL_DEBUG, "Traffic received on %s: fn=%u ts=%u bid=%u\n",
-		lchan_desc->name, fn, lchan->ts->index, bid);
+	LOGP_LCHAND(lchan, LOGL_DEBUG, "Traffic received: fn=%u bid=%u\n", fn, bid);
 
 	if (*mask == 0x00) {
 		/* Align to the first burst */
@@ -268,10 +266,10 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		 * TODO: AMR requires a dedicated loop,
 		 * which will be implemented later...
 		 */
-		LOGP(DSCHD, LOGL_ERROR, "AMR isn't supported yet\n");
+		LOGP_LCHAND(lchan, LOGL_ERROR, "AMR isn't supported yet\n");
 		return -ENOTSUP;
 	default:
-		LOGP(DSCHD, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);
 		return -EINVAL;
 	}
 
@@ -287,8 +285,9 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		/* Calculate AVG of the measurements (assuming 4 bursts) */
 		l1sched_lchan_meas_avg(lchan, 4);
 
-		LOGP(DSCHD, LOGL_ERROR, "Received bad %s frame (rc=%d, ber=%d/%d) at fn=%u\n",
-		     lchan_desc->name, rc, n_errors, n_bits_total, lchan->meas_avg.fn);
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Received bad frame (rc=%d, ber=%d/%d) at fn=%u\n",
+			    rc, n_errors, n_bits_total, lchan->meas_avg.fn);
 
 		/* Send BFI */
 		goto bfi;
@@ -360,7 +359,6 @@ bfi:
 int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
-	const struct l1sched_lchan_desc *lchan_desc;
 	ubit_t *buffer, *offset;
 	const uint8_t *tsc;
 	uint8_t *mask;
@@ -368,7 +366,6 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	int rc;
 
 	/* Set up pointers */
-	lchan_desc = &l1sched_lchan_desc[lchan->type];
 	mask = &lchan->tx_burst_mask;
 	buffer = lchan->tx_bursts;
 
@@ -409,15 +406,16 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 		 * TODO: AMR requires a dedicated loop,
 		 * which will be implemented later...
 		 */
-		LOGP(DSCHD, LOGL_ERROR, "AMR isn't supported yet, "
-			"dropping frame...\n");
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "AMR isn't supported yet, dropping frame...\n");
 
 		/* Forget this primitive */
 		l1sched_prim_drop(lchan);
 		return -ENOTSUP;
 	default:
-		LOGP(DSCHD, LOGL_ERROR, "Invalid TCH mode: %u, "
-			"dropping frame...\n", lchan->tch_mode);
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Invalid TCH mode: %u, dropping frame...\n",
+			    lchan->tch_mode);
 
 		/* Forget this primitive */
 		l1sched_prim_drop(lchan);
@@ -428,9 +426,9 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	if (L1SCHED_PRIM_IS_FACCH(lchan->prim)) {
 		l2_len = GSM_MACBLOCK_LEN; /* FACCH */
 	} else if (lchan->prim->payload_len != l2_len) {
-		LOGP(DSCHD, LOGL_ERROR, "Primitive has odd length %zu "
-			"(expected %zu for TCH or %u for FACCH), so dropping...\n",
-			lchan->prim->payload_len, l2_len, GSM_MACBLOCK_LEN);
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Primitive has odd length %zu "
+			    "(expected %zu for TCH or %u for FACCH), so dropping...\n",
+			    lchan->prim->payload_len, l2_len, GSM_MACBLOCK_LEN);
 
 		/* Forget this primitive */
 		l1sched_prim_drop(lchan);
@@ -440,9 +438,9 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	/* Encode the payload */
 	rc = gsm0503_tch_hr_encode(buffer, lchan->prim->payload, l2_len);
 	if (rc) {
-		LOGP(DSCHD, LOGL_ERROR, "Failed to encode L2 payload (len=%zu): %s\n",
-		     lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload,
-							    lchan->prim->payload_len));
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%zu): %s\n",
+			    lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload,
+								   lchan->prim->payload_len));
 
 		/* Forget this primitive */
 		l1sched_prim_drop(lchan);
@@ -471,8 +469,7 @@ send_burst:
 	memset(br->burst + 145, 0, 3); /* TB */
 	br->burst_len = GSM_BURST_LEN;
 
-	LOGP(DSCHD, LOGL_DEBUG, "Scheduled %s fn=%u ts=%u burst=%u\n",
-		lchan_desc->name, br->fn, lchan->ts->index, br->bid);
+	LOGP_LCHAND(lchan, LOGL_DEBUG, "Scheduled fn=%u burst=%u\n", br->fn, br->bid);
 
 	/* In case of a FACCH/H frame, one block less */
 	if (lchan->ul_facch_blocks)

@@ -31,7 +31,7 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <osmocom/bb/l1sched/l1sched.h>
-#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/l1sched/logging.h>
 
 /**
  * Initializes a new primitive by allocating memory
@@ -54,17 +54,16 @@ static struct l1sched_ts_prim *prim_alloc(void *ctx, size_t pl_len,
 	/* Determine lchan type */
 	lchan_type = l1sched_chan_nr2lchan_type(chan_nr, link_id);
 	if (!lchan_type) {
-		LOGP(DSCH, LOGL_ERROR, "Couldn't determine lchan type "
-			"for chan_nr=%02x and link_id=%02x\n", chan_nr, link_id);
+		/* TODO: use proper logging context */
+		LOGP(DLGLOBAL, LOGL_ERROR, "Couldn't determine lchan type "
+		     "for chan_nr=%02x and link_id=%02x\n", chan_nr, link_id);
 		return NULL;
 	}
 
 	/* Allocate a new primitive */
 	prim = talloc_zero_size(ctx, sizeof(*prim) + pl_len);
-	if (prim == NULL) {
-		LOGP(DSCH, LOGL_ERROR, "Failed to allocate memory\n");
+	if (prim == NULL)
 		return NULL;
-	}
 
 	/* Init primitive header */
 	prim->payload_len = pl_len;
@@ -100,7 +99,7 @@ struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
 	/* Check whether required timeslot is allocated and configured */
 	ts = sched->ts[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
-		LOGP(DSCH, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
+		LOGP_SCHEDC(sched, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
 		return NULL;
 	}
 
@@ -196,15 +195,15 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 
 	/* Inform about the cache usage count */
 	if (cached && lchan->sacch.mr_cache_usage > 5) {
-		LOGP(DSCHD, LOGL_NOTICE, "SACCH MR cache usage count=%u > 5 "
-			"on lchan=%s => ancient measurements, please fix!\n",
-			lchan->sacch.mr_cache_usage,
-			l1sched_lchan_desc[lchan->type].name);
+		LOGP_LCHAND(lchan, LOGL_NOTICE,
+			    "SACCH MR cache usage count=%u > 5 "
+			    "=> ancient measurements, please fix!\n",
+			    lchan->sacch.mr_cache_usage);
 	}
 
-	LOGP(DSCHD, LOGL_NOTICE, "Using a %s Measurement Report "
-		"on lchan=%s\n", (cached ? "cached" : "dummy"),
-		l1sched_lchan_desc[lchan->type].name);
+	LOGP_LCHAND(lchan, LOGL_NOTICE,
+		    "Using a %s Measurement Report\n",
+		    cached ? "cached" : "dummy");
 
 	return prim;
 }
@@ -271,11 +270,9 @@ static struct l1sched_ts_prim *prim_dequeue_sacch(struct llist_head *queue,
 			break; /* something else was found */
 	}
 
-	LOGP(DSCHD, LOGL_DEBUG, "SACCH MR selection on lchan=%s: "
-		"mr_tx_last=%d prim_mr=%p prim_nmr=%p\n",
-		l1sched_lchan_desc[lchan->type].name,
-		lchan->sacch.mr_tx_last,
-		prim_mr, prim_nmr);
+	LOGP_LCHAND(lchan, LOGL_DEBUG,
+		    "SACCH MR selection: mr_tx_last=%d prim_mr=%p prim_nmr=%p\n",
+		    lchan->sacch.mr_tx_last, prim_mr, prim_nmr);
 
 	/* Prioritize non-MR prim if possible */
 	if (mr_now && prim_mr)
@@ -299,16 +296,14 @@ static struct l1sched_ts_prim *prim_dequeue_sacch(struct llist_head *queue,
 			prim->payload, GSM_MACBLOCK_LEN);
 		lchan->sacch.mr_cache_usage = 0;
 
-		LOGP(DSCHD, LOGL_DEBUG, "SACCH MR cache has been updated "
-			"for lchan=%s\n", l1sched_lchan_desc[lchan->type].name);
+		LOGP_LCHAND(lchan, LOGL_DEBUG, "SACCH MR cache has been updated\n");
 	}
 
 	/* Update the MR transmission state */
 	lchan->sacch.mr_tx_last = PRIM_IS_MR(prim);
 
-	LOGP(DSCHD, LOGL_DEBUG, "SACCH decision on lchan=%s: %s\n",
-		l1sched_lchan_desc[lchan->type].name, PRIM_IS_MR(prim) ?
-			"Measurement Report" : "data frame");
+	LOGP_LCHAND(lchan, LOGL_DEBUG, "SACCH decision: %s\n",
+		    PRIM_IS_MR(prim) ? "Measurement Report" : "data frame");
 
 	return prim;
 }
@@ -592,8 +587,7 @@ int l1sched_prim_dummy(struct l1sched_lchan_state *lchan)
 	/* Assign the current prim */
 	lchan->prim = prim;
 
-	LOGP(DSCHD, LOGL_DEBUG, "Transmitting a dummy / silence frame "
-		"on lchan=%s\n", l1sched_lchan_desc[chan].name);
+	LOGP_LCHAND(lchan, LOGL_DEBUG, "Transmitting a dummy / silence frame\n");
 
 	return 0;
 }

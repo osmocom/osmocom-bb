@@ -346,6 +346,12 @@ struct l1sched_ts_prim_rach {
 	uint8_t offset;
 };
 
+/*! Scheduler configuration */
+struct l1sched_cfg {
+	/*! Logging context (used as prefix for messages) */
+	const char *log_prefix;
+};
+
 /*! One scheduler instance */
 struct l1sched_state {
 	/*! Clock state */
@@ -366,6 +372,8 @@ struct l1sched_state {
 	struct l1sched_ts *ts[TRX_TS_COUNT];
 	/*! BSIC value learned from SCH bursts */
 	uint8_t bsic;
+	/*! Logging context (used as prefix for messages) */
+	const char *log_prefix;
 	/*! Some private data */
 	void *priv;
 };
@@ -375,7 +383,9 @@ const struct l1sched_tdma_multiframe *l1sched_mframe_layout(
 	enum gsm_phys_chan_config config, int tn);
 
 /* Scheduler management functions */
-struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance, void *priv);
+void l1sched_logging_init(int log_cat_common, int log_cat_data);
+struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg,
+				    uint32_t fn_advance, void *priv);
 void l1sched_reset(struct l1sched_state *sched, bool reset_clock);
 void l1sched_free(struct l1sched_state *sched);
 

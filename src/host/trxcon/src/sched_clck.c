@@ -30,13 +30,14 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include <osmocom/core/logging.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/timer_compat.h>
 
 #include <osmocom/bb/l1sched/l1sched.h>
-#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/l1sched/logging.h>
 
 #define MAX_FN_SKEW		50
 #define TRX_LOSS_FRAMES	400
@@ -50,7 +51,7 @@ static void l1sched_clck_tick(void *data)
 
 	/* Check if transceiver is still alive */
 	if (sched->fn_counter_lost++ == TRX_LOSS_FRAMES) {
-		LOGP(DSCH, LOGL_DEBUG, "No more clock from transceiver\n");
+		LOGP_SCHEDC(sched, LOGL_DEBUG, "No more clock from transceiver\n");
 		sched->clck_state = L1SCHED_CLCK_ST_WAIT;
 
 		return;
@@ -65,8 +66,8 @@ static void l1sched_clck_tick(void *data)
 
 	/* If someone played with clock, or if the process stalled */
 	if (elapsed_us > GSM_TDMA_FN_DURATION_uS * MAX_FN_SKEW || elapsed_us < 0) {
-		LOGP(DSCH, LOGL_NOTICE, "PC clock skew: "
-			"elapsed uS %" PRId64 "\n", elapsed_us);
+		LOGP_SCHEDC(sched, LOGL_NOTICE, "PC clock skew: "
+			    "elapsed uS %" PRId64 "\n", elapsed_us);
 
 		sched->clck_state = L1SCHED_CLCK_ST_WAIT;
 
@@ -123,13 +124,13 @@ int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn)
 	if (sched->clck_state == L1SCHED_CLCK_ST_WAIT) {
 		l1sched_clck_correct(sched, &tv_now, fn);
 
-		LOGP(DSCH, LOGL_DEBUG, "Initial clock received: fn=%u\n", fn);
+		LOGP_SCHEDC(sched, LOGL_DEBUG, "Initial clock received: fn=%u\n", fn);
 		sched->clck_state = L1SCHED_CLCK_ST_OK;
 
 		return 0;
 	}
 
-	LOGP(DSCH, LOGL_NOTICE, "Clock indication: fn=%u\n", fn);
+	LOGP_SCHEDC(sched, LOGL_NOTICE, "Clock indication: fn=%u\n", fn);
 
 	osmo_timer_del(&sched->clock_timer);
 
@@ -143,15 +144,15 @@ int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn)
 
 	/* Check for max clock skew */
 	if (elapsed_fn > MAX_FN_SKEW || elapsed_fn < -MAX_FN_SKEW) {
-		LOGP(DSCH, LOGL_NOTICE, "GSM clock skew: old fn=%u, "
-			"new fn=%u\n", sched->fn_counter_proc, fn);
+		LOGP_SCHEDC(sched, LOGL_NOTICE, "GSM clock skew: old fn=%u, "
+			    "new fn=%u\n", sched->fn_counter_proc, fn);
 
 		l1sched_clck_correct(sched, &tv_now, fn);
 		return 0;
 	}
 
-	LOGP(DSCH, LOGL_INFO, "GSM clock jitter: %" PRId64 "\n",
-		elapsed_fn * GSM_TDMA_FN_DURATION_uS - elapsed_us);
+	LOGP_SCHEDC(sched, LOGL_INFO, "GSM clock jitter: %" PRId64 "\n",
+		    elapsed_fn * GSM_TDMA_FN_DURATION_uS - elapsed_us);
 
 	/* Too many frames have been processed already */
 	if (elapsed_fn < 0) {

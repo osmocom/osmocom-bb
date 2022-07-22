@@ -31,7 +31,7 @@
 #include <osmocom/coding/gsm0503_coding.h>
 
 #include <osmocom/bb/l1sched/l1sched.h>
-#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/l1sched/logging.h>
 
 /* 3GPP TS 05.02, section 5.2.7 "Access burst (AB)" */
 #define RACH_EXT_TAIL_BITS_LEN	8
@@ -88,8 +88,9 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	if (L1SCHED_PRIM_IS_RACH11(lchan->prim)) {
 		/* Check requested synch. sequence */
 		if (rach->synch_seq >= RACH_SYNCH_SEQ_NUM) {
-			LOGP(DSCHD, LOGL_ERROR, "Unknown RACH synch. sequence=0x%02x\n",
-			     rach->synch_seq);
+			LOGP_LCHAND(lchan, LOGL_ERROR,
+				    "Unknown RACH synch. sequence=0x%02x\n",
+				    rach->synch_seq);
 
 			/* Forget this primitive */
 			l1sched_prim_drop(lchan);
@@ -99,8 +100,9 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 		/* Encode extended (11-bit) payload */
 		rc = gsm0503_rach_ext_encode(payload, rach->ra, bsic, true);
 		if (rc) {
-			LOGP(DSCHD, LOGL_ERROR, "Could not encode extended RACH burst "
-						"(ra=%u bsic=%u)\n", rach->ra, bsic);
+			LOGP_LCHAND(lchan, LOGL_ERROR,
+				    "Could not encode extended RACH burst (ra=%u bsic=%u)\n",
+				    rach->ra, bsic);
 
 			/* Forget this primitive */
 			l1sched_prim_drop(lchan);
@@ -112,16 +114,18 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 		/* Encode regular (8-bit) payload */
 		rc = gsm0503_rach_ext_encode(payload, rach->ra, bsic, false);
 		if (rc) {
-			LOGP(DSCHD, LOGL_ERROR, "Could not encode RACH burst "
-						"(ra=%u bsic=%u)\n", rach->ra, bsic);
+			LOGP_LCHAND(lchan, LOGL_ERROR,
+				    "Could not encode RACH burst (ra=%u bsic=%u)\n",
+				    rach->ra, bsic);
 
 			/* Forget this primitive */
 			l1sched_prim_drop(lchan);
 			return rc;
 		}
 	} else {
-		LOGP(DSCHD, LOGL_ERROR, "Primitive has unexpected "
-		     "type=0x%02x\n", lchan->prim->type);
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Primitive has unexpected type=0x%02x\n",
+			    lchan->prim->type);
 		l1sched_prim_drop(lchan);
 		return -EINVAL;
 	}
@@ -143,10 +147,9 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	memset(burst_ptr, 0, br->burst + GSM_BURST_LEN - burst_ptr);
 	br->burst_len = GSM_BURST_LEN;
 
-	LOGP(DSCHD, LOGL_NOTICE, "Scheduled %s RACH (%s) on fn=%u, tn=%u, lchan=%s\n",
-		L1SCHED_PRIM_IS_RACH11(lchan->prim) ? "extended (11-bit)" : "regular (8-bit)",
-		get_value_string(rach_synch_seq_names, rach->synch_seq), br->fn,
-		lchan->ts->index, l1sched_lchan_desc[lchan->type].name);
+	LOGP_LCHAND(lchan, LOGL_NOTICE, "Scheduled %s RACH (%s) at fn=%u\n",
+		    L1SCHED_PRIM_IS_RACH11(lchan->prim) ? "extended (11-bit)" : "regular (8-bit)",
+		    get_value_string(rach_synch_seq_names, rach->synch_seq), br->fn);
 
 	/* Confirm RACH request */
 	l1sched_handle_data_cnf(lchan, br->fn, L1SCHED_DT_OTHER);

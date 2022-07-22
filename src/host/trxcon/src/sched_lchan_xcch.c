@@ -31,24 +31,21 @@
 #include <osmocom/coding/gsm0503_coding.h>
 
 #include <osmocom/bb/l1sched/l1sched.h>
-#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/l1sched/logging.h>
 
 int rx_data_fn(struct l1sched_lchan_state *lchan,
 	       uint32_t fn, uint8_t bid, const sbit_t *bits,
 	       const struct l1sched_meas_set *meas)
 {
-	const struct l1sched_lchan_desc *lchan_desc;
 	uint8_t l2[GSM_MACBLOCK_LEN], *mask;
 	int n_errors, n_bits_total, rc;
 	sbit_t *buffer, *offset;
 
 	/* Set up pointers */
-	lchan_desc = &l1sched_lchan_desc[lchan->type];
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
 
-	LOGP(DSCHD, LOGL_DEBUG, "Data received on %s: fn=%u ts=%u bid=%u\n",
-		lchan_desc->name, fn, lchan->ts->index, bid);
+	LOGP_LCHAND(lchan, LOGL_DEBUG, "Data received: fn=%u bid=%u\n", fn, bid);
 
 	/* Align to the first burst of a block */
 	if (*mask == 0x00 && bid != 0)
@@ -74,12 +71,11 @@ int rx_data_fn(struct l1sched_lchan_state *lchan,
 
 	/* Check for complete set of bursts */
 	if ((*mask & 0xf) != 0xf) {
-		LOGP(DSCHD, LOGL_ERROR, "Received incomplete (%s) data frame at "
-			"fn=%u (%u/%u) for %s\n",
-			l1sched_burst_mask2str(mask, 4), lchan->meas_avg.fn,
-			lchan->meas_avg.fn % lchan->ts->mf_layout->period,
-			lchan->ts->mf_layout->period,
-			lchan_desc->name);
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Received incomplete (%s) data frame at fn=%u (%u/%u)\n",
+			    l1sched_burst_mask2str(mask, 4), lchan->meas_avg.fn,
+			    lchan->meas_avg.fn % lchan->ts->mf_layout->period,
+			    lchan->ts->mf_layout->period);
 		/* NOTE: xCCH has an insane amount of redundancy for error
 		 * correction, so even just 2 valid bursts might be enough
 		 * to reconstruct some L2 frames. This is why we do not
@@ -92,8 +88,9 @@ int rx_data_fn(struct l1sched_lchan_state *lchan,
 	/* Attempt to decode */
 	rc = gsm0503_xcch_decode(l2, buffer, &n_errors, &n_bits_total);
 	if (rc) {
-		LOGP(DSCHD, LOGL_ERROR, "Received bad %s frame (rc=%d, ber=%d/%d) at fn=%u\n",
-		     lchan_desc->name, rc, n_errors, n_bits_total, lchan->meas_avg.fn);
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Received bad frame (rc=%d, ber=%d/%d) at fn=%u\n",
+			    rc, n_errors, n_bits_total, lchan->meas_avg.fn);
 	}
 
 	/* Send a L2 frame to the higher layers */
@@ -105,14 +102,12 @@ int rx_data_fn(struct l1sched_lchan_state *lchan,
 int tx_data_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
-	const struct l1sched_lchan_desc *lchan_desc;
 	ubit_t *buffer, *offset;
 	const uint8_t *tsc;
 	uint8_t *mask;
 	int rc;
 
 	/* Set up pointers */
-	lchan_desc = &l1sched_lchan_desc[lchan->type];
 	mask = &lchan->tx_burst_mask;
 	buffer = lchan->tx_bursts;
 
@@ -126,8 +121,9 @@ int tx_data_fn(struct l1sched_lchan_state *lchan,
 
 	/* Check the prim payload length */
 	if (lchan->prim->payload_len != GSM_MACBLOCK_LEN) {
-		LOGP(DSCHD, LOGL_ERROR, "Primitive has odd length %zu (expected %u), "
-			"so dropping...\n", lchan->prim->payload_len, GSM_MACBLOCK_LEN);
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Primitive has odd length %zu (expected %u), so dropping...\n",
+			    lchan->prim->payload_len, GSM_MACBLOCK_LEN);
 
 		l1sched_prim_drop(lchan);
 		return -EINVAL;
@@ -136,9 +132,9 @@ int tx_data_fn(struct l1sched_lchan_state *lchan,
 	/* Encode payload */
 	rc = gsm0503_xcch_encode(buffer, lchan->prim->payload);
 	if (rc) {
-		LOGP(DSCHD, LOGL_ERROR, "Failed to encode L2 payload (len=%zu): %s\n",
-		     lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload,
-							    lchan->prim->payload_len));
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%zu): %s\n",
+			    lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload,
+								   lchan->prim->payload_len));
 
 		/* Forget this primitive */
 		l1sched_prim_drop(lchan);
@@ -164,8 +160,7 @@ send_burst:
 	memset(br->burst + 145, 0, 3); /* TB */
 	br->burst_len = GSM_BURST_LEN;
 
-	LOGP(DSCHD, LOGL_DEBUG, "Scheduled %s fn=%u ts=%u burst=%u\n",
-		lchan_desc->name, br->fn, lchan->ts->index, br->bid);
+	LOGP_LCHAND(lchan, LOGL_DEBUG, "Scheduled fn=%u burst=%u\n", br->fn, br->bid);
 
 	/* If we have sent the last (4/4) burst */
 	if ((*mask & 0x0f) == 0x0f) {

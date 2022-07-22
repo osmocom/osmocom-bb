@@ -36,7 +36,7 @@
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/l1sched/l1sched.h>
-#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/l1sched/logging.h>
 
 /* GSM 05.02 Chapter 5.2.3 Normal Burst (NB) */
 const uint8_t l1sched_nb_training_bits[8][26] = {
@@ -122,10 +122,10 @@ size_t l1sched_bad_frame_ind(uint8_t *l2, struct l1sched_lchan_state *lchan)
 		/* FIXME: AMR is not implemented yet */
 		return 0;
 	case GSM48_CMODE_SIGN:
-		LOGP(DSCH, LOGL_ERROR, "BFI is not allowed in signalling mode\n");
+		LOGP_LCHAND(lchan, LOGL_ERROR, "BFI is not allowed in signalling mode\n");
 		return 0;
 	default:
-		LOGP(DSCH, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);
 		return 0;
 	}
 }

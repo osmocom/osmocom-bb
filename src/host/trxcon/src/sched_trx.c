@@ -33,7 +33,11 @@
 #include <osmocom/core/linuxlist.h>
 
 #include <osmocom/bb/l1sched/l1sched.h>
-#include <osmocom/bb/trxcon/logging.h>
+#include <osmocom/bb/l1sched/logging.h>
+
+/* Logging categories to be used for common/data messages */
+int l1sched_log_cat_common = DLGLOBAL;
+int l1sched_log_cat_data = DLGLOBAL;
 
 static int l1sched_cfg_pchan_comb_req(struct l1sched_state *sched,
 				      uint8_t tn, enum gsm_phys_chan_config pchan)
@@ -150,11 +154,16 @@ static void sched_frame_clck_cb(struct l1sched_state *sched)
 		l1sched_handle_burst_req(sched, &br[tn]);
 }
 
-struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance, void *priv)
+void l1sched_logging_init(int log_cat_common, int log_cat_data)
+{
+	l1sched_log_cat_common = log_cat_common;
+	l1sched_log_cat_data = log_cat_data;
+}
+
+struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg,
+				    uint32_t fn_advance, void *priv)
 {
 	struct l1sched_state *sched;
-
-	LOGP(DSCH, LOGL_NOTICE, "Init scheduler\n");
 
 	sched = talloc(ctx, struct l1sched_state);
 	if (!sched)
@@ -167,6 +176,11 @@ struct l1sched_state *l1sched_alloc(void *ctx, uint32_t fn_advance, void *priv)
 		.priv = priv,
 	};
 
+	if (cfg->log_prefix == NULL)
+		sched->log_prefix = talloc_asprintf(sched, "l1sched[0x%p]: ", sched);
+	else
+		sched->log_prefix = talloc_strdup(sched, cfg->log_prefix);
+
 	return sched;
 }
 
@@ -177,7 +191,7 @@ void l1sched_free(struct l1sched_state *sched)
 	if (sched == NULL)
 		return;
 
-	LOGP(DSCH, LOGL_NOTICE, "Shutdown scheduler\n");
+	LOGP_SCHEDC(sched, LOGL_NOTICE, "Shutdown scheduler\n");
 
 	/* Free all potentially allocated timeslots */
 	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)
@@ -194,8 +208,8 @@ void l1sched_reset(struct l1sched_state *sched, bool reset_clock)
 	if (sched == NULL)
 		return;
 
-	LOGP(DSCH, LOGL_NOTICE, "Reset scheduler %s\n",
-		reset_clock ? "and clock counter" : "");
+	LOGP_SCHEDC(sched, LOGL_NOTICE, "Reset scheduler %s\n",
+		    reset_clock ? "and clock counter" : "");
 
 	/* Free all potentially allocated timeslots */
 	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)
@@ -210,11 +224,11 @@ struct l1sched_ts *l1sched_add_ts(struct l1sched_state *sched, int tn)
 {
 	/* Make sure that ts isn't allocated yet */
 	if (sched->ts[tn] != NULL) {
-		LOGP(DSCH, LOGL_ERROR, "Timeslot #%u already allocated\n", tn);
+		LOGP_SCHEDC(sched, LOGL_ERROR, "Timeslot #%u already allocated\n", tn);
 		return NULL;
 	}
 
-	LOGP(DSCH, LOGL_NOTICE, "Add a new TDMA timeslot #%u\n", tn);
+	LOGP_SCHEDC(sched, LOGL_NOTICE, "Add a new TDMA timeslot #%u\n", tn);
 
 	sched->ts[tn] = talloc_zero(sched, struct l1sched_ts);
 	sched->ts[tn]->sched = sched;
@@ -233,7 +247,7 @@ void l1sched_del_ts(struct l1sched_state *sched, int tn)
 	if (ts == NULL)
 		return;
 
-	LOGP(DSCH, LOGL_NOTICE, "Delete TDMA timeslot #%u\n", tn);
+	LOGP_SCHEDC(sched, LOGL_NOTICE, "Delete TDMA timeslot #%u\n", tn);
 
 	/* Deactivate all logical channels */
 	l1sched_deactivate_all_lchans(ts);
@@ -284,8 +298,9 @@ int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 	if (ts->mf_layout->chan_config != config)
 		return -EINVAL;
 
-	LOGP(DSCH, LOGL_NOTICE, "(Re)configure TDMA timeslot #%u as %s\n",
-		tn, ts->mf_layout->name);
+	LOGP_SCHEDC(sched, LOGL_NOTICE,
+		    "(Re)configure TDMA timeslot #%u as %s\n",
+		    tn, ts->mf_layout->name);
 
 	/* Init queue primitives for TX */
 	INIT_LLIST_HEAD(&ts->tx_prims);
@@ -405,7 +420,7 @@ int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr,
 
 	/* Prevent NULL-pointer deference */
 	if (ts == NULL) {
-		LOGP(DSCH, LOGL_ERROR, "Timeslot isn't configured\n");
+		LOGP_SCHEDC(ts->sched, LOGL_ERROR, "Timeslot isn't configured\n");
 		return -EINVAL;
 	}
 
@@ -437,13 +452,11 @@ int l1sched_activate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan)
 		return -EINVAL;
 
 	if (lchan->active) {
-		LOGP(DSCH, LOGL_ERROR, "Logical channel %s already activated "
-			"on ts=%d\n", l1sched_lchan_desc[chan].name, ts->index);
+		LOGP_LCHANC(lchan, LOGL_ERROR, "is already activated\n");
 		return -EINVAL;
 	}
 
-	LOGP(DSCH, LOGL_NOTICE, "Activating lchan=%s "
-		"on ts=%d\n", l1sched_lchan_desc[chan].name, ts->index);
+	LOGP_LCHANC(lchan, LOGL_NOTICE, "activating\n");
 
 	/* Conditionally allocate memory for bursts */
 	if (lchan_desc->rx_fn && lchan_desc->burst_buf_size > 0) {
@@ -473,12 +486,12 @@ static void l1sched_reset_lchan(struct l1sched_lchan_state *lchan)
 
 	/* Print some TDMA statistics for Downlink */
 	if (l1sched_lchan_desc[lchan->type].rx_fn && lchan->active) {
-		LOGP(DSCH, LOGL_DEBUG, "TDMA statistics for lchan=%s on ts=%u: "
-				       "%lu DL frames have been processed, "
-				       "%lu lost (compensated), last fn=%u\n",
-		     l1sched_lchan_desc[lchan->type].name, lchan->ts->index,
-		     lchan->tdma.num_proc, lchan->tdma.num_lost,
-		     lchan->tdma.last_proc);
+		LOGP_LCHANC(lchan, LOGL_DEBUG, "TDMA statistics: "
+			    "%lu DL frames have been processed, "
+			    "%lu lost (compensated), last fn=%u\n",
+			    lchan->tdma.num_proc,
+			    lchan->tdma.num_lost,
+			    lchan->tdma.last_proc);
 	}
 
 	/* Reset internal state variables */
@@ -526,13 +539,11 @@ int l1sched_deactivate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan
 		return -EINVAL;
 
 	if (!lchan->active) {
-		LOGP(DSCH, LOGL_ERROR, "Logical channel %s already deactivated "
-			"on ts=%d\n", l1sched_lchan_desc[chan].name, ts->index);
+		LOGP_LCHANC(lchan, LOGL_ERROR, "is already deactivated\n");
 		return -EINVAL;
 	}
 
-	LOGP(DSCH, LOGL_DEBUG, "Deactivating lchan=%s "
-		"on ts=%d\n", l1sched_lchan_desc[chan].name, ts->index);
+	LOGP_LCHANC(lchan, LOGL_DEBUG, "deactivating\n");
 
 	/* Reset internal state, free memory */
 	l1sched_reset_lchan(lchan);
@@ -547,8 +558,9 @@ void l1sched_deactivate_all_lchans(struct l1sched_ts *ts)
 {
 	struct l1sched_lchan_state *lchan;
 
-	LOGP(DSCH, LOGL_DEBUG, "Deactivating all logical channels "
-		"on ts=%d\n", ts->index);
+	LOGP_SCHEDC(ts->sched, LOGL_DEBUG,
+		    "Deactivating all logical channels on ts=%d\n",
+		    ts->index);
 
 	llist_for_each_entry(lchan, &ts->lchans, list) {
 		/* Omit inactive channels */
@@ -660,22 +672,23 @@ static int subst_frame_loss(struct l1sched_lchan_state *lchan,
 	if (elapsed < 0) {
 		/* This burst has already been substituted by a dummy burst (all bits set to zero),
 		 * so better drop it. Otherwise we risk to get undefined behavior in handler(). */
-		LOGP(DSCHD, LOGL_ERROR, "(%s) Rx burst with fn=%u older than the last "
-					"processed fn=%u (see OS#4658) => dropping\n",
-					l1sched_lchan_desc[lchan->type].name,
-					fn, lchan->tdma.last_proc);
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Rx burst with fn=%u older than the last "
+			    "processed fn=%u (see OS#4658) => dropping\n",
+			    fn, lchan->tdma.last_proc);
 		return -EALREADY;
 	}
 
 	/* Check how many frames we (potentially) need to compensate */
 	if (elapsed > mf->period) {
-		LOGP(DSCHD, LOGL_NOTICE, "Too many (>%u) contiguous TDMA frames elapsed (%d) "
-					 "since the last processed fn=%u (current %u)\n",
-					 mf->period, elapsed, lchan->tdma.last_proc, fn);
+		LOGP_LCHANC(lchan, LOGL_NOTICE,
+			    "Too many (>%u) contiguous TDMA frames elapsed (%d) "
+			    "since the last processed fn=%u (current %u)\n",
+			    mf->period, elapsed, lchan->tdma.last_proc, fn);
 		return -EIO;
 	} else if (elapsed == 0) {
-		LOGP(DSCHD, LOGL_ERROR, "No TDMA frames elapsed since the last processed "
-					"fn=%u, must be a bug?\n", lchan->tdma.last_proc);
+		LOGP_LCHANC(lchan, LOGL_ERROR,
+			    "No TDMA frames elapsed since the last processed "
+			    "fn=%u, must be a bug?\n", lchan->tdma.last_proc);
 		return -EIO;
 	}
 
@@ -692,8 +705,9 @@ static int subst_frame_loss(struct l1sched_lchan_state *lchan,
 		if (fp->dl_chan != lchan->type)
 			continue;
 
-		LOGP(DSCHD, LOGL_NOTICE, "Substituting lost TDMA frame %u on %s\n",
-		     fake_meas.fn, l1sched_lchan_desc[lchan->type].name);
+		LOGP_LCHANC(lchan, LOGL_NOTICE,
+			    "Substituting lost TDMA frame fn=%u\n",
+			    fake_meas.fn);
 
 		handler(lchan, fake_meas.fn, fp->dl_bid, bits, &fake_meas);
 
@@ -722,8 +736,8 @@ int l1sched_handle_rx_burst(struct l1sched_state *sched, uint8_t tn,
 	/* Check whether required timeslot is allocated and configured */
 	ts = sched->ts[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
-		LOGP(DSCHD, LOGL_DEBUG, "TDMA timeslot #%u isn't configured, "
-			"ignoring burst...\n", tn);
+		LOGP_SCHEDD(sched, LOGL_DEBUG,
+			    "Timeslot #%u isn't configured, ignoring burst...\n", tn);
 		return -EINVAL;
 	}
 
@@ -770,8 +784,9 @@ int l1sched_handle_rx_burst(struct l1sched_state *sched, uint8_t tn,
 		 * As a consequence, subst_frame_loss() will be unable to compensate
 		 * one (potentionally lost) Downlink burst. On practice, it would
 		 * happen once in 4615 * 10e-6 * (2 ^ 32 - 1) seconds or ~6 years. */
-		LOGP(DSCHD, LOGL_NOTICE, "Too many TDMA frames have been processed. "
-					 "Are you running trxcon for more than 6 years?!?\n");
+		LOGP_LCHAND(lchan, LOGL_NOTICE,
+			    "Too many TDMA frames have been processed. "
+			    "Are you running trxcon for more than 6 years?!?\n");
 		lchan->tdma.num_proc = 1;
 	}
 

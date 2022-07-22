@@ -333,6 +333,9 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx)
 					 trxcon, LOGL_DEBUG, NULL);
 	OSMO_ASSERT(trxcon->fi != NULL);
 
+	/* Logging context to be used by both l1ctl and l1sched modules */
+	trxcon->log_prefix = talloc_asprintf(trxcon, "%s: ", osmo_fsm_inst_name(trxcon->fi));
+
 	/* Init transceiver interface */
 	trxcon->trx = trx_if_open(trxcon,
 				  app_data.trx_bind_ip,
@@ -344,7 +347,11 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx)
 	}
 
 	/* Init scheduler */
-	trxcon->sched = l1sched_alloc(trxcon, app_data.trx_fn_advance, trxcon);
+	const struct l1sched_cfg sched_cfg = {
+		.log_prefix = trxcon->log_prefix,
+	};
+
+	trxcon->sched = l1sched_alloc(trxcon, &sched_cfg, app_data.trx_fn_advance, trxcon);
 	if (trxcon->sched == NULL) {
 		trxcon_inst_free(trxcon);
 		return NULL;
@@ -530,6 +537,7 @@ int main(int argc, char **argv)
 
 	/* Init logging system */
 	trx_log_init(tall_trxcon_ctx, app_data.debug_mask);
+	l1sched_logging_init(DSCH, DSCHD);
 
 	/* Configure pretty logging */
 	log_set_print_extended_timestamp(osmo_stderr_target, 1);

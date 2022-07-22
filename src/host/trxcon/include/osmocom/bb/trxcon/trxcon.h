@@ -22,6 +22,9 @@ enum trxcon_fsm_events {
 struct trxcon_inst {
 	struct osmo_fsm_inst *fi;
 
+	/* Logging context for sched and l1c */
+	const char *log_prefix;
+
 	/* The L1 scheduler */
 	struct l1sched_state *sched;
 	/* L1/L2 interfaces */
