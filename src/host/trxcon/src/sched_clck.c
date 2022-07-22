@@ -32,15 +32,11 @@
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/msgb.h>
-#include <osmocom/core/bits.h>
-#include <osmocom/core/fsm.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/timer_compat.h>
-#include <osmocom/gsm/a5.h>
 
 #include <osmocom/bb/trxcon/l1sched.h>
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/trx_if.h>
 
 #define MAX_FN_SKEW		50
 #define TRX_LOSS_FRAMES	400
