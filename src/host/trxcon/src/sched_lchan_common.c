@@ -29,8 +29,6 @@
 
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
-#include <osmocom/core/gsmtap_util.h>
-#include <osmocom/core/gsmtap.h>
 
 #include <osmocom/codec/codec.h>
 
