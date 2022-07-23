@@ -409,7 +409,7 @@ class Application(ApplicationBase):
 		self.append_trx(self.argv.bts_addr, self.argv.bts_base_port, name = "BTS")
 
 		# Init TRX instance for BB
-		self.append_trx(self.argv.bb_addr, self.argv.bb_base_port, name = "MS")
+		self.append_trx(self.argv.bb_addr, self.argv.bb_base_port, name = "MS", child_mgt = False)
 
 		# Additional transceivers (optional)
 		if self.argv.trx_list is not None:

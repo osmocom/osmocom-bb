@@ -65,8 +65,9 @@ class Transceiver:
 	  (trx_2)            ctrl=5705, data=5706.
 	  ...
 
-	As soon as the first transceiver is powered on / off,
-	all child transceivers are also powered on / off.
+	By default, powering on/off a parent transceiver (child_idx=0) will
+	automatically power on/off its child transceivers (if any).  This
+	behavior can be disabled by setting "child_mgt" param to False.
 
 	== Clock distribution (optional)
 
@@ -126,6 +127,7 @@ class Transceiver:
 		self.bind_addr = bind_addr
 		self.base_port = base_port
 		self.child_idx = kwargs.get("child_idx", 0)
+		self.child_mgt = kwargs.get("child_mgt", True)
 
 		# Meta info
 		self.name = kwargs.get("name", None)
@@ -222,8 +224,13 @@ class Transceiver:
 		return None
 
 	def power_event_handler(self, poweron: bool) -> None:
-		# Update self and child transceivers
-		for trx in [self, *self.child_trx_list.trx_list]:
+		# If self.child_mgt is True, automatically power on/off children
+		if self.child_mgt and self.child_idx == 0:
+			trx_list = [self, *self.child_trx_list.trx_list]
+		else:
+			trx_list = [self]
+		# Update self and optionally child transceivers
+		for trx in trx_list:
 			trx.running = poweron
 			if not poweron:
 				trx.disable_fh()
