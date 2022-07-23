@@ -222,18 +222,12 @@ class Transceiver:
 	def ctrl_cmd_handler(self, request):
 		return None
 
-	def power_event_handler(self, event):
-		# Update child transceivers
-		for trx in self.child_trx_list.trx_list:
-			if event == "POWERON":
-				trx.running = True
-			elif event == "POWEROFF":
-				trx.running = False
+	def power_event_handler(self, poweron: bool) -> None:
+		# Update self and child transceivers
+		for trx in [self, *self.child_trx_list.trx_list]:
+			trx.running = poweron
+			if not poweron:
 				trx.disable_fh()
-
-		# Reset frequency hopping parameters
-		if event == "POWEROFF":
-			self.disable_fh()
 
 		# Trigger clock generator if required
 		if self.clck_gen is not None:

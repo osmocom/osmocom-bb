@@ -107,10 +107,7 @@ class CTRLInterfaceTRX(CTRLInterface):
 				return -1
 
 			log.info("(%s) Starting transceiver..." % self.trx)
-			self.trx.running = True
-
-			# Notify transceiver about that
-			self.trx.power_event_handler("POWERON")
+			self.trx.power_event_handler(poweron=True)
 
 			return 0
 
@@ -118,10 +115,7 @@ class CTRLInterfaceTRX(CTRLInterface):
 			log.debug("(%s) Recv POWEROFF cmd" % self.trx)
 
 			log.info("(%s) Stopping transceiver..." % self.trx)
-			self.trx.running = False
-
-			# Notify transceiver about that
-			self.trx.power_event_handler("POWEROFF")
+			self.trx.power_event_handler(poweron=False)
 
 			return 0
 
