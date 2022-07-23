@@ -601,13 +601,13 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 
 	read_len = read(ofd->fd, buf, sizeof(buf));
 	if (read_len <= 0) {
-		LOGP(DTRXD, LOGL_ERROR, "read() failed with rc=%zd\n", read_len);
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "read() failed with rc=%zd\n", read_len);
 		return read_len;
 	}
 
 	if (read_len < (8 + 148)) { /* TRXDv0 header + GMSK burst */
-		LOGP(DTRXD, LOGL_ERROR, "Got data message with invalid "
-			"length '%zd'\n", read_len);
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
+			  "Got data message with invalid length '%zd'\n", read_len);
 		return -EINVAL;
 	}
 
@@ -620,17 +620,18 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	osmo_ubit2sbit(bits, buf + 8, 148);
 
 	if (tn >= 8) {
-		LOGP(DTRXD, LOGL_ERROR, "Illegal TS %d\n", tn);
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal TS %d\n", tn);
 		return -EINVAL;
 	}
 
 	if (fn >= 2715648) {
-		LOGP(DTRXD, LOGL_ERROR, "Illegal FN %u\n", fn);
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal FN %u\n", fn);
 		return -EINVAL;
 	}
 
-	LOGP(DTRXD, LOGL_DEBUG, "RX burst tn=%u fn=%u rssi=%d toa=%d\n",
-		tn, fn, rssi, toa256);
+	LOGPFSMSL(trx->fi, DTRXD, LOGL_DEBUG,
+		  "RX burst tn=%u fn=%u rssi=%d toa=%d\n",
+		  tn, fn, rssi, toa256);
 
 	/* Group the measurements together */
 	meas = (struct l1sched_meas_set) {
@@ -664,14 +665,15 @@ int trx_if_tx_burst(struct trx_instance *trx,
 	 */
 #if 0
 	if (trx->fi->state != TRX_STATE_ACTIVE) {
-		LOGP(DTRXD, LOGL_ERROR, "Ignoring TX data, "
-			"transceiver isn't ready\n");
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
+			  "Ignoring TX data, transceiver isn't ready\n");
 		return -EAGAIN;
 	}
 #endif
 
-	LOGP(DTRXD, LOGL_DEBUG, "TX burst tn=%u fn=%u pwr=%u\n",
-	     br->tn, br->fn, br->pwr);
+	LOGPFSMSL(trx->fi, DTRXD, LOGL_DEBUG,
+		  "TX burst tn=%u fn=%u pwr=%u\n",
+		  br->tn, br->fn, br->pwr);
 
 	buf[0] = br->tn;
 	osmo_store32be(br->fn, buf + 1);
