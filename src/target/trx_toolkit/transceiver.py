@@ -120,42 +120,41 @@ class Transceiver:
 
 	"""
 
-	def __init__(self, bind_addr, remote_addr, base_port, name = None,
-			child_idx = 0, clck_gen = None, pwr_meas = None):
+	def __init__(self, bind_addr, remote_addr, base_port, **kwargs):
 		# Connection info
 		self.remote_addr = remote_addr
 		self.bind_addr = bind_addr
 		self.base_port = base_port
-		self.child_idx = child_idx
+		self.child_idx = kwargs.get("child_idx", 0)
 
 		# Meta info
-		self.name = name
+		self.name = kwargs.get("name", None)
 
 		log.info("Init transceiver '%s'" % self)
 
 		# Child transceiver cannot have its own clock
-		if clck_gen is not None and child_idx > 0:
+		self.clck_gen = kwargs.get("clck_gen", None)
+		if self.clck_gen is not None and self.child_idx > 0:
 			raise TypeError("Child transceiver cannot have its own clock")
 
 		# Init DATA interface
 		self.data_if = DATAInterface(
-			remote_addr, base_port + child_idx * 2 + 102,
-			bind_addr, base_port + child_idx * 2 + 2)
+			remote_addr, base_port + self.child_idx * 2 + 102,
+			bind_addr, base_port + self.child_idx * 2 + 2)
 
 		# Init CTRL interface
 		self.ctrl_if = CTRLInterfaceTRX(self,
-			remote_addr, base_port + child_idx * 2 + 101,
-			bind_addr, base_port + child_idx * 2 + 1)
+			remote_addr, base_port + self.child_idx * 2 + 101,
+			bind_addr, base_port + self.child_idx * 2 + 1)
 
 		# Init optional CLCK interface
-		self.clck_gen = clck_gen
-		if clck_gen is not None:
+		if self.clck_gen is not None:
 			self.clck_if = UDPLink(
 				remote_addr, base_port + 100,
 				bind_addr, base_port)
 
 		# Optional Power Measurement interface
-		self.pwr_meas = pwr_meas
+		self.pwr_meas = kwargs.get("pwr_meas", None)
 
 		# Internal state
 		self.running = False
