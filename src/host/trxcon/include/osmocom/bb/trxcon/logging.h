@@ -2,8 +2,6 @@
 
 #include <osmocom/core/logging.h>
 
-#define DEBUG_DEFAULT "DAPP:DL1C:DL1D:DTRXC:DTRXD:DSCH:DSCHD"
-
 enum {
 	DAPP,
 	DL1C,

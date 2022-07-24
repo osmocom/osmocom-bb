@@ -406,7 +406,7 @@ static void print_help(void)
 {
 	printf(" Some help...\n");
 	printf("  -h --help         this text\n");
-	printf("  -d --debug        Change debug flags. Default: %s\n", DEBUG_DEFAULT);
+	printf("  -d --debug        Change debug flags (e.g. DL1C:DSCH)\n");
 	printf("  -b --trx-bind     TRX bind IP address (default 0.0.0.0)\n");
 	printf("  -i --trx-remote   TRX remote IP address (default 127.0.0.1)\n");
 	printf("  -p --trx-port     Base port of TRX instance (default 6700)\n");
