@@ -149,9 +149,10 @@ bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
  * @return           either frame number of the first burst,
  *                   or fn=last_fn if calculation failed
  */
-static uint32_t tchh_block_dl_first_fn(enum l1sched_lchan_type chan,
+static uint32_t tchh_block_dl_first_fn(const struct l1sched_lchan_state *lchan,
 				       uint32_t last_fn, bool facch)
 {
+	enum l1sched_lchan_type chan = lchan->type;
 	uint8_t fn_mf, fn_diff;
 	int i = 0;
 
@@ -182,11 +183,9 @@ static uint32_t tchh_block_dl_first_fn(enum l1sched_lchan_type chan,
 			BLOCK_FIRST_FN(tch_h1_traffic_block_map);
 	}
 
-#if 0
 	LOGP_LCHAND(lchan, LOGL_ERROR,
 		    "Failed to calculate TDMA frame number of the first burst of %s block, "
 		    "using the current fn=%u\n", facch ? "FACCH/H" : "TCH/H", last_fn);
-#endif
 
 	/* Couldn't calculate the first fn, return the last */
 	return last_fn;
@@ -331,7 +330,7 @@ bfi:
 	/* Didn't try to decode, fake measurements */
 	if (n_errors < 0) {
 		lchan->meas_avg = (struct l1sched_meas_set) {
-			.fn = tchh_block_dl_first_fn(lchan->type, fn, false),
+			.fn = tchh_block_dl_first_fn(lchan, fn, false),
 			.toa256 = 0,
 			.rssi = -110,
 		};
