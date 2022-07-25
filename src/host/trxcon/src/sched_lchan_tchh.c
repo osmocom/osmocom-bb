@@ -149,8 +149,8 @@ bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
  * @return           either frame number of the first burst,
  *                   or fn=last_fn if calculation failed
  */
-uint32_t l1sched_tchh_block_dl_first_fn(enum l1sched_lchan_type chan,
-	uint32_t last_fn, bool facch)
+static uint32_t tchh_block_dl_first_fn(enum l1sched_lchan_type chan,
+				       uint32_t last_fn, bool facch)
 {
 	uint8_t fn_mf, fn_diff;
 	int i = 0;
@@ -331,7 +331,7 @@ bfi:
 	/* Didn't try to decode, fake measurements */
 	if (n_errors < 0) {
 		lchan->meas_avg = (struct l1sched_meas_set) {
-			.fn = l1sched_tchh_block_dl_first_fn(lchan->type, fn, false),
+			.fn = tchh_block_dl_first_fn(lchan->type, fn, false),
 			.toa256 = 0,
 			.rssi = -110,
 		};

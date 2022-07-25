@@ -466,8 +466,6 @@ const char *l1sched_burst_mask2str(const uint8_t *mask, int bits);
 size_t l1sched_bad_frame_ind(uint8_t *l2, struct l1sched_lchan_state *lchan);
 
 /* Interleaved TCH/H block TDMA frame mapping */
-uint32_t l1sched_tchh_block_dl_first_fn(enum l1sched_lchan_type chan,
-	uint32_t last_fn, bool facch);
 bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
 	uint32_t fn, bool ul, bool facch, bool start);
 
