@@ -348,10 +348,11 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx)
 
 	/* Init scheduler */
 	const struct l1sched_cfg sched_cfg = {
+		.fn_advance = app_data.trx_fn_advance,
 		.log_prefix = trxcon->log_prefix,
 	};
 
-	trxcon->sched = l1sched_alloc(trxcon, &sched_cfg, app_data.trx_fn_advance, trxcon);
+	trxcon->sched = l1sched_alloc(trxcon, &sched_cfg, trxcon);
 	if (trxcon->sched == NULL) {
 		trxcon_inst_free(trxcon);
 		return NULL;

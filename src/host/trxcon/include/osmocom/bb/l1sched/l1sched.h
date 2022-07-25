@@ -350,6 +350,8 @@ struct l1sched_ts_prim_rach {
 struct l1sched_cfg {
 	/*! Logging context (used as prefix for messages) */
 	const char *log_prefix;
+	/*! TDMA frame-number advance */
+	uint32_t fn_advance;
 };
 
 /*! One scheduler instance */
@@ -384,8 +386,7 @@ const struct l1sched_tdma_multiframe *l1sched_mframe_layout(
 
 /* Scheduler management functions */
 void l1sched_logging_init(int log_cat_common, int log_cat_data);
-struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg,
-				    uint32_t fn_advance, void *priv);
+struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg, void *priv);
 void l1sched_reset(struct l1sched_state *sched, bool reset_clock);
 void l1sched_free(struct l1sched_state *sched);
 

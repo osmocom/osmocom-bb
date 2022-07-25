@@ -160,8 +160,7 @@ void l1sched_logging_init(int log_cat_common, int log_cat_data)
 	l1sched_log_cat_data = log_cat_data;
 }
 
-struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg,
-				    uint32_t fn_advance, void *priv)
+struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg, void *priv)
 {
 	struct l1sched_state *sched;
 
@@ -172,7 +171,7 @@ struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg,
 	*sched = (struct l1sched_state) {
 		/* .clock_timer is set up in l1sched_clck_correct() */
 		.clock_cb = &sched_frame_clck_cb,
-		.fn_counter_advance = fn_advance,
+		.fn_counter_advance = cfg->fn_advance,
 		.priv = priv,
 	};
 
