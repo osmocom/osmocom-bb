@@ -768,6 +768,8 @@ void trx_if_flush_ctrl(struct trx_instance *trx)
 
 void trx_if_close(struct trx_instance *trx)
 {
+	static const char cmd_poweroff[] = "CMD POWEROFF";
+
 	/* May be unallocated due to init error */
 	if (!trx)
 		return;
@@ -779,6 +781,10 @@ void trx_if_close(struct trx_instance *trx)
 
 	/* Flush CTRL message list */
 	trx_if_flush_ctrl(trx);
+
+	/* Power off if the transceiver is up */
+	if (trx->powered_up && trx->trx_ofd_ctrl.fd >= 0)
+		send(trx->trx_ofd_ctrl.fd, &cmd_poweroff[0], sizeof(cmd_poweroff), 0);
 
 	/* Close sockets */
 	trx_udp_close(&trx->trx_ofd_ctrl);
