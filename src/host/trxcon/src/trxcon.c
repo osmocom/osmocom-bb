@@ -389,6 +389,7 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 		return;
 	}
 
+	l1c->log_prefix = talloc_strdup(l1c, trxcon->log_prefix);
 	l1c->priv = trxcon;
 	trxcon->l1c = l1c;
 }

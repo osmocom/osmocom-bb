@@ -50,6 +50,8 @@ struct l1ctl_client {
 	struct l1ctl_server *server;
 	/* client's write queue */
 	struct osmo_wqueue wq;
+	/* logging context (used as prefix for messages) */
+	const char *log_prefix;
 	/* some private data */
 	void *priv;
 };

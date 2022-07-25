@@ -38,6 +38,9 @@
 #include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/l1ctl_server.h>
 
+#define LOGP_CLI(cli, cat, level, fmt, args...) \
+	LOGP(cat, level, "%s" fmt, (cli)->log_prefix, ## args)
+
 static int l1ctl_client_read_cb(struct osmo_fd *ofd)
 {
 	struct l1ctl_client *client = (struct l1ctl_client *)ofd->data;
@@ -48,7 +51,7 @@ static int l1ctl_client_read_cb(struct osmo_fd *ofd)
 	/* Attempt to read from socket */
 	rc = read(ofd->fd, &len, L1CTL_MSG_LEN_FIELD);
 	if (rc < L1CTL_MSG_LEN_FIELD) {
-		LOGP(DL1D, LOGL_NOTICE, "L1CTL server has lost connection\n");
+		LOGP_CLI(client, DL1D, LOGL_NOTICE, "L1CTL server has lost connection\n");
 		if (rc >= 0)
 			rc = -EIO;
 		l1ctl_client_conn_close(client);
@@ -58,7 +61,7 @@ static int l1ctl_client_read_cb(struct osmo_fd *ofd)
 	/* Check message length */
 	len = ntohs(len);
 	if (len > L1CTL_LENGTH) {
-		LOGP(DL1D, LOGL_ERROR, "Length is too big: %u\n", len);
+		LOGP_CLI(client, DL1D, LOGL_ERROR, "Length is too big: %u\n", len);
 		return -EINVAL;
 	}
 
@@ -66,22 +69,22 @@ static int l1ctl_client_read_cb(struct osmo_fd *ofd)
 	msg = msgb_alloc_headroom(L1CTL_LENGTH + L1CTL_HEADROOM,
 		L1CTL_HEADROOM, "l1ctl_rx_msg");
 	if (!msg) {
-		LOGP(DL1D, LOGL_ERROR, "Failed to allocate msg\n");
+		LOGP_CLI(client, DL1D, LOGL_ERROR, "Failed to allocate msg\n");
 		return -ENOMEM;
 	}
 
 	msg->l1h = msgb_put(msg, len);
 	rc = read(ofd->fd, msg->l1h, msgb_l1len(msg));
 	if (rc != len) {
-		LOGP(DL1D, LOGL_ERROR, "Can not read data: len=%d < rc=%d: "
-			"%s\n", len, rc, strerror(errno));
+		LOGP_CLI(client, DL1D, LOGL_ERROR,
+			 "Can not read data: len=%d < rc=%d: %s\n",
+			 len, rc, strerror(errno));
 		msgb_free(msg);
 		return rc;
 	}
 
 	/* Debug print */
-	LOGP(DL1D, LOGL_DEBUG, "RX: '%s'\n",
-		osmo_hexdump(msg->data, msg->len));
+	LOGP_CLI(client, DL1D, LOGL_DEBUG, "RX: '%s'\n", osmo_hexdump(msg->data, msg->len));
 
 	/* Call L1CTL handler */
 	client->server->cfg->conn_read_cb(client, msg);
@@ -91,6 +94,7 @@ static int l1ctl_client_read_cb(struct osmo_fd *ofd)
 
 static int l1ctl_client_write_cb(struct osmo_fd *ofd, struct msgb *msg)
 {
+	struct l1ctl_client *client = (struct l1ctl_client *)ofd->data;
 	int len;
 
 	if (ofd->fd <= 0)
@@ -98,8 +102,9 @@ static int l1ctl_client_write_cb(struct osmo_fd *ofd, struct msgb *msg)
 
 	len = write(ofd->fd, msg->data, msg->len);
 	if (len != msg->len) {
-		LOGP(DL1D, LOGL_ERROR, "Failed to write data: "
-			"written (%d) < msg_len (%d)\n", len, msg->len);
+		LOGP_CLI(client, DL1D, LOGL_ERROR,
+			 "Failed to write data: written (%d) < msg_len (%d)\n",
+			 len, msg->len);
 		return -1;
 	}
 
@@ -169,18 +174,17 @@ int l1ctl_client_send(struct l1ctl_client *client, struct msgb *msg)
 	uint8_t *len;
 
 	/* Debug print */
-	LOGP(DL1D, LOGL_DEBUG, "TX: '%s'\n",
-		osmo_hexdump(msg->data, msg->len));
+	LOGP_CLI(client, DL1D, LOGL_DEBUG, "TX: '%s'\n", osmo_hexdump(msg->data, msg->len));
 
 	if (msg->l1h != msg->data)
-		LOGP(DL1D, LOGL_INFO, "Message L1 header != Message Data\n");
+		LOGP_CLI(client, DL1D, LOGL_INFO, "Message L1 header != Message Data\n");
 
 	/* Prepend 16-bit length before sending */
 	len = msgb_push(msg, L1CTL_MSG_LEN_FIELD);
 	osmo_store16be(msg->len - L1CTL_MSG_LEN_FIELD, len);
 
 	if (osmo_wqueue_enqueue(&client->wq, msg) != 0) {
-		LOGP(DL1D, LOGL_ERROR, "Failed to enqueue msg!\n");
+		LOGP_CLI(client, DL1D, LOGL_ERROR, "Failed to enqueue msg!\n");
 		msgb_free(msg);
 		return -EIO;
 	}
