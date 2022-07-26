@@ -397,7 +397,7 @@ int l1sched_reset_ts(struct l1sched_state *sched, int tn);
 int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 	enum gsm_phys_chan_config config);
 int l1sched_start_ciphering(struct l1sched_ts *ts, uint8_t algo,
-	uint8_t *key, uint8_t key_len);
+			    const uint8_t *key, uint8_t key_len);
 
 /* Logical channel management functions */
 enum gsm_phys_chan_config l1sched_chan_nr2pchan_config(uint8_t chan_nr);
