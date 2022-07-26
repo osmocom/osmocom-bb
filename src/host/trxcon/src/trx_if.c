@@ -428,8 +428,8 @@ int trx_if_cmd_setta(struct trx_instance *trx, int8_t ta)
  * channel list is expected to be sorted in ascending order.
  */
 
-int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn,
-	uint8_t maio, uint16_t *ma, size_t ma_len)
+int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn, uint8_t maio,
+		     const uint16_t *ma, size_t ma_len)
 {
 	/* Reserve some room for CMD SETFH <HSN> <MAIO> */
 	char ma_buf[TRXC_BUF_SIZE - 24];

@@ -68,8 +68,8 @@ int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t band_arfcn);
 
 int trx_if_cmd_setslot(struct trx_instance *trx, uint8_t tn,
 		       enum gsm_phys_chan_config pchan);
-int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn,
-	uint8_t maio, uint16_t *ma, size_t ma_len);
+int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn, uint8_t maio,
+		     const uint16_t *ma, size_t ma_len);
 
 int trx_if_cmd_measure(struct trx_instance *trx,
 	uint16_t band_arfcn_start, uint16_t band_arfcn_stop);
