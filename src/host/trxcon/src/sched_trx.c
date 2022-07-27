@@ -418,10 +418,7 @@ int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr,
 	int rc = 0;
 
 	/* Prevent NULL-pointer deference */
-	if (ts == NULL) {
-		LOGP_SCHEDC(ts->sched, LOGL_ERROR, "Timeslot isn't configured\n");
-		return -EINVAL;
-	}
+	OSMO_ASSERT(ts != NULL);
 
 	/* Iterate over all allocated lchans */
 	llist_for_each_entry(lchan, &ts->lchans, list) {
