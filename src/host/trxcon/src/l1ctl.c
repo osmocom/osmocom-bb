@@ -472,7 +472,7 @@ exit:
 	return rc;
 }
 
-static int l1ctl_rx_rach_req(struct l1ctl_client *l1c, struct msgb *msg, bool ext)
+static int l1ctl_rx_rach_req(struct l1ctl_client *l1c, struct msgb *msg, bool is_11bit)
 {
 	struct trxcon_param_tx_access_burst_req req;
 	struct trxcon_inst *trxcon = l1c->priv;
@@ -480,8 +480,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_client *l1c, struct msgb *msg, bool ex
 
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 
-	/* Is it extended (11-bit) RACH or not? */
-	if (ext) {
+	if (is_11bit) {
 		const struct l1ctl_ext_rach_req *rr = (void *)ul->payload;
 
 		req = (struct trxcon_param_tx_access_burst_req) {
@@ -492,7 +491,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_client *l1c, struct msgb *msg, bool ex
 		};
 
 		LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
-			  "Received extended (11-bit) RACH request "
+			  "Received 11-bit RACH request "
 			  "(offset=%u, synch_seq=%u, ra11=0x%02hx)\n",
 			  req.offset, req.synch_seq, req.ra);
 	} else {
@@ -504,7 +503,7 @@ static int l1ctl_rx_rach_req(struct l1ctl_client *l1c, struct msgb *msg, bool ex
 		};
 
 		LOGPFSMSL(trxcon->fi, DL1C, LOGL_NOTICE,
-			  "Received regular (8-bit) RACH request "
+			  "Received 8-bit RACH request "
 			  "(offset=%u, ra=0x%02x)\n", req.offset, req.ra);
 	}
 

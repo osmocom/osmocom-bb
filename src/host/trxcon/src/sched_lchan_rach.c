@@ -84,7 +84,6 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	if (rach->offset-- > 0)
 		return 0;
 
-	/* Is it extended (11-bit) RACH or not? */
 	if (L1SCHED_PRIM_IS_RACH11(lchan->prim)) {
 		/* Check requested synch. sequence */
 		if (rach->synch_seq >= RACH_SYNCH_SEQ_NUM) {
@@ -97,11 +96,11 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 			return -ENOTSUP;
 		}
 
-		/* Encode extended (11-bit) payload */
+		/* Encode 11-bit payload */
 		rc = gsm0503_rach_ext_encode(payload, rach->ra, bsic, true);
 		if (rc) {
 			LOGP_LCHAND(lchan, LOGL_ERROR,
-				    "Could not encode extended RACH burst (ra=%u bsic=%u)\n",
+				    "Could not encode 11-bit RACH burst (ra=%u bsic=%u)\n",
 				    rach->ra, bsic);
 
 			/* Forget this primitive */
@@ -111,7 +110,7 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	} else if (L1SCHED_PRIM_IS_RACH8(lchan->prim)) {
 		rach->synch_seq = RACH_SYNCH_SEQ_TS0;
 
-		/* Encode regular (8-bit) payload */
+		/* Encode 8-bit payload */
 		rc = gsm0503_rach_ext_encode(payload, rach->ra, bsic, false);
 		if (rc) {
 			LOGP_LCHAND(lchan, LOGL_ERROR,
@@ -147,8 +146,8 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	memset(burst_ptr, 0, br->burst + GSM_BURST_LEN - burst_ptr);
 	br->burst_len = GSM_BURST_LEN;
 
-	LOGP_LCHAND(lchan, LOGL_NOTICE, "Scheduled %s RACH (%s) at fn=%u\n",
-		    L1SCHED_PRIM_IS_RACH11(lchan->prim) ? "extended (11-bit)" : "regular (8-bit)",
+	LOGP_LCHAND(lchan, LOGL_NOTICE, "Scheduled %s-bit RACH (%s) at fn=%u\n",
+		    L1SCHED_PRIM_IS_RACH11(lchan->prim) ? "11" : "8",
 		    get_value_string(rach_synch_seq_names, rach->synch_seq), br->fn);
 
 	/* Confirm RACH request */
