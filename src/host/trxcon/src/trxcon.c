@@ -180,7 +180,7 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 
 	if (data != NULL && data_len > 0) {
 		trxcon_gsmtap_send(lchan_desc, meas->fn, lchan->ts->index,
-				   trxcon->trx->band_arfcn, meas->rssi, 0,
+				   trxcon->l1p.band_arfcn, meas->rssi, 0,
 				   data, data_len);
 	}
 
@@ -205,7 +205,7 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
 		.link_id = lchan_desc->link_id,
 		.frame_nr = htonl(fn),
-		.band_arfcn = htons(trxcon->trx->band_arfcn),
+		.band_arfcn = htons(trxcon->l1p.band_arfcn),
 	};
 
 	switch (dt) {
@@ -226,7 +226,7 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 
 			rach = (struct l1sched_ts_prim_rach *)lchan->prim->payload;
 
-			rc = l1ctl_tx_rach_conf(trxcon->l1c, trxcon->trx->band_arfcn, fn);
+			rc = l1ctl_tx_rach_conf(trxcon->l1c, trxcon->l1p.band_arfcn, fn);
 			if (lchan->prim->type == L1SCHED_PRIM_RACH11) {
 				ra_buf[0] = (uint8_t)(rach->ra >> 3);
 				ra_buf[1] = (uint8_t)(rach->ra & 0x07);
@@ -247,7 +247,7 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	}
 
 	trxcon_gsmtap_send(lchan_desc, fn, lchan->ts->index,
-			   trxcon->trx->band_arfcn | ARFCN_UPLINK,
+			   trxcon->l1p.band_arfcn | ARFCN_UPLINK,
 			   0, 0, data, data_len);
 
 	return rc;

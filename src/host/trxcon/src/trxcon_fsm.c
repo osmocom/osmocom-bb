@@ -65,10 +65,10 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 	{
 		const struct trxcon_param_set_config_req *req = data;
 
-		if (trxcon->trx->ta != req->timing_advance)
+		if (trxcon->l1p.ta != req->timing_advance)
 			trx_if_cmd_setta(trxcon->trx, req->timing_advance);
-		trxcon->trx->tx_power = req->tx_power;
-		trxcon->trx->ta = req->timing_advance;
+		trxcon->l1p.tx_power = req->tx_power;
+		trxcon->l1p.ta = req->timing_advance;
 		break;
 	}
 	default:
@@ -82,7 +82,7 @@ static int trxcon_timer_cb(struct osmo_fsm_inst *fi)
 
 	switch (fi->state) {
 	case TRXCON_ST_FBSB_SEARCH:
-		l1ctl_tx_fbsb_fail(trxcon->l1c, trxcon->trx->band_arfcn);
+		l1ctl_tx_fbsb_fail(trxcon->l1c, trxcon->l1p.band_arfcn);
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
 		return 0;
 	default:
@@ -105,9 +105,9 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 		l1sched_configure_ts(trxcon->sched, 0, req->pchan_config);
 
 		/* Only if current ARFCN differs */
-		if (trxcon->trx->band_arfcn != req->band_arfcn) {
+		if (trxcon->l1p.band_arfcn != req->band_arfcn) {
 			/* Update current ARFCN */
-			trxcon->trx->band_arfcn = req->band_arfcn;
+			trxcon->l1p.band_arfcn = req->band_arfcn;
 
 			/* Tune transceiver to required ARFCN */
 			trx_if_cmd_rxtune(trxcon->trx, req->band_arfcn);
@@ -160,7 +160,7 @@ static void trxcon_st_fbsb_search_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_FBSB_SEARCH_RES:
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_BCCH_CCCH, 0, 0);
 		l1ctl_tx_fbsb_conf(trxcon->l1c,
-				   trxcon->trx->band_arfcn,
+				   trxcon->l1p.band_arfcn,
 				   trxcon->sched->bsic);
 		break;
 	default:
@@ -238,7 +238,7 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 				return;
 
 			/* Set current ARFCN to an invalid value */
-			trxcon->trx->band_arfcn = 0xffff;
+			trxcon->l1p.band_arfcn = 0xffff;
 		} else {
 			/* Tune transceiver to required ARFCN */
 			if (trx_if_cmd_rxtune(trxcon->trx, req->h0.band_arfcn))
@@ -247,7 +247,7 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 				return;
 
 			/* Update current ARFCN */
-			trxcon->trx->band_arfcn = req->h0.band_arfcn;
+			trxcon->l1p.band_arfcn = req->h0.band_arfcn;
 		}
 
 		rc = l1sched_configure_ts(trxcon->sched, req->chan_nr & 0x07, config);
@@ -275,7 +275,7 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 			.chan_nr = ind->chan_nr,
 			.link_id = ind->link_id,
 			.frame_nr = htonl(ind->frame_nr),
-			.band_arfcn = htons(trxcon->trx->band_arfcn),
+			.band_arfcn = htons(trxcon->l1p.band_arfcn),
 			.fire_crc = ind->data_len > 0 ? 0 : 2,
 			.rx_level = dbm2rxlev(ind->rssi),
 			.num_biterr = ind->n_errors,
@@ -370,7 +370,7 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 			.chan_nr = ind->chan_nr,
 			.link_id = ind->link_id,
 			.frame_nr = htonl(ind->frame_nr),
-			.band_arfcn = htons(trxcon->trx->band_arfcn),
+			.band_arfcn = htons(trxcon->l1p.band_arfcn),
 			.fire_crc = ind->data_len > 0 ? 0 : 2,
 			.rx_level = dbm2rxlev(ind->rssi),
 			.num_biterr = ind->n_errors,

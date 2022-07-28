@@ -39,9 +39,6 @@ struct trx_instance {
 	/* GSM L1 specific */
 	uint16_t pm_band_arfcn_start;
 	uint16_t pm_band_arfcn_stop;
-	uint16_t band_arfcn;
-	uint8_t tx_power;
-	int8_t ta;
 };
 
 struct trx_ctrl_msg {

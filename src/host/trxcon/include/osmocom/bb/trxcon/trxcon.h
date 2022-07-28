@@ -139,6 +139,13 @@ struct trxcon_inst {
 	/* L1/L2 interfaces */
 	struct trx_instance *trx;
 	struct l1ctl_client *l1c;
+
+	/* L1 parameters */
+	struct {
+		uint16_t band_arfcn;
+		uint8_t tx_power;
+		int8_t ta;
+	} l1p;
 };
 
 struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id);

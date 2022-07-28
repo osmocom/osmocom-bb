@@ -186,7 +186,7 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 	 * decide whether to update the cached L1 SACCH header here.
 	 */
 	if (!cached) {
-#warning "FIXME: no direct access to trx->{tx_power,ta}"
+#warning "FIXME: no direct access to trxcon->l1p.{tx_power,ta}"
 #if 0
 		prim->payload[0] = lchan->ts->sched->trx->tx_power;
 		prim->payload[1] = lchan->ts->sched->trx->ta;
