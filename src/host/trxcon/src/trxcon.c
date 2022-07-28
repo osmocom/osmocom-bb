@@ -112,7 +112,7 @@ int l1sched_handle_config_req(struct l1sched_state *sched,
 
 	switch (cr->type) {
 	case L1SCHED_CFG_PCHAN_COMB:
-		return trx_if_cmd_setslot(trxcon->trx,
+		return trx_if_cmd_setslot(trxcon->phyif,
 					  cr->pchan_comb.tn,
 					  cr->pchan_comb.pchan);
 	default:
@@ -127,7 +127,7 @@ int l1sched_handle_burst_req(struct l1sched_state *sched,
 {
 	struct trxcon_inst *trxcon = sched->priv;
 
-	return trx_if_tx_burst(trxcon->trx, br);
+	return trx_if_tx_burst(trxcon->phyif, br);
 }
 
 /* External L2 API for the scheduler */
@@ -211,12 +211,12 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	switch (dt) {
 	case L1SCHED_DT_TRAFFIC:
 	case L1SCHED_DT_PACKET_DATA:
-		rc = l1ctl_tx_dt_conf(trxcon->l1c, &dl_hdr, true);
+		rc = l1ctl_tx_dt_conf(trxcon->l2if, &dl_hdr, true);
 		data_len = lchan->prim->payload_len;
 		data = lchan->prim->payload;
 		break;
 	case L1SCHED_DT_SIGNALING:
-		rc = l1ctl_tx_dt_conf(trxcon->l1c, &dl_hdr, false);
+		rc = l1ctl_tx_dt_conf(trxcon->l2if, &dl_hdr, false);
 		data_len = lchan->prim->payload_len;
 		data = lchan->prim->payload;
 		break;
@@ -226,7 +226,7 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 
 			rach = (struct l1sched_ts_prim_rach *)lchan->prim->payload;
 
-			rc = l1ctl_tx_rach_conf(trxcon->l1c, trxcon->l1p.band_arfcn, fn);
+			rc = l1ctl_tx_rach_conf(trxcon->l2if, trxcon->l1p.band_arfcn, fn);
 			if (lchan->prim->type == L1SCHED_PRIM_RACH11) {
 				ra_buf[0] = (uint8_t)(rach->ra >> 3);
 				ra_buf[1] = (uint8_t)(rach->ra & 0x07);
@@ -271,11 +271,11 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
 	trxcon->log_prefix = talloc_asprintf(trxcon, "%s: ", osmo_fsm_inst_name(trxcon->fi));
 
 	/* Init transceiver interface */
-	trxcon->trx = trx_if_open(trxcon,
+	trxcon->phyif = trx_if_open(trxcon,
 				  app_data.trx_bind_ip,
 				  app_data.trx_remote_ip,
 				  app_data.trx_base_port);
-	if (trxcon->trx == NULL) {
+	if (trxcon->phyif == NULL) {
 		trxcon_inst_free(trxcon);
 		return NULL;
 	}
@@ -301,10 +301,10 @@ void trxcon_inst_free(struct trxcon_inst *trxcon)
 	if (trxcon->sched != NULL)
 		l1sched_free(trxcon->sched);
 	/* Close active connections */
-	if (trxcon->l1c != NULL)
-		l1ctl_client_conn_close(trxcon->l1c);
-	if (trxcon->trx != NULL)
-		trx_if_close(trxcon->trx);
+	if (trxcon->l2if != NULL)
+		l1ctl_client_conn_close(trxcon->l2if);
+	if (trxcon->phyif != NULL)
+		trx_if_close(trxcon->phyif);
 
 	if (trxcon->fi != NULL)
 		osmo_fsm_inst_free(trxcon->fi);
@@ -323,7 +323,7 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 
 	l1c->log_prefix = talloc_strdup(l1c, trxcon->log_prefix);
 	l1c->priv = trxcon;
-	trxcon->l1c = l1c;
+	trxcon->l2if = l1c;
 }
 
 static void l1ctl_conn_close_cb(struct l1ctl_client *l1c)
@@ -335,8 +335,8 @@ static void l1ctl_conn_close_cb(struct l1ctl_client *l1c)
 
 	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_L2IF_FAILURE, NULL);
 
-	/* l1c is free()ed by the caller */
-	trxcon->l1c = NULL;
+	/* l2if is free()ed by the caller */
+	trxcon->l2if = NULL;
 	trxcon_inst_free(trxcon);
 }
 

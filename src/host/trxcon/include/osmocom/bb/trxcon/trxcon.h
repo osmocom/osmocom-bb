@@ -1,8 +1,6 @@
 #pragma once
 
 struct l1sched_state;
-struct trx_instance;
-struct l1ctl_client;
 
 extern struct osmo_fsm trxcon_fsm_def;
 
@@ -136,9 +134,10 @@ struct trxcon_inst {
 
 	/* The L1 scheduler */
 	struct l1sched_state *sched;
-	/* L1/L2 interfaces */
-	struct trx_instance *trx;
-	struct l1ctl_client *l1c;
+	/* PHY interface (e.g. TRXC/TRXD) */
+	void *phyif;
+	/* L2 interface (e.g. L1CTL) */
+	void *l2if;
 
 	/* L1 parameters */
 	struct {

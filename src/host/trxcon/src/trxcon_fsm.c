@@ -55,8 +55,8 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 		if (fi->state != TRXCON_ST_RESET)
 			osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
 		l1sched_reset(trxcon->sched, true);
-		trx_if_cmd_poweroff(trxcon->trx);
-		trx_if_cmd_echo(trxcon->trx);
+		trx_if_cmd_poweroff(trxcon->phyif);
+		trx_if_cmd_echo(trxcon->phyif);
 		break;
 	case TRXCON_EV_RESET_SCHED_REQ:
 		l1sched_reset(trxcon->sched, false);
@@ -66,7 +66,7 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 		const struct trxcon_param_set_config_req *req = data;
 
 		if (trxcon->l1p.ta != req->timing_advance)
-			trx_if_cmd_setta(trxcon->trx, req->timing_advance);
+			trx_if_cmd_setta(trxcon->phyif, req->timing_advance);
 		trxcon->l1p.tx_power = req->tx_power;
 		trxcon->l1p.ta = req->timing_advance;
 		break;
@@ -82,7 +82,7 @@ static int trxcon_timer_cb(struct osmo_fsm_inst *fi)
 
 	switch (fi->state) {
 	case TRXCON_ST_FBSB_SEARCH:
-		l1ctl_tx_fbsb_fail(trxcon->l1c, trxcon->l1p.band_arfcn);
+		l1ctl_tx_fbsb_fail(trxcon->l2if, trxcon->l1p.band_arfcn);
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
 		return 0;
 	default:
@@ -99,6 +99,7 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_FBSB_SEARCH_REQ:
 	{
 		const struct trxcon_param_fbsb_search_req *req = data;
+		const struct trx_instance *trx = trxcon->phyif;
 
 		osmo_fsm_inst_state_chg_ms(fi, TRXCON_ST_FBSB_SEARCH, req->timeout_ms, 0);
 
@@ -110,14 +111,14 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 			trxcon->l1p.band_arfcn = req->band_arfcn;
 
 			/* Tune transceiver to required ARFCN */
-			trx_if_cmd_rxtune(trxcon->trx, req->band_arfcn);
-			trx_if_cmd_txtune(trxcon->trx, req->band_arfcn);
+			trx_if_cmd_rxtune(trxcon->phyif, req->band_arfcn);
+			trx_if_cmd_txtune(trxcon->phyif, req->band_arfcn);
 		}
 
 		/* Transceiver might have been powered on before, e.g.
 		 * in case of sending L1CTL_FBSB_REQ due to signal loss. */
-		if (!trxcon->trx->powered_up)
-			trx_if_cmd_poweron(trxcon->trx);
+		if (!trx->powered_up)
+			trx_if_cmd_poweron(trxcon->phyif);
 		break;
 	}
 	case TRXCON_EV_FULL_POWER_SCAN_REQ:
@@ -125,7 +126,7 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 		const struct trxcon_param_full_power_scan_req *req = data;
 
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_FULL_POWER_SCAN, 0, 0); /* TODO: timeout */
-		trx_if_cmd_measure(trxcon->trx, req->band_arfcn_start, req->band_arfcn_stop);
+		trx_if_cmd_measure(trxcon->phyif, req->band_arfcn_start, req->band_arfcn_stop);
 		break;
 	}
 	default:
@@ -143,7 +144,7 @@ static void trxcon_st_full_power_scan_action(struct osmo_fsm_inst *fi,
 	{
 		const struct trxcon_param_full_power_scan_res *res = data;
 
-		l1ctl_tx_pm_conf(trxcon->l1c, res->band_arfcn, res->dbm, res->last_result);
+		l1ctl_tx_pm_conf(trxcon->l2if, res->band_arfcn, res->dbm, res->last_result);
 		break;
 	}
 	default:
@@ -159,7 +160,7 @@ static void trxcon_st_fbsb_search_action(struct osmo_fsm_inst *fi,
 	switch (event) {
 	case TRXCON_EV_FBSB_SEARCH_RES:
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_BCCH_CCCH, 0, 0);
-		l1ctl_tx_fbsb_conf(trxcon->l1c,
+		l1ctl_tx_fbsb_conf(trxcon->l2if,
 				   trxcon->l1p.band_arfcn,
 				   trxcon->sched->bsic);
 		break;
@@ -231,7 +232,7 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 
 		if (req->hopping) {
 			/* Apply the freq. hopping parameters */
-			rc = trx_if_cmd_setfh(trxcon->trx,
+			rc = trx_if_cmd_setfh(trxcon->phyif,
 					      req->h1.hsn, req->h1.maio,
 					      &req->h1.ma[0], req->h1.n);
 			if (rc)
@@ -241,9 +242,9 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 			trxcon->l1p.band_arfcn = 0xffff;
 		} else {
 			/* Tune transceiver to required ARFCN */
-			if (trx_if_cmd_rxtune(trxcon->trx, req->h0.band_arfcn))
+			if (trx_if_cmd_rxtune(trxcon->phyif, req->h0.band_arfcn))
 				return;
-			if (trx_if_cmd_txtune(trxcon->trx, req->h0.band_arfcn))
+			if (trx_if_cmd_txtune(trxcon->phyif, req->h0.band_arfcn))
 				return;
 
 			/* Update current ARFCN */
@@ -282,7 +283,7 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 			/* TODO: set proper .snr */
 		};
 
-		l1ctl_tx_dt_ind(trxcon->l1c, &dl_hdr, ind->data, ind->data_len, false);
+		l1ctl_tx_dt_ind(trxcon->l2if, &dl_hdr, ind->data, ind->data_len, false);
 		break;
 	}
 	default:
@@ -377,7 +378,7 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 			/* TODO: set proper .snr */
 		};
 
-		l1ctl_tx_dt_ind(trxcon->l1c, &dl_hdr,
+		l1ctl_tx_dt_ind(trxcon->l2if, &dl_hdr,
 				ind->data, ind->data_len,
 				event == TRXCON_EV_RX_TRAFFIC_IND);
 		break;
