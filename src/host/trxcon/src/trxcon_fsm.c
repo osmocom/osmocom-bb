@@ -61,9 +61,9 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_RESET_SCHED_REQ:
 		l1sched_reset(trxcon->sched, false);
 		break;
-	case TRXCON_EV_SET_CONFIG_REQ:
+	case TRXCON_EV_SET_PHY_CONFIG_REQ:
 	{
-		const struct trxcon_param_set_config_req *req = data;
+		const struct trxcon_param_set_phy_config_req *req = data;
 
 		if (trxcon->l1p.ta != req->timing_advance)
 			trx_if_cmd_setta(trxcon->phyif, req->timing_advance);
@@ -449,7 +449,7 @@ static const struct value_string trxcon_fsm_event_names[] = {
 	OSMO_VALUE_STRING(TRXCON_EV_FBSB_SEARCH_RES),
 	OSMO_VALUE_STRING(TRXCON_EV_SET_CCCH_MODE_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_SET_TCH_MODE_REQ),
-	OSMO_VALUE_STRING(TRXCON_EV_SET_CONFIG_REQ),
+	OSMO_VALUE_STRING(TRXCON_EV_SET_PHY_CONFIG_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_TX_ACCESS_BURST_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_ESTABLISH_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_RELEASE_REQ),
@@ -471,7 +471,7 @@ struct osmo_fsm trxcon_fsm_def = {
 			     | S(TRXCON_EV_L2IF_FAILURE)
 			     | S(TRXCON_EV_RESET_FULL_REQ)
 			     | S(TRXCON_EV_RESET_SCHED_REQ)
-			     | S(TRXCON_EV_SET_CONFIG_REQ),
+			     | S(TRXCON_EV_SET_PHY_CONFIG_REQ),
 	.allstate_action = &trxcon_allstate_action,
 	.timer_cb = &trxcon_timer_cb,
 };

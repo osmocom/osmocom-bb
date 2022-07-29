@@ -23,7 +23,7 @@ enum trxcon_fsm_events {
 	TRXCON_EV_FBSB_SEARCH_RES,
 	TRXCON_EV_SET_CCCH_MODE_REQ,
 	TRXCON_EV_SET_TCH_MODE_REQ,
-	TRXCON_EV_SET_CONFIG_REQ,
+	TRXCON_EV_SET_PHY_CONFIG_REQ,
 	TRXCON_EV_TX_ACCESS_BURST_REQ,
 	TRXCON_EV_DEDICATED_ESTABLISH_REQ,
 	TRXCON_EV_DEDICATED_RELEASE_REQ,
@@ -60,8 +60,8 @@ struct trxcon_param_set_ccch_tch_mode_req {
 	bool applied;
 };
 
-/* param of TRXCON_EV_SET_CONFIG_REQ */
-struct trxcon_param_set_config_req {
+/* param of TRXCON_EV_SET_PHY_CONFIG_REQ */
+struct trxcon_param_set_phy_config_req {
 	uint8_t timing_advance;
 	uint8_t tx_power;
 };
