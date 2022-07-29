@@ -256,19 +256,22 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
 {
 	struct trxcon_inst *trxcon;
+	struct osmo_fsm_inst *fi;
 
-	trxcon = talloc_zero(ctx, struct trxcon_inst);
+	fi = osmo_fsm_inst_alloc(&trxcon_fsm_def, ctx, NULL, LOGL_DEBUG, NULL);
+	OSMO_ASSERT(fi != NULL);
+
+	trxcon = talloc_zero(fi, struct trxcon_inst);
 	OSMO_ASSERT(trxcon != NULL);
 
-	trxcon->fi = osmo_fsm_inst_alloc(&trxcon_fsm_def, tall_trxcon_ctx,
-					 trxcon, LOGL_DEBUG, NULL);
-	OSMO_ASSERT(trxcon->fi != NULL);
+	fi->priv = trxcon;
+	trxcon->fi = fi;
 
-	osmo_fsm_inst_update_id_f(trxcon->fi, "%u", id);
+	osmo_fsm_inst_update_id_f(fi, "%u", id);
 	trxcon->id = id;
 
 	/* Logging context to be used by both l1ctl and l1sched modules */
-	trxcon->log_prefix = talloc_asprintf(trxcon, "%s: ", osmo_fsm_inst_name(trxcon->fi));
+	trxcon->log_prefix = talloc_asprintf(trxcon, "%s: ", osmo_fsm_inst_name(fi));
 
 	/* Init transceiver interface */
 	trxcon->phyif = trx_if_open(trxcon,
@@ -297,18 +300,9 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
 
 void trxcon_inst_free(struct trxcon_inst *trxcon)
 {
-	/* Shutdown the scheduler */
-	if (trxcon->sched != NULL)
-		l1sched_free(trxcon->sched);
-	/* Close active connections */
-	if (trxcon->l2if != NULL)
-		l1ctl_client_conn_close(trxcon->l2if);
-	if (trxcon->phyif != NULL)
-		trx_if_close(trxcon->phyif);
-
-	if (trxcon->fi != NULL)
-		osmo_fsm_inst_free(trxcon->fi);
-	talloc_free(trxcon);
+	if (trxcon == NULL || trxcon->fi == NULL)
+		return;
+	osmo_fsm_inst_term(trxcon->fi, OSMO_FSM_TERM_REQUEST, NULL);
 }
 
 static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
@@ -334,10 +328,6 @@ static void l1ctl_conn_close_cb(struct l1ctl_client *l1c)
 		return;
 
 	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_L2IF_FAILURE, NULL);
-
-	/* l2if is free()ed by the caller */
-	trxcon->l2if = NULL;
-	trxcon_inst_free(trxcon);
 }
 
 static void print_usage(const char *app)

@@ -46,10 +46,12 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 
 	switch (event) {
 	case TRXCON_EV_PHYIF_FAILURE:
+		trxcon->phyif = NULL;
+		osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
+		break;
 	case TRXCON_EV_L2IF_FAILURE:
-		LOGPFSML(fi, LOGL_NOTICE, "Event %s is not handled\n",
-			 osmo_fsm_event_name(&trxcon_fsm_def, event));
-		/* TODO: osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL); */
+		trxcon->l2if = NULL;
+		osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
 		break;
 	case TRXCON_EV_RESET_FULL_REQ:
 		if (fi->state != TRXCON_ST_RESET)
@@ -404,6 +406,32 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 	}
 }
 
+static void trxcon_fsm_pre_term_cb(struct osmo_fsm_inst *fi,
+				   enum osmo_fsm_term_cause cause)
+{
+	struct trxcon_inst *trxcon = fi->priv;
+
+	if (trxcon == NULL)
+		return;
+
+	/* Shutdown the scheduler */
+	if (trxcon->sched != NULL)
+		l1sched_free(trxcon->sched);
+	/* Close active connections */
+	if (trxcon->l2if != NULL) {
+		/* Avoid use-after-free: both *fi and *trxcon are children of
+		 * the L2IF (L1CTL connection), so we need to re-parent *fi
+		 * to NULL before calling l1ctl_client_conn_close(). */
+		talloc_steal(NULL, fi);
+		l1ctl_client_conn_close(trxcon->l2if);
+	}
+	if (trxcon->phyif != NULL)
+		trx_if_close(trxcon->phyif);
+
+	talloc_free(trxcon);
+	fi->priv = NULL;
+}
+
 static const struct osmo_fsm_state trxcon_fsm_states[] = {
 	[TRXCON_ST_RESET] = {
 		.name = "RESET",
@@ -492,6 +520,7 @@ struct osmo_fsm trxcon_fsm_def = {
 			     | S(TRXCON_EV_UPDATE_SACCH_CACHE_REQ),
 	.allstate_action = &trxcon_allstate_action,
 	.timer_cb = &trxcon_timer_cb,
+	.pre_term = &trxcon_fsm_pre_term_cb,
 };
 
 static __attribute__((constructor)) void on_dso_load(void)
