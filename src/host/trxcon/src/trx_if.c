@@ -46,6 +46,9 @@
 
 #define S(x)	(1 << (x))
 
+static void trx_fsm_cleanup_cb(struct osmo_fsm_inst *fi,
+			       enum osmo_fsm_term_cause cause);
+
 static struct value_string trx_evt_names[] = {
 	{ 0, NULL } /* no events? */
 };
@@ -82,6 +85,7 @@ static struct osmo_fsm trx_fsm = {
 	.num_states = ARRAY_SIZE(trx_fsm_states),
 	.log_subsys = DTRXC,
 	.event_names = trx_evt_names,
+	.cleanup = &trx_fsm_cleanup_cb,
 };
 
 static int trx_udp_open(void *priv, struct osmo_fd *ofd, const char *host_local,
@@ -738,7 +742,11 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	if (rc < 0)
 		goto udp_error;
 
+	/* Reparent trx_instance from trxcon to trx->fi */
+	talloc_reparent(trxcon, trx->fi, trx);
+
 	trx->trxcon = trxcon;
+	trx->fi->priv = trx;
 
 	return trx;
 
@@ -768,13 +776,22 @@ void trx_if_flush_ctrl(struct trx_instance *trx)
 
 void trx_if_close(struct trx_instance *trx)
 {
+	if (trx == NULL || trx->fi == NULL)
+		return;
+	osmo_fsm_inst_term(trx->fi, OSMO_FSM_TERM_REQUEST, NULL);
+}
+
+static void trx_fsm_cleanup_cb(struct osmo_fsm_inst *fi,
+			       enum osmo_fsm_term_cause cause)
+{
 	static const char cmd_poweroff[] = "CMD POWEROFF";
+	struct trx_instance *trx = fi->priv;
 
 	/* May be unallocated due to init error */
 	if (!trx)
 		return;
 
-	LOGPFSML(trx->fi, LOGL_NOTICE, "Shutdown transceiver interface\n");
+	LOGPFSML(fi, LOGL_NOTICE, "Shutdown transceiver interface\n");
 
 	/* Abort TRXC response timer (if pending) */
 	osmo_timer_del(&trx->trx_ctrl_timer);
@@ -791,7 +808,7 @@ void trx_if_close(struct trx_instance *trx)
 	trx_udp_close(&trx->trx_ofd_data);
 
 	/* Free memory */
-	osmo_fsm_inst_free(trx->fi);
+	trx->fi->priv = NULL;
 	talloc_free(trx);
 }
 
