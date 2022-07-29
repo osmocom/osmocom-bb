@@ -45,7 +45,7 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 	struct trxcon_inst *trxcon = fi->priv;
 
 	switch (event) {
-	case TRXCON_EV_L1IF_FAILURE:
+	case TRXCON_EV_PHYIF_FAILURE:
 	case TRXCON_EV_L2IF_FAILURE:
 		LOGPFSML(fi, LOGL_NOTICE, "Event %s is not handled\n",
 			 osmo_fsm_event_name(&trxcon_fsm_def, event));
@@ -439,7 +439,7 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 };
 
 static const struct value_string trxcon_fsm_event_names[] = {
-	OSMO_VALUE_STRING(TRXCON_EV_L1IF_FAILURE),
+	OSMO_VALUE_STRING(TRXCON_EV_PHYIF_FAILURE),
 	OSMO_VALUE_STRING(TRXCON_EV_L2IF_FAILURE),
 	OSMO_VALUE_STRING(TRXCON_EV_RESET_FULL_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_RESET_SCHED_REQ),
@@ -467,7 +467,7 @@ struct osmo_fsm trxcon_fsm_def = {
 	.num_states = ARRAY_SIZE(trxcon_fsm_states),
 	.log_subsys = DAPP,
 	.event_names = trxcon_fsm_event_names,
-	.allstate_event_mask = S(TRXCON_EV_L1IF_FAILURE)
+	.allstate_event_mask = S(TRXCON_EV_PHYIF_FAILURE)
 			     | S(TRXCON_EV_L2IF_FAILURE)
 			     | S(TRXCON_EV_RESET_FULL_REQ)
 			     | S(TRXCON_EV_RESET_SCHED_REQ)

@@ -13,7 +13,7 @@ enum trxcon_fsm_states {
 };
 
 enum trxcon_fsm_events {
-	TRXCON_EV_L1IF_FAILURE,
+	TRXCON_EV_PHYIF_FAILURE,
 	TRXCON_EV_L2IF_FAILURE,
 	TRXCON_EV_RESET_FULL_REQ,
 	TRXCON_EV_RESET_SCHED_REQ,
