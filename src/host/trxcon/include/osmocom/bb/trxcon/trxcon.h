@@ -63,8 +63,20 @@ struct trxcon_param_set_ccch_tch_mode_req {
 
 /* param of TRXCON_EV_SET_PHY_CONFIG_REQ */
 struct trxcon_param_set_phy_config_req {
-	uint8_t timing_advance;
-	uint8_t tx_power;
+	enum {
+		TRXCON_PHY_CFGT_PCHAN_COMB,
+		TRXCON_PHY_CFGT_TX_PARAMS,
+	} type;
+	union {
+		struct {
+			uint8_t tn;
+			uint8_t pchan;
+		} pchan_comb;
+		struct {
+			uint8_t timing_advance;
+			uint8_t tx_power;
+		} tx_params;
+	};
 };
 
 /* param of TRXCON_EV_TX_{TRAFFIC,DATA}_REQ */

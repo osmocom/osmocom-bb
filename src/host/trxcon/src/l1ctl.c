@@ -675,8 +675,11 @@ static int l1ctl_rx_param_req(struct l1ctl_client *l1c, struct msgb *msg)
 		  par_req->ta, par_req->tx_power);
 
 	struct trxcon_param_set_phy_config_req req = {
-		.timing_advance = par_req->ta,
-		.tx_power = par_req->tx_power,
+		.type = TRXCON_PHY_CFGT_TX_PARAMS,
+		.tx_params = {
+			.timing_advance = par_req->ta,
+			.tx_power = par_req->tx_power,
+		}
 	};
 
 	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_SET_PHY_CONFIG_REQ, &req);

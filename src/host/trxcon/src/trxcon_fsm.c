@@ -67,10 +67,19 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 	{
 		const struct trxcon_param_set_phy_config_req *req = data;
 
-		if (trxcon->l1p.ta != req->timing_advance)
-			trx_if_cmd_setta(trxcon->phyif, req->timing_advance);
-		trxcon->l1p.tx_power = req->tx_power;
-		trxcon->l1p.ta = req->timing_advance;
+		switch (req->type) {
+		case TRXCON_PHY_CFGT_PCHAN_COMB:
+			trx_if_cmd_setslot(trxcon->phyif,
+					   req->pchan_comb.tn,
+					   req->pchan_comb.pchan);
+			break;
+		case TRXCON_PHY_CFGT_TX_PARAMS:
+			if (trxcon->l1p.ta != req->tx_params.timing_advance)
+				trx_if_cmd_setta(trxcon->phyif, req->tx_params.timing_advance);
+			trxcon->l1p.tx_power = req->tx_params.tx_power;
+			trxcon->l1p.ta = req->tx_params.timing_advance;
+			break;
+		}
 		break;
 	}
 	case TRXCON_EV_UPDATE_SACCH_CACHE_REQ:

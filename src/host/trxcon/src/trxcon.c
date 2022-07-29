@@ -112,9 +112,17 @@ int l1sched_handle_config_req(struct l1sched_state *sched,
 
 	switch (cr->type) {
 	case L1SCHED_CFG_PCHAN_COMB:
-		return trx_if_cmd_setslot(trxcon->phyif,
-					  cr->pchan_comb.tn,
-					  cr->pchan_comb.pchan);
+	{
+		struct trxcon_param_set_phy_config_req req = {
+			.type = TRXCON_PHY_CFGT_PCHAN_COMB,
+			.pchan_comb = {
+				.tn = cr->pchan_comb.tn,
+				.pchan = cr->pchan_comb.pchan,
+			},
+		};
+
+		return osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_SET_PHY_CONFIG_REQ, &req);
+	}
 	default:
 		LOGPFSML(trxcon->fi, LOGL_ERROR,
 			 "Unhandled config request (type 0x%02x)\n", cr->type);
