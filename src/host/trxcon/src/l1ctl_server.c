@@ -50,12 +50,16 @@ static int l1ctl_client_read_cb(struct osmo_fd *ofd)
 
 	/* Attempt to read from socket */
 	rc = read(ofd->fd, &len, L1CTL_MSG_LEN_FIELD);
-	if (rc < L1CTL_MSG_LEN_FIELD) {
-		LOGP_CLI(client, DL1D, LOGL_NOTICE,
-			 "L1CTL server has lost connection (id=%u)\n",
-			 client->id);
-		if (rc >= 0)
+	if (rc != L1CTL_MSG_LEN_FIELD) {
+		if (rc <= 0) {
+			LOGP_CLI(client, DL1D, LOGL_NOTICE,
+				 "L1CTL connection error: read() failed (rc=%d): %s\n",
+				 rc, strerror(errno));
+		} else {
+			LOGP_CLI(client, DL1D, LOGL_NOTICE,
+				 "L1CTL connection error: short read\n");
 			rc = -EIO;
+		}
 		l1ctl_client_conn_close(client);
 		return rc;
 	}
@@ -198,6 +202,8 @@ int l1ctl_client_send(struct l1ctl_client *client, struct msgb *msg)
 void l1ctl_client_conn_close(struct l1ctl_client *client)
 {
 	struct l1ctl_server *server = client->server;
+
+	LOGP_CLI(client, DL1C, LOGL_NOTICE, "Closing L1CTL connection\n");
 
 	if (server->cfg->conn_close_cb != NULL)
 		server->cfg->conn_close_cb(client);
