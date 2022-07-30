@@ -195,7 +195,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	       uint32_t fn, uint8_t bid, const sbit_t *bits,
 	       const struct l1sched_meas_set *meas)
 {
-	int n_errors = -1, n_bits_total, rc;
+	int n_errors = -1, n_bits_total = 0, rc;
 	sbit_t *buffer, *offset;
 	uint8_t l2[128], *mask;
 	size_t l2_len;
