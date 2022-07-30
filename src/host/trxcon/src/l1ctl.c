@@ -644,10 +644,18 @@ static int l1ctl_rx_dt_req(struct l1ctl_client *l1c,
 		  "Recv %s Req (chan_nr=0x%02x, link_id=0x%02x, len=%zu)\n",
 		  traffic ? "TRAFFIC" : "DATA", req.chan_nr, req.link_id, req.data_len);
 
-	if (traffic)
-		osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_TRAFFIC_REQ, &req);
-	else
-		osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_DATA_REQ, &req);
+	switch (trxcon->fi->state) {
+	case TRXCON_ST_DEDICATED:
+		if (traffic)
+			osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_TRAFFIC_REQ, &req);
+		else
+			osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_DATA_REQ, &req);
+		break;
+	default:
+		if (!traffic && req.link_id == 0x40) /* only for SACCH */
+			osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_UPDATE_SACCH_CACHE_REQ, &req);
+		/* TODO: log an error about uhnandled DATA.req / TRAFFIC.req */
+	}
 
 	msgb_free(msg);
 	return 0;

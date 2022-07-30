@@ -374,6 +374,8 @@ struct l1sched_state {
 	void (*clock_cb)(struct l1sched_state *sched);
 	/*! List of timeslots maintained by this scheduler */
 	struct l1sched_ts *ts[TRX_TS_COUNT];
+	/*! SACCH cache (common for all lchans) */
+	uint8_t sacch_cache[GSM_MACBLOCK_LEN];
 	/*! BSIC value learned from SCH bursts */
 	uint8_t bsic;
 	/*! Logging context (used as prefix for messages) */

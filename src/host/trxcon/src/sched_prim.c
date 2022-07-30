@@ -116,8 +116,7 @@ struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
 }
 
 /**
- * Composes a new primitive using either cached (if populated),
- * or "dummy" Measurement Report message.
+ * Composes a new primitive from cached RR Measurement Report.
  *
  * @param  lchan lchan to assign a primitive
  * @return       SACCH primitive to be transmitted
@@ -125,37 +124,7 @@ struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
 static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan)
 {
 	struct l1sched_ts_prim *prim;
-	uint8_t *mr_src_ptr;
 	bool cached;
-
-	/* "Dummy" Measurement Report */
-	static const uint8_t meas_rep_dummy[] = {
-		/* L1 SACCH pseudo-header */
-		0x0f, 0x00,
-
-		/* LAPDm header */
-		0x01, 0x03, 0x49,
-
-		/* RR Management messages, Measurement Report */
-		0x06, 0x15,
-
-		/* Measurement results (see 3GPP TS 44.018, section 10.5.2.20):
-		 *   0... .... = BA-USED: 0
-		 *   .0.. .... = DTX-USED: DTX was not used
-		 *   ..11 0110 = RXLEV-FULL-SERVING-CELL: -57 <= x < -56 dBm (54)
-		 *   0... .... = 3G-BA-USED: 0
-		 *   .1.. .... = MEAS-VALID: The measurement results are not valid
-		 *   ..11 0110 = RXLEV-SUB-SERVING-CELL: -57 <= x < -56 dBm (54)
-		 *   0... .... = SI23_BA_USED: 0
-		 *   .000 .... = RXQUAL-FULL-SERVING-CELL: BER < 0.2%, Mean value 0.14% (0)
-		 *   .... 000. = RXQUAL-SUB-SERVING-CELL: BER < 0.2%, Mean value 0.14% (0)
-		 *   .... ...1  11.. .... = NO-NCELL-M: Neighbour cell information not available */
-		0x36, 0x76, 0x01, 0xc0,
-
-		/* 0** -- Padding with zeroes */
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	};
 
 	/* Allocate a new primitive */
 	prim = prim_alloc(lchan, GSM_MACBLOCK_LEN, L1SCHED_PRIM_DATA,
@@ -167,43 +136,24 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 	cached = (lchan->sacch.mr_cache[2] != 0x00
 		&& lchan->sacch.mr_cache[3] != 0x00
 		&& lchan->sacch.mr_cache[4] != 0x00);
-	if (cached) { /* Use the cached one */
-		mr_src_ptr = lchan->sacch.mr_cache;
-		lchan->sacch.mr_cache_usage++;
-	} else { /* Use "dummy" one */
-		mr_src_ptr = (uint8_t *) meas_rep_dummy;
+	if (!cached) {
+		memcpy(&lchan->sacch.mr_cache[0],
+		       &lchan->ts->sched->sacch_cache[0],
+		       sizeof(lchan->sacch.mr_cache));
 	}
 
 	/* Compose a new Measurement Report primitive */
-	memcpy(prim->payload, mr_src_ptr, GSM_MACBLOCK_LEN);
-
-	/**
-	 * Update the L1 SACCH pseudo-header (only for cached MRs)
-	 *
-	 * TODO: filling of the actual values into cached Measurement
-	 * Reports would break the distance spoofing feature. If it
-	 * were known whether the spoofing is enabled or not, we could
-	 * decide whether to update the cached L1 SACCH header here.
-	 */
-	if (!cached) {
-#warning "FIXME: no direct access to trxcon->l1p.{tx_power,ta}"
-#if 0
-		prim->payload[0] = lchan->ts->sched->trx->tx_power;
-		prim->payload[1] = lchan->ts->sched->trx->ta;
-#endif
-	}
+	memcpy(&prim->payload[0], &lchan->sacch.mr_cache[0], GSM_MACBLOCK_LEN);
 
 	/* Inform about the cache usage count */
-	if (cached && lchan->sacch.mr_cache_usage > 5) {
+	if (++lchan->sacch.mr_cache_usage > 5) {
 		LOGP_LCHAND(lchan, LOGL_NOTICE,
 			    "SACCH MR cache usage count=%u > 5 "
 			    "=> ancient measurements, please fix!\n",
 			    lchan->sacch.mr_cache_usage);
 	}
 
-	LOGP_LCHAND(lchan, LOGL_NOTICE,
-		    "Using a %s Measurement Report\n",
-		    cached ? "cached" : "dummy");
+	LOGP_LCHAND(lchan, LOGL_NOTICE, "Using cached Measurement Report\n");
 
 	return prim;
 }

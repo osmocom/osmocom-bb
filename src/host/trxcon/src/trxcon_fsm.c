@@ -71,6 +71,22 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 		trxcon->l1p.ta = req->timing_advance;
 		break;
 	}
+	case TRXCON_EV_UPDATE_SACCH_CACHE_REQ:
+	{
+		const struct trxcon_param_tx_traffic_data_req *req = data;
+
+		if (req->link_id != L1SCHED_CH_LID_SACCH) {
+			LOGPFSML(fi, LOGL_ERROR, "Unexpected link_id=0x%02x\n", req->link_id);
+			break;
+		}
+		if (req->data_len != GSM_MACBLOCK_LEN) {
+			LOGPFSML(fi, LOGL_ERROR, "Unexpected data length=%u\n", req->data_len);
+			break;
+		}
+
+		memcpy(&trxcon->sched->sacch_cache[0], req->data, req->data_len);
+		break;
+	}
 	default:
 		OSMO_ASSERT(0);
 	}
@@ -451,6 +467,7 @@ static const struct value_string trxcon_fsm_event_names[] = {
 	OSMO_VALUE_STRING(TRXCON_EV_SET_TCH_MODE_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_SET_PHY_CONFIG_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_TX_ACCESS_BURST_REQ),
+	OSMO_VALUE_STRING(TRXCON_EV_UPDATE_SACCH_CACHE_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_ESTABLISH_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_RELEASE_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_TX_TRAFFIC_REQ),
@@ -471,7 +488,8 @@ struct osmo_fsm trxcon_fsm_def = {
 			     | S(TRXCON_EV_L2IF_FAILURE)
 			     | S(TRXCON_EV_RESET_FULL_REQ)
 			     | S(TRXCON_EV_RESET_SCHED_REQ)
-			     | S(TRXCON_EV_SET_PHY_CONFIG_REQ),
+			     | S(TRXCON_EV_SET_PHY_CONFIG_REQ)
+			     | S(TRXCON_EV_UPDATE_SACCH_CACHE_REQ),
 	.allstate_action = &trxcon_allstate_action,
 	.timer_cb = &trxcon_timer_cb,
 };
