@@ -10,6 +10,7 @@ enum trxcon_fsm_states {
 	TRXCON_ST_FBSB_SEARCH,
 	TRXCON_ST_BCCH_CCCH,
 	TRXCON_ST_DEDICATED,
+	TRXCON_ST_PACKET_DATA,
 };
 
 enum trxcon_fsm_events {

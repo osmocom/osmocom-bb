@@ -301,7 +301,10 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 			return;
 		}
 
-		osmo_fsm_inst_state_chg(fi, TRXCON_ST_DEDICATED, 0, 0);
+		if (config == GSM_PCHAN_PDCH)
+			osmo_fsm_inst_state_chg(fi, TRXCON_ST_PACKET_DATA, 0, 0);
+		else
+			osmo_fsm_inst_state_chg(fi, TRXCON_ST_DEDICATED, 0, 0);
 		break;
 	}
 	case TRXCON_EV_RX_DATA_IND:
@@ -448,6 +451,30 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 	}
 }
 
+static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
+					 uint32_t event, void *data)
+{
+	struct trxcon_inst *trxcon = fi->priv;
+
+	switch (event) {
+	case TRXCON_EV_TX_ACCESS_BURST_REQ:
+		handle_tx_access_burst_req(fi, data);
+		break;
+	case TRXCON_EV_RX_TRAFFIC_IND:
+		LOGPFSML(fi, LOGL_NOTICE, "Rx PDTCH/D message\n");
+		break;
+	case TRXCON_EV_RX_DATA_IND:
+		LOGPFSML(fi, LOGL_NOTICE, "Rx PTCCH/D message\n");
+		break;
+	case TRXCON_EV_DEDICATED_RELEASE_REQ:
+		l1sched_reset(trxcon->sched, false);
+		osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
+		break;
+	default:
+		OSMO_ASSERT(0);
+	}
+}
+
 static void trxcon_fsm_pre_term_cb(struct osmo_fsm_inst *fi,
 				   enum osmo_fsm_term_cause cause)
 {
@@ -501,7 +528,8 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 		.name = "BCCH_CCCH",
 		.out_state_mask = S(TRXCON_ST_RESET)
 				| S(TRXCON_ST_FBSB_SEARCH)
-				| S(TRXCON_ST_DEDICATED),
+				| S(TRXCON_ST_DEDICATED)
+				| S(TRXCON_ST_PACKET_DATA),
 		.in_event_mask  = S(TRXCON_EV_RX_DATA_IND)
 				| S(TRXCON_EV_SET_CCCH_MODE_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
@@ -522,6 +550,17 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 				| S(TRXCON_EV_RX_DATA_IND)
 				| S(TRXCON_EV_CRYPTO_REQ),
 		.action = &trxcon_st_dedicated_action,
+	},
+	[TRXCON_ST_PACKET_DATA] = {
+		.name = "PACKET_DATA",
+		.out_state_mask = S(TRXCON_ST_RESET)
+				| S(TRXCON_ST_FBSB_SEARCH)
+				| S(TRXCON_ST_BCCH_CCCH),
+		.in_event_mask  = S(TRXCON_EV_DEDICATED_RELEASE_REQ)
+				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
+				| S(TRXCON_EV_RX_TRAFFIC_IND)
+				| S(TRXCON_EV_RX_DATA_IND),
+		.action = &trxcon_st_packet_data_action,
 	},
 };
 
