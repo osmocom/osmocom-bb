@@ -4,6 +4,7 @@
 
 struct osmo_fsm_inst;
 struct l1sched_state;
+struct l1gprs_state;
 struct msgb;
 
 struct trxcon_inst {
@@ -18,6 +19,9 @@ struct trxcon_inst {
 
 	/* The L1 scheduler */
 	struct l1sched_state *sched;
+	/* GPRS state (MAC layer) */
+	struct l1gprs_state *gprs;
+
 	/* PHY interface (e.g. TRXC/TRXD) */
 	void *phyif;
 	/* L2 interface (e.g. L1CTL) */
@@ -46,6 +50,7 @@ enum trxcon_log_cat {
 	TRXCON_LOGC_L1D,	/* L1CTL data */
 	TRXCON_LOGC_SCHC,	/* l1sched control */
 	TRXCON_LOGC_SCHD,	/* l1sched data */
+	TRXCON_LOGC_GPRS,	/* l1gprs logging */
 };
 
 void trxcon_set_log_cfg(const int *logc, unsigned int logc_num);

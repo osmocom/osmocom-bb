@@ -40,8 +40,9 @@
 #include <osmocom/bb/virtphy/gsmtapl1_if.h>
 #include <osmocom/bb/virtphy/logging.h>
 #include <osmocom/bb/virtphy/virt_l1_sched.h>
+#include <osmocom/bb/l1gprs.h>
 
-#define DEFAULT_LOG_MASK "DL1C,2:DL1P,2:DVIRPHY,2:DMAIN,1"
+#define DEFAULT_LOG_MASK "DL1C,2:DL1P,2:DVIRPHY,2:DGPRS,1:DMAIN,1"
 
 /* this exists once in the program, and contains the state that we
  * only keep once:  L1CTL server socket, GSMTAP/VirtUM socket */
@@ -242,6 +243,7 @@ int main(int argc, char *argv[])
 	handle_options(argc, argv);
 
 	ms_log_init(log_mask);
+	l1gprs_logging_init(DGPRS);
 
 	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer starting up...\n");
 

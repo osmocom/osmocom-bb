@@ -10,6 +10,7 @@ enum {
 	DTRXD,
 	DSCH,
 	DSCHD,
+	DGPRS,
 };
 
 int trxcon_logging_init(void *tall_ctx, const char *category_mask);

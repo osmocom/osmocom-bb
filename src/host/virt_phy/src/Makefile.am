@@ -5,6 +5,7 @@ bin_PROGRAMS = virtphy
 
 virtphy_SOURCES = \
 	virtphy.c \
+	l1gprs.c \
 	logging.c \
 	gsmtapl1_if.c \
 	l1ctl_sock.c \
@@ -13,6 +14,7 @@ virtphy_SOURCES = \
 	virt_prim_fbsb.c \
 	virt_prim_rach.c \
 	virt_prim_data.c \
+	virt_prim_pdch.c \
 	virt_prim_traffic.c \
 	virt_l1_sched_simple.c \
 	virt_l1_model.c \

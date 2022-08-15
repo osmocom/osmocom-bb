@@ -67,6 +67,12 @@ static struct log_info_cat trxcon_log_info_cat[] = {
 		.color = "\033[1;36m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[DGPRS] = {
+		.name = "DGPRS",
+		.description = "L1 GPRS (MAC layer)",
+		.color = "\033[1;36m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
 };
 
 static const struct log_info trxcon_log_info = {
@@ -80,6 +86,7 @@ static const int trxcon_log_cfg[] = {
 	[TRXCON_LOGC_L1D] = DL1D,
 	[TRXCON_LOGC_SCHC] = DSCH,
 	[TRXCON_LOGC_SCHD] = DSCHD,
+	[TRXCON_LOGC_GPRS] = DGPRS,
 };
 
 int trxcon_logging_init(void *tall_ctx, const char *category_mask)

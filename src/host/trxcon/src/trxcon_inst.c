@@ -27,6 +27,7 @@
 #include <osmocom/bb/trxcon/trxcon_fsm.h>
 #include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/l1sched/logging.h>
+#include <osmocom/bb/l1gprs.h>
 
 extern int g_logc_l1c;
 extern int g_logc_l1d;
@@ -52,6 +53,9 @@ void trxcon_set_log_cfg(const int *logc, unsigned int logc_num)
 			break;
 		case TRXCON_LOGC_SCHD:
 			schd = logc[i];
+			break;
+		case TRXCON_LOGC_GPRS:
+			l1gprs_logging_init(logc[i]);
 			break;
 		}
 	}

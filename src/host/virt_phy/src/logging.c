@@ -54,10 +54,10 @@ static const char* l1ctlPrimNames[] = {
 	"L1CTL_TRAFFIC_CONF",
 	"L1CTL_TRAFFIC_IND",
 	"L1CTL_BURST_IND",
-	"L1CTL_TBF_CFG_REQ",
-	"L1CTL_TBF_CFG_CONF",
-	"L1CTL_DATA_TBF_REQ",
-	"L1CTL_DATA_TBF_CONF"
+	"L1CTL_GPRS_UL_TBF_CFG_REQ",
+	"L1CTL_GPRS_DL_TBF_CFG_REQ",
+	"L1CTL_GPRS_UL_BLOCK_REQ",
+	"L1CTL_GPRS_DL_BLOCK_IND",
 };
 
 static const struct log_info_cat default_categories[] = {
@@ -78,6 +78,13 @@ static const struct log_info_cat default_categories[] = {
 	[DVIRPHY] = {
 		.name = "DVIRPHY",
 		.description = "Virtual Layer 1 Interface",
+		.color = "\033[1;31m",
+		.enabled = 1,
+		.loglevel = LOGL_NOTICE,
+	},
+	[DGPRS] = {
+		.name = "DGPRS",
+		.description = "L1 GPRS (MAC leyer)",
 		.color = "\033[1;31m",
 		.enabled = 1,
 		.loglevel = LOGL_NOTICE,

@@ -37,6 +37,9 @@ enum trxcon_fsm_events {
 	TRXCON_EV_TX_DATA_CNF,
 	TRXCON_EV_RX_DATA_IND,
 	TRXCON_EV_CRYPTO_REQ,
+	TRXCON_EV_GPRS_UL_TBF_CFG_REQ,		/* param: L1CTL msgb */
+	TRXCON_EV_GPRS_DL_TBF_CFG_REQ,		/* param: L1CTL msgb */
+	TRXCON_EV_GPRS_UL_BLOCK_REQ,		/* param: L1CTL msgb */
 };
 
 /* param of TRXCON_EV_FULL_POWER_SCAN_REQ */

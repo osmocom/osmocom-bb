@@ -53,11 +53,10 @@ enum {
 	L1CTL_TRAFFIC_CONF		= 0x1d,
 	L1CTL_TRAFFIC_IND		= 0x1e,
 	L1CTL_BURST_IND			= 0x1f,
-	/* configure TBF for uplink/downlink */
-	L1CTL_TBF_CFG_REQ		= 0x20,
-	L1CTL_TBF_CFG_CONF		= 0x21,
-	L1CTL_DATA_TBF_REQ		= 0x22,
-	L1CTL_DATA_TBF_CONF		= 0x23,
+	L1CTL_GPRS_UL_TBF_CFG_REQ	= 0x20,
+	L1CTL_GPRS_DL_TBF_CFG_REQ	= 0x21,
+	L1CTL_GPRS_UL_BLOCK_REQ		= 0x22,
+	L1CTL_GPRS_DL_BLOCK_IND		= 0x23,
 	/* Extended (11-bit) RACH (see 3GPP TS 05.02, section 5.2.7) */
 	L1CTL_EXT_RACH_REQ		= 0x24,
 };
@@ -73,23 +72,6 @@ enum neigh_mode {
 	NEIGH_MODE_NONE = 0,
 	NEIGH_MODE_PM,
 	NEIGH_MODE_SB,
-};
-
-enum l1ctl_coding_scheme {
-	L1CTL_CS_NONE,
-	L1CTL_CS1,
-	L1CTL_CS2,
-	L1CTL_CS3,
-	L1CTL_CS4,
-	L1CTL_MCS1,
-	L1CTL_MCS2,
-	L1CTL_MCS3,
-	L1CTL_MCS4,
-	L1CTL_MCS5,
-	L1CTL_MCS6,
-	L1CTL_MCS7,
-	L1CTL_MCS8,
-	L1CTL_MCS9,
 };
 
 /*
@@ -185,15 +167,6 @@ struct l1ctl_info_ul {
 	uint8_t link_id;
 	uint8_t padding[2];
 
-	uint8_t payload[0];
-} __attribute__((packed));
-
-struct l1ctl_info_ul_tbf {
-	/* references l1ctl_tbf_cfg_req.tbf_nr */
-	uint8_t tbf_nr;
-	uint8_t coding_scheme;
-	uint8_t padding[2];
-	/* RLC/MAC block, size determines CS */
 	uint8_t payload[0];
 } __attribute__((packed));
 
@@ -372,15 +345,44 @@ struct l1ctl_traffic_req {
 	uint8_t data[0];
 } __attribute__((packed));
 
-struct l1ctl_tbf_cfg_req {
-	/* future support for multiple concurrent TBFs. 0 for now */
-	uint8_t tbf_nr;
-	/* is this about an UL TBF (1) or DL (0) */
-	uint8_t is_uplink;
+/* payload of L1CTL_GPRS_UL_TBF_CFG_REQ */
+struct l1ctl_gprs_ul_tbf_cfg_req {
+	uint8_t tbf_ref;
+	uint8_t slotmask;
 	uint8_t padding[2];
+} __attribute__((packed));
 
-	/* one USF for each TN, or 255 for invalid/unused */
-	uint8_t usf[8];
+/* payload of L1CTL_GPRS_DL_TBF_CFG_REQ */
+struct l1ctl_gprs_dl_tbf_cfg_req {
+	uint8_t tbf_ref;
+	uint8_t slotmask;
+	uint8_t dl_tfi;
+	uint8_t padding[1];
+} __attribute__((packed));
+
+/* part of L1CTL_GPRS_{UL,DL}_BLOCK_{REQ,IND} */
+struct l1ctl_gprs_block_hdr {
+	uint32_t fn;
+	uint8_t tn;
+	uint8_t padding[3];
+} __attribute__((packed));
+
+/* payload of L1CTL_GPRS_UL_BLOCK_REQ */
+struct l1ctl_gprs_ul_block_req {
+	struct l1ctl_gprs_block_hdr hdr;
+	uint8_t data[0];
+} __attribute__((packed));
+
+/* payload of L1CTL_GPRS_DL_BLOCK_IND */
+struct l1ctl_gprs_dl_block_ind {
+	struct l1ctl_gprs_block_hdr hdr;
+	struct {
+		uint16_t ber10k;	/* Bit Error Rate */
+		int16_t ci_cb;		/* C/I in centiBels */
+		uint8_t rx_lev;		/* RxLev 0..63 */
+	} meas;
+	uint8_t usf;
+	uint8_t data[0];
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */

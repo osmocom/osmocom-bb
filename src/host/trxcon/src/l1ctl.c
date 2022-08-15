@@ -785,6 +785,7 @@ static int l1ctl_rx_crypto_req(struct trxcon_inst *trxcon, struct msgb *msg)
 int trxcon_l1ctl_receive(struct trxcon_inst *trxcon, struct msgb *msg)
 {
 	const struct l1ctl_hdr *l1h;
+	int rc;
 
 	l1h = (const struct l1ctl_hdr *)msg->l1h;
 	msg->l1h = (uint8_t *)l1h->data;
@@ -818,11 +819,20 @@ int trxcon_l1ctl_receive(struct trxcon_inst *trxcon, struct msgb *msg)
 		return l1ctl_rx_tch_mode_req(trxcon, msg);
 	case L1CTL_CRYPTO_REQ:
 		return l1ctl_rx_crypto_req(trxcon, msg);
-
+	case L1CTL_GPRS_UL_TBF_CFG_REQ:
+		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_GPRS_UL_TBF_CFG_REQ, msg);
+		msgb_free(msg);
+		return rc;
+	case L1CTL_GPRS_DL_TBF_CFG_REQ:
+		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_GPRS_DL_TBF_CFG_REQ, msg);
+		msgb_free(msg);
+		return rc;
+	case L1CTL_GPRS_UL_BLOCK_REQ:
+		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_GPRS_UL_BLOCK_REQ, msg);
+		msgb_free(msg);
+		return rc;
 	/* Not (yet) handled messages */
 	case L1CTL_NEIGH_PM_REQ:
-	case L1CTL_DATA_TBF_REQ:
-	case L1CTL_TBF_CFG_REQ:
 	case L1CTL_DM_FREQ_REQ:
 	case L1CTL_SIM_REQ:
 		LOGPFSMSL(trxcon->fi, g_logc_l1c, LOGL_NOTICE,

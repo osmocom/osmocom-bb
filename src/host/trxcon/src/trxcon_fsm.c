@@ -2,7 +2,7 @@
  * OsmocomBB <-> SDR connection bridge
  * The trxcon state machine (see 3GPP TS 44.004, section 5.1)
  *
- * (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
+ * (C) 2022-2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  * Author: Vadim Yanitskiy <vyanitskiy@sysmocom.de>
  *
  * All Rights Reserved
@@ -29,12 +29,14 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/gsm/gsm0502.h>
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trxcon_fsm.h>
 #include <osmocom/bb/trxcon/phyif.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/l1sched/l1sched.h>
+#include <osmocom/bb/l1gprs.h>
 
 #define S(x)	(1 << (x))
 
@@ -505,6 +507,25 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 	}
 }
 
+static void trxcon_st_packet_data_onenter(struct osmo_fsm_inst *fi,
+					  uint32_t prev_state)
+{
+	struct trxcon_inst *trxcon = fi->priv;
+
+	OSMO_ASSERT(trxcon->gprs == NULL);
+	trxcon->gprs = l1gprs_state_alloc(trxcon, trxcon->log_prefix, trxcon);
+	OSMO_ASSERT(trxcon->gprs != NULL);
+}
+
+static void trxcon_st_packet_data_onleave(struct osmo_fsm_inst *fi,
+					  uint32_t next_state)
+{
+	struct trxcon_inst *trxcon = fi->priv;
+
+	l1gprs_state_free(trxcon->gprs);
+	trxcon->gprs = NULL;
+}
+
 static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 					 uint32_t event, void *data)
 {
@@ -517,14 +538,58 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_TX_ACCESS_BURST_CNF:
 		l1ctl_tx_rach_conf(trxcon, (const struct trxcon_param_tx_access_burst_cnf *)data);
 		break;
+	case TRXCON_EV_GPRS_UL_TBF_CFG_REQ:
+		l1gprs_handle_ul_tbf_cfg_req(trxcon->gprs, (struct msgb *)data);
+		break;
+	case TRXCON_EV_GPRS_DL_TBF_CFG_REQ:
+		l1gprs_handle_dl_tbf_cfg_req(trxcon->gprs, (struct msgb *)data);
+		break;
+	case TRXCON_EV_GPRS_UL_BLOCK_REQ:
+	{
+		struct l1gprs_prim_ul_block_req block_req;
+		const struct msgb *msg = data;
+		struct l1sched_ts_prim *prim;
+
+		if (l1gprs_handle_ul_block_req(trxcon->gprs, &block_req, msg) != 0)
+			return;
+
+		prim = l1sched_prim_push(trxcon->sched, L1SCHED_PRIM_DATA,
+					 RSL_CHAN_OSMO_PDCH | block_req.hdr.tn, 0x00,
+					 block_req.data, block_req.data_len);
+		if (prim == NULL) {
+			LOGPFSML(fi, LOGL_ERROR, "Failed to enqueue a prim\n");
+			return;
+		}
+		break;
+	}
 	case TRXCON_EV_RX_DATA_IND:
 	{
 		const struct trxcon_param_rx_data_ind *ind = data;
+		struct l1gprs_prim_dl_block_ind block_ind;
+		struct msgb *msg;
 
-		if (ind->link_id == 0x00)
-			LOGPFSML(fi, LOGL_NOTICE, "Rx PDTCH/D message\n");
+		block_ind = (struct l1gprs_prim_dl_block_ind) {
+			.hdr = {
+				.fn = ind->frame_nr,
+				.tn = ind->chan_nr & 0x07,
+			},
+			.meas = {
+				/* .ber10k is set below */
+				.ci_cb = 180, /* 18 dB */
+				.rx_lev = dbm2rxlev(ind->rssi),
+			},
+			.data_len = ind->data_len,
+			.data = ind->data,
+		};
+
+		if (ind->n_bits_total == 0)
+			block_ind.meas.ber10k = 10000;
 		else
-			LOGPFSML(fi, LOGL_NOTICE, "Rx PTCCH/D message\n");
+			block_ind.meas.ber10k = 10000 * ind->n_errors / ind->n_bits_total;
+
+		msg = l1gprs_handle_dl_block_ind(trxcon->gprs, &block_ind);
+		if (msg != NULL)
+			trxcon_l1ctl_send(trxcon, msg);
 		break;
 	}
 	case TRXCON_EV_DCH_EST_REQ:
@@ -550,6 +615,9 @@ static void trxcon_fsm_pre_term_cb(struct osmo_fsm_inst *fi,
 	/* Shutdown the scheduler */
 	if (trxcon->sched != NULL)
 		l1sched_free(trxcon->sched);
+	/* Clean up GPRS L1 state */
+	l1gprs_state_free(trxcon->gprs);
+
 	/* Close active connections */
 	if (trxcon->l2if != NULL)
 		trxcon_l1ctl_close(trxcon);
@@ -625,7 +693,12 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 				| S(TRXCON_EV_DCH_EST_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_CNF)
+				| S(TRXCON_EV_GPRS_UL_TBF_CFG_REQ)
+				| S(TRXCON_EV_GPRS_DL_TBF_CFG_REQ)
+				| S(TRXCON_EV_GPRS_UL_BLOCK_REQ)
 				| S(TRXCON_EV_RX_DATA_IND),
+		.onenter = &trxcon_st_packet_data_onenter,
+		.onleave = &trxcon_st_packet_data_onleave,
 		.action = &trxcon_st_packet_data_action,
 	},
 };
@@ -651,6 +724,9 @@ static const struct value_string trxcon_fsm_event_names[] = {
 	OSMO_VALUE_STRING(TRXCON_EV_TX_DATA_CNF),
 	OSMO_VALUE_STRING(TRXCON_EV_RX_DATA_IND),
 	OSMO_VALUE_STRING(TRXCON_EV_CRYPTO_REQ),
+	OSMO_VALUE_STRING(TRXCON_EV_GPRS_UL_TBF_CFG_REQ),
+	OSMO_VALUE_STRING(TRXCON_EV_GPRS_DL_TBF_CFG_REQ),
+	OSMO_VALUE_STRING(TRXCON_EV_GPRS_UL_BLOCK_REQ),
 	{ 0, NULL }
 };
 

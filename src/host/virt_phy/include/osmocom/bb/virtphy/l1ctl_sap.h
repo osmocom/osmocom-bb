@@ -57,6 +57,8 @@ void l1ctl_rx_tch_mode_req(struct l1_model_ms *ms, struct msgb *msg);
 void l1ctl_rx_neigh_pm_req(struct l1_model_ms *ms, struct msgb *msg);
 void l1ctl_rx_traffic_req(struct l1_model_ms *ms, struct msgb *msg);
 void l1ctl_rx_sim_req(struct l1_model_ms *ms, struct msgb *msg);
+void l1ctl_rx_gprs_uldl_tbf_cfg_req(struct l1_model_ms *ms, struct msgb *msg);
+void l1ctl_rx_gprs_ul_block_req(struct l1_model_ms *ms, struct msgb *msg);
 
 /* transmit routines */
 void l1ctl_tx_reset(struct l1_model_ms *ms, uint8_t msg_type, uint8_t reset_type);
@@ -75,6 +77,8 @@ void l1ctl_tx_pm_conf(struct l1_model_ms *ms, struct l1ctl_pm_req *pm_req);
 void l1ctl_tx_fbsb_conf(struct l1_model_ms *ms, uint8_t res, uint16_t arfcn);
 void l1ctl_tx_ccch_mode_conf(struct l1_model_ms *ms, uint8_t ccch_mode);
 void l1ctl_tx_tch_mode_conf(struct l1_model_ms *ms, uint8_t tch_mode, uint8_t audio_mode);
+void l1ctl_tx_gprs_dl_block_ind(struct l1_model_ms *ms, const struct msgb *msg,
+				uint32_t fn, uint8_t tn, uint8_t rxlev);
 
 /* scheduler functions */
 uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,

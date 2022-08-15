@@ -29,6 +29,13 @@ libl1sched_la_SOURCES = \
 	$(NULL)
 
 
+noinst_LTLIBRARIES += libl1gprs.la
+
+libl1gprs_la_SOURCES = \
+	l1gprs.c \
+	$(NULL)
+
+
 noinst_LTLIBRARIES += libtrxcon.la
 
 libtrxcon_la_SOURCES = \
@@ -51,6 +58,7 @@ trxcon_SOURCES = \
 trxcon_LDADD = \
 	libtrxcon.la \
 	libl1sched.la \
+	libl1gprs.la \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOCODING_LIBS) \
 	$(LIBOSMOGSM_LIBS) \

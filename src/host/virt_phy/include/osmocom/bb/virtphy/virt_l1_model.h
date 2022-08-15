@@ -16,7 +16,6 @@ enum ms_state {
 	MS_STATE_IDLE_SYNCING,
 	MS_STATE_IDLE_CAMPING,
 	MS_STATE_DEDICATED,
-	MS_STATE_TBF
 };
 
 
@@ -77,15 +76,6 @@ struct l1_state_ms {
 		uint8_t tsc; // training sequence code (unused in virtual um)
 		uint8_t h; // hopping enabled flag (unused in virtual um)
 	} dedicated;
-	struct {
-		struct {
-			uint8_t usf[8];
-			struct llist_head tx_queue;
-		} ul;
-		struct {
-			uint8_t tfi[8];
-		} dl;
-	} tbf;
 
 	/* fbsb state */
 	struct {
@@ -116,6 +106,8 @@ struct l1_model_ms {
 	struct l1ctl_sock_client *lsc;
 	/* pointer to the (shared) GSMTAP/VirtUM socket to talk to BTS(s) */
 	struct virt_um_inst *vui;
+	/* GPRS state (MAC layer) */
+	struct l1gprs_state *gprs;
 	/* actual per-MS state */
 	struct l1_state_ms state;
 };
