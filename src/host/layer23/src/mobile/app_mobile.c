@@ -186,13 +186,18 @@ static int mobile_init(struct osmocom_ms *ms)
 
 	gsm_settings_arfcn(ms);
 
-	lapdm_channel_init(&ms->lapdm_channel, LAPDM_MODE_MS);
-	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI3].dl.t200_sec =
-		T200_DCCH_SHARED;
-	ms->lapdm_channel.lapdm_dcch.datalink[DL_SAPI3].dl.t200_usec = 0;
-	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_sec =
-		T200_ACCH;
-	ms->lapdm_channel.lapdm_acch.datalink[DL_SAPI3].dl.t200_usec = 0;
+	const int t200_ms_dcch[_NR_DL_SAPI] = {
+		[DL_SAPI0] = 1000,
+		[DL_SAPI3] = 1000 * T200_DCCH_SHARED
+	};
+	const int t200_ms_acch[_NR_DL_SAPI] = {
+		[DL_SAPI0] = 2000,
+		[DL_SAPI3] = 1000 * T200_ACCH
+	};
+
+	lapdm_channel_init3(&ms->lapdm_channel, LAPDM_MODE_MS,
+			    t200_ms_dcch, t200_ms_acch,
+			    GSM_LCHAN_SDCCH, NULL);
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
 	/* init SAP client before SIM card starts up */
