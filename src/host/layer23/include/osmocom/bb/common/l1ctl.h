@@ -20,8 +20,9 @@ int l1ctl_tx_crypto_req(struct osmocom_ms *ms, uint8_t chan_nr,
 	uint8_t algo, uint8_t *key, uint8_t len);
 
 /* Transmit L1CTL_RACH_REQ */
-int l1ctl_tx_rach_req(struct osmocom_ms *ms, uint8_t ra, uint16_t offset,
-	uint8_t combined);
+int l1ctl_tx_rach_req(struct osmocom_ms *ms,
+		      uint8_t chan_nr, uint8_t link_id,
+		      uint8_t ra, uint16_t offset, uint8_t combined);
 
 /* Transmit L1CTL_DM_EST_REQ */
 int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,

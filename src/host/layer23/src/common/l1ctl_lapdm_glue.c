@@ -20,6 +20,7 @@
 
 #include <l1ctl_proto.h>
 
+#include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/gsm/prim.h>
 
 #include <osmocom/bb/common/l1ctl.h>
@@ -46,7 +47,9 @@ int l1ctl_ph_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 	case PRIM_PH_RACH:
 		l1ctl_tx_param_req(ms, pp->u.rach_req.ta,
 				   pp->u.rach_req.tx_power);
-		rc = l1ctl_tx_rach_req(ms, pp->u.rach_req.ra,
+		rc = l1ctl_tx_rach_req(ms,
+				       RSL_CHAN_RACH, 0x00,
+				       pp->u.rach_req.ra,
 				       pp->u.rach_req.offset,
 				       pp->u.rach_req.is_combined_ccch);
 		break;
