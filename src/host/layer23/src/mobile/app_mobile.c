@@ -251,7 +251,7 @@ int mobile_start(struct osmocom_ms *ms, char **other_name)
 		if (!strcmp(ms->settings.layer2_socket_path,
 				tmp->settings.layer2_socket_path)) {
 			LOGP(DMOB, LOGL_ERROR, "Cannot start MS '%s', because MS '%s' "
-				"use the same layer2-socket.\nPlease shutdown "
+				"is using the same layer2-socket.\nPlease shutdown "
 				"MS '%s' first.\n", ms->name, tmp->name, tmp->name);
 			*other_name = tmp->name;
 			return -1;
@@ -259,7 +259,7 @@ int mobile_start(struct osmocom_ms *ms, char **other_name)
 		if (!strcmp(ms->settings.sap_socket_path,
 				tmp->settings.sap_socket_path)) {
 			LOGP(DMOB, LOGL_ERROR, "Cannot start MS '%s', because MS '%s' "
-				"use the same sap-socket.\nPlease shutdown "
+				"is using the same sap-socket.\nPlease shutdown "
 				"MS '%s' first.\n", ms->name, tmp->name, tmp->name);
 			*other_name = tmp->name;
 			return -2;
