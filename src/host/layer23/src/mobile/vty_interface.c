@@ -977,8 +977,11 @@ DEFUN(service, service_cmd, "service MS_NAME (*#06#|*#21#|*#67#|*#61#|*#62#"
 	return CMD_SUCCESS;
 }
 
+#define TEST_CMD_DESC	"Special commands for testing\n"
+
 DEFUN(test_reselection, test_reselection_cmd, "test re-selection NAME",
-	"Manually trigger cell re-selection\nName of MS (see \"show ms\")")
+      TEST_CMD_DESC "Manually trigger cell re-selection\n"
+      "Name of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
