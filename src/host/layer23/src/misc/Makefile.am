@@ -11,7 +11,7 @@ AM_CFLAGS = \
 	$(NULL)
 
 LDADD = \
-	../common/liblayer23.a \
+	$(top_builddir)/src/common/liblayer23.a \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
 	$(LIBOSMOCODEC_LIBS) \

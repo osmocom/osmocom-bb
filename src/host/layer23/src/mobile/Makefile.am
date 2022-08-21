@@ -36,7 +36,7 @@ bin_PROGRAMS = mobile
 mobile_SOURCES = main.c app_mobile.c
 mobile_LDADD = \
 	libmobile.a \
-	../common/liblayer23.a \
+	$(top_builddir)/src/common/liblayer23.a \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
