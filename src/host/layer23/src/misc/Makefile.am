@@ -32,31 +32,31 @@ noinst_HEADERS = \
 	$(NULL)
 
 bcch_scan_SOURCES = \
-	../common/main.c \
+	$(top_srcdir)/src/common/main.c \
 	app_bcch_scan.c \
 	bcch_scan.c \
 	$(NULL)
 
 ccch_scan_SOURCES = \
-	../common/main.c \
+	$(top_srcdir)/src/common/main.c \
 	app_ccch_scan.c \
 	rslms.c \
 	$(NULL)
 
 echo_test_SOURCES = \
-	../common/main.c \
+	$(top_srcdir)/src/common/main.c \
 	app_echo_test.c \
 	$(NULL)
 
 cell_log_LDADD = $(LDADD) -lm
 cell_log_SOURCES = \
-	../common/main.c \
+	$(top_srcdir)/src/common/main.c \
 	app_cell_log.c \
 	cell_log.c \
 	geo.c \
 	$(NULL)
 
 cbch_sniff_SOURCES = \
-	../common/main.c \
+	$(top_srcdir)/src/common/main.c \
 	app_cbch_sniff.c \
 	$(NULL)
