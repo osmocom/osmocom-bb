@@ -80,7 +80,7 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 			break;
 		}
 		if (req->data_len != GSM_MACBLOCK_LEN) {
-			LOGPFSML(fi, LOGL_ERROR, "Unexpected data length=%u\n", req->data_len);
+			LOGPFSML(fi, LOGL_ERROR, "Unexpected data length=%zu\n", req->data_len);
 			break;
 		}
 
