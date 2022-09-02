@@ -486,6 +486,7 @@ void l1ctl_rx_tch_mode_req(struct l1_model_ms *ms, struct msgb *msg)
 
 	l1_model_tch_mode_set(ms, tch_mode_req->tch_mode);
 	ms->state.audio_mode = tch_mode_req->audio_mode;
+	/* TODO: Handle AMR codecs from tch_mode_req if tch_mode_req->tch_mode==GSM48_CMODE_SPEECH_AMR */
 
 	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_TCH_MODE_REQ (tch_mode=0x%02x audio_mode=0x%02x)\n",
 		tch_mode_req->tch_mode, tch_mode_req->audio_mode);

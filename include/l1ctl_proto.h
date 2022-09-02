@@ -162,7 +162,10 @@ struct l1ctl_tch_mode_conf {
 	uint8_t tch_mode;	/* enum tch_mode */
 	uint8_t audio_mode;
 	uint8_t tch_loop_mode;	/* enum l1ctl_tch_loop_mode */
-	uint8_t padding[1];
+	struct { /* 3GPP TS 08.58 9.3.52, 3GPP TS 44.018 10.5.2.21aa */
+		uint8_t start_codec;
+		uint8_t codecs_bitmask;
+	} amr;
 } __attribute__((packed));
 
 /* data on the CCCH was found. This is following the header */
@@ -241,7 +244,10 @@ struct l1ctl_tch_mode_req {
 #define AUDIO_RX_TRAFFIC_IND	(1<<3)
 	uint8_t audio_mode;
 	uint8_t tch_loop_mode;	/* enum l1ctl_tch_loop_mode */
-	uint8_t padding[1];
+	struct { /* 3GPP TS 08.58 9.3.52, 3GPP TS 44.018 10.5.2.21aa */
+		uint8_t start_codec;
+		uint8_t codecs_bitmask;
+	} amr;
 } __attribute__((packed));
 
 /* the l1_info_ul header is in front */

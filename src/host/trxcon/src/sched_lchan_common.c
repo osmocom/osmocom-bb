@@ -103,6 +103,8 @@ const char *l1sched_burst_mask2str(const uint8_t *mask, int bits)
  */
 size_t l1sched_bad_frame_ind(uint8_t *l2, struct l1sched_lchan_state *lchan)
 {
+	int rc;
+
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SPEECH_V1:
 		if (lchan->type == L1SCHED_TCHF) { /* Full Rate */
@@ -119,8 +121,18 @@ size_t l1sched_bad_frame_ind(uint8_t *l2, struct l1sched_lchan_state *lchan)
 		l2[0] = 0xc0;
 		return GSM_EFR_BYTES;
 	case GSM48_CMODE_SPEECH_AMR: /* Adaptive Multi Rate */
-		/* FIXME: AMR is not implemented yet */
-		return 0;
+		rc = osmo_amr_rtp_enc(l2,
+			lchan->amr.codec[lchan->amr.dl_cmr],
+			lchan->amr.codec[lchan->amr.dl_ft],
+			AMR_BAD);
+		if (rc < 2) {
+			LOGP_LCHAND(lchan, LOGL_ERROR,
+				    "Failed to encode AMR_BAD frame (rc=%d), "
+				    "not sending BFI\n", rc);
+			return 0;
+		}
+		memset(l2 + 2, 0, rc - 2);
+		return rc;
 	case GSM48_CMODE_SIGN:
 		LOGP_LCHAND(lchan, LOGL_ERROR, "BFI is not allowed in signalling mode\n");
 		return 0;

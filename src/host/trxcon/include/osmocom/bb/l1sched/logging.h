@@ -17,12 +17,13 @@ extern int l1sched_log_cat_data;
 	LOGP_SCHED_CAT(sched, common, level, fmt, ## args)
 
 
+#define LOGP_LCHAN_NAME_FMT "TS%u-%s"
 #define LOGP_LCHAN_NAME_ARGS(lchan) \
 	(lchan)->ts->index, l1sched_lchan_desc[(lchan)->type].name
 
 /* Messages using l1sched_lchan_state as the context */
 #define LOGP_LCHAN_CAT(lchan, cat, level, fmt, args...) \
-	LOGP_SCHED_CAT((lchan)->ts->sched, cat, level, "TS%u-%s " fmt, \
+	LOGP_SCHED_CAT((lchan)->ts->sched, cat, level, LOGP_LCHAN_NAME_FMT " " fmt, \
 		       LOGP_LCHAN_NAME_ARGS(lchan), ## args)
 
 /* Common messages using l1sched_lchan_state as the context */

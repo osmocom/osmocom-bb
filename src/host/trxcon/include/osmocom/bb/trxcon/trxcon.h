@@ -58,6 +58,10 @@ struct trxcon_param_fbsb_search_req {
 /* param of TRXCON_EV_SET_{CCCH,TCH}_MODE_REQ */
 struct trxcon_param_set_ccch_tch_mode_req {
 	uint8_t mode;
+	struct {
+		uint8_t start_codec;
+		uint8_t codecs_bitmask;
+	} amr;
 	bool applied;
 };
 

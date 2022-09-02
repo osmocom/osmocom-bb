@@ -553,6 +553,7 @@ static void l1ctl_rx_tch_mode_req(struct msgb *msg)
 
 	l1s.tch_sync = 1; /* Needed for audio to work */
 	l1s.tch_loop_mode = tch_mode_req->tch_loop_mode;
+	/* TODO: Handle AMR codecs from tch_mode_req if tch_mode_req->tch_mode==GSM48_CMODE_SPEECH_AMR */
 
 	l1ctl_tx_tch_mode_conf(tch_mode, audio_mode);
 }
@@ -726,4 +727,3 @@ void l1a_l23api_init(void)
 {
 	sercomm_register_rx_cb(SC_DLCI_L1A_L23, l1a_l23_rx);
 }
-

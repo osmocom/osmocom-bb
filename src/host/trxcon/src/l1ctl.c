@@ -705,6 +705,10 @@ static int l1ctl_rx_tch_mode_req(struct l1ctl_client *l1c, struct msgb *msg)
 	struct trxcon_param_set_ccch_tch_mode_req req = {
 		.mode = mode_req->tch_mode,
 	};
+	if (mode_req->tch_mode == GSM48_CMODE_SPEECH_AMR) {
+		req.amr.start_codec = mode_req->amr.start_codec;
+		req.amr.codecs_bitmask = mode_req->amr.codecs_bitmask;
+	}
 
 	rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_SET_TCH_MODE_REQ, &req);
 	if (rc != 0 || !req.applied) {

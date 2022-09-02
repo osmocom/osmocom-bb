@@ -36,6 +36,7 @@
 #include <osmocom/bb/trxcon/l1ctl_server.h>
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/l1sched/l1sched.h>
+#include <osmocom/bb/l1sched/logging.h>
 
 #define S(x)	(1 << (x))
 
@@ -351,6 +352,31 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 				if (!lchan->active)
 					continue;
 				lchan->tch_mode = req->mode;
+				if (req->mode == GSM48_CMODE_SPEECH_AMR) {
+					uint8_t bmask = req->amr.codecs_bitmask;
+					int n = 0;
+					int acum = 0;
+					int pos;
+					while ((pos = ffs(bmask)) != 0) {
+						acum += pos;
+						LOGPFSML(fi, LOGL_DEBUG,
+							 LOGP_LCHAN_NAME_FMT " AMR codec[%u] = %u\n",
+							 LOGP_LCHAN_NAME_ARGS(lchan), n, acum - 1);
+						lchan->amr.codec[n++] = acum - 1;
+						bmask >>= pos;
+					}
+					if (n == 0) {
+						LOGPFSML(fi, LOGL_ERROR,
+							 LOGP_LCHAN_NAME_FMT " Empty AMR codec mode bitmask!\n",
+							 LOGP_LCHAN_NAME_ARGS(lchan));
+						continue;
+					}
+					lchan->amr.codecs = n;
+					lchan->amr.dl_ft = req->amr.start_codec;
+					lchan->amr.dl_cmr = req->amr.start_codec;
+					lchan->amr.ul_ft = req->amr.start_codec;
+					lchan->amr.ul_cmr = req->amr.start_codec;
+				}
 				req->applied = true;
 			}
 		}

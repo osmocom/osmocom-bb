@@ -472,6 +472,7 @@ int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode,
 	req->tch_mode = tch_mode;
 	req->audio_mode = audio_mode;
 	req->tch_loop_mode = tch_loop_mode;
+	/* TODO: Set AMR codec in req if req->tch_mode==GSM48_CMODE_SPEECH_AMR */
 
 	return osmo_send_l1(ms, msg);
 }

@@ -297,6 +297,8 @@ struct l1sched_lchan_state {
 		uint8_t ber_num;
 		/*! Sum of bit error rates */
 		float ber_sum;
+		/* last received dtx frame type */
+		uint8_t	last_dtx;
 	} amr;
 
 	/*! A5/X encryption state */
