@@ -703,24 +703,24 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 {
 	const unsigned int offset = trxcon->id * 2;
 	struct trx_instance *trx;
+	struct osmo_fsm_inst *fi;
 	int rc;
 
 	LOGPFSML(trxcon->fi, LOGL_NOTICE, "Init transceiver interface "
 		"(%s:%u/%u)\n", remote_host, base_port, trxcon->id);
 
-	/* Try to allocate memory */
-	trx = talloc_zero(trxcon, struct trx_instance);
-	if (!trx) {
-		LOGPFSML(trxcon->fi, LOGL_ERROR, "Failed to allocate memory\n");
+	/* Allocate a new dedicated state machine */
+	fi = osmo_fsm_inst_alloc_child(&trx_fsm, trxcon->fi, TRXCON_EV_PHYIF_FAILURE);
+	if (fi == NULL) {
+		LOGPFSML(trxcon->fi, LOGL_ERROR, "Failed to allocate an instance "
+			"of FSM '%s'\n", trx_fsm.name);
 		return NULL;
 	}
 
-	/* Allocate a new dedicated state machine */
-	trx->fi = osmo_fsm_inst_alloc_child(&trx_fsm, trxcon->fi, TRXCON_EV_PHYIF_FAILURE);
-	if (trx->fi == NULL) {
-		LOGPFSML(trxcon->fi, LOGL_ERROR, "Failed to allocate an instance "
-			"of FSM '%s'\n", trx_fsm.name);
-		talloc_free(trx);
+	trx = talloc_zero(fi, struct trx_instance);
+	if (!trx) {
+		LOGPFSML(trxcon->fi, LOGL_ERROR, "Failed to allocate memory\n");
+		osmo_fsm_inst_free(fi);
 		return NULL;
 	}
 
@@ -742,18 +742,15 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 	if (rc < 0)
 		goto udp_error;
 
-	/* Reparent trx_instance from trxcon to trx->fi */
-	talloc_reparent(trxcon, trx->fi, trx);
-
 	trx->trxcon = trxcon;
-	trx->fi->priv = trx;
+	fi->priv = trx;
+	trx->fi = fi;
 
 	return trx;
 
 udp_error:
 	LOGPFSML(trx->fi, LOGL_ERROR, "Couldn't establish UDP connection\n");
 	osmo_fsm_inst_free(trx->fi);
-	talloc_free(trx);
 	return NULL;
 }
 
