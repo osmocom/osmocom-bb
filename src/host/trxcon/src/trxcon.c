@@ -283,9 +283,9 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
 
 	/* Init transceiver interface */
 	trxcon->phyif = trx_if_open(trxcon,
-				  app_data.trx_bind_ip,
-				  app_data.trx_remote_ip,
-				  app_data.trx_base_port);
+				    app_data.trx_bind_ip,
+				    app_data.trx_remote_ip,
+				    app_data.trx_base_port);
 	if (trxcon->phyif == NULL) {
 		trxcon_inst_free(trxcon);
 		return NULL;
