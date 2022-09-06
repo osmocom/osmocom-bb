@@ -89,7 +89,7 @@ int gsm_send_voice(struct osmocom_ms *ms, struct gsm_data_frame *data)
 		len = GSM_EFR_BYTES;
 		break;
 	default:
-		LOGP(DL1C, LOGL_ERROR, "gsm_send_voice, msg_type=0x%02x: not implemented\n", data->msg_type);
+		LOGP(DL1C, LOGL_ERROR, "gsm_send_voice, channel mode 0x%x not implemented\n", ms->rrlayer.cd_now.mode);
 		return -EINVAL;
 	}
 
