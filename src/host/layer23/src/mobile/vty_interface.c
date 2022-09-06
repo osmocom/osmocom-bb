@@ -37,6 +37,7 @@
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
+#include <osmocom/bb/mobile/voice.h>
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
@@ -896,6 +897,28 @@ DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS",
 
 	mncc_dtmf(ms, (char *)argv[1]);
 
+	return CMD_SUCCESS;
+}
+
+DEFUN(audio_frame, audio_frame_cmd,
+      "audio_frame MS_NAME",
+      "Send a single audio frame with random data (a voice call must be active)\n"
+      "Name of MS (e.g. \"1\", see \"show ms\")\n")
+{
+	struct osmocom_ms *ms;
+	uint8_t buf[sizeof(struct gsm_data_frame) + 64] = {};
+	struct gsm_data_frame *frame = (void*)buf;
+	int rc;
+
+	frame->data[0] = 0xd0;
+
+	ms = get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	if (gsm_send_voice(ms, (void*)buf) < 0) {
+		vty_out(vty, "sending audio frame failed, see log%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 	return CMD_SUCCESS;
 }
 
@@ -2909,6 +2932,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
+	install_element(ENABLE_NODE, &audio_frame_cmd);
 	install_element(ENABLE_NODE, &sms_cmd);
 	install_element(ENABLE_NODE, &service_cmd);
 	install_element(ENABLE_NODE, &test_reselection_cmd);
