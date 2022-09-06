@@ -55,8 +55,12 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* send voice frame back, if appropriate */
-	if (ms->settings.audio.io_handler == AUDIO_IOH_LOOPBACK)
+	if (ms->settings.audio.io_handler == AUDIO_IOH_LOOPBACK) {
+		LOGP(DCC, LOGL_NOTICE, "rx audio frame, looping back\n");
 		gsm_send_voice(ms, mncc);
+	} else {
+		LOGP(DCC, LOGL_NOTICE, "rx audio frame\n");
+	}
 
 	/* distribute and then free */
 	if (ms->mncc_entity.mncc_recv && ms->mncc_entity.ref) {
@@ -95,6 +99,7 @@ int gsm_send_voice(struct osmocom_ms *ms, struct gsm_data_frame *data)
 	nmsg->l2h = msgb_put(nmsg, len);
 	memcpy(nmsg->l2h, data->data, len);
 
+	LOGP(DCC, LOGL_NOTICE, "tx audio frame\n");
 	return gsm48_rr_tx_voice(ms, nmsg);
 }
 
