@@ -4203,7 +4203,10 @@ static int gsm322_nb_check(struct osmocom_ms *ms, int any)
 			nb->prio_low = 1;
 
 		/* get C1 & C2 */
-		gsm_arfcn2band_rc(nb->arfcn, &band);
+		if (gsm_arfcn2band_rc(nb->arfcn, &band) != 0) {
+			LOGP(DNB, LOGL_ERROR, "gsm_arfcn2band_rc() failed\n");
+			goto cont;
+		}
 		class = class_of_band(ms, band);
 		nb->c1 = calculate_c1(DNB, nb->rla_c_dbm, s->rxlev_acc_min_db,
 			ms_pwr_dbm(band, s->ms_txpwr_max_cch),
@@ -4703,7 +4706,11 @@ static int gsm322_nb_new_rxlev(struct gsm322_cellsel *cs)
 	enum gsm_band band;
 	int class;
 
-	gsm_arfcn2band_rc(cs->arfcn, &band);
+	if (gsm_arfcn2band_rc(cs->arfcn, &band) != 0) {
+		LOGP(DNB, LOGL_ERROR, "gsm_arfcn2band_rc() failed\n");
+		return -EINVAL;
+	}
+
 	class = class_of_band(cs->ms, band);
 
 	/* calculate the RAL_C of serving cell */

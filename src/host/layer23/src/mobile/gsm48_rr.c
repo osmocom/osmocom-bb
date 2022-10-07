@@ -1516,7 +1516,10 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t tx_power;
 	enum gsm_band band;
 
-	gsm_arfcn2band_rc(cs->arfcn, &band);
+	if (gsm_arfcn2band_rc(cs->arfcn, &band) != 0) {
+		LOGP(DRR, LOGL_ERROR, "gsm_arfcn2band_rc() failed\n");
+		return -EINVAL;
+	}
 
 	/* already assigned */
 	if (rr->wait_assign == 2)
