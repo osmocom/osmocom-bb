@@ -429,6 +429,7 @@ static void signal_handler(int signum)
 
 	switch (signum) {
 	case SIGINT:
+	case SIGTERM:
 		app_data.quit++;
 		break;
 	case SIGABRT:
@@ -469,6 +470,7 @@ int main(int argc, char **argv)
 
 	/* Setup signal handlers */
 	signal(SIGINT, &signal_handler);
+	signal(SIGTERM, &signal_handler);
 	signal(SIGABRT, &signal_handler);
 	signal(SIGUSR1, &signal_handler);
 	signal(SIGUSR2, &signal_handler);
