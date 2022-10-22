@@ -324,18 +324,18 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 	}
 
 	l1c->log_prefix = talloc_strdup(l1c, trxcon->log_prefix);
-	l1c->priv = trxcon;
+	l1c->priv = trxcon->fi;
 	trxcon->l2if = l1c;
 }
 
 static void l1ctl_conn_close_cb(struct l1ctl_client *l1c)
 {
-	struct trxcon_inst *trxcon = l1c->priv;
+	struct osmo_fsm_inst *fi = l1c->priv;
 
-	if (trxcon == NULL)
+	if (fi == NULL)
 		return;
 
-	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_L2IF_FAILURE, NULL);
+	osmo_fsm_inst_dispatch(fi, TRXCON_EV_L2IF_FAILURE, NULL);
 }
 
 static void print_usage(const char *app)
