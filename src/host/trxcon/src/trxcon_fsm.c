@@ -175,6 +175,13 @@ static void trxcon_st_full_power_scan_action(struct osmo_fsm_inst *fi,
 		l1ctl_tx_pm_conf(trxcon->l2if, res->band_arfcn, res->dbm, res->last_result);
 		break;
 	}
+	case TRXCON_EV_FULL_POWER_SCAN_REQ:
+	{
+		const struct trxcon_param_full_power_scan_req *req = data;
+
+		trx_if_cmd_measure(trxcon->phyif, req->band_arfcn_start, req->band_arfcn_stop);
+		break;
+	}
 	default:
 		OSMO_ASSERT(0);
 	}
@@ -479,7 +486,8 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 	[TRXCON_ST_FULL_POWER_SCAN] = {
 		.name = "FULL_POWER_SCAN",
 		.out_state_mask = S(TRXCON_ST_RESET),
-		.in_event_mask  = S(TRXCON_EV_FULL_POWER_SCAN_RES),
+		.in_event_mask  = S(TRXCON_EV_FULL_POWER_SCAN_RES)
+				| S(TRXCON_EV_FULL_POWER_SCAN_REQ),
 		.action = &trxcon_st_full_power_scan_action,
 	},
 	[TRXCON_ST_FBSB_SEARCH] = {
