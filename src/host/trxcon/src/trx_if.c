@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2013 by Andreas Eversberg <jolly@eversberg.eu>
  * Copyright (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>
+ * Copyright (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * All Rights Reserved
  *
@@ -39,7 +40,6 @@
 
 #include <osmocom/gsm/gsm_utils.h>
 
-#include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
@@ -247,17 +247,17 @@ static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
  * RSP POWERON <status>
  */
 
-int trx_if_cmd_echo(struct trx_instance *trx)
+static int trx_if_cmd_echo(struct trx_instance *trx)
 {
 	return trx_ctrl_cmd(trx, 1, "ECHO", "");
 }
 
-int trx_if_cmd_poweroff(struct trx_instance *trx)
+static int trx_if_cmd_poweroff(struct trx_instance *trx)
 {
 	return trx_ctrl_cmd(trx, 1, "POWEROFF", "");
 }
 
-int trx_if_cmd_poweron(struct trx_instance *trx)
+static int trx_if_cmd_poweron(struct trx_instance *trx)
 {
 	if (trx->powered_up) {
 		/* FIXME: this should be handled by the FSM, not here! */
@@ -278,8 +278,8 @@ int trx_if_cmd_poweron(struct trx_instance *trx)
  * RSP SETSLOT <status> <timeslot> <chantype>
  */
 
-int trx_if_cmd_setslot(struct trx_instance *trx, uint8_t tn,
-		       enum gsm_phys_chan_config pchan)
+static int trx_if_cmd_setslot(struct trx_instance *trx,
+			      const struct phyif_cmdp_setslot *cmdp)
 {
 	/* Values correspond to 'enum ChannelCombination' in osmo-trx.git */
 	static const uint8_t chan_types[_GSM_PCHAN_MAX] = {
@@ -295,7 +295,8 @@ int trx_if_cmd_setslot(struct trx_instance *trx, uint8_t tn,
 		[GSM_PCHAN_PDCH]                = 13,
 	};
 
-	return trx_ctrl_cmd(trx, 1, "SETSLOT", "%u %u", tn, chan_types[pchan]);
+	return trx_ctrl_cmd(trx, 1, "SETSLOT", "%u %u",
+			    cmdp->tn, chan_types[cmdp->pchan]);
 }
 
 /*
@@ -310,28 +311,30 @@ int trx_if_cmd_setslot(struct trx_instance *trx, uint8_t tn,
  * RSP (RX/TX)TUNE <status> <kHz>
  */
 
-int trx_if_cmd_rxtune(struct trx_instance *trx, uint16_t band_arfcn)
+static int trx_if_cmd_rxtune(struct trx_instance *trx,
+			     const struct phyif_cmdp_setfreq_h0 *cmdp)
 {
 	uint16_t freq10;
 
 	/* RX is downlink on MS side */
-	freq10 = gsm_arfcn2freq10(band_arfcn, 0);
+	freq10 = gsm_arfcn2freq10(cmdp->band_arfcn, 0);
 	if (freq10 == 0xffff) {
-		LOGPFSML(trx->fi, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn);
+		LOGPFSML(trx->fi, LOGL_ERROR, "ARFCN %d not defined\n", cmdp->band_arfcn);
 		return -ENOTSUP;
 	}
 
 	return trx_ctrl_cmd(trx, 1, "RXTUNE", "%u", freq10 * 100);
 }
 
-int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t band_arfcn)
+static int trx_if_cmd_txtune(struct trx_instance *trx,
+			     const struct phyif_cmdp_setfreq_h0 *cmdp)
 {
 	uint16_t freq10;
 
 	/* TX is uplink on MS side */
-	freq10 = gsm_arfcn2freq10(band_arfcn, 1);
+	freq10 = gsm_arfcn2freq10(cmdp->band_arfcn, 1);
 	if (freq10 == 0xffff) {
-		LOGPFSML(trx->fi, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn);
+		LOGPFSML(trx->fi, LOGL_ERROR, "ARFCN %d not defined\n", cmdp->band_arfcn);
 		return -ENOTSUP;
 	}
 
@@ -350,19 +353,20 @@ int trx_if_cmd_txtune(struct trx_instance *trx, uint16_t band_arfcn)
  * RSP MEASURE <status> <kHz> <dB>
  */
 
-int trx_if_cmd_measure(struct trx_instance *trx,
-	uint16_t band_arfcn_start, uint16_t band_arfcn_stop)
+static int trx_if_cmd_measure(struct trx_instance *trx,
+			      const struct phyif_cmdp_measure *cmdp)
 {
 	uint16_t freq10;
 
 	/* Update ARFCN range for measurement */
-	trx->pm_band_arfcn_start = band_arfcn_start;
-	trx->pm_band_arfcn_stop = band_arfcn_stop;
+	trx->pm_band_arfcn_start = cmdp->band_arfcn_start;
+	trx->pm_band_arfcn_stop = cmdp->band_arfcn_stop;
 
 	/* Calculate a frequency for current ARFCN (DL) */
-	freq10 = gsm_arfcn2freq10(band_arfcn_start, 0);
+	freq10 = gsm_arfcn2freq10(cmdp->band_arfcn_start, 0);
 	if (freq10 == 0xffff) {
-		LOGPFSML(trx->fi, LOGL_ERROR, "ARFCN %d not defined\n", band_arfcn_start);
+		LOGPFSML(trx->fi, LOGL_ERROR,
+			 "ARFCN %d not defined\n", cmdp->band_arfcn_start);
 		return -ENOTSUP;
 	}
 
@@ -399,8 +403,14 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_FULL_POWER_SCAN_RES, &res);
 
 	/* Schedule a next measurement */
-	if (band_arfcn != trx->pm_band_arfcn_stop)
-		trx_if_cmd_measure(trx, ++band_arfcn, trx->pm_band_arfcn_stop);
+	if (band_arfcn != trx->pm_band_arfcn_stop) {
+		const struct phyif_cmdp_measure cmdp = {
+			.band_arfcn_start = ++band_arfcn,
+			.band_arfcn_stop = trx->pm_band_arfcn_stop,
+		};
+
+		trx_if_cmd_measure(trx, &cmdp);
+	}
 }
 
 /*
@@ -416,9 +426,10 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
  * RSP SETTA <status> <TA>
  */
 
-int trx_if_cmd_setta(struct trx_instance *trx, int8_t ta)
+static int trx_if_cmd_setta(struct trx_instance *trx,
+			    const struct phyif_cmdp_setta *cmdp)
 {
-	return trx_ctrl_cmd(trx, 0, "SETTA", "%d", ta);
+	return trx_ctrl_cmd(trx, 0, "SETTA", "%d", cmdp->ta);
 }
 
 /*
@@ -434,8 +445,8 @@ int trx_if_cmd_setta(struct trx_instance *trx, int8_t ta)
  * channel list is expected to be sorted in ascending order.
  */
 
-int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn, uint8_t maio,
-		     const uint16_t *ma, size_t ma_len)
+static int trx_if_cmd_setfh(struct trx_instance *trx,
+			    const struct phyif_cmdp_setfreq_h1 *cmdp)
 {
 	/* Reserve some room for CMD SETFH <HSN> <MAIO> */
 	char ma_buf[TRXC_BUF_SIZE - 24];
@@ -445,20 +456,20 @@ int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn, uint8_t maio,
 	int i, rc;
 
 	/* Make sure that Mobile Allocation has at least one ARFCN */
-	if (!ma_len || ma == NULL) {
+	if (!cmdp->ma_len || cmdp->ma == NULL) {
 		LOGPFSML(trx->fi, LOGL_ERROR, "Mobile Allocation is empty?!?\n");
 		return -EINVAL;
 	}
 
 	/* Compose a sequence of Rx/Tx frequencies (mobile allocation) */
-	for (i = 0, ptr = ma_buf; i < ma_len; i++) {
+	for (i = 0, ptr = ma_buf; i < cmdp->ma_len; i++) {
 		/* Convert ARFCN to a pair of Rx/Tx frequencies (Hz * 10) */
-		rx_freq = gsm_arfcn2freq10(ma[i], 0); /* Rx: Downlink */
-		tx_freq = gsm_arfcn2freq10(ma[i], 1); /* Tx: Uplink */
+		rx_freq = gsm_arfcn2freq10(cmdp->ma[i], 0); /* Rx: Downlink */
+		tx_freq = gsm_arfcn2freq10(cmdp->ma[i], 1); /* Tx: Uplink */
 		if (rx_freq == 0xffff || tx_freq == 0xffff) {
 			LOGPFSML(trx->fi, LOGL_ERROR, "Failed to convert ARFCN %u "
 			     "to a pair of Rx/Tx frequencies\n",
-			     ma[i] & ~ARFCN_FLAG_MASK);
+			     cmdp->ma[i] & ~ARFCN_FLAG_MASK);
 			return -EINVAL;
 		}
 
@@ -466,7 +477,7 @@ int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn, uint8_t maio,
 		rc = snprintf(ptr, ma_buf_len, "%u %u ", rx_freq * 100, tx_freq * 100);
 		if (rc < 0 || rc > ma_buf_len) { /* Prevent buffer overflow */
 			LOGPFSML(trx->fi, LOGL_ERROR, "Not enough room to encode "
-			     "Mobile Allocation (N=%zu)\n", ma_len);
+			     "Mobile Allocation (N=%zu)\n", cmdp->ma_len);
 			return -ENOSPC;
 		}
 
@@ -478,7 +489,7 @@ int trx_if_cmd_setfh(struct trx_instance *trx, uint8_t hsn, uint8_t maio,
 	/* Overwrite the last space */
 	*(ptr - 1) = '\0';
 
-	return trx_ctrl_cmd(trx, 1, "SETFH", "%u %u %s", hsn, maio, ma_buf);
+	return trx_ctrl_cmd(trx, 1, "SETFH", "%u %u %s", cmdp->hsn, cmdp->maio, ma_buf);
 }
 
 /* Get response from CTRL socket */
@@ -569,6 +580,49 @@ rsp_error:
 	return -EIO;
 }
 
+int trx_if_handle_phyif_cmd(struct trx_instance *trx, const struct phyif_cmd *cmd)
+{
+	int rc;
+
+	switch (cmd->type) {
+	case PHYIF_CMDT_RESET:
+		if ((rc = trx_if_cmd_poweroff(trx)) != 0)
+			return rc;
+		rc = trx_if_cmd_echo(trx);
+		break;
+	case PHYIF_CMDT_POWERON:
+		rc = trx_if_cmd_poweron(trx);
+		break;
+	case PHYIF_CMDT_POWEROFF:
+		rc = trx_if_cmd_poweroff(trx);
+		break;
+	case PHYIF_CMDT_MEASURE:
+		rc = trx_if_cmd_measure(trx, &cmd->param.measure);
+		break;
+	case PHYIF_CMDT_SETFREQ_H0:
+		if ((rc = trx_if_cmd_rxtune(trx, &cmd->param.setfreq_h0)) != 0)
+			return rc;
+		if ((rc = trx_if_cmd_txtune(trx, &cmd->param.setfreq_h0)) != 0)
+			return rc;
+		break;
+	case PHYIF_CMDT_SETFREQ_H1:
+		rc = trx_if_cmd_setfh(trx, &cmd->param.setfreq_h1);
+		break;
+	case PHYIF_CMDT_SETSLOT:
+		rc = trx_if_cmd_setslot(trx, &cmd->param.setslot);
+		break;
+	case PHYIF_CMDT_SETTA:
+		rc = trx_if_cmd_setta(trx, &cmd->param.setta);
+		break;
+	default:
+		LOGPFSML(trx->fi, LOGL_ERROR,
+			 "Unhandled PHYIF command type=0x%02x\n", cmd->type);
+		rc = -ENODEV;
+	}
+
+	return rc;
+}
+
 /* ------------------------------------------------------------------------ */
 /* Data interface handlers                                                  */
 /* ------------------------------------------------------------------------ */
@@ -594,13 +648,8 @@ rsp_error:
 static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
-	struct trxcon_inst *trxcon = trx->trxcon;
-	struct l1sched_meas_set meas;
+	struct phyif_burst_ind bi;
 	uint8_t buf[TRXD_BUF_SIZE];
-	sbit_t bits[148];
-	int8_t rssi, tn;
-	int16_t toa256;
-	uint32_t fn;
 	ssize_t read_len;
 
 	read_len = read(ofd->fd, buf, sizeof(buf));
@@ -615,52 +664,42 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return -EINVAL;
 	}
 
-	tn = buf[0];
-	fn = osmo_load32be(buf + 1);
-	rssi = -(int8_t) buf[5];
-	toa256 = ((int16_t) (buf[6] << 8) | buf[7]);
+	bi = (struct phyif_burst_ind) {
+		.tn = buf[0],
+		.fn = osmo_load32be(buf + 1),
+		.rssi = -(int8_t) buf[5],
+		.toa256 = (int16_t) (buf[6] << 8) | buf[7],
+		.burst = (sbit_t *)&buf[8],
+		.burst_len = 148,
+	};
 
 	/* Copy and convert bits {254..0} to sbits {-127..127} */
-	for (unsigned int i = 0; i < 148; i++) {
+	for (unsigned int i = 0; i < bi.burst_len; i++) {
 		if (buf[8 + i] == 255)
-			bits[i] = -127;
+			bi.burst[i] = -127;
 		else
-			bits[i] = 127 - buf[8 + i];
+			bi.burst[i] = 127 - buf[8 + i];
 	}
 
-	if (tn >= 8) {
-		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal TS %d\n", tn);
+	if (bi.tn >= 8) {
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal TS %d\n", bi.tn);
 		return -EINVAL;
 	}
 
-	if (fn >= 2715648) {
-		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal FN %u\n", fn);
+	if (bi.fn >= 2715648) {
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal FN %u\n", bi.fn);
 		return -EINVAL;
 	}
 
 	LOGPFSMSL(trx->fi, DTRXD, LOGL_DEBUG,
 		  "RX burst tn=%u fn=%u rssi=%d toa=%d\n",
-		  tn, fn, rssi, toa256);
+		  bi.tn, bi.fn, bi.rssi, bi.toa256);
 
-	/* Group the measurements together */
-	meas = (struct l1sched_meas_set) {
-		.toa256 = toa256,
-		.rssi = rssi,
-		.fn = fn,
-	};
-
-	/* Poke scheduler */
-	l1sched_handle_rx_burst(trxcon->sched, tn, fn, bits, 148, &meas);
-
-	/* Correct local clock counter */
-	if (fn % 51 == 0)
-		l1sched_clck_handle(trxcon->sched, fn);
-
-	return 0;
+	return phyif_handle_burst_ind(trx, &bi);
 }
 
-int trx_if_tx_burst(struct trx_instance *trx,
-		    const struct l1sched_burst_req *br)
+int trx_if_handle_phyif_burst_req(struct trx_instance *trx,
+				  const struct phyif_burst_req *br)
 {
 	uint8_t buf[TRXD_BUF_SIZE];
 	size_t length;
@@ -760,7 +799,7 @@ udp_error:
 }
 
 /* Flush pending control messages */
-void trx_if_flush_ctrl(struct trx_instance *trx)
+static void trx_if_flush_ctrl(struct trx_instance *trx)
 {
 	struct trx_ctrl_msg *tcm;
 

@@ -30,7 +30,7 @@
 #include <osmocom/core/talloc.h>
 
 #include <osmocom/bb/trxcon/trxcon.h>
-#include <osmocom/bb/trxcon/trx_if.h>
+#include <osmocom/bb/trxcon/phyif.h>
 #include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/trxcon/l1ctl_server.h>
@@ -44,6 +44,7 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 				   uint32_t event, void *data)
 {
 	struct trxcon_inst *trxcon = fi->priv;
+	struct phyif_cmd phycmd = { };
 
 	switch (event) {
 	case TRXCON_EV_PHYIF_FAILURE:
@@ -58,8 +59,9 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 		if (fi->state != TRXCON_ST_RESET)
 			osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
 		l1sched_reset(trxcon->sched, true);
-		trx_if_cmd_poweroff(trxcon->phyif);
-		trx_if_cmd_echo(trxcon->phyif);
+
+		phycmd.type = PHYIF_CMDT_RESET;
+		phyif_handle_cmd(trxcon->phyif, &phycmd);
 		break;
 	case TRXCON_EV_RESET_SCHED_REQ:
 		l1sched_reset(trxcon->sched, false);
@@ -70,13 +72,17 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 
 		switch (req->type) {
 		case TRXCON_PHY_CFGT_PCHAN_COMB:
-			trx_if_cmd_setslot(trxcon->phyif,
-					   req->pchan_comb.tn,
-					   req->pchan_comb.pchan);
+			phycmd.type = PHYIF_CMDT_SETSLOT;
+			phycmd.param.setslot.tn = req->pchan_comb.tn;
+			phycmd.param.setslot.pchan = req->pchan_comb.pchan;
+			phyif_handle_cmd(trxcon->phyif, &phycmd);
 			break;
 		case TRXCON_PHY_CFGT_TX_PARAMS:
-			if (trxcon->l1p.ta != req->tx_params.timing_advance)
-				trx_if_cmd_setta(trxcon->phyif, req->tx_params.timing_advance);
+			if (trxcon->l1p.ta != req->tx_params.timing_advance) {
+				phycmd.type = PHYIF_CMDT_SETTA;
+				phycmd.param.setta.ta = req->tx_params.timing_advance;
+				phyif_handle_cmd(trxcon->phyif, &phycmd);
+			}
 			trxcon->l1p.tx_power = req->tx_params.tx_power;
 			trxcon->l1p.ta = req->tx_params.timing_advance;
 			break;
@@ -127,7 +133,6 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_FBSB_SEARCH_REQ:
 	{
 		const struct trxcon_param_fbsb_search_req *req = data;
-		const struct trx_instance *trx = trxcon->phyif;
 
 		osmo_fsm_inst_state_chg_ms(fi, TRXCON_ST_FBSB_SEARCH, req->timeout_ms, 0);
 
@@ -135,26 +140,37 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 
 		/* Only if current ARFCN differs */
 		if (trxcon->l1p.band_arfcn != req->band_arfcn) {
+			const struct phyif_cmd phycmd = {
+				.type = PHYIF_CMDT_SETFREQ_H0,
+				.param.setfreq_h0 = {
+					.band_arfcn = req->band_arfcn,
+				},
+			};
+
 			/* Update current ARFCN */
 			trxcon->l1p.band_arfcn = req->band_arfcn;
 
 			/* Tune transceiver to required ARFCN */
-			trx_if_cmd_rxtune(trxcon->phyif, req->band_arfcn);
-			trx_if_cmd_txtune(trxcon->phyif, req->band_arfcn);
+			phyif_handle_cmd(trxcon->phyif, &phycmd);
 		}
 
-		/* Transceiver might have been powered on before, e.g.
-		 * in case of sending L1CTL_FBSB_REQ due to signal loss. */
-		if (!trx->powered_up)
-			trx_if_cmd_poweron(trxcon->phyif);
+		const struct phyif_cmd phycmd = { .type = PHYIF_CMDT_POWERON };
+		phyif_handle_cmd(trxcon->phyif, &phycmd);
 		break;
 	}
 	case TRXCON_EV_FULL_POWER_SCAN_REQ:
 	{
 		const struct trxcon_param_full_power_scan_req *req = data;
+		const struct phyif_cmd phycmd = {
+			.type = PHYIF_CMDT_MEASURE,
+			.param.measure = {
+				.band_arfcn_start = req->band_arfcn_start,
+				.band_arfcn_stop = req->band_arfcn_stop,
+			},
+		};
 
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_FULL_POWER_SCAN, 0, 0); /* TODO: timeout */
-		trx_if_cmd_measure(trxcon->phyif, req->band_arfcn_start, req->band_arfcn_stop);
+		phyif_handle_cmd(trxcon->phyif, &phycmd);
 		break;
 	}
 	default:
@@ -178,8 +194,15 @@ static void trxcon_st_full_power_scan_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_FULL_POWER_SCAN_REQ:
 	{
 		const struct trxcon_param_full_power_scan_req *req = data;
+		const struct phyif_cmd phycmd = {
+			.type = PHYIF_CMDT_MEASURE,
+			.param.measure = {
+				.band_arfcn_start = req->band_arfcn_start,
+				.band_arfcn_stop = req->band_arfcn_stop,
+			},
+		};
 
-		trx_if_cmd_measure(trxcon->phyif, req->band_arfcn_start, req->band_arfcn_stop);
+		phyif_handle_cmd(trxcon->phyif, &phycmd);
 		break;
 	}
 	default:
@@ -266,20 +289,32 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 		}
 
 		if (req->hopping) {
+			const struct phyif_cmd phycmd = {
+				.type = PHYIF_CMDT_SETFREQ_H1,
+				.param.setfreq_h1 = {
+					.hsn = req->h1.hsn,
+					.maio = req->h1.maio,
+					.ma = &req->h1.ma[0],
+					.ma_len = req->h1.n,
+				},
+			};
+
 			/* Apply the freq. hopping parameters */
-			rc = trx_if_cmd_setfh(trxcon->phyif,
-					      req->h1.hsn, req->h1.maio,
-					      &req->h1.ma[0], req->h1.n);
-			if (rc)
+			if (phyif_handle_cmd(trxcon->phyif, &phycmd) != 0)
 				return;
 
 			/* Set current ARFCN to an invalid value */
 			trxcon->l1p.band_arfcn = 0xffff;
 		} else {
+			const struct phyif_cmd phycmd = {
+				.type = PHYIF_CMDT_SETFREQ_H0,
+				.param.setfreq_h0 = {
+					.band_arfcn = req->h0.band_arfcn,
+				},
+			};
+
 			/* Tune transceiver to required ARFCN */
-			if (trx_if_cmd_rxtune(trxcon->phyif, req->h0.band_arfcn))
-				return;
-			if (trx_if_cmd_txtune(trxcon->phyif, req->h0.band_arfcn))
+			if (phyif_handle_cmd(trxcon->phyif, &phycmd) != 0)
 				return;
 
 			/* Update current ARFCN */
@@ -495,7 +530,7 @@ static void trxcon_fsm_pre_term_cb(struct osmo_fsm_inst *fi,
 		l1ctl_client_conn_close(trxcon->l2if);
 	}
 	if (trxcon->phyif != NULL)
-		trx_if_close(trxcon->phyif);
+		phyif_close(trxcon->phyif);
 
 	talloc_free(trxcon);
 	fi->priv = NULL;

@@ -42,6 +42,7 @@
 #include <osmocom/gsm/gsm_utils.h>
 
 #include <osmocom/bb/trxcon/trxcon.h>
+#include <osmocom/bb/trxcon/phyif.h>
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
@@ -134,8 +135,52 @@ int l1sched_handle_burst_req(struct l1sched_state *sched,
 			     const struct l1sched_burst_req *br)
 {
 	struct trxcon_inst *trxcon = sched->priv;
+	const struct phyif_burst_req phybr = {
+		.fn = br->fn,
+		.tn = br->tn,
+		.pwr = br->pwr,
+		.burst = &br->burst[0],
+		.burst_len = br->burst_len,
+	};
 
-	return trx_if_tx_burst(trxcon->phyif, br);
+	return phyif_handle_burst_req(trxcon->phyif, &phybr);
+}
+
+/* External L1 API for the PHYIF */
+int phyif_handle_burst_ind(void *phyif, const struct phyif_burst_ind *bi)
+{
+	struct trx_instance *trx = phyif;
+	struct trxcon_inst *trxcon = trx->trxcon;
+	const struct l1sched_meas_set meas = {
+		.fn = bi->fn,
+		.toa256 = bi->toa256,
+		.rssi = bi->rssi,
+	};
+
+	/* Poke scheduler */
+	l1sched_handle_rx_burst(trxcon->sched, bi->tn, bi->fn,
+				bi->burst, bi->burst_len, &meas);
+
+	/* Correct local clock counter */
+	if (bi->fn % 51 == 0)
+		l1sched_clck_handle(trxcon->sched, bi->fn);
+
+	return 0;
+}
+
+int phyif_handle_burst_req(void *phyif, const struct phyif_burst_req *br)
+{
+	return trx_if_handle_phyif_burst_req(phyif, br);
+}
+
+int phyif_handle_cmd(void *phyif, const struct phyif_cmd *cmd)
+{
+	return trx_if_handle_phyif_cmd(phyif, cmd);
+}
+
+void phyif_close(void *phyif)
+{
+	trx_if_close(phyif);
 }
 
 /* External L2 API for the scheduler */
