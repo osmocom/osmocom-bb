@@ -38,7 +38,6 @@
 
 #include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/l1sched/logging.h>
-#include <osmocom/bb/trxcon/sched_utils.h>
 
 /* 3GPP TS 45.009, table 3.2.1.3-{2,4}: AMR on Downlink TCH/H.
  *
@@ -57,6 +56,17 @@ static const uint8_t sched_tchh_dl_amr_cmi_map[26] = {
 	[16] = 1, /* TCH/H(1): a=5  / d=11 / f=16 */
 	[24] = 1, /* TCH/H(1): a=14 / d=20 / f=24 */
 	[7]  = 1, /* TCH/H(1): a=22 / d=3  / f=7 */
+};
+
+/* TDMA frame number of burst 'a' is always used as the table index. */
+static const uint8_t sched_tchh_ul_amr_cmi_map[26] = {
+	[0]  = 1, /* TCH/H(0): a=0 */
+	[8]  = 1, /* TCH/H(0): a=8 */
+	[17] = 1, /* TCH/H(0): a=17 */
+
+	[1]  = 1, /* TCH/H(1): a=1 */
+	[9]  = 1, /* TCH/H(1): a=9 */
+	[18] = 1, /* TCH/H(1): a=18 */
 };
 
 static const uint8_t tch_h0_traffic_block_map[3][4] = {
@@ -467,7 +477,7 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 		/* the first FN 0,8,17 defines that CMI is included in frame,
 		 * the first FN 4,13,21 defines that CMR is included in frame.
 		 */
-		amr_fn_is_cmr = !ul_amr_fn_is_cmi(br->fn);
+		amr_fn_is_cmr = !sched_tchh_ul_amr_cmi_map[br->fn % 26];
 
 		len = osmo_amr_rtp_dec(lchan->prim->payload, lchan->prim->payload_len,
 				&cmr_codec, &cmi, &ft_codec,

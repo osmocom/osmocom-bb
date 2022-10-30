@@ -35,7 +35,6 @@
 
 #include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/l1sched/logging.h>
-#include <osmocom/bb/trxcon/sched_utils.h>
 
 /* 3GPP TS 45.009, table 3.2.1.3-{1,3}: AMR on Downlink TCH/F.
  *
@@ -49,6 +48,13 @@ static const uint8_t sched_tchf_dl_amr_cmi_map[26] = {
 	[11] = 1, /* TCH/F: a=4  / h=11 */
 	[20] = 1, /* TCH/F: a=13 / h=20 */
 	[3]  = 1, /* TCH/F: a=21 / h=3 (21+7=28, 25 is idle -> 29. 29%26=3) */
+};
+
+/* TDMA frame number of burst 'a' should be used as the table index. */
+static const uint8_t sched_tchf_ul_amr_cmi_map[26] = {
+	[0]  = 1, /* TCH/F: a=0 */
+	[8]  = 1, /* TCH/F: a=8 */
+	[17] = 1, /* TCH/F: a=17 */
 };
 
 int rx_tchf_fn(struct l1sched_lchan_state *lchan,
@@ -248,7 +254,7 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 		/* the first FN 0,8,17 defines that CMI is included in frame,
 		 * the first FN 4,13,21 defines that CMR is included in frame.
 		 */
-		amr_fn_is_cmr = !ul_amr_fn_is_cmi(br->fn);
+		amr_fn_is_cmr = !sched_tchf_ul_amr_cmi_map[br->fn % 26];
 
 		len = osmo_amr_rtp_dec(lchan->prim->payload, lchan->prim->payload_len,
 				&cmr_codec, &cmi, &ft_codec,
