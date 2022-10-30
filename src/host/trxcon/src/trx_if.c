@@ -259,11 +259,6 @@ static int trx_if_cmd_poweroff(struct trx_instance *trx)
 
 static int trx_if_cmd_poweron(struct trx_instance *trx)
 {
-	if (trx->powered_up) {
-		/* FIXME: this should be handled by the FSM, not here! */
-		LOGPFSML(trx->fi, LOGL_ERROR, "Suppressing POWERON as we're already powered up\n");
-		return -EAGAIN;
-	}
 	return trx_ctrl_cmd(trx, 1, "POWERON", "");
 }
 
