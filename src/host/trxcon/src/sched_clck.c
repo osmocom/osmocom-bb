@@ -51,7 +51,7 @@ static void l1sched_clck_tick(void *data)
 
 	/* Check if transceiver is still alive */
 	if (sched->fn_counter_lost++ == TRX_LOSS_FRAMES) {
-		LOGP_SCHEDC(sched, LOGL_DEBUG, "No more clock from transceiver\n");
+		LOGP_SCHEDC(sched, LOGL_NOTICE, "No more clock from transceiver\n");
 		sched->clck_state = L1SCHED_CLCK_ST_WAIT;
 
 		return;
@@ -124,13 +124,13 @@ int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn)
 	if (sched->clck_state == L1SCHED_CLCK_ST_WAIT) {
 		l1sched_clck_correct(sched, &tv_now, fn);
 
-		LOGP_SCHEDC(sched, LOGL_DEBUG, "Initial clock received: fn=%u\n", fn);
+		LOGP_SCHEDC(sched, LOGL_NOTICE, "Initial clock received: fn=%u\n", fn);
 		sched->clck_state = L1SCHED_CLCK_ST_OK;
 
 		return 0;
 	}
 
-	LOGP_SCHEDC(sched, LOGL_NOTICE, "Clock indication: fn=%u\n", fn);
+	LOGP_SCHEDC(sched, LOGL_DEBUG, "Clock indication: fn=%u\n", fn);
 
 	osmo_timer_del(&sched->clock_timer);
 
@@ -151,7 +151,7 @@ int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn)
 		return 0;
 	}
 
-	LOGP_SCHEDC(sched, LOGL_INFO, "GSM clock jitter: %" PRId64 "\n",
+	LOGP_SCHEDC(sched, LOGL_DEBUG, "GSM clock jitter: %" PRId64 "\n",
 		    elapsed_fn * GSM_TDMA_FN_DURATION_uS - elapsed_us);
 
 	/* Too many frames have been processed already */
