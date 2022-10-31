@@ -474,7 +474,7 @@ static int trx_if_cmd_setfh(struct trx_instance *trx,
 		rc = snprintf(ptr, ma_buf_len, "%u %u ", rx_freq * 100, tx_freq * 100);
 		if (rc < 0 || rc > ma_buf_len) { /* Prevent buffer overflow */
 			LOGPFSML(trx->fi, LOGL_ERROR, "Not enough room to encode "
-			     "Mobile Allocation (N=%zu)\n", cmdp->ma_len);
+			     "Mobile Allocation (N=%u)\n", cmdp->ma_len);
 			return -ENOSPC;
 		}
 
