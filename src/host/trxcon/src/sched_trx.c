@@ -85,7 +85,7 @@ static int l1sched_cfg_pchan_comb_req(struct l1sched_state *sched,
 static void l1sched_a5_burst_enc(struct l1sched_lchan_state *lchan,
 				 struct l1sched_burst_req *br);
 
-static void sched_frame_clck_cb(struct l1sched_state *sched)
+void l1sched_trigger(struct l1sched_state *sched)
 {
 	struct l1sched_burst_req br[TRX_TS_COUNT];
 	const struct l1sched_tdma_frame *frame;
@@ -199,7 +199,6 @@ struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg, vo
 
 	*sched = (struct l1sched_state) {
 		/* .clock_timer is set up in l1sched_clck_correct() */
-		.clock_cb = &sched_frame_clck_cb,
 		.fn_counter_advance = cfg->fn_advance,
 		.priv = priv,
 	};

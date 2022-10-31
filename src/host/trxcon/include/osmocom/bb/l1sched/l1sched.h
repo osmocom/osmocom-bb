@@ -372,8 +372,6 @@ struct l1sched_state {
 	uint32_t fn_counter_lost;
 	/*! Frame callback timer */
 	struct osmo_timer_list clock_timer;
-	/*! Frame callback */
-	void (*clock_cb)(struct l1sched_state *sched);
 	/*! List of timeslots maintained by this scheduler */
 	struct l1sched_ts *ts[TRX_TS_COUNT];
 	/*! SACCH cache (common for all lchans) */
@@ -490,8 +488,10 @@ bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
 void l1sched_lchan_meas_push(struct l1sched_lchan_state *lchan, const struct l1sched_meas_set *meas);
 void l1sched_lchan_meas_avg(struct l1sched_lchan_state *lchan, unsigned int n);
 
+/* Clock and Downlink scheduling trigger */
 int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn);
 void l1sched_clck_reset(struct l1sched_state *sched);
+void l1sched_trigger(struct l1sched_state *sched);
 
 /* External L1 API, must be implemented by the API user */
 int l1sched_handle_config_req(struct l1sched_state *sched,
