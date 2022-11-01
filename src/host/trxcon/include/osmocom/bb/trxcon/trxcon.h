@@ -29,8 +29,6 @@ enum trxcon_fsm_events {
 	TRXCON_EV_UPDATE_SACCH_CACHE_REQ,
 	TRXCON_EV_DEDICATED_ESTABLISH_REQ,
 	TRXCON_EV_DEDICATED_RELEASE_REQ,
-	TRXCON_EV_TX_TRAFFIC_REQ,
-	TRXCON_EV_RX_TRAFFIC_IND,
 	TRXCON_EV_TX_DATA_REQ,
 	TRXCON_EV_RX_DATA_IND,
 	TRXCON_EV_CRYPTO_REQ,
@@ -84,16 +82,18 @@ struct trxcon_param_set_phy_config_req {
 	};
 };
 
-/* param of TRXCON_EV_TX_{TRAFFIC,DATA}_REQ */
-struct trxcon_param_tx_traffic_data_req {
+/* param of TRXCON_EV_TX_DATA_REQ */
+struct trxcon_param_tx_data_req {
+	bool traffic;
 	uint8_t chan_nr;
 	uint8_t link_id;
 	size_t data_len;
 	const uint8_t *data;
 };
 
-/* param of TRXCON_EV_RX_{TRAFFIC,DATA}_IND */
-struct trxcon_param_rx_traffic_data_ind {
+/* param of TRXCON_EV_RX_DATA_IND */
+struct trxcon_param_rx_data_ind {
+	bool traffic;
 	uint8_t chan_nr;
 	uint8_t link_id;
 	uint16_t band_arfcn;

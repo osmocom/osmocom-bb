@@ -232,13 +232,12 @@ int l1ctl_tx_ccch_mode_conf(struct l1ctl_client *l1c, uint8_t mode)
 /**
  * Handles both L1CTL_DATA_IND and L1CTL_TRAFFIC_IND.
  */
-int l1ctl_tx_dt_ind(struct l1ctl_client *l1c, bool traffic,
-		    const struct trxcon_param_rx_traffic_data_ind *ind)
+int l1ctl_tx_dt_ind(struct l1ctl_client *l1c,
+		    const struct trxcon_param_rx_data_ind *ind)
 {
 	struct msgb *msg;
 
-	msg = l1ctl_alloc_msg(traffic ?
-		L1CTL_TRAFFIC_IND : L1CTL_DATA_IND);
+	msg = l1ctl_alloc_msg(ind->traffic ? L1CTL_TRAFFIC_IND : L1CTL_DATA_IND);
 	if (msg == NULL)
 		return -ENOMEM;
 
@@ -637,7 +636,8 @@ static int l1ctl_rx_dt_req(struct l1ctl_client *l1c,
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 	msg->l2h = ul->payload;
 
-	struct trxcon_param_tx_traffic_data_req req = {
+	struct trxcon_param_tx_data_req req = {
+		.traffic = traffic,
 		.chan_nr = ul->chan_nr,
 		.link_id = ul->link_id & 0x40,
 		.data_len = msgb_l2len(msg),
@@ -650,10 +650,7 @@ static int l1ctl_rx_dt_req(struct l1ctl_client *l1c,
 
 	switch (fi->state) {
 	case TRXCON_ST_DEDICATED:
-		if (traffic)
-			osmo_fsm_inst_dispatch(fi, TRXCON_EV_TX_TRAFFIC_REQ, &req);
-		else
-			osmo_fsm_inst_dispatch(fi, TRXCON_EV_TX_DATA_REQ, &req);
+		osmo_fsm_inst_dispatch(fi, TRXCON_EV_TX_DATA_REQ, &req);
 		break;
 	default:
 		if (!traffic && req.link_id == 0x40) /* only for SACCH */

@@ -17,8 +17,8 @@ int l1ctl_tx_pm_conf(struct l1ctl_client *l1c, uint16_t band_arfcn,
 int l1ctl_tx_reset_conf(struct l1ctl_client *l1c, uint8_t type);
 int l1ctl_tx_reset_ind(struct l1ctl_client *l1c, uint8_t type);
 
-int l1ctl_tx_dt_ind(struct l1ctl_client *l1c, bool traffic,
-		    const struct trxcon_param_rx_traffic_data_ind *ind);
+int l1ctl_tx_dt_ind(struct l1ctl_client *l1c,
+		    const struct trxcon_param_rx_data_ind *ind);
 int l1ctl_tx_dt_conf(struct l1ctl_client *l1c,
 	struct l1ctl_info_dl *data, bool traffic);
 int l1ctl_tx_rach_conf(struct l1ctl_client *l1c,

@@ -88,7 +88,7 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 	}
 	case TRXCON_EV_UPDATE_SACCH_CACHE_REQ:
 	{
-		const struct trxcon_param_tx_traffic_data_req *req = data;
+		const struct trxcon_param_tx_data_req *req = data;
 
 		if (req->link_id != L1SCHED_CH_LID_SACCH) {
 			LOGPFSML(fi, LOGL_ERROR, "Unexpected link_id=0x%02x\n", req->link_id);
@@ -340,12 +340,8 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 		break;
 	}
 	case TRXCON_EV_RX_DATA_IND:
-	{
-		const struct trxcon_param_rx_traffic_data_ind *ind = data;
-
-		l1ctl_tx_dt_ind(trxcon->l2if, false, ind);
+		l1ctl_tx_dt_ind(trxcon->l2if, (const struct trxcon_param_rx_data_ind *)data);
 		break;
-	}
 	default:
 		OSMO_ASSERT(0);
 	}
@@ -433,10 +429,9 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 		}
 		break;
 	}
-	case TRXCON_EV_TX_TRAFFIC_REQ:
 	case TRXCON_EV_TX_DATA_REQ:
 	{
-		const struct trxcon_param_tx_traffic_data_req *req = data;
+		const struct trxcon_param_tx_data_req *req = data;
 		struct l1sched_ts_prim *prim;
 
 		prim = l1sched_prim_push(trxcon->sched, L1SCHED_PRIM_DATA,
@@ -448,14 +443,9 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 		}
 		break;
 	}
-	case TRXCON_EV_RX_TRAFFIC_IND:
 	case TRXCON_EV_RX_DATA_IND:
-	{
-		const struct trxcon_param_rx_traffic_data_ind *ind = data;
-
-		l1ctl_tx_dt_ind(trxcon->l2if, event == TRXCON_EV_RX_TRAFFIC_IND, ind);
+		l1ctl_tx_dt_ind(trxcon->l2if, (const struct trxcon_param_rx_data_ind *)data);
 		break;
-	}
 	default:
 		OSMO_ASSERT(0);
 	}
@@ -470,12 +460,16 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_TX_ACCESS_BURST_REQ:
 		handle_tx_access_burst_req(fi, data);
 		break;
-	case TRXCON_EV_RX_TRAFFIC_IND:
-		LOGPFSML(fi, LOGL_NOTICE, "Rx PDTCH/D message\n");
-		break;
 	case TRXCON_EV_RX_DATA_IND:
-		LOGPFSML(fi, LOGL_NOTICE, "Rx PTCCH/D message\n");
+	{
+		const struct trxcon_param_rx_data_ind *ind = data;
+
+		if (ind->link_id == 0x00)
+			LOGPFSML(fi, LOGL_NOTICE, "Rx PDTCH/D message\n");
+		else
+			LOGPFSML(fi, LOGL_NOTICE, "Rx PTCCH/D message\n");
 		break;
+	}
 	case TRXCON_EV_DEDICATED_RELEASE_REQ:
 		l1sched_reset(trxcon->sched, false);
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
@@ -554,8 +548,6 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 		.in_event_mask  = S(TRXCON_EV_DEDICATED_RELEASE_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
 				| S(TRXCON_EV_SET_TCH_MODE_REQ)
-				| S(TRXCON_EV_TX_TRAFFIC_REQ)
-				| S(TRXCON_EV_RX_TRAFFIC_IND)
 				| S(TRXCON_EV_TX_DATA_REQ)
 				| S(TRXCON_EV_RX_DATA_IND)
 				| S(TRXCON_EV_CRYPTO_REQ),
@@ -568,7 +560,6 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 				| S(TRXCON_ST_BCCH_CCCH),
 		.in_event_mask  = S(TRXCON_EV_DEDICATED_RELEASE_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
-				| S(TRXCON_EV_RX_TRAFFIC_IND)
 				| S(TRXCON_EV_RX_DATA_IND),
 		.action = &trxcon_st_packet_data_action,
 	},
@@ -590,8 +581,6 @@ static const struct value_string trxcon_fsm_event_names[] = {
 	OSMO_VALUE_STRING(TRXCON_EV_UPDATE_SACCH_CACHE_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_ESTABLISH_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_RELEASE_REQ),
-	OSMO_VALUE_STRING(TRXCON_EV_TX_TRAFFIC_REQ),
-	OSMO_VALUE_STRING(TRXCON_EV_RX_TRAFFIC_IND),
 	OSMO_VALUE_STRING(TRXCON_EV_TX_DATA_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_RX_DATA_IND),
 	OSMO_VALUE_STRING(TRXCON_EV_CRYPTO_REQ),

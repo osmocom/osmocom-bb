@@ -197,7 +197,8 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 
 	lchan_desc = &l1sched_lchan_desc[lchan->type];
 
-	struct trxcon_param_rx_traffic_data_ind ind = {
+	struct trxcon_param_rx_data_ind ind = {
+		/* .traffic is set below */
 		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
 		.link_id = lchan_desc->link_id,
 		.band_arfcn = trxcon->l1p.band_arfcn,
@@ -211,10 +212,10 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 	};
 
 	switch (dt) {
-	case L1SCHED_DT_TRAFFIC:
 	case L1SCHED_DT_PACKET_DATA:
-		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_RX_TRAFFIC_IND, &ind);
-		break;
+	case L1SCHED_DT_TRAFFIC:
+		ind.traffic = true;
+		/* fall-through */
 	case L1SCHED_DT_SIGNALING:
 		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_RX_DATA_IND, &ind);
 		break;
