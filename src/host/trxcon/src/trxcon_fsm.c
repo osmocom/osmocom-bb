@@ -443,6 +443,9 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 		}
 		break;
 	}
+	case TRXCON_EV_TX_DATA_CNF:
+		l1ctl_tx_dt_conf(trxcon->l2if, (const struct trxcon_param_tx_data_cnf *)data);
+		break;
 	case TRXCON_EV_RX_DATA_IND:
 		l1ctl_tx_dt_ind(trxcon->l2if, (const struct trxcon_param_rx_data_ind *)data);
 		break;
@@ -549,6 +552,7 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
 				| S(TRXCON_EV_SET_TCH_MODE_REQ)
 				| S(TRXCON_EV_TX_DATA_REQ)
+				| S(TRXCON_EV_TX_DATA_CNF)
 				| S(TRXCON_EV_RX_DATA_IND)
 				| S(TRXCON_EV_CRYPTO_REQ),
 		.action = &trxcon_st_dedicated_action,
@@ -582,6 +586,7 @@ static const struct value_string trxcon_fsm_event_names[] = {
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_ESTABLISH_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_RELEASE_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_TX_DATA_REQ),
+	OSMO_VALUE_STRING(TRXCON_EV_TX_DATA_CNF),
 	OSMO_VALUE_STRING(TRXCON_EV_RX_DATA_IND),
 	OSMO_VALUE_STRING(TRXCON_EV_CRYPTO_REQ),
 	{ 0, NULL }

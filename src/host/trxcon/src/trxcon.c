@@ -47,7 +47,6 @@
 #include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/trxcon/l1ctl_server.h>
-#include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/l1sched/l1sched.h>
 
 #define COPYRIGHT \
@@ -248,7 +247,6 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	const struct l1sched_lchan_desc *lchan_desc;
 	struct l1sched_state *sched = lchan->ts->sched;
 	struct trxcon_inst *trxcon = sched->priv;
-	struct l1ctl_info_dl dl_hdr;
 	const uint8_t *data;
 	uint8_t ra_buf[2];
 	size_t data_len;
@@ -256,22 +254,21 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 
 	lchan_desc = &l1sched_lchan_desc[lchan->type];
 
-	dl_hdr = (struct l1ctl_info_dl) {
+	struct trxcon_param_tx_data_cnf cnf = {
+		/* .traffic is set below */
 		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
 		.link_id = lchan_desc->link_id,
-		.frame_nr = htonl(fn),
-		.band_arfcn = htons(trxcon->l1p.band_arfcn),
+		.band_arfcn = trxcon->l1p.band_arfcn,
+		.frame_nr = fn,
 	};
 
 	switch (dt) {
 	case L1SCHED_DT_TRAFFIC:
 	case L1SCHED_DT_PACKET_DATA:
-		rc = l1ctl_tx_dt_conf(trxcon->l2if, &dl_hdr, true);
-		data_len = lchan->prim->payload_len;
-		data = lchan->prim->payload;
-		break;
+		cnf.traffic = true;
+		/* fall-through */
 	case L1SCHED_DT_SIGNALING:
-		rc = l1ctl_tx_dt_conf(trxcon->l2if, &dl_hdr, false);
+		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_DATA_CNF, &cnf);
 		data_len = lchan->prim->payload_len;
 		data = lchan->prim->payload;
 		break;

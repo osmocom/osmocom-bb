@@ -285,8 +285,8 @@ int l1ctl_tx_rach_conf(struct l1ctl_client *l1c,
 /**
  * Handles both L1CTL_DATA_CONF and L1CTL_TRAFFIC_CONF.
  */
-int l1ctl_tx_dt_conf(struct l1ctl_client *l1c,
-	struct l1ctl_info_dl *data, bool traffic)
+int l1ctl_tx_dt_conf(struct l1ctl_client *l1c, bool traffic,
+		     struct trxcon_param_tx_data_cnf *cnf)
 {
 	struct msgb *msg;
 
@@ -295,8 +295,15 @@ int l1ctl_tx_dt_conf(struct l1ctl_client *l1c,
 	if (msg == NULL)
 		return -ENOMEM;
 
+	const struct l1ctl_info_dl dl_hdr = {
+		.chan_nr = cnf->chan_nr,
+		.link_id = cnf->link_id,
+		.frame_nr = htonl(cnf->frame_nr),
+		.band_arfcn = htons(cnf->band_arfcn),
+	};
+
 	/* Copy DL frame header from source message */
-	put_dl_info_hdr(msg, data);
+	put_dl_info_hdr(msg, &dl_hdr);
 
 	return l1ctl_client_send(l1c, msg);
 }
