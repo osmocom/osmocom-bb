@@ -26,14 +26,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <assert.h>
 
 #include <arpa/inet.h>
 
 #include <osmocom/core/fsm.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
-#include <osmocom/core/select.h>
 
 #include <osmocom/gsm/gsm0502.h>
 #include <osmocom/gsm/gsm_utils.h>
