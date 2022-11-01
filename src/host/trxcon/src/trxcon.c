@@ -278,10 +278,14 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	case L1SCHED_DT_OTHER:
 		if (L1SCHED_PRIM_IS_RACH(lchan->prim)) {
 			const struct l1sched_ts_prim_rach *rach;
+			struct trxcon_param_tx_access_burst_cnf cnf = {
+				.band_arfcn = trxcon->l1p.band_arfcn,
+				.frame_nr = fn,
+			};
+
+			rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_ACCESS_BURST_CNF, &cnf);
 
 			rach = (struct l1sched_ts_prim_rach *)lchan->prim->payload;
-
-			rc = l1ctl_tx_rach_conf(trxcon->l2if, trxcon->l1p.band_arfcn, fn);
 			if (lchan->prim->type == L1SCHED_PRIM_RACH11) {
 				ra_buf[0] = (uint8_t)(rach->ra >> 3);
 				ra_buf[1] = (uint8_t)(rach->ra & 0x07);

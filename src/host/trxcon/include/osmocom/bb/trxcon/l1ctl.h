@@ -22,4 +22,4 @@ int l1ctl_tx_dt_ind(struct l1ctl_client *l1c,
 int l1ctl_tx_dt_conf(struct l1ctl_client *l1c,
 		    const struct trxcon_param_tx_data_cnf *cnf);
 int l1ctl_tx_rach_conf(struct l1ctl_client *l1c,
-	uint16_t band_arfcn, uint32_t fn);
+		       const struct trxcon_param_tx_access_burst_cnf *cnf);

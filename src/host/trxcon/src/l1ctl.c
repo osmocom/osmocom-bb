@@ -263,20 +263,20 @@ int l1ctl_tx_dt_ind(struct l1ctl_client *l1c,
 }
 
 int l1ctl_tx_rach_conf(struct l1ctl_client *l1c,
-	uint16_t band_arfcn, uint32_t fn)
+		       const struct trxcon_param_tx_access_burst_cnf *cnf)
 {
-	struct l1ctl_info_dl *dl;
 	struct msgb *msg;
 
 	msg = l1ctl_alloc_msg(L1CTL_RACH_CONF);
 	if (msg == NULL)
 		return -ENOMEM;
 
-	dl = put_dl_info_hdr(msg, NULL);
-	memset(dl, 0x00, sizeof(*dl));
+	const struct l1ctl_info_dl dl_hdr = {
+		.band_arfcn = htons(cnf->band_arfcn),
+		.frame_nr = htonl(cnf->frame_nr),
+	};
 
-	dl->band_arfcn = htons(band_arfcn);
-	dl->frame_nr = htonl(fn);
+	put_dl_info_hdr(msg, &dl_hdr);
 
 	return l1ctl_client_send(l1c, msg);
 }

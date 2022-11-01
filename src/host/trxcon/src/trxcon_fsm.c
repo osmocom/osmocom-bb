@@ -256,6 +256,9 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_TX_ACCESS_BURST_REQ:
 		handle_tx_access_burst_req(fi, data);
 		break;
+	case TRXCON_EV_TX_ACCESS_BURST_CNF:
+		l1ctl_tx_rach_conf(trxcon->l2if, (const struct trxcon_param_tx_access_burst_cnf *)data);
+		break;
 	case TRXCON_EV_SET_CCCH_MODE_REQ:
 	{
 		struct trxcon_param_set_ccch_tch_mode_req *req = data;
@@ -355,6 +358,9 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 	switch (event) {
 	case TRXCON_EV_TX_ACCESS_BURST_REQ:
 		handle_tx_access_burst_req(fi, data);
+		break;
+	case TRXCON_EV_TX_ACCESS_BURST_CNF:
+		l1ctl_tx_rach_conf(trxcon->l2if, (const struct trxcon_param_tx_access_burst_cnf *)data);
 		break;
 	case TRXCON_EV_DEDICATED_RELEASE_REQ:
 		l1sched_reset(trxcon->sched, false);
@@ -463,6 +469,9 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_TX_ACCESS_BURST_REQ:
 		handle_tx_access_burst_req(fi, data);
 		break;
+	case TRXCON_EV_TX_ACCESS_BURST_CNF:
+		l1ctl_tx_rach_conf(trxcon->l2if, (const struct trxcon_param_tx_access_burst_cnf *)data);
+		break;
 	case TRXCON_EV_RX_DATA_IND:
 	{
 		const struct trxcon_param_rx_data_ind *ind = data;
@@ -540,6 +549,7 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 		.in_event_mask  = S(TRXCON_EV_RX_DATA_IND)
 				| S(TRXCON_EV_SET_CCCH_MODE_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
+				| S(TRXCON_EV_TX_ACCESS_BURST_CNF)
 				| S(TRXCON_EV_DEDICATED_ESTABLISH_REQ),
 		.action = &trxcon_st_bcch_ccch_action,
 	},
@@ -550,6 +560,7 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 				| S(TRXCON_ST_BCCH_CCCH),
 		.in_event_mask  = S(TRXCON_EV_DEDICATED_RELEASE_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
+				| S(TRXCON_EV_TX_ACCESS_BURST_CNF)
 				| S(TRXCON_EV_SET_TCH_MODE_REQ)
 				| S(TRXCON_EV_TX_DATA_REQ)
 				| S(TRXCON_EV_TX_DATA_CNF)
@@ -564,6 +575,7 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 				| S(TRXCON_ST_BCCH_CCCH),
 		.in_event_mask  = S(TRXCON_EV_DEDICATED_RELEASE_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
+				| S(TRXCON_EV_TX_ACCESS_BURST_CNF)
 				| S(TRXCON_EV_RX_DATA_IND),
 		.action = &trxcon_st_packet_data_action,
 	},
@@ -582,6 +594,7 @@ static const struct value_string trxcon_fsm_event_names[] = {
 	OSMO_VALUE_STRING(TRXCON_EV_SET_TCH_MODE_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_SET_PHY_CONFIG_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_TX_ACCESS_BURST_REQ),
+	OSMO_VALUE_STRING(TRXCON_EV_TX_ACCESS_BURST_CNF),
 	OSMO_VALUE_STRING(TRXCON_EV_UPDATE_SACCH_CACHE_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_ESTABLISH_REQ),
 	OSMO_VALUE_STRING(TRXCON_EV_DEDICATED_RELEASE_REQ),
