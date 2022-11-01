@@ -96,6 +96,7 @@ struct trxcon_param_tx_traffic_data_req {
 struct trxcon_param_rx_traffic_data_ind {
 	uint8_t chan_nr;
 	uint8_t link_id;
+	uint16_t band_arfcn;
 	uint32_t frame_nr;
 	int16_t toa256;
 	int8_t rssi;

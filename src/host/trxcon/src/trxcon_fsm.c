@@ -23,8 +23,6 @@
 #include <string.h>
 #include <errno.h>
 
-#include <arpa/inet.h>
-
 #include <osmocom/core/fsm.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
@@ -34,7 +32,6 @@
 #include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/trxcon/l1ctl_server.h>
-#include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/l1sched/logging.h>
 
@@ -345,18 +342,8 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_RX_DATA_IND:
 	{
 		const struct trxcon_param_rx_traffic_data_ind *ind = data;
-		const struct l1ctl_info_dl dl_hdr = {
-			.chan_nr = ind->chan_nr,
-			.link_id = ind->link_id,
-			.frame_nr = htonl(ind->frame_nr),
-			.band_arfcn = htons(trxcon->l1p.band_arfcn),
-			.fire_crc = ind->data_len > 0 ? 0 : 2,
-			.rx_level = dbm2rxlev(ind->rssi),
-			.num_biterr = ind->n_errors,
-			/* TODO: set proper .snr */
-		};
 
-		l1ctl_tx_dt_ind(trxcon->l2if, &dl_hdr, ind->data, ind->data_len, false);
+		l1ctl_tx_dt_ind(trxcon->l2if, false, ind);
 		break;
 	}
 	default:
@@ -465,20 +452,8 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_RX_DATA_IND:
 	{
 		const struct trxcon_param_rx_traffic_data_ind *ind = data;
-		const struct l1ctl_info_dl dl_hdr = {
-			.chan_nr = ind->chan_nr,
-			.link_id = ind->link_id,
-			.frame_nr = htonl(ind->frame_nr),
-			.band_arfcn = htons(trxcon->l1p.band_arfcn),
-			.fire_crc = ind->data_len > 0 ? 0 : 2,
-			.rx_level = dbm2rxlev(ind->rssi),
-			.num_biterr = ind->n_errors,
-			/* TODO: set proper .snr */
-		};
 
-		l1ctl_tx_dt_ind(trxcon->l2if, &dl_hdr,
-				ind->data, ind->data_len,
-				event == TRXCON_EV_RX_TRAFFIC_IND);
+		l1ctl_tx_dt_ind(trxcon->l2if, event == TRXCON_EV_RX_TRAFFIC_IND, ind);
 		break;
 	}
 	default:

@@ -232,26 +232,32 @@ int l1ctl_tx_ccch_mode_conf(struct l1ctl_client *l1c, uint8_t mode)
 /**
  * Handles both L1CTL_DATA_IND and L1CTL_TRAFFIC_IND.
  */
-int l1ctl_tx_dt_ind(struct l1ctl_client *l1c,
-		    const struct l1ctl_info_dl *dl_info,
-		    const uint8_t *l2, size_t l2_len,
-		    bool traffic)
+int l1ctl_tx_dt_ind(struct l1ctl_client *l1c, bool traffic,
+		    const struct trxcon_param_rx_traffic_data_ind *ind)
 {
 	struct msgb *msg;
-	uint8_t *msg_l2;
 
 	msg = l1ctl_alloc_msg(traffic ?
 		L1CTL_TRAFFIC_IND : L1CTL_DATA_IND);
 	if (msg == NULL)
 		return -ENOMEM;
 
-	put_dl_info_hdr(msg, dl_info);
+	const struct l1ctl_info_dl dl_hdr = {
+		.chan_nr = ind->chan_nr,
+		.link_id = ind->link_id,
+		.frame_nr = htonl(ind->frame_nr),
+		.band_arfcn = htons(ind->band_arfcn),
+		.fire_crc = ind->data_len > 0 ? 0 : 2,
+		.rx_level = dbm2rxlev(ind->rssi),
+		.num_biterr = ind->n_errors,
+		/* TODO: set proper .snr */
+	};
+
+	put_dl_info_hdr(msg, &dl_hdr);
 
 	/* Copy the L2 payload if preset */
-	if (l2 && l2_len > 0) {
-		msg_l2 = (uint8_t *) msgb_put(msg, l2_len);
-		memcpy(msg_l2, l2, l2_len);
-	}
+	if (ind->data && ind->data_len > 0)
+		memcpy(msgb_put(msg, ind->data_len), ind->data, ind->data_len);
 
 	/* Put message to upper layers */
 	return l1ctl_client_send(l1c, msg);

@@ -200,6 +200,7 @@ int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
 	struct trxcon_param_rx_traffic_data_ind ind = {
 		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
 		.link_id = lchan_desc->link_id,
+		.band_arfcn = trxcon->l1p.band_arfcn,
 		.frame_nr = meas->fn,
 		.toa256 = meas->toa256,
 		.rssi = meas->rssi,
