@@ -31,7 +31,6 @@
 #include <osmocom/bb/trxcon/phyif.h>
 #include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
-#include <osmocom/bb/trxcon/l1ctl_server.h>
 #include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/l1sched/logging.h>
 
