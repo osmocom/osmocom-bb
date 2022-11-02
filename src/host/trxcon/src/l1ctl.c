@@ -41,6 +41,7 @@
 #include <osmocom/bb/trxcon/l1ctl_server.h>
 #include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/trxcon.h>
+#include <osmocom/bb/trxcon/trxcon_fsm.h>
 
 static const char *arfcn2band_name(uint16_t arfcn)
 {

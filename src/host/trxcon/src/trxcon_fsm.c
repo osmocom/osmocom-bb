@@ -28,6 +28,7 @@
 #include <osmocom/core/talloc.h>
 
 #include <osmocom/bb/trxcon/trxcon.h>
+#include <osmocom/bb/trxcon/trxcon_fsm.h>
 #include <osmocom/bb/trxcon/phyif.h>
 #include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/l1ctl.h>

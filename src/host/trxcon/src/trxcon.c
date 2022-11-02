@@ -42,6 +42,7 @@
 #include <osmocom/gsm/gsm_utils.h>
 
 #include <osmocom/bb/trxcon/trxcon.h>
+#include <osmocom/bb/trxcon/trxcon_fsm.h>
 #include <osmocom/bb/trxcon/phyif.h>
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
