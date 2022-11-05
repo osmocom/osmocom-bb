@@ -62,12 +62,12 @@ static char *pm_timeout = NULL;
 static char *mcast_netdev = NULL;
 static int mcast_ttl = -1;
 
-static void print_usage()
+static void print_usage(void)
 {
 	printf("Usage: virtphy\n");
 }
 
-static void print_help()
+static void print_help(void)
 {
 	printf("  Some useful help...\n");
 	printf("  -h --help 			This text.\n");

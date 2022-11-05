@@ -580,6 +580,7 @@ static void l1ctl_rx_tbf_cfg_req(struct l1_model_ms *ms, struct msgb *msg)
 	l1ctl_tx_tbf_cfg_conf(ms, cfg_req);
 }
 
+#if 0
 static const enum osmo_gprs_cs osmo_cs_by_l1ctl[] = {
 	[L1CTL_CS_NONE]	= OSMO_GPRS_CS_NONE,
 	[L1CTL_CS1]	= OSMO_GPRS_CS1,
@@ -603,6 +604,7 @@ static int get_osmo_cs_by_l1ctl(enum l1ctl_coding_scheme l1)
 		return -1;
 	return osmo_cs_by_l1ctl[l1];
 }
+#endif
 
 static const enum l1ctl_coding_scheme l1ctl_cs_by_osmo[] = {
 	[OSMO_GPRS_CS_NONE]	= L1CTL_CS_NONE,
