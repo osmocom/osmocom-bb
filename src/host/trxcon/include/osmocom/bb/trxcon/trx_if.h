@@ -10,9 +10,6 @@
 #define TRXC_BUF_SIZE	1024
 #define TRXD_BUF_SIZE	512
 
-/* Forward declaration to avoid mutual include */
-struct trxcon_inst;
-
 enum trx_fsm_states {
 	TRX_STATE_OFFLINE = 0,
 	TRX_STATE_IDLE,
@@ -21,9 +18,6 @@ enum trx_fsm_states {
 };
 
 struct trx_instance {
-	/* trxcon instance we belong to */
-	struct trxcon_inst *trxcon;
-
 	struct osmo_fd trx_ofd_ctrl;
 	struct osmo_fd trx_ofd_data;
 
@@ -38,6 +32,9 @@ struct trx_instance {
 	/* GSM L1 specific */
 	uint16_t pm_band_arfcn_start;
 	uint16_t pm_band_arfcn_stop;
+
+	/* Some private data */
+	void *priv;
 };
 
 struct trx_ctrl_msg {
@@ -48,8 +45,18 @@ struct trx_ctrl_msg {
 	int cmd_len;
 };
 
-struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
-	const char *local_host, const char *remote_host, uint16_t port);
+struct trx_if_params {
+	const char *local_host;
+	const char *remote_host;
+	uint16_t base_port;
+	uint8_t instance;
+
+	struct osmo_fsm_inst *parent_fi;
+	uint32_t parent_term_event;
+	void *priv;
+};
+
+struct trx_instance *trx_if_open(const struct trx_if_params *params);
 void trx_if_close(struct trx_instance *trx);
 
 int trx_if_handle_phyif_burst_req(struct trx_instance *trx, const struct phyif_burst_req *br);

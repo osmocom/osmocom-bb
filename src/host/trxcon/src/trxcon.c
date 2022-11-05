@@ -149,7 +149,7 @@ int l1sched_handle_burst_req(struct l1sched_state *sched,
 int phyif_handle_burst_ind(void *phyif, const struct phyif_burst_ind *bi)
 {
 	struct trx_instance *trx = phyif;
-	struct trxcon_inst *trxcon = trx->trxcon;
+	struct trxcon_inst *trxcon = trx->priv;
 	const struct l1sched_meas_set meas = {
 		.fn = bi->fn,
 		.toa256 = bi->toa256,
@@ -180,7 +180,7 @@ int phyif_handle_cmd(void *phyif, const struct phyif_cmd *cmd)
 int phyif_handle_rsp(void *phyif, const struct phyif_rsp *rsp)
 {
 	struct trx_instance *trx = phyif;
-	struct trxcon_inst *trxcon = trx->trxcon;
+	struct trxcon_inst *trxcon = trx->priv;
 
 	switch (rsp->type) {
 	case PHYIF_CMDT_MEASURE:
@@ -356,11 +356,19 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
 	/* Logging context to be used by both l1ctl and l1sched modules */
 	trxcon->log_prefix = talloc_asprintf(trxcon, "%s: ", osmo_fsm_inst_name(fi));
 
+	const struct trx_if_params phyif_params = {
+		.local_host = app_data.trx_bind_ip,
+		.remote_host = app_data.trx_remote_ip,
+		.base_port = app_data.trx_base_port,
+		.instance = trxcon->id,
+
+		.parent_fi = trxcon->fi,
+		.parent_term_event = TRXCON_EV_PHYIF_FAILURE,
+		.priv = trxcon,
+	};
+
 	/* Init transceiver interface */
-	trxcon->phyif = trx_if_open(trxcon,
-				    app_data.trx_bind_ip,
-				    app_data.trx_remote_ip,
-				    app_data.trx_base_port);
+	trxcon->phyif = trx_if_open(&phyif_params);
 	if (trxcon->phyif == NULL) {
 		trxcon_inst_free(trxcon);
 		return NULL;

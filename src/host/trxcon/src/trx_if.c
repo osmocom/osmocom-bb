@@ -40,7 +40,6 @@
 
 #include <osmocom/gsm/gsm_utils.h>
 
-#include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
 
@@ -740,29 +739,31 @@ int trx_if_handle_phyif_burst_req(struct trx_instance *trx,
 }
 
 /* Init TRX interface (TRXC, TRXD sockets and FSM) */
-struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
-	const char *local_host, const char *remote_host,
-	uint16_t base_port)
+struct trx_instance *trx_if_open(const struct trx_if_params *params)
 {
-	const unsigned int offset = trxcon->id * 2;
+	const unsigned int offset = params->instance * 2;
 	struct trx_instance *trx;
 	struct osmo_fsm_inst *fi;
 	int rc;
 
-	LOGPFSML(trxcon->fi, LOGL_NOTICE, "Init transceiver interface "
-		"(%s:%u/%u)\n", remote_host, base_port, trxcon->id);
+	LOGPFSML(params->parent_fi, LOGL_NOTICE,
+		 "Init transceiver interface (%s:%u/%u)\n",
+		 params->remote_host, params->base_port,
+		 params->instance);
 
 	/* Allocate a new dedicated state machine */
-	fi = osmo_fsm_inst_alloc_child(&trx_fsm, trxcon->fi, TRXCON_EV_PHYIF_FAILURE);
+	fi = osmo_fsm_inst_alloc_child(&trx_fsm, params->parent_fi,
+				       params->parent_term_event);
 	if (fi == NULL) {
-		LOGPFSML(trxcon->fi, LOGL_ERROR, "Failed to allocate an instance "
-			"of FSM '%s'\n", trx_fsm.name);
+		LOGPFSML(params->parent_fi, LOGL_ERROR,
+			 "Failed to allocate an instance of FSM '%s'\n",
+			 trx_fsm.name);
 		return NULL;
 	}
 
 	trx = talloc_zero(fi, struct trx_instance);
 	if (!trx) {
-		LOGPFSML(trxcon->fi, LOGL_ERROR, "Failed to allocate memory\n");
+		LOGPFSML(params->parent_fi, LOGL_ERROR, "Failed to allocate memory\n");
 		osmo_fsm_inst_free(fi);
 		return NULL;
 	}
@@ -772,27 +773,27 @@ struct trx_instance *trx_if_open(struct trxcon_inst *trxcon,
 
 	/* Open sockets */
 	rc = trx_udp_open(trx, &trx->trx_ofd_ctrl, /* TRXC */
-			  local_host, base_port + 101 + offset,
-			  remote_host, base_port + 1 + offset,
+			  params->local_host, params->base_port + 101 + offset,
+			  params->remote_host, params->base_port + 1 + offset,
 			  trx_ctrl_read_cb);
 	if (rc < 0)
 		goto udp_error;
 
 	rc = trx_udp_open(trx, &trx->trx_ofd_data, /* TRXD */
-			  local_host, base_port + 102 + offset,
-			  remote_host, base_port + 2 + offset,
+			  params->local_host, params->base_port + 102 + offset,
+			  params->remote_host, params->base_port + 2 + offset,
 			  trx_data_rx_cb);
 	if (rc < 0)
 		goto udp_error;
 
-	trx->trxcon = trxcon;
+	trx->priv = params->priv;
 	fi->priv = trx;
 	trx->fi = fi;
 
 	return trx;
 
 udp_error:
-	LOGPFSML(trx->fi, LOGL_ERROR, "Couldn't establish UDP connection\n");
+	LOGPFSML(params->parent_fi, LOGL_ERROR, "Couldn't establish UDP connection\n");
 	osmo_fsm_inst_free(trx->fi);
 	return NULL;
 }
