@@ -40,10 +40,17 @@ struct phyif_cmdp_setta {
 	int8_t ta; /* intentionally signed */
 };
 
-/* param of PHYIF_CMDT_MEASURE */
+/* param of PHYIF_CMDT_MEASURE (command) */
 struct phyif_cmdp_measure {
 	uint16_t band_arfcn_start;
 	uint16_t band_arfcn_stop;
+};
+
+/* param of PHYIF_CMDT_MEASURE (response) */
+struct phyif_rspp_measure {
+	bool last;
+	uint16_t band_arfcn;
+	int dbm;
 };
 
 struct phyif_cmd {
@@ -54,6 +61,13 @@ struct phyif_cmd {
 		struct phyif_cmdp_setslot setslot;
 		struct phyif_cmdp_setta setta;
 		struct phyif_cmdp_measure measure;
+	} param;
+};
+
+struct phyif_rsp {
+	enum phyif_cmd_type type;
+	union {
+		struct phyif_rspp_measure measure;
 	} param;
 };
 
@@ -80,4 +94,5 @@ struct phyif_burst_ind {
 int phyif_handle_burst_ind(void *phyif, const struct phyif_burst_ind *bi);
 int phyif_handle_burst_req(void *phyif, const struct phyif_burst_req *br);
 int phyif_handle_cmd(void *phyif, const struct phyif_cmd *cmd);
+int phyif_handle_rsp(void *phyif, const struct phyif_rsp *rsp);
 void phyif_close(void *phyif);

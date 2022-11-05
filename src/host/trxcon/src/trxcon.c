@@ -177,6 +177,30 @@ int phyif_handle_cmd(void *phyif, const struct phyif_cmd *cmd)
 	return trx_if_handle_phyif_cmd(phyif, cmd);
 }
 
+int phyif_handle_rsp(void *phyif, const struct phyif_rsp *rsp)
+{
+	struct trx_instance *trx = phyif;
+	struct trxcon_inst *trxcon = trx->trxcon;
+
+	switch (rsp->type) {
+	case PHYIF_CMDT_MEASURE:
+	{
+		const struct phyif_rspp_measure *meas = &rsp->param.measure;
+		struct trxcon_param_full_power_scan_res res = {
+			.last_result = meas->last,
+			.band_arfcn = meas->band_arfcn,
+			.dbm = meas->dbm,
+		};
+
+		return osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_FULL_POWER_SCAN_RES, &res);
+	}
+	default:
+		LOGPFSML(trxcon->fi, LOGL_ERROR,
+			 "Unhandled PHYIF response (type 0x%02x)\n", rsp->type);
+		return -ENODEV;
+	}
+}
+
 void phyif_close(void *phyif)
 {
 	trx_if_close(phyif);

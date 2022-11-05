@@ -372,7 +372,6 @@ static int trx_if_cmd_measure(struct trx_instance *trx,
 
 static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 {
-	struct trxcon_inst *trxcon = trx->trxcon;
 	unsigned int freq10;
 	uint16_t band_arfcn;
 	int dbm;
@@ -391,13 +390,16 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 		return;
 	}
 
-	struct trxcon_param_full_power_scan_res res = {
-		.last_result = band_arfcn == trx->pm_band_arfcn_stop,
-		.band_arfcn = band_arfcn,
-		.dbm = dbm,
+	const struct phyif_rsp rsp = {
+		.type = PHYIF_CMDT_MEASURE,
+		.param.measure = {
+			.last = band_arfcn == trx->pm_band_arfcn_stop,
+			.band_arfcn = band_arfcn,
+			.dbm = dbm,
+		},
 	};
 
-	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_FULL_POWER_SCAN_RES, &res);
+	phyif_handle_rsp(trx, &rsp);
 
 	/* Schedule a next measurement */
 	if (band_arfcn != trx->pm_band_arfcn_stop) {
