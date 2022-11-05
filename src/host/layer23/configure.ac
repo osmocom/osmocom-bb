@@ -60,6 +60,9 @@ AC_HEADER_STDC
 
 dnl Checks for typedefs, structures and compiler characteristics
 
+AC_MSG_RESULT([CFLAGS="$CFLAGS"])
+AC_MSG_RESULT([CPPFLAGS="$CPPFLAGS"])
+
 AC_OUTPUT(
     src/Makefile
     src/common/Makefile
