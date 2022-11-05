@@ -82,7 +82,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	return 0;
 }
 
-static int l23_cfg_supported()
+static int l23_cfg_supported(void)
 {
 	return L23_OPT_TAP | L23_OPT_DBG;
 }
@@ -147,7 +147,7 @@ static void parse_band_range(char* s)
 	(*band_range)[i][1] = 0;
 }
 
-static int l23_cfg_print_help()
+static int l23_cfg_print_help(void)
 {
 	printf("\nApplication specific\n");
 	printf("  -l --logfile LOGFILE	Logfile for the cell log.\n");
@@ -237,7 +237,7 @@ static struct l23_app_info info = {
 	.cfg_print_help	= l23_cfg_print_help,
 };
 
-struct l23_app_info *l23_app_info()
+struct l23_app_info *l23_app_info(void)
 {
 	return &info;
 }

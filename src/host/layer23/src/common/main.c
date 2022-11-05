@@ -73,7 +73,7 @@ static void print_usage(const char *app)
 	printf("Usage: %s\n", app);
 }
 
-static void print_help()
+static void print_help(void)
 {
 	int options = 0xff;
 	struct l23_app_info *app = l23_app_info();
@@ -212,7 +212,7 @@ void sighandler(int sigset)
 		exit (0);
 }
 
-static void print_copyright()
+static void print_copyright(void)
 {
 	struct l23_app_info *app;
 	app = l23_app_info();

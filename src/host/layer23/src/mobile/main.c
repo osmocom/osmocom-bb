@@ -76,7 +76,7 @@ static void print_usage(const char *app)
 	printf("Usage: %s\n", app);
 }
 
-static void print_help()
+static void print_help(void)
 {
 	printf(" Some help...\n");
 	printf("  -h --help		this text\n");

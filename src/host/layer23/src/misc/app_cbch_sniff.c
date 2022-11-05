@@ -203,7 +203,7 @@ static struct l23_app_info info = {
 	.contribution	= "Contributions by Holger Hans Peter Freyther\n",
 };
 
-struct l23_app_info *l23_app_info()
+struct l23_app_info *l23_app_info(void)
 {
 	return &info;
 }
