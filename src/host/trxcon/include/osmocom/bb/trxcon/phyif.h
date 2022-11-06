@@ -42,13 +42,11 @@ struct phyif_cmdp_setta {
 
 /* param of PHYIF_CMDT_MEASURE (command) */
 struct phyif_cmdp_measure {
-	uint16_t band_arfcn_start;
-	uint16_t band_arfcn_stop;
+	uint16_t band_arfcn;
 };
 
 /* param of PHYIF_CMDT_MEASURE (response) */
 struct phyif_rspp_measure {
-	bool last;
 	uint16_t band_arfcn;
 	int dbm;
 };

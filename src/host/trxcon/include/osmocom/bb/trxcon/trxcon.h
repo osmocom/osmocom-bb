@@ -19,6 +19,9 @@ struct trxcon_inst {
 	/* L2 interface (e.g. L1CTL) */
 	void *l2if;
 
+	/* State specific data of trxcon_fsm */
+	void *fi_data;
+
 	/* L1 parameters */
 	struct {
 		uint16_t band_arfcn;

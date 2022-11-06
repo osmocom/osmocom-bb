@@ -47,7 +47,6 @@ struct trxcon_param_full_power_scan_req {
 
 /* param of TRXCON_EV_FULL_POWER_SCAN_RES */
 struct trxcon_param_full_power_scan_res {
-	bool last_result;
 	uint16_t band_arfcn;
 	int dbm;
 };

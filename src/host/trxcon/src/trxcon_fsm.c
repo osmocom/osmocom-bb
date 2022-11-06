@@ -53,6 +53,7 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 		osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
 		break;
 	case TRXCON_EV_RESET_FULL_REQ:
+		TALLOC_FREE(trxcon->fi_data);
 		if (fi->state != TRXCON_ST_RESET)
 			osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
 		l1sched_reset(trxcon->sched, true);
@@ -125,16 +126,26 @@ static void handle_full_power_scan_req(struct osmo_fsm_inst *fi,
 				       const struct trxcon_param_full_power_scan_req *req)
 {
 	struct trxcon_inst *trxcon = fi->priv;
-	const struct phyif_cmd phycmd = {
-		.type = PHYIF_CMDT_MEASURE,
-		.param.measure = {
-			.band_arfcn_start = req->band_arfcn_start,
-			.band_arfcn_stop = req->band_arfcn_stop,
-		},
-	};
+	enum gsm_band band_start, band_stop;
 
+	if (trxcon->fi_data != NULL) {
+		LOGPFSML(fi, LOGL_ERROR, "Full power scan is already in progress\n");
+		return;
+	}
+
+	/* The start and stop ARFCNs must be in the same band */
+	if (gsm_arfcn2band_rc(req->band_arfcn_start, &band_start) != 0 ||
+	    gsm_arfcn2band_rc(req->band_arfcn_stop, &band_stop) != 0 ||
+	    band_start != band_stop) {
+		LOGPFSML(fi, LOGL_ERROR, "Full power scan request has invalid params\n");
+		return;
+	}
+
+	trxcon->fi_data = talloc_memdup(fi, req, sizeof(*req));
+	OSMO_ASSERT(trxcon->fi_data != NULL);
+
+	/* trxcon_st_full_power_scan_onenter() sends the initial PHYIF_CMDT_MEASURE */
 	osmo_fsm_inst_state_chg(fi, TRXCON_ST_FULL_POWER_SCAN, 0, 0); /* TODO: timeout */
-	phyif_handle_cmd(trxcon->phyif, &phycmd);
 }
 
 static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
@@ -179,6 +190,23 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 	}
 }
 
+static void trxcon_st_full_power_scan_onenter(struct osmo_fsm_inst *fi,
+					      uint32_t prev_state)
+{
+	const struct trxcon_inst *trxcon = fi->priv;
+	const struct trxcon_param_full_power_scan_req *req = trxcon->fi_data;
+
+	/* req->band_arfcn_start holds the current ARFCN */
+	const struct phyif_cmd phycmd = {
+		.type = PHYIF_CMDT_MEASURE,
+		.param.measure = {
+			.band_arfcn = req->band_arfcn_start,
+		},
+	};
+
+	phyif_handle_cmd(trxcon->phyif, &phycmd);
+}
+
 static void trxcon_st_full_power_scan_action(struct osmo_fsm_inst *fi,
 					     uint32_t event, void *data)
 {
@@ -187,9 +215,33 @@ static void trxcon_st_full_power_scan_action(struct osmo_fsm_inst *fi,
 	switch (event) {
 	case TRXCON_EV_FULL_POWER_SCAN_RES:
 	{
+		struct trxcon_param_full_power_scan_req *req = trxcon->fi_data;
 		const struct trxcon_param_full_power_scan_res *res = data;
 
-		l1ctl_tx_pm_conf(trxcon->l2if, res->band_arfcn, res->dbm, res->last_result);
+		if (req == NULL) {
+			LOGPFSML(fi, LOGL_ERROR, "Rx unexpected power scan result\n");
+			break;
+		}
+
+		/* req->band_arfcn_start holds the expected ARFCN */
+		if (res->band_arfcn != req->band_arfcn_start) {
+			LOGPFSML(fi, LOGL_ERROR, "Rx power scan result "
+				 "with unexpected ARFCN %u (expected %u)\n",
+				 res->band_arfcn & ~ARFCN_FLAG_MASK,
+				 req->band_arfcn_start & ~ARFCN_FLAG_MASK);
+			break;
+		}
+
+		if (res->band_arfcn < req->band_arfcn_stop) {
+			l1ctl_tx_pm_conf(trxcon->l2if, res->band_arfcn, res->dbm, false);
+			/* trxcon_st_full_power_scan_onenter() sends the next PHYIF_CMDT_MEASURE */
+			req->band_arfcn_start = res->band_arfcn + 1;
+			osmo_fsm_inst_state_chg(fi, TRXCON_ST_FULL_POWER_SCAN, 0, 0); /* TODO: timeout */
+		} else {
+			l1ctl_tx_pm_conf(trxcon->l2if, res->band_arfcn, res->dbm, true);
+			LOGPFSML(fi, LOGL_INFO, "Full power scan completed\n");
+			TALLOC_FREE(trxcon->fi_data);
+		}
 		break;
 	}
 	case TRXCON_EV_FULL_POWER_SCAN_REQ:
@@ -525,6 +577,7 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 				| S(TRXCON_ST_FULL_POWER_SCAN),
 		.in_event_mask  = S(TRXCON_EV_FULL_POWER_SCAN_RES)
 				| S(TRXCON_EV_FULL_POWER_SCAN_REQ),
+		.onenter = &trxcon_st_full_power_scan_onenter,
 		.action = &trxcon_st_full_power_scan_action,
 	},
 	[TRXCON_ST_FBSB_SEARCH] = {

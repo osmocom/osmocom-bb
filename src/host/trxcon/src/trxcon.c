@@ -188,7 +188,6 @@ int phyif_handle_rsp(void *phyif, const struct phyif_rsp *rsp)
 	{
 		const struct phyif_rspp_measure *meas = &rsp->param.measure;
 		struct trxcon_param_full_power_scan_res res = {
-			.last_result = meas->last,
 			.band_arfcn = meas->band_arfcn,
 			.dbm = meas->dbm,
 		};

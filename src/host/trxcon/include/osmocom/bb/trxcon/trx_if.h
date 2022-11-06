@@ -29,10 +29,6 @@ struct trx_instance {
 	uint32_t prev_state;
 	bool powered_up;
 
-	/* GSM L1 specific */
-	uint16_t pm_band_arfcn_start;
-	uint16_t pm_band_arfcn_stop;
-
 	/* Some private data */
 	void *priv;
 };

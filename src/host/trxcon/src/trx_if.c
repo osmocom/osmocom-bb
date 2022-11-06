@@ -354,15 +354,11 @@ static int trx_if_cmd_measure(struct trx_instance *trx,
 {
 	uint16_t freq10;
 
-	/* Update ARFCN range for measurement */
-	trx->pm_band_arfcn_start = cmdp->band_arfcn_start;
-	trx->pm_band_arfcn_stop = cmdp->band_arfcn_stop;
-
 	/* Calculate a frequency for current ARFCN (DL) */
-	freq10 = gsm_arfcn2freq10(cmdp->band_arfcn_start, 0);
+	freq10 = gsm_arfcn2freq10(cmdp->band_arfcn, 0);
 	if (freq10 == 0xffff) {
 		LOGPFSML(trx->fi, LOGL_ERROR,
-			 "ARFCN %d not defined\n", cmdp->band_arfcn_start);
+			 "ARFCN %d not defined\n", cmdp->band_arfcn);
 		return -ENOTSUP;
 	}
 
@@ -379,36 +375,22 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 	sscanf(resp, "%u %d", &freq10, &dbm);
 	freq10 /= 100;
 
-	/* Check received ARFCN against expected */
 	band_arfcn = gsm_freq102arfcn((uint16_t) freq10, 0);
-	if (band_arfcn != trx->pm_band_arfcn_start) {
-		LOGPFSML(trx->fi, LOGL_ERROR, "Power measurement error: "
-			"response ARFCN=%u doesn't match expected ARFCN=%u\n",
-			band_arfcn & ~ARFCN_FLAG_MASK,
-			trx->pm_band_arfcn_start & ~ARFCN_FLAG_MASK);
+	if (band_arfcn == 0xffff) {
+		LOGPFSML(trx->fi, LOGL_ERROR,
+			 "Failed to parse ARFCN from RSP MEASURE: %s\n", resp);
 		return;
 	}
 
 	const struct phyif_rsp rsp = {
 		.type = PHYIF_CMDT_MEASURE,
 		.param.measure = {
-			.last = band_arfcn == trx->pm_band_arfcn_stop,
 			.band_arfcn = band_arfcn,
 			.dbm = dbm,
 		},
 	};
 
 	phyif_handle_rsp(trx, &rsp);
-
-	/* Schedule a next measurement */
-	if (band_arfcn != trx->pm_band_arfcn_stop) {
-		const struct phyif_cmdp_measure cmdp = {
-			.band_arfcn_start = ++band_arfcn,
-			.band_arfcn_stop = trx->pm_band_arfcn_stop,
-		};
-
-		trx_if_cmd_measure(trx, &cmdp);
-	}
 }
 
 /*
