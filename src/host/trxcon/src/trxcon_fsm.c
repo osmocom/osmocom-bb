@@ -121,6 +121,22 @@ static int trxcon_timer_cb(struct osmo_fsm_inst *fi)
 	}
 }
 
+static void handle_full_power_scan_req(struct osmo_fsm_inst *fi,
+				       const struct trxcon_param_full_power_scan_req *req)
+{
+	struct trxcon_inst *trxcon = fi->priv;
+	const struct phyif_cmd phycmd = {
+		.type = PHYIF_CMDT_MEASURE,
+		.param.measure = {
+			.band_arfcn_start = req->band_arfcn_start,
+			.band_arfcn_stop = req->band_arfcn_stop,
+		},
+	};
+
+	osmo_fsm_inst_state_chg(fi, TRXCON_ST_FULL_POWER_SCAN, 0, 0); /* TODO: timeout */
+	phyif_handle_cmd(trxcon->phyif, &phycmd);
+}
+
 static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 				   uint32_t event, void *data)
 {
@@ -156,20 +172,8 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 		break;
 	}
 	case TRXCON_EV_FULL_POWER_SCAN_REQ:
-	{
-		const struct trxcon_param_full_power_scan_req *req = data;
-		const struct phyif_cmd phycmd = {
-			.type = PHYIF_CMDT_MEASURE,
-			.param.measure = {
-				.band_arfcn_start = req->band_arfcn_start,
-				.band_arfcn_stop = req->band_arfcn_stop,
-			},
-		};
-
-		osmo_fsm_inst_state_chg(fi, TRXCON_ST_FULL_POWER_SCAN, 0, 0); /* TODO: timeout */
-		phyif_handle_cmd(trxcon->phyif, &phycmd);
+		handle_full_power_scan_req(fi, (const struct trxcon_param_full_power_scan_req *)data);
 		break;
-	}
 	default:
 		OSMO_ASSERT(0);
 	}
@@ -189,19 +193,8 @@ static void trxcon_st_full_power_scan_action(struct osmo_fsm_inst *fi,
 		break;
 	}
 	case TRXCON_EV_FULL_POWER_SCAN_REQ:
-	{
-		const struct trxcon_param_full_power_scan_req *req = data;
-		const struct phyif_cmd phycmd = {
-			.type = PHYIF_CMDT_MEASURE,
-			.param.measure = {
-				.band_arfcn_start = req->band_arfcn_start,
-				.band_arfcn_stop = req->band_arfcn_stop,
-			},
-		};
-
-		phyif_handle_cmd(trxcon->phyif, &phycmd);
+		handle_full_power_scan_req(fi, (const struct trxcon_param_full_power_scan_req *)data);
 		break;
-	}
 	default:
 		OSMO_ASSERT(0);
 	}
@@ -528,7 +521,8 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 	},
 	[TRXCON_ST_FULL_POWER_SCAN] = {
 		.name = "FULL_POWER_SCAN",
-		.out_state_mask = S(TRXCON_ST_RESET),
+		.out_state_mask = S(TRXCON_ST_RESET)
+				| S(TRXCON_ST_FULL_POWER_SCAN),
 		.in_event_mask  = S(TRXCON_EV_FULL_POWER_SCAN_RES)
 				| S(TRXCON_EV_FULL_POWER_SCAN_REQ),
 		.action = &trxcon_st_full_power_scan_action,
