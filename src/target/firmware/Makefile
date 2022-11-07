@@ -24,7 +24,7 @@ ENV_e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/ex
 #
 
 # List of all supported boards (meant to be overridden on command line)
-BOARDS?=compal_e88 compal_e86 compal_e99 se_j100 gta0x gtm900b fcdev3b pirelli_dpl10
+BOARDS?=compal_e88 compal_e86 compal_e99 se_j100 se_k2x0 gta0x gtm900b fcdev3b pirelli_dpl10
 
 # Framebuffer support, board specific drivers
 FB_OBJS=fb/framebuffer.o fb/font.o fb/helvR08.o fb/helvB14.o fb/c64.o \
@@ -100,6 +100,12 @@ BOARD_se_j100_OBJS=$(compal_COMMON_OBJS) board/se_j100/init.o \
 	battery/dummy.o $(FB_j100_OBJS)
 BOARD_se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 
+# Sony Ericsson K200i/K220i
+BOARD_se_k2x0_OBJS=$(calypso_COMMON_OBJS) board/se_k2x0/init.o \
+	board/se_k2x0/rffe_k2x0.o \
+	board/gta0x/rf_tables.o board/gta0x/afcparams.o \
+	board/common/readcal_tiffs.o battery/dummy.o $(FB_dummy_OBJS)
+BOARD_se_k2x0_ENVIRONMENTS=highram
 
 #
 # Applications
