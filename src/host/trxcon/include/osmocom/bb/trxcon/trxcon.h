@@ -1,5 +1,10 @@
 #pragma once
 
+#include <stdint.h>
+#include <stdbool.h>
+
+#include <osmocom/core/fsm.h>
+
 struct l1sched_state;
 
 extern struct osmo_fsm trxcon_fsm_def;
