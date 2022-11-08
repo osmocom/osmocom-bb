@@ -286,13 +286,12 @@ int l1ctl_tx_rach_conf(struct l1ctl_client *l1c,
 /**
  * Handles both L1CTL_DATA_CONF and L1CTL_TRAFFIC_CONF.
  */
-int l1ctl_tx_dt_conf(struct l1ctl_client *l1c, bool traffic,
+int l1ctl_tx_dt_conf(struct l1ctl_client *l1c,
 		     struct trxcon_param_tx_data_cnf *cnf)
 {
 	struct msgb *msg;
 
-	msg = l1ctl_alloc_msg(traffic ?
-		L1CTL_TRAFFIC_CONF : L1CTL_DATA_CONF);
+	msg = l1ctl_alloc_msg(cnf->traffic ? L1CTL_TRAFFIC_CONF : L1CTL_DATA_CONF);
 	if (msg == NULL)
 		return -ENOMEM;
 
