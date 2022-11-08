@@ -1,7 +1,6 @@
 dnl Process this file with autoconf to produce a configure script
 AC_INIT([trxcon], [0.0.0])
 AM_INIT_AUTOMAKE
-LT_INIT
 
 CFLAGS="$CFLAGS -std=gnu11"
 
@@ -20,6 +19,9 @@ PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm)
 
 dnl checks for header files
 AC_HEADER_STDC
+
+dnl init libtool
+LT_INIT
 
 AC_ARG_ENABLE(sanitize,
 	[AS_HELP_STRING(
