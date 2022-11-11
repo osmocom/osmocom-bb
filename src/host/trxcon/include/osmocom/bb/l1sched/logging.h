@@ -3,6 +3,8 @@
 extern int l1sched_log_cat_common;
 extern int l1sched_log_cat_data;
 
+void l1sched_logging_init(int log_cat_common, int log_cat_data);
+
 /* Messages using l1sched_state as the context */
 #define LOGP_SCHED_CAT(sched, cat, level, fmt, args...) \
 	LOGP(l1sched_log_cat_##cat, level, "%s" fmt, \

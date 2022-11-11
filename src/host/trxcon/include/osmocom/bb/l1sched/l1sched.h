@@ -389,7 +389,6 @@ const struct l1sched_tdma_multiframe *l1sched_mframe_layout(
 	enum gsm_phys_chan_config config, int tn);
 
 /* Scheduler management functions */
-void l1sched_logging_init(int log_cat_common, int log_cat_data);
 struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg, void *priv);
 void l1sched_reset(struct l1sched_state *sched, bool reset_clock);
 void l1sched_free(struct l1sched_state *sched);
