@@ -336,6 +336,29 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	return rc;
 }
 
+void trxcon_l1ctl_close(struct trxcon_inst *trxcon)
+{
+	/* Avoid use-after-free: both *fi and *trxcon are children of
+	 * the L2IF (L1CTL connection), so we need to re-parent *fi
+	 * to NULL before calling l1ctl_client_conn_close(). */
+	talloc_steal(NULL, trxcon->fi);
+	l1ctl_client_conn_close(trxcon->l2if);
+}
+
+int trxcon_l1ctl_send(struct trxcon_inst *trxcon, struct msgb *msg)
+{
+	struct l1ctl_client *l1c = trxcon->l2if;
+
+	return l1ctl_client_send(l1c, msg);
+}
+
+static int l1ctl_rx_cb(struct l1ctl_client *l1c, struct msgb *msg)
+{
+	struct trxcon_inst *trxcon = l1c->priv;
+
+	return trxcon_l1ctl_receive(trxcon, msg);
+}
+
 static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 {
 	struct trxcon_inst *trxcon;
@@ -347,7 +370,7 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 	}
 
 	l1c->log_prefix = talloc_strdup(l1c, trxcon->log_prefix);
-	l1c->priv = trxcon->fi;
+	l1c->priv = trxcon;
 	trxcon->l2if = l1c;
 
 	const struct trx_if_params phyif_params = {
@@ -372,12 +395,12 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 
 static void l1ctl_conn_close_cb(struct l1ctl_client *l1c)
 {
-	struct osmo_fsm_inst *fi = l1c->priv;
+	struct trxcon_inst *trxcon = l1c->priv;
 
-	if (fi == NULL)
+	if (trxcon == NULL || trxcon->fi == NULL)
 		return;
 
-	osmo_fsm_inst_dispatch(fi, TRXCON_EV_L2IF_FAILURE, NULL);
+	osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_L2IF_FAILURE, NULL);
 }
 
 static void print_usage(const char *app)

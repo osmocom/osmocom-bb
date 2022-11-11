@@ -4,6 +4,7 @@
 
 struct osmo_fsm_inst;
 struct l1sched_state;
+struct msgb;
 
 struct trxcon_inst {
 	struct osmo_fsm_inst *fi;
@@ -32,3 +33,7 @@ struct trxcon_inst {
 
 struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id, uint32_t fn_advance);
 void trxcon_inst_free(struct trxcon_inst *trxcon);
+
+int trxcon_l1ctl_receive(struct trxcon_inst *trxcon, struct msgb *msg);
+int trxcon_l1ctl_send(struct trxcon_inst *trxcon, struct msgb *msg);
+void trxcon_l1ctl_close(struct trxcon_inst *trxcon);

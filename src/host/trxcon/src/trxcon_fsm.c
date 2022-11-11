@@ -114,7 +114,7 @@ static int trxcon_timer_cb(struct osmo_fsm_inst *fi)
 
 	switch (fi->state) {
 	case TRXCON_ST_FBSB_SEARCH:
-		l1ctl_tx_fbsb_fail(trxcon->l2if, trxcon->l1p.band_arfcn);
+		l1ctl_tx_fbsb_fail(trxcon, trxcon->l1p.band_arfcn);
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
 		return 0;
 	default:
@@ -233,12 +233,12 @@ static void trxcon_st_full_power_scan_action(struct osmo_fsm_inst *fi,
 		}
 
 		if (res->band_arfcn < req->band_arfcn_stop) {
-			l1ctl_tx_pm_conf(trxcon->l2if, res->band_arfcn, res->dbm, false);
+			l1ctl_tx_pm_conf(trxcon, res->band_arfcn, res->dbm, false);
 			/* trxcon_st_full_power_scan_onenter() sends the next PHYIF_CMDT_MEASURE */
 			req->band_arfcn_start = res->band_arfcn + 1;
 			osmo_fsm_inst_state_chg(fi, TRXCON_ST_FULL_POWER_SCAN, 0, 0); /* TODO: timeout */
 		} else {
-			l1ctl_tx_pm_conf(trxcon->l2if, res->band_arfcn, res->dbm, true);
+			l1ctl_tx_pm_conf(trxcon, res->band_arfcn, res->dbm, true);
 			LOGPFSML(fi, LOGL_INFO, "Full power scan completed\n");
 			TALLOC_FREE(trxcon->fi_data);
 		}
@@ -260,9 +260,7 @@ static void trxcon_st_fbsb_search_action(struct osmo_fsm_inst *fi,
 	switch (event) {
 	case TRXCON_EV_FBSB_SEARCH_RES:
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_BCCH_CCCH, 0, 0);
-		l1ctl_tx_fbsb_conf(trxcon->l2if,
-				   trxcon->l1p.band_arfcn,
-				   trxcon->sched->bsic);
+		l1ctl_tx_fbsb_conf(trxcon, trxcon->l1p.band_arfcn, trxcon->sched->bsic);
 		break;
 	default:
 		OSMO_ASSERT(0);
@@ -302,7 +300,7 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 		handle_tx_access_burst_req(fi, data);
 		break;
 	case TRXCON_EV_TX_ACCESS_BURST_CNF:
-		l1ctl_tx_rach_conf(trxcon->l2if, (const struct trxcon_param_tx_access_burst_cnf *)data);
+		l1ctl_tx_rach_conf(trxcon, (const struct trxcon_param_tx_access_burst_cnf *)data);
 		break;
 	case TRXCON_EV_SET_CCCH_MODE_REQ:
 	{
@@ -388,7 +386,7 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 		break;
 	}
 	case TRXCON_EV_RX_DATA_IND:
-		l1ctl_tx_dt_ind(trxcon->l2if, (const struct trxcon_param_rx_data_ind *)data);
+		l1ctl_tx_dt_ind(trxcon, (const struct trxcon_param_rx_data_ind *)data);
 		break;
 	default:
 		OSMO_ASSERT(0);
@@ -405,7 +403,7 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 		handle_tx_access_burst_req(fi, data);
 		break;
 	case TRXCON_EV_TX_ACCESS_BURST_CNF:
-		l1ctl_tx_rach_conf(trxcon->l2if, (const struct trxcon_param_tx_access_burst_cnf *)data);
+		l1ctl_tx_rach_conf(trxcon, (const struct trxcon_param_tx_access_burst_cnf *)data);
 		break;
 	case TRXCON_EV_DEDICATED_RELEASE_REQ:
 		l1sched_reset(trxcon->sched, false);
@@ -495,10 +493,10 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 		break;
 	}
 	case TRXCON_EV_TX_DATA_CNF:
-		l1ctl_tx_dt_conf(trxcon->l2if, (const struct trxcon_param_tx_data_cnf *)data);
+		l1ctl_tx_dt_conf(trxcon, (const struct trxcon_param_tx_data_cnf *)data);
 		break;
 	case TRXCON_EV_RX_DATA_IND:
-		l1ctl_tx_dt_ind(trxcon->l2if, (const struct trxcon_param_rx_data_ind *)data);
+		l1ctl_tx_dt_ind(trxcon, (const struct trxcon_param_rx_data_ind *)data);
 		break;
 	default:
 		OSMO_ASSERT(0);
@@ -515,7 +513,7 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 		handle_tx_access_burst_req(fi, data);
 		break;
 	case TRXCON_EV_TX_ACCESS_BURST_CNF:
-		l1ctl_tx_rach_conf(trxcon->l2if, (const struct trxcon_param_tx_access_burst_cnf *)data);
+		l1ctl_tx_rach_conf(trxcon, (const struct trxcon_param_tx_access_burst_cnf *)data);
 		break;
 	case TRXCON_EV_RX_DATA_IND:
 	{
@@ -548,13 +546,8 @@ static void trxcon_fsm_pre_term_cb(struct osmo_fsm_inst *fi,
 	if (trxcon->sched != NULL)
 		l1sched_free(trxcon->sched);
 	/* Close active connections */
-	if (trxcon->l2if != NULL) {
-		/* Avoid use-after-free: both *fi and *trxcon are children of
-		 * the L2IF (L1CTL connection), so we need to re-parent *fi
-		 * to NULL before calling l1ctl_client_conn_close(). */
-		talloc_steal(NULL, fi);
-		l1ctl_client_conn_close(trxcon->l2if);
-	}
+	if (trxcon->l2if != NULL)
+		trxcon_l1ctl_close(trxcon);
 	if (trxcon->phyif != NULL)
 		phyif_close(trxcon->phyif);
 
