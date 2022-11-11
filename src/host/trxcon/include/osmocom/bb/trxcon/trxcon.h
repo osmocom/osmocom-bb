@@ -31,6 +31,16 @@ struct trxcon_inst {
 	} l1p;
 };
 
+enum trxcon_log_cat {
+	TRXCON_LOGC_FSM,	/* trxcon_fsm */
+	TRXCON_LOGC_L1C,	/* L1CTL control */
+	TRXCON_LOGC_L1D,	/* L1CTL data */
+	TRXCON_LOGC_SCHC,	/* l1sched control */
+	TRXCON_LOGC_SCHD,	/* l1sched data */
+};
+
+void trxcon_set_log_cfg(const int *logc, unsigned int logc_num);
+
 struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id, uint32_t fn_advance);
 void trxcon_inst_free(struct trxcon_inst *trxcon);
 

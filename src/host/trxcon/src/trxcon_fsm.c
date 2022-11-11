@@ -26,11 +26,11 @@
 #include <osmocom/core/fsm.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/logging.h>
 
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trxcon_fsm.h>
 #include <osmocom/bb/trxcon/phyif.h>
-#include <osmocom/bb/trxcon/logging.h>
 #include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/l1sched/logging.h>
@@ -649,7 +649,7 @@ struct osmo_fsm trxcon_fsm_def = {
 	.name = "trxcon",
 	.states = trxcon_fsm_states,
 	.num_states = ARRAY_SIZE(trxcon_fsm_states),
-	.log_subsys = DAPP,
+	.log_subsys = DLGLOBAL,
 	.event_names = trxcon_fsm_event_names,
 	.allstate_event_mask = S(TRXCON_EV_PHYIF_FAILURE)
 			     | S(TRXCON_EV_L2IF_FAILURE)

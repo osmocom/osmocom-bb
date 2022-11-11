@@ -35,20 +35,30 @@ libl1sched_la_LIBADD = \
 	$(NULL)
 
 
+noinst_LTLIBRARIES += libtrxcon.la
+
+libtrxcon_la_SOURCES = \
+	trxcon_inst.c \
+	trxcon_fsm.c \
+	l1ctl.c \
+	$(NULL)
+
+libtrxcon_la_LIBADD = \
+	libl1sched.la \
+	$(LIBOSMOCORE_LIBS) \
+	$(LIBOSMOGSM_LIBS) \
+	$(NULL)
+
+
 bin_PROGRAMS = trxcon
 
 trxcon_SOURCES = \
 	l1ctl_server.c \
-	l1ctl.c \
-	trx_if.c \
-	logging.c \
-	trxcon_fsm.c \
-	trxcon_inst.c \
 	trxcon_main.c \
+	logging.c \
+	trx_if.c \
 	$(NULL)
 
 trxcon_LDADD = \
-	libl1sched.la \
-	$(LIBOSMOCORE_LIBS) \
-	$(LIBOSMOGSM_LIBS) \
+	libtrxcon.la \
 	$(NULL)

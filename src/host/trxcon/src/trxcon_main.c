@@ -543,7 +543,6 @@ int main(int argc, char **argv)
 
 	/* Init logging system */
 	trxcon_logging_init(tall_trxcon_ctx, app_data.debug_mask);
-	l1sched_logging_init(DSCH, DSCHD);
 
 	/* Configure pretty logging */
 	log_set_print_extended_timestamp(osmo_stderr_target, 1);

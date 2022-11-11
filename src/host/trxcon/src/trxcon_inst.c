@@ -26,6 +26,38 @@
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trxcon_fsm.h>
 #include <osmocom/bb/l1sched/l1sched.h>
+#include <osmocom/bb/l1sched/logging.h>
+
+extern int g_logc_l1c;
+extern int g_logc_l1d;
+
+void trxcon_set_log_cfg(const int *logc, unsigned int logc_num)
+{
+	int schc = DLGLOBAL;
+	int schd = DLGLOBAL;
+
+	for (unsigned int i = 0; i < logc_num; i++) {
+		switch ((enum trxcon_log_cat)i) {
+		case TRXCON_LOGC_FSM:
+			trxcon_fsm_def.log_subsys = logc[i];
+			break;
+		case TRXCON_LOGC_L1C:
+			g_logc_l1c = logc[i];
+			break;
+		case TRXCON_LOGC_L1D:
+			g_logc_l1d = logc[i];
+			break;
+		case TRXCON_LOGC_SCHC:
+			schc = logc[i];
+			break;
+		case TRXCON_LOGC_SCHD:
+			schd = logc[i];
+			break;
+		}
+	}
+
+	l1sched_logging_init(schc, schd);
+}
 
 struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id, uint32_t fn_advance)
 {

@@ -21,6 +21,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
 
+#include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 static struct log_info_cat trxcon_log_info_cat[] = {
@@ -73,12 +74,22 @@ static const struct log_info trxcon_log_info = {
 	.num_cat = ARRAY_SIZE(trxcon_log_info_cat),
 };
 
+static const int trxcon_log_cfg[] = {
+	[TRXCON_LOGC_FSM] = DAPP,
+	[TRXCON_LOGC_L1C] = DL1C,
+	[TRXCON_LOGC_L1D] = DL1D,
+	[TRXCON_LOGC_SCHC] = DSCH,
+	[TRXCON_LOGC_SCHD] = DSCHD,
+};
+
 int trxcon_logging_init(void *tall_ctx, const char *category_mask)
 {
 	osmo_init_logging2(tall_ctx, &trxcon_log_info);
 
 	if (category_mask)
 		log_parse_category_mask(osmo_stderr_target, category_mask);
+
+	trxcon_set_log_cfg(&trxcon_log_cfg[0], ARRAY_SIZE(trxcon_log_cfg));
 
 	return 0;
 }
