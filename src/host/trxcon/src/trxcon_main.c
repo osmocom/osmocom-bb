@@ -560,7 +560,7 @@ int main(int argc, char **argv)
 	osmo_init_ignore_signals();
 
 	/* Init logging system */
-	trx_log_init(tall_trxcon_ctx, app_data.debug_mask);
+	trxcon_logging_init(tall_trxcon_ctx, app_data.debug_mask);
 	l1sched_logging_init(DSCH, DSCHD);
 
 	/* Configure pretty logging */

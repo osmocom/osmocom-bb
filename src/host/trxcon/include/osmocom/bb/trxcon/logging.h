@@ -12,4 +12,4 @@ enum {
 	DSCHD,
 };
 
-int trx_log_init(void *tall_ctx, const char *category_mask);
+int trxcon_logging_init(void *tall_ctx, const char *category_mask);

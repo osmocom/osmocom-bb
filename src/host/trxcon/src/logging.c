@@ -23,7 +23,7 @@
 
 #include <osmocom/bb/trxcon/logging.h>
 
-static struct log_info_cat trx_log_info_cat[] = {
+static struct log_info_cat trxcon_log_info_cat[] = {
 	[DAPP] = {
 		.name = "DAPP",
 		.description = "Application",
@@ -68,14 +68,14 @@ static struct log_info_cat trx_log_info_cat[] = {
 	},
 };
 
-static const struct log_info trx_log_info = {
-	.cat = trx_log_info_cat,
-	.num_cat = ARRAY_SIZE(trx_log_info_cat),
+static const struct log_info trxcon_log_info = {
+	.cat = trxcon_log_info_cat,
+	.num_cat = ARRAY_SIZE(trxcon_log_info_cat),
 };
 
-int trx_log_init(void *tall_ctx, const char *category_mask)
+int trxcon_logging_init(void *tall_ctx, const char *category_mask)
 {
-	osmo_init_logging2(tall_ctx, &trx_log_info);
+	osmo_init_logging2(tall_ctx, &trxcon_log_info);
 
 	if (category_mask)
 		log_parse_category_mask(osmo_stderr_target, category_mask);
