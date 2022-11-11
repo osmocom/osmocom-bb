@@ -30,5 +30,5 @@ struct trxcon_inst {
 	} l1p;
 };
 
-struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id);
+struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id, uint32_t fn_advance);
 void trxcon_inst_free(struct trxcon_inst *trxcon);

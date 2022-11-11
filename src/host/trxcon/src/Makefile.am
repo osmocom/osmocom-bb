@@ -43,6 +43,7 @@ trxcon_SOURCES = \
 	trx_if.c \
 	logging.c \
 	trxcon_fsm.c \
+	trxcon_inst.c \
 	trxcon_main.c \
 	$(NULL)
 

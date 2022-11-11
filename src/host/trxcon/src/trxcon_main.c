@@ -336,25 +336,19 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	return rc;
 }
 
-struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
+static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 {
 	struct trxcon_inst *trxcon;
-	struct osmo_fsm_inst *fi;
 
-	fi = osmo_fsm_inst_alloc(&trxcon_fsm_def, ctx, NULL, LOGL_DEBUG, NULL);
-	OSMO_ASSERT(fi != NULL);
+	trxcon = trxcon_inst_alloc(l1c, l1c->id, app_data.trx_fn_advance);
+	if (trxcon == NULL) {
+		l1ctl_client_conn_close(l1c);
+		return;
+	}
 
-	trxcon = talloc_zero(fi, struct trxcon_inst);
-	OSMO_ASSERT(trxcon != NULL);
-
-	fi->priv = trxcon;
-	trxcon->fi = fi;
-
-	osmo_fsm_inst_update_id_f(fi, "%u", id);
-	trxcon->id = id;
-
-	/* Logging context to be used by both l1ctl and l1sched modules */
-	trxcon->log_prefix = talloc_asprintf(trxcon, "%s: ", osmo_fsm_inst_name(fi));
+	l1c->log_prefix = talloc_strdup(l1c, trxcon->log_prefix);
+	l1c->priv = trxcon->fi;
+	trxcon->l2if = l1c;
 
 	const struct trx_if_params phyif_params = {
 		.local_host = app_data.trx_bind_ip,
@@ -370,45 +364,10 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
 	/* Init transceiver interface */
 	trxcon->phyif = trx_if_open(&phyif_params);
 	if (trxcon->phyif == NULL) {
-		trxcon_inst_free(trxcon);
-		return NULL;
-	}
-
-	/* Init scheduler */
-	const struct l1sched_cfg sched_cfg = {
-		.fn_advance = app_data.trx_fn_advance,
-		.log_prefix = trxcon->log_prefix,
-	};
-
-	trxcon->sched = l1sched_alloc(trxcon, &sched_cfg, trxcon);
-	if (trxcon->sched == NULL) {
-		trxcon_inst_free(trxcon);
-		return NULL;
-	}
-
-	return trxcon;
-}
-
-void trxcon_inst_free(struct trxcon_inst *trxcon)
-{
-	if (trxcon == NULL || trxcon->fi == NULL)
-		return;
-	osmo_fsm_inst_term(trxcon->fi, OSMO_FSM_TERM_REQUEST, NULL);
-}
-
-static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
-{
-	struct trxcon_inst *trxcon;
-
-	trxcon = trxcon_inst_alloc(l1c, l1c->id);
-	if (trxcon == NULL) {
-		l1ctl_client_conn_close(l1c);
+		/* TRXCON_EV_PHYIF_FAILURE triggers l1ctl_client_conn_close() */
+		osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_PHYIF_FAILURE, NULL);
 		return;
 	}
-
-	l1c->log_prefix = talloc_strdup(l1c, trxcon->log_prefix);
-	l1c->priv = trxcon->fi;
-	trxcon->l2if = l1c;
 }
 
 static void l1ctl_conn_close_cb(struct l1ctl_client *l1c)
