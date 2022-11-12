@@ -28,8 +28,6 @@
 #include <errno.h>
 #include <time.h>
 
-#include <arpa/inet.h>
-
 #include <osmocom/core/fsm.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
@@ -39,14 +37,11 @@
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/gsmtap.h>
 
-#include <osmocom/gsm/gsm_utils.h>
-
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trxcon_fsm.h>
 #include <osmocom/bb/trxcon/phyif.h>
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/l1ctl.h>
 #include <osmocom/bb/trxcon/l1ctl_server.h>
 
 #define COPYRIGHT \
