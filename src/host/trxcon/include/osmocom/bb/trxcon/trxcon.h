@@ -13,6 +13,9 @@ struct trxcon_inst {
 	/* Logging context for sched and l1c */
 	const char *log_prefix;
 
+	/* GSMTAP instance (optional) */
+	struct gsmtap_inst *gsmtap;
+
 	/* The L1 scheduler */
 	struct l1sched_state *sched;
 	/* PHY interface (e.g. TRXC/TRXD) */

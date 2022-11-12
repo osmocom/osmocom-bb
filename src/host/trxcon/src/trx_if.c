@@ -390,7 +390,7 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 		},
 	};
 
-	phyif_handle_rsp(trx, &rsp);
+	phyif_handle_rsp(trx->priv, &rsp);
 }
 
 /*
@@ -675,7 +675,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		  "RX burst tn=%u fn=%u rssi=%d toa=%d\n",
 		  bi.tn, bi.fn, bi.rssi, bi.toa256);
 
-	return phyif_handle_burst_ind(trx, &bi);
+	return phyif_handle_burst_ind(trx->priv, &bi);
 }
 
 int trx_if_handle_phyif_burst_req(struct trx_instance *trx,

@@ -89,8 +89,8 @@ struct phyif_burst_ind {
 };
 
 
-int phyif_handle_burst_ind(void *phyif, const struct phyif_burst_ind *bi);
+int phyif_handle_burst_ind(void *priv, const struct phyif_burst_ind *bi);
 int phyif_handle_burst_req(void *phyif, const struct phyif_burst_req *br);
 int phyif_handle_cmd(void *phyif, const struct phyif_cmd *cmd);
-int phyif_handle_rsp(void *phyif, const struct phyif_rsp *rsp);
+int phyif_handle_rsp(void *priv, const struct phyif_rsp *rsp);
 void phyif_close(void *phyif);

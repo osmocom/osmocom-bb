@@ -40,6 +40,7 @@ noinst_LTLIBRARIES += libtrxcon.la
 libtrxcon_la_SOURCES = \
 	trxcon_inst.c \
 	trxcon_fsm.c \
+	trxcon_shim.c \
 	l1ctl.c \
 	$(NULL)
 
