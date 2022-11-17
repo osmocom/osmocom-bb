@@ -86,17 +86,17 @@ static struct {
 
 static void *tall_trxcon_ctx = NULL;
 
-int phyif_handle_burst_req(void *phyif, const struct phyif_burst_req *br)
+int trxcon_phyif_handle_burst_req(void *phyif, const struct trxcon_phyif_burst_req *br)
 {
 	return trx_if_handle_phyif_burst_req(phyif, br);
 }
 
-int phyif_handle_cmd(void *phyif, const struct phyif_cmd *cmd)
+int trxcon_phyif_handle_cmd(void *phyif, const struct trxcon_phyif_cmd *cmd)
 {
 	return trx_if_handle_phyif_cmd(phyif, cmd);
 }
 
-void phyif_close(void *phyif)
+void trxcon_phyif_close(void *phyif)
 {
 	trx_if_close(phyif);
 }
@@ -138,7 +138,7 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 	l1c->priv = trxcon;
 	trxcon->l2if = l1c;
 
-	const struct trx_if_params phyif_params = {
+	const struct trx_if_params trxcon_phyif_params = {
 		.local_host = app_data.trx_bind_ip,
 		.remote_host = app_data.trx_remote_ip,
 		.base_port = app_data.trx_base_port,
@@ -150,7 +150,7 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 	};
 
 	/* Init transceiver interface */
-	trxcon->phyif = trx_if_open(&phyif_params);
+	trxcon->phyif = trx_if_open(&trxcon_phyif_params);
 	if (trxcon->phyif == NULL) {
 		/* TRXCON_EV_PHYIF_FAILURE triggers l1ctl_client_conn_close() */
 		osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_PHYIF_FAILURE, NULL);

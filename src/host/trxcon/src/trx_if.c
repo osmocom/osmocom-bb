@@ -275,7 +275,7 @@ static int trx_if_cmd_poweron(struct trx_instance *trx)
  */
 
 static int trx_if_cmd_setslot(struct trx_instance *trx,
-			      const struct phyif_cmdp_setslot *cmdp)
+			      const struct trxcon_phyif_cmdp_setslot *cmdp)
 {
 	/* Values correspond to 'enum ChannelCombination' in osmo-trx.git */
 	static const uint8_t chan_types[_GSM_PCHAN_MAX] = {
@@ -308,7 +308,7 @@ static int trx_if_cmd_setslot(struct trx_instance *trx,
  */
 
 static int trx_if_cmd_rxtune(struct trx_instance *trx,
-			     const struct phyif_cmdp_setfreq_h0 *cmdp)
+			     const struct trxcon_phyif_cmdp_setfreq_h0 *cmdp)
 {
 	uint16_t freq10;
 
@@ -323,7 +323,7 @@ static int trx_if_cmd_rxtune(struct trx_instance *trx,
 }
 
 static int trx_if_cmd_txtune(struct trx_instance *trx,
-			     const struct phyif_cmdp_setfreq_h0 *cmdp)
+			     const struct trxcon_phyif_cmdp_setfreq_h0 *cmdp)
 {
 	uint16_t freq10;
 
@@ -350,7 +350,7 @@ static int trx_if_cmd_txtune(struct trx_instance *trx,
  */
 
 static int trx_if_cmd_measure(struct trx_instance *trx,
-			      const struct phyif_cmdp_measure *cmdp)
+			      const struct trxcon_phyif_cmdp_measure *cmdp)
 {
 	uint16_t freq10;
 
@@ -382,15 +382,15 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 		return;
 	}
 
-	const struct phyif_rsp rsp = {
-		.type = PHYIF_CMDT_MEASURE,
+	const struct trxcon_phyif_rsp rsp = {
+		.type = TRXCON_PHYIF_CMDT_MEASURE,
 		.param.measure = {
 			.band_arfcn = band_arfcn,
 			.dbm = dbm,
 		},
 	};
 
-	phyif_handle_rsp(trx->priv, &rsp);
+	trxcon_phyif_handle_rsp(trx->priv, &rsp);
 }
 
 /*
@@ -407,7 +407,7 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
  */
 
 static int trx_if_cmd_setta(struct trx_instance *trx,
-			    const struct phyif_cmdp_setta *cmdp)
+			    const struct trxcon_phyif_cmdp_setta *cmdp)
 {
 	return trx_ctrl_cmd(trx, 0, "SETTA", "%d", cmdp->ta);
 }
@@ -426,7 +426,7 @@ static int trx_if_cmd_setta(struct trx_instance *trx,
  */
 
 static int trx_if_cmd_setfh(struct trx_instance *trx,
-			    const struct phyif_cmdp_setfreq_h1 *cmdp)
+			    const struct trxcon_phyif_cmdp_setfreq_h1 *cmdp)
 {
 	/* Reserve some room for CMD SETFH <HSN> <MAIO> */
 	char ma_buf[TRXC_BUF_SIZE - 24];
@@ -560,38 +560,38 @@ rsp_error:
 	return -EIO;
 }
 
-int trx_if_handle_phyif_cmd(struct trx_instance *trx, const struct phyif_cmd *cmd)
+int trx_if_handle_phyif_cmd(struct trx_instance *trx, const struct trxcon_phyif_cmd *cmd)
 {
 	int rc;
 
 	switch (cmd->type) {
-	case PHYIF_CMDT_RESET:
+	case TRXCON_PHYIF_CMDT_RESET:
 		if ((rc = trx_if_cmd_poweroff(trx)) != 0)
 			return rc;
 		rc = trx_if_cmd_echo(trx);
 		break;
-	case PHYIF_CMDT_POWERON:
+	case TRXCON_PHYIF_CMDT_POWERON:
 		rc = trx_if_cmd_poweron(trx);
 		break;
-	case PHYIF_CMDT_POWEROFF:
+	case TRXCON_PHYIF_CMDT_POWEROFF:
 		rc = trx_if_cmd_poweroff(trx);
 		break;
-	case PHYIF_CMDT_MEASURE:
+	case TRXCON_PHYIF_CMDT_MEASURE:
 		rc = trx_if_cmd_measure(trx, &cmd->param.measure);
 		break;
-	case PHYIF_CMDT_SETFREQ_H0:
+	case TRXCON_PHYIF_CMDT_SETFREQ_H0:
 		if ((rc = trx_if_cmd_rxtune(trx, &cmd->param.setfreq_h0)) != 0)
 			return rc;
 		if ((rc = trx_if_cmd_txtune(trx, &cmd->param.setfreq_h0)) != 0)
 			return rc;
 		break;
-	case PHYIF_CMDT_SETFREQ_H1:
+	case TRXCON_PHYIF_CMDT_SETFREQ_H1:
 		rc = trx_if_cmd_setfh(trx, &cmd->param.setfreq_h1);
 		break;
-	case PHYIF_CMDT_SETSLOT:
+	case TRXCON_PHYIF_CMDT_SETSLOT:
 		rc = trx_if_cmd_setslot(trx, &cmd->param.setslot);
 		break;
-	case PHYIF_CMDT_SETTA:
+	case TRXCON_PHYIF_CMDT_SETTA:
 		rc = trx_if_cmd_setta(trx, &cmd->param.setta);
 		break;
 	default:
@@ -628,7 +628,7 @@ int trx_if_handle_phyif_cmd(struct trx_instance *trx, const struct phyif_cmd *cm
 static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct trx_instance *trx = ofd->data;
-	struct phyif_burst_ind bi;
+	struct trxcon_phyif_burst_ind bi;
 	uint8_t buf[TRXD_BUF_SIZE];
 	ssize_t read_len;
 
@@ -644,7 +644,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return -EINVAL;
 	}
 
-	bi = (struct phyif_burst_ind) {
+	bi = (struct trxcon_phyif_burst_ind) {
 		.tn = buf[0],
 		.fn = osmo_load32be(buf + 1),
 		.rssi = -(int8_t) buf[5],
@@ -675,11 +675,11 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		  "RX burst tn=%u fn=%u rssi=%d toa=%d\n",
 		  bi.tn, bi.fn, bi.rssi, bi.toa256);
 
-	return phyif_handle_burst_ind(trx->priv, &bi);
+	return trxcon_phyif_handle_burst_ind(trx->priv, &bi);
 }
 
 int trx_if_handle_phyif_burst_req(struct trx_instance *trx,
-				  const struct phyif_burst_req *br)
+				  const struct trxcon_phyif_burst_req *br)
 {
 	uint8_t buf[TRXD_BUF_SIZE];
 	size_t length;

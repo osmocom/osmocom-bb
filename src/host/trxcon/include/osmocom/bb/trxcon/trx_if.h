@@ -55,5 +55,5 @@ struct trx_if_params {
 struct trx_instance *trx_if_open(const struct trx_if_params *params);
 void trx_if_close(struct trx_instance *trx);
 
-int trx_if_handle_phyif_burst_req(struct trx_instance *trx, const struct phyif_burst_req *br);
-int trx_if_handle_phyif_cmd(struct trx_instance *trx, const struct phyif_cmd *cmd);
+int trx_if_handle_phyif_burst_req(struct trx_instance *trx, const struct trxcon_phyif_burst_req *br);
+int trx_if_handle_phyif_cmd(struct trx_instance *trx, const struct trxcon_phyif_cmd *cmd);

@@ -74,7 +74,7 @@ int l1sched_handle_burst_req(struct l1sched_state *sched,
 			     const struct l1sched_burst_req *br)
 {
 	struct trxcon_inst *trxcon = sched->priv;
-	const struct phyif_burst_req phybr = {
+	const struct trxcon_phyif_burst_req phybr = {
 		.fn = br->fn,
 		.tn = br->tn,
 		.pwr = br->pwr,
@@ -82,7 +82,7 @@ int l1sched_handle_burst_req(struct l1sched_state *sched,
 		.burst_len = br->burst_len,
 	};
 
-	return phyif_handle_burst_req(trxcon->phyif, &phybr);
+	return trxcon_phyif_handle_burst_req(trxcon->phyif, &phybr);
 }
 
 /* External L2 API for the scheduler */
@@ -220,7 +220,7 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 }
 
 /* External L1 API for the PHYIF */
-int phyif_handle_burst_ind(void *priv, const struct phyif_burst_ind *bi)
+int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_ind *bi)
 {
 	struct trxcon_inst *trxcon = priv;
 	const struct l1sched_meas_set meas = {
@@ -240,14 +240,14 @@ int phyif_handle_burst_ind(void *priv, const struct phyif_burst_ind *bi)
 	return 0;
 }
 
-int phyif_handle_rsp(void *priv, const struct phyif_rsp *rsp)
+int trxcon_phyif_handle_rsp(void *priv, const struct trxcon_phyif_rsp *rsp)
 {
 	struct trxcon_inst *trxcon = priv;
 
 	switch (rsp->type) {
-	case PHYIF_CMDT_MEASURE:
+	case TRXCON_PHYIF_CMDT_MEASURE:
 	{
-		const struct phyif_rspp_measure *meas = &rsp->param.measure;
+		const struct trxcon_phyif_rspp_measure *meas = &rsp->param.measure;
 		struct trxcon_param_full_power_scan_res res = {
 			.band_arfcn = meas->band_arfcn,
 			.dbm = meas->dbm,

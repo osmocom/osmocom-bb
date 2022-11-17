@@ -5,72 +5,72 @@
 #include <osmocom/core/bits.h>
 
 /* PHYIF command type */
-enum phyif_cmd_type {
-	PHYIF_CMDT_RESET,
-	PHYIF_CMDT_POWERON,
-	PHYIF_CMDT_POWEROFF,
-	PHYIF_CMDT_MEASURE,
-	PHYIF_CMDT_SETFREQ_H0,
-	PHYIF_CMDT_SETFREQ_H1,
-	PHYIF_CMDT_SETSLOT,
-	PHYIF_CMDT_SETTA,
+enum trxcon_phyif_cmd_type {
+	TRXCON_PHYIF_CMDT_RESET,
+	TRXCON_PHYIF_CMDT_POWERON,
+	TRXCON_PHYIF_CMDT_POWEROFF,
+	TRXCON_PHYIF_CMDT_MEASURE,
+	TRXCON_PHYIF_CMDT_SETFREQ_H0,
+	TRXCON_PHYIF_CMDT_SETFREQ_H1,
+	TRXCON_PHYIF_CMDT_SETSLOT,
+	TRXCON_PHYIF_CMDT_SETTA,
 };
 
-/* param of PHYIF_CMDT_SETFREQ_H0 */
-struct phyif_cmdp_setfreq_h0 {
+/* param of TRXCON_PHYIF_CMDT_SETFREQ_H0 */
+struct trxcon_phyif_cmdp_setfreq_h0 {
 	uint16_t band_arfcn;
 };
 
-/* param of PHYIF_CMDT_SETFREQ_H1 */
-struct phyif_cmdp_setfreq_h1 {
+/* param of TRXCON_PHYIF_CMDT_SETFREQ_H1 */
+struct trxcon_phyif_cmdp_setfreq_h1 {
 	uint8_t hsn;
 	uint8_t maio;
 	const uint16_t *ma;
 	unsigned int ma_len;
 };
 
-/* param of PHYIF_CMDT_SETSLOT */
-struct phyif_cmdp_setslot {
+/* param of TRXCON_PHYIF_CMDT_SETSLOT */
+struct trxcon_phyif_cmdp_setslot {
 	uint8_t tn;
 	uint8_t pchan; /* enum gsm_phys_chan_config */
 };
 
-/* param of PHYIF_CMDT_SETTA */
-struct phyif_cmdp_setta {
+/* param of TRXCON_PHYIF_CMDT_SETTA */
+struct trxcon_phyif_cmdp_setta {
 	int8_t ta; /* intentionally signed */
 };
 
-/* param of PHYIF_CMDT_MEASURE (command) */
-struct phyif_cmdp_measure {
+/* param of TRXCON_PHYIF_CMDT_MEASURE (command) */
+struct trxcon_phyif_cmdp_measure {
 	uint16_t band_arfcn;
 };
 
-/* param of PHYIF_CMDT_MEASURE (response) */
-struct phyif_rspp_measure {
+/* param of TRXCON_PHYIF_CMDT_MEASURE (response) */
+struct trxcon_phyif_rspp_measure {
 	uint16_t band_arfcn;
 	int dbm;
 };
 
-struct phyif_cmd {
-	enum phyif_cmd_type type;
+struct trxcon_phyif_cmd {
+	enum trxcon_phyif_cmd_type type;
 	union {
-		struct phyif_cmdp_setfreq_h0 setfreq_h0;
-		struct phyif_cmdp_setfreq_h1 setfreq_h1;
-		struct phyif_cmdp_setslot setslot;
-		struct phyif_cmdp_setta setta;
-		struct phyif_cmdp_measure measure;
+		struct trxcon_phyif_cmdp_setfreq_h0 setfreq_h0;
+		struct trxcon_phyif_cmdp_setfreq_h1 setfreq_h1;
+		struct trxcon_phyif_cmdp_setslot setslot;
+		struct trxcon_phyif_cmdp_setta setta;
+		struct trxcon_phyif_cmdp_measure measure;
 	} param;
 };
 
-struct phyif_rsp {
-	enum phyif_cmd_type type;
+struct trxcon_phyif_rsp {
+	enum trxcon_phyif_cmd_type type;
 	union {
-		struct phyif_rspp_measure measure;
+		struct trxcon_phyif_rspp_measure measure;
 	} param;
 };
 
 /* BURST.req - a burst to be transmitted */
-struct phyif_burst_req {
+struct trxcon_phyif_burst_req {
 	uint32_t fn;
 	uint8_t tn;
 	uint8_t pwr;
@@ -79,7 +79,7 @@ struct phyif_burst_req {
 };
 
 /* BURST.ind - a received burst */
-struct phyif_burst_ind {
+struct trxcon_phyif_burst_ind {
 	uint32_t fn;
 	uint8_t tn;
 	int16_t toa256;
@@ -89,8 +89,8 @@ struct phyif_burst_ind {
 };
 
 
-int phyif_handle_burst_ind(void *priv, const struct phyif_burst_ind *bi);
-int phyif_handle_burst_req(void *phyif, const struct phyif_burst_req *br);
-int phyif_handle_cmd(void *phyif, const struct phyif_cmd *cmd);
-int phyif_handle_rsp(void *priv, const struct phyif_rsp *rsp);
-void phyif_close(void *phyif);
+int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_ind *bi);
+int trxcon_phyif_handle_burst_req(void *phyif, const struct trxcon_phyif_burst_req *br);
+int trxcon_phyif_handle_cmd(void *phyif, const struct trxcon_phyif_cmd *cmd);
+int trxcon_phyif_handle_rsp(void *priv, const struct trxcon_phyif_rsp *rsp);
+void trxcon_phyif_close(void *phyif);
