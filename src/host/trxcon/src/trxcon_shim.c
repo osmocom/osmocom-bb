@@ -220,6 +220,19 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 }
 
 /* External L1 API for the PHYIF */
+int trxcon_phyif_handle_rts_ind(void *priv, const struct trxcon_phyif_rts_ind *rts)
+{
+	struct trxcon_inst *trxcon = priv;
+	struct l1sched_burst_req br = {
+		.fn = rts->fn,
+		.tn = rts->tn,
+		.burst_len = 0, /* NOPE.ind */
+	};
+
+	l1sched_pull_burst(trxcon->sched, &br);
+	return l1sched_handle_burst_req(trxcon->sched, &br);
+}
+
 int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_ind *phybi)
 {
 	struct trxcon_inst *trxcon = priv;
