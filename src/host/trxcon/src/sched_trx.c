@@ -95,19 +95,15 @@ void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *b
 	struct l1sched_lchan_state *lchan;
 	l1sched_lchan_tx_func *handler;
 	enum l1sched_lchan_type chan;
-	uint8_t offset;
+	unsigned int offset;
 
-	/* Timeslot is not allocated */
-	if (ts == NULL)
-		return;
-
-	/* Timeslot is not configured */
-	if (ts->mf_layout == NULL)
+	/* Check if the given timeslot is configured */
+	if (ts == NULL || ts->mf_layout == NULL)
 		return;
 
 	/* Get frame from multiframe */
 	offset = br->fn % ts->mf_layout->period;
-	frame = ts->mf_layout->frames + offset;
+	frame = &ts->mf_layout->frames[offset];
 
 	/* Get required info from frame */
 	br->bid = frame->ul_bid;
@@ -115,41 +111,26 @@ void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *b
 	handler = l1sched_lchan_desc[chan].tx_fn;
 
 	/* Omit lchans without handler */
-	if (!handler)
+	if (handler == NULL)
 		return;
 
-	/* Make sure that lchan was allocated and activated */
+	/* Make sure that lchan is allocated and active */
 	lchan = l1sched_find_lchan(ts, chan);
-	if (lchan == NULL)
+	if (lchan == NULL || !lchan->active)
 		return;
 
-	/* Omit inactive lchans */
-	if (!lchan->active)
-		return;
-
-	/**
-	 * If we aren't processing any primitive yet,
-	 * attempt to obtain a new one from queue
-	 */
+	/* If no primitive is being processed, try obtaining one from Tx queue */
 	if (lchan->prim == NULL)
 		lchan->prim = l1sched_prim_dequeue(&ts->tx_prims, br->fn, lchan);
-
-	/* TODO: report TX buffers health to the higher layers */
-
-	/* If CBTX (Continuous Burst Transmission) is assumed */
-	if (l1sched_lchan_desc[chan].flags & L1SCHED_CH_FLAG_CBTX) {
-		/**
-		 * Probably, a TX buffer is empty. Nevertheless,
-		 * we shall continuously transmit anything on
-		 * CBTX channels.
-		 */
-		if (lchan->prim == NULL)
+	if (lchan->prim == NULL) {
+		/* If CBTX (Continuous Burst Transmission) is required */
+		if (l1sched_lchan_desc[chan].flags & L1SCHED_CH_FLAG_CBTX)
 			l1sched_prim_dummy(lchan);
+		if (lchan->prim == NULL)
+			return;
 	}
 
-	/* If there is no primitive, do nothing */
-	if (lchan->prim == NULL)
-		return;
+	/* TODO: report TX buffers health to the higher layers */
 
 	/* Handover RACH needs to be handled regardless of the
 	 * current channel type and the associated handler. */
