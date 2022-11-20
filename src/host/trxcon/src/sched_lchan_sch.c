@@ -85,13 +85,14 @@ int rx_sch_fn(struct l1sched_lchan_state *lchan,
 	/* Decode BSIC and TDMA frame number */
 	decode_sb(&time, &bsic, sb_info);
 
-	LOGP_LCHAND(lchan, LOGL_DEBUG, "Received SCH: bsic=%u, fn=%u, sched_fn=%u\n",
-		bsic, time.fn, lchan->ts->sched->fn_counter_proc);
+	LOGP_LCHAND(lchan, LOGL_DEBUG,
+		    "Received SCH: bsic=%u, fn=%u, sched_fn=%u\n",
+		    bsic, time.fn, fn);
 
 	/* Check if decoded frame number matches */
 	if (time.fn != fn) {
 		LOGP_LCHAND(lchan, LOGL_ERROR,
-			    "Decoded fn=%u does not match fn=%u provided by scheduler\n",
+			    "Decoded fn=%u does not match sched_fn=%u\n",
 			    time.fn, fn);
 		return -EINVAL;
 	}
