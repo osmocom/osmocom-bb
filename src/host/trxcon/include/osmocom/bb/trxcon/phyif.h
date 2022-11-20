@@ -89,8 +89,10 @@ struct trxcon_phyif_burst_ind {
 };
 
 
-int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_ind *bi);
 int trxcon_phyif_handle_burst_req(void *phyif, const struct trxcon_phyif_burst_req *br);
+int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_ind *bi);
+int trxcon_phyif_handle_clock_ind(void *priv, uint32_t fn);
+
 int trxcon_phyif_handle_cmd(void *phyif, const struct trxcon_phyif_cmd *cmd);
 int trxcon_phyif_handle_rsp(void *priv, const struct trxcon_phyif_rsp *rsp);
 void trxcon_phyif_close(void *phyif);

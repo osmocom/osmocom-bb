@@ -230,14 +230,15 @@ int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_in
 	};
 
 	/* Poke scheduler */
-	l1sched_handle_rx_burst(trxcon->sched, bi->tn, bi->fn,
-				bi->burst, bi->burst_len, &meas);
+	return l1sched_handle_rx_burst(trxcon->sched, bi->tn, bi->fn,
+				       bi->burst, bi->burst_len, &meas);
+}
 
-	/* Correct local clock counter */
-	if (bi->fn % 51 == 0)
-		l1sched_clck_handle(trxcon->sched, bi->fn);
+int trxcon_phyif_handle_clock_ind(void *priv, uint32_t fn)
+{
+	struct trxcon_inst *trxcon = priv;
 
-	return 0;
+	return l1sched_clck_handle(trxcon->sched, fn);
 }
 
 int trxcon_phyif_handle_rsp(void *priv, const struct trxcon_phyif_rsp *rsp)
