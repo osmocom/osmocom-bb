@@ -162,6 +162,16 @@ struct l1sched_burst_ind {
 	size_t burst_len;
 };
 
+/* Probed lchan is active */
+#define L1SCHED_PROBE_F_ACTIVE		(1 << 0)
+
+/* RTR (Ready-to-Receive) probe */
+struct l1sched_probe {
+	uint32_t flags; /* see L1SCHED_PROBE_F_* above */
+	uint32_t fn;
+	uint8_t tn;
+};
+
 typedef int l1sched_lchan_rx_func(struct l1sched_lchan_state *lchan,
 				  const struct l1sched_burst_ind *bi);
 
@@ -477,6 +487,8 @@ void l1sched_prim_flush_queue(struct llist_head *list);
 
 int l1sched_handle_rx_burst(struct l1sched_state *sched,
 			    struct l1sched_burst_ind *bi);
+int l1sched_handle_rx_probe(struct l1sched_state *sched,
+			    struct l1sched_probe *probe);
 
 /* Shared declarations for lchan handlers */
 extern const uint8_t l1sched_nb_training_bits[8][26];

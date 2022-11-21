@@ -75,6 +75,20 @@ struct trxcon_phyif_rts_ind {
 	uint8_t tn;
 };
 
+/* RTR.ind - Ready-to-Receive indicaton */
+struct trxcon_phyif_rtr_ind {
+	uint32_t fn;
+	uint8_t tn;
+};
+
+/* The probed lchan is active */
+#define TRXCON_PHYIF_RTR_F_ACTIVE	(1 << 0)
+
+/* RTR.rsp - Ready-to-Receive response */
+struct trxcon_phyif_rtr_rsp {
+	uint32_t flags; /* see TRXCON_PHYIF_RTR_F_* above */
+};
+
 /* BURST.req - a burst to be transmitted */
 struct trxcon_phyif_burst_req {
 	uint32_t fn;
@@ -99,6 +113,8 @@ int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_in
 int trxcon_phyif_handle_clock_ind(void *priv, uint32_t fn);
 
 int trxcon_phyif_handle_rts_ind(void *priv, const struct trxcon_phyif_rts_ind *rts);
+int trxcon_phyif_handle_rtr_ind(void *priv, const struct trxcon_phyif_rtr_ind *ind,
+				struct trxcon_phyif_rtr_rsp *rsp);
 
 int trxcon_phyif_handle_cmd(void *phyif, const struct trxcon_phyif_cmd *cmd);
 int trxcon_phyif_handle_rsp(void *priv, const struct trxcon_phyif_rsp *rsp);

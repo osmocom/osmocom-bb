@@ -233,6 +233,25 @@ int trxcon_phyif_handle_rts_ind(void *priv, const struct trxcon_phyif_rts_ind *r
 	return l1sched_handle_burst_req(trxcon->sched, &br);
 }
 
+int trxcon_phyif_handle_rtr_ind(void *priv, const struct trxcon_phyif_rtr_ind *ind,
+				struct trxcon_phyif_rtr_rsp *rsp)
+{
+	struct trxcon_inst *trxcon = priv;
+	struct l1sched_probe probe = {
+		.fn = ind->fn,
+		.tn = ind->tn,
+	};
+
+	l1sched_handle_rx_probe(trxcon->sched, &probe);
+
+	memset(rsp, 0x00, sizeof(*rsp));
+
+	if (probe.flags & L1SCHED_PROBE_F_ACTIVE)
+		rsp->flags |= TRXCON_PHYIF_RTR_F_ACTIVE;
+
+	return 0;
+}
+
 int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_ind *phybi)
 {
 	struct trxcon_inst *trxcon = priv;

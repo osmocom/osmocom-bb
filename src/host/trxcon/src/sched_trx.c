@@ -804,6 +804,36 @@ int l1sched_handle_rx_burst(struct l1sched_state *sched,
 	return 0;
 }
 
+int l1sched_handle_rx_probe(struct l1sched_state *sched,
+			    struct l1sched_probe *probe)
+{
+	struct l1sched_ts *ts = sched->ts[probe->tn];
+	const struct l1sched_tdma_frame *frame;
+	struct l1sched_lchan_state *lchan;
+	unsigned int offset;
+
+	/* Check whether required timeslot is allocated and configured */
+	if (ts == NULL || ts->mf_layout == NULL)
+		return -EINVAL;
+
+	/* Get frame from multiframe */
+	offset = probe->fn % ts->mf_layout->period;
+	frame = &ts->mf_layout->frames[offset];
+
+	if (l1sched_lchan_desc[frame->dl_chan].rx_fn == NULL)
+		return -ENODEV;
+
+	/* Find the appropriate logical channel */
+	lchan = l1sched_find_lchan(ts, frame->dl_chan);
+	if (lchan == NULL)
+		return -ENODEV;
+
+	if (lchan->active)
+		probe->flags |= L1SCHED_PROBE_F_ACTIVE;
+
+	return 0;
+}
+
 #define MEAS_HIST_FIRST(hist) \
 	(&hist->buf[0])
 #define MEAS_HIST_LAST(hist) \
