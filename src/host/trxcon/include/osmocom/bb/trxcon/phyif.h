@@ -84,7 +84,7 @@ struct trxcon_phyif_burst_ind {
 	uint8_t tn;
 	int16_t toa256;
 	int8_t rssi;
-	sbit_t *burst;
+	const sbit_t *burst;
 	unsigned int burst_len;
 };
 

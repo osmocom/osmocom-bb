@@ -631,6 +631,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 	struct trxcon_phyif_burst_ind bi;
 	uint8_t buf[TRXD_BUF_SIZE];
 	ssize_t read_len;
+	sbit_t *burst;
 
 	read_len = read(ofd->fd, buf, sizeof(buf));
 	if (read_len <= 0) {
@@ -644,22 +645,24 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return -EINVAL;
 	}
 
+	burst = (sbit_t *)&buf[8];
+
+	/* Convert ubits {254..0} to sbits {-127..127} in-place */
+	for (unsigned int i = 0; i < bi.burst_len; i++) {
+		if (buf[8 + i] == 255)
+			burst[i] = -127;
+		else
+			burst[i] = 127 - buf[8 + i];
+	}
+
 	bi = (struct trxcon_phyif_burst_ind) {
 		.tn = buf[0],
 		.fn = osmo_load32be(buf + 1),
 		.rssi = -(int8_t) buf[5],
 		.toa256 = (int16_t) (buf[6] << 8) | buf[7],
-		.burst = (sbit_t *)&buf[8],
+		.burst = burst,
 		.burst_len = 148,
 	};
-
-	/* Copy and convert bits {254..0} to sbits {-127..127} */
-	for (unsigned int i = 0; i < bi.burst_len; i++) {
-		if (buf[8 + i] == 255)
-			bi.burst[i] = -127;
-		else
-			bi.burst[i] = 127 - buf[8 + i];
-	}
 
 	if (bi.tn >= 8) {
 		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal TS %d\n", bi.tn);
