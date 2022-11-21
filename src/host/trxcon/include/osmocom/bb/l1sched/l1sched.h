@@ -490,7 +490,9 @@ void l1sched_lchan_meas_avg(struct l1sched_lchan_state *lchan, unsigned int n);
 /* Clock and Downlink scheduling trigger */
 int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn);
 void l1sched_clck_reset(struct l1sched_state *sched);
-void l1sched_trigger(struct l1sched_state *sched);
+
+void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *br);
+void l1sched_pull_send_frame(struct l1sched_state *sched);
 
 /* External L1 API, must be implemented by the API user */
 int l1sched_handle_config_req(struct l1sched_state *sched,

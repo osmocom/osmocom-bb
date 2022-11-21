@@ -82,7 +82,7 @@ static void l1sched_clck_tick(void *data)
 		GSM_TDMA_FN_INC(sched->fn_counter_proc);
 
 		/* Trigger the scheduler */
-		l1sched_trigger(sched);
+		l1sched_pull_send_frame(sched);
 	}
 
 	osmo_timer_schedule(&sched->clock_timer, 0,
@@ -95,7 +95,7 @@ static void l1sched_clck_correct(struct l1sched_state *sched,
 	sched->fn_counter_proc = fn;
 
 	/* Trigger the scheduler */
-	l1sched_trigger(sched);
+	l1sched_pull_send_frame(sched);
 
 	/* Schedule first FN clock */
 	sched->clock = *tv_now;
@@ -176,7 +176,7 @@ int l1sched_clck_handle(struct l1sched_state *sched, uint32_t fn)
 		GSM_TDMA_FN_INC(sched->fn_counter_proc);
 
 		/* Trigger the scheduler */
-		l1sched_trigger(sched);
+		l1sched_pull_send_frame(sched);
 	}
 
 	/* Schedule next FN to be transmitted */

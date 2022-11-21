@@ -85,102 +85,104 @@ static int l1sched_cfg_pchan_comb_req(struct l1sched_state *sched,
 static void l1sched_a5_burst_enc(struct l1sched_lchan_state *lchan,
 				 struct l1sched_burst_req *br);
 
-void l1sched_trigger(struct l1sched_state *sched)
+/* Pull an Uplink burst from the scheduler and store it to br->burst[].
+ * The TDMA Fn advance must be applied by the caller (if needed).
+ * The given *br must be initialized by the caller. */
+void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *br)
 {
-	struct l1sched_burst_req br[TRX_TS_COUNT];
+	struct l1sched_ts *ts = sched->ts[br->tn];
 	const struct l1sched_tdma_frame *frame;
 	struct l1sched_lchan_state *lchan;
 	l1sched_lchan_tx_func *handler;
 	enum l1sched_lchan_type chan;
 	uint8_t offset;
-	struct l1sched_ts *ts;
-	unsigned int tn;
 
+	/* Timeslot is not allocated */
+	if (ts == NULL)
+		return;
+
+	/* Timeslot is not configured */
+	if (ts->mf_layout == NULL)
+		return;
+
+	/* Get frame from multiframe */
+	offset = br->fn % ts->mf_layout->period;
+	frame = ts->mf_layout->frames + offset;
+
+	/* Get required info from frame */
+	br->bid = frame->ul_bid;
+	chan = frame->ul_chan;
+	handler = l1sched_lchan_desc[chan].tx_fn;
+
+	/* Omit lchans without handler */
+	if (!handler)
+		return;
+
+	/* Make sure that lchan was allocated and activated */
+	lchan = l1sched_find_lchan(ts, chan);
+	if (lchan == NULL)
+		return;
+
+	/* Omit inactive lchans */
+	if (!lchan->active)
+		return;
+
+	/**
+	 * If we aren't processing any primitive yet,
+	 * attempt to obtain a new one from queue
+	 */
+	if (lchan->prim == NULL)
+		lchan->prim = l1sched_prim_dequeue(&ts->tx_prims, br->fn, lchan);
+
+	/* TODO: report TX buffers health to the higher layers */
+
+	/* If CBTX (Continuous Burst Transmission) is assumed */
+	if (l1sched_lchan_desc[chan].flags & L1SCHED_CH_FLAG_CBTX) {
+		/**
+		 * Probably, a TX buffer is empty. Nevertheless,
+		 * we shall continuously transmit anything on
+		 * CBTX channels.
+		 */
+		if (lchan->prim == NULL)
+			l1sched_prim_dummy(lchan);
+	}
+
+	/* If there is no primitive, do nothing */
+	if (lchan->prim == NULL)
+		return;
+
+	/* Handover RACH needs to be handled regardless of the
+	 * current channel type and the associated handler. */
+	if (L1SCHED_PRIM_IS_RACH(lchan->prim) && lchan->prim->chan != L1SCHED_RACH)
+		handler = l1sched_lchan_desc[L1SCHED_RACH].tx_fn;
+
+	/* Poke lchan handler */
+	handler(lchan, br);
+
+	/* Perform A5/X burst encryption if required */
+	if (lchan->a5.algo)
+		l1sched_a5_burst_enc(lchan, br);
+}
+
+/* Pull *and send* Uplink bursts for all timeslots and the current TDMA Fn. */
+void l1sched_pull_send_frame(struct l1sched_state *sched)
+{
 	/* Advance TDMA frame number in order to give the transceiver
 	 * more time to handle the burst before the actual transmission. */
 	const uint32_t fn = GSM_TDMA_FN_SUM(sched->fn_counter_proc,
 					    sched->fn_counter_advance);
 
 	/* Iterate over timeslot list */
-	for (tn = 0; tn < ARRAY_SIZE(br); tn++) {
-		/* Initialize the buffer for this timeslot */
-		br[tn] = (struct l1sched_burst_req) {
+	for (unsigned int tn = 0; tn < ARRAY_SIZE(sched->ts); tn++) {
+		struct l1sched_burst_req br = {
 			.fn = fn,
 			.tn = tn,
 			.burst_len = 0, /* NOPE.ind */
 		};
 
-		/* Timeslot is not allocated */
-		ts = sched->ts[tn];
-		if (ts == NULL)
-			continue;
-
-		/* Timeslot is not configured */
-		if (ts->mf_layout == NULL)
-			continue;
-
-		/* Get frame from multiframe */
-		offset = fn % ts->mf_layout->period;
-		frame = ts->mf_layout->frames + offset;
-
-		/* Get required info from frame */
-		br[tn].bid = frame->ul_bid;
-		chan = frame->ul_chan;
-		handler = l1sched_lchan_desc[chan].tx_fn;
-
-		/* Omit lchans without handler */
-		if (!handler)
-			continue;
-
-		/* Make sure that lchan was allocated and activated */
-		lchan = l1sched_find_lchan(ts, chan);
-		if (lchan == NULL)
-			continue;
-
-		/* Omit inactive lchans */
-		if (!lchan->active)
-			continue;
-
-		/**
-		 * If we aren't processing any primitive yet,
-		 * attempt to obtain a new one from queue
-		 */
-		if (lchan->prim == NULL)
-			lchan->prim = l1sched_prim_dequeue(&ts->tx_prims, fn, lchan);
-
-		/* TODO: report TX buffers health to the higher layers */
-
-		/* If CBTX (Continuous Burst Transmission) is assumed */
-		if (l1sched_lchan_desc[chan].flags & L1SCHED_CH_FLAG_CBTX) {
-			/**
-			 * Probably, a TX buffer is empty. Nevertheless,
-			 * we shall continuously transmit anything on
-			 * CBTX channels.
-			 */
-			if (lchan->prim == NULL)
-				l1sched_prim_dummy(lchan);
-		}
-
-		/* If there is no primitive, do nothing */
-		if (lchan->prim == NULL)
-			continue;
-
-		/* Handover RACH needs to be handled regardless of the
-		 * current channel type and the associated handler. */
-		if (L1SCHED_PRIM_IS_RACH(lchan->prim) && lchan->prim->chan != L1SCHED_RACH)
-			handler = l1sched_lchan_desc[L1SCHED_RACH].tx_fn;
-
-		/* Poke lchan handler */
-		handler(lchan, &br[tn]);
-
-		/* Perform A5/X burst encryption if required */
-		if (lchan->a5.algo)
-			l1sched_a5_burst_enc(lchan, &br[tn]);
+		l1sched_pull_burst(sched, &br);
+		l1sched_handle_burst_req(sched, &br);
 	}
-
-	/* Send all bursts for this TDMA frame */
-	for (tn = 0; tn < ARRAY_SIZE(br); tn++)
-		l1sched_handle_burst_req(sched, &br[tn]);
 }
 
 void l1sched_logging_init(int log_cat_common, int log_cat_data)
