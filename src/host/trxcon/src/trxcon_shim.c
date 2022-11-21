@@ -220,18 +220,23 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 }
 
 /* External L1 API for the PHYIF */
-int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_ind *bi)
+int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_ind *phybi)
 {
 	struct trxcon_inst *trxcon = priv;
-	const struct l1sched_meas_set meas = {
-		.fn = bi->fn,
-		.toa256 = bi->toa256,
-		.rssi = bi->rssi,
+	struct l1sched_burst_ind bi = {
+		.fn = phybi->fn,
+		.tn = phybi->tn,
+		.toa256 = phybi->toa256,
+		.rssi = phybi->rssi,
+		/* .burst[] is populated below */
+		.burst_len = phybi->burst_len,
 	};
 
+	OSMO_ASSERT(phybi->burst_len <= sizeof(bi.burst));
+	memcpy(&bi.burst[0], phybi->burst, phybi->burst_len);
+
 	/* Poke scheduler */
-	return l1sched_handle_rx_burst(trxcon->sched, bi->tn, bi->fn,
-				       bi->burst, bi->burst_len, &meas);
+	return l1sched_handle_rx_burst(trxcon->sched, &bi);
 }
 
 int trxcon_phyif_handle_clock_ind(void *priv, uint32_t fn)

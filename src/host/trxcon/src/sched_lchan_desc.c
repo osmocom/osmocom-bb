@@ -31,36 +31,31 @@
 
 /* Forward declaration of handlers */
 int rx_data_fn(struct l1sched_lchan_state *lchan,
-	       uint32_t fn, uint8_t bid, const sbit_t *bits,
-	       const struct l1sched_meas_set *meas);
+	       const struct l1sched_burst_ind *bi);
 
 int tx_data_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br);
 
 int rx_sch_fn(struct l1sched_lchan_state *lchan,
-	      uint32_t fn, uint8_t bid, const sbit_t *bits,
-	      const struct l1sched_meas_set *meas);
+	       const struct l1sched_burst_ind *bi);
 
 int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br);
 
 int rx_tchf_fn(struct l1sched_lchan_state *lchan,
-	       uint32_t fn, uint8_t bid, const sbit_t *bits,
-	       const struct l1sched_meas_set *meas);
+	       const struct l1sched_burst_ind *bi);
 
 int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br);
 
 int rx_tchh_fn(struct l1sched_lchan_state *lchan,
-	       uint32_t fn, uint8_t bid, const sbit_t *bits,
-	       const struct l1sched_meas_set *meas);
+	       const struct l1sched_burst_ind *bi);
 
 int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br);
 
 int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
-		uint32_t fn, uint8_t bid, const sbit_t *bits,
-		const struct l1sched_meas_set *meas);
+	       const struct l1sched_burst_ind *bi);
 
 int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 		struct l1sched_burst_req *br);

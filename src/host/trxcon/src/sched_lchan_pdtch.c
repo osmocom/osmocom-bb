@@ -34,8 +34,7 @@
 #include <osmocom/bb/l1sched/logging.h>
 
 int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
-		uint32_t fn, uint8_t bid, const sbit_t *bits,
-		const struct l1sched_meas_set *meas)
+		const struct l1sched_burst_ind *bi)
 {
 	uint8_t l2[GPRS_L2_MAX_LEN], *mask;
 	int n_errors, n_bits_total, rc;
@@ -46,25 +45,26 @@ int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
 
-	LOGP_LCHAND(lchan, LOGL_DEBUG, "Packet data received: fn=%u bid=%u\n", fn, bid);
+	LOGP_LCHAND(lchan, LOGL_DEBUG,
+		    "Packet data received: fn=%u bid=%u\n", bi->fn, bi->bid);
 
 	/* Align to the first burst of a block */
-	if (*mask == 0x00 && bid != 0)
+	if (*mask == 0x00 && bi->bid != 0)
 		return 0;
 
 	/* Update mask */
-	*mask |= (1 << bid);
+	*mask |= (1 << bi->bid);
 
 	/* Store the measurements */
-	l1sched_lchan_meas_push(lchan, meas);
+	l1sched_lchan_meas_push(lchan, bi);
 
 	/* Copy burst to buffer of 4 bursts */
-	offset = buffer + bid * 116;
-	memcpy(offset, bits + 3, 58);
-	memcpy(offset + 58, bits + 87, 58);
+	offset = buffer + bi->bid * 116;
+	memcpy(offset, bi->burst + 3, 58);
+	memcpy(offset + 58, bi->burst + 87, 58);
 
 	/* Wait until complete set of bursts */
-	if (bid != 3)
+	if (bi->bid != 3)
 		return 0;
 
 	/* Calculate AVG of the measurements */

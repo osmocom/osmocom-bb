@@ -235,8 +235,7 @@ static uint32_t tchh_block_dl_first_fn(const struct l1sched_lchan_state *lchan,
 }
 
 int rx_tchh_fn(struct l1sched_lchan_state *lchan,
-	       uint32_t fn, uint8_t bid, const sbit_t *bits,
-	       const struct l1sched_meas_set *meas)
+	       const struct l1sched_burst_ind *bi)
 {
 	int n_errors = -1, n_bits_total = 0, rc;
 	sbit_t *buffer, *offset;
@@ -250,36 +249,37 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
 
-	LOGP_LCHAND(lchan, LOGL_DEBUG, "Traffic received: fn=%u bid=%u\n", fn, bid);
+	LOGP_LCHAND(lchan, LOGL_DEBUG,
+		    "Traffic received: fn=%u bid=%u\n", bi->fn, bi->bid);
 
 	if (*mask == 0x00) {
 		/* Align to the first burst */
-		if (bid > 0)
+		if (bi->bid > 0)
 			return 0;
 
 		/* Align reception of the first FACCH/H frame */
 		if (lchan->tch_mode == GSM48_CMODE_SIGN) {
-			if (!l1sched_tchh_facch_start(lchan->type, fn, 0))
+			if (!l1sched_tchh_facch_start(lchan->type, bi->fn, 0))
 				return 0;
 		} else { /* or TCH/H traffic frame */
-			if (!l1sched_tchh_traffic_start(lchan->type, fn, 0))
+			if (!l1sched_tchh_traffic_start(lchan->type, bi->fn, 0))
 				return 0;
 		}
 	}
 
 	/* Update mask */
-	*mask |= (1 << bid);
+	*mask |= (1 << bi->bid);
 
 	/* Store the measurements */
-	l1sched_lchan_meas_push(lchan, meas);
+	l1sched_lchan_meas_push(lchan, bi);
 
 	/* Copy burst to the end of buffer of 6 bursts */
-	offset = buffer + bid * 116 + 464;
-	memcpy(offset, bits + 3, 58);
-	memcpy(offset + 58, bits + 87, 58);
+	offset = buffer + bi->bid * 116 + 464;
+	memcpy(offset, bi->burst + 3, 58);
+	memcpy(offset + 58, bi->burst + 87, 58);
 
 	/* Wait until the second burst */
-	if (bid != 1)
+	if (bi->bid != 1)
 		return 0;
 
 	/* Wait for complete set of bursts */
@@ -303,19 +303,19 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	case GSM48_CMODE_SIGN:
 	case GSM48_CMODE_SPEECH_V1: /* HR */
 		rc = gsm0503_tch_hr_decode(l2, buffer,
-			!l1sched_tchh_facch_end(lchan->type, fn, 0),
+			!l1sched_tchh_facch_end(lchan->type, bi->fn, 0),
 			&n_errors, &n_bits_total);
 		break;
 	case GSM48_CMODE_SPEECH_AMR: /* AMR */
 		/* the first FN FN 4,13,21 or 5,14,22 defines that CMI is
 		 * included in frame, the first FN FN 0,8,17 or 1,9,18 defines
 		 * that CMR/CMC is included in frame. */
-		fn_is_cmi = sched_tchh_dl_amr_cmi_map[fn % 26];
+		fn_is_cmi = sched_tchh_dl_amr_cmi_map[bi->fn % 26];
 
 		/* See comment in function rx_tchf_fn() */
 		amr = 2;
 		rc = gsm0503_tch_ahs_decode_dtx(l2 + amr, buffer,
-			!sched_tchh_dl_facch_map[fn % 26],
+			!sched_tchh_dl_facch_map[bi->fn % 26],
 			!fn_is_cmi, lchan->amr.codec, lchan->amr.codecs, &lchan->amr.dl_ft,
 			&lchan->amr.dl_cmr, &n_errors, &n_bits_total, &lchan->amr.last_dtx);
 
@@ -398,7 +398,7 @@ bfi:
 	/* Didn't try to decode, fake measurements */
 	if (n_errors < 0) {
 		lchan->meas_avg = (struct l1sched_meas_set) {
-			.fn = tchh_block_dl_first_fn(lchan, fn, false),
+			.fn = tchh_block_dl_first_fn(lchan, bi->fn, false),
 			.toa256 = 0,
 			.rssi = -110,
 		};

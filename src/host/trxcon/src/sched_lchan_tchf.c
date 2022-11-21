@@ -58,8 +58,7 @@ static const uint8_t sched_tchf_ul_amr_cmi_map[26] = {
 };
 
 int rx_tchf_fn(struct l1sched_lchan_state *lchan,
-	       uint32_t fn, uint8_t bid, const sbit_t *bits,
-	       const struct l1sched_meas_set *meas)
+	       const struct l1sched_burst_ind *bi)
 {
 	int n_errors = -1, n_bits_total = 0, rc;
 	sbit_t *buffer, *offset;
@@ -73,25 +72,26 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->rx_burst_mask;
 	buffer = lchan->rx_bursts;
 
-	LOGP_LCHAND(lchan, LOGL_DEBUG, "Traffic received: fn=%u bid=%u\n", fn, bid);
+	LOGP_LCHAND(lchan, LOGL_DEBUG,
+		    "Traffic received: fn=%u bid=%u\n", bi->fn, bi->bid);
 
 	/* Align to the first burst of a block */
-	if (*mask == 0x00 && bid != 0)
+	if (*mask == 0x00 && bi->bid != 0)
 		return 0;
 
 	/* Update mask */
-	*mask |= (1 << bid);
+	*mask |= (1 << bi->bid);
 
 	/* Store the measurements */
-	l1sched_lchan_meas_push(lchan, meas);
+	l1sched_lchan_meas_push(lchan, bi);
 
 	/* Copy burst to end of buffer of 8 bursts */
-	offset = buffer + bid * 116 + 464;
-	memcpy(offset, bits + 3, 58);
-	memcpy(offset + 58, bits + 87, 58);
+	offset = buffer + bi->bid * 116 + 464;
+	memcpy(offset, bi->burst + 3, 58);
+	memcpy(offset + 58, bi->burst + 87, 58);
 
 	/* Wait until complete set of bursts */
-	if (bid != 3)
+	if (bi->bid != 3)
 		return 0;
 
 	/* Calculate AVG of the measurements */
@@ -126,7 +126,7 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 		 * the first FN 0,8,17 defines that CMR/CMC is included in frame.
 		 * NOTE: A frame ends 7 FN after start.
 		 */
-		amr_is_cmr = !sched_tchf_dl_amr_cmi_map[fn % 26];
+		amr_is_cmr = !sched_tchf_dl_amr_cmi_map[bi->fn % 26];
 
 		/* we store tch_data + 2 header bytes, the amr variable set to
 		 * 2 will allow us to skip the first 2 bytes in case we did

@@ -145,9 +145,25 @@ struct l1sched_burst_req {
 	size_t burst_len;
 };
 
+/* Represents a received burst */
+struct l1sched_burst_ind {
+	uint32_t fn;
+	uint8_t tn;
+
+	/*! ToA256 (Timing of Arrival, 1/256 of a symbol) */
+	int16_t toa256;
+	/*! RSSI (Received Signal Strength Indication) */
+	int8_t rssi;
+
+	/* Internally used by the scheduler */
+	uint8_t bid;
+
+	sbit_t burst[EDGE_BURST_LEN];
+	size_t burst_len;
+};
+
 typedef int l1sched_lchan_rx_func(struct l1sched_lchan_state *lchan,
-				  uint32_t fn, uint8_t bid, const sbit_t *bits,
-				  const struct l1sched_meas_set *meas);
+				  const struct l1sched_burst_ind *bi);
 
 typedef int l1sched_lchan_tx_func(struct l1sched_lchan_state *lchan,
 				  struct l1sched_burst_req *br);
@@ -459,9 +475,8 @@ int l1sched_prim_dummy(struct l1sched_lchan_state *lchan);
 void l1sched_prim_drop(struct l1sched_lchan_state *lchan);
 void l1sched_prim_flush_queue(struct llist_head *list);
 
-int l1sched_handle_rx_burst(struct l1sched_state *sched, uint8_t tn,
-	uint32_t fn, sbit_t *bits, uint16_t nbits,
-	const struct l1sched_meas_set *meas);
+int l1sched_handle_rx_burst(struct l1sched_state *sched,
+			    struct l1sched_burst_ind *bi);
 
 /* Shared declarations for lchan handlers */
 extern const uint8_t l1sched_nb_training_bits[8][26];
@@ -484,7 +499,8 @@ bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
 	l1sched_tchh_block_map_fn(chan, fn, ul, 1, 0)
 
 /* Measurement history */
-void l1sched_lchan_meas_push(struct l1sched_lchan_state *lchan, const struct l1sched_meas_set *meas);
+void l1sched_lchan_meas_push(struct l1sched_lchan_state *lchan,
+			     const struct l1sched_burst_ind *bi);
 void l1sched_lchan_meas_avg(struct l1sched_lchan_state *lchan, unsigned int n);
 
 /* Clock and Downlink scheduling trigger */

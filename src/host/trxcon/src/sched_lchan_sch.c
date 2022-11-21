@@ -62,8 +62,7 @@ static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 }
 
 int rx_sch_fn(struct l1sched_lchan_state *lchan,
-	      uint32_t fn, uint8_t bid, const sbit_t *bits,
-	      const struct l1sched_meas_set *meas)
+	      const struct l1sched_burst_ind *bi)
 {
 	sbit_t payload[2 * 39];
 	struct gsm_time time;
@@ -72,13 +71,14 @@ int rx_sch_fn(struct l1sched_lchan_state *lchan,
 	int rc;
 
 	/* Obtain payload from burst */
-	memcpy(payload, bits + 3, 39);
-	memcpy(payload + 39, bits + 3 + 39 + 64, 39);
+	memcpy(payload, bi->burst + 3, 39);
+	memcpy(payload + 39, bi->burst + 3 + 39 + 64, 39);
 
 	/* Attempt to decode */
 	rc = gsm0503_sch_decode(sb_info, payload);
 	if (rc) {
-		LOGP_LCHAND(lchan, LOGL_ERROR, "Received bad SCH burst at fn=%u\n", fn);
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Received bad SCH burst at fn=%u\n", bi->fn);
 		return rc;
 	}
 
@@ -87,13 +87,13 @@ int rx_sch_fn(struct l1sched_lchan_state *lchan,
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG,
 		    "Received SCH: bsic=%u, fn=%u, sched_fn=%u\n",
-		    bsic, time.fn, fn);
+		    bsic, time.fn, bi->fn);
 
 	/* Check if decoded frame number matches */
-	if (time.fn != fn) {
+	if (time.fn != bi->fn) {
 		LOGP_LCHAND(lchan, LOGL_ERROR,
 			    "Decoded fn=%u does not match sched_fn=%u\n",
-			    time.fn, fn);
+			    time.fn, bi->fn);
 		return -EINVAL;
 	}
 

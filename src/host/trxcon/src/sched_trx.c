@@ -703,27 +703,29 @@ static int subst_frame_loss(struct l1sched_lchan_state *lchan,
 		return -EIO;
 	}
 
-	static const sbit_t bits[148] = { 0 };
-	struct l1sched_meas_set fake_meas = {
+	struct l1sched_burst_ind bi = {
 		.fn = lchan->tdma.last_proc,
-		.rssi = -120,
+		.tn = lchan->ts->index,
 		.toa256 = 0,
+		.rssi = -120,
+		.burst = { 0 },
+		.burst_len = GSM_BURST_LEN,
 	};
 
 	/* Traverse from fp till the current frame */
 	for (i = 0; i < elapsed - 1; i++) {
-		fp = &mf->frames[GSM_TDMA_FN_INC(fake_meas.fn) % mf->period];
+		fp = &mf->frames[GSM_TDMA_FN_INC(bi.fn) % mf->period];
 		if (fp->dl_chan != lchan->type)
 			continue;
 
 		LOGP_LCHANC(lchan, LOGL_NOTICE,
-			    "Substituting lost TDMA frame fn=%u\n",
-			    fake_meas.fn);
+			    "Substituting lost TDMA frame fn=%u\n", bi.fn);
 
-		handler(lchan, fake_meas.fn, fp->dl_bid, bits, &fake_meas);
+		bi.bid = fp->dl_bid;
+		handler(lchan, &bi);
 
 		/* Update TDMA frame statistics */
-		lchan->tdma.last_proc = fake_meas.fn;
+		lchan->tdma.last_proc = bi.fn;
 		lchan->tdma.num_proc++;
 		lchan->tdma.num_lost++;
 	}
@@ -731,33 +733,31 @@ static int subst_frame_loss(struct l1sched_lchan_state *lchan,
 	return 0;
 }
 
-int l1sched_handle_rx_burst(struct l1sched_state *sched, uint8_t tn,
-	uint32_t fn, sbit_t *bits, uint16_t nbits,
-	const struct l1sched_meas_set *meas)
+int l1sched_handle_rx_burst(struct l1sched_state *sched,
+			    struct l1sched_burst_ind *bi)
 {
 	struct l1sched_lchan_state *lchan;
 	const struct l1sched_tdma_frame *frame;
-	struct l1sched_ts *ts;
+	struct l1sched_ts *ts = sched->ts[bi->tn];
 
 	l1sched_lchan_rx_func *handler;
 	enum l1sched_lchan_type chan;
-	uint8_t offset, bid;
+	uint8_t offset;
 	int rc;
 
 	/* Check whether required timeslot is allocated and configured */
-	ts = sched->ts[tn];
 	if (ts == NULL || ts->mf_layout == NULL) {
 		LOGP_SCHEDD(sched, LOGL_DEBUG,
-			    "Timeslot #%u isn't configured, ignoring burst...\n", tn);
+			    "Timeslot #%u isn't configured, ignoring burst...\n", bi->tn);
 		return -EINVAL;
 	}
 
 	/* Get frame from multiframe */
-	offset = fn % ts->mf_layout->period;
+	offset = bi->fn % ts->mf_layout->period;
 	frame = ts->mf_layout->frames + offset;
 
 	/* Get required info from frame */
-	bid = frame->dl_bid;
+	bi->bid = frame->dl_bid;
 	chan = frame->dl_chan;
 	handler = l1sched_lchan_desc[chan].rx_fn;
 
@@ -776,19 +776,19 @@ int l1sched_handle_rx_burst(struct l1sched_state *sched, uint8_t tn,
 		return 0;
 
 	/* Compensate lost TDMA frames (if any) */
-	rc = subst_frame_loss(lchan, handler, fn);
+	rc = subst_frame_loss(lchan, handler, bi->fn);
 	if (rc == -EALREADY)
 		return rc;
 
 	/* Perform A5/X decryption if required */
 	if (lchan->a5.algo)
-		l1sched_a5_burst_dec(lchan, fn, bits);
+		l1sched_a5_burst_dec(lchan, bi->fn, &bi->burst[0]);
 
 	/* Put burst to handler */
-	handler(lchan, fn, bid, bits, meas);
+	handler(lchan, bi);
 
 	/* Update TDMA frame statistics */
-	lchan->tdma.last_proc = fn;
+	lchan->tdma.last_proc = bi->fn;
 
 	if (++lchan->tdma.num_proc == 0) {
 		/* Theoretically, we may have an integer overflow of num_proc counter.
@@ -810,7 +810,8 @@ int l1sched_handle_rx_burst(struct l1sched_state *sched, uint8_t tn,
 	(MEAS_HIST_FIRST(hist) + ARRAY_SIZE(hist->buf) - 1)
 
 /* Add a new set of measurements to the history */
-void l1sched_lchan_meas_push(struct l1sched_lchan_state *lchan, const struct l1sched_meas_set *meas)
+void l1sched_lchan_meas_push(struct l1sched_lchan_state *lchan,
+			     const struct l1sched_burst_ind *bi)
 {
 	struct l1sched_lchan_meas_hist *hist = &lchan->meas_hist;
 
@@ -820,7 +821,11 @@ void l1sched_lchan_meas_push(struct l1sched_lchan_state *lchan, const struct l1s
 	else
 		hist->head++;
 
-	*hist->head = *meas;
+	*hist->head = (struct l1sched_meas_set) {
+		.fn = bi->fn,
+		.toa256 = bi->toa256,
+		.rssi = bi->rssi,
+	};
 }
 
 /* Calculate the AVG of n measurements from the history */
