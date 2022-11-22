@@ -47,29 +47,36 @@
 #include "keymap.h"
 
 #define ASIC_CONF_REG	0xfffef008
+#define ARMIO_LATCH_OUT	0xfffe4802
+#define IO_CNTL_REG	0xfffe4804
+#define IO_CONF_REG	0xfffef00a
 
 static void board_io_init(void)
 {
 	uint16_t reg;
 
 	reg = readw(ASIC_CONF_REG);
+	/* Set LPG and PWL pin mux */
+	reg |= (1 << 6) | (1 << 4);
 	/* TWL3025: Set SPI+RIF RX clock to rising edge */
 	reg |= (1 << 13) | (1 << 14);
 	writew(reg, ASIC_CONF_REG);
+
+	writew(0xc060, IO_CNTL_REG);
+	writew(0x03fd, IO_CONF_REG);
+
+	/* set default IO state */
+	writew(0x1f83, ARMIO_LATCH_OUT);
 }
 
 void board_init(int with_irq)
 {
-	/* Disable watchdog (compal loader leaves it enabled) */
-	wdog_enable(0);
-
-	/* Configure the memory interface - TODO: adapt for K2x0i, right now just
-	 * copied from Pirelli DP-L10 */
+	/* Configure the memory interface */
 	calypso_mem_cfg(CALYPSO_nCS0, 4, CALYPSO_MEM_16bit, 1);
-	calypso_mem_cfg(CALYPSO_nCS1, 4, CALYPSO_MEM_16bit, 1);
-	calypso_mem_cfg(CALYPSO_nCS2, 5, CALYPSO_MEM_16bit, 1);
-	calypso_mem_cfg(CALYPSO_nCS3, 4, CALYPSO_MEM_16bit, 1);
-	calypso_mem_cfg(CALYPSO_CS4, 7, CALYPSO_MEM_16bit, 1);
+	calypso_mem_cfg(CALYPSO_nCS1, 5, CALYPSO_MEM_16bit, 1);
+	calypso_mem_cfg(CALYPSO_nCS2, 4, CALYPSO_MEM_16bit, 1);
+	calypso_mem_cfg(CALYPSO_nCS3, 5, CALYPSO_MEM_16bit, 1);
+	calypso_mem_cfg(CALYPSO_CS4, 5, CALYPSO_MEM_8bit, 1); /* TODO: add one dummy cycle */
 	calypso_mem_cfg(CALYPSO_nCS6, 0, CALYPSO_MEM_32bit, 1);
 	calypso_mem_cfg(CALYPSO_nCS7, 0, CALYPSO_MEM_32bit, 0);
 

@@ -35,6 +35,7 @@ FB_e99_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_ssd1783.o
 FB_e86_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_td014.o
 FB_j100_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_ssd1963.o
 FB_dpl10_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_s6b33b1x.o
+FB_k2x0_OBJS=$(FB_OBJS) fb/fb_rgb332.o fb/fb_k2x0.o
 FB_dummy_OBJS=$(FB_OBJS) fb/fb_dummy.o
 
 # TI Calypso
@@ -104,7 +105,7 @@ BOARD_se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 BOARD_se_k2x0_OBJS=$(calypso_COMMON_OBJS) board/se_k2x0/init.o \
 	board/se_k2x0/rffe_k2x0.o \
 	board/gta0x/rf_tables.o board/gta0x/afcparams.o \
-	board/common/readcal_tiffs.o battery/dummy.o $(FB_dummy_OBJS)
+	board/common/readcal_tiffs.o battery/dummy.o $(FB_k2x0_OBJS)
 BOARD_se_k2x0_ENVIRONMENTS=highram
 
 #
