@@ -5798,8 +5798,8 @@ int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
 		goto error;
 	}
 
-	if (ch_type != RSL_CHAN_Bm_ACCHs) {
-		LOGP(DRR, LOGL_INFO, "Current channel is not (yet) TCH/F\n");
+	if (ch_type != RSL_CHAN_Bm_ACCHs && ch_type != RSL_CHAN_Lm_ACCHs) {
+		LOGP(DRR, LOGL_INFO, "Current channel is not (yet) TCH\n");
 		goto error;
 	}
 
