@@ -269,6 +269,14 @@ int mobile_start(struct osmocom_ms *ms, char **other_name)
 			*other_name = tmp->name;
 			return -2;
 		}
+		if (!strcmp(ms->settings.mncc_socket_path,
+				tmp->settings.mncc_socket_path)) {
+			LOGP(DMOB, LOGL_ERROR, "Cannot start MS '%s', because MS '%s' "
+				"is using the same mncc-socket.\nPlease shutdown "
+				"MS '%s' first.\n", ms->name, tmp->name, tmp->name);
+			*other_name = tmp->name;
+			return -3;
+		}
 	}
 
 	rc = mobile_init(ms);
@@ -291,7 +299,6 @@ int mobile_stop(struct osmocom_ms *ms, int force)
 struct osmocom_ms *mobile_new(char *name)
 {
 	static struct osmocom_ms *ms;
-	char *mncc_name;
 
 	ms = talloc_zero(l23_ctx, struct osmocom_ms);
 	if (!ms) {
@@ -313,12 +320,8 @@ struct osmocom_ms *mobile_new(char *name)
 	mobile_set_shutdown(ms, MS_SHUTDOWN_COMPL);
 
 	if (mncc_recv_app) {
-		mncc_name = talloc_asprintf(ms, "/tmp/ms_mncc_%s", ms->name);
-
 		ms->mncc_entity.mncc_recv = mncc_recv_app;
-		ms->mncc_entity.sock_state = mncc_sock_init(ms, mncc_name);
-
-		talloc_free(mncc_name);
+		ms->mncc_entity.sock_state = mncc_sock_init(ms, ms->settings.mncc_socket_path);
 	} else if (ms->settings.ch_cap == GSM_CAP_SDCCH)
 		ms->mncc_entity.mncc_recv = mncc_recv_dummy;
 	else

@@ -22,6 +22,7 @@ struct audio_settings {
 struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];
+	char			mncc_socket_path[128];
 
 	/* Audio settings */
 	struct audio_settings	audio;
