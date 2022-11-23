@@ -56,7 +56,7 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* send voice frame back, if appropriate */
 	if (ms->settings.audio.io_handler == AUDIO_IOH_LOOPBACK)
-		gsm_send_voice(ms, mncc);
+		gsm_send_voice_frame(ms, mncc);
 
 	/* distribute and then free */
 	if (ms->mncc_entity.mncc_recv && ms->mncc_entity.ref) {
@@ -71,7 +71,13 @@ exit_free:
 /*
  * send voice
  */
-int gsm_send_voice(struct osmocom_ms *ms, struct gsm_data_frame *data)
+int gsm_send_voice_msg(struct osmocom_ms *ms, struct msgb *msg)
+{
+	/* Forward to RR */
+	return gsm48_rr_tx_voice(ms, msg);
+}
+
+int gsm_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *frame)
 {
 	struct msgb *nmsg;
 	int len;
@@ -85,7 +91,8 @@ int gsm_send_voice(struct osmocom_ms *ms, struct gsm_data_frame *data)
 		len = GSM_EFR_BYTES;
 		break;
 	default:
-		LOGP(DL1C, LOGL_ERROR, "gsm_send_voice, msg_type=0x%02x: not implemented\n", data->msg_type);
+		LOGP(DL1C, LOGL_ERROR, "%s(): msg_type=0x%02x: not implemented\n",
+		     __func__, frame->msg_type);
 		return -EINVAL;
 	}
 
@@ -93,9 +100,9 @@ int gsm_send_voice(struct osmocom_ms *ms, struct gsm_data_frame *data)
 	if (!nmsg)
 		return -ENOMEM;
 	nmsg->l2h = msgb_put(nmsg, len);
-	memcpy(nmsg->l2h, data->data, len);
+	memcpy(nmsg->l2h, frame->data, len);
 
-	return gsm48_rr_tx_voice(ms, nmsg);
+	return gsm_send_voice_msg(ms, nmsg);
 }
 
 /*
