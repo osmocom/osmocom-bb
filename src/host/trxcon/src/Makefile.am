@@ -28,12 +28,6 @@ libl1sched_la_SOURCES = \
 	sched_trx.c \
 	$(NULL)
 
-libl1sched_la_LIBADD = \
-	$(LIBOSMOCORE_LIBS) \
-	$(LIBOSMOCODING_LIBS) \
-	$(LIBOSMOGSM_LIBS) \
-	$(NULL)
-
 
 noinst_LTLIBRARIES += libtrxcon.la
 
@@ -42,12 +36,6 @@ libtrxcon_la_SOURCES = \
 	trxcon_fsm.c \
 	trxcon_shim.c \
 	l1ctl.c \
-	$(NULL)
-
-libtrxcon_la_LIBADD = \
-	libl1sched.la \
-	$(LIBOSMOCORE_LIBS) \
-	$(LIBOSMOGSM_LIBS) \
 	$(NULL)
 
 
@@ -62,4 +50,8 @@ trxcon_SOURCES = \
 
 trxcon_LDADD = \
 	libtrxcon.la \
+	libl1sched.la \
+	$(LIBOSMOCORE_LIBS) \
+	$(LIBOSMOCODING_LIBS) \
+	$(LIBOSMOGSM_LIBS) \
 	$(NULL)
