@@ -648,6 +648,12 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return -EINVAL;
 	}
 
+	if ((buf[0] >> 4) != 0) {
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
+			  "Got TRXD PDU with unexpected version\n");
+		return -ENOTSUP;
+	}
+
 	burst = (sbit_t *)&buf[8];
 
 	bi = (struct trxcon_phyif_burst_ind) {
