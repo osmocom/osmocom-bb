@@ -635,7 +635,10 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 
 	read_len = read(ofd->fd, buf, sizeof(buf));
 	if (read_len <= 0) {
-		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "read() failed with rc=%zd\n", read_len);
+		strerror_r(errno, (char *)buf, sizeof(buf));
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
+			  "read() failed on TRXD with rc=%zd (%s)\n",
+			  read_len, (const char *)buf);
 		return read_len;
 	}
 
