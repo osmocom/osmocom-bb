@@ -43,6 +43,9 @@
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
 
+#define TRXDv0_HDR_LEN		8
+#define GMSK_BURST_LEN		148
+
 #define S(x)	(1 << (x))
 
 static void trx_fsm_cleanup_cb(struct osmo_fsm_inst *fi,
@@ -642,7 +645,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return read_len;
 	}
 
-	if (read_len < (8 + 148)) { /* TRXDv0 header + GMSK burst */
+	if (read_len < (TRXDv0_HDR_LEN + GMSK_BURST_LEN)) {
 		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
 			  "Got data message with invalid length '%zd'\n", read_len);
 		return -EINVAL;
@@ -661,8 +664,8 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		.fn = osmo_load32be(buf + 1),
 		.rssi = -(int8_t) buf[5],
 		.toa256 = (int16_t) (buf[6] << 8) | buf[7],
-		.burst = burst,
-		.burst_len = 148,
+		.burst = burst, /* at least GMSK_BURST_LEN */
+		.burst_len = read_len - TRXDv0_HDR_LEN,
 	};
 
 	/* Convert ubits {254..0} to sbits {-127..127} in-place */
