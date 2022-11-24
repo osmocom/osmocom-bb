@@ -647,14 +647,6 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 
 	burst = (sbit_t *)&buf[8];
 
-	/* Convert ubits {254..0} to sbits {-127..127} in-place */
-	for (unsigned int i = 0; i < bi.burst_len; i++) {
-		if (buf[8 + i] == 255)
-			burst[i] = -127;
-		else
-			burst[i] = 127 - buf[8 + i];
-	}
-
 	bi = (struct trxcon_phyif_burst_ind) {
 		.tn = buf[0],
 		.fn = osmo_load32be(buf + 1),
@@ -663,6 +655,14 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		.burst = burst,
 		.burst_len = 148,
 	};
+
+	/* Convert ubits {254..0} to sbits {-127..127} in-place */
+	for (unsigned int i = 0; i < bi.burst_len; i++) {
+		if (buf[8 + i] == 255)
+			burst[i] = -127;
+		else
+			burst[i] = 127 - buf[8 + i];
+	}
 
 	if (bi.tn >= 8) {
 		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal TS %d\n", bi.tn);
