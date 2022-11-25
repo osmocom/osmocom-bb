@@ -289,12 +289,78 @@ static void handle_tx_access_burst_req(struct osmo_fsm_inst *fi,
 		LOGPFSML(fi, LOGL_ERROR, "Failed to enqueue a prim\n");
 }
 
+static void handle_dch_est_req(struct osmo_fsm_inst *fi,
+			       const struct trxcon_param_dch_est_req *req)
+{
+	struct trxcon_inst *trxcon = fi->priv;
+	enum gsm_phys_chan_config config;
+	struct l1sched_ts *ts;
+	int rc;
+
+	config = l1sched_chan_nr2pchan_config(req->chan_nr);
+	if (config == GSM_PCHAN_NONE) {
+		LOGPFSML(fi, LOGL_ERROR, "Failed to determine channel config\n");
+		return;
+	}
+
+	if (req->hopping) {
+		const struct trxcon_phyif_cmd phycmd = {
+			.type = TRXCON_PHYIF_CMDT_SETFREQ_H1,
+			.param.setfreq_h1 = {
+				.hsn = req->h1.hsn,
+				.maio = req->h1.maio,
+				.ma = &req->h1.ma[0],
+				.ma_len = req->h1.n,
+			},
+		};
+
+		/* Apply the freq. hopping parameters */
+		if (trxcon_phyif_handle_cmd(trxcon->phyif, &phycmd) != 0)
+			return;
+
+		/* Set current ARFCN to an invalid value */
+		trxcon->l1p.band_arfcn = 0xffff;
+	} else {
+		const struct trxcon_phyif_cmd phycmd = {
+			.type = TRXCON_PHYIF_CMDT_SETFREQ_H0,
+			.param.setfreq_h0 = {
+				.band_arfcn = req->h0.band_arfcn,
+			},
+		};
+
+		/* Tune transceiver to required ARFCN */
+		if (trxcon_phyif_handle_cmd(trxcon->phyif, &phycmd) != 0)
+			return;
+
+		/* Update current ARFCN */
+		trxcon->l1p.band_arfcn = req->h0.band_arfcn;
+	}
+
+	rc = l1sched_configure_ts(trxcon->sched, req->chan_nr & 0x07, config);
+	if (rc)
+		return;
+	ts = trxcon->sched->ts[req->chan_nr & 0x07];
+	OSMO_ASSERT(ts != NULL);
+
+	l1sched_deactivate_all_lchans(ts);
+
+	/* Activate only requested lchans */
+	rc = l1sched_set_lchans(ts, req->chan_nr, 1, req->tch_mode, req->tsc);
+	if (rc) {
+		LOGPFSML(fi, LOGL_ERROR, "Failed to activate requested lchans\n");
+		return;
+	}
+
+	if (config == GSM_PCHAN_PDCH)
+		osmo_fsm_inst_state_chg(fi, TRXCON_ST_PACKET_DATA, 0, 0);
+	else
+		osmo_fsm_inst_state_chg(fi, TRXCON_ST_DEDICATED, 0, 0);
+}
+
 static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 				       uint32_t event, void *data)
 {
 	struct trxcon_inst *trxcon = fi->priv;
-	struct l1sched_ts *ts;
-	int rc;
 
 	switch (event) {
 	case TRXCON_EV_TX_ACCESS_BURST_REQ:
@@ -307,9 +373,9 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 	{
 		struct trxcon_param_set_ccch_tch_mode_req *req = data;
 		enum gsm_phys_chan_config chan_config = req->mode;
+		struct l1sched_ts *ts = trxcon->sched->ts[0];
 
 		/* Make sure that TS0 is allocated and configured */
-		ts = trxcon->sched->ts[0];
 		if (ts == NULL || ts->mf_layout == NULL) {
 			LOGPFSML(fi, LOGL_ERROR, "TS0 is not configured\n");
 			return;
@@ -322,70 +388,8 @@ static void trxcon_st_bcch_ccch_action(struct osmo_fsm_inst *fi,
 		break;
 	}
 	case TRXCON_EV_DCH_EST_REQ:
-	{
-		const struct trxcon_param_dch_est_req *req = data;
-		enum gsm_phys_chan_config config;
-
-		config = l1sched_chan_nr2pchan_config(req->chan_nr);
-		if (config == GSM_PCHAN_NONE) {
-			LOGPFSML(fi, LOGL_ERROR, "Failed to determine channel config\n");
-			return;
-		}
-
-		if (req->hopping) {
-			const struct trxcon_phyif_cmd phycmd = {
-				.type = TRXCON_PHYIF_CMDT_SETFREQ_H1,
-				.param.setfreq_h1 = {
-					.hsn = req->h1.hsn,
-					.maio = req->h1.maio,
-					.ma = &req->h1.ma[0],
-					.ma_len = req->h1.n,
-				},
-			};
-
-			/* Apply the freq. hopping parameters */
-			if (trxcon_phyif_handle_cmd(trxcon->phyif, &phycmd) != 0)
-				return;
-
-			/* Set current ARFCN to an invalid value */
-			trxcon->l1p.band_arfcn = 0xffff;
-		} else {
-			const struct trxcon_phyif_cmd phycmd = {
-				.type = TRXCON_PHYIF_CMDT_SETFREQ_H0,
-				.param.setfreq_h0 = {
-					.band_arfcn = req->h0.band_arfcn,
-				},
-			};
-
-			/* Tune transceiver to required ARFCN */
-			if (trxcon_phyif_handle_cmd(trxcon->phyif, &phycmd) != 0)
-				return;
-
-			/* Update current ARFCN */
-			trxcon->l1p.band_arfcn = req->h0.band_arfcn;
-		}
-
-		rc = l1sched_configure_ts(trxcon->sched, req->chan_nr & 0x07, config);
-		if (rc)
-			return;
-		ts = trxcon->sched->ts[req->chan_nr & 0x07];
-		OSMO_ASSERT(ts != NULL);
-
-		l1sched_deactivate_all_lchans(ts);
-
-		/* Activate only requested lchans */
-		rc = l1sched_set_lchans(ts, req->chan_nr, 1, req->tch_mode, req->tsc);
-		if (rc) {
-			LOGPFSML(fi, LOGL_ERROR, "Failed to activate requested lchans\n");
-			return;
-		}
-
-		if (config == GSM_PCHAN_PDCH)
-			osmo_fsm_inst_state_chg(fi, TRXCON_ST_PACKET_DATA, 0, 0);
-		else
-			osmo_fsm_inst_state_chg(fi, TRXCON_ST_DEDICATED, 0, 0);
+		handle_dch_est_req(fi, (const struct trxcon_param_dch_est_req *)data);
 		break;
-	}
 	case TRXCON_EV_RX_DATA_IND:
 		l1ctl_tx_dt_ind(trxcon, (const struct trxcon_param_rx_data_ind *)data);
 		break;
