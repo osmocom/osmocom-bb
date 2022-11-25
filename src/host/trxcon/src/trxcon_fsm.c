@@ -597,8 +597,7 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 	[TRXCON_ST_DEDICATED] = {
 		.name = "DEDICATED",
 		.out_state_mask = S(TRXCON_ST_RESET)
-				| S(TRXCON_ST_FBSB_SEARCH)
-				| S(TRXCON_ST_BCCH_CCCH),
+				| S(TRXCON_ST_FBSB_SEARCH),
 		.in_event_mask  = S(TRXCON_EV_DEDICATED_RELEASE_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_CNF)
@@ -612,8 +611,7 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 	[TRXCON_ST_PACKET_DATA] = {
 		.name = "PACKET_DATA",
 		.out_state_mask = S(TRXCON_ST_RESET)
-				| S(TRXCON_ST_FBSB_SEARCH)
-				| S(TRXCON_ST_BCCH_CCCH),
+				| S(TRXCON_ST_FBSB_SEARCH),
 		.in_event_mask  = S(TRXCON_EV_DEDICATED_RELEASE_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_CNF)
