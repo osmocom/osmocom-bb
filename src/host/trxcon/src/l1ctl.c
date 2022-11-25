@@ -542,7 +542,7 @@ static int l1ctl_rx_rach_req(struct trxcon_inst *trxcon, struct msgb *msg, bool 
 }
 
 static int l1ctl_proc_est_req_h0(struct osmo_fsm_inst *fi,
-				 struct trxcon_param_dedicated_establish_req *req,
+				 struct trxcon_param_dch_est_req *req,
 				 const struct l1ctl_h0 *h)
 {
 	req->h0.band_arfcn = ntohs(h->band_arfcn);
@@ -556,7 +556,7 @@ static int l1ctl_proc_est_req_h0(struct osmo_fsm_inst *fi,
 }
 
 static int l1ctl_proc_est_req_h1(struct osmo_fsm_inst *fi,
-				 struct trxcon_param_dedicated_establish_req *req,
+				 struct trxcon_param_dch_est_req *req,
 				 const struct l1ctl_h1 *h)
 {
 	unsigned int i;
@@ -597,7 +597,7 @@ static int l1ctl_rx_dm_est_req(struct trxcon_inst *trxcon, struct msgb *msg)
 	ul = (struct l1ctl_info_ul *) msg->l1h;
 	est_req = (struct l1ctl_dm_est_req *) ul->payload;
 
-	struct trxcon_param_dedicated_establish_req req = {
+	struct trxcon_param_dch_est_req req = {
 		.chan_nr = ul->chan_nr,
 		.tch_mode = est_req->tch_mode,
 		.tsc = est_req->tsc,
@@ -617,7 +617,7 @@ static int l1ctl_rx_dm_est_req(struct trxcon_inst *trxcon, struct msgb *msg)
 	if (rc)
 		goto exit;
 
-	osmo_fsm_inst_dispatch(fi, TRXCON_EV_DEDICATED_ESTABLISH_REQ, &req);
+	osmo_fsm_inst_dispatch(fi, TRXCON_EV_DCH_EST_REQ, &req);
 
 exit:
 	msgb_free(msg);
@@ -630,7 +630,7 @@ static int l1ctl_rx_dm_rel_req(struct trxcon_inst *trxcon, struct msgb *msg)
 
 	LOGPFSMSL(fi, g_logc_l1c, LOGL_NOTICE, "Received L1CTL_DM_REL_REQ\n");
 
-	osmo_fsm_inst_dispatch(fi, TRXCON_EV_DEDICATED_RELEASE_REQ, NULL);
+	osmo_fsm_inst_dispatch(fi, TRXCON_EV_DCH_REL_REQ, NULL);
 
 	msgb_free(msg);
 	return 0;

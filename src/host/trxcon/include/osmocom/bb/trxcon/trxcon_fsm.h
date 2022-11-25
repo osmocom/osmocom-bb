@@ -31,8 +31,8 @@ enum trxcon_fsm_events {
 	TRXCON_EV_TX_ACCESS_BURST_REQ,
 	TRXCON_EV_TX_ACCESS_BURST_CNF,
 	TRXCON_EV_UPDATE_SACCH_CACHE_REQ,
-	TRXCON_EV_DEDICATED_ESTABLISH_REQ,
-	TRXCON_EV_DEDICATED_RELEASE_REQ,
+	TRXCON_EV_DCH_EST_REQ,
+	TRXCON_EV_DCH_REL_REQ,
 	TRXCON_EV_TX_DATA_REQ,
 	TRXCON_EV_TX_DATA_CNF,
 	TRXCON_EV_RX_DATA_IND,
@@ -135,8 +135,8 @@ struct trxcon_param_tx_access_burst_cnf {
 	uint32_t frame_nr;
 };
 
-/* param of TRXCON_EV_DEDICATED_ESTABLISH_REQ */
-struct trxcon_param_dedicated_establish_req {
+/* param of TRXCON_EV_DCH_EST_REQ */
+struct trxcon_param_dch_est_req {
 	uint8_t chan_nr;
 	uint8_t tch_mode;
 	uint8_t tsc;
