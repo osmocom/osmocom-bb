@@ -1,5 +1,6 @@
 /*
  * OsmocomBB <-> SDR connection bridge
+ * The trxcon state machine (see 3GPP TS 44.004, section 5.1)
  *
  * (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  * Author: Vadim Yanitskiy <vyanitskiy@sysmocom.de>
