@@ -51,9 +51,9 @@ extern void *l23_ctx;
 extern struct llist_head ms_list;
 extern int vty_reading;
 
-int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg);
+int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg);
+int mncc_recv_external(struct osmocom_ms *ms, int msg_type, void *arg);
 int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg);
-int (*mncc_recv_app)(struct osmocom_ms *ms, int, void *);
 static int quit;
 
 /* handle ms instance */
@@ -237,6 +237,24 @@ static int mobile_init(struct osmocom_ms *ms)
 			"default IMEI.\n***\n");
 	}
 
+	switch (ms->settings.mncc_handler) {
+	case MNCC_HANDLER_INTERNAL:
+		LOGP(DMOB, LOGL_INFO, "Using the built-in MNCC-handler for MS '%s'\n", ms->name);
+		ms->mncc_entity.mncc_recv = &mncc_recv_internal;
+		break;
+	case MNCC_HANDLER_EXTERNAL:
+		LOGP(DMOB, LOGL_INFO, "Using external MNCC-handler (socket '%s') for MS '%s'\n",
+		     ms->settings.mncc_socket_path, ms->name);
+		ms->mncc_entity.mncc_recv = &mncc_recv_external;
+		ms->mncc_entity.sock_state = mncc_sock_init(ms, ms->settings.mncc_socket_path);
+		break;
+	case MNCC_HANDLER_DUMMY:
+	default:
+		LOGP(DMOB, LOGL_INFO, "Using dummy MNCC-handler (no call support) "
+			"for MS '%s'\n", ms->name);
+		ms->mncc_entity.mncc_recv = &mncc_recv_dummy;
+	}
+
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	LOGP(DMOB, LOGL_NOTICE, "Mobile '%s' initialized, please start phone now!\n", ms->name);
 	return 0;
@@ -319,15 +337,6 @@ struct osmocom_ms *mobile_new(char *name)
 
 	mobile_set_shutdown(ms, MS_SHUTDOWN_COMPL);
 
-	if (mncc_recv_app) {
-		ms->mncc_entity.mncc_recv = mncc_recv_app;
-		ms->mncc_entity.sock_state = mncc_sock_init(ms, ms->settings.mncc_socket_path);
-	} else if (ms->settings.ch_cap == GSM_CAP_SDCCH)
-		ms->mncc_entity.mncc_recv = mncc_recv_dummy;
-	else
-		ms->mncc_entity.mncc_recv = mncc_recv_mobile;
-
-
 	return ms;
 }
 
@@ -338,7 +347,7 @@ int mobile_delete(struct osmocom_ms *ms, int force)
 
 	ms->deleting = true;
 
-	if (mncc_recv_app) {
+	if (ms->settings.mncc_handler == MNCC_HANDLER_EXTERNAL) {
 		mncc_sock_exit(ms->mncc_entity.sock_state);
 		ms->mncc_entity.sock_state = NULL;
 	}
@@ -432,13 +441,10 @@ static struct vty_app_info vty_info = {
 };
 
 /* global init */
-int l23_app_init(int (*mncc_recv)(struct osmocom_ms *ms, int, void *),
-	const char *config_file)
+int l23_app_init(const char *config_file)
 {
 	struct telnet_connection dummy_conn;
 	int rc = 0;
-
-	mncc_recv_app = mncc_recv;
 
 	osmo_gps_init();
 

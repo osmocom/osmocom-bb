@@ -3,6 +3,16 @@
 
 #define MOB_C7_DEFLT_ANY_TIMEOUT	30
 
+/* CC (Call Control) message handling entity */
+enum mncc_handler_t {
+	/* Built-in mobile's MNCC */
+	MNCC_HANDLER_INTERNAL,
+	/* External MNCC application via UNIX-socket */
+	MNCC_HANDLER_EXTERNAL,
+	/* No call support */
+	MNCC_HANDLER_DUMMY,
+};
+
 /* TCH frame I/O handler */
 enum audio_io_handler {
 	/* No handler, drop frames */
@@ -23,6 +33,9 @@ struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];
 	char			mncc_socket_path[128];
+
+	/* MNCC handler */
+	enum mncc_handler_t	mncc_handler;
 
 	/* Audio settings */
 	struct audio_settings	audio;

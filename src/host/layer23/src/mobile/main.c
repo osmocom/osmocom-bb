@@ -48,10 +48,7 @@ static char *gsmtap_ip = 0;
 static const char *custom_cfg_file = NULL;
 struct gsmtap_inst *gsmtap_inst = NULL;
 char *config_dir = NULL;
-int use_mncc_sock = 0;
 int daemonize = 0;
-
-int mncc_recv_socket(struct osmocom_ms *ms, int msg_type, void *arg);
 
 int mobile_delete(struct osmocom_ms *ms, int force);
 int mobile_signal_cb(unsigned int subsys, unsigned int signal,
@@ -85,8 +82,6 @@ static void print_help(void)
 		debug_default);
 	printf("  -D --daemonize	Run as daemon\n");
 	printf("  -c --config-file filename The config file to use.\n");
-	printf("  -m --mncc-sock	Disable built-in MNCC handler and "
-		"offer socket\n");
 }
 
 static int handle_options(int argc, char **argv)
@@ -99,8 +94,8 @@ static int handle_options(int argc, char **argv)
 			{"debug", 1, 0, 'd'},
 			{"daemonize", 0, 0, 'D'},
 			{"config-file", 1, 0, 'c'},
-			{"mncc-sock", 0, 0, 'm'},
 			/* DEPRECATED options, to be removed */
+			{"mncc-sock", 0, 0, 'm'},
 			{"vty-ip", 1, 0, 'u'},
 			{"vty-port", 1, 0, 'v'},
 			{0, 0, 0, 0},
@@ -129,10 +124,12 @@ static int handle_options(int argc, char **argv)
 		case 'D':
 			daemonize = 1;
 			break;
-		case 'm':
-			use_mncc_sock = 1;
-			break;
 		/* DEPRECATED options, to be removed */
+		case 'm':
+			fprintf(stderr, "Option 'm' is deprecated! "
+				"Please use the configuration file "
+				"in order to change the MNCC handler.\n");
+			return -EINVAL;
 		case 'u':
 		case 'v':
 			fprintf(stderr, "Both 'u' and 'v' options are "
@@ -253,10 +250,7 @@ int main(int argc, char **argv)
 	config_dir = talloc_strdup(l23_ctx, config_file);
 	config_dir = dirname(config_dir);
 
-	if (use_mncc_sock)
-		rc = l23_app_init(mncc_recv_socket, config_file);
-	else
-		rc = l23_app_init(NULL, config_file);
+	rc = l23_app_init(config_file);
 	if (rc)
 		exit(rc);
 

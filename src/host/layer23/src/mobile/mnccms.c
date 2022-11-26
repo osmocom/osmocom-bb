@@ -216,7 +216,7 @@ int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg)
 /*
  * MNCCms call application via socket
  */
-int mncc_recv_socket(struct osmocom_ms *ms, int msg_type, void *arg)
+int mncc_recv_external(struct osmocom_ms *ms, int msg_type, void *arg)
 {
 	struct mncc_sock_state *state = ms->mncc_entity.sock_state;
 	struct gsm_mncc *mncc = arg;
@@ -253,7 +253,7 @@ int mncc_recv_socket(struct osmocom_ms *ms, int msg_type, void *arg)
  * MNCCms basic call application
  */
 
-int mncc_recv_mobile(struct osmocom_ms *ms, int msg_type, void *arg)
+int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_mncc *data = arg;

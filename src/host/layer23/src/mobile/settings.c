@@ -45,6 +45,9 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	/* Audio settings: drop TCH frames by default */
 	set->audio.io_handler = AUDIO_IOH_NONE;
 
+	/* Built-in MNCC handler */
+	set->mncc_handler = MNCC_HANDLER_INTERNAL;
+
 	/* network search */
 	set->plmn_mode = PLMN_MODE_AUTO;
 
