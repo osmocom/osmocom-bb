@@ -5593,8 +5593,19 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 
 	start_rr_t_meas(rr, 1, 0);
 
-	rr->audio_mode = AUDIO_TX_MICROPHONE | AUDIO_RX_SPEAKER;
 	rr->tch_loop_mode = L1CTL_TCH_LOOP_OPEN;
+
+	/* Configure audio handling in the L1PHY */
+	switch (ms->settings.audio.io_handler) {
+	case AUDIO_IOH_L1PHY:
+		rr->audio_mode = AUDIO_RX_SPEAKER | AUDIO_TX_MICROPHONE;
+		break;
+	case AUDIO_IOH_LOOPBACK:
+		rr->audio_mode = AUDIO_RX_TRAFFIC_IND | AUDIO_TX_TRAFFIC_REQ;
+		break;
+	case AUDIO_IOH_NONE:
+		rr->audio_mode = 0x00;
+	}
 
 	return 0;
 }

@@ -17,6 +17,8 @@ enum mncc_handler_t {
 enum audio_io_handler {
 	/* No handler, drop frames */
 	AUDIO_IOH_NONE = 0,
+	/* L1 PHY (e.g. Calypso DSP) */
+	AUDIO_IOH_L1PHY,
 	/* Return to sender */
 	AUDIO_IOH_LOOPBACK,
 };

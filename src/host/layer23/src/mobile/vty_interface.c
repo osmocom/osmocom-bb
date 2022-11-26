@@ -2831,10 +2831,11 @@ static int set_audio_io_handler(struct vty *vty, enum audio_io_handler val)
 }
 
 DEFUN(cfg_ms_audio_io_handler, cfg_ms_audio_io_handler_cmd,
-	"io-handler (loopback|none)",
+	"io-handler (none|l1phy|loopback)",
 	"Set TCH frame I/O handler\n"
-	"Return TCH frame payload back to sender\n"
-	"No handler, drop TCH frames (default)")
+	"No handler, drop TCH frames (default)\n"
+	"L1 PHY (e.g. Calypso DSP in Motorola C1xx phones)\n"
+	"Return TCH frame payload back to sender\n")
 {
 	int val = get_string_value(audio_io_handler_names, argv[0]);
 	return set_audio_io_handler(vty, val);
