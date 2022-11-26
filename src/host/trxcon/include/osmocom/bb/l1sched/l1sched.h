@@ -41,11 +41,6 @@ struct l1sched_meas_set;
 struct l1sched_state;
 struct l1sched_ts;
 
-enum l1sched_clck_state {
-	L1SCHED_CLCK_ST_WAIT,
-	L1SCHED_CLCK_ST_OK,
-};
-
 enum l1sched_burst_type {
 	L1SCHED_BURST_GMSK,
 	L1SCHED_BURST_8PSK,
@@ -319,24 +314,10 @@ struct l1sched_ts {
 struct l1sched_cfg {
 	/*! Logging context (used as prefix for messages) */
 	const char *log_prefix;
-	/*! TDMA frame-number advance */
-	uint32_t fn_advance;
 };
 
 /*! One scheduler instance */
 struct l1sched_state {
-	/*! Clock state */
-	enum l1sched_clck_state clck_state;
-	/*! Local clock source */
-	struct timespec clock;
-	/*! Count of processed frames */
-	uint32_t fn_counter_proc;
-	/*! Local frame counter advance */
-	uint32_t fn_counter_advance;
-	/*! Count of lost frames */
-	uint32_t fn_counter_lost;
-	/*! Frame callback timer */
-	struct osmo_timer_list clock_timer;
 	/*! List of timeslots maintained by this scheduler */
 	struct l1sched_ts *ts[TRX_TS_COUNT];
 	/*! SACCH cache (common for all lchans) */

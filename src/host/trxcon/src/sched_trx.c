@@ -152,27 +152,6 @@ void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *b
 		l1sched_a5_burst_enc(lchan, br);
 }
 
-/* Pull *and send* Uplink bursts for all timeslots and the current TDMA Fn. */
-void l1sched_pull_send_frame(struct l1sched_state *sched)
-{
-	/* Advance TDMA frame number in order to give the transceiver
-	 * more time to handle the burst before the actual transmission. */
-	const uint32_t fn = GSM_TDMA_FN_SUM(sched->fn_counter_proc,
-					    sched->fn_counter_advance);
-
-	/* Iterate over timeslot list */
-	for (unsigned int tn = 0; tn < ARRAY_SIZE(sched->ts); tn++) {
-		struct l1sched_burst_req br = {
-			.fn = fn,
-			.tn = tn,
-			.burst_len = 0, /* NOPE.ind */
-		};
-
-		l1sched_pull_burst(sched, &br);
-		l1sched_handle_burst_req(sched, &br);
-	}
-}
-
 void l1sched_logging_init(int log_cat_common, int log_cat_data)
 {
 	l1sched_log_cat_common = log_cat_common;
@@ -188,8 +167,6 @@ struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg, vo
 		return NULL;
 
 	*sched = (struct l1sched_state) {
-		/* .clock_timer is set up in l1sched_clck_correct() */
-		.fn_counter_advance = cfg->fn_advance,
 		.priv = priv,
 	};
 
@@ -216,7 +193,6 @@ void l1sched_free(struct l1sched_state *sched)
 	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)
 		l1sched_del_ts(sched, tn);
 
-	l1sched_clck_reset(sched);
 	talloc_free(sched);
 }
 
@@ -233,10 +209,6 @@ void l1sched_reset(struct l1sched_state *sched, bool reset_clock)
 	/* Free all potentially allocated timeslots */
 	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)
 		l1sched_del_ts(sched, tn);
-
-	/* Stop and reset clock counter if required */
-	if (reset_clock)
-		l1sched_clck_reset(sched);
 
 	memcpy(&sched->sacch_cache[0], &meas_rep_dummy[0], sizeof(meas_rep_dummy));
 }

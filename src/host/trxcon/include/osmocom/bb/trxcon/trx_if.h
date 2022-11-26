@@ -24,6 +24,7 @@ struct trx_instance {
 	struct osmo_timer_list trx_ctrl_timer;
 	struct llist_head trx_ctrl_list;
 	struct osmo_fsm_inst *fi;
+	uint32_t fn_advance;
 
 	/* HACK: we need proper state machines */
 	uint32_t prev_state;
@@ -45,6 +46,7 @@ struct trx_if_params {
 	const char *local_host;
 	const char *remote_host;
 	uint16_t base_port;
+	uint32_t fn_advance;
 	uint8_t instance;
 
 	struct osmo_fsm_inst *parent_fi;

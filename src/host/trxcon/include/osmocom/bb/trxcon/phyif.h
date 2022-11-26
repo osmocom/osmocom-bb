@@ -110,7 +110,6 @@ struct trxcon_phyif_burst_ind {
 
 int trxcon_phyif_handle_burst_req(void *phyif, const struct trxcon_phyif_burst_req *br);
 int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_ind *bi);
-int trxcon_phyif_handle_clock_ind(void *priv, uint32_t fn);
 
 int trxcon_phyif_handle_rts_ind(void *priv, const struct trxcon_phyif_rts_ind *rts);
 int trxcon_phyif_handle_rtr_ind(void *priv, const struct trxcon_phyif_rtr_ind *ind,

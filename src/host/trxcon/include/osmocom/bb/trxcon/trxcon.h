@@ -55,7 +55,7 @@ enum trxcon_log_cat {
 
 void trxcon_set_log_cfg(const int *logc, unsigned int logc_num);
 
-struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id, uint32_t fn_advance);
+struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id);
 void trxcon_inst_free(struct trxcon_inst *trxcon);
 
 int trxcon_l1ctl_receive(struct trxcon_inst *trxcon, struct msgb *msg);

@@ -63,7 +63,7 @@ void trxcon_set_log_cfg(const int *logc, unsigned int logc_num)
 	l1sched_logging_init(schc, schd);
 }
 
-struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id, uint32_t fn_advance)
+struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id)
 {
 	struct trxcon_inst *trxcon;
 	struct osmo_fsm_inst *fi;
@@ -85,7 +85,6 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id, uint32_t fn_ad
 
 	/* Init scheduler */
 	const struct l1sched_cfg sched_cfg = {
-		.fn_advance = fn_advance,
 		.log_prefix = trxcon->log_prefix,
 	};
 

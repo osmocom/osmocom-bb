@@ -127,7 +127,7 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 {
 	struct trxcon_inst *trxcon;
 
-	trxcon = trxcon_inst_alloc(l1c, l1c->id, app_data.trx_fn_advance);
+	trxcon = trxcon_inst_alloc(l1c, l1c->id);
 	if (trxcon == NULL) {
 		l1ctl_client_conn_close(l1c);
 		return;
@@ -141,6 +141,7 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 		.local_host = app_data.trx_bind_ip,
 		.remote_host = app_data.trx_remote_ip,
 		.base_port = app_data.trx_base_port,
+		.fn_advance = app_data.trx_fn_advance,
 		.instance = trxcon->id,
 
 		.parent_fi = trxcon->fi,
