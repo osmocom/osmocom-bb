@@ -50,11 +50,19 @@ AC_SUBST([LIBGPS_LIBS])
 
 
 dnl optional dependencies
-PKG_CHECK_MODULES(LIBLUA, lua53, [
-	WITH_LUA=1], [
-	WITH_LUA=0])
-AC_SUBST([WITH_LUA])
-AM_CONDITIONAL([BUILD_LUA], test "x$WITH_LUA" = "x1")
+AC_ARG_WITH([lua53], [
+	AS_HELP_STRING([--with-lua53],
+		       [Enable LUA scripting support @<:@default=check@:>@])
+])
+
+found_lua53=no
+AS_IF([test "x$with_lua53" != "xno"], [
+	PKG_CHECK_MODULES(LIBLUA, lua53, [found_lua53=yes], [found_lua53=no])
+	AS_IF([test "x$with_lua53" = "xyes" -a "x$found_lua53" = "xno"], [
+		AC_MSG_ERROR([lua53 support requested but pkg-config is unable to find it])
+	])
+])
+AM_CONDITIONAL([BUILD_LUA], test "x$found_lua53" = "xyes")
 
 dnl checks for header files
 AC_HEADER_STDC
