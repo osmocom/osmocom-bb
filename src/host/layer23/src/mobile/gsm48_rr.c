@@ -660,7 +660,8 @@ static void timeout_rr_meas(void *arg)
 					: rr->cd_now.ind_tx_power, ch_ts);
 			if (rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts) == 0) {
 				if (ch_type == RSL_CHAN_SDCCH8_ACCH
-				 || ch_type == RSL_CHAN_SDCCH4_ACCH) // TODO: TCH/H
+				 || ch_type == RSL_CHAN_SDCCH4_ACCH
+				 || ch_type == RSL_CHAN_Lm_ACCHs)
 					sprintf(text + strlen(text), "/%d", ch_subch);
 			}
 		} else
