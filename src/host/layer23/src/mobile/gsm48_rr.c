@@ -4873,7 +4873,11 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
 		rllh->chan_nr, rllh->link_id);
 
-	rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg)-sizeof(*rllh));
+	if (rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg) - sizeof(*rllh)) < 0) {
+		LOGP(DRSL, LOGL_ERROR, "%s(): rsl_tlv_parse() failed\n", __func__);
+		return -EINVAL;
+	}
+
 	if (!TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
 		DEBUGP(DRSL, "UNIT_DATA_IND without L3 INFO ?!?\n");
 		return -EIO;
