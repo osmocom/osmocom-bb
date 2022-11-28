@@ -336,6 +336,9 @@ static void handle_dch_est_req(struct osmo_fsm_inst *fi,
 		trxcon->l1p.band_arfcn = req->h0.band_arfcn;
 	}
 
+	/* Remove all active timeslots */
+	l1sched_reset(trxcon->sched, false);
+
 	rc = l1sched_configure_ts(trxcon->sched, req->chan_nr & 0x07, config);
 	if (rc)
 		return;
@@ -409,6 +412,9 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 		break;
 	case TRXCON_EV_TX_ACCESS_BURST_CNF:
 		l1ctl_tx_rach_conf(trxcon, (const struct trxcon_param_tx_access_burst_cnf *)data);
+		break;
+	case TRXCON_EV_DCH_EST_REQ:
+		handle_dch_est_req(fi, (const struct trxcon_param_dch_est_req *)data);
 		break;
 	case TRXCON_EV_DCH_REL_REQ:
 		l1sched_reset(trxcon->sched, false);
@@ -530,6 +536,9 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 			LOGPFSML(fi, LOGL_NOTICE, "Rx PTCCH/D message\n");
 		break;
 	}
+	case TRXCON_EV_DCH_EST_REQ:
+		handle_dch_est_req(fi, (const struct trxcon_param_dch_est_req *)data);
+		break;
 	case TRXCON_EV_DCH_REL_REQ:
 		l1sched_reset(trxcon->sched, false);
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
@@ -601,8 +610,10 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 	[TRXCON_ST_DEDICATED] = {
 		.name = "DEDICATED",
 		.out_state_mask = S(TRXCON_ST_RESET)
-				| S(TRXCON_ST_FBSB_SEARCH),
+				| S(TRXCON_ST_FBSB_SEARCH)
+				| S(TRXCON_ST_DEDICATED),
 		.in_event_mask  = S(TRXCON_EV_DCH_REL_REQ)
+				| S(TRXCON_EV_DCH_EST_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_CNF)
 				| S(TRXCON_EV_SET_TCH_MODE_REQ)
@@ -615,8 +626,10 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 	[TRXCON_ST_PACKET_DATA] = {
 		.name = "PACKET_DATA",
 		.out_state_mask = S(TRXCON_ST_RESET)
-				| S(TRXCON_ST_FBSB_SEARCH),
+				| S(TRXCON_ST_FBSB_SEARCH)
+				| S(TRXCON_ST_PACKET_DATA),
 		.in_event_mask  = S(TRXCON_EV_DCH_REL_REQ)
+				| S(TRXCON_EV_DCH_EST_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_REQ)
 				| S(TRXCON_EV_TX_ACCESS_BURST_CNF)
 				| S(TRXCON_EV_RX_DATA_IND),
