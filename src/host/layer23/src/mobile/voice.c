@@ -25,11 +25,7 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
 
-
-/*
- * receive voice
- */
-
+/* Receive a Downlink voice frame from the lower layers */
 static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_data_frame *mncc;
@@ -68,15 +64,14 @@ exit_free:
 	return 0;
 }
 
-/*
- * send voice
- */
+/* Send an Uplink voice frame to the lower layers */
 int gsm_send_voice_msg(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* Forward to RR */
 	return gsm48_rr_tx_voice(ms, msg);
 }
 
+/* gsm_send_voice_msg() wrapper accepting an MNCC structure */
 int gsm_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *frame)
 {
 	struct msgb *nmsg;
@@ -109,10 +104,7 @@ int gsm_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *fra
 	return gsm_send_voice_msg(ms, nmsg);
 }
 
-/*
- * init
- */
-
+/* Initialize voice router */
 int gsm_voice_init(struct osmocom_ms *ms)
 {
 	ms->l1_entity.l1_traffic_ind = gsm_recv_voice;
