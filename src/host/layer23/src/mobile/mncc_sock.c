@@ -46,13 +46,19 @@ int mncc_sock_from_cc(struct mncc_sock_state *state, struct msgb *msg)
 
 	/* Check if we currently have a MNCC handler connected */
 	if (state->conn_bfd.fd < 0) {
+		struct gsm_mncc mncc_out;
 		LOGP(DMNCC, LOGL_ERROR, "mncc_sock receives %s for external CC app "
 			"but socket is gone\n", get_mncc_name(msg_type));
-		if (msg_type != GSM_TCHF_FRAME
-		 && msg_type != GSM_TCHF_FRAME_EFR
-		 && msg_type != MNCC_REL_IND) {
+		switch (msg_type) {
+		case MNCC_REL_IND:
+		case GSM_TCHF_FRAME:
+		case GSM_TCHF_FRAME_EFR:
+		case GSM_TCHH_FRAME:
+		case GSM_TCH_FRAME_AMR:
+		case GSM_BAD_FRAME:
+			break;
+		default:
 			/* release the request */
-			struct gsm_mncc mncc_out;
 			memset(&mncc_out, 0, sizeof(mncc_out));
 			mncc_out.callref = mncc_in->callref;
 			mncc_set_cause(&mncc_out, GSM48_CAUSE_LOC_PRN_S_LU,

@@ -1966,6 +1966,10 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 
 	switch (msg_type) {
 	case GSM_TCHF_FRAME:
+	case GSM_TCHF_FRAME_EFR:
+	case GSM_TCHH_FRAME:
+	case GSM_TCH_FRAME_AMR:
+	case GSM_BAD_FRAME:
 		return gsm_send_voice_frame(ms, arg);
 	case MNCC_LCHAN_MODIFY:
 		return 0;

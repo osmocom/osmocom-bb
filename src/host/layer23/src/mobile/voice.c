@@ -82,14 +82,18 @@ int gsm_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *fra
 	struct msgb *nmsg;
 	int len;
 
-	switch (ms->rrlayer.cd_now.mode) {
-	case GSM48_CMODE_SPEECH_V1:
-		/* FIXME: FR only, check for TCH/F (FR) and TCH/H (HR) */
+	switch (frame->msg_type) {
+	case GSM_TCHF_FRAME:
 		len = GSM_FR_BYTES;
 		break;
-	case GSM48_CMODE_SPEECH_EFR:
+	case GSM_TCHF_FRAME_EFR:
 		len = GSM_EFR_BYTES;
 		break;
+	case GSM_TCHH_FRAME:
+		len = GSM_HR_BYTES;
+		break;
+	/* TODO: case GSM_TCH_FRAME_AMR (variable length) */
+	/* TODO: case GSM_BAD_FRAME (empty?) */
 	default:
 		LOGP(DL1C, LOGL_ERROR, "%s(): msg_type=0x%02x: not implemented\n",
 		     __func__, frame->msg_type);
