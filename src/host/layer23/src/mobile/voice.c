@@ -51,9 +51,8 @@ static int gsm_forward_mncc(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* distribute and then free */
-	if (ms->mncc_entity.mncc_recv && ms->mncc_entity.ref) {
-		ms->mncc_entity.mncc_recv(ms, mncc->msg_type, mncc);
-	}
+	if (ms->mncc_entity.sock_state && ms->mncc_entity.ref)
+		return mncc_sock_from_cc(ms->mncc_entity.sock_state, msg);
 
 exit_free:
 	msgb_free(msg);
