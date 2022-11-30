@@ -20,6 +20,8 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/codec/codec.h>
 
+#include <osmocom/gsm/protocol/gsm_08_58.h>
+
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/mobile/mncc.h>
@@ -37,14 +39,20 @@ static int gsm_forward_mncc(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_push(msg, sizeof(struct gsm_data_frame));
 	mncc->callref = ms->mncc_entity.ref;
 
-	/* FIXME: FR, EFR only! */
 	switch (ms->rrlayer.cd_now.mode) {
 	case GSM48_CMODE_SPEECH_V1:
-		mncc->msg_type = GSM_TCHF_FRAME;
+	{
+		const uint8_t cbits = ms->rrlayer.cd_now.chan_nr >> 3;
+		if (cbits == ABIS_RSL_CHAN_NR_CBITS_Bm_ACCHs)
+			mncc->msg_type = GSM_TCHF_FRAME;
+		else
+			mncc->msg_type = GSM_TCHH_FRAME;
 		break;
+	}
 	case GSM48_CMODE_SPEECH_EFR:
 		mncc->msg_type = GSM_TCHF_FRAME_EFR;
 		break;
+	case GSM48_CMODE_SPEECH_AMR: /* TODO: no AMR support yet */
 	default:
 		/* TODO: print error message here */
 		goto exit_free;
