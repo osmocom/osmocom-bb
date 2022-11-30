@@ -2831,13 +2831,24 @@ static int set_audio_io_handler(struct vty *vty, enum audio_io_handler val)
 }
 
 DEFUN(cfg_ms_audio_io_handler, cfg_ms_audio_io_handler_cmd,
-	"io-handler (none|l1phy|loopback)",
+	"io-handler (none|l1phy|mncc-sock|loopback)",
 	"Set TCH frame I/O handler\n"
 	"No handler, drop TCH frames (default)\n"
 	"L1 PHY (e.g. Calypso DSP in Motorola C1xx phones)\n"
+	"External MNCC application (e.g. LCR) via MNCC socket\n"
 	"Return TCH frame payload back to sender\n")
 {
+	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
 	int val = get_string_value(audio_io_handler_names, argv[0]);
+
+	if (val == AUDIO_IOH_MNCC_SOCK) {
+		if (ms->settings.mncc_handler != MNCC_HANDLER_INTERNAL) {
+			vty_out(vty, "Audio I/O handler 'mncc-sock' can only be used "
+				"with MNCC handler 'external'%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
 	return set_audio_io_handler(vty, val);
 }
 

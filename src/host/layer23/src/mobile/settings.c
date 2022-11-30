@@ -204,6 +204,7 @@ int gsm_random_imei(struct gsm_settings *set)
 const struct value_string audio_io_handler_names[] = {
 	{ AUDIO_IOH_NONE,	"none" },
 	{ AUDIO_IOH_L1PHY,	"l1phy" },
+	{ AUDIO_IOH_MNCC_SOCK,	"mncc-sock" },
 	{ AUDIO_IOH_LOOPBACK,	"loopback" },
 	{ 0x00, NULL}
 };

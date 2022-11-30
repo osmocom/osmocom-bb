@@ -25,8 +25,8 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
 
-/* Receive a Downlink voice frame from the lower layers */
-static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
+/* Forward a Downlink voice frame to the external MNCC handler */
+static int gsm_forward_mncc(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_data_frame *mncc;
 
@@ -50,10 +50,6 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 		goto exit_free;
 	}
 
-	/* send voice frame back, if appropriate */
-	if (ms->settings.audio.io_handler == AUDIO_IOH_LOOPBACK)
-		gsm_send_voice_frame(ms, mncc);
-
 	/* distribute and then free */
 	if (ms->mncc_entity.mncc_recv && ms->mncc_entity.ref) {
 		ms->mncc_entity.mncc_recv(ms, mncc->msg_type, mncc);
@@ -61,6 +57,24 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 
 exit_free:
 	msgb_free(msg);
+	return 0;
+}
+
+/* Receive a Downlink voice frame from the lower layers */
+static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
+{
+	switch (ms->settings.audio.io_handler) {
+	case AUDIO_IOH_LOOPBACK:
+		/* Send voice frame back */
+		return gsm_send_voice_msg(ms, msg);
+	case AUDIO_IOH_MNCC_SOCK:
+		return gsm_forward_mncc(ms, msg);
+	case AUDIO_IOH_L1PHY:
+	case AUDIO_IOH_NONE:
+		/* Drop voice frame */
+		msgb_free(msg);
+	}
+
 	return 0;
 }
 

@@ -5620,6 +5620,7 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 	case AUDIO_IOH_L1PHY:
 		rr->audio_mode = AUDIO_RX_SPEAKER | AUDIO_TX_MICROPHONE;
 		break;
+	case AUDIO_IOH_MNCC_SOCK:
 	case AUDIO_IOH_LOOPBACK:
 		rr->audio_mode = AUDIO_RX_TRAFFIC_IND | AUDIO_TX_TRAFFIC_REQ;
 		break;

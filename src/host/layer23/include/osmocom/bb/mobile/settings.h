@@ -19,6 +19,8 @@ enum audio_io_handler {
 	AUDIO_IOH_NONE = 0,
 	/* L1 PHY (e.g. Calypso DSP) */
 	AUDIO_IOH_L1PHY,
+	/* External MNCC app (via MNCC socket) */
+	AUDIO_IOH_MNCC_SOCK,
 	/* Return to sender */
 	AUDIO_IOH_LOOPBACK,
 };
