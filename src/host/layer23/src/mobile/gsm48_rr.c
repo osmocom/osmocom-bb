@@ -655,9 +655,9 @@ static void timeout_rr_meas(void *arg)
 			gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
 		if (rr->state == GSM48_RR_ST_DEDICATED) {
 			sprintf(text + strlen(text), " TA=%d pwr=%d",
-			rr->cd_now.ind_ta - set->alter_delay,
-			(set->alter_tx_power) ? set->alter_tx_power_value
-					: rr->cd_now.ind_tx_power);
+				rr->cd_now.ind_ta - set->alter_delay,
+				(set->alter_tx_power) ? set->alter_tx_power_value
+						      : rr->cd_now.ind_tx_power);
 			if (rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts) == 0) {
 				sprintf(text + strlen(text), " TS=%d", ch_ts);
 				if (ch_type == RSL_CHAN_SDCCH8_ACCH
