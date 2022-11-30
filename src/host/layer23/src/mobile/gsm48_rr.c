@@ -636,34 +636,37 @@ static void timeout_rr_meas(void *arg)
 	struct gsm_settings *set = &rr->ms->settings;
 	int rxlev, berr, snr;
 	uint8_t ch_type, ch_subch, ch_ts;
+	struct osmo_strbuf sb;
 	char text[256];
+
+	sb = (struct osmo_strbuf) { .buf = text, .len = sizeof(text) };
 
 	/* don't monitor if no cell is selected or if we scan neighbour cells */
 	if (!cs->selected || cs->neighbour) {
-		sprintf(text, "MON: not camping on serving cell");
+		OSMO_STRBUF_PRINTF(sb, "MON: not camping on serving cell");
 		goto restart;
 	} else if (!meas->frames) {
-		sprintf(text, "MON: no cell info");
+		OSMO_STRBUF_PRINTF(sb, "MON: no cell info");
 	} else {
 		rxlev = (meas->rxlev + meas->frames / 2) / meas->frames;
 		berr = (meas->berr + meas->frames / 2) / meas->frames;
 		snr = (meas->snr + meas->frames / 2) / meas->frames;
-		sprintf(text, "MON: f=%d lev=%s snr=%2d ber=%3d "
-			"LAI=%s %s %04x ID=%04x", cs->sel_arfcn,
-			gsm_print_rxlev(rxlev), snr, berr,
-			gsm_print_mcc(cs->sel_mcc),
-			gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
+		OSMO_STRBUF_PRINTF(sb, "MON: f=%d lev=%s snr=%2d ber=%3d "
+				   "LAI=%s %s %04x ID=%04x", cs->sel_arfcn,
+				   gsm_print_rxlev(rxlev), snr, berr,
+				   gsm_print_mcc(cs->sel_mcc),
+				   gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
 		if (rr->state == GSM48_RR_ST_DEDICATED) {
-			sprintf(text + strlen(text), " TA=%d pwr=%d",
-				rr->cd_now.ind_ta - set->alter_delay,
-				(set->alter_tx_power) ? set->alter_tx_power_value
-						      : rr->cd_now.ind_tx_power);
+			OSMO_STRBUF_PRINTF(sb, " TA=%d pwr=%d",
+					   rr->cd_now.ind_ta - set->alter_delay,
+					   (set->alter_tx_power) ? set->alter_tx_power_value
+								 : rr->cd_now.ind_tx_power);
 			if (rsl_dec_chan_nr(rr->cd_now.chan_nr, &ch_type, &ch_subch, &ch_ts) == 0) {
-				sprintf(text + strlen(text), " TS=%d", ch_ts);
+				OSMO_STRBUF_PRINTF(sb, " TS=%d", ch_ts);
 				if (ch_type == RSL_CHAN_SDCCH8_ACCH
 				 || ch_type == RSL_CHAN_SDCCH4_ACCH
 				 || ch_type == RSL_CHAN_Lm_ACCHs)
-					sprintf(text + strlen(text), "/%d", ch_subch);
+					OSMO_STRBUF_PRINTF(sb, "/%d", ch_subch);
 			}
 		} else
 			gsm322_meas(rr->ms, rxlev);
