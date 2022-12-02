@@ -397,6 +397,10 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		memset(&rr->cd_now, 0, sizeof(rr->cd_now));
 		/* reset ciphering */
 		rr->cipher_on = 0;
+#ifdef WITH_GAPK_IO
+		/* clean-up GAPK state */
+		gapk_io_clean_up_ms(rr->ms);
+#endif
 		/* reset audio mode */
 		/* tell cell selection process to return to idle mode
 		 * NOTE: this must be sent unbuffered, because it will

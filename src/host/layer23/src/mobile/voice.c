@@ -82,11 +82,11 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm_forward_mncc(ms, msg);
 	case AUDIO_IOH_GAPK:
 #ifdef WITH_GAPK_IO
-		/* Prevent null pointer dereference */
-		OSMO_ASSERT(ms->gapk_io != NULL);
-
 		/* Enqueue a frame to the DL TCH buffer */
-		gapk_io_enqueue_dl(ms->gapk_io, msg);
+		if (ms->gapk_io != NULL)
+			gapk_io_enqueue_dl(ms->gapk_io, msg);
+		else
+			msgb_free(msg);
 		break;
 #endif
 	case AUDIO_IOH_L1PHY:
