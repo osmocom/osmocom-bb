@@ -625,8 +625,9 @@ static int l1ctl_rx_dm_est_req(struct trxcon_inst *trxcon, struct msgb *msg)
 
 	LOGPFSMSL(fi, g_logc_l1c, LOGL_NOTICE,
 		  "Received L1CTL_DM_EST_REQ "
-		  "(tn=%u, chan_nr=0x%02x, tsc=%u, tch_mode=0x%02x)\n",
-		  req.chan_nr & 0x07, req.chan_nr, req.tsc, req.tch_mode);
+		  "(tn=%u, chan_nr=0x%02x, tsc=%u, tch_mode=%s)\n",
+		  req.chan_nr & 0x07, req.chan_nr, req.tsc,
+		  gsm48_chan_mode_name(est_req->tch_mode));
 
 	/* Frequency hopping? */
 	if (est_req->h)
@@ -729,8 +730,8 @@ static int l1ctl_rx_tch_mode_req(struct trxcon_inst *trxcon, struct msgb *msg)
 	mode_req = (const struct l1ctl_tch_mode_req *)msg->l1h;
 
 	LOGPFSMSL(fi, g_logc_l1c, LOGL_NOTICE,
-		  "Received L1CTL_TCH_MODE_REQ (tch_mode=%u, audio_mode=%u)\n",
-		  mode_req->tch_mode, mode_req->audio_mode);
+		  "Received L1CTL_TCH_MODE_REQ (tch_mode=%s, audio_mode=%u)\n",
+		  gsm48_chan_mode_name(mode_req->tch_mode), mode_req->audio_mode);
 
 	/* TODO: do we need to care about audio_mode? */
 
