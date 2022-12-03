@@ -337,10 +337,10 @@ static enum gsm_phys_chan_config l1ctl_ccch_mode2pchan_config(enum ccch_mode mod
 static int l1ctl_rx_fbsb_req(struct trxcon_inst *trxcon, struct msgb *msg)
 {
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_fbsb_req *fbsb;
+	const struct l1ctl_fbsb_req *fbsb;
 	int rc = 0;
 
-	fbsb = (struct l1ctl_fbsb_req *) msg->l1h;
+	fbsb = (const struct l1ctl_fbsb_req *)msg->l1h;
 	if (msgb_l1len(msg) < sizeof(*fbsb)) {
 		LOGPFSMSL(fi, g_logc_l1c, LOGL_ERROR,
 			  "MSG too short FBSB Req: %u\n",
@@ -371,10 +371,10 @@ exit:
 static int l1ctl_rx_pm_req(struct trxcon_inst *trxcon, struct msgb *msg)
 {
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_pm_req *pmr;
+	const struct l1ctl_pm_req *pmr;
 	int rc = 0;
 
-	pmr = (struct l1ctl_pm_req *) msg->l1h;
+	pmr = (const struct l1ctl_pm_req *)msg->l1h;
 	if (msgb_l1len(msg) < sizeof(*pmr)) {
 		LOGPFSMSL(fi, g_logc_l1c, LOGL_ERROR,
 			  "MSG too short PM Req: %u\n",
@@ -404,10 +404,10 @@ exit:
 static int l1ctl_rx_reset_req(struct trxcon_inst *trxcon, struct msgb *msg)
 {
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_reset *res;
+	const struct l1ctl_reset *res;
 	int rc = 0;
 
-	res = (struct l1ctl_reset *) msg->l1h;
+	res = (const struct l1ctl_reset *)msg->l1h;
 	if (msgb_l1len(msg) < sizeof(*res)) {
 		LOGPFSMSL(fi, g_logc_l1c, LOGL_ERROR,
 			  "MSG too short Reset Req: %u\n",
@@ -459,10 +459,10 @@ static int l1ctl_rx_echo_req(struct trxcon_inst *trxcon, struct msgb *msg)
 static int l1ctl_rx_ccch_mode_req(struct trxcon_inst *trxcon, struct msgb *msg)
 {
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_ccch_mode_req *mode_req;
+	const struct l1ctl_ccch_mode_req *mode_req;
 	int rc;
 
-	mode_req = (struct l1ctl_ccch_mode_req *)msg->l1h;
+	mode_req = (const struct l1ctl_ccch_mode_req *)msg->l1h;
 	if (msgb_l1len(msg) < sizeof(*mode_req)) {
 		LOGPFSMSL(fi, g_logc_l1c, LOGL_ERROR,
 			  "MSG too short Reset Req: %u\n",
@@ -492,9 +492,9 @@ static int l1ctl_rx_rach_req(struct trxcon_inst *trxcon, struct msgb *msg, bool 
 {
 	struct trxcon_param_tx_access_burst_req req;
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_info_ul *ul;
+	const struct l1ctl_info_ul *ul;
 
-	ul = (struct l1ctl_info_ul *) msg->l1h;
+	ul = (const struct l1ctl_info_ul *)msg->l1h;
 
 	if (is_11bit) {
 		const struct l1ctl_ext_rach_req *rr = (void *)ul->payload;
@@ -590,12 +590,12 @@ static int l1ctl_proc_est_req_h1(struct osmo_fsm_inst *fi,
 static int l1ctl_rx_dm_est_req(struct trxcon_inst *trxcon, struct msgb *msg)
 {
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_dm_est_req *est_req;
-	struct l1ctl_info_ul *ul;
+	const struct l1ctl_dm_est_req *est_req;
+	const struct l1ctl_info_ul *ul;
 	int rc;
 
-	ul = (struct l1ctl_info_ul *) msg->l1h;
-	est_req = (struct l1ctl_dm_est_req *) ul->payload;
+	ul = (const struct l1ctl_info_ul *)msg->l1h;
+	est_req = (const struct l1ctl_dm_est_req *)ul->payload;
 
 	struct trxcon_param_dch_est_req req = {
 		.chan_nr = ul->chan_nr,
@@ -642,11 +642,11 @@ static int l1ctl_rx_dm_rel_req(struct trxcon_inst *trxcon, struct msgb *msg)
 static int l1ctl_rx_dt_req(struct trxcon_inst *trxcon, struct msgb *msg, bool traffic)
 {
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_info_ul *ul;
+	const struct l1ctl_info_ul *ul;
 
 	/* Extract UL frame header */
-	ul = (struct l1ctl_info_ul *) msg->l1h;
-	msg->l2h = ul->payload;
+	ul = (const struct l1ctl_info_ul *)msg->l1h;
+	msg->l2h = (uint8_t *)ul->payload;
 
 	struct trxcon_param_tx_data_req req = {
 		.traffic = traffic,
@@ -677,11 +677,11 @@ static int l1ctl_rx_dt_req(struct trxcon_inst *trxcon, struct msgb *msg, bool tr
 static int l1ctl_rx_param_req(struct trxcon_inst *trxcon, struct msgb *msg)
 {
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_par_req *par_req;
-	struct l1ctl_info_ul *ul;
+	const struct l1ctl_par_req *par_req;
+	const struct l1ctl_info_ul *ul;
 
-	ul = (struct l1ctl_info_ul *) msg->l1h;
-	par_req = (struct l1ctl_par_req *) ul->payload;
+	ul = (const struct l1ctl_info_ul *)msg->l1h;
+	par_req = (const struct l1ctl_par_req *)ul->payload;
 
 	LOGPFSMSL(fi, g_logc_l1c, LOGL_NOTICE,
 		  "Received L1CTL_PARAM_REQ (ta=%d, tx_power=%u)\n",
@@ -704,10 +704,10 @@ static int l1ctl_rx_param_req(struct trxcon_inst *trxcon, struct msgb *msg)
 static int l1ctl_rx_tch_mode_req(struct trxcon_inst *trxcon, struct msgb *msg)
 {
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_tch_mode_req *mode_req;
+	const struct l1ctl_tch_mode_req *mode_req;
 	int rc;
 
-	mode_req = (struct l1ctl_tch_mode_req *)msg->l1h;
+	mode_req = (const struct l1ctl_tch_mode_req *)msg->l1h;
 
 	LOGPFSMSL(fi, g_logc_l1c, LOGL_NOTICE,
 		  "Received L1CTL_TCH_MODE_REQ (tch_mode=%u, audio_mode=%u)\n",
@@ -739,11 +739,11 @@ static int l1ctl_rx_tch_mode_req(struct trxcon_inst *trxcon, struct msgb *msg)
 static int l1ctl_rx_crypto_req(struct trxcon_inst *trxcon, struct msgb *msg)
 {
 	struct osmo_fsm_inst *fi = trxcon->fi;
-	struct l1ctl_crypto_req *cr;
-	struct l1ctl_info_ul *ul;
+	const struct l1ctl_crypto_req *cr;
+	const struct l1ctl_info_ul *ul;
 
-	ul = (struct l1ctl_info_ul *) msg->l1h;
-	cr = (struct l1ctl_crypto_req *) ul->payload;
+	ul = (const struct l1ctl_info_ul *)msg->l1h;
+	cr = (const struct l1ctl_crypto_req *)ul->payload;
 
 	struct trxcon_param_crypto_req req = {
 		.chan_nr = ul->chan_nr,
@@ -764,10 +764,10 @@ static int l1ctl_rx_crypto_req(struct trxcon_inst *trxcon, struct msgb *msg)
 
 int trxcon_l1ctl_receive(struct trxcon_inst *trxcon, struct msgb *msg)
 {
-	struct l1ctl_hdr *l1h;
+	const struct l1ctl_hdr *l1h;
 
-	l1h = (struct l1ctl_hdr *) msg->l1h;
-	msg->l1h = l1h->data;
+	l1h = (const struct l1ctl_hdr *)msg->l1h;
+	msg->l1h = (uint8_t *)l1h->data;
 
 	switch (l1h->msg_type) {
 	case L1CTL_FBSB_REQ:
