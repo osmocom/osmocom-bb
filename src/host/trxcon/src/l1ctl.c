@@ -33,6 +33,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/utils.h>
 
 #include <osmocom/gsm/gsm0502.h>
 #include <osmocom/gsm/gsm_utils.h>
@@ -49,6 +50,21 @@
 /* Logging categories configurable via trxcon_set_log_cfg() */
 int g_logc_l1c = DLGLOBAL;
 int g_logc_l1d = DLGLOBAL;
+
+static const struct value_string l1ctl_ccch_mode_names[] = {
+	{ CCCH_MODE_NONE,		"NONE" },
+	{ CCCH_MODE_NON_COMBINED,	"NON_COMBINED" },
+	{ CCCH_MODE_COMBINED,		"COMBINED" },
+	{ CCCH_MODE_COMBINED_CBCH,	"COMBINED_CBCH" },
+	{ 0, NULL },
+};
+
+static const struct value_string l1ctl_reset_names[] = {
+	{ L1CTL_RES_T_BOOT,		"BOOT" },
+	{ L1CTL_RES_T_FULL,		"FULL" },
+	{ L1CTL_RES_T_SCHED,		"SCHED" },
+	{ 0, NULL },
+};
 
 static const char *arfcn2band_name(uint16_t arfcn)
 {
@@ -121,7 +137,8 @@ int l1ctl_tx_reset_ind(struct trxcon_inst *trxcon, uint8_t type)
 	if (!msg)
 		return -ENOMEM;
 
-	LOGPFSMSL(fi, g_logc_l1c, LOGL_DEBUG, "Send Reset Ind (%u)\n", type);
+	LOGPFSMSL(fi, g_logc_l1c, LOGL_DEBUG, "Send Reset Ind (%s)\n",
+		  get_value_string(l1ctl_reset_names, type));
 
 	res = (struct l1ctl_reset *) msgb_put(msg, sizeof(*res));
 	res->type = type;
@@ -139,7 +156,8 @@ int l1ctl_tx_reset_conf(struct trxcon_inst *trxcon, uint8_t type)
 	if (!msg)
 		return -ENOMEM;
 
-	LOGPFSMSL(fi, g_logc_l1c, LOGL_DEBUG, "Send Reset Conf (%u)\n", type);
+	LOGPFSMSL(fi, g_logc_l1c, LOGL_DEBUG, "Send Reset Conf (%s)\n",
+		  get_value_string(l1ctl_reset_names, type));
 	res = (struct l1ctl_reset *) msgb_put(msg, sizeof(*res));
 	res->type = type;
 
@@ -417,7 +435,8 @@ static int l1ctl_rx_reset_req(struct trxcon_inst *trxcon, struct msgb *msg)
 	}
 
 	LOGPFSMSL(fi, g_logc_l1c, LOGL_NOTICE,
-		  "Received reset request (%u)\n", res->type);
+		  "Received reset request (%s)\n",
+		  get_value_string(l1ctl_reset_names, res->type));
 
 	switch (res->type) {
 	case L1CTL_RES_T_FULL:
@@ -471,8 +490,8 @@ static int l1ctl_rx_ccch_mode_req(struct trxcon_inst *trxcon, struct msgb *msg)
 		goto exit;
 	}
 
-	LOGPFSMSL(fi, g_logc_l1c, LOGL_NOTICE, "Received CCCH mode request (%u)\n",
-		  mode_req->ccch_mode); /* TODO: add value-string for ccch_mode */
+	LOGPFSMSL(fi, g_logc_l1c, LOGL_NOTICE, "Received CCCH mode request (%s)\n",
+		  get_value_string(l1ctl_ccch_mode_names, mode_req->ccch_mode));
 
 	struct trxcon_param_set_ccch_tch_mode_req req = {
 		/* Choose corresponding channel combination */
