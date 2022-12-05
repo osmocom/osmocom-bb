@@ -67,7 +67,6 @@
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/core/bitvec.h>
-#include <osmocom/codec/codec.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/l1l2_interface.h>
@@ -5771,47 +5770,10 @@ static int gsm48_rr_rand_acc_cnf_dedicated(struct osmocom_ms *ms, struct msgb *m
 
 #endif
 
-#define LOG_FRAME_VERIFY(mode, level, fmt, args...) \
-	LOGP(DRR, level, "Voice frame, mode=%s: " fmt, get_value_string(gsm48_chan_mode_names, mode), ## args)
-
-int voice_frame_verify(enum gsm48_chan_mode mode, uint8_t *frame, size_t frame_len)
-{
-	switch (mode) {
-	case GSM48_CMODE_SPEECH_V1:
-		/* FIXME: this is FR only, check for TCH/F (FR) and TCH/H (HR) */
-		/* RFC 3551, section 4.5.8 GSM */
-		if (frame_len != GSM_FR_BYTES) {
-			LOG_FRAME_VERIFY(mode, LOGL_ERROR, "incorrect length (%zu != %u)\n", frame_len, GSM_FR_BYTES);
-			return -2;
-		}
-		if ((frame[0] >> 4) != 0xd) {
-			LOG_FRAME_VERIFY(mode, LOGL_ERROR, "incorrect magic (%u != 0xd)\n", frame[0] >> 4);
-			return -3;
-		}
-		break;
-	case GSM48_CMODE_SPEECH_EFR:
-		/* RFC 3551, section 4.5.9 GSM-EFR */
-		if (frame_len != GSM_EFR_BYTES) {
-			LOG_FRAME_VERIFY(mode, LOGL_ERROR, "incorrect length (%zu != %u)\n", frame_len, GSM_EFR_BYTES);
-			return -4;
-		}
-		if ((frame[0] >> 4) != 0xc) {
-			LOG_FRAME_VERIFY(mode, LOGL_ERROR, "incorrect magic (%u != 0xc)\n", frame[0] >> 4);
-			return -5;
-		}
-		break;
-	default:
-		LOG_FRAME_VERIFY(mode, LOGL_ERROR, "not implemented\n");
-		return -1;
-	}
-	return 0;
-}
-
 int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;
-	struct l1ctl_traffic_req *tr;
 
 	if (!rr->dm_est) {
 		LOGP(DRR, LOGL_INFO, "Current channel is not active\n");
@@ -5829,10 +5791,6 @@ int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
 		LOGP(DRR, LOGL_INFO, "Current channel is not (yet) TCH\n");
 		goto error;
 	}
-
-	tr = (struct l1ctl_traffic_req *)msg->l2h;
-	if (voice_frame_verify(rr->cd_now.mode, tr->data, msgb_l2len(msg)) < 0)
-		goto error;
 
 	return l1ctl_tx_traffic_req(ms, msg, rr->cd_now.chan_nr, 0);
 error:
