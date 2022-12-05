@@ -1546,6 +1546,8 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, "  io-handler %s%s",
 		audio_io_handler_name(set->audio.io_handler), VTY_NEWLINE);
 	if (set->audio.io_handler == AUDIO_IOH_GAPK) {
+		vty_out(vty, "  io-tch-format %s%s",
+			audio_io_format_name(set->audio.io_format), VTY_NEWLINE);
 		vty_out(vty, "  alsa-output-dev %s%s",
 			set->audio.alsa_output_dev, VTY_NEWLINE);
 		vty_out(vty, "  alsa-input-dev %s%s",
@@ -2872,6 +2874,27 @@ DEFUN(cfg_ms_audio_no_io_handler, cfg_ms_audio_no_io_handler_cmd,
 	return set_audio_io_handler(vty, AUDIO_IOH_NONE);
 }
 
+DEFUN(cfg_ms_audio_io_tch_format, cfg_ms_audio_io_tch_format_cmd,
+	"io-tch-format (rtp|ti)",
+	"Set TCH I/O frame format used by the L1 PHY (for GAPK only)\n"
+	"RTP format (RFC3551 for FR/EFR, RFC5993 for HR, RFC4867 for AMR)\n"
+	"Texas Instruments format, used by Calypso based phones (e.g. Motorola C1xx)\n")
+{
+	int val = get_string_value(audio_io_format_names, argv[0]);
+	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	if (set->audio.io_handler != AUDIO_IOH_GAPK) {
+		vty_out(vty, "This parameter is only valid for GAPK%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	OSMO_ASSERT(val >= 0);
+	set->audio.io_format = val;
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_ms_audio_alsa_out_dev, cfg_ms_audio_alsa_out_dev_cmd,
 	"alsa-output-dev (default|NAME)",
 	"Set ALSA output (playback) device name (for GAPK only)\n"
@@ -3176,6 +3199,7 @@ int ms_vty_init(void)
 	install_node(&audio_node, config_write_dummy);
 	install_element(AUDIO_NODE, &cfg_ms_audio_io_handler_cmd);
 	install_element(AUDIO_NODE, &cfg_ms_audio_no_io_handler_cmd);
+	install_element(AUDIO_NODE, &cfg_ms_audio_io_tch_format_cmd);
 	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_out_dev_cmd);
 	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_in_dev_cmd);
 

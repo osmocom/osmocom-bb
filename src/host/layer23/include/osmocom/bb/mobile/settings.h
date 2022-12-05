@@ -31,8 +31,21 @@ extern const struct value_string audio_io_handler_names[];
 static inline const char *audio_io_handler_name(enum audio_io_handler val)
 { return get_value_string(audio_io_handler_names, val); }
 
+/* TCH frame I/O format */
+enum audio_io_format {
+	/* RTP format (RFC3551 for FR/EFR, RFC5993 for HR, RFC4867 for AMR) */
+	AUDIO_IOF_RTP,
+	/* Texas Instruments format, used by Calypso based phones (e.g. Motorola C1xx) */
+	AUDIO_IOF_TI,
+};
+
+extern const struct value_string audio_io_format_names[];
+static inline const char *audio_io_format_name(enum audio_io_format val)
+{ return get_value_string(audio_io_format_names, val); }
+
 struct audio_settings {
 	enum audio_io_handler	io_handler;
+	enum audio_io_format	io_format;
 	char alsa_output_dev[128];
 	char alsa_input_dev[128];
 };

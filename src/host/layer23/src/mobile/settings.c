@@ -212,3 +212,9 @@ const struct value_string audio_io_handler_names[] = {
 	{ AUDIO_IOH_LOOPBACK,	"loopback" },
 	{ 0x00, NULL}
 };
+
+const struct value_string audio_io_format_names[] = {
+	{ AUDIO_IOF_RTP,	"rtp" },
+	{ AUDIO_IOF_TI,		"ti" },
+	{ 0x00, NULL}
+};

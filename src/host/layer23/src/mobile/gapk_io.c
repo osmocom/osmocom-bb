@@ -258,22 +258,18 @@ static int prepare_audio_sink(struct gapk_io_state *gapk_io,
 	if (rc)
 		goto error;
 
-#if 0
-	/* TODO: PHY specific format -> canonical */
+	/* PHY specific format -> canonical */
 	rc = osmo_gapk_pq_queue_fmt_convert(pq, gapk_io->phy_fmt_desc, 0);
 	if (rc)
 		goto error;
-#endif
 
 	/* Optional ECU (Error Concealment Unit) */
 	osmo_gapk_pq_queue_ecu(pq, gapk_io->codec_desc);
 
-#if 0
-	/* TODO: canonical -> decoder specific format */
+	/* Canonical -> decoder specific format */
 	rc = pq_queue_codec_fmt_conv(pq, gapk_io->codec_desc, false);
 	if (rc)
 		goto error;
-#endif
 
 	/* Frame decoder */
 	rc = osmo_gapk_pq_queue_codec(pq, gapk_io->codec_desc, 0);
@@ -362,6 +358,25 @@ static enum osmo_gapk_format_type phy_fmt_pick_rtp(enum osmo_gapk_codec_type cod
 }
 
 /**
+ * Picks the corresponding PHY's frame format for a given codec.
+ * To be used with PHYs that produce audio in TI Calypso format.
+ */
+static enum osmo_gapk_format_type phy_fmt_pick_ti(enum osmo_gapk_codec_type codec)
+{
+	switch (codec) {
+	case CODEC_HR:
+		return FMT_TI_HR;
+	case CODEC_FR:
+		return FMT_TI_FR;
+	case CODEC_EFR:
+		return FMT_TI_EFR;
+	case CODEC_AMR: /* not supported */
+	default:
+		return FMT_INVALID;
+	}
+}
+
+/**
  * Allocates both TCH frame I/O buffers
  * and prepares both processing queues (chains).
  * Should be called when a voice call is initiated...
@@ -393,12 +408,15 @@ int gapk_io_init_ms(struct osmocom_ms *ms, enum osmo_gapk_codec_type codec)
 		return -ENOTSUP;
 	}
 
-	/**
-	 * Pick the corresponding PHY's frame format
-	 * TODO: ask PHY, which format is supported?
-	 * FIXME: RTP (valid for trxcon) is used for now
-	 */
-	phy_fmt = phy_fmt_pick_rtp(codec);
+	switch (set->audio.io_format) {
+	case AUDIO_IOF_RTP:
+		phy_fmt = phy_fmt_pick_rtp(codec);
+		break;
+	case AUDIO_IOF_TI:
+		phy_fmt = phy_fmt_pick_ti(codec);
+		break;
+	}
+
 	phy_fmt_desc = osmo_gapk_fmt_get_from_type(phy_fmt);
 	if (phy_fmt_desc == NULL) {
 		LOGP(DGAPK, LOGL_ERROR, "Failed to pick the PHY specific "
