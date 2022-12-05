@@ -428,7 +428,7 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 		break;
 	case TRXCON_EV_DCH_REL_REQ:
 		l1sched_reset(trxcon->sched, false);
-		osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
+		/* TODO: switch to (not implemented) TRXCON_ST_DCH_TUNING? */
 		break;
 	case TRXCON_EV_SET_TCH_MODE_REQ:
 	{
@@ -551,7 +551,7 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 		break;
 	case TRXCON_EV_DCH_REL_REQ:
 		l1sched_reset(trxcon->sched, false);
-		osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
+		/* TODO: switch to (not implemented) TRXCON_ST_DCH_TUNING? */
 		break;
 	default:
 		OSMO_ASSERT(0);
