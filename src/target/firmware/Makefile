@@ -126,8 +126,7 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 		comm/libcomm.a \
 		tiffs/libtiffs.a \
 		../../shared/libosmocore/build-target/src/.libs/libosmocore.a \
-		../../shared/libosmocore/build-target/src/gsm/.libs/libosmogsm.a \
-		../../shared/libosmocore/build-target/src/codec/.libs/libosmocodec.a
+		../../shared/libosmocore/build-target/src/gsm/.libs/libosmogsm.a
 
 
 #
