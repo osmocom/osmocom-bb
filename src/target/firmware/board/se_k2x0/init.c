@@ -27,6 +27,7 @@
 #include <keypad.h>
 #include <console.h>
 #include <flash/cfi_flash.h>
+#include <tiffs.h>
 
 #include <calypso/irq.h>
 #include <calypso/clock.h>
@@ -124,6 +125,9 @@ void board_init(int with_irq)
 	/* Initialize ABB driver (uses SPI) */
 	twl3025_init();
 
-	/* Initialize TIFFS reader (13 sectors of 256 KiB each) */
-	tiffs_init(0x01800000, 0x40000, 13);
+	/* K200i uses 13 sectors of 256 KiB each */
+	if (tiffs_init(0x01800000, 0x40000, 13) < 0) {
+		/* K220i uses 52 sectors of 64 KiB each */
+		tiffs_init(0x01800000, 0x10000, 52);
+	}
 }
