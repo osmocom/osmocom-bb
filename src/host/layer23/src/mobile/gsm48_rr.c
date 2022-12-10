@@ -4873,13 +4873,13 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 
 	ind_ta = rllh->data[1];
 	ind_tx_power = rllh->data[3];
-	LOGP(DRR, LOGL_INFO, "Indicated ta %d (actual ta %d)\n",
+	LOGP(DRR, LOGL_INFO, "DL SACCH indicates ta %d (actual ta %d)\n",
 		ind_ta, ind_ta - set->alter_delay);
-	LOGP(DRR, LOGL_INFO, "Indicated tx_power %d\n",
+	LOGP(DRR, LOGL_INFO, "DL SACCH indicates tx_power %d\n",
 		ind_tx_power);
 	if (ind_ta != rr->cd_now.ind_ta
 	 || ind_tx_power != rr->cd_now.ind_tx_power) {
-		LOGP(DRR, LOGL_INFO, "setting new ta and tx_power\n");
+		LOGP(DRR, LOGL_INFO, "Applying new ta and tx_power\n");
 		l1ctl_tx_param_req(ms, ind_ta - set->alter_delay,
 			(set->alter_tx_power) ? set->alter_tx_power_value
 						: ind_tx_power);
