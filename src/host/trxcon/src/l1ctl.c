@@ -311,7 +311,7 @@ int l1ctl_tx_rach_conf(struct trxcon_inst *trxcon,
  * Handles both L1CTL_DATA_CONF and L1CTL_TRAFFIC_CONF.
  */
 int l1ctl_tx_dt_conf(struct trxcon_inst *trxcon,
-		     struct trxcon_param_tx_data_cnf *cnf)
+		     const struct trxcon_param_tx_data_cnf *cnf)
 {
 	struct msgb *msg;
 

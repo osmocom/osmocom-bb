@@ -17,6 +17,6 @@ int l1ctl_tx_reset_ind(struct trxcon_inst *trxcon, uint8_t type);
 int l1ctl_tx_dt_ind(struct trxcon_inst *trxcon,
 		    const struct trxcon_param_rx_data_ind *ind);
 int l1ctl_tx_dt_conf(struct trxcon_inst *trxcon,
-		    const struct trxcon_param_tx_data_cnf *cnf);
+		     const struct trxcon_param_tx_data_cnf *cnf);
 int l1ctl_tx_rach_conf(struct trxcon_inst *trxcon,
 		       const struct trxcon_param_tx_access_burst_cnf *cnf);
