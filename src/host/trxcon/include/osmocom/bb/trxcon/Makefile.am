@@ -6,4 +6,5 @@ noinst_HEADERS = \
 	trx_if.h \
 	logging.h \
 	trxcon.h \
+	trxcon_fsm.h \
 	$(NULL)
