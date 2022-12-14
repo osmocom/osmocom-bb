@@ -736,10 +736,7 @@ int l1ctl_tx_sim_req(struct osmocom_ms *ms, uint8_t *data, uint16_t length)
 /* just forward the SIM response to the SIM handler */
 static int rx_l1_sim_conf(struct osmocom_ms *ms, struct msgb *msg)
 {
-	uint16_t len = msgb_l2len(msg);
-	uint8_t *data = msg->data;
-
-	LOGP(DL1C, LOGL_INFO, "SIM %s\n", osmo_hexdump(data, len));
+	LOGP(DL1C, LOGL_INFO, "SIM %s\n", msgb_hexdump_l1(msg));
 
 	sim_apdu_resp(ms, msg);
 
