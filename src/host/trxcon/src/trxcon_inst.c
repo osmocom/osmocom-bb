@@ -91,6 +91,8 @@ struct trxcon_inst *trxcon_inst_alloc(void *ctx, unsigned int id, uint32_t fn_ad
 		return NULL;
 	}
 
+	trxcon->phy_quirks.fbsb_extend_fns = 0;
+
 	return trxcon;
 }
 

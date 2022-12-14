@@ -67,6 +67,9 @@ static struct {
 	uint16_t trx_base_port;
 	uint32_t trx_fn_advance;
 
+	/* PHY quirk: FBSB timeout extension (in TDMA FNs) */
+	unsigned int phyq_fbsb_extend_fns;
+
 	/* GSMTAP specific */
 	struct gsmtap_inst *gsmtap;
 	const char *gsmtap_ip;
@@ -77,6 +80,7 @@ static struct {
 	.trx_bind_ip = "0.0.0.0",
 	.trx_base_port = 6700,
 	.trx_fn_advance = 3,
+	.phyq_fbsb_extend_fns = 0,
 };
 
 static void *tall_trxcon_ctx = NULL;
@@ -153,6 +157,7 @@ static void l1ctl_conn_accept_cb(struct l1ctl_client *l1c)
 	}
 
 	trxcon->gsmtap = app_data.gsmtap;
+	trxcon->phy_quirks.fbsb_extend_fns = app_data.phyq_fbsb_extend_fns;
 }
 
 static void l1ctl_conn_close_cb(struct l1ctl_client *l1c)
@@ -179,6 +184,7 @@ static void print_help(void)
 	printf("  -i --trx-remote   TRX remote IP address (default 127.0.0.1)\n");
 	printf("  -p --trx-port     Base port of TRX instance (default 6700)\n");
 	printf("  -f --trx-advance  Uplink burst scheduling advance (default 3)\n");
+	printf("  -F --fbsb-extend  FBSB timeout extension (in TDMA FNs, default 0)\n");
 	printf("  -s --socket       Listening socket for layer23 (default /tmp/osmocom_l2)\n");
 	printf("  -g --gsmtap-ip    The destination IP used for GSMTAP (disabled by default)\n");
 	printf("  -C --max-clients  Maximum number of L1CTL connections (default 1)\n");
@@ -201,13 +207,14 @@ static void handle_options(int argc, char **argv)
 			{"trx-remote", 1, 0, 'i'},
 			{"trx-port", 1, 0, 'p'},
 			{"trx-advance", 1, 0, 'f'},
+			{"fbsb-extend", 1, 0, 'F'},
 			{"gsmtap-ip", 1, 0, 'g'},
 			{"max-clients", 1, 0, 'C'},
 			{"daemonize", 0, 0, 'D'},
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "d:b:i:p:f:s:g:C:Dh",
+		c = getopt_long(argc, argv, "d:b:i:p:f:F:s:g:C:Dh",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -240,6 +247,13 @@ static void handle_options(int argc, char **argv)
 			app_data.trx_fn_advance = strtoul(optarg, &endptr, 10);
 			if (errno || *endptr != '\0') {
 				fprintf(stderr, "Failed to parse -f/--trx-advance=%s\n", optarg);
+				exit(EXIT_FAILURE);
+			}
+			break;
+		case 'F':
+			app_data.phyq_fbsb_extend_fns = strtoul(optarg, &endptr, 10);
+			if (errno || *endptr != '\0') {
+				fprintf(stderr, "Failed to parse -F/--fbsb-extend=%s\n", optarg);
 				exit(EXIT_FAILURE);
 			}
 			break;

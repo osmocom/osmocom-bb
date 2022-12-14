@@ -32,6 +32,12 @@ struct trxcon_inst {
 		uint8_t tx_power;
 		int8_t ta;
 	} l1p;
+
+	/* PHY specific quirks */
+	struct {
+		/* FBSB timeout extension (in TDMA FNs) */
+		unsigned int fbsb_extend_fns;
+	} phy_quirks;
 };
 
 enum trxcon_log_cat {

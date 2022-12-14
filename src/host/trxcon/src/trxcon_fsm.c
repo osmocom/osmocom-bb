@@ -164,9 +164,11 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_FBSB_SEARCH_REQ:
 	{
 		const struct trxcon_param_fbsb_search_req *req = data;
-		unsigned long timeout_ms;
+		unsigned long timeout_fns, timeout_ms;
 
-		timeout_ms = req->timeout_fns * GSM_TDMA_FN_DURATION_uS / 1000;
+		/* Some PHYs need additional time to tune (in TDMA FNs) */
+		timeout_fns = req->timeout_fns + trxcon->phy_quirks.fbsb_extend_fns;
+		timeout_ms = timeout_fns * GSM_TDMA_FN_DURATION_uS / 1000;
 		osmo_fsm_inst_state_chg_ms(fi, TRXCON_ST_FBSB_SEARCH, timeout_ms, 0);
 
 		l1sched_configure_ts(trxcon->sched, 0, req->pchan_config);
