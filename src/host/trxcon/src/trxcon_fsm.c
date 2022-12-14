@@ -59,6 +59,11 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 			osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
 		l1sched_reset(trxcon->sched, true);
 
+		/* Reset the L1 parameters */
+		trxcon->l1p.band_arfcn = 0xffff;
+		trxcon->l1p.tx_power = 0;
+		trxcon->l1p.ta = 0;
+
 		phycmd.type = TRXCON_PHYIF_CMDT_RESET;
 		trxcon_phyif_handle_cmd(trxcon->phyif, &phycmd);
 		break;
