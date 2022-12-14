@@ -35,8 +35,8 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/utils.h>
 
-#include <osmocom/gsm/gsm0502.h>
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/trxcon/logging.h>
@@ -369,15 +369,15 @@ static int l1ctl_rx_fbsb_req(struct trxcon_inst *trxcon, struct msgb *msg)
 
 	struct trxcon_param_fbsb_search_req req = {
 		.pchan_config = l1ctl_ccch_mode2pchan_config(fbsb->ccch_mode),
-		.timeout_ms = ntohs(fbsb->timeout) * GSM_TDMA_FN_DURATION_uS / 1000,
+		.timeout_fns = ntohs(fbsb->timeout),
 		.band_arfcn = ntohs(fbsb->band_arfcn),
 	};
 
 	LOGPFSMSL(fi, g_logc_l1c, LOGL_NOTICE,
-		  "Received FBSB request (%s %d, timeout %u ms)\n",
+		  "Received FBSB request (%s %d, timeout %u TDMA FNs)\n",
 		  arfcn2band_name(req.band_arfcn),
 		  req.band_arfcn & ~ARFCN_FLAG_MASK,
-		  req.timeout_ms);
+		  req.timeout_fns);
 
 	osmo_fsm_inst_dispatch(fi, TRXCON_EV_FBSB_SEARCH_REQ, &req);
 

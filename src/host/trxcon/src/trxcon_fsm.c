@@ -28,6 +28,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/gsm/gsm0502.h>
 
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trxcon_fsm.h>
@@ -163,8 +164,10 @@ static void trxcon_st_reset_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_FBSB_SEARCH_REQ:
 	{
 		const struct trxcon_param_fbsb_search_req *req = data;
+		unsigned long timeout_ms;
 
-		osmo_fsm_inst_state_chg_ms(fi, TRXCON_ST_FBSB_SEARCH, req->timeout_ms, 0);
+		timeout_ms = req->timeout_fns * GSM_TDMA_FN_DURATION_uS / 1000;
+		osmo_fsm_inst_state_chg_ms(fi, TRXCON_ST_FBSB_SEARCH, timeout_ms, 0);
 
 		l1sched_configure_ts(trxcon->sched, 0, req->pchan_config);
 

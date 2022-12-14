@@ -54,7 +54,7 @@ struct trxcon_param_full_power_scan_res {
 /* param of TRXCON_EV_FBSB_SEARCH_REQ */
 struct trxcon_param_fbsb_search_req {
 	uint16_t band_arfcn;
-	uint16_t timeout_ms;
+	uint16_t timeout_fns; /* in TDMA Fn periods */
 	uint8_t pchan_config;
 };
 
