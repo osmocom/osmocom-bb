@@ -5123,17 +5123,60 @@ int gsm322_init(struct osmocom_ms *ms)
 	return 0;
 }
 
+static void gsm322_write_ba(struct osmocom_ms *ms)
+{
+	const struct gsm322_ba_list *ba;
+	char *ba_filename;
+	FILE *fp;
+
+	ba_filename = talloc_asprintf(ms, "%s/%s.ba", config_dir, ms->name);
+	OSMO_ASSERT(ba_filename != NULL);
+
+	LOGP(DCS, LOGL_INFO, "Writing stored BA list to '%s'\n", ba_filename);
+
+	fp = fopen(ba_filename, "w");
+	talloc_free(ba_filename);
+	if (fp == NULL) {
+		LOGP(DCS, LOGL_ERROR,
+		     "Failed to open '%s' for writing: %s\n",
+		     ba_filename, strerror(errno));
+		return;
+	}
+
+	fputs(ba_version, fp);
+
+	llist_for_each_entry(ba, &ms->cellsel.ba_list, entry) {
+		size_t rc = 0;
+		uint8_t buf[] = {
+			ba->mcc >> 8, ba->mcc & 0xff,
+			ba->mnc >> 8, ba->mnc & 0xff,
+		};
+
+		LOGP(DCS, LOGL_INFO,
+		     "Writing stored BA list entry (mcc=%s mnc=%s %s, %s)\n",
+		     gsm_print_mcc(ba->mcc), gsm_print_mnc(ba->mnc),
+		     gsm_get_mcc(ba->mcc), gsm_get_mnc(ba->mcc, ba->mnc));
+
+		rc += fwrite(buf, sizeof(buf), 1, fp);
+		rc += fwrite(ba->freq, sizeof(ba->freq), 1, fp);
+
+		/* fwrite() returns count of written items, should be 2 */
+		if (rc != 2) {
+			LOGP(DCS, LOGL_ERROR,
+			     "Writing stored BA list: fwrite() failed (rc=%zu)\n", rc);
+			break;
+		}
+	}
+
+	fclose(fp);
+}
+
 int gsm322_exit(struct osmocom_ms *ms)
 {
 	struct gsm322_plmn *plmn = &ms->plmn;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct llist_head *lh, *lh2;
 	struct msgb *msg;
-	FILE *fp;
-	char *ba_filename;
-	struct gsm322_ba_list *ba;
-	uint8_t buf[4];
-	int rc = 0;
 	int i;
 
 	LOGP(DPLMN, LOGL_INFO, "exit PLMN process\n");
@@ -5161,32 +5204,7 @@ int gsm322_exit(struct osmocom_ms *ms)
 	cs->si = NULL;
 
 	/* store BA list */
-	ba_filename = talloc_asprintf(ms, "%s/%s.ba", config_dir, ms->name);
-	if (ba_filename) {
-		fp = fopen(ba_filename, "w");
-		talloc_free(ba_filename);
-		if (fp) {
-			fputs(ba_version, fp);
-			llist_for_each_entry(ba, &cs->ba_list, entry) {
-				buf[0] = ba->mcc >> 8;
-				buf[1] = ba->mcc & 0xff;
-				buf[2] = ba->mnc >> 8;
-				buf[3] = ba->mnc & 0xff;
-
-				LOGP(DCS, LOGL_INFO, "Write stored BA list (mcc=%s "
-					"mnc=%s  %s, %s)\n", gsm_print_mcc(ba->mcc),
-					gsm_print_mnc(ba->mnc), gsm_get_mcc(ba->mcc),
-					gsm_get_mnc(ba->mcc, ba->mnc));
-
-				rc += fwrite(buf, 4, 1, fp);
-				rc += fwrite(ba->freq, sizeof(ba->freq), 1, fp);
-			}
-			fclose(fp);
-		}
-	}
-
-	if (rc != 2)
-		LOGP(DCS, LOGL_ERROR, "Failed to write BA list\n");
+	gsm322_write_ba(ms);
 
 	/* free lists */
 	while ((msg = msgb_dequeue(&plmn->event_queue)))
