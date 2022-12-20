@@ -188,6 +188,7 @@ static void print_help(void)
 static void handle_options(int argc, char **argv)
 {
 	while (1) {
+		char *endptr = NULL;
 		int option_index = 0, c;
 		static struct option long_options[] = {
 			{"help", 0, 0, 'h'},
@@ -211,6 +212,8 @@ static void handle_options(int argc, char **argv)
 		if (c == -1)
 			break;
 
+		errno = 0;
+
 		switch (c) {
 		case 'h':
 			print_usage(argv[0]);
@@ -227,10 +230,18 @@ static void handle_options(int argc, char **argv)
 			app_data.trx_remote_ip = optarg;
 			break;
 		case 'p':
-			app_data.trx_base_port = atoi(optarg);
+			app_data.trx_base_port = strtoul(optarg, &endptr, 10);
+			if (errno || *endptr != '\0') {
+				fprintf(stderr, "Failed to parse -p/--trx-port=%s\n", optarg);
+				exit(EXIT_FAILURE);
+			}
 			break;
 		case 'f':
-			app_data.trx_fn_advance = atoi(optarg);
+			app_data.trx_fn_advance = strtoul(optarg, &endptr, 10);
+			if (errno || *endptr != '\0') {
+				fprintf(stderr, "Failed to parse -f/--trx-advance=%s\n", optarg);
+				exit(EXIT_FAILURE);
+			}
 			break;
 		case 's':
 			app_data.bind_socket = optarg;
@@ -239,7 +250,11 @@ static void handle_options(int argc, char **argv)
 			app_data.gsmtap_ip = optarg;
 			break;
 		case 'C':
-			app_data.max_clients = atoi(optarg);
+			app_data.max_clients = strtoul(optarg, &endptr, 10);
+			if (errno || *endptr != '\0') {
+				fprintf(stderr, "Failed to parse -C/--max-clients=%s\n", optarg);
+				exit(EXIT_FAILURE);
+			}
 			break;
 		case 'D':
 			app_data.daemonize = 1;
