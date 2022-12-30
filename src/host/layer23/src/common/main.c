@@ -29,6 +29,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/core/application.h>
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/utils.h>
@@ -42,8 +43,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-
-struct log_target *stderr_target;
 
 void *l23_ctx = NULL;
 
@@ -184,7 +183,7 @@ static void handle_options(int argc, char **argv)
 			vty_port = atoi(optarg);
 			break;
 		case 'd':
-			log_parse_category_mask(stderr_target, optarg);
+			log_parse_category_mask(osmo_stderr_target, optarg);
 			break;
 		default:
 			if (app && app->cfg_handle_opt)
@@ -226,12 +225,10 @@ int main(int argc, char **argv)
 	int rc;
 
 	INIT_LLIST_HEAD(&ms_list);
-	log_init(&log_info, NULL);
-	stderr_target = log_target_create_stderr();
-	log_add_target(stderr_target);
-	log_set_all_filter(stderr_target, 1);
 
 	l23_ctx = talloc_named_const(NULL, 1, "layer2 context");
+
+	osmo_init_logging2(l23_ctx, &log_info);
 
 	ms = talloc_zero(l23_ctx, struct osmocom_ms);
 	if (!ms) {

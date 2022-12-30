@@ -28,12 +28,12 @@
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/misc/cell_log.h>
 
+#include <osmocom/core/application.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/utils.h>
 
 #include <l1ctl_proto.h>
 
-extern struct log_target *stderr_target;
 extern void *l23_ctx;
 
 extern uint16_t basic_band_range[][2];
@@ -66,9 +66,9 @@ int l23_app_init(struct osmocom_ms *ms)
 
 	srand(time(NULL));
 
-//	log_parse_category_mask(stderr_target, "DL1C:DRSL:DRR:DGPS:DSUM");
-	log_parse_category_mask(stderr_target, "DSUM");
-	log_set_log_level(stderr_target, LOGL_INFO);
+//	log_parse_category_mask(osmo_stderr_target, "DL1C:DRSL:DRR:DGPS:DSUM");
+	log_parse_category_mask(osmo_stderr_target, "DSUM");
+	log_set_log_level(osmo_stderr_target, LOGL_INFO);
 
 	l23_app_work = _scan_work;
 	l23_app_exit = _scan_exit;
