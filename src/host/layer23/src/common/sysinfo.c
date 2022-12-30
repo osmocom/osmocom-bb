@@ -20,14 +20,13 @@
 #include <string.h>
 #include <arpa/inet.h>
 
+#include <osmocom/core/utils.h>
 #include <osmocom/core/bitvec.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/sysinfo.h>
-
-#define MIN(a, b) ((a < b) ? a : b)
 
 /*
  * dumping
@@ -594,7 +593,7 @@ int gsm48_decode_sysinfo1(struct gsm48_sysinfo *s,
 {
 	int payload_len = len - sizeof(*si);
 
-	memcpy(s->si1_msg, si, MIN(len, sizeof(s->si1_msg)));
+	memcpy(s->si1_msg, si, OSMO_MIN(len, sizeof(s->si1_msg)));
 
 	/* Cell Channel Description */
 	decode_freq_list(s->freq, si->cell_channel_description,
@@ -621,7 +620,7 @@ int gsm48_decode_sysinfo1(struct gsm48_sysinfo *s,
 int gsm48_decode_sysinfo2(struct gsm48_sysinfo *s,
 		struct gsm48_system_information_type_2 *si, int len)
 {
-	memcpy(s->si2_msg, si, MIN(len, sizeof(s->si2_msg)));
+	memcpy(s->si2_msg, si, OSMO_MIN(len, sizeof(s->si2_msg)));
 
 	/* Neighbor Cell Description */
 	s->nb_ext_ind_si2 = (si->bcch_frequency_list[0] >> 6) & 1;
@@ -641,7 +640,7 @@ int gsm48_decode_sysinfo2(struct gsm48_sysinfo *s,
 int gsm48_decode_sysinfo2bis(struct gsm48_sysinfo *s,
 		struct gsm48_system_information_type_2bis *si, int len)
 {
-	memcpy(s->si2b_msg, si, MIN(len, sizeof(s->si2b_msg)));
+	memcpy(s->si2b_msg, si, OSMO_MIN(len, sizeof(s->si2b_msg)));
 
 	/* Neighbor Cell Description */
 	s->nb_ext_ind_si2bis = (si->bcch_frequency_list[0] >> 6) & 1;
@@ -659,7 +658,7 @@ int gsm48_decode_sysinfo2bis(struct gsm48_sysinfo *s,
 int gsm48_decode_sysinfo2ter(struct gsm48_sysinfo *s,
 		struct gsm48_system_information_type_2ter *si, int len)
 {
-	memcpy(s->si2t_msg, si, MIN(len, sizeof(s->si2t_msg)));
+	memcpy(s->si2t_msg, si, OSMO_MIN(len, sizeof(s->si2t_msg)));
 
 	/* Neighbor Cell Description 2 */
 	s->nb_multi_rep_si2ter = (si->ext_bcch_frequency_list[0] >> 6) & 3;
@@ -678,7 +677,7 @@ int gsm48_decode_sysinfo3(struct gsm48_sysinfo *s,
 {
 	int payload_len = len - sizeof(*si);
 
-	memcpy(s->si3_msg, si, MIN(len, sizeof(s->si3_msg)));
+	memcpy(s->si3_msg, si, OSMO_MIN(len, sizeof(s->si3_msg)));
 
 	/* Cell Identity */
 	s->cell_id = ntohs(si->cell_identity);
@@ -713,7 +712,7 @@ int gsm48_decode_sysinfo4(struct gsm48_sysinfo *s,
 	uint8_t *data = si->data;
 	struct gsm48_chan_desc *cd;
 
-	memcpy(s->si4_msg, si, MIN(len, sizeof(s->si4_msg)));
+	memcpy(s->si4_msg, si, OSMO_MIN(len, sizeof(s->si4_msg)));
 
 	/* LAI */
 	gsm48_decode_lai_hex(&si->lai, &s->mcc, &s->mnc, &s->lac);
@@ -768,7 +767,7 @@ short_read:
 int gsm48_decode_sysinfo5(struct gsm48_sysinfo *s,
 		struct gsm48_system_information_type_5 *si, int len)
 {
-	memcpy(s->si5_msg, si, MIN(len, sizeof(s->si5_msg)));
+	memcpy(s->si5_msg, si, OSMO_MIN(len, sizeof(s->si5_msg)));
 
 	/* Neighbor Cell Description */
 	s->nb_ext_ind_si5 = (si->bcch_frequency_list[0] >> 6) & 1;
@@ -784,7 +783,7 @@ int gsm48_decode_sysinfo5(struct gsm48_sysinfo *s,
 int gsm48_decode_sysinfo5bis(struct gsm48_sysinfo *s,
 		struct gsm48_system_information_type_5bis *si, int len)
 {
-	memcpy(s->si5b_msg, si, MIN(len, sizeof(s->si5b_msg)));
+	memcpy(s->si5b_msg, si, OSMO_MIN(len, sizeof(s->si5b_msg)));
 
 	/* Neighbor Cell Description */
 	s->nb_ext_ind_si5bis = (si->bcch_frequency_list[0] >> 6) & 1;
@@ -800,7 +799,7 @@ int gsm48_decode_sysinfo5bis(struct gsm48_sysinfo *s,
 int gsm48_decode_sysinfo5ter(struct gsm48_sysinfo *s,
 		struct gsm48_system_information_type_5ter *si, int len)
 {
-	memcpy(s->si5t_msg, si, MIN(len, sizeof(s->si5t_msg)));
+	memcpy(s->si5t_msg, si, OSMO_MIN(len, sizeof(s->si5t_msg)));
 
 	/* Neighbor Cell Description */
 	s->nb_multi_rep_si5ter = (si->bcch_frequency_list[0] >> 6) & 3;
@@ -818,7 +817,7 @@ int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
 {
 	int payload_len = len - sizeof(*si);
 
-	memcpy(s->si6_msg, si, MIN(len, sizeof(s->si6_msg)));
+	memcpy(s->si6_msg, si, OSMO_MIN(len, sizeof(s->si6_msg)));
 
 	/* Cell Identity */
 	if (s->si6 && s->cell_id != ntohs(si->cell_identity))
