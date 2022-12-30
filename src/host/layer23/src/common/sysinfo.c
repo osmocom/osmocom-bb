@@ -23,6 +23,8 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/bitvec.h>
 
+#include <osmocom/gprs/rlcmac/gprs_rlcmac.h>
+
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/logging.h>
@@ -536,11 +538,11 @@ static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s,
 		s->sched = 0;
 	/* GPRS Indicator */
 	if (bitvec_get_bit_high(&bv) == H) {
-		s->gprs = 1;
-		s->gprs_ra_colour = bitvec_get_uint(&bv, 3);
-		s->gprs_si13_pos = bitvec_get_uint(&bv, 1);
+		s->gprs.supported = 1;
+		s->gprs.ra_colour = bitvec_get_uint(&bv, 3);
+		s->gprs.si13_pos = bitvec_get_uint(&bv, 1);
 	} else
-		s->gprs = 0;
+		s->gprs.supported = 0;
 
 	return 0;
 }
@@ -571,11 +573,11 @@ static int gsm48_decode_si4_rest(struct gsm48_sysinfo *s,
 		s->po = 0;
 	/* GPRS Indicator */
 	if (bitvec_get_bit_high(&bv) == H) {
-		s->gprs = 1;
-		s->gprs_ra_colour = bitvec_get_uint(&bv, 3);
-		s->gprs_si13_pos = bitvec_get_uint(&bv, 1);
+		s->gprs.supported = 1;
+		s->gprs.ra_colour = bitvec_get_uint(&bv, 3);
+		s->gprs.si13_pos = bitvec_get_uint(&bv, 1);
 	} else
-		s->gprs = 0;
+		s->gprs.supported = 0;
 	// todo: more rest octet bits
 
 	return 0;
@@ -836,6 +838,88 @@ int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
 		gsm48_decode_si6_rest(s, si->rest_octets, payload_len);
 
 	s->si6 = 1;
+
+	return 0;
+}
+
+int gsm48_decode_sysinfo13(struct gsm48_sysinfo *s,
+			   const struct gsm48_system_information_type_13 *si, int len)
+{
+	SI13_RestOctets_t si13ro;
+	int rc;
+
+	memcpy(s->si13_msg, si, OSMO_MIN(len, sizeof(s->si13_msg)));
+
+	rc = osmo_gprs_rlcmac_decode_si13ro(&si13ro, si->rest_octets, sizeof(s->si13_msg));
+	if (rc != 0) {
+		LOGP(DRR, LOGL_ERROR, "Failed to parse SI13 Rest Octets\n");
+		return rc;
+	}
+
+	if (si13ro.UnionType != 0) {
+		LOGP(DRR, LOGL_NOTICE, "PBCCH is deprecated and not supported\n");
+		return -ENOTSUP;
+	}
+
+	s->gprs.hopping = si13ro.Exist_MA;
+	if (s->gprs.hopping) {
+		const GPRS_Mobile_Allocation_t *gma = &si13ro.GPRS_Mobile_Allocation;
+
+		s->gprs.hsn = gma->HSN;
+		s->gprs.rfl_num_len = gma->ElementsOf_RFL_NUMBER;
+		memcpy(&s->gprs.rfl_num[0], &gma->RFL_NUMBER[0], sizeof(gma->RFL_NUMBER));
+
+		if (gma->UnionType == 0) { /* MA Bitmap */
+			const MobileAllocation_t *ma = &gma->u.MA;
+			s->gprs.ma_bitlen = ma->MA_BitLength;
+			memcpy(&s->gprs.ma_bitmap[0], &ma->MA_BITMAP[0], sizeof(ma->MA_BITMAP));
+		} else { /* ARFCN Index List */
+			const ARFCN_index_list_t *ai = &gma->u.ARFCN_index_list;
+			s->gprs.arfcn_idx_len = ai->ElementsOf_ARFCN_INDEX;
+			memcpy(&s->gprs.arfcn_idx[0], &ai->ARFCN_INDEX[0], sizeof(ai->ARFCN_INDEX));
+		}
+	}
+
+	const PBCCH_Not_present_t *np = &si13ro.u.PBCCH_Not_present;
+
+	s->gprs.rac = np->RAC;
+	s->gprs.prio_acc_thresh = np->PRIORITY_ACCESS_THR;
+	s->gprs.nco = np->NETWORK_CONTROL_ORDER;
+
+	const GPRS_Cell_Options_t *gco = &np->GPRS_Cell_Options;
+
+	s->gprs.nmo = gco->NMO;
+	s->gprs.T3168 = gco->T3168;
+	s->gprs.T3192 = gco->T3192;
+	s->gprs.ab_type = gco->ACCESS_BURST_TYPE;
+	s->gprs.ctrl_ack_type_use_block = !gco->CONTROL_ACK_TYPE; /* inverted */
+	s->gprs.bs_cv_max = gco->BS_CV_MAX;
+
+	s->gprs.pan_params_present = gco->Exist_PAN;
+	if (s->gprs.pan_params_present) {
+		s->gprs.pan_dec = gco->PAN_DEC;
+		s->gprs.pan_dec = gco->PAN_INC;
+		s->gprs.pan_dec = gco->PAN_MAX;
+	}
+
+	s->gprs.egprs_supported = 0;
+	if (gco->Exist_Extension_Bits) {
+		/* CSN.1 codec is not powerful enough (yet?) to decode this part :( */
+		unsigned int ext_len = gco->Extension_Bits.extension_length;
+		const uint8_t *ext = &gco->Extension_Bits.Extension_Info[0];
+
+		s->gprs.egprs_supported = (ext[0] >> 7);
+		if (s->gprs.egprs_supported) {
+			if (ext_len < 6)
+				return -EINVAL;
+			s->gprs.egprs_pkt_chan_req = ~ext[0] & (1 << 6); /* inverted */
+			s->gprs.egprs_bep_period = (ext[0] >> 2) & 0x0f;
+		}
+	}
+
+	/* TODO: GPRS_Power_Control_Parameters */
+
+	s->si13 = 1;
 
 	return 0;
 }

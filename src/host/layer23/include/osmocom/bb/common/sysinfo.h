@@ -21,7 +21,8 @@
 struct gsm48_sysinfo {
 	/* flags of available information */
 	uint8_t				si1, si2, si2bis, si2ter, si3,
-					si4, si5, si5bis, si5ter, si6;
+					si4, si5, si5bis, si5ter, si6,
+					si13;
 
 	/* memory maps to simply detect change in system info messages */
 	uint8_t				si1_msg[23];
@@ -34,6 +35,7 @@ struct gsm48_sysinfo {
 	uint8_t				si5b_msg[18];
 	uint8_t				si5t_msg[18];
 	uint8_t				si6_msg[18];
+	uint8_t				si13_msg[23];
 
 	struct	gsm_sysinfo_freq	freq[1024]; /* all frequencies */
 	uint16_t			hopping[64]; /* hopping arfcn */
@@ -66,9 +68,46 @@ struct gsm48_sysinfo {
 	uint8_t				ecsm;
 	uint8_t				sched;
 	uint8_t				sched_where;
-	uint8_t				gprs;
-	uint8_t				gprs_ra_colour;
-	uint8_t				gprs_si13_pos;
+
+	struct {
+		/* si3/si4 rest */
+		uint8_t			supported;
+		uint8_t			ra_colour;
+		uint8_t			si13_pos;
+
+		/* si13 rest */
+		uint8_t			hopping;
+		uint8_t			hsn;
+		uint8_t			rfl_num_len;
+		uint8_t			rfl_num[4];
+
+		uint8_t			ma_bitlen;
+		uint8_t			ma_bitmap[64 / 8];
+		uint8_t			arfcn_idx_len;
+		uint8_t			arfcn_idx[16];
+
+		/* PBCCH is not present */
+		uint8_t			rac;
+		uint8_t			prio_acc_thresh;
+		uint8_t			nco;
+
+		/* GPRS Cell Options */
+		uint8_t			nmo;
+		uint8_t			T3168;
+		uint8_t			T3192;
+		uint8_t			ab_type;
+		uint8_t			ctrl_ack_type_use_block;
+		uint8_t			bs_cv_max;
+		uint8_t			pan_params_present;
+		uint8_t			pan_dec;
+		uint8_t			pan_inc;
+		uint8_t			pan_max;
+
+		/* EGPRS Cell Options */
+		uint8_t			egprs_supported;
+		uint8_t			egprs_pkt_chan_req;
+		uint8_t			egprs_bep_period;
+	} gprs;
 
 	/* cell selection */
 	int8_t				ms_txpwr_max_cch;
@@ -151,6 +190,8 @@ int gsm48_decode_sysinfo5ter(struct gsm48_sysinfo *s,
 			     const struct gsm48_system_information_type_5ter *si, int len);
 int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
 			  const struct gsm48_system_information_type_6 *si, int len);
+int gsm48_decode_sysinfo13(struct gsm48_sysinfo *s,
+			   const struct gsm48_system_information_type_13 *si, int len);
 int gsm48_decode_mobile_alloc(struct gsm_sysinfo_freq *freq,
 			      const uint8_t *ma, uint8_t len,
 			      uint16_t *hopping, uint8_t *hopp_len, int si4);

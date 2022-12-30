@@ -2086,6 +2086,38 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm48_new_sysinfo(ms, si->system_information);
 }
 
+/* receive "SYSTEM INFORMATION 13" message (9.1.43a) */
+static int gsm48_rr_rx_sysinfo13(struct osmocom_ms *ms, struct msgb *msg)
+{
+	const struct gsm48_system_information_type_13 *si = msgb_l3(msg);
+	int rest_octets_len = msgb_l3len(msg) - sizeof(si->header);
+	struct gsm48_sysinfo *s = ms->cellsel.si;
+
+	if (!s) {
+		LOGP(DRR, LOGL_INFO,
+		     "No cell selected, SYSTEM INFORMATION 13 ignored\n");
+		return -EINVAL;
+	}
+
+	if (rest_octets_len < 0) {
+		LOGP(DRR, LOGL_NOTICE,
+		     "Short read of SYSTEM INFORMATION 13 message.\n");
+		return -EINVAL;
+	}
+
+	if (!memcmp(si, s->si13_msg, MIN(msgb_l3len(msg), sizeof(s->si6_msg))))
+		return 0;
+
+	gsm48_decode_sysinfo13(s, si, msgb_l3len(msg));
+
+	LOGP(DRR, LOGL_INFO,
+	     "New SYSTEM INFORMATION 13 (%s, RAC 0x%02x, NCO %u, MNO %u)\n",
+	     s->gprs.egprs_supported ? "EGPRS" : "GPRS only",
+	     s->gprs.rac, s->gprs.nco, s->gprs.nmo);
+
+	return gsm48_new_sysinfo(ms, si->header.system_information);
+}
+
 /*
  * paging
  */
@@ -4820,6 +4852,8 @@ static int gsm48_rr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_rx_sysinfo3(ms, msg);
 	case GSM48_MT_RR_SYSINFO_4:
 		return gsm48_rr_rx_sysinfo4(ms, msg);
+	case GSM48_MT_RR_SYSINFO_13:
+		return gsm48_rr_rx_sysinfo13(ms, msg);
 	default:
 #if 0
 		LOGP(DRR, LOGL_NOTICE, "BCCH message type 0x%02x not sup.\n",
