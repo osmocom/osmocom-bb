@@ -230,6 +230,13 @@ int main(int argc, char **argv)
 
 	osmo_init_logging2(l23_ctx, &log_info);
 
+	log_set_print_category_hex(osmo_stderr_target, 0);
+	log_set_print_category(osmo_stderr_target, 1);
+	log_set_print_level(osmo_stderr_target, 1);
+
+	log_set_print_filename2(osmo_stderr_target, LOG_FILENAME_BASENAME);
+	log_set_print_filename_pos(osmo_stderr_target, LOG_FILENAME_POS_HEADER_END);
+
 	ms = talloc_zero(l23_ctx, struct osmocom_ms);
 	if (!ms) {
 		fprintf(stderr, "Failed to allocate MS\n");
