@@ -47,7 +47,7 @@ char *gsm_print_arfcn(uint16_t arfcn)
 }
 
 /* check if the cell 'talks' about DCS (0) or PCS (1) */
-uint8_t gsm_refer_pcs(uint16_t arfcn, struct gsm48_sysinfo *s)
+uint8_t gsm_refer_pcs(uint16_t arfcn, const struct gsm48_sysinfo *s)
 {
 	/* If ARFCN is PCS band, the cell refers to PCS */
 	if ((arfcn & ARFCN_PCS))
@@ -62,8 +62,9 @@ uint8_t gsm_refer_pcs(uint16_t arfcn, struct gsm48_sysinfo *s)
 	return s->band_ind;
 }
 
-int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
-	void (*print)(void *, const char *, ...), void *priv, uint8_t *freq_map)
+int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
+		       void (*print)(void *, const char *, ...),
+		       void *priv, uint8_t *freq_map)
 {
 	char buffer[81];
 	int i, j, k, index;
@@ -301,8 +302,8 @@ int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
  * decoding
  */
 
-int gsm48_decode_chan_h0(struct gsm48_chan_desc *cd, uint8_t *tsc, 
-	uint16_t *arfcn)
+int gsm48_decode_chan_h0(const struct gsm48_chan_desc *cd,
+			 uint8_t *tsc, uint16_t *arfcn)
 {
 	*tsc = cd->h0.tsc;
 	*arfcn = cd->h0.arfcn_low | (cd->h0.arfcn_high << 8);
@@ -310,8 +311,8 @@ int gsm48_decode_chan_h0(struct gsm48_chan_desc *cd, uint8_t *tsc,
 	return 0;
 }
 
-int gsm48_decode_chan_h1(struct gsm48_chan_desc *cd, uint8_t *tsc,
-	uint8_t *maio, uint8_t *hsn)
+int gsm48_decode_chan_h1(const struct gsm48_chan_desc *cd,
+			 uint8_t *tsc, uint8_t *maio, uint8_t *hsn)
 {
 	*tsc = cd->h1.tsc;
 	*maio = cd->h1.maio_low | (cd->h1.maio_high << 2);
@@ -321,8 +322,9 @@ int gsm48_decode_chan_h1(struct gsm48_chan_desc *cd, uint8_t *tsc,
 }
 
 /* decode "Cell Channel Description" (10.5.2.1b) and other frequency lists */
-static int decode_freq_list(struct gsm_sysinfo_freq *f, uint8_t *cd,
-	uint8_t len, uint8_t mask, uint8_t frqt)
+static int decode_freq_list(struct gsm_sysinfo_freq *f,
+			    const uint8_t *cd, uint8_t len,
+			    uint8_t mask, uint8_t frqt)
 {
 #if 0
 	/* only Bit map 0 format for P-GSM */
@@ -336,7 +338,7 @@ static int decode_freq_list(struct gsm_sysinfo_freq *f, uint8_t *cd,
 
 /* decode "Cell Selection Parameters" (10.5.2.4) */
 static int gsm48_decode_cell_sel_param(struct gsm48_sysinfo *s,
-	struct gsm48_cell_sel_par *cs)
+				       const struct gsm48_cell_sel_par *cs)
 {
 	s->ms_txpwr_max_cch = cs->ms_txpwr_max_ccch;
 	s->cell_resel_hyst_db = cs->cell_resel_hyst * 2;
@@ -349,7 +351,7 @@ static int gsm48_decode_cell_sel_param(struct gsm48_sysinfo *s,
 
 /* decode "Cell Options (BCCH)" (10.5.2.3) */
 static int gsm48_decode_cellopt_bcch(struct gsm48_sysinfo *s,
-	struct gsm48_cell_options *co)
+				     const struct gsm48_cell_options *co)
 {
 	s->bcch_radio_link_timeout = (co->radio_link_timeout + 1) * 4;
 	s->bcch_dtx = co->dtx;
@@ -360,7 +362,7 @@ static int gsm48_decode_cellopt_bcch(struct gsm48_sysinfo *s,
 
 /* decode "Cell Options (SACCH)" (10.5.2.3a) */
 static int gsm48_decode_cellopt_sacch(struct gsm48_sysinfo *s,
-	struct gsm48_cell_options *co)
+				      const struct gsm48_cell_options *co)
 {
 	s->sacch_radio_link_timeout = (co->radio_link_timeout + 1) * 4;
 	s->sacch_dtx = co->dtx;
@@ -371,7 +373,7 @@ static int gsm48_decode_cellopt_sacch(struct gsm48_sysinfo *s,
 
 /* decode "Control Channel Description" (10.5.2.11) */
 static int gsm48_decode_ccd(struct gsm48_sysinfo *s,
-	struct gsm48_control_channel_descr *cc)
+			    const struct gsm48_control_channel_descr *cc)
 {
 	s->ccch_conf = cc->ccch_conf;
 	s->bs_ag_blks_res = cc->bs_ag_blks_res;
@@ -384,7 +386,8 @@ static int gsm48_decode_ccd(struct gsm48_sysinfo *s,
 
 /* decode "Mobile Allocation" (10.5.2.21) */
 int gsm48_decode_mobile_alloc(struct gsm_sysinfo_freq *freq,
-	uint8_t *ma, uint8_t len, uint16_t *hopping, uint8_t *hopp_len, int si4)
+			      const uint8_t *ma, uint8_t len,
+			      uint16_t *hopping, uint8_t *hopp_len, int si4)
 {
 	int i, j = 0;
 	uint16_t f[len << 3];
@@ -437,16 +440,16 @@ int gsm48_decode_mobile_alloc(struct gsm_sysinfo_freq *freq,
 }
 
 /* Rach Control decode tables */
-static uint8_t gsm48_max_retrans[4] = {
+static const uint8_t gsm48_max_retrans[4] = {
 	1, 2, 4, 7
 };
-static uint8_t gsm48_tx_integer[16] = {
+static const uint8_t gsm48_tx_integer[16] = {
 	3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 20, 25, 32, 50
 };
 
 /* decode "RACH Control Parameter" (10.5.2.29) */
 static int gsm48_decode_rach_ctl_param(struct gsm48_sysinfo *s,
-	struct gsm48_rach_control *rc)
+				       const struct gsm48_rach_control *rc)
 {
 	s->reest_denied = rc->re;
 	s->cell_barr = rc->cell_bar;
@@ -457,7 +460,7 @@ static int gsm48_decode_rach_ctl_param(struct gsm48_sysinfo *s,
 	return 0;
 }
 static int gsm48_decode_rach_ctl_neigh(struct gsm48_sysinfo *s,
-	struct gsm48_rach_control *rc)
+				       const struct gsm48_rach_control *rc)
 {
 	s->nb_reest_denied = rc->re;
 	s->nb_cell_barr = rc->cell_bar;
@@ -469,14 +472,13 @@ static int gsm48_decode_rach_ctl_neigh(struct gsm48_sysinfo *s,
 }
 
 /* decode "SI 1 Rest Octets" (10.5.2.32) */
-static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s, uint8_t *si,
-	uint8_t len)
+static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s,
+				 const uint8_t *si, uint8_t len)
 {
-	struct bitvec bv;
-
-	memset(&bv, 0, sizeof(bv));
-	bv.data_len = len;
-	bv.data = si;
+	struct bitvec bv = {
+		.data_len = len,
+		.data = (uint8_t *)si,
+	};
 
 	/* Optional Selection Parameters */
 	if (bitvec_get_bit_high(&bv) == H) {
@@ -493,14 +495,13 @@ static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s, uint8_t *si,
 }
 
 /* decode "SI 3 Rest Octets" (10.5.2.34) */
-static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si,
-	uint8_t len)
+static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s,
+				 const uint8_t *si, uint8_t len)
 {
-	struct bitvec bv;
-
-	memset(&bv, 0, sizeof(bv));
-	bv.data_len = len;
-	bv.data = si;
+	struct bitvec bv = {
+		.data_len = len,
+		.data = (uint8_t *)si,
+	};
 
 	/* Optional Selection Parameters */
 	if (bitvec_get_bit_high(&bv) == H) {
@@ -545,14 +546,13 @@ static int gsm48_decode_si3_rest(struct gsm48_sysinfo *s, uint8_t *si,
 }
 
 /* decode "SI 4 Rest Octets" (10.5.2.35) */
-static int gsm48_decode_si4_rest(struct gsm48_sysinfo *s, uint8_t *si,
-	uint8_t len)
+static int gsm48_decode_si4_rest(struct gsm48_sysinfo *s,
+				 const uint8_t *si, uint8_t len)
 {
-	struct bitvec bv;
-
-	memset(&bv, 0, sizeof(bv));
-	bv.data_len = len;
-	bv.data = si;
+	struct bitvec bv = {
+		.data_len = len,
+		.data = (uint8_t *)si,
+	};
 
 	/* Optional Selection Parameters */
 	if (bitvec_get_bit_high(&bv) == H) {
@@ -581,15 +581,15 @@ static int gsm48_decode_si4_rest(struct gsm48_sysinfo *s, uint8_t *si,
 	return 0;
 }
 
-/* decode "SI 6 Rest Octets" (10.5.2.35a) */
-static int gsm48_decode_si6_rest(struct gsm48_sysinfo *s, uint8_t *si,
-	uint8_t len)
+/* TODO: decode "SI 6 Rest Octets" (10.5.2.35a) */
+static int gsm48_decode_si6_rest(struct gsm48_sysinfo *s,
+				 const uint8_t *si, uint8_t len)
 {
 	return 0;
 }
 
 int gsm48_decode_sysinfo1(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_1 *si, int len)
+			  const struct gsm48_system_information_type_1 *si, int len)
 {
 	int payload_len = len - sizeof(*si);
 
@@ -597,7 +597,8 @@ int gsm48_decode_sysinfo1(struct gsm48_sysinfo *s,
 
 	/* Cell Channel Description */
 	decode_freq_list(s->freq, si->cell_channel_description,
-		sizeof(si->cell_channel_description), 0xce, FREQ_TYPE_SERV);
+			 sizeof(si->cell_channel_description),
+			 0xce, FREQ_TYPE_SERV);
 	/* RACH Control Parameter */
 	gsm48_decode_rach_ctl_param(s, &si->rach_control);
 	/* SI 1 Rest Octets */
@@ -607,18 +608,17 @@ int gsm48_decode_sysinfo1(struct gsm48_sysinfo *s,
 	s->si1 = 1;
 
 	if (s->si4) {
-		LOGP(DRR, LOGL_NOTICE, "Now updating previously received "
-			"SYSTEM INFORMATION 4\n");
-		gsm48_decode_sysinfo4(s,
-			(struct gsm48_system_information_type_4 *) s->si4_msg,
-			sizeof(s->si4_msg));
+		const struct gsm48_system_information_type_4 *si4 = (void *)s->si4_msg;
+		LOGP(DRR, LOGL_NOTICE,
+		     "Now updating previously received SYSTEM INFORMATION 4\n");
+		gsm48_decode_sysinfo4(s, si4, sizeof(s->si4_msg));
 	}
 
 	return 0;
 }
 
 int gsm48_decode_sysinfo2(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_2 *si, int len)
+			  const struct gsm48_system_information_type_2 *si, int len)
 {
 	memcpy(s->si2_msg, si, OSMO_MIN(len, sizeof(s->si2_msg)));
 
@@ -626,7 +626,8 @@ int gsm48_decode_sysinfo2(struct gsm48_sysinfo *s,
 	s->nb_ext_ind_si2 = (si->bcch_frequency_list[0] >> 6) & 1;
 	s->nb_ba_ind_si2 = (si->bcch_frequency_list[0] >> 5) & 1;
 	decode_freq_list(s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2);
+			 sizeof(si->bcch_frequency_list),
+			 0xce, FREQ_TYPE_NCELL_2);
 	/* NCC Permitted */
 	s->nb_ncc_permitted_si2 = si->ncc_permitted;
 	/* RACH Control Parameter */
@@ -638,7 +639,7 @@ int gsm48_decode_sysinfo2(struct gsm48_sysinfo *s,
 }
 
 int gsm48_decode_sysinfo2bis(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_2bis *si, int len)
+			     const struct gsm48_system_information_type_2bis *si, int len)
 {
 	memcpy(s->si2b_msg, si, OSMO_MIN(len, sizeof(s->si2b_msg)));
 
@@ -656,7 +657,7 @@ int gsm48_decode_sysinfo2bis(struct gsm48_sysinfo *s,
 }
 
 int gsm48_decode_sysinfo2ter(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_2ter *si, int len)
+			     const struct gsm48_system_information_type_2ter *si, int len)
 {
 	memcpy(s->si2t_msg, si, OSMO_MIN(len, sizeof(s->si2t_msg)));
 
@@ -673,7 +674,7 @@ int gsm48_decode_sysinfo2ter(struct gsm48_sysinfo *s,
 }
 
 int gsm48_decode_sysinfo3(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_3 *si, int len)
+			  const struct gsm48_system_information_type_3 *si, int len)
 {
 	int payload_len = len - sizeof(*si);
 
@@ -695,9 +696,9 @@ int gsm48_decode_sysinfo3(struct gsm48_sysinfo *s,
 	if (payload_len >= 4)
 		gsm48_decode_si3_rest(s, si->rest_octets, payload_len);
 
-	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 3 (mcc %s mnc %s "
-		"lac 0x%04x)\n", gsm_print_mcc(s->mcc),
-		gsm_print_mnc(s->mnc), s->lac);
+	LOGP(DRR, LOGL_INFO,
+	     "New SYSTEM INFORMATION 3 (mcc %s mnc %s lac 0x%04x)\n",
+	     gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc), s->lac);
 
 	s->si3 = 1;
 
@@ -705,12 +706,12 @@ int gsm48_decode_sysinfo3(struct gsm48_sysinfo *s,
 }
 
 int gsm48_decode_sysinfo4(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_4 *si, int len)
+			  const struct gsm48_system_information_type_4 *si, int len)
 {
 	int payload_len = len - sizeof(*si);
 
-	uint8_t *data = si->data;
-	struct gsm48_chan_desc *cd;
+	const uint8_t *data = si->data;
+	const struct gsm48_chan_desc *cd;
 
 	memcpy(s->si4_msg, si, OSMO_MIN(len, sizeof(s->si4_msg)));
 
@@ -728,15 +729,13 @@ short_read:
 			LOGP(DRR, LOGL_NOTICE, "Short read!\n");
 			return -EIO;
 		}
-		cd = (struct gsm48_chan_desc *) (data + 1);
+		cd = (const struct gsm48_chan_desc *)(data + 1);
 		s->chan_nr = cd->chan_nr;
-		if (cd->h0.h) {
-			s->h = 1;
+		s->h = cd->h0.h;
+		if (s->h)
 			gsm48_decode_chan_h1(cd, &s->tsc, &s->maio, &s->hsn);
-		} else {
-			s->h = 0;
+		else
 			gsm48_decode_chan_h0(cd, &s->tsc, &s->arfcn);
-		}
 		payload_len -= 4;
 		data += 4;
 	}
@@ -746,11 +745,10 @@ short_read:
 			goto short_read;
 		if (!s->si1) {
 			LOGP(DRR, LOGL_NOTICE, "Ignoring CBCH allocation of "
-				"SYSTEM INFORMATION 4 until SI 1 is "
-				"received.\n");
+			     "SYSTEM INFORMATION 4 until SI 1 is received.\n");
 		} else {
 			gsm48_decode_mobile_alloc(s->freq, data + 2, data[1],
-				s->hopping, &s->hopp_len, 1);
+						  s->hopping, &s->hopp_len, 1);
 		}
 		payload_len -= 2 + data[1];
 		data += 2 + data[1];
@@ -765,7 +763,7 @@ short_read:
 }
 
 int gsm48_decode_sysinfo5(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_5 *si, int len)
+			  const struct gsm48_system_information_type_5 *si, int len)
 {
 	memcpy(s->si5_msg, si, OSMO_MIN(len, sizeof(s->si5_msg)));
 
@@ -773,7 +771,8 @@ int gsm48_decode_sysinfo5(struct gsm48_sysinfo *s,
 	s->nb_ext_ind_si5 = (si->bcch_frequency_list[0] >> 6) & 1;
 	s->nb_ba_ind_si5 = (si->bcch_frequency_list[0] >> 5) & 1;
 	decode_freq_list(s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5);
+			 sizeof(si->bcch_frequency_list),
+			 0xce, FREQ_TYPE_REP_5);
 
 	s->si5 = 1;
 
@@ -781,7 +780,7 @@ int gsm48_decode_sysinfo5(struct gsm48_sysinfo *s,
 }
 
 int gsm48_decode_sysinfo5bis(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_5bis *si, int len)
+			     const struct gsm48_system_information_type_5bis *si, int len)
 {
 	memcpy(s->si5b_msg, si, OSMO_MIN(len, sizeof(s->si5b_msg)));
 
@@ -789,7 +788,8 @@ int gsm48_decode_sysinfo5bis(struct gsm48_sysinfo *s,
 	s->nb_ext_ind_si5bis = (si->bcch_frequency_list[0] >> 6) & 1;
 	s->nb_ba_ind_si5bis = (si->bcch_frequency_list[0] >> 5) & 1;
 	decode_freq_list(s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_REP_5bis);
+			 sizeof(si->bcch_frequency_list),
+			 0xce, FREQ_TYPE_REP_5bis);
 
 	s->si5bis = 1;
 
@@ -797,7 +797,7 @@ int gsm48_decode_sysinfo5bis(struct gsm48_sysinfo *s,
 }
 
 int gsm48_decode_sysinfo5ter(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_5ter *si, int len)
+			     const struct gsm48_system_information_type_5ter *si, int len)
 {
 	memcpy(s->si5t_msg, si, OSMO_MIN(len, sizeof(s->si5t_msg)));
 
@@ -805,7 +805,8 @@ int gsm48_decode_sysinfo5ter(struct gsm48_sysinfo *s,
 	s->nb_multi_rep_si5ter = (si->bcch_frequency_list[0] >> 6) & 3;
 	s->nb_ba_ind_si5ter = (si->bcch_frequency_list[0] >> 5) & 1;
 	decode_freq_list(s->freq, si->bcch_frequency_list,
-		sizeof(si->bcch_frequency_list), 0x8e, FREQ_TYPE_REP_5ter);
+			 sizeof(si->bcch_frequency_list),
+			 0x8e, FREQ_TYPE_REP_5ter);
 
 	s->si5ter = 1;
 
@@ -813,7 +814,7 @@ int gsm48_decode_sysinfo5ter(struct gsm48_sysinfo *s,
 }
 
 int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_6 *si, int len)
+			  const struct gsm48_system_information_type_6 *si, int len)
 {
 	int payload_len = len - sizeof(*si);
 
@@ -839,8 +840,8 @@ int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
 	return 0;
 }
 
-int gsm48_encode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t mcc,
-	uint16_t mnc, uint16_t lac)
+int gsm48_encode_lai_hex(struct gsm48_loc_area_id *lai,
+			 uint16_t mcc, uint16_t mnc, uint16_t lac)
 {
 	lai->digits[0] = (mcc >> 8) | (mcc & 0xf0);
 	lai->digits[1] = (mcc & 0x0f) | (mnc << 4);
@@ -850,8 +851,8 @@ int gsm48_encode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t mcc,
 	return 0;
 }
 
- int gsm48_decode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t *mcc,
-       	uint16_t *mnc, uint16_t *lac)
+int gsm48_decode_lai_hex(const struct gsm48_loc_area_id *lai,
+			 uint16_t *mcc, uint16_t *mnc, uint16_t *lac)
 {
 	*mcc = ((lai->digits[0] & 0x0f) << 8)
 		| (lai->digits[0] & 0xf0)
@@ -860,7 +861,7 @@ int gsm48_encode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t mcc,
 		| (lai->digits[2] & 0xf0)
 		| ((lai->digits[1] & 0xf0) >> 4);
 	*lac = ntohs(lai->lac);
-			        
+
 	return 0;
 }
 

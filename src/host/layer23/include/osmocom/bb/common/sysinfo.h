@@ -121,42 +121,42 @@ struct gsm48_sysinfo {
 };
 
 char *gsm_print_arfcn(uint16_t arfcn);
-uint8_t gsm_refer_pcs(uint16_t arfcn, struct gsm48_sysinfo *s);
-int gsm48_sysinfo_dump(struct gsm48_sysinfo *s, uint16_t arfcn,
-	void (*print)(void *, const char *, ...), void *priv,
-	uint8_t *freq_map);
+uint8_t gsm_refer_pcs(uint16_t arfcn, const struct gsm48_sysinfo *s);
+int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
+		       void (*print)(void *, const char *, ...),
+		       void *priv, uint8_t *freq_map);
 int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 	uint16_t *mnc, uint16_t *lac);
-int gsm48_decode_chan_h0(struct gsm48_chan_desc *cd, uint8_t *tsc,
-	uint16_t *arfcn);
-int gsm48_decode_chan_h1(struct gsm48_chan_desc *cd, uint8_t *tsc,
-	uint8_t *maio, uint8_t *hsn);
+int gsm48_decode_chan_h0(const struct gsm48_chan_desc *cd,
+			 uint8_t *tsc, uint16_t *arfcn);
+int gsm48_decode_chan_h1(const struct gsm48_chan_desc *cd,
+			 uint8_t *tsc, uint8_t *maio, uint8_t *hsn);
 int gsm48_decode_sysinfo1(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_1 *si, int len);
+			  const struct gsm48_system_information_type_1 *si, int len);
 int gsm48_decode_sysinfo2(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_2 *si, int len);
+			  const struct gsm48_system_information_type_2 *si, int len);
 int gsm48_decode_sysinfo2bis(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_2bis *si, int len);
+			     const struct gsm48_system_information_type_2bis *si, int len);
 int gsm48_decode_sysinfo2ter(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_2ter *si, int len);
+			     const struct gsm48_system_information_type_2ter *si, int len);
 int gsm48_decode_sysinfo3(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_3 *si, int len);
+			  const struct gsm48_system_information_type_3 *si, int len);
 int gsm48_decode_sysinfo4(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_4 *si, int len);
+			  const struct gsm48_system_information_type_4 *si, int len);
 int gsm48_decode_sysinfo5(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_5 *si, int len);
+			  const struct gsm48_system_information_type_5 *si, int len);
 int gsm48_decode_sysinfo5bis(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_5bis *si, int len);
+			     const struct gsm48_system_information_type_5bis *si, int len);
 int gsm48_decode_sysinfo5ter(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_5ter *si, int len);
+			     const struct gsm48_system_information_type_5ter *si, int len);
 int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
-		struct gsm48_system_information_type_6 *si, int len);
+			  const struct gsm48_system_information_type_6 *si, int len);
 int gsm48_decode_mobile_alloc(struct gsm_sysinfo_freq *freq,
-	uint8_t *ma, uint8_t len, uint16_t *hopping, uint8_t *hopp_len,
-	int si4);
-int gsm48_encode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t mcc,
-	uint16_t mnc, uint16_t lac);
-int gsm48_decode_lai_hex(struct gsm48_loc_area_id *lai, uint16_t *mcc,
-	uint16_t *mnc, uint16_t *lac);
+			      const uint8_t *ma, uint8_t len,
+			      uint16_t *hopping, uint8_t *hopp_len, int si4);
+int gsm48_encode_lai_hex(struct gsm48_loc_area_id *lai,
+			 uint16_t mcc, uint16_t mnc, uint16_t lac);
+int gsm48_decode_lai_hex(const struct gsm48_loc_area_id *lai,
+			 uint16_t *mcc, uint16_t *mnc, uint16_t *lac);
 
 #endif /* _SYSINFO_H */
