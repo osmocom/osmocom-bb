@@ -13,7 +13,11 @@ AM_CFLAGS = \
 
 bin_PROGRAMS = modem
 
-modem_SOURCES = modem_main.c
+modem_SOURCES = \
+	$(top_srcdir)/src/common/main.c \
+	$(top_srcdir)/src/misc/rslms.c \
+	app_modem.c \
+	$(NULL)
 modem_LDADD = \
 	$(top_builddir)/src/common/liblayer23.a \
 	$(LIBOSMOCORE_LIBS) \
