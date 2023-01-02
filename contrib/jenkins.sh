@@ -47,7 +47,7 @@ done
 
 # TODO: make sure 'distcheck' passes also for these
 # TODO: make sure '--enable-werror' passes also for these
-for dir in gsmmap osmocon; do
+for dir in osmocon; do
 	cd $base/src/host/$dir
 	autoreconf -fi
 	./configure
@@ -65,7 +65,7 @@ if [ "$WITH_MANUALS" = "1" ]; then
 fi
 
 # Test 'maintainer-clean'
-for dir in gprsdecode layer23 gsmmap osmocon trxcon virt_phy; do
+for dir in gprsdecode layer23 osmocon trxcon virt_phy; do
 	cd "$base/src/host/$dir"
 	make maintainer-clean
 done

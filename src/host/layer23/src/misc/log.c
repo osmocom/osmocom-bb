@@ -20,8 +20,7 @@
 #include <stdlib.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
-
-#include "log.h"
+#include <osmocom/bb/misc/log.h>
 
 extern struct power power;
 extern struct sysinfo sysinfo;

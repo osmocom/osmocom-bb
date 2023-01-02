@@ -1,5 +1,6 @@
 #include <math.h>
-#include "geo.h"
+
+#include <osmocom/bb/misc/geo.h>
 
 void geo2space(double *x, double *y, double *z, double lon, double lat)
 {

@@ -33,5 +33,6 @@ src/misc/echo_test
 src/misc/cbch_sniff
 src/misc/ccch_scan
 src/misc/layer23
+src/misc/gsmmap
 src/mobile/mobile
 src/modem/modem

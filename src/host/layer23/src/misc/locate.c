@@ -5,8 +5,8 @@
 #include <errno.h>
 #include <math.h>
 
-#include "geo.h"
-#include "locate.h"
+#include <osmocom/bb/misc/geo.h>
+#include <osmocom/bb/misc/locate.h>
 
 #define CIRCLE_PROBE	30.0
 #define FINETUNE_RADIUS	5.0

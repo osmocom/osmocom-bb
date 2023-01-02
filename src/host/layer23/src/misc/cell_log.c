@@ -39,7 +39,7 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/misc/cell_log.h>
-#include "../../../gsmmap/geo.h"
+#include <osmocom/bb/misc/geo.h>
 
 #define READ_WAIT	2, 0
 #define RACH_WAIT	0, 900000

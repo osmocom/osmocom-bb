@@ -30,9 +30,9 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/logging.h>
 
-#include "log.h"
-#include "geo.h"
-#include "locate.h"
+#include <osmocom/bb/misc/log.h>
+#include <osmocom/bb/misc/geo.h>
+#include <osmocom/bb/misc/locate.h>
 
 /*
  * structure of power and cell infos

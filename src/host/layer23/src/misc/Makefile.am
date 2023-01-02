@@ -26,11 +26,11 @@ bin_PROGRAMS = \
 	echo_test \
 	cell_log \
 	cbch_sniff \
+	gsmmap \
 	$(NULL)
 
 noinst_HEADERS = \
 	bcch_scan.h \
-	geo.h \
 	$(NULL)
 
 bcch_scan_SOURCES = \
@@ -61,4 +61,12 @@ cell_log_SOURCES = \
 cbch_sniff_SOURCES = \
 	$(top_srcdir)/src/common/main.c \
 	app_cbch_sniff.c \
+	$(NULL)
+
+gsmmap_LDADD = $(LDADD) -lm
+gsmmap_SOURCES = \
+	gsmmap.c \
+	geo.c \
+	locate.c \
+	log.c \
 	$(NULL)
