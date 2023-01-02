@@ -40,7 +40,7 @@ for dir in gprsdecode layer23 trxcon virt_phy; do
 	cd $base/src/host/$dir
 	autoreconf -fi
 	./configure
-	make distcheck
+	$MAKE $PARALLEL_MAKE distcheck
 done
 
 # TODO: make sure 'distcheck' passes also for these
@@ -48,7 +48,7 @@ for dir in gsmmap osmocon; do
 	cd $base/src/host/$dir
 	autoreconf -fi
 	./configure
-	make
+	$MAKE $PARALLEL_MAKE
 done
 
 # Build and publish manuals
