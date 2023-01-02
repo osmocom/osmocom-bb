@@ -39,11 +39,13 @@ set -x
 for dir in gprsdecode layer23 trxcon virt_phy; do
 	cd $base/src/host/$dir
 	autoreconf -fi
-	./configure
-	$MAKE $PARALLEL_MAKE distcheck
+	./configure --enable-werror
+	$MAKE $PARALLEL_MAKE
+	DISTCHECK_CONFIGURE_FLAGS="--enable-werror" $MAKE $PARALLEL_MAKE distcheck
 done
 
 # TODO: make sure 'distcheck' passes also for these
+# TODO: make sure '--enable-werror' passes also for these
 for dir in gsmmap osmocon; do
 	cd $base/src/host/$dir
 	autoreconf -fi
