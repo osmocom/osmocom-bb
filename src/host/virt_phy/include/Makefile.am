@@ -1,6 +1,7 @@
 noinst_HEADERS = \
 	virtphy/logging.h \
 	virtphy/osmo_mcast_sock.h \
+	virtphy/l1ctl_proto.h \
 	virtphy/l1ctl_sock.h \
 	virtphy/virtual_um.h \
 	virtphy/gsmtapl1_if.h \

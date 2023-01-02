@@ -32,7 +32,7 @@
 #include <virtphy/logging.h>
 #include <virtphy/gsmtapl1_if.h>
 
-#include <l1ctl_proto.h>
+#include <virtphy/l1ctl_proto.h>
 
 /**
  * @brief Handler callback function for TRAFFIC request.

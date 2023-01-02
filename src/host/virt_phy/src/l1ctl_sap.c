@@ -29,7 +29,7 @@
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gprs/gprs_rlc.h>
 #include <stdio.h>
-#include <l1ctl_proto.h>
+#include <virtphy/l1ctl_proto.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <virtphy/virtual_um.h>

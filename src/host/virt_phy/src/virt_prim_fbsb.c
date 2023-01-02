@@ -29,7 +29,7 @@
 #include <virtphy/virt_l1_sched.h>
 #include <osmocom/core/gsmtap.h>
 #include <virtphy/logging.h>
-#include <l1ctl_proto.h>
+#include <virtphy/l1ctl_proto.h>
 
 static uint16_t sync_count = 0;
 

@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <osmocom/core/msgb.h>
-#include <l1ctl_proto.h>
+#include <virtphy/l1ctl_proto.h>
 #include <virtphy/virtual_um.h>
 #include <virtphy/l1ctl_sock.h>
 #include <virtphy/virt_l1_model.h>
