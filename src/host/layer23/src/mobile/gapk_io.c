@@ -415,6 +415,10 @@ int gapk_io_init_ms(struct osmocom_ms *ms, enum osmo_gapk_codec_type codec)
 	case AUDIO_IOF_TI:
 		phy_fmt = phy_fmt_pick_ti(codec);
 		break;
+	default:
+		LOGP(DGAPK, LOGL_ERROR, "Unhandled I/O format %s\n",
+		     audio_io_format_name(set->audio.io_format));
+		return -ENOTSUP;
 	}
 
 	phy_fmt_desc = osmo_gapk_fmt_get_from_type(phy_fmt);
