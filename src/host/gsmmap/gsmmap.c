@@ -52,7 +52,7 @@ static void nomem(void)
 	exit(-ENOMEM);
 }
 
-static void add_power()
+static void add_power(void)
 {
 	struct node_power *node_power;
 
@@ -81,7 +81,7 @@ static void print_si(void *priv, const char *fmt, ...)
 		fprintf(outfp, "%s", buffer);
 }
 
-static void add_sysinfo()
+static void add_sysinfo(void)
 {
 	struct gsm48_sysinfo s;
 	struct node_mcc *mcc;
