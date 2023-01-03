@@ -13,7 +13,7 @@ TOPDIR=$(shell pwd)
 
 all: libosmocore-target nofirmware firmware mtk-firmware
 
-nofirmware: layer23 osmocon trxcon gsmmap gprsdecode virtphy
+nofirmware: layer23 osmocon trxcon gprsdecode virtphy
 
 libosmocore-target: shared/libosmocore/build-target/src/.libs/libosmocore.a
 
@@ -71,19 +71,6 @@ host/trxcon/trxcon: host/trxcon/Makefile
 	make -C host/trxcon
 
 
-.PHONY: gsmmap
-gsmmap: host/gsmmap/gsmmap
-
-host/gsmmap/configure: host/gsmmap/configure.ac
-	cd host/gsmmap && autoreconf -i
-
-host/gsmmap/Makefile: host/gsmmap/configure
-	cd host/gsmmap && ./configure $(HOST_CONFARGS)
-
-host/gsmmap/gsmmap: host/gsmmap/Makefile
-	make -C host/gsmmap
-
-
 .PHONY: layer23
 layer23: host/layer23/layer23
 
@@ -121,7 +108,6 @@ clean:
 	make -C shared/libosmocore/build-target $@
 	make -C host/layer23 $@
 	make -C host/osmocon $@
-	make -C host/gsmmap $@
 	make -C host/gprsdecode $@
 	make -C host/virt_phy $@
 	make -C host/trxcon $@
@@ -132,7 +118,6 @@ distclean:
 	rm -rf shared/libosmocore/build-target
 	make -C host/layer23 $@
 	make -C host/osmocon $@
-	make -C host/gsmmap $@
 	make -C host/gprsdecode $@
 	make -C host/virt_phy $@
 	make -C host/trxcon $@
