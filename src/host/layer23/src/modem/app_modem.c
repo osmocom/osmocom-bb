@@ -39,8 +39,6 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/sysinfo.h>
-#include <osmocom/bb/misc/rslms.h>
-#include <osmocom/bb/misc/layer3.h>
 
 #include <l1ctl_proto.h>
 
@@ -143,7 +141,7 @@ static int handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
+static int modem_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 {
 	const struct gsm48_system_information_type_header *si_hdr = msgb_l3(msg);
 	const uint8_t si_type = si_hdr->system_information;
@@ -165,7 +163,7 @@ int gsm48_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 	};
 }
 
-static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
+static int modem_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 {
 	const struct gsm48_imm_ass *ia = msgb_l3(msg);
 	uint8_t ch_type, ch_subch, ch_ts;
@@ -243,7 +241,7 @@ static bool is_fill_frame(const struct msgb *msg)
 	return false;
 }
 
-int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
+static int modem_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 {
 	const struct gsm48_system_information_type_header *sih = msgb_l3(msg);
 
@@ -265,10 +263,74 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_IMM_ASS:
-		return gsm48_rx_imm_ass(msg, ms);
+		return modem_rx_imm_ass(msg, ms);
 	default:
 		return 0;
 	}
+}
+
+static int modem_rx_rslms_rll_ud(struct osmocom_ms *ms, struct msgb *msg)
+{
+	const struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
+	struct tlv_parsed tv;
+
+	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
+	       rllh->chan_nr, rllh->link_id);
+
+	if (rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg) - sizeof(*rllh)) < 0) {
+		LOGP(DRSL, LOGL_ERROR, "%s(): rsl_tlv_parse() failed\n", __func__);
+		return -EINVAL;
+	}
+
+	if (!TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
+		LOGP(DRSL, LOGL_ERROR, "UNIT_DATA_IND without L3 INFO ?!?\n");
+		return -EINVAL;
+	}
+
+	msg->l3h = (uint8_t *)TLVP_VAL(&tv, RSL_IE_L3_INFO);
+
+	switch (rllh->chan_nr) {
+	case RSL_CHAN_PCH_AGCH:
+		return modem_rx_ccch(msg, ms);
+	case RSL_CHAN_BCCH:
+		return modem_rx_bcch(msg, ms);
+	default:
+		return 0;
+	}
+}
+
+static int modem_rx_rslms_rll(struct osmocom_ms *ms, struct msgb *msg)
+{
+	const struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
+
+	switch (rllh->c.msg_type) {
+	case RSL_MT_UNIT_DATA_IND:
+		return modem_rx_rslms_rll_ud(ms, msg);
+	default:
+		LOGP(DRSL, LOGL_NOTICE, "Unhandled RSLms RLL message "
+		     "(msg_type 0x%02x)\n", rllh->c.msg_type);
+		return -EINVAL;
+	}
+}
+
+static int modem_rslms_cb(struct msgb *msg, struct lapdm_entity *le, void *ctx)
+{
+	const struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
+	int rc;
+
+	switch (rslh->msg_discr & 0xfe) {
+	case ABIS_RSL_MDISC_RLL:
+		rc = modem_rx_rslms_rll((struct osmocom_ms *)ctx, msg);
+		break;
+	default:
+		LOGP(DRSL, LOGL_NOTICE, "Unhandled RSLms message "
+		     "(msg_discr 0x%02x)\n", rslh->msg_discr);
+		rc = -EINVAL;
+		break;
+	}
+
+	msgb_free(msg);
+	return rc;
 }
 
 void layer3_app_reset(void)
@@ -306,7 +368,9 @@ int l23_app_init(struct osmocom_ms *ms)
 	osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 
-	return layer3_init(ms);
+	lapdm_channel_set_l3(&ms->lapdm_channel, &modem_rslms_cb, ms);
+
+	return 0;
 }
 
 static int l23_cfg_supported(void)

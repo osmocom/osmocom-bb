@@ -15,7 +15,6 @@ bin_PROGRAMS = modem
 
 modem_SOURCES = \
 	$(top_srcdir)/src/common/main.c \
-	$(top_srcdir)/src/misc/rslms.c \
 	app_modem.c \
 	$(NULL)
 modem_LDADD = \
