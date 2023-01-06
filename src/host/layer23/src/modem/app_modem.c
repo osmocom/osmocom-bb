@@ -141,7 +141,7 @@ static int handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-static int modem_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
+static int modem_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	const struct gsm48_system_information_type_header *si_hdr = msgb_l3(msg);
 	const uint8_t si_type = si_hdr->system_information;
@@ -163,7 +163,7 @@ static int modem_rx_bcch(struct msgb *msg, struct osmocom_ms *ms)
 	};
 }
 
-static int modem_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
+static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 {
 	const struct gsm48_imm_ass *ia = msgb_l3(msg);
 	uint8_t ch_type, ch_subch, ch_ts;
@@ -241,7 +241,7 @@ static bool is_fill_frame(const struct msgb *msg)
 	return false;
 }
 
-static int modem_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
+static int modem_rx_ccch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	const struct gsm48_system_information_type_header *sih = msgb_l3(msg);
 
@@ -263,7 +263,7 @@ static int modem_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_IMM_ASS:
-		return modem_rx_imm_ass(msg, ms);
+		return modem_rx_imm_ass(ms, msg);
 	default:
 		return 0;
 	}
@@ -291,9 +291,9 @@ static int modem_rx_rslms_rll_ud(struct osmocom_ms *ms, struct msgb *msg)
 
 	switch (rllh->chan_nr) {
 	case RSL_CHAN_PCH_AGCH:
-		return modem_rx_ccch(msg, ms);
+		return modem_rx_ccch(ms, msg);
 	case RSL_CHAN_BCCH:
-		return modem_rx_bcch(msg, ms);
+		return modem_rx_bcch(ms, msg);
 	default:
 		return 0;
 	}
