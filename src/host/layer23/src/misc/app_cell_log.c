@@ -34,8 +34,6 @@
 
 #include <l1ctl_proto.h>
 
-extern void *l23_ctx;
-
 extern uint16_t basic_band_range[][2];
 extern uint16_t (*band_range)[][2];
 

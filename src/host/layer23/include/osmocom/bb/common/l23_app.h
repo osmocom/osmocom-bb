@@ -13,6 +13,8 @@ enum {
 	L23_OPT_VTYIP	= 32,
 };
 
+extern void *l23_ctx;
+
 /* initialization, called once when starting the app, before reading VTY config */
 extern int l23_app_init(struct osmocom_ms *ms);
 
