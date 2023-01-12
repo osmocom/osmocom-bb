@@ -247,7 +247,8 @@ static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 				       ia->chan_desc.h0.tsc, GSM48_CMODE_SIGN, 0);
 	} else {
 		/* Hopping */
-		uint8_t maio, hsn, ma_len;
+		uint8_t ma_len = 0;
+		uint8_t maio, hsn;
 		uint16_t ma[64];
 
 		hsn = ia->chan_desc.h1.hsn;
