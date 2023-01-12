@@ -57,7 +57,7 @@ static int rslms_rx_udata_ind(struct msgb *msg, struct osmocom_ms *ms)
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct tlv_parsed tv;
 	int rc = 0;
-	
+
 	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
 		rllh->chan_nr, rllh->link_id);
 

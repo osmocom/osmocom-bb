@@ -287,7 +287,7 @@ static void start_rach(void)
 	ncch->data[2] = (s->ccch_conf == 1) << 7;
 	ncch->data[3] = 0;
 	ncch->data[4] = RSL_IE_ACCESS_DELAY;
-	ncch->data[5] = 0; /* no delay */ 
+	ncch->data[5] = 0; /* no delay */
 	ncch->data[6] = RSL_IE_MS_POWER;
 	ncch->data[7] = 0; /* full power */
 
@@ -665,7 +665,7 @@ static int unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct tlv_parsed tv;
 	uint8_t ch_type, ch_subch, ch_ts;
-	
+
 	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
 		rllh->chan_nr, rllh->link_id);
 

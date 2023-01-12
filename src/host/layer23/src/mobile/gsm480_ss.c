@@ -360,7 +360,7 @@ static const char *ss_code_by_char(const char *code, uint8_t *ss_code)
 static const char *decode_ss_code(uint8_t ss_code)
 {
 	static char unknown[16];
-	
+
 	switch (ss_code) {
 	case 33:
 		return "CFU";
@@ -642,7 +642,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 			code++;
 
 		to = ss_code_by_char(code + 1, &ss_code);
-	
+
 		/* register */
 		if (ss_code && to && to[0] == '*') {
 			OSMO_STRLCPY_ARRAY(dest, to + 1);
@@ -660,7 +660,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 		uint8_t ss_code = 0;
 
 		ss_code_by_char(code + 2, &ss_code);
-	
+
 		if (ss_code)
 			return gsm480_tx_cf(trans, GSM0480_MTYPE_REGISTER,
 				GSM0480_OP_CODE_ERASE_SS, ss_code, NULL);
@@ -670,7 +670,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 		uint8_t ss_code = 0;
 
 		ss_code_by_char(code + 1, &ss_code);
-	
+
 		if (ss_code)
 			return gsm480_tx_cf(trans, GSM0480_MTYPE_REGISTER,
 				GSM0480_OP_CODE_DEACTIVATE_SS, ss_code, NULL);
@@ -708,7 +708,7 @@ static int parse_tag_asn1(const uint8_t *data, int len,
 	/* check for buffer overflow */
 	if (len < *tag_len)
 		return -1;
-	
+
 	/* return length */
 	return len;
 }
@@ -834,7 +834,7 @@ static int gsm480_rx_cf(struct gsm_trans *trans, const uint8_t *data,
 		vty_notify(ms, "Call Forwarding reply unsupported.\n");
 		return 0;
 	}
-	
+
 	while (len) {
 		/* sequence tag */
 		if (parse_tag_asn1(data, len, &tag_data, &tag_len) < 0) {

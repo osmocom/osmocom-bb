@@ -149,7 +149,7 @@ struct gsm48_rrlayer {
 	/* channel request states */
 	uint8_t			wait_assign; /* waiting for assignment state */
 	uint8_t			n_chan_req; /* number left, incl. current */
-	uint8_t			chan_req_val; /* current request value */ 
+	uint8_t			chan_req_val; /* current request value */
 	uint8_t			chan_req_mask; /* mask of random bits */
 
 	/* state of dedicated mdoe */

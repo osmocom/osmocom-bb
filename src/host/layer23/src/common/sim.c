@@ -239,7 +239,7 @@ int gsm_sim_job_dequeue(struct osmocom_ms *ms)
 		sim_process_job(ms);
 		return 1; /* work done */
 	}
-	
+
 	return 0;
 }
 
