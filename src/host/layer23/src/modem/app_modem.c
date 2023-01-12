@@ -67,6 +67,26 @@ static uint8_t gen_chan_req(bool single_block)
 	return 0x78 | (rnd & 0x07);
 }
 
+static int modem_tx_chan_req(struct osmocom_ms *ms, bool single_block)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	OSMO_ASSERT(rr->state == GSM48_RR_ST_IDLE);
+
+	if (!app_data.si.si1)
+		return -EBUSY;
+	if (!app_data.si.gprs.supported)
+		return -ENOTSUP;
+
+	rr->cr_ra = gen_chan_req(single_block);
+	LOGP(DRR, LOGL_NOTICE, "Sending CHANNEL REQUEST (0x%02x)\n", rr->cr_ra);
+	l1ctl_tx_rach_req(ms, RSL_CHAN_RACH, 0x00, rr->cr_ra, 0,
+			  app_data.ccch_mode == CCCH_MODE_COMBINED);
+
+	rr->state = GSM48_RR_ST_CONN_PEND;
+	return 0;
+}
+
 static int handle_si1(struct osmocom_ms *ms, struct msgb *msg)
 {
 	int rc;
@@ -147,7 +167,6 @@ static int handle_si4(struct osmocom_ms *ms, struct msgb *msg)
 
 static int handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	int rc;
 
 	if (msgb_l3len(msg) != GSM_MACBLOCK_LEN)
@@ -159,20 +178,6 @@ static int handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 	if (rc != 0)
 		return rc;
 
-	/* HACK: request an Uplink TBF here (one phase access) */
-	if (rr->state == GSM48_RR_ST_IDLE) {
-		if (!app_data.si.si1)
-			return 0;
-		if (!app_data.si.gprs.supported)
-			return 0;
-
-		rr->cr_ra = gen_chan_req(false);
-		LOGP(DRR, LOGL_NOTICE, "Sending CHANNEL REQUEST (0x%02x)\n", rr->cr_ra);
-		l1ctl_tx_rach_req(ms, RSL_CHAN_RACH, 0x00, rr->cr_ra, 0,
-				  app_data.ccch_mode == CCCH_MODE_COMBINED);
-		rr->state = GSM48_RR_ST_CONN_PEND;
-	}
-
 	return 0;
 }
 
@@ -183,6 +188,10 @@ static int modem_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DRR, LOGL_INFO, "BCCH message (type=0x%02x): %s\n",
 	     si_type, gsm48_rr_msg_name(si_type));
+
+	/* HACK: request an Uplink TBF here (one phase access) */
+	if (ms->rrlayer.state == GSM48_RR_ST_IDLE)
+		modem_tx_chan_req(ms, false);
 
 	switch (si_type) {
 	case GSM48_MT_RR_SYSINFO_1:
