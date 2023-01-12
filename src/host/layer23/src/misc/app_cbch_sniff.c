@@ -19,6 +19,7 @@
  */
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l23_app.h>

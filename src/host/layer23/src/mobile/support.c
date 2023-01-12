@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 
 void gsm_support_init(struct osmocom_ms *ms)
 {

@@ -28,6 +28,7 @@
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>

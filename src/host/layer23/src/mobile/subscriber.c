@@ -24,6 +24,7 @@
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/bb/common/sap_proto.h>
 #include <osmocom/bb/common/networks.h>

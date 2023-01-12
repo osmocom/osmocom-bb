@@ -33,6 +33,7 @@
 #include <osmocom/gapk/common.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/logging.h>
 
 #include <osmocom/bb/mobile/voice.h>

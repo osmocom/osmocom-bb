@@ -18,6 +18,7 @@
  */
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/sap_interface.h>
@@ -265,24 +266,11 @@ int main(int argc, char **argv)
 	log_set_print_filename2(osmo_stderr_target, LOG_FILENAME_BASENAME);
 	log_set_print_filename_pos(osmo_stderr_target, LOG_FILENAME_POS_HEADER_END);
 
-	ms = talloc_zero(l23_ctx, struct osmocom_ms);
-	if (!ms) {
-		fprintf(stderr, "Failed to allocate MS\n");
-		exit(1);
-	}
-
 	print_copyright();
 
+	ms = osmocom_ms_alloc(l23_ctx);
+	OSMO_ASSERT(ms);
 	llist_add_tail(&ms->entity, &ms_list);
-
-	ms->name = talloc_strdup(ms, "1");
-	ms->test_arfcn = 871;
-	ms->lapdm_channel.lapdm_dcch.l1_ctx = ms;
-	ms->lapdm_channel.lapdm_dcch.l3_ctx = ms;
-	ms->lapdm_channel.lapdm_acch.l1_ctx = ms;
-	ms->lapdm_channel.lapdm_acch.l3_ctx = ms;
-	lapdm_channel_init(&ms->lapdm_channel, LAPDM_MODE_MS);
-	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
 	rc = l23_app_init(ms);
 	if (rc < 0) {

@@ -69,6 +69,7 @@
 #include <osmocom/core/bitvec.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/logging.h>

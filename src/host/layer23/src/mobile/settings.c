@@ -25,6 +25,7 @@
 #include <osmocom/bb/common/utils.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/networks.h>
 
 static char *layer2_socket_path = "/tmp/osmocom_l2";

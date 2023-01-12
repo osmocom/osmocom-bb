@@ -19,6 +19,7 @@
 #include <lauxlib.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/common/logging.h>
 

@@ -25,6 +25,7 @@
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/mncc_ms.h>
 #include <osmocom/bb/mobile/vty.h>

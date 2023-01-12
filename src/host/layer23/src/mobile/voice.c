@@ -27,6 +27,7 @@
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/mncc_sock.h>

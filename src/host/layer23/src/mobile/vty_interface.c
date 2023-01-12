@@ -28,6 +28,7 @@
 #include <osmocom/crypt/auth.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/mobile/mncc.h>

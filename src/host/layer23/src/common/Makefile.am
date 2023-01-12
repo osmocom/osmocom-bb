@@ -18,6 +18,7 @@ liblayer23_a_SOURCES = \
 	l1l2_interface.c \
 	l1ctl_lapdm_glue.c \
 	logging.c \
+	ms.c \
 	networks.c \
 	sap_fsm.c \
 	sap_proto.c \

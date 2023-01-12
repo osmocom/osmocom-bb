@@ -30,6 +30,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
