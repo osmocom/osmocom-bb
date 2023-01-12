@@ -15,6 +15,7 @@
  *
  */
 
+#pragma once
 
 /* 9.2 commands */
 #define GSM1111_CLASS_GSM		0xa0
