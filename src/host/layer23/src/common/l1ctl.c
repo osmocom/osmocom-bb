@@ -395,7 +395,7 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	if (rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts) == 0) {
 		uint8_t gsmtap_chan_type = chantype_rsl2gsmtap2(chan_type, link_id, false);
 		gsmtap_send(gsmtap_inst, ms->rrlayer.cd_now.arfcn | GSMTAP_ARFCN_F_UPLINK,
-			    chan_ts, gsmtap_chan_type, chan_ss, 0, 127, 255,
+			    chan_ts, gsmtap_chan_type, chan_ss, 0, 127, 0,
 			    msg->l2h, msgb_l2len(msg));
 	} else {
 		LOGP(DL1C, LOGL_ERROR,
