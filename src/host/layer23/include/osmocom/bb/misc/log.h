@@ -1,3 +1,4 @@
+#pragma once
 
 enum {
 	LOG_TYPE_NONE = 0,
