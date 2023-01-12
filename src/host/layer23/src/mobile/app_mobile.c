@@ -446,7 +446,6 @@ int l23_app_exit(void)
 static struct vty_app_info vty_info = {
 	.name = "OsmocomBB",
 	.version = PACKAGE_VERSION,
-	.go_parent_cb = ms_vty_go_parent,
 };
 
 /* global init */

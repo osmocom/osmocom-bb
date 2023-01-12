@@ -26,4 +26,5 @@ liblayer23_a_SOURCES = \
 	sim.c \
 	sysinfo.c \
 	utils.c \
+	vty.c \
 	$(NULL)

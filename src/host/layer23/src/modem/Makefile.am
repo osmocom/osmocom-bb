@@ -16,6 +16,7 @@ bin_PROGRAMS = modem
 modem_SOURCES = \
 	$(top_srcdir)/src/common/main.c \
 	app_modem.c \
+	vty.c \
 	$(NULL)
 modem_LDADD = \
 	$(top_builddir)/src/common/liblayer23.a \

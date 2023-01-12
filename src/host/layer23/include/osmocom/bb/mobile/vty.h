@@ -6,14 +6,14 @@
 #include <osmocom/vty/buffer.h>
 #include <osmocom/vty/command.h>
 
+#include <osmocom/bb/common/vty.h>
+
 enum ms_vty_node {
-	MS_NODE = _LAST_OSMOVTY_NODE + 1,
-	TESTSIM_NODE,
+	TESTSIM_NODE = _LAST_L23VTY_NODE + 1,
 	SUPPORT_NODE,
 	AUDIO_NODE,
 };
 
-int ms_vty_go_parent(struct vty *vty);
 int ms_vty_init(void);
 extern void vty_notify(struct osmocom_ms *ms, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
 

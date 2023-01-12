@@ -13,4 +13,5 @@ noinst_HEADERS = \
 	sap_fsm.h \
 	sap_interface.h \
 	sim.h \
+	vty.h \
 	$(NULL)

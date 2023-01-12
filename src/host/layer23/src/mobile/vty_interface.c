@@ -41,14 +41,7 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
-extern struct llist_head ms_list;
 extern struct llist_head active_connections;
-
-struct cmd_node ms_node = {
-	MS_NODE,
-	"%s(ms)# ",
-	1
-};
 
 struct cmd_node testsim_node = {
 	TESTSIM_NODE,
@@ -131,25 +124,6 @@ static void vty_restart_if_started(struct vty *vty, struct osmocom_ms *ms)
 	if (!ms->started)
 		return;
 	vty_restart(vty, ms);
-}
-
-static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
-{
-	struct osmocom_ms *ms;
-
-	llist_for_each_entry(ms, &ms_list, entity) {
-		if (!strcmp(ms->name, name)) {
-			if (ms->shutdown != MS_SHUTDOWN_NONE) {
-				vty_out(vty, "MS '%s' is admin down.%s", name,
-					VTY_NEWLINE);
-				return NULL;
-			}
-			return ms;
-		}
-	}
-	vty_out(vty, "MS name '%s' does not exist.%s", name, VTY_NEWLINE);
-
-	return NULL;
 }
 
 static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
@@ -274,7 +248,7 @@ DEFUN(show_support, show_support_cmd, "show support [MS_NAME]",
 	struct osmocom_ms *ms;
 
 	if (argc) {
-		ms = get_ms(argv[0], vty);
+		ms = l23_vty_get_ms(argv[0], vty);
 		if (!ms)
 			return CMD_WARNING;
 		gsm_support_dump(ms, print_vty, vty);
@@ -295,7 +269,7 @@ DEFUN(show_subscr, show_subscr_cmd, "show subscriber [MS_NAME]",
 	struct osmocom_ms *ms;
 
 	if (argc) {
-		ms = get_ms(argv[0], vty);
+		ms = l23_vty_get_ms(argv[0], vty);
 		if (!ms)
 			return CMD_WARNING;
 		gsm_subscr_dump(&ms->subscr, print_vty, vty);
@@ -317,7 +291,7 @@ DEFUN(show_cell, show_cell_cmd, "show cell MS_NAME",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -336,7 +310,7 @@ DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023> [pcs]",
 	struct gsm48_sysinfo *s;
 	uint16_t arfcn = atoi(argv[1]);
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -367,7 +341,7 @@ DEFUN(show_nbcells, show_nbcells_cmd, "show neighbour-cells MS_NAME",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -384,7 +358,7 @@ DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [MCC] [MNC]",
 	struct osmocom_ms *ms;
 	uint16_t mcc = 0, mnc = 0;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -412,7 +386,7 @@ DEFUN(show_forb_plmn, show_forb_plmn_cmd, "show forbidden plmn MS_NAME",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -427,7 +401,7 @@ DEFUN(show_forb_la, show_forb_la_cmd, "show forbidden location-area MS_NAME",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -441,7 +415,7 @@ DEFUN(monitor_network, monitor_network_cmd, "monitor network MS_NAME",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -456,7 +430,7 @@ DEFUN(no_monitor_network, no_monitor_network_cmd, "no monitor network MS_NAME",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -475,7 +449,7 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
 	uint32_t tmsi = 0xffffffff;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -552,7 +526,7 @@ DEFUN(sim_sap, sim_sap_cmd, "sim sap MS_NAME",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -574,7 +548,7 @@ DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -594,7 +568,7 @@ DEFUN(sim_remove, sim_remove_cmd, "sim remove MS_NAME",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -617,7 +591,7 @@ DEFUN(sim_pin, sim_pin_cmd, "sim pin MS_NAME PIN",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -642,7 +616,7 @@ DEFUN(sim_disable_pin, sim_disable_pin_cmd, "sim disable-pin MS_NAME PIN",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -662,7 +636,7 @@ DEFUN(sim_enable_pin, sim_enable_pin_cmd, "sim enable-pin MS_NAME PIN",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -682,7 +656,7 @@ DEFUN(sim_change_pin, sim_change_pin_cmd, "sim change-pin MS_NAME OLD NEW",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -706,7 +680,7 @@ DEFUN(sim_unblock_pin, sim_unblock_pin_cmd, "sim unblock-pin MS_NAME PUC NEW",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -734,7 +708,7 @@ DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 		 mnc = gsm_input_mnc((char *)argv[2]),
 		 lac = strtoul(argv[3], NULL, 16);
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -772,7 +746,7 @@ DEFUN(network_select, network_select_cmd,
 		 mnc = gsm_input_mnc((char *)argv[2]);
 	int found = 0;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 	plmn = &ms->plmn;
@@ -826,7 +800,7 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 	struct gsm_settings_abbrev *abbrev;
 	char *number;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 	set = &ms->settings;
@@ -869,7 +843,7 @@ DEFUN(call_retr, call_retr_cmd, "call MS_NAME retrieve [NUMBER]",
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -885,7 +859,7 @@ DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS",
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 	set = &ms->settings;
@@ -911,7 +885,7 @@ DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 	struct gsm_settings_abbrev *abbrev;
 	char *number, *sms_sca = NULL;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 	set = &ms->settings;
@@ -970,7 +944,7 @@ DEFUN(service, service_cmd, "service MS_NAME (*#06#|*#21#|*#67#|*#61#|*#62#"
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -989,7 +963,7 @@ DEFUN(test_reselection, test_reselection_cmd, "test re-selection NAME",
 	struct gsm_settings *set;
 	struct msgb *nmsg;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 	set = &ms->settings;
@@ -1018,7 +992,7 @@ DEFUN(delete_forbidden_plmn, delete_forbidden_plmn_cmd,
 	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
 		 mnc = gsm_input_mnc((char *)argv[2]);
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -1045,7 +1019,7 @@ DEFUN(network_show, network_show_cmd, "network show MS_NAME",
 	struct gsm322_plmn *plmn;
 	struct gsm322_plmn_list *temp;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 	set = &ms->settings;
@@ -1072,7 +1046,7 @@ DEFUN(network_search, network_search_cmd, "network search MS_NAME",
 	struct osmocom_ms *ms;
 	struct msgb *nmsg;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -1323,6 +1297,9 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	struct gsm_settings_abbrev *abbrev;
 
 	vty_out(vty, "ms %s%s", ms->name, VTY_NEWLINE);
+
+	l23_vty_config_write_ms_node_contents(vty, ms, " ");
+
 	vty_out(vty, " layer2-socket %s%s", set->layer2_socket_path,
 		VTY_NEWLINE);
 	vty_out(vty, " sap-socket %s%s", set->sap_socket_path, VTY_NEWLINE);
@@ -2996,25 +2973,6 @@ DEFUN(cfg_ms_no_script_load_run, cfg_ms_no_script_load_run_cmd, "no lua-script",
 	return CMD_SUCCESS;
 }
 
-int ms_vty_go_parent(struct vty *vty)
-{
-	switch (vty->node) {
-	case MS_NODE:
-		vty->node = CONFIG_NODE;
-		vty->index = NULL;
-		break;
-	case TESTSIM_NODE:
-	case SUPPORT_NODE:
-	case AUDIO_NODE:
-		vty->node = MS_NODE;
-		break;
-	default:
-		vty->node = CONFIG_NODE;
-	}
-
-	return vty->node;
-}
-
 DEFUN(off, off_cmd, "off",
 	"Turn mobiles off (shutdown) and exit")
 {
@@ -3028,6 +2986,11 @@ DEFUN(off, off_cmd, "off",
 
 int ms_vty_init(void)
 {
+	int rc;
+
+	if ((rc = l23_vty_init(config_write)) < 0)
+		return rc;
+
 	install_element_ve(&show_ms_cmd);
 	install_element_ve(&show_subscr_cmd);
 	install_element_ve(&show_support_cmd);
@@ -3078,7 +3041,8 @@ int ms_vty_init(void)
 	install_element(CONFIG_NODE, &cfg_ms_create_cmd);
 	install_element(CONFIG_NODE, &cfg_ms_rename_cmd);
 	install_element(CONFIG_NODE, &cfg_no_ms_cmd);
-	install_node(&ms_node, config_write);
+
+	/* MS_NODE is installed by l23_vty_init(). App specific commands below: */
 	install_element(MS_NODE, &cfg_ms_show_this_cmd);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
 	install_element(MS_NODE, &cfg_ms_sap_cmd);
@@ -3204,9 +3168,6 @@ int ms_vty_init(void)
 	install_element(AUDIO_NODE, &cfg_ms_audio_io_tch_format_cmd);
 	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_out_dev_cmd);
 	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_in_dev_cmd);
-
-	/* Register the talloc context introspection command */
-	osmo_talloc_vty_add_cmds();
 
 	return 0;
 }
