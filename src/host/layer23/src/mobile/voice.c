@@ -29,6 +29,7 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/mncc.h>
+#include <osmocom/bb/mobile/mncc_sock.h>
 #include <osmocom/bb/mobile/voice.h>
 
 /* Forward a Downlink voice frame to the external MNCC handler */

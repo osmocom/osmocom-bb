@@ -27,6 +27,7 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/fsm.h>
+#include <osmocom/core/write_queue.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>

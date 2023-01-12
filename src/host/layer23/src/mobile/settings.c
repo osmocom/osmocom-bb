@@ -21,6 +21,7 @@
 #include <osmocom/core/talloc.h>
 
 #include <osmocom/bb/mobile/app_mobile.h>
+#include <osmocom/bb/mobile/settings.h>
 #include <osmocom/bb/common/utils.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>

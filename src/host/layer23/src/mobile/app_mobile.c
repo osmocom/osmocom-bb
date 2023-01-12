@@ -26,16 +26,21 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/gps.h>
+#include <osmocom/bb/common/sap_interface.h>
+#include <osmocom/bb/common/sim.h>
+
 #include <osmocom/bb/mobile/gsm48_rr.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
+#include <osmocom/bb/mobile/gsm48_mm.h>
+#include <osmocom/bb/mobile/gsm48_cc.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
+#include <osmocom/bb/mobile/gsm322.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
 #include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/primitives.h>
-#include <osmocom/bb/common/sap_interface.h>
 
 #include <osmocom/vty/ports.h>
 #include <osmocom/vty/logging.h>

@@ -1,6 +1,8 @@
 #ifndef _GSM48_MM_H
 #define _GSM48_MM_H
 
+struct gsm_settings;
+
 /* GSM 04.07 9.2.2 */
 #define GSM48_MMXX_MASK			0xf00
 #define GSM48_MMCC_CLASS		0x100

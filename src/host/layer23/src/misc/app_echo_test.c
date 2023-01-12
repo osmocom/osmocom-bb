@@ -26,7 +26,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
-
+#include <osmocom/core/timer.h>
 
 static struct {
 	struct osmo_timer_list timer;

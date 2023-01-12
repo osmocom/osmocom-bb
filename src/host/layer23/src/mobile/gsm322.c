@@ -33,9 +33,12 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
+#include <osmocom/bb/common/utils.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
-#include <osmocom/bb/common/utils.h>
+#include <osmocom/bb/mobile/gsm322.h>
+#include <osmocom/bb/mobile/gsm48_mm.h>
+#include <osmocom/bb/mobile/settings.h>
 
 #include <l1ctl_proto.h>
 

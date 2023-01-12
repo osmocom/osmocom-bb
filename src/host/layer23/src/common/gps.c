@@ -29,6 +29,7 @@
 #endif
 
 #include <osmocom/core/utils.h>
+#include <osmocom/core/select.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>

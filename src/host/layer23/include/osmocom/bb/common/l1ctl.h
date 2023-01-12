@@ -2,6 +2,7 @@
 #define osmocom_l1ctl_h
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/prim.h>
 #include <osmocom/bb/common/osmocom_data.h>
 
 struct osmocom_ms;

@@ -17,6 +17,7 @@
  */
 
 #include <stdint.h>
+#include <errno.h>
 
 #include <l1ctl_proto.h>
 

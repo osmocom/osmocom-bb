@@ -23,14 +23,15 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/misc/layer3.h>
+#include <osmocom/bb/common/sysinfo.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/gsm/rsl.h>
-
 #include <osmocom/gsm/protocol/gsm_08_58.h>
+#include <osmocom/gsm/lapdm.h>
 
 #include <l1ctl_proto.h>
 

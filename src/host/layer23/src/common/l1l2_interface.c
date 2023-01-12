@@ -24,6 +24,7 @@
 
 #include <osmocom/core/utils.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/select.h>
 
 #include <sys/socket.h>
 #include <sys/un.h>

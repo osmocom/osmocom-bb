@@ -23,6 +23,7 @@
 #define _MNCC_H
 
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/core/timer.h>
 #include <osmocom/gsm/mncc.h>
 
 struct gsm_call {

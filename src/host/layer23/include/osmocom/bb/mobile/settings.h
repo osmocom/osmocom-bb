@@ -1,6 +1,9 @@
 #ifndef _settings_h
 #define _settings_h
 
+#include <osmocom/core/utils.h>
+#include <osmocom/core/linuxlist.h>
+
 #define MOB_C7_DEFLT_ANY_TIMEOUT	30
 
 /* CC (Call Control) message handling entity */

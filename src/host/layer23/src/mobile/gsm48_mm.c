@@ -26,18 +26,22 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/timer.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/utils.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/primitives.h>
 #include <osmocom/bb/mobile/vty.h>
-#include <osmocom/bb/common/utils.h>
+#include <osmocom/bb/mobile/gsm48_rr.h>
+#include <osmocom/bb/mobile/gsm322.h>
+#include <osmocom/bb/mobile/subscriber.h>
 
 extern void *l23_ctx;
 

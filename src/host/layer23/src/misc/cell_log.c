@@ -32,12 +32,16 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/rsl.h>
+#include <osmocom/gsm/tlv.h>
+#include <osmocom/gsm/lapdm.h>
 
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
+#include <osmocom/bb/common/sysinfo.h>
+#include <osmocom/bb/mobile/gsm48_rr.h>
 #include <osmocom/bb/misc/cell_log.h>
 #include <osmocom/bb/misc/geo.h>
 

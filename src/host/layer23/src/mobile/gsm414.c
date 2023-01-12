@@ -34,6 +34,7 @@
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/mobile/gsm48_rr.h>
 
 #include <l1ctl_proto.h>
 

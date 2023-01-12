@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <osmocom/gsm/protocol/gsm_04_08.h>
+
 /* 9.2 commands */
 #define GSM1111_CLASS_GSM		0xa0
 #define	GSM1111_INST_SELECT		0xa4

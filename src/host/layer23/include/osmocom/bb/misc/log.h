@@ -1,5 +1,7 @@
 #pragma once
 
+#include <osmocom/bb/common/sysinfo.h>
+
 enum {
 	LOG_TYPE_NONE = 0,
 	LOG_TYPE_SYSINFO,
