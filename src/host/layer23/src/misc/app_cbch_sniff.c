@@ -194,17 +194,22 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
-int l23_app_init(struct osmocom_ms *ms)
+static int _cbch_sniff_start(struct osmocom_ms *ms)
 {
-	/* don't do layer3_init() as we don't want an actual L3 */
-
-	g_ms = ms;
-	lapdm_channel_set_l3(&ms->lapdm_channel, &rcv_rsl, ms);
-
 	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	/* FIXME: L1CTL_RES_T_FULL doesn't reset dedicated mode
 	 * (if previously set), so we release it here. */
 	l1ctl_tx_dm_rel_req(ms);
+	return 0;
+}
+
+int l23_app_init(struct osmocom_ms *ms)
+{
+	/* don't do layer3_init() as we don't want an actual L3 */
+	l23_app_start = _cbch_sniff_start;
+	g_ms = ms;
+
+	lapdm_channel_set_l3(&ms->lapdm_channel, &rcv_rsl, ms);
 	return osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
 }
 

@@ -13,9 +13,13 @@ enum {
 	L23_OPT_VTYIP	= 32,
 };
 
-/* initialization, called once when starting the app, before entering
- * select loop */
+/* initialization, called once when starting the app, before reading VTY config */
 extern int l23_app_init(struct osmocom_ms *ms);
+
+/* Start work after reading VTY config and starting layer23 components,
+ * immediately before entering main select loop */
+extern int (*l23_app_start)(struct osmocom_ms *ms);
+
 extern int (*l23_app_work)(struct osmocom_ms *ms);
 extern int (*l23_app_exit)(struct osmocom_ms *ms);
 

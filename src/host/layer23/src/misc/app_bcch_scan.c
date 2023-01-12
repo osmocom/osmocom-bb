@@ -47,11 +47,17 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
+static int _bcch_scan_start(struct osmocom_ms *ms)
+{
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	return 0;
+}
+
 int l23_app_init(struct osmocom_ms *ms)
 {
 	/* don't do layer3_init() as we don't want an actual L3 */
 	fps_init();
-	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	l23_app_start = _bcch_scan_start;
 	return osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
 }
 

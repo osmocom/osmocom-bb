@@ -464,18 +464,22 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
+static int _modem_start(struct osmocom_ms *ms)
+{
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	return 0;
+}
 
 int l23_app_init(struct osmocom_ms *ms)
 {
+	l23_app_start = _modem_start;
+
 	log_set_category_filter(osmo_stderr_target, DLGLOBAL, 1, LOGL_DEBUG);
 	log_set_category_filter(osmo_stderr_target, DLCSN1, 1, LOGL_DEBUG);
 	log_set_category_filter(osmo_stderr_target, DRR, 1, LOGL_INFO);
 
 	osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
-	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
-
 	lapdm_channel_set_l3(&ms->lapdm_channel, &modem_rslms_cb, ms);
-
 	return 0;
 }
 

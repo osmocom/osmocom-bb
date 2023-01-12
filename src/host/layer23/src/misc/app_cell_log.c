@@ -42,6 +42,13 @@ extern uint16_t (*band_range)[][2];
 char *logname = "/dev/null";
 int RACH_MAX = 2;
 
+
+int _scan_start(struct osmocom_ms *ms)
+{
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	return 0;
+}
+
 int _scan_work(struct osmocom_ms *ms)
 {
 	return 0;
@@ -70,6 +77,7 @@ int l23_app_init(struct osmocom_ms *ms)
 	log_parse_category_mask(osmo_stderr_target, "DSUM");
 	log_set_log_level(osmo_stderr_target, LOGL_INFO);
 
+	l23_app_start = _scan_start;
 	l23_app_work = _scan_work;
 	l23_app_exit = _scan_exit;
 
@@ -77,7 +85,6 @@ int l23_app_init(struct osmocom_ms *ms)
 	if (rc)
 		return rc;
 
-	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
 	printf("Mobile initialized, please start phone now!\n");
 	return 0;
 }

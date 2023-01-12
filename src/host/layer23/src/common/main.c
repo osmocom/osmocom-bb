@@ -54,6 +54,7 @@ static char *gsmtap_ip = NULL;
 static char *vty_ip = "127.0.0.1";
 
 unsigned short vty_port = 4247;
+int (*l23_app_start)(struct osmocom_ms *ms) = NULL;
 int (*l23_app_work)(struct osmocom_ms *ms) = NULL;
 int (*l23_app_exit)(struct osmocom_ms *ms) = NULL;
 int quit = 0;
@@ -249,15 +250,6 @@ int main(int argc, char **argv)
 
 	ms->name = talloc_strdup(ms, "1");
 	ms->test_arfcn = 871;
-
-	handle_options(argc, argv);
-
-	rc = layer2_open(ms, layer2_socket_path);
-	if (rc < 0) {
-		fprintf(stderr, "Failed during layer2_open()\n");
-		exit(1);
-	}
-
 	ms->lapdm_channel.lapdm_dcch.l1_ctx = ms;
 	ms->lapdm_channel.lapdm_dcch.l3_ctx = ms;
 	ms->lapdm_channel.lapdm_acch.l1_ctx = ms;
@@ -265,9 +257,19 @@ int main(int argc, char **argv)
 	lapdm_channel_init(&ms->lapdm_channel, LAPDM_MODE_MS);
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
+	handle_options(argc, argv);
+
 	rc = l23_app_init(ms);
-	if (rc < 0)
+	if (rc < 0) {
+		fprintf(stderr, "Failed during l23_app_init()\n");
 		exit(1);
+	}
+
+	rc = layer2_open(ms, layer2_socket_path);
+	if (rc < 0) {
+		fprintf(stderr, "Failed during layer2_open()\n");
+		exit(1);
+	}
 
 	if (gsmtap_ip) {
 		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
@@ -276,6 +278,14 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 		gsmtap_source_add_sink(gsmtap_inst);
+	}
+
+	if (l23_app_start) {
+		rc = l23_app_start(ms);
+		if (rc < 0) {
+			fprintf(stderr, "Failed during l23_app_start()\n");
+			exit(1);
+		}
 	}
 
 	signal(SIGINT, sighandler);
