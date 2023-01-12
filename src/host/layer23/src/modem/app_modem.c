@@ -243,7 +243,8 @@ static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		     ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
 		     ia->chan_desc.h0.tsc);
 
-		l1ctl_tx_dm_est_req_h0(ms, arfcn, RSL_CHAN_OSMO_PDCH,
+		l1ctl_tx_dm_est_req_h0(ms, arfcn,
+				       RSL_CHAN_OSMO_PDCH | ch_ts,
 				       ia->chan_desc.h0.tsc, GSM48_CMODE_SIGN, 0);
 	} else {
 		/* Hopping */
@@ -272,7 +273,8 @@ static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 			j++;
 		}
 
-		l1ctl_tx_dm_est_req_h1(ms, maio, hsn, &ma[0], ma_len, RSL_CHAN_OSMO_PDCH,
+		l1ctl_tx_dm_est_req_h1(ms, maio, hsn, &ma[0], ma_len,
+				       RSL_CHAN_OSMO_PDCH | ch_ts,
 				       ia->chan_desc.h1.tsc, GSM48_CMODE_SIGN, 0);
 	}
 
