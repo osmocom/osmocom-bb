@@ -54,8 +54,8 @@ static char *gsmtap_ip = NULL;
 static char *vty_ip = "127.0.0.1";
 
 unsigned short vty_port = 4247;
-int (*l23_app_work) (struct osmocom_ms *ms) = NULL;
-int (*l23_app_exit) (struct osmocom_ms *ms) = NULL;
+int (*l23_app_work)(struct osmocom_ms *ms) = NULL;
+int (*l23_app_exit)(struct osmocom_ms *ms) = NULL;
 int quit = 0;
 struct gsmtap_inst *gsmtap_inst;
 
