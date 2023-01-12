@@ -52,7 +52,7 @@ int gsm48_cc_init(struct osmocom_ms *ms)
 
 	cc->ms = ms;
 
-	if (!cc->mncc_upqueue.next == 0)
+	if (cc->mncc_upqueue.next != NULL)
 		return 0;
 
 	LOGP(DCC, LOGL_INFO, "init Call Control\n");
