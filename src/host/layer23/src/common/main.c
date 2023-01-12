@@ -33,6 +33,10 @@
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/vty/vty.h>
+#include <osmocom/vty/logging.h>
+#include <osmocom/vty/telnet_interface.h>
+#include <osmocom/vty/ports.h>
 
 #include <arpa/inet.h>
 
@@ -51,9 +55,8 @@ static char *sap_socket_path = "/tmp/osmocom_sap";
 struct llist_head ms_list;
 static struct osmocom_ms *ms = NULL;
 static char *gsmtap_ip = NULL;
-static char *vty_ip = "127.0.0.1";
+static char *config_file = NULL;
 
-unsigned short vty_port = 4247;
 int (*l23_app_start)(struct osmocom_ms *ms) = NULL;
 int (*l23_app_work)(struct osmocom_ms *ms) = NULL;
 int (*l23_app_exit)(struct osmocom_ms *ms) = NULL;
@@ -97,15 +100,10 @@ static void print_help(void)
 		printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
 
 	if (options & L23_OPT_VTY)
-		printf("  -v --vty-port		The VTY port number to telnet "
-			"to. (default %u)\n", vty_port);
+		printf("  -c --config-file	The path to the VTY configuration file.\n");
 
 	if (options & L23_OPT_DBG)
 		printf("  -d --debug		Change debug flags.\n");
-
-	if (options & L23_OPT_VTYIP)
-		printf("  -u --vty-ip		The VTY IP to bind telnet to. "
-			"(default %s)\n", vty_ip);
 
 	if (app && app->cfg_print_help)
 		app->cfg_print_help();
@@ -123,14 +121,13 @@ static void build_config(char **opt, struct option **option)
 		{"sap", 1, 0, 'S'},
 		{"arfcn", 1, 0, 'a'},
 		{"gsmtap-ip", 1, 0, 'i'},
-		{"vty-ip", 1, 0, 'u'},
-		{"vty-port", 1, 0, 'v'},
+		{"config-file", 1, 0, 'c'},
 		{"debug", 1, 0, 'd'},
 	};
 
 
 	app = l23_app_info();
-	*opt = talloc_asprintf(l23_ctx, "hs:S:a:i:v:d:u:%s",
+	*opt = talloc_asprintf(l23_ctx, "hs:S:a:i:c:d:%s",
 			       app && app->getopt_string ? app->getopt_string : "");
 
 	len = ARRAY_SIZE(long_options);
@@ -143,9 +140,8 @@ static void build_config(char **opt, struct option **option)
 		memcpy(*option + len, app_opp, app_len * sizeof(struct option));
 }
 
-static void handle_options(int argc, char **argv)
+static void handle_options(int argc, char **argv, struct l23_app_info *app)
 {
-	struct l23_app_info *app = l23_app_info();
 	struct option *long_options;
 	char *opt;
 
@@ -177,11 +173,8 @@ static void handle_options(int argc, char **argv)
 		case 'i':
 			gsmtap_ip = optarg;
 			break;
-		case 'u':
-			vty_ip = optarg;
-			break;
-		case 'v':
-			vty_port = atoi(optarg);
+		case 'c':
+			config_file = optarg;
 			break;
 		case 'd':
 			log_parse_category_mask(osmo_stderr_target, optarg);
@@ -221,9 +214,43 @@ static void print_copyright(void)
 	       app && app->contribution ? app->contribution : "");
 }
 
+static int _vty_init(struct l23_app_info *app)
+{
+	static struct vty_app_info l23_vty_info = {
+		.name = "OsmocomBB",
+		.version = PACKAGE_VERSION,
+	};
+	int rc;
+
+	OSMO_ASSERT(app->vty_info);
+	app->vty_info->tall_ctx = l23_ctx;
+	vty_init(app->vty_info ? : &l23_vty_info);
+	logging_vty_add_cmds();
+	if (app->vty_init)
+		app->vty_init();
+	if (config_file) {
+		rc = vty_read_config_file(config_file, NULL);
+		if (rc < 0) {
+			LOGP(DLGLOBAL, LOGL_FATAL,
+				"Failed to parse the configuration file '%s'\n", config_file);
+			return rc;
+		}
+		LOGP(DLGLOBAL, LOGL_INFO, "Using configuration from '%s'\n", config_file);
+	}
+	rc = telnet_init_default(l23_ctx, NULL, OSMO_VTY_PORT_BB);
+	if (rc < 0) {
+		LOGP(DMOB, LOGL_FATAL, "Cannot init VTY on %s port %u: %s\n",
+			vty_get_bind_addr(), OSMO_VTY_PORT_BB, strerror(errno));
+		return rc;
+	}
+	return rc;
+}
+
 int main(int argc, char **argv)
 {
 	int rc;
+	struct l23_app_info *app;
+	unsigned int app_supp_opt = 0x00;
 
 	INIT_LLIST_HEAD(&ms_list);
 
@@ -257,12 +284,21 @@ int main(int argc, char **argv)
 	lapdm_channel_init(&ms->lapdm_channel, LAPDM_MODE_MS);
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
-	handle_options(argc, argv);
-
 	rc = l23_app_init(ms);
 	if (rc < 0) {
 		fprintf(stderr, "Failed during l23_app_init()\n");
 		exit(1);
+	}
+
+	app = l23_app_info();
+	if (app && app->cfg_supported != NULL)
+		app_supp_opt = app->cfg_supported();
+
+	handle_options(argc, argv, app);
+
+	if (app_supp_opt & L23_OPT_VTY) {
+		if (_vty_init(app) < 0)
+			exit(1);
 	}
 
 	rc = layer2_open(ms, layer2_socket_path);

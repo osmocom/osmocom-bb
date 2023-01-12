@@ -26,6 +26,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/core/application.h>
+#include <osmocom/vty/vty.h>
 
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/tlv.h>
@@ -485,12 +486,25 @@ int l23_app_init(struct osmocom_ms *ms)
 
 static int l23_cfg_supported(void)
 {
-	return L23_OPT_ARFCN | L23_OPT_TAP | L23_OPT_DBG;
+	return L23_OPT_ARFCN | L23_OPT_TAP | L23_OPT_VTY | L23_OPT_DBG;
 }
+
+static int l23_vty_init(void)
+{
+	/* TODO: add sample specific vty nodes/cmds */
+	return 0;
+}
+
+static struct vty_app_info _modem_vty_info = {
+	.name = "modem",
+	.version = PACKAGE_VERSION,
+};
 
 static struct l23_app_info info = {
 	.copyright = "Copyright (C) 2022 by sysmocom - s.m.f.c. GmbH <info@sysmocom.de>\n",
 	.cfg_supported = &l23_cfg_supported,
+	.vty_info = &_modem_vty_info,
+	.vty_init = l23_vty_init,
 };
 
 struct l23_app_info *l23_app_info(void)
