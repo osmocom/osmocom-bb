@@ -898,8 +898,8 @@ int gsm48_decode_sysinfo13(struct gsm48_sysinfo *s,
 	s->gprs.pan_params_present = gco->Exist_PAN;
 	if (s->gprs.pan_params_present) {
 		s->gprs.pan_dec = gco->PAN_DEC;
-		s->gprs.pan_dec = gco->PAN_INC;
-		s->gprs.pan_dec = gco->PAN_MAX;
+		s->gprs.pan_inc = gco->PAN_INC;
+		s->gprs.pan_max = gco->PAN_MAX;
 	}
 
 	s->gprs.egprs_supported = 0;
