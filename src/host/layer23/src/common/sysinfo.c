@@ -68,7 +68,7 @@ int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
 		       void (*print)(void *, const char *, ...),
 		       void *priv, uint8_t *freq_map)
 {
-	char buffer[81];
+	char buffer[82];
 	int i, j, k, index;
 	int refer_pcs = gsm_refer_pcs(arfcn, s);
 
@@ -173,7 +173,7 @@ int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
 
 	/* frequency map */
 	for (i = 0; i < 1024; i += 64) {
-		sprintf(buffer, " %3d ", i);
+		snprintf(buffer, sizeof(buffer), " %3d ", i);
 		for (j = 0; j < 64; j++) {
 			index = i+j;
 			if (refer_pcs && index >= 512 && index <= 885)
@@ -195,7 +195,7 @@ int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
 		}
 		for (; j < 64; j++)
 			buffer[j + 5] = ' ';
-		sprintf(buffer + 69, " %d", i + 63);
+		snprintf(buffer + 69, sizeof(buffer) - 69, " %d", i + 63);
 		print(priv, "%s\n", buffer);
 	}
 	print(priv, " 'S' = serv. cell  'n' = SI2 (neigh.)  'r' = SI5 (rep.)  "
