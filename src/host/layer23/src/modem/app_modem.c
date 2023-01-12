@@ -73,8 +73,8 @@ static int modem_tx_chan_req(struct osmocom_ms *ms, bool single_block)
 
 	OSMO_ASSERT(rr->state == GSM48_RR_ST_IDLE);
 
-	if (!app_data.si.si1)
-		return -EBUSY;
+	if (!app_data.si.si1 || !app_data.si.si13)
+		return -EAGAIN;
 	if (!app_data.si.gprs.supported)
 		return -ENOTSUP;
 
