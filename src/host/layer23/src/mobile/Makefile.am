@@ -28,7 +28,6 @@ libmobile_a_SOURCES = \
 	mncc_sock.c \
 	primitives.c \
 	settings.c \
-	subscriber.c \
 	transaction.c \
 	vty_interface.c \
 	voice.c \

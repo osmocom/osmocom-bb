@@ -24,6 +24,7 @@ liblayer23_a_SOURCES = \
 	sap_proto.c \
 	sap_interface.c \
 	sim.c \
+	subscriber.c \
 	support.c \
 	sysinfo.c \
 	utils.c \
