@@ -417,6 +417,7 @@ int l23_app_work(int *_quit)
 
 			if (ms->deleting) {
 				gsm_settings_exit(ms);
+				script_lua_close(ms);
 				llist_del(&ms->entity);
 				talloc_free(ms);
 				work = 1;

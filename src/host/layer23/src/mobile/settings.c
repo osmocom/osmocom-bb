@@ -160,9 +160,6 @@ int gsm_settings_exit(struct osmocom_ms *ms)
 		llist_del(&abbrev->list);
 		talloc_free(abbrev);
 	}
-
-	script_lua_close(ms);
-
 	return 0;
 }
 
