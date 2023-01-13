@@ -242,7 +242,8 @@ static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 
 
 DEFUN(show_ms, show_ms_cmd, "show ms [MS_NAME]",
-	SHOW_STR "Display available MS entities\n")
+	SHOW_STR "Display available MS entities\n"
+	"Display specific MS with given name")
 {
 	struct osmocom_ms *ms;
 
@@ -254,13 +255,13 @@ DEFUN(show_ms, show_ms_cmd, "show ms [MS_NAME]",
 			}
 		}
 		vty_out(vty, "MS name '%s' does not exits.%s", argv[0],
-		VTY_NEWLINE);
+			VTY_NEWLINE);
 		return CMD_WARNING;
-	} else {
-		llist_for_each_entry(ms, &ms_list, entity) {
-			gsm_ms_dump(ms, vty);
-			vty_out(vty, "%s", VTY_NEWLINE);
-		}
+	}
+
+	llist_for_each_entry(ms, &ms_list, entity) {
+		gsm_ms_dump(ms, vty);
+		vty_out(vty, "%s", VTY_NEWLINE);
 	}
 
 	return CMD_SUCCESS;
