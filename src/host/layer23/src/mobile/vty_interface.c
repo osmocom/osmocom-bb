@@ -147,7 +147,7 @@ static struct osmocom_ms *get_ms(const char *name, struct vty *vty)
 			return ms;
 		}
 	}
-	vty_out(vty, "MS name '%s' does not exits.%s", name, VTY_NEWLINE);
+	vty_out(vty, "MS name '%s' does not exist.%s", name, VTY_NEWLINE);
 
 	return NULL;
 }
