@@ -5,9 +5,8 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/write_queue.h>
 
-/* FIXME no 'mobile' specific stuff should be here */
-#include <osmocom/bb/mobile/settings.h>
 #include <osmocom/gsm/lapdm.h>
+#include <osmocom/bb/common/settings.h>
 #include <osmocom/bb/common/subscriber.h>
 #include <osmocom/bb/common/support.h>
 #include <osmocom/bb/common/sap_interface.h>

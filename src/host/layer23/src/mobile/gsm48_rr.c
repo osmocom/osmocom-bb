@@ -76,11 +76,11 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/utils.h>
+#include <osmocom/bb/common/settings.h>
 
 #include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
-#include <osmocom/bb/mobile/settings.h>
 
 #include <l1ctl_proto.h>
 

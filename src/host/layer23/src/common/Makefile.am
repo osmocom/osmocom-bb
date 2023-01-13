@@ -23,6 +23,7 @@ liblayer23_a_SOURCES = \
 	sap_fsm.c \
 	sap_proto.c \
 	sap_interface.c \
+	settings.c \
 	sim.c \
 	subscriber.c \
 	support.c \

@@ -12,6 +12,7 @@ noinst_HEADERS = \
 	sap_proto.h \
 	sap_fsm.h \
 	sap_interface.h \
+	settings.h \
 	sim.h \
 	subscriber.h \
 	support.h \
