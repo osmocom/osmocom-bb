@@ -45,5 +45,8 @@ struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 	/* Register a new MS */
 	llist_add_tail(&ms->entity, &ms_list);
 
+	gsm_support_init(ms);
+	gsm_settings_init(ms);
+
 	return ms;
 }

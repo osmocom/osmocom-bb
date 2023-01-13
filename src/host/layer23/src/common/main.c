@@ -25,6 +25,7 @@
 #include <osmocom/bb/misc/layer3.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l23_app.h>
+#include <osmocom/bb/common/vty.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
@@ -51,7 +52,6 @@
 
 void *l23_ctx = NULL;
 
-static char *layer2_socket_path = "/tmp/osmocom_l2";
 static char *sap_socket_path = "/tmp/osmocom_sap";
 struct llist_head ms_list;
 static struct osmocom_ms *ms = NULL;
@@ -163,7 +163,7 @@ static void handle_options(int argc, char **argv, struct l23_app_info *app)
 			exit(0);
 			break;
 		case 's':
-			layer2_socket_path = talloc_strdup(l23_ctx, optarg);
+			layer2_socket_path = optarg;
 			break;
 		case 'S':
 			sap_socket_path = talloc_strdup(l23_ctx, optarg);
@@ -230,7 +230,9 @@ static int _vty_init(struct l23_app_info *app)
 	if (app->vty_init)
 		app->vty_init();
 	if (config_file) {
+		l23_vty_reading = true;
 		rc = vty_read_config_file(config_file, NULL);
+		l23_vty_reading = false;
 		if (rc < 0) {
 			LOGP(DLGLOBAL, LOGL_FATAL,
 				"Failed to parse the configuration file '%s'\n", config_file);
@@ -288,7 +290,7 @@ int main(int argc, char **argv)
 			exit(1);
 	}
 
-	rc = layer2_open(ms, layer2_socket_path);
+	rc = layer2_open(ms, ms->settings.layer2_socket_path);
 	if (rc < 0) {
 		fprintf(stderr, "Failed during layer2_open()\n");
 		exit(1);

@@ -20,6 +20,9 @@ void l23_ms_dump(struct osmocom_ms *ms, struct vty *vty);
 void l23_vty_config_write_ms_node(struct vty *vty, const struct osmocom_ms *ms, const char *prefix);
 void l23_vty_config_write_ms_node_contents(struct vty *vty, const struct osmocom_ms *ms, const char *prefix);
 void l23_vty_config_write_ms_node_contents_final(struct vty *vty, const struct osmocom_ms *ms, const char *prefix);
+
+extern bool l23_vty_reading;
+
 extern struct llist_head ms_list;
 
 extern struct cmd_element l23_show_ms_cmd;

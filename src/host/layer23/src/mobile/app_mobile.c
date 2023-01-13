@@ -341,11 +341,7 @@ struct osmocom_ms *mobile_new(char *name)
 		return NULL;
 	}
 
-	gsm_support_init(ms);
-	gsm_settings_init(ms);
-
 	mobile_set_shutdown(ms, MS_SHUTDOWN_COMPL);
-
 	return ms;
 }
 

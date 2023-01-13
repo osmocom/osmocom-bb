@@ -1300,8 +1300,6 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 
 	l23_vty_config_write_ms_node_contents(vty, ms, " ");
 
-	vty_out(vty, " layer2-socket %s%s", set->layer2_socket_path,
-		VTY_NEWLINE);
 	vty_out(vty, " sap-socket %s%s", set->sap_socket_path, VTY_NEWLINE);
 	vty_out(vty, " mncc-socket %s%s", set->mncc_socket_path, VTY_NEWLINE);
 	switch (set->mncc_handler) {
@@ -1571,19 +1569,6 @@ DEFUN(cfg_ms_show_this, cfg_ms_show_this_cmd, "show this",
 
 	config_write_ms(vty, ms);
 
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_ms_layer2, cfg_ms_layer2_cmd, "layer2-socket PATH",
-	"Define socket path to connect between layer 2 and layer 1\n"
-	"Unix socket, default '/tmp/osmocom_l2'")
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	OSMO_STRLCPY_ARRAY(set->layer2_socket_path, argv[0]);
-
-	vty_restart(vty, ms);
 	return CMD_SUCCESS;
 }
 
@@ -3039,7 +3024,6 @@ int ms_vty_init(void)
 
 	/* MS_NODE is installed by l23_vty_init(). App specific commands below: */
 	install_element(MS_NODE, &cfg_ms_show_this_cmd);
-	install_element(MS_NODE, &cfg_ms_layer2_cmd);
 	install_element(MS_NODE, &cfg_ms_sap_cmd);
 	install_element(MS_NODE, &cfg_ms_mncc_sock_cmd);
 	install_element(MS_NODE, &cfg_ms_mncc_handler_cmd);

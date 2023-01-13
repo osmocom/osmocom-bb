@@ -33,6 +33,7 @@
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
+#include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/mncc_ms.h>
 #include <osmocom/bb/mobile/transaction.h>
@@ -43,11 +44,23 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
+bool l23_vty_reading = false;
+
 static struct cmd_node ms_node = {
 	MS_NODE,
 	"%s(ms)# ",
 	1
 };
+
+static void l23_vty_restart_required_warn(struct vty *vty, struct osmocom_ms *ms)
+{
+	if (l23_vty_reading)
+		return;
+	if (ms->shutdown != MS_SHUTDOWN_NONE)
+		return;
+	vty_out(vty, "You must restart MS '%s' ('shutdown / no shutdown') for "
+		"change to take effect!%s", ms->name, VTY_NEWLINE);
+}
 
 struct osmocom_ms *l23_vty_get_ms(const char *name, struct vty *vty)
 {
@@ -152,6 +165,19 @@ gDEFUN(l23_cfg_ms, l23_cfg_ms_cmd, "ms MS_NAME",
 	return CMD_WARNING;
 }
 
+DEFUN(cfg_ms_layer2, cfg_ms_layer2_cmd, "layer2-socket PATH",
+	"Define socket path to connect between layer 2 and layer 1\n"
+	"Unix socket, default '" L2_DEFAULT_SOCKET_PATH "'")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	OSMO_STRLCPY_ARRAY(set->layer2_socket_path, argv[0]);
+
+	l23_vty_restart_required_warn(vty, ms);
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_ms_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
 	NO_STR "Activate and run MS")
 {
@@ -216,9 +242,13 @@ void l23_vty_config_write_ms_node(struct vty *vty, const struct osmocom_ms *ms, 
 	l23_vty_config_write_ms_node_contents_final(vty, ms, prefix_content);
 }
 
+/* placeholder for shared VTY commands */
 void l23_vty_config_write_ms_node_contents(struct vty *vty, const struct osmocom_ms *ms, const char *prefix)
 {
-	/* placeholder for shared VTY commands */
+	const struct gsm_settings *set = &ms->settings;
+
+	vty_out(vty, "%slayer2-socket %s%s", prefix, set->layer2_socket_path,
+		VTY_NEWLINE);
 }
 
 /* placeholder for shared VTY commands. Must be put at the end of the node: */
@@ -234,6 +264,7 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 {
 	int rc = 0;
 	install_node(&ms_node, config_write_ms_node_cb);
+	install_element(MS_NODE, &cfg_ms_layer2_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
 	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);

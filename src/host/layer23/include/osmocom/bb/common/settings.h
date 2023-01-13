@@ -180,5 +180,7 @@ int gsm_settings_exit(struct osmocom_ms *ms);
 char *gsm_check_imei(const char *imei, const char *sv);
 int gsm_random_imei(struct gsm_settings *set);
 
+extern char *layer2_socket_path;
+
 #endif /* _settings_h */
 

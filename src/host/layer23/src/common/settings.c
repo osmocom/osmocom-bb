@@ -27,8 +27,11 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/networks.h>
+#include <osmocom/bb/common/l1l2_interface.h>
 
-static char *layer2_socket_path = "/tmp/osmocom_l2";
+/* Used to set default path globally through cmdline */
+char *layer2_socket_path = L2_DEFAULT_SOCKET_PATH;
+
 static char *sap_socket_path = "/tmp/osmocom_sap";
 static char *mncc_socket_path = "/tmp/ms_mncc";
 static char *alsa_dev_default = "default";
