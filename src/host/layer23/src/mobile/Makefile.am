@@ -29,7 +29,6 @@ libmobile_a_SOURCES = \
 	primitives.c \
 	settings.c \
 	subscriber.c \
-	support.c \
 	transaction.c \
 	vty_interface.c \
 	voice.c \

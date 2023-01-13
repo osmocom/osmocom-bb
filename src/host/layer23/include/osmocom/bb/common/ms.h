@@ -6,10 +6,10 @@
 #include <osmocom/core/write_queue.h>
 
 /* FIXME no 'mobile' specific stuff should be here */
-#include <osmocom/bb/mobile/support.h>
 #include <osmocom/bb/mobile/settings.h>
 #include <osmocom/bb/mobile/subscriber.h>
 #include <osmocom/gsm/lapdm.h>
+#include <osmocom/bb/common/support.h>
 #include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/bb/common/sap_proto.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>

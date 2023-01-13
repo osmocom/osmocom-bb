@@ -110,7 +110,7 @@ struct gsm_support_scan_max {
 	uint16_t	start;
 	uint16_t	end;
 	uint16_t	max;
-	uint16_t	temp;	
+	uint16_t	temp;
 };
 extern struct gsm_support_scan_max gsm_sup_smax[];
 
