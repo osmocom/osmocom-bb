@@ -25,6 +25,8 @@
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/misc/layer3.h>
 #include <osmocom/bb/common/sysinfo.h>
+#include <osmocom/bb/common/l1l2_interface.h>
+#include <osmocom/bb/common/ms.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
@@ -36,7 +38,7 @@
 
 #include <l1ctl_proto.h>
 
-struct osmocom_ms *g_ms;
+static struct osmocom_ms *g_ms;
 struct gsm48_sysinfo g_sysinfo = {};
 
 static int try_cbch(struct osmocom_ms *ms, struct gsm48_sysinfo *s)
@@ -196,22 +198,32 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
-static int _cbch_sniff_start(struct osmocom_ms *ms)
+static int _cbch_sniff_start(void)
 {
-	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	int rc;
+
+	rc = layer2_open(g_ms, g_ms->settings.layer2_socket_path);
+	if (rc < 0) {
+		fprintf(stderr, "Failed during layer2_open()\n");
+		return rc;
+	}
+
+	l1ctl_tx_reset_req(g_ms, L1CTL_RES_T_FULL);
 	/* FIXME: L1CTL_RES_T_FULL doesn't reset dedicated mode
 	 * (if previously set), so we release it here. */
-	l1ctl_tx_dm_rel_req(ms);
+	l1ctl_tx_dm_rel_req(g_ms);
 	return 0;
 }
 
-int l23_app_init(struct osmocom_ms *ms)
+int l23_app_init(void)
 {
 	/* don't do layer3_init() as we don't want an actual L3 */
 	l23_app_start = _cbch_sniff_start;
-	g_ms = ms;
 
-	lapdm_channel_set_l3(&ms->lapdm_channel, &rcv_rsl, ms);
+	g_ms = osmocom_ms_alloc(l23_ctx, "1");
+	OSMO_ASSERT(g_ms);
+
+	lapdm_channel_set_l3(&g_ms->lapdm_channel, &rcv_rsl, g_ms);
 	return osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
 }
 

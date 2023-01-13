@@ -21,6 +21,9 @@
 
 extern struct llist_head ms_list;
 
+/* Default value be configured by cmdline arg: */
+uint16_t cfg_test_arfcn = 871;
+
 struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 {
 	struct osmocom_ms *ms;
@@ -31,7 +34,7 @@ struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 	talloc_set_name(ms, "ms_%s", name);
 
 	ms->name = talloc_strdup(ms, name);
-	ms->test_arfcn = 871;
+	ms->test_arfcn = cfg_test_arfcn;
 	ms->lapdm_channel.lapdm_dcch.l1_ctx = ms;
 	ms->lapdm_channel.lapdm_dcch.l3_ctx = ms;
 	ms->lapdm_channel.lapdm_acch.l1_ctx = ms;

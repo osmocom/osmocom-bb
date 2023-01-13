@@ -21,6 +21,7 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l23_app.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/misc/layer3.h>
 
 #include <osmocom/core/msgb.h>
@@ -40,8 +41,11 @@ static void test_tmr_cb(void *data)
 	osmo_timer_schedule(&test_data.timer, 1, 0);
 }
 
-int l23_app_init(struct osmocom_ms *ms)
+int l23_app_init(void)
 {
+	struct osmocom_ms *ms = osmocom_ms_alloc(l23_ctx, "1");
+	OSMO_ASSERT(ms);
+
 	test_data.timer.cb = &test_tmr_cb;
 	test_data.timer.data = ms;
 

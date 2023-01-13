@@ -35,10 +35,13 @@
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/l23_app.h>
+#include <osmocom/bb/common/l1l2_interface.h>
+#include <osmocom/bb/common/ms.h>
 
 #include <l1ctl_proto.h>
 
 static struct {
+	struct osmocom_ms *ms;
 	int ccch_mode;
 } app_state;
 
@@ -491,18 +494,29 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
-static int _ccch_scan_start(struct osmocom_ms *ms)
+static int _ccch_scan_start(void)
 {
-	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	int rc;
+
+	rc = layer2_open(app_state.ms, app_state.ms->settings.layer2_socket_path);
+	if (rc < 0) {
+		fprintf(stderr, "Failed during layer2_open()\n");
+		return rc;
+	}
+
+	l1ctl_tx_reset_req(app_state.ms, L1CTL_RES_T_FULL);
 	return 0;
 }
 
-int l23_app_init(struct osmocom_ms *ms)
+int l23_app_init(void)
 {
 	l23_app_start = _ccch_scan_start;
 
+	app_state.ms = osmocom_ms_alloc(l23_ctx, "1");
+	OSMO_ASSERT(app_state.ms);
+
 	osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
-	return layer3_init(ms);
+	return layer3_init(app_state.ms);
 }
 
 static struct l23_app_info info = {

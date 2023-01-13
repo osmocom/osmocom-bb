@@ -40,12 +40,14 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/l23_app.h>
+#include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/sysinfo.h>
 #include <osmocom/bb/modem/vty.h>
 
 #include <l1ctl_proto.h>
 
 static struct {
+	struct osmocom_ms *ms;
 	enum ccch_mode ccch_mode;
 	struct gsm48_sysinfo si;
 
@@ -467,13 +469,21 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
-static int _modem_start(struct osmocom_ms *ms)
+static int _modem_start(void)
 {
-	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	int rc;
+
+	rc = layer2_open(app_data.ms, app_data.ms->settings.layer2_socket_path);
+	if (rc < 0) {
+		fprintf(stderr, "Failed during layer2_open()\n");
+		return rc;
+	}
+
+	l1ctl_tx_reset_req(app_data.ms, L1CTL_RES_T_FULL);
 	return 0;
 }
 
-int l23_app_init(struct osmocom_ms *ms)
+int l23_app_init(void)
 {
 	l23_app_start = _modem_start;
 
@@ -481,8 +491,11 @@ int l23_app_init(struct osmocom_ms *ms)
 	log_set_category_filter(osmo_stderr_target, DLCSN1, 1, LOGL_DEBUG);
 	log_set_category_filter(osmo_stderr_target, DRR, 1, LOGL_INFO);
 
+	app_data.ms = osmocom_ms_alloc(l23_ctx, "1");
+	OSMO_ASSERT(app_data.ms);
+
 	osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
-	lapdm_channel_set_l3(&ms->lapdm_channel, &modem_rslms_cb, ms);
+	lapdm_channel_set_l3(&app_data.ms->lapdm_channel, &modem_rslms_cb, app_data.ms);
 	return 0;
 }
 

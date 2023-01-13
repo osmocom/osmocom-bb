@@ -26,6 +26,8 @@
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/gps.h>
+#include <osmocom/bb/common/l1l2_interface.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/misc/cell_log.h>
 
 #include <osmocom/core/application.h>
@@ -39,20 +41,29 @@ extern uint16_t (*band_range)[][2];
 
 char *logname = "/dev/null";
 int RACH_MAX = 2;
+static struct osmocom_ms *g_ms;
 
 
-int _scan_start(struct osmocom_ms *ms)
+int _scan_start(void)
 {
-	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	int rc;
+
+	rc = layer2_open(g_ms, g_ms->settings.layer2_socket_path);
+	if (rc < 0) {
+		fprintf(stderr, "Failed during layer2_open()\n");
+		return rc;
+	}
+
+	l1ctl_tx_reset_req(g_ms, L1CTL_RES_T_FULL);
 	return 0;
 }
 
-int _scan_work(struct osmocom_ms *ms)
+int _scan_work(void)
 {
 	return 0;
 }
 
-int _scan_exit(struct osmocom_ms *ms)
+int _scan_exit(void)
 {
 	/* in case there is a lockup during exit */
 	signal(SIGINT, SIG_DFL);
@@ -65,7 +76,7 @@ int _scan_exit(struct osmocom_ms *ms)
 	return 0;
 }
 
-int l23_app_init(struct osmocom_ms *ms)
+int l23_app_init(void)
 {
 	int rc;
 
@@ -79,7 +90,10 @@ int l23_app_init(struct osmocom_ms *ms)
 	l23_app_work = _scan_work;
 	l23_app_exit = _scan_exit;
 
-	rc = scan_init(ms);
+	g_ms = osmocom_ms_alloc(l23_ctx, "1");
+	OSMO_ASSERT(g_ms);
+
+	rc = scan_init(g_ms);
 	if (rc)
 		return rc;
 

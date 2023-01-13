@@ -54,13 +54,12 @@ void *l23_ctx = NULL;
 
 static char *sap_socket_path = "/tmp/osmocom_sap";
 struct llist_head ms_list;
-static struct osmocom_ms *ms = NULL;
 static char *gsmtap_ip = NULL;
 static char *config_file = NULL;
 
-int (*l23_app_start)(struct osmocom_ms *ms) = NULL;
-int (*l23_app_work)(struct osmocom_ms *ms) = NULL;
-int (*l23_app_exit)(struct osmocom_ms *ms) = NULL;
+int (*l23_app_start)(void) = NULL;
+int (*l23_app_work)(void) = NULL;
+int (*l23_app_exit)(void) = NULL;
 int quit = 0;
 struct gsmtap_inst *gsmtap_inst;
 
@@ -169,7 +168,7 @@ static void handle_options(int argc, char **argv, struct l23_app_info *app)
 			sap_socket_path = talloc_strdup(l23_ctx, optarg);
 			break;
 		case 'a':
-			ms->test_arfcn = atoi(optarg);
+			cfg_test_arfcn = atoi(optarg);
 			break;
 		case 'i':
 			gsmtap_ip = optarg;
@@ -200,7 +199,7 @@ void sighandler(int sigset)
 
 	fprintf(stderr, "Signal %d received.\n", sigset);
 	if (l23_app_exit)
-		rc = l23_app_exit(ms);
+		rc = l23_app_exit();
 
 	if (rc != -EBUSY)
 		exit (0);
@@ -270,10 +269,7 @@ int main(int argc, char **argv)
 
 	print_copyright();
 
-	ms = osmocom_ms_alloc(l23_ctx, "1");
-	OSMO_ASSERT(ms);
-
-	rc = l23_app_init(ms);
+	rc = l23_app_init();
 	if (rc < 0) {
 		fprintf(stderr, "Failed during l23_app_init()\n");
 		exit(1);
@@ -290,12 +286,6 @@ int main(int argc, char **argv)
 			exit(1);
 	}
 
-	rc = layer2_open(ms, ms->settings.layer2_socket_path);
-	if (rc < 0) {
-		fprintf(stderr, "Failed during layer2_open()\n");
-		exit(1);
-	}
-
 	if (gsmtap_ip) {
 		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
 		if (!gsmtap_inst) {
@@ -306,7 +296,7 @@ int main(int argc, char **argv)
 	}
 
 	if (l23_app_start) {
-		rc = l23_app_start(ms);
+		rc = l23_app_start();
 		if (rc < 0) {
 			fprintf(stderr, "Failed during l23_app_start()\n");
 			exit(1);
@@ -320,7 +310,7 @@ int main(int argc, char **argv)
 
 	while (!quit) {
 		if (l23_app_work)
-			l23_app_work(ms);
+			l23_app_work();
 		osmo_select_main(0);
 	}
 

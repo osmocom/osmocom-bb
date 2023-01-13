@@ -99,3 +99,5 @@ struct osmocom_ms {
 };
 
 struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name);
+
+extern uint16_t cfg_test_arfcn;

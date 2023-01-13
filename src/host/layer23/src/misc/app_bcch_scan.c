@@ -21,6 +21,8 @@
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l23_app.h>
+#include <osmocom/bb/common/l1l2_interface.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/misc/layer3.h>
 
 #include <osmocom/core/msgb.h>
@@ -30,6 +32,8 @@
 
 #include <l1ctl_proto.h>
 #include "bcch_scan.h"
+
+static struct osmocom_ms *g_ms;
 
 static int signal_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
@@ -47,14 +51,24 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
-static int _bcch_scan_start(struct osmocom_ms *ms)
+static int _bcch_scan_start(void)
 {
-	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	int rc;
+
+	rc = layer2_open(g_ms, g_ms->settings.layer2_socket_path);
+	if (rc < 0) {
+		fprintf(stderr, "Failed during layer2_open()\n");
+		return rc;
+	}
+
+	l1ctl_tx_reset_req(g_ms, L1CTL_RES_T_FULL);
 	return 0;
 }
 
-int l23_app_init(struct osmocom_ms *ms)
+int l23_app_init(void)
 {
+	g_ms = osmocom_ms_alloc(l23_ctx, "1");
+	OSMO_ASSERT(g_ms);
 	/* don't do layer3_init() as we don't want an actual L3 */
 	fps_init();
 	l23_app_start = _bcch_scan_start;

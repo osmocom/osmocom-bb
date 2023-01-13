@@ -16,14 +16,14 @@ enum {
 extern void *l23_ctx;
 
 /* initialization, called once when starting the app, before reading VTY config */
-extern int l23_app_init(struct osmocom_ms *ms);
+extern int l23_app_init(void);
 
 /* Start work after reading VTY config and starting layer23 components,
  * immediately before entering main select loop */
-extern int (*l23_app_start)(struct osmocom_ms *ms);
+extern int (*l23_app_start)(void);
 
-extern int (*l23_app_work)(struct osmocom_ms *ms);
-extern int (*l23_app_exit)(struct osmocom_ms *ms);
+extern int (*l23_app_work)(void);
+extern int (*l23_app_exit)(void);
 
 /* configuration options */
 struct l23_app_info {
