@@ -1533,12 +1533,10 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 			set->audio.alsa_input_dev, VTY_NEWLINE);
 	}
 
-	/* no shutdown must be written to config, because shutdown is default */
-	vty_out(vty, " %sshutdown%s", (ms->shutdown != MS_SHUTDOWN_NONE) ? "" : "no ",
-		VTY_NEWLINE);
 	if (ms->lua_script)
 		vty_out(vty, " lua-script %s%s", ms->lua_script, VTY_NEWLINE);
-	vty_out(vty, "!%s", VTY_NEWLINE);
+
+	l23_vty_config_write_ms_node_contents_final(vty, ms, " ");
 }
 
 static int config_write(struct vty *vty)
@@ -2902,53 +2900,6 @@ DEFUN(cfg_ms_audio_alsa_in_dev, cfg_ms_audio_alsa_in_dev_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
-	NO_STR "Activate and run MS")
-{
-	struct osmocom_ms *ms = vty->index;
-	char *other_name = NULL;
-	int rc;
-
-	rc = mobile_start(ms, &other_name);
-	switch (rc) {
-	case -1:
-		vty_out(vty, "Cannot start MS '%s', because MS '%s' "
-			"use the same layer2-socket.%sPlease shutdown "
-			"MS '%s' first.%s", ms->name, other_name,
-			VTY_NEWLINE, other_name, VTY_NEWLINE);
-		return CMD_WARNING;
-	case -2:
-		vty_out(vty, "Cannot start MS '%s', because MS '%s' "
-			"use the same sap-socket.%sPlease shutdown "
-			"MS '%s' first.%s", ms->name, other_name,
-			VTY_NEWLINE, other_name, VTY_NEWLINE);
-		return CMD_WARNING;
-	case -3:
-		vty_out(vty, "Connection to layer 1 failed!%s",
-			VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_shutdown, cfg_ms_shutdown_cmd, "shutdown",
-	"Shut down and deactivate MS")
-{
-	struct osmocom_ms *ms = vty->index;
-	mobile_stop(ms, 0);
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
-	"Shut down and deactivate MS\nDo not perform IMSI detach")
-{
-	struct osmocom_ms *ms = vty->index;
-
-	mobile_stop(ms, 1);
-	return CMD_SUCCESS;
-}
-
 DEFUN(cfg_ms_script_load_run, cfg_ms_script_load_run_cmd, "lua-script FILENAME",
 	"Load and execute a LUA script\nFilename for lua script")
 {
@@ -2981,6 +2932,50 @@ DEFUN(off, off_cmd, "off",
 	return CMD_SUCCESS;
 }
 
+/* run ms instance, if layer1 is available */
+static int l23_vty_signal_cb(unsigned int subsys, unsigned int signal,
+		     void *handler_data, void *signal_data)
+{
+	struct osmobb_l23_vty_sig_data *d = signal_data;
+	struct vty *vty = d->vty;
+	char *other_name = NULL;
+	int rc;
+
+	if (subsys != SS_L23_VTY)
+		return 0;
+
+	switch (signal) {
+	case S_L23_VTY_MS_START:
+		rc = mobile_start(d->ms_start.ms, &other_name);
+		switch (rc) {
+		case -1:
+			vty_out(vty, "Cannot start MS '%s', because MS '%s' "
+				"use the same layer2-socket.%sPlease shutdown "
+				"MS '%s' first.%s", d->ms_start.ms->name, other_name,
+				VTY_NEWLINE, other_name, VTY_NEWLINE);
+			break;
+		case -2:
+			vty_out(vty, "Cannot start MS '%s', because MS '%s' "
+				"use the same sap-socket.%sPlease shutdown "
+				"MS '%s' first.%s", d->ms_start.ms->name, other_name,
+				VTY_NEWLINE, other_name, VTY_NEWLINE);
+			break;
+		case -3:
+			vty_out(vty, "Connection to layer 1 failed!%s",
+				VTY_NEWLINE);
+			break;
+		}
+		d->ms_start.rc = (rc == 0) ? CMD_SUCCESS : CMD_WARNING;
+		break;
+	case S_L23_VTY_MS_STOP:
+		mobile_stop(d->ms_stop.ms, d->ms_stop.force);
+		d->ms_start.rc = CMD_SUCCESS;
+		break;
+	}
+	return 0;
+}
+
+
 #define SUP_NODE(item) \
 	install_element(SUPPORT_NODE, &cfg_ms_sup_item_cmd);
 
@@ -2988,7 +2983,7 @@ int ms_vty_init(void)
 {
 	int rc;
 
-	if ((rc = l23_vty_init(config_write)) < 0)
+	if ((rc = l23_vty_init(config_write, l23_vty_signal_cb)) < 0)
 		return rc;
 
 	install_element_ve(&show_ms_cmd);
@@ -3156,9 +3151,6 @@ int ms_vty_init(void)
 	install_element(TESTSIM_NODE, &cfg_test_rplmn_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_rplmn_att_cmd);
 	install_element(TESTSIM_NODE, &cfg_test_hplmn_cmd);
-	install_element(MS_NODE, &cfg_ms_shutdown_cmd);
-	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
-	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);
 	install_element(MS_NODE, &cfg_ms_script_load_run_cmd);
 	install_element(MS_NODE, &cfg_ms_no_script_load_run_cmd);
 

@@ -152,6 +152,56 @@ gDEFUN(l23_cfg_ms, l23_cfg_ms_cmd, "ms MS_NAME",
 	return CMD_WARNING;
 }
 
+DEFUN(cfg_ms_no_shutdown, cfg_ms_no_shutdown_cmd, "no shutdown",
+	NO_STR "Activate and run MS")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	struct osmobb_l23_vty_sig_data data;
+	memset(&data, 0, sizeof(data));
+
+	data.vty = vty;
+	data.ms_start.ms = ms;
+	data.ms_start.rc = CMD_SUCCESS;
+	osmo_signal_dispatch(SS_L23_VTY, S_L23_VTY_MS_START, &data);
+
+	return data.ms_start.rc;
+}
+
+DEFUN(cfg_ms_shutdown, cfg_ms_shutdown_cmd, "shutdown",
+	"Shut down and deactivate MS")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	struct osmobb_l23_vty_sig_data data;
+	memset(&data, 0, sizeof(data));
+
+	data.vty = vty;
+	data.ms_stop.ms = ms;
+	data.ms_stop.force = false;
+	data.ms_stop.rc = CMD_SUCCESS;
+	osmo_signal_dispatch(SS_L23_VTY, S_L23_VTY_MS_STOP, &data);
+
+	return data.ms_stop.rc;
+}
+
+DEFUN(cfg_ms_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
+	"Shut down and deactivate MS\nDo not perform IMSI detach")
+{
+	struct osmocom_ms *ms = vty->index;
+
+	struct osmobb_l23_vty_sig_data data;
+	memset(&data, 0, sizeof(data));
+
+	data.vty = vty;
+	data.ms_stop.ms = ms;
+	data.ms_stop.force = true;
+	data.ms_stop.rc = CMD_SUCCESS;
+	osmo_signal_dispatch(SS_L23_VTY, S_L23_VTY_MS_STOP, &data);
+
+	return data.ms_stop.rc;
+}
+
 void l23_vty_config_write_ms_node(struct vty *vty, const struct osmocom_ms *ms, const char *prefix)
 {
 	size_t prefix_len = strlen(prefix);
@@ -163,6 +213,7 @@ void l23_vty_config_write_ms_node(struct vty *vty, const struct osmocom_ms *ms, 
 
 	vty_out(vty, "%sms %s%s", prefix, ms->name, VTY_NEWLINE);
 	l23_vty_config_write_ms_node_contents(vty, ms, prefix_content);
+	l23_vty_config_write_ms_node_contents_final(vty, ms, prefix_content);
 }
 
 void l23_vty_config_write_ms_node_contents(struct vty *vty, const struct osmocom_ms *ms, const char *prefix)
@@ -170,13 +221,27 @@ void l23_vty_config_write_ms_node_contents(struct vty *vty, const struct osmocom
 	/* placeholder for shared VTY commands */
 }
 
-int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *))
+/* placeholder for shared VTY commands. Must be put at the end of the node: */
+void l23_vty_config_write_ms_node_contents_final(struct vty *vty, const struct osmocom_ms *ms, const char *prefix)
 {
+	/* no shutdown must be written to config, because shutdown is default */
+	vty_out(vty, "%s%sshutdown%s", prefix, (ms->shutdown != MS_SHUTDOWN_NONE) ? "" : "no ",
+		VTY_NEWLINE);
+	vty_out(vty, "!%s", VTY_NEWLINE);
+}
+
+int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn *l23_vty_signal_cb)
+{
+	int rc = 0;
 	install_node(&ms_node, config_write_ms_node_cb);
+	install_element(MS_NODE, &cfg_ms_shutdown_cmd);
+	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
+	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);
 
 	/* Register the talloc context introspection command */
 	osmo_talloc_vty_add_cmds();
-
-	return 0;
+	if (l23_vty_signal_cb)
+		rc = osmo_signal_register_handler(SS_L23_VTY, l23_vty_signal_cb, NULL);
+	return rc;
 }
 

@@ -40,7 +40,7 @@ int modem_vty_init(void)
 {
 	int rc;
 
-	if ((rc = l23_vty_init(config_write)) < 0)
+	if ((rc = l23_vty_init(config_write, NULL)) < 0)
 		return rc;
 	install_element_ve(&l23_show_ms_cmd);
 	install_element(CONFIG_NODE, &l23_cfg_ms_cmd);

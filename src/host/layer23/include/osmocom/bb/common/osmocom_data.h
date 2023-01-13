@@ -1,13 +1,16 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 struct osmocom_ms;
 struct gapk_io_state;
+struct vty;
 
 enum osmobb_sig_subsys {
 	SS_L1CTL,
 	SS_GLOBAL,
+	SS_L23_VTY,
 };
 
 enum osmobb_l1ctl_sig {
@@ -24,6 +27,26 @@ enum osmobb_l1ctl_sig {
 
 enum osmobb_global_sig {
 	S_GLOBAL_SHUTDOWN,
+};
+
+enum osmobb_l23_vty_sig {
+	S_L23_VTY_MS_START,
+	S_L23_VTY_MS_STOP,
+};
+
+struct osmobb_l23_vty_sig_data {
+	struct vty *vty;
+	union {
+		struct {
+			struct osmocom_ms *ms;
+			int rc; /* CMD_SUCCESS/CMD_WARNING */
+		} ms_start;
+		struct {
+			struct osmocom_ms *ms;
+			bool force;
+			int rc; /* CMD_SUCCESS/CMD_WARNING */
+		} ms_stop;
+	};
 };
 
 struct osmobb_fbsb_res {
