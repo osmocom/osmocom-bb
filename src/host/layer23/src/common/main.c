@@ -268,9 +268,8 @@ int main(int argc, char **argv)
 
 	print_copyright();
 
-	ms = osmocom_ms_alloc(l23_ctx);
+	ms = osmocom_ms_alloc(l23_ctx, "1");
 	OSMO_ASSERT(ms);
-	llist_add_tail(&ms->entity, &ms_list);
 
 	rc = l23_app_init(ms);
 	if (rc < 0) {

@@ -19,15 +19,18 @@
 
 #include <osmocom/bb/common/ms.h>
 
-struct osmocom_ms *osmocom_ms_alloc(void *ctx)
+extern struct llist_head ms_list;
+
+struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 {
 	struct osmocom_ms *ms;
 
 	ms = talloc_zero(ctx, struct osmocom_ms);
 	if (!ms)
 		return NULL;
+	talloc_set_name(ms, "ms_%s", name);
 
-	ms->name = talloc_strdup(ms, "1");
+	ms->name = talloc_strdup(ms, name);
 	ms->test_arfcn = 871;
 	ms->lapdm_channel.lapdm_dcch.l1_ctx = ms;
 	ms->lapdm_channel.lapdm_dcch.l3_ctx = ms;
@@ -35,6 +38,12 @@ struct osmocom_ms *osmocom_ms_alloc(void *ctx)
 	ms->lapdm_channel.lapdm_acch.l3_ctx = ms;
 	lapdm_channel_init(&ms->lapdm_channel, LAPDM_MODE_MS);
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
+
+	ms->l2_wq.bfd.fd = -1;
+	ms->sap_wq.bfd.fd = -1;
+
+	/* Register a new MS */
+	llist_add_tail(&ms->entity, &ms_list);
 
 	return ms;
 }

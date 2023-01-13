@@ -99,4 +99,4 @@ struct osmocom_ms {
 	char *lua_script;
 };
 
-struct osmocom_ms *osmocom_ms_alloc(void *ctx);
+struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name);

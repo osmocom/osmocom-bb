@@ -335,19 +335,11 @@ struct osmocom_ms *mobile_new(char *name)
 {
 	static struct osmocom_ms *ms;
 
-	ms = talloc_zero(l23_ctx, struct osmocom_ms);
+	ms = osmocom_ms_alloc(l23_ctx, name);
 	if (!ms) {
 		LOGP(DMOB, LOGL_ERROR, "Failed to allocate MS: %s\n", name);
 		return NULL;
 	}
-
-	talloc_set_name(ms, "ms_%s", name);
-	ms->name = talloc_strdup(ms, name);
-	ms->l2_wq.bfd.fd = -1;
-	ms->sap_wq.bfd.fd = -1;
-
-	/* Register a new MS */
-	llist_add_tail(&ms->entity, &ms_list);
 
 	gsm_support_init(ms);
 	gsm_settings_init(ms);
