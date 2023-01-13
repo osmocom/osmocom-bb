@@ -4,6 +4,8 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
 
+struct osmocom_ms;
+
 #define MOB_C7_DEFLT_ANY_TIMEOUT	30
 
 /* CC (Call Control) message handling entity */
