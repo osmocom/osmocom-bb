@@ -24,6 +24,12 @@ extern struct llist_head ms_list;
 /* Default value be configured by cmdline arg: */
 uint16_t cfg_test_arfcn = 871;
 
+static int osmocom_ms_talloc_destructor(struct osmocom_ms *ms)
+{
+	gprs_settings_fi(ms);
+	return 0;
+}
+
 struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 {
 	struct osmocom_ms *ms;
@@ -32,6 +38,7 @@ struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 	if (!ms)
 		return NULL;
 	talloc_set_name(ms, "ms_%s", name);
+	talloc_set_destructor(ms, osmocom_ms_talloc_destructor);
 
 	ms->name = talloc_strdup(ms, name);
 	ms->test_arfcn = cfg_test_arfcn;
@@ -50,6 +57,7 @@ struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 
 	gsm_support_init(ms);
 	gsm_settings_init(ms);
+	gprs_settings_init(ms);
 
 	return ms;
 }

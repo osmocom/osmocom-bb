@@ -20,13 +20,12 @@
 #include <string.h>
 #include <osmocom/core/talloc.h>
 
-#include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/common/settings.h>
 #include <osmocom/bb/common/utils.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
-#include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/l1l2_interface.h>
 
 /* Used to set default path globally through cmdline */
@@ -220,3 +219,35 @@ const struct value_string audio_io_format_names[] = {
 	{ AUDIO_IOF_TI,		"ti" },
 	{ 0x00, NULL}
 };
+
+
+int gprs_settings_init(struct osmocom_ms *ms)
+{
+	struct gprs_settings *set = &ms->gprs;
+	INIT_LLIST_HEAD(&set->apn_list);
+
+	return 0;
+}
+
+int gprs_settings_fi(struct osmocom_ms *ms)
+{
+	struct gprs_settings *set = &ms->gprs;
+	struct osmobb_apn *apn;
+	while ((apn = llist_first_entry_or_null(&set->apn_list, struct osmobb_apn, list))) {
+		/* free calls llist_del(): */
+		apn_free(apn);
+	}
+	return 0;
+}
+
+struct osmobb_apn *ms_find_apn_by_name(struct osmocom_ms *ms, const char *apn_name)
+{
+	struct gprs_settings *set = &ms->gprs;
+	struct osmobb_apn *apn;
+
+	llist_for_each_entry(apn, &set->apn_list, list) {
+		if (strcmp(apn->cfg.name, apn_name) == 0)
+			return apn;
+	}
+	return NULL;
+}

@@ -13,6 +13,7 @@ AM_CFLAGS = \
 
 noinst_LIBRARIES = liblayer23.a
 liblayer23_a_SOURCES = \
+	apn.c \
 	gps.c \
 	l1ctl.c \
 	l1l2_interface.c \

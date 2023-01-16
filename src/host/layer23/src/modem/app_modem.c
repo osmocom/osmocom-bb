@@ -509,6 +509,7 @@ static int l23_cfg_supported(void)
 static struct vty_app_info _modem_vty_info = {
 	.name = "modem",
 	.version = PACKAGE_VERSION,
+	.go_parent_cb = modem_vty_go_parent,
 };
 
 static struct l23_app_info info = {

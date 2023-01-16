@@ -5,6 +5,7 @@
 #include <osmocom/core/linuxlist.h>
 
 struct osmocom_ms;
+struct osmobb_apn;
 
 #define MOB_C7_DEFLT_ANY_TIMEOUT	30
 
@@ -179,6 +180,14 @@ int gsm_settings_init(struct osmocom_ms *ms);
 int gsm_settings_exit(struct osmocom_ms *ms);
 char *gsm_check_imei(const char *imei, const char *sv);
 int gsm_random_imei(struct gsm_settings *set);
+
+struct gprs_settings {
+	struct llist_head apn_list;
+};
+
+int gprs_settings_init(struct osmocom_ms *ms);
+int gprs_settings_fi(struct osmocom_ms *ms);
+struct osmobb_apn *ms_find_apn_by_name(struct osmocom_ms *ms, const char *apn_name);
 
 extern char *layer2_socket_path;
 

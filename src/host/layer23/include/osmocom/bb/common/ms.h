@@ -90,6 +90,9 @@ struct osmocom_ms {
 	struct osmomncc_entity mncc_entity;
 	struct llist_head trans_list;
 
+	/* GPRS */
+	struct gprs_settings gprs;
+
 	/* Audio I/O */
 	struct gapk_io_state *gapk_io;
 
