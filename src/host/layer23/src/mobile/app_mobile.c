@@ -54,6 +54,8 @@
 
 #include <l1ctl_proto.h>
 
+#include "config.h"
+
 extern void *l23_ctx;
 extern struct llist_head ms_list;
 extern int vty_reading;

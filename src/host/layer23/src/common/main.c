@@ -50,6 +50,8 @@
 #include <fcntl.h>
 #include <signal.h>
 
+#include "config.h"
+
 void *l23_ctx = NULL;
 
 static char *sap_socket_path = "/tmp/osmocom_sap";

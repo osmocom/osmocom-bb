@@ -89,6 +89,9 @@ dnl Checks for typedefs, structures and compiler characteristics
 AC_MSG_RESULT([CFLAGS="$CFLAGS"])
 AC_MSG_RESULT([CPPFLAGS="$CPPFLAGS"])
 
+dnl Generate the output
+AM_CONFIG_HEADER(config.h)
+
 AC_OUTPUT(
     src/Makefile
     src/common/Makefile

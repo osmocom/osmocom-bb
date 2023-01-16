@@ -46,6 +46,8 @@
 
 #include <l1ctl_proto.h>
 
+#include "config.h"
+
 static struct {
 	struct osmocom_ms *ms;
 	enum ccch_mode ccch_mode;
