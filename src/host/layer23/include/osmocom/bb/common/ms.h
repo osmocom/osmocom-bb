@@ -59,7 +59,7 @@ struct rx_meas_stat {
 	int16_t s, rl_fail;
 };
 
-enum {
+enum osmobb_ms_shutdown_st {
 	MS_SHUTDOWN_NONE = 0,
 	MS_SHUTDOWN_IMSI_DETACH = 1,
 	MS_SHUTDOWN_WAIT_RESET = 2,
@@ -74,7 +74,7 @@ struct osmocom_ms {
 	struct osmol1_entity l1_entity;
 
 	bool started, deleting;
-	uint8_t shutdown;
+	enum osmobb_ms_shutdown_st shutdown;
 	struct gsm_support support;
 	struct gsm_settings settings;
 	struct gsm_subscriber subscr;
