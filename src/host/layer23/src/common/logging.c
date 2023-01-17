@@ -153,6 +153,18 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[0;37m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[DLLC] = {
+		.name = "DLLC",
+		.description = "GPRS Logical Link Control Protocol (LLC)",
+		.color = "\033[0;38m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
+	[DSNDCP] = {
+		.name = "DSNDCP",
+		.description = "GPRS Sub-Network Dependent Control Protocol (SNDCP)",
+		.color = "\033[0;39m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 const struct log_info log_info = {

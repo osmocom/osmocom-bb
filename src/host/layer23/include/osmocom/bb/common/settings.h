@@ -183,6 +183,22 @@ int gsm_random_imei(struct gsm_settings *set);
 
 struct gprs_settings {
 	struct llist_head apn_list;
+
+	/* RFC1144 TCP/IP header compression */
+	struct {
+		int active;
+		int passive;
+		int s01;
+	} pcomp_rfc1144;
+
+	/* V.42vis data compression */
+	struct {
+		int active;
+		int passive;
+		int p0;
+		int p1;
+		int p2;
+	} dcomp_v42bis;
 };
 
 int gprs_settings_init(struct osmocom_ms *ms);

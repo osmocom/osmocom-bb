@@ -18,6 +18,8 @@ bin_PROGRAMS = modem
 modem_SOURCES = \
 	$(top_srcdir)/src/common/main.c \
 	app_modem.c \
+	llc.c \
+	sndcp.c \
 	vty.c \
 	$(NULL)
 modem_LDADD = \

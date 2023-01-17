@@ -48,6 +48,8 @@
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/sysinfo.h>
 #include <osmocom/bb/common/apn.h>
+#include <osmocom/bb/modem/llc.h>
+#include <osmocom/bb/modem/sndcp.h>
 #include <osmocom/bb/modem/vty.h>
 
 #include <l1ctl_proto.h>
@@ -105,7 +107,7 @@ static int modem_tun_data_ind_cb(struct osmo_tundev *tun, struct msgb *msg)
 	LOGPAPN(LOGL_DEBUG, apn, "system wants to transmit IPv%c pkt to %s (%zu bytes)\n",
 		iph->version == 4 ? '4' : '6', osmo_sockaddr_ntop(&dst.u.sa, addrstr), pkt_len);
 
-	/* TODO: prepare & transmit SNDCP UNITDATA.req */
+	rc = modem_sndcp_sn_unitdata_req(apn, msgb_data(msg), pkt_len);
 
 free_ret:
 	msgb_free(msg);
@@ -539,6 +541,8 @@ static int _modem_start(void)
 
 int l23_app_init(void)
 {
+	int rc;
+
 	l23_app_start = _modem_start;
 
 	log_set_category_filter(osmo_stderr_target, DLGLOBAL, 1, LOGL_DEBUG);
@@ -547,6 +551,16 @@ int l23_app_init(void)
 
 	app_data.ms = osmocom_ms_alloc(l23_ctx, "1");
 	OSMO_ASSERT(app_data.ms);
+
+	if ((rc = modem_llc_init(app_data.ms, NULL))) {
+		LOGP(DLLC, LOGL_FATAL, "Failed initializing LLC layer\n");
+		return rc;
+	}
+
+	if ((rc = modem_sndcp_init(app_data.ms))) {
+		LOGP(DSNDCP, LOGL_FATAL, "Failed initializing SNDCP layer\n");
+		return rc;
+	}
 
 	osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
 	lapdm_channel_set_l3(&app_data.ms->lapdm_channel, &modem_rslms_cb, app_data.ms);
