@@ -164,10 +164,6 @@ DEFUN(cfg_apn_no_shutdown, cfg_apn_no_shutdown_cmd,
 	struct osmobb_apn *apn = (struct osmobb_apn *) vty->index;
 
 	if (apn->cfg.shutdown) {
-		if (!apn->cfg.dev_name) {
-			vty_out(vty, "%% Failed to start APN, tun-device is not configured%s", VTY_NEWLINE);
-			return CMD_WARNING;
-		}
 		if (apn_start(apn) < 0) {
 			vty_out(vty, "%% Failed to start APN, check log for details%s", VTY_NEWLINE);
 			return CMD_WARNING;

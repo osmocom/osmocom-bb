@@ -22,6 +22,8 @@
 #include <netinet/ip6.h>
 
 #include <talloc.h>
+#include <osmocom/core/socket.h>
+#include <osmocom/core/sockaddr_str.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/apn.h>
@@ -82,6 +84,33 @@ int apn_start(struct osmobb_apn *apn)
 
 	LOGPAPN(LOGL_INFO, apn, "Opened TUN device %s\n", osmo_tundev_get_dev_name(apn->tun));
 
+	struct osmo_netdev *netdev = osmo_tundev_get_netdev(apn->tun);
+	struct osmo_sockaddr_str osa_str = {};
+	struct osmo_sockaddr osa = {};
+	rc = osmo_sockaddr_str_from_str2(&osa_str, "192.168.200.1");
+	if (rc < 0)
+		return -1;
+	rc = osmo_sockaddr_str_to_sockaddr(&osa_str, &osa.u.sas);
+	if (rc < 0)
+		return -1;
+	rc = osmo_netdev_add_addr(netdev, &osa, 24);
+	if (rc < 0)
+		return -1;
+
+	rc = osmo_netdev_ifupdown(netdev, true);
+	if (rc < 0)
+		return -1;
+
+	/* Add default route (0.0.0.0/0): */
+	rc = osmo_sockaddr_str_from_str2(&osa_str, "0.0.0.0");
+	if (rc < 0)
+		return -1;
+	rc = osmo_sockaddr_str_to_sockaddr(&osa_str, &osa.u.sas);
+	if (rc < 0)
+		return -1;
+	rc = osmo_netdev_add_route(netdev, &osa, 0, NULL);
+	if (rc < 0)
+		return -1;
 	/* TODO: set IP addresses on the tun device once we receive them from GGSN. See
 	   osmo-ggsn.git's apn_start() */
 

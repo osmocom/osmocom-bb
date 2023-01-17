@@ -352,6 +352,24 @@ static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		return rc;
 
 	rr->state = GSM48_RR_ST_DEDICATED;
+
+	/* TMP HACK: inject some example packet as if it came from tun device: */
+	struct osmobb_apn *apn;
+	apn = llist_first_entry_or_null(&ms->gprs.apn_list, struct osmobb_apn, list);
+	if (!apn) {
+		LOGP(DSNDCP, LOGL_NOTICE, "Unable to find APN\n");
+		return 0;
+	}
+	struct msgb *msg_tmp = msgb_alloc(4096, "MNCC");
+	struct iphdr *iphdr = (struct iphdr *)msgb_put(msg_tmp, sizeof(struct iphdr));
+	*iphdr = (struct iphdr){
+		.ihl = 5,
+		.version = 4,
+		.saddr = 0x11223344,
+		.daddr = 0x55667788,
+	};
+	memset(msgb_put(msg_tmp, 4), 0x2b, 4);
+	modem_tun_data_ind_cb(apn->tun, msg_tmp);
 	return 0;
 }
 
