@@ -6,11 +6,11 @@ struct vty_app_info;
 
 /* Options supported by the l23 app */
 enum {
-	L23_OPT_SAP	= 1,
-	L23_OPT_ARFCN	= 2,
-	L23_OPT_TAP	= 4,
-	L23_OPT_VTY	= 8,
-	L23_OPT_DBG	= 16,
+	L23_OPT_SAP	= 1 << 0,
+	L23_OPT_ARFCN	= 1 << 1,
+	L23_OPT_TAP	= 1 << 2,
+	L23_OPT_VTY	= 1 << 3,
+	L23_OPT_DBG	= 1 << 4,
 };
 
 extern void *l23_ctx;
