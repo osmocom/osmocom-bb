@@ -19,6 +19,7 @@
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/select.h>
+#include <osmocom/core/tun.h>
 
 struct osmocom_ms;
 
@@ -48,9 +49,16 @@ struct osmobb_apn {
 		/* transmit G-PDU sequence numbers (true) or not (false) */
 		bool tx_gpdu_seq;
 	} cfg;
+	struct osmo_tundev *tun;
 };
 
 struct osmobb_apn *apn_alloc(struct osmocom_ms *ms, const char *name);
 void apn_free(struct osmobb_apn *apn);
 int apn_start(struct osmobb_apn *apn);
 int apn_stop(struct osmobb_apn *apn);
+
+#define LOGPAPN(level, apn, fmt, args...)			\
+	LOGP(DTUN, level, "APN(%s): " fmt, (apn)->cfg.name, ## args)
+
+#define LOGTUN(level, tun, fmt, args...) \
+	LOGP(DTUN, level, "TUN(%s): " fmt, osmo_tundev_get_name(tun), ## args)

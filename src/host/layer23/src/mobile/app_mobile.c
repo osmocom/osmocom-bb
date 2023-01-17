@@ -508,6 +508,11 @@ int l23_app_init(const char *config_file)
 	return 0;
 }
 
+struct l23_app_info *l23_app_info(void)
+{
+	return NULL; /* TODO: implement mobile as a full l23_app. */
+}
+
 void mobile_set_started(struct osmocom_ms *ms, bool state)
 {
 	ms->started = state;

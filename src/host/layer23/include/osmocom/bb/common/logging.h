@@ -26,6 +26,7 @@ enum {
 	DPRIM,
 	DLUA,
 	DGAPK,
+	DTUN,
 };
 
 extern const struct log_info log_info;

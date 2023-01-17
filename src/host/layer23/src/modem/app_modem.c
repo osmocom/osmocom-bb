@@ -23,9 +23,14 @@
 #include <errno.h>
 #include <stdio.h>
 
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/core/application.h>
+#include <osmocom/core/socket.h>
+#include <osmocom/core/tun.h>
 #include <osmocom/vty/vty.h>
 
 #include <osmocom/gsm/rsl.h>
@@ -42,6 +47,7 @@
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/sysinfo.h>
+#include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/modem/vty.h>
 
 #include <l1ctl_proto.h>
@@ -59,6 +65,52 @@ static struct {
 		struct gsm48_req_ref ref;
 	} chan_req;
 } app_data;
+
+/* Local network-originated IP packet, needs to be sent via SNDCP/LLC (GPRS) towards GSM network */
+static int modem_tun_data_ind_cb(struct osmo_tundev *tun, struct msgb *msg)
+{
+	struct osmobb_apn *apn = (struct osmobb_apn *)osmo_tundev_get_priv_data(tun);
+	struct osmo_sockaddr dst;
+	struct iphdr *iph = (struct iphdr *)msgb_data(msg);
+	struct ip6_hdr *ip6h = (struct ip6_hdr *)msgb_data(msg);
+	size_t pkt_len = msgb_length(msg);
+	uint8_t pref_offset;
+	char addrstr[INET6_ADDRSTRLEN];
+	int rc = 0;
+
+	switch (iph->version) {
+	case 4:
+		if (pkt_len < sizeof(*iph) || pkt_len < 4*iph->ihl)
+			return -1;
+		dst.u.sin.sin_family = AF_INET;
+		dst.u.sin.sin_addr.s_addr = iph->daddr;
+		break;
+	case 6:
+		/* Due to the fact that 3GPP requires an allocation of a
+		 * /64 prefix to each MS, we must instruct
+		 * ippool_getip() below to match only the leading /64
+		 * prefix, i.e. the first 8 bytes of the address. If the ll addr
+		 * is used, then the match should be done on the trailing 64
+		 * bits. */
+		dst.u.sin6.sin6_family = AF_INET6;
+		pref_offset = IN6_IS_ADDR_LINKLOCAL(&ip6h->ip6_dst) ? 8 : 0;
+		memcpy(&dst.u.sin6.sin6_addr, ((uint8_t *)&ip6h->ip6_dst) + pref_offset, 8);
+		break;
+	default:
+		LOGTUN(LOGL_NOTICE, tun, "non-IPv%u packet received\n", iph->version);
+		rc = -1;
+		goto free_ret;
+	}
+
+	LOGPAPN(LOGL_DEBUG, apn, "system wants to transmit IPv%c pkt to %s (%zu bytes)\n",
+		iph->version == 4 ? '4' : '6', osmo_sockaddr_ntop(&dst.u.sa, addrstr), pkt_len);
+
+	/* TODO: prepare & transmit SNDCP UNITDATA.req */
+
+free_ret:
+	msgb_free(msg);
+	return rc;
+}
 
 /* Generate a 8-bit CHANNEL REQUEST message as per 3GPP TS 44.018, 9.1.8 */
 static uint8_t gen_chan_req(bool single_block)
@@ -517,6 +569,7 @@ static struct l23_app_info info = {
 	.cfg_supported = &l23_cfg_supported,
 	.vty_info = &_modem_vty_info,
 	.vty_init = modem_vty_init,
+	.tun_data_ind_cb = modem_tun_data_ind_cb,
 };
 
 struct l23_app_info *l23_app_info(void)

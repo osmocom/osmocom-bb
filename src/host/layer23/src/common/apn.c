@@ -18,13 +18,15 @@
 #include <stdint.h>
 #include <errno.h>
 #include <string.h>
-#include <arpa/inet.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
 
 #include <talloc.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
+#include <osmocom/bb/common/l23_app.h>
 
 struct osmobb_apn *apn_alloc(struct osmocom_ms *ms, const char *name)
 {
@@ -38,6 +40,13 @@ struct osmobb_apn *apn_alloc(struct osmocom_ms *ms, const char *name)
 	apn->cfg.shutdown = true;
 	apn->cfg.tx_gpdu_seq = true;
 
+	apn->tun = osmo_tundev_alloc(apn, name);
+	if (!apn->tun) {
+		talloc_free(apn);
+		return NULL;
+	}
+	osmo_tundev_set_priv_data(apn->tun, apn);
+
 	apn->ms = ms;
 	llist_add_tail(&apn->list, &ms->gprs.apn_list);
 	return apn;
@@ -46,15 +55,53 @@ struct osmobb_apn *apn_alloc(struct osmocom_ms *ms, const char *name)
 void apn_free(struct osmobb_apn *apn)
 {
 	llist_del(&apn->list);
+	osmo_tundev_free(apn->tun);
 	talloc_free(apn);
 }
 
 int apn_start(struct osmobb_apn *apn)
 {
+	struct l23_app_info *app_info = l23_app_info();
+	int rc;
+
+	if (apn->started)
+		return 0;
+
+	LOGPAPN(LOGL_INFO, apn, "Opening TUN device %s\n", apn->cfg.dev_name);
+	/* Set TUN library callback. Must have been configured by the app: */
+	OSMO_ASSERT(app_info && app_info->tun_data_ind_cb);
+	osmo_tundev_set_data_ind_cb(apn->tun, app_info->tun_data_ind_cb);
+	osmo_tundev_set_dev_name(apn->tun, apn->cfg.dev_name);
+	osmo_tundev_set_netns_name(apn->tun, apn->cfg.dev_netns_name);
+
+	rc = osmo_tundev_open(apn->tun);
+	if (rc < 0) {
+		LOGPAPN(LOGL_ERROR, apn, "Failed to configure tun device\n");
+		return -1;
+	}
+
+	LOGPAPN(LOGL_INFO, apn, "Opened TUN device %s\n", osmo_tundev_get_dev_name(apn->tun));
+
+	/* TODO: set IP addresses on the tun device once we receive them from GGSN. See
+	   osmo-ggsn.git's apn_start() */
+
+	LOGPAPN(LOGL_NOTICE, apn, "Successfully started\n");
+	apn->started = true;
 	return 0;
 }
 
 int apn_stop(struct osmobb_apn *apn)
 {
+	LOGPAPN(LOGL_NOTICE, apn, "Stopping\n");
+
+	/* shutdown whatever old state might be left */
+	if (apn->tun) {
+		/* release tun device */
+		LOGPAPN(LOGL_INFO, apn, "Closing TUN device %s\n",
+			osmo_tundev_get_dev_name(apn->tun));
+		osmo_tundev_close(apn->tun);
+	}
+
+	apn->started = false;
 	return 0;
 }

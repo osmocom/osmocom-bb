@@ -147,6 +147,12 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[0;36m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DTUN] = {
+		.name = "DTUN",
+		.description = "Tunnel interface",
+		.color = "\033[0;37m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 const struct log_info log_info = {

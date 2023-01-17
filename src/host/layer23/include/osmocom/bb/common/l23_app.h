@@ -1,6 +1,8 @@
 #ifndef _L23_APP_H
 #define _L23_APP_H
 
+#include <osmocom/core/tun.h>
+
 struct option;
 struct vty_app_info;
 
@@ -37,6 +39,7 @@ struct l23_app_info {
 	int (*cfg_getopt_opt)(struct option **options);
 	int (*cfg_handle_opt)(int c,const char *optarg);
 	int (*vty_init)(void);
+	osmo_tundev_data_ind_cb_t tun_data_ind_cb;
 };
 
 extern struct l23_app_info *l23_app_info();
