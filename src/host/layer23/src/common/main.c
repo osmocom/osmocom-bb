@@ -231,6 +231,7 @@ static int _vty_init(struct l23_app_info *app)
 	if (app->vty_init)
 		app->vty_init();
 	if (config_file) {
+		LOGP(DLGLOBAL, LOGL_INFO, "Using configuration from '%s'\n", config_file);
 		l23_vty_reading = true;
 		rc = vty_read_config_file(config_file, NULL);
 		l23_vty_reading = false;
@@ -239,7 +240,6 @@ static int _vty_init(struct l23_app_info *app)
 				"Failed to parse the configuration file '%s'\n", config_file);
 			return rc;
 		}
-		LOGP(DLGLOBAL, LOGL_INFO, "Using configuration from '%s'\n", config_file);
 	}
 	rc = telnet_init_default(l23_ctx, NULL, OSMO_VTY_PORT_BB);
 	if (rc < 0) {
