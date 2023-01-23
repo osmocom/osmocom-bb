@@ -115,7 +115,19 @@ static int modem_rlcmac_prim_down_cb(struct osmo_gprs_rlcmac_prim *rlcmac_prim, 
 	const char *pdu_name = osmo_gprs_rlcmac_prim_name(rlcmac_prim);
 	int rc = 0;
 
-	switch (rlcmac_prim->oph.sap) {
+	switch (OSMO_PRIM_HDR(&rlcmac_prim->oph)) {
+	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_RACH, PRIM_OP_REQUEST):
+		LOGP(DRLCMAC, LOGL_DEBUG, "%s(): Rx %s: TODO: forward to l1 socket\n", __func__, pdu_name);
+		break;
+	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_PDCH_DATA, PRIM_OP_REQUEST):
+		LOGP(DRLCMAC, LOGL_DEBUG, "%s(): Rx %s: TODO: forward to l1 socket\n", __func__, pdu_name);
+		break;
+	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_CFG_UL_TBF, PRIM_OP_REQUEST):
+		LOGP(DRLCMAC, LOGL_DEBUG, "%s(): Rx %s: TODO: forward to l1 socket\n", __func__, pdu_name);
+		break;
+	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_CFG_DL_TBF, PRIM_OP_REQUEST):
+		LOGP(DRLCMAC, LOGL_DEBUG, "%s(): Rx %s: TODO: forward to l1 socket\n", __func__, pdu_name);
+		break;
 	default:
 		LOGP(DRLCMAC, LOGL_DEBUG, "%s(): Unexpected Rx %s\n", __func__, pdu_name);
 		OSMO_ASSERT(0);

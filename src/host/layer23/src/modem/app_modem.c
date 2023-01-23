@@ -38,6 +38,8 @@
 #include <osmocom/gsm/gsm48_ie.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/gprs/llc/llc.h>
+#include <osmocom/gprs/llc/llc_prim.h>
 #include <osmocom/gprs/rlcmac/csn1_defs.h>
 #include <osmocom/gprs/rlcmac/rlcmac_prim.h>
 
@@ -274,6 +276,54 @@ static int modem_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 	};
 }
 
+
+/*
+GSM A-I/F DTAP - Attach Request
+ Protocol Discriminator: GPRS mobility management messages (8)
+ DTAP GPRS Mobility Management Message Type: Attach Request (0x01)
+ MS Network Capability
+  Length: 2
+  1... .... = GEA/1: Encryption algorithm available
+  .1.. .... = SM capabilities via dedicated channels: Mobile station supports mobile terminated point to point SMS via dedicated signalling channels
+  ..1. .... = SM capabilities via GPRS channels: Mobile station supports mobile terminated point to point SMS via GPRS packet data channels
+  ...0 .... = UCS2 support: The ME has a preference for the default alphabet (defined in 3GPP TS 23.038 [8b]) over UCS2
+  .... 01.. = SS Screening Indicator: capability of handling of ellipsis notation and phase 2 error handling (0x1)
+  .... ..0. = SoLSA Capability: The ME does not support SoLSA
+  .... ...1 = Revision level indicator: Used by a mobile station supporting R99 or later versions of the protocol
+  1... .... = PFC feature mode: Mobile station does support BSS packet flow procedures
+  .110 000. = Extended GEA bits: 0x30
+  .... ...0 = LCS VA capability: LCS value added location request notification capability not supported
+ Attach Type
+ Ciphering Key Sequence Number
+ DRX Parameter
+ Mobile Identity - TMSI/P-TMSI (0xf43cec71)
+ Routing Area Identification - Old routing area identification - RAI: 234-70-5-0
+ MS Radio Access Capability
+ GPRS Timer - Ready Timer
+  Element ID: 0x17
+  GPRS Timer: 10 sec
+  000. .... = Unit: value is incremented in multiples of 2 seconds (0)
+  ...0 0101 = Timer value: 5
+
+*/
+static uint8_t pdu_gmmm_attach_req[] =  {
+	0x08, 0x01, 0x02, 0xe5, 0xe0, 0x01, 0x0a, 0x00, 0x05, 0xf4, 0xf4, 0x3c, 0xec, 0x71, 0x32, 0xf4,
+	0x07, 0x00, 0x05, 0x00, 0x17, 0x19, 0x33, 0x43, 0x2b, 0x37, 0x15, 0x9e, 0xf9, 0x88, 0x79, 0xcb,
+	0xa2, 0x8c, 0x66, 0x21, 0xe7, 0x26, 0x88, 0xb1, 0x98, 0x87, 0x9c, 0x00, 0x17, 0x05
+};
+
+static int modem_tx_gmm_attach_req(struct osmocom_ms *ms)
+{
+	struct osmo_gprs_llc_prim *llc_prim;
+	uint32_t tlli = 0xe1c5d364;
+	int rc;
+
+	llc_prim = osmo_gprs_llc_prim_alloc_ll_unitdata_req(tlli, OSMO_GPRS_LLC_SAPI_GMM,
+							    pdu_gmmm_attach_req, sizeof(pdu_gmmm_attach_req));
+	rc = osmo_gprs_llc_prim_upper_down(llc_prim);
+	return rc;
+}
+
 static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 {
 	const struct gsm48_imm_ass *ia = msgb_l3(msg);
@@ -281,6 +331,8 @@ static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t ch_type, ch_subch, ch_ts;
 	int rc;
 	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
+
+	modem_tx_gmm_attach_req(ms);
 
 	/* Discard CS channel assignment */
 	if ((ia->page_mode >> 4) == 0)
