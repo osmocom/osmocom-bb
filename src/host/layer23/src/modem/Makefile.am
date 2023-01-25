@@ -19,6 +19,7 @@ modem_SOURCES = \
 	$(top_srcdir)/src/common/main.c \
 	app_modem.c \
 	llc.c \
+	rlcmac.c \
 	sndcp.c \
 	vty.c \
 	$(NULL)

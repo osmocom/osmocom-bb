@@ -33,6 +33,7 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gprs/llc/llc_prim.h>
 #include <osmocom/gprs/llc/llc.h>
+#include <osmocom/gprs/rlcmac/rlcmac_prim.h>
 #include <osmocom/gprs/sndcp/sndcp_prim.h>
 
 #include <osmocom/bb/common/logging.h>
@@ -141,10 +142,22 @@ int modem_llc_prim_down_cb(struct osmo_gprs_llc_prim *llc_prim, void *user_data)
 	const char *pdu_name = osmo_gprs_llc_prim_name(llc_prim);
 	int rc = 0;
 
+	osmo_static_assert(sizeof(struct osmo_gprs_llc_grr_prim) == sizeof(struct osmo_gprs_rlcmac_grr_prim),
+			   _grr_prim_size);
+
 	switch (llc_prim->oph.sap) {
 	case OSMO_GPRS_LLC_SAP_GRR:
-		LOGP(DLLC, LOGL_DEBUG, "%s(): Rx %s l3=[%s]\n",  __func__, pdu_name,
+		LOGP(DLLC, LOGL_DEBUG, "%s(): Rx %s ll=[%s]\n",  __func__, pdu_name,
 		     osmo_hexdump(llc_prim->grr.ll_pdu, llc_prim->grr.ll_pdu_len));
+		/* Forward it to lower layers, pass ownership over to RLCMAC: */
+		/* Optimization: LLC-GRR-UNITDATA-IND is 1-to-1 ABI compatible with
+				 RLCMAC-GRR-UNITDATA-IND, we just need to adapt the header.
+				 See osmo_static_assert(_grr_prim_size) above.
+		*/
+		llc_prim->oph.sap = OSMO_GPRS_RLCMAC_SAP_GRR;
+		llc_prim->oph.primitive = OSMO_GPRS_RLCMAC_GRR_UNITDATA;
+		osmo_gprs_rlcmac_prim_upper_down((struct osmo_gprs_rlcmac_prim *)llc_prim);
+		rc = 1; /* Tell RLCMAC that we take ownership of the prim. */
 		break;
 	default:
 		LOGP(DLLC, LOGL_DEBUG, "%s(): Unexpected Rx %s\n", __func__, pdu_name);

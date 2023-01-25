@@ -48,6 +48,7 @@
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/bb/common/sysinfo.h>
 #include <osmocom/bb/common/apn.h>
+#include <osmocom/bb/modem/rlcmac.h>
 #include <osmocom/bb/modem/llc.h>
 #include <osmocom/bb/modem/sndcp.h>
 #include <osmocom/bb/modem/vty.h>
@@ -551,6 +552,11 @@ int l23_app_init(void)
 
 	app_data.ms = osmocom_ms_alloc(l23_ctx, "1");
 	OSMO_ASSERT(app_data.ms);
+
+	if ((rc = modem_rlcmac_init(app_data.ms))) {
+		LOGP(DRLCMAC, LOGL_FATAL, "Failed initializing RLC/MAC layer\n");
+		return rc;
+	}
 
 	if ((rc = modem_llc_init(app_data.ms, NULL))) {
 		LOGP(DLLC, LOGL_FATAL, "Failed initializing LLC layer\n");

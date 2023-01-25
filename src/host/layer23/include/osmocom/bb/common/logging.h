@@ -27,6 +27,7 @@ enum {
 	DLUA,
 	DGAPK,
 	DTUN,
+	DRLCMAC,
 	DLLC,
 	DSNDCP,
 };
