@@ -623,20 +623,20 @@ enum l1sched_lchan_type l1sched_chan_nr2lchan_type(uint8_t chan_nr,
 }
 
 static void l1sched_a5_burst_dec(struct l1sched_lchan_state *lchan,
-	uint32_t fn, sbit_t *burst)
+				 struct l1sched_burst_ind *bi)
 {
 	ubit_t ks[114];
 	int i;
 
 	/* Generate keystream for a DL burst */
-	osmo_a5(lchan->a5.algo, lchan->a5.key, fn, ks, NULL);
+	osmo_a5(lchan->a5.algo, lchan->a5.key, bi->fn, ks, NULL);
 
 	/* Apply keystream over ciphertext */
 	for (i = 0; i < 57; i++) {
 		if (ks[i])
-			burst[i + 3] *= -1;
+			bi->burst[i + 3] *= -1;
 		if (ks[i + 57])
-			burst[i + 88] *= -1;
+			bi->burst[i + 88] *= -1;
 	}
 }
 
@@ -782,7 +782,7 @@ int l1sched_handle_rx_burst(struct l1sched_state *sched,
 
 	/* Perform A5/X decryption if required */
 	if (lchan->a5.algo)
-		l1sched_a5_burst_dec(lchan, bi->fn, &bi->burst[0]);
+		l1sched_a5_burst_dec(lchan, bi);
 
 	/* Put burst to handler */
 	handler(lchan, bi);
