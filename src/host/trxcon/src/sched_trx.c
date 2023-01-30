@@ -452,6 +452,33 @@ int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr,
 	return rc;
 }
 
+int l1sched_lchan_set_amr_cfg(struct l1sched_lchan_state *lchan,
+			      uint8_t codecs_bitmask, uint8_t start_codec)
+{
+	int n = 0;
+	int acum = 0;
+	int pos;
+
+	while ((pos = ffs(codecs_bitmask)) != 0) {
+		acum += pos;
+		LOGP_LCHANC(lchan, LOGL_DEBUG, "AMR codec[%u] = %u\n", n, acum - 1);
+		lchan->amr.codec[n++] = acum - 1;
+		codecs_bitmask >>= pos;
+	}
+	if (n == 0) {
+		LOGP_LCHANC(lchan, LOGL_ERROR, "Empty AMR codec mode bitmask!\n");
+		return -EINVAL;
+	}
+
+	lchan->amr.codecs = n;
+	lchan->amr.dl_ft = start_codec;
+	lchan->amr.dl_cmr = start_codec;
+	lchan->amr.ul_ft = start_codec;
+	lchan->amr.ul_cmr = start_codec;
+
+	return 0;
+}
+
 int l1sched_activate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan)
 {
 	const struct l1sched_lchan_desc *lchan_desc = &l1sched_lchan_desc[chan];
