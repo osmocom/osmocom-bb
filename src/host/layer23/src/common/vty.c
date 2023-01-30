@@ -26,9 +26,12 @@
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/signal.h>
+#include <osmocom/core/gsmtap.h>
+#include <osmocom/core/gsmtap_util.h>
 #include <osmocom/crypt/auth.h>
 
 #include <osmocom/bb/common/vty.h>
+#include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/networks.h>
@@ -38,7 +41,6 @@
 #include <osmocom/bb/mobile/mncc_ms.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/vty.h>
-#include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/vty/telnet_interface.h>
@@ -49,6 +51,12 @@ bool l23_vty_reading = false;
 static struct cmd_node ms_node = {
 	MS_NODE,
 	"%s(ms)# ",
+	1
+};
+
+static struct cmd_node gsmtap_node = {
+	GSMTAP_NODE,
+	"%s(gsmtap)# ",
 	1
 };
 
@@ -118,6 +126,171 @@ void l23_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 		(ms->shutdown != MS_SHUTDOWN_NONE || !ms->started) ? "down" : "up",
 		(ms->shutdown == MS_SHUTDOWN_NONE) ? service : "",
 		VTY_NEWLINE);
+}
+
+/* "gsmtap" config */
+gDEFUN(l23_cfg_gsmtap, l23_cfg_gsmtap_cmd, "gsmtap",
+	"Configure GSMTAP\n")
+{
+	vty->node = GSMTAP_NODE;
+	return CMD_SUCCESS;
+}
+
+static const struct value_string gsmtap_categ_gprs_names[] = {
+	{ L23_GSMTAP_GPRS_C_DL_UNKNOWN,		"dl-unknown" },
+	{ L23_GSMTAP_GPRS_C_DL_DUMMY,		"dl-dummy" },
+	{ L23_GSMTAP_GPRS_C_DL_CTRL,		"dl-ctrl" },
+	{ L23_GSMTAP_GPRS_C_DL_DATA_GPRS,	"dl-data-gprs" },
+	{ L23_GSMTAP_GPRS_C_DL_DATA_EGPRS,	"dl-data-egprs" },
+	{ L23_GSMTAP_GPRS_C_UL_UNKNOWN,		"ul-unknown" },
+	{ L23_GSMTAP_GPRS_C_UL_DUMMY,		"ul-dummy" },
+	{ L23_GSMTAP_GPRS_C_UL_CTRL,		"ul-ctrl" },
+	{ L23_GSMTAP_GPRS_C_UL_DATA_GPRS,	"ul-data-gprs" },
+	{ L23_GSMTAP_GPRS_C_UL_DATA_EGPRS,	"ul-data-egprs" },
+	{ 0, NULL }
+};
+
+static const struct value_string gsmtap_categ_gprs_help[] = {
+	{ L23_GSMTAP_GPRS_C_DL_UNKNOWN,		"Unknown / Unparseable / Erroneous Downlink Blocks" },
+	{ L23_GSMTAP_GPRS_C_DL_DUMMY,		"Downlink Dummy Blocks" },
+	{ L23_GSMTAP_GPRS_C_DL_CTRL,		"Downlink Control Blocks" },
+	{ L23_GSMTAP_GPRS_C_DL_DATA_GPRS,	"Downlink Data Blocks (GPRS)" },
+	{ L23_GSMTAP_GPRS_C_DL_DATA_EGPRS,	"Downlink Data Blocks (EGPRS)" },
+	{ L23_GSMTAP_GPRS_C_UL_UNKNOWN,		"Unknown / Unparseable / Erroneous Downlink Blocks" },
+	{ L23_GSMTAP_GPRS_C_UL_DUMMY,		"Uplink Dummy Blocks" },
+	{ L23_GSMTAP_GPRS_C_UL_CTRL,		"Uplink Control Blocks" },
+	{ L23_GSMTAP_GPRS_C_UL_DATA_GPRS,	"Uplink Data Blocks (GPRS)" },
+	{ L23_GSMTAP_GPRS_C_UL_DATA_EGPRS,	"Uplink Data Blocks (EGPRS)" },
+	{ 0, NULL }
+};
+
+DEFUN(cfg_gsmtap_gsmtap_remote_host,
+      cfg_gsmtap_gsmtap_remote_host_cmd,
+      "remote-host [HOSTNAME]",
+      "Enable GSMTAP Um logging\n"
+      "Remote IP address or hostname ('localhost' if omitted)\n")
+{
+	osmo_talloc_replace_string(l23_ctx, &l23_cfg.gsmtap.remote_host,
+				   argc > 0 ? argv[0] : "localhost");
+
+	if (vty->type != VTY_FILE)
+		vty_out(vty, "%% This command requires restart%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gsmtap_no_gsmtap_remote_host,
+      cfg_gsmtap_no_gsmtap_remote_host_cmd,
+      "no remote-host",
+      NO_STR "Disable GSMTAP Um logging\n")
+{
+	TALLOC_FREE(l23_cfg.gsmtap.remote_host);
+	if (vty->type != VTY_FILE)
+		vty_out(vty, "%% This command requires restart%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gsmtap_gsmtap_lchan_all, cfg_gsmtap_gsmtap_lchan_all_cmd,
+	"lchan (enable-all|disable-all)",
+	"Enable/disable sending of UL/DL messages over GSMTAP\n"
+	"Enable all kinds of messages (all LCHAN)\n"
+	"Disable all kinds of messages (all LCHAN)\n")
+{
+	if (argv[0][0] == 'e') {
+		l23_cfg.gsmtap.lchan_mask = UINT32_MAX;
+		l23_cfg.gsmtap.lchan_acch_mask = UINT32_MAX;
+		l23_cfg.gsmtap.lchan_acch = true;
+	} else {
+		l23_cfg.gsmtap.lchan_mask = 0x00;
+		l23_cfg.gsmtap.lchan_acch_mask = 0x00;
+		l23_cfg.gsmtap.lchan_acch = false;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gsmtap_gsmtap_lchan, cfg_gsmtap_gsmtap_lchan_cmd,
+	"HIDDEN", "HIDDEN")
+{
+	unsigned int channel;
+
+	if (osmo_str_startswith(argv[0], "sacch")) {
+		if (strcmp(argv[0], "sacch") == 0) {
+			l23_cfg.gsmtap.lchan_acch = true;
+		} else {
+			channel = get_string_value(gsmtap_gsm_channel_names, argv[0]);
+			channel &= ~GSMTAP_CHANNEL_ACCH;
+			l23_cfg.gsmtap.lchan_acch_mask |= (1 << channel);
+		}
+	} else {
+		channel = get_string_value(gsmtap_gsm_channel_names, argv[0]);
+		l23_cfg.gsmtap.lchan_mask |= (1 << channel);
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gsmtap_no_gsmtap_lchan, cfg_gsmtap_no_gsmtap_lchan_cmd,
+	"HIDDEN", "HIDDEN")
+{
+	unsigned int channel;
+
+	if (osmo_str_startswith(argv[0], "sacch")) {
+		if (strcmp(argv[0], "sacch") == 0) {
+			l23_cfg.gsmtap.lchan_acch = false;
+		} else {
+			channel = get_string_value(gsmtap_gsm_channel_names, argv[0]);
+			channel &= ~GSMTAP_CHANNEL_ACCH;
+			l23_cfg.gsmtap.lchan_acch_mask &= ~(1 << channel);
+		}
+	} else {
+		channel = get_string_value(gsmtap_gsm_channel_names, argv[0]);
+		l23_cfg.gsmtap.lchan_mask &= ~(1 << channel);
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gsmtap_gsmtap_categ_gprs_all, cfg_gsmtap_gsmtap_categ_gprs_all_cmd,
+	"category gprs (enable-all|disable-all)",
+	"Enable/disable sending of UL/DL messages over GSMTAP\n"
+	"Enable all kinds of messages (all categories)\n"
+	"Disable all kinds of messages (all categories)\n")
+{
+
+	if (strcmp(argv[0], "enable-all") == 0)
+		l23_cfg.gsmtap.categ_gprs_mask = UINT32_MAX;
+	else
+		l23_cfg.gsmtap.categ_gprs_mask = 0x00;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gsmtap_gsmtap_categ_gprs, cfg_gsmtap_gsmtap_categ_gprs_cmd, "HIDDEN", "HIDDEN")
+{
+	int categ;
+
+	categ = get_string_value(gsmtap_categ_gprs_names, argv[0]);
+	if (categ < 0)
+		return CMD_WARNING;
+
+	l23_cfg.gsmtap.categ_gprs_mask |= (1 << categ);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gsmtap_no_gsmtap_categ_gprs, cfg_gsmtap_no_gsmtap_categ_gprs_cmd, "HIDDEN", "HIDDEN")
+{
+	int categ;
+
+	categ = get_string_value(gsmtap_categ_gprs_names, argv[0]);
+	if (categ < 0)
+		return CMD_WARNING;
+
+	l23_cfg.gsmtap.categ_gprs_mask &= ~(1 << categ);
+
+	return CMD_SUCCESS;
 }
 
 
@@ -228,6 +401,53 @@ DEFUN(cfg_ms_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
 	return data.ms_stop.rc;
 }
 
+static int l23_vty_config_write_gsmtap_node(struct vty *vty)
+{
+	const char *chan_buf;
+	unsigned int i;
+
+	vty_out(vty, "gsmtap%s", VTY_NEWLINE);
+
+	if (l23_cfg.gsmtap.remote_host)
+		vty_out(vty, " remote-host %s%s", l23_cfg.gsmtap.remote_host, VTY_NEWLINE);
+	else
+		vty_out(vty, " no remote-host%s", VTY_NEWLINE);
+
+	if (l23_cfg.gsmtap.lchan_acch)
+		vty_out(vty, " lchan sacch%s", VTY_NEWLINE);
+
+	for (i = 0; i < sizeof(uint32_t) * 8; i++) {
+		if (l23_cfg.gsmtap.lchan_acch_mask & ((uint32_t) 1 << i)) {
+			chan_buf = get_value_string_or_null(gsmtap_gsm_channel_names, GSMTAP_CHANNEL_ACCH | i);
+			if (chan_buf == NULL)
+				continue;
+			chan_buf = osmo_str_tolower(chan_buf);
+			vty_out(vty, " lchan %s%s", chan_buf, VTY_NEWLINE);
+		}
+	}
+
+	for (i = 0; i < sizeof(uint32_t) * 8; i++) {
+		if (l23_cfg.gsmtap.lchan_mask & ((uint32_t) 1 << i)) {
+			chan_buf = get_value_string_or_null(gsmtap_gsm_channel_names, i);
+			if (chan_buf == NULL)
+				continue;
+			chan_buf = osmo_str_tolower(chan_buf);
+			vty_out(vty, " lchan %s%s", chan_buf, VTY_NEWLINE);
+		}
+	}
+
+	for (i = 0; i < 32; i++) {
+		if (l23_cfg.gsmtap.categ_gprs_mask & ((uint32_t)1 << i)) {
+			const char *category_buf;
+			if (!(category_buf = get_value_string_or_null(gsmtap_categ_gprs_names, i)))
+				continue;
+			vty_out(vty, " category gprs %s%s", category_buf, VTY_NEWLINE);
+		}
+	}
+
+	return CMD_SUCCESS;
+}
+
 void l23_vty_config_write_ms_node(struct vty *vty, const struct osmocom_ms *ms, const char *prefix)
 {
 	size_t prefix_len = strlen(prefix);
@@ -260,9 +480,62 @@ void l23_vty_config_write_ms_node_contents_final(struct vty *vty, const struct o
 	vty_out(vty, "!%s", VTY_NEWLINE);
 }
 
+static void l23_vty_init_gsmtap(void)
+{
+	cfg_gsmtap_gsmtap_lchan_cmd.string = vty_cmd_string_from_valstr(l23_ctx, gsmtap_gsm_channel_names,
+						"lchan (sacch|",
+						"|", ")", VTY_DO_LOWER);
+	cfg_gsmtap_gsmtap_lchan_cmd.doc = vty_cmd_string_from_valstr(l23_ctx, gsmtap_gsm_channel_names,
+						"Enable sending of UL/DL messages over GSMTAP\n" "SACCH\n",
+						"\n", "", 0);
+
+	cfg_gsmtap_no_gsmtap_lchan_cmd.string = vty_cmd_string_from_valstr(l23_ctx, gsmtap_gsm_channel_names,
+						"no lchan (sacch|",
+						"|", ")", VTY_DO_LOWER);
+	cfg_gsmtap_no_gsmtap_lchan_cmd.doc = vty_cmd_string_from_valstr(l23_ctx, gsmtap_gsm_channel_names,
+						NO_STR "Disable sending of UL/DL messages over GSMTAP\n" "SACCH\n",
+						"\n", "", 0);
+
+
+	cfg_gsmtap_gsmtap_categ_gprs_cmd.string = vty_cmd_string_from_valstr(l23_ctx, gsmtap_categ_gprs_names,
+						"category gprs (",
+						"|", ")", VTY_DO_LOWER);
+	cfg_gsmtap_gsmtap_categ_gprs_cmd.doc = vty_cmd_string_from_valstr(l23_ctx, gsmtap_categ_gprs_help,
+						"GSMTAP Category\n" "GPRS\n",
+						"\n", "", 0);
+	cfg_gsmtap_no_gsmtap_categ_gprs_cmd.string = vty_cmd_string_from_valstr(l23_ctx, gsmtap_categ_gprs_names,
+						"no category gprs (",
+						"|", ")", VTY_DO_LOWER);
+	cfg_gsmtap_no_gsmtap_categ_gprs_cmd.doc = vty_cmd_string_from_valstr(l23_ctx, gsmtap_categ_gprs_help,
+						NO_STR "GSMTAP Category\n" "GPRS\n",
+						"\n", "", 0);
+
+	install_element(CONFIG_NODE, &l23_cfg_gsmtap_cmd);
+
+	install_node(&gsmtap_node, l23_vty_config_write_gsmtap_node);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_gsmtap_remote_host_cmd);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_no_gsmtap_remote_host_cmd);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_gsmtap_lchan_all_cmd);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_gsmtap_lchan_cmd);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_no_gsmtap_lchan_cmd);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_gsmtap_categ_gprs_all_cmd);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_gsmtap_categ_gprs_cmd);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_no_gsmtap_categ_gprs_cmd);
+}
+
 int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn *l23_vty_signal_cb)
 {
+	struct l23_app_info *app;
+	unsigned int app_supp_opt = 0x00;
 	int rc = 0;
+
+	app = l23_app_info();
+	if (app && app->cfg_supported != NULL)
+		app_supp_opt = app->cfg_supported();
+
+	if (app_supp_opt & L23_OPT_TAP)
+		l23_vty_init_gsmtap();
+
 	install_node(&ms_node, config_write_ms_node_cb);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_cmd);

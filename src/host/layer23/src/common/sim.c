@@ -24,11 +24,10 @@
 #include <osmocom/core/gsmtap.h>
 
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/l1ctl.h>
-
-extern struct gsmtap_inst *gsmtap_inst;
 
 static int sim_process_job(struct osmocom_ms *ms);
 
@@ -874,7 +873,7 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 		if ((ms->sim.apdu_len + length) <= sizeof(ms->sim.apdu_data)) {
 			memcpy(ms->sim.apdu_data + ms->sim.apdu_len, data, length);
 			ms->sim.apdu_len += length;
-			gsmtap_send_ex(gsmtap_inst, GSMTAP_TYPE_SIM,
+			gsmtap_send_ex(l23_cfg.gsmtap.inst, GSMTAP_TYPE_SIM,
 				0, 0, 0, 0, 0, 0, 0, ms->sim.apdu_data, ms->sim.apdu_len);
 		}
 	}

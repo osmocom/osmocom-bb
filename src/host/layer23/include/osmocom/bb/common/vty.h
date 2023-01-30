@@ -10,6 +10,7 @@ struct osmocom_ms;
 
 enum l23_vty_node {
 	MS_NODE = _LAST_OSMOVTY_NODE + 1,
+	GSMTAP_NODE,
 	_LAST_L23VTY_NODE,
 };
 

@@ -39,13 +39,12 @@
 #include <osmocom/gsm/rsl.h>
 
 #include <osmocom/bb/common/l1ctl.h>
+#include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/l1l2_interface.h>
 #include <osmocom/gsm/lapdm.h>
 #include <osmocom/bb/common/logging.h>
-
-extern struct gsmtap_inst *gsmtap_inst;
 
 #define CB_FCCH		-1
 #define CB_SCH		-2
@@ -317,7 +316,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	 * to clog up your logs */
 	if (!is_fill_frame(gsmtap_chan_type, ccch->data)) {
 		/* send CCCH data via GSMTAP */
-		gsmtap_send(gsmtap_inst, ntohs(dl->band_arfcn), chan_ts,
+		gsmtap_send(l23_cfg.gsmtap.inst, ntohs(dl->band_arfcn), chan_ts,
 			    gsmtap_chan_type, chan_ss, tm.fn, dl->rx_level-110,
 			    dl->snr, ccch->data, sizeof(ccch->data));
 	}
@@ -394,7 +393,7 @@ int l1ctl_tx_data_req(struct osmocom_ms *ms, struct msgb *msg,
 	/* send copy via GSMTAP */
 	if (rsl_dec_chan_nr(chan_nr, &chan_type, &chan_ss, &chan_ts) == 0) {
 		uint8_t gsmtap_chan_type = chantype_rsl2gsmtap2(chan_type, link_id, false);
-		gsmtap_send(gsmtap_inst, ms->rrlayer.cd_now.arfcn | GSMTAP_ARFCN_F_UPLINK,
+		gsmtap_send(l23_cfg.gsmtap.inst, ms->rrlayer.cd_now.arfcn | GSMTAP_ARFCN_F_UPLINK,
 			    chan_ts, gsmtap_chan_type, chan_ss, 0, 127, 0,
 			    msg->l2h, msgb_l2len(msg));
 	} else {

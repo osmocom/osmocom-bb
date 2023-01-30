@@ -33,7 +33,6 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/application.h>
 #include <osmocom/core/gsmtap_util.h>
-#include <osmocom/core/gsmtap.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/logging.h>
@@ -53,6 +52,7 @@
 #include "config.h"
 
 void *l23_ctx = NULL;
+struct l23_global_config l23_cfg;
 
 static char *sap_socket_path = "/tmp/osmocom_sap";
 struct llist_head ms_list;
@@ -63,7 +63,6 @@ int (*l23_app_start)(void) = NULL;
 int (*l23_app_work)(void) = NULL;
 int (*l23_app_exit)(void) = NULL;
 int quit = 0;
-struct gsmtap_inst *gsmtap_inst;
 
 static void print_usage(const char *app)
 {
@@ -285,13 +284,29 @@ int main(int argc, char **argv)
 			exit(1);
 	}
 
-	if (gsmtap_ip) {
-		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
-		if (!gsmtap_inst) {
-			fprintf(stderr, "Failed during gsmtap_init()\n");
-			exit(1);
+	if (app_supp_opt & L23_OPT_TAP) {
+		if (gsmtap_ip) {
+			if (l23_cfg.gsmtap.remote_host != NULL) {
+				LOGP(DLGLOBAL, LOGL_NOTICE,
+				     "Command line argument '-i %s' overrides node "
+				     "'gsmtap' cmd 'remote-host %s' from the config file\n",
+				     gsmtap_ip, l23_cfg.gsmtap.remote_host);
+				talloc_free(l23_cfg.gsmtap.remote_host);
+			}
+			l23_cfg.gsmtap.remote_host = talloc_strdup(l23_ctx, gsmtap_ip);
 		}
-		gsmtap_source_add_sink(gsmtap_inst);
+
+		if (l23_cfg.gsmtap.remote_host) {
+			LOGP(DLGLOBAL, LOGL_NOTICE,
+			     "Setting up GSMTAP Um forwarding to '%s:%u'\n",
+			     l23_cfg.gsmtap.remote_host, GSMTAP_UDP_PORT);
+			l23_cfg.gsmtap.inst = gsmtap_source_init(l23_cfg.gsmtap.remote_host, GSMTAP_UDP_PORT, 1);
+			if (!l23_cfg.gsmtap.inst) {
+				fprintf(stderr, "Failed during gsmtap_init()\n");
+				exit(1);
+			}
+			gsmtap_source_add_sink(l23_cfg.gsmtap.inst);
+		}
 	}
 
 	if (l23_app_start) {

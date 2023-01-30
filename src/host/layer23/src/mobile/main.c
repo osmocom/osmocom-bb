@@ -51,10 +51,10 @@
 #include "config.h"
 
 void *l23_ctx = NULL;
+struct l23_global_config l23_cfg;
 struct llist_head ms_list;
 static char *gsmtap_ip = 0;
 static const char *custom_cfg_file = NULL;
-struct gsmtap_inst *gsmtap_inst = NULL;
 static char *config_file = NULL;
 char *config_dir = NULL;
 int daemonize = 0;
@@ -312,12 +312,12 @@ int main(int argc, char **argv)
 	}
 
 	if (gsmtap_ip) {
-		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
-		if (!gsmtap_inst) {
+		l23_cfg.gsmtap.inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
+		if (!l23_cfg.gsmtap.inst) {
 			fprintf(stderr, "Failed during gsmtap_init()\n");
 			exit(1);
 		}
-		gsmtap_source_add_sink(gsmtap_inst);
+		gsmtap_source_add_sink(l23_cfg.gsmtap.inst);
 	}
 
 	if (l23_app_start) {
