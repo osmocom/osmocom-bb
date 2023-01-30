@@ -61,7 +61,7 @@ static int l1ctl_client_read_cb(struct osmo_fd *ofd)
 			rc = -EIO;
 		}
 		l1ctl_client_conn_close(client);
-		return rc;
+		return -EBADF; /* client fd is gone, avoid processing any other events. */
 	}
 
 	/* Check message length */
