@@ -19,6 +19,8 @@
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
+#include <osmocom/bb/common/l23_app.h>
+#include <osmocom/bb/common/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 
 #include <osmocom/core/talloc.h>
@@ -27,6 +29,10 @@
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/core/application.h>
+#include <osmocom/vty/vty.h>
+#include <osmocom/vty/logging.h>
+#include <osmocom/vty/telnet_interface.h>
+#include <osmocom/vty/ports.h>
 
 #include <arpa/inet.h>
 
@@ -42,13 +48,21 @@
 #include <time.h>
 #include <libgen.h>
 
+#include "config.h"
+
 void *l23_ctx = NULL;
 struct llist_head ms_list;
 static char *gsmtap_ip = 0;
 static const char *custom_cfg_file = NULL;
 struct gsmtap_inst *gsmtap_inst = NULL;
+static char *config_file = NULL;
 char *config_dir = NULL;
 int daemonize = 0;
+int quit = 0;
+
+int (*l23_app_start)(void) = NULL;
+int (*l23_app_work)(void) = NULL;
+int (*l23_app_exit)(void) = NULL;
 
 int mobile_delete(struct osmocom_ms *ms, int force);
 int mobile_signal_cb(unsigned int subsys, unsigned int signal,
@@ -61,12 +75,12 @@ const char *debug_default =
 	"DCS:DNB:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DSS:DLSMS:DPAG:DSUM:DSAP:DGPS:DMOB:DPRIM:DLUA:DGAPK";
 
 const char *openbsc_copyright =
-	"Copyright (C) 2010-2015 Andreas Eversberg, Sylvain Munaut, Holger Freyther, Harald Welte\n"
-	"Contributions by Alex Badea, Pablo Neira, Steve Markgraf and others\n\n"
+	"%s"
+	"%s\n"
 	"License GPLv2+: GNU GPL version 2 or later "
 		"<http://gnu.org/licenses/gpl.html>\n"
 	"This is free software: you are free to change and redistribute it.\n"
-	"There is NO WARRANTY, to the extent permitted by law.\n";
+	"There is NO WARRANTY, to the extent permitted by law.\n\n";
 
 static void print_usage(const char *app)
 {
@@ -198,13 +212,56 @@ void sighandler(int sigset)
 	}
 }
 
-int main(int argc, char **argv)
+static void print_copyright(void)
 {
-	char *config_file;
-	int quit = 0;
+	struct l23_app_info *app;
+	app = l23_app_info();
+	printf(openbsc_copyright,
+	       app && app->copyright ? app->copyright : "",
+	       app && app->contribution ? app->contribution : "");
+}
+
+static int _vty_init(struct l23_app_info *app)
+{
+	static struct vty_app_info l23_vty_info = {
+		.name = "OsmocomBB",
+		.version = PACKAGE_VERSION,
+	};
 	int rc;
 
-	printf("%s\n", openbsc_copyright);
+	OSMO_ASSERT(app->vty_info);
+	app->vty_info->tall_ctx = l23_ctx;
+	vty_init(app->vty_info ? : &l23_vty_info);
+	logging_vty_add_cmds();
+	if (app->vty_init)
+		app->vty_init();
+	if (config_file) {
+		LOGP(DLGLOBAL, LOGL_INFO, "Using configuration from '%s'\n", config_file);
+		l23_vty_reading = true;
+		rc = vty_read_config_file(config_file, NULL);
+		l23_vty_reading = false;
+		if (rc < 0) {
+			LOGP(DLGLOBAL, LOGL_FATAL,
+				"Failed to parse the configuration file '%s'\n", config_file);
+			return rc;
+		}
+	}
+	rc = telnet_init_default(l23_ctx, NULL, OSMO_VTY_PORT_BB);
+	if (rc < 0) {
+		LOGP(DMOB, LOGL_FATAL, "Cannot init VTY on %s port %u: %s\n",
+			vty_get_bind_addr(), OSMO_VTY_PORT_BB, strerror(errno));
+		return rc;
+	}
+	return rc;
+}
+
+int main(int argc, char **argv)
+{
+	int rc;
+	struct l23_app_info *app;
+	unsigned int app_supp_opt = 0x00;
+
+	print_copyright();
 
 	srand(time(NULL));
 
@@ -217,19 +274,21 @@ int main(int argc, char **argv)
 	/* Init default stderr logging */
 	osmo_init_logging2(l23_ctx, &log_info);
 
+	rc = l23_app_init();
+	if (rc < 0) {
+		fprintf(stderr, "Failed during l23_app_init()\n");
+		exit(1);
+	}
+
+	app = l23_app_info();
+	if (app && app->cfg_supported != NULL)
+		app_supp_opt = app->cfg_supported();
+
+
 	rc = handle_options(argc, argv);
 	if (rc) { /* Abort in case of parsing errors */
 		fprintf(stderr, "Error in command line options. Exiting.\n");
 		return 1;
-	}
-
-	if (gsmtap_ip) {
-		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
-		if (!gsmtap_inst) {
-			fprintf(stderr, "Failed during gsmtap_init()\n");
-			exit(1);
-		}
-		gsmtap_source_add_sink(gsmtap_inst);
 	}
 
 	if (custom_cfg_file) {
@@ -250,9 +309,27 @@ int main(int argc, char **argv)
 	config_dir = talloc_strdup(l23_ctx, config_file);
 	config_dir = dirname(config_dir);
 
-	rc = l23_app_init(config_file);
-	if (rc)
-		exit(rc);
+	if (app_supp_opt & L23_OPT_VTY) {
+		if (_vty_init(app) < 0)
+			exit(1);
+	}
+
+	if (gsmtap_ip) {
+		gsmtap_inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
+		if (!gsmtap_inst) {
+			fprintf(stderr, "Failed during gsmtap_init()\n");
+			exit(1);
+		}
+		gsmtap_source_add_sink(gsmtap_inst);
+	}
+
+	if (l23_app_start) {
+		rc = l23_app_start();
+		if (rc < 0) {
+			fprintf(stderr, "Failed during l23_app_start()\n");
+			exit(1);
+		}
+	}
 
 	signal(SIGINT, sighandler);
 	signal(SIGTSTP, sighandler);
@@ -271,7 +348,7 @@ int main(int argc, char **argv)
 	}
 
 	while (1) {
-		l23_app_work(&quit);
+		l23_app_work();
 		if (quit && llist_empty(&ms_list))
 			break;
 		osmo_select_main(0);

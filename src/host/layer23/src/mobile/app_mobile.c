@@ -29,6 +29,7 @@
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/bb/common/sim.h>
+#include <osmocom/bb/common/l23_app.h>
 
 #include <osmocom/bb/mobile/gsm48_rr.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
@@ -43,8 +44,7 @@
 #include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/primitives.h>
 
-#include <osmocom/vty/ports.h>
-#include <osmocom/vty/logging.h>
+#include <osmocom/vty/vty.h>
 #include <osmocom/vty/telnet_interface.h>
 
 #include <osmocom/core/msgb.h>
@@ -58,12 +58,12 @@
 
 extern void *l23_ctx;
 extern struct llist_head ms_list;
-extern int vty_reading;
 
 int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg);
 int mncc_recv_external(struct osmocom_ms *ms, int msg_type, void *arg);
 int mncc_recv_dummy(struct osmocom_ms *ms, int msg_type, void *arg);
-static int quit;
+static int _quit;
+extern int quit; /* l23 main */
 
 /* handle ms instance */
 int mobile_work(struct osmocom_ms *ms)
@@ -381,20 +381,20 @@ int global_signal_cb(unsigned int subsys, unsigned int signal,
 	case S_GLOBAL_SHUTDOWN:
 		/* force to exit, if signalled */
 		if (signal_data && *((uint8_t *)signal_data))
-			quit = 1;
+			_quit = 1;
 
 		llist_for_each_entry_safe(ms, ms2, &ms_list, entity)
-			mobile_delete(ms, quit);
+			mobile_delete(ms, _quit);
 
 		/* quit, after all MS processes are gone */
-		quit = 1;
+		_quit = 1;
 		break;
 	}
 	return 0;
 }
 
 /* global work handler */
-int l23_app_work(int *_quit)
+int _mobile_app_work(void)
 {
 	struct osmocom_ms *ms, *ms2;
 	int work = 0;
@@ -424,12 +424,12 @@ int l23_app_work(int *_quit)
 	}
 
 	/* return, if a shutdown was scheduled (quit = 1) */
-	*_quit = quit;
+	quit = _quit;
 	return work;
 }
 
 /* global exit */
-int l23_app_exit(void)
+int _mobile_app_exit(void)
 {
 	osmo_signal_unregister_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
 	osmo_signal_unregister_handler(SS_L1CTL, &mobile_signal_cb, NULL);
@@ -442,53 +442,10 @@ int l23_app_exit(void)
 	return 0;
 }
 
-static struct vty_app_info vty_info = {
-	.name = "OsmocomBB",
-	.version = PACKAGE_VERSION,
-};
 
-/* global init */
-int l23_app_init(const char *config_file)
+int _mobile_app_start(void)
 {
-	struct telnet_connection dummy_conn;
-	int rc = 0;
-
-	osmo_gps_init();
-
-#ifdef WITH_GAPK_IO
-	/* Init GAPK audio I/O */
-	gapk_io_init();
-#endif
-
-	vty_info.tall_ctx = l23_ctx;
-	vty_init(&vty_info);
-	logging_vty_add_cmds();
-	ms_vty_init();
-	dummy_conn.priv = NULL;
-	vty_reading = 1;
-	if (config_file != NULL) {
-		rc = vty_read_config_file(config_file, &dummy_conn);
-		if (rc < 0) {
-			LOGP(DMOB, LOGL_FATAL, "Failed to parse the configuration "
-				"file '%s'\n", config_file);
-			LOGP(DMOB, LOGL_FATAL, "Please make sure the file "
-				"'%s' exists, or use an example from "
-				"'doc/examples/mobile/'\n", config_file);
-			return rc;
-		}
-		LOGP(DMOB, LOGL_INFO, "Using configuration from '%s'\n", config_file);
-	}
-	vty_reading = 0;
-	rc = telnet_init_default(l23_ctx, NULL, OSMO_VTY_PORT_BB);
-	if (rc < 0) {
-		LOGP(DMOB, LOGL_FATAL, "Cannot init VTY on %s port %u: %s\n",
-			vty_get_bind_addr(), OSMO_VTY_PORT_BB, strerror(errno));
-		return rc;
-	}
-
-	osmo_signal_register_handler(SS_GLOBAL, &global_signal_cb, NULL);
-	osmo_signal_register_handler(SS_L1CTL, &mobile_signal_cb, NULL);
-	osmo_signal_register_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
+	int rc;
 
 	if (llist_empty(&ms_list)) {
 		struct osmocom_ms *ms;
@@ -503,15 +460,59 @@ int l23_app_init(const char *config_file)
 			return rc;
 	}
 
-	quit = 0;
+	_quit = 0;
 
 	return 0;
 }
 
+/* global init */
+int l23_app_init(void)
+{
+	l23_app_start = _mobile_app_start;
+	l23_app_work = _mobile_app_work;
+	l23_app_exit = _mobile_app_exit;
+	osmo_gps_init();
+
+#ifdef WITH_GAPK_IO
+	/* Init GAPK audio I/O */
+	gapk_io_init();
+#endif
+
+	osmo_signal_register_handler(SS_GLOBAL, &global_signal_cb, NULL);
+	osmo_signal_register_handler(SS_L1CTL, &mobile_signal_cb, NULL);
+	osmo_signal_register_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
+
+	return 0;
+}
+
+static int _mobile_vty_init(void)
+{
+	return ms_vty_init();
+}
+
+static int l23_cfg_supported(void)
+{
+	return L23_OPT_TAP | L23_OPT_VTY | L23_OPT_DBG;
+}
+
+static struct vty_app_info _mobile_vty_info = {
+	.name = "mobile",
+	.version = PACKAGE_VERSION,
+};
+
+static struct l23_app_info info = {
+	.copyright = "Copyright (C) 2010-2015 Andreas Eversberg, Sylvain Munaut, Holger Freyther, Harald Welte\n",
+	.contribution = "Contributions by Alex Badea, Pablo Neira, Steve Markgraf and others\n",
+	.cfg_supported = &l23_cfg_supported,
+	.vty_info = &_mobile_vty_info,
+	.vty_init = _mobile_vty_init,
+};
+
 struct l23_app_info *l23_app_info(void)
 {
-	return NULL; /* TODO: implement mobile as a full l23_app. */
+	return &info;
 }
+
 
 void mobile_set_started(struct osmocom_ms *ms, bool state)
 {

@@ -8,9 +8,6 @@ extern char *config_dir;
 struct osmocom_ms;
 struct vty;
 
-int l23_app_init(const char *config_file);
-int l23_app_exit(void);
-int l23_app_work(int *quit);
 int mobile_delete(struct osmocom_ms *ms, int force);
 struct osmocom_ms *mobile_new(char *name);
 int mobile_work(struct osmocom_ms *ms);

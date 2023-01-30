@@ -106,12 +106,11 @@ int vty_check_number(struct vty *vty, const char *number)
 	return 0;
 }
 
-int vty_reading = 0;
 static int hide_default = 0;
 
 static void vty_restart(struct vty *vty, struct osmocom_ms *ms)
 {
-	if (vty_reading)
+	if (l23_vty_reading)
 		return;
 	if (ms->shutdown != MS_SHUTDOWN_NONE)
 		return;
@@ -1183,7 +1182,7 @@ DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 	}
 
 	if (!found) {
-		if (!vty_reading) {
+		if (!l23_vty_reading) {
 			vty_out(vty, "MS name '%s' does not exits, try "
 				"'ms %s create'%s", argv[0], argv[0],
 				VTY_NEWLINE);
@@ -2270,7 +2269,7 @@ DEFUN(cfg, cfg_cmd, cmd, "Enable " desc "support") \
 	struct gsm_support *sup = &ms->support; \
 	if (!sup->item) { \
 		vty_out(vty, desc " not supported%s", VTY_NEWLINE); \
-		if (vty_reading) \
+		if (l23_vty_reading) \
 			return CMD_SUCCESS; \
 		return CMD_WARNING; \
 	} \
@@ -2288,7 +2287,7 @@ DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
 	struct gsm_support *sup = &ms->support; \
 	if (!sup->item) { \
 		vty_out(vty, desc " not supported%s", VTY_NEWLINE); \
-		if (vty_reading) \
+		if (l23_vty_reading) \
 			return CMD_SUCCESS; \
 		return CMD_WARNING; \
 	} \
@@ -2381,7 +2380,7 @@ DEFUN(cfg_ms_sup_class_900, cfg_ms_sup_class_900_cmd, "class-900 (1|2|3|4|5)",
 
 	set->class_900 = atoi(argv[0]);
 
-	if (set->class_900 < sup->class_900 && !vty_reading)
+	if (set->class_900 < sup->class_900 && !l23_vty_reading)
 		vty_out(vty, "Note: You selected a higher class than supported "
 			" by hardware!%s", VTY_NEWLINE);
 
@@ -2402,7 +2401,7 @@ DEFUN(cfg_ms_sup_class_850, cfg_ms_sup_class_850_cmd, "class-850 (1|2|3|4|5)",
 
 	set->class_850 = atoi(argv[0]);
 
-	if (set->class_850 < sup->class_850 && !vty_reading)
+	if (set->class_850 < sup->class_850 && !l23_vty_reading)
 		vty_out(vty, "Note: You selected a higher class than supported "
 			" by hardware!%s", VTY_NEWLINE);
 
@@ -2423,7 +2422,7 @@ DEFUN(cfg_ms_sup_class_400, cfg_ms_sup_class_400_cmd, "class-400 (1|2|3|4|5)",
 
 	set->class_400 = atoi(argv[0]);
 
-	if (set->class_400 < sup->class_400 && !vty_reading)
+	if (set->class_400 < sup->class_400 && !l23_vty_reading)
 		vty_out(vty, "Note: You selected a higher class than supported "
 			" by hardware!%s", VTY_NEWLINE);
 
@@ -2443,7 +2442,7 @@ DEFUN(cfg_ms_sup_class_dcs, cfg_ms_sup_class_dcs_cmd, "class-dcs (1|2|3)",
 	set->class_dcs = atoi(argv[0]);
 
 	if (((set->class_dcs + 1) & 3) < ((sup->class_dcs + 1) & 3)
-	 && !vty_reading)
+	 && !l23_vty_reading)
 		vty_out(vty, "Note: You selected a higher class than supported "
 			" by hardware!%s", VTY_NEWLINE);
 
@@ -2463,7 +2462,7 @@ DEFUN(cfg_ms_sup_class_pcs, cfg_ms_sup_class_pcs_cmd, "class-pcs (1|2|3)",
 	set->class_pcs = atoi(argv[0]);
 
 	if (((set->class_pcs + 1) & 3) < ((sup->class_pcs + 1) & 3)
-	 && !vty_reading)
+	 && !l23_vty_reading)
 		vty_out(vty, "Note: You selected a higher class than supported "
 			" by hardware!%s", VTY_NEWLINE);
 
@@ -2489,7 +2488,7 @@ DEFUN(cfg_ms_sup_ch_cap, cfg_ms_sup_ch_cap_cmd,
 	else
 		ch_cap = GSM_CAP_SDCCH;
 
-	if (ch_cap > sup->ch_cap && !vty_reading) {
+	if (ch_cap > sup->ch_cap && !l23_vty_reading) {
 		vty_out(vty, "You selected an higher capability than supported "
 			" by hardware!%s", VTY_NEWLINE);
 		return CMD_WARNING;
