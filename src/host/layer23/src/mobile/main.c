@@ -74,14 +74,6 @@ int mobile_exit(struct osmocom_ms *ms, int force);
 const char *debug_default =
 	"DCS:DNB:DPLMN:DRR:DMM:DSIM:DCC:DMNCC:DSS:DLSMS:DPAG:DSUM:DSAP:DGPS:DMOB:DPRIM:DLUA:DGAPK";
 
-const char *openbsc_copyright =
-	"%s"
-	"%s\n"
-	"License GPLv2+: GNU GPL version 2 or later "
-		"<http://gnu.org/licenses/gpl.html>\n"
-	"This is free software: you are free to change and redistribute it.\n"
-	"There is NO WARRANTY, to the extent permitted by law.\n\n";
-
 static void print_usage(const char *app)
 {
 	printf("Usage: %s\n", app);
@@ -216,7 +208,12 @@ static void print_copyright(void)
 {
 	struct l23_app_info *app;
 	app = l23_app_info();
-	printf(openbsc_copyright,
+
+	printf("%s"
+	       "%s\n"
+	       "License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n"
+	       "This is free software: you are free to change and redistribute it.\n"
+	       "There is NO WARRANTY, to the extent permitted by law.\n\n",
 	       app && app->copyright ? app->copyright : "",
 	       app && app->contribution ? app->contribution : "");
 }
