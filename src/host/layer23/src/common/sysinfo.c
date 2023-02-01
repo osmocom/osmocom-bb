@@ -23,7 +23,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/bitvec.h>
 
-#include <osmocom/gprs/rlcmac/gprs_rlcmac.h>
+#include <osmocom/gprs/rlcmac/csn1_defs.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/networks.h>

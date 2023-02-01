@@ -38,7 +38,7 @@
 #include <osmocom/gsm/gsm48_ie.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
-#include <osmocom/gprs/rlcmac/gprs_rlcmac.h>
+#include <osmocom/gprs/rlcmac/csn1_defs.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
