@@ -39,8 +39,8 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
+#include <osmocom/bb/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/logging.h>
-#include <osmocom/bb/trxcon/l1ctl_proto.h>
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trxcon_fsm.h>
 
