@@ -39,6 +39,7 @@
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gprs/rlcmac/csn1_defs.h>
+#include <osmocom/gprs/rlcmac/rlcmac_prim.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
@@ -230,6 +231,7 @@ static int handle_si4(struct osmocom_ms *ms, struct msgb *msg)
 static int handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 {
 	int rc;
+	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
 
 	if (msgb_l3len(msg) != GSM_MACBLOCK_LEN)
 		return -EINVAL;
@@ -240,7 +242,10 @@ static int handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 	if (rc != 0)
 		return rc;
 
-	return 0;
+	/* Forward SI13 to RLC/MAC layer */
+	rlcmac_prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_data_ind(0 /* TODO: fn */, msgb_l3(msg));
+	rc = osmo_gprs_rlcmac_prim_lower_up(rlcmac_prim);
+	return rc;
 }
 
 static int modem_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
@@ -275,6 +280,7 @@ static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;
 	int rc;
+	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
 
 	/* Discard CS channel assignment */
 	if ((ia->page_mode >> 4) == 0)
@@ -340,17 +346,10 @@ static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 				       ia->chan_desc.h1.tsc, GSM48_CMODE_SIGN, 0);
 	}
 
-	const uint8_t *data = msgb_l3(msg) + sizeof(*ia) + ia->mob_alloc_len;
-	size_t data_len = msgb_l3len(msg) - (sizeof(*ia) + ia->mob_alloc_len);
-	IA_RestOctets_t iaro;
-
-	rc = osmo_gprs_rlcmac_decode_imm_ass_ro(&iaro, data, data_len);
-	if (rc != 0) {
-		LOGP(DRR, LOGL_ERROR, "Failed to decode IA Rest Octets IE\n");
+	rlcmac_prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_data_ind(0 /* TODO: fn */, (uint8_t *)ia);
+	rc = osmo_gprs_rlcmac_prim_lower_up(rlcmac_prim);
+	if (rc < 0)
 		return rc;
-	}
-
-	/* TODO: deliver decoded params to the RLC/MAC layer */
 
 	rr->state = GSM48_RR_ST_DEDICATED;
 	return 0;
