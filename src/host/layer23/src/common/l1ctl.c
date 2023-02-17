@@ -978,6 +978,107 @@ static int rx_l1_neigh_pm_ind(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* Receive L1CTL_GPRS_DL_BLOCK_IND */
+static int rx_l1_gprs_dl_block_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	const struct l1ctl_gprs_dl_block_ind *ind = (void *)msg->l1h;
+
+	if (msgb_l1len(msg) < sizeof(*ind)) {
+		LOGP(DL1C, LOGL_ERROR,
+		     "Rx malformed GPRS DL BLOCK.ind (len=%u < %zu)\n",
+		     msgb_l1len(msg), sizeof(*ind));
+		return -EINVAL;
+	}
+	if (OSMO_UNLIKELY(ind->hdr.tn >= 8)) {
+		LOGP(DL1C, LOGL_ERROR,
+		     "Rx malformed GPRS DL BLOCK.ind (tn=%u)\n",
+		     ind->hdr.tn);
+		return -EINVAL;
+	}
+
+	msg->l2h = (void *)&ind->data[0];
+
+	DEBUGP(DL1C, "Rx GPRS DL block (fn=%u, tn=%u, len=%u): %s\n",
+	       ntohl(ind->hdr.fn), ind->hdr.tn, msgb_l2len(msg), msgb_hexdump_l2(msg));
+
+	/* distribute or drop */
+	if (ms->l1_entity.l1_gprs_dl_block_ind)
+		return ms->l1_entity.l1_gprs_dl_block_ind(ms, msg);
+
+	msgb_free(msg);
+	return 0;
+}
+
+/* Transmit L1CTL_GPRS_UL_BLOCK_REQ */
+int l1ctl_tx_gprs_ul_block_req(struct osmocom_ms *ms, uint32_t fn, uint8_t tn,
+			       const uint8_t *data, size_t data_len)
+{
+	struct l1ctl_gprs_ul_block_req *req;
+	struct msgb *msg;
+
+	msg = osmo_l1_alloc(L1CTL_GPRS_UL_BLOCK_REQ);
+	if (!msg)
+		return -ENOMEM;
+
+	req = (void *)msgb_put(msg, sizeof(*req));
+	req->hdr.fn = htonl(fn);
+	req->hdr.tn = tn;
+	if (data_len > 0)
+		memcpy(msgb_put(msg, data_len), data, data_len);
+
+	DEBUGP(DL1C, "Tx GPRS UL block (fn=%u, tn=%u, len=%zu): %s\n",
+	       fn, tn, data_len, osmo_hexdump(data, data_len));
+
+	return osmo_send_l1(ms, msg);
+}
+
+/* Transmit L1CTL_GPRS_UL_TBF_CFG_REQ */
+int l1ctl_tx_gprs_ul_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
+				 uint8_t slotmask)
+{
+	struct l1ctl_gprs_ul_tbf_cfg_req *req;
+	struct msgb *msg;
+
+	msg = osmo_l1_alloc(L1CTL_GPRS_UL_TBF_CFG_REQ);
+	if (!msg)
+		return -ENOMEM;
+
+	req = (void *)msgb_put(msg, sizeof(*req));
+	*req = (struct l1ctl_gprs_ul_tbf_cfg_req) {
+		.tbf_ref = tbf_ref,
+		.slotmask = slotmask,
+	};
+
+	DEBUGP(DL1C, "Tx GPRS UL TBF CFG (tbf_ref=%u, slotmask=0x%02x)\n",
+	       tbf_ref, slotmask);
+
+	return osmo_send_l1(ms, msg);
+}
+
+/* Transmit L1CTL_GPRS_DL_TBF_CFG_REQ */
+int l1ctl_tx_gprs_dl_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
+				 uint8_t slotmask, uint8_t dl_tfi)
+{
+	struct l1ctl_gprs_dl_tbf_cfg_req *req;
+	struct msgb *msg;
+
+	msg = osmo_l1_alloc(L1CTL_GPRS_DL_TBF_CFG_REQ);
+	if (!msg)
+		return -ENOMEM;
+
+	req = (void *)msgb_put(msg, sizeof(*req));
+	*req = (struct l1ctl_gprs_dl_tbf_cfg_req) {
+		.tbf_ref = tbf_ref,
+		.slotmask = slotmask,
+		.dl_tfi = dl_tfi,
+	};
+
+	DEBUGP(DL1C, "Tx GPRS DL TBF CFG (tbf_ref=%u, slotmask=0x%02x, dl_tfi=%u)\n",
+	       tbf_ref, slotmask, dl_tfi);
+
+	return osmo_send_l1(ms, msg);
+}
+
 /* Receive incoming data from L1 using L1CTL format */
 int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -1045,6 +1146,9 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_TRAFFIC_CONF:
 		msgb_free(msg);
+		break;
+	case L1CTL_GPRS_DL_BLOCK_IND:
+		rc = rx_l1_gprs_dl_block_ind(ms, msg);
 		break;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", hdr->msg_type);

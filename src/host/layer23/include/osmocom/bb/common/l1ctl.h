@@ -75,4 +75,16 @@ int l1ctl_ph_prim_cb(struct osmo_prim_hdr *oph, void *ctx);
 /* Transmit L1CTL_NEIGH_PM_REQ */
 int l1ctl_tx_neigh_pm_req(struct osmocom_ms *ms, int num, uint16_t *arfcn);
 
+/* Transmit L1CTL_GPRS_UL_BLOCK_REQ */
+int l1ctl_tx_gprs_ul_block_req(struct osmocom_ms *ms, uint32_t fn, uint8_t tn,
+			       const uint8_t *data, size_t data_len);
+
+/* Transmit L1CTL_GPRS_UL_TBF_CFG_REQ */
+int l1ctl_tx_gprs_ul_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
+				 uint8_t slotmask);
+
+/* Transmit L1CTL_GPRS_DL_TBF_CFG_REQ */
+int l1ctl_tx_gprs_dl_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
+				 uint8_t slotmask, uint8_t dl_tfi);
+
 #endif
