@@ -44,6 +44,7 @@
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/vty/telnet_interface.h>
+#include <osmocom/vty/stats.h>
 #include <osmocom/vty/misc.h>
 
 bool l23_vty_reading = false;
@@ -535,6 +536,9 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 
 	if (app_supp_opt & L23_OPT_TAP)
 		l23_vty_init_gsmtap();
+
+	if (app_supp_opt & L23_OPT_VTY)
+		osmo_stats_vty_add_cmds();
 
 	install_node(&ms_node, config_write_ms_node_cb);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
