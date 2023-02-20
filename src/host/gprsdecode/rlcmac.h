@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <osmocom/core/endian.h>
 
 #define OLD_TIME 2000
 
@@ -16,10 +17,16 @@ struct gprs_message {
 };
 
 struct gprs_lime {
+#if OSMO_IS_LITTLE_ENDIAN
 	uint8_t li:6,
 		m:1,
 		e:1;
 	uint8_t used;
+#elif OSMO_IS_BIG_ENDIAN
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianness.py) */
+	uint8_t e:1, m:1, li:6;
+	uint8_t used;
+#endif
 } __attribute__ ((packed));
 
 struct gprs_frag {

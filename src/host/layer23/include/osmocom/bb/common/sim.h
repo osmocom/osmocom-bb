@@ -18,6 +18,7 @@
 #pragma once
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <osmocom/core/endian.h>
 
 /* 9.2 commands */
 #define GSM1111_CLASS_GSM		0xa0
@@ -211,6 +212,7 @@ struct gsm1111_response_mfdf {
 } __attribute__ ((packed));
 
 struct gsm1111_response_mfdf_gsm {
+#if OSMO_IS_LITTLE_ENDIAN
 	uint8_t file_char;
 	uint8_t num_df;
 	uint8_t num_ef;
@@ -229,10 +231,24 @@ struct gsm1111_response_mfdf_gsm {
 		 rfu5:3,
 		 unblk2_init:1;
 	uint8_t more_data[0];
+#elif OSMO_IS_BIG_ENDIAN
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianness.py) */
+	uint8_t file_char;
+	uint8_t num_df;
+	uint8_t num_ef;
+	uint8_t num_codes;
+	uint8_t rfu1;
+	uint8_t chv1_init:1, rfu2:3, chv1_remain:4;
+	uint8_t unblk1_init:1, rfu3:3, unblk1_remain:4;
+	uint8_t chv2_init:1, rfu4:3, chv2_remain:4;
+	uint8_t unblk2_init:1, rfu5:3, unblk2_remain:4;
+	uint8_t more_data[0];
+#endif
 } __attribute__ ((packed));
 
 /* Section 9.2.1 (response to selecting EF) */
 struct gsm1111_response_ef {
+#if OSMO_IS_LITTLE_ENDIAN
 	uint16_t rfu1;
 	uint16_t file_size;
 	uint16_t file_id;
@@ -250,6 +266,20 @@ struct gsm1111_response_ef {
 		 rfu4:5;
 	uint8_t length;
 	uint8_t structure;
+#elif OSMO_IS_BIG_ENDIAN
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianness.py) */
+	uint16_t rfu1;
+	uint16_t file_size;
+	uint16_t file_id;
+	uint8_t tof;
+	uint8_t inc_allowed;
+	uint8_t	acc_read:4, acc_update:4;
+	uint8_t	acc_inc:4, rfu2:4;
+	uint8_t	acc_reha:4, acc_inval:4;
+	uint8_t rfu4:5, ru_inval:1, rfu3:1, not_inval:1;
+	uint8_t length;
+	uint8_t structure;
+#endif
 } __attribute__ ((packed));
 
 /* Section 10.3.17 */
