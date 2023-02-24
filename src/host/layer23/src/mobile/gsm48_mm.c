@@ -4319,7 +4319,8 @@ static int gsm48_mm_ev(struct osmocom_ms *ms, int msg_type, struct msgb *msg)
 		 && ((1 << mm->substate) & eventstatelist[i].substates))
 			break;
 	if (i == EVENTSLLEN) {
-		LOGP(DMM, LOGL_NOTICE, "Message unhandled at this state.\n");
+		LOGP(DMM, LOGL_NOTICE, "Message %s unhandled in state %s.\n",
+		     get_mmevent_name(msg_type), gsm48_mm_state_names[mm->state]);
 		return 0;
 	}
 
