@@ -231,10 +231,14 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 			ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
 			ia->chan_desc.h0.tsc);
 
+#if 0
 		/* request L1 to go to dedicated mode on assigned channel */
 		rc = l1ctl_tx_dm_est_req_h0(ms,
 			arfcn, ia->chan_desc.chan_nr, ia->chan_desc.h0.tsc,
 			GSM48_CMODE_SIGN, 0);
+#else
+		rc = l1ctl_tx_dm_est_req_h0(ms, 90, 0x0C, 0, GSM48_CMODE_SIGN, 0);
+#endif
 	} else {
 		/* Hopping */
 		uint8_t maio, hsn, ma_len;
@@ -271,7 +275,8 @@ static int gsm48_rx_imm_ass(struct msgb *msg, struct osmocom_ms *ms)
 
 	/* Set state */
 	app_state.dch_state = DCH_WAIT_EST;
-	app_state.dch_nr = ia->chan_desc.chan_nr;
+	//app_state.dch_nr = ia->chan_desc.chan_nr;
+	app_state.dch_nr = 0x0C;
 	app_state.dch_badcnt = 0;
 
 	return rc;
@@ -695,7 +700,7 @@ void layer3_rx_burst(struct osmocom_ms *ms, struct msgb *msg)
 				app_state.fh = fopen(gen_filename(ms, bi), "wb");
 			} else {
 				/* Abandon ? */
-				do_rel = (app_state.dch_badcnt++) >= 4;
+				//do_rel = (app_state.dch_badcnt++) >= 4;
 			}
 		}
 	}
@@ -712,7 +717,7 @@ void layer3_rx_burst(struct osmocom_ms *ms, struct msgb *msg)
 				app_state.dch_badcnt = 0;
 
 			/* Release condition */
-			do_rel = app_state.dch_badcnt >= 6;
+			//do_rel = app_state.dch_badcnt >= 6;
 		}
 	}
 
@@ -778,9 +783,18 @@ static int signal_cb(unsigned int subsys, unsigned int signal,
 	case S_L1CTL_RESET:
 		ms = signal_data;
 		layer3_app_reset();
+#if 0
+		int rc;
+		rc = l1ctl_tx_dm_est_req_h0(ms, 90, 0x0C, 0, GSM48_CMODE_SIGN, 0);
+		OSMO_ASSERT(rc == 0);
+		app_state.ccch_mode = CCCH_MODE_COMBINED;
+		app_state.dch_state = DCH_WAIT_EST;
+		app_state.has_si1 = 1;
+#else
 		return l1ctl_tx_fbsb_req(ms, ms->test_arfcn,
 		                         L1CTL_FBSB_F_FB01SB, 100, 0,
 		                         CCCH_MODE_NONE, dbm2rxlev(-85));
+#endif
 		break;
 	}
 	return 0;
@@ -796,7 +810,7 @@ int l23_app_init(struct osmocom_ms *ms)
 
 static int l23_cfg_supported()
 {
-	return L23_OPT_TAP | L23_OPT_DBG;
+	return L23_OPT_ARFCN | L23_OPT_TAP | L23_OPT_DBG;
 }
 
 static int l23_getopt_options(struct option **options)

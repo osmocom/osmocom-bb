@@ -1,8 +1,8 @@
 AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include
-AM_CFLAGS = -Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS) $(LIBGPS_CFLAGS)
-LDADD = ../common/liblayer23.a $(LIBOSMOCORE_LIBS) $(LIBOSMOGSM_LIBS) $(LIBOSMOCODEC_LIBS) $(LIBGPS_LIBS)
+AM_CFLAGS = -Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS) $(LIBOSMOCODING_CFLAGS) $(LIBGPS_CFLAGS)
+LDADD = ../common/liblayer23.a $(LIBOSMOCORE_LIBS) $(LIBOSMOGSM_LIBS) $(LIBOSMOCODEC_LIBS) $(LIBOSMOCODING_LIBS) $(LIBGPS_LIBS)
 
-bin_PROGRAMS = bcch_scan ccch_scan echo_test cell_log cbch_sniff
+bin_PROGRAMS = bcch_scan ccch_scan echo_test cell_log cbch_sniff burst_process
 
 noinst_HEADERS = bcch_scan.h geo.h
 
@@ -12,3 +12,5 @@ echo_test_SOURCES = ../common/main.c app_echo_test.c
 cell_log_LDADD = $(LDADD) -lm
 cell_log_SOURCES = ../common/main.c app_cell_log.c cell_log.c geo.c
 cbch_sniff_SOURCES = ../common/main.c app_cbch_sniff.c
+
+burst_process_SOURCES = burst_process.c rlp.c
