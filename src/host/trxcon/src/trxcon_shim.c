@@ -151,7 +151,6 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	const struct l1sched_lchan_desc *lchan_desc;
 	struct l1sched_state *sched = lchan->ts->sched;
 	struct trxcon_inst *trxcon = sched->priv;
-	bool is_traffic = false;
 	const uint8_t *data;
 	uint8_t ra_buf[2];
 	size_t data_len;
@@ -160,14 +159,16 @@ int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
 	lchan_desc = &l1sched_lchan_desc[lchan->type];
 
 	switch (dt) {
-	case L1SCHED_DT_TRAFFIC:
 	case L1SCHED_DT_PACKET_DATA:
-		is_traffic = true;
-		/* fall-through */
+		data_len = lchan->prim->payload_len;
+		data = lchan->prim->payload;
+		rc = 0;
+		break; /* do not send DATA.cnf */
 	case L1SCHED_DT_SIGNALING:
+	case L1SCHED_DT_TRAFFIC:
 	{
 		struct trxcon_param_tx_data_cnf cnf = {
-			.traffic = is_traffic,
+			.traffic = (dt == L1SCHED_DT_TRAFFIC),
 			.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
 			.link_id = lchan_desc->link_id,
 			.band_arfcn = trxcon->l1p.band_arfcn,
