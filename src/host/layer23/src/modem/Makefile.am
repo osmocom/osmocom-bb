@@ -18,6 +18,7 @@ bin_PROGRAMS = modem
 modem_SOURCES = \
 	$(top_srcdir)/src/common/main.c \
 	app_modem.c \
+	grr.c \
 	llc.c \
 	rlcmac.c \
 	sndcp.c \
