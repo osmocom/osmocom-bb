@@ -60,8 +60,6 @@
 
 static struct {
 	struct osmocom_ms *ms;
-	enum ccch_mode ccch_mode;
-	struct gsm48_sysinfo si;
 
 	/* TODO: use mobile->rrlayer API instead */
 	struct {
@@ -132,19 +130,20 @@ static uint8_t gen_chan_req(bool single_block)
 
 static int modem_tx_chan_req(struct osmocom_ms *ms, bool single_block)
 {
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 
 	OSMO_ASSERT(rr->state == GSM48_RR_ST_IDLE);
 
-	if (!app_data.si.si1 || !app_data.si.si13)
+	if (!cs->sel_si.si1 || !cs->sel_si.si13)
 		return -EAGAIN;
-	if (!app_data.si.gprs.supported)
+	if (!cs->sel_si.gprs.supported)
 		return -ENOTSUP;
 
 	rr->cr_ra = gen_chan_req(single_block);
 	LOGP(DRR, LOGL_NOTICE, "Sending CHANNEL REQUEST (0x%02x)\n", rr->cr_ra);
 	l1ctl_tx_rach_req(ms, RSL_CHAN_RACH, 0x00, rr->cr_ra, 0,
-			  app_data.ccch_mode == CCCH_MODE_COMBINED);
+			  cs->ccch_mode == CCCH_MODE_COMBINED);
 
 	rr->state = GSM48_RR_ST_CONN_PEND;
 	return 0;
@@ -152,14 +151,15 @@ static int modem_tx_chan_req(struct osmocom_ms *ms, bool single_block)
 
 static int handle_si1(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	int rc;
 
 	if (msgb_l3len(msg) != GSM_MACBLOCK_LEN)
 		return -EINVAL;
-	if (!memcmp(&app_data.si.si1_msg[0], msgb_l3(msg), msgb_l3len(msg)))
+	if (!memcmp(&cs->sel_si.si1_msg[0], msgb_l3(msg), msgb_l3len(msg)))
 		return 0; /* this message is already handled */
 
-	rc = gsm48_decode_sysinfo1(&app_data.si, msgb_l3(msg), msgb_l3len(msg));
+	rc = gsm48_decode_sysinfo1(&cs->sel_si, msgb_l3(msg), msgb_l3len(msg));
 	if (rc != 0) {
 		LOGP(DRR, LOGL_ERROR, "Failed to decode SI1 message\n");
 		return rc;
@@ -170,75 +170,78 @@ static int handle_si1(struct osmocom_ms *ms, struct msgb *msg)
 
 static int handle_si3(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	int rc;
 
 	if (msgb_l3len(msg) != GSM_MACBLOCK_LEN)
 		return -EINVAL;
-	if (!memcmp(&app_data.si.si3_msg[0], msgb_l3(msg), msgb_l3len(msg)))
+	if (!memcmp(&cs->sel_si.si3_msg[0], msgb_l3(msg), msgb_l3len(msg)))
 		return 0; /* this message is already handled */
 
-	rc = gsm48_decode_sysinfo3(&app_data.si, msgb_l3(msg), msgb_l3len(msg));
+	rc = gsm48_decode_sysinfo3(&cs->sel_si, msgb_l3(msg), msgb_l3len(msg));
 	if (rc != 0) {
 		LOGP(DRR, LOGL_ERROR, "Failed to decode SI3 message\n");
 		return rc;
 	}
 
-	if (app_data.ccch_mode == CCCH_MODE_NONE) {
-		if (app_data.si.ccch_conf == RSL_BCCH_CCCH_CONF_1_C)
-			app_data.ccch_mode = CCCH_MODE_COMBINED;
+	if (cs->ccch_mode == CCCH_MODE_NONE) {
+		if (cs->sel_si.ccch_conf == RSL_BCCH_CCCH_CONF_1_C)
+			cs->ccch_mode = CCCH_MODE_COMBINED;
 		else
-			app_data.ccch_mode = CCCH_MODE_NON_COMBINED;
-		l1ctl_tx_ccch_mode_req(ms, app_data.ccch_mode);
+			cs->ccch_mode = CCCH_MODE_NON_COMBINED;
+		l1ctl_tx_ccch_mode_req(ms, cs->ccch_mode);
 	}
 
-	if (!app_data.si.gprs.supported) {
+	if (!cs->sel_si.gprs.supported) {
 		LOGP(DRR, LOGL_NOTICE, "SI3 Rest Octets IE contains no GPRS Indicator\n");
 		return 0;
 	}
 
 	LOGP(DRR, LOGL_NOTICE, "Found GPRS Indicator (RA Colour %u, SI13 on BCCH %s)\n",
-	     app_data.si.gprs.ra_colour, app_data.si.gprs.si13_pos ? "Ext" : "Norm");
+	     cs->sel_si.gprs.ra_colour, cs->sel_si.gprs.si13_pos ? "Ext" : "Norm");
 
 	return 0;
 }
 
 static int handle_si4(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	int rc;
 
 	if (msgb_l3len(msg) != GSM_MACBLOCK_LEN)
 		return -EINVAL;
-	if (!memcmp(&app_data.si.si4_msg[0], msgb_l3(msg), msgb_l3len(msg)))
+	if (!memcmp(&cs->sel_si.si4_msg[0], msgb_l3(msg), msgb_l3len(msg)))
 		return 0; /* this message is already handled */
 
-	rc = gsm48_decode_sysinfo4(&app_data.si, msgb_l3(msg), msgb_l3len(msg));
+	rc = gsm48_decode_sysinfo4(&cs->sel_si, msgb_l3(msg), msgb_l3len(msg));
 	if (rc != 0) {
 		LOGP(DRR, LOGL_ERROR, "Failed to decode SI4 message\n");
 		return rc;
 	}
 
-	if (!app_data.si.gprs.supported) {
+	if (!cs->sel_si.gprs.supported) {
 		LOGP(DRR, LOGL_NOTICE, "SI4 Rest Octets IE contains no GPRS Indicator\n");
 		return 0;
 	}
 
 	LOGP(DRR, LOGL_NOTICE, "Found GPRS Indicator (RA Colour %u, SI13 on BCCH %s)\n",
-	     app_data.si.gprs.ra_colour, app_data.si.gprs.si13_pos ? "Ext" : "Norm");
+	     cs->sel_si.gprs.ra_colour, cs->sel_si.gprs.si13_pos ? "Ext" : "Norm");
 
 	return 0;
 }
 
 static int handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 {
-	int rc;
 	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	int rc;
 
 	if (msgb_l3len(msg) != GSM_MACBLOCK_LEN)
 		return -EINVAL;
-	if (!memcmp(&app_data.si.si13_msg[0], msgb_l3(msg), msgb_l3len(msg)))
+	if (!memcmp(&cs->sel_si.si13_msg[0], msgb_l3(msg), msgb_l3len(msg)))
 		return 0; /* this message is already handled */
 
-	rc = gsm48_decode_sysinfo13(&app_data.si, msgb_l3(msg), msgb_l3len(msg));
+	rc = gsm48_decode_sysinfo13(&cs->sel_si, msgb_l3(msg), msgb_l3len(msg));
 	if (rc != 0)
 		return rc;
 
@@ -332,7 +335,7 @@ static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 			unsigned int arfcn = i & 1023;
 			unsigned int k;
 
-			if (~app_data.si.freq[arfcn].mask & 0x01)
+			if (~ms->cellsel.sel_si.freq[arfcn].mask & 0x01)
 				continue;
 
 			k = ia->mob_alloc_len - (j >> 3) - 1;
