@@ -60,12 +60,6 @@
 
 static struct {
 	struct osmocom_ms *ms;
-
-	/* TODO: use mobile->rrlayer API instead */
-	struct {
-		bool ref_valid;
-		struct gsm48_req_ref ref;
-	} chan_req;
 } app_data;
 
 /* Local network-originated IP packet, needs to be sent via SNDCP/LLC (GPRS) towards GSM network */
@@ -141,12 +135,30 @@ static int modem_tx_chan_req(struct osmocom_ms *ms, bool single_block)
 		return -ENOTSUP;
 
 	rr->cr_ra = gen_chan_req(single_block);
+	memset(&rr->cr_hist[0], 0x00, sizeof(rr->cr_hist));
+
 	LOGP(DRR, LOGL_NOTICE, "Sending CHANNEL REQUEST (0x%02x)\n", rr->cr_ra);
 	l1ctl_tx_rach_req(ms, RSL_CHAN_RACH, 0x00, rr->cr_ra, 0,
 			  cs->ccch_mode == CCCH_MODE_COMBINED);
 
 	rr->state = GSM48_RR_ST_CONN_PEND;
 	return 0;
+}
+
+static bool modem_match_req_ref(struct osmocom_ms *ms,
+				const struct gsm48_req_ref *ref)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(rr->cr_hist); i++) {
+		const struct gsm48_cr_hist *hist = &rr->cr_hist[i];
+		if (!hist->valid)
+			continue;
+		if (memcmp(&hist->ref, ref, sizeof(*ref)) == 0)
+			return true;
+	}
+
+	return false;
 }
 
 static int handle_si1(struct osmocom_ms *ms, struct msgb *msg)
@@ -291,9 +303,7 @@ static int modem_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (rr->state != GSM48_RR_ST_CONN_PEND)
 		return 0;
-	if (!app_data.chan_req.ref_valid)
-		return 0;
-	if (memcmp(&ia->req_ref, &app_data.chan_req.ref, sizeof(ia->req_ref)))
+	if (!modem_match_req_ref(ms, &ia->req_ref))
 		return 0;
 
 	if (rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
@@ -467,9 +477,12 @@ static int modem_rx_rslms_cchan(struct osmocom_ms *ms, struct msgb *msg)
 			LOGP(DRSL, LOGL_NOTICE,
 			     "Rx RACH.conf (RA=0x%02x, T1=%u, T3=%u, T2=%u)\n",
 			     rr->cr_ra, ref->t1, ref->t3_high << 3 | ref->t3_low, ref->t2);
-			memcpy(&app_data.chan_req.ref, ref, sizeof(*ref));
-			app_data.chan_req.ref.ra = rr->cr_ra;
-			app_data.chan_req.ref_valid = true;
+			/* shift the CHANNEL REQUEST history buffer */
+			memmove(&rr->cr_hist[1], &rr->cr_hist[0], ARRAY_SIZE(rr->cr_hist) - 1);
+			/* store the new entry */
+			rr->cr_hist[0].ref = *ref;
+			rr->cr_hist[0].ref.ra = rr->cr_ra;
+			rr->cr_hist[0].valid = 1;
 			return 0;
 		}
 		/* fall-through */
