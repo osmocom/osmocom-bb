@@ -19,18 +19,16 @@
  */
 
 #include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 #include <errno.h>
 #include <stdio.h>
 
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
-
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/prim.h>
+#include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
-#include <osmocom/core/timer.h>
 #include <osmocom/core/talloc.h>
-#include <osmocom/core/endian.h>
 #include <osmocom/core/tun.h>
 
 #include <osmocom/gprs/llc/llc.h>
@@ -38,6 +36,7 @@
 #include <osmocom/gprs/sndcp/sndcp_prim.h>
 #include <osmocom/gprs/sndcp/sndcp.h>
 
+#include <osmocom/bb/common/settings.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>

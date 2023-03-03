@@ -20,25 +20,23 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdbool.h>
-#include <inttypes.h>
 
+#include <osmocom/core/prim.h>
 #include <osmocom/core/msgb.h>
-#include <osmocom/core/linuxlist.h>
-#include <osmocom/core/timer.h>
+#include <osmocom/core/utils.h>
 #include <osmocom/core/talloc.h>
-#include <osmocom/core/rate_ctr.h>
-#include <osmocom/crypt/kdf.h>
-#include <osmocom/gprs/gprs_bssgp.h>
-#include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/core/logging.h>
+
+#include <osmocom/gprs/gprs_msgb.h>
 #include <osmocom/gprs/llc/llc_prim.h>
 #include <osmocom/gprs/llc/llc.h>
 #include <osmocom/gprs/rlcmac/rlcmac_prim.h>
 #include <osmocom/gprs/sndcp/sndcp_prim.h>
 
-#include <osmocom/bb/common/logging.h>
-#include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
+#include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/modem/llc.h>
 
 static int modem_llc_handle_ll_gmm(struct osmo_gprs_llc_prim *llc_prim)

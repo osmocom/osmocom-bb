@@ -20,20 +20,27 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include <errno.h>
 #include <stdio.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/utils.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/core/application.h>
 #include <osmocom/core/socket.h>
 #include <osmocom/core/tun.h>
+#include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/lapdm.h>
 #include <osmocom/vty/vty.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/settings.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l1ctl.h>

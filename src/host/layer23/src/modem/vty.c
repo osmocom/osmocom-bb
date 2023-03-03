@@ -15,15 +15,18 @@
  *
  */
 
-#include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#include <osmocom/core/utils.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/linuxlist.h>
 
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
 
+#include <osmocom/bb/common/settings.h>
 #include <osmocom/bb/common/vty.h>
 #include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>

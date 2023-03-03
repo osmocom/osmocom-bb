@@ -21,22 +21,20 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <inttypes.h>
 
 #include <osmocom/core/msgb.h>
-#include <osmocom/core/linuxlist.h>
-#include <osmocom/core/timer.h>
+#include <osmocom/core/bits.h>
+#include <osmocom/core/prim.h>
+#include <osmocom/core/utils.h>
 #include <osmocom/core/talloc.h>
-#include <osmocom/core/rate_ctr.h>
-#include <osmocom/crypt/kdf.h>
-#include <osmocom/gprs/gprs_bssgp.h>
+#include <osmocom/core/logging.h>
+
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gprs/rlcmac/rlcmac_prim.h>
 #include <osmocom/gprs/rlcmac/rlcmac.h>
 #include <osmocom/gprs/llc/llc_prim.h>
 
 #include <osmocom/bb/common/logging.h>
-#include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/modem/rlcmac.h>
 
