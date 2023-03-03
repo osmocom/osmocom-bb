@@ -23,6 +23,9 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/linuxlist.h>
 
+#include <osmocom/gprs/llc/llc.h>
+#include <osmocom/gprs/llc/llc_prim.h>
+
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
 
@@ -56,6 +59,7 @@ int modem_vty_go_parent(struct vty *vty)
 #define MS_NAME_DESC "Name of MS (see \"show ms\")\n"
 #define TEST_CMD_DESC "Testing commands for developers\n"
 #define GRR_CMDG_DESC "GPRS RR specific commands\n"
+#define LLC_CMDG_DESC "GPRS LLC specific commands\n"
 
 /* testing commands */
 DEFUN_HIDDEN(test_grr_tx_chan_req,
@@ -75,6 +79,73 @@ DEFUN_HIDDEN(test_grr_tx_chan_req,
 	chan_req = modem_grr_gen_chan_req(argv[1][0] == '2');
 	if (modem_grr_tx_chan_req(ms, chan_req) != 0) {
 		vty_out(vty, "Failed to send a CHANNEL REQUEST%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN_HIDDEN(test_llc_unitdata_req_hexpdu,
+	     test_llc_unitdata_req_hexpdu_cmd,
+	     "test MS_NAME llc unitdata-req <0x00-0xffffffff> SAPI HEXSTRING",
+	     TEST_CMD_DESC MS_NAME_DESC LLC_CMDG_DESC
+	     "Enqueue an LLC UNITDATA.req for transmission\n"
+	     "TLLI (Temporary Logical Link Identifier) value to be used\n"
+	     "SAPI value to be used (for example, GMM, SMS, SNDCP3)\n"
+	     "LLC PDU as a hexstring (up to 512 octets)\n")
+{
+	struct osmo_gprs_llc_prim *llc_prim;
+	struct osmocom_ms *ms;
+	uint8_t buf[512];
+	int tlli, sapi, pdu_len;
+
+	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL)
+		return CMD_WARNING;
+
+	if (osmo_str_to_int(&tlli, argv[1], 0, 0, 0xffffff) < 0)
+		return CMD_WARNING;
+	sapi = get_string_value(osmo_gprs_llc_sapi_names, argv[2]);
+	if (sapi < 0)
+		return CMD_WARNING;
+	pdu_len = osmo_hexparse(argv[3], &buf[0], sizeof(buf));
+	if (pdu_len < 0)
+		return CMD_WARNING;
+
+	llc_prim = osmo_gprs_llc_prim_alloc_ll_unitdata_req(tlli, sapi, &buf[0], pdu_len);
+	if (osmo_gprs_llc_prim_upper_down(llc_prim) != 0) {
+		vty_out(vty, "Failed to enqueue an LLC PDU%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+static uint8_t pdu_gmmm_attach_req[] = {
+	0x08, 0x01, 0x02, 0xe5, 0xe0, 0x01, 0x0a, 0x00, 0x05, 0xf4, 0xf4, 0x3c, 0xec, 0x71, 0x32, 0xf4,
+	0x07, 0x00, 0x05, 0x00, 0x17, 0x19, 0x33, 0x43, 0x2b, 0x37, 0x15, 0x9e, 0xf9, 0x88, 0x79, 0xcb,
+	0xa2, 0x8c, 0x66, 0x21, 0xe7, 0x26, 0x88, 0xb1, 0x98, 0x87, 0x9c, 0x00, 0x17, 0x05,
+};
+
+/* TODO: remove this command once we have the GMM layer implemented */
+DEFUN_HIDDEN(test_llc_unitdata_req_gmm_attch,
+	     test_llc_unitdata_req_gmm_attch_cmd,
+	     "test MS_NAME llc unitdata-req gmm-attach-req",
+	     TEST_CMD_DESC MS_NAME_DESC LLC_CMDG_DESC
+	     "Enqueue an LLC UNITDATA.req for transmission\n"
+	     "Hard-coded GMM Attach Request (SAPI=GMM, TLLI=0xe1c5d364)\n")
+{
+	struct osmo_gprs_llc_prim *llc_prim;
+	const uint32_t tlli = 0xe1c5d364;
+	struct osmocom_ms *ms;
+
+	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL)
+		return CMD_WARNING;
+
+	llc_prim = osmo_gprs_llc_prim_alloc_ll_unitdata_req(tlli, OSMO_GPRS_LLC_SAPI_GMM,
+							    &pdu_gmmm_attach_req[0],
+							    sizeof(pdu_gmmm_attach_req));
+	if (osmo_gprs_llc_prim_upper_down(llc_prim) != 0) {
+		vty_out(vty, "Failed to enqueue an LLC PDU%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -262,6 +333,8 @@ int modem_vty_init(void)
 		return rc;
 	install_element_ve(&l23_show_ms_cmd);
 	install_element_ve(&test_grr_tx_chan_req_cmd);
+	install_element_ve(&test_llc_unitdata_req_hexpdu_cmd);
+	install_element_ve(&test_llc_unitdata_req_gmm_attch_cmd);
 	install_element(CONFIG_NODE, &l23_cfg_ms_cmd);
 
 	install_element(MS_NODE, &cfg_ms_apn_cmd);
