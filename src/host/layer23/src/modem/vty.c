@@ -30,6 +30,7 @@
 #include <osmocom/bb/common/vty.h>
 #include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
+#include <osmocom/bb/modem/grr.h>
 #include <osmocom/bb/modem/vty.h>
 
 static struct cmd_node apn_node = {
@@ -50,6 +51,34 @@ int modem_vty_go_parent(struct vty *vty)
 		break;
 	}
 	return vty->node;
+}
+
+#define MS_NAME_DESC "Name of MS (see \"show ms\")\n"
+#define TEST_CMD_DESC "Testing commands for developers\n"
+#define GRR_CMDG_DESC "GPRS RR specific commands\n"
+
+/* testing commands */
+DEFUN_HIDDEN(test_grr_tx_chan_req,
+	     test_grr_tx_chan_req_cmd,
+	     "test MS_NAME grr tx-chan-req (1phase|2phase)",
+	     TEST_CMD_DESC MS_NAME_DESC GRR_CMDG_DESC
+	     "Send a CHANNEL REQUEST (RACH) to the network\n"
+	     "One-phase packet access (011110xx or 01111x0x or 01111xx0)\n"
+	     "Two-phase (single block) packet access (01110xxx)\n")
+{
+	struct osmocom_ms *ms;
+	uint8_t chan_req;
+
+	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL)
+		return CMD_WARNING;
+
+	chan_req = modem_grr_gen_chan_req(argv[1][0] == '2');
+	if (modem_grr_tx_chan_req(ms, chan_req) != 0) {
+		vty_out(vty, "Failed to send a CHANNEL REQUEST%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
 }
 
 /* per APN config */
@@ -232,6 +261,7 @@ int modem_vty_init(void)
 	if ((rc = l23_vty_init(config_write, NULL)) < 0)
 		return rc;
 	install_element_ve(&l23_show_ms_cmd);
+	install_element_ve(&test_grr_tx_chan_req_cmd);
 	install_element(CONFIG_NODE, &l23_cfg_ms_cmd);
 
 	install_element(MS_NODE, &cfg_ms_apn_cmd);

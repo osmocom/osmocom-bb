@@ -47,7 +47,7 @@
 #include <l1ctl_proto.h>
 
 /* Generate an 8-bit CHANNEL REQUEST message as per 3GPP TS 44.018, 9.1.8 */
-static uint8_t grr_gen_chan_req(bool single_block)
+uint8_t modem_grr_gen_chan_req(bool single_block)
 {
 	uint8_t rnd = (uint8_t)rand();
 
@@ -76,7 +76,7 @@ static bool grr_match_req_ref(struct osmocom_ms *ms,
 	return false;
 }
 
-static int grr_tx_chan_req(struct osmocom_ms *ms, bool single_block)
+int modem_grr_tx_chan_req(struct osmocom_ms *ms, uint8_t chan_req)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
@@ -88,7 +88,7 @@ static int grr_tx_chan_req(struct osmocom_ms *ms, bool single_block)
 	if (!cs->sel_si.gprs.supported)
 		return -ENOTSUP;
 
-	rr->cr_ra = grr_gen_chan_req(single_block);
+	rr->cr_ra = chan_req;
 	memset(&rr->cr_hist[0], 0x00, sizeof(rr->cr_hist));
 
 	LOGP(DRR, LOGL_NOTICE, "Sending CHANNEL REQUEST (0x%02x)\n", rr->cr_ra);
@@ -208,10 +208,6 @@ static int grr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 
 	LOGP(DRR, LOGL_INFO, "BCCH message (type=0x%02x): %s\n",
 	     si_type, gsm48_rr_msg_name(si_type));
-
-	/* HACK: request an Uplink TBF here (one phase access) */
-	if (ms->rrlayer.state == GSM48_RR_ST_IDLE)
-		grr_tx_chan_req(ms, false);
 
 	switch (si_type) {
 	case GSM48_MT_RR_SYSINFO_1:
