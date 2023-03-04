@@ -99,8 +99,6 @@ int gsm414_rcv_test(struct osmocom_ms *ms, const struct msgb *msg);
  * support
  */
 
-#define MIN(a, b) ((a < b) ? a : b)
-
 /* decode "Power Command" (10.5.2.28) and (10.5.2.28a) */
 static int gsm48_decode_power_cmd_acc(struct gsm48_power_cmd *pc,
 	uint8_t *power_level, uint8_t *atc)
@@ -1797,7 +1795,7 @@ static int gsm48_rr_rx_sysinfo1(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si1_msg, MIN(msgb_l3len(msg), sizeof(s->si1_msg))))
+	if (!memcmp(si, s->si1_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si1_msg))))
 		return 0;
 
 	gsm48_decode_sysinfo1(s, si, msgb_l3len(msg));
@@ -1826,7 +1824,7 @@ static int gsm48_rr_rx_sysinfo2(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si2_msg, MIN(msgb_l3len(msg), sizeof(s->si2_msg))))
+	if (!memcmp(si, s->si2_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si2_msg))))
 		return 0;
 
 	gsm48_decode_sysinfo2(s, si, msgb_l3len(msg));
@@ -1855,7 +1853,7 @@ static int gsm48_rr_rx_sysinfo2bis(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si2b_msg, MIN(msgb_l3len(msg), sizeof(s->si2b_msg))))
+	if (!memcmp(si, s->si2b_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si2b_msg))))
 		return 0;
 
 	gsm48_decode_sysinfo2bis(s, si, msgb_l3len(msg));
@@ -1884,7 +1882,7 @@ static int gsm48_rr_rx_sysinfo2ter(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si2t_msg, MIN(msgb_l3len(msg), sizeof(s->si2t_msg))))
+	if (!memcmp(si, s->si2t_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si2t_msg))))
 		return 0;
 
 	gsm48_decode_sysinfo2ter(s, si, msgb_l3len(msg));
@@ -1914,7 +1912,7 @@ static int gsm48_rr_rx_sysinfo3(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si3_msg, MIN(msgb_l3len(msg), sizeof(s->si3_msg))))
+	if (!memcmp(si, s->si3_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si3_msg))))
 		return 0;
 
 	gsm48_decode_sysinfo3(s, si, msgb_l3len(msg));
@@ -1949,7 +1947,7 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si4_msg, MIN(msgb_l3len(msg), sizeof(s->si4_msg))))
+	if (!memcmp(si, s->si4_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si4_msg))))
 		return 0;
 
 	gsm48_decode_sysinfo4(s, si, msgb_l3len(msg));
@@ -1981,7 +1979,7 @@ static int gsm48_rr_rx_sysinfo5(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si5_msg, MIN(msgb_l3len(msg), sizeof(s->si5_msg))))
+	if (!memcmp(si, s->si5_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si5_msg))))
 		return 0;
 
 	gsm48_decode_sysinfo5(s, si, msgb_l3len(msg));
@@ -2011,7 +2009,7 @@ static int gsm48_rr_rx_sysinfo5bis(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si5b_msg, MIN(msgb_l3len(msg),
+	if (!memcmp(si, s->si5b_msg, OSMO_MIN(msgb_l3len(msg),
 			sizeof(s->si5b_msg))))
 		return 0;
 
@@ -2042,7 +2040,7 @@ static int gsm48_rr_rx_sysinfo5ter(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si5t_msg, MIN(msgb_l3len(msg),
+	if (!memcmp(si, s->si5t_msg, OSMO_MIN(msgb_l3len(msg),
 			sizeof(s->si5t_msg))))
 		return 0;
 
@@ -2074,7 +2072,7 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si6_msg, MIN(msgb_l3len(msg), sizeof(s->si6_msg))))
+	if (!memcmp(si, s->si6_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si6_msg))))
 		return 0;
 
 	gsm48_decode_sysinfo6(s, si, msgb_l3len(msg));
@@ -2108,7 +2106,7 @@ static int gsm48_rr_rx_sysinfo13(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	if (!memcmp(si, s->si13_msg, MIN(msgb_l3len(msg), sizeof(s->si6_msg))))
+	if (!memcmp(si, s->si13_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si6_msg))))
 		return 0;
 
 	gsm48_decode_sysinfo13(s, si, msgb_l3len(msg));
