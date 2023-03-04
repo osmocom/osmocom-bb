@@ -952,8 +952,8 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 			break;
 		case GSM48_MM_SST_ATTEMPT_UPDATE:
 			vty_notify(ms, NULL);
-			vty_notify(ms, "Trying to registering with "
-				"network...\n");
+			vty_notify(ms, "Trying to register with network %s, %s...\n",
+				   gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 			break;
 		}
 	}
