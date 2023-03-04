@@ -312,10 +312,11 @@ int main(int argc, char **argv)
 	}
 
 	if (l23_cfg.gsmtap.remote_host) {
-		l23_cfg.gsmtap.inst = gsmtap_source_init(l23_cfg.gsmtap.remote_host, GSMTAP_UDP_PORT, 1);
+		l23_cfg.gsmtap.inst = gsmtap_source_init2(l23_cfg.gsmtap.local_host, 0,
+							  l23_cfg.gsmtap.remote_host, GSMTAP_UDP_PORT, 1);
 		if (!l23_cfg.gsmtap.inst) {
-			fprintf(stderr, "Failed during gsmtap_source_init(%s:%u)\n",
-				l23_cfg.gsmtap.remote_host, GSMTAP_UDP_PORT);
+			fprintf(stderr, "Failed during gsmtap_source_init2(%s -> %s:%u)\n",
+				l23_cfg.gsmtap.local_host, l23_cfg.gsmtap.remote_host, GSMTAP_UDP_PORT);
 			exit(1);
 		}
 		gsmtap_source_add_sink(l23_cfg.gsmtap.inst);

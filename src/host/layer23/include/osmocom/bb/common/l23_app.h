@@ -34,6 +34,7 @@ enum l23_gsmtap_gprs_category {
 struct l23_global_config {
 	struct {
 		char *remote_host;
+		char *local_host;
 		uint32_t lchan_mask; /* see l23_gsmtap_gprs_category */
 		uint32_t lchan_acch_mask; /* see l23_gsmtap_gprs_category */
 		bool lchan_acch;

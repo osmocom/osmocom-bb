@@ -192,6 +192,32 @@ DEFUN(cfg_gsmtap_no_gsmtap_remote_host,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_gsmtap_gsmtap_local_host,
+      cfg_gsmtap_gsmtap_local_host_cmd,
+      "local-host " VTY_IPV46_CMD,
+      "Set source for GSMTAP Um logging\n"
+      "Local IP address\n")
+{
+	osmo_talloc_replace_string(l23_ctx, &l23_cfg.gsmtap.local_host, argv[0]);
+
+	if (vty->type != VTY_FILE)
+		vty_out(vty, "%% This command requires restart%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_gsmtap_no_gsmtap_local_host,
+      cfg_gsmtap_no_gsmtap_local_host_cmd,
+      "no local-host",
+      NO_STR "Disable explicit source for GSMTAP Um logging\n")
+{
+	TALLOC_FREE(l23_cfg.gsmtap.local_host);
+	if (vty->type != VTY_FILE)
+		vty_out(vty, "%% This command requires restart%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_gsmtap_gsmtap_lchan_all, cfg_gsmtap_gsmtap_lchan_all_cmd,
 	"lchan (enable-all|disable-all)",
 	"Enable/disable sending of UL/DL messages over GSMTAP\n"
@@ -414,6 +440,11 @@ static int l23_vty_config_write_gsmtap_node(struct vty *vty)
 	else
 		vty_out(vty, " no remote-host%s", VTY_NEWLINE);
 
+	if (l23_cfg.gsmtap.local_host)
+		vty_out(vty, " local-host %s%s", l23_cfg.gsmtap.local_host, VTY_NEWLINE);
+	else
+		vty_out(vty, " no local-host%s", VTY_NEWLINE);
+
 	if (l23_cfg.gsmtap.lchan_acch)
 		vty_out(vty, " lchan sacch%s", VTY_NEWLINE);
 
@@ -516,6 +547,8 @@ static void l23_vty_init_gsmtap(void)
 	install_node(&gsmtap_node, l23_vty_config_write_gsmtap_node);
 	install_element(GSMTAP_NODE, &cfg_gsmtap_gsmtap_remote_host_cmd);
 	install_element(GSMTAP_NODE, &cfg_gsmtap_no_gsmtap_remote_host_cmd);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_gsmtap_local_host_cmd);
+	install_element(GSMTAP_NODE, &cfg_gsmtap_no_gsmtap_local_host_cmd);
 	install_element(GSMTAP_NODE, &cfg_gsmtap_gsmtap_lchan_all_cmd);
 	install_element(GSMTAP_NODE, &cfg_gsmtap_gsmtap_lchan_cmd);
 	install_element(GSMTAP_NODE, &cfg_gsmtap_no_gsmtap_lchan_cmd);
