@@ -53,7 +53,6 @@
 void *l23_ctx = NULL;
 struct l23_global_config l23_cfg;
 struct llist_head ms_list;
-static char *gsmtap_ip = 0;
 static const char *custom_cfg_file = NULL;
 static char *config_file = NULL;
 char *config_dir = NULL;
@@ -83,7 +82,6 @@ static void print_help(void)
 {
 	printf(" Some help...\n");
 	printf("  -h --help		this text\n");
-	printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
 	printf("  -d --debug		Change debug flags. default: %s\n",
 		debug_default);
 	printf("  -D --daemonize	Run as daemon\n");
@@ -96,11 +94,11 @@ static int handle_options(int argc, char **argv)
 		int option_index = 0, c;
 		static struct option long_options[] = {
 			{"help", 0, 0, 'h'},
-			{"gsmtap-ip", 1, 0, 'i'},
 			{"debug", 1, 0, 'd'},
 			{"daemonize", 0, 0, 'D'},
 			{"config-file", 1, 0, 'c'},
 			/* DEPRECATED options, to be removed */
+			{"gsmtap-ip", 1, 0, 'i'},
 			{"mncc-sock", 0, 0, 'm'},
 			{"vty-ip", 1, 0, 'u'},
 			{"vty-port", 1, 0, 'v'},
@@ -118,9 +116,6 @@ static int handle_options(int argc, char **argv)
 			print_help();
 			exit(0);
 			break;
-		case 'i':
-			gsmtap_ip = optarg;
-			break;
 		case 'c':
 			custom_cfg_file = optarg;
 			break;
@@ -131,6 +126,11 @@ static int handle_options(int argc, char **argv)
 			daemonize = 1;
 			break;
 		/* DEPRECATED options, to be removed */
+		case 'i':
+			fprintf(stderr, "Option 'i' is deprecated! "
+				"Please use the configuration file "
+				"in order to set GSMTAP parameters.\n");
+			return -EINVAL;
 		case 'm':
 			fprintf(stderr, "Option 'm' is deprecated! "
 				"Please use the configuration file "
@@ -311,10 +311,11 @@ int main(int argc, char **argv)
 			exit(1);
 	}
 
-	if (gsmtap_ip) {
-		l23_cfg.gsmtap.inst = gsmtap_source_init(gsmtap_ip, GSMTAP_UDP_PORT, 1);
+	if (l23_cfg.gsmtap.remote_host) {
+		l23_cfg.gsmtap.inst = gsmtap_source_init(l23_cfg.gsmtap.remote_host, GSMTAP_UDP_PORT, 1);
 		if (!l23_cfg.gsmtap.inst) {
-			fprintf(stderr, "Failed during gsmtap_init()\n");
+			fprintf(stderr, "Failed during gsmtap_source_init(%s:%u)\n",
+				l23_cfg.gsmtap.remote_host, GSMTAP_UDP_PORT);
 			exit(1);
 		}
 		gsmtap_source_add_sink(l23_cfg.gsmtap.inst);
