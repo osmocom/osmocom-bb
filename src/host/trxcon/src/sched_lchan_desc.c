@@ -90,7 +90,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		/* Rx only, xCCH convolutional coding (3GPP TS 05.03, section 4.4),
 		 * regular interleaving (3GPP TS 05.02, clause 7, table 3):
 		 * a L2 frame is interleaved over 4 consecutive bursts. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_AUTO,
 		.rx_fn = rx_data_fn,
 	},
@@ -113,7 +113,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		/* Rx only, xCCH convolutional coding (3GPP TS 05.03, section 4.4),
 		 * regular interleaving (3GPP TS 05.02, clause 7, table 3):
 		 * a L2 frame is interleaved over 4 consecutive bursts. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_AUTO,
 		.rx_fn = rx_data_fn,
 	},
@@ -135,7 +135,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 *
 		 * The MS shall continuously transmit bursts, even if there is nothing
 		 * to send, unless DTX (Discontinuous Transmission) is used. */
-		.burst_buf_size = 8 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 8 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_tchf_fn,
 		.tx_fn = tx_tchf_fn,
@@ -164,7 +164,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 *
 		 * The MS shall continuously transmit bursts, even if there is nothing
 		 * to send, unless DTX (Discontinuous Transmission) is used. */
-		.burst_buf_size = 6 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 6 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_tchh_fn,
 		.tx_fn = tx_tchh_fn,
@@ -178,7 +178,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_TCHH_0, see above. */
-		.burst_buf_size = 6 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 6 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_tchh_fn,
 		.tx_fn = tx_tchh_fn,
@@ -192,7 +192,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -206,7 +206,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -220,7 +220,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -234,7 +234,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 3,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -248,7 +248,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -262,7 +262,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -276,7 +276,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -290,7 +290,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 3,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -304,7 +304,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 4,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -318,7 +318,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 5,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -332,7 +332,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 6,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -346,7 +346,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 7,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -359,7 +359,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.link_id = L1SCHED_CH_LID_SACCH,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -373,7 +373,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -387,7 +387,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -401,7 +401,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -415,7 +415,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -429,7 +429,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -443,7 +443,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 3,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH4_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -457,7 +457,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 0,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -471,7 +471,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 1,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -485,7 +485,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -499,7 +499,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 3,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -513,7 +513,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 4,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -527,7 +527,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 5,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -541,7 +541,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 6,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -555,7 +555,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 7,
 
 		/* Same as for L1SCHED_BCCH and L1SCHED_SDCCH8_* (xCCH), see above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_CBTX,
 		.rx_fn = rx_data_fn,
 		.tx_fn = tx_data_fn,
@@ -570,7 +570,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 * 05.03, chapter 5), regular interleaving as specified for xCCH.
 		 * NOTE: the burst buffer is three times bigger because the
 		 * payload of EDGE bursts is three times longer. */
-		.burst_buf_size = 3 * 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_8PSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_PDCH,
 		.rx_fn = rx_pdtch_fn,
 		.tx_fn = tx_pdtch_fn,
@@ -587,7 +587,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		 * transfer mode. On Downlink, the network sends timing advance
 		 * updates for several mobile stations. The coding scheme used
 		 * for PTCCH/D messages is the same as for PDTCH CS-1. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_PDCH,
 		.rx_fn = rx_pdtch_fn,
 		.tx_fn = tx_rach_fn,
@@ -600,7 +600,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH (xCCH), but Rx only. See above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.flags = L1SCHED_CH_FLAG_AUTO,
 		.rx_fn = rx_data_fn,
 	},
@@ -612,7 +612,7 @@ const struct l1sched_lchan_desc l1sched_lchan_desc[_L1SCHED_CHAN_MAX] = {
 		.ss_nr = 2,
 
 		/* Same as for L1SCHED_BCCH (xCCH), but Rx only. See above. */
-		.burst_buf_size = 4 * GSM_BURST_PL_LEN,
+		.burst_buf_size = 4 * GSM_NBITS_NB_GMSK_PAYLOAD,
 		.rx_fn = rx_data_fn,
 	},
 };

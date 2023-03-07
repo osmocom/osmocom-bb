@@ -143,8 +143,8 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	burst_ptr += RACH_PAYLOAD_LEN;
 
 	/* BN85-156: tail bits & extended guard period */
-	memset(burst_ptr, 0, br->burst + GSM_BURST_LEN - burst_ptr);
-	br->burst_len = GSM_BURST_LEN;
+	memset(burst_ptr, 0, br->burst + GSM_NBITS_NB_GMSK_BURST - burst_ptr);
+	br->burst_len = GSM_NBITS_NB_GMSK_BURST;
 
 	LOGP_LCHAND(lchan, LOGL_NOTICE, "Scheduled %s-bit RACH (%s) at fn=%u\n",
 		    L1SCHED_PRIM_IS_RACH11(lchan->prim) ? "11" : "8",

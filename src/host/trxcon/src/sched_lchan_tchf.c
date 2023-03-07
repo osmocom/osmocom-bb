@@ -350,7 +350,7 @@ send_burst:
 	memcpy(br->burst + 61, tsc, 26); /* TSC */
 	memcpy(br->burst + 87, offset + 58, 58); /* Payload 2/2 */
 	memset(br->burst + 145, 0, 3); /* TB */
-	br->burst_len = GSM_BURST_LEN;
+	br->burst_len = GSM_NBITS_NB_GMSK_BURST;
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG, "Scheduled fn=%u burst=%u\n", br->fn, br->bid);
 

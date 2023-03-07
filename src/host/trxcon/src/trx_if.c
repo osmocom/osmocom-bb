@@ -39,12 +39,12 @@
 #include <osmocom/core/fsm.h>
 
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/gsm0502.h>
 
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
 
 #define TRXDv0_HDR_LEN		8
-#define GMSK_BURST_LEN		148
 
 #define S(x)	(1 << (x))
 
@@ -645,7 +645,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return read_len;
 	}
 
-	if (read_len < (TRXDv0_HDR_LEN + GMSK_BURST_LEN)) {
+	if (read_len < (TRXDv0_HDR_LEN + GSM_NBITS_NB_GMSK_BURST)) {
 		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
 			  "Got data message with invalid length '%zd'\n", read_len);
 		return -EINVAL;
@@ -664,7 +664,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		.fn = osmo_load32be(buf + 1),
 		.rssi = -(int8_t) buf[5],
 		.toa256 = (int16_t) (buf[6] << 8) | buf[7],
-		.burst = burst, /* at least GMSK_BURST_LEN */
+		.burst = burst, /* at least GSM_NBITS_NB_GMSK_BURST */
 		.burst_len = read_len - TRXDv0_HDR_LEN,
 	};
 
@@ -676,7 +676,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 			burst[i] = 127 - buf[8 + i];
 	}
 
-	if (bi.fn >= 2715648) {
+	if (bi.fn >= GSM_TDMA_HYPERFRAME) {
 		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal FN %u\n", bi.fn);
 		return -EINVAL;
 	}

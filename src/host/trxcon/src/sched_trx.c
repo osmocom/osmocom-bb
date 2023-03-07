@@ -736,7 +736,7 @@ static int subst_frame_loss(struct l1sched_lchan_state *lchan,
 		.toa256 = 0,
 		.rssi = -120,
 		.burst = { 0 },
-		.burst_len = GSM_BURST_LEN,
+		.burst_len = GSM_NBITS_NB_GMSK_BURST,
 	};
 
 	/* Traverse from fp till the current frame */

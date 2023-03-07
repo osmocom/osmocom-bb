@@ -14,12 +14,6 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/timer.h>
 
-#define GSM_BURST_LEN		148
-#define GSM_BURST_PL_LEN	116
-
-#define GPRS_BURST_LEN		GSM_BURST_LEN
-#define EDGE_BURST_LEN		444
-
 #define GPRS_L2_MAX_LEN		54
 #define EDGE_L2_MAX_LEN		155
 
@@ -141,7 +135,7 @@ struct l1sched_burst_req {
 	/* Internally used by the scheduler */
 	uint8_t bid;
 
-	ubit_t burst[EDGE_BURST_LEN];
+	ubit_t burst[GSM_NBITS_NB_8PSK_BURST];
 	size_t burst_len;
 };
 
@@ -158,7 +152,7 @@ struct l1sched_burst_ind {
 	/* Internally used by the scheduler */
 	uint8_t bid;
 
-	sbit_t burst[EDGE_BURST_LEN];
+	sbit_t burst[GSM_NBITS_NB_8PSK_BURST];
 	size_t burst_len;
 };
 
