@@ -645,9 +645,9 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		return read_len;
 	}
 
-	if (read_len < (TRXDv0_HDR_LEN + GSM_NBITS_NB_GMSK_BURST)) {
+	if (read_len < TRXDv0_HDR_LEN) {
 		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
-			  "Got data message with invalid length '%zd'\n", read_len);
+			  "Got malformed TRXD PDU (short length=%zd)\n", read_len);
 		return -EINVAL;
 	}
 
@@ -655,6 +655,22 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
 			  "Got TRXD PDU with unexpected version\n");
 		return -ENOTSUP;
+	}
+
+	read_len -= TRXDv0_HDR_LEN;
+	switch (read_len) {
+	/* TRXDv0 PDUs may have 2 dummy bytes at the end */
+	case GSM_NBITS_NB_GMSK_BURST + 2:
+	case GSM_NBITS_NB_8PSK_BURST + 2:
+		read_len -= 2;
+		break;
+	case GSM_NBITS_NB_GMSK_BURST:
+	case GSM_NBITS_NB_8PSK_BURST:
+		break;
+	default:
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
+			  "Got TRXD PDU unexpected burst length=%zd\n", read_len);
+		return -EINVAL;
 	}
 
 	burst = (sbit_t *)&buf[8];
@@ -665,7 +681,7 @@ static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
 		.rssi = -(int8_t) buf[5],
 		.toa256 = (int16_t) (buf[6] << 8) | buf[7],
 		.burst = burst, /* at least GSM_NBITS_NB_GMSK_BURST */
-		.burst_len = read_len - TRXDv0_HDR_LEN,
+		.burst_len = read_len,
 	};
 
 	/* Convert ubits {254..0} to sbits {-127..127} in-place */
