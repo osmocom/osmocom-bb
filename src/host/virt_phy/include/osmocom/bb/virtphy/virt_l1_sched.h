@@ -1,9 +1,11 @@
 #pragma once
+
 #include <osmocom/core/msgb.h>
-#include <virtphy/virt_l1_model.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/gsm/gsm_utils.h>
-#include <virtphy/virt_l1_sched.h>
+
+#include <osmocom/bb/virtphy/virt_l1_model.h>
+#include <osmocom/bb/virtphy/virt_l1_sched.h>
 
 struct l1_model_ms;
 

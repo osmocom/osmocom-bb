@@ -25,11 +25,12 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/core/msgb.h>
-#include <virtphy/l1ctl_sap.h>
-#include <virtphy/virt_l1_sched.h>
 #include <osmocom/core/gsmtap.h>
-#include <virtphy/logging.h>
-#include <virtphy/l1ctl_proto.h>
+
+#include <osmocom/bb/virtphy/l1ctl_sap.h>
+#include <osmocom/bb/virtphy/virt_l1_sched.h>
+#include <osmocom/bb/virtphy/logging.h>
+#include <osmocom/bb/l1ctl_proto.h>
 
 static uint16_t sync_count = 0;
 

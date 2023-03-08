@@ -40,8 +40,8 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/socket.h>
 
-#include <virtphy/l1ctl_sock.h>
-#include <virtphy/logging.h>
+#include <osmocom/bb/virtphy/l1ctl_sock.h>
+#include <osmocom/bb/virtphy/logging.h>
 
 #define L1CTL_SOCK_MSGB_SIZE	256
 

@@ -19,10 +19,11 @@
  *
  */
 
-#include <virtphy/virt_l1_model.h>
-#include <virtphy/l1ctl_sap.h>
-#include <virtphy/logging.h>
 #include <talloc.h>
+
+#include <osmocom/bb/virtphy/virt_l1_model.h>
+#include <osmocom/bb/virtphy/l1ctl_sap.h>
+#include <osmocom/bb/virtphy/logging.h>
 
 static uint32_t next_ms_nr;
 

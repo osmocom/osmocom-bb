@@ -2,10 +2,11 @@
 
 /* Per-MS specific state, closely attached to the L1CTL user progran */
 
-#include <virtphy/virtual_um.h>
-#include <virtphy/l1ctl_sock.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/timer.h>
+
+#include <osmocom/bb/virtphy/virtual_um.h>
+#include <osmocom/bb/virtphy/l1ctl_sock.h>
 
 #define L1S_NUM_NEIGH_CELL	6
 #define A5_KEY_LEN		8

@@ -18,12 +18,14 @@
  *
  */
 
-#include <virtphy/virt_l1_sched.h>
-#include <osmocom/core/linuxlist.h>
-#include <virtphy/virt_l1_model.h>
-#include <virtphy/logging.h>
 #include <time.h>
 #include <talloc.h>
+
+#include <osmocom/core/linuxlist.h>
+
+#include <osmocom/bb/virtphy/virt_l1_sched.h>
+#include <osmocom/bb/virtphy/virt_l1_model.h>
+#include <osmocom/bb/virtphy/logging.h>
 
 /**
  * @brief Start scheduler thread based on current gsm time from model

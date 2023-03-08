@@ -19,6 +19,9 @@
  *
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <netinet/in.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/msgb.h>
@@ -28,17 +31,15 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gprs/gprs_rlc.h>
-#include <stdio.h>
-#include <virtphy/l1ctl_proto.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <virtphy/virtual_um.h>
-#include <virtphy/l1ctl_sock.h>
-#include <virtphy/virt_l1_model.h>
-#include <virtphy/l1ctl_sap.h>
-#include <virtphy/gsmtapl1_if.h>
-#include <virtphy/logging.h>
-#include <virtphy/virt_l1_sched.h>
+
+#include <osmocom/bb/virtphy/virtual_um.h>
+#include <osmocom/bb/virtphy/l1ctl_sock.h>
+#include <osmocom/bb/virtphy/virt_l1_model.h>
+#include <osmocom/bb/virtphy/l1ctl_sap.h>
+#include <osmocom/bb/virtphy/gsmtapl1_if.h>
+#include <osmocom/bb/virtphy/logging.h>
+#include <osmocom/bb/virtphy/virt_l1_sched.h>
+#include <osmocom/bb/l1ctl_proto.h>
 
 static void l1ctl_rx_tbf_cfg_req(struct l1_model_ms *ms, struct msgb *msg);
 static void l1ctl_rx_data_tbf_req(struct l1_model_ms *ms, struct msgb *msg);

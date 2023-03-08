@@ -20,6 +20,11 @@
  *
  */
 
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/utils.h>
@@ -28,18 +33,15 @@
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/core/msgb.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <virtphy/l1ctl_proto.h>
-#include <virtphy/virtual_um.h>
-#include <virtphy/l1ctl_sock.h>
-#include <virtphy/virt_l1_model.h>
-#include <virtphy/l1ctl_sap.h>
-#include <virtphy/gsmtapl1_if.h>
-#include <virtphy/logging.h>
-#include <virtphy/virt_l1_sched.h>
+
+#include <osmocom/bb/virtphy/virtual_um.h>
+#include <osmocom/bb/virtphy/l1ctl_sock.h>
+#include <osmocom/bb/virtphy/virt_l1_model.h>
+#include <osmocom/bb/virtphy/l1ctl_sap.h>
+#include <osmocom/bb/virtphy/gsmtapl1_if.h>
+#include <osmocom/bb/virtphy/logging.h>
+#include <osmocom/bb/virtphy/virt_l1_sched.h>
+#include <osmocom/bb/l1ctl_proto.h>
 
 static char *pseudo_lchan_name(uint16_t arfcn, uint8_t ts, uint8_t ss, uint8_t sub_type)
 {

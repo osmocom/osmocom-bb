@@ -20,10 +20,6 @@
  *
  */
 
-#include <osmocom/core/msgb.h>
-#include <osmocom/core/select.h>
-#include <osmocom/core/gsmtap.h>
-#include <osmocom/core/application.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -31,13 +27,19 @@
 #include <getopt.h>
 #include <errno.h>
 #include <signal.h>
-#include <virtphy/virtual_um.h>
-#include <virtphy/l1ctl_sock.h>
-#include <virtphy/virt_l1_model.h>
-#include <virtphy/l1ctl_sap.h>
-#include <virtphy/gsmtapl1_if.h>
-#include <virtphy/logging.h>
-#include <virtphy/virt_l1_sched.h>
+
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/gsmtap.h>
+#include <osmocom/core/application.h>
+
+#include <osmocom/bb/virtphy/virtual_um.h>
+#include <osmocom/bb/virtphy/l1ctl_sock.h>
+#include <osmocom/bb/virtphy/virt_l1_model.h>
+#include <osmocom/bb/virtphy/l1ctl_sap.h>
+#include <osmocom/bb/virtphy/gsmtapl1_if.h>
+#include <osmocom/bb/virtphy/logging.h>
+#include <osmocom/bb/virtphy/virt_l1_sched.h>
 
 #define DEFAULT_LOG_MASK "DL1C,2:DL1P,2:DVIRPHY,2:DMAIN,1"
 

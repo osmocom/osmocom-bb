@@ -19,17 +19,18 @@
  *
  */
 
+#include <unistd.h>
+#include <errno.h>
+
 #include <osmocom/core/select.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/socket.h>
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
-#include <virtphy/osmo_mcast_sock.h>
-#include <virtphy/virtual_um.h>
 
-#include <unistd.h>
-#include <errno.h>
+#include <osmocom/bb/virtphy/osmo_mcast_sock.h>
+#include <osmocom/bb/virtphy/virtual_um.h>
 
 /**
  * Virtual UM interface file descriptor callback.

@@ -1,11 +1,13 @@
 #pragma once
 
 #include <stdint.h>
+
 #include <osmocom/core/msgb.h>
-#include <virtphy/l1ctl_proto.h>
-#include <virtphy/virtual_um.h>
-#include <virtphy/l1ctl_sock.h>
-#include <virtphy/virt_l1_model.h>
+
+#include <osmocom/bb/virtphy/virtual_um.h>
+#include <osmocom/bb/virtphy/l1ctl_sock.h>
+#include <osmocom/bb/virtphy/virt_l1_model.h>
+#include <osmocom/bb/l1ctl_proto.h>
 
 /* following sizes are used for message allocation */
 /* size of layer 3 header */

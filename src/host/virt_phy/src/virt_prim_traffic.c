@@ -23,16 +23,16 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <osmocom/core/msgb.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
-#include <osmocom/core/msgb.h>
-#include <virtphy/l1ctl_sap.h>
-#include <virtphy/virt_l1_sched.h>
-#include <virtphy/logging.h>
-#include <virtphy/gsmtapl1_if.h>
 
-#include <virtphy/l1ctl_proto.h>
+#include <osmocom/bb/virtphy/l1ctl_sap.h>
+#include <osmocom/bb/virtphy/virt_l1_sched.h>
+#include <osmocom/bb/virtphy/logging.h>
+#include <osmocom/bb/virtphy/gsmtapl1_if.h>
+#include <osmocom/bb/l1ctl_proto.h>
 
 /**
  * @brief Handler callback function for TRAFFIC request.

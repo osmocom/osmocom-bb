@@ -19,7 +19,7 @@
 
 #include <osmocom/core/utils.h>
 #include <osmocom/core/application.h>
-#include <virtphy/logging.h>
+#include <osmocom/bb/virtphy/logging.h>
 
 static const char* l1ctlPrimNames[] = {
         "_L1CTL_NONE",

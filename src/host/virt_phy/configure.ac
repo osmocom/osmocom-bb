@@ -60,6 +60,9 @@ AC_MSG_RESULT([CPPFLAGS="$CPPFLAGS"])
 AC_CONFIG_FILES([
  Makefile
  include/Makefile
+ include/osmocom/Makefile
+ include/osmocom/bb/Makefile
+ include/osmocom/bb/virtphy/Makefile
  src/Makefile
 ])
 AC_OUTPUT
