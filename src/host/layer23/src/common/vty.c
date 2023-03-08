@@ -196,7 +196,7 @@ DEFUN(cfg_gsmtap_gsmtap_local_host,
       cfg_gsmtap_gsmtap_local_host_cmd,
       "local-host " VTY_IPV46_CMD,
       "Set source for GSMTAP Um logging\n"
-      "Local IP address\n")
+      "Local IPv4 address\n" "Local IPv6 address\n")
 {
 	osmo_talloc_replace_string(l23_ctx, &l23_cfg.gsmtap.local_host, argv[0]);
 
