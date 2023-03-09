@@ -8,12 +8,16 @@
 
 #include <osmocom/core/bits.h>
 #include <osmocom/core/conv.h>
+#include <osmocom/core/gsmtap.h>
+#include <osmocom/core/gsmtap_util.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm0503.h>
 #include <l1ctl_proto.h>
 
 #include "rlp.h"
+
+struct gsmtap_inst *g_gti;
 
 /* print a map of the de-interleaver to stdout */
 static void deinterlieve_map(void)
@@ -99,10 +103,13 @@ out:
  * frame handling (call RLP decoder, print message)
  ***********************************************************************/
 
-static void handle_rlp_frame(const uint8_t *data, size_t data_len)
+static void handle_rlp_frame(uint32_t fn, uint16_t band_arfcn, uint8_t ts, int8_t signal_dbm, int8_t snr, const uint8_t *data, size_t data_len)
 {
 	struct rlp_frame_decoded _rlp, *rlp = &_rlp;
 	int rc;
+
+	if (g_gti)
+		gsmtap_send_ex(g_gti, GSMTAP_TYPE_GSM_RLP, band_arfcn, ts, GSMTAP_CHANNEL_TCH_F, 0, fn, signal_dbm, snr, data, data_len);
 
 	rc = rlp_decode(rlp, 0, data, data_len);
 	if (rc < 0)
@@ -132,49 +139,60 @@ static void handle_rlp_frame(const uint8_t *data, size_t data_len)
 	}
 }
 
-static void process_one_unmapped_burst(uint32_t fn, sbit_t *sbits)
+struct burst_state {
+	sbit_t iB[22*114];
+	uint8_t burst22_nr;
+	uint8_t burst4_nr;
+	bool initialized;
+};
+
+static void process_one_unmapped_burst(uint32_t fn, uint16_t band_arfcn, uint8_t ts, int8_t signal_dbm, int8_t snr, sbit_t *sbits)
 {
-	static sbit_t iB[22*114];
-	static uint8_t burst22_nr = 0, burst4_nr = 0;
+	static struct burst_state bst_ul, bst_dl;
+	struct burst_state *bst;
 	uint8_t fn26 = fn % 26;
-	static bool initialized = false;
+
+	if (band_arfcn & ARFCN_UPLINK)
+		bst = &bst_ul;
+	else
+		bst = &bst_dl;
 
 #if 1
-	if (!initialized) {
+	if (!bst->initialized) {
 		if (fn26 != 2)
 			return;
-		initialized = true;
+		bst->initialized = true;
 	}
 #endif
 
 #if 0
 	if (fn26 == 0)
-		burst22_nr = 0;
+		bst->burst22_nr = 0;
 #endif
 
 	/* copy in the new burst */
-	memcpy(&iB[(18 + burst4_nr) * 114], sbits, 114);
+	memcpy(&bst->iB[(18 + bst->burst4_nr) * 114], sbits, 114);
 
-	burst4_nr++;
-	if (burst4_nr == 4) {
+	bst->burst4_nr++;
+	if (bst->burst4_nr == 4) {
 		sbit_t cB[456];
 		ubit_t decoded[244];
 		pbit_t dec_bytes[30];
-		gsm0503_tch_f96_deinterleave(cB, iB);
+		gsm0503_tch_f96_deinterleave(cB, bst->iB);
 		printf("%10u: generated 456 deinterleaved bits\n", fn26);
-		burst4_nr = 0;
+		bst->burst4_nr = 0;
 		osmo_conv_decode(&gsm0503_tch_f96, cB, decoded);
 		//printf("\tdec_bin: %s\n", osmo_ubit_dump(decoded, 240));
 		osmo_ubit2pbit_ext(dec_bytes, 0, decoded, 0, 240, 1);
 		//printf("\tdec_hex: %s\n", osmo_hexdump(dec_bytes, sizeof(dec_bytes)));
-		handle_rlp_frame(dec_bytes, sizeof(dec_bytes));
+		handle_rlp_frame(fn, band_arfcn, ts, signal_dbm, snr, dec_bytes, sizeof(dec_bytes));
 
 		/* move remainder of iB towards head */
-		memmove(&iB[0], &iB[4*114], 18*114);
+		memmove(&bst->iB[0], &bst->iB[4*114], 18*114);
 	}
 
 #if 0
-	burst22_nr = (burst22_nr) + 1 % 22;
+	bst->burst22_nr = (bst->burst22_nr) + 1 % 22;
 #endif
 }
 
@@ -221,10 +239,11 @@ static int read_and_process_one_burst(int burst_fd)
 		dir = 'U';
 	else
 		dir = 'D';
-
+#if 0
 	/* skip uplink for now */
 	if (dir == 'D')
 		return 0;
+#endif
 
 	/* skip SACCH/gap */
 	if (bi->frame_nr % 26 == 12 || bi->frame_nr % 26 == 25)
@@ -247,8 +266,7 @@ static int read_and_process_one_burst(int burst_fd)
 	for (int i=0; i<114; i++)
                 burst_sb[i] = burst_ub[i] ? - (bi->snr >> 1) : (bi->snr >> 1);
 
-
-	process_one_unmapped_burst(bi->frame_nr, burst_sb);
+	process_one_unmapped_burst(bi->frame_nr, bi->band_arfcn, ch_ts, rxlev2dbm(bi->rx_level), bi->snr, burst_sb);
 
 	return 0;
 }
@@ -276,6 +294,9 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Error opening %s: %s\n", fname, strerror(errno));
 		exit(1);
 	}
+
+	g_gti = gsmtap_source_init("localhost", GSMTAP_UDP_PORT, 0);
+	gsmtap_source_add_sink(g_gti);
 
 	while (1) {
 		rc = read_and_process_one_burst(burst_fd);
