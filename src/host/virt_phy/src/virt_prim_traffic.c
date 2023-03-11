@@ -75,7 +75,7 @@ void l1ctl_rx_traffic_req(struct l1_model_ms *ms, struct msgb *msg)
 }
 
 void l1ctl_tx_traffic_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arfcn, uint8_t link_id,
-			  uint8_t chan_nr, uint32_t fn, uint8_t snr, uint8_t signal_dbm,
+			  uint8_t chan_nr, uint32_t fn, uint8_t snr, uint8_t rxlev,
 			  uint8_t num_biterr, uint8_t fire_crc)
 {
 	struct msgb *l1ctl_msg = NULL;
@@ -95,7 +95,7 @@ void l1ctl_tx_traffic_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arf
 	l1dl->chan_nr = chan_nr;
 	l1dl->frame_nr = htonl(fn);
 	l1dl->snr = snr;
-	l1dl->rx_level = signal_dbm;
+	l1dl->rx_level = rxlev;
 	l1dl->num_biterr = 0; /* no biterrors */
 	l1dl->fire_crc = 0;
 

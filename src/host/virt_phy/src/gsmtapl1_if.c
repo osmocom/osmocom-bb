@@ -84,7 +84,7 @@ void gsmtapl1_tx_to_virt_um_inst(struct l1_model_ms *ms, uint32_t fn, uint8_t tn
 	struct gsmtap_hdr *gh;
 	struct msgb *outmsg;	/* msg to send with gsmtap header prepended */
 	uint16_t arfcn;
-	uint8_t signal_dbm = 63;	/* signal strength */
+	uint8_t signal_dbm = rxlev2dbm(63);	/* signal strength */
 	uint8_t snr = 63;	/* signal noise ratio, 63 is best */
 	uint8_t *data = msgb_l2(msg);	/* data to transmit (whole message without l1 header) */
 	uint8_t data_len = msgb_l2len(msg);	/* length of data */
@@ -242,7 +242,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 				uint8_t snr_db)
 {
 	struct l1_model_ms *ms = lsc->priv;
-	uint8_t signal_dbm = dbm2rxlev(prim_pm_set_sig_strength(ms, arfcn & GSMTAP_ARFCN_MASK, MAX_SIG_LEV_DBM));	/* Power measurement with each received massage */
+	uint8_t rxlev = dbm2rxlev(prim_pm_set_sig_strength(ms, arfcn & GSMTAP_ARFCN_MASK, MAX_SIG_LEV_DBM));
 	uint8_t usf;
 
 	gsm_fn2gsmtime(&ms->state.downlink_time, fn);
@@ -281,7 +281,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 		 * the timeslot and subslot is fitting */
 		if (ms->state.dedicated.tn == timeslot
 		    && ms->state.dedicated.subslot == subslot) {
-			l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
+			l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, rxlev, 0, 0);
 		}
 		break;
 	case GSMTAP_CHANNEL_VOICE_F:
@@ -291,7 +291,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 		if (ms->state.dedicated.tn == timeslot
 		    && ms->state.dedicated.subslot == subslot) {
 			l1ctl_tx_traffic_ind(ms, msg, arfcn, link_id, chan_nr, fn,
-					     snr_db, signal_dbm, 0, 0);
+					     snr_db, rxlev, 0, 0);
 		}
 		break;
 	case GSMTAP_CHANNEL_CBCH51:
@@ -305,7 +305,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	case GSMTAP_CHANNEL_CBCH52:
 		/* save to just forward here, as upper layer ignores messages that
 		 * do not fit the current state (e.g.  gsm48_rr.c:2159) */
-		l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
+		l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, rxlev, 0, 0);
 		break;
 	case GSMTAP_CHANNEL_RACH:
 		LOGPMS(DVIRPHY, LOGL_NOTICE, ms, "Ignoring unexpected RACH in downlink ?!?\n");
@@ -313,7 +313,7 @@ static void l1ctl_from_virt_um(struct l1ctl_sock_client *lsc, struct msgb *msg, 
 	case GSMTAP_CHANNEL_PACCH:
 	case GSMTAP_CHANNEL_PDCH:
 		if (gprs_dl_block_matches_ms(ms, msg, timeslot))
-			l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, signal_dbm, 0, 0);
+			l1ctl_tx_data_ind(ms, msg, arfcn, link_id, chan_nr, fn, snr_db, rxlev, 0, 0);
 		usf = get_usf_from_block(msg);
 		ms_ul_tbf_may_transmit(ms, arfcn, timeslot, fn, usf);
 		break;

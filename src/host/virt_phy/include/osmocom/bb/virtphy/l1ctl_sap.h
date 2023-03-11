@@ -64,12 +64,12 @@ void l1ctl_tx_rach_conf(struct l1_model_ms *ms, uint32_t fn, uint16_t arfcn);
 void l1ctl_tx_data_conf(struct l1_model_ms *ms, uint32_t fn, uint16_t snr, uint16_t arfcn);
 void l1ctl_tx_data_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arfcn, uint8_t link_id,
 		       uint8_t chan_nr, uint32_t fn, uint8_t snr,
-		       uint8_t signal_dbm, uint8_t num_biterr,
+		       uint8_t rxlev, uint8_t num_biterr,
 		       uint8_t fire_crc);
 void l1ctl_tx_traffic_conf(struct l1_model_ms *ms, uint32_t fn, uint16_t snr, uint16_t arfcn);
 void l1ctl_tx_traffic_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arfcn, uint8_t link_id,
 			  uint8_t chan_nr, uint32_t fn, uint8_t snr,
-			  uint8_t signal_dbm, uint8_t num_biterr,
+			  uint8_t rxlev, uint8_t num_biterr,
 			  uint8_t fire_crc);
 void l1ctl_tx_pm_conf(struct l1_model_ms *ms, struct l1ctl_pm_req *pm_req);
 void l1ctl_tx_fbsb_conf(struct l1_model_ms *ms, uint8_t res, uint16_t arfcn);
