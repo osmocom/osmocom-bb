@@ -77,8 +77,8 @@ void l1ctl_rx_data_req(struct l1_model_ms *ms, struct msgb *msg)
 }
 
 void l1ctl_tx_data_ind(struct l1_model_ms *ms, struct msgb *msg, uint16_t arfcn, uint8_t link_id,
-                       uint8_t chan_nr, uint32_t fn, uint8_t snr,
-                       uint8_t signal_dbm, uint8_t num_biterr, uint8_t fire_crc)
+		       uint8_t chan_nr, uint32_t fn, uint8_t snr,
+		       uint8_t signal_dbm, uint8_t num_biterr, uint8_t fire_crc)
 {
 	struct msgb *l1ctl_msg = NULL;
 	struct l1ctl_data_ind * l1di;

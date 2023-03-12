@@ -39,7 +39,7 @@ void l1ctl_sap_handler(struct l1_model_ms *ms, struct msgb *msg);
 /* utility methods */
 struct msgb *l1ctl_msgb_alloc(uint8_t msg_type);
 struct msgb *l1ctl_create_l2_msg(int msg_type, uint32_t fn, uint16_t snr,
-                                 uint16_t arfcn);
+				 uint16_t arfcn);
 
 /* receive routines */
 void l1ctl_rx_fbsb_req(struct l1_model_ms *, struct msgb *msg);
@@ -63,14 +63,14 @@ void l1ctl_tx_reset(struct l1_model_ms *, uint8_t msg_type, uint8_t reset_type);
 void l1ctl_tx_rach_conf(struct l1_model_ms *, uint32_t fn, uint16_t arfcn);
 void l1ctl_tx_data_conf(struct l1_model_ms *, uint32_t fn, uint16_t snr, uint16_t arfcn);
 void l1ctl_tx_data_ind(struct l1_model_ms *, struct msgb *msg, uint16_t arfcn, uint8_t link_id,
-                       uint8_t chan_nr, uint32_t fn, uint8_t snr,
-                       uint8_t signal_dbm, uint8_t num_biterr,
-                       uint8_t fire_crc);
+		       uint8_t chan_nr, uint32_t fn, uint8_t snr,
+		       uint8_t signal_dbm, uint8_t num_biterr,
+		       uint8_t fire_crc);
 void l1ctl_tx_traffic_conf(struct l1_model_ms *, uint32_t fn, uint16_t snr, uint16_t arfcn);
 void l1ctl_tx_traffic_ind(struct l1_model_ms *, struct msgb *msg, uint16_t arfcn, uint8_t link_id,
-                          uint8_t chan_nr, uint32_t fn, uint8_t snr,
-                          uint8_t signal_dbm, uint8_t num_biterr,
-                          uint8_t fire_crc);
+			  uint8_t chan_nr, uint32_t fn, uint8_t snr,
+			  uint8_t signal_dbm, uint8_t num_biterr,
+			  uint8_t fire_crc);
 void l1ctl_tx_pm_conf(struct l1_model_ms *, struct l1ctl_pm_req *pm_req);
 void l1ctl_tx_fbsb_conf(struct l1_model_ms *, uint8_t res, uint16_t arfcn);
 void l1ctl_tx_ccch_mode_conf(struct l1_model_ms *, uint8_t ccch_mode);
@@ -78,4 +78,4 @@ void l1ctl_tx_tch_mode_conf(struct l1_model_ms *, uint8_t tch_mode, uint8_t audi
 
 /* scheduler functions */
 uint32_t sched_fn_ul(struct gsm_time cur_time, uint8_t chan_nr,
-                     uint8_t link_id);
+		     uint8_t link_id);
