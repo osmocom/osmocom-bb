@@ -6,8 +6,7 @@ AM_CPPFLAGS = \
 	$(NULL)
 
 AM_CFLAGS = \
-	-Wall -O3 \
-	-Wno-missing-braces \
+	-Wall \
 	$(LIBOSMOGSM_CFLAGS) \
 	$(LIBOSMOCORE_CFLAGS) \
 	$(LIBOSMOCODING_CFLAGS) \
