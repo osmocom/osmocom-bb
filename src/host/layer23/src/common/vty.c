@@ -559,18 +559,12 @@ static void l23_vty_init_gsmtap(void)
 
 int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn *l23_vty_signal_cb)
 {
-	struct l23_app_info *app;
-	unsigned int app_supp_opt = 0x00;
 	int rc = 0;
 
-	app = l23_app_info();
-	if (app && app->cfg_supported != NULL)
-		app_supp_opt = app->cfg_supported();
-
-	if (app_supp_opt & L23_OPT_TAP)
+	if (l23_app_info.opt_supported & L23_OPT_TAP)
 		l23_vty_init_gsmtap();
 
-	if (app_supp_opt & L23_OPT_VTY)
+	if (l23_app_info.opt_supported & L23_OPT_VTY)
 		osmo_stats_vty_add_cmds();
 
 	install_node(&ms_node, config_write_ms_node_cb);

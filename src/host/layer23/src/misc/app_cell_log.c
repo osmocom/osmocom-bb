@@ -101,11 +101,6 @@ int l23_app_init(void)
 	return 0;
 }
 
-static int l23_cfg_supported(void)
-{
-	return L23_OPT_TAP | L23_OPT_DBG;
-}
-
 static int l23_getopt_options(struct option **options)
 {
 	static struct option opts [] = {
@@ -247,16 +242,11 @@ cmd_line_error:
 	exit(1);
 }
 
-static struct l23_app_info info = {
+const struct l23_app_info l23_app_info = {
 	.copyright	= "Copyright (C) 2010 Andreas Eversberg\n",
 	.getopt_string	= "g:p:l:r:nf:b:A:",
-	.cfg_supported	= l23_cfg_supported,
+	.opt_supported	= L23_OPT_TAP | L23_OPT_DBG,
 	.cfg_getopt_opt = l23_getopt_options,
 	.cfg_handle_opt	= l23_cfg_handle,
 	.cfg_print_help	= l23_cfg_print_help,
 };
-
-struct l23_app_info *l23_app_info(void)
-{
-	return &info;
-}

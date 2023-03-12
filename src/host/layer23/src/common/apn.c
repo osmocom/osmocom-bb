@@ -61,7 +61,6 @@ void apn_free(struct osmobb_apn *apn)
 
 int apn_start(struct osmobb_apn *apn)
 {
-	struct l23_app_info *app_info = l23_app_info();
 	int rc;
 
 	if (apn->started)
@@ -69,8 +68,8 @@ int apn_start(struct osmobb_apn *apn)
 
 	LOGPAPN(LOGL_INFO, apn, "Opening TUN device %s\n", apn->cfg.dev_name);
 	/* Set TUN library callback. Must have been configured by the app: */
-	OSMO_ASSERT(app_info && app_info->tun_data_ind_cb);
-	osmo_tundev_set_data_ind_cb(apn->tun, app_info->tun_data_ind_cb);
+	OSMO_ASSERT(l23_app_info.tun_data_ind_cb);
+	osmo_tundev_set_data_ind_cb(apn->tun, l23_app_info.tun_data_ind_cb);
 	osmo_tundev_set_dev_name(apn->tun, apn->cfg.dev_name);
 	osmo_tundev_set_netns_name(apn->tun, apn->cfg.dev_netns_name);
 

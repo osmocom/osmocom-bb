@@ -490,29 +490,18 @@ static int _mobile_vty_init(void)
 	return ms_vty_init();
 }
 
-static int l23_cfg_supported(void)
-{
-	return L23_OPT_TAP | L23_OPT_VTY | L23_OPT_DBG;
-}
-
-static struct vty_app_info _mobile_vty_info = {
+static const struct vty_app_info _mobile_vty_info = {
 	.name = "mobile",
 	.version = PACKAGE_VERSION,
 };
 
-static struct l23_app_info info = {
+const struct l23_app_info l23_app_info = {
 	.copyright = "Copyright (C) 2010-2015 Andreas Eversberg, Sylvain Munaut, Holger Freyther, Harald Welte\n",
 	.contribution = "Contributions by Alex Badea, Pablo Neira, Steve Markgraf and others\n",
-	.cfg_supported = &l23_cfg_supported,
+	.opt_supported = L23_OPT_TAP | L23_OPT_VTY | L23_OPT_DBG,
 	.vty_info = &_mobile_vty_info,
 	.vty_init = _mobile_vty_init,
 };
-
-struct l23_app_info *l23_app_info(void)
-{
-	return &info;
-}
-
 
 void mobile_set_started(struct osmocom_ms *ms, bool state)
 {

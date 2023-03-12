@@ -54,12 +54,7 @@ int l23_app_init(void)
 	return 0;
 }
 
-static struct l23_app_info info = {
+const struct l23_app_info l23_app_info = {
 	.copyright	= "Copyright (C) 2010 Harald Welte <laforge@gnumonks.org>\n",
 	.contribution	= "Contributions by Holger Hans Peter Freyther\n",
 };
-
-struct l23_app_info *l23_app_info(void)
-{
-	return &info;
-}

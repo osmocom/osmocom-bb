@@ -206,32 +206,29 @@ void sighandler(int sigset)
 
 static void print_copyright(void)
 {
-	struct l23_app_info *app;
-	app = l23_app_info();
-
 	printf("%s"
 	       "%s\n"
 	       "License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n"
 	       "This is free software: you are free to change and redistribute it.\n"
 	       "There is NO WARRANTY, to the extent permitted by law.\n\n",
-	       app && app->copyright ? app->copyright : "",
-	       app && app->contribution ? app->contribution : "");
+	       l23_app_info.copyright ? l23_app_info.copyright : "",
+	       l23_app_info.contribution ? l23_app_info.contribution : "");
 }
 
-static int _vty_init(struct l23_app_info *app)
+static int _vty_init(void)
 {
-	static struct vty_app_info l23_vty_info = {
-		.name = "OsmocomBB",
-		.version = PACKAGE_VERSION,
-	};
+	struct vty_app_info info;
 	int rc;
 
-	OSMO_ASSERT(app->vty_info);
-	app->vty_info->tall_ctx = l23_ctx;
-	vty_init(app->vty_info ? : &l23_vty_info);
+	OSMO_ASSERT(l23_app_info.vty_info != NULL);
+	info = *l23_app_info.vty_info;
+	info.tall_ctx = l23_ctx;
+
+	vty_init(&info);
 	logging_vty_add_cmds();
-	if (app->vty_init)
-		app->vty_init();
+
+	if (l23_app_info.vty_init != NULL)
+		l23_app_info.vty_init();
 	if (config_file) {
 		LOGP(DLGLOBAL, LOGL_INFO, "Using configuration from '%s'\n", config_file);
 		l23_vty_reading = true;
@@ -255,8 +252,6 @@ static int _vty_init(struct l23_app_info *app)
 int main(int argc, char **argv)
 {
 	int rc;
-	struct l23_app_info *app;
-	unsigned int app_supp_opt = 0x00;
 
 	print_copyright();
 
@@ -276,11 +271,6 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed during l23_app_init()\n");
 		exit(1);
 	}
-
-	app = l23_app_info();
-	if (app && app->cfg_supported != NULL)
-		app_supp_opt = app->cfg_supported();
-
 
 	rc = handle_options(argc, argv);
 	if (rc) { /* Abort in case of parsing errors */
@@ -306,8 +296,8 @@ int main(int argc, char **argv)
 	config_dir = talloc_strdup(l23_ctx, config_file);
 	config_dir = dirname(config_dir);
 
-	if (app_supp_opt & L23_OPT_VTY) {
-		if (_vty_init(app) < 0)
+	if (l23_app_info.opt_supported & L23_OPT_VTY) {
+		if (_vty_init() < 0)
 			exit(1);
 	}
 

@@ -75,12 +75,8 @@ int l23_app_init(void)
 	return osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
 }
 
-static struct l23_app_info info = {
+const struct l23_app_info l23_app_info = {
 	.copyright	= "Copyright (C) 2010 Harald Welte <laforge@gnumonks.org>\n",
 	.contribution	= "Contributions by Holger Hans Peter Freyther\n",
+	.opt_supported = L23_OPT_ARFCN | L23_OPT_TAP | L23_OPT_DBG,
 };
-
-struct l23_app_info *l23_app_info(void)
-{
-	return &info;
-}

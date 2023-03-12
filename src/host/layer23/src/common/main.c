@@ -71,40 +71,33 @@ static void print_usage(const char *app)
 
 static void print_help(void)
 {
-	int options = 0xff;
-	struct l23_app_info *app = l23_app_info();
-
-	if (app && app->cfg_supported != 0)
-		options = app->cfg_supported();
-
 	printf(" Some help...\n");
 	printf("  -h --help		this text\n");
 	printf("  -s --socket		/tmp/osmocom_l2. Path to the unix "
 		"domain socket (l2)\n");
 
-	if (options & L23_OPT_SAP)
+	if (l23_app_info.opt_supported & L23_OPT_SAP)
 		printf("  -S --sap		/tmp/osmocom_sap. Path to the "
 			"unix domain socket (BTSAP)\n");
 
-	if (options & L23_OPT_ARFCN)
+	if (l23_app_info.opt_supported & L23_OPT_ARFCN)
 		printf("  -a --arfcn NR		The ARFCN to be used for layer2.\n");
 
-	if (options & L23_OPT_TAP)
+	if (l23_app_info.opt_supported & L23_OPT_TAP)
 		printf("  -i --gsmtap-ip	The destination IP used for GSMTAP.\n");
 
-	if (options & L23_OPT_VTY)
+	if (l23_app_info.opt_supported & L23_OPT_VTY)
 		printf("  -c --config-file	The path to the VTY configuration file.\n");
 
-	if (options & L23_OPT_DBG)
+	if (l23_app_info.opt_supported & L23_OPT_DBG)
 		printf("  -d --debug		Change debug flags.\n");
 
-	if (app && app->cfg_print_help)
-		app->cfg_print_help();
+	if (l23_app_info.cfg_print_help != NULL)
+		l23_app_info.cfg_print_help();
 }
 
 static void build_config(char **opt, struct option **option)
 {
-	struct l23_app_info *app;
 	struct option *app_opp = NULL;
 	int app_len = 0, len;
 
@@ -119,13 +112,12 @@ static void build_config(char **opt, struct option **option)
 	};
 
 
-	app = l23_app_info();
 	*opt = talloc_asprintf(l23_ctx, "hs:S:a:i:c:d:%s",
-			       app && app->getopt_string ? app->getopt_string : "");
+			       l23_app_info.getopt_string ? l23_app_info.getopt_string : "");
 
 	len = ARRAY_SIZE(long_options);
-	if (app && app->cfg_getopt_opt)
-		app_len = app->cfg_getopt_opt(&app_opp);
+	if (l23_app_info.cfg_getopt_opt != NULL)
+		app_len = l23_app_info.cfg_getopt_opt(&app_opp);
 
 	*option = talloc_zero_array(l23_ctx, struct option, len + app_len + 1);
 	memcpy(*option, long_options, sizeof(long_options));
@@ -133,7 +125,7 @@ static void build_config(char **opt, struct option **option)
 		memcpy(*option + len, app_opp, app_len * sizeof(struct option));
 }
 
-static void handle_options(int argc, char **argv, struct l23_app_info *app)
+static void handle_options(int argc, char **argv)
 {
 	struct option *long_options;
 	char *opt;
@@ -173,8 +165,8 @@ static void handle_options(int argc, char **argv, struct l23_app_info *app)
 			log_parse_category_mask(osmo_stderr_target, optarg);
 			break;
 		default:
-			if (app && app->cfg_handle_opt)
-				app->cfg_handle_opt(c, optarg);
+			if (l23_app_info.cfg_handle_opt != NULL)
+				l23_app_info.cfg_handle_opt(c, optarg);
 			break;
 		}
 	}
@@ -200,32 +192,29 @@ void sighandler(int sigset)
 
 static void print_copyright(void)
 {
-	struct l23_app_info *app;
-	app = l23_app_info();
-
 	printf("%s"
 	       "%s\n"
 	       "License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n"
 	       "This is free software: you are free to change and redistribute it.\n"
 	       "There is NO WARRANTY, to the extent permitted by law.\n\n",
-	       app && app->copyright ? app->copyright : "",
-	       app && app->contribution ? app->contribution : "");
+	       l23_app_info.copyright ? l23_app_info.copyright : "",
+	       l23_app_info.contribution ? l23_app_info.contribution : "");
 }
 
-static int _vty_init(struct l23_app_info *app)
+static int _vty_init(void)
 {
-	static struct vty_app_info l23_vty_info = {
-		.name = "OsmocomBB",
-		.version = PACKAGE_VERSION,
-	};
+	struct vty_app_info info;
 	int rc;
 
-	OSMO_ASSERT(app->vty_info);
-	app->vty_info->tall_ctx = l23_ctx;
-	vty_init(app->vty_info ? : &l23_vty_info);
+	OSMO_ASSERT(l23_app_info.vty_info != NULL);
+	info = *l23_app_info.vty_info;
+	info.tall_ctx = l23_ctx;
+
+	vty_init(&info);
 	logging_vty_add_cmds();
-	if (app->vty_init)
-		app->vty_init();
+
+	if (l23_app_info.vty_init != NULL)
+		l23_app_info.vty_init();
 	if (config_file) {
 		LOGP(DLGLOBAL, LOGL_INFO, "Using configuration from '%s'\n", config_file);
 		l23_vty_reading = true;
@@ -249,8 +238,6 @@ static int _vty_init(struct l23_app_info *app)
 int main(int argc, char **argv)
 {
 	int rc;
-	struct l23_app_info *app;
-	unsigned int app_supp_opt = 0x00;
 
 	INIT_LLIST_HEAD(&ms_list);
 
@@ -273,18 +260,14 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	app = l23_app_info();
-	if (app && app->cfg_supported != NULL)
-		app_supp_opt = app->cfg_supported();
+	handle_options(argc, argv);
 
-	handle_options(argc, argv, app);
-
-	if (app_supp_opt & L23_OPT_VTY) {
-		if (_vty_init(app) < 0)
+	if (l23_app_info.opt_supported & L23_OPT_VTY) {
+		if (_vty_init() < 0)
 			exit(1);
 	}
 
-	if (app_supp_opt & L23_OPT_TAP) {
+	if (l23_app_info.opt_supported & L23_OPT_TAP) {
 		if (gsmtap_ip) {
 			if (l23_cfg.gsmtap.remote_host != NULL) {
 				LOGP(DLGLOBAL, LOGL_NOTICE,

@@ -572,26 +572,16 @@ int l23_app_init(void)
 	return 0;
 }
 
-static int l23_cfg_supported(void)
-{
-	return L23_OPT_ARFCN | L23_OPT_TAP | L23_OPT_VTY | L23_OPT_DBG;
-}
-
-static struct vty_app_info _modem_vty_info = {
+static const struct vty_app_info _modem_vty_info = {
 	.name = "modem",
 	.version = PACKAGE_VERSION,
 	.go_parent_cb = modem_vty_go_parent,
 };
 
-static struct l23_app_info info = {
+const struct l23_app_info l23_app_info = {
 	.copyright = "Copyright (C) 2022 by sysmocom - s.m.f.c. GmbH <info@sysmocom.de>\n",
-	.cfg_supported = &l23_cfg_supported,
+	.opt_supported = L23_OPT_ARFCN | L23_OPT_TAP | L23_OPT_VTY | L23_OPT_DBG,
 	.vty_info = &_modem_vty_info,
 	.vty_init = modem_vty_init,
 	.tun_data_ind_cb = modem_tun_data_ind_cb,
 };
-
-struct l23_app_info *l23_app_info(void)
-{
-	return &info;
-}

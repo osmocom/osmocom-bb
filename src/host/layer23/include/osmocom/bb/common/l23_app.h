@@ -60,10 +60,10 @@ extern int (*l23_app_exit)(void);
 struct l23_app_info {
 	const char *copyright;
 	const char *contribution;
-	struct vty_app_info *vty_info; /* L23_OPT_VTY */
+	const struct vty_app_info *vty_info; /* L23_OPT_VTY */
 
 	char *getopt_string;
-	int (*cfg_supported)();
+	uint32_t opt_supported; /* mask of L23_OPT_* */
 	int (*cfg_print_help)();
 	int (*cfg_getopt_opt)(struct option **options);
 	int (*cfg_handle_opt)(int c,const char *optarg);
@@ -71,6 +71,7 @@ struct l23_app_info {
 	osmo_tundev_data_ind_cb_t tun_data_ind_cb;
 };
 
-extern struct l23_app_info *l23_app_info();
+/* all l23 apps must define this structure */
+extern const struct l23_app_info l23_app_info;
 
 #endif /* _L23_APP_H */
