@@ -254,13 +254,13 @@ int main(int argc, char **argv)
 
 	print_copyright();
 
+	handle_options(argc, argv);
+
 	rc = l23_app_init();
 	if (rc < 0) {
 		fprintf(stderr, "Failed during l23_app_init()\n");
 		exit(1);
 	}
-
-	handle_options(argc, argv);
 
 	if (l23_app_info.opt_supported & L23_OPT_VTY) {
 		if (_vty_init() < 0)

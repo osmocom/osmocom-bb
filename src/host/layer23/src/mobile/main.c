@@ -255,6 +255,12 @@ int main(int argc, char **argv)
 
 	print_copyright();
 
+	rc = handle_options(argc, argv);
+	if (rc) { /* Abort in case of parsing errors */
+		fprintf(stderr, "Error in command line options. Exiting.\n");
+		return 1;
+	}
+
 	srand(time(NULL));
 
 	INIT_LLIST_HEAD(&ms_list);
@@ -270,12 +276,6 @@ int main(int argc, char **argv)
 	if (rc < 0) {
 		fprintf(stderr, "Failed during l23_app_init()\n");
 		exit(1);
-	}
-
-	rc = handle_options(argc, argv);
-	if (rc) { /* Abort in case of parsing errors */
-		fprintf(stderr, "Error in command line options. Exiting.\n");
-		return 1;
 	}
 
 	if (custom_cfg_file) {
