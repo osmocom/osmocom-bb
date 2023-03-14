@@ -126,9 +126,9 @@ int layer2_close(struct osmocom_ms *ms)
 	if (ms->l2_wq.bfd.fd <= 0)
 		return -EINVAL;
 
+	osmo_fd_unregister(&ms->l2_wq.bfd);
 	close(ms->l2_wq.bfd.fd);
 	ms->l2_wq.bfd.fd = -1;
-	osmo_fd_unregister(&ms->l2_wq.bfd);
 	osmo_wqueue_clear(&ms->l2_wq);
 
 	return 0;

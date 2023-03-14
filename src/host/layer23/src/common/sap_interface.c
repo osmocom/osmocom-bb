@@ -321,10 +321,9 @@ int _sap_close_sock(struct osmocom_ms *ms)
 	if (ms->sap_wq.bfd.fd <= 0)
 		return -EINVAL;
 
+	osmo_fd_unregister(&ms->sap_wq.bfd);
 	close(ms->sap_wq.bfd.fd);
 	ms->sap_wq.bfd.fd = -1;
-
-	osmo_fd_unregister(&ms->sap_wq.bfd);
 	osmo_wqueue_clear(&ms->sap_wq);
 
 	return 0;
