@@ -30,6 +30,7 @@ enum {
 	DRLCMAC,
 	DLLC,
 	DSNDCP,
+	DGMM,
 };
 
 extern const struct log_info log_info;

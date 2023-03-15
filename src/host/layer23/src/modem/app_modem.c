@@ -50,6 +50,7 @@
 #include <osmocom/bb/modem/rlcmac.h>
 #include <osmocom/bb/modem/llc.h>
 #include <osmocom/bb/modem/sndcp.h>
+#include <osmocom/bb/modem/gmm.h>
 #include <osmocom/bb/modem/vty.h>
 #include <osmocom/bb/modem/grr.h>
 
@@ -171,6 +172,11 @@ int l23_app_init(void)
 
 	if ((rc = modem_sndcp_init(app_data.ms))) {
 		LOGP(DSNDCP, LOGL_FATAL, "Failed initializing SNDCP layer\n");
+		return rc;
+	}
+
+	if ((rc = modem_gmm_init(app_data.ms))) {
+		LOGP(DGMM, LOGL_FATAL, "Failed initializing GMM layer\n");
 		return rc;
 	}
 
