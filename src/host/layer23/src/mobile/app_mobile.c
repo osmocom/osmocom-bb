@@ -491,7 +491,7 @@ static int _mobile_vty_init(void)
 }
 
 static struct vty_app_info _mobile_vty_info = {
-	.name = "mobile",
+	.name = "OsmocomBB(mobile)",
 	.version = PACKAGE_VERSION,
 };
 

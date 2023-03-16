@@ -186,7 +186,7 @@ int l23_app_init(void)
 }
 
 static struct vty_app_info _modem_vty_info = {
-	.name = "modem",
+	.name = "OsmocomBB(modem)",
 	.version = PACKAGE_VERSION,
 	.go_parent_cb = modem_vty_go_parent,
 };
