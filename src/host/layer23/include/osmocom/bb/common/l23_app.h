@@ -60,7 +60,7 @@ extern int (*l23_app_exit)(void);
 struct l23_app_info {
 	const char *copyright;
 	const char *contribution;
-	const struct vty_app_info *vty_info; /* L23_OPT_VTY */
+	struct vty_app_info *vty_info; /* L23_OPT_VTY */
 
 	char *getopt_string;
 	uint32_t opt_supported; /* mask of L23_OPT_* */

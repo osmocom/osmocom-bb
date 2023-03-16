@@ -490,7 +490,7 @@ static int _mobile_vty_init(void)
 	return ms_vty_init();
 }
 
-static const struct vty_app_info _mobile_vty_info = {
+static struct vty_app_info _mobile_vty_info = {
 	.name = "mobile",
 	.version = PACKAGE_VERSION,
 };

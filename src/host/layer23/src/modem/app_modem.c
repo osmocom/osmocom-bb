@@ -185,7 +185,7 @@ int l23_app_init(void)
 	return 0;
 }
 
-static const struct vty_app_info _modem_vty_info = {
+static struct vty_app_info _modem_vty_info = {
 	.name = "modem",
 	.version = PACKAGE_VERSION,
 	.go_parent_cb = modem_vty_go_parent,

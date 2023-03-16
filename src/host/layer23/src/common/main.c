@@ -203,14 +203,12 @@ static void print_copyright(void)
 
 static int _vty_init(void)
 {
-	struct vty_app_info info;
 	int rc;
 
 	OSMO_ASSERT(l23_app_info.vty_info != NULL);
-	info = *l23_app_info.vty_info;
-	info.tall_ctx = l23_ctx;
+	l23_app_info.vty_info->tall_ctx = l23_ctx;
 
-	vty_init(&info);
+	vty_init(l23_app_info.vty_info);
 	logging_vty_add_cmds();
 
 	if (l23_app_info.vty_init != NULL)
