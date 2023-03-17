@@ -58,6 +58,7 @@ static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_
 			LOGP(DGMM, LOGL_ERROR, "%s(): Rx %s UNIMPLEMENTED\n", __func__, pdu_name);
 			break;
 		};
+		break;
 	default:
 		LOGP(DGMM, LOGL_ERROR, "%s(): Unexpected Rx %s\n", __func__, pdu_name);
 		OSMO_ASSERT(0);
