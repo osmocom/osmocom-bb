@@ -376,7 +376,7 @@ struct l1ctl_gprs_ul_block_req {
 /* payload of L1CTL_GPRS_DL_BLOCK_IND */
 struct l1ctl_gprs_dl_block_ind {
 	struct l1ctl_gprs_block_hdr hdr;
-	struct {
+	struct __attribute__((packed)) {
 		uint16_t ber10k;	/* Bit Error Rate */
 		int16_t ci_cb;		/* C/I in centiBels */
 		uint8_t rx_lev;		/* RxLev 0..63 */
