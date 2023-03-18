@@ -136,7 +136,7 @@ static void l1gprs_unregister_tbf(struct l1gprs_state *gprs,
 	if (tbf == NULL) {
 		LOGP_GPRS(gprs, LOGL_ERROR,
 			  "%s(): " LOG_TBF_FMT " not found\n",
-			  __func__, LOG_TBF_ARGS(tbf));
+			  __func__, uplink ? 'U' : 'D', tbf_ref);
 		return;
 	}
 
