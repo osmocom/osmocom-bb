@@ -5,14 +5,17 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 
 #include <osmocom/core/bits.h>
 #include <osmocom/core/conv.h>
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/gsmtap_util.h>
+#include <osmocom/isdn/v110.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm0503.h>
+#include <osmocom/gsm/gsm44021.h>
 #include <l1ctl_proto.h>
 
 #include "rlp.h"
@@ -139,6 +142,59 @@ static void handle_rlp_frame(uint32_t fn, uint16_t band_arfcn, uint8_t ts, int8_
 	}
 }
 
+struct fa_state {
+	ubit_t v110_d[48*4];
+	uint8_t v110_frame_nr;
+};
+
+static const uint8_t fax_sync[8] = { 0x3E, 0x37, 0x50, 0x96, 0xC1, 0xC8, 0xAF, 0x69 };
+
+/* called by TRAU/FA synchronizer for every received FA frame */
+static void fa_frame_cb(const ubit_t *bits, unsigned int num_bits)
+{
+	uint8_t packed[8];
+
+	OSMO_ASSERT(num_bits == 64);
+
+	osmo_ubit2pbit(packed, bits, num_bits);
+
+	if (!memcmp(packed, fax_sync, sizeof(packed))) {
+		printf("\t\tFA: SYNC\n");
+	} else if (packed[0] /* == packed[2] == packed[4] == packed[6] */ == 0x11) {
+		printf("\t\tFA: BCS-REC: 0x%02x\n", packed[1]);
+	} else if (packed[0] /* == packed[2] == packed[4] == packed[6] */ == 0x33) {
+		printf("\t\tFA: MSG-REC: 0x%02x\n", packed[1]);
+	} else if (packed[0] /* == packed[2] == packed[4] == packed[6] */ == 0x44) {
+		printf("\t\tFA: MSG-TRA: 0x%02x\n", packed[1]);
+	} else {
+		printf("\t\tFA: %s\n", osmo_hexdump(packed, sizeof(packed)));
+		//printf("\t\t%s\n", osmo_ubit_dump(bits, num_bits));
+	}
+}
+
+/* called for every (decoded) V.110 frame received over radio link */
+static void handle_v110_frame(uint32_t fn, uint16_t band_arfcn, uint8_t ts, int8_t signal_dbm, int8_t snr, const struct osmo_v110_decoded_frame *fr)
+{
+	static struct fa_state fst_ul, fst_dl;
+	struct fa_state *fst;
+
+	if (band_arfcn & ARFCN_UPLINK)
+		fst = &fst_ul;
+	else
+		fst = &fst_dl;
+
+	//printf("\t%s\n", osmo_ubit_dump(fr->d_bits, sizeof(fr->d_bits)));
+
+/* FIXME: establish sync with sync frames */
+	memcpy(fst->v110_d + (fst->v110_frame_nr * 48), fr->d_bits, 48);
+	if (fst->v110_frame_nr == 4 - 1) {
+		fa_frame_cb(fst->v110_d + 0, 64);
+		fa_frame_cb(fst->v110_d + 64, 64);
+		fa_frame_cb(fst->v110_d + 128, 64);
+	}
+	fst->v110_frame_nr = (fst->v110_frame_nr + 1) % 4;
+}
+
 struct burst_state {
 	sbit_t iB[22*114];
 	uint8_t burst22_nr;
@@ -183,9 +239,19 @@ static void process_one_unmapped_burst(uint32_t fn, uint16_t band_arfcn, uint8_t
 		bst->burst4_nr = 0;
 		osmo_conv_decode(&gsm0503_tch_f96, cB, decoded);
 		//printf("\tdec_bin: %s\n", osmo_ubit_dump(decoded, 240));
+#if 0
+		/* non-transparent CSD (RLP) processing */
 		osmo_ubit2pbit_ext(dec_bytes, 0, decoded, 0, 240, 1);
 		//printf("\tdec_hex: %s\n", osmo_hexdump(dec_bytes, sizeof(dec_bytes)));
 		handle_rlp_frame(fn, band_arfcn, ts, signal_dbm, snr, dec_bytes, sizeof(dec_bytes));
+#else
+		/* transparent CSD / FAX processing */
+		for (int i = 0; i < 4; i++) {
+			struct osmo_v110_decoded_frame fr;
+			osmo_csd_12k_6k_decode_frame(&fr, decoded + i*60, 60);
+			handle_v110_frame(fn, band_arfcn, ts, signal_dbm, snr, &fr);
+		}
+#endif
 
 		/* move remainder of iB towards head */
 		memmove(&bst->iB[0], &bst->iB[4*114], 18*114);
@@ -239,7 +305,7 @@ static int read_and_process_one_burst(int burst_fd)
 		dir = 'U';
 	else
 		dir = 'D';
-#if 0
+#if 1
 	/* skip uplink for now */
 	if (dir == 'D')
 		return 0;
