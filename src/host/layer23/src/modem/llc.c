@@ -32,6 +32,7 @@
 #include <osmocom/gprs/gprs_msgb.h>
 #include <osmocom/gprs/llc/llc_prim.h>
 #include <osmocom/gprs/llc/llc.h>
+#include <osmocom/gprs/gmm/gmm_prim.h>
 #include <osmocom/gprs/rlcmac/rlcmac_prim.h>
 #include <osmocom/gprs/sndcp/sndcp_prim.h>
 
@@ -41,7 +42,7 @@
 
 static int modem_llc_handle_ll_gmm(struct osmo_gprs_llc_prim *llc_prim)
 {
-	struct msgb *msg;
+	int rc;
 
 	switch (llc_prim->oph.primitive) {
 	case OSMO_GPRS_LLC_LL_UNITDATA:
@@ -57,15 +58,10 @@ static int modem_llc_handle_ll_gmm(struct osmo_gprs_llc_prim *llc_prim)
 		return -EINVAL;
 	}
 
-	msg = msgb_alloc(4096, "gsm0408_rx");
-	msgb_tlli(msg) = llc_prim->ll.tlli;
-	msgb_gmmh(msg) = msgb_put(msg, llc_prim->ll.l3_pdu_len);
-	if (llc_prim->ll.l3_pdu_len > 0)
-		memcpy(msgb_gmmh(msg), llc_prim->ll.l3_pdu, llc_prim->ll.l3_pdu_len);
-
-	//TODO: submit to GMM?
-	//TODO: free msg?
-	return 0;
+	/* GMM took ownership of the message, tell LLC layer to not free it: */
+	rc = osmo_gprs_gmm_prim_llc_lower_up(llc_prim);
+	rc = 1;
+	return rc;
 }
 
 static int modem_llc_handle_ll_sndcp(struct osmo_gprs_llc_prim *llc_prim)

@@ -82,6 +82,17 @@ static int modem_gmm_prim_down_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *use
 	return rc;
 }
 
+static int modem_gmm_prim_llc_down_cb(struct osmo_gprs_llc_prim *llc_prim, void *user_data)
+{
+	int rc;
+
+	rc = osmo_gprs_llc_prim_upper_down(llc_prim);
+
+	/* LLC took ownership of the message, tell GMM layer to not free it: */
+	rc = 1;
+	return rc;
+}
+
 int modem_gmm_init(struct osmocom_ms *ms)
 {
 	int rc;
@@ -93,5 +104,8 @@ int modem_gmm_init(struct osmocom_ms *ms)
 
 	osmo_gprs_gmm_prim_set_up_cb(modem_gmm_prim_up_cb, ms);
 	osmo_gprs_gmm_prim_set_down_cb(modem_gmm_prim_down_cb, ms);
+	osmo_gprs_gmm_prim_set_llc_down_cb(modem_gmm_prim_llc_down_cb, ms);
+
+	osmo_gprs_gmm_enable_gprs(true);
 	return rc;
 }
