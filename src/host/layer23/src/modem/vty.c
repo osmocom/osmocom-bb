@@ -172,7 +172,33 @@ DEFUN_HIDDEN(test_gmm_reg_attach,
 	gmm_prim->gmmreg.attach_req.attach_type = OSMO_GPRS_GMM_ATTACH_TYPE_GPRS;
 
 	if (osmo_gprs_gmm_prim_upper_down(gmm_prim) != 0) {
-		vty_out(vty, "Failed to enqueue an GMM PDU%s", VTY_NEWLINE);
+		vty_out(vty, "Failed to enqueue a GMM PDU%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN_HIDDEN(test_gmm_reg_detach,
+	     test_gmm_reg_detach_cmd,
+	     "test MS_NAME gmm detach",
+	     TEST_CMD_DESC MS_NAME_DESC GMM_CMDG_DESC
+	     "Enqueue a GMM GMMREG-DETACH.req for transmission\n")
+{
+	struct osmo_gprs_gmm_prim *gmm_prim;
+	const uint32_t tlli = 0xe1c5d364;
+	struct osmocom_ms *ms;
+
+	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL)
+		return CMD_WARNING;
+
+	gmm_prim = osmo_gprs_gmm_prim_alloc_gmmreg_detach_req();
+	gmm_prim->gmmreg.detach_req.ptmsi = tlli;
+	gmm_prim->gmmreg.detach_req.detach_type = OSMO_GPRS_GMM_DETACH_MS_TYPE_GPRS;
+	gmm_prim->gmmreg.detach_req.poweroff_type = OSMO_GPRS_GMM_DETACH_POWEROFF_TYPE_NORMAL;
+
+	if (osmo_gprs_gmm_prim_upper_down(gmm_prim) != 0) {
+		vty_out(vty, "Failed to enqueue a GMM PDU%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -363,6 +389,7 @@ int modem_vty_init(void)
 	install_element_ve(&test_llc_unitdata_req_hexpdu_cmd);
 	install_element_ve(&test_llc_unitdata_req_gmm_attch_cmd);
 	install_element_ve(&test_gmm_reg_attach_cmd);
+	install_element_ve(&test_gmm_reg_detach_cmd);
 	install_element(CONFIG_NODE, &l23_cfg_ms_cmd);
 
 	install_element(MS_NODE, &cfg_ms_apn_cmd);
