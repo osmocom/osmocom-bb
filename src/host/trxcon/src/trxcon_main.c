@@ -348,11 +348,23 @@ int main(int argc, char **argv)
 
 	/* Optional GSMTAP  */
 	if (app_data.gsmtap_ip != NULL) {
+		struct log_target *lt;
+
 		app_data.gsmtap = gsmtap_source_init(app_data.gsmtap_ip, GSMTAP_UDP_PORT, 1);
 		if (!app_data.gsmtap) {
-			LOGP(DAPP, LOGL_ERROR, "Failed to init GSMTAP\n");
+			LOGP(DAPP, LOGL_ERROR, "Failed to init GSMTAP Um logging\n");
 			goto exit;
 		}
+
+		lt = log_target_create_gsmtap(app_data.gsmtap_ip, GSMTAP_UDP_PORT,
+					      "trxcon", false, false);
+		if (lt == NULL) {
+			LOGP(DAPP, LOGL_ERROR, "Failed to init GSMTAP logging target\n");
+			goto exit;
+		} else {
+			log_add_target(lt);
+		}
+
 		/* Suppress ICMP "destination unreachable" errors */
 		gsmtap_source_add_sink(app_data.gsmtap);
 	}
