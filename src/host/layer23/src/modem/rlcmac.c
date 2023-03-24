@@ -188,6 +188,8 @@ int modem_rlcmac_init(struct osmocom_ms *ms)
 		return rc;
 
 	osmo_gprs_rlcmac_set_log_cat(OSMO_GPRS_RLCMAC_LOGC_RLCMAC, DRLCMAC);
+	osmo_gprs_rlcmac_set_log_cat(OSMO_GPRS_RLCMAC_LOGC_TBFUL, DRLCMAC);
+	osmo_gprs_rlcmac_set_log_cat(OSMO_GPRS_RLCMAC_LOGC_TBFDL, DRLCMAC);
 
 	osmo_gprs_rlcmac_prim_set_up_cb(modem_rlcmac_prim_up_cb, ms);
 	osmo_gprs_rlcmac_prim_set_down_cb(modem_rlcmac_prim_down_cb, ms);
