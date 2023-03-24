@@ -122,14 +122,18 @@ void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *b
 		return;
 
 	/* If no primitive is being processed, try obtaining one from Tx queue */
-	if (lchan->prim == NULL)
-		lchan->prim = l1sched_lchan_prim_dequeue(lchan, br->fn);
 	if (lchan->prim == NULL) {
-		/* If CBTX (Continuous Burst Transmission) is required */
-		if (l1sched_lchan_desc[chan].flags & L1SCHED_CH_FLAG_CBTX)
-			l1sched_lchan_prim_assign_dummy(lchan);
-		if (lchan->prim == NULL)
+		/* Align to the first burst of a block */
+		if (frame->ul_bid != 0)
 			return;
+		lchan->prim = l1sched_lchan_prim_dequeue(lchan, br->fn);
+		if (lchan->prim == NULL) {
+			/* If CBTX (Continuous Burst Transmission) is required */
+			if (l1sched_lchan_desc[chan].flags & L1SCHED_CH_FLAG_CBTX)
+				l1sched_lchan_prim_assign_dummy(lchan);
+			if (lchan->prim == NULL)
+				return;
+		}
 	}
 
 	/* TODO: report TX buffers health to the higher layers */
