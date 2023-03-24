@@ -560,6 +560,8 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 			LOGPFSML(fi, LOGL_ERROR, "Failed to enqueue a prim\n");
 			return;
 		}
+
+		prim->fn = block_req.hdr.fn;
 		break;
 	}
 	case TRXCON_EV_RX_DATA_IND:

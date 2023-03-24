@@ -421,6 +421,8 @@ no_facch:
 struct l1sched_ts_prim *l1sched_prim_dequeue(struct llist_head *queue,
 	uint32_t fn, struct l1sched_lchan_state *lchan)
 {
+	struct l1sched_ts_prim *prim;
+
 	/* SACCH is unorthodox, see 3GPP TS 04.08, section 3.4.1 */
 	if (L1SCHED_CHAN_IS_SACCH(lchan->type))
 		return prim_dequeue_sacch(queue, lchan);
@@ -438,6 +440,20 @@ struct l1sched_ts_prim *l1sched_prim_dequeue(struct llist_head *queue,
 	case L1SCHED_TCHH_0:
 	case L1SCHED_TCHH_1:
 		return prim_dequeue_tch_h(queue, fn, lchan->type);
+
+	/* PDCH is timing critical, we need to check TDMA Fn */
+	case L1SCHED_PDTCH:
+	case L1SCHED_PTCCH:
+		prim = prim_dequeue_one(queue, lchan->type);
+		if (prim == NULL)
+			return NULL;
+		if (OSMO_LIKELY(prim->fn == fn))
+			return prim;
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "%s(): dropping Tx primitive (current Fn=%u, prim Fn=%u)\n",
+			    __func__, fn, prim->fn);
+		talloc_free(prim);
+		return NULL;
 
 	/* Other kinds of logical channels */
 	default:

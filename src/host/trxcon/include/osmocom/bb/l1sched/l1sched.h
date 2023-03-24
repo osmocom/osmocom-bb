@@ -354,6 +354,8 @@ struct l1sched_ts_prim {
 	enum l1sched_ts_prim_type type;
 	/*! Logical channel type */
 	enum l1sched_lchan_type chan;
+	/*! TDMA Fn for L1SCHED_{PDTCH,PTCCH} */
+	uint32_t fn;
 	/*! Payload length */
 	size_t payload_len;
 	/*! Payload */
