@@ -162,14 +162,21 @@ DEFUN_HIDDEN(test_gmm_reg_attach,
 {
 	struct osmo_gprs_gmm_prim *gmm_prim;
 	const uint32_t tlli = 0xe1c5d364;
+	const char *imsi = "1234567890";
+	const char *imei = "42342342342342";
+	const char *imeisv = "4234234234234275";
 	struct osmocom_ms *ms;
 
 	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL)
 		return CMD_WARNING;
 
 	gmm_prim = osmo_gprs_gmm_prim_alloc_gmmreg_attach_req();
-	gmm_prim->gmmreg.attach_req.ptmsi = tlli;
 	gmm_prim->gmmreg.attach_req.attach_type = OSMO_GPRS_GMM_ATTACH_TYPE_GPRS;
+	gmm_prim->gmmreg.attach_req.ptmsi = tlli;
+	OSMO_STRLCPY_ARRAY(gmm_prim->gmmreg.attach_req.imsi, imsi);
+	OSMO_STRLCPY_ARRAY(gmm_prim->gmmreg.attach_req.imei, imei);
+	OSMO_STRLCPY_ARRAY(gmm_prim->gmmreg.attach_req.imeisv, imeisv);
+
 
 	if (osmo_gprs_gmm_prim_upper_down(gmm_prim) != 0) {
 		vty_out(vty, "Failed to enqueue a GMM PDU%s", VTY_NEWLINE);
