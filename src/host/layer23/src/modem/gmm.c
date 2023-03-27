@@ -35,13 +35,13 @@
 #include <osmocom/gprs/llc/llc_prim.h>
 #include <osmocom/gprs/gmm/gmm_prim.h>
 #include <osmocom/gprs/gmm/gmm.h>
+#include <osmocom/gprs/rlcmac/rlcmac_prim.h>
 
 #include <osmocom/bb/common/settings.h>
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/modem/gmm.h>
-
 
 static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_data)
 {
@@ -72,7 +72,22 @@ static int modem_gmm_prim_down_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *use
 	const char *pdu_name = osmo_gprs_gmm_prim_name(gmm_prim);
 	int rc = 0;
 
+	osmo_static_assert(sizeof(struct osmo_gprs_gmm_gmmrr_prim) == sizeof(struct osmo_gprs_rlcmac_gmmrr_prim),
+			   _gmmrr_prim_size);
+
 	switch (gmm_prim->oph.sap) {
+	case OSMO_GPRS_GMM_SAP_GMMRR:
+		/* Forward it to lower layers, pass ownership over to RLCMAC: */
+		/* Optimization: GMM-GMMRR-ASSIGN-REQ is 1-to-1 ABI compatible with
+				 RLCMAC-GMMRR-ASSIGN-REQ, we just need to adapt the header.
+				 See osmo_static_assert(_gmmrr_prim_size) above.
+		*/
+		OSMO_ASSERT(gmm_prim->oph.primitive == OSMO_GPRS_GMM_GMMRR_ASSIGN);
+		gmm_prim->oph.sap = OSMO_GPRS_RLCMAC_SAP_GMMRR;
+		gmm_prim->oph.primitive = OSMO_GPRS_RLCMAC_GMMRR_ASSIGN;
+		osmo_gprs_rlcmac_prim_upper_down((struct osmo_gprs_rlcmac_prim *)gmm_prim);
+		rc = 1; /* Tell GMM that we take ownership of the prim. */
+		break;
 	case OSMO_GPRS_GMM_SAP_GMMREG:
 	default:
 		LOGP(DGMM, LOGL_ERROR, "%s(): Unexpected Rx %s\n", __func__, pdu_name);

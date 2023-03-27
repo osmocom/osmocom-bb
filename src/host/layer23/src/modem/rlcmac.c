@@ -35,6 +35,7 @@
 #include <osmocom/gprs/rlcmac/rlcmac_prim.h>
 #include <osmocom/gprs/rlcmac/rlcmac.h>
 #include <osmocom/gprs/llc/llc_prim.h>
+#include <osmocom/gprs/gmm/gmm_prim.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/l1ctl.h>
@@ -75,12 +76,24 @@ static int modem_rlcmac_handle_grr(struct osmo_gprs_rlcmac_prim *rlcmac_prim)
 
 static int modem_rlcmac_handle_gmmrr(struct osmo_gprs_rlcmac_prim *rlcmac_prim)
 {
+	struct osmo_gprs_gmm_prim *gmm_prim;
 	int rc;
+
+	osmo_static_assert(sizeof(struct osmo_gprs_rlcmac_gmmrr_prim) == sizeof(struct osmo_gprs_gmm_gmmrr_prim),
+			   _gmmrr_prim_size);
+
 	switch (rlcmac_prim->oph.primitive) {
 	case OSMO_GPRS_RLCMAC_GMMRR_PAGE:
-		LOGP(DRLCMAC, LOGL_ERROR, "%s(): TODO: implement answering to paging indication TLLI=0x%08x\n",
-		     __func__, rlcmac_prim->gmmrr.page_ind.tlli);
-		rc = 0;
+		/* Forward it to upper layers, pass ownership over to GMM: */
+		/* Optimization: RLCMAC-GMMRR-ASSIGN-REQ is 1-to-1 ABI compatible with
+				 GMM-GMMRR-ASSIGN-REQ, we just need to adapt the header.
+				 See osmo_static_assert(_gmmrr_prim_size) above.
+		*/
+		gmm_prim = (struct osmo_gprs_gmm_prim *)rlcmac_prim;
+		gmm_prim->oph.sap = OSMO_GPRS_GMM_SAP_GMMRR;
+		gmm_prim->oph.primitive = OSMO_GPRS_RLCMAC_GMMRR_PAGE;
+		osmo_gprs_gmm_prim_lower_up(gmm_prim);
+		rc = 1; /* Tell RLCMAC that we take ownership of the prim. */
 		break;
 	default:
 		LOGP(DRLCMAC, LOGL_NOTICE, "%s(): Unexpected Rx RLCMAC GMMRR prim %u\n",
