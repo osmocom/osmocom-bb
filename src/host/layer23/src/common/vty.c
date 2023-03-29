@@ -29,6 +29,10 @@
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/crypt/auth.h>
+#include <osmocom/vty/cpu_sched_vty.h>
+#include <osmocom/vty/telnet_interface.h>
+#include <osmocom/vty/stats.h>
+#include <osmocom/vty/misc.h>
 
 #include <osmocom/bb/common/vty.h>
 #include <osmocom/bb/common/l23_app.h>
@@ -43,9 +47,6 @@
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
-#include <osmocom/vty/telnet_interface.h>
-#include <osmocom/vty/stats.h>
-#include <osmocom/vty/misc.h>
 
 bool l23_vty_reading = false;
 
@@ -575,6 +576,7 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 
 	/* Register the talloc context introspection command */
 	osmo_talloc_vty_add_cmds();
+	osmo_cpu_sched_vty_init(l23_ctx);
 	if (l23_vty_signal_cb)
 		rc = osmo_signal_register_handler(SS_L23_VTY, l23_vty_signal_cb, NULL);
 	return rc;
