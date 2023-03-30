@@ -92,7 +92,7 @@ int modem_llc_prim_up_cb(struct osmo_gprs_llc_prim *llc_prim, void *user_data)
 	int rc = 0;
 
 	switch (llc_prim->oph.sap) {
-	case OSMO_GPRS_LLC_SAP_LLGM:
+	case OSMO_GPRS_LLC_SAP_LLGMM:
 		LOGP(DLLC, LOGL_DEBUG, "%s(): Rx %s TLLI=0x%08x\n",
 		     __func__, pdu_name, llc_prim->llgmm.tlli);
 		break;
