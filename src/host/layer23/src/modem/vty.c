@@ -26,6 +26,8 @@
 #include <osmocom/gprs/llc/llc.h>
 #include <osmocom/gprs/llc/llc_prim.h>
 #include <osmocom/gprs/gmm/gmm_prim.h>
+#include <osmocom/gprs/sm/sm_prim.h>
+
 
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
@@ -62,6 +64,7 @@ int modem_vty_go_parent(struct vty *vty)
 #define GRR_CMDG_DESC "GPRS RR specific commands\n"
 #define LLC_CMDG_DESC "GPRS LLC specific commands\n"
 #define GMM_CMDG_DESC "GPRS GMM specific commands\n"
+#define SM_CMDG_DESC "GPRS SM specific commands\n"
 
 /* testing commands */
 DEFUN_HIDDEN(test_grr_tx_chan_req,
@@ -206,6 +209,74 @@ DEFUN_HIDDEN(test_gmm_reg_detach,
 
 	if (osmo_gprs_gmm_prim_upper_down(gmm_prim) != 0) {
 		vty_out(vty, "Failed to enqueue a GMM PDU%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN_HIDDEN(test_sm_act_pdp_ctx,
+	     test_sm_act_pdp_ctx_cmd,
+	     "test MS_NAME sm act-pdp-ctx APN",
+	     TEST_CMD_DESC MS_NAME_DESC SM_CMDG_DESC
+	     "Enqueue a SM SMREG-ACTIVATE.req for transmission\n"
+	     "APN to activate\n")
+{
+	struct osmo_gprs_sm_prim *sm_prim;
+	struct osmocom_ms *ms;
+	struct osmobb_apn *apn;
+
+	uint8_t nsapi = 6;
+	enum osmo_gprs_sm_llc_sapi llc_sapi = OSMO_GPRS_SM_LLC_SAPI_SAPI3;
+	struct osmo_sockaddr pdp_addr_any = {0};
+	uint8_t qos[OSMO_GPRS_SM_QOS_MAXLEN] = {0};
+	uint8_t pco[OSMO_GPRS_SM_QOS_MAXLEN] = {0};
+	uint32_t ptmsi = 0x00000000;
+	char *imsi = "1234567890";
+	char *imei = "42342342342342";
+	char *imeisv = "4234234234234275";
+	enum osmo_gprs_sm_pdp_addr_ietf_type pdp_addr_ietf_type;
+
+	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL) {
+		vty_out(vty, "Unable to find MS '%s'%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	apn = ms_find_apn_by_name(ms, argv[1]);
+	if (!apn) {
+		vty_out(vty, "Unable to find APN '%s'%s", argv[1], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (apn->cfg.apn_type_mask & APN_TYPE_IPv4v6) {
+		pdp_addr_ietf_type = OSMO_GPRS_SM_PDP_ADDR_IETF_IPV4V6;
+	} else if (apn->cfg.apn_type_mask & APN_TYPE_IPv4) {
+		pdp_addr_ietf_type = OSMO_GPRS_SM_PDP_ADDR_IETF_IPV4;
+	} else if (apn->cfg.apn_type_mask & APN_TYPE_IPv6) {
+		pdp_addr_ietf_type = OSMO_GPRS_SM_PDP_ADDR_IETF_IPV6;
+	} else {
+		vty_out(vty, "APN '%s' has no PDP address type set%s", argv[1], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	sm_prim = osmo_gprs_sm_prim_alloc_smreg_pdp_act_req();
+	sm_prim->smreg.pdp_act_req.nsapi = nsapi;
+	sm_prim->smreg.pdp_act_req.llc_sapi = llc_sapi;
+	sm_prim->smreg.pdp_act_req.pdp_addr_ietf_type = pdp_addr_ietf_type;
+	sm_prim->smreg.pdp_act_req.pdp_addr_v4 = pdp_addr_any;
+	sm_prim->smreg.pdp_act_req.pdp_addr_v6 = pdp_addr_any;
+	memcpy(sm_prim->smreg.pdp_act_req.qos, qos, sizeof(qos));
+	sm_prim->smreg.pdp_act_req.qos_len = 1;
+	memcpy(sm_prim->smreg.pdp_act_req.pco, pco, sizeof(pco));
+	sm_prim->smreg.pdp_act_req.pco_len = 1;
+	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.apn, apn->cfg.name);
+	sm_prim->smreg.pdp_act_req.gmm.ptmsi = ptmsi;
+	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imsi, imsi);
+	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imei, imei);
+	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imeisv, imeisv);
+
+	if (osmo_gprs_sm_prim_upper_down(sm_prim) != 0) {
+		vty_out(vty, "Failed to enqueue a SM PDU%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -397,6 +468,7 @@ int modem_vty_init(void)
 	install_element_ve(&test_llc_unitdata_req_gmm_attch_cmd);
 	install_element_ve(&test_gmm_reg_attach_cmd);
 	install_element_ve(&test_gmm_reg_detach_cmd);
+	install_element_ve(&test_sm_act_pdp_ctx_cmd);
 	install_element(CONFIG_NODE, &l23_cfg_ms_cmd);
 
 	install_element(MS_NODE, &cfg_ms_apn_cmd);

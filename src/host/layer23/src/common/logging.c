@@ -177,6 +177,12 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[0;32m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[DSM] = {
+		.name = "DSM",
+		.description = "GPRS Session Management (SM)",
+		.color = "\033[0;31m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 };
 
 const struct log_info log_info = {

@@ -12,6 +12,7 @@ AM_CFLAGS = \
 	$(LIBOSMOGPRSLLC_CFLAGS) \
 	$(LIBOSMOGPRSSNDCP_CFLAGS) \
 	$(LIBOSMOGPRSGMM_CFLAGS) \
+	$(LIBOSMOGPRSSM_CFLAGS) \
 	$(NULL)
 
 bin_PROGRAMS = modem
@@ -23,6 +24,7 @@ modem_SOURCES = \
 	grr.c \
 	llc.c \
 	rlcmac.c \
+	sm.c \
 	sndcp.c \
 	vty.c \
 	$(NULL)
@@ -35,4 +37,5 @@ modem_LDADD = \
 	$(LIBOSMOGPRSLLC_LIBS) \
 	$(LIBOSMOGPRSSNDCP_LIBS) \
 	$(LIBOSMOGPRSGMM_LIBS) \
+	$(LIBOSMOGPRSSM_LIBS) \
 	$(NULL)

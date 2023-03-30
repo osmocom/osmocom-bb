@@ -4,6 +4,7 @@ noinst_HEADERS = \
         grr.h \
         llc.h \
         rlcmac.h \
+        sm.h \
         sndcp.h \
         vty.h \
         $(NULL)

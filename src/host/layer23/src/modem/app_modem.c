@@ -51,6 +51,7 @@
 #include <osmocom/bb/modem/llc.h>
 #include <osmocom/bb/modem/sndcp.h>
 #include <osmocom/bb/modem/gmm.h>
+#include <osmocom/bb/modem/sm.h>
 #include <osmocom/bb/modem/vty.h>
 #include <osmocom/bb/modem/grr.h>
 
@@ -177,6 +178,11 @@ int l23_app_init(void)
 
 	if ((rc = modem_gmm_init(app_data.ms))) {
 		LOGP(DGMM, LOGL_FATAL, "Failed initializing GMM layer\n");
+		return rc;
+	}
+
+	if ((rc = modem_sm_init(app_data.ms))) {
+		LOGP(DSM, LOGL_FATAL, "Failed initializing SM layer\n");
 		return rc;
 	}
 
