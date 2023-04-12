@@ -283,21 +283,25 @@ static void handle_tx_access_burst_req(struct osmo_fsm_inst *fi,
 				       const struct trxcon_param_tx_access_burst_req *req)
 {
 	struct trxcon_inst *trxcon = fi->priv;
-	enum l1sched_ts_prim_type prim_type;
-	const struct l1sched_ts_prim *prim;
+	struct l1sched_prim *prim;
+	struct msgb *msg;
 
-	const struct l1sched_ts_prim_rach rach = {
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_RACH, PRIM_OP_REQUEST, 0);
+	OSMO_ASSERT(msg != NULL);
+
+	prim = l1sched_prim_from_msgb(msg);
+	prim->rach_req = (struct l1sched_prim_rach) {
+		.chdr = {
+			.chan_nr = req->chan_nr,
+			.link_id = req->link_id,
+		},
 		.synch_seq = req->synch_seq,
 		.offset = req->offset,
+		.is_11bit = req->is_11bit,
 		.ra = req->ra,
 	};
 
-	prim_type = req->is_11bit ? L1SCHED_PRIM_RACH11 : L1SCHED_PRIM_RACH8;
-	prim = l1sched_prim_push(trxcon->sched, prim_type,
-				 req->chan_nr, req->link_id,
-				 (const uint8_t *)&rach, sizeof(rach));
-	if (prim == NULL)
-		LOGPFSML(fi, LOGL_ERROR, "Failed to enqueue a prim\n");
+	l1sched_prim_from_user(trxcon->sched, msg);
 }
 
 static void handle_dch_est_req(struct osmo_fsm_inst *fi,
@@ -485,15 +489,21 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_TX_DATA_REQ:
 	{
 		const struct trxcon_param_tx_data_req *req = data;
-		struct l1sched_ts_prim *prim;
+		struct l1sched_prim *prim;
+		struct msgb *msg;
 
-		prim = l1sched_prim_push(trxcon->sched, L1SCHED_PRIM_DATA,
-					 req->chan_nr, req->link_id,
-					 req->data, req->data_len);
-		if (prim == NULL) {
-			LOGPFSML(fi, LOGL_ERROR, "Failed to enqueue a prim\n");
-			return;
-		}
+		msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST, req->data_len);
+		OSMO_ASSERT(msg != NULL);
+
+		prim = l1sched_prim_from_msgb(msg);
+		prim->data_req = (struct l1sched_prim_chdr) {
+			.chan_nr = req->chan_nr,
+			.link_id = req->link_id,
+			.traffic = req->traffic,
+		};
+
+		memcpy(msgb_put(msg, req->data_len), req->data, req->data_len);
+		l1sched_prim_from_user(trxcon->sched, msg);
 		break;
 	}
 	case TRXCON_EV_TX_DATA_CNF:
@@ -547,21 +557,24 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_GPRS_UL_BLOCK_REQ:
 	{
 		struct l1gprs_prim_ul_block_req block_req;
-		const struct msgb *msg = data;
-		struct l1sched_ts_prim *prim;
+		struct l1sched_prim *prim;
+		struct msgb *msg = data;
 
 		if (l1gprs_handle_ul_block_req(trxcon->gprs, &block_req, msg) != 0)
 			return;
 
-		prim = l1sched_prim_push(trxcon->sched, L1SCHED_PRIM_DATA,
-					 RSL_CHAN_OSMO_PDCH | block_req.hdr.tn, 0x00,
-					 block_req.data, block_req.data_len);
-		if (prim == NULL) {
-			LOGPFSML(fi, LOGL_ERROR, "Failed to enqueue a prim\n");
-			return;
-		}
+		msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST, block_req.data_len);
+		OSMO_ASSERT(msg != NULL);
 
-		prim->fn = block_req.hdr.fn;
+		prim = l1sched_prim_from_msgb(msg);
+		prim->data_req = (struct l1sched_prim_chdr) {
+			.frame_nr = block_req.hdr.fn,
+			.chan_nr = RSL_CHAN_OSMO_PDCH | block_req.hdr.tn,
+			.link_id = 0x00,
+		};
+
+		memcpy(msgb_put(msg, block_req.data_len), block_req.data, block_req.data_len);
+		l1sched_prim_from_user(trxcon->sched, msg);
 		break;
 	}
 	case TRXCON_EV_RX_DATA_IND:

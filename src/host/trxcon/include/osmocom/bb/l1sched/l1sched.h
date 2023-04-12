@@ -14,6 +14,8 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/timer.h>
 
+#include <osmocom/bb/l1sched/prim.h>
+
 #define GPRS_L2_MAX_LEN		54
 #define EDGE_L2_MAX_LEN		155
 
@@ -47,12 +49,6 @@ enum l1sched_clck_state {
 enum l1sched_burst_type {
 	L1SCHED_BURST_GMSK,
 	L1SCHED_BURST_8PSK,
-};
-
-enum l1sched_ts_prim_type {
-	L1SCHED_PRIM_DATA,
-	L1SCHED_PRIM_RACH8,
-	L1SCHED_PRIM_RACH11,
 };
 
 /**
@@ -101,29 +97,6 @@ enum l1sched_lchan_type {
 	L1SCHED_SDCCH4_CBCH,
 	L1SCHED_SDCCH8_CBCH,
 	_L1SCHED_CHAN_MAX
-};
-
-enum l1sched_data_type {
-	L1SCHED_DT_PACKET_DATA,
-	L1SCHED_DT_SIGNALING,
-	L1SCHED_DT_TRAFFIC,
-	L1SCHED_DT_OTHER, /* SCH and RACH */
-};
-
-enum l1sched_config_type {
-	/*! Channel combination for a timeslot */
-	L1SCHED_CFG_PCHAN_COMB,
-};
-
-/* Represents a (re)configuration request */
-struct l1sched_config_req {
-	enum l1sched_config_type type;
-	union {
-		struct {
-			uint8_t tn;
-			enum gsm_phys_chan_config pchan;
-		} pchan_comb;
-	};
 };
 
 /* Represents a burst to be transmitted */
@@ -182,10 +155,6 @@ struct l1sched_lchan_desc {
 	uint8_t chan_nr;
 	/*! Link ID (like in RSL) */
 	uint8_t link_id;
-	/*! Sub-slot number (for SDCCH and TCH/H) */
-	uint8_t ss_nr;
-	/*! GSMTAP channel type (see GSMTAP_CHANNEL_*) */
-	uint8_t gsmtap_chan_type;
 
 	/*! How much memory do we need to store bursts */
 	size_t burst_buf_size;
@@ -259,8 +228,10 @@ struct l1sched_lchan_state {
 	/*! Burst buffer for TX */
 	ubit_t *tx_bursts;
 
-	/*! A primitive being sent */
-	struct l1sched_ts_prim *prim;
+	/*! Queue of Tx primitives */
+	struct llist_head tx_prims;
+	/*! Tx primitive being sent */
+	struct msgb *prim;
 
 	/*! Mode for TCH channels (see GSM48_CMODE_*) */
 	uint8_t	tch_mode;
@@ -340,36 +311,8 @@ struct l1sched_ts {
 	const struct l1sched_tdma_multiframe *mf_layout;
 	/*! Channel states for logical channels */
 	struct llist_head lchans;
-	/*! Queue primitives for TX */
-	struct llist_head tx_prims;
 	/*! Backpointer to the scheduler */
 	struct l1sched_state *sched;
-};
-
-/* Represents one TX primitive in the queue of l1sched_ts */
-struct l1sched_ts_prim {
-	/*! Link to queue of TS */
-	struct llist_head list;
-	/*! Type of primitive */
-	enum l1sched_ts_prim_type type;
-	/*! Logical channel type */
-	enum l1sched_lchan_type chan;
-	/*! TDMA Fn for L1SCHED_{PDTCH,PTCCH} */
-	uint32_t fn;
-	/*! Payload length */
-	size_t payload_len;
-	/*! Payload */
-	uint8_t payload[0];
-};
-
-/*! Represents a RACH (8-bit or 11-bit) primitive */
-struct l1sched_ts_prim_rach {
-	/*! RA value */
-	uint16_t ra;
-	/*! Training Sequence (only for 11-bit RA) */
-	uint8_t synch_seq;
-	/*! Transmission offset (how many frames to skip) */
-	uint8_t offset;
 };
 
 /*! Scheduler configuration */
@@ -426,8 +369,6 @@ int l1sched_start_ciphering(struct l1sched_ts *ts, uint8_t algo,
 
 /* Logical channel management functions */
 enum gsm_phys_chan_config l1sched_chan_nr2pchan_config(uint8_t chan_nr);
-enum l1sched_lchan_type l1sched_chan_nr2lchan_type(uint8_t chan_nr,
-	uint8_t link_id);
 
 void l1sched_deactivate_all_lchans(struct l1sched_ts *ts);
 int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr,
@@ -440,12 +381,6 @@ struct l1sched_lchan_state *l1sched_find_lchan_by_type(struct l1sched_ts *ts,
 						       enum l1sched_lchan_type type);
 struct l1sched_lchan_state *l1sched_find_lchan_by_chan_nr(struct l1sched_state *sched,
 							  uint8_t chan_nr, uint8_t link_id);
-
-/* Primitive management functions */
-struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
-					  enum l1sched_ts_prim_type type,
-					  uint8_t chan_nr, uint8_t link_id,
-					  const uint8_t *pl, size_t pl_len);
 
 #define L1SCHED_TCH_MODE_IS_SPEECH(mode)   \
 	  (mode == GSM48_CMODE_SPEECH_V1   \
@@ -464,31 +399,12 @@ struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
 #define L1SCHED_CHAN_IS_SACCH(chan) \
 	(l1sched_lchan_desc[chan].link_id & L1SCHED_CH_LID_SACCH)
 
-#define L1SCHED_PRIM_IS_RACH11(prim) \
-	(prim->type == L1SCHED_PRIM_RACH11)
-
-#define L1SCHED_PRIM_IS_RACH8(prim) \
-	(prim->type == L1SCHED_PRIM_RACH8)
-
-#define L1SCHED_PRIM_IS_RACH(prim) \
-	(L1SCHED_PRIM_IS_RACH8(prim) || L1SCHED_PRIM_IS_RACH11(prim))
-
-#define L1SCHED_PRIM_IS_TCH(prim) \
-	(L1SCHED_CHAN_IS_TCH(prim->chan) && prim->payload_len != GSM_MACBLOCK_LEN)
-
-#define L1SCHED_PRIM_IS_FACCH(prim) \
-	(L1SCHED_CHAN_IS_TCH(prim->chan) && prim->payload_len == GSM_MACBLOCK_LEN)
-
-struct l1sched_ts_prim *l1sched_prim_dequeue(struct llist_head *queue,
-	uint32_t fn, struct l1sched_lchan_state *lchan);
-int l1sched_prim_dummy(struct l1sched_lchan_state *lchan);
-void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan);
-void l1sched_prim_flush_queue(struct llist_head *list);
-
 int l1sched_handle_rx_burst(struct l1sched_state *sched,
 			    struct l1sched_burst_ind *bi);
 int l1sched_handle_rx_probe(struct l1sched_state *sched,
 			    struct l1sched_probe *probe);
+int l1sched_handle_burst_req(struct l1sched_state *sched,
+			     const struct l1sched_burst_req *br);
 
 /* Shared declarations for lchan handlers */
 extern const uint8_t l1sched_nb_training_bits[8][26];
@@ -521,17 +437,3 @@ void l1sched_clck_reset(struct l1sched_state *sched);
 
 void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *br);
 void l1sched_pull_send_frame(struct l1sched_state *sched);
-
-/* External L1 API, must be implemented by the API user */
-int l1sched_handle_config_req(struct l1sched_state *sched,
-			      const struct l1sched_config_req *cr);
-int l1sched_handle_burst_req(struct l1sched_state *sched,
-			     const struct l1sched_burst_req *br);
-
-/* External L2 API, must be implemented by the API user */
-int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
-			    const uint8_t *data, size_t data_len,
-			    int n_errors, int n_bits_total,
-			    enum l1sched_data_type dt);
-int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
-			    uint32_t fn, enum l1sched_data_type dt);

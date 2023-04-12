@@ -68,18 +68,20 @@ static const uint8_t meas_rep_dummy[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-static int l1sched_cfg_pchan_comb_req(struct l1sched_state *sched,
+static int l1sched_cfg_pchan_comb_ind(struct l1sched_state *sched,
 				      uint8_t tn, enum gsm_phys_chan_config pchan)
 {
-	const struct l1sched_config_req cr = {
-		.type = L1SCHED_CFG_PCHAN_COMB,
-		.pchan_comb = {
-			.tn = tn,
-			.pchan = pchan,
-		},
-	};
+	struct l1sched_prim *prim;
+	struct msgb *msg;
 
-	return l1sched_handle_config_req(sched, &cr);
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_PCHAN_COMB, PRIM_OP_INDICATION, 0);
+	OSMO_ASSERT(msg != NULL);
+
+	prim = l1sched_prim_from_msgb(msg);
+	prim->pchan_comb_ind.tn = tn;
+	prim->pchan_comb_ind.pchan = pchan;
+
+	return l1sched_prim_to_user(sched, msg);
 }
 
 static void l1sched_a5_burst_enc(struct l1sched_lchan_state *lchan,
@@ -121,11 +123,11 @@ void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *b
 
 	/* If no primitive is being processed, try obtaining one from Tx queue */
 	if (lchan->prim == NULL)
-		lchan->prim = l1sched_prim_dequeue(&ts->tx_prims, br->fn, lchan);
+		lchan->prim = l1sched_lchan_prim_dequeue(lchan, br->fn);
 	if (lchan->prim == NULL) {
 		/* If CBTX (Continuous Burst Transmission) is required */
 		if (l1sched_lchan_desc[chan].flags & L1SCHED_CH_FLAG_CBTX)
-			l1sched_prim_dummy(lchan);
+			l1sched_lchan_prim_assign_dummy(lchan);
 		if (lchan->prim == NULL)
 			return;
 	}
@@ -134,7 +136,8 @@ void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *b
 
 	/* Handover RACH needs to be handled regardless of the
 	 * current channel type and the associated handler. */
-	if (L1SCHED_PRIM_IS_RACH(lchan->prim) && lchan->prim->chan != L1SCHED_RACH)
+	if (l1sched_prim_type_from_msgb(lchan->prim) == L1SCHED_PRIM_T_RACH &&
+	    lchan->type != L1SCHED_RACH)
 		handler = l1sched_lchan_desc[L1SCHED_RACH].tx_fn;
 
 	/* Poke lchan handler */
@@ -272,15 +275,12 @@ void l1sched_del_ts(struct l1sched_state *sched, int tn)
 		talloc_free(lchan);
 	}
 
-	/* Flush queue primitives for TX */
-	l1sched_prim_flush_queue(&ts->tx_prims);
-
 	/* Remove ts from list and free memory */
 	sched->ts[tn] = NULL;
 	talloc_free(ts);
 
 	/* Notify transceiver about that */
-	l1sched_cfg_pchan_comb_req(sched, tn, GSM_PCHAN_NONE);
+	l1sched_cfg_pchan_comb_ind(sched, tn, GSM_PCHAN_NONE);
 }
 
 #define LAYOUT_HAS_LCHAN(layout, lchan) \
@@ -316,8 +316,6 @@ int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 		    "(Re)configure TDMA timeslot #%u as %s\n",
 		    tn, ts->mf_layout->name);
 
-	/* Init queue primitives for TX */
-	INIT_LLIST_HEAD(&ts->tx_prims);
 	/* Init logical channels list */
 	INIT_LLIST_HEAD(&ts->lchans);
 
@@ -337,6 +335,9 @@ int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 		/* Set channel type */
 		lchan->type = type;
 
+		/* Init the Tx queue */
+		INIT_LLIST_HEAD(&lchan->tx_prims);
+
 		/* Add to the list of channel states */
 		llist_add_tail(&lchan->list, &ts->lchans);
 
@@ -346,7 +347,7 @@ int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 	}
 
 	/* Notify transceiver about TS activation */
-	l1sched_cfg_pchan_comb_req(sched, tn, config);
+	l1sched_cfg_pchan_comb_ind(sched, tn, config);
 
 	return 0;
 }
@@ -364,9 +365,6 @@ int l1sched_reset_ts(struct l1sched_state *sched, int tn)
 	/* Undefine multiframe layout */
 	ts->mf_layout = NULL;
 
-	/* Flush queue primitives for TX */
-	l1sched_prim_flush_queue(&ts->tx_prims);
-
 	/* Deactivate all logical channels */
 	l1sched_deactivate_all_lchans(ts);
 
@@ -377,7 +375,7 @@ int l1sched_reset_ts(struct l1sched_state *sched, int tn)
 	}
 
 	/* Notify transceiver about that */
-	l1sched_cfg_pchan_comb_req(sched, tn, GSM_PCHAN_NONE);
+	l1sched_cfg_pchan_comb_ind(sched, tn, GSM_PCHAN_NONE);
 
 	return 0;
 }
@@ -541,6 +539,8 @@ int l1sched_activate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan)
 
 static void l1sched_reset_lchan(struct l1sched_lchan_state *lchan)
 {
+	struct msgb *msg;
+
 	/* Prevent NULL-pointer deference */
 	OSMO_ASSERT(lchan != NULL);
 
@@ -567,6 +567,10 @@ static void l1sched_reset_lchan(struct l1sched_lchan_state *lchan)
 
 	/* Forget the current prim */
 	l1sched_lchan_prim_drop(lchan);
+
+	/* Flush the queue of pending Tx prims */
+	while ((msg = msgb_dequeue(&lchan->tx_prims)) != NULL)
+		msgb_free(msg);
 
 	/* Channel specific stuff */
 	if (L1SCHED_CHAN_IS_TCH(lchan->type)) {
@@ -655,20 +659,6 @@ enum gsm_phys_chan_config l1sched_chan_nr2pchan_config(uint8_t chan_nr)
 		return GSM_PCHAN_PDCH;
 
 	return GSM_PCHAN_NONE;
-}
-
-enum l1sched_lchan_type l1sched_chan_nr2lchan_type(uint8_t chan_nr,
-	uint8_t link_id)
-{
-	int i;
-
-	/* Iterate over all known lchan types */
-	for (i = 0; i < _L1SCHED_CHAN_MAX; i++)
-		if (l1sched_lchan_desc[i].chan_nr == (chan_nr & RSL_CHAN_NR_MASK))
-			if (l1sched_lchan_desc[i].link_id == link_id)
-				return i;
-
-	return L1SCHED_IDLE;
 }
 
 static void l1sched_a5_burst_dec(struct l1sched_lchan_state *lchan,

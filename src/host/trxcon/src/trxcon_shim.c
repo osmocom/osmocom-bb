@@ -1,7 +1,7 @@
 /*
  * OsmocomBB <-> SDR connection bridge
  *
- * (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
+ * (C) 2022-2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  * Author: Vadim Yanitskiy <vyanitskiy@sysmocom.de>
  *
  * All Rights Reserved
@@ -24,52 +24,33 @@
 #include <osmocom/core/fsm.h>
 #include <osmocom/core/gsmtap_util.h>
 #include <osmocom/core/gsmtap.h>
+#include <osmocom/gsm/rsl.h>
 
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trxcon_fsm.h>
 #include <osmocom/bb/trxcon/phyif.h>
 #include <osmocom/bb/l1sched/l1sched.h>
 
-static void trxcon_gsmtap_send(struct gsmtap_inst *gi, uint8_t chan_type,
-			       uint32_t fn, uint8_t tn, uint8_t ss,
-			       uint16_t band_arfcn,
-			       int8_t signal_dbm, uint8_t snr,
-			       const uint8_t *data, size_t data_len)
+static void trxcon_gsmtap_send(struct trxcon_inst *trxcon,
+			       const struct l1sched_prim_chdr *chdr,
+			       const uint8_t *data, size_t data_len,
+			       int8_t signal_dbm, uint8_t snr, bool uplink)
 {
-	/* Omit frames with unknown channel type */
-	if (chan_type == GSMTAP_CHANNEL_UNKNOWN)
-		return;
+	uint16_t band_arfcn = trxcon->l1p.band_arfcn;
+	uint8_t chan_type, ss, tn;
 
-	/* TODO: distinguish GSMTAP_CHANNEL_PCH and GSMTAP_CHANNEL_AGCH */
-	gsmtap_send(gi, band_arfcn, tn, chan_type, ss, fn, signal_dbm, snr, data, data_len);
+	if (uplink)
+		band_arfcn |= ARFCN_UPLINK;
+	if (rsl_dec_chan_nr(chdr->chan_nr, &chan_type, &ss, &tn) != 0)
+		return;
+	chan_type = chantype_rsl2gsmtap2(chan_type, chdr->link_id, chdr->traffic);
+
+	gsmtap_send(trxcon->gsmtap, band_arfcn, tn, chan_type, ss,
+		    chdr->frame_nr, signal_dbm, snr,
+		    data, data_len);
 }
 
 /* External L1 API for the scheduler */
-int l1sched_handle_config_req(struct l1sched_state *sched,
-			      const struct l1sched_config_req *cr)
-{
-	struct trxcon_inst *trxcon = sched->priv;
-
-	switch (cr->type) {
-	case L1SCHED_CFG_PCHAN_COMB:
-	{
-		struct trxcon_param_set_phy_config_req req = {
-			.type = TRXCON_PHY_CFGT_PCHAN_COMB,
-			.pchan_comb = {
-				.tn = cr->pchan_comb.tn,
-				.pchan = cr->pchan_comb.pchan,
-			},
-		};
-
-		return osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_SET_PHY_CONFIG_REQ, &req);
-	}
-	default:
-		LOGPFSML(trxcon->fi, LOGL_ERROR,
-			 "Unhandled config request (type 0x%02x)\n", cr->type);
-		return -ENODEV;
-	}
-}
-
 int l1sched_handle_burst_req(struct l1sched_state *sched,
 			     const struct l1sched_burst_req *br)
 {
@@ -86,137 +67,122 @@ int l1sched_handle_burst_req(struct l1sched_state *sched,
 }
 
 /* External L2 API for the scheduler */
-int l1sched_handle_data_ind(struct l1sched_lchan_state *lchan,
-			    const uint8_t *data, size_t data_len,
-			    int n_errors, int n_bits_total,
-			    enum l1sched_data_type dt)
+static int handle_prim_data_ind(struct trxcon_inst *trxcon, struct msgb *msg)
 {
-	const struct l1sched_meas_set *meas = &lchan->meas_avg;
-	const struct l1sched_lchan_desc *lchan_desc;
-	struct l1sched_state *sched = lchan->ts->sched;
-	struct trxcon_inst *trxcon = sched->priv;
-	int rc;
-
-	lchan_desc = &l1sched_lchan_desc[lchan->type];
-
+	const struct l1sched_prim *prim = l1sched_prim_from_msgb(msg);
 	struct trxcon_param_rx_data_ind ind = {
-		/* .traffic is set below */
-		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
-		.link_id = lchan_desc->link_id,
+		.traffic = prim->data_ind.chdr.traffic,
+		.chan_nr = prim->data_ind.chdr.chan_nr,
+		.link_id = prim->data_ind.chdr.link_id,
 		.band_arfcn = trxcon->l1p.band_arfcn,
-		.frame_nr = meas->fn,
-		.toa256 = meas->toa256,
-		.rssi = meas->rssi,
-		.n_errors = n_errors,
-		.n_bits_total = n_bits_total,
-		.data_len = data_len,
-		.data = data,
+		.frame_nr = prim->data_ind.chdr.frame_nr,
+		.toa256 = prim->data_ind.toa256,
+		.rssi = prim->data_ind.rssi,
+		.n_errors = prim->data_ind.n_errors,
+		.n_bits_total = prim->data_ind.n_bits_total,
+		.data_len = msgb_l2len(msg),
+		.data = msgb_l2(msg),
 	};
 
-	switch (dt) {
-	case L1SCHED_DT_PACKET_DATA:
-	case L1SCHED_DT_TRAFFIC:
-		ind.traffic = true;
-		/* fall-through */
-	case L1SCHED_DT_SIGNALING:
-		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_RX_DATA_IND, &ind);
-		break;
-	case L1SCHED_DT_OTHER:
-		if (lchan->type == L1SCHED_SCH) {
-			if (trxcon->fi->state != TRXCON_ST_FBSB_SEARCH)
-				return 0;
-			rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_FBSB_SEARCH_RES, NULL);
-			break;
-		}
-		/* fall through */
-	default:
-		LOGPFSML(trxcon->fi, LOGL_ERROR,
-			 "Unhandled L2 DATA.ind (type 0x%02x)\n", dt);
-		return -ENODEV;
+	if (trxcon->gsmtap != NULL && ind.data_len > 0) {
+		trxcon_gsmtap_send(trxcon, &prim->data_ind.chdr,
+				   ind.data, ind.data_len,
+				   ind.rssi, 0, false);
 	}
 
-	if (trxcon->gsmtap != NULL && data != NULL && data_len > 0) {
-		trxcon_gsmtap_send(trxcon->gsmtap, lchan_desc->gsmtap_chan_type,
-				   meas->fn, lchan->ts->index, lchan_desc->ss_nr,
-				   trxcon->l1p.band_arfcn, meas->rssi, 0,
-				   data, data_len);
-	}
-
-	return rc;
+	return osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_RX_DATA_IND, &ind);
 }
 
-int l1sched_handle_data_cnf(struct l1sched_lchan_state *lchan,
-			    uint32_t fn, enum l1sched_data_type dt)
+static int handle_prim_data_cnf(struct trxcon_inst *trxcon, struct msgb *msg)
 {
-	const struct l1sched_lchan_desc *lchan_desc;
-	struct l1sched_state *sched = lchan->ts->sched;
-	struct trxcon_inst *trxcon = sched->priv;
-	const uint8_t *data;
-	uint8_t ra_buf[2];
-	size_t data_len;
-	int rc;
-
-	lchan_desc = &l1sched_lchan_desc[lchan->type];
-
-	switch (dt) {
-	case L1SCHED_DT_PACKET_DATA:
-		data_len = lchan->prim->payload_len;
-		data = lchan->prim->payload;
-		rc = 0;
-		break; /* do not send DATA.cnf */
-	case L1SCHED_DT_SIGNALING:
-	case L1SCHED_DT_TRAFFIC:
-	{
-		struct trxcon_param_tx_data_cnf cnf = {
-			.traffic = (dt == L1SCHED_DT_TRAFFIC),
-			.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
-			.link_id = lchan_desc->link_id,
-			.band_arfcn = trxcon->l1p.band_arfcn,
-			.frame_nr = fn,
-		};
-
-		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_DATA_CNF, &cnf);
-		data_len = lchan->prim->payload_len;
-		data = lchan->prim->payload;
-		break;
-	}
-	case L1SCHED_DT_OTHER:
-		if (L1SCHED_PRIM_IS_RACH(lchan->prim)) {
-			const struct l1sched_ts_prim_rach *rach;
-			struct trxcon_param_tx_access_burst_cnf cnf = {
-				.band_arfcn = trxcon->l1p.band_arfcn,
-				.frame_nr = fn,
-			};
-
-			rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_ACCESS_BURST_CNF, &cnf);
-
-			rach = (struct l1sched_ts_prim_rach *)lchan->prim->payload;
-			if (lchan->prim->type == L1SCHED_PRIM_RACH11) {
-				ra_buf[0] = (uint8_t)(rach->ra >> 3);
-				ra_buf[1] = (uint8_t)(rach->ra & 0x07);
-				data = &ra_buf[0];
-				data_len = 2;
-			} else {
-				ra_buf[0] = (uint8_t)(rach->ra);
-				data = &ra_buf[0];
-				data_len = 1;
-			}
-			break;
-		}
-		/* fall through */
-	default:
-		LOGPFSML(trxcon->fi, LOGL_ERROR,
-			 "Unhandled L2 DATA.cnf (type 0x%02x)\n", dt);
-		return -ENODEV;
-	}
+	const struct l1sched_prim *prim = l1sched_prim_from_msgb(msg);
+	struct trxcon_param_tx_data_cnf cnf = {
+		.traffic = prim->data_cnf.traffic,
+		.chan_nr = prim->data_cnf.chan_nr,
+		.link_id = prim->data_cnf.link_id,
+		.band_arfcn = trxcon->l1p.band_arfcn,
+		.frame_nr = prim->data_cnf.frame_nr,
+	};
 
 	if (trxcon->gsmtap != NULL) {
-		trxcon_gsmtap_send(trxcon->gsmtap, lchan_desc->gsmtap_chan_type,
-				   fn, lchan->ts->index, lchan_desc->ss_nr,
-				   trxcon->l1p.band_arfcn | ARFCN_UPLINK,
-				   0, 0, data, data_len);
+		trxcon_gsmtap_send(trxcon, &prim->data_cnf,
+				   msgb_l2(msg), msgb_l2len(msg),
+				   0, 0, true);
 	}
 
+	/* XXX: do not send for L1SCHED_DT_PACKET_DATA */
+	return osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_DATA_CNF, &cnf);
+}
+
+static int handle_prim_rach_cnf(struct trxcon_inst *trxcon, struct msgb *msg)
+{
+	const struct l1sched_prim *prim = l1sched_prim_from_msgb(msg);
+	struct trxcon_param_tx_access_burst_cnf cnf = {
+		.band_arfcn = trxcon->l1p.band_arfcn,
+		.frame_nr = prim->rach_cnf.chdr.frame_nr,
+	};
+
+	if (trxcon->gsmtap != NULL) {
+		if (prim->rach_cnf.is_11bit) {
+			msgb_put_u8(msg, (uint8_t)(prim->rach_cnf.ra >> 3));
+			msgb_put_u8(msg, (uint8_t)(prim->rach_cnf.ra & 0x07));
+		} else {
+			msgb_put_u8(msg, (uint8_t)(prim->rach_cnf.ra));
+		}
+
+		trxcon_gsmtap_send(trxcon, &prim->rach_cnf.chdr,
+				   msgb_l2(msg), msgb_l2len(msg),
+				   0, 0, true);
+	}
+
+	return osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_ACCESS_BURST_CNF, &cnf);
+}
+
+int l1sched_prim_to_user(struct l1sched_state *sched, struct msgb *msg)
+{
+	const struct l1sched_prim *prim = l1sched_prim_from_msgb(msg);
+	struct trxcon_inst *trxcon = sched->priv;
+	int rc = 0;
+
+	LOGPFSML(trxcon->fi, LOGL_DEBUG,
+		 "%s(): Rx " L1SCHED_PRIM_STR_FMT "\n",
+		 __func__, L1SCHED_PRIM_STR_ARGS(prim));
+
+	switch (OSMO_PRIM_HDR(&prim->oph)) {
+	case OSMO_PRIM(L1SCHED_PRIM_T_DATA, PRIM_OP_INDICATION):
+		rc = handle_prim_data_ind(trxcon, msg);
+		break;
+	case OSMO_PRIM(L1SCHED_PRIM_T_DATA, PRIM_OP_CONFIRM):
+		rc = handle_prim_data_cnf(trxcon, msg);
+		break;
+	case OSMO_PRIM(L1SCHED_PRIM_T_RACH, PRIM_OP_CONFIRM):
+		rc = handle_prim_rach_cnf(trxcon, msg);
+		break;
+	case OSMO_PRIM(L1SCHED_PRIM_T_SCH, PRIM_OP_INDICATION):
+		if (trxcon->fi->state == TRXCON_ST_FBSB_SEARCH)
+			rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_FBSB_SEARCH_RES, NULL);
+		break;
+	case OSMO_PRIM(L1SCHED_PRIM_T_PCHAN_COMB, PRIM_OP_INDICATION):
+	{
+		struct trxcon_param_set_phy_config_req req = {
+			.type = TRXCON_PHY_CFGT_PCHAN_COMB,
+			.pchan_comb = {
+				.tn = prim->pchan_comb_ind.tn,
+				.pchan = prim->pchan_comb_ind.pchan,
+			},
+		};
+
+		rc = osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_SET_PHY_CONFIG_REQ, &req);
+		break;
+	}
+	default:
+		LOGPFSML(trxcon->fi, LOGL_ERROR,
+			 "%s(): Unhandled primitive " L1SCHED_PRIM_STR_FMT "\n",
+			 __func__, L1SCHED_PRIM_STR_ARGS(prim));
+		rc = -ENOTSUP;
+	}
+
+	msgb_free(msg);
 	return rc;
 }
 

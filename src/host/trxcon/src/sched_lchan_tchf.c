@@ -171,9 +171,8 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 		goto bfi;
 	} else if (rc == GSM_MACBLOCK_LEN) {
 		/* FACCH received, forward it to the higher layers */
-		l1sched_handle_data_ind(lchan, l2 + amr, GSM_MACBLOCK_LEN,
-					n_errors, n_bits_total,
-					L1SCHED_DT_SIGNALING);
+		l1sched_lchan_emit_data_ind(lchan, l2 + amr, GSM_MACBLOCK_LEN,
+					    n_errors, n_bits_total, false);
 
 		/* Send BFI substituting a stolen TCH frame */
 		n_errors = -1; /* ensure fake measurements */
@@ -184,7 +183,8 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 	}
 
 	/* Send a traffic frame to the higher layers */
-	return l1sched_handle_data_ind(lchan, l2, l2_len, n_errors, n_bits_total, L1SCHED_DT_TRAFFIC);
+	return l1sched_lchan_emit_data_ind(lchan, l2, l2_len,
+					   n_errors, n_bits_total, true);
 
 bfi:
 	/* Didn't try to decode, fake measurements */
@@ -201,18 +201,16 @@ bfi:
 
 	/* BFI is not applicable in signalling mode */
 	if (lchan->tch_mode == GSM48_CMODE_SIGN) {
-		return l1sched_handle_data_ind(lchan, NULL, 0,
-					       n_errors, n_bits_total,
-					       L1SCHED_DT_TRAFFIC);
+		return l1sched_lchan_emit_data_ind(lchan, NULL, 0,
+						   n_errors, n_bits_total, false);
 	}
 
 	/* Bad frame indication */
 	l2_len = l1sched_bad_frame_ind(l2, lchan);
 
 	/* Send a BFI frame to the higher layers */
-	return l1sched_handle_data_ind(lchan, l2, l2_len,
-				       n_errors, n_bits_total,
-				       L1SCHED_DT_TRAFFIC);
+	return l1sched_lchan_emit_data_ind(lchan, l2, l2_len,
+					   n_errors, n_bits_total, true);
 }
 
 int tx_tchf_fn(struct l1sched_lchan_state *lchan,
@@ -240,9 +238,9 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	memcpy(buffer, buffer + 464, 464);
 
 	/* populate the buffer with bursts */
-	if (L1SCHED_PRIM_IS_FACCH(lchan->prim)) {
+	if (msgb_l2len(lchan->prim) == GSM_MACBLOCK_LEN) {
 		/* Encode payload */
-		rc = gsm0503_tch_fr_encode(buffer, lchan->prim->payload, GSM_MACBLOCK_LEN, 1);
+		rc = gsm0503_tch_fr_encode(buffer, msgb_l2(lchan->prim), GSM_MACBLOCK_LEN, 1);
 	} else if (lchan->tch_mode == GSM48_CMODE_SPEECH_AMR) {
 		int len;
 		uint8_t cmr_codec;
@@ -256,12 +254,11 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 		 */
 		amr_fn_is_cmr = !sched_tchf_ul_amr_cmi_map[br->fn % 26];
 
-		len = osmo_amr_rtp_dec(lchan->prim->payload, lchan->prim->payload_len,
-				&cmr_codec, &cmi, &ft_codec,
-				&bfi, &sti);
+		len = osmo_amr_rtp_dec(msgb_l2(lchan->prim), msgb_l2len(lchan->prim),
+				       &cmr_codec, &cmi, &ft_codec, &bfi, &sti);
 		if (len < 0) {
-			LOGP_LCHAND(lchan, LOGL_ERROR, "Cannot send invalid AMR payload (%zu): %s\n",
-				lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload, lchan->prim->payload_len));
+			LOGP_LCHAND(lchan, LOGL_ERROR, "Cannot send invalid AMR payload (%u): %s\n",
+				    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
 			goto free_bad_msg;
 		}
 		ft = -1;
@@ -290,11 +287,14 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 		} else {
 			lchan->amr.ul_cmr = cmr;
 		}
-		rc = gsm0503_tch_afs_encode(buffer, lchan->prim->payload + 2,
-			lchan->prim->payload_len - 2, amr_fn_is_cmr,
-			lchan->amr.codec, lchan->amr.codecs,
-			lchan->amr.ul_ft,
-			lchan->amr.ul_cmr);
+		rc = gsm0503_tch_afs_encode(buffer,
+					    msgb_l2(lchan->prim) + 2,
+					    msgb_l2len(lchan->prim) - 2,
+					    amr_fn_is_cmr,
+					    lchan->amr.codec,
+					    lchan->amr.codecs,
+					    lchan->amr.ul_ft,
+					    lchan->amr.ul_cmr);
 	} else {
 		/* Determine and check the payload length */
 		switch (lchan->tch_mode) {
@@ -312,20 +312,19 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			l1sched_lchan_prim_drop(lchan);
 			return -EINVAL;
 		}
-		if (lchan->prim->payload_len != l2_len) {
-			LOGP_LCHAND(lchan, LOGL_ERROR, "Primitive has odd length %zu "
+		if (msgb_l2len(lchan->prim) != l2_len) {
+			LOGP_LCHAND(lchan, LOGL_ERROR, "Primitive has odd length %u "
 				    "(expected %zu for TCH or %u for FACCH), so dropping...\n",
-				    lchan->prim->payload_len, l2_len, GSM_MACBLOCK_LEN);
+				    msgb_l2len(lchan->prim), l2_len, GSM_MACBLOCK_LEN);
 			l1sched_lchan_prim_drop(lchan);
 			return -EINVAL;
 		}
-		rc = gsm0503_tch_fr_encode(buffer, lchan->prim->payload, l2_len, 1);
+		rc = gsm0503_tch_fr_encode(buffer, msgb_l2(lchan->prim), l2_len, 1);
 	}
 
 	if (rc) {
-		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%zu): %s\n",
-			    lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload,
-								   lchan->prim->payload_len));
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%u): %s\n",
+			    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
 free_bad_msg:
 		l1sched_lchan_prim_drop(lchan);
 		return -EINVAL;
@@ -353,13 +352,8 @@ send_burst:
 
 	/* If we have sent the last (4/4) burst */
 	if (*mask == 0x0f) {
-		/* Confirm data / traffic sending */
-		enum l1sched_data_type dt = L1SCHED_PRIM_IS_TCH(lchan->prim) ?
-						L1SCHED_DT_TRAFFIC : L1SCHED_DT_SIGNALING;
-		l1sched_handle_data_cnf(lchan, br->fn, dt);
-
-		/* Forget processed primitive */
-		l1sched_lchan_prim_drop(lchan);
+		/* Confirm data / traffic sending (pass ownership of the prim) */
+		l1sched_lchan_emit_data_cnf(lchan, br->fn);
 
 		/* Reset mask */
 		*mask = 0x00;

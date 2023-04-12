@@ -3,7 +3,7 @@
  * TDMA scheduler: primitive management
  *
  * (C) 2017-2022 by Vadim Yanitskiy <axilirator@gmail.com>
- * Contributions by sysmocom - s.f.m.c. GmbH
+ * (C) 2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * All Rights Reserved
  *
@@ -25,6 +25,8 @@
 #include <talloc.h>
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/prim.h>
+#include <osmocom/core/utils.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/linuxlist.h>
 
@@ -33,86 +35,45 @@
 #include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/l1sched/logging.h>
 
-/**
- * Initializes a new primitive by allocating memory
- * and filling some meta-information (e.g. lchan type).
- *
- * @param  ctx     parent talloc context
- * @param  pl_len  prim payload length
- * @param  type    prim payload type
- * @param  chan_nr RSL channel description (used to set a proper chan)
- * @param  link_id RSL link description (used to set a proper chan)
- * @return         allocated primitive or NULL
- */
-static struct l1sched_ts_prim *prim_alloc(void *ctx, size_t pl_len,
-					  enum l1sched_ts_prim_type type,
-					  uint8_t chan_nr, uint8_t link_id)
+#define L1SCHED_PRIM_HEADROOM	128
+
+osmo_static_assert(sizeof(struct l1sched_prim) <= L1SCHED_PRIM_HEADROOM, l1sched_prim_size);
+
+const struct value_string l1sched_prim_type_names[] = {
+	{ L1SCHED_PRIM_T_DATA,			"DATA" },
+	{ L1SCHED_PRIM_T_RACH,			"RACH" },
+	{ L1SCHED_PRIM_T_SCH,			"SCH" },
+	{ L1SCHED_PRIM_T_PCHAN_COMB,		"PCHAN_COMB" },
+	{ 0, NULL },
+};
+
+void l1sched_prim_init(struct msgb *msg,
+		       enum l1sched_prim_type type,
+		       enum osmo_prim_operation op)
 {
-	enum l1sched_lchan_type lchan_type;
-	struct l1sched_ts_prim *prim;
+	struct l1sched_prim *prim;
 
-	/* Determine lchan type */
-	lchan_type = l1sched_chan_nr2lchan_type(chan_nr, link_id);
-	if (!lchan_type) {
-		/* TODO: use proper logging context */
-		LOGP(DLGLOBAL, LOGL_ERROR, "Couldn't determine lchan type "
-		     "for chan_nr=%02x and link_id=%02x\n", chan_nr, link_id);
-		return NULL;
-	}
+	msg->l2h = msg->data;
+	msg->l1h = msgb_push(msg, sizeof(*prim));
 
-	/* Allocate a new primitive */
-	prim = talloc_zero_size(ctx, sizeof(*prim) + pl_len);
-	if (prim == NULL)
-		return NULL;
-
-	/* Init primitive header */
-	prim->payload_len = pl_len;
-	prim->chan = lchan_type;
-	prim->type = type;
-
-	return prim;
+	prim = l1sched_prim_from_msgb(msg);
+	osmo_prim_init(&prim->oph, 0, type, op, msg);
 }
 
-/**
- * Adds a primitive to the end of transmit queue of a particular
- * timeslot, whose index is parsed from chan_nr.
- *
- * @param  sched   scheduler instance
- * @param  chan_nr RSL channel description
- * @param  link_id RSL link description
- * @param  pl      Payload data
- * @param  pl_len  Payload length
- * @return         queued primitive or NULL
- */
-struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
-					  enum l1sched_ts_prim_type type,
-					  uint8_t chan_nr, uint8_t link_id,
-					  const uint8_t *pl, size_t pl_len)
+struct msgb *l1sched_prim_alloc(enum l1sched_prim_type type,
+				enum osmo_prim_operation op,
+				size_t extra_size)
 {
-	struct l1sched_ts_prim *prim;
-	struct l1sched_ts *ts;
-	uint8_t tn;
+	struct msgb *msg;
 
-	/* Determine TS index */
-	tn = chan_nr & 0x7;
-
-	/* Check whether required timeslot is allocated and configured */
-	ts = sched->ts[tn];
-	if (ts == NULL || ts->mf_layout == NULL) {
-		LOGP_SCHEDC(sched, LOGL_ERROR, "Timeslot %u isn't configured\n", tn);
-		return NULL;
-	}
-
-	prim = prim_alloc(ts, pl_len, type, chan_nr, link_id);
-	if (prim == NULL)
+	msg = msgb_alloc_headroom(L1SCHED_PRIM_HEADROOM + extra_size,
+				  L1SCHED_PRIM_HEADROOM, "l1sched_prim");
+	if (msg == NULL)
 		return NULL;
 
-	memcpy(&prim->payload[0], pl, pl_len);
+	l1sched_prim_init(msg, type, op);
 
-	/* Add primitive to TS transmit queue */
-	llist_add_tail(&prim->list, &ts->tx_prims);
-
-	return prim;
+	return msg;
 }
 
 /**
@@ -121,16 +82,21 @@ struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
  * @param  lchan lchan to assign a primitive
  * @return       SACCH primitive to be transmitted
  */
-static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan)
+static struct msgb *prim_compose_mr(struct l1sched_lchan_state *lchan)
 {
-	struct l1sched_ts_prim *prim;
+	struct l1sched_prim *prim;
+	struct msgb *msg;
 	bool cached;
 
 	/* Allocate a new primitive */
-	prim = prim_alloc(lchan, GSM_MACBLOCK_LEN, L1SCHED_PRIM_DATA,
-			  l1sched_lchan_desc[lchan->type].chan_nr,
-			  L1SCHED_CH_LID_SACCH);
-	OSMO_ASSERT(prim != NULL);
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST, GSM_MACBLOCK_LEN);
+	OSMO_ASSERT(msg != NULL);
+
+	prim = l1sched_prim_from_msgb(msg);
+	prim->data_req = (struct l1sched_prim_chdr) {
+		.chan_nr = l1sched_lchan_desc[lchan->type].chan_nr,
+		.link_id = L1SCHED_CH_LID_SACCH,
+	};
 
 	/* Check if the MR cache is populated (verify LAPDm header) */
 	cached = (lchan->sacch.mr_cache[2] != 0x00
@@ -143,7 +109,9 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 	}
 
 	/* Compose a new Measurement Report primitive */
-	memcpy(&prim->payload[0], &lchan->sacch.mr_cache[0], GSM_MACBLOCK_LEN);
+	memcpy(msgb_put(msg, GSM_MACBLOCK_LEN),
+	       &lchan->sacch.mr_cache[0],
+	       GSM_MACBLOCK_LEN);
 
 	/* Inform about the cache usage count */
 	if (++lchan->sacch.mr_cache_usage > 5) {
@@ -155,7 +123,7 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
 
 	LOGP_LCHAND(lchan, LOGL_NOTICE, "Using cached Measurement Report\n");
 
-	return prim;
+	return msg;
 }
 
 /**
@@ -180,140 +148,101 @@ static struct l1sched_ts_prim *prim_compose_mr(struct l1sched_lchan_state *lchan
  * between two successive measurement result messages
  * shall not exceed one L2 frame.
  *
- * @param  queue transmit queue to take a prim from
  * @param  lchan lchan to assign a primitive
  * @return       SACCH primitive to be transmitted
  */
-static struct l1sched_ts_prim *prim_dequeue_sacch(struct llist_head *queue,
-	struct l1sched_lchan_state *lchan)
+static struct msgb *prim_dequeue_sacch(struct l1sched_lchan_state *lchan)
 {
-	struct l1sched_ts_prim *prim_nmr = NULL;
-	struct l1sched_ts_prim *prim_mr = NULL;
-	struct l1sched_ts_prim *prim;
+	struct msgb *msg_nmr = NULL;
+	struct msgb *msg_mr = NULL;
+	struct msgb *msg;
 	bool mr_now;
 
 	/* Shall we transmit MR now? */
 	mr_now = !lchan->sacch.mr_tx_last;
 
-#define PRIM_IS_MR(prim) \
-	(prim->payload[5] == GSM48_PDISC_RR \
-		&& prim->payload[6] == GSM48_MT_RR_MEAS_REP)
+#define PRIM_MSGB_IS_MR(msg) \
+	(l1sched_prim_data_from_msgb(msg)[5] == GSM48_PDISC_RR && \
+	 l1sched_prim_data_from_msgb(msg)[6] == GSM48_MT_RR_MEAS_REP)
 
 	/* Iterate over all primitives in the queue */
-	llist_for_each_entry(prim, queue, list) {
-		/* We are looking for particular channel */
-		if (prim->chan != lchan->type)
-			continue;
-
+	llist_for_each_entry(msg, &lchan->tx_prims, list) {
 		/* Look for a Measurement Report */
-		if (!prim_mr && PRIM_IS_MR(prim))
-			prim_mr = prim;
+		if (!msg_mr && PRIM_MSGB_IS_MR(msg))
+			msg_mr = msg;
 
 		/* Look for anything else */
-		if (!prim_nmr && !PRIM_IS_MR(prim))
-			prim_nmr = prim;
+		if (!msg_nmr && !PRIM_MSGB_IS_MR(msg))
+			msg_nmr = msg;
 
 		/* Should we look further? */
-		if (mr_now && prim_mr)
+		if (mr_now && msg_mr)
 			break; /* MR was found */
-		else if (!mr_now && prim_nmr)
+		else if (!mr_now && msg_nmr)
 			break; /* something else was found */
 	}
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG,
-		    "SACCH MR selection: mr_tx_last=%d prim_mr=%p prim_nmr=%p\n",
-		    lchan->sacch.mr_tx_last, prim_mr, prim_nmr);
+		    "SACCH MR selection: mr_tx_last=%d msg_mr=%p msg_nmr=%p\n",
+		    lchan->sacch.mr_tx_last, msg_mr, msg_nmr);
 
 	/* Prioritize non-MR prim if possible */
-	if (mr_now && prim_mr)
-		prim = prim_mr;
-	else if (!mr_now && prim_nmr)
-		prim = prim_nmr;
-	else if (!mr_now && prim_mr)
-		prim = prim_mr;
+	if (mr_now && msg_mr)
+		msg = msg_mr;
+	else if (!mr_now && msg_nmr)
+		msg = msg_nmr;
+	else if (!mr_now && msg_mr)
+		msg = msg_mr;
 	else /* Nothing was found */
-		prim = NULL;
+		msg = NULL;
 
 	/* Have we found what we were looking for? */
-	if (prim) /* Dequeue if so */
-		llist_del(&prim->list);
+	if (msg) /* Dequeue if so */
+		llist_del(&msg->list);
 	else /* Otherwise compose a new MR */
-		prim = prim_compose_mr(lchan);
+		msg = prim_compose_mr(lchan);
 
 	/* Update the cached report */
-	if (prim == prim_mr) {
-		memcpy(lchan->sacch.mr_cache,
-			prim->payload, GSM_MACBLOCK_LEN);
+	if (msg == msg_mr) {
+		memcpy(lchan->sacch.mr_cache, msgb_l2(msg), GSM_MACBLOCK_LEN);
 		lchan->sacch.mr_cache_usage = 0;
 
 		LOGP_LCHAND(lchan, LOGL_DEBUG, "SACCH MR cache has been updated\n");
 	}
 
 	/* Update the MR transmission state */
-	lchan->sacch.mr_tx_last = PRIM_IS_MR(prim);
+	lchan->sacch.mr_tx_last = PRIM_MSGB_IS_MR(msg);
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG, "SACCH decision: %s\n",
-		    PRIM_IS_MR(prim) ? "Measurement Report" : "data frame");
+		    PRIM_MSGB_IS_MR(msg) ? "Measurement Report" : "data frame");
 
-	return prim;
-}
-
-/* Dequeues a primitive of a given channel type */
-static struct l1sched_ts_prim *prim_dequeue_one(struct llist_head *queue,
-	enum l1sched_lchan_type lchan_type)
-{
-	struct l1sched_ts_prim *prim;
-
-	/**
-	 * There is no need to use the 'safe' list iteration here
-	 * as an item removal is immediately followed by return.
-	 */
-	llist_for_each_entry(prim, queue, list) {
-		if (prim->chan == lchan_type) {
-			llist_del(&prim->list);
-			return prim;
-		}
-	}
-
-	return NULL;
+	return msg;
 }
 
 /**
  * Dequeues either a FACCH, or a speech TCH primitive
  * of a given channel type (Lm or Bm).
  *
- * Note: we could avoid 'lchan_type' parameter and just
- * check the prim's channel type using L1SCHED_CHAN_IS_TCH(),
- * but the current approach is a bit more flexible,
- * and allows one to have both sub-slots of TCH/H
- * enabled on same timeslot e.g. for testing...
- *
- * @param  queue      transmit queue to take a prim from
- * @param  lchan_type required channel type of a primitive,
- *                    e.g. L1SCHED_TCHF, L1SCHED_TCHH_0, or L1SCHED_TCHH_1
+ * @param  lchan      logical channel state
  * @param  facch      FACCH (true) or speech (false) prim?
  * @return            either a FACCH, or a TCH primitive if found,
  *                    otherwise NULL
  */
-static struct l1sched_ts_prim *prim_dequeue_tch(struct llist_head *queue,
-	enum l1sched_lchan_type lchan_type, bool facch)
+static struct msgb *prim_dequeue_tch(struct l1sched_lchan_state *lchan, bool facch)
 {
-	struct l1sched_ts_prim *prim;
+	struct msgb *msg;
 
 	/**
 	 * There is no need to use the 'safe' list iteration here
 	 * as an item removal is immediately followed by return.
 	 */
-	llist_for_each_entry(prim, queue, list) {
-		if (prim->chan != lchan_type)
+	llist_for_each_entry(msg, &lchan->tx_prims, list) {
+		bool is_facch = msgb_l2len(msg) == GSM_MACBLOCK_LEN;
+		if (is_facch != facch)
 			continue;
 
-		/* Either FACCH, or not FACCH */
-		if (L1SCHED_PRIM_IS_FACCH(prim) != facch)
-			continue;
-
-		llist_del(&prim->list);
-		return prim;
+		llist_del(&msg->list);
+		return msg;
 	}
 
 	return NULL;
@@ -324,30 +253,30 @@ static struct l1sched_ts_prim *prim_dequeue_tch(struct llist_head *queue,
  * If a FACCH/F prim is found, one TCH/F prim is being
  * dropped (i.e. replaced).
  *
- * @param  queue a transmit queue to take a prim from
+ * @param  lchan logical channel state
  * @return       either a FACCH/F, or a TCH/F primitive,
  *               otherwise NULL
  */
-static struct l1sched_ts_prim *prim_dequeue_tch_f(struct llist_head *queue)
+static struct msgb *prim_dequeue_tch_f(struct l1sched_lchan_state *lchan)
 {
-	struct l1sched_ts_prim *facch;
-	struct l1sched_ts_prim *tch;
+	struct msgb *facch;
+	struct msgb *tch;
 
 	/* Attempt to find a pair of both FACCH/F and TCH/F frames */
-	facch = prim_dequeue_tch(queue, L1SCHED_TCHF, true);
-	tch = prim_dequeue_tch(queue, L1SCHED_TCHF, false);
+	facch = prim_dequeue_tch(lchan, true);
+	tch = prim_dequeue_tch(lchan, false);
 
 	/* Prioritize FACCH/F, if found */
 	if (facch) {
 		/* One TCH/F prim is replaced */
 		if (tch)
-			talloc_free(tch);
+			msgb_free(tch);
 		return facch;
 	} else if (tch) {
 		/* Only TCH/F prim was found */
 		return tch;
 	} else {
-		/* Nothing was found, e.g. when only SACCH frames are in queue */
+		/* Nothing was found */
 		return NULL;
 	}
 }
@@ -368,96 +297,95 @@ static struct l1sched_ts_prim *prim_dequeue_tch_f(struct llist_head *queue)
  *
  * where the numbers within brackets are fn % 26.
  *
- * @param  queue      transmit queue to take a prim from
+ * @param  lchan      logical channel state
  * @param  fn         the current frame number
- * @param  lchan_type required channel type of a primitive,
  * @return            either a FACCH/H, or a TCH/H primitive,
  *                    otherwise NULL
  */
-static struct l1sched_ts_prim *prim_dequeue_tch_h(struct llist_head *queue,
-	uint32_t fn, enum l1sched_lchan_type lchan_type)
+static struct msgb *prim_dequeue_tch_h(struct l1sched_lchan_state *lchan, uint32_t fn)
 {
-	struct l1sched_ts_prim *facch;
-	struct l1sched_ts_prim *tch;
+	struct msgb *facch;
+	struct msgb *tch;
 	bool facch_now;
 
 	/* May we initiate an UL FACCH/H frame transmission now? */
-	facch_now = l1sched_tchh_facch_start(lchan_type, fn, true);
+	facch_now = l1sched_tchh_facch_start(lchan->type, fn, true);
 	if (!facch_now) /* Just dequeue a TCH/H prim */
 		goto no_facch;
 
 	/* If there are no FACCH/H prims in the queue */
-	facch = prim_dequeue_tch(queue, lchan_type, true);
+	facch = prim_dequeue_tch(lchan, true);
 	if (!facch) /* Just dequeue a TCH/H prim */
 		goto no_facch;
 
 	/* FACCH/H prim replaces two TCH/F prims */
-	tch = prim_dequeue_tch(queue, lchan_type, false);
+	tch = prim_dequeue_tch(lchan, false);
 	if (tch) {
 		/* At least one TCH/H prim is dropped */
-		talloc_free(tch);
+		msgb_free(tch);
 
 		/* Attempt to find another */
-		tch = prim_dequeue_tch(queue, lchan_type, false);
+		tch = prim_dequeue_tch(lchan, false);
 		if (tch) /* Drop the second TCH/H prim */
-			talloc_free(tch);
+			msgb_free(tch);
 	}
 
 	return facch;
 
 no_facch:
-	return prim_dequeue_tch(queue, lchan_type, false);
+	return prim_dequeue_tch(lchan, false);
 }
 
 /**
- * Dequeues a single primitive of required type
- * from a specified transmit queue.
+ * Dequeues a primitive from the Tx queue of the given lchan.
  *
- * @param  queue      a transmit queue to take a prim from
- * @param  fn         the current frame number (used for FACCH/H)
  * @param  lchan      logical channel state
+ * @param  fn         the current frame number (used for FACCH/H)
  * @return            a primitive or NULL if not found
  */
-struct l1sched_ts_prim *l1sched_prim_dequeue(struct llist_head *queue,
-	uint32_t fn, struct l1sched_lchan_state *lchan)
+struct msgb *l1sched_lchan_prim_dequeue(struct l1sched_lchan_state *lchan, uint32_t fn)
 {
-	struct l1sched_ts_prim *prim;
-
 	/* SACCH is unorthodox, see 3GPP TS 04.08, section 3.4.1 */
 	if (L1SCHED_CHAN_IS_SACCH(lchan->type))
-		return prim_dequeue_sacch(queue, lchan);
+		return prim_dequeue_sacch(lchan);
 
 	/* There is nothing to dequeue */
-	if (llist_empty(queue))
+	if (llist_empty(&lchan->tx_prims))
 		return NULL;
 
 	switch (lchan->type) {
 	/* TCH/F requires FACCH/F prioritization */
 	case L1SCHED_TCHF:
-		return prim_dequeue_tch_f(queue);
+		return prim_dequeue_tch_f(lchan);
 
 	/* FACCH/H prioritization is a bit more complex */
 	case L1SCHED_TCHH_0:
 	case L1SCHED_TCHH_1:
-		return prim_dequeue_tch_h(queue, fn, lchan->type);
+		return prim_dequeue_tch_h(lchan, fn);
 
 	/* PDCH is timing critical, we need to check TDMA Fn */
 	case L1SCHED_PDTCH:
 	case L1SCHED_PTCCH:
-		prim = prim_dequeue_one(queue, lchan->type);
-		if (prim == NULL)
+	{
+		struct msgb *msg = msgb_dequeue(&lchan->tx_prims);
+		const struct l1sched_prim *prim;
+
+		if (msg == NULL)
 			return NULL;
-		if (OSMO_LIKELY(prim->fn == fn))
-			return prim;
+		prim = l1sched_prim_from_msgb(msg);
+
+		if (OSMO_LIKELY(prim->data_req.frame_nr == fn))
+			return msg;
 		LOGP_LCHAND(lchan, LOGL_ERROR,
 			    "%s(): dropping Tx primitive (current Fn=%u, prim Fn=%u)\n",
-			    __func__, fn, prim->fn);
-		talloc_free(prim);
+			    __func__, fn, prim->data_req.frame_nr);
+		msgb_free(msg);
 		return NULL;
+	}
 
 	/* Other kinds of logical channels */
 	default:
-		return prim_dequeue_one(queue, lchan->type);
+		return msgb_dequeue(&lchan->tx_prims);
 	}
 }
 
@@ -468,7 +396,7 @@ struct l1sched_ts_prim *l1sched_prim_dequeue(struct llist_head *queue,
  */
 void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan)
 {
-	talloc_free(lchan->prim);
+	msgb_free(lchan->prim);
 	lchan->prim = NULL;
 }
 
@@ -480,11 +408,13 @@ void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan)
  * @param  lchan lchan to assign a primitive
  * @return       zero in case of success, otherwise a error code
  */
-int l1sched_prim_dummy(struct l1sched_lchan_state *lchan)
+void l1sched_lchan_prim_assign_dummy(struct l1sched_lchan_state *lchan)
 {
+	const struct l1sched_lchan_desc *lchan_desc;
 	enum l1sched_lchan_type chan = lchan->type;
 	uint8_t tch_mode = lchan->tch_mode;
-	struct l1sched_ts_prim *prim;
+	struct l1sched_prim *prim;
+	struct msgb *msg;
 	uint8_t prim_buffer[40];
 	size_t prim_len = 0;
 	int i;
@@ -504,6 +434,8 @@ int l1sched_prim_dummy(struct l1sched_lchan_state *lchan)
 	/* Not applicable for SACCH! */
 	OSMO_ASSERT(!L1SCHED_CHAN_IS_SACCH(lchan->type));
 
+	lchan_desc = &l1sched_lchan_desc[lchan->type];
+
 	/**
 	 * Determine what actually should be generated:
 	 * TCH in GSM48_CMODE_SIGN: LAPDm fill frame;
@@ -515,7 +447,7 @@ int l1sched_prim_dummy(struct l1sched_lchan_state *lchan)
 		prim_len = l1sched_bad_frame_ind(prim_buffer, lchan);
 	} else if (L1SCHED_CHAN_IS_TCH(chan) && L1SCHED_TCH_MODE_IS_DATA(tch_mode)) {
 		/* FIXME: should we do anything for CSD? */
-		return 0;
+		return;
 	} else {
 		/* Copy LAPDm fill frame's header */
 		memcpy(prim_buffer, lapdm_fill_frame, sizeof(lapdm_fill_frame));
@@ -535,39 +467,136 @@ int l1sched_prim_dummy(struct l1sched_lchan_state *lchan)
 
 	/* Nothing to allocate / assign */
 	if (!prim_len)
-		return 0;
+		return;
 
-	/* Allocate a new primitive */
-	prim = talloc_zero_size(lchan, sizeof(struct l1sched_ts_prim) + prim_len);
-	if (prim == NULL)
-		return -ENOMEM;
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST, prim_len);
+	OSMO_ASSERT(msg != NULL);
 
-	/* Init primitive header */
-	prim->payload_len = prim_len;
-	prim->chan = lchan->type;
+	prim = l1sched_prim_from_msgb(msg);
+	prim->data_req = (struct l1sched_prim_chdr) {
+		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
+		.link_id = lchan_desc->link_id,
+	};
 
-	/* Fill in the payload */
-	memcpy(prim->payload, prim_buffer, prim_len);
+	memcpy(msgb_put(msg, prim_len), &prim_buffer[0], prim_len);
 
 	/* Assign the current prim */
-	lchan->prim = prim;
+	lchan->prim = msg;
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG, "Transmitting a dummy / silence frame\n");
+}
 
+int l1sched_lchan_emit_data_ind(struct l1sched_lchan_state *lchan,
+				const uint8_t *data, size_t data_len,
+				int n_errors, int n_bits_total,
+				bool traffic)
+{
+	const struct l1sched_meas_set *meas = &lchan->meas_avg;
+	const struct l1sched_lchan_desc *lchan_desc;
+	struct l1sched_prim *prim;
+	struct msgb *msg;
+
+	lchan_desc = &l1sched_lchan_desc[lchan->type];
+
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_INDICATION, data_len);
+	OSMO_ASSERT(msg != NULL);
+
+	prim = l1sched_prim_from_msgb(msg);
+	prim->data_ind = (struct l1sched_prim_data_ind) {
+		.chdr = {
+			.frame_nr = meas->fn,
+			.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
+			.link_id = lchan_desc->link_id,
+			.traffic = traffic,
+		},
+		.toa256 = meas->toa256,
+		.rssi = meas->rssi,
+		.n_errors = n_errors,
+		.n_bits_total = n_bits_total,
+	};
+
+	if (data_len > 0)
+		memcpy(msgb_put(msg, data_len), data, data_len);
+
+	return l1sched_prim_to_user(lchan->ts->sched, msg);
+}
+
+int l1sched_lchan_emit_data_cnf(struct l1sched_lchan_state *lchan, uint32_t fn)
+{
+	struct l1sched_prim *prim;
+	struct msgb *msg;
+
+	/* take ownership of the prim */
+	OSMO_ASSERT(lchan->prim != NULL);
+	msg = lchan->prim;
+	lchan->prim = NULL;
+
+	/* convert from DATA.req to DATA.cnf */
+	prim = l1sched_prim_from_msgb(msg);
+	prim->oph.operation = PRIM_OP_CONFIRM;
+
+	switch (prim->oph.primitive) {
+	case L1SCHED_PRIM_T_DATA:
+		prim->data_cnf.frame_nr = fn;
+		break;
+	case L1SCHED_PRIM_T_RACH:
+		prim->rach_cnf.chdr.frame_nr = fn;
+		break;
+	default:
+		/* shall not happen */
+		OSMO_ASSERT(0);
+	}
+
+	return l1sched_prim_to_user(lchan->ts->sched, msg);
+}
+
+static int prim_enqeue(struct l1sched_state *sched, struct msgb *msg,
+		       const struct l1sched_prim_chdr *chdr)
+{
+	const struct l1sched_prim *prim = l1sched_prim_from_msgb(msg);
+	struct l1sched_lchan_state *lchan;
+
+	lchan = l1sched_find_lchan_by_chan_nr(sched, chdr->chan_nr, chdr->link_id);
+	if (OSMO_UNLIKELY(lchan == NULL || !lchan->active)) {
+		LOGP_SCHEDD(sched, LOGL_ERROR,
+			    "No [active] lchan for primitive " L1SCHED_PRIM_STR_FMT " "
+			    "(chan_nr=%02x, link_id=%02x, len=%u): %s\n",
+			    L1SCHED_PRIM_STR_ARGS(prim),
+			    chdr->chan_nr, chdr->link_id,
+			    msgb_l2len(msg), msgb_hexdump_l2(msg));
+		msgb_free(msg);
+		return -ENODEV;
+	}
+
+	LOGP_LCHAND(lchan, LOGL_DEBUG,
+		    "Enqueue primitive " L1SCHED_PRIM_STR_FMT " "
+		    "(chan_nr=%02x, link_id=%02x, len=%u): %s\n",
+		    L1SCHED_PRIM_STR_ARGS(prim),
+		    chdr->chan_nr, chdr->link_id,
+		    msgb_l2len(msg), msgb_hexdump_l2(msg));
+
+	msgb_enqueue(&lchan->tx_prims, msg);
 	return 0;
 }
 
-/**
- * Flushes a queue of primitives
- *
- * @param list list of prims going to be flushed
- */
-void l1sched_prim_flush_queue(struct llist_head *list)
+int l1sched_prim_from_user(struct l1sched_state *sched, struct msgb *msg)
 {
-	struct l1sched_ts_prim *prim, *prim_next;
+	const struct l1sched_prim *prim = l1sched_prim_from_msgb(msg);
 
-	llist_for_each_entry_safe(prim, prim_next, list, list) {
-		llist_del(&prim->list);
-		talloc_free(prim);
+	LOGP_SCHEDD(sched, LOGL_DEBUG,
+		    "%s(): Rx " L1SCHED_PRIM_STR_FMT "\n",
+		    __func__, L1SCHED_PRIM_STR_ARGS(prim));
+
+	switch (OSMO_PRIM_HDR(&prim->oph)) {
+	case OSMO_PRIM(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST):
+		return prim_enqeue(sched, msg, &prim->data_req);
+	case OSMO_PRIM(L1SCHED_PRIM_T_RACH, PRIM_OP_REQUEST):
+		return prim_enqeue(sched, msg, &prim->rach_req.chdr);
+	default:
+		LOGP_SCHEDD(sched, LOGL_ERROR,
+			 "%s(): Unhandled primitive " L1SCHED_PRIM_STR_FMT "\n",
+			 __func__, L1SCHED_PRIM_STR_ARGS(prim));
+		msgb_free(msg);
+		return -ENOTSUP;
 	}
 }

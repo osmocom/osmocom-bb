@@ -61,6 +61,21 @@ static void decode_sb(struct gsm_time *time, uint8_t *bsic, uint8_t *sb_info)
 	time->fn = gsm_gsmtime2fn(time);
 }
 
+static int handle_sch_ind(struct l1sched_state *sched, uint32_t fn, uint8_t bsic)
+{
+	struct l1sched_prim *prim;
+	struct msgb *msg;
+
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_SCH, PRIM_OP_INDICATION, 0);
+	OSMO_ASSERT(msg != NULL);
+
+	prim = l1sched_prim_from_msgb(msg);
+	prim->sch_ind.frame_nr = fn;
+	prim->sch_ind.bsic = bsic;
+
+	return l1sched_prim_to_user(sched, msg);
+}
+
 int rx_sch_fn(struct l1sched_lchan_state *lchan,
 	      const struct l1sched_burst_ind *bi)
 {
@@ -100,8 +115,5 @@ int rx_sch_fn(struct l1sched_lchan_state *lchan,
 	/* Update BSIC value in the scheduler state */
 	lchan->ts->sched->bsic = bsic;
 
-	l1sched_handle_data_ind(lchan, (const uint8_t *)&time, sizeof(time),
-				0, 39 * 2, L1SCHED_DT_OTHER);
-
-	return 0;
+	return handle_sch_ind(lchan->ts->sched, time.fn, bsic);
 }

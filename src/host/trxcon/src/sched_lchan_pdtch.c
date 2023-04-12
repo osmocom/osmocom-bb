@@ -96,7 +96,7 @@ int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
 	l2_len = rc > 0 ? rc : 0;
 
 	/* Send a L2 frame to the higher layers */
-	l1sched_handle_data_ind(lchan, l2, l2_len, n_errors, n_bits_total, L1SCHED_DT_PACKET_DATA);
+	l1sched_lchan_emit_data_ind(lchan, l2, l2_len, n_errors, n_bits_total, true);
 
 	return 0;
 }
@@ -123,12 +123,10 @@ int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 	}
 
 	/* Encode payload */
-	rc = gsm0503_pdtch_encode(buffer, lchan->prim->payload,
-		lchan->prim->payload_len);
+	rc = gsm0503_pdtch_encode(buffer, msgb_l2(lchan->prim), msgb_l2len(lchan->prim));
 	if (rc < 0) {
-		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%zu): %s\n",
-			    lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload,
-								   lchan->prim->payload_len));
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%u): %s\n",
+			    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
 		l1sched_lchan_prim_drop(lchan);
 		return -EINVAL;
 	}
@@ -155,11 +153,8 @@ send_burst:
 
 	/* If we have sent the last (4/4) burst */
 	if ((*mask & 0x0f) == 0x0f) {
-		/* Confirm data / traffic sending */
-		l1sched_handle_data_cnf(lchan, br->fn, L1SCHED_DT_PACKET_DATA);
-
-		/* Forget processed primitive */
-		l1sched_lchan_prim_drop(lchan);
+		/* Confirm data / traffic sending (pass ownership of the prim) */
+		l1sched_lchan_emit_data_cnf(lchan, br->fn);
 
 		/* Reset mask */
 		*mask = 0x00;

@@ -73,56 +73,37 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
 	const uint8_t bsic = lchan->ts->sched->bsic;
-	struct l1sched_ts_prim_rach *rach;
+	struct l1sched_prim *prim;
 	uint8_t *burst_ptr = br->burst;
 	uint8_t payload[36];
 	int i, rc;
 
-	rach = (struct l1sched_ts_prim_rach *)lchan->prim->payload;
+	prim = l1sched_prim_from_msgb(lchan->prim);
 
 	/* Delay sending according to offset value */
-	if (rach->offset-- > 0)
+	if (prim->rach_req.offset-- > 0)
 		return 0;
 
-	if (L1SCHED_PRIM_IS_RACH11(lchan->prim)) {
-		/* Check requested synch. sequence */
-		if (rach->synch_seq >= RACH_SYNCH_SEQ_NUM) {
-			LOGP_LCHAND(lchan, LOGL_ERROR,
-				    "Unknown RACH synch. sequence=0x%02x\n",
-				    rach->synch_seq);
-			l1sched_lchan_prim_drop(lchan);
-			return -ENOTSUP;
-		}
-
-		/* Encode 11-bit payload */
-		rc = gsm0503_rach_ext_encode(payload, rach->ra, bsic, true);
-		if (rc) {
-			LOGP_LCHAND(lchan, LOGL_ERROR,
-				    "Could not encode 11-bit RACH burst (ra=%u bsic=%u)\n",
-				    rach->ra, bsic);
-			l1sched_lchan_prim_drop(lchan);
-			return rc;
-		}
-	} else if (L1SCHED_PRIM_IS_RACH8(lchan->prim)) {
-		rach->synch_seq = RACH_SYNCH_SEQ_TS0;
-
-		/* Encode 8-bit payload */
-		rc = gsm0503_rach_ext_encode(payload, rach->ra, bsic, false);
-		if (rc) {
-			LOGP_LCHAND(lchan, LOGL_ERROR,
-				    "Could not encode RACH burst (ra=%u bsic=%u)\n",
-				    rach->ra, bsic);
-			l1sched_lchan_prim_drop(lchan);
-			return rc;
-		}
-	} else {
+	/* Check requested synch. sequence */
+	if (prim->rach_req.synch_seq >= RACH_SYNCH_SEQ_NUM) {
 		LOGP_LCHAND(lchan, LOGL_ERROR,
-			    "Primitive has unexpected type=0x%02x\n",
-			    lchan->prim->type);
+			    "Unknown RACH synch. sequence=0x%02x\n",
+			    prim->rach_req.synch_seq);
 		l1sched_lchan_prim_drop(lchan);
-		return -EINVAL;
+		return -ENOTSUP;
 	}
 
+	/* Encode the payload */
+	rc = gsm0503_rach_ext_encode(payload, prim->rach_req.ra,
+				     bsic, prim->rach_req.is_11bit);
+	if (rc) {
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Could not encode %s-bit RACH burst (ra=%u bsic=%u)\n",
+			    prim->rach_req.is_11bit ? "11" : "8",
+			    prim->rach_req.ra, bsic);
+		l1sched_lchan_prim_drop(lchan);
+		return rc;
+	}
 
 	/* BN0-7: extended tail bits */
 	memcpy(burst_ptr, rach_ext_tail_bits, RACH_EXT_TAIL_BITS_LEN);
@@ -130,7 +111,7 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 
 	/* BN8-48: chosen synch. (training) sequence */
 	for (i = 0; i < RACH_SYNCH_SEQ_LEN; i++)
-		*(burst_ptr++) = rach_synch_seq_bits[rach->synch_seq][i] == '1';
+		*(burst_ptr++) = rach_synch_seq_bits[prim->rach_req.synch_seq][i] == '1';
 
 	/* BN49-84: encrypted bits (the payload) */
 	memcpy(burst_ptr, payload, RACH_PAYLOAD_LEN);
@@ -141,14 +122,11 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	br->burst_len = GSM_NBITS_NB_GMSK_BURST;
 
 	LOGP_LCHAND(lchan, LOGL_NOTICE, "Scheduled %s-bit RACH (%s) at fn=%u\n",
-		    L1SCHED_PRIM_IS_RACH11(lchan->prim) ? "11" : "8",
-		    get_value_string(rach_synch_seq_names, rach->synch_seq), br->fn);
+		    prim->rach_req.is_11bit ? "11" : "8",
+		    get_value_string(rach_synch_seq_names, prim->rach_req.synch_seq), br->fn);
 
-	/* Confirm RACH request */
-	l1sched_handle_data_cnf(lchan, br->fn, L1SCHED_DT_OTHER);
-
-	/* Forget processed primitive */
-	l1sched_lchan_prim_drop(lchan);
+	/* Confirm RACH request (pass ownership of the prim) */
+	l1sched_lchan_emit_data_cnf(lchan, br->fn);
 
 	return 0;
 }
