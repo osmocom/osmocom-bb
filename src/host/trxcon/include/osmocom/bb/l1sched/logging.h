@@ -16,7 +16,7 @@ void l1sched_logging_init(int log_cat_common, int log_cat_data);
 
 /* Data messages using l1sched_state as the context */
 #define LOGP_SCHEDD(sched, level, fmt, args...) \
-	LOGP_SCHED_CAT(sched, common, level, fmt, ## args)
+	LOGP_SCHED_CAT(sched, data, level, fmt, ## args)
 
 
 #define LOGP_LCHAN_NAME_FMT "TS%u-%s"
