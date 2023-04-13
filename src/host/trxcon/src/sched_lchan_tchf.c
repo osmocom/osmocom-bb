@@ -309,16 +309,14 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			LOGP_LCHAND(lchan, LOGL_ERROR,
 				    "Invalid TCH mode: %u, dropping frame...\n",
 				    lchan->tch_mode);
-			/* Forget this primitive */
-			l1sched_prim_drop(lchan);
+			l1sched_lchan_prim_drop(lchan);
 			return -EINVAL;
 		}
 		if (lchan->prim->payload_len != l2_len) {
 			LOGP_LCHAND(lchan, LOGL_ERROR, "Primitive has odd length %zu "
 				    "(expected %zu for TCH or %u for FACCH), so dropping...\n",
 				    lchan->prim->payload_len, l2_len, GSM_MACBLOCK_LEN);
-
-			l1sched_prim_drop(lchan);
+			l1sched_lchan_prim_drop(lchan);
 			return -EINVAL;
 		}
 		rc = gsm0503_tch_fr_encode(buffer, lchan->prim->payload, l2_len, 1);
@@ -329,8 +327,7 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			    lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload,
 								   lchan->prim->payload_len));
 free_bad_msg:
-		/* Forget this primitive */
-		l1sched_prim_drop(lchan);
+		l1sched_lchan_prim_drop(lchan);
 		return -EINVAL;
 	}
 
@@ -362,7 +359,7 @@ send_burst:
 		l1sched_handle_data_cnf(lchan, br->fn, dt);
 
 		/* Forget processed primitive */
-		l1sched_prim_drop(lchan);
+		l1sched_lchan_prim_drop(lchan);
 
 		/* Reset mask */
 		*mask = 0x00;

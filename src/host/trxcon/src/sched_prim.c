@@ -466,9 +466,8 @@ struct l1sched_ts_prim *l1sched_prim_dequeue(struct llist_head *queue,
  *
  * @param lchan a logical channel to drop prim from
  */
-void l1sched_prim_drop(struct l1sched_lchan_state *lchan)
+void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan)
 {
-	/* Forget this primitive */
 	talloc_free(lchan->prim);
 	lchan->prim = NULL;
 }

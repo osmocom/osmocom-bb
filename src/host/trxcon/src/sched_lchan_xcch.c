@@ -124,8 +124,7 @@ int tx_data_fn(struct l1sched_lchan_state *lchan,
 		LOGP_LCHAND(lchan, LOGL_ERROR,
 			    "Primitive has odd length %zu (expected %u), so dropping...\n",
 			    lchan->prim->payload_len, GSM_MACBLOCK_LEN);
-
-		l1sched_prim_drop(lchan);
+		l1sched_lchan_prim_drop(lchan);
 		return -EINVAL;
 	}
 
@@ -135,10 +134,7 @@ int tx_data_fn(struct l1sched_lchan_state *lchan,
 		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%zu): %s\n",
 			    lchan->prim->payload_len, osmo_hexdump(lchan->prim->payload,
 								   lchan->prim->payload_len));
-
-		/* Forget this primitive */
-		l1sched_prim_drop(lchan);
-
+		l1sched_lchan_prim_drop(lchan);
 		return -EINVAL;
 	}
 
@@ -168,7 +164,7 @@ send_burst:
 		l1sched_handle_data_cnf(lchan, br->fn, L1SCHED_DT_SIGNALING);
 
 		/* Forget processed primitive */
-		l1sched_prim_drop(lchan);
+		l1sched_lchan_prim_drop(lchan);
 
 		/* Reset mask */
 		*mask = 0x00;

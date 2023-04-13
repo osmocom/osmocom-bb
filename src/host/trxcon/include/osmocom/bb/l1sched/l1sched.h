@@ -480,7 +480,7 @@ struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
 struct l1sched_ts_prim *l1sched_prim_dequeue(struct llist_head *queue,
 	uint32_t fn, struct l1sched_lchan_state *lchan);
 int l1sched_prim_dummy(struct l1sched_lchan_state *lchan);
-void l1sched_prim_drop(struct l1sched_lchan_state *lchan);
+void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan);
 void l1sched_prim_flush_queue(struct llist_head *list);
 
 int l1sched_handle_rx_burst(struct l1sched_state *sched,

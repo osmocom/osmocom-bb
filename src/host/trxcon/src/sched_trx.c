@@ -544,7 +544,7 @@ static void l1sched_reset_lchan(struct l1sched_lchan_state *lchan)
 	lchan->tx_bursts = NULL;
 
 	/* Forget the current prim */
-	l1sched_prim_drop(lchan);
+	l1sched_lchan_prim_drop(lchan);
 
 	/* Channel specific stuff */
 	if (L1SCHED_CHAN_IS_TCH(lchan->type)) {

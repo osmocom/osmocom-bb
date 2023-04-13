@@ -90,9 +90,7 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 			LOGP_LCHAND(lchan, LOGL_ERROR,
 				    "Unknown RACH synch. sequence=0x%02x\n",
 				    rach->synch_seq);
-
-			/* Forget this primitive */
-			l1sched_prim_drop(lchan);
+			l1sched_lchan_prim_drop(lchan);
 			return -ENOTSUP;
 		}
 
@@ -102,9 +100,7 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 			LOGP_LCHAND(lchan, LOGL_ERROR,
 				    "Could not encode 11-bit RACH burst (ra=%u bsic=%u)\n",
 				    rach->ra, bsic);
-
-			/* Forget this primitive */
-			l1sched_prim_drop(lchan);
+			l1sched_lchan_prim_drop(lchan);
 			return rc;
 		}
 	} else if (L1SCHED_PRIM_IS_RACH8(lchan->prim)) {
@@ -116,16 +112,14 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 			LOGP_LCHAND(lchan, LOGL_ERROR,
 				    "Could not encode RACH burst (ra=%u bsic=%u)\n",
 				    rach->ra, bsic);
-
-			/* Forget this primitive */
-			l1sched_prim_drop(lchan);
+			l1sched_lchan_prim_drop(lchan);
 			return rc;
 		}
 	} else {
 		LOGP_LCHAND(lchan, LOGL_ERROR,
 			    "Primitive has unexpected type=0x%02x\n",
 			    lchan->prim->type);
-		l1sched_prim_drop(lchan);
+		l1sched_lchan_prim_drop(lchan);
 		return -EINVAL;
 	}
 
@@ -154,7 +148,7 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	l1sched_handle_data_cnf(lchan, br->fn, L1SCHED_DT_OTHER);
 
 	/* Forget processed primitive */
-	l1sched_prim_drop(lchan);
+	l1sched_lchan_prim_drop(lchan);
 
 	return 0;
 }
