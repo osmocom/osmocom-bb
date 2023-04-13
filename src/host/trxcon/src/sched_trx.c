@@ -115,7 +115,7 @@ void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *b
 		return;
 
 	/* Make sure that lchan is allocated and active */
-	lchan = l1sched_find_lchan(ts, chan);
+	lchan = l1sched_find_lchan_by_type(ts, chan);
 	if (lchan == NULL || !lchan->active)
 		return;
 
@@ -413,13 +413,13 @@ int l1sched_start_ciphering(struct l1sched_ts *ts, uint8_t algo,
 	return 0;
 }
 
-struct l1sched_lchan_state *l1sched_find_lchan(struct l1sched_ts *ts,
-	enum l1sched_lchan_type chan)
+struct l1sched_lchan_state *l1sched_find_lchan_by_type(struct l1sched_ts *ts,
+						       enum l1sched_lchan_type type)
 {
 	struct l1sched_lchan_state *lchan;
 
 	llist_for_each_entry(lchan, &ts->lchans, list)
-		if (lchan->type == chan)
+		if (lchan->type == type)
 			return lchan;
 
 	return NULL;
@@ -485,7 +485,7 @@ int l1sched_activate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan)
 	struct l1sched_lchan_state *lchan;
 
 	/* Try to find requested logical channel */
-	lchan = l1sched_find_lchan(ts, chan);
+	lchan = l1sched_find_lchan_by_type(ts, chan);
 	if (lchan == NULL)
 		return -EINVAL;
 
@@ -572,7 +572,7 @@ int l1sched_deactivate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan
 	struct l1sched_lchan_state *lchan;
 
 	/* Try to find requested logical channel */
-	lchan = l1sched_find_lchan(ts, chan);
+	lchan = l1sched_find_lchan_by_type(ts, chan);
 	if (lchan == NULL)
 		return -EINVAL;
 
@@ -794,7 +794,7 @@ int l1sched_handle_rx_burst(struct l1sched_state *sched,
 		return -ENODEV;
 
 	/* Find required channel state */
-	lchan = l1sched_find_lchan(ts, chan);
+	lchan = l1sched_find_lchan_by_type(ts, chan);
 	if (lchan == NULL)
 		return -ENODEV;
 
@@ -851,7 +851,7 @@ int l1sched_handle_rx_probe(struct l1sched_state *sched,
 		return -ENODEV;
 
 	/* Find the appropriate logical channel */
-	lchan = l1sched_find_lchan(ts, frame->dl_chan);
+	lchan = l1sched_find_lchan_by_type(ts, frame->dl_chan);
 	if (lchan == NULL)
 		return -ENODEV;
 

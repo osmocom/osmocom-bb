@@ -436,8 +436,8 @@ int l1sched_lchan_set_amr_cfg(struct l1sched_lchan_state *lchan,
 			      uint8_t codecs_bitmask, uint8_t start_codec);
 int l1sched_activate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan);
 int l1sched_deactivate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan);
-struct l1sched_lchan_state *l1sched_find_lchan(struct l1sched_ts *ts,
-	enum l1sched_lchan_type chan);
+struct l1sched_lchan_state *l1sched_find_lchan_by_type(struct l1sched_ts *ts,
+						       enum l1sched_lchan_type type);
 
 /* Primitive management functions */
 struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
