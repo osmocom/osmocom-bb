@@ -425,6 +425,28 @@ struct l1sched_lchan_state *l1sched_find_lchan_by_type(struct l1sched_ts *ts,
 	return NULL;
 }
 
+struct l1sched_lchan_state *l1sched_find_lchan_by_chan_nr(struct l1sched_state *sched,
+							  uint8_t chan_nr, uint8_t link_id)
+{
+	const struct l1sched_ts *ts = sched->ts[chan_nr & 0x07];
+	const struct l1sched_lchan_desc *lchan_desc;
+	struct l1sched_lchan_state *lchan;
+
+	if (ts == NULL)
+		return NULL;
+
+	llist_for_each_entry(lchan, &ts->lchans, list) {
+		lchan_desc = &l1sched_lchan_desc[lchan->type];
+		if (lchan_desc->chan_nr != (chan_nr & RSL_CHAN_NR_MASK))
+			continue;
+		if (lchan_desc->link_id != link_id)
+			continue;
+		return lchan;
+	}
+
+	return NULL;
+}
+
 int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr,
 		       int active, uint8_t tch_mode, uint8_t tsc)
 {

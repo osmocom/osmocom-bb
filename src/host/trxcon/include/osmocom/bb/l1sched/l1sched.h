@@ -438,6 +438,8 @@ int l1sched_activate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan);
 int l1sched_deactivate_lchan(struct l1sched_ts *ts, enum l1sched_lchan_type chan);
 struct l1sched_lchan_state *l1sched_find_lchan_by_type(struct l1sched_ts *ts,
 						       enum l1sched_lchan_type type);
+struct l1sched_lchan_state *l1sched_find_lchan_by_chan_nr(struct l1sched_state *sched,
+							  uint8_t chan_nr, uint8_t link_id);
 
 /* Primitive management functions */
 struct l1sched_ts_prim *l1sched_prim_push(struct l1sched_state *sched,
