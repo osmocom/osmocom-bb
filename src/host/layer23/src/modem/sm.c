@@ -34,6 +34,8 @@
 
 #include <osmocom/gprs/gmm/gmm.h>
 #include <osmocom/gprs/gmm/gmm_prim.h>
+#include <osmocom/gprs/sndcp/sndcp.h>
+#include <osmocom/gprs/sndcp/sndcp_prim.h>
 #include <osmocom/gprs/sm/sm_prim.h>
 #include <osmocom/gprs/sm/sm.h>
 #include <osmocom/gprs/rlcmac/rlcmac_prim.h>
@@ -78,6 +80,30 @@ static int modem_sm_prim_up_cb(struct osmo_gprs_sm_prim *sm_prim, void *user_dat
 	return rc;
 }
 
+int modem_sm_prim_sndcp_up_cb(struct osmo_gprs_sndcp_prim *sndcp_prim, void *user_data)
+{
+	const char *pdu_name = osmo_gprs_sndcp_prim_name(sndcp_prim);
+	int rc;
+
+	switch (sndcp_prim->oph.sap) {
+	case OSMO_GPRS_SNDCP_SAP_SNSM:
+		switch (OSMO_PRIM_HDR(&sndcp_prim->oph)) {
+		case OSMO_PRIM(OSMO_GPRS_SNDCP_SNSM_ACTIVATE, PRIM_OP_INDICATION):
+			LOGP(DSM, LOGL_INFO, "%s(): Rx %s\n", __func__, pdu_name);
+			rc = osmo_gprs_sndcp_prim_dispatch_snsm(sndcp_prim);
+			break;
+		default:
+			LOGP(DSM, LOGL_ERROR, "%s(): Unexpected Rx %s\n", __func__, pdu_name);
+			OSMO_ASSERT(0);
+		}
+		break;
+	default:
+		LOGP(DSM, LOGL_ERROR, "%s(): Unexpected Rx %s\n", __func__, pdu_name);
+		OSMO_ASSERT(0);
+	}
+	return rc;
+}
+
 static int modem_sm_prim_down_cb(struct osmo_gprs_sm_prim *sm_prim, void *user_data)
 {
 	const char *pdu_name = osmo_gprs_sm_prim_name(sm_prim);
@@ -113,6 +139,7 @@ int modem_sm_init(struct osmocom_ms *ms)
 	osmo_gprs_sm_set_log_cat(OSMO_GPRS_SM_LOGC_SM, DSM);
 
 	osmo_gprs_sm_prim_set_up_cb(modem_sm_prim_up_cb, ms);
+	osmo_gprs_sm_prim_set_sndcp_up_cb(modem_sm_prim_sndcp_up_cb, ms);
 	osmo_gprs_sm_prim_set_down_cb(modem_sm_prim_down_cb, ms);
 	osmo_gprs_sm_prim_set_gmm_down_cb(modem_sm_prim_gmm_down_cb, ms);
 

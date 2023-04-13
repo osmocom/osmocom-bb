@@ -33,6 +33,8 @@
 
 #include <osmocom/gprs/llc/llc.h>
 #include <osmocom/gprs/llc/llc_prim.h>
+#include <osmocom/gprs/sm/sm_prim.h>
+#include <osmocom/gprs/sm/sm.h>
 #include <osmocom/gprs/sndcp/sndcp_prim.h>
 #include <osmocom/gprs/sndcp/sndcp.h>
 
@@ -132,14 +134,23 @@ static int modem_sndcp_prim_down_cb(struct osmo_gprs_llc_prim *llc_prim, void *u
 static int modem_sndcp_prim_snsm_cb(struct osmo_gprs_sndcp_prim *sndcp_prim, void *user_data)
 {
 	const char *npdu_name = osmo_gprs_sndcp_prim_name(sndcp_prim);
+	int rc = 0;
 
 	if (sndcp_prim->oph.sap != OSMO_GPRS_SNDCP_SAP_SNSM) {
 		LOGP(DSNDCP, LOGL_ERROR, "%s(): Unexpected Rx %s\n", __func__, npdu_name);
 		OSMO_ASSERT(0);
 	}
 
-	LOGP(DSNDCP, LOGL_ERROR, "%s(): Rx %s UNIMPLEMENTED\n", __func__, npdu_name);
-	return 0;
+	switch (OSMO_PRIM_HDR(&sndcp_prim->oph)) {
+	case OSMO_PRIM(OSMO_GPRS_SM_SMREG_PDP_ACTIVATE, PRIM_OP_RESPONSE):
+		LOGP(DSNDCP, LOGL_INFO, "%s(): Rx %s\n", __func__, npdu_name);
+		rc = osmo_gprs_sm_prim_sndcp_upper_down(sndcp_prim);
+		break;
+	default:
+		LOGP(DSNDCP, LOGL_ERROR, "%s(): Unexpected Rx %s\n", __func__, npdu_name);
+		OSMO_ASSERT(0);
+	}
+	return rc;
 }
 
 
