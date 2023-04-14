@@ -146,7 +146,7 @@ static int modem_sndcp_prim_snsm_cb(struct osmo_gprs_sndcp_prim *sndcp_prim, voi
 int modem_sndcp_init(struct osmocom_ms *ms)
 {
 	int rc;
-	rc = osmo_gprs_sndcp_init();
+	rc = osmo_gprs_sndcp_init(OSMO_GPRS_SNDCP_LOCATION_MS);
 	if (rc != 0)
 		return rc;
 
