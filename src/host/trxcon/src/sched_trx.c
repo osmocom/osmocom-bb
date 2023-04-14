@@ -439,7 +439,7 @@ int l1sched_set_lchans(struct l1sched_ts *ts, uint8_t chan_nr,
 	llist_for_each_entry(lchan, &ts->lchans, list) {
 		lchan_desc = &l1sched_lchan_desc[lchan->type];
 
-		if (lchan_desc->chan_nr == (chan_nr & 0xf8)) {
+		if (lchan_desc->chan_nr == (chan_nr & RSL_CHAN_NR_MASK)) {
 			if (active) {
 				rc |= l1sched_activate_lchan(ts, lchan->type);
 				lchan->tch_mode = tch_mode;
@@ -642,7 +642,7 @@ enum l1sched_lchan_type l1sched_chan_nr2lchan_type(uint8_t chan_nr,
 
 	/* Iterate over all known lchan types */
 	for (i = 0; i < _L1SCHED_CHAN_MAX; i++)
-		if (l1sched_lchan_desc[i].chan_nr == (chan_nr & 0xf8))
+		if (l1sched_lchan_desc[i].chan_nr == (chan_nr & RSL_CHAN_NR_MASK))
 			if (l1sched_lchan_desc[i].link_id == link_id)
 				return i;
 
