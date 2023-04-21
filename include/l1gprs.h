@@ -1,8 +1,9 @@
 #pragma once
 
-#include <osmocom/core/linuxlist.h>
-
 #include <stdint.h>
+#include <stdbool.h>
+
+#include <osmocom/core/linuxlist.h>
 
 struct l1gprs_state;
 struct msgb;
