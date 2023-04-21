@@ -56,12 +56,15 @@ void l1ctl_rx_gprs_ul_block_req(struct l1_model_ms *ms, struct msgb *msg)
 
 	if (OSMO_UNLIKELY(ms->gprs == NULL)) {
 		LOGPMS(DL1P, LOGL_ERROR, ms, "l1gprs is not initialized\n");
+		msgb_free(msg);
 		return;
 	}
 
 	msg->l1h = (void *)l1h->data;
-	if (l1gprs_handle_ul_block_req(ms->gprs, &req, msg) != 0)
+	if (l1gprs_handle_ul_block_req(ms->gprs, &req, msg) != 0) {
+		msgb_free(msg);
 		return;
+	}
 	msg->l2h = (void *)&req.data[0];
 
 	fn_sched = sched_fn_ul(ms->state.current_time,
@@ -70,7 +73,7 @@ void l1ctl_rx_gprs_ul_block_req(struct l1_model_ms *ms, struct msgb *msg)
 		LOGPMS(DL1P, LOGL_ERROR, ms,
 		       "GPRS UL BLOCK.req: fn_sched(%u) != fn_req(%u)\n",
 		       fn_sched, req.hdr.fn);
-		/* FIXME: return; */
+		/* FIXME: msgb_free(msg); return; */
 	}
 
 	virt_l1_sched_schedule(ms, msg, fn_sched, req.hdr.tn,
