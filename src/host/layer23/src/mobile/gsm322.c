@@ -3835,7 +3835,8 @@ static int gsm322_a_event(struct osmocom_ms *ms, struct msgb *msg)
 		 && ((1 << plmn->state) & plmnastatelist[i].states))
 			break;
 	if (i == PLMNASLLEN) {
-		LOGP(DPLMN, LOGL_NOTICE, "Event unhandled at this state.\n");
+		LOGP(DPLMN, LOGL_NOTICE, "Event %s unhandled in state %s.\n",
+		     get_event_name(msg_type), get_a_state_name(plmn->state));
 		return 0;
 	}
 
