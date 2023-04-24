@@ -434,6 +434,7 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
+	int rc;
 
 	/* Initial testcard settings */
 	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
@@ -484,7 +485,11 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 	if (argc >= 5)
 		tmsi = strtoul(argv[4], NULL, 16);
 
-	gsm_subscr_testcard(ms, mcc, mnc, lac, tmsi, attached);
+	rc = gsm_subscr_testcard(ms, mcc, mnc, lac, tmsi, attached);
+	if (rc < 0) {
+		vty_out(vty, "Attach test SIM card failed: %d%s", rc, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	return CMD_SUCCESS;
 }
