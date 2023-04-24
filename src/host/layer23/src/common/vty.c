@@ -46,6 +46,8 @@ extern struct llist_head active_connections; /* libosmocore */
 
 bool l23_vty_reading = false;
 
+bool l23_vty_hide_default = false;
+
 static struct cmd_node ms_node = {
 	MS_NODE,
 	"%s(ms)# ",
@@ -55,6 +57,12 @@ static struct cmd_node ms_node = {
 static struct cmd_node gsmtap_node = {
 	GSMTAP_NODE,
 	"%s(gsmtap)# ",
+	1
+};
+
+struct cmd_node testsim_node = {
+	TESTSIM_NODE,
+	"%s(test-sim)# ",
 	1
 };
 
@@ -159,6 +167,23 @@ void l23_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 		(ms->shutdown != MS_SHUTDOWN_NONE || !ms->started) ? "down" : "up",
 		(ms->shutdown == MS_SHUTDOWN_NONE) ? service : "",
 		VTY_NEWLINE);
+}
+
+/* CONFIG NODE: */
+DEFUN(cfg_hide_default, cfg_hide_default_cmd, "hide-default",
+	"Hide most default values in config to make it more compact")
+{
+	l23_vty_hide_default = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_no_hide_default, cfg_no_hide_default_cmd, "no hide-default",
+	NO_STR "Show default values in config")
+{
+	l23_vty_hide_default = 0;
+
+	return CMD_SUCCESS;
 }
 
 /* "gsmtap" config */
@@ -460,6 +485,206 @@ DEFUN(cfg_ms_shutdown_force, cfg_ms_shutdown_force_cmd, "shutdown force",
 	return data.ms_stop.rc;
 }
 
+/* per testsim config */
+DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
+	"Configure test SIM emulation")
+{
+	vty->node = TESTSIM_NODE;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
+	"Set IMSI on test card\n15 digits IMSI")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	if (!osmo_imsi_str_valid(argv[0])) {
+		vty_out(vty, "Wrong IMSI format%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	OSMO_STRLCPY_ARRAY(set->test_imsi, argv[0]);
+
+	l23_vty_restart_required_warn(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+#define HEX_STR "\nByte as two digits hexadecimal"
+DEFUN(cfg_test_ki_xor, cfg_test_ki_xor_cmd, "ki xor HEX HEX HEX HEX HEX HEX "
+	"HEX HEX HEX HEX HEX HEX",
+	"Set Key (Ki) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
+	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR)
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	uint8_t ki[12];
+	const char *p;
+	int i;
+
+	for (i = 0; i < 12; i++) {
+		p = argv[i];
+		if (!strncmp(p, "0x", 2))
+			p += 2;
+		if (strlen(p) != 2) {
+			vty_out(vty, "Expecting two digits hex value (with or "
+				"without 0x in front)%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		ki[i] = strtoul(p, NULL, 16);
+	}
+
+	set->test_ki_type = OSMO_AUTH_ALG_XOR;
+	memcpy(set->test_ki, ki, 12);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_ki_comp128, cfg_test_ki_comp128_cmd, "ki comp128 HEX HEX HEX "
+	"HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX",
+	"Set Key (Ki) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
+	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR
+	HEX_STR HEX_STR HEX_STR HEX_STR)
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	uint8_t ki[16];
+	const char *p;
+	int i;
+
+	for (i = 0; i < 16; i++) {
+		p = argv[i];
+		if (!strncmp(p, "0x", 2))
+			p += 2;
+		if (strlen(p) != 2) {
+			vty_out(vty, "Expecting two digits hex value (with or "
+				"without 0x in front)%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		ki[i] = strtoul(p, NULL, 16);
+	}
+
+	set->test_ki_type = OSMO_AUTH_ALG_COMP128v1;
+	memcpy(set->test_ki, ki, 16);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access",
+	"Allow access to barred cells")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->test_barr = 1;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_no_barr, cfg_test_no_barr_cmd, "no barred-access",
+	NO_STR "Deny access to barred cells")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->test_barr = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
+	NO_STR "Unset Registered PLMN")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->test_rplmn_valid = 0;
+
+	l23_vty_restart_required_warn(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+static int _test_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
+	int attached)
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	uint16_t mcc = gsm_input_mcc((char *)argv[0]),
+		 mnc = gsm_input_mnc((char *)argv[1]);
+
+	if (mcc == GSM_INPUT_INVALID) {
+		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (mnc == GSM_INPUT_INVALID) {
+		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	set->test_rplmn_valid = 1;
+	set->test_rplmn_mcc = mcc;
+	set->test_rplmn_mnc = mnc;
+
+	if (argc >= 3)
+		set->test_lac = strtoul(argv[2], NULL, 16);
+	else
+		set->test_lac = 0xfffe;
+
+	if (argc >= 4)
+		set->test_tmsi = strtoul(argv[3], NULL, 16);
+	else
+		set->test_tmsi = 0xffffffff;
+
+	if (attached)
+		set->test_imsi_attached = 1;
+	else
+		set->test_imsi_attached = 0;
+
+	l23_vty_restart_required_warn(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd,
+	"rplmn MCC MNC [LAC] [TMSI]",
+	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
+	"Optionally set location area code\n"
+	"Optionally set current assigned TMSI")
+{
+	return _test_rplmn_cmd(vty, argc, argv, 0);
+}
+
+DEFUN(cfg_test_rplmn_att, cfg_test_rplmn_att_cmd,
+	"rplmn MCC MNC LAC TMSI attached",
+	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
+	"Set location area code\nSet current assigned TMSI\n"
+	"Indicate to MM that card is already attached")
+{
+	return _test_rplmn_cmd(vty, argc, argv, 1);
+}
+
+DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-country)",
+	"Set Home PLMN search mode\n"
+	"Search for HPLMN when on any other network\n"
+	"Search for HPLMN when in a different country")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	switch (argv[0][0]) {
+	case 'e':
+		set->test_always = 1;
+		break;
+	case 'f':
+		set->test_always = 0;
+		break;
+	}
+
+	l23_vty_restart_required_warn(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
 static int l23_vty_config_write_gsmtap_node(struct vty *vty)
 {
 	const char *chan_buf;
@@ -512,6 +737,47 @@ static int l23_vty_config_write_gsmtap_node(struct vty *vty)
 	return CMD_SUCCESS;
 }
 
+static int l23_vty_config_write_testsim_node(struct vty *vty, const struct osmocom_ms *ms, const char *prefix)
+{
+	const struct gsm_settings *set = &ms->settings;
+	vty_out(vty, "%stest-sim%s", prefix, VTY_NEWLINE);
+	vty_out(vty, "%s imsi %s%s", prefix, set->test_imsi, VTY_NEWLINE);
+	switch (set->test_ki_type) {
+	case OSMO_AUTH_ALG_XOR:
+		vty_out(vty, "%s ki xor %s%s",
+			prefix, osmo_hexdump(set->test_ki, 12), VTY_NEWLINE);
+		break;
+	case OSMO_AUTH_ALG_COMP128v1:
+		vty_out(vty, "%s ki comp128 %s%s",
+			prefix, osmo_hexdump(set->test_ki, 16), VTY_NEWLINE);
+		break;
+	}
+	if (!l23_vty_hide_default || set->test_barr)
+		vty_out(vty, "%s %sbarred-access%s", prefix,
+			(set->test_barr) ? "" : "no ", VTY_NEWLINE);
+	if (set->test_rplmn_valid) {
+		vty_out(vty, "%s rplmn %s %s", prefix,
+			gsm_print_mcc(set->test_rplmn_mcc),
+			gsm_print_mnc(set->test_rplmn_mnc));
+		if (set->test_lac > 0x0000 && set->test_lac < 0xfffe) {
+			vty_out(vty, " 0x%04x", set->test_lac);
+			if (set->test_tmsi != 0xffffffff) {
+				vty_out(vty, " 0x%08x", set->test_tmsi);
+				if (set->test_imsi_attached)
+					vty_out(vty, " attached");
+			}
+		}
+		vty_out(vty, "%s", VTY_NEWLINE);
+	} else
+		if (!l23_vty_hide_default)
+			vty_out(vty, "%s no rplmn%s", prefix, VTY_NEWLINE);
+	if (!l23_vty_hide_default || set->test_always)
+		vty_out(vty, "%s hplmn-search %s%s", prefix,
+			(set->test_always) ? "everywhere" : "foreign-country",
+			VTY_NEWLINE);
+	return CMD_SUCCESS;
+}
+
 void l23_vty_config_write_ms_node(struct vty *vty, const struct osmocom_ms *ms, const char *prefix)
 {
 	size_t prefix_len = strlen(prefix);
@@ -533,6 +799,7 @@ void l23_vty_config_write_ms_node_contents(struct vty *vty, const struct osmocom
 
 	vty_out(vty, "%slayer2-socket %s%s", prefix, set->layer2_socket_path,
 		VTY_NEWLINE);
+	l23_vty_config_write_testsim_node(vty, ms, prefix);
 }
 
 /* placeholder for shared VTY commands. Must be put at the end of the node: */
@@ -599,8 +866,22 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 	if (l23_app_info.opt_supported & L23_OPT_VTY)
 		osmo_stats_vty_add_cmds();
 
+	install_element(CONFIG_NODE, &cfg_hide_default_cmd);
+	install_element(CONFIG_NODE, &cfg_no_hide_default_cmd);
+
 	install_node(&ms_node, config_write_ms_node_cb);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
+	install_element(MS_NODE, &cfg_ms_testsim_cmd);
+	install_node(&testsim_node, NULL);
+	install_element(TESTSIM_NODE, &cfg_test_imsi_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_ki_xor_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_ki_comp128_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_barr_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_no_barr_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_no_rplmn_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_rplmn_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_rplmn_att_cmd);
+	install_element(TESTSIM_NODE, &cfg_test_hplmn_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
 	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);

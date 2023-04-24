@@ -42,12 +42,6 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
-struct cmd_node testsim_node = {
-	TESTSIM_NODE,
-	"%s(test-sim)# ",
-	1
-};
-
 struct cmd_node support_node = {
 	SUPPORT_NODE,
 	"%s(support)# ",
@@ -104,8 +98,6 @@ int vty_check_number(struct vty *vty, const char *number)
 
 	return 0;
 }
-
-static int hide_default = 0;
 
 static void vty_restart(struct vty *vty, struct osmocom_ms *ms)
 {
@@ -1150,22 +1142,6 @@ DEFUN(cfg_gps_baud, cfg_gps_baud_cmd, "gps baudrate "
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_hide_default, cfg_hide_default_cmd, "hide-default",
-	"Hide most default values in config to make it more compact")
-{
-	hide_default = 1;
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_no_hide_default, cfg_no_hide_default_cmd, "no hide-default",
-	NO_STR "Show default values in config")
-{
-	hide_default = 0;
-
-	return CMD_SUCCESS;
-}
-
 /* per MS config */
 DEFUN(cfg_ms, cfg_ms_cmd, "ms MS_NAME",
 	"Select a mobile station to configure\nName of MS (see \"show ms\")")
@@ -1284,7 +1260,7 @@ DEFUN(cfg_no_ms, cfg_no_ms_cmd, "no ms MS_NAME",
 
 #define SUP_WRITE(item, cmd) \
 	if (sup->item) \
-		if (!hide_default || !set->item) \
+		if (!l23_vty_hide_default || !set->item) \
 			vty_out(vty, "  %s%s%s", (set->item) ? "" : "no ", \
 			cmd, VTY_NEWLINE);
 
@@ -1332,33 +1308,33 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, " imei-random %d%s", set->imei_random,
 			VTY_NEWLINE);
 	else
-		if (!hide_default)
+		if (!l23_vty_hide_default)
 			vty_out(vty, " imei-fixed%s", VTY_NEWLINE);
 	if (set->emergency_imsi[0])
 		vty_out(vty, " emergency-imsi %s%s", set->emergency_imsi,
 			VTY_NEWLINE);
 	else
-		if (!hide_default)
+		if (!l23_vty_hide_default)
 			vty_out(vty, " no emergency-imsi%s", VTY_NEWLINE);
 	if (set->sms_sca[0])
 		vty_out(vty, " sms-service-center %s%s", set->sms_sca,
 			VTY_NEWLINE);
 	else
-		if (!hide_default)
+		if (!l23_vty_hide_default)
 			vty_out(vty, " no sms-service-center%s", VTY_NEWLINE);
-	if (!hide_default || set->cw)
+	if (!l23_vty_hide_default || set->cw)
 		vty_out(vty, " %scall-waiting%s", (set->cw) ? "" : "no ",
 			VTY_NEWLINE);
-	if (!hide_default || set->auto_answer)
+	if (!l23_vty_hide_default || set->auto_answer)
 		vty_out(vty, " %sauto-answer%s",
 			(set->auto_answer) ? "" : "no ", VTY_NEWLINE);
-	if (!hide_default || set->force_rekey)
+	if (!l23_vty_hide_default || set->force_rekey)
 		vty_out(vty, " %sforce-rekey%s",
 			(set->force_rekey) ? "" : "no ", VTY_NEWLINE);
-	if (!hide_default || set->clip)
+	if (!l23_vty_hide_default || set->clip)
 		vty_out(vty, " %sclip%s", (set->clip) ? "" : "no ",
 			VTY_NEWLINE);
-	if (!hide_default || set->clir)
+	if (!l23_vty_hide_default || set->clir)
 		vty_out(vty, " %sclir%s", (set->clir) ? "" : "no ",
 			VTY_NEWLINE);
 	if (set->alter_tx_power)
@@ -1368,25 +1344,25 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		else
 			vty_out(vty, " tx-power full%s", VTY_NEWLINE);
 	else
-		if (!hide_default)
+		if (!l23_vty_hide_default)
 			vty_out(vty, " tx-power auto%s", VTY_NEWLINE);
 	if (set->alter_delay)
 		vty_out(vty, " simulated-delay %d%s", set->alter_delay,
 			VTY_NEWLINE);
 	else
-		if (!hide_default)
+		if (!l23_vty_hide_default)
 			vty_out(vty, " no simulated-delay%s", VTY_NEWLINE);
 	if (set->stick)
 		vty_out(vty, " stick %d%s%s", set->stick_arfcn & 1023,
 			(set->stick_arfcn & ARFCN_PCS) ? " pcs" : "",
 			VTY_NEWLINE);
 	else
-		if (!hide_default)
+		if (!l23_vty_hide_default)
 			vty_out(vty, " no stick%s", VTY_NEWLINE);
-	if (!hide_default || set->no_lupd)
+	if (!l23_vty_hide_default || set->no_lupd)
 		vty_out(vty, " %slocation-updating%s",
 			(set->no_lupd) ? "no " : "", VTY_NEWLINE);
-	if (!hide_default || set->no_neighbour)
+	if (!l23_vty_hide_default || set->no_neighbour)
 		vty_out(vty, " %sneighbour-measurement%s",
 			(set->no_neighbour) ? "no " : "", VTY_NEWLINE);
 	if (set->full_v1 || set->full_v2 || set->full_v3) {
@@ -1404,7 +1380,7 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 			vty_out(vty, " no codec half-speed%s", VTY_NEWLINE);
 	}
 	if (llist_empty(&set->abbrev)) {
-		if (!hide_default)
+		if (!l23_vty_hide_default)
 			vty_out(vty, " no abbrev%s", VTY_NEWLINE);
 	} else {
 		llist_for_each_entry(abbrev, &set->abbrev, list)
@@ -1430,26 +1406,26 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(dcs, "dcs");
 	SUP_WRITE(pcs, "pcs");
 	if (sup->r_gsm || sup->e_gsm || sup->p_gsm)
-		if (!hide_default || sup->class_900 != set->class_900)
+		if (!l23_vty_hide_default || sup->class_900 != set->class_900)
 			vty_out(vty, "  class-900 %d%s", set->class_900,
 				VTY_NEWLINE);
 	if (sup->gsm_850)
-		if (!hide_default || sup->class_850 != set->class_850)
+		if (!l23_vty_hide_default || sup->class_850 != set->class_850)
 			vty_out(vty, "  class-850 %d%s", set->class_850,
 				VTY_NEWLINE);
 	if (sup->gsm_480 || sup->gsm_450)
-		if (!hide_default || sup->class_400 != set->class_400)
+		if (!l23_vty_hide_default || sup->class_400 != set->class_400)
 			vty_out(vty, "  class-400 %d%s", set->class_400,
 				VTY_NEWLINE);
 	if (sup->dcs)
-		if (!hide_default || sup->class_dcs != set->class_dcs)
+		if (!l23_vty_hide_default || sup->class_dcs != set->class_dcs)
 			vty_out(vty, "  class-dcs %d%s", set->class_dcs,
 				VTY_NEWLINE);
 	if (sup->pcs)
-		if (!hide_default || sup->class_pcs != set->class_pcs)
+		if (!l23_vty_hide_default || sup->class_pcs != set->class_pcs)
 			vty_out(vty, "  class-pcs %d%s", set->class_pcs,
 				VTY_NEWLINE);
-	if (!hide_default || sup->ch_cap != set->ch_cap) {
+	if (!l23_vty_hide_default || sup->ch_cap != set->ch_cap) {
 		switch (set->ch_cap) {
 		case GSM_CAP_SDCCH:
 			vty_out(vty, "  channel-capability sdcch%s",
@@ -1470,50 +1446,15 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(full_v3, "full-speech-v3");
 	SUP_WRITE(half_v1, "half-speech-v1");
 	SUP_WRITE(half_v3, "half-speech-v3");
-	if (!hide_default || sup->min_rxlev_dbm != set->min_rxlev_dbm)
+	if (!l23_vty_hide_default || sup->min_rxlev_dbm != set->min_rxlev_dbm)
 		vty_out(vty, "  min-rxlev %d%s", set->min_rxlev_dbm,
 			VTY_NEWLINE);
-	if (!hide_default || sup->dsc_max != set->dsc_max)
+	if (!l23_vty_hide_default || sup->dsc_max != set->dsc_max)
 		vty_out(vty, "  dsc-max %d%s", set->dsc_max, VTY_NEWLINE);
-	if (!hide_default || set->skip_max_per_band)
+	if (!l23_vty_hide_default || set->skip_max_per_band)
 		vty_out(vty, "  %sskip-max-per-band%s",
 			(set->skip_max_per_band) ? "" : "no ", VTY_NEWLINE);
-	vty_out(vty, " test-sim%s", VTY_NEWLINE);
-	vty_out(vty, "  imsi %s%s", set->test_imsi, VTY_NEWLINE);
-	switch (set->test_ki_type) {
-	case OSMO_AUTH_ALG_XOR:
-		vty_out(vty, "  ki xor %s%s",
-			osmo_hexdump(set->test_ki, 12), VTY_NEWLINE);
-		break;
-	case OSMO_AUTH_ALG_COMP128v1:
-		vty_out(vty, "  ki comp128 %s%s",
-			osmo_hexdump(set->test_ki, 16), VTY_NEWLINE);
-		break;
-	}
-	if (!hide_default || set->test_barr)
-		vty_out(vty, "  %sbarred-access%s",
-			(set->test_barr) ? "" : "no ", VTY_NEWLINE);
-	if (set->test_rplmn_valid) {
-		vty_out(vty, "  rplmn %s %s",
-			gsm_print_mcc(set->test_rplmn_mcc),
-			gsm_print_mnc(set->test_rplmn_mnc));
-		if (set->test_lac > 0x0000 && set->test_lac < 0xfffe) {
-			vty_out(vty, " 0x%04x", set->test_lac);
-			if (set->test_tmsi != 0xffffffff) {
-				vty_out(vty, " 0x%08x", set->test_tmsi);
-				if (set->test_imsi_attached)
-					vty_out(vty, " attached");
-			}
-		}
-		vty_out(vty, "%s", VTY_NEWLINE);
-	} else
-		if (!hide_default)
-			vty_out(vty, "  no rplmn%s", VTY_NEWLINE);
-	if (!hide_default || set->test_always)
-		vty_out(vty, "  hplmn-search %s%s",
-			(set->test_always) ? "everywhere" : "foreign-country",
-			VTY_NEWLINE);
-	if (!hide_default || set->any_timeout != MOB_C7_DEFLT_ANY_TIMEOUT)
+	if (!l23_vty_hide_default || set->any_timeout != MOB_C7_DEFLT_ANY_TIMEOUT)
 		vty_out(vty, " c7-any-timeout %d%s",
 			set->any_timeout, VTY_NEWLINE);
 
@@ -1550,7 +1491,7 @@ static int config_write(struct vty *vty)
 	vty_out(vty, "%sgps enable%s", (g.enable) ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 
-	vty_out(vty, "%shide-default%s", (hide_default) ? "": "no ",
+	vty_out(vty, "%shide-default%s", (l23_vty_hide_default) ? "" : "no ",
 		VTY_NEWLINE);
 	vty_out(vty, "!%s", VTY_NEWLINE);
 
@@ -2571,206 +2512,6 @@ DEFUN(cfg_ms_sup_no_skip_max_per_band, cfg_ms_sup_no_skip_max_per_band_cmd,
 	return CMD_SUCCESS;
 }
 
-/* per testsim config */
-DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
-	"Configure test SIM emulation")
-{
-	vty->node = TESTSIM_NODE;
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
-	"Set IMSI on test card\n15 digits IMSI")
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	if (!osmo_imsi_str_valid(argv[0])) {
-		vty_out(vty, "Wrong IMSI format%s", VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	strcpy(set->test_imsi, argv[0]);
-
-	vty_restart_if_started(vty, ms);
-
-	return CMD_SUCCESS;
-}
-
-#define HEX_STR "\nByte as two digits hexadecimal"
-DEFUN(cfg_test_ki_xor, cfg_test_ki_xor_cmd, "ki xor HEX HEX HEX HEX HEX HEX "
-	"HEX HEX HEX HEX HEX HEX",
-	"Set Key (Ki) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
-	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR)
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-	uint8_t ki[12];
-	const char *p;
-	int i;
-
-	for (i = 0; i < 12; i++) {
-		p = argv[i];
-		if (!strncmp(p, "0x", 2))
-			p += 2;
-		if (strlen(p) != 2) {
-			vty_out(vty, "Expecting two digits hex value (with or "
-				"without 0x in front)%s", VTY_NEWLINE);
-			return CMD_WARNING;
-		}
-		ki[i] = strtoul(p, NULL, 16);
-	}
-
-	set->test_ki_type = OSMO_AUTH_ALG_XOR;
-	memcpy(set->test_ki, ki, 12);
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_test_ki_comp128, cfg_test_ki_comp128_cmd, "ki comp128 HEX HEX HEX "
-	"HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX",
-	"Set Key (Ki) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
-	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR
-	HEX_STR HEX_STR HEX_STR HEX_STR)
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-	uint8_t ki[16];
-	const char *p;
-	int i;
-
-	for (i = 0; i < 16; i++) {
-		p = argv[i];
-		if (!strncmp(p, "0x", 2))
-			p += 2;
-		if (strlen(p) != 2) {
-			vty_out(vty, "Expecting two digits hex value (with or "
-				"without 0x in front)%s", VTY_NEWLINE);
-			return CMD_WARNING;
-		}
-		ki[i] = strtoul(p, NULL, 16);
-	}
-
-	set->test_ki_type = OSMO_AUTH_ALG_COMP128v1;
-	memcpy(set->test_ki, ki, 16);
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access",
-	"Allow access to barred cells")
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	set->test_barr = 1;
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_test_no_barr, cfg_test_no_barr_cmd, "no barred-access",
-	NO_STR "Deny access to barred cells")
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	set->test_barr = 0;
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
-	NO_STR "Unset Registered PLMN")
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	set->test_rplmn_valid = 0;
-
-	vty_restart_if_started(vty, ms);
-
-	return CMD_SUCCESS;
-}
-
-static int _test_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
-	int attached)
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-	uint16_t mcc = gsm_input_mcc((char *)argv[0]),
-		 mnc = gsm_input_mnc((char *)argv[1]);
-
-	if (mcc == GSM_INPUT_INVALID) {
-		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-	if (mnc == GSM_INPUT_INVALID) {
-		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-	set->test_rplmn_valid = 1;
-	set->test_rplmn_mcc = mcc;
-	set->test_rplmn_mnc = mnc;
-
-	if (argc >= 3)
-		set->test_lac = strtoul(argv[2], NULL, 16);
-	else
-		set->test_lac = 0xfffe;
-
-	if (argc >= 4)
-		set->test_tmsi = strtoul(argv[3], NULL, 16);
-	else
-		set->test_tmsi = 0xffffffff;
-
-	if (attached)
-		set->test_imsi_attached = 1;
-	else
-		set->test_imsi_attached = 0;
-
-	vty_restart_if_started(vty, ms);
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd,
-	"rplmn MCC MNC [LAC] [TMSI]",
-	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
-	"Optionally set location area code\n"
-	"Optionally set current assigned TMSI")
-{
-	return _test_rplmn_cmd(vty, argc, argv, 0);
-}
-
-DEFUN(cfg_test_rplmn_att, cfg_test_rplmn_att_cmd,
-	"rplmn MCC MNC LAC TMSI attached",
-	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
-	"Set location area code\nSet current assigned TMSI\n"
-	"Indicate to MM that card is already attached")
-{
-	return _test_rplmn_cmd(vty, argc, argv, 1);
-}
-
-DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-country)",
-	"Set Home PLMN search mode\n"
-	"Search for HPLMN when on any other network\n"
-	"Search for HPLMN when in a different country")
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	switch (argv[0][0]) {
-	case 'e':
-		set->test_always = 1;
-		break;
-	case 'f':
-		set->test_always = 0;
-		break;
-	}
-
-	vty_restart_if_started(vty, ms);
-
-	return CMD_SUCCESS;
-}
-
 /* per audio config */
 DEFUN(cfg_ms_audio, cfg_ms_audio_cmd, "audio",
 	"Configure audio settings")
@@ -3009,9 +2750,6 @@ int ms_vty_init(void)
 	install_element(CONFIG_NODE, &cfg_gps_enable_cmd);
 	install_element(CONFIG_NODE, &cfg_no_gps_enable_cmd);
 
-	install_element(CONFIG_NODE, &cfg_hide_default_cmd);
-	install_element(CONFIG_NODE, &cfg_no_hide_default_cmd);
-
 	install_element(CONFIG_NODE, &cfg_ms_cmd);
 	install_element(CONFIG_NODE, &cfg_ms_create_cmd);
 	install_element(CONFIG_NODE, &cfg_ms_rename_cmd);
@@ -3057,7 +2795,6 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_codec_half_cmd);
 	install_element(MS_NODE, &cfg_ms_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_no_abbrev_cmd);
-	install_element(MS_NODE, &cfg_ms_testsim_cmd);
 	install_element(MS_NODE, &cfg_ms_audio_cmd);
 	install_element(MS_NODE, &cfg_ms_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
@@ -3120,16 +2857,6 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_skip_max_per_band_cmd);
-	install_node(&testsim_node, config_write_dummy);
-	install_element(TESTSIM_NODE, &cfg_test_imsi_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_ki_xor_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_ki_comp128_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_barr_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_no_barr_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_no_rplmn_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_rplmn_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_rplmn_att_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_hplmn_cmd);
 	install_element(MS_NODE, &cfg_ms_script_load_run_cmd);
 	install_element(MS_NODE, &cfg_ms_no_script_load_run_cmd);
 

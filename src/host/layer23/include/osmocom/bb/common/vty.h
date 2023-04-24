@@ -10,6 +10,7 @@ struct osmocom_ms;
 
 enum l23_vty_node {
 	MS_NODE = _LAST_OSMOVTY_NODE + 1,
+	TESTSIM_NODE,
 	GSMTAP_NODE,
 	_LAST_L23VTY_NODE,
 };
@@ -25,6 +26,7 @@ void l23_vty_config_write_ms_node_contents_final(struct vty *vty, const struct o
 extern void l23_vty_ms_notify(struct osmocom_ms *ms, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
 
 extern bool l23_vty_reading;
+extern bool l23_vty_hide_default;
 
 extern struct llist_head ms_list;
 

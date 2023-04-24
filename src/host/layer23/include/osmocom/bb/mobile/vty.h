@@ -9,8 +9,7 @@
 #include <osmocom/bb/common/vty.h>
 
 enum ms_vty_node {
-	TESTSIM_NODE = _LAST_L23VTY_NODE + 1,
-	SUPPORT_NODE,
+	SUPPORT_NODE = _LAST_L23VTY_NODE + 1,
 	AUDIO_NODE,
 };
 
