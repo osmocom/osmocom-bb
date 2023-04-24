@@ -41,12 +41,6 @@
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
 #include <osmocom/bb/common/l1l2_interface.h>
-#include <osmocom/bb/mobile/mncc.h>
-#include <osmocom/bb/mobile/mncc_ms.h>
-#include <osmocom/bb/mobile/transaction.h>
-#include <osmocom/bb/mobile/vty.h>
-#include <osmocom/bb/mobile/gsm480_ss.h>
-#include <osmocom/bb/mobile/gsm411_sms.h>
 
 extern struct llist_head active_connections; /* libosmocore */
 
