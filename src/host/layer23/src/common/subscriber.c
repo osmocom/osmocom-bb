@@ -29,7 +29,7 @@
 #include <osmocom/bb/common/sap_proto.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/subscriber.h>
-#include <osmocom/bb/mobile/vty.h>
+#include <osmocom/bb/common/vty.h>
 
 /* enable to get an empty list of forbidden PLMNs, even if stored on SIM.
  * if list is changed, the result is not written back to SIM */
@@ -621,18 +621,18 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 			LOGP(DMM, LOGL_INFO, "PIN is required, %d tries left\n",
 				payload[1]);
 
-			vty_notify(ms, NULL);
-			vty_notify(ms, "Please give PIN for ICCID %s (you have "
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "Please give PIN for ICCID %s (you have "
 				"%d tries left)\n", subscr->iccid, payload[1]);
 			subscr->sim_pin_required = 1;
 			break;
 		case SIM_CAUSE_PIN1_BLOCKED:
 			LOGP(DMM, LOGL_NOTICE, "PIN is blocked\n");
 
-			vty_notify(ms, NULL);
-			vty_notify(ms, "PIN is blocked\n");
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "PIN is blocked\n");
 			if (payload[1]) {
-				vty_notify(ms, "Please give PUC for ICCID %s "
+				l23_vty_ms_notify(ms, "Please give PUC for ICCID %s "
 					"(you have %d tries left)\n",
 					subscr->iccid, payload[1]);
 			}
@@ -641,8 +641,8 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 		case SIM_CAUSE_PUC_BLOCKED:
 			LOGP(DMM, LOGL_NOTICE, "PUC is blocked\n");
 
-			vty_notify(ms, NULL);
-			vty_notify(ms, "PUC is blocked\n");
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "PUC is blocked\n");
 			subscr->sim_pin_required = 1;
 			break;
 		default:
@@ -653,8 +653,8 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 			}
 			LOGP(DMM, LOGL_NOTICE, "SIM reading failed\n");
 
-			vty_notify(ms, NULL);
-			vty_notify(ms, "SIM failed, replace SIM!\n");
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "SIM failed, replace SIM!\n");
 
 			/* detach simcard */
 			subscr->sim_valid = 0;
@@ -684,8 +684,8 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 	if (rc) {
 		LOGP(DMM, LOGL_NOTICE, "SIM reading failed, file invalid\n");
 		if (subscr_sim_files[subscr->sim_file_index].mandatory) {
-			vty_notify(ms, NULL);
-			vty_notify(ms, "SIM failed, data invalid, replace "
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "SIM failed, data invalid, replace "
 				"SIM!\n");
 			msgb_free(msg);
 
@@ -1279,12 +1279,12 @@ int gsm_subscr_sapcard(struct osmocom_ms *ms)
 	subscr->sim_valid = 1;
 
 	/* Try to connect to the SAP interface */
-	vty_notify(ms, NULL);
-	vty_notify(ms, "Connecting to the SAP interface...\n");
+	l23_vty_ms_notify(ms, NULL);
+	l23_vty_ms_notify(ms, "Connecting to the SAP interface...\n");
 	rc = sap_open(ms);
 	if (rc < 0) {
 		LOGP(DSAP, LOGL_ERROR, "Failed during sap_open(), no SAP based SIM reader\n");
-		vty_notify(ms, "SAP connection error!\n");
+		l23_vty_ms_notify(ms, "SAP connection error!\n");
 		ms->sap_wq.bfd.fd = -1;
 
 		/* Detach SIM */

@@ -926,33 +926,33 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 	 && (mm->state != GSM48_MM_ST_MM_IDLE || mm->substate != substate)) {
 		switch (substate) {
 		case GSM48_MM_SST_NORMAL_SERVICE:
-			vty_notify(ms, NULL);
-			vty_notify(ms, "On Network, normal service: %s, %s\n",
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "On Network, normal service: %s, %s\n",
 				gsm_get_mcc(plmn->mcc),
 				gsm_get_mnc(plmn->mcc, plmn->mnc));
 			break;
 		case GSM48_MM_SST_LIMITED_SERVICE:
-			vty_notify(ms, NULL);
-			vty_notify(ms, "Limited service, emergency calls are "
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "Limited service, emergency calls are "
 				"possible.\n");
 			break;
 		case GSM48_MM_SST_PLMN_SEARCH_NORMAL:
 		case GSM48_MM_SST_PLMN_SEARCH:
-			vty_notify(ms, NULL);
-			vty_notify(ms, "Searching network...\n");
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "Searching network...\n");
 			break;
 		case GSM48_MM_SST_NO_IMSI:
-			vty_notify(ms, NULL);
-			vty_notify(ms, "No SIM, emergency calls are "
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "No SIM, emergency calls are "
 				"possible.\n");
 			break;
 		case GSM48_MM_SST_NO_CELL_AVAIL:
-			vty_notify(ms, NULL);
-			vty_notify(ms, "No service.\n");
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "No service.\n");
 			break;
 		case GSM48_MM_SST_ATTEMPT_UPDATE:
-			vty_notify(ms, NULL);
-			vty_notify(ms, "Trying to register with network %s, %s...\n",
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "Trying to register with network %s, %s...\n",
 				   gsm_get_mcc(plmn->mcc), gsm_get_mnc(plmn->mcc, plmn->mnc));
 			break;
 		}

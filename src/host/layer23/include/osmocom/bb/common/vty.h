@@ -22,6 +22,8 @@ void l23_vty_config_write_ms_node(struct vty *vty, const struct osmocom_ms *ms, 
 void l23_vty_config_write_ms_node_contents(struct vty *vty, const struct osmocom_ms *ms, const char *prefix);
 void l23_vty_config_write_ms_node_contents_final(struct vty *vty, const struct osmocom_ms *ms, const char *prefix);
 
+extern void l23_vty_ms_notify(struct osmocom_ms *ms, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+
 extern bool l23_vty_reading;
 
 extern struct llist_head ms_list;

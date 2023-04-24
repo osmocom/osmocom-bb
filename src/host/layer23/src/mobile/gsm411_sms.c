@@ -120,11 +120,11 @@ struct gsm_sms *sms_from_text(const char *receiver, int dcs, const char *text)
 static int gsm411_sms_report(struct osmocom_ms *ms, struct gsm_sms *sms,
 	uint8_t cause)
 {
-	vty_notify(ms, NULL);
+	l23_vty_ms_notify(ms, NULL);
 	if (!cause)
-		vty_notify(ms, "SMS to %s successful\n", sms->address);
+		l23_vty_ms_notify(ms, "SMS to %s successful\n", sms->address);
 	else
-		vty_notify(ms, "SMS to %s failed: %s\n", sms->address,
+		l23_vty_ms_notify(ms, "SMS to %s failed: %s\n", sms->address,
 			get_value_string(gsm411_rp_cause_strs, cause));
 
 	mobile_prim_ntfy_sms_status(ms, sms, cause);
@@ -190,8 +190,8 @@ static int sms_store(struct osmocom_ms *ms, struct msgb *msg,
 		if (*p == '\n' || *p == '\r')
 			*p = ' ';
 	}
-	vty_notify(ms, NULL);
-	vty_notify(ms, "SMS from %s: '%s'\n", gsms->address, vty_text);
+	l23_vty_ms_notify(ms, NULL);
+	l23_vty_ms_notify(ms, "SMS from %s: '%s'\n", gsms->address, vty_text);
 
 	home = getenv("HOME");
         if (!home) {

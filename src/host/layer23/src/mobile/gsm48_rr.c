@@ -679,7 +679,7 @@ static void timeout_rr_meas(void *arg)
 	}
 	LOGP(DRR, LOGL_INFO, "%s\n", text);
 	if (rr->monitor)
-		vty_notify(rr->ms, "%s\n", text);
+		l23_vty_ms_notify(rr->ms, "%s\n", text);
 
 	if (rr->dm_est)
 		gsm48_rr_tx_meas_rep(rr->ms);

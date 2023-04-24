@@ -15,7 +15,5 @@ enum ms_vty_node {
 };
 
 int ms_vty_init(void);
-extern void vty_notify(struct osmocom_ms *ms, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
-
 #endif
 

@@ -48,6 +48,8 @@
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
 
+extern struct llist_head active_connections; /* libosmocore */
+
 bool l23_vty_reading = false;
 
 static struct cmd_node ms_node = {
@@ -89,6 +91,41 @@ struct osmocom_ms *l23_vty_get_ms(const char *name, struct vty *vty)
 	vty_out(vty, "MS name '%s' does not exist.%s", name, VTY_NEWLINE);
 
 	return NULL;
+}
+
+void l23_vty_ms_notify(struct osmocom_ms *ms, const char *fmt, ...)
+{
+	struct telnet_connection *connection;
+	char buffer[1000];
+	va_list args;
+	struct vty *vty;
+
+	if (fmt) {
+		va_start(args, fmt);
+		vsnprintf(buffer, sizeof(buffer) - 1, fmt, args);
+		buffer[sizeof(buffer) - 1] = '\0';
+		va_end(args);
+
+		if (!buffer[0])
+			return;
+	}
+
+	llist_for_each_entry(connection, &active_connections, entry) {
+		vty = connection->vty;
+		if (!vty)
+			continue;
+		if (!fmt) {
+			vty_out(vty, "%s%% (MS %s)%s", VTY_NEWLINE, ms->name,
+				VTY_NEWLINE);
+			continue;
+		}
+		if (buffer[strlen(buffer) - 1] == '\n') {
+			buffer[strlen(buffer) - 1] = '\0';
+			vty_out(vty, "%% %s%s", buffer, VTY_NEWLINE);
+			buffer[strlen(buffer)] = '\n';
+		} else
+			vty_out(vty, "%% %s", buffer);
+	}
 }
 
 /* placeholder for layer23 shared MS info to be dumped */

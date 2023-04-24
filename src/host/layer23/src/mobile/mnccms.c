@@ -296,62 +296,62 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 
 	switch (msg_type) {
 	case MNCC_DISC_IND:
-		vty_notify(ms, NULL);
+		l23_vty_ms_notify(ms, NULL);
 		switch (data->cause.value) {
 		case GSM48_CC_CAUSE_UNASSIGNED_NR:
-			vty_notify(ms, "Call: Number not assigned\n");
+			l23_vty_ms_notify(ms, "Call: Number not assigned\n");
 			break;
 		case GSM48_CC_CAUSE_NO_ROUTE:
-			vty_notify(ms, "Call: Destination unreachable\n");
+			l23_vty_ms_notify(ms, "Call: Destination unreachable\n");
 			break;
 		case GSM48_CC_CAUSE_NORM_CALL_CLEAR:
-			vty_notify(ms, "Call: Remote hangs up\n");
+			l23_vty_ms_notify(ms, "Call: Remote hangs up\n");
 			break;
 		case GSM48_CC_CAUSE_USER_BUSY:
-			vty_notify(ms, "Call: Remote busy\n");
+			l23_vty_ms_notify(ms, "Call: Remote busy\n");
 			break;
 		case GSM48_CC_CAUSE_USER_NOTRESPOND:
-			vty_notify(ms, "Call: Remote not responding\n");
+			l23_vty_ms_notify(ms, "Call: Remote not responding\n");
 			break;
 		case GSM48_CC_CAUSE_USER_ALERTING_NA:
-			vty_notify(ms, "Call: Remote not answering\n");
+			l23_vty_ms_notify(ms, "Call: Remote not answering\n");
 			break;
 		case GSM48_CC_CAUSE_CALL_REJECTED:
-			vty_notify(ms, "Call has been rejected\n");
+			l23_vty_ms_notify(ms, "Call has been rejected\n");
 			break;
 		case GSM48_CC_CAUSE_NUMBER_CHANGED:
-			vty_notify(ms, "Call: Number changed\n");
+			l23_vty_ms_notify(ms, "Call: Number changed\n");
 			break;
 		case GSM48_CC_CAUSE_PRE_EMPTION:
-			vty_notify(ms, "Call: Cleared due to pre-emption\n");
+			l23_vty_ms_notify(ms, "Call: Cleared due to pre-emption\n");
 			break;
 		case GSM48_CC_CAUSE_DEST_OOO:
-			vty_notify(ms, "Call: Remote out of order\n");
+			l23_vty_ms_notify(ms, "Call: Remote out of order\n");
 			break;
 		case GSM48_CC_CAUSE_INV_NR_FORMAT:
-			vty_notify(ms, "Call: Number invalid or incomplete\n");
+			l23_vty_ms_notify(ms, "Call: Number invalid or incomplete\n");
 			break;
 		case GSM48_CC_CAUSE_NO_CIRCUIT_CHAN:
-			vty_notify(ms, "Call: No channel available\n");
+			l23_vty_ms_notify(ms, "Call: No channel available\n");
 			break;
 		case GSM48_CC_CAUSE_NETWORK_OOO:
-			vty_notify(ms, "Call: Network out of order\n");
+			l23_vty_ms_notify(ms, "Call: Network out of order\n");
 			break;
 		case GSM48_CC_CAUSE_TEMP_FAILURE:
-			vty_notify(ms, "Call: Temporary failure\n");
+			l23_vty_ms_notify(ms, "Call: Temporary failure\n");
 			break;
 		case GSM48_CC_CAUSE_SWITCH_CONG:
-			vty_notify(ms, "Congestion\n");
+			l23_vty_ms_notify(ms, "Congestion\n");
 			break;
 		default:
-			vty_notify(ms, "Call has been disconnected "
+			l23_vty_ms_notify(ms, "Call has been disconnected "
 				"(clear cause %d)\n", data->cause.value);
 		}
 		LOGP(DMNCC, LOGL_INFO, "Call has been disconnected "
 			"(cause %d)\n", data->cause.value);
 		if ((data->fields & MNCC_F_PROGRESS)
 		 && data->progress.descr == 8) {
-			vty_notify(ms, "Please hang up!\n");
+			l23_vty_ms_notify(ms, "Please hang up!\n");
 		 	break;
 		}
 		free_call(call);
@@ -359,18 +359,18 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		goto release;
 	case MNCC_REL_IND:
 	case MNCC_REL_CNF:
-		vty_notify(ms, NULL);
+		l23_vty_ms_notify(ms, NULL);
 		if (data->cause.value == GSM48_CC_CAUSE_CALL_REJECTED)
-			vty_notify(ms, "Call has been rejected\n");
+			l23_vty_ms_notify(ms, "Call has been rejected\n");
 		else
-			vty_notify(ms, "Call has been released\n");
+			l23_vty_ms_notify(ms, "Call has been released\n");
 		LOGP(DMNCC, LOGL_INFO, "Call has been released (cause %d)\n",
 			data->cause.value);
 		free_call(call);
 		break;
 	case MNCC_CALL_PROC_IND:
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Call is proceeding\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Call is proceeding\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is proceeding\n");
 		if ((data->fields & MNCC_F_BEARER_CAP)
 		 && data->bearer_cap.speech_ver[0] >= 0) {
@@ -378,19 +378,19 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		}
 		break;
 	case MNCC_ALERT_IND:
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Call is alerting\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Call is alerting\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is alerting\n");
 		break;
 	case MNCC_SETUP_CNF:
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Call is answered\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Call is answered\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is answered\n");
 		break;
 	case MNCC_SETUP_IND:
-		vty_notify(ms, NULL);
+		l23_vty_ms_notify(ms, NULL);
 		if (!first_call && !ms->settings.cw) {
-			vty_notify(ms, "Incoming call rejected while busy\n");
+			l23_vty_ms_notify(ms, "Incoming call rejected while busy\n");
 			LOGP(DMNCC, LOGL_INFO, "Incoming call but busy\n");
 			cause = GSM48_CC_CAUSE_USER_BUSY;
 			goto release;
@@ -442,15 +442,15 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		}
 		/* presentation allowed if present == 0 */
 		if (data->calling.present || !data->calling.number[0])
-			vty_notify(ms, "Incoming call (anonymous)\n");
+			l23_vty_ms_notify(ms, "Incoming call (anonymous)\n");
 		else if (data->calling.type == 1)
-			vty_notify(ms, "Incoming call (from +%s)\n",
+			l23_vty_ms_notify(ms, "Incoming call (from +%s)\n",
 				data->calling.number);
 		else if (data->calling.type == 2)
-			vty_notify(ms, "Incoming call (from 0-%s)\n",
+			l23_vty_ms_notify(ms, "Incoming call (from 0-%s)\n",
 				data->calling.number);
 		else
-			vty_notify(ms, "Incoming call (from %s)\n",
+			l23_vty_ms_notify(ms, "Incoming call (from %s)\n",
 				data->calling.number);
 		LOGP(DMNCC, LOGL_INFO, "Incoming call (from %s callref %x)\n",
 			data->calling.number, call->callref);
@@ -488,30 +488,30 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		}
 		break;
 	case MNCC_SETUP_COMPL_IND:
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Call is connected\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Call is connected\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is connected\n");
 		break;
 	case MNCC_HOLD_CNF:
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Call is on hold\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Call is on hold\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is on hold\n");
 		call->hold = true;
 		break;
 	case MNCC_HOLD_REJ:
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Call hold was rejected\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Call hold was rejected\n");
 		LOGP(DMNCC, LOGL_INFO, "Call hold was rejected\n");
 		break;
 	case MNCC_RETRIEVE_CNF:
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Call is retrieved\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Call is retrieved\n");
 		LOGP(DMNCC, LOGL_INFO, "Call is retrieved\n");
 		call->hold = false;
 		break;
 	case MNCC_RETRIEVE_REJ:
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Call retrieve was rejected\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Call retrieve was rejected\n");
 		LOGP(DMNCC, LOGL_INFO, "Call retrieve was rejected\n");
 		break;
 	case MNCC_FACILITY_IND:
@@ -539,8 +539,8 @@ int mncc_call(struct osmocom_ms *ms, char *number)
 
 	llist_for_each_entry(call, &call_list, entry) {
 		if (!call->hold) {
-			vty_notify(ms, NULL);
-			vty_notify(ms, "Please put active call on hold "
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "Please put active call on hold "
 				"first!\n");
 			LOGP(DMNCC, LOGL_INFO, "Cannot make a call, busy!\n");
 			return -EBUSY;
@@ -607,8 +607,8 @@ int mncc_hangup(struct osmocom_ms *ms)
 	}
 	if (!found) {
 		LOGP(DMNCC, LOGL_INFO, "No active call to hangup\n");
-		vty_notify(ms, NULL);
-		vty_notify(ms, "No active call\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "No active call\n");
 		return -EINVAL;
 	}
 
@@ -634,14 +634,14 @@ int mncc_answer(struct osmocom_ms *ms)
 	}
 	if (!alerting) {
 		LOGP(DMNCC, LOGL_INFO, "No call alerting\n");
-		vty_notify(ms, NULL);
-		vty_notify(ms, "No alerting call\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "No alerting call\n");
 		return -EBUSY;
 	}
 	if (active) {
 		LOGP(DMNCC, LOGL_INFO, "Answer but we have an active call\n");
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Please put active call on hold first!\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Please put active call on hold first!\n");
 		return -EBUSY;
 	}
 	alerting->ring = false;
@@ -665,8 +665,8 @@ int mncc_hold(struct osmocom_ms *ms)
 	}
 	if (!found) {
 		LOGP(DMNCC, LOGL_INFO, "No active call to hold\n");
-		vty_notify(ms, NULL);
-		vty_notify(ms, "No active call\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "No active call\n");
 		return -EINVAL;
 	}
 
@@ -689,26 +689,26 @@ int mncc_retrieve(struct osmocom_ms *ms, int number)
 	}
 	if (active) {
 		LOGP(DMNCC, LOGL_INFO, "Cannot retrieve during active call\n");
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Hold active call first!\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Hold active call first!\n");
 		return -EINVAL;
 	}
 	if (holdnum == 0) {
-		vty_notify(ms, NULL);
-		vty_notify(ms, "No call on hold!\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "No call on hold!\n");
 		return -EINVAL;
 	}
 	if (holdnum > 1 && number <= 0) {
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Select call 1..%d\n", holdnum);
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Select call 1..%d\n", holdnum);
 		return -EINVAL;
 	}
 	if (holdnum == 1 && number <= 0)
 		number = 1;
 	if (number > holdnum) {
-		vty_notify(ms, NULL);
-		vty_notify(ms, "Given number %d out of range!\n", number);
-		vty_notify(ms, "Select call 1..%d\n", holdnum);
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "Given number %d out of range!\n", number);
+		l23_vty_ms_notify(ms, "Select call 1..%d\n", holdnum);
 		return -EINVAL;
 	}
 
@@ -793,8 +793,8 @@ int mncc_dtmf(struct osmocom_ms *ms, char *dtmf)
 	}
 	if (!found) {
 		LOGP(DMNCC, LOGL_INFO, "No active call to send DTMF\n");
-		vty_notify(ms, NULL);
-		vty_notify(ms, "No active call\n");
+		l23_vty_ms_notify(ms, NULL);
+		l23_vty_ms_notify(ms, "No active call\n");
 		return -EINVAL;
 	}
 

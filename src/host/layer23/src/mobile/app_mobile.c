@@ -191,8 +191,8 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	} else {
 		mobile_set_shutdown(ms, MS_SHUTDOWN_COMPL); /* being down */
 	}
-	vty_notify(ms, NULL);
-	vty_notify(ms, "Power off!\n");
+	l23_vty_ms_notify(ms, NULL);
+	l23_vty_ms_notify(ms, "Power off!\n");
 	LOGP(DMOB, LOGL_NOTICE, "Power off! (MS %s)\n", ms->name);
 
 	return 0;
