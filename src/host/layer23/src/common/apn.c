@@ -81,9 +81,6 @@ int apn_start(struct osmobb_apn *apn)
 
 	LOGPAPN(LOGL_INFO, apn, "Opened TUN device %s\n", osmo_tundev_get_dev_name(apn->tun));
 
-	/* TODO: set IP addresses on the tun device once we receive them from GGSN. See
-	   osmo-ggsn.git's apn_start() */
-
 	LOGPAPN(LOGL_NOTICE, apn, "Successfully started\n");
 	apn->started = true;
 	return 0;
