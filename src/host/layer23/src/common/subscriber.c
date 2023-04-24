@@ -21,6 +21,7 @@
 #include <arpa/inet.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/crypt/auth.h>
+#include <osmocom/gsm/gsm23003.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
@@ -42,21 +43,6 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg);
 /*
  * support
  */
-
-char *gsm_check_imsi(const char *imsi)
-{
-	int i;
-
-	if (!imsi || strlen(imsi) != 15)
-		return "IMSI must have 15 digits!";
-
-	for (i = 0; i < strlen(imsi); i++) {
-		if (imsi[i] < '0' || imsi[i] > '9')
-			return "IMSI must have digits 0 to 9 only!";
-	}
-
-	return NULL;
-}
 
 static char *sim_decode_bcd(uint8_t *data, uint8_t length)
 {
@@ -154,7 +140,6 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
-	char *error;
 
 	if (subscr->sim_valid) {
 		LOGP(DMM, LOGL_ERROR, "Cannot insert card, until current card "
@@ -162,9 +147,8 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 		return -EBUSY;
 	}
 
-	error = gsm_check_imsi(set->test_imsi);
-	if (error) {
-		LOGP(DMM, LOGL_ERROR, "%s\n", error);
+	if (!osmo_imsi_str_valid(set->test_imsi)) {
+		LOGP(DMM, LOGL_ERROR, "Wrong IMSI format\n");
 		return -EINVAL;
 	}
 

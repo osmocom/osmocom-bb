@@ -26,6 +26,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/crypt/auth.h>
+#include <osmocom/gsm/gsm23003.h>
 
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
@@ -1750,11 +1751,9 @@ DEFUN(cfg_ms_emerg_imsi, cfg_ms_emerg_imsi_cmd, "emergency-imsi IMSI",
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
-	char *error;
 
-	error = gsm_check_imsi(argv[0]);
-	if (error) {
-		vty_out(vty, "%s%s", error, VTY_NEWLINE);
+	if (!osmo_imsi_str_valid(argv[0])) {
+		vty_out(vty, "Wrong IMSI format%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 	strcpy(set->emergency_imsi, argv[0]);
@@ -2586,10 +2585,9 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
-	char *error = gsm_check_imsi(argv[0]);
 
-	if (error) {
-		vty_out(vty, "%s%s", error, VTY_NEWLINE);
+	if (!osmo_imsi_str_valid(argv[0])) {
+		vty_out(vty, "Wrong IMSI format%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
