@@ -137,7 +137,9 @@ void l23_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 
 	if (!ms->started)
 		service = ", radio is not started";
-	else if (ms->mmlayer.state == GSM48_MM_ST_MM_IDLE) {
+	else if (ms->mmlayer.state == GSM48_MM_ST_NULL) {
+		service = ", MM connection not yet set up";
+	} else if (ms->mmlayer.state == GSM48_MM_ST_MM_IDLE) {
 		/* current MM idle state */
 		switch (ms->mmlayer.substate) {
 		case GSM48_MM_SST_NORMAL_SERVICE:
