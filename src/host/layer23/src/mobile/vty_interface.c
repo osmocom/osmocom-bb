@@ -932,14 +932,6 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	}
 	vty_out(vty, " network-selection-mode %s%s", (set->plmn_mode
 			== PLMN_MODE_AUTO) ? "auto" : "manual", VTY_NEWLINE);
-	vty_out(vty, " imei %s %s%s", set->imei,
-		set->imeisv + strlen(set->imei), VTY_NEWLINE);
-	if (set->imei_random)
-		vty_out(vty, " imei-random %d%s", set->imei_random,
-			VTY_NEWLINE);
-	else
-		if (!l23_vty_hide_default)
-			vty_out(vty, " imei-fixed%s", VTY_NEWLINE);
 	if (set->emergency_imsi[0])
 		vty_out(vty, " emergency-imsi %s%s", set->emergency_imsi,
 			VTY_NEWLINE);
@@ -1235,53 +1227,6 @@ DEFUN(cfg_ms_mode, cfg_ms_mode_cmd, "network-selection-mode (auto|manual)",
 			return CMD_WARNING;
 		gsm322_plmn_sendmsg(ms, nmsg);
 	}
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_ms_imei, cfg_ms_imei_cmd, "imei IMEI [SV]",
-	"Set IMEI (enter without control digit)\n15 Digits IMEI\n"
-	"Software version digit")
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-	char *error, *sv = "0";
-
-	if (argc >= 2)
-		sv = (char *)argv[1];
-
-	error = gsm_check_imei(argv[0], sv);
-	if (error) {
-		vty_out(vty, "%s%s", error, VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	strcpy(set->imei, argv[0]);
-	strcpy(set->imeisv, argv[0]);
-	strcpy(set->imeisv + 15, sv);
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_ms_imei_fixed, cfg_ms_imei_fixed_cmd, "imei-fixed",
-	"Use fixed IMEI on every power on")
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	set->imei_random = 0;
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
-	"Use random IMEI on every power on\n"
-	"Number of trailing digits to randomize")
-{
-	struct osmocom_ms *ms = vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	set->imei_random = atoi(argv[0]);
 
 	return CMD_SUCCESS;
 }
@@ -2348,9 +2293,6 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_mncc_handler_cmd);
 	install_element(MS_NODE, &cfg_ms_no_mncc_handler_cmd);
 	install_element(MS_NODE, &cfg_ms_mode_cmd);
-	install_element(MS_NODE, &cfg_ms_imei_cmd);
-	install_element(MS_NODE, &cfg_ms_imei_fixed_cmd);
-	install_element(MS_NODE, &cfg_ms_imei_random_cmd);
 	install_element(MS_NODE, &cfg_ms_no_emerg_imsi_cmd);
 	install_element(MS_NODE, &cfg_ms_emerg_imsi_cmd);
 	install_element(MS_NODE, &cfg_ms_no_sms_sca_cmd);

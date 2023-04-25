@@ -153,6 +153,7 @@ void l23_vty_printf(void *priv, const char *fmt, ...)
 /* placeholder for layer23 shared MS info to be dumped */
 void l23_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 {
+	struct gsm_settings *set = &ms->settings;
 	char *service = "";
 
 	if (!ms->started)
@@ -189,6 +190,14 @@ void l23_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 		(ms->shutdown != MS_SHUTDOWN_NONE || !ms->started) ? "down" : "up",
 		(ms->shutdown == MS_SHUTDOWN_NONE) ? service : "",
 		VTY_NEWLINE);
+
+	vty_out(vty, " IMEI: %s%s", set->imei, VTY_NEWLINE);
+	vty_out(vty, " IMEISV: %s%s", set->imeisv, VTY_NEWLINE);
+	if (set->imei_random)
+		vty_out(vty, " IMEI generation: random (%d trailing "
+			"digits)%s", set->imei_random, VTY_NEWLINE);
+	else
+		vty_out(vty, " IMEI generation: fixed%s", VTY_NEWLINE);
 }
 
 /* CONFIG NODE: */
@@ -796,6 +805,53 @@ DEFUN(cfg_ms_layer2, cfg_ms_layer2_cmd, "layer2-socket PATH",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_imei, cfg_ms_imei_cmd, "imei IMEI [SV]",
+	"Set IMEI (enter without control digit)\n15 Digits IMEI\n"
+	"Software version digit")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	char *error, *sv = "0";
+
+	if (argc >= 2)
+		sv = (char *)argv[1];
+
+	error = gsm_check_imei(argv[0], sv);
+	if (error) {
+		vty_out(vty, "%s%s", error, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	OSMO_STRLCPY_ARRAY(set->imei, argv[0]);
+	OSMO_STRLCPY_ARRAY(set->imeisv, argv[0]);
+	OSMO_STRLCPY_ARRAY(set->imeisv + 15, sv);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_imei_fixed, cfg_ms_imei_fixed_cmd, "imei-fixed",
+	"Use fixed IMEI on every power on")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->imei_random = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_imei_random, cfg_ms_imei_random_cmd, "imei-random <0-15>",
+	"Use random IMEI on every power on\n"
+	"Number of trailing digits to randomize")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->imei_random = atoi(argv[0]);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test|sap)",
 	"Set SIM card to attach when powering on\nAttach no SIM\n"
 	"Attach SIM from reader\nAttach build in test SIM\n"
@@ -1192,6 +1248,13 @@ void l23_vty_config_write_ms_node_contents(struct vty *vty, const struct osmocom
 	vty_out(vty, "%slayer2-socket %s%s", prefix, set->layer2_socket_path,
 		VTY_NEWLINE);
 
+	vty_out(vty, "%simei %s %s%s", prefix, set->imei,
+		set->imeisv + strlen(set->imei), VTY_NEWLINE);
+	if (set->imei_random)
+		vty_out(vty, "%simei-random %d%s", prefix, set->imei_random, VTY_NEWLINE);
+	else if (!l23_vty_hide_default)
+		vty_out(vty, "%simei-fixed%s", prefix, VTY_NEWLINE);
+
 	switch (set->sim_type) {
 	case GSM_SIM_TYPE_NONE:
 		vty_out(vty, "%ssim none%s", prefix,  VTY_NEWLINE);
@@ -1296,6 +1359,9 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 
 	install_node(&ms_node, config_write_ms_node_cb);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
+	install_element(MS_NODE, &cfg_ms_imei_cmd);
+	install_element(MS_NODE, &cfg_ms_imei_fixed_cmd);
+	install_element(MS_NODE, &cfg_ms_imei_random_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
 	install_node(&testsim_node, NULL);
