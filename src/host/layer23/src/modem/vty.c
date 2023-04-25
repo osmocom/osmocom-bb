@@ -36,7 +36,9 @@
 #include <osmocom/bb/common/vty.h>
 #include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
+#include <osmocom/bb/modem/gmm.h>
 #include <osmocom/bb/modem/grr.h>
+#include <osmocom/bb/modem/sm.h>
 #include <osmocom/bb/modem/vty.h>
 
 static struct cmd_node apn_node = {
@@ -163,25 +165,14 @@ DEFUN_HIDDEN(test_gmm_reg_attach,
 	     TEST_CMD_DESC MS_NAME_DESC GMM_CMDG_DESC
 	     "Enqueue a GMM GMMREG-ATTACH.req for transmission\n")
 {
-	struct osmo_gprs_gmm_prim *gmm_prim;
-	const uint32_t tlli = 0xe1c5d364;
-	const char *imsi = "1234567890";
-	const char *imei = "42342342342342";
-	const char *imeisv = "4234234234234275";
 	struct osmocom_ms *ms;
 
-	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL)
+	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL) {
+		vty_out(vty, "Failed to find ms '%s'%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
+	}
 
-	gmm_prim = osmo_gprs_gmm_prim_alloc_gmmreg_attach_req();
-	gmm_prim->gmmreg.attach_req.attach_type = OSMO_GPRS_GMM_ATTACH_TYPE_GPRS;
-	gmm_prim->gmmreg.attach_req.ptmsi = tlli;
-	OSMO_STRLCPY_ARRAY(gmm_prim->gmmreg.attach_req.imsi, imsi);
-	OSMO_STRLCPY_ARRAY(gmm_prim->gmmreg.attach_req.imei, imei);
-	OSMO_STRLCPY_ARRAY(gmm_prim->gmmreg.attach_req.imeisv, imeisv);
-
-
-	if (osmo_gprs_gmm_prim_upper_down(gmm_prim) != 0) {
+	if (modem_gmm_gmmreg_attach_req(ms) < 0) {
 		vty_out(vty, "Failed to enqueue a GMM PDU%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -195,19 +186,14 @@ DEFUN_HIDDEN(test_gmm_reg_detach,
 	     TEST_CMD_DESC MS_NAME_DESC GMM_CMDG_DESC
 	     "Enqueue a GMM GMMREG-DETACH.req for transmission\n")
 {
-	struct osmo_gprs_gmm_prim *gmm_prim;
-	const uint32_t tlli = 0xe1c5d364;
 	struct osmocom_ms *ms;
 
-	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL)
+	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL) {
+		vty_out(vty, "Failed to find ms '%s'%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
+	}
 
-	gmm_prim = osmo_gprs_gmm_prim_alloc_gmmreg_detach_req();
-	gmm_prim->gmmreg.detach_req.ptmsi = tlli;
-	gmm_prim->gmmreg.detach_req.detach_type = OSMO_GPRS_GMM_DETACH_MS_TYPE_GPRS;
-	gmm_prim->gmmreg.detach_req.poweroff_type = OSMO_GPRS_GMM_DETACH_POWEROFF_TYPE_NORMAL;
-
-	if (osmo_gprs_gmm_prim_upper_down(gmm_prim) != 0) {
+	if (modem_gmm_gmmreg_detach_req(ms) < 0) {
 		vty_out(vty, "Failed to enqueue a GMM PDU%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -222,20 +208,8 @@ DEFUN_HIDDEN(test_sm_act_pdp_ctx,
 	     "Enqueue a SM SMREG-ACTIVATE.req for transmission\n"
 	     "APN to activate\n")
 {
-	struct osmo_gprs_sm_prim *sm_prim;
 	struct osmocom_ms *ms;
 	struct osmobb_apn *apn;
-
-	uint8_t nsapi = 6;
-	enum osmo_gprs_sm_llc_sapi llc_sapi = OSMO_GPRS_SM_LLC_SAPI_SAPI3;
-	struct osmo_sockaddr pdp_addr_any = {0};
-	uint8_t qos[OSMO_GPRS_SM_QOS_MAXLEN] = {0};
-	uint8_t pco[OSMO_GPRS_SM_QOS_MAXLEN] = {0};
-	uint32_t ptmsi = 0x00000000;
-	char *imsi = "1234567890";
-	char *imei = "42342342342342";
-	char *imeisv = "4234234234234275";
-	enum osmo_gprs_sm_pdp_addr_ietf_type pdp_addr_ietf_type;
 
 	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL) {
 		vty_out(vty, "Unable to find MS '%s'%s", argv[0], VTY_NEWLINE);
@@ -248,35 +222,8 @@ DEFUN_HIDDEN(test_sm_act_pdp_ctx,
 		return CMD_WARNING;
 	}
 
-	if (apn->cfg.apn_type_mask & APN_TYPE_IPv4v6) {
-		pdp_addr_ietf_type = OSMO_GPRS_SM_PDP_ADDR_IETF_IPV4V6;
-	} else if (apn->cfg.apn_type_mask & APN_TYPE_IPv4) {
-		pdp_addr_ietf_type = OSMO_GPRS_SM_PDP_ADDR_IETF_IPV4;
-	} else if (apn->cfg.apn_type_mask & APN_TYPE_IPv6) {
-		pdp_addr_ietf_type = OSMO_GPRS_SM_PDP_ADDR_IETF_IPV6;
-	} else {
-		vty_out(vty, "APN '%s' has no PDP address type set%s", argv[1], VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	sm_prim = osmo_gprs_sm_prim_alloc_smreg_pdp_act_req();
-	sm_prim->smreg.pdp_act_req.nsapi = nsapi;
-	sm_prim->smreg.pdp_act_req.llc_sapi = llc_sapi;
-	sm_prim->smreg.pdp_act_req.pdp_addr_ietf_type = pdp_addr_ietf_type;
-	sm_prim->smreg.pdp_act_req.pdp_addr_v4 = pdp_addr_any;
-	sm_prim->smreg.pdp_act_req.pdp_addr_v6 = pdp_addr_any;
-	memcpy(sm_prim->smreg.pdp_act_req.qos, qos, sizeof(qos));
-	sm_prim->smreg.pdp_act_req.qos_len = 1;
-	memcpy(sm_prim->smreg.pdp_act_req.pco, pco, sizeof(pco));
-	sm_prim->smreg.pdp_act_req.pco_len = 1;
-	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.apn, apn->cfg.name);
-	sm_prim->smreg.pdp_act_req.gmm.ptmsi = ptmsi;
-	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imsi, imsi);
-	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imei, imei);
-	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imeisv, imeisv);
-
-	if (osmo_gprs_sm_prim_upper_down(sm_prim) != 0) {
-		vty_out(vty, "Failed to enqueue a SM PDU%s", VTY_NEWLINE);
+	if (modem_sm_smreg_pdp_act_req(ms, apn) < 0) {
+		vty_out(vty, "Failed submitting SM PDP Act Req%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 

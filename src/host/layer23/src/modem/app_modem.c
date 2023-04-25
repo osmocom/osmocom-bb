@@ -114,10 +114,41 @@ void layer3_app_reset(void)
 	memset(&app_data, 0x00, sizeof(app_data));
 }
 
+/* SIM becomes ATTACHED/DETACHED, or answers a request */
+static int modem_l23_subscr_signal_cb(unsigned int subsys, unsigned int signal,
+		     void *handler_data, void *signal_data)
+{
+	struct osmocom_ms *ms;
+	struct osmobb_l23_subscr_sim_auth_resp_sig_data *sim_auth_resp;
+
+	OSMO_ASSERT(subsys == SS_L23_SUBSCR);
+
+	switch (signal) {
+	case S_L23_SUBSCR_SIM_ATTACHED:
+		ms = signal_data;
+		modem_gmm_gmmreg_attach_req(ms);
+		break;
+	case S_L23_SUBSCR_SIM_DETACHED:
+		ms = signal_data;
+		modem_gmm_gmmreg_detach_req(ms);
+		break;
+	case S_L23_SUBSCR_SIM_AUTH_RESP:
+		sim_auth_resp = signal_data;
+		ms = sim_auth_resp->ms;
+		/* TODO: pass sim_auth_resp->sres to GMM layer */
+		break;
+	default:
+		OSMO_ASSERT(0);
+	}
+
+	return 0;
+}
+
 static int global_signal_cb(unsigned int subsys, unsigned int signal,
 			    void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
+	struct gsm_settings *set;
 
 	if (subsys != SS_L1CTL)
 		return 0;
@@ -127,6 +158,29 @@ static int global_signal_cb(unsigned int subsys, unsigned int signal,
 		ms = signal_data;
 		layer3_app_reset();
 		app_data.ms = ms;
+
+		/* insert test card, if enabled */
+		set = &ms->settings;
+		switch (set->sim_type) {
+		case GSM_SIM_TYPE_L1PHY:
+			/* trigger sim card reader process */
+			gsm_subscr_simcard(ms);
+			break;
+		case GSM_SIM_TYPE_TEST:
+			gsm_subscr_testcard(ms, set->test_rplmn_mcc,
+				set->test_rplmn_mnc, set->test_lac,
+				set->test_tmsi, set->test_imsi_attached);
+			break;
+		case GSM_SIM_TYPE_SAP:
+			gsm_subscr_sapcard(ms);
+			break;
+		default:
+			/* No SIM, trigger PLMN selection process.
+			 * FIXME: not implemented. Code in mobile needs to be
+			 * moved to common/ and reuse it here.
+			 */
+			break;
+		}
 
 		ms->started = true;
 		return l1ctl_tx_fbsb_req(ms, ms->test_arfcn,
@@ -154,6 +208,7 @@ static int _modem_start(void)
 /* global exit */
 static int _modem_exit(void)
 {
+	osmo_signal_unregister_handler(SS_L23_SUBSCR, &modem_l23_subscr_signal_cb, NULL);
 	osmo_signal_unregister_handler(SS_GLOBAL, &global_signal_cb, NULL);
 	return 0;
 }
@@ -198,6 +253,7 @@ int l23_app_init(void)
 	}
 
 	osmo_signal_register_handler(SS_L1CTL, &global_signal_cb, NULL);
+	osmo_signal_register_handler(SS_L23_SUBSCR, &modem_l23_subscr_signal_cb, NULL);
 	lapdm_channel_set_l3(&app_data.ms->lapdm_channel, &modem_grr_rslms_cb, app_data.ms);
 	return 0;
 }
