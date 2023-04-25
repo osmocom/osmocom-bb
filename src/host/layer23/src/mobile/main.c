@@ -339,7 +339,12 @@ int main(int argc, char **argv)
 		osmo_select_main(0);
 	}
 
-	l23_app_exit();
+	if (l23_app_exit)
+		rc = l23_app_exit();
+
+	if (l23_app_info.opt_supported & L23_OPT_VTY)
+		telnet_exit();
+
 	log_fini();
 
 	talloc_free(config_file);

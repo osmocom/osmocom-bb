@@ -186,6 +186,9 @@ void sighandler(int sigset)
 	if (l23_app_exit)
 		rc = l23_app_exit();
 
+	if (l23_app_info.opt_supported & L23_OPT_VTY)
+		telnet_exit();
+
 	if (rc != -EBUSY)
 		exit (0);
 }

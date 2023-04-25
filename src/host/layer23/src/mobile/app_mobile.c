@@ -481,8 +481,6 @@ static int _mobile_app_exit(void)
 
 	osmo_gps_close();
 
-	telnet_exit();
-
 	return 0;
 }
 
