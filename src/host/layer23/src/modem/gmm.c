@@ -30,6 +30,7 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/tun.h>
+#include <osmocom/gsm/protocol/gsm_04_08_gprs.h>
 
 #include <osmocom/gprs/llc/llc.h>
 #include <osmocom/gprs/llc/llc_prim.h>
@@ -47,12 +48,23 @@
 static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_data)
 {
 	const char *pdu_name = osmo_gprs_gmm_prim_name(gmm_prim);
+	struct osmocom_ms *ms = user_data;
 	int rc = 0;
 
 	switch (gmm_prim->oph.sap) {
 	case OSMO_GPRS_GMM_SAP_GMMREG:
 		switch (OSMO_PRIM_HDR(&gmm_prim->oph)) {
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_ATTACH, PRIM_OP_CONFIRM):
+			if (gmm_prim->gmmreg.attach_cnf.accepted) {
+				LOGP(DGMM, LOGL_NOTICE, "%s(): Rx %s: Attach success P-TMSI=0x%08x\n",
+				     __func__, pdu_name, gmm_prim->gmmreg.attach_cnf.acc.allocated_ptmsi);
+				ms->subscr.ptmsi = gmm_prim->gmmreg.attach_cnf.acc.allocated_ptmsi;
+			} else {
+				uint8_t cause = gmm_prim->gmmreg.attach_cnf.rej.cause;
+				LOGP(DGMM, LOGL_ERROR, "%s(): Rx %s: Attach rejected, cause=%u (%s)\n",
+				     __func__, pdu_name, cause, get_value_string(gsm48_gmm_cause_names, cause));
+			}
+			break;
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_CONFIRM):
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_INDICATION):
 		default:
