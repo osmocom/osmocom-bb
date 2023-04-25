@@ -469,6 +469,301 @@ gDEFUN(l23_show_ms, l23_show_ms_cmd, "show ms [MS_NAME]",
 	return CMD_SUCCESS;
 }
 
+static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
+	int attached)
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	int rc;
+
+	/* Initial testcard settings */
+	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
+	uint32_t tmsi = GSM_RESERVED_TMSI;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (ms->subscr.sim_valid) {
+		vty_out(vty, "SIM already attached, remove first!%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	set = &ms->settings;
+	if (set->test_rplmn_valid) {
+		mcc = set->test_rplmn_mcc;
+		mnc = set->test_rplmn_mnc;
+
+		if (set->test_lac > 0x0000 && set->test_lac < 0xfffe)
+			lac = set->test_lac;
+
+		if (set->test_tmsi != GSM_RESERVED_TMSI)
+			tmsi = set->test_tmsi;
+	}
+
+	if (argc == 2) {
+		vty_out(vty, "Give MNC together with MCC%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (argc >= 3) {
+		mcc = gsm_input_mcc((char *)argv[1]);
+		mnc = gsm_input_mnc((char *)argv[2]);
+		if (mcc == GSM_INPUT_INVALID) {
+			vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		if (mnc == GSM_INPUT_INVALID) {
+			vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	if (argc >= 4)
+		lac = strtoul(argv[3], NULL, 16);
+
+	if (argc >= 5)
+		tmsi = strtoul(argv[4], NULL, 16);
+
+	rc = gsm_subscr_testcard(ms, mcc, mnc, lac, tmsi, attached);
+	if (rc < 0) {
+		vty_out(vty, "Attach test SIM card failed: %d%s", rc, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_test, sim_test_cmd,
+	"sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
+	"SIM actions\nAttach built in test SIM\nName of MS (see \"show ms\")\n"
+	"Optionally set mobile Country Code of RPLMN\n"
+	"Optionally set mobile Network Code of RPLMN\n"
+	"Optionally set location area code of RPLMN\n"
+	"Optionally set current assigned TMSI")
+{
+	return _sim_test_cmd(vty, argc, argv, 0);
+}
+
+DEFUN(sim_test_att, sim_test_att_cmd,
+	"sim testcard MS_NAME MCC MNC LAC TMSI attached",
+	"SIM actions\nAttach built in test SIM\nName of MS (see \"show ms\")\n"
+	"Set mobile Country Code of RPLMN\nSet mobile Network Code of RPLMN\n"
+	"Set location area code\nSet current assigned TMSI\n"
+	"Indicate to MM that card is already attached")
+{
+	return _sim_test_cmd(vty, argc, argv, 1);
+}
+
+DEFUN(sim_sap, sim_sap_cmd, "sim sap MS_NAME",
+	"SIM actions\nAttach SIM over SAP interface\n"
+	"Name of MS (see \"show ms\")\n")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (ms->subscr.sim_valid) {
+		vty_out(vty, "SIM already attached, remove first!%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (gsm_subscr_sapcard(ms) != 0)
+		return CMD_WARNING;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
+	"SIM actions\nAttach SIM from reader\nName of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (ms->subscr.sim_valid) {
+		vty_out(vty, "SIM already attached, remove first!%s",
+			VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_simcard(ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_remove, sim_remove_cmd, "sim remove MS_NAME",
+	"SIM actions\nDetach SIM card\nName of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (!ms->subscr.sim_valid) {
+		vty_out(vty, "No SIM attached!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (ms->subscr.sim_type == GSM_SIM_TYPE_SAP)
+		gsm_subscr_remove_sapcard(ms);
+
+	gsm_subscr_remove(ms);
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_pin, sim_pin_cmd, "sim pin MS_NAME PIN",
+	"SIM actions\nEnter PIN for SIM card\nName of MS (see \"show ms\")\n"
+	"PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (strlen(argv[1]) < 4 || strlen(argv[1]) > 8) {
+		vty_out(vty, "PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (!ms->subscr.sim_pin_required) {
+		vty_out(vty, "No PIN is required at this time!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1], "", 0);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_disable_pin, sim_disable_pin_cmd, "sim disable-pin MS_NAME PIN",
+	"SIM actions\nDisable PIN of SIM card\nName of MS (see \"show ms\")\n"
+	"PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (strlen(argv[1]) < 4 || strlen(argv[1]) > 8) {
+		vty_out(vty, "PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1], "", -1);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_enable_pin, sim_enable_pin_cmd, "sim enable-pin MS_NAME PIN",
+	"SIM actions\nEnable PIN of SIM card\nName of MS (see \"show ms\")\n"
+	"PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (strlen(argv[1]) < 4 || strlen(argv[1]) > 8) {
+		vty_out(vty, "PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1], "", 1);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_change_pin, sim_change_pin_cmd, "sim change-pin MS_NAME OLD NEW",
+	"SIM actions\nChange PIN of SIM card\nName of MS (see \"show ms\")\n"
+	"Old PIN number\nNew PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (strlen(argv[1]) < 4 || strlen(argv[1]) > 8) {
+		vty_out(vty, "Old PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (strlen(argv[2]) < 4 || strlen(argv[2]) > 8) {
+		vty_out(vty, "New PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1], (char *)argv[2], 2);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_unblock_pin, sim_unblock_pin_cmd, "sim unblock-pin MS_NAME PUC NEW",
+	"SIM actions\nChange PIN of SIM card\nName of MS (see \"show ms\")\n"
+	"Personal Unblock Key\nNew PIN number")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (strlen(argv[1]) != 8) {
+		vty_out(vty, "PUC must be 8 digits!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (strlen(argv[2]) < 4 || strlen(argv[2]) > 8) {
+		vty_out(vty, "PIN must be in range 4..8!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	gsm_subscr_sim_pin(ms, (char *)argv[1], (char *)argv[2], 99);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
+	"SIM actions\nChange LAI of SIM card\nName of MS (see \"show ms\")\n"
+	"Mobile Country Code\nMobile Network Code\nLocation Area Code "
+	" (use 0000 to remove LAI)")
+{
+	struct osmocom_ms *ms;
+	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
+		 mnc = gsm_input_mnc((char *)argv[2]),
+		 lac = strtoul(argv[3], NULL, 16);
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	if (mcc == GSM_INPUT_INVALID) {
+		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (mnc == GSM_INPUT_INVALID) {
+		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	ms->subscr.mcc = mcc;
+	ms->subscr.mnc = mnc;
+	ms->subscr.lac = lac;
+	ms->subscr.tmsi = GSM_RESERVED_TMSI;
+
+	gsm_subscr_write_loci(ms);
+
+	return CMD_SUCCESS;
+}
+
 /* per MS config */
 gDEFUN(l23_cfg_ms, l23_cfg_ms_cmd, "ms MS_NAME",
 	"Select a mobile station to configure\nName of MS (see \"show ms\")")
@@ -498,6 +793,37 @@ DEFUN(cfg_ms_layer2, cfg_ms_layer2_cmd, "layer2-socket PATH",
 	OSMO_STRLCPY_ARRAY(set->layer2_socket_path, argv[0]);
 
 	l23_vty_restart_required_warn(vty, ms);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_sim, cfg_ms_sim_cmd, "sim (none|reader|test|sap)",
+	"Set SIM card to attach when powering on\nAttach no SIM\n"
+	"Attach SIM from reader\nAttach build in test SIM\n"
+	"Attach SIM over SAP interface")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	switch (argv[0][0]) {
+	case 'n':
+		set->sim_type = GSM_SIM_TYPE_NONE;
+		break;
+	case 'r':
+		set->sim_type = GSM_SIM_TYPE_L1PHY;
+		break;
+	case 't':
+		set->sim_type = GSM_SIM_TYPE_TEST;
+		break;
+	case 's':
+		set->sim_type = GSM_SIM_TYPE_SAP;
+		break;
+	default:
+		vty_out(vty, "unknown SIM type%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	l23_vty_restart_required_warn(vty, ms);
+
 	return CMD_SUCCESS;
 }
 
@@ -865,6 +1191,24 @@ void l23_vty_config_write_ms_node_contents(struct vty *vty, const struct osmocom
 
 	vty_out(vty, "%slayer2-socket %s%s", prefix, set->layer2_socket_path,
 		VTY_NEWLINE);
+
+	switch (set->sim_type) {
+	case GSM_SIM_TYPE_NONE:
+		vty_out(vty, "%ssim none%s", prefix,  VTY_NEWLINE);
+		break;
+	case GSM_SIM_TYPE_L1PHY:
+		vty_out(vty, "%ssim reader%s", prefix,  VTY_NEWLINE);
+		break;
+	case GSM_SIM_TYPE_TEST:
+		vty_out(vty, "%ssim test%s", prefix,  VTY_NEWLINE);
+		break;
+	case GSM_SIM_TYPE_SAP:
+		vty_out(vty, "%ssim sap%s", prefix,  VTY_NEWLINE);
+		break;
+	default:
+		OSMO_ASSERT(0);
+	}
+
 	l23_vty_config_write_testsim_node(vty, ms, prefix);
 }
 
@@ -935,11 +1279,24 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 	install_element_ve(&show_subscr_cmd);
 	install_element_ve(&show_support_cmd);
 
+	install_element(ENABLE_NODE, &sim_test_cmd);
+	install_element(ENABLE_NODE, &sim_test_att_cmd);
+	install_element(ENABLE_NODE, &sim_sap_cmd);
+	install_element(ENABLE_NODE, &sim_reader_cmd);
+	install_element(ENABLE_NODE, &sim_remove_cmd);
+	install_element(ENABLE_NODE, &sim_pin_cmd);
+	install_element(ENABLE_NODE, &sim_disable_pin_cmd);
+	install_element(ENABLE_NODE, &sim_enable_pin_cmd);
+	install_element(ENABLE_NODE, &sim_change_pin_cmd);
+	install_element(ENABLE_NODE, &sim_unblock_pin_cmd);
+	install_element(ENABLE_NODE, &sim_lai_cmd);
+
 	install_element(CONFIG_NODE, &cfg_hide_default_cmd);
 	install_element(CONFIG_NODE, &cfg_no_hide_default_cmd);
 
 	install_node(&ms_node, config_write_ms_node_cb);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
+	install_element(MS_NODE, &cfg_ms_sim_cmd);
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
 	install_node(&testsim_node, NULL);
 	install_element(TESTSIM_NODE, &cfg_test_imsi_cmd);
