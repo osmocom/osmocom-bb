@@ -92,7 +92,7 @@ int mobile_work(struct osmocom_ms *ms)
 }
 
 /* SIM becomes ATTACHED/DETACHED, or answers a request */
-int mobile_l23_subscr_signal_cb(unsigned int subsys, unsigned int signal,
+static int mobile_l23_subscr_signal_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
 {
 	struct msgb *nmsg;
@@ -135,8 +135,8 @@ int mobile_l23_subscr_signal_cb(unsigned int subsys, unsigned int signal,
 }
 
 /* run ms instance, if layer1 is available */
-int mobile_signal_cb(unsigned int subsys, unsigned int signal,
-		     void *handler_data, void *signal_data)
+static int mobile_signal_cb(unsigned int subsys, unsigned int signal,
+			    void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -412,8 +412,8 @@ int mobile_delete(struct osmocom_ms *ms, int force)
 }
 
 /* handle global shutdown */
-int global_signal_cb(unsigned int subsys, unsigned int signal,
-		     void *handler_data, void *signal_data)
+static int global_signal_cb(unsigned int subsys, unsigned int signal,
+			    void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms, *ms2;
 
@@ -437,7 +437,7 @@ int global_signal_cb(unsigned int subsys, unsigned int signal,
 }
 
 /* global work handler */
-int _mobile_app_work(void)
+static int _mobile_app_work(void)
 {
 	struct osmocom_ms *ms, *ms2;
 	int work = 0;
@@ -472,7 +472,7 @@ int _mobile_app_work(void)
 }
 
 /* global exit */
-int _mobile_app_exit(void)
+static int _mobile_app_exit(void)
 {
 	osmo_signal_unregister_handler(SS_L23_SUBSCR, &mobile_l23_subscr_signal_cb, NULL);
 	osmo_signal_unregister_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
@@ -487,7 +487,7 @@ int _mobile_app_exit(void)
 }
 
 
-int _mobile_app_start(void)
+static int _mobile_app_start(void)
 {
 	int rc;
 

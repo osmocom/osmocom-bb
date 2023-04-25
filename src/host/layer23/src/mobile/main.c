@@ -64,8 +64,6 @@ int (*l23_app_work)(void) = NULL;
 int (*l23_app_exit)(void) = NULL;
 
 int mobile_delete(struct osmocom_ms *ms, int force);
-int mobile_signal_cb(unsigned int subsys, unsigned int signal,
-		     void *handler_data, void *signal_data);
 int mobile_work(struct osmocom_ms *ms);
 int mobile_exit(struct osmocom_ms *ms, int force);
 
