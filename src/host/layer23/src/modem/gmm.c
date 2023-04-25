@@ -36,6 +36,7 @@
 #include <osmocom/gprs/gmm/gmm_prim.h>
 #include <osmocom/gprs/gmm/gmm.h>
 #include <osmocom/gprs/rlcmac/rlcmac_prim.h>
+#include <osmocom/gprs/sm/sm_prim.h>
 
 #include <osmocom/bb/common/settings.h>
 #include <osmocom/bb/common/logging.h>
@@ -54,6 +55,19 @@ static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_ATTACH, PRIM_OP_CONFIRM):
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_CONFIRM):
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_INDICATION):
+		default:
+			LOGP(DGMM, LOGL_ERROR, "%s(): Rx %s UNIMPLEMENTED\n", __func__, pdu_name);
+			break;
+		};
+		break;
+	case OSMO_GPRS_GMM_SAP_GMMSM:
+		switch (OSMO_PRIM_HDR(&gmm_prim->oph)) {
+		case OSMO_PRIM(OSMO_GPRS_GMM_GMMSM_ESTABLISH, PRIM_OP_CONFIRM):
+		case OSMO_PRIM(OSMO_GPRS_GMM_GMMSM_RELEASE,   PRIM_OP_INDICATION):
+		case OSMO_PRIM(OSMO_GPRS_GMM_GMMSM_UNITDATA,  PRIM_OP_INDICATION):
+			osmo_gprs_sm_prim_gmm_lower_up(gmm_prim);
+			rc = 1; /* Tell RLCMAC that we take ownership of the prim. */
+			break;
 		default:
 			LOGP(DGMM, LOGL_ERROR, "%s(): Rx %s UNIMPLEMENTED\n", __func__, pdu_name);
 			break;
