@@ -114,8 +114,8 @@ void layer3_app_reset(void)
 	memset(&app_data, 0x00, sizeof(app_data));
 }
 
-static int signal_cb(unsigned int subsys, unsigned int signal,
-		     void *handler_data, void *signal_data)
+static int global_signal_cb(unsigned int subsys, unsigned int signal,
+			    void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
 
@@ -151,11 +151,19 @@ static int _modem_start(void)
 	return 0;
 }
 
+/* global exit */
+static int _modem_exit(void)
+{
+	osmo_signal_unregister_handler(SS_GLOBAL, &global_signal_cb, NULL);
+	return 0;
+}
+
 int l23_app_init(void)
 {
 	int rc;
 
 	l23_app_start = _modem_start;
+	l23_app_exit = _modem_exit;
 
 	log_set_category_filter(osmo_stderr_target, DLGLOBAL, 1, LOGL_DEBUG);
 	log_set_category_filter(osmo_stderr_target, DLCSN1, 1, LOGL_DEBUG);
@@ -189,7 +197,7 @@ int l23_app_init(void)
 		return rc;
 	}
 
-	osmo_signal_register_handler(SS_L1CTL, &signal_cb, NULL);
+	osmo_signal_register_handler(SS_L1CTL, &global_signal_cb, NULL);
 	lapdm_channel_set_l3(&app_data.ms->lapdm_channel, &modem_grr_rslms_cb, app_data.ms);
 	return 0;
 }
