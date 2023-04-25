@@ -3,6 +3,7 @@
 
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/gsm/protocol/gsm_23_003.h>
 
 struct osmocom_ms;
 struct osmobb_apn;
@@ -77,14 +78,14 @@ struct gsm_settings {
 
 	/* SIM */
 	int			sim_type; /* selects card on power on */
-	char 			emergency_imsi[16];
+	char			emergency_imsi[OSMO_IMSI_BUF_SIZE];
 
 	/* SMS */
 	char			sms_sca[22];
 	bool			store_sms;
 
 	/* test card simulator settings */
-	char 			test_imsi[16];
+	char			test_imsi[OSMO_IMSI_BUF_SIZE];
 	uint32_t		test_tmsi;
 	uint8_t			test_ki_type;
 	uint8_t			test_ki[16]; /* 128 bit max */

@@ -1,6 +1,8 @@
 #ifndef _SUBSCRIBER_H
 #define _SUBSCRIBER_H
 
+#include <osmocom/gsm/protocol/gsm_23_003.h>
+
 /* GSM 04.08 4.1.2.2 SIM update status */
 #define GSM_SIM_U0_NULL		0
 #define GSM_SIM_U1_UPDATED	1
@@ -17,8 +19,6 @@ struct gsm_sub_plmn_na {
 	uint16_t		mcc, mnc;
 	uint8_t			cause;
 };
-
-#define GSM_IMSI_LENGTH		16
 
 #define GSM_SIM_IS_READER(type) \
 	(type == GSM_SIM_TYPE_L1PHY || type == GSM_SIM_TYPE_SAP)
@@ -40,7 +40,7 @@ struct gsm_subscriber {
 	uint8_t			imsi_attached; /* attached state */
 
 	/* IMSI & co */
-	char 			imsi[GSM_IMSI_LENGTH];
+	char			imsi[OSMO_IMSI_BUF_SIZE];
 	char 			msisdn[31]; /* may include access codes */
 	char 			iccid[21]; /* 20 + termination */
 

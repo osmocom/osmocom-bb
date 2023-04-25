@@ -229,7 +229,7 @@ static int subscr_sim_imsi(struct osmocom_ms *ms, uint8_t *data,
 
 	/* decode IMSI, skip first digit (parity) */
 	imsi = sim_decode_bcd(data + 1, length);
-	if (strlen(imsi) - 1 > GSM_IMSI_LENGTH - 1 || strlen(imsi) - 1 < 6) {
+	if (strlen(imsi) >= OSMO_IMSI_BUF_SIZE  || strlen(imsi) - 1 < 6) {
 		LOGP(DMM, LOGL_NOTICE, "IMSI invalid length = %zu\n",
 			strlen(imsi) - 1);
 		return -EINVAL;
