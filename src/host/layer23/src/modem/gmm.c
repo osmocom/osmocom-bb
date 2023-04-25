@@ -147,8 +147,8 @@ int modem_gmm_gmmreg_attach_req(const struct osmocom_ms *ms)
 
 	gmm_prim = osmo_gprs_gmm_prim_alloc_gmmreg_attach_req();
 	gmm_prim->gmmreg.attach_req.attach_type = OSMO_GPRS_GMM_ATTACH_TYPE_GPRS;
-	gmm_prim->gmmreg.attach_req.ptmsi = subscr->tmsi;
-	gmm_prim->gmmreg.attach_req.attach_with_imsi = (subscr->tmsi == GSM_RESERVED_TMSI);
+	gmm_prim->gmmreg.attach_req.ptmsi = subscr->ptmsi;
+	gmm_prim->gmmreg.attach_req.attach_with_imsi = (subscr->ptmsi == GSM_RESERVED_TMSI);
 	memcpy(gmm_prim->gmmreg.attach_req.imsi, subscr->imsi, ARRAY_SIZE(subscr->imsi));
 	memcpy(gmm_prim->gmmreg.attach_req.imei, ms->settings.imei, ARRAY_SIZE(ms->settings.imei));
 	memcpy(gmm_prim->gmmreg.attach_req.imeisv, ms->settings.imeisv, ARRAY_SIZE(ms->settings.imeisv));
@@ -165,7 +165,7 @@ int modem_gmm_gmmreg_detach_req(const struct osmocom_ms *ms)
 	int rc;
 
 	gmm_prim = osmo_gprs_gmm_prim_alloc_gmmreg_detach_req();
-	gmm_prim->gmmreg.detach_req.ptmsi = subscr->tmsi;
+	gmm_prim->gmmreg.detach_req.ptmsi = subscr->ptmsi;
 	gmm_prim->gmmreg.detach_req.detach_type = OSMO_GPRS_GMM_DETACH_MS_TYPE_GPRS;
 	gmm_prim->gmmreg.detach_req.poweroff_type = OSMO_GPRS_GMM_DETACH_POWEROFF_TYPE_NORMAL;
 	rc = osmo_gprs_gmm_prim_upper_down(gmm_prim);

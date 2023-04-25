@@ -46,6 +46,7 @@ struct gsm_subscriber {
 
 	/* TMSI / LAI */
 	uint32_t		tmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
+	uint32_t		ptmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
 	uint16_t		mcc, mnc, lac; /* invalid lac: 0x0000 */
 
 

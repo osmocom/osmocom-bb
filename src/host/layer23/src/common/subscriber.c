@@ -79,6 +79,7 @@ int gsm_subscr_init(struct osmocom_ms *ms)
 
 	/* set TMSI / LAC invalid */
 	subscr->tmsi = GSM_RESERVED_TMSI;
+	subscr->ptmsi = GSM_RESERVED_TMSI;
 	subscr->lac = 0x0000;
 
 	/* set key invalid */
@@ -173,6 +174,7 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	subscr->mnc = mnc;
 	subscr->lac = lac;
 	subscr->tmsi = tmsi;
+	subscr->ptmsi = GSM_RESERVED_TMSI;
 	subscr->always_search_hplmn = set->test_always;
 	subscr->t6m_hplmn = 1; /* try to find home network every 6 min */
 	strcpy(subscr->imsi, set->test_imsi);
@@ -1155,6 +1157,8 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		(subscr->imsi_attached) ? "attached" : "detached");
 	if (subscr->tmsi != GSM_RESERVED_TMSI)
 		print(priv, "  TMSI 0x%08x", subscr->tmsi);
+	if (subscr->ptmsi != GSM_RESERVED_TMSI)
+		print(priv, "  P-TMSI 0x%08x", subscr->ptmsi);
 	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
 		print(priv, "\n");
 		print(priv, "         LAI: MCC %s  MNC %s  LAC 0x%04x  "

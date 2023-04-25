@@ -251,7 +251,7 @@ int modem_sm_smreg_pdp_act_req(const struct osmocom_ms *ms, const struct osmobb_
 	memcpy(sm_prim->smreg.pdp_act_req.pco, pco, sizeof(pco));
 	sm_prim->smreg.pdp_act_req.pco_len = 1;
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.apn, apn->cfg.name);
-	sm_prim->smreg.pdp_act_req.gmm.ptmsi = subscr->tmsi;
+	sm_prim->smreg.pdp_act_req.gmm.ptmsi = subscr->ptmsi;
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imsi, subscr->imsi);
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imei, ms->settings.imei);
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imeisv, ms->settings.imeisv);
