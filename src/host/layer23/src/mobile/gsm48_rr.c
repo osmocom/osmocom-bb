@@ -3309,7 +3309,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		pr->cm2_len = sizeof(pr->cm2);
 		gsm48_rr_enc_cm2(ms, &pr->cm2, rr->cd_now.arfcn);
 		/* mobile identity */
-		if (ms->subscr.tmsi != 0xffffffff
+		if (ms->subscr.tmsi != GSM_RESERVED_TMSI
 		 && ms->subscr.mcc == cs->sel_mcc
 		 && ms->subscr.mnc == cs->sel_mnc
 		 && ms->subscr.lac == cs->sel_lac

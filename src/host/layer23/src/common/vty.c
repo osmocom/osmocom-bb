@@ -635,7 +635,7 @@ static int _test_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
 	if (argc >= 4)
 		set->test_tmsi = strtoul(argv[3], NULL, 16);
 	else
-		set->test_tmsi = 0xffffffff;
+		set->test_tmsi = GSM_RESERVED_TMSI;
 
 	if (attached)
 		set->test_imsi_attached = 1;
@@ -763,7 +763,7 @@ static int l23_vty_config_write_testsim_node(struct vty *vty, const struct osmoc
 			gsm_print_mnc(set->test_rplmn_mnc));
 		if (set->test_lac > 0x0000 && set->test_lac < 0xfffe) {
 			vty_out(vty, " 0x%04x", set->test_lac);
-			if (set->test_tmsi != 0xffffffff) {
+			if (set->test_tmsi != GSM_RESERVED_TMSI) {
 				vty_out(vty, " 0x%08x", set->test_tmsi);
 				if (set->test_imsi_attached)
 					vty_out(vty, " attached");

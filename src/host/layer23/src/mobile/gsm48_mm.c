@@ -1601,12 +1601,12 @@ static int gsm48_mm_rx_tmsi_realloc_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		gsm48_mm_tx_tmsi_reall_cpl(ms);
 		break;
 	case GSM_MI_TYPE_IMSI:
-		subscr->tmsi = 0xffffffff;
+		subscr->tmsi = GSM_RESERVED_TMSI;
 		LOGP(DMM, LOGL_INFO, "TMSI removed.\n");
 		gsm48_mm_tx_tmsi_reall_cpl(ms);
 		break;
 	default:
-		subscr->tmsi = 0xffffffff;
+		subscr->tmsi = GSM_RESERVED_TMSI;
 		LOGP(DMM, LOGL_NOTICE, "TMSI reallocation with unknown MI "
 			"type %d.\n", mi_type);
 		gsm48_mm_tx_mm_status(ms, GSM48_REJECT_INCORRECT_MESSAGE);
@@ -1698,7 +1698,7 @@ static int gsm48_mm_rx_auth_rej(struct osmocom_ms *ms, struct msgb *msg)
 	subscr->sim_valid = 0;
 
 	/* TMSI and LAI invalid */
-	subscr->tmsi = 0xffffffff;
+	subscr->tmsi = GSM_RESERVED_TMSI;
 	subscr->lac = 0x0000;
 
 	/* key is invalid */
@@ -1755,7 +1755,7 @@ static int gsm48_mm_rx_id_req(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_mm_tx_mm_status(ms,
 			GSM48_REJECT_MSG_NOT_COMPATIBLE);
 	}
-	if (mi_type == GSM_MI_TYPE_TMSI && subscr->tmsi == 0xffffffff) {
+	if (mi_type == GSM_MI_TYPE_TMSI && subscr->tmsi == GSM_RESERVED_TMSI) {
 		LOGP(DMM, LOGL_INFO, "IDENTITY REQUEST of TMSI, but we have no "
 			"TMSI\n");
 		return gsm48_mm_tx_mm_status(ms,
@@ -1824,7 +1824,7 @@ static int gsm48_mm_tx_imsi_detach(struct osmocom_ms *ms, int rr_prim)
 		pwr_lev);
         msgb_v_put(nmsg, *((uint8_t *)&cm));
 	/* MI */
-	if (subscr->tmsi != 0xffffffff) { /* have TMSI ? */
+	if (subscr->tmsi != GSM_RESERVED_TMSI) { /* have TMSI ? */
 		gsm48_encode_mi(buf, nmsg, ms, GSM_MI_TYPE_TMSI);
 		LOGP(DMM, LOGL_INFO, " using TMSI 0x%08x\n", subscr->tmsi);
 	} else {
@@ -2017,7 +2017,7 @@ static int gsm48_mm_rx_abort(struct osmocom_ms *ms, struct msgb *msg)
 		subscr->sim_valid = 0;
 
 		/* TMSI and LAI invalid */
-		subscr->tmsi = 0xffffffff;
+		subscr->tmsi = GSM_RESERVED_TMSI;
 		subscr->lac = 0x0000;
 
 		/* key is invalid */
@@ -2366,7 +2366,7 @@ static int gsm48_mm_tx_loc_upd_req(struct osmocom_ms *ms)
 	gsm48_encode_classmark1(&nlu->classmark1, sup->rev_lev, sup->es_ind,
 		set->a5_1, pwr_lev);
 	/* MI */
-	if (subscr->tmsi != 0xffffffff) { /* have TMSI ? */
+	if (subscr->tmsi != GSM_RESERVED_TMSI) { /* have TMSI ? */
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 		LOGP(DMM, LOGL_INFO, " using TMSI 0x%08x\n", subscr->tmsi);
 	} else {
@@ -2487,7 +2487,7 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 			break;
 		case GSM_MI_TYPE_IMSI:
 			LOGP(DMM, LOGL_INFO, "TMSI removed\n");
-			subscr->tmsi = 0xffffffff;
+			subscr->tmsi = GSM_RESERVED_TMSI;
 
 			/* store LOCI on sim */
 			gsm_subscr_write_loci(ms);
@@ -2582,7 +2582,7 @@ static int gsm48_mm_rel_loc_upd_rej(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_REJECT_LOC_NOT_ALLOWED:
 	case GSM48_REJECT_ROAMING_NOT_ALLOWED:
 		/* TMSI and LAI invalid */
-		subscr->tmsi = 0xffffffff;
+		subscr->tmsi = GSM_RESERVED_TMSI;
 		subscr->lac = 0x0000;
 
 		/* key is invalid */
@@ -2705,7 +2705,7 @@ static int gsm48_mm_loc_upd_failed(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* TMSI and LAI invalid */
-	subscr->tmsi = 0xffffffff;
+	subscr->tmsi = GSM_RESERVED_TMSI;
 	subscr->lac = 0x0000;
 
 	/* key is invalid */
@@ -2831,7 +2831,7 @@ static int gsm48_mm_tx_cm_serv_req(struct osmocom_ms *ms, int rr_prim,
 			set->imei);
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_IMEI);
 	} else
-	if (subscr->tmsi != 0xffffffff) { /* have TMSI ? */
+	if (subscr->tmsi != GSM_RESERVED_TMSI) { /* have TMSI ? */
 		gsm48_encode_mi(buf, NULL, ms, GSM_MI_TYPE_TMSI);
 		LOGP(DMM, LOGL_INFO, "-> Using TMSI\n");
 	} else {
@@ -2913,7 +2913,7 @@ static int gsm48_mm_rx_cm_service_rej(struct osmocom_ms *ms, struct msgb *msg)
 		abort_any = 1;
 
 		/* TMSI and LAI invalid */
-		subscr->tmsi = 0xffffffff;
+		subscr->tmsi = GSM_RESERVED_TMSI;
 		subscr->lac = 0x0000;
 
 		/* key is invalid */

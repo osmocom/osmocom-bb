@@ -45,7 +45,7 @@ struct gsm_subscriber {
 	char 			iccid[21]; /* 20 + termination */
 
 	/* TMSI / LAI */
-	uint32_t		tmsi; /* invalid tmsi: 0xffffffff */
+	uint32_t		tmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
 	uint16_t		mcc, mnc, lac; /* invalid lac: 0x0000 */
 
 

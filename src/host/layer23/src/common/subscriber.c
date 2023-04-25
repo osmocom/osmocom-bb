@@ -22,6 +22,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/crypt/auth.h>
 #include <osmocom/gsm/gsm23003.h>
+#include <osmocom/gsm/gsm48.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
@@ -77,7 +78,7 @@ int gsm_subscr_init(struct osmocom_ms *ms)
 	subscr->ms = ms;
 
 	/* set TMSI / LAC invalid */
-	subscr->tmsi = 0xffffffff;
+	subscr->tmsi = GSM_RESERVED_TMSI;
 	subscr->lac = 0x0000;
 
 	/* set key invalid */
@@ -1152,7 +1153,7 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 			subscr->sms_sca);
 	print(priv, " Status: %s  IMSI %s", subscr_ustate_names[subscr->ustate],
 		(subscr->imsi_attached) ? "attached" : "detached");
-	if (subscr->tmsi != 0xffffffff)
+	if (subscr->tmsi != GSM_RESERVED_TMSI)
 		print(priv, "  TMSI 0x%08x", subscr->tmsi);
 	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
 		print(priv, "\n");

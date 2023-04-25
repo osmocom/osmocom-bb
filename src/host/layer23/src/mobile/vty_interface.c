@@ -438,7 +438,7 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 
 	/* Initial testcard settings */
 	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
-	uint32_t tmsi = 0xffffffff;
+	uint32_t tmsi = GSM_RESERVED_TMSI;
 
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
@@ -458,7 +458,7 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 		if (set->test_lac > 0x0000 && set->test_lac < 0xfffe)
 			lac = set->test_lac;
 
-		if (set->test_tmsi != 0xffffffff)
+		if (set->test_tmsi != GSM_RESERVED_TMSI)
 			tmsi = set->test_tmsi;
 	}
 
@@ -719,7 +719,7 @@ DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 	ms->subscr.mcc = mcc;
 	ms->subscr.mnc = mnc;
 	ms->subscr.lac = lac;
-	ms->subscr.tmsi = 0xffffffff;
+	ms->subscr.tmsi = GSM_RESERVED_TMSI;
 
 	gsm_subscr_write_loci(ms);
 
