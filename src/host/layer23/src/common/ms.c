@@ -27,6 +27,8 @@ uint16_t cfg_test_arfcn = 871;
 static int osmocom_ms_talloc_destructor(struct osmocom_ms *ms)
 {
 	gprs_settings_fi(ms);
+	gsm_subscr_exit(ms);
+	gsm_sim_exit(ms);
 	return 0;
 }
 
@@ -58,6 +60,8 @@ struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 	gsm_support_init(ms);
 	gsm_settings_init(ms);
 	gprs_settings_init(ms);
+	gsm_sim_init(ms);
+	gsm_subscr_init(ms);
 
 	return ms;
 }
