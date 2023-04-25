@@ -69,8 +69,8 @@ struct gsm_settings {
 	struct audio_settings	audio;
 
 	/* IMEI */
-	char			imei[16];
-	char			imeisv[17];
+	char			imei[GSM23003_IMEI_NUM_DIGITS + 1];
+	char			imeisv[GSM23003_IMEISV_NUM_DIGITS + 1];
 	char			imei_random;
 
 	/* network search */
