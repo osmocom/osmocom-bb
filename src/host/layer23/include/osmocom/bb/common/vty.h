@@ -23,7 +23,8 @@ void l23_vty_config_write_ms_node(struct vty *vty, const struct osmocom_ms *ms, 
 void l23_vty_config_write_ms_node_contents(struct vty *vty, const struct osmocom_ms *ms, const char *prefix);
 void l23_vty_config_write_ms_node_contents_final(struct vty *vty, const struct osmocom_ms *ms, const char *prefix);
 
-extern void l23_vty_ms_notify(struct osmocom_ms *ms, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+void l23_vty_ms_notify(struct osmocom_ms *ms, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+void l23_vty_printf(void *priv, const char *fmt, ...);
 
 extern bool l23_vty_reading;
 extern bool l23_vty_hide_default;

@@ -130,6 +130,26 @@ void l23_vty_ms_notify(struct osmocom_ms *ms, const char *fmt, ...)
 	}
 }
 
+void l23_vty_printf(void *priv, const char *fmt, ...)
+{
+	char buffer[1000];
+	struct vty *vty = priv;
+	va_list args;
+
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer) - 1, fmt, args);
+	buffer[sizeof(buffer) - 1] = '\0';
+	va_end(args);
+
+	if (buffer[0]) {
+		if (buffer[strlen(buffer) - 1] == '\n') {
+			buffer[strlen(buffer) - 1] = '\0';
+			vty_out(vty, "%s%s", buffer, VTY_NEWLINE);
+		} else
+			vty_out(vty, "%s", buffer);
+	}
+}
+
 /* placeholder for layer23 shared MS info to be dumped */
 void l23_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 {
@@ -184,6 +204,50 @@ DEFUN(cfg_no_hide_default, cfg_no_hide_default_cmd, "no hide-default",
 	NO_STR "Show default values in config")
 {
 	l23_vty_hide_default = 0;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_support, show_support_cmd, "show support [MS_NAME]",
+	SHOW_STR "Display information about MS support\n"
+	"Name of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	if (argc) {
+		ms = l23_vty_get_ms(argv[0], vty);
+		if (!ms)
+			return CMD_WARNING;
+		gsm_support_dump(ms, l23_vty_printf, vty);
+	} else {
+		llist_for_each_entry(ms, &ms_list, entity) {
+			gsm_support_dump(ms, l23_vty_printf, vty);
+			vty_out(vty, "%s", VTY_NEWLINE);
+		}
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_subscr, show_subscr_cmd, "show subscriber [MS_NAME]",
+	SHOW_STR "Display information about subscriber\n"
+	"Name of MS (see \"show ms\")")
+{
+	struct osmocom_ms *ms;
+
+	if (argc) {
+		ms = l23_vty_get_ms(argv[0], vty);
+		if (!ms)
+			return CMD_WARNING;
+		gsm_subscr_dump(&ms->subscr, l23_vty_printf, vty);
+	} else {
+		llist_for_each_entry(ms, &ms_list, entity) {
+			if (ms->shutdown == MS_SHUTDOWN_NONE) {
+				gsm_subscr_dump(&ms->subscr, l23_vty_printf, vty);
+				vty_out(vty, "%s", VTY_NEWLINE);
+			}
+		}
+	}
 
 	return CMD_SUCCESS;
 }
@@ -867,6 +931,9 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 
 	if (l23_app_info.opt_supported & L23_OPT_VTY)
 		osmo_stats_vty_add_cmds();
+
+	install_element_ve(&show_subscr_cmd);
+	install_element_ve(&show_support_cmd);
 
 	install_element(CONFIG_NODE, &cfg_hide_default_cmd);
 	install_element(CONFIG_NODE, &cfg_no_hide_default_cmd);

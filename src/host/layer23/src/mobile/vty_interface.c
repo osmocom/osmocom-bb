@@ -54,26 +54,6 @@ struct cmd_node audio_node = {
 	1
 };
 
-static void print_vty(void *priv, const char *fmt, ...)
-{
-	char buffer[1000];
-	struct vty *vty = priv;
-	va_list args;
-
-	va_start(args, fmt);
-	vsnprintf(buffer, sizeof(buffer) - 1, fmt, args);
-	buffer[sizeof(buffer) - 1] = '\0';
-	va_end(args);
-
-	if (buffer[0]) {
-		if (buffer[strlen(buffer) - 1] == '\n') {
-			buffer[strlen(buffer) - 1] = '\0';
-			vty_out(vty, "%s%s", buffer, VTY_NEWLINE);
-		} else
-			vty_out(vty, "%s", buffer);
-	}
-}
-
 int vty_check_number(struct vty *vty, const char *number)
 {
 	int i;
@@ -231,50 +211,6 @@ DEFUN(show_ms, show_ms_cmd, "show ms [MS_NAME]",
 	return CMD_SUCCESS;
 }
 
-DEFUN(show_support, show_support_cmd, "show support [MS_NAME]",
-	SHOW_STR "Display information about MS support\n"
-	"Name of MS (see \"show ms\")")
-{
-	struct osmocom_ms *ms;
-
-	if (argc) {
-		ms = l23_vty_get_ms(argv[0], vty);
-		if (!ms)
-			return CMD_WARNING;
-		gsm_support_dump(ms, print_vty, vty);
-	} else {
-		llist_for_each_entry(ms, &ms_list, entity) {
-			gsm_support_dump(ms, print_vty, vty);
-			vty_out(vty, "%s", VTY_NEWLINE);
-		}
-	}
-
-	return CMD_SUCCESS;
-}
-
-DEFUN(show_subscr, show_subscr_cmd, "show subscriber [MS_NAME]",
-	SHOW_STR "Display information about subscriber\n"
-	"Name of MS (see \"show ms\")")
-{
-	struct osmocom_ms *ms;
-
-	if (argc) {
-		ms = l23_vty_get_ms(argv[0], vty);
-		if (!ms)
-			return CMD_WARNING;
-		gsm_subscr_dump(&ms->subscr, print_vty, vty);
-	} else {
-		llist_for_each_entry(ms, &ms_list, entity) {
-			if (ms->shutdown == MS_SHUTDOWN_NONE) {
-				gsm_subscr_dump(&ms->subscr, print_vty, vty);
-				vty_out(vty, "%s", VTY_NEWLINE);
-			}
-		}
-	}
-
-	return CMD_SUCCESS;
-}
-
 DEFUN(show_cell, show_cell_cmd, "show cell MS_NAME",
 	SHOW_STR "Display information about received cells\n"
 	"Name of MS (see \"show ms\")")
@@ -285,7 +221,7 @@ DEFUN(show_cell, show_cell_cmd, "show cell MS_NAME",
 	if (!ms)
 		return CMD_WARNING;
 
-	gsm322_dump_cs_list(&ms->cellsel, GSM322_CS_FLAG_SUPPORT, print_vty,
+	gsm322_dump_cs_list(&ms->cellsel, GSM322_CS_FLAG_SUPPORT, l23_vty_printf,
 		vty);
 
 	return CMD_SUCCESS;
@@ -320,7 +256,7 @@ DEFUN(show_cell_si, show_cell_si_cmd, "show cell MS_NAME <0-1023> [pcs]",
 		return CMD_SUCCESS;
 	}
 
-	gsm48_sysinfo_dump(s, arfcn, print_vty, vty, ms->settings.freq_map);
+	gsm48_sysinfo_dump(s, arfcn, l23_vty_printf, vty, ms->settings.freq_map);
 
 	return CMD_SUCCESS;
 }
@@ -335,7 +271,7 @@ DEFUN(show_nbcells, show_nbcells_cmd, "show neighbour-cells MS_NAME",
 	if (!ms)
 		return CMD_WARNING;
 
-	gsm322_dump_nb_list(&ms->cellsel, print_vty, vty);
+	gsm322_dump_nb_list(&ms->cellsel, l23_vty_printf, vty);
 
 	return CMD_SUCCESS;
 }
@@ -365,7 +301,7 @@ DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [MCC] [MNC]",
 		}
 	}
 
-	gsm322_dump_ba_list(&ms->cellsel, mcc, mnc, print_vty, vty);
+	gsm322_dump_ba_list(&ms->cellsel, mcc, mnc, l23_vty_printf, vty);
 
 	return CMD_SUCCESS;
 }
@@ -380,7 +316,7 @@ DEFUN(show_forb_plmn, show_forb_plmn_cmd, "show forbidden plmn MS_NAME",
 	if (!ms)
 		return CMD_WARNING;
 
-	gsm_subscr_dump_forbidden_plmn(ms, print_vty, vty);
+	gsm_subscr_dump_forbidden_plmn(ms, l23_vty_printf, vty);
 
 	return CMD_SUCCESS;
 }
@@ -395,7 +331,7 @@ DEFUN(show_forb_la, show_forb_la_cmd, "show forbidden location-area MS_NAME",
 	if (!ms)
 		return CMD_WARNING;
 
-	gsm322_dump_forbidden_la(ms, print_vty, vty);
+	gsm322_dump_forbidden_la(ms, l23_vty_printf, vty);
 
 	return CMD_SUCCESS;
 }
@@ -2713,8 +2649,6 @@ int ms_vty_init(void)
 		return rc;
 
 	install_element_ve(&show_ms_cmd);
-	install_element_ve(&show_subscr_cmd);
-	install_element_ve(&show_support_cmd);
 	install_element_ve(&show_cell_cmd);
 	install_element_ve(&show_cell_si_cmd);
 	install_element_ve(&show_nbcells_cmd);
