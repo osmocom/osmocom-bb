@@ -91,6 +91,49 @@ int mobile_work(struct osmocom_ms *ms)
 	return work;
 }
 
+/* SIM becomes ATTACHED/DETACHED, or answers a request */
+int mobile_l23_subscr_signal_cb(unsigned int subsys, unsigned int signal,
+		     void *handler_data, void *signal_data)
+{
+	struct msgb *nmsg;
+	struct gsm48_mm_event *nmme;
+	struct osmocom_ms *ms;
+	struct osmobb_l23_subscr_sim_auth_resp_sig_data *sim_auth_resp;
+
+	OSMO_ASSERT(subsys == SS_L23_SUBSCR);
+
+	switch (signal) {
+	case S_L23_SUBSCR_SIM_ATTACHED:
+		ms = signal_data;
+		nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_REG_REQ);
+		if (!nmsg)
+			return -ENOMEM;
+		gsm48_mmr_downmsg(ms, nmsg);
+		break;
+	case S_L23_SUBSCR_SIM_DETACHED:
+		ms = signal_data;
+		nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_NREG_REQ);
+		if (!nmsg)
+			return 0;
+		gsm48_mmr_downmsg(ms, nmsg);
+		break;
+	case S_L23_SUBSCR_SIM_AUTH_RESP:
+		sim_auth_resp = signal_data;
+		ms = sim_auth_resp->ms;
+		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
+		if (!nmsg)
+			return 0;
+		nmme = (struct gsm48_mm_event *) nmsg->data;
+		memcpy(nmme->sres, sim_auth_resp->sres, 4);
+		gsm48_mmevent_msg(ms, nmsg);
+		break;
+	default:
+		OSMO_ASSERT(0);
+	}
+
+	return 0;
+}
+
 /* run ms instance, if layer1 is available */
 int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 		     void *handler_data, void *signal_data)
@@ -431,6 +474,7 @@ int _mobile_app_work(void)
 /* global exit */
 int _mobile_app_exit(void)
 {
+	osmo_signal_unregister_handler(SS_L23_SUBSCR, &mobile_l23_subscr_signal_cb, NULL);
 	osmo_signal_unregister_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
 	osmo_signal_unregister_handler(SS_L1CTL, &mobile_signal_cb, NULL);
 	osmo_signal_unregister_handler(SS_GLOBAL, &global_signal_cb, NULL);
@@ -481,6 +525,7 @@ int l23_app_init(void)
 	osmo_signal_register_handler(SS_GLOBAL, &global_signal_cb, NULL);
 	osmo_signal_register_handler(SS_L1CTL, &mobile_signal_cb, NULL);
 	osmo_signal_register_handler(SS_L1CTL, &gsm322_l1_signal, NULL);
+	osmo_signal_register_handler(SS_L23_SUBSCR, &mobile_l23_subscr_signal_cb, NULL);
 
 	return 0;
 }

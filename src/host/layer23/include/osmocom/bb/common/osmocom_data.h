@@ -11,6 +11,7 @@ enum osmobb_sig_subsys {
 	SS_L1CTL,
 	SS_GLOBAL,
 	SS_L23_VTY,
+	SS_L23_SUBSCR,
 };
 
 enum osmobb_l1ctl_sig {
@@ -34,6 +35,12 @@ enum osmobb_l23_vty_sig {
 	S_L23_VTY_MS_STOP,
 };
 
+enum osmobb_l23_subscriber {
+	S_L23_SUBSCR_SIM_ATTACHED,
+	S_L23_SUBSCR_SIM_DETACHED,
+	S_L23_SUBSCR_SIM_AUTH_RESP,
+};
+
 struct osmobb_l23_vty_sig_data {
 	struct vty *vty;
 	union {
@@ -47,6 +54,11 @@ struct osmobb_l23_vty_sig_data {
 			int rc; /* CMD_SUCCESS/CMD_WARNING */
 		} ms_stop;
 	};
+};
+
+struct osmobb_l23_subscr_sim_auth_resp_sig_data {
+	struct osmocom_ms *ms;
+	uint8_t	sres[4];
 };
 
 struct osmobb_fbsb_res {

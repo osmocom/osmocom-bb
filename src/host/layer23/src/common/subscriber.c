@@ -139,7 +139,6 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
-	struct msgb *nmsg;
 
 	if (subscr->sim_valid) {
 		LOGP(DMM, LOGL_ERROR, "Cannot insert card, until current card "
@@ -192,11 +191,7 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 		LOGP(DMM, LOGL_INFO, "-> Test card attached\n");
 
 	/* insert card */
-	nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_REG_REQ);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmr_downmsg(ms, nmsg);
-
+	osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_ATTACHED, ms);
 	return 0;
 }
 
@@ -556,11 +551,7 @@ static int subscr_sim_request(struct osmocom_ms *ms)
 			LOGP(DMM, LOGL_INFO, "-> SIM card not registered\n");
 
 		/* insert card */
-		nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_REG_REQ);
-		if (!nmsg)
-			return -ENOMEM;
-		gsm48_mmr_downmsg(ms, nmsg);
-
+		osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_ATTACHED, ms);
 		return 0;
 	}
 
@@ -593,7 +584,6 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 	uint16_t payload_len = msg->len - sizeof(*sh);
 	int rc;
 	struct subscr_sim_file *sf = &subscr_sim_files[subscr->sim_file_index];
-	struct msgb *nmsg;
 
 	/* error handling */
 	if (sh->job_type == SIM_JOB_ERROR) {
@@ -642,10 +632,7 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 
 			/* detach simcard */
 			subscr->sim_valid = 0;
-			nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_NREG_REQ);
-			if (!nmsg)
-				return;
-			gsm48_mmr_downmsg(ms, nmsg);
+			osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_DETACHED, ms);
 		}
 		msgb_free(msg);
 
@@ -888,29 +875,23 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 	struct sim_hdr *nsh;
+	struct osmobb_l23_subscr_sim_auth_resp_sig_data sd;
 
 	/* not a SIM */
 	if ((subscr->sim_type != GSM_SIM_TYPE_TEST && !GSM_SIM_IS_READER(subscr->sim_type))
 	 || !subscr->sim_valid || no_sim) {
-		struct gsm48_mm_event *nmme;
-
 		LOGP(DMM, LOGL_INFO, "Sending dummy authentication response\n");
-		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
-		if (!nmsg)
-			return -ENOMEM;
-		nmme = (struct gsm48_mm_event *) nmsg->data;
-		nmme->sres[0] = 0x12;
-		nmme->sres[1] = 0x34;
-		nmme->sres[2] = 0x56;
-		nmme->sres[3] = 0x78;
-		gsm48_mmevent_msg(ms, nmsg);
-
+		sd.ms = ms;
+		sd.sres[0] = 0x12;
+		sd.sres[1] = 0x34;
+		sd.sres[2] = 0x56;
+		sd.sres[3] = 0x78;
+		osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_AUTH_RESP, &sd);
 		return 0;
 	}
 
 	/* test SIM */
 	if (subscr->sim_type == GSM_SIM_TYPE_TEST) {
-		struct gsm48_mm_event *nmme;
 		struct gsm_settings *set = &ms->settings;
 		static struct osmo_sub_auth_data auth = {
 			.type = OSMO_AUTH_TYPE_GSM
@@ -929,12 +910,9 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 		memcpy(subscr->key, vec->kc, 8);
 
 		LOGP(DMM, LOGL_INFO, "Sending authentication response\n");
-		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
-		if (!nmsg)
-			return -ENOMEM;
-		nmme = (struct gsm48_mm_event *) nmsg->data;
-		memcpy(nmme->sres, vec->sres, 4);
-		gsm48_mmevent_msg(ms, nmsg);
+		sd.ms = ms;
+		memcpy(sd.sres, vec->sres, 4);
+		osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_AUTH_RESP, &sd);
 
 		return 0;
 	}
@@ -968,8 +946,8 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg)
 	uint16_t payload_len = msg->len - sizeof(*sh);
 	struct msgb *nmsg;
 	struct sim_hdr *nsh;
-	struct gsm48_mm_event *nmme;
 	uint8_t *data;
+	struct osmobb_l23_subscr_sim_auth_resp_sig_data sd;
 
 	/* error handling */
 	if (sh->job_type == SIM_JOB_ERROR) {
@@ -1005,13 +983,9 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg)
 	sim_job(ms, nmsg);
 
 	/* return signed response */
-	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_AUTH_RESPONSE);
-	if (!nmsg)
-		return;
-	nmme = (struct gsm48_mm_event *) nmsg->data;
-	memcpy(nmme->sres, payload, 4);
-	gsm48_mmevent_msg(ms, nmsg);
-
+	sd.ms = ms;
+	memcpy(sd.sres, payload, 4);
+	osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_AUTH_RESP, &sd);
 	msgb_free(msg);
 }
 
@@ -1023,7 +997,6 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg)
 int gsm_subscr_remove(struct osmocom_ms *ms)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
-	struct msgb *nmsg;
 
 	if (!subscr->sim_valid) {
 		LOGP(DMM, LOGL_ERROR, "Cannot remove card, no card present\n");
@@ -1031,10 +1004,7 @@ int gsm_subscr_remove(struct osmocom_ms *ms)
 	}
 
 	/* remove card */
-	nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_NREG_REQ);
-	if (!nmsg)
-		return -ENOMEM;
-	gsm48_mmr_downmsg(ms, nmsg);
+	osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_DETACHED, ms);
 
 	return 0;
 }
@@ -1245,7 +1215,6 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 int gsm_subscr_sapcard(struct osmocom_ms *ms)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
-	struct msgb *nmsg;
 	int rc;
 
 	if (subscr->sim_valid) {
@@ -1273,10 +1242,7 @@ int gsm_subscr_sapcard(struct osmocom_ms *ms)
 
 		/* Detach SIM */
 		subscr->sim_valid = 0;
-		nmsg = gsm48_mmr_msgb_alloc(GSM48_MMR_NREG_REQ);
-		if (!nmsg)
-			return -ENOMEM;
-		gsm48_mmr_downmsg(ms, nmsg);
+		osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_DETACHED, ms);
 
 		return rc;
 	}
