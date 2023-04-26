@@ -110,7 +110,6 @@ static int handle_prim_data_cnf(struct trxcon_inst *trxcon, struct msgb *msg)
 				   0, 0, true);
 	}
 
-	/* XXX: do not send for L1SCHED_DT_PACKET_DATA */
 	return osmo_fsm_inst_dispatch(trxcon->fi, TRXCON_EV_TX_DATA_CNF, &cnf);
 }
 

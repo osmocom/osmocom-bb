@@ -614,6 +614,8 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 		l1sched_reset(trxcon->sched, false);
 		/* TODO: switch to (not implemented) TRXCON_ST_DCH_TUNING? */
 		break;
+	case TRXCON_EV_TX_DATA_CNF:
+		break;
 	default:
 		OSMO_ASSERT(0);
 	}
@@ -711,7 +713,8 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 				| S(TRXCON_EV_GPRS_UL_TBF_CFG_REQ)
 				| S(TRXCON_EV_GPRS_DL_TBF_CFG_REQ)
 				| S(TRXCON_EV_GPRS_UL_BLOCK_REQ)
-				| S(TRXCON_EV_RX_DATA_IND),
+				| S(TRXCON_EV_RX_DATA_IND)
+				| S(TRXCON_EV_TX_DATA_CNF),
 		.onenter = &trxcon_st_packet_data_onenter,
 		.onleave = &trxcon_st_packet_data_onleave,
 		.action = &trxcon_st_packet_data_action,
