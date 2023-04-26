@@ -52,7 +52,6 @@ void l1ctl_rx_gprs_ul_block_req(struct l1_model_ms *ms, struct msgb *msg)
 {
 	const struct l1ctl_hdr *l1h = (struct l1ctl_hdr *)msg->data;
 	struct l1gprs_prim_ul_block_req req;
-	uint32_t fn_sched;
 
 	if (OSMO_UNLIKELY(ms->gprs == NULL)) {
 		LOGPMS(DL1P, LOGL_ERROR, ms, "l1gprs is not initialized\n");
@@ -67,16 +66,7 @@ void l1ctl_rx_gprs_ul_block_req(struct l1_model_ms *ms, struct msgb *msg)
 	}
 	msg->l2h = (void *)&req.data[0];
 
-	fn_sched = sched_fn_ul(ms->state.current_time,
-			       RSL_CHAN_OSMO_PDCH | req.hdr.tn, 0x00);
-	if (OSMO_UNLIKELY(fn_sched != req.hdr.fn)) {
-		LOGPMS(DL1P, LOGL_ERROR, ms,
-		       "GPRS UL BLOCK.req: fn_sched(%u) != fn_req(%u)\n",
-		       fn_sched, req.hdr.fn);
-		/* FIXME: msgb_free(msg); return; */
-	}
-
-	virt_l1_sched_schedule(ms, msg, fn_sched, req.hdr.tn,
+	virt_l1_sched_schedule(ms, msg, req.hdr.fn, req.hdr.tn,
 			       &gsmtapl1_tx_to_virt_um_inst);
 }
 
