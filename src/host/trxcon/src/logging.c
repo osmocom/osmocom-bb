@@ -71,7 +71,7 @@ static struct log_info_cat trxcon_log_info_cat[] = {
 		.name = "DGPRS",
 		.description = "L1 GPRS (MAC layer)",
 		.color = "\033[1;36m",
-		.enabled = 1, .loglevel = LOGL_DEBUG,
+		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
 };
 
