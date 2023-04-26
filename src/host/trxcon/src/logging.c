@@ -92,6 +92,7 @@ static const int trxcon_log_cfg[] = {
 int trxcon_logging_init(void *tall_ctx, const char *category_mask)
 {
 	osmo_init_logging2(tall_ctx, &trxcon_log_info);
+	log_target_file_switch_to_wqueue(osmo_stderr_target);
 
 	if (category_mask)
 		log_parse_category_mask(osmo_stderr_target, category_mask);
