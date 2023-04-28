@@ -135,7 +135,9 @@ static int modem_l23_subscr_signal_cb(unsigned int subsys, unsigned int signal,
 	case S_L23_SUBSCR_SIM_AUTH_RESP:
 		sim_auth_resp = signal_data;
 		ms = sim_auth_resp->ms;
-		/* TODO: pass sim_auth_resp->sres to GMM layer */
+		modem_gmm_gmmreg_sim_auth_rsp(ms, sim_auth_resp->sres,
+					      ms->subscr.key,
+					      sizeof(ms->subscr.key));
 		break;
 	default:
 		OSMO_ASSERT(0);

@@ -20,6 +20,11 @@
 #include <osmocom/bb/common/sim.h>
 #include <osmocom/bb/common/l1ctl.h>
 
+struct osmobb_ms_gmm_layer {
+	uint8_t ac_ref_nr;
+	uint8_t key_seq;
+	uint8_t rand[16];
+};
 
 struct osmosap_entity {
 	struct osmo_fsm_inst *fi;
@@ -93,6 +98,7 @@ struct osmocom_ms {
 
 	/* GPRS */
 	struct gprs_settings gprs;
+	struct osmobb_ms_gmm_layer gmmlayer;
 
 	/* Audio I/O */
 	struct gapk_io_state *gapk_io;

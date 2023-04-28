@@ -65,6 +65,22 @@ static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_
 				     __func__, pdu_name, cause, get_value_string(gsm48_gmm_cause_names, cause));
 			}
 			break;
+		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_SIM_AUTH, PRIM_OP_INDICATION):
+			LOGP(DGMM, LOGL_NOTICE, "%s(): Rx %s ac_ref_nr=%u key_seq=%u rand=%s\n",
+			     __func__, pdu_name,
+			     gmm_prim->gmmreg.sim_auth_ind.ac_ref_nr,
+			     gmm_prim->gmmreg.sim_auth_ind.key_seq,
+			     osmo_hexdump(gmm_prim->gmmreg.sim_auth_ind.rand,
+					  sizeof(gmm_prim->gmmreg.sim_auth_ind.rand)));
+			/* Cache request information, it'll be needed during response time: */
+			ms->gmmlayer.ac_ref_nr = gmm_prim->gmmreg.sim_auth_ind.ac_ref_nr;
+			ms->gmmlayer.key_seq = gmm_prim->gmmreg.sim_auth_ind.key_seq;
+			memcpy(ms->gmmlayer.rand, gmm_prim->gmmreg.sim_auth_ind.rand,
+			       sizeof(ms->gmmlayer.rand));
+			/* Request SIM to authenticate. Wait for signal S_L23_SUBSCR_SIM_AUTH_RESP. */
+			rc = gsm_subscr_generate_kc(ms, gmm_prim->gmmreg.sim_auth_ind.key_seq,
+						    gmm_prim->gmmreg.sim_auth_ind.rand, false);
+			break;
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_CONFIRM):
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_INDICATION):
 		default:
@@ -183,5 +199,25 @@ int modem_gmm_gmmreg_detach_req(const struct osmocom_ms *ms)
 	rc = osmo_gprs_gmm_prim_upper_down(gmm_prim);
 	if (rc < 0)
 		LOGP(DMM, LOGL_ERROR, "Failed submitting GMMREG-DETACH.req\n");
+	return rc;
+}
+
+int modem_gmm_gmmreg_sim_auth_rsp(const struct osmocom_ms *ms, uint8_t *sres, uint8_t *kc, uint8_t kc_len)
+{
+	struct osmo_gprs_gmm_prim *gmm_prim;
+	int rc;
+
+	gmm_prim = osmo_gprs_gmm_prim_alloc_gmmreg_sim_auth_rsp();
+	gmm_prim->gmmreg.sim_auth_rsp.ac_ref_nr = ms->gmmlayer.ac_ref_nr;
+	gmm_prim->gmmreg.sim_auth_rsp.key_seq = ms->gmmlayer.key_seq;
+	memcpy(gmm_prim->gmmreg.sim_auth_rsp.rand, ms->gmmlayer.rand,
+	       sizeof(gmm_prim->gmmreg.sim_auth_rsp.rand));
+	memcpy(gmm_prim->gmmreg.sim_auth_rsp.sres, sres,
+	       sizeof(gmm_prim->gmmreg.sim_auth_rsp.sres));
+	memcpy(gmm_prim->gmmreg.sim_auth_rsp.kc, kc,
+	       kc_len);
+	rc = osmo_gprs_gmm_prim_upper_down(gmm_prim);
+	if (rc < 0)
+		LOGP(DMM, LOGL_ERROR, "Failed submitting GMMREG-SIM_AUTH.rsp\n");
 	return rc;
 }
