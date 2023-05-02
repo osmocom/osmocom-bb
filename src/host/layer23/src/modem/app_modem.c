@@ -54,14 +54,58 @@
 #include <osmocom/bb/modem/sm.h>
 #include <osmocom/bb/modem/vty.h>
 #include <osmocom/bb/modem/grr.h>
+#include <osmocom/bb/modem/modem.h>
 
 #include <l1ctl_proto.h>
 
 #include "config.h"
 
-static struct {
-	struct osmocom_ms *ms;
-} app_data;
+struct modem_app app_data;
+
+static bool modem_can_gprs_attach(const struct osmocom_ms *ms)
+{
+	const struct gsm_subscriber *subscr = &ms->subscr;
+	const struct gsm322_cellsel *cs = &ms->cellsel;
+	const struct gsm48_sysinfo *si = &cs->sel_si;
+
+	if (!subscr->sim_valid)
+		goto ret_false;
+
+	if (!si->si1 || !si->si3 || !si->si4 || !si->si13)
+		goto ret_false;
+
+	if (!si->gprs.supported)
+		goto ret_false;
+
+	return true;
+
+ret_false:
+	LOGP(DRLCMAC, LOGL_INFO, "Delaying GPRS attach, waiting for:%s%s%s%s%s%s\n",
+	     subscr->sim_valid ? "" : " imsi",
+	     si->si1 ? "" : " si1",
+	     si->si3 ? "" : " si3",
+	     si->si4 ? "" : " si4",
+	     si->si13 ? "" : " si13",
+	     si->gprs.supported ? "" : " GprsIndicator");
+	return false;
+}
+
+int modem_gprs_attach_if_needed(struct osmocom_ms *ms)
+{
+	int rc;
+
+	if (app_data.modem_state != MODEM_ST_IDLE)
+		return 0;
+
+	if (!modem_can_gprs_attach(ms))
+		return 0;
+
+	app_data.modem_state = MODEM_ST_ATTACHING;
+	rc = modem_gmm_gmmreg_attach_req(ms);
+	if (rc < 0)
+		app_data.modem_state = MODEM_ST_IDLE;
+	return rc;
+}
 
 /* Local network-originated IP packet, needs to be sent via SNDCP/LLC (GPRS) towards GSM network */
 static int modem_tun_data_ind_cb(struct osmo_tundev *tun, struct msgb *msg)
@@ -126,7 +170,7 @@ static int modem_l23_subscr_signal_cb(unsigned int subsys, unsigned int signal,
 	switch (signal) {
 	case S_L23_SUBSCR_SIM_ATTACHED:
 		ms = signal_data;
-		modem_gmm_gmmreg_attach_req(ms);
+		modem_gprs_attach_if_needed(ms);
 		break;
 	case S_L23_SUBSCR_SIM_DETACHED:
 		ms = signal_data;

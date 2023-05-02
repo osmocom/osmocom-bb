@@ -44,6 +44,7 @@
 #include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/modem/gmm.h>
+#include <osmocom/bb/modem/modem.h>
 
 static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_data)
 {
@@ -59,10 +60,13 @@ static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_
 				LOGP(DGMM, LOGL_NOTICE, "%s(): Rx %s: Attach success P-TMSI=0x%08x\n",
 				     __func__, pdu_name, gmm_prim->gmmreg.attach_cnf.acc.allocated_ptmsi);
 				ms->subscr.ptmsi = gmm_prim->gmmreg.attach_cnf.acc.allocated_ptmsi;
+				app_data.modem_state = MODEM_ST_ATTACHED;
 			} else {
 				uint8_t cause = gmm_prim->gmmreg.attach_cnf.rej.cause;
 				LOGP(DGMM, LOGL_ERROR, "%s(): Rx %s: Attach rejected, cause=%u (%s)\n",
 				     __func__, pdu_name, cause, get_value_string(gsm48_gmm_cause_names, cause));
+				app_data.modem_state = MODEM_ST_IDLE;
+				modem_gprs_attach_if_needed(ms);
 			}
 			break;
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_SIM_AUTH, PRIM_OP_INDICATION):

@@ -40,6 +40,7 @@
 #include <osmocom/bb/common/sysinfo.h>
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/ms.h>
+#include <osmocom/bb/modem/modem.h>
 
 #include <osmocom/bb/mobile/gsm322.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
@@ -115,6 +116,7 @@ static int grr_handle_si1(struct osmocom_ms *ms, struct msgb *msg)
 		return rc;
 	}
 
+	modem_gprs_attach_if_needed(ms);
 	return 0;
 }
 
@@ -150,6 +152,7 @@ static int grr_handle_si3(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DRR, LOGL_NOTICE, "Found GPRS Indicator (RA Colour %u, SI13 on BCCH %s)\n",
 	     cs->sel_si.gprs.ra_colour, cs->sel_si.gprs.si13_pos ? "Ext" : "Norm");
 
+	modem_gprs_attach_if_needed(ms);
 	return 0;
 }
 
@@ -177,6 +180,7 @@ static int grr_handle_si4(struct osmocom_ms *ms, struct msgb *msg)
 	LOGP(DRR, LOGL_NOTICE, "Found GPRS Indicator (RA Colour %u, SI13 on BCCH %s)\n",
 	     cs->sel_si.gprs.ra_colour, cs->sel_si.gprs.si13_pos ? "Ext" : "Norm");
 
+	modem_gprs_attach_if_needed(ms);
 	return 0;
 }
 
@@ -198,6 +202,8 @@ static int grr_handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 	/* Forward SI13 to RLC/MAC layer */
 	rlcmac_prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_data_ind(0 /* TODO: fn */, msgb_l3(msg));
 	rc = osmo_gprs_rlcmac_prim_lower_up(rlcmac_prim);
+
+	modem_gprs_attach_if_needed(ms);
 	return rc;
 }
 
