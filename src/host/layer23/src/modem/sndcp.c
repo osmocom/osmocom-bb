@@ -146,6 +146,7 @@ static int modem_sndcp_prim_snsm_cb(struct osmo_gprs_sndcp_prim *sndcp_prim, voi
 	case OSMO_PRIM(OSMO_GPRS_SM_SMREG_PDP_ACTIVATE, PRIM_OP_RESPONSE):
 		LOGP(DSNDCP, LOGL_INFO, "%s(): Rx %s\n", __func__, npdu_name);
 		rc = osmo_gprs_sm_prim_sndcp_upper_down(sndcp_prim);
+		rc = 1; /* Tell SNDCP layer we took msgb ownership and transfer it to SM */
 		break;
 	default:
 		LOGP(DSNDCP, LOGL_ERROR, "%s(): Unexpected Rx %s\n", __func__, npdu_name);
