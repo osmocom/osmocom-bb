@@ -229,8 +229,6 @@ int modem_sm_smreg_pdp_act_req(const struct osmocom_ms *ms, const struct osmobb_
 	struct osmo_gprs_sm_prim *sm_prim;
 	const struct gsm_subscriber *subscr = &ms->subscr;
 	enum osmo_gprs_sm_pdp_addr_ietf_type pdp_addr_ietf_type;
-	uint8_t nsapi = 6;
-	enum osmo_gprs_sm_llc_sapi llc_sapi = OSMO_GPRS_SM_LLC_SAPI_SAPI3;
 	struct osmo_sockaddr pdp_addr_any = {0};
 	uint8_t qos[OSMO_GPRS_SM_QOS_MAXLEN] = {0};
 	uint8_t pco[OSMO_GPRS_SM_QOS_MAXLEN] = {0};
@@ -248,8 +246,8 @@ int modem_sm_smreg_pdp_act_req(const struct osmocom_ms *ms, const struct osmobb_
 	}
 
 	sm_prim = osmo_gprs_sm_prim_alloc_smreg_pdp_act_req();
-	sm_prim->smreg.pdp_act_req.nsapi = nsapi;
-	sm_prim->smreg.pdp_act_req.llc_sapi = llc_sapi;
+	sm_prim->smreg.pdp_act_req.nsapi = apn->pdp.nsapi;
+	sm_prim->smreg.pdp_act_req.llc_sapi = apn->pdp.llc_sapi;
 	sm_prim->smreg.pdp_act_req.pdp_addr_ietf_type = pdp_addr_ietf_type;
 	sm_prim->smreg.pdp_act_req.pdp_addr_v4 = pdp_addr_any;
 	sm_prim->smreg.pdp_act_req.pdp_addr_v6 = pdp_addr_any;

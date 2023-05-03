@@ -23,6 +23,8 @@
 
 #include <talloc.h>
 
+#include <osmocom/gprs/sm/sm.h>
+
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
@@ -49,6 +51,9 @@ struct osmobb_apn *apn_alloc(struct osmocom_ms *ms, const char *name)
 	osmo_tundev_set_priv_data(apn->tun, apn);
 
 	apn->ms = ms;
+	/* FIXME: may want to configure or pick free one in the future: */
+	apn->pdp.nsapi = 6;
+	apn->pdp.llc_sapi = OSMO_GPRS_SM_LLC_SAPI_SAPI3;
 	llist_add_tail(&apn->list, &ms->gprs.apn_list);
 	return apn;
 

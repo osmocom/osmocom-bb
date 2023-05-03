@@ -28,6 +28,11 @@ struct osmocom_ms;
 #define APN_TYPE_IPv6	0x02	/* v6-only */
 #define APN_TYPE_IPv4v6	0x04	/* v4v6 dual-stack */
 
+struct osmobb_pdp_ctx {
+	uint8_t nsapi;
+	uint8_t llc_sapi;
+};
+
 struct osmobb_apn {
 	/* list of APNs inside MS */
 	struct llist_head list;
@@ -52,6 +57,7 @@ struct osmobb_apn {
 	} cfg;
 	struct osmo_tundev *tun;
 	struct apn_fsm_ctx fsm;
+	struct osmobb_pdp_ctx pdp;
 };
 
 struct osmobb_apn *apn_alloc(struct osmocom_ms *ms, const char *name);
