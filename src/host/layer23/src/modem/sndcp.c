@@ -117,6 +117,7 @@ static int modem_sndcp_prim_down_cb(struct osmo_gprs_llc_prim *llc_prim, void *u
 
 	switch (OSMO_PRIM_HDR(&llc_prim->oph)) {
 	case OSMO_PRIM(OSMO_GPRS_LLC_LL_UNITDATA, PRIM_OP_REQUEST):
+	case OSMO_PRIM(OSMO_GPRS_LLC_LL_XID, PRIM_OP_REQUEST):
 		LOGP(DSNDCP, LOGL_DEBUG, "%s(): Rx %s TLLI=0x%08x SAPI=%s L3=[%s]\n",
 		     __func__, pdu_name,
 		     llc_prim->ll.tlli, osmo_gprs_llc_sapi_name(llc_prim->ll.sapi),
