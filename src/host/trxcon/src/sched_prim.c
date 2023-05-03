@@ -35,7 +35,8 @@
 #include <osmocom/bb/l1sched/l1sched.h>
 #include <osmocom/bb/l1sched/logging.h>
 
-#define L1SCHED_PRIM_HEADROOM	128
+#define L1SCHED_PRIM_HEADROOM	64
+#define L1SCHED_PRIM_TAILROOM	64
 
 osmo_static_assert(sizeof(struct l1sched_prim) <= L1SCHED_PRIM_HEADROOM, l1sched_prim_size);
 
@@ -61,12 +62,11 @@ void l1sched_prim_init(struct msgb *msg,
 }
 
 struct msgb *l1sched_prim_alloc(enum l1sched_prim_type type,
-				enum osmo_prim_operation op,
-				size_t extra_size)
+				enum osmo_prim_operation op)
 {
 	struct msgb *msg;
 
-	msg = msgb_alloc_headroom(L1SCHED_PRIM_HEADROOM + extra_size,
+	msg = msgb_alloc_headroom(L1SCHED_PRIM_HEADROOM + L1SCHED_PRIM_TAILROOM,
 				  L1SCHED_PRIM_HEADROOM, "l1sched_prim");
 	if (msg == NULL)
 		return NULL;
@@ -89,7 +89,7 @@ static struct msgb *prim_compose_mr(struct l1sched_lchan_state *lchan)
 	bool cached;
 
 	/* Allocate a new primitive */
-	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST, GSM_MACBLOCK_LEN);
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST);
 	OSMO_ASSERT(msg != NULL);
 
 	prim = l1sched_prim_from_msgb(msg);
@@ -469,7 +469,7 @@ void l1sched_lchan_prim_assign_dummy(struct l1sched_lchan_state *lchan)
 	if (!prim_len)
 		return;
 
-	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST, prim_len);
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST);
 	OSMO_ASSERT(msg != NULL);
 
 	prim = l1sched_prim_from_msgb(msg);
@@ -498,7 +498,7 @@ int l1sched_lchan_emit_data_ind(struct l1sched_lchan_state *lchan,
 
 	lchan_desc = &l1sched_lchan_desc[lchan->type];
 
-	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_INDICATION, data_len);
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_INDICATION);
 	OSMO_ASSERT(msg != NULL);
 
 	prim = l1sched_prim_from_msgb(msg);

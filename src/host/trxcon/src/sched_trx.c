@@ -74,7 +74,7 @@ static int l1sched_cfg_pchan_comb_ind(struct l1sched_state *sched,
 	struct l1sched_prim *prim;
 	struct msgb *msg;
 
-	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_PCHAN_COMB, PRIM_OP_INDICATION, 0);
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_PCHAN_COMB, PRIM_OP_INDICATION);
 	OSMO_ASSERT(msg != NULL);
 
 	prim = l1sched_prim_from_msgb(msg);

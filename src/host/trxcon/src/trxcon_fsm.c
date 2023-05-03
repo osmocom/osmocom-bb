@@ -286,7 +286,7 @@ static void handle_tx_access_burst_req(struct osmo_fsm_inst *fi,
 	struct l1sched_prim *prim;
 	struct msgb *msg;
 
-	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_RACH, PRIM_OP_REQUEST, 0);
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_RACH, PRIM_OP_REQUEST);
 	OSMO_ASSERT(msg != NULL);
 
 	prim = l1sched_prim_from_msgb(msg);
@@ -492,7 +492,7 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 		struct l1sched_prim *prim;
 		struct msgb *msg;
 
-		msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST, req->data_len);
+		msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST);
 		OSMO_ASSERT(msg != NULL);
 
 		prim = l1sched_prim_from_msgb(msg);
@@ -563,7 +563,7 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 		if (l1gprs_handle_ul_block_req(trxcon->gprs, &block_req, msg) != 0)
 			return;
 
-		msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST, block_req.data_len);
+		msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST);
 		OSMO_ASSERT(msg != NULL);
 
 		prim = l1sched_prim_from_msgb(msg);

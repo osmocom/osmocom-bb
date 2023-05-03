@@ -66,7 +66,7 @@ static int handle_sch_ind(struct l1sched_state *sched, uint32_t fn, uint8_t bsic
 	struct l1sched_prim *prim;
 	struct msgb *msg;
 
-	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_SCH, PRIM_OP_INDICATION, 0);
+	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_SCH, PRIM_OP_INDICATION);
 	OSMO_ASSERT(msg != NULL);
 
 	prim = l1sched_prim_from_msgb(msg);
