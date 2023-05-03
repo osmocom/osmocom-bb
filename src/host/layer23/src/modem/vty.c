@@ -257,12 +257,16 @@ DEFUN(cfg_ms_no_apn, cfg_ms_no_apn_cmd, "no apn APN_NAME",
 {
 	struct osmocom_ms *ms = vty->index;
 	struct osmobb_apn *apn;
+	bool on = false;
 
 	apn = ms_find_apn_by_name(ms, argv[0]);
 	if (!apn) {
 		vty_out(vty, "Unable to find APN '%s'%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
+
+	/* Disable APN before getting rid of it. */
+	osmo_fsm_inst_dispatch(apn->fsm.fi, APN_EV_GPRS_ALLOWED, &on);
 
 	apn_free(apn);
 
@@ -326,9 +330,12 @@ DEFUN(cfg_apn_shutdown, cfg_apn_shutdown_cmd,
 	"Put the APN in administrative shut-down\n")
 {
 	struct osmobb_apn *apn = (struct osmobb_apn *) vty->index;
+	bool on = false;
+	int rc;
 
 	if (!apn->cfg.shutdown) {
-		if (apn_stop(apn)) {
+		rc = osmo_fsm_inst_dispatch(apn->fsm.fi, APN_EV_GPRS_ALLOWED, &on);
+		if (rc < 0) {
 			vty_out(vty, "%% Failed to Stop APN%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
@@ -343,13 +350,16 @@ DEFUN(cfg_apn_no_shutdown, cfg_apn_no_shutdown_cmd,
 	NO_STR "Remove the APN from administrative shut-down\n")
 {
 	struct osmobb_apn *apn = (struct osmobb_apn *) vty->index;
+	bool on = true;
+	int rc;
 
 	if (apn->cfg.shutdown) {
 		if (!apn->cfg.dev_name) {
 			vty_out(vty, "%% Failed to start APN, tun-device is not configured%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
-		if (apn_start(apn) < 0) {
+		rc = osmo_fsm_inst_dispatch(apn->fsm.fi, APN_EV_GPRS_ALLOWED, &on);
+		if (rc < 0) {
 			vty_out(vty, "%% Failed to start APN, check log for details%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}

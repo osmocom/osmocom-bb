@@ -20,6 +20,7 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/tun.h>
+#include <osmocom/bb/common/apn_fsm.h>
 
 struct osmocom_ms;
 
@@ -50,6 +51,7 @@ struct osmobb_apn {
 		bool tx_gpdu_seq;
 	} cfg;
 	struct osmo_tundev *tun;
+	struct apn_fsm_ctx fsm;
 };
 
 struct osmobb_apn *apn_alloc(struct osmocom_ms *ms, const char *name);

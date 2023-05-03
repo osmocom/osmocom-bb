@@ -50,24 +50,28 @@
 static int modem_sm_handle_pdp_act_cnf(struct osmocom_ms *ms, struct osmo_gprs_sm_prim *sm_prim)
 {
 	const char *pdu_name = osmo_gprs_sm_prim_name(sm_prim);
-	struct osmobb_apn *apn = llist_first_entry_or_null(&ms->gprs.apn_list, struct osmobb_apn, list);
+	struct osmobb_apn *apn = NULL, *apn_it;
 	struct osmo_netdev *netdev;
 	char buf_addr[INET6_ADDRSTRLEN];
 	char buf_addr2[INET6_ADDRSTRLEN];
 	int rc;
 
+	llist_for_each_entry(apn_it, &ms->gprs.apn_list, list) {
+		if (apn_it->fsm.fi->state == APN_ST_ACTIVATING) {
+			apn = apn_it;
+			break;
+		}
+	}
+
 	if (!apn) {
 		LOGP(DSM, LOGL_ERROR, "Rx %s but have no APN!\n", pdu_name);
-		return -ENOENT;
-	}
-	if (apn->cfg.shutdown) {
-		LOGPAPN(LOGL_ERROR, apn, "Rx %s but APN is administratively shutdown!\n", pdu_name);
 		return -ENOENT;
 	}
 
 	if (!sm_prim->smreg.pdp_act_cnf.accepted) {
 		LOGPAPN(LOGL_ERROR, apn, "Rx %s: Activate PDP failed! cause '%s'\n", pdu_name,
 			get_value_string(gsm48_gsm_cause_names, sm_prim->smreg.pdp_act_cnf.rej.cause));
+		osmo_fsm_inst_dispatch(apn->fsm.fi, APN_EV_RX_SM_ACT_PDP_CTX_REJ, NULL);
 		/* TODO: maybe retry ? */
 		return 0;
 	}
@@ -117,6 +121,8 @@ static int modem_sm_handle_pdp_act_cnf(struct osmocom_ms *ms, struct osmo_gprs_s
 
 	/* TODO: Handle PCO */
 	/* TODO: Handle QoS */
+
+	osmo_fsm_inst_dispatch(apn->fsm.fi, APN_EV_RX_SM_ACT_PDP_CTX_ACC, NULL);
 	return rc;
 }
 

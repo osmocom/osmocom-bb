@@ -35,25 +35,33 @@ struct osmobb_apn *apn_alloc(struct osmocom_ms *ms, const char *name)
 	if (!apn)
 		return NULL;
 
+	if (apn_fsm_ctx_init(&apn->fsm, apn) != 0)
+		goto ret_free;
+
 	talloc_set_name(apn, "apn_%s", name);
 	apn->cfg.name = talloc_strdup(apn, name);
 	apn->cfg.shutdown = true;
 	apn->cfg.tx_gpdu_seq = true;
 
 	apn->tun = osmo_tundev_alloc(apn, name);
-	if (!apn->tun) {
-		talloc_free(apn);
-		return NULL;
-	}
+	if (!apn->tun)
+		goto ret_free_fsm;
 	osmo_tundev_set_priv_data(apn->tun, apn);
 
 	apn->ms = ms;
 	llist_add_tail(&apn->list, &ms->gprs.apn_list);
 	return apn;
+
+ret_free_fsm:
+	apn_fsm_ctx_release(&apn->fsm);
+ret_free:
+	talloc_free(apn);
+	return NULL;
 }
 
 void apn_free(struct osmobb_apn *apn)
 {
+	apn_fsm_ctx_release(&apn->fsm);
 	llist_del(&apn->list);
 	osmo_tundev_free(apn->tun);
 	talloc_free(apn);

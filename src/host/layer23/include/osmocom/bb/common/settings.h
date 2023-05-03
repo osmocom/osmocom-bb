@@ -205,6 +205,7 @@ struct gprs_settings {
 int gprs_settings_init(struct osmocom_ms *ms);
 int gprs_settings_fi(struct osmocom_ms *ms);
 struct osmobb_apn *ms_find_apn_by_name(struct osmocom_ms *ms, const char *apn_name);
+int ms_dispatch_all_apn(struct osmocom_ms *ms, uint32_t event, void *data);
 
 extern char *layer2_socket_path;
 

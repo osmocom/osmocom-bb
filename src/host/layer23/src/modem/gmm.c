@@ -64,10 +64,12 @@ static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_
 				ms->subscr.ptmsi = gmm_prim->gmmreg.attach_cnf.acc.allocated_ptmsi;
 				app_data.modem_state = MODEM_ST_ATTACHED;
 				/* Activate APN if not yet already: */
-				apn = llist_first_entry_or_null(&ms->gprs.apn_list, struct osmobb_apn, list);
-				if (!apn || apn->cfg.shutdown)
-					break;
-				modem_sm_smreg_pdp_act_req(ms, apn);
+				llist_for_each_entry(apn, &ms->gprs.apn_list, list) {
+					if (apn->fsm.fi->state != APN_ST_INACTIVE)
+						continue;
+					osmo_fsm_inst_dispatch(apn->fsm.fi, APN_EV_GMM_ATTACHED, NULL);
+					modem_sm_smreg_pdp_act_req(ms, apn);
+				}
 			} else {
 				uint8_t cause = gmm_prim->gmmreg.attach_cnf.rej.cause;
 				LOGP(DGMM, LOGL_ERROR, "%s(): Rx %s: Attach rejected, cause=%u (%s)\n",
@@ -94,6 +96,9 @@ static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_
 			break;
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_CONFIRM):
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_INDICATION):
+				LOGP(DGMM, LOGL_NOTICE, "%s(): Rx %s\n", __func__, pdu_name);
+				ms_dispatch_all_apn(ms, APN_EV_GMM_DETACHED, NULL);
+			break;
 		default:
 			LOGP(DGMM, LOGL_ERROR, "%s(): Rx %s UNIMPLEMENTED\n", __func__, pdu_name);
 			break;

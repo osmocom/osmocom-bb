@@ -252,3 +252,14 @@ struct osmobb_apn *ms_find_apn_by_name(struct osmocom_ms *ms, const char *apn_na
 	}
 	return NULL;
 }
+
+int ms_dispatch_all_apn(struct osmocom_ms *ms, uint32_t event, void *data)
+{
+	struct gprs_settings *set = &ms->gprs;
+	int rc = 0;
+	struct osmobb_apn *apn;
+
+	llist_for_each_entry(apn, &set->apn_list, list)
+		rc |= osmo_fsm_inst_dispatch(apn->fsm.fi, event, data);
+	return rc;
+}
