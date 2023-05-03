@@ -162,6 +162,7 @@ int modem_sm_prim_sndcp_up_cb(struct osmo_gprs_sndcp_prim *sndcp_prim, void *use
 		case OSMO_PRIM(OSMO_GPRS_SNDCP_SNSM_ACTIVATE, PRIM_OP_INDICATION):
 			LOGP(DSM, LOGL_INFO, "%s(): Rx %s\n", __func__, pdu_name);
 			rc = osmo_gprs_sndcp_prim_dispatch_snsm(sndcp_prim);
+			rc = 1; /* Tell SM that we take ownership of the prim. */
 			break;
 		default:
 			LOGP(DSM, LOGL_ERROR, "%s(): Unexpected Rx %s\n", __func__, pdu_name);
