@@ -238,17 +238,24 @@ static int grr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
 
 	/* Discard CS channel assignment */
-	if ((ia->page_mode >> 4) == 0)
+	if ((ia->page_mode >> 4) == 0) {
+		LOGP(DRR, LOGL_INFO, "%s(): Discard CS channel assignment\n", __func__);
 		return 0;
+	}
 
-	if (rr->state != GSM48_RR_ST_CONN_PEND)
+	if (rr->state != GSM48_RR_ST_CONN_PEND) {
+		LOGP(DRR, LOGL_INFO, "%s(): rr_state != GSM48_RR_ST_CONN_PEND\n", __func__);
 		return 0;
-	if (!grr_match_req_ref(ms, &ia->req_ref))
+	}
+	if (!grr_match_req_ref(ms, &ia->req_ref)) {
+		LOGP(DRR, LOGL_INFO, "%s(): req_ref mismatch (RA=0x%02x, T1=%u, T3=%u, T2=%u)\n",
+		     __func__, ia->req_ref.ra, ia->req_ref.t1,
+		     ia->req_ref.t3_high << 3 | ia->req_ref.t3_low, ia->req_ref.t2);
 		return 0;
+	}
 
 	if (rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
-		LOGP(DRR, LOGL_ERROR,
-		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		LOGP(DRR, LOGL_ERROR, "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
 		     __func__, ia->chan_desc.chan_nr);
 		return -EINVAL;
 	}
