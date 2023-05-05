@@ -87,10 +87,13 @@ void l1ctl_rx_rach_req(struct l1_model_ms *ms, struct msgb *msg)
 	msg->l2h = msgb_put(msg, sizeof(uint8_t));
 	*msg->l2h = rach_req->ra;
 
-	/* chan_nr need to be encoded here, as it is not set by l23 for
-	 * the rach request, but needed by virt um */
-	ul->chan_nr = RSL_CHAN_RACH;
-	ul->link_id = LID_DEDIC;
+	/* use the indicated RSL chan_nr/link_id, if provided */
+	if (ul->chan_nr == 0x00) {
+		LOGPMS(DL1C, LOGL_NOTICE, ms,
+		       "The UL info header is empty, assuming RACH is on TS0\n");
+		ul->chan_nr = RSL_CHAN_RACH;
+		ul->link_id = LID_DEDIC;
+	}
 
 	/* sched fn calculation if we have a combined ccch channel configuration */
 	if (rach_req->combined) {
@@ -103,7 +106,8 @@ void l1ctl_rx_rach_req(struct l1_model_ms *ms, struct msgb *msg)
 	} else
 		fn_sched = l1s->current_time.fn + offset;
 
-	virt_l1_sched_schedule(ms, msg, fn_sched, 0, &virt_l1_sched_handler_cb);
+	virt_l1_sched_schedule(ms, msg, fn_sched, ul->chan_nr & 0x07,
+			       &virt_l1_sched_handler_cb);
 }
 
 /**
