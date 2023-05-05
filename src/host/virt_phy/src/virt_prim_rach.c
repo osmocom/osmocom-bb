@@ -75,7 +75,6 @@ void l1ctl_rx_rach_req(struct l1_model_ms *ms, struct msgb *msg)
 	struct l1ctl_info_ul *ul = (struct l1ctl_info_ul *) l1h->data;
 	struct l1ctl_rach_req *rach_req = (struct l1ctl_rach_req *) ul->payload;
 	uint32_t fn_sched;
-	uint8_t ts = 1; /* FIXME mostly, ts 1 is used for rach, where can i get that info? System info? */
 	uint16_t offset = ntohs(rach_req->offset);
 
 	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
@@ -90,7 +89,7 @@ void l1ctl_rx_rach_req(struct l1_model_ms *ms, struct msgb *msg)
 
 	/* chan_nr need to be encoded here, as it is not set by l23 for
 	 * the rach request, but needed by virt um */
-	ul->chan_nr = rsl_enc_chan_nr(RSL_CHAN_RACH, 0, ts);
+	ul->chan_nr = RSL_CHAN_RACH;
 	ul->link_id = LID_DEDIC;
 
 	/* sched fn calculation if we have a combined ccch channel configuration */
@@ -104,7 +103,7 @@ void l1ctl_rx_rach_req(struct l1_model_ms *ms, struct msgb *msg)
 	} else
 		fn_sched = l1s->current_time.fn + offset;
 
-	virt_l1_sched_schedule(ms, msg, fn_sched, ts, &virt_l1_sched_handler_cb);
+	virt_l1_sched_schedule(ms, msg, fn_sched, 0, &virt_l1_sched_handler_cb);
 }
 
 /**
