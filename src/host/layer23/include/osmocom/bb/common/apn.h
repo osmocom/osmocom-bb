@@ -20,6 +20,9 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/tun.h>
+
+#include <osmocom/gprs/sm/sm.h>
+
 #include <osmocom/bb/common/apn_fsm.h>
 
 struct osmocom_ms;
@@ -31,6 +34,10 @@ struct osmocom_ms;
 struct osmobb_pdp_ctx {
 	uint8_t nsapi;
 	uint8_t llc_sapi;
+	uint8_t qos[OSMO_GPRS_SM_QOS_MAXLEN];
+	uint8_t qos_len;
+	uint8_t pco[OSMO_GPRS_SM_PCO_MAXLEN];
+	uint8_t pco_len;
 };
 
 struct osmobb_apn {

@@ -233,8 +233,6 @@ int modem_sm_smreg_pdp_act_req(const struct osmocom_ms *ms, const struct osmobb_
 	const struct gsm_subscriber *subscr = &ms->subscr;
 	enum osmo_gprs_sm_pdp_addr_ietf_type pdp_addr_ietf_type;
 	struct osmo_sockaddr pdp_addr_any = {0};
-	uint8_t qos[OSMO_GPRS_SM_QOS_MAXLEN] = {0};
-	uint8_t pco[OSMO_GPRS_SM_QOS_MAXLEN] = {0};
 	int rc;
 
 	if (apn->cfg.apn_type_mask & APN_TYPE_IPv4v6) {
@@ -254,10 +252,10 @@ int modem_sm_smreg_pdp_act_req(const struct osmocom_ms *ms, const struct osmobb_
 	sm_prim->smreg.pdp_act_req.pdp_addr_ietf_type = pdp_addr_ietf_type;
 	sm_prim->smreg.pdp_act_req.pdp_addr_v4 = pdp_addr_any;
 	sm_prim->smreg.pdp_act_req.pdp_addr_v6 = pdp_addr_any;
-	memcpy(sm_prim->smreg.pdp_act_req.qos, qos, sizeof(qos));
-	sm_prim->smreg.pdp_act_req.qos_len = 1;
-	memcpy(sm_prim->smreg.pdp_act_req.pco, pco, sizeof(pco));
-	sm_prim->smreg.pdp_act_req.pco_len = 1;
+	memcpy(sm_prim->smreg.pdp_act_req.qos, apn->pdp.qos, apn->pdp.qos_len);
+	sm_prim->smreg.pdp_act_req.qos_len = apn->pdp.qos_len;
+	memcpy(sm_prim->smreg.pdp_act_req.pco, apn->pdp.pco, apn->pdp.pco_len);
+	sm_prim->smreg.pdp_act_req.pco_len = apn->pdp.pco_len;
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.apn, apn->cfg.name);
 	sm_prim->smreg.pdp_act_req.gmm.ptmsi = subscr->ptmsi;
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imsi, subscr->imsi);

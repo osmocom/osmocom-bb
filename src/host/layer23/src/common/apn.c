@@ -54,6 +54,11 @@ struct osmobb_apn *apn_alloc(struct osmocom_ms *ms, const char *name)
 	/* FIXME: may want to configure or pick free one in the future: */
 	apn->pdp.nsapi = 6;
 	apn->pdp.llc_sapi = OSMO_GPRS_SM_LLC_SAPI_SAPI3;
+
+	/* QoS zeroed to 14 bytes is a valid QoS seen sent by some phones. Use
+	 * that as default for now. */
+	apn->pdp.qos_len = 14;
+
 	llist_add_tail(&apn->list, &ms->gprs.apn_list);
 	return apn;
 
