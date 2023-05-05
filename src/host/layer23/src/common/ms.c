@@ -16,6 +16,7 @@
  * GNU General Public License for more details.
  *
  */
+#include <osmocom/gsm/gsm48.h>
 
 #include <osmocom/bb/common/ms.h>
 
@@ -53,6 +54,8 @@ struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 
 	ms->l2_wq.bfd.fd = -1;
 	ms->sap_wq.bfd.fd = -1;
+
+	ms->gmmlayer.tlli = GSM_RESERVED_TMSI;
 
 	/* Register a new MS */
 	llist_add_tail(&ms->entity, &ms_list);

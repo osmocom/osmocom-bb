@@ -76,6 +76,9 @@ static int modem_sm_handle_pdp_act_cnf(struct osmocom_ms *ms, struct osmo_gprs_s
 		return 0;
 	}
 
+	ms->subscr.ptmsi = sm_prim->smreg.pdp_act_cnf.acc.gmm.allocated_ptmsi;
+	ms->gmmlayer.tlli = sm_prim->smreg.pdp_act_cnf.acc.gmm.allocated_tlli;
+
 	netdev = osmo_tundev_get_netdev(apn->tun);
 	switch (sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_ietf_type) {
 	case OSMO_GPRS_SM_PDP_ADDR_IETF_IPV4:

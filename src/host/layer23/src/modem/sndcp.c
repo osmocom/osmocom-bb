@@ -75,7 +75,7 @@ static int modem_sndcp_handle_sn_unitdata_ind(struct osmobb_apn *apn, struct osm
 static int modem_sndcp_prim_up_cb(struct osmo_gprs_sndcp_prim *sndcp_prim, void *user_data)
 {
 	struct osmocom_ms *ms = user_data;
-	struct osmobb_apn *apn;
+	struct osmobb_apn *apn = NULL, *apn_it;
 	const char *npdu_name = osmo_gprs_sndcp_prim_name(sndcp_prim);
 	int rc = 0;
 
@@ -84,8 +84,17 @@ static int modem_sndcp_prim_up_cb(struct osmo_gprs_sndcp_prim *sndcp_prim, void 
 		OSMO_ASSERT(0);
 	}
 
-	/* TODO: properly retrieve APN/PDP based on TLLI/SAPI/NSAPI: */
-	apn = llist_first_entry_or_null(&ms->gprs.apn_list, struct osmobb_apn, list);
+	if (ms->gmmlayer.tlli != sndcp_prim->sn.tlli) {
+		LOGP(DSNDCP, LOGL_ERROR, "%s(): Rx %s: MS has no TLLI=0x%08x\n", __func__, npdu_name, sndcp_prim->sn.tlli);
+		return -ENOENT;
+	}
+
+	llist_for_each_entry(apn_it, &ms->gprs.apn_list, list) {
+		if (apn_it->pdp.nsapi != sndcp_prim->sn.unitdata_ind.nsapi)
+			continue;
+		apn = apn_it;
+		break;
+	}
 	if (!apn) {
 		LOGP(DSNDCP, LOGL_NOTICE, "Unable to find destination APN: Rx %s\n", npdu_name);
 		return -ENODEV;
@@ -179,10 +188,9 @@ int modem_sndcp_sn_xid_req(struct osmobb_apn *apn)
 	struct osmocom_ms *ms = apn->ms;
 	struct gprs_settings *set = &ms->gprs;
 
-	/* TODO: look up PDP context IDs from ms once we have GMM layer. */
-	uint32_t tlli = 0xe1c5d364;
-
-	sndcp_prim = osmo_gprs_sndcp_prim_alloc_sn_xid_req(tlli, apn->pdp.llc_sapi, apn->pdp.nsapi);
+	sndcp_prim = osmo_gprs_sndcp_prim_alloc_sn_xid_req(ms->gmmlayer.tlli,
+							   apn->pdp.llc_sapi,
+							   apn->pdp.nsapi);
 	OSMO_ASSERT(sndcp_prim);
 	sndcp_prim->sn.xid_req.pcomp_rfc1144.active = set->pcomp_rfc1144.active;
 	sndcp_prim->sn.xid_req.pcomp_rfc1144.s01 = set->pcomp_rfc1144.s01;
@@ -199,10 +207,10 @@ int modem_sndcp_sn_unitdata_req(struct osmobb_apn *apn, uint8_t *npdu, size_t np
 	struct osmo_gprs_sndcp_prim *sndcp_prim;
 	int rc;
 
-	/* TODO: look up PDP context IDs from apn->ms once we have GMM layer. */
-	uint32_t tlli = 0xe1c5d364;
-
-	sndcp_prim = osmo_gprs_sndcp_prim_alloc_sn_unitdata_req(tlli, apn->pdp.llc_sapi, apn->pdp.nsapi, npdu, npdu_len);
+	sndcp_prim = osmo_gprs_sndcp_prim_alloc_sn_unitdata_req(apn->ms->gmmlayer.tlli,
+								apn->pdp.llc_sapi,
+								apn->pdp.nsapi,
+								npdu, npdu_len);
 	OSMO_ASSERT(sndcp_prim);
 	rc = osmo_gprs_sndcp_prim_upper_down(sndcp_prim);
 	return rc;

@@ -24,6 +24,7 @@ struct osmobb_ms_gmm_layer {
 	uint8_t ac_ref_nr;
 	uint8_t key_seq;
 	uint8_t rand[16];
+	uint32_t tlli;
 };
 
 struct osmosap_entity {
