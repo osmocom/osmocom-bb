@@ -26,6 +26,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/gsm/gsm0502.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/virtphy/l1ctl_sap.h>
@@ -97,11 +98,12 @@ void l1ctl_rx_rach_req(struct l1_model_ms *ms, struct msgb *msg)
 		/* add elapsed RACH slots to offset */
 		offset += t3_to_rach_comb[l1s->current_time.t3];
 		/* offset is the number of RACH slots in the future */
-		fn_sched = l1s->current_time.fn - l1s->current_time.t3;
+		fn_sched = GSM_TDMA_FN_SUB(l1s->current_time.fn, l1s->current_time.t3);
 		fn_sched += offset / 27 * 51;
 		fn_sched += rach_to_t3_comb[offset % 27];
+		fn_sched %= GSM_TDMA_HYPERFRAME;
 	} else
-		fn_sched = l1s->current_time.fn + offset;
+		fn_sched = GSM_TDMA_FN_SUM(l1s->current_time.fn, offset);
 
 	virt_l1_sched_schedule(ms, msg, fn_sched, ul->chan_nr & 0x07,
 			       &virt_l1_sched_handler_cb);
