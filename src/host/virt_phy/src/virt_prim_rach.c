@@ -80,9 +80,6 @@ void l1ctl_rx_rach_req(struct l1_model_ms *ms, struct msgb *msg)
 	LOGPMS(DL1C, LOGL_INFO, ms, "Rx L1CTL_RACH_REQ (ra=0x%02x, offset=%d combined=%d)\n",
 		rach_req->ra, offset, rach_req->combined);
 
-	if (rach_req->ra == 0x03)
-		fn_sched = 42;
-
 	/* set ra data to msg (8bits, the 11bit option is not used for GSM) */
 	msg->l2h = msgb_put(msg, sizeof(uint8_t));
 	*msg->l2h = rach_req->ra;
