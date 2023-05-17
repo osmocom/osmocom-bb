@@ -177,7 +177,7 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	subscr->ptmsi = GSM_RESERVED_TMSI;
 	subscr->always_search_hplmn = set->test_always;
 	subscr->t6m_hplmn = 1; /* try to find home network every 6 min */
-	strcpy(subscr->imsi, set->test_imsi);
+	OSMO_STRLCPY_ARRAY(subscr->imsi, set->test_imsi);
 
 	LOGP(DMM, LOGL_INFO, "(ms %s) Inserting test card (IMSI=%s %s, %s)\n",
 		ms->name, subscr->imsi, gsm_imsi_mcc(subscr->imsi),
