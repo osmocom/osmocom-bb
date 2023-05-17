@@ -1,6 +1,8 @@
 #ifndef _SUBSCRIBER_H
 #define _SUBSCRIBER_H
 
+#include <stdbool.h>
+
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
 
@@ -106,8 +108,8 @@ int gsm_subscr_sap_rsp_cb(struct osmocom_ms *ms, int res_code,
 void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
 	int8_t mode);
 int gsm_subscr_write_loci(struct osmocom_ms *ms);
-int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
-	uint8_t *rand, uint8_t no_sim);
+int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq, const uint8_t *rand,
+			   bool no_sim);
 void new_sim_ustate(struct gsm_subscriber *subscr, int state);
 int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 	uint16_t mnc);

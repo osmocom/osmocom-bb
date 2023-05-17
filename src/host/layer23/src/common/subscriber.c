@@ -51,6 +51,11 @@ static int gsm_subscr_insert_sapcard(struct osmocom_ms *ms);
 
 static int gsm_subscr_remove_sapcard(struct osmocom_ms *ms);
 
+static int gsm_subscr_generate_kc_simcard(struct osmocom_ms *ms, uint8_t key_seq,
+					  const uint8_t *rand, uint8_t no_sim);
+static int gsm_subscr_generate_kc_testcard(struct osmocom_ms *ms, uint8_t key_seq,
+					   const uint8_t *rand, uint8_t no_sim);
+
 static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_update_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg);
@@ -214,6 +219,40 @@ void new_sim_ustate(struct gsm_subscriber *subscr, int state)
 	subscr->ustate = state;
 }
 
+int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq, const uint8_t *rand,
+			   bool no_sim)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct osmobb_l23_subscr_sim_auth_resp_sig_data sd;
+	int rc;
+
+	if (no_sim || subscr->sim_type == GSM_SIM_TYPE_NONE || !subscr->sim_valid) {
+		LOGP(DMM, LOGL_INFO, "Sending dummy authentication response\n");
+		sd.ms = ms;
+		sd.sres[0] = 0x12;
+		sd.sres[1] = 0x34;
+		sd.sres[2] = 0x56;
+		sd.sres[3] = 0x78;
+		osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_AUTH_RESP, &sd);
+		return 0;
+	}
+
+	switch (subscr->sim_type) {
+	case GSM_SIM_TYPE_TEST:
+		rc = gsm_subscr_generate_kc_testcard(ms, key_seq, rand, no_sim);
+		break;
+	case GSM_SIM_TYPE_L1PHY:
+	case GSM_SIM_TYPE_SAP:
+		/* trigger sim card reader process */
+		rc = gsm_subscr_generate_kc_simcard(ms, key_seq, rand, no_sim);
+		break;
+	default:
+		OSMO_ASSERT(0);
+	}
+
+	return rc;
+}
+
 /*
  * test card
  */
@@ -267,6 +306,37 @@ int gsm_subscr_insert_testcard(struct osmocom_ms *ms)
 
 	/* insert card */
 	osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_ATTACHED, ms);
+	return 0;
+}
+
+static int gsm_subscr_generate_kc_testcard(struct osmocom_ms *ms, uint8_t key_seq,
+					   const uint8_t *rand, uint8_t no_sim)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct osmobb_l23_subscr_sim_auth_resp_sig_data sd;
+
+	struct gsm_settings *set = &ms->settings;
+	static struct osmo_sub_auth_data auth = {
+		.type = OSMO_AUTH_TYPE_GSM
+	};
+	struct osmo_auth_vector _vec;
+	struct osmo_auth_vector *vec = &_vec;
+
+	auth.algo = set->test_sim.ki_type;
+	memcpy(auth.u.gsm.ki, set->test_sim.ki, sizeof(auth.u.gsm.ki));
+	int ret = osmo_auth_gen_vec(vec, &auth, rand);
+	if (ret < 0)
+		return ret;
+
+	/* store sequence */
+	subscr->key_seq = key_seq;
+	memcpy(subscr->key, vec->kc, 8);
+
+	LOGP(DMM, LOGL_INFO, "Sending authentication response\n");
+	sd.ms = ms;
+	memcpy(sd.sres, vec->sres, 4);
+	osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_AUTH_RESP, &sd);
+
 	return 0;
 }
 
@@ -933,53 +1003,12 @@ static void subscr_sim_update_cb(struct osmocom_ms *ms, struct msgb *msg)
 	msgb_free(msg);
 }
 
-int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
-	uint8_t *rand, uint8_t no_sim)
+static int gsm_subscr_generate_kc_simcard(struct osmocom_ms *ms, uint8_t key_seq,
+					  const uint8_t *rand, uint8_t no_sim)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 	struct sim_hdr *nsh;
-	struct osmobb_l23_subscr_sim_auth_resp_sig_data sd;
-
-	/* not a SIM */
-	if ((subscr->sim_type != GSM_SIM_TYPE_TEST && !GSM_SIM_IS_READER(subscr->sim_type))
-	 || !subscr->sim_valid || no_sim) {
-		LOGP(DMM, LOGL_INFO, "Sending dummy authentication response\n");
-		sd.ms = ms;
-		sd.sres[0] = 0x12;
-		sd.sres[1] = 0x34;
-		sd.sres[2] = 0x56;
-		sd.sres[3] = 0x78;
-		osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_AUTH_RESP, &sd);
-		return 0;
-	}
-
-	/* test SIM */
-	if (subscr->sim_type == GSM_SIM_TYPE_TEST) {
-		struct gsm_settings *set = &ms->settings;
-		static struct osmo_sub_auth_data auth = {
-			.type = OSMO_AUTH_TYPE_GSM
-		};
-		struct osmo_auth_vector _vec;
-		struct osmo_auth_vector *vec = &_vec;
-
-		auth.algo = set->test_sim.ki_type;
-		memcpy(auth.u.gsm.ki, set->test_sim.ki, sizeof(auth.u.gsm.ki));
-		int ret = osmo_auth_gen_vec(vec, &auth, rand);
-		if (ret < 0)
-			return ret;
-
-		/* store sequence */
-		subscr->key_seq = key_seq;
-		memcpy(subscr->key, vec->kc, 8);
-
-		LOGP(DMM, LOGL_INFO, "Sending authentication response\n");
-		sd.ms = ms;
-		memcpy(sd.sres, vec->sres, 4);
-		osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_AUTH_RESP, &sd);
-
-		return 0;
-	}
 
 	LOGP(DMM, LOGL_INFO, "Generating KEY at SIM\n");
 
