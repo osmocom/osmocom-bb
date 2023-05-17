@@ -56,6 +56,8 @@ static int gsm_subscr_generate_kc_simcard(struct osmocom_ms *ms, uint8_t key_seq
 static int gsm_subscr_generate_kc_testcard(struct osmocom_ms *ms, uint8_t key_seq,
 					   const uint8_t *rand, uint8_t no_sim);
 
+static int gsm_subscr_write_loci_simcard(struct osmocom_ms *ms);
+
 static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_update_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg);
@@ -251,6 +253,29 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq, const uint8_t
 	}
 
 	return rc;
+}
+
+/* update LOCI on SIM */
+int gsm_subscr_write_loci(struct osmocom_ms *ms)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+
+	/* skip, if no real valid SIM */
+	if (subscr->sim_type == GSM_SIM_TYPE_NONE || !subscr->sim_valid)
+		return 0;
+
+	LOGP(DMM, LOGL_INFO, "Updating LOCI on SIM\n");
+
+	switch (subscr->sim_type) {
+	case GSM_SIM_TYPE_L1PHY:
+	case GSM_SIM_TYPE_SAP:
+		return gsm_subscr_write_loci_simcard(ms);
+	case GSM_SIM_TYPE_TEST:
+		LOGP(DMM, LOGL_NOTICE, "Updating LOCI on test SIM: not implemented!\n");
+		return 0; /* TODO */
+	default:
+		OSMO_ASSERT(0);
+	}
 }
 
 /*
@@ -940,18 +965,12 @@ static int subscr_write_plmn_na(struct osmocom_ms *ms)
 }
 
 /* update LOCI on SIM */
-int gsm_subscr_write_loci(struct osmocom_ms *ms)
+static int gsm_subscr_write_loci_simcard(struct osmocom_ms *ms)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 	struct sim_hdr *nsh;
 	struct gsm1111_ef_loci *loci;
-
-	/* skip, if no real valid SIM */
-	if (!GSM_SIM_IS_READER(subscr->sim_type) || !subscr->sim_valid)
-		return 0;
-
-	LOGP(DMM, LOGL_INFO, "Updating LOCI on SIM\n");
 
 	/* write to SIM */
 	nmsg = gsm_sim_msgb_alloc(subscr->sim_handle_update,
