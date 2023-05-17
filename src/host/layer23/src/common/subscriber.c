@@ -1016,19 +1016,20 @@ int gsm_subscr_remove(struct osmocom_ms *ms)
  * state and lists
  */
 
-static const char *subscr_ustate_names[] = {
-	"U0_NULL",
-	"U1_UPDATED",
-	"U2_NOT_UPDATED",
-	"U3_ROAMING_NA"
+const struct value_string gsm_sub_sim_ustate_names[] = {
+	{ GSM_SIM_U0_NULL, "U0_NULL" },
+	{ GSM_SIM_U1_UPDATED, "U1_UPDATED" },
+	{ GSM_SIM_U2_NOT_UPDATED, "U2_NOT_UPDATED" },
+	{ GSM_SIM_U3_ROAMING_NA, "U3_ROAMING_NA" },
+	{ 0, NULL }
 };
 
 /* change to new U state */
 void new_sim_ustate(struct gsm_subscriber *subscr, int state)
 {
 	LOGP(DMM, LOGL_INFO, "(ms %s) new state %s -> %s\n", subscr->ms->name,
-		subscr_ustate_names[subscr->ustate],
-		subscr_ustate_names[state]);
+		gsm_sub_sim_ustate_name(subscr->ustate),
+		gsm_sub_sim_ustate_name(state));
 
 	subscr->ustate = state;
 }
@@ -1153,7 +1154,7 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 	if (subscr->sms_sca[0])
 		print(priv, " SMS Service Center Address: %s\n",
 			subscr->sms_sca);
-	print(priv, " Status: %s  IMSI %s", subscr_ustate_names[subscr->ustate],
+	print(priv, " Status: %s  IMSI %s", gsm_sub_sim_ustate_name(subscr->ustate),
 		(subscr->imsi_attached) ? "attached" : "detached");
 	if (subscr->tmsi != GSM_RESERVED_TMSI)
 		print(priv, "  TMSI 0x%08x", subscr->tmsi);

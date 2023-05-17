@@ -1,13 +1,22 @@
 #ifndef _SUBSCRIBER_H
 #define _SUBSCRIBER_H
 
+#include <osmocom/core/utils.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
 
 /* GSM 04.08 4.1.2.2 SIM update status */
-#define GSM_SIM_U0_NULL		0
-#define GSM_SIM_U1_UPDATED	1
-#define GSM_SIM_U2_NOT_UPDATED	2
-#define GSM_SIM_U3_ROAMING_NA	3
+enum gsm_sub_sim_ustate {
+	GSM_SIM_U0_NULL,
+	GSM_SIM_U1_UPDATED,
+	GSM_SIM_U2_NOT_UPDATED,
+	GSM_SIM_U3_ROAMING_NA,
+};
+extern const struct value_string gsm_sub_sim_ustate_names[];
+static inline const char *gsm_sub_sim_ustate_name(enum gsm_sub_sim_ustate val)
+{
+	return get_value_string(gsm_sub_sim_ustate_names, val);
+}
+
 
 struct gsm_sub_plmn_list {
 	struct llist_head	entry;
@@ -36,7 +45,7 @@ struct gsm_subscriber {
 	/* status */
 	uint8_t			sim_type; /* type of sim */
 	uint8_t			sim_valid; /* sim inserted and valid */
-	uint8_t			ustate; /* update status */
+	enum gsm_sub_sim_ustate	ustate; /* update status */
 	uint8_t			imsi_attached; /* attached state */
 
 	/* IMSI & co */
