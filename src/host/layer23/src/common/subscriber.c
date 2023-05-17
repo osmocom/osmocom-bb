@@ -58,6 +58,9 @@ static int gsm_subscr_generate_kc_testcard(struct osmocom_ms *ms, uint8_t key_se
 
 static int gsm_subscr_write_loci_simcard(struct osmocom_ms *ms);
 
+static int gsm_subscr_sim_pin_simcard(struct osmocom_ms *ms, const char *pin1, const char *pin2,
+				      int8_t mode);
+
 static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_update_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg);
@@ -219,6 +222,28 @@ void new_sim_ustate(struct gsm_subscriber *subscr, int state)
 		gsm_sub_sim_ustate_name(state));
 
 	subscr->ustate = state;
+}
+
+/* enter PIN */
+int gsm_subscr_sim_pin(struct osmocom_ms *ms, const char *pin1, const char *pin2,
+		       int8_t mode)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+
+	/* skip, if no real valid SIM */
+	if (subscr->sim_type == GSM_SIM_TYPE_NONE || !subscr->sim_valid)
+		return 0;
+
+	switch (subscr->sim_type) {
+	case GSM_SIM_TYPE_L1PHY:
+	case GSM_SIM_TYPE_SAP:
+		return gsm_subscr_sim_pin_simcard(ms, pin1, pin2, mode);
+	case GSM_SIM_TYPE_TEST:
+		LOGP(DMM, LOGL_NOTICE, "PIN on test SIM: not implemented!\n");
+		return 0; /* TODO */
+	default:
+		OSMO_ASSERT(0);
+	}
 }
 
 int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq, const uint8_t *rand,
@@ -843,16 +868,12 @@ ignore:
 }
 
 /* enter PIN */
-void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
-	int8_t mode)
+static int gsm_subscr_sim_pin_simcard(struct osmocom_ms *ms, const char *pin1, const char *pin2,
+				      int8_t mode)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 	uint8_t job;
-
-	/* skip, if no real valid SIM */
-	if (!GSM_SIM_IS_READER(subscr->sim_type))
-		return;
 
 	switch (mode) {
 	case -1:
@@ -875,7 +896,7 @@ void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
 	default:
 		if (!subscr->sim_pin_required) {
 			LOGP(DMM, LOGL_ERROR, "No PIN required now\n");
-			return;
+			return 0;
 		}
 		LOGP(DMM, LOGL_INFO, "entering PIN %s\n", pin1);
 		job = SIM_JOB_PIN1_UNLOCK;
@@ -883,10 +904,11 @@ void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
 
 	nmsg = gsm_sim_msgb_alloc(subscr->sim_handle_query, job);
 	if (!nmsg)
-		return;
+		return -ENOMEM;
 	memcpy(msgb_put(nmsg, strlen(pin1) + 1), pin1, strlen(pin1) + 1);
 	memcpy(msgb_put(nmsg, strlen(pin2) + 1), pin2, strlen(pin2) + 1);
 	sim_job(ms, nmsg);
+	return 0;
 }
 
 /* Attach SIM reader, no SIM must be currently attached */

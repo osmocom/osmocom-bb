@@ -105,8 +105,8 @@ int gsm_subscr_remove(struct osmocom_ms *ms);
 
 int gsm_subscr_sap_rsp_cb(struct osmocom_ms *ms, int res_code,
 	uint8_t res_type, uint16_t param_len, const uint8_t *param_val);
-void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
-	int8_t mode);
+int gsm_subscr_sim_pin(struct osmocom_ms *ms, const char *pin1, const char *pin2,
+		       int8_t mode);
 int gsm_subscr_write_loci(struct osmocom_ms *ms);
 int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq, const uint8_t *rand,
 			   bool no_sim);
